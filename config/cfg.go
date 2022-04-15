@@ -14,7 +14,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -62,10 +61,6 @@ func DefaultConfig() *Config {
 			FlushInterval:             "10s",
 			OutputFileInputs:          []string{},
 			EnableCache:               false,
-		},
-
-		DataWay: &dataway.DataWayCfg{
-			URLs: []string{},
 		},
 
 		ProtectMode: true,
@@ -206,11 +201,12 @@ type Config struct {
 
 	InstallVer string `toml:"install_version,omitempty"`
 
-	HTTPAPI *dkhttp.APIConfig   `toml:"http_api"`
-	IOConf  *IOConfig           `toml:"io"`
-	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
-	Sinks   *Sinker             `toml:"sinks"`
-	Logging *LoggerCfg          `toml:"logging"`
+	HTTPAPI    *dkhttp.APIConfig   `toml:"http_api"`
+	IOConf     *IOConfig           `toml:"io"`
+	DataWayCfg *dataway.DataWayCfg `toml:"dataway,omitempty"`
+	DataWay    dataway.DataWay     `toml:"-"`
+	Sinks      *Sinker             `toml:"sinks"`
+	Logging    *LoggerCfg          `toml:"logging"`
 
 	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
 	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
@@ -318,30 +314,36 @@ func (c *Config) InitCfg(p string) error {
 }
 
 func (c *Config) setupDataway() error {
-	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
-	// 避免俩边配置了同样的 dataway, 造成数据混乱
-	if c.DataWay.DeprecatedURL != "" && len(c.DataWay.URLs) == 0 {
-		c.DataWay.URLs = []string{c.DataWay.DeprecatedURL}
+	if c.DataWayCfg == nil {
+		return fmt.Errorf("dataway config is empty")
 	}
 
-	if len(c.DataWay.URLs) == 0 {
-		return fmt.Errorf("dataway not set")
-	}
-	if c.DataWay.URLs[0] == datakit.DatawayDisableURL {
-		c.RunMode = datakit.ModeDev
-		return nil
-	} else {
-		c.RunMode = datakit.ModeNormal
+	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
+	// 避免俩边配置了同样的 dataway, 造成数据混乱
+	if c.DataWayCfg.DeprecatedURL != "" && len(c.DataWayCfg.URLs) == 0 {
+		c.DataWayCfg.URLs = []string{c.DataWayCfg.DeprecatedURL}
 	}
 
 	dataway.ExtraHeaders = map[string]string{
 		"X-Datakit-Info": fmt.Sprintf("%s; %s", c.Hostname, datakit.Version),
 	}
 
-	c.DataWay.Hostname = c.Hostname
+	c.DataWay = &dataway.DataWayDefault{}
 
-	// setup dataway
-	return c.DataWay.Apply()
+	c.DataWayCfg.Hostname = c.Hostname
+	if err := c.DataWay.Init(c.DataWayCfg); err != nil {
+		c.DataWay = nil
+		return err
+	}
+
+	if len(c.DataWayCfg.URLs) > 0 && c.DataWayCfg.URLs[0] == datakit.DatawayDisableURL {
+		c.RunMode = datakit.ModeDev
+		return nil
+	} else {
+		c.RunMode = datakit.ModeNormal
+	}
+
+	return nil
 }
 
 func (c *Config) setupGlobalTags() error {
@@ -442,8 +444,10 @@ func (c *Config) ApplyMainConfig() error {
 		}
 	}
 
-	if err := c.setupDataway(); err != nil {
-		return err
+	if c.DataWayCfg != nil {
+		if err := c.setupDataway(); err != nil {
+			return err
+		}
 	}
 
 	datakit.AutoUpdate = c.AutoUpdate
@@ -614,10 +618,10 @@ func (c *Config) LoadEnvs() error {
 
 	// 多个 dataway 支持 ',' 分割
 	if v := datakit.GetEnv("ENV_DATAWAY"); v != "" {
-		if c.DataWay == nil {
-			c.DataWay = &dataway.DataWayCfg{}
+		if c.DataWayCfg == nil {
+			c.DataWayCfg = &dataway.DataWayCfg{}
 		}
-		c.DataWay.URLs = strings.Split(v, ",")
+		c.DataWayCfg.URLs = strings.Split(v, ",")
 	}
 
 	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
@@ -903,17 +907,14 @@ func symlink(src, dst string) error {
 }
 
 func GetToken() string {
-	urls := Cfg.DataWay.URLs
+	if Cfg.DataWay == nil {
+		return ""
+	}
 
-	if len(urls) > 0 {
-		url := urls[0] // only choose the first
-		reg := regexp.MustCompile(`.*token=(.*)$`)
-		if reg != nil {
-			result := reg.FindAllStringSubmatch(url, -1)
-			if len(result) > 0 && len(result[0]) > 1 {
-				return result[0][1]
-			}
-		}
+	tokens := Cfg.DataWay.GetTokens()
+
+	if len(tokens) > 0 {
+		return tokens[0]
 	}
 
 	return ""

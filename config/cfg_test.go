@@ -203,7 +203,7 @@ func TestLoadEnv(t *testing.T) {
 				cfg := DefaultConfig()
 
 				cfg.Name = "testing-datakit"
-				cfg.DataWay = &dataway.DataWayCfg{URLs: []string{"http://host1.org", "http://host2.com"}}
+				cfg.DataWayCfg = &dataway.DataWayCfg{URLs: []string{"http://host1.org", "http://host2.com"}}
 
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"
 				cfg.HTTPAPI.Listen = "localhost:9559"

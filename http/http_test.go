@@ -83,8 +83,9 @@ func TestRestartAPI(t *testing.T) {
 		"http://4.3.2.1?token=tkn_abc456",
 	}
 
-	dw = &dataway.DataWayCfg{URLs: tokens}
-	if err := dw.Apply(); err != nil {
+	dwCfg := &dataway.DataWayCfg{URLs: tokens}
+	dw = &dataway.DataWayDefault{}
+	if err := dw.Init(dwCfg); err != nil {
 		t.Error(err)
 	}
 

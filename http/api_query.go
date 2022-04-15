@@ -70,7 +70,7 @@ func apiQueryRaw(c *gin.Context) {
 	}
 
 	if q.Token == "" {
-		tkns := dw.GetToken()
+		tkns := dw.GetTokens()
 		if len(tkns) == 0 {
 			uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
 			return

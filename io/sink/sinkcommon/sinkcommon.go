@@ -40,6 +40,14 @@ type ISink interface {
 	Write(pts []ISinkPoint) error
 }
 
+type SinkUnsupportError struct {
+	err string
+}
+
+func (e *SinkUnsupportError) Error() string {
+	return e.err
+}
+
 //----------------------------------------------------------------------
 
 type SinkCreator func() ISink

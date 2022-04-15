@@ -35,7 +35,10 @@ func tryLoadMainCfg() {
 }
 
 func getcli() *http.Client {
-	proxy := config.Cfg.DataWay.HTTPProxy
+	var proxy string
+	if config.Cfg.DataWayCfg != nil {
+		proxy = config.Cfg.DataWayCfg.HTTPProxy
+	}
 
 	cliopt := &ihttp.Options{
 		InsecureSkipVerify: true,

@@ -15,6 +15,9 @@ type logFilterMock interface {
 type prodLogFilterMock struct{}
 
 func (*prodLogFilterMock) getLogFilter() ([]byte, error) {
+	if defaultIO.dw == nil {
+		return []byte{}, nil
+	}
 	return defaultIO.dw.GetLogFilter()
 }
 

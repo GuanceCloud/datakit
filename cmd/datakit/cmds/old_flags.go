@@ -556,8 +556,14 @@ func runOldStyleCmds() {
 
 	if FlagUploadLog {
 		tryLoadMainCfg()
+
+		if config.Cfg.DataWayCfg == nil {
+			errorf("[E] upload log failed: dataway should be set\n")
+			os.Exit(-1)
+		}
+
 		infof("Upload log start...\n")
-		if err := uploadLog(config.Cfg.DataWay.URLs); err != nil {
+		if err := uploadLog(config.Cfg.DataWayCfg.URLs); err != nil {
 			errorf("[E] upload log failed : %s\n", err.Error())
 			os.Exit(-1)
 		}

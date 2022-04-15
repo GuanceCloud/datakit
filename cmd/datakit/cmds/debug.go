@@ -106,8 +106,13 @@ func runDebugFlags() error {
 		os.Exit(0)
 
 	case *flagDebugLoadLog:
+		tryLoadMainCfg()
+		if config.Cfg.DataWayCfg == nil {
+			infof("[E] upload log failed: Dataway is required")
+			os.Exit(-1)
+		}
 		infof("Upload log start...\n")
-		if err := uploadLog(config.Cfg.DataWay.URLs); err != nil {
+		if err := uploadLog(config.Cfg.DataWayCfg.URLs); err != nil {
 			errorf("[E] upload log failed : %s\n", err.Error())
 			os.Exit(-1)
 		}

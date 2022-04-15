@@ -25,7 +25,7 @@ func apiWorkspace(c *gin.Context) {
 		uhttp.HttpErr(c, fmt.Errorf("dataway not set"))
 		return
 	}
-	tkns := dw.GetToken()
+	tkns := dw.GetTokens()
 	if len(tkns) == 0 {
 		uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
 		return

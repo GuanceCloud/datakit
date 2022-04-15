@@ -49,18 +49,18 @@ const (
 type candidate struct {
 	status                         string
 	id, namespace                  string
-	dw                             *dataway.DataWayCfg
+	dw                             dataway.DataWay
 	plugins                        []inputs.ElectionInput
 	ElectedTime                    time.Time
 	nElected, nHeartbeat, nOffline int
 }
 
-func Start(namespace, id string, dw *dataway.DataWayCfg) {
+func Start(namespace, id string, dw dataway.DataWay) {
 	log = logger.SLogger("dk-election")
 	defaultCandidate.run(namespace, id, dw)
 }
 
-func (x *candidate) run(namespace, id string, dw *dataway.DataWayCfg) {
+func (x *candidate) run(namespace, id string, dw dataway.DataWay) {
 	x.id = id
 	x.namespace = namespace
 	x.dw = dw
