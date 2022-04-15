@@ -11,6 +11,8 @@ import (
 	"reflect"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -100,6 +102,14 @@ func (s *SinkM3db) Write(pts []sinkcommon.ISinkPoint) error {
 		l.Debugf("from points to make PromWriteRequest data, len is 0")
 	}
 	return nil
+}
+
+func (s *SinkM3db) GetInfo() *sinkcommon.SinkInfo {
+	return &sinkcommon.SinkInfo{
+		ID:         s.id,
+		CreateID:   creatorID,
+		Categories: []string{datakit.SinkCategoryMetric},
+	}
 }
 
 func pointToPromData(pts []sinkcommon.ISinkPoint) []*TimeSeries {
