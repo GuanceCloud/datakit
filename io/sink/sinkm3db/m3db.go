@@ -11,11 +11,10 @@ import (
 	"reflect"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
@@ -31,8 +30,8 @@ var (
 )
 
 type SinkM3db struct {
-	id            string
-	promRemoteURL string
+	id   string
+	addr string
 
 	client *client
 }
@@ -44,14 +43,10 @@ func (s *SinkM3db) GetID() string {
 func (s *SinkM3db) LoadConfig(mConf map[string]interface{}) error {
 	l = logger.SLogger("m3db")
 
-	if id, err := dkstring.GetMapAssertString("id", mConf); err != nil {
+	if id, err := dkstring.GetMapMD5String(mConf); err != nil {
 		return err
 	} else {
-		idNew, err := dkstring.CheckNotEmpty(id, "id")
-		if err != nil {
-			return err
-		}
-		s.id = idNew
+		s.id = id
 	}
 
 	if addr, err := dkstring.GetMapAssertString("addr", mConf); err != nil {
@@ -61,13 +56,12 @@ func (s *SinkM3db) LoadConfig(mConf map[string]interface{}) error {
 		if err != nil {
 			return err
 		}
-		s.promRemoteURL = addrNew
+		s.addr = addrNew
 	}
-	// 其他字段
 
 	// 初始化 prom client
 	cfg := NewConfig(
-		WriteURLOption(s.promRemoteURL),
+		WriteURLOption(s.addr),
 		HTTPClientTimeoutOption(defaulHTTPClientTimeout),
 		UserAgent(defaultUserAgent),
 	)
@@ -81,7 +75,7 @@ func (s *SinkM3db) LoadConfig(mConf map[string]interface{}) error {
 		return err
 	}
 	s.client = client
-	l.Infof("init m3db client ok")
+	l.Infof("init {m3db = %+v } ok", s)
 	sinkcommon.AddImpl(s)
 	return nil
 }
@@ -124,7 +118,6 @@ func pointToPromData(pts []sinkcommon.ISinkPoint) []*TimeSeries {
 			res := makeSeries(jsonPrint.Tags, key, val, jsonPrint.Time)
 			tslist = append(tslist, res...)
 		}
-		// todo 其他数据
 	}
 	return tslist
 }
@@ -145,14 +138,14 @@ func makeSeries(tags map[string]string, key string, i interface{}, dataTime time
 	}
 	labels = append(labels, Label{Name: model.MetricNameLabel, Value: key})
 	switch i.(type) {
-	case int, int32, int64:
+	case int, int16, int32, int64:
 		if val, ok := i.(int64); ok { // todo test
 			return []*TimeSeries{{Labels: labels, Datapoint: Datapoint{
 				Timestamp: dataTime,
 				Value:     float64(val),
 			}}}
 		}
-	case uint32, uint64:
+	case uint, uint32, uint64:
 		if val, ok := i.(uint64); ok {
 			return []*TimeSeries{{Labels: labels, Datapoint: Datapoint{
 				Timestamp: dataTime,
@@ -166,6 +159,8 @@ func makeSeries(tags map[string]string, key string, i interface{}, dataTime time
 				Value:     val,
 			}}}
 		}
+	case string:
+		// 丢弃 string 类型的 val
 	default:
 		// 不能使用 map[]interface{} 去接收 map[string]int 或者 map[string]int64 等类型。
 		// 也不能使用 []interface{} 去接收数组 []int []int64 等。
@@ -204,7 +199,7 @@ func makeSeries(tags map[string]string, key string, i interface{}, dataTime time
 			}
 			return ts
 		}
-		l.Infof("default metric data")
+		l.Debugf("default metric data kind=%s", v.Kind().String())
 	}
 	return []*TimeSeries{}
 }
