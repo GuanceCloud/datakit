@@ -54,6 +54,7 @@ func exportService(items []v1.Service, extraTags tagsType) k8sResourceStats {
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
+		obj.fields.delete("annotations")
 
 		obj.time = time.Now()
 		res.set(defaultNamespace(item.Namespace), obj)
