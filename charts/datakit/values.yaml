@@ -2,26 +2,28 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+datakit:
+  dataway_url: https://openway.guance.com?token=<your-token>
+
+  global_tags: host=__datakit_hostname,host_ip=__datakit_ip
+
+  default_enabled_inputs: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
+
+  enabled_election: true
+
+  log: stdout
+
+  http_listen: 0.0.0.0:9529
 
 image:
   repository: pubrepo.guance.com/datakit/datakit
-  pullPolicy: IfNotPresent
+
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
 # https://www.yuque.com/dataflux/datakit/datakit-install#f9858758
 
-dataway_url: https://openway.guance.com?token=<your-token>
 
-global_tags: host=__datakit_hostname,host_ip=__datakit_ip
-
-default_enabled_inputs: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
-
-enabled_election: enable
-
-log: stdout
-
-http_listen: 0.0.0.0:9529
 
 git_repos:
   enable: false
@@ -30,6 +32,7 @@ git_repos:
   git_key_pw: "-"
   git_branch: "master"
   git_interval: "1m"
+  is_use_key: false
 
 
 extraEnvs: []
@@ -76,3 +79,4 @@ dkconfig: []
 #          # some_tag = "some_value"
 #          # more_tag = "some_other_value"
 #
+kubeStateMetricsEnabled: true

@@ -10,18 +10,18 @@ image:
   tag: "{{tag}}"
 
 # https://www.yuque.com/dataflux/datakit/datakit-install#f9858758
+datakit:
+  dataway_url: https://openway.guance.com?token=<your-token>
 
-dataway_url: https://openway.guance.com?token=<your-token>
+  global_tags: host=__datakit_hostname,host_ip=__datakit_ip
 
-global_tags: host=__datakit_hostname,host_ip=__datakit_ip
+  default_enabled_inputs: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
 
-default_enabled_inputs: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
+  enabled_election: true
 
-enabled_election: true
+  log: stdout
 
-log: stdout
-
-http_listen: 0.0.0.0:9529
+  http_listen: 0.0.0.0:9529
 
 git_repos:
   enable: false
@@ -30,8 +30,9 @@ git_repos:
   git_key_pw: "-"
   git_branch: "master"
   git_interval: "1m"
+  is_use_key: false
 
-
+# Datakit custom env
 extraEnvs: []
 #  - name: "NODE_OPTIONS"
 #    value: "--max-old-space-size=1800"
@@ -44,7 +45,8 @@ podAnnotations:
   datakit/logs: |
     [{"disable": true}]
 
-
+## Tolerations for pod assignment
+## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
 tolerations:
   - operator: Exists
 
@@ -76,3 +78,4 @@ dkconfig: []
 #          # more_tag = "some_other_value"
 #
 
+kubeStateMetricsEnabled: true

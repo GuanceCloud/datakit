@@ -1,0 +1,119 @@
+questions:
+#image Configurationss
+- variable: defaultImage
+  default: true
+  description: "Use default DataKit image or specify a custom one"
+  label: Use Default DataKit Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "DataKit/agent"
+    description: "DataKit image name"
+    type: string
+    label: DataKit Image Name
+  - variable: image.tag
+    default: "latest"
+    description: "DataKit Image Tag"
+    type: string
+    label: DataKit Image Tag
+
+#Datakit Configuration
+- variable: datakit.dataway_url
+  required: true
+  default: ""
+  description: "Must be modified.The host of the DataKit intake server to send Agent data to, only set this option if you need the Agent to send data to a custom URL"
+  type: string
+  label: Dataway URL
+  group: "Datakit Configuration"
+- variable: datakit.default_enabled_inputs
+  default: ""
+  description: "Enable the default collector Configurations. For details, see https://yuque.com/dataflux/datakit/datakit-input-conf#764ffbc2"
+  type: string
+  label: Enable the default_enabled_inputs
+  group: "Datakit Configuration"
+- variable: datakit.global_tags
+  default: ""
+  description: "Datakit allows you to configure global tags for all the data it collects. These tags will be added to each piece of data collected by the Datakit by default. For details, see https://www.yuque.com/dataflux/datakit/datakit-conf#53181faf"
+  type: string
+  label: DataKit global tags
+  group: "Datakit Configuration"
+- variable: datakit.log
+  default: "info"
+  description: "Set DataKit logging level"
+  type: enum
+  options:
+    - "stdout"
+    - "debug"
+    - "info"
+    - "warn"
+    - "error"
+  label: Log Level
+  group: "Datakit Configuration"
+
+
+#DataKit Use Git Management Configurations
+- variable: git_repos.enable
+  default: false
+  description: "Enable Use Git Management Configurations"
+  label: Enable Use Git Management Configurations
+  type: boolean
+  group: "Git Management Configurations"
+
+- variable: git_repos.is_use_key
+  default: false
+  description: "Enable git SSH key"
+  label: Enable git SSH key
+  type: boolean
+  group: "Git Management Configurations"
+  show_if: "git_repos.enable=true"
+
+- variable: git_repos.git_url
+  default: ""
+  description: "You Can Set git@github.com:path/to/repository.git or http://username:password@github.com/path/to/repository.git. For details, see https://www.yuque.com/dataflux/datakit/datakit-conf#90362fd0"
+  type: string
+  label: The Git Hub Url
+  group: "Git Management Configurations"
+  show_if: "git_repos.enable=true"
+
+- variable: git_repos.git_key_path
+  default: ""
+  description: "The Git Ssh Key Content, For details, -----BEGIN OPENSSH PRIVATE KEY-----xxxxx-----END OPENSSH PRIVATE KEY-----"
+  type: string
+  label: The Git Ssh Key Content
+  group: "Git Management Configurations"
+  show_if: "git_repos.enable=true&&git_repos.is_use_key=true"
+
+- variable: git_repos.git_key_pw
+  default: ""
+  description: "The Git Ssh Key Content Password"
+  type: string
+  label: The Git Ssh Key Password
+  group: "Git Management Configurations"
+  show_if: "git_repos.enable=true&&git_repos.is_use_key=true"
+
+- variable: git_repos.git_branch
+  default: ""
+  description: "The DataKit Git Hub Branch"
+  type: string
+  label: The Git Branch
+  group: "Git Management Configurations"
+  show_if: "git_repos.enable=true"
+
+- variable: git_repos.git_interval
+  default: ""
+  description: "The Synchronization Configuration Interval"
+  type: string
+  label: The Git Pull Interval
+  group: "Git Management Configurations"
+  show_if: "git_repos.enable=true"
+
+
+  #Kube State Metrics
+- variable: kubeStateMetrics.enabled
+  default: true
+  description: "Create a kube-state-metrics deployment"
+  type: boolean
+  label: Deployment KubeState Metrics Deployment
+  group: "Kube-State-Metrics"
