@@ -23,6 +23,7 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
@@ -39,21 +40,32 @@ type enabledInput struct {
 }
 
 type runtimeInfo struct {
-	Goroutines int    `json:"goroutines"`
-	HeapAlloc  uint64 `json:"heap_alloc"`
-	Sys        uint64 `json:"total_sys"`
+	Goroutines int     `json:"goroutines"`
+	HeapAlloc  uint64  `json:"heap_alloc"`
+	Sys        uint64  `json:"total_sys"`
+	CPUUsage   float64 `json:"cpu_usage"`
 
-	GCPauseTotal uint64 `json:"gc_pause_total"`
-	GCNum        uint32 `json:"gc_num"`
+	GCPauseTotal uint64        `json:"gc_pause_total"`
+	GCNum        uint32        `json:"gc_num"`
+	GCAvgCost    time.Duration `json:"gc_avg_bytes"`
 }
 
 func getRuntimeInfo() *runtimeInfo {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
+
+	var usage float64
+	if u, err := cgroup.GetCPUPercent(0); err != nil {
+		l.Warnf("get CPU usage failed: %s, ignored", err.Error())
+	} else {
+		usage = u
+	}
+
 	return &runtimeInfo{
 		Goroutines: runtime.NumGoroutine(),
 		HeapAlloc:  m.HeapAlloc,
 		Sys:        m.Sys,
+		CPUUsage:   usage,
 
 		GCPauseTotal: m.PauseTotalNs,
 		GCNum:        m.NumGC,
@@ -79,6 +91,7 @@ type DatakitStats struct {
 	IOChanStat   string `json:"io_chan_stats"`
 	PLWorkerStat string `json:"pl_wroker_stats"`
 	Elected      string `json:"elected"`
+	Cgroup       string `json:"cgroup"`
 	CSS          string `json:"-"`
 
 	InputsStats map[string]*io.InputsStat `json:"inputs_status"`
@@ -86,8 +99,10 @@ type DatakitStats struct {
 	IoStats     io.IoStat                 `json:"io_stats"`
 	HTTPMetrics map[string]*apiStat       `json:"http_metrics"`
 
-	WithinDocker bool `json:"docker"`
-	AutoUpdate   bool `json:"auto_update"`
+	WithinDocker bool            `json:"docker"`
+	AutoUpdate   bool            `json:"auto_update"`
+	FilterStats  *io.FilterStats `json:"filter_stats"`
+
 	// markdown options
 	DisableMonofont bool `json:"-"`
 }
@@ -292,7 +307,7 @@ func (x *DatakitStats) GoroutineStatTable() string {
 
 func GetStats() (*DatakitStats, error) {
 	now := time.Now()
-	elected, _ := election.Elected()
+	elected, ns := election.Elected()
 	stats := &DatakitStats{
 		Version:        datakit.Version,
 		BuildAt:        git.BuildAt,
@@ -303,7 +318,8 @@ func GetStats() (*DatakitStats, error) {
 		IOChanStat:     io.ChanStat(),
 		IoStats:        io.GetIoStats(),
 		PLWorkerStat:   plWorker.ShowPLWkrStats().String(),
-		Elected:        elected,
+		Elected:        fmt.Sprintf("%s/%s", elected, ns),
+		Cgroup:         cgroup.Info(),
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),
 		SenderStat:     sender.GetStat(),
@@ -311,6 +327,7 @@ func GetStats() (*DatakitStats, error) {
 		EnabledInputs:  map[string]*enabledInput{},
 		HTTPMetrics:    getMetrics(),
 		GolangRuntime:  getRuntimeInfo(),
+		FilterStats:    io.GetFilterStats(),
 	}
 
 	var err error
@@ -396,18 +413,16 @@ func apiGetDatakitMonitor(c *gin.Context) {
 	c.Data(http.StatusOK, "text/html; charset=UTF-8", out)
 }
 
-func apiGetDatakitStats(c *gin.Context) {
+func apiGetDatakitStats(w http.ResponseWriter, r *http.Request, x ...interface{}) (interface{}, error) {
 	s, err := GetStats()
 	if err != nil {
-		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
-		return
+		return nil, err
 	}
 
 	body, err := json.MarshalIndent(s, "", "    ")
 	if err != nil {
-		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
-		return
+		return nil, err
 	}
 
-	c.Data(http.StatusOK, "application/json", body)
+	return body, nil
 }

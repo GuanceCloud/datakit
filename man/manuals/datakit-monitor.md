@@ -21,7 +21,7 @@ datakit monitor
 
 DataKit 基本 Monitor 页面信息如下图所示：
 
-![基础Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor.png) 
+![基础Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-basic.gif) 
 
 该图中的元素可以通过鼠标或键盘操作。被鼠标选中的块会以双边框突出显示（如上图左上角的 `Basic Info` 块所示），另外，还能通过鼠标滚轮或者键盘上下方向键（或者 vim 的 J/K）来浏览。
 
@@ -34,12 +34,19 @@ DataKit 基本 Monitor 页面信息如下图所示：
 - `Runtime Info` 用来展示 DataKit 的基本运行消耗（主要是内存以及 Goroutine 有关），其中：
 
 	- `Goroutines`：当前正在运行的 Goroutine 个数
-	- `Memory`：DataKit 进程当前实际消耗的内存字节数（*不含外部运行的采集器*）
+	- `Mem`：DataKit 进程当前实际消耗的内存字节数（*不含外部运行的采集器*）
+	- `System`：DataKit 进程当前消耗的虚拟内存（*不含外部运行的采集器*）
 	- `Stack`：当前栈中消耗的内存字节数
 	- `GC Paused`：自 DataKit 启动以来，GC（垃圾回收）所消耗的时间
 	- `GC Count`：自 DataKit 启动以来，GC 次数
 
 > 关于这里的 Runtime Info，参见 [Golang 官方文档](https://pkg.go.dev/runtime#ReadMemStats)
+
+- `Enabled Inputs` 展示开启的采集器列表，其中
+
+	- `Input`：指采集器名称，该名称是固定的，不容修改
+	- `Instances`：指该采集器开启的个数
+	- `Crashed`：指该采集器的崩溃次数
 
 - `Inputs Info`：用来展示每个采集器的采集情况，这里信息较多，下面一一分解
 	- `Input`: 指采集器名称。某些情况下，这个名称是采集器自定义的（比如日志采集器/Prom 采集器）
@@ -60,15 +67,12 @@ DataKit 基本 Monitor 页面信息如下图所示：
 
 如果运行 Monitor 时，指定了 verbose 选项（`-V`），则会额外输出更多信息，如下图所示：
 
-![完整Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-verbose.png) 
-
-- `Enabled Inputs` 展示开启的采集器列表，其中
-
-	- `Input`：指采集器名称，该名称是固定的，不容修改
-	- `Instances`：指该采集器开启的个数
-	- `Crashed`：指该采集器的崩溃次数
+![完整Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-verbose.gif) 
 
 - `Goroutine Groups` 展示 DataKit 中已有的 Goroutine 分组（该分组中的 Goroutine 个数 <= 上面面板中的 `Goroutines` 个数）
+- `HTTP APIs` 展示 DataKit 中 API 调用情况
+- `Filter` 展示 DataKit 中黑名单过滤规则拉取情况
+- `Filter Rules` 展示每类黑名单的过滤情况
 
 - `Sender Info` 展示 Sender 管理的各个 Sink 运行情况
 	- `Sink`: Sink 名称

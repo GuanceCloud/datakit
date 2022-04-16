@@ -28,6 +28,7 @@ type dockerClientX interface {
 	ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error)
 	ContainerTop(ctx context.Context, containerID string, arguments []string) (container.ContainerTopOKBody, error)
 	ContainerLogs(ctx context.Context, containerID string, options types.ContainerLogsOptions) (io.ReadCloser, error)
+	Ping(ctx context.Context) (types.Ping, error)
 }
 
 type dockerClient struct {
@@ -83,4 +84,8 @@ func (c *dockerClient) ContainerTop(ctx context.Context, containerID string, arg
 
 func (c *dockerClient) ContainerLogs(ctx context.Context, containerID string, options types.ContainerLogsOptions) (io.ReadCloser, error) {
 	return c.client.ContainerLogs(ctx, containerID, options)
+}
+
+func (c *dockerClient) Ping(ctx context.Context) (types.Ping, error) {
+	return c.client.Ping(ctx)
 }

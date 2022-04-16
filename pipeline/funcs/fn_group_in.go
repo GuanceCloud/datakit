@@ -27,16 +27,16 @@ func GroupInChecking(ng *parser.EngineData, node parser.Node) error {
 
 	if len(funcExpr.Param) == 4 {
 		switch funcExpr.Param[3].(type) {
-		case *parser.AttrExpr, *parser.StringLiteral:
+		case *parser.AttrExpr, *parser.StringLiteral, *parser.Identifier:
 		default:
-			return fmt.Errorf("param new-key expect AttrExpr or StringLiteral, got %s",
+			return fmt.Errorf("param new-key expect AttrExpr, StringLiteral or Identifier, got %s",
 				reflect.TypeOf(funcExpr.Param[3]).String())
 		}
 	}
 	return nil
 }
 
-func GroupIn(ng *parser.EngineData, node parser.Node) error {
+func GroupIn(ng *parser.EngineData, node parser.Node) interface{} {
 	setdata := make([]interface{}, 0)
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) < 3 || len(funcExpr.Param) > 4 {
@@ -61,7 +61,7 @@ func GroupIn(ng *parser.EngineData, node parser.Node) error {
 		case *parser.AttrExpr, *parser.StringLiteral, *parser.Identifier:
 			newkey = v
 		default:
-			return fmt.Errorf("param new-key expect AttrExpr or StringLiteral, got %s",
+			return fmt.Errorf("param new-key expect AttrExpr, StringLiteral or Identifier, got %s",
 				reflect.TypeOf(funcExpr.Param[3]).String())
 		}
 	}

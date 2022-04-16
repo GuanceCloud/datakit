@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -67,6 +68,7 @@ var (
 	flagDatakitHTTPListen,
 	flagNamespace,
 	flagInstallLog,
+	flagInstallExternals,
 	flagDCAListen,
 	flagDCAWhiteList,
 	flagGitURL,
@@ -94,10 +96,12 @@ var (
 	flagSinkSecurity string
 
 	flagInstallOnly,
-	flagCgroupEnabled,
+	flagCgroupDisabled,
+	envEnableExperimental,
 	flagDatakitHTTPPort int
 
 	flagLimitCPUMax float64
+	flagLimitMemMax int64
 	flagLimitCPUMin float64
 )
 
@@ -123,6 +127,7 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
 	flag.StringVar(&flagHostName, "env_hostname", "", "host name")
 	flag.StringVar(&flagIpdb, "ipdb-type", "", "ipdb type")
+	flag.StringVar(&flagInstallExternals, "install-externals", "", "install some external inputs")
 	flag.StringVar(&flagCloudProvider,
 		"cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
 	flag.StringVar(&flagGitURL, "git-url", "", "git repo url")
@@ -152,16 +157,18 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagSinkRUM, "sink-rum", "", "sink for RUM")
 	flag.StringVar(&flagSinkSecurity, "sink-security", "", "sink for Security")
 
-	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Croup CPU max usage")
-	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Croup CPU min usage")
+	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Cgroup CPU max usage")
+	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Cgroup CPU min usage")
+	flag.Int64Var(&flagLimitMemMax, "limit-mem", 4096, "Cgroup memory limit")
 
-	flag.IntVar(&flagCgroupEnabled, "cgroup-enabled", 0, "enable Cgroup under Linux")
+	flag.IntVar(&flagCgroupDisabled, "cgroup-disabled", 0, "enable disable cgroup(Linux) limits for CPU and memory")
 	flag.IntVar(&flagDatakitHTTPPort, "port", 9529, "datakit HTTP port")
 	flag.IntVar(&flagInstallOnly, "install-only", 0, "install only, not start")
 
 	flag.BoolVar(&flagInfo, "info", false, "show installer info")
 	flag.BoolVar(&flagOffline, "offline", false, "-offline option removed")
 	flag.BoolVar(&flagDownloadOnly, "download-only", false, "only download install packages")
+	flag.IntVar(&envEnableExperimental, "env_enable_experimental", 0, "")
 }
 
 func downloadFiles(to string) error {
@@ -396,6 +403,28 @@ func upgradeDatakit(svc service.Service) error {
 		}
 	}
 
+	installExternals := map[string]struct{}{}
+	for _, v := range strings.Split(flagInstallExternals, ",") {
+		installExternals[v] = struct{}{}
+	}
+	updateEBPF := false
+	if runtime.GOOS == datakit.OSLinux && runtime.GOARCH == "amd64" {
+		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
+			updateEBPF = true
+		}
+		if _, ok := installExternals["datakit-ebpf"]; ok {
+			updateEBPF = true
+		}
+	}
+	if updateEBPF {
+		l.Info("upgrade datakit-ebpf...")
+		// nolint:gosec
+		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
+		if msg, err := cmd.CombinedOutput(); err != nil {
+			l.Errorf("upgrade external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
+		}
+	}
+
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("install datakit service: %s, ignored", err.Error())
 	}
@@ -449,7 +478,7 @@ func installNewDatakit(svc service.Service) {
 	}
 
 	// Only linux support cgroup.
-	if flagCgroupEnabled == 1 && runtime.GOOS == datakit.OSLinux {
+	if flagCgroupDisabled != 1 && runtime.GOOS == datakit.OSLinux {
 		l.Infof("Croups enabled under Linux")
 		mc.Cgroup.Enable = true
 
@@ -463,6 +492,13 @@ func installNewDatakit(svc service.Service) {
 
 		if mc.Cgroup.CPUMax < mc.Cgroup.CPUMin {
 			l.Fatalf("invalid CGroup CPU limit, max should larger than min")
+		}
+
+		if flagLimitMemMax > 0 {
+			l.Infof("cgroup set max memory to %dMB", flagLimitMemMax)
+			mc.Cgroup.MemMax = flagLimitMemMax
+		} else {
+			l.Infof("cgroup max memory not set")
 		}
 	}
 
@@ -547,6 +583,28 @@ func installNewDatakit(svc service.Service) {
 	// build datakit main config
 	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
+	}
+
+	installExternals := map[string]struct{}{}
+	for _, v := range strings.Split(flagInstallExternals, ",") {
+		installExternals[v] = struct{}{}
+	}
+	updateEBPF := false
+	if runtime.GOOS == datakit.OSLinux && runtime.GOARCH == "amd64" {
+		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
+			updateEBPF = true
+		}
+		if _, ok := installExternals["datakit-ebpf"]; ok {
+			updateEBPF = true
+		}
+	}
+	if updateEBPF {
+		l.Info("install datakit-ebpf...")
+		// nolint:gosec
+		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
+		if msg, err := cmd.CombinedOutput(); err != nil {
+			l.Errorf("upgradde external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
+		}
 	}
 
 	l.Infof("installing service %s...", dkservice.ServiceName)
@@ -637,10 +695,14 @@ func writeDefInputToMainCfg(mc *config.Config) {
 
 	mc.EnableDefaultsInputs(flagEnableInputs)
 
-	if err := injectCloudProvider(flagCloudProvider); err != nil {
-		l.Fatalf("failed to inject cloud-provider: %s", err.Error())
+	if flagCloudProvider != "" {
+		if err := injectCloudProvider(flagCloudProvider); err != nil {
+			l.Fatalf("failed to inject cloud-provider: %s", err.Error())
+		} else {
+			l.Infof("set cloud provider to %s ok", flagCloudProvider)
+		}
 	} else {
-		l.Infof("set cloud provider to %s ok", flagCloudProvider)
+		l.Infof("cloud provider not set")
 	}
 
 	l.Debugf("main config:\n%s", mc.String())
@@ -839,7 +901,11 @@ func checkUpgradeVersion(s string) error {
 	}
 
 	if !v.IsStable() {
-		return fmt.Errorf("not stable version, only stable version allowed to upgrade")
+		if envEnableExperimental == 1 {
+			l.Info("upgrade version is unstable")
+		} else {
+			return fmt.Errorf("upgrade to %s is not stable version, use env: <$DK_ENABLE_EXPEIMENTAL=1> to upgrade", DataKitVersion)
+		}
 	}
 	return nil
 }

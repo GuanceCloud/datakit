@@ -23,6 +23,7 @@ import (
 	dkbash "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/bashhistory"
 	dkdns "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/dnsflow"
 	dkfeed "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/feed"
+	dkhttpflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/httpflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/netflow"
 
@@ -116,6 +117,7 @@ func main() {
 	dkdns.SetLogger(l)
 	dkoffset.SetLogger(l)
 	dkbash.SetLogger(l)
+	dkhttpflow.SetLogger(l)
 
 	// duration 介于 10s ～ 30min，若非，默认设为 30s.
 	if tmp, err := time.ParseDuration(opt.Interval); err == nil {
@@ -147,6 +149,7 @@ func main() {
 			l.Warn(err)
 		} else {
 			dknetflow.SetK8sNetInfo(k8sinfo)
+			dkhttpflow.SetK8sNetInfo(k8sinfo)
 		}
 		constEditor := dkoffset.NewConstEditor(offset)
 
@@ -182,6 +185,11 @@ func main() {
 		if err != nil {
 			feedLastErrorLoop(err, signaIterrrupt)
 			return
+		}
+
+		tracer := dkhttpflow.NewHTTPFlowTracer(gTags, ebpfNetPostURL)
+		if err := tracer.Run(ctx); err != nil {
+			l.Error(err)
 		}
 	}
 

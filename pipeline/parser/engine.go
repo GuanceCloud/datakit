@@ -14,7 +14,7 @@ import (
 	"time"
 
 	conv "github.com/spf13/cast"
-	ugrok "github.com/ubwbu/grok"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 )
 
 type phase string
@@ -25,23 +25,16 @@ const (
 )
 
 type (
-	FuncCallback      func(*EngineData, Node) error
+	FuncCallback      func(*EngineData, Node) interface{}
 	FuncCallbackCheck func(*EngineData, Node) error
 )
-
-type Grok struct {
-	GlobalDenormalizedPatterns map[string]string
-
-	DenormalizedPatterns map[string]string
-	CompliedGrokRe       map[string]map[string]*ugrok.GrokRegexp
-}
 
 type EngineData struct {
 	content string
 
 	output *Output
 
-	grok             *Grok
+	grok             *grok.Grok
 	grokPatternStack []map[string]string
 	grokPatternIndex []int
 	stackDeep        int
@@ -92,8 +85,8 @@ func (ng *Engine) Copy() *Engine {
 		Data: &EngineData{
 			output: NewOutput(),
 
-			grok: &Grok{
-				CompliedGrokRe: make(map[string]map[string]*ugrok.GrokRegexp),
+			grok: &grok.Grok{
+				CompliedGrokRe: make(map[string]map[string]*grok.GrokRegexp),
 			},
 			grokPatternStack: make([]map[string]string, 0),
 			grokPatternIndex: make([]int, 0),
@@ -105,7 +98,7 @@ func (ng *Engine) Copy() *Engine {
 
 	// 仅保留编译好的 grok pattern，此 map 在 pl 运行时只读
 	for k, v := range ng.Data.grok.CompliedGrokRe {
-		newNg.Data.grok.CompliedGrokRe[k] = make(map[string]*ugrok.GrokRegexp)
+		newNg.Data.grok.CompliedGrokRe[k] = make(map[string]*grok.GrokRegexp)
 		for idx, value := range v {
 			newNg.Data.grok.CompliedGrokRe[k][idx] = value
 		}
@@ -124,18 +117,14 @@ func NewEngine(script string, callbacks map[string]FuncCallback, check map[strin
 	if !ok {
 		return nil, fmt.Errorf("invalid AST, should not been here")
 	}
-	globalDenormalizedPatterns, err := ugrok.DenormalizePatternsFromMap(CopyGlobalPatterns())
-	if err != nil {
-		return nil, err
-	}
 	ng := &Engine{
 		debugMode: debug,
 		Data: &EngineData{
 			output: NewOutput(),
-			grok: &Grok{
-				GlobalDenormalizedPatterns: globalDenormalizedPatterns,
+			grok: &grok.Grok{
+				GlobalDenormalizedPatterns: DenormalizedGlobalPatterns,
 				DenormalizedPatterns:       make(map[string]string),
-				CompliedGrokRe:             make(map[string]map[string]*ugrok.GrokRegexp),
+				CompliedGrokRe:             make(map[string]map[string]*grok.GrokRegexp),
 			},
 			grokPatternStack: make([]map[string]string, 0),
 			grokPatternIndex: make([]int, 0),
@@ -347,7 +336,7 @@ func GetFuncFloatArg(ngData *EngineData, f *FuncStmt, idx int, kw string) (float
 	return InvalidFloat, fmt.Errorf("not implemented")
 }
 
-func (ngData *EngineData) GetGrok() *Grok {
+func (ngData *EngineData) GetGrok() *grok.Grok {
 	return ngData.grok
 }
 
@@ -595,6 +584,13 @@ func (e *ConditionalExpr) Run(ng *Engine) (pass bool) {
 		left = v.Value()
 	case *NilLiteral:
 		left = v.Value()
+	// case *FuncStmt:
+	// 	switch ret := v.Run(ng).(type) {
+	// 	case error:
+	// 		return false
+	// 	default:
+	// 		left = ret
+	// 	}
 	default:
 		ng.lastErr = fmt.Errorf("unsupported ConditionalExpr type %s, from: %s", reflect.TypeOf(v), e.LHS)
 		return false
@@ -677,18 +673,20 @@ func (e *AssignmentStmt) Run(ng *Engine) {
 	}
 }
 
-func (e *FuncStmt) Run(ng *Engine) {
-	if ng.lastErr != nil {
-		return
-	}
-
-	fn := ng.callbacks[e.Name]
-	if fn == nil {
+func (e *FuncStmt) Run(ng *Engine) interface{} {
+	if fn := ng.callbacks[e.Name]; fn == nil {
 		ng.lastErr = fmt.Errorf("unsupported func: `%v'", e.Name)
-		return
-	}
-	if err := fn(ng.Data, e); err != nil {
-		ng.lastErr = fmt.Errorf("Run func %v: %w", e.Name, err)
+		return ng.lastErr
+	} else {
+		switch ret := fn(ng.Data, e).(type) {
+		case error:
+			ng.lastErr = fmt.Errorf("Run func %v: %w", e.Name, ret)
+			return ret
+		case nil:
+			return nil
+		default:
+			return ret
+		}
 	}
 }
 
@@ -721,7 +719,7 @@ func (e Stmts) Check(ng *Engine) error {
 			}
 		case *FuncStmt:
 			if err := v.Check(ng); err != nil {
-				return err
+				return fmt.Errorf("func %s: %w", v.Name, err)
 			}
 		case *AssignmentStmt:
 			if err := v.Check(); err != nil {
@@ -816,7 +814,7 @@ func (e *IfExpr) Check(ng *Engine) error {
 	case *BoolLiteral:
 		// nil
 	case *ConditionalExpr:
-		if err := v.Check(); err != nil {
+		if err := v.Check(ng); err != nil {
 			return err
 		}
 	default:
@@ -829,7 +827,7 @@ func (e *IfExpr) Check(ng *Engine) error {
 // Check ConditionalExpr
 //   left node only support Identifier
 //   right node support NumberLiteral/StringLiteral/BoolLiteral
-func (e *ConditionalExpr) Check() error {
+func (e *ConditionalExpr) Check(ng *Engine) error {
 	switch e.LHS.(type) {
 	case *Identifier:
 	case *ParenExpr:
@@ -890,7 +888,6 @@ func contrast(left interface{}, op string, right interface{}) (b bool, err error
 		b = !reflect.DeepEqual(left, right)
 		return
 	}
-
 	switch x := left.(type) {
 	case json.Number:
 		xnum, _err := x.Float64()

@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/DataDog/ebpf/manager"
@@ -37,6 +38,72 @@ func SetLogger(nl *logger.Logger) {
 
 func SetK8sNetInfo(n *k8sinfo.K8sNetInfo) {
 	k8sNetInfo = n
+}
+
+var SrcIPPortRecorder = func() *srcIPPortRecorder {
+	ptr := &srcIPPortRecorder{
+		Record: map[[4]uint32]IPPortRecord{},
+	}
+	go ptr.AutoClean()
+	return ptr
+}()
+
+type IPPortRecord struct {
+	IP [4]uint32
+	TS time.Time
+}
+
+// 辅助 httpflow 判断 server ip
+type srcIPPortRecorder struct {
+	sync.RWMutex
+	Record map[[4]uint32]IPPortRecord
+}
+
+func (record *srcIPPortRecorder) InsertAndUpdate(ip [4]uint32) {
+	record.Lock()
+	defer record.Unlock()
+	record.Record[ip] = IPPortRecord{
+		IP: ip,
+		TS: time.Now(),
+	}
+}
+
+func (record *srcIPPortRecorder) Query(ip [4]uint32) (*IPPortRecord, error) {
+	record.RLock()
+	defer record.RUnlock()
+	if v, ok := record.Record[ip]; ok {
+		return &v, nil
+	} else {
+		return nil, fmt.Errorf("not found")
+	}
+}
+
+const (
+	cleanTickerIPPortDur = time.Minute * 3
+	cleanIPPortDur       = time.Minute * 5
+)
+
+func (record *srcIPPortRecorder) CleanOutdateData() {
+	record.Lock()
+	defer record.Unlock()
+	ts := time.Now()
+	needDelete := [][4]uint32{}
+	for k, v := range record.Record {
+		if ts.Sub(v.TS) > cleanIPPortDur {
+			needDelete = append(needDelete, k)
+		}
+	}
+	for _, v := range needDelete {
+		delete(record.Record, v)
+	}
+}
+
+func (record *srcIPPortRecorder) AutoClean() {
+	ticker := time.NewTicker(cleanTickerIPPortDur)
+	for {
+		<-ticker.C
+		record.CleanOutdateData()
+	}
 }
 
 func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler func(cpu int, data []byte,
@@ -141,16 +208,24 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	m.tags["status"] = "info"
 	m.tags["pid"] = fmt.Sprint(k.Pid)
 
-	isV6 := false
-	if connAddrIsIPv4(k.Meta) {
-		m.tags["src_ip_type"] = connIPv4Type(k.Saddr[3])
-		m.tags["dst_ip_type"] = connIPv4Type(k.Daddr[3])
+	isV6 := !ConnAddrIsIPv4(k.Meta)
+	if k.Saddr[0] == 0 && k.Saddr[1] == 0 && k.Daddr[0] == 0 && k.Daddr[1] == 0 {
+		if k.Saddr[2] == 0xffff0000 && k.Daddr[2] == 0xffff0000 {
+			isV6 = false
+		} else if k.Saddr[2] == 0 && k.Daddr[2] == 0 && k.Saddr[3] > 1 && k.Daddr[3] > 1 {
+			isV6 = false
+		}
+	}
+
+	if !isV6 {
+		m.tags["src_ip_type"] = ConnIPv4Type(k.Saddr[3])
+		m.tags["dst_ip_type"] = ConnIPv4Type(k.Daddr[3])
 		m.tags["family"] = "IPv4"
 	} else {
-		m.tags["src_ip_type"] = connIPv6Type(k.Saddr)
-		m.tags["dst_ip_type"] = connIPv6Type(k.Daddr)
+		m.tags["src_ip_type"] = ConnIPv6Type(k.Saddr)
+
+		m.tags["dst_ip_type"] = ConnIPv6Type(k.Daddr)
 		m.tags["family"] = "IPv6"
-		isV6 = true
 	}
 
 	m.tags["src_ip"] = U32BEToIP(k.Saddr, isV6).String()
@@ -173,7 +248,7 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	m.fields["bytes_read"] = int64(v.Stats.RecvBytes)
 	m.fields["bytes_written"] = int64(v.Stats.SentBytes)
 
-	if connProtocolIsTCP(k.Meta) {
+	if ConnProtocolIsTCP(k.Meta) {
 		m.tags["transport"] = "tcp"
 		m.fields["retransmits"] = int64(v.TCPStats.Retransmits)
 		m.fields["rtt"] = int64(v.TCPStats.Rtt)
@@ -188,7 +263,7 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	if k8sNetInfo != nil {
 		srcK8sFlag := false
 		dstK8sFlag := false
-		srcPoName, srcSvcName, ns, svcP, err := k8sNetInfo.QueryPodSvcName(m.tags["src_ip"], k.Sport, m.tags["transport"])
+		_, srcPoName, srcSvcName, ns, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["src_ip"], k.Sport, m.tags["transport"])
 		if err == nil {
 			srcK8sFlag = true
 			m.tags["src_k8s_namespace"] = ns
@@ -199,18 +274,18 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 			}
 		}
 
-		dstPoName, dstSvcName, ns, svcP, err := k8sNetInfo.QueryPodSvcName(m.tags["dst_ip"], k.Dport, m.tags["transport"])
+		_, dstPodName, dstSvcName, ns, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["dst_ip"], k.Dport, m.tags["transport"])
 		if err == nil {
 			dstK8sFlag = true
 			m.tags["dst_k8s_namespace"] = ns
-			m.tags["dst_k8s_pod_name"] = dstPoName
+			m.tags["dst_k8s_pod_name"] = dstPodName
 			m.tags["dst_k8s_service_name"] = dstSvcName
 			if svcP == k.Dport {
 				m.tags["direction"] = "outgoing"
 			}
 
 		} else {
-			dstSvcName, ns, err := k8sNetInfo.QuerySvcName(m.tags["dst_ip"])
+			dstSvcName, ns, err := k8sNetInfo.QuerySvcInfo(m.tags["dst_ip"])
 			if err == nil {
 				dstK8sFlag = true
 				m.tags["dst_k8s_namespace"] = ns
@@ -235,7 +310,7 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 		}
 	}
 
-	if connProtocolIsTCP(k.Meta) {
+	if ConnProtocolIsTCP(k.Meta) {
 		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s(%s):%s r/w: %d/%d e/c: %d/%d "+
 			"re: %d rtt/rttvar: %.2fms/%.2fms (%s, %s)",
 			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_domain"],
@@ -300,19 +375,17 @@ func ConnNotNeedToFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 		conn.Sport == 0 || conn.Dport == 0 {
 		return false
 	}
-	if connAddrIsIPv4(conn.Meta) { // IPv4
-		saddr := U32BEToIPv4Array(conn.Saddr[3])
-		daddr := U32BEToIPv4Array(conn.Daddr[3])
-		if saddr == daddr {
-			return false
-		}
-		if saddr[0] == 127 && daddr[0] == 127 { // 127.0.0.0/8
+	if ConnAddrIsIPv4(conn.Meta) { // IPv4
+		if (conn.Saddr[3]&0xff) == 127 && (conn.Daddr[3]&0xff) == 127 {
 			return false
 		}
 	} else { // IPv6
-		saddr := U32BEToIPv6Array(conn.Saddr)
-		daddr := U32BEToIPv6Array(conn.Daddr)
-		if saddr == daddr { // 同地址，包含 loopback ::1/128
+		if conn.Saddr[2] == 0xffff0000 && conn.Daddr[2] == 0xffff0000 {
+			if (conn.Saddr[3]&0xff) == 127 && (conn.Daddr[3]&0xff) == 127 {
+				return false
+			}
+		} else if (conn.Saddr[0]|conn.Saddr[1]|conn.Saddr[2]) == 0 && conn.Saddr[3] == 1 &&
+			(conn.Daddr[0]|conn.Daddr[1]|conn.Daddr[2]) == 0 && conn.Daddr[3] == 1 {
 			return false
 		}
 	}
@@ -537,7 +610,7 @@ func IPPortFilterIn(conn *ConnectionInfo) bool {
 		return false
 	}
 
-	if connAddrIsIPv4(conn.Meta) {
+	if ConnAddrIsIPv4(conn.Meta) {
 		if (conn.Saddr[3]&0xFF == 0x7F) || (conn.Daddr[3]&0xFF == 0x7F) {
 			return false
 		}

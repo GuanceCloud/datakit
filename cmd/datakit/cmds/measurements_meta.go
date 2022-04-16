@@ -83,8 +83,12 @@ func ExportMetaInfo(path string) error {
 			sampleMeasurements := i.SampleMeasurement()
 			for _, m := range sampleMeasurements {
 				tmp := m.Info()
+				if tmp == nil {
+					continue
+				}
+
 				if tmp.Name == "" {
-					warnf("[W] ignore measurement from %s: empty measurement name\n", k)
+					warnf("[W] ignore measurement from %s: empty measurement name: %+#v\n", k, tmp)
 					continue
 				}
 

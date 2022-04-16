@@ -45,7 +45,7 @@ func JSONChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func JSON(ng *parser.EngineData, node parser.Node) error {
+func JSON(ng *parser.EngineData, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 
 	var key, old parser.Node

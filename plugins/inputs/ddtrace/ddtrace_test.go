@@ -67,7 +67,7 @@ func testJsonDDTraces(t *testing.T) {
 	t.Helper()
 
 	for _, version := range []string{v2, v3, v4} {
-		tsvr := httptest.NewServer(http.HandlerFunc(handleDDTrace))
+		tsvr := httptest.NewServer(handleDDTraceWithVersion(version))
 		for _, method := range []string{http.MethodPost, http.MethodPut} {
 			buf, err := jsonEncoder(randomDDTraces(3, 10))
 			if err != nil {
@@ -104,7 +104,7 @@ func testMsgPackDDTraces(t *testing.T) {
 	t.Helper()
 
 	for _, version := range []string{v3, v4} {
-		tsvr := httptest.NewServer(http.HandlerFunc(handleDDTrace))
+		tsvr := httptest.NewServer(handleDDTraceWithVersion(version))
 		for _, method := range []string{http.MethodPost} {
 			buf, err := msgpackEncoder(randomDDTraces(3, 10))
 			// buf, err := randomDDTraces(3, 10).MarshalMsg(nil)

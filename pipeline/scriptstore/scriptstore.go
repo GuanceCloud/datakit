@@ -114,19 +114,18 @@ func (store *DotPScriptStore) appendScript(ns string, name string, script string
 			return nil
 		}
 
-		ng, err := parser.NewEngine(script, funcs.FuncsMap, funcs.FuncsCheckMap, false)
+		sc, err := NewScriptInfo(name, script, ns)
 		if err != nil {
 			return err
 		}
-
-		store.scripts[ns][name] = &ScriptInfo{
-			script:   script,
-			name:     name,
-			ns:       ns,
-			ng:       ng,
-			updateTS: time.Now().UnixNano(),
-		}
+		store.scripts[ns][name] = sc
 		return nil
+	}
+}
+
+func (store *DotPScriptStore) appendScriptFromString(ns, name, content string, cover bool) {
+	if err := store.appendScript(ns, name, content, cover); err != nil {
+		l.Errorf("script name: %s, err: %v, ns: %s, content: %s", name, err, ns, content)
 	}
 }
 
@@ -194,6 +193,21 @@ func (s *ScriptInfo) Script() string {
 	return s.script
 }
 
+func NewScriptInfo(name, script, ns string) (*ScriptInfo, error) {
+	ng, err := parser.NewEngine(script, funcs.FuncsMap, funcs.FuncsCheckMap, false)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ScriptInfo{
+		script:   script,
+		name:     name,
+		ns:       ns,
+		ng:       ng,
+		updateTS: time.Now().UnixNano(),
+	}, nil
+}
+
 func InitStore() {
 	l = logger.SLogger("pipeline-scriptstore")
 	LoadDefaultDotPScript2Store()
@@ -226,6 +240,13 @@ func LoadRemoteDotPScript2Store(filePath []string) {
 func ReloadAllRemoteDotPScript2Store(filePath []string) {
 	CleanAllScriptWithNS(RemoteScriptNS)
 	LoadDotPScript2StoreWithNS(RemoteScriptNS, filePath, "")
+}
+
+func ReloadAllRemoteDotPScript2StoreFromMap(m map[string]string) {
+	CleanAllScriptWithNS(RemoteScriptNS)
+	for name, content := range m {
+		scriptCentorStore.appendScriptFromString(RemoteScriptNS, name, content, true)
+	}
 }
 
 // LoadDotPScript2StoreWithNS will clean current layer data and then add new script.

@@ -12,7 +12,7 @@ func JSONAllChecking(_ *parser.EngineData, _ parser.Node) error {
 	return nil
 }
 
-func JSONAll(_ *parser.EngineData, _ parser.Node) error {
+func JSONAll(_ *parser.EngineData, _ parser.Node) interface{} {
 	l.Warnf("warning: json_all() is disabled")
 	return nil
 }

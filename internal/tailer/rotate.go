@@ -7,6 +7,7 @@ package tailer
 
 import (
 	"os"
+	"time"
 )
 
 func DidRotate(file *os.File, lastReadOffset int64) (bool, error) {
@@ -31,4 +32,15 @@ func DidRotate(file *os.File, lastReadOffset int64) (bool, error) {
 	truncated := fi1.Size() < lastReadOffset
 
 	return recreated || truncated, nil
+}
+
+func FileIsActive(fn string, lastActiveDuration time.Duration) bool {
+	info, err := os.Stat(fn)
+	if err != nil {
+		return false
+	}
+	if time.Since(info.ModTime()) > lastActiveDuration {
+		return false
+	}
+	return true
 }

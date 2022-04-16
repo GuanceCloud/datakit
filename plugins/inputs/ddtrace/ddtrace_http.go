@@ -17,43 +17,58 @@ import (
 )
 
 const (
+	// headerRatesPayloadVersion contains the version of sampling rates.
+	// If both agent and client have the same version, the agent won't return rates in API response.
+	headerRatesPayloadVersion = "Datadog-Rates-Payload-Version"
+)
+
+const (
 	// KeySamplingPriority is the key of the sampling priority value in the metrics map of the root span.
 	keyPriority = "_sampling_priority_v1"
 	// keySamplingRateGlobal is a metric key holding the global sampling rate.
 	keySamplingRateGlobal = "_sample_rate"
 )
 
-func handleDDTrace(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("%s: received tracing data from path: %s", inputName, req.URL.Path)
+func handleDDTraceWithVersion(v string) http.HandlerFunc {
+	return func(resp http.ResponseWriter, req *http.Request) {
+		log.Debugf("%s: received tracing data from path: %s", inputName, req.URL.Path)
 
-	traces, err := decodeDDTraces(req.URL.Path, req)
-	if err != nil {
-		log.Errorf(err.Error())
-		resp.WriteHeader(http.StatusBadRequest)
+		traces, err := decodeDDTraces(req.URL.Path, req)
+		if err != nil {
+			log.Errorf(err.Error())
+			resp.WriteHeader(http.StatusBadRequest)
 
-		return
-	}
-	if len(traces) == 0 {
-		log.Debug("empty ddtraces")
-		resp.WriteHeader(http.StatusOK)
+			return
+		}
+		if len(traces) == 0 {
+			log.Debug("empty ddtraces")
+			resp.WriteHeader(http.StatusOK)
 
-		return
-	}
-
-	for _, trace := range traces {
-		if len(trace) == 0 {
-			log.Debug("empty ddtrace")
-			continue
+			return
 		}
 
-		if dktrace := ddtraceToDkTrace(trace); len(dktrace) == 0 {
-			log.Warn("empty datakit trace")
-		} else {
-			afterGatherRun.Run(inputName, dktrace, false)
+		for _, trace := range traces {
+			if len(trace) == 0 {
+				log.Debug("empty ddtrace")
+				continue
+			}
+
+			if dktrace := ddtraceToDkTrace(trace); len(dktrace) == 0 {
+				log.Warn("empty datakit trace")
+			} else {
+				afterGatherRun.Run(inputName, dktrace, false)
+			}
+		}
+
+		switch v {
+		case v1, v2, v3:
+			io.WriteString(resp, "OK\n") // nolint: errcheck,gosec
+		default:
+			resp.Header().Set("Content-Type", "application/json")
+			resp.Header().Set(headerRatesPayloadVersion, req.Header.Get(headerRatesPayloadVersion))
+			resp.Write([]byte("{}")) // nolint: errcheck,gosec
 		}
 	}
-
-	resp.WriteHeader(http.StatusOK)
 }
 
 // TODO:.

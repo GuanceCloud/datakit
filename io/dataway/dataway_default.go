@@ -245,3 +245,11 @@ func (dw *DataWayDefault) initHTTP() error {
 
 	return nil
 }
+
+func (dw *DataWayDefault) DatakitPull(args string) ([]byte, error) {
+	if dw.ClientsCount() == 0 {
+		return nil, fmt.Errorf("dataway URL not set")
+	}
+
+	return dw.endPoints[0].datakitPull(args)
+}

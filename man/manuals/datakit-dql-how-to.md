@@ -12,25 +12,9 @@ DataKit 支持以交互式方式执行 DQL 查询，在交互模式下，DataKit
 
 ```shell
 datakit dql      # 或者 datakit -Q
-dql > cpu limit 1
------------------[ 1.cpu ]-----------------
-             cpu 'cpu-total'
-            host 'tan-air.local'
-            time 2021-06-23 10:06:03 +0800 CST
-       usage_irq 0
-      usage_idle 56.928839
-      usage_nice 0
-      usage_user 19.825218
-     usage_guest 0
-     usage_steal 0
-     usage_total 43.071161
-    usage_iowait 0
-    usage_system 23.245943
-   usage_softirq 0
-usage_guest_nice 0
----------
-1 rows, cost 13.55119ms
 ```
+
+![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-dql-gif.gif) 
 
 Tips：
 

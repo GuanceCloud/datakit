@@ -7,12 +7,11 @@
 package pipeline
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	// it will use this embedded information in time/tzdata.
@@ -21,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
@@ -66,8 +66,25 @@ func NewPipeline(srciptname string) (*Pipeline, error) {
 	}, nil
 }
 
+func NewPipelineFromFile(path string) (*Pipeline, error) {
+	data, err := ioutil.ReadFile(filepath.Clean(path))
+	if err != nil {
+		return nil, err
+	}
+
+	sc, err := scriptstore.NewScriptInfo("", string(data), "")
+	if err != nil {
+		return nil, err
+	}
+	return &Pipeline{
+		DisableUpdate: true,
+		scriptInfo:    sc,
+	}, nil
+}
+
 type Pipeline struct {
-	scriptInfo *scriptstore.ScriptInfo
+	DisableUpdate bool
+	scriptInfo    *scriptstore.ScriptInfo
 }
 
 func (p *Pipeline) Run(data string, source string) (*Result, error) {
@@ -96,6 +113,9 @@ func (p *Pipeline) RunByte(data []byte, encode string, source string) (*Result, 
 
 func (p *Pipeline) UpdateScriptInfo() error {
 	var err error
+	if p.DisableUpdate {
+		return fmt.Errorf("current pipeline update disabled")
+	}
 	if p.scriptInfo, err = scriptstore.QueryScript(p.scriptInfo.Name(), p.scriptInfo); err != nil {
 		return err
 	}
@@ -139,55 +159,51 @@ func InitIPdb(pipelineCfg *PipelineCfg) (ipdb.IPdb, error) {
 }
 
 func loadPatterns() error {
-	loadedPatterns, err := readPatternsFromDir(datakit.PipelinePatternDir)
+	loadedPatterns, err := grok.LoadPatternsFromPath(datakit.PipelinePatternDir)
 	if err != nil {
 		return err
 	}
 
-	for k, v := range loadedPatterns {
-		if _, ok := parser.GlobalPatterns[k]; !ok {
-			parser.GlobalPatterns[k] = v
-		} else {
-			l.Warnf("can not overwrite internal pattern `%s', skipped `%s'", k, k)
+	for k, v := range grok.CopyDefalutPatterns() {
+		loadedPatterns[k] = v
+	}
+
+	denormalizedGlobalPatterns, invalidPatterns := grok.DenormalizePatternsFromMap(loadedPatterns)
+
+	for k, v := range denormalizedGlobalPatterns {
+		if _, err := regexp.Compile(v); err != nil {
+			invalidPatterns[k] = err.Error()
 		}
 	}
+
+	if len(invalidPatterns) != 0 {
+		for k, v := range invalidPatterns {
+			delete(denormalizedGlobalPatterns, k)
+			l.Errorf("load pattern '%s', err: '%s'", k, v)
+		}
+	}
+
+	parser.DenormalizedGlobalPatterns = denormalizedGlobalPatterns
+
 	return nil
 }
 
-func readPatternsFromDir(path string) (map[string]string, error) {
-	if fi, err := os.Stat(path); err == nil {
-		if fi.IsDir() {
-			path += "/*"
-		}
-	} else {
-		return nil, fmt.Errorf("invalid path : %s", path)
+// GbToUtf8 Gb to UTF-8.
+// http/api_pipeline.go.
+func GbToUtf8(s []byte, encoding string) ([]byte, error) {
+	var t transform.Transformer
+	switch encoding {
+	case "gbk":
+		t = simplifiedchinese.GBK.NewDecoder()
+	case "gb18030":
+		t = simplifiedchinese.GB18030.NewDecoder()
 	}
-
-	files, _ := filepath.Glob(path)
-
-	patterns := make(map[string]string)
-	for _, fileName := range files {
-		file, err := os.Open(filepath.Clean(fileName))
-		if err != nil {
-			return patterns, err
-		}
-
-		scanner := bufio.NewScanner(bufio.NewReader(file))
-
-		for scanner.Scan() {
-			l := scanner.Text()
-			if len(l) > 0 && l[0] != '#' {
-				names := strings.SplitN(l, " ", 2)
-				patterns[names[0]] = names[1]
-			}
-		}
-
-		if err := file.Close(); err != nil {
-			l.Warnf("Close: %s, ignored", err.Error())
-		}
+	reader := transform.NewReader(bytes.NewReader(s), t)
+	d, e := ioutil.ReadAll(reader)
+	if e != nil {
+		return nil, e
 	}
-
-	return patterns, nil
+	return d, nil
 }
 
 func RunPlStr(cntStr, source string, maxMessageLen int, ng *parser.Engine) (*Result, error) {
@@ -236,22 +252,4 @@ func DecodeContent(content []byte, encode string) (string, error) {
 	default:
 	}
 	return string(content), nil
-}
-
-// GbToUtf8 Gb to UTF-8.
-// http/api_pipeline.go.
-func GbToUtf8(s []byte, encoding string) ([]byte, error) {
-	var t transform.Transformer
-	switch encoding {
-	case "gbk":
-		t = simplifiedchinese.GBK.NewDecoder()
-	case "gb18030":
-		t = simplifiedchinese.GB18030.NewDecoder()
-	}
-	reader := transform.NewReader(bytes.NewReader(s), t)
-	d, e := ioutil.ReadAll(reader)
-	if e != nil {
-		return nil, e
-	}
-	return d, nil
 }

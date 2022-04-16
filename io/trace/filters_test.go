@@ -12,33 +12,34 @@ import (
 	"time"
 )
 
-func TestSampler(t *testing.T) {
-	var origin DatakitTraces
-	for i := 0; i < 1000; i++ {
-		dktrace := randDatakitTrace(t, 1)
-		parentialize(dktrace)
-		origin = append(origin, dktrace)
+func TestPenetrateError(t *testing.T) {
+	testcases := make(DatakitTraces, 100)
+	for i := 0; i < 100; i++ {
+		testcases[i] = randDatakitTrace(t, 10)
 	}
 
-	sampler := &Sampler{}
-	sampler.UpdateArgs(PriorityAuto, 0.15)
+	var afterErrPenetrate DatakitTraces
+	for i := range testcases {
+		if t, ok := PenetrateErrorTracing(testcases[i]); ok {
+			afterErrPenetrate = append(afterErrPenetrate, t)
+		}
+	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(10)
-	for i := 0; i < 10; i++ {
-		go func() { // nolint:govet,staticcheck
-			defer wg.Done()
-
-			var sampled DatakitTraces
-			for i := range origin {
-				if t, _ := sampler.Sample(origin[i]); t != nil {
-					sampled = append(sampled, t)
-				}
+	for i := range afterErrPenetrate {
+		iserr := false
+	FOUND_ERR:
+		for j := range afterErrPenetrate[i] {
+			switch afterErrPenetrate[i][j].Status {
+			case STATUS_ERR, STATUS_CRITICAL:
+				iserr = true
+				break FOUND_ERR
 			}
-			fmt.Printf("origin traces count: %d sampled traces count: %d\n", len(origin), len(sampled))
-		}()
+		}
+		if !iserr {
+			t.Error("error status not found")
+			t.FailNow()
+		}
 	}
-	wg.Wait()
 }
 
 func TestCloseResource(t *testing.T) {
@@ -119,4 +120,33 @@ func TestKeepRareResource(t *testing.T) {
 		t.Errorf("wrong length kept sec send: %d kept: %d", len(traces), len(kept))
 		t.FailNow()
 	}
+}
+
+func TestSampler(t *testing.T) {
+	var origin DatakitTraces
+	for i := 0; i < 1000; i++ {
+		dktrace := randDatakitTrace(t, 1)
+		parentialize(dktrace)
+		origin = append(origin, dktrace)
+	}
+
+	sampler := &Sampler{}
+	sampler.UpdateArgs(PriorityAuto, 0.15)
+
+	wg := sync.WaitGroup{}
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() { // nolint:govet,staticcheck
+			defer wg.Done()
+
+			var sampled DatakitTraces
+			for i := range origin {
+				if t, _ := sampler.Sample(origin[i]); t != nil {
+					sampled = append(sampled, t)
+				}
+			}
+			fmt.Printf("origin traces count: %d sampled traces count: %d\n", len(origin), len(sampled))
+		}()
+	}
+	wg.Wait()
 }

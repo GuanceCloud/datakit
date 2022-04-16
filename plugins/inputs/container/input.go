@@ -28,10 +28,13 @@ const (
 )
 
 type Input struct {
-	Endpoint                     string `toml:"endpoint"`
-	LoggingRemoveAnsiEscapeCodes bool   `toml:"logging_remove_ansi_escape_codes"`
-	ExcludePauseContainer        bool   `toml:"exclude_pause_container"`
-	MaxLoggingLength             int    `toml:"max_logging_length"`
+	DepercatedEndpoint string `toml:"endpoint"`
+	DockerEndpoint     string `toml:"docker_endpoint"`
+	ContainerdAddress  string `toml:"containerd_address"`
+
+	LoggingRemoveAnsiEscapeCodes bool `toml:"logging_remove_ansi_escape_codes"`
+	ExcludePauseContainer        bool `toml:"exclude_pause_container"`
+	MaxLoggingLength             int  `toml:"max_logging_length"`
 
 	ContainerIncludeMetric []string `toml:"container_include_metric"`
 	ContainerExcludeMetric []string `toml:"container_exclude_metric"`
@@ -53,8 +56,9 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 
-	dockerInput *dockerInput
-	k8sInput    *kubernetesInput
+	dockerInput     *dockerInput
+	containerdInput *containerdInput
+	k8sInput        *kubernetesInput
 
 	chPause chan bool
 	pause   bool
@@ -68,10 +72,11 @@ var (
 
 func newInput() *Input {
 	return &Input{
-		Endpoint: dockerEndpoint,
-		Tags:     make(map[string]string),
-		chPause:  make(chan bool, maxPauseCh),
-		semStop:  cliutils.NewSem(),
+		DockerEndpoint:    dockerEndpoint,
+		ContainerdAddress: containerdAddress,
+		Tags:              make(map[string]string),
+		chPause:           make(chan bool, maxPauseCh),
+		semStop:           cliutils.NewSem(),
 	}
 }
 
@@ -119,7 +124,7 @@ func (i *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			i.dockerInput.stop()
+			i.stop()
 			l.Info("container exit success")
 			return
 
@@ -141,10 +146,23 @@ func (i *Input) Run() {
 	}
 }
 
+func (i *Input) stop() {
+	if i.dockerInput != nil {
+		i.dockerInput.stop()
+	}
+	if i.containerdInput != nil {
+		i.containerdInput.stop()
+	}
+}
+
 func (i *Input) collectObject() {
 	l.Debug("collect object in func")
 	if err := i.gatherDockerContainerObject(); err != nil {
-		l.Errorf("failed to collect container object: %w", err)
+		l.Errorf("failed to collect docker container object: %w", err)
+	}
+
+	if err := i.gatherContainerdObject(); err != nil {
+		l.Errorf("failed to collect containerd object: %w", err)
 	}
 
 	if !datakit.Docker {
@@ -170,7 +188,11 @@ func (i *Input) collectObject() {
 func (i *Input) collectMetric() {
 	l.Debug("collect mertric in func")
 	if err := i.gatherDockerContainerMetric(); err != nil {
-		l.Errorf("failed to collect container metric: %w", err)
+		l.Errorf("failed to collect docker container metric: %w", err)
+	}
+
+	if err := i.gatherContainerdMetric(); err != nil {
+		l.Errorf("failed to collect containerd metric: %w", err)
 	}
 
 	if err := i.watchNewDockerContainerLogs(); err != nil {
@@ -199,6 +221,9 @@ func (i *Input) collectMetric() {
 }
 
 func (i *Input) gatherDockerContainerMetric() error {
+	if i.dockerInput == nil {
+		return nil
+	}
 	start := time.Now()
 
 	res, err := i.dockerInput.gatherMetric()
@@ -215,6 +240,9 @@ func (i *Input) gatherDockerContainerMetric() error {
 }
 
 func (i *Input) gatherDockerContainerObject() error {
+	if i.dockerInput == nil {
+		return nil
+	}
 	start := time.Now()
 
 	res, err := i.dockerInput.gatherObject()
@@ -227,6 +255,44 @@ func (i *Input) gatherDockerContainerObject() error {
 	}
 
 	return inputs.FeedMeasurement("container-object", datakit.Object, res,
+		&io.Option{CollectCost: time.Since(start)})
+}
+
+func (i *Input) gatherContainerdMetric() error {
+	if i.containerdInput == nil {
+		return nil
+	}
+	start := time.Now()
+
+	res, err := i.containerdInput.gatherMetric()
+	if err != nil {
+		return err
+	}
+	if len(res) == 0 {
+		l.Debugf("containerd metric: no point")
+		return nil
+	}
+
+	return inputs.FeedMeasurement("containerd-metric", datakit.Metric, res,
+		&io.Option{CollectCost: time.Since(start)})
+}
+
+func (i *Input) gatherContainerdObject() error {
+	if i.containerdInput == nil {
+		return nil
+	}
+	start := time.Now()
+
+	res, err := i.containerdInput.gatherObject()
+	if err != nil {
+		return err
+	}
+	if len(res) == 0 {
+		l.Debugf("containerd object: no point")
+		return nil
+	}
+
+	return inputs.FeedMeasurement("containerd-object", datakit.Object, res,
 		&io.Option{CollectCost: time.Since(start)})
 }
 
@@ -264,6 +330,9 @@ func (i *Input) gatherK8sPodMetrics() error {
 }
 
 func (i *Input) watchNewDockerContainerLogs() error {
+	if i.dockerInput == nil {
+		return nil
+	}
 	return i.dockerInput.watchNewContainerLogs()
 }
 
@@ -272,7 +341,9 @@ func (i *Input) watchingK8sEventLog() {
 }
 
 func (i *Input) setup() bool {
-	var err error
+	if i.DepercatedEndpoint != "" && i.DepercatedEndpoint != i.DockerEndpoint {
+		i.DockerEndpoint = i.DepercatedEndpoint
+	}
 
 	for {
 		select {
@@ -285,8 +356,8 @@ func (i *Input) setup() bool {
 
 		time.Sleep(time.Second)
 
-		i.dockerInput, err = newDockerInput(&dockerInputConfig{
-			endpoint:               i.Endpoint,
+		if d, err := newDockerInput(&dockerInputConfig{
+			endpoint:               i.DockerEndpoint,
 			excludePauseContainer:  i.ExcludePauseContainer,
 			removeLoggingAnsiCodes: i.LoggingRemoveAnsiEscapeCodes,
 			maxLoggingLength:       i.MaxLoggingLength,
@@ -295,24 +366,39 @@ func (i *Input) setup() bool {
 			containerIncludeLog:    i.ContainerIncludeLog,
 			containerExcludeLog:    i.ContainerExcludeLog,
 			extraTags:              i.Tags,
-		})
-		if err != nil {
-			l.Errorf("create docker input err: %w", err)
-			continue
+		}); err != nil {
+			l.Errorf("create docker input err: %w, skip", err)
+		} else {
+			i.dockerInput = d
 		}
 
 		if datakit.Docker {
-			i.k8sInput, err = newKubernetesInput(&kubernetesInputConfig{
+			if k, err := newKubernetesInput(&kubernetesInputConfig{
 				url:               i.K8sURL,
 				bearerToken:       i.K8sBearerToken,
 				bearerTokenString: i.K8sBearerTokenString,
 				extraTags:         i.Tags,
-			})
-			if err != nil {
+			}); err != nil {
 				l.Errorf("create k8s input err: %w", err)
 				continue
+			} else {
+				i.k8sInput = k
+				if i.dockerInput != nil {
+					i.dockerInput.k8sClient = i.k8sInput.client
+				}
 			}
-			i.dockerInput.k8sClient = i.k8sInput.client
+		}
+
+		// docker 和 containerd 互斥
+		if i.dockerInput == nil {
+			if c, err := newContainerdInput(&containerdInputConfig{
+				endpoint:  i.ContainerdAddress,
+				extraTags: i.Tags,
+			}); err != nil {
+				l.Warnf("create containerd input err: %w, skip", err)
+			} else {
+				i.containerdInput = c
+			}
 		}
 
 		break
@@ -348,10 +434,20 @@ func (i *Input) Resume() error {
 }
 
 // ReadEnv , support envs：
+//   ENV_INPUT_CONTAINER_DOCKER_ENDPOINT : string
+//   ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS : string
 //   ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
 //   ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
 //   ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER : booler
 func (i *Input) ReadEnv(envs map[string]string) {
+	if endpoint, ok := envs["ENV_INPUT_CONTAINER_DOCKER_ENDPOINT"]; ok {
+		i.DockerEndpoint = endpoint
+	}
+
+	if address, ok := envs["ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS"]; ok {
+		i.ContainerdAddress = address
+	}
+
 	if remove, ok := envs["ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES"]; ok {
 		b, err := strconv.ParseBool(remove)
 		if err != nil {
@@ -376,11 +472,6 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			i.Tags[k] = v
 		}
 	}
-	// todo
-	// ENV_INPUT_CONTAINER_INCLUDE_METRIC
-	// ENV_INPUT_CONTAINER_EXCLUDE_METRIC
-	// ENV_INPUT_CONTAINER_EXCLUDE_LOG
-	// ENV_INPUT_CONTAINER_INCLUDE_LOG
 }
 
 //nolint:gochecknoinits

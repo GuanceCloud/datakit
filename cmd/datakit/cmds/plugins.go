@@ -25,7 +25,7 @@ var (
 	}
 
 	availablePlugins = []string{
-		"telegraf", "scheck",
+		"telegraf", "scheck", "datakit-ebpf",
 	}
 )
 
@@ -48,6 +48,8 @@ func installPlugins() error {
 		default:
 			return fmt.Errorf("unknown ipdb `%s'", *flagInstallIPDB)
 		}
+	case *flagInstallDatakitEbpf:
+		return InstallDatakitEbpf()
 	default:
 		return fmt.Errorf("unknown package or plugin")
 	}

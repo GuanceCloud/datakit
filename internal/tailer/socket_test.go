@@ -81,7 +81,7 @@ func Test_mkServer(t *testing.T) {
 	}{
 		{
 			name:    "case1",
-			args:    args{socket: "tcp://127.0.0.1:7000"},
+			args:    args{socket: "tcp://127.0.0.1:7002"},
 			wantS:   &server{},
 			wantErr: false,
 		},

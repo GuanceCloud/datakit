@@ -60,53 +60,9 @@ sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
 $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
-### 额外支持的安装变量
+## 额外支持的安装变量
 
-安装脚本支持的环境变量如下（全平台支持）：
-
-- `DK_DATAWAY`：指定 dataway 地址，含 `TOKEN`
-- `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`)
-- `DK_NAMESPACE`：支持安装阶段指定命名空间(选举用)
-- `DK_GLOBAL_TAGS`：支持安装阶段填写全局 tag，格式范例：`project=abc,owner=张三`（多个 tag 之间以英文逗号分隔）
-- `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）
-- `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
-- `DK_DCA_ENABLE`：支持安装阶段开启 DCA 服务（默认未开启）
-- `DK_DCA_LISTEN`：支持安装阶段自定义配置 DCA 服务的监听地址和端口（默认`0.0.0.0:9531`）
-- `DK_DCA_WHITE_LIST`: 支持安装阶段设置访问 DCA 服务白名单，多个白名单以 `,` 分割 (如：`192.168.0.1/24,10.10.0.1/24`)
-- `DK_INSTALL_ONLY`：仅安装，不运行
-- `DK_HOSTNAME`:支持安装阶段自定义配置主机名
-- `DK_DEF_INPUTS`：默认开启的采集器列表，格式范例：`input1,input2,input3`
-- `DK_UPGRADE`：升级到最新版本（注：一旦开启该选项，其它选项均无效）
-- `DK_INSTALLER_BASE_URL`：可选择不同环境的安装脚本，默认为 `https://static.guance.com/datakit`
-- `HTTPS_PROXY`：通过 Datakit 代理安装
-- `DK_PROXY_TYPE`：代理类型。选项有: "datakit" 或 "nginx"，均为小写
-- `DK_NGINX_IP`：代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者
-- `DK_GIT_URL`: 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`）
-- `DK_GIT_KEY_PATH`: 本地 PrivateKey 的全路径。（如 `/Users/username/.ssh/id_rsa`）
-- `DK_GIT_KEY_PW`: 本地 PrivateKey 的使用密码。（如 `passwd`）
-- `DK_GIT_BRANCH`: 指定拉取的分支。<stong>为空则是默认</strong>，默认是远程指定的主分支，一般是 `master`。
-- `DK_GIT_INTERVAL`: 定时拉取的间隔。（如 `1m`）
-- `DK_LIMIT_CPUMAX`:Linux系统下支持CPU的最大功率,默认30.0。（仅Linux平台支持）
-- `DK_LIMIT_CPUMIN`:Linux系统下支持CPU的最小功率,默认5.0。（仅Linux平台支持）
-- `DK_CGROUP_ENABLED`:Linux系统下开启Cgroup功能。（如`false`，默认为true，仅Linux平台支持）
-- `DK_ENABLE_ELECTION`: 开启选举, 默认不开启, 如需开启, 给该环境变量任意一个非空字符串值即可。（如 `True`/`False`）
-- `DK_RUM_ORIGIN_IP_HEADER`: RUM 专用
-- `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用.如 `True`/`False`)
-- `DK_LOG_LEVEL`: 可选值 info/debug
-- `DK_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
-- `DK_GIN_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
-- `DK_INSTALL_IPDB`: 安装时指定IP库(当前仅支持`iploc`)
-- `DK_SINK_M`:  安装时指定 Metric 的 sink。
-- `DK_SINK_N`:  安装时指定 Network 的 sink。
-- `DK_SINK_K`:  安装时指定 KeyEvent 的 sink。
-- `DK_SINK_O`:  安装时指定 Object 的 sink。
-- `DK_SINK_CO`: 安装时指定 CustomObject 的 sink。
-- `DK_SINK_L`:  安装时指定 Logging 的 sink。
-- `DK_SINK_T`:  安装时指定 Tracing 的 sink。
-- `DK_SINK_R`:  安装时指定 RUM 的 sink。
-- `DK_SINK_S`:  安装时指定 Security 的 sink。
-
-如果需要增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
+如果需要在安装阶段定义一些 DataKit 配置，可在安装命令中增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 
 ```shell
 # Linux/Mac
@@ -126,7 +82,84 @@ $env:NAME1="value1"; $env:Name2="value2"
 NAME1="value1" NAME2="value2"
 ```
 
-#### 如何应付不友好的主机名
+安装脚本支持的环境变量如下（全平台支持）。
+
+### 最常用环境变量
+
+- `DK_DATAWAY`：指定 DataWay 地址，目前 DataKit 安装命令已经默认带上
+- `DK_GLOBAL_TAGS`：支持安装阶段填写全局 tag，格式范例：`project=abc,owner=张三`（多个 tag 之间以英文逗号分隔）
+- `DK_DEF_INPUTS`：默认开启的采集器名称列表，格式范例：`cpu,mem,disk`
+  - 由于[默认会开启很多采集器](datakit-input-conf#764ffbc2)，这个环境变量用于调整这个默认的采集器列表，比如，可以选择只开启 cpu,mem,disk 三个采集的话，传入 DK_DEF_INPUTS="cpu,mem,disk" 即可
+- `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`)
+
+### DataKit 自身日志相关
+
+- `DK_LOG_LEVEL`: 可选值 info/debug
+- `DK_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
+- `DK_GIN_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
+
+### DataKit 选举相关
+
+- `DK_ENABLE_ELECTION`: 开启选举, 默认不开启, 如需开启, 给该环境变量任意一个非空字符串值即可。（如 `True`/`False`）
+- `DK_NAMESPACE`：支持安装阶段指定命名空间(选举用)
+
+### HTTP/API 相关环境变量
+- `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）
+- `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
+- `DK_RUM_ORIGIN_IP_HEADER`: RUM 专用
+- `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用.如 `True`/`False`)
+- `DK_INSTALL_IPDB`: 安装时指定IP库(当前仅支持`iploc`)
+
+### DCA 相关
+- `DK_DCA_ENABLE`：支持安装阶段开启 DCA 服务（默认未开启）
+- `DK_DCA_LISTEN`：支持安装阶段自定义配置 DCA 服务的监听地址和端口（默认`0.0.0.0:9531`）
+- `DK_DCA_WHITE_LIST`: 支持安装阶段设置访问 DCA 服务白名单，多个白名单以 `,` 分割 (如：`192.168.0.1/24,10.10.0.1/24`)
+
+### 外部采集器相关
+- `DK_INSTALL_EXTERNALS`: 可用于安装如 datakit-ebpf 等未与 DataKit 一起打包的外部采集器
+
+### Git 配置相关
+
+- `DK_GIT_URL`: 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`）
+- `DK_GIT_KEY_PATH`: 本地 PrivateKey 的全路径。（如 `/Users/username/.ssh/id_rsa`）
+- `DK_GIT_KEY_PW`: 本地 PrivateKey 的使用密码。（如 `passwd`）
+- `DK_GIT_BRANCH`: 指定拉取的分支。<stong>为空则是默认</strong>，默认是远程指定的主分支，一般是 `master`。
+- `DK_GIT_INTERVAL`: 定时拉取的间隔。（如 `1m`）
+
+### Sinker 相关配置
+
+- `DK_SINK_M`:  安装时指定 Metric 的 sink。
+- `DK_SINK_N`:  安装时指定 Network 的 sink。
+- `DK_SINK_K`:  安装时指定 KeyEvent 的 sink。
+- `DK_SINK_O`:  安装时指定 Object 的 sink。
+- `DK_SINK_CO`: 安装时指定 CustomObject 的 sink。
+- `DK_SINK_L`:  安装时指定 Logging 的 sink。
+- `DK_SINK_T`:  安装时指定 Tracing 的 sink。
+- `DK_SINK_R`:  安装时指定 RUM 的 sink。
+- `DK_SINK_S`:  安装时指定 Security 的 sink。
+
+### cgroup 配置相关
+
+以下安装选项仅 Linux 平台支持：
+
+- `DK_CGROUP_DISABLED`：Linux 系统下关闭 Cgroup 功能（默认开启）
+- `DK_LIMIT_CPUMAX`：Linux 系统下支持 CPU 的最大功率，默认 30.0
+- `DK_LIMIT_CPUMIN`：Linux 系统下支持 CPU 的最小功率，默认 5.0
+- `DK_LIMIT_MEMMAX`：Linux 系统下限制内存（含 swap）最大用量，默认 4096（4GB）
+
+### 其它安装选项
+
+- `DK_INSTALL_ONLY`：仅安装，不运行
+- `DK_HOSTNAME`:支持安装阶段自定义配置主机名
+- `DK_UPGRADE`：升级到最新版本（注：一旦开启该选项，其它选项均无效）
+- `DK_INSTALLER_BASE_URL`：可选择不同环境的安装脚本，默认为 `https://static.guance.com/datakit`
+- `HTTPS_PROXY`：通过 Datakit 代理安装
+- `DK_PROXY_TYPE`：代理类型。选项有: "datakit" 或 "nginx"，均为小写
+- `DK_NGINX_IP`：代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者
+
+## FAQ
+
+### 如何应付不友好的主机名
 
 由于 DataKit 使用主机名（Hostname）作为数据串联的依据，某些情况下，一些主机名取得不是很友好，比如 `iZbp141ahn....`，但由于某些原因，又不能修改这些主机名，这给使用带来一定的困扰。在 DataKit 中，可在主配置中覆盖这个不友好的主机名。
 
@@ -139,6 +172,6 @@ NAME1="value1" NAME2="value2"
 
 > 注意：如果之前某个主机已经采集了一段时间的数据，更改主机名后，这些历史数据将不再跟新的主机名关联。更改主机名，相当于新增了一台全新的主机。
 
-其它相关链接：
+## 扩展阅读
 
-- 关于 DataKit 的基本使用，参考 [DataKit 使用入门](datakit-service-how-to)
+- [DataKit 使用入门](datakit-service-how-to)

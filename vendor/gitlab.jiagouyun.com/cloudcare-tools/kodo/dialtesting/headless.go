@@ -335,6 +335,27 @@ func (t *HeadlessTask) CheckResult() (reasons []string, flag bool) {
 	return
 }
 
+func (t *HeadlessTask) InitDebug() error {
+	var err error
+	t.timeOutDuration, err = time.ParseDuration(t.TimeOut)
+	if err != nil {
+		log.Printf(`[warn] no set timeout, use task frequency`)
+	}
+
+	if strings.ToLower(t.CurStatus) == StatusStop {
+		return nil
+	}
+
+	// 当前headless主要做browse rum 性能指标采集
+	if !t.hasAddSpecialSteps {
+		t.rumSpecialSteps()
+	}
+
+	// TODO: more checking on task validity
+
+	return nil
+}
+
 func (t *HeadlessTask) Init() error {
 	// setup frequency
 	du, err := time.ParseDuration(t.Frequency)
