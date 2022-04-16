@@ -69,8 +69,8 @@ func setMin(prev, cur int64) int64 {
 
 func (s *ClientStat) Update() {
 	s.HostName = config.Cfg.Hostname
-	if config.Cfg.DataWay.HTTPProxy != "" {
-		s.Proxy = config.Cfg.DataWay.HTTPProxy
+	if config.Cfg.DataWayCfg != nil && config.Cfg.DataWayCfg.HTTPProxy != "" {
+		s.Proxy = config.Cfg.DataWayCfg.HTTPProxy
 	}
 
 	var memStatus runtime.MemStats

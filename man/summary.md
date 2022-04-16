@@ -25,7 +25,9 @@
 
 - [DataKit API](apis)
 - [DataKit 整体架构简介](datakit-arch)
-- [DataKit Sink 使用文档](datakit-sink-guide)
+- [DataKit Sink 使用教程](datakit-sink-guide)
+  - [InfluxDB Sink 使用教程](datakit-sink-influxdb)
+  - [Logstash Sink 使用教程](datakit-sink-logstash)
 - [DCA 客户端(beta)](dca)
 - [文本数据处理（Pipeline）](pipeline)
   - [调试 Pipeline](datakit-pl-how-to)

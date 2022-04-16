@@ -206,7 +206,7 @@ func dcaAuthMiddleware(c *gin.Context) {
 	}
 
 	token := tokens[0]
-	localTokens := dw.GetToken()
+	localTokens := dw.GetTokens()
 	if len(token) == 0 || len(localTokens) == 0 || (token != localTokens[0]) {
 		context.fail(dcaError{Code: 401, ErrorCode: "auth.failed", ErrorMsg: "auth failed"})
 		c.Abort()

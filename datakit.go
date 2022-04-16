@@ -77,8 +77,8 @@ const (
 	GitRepoSubDirNamePythond  = StrPythonD
 
 	DatawayDisableURL = "dev_null"
-	ModeNormal        = 1
-	ModeDev           = 2
+	ModeNormal        = 0
+	ModeDev           = 1
 
 	SinkTargetExample        = "example only, will not working"
 	SinkCategoryMetric       = "M"

@@ -76,13 +76,6 @@ if ($x -ne $null) {
 	Write-COutput green ("* set dataway to $dataway" )
 }
 
-if ($dataway -eq $null) {
-	if ($upgrade -eq $null) {
-		Write-COutput red "[ERROR] Dataway not set on 'DK_DATAWAY'"
-		Exit
-	}
-}
-
 $http_listen = "localhost"
 $x = [Environment]::GetEnvironmentVariable("DK_HTTP_LISTEN") 
 if ($x -ne $null) {
@@ -280,6 +273,69 @@ if ($x -ne $null) {
 	Write-COutput yellow "* set ipdb type"
 }
 
+$sink_metric=""
+$x = [Environment]::GetEnvironmentVariable("DK_SINK_M")
+if ($x -ne $null) {
+	$sink_metric = $x
+	Write-COutput yellow "* set sink metric"
+}
+
+$sink_network=""
+$x = [Environment]::GetEnvironmentVariable("DK_SINK_N")
+if ($x -ne $null) {
+	$sink_network = $x
+	Write-COutput yellow "* set sink network"
+}
+
+$sink_keyevent=""
+$x = [Environment]::GetEnvironmentVariable("DK_SINK_K")
+if ($x -ne $null) {
+	$sink_keyevent = $x
+	Write-COutput yellow "* set sink keyevent"
+}
+
+$sink_object=""
+$x = [Environment]::GetEnvironmentVariable("DK_SINK_O")
+if ($x -ne $null) {
+	$sink_object = $x
+	Write-COutput yellow "* set sink object"
+}
+
+$sink_custom_object=""
+$x = [Environment]::GetEnvironmentVariable("DK_SINK_CO")
+if ($x -ne $null) {
+	$sink_custom_object = $x
+	Write-COutput yellow "* set sink custom object"
+}
+
+$sink_logging=""
+$x = [Environment]::GetEnvironmentVariable("DK_SINK_L")
+if ($x -ne $null) {
+	$sink_logging = $x
+	Write-COutput yellow "* set sink logging"
+}
+
+$sink_tracing=""
+$x = [Environment]::GetEnvironmentVariable("DK_SINK_T")
+if ($x -ne $null) {
+	$sink_tracing = $x
+	Write-COutput yellow "* set sink tracing"
+}
+
+$sink_rum=""
+$x = [Environment]::GetEnvironmentVariable("DK_SINK_R")
+if ($x -ne $null) {
+	$sink_rum = $x
+	Write-COutput yellow "* set sink rum"
+}
+
+$sink_security=""
+$x = [Environment]::GetEnvironmentVariable("DK_SINK_S")
+if ($x -ne $null) {
+	$sink_security = $x
+	Write-COutput yellow "* set sink security"
+}
+
 ##########################
 # Detect arch 32 or 64
 ##########################
@@ -311,7 +367,7 @@ Invoke-Expression $dl_installer_action
 if ($upgrade -ne $null) { # upgrade
 	$action = "$installer -upgrade --proxy=${proxy}"
 } else { # install new datakit
-	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-tags='${global_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list --git-url='${git_url}' --git-key-path='${git_key_path}' --git-key-pw='${git_key_pw}' --git-branch='${git_branch}' --git-pull-interval='${git_pull_interval}' --install-only='${install_only}' --enable-election='${enable_election}' --rum-origin-ip-header='${rum_origin_ip_header}' --disable-404page='${disable_404page}' --log-level='${log_level}' --log='${log}' --gin-log='${gin_log}' --ipdb-type='${ipdb_type}'"
+	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-tags='${global_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list --git-url='${git_url}' --git-key-path='${git_key_path}' --git-key-pw='${git_key_pw}' --git-branch='${git_branch}' --git-pull-interval='${git_pull_interval}' --install-only='${install_only}' --enable-election='${enable_election}' --rum-origin-ip-header='${rum_origin_ip_header}' --disable-404page='${disable_404page}' --log-level='${log_level}' --log='${log}' --gin-log='${gin_log}' --ipdb-type='${ipdb_type}' --sink-metric='${sink_metric}' --sink-network='${sink_network}' --sink-keyevent='${sink_keyevent}' --sink-object='${sink_object}' --sink-custom-object='${sink_custom_object}' --sink-logging='${sink_logging}' --sink-tracing='${sink_tracing}' --sink-rum='${sink_rum}' --sink-security='${sink_security}'"
 }
 
 Write-COutput green "action: $action"
@@ -322,7 +378,7 @@ Remove-Item -Force -ErrorAction SilentlyContinue $installer
 Remove-Item -Force -ErrorAction SilentlyContinue .\installer.ps1
 
 # clean envs
-$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HOSTNAME","DK_HTTP_LISTEN","DK_INSTALL_ONLY","DK_DCA_ENABLE","DK_DCA_WHITE_LIST","DK_PROXY_TYPE","DK_NGINX_IP","DK_GIT_URL","DK_GIT_KEY_PATH","DK_GIT_KEY_PW","DK_GIT_BRANCH","DK_GIT_INTERVAL","DK_ENABLE_ELECTION","DK_DISABLE_404PAGE","DK_RUM_ORIGIN_IP_HEADER","DK_LOG_LEVEL","DK_LOG","DK_GIN_LOG","DK_INSTALL_IPDB"
+$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HOSTNAME","DK_HTTP_LISTEN","DK_INSTALL_ONLY","DK_DCA_ENABLE","DK_DCA_WHITE_LIST","DK_PROXY_TYPE","DK_NGINX_IP","DK_GIT_URL","DK_GIT_KEY_PATH","DK_GIT_KEY_PW","DK_GIT_BRANCH","DK_GIT_INTERVAL","DK_ENABLE_ELECTION","DK_DISABLE_404PAGE","DK_RUM_ORIGIN_IP_HEADER","DK_LOG_LEVEL","DK_LOG","DK_GIN_LOG","DK_INSTALL_IPDB","DK_SINK_M","DK_SINK_N","DK_SINK_K","DK_SINK_O","DK_SINK_CO","DK_SINK_L","DK_SINK_T","DK_SINK_R","DK_SINK_S"
 foreach ($env in $optional_envs) {
 	Remove-Item -ErrorAction SilentlyContinue Env:$env
 }

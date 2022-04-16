@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package sinkinfluxdb
+package sinklogstash
 
 import (
 	"fmt"
@@ -12,8 +12,6 @@ import (
 	"testing"
 	"time"
 
-	// this is important because of the bug in go mod
-	_ "github.com/influxdata/influxdb1-client"
 	client "github.com/influxdata/influxdb1-client/v2"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
@@ -28,10 +26,17 @@ func checkDevHost() bool {
 }
 
 //------------------------------------------------------------------------------
+type Message struct {
+	Data string `json:"data"`
+}
 
-// how to use influxdb v2 SDK:
-// https://github.com/influxdata/influxdb1-client/blob/master/v2/example_test.go
+type Log struct {
+	Action  string    `json:"action"`
+	Time    time.Time `json:"time"`
+	Message Message   `json:"message"`
+}
 
+// go test -v -timeout 30s -run ^TestAll$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinklogstash
 func TestAll(t *testing.T) {
 	if !checkDevHost() {
 		return
@@ -46,26 +51,26 @@ func TestAll(t *testing.T) {
 		{
 			name: "required",
 			in: map[string]interface{}{
-				"host":      "10.200.7.21:8086",
-				"protocol":  "http",
-				"precision": "ns",
-				"database":  "db0",
-				"timeout":   "6s",
+				"host":         "10.200.7.21:8080",
+				"protocol":     "http",
+				"request_path": "/twitter/tweet/1",
+				"timeout":      "5s",
 			},
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			si := &SinkInfluxDB{}
+			si := &SinkLogstash{}
 			err := si.LoadConfig(tc.in)
 			assert.Equal(t, tc.expectLoadConfigError, err)
 
-			pts := getTestPoints(t, 1000, 42)
+			pts := getTestPoints(t, 41)
 			var newPts []sinkcommon.ISinkPoint
 			for _, v := range pts {
 				newPts = append(newPts, sinkcommon.ISinkPoint(v))
 			}
+
 			err = si.Write(newPts)
 			assert.Equal(t, tc.expectWriteError, err)
 		})
@@ -75,13 +80,16 @@ func TestAll(t *testing.T) {
 //------------------------------------------------------------------------------
 
 type testPoint struct {
-	*client.Point
+	measurement string
+	tags        map[string]string
+	fields      map[string]interface{}
+	time        time.Time
 }
 
 var _ sinkcommon.ISinkPoint = new(testPoint)
 
 func (p *testPoint) ToPoint() *client.Point {
-	return p.Point
+	return nil
 }
 
 func (p *testPoint) String() string {
@@ -89,16 +97,22 @@ func (p *testPoint) String() string {
 }
 
 func (p *testPoint) ToJSON() (*sinkcommon.JSONPoint, error) {
-	return nil, nil
+	return &sinkcommon.JSONPoint{
+		Measurement: p.measurement,
+		Tags:        p.tags,
+		Fields:      p.fields,
+		Time:        p.time,
+	}, nil
 }
 
-func getTestPoints(t *testing.T, sampleSize int, seed int64) []*testPoint {
+func getTestPoints(t *testing.T, seed int64) []*testPoint {
 	t.Helper()
 
 	rand.Seed(seed)
 
+	mms := []string{"mm1", "mm2", "mm3", "mm4"}
 	var pts []*testPoint
-	for i := 0; i < sampleSize; i++ {
+	for i := 0; i < 4; i++ {
 		regions := []string{"us-west1", "us-west2", "us-west3", "us-east1"}
 		tags := map[string]string{
 			"cpu":    "cpu-total",
@@ -111,15 +125,13 @@ func getTestPoints(t *testing.T, sampleSize int, seed int64) []*testPoint {
 			"idle": idle,
 			"busy": 100.0 - idle,
 		}
-
-		pt, err := client.NewPoint(
-			"cpu_usage",
-			tags,
-			fields,
-			time.Now(),
-		)
-		assert.NoError(t, err, fmt.Sprintf("client.NewPoint failed: %v", err))
-		pts = append(pts, &testPoint{pt})
+		pts = append(pts, &testPoint{
+			measurement: mms[i],
+			tags:        tags,
+			fields:      fields,
+			time:        time.Now(),
+		})
 	}
+
 	return pts
 }

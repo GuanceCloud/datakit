@@ -41,6 +41,10 @@ type Metric struct {
 	startTime time.Time
 }
 
+type Writer interface {
+	Write(string, []sinkcommon.ISinkPoint) error
+}
+
 type SinkMetric struct {
 	Name      string
 	StartTime time.Time
@@ -184,6 +188,10 @@ func (s *Sender) worker(category string, pts []sinkcommon.ISinkPoint) error {
 	s.group.Go(func(ctx context.Context) error {
 		start := time.Now()
 		if err := s.write(category, pts); err != nil {
+			if _, ok := err.(*sinkcommon.SinkUnsupportError); ok { //nolint:errorlint
+				l.Debugf("got no sink for category: %s", category)
+				return nil
+			}
 			s.updateStat(category, nil, false)
 
 			l.Error("sink write error: ", err)
@@ -263,10 +271,11 @@ func (s *Sender) init(opt *Option) error {
 	if s.group == nil {
 		s.group = datakit.G("sender")
 	}
-
 	if s.opt.Write != nil {
+		l.Infof("io use dataway")
 		s.write = s.opt.Write
 	} else {
+		l.Infof("io use sink.Write")
 		s.write = sink.Write
 	}
 

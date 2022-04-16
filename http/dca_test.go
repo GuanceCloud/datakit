@@ -31,8 +31,9 @@ func getResponse(req *http.Request, config *DCAConfig) *httptest.ResponseRecorde
 	if config != nil {
 		dcaConfig = config
 	}
-	dw = &dataway.DataWayCfg{URLs: []string{"http://localhost:9529?token=123456"}}
-	dw.Apply() //nolint: errcheck
+	dwCfg := &dataway.DataWayCfg{URLs: []string{"http://localhost:9529?token=123456"}}
+	dw = &dataway.DataWayDefault{}
+	dw.Init(dwCfg) //nolint: errcheck
 	router := setupDcaRouter()
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)

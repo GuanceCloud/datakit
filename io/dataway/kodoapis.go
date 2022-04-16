@@ -18,7 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-func (dw *DataWayCfg) GetLogFilter() ([]byte, error) {
+func (dw *DataWayDefault) GetLogFilter() ([]byte, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("[error] dataway url empty")
 	}
@@ -26,7 +26,7 @@ func (dw *DataWayCfg) GetLogFilter() ([]byte, error) {
 	return dw.endPoints[0].getLogFilter()
 }
 
-func (dw *DataWayCfg) GetPipelinePull(ts int64) (*PullPipelineReturn, error) {
+func (dw *DataWayDefault) GetPipelinePull(ts int64) (*PullPipelineReturn, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("[error] dataway url empty")
 	}
@@ -130,7 +130,7 @@ func (dc *endPoint) getPipelinePull(ts int64) (*PullPipelineReturn, error) {
 	return br.Content, err
 }
 
-func (dw *DataWayCfg) WorkspaceQuery(body []byte) (*http.Response, error) {
+func (dw *DataWayDefault) WorkspaceQuery(body []byte) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -150,7 +150,7 @@ func (dw *DataWayCfg) WorkspaceQuery(body []byte) (*http.Response, error) {
 	return dw.sendReq(req)
 }
 
-func (dw *DataWayCfg) DQLQuery(body []byte) (*http.Response, error) {
+func (dw *DataWayDefault) DQLQuery(body []byte) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -169,7 +169,7 @@ func (dw *DataWayCfg) DQLQuery(body []byte) (*http.Response, error) {
 	return dw.sendReq(req)
 }
 
-func (dw *DataWayCfg) Election(namespace, id string) ([]byte, error) {
+func (dw *DataWayDefault) Election(namespace, id string) ([]byte, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -211,7 +211,7 @@ func (dw *DataWayCfg) Election(namespace, id string) ([]byte, error) {
 	}
 }
 
-func (dw *DataWayCfg) ElectionHeartbeat(namespace, id string) ([]byte, error) {
+func (dw *DataWayDefault) ElectionHeartbeat(namespace, id string) ([]byte, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -295,7 +295,7 @@ func (dc *endPoint) heartBeat(data []byte) (int, error) {
 	return hb.Content.Interval, nil
 }
 
-func (dw *DataWayCfg) DatawayList() ([]string, int, error) {
+func (dw *DataWayDefault) DatawayList() ([]string, int, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, datawayListIntervalDefault, fmt.Errorf("no dataway available")
 	}
@@ -339,7 +339,7 @@ func (dw *DataWayCfg) DatawayList() ([]string, int, error) {
 	return dws.Content.DatawayList, dws.Content.Interval, nil
 }
 
-func (dw *DataWayCfg) HeartBeat() (int, error) {
+func (dw *DataWayDefault) HeartBeat() (int, error) {
 	body := map[string]interface{}{
 		"dk_uuid":   dw.Hostname, // 暂用 hostname 代之, 后将弃用该字段
 		"heartbeat": time.Now().Unix(),
@@ -369,7 +369,7 @@ func (dw *DataWayCfg) HeartBeat() (int, error) {
 }
 
 // UpsertObjectLabels , dw api create or update object labels.
-func (dw *DataWayCfg) UpsertObjectLabels(tkn string, body []byte) (*http.Response, error) {
+func (dw *DataWayDefault) UpsertObjectLabels(tkn string, body []byte) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -389,7 +389,7 @@ func (dw *DataWayCfg) UpsertObjectLabels(tkn string, body []byte) (*http.Respons
 }
 
 // DeleteObjectLabels , dw api delete object labels.
-func (dw *DataWayCfg) DeleteObjectLabels(tkn string, body []byte) (*http.Response, error) {
+func (dw *DataWayDefault) DeleteObjectLabels(tkn string, body []byte) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -409,7 +409,7 @@ func (dw *DataWayCfg) DeleteObjectLabels(tkn string, body []byte) (*http.Respons
 	return dw.sendReq(req)
 }
 
-func (dw *DataWayCfg) UploadLog(r io.Reader, hostName string) (*http.Response, error) {
+func (dw *DataWayDefault) UploadLog(r io.Reader, hostName string) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}

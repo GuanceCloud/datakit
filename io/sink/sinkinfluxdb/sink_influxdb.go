@@ -13,6 +13,7 @@ import (
 	"time"
 
 	client "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
@@ -32,7 +33,7 @@ var (
 )
 
 type SinkInfluxDB struct {
-	ID string // required. sink config identity, unique.
+	ID string // sink config identity, unique, automatically generated.
 
 	addr      string // required. eg. http://172.16.239.130:8086
 	precision string // required.
@@ -63,24 +64,30 @@ func (s *SinkInfluxDB) Write(pts []sinkcommon.ISinkPoint) error {
 }
 
 func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
-	if id, err := dkstring.GetMapAssertString("id", mConf); err != nil {
+	if id, err := dkstring.GetMapMD5String(mConf); err != nil {
 		return err
 	} else {
-		idNew, err := dkstring.CheckNotEmpty(id, "id")
-		if err != nil {
-			return err
-		}
-		s.ID = idNew
+		s.ID = id
 	}
 
-	if addr, err := dkstring.GetMapAssertString("addr", mConf); err != nil {
+	if host, err := dkstring.GetMapAssertString("host", mConf); err != nil {
 		return err
 	} else {
-		addrNew, err := dkstring.CheckNotEmpty(addr, "addr")
+		hostNew, err := dkstring.CheckNotEmpty(host, "host")
 		if err != nil {
 			return err
 		}
-		s.addr = addrNew
+
+		if protocol, err := dkstring.GetMapAssertString("protocol", mConf); err != nil {
+			return err
+		} else {
+			protocolNew, err := dkstring.CheckNotEmpty(protocol, "protocol")
+			if err != nil {
+				return err
+			}
+
+			s.addr = fmt.Sprintf("%s://%s", protocolNew, hostNew)
+		}
 	}
 
 	if database, err := dkstring.GetMapAssertString("database", mConf); err != nil {
@@ -227,8 +234,12 @@ func (s *SinkInfluxDB) writeInfluxDB(pts []sinkcommon.ISinkPoint) error {
 	return nil
 }
 
-func (s *SinkInfluxDB) GetID() string {
-	return s.ID
+func (s *SinkInfluxDB) GetInfo() *sinkcommon.SinkInfo {
+	return &sinkcommon.SinkInfo{
+		ID:         s.ID,
+		CreateID:   creatorID,
+		Categories: []string{datakit.SinkCategoryMetric},
+	}
 }
 
 func init() { //nolint:gochecknoinits

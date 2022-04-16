@@ -11,7 +11,9 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
 var (
@@ -80,7 +82,7 @@ func SetOutputFileInput(outputFileInputs []string) IOOption {
 	}
 }
 
-func SetDataway(dw *dataway.DataWayCfg) IOOption {
+func SetDataway(dw dataway.DataWay) IOOption {
 	return func(io *IO) {
 		io.dw = dw
 	}
@@ -122,7 +124,15 @@ func Start(sincfg []map[string]interface{}) error {
 	defaultIO.cache = map[string][]*Point{}
 	defaultIO.dynamicCache = map[string][]*Point{}
 
-	if err := sink.Init(sincfg, defaultIO.dw.Write); err != nil {
+	var writeFunc func(string, []sinkcommon.ISinkPoint) error
+
+	if defaultIO.dw != nil {
+		if dw, ok := defaultIO.dw.(sender.Writer); ok {
+			writeFunc = dw.Write
+		}
+	}
+
+	if err := sink.Init(sincfg, writeFunc); err != nil {
 		log.Error("InitSink failed: %v", err)
 		return err
 	}

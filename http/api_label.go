@@ -29,7 +29,7 @@ func apiCreateOrUpdateObjectLabel(c *gin.Context) {
 		return
 	}
 
-	tkns := dw.GetToken()
+	tkns := dw.GetTokens()
 	if len(tkns) == 0 {
 		uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
 		return
@@ -69,7 +69,7 @@ func apiDeleteObjectLabel(c *gin.Context) {
 		return
 	}
 
-	tkns := dw.GetToken()
+	tkns := dw.GetTokens()
 	if len(tkns) == 0 {
 		uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
 		return
