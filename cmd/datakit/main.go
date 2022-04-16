@@ -208,7 +208,7 @@ func doRun() error {
 			io.FeedLastError(datakit.DatakitInputName, "dataway empty or multi, not run pipeline remote")
 		}
 	} else {
-		l.Warn("Ignore election or piple remote because dataway is not set")
+		l.Warn("Ignore election or pipeline remote because dataway is not set")
 	}
 
 	if err := initPythonCore(); err != nil {

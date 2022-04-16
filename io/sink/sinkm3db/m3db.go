@@ -23,6 +23,9 @@ const (
 	creatorID               = "m3db"
 	defaulHTTPClientTimeout = 30 * time.Second
 	defaultUserAgent        = "promremote-go/1.0.0"
+	defaultScheme           = "http"
+	defaultHost             = "localhost:7210"
+	defaultPath             = "/api/v1/prom/remote/write"
 )
 
 var (
@@ -30,9 +33,10 @@ var (
 )
 
 type SinkM3db struct {
-	id   string
-	addr string
-
+	id     string
+	scheme string
+	host   string
+	path   string
 	client *client
 }
 
@@ -49,19 +53,42 @@ func (s *SinkM3db) LoadConfig(mConf map[string]interface{}) error {
 		s.id = id
 	}
 
-	if addr, err := dkstring.GetMapAssertString("addr", mConf); err != nil {
+	if scheme, err := dkstring.GetMapAssertString("scheme", mConf); err != nil {
 		return err
 	} else {
-		addrNew, err := dkstring.CheckNotEmpty(addr, "addr")
+		addrNew, err := dkstring.CheckNotEmpty(scheme, "scheme")
 		if err != nil {
-			return err
+			s.scheme = defaultScheme
+		} else {
+			s.scheme = addrNew
 		}
-		s.addr = addrNew
+	}
+
+	if addr, err := dkstring.GetMapAssertString("host", mConf); err != nil {
+		return err
+	} else {
+		addrNew, err := dkstring.CheckNotEmpty(addr, "host")
+		if err != nil {
+			s.host = defaultHost
+		} else {
+			s.host = addrNew
+		}
+	}
+
+	if path, err := dkstring.GetMapAssertString("path", mConf); err != nil {
+		return err
+	} else {
+		addrNew, err := dkstring.CheckNotEmpty(path, "path")
+		if err != nil {
+			s.path = defaultPath
+		} else {
+			s.path = addrNew
+		}
 	}
 
 	// 初始化 prom client
 	cfg := NewConfig(
-		WriteURLOption(s.addr),
+		WriteURLOption(s.scheme+"://"+s.host+s.path),
 		HTTPClientTimeoutOption(defaulHTTPClientTimeout),
 		UserAgent(defaultUserAgent),
 	)

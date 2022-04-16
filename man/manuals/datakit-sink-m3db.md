@@ -50,10 +50,10 @@ vim /usr/local/datakit/conf/datakit.conf
 ``` toml
 [sinks]
   [[sinks.sink]]
-    addr = "http://localhost:7201/api/v1/prom/remote/write"
+    scheme = "http"
+    host = "localhost:7201"
+    path = "/api/v1/prom/remote/write"
     categories = ["M"]
-    id = "m3db"
-    precision = "ns"
     target = "m3db"
 
 ```
@@ -62,6 +62,13 @@ vim /usr/local/datakit/conf/datakit.conf
 ``` shell
 datakit --restart
 ```
+
+### 方式二 通过环境变量形式开启：
+```shell script
+DK_SINK_M="m3db://localhost:7201?scheme=http" bash -c "$(curl -L <datakit download url>)"
+```
+通过环境变量安装的 Datakit，会在自动在配置文件中生成相应的配置。
+
 
 ## m3db 可视化
 这里推荐您使用 [prometheus](https://prometheus.io/download/) 和 [grafana](https://grafana.com/) 去查询和展示数据。
