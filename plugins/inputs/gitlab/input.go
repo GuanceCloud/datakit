@@ -60,11 +60,16 @@ type Input struct {
 	pauseCh chan bool
 
 	semStop *cliutils.Sem // start stop signal
+	reqMemo requestMemo
+	// For testing purpose.
+	feed          func(name, category string, pts []*iod.Point, opt *iod.Option) error
+	feedLastError func(inputName string, err string)
 }
 
 func (ipt *Input) RegHTTPHandler() {
 	if ipt.EnableCIVisibility {
 		l.Infof("start listening to gitlab webhooks")
+		go ipt.reqMemo.memoHouseKeeper(time.Second * 30)
 		dhttp.RegHTTPHandler("POST", "/v1/gitlab", ihttp.ProtectedHandlerFunc(ipt.ServeHTTP, l))
 	}
 }
@@ -72,15 +77,25 @@ func (ipt *Input) RegHTTPHandler() {
 var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func newInput() *Input {
+	sem := cliutils.NewSem()
 	return &Input{
 		Tags:       make(map[string]string),
 		pauseCh:    make(chan bool, maxPauseCh),
 		duration:   time.Second * 10,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 
-		semStop: cliutils.NewSem(),
+		semStop: sem,
 
 		EnableCIVisibility: true,
+		reqMemo: requestMemo{
+			memoMap:     map[[16]byte]time.Time{},
+			hasReqCh:    make(chan hasRequest),
+			addReqCh:    make(chan [16]byte),
+			removeReqCh: make(chan [16]byte),
+			semStop:     sem,
+		},
+		feed:          iod.Feed,
+		feedLastError: iod.FeedLastError,
 	}
 }
 
