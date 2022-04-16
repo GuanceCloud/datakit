@@ -60,31 +60,13 @@ type Option struct {
 	Sample      func(points []*Point) []*Point
 }
 
-type lastError struct {
-	from, err string
-	ts        time.Time
-}
-
-func (e *lastError) Error() string {
-	return fmt.Sprintf("%s [%s] %s", e.ts, e.from, e.err)
-}
-
-func NewLastError(from, err string) *lastError {
-	return &lastError{
-		from: from,
-		err:  err,
-		ts:   time.Now(),
-	}
-}
-
 type IO struct {
 	conf *IOConfig
 
 	dw *dataway.DataWayCfg
 
-	in        chan *iodata
-	in2       chan *iodata // high-freq chan
-	inLastErr chan *lastError
+	in  chan *iodata
+	in2 chan *iodata // high-freq chan
 
 	lastBodyBytes int
 	SentBytes     int
@@ -181,23 +163,6 @@ func (x *IO) ioStop() {
 			log.Error(err)
 		}
 	}
-}
-
-func (x *IO) updateLastErr(e *lastError) {
-	x.lock.Lock()
-	defer x.lock.Unlock()
-
-	stat, ok := x.inputstats[e.from]
-	if !ok {
-		stat = &InputsStat{
-			First: time.Now(),
-			Last:  time.Now(),
-		}
-		x.inputstats[e.from] = stat
-	}
-
-	stat.LastErr = e.err
-	stat.LastErrTS = e.ts
 }
 
 func (x *IO) updateStats(d *iodata) {
@@ -348,9 +313,6 @@ func (x *IO) StartIO(recoverable bool) {
 			select {
 			case d := <-x.in:
 				x.cacheData(d, true)
-
-			case e := <-x.inLastErr:
-				x.updateLastErr(e)
 
 			case <-highFreqRecvTicker.C:
 				x.cleanHighFreqIOData()

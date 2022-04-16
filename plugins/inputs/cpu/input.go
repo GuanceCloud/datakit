@@ -164,7 +164,6 @@ func (ipt *Input) getLoad5s() int {
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("cpu input started")
-	io.FeedEventLog(&io.Reporter{Message: "cpu start ok, ready for collecting metrics.", Logtype: "event"})
 
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 

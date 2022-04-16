@@ -63,16 +63,7 @@ func Feed(name, category string, pts []*Point, opt *Option) error {
 }
 
 func FeedLastError(inputName string, err string) {
-	select {
-	case defaultIO.inLastErr <- &lastError{
-		from: inputName,
-		err:  err,
-		ts:   time.Now(),
-	}:
-		addReporter(Reporter{Status: "warning", Message: fmt.Sprintf("%s %s", inputName, err), Category: "input"})
-	case <-datakit.Exit.Wait():
-		log.Warnf("%s feed last error skipped on global exit", inputName)
-	}
+	addReporter(Reporter{Status: "warning", Message: fmt.Sprintf("%s %s", inputName, err), Category: "input"})
 }
 
 func SelfError(err string) {

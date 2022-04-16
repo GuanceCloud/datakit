@@ -16,7 +16,6 @@ import (
 	"github.com/pborman/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
@@ -104,9 +103,6 @@ func (t *Single) forwardMessage() {
 	)
 	defer timeout.Stop()
 
-	if !t.opt.DisableSendEvent {
-		dkio.FeedEventLog(&dkio.Reporter{Message: fmt.Sprintf(firstMessage, t.filename, t.opt.Source), Logtype: "event"})
-	}
 	for {
 		select {
 		case <-t.stopCh:
@@ -144,9 +140,6 @@ func (t *Single) forwardMessage() {
 			text, err = t.decode(line)
 			if err != nil {
 				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
-				if !t.opt.DisableSendEvent {
-					dkio.FeedEventLog(&dkio.Reporter{Message: line, Logtype: "event", Status: "warning"}) // event:warning
-				}
 			}
 
 			text = t.multiline(text)

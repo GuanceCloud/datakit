@@ -69,7 +69,6 @@ const (
 
 func (ipt *Input) Run() {
 	l = logger.SLogger(InputName)
-	io.FeedEventLog(&io.Reporter{Message: "hostobject start ok, ready for collecting metrics.", Logtype: "event"})
 
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)

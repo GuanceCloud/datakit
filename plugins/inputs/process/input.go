@@ -69,7 +69,6 @@ func (p *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("process start...")
-	io.FeedEventLog(&io.Reporter{Message: "process start ok, ready for collecting metrics.", Logtype: "event"})
 
 	if p.ProcessName != nil {
 		re := strings.Join(p.ProcessName, "|")
