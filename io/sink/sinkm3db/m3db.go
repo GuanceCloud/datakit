@@ -28,9 +28,7 @@ const (
 	defaultPath             = "/api/v1/prom/remote/write"
 )
 
-var (
-	l = logger.DefaultSLogger("m3db")
-)
+var l = logger.DefaultSLogger("m3db")
 
 type SinkM3db struct {
 	id     string
@@ -108,7 +106,7 @@ func (s *SinkM3db) LoadConfig(mConf map[string]interface{}) error {
 }
 
 func (s *SinkM3db) Write(pts []sinkcommon.ISinkPoint) error {
-	var ctx = context.Background()
+	ctx := context.Background()
 	var writeOpts WriteOptions
 	ts := pointToPromData(pts)
 	prompbReq := toPromWriteRequest(ts)

@@ -14,7 +14,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/protobuf/proto" //nolint:staticcheck
+	// nolint:staticcheck
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
 	"github.com/prometheus/prometheus/prompb"
 )
@@ -60,7 +61,7 @@ type Config struct {
 	// WriteURL is the URL which the client uses to write to m3coordinator.
 	WriteURL string `yaml:"writeURL"`
 
-	//HTTPClientTimeout is the timeout that is set for the client.
+	// HTTPClientTimeout is the timeout that is set for the client.
 	HTTPClientTimeout time.Duration `yaml:"httpClientTimeout"`
 
 	// If not nil, http client is used instead of constructing one.
