@@ -138,6 +138,8 @@ NAME1="value1" NAME2="value2"
 - `DK_SINK_R`:  安装时指定 RUM 的 sink。
 - `DK_SINK_S`:  安装时指定 Security 的 sink。
 
+参见 [M3DB 示例](datakit-sink-m3db#5ccfbb76)
+
 ### cgroup 配置相关
 
 以下安装选项仅 Linux 平台支持：

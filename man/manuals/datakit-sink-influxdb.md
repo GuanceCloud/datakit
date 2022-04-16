@@ -14,11 +14,10 @@ InfluxDB 仅支持写入 Metric 种类的数据。
 ```conf
 ...
 [sinks]
-
   [[sinks.sink]]
-    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    categories = ["M"]
     target = "influxdb"
-    host = "10.200.7.21:8087"
+    host = "localhost:8087"
     protocol = "http"
     database = "db1"
     precision = "ns"
