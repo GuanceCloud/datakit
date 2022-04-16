@@ -19,15 +19,17 @@ type DataWay interface {
 	DeleteObjectLabels(string, []byte) (*http.Response, error)
 	DQLQuery([]byte) (*http.Response, error)
 	WorkspaceQuery([]byte) (*http.Response, error)
+	DatakitPull(string) ([]byte, error)
 }
 
 type DataWayCfg struct {
 	URLs []string `toml:"urls"`
 
-	DeprecatedURL    string `toml:"url,omitempty"`
-	HTTPTimeout      string `toml:"timeout"`
-	HTTPProxy        string `toml:"http_proxy"`
-	Hostname         string `toml:"-"`
+	DeprecatedURL string `toml:"url,omitempty"`
+	HTTPTimeout   string `toml:"timeout"`
+	HTTPProxy     string `toml:"http_proxy"`
+	Hostname      string `toml:"-"`
+
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
 	DeprecatedToken  string `toml:"token,omitempty"`

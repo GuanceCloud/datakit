@@ -84,6 +84,8 @@ type Option struct {
 	ForwardFunc ForwardFunc
 	// 关闭发送 event
 	DisableSendEvent bool
+	//
+	IgnoreDeadLog time.Duration
 }
 
 func (opt *Option) init() error {
@@ -200,9 +202,14 @@ func (t *Tailer) scan() {
 		t.opt.log.Warn(err)
 	}
 
-	t.cleanExpriedFile(filelist)
+	t.cleanInvalidFile(filelist)
 
 	for _, filename := range filelist {
+		if t.opt.IgnoreDeadLog > 0 && !FileIsActive(filename, t.opt.IgnoreDeadLog) {
+			t.closeFromFileList(filename)
+			t.removeFromFileList(filename)
+			continue
+		}
 		if t.fileInFileList(filename) {
 			continue
 		}
@@ -224,9 +231,9 @@ func (t *Tailer) scan() {
 	}
 }
 
-// cleanExpriedFile 清除过期文件，过期的定义包括被 remove/rename/truncate 导致文件不可用，其中 truncate 必须小于文件当前的 offset
+// cleanInvalidFile 清除过期文件，过期的定义包括被 remove/rename/truncate 导致文件不可用，其中 truncate 必须小于文件当前的 offset
 // Tailer 已保存当前文件的列表（currentFileList），和函数参数 newFileList 比对，取 newFileList 对于 currentFileList 的差集，即为要被 clean 的对象.
-func (t *Tailer) cleanExpriedFile(newFileList []string) {
+func (t *Tailer) cleanInvalidFile(newFileList []string) {
 	for _, oldFilename := range t.getFileList() {
 		shouldClean := false
 

@@ -8,6 +8,8 @@ package ebpf
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -54,30 +56,44 @@ func (ipt *Input) Run() {
 
 loop:
 	for {
+		// not linux/amd64 or linux/arm64
+		if !(runtime.GOOS == "linux" && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64")) {
+			l.Error("unsupport OS/Arch")
+
+			io.FeedLastError(inputName,
+				fmt.Sprintf("ebpf not support %s/%s ",
+					runtime.GOOS, runtime.GOARCH))
+		}
+
+		ok, err := checkLinuxKernelVesion("")
+		if err != nil || !ok {
+			if err != nil {
+				if p, _, v, err := host.PlatformInformation(); err == nil {
+					if checkIsCentos76Ubuntu1604(p, v) {
+						break loop
+					}
+				}
+				l.Errorf("checkLinuxKernelVesion: %s", err)
+			}
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		cmd := strings.Split(ipt.ExernalInput.Cmd, " ")
+		var execFile string
+		if len(cmd) > 0 {
+			execFile = cmd[0]
+		} else {
+			execFile = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")
+			ipt.ExernalInput.Cmd = execFile
+		}
+		if _, err := os.Stat(execFile); err == nil && ok {
+			break loop
+		} else {
+			l.Errorf("please run `datakit install --datakit-ebpf`")
+		}
+
 		select {
 		case <-tick.C:
-			// not linux/amd64 or linux/arm64
-			if !(runtime.GOOS == "linux" && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64")) {
-				l.Error("unsupport OS/Arch")
-
-				io.FeedLastError(inputName,
-					fmt.Sprintf("ebpf not support %s/%s ",
-						runtime.GOOS, runtime.GOARCH))
-			}
-
-			if ok, err := checkLinuxKernelVesion(""); err != nil || !ok {
-				if err != nil {
-					if p, _, v, err := host.PlatformInformation(); err == nil {
-						if checkIsCentos76Ubuntu1604(p, v) {
-							break loop
-						}
-					}
-					l.Errorf("checkLinuxKernelVesion: %s", err)
-				}
-				io.FeedLastError(inputName, err.Error())
-			} else {
-				break loop
-			}
 		case <-datakit.Exit.Wait():
 			l.Info("ebpf input exit")
 			return
@@ -88,7 +104,6 @@ loop:
 		}
 	}
 
-	l.Infof("ebpf input started")
 	matchHost := regexp.MustCompile("--hostname")
 	haveHostNameArg := false
 	if ipt.ExernalInput.Args == nil {
@@ -135,6 +150,7 @@ loop:
 	if len(enablePlugins) > 0 {
 		ipt.ExernalInput.Args = append(ipt.ExernalInput.Args,
 			"--enabled", strings.Join(enablePlugins, ","))
+		l.Infof("ebpf input started")
 		ipt.ExernalInput.Run()
 	} else {
 		l.Warn("no ebpf plugins enabled")
@@ -159,6 +175,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&ConnStatsM{},
 		&DNSStatsM{},
 		&BashM{},
+		&HTTPFlowM{},
 	}
 }
 

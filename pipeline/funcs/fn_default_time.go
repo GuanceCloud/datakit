@@ -36,7 +36,7 @@ func DefaultTimeChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func DefaultTime(ng *parser.EngineData, node parser.Node) error {
+func DefaultTime(ng *parser.EngineData, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) < 1 {
 		return fmt.Errorf("func %s expected more than 1 args", funcExpr.Name)

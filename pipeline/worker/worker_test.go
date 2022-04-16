@@ -30,47 +30,78 @@ type tagfield struct {
 }
 
 type taskData struct {
-	tags        map[string]string
-	fields      map[string]interface{}
-	content     []string
-	contentByte [][]byte
-	callback    func(r []*io.Point) error
-	encode      string
-	dataType    string
+	TaskName string
+	Category string
+
+	Version string
+
+	Source     string // measurement name
+	ScriptName string // 为空则根据 source 匹配对应的脚本
+
+	TS time.Time
+
+	callback func(r []*io.Point) error
+
+	MaxMessageLen int
+
+	IgnoreStatus []string
+
+	// 是否关闭添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'
+	DisableAddStatusField bool
+
+	ContentDataType string
+	Encode          string
+	Content         interface{}
+
+	Tags   map[string]string
+	Fields map[string]interface{}
 }
 
-func (d *taskData) GetContentStr() []string {
-	return d.content
+func (data *taskData) GetSource() string {
+	return data.Source
 }
 
-func (d *taskData) GetContentByte() [][]byte {
-	return d.contentByte
+func (data *taskData) GetScriptName() string {
+	if data.ScriptName != "" {
+		return data.ScriptName
+	} else {
+		return data.Source + ".p"
+	}
 }
 
-func (d *taskData) ContentType() string {
-	return d.dataType
+func (data *taskData) GetMaxMessageLen() int {
+	return data.MaxMessageLen
 }
 
-func (d *taskData) ContentEncode() string {
-	return d.encode
+func (data *taskData) ContentType() string {
+	return data.ContentDataType
 }
 
-func (d *taskData) Callback(task *Task, result []*pipeline.Result) error {
-	pts := []*io.Point{}
-	result = ResultUtilsLoggingProcessor(task, result, d.tags, d.fields)
-	ts := task.TS
+func (data *taskData) GetContent() interface{} {
+	return data.Content
+}
+
+func (data *taskData) ContentEncode() string {
+	return data.Encode
+}
+
+func (data *taskData) Callback(result []*pipeline.Result) error {
+	result = ResultUtilsLoggingProcessor(result, data.Tags, data.Fields,
+		data.DisableAddStatusField, data.IgnoreStatus)
+	ts := data.TS
 	if ts.IsZero() {
 		ts = time.Now()
 	}
 	result = ResultUtilsAutoFillTime(result, ts)
+	pts := []*io.Point{}
 	for _, r := range result {
-		if pt, err := r.MakePointIgnoreDropped(task.Source, 0, ""); err != nil {
+		if pt, err := r.MakePointIgnoreDropped(data.GetSource(), 0, ""); err != nil {
 			l.Error(err)
 		} else if pt != nil {
 			pts = append(pts, pt)
 		}
 	}
-	return d.callback(pts)
+	return data.callback(pts)
 }
 
 func TestRunAsTask(t *testing.T) {
@@ -159,7 +190,7 @@ func TestRunAsTask(t *testing.T) {
 		default:
 		}
 
-		r := RunAsPlTask(data.category, data.measurement, data.service, ContentString, data.content, nil, "", ng)
+		r := RunAsPlTask(data.category, data.measurement, data.service, ContentString, data.content, "", ng)
 		if len(result[index]) != len(r) {
 			t.Error("length not equal")
 		}
@@ -252,95 +283,85 @@ func TestWorker(t *testing.T) {
 	_ = os.Remove("/tmp/nginx-time.p")
 
 	// 测试 panic 触发
-	FeedPipelineTask(&Task{})
+	FeedPipelineTask(&taskData{})
 
-	cases := []*Task{
+	cases := []*taskData{
 		{
 			TaskName: "nginx-test-log1",
 			Source:   "nginx123",
 
-			Opt: &TaskOpt{IgnoreStatus: []string{"warn"}},
-			Data: &taskData{
-				dataType: ContentString,
-				tags: map[string]string{
-					"tk": "aaa",
-				},
-				content:  []string{`{"time":"02/Dec/2021:11:55:34 +0800"}`},
-				callback: feedResult,
+			IgnoreStatus:    []string{"warn"},
+			ContentDataType: ContentByte,
+			Tags: map[string]string{
+				"tk": "aaa",
 			},
-
-			TS: ts,
+			Fields: map[string]interface{}{
+				"f1": 1, // int -> int64
+				"f2": "1",
+				"f3": 1.,
+			},
+			Content:  [][]byte{[]byte(`{"time":"02/Dec/2021:11:55:34 +0800"}`)},
+			callback: feedResult,
+			TS:       ts,
 		},
 		{
-			ScriptName: "nginx-time.p",
-			TaskName:   "nginx-test-log2",
-			Source:     "nginx-time",
-			Data: &taskData{
-				dataType: ContentString,
-				tags: map[string]string{
-					"tk": "aaa",
-					"bb": "aa0",
-				},
-				content: []string{
-					`{"time":"02/Dec/2021:11:55:34 +0800"}`,
-					`{"time":"02/Dec/2021:11:55:35 +0800"}`,
-				},
-				callback: feedResult,
+			ScriptName:      "nginx-time.p",
+			TaskName:        "nginx-test-log2",
+			Source:          "nginx-time",
+			ContentDataType: ContentString,
+			Tags: map[string]string{
+				"tk": "aaa",
+				"bb": "aa0",
 			},
-			TS: ts,
+			Content: []string{
+				`{"time":"02/Dec/2021:11:55:34 +0800"}`,
+				`{"time":"02/Dec/2021:11:55:35 +0800"}`,
+			},
+			callback: feedResult,
+			TS:       ts,
 		},
 		{ // index == 2， 变更脚本
-			TaskName: "nginx-test-log3",
-			Source:   "nginx-time",
-			Data: &taskData{
-				dataType: ContentString,
-				tags: map[string]string{
-					"tk": "aaa",
-				},
-				content: []string{
-					`{"time":"02/Dec/2021:11:55:34 +0800", "status":"DEBUG"}`,
-					`{"time":"02/Dec/2021:11:55:35 +0800", "status":"DEBUG"}`,
-				},
-				callback: feedResult,
+			TaskName:        "nginx-test-log3",
+			Source:          "nginx-time",
+			ContentDataType: ContentString,
+			Tags: map[string]string{
+				"tk": "aaa",
 			},
-			TS: ts,
+			Content: []string{
+				`{"time":"02/Dec/2021:11:55:34 +0800", "status":"DEBUG"}`,
+				`{"time":"02/Dec/2021:11:55:35 +0800", "status":"DEBUG"}`,
+			},
+			callback: feedResult,
+			TS:       ts,
 		},
 		{
 			TaskName: "nginx-test-log4",
 			Source:   "nginx-time",
-			Data: &taskData{
-				dataType: ContentString,
-				tags: map[string]string{
-					"tk": "aaa",
-				},
-				content: []string{
-					`{"time":"02/Dec/2021:11:55:11 +0800", "status":"DEBUG"}`,
-				},
-				callback: feedResult,
+			Tags: map[string]string{
+				"tk": "aaa",
 			},
-
-			Opt: &TaskOpt{
-				IgnoreStatus: []string{"debug"},
+			Content: []string{
+				`{"time":"02/Dec/2021:11:55:11 +0800", "status":"DEBUG"}`,
 			},
-			TS: ts,
+			callback:     feedResult,
+			IgnoreStatus: []string{"debug"},
+			TS:           ts,
 		},
 
 		// time sub
 		{
-			TaskName: "time sub",
-			Source:   "xxxxxx",
-			Data: &taskData{
-				dataType: ContentString,
-				tags: map[string]string{
-					"tk": "aaa",
-				},
-				content: []string{
-					`{"timex":"02/Dec/2021:11:55:34 +0800"}`,
-					`{"timex":"02/Dec/2021:11:55:35 +0800"}`,
-				},
-				callback: feedResult,
+			TaskName:        "time sub",
+			Source:          "xxxxxx",
+			ContentDataType: ContentString,
+			Tags: map[string]string{
+				"tk": "aaa",
 			},
-			TS: ts,
+			Content: []string{
+				`{"timex":"02/Dec/2021:11:55:34 +0800"}`,
+				`{"timex":"02/Dec/2021:11:55:35 +0800"}`,
+			},
+			callback: feedResult,
+			TS:       ts,
 		},
 	}
 
@@ -353,6 +374,9 @@ func TestWorker(t *testing.T) {
 				fields: map[string]interface{}{
 					"message": `{"time":"02/Dec/2021:11:55:34 +0800"}`,
 					"status":  "info",
+					"f1":      int64(1),
+					"f2":      "1",
+					"f3":      1.,
 				},
 				ts: ts.Add(-time.Nanosecond),
 			},
@@ -455,8 +479,14 @@ func TestWorker(t *testing.T) {
 		}
 	}
 
+	stats := ShowPLWkrStats()
+	t.Log(stats.String())
+
+	var tp *TaskTemplate
+	FeedPipelineTaskBlock(tp)
+
 	datakit.Exit.Close()
-	err := FeedPipelineTask(&Task{})
+	err := FeedPipelineTaskBlock(&taskData{ScriptName: "nginx-time.p", ContentDataType: "xxxxxxx"})
 	time.Sleep(time.Millisecond * 100)
 	if !(errors.Is(err, ErrTaskChClosed) || err == nil) {
 		t.Error(err)
@@ -468,7 +498,7 @@ func TestGrokStack(t *testing.T) {
 	add_pattern("aa", "\\d{2}")
 	grok(_, "%{aa:aa}")
 	if false {
-	
+
 	} else {
 		add_pattern("bb", "[a-z]{3}")
 		if aa == "11" {
@@ -479,7 +509,7 @@ func TestGrokStack(t *testing.T) {
 		} elif aa == "33" {
 			add_pattern("bb", "[\\d]{5}")	# 此处覆盖 bb 失败
 			add_pattern("cc", "end3")
-			grok(_, "%{aa:aa},%{bb:bb},%{cc:cc}")	
+			grok(_, "%{aa:aa},%{bb:bb},%{cc:cc}")
 		}
 	}
 	`
@@ -535,21 +565,19 @@ func BenchmarkPpWorker_Run(b *testing.B) {
 	ts := time.Now()
 
 	for i := 0; i < b.N; i++ {
-		err := FeedPipelineTaskBlock(&Task{
-			TaskName: "nginx-test-log",
-			Source:   "nginx",
-			Opt:      &TaskOpt{IgnoreStatus: []string{"warn"}},
-			Data: &taskData{
-				tags: map[string]string{
-					"tk": "aaa",
-				},
-				content: []string{
-					`127.0.0.1 - - [16/Dec/2021:17:25:29 +0800] "GET / HTTP/1.1" 404 162 "-" "Wget/1.20.3 (linux-gnu)"`,
-				},
-				callback: func(r []*io.Point) error { return nil },
+		err := FeedPipelineTaskBlock(&taskData{
+			TaskName:     "nginx-test-log",
+			Source:       "nginx",
+			IgnoreStatus: []string{"warn"},
+			Tags: map[string]string{
+				"tk": "aaa",
 			},
-
-			TS: time.Now(),
+			ContentDataType: ContentString,
+			Content: []string{
+				`127.0.0.1 - - [16/Dec/2021:17:25:29 +0800] "GET / HTTP/1.1" 404 162 "-" "Wget/1.20.3 (linux-gnu)"`,
+			},
+			callback: func(r []*io.Point) error { return nil },
+			TS:       time.Now(),
 		})
 		if err != nil {
 			b.Log(err)

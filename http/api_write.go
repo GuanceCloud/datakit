@@ -19,7 +19,7 @@ import (
 )
 
 type IApiWrite interface {
-	sendToPipLine(*plw.Task) error
+	sendToPipLine(plw.Task) error
 	sendToIO(string, string, []*io.Point, *io.Option) error
 	geoInfo(string) map[string]string
 }
@@ -52,7 +52,7 @@ func (x *apiWriteImpl) geoInfo(ip string) map[string]string {
 }
 
 // sendToPipLine will send each point from @pts to pipeline module.
-func (x *apiWriteImpl) sendToPipLine(t *plw.Task) error {
+func (x *apiWriteImpl) sendToPipLine(t plw.Task) error {
 	return plw.FeedPipelineTaskBlock(t)
 }
 

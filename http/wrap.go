@@ -42,7 +42,6 @@ func ginWraper(lmt *limiter.Limiter) gin.HandlerFunc {
 		}
 
 		c.Next()
-		m.latency = time.Since(start) // only un-limit request logged the latency
 		m.statusCode = c.Writer.Status()
 		m.latency = time.Since(start) // only un-limit request logged the latency
 
@@ -75,7 +74,6 @@ func rawHTTPWraper(lmt *limiter.Limiter, next apiHandler, any ...interface{}) gi
 			OK.HttpBody(c, res)
 		}
 
-		m.latency = time.Since(start) // only un-limit request logged the latency
 		m.statusCode = c.Writer.Status()
 		m.latency = time.Since(start) // only un-limit request logged the latency
 
@@ -92,5 +90,5 @@ func limitReach(w http.ResponseWriter, r *http.Request) {
 func setupLimiter(limit float64) *limiter.Limiter {
 	return tollbooth.NewLimiter(limit, &limiter.ExpirableOptions{
 		DefaultExpirationTTL: time.Second,
-	}).SetOnLimitReached(limitReach)
+	}).SetOnLimitReached(limitReach).SetBurst(1)
 }

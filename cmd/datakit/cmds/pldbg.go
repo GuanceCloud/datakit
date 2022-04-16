@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -20,6 +19,7 @@ import (
 
 func runPLFlags() error {
 	var txt string
+
 	if *flagPLTxtFile != "" {
 		txtBytes, err := ioutil.ReadFile(*flagPLTxtFile)
 		if err != nil {
@@ -36,7 +36,7 @@ func runPLFlags() error {
 	}
 
 	if txt == "" {
-		return fmt.Errorf("empty txt")
+		return fmt.Errorf("no testing string")
 	}
 
 	if strings.HasSuffix(txt, "\n") {
@@ -50,7 +50,12 @@ func pipelineDebugger(plname, txt string) error {
 	if err := pipeline.Init(config.Cfg.Pipeline); err != nil {
 		return err
 	}
-	pl, err := pipeline.NewPipeline(plname)
+
+	plPath, err := config.GetPipelinePath(plname)
+	if err != nil {
+		return fmt.Errorf("get pipeline failed: %w", err)
+	}
+	pl, err := pipeline.NewPipelineFromFile(plPath)
 	if err != nil {
 		return fmt.Errorf("new pipeline failed: %w", err)
 	}
@@ -70,34 +75,30 @@ func pipelineDebugger(plname, txt string) error {
 	result := map[string]interface{}{}
 	maxWidth := 0
 
-	for k, v := range res.GetFields() {
-		if len(k) > maxWidth {
-			maxWidth = len(k)
-		}
-
-		switch k {
-		case "time":
-			switch x := v.(type) {
-			case int64:
-				if *flagPLDate {
-					date := time.Unix(0, x)
-					result[k] = fmt.Sprintf("%d(%s)", x, date.String())
-				} else {
-					result[k] = v
-				}
-			default:
-				warnf("`time' should be int64, but got %s\n", reflect.TypeOf(v).String())
-			}
-		default:
-			result[k] = v
+	if plTime, err := res.GetTime(); err == nil {
+		if *flagPLDate {
+			result["time"] = plTime
+		} else {
+			result["time"] = plTime.UnixNano()
 		}
 	}
 
-	for k, v := range res.GetTags() {
+	for k, v := range res.Output.Fields {
+		if len(k) > maxWidth {
+			maxWidth = len(k)
+		}
+		result[k] = v
+	}
+
+	for k, v := range res.Output.Tags {
 		result[k+"#"] = v
 		if len(k)+1 > maxWidth {
 			maxWidth = len(k) + 1
 		}
+	}
+
+	if res.Output.DataMeasurement != "" {
+		result["source#"] = res.Output.DataMeasurement
 	}
 
 	if *flagPLTable {
@@ -120,7 +121,8 @@ func pipelineDebugger(plname, txt string) error {
 	}
 
 	infof("---------------\n")
-	infof("Extracted %d fields, %d tags; drop: %v, cost: %v\n", len(res.GetFields()), len(res.GetFields()), res.IsDropped(), cost)
+	infof("Extracted %d fields, %d tags; drop: %v, cost: %v\n",
+		len(res.Output.Fields), len(res.Output.Tags), res.Output.Dropped, cost)
 
 	return nil
 }

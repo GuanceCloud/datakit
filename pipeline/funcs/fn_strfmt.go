@@ -33,7 +33,7 @@ func StrfmtChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func Strfmt(ng *parser.EngineData, node parser.Node) error {
+func Strfmt(ng *parser.EngineData, node parser.Node) interface{} {
 	outdata := make([]interface{}, 0)
 
 	funcExpr := fexpr(node)

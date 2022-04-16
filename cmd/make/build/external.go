@@ -15,8 +15,9 @@ import (
 )
 
 type dkexternal struct {
-	name string
-	out  string
+	name       string
+	out        string
+	standalone bool
 
 	lang string // go/others
 
@@ -48,9 +49,10 @@ var externals = []*dkexternal{
 	},
 	{
 		// requirement: apt install clang llvm linux-headers-$(uname -r)
-		name: "ebpf",
-		out:  "datakit-ebpf",
-		lang: "makefile",
+		name:       "ebpf",
+		out:        "datakit-ebpf",
+		standalone: true,
+		lang:       "makefile",
 
 		entry: "Makefile",
 		osarchs: map[string]bool{
@@ -102,10 +104,12 @@ var externals = []*dkexternal{
 	// others...
 }
 
-func buildExternals(outdir, goos, goarch string) error {
+func buildExternals(dir, goos, goarch string, standalone bool) error {
 	curOSArch := runtime.GOOS + "/" + runtime.GOARCH
-
 	for _, ex := range externals {
+		if ex.standalone != standalone {
+			continue
+		}
 		l.Debugf("building %s-%s/%s", goos, goarch, ex.name)
 
 		if _, ok := ex.osarchs[curOSArch]; !ok {
@@ -131,6 +135,13 @@ func buildExternals(outdir, goos, goarch string) error {
 			out = ex.out
 		}
 
+		var outdir string
+		if ex.standalone {
+			outdir = filepath.Join(dir, "standalone", fmt.Sprintf("%s-%s-%s", out, goos, goarch))
+		} else {
+			outdir = filepath.Join(dir, "externals")
+		}
+
 		switch strings.ToLower(ex.lang) {
 		case "go", "golang":
 
@@ -142,7 +153,7 @@ func buildExternals(outdir, goos, goarch string) error {
 
 			args := []string{
 				"go", "build",
-				"-o", filepath.Join(outdir, "externals", out),
+				"-o", filepath.Join(outdir, out),
 				"-ldflags",
 				"-w -s",
 				filepath.Join("plugins", "externals", ex.name, ex.entry),
@@ -160,7 +171,7 @@ func buildExternals(outdir, goos, goarch string) error {
 				"make",
 				"--file=" + filepath.Join("plugins", "externals", ex.name, ex.entry),
 				"SRCPATH=" + "plugins/externals/" + ex.name,
-				"OUTPATH=" + filepath.Join(outdir, "externals", out),
+				"OUTPATH=" + filepath.Join(outdir, out),
 				"ARCH=" + runtime.GOARCH,
 			}
 

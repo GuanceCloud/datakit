@@ -11,7 +11,7 @@ func DropChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func Drop(ngData *parser.EngineData, node parser.Node) error {
+func Drop(ngData *parser.EngineData, node parser.Node) interface{} {
 	ngData.MarkDrop()
 	return nil
 }

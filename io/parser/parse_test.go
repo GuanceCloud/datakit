@@ -19,6 +19,108 @@ func TestParse(t *testing.T) {
 		fail     bool
 	}{
 		{
+			in: "{ t1 match ['g(-z]+ng wrong regex']} # invalid regex",
+			expected: WhereConditions{
+				&WhereCondition{
+					conditions: []Node{
+						&BinaryExpr{
+							Op:  MATCH,
+							LHS: &Identifier{Name: "t1"},
+							RHS: NodeList{},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			in: "{ t1 in ['abc']}",
+			expected: WhereConditions{
+				&WhereCondition{
+					conditions: []Node{
+						&BinaryExpr{
+							Op:  IN,
+							LHS: &Identifier{Name: "t1"},
+							RHS: NodeList{
+								&StringLiteral{Val: "abc"},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			in: `{ service = re(".*") AND (
+			f1 in ["1", "2", "3"] OR
+			t1 match [ 'def.*' ] OR
+			t2 notmatch [ 'def.*' ]
+		)}`,
+			expected: WhereConditions{
+				&WhereCondition{
+					conditions: []Node{
+						&BinaryExpr{
+							Op: AND,
+							RHS: &ParenExpr{
+								Param: &BinaryExpr{
+									Op: OR,
+									LHS: &BinaryExpr{
+										Op: OR,
+
+										LHS: &BinaryExpr{
+											Op:  IN,
+											LHS: &Identifier{Name: "f1"},
+											RHS: NodeList{
+												&StringLiteral{Val: "1"},
+												&StringLiteral{Val: "2"},
+												&StringLiteral{Val: "3"},
+											},
+										},
+
+										RHS: &BinaryExpr{
+											Op:  MATCH,
+											LHS: &Identifier{Name: "t1"},
+											RHS: NodeList{
+												&Regex{Regex: "def.*"},
+											},
+										},
+									},
+
+									RHS: &BinaryExpr{
+										Op:  NOT_MATCH,
+										LHS: &Identifier{Name: "t2"},
+										RHS: NodeList{
+											&Regex{Regex: "def.*"},
+										},
+									},
+								},
+							},
+							LHS: &BinaryExpr{
+								Op:  EQ,
+								LHS: &Identifier{Name: "service"},
+								RHS: &Regex{Regex: ".*"},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			in: `{ service = re(".*")}`,
+			expected: WhereConditions{
+				&WhereCondition{
+					conditions: []Node{
+						&BinaryExpr{
+							Op:  EQ,
+							LHS: &Identifier{Name: "service"},
+							RHS: &Regex{Regex: ".*"},
+						},
+					},
+				},
+			},
+		},
+		{
 			in: `{abc notin [1.1,1.2,1.3] and (a > 1 || c< 0)}`,
 			expected: WhereConditions{
 				&WhereCondition{
@@ -41,7 +143,7 @@ func TestParse(t *testing.T) {
 								},
 							},
 							LHS: &BinaryExpr{
-								Op:  NOTIN,
+								Op:  NOT_IN,
 								LHS: &Identifier{Name: "abc"},
 								RHS: NodeList{
 									&NumberLiteral{Float: 1.1},
@@ -61,7 +163,7 @@ func TestParse(t *testing.T) {
 				&WhereCondition{
 					conditions: []Node{
 						&BinaryExpr{
-							Op:  NOTIN,
+							Op:  NOT_IN,
 							LHS: &Identifier{Name: "abc"},
 							RHS: NodeList{
 								&NumberLiteral{Float: 1.1},
@@ -182,33 +284,61 @@ func TestParse(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		var err error
-		p := newParser(tc.in)
-		defer parserPool.Put(p)
-		defer p.recover(&err)
+		t.Run(tc.in, func(t *testing.T) {
+			var err error
+			p := newParser(tc.in)
+			defer parserPool.Put(p)
+			defer p.recover(&err)
 
-		p.doParse()
+			p.doParse()
 
-		if tc.fail {
-			tu.Assert(t, len(p.errs) > 0, "")
-			continue
-		}
-
-		switch v := p.parseResult.(type) {
-		case WhereConditions:
-
-			exp, ok := tc.expected.(WhereConditions)
-			if !ok {
-				t.Fatal("not WhereConditions")
+			if len(p.warns) > 0 {
+				for _, w := range p.warns {
+					t.Logf("Warn: %s", w.Error())
+				}
+			} else {
+				t.Logf("no warnning")
 			}
 
-			x := exp.String()
-			y := v.String()
+			if len(p.errs) > 0 {
+				for _, e := range p.errs {
+					t.Logf("Err: %s", e.Error())
+				}
+			}
 
-			tu.Equals(t, x, y)
-			t.Logf("[ok] in: %s, exp: %s", x, y)
-		default:
-			t.Fatalf("should not been here: %s", reflect.TypeOf(p.parseResult).String())
-		}
+			if tc.fail {
+				tu.Assert(t, len(p.errs) > 0, "")
+				return
+			}
+
+			if len(p.errs) > 0 {
+				tu.Equals(t, nil, p.errs[0])
+				return
+			}
+
+			switch v := p.parseResult.(type) {
+			case WhereConditions:
+
+				exp, ok := tc.expected.(WhereConditions)
+				if !ok {
+					t.Fatal("not WhereConditions")
+				}
+
+				x := exp.String()
+				y := v.String()
+
+				tu.Equals(t, x, y)
+				t.Logf("[ok] in: %s, exp: %s", x, y)
+			default:
+				t.Fatalf("should not been here: %s", reflect.TypeOf(p.parseResult).String())
+			}
+		})
+	}
+}
+
+func TestNewRegex(t *testing.T) {
+	_, err := doNewRegex("g(-z]+ng  wrong regex")
+	if err != nil {
+		t.Log(err)
 	}
 }

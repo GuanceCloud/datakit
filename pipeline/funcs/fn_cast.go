@@ -32,7 +32,7 @@ func CastChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func Cast(ng *parser.EngineData, node parser.Node) error {
+func Cast(ng *parser.EngineData, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func `%s' expected 2 args", funcExpr.Name)

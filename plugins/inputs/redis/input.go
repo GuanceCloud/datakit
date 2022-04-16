@@ -403,7 +403,7 @@ func init() { //nolint:gochecknoinits
 			Timeout: "10s",
 			pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
 			DB:      -1,
-
+			Tags:    make(map[string]string),
 			semStop: cliutils.NewSem(),
 		}
 	})

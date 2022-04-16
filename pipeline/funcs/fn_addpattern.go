@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/ubwbu/grok"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
@@ -65,6 +65,6 @@ func AddPatternChecking(ngData *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func AddPattern(ngData *parser.EngineData, node parser.Node) error {
+func AddPattern(ng *parser.EngineData, node parser.Node) interface{} {
 	return nil
 }

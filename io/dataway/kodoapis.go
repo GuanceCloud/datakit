@@ -66,6 +66,38 @@ func (dc *endPoint) getLogFilter() ([]byte, error) {
 	return body, nil
 }
 
+func (dc *endPoint) datakitPull(args string) ([]byte, error) {
+	url, ok := dc.categoryURL[datakit.DatakitPull]
+	if !ok {
+		return nil, fmt.Errorf("datakit pull API missing, should not been here")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, url+"&"+args, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := dc.dw.sendReq(req)
+	if err != nil {
+		log.Error(err.Error())
+
+		return nil, err
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+
+	defer resp.Body.Close() //nolint:errcheck
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("getLogFilter failed with status code %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	return body, nil
+}
+
 type HTTPError struct {
 	ErrCode  string `json:"error_code,omitempty"`
 	Err      error  `json:"-"`

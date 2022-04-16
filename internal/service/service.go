@@ -24,6 +24,9 @@ var (
 
 	Entry func()
 
+	// not used.
+	ServiceOption = map[string]interface{}{}
+
 	StopCh     = make(chan interface{})
 	waitstopCh = make(chan interface{})
 	slogger    service.Logger
@@ -40,6 +43,7 @@ func NewService() (service.Service, error) {
 		Description: ServiceDescription,
 		Executable:  ServiceExecutable,
 		Arguments:   ServiceArguments,
+		Option:      ServiceOption,
 	}
 
 	if runtime.GOOS == "darwin" {

@@ -15,12 +15,14 @@ import (
 
 type PSDiskStats interface {
 	Usage(path string) (*disk.UsageStat, error)
-	FilterUsage(mountPointFilter []string, fstypeExclude []string) ([]*disk.UsageStat, []*disk.PartitionStat, error)
+	FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error)
 	OSGetenv(key string) string
 	Partitions(all bool) ([]disk.PartitionStat, error)
 }
 
-type PSDisk struct{}
+type PSDisk struct {
+	ipt *Input
+}
 
 func (dk *PSDisk) Usage(path string) (*disk.UsageStat, error) {
 	return disk.Usage(path)
@@ -34,31 +36,21 @@ func (dk *PSDisk) Partitions(all bool) ([]disk.PartitionStat, error) {
 	return disk.Partitions(all)
 }
 
-func (dk *PSDisk) FilterUsage(mountPointFilter []string, fstypeExclude []string,
-) ([]*disk.UsageStat, []*disk.PartitionStat, error) {
-	parts, err := dk.Partitions(true)
+func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error) {
+	parts, err := dk.Partitions(!dk.ipt.OnlyPhysicalDevice)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Make a "set" out of the filter slice
-	mountPointFilterSet := make(map[string]bool)
-	for _, filter := range mountPointFilter {
-		mountPointFilterSet[filter] = true
-	}
-	fstypeExcludeSet := make(map[string]bool)
-	for _, filter := range fstypeExclude {
-		fstypeExcludeSet[filter] = true
-	}
-	paths := make(map[string]bool)
-	for _, part := range parts {
-		paths[part.Mountpoint] = true
-	}
+	excluded := func(x string, arr []string) bool {
+		for _, fs := range arr {
+			if x == fs {
+				return true
+			}
+		}
 
-	// Autofs mounts indicate a potential mount, the partition will also be
-	// listed with the actual filesystem when mounted.  Ignore the autofs
-	// partition to avoid triggering a mount.
-	fstypeExcludeSet["autofs"] = true
+		return false
+	}
 
 	var usage []*disk.UsageStat
 	var partitions []*disk.PartitionStat
@@ -67,25 +59,12 @@ func (dk *PSDisk) FilterUsage(mountPointFilter []string, fstypeExclude []string,
 	for i := range parts {
 		p := parts[i]
 
-		if len(mountPointFilter) > 0 {
-			// If the mount point is not a member of the filter set,
-			// don't gather info on it.
-			if _, ok := mountPointFilterSet[p.Mountpoint]; !ok {
-				continue
-			}
-		}
-
-		// If the mount point is a member of the exclude set,
-		// don't gather info on it.
-		if _, ok := fstypeExcludeSet[p.Fstype]; ok {
+		if excluded(p.Mountpoint, dk.ipt.MountPoints) {
 			continue
 		}
 
-		// If there's a host mount prefix, exclude any paths which conflict
-		// with the prefix.
-		if len(hostMountPrefix) > 0 &&
-			!strings.HasPrefix(p.Mountpoint, hostMountPrefix) &&
-			paths[hostMountPrefix+p.Mountpoint] {
+		// If the mount point is a member of the exclude set, don't gather info on it.
+		if excluded(p.Fstype, dk.ipt.IgnoreFS) {
 			continue
 		}
 

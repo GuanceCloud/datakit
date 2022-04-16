@@ -9,8 +9,8 @@
 #include "bpf_helpers.h"
 
 #include "conn_stats.h"
+#include "netflow_utils.h"
 #include "bpfmap.h"
-#include "utils.h"
 
 // ------------------------------------------------------
 // --------------- kprobe / kretprobe -------------------
@@ -44,7 +44,7 @@ int kretprobe__sockfd_lookup_light(struct pt_regs *ctx)
         return 0;
     }
     struct socket *skt = (struct socket *)PT_REGS_RC(ctx);
-    
+
     __u64 offset_socket_sk = load_offset_socket_sk();
     struct proto_ops *ops = NULL;
 
@@ -54,13 +54,13 @@ int kretprobe__sockfd_lookup_light(struct pt_regs *ctx)
         bpf_map_delete_elem(&bpfmap_tmp_sockfdlookuplight, &pid_tgid);
         return 0;
     }
-    
+
     int family = 0;
     bpf_probe_read(&family, sizeof(family), &ops->family);
-    
+
     enum sock_type sktype = 0;
     bpf_probe_read(&sktype, sizeof(short), &skt->type);
-    
+
     if (sktype == SOCK_STREAM && (family == AF_INET || family == AF_INET6))
     { // TCP socket
         struct sock *sk = NULL;
@@ -243,7 +243,6 @@ int kprobe__tcp_retransmit_skb(struct pt_regs *ctx)
     int pre_4_7_0 = pre_kernel_4_7_0();
     if (pre_4_7_0 == 0)
     {
-
         struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
         int segs = (int)PT_REGS_PARM3(ctx);
         struct connection_info conn = {};

@@ -33,7 +33,7 @@ func Test_makeSeries(t *testing.T) {
 				dataTime: timeNow,
 			},
 			want: []*TimeSeries{
-				&TimeSeries{
+				{
 					Labels: []Label{
 						{
 							Name:  "host",
@@ -60,7 +60,7 @@ func Test_makeSeries(t *testing.T) {
 				dataTime: timeNow,
 			},
 			want: []*TimeSeries{
-				&TimeSeries{
+				{
 					Labels: []Label{
 						{
 							Name:  "host",
@@ -87,7 +87,7 @@ func Test_makeSeries(t *testing.T) {
 				dataTime: timeNow,
 			},
 			want: []*TimeSeries{
-				&TimeSeries{
+				{
 					Labels: []Label{
 						{
 							Name:  "host",
@@ -114,7 +114,7 @@ func Test_makeSeries(t *testing.T) {
 				dataTime: timeNow,
 			},
 			want: []*TimeSeries{
-				&TimeSeries{
+				{
 					Labels: []Label{
 						{
 							Name:  "host",
@@ -130,7 +130,7 @@ func Test_makeSeries(t *testing.T) {
 						Value:     10,
 					},
 				},
-				&TimeSeries{
+				{
 					Labels: []Label{
 						{
 							Name:  "host",
@@ -157,7 +157,7 @@ func Test_makeSeries(t *testing.T) {
 				dataTime: timeNow,
 			},
 			want: []*TimeSeries{
-				&TimeSeries{
+				{
 					Labels: []Label{
 						{
 							Name:  "host",
@@ -173,7 +173,7 @@ func Test_makeSeries(t *testing.T) {
 						Value:     10,
 					},
 				},
-				&TimeSeries{
+				{
 					Labels: []Label{
 						{
 							Name:  "host",

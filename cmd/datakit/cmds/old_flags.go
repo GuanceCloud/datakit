@@ -38,7 +38,6 @@ var (
 	FlagTestInput string
 
 	FlagDefConf bool
-	FlagWorkDir string
 
 	FlagDisableTFMono, FlagMan bool
 	FlagIgnore,
@@ -95,7 +94,6 @@ func initOldStyleFlags() { //nolint:gochecknoinits
 	pflag.BoolVar(&FlagShowTestingVersions, "show-testing-version", false, "show testing versions on -version flag")
 	pflag.StringVar(&FlagUpdateLogFile, "update-log", "", "update history log file")
 
-	pflag.StringVar(&FlagWorkDir, "workdir", "", "set datakit work dir")
 	pflag.BoolVar(&FlagDefConf, "default-main-conf", false, "get datakit default main configure")
 
 	// debug grok

@@ -41,6 +41,20 @@ var (
 	g = datakit.G("io")
 )
 
+type IOConfig struct {
+	FeedChanSize              int                 `toml:"feed_chan_size"`
+	HighFreqFeedChanSize      int                 `toml:"high_frequency_feed_chan_size"`
+	MaxCacheCount             int64               `toml:"max_cache_count"`
+	CacheDumpThreshold        int64               `toml:"cache_dump_threshold"`
+	MaxDynamicCacheCount      int64               `toml:"max_dynamic_cache_count"`
+	DynamicCacheDumpThreshold int64               `toml:"dynamic_cache_dump_threshold"`
+	FlushInterval             string              `toml:"flush_interval"`
+	OutputFile                string              `toml:"output_file"`
+	OutputFileInputs          []string            `toml:"output_file_inputs"`
+	EnableCache               bool                `toml:"enable_cache"`
+	Filters                   map[string][]string `toml:"filters"`
+}
+
 type Option struct {
 	CollectCost time.Duration
 	HighFreq    bool
@@ -68,16 +82,7 @@ func NewLastError(from, err string) *lastError {
 }
 
 type IO struct {
-	FeedChanSize              int
-	HighFreqFeedChanSize      int
-	MaxCacheCount             int64
-	CacheDumpThreshold        int64
-	MaxDynamicCacheCount      int64
-	DynamicCacheDumpThreshold int64
-	FlushInterval             time.Duration
-	OutputFile                string
-	OutputFileInput           []string
-	EnableCache               bool
+	conf *IOConfig
 
 	dw dataway.DataWay
 
@@ -106,26 +111,6 @@ type IoStat struct {
 	SentBytes int `json:"sent_bytes"`
 }
 
-func NewIO() *IO {
-	x := &IO{
-		FeedChanSize:         1024,
-		HighFreqFeedChanSize: 2048,
-		MaxCacheCount:        1024,
-		MaxDynamicCacheCount: 1024,
-		FlushInterval:        10 * time.Second,
-		in:                   make(chan *iodata, 128),
-		in2:                  make(chan *iodata, 128*8),
-		inLastErr:            make(chan *lastError, 128),
-		inputstats:           map[string]*InputsStat{},
-		cache:                map[string][]*Point{},
-		dynamicCache:         map[string][]*Point{},
-	}
-
-	log.Debugf("IO: %+#v", x)
-
-	return x
-}
-
 type iodata struct {
 	category, name string
 	opt            *Option
@@ -146,6 +131,8 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 		return nil
 	}
 
+	log.Debugf("io feed %s|%s", name, category)
+
 	ch := x.in
 	if opt != nil && opt.HighFreq {
 		ch = x.in2
@@ -153,29 +140,26 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 
 	switch category {
 	case datakit.MetricDeprecated:
-	case datakit.Metric:
 	case datakit.Network:
 	case datakit.KeyEvent:
-	case datakit.Object:
 	case datakit.CustomObject:
-	case datakit.Logging:
-		if x.dw != nil && x.dw.IsLogFilter() {
-			if !DisableLogFilter {
-				pts = defLogfilter.filter(pts)
-			}
-		} else {
-			// TODO: add multiple dataway config support
-			log.Debugf("dataway config for log filter not support yet")
-		}
-	case datakit.Tracing:
+
+	case datakit.Logging,
+		datakit.Tracing,
+		datakit.Metric,
+		datakit.Object:
+		pts = filterPts(category, pts)
+
 	case datakit.Security:
 	case datakit.RUM:
 	default:
 		return fmt.Errorf("invalid category `%s'", category)
 	}
 
-	log.Debugf("io feed %s", name)
-
+	// Maybe all points been filtered, but we still send the feeding into io.
+	// We can still see some inputs/data are sending to io in monitor. Do not
+	// optimize the feeding, or we see nothing on monitor about these filtered
+	// points.
 	select {
 	case ch <- &iodata{
 		category: category,
@@ -260,7 +244,7 @@ func (x *IO) updateStats(d *iodata) {
 }
 
 func (x *IO) ifMatchOutputFileInput(feedName string) bool {
-	for _, v := range x.OutputFileInput {
+	for _, v := range x.conf.OutputFileInputs {
 		if v == feedName {
 			return true
 		}
@@ -286,13 +270,13 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		x.cacheCnt += int64(len(d.pts))
 	}
 
-	if x.OutputFile != "" {
+	if x.conf.OutputFile != "" {
 		bodies, err := x.buildBody(d.pts)
 		if err != nil {
 			log.Errorf("build iodata bodies failed: %s", err)
 		}
 		for _, body := range bodies {
-			if len(x.OutputFileInput) == 0 || x.ifMatchOutputFileInput(d.name) {
+			if len(x.conf.OutputFileInputs) == 0 || x.ifMatchOutputFileInput(d.name) {
 				if err := x.fileOutput(body.buf); err != nil {
 					log.Error("fileOutput: %s, ignored", err.Error())
 				}
@@ -300,8 +284,8 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		}
 	}
 
-	if (tryClean && x.MaxCacheCount > 0 && x.cacheCnt > x.MaxCacheCount) ||
-		(x.MaxDynamicCacheCount > 0 && x.dynamicCacheCnt > x.MaxDynamicCacheCount) {
+	if (tryClean && x.conf.MaxCacheCount > 0 && x.cacheCnt > x.conf.MaxCacheCount) ||
+		(x.conf.MaxDynamicCacheCount > 0 && x.dynamicCacheCnt > x.conf.MaxDynamicCacheCount) {
 		x.flushAll()
 	}
 }
@@ -322,8 +306,8 @@ func (x *IO) cleanHighFreqIOData() {
 }
 
 func (x *IO) init() error {
-	if x.OutputFile != "" {
-		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644) //nolint:gosec
+	if x.conf.OutputFile != "" {
+		f, err := os.OpenFile(x.conf.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644) //nolint:gosec
 		if err != nil {
 			log.Error(err)
 			return err
@@ -336,10 +320,16 @@ func (x *IO) init() error {
 }
 
 func (x *IO) StartIO(recoverable bool) {
+	du, err := time.ParseDuration(x.conf.FlushInterval)
+	if err != nil {
+		l.Warnf("time.ParseDuration: %s, ignored", err)
+		du = time.Second * 10
+	}
+
 	if sender, err := sender.NewSender(
 		&sender.Option{
-			Cache:              x.EnableCache,
-			FlushCacheInterval: x.FlushInterval,
+			Cache:              x.conf.EnableCache,
+			FlushCacheInterval: du,
 			ErrorCallback: func(err error) {
 				addReporter(Reporter{Status: "error", Message: err.Error()})
 			},
@@ -357,7 +347,7 @@ func (x *IO) StartIO(recoverable bool) {
 
 		defer x.ioStop()
 
-		tick := time.NewTicker(x.FlushInterval)
+		tick := time.NewTicker(du)
 		defer tick.Stop()
 
 		highFreqRecvTicker := time.NewTicker(highFreqCleanInterval)
@@ -425,11 +415,6 @@ func (x *IO) StartIO(recoverable bool) {
 		}
 	})
 
-	// start log filter
-	if !DisableLogFilter {
-		defLogfilter.start()
-	}
-
 	log.Info("starting...")
 }
 
@@ -441,8 +426,8 @@ func (x *IO) flushAll() {
 	}
 
 	// dump cache pts
-	if x.CacheDumpThreshold > 0 && x.cacheCnt > x.CacheDumpThreshold {
-		log.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.MaxCacheCount)
+	if x.conf.CacheDumpThreshold > 0 && x.cacheCnt > x.conf.CacheDumpThreshold {
+		log.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.conf.MaxCacheCount)
 		for k := range x.cache {
 			x.cache[k] = nil
 		}
@@ -450,8 +435,8 @@ func (x *IO) flushAll() {
 		x.cacheCnt = 0
 	}
 	// dump dynamic cache pts
-	if x.DynamicCacheDumpThreshold > 0 && x.dynamicCacheCnt > x.DynamicCacheDumpThreshold {
-		log.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.MaxDynamicCacheCount)
+	if x.conf.DynamicCacheDumpThreshold > 0 && x.dynamicCacheCnt > x.conf.DynamicCacheDumpThreshold {
+		log.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.conf.MaxDynamicCacheCount)
 		for k := range x.dynamicCache {
 			x.dynamicCache[k] = nil
 		}
@@ -504,7 +489,7 @@ func (x *IO) buildBody(pts []*Point) ([]*body, error) {
 				err  error
 			)
 			log.Debugf("### io body size before GZ: %dM %dK", len(body.buf)/1000/1000, len(body.buf)/1000)
-			if len(lines) > minGZSize && x.OutputFile == "" {
+			if len(lines) > minGZSize && x.conf.OutputFile == "" {
 				if body.buf, err = datakit.GZip(body.buf); err != nil {
 					log.Errorf("gz: %s", err.Error())
 

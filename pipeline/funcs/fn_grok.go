@@ -9,18 +9,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/ubwbu/grok"
-	vgrok "github.com/vjeantet/grok"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
-
-func CreateGrok(pattern map[string]string) (*vgrok.Grok, error) {
-	return vgrok.NewWithConfig(&vgrok.Config{
-		SkipDefaultPatterns: true,
-		NamedCapturesOnly:   true,
-		Patterns:            pattern,
-	})
-}
 
 func GrokChecking(ng *parser.EngineData, node parser.Node) error {
 	g := ng.GetGrok()
@@ -76,7 +67,7 @@ func GrokChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func Grok(ng *parser.EngineData, node parser.Node) error {
+func Grok(ng *parser.EngineData, node parser.Node) interface{} {
 	g := ng.GetGrok()
 	if g == nil {
 		return fmt.Errorf("no grok obj")

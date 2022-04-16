@@ -516,7 +516,7 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 }
 
 func pipelineTest(pipelineFile string, text string) (string, error) {
-	pl, err := pipeline.NewPipeline(pipelineFile)
+	pl, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, pipelineFile))
 	if err != nil {
 		return "", err
 	}
@@ -526,12 +526,12 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 		return "", err
 	}
 
-	if res == nil || (len(res.GetTags()) == 0 || len(res.GetFields()) == 0) {
+	if res == nil || (len(res.Output.Tags) == 0 || len(res.Output.Fields) == 0) {
 		l.Debug("No data extracted from pipeline")
 		return "", nil
 	}
 
-	if res.IsDropped() {
+	if res.Output.Dropped {
 		l.Debug("the current log has been dropped by the pipeline script")
 		return "", nil
 	}

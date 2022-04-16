@@ -7,7 +7,6 @@ package io
 
 import (
 	"fmt"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
@@ -19,97 +18,24 @@ import (
 var (
 	extraTags = map[string]string{}
 	defaultIO = &IO{
-		FeedChanSize:              1024,
-		HighFreqFeedChanSize:      2048,
-		MaxCacheCount:             1024,
-		CacheDumpThreshold:        512,
-		MaxDynamicCacheCount:      1024,
-		DynamicCacheDumpThreshold: 512,
-		FlushInterval:             10 * time.Second,
+		conf: &IOConfig{
+			FeedChanSize:              1024,
+			HighFreqFeedChanSize:      2048,
+			MaxCacheCount:             1024,
+			CacheDumpThreshold:        512,
+			MaxDynamicCacheCount:      1024,
+			DynamicCacheDumpThreshold: 512,
+			FlushInterval:             "10s",
+		},
 	}
 )
 
-type IOOption func(io *IO)
-
-func SetMaxCacheCount(max int64) IOOption {
-	return func(io *IO) {
-		io.MaxCacheCount = max
-	}
+func SetDataway(dw dataway.DataWay) {
+	defaultIO.dw = dw
 }
 
-func SetCacheDumpThreshold(threshold int64) IOOption {
-	return func(io *IO) {
-		io.CacheDumpThreshold = threshold
-	}
-}
-
-func SetMaxDynamicCacheCount(max int64) IOOption {
-	return func(io *IO) {
-		io.MaxDynamicCacheCount = max
-	}
-}
-
-func SetDynamicCacheDumpThreshold(threshold int64) IOOption {
-	return func(io *IO) {
-		io.DynamicCacheDumpThreshold = threshold
-	}
-}
-
-func SetFlushInterval(s string) IOOption {
-	return func(io *IO) {
-		if len(s) == 0 {
-			io.FlushInterval = 10 * time.Second
-		} else {
-			if d, err := time.ParseDuration(s); err != nil {
-				log.Errorf("parse io flush interval failed, %s", err.Error())
-				io.FlushInterval = 10 * time.Second
-			} else {
-				io.FlushInterval = d
-			}
-		}
-	}
-}
-
-func SetOutputFile(output string) IOOption {
-	return func(io *IO) {
-		io.OutputFile = output
-	}
-}
-
-func SetOutputFileInput(outputFileInputs []string) IOOption {
-	return func(io *IO) {
-		io.OutputFileInput = outputFileInputs
-	}
-}
-
-func SetDataway(dw dataway.DataWay) IOOption {
-	return func(io *IO) {
-		io.dw = dw
-	}
-}
-
-func SetFeedChanSize(size int) IOOption {
-	return func(io *IO) {
-		io.FeedChanSize = size
-	}
-}
-
-func SetHighFreqFeedChanSize(size int) IOOption {
-	return func(io *IO) {
-		io.HighFreqFeedChanSize = size
-	}
-}
-
-func SetEnableCache(enable bool) IOOption {
-	return func(io *IO) {
-		io.EnableCache = enable
-	}
-}
-
-func ConfigDefaultIO(opts ...IOOption) {
-	for _, opt := range opts {
-		opt(defaultIO)
-	}
+func ConfigDefaultIO(c *IOConfig) {
+	defaultIO.conf = c
 }
 
 func Start(sincfg []map[string]interface{}) error {
@@ -117,8 +43,8 @@ func Start(sincfg []map[string]interface{}) error {
 
 	log.Debugf("default io config: %v", defaultIO)
 
-	defaultIO.in = make(chan *iodata, defaultIO.FeedChanSize)
-	defaultIO.in2 = make(chan *iodata, defaultIO.HighFreqFeedChanSize)
+	defaultIO.in = make(chan *iodata, defaultIO.conf.FeedChanSize)
+	defaultIO.in2 = make(chan *iodata, defaultIO.conf.HighFreqFeedChanSize)
 	defaultIO.inLastErr = make(chan *lastError, 128)
 	defaultIO.inputstats = map[string]*InputsStat{}
 	defaultIO.cache = map[string][]*Point{}

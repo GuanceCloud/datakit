@@ -193,6 +193,11 @@ if [ -n "$DK_INSTALL_IPDB" ]; then
 	ipdb_type=$DK_INSTALL_IPDB
 fi
 
+install_externals=""
+if [ -n "$DK_INSTALL_EXTERNALS" ]; then
+	install_externals=$DK_INSTALL_EXTERNALS
+fi
+
 if [ -n "$HTTP_PROXY" ]; then
 	proxy=$HTTP_PROXY
 fi
@@ -224,6 +229,11 @@ if [ -n "$DK_PROXY_TYPE" ]; then
 	fi
 fi
 
+env_enable_experimental=0
+if [ -n "$DK_ENABLE_EXPEIMENTAL" ]; then
+  env_enable_experimental=$DK_ENABLE_EXPEIMENTAL
+fi
+
 env_hostname=
 if [ -n "$DK_HOSTNAME" ]; then
   env_hostname=$DK_HOSTNAME
@@ -239,9 +249,14 @@ if [ -n "$DK_LIMIT_CPUMIN" ]; then
   limit_cpumin=$DK_LIMIT_CPUMIN
 fi
 
-cgroup_enabled=0
-if [ -n "$DK_CGROUP_ENABLED" ]; then
-  cgroup_enabled=1
+limit_memmax=4096
+if [ -n "$DK_LIMIT_MEMMAX" ]; then
+  limit_memmax=$DK_LIMIT_MEMMAX
+fi
+
+cgroup_disabled=0
+if [ -n "$DK_CGROUP_DISABLED" ]; then
+  cgroup_disabled=1
 fi
 
 install_log=/var/log/datakit/install.log
@@ -373,7 +388,7 @@ if [ "$upgrade" ]; then
 	# shellcheck disable=SC2059
 	printf "${BLU}\n* Upgrading DataKit...${CLR}\n"
     $sudo_cmd $installer  \
-		--upgrade --proxy="${proxy}" | $sudo_cmd tee ${install_log}
+		--upgrade --proxy="${proxy}" --env_enable_experimental=${env_enable_experimental} | $sudo_cmd tee ${install_log}
 else
 	printf "${BLU}\n* Installing DataKit...${CLR}\n"
 		$sudo_cmd $installer                         \
@@ -389,6 +404,7 @@ else
 			--dca-enable="${dca_enable}"               \
 			--dca-listen="${dca_listen}"               \
 			--dca-white-list="${dca_white_list}"       \
+			--install-externals="${install_externals}" \
 			--git-url="${git_url}"                     \
 			--git-key-path="${git_key_path}"           \
 			--git-key-pw="${git_key_pw}"               \
@@ -396,13 +412,14 @@ else
 			--git-pull-interval="${git_pull_interval}" \
 			--limit-cpumax="${limit_cpumax}"           \
 			--limit-cpumin="${limit_cpumin}"           \
-			--cgroup-enabled="${cgroup_enabled}"       \
+			--limit-mem="${limit_memmax}"              \
+			--cgroup-disabled="${cgroup_disabled}"     \
 			--enable-election="${enable_election}"     \
 			--rum-origin-ip-header="${rum_origin_ip_header}" \
 			--disable-404page="${disable_404page}"           \
 			--log-level="${log_level}"                       \
 			--log="${log}"                                   \
-			--ipdb-type="${ipdb_type}"						 \
+			--ipdb-type="${ipdb_type}"                       \
 			--sink-metric="${sink_metric}"                   \
 			--sink-network="${sink_network}"                 \
 			--sink-keyevent="${sink_keyevent}"               \
@@ -412,6 +429,10 @@ else
 			--sink-tracing="${sink_tracing}"                 \
 			--sink-rum="${sink_rum}"                         \
 			--sink-security="${sink_security}"               \
+			--ipdb-type="${ipdb_type}"                       \
 			--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
 fi
 rm -rf $installer
+
+# install completion
+$sudo_cmd datakit tool --setup-completer-script
