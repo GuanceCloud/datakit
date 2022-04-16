@@ -21,8 +21,6 @@
   - [DataKit 代理](proxy)
   - [DataKit 选举支持](election)
   - [DCA 客户端(beta)](dca)
-  - [批量部署](datakit-sink-logstash)
-  - [DataKit 更新](datakit-sink-m3db)
 
 	- [Sinker 设置]()
     - [Sinker 使用方法](datakit-sink-guide)

@@ -1,28 +1,18 @@
-# DataKit Sink 开发文档
+# DataKit Sinker 开发文档
 
-## 编者按
+本文将讲述如何开发 DataKit 的 Sinker 模块(以下简称 Sinker 模块、Sinker)的新实例。适合于想开发 Sinker 新实例、或者想深入了解 Sinker 模块原理的同学。
 
-本文将讲述如何开发 DataKit 的 Sink 模块(以下简称 Sink 模块、Sink)的新实例。适合于想开发 Sink 新实例、或者想深入了解 Sink 模块原理的同学。
+## 如何开发 Sinker 实例
 
-## 如何阅读本文
+目前社区版只实现有限的几个 Sinker, 如果想要支持其它存储, 可以做对应开发(用 Go 语言), 大致分为以下几步(以 `influxdb` 举例):
 
-1. 读者应该具备 Sink 的基础知识。比方说什么是 Sink, 最好要有使用过 Sink 的经验。关于 Sink 的介绍文档可以阅读 [这篇文章](datakit-sink-guide.md)。
-2. 读者需要具备一定的 Go 语言基础。一些常见开发问题见 [这里](https://www.yuque.com/dataflux/datakit/development)。
-3. 本文行文尽量做到极致简洁。以 influxdb 的 Sink 实现为具体例子, 旨在帮助大家更好的理解 Sink 的开发流程, 尽量做到以实际应用为主。
+- 克隆 [DataKit 代码](https://jihulab.com/guance-cloud/datakit), 在 *io/sink/* 下面新建一个包, 名字叫 `sinkinfluxdb`(建议都以 `sink` 开头)。
 
-以下是正文。难度: 4 星(5 星最难)。
+- 在上面的包下新建一个源文件 `sink_influxdb.go`, 新建一个常量 `creatorID`, 不能与其它包里面的 `creatorID` 重名; 实现 `ISink` 的 `interface`, 具体是实现以下几个函数:
 
-## 如何开发 Sink 实例
-
-目前官方只实现了部分实例, 如果想要其它的, 可以自己写代码实现(用 Go 语言), 非常简单, 大致分为以下几步(为了让大家更能形象理解, 我以 `influxdb` 举例):
-
-- 第一步: 克隆 [DataKit 代码](https://github.com/DataFlux-cn/datakit), 在 `io/sink` 下面新建一个包, 名字叫 `sinkinfluxdb`(建议都以 `sink` 开头), 小写。
-
-- 第二步: 在上面的包下新建一个源文件 `sink_influxdb.go`, 新建一个常量 `creatorID`, 不能与其它包里面的 `creatorID` 重名; 实现 `ISink` 的 `interface`, 具体是实现以下几个函数:
-
-- `GetInfo() *SinkInfo`: 返回 sink 实例的相关信息。目前有 `ID`(实例内部标识, 程序内部根据配置生成, 供内部使用, 配置中唯一) 、`CreateID`(实例创建标识, 代码中唯一)和支持的类型的简写(比方说 `Metrics` 返回的是 `M`)。
-- `LoadConfig(mConf map[string]interface{}) error`: 加载外部配置到内部。
-- `Write(pts []ISinkPoint) error`: 写入数据。
+	- `GetInfo() *SinkInfo`: 返回 sink 实例的相关信息。目前有 `ID`(实例内部标识, 程序内部根据配置生成, 供内部使用, 配置中唯一) 、`CreateID`(实例创建标识, 代码中唯一)和支持的类型的简写(比方说 `Metrics` 返回的是 `M`)。
+	- `LoadConfig(mConf map[string]interface{}) error`: 加载外部配置到内部。
+	- `Write(pts []ISinkPoint) error`: 写入数据。
 
 大致代码如下:
 
