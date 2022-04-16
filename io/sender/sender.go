@@ -188,7 +188,7 @@ func (s *Sender) worker(category string, pts []sinkcommon.ISinkPoint) error {
 	s.group.Go(func(ctx context.Context) error {
 		start := time.Now()
 		if err := s.write(category, pts); err != nil {
-			if _, ok := err.(*sinkcommon.SinkUnsupportError); ok {
+			if _, ok := err.(*sinkcommon.SinkUnsupportError); ok { //nolint:errorlint
 				l.Debugf("got no sink for category: %s", category)
 				return nil
 			}

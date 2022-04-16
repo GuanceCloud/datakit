@@ -14,11 +14,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang/protobuf/proto" //nolint:staticcheck
 	"github.com/golang/snappy"
 	"github.com/prometheus/prometheus/prompb"
-
-	// "google.golang.org/protobuf/proto"
-	"github.com/golang/protobuf/proto"
 )
 
 // Label is a metric label.
