@@ -515,7 +515,7 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*iod.Point, error) 
 			return nil, nil
 		}
 		if *pl.ObjectAttributes.Status != "success" && *pl.ObjectAttributes.Status != "failed" {
-			l.Debugf("ignore pipeline event point with ci_status = %s", tags["ci_status"])
+			l.Debugf("ignore pipeline event point with ci_status = %s", *pl.ObjectAttributes.Status)
 			return nil, nil
 		}
 		tags = getPipelineEventTags(pl)
@@ -541,7 +541,11 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*iod.Point, error) 
 	default:
 		return nil, fmt.Errorf("unrecognized event payload: %v", eventType)
 	}
-	pt, err := iod.NewPoint(measurementName, tags, fields)
+	pt, err := iod.NewPoint(measurementName, tags, fields, &iod.PointOption{
+		Time:     time.Now(),
+		Category: datakit.Logging,
+		Strict:   true,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -555,6 +559,7 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	// are understood to be misconfigured, and these are
 	// disabled until you manually re-enable them.
 	if event != pipelineHook && event != jobHook {
+		l.Debugf("unrecognized event payload: %s", event)
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -569,7 +574,7 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	digest := md5.Sum(data) //nolint:gosec
 	if ipt.reqMemo.has(digest) {
 		// Skip duplicated requests.
-		l.Debugf("duplicated event with md5 = %v", digest)
+		l.Debugf("skip duplicated event with md5 = %v", digest)
 		return
 	}
 	ipt.reqMemo.add(digest)
@@ -623,15 +628,18 @@ func (m *requestMemo) remove(digest [16]byte) {
 	m.removeReqCh <- digest
 }
 
-func (m *requestMemo) memoHouseKeeper(duration time.Duration) {
-	// Clear expired md5 sums every 30 seconds.
-	ticker := time.NewTicker(duration)
+// memoHouseKeeper is in charge of maintaining memo of requests' md5 sums.
+// Each md5 sum will be expired in du.
+// memoHouseKeeper will traverse memoMap and remove expired md5 sums every du seconds.
+func (m *requestMemo) memoHouseKeeper(du time.Duration) {
+	// Clear expired md5 sums every duration seconds.
+	ticker := time.NewTicker(du)
 
 	for {
 		select {
 		case <-ticker.C:
 			for k, v := range m.memoMap {
-				if time.Since(v) > duration {
+				if time.Since(v) > du {
 					delete(m.memoMap, k)
 				}
 			}
@@ -641,9 +649,11 @@ func (m *requestMemo) memoHouseKeeper(duration time.Duration) {
 			r.respCh <- has
 
 		case r := <-m.addReqCh:
+			l.Debugf("md5 = %v is added to memo", r)
 			m.memoMap[r] = time.Now()
 
 		case r := <-m.removeReqCh:
+			l.Debugf("md5 = %v is removed from memo", r)
 			delete(m.memoMap, r)
 
 		case <-datakit.Exit.Wait():
