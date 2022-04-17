@@ -1,5 +1,4 @@
-
-# InfluxDB Sink 使用教程
+# InfluxDB Sink 使用教程 
 
 InfluxDB 仅支持写入 Metric 种类的数据。
 
@@ -44,7 +43,7 @@ InfluxDB 仅支持写入 Metric 种类的数据。
 
 `$ sudo datakit --restart`
 
-## 附: 通过环境变量开启 InfluxDB Sink 实例
+## 安装阶段指定 InfluxDB Sink 设置
 
 InfluxDB 支持安装时环境变量开启的方式。
 

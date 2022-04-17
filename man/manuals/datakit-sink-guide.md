@@ -16,17 +16,19 @@ Sinker 是 DataKit 中数据存储定义模块。默认情况下，DataKit 采�
 
 当让，同一定的开发，也能将现有 DataKit 采集到的各种其它数据发送到任何其它存储，参见[Sinker 开发文档](datakit-sink-dev)。
 
-## 如何使用
+## Sinker 的配置
 
 只需要以下简单三步:
 
-- 第一步: 搭建后端存储，目前支持 InfluxDB、Logstash 以及 M3DB
+- 搭建后端存储，目前支持 [InfluxDB](datakit-sink-influxdb)、[Logstash](datakit-sink-logstash) 以及 [M3DB](datakit-sink-m3db)
 
-- 第二步: 增加 Sinker 配置
+- 增加 Sinker 配置：在 `datakit.conf` 配置中增加 Sinker 实例的相关参数，也能在 DataKit 安装阶段即指定 Sinker 配置。具体参见各个已有 Sinker 的安装文档。
 
-在 `datakit.conf` 配置中增加 Sinker 实例的相关参数，参见 [M3DB 使用示例](datakit-sink-m3db#6e3afed0)
+  - [InfluxDB 安装](datakit-sink-influxdb#dc8b9023)
+  - [M3DB 安装](datakit-sink-m3db#3ab48619)
+  - [Logstash 安装](datakit-sink-logstash#dc8b9023)
 
-- 第三步: 重启 DataKit
+- 重启 DataKit
 
 ```shell
 $ sudo datakit --restart

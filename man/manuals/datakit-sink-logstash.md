@@ -79,12 +79,12 @@ $ logstash/bin/logstash -f /opt/elastic/logstash/pipeline-http.conf
 
 `$ sudo datakit --restart`
 
-## 附: 通过环境变量开启 LogStash Sink 实例
+## 安装阶段指定 LogStash Sink 设置
 
 LogStash 支持安装时环境变量开启的方式。
 
 ```shell
-DK_SINK_L="logstash://1.1.1.1:8080?protocol=http&request_path=/index/type/id&timeout=5s&write_type=json" \
+DK_SINK_L="logstash://localhost:8080?protocol=http&request_path=/index/type/id&timeout=5s&write_type=json" \
 DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" \
 bash -c "$(curl -L https://static.guance.com/datakit/community/install.sh)"
 ```

@@ -38,7 +38,7 @@ ss -tlnp|grep m3dbnode
 
 ## 在 datakit 上开启 sink-m3db
 
-### 方式一 通过配置文件形式开启：
+### 通过配置文件指定 M3DB
 
 1. 修改配置 datakit 配置文件
 
@@ -64,7 +64,7 @@ vim /usr/local/datakit/conf/datakit.conf
 datakit --restart
 ```
 
-### 方式二 通过环境变量形式开启：
+### 安装阶段指定 M3DB 设置
 
 ```shell
 DK_SINK_M="m3db://localhost:7201?scheme=http" \
@@ -74,6 +74,6 @@ bash -c "$(curl -L https://static.guance.com/datakit/community/install.sh)"
 
 通过环境变量安装的 Datakit，会在自动在配置文件中生成相应的配置。
 
-## m3db 可视化
+## M3DB 可视化
 
 这里推荐您使用 [prometheus](https://prometheus.io/download/) 和 [grafana](https://grafana.com/) 去查询和展示数据。

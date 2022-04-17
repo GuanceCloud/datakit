@@ -8,7 +8,7 @@
 本次发布属于社区版正常迭代
 
 - 合并线上 [1.2.14 版本](changelog#08185d0f)
-- 增加各类 Sinker 支持
+- 增加各类 [Sinker 支持](datakit-sink-guide#73776b53)
   - [InfluxDB](datakit-sink-influxdb)
   - [M3DB](datakit-sink-m3db)
   - [Logstash](datakit-sink-logstash)
