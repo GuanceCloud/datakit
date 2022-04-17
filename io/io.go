@@ -33,11 +33,6 @@ var (
 	heartBeatIntervalDefault   = 40
 	log                        = logger.DefaultSLogger("io")
 
-	DisableLogFilter            bool
-	DisableHeartbeat            bool
-	DisableDatawayList          bool
-	FlagDebugDisableDatawayList bool
-
 	g = datakit.G("io")
 )
 
@@ -339,6 +334,11 @@ func (x *IO) StartIO(recoverable bool) {
 		x.sender = sender
 	}
 
+	g.Go(func(_ context.Context) error {
+		StartFilter()
+		return nil
+	})
+
 	g.Go(func(ctx context.Context) error {
 		if err := x.init(); err != nil {
 			log.Errorf("init io err %v", err)
@@ -364,32 +364,28 @@ func (x *IO) StartIO(recoverable bool) {
 				select {
 				case <-heartBeatTick.C:
 					log.Debugf("### enter heartBeat")
-					if !DisableHeartbeat {
-						heartBeatInterval, err := x.dw.HeartBeat()
-						if err != nil {
-							log.Warnf("dw.HeartBeat: %s, ignored", err.Error())
-						}
-						if heartBeatInterval != heartBeatIntervalDefault {
-							heartBeatTick.Reset(time.Second * time.Duration(heartBeatInterval))
-							heartBeatIntervalDefault = heartBeatInterval
-						}
+					heartBeatInterval, err := x.dw.HeartBeat()
+					if err != nil {
+						log.Warnf("dw.HeartBeat: %s, ignored", err.Error())
+					}
+					if heartBeatInterval != heartBeatIntervalDefault {
+						heartBeatTick.Reset(time.Second * time.Duration(heartBeatInterval))
+						heartBeatIntervalDefault = heartBeatInterval
 					}
 
 				case <-datawaylistTick.C:
 					log.Debugf("### enter dataway list")
-					if !DisableDatawayList {
-						var dws []string
-						var err error
-						var datawayListInterval int
-						dws, datawayListInterval, err = x.dw.DatawayList()
-						if err != nil {
-							log.Warnf("DatawayList(): %s, ignored", err)
-						}
-						dataway.AvailableDataways = dws
-						if datawayListInterval != datawayListIntervalDefault {
-							datawaylistTick.Reset(time.Second * time.Duration(datawayListInterval))
-							datawayListIntervalDefault = datawayListInterval
-						}
+					var dws []string
+					var err error
+					var datawayListInterval int
+					dws, datawayListInterval, err = x.dw.DatawayList()
+					if err != nil {
+						log.Warnf("DatawayList(): %s, ignored", err)
+					}
+					dataway.AvailableDataways = dws
+					if datawayListInterval != datawayListIntervalDefault {
+						datawaylistTick.Reset(time.Second * time.Duration(datawayListInterval))
+						datawayListIntervalDefault = datawayListInterval
 					}
 				default:
 				}

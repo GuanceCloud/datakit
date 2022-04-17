@@ -202,8 +202,7 @@ func downloadFiles(to string) error {
 
 	if flagIpdb != "" {
 		fmt.Printf("\n")
-		baseURL := "https://" + DataKitBaseURL
-		if _, err := cmds.InstallIpdb(baseURL, flagIpdb); err != nil {
+		if _, err := cmds.InstallIpdb(flagIpdb); err != nil {
 			l.Warnf("ipdb install failed error: %s, please try later.", err.Error())
 			time.Sleep(1 * time.Second)
 		} else {
