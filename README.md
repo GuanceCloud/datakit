@@ -167,5 +167,5 @@ Before contributing, check out some guideline of DataKit:
 
 For full documents of DataKit, see
 
-- [DataKit Doc](https://www.yuque.com/dataflux/datakit-community)
-- [DataKit Community Docs](https://www.yuque.com/dataflux/datakit)
+- [DataKit Doc](https://www.yuque.com/dataflux/datakit)
+- [DataKit Community Docs](https://www.yuque.com/dataflux/datakit-community)
