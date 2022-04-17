@@ -46,7 +46,7 @@ release-stable:
 release-unstable:
   stage: deploy
   only:
-    - github-mirror # 专用分支来发布 community 版本
+    - community # 专用分支来发布 community 版本
   script:
     - make clean
     - make lint

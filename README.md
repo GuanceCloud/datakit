@@ -64,7 +64,7 @@ For more documentations about DataKit installation, see [here](https://www.yuque
 
 ### Install community release
 
-We also released the [community DataKit](https://www.yuque.com/dataflux/datakit/changelog#5a0afc9d), we can install via
+We also released the [community DataKit](https://www.yuque.com/dataflux/datakit/changelog-community), we can install via
 
 - Linux & Mac
 

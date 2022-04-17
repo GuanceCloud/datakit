@@ -59,9 +59,9 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPol
 
 更多关于安装的文档，参见[这里](https://www.yuque.com/dataflux/datakit/datakit-install)。
 
-### 安装非稳定版
+### 安装社区版
 
-同时我们也发布了 DataKit 的[非稳定版](https://www.yuque.com/dataflux/datakit/changelog#5a0afc9d)，可通过如下方式安装：
+同时我们也发布了 DataKit 的社区版，可通过如下方式安装：
 
 - Linux & Mac
 
@@ -157,4 +157,5 @@ datakit help
 
 ## 文档
 
-DataKit 文档，参见[DataKit 文档库](https://www.yuque.com/dataflux/datakit)。
+- [DataKit 文档库](https://www.yuque.com/dataflux/datakit)
+- [DataKit 社区版文档库](https://www.yuque.com/dataflux/datakit-community)
