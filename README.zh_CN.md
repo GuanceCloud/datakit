@@ -61,7 +61,7 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPol
 
 ### 安装社区版
 
-同时我们也发布了 DataKit 的社区版，可通过如下方式安装：
+同时我们也发布了 DataKit 的社区版，相比上面的版本，社区版会激进的加入一些新的功能，但不一定具有较好的兼容性以及稳定。可通过如下方式安装社区版：
 
 - Linux & Mac
 
