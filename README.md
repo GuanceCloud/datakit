@@ -62,9 +62,9 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPol
 
 For more documentations about DataKit installation, see [here](https://www.yuque.com/dataflux/datakit/datakit-install).
 
-### Install unstable release
+### Install community release
 
-We also released the [unstable DataKit](https://www.yuque.com/dataflux/datakit/changelog#5a0afc9d), we can install via
+We also released the [community DataKit](https://www.yuque.com/dataflux/datakit/changelog#5a0afc9d), we can install via
 
 - Linux & Mac
 
@@ -81,7 +81,7 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPol
 - [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
 
 ```bash
-# We should use the unstable version yaml
+# We should use the community version yaml
 wget https://static.guance.com/datakit/community/datakit.yaml
 ```
 
@@ -165,4 +165,7 @@ Before contributing, check out some guideline of DataKit:
 
 ## Full Documentation
 
-For full documents of DataKit, see [DataKit Doc Repository](https://www.yuque.com/dataflux/datakit)。
+For full documents of DataKit, see
+
+- [DataKit Doc](https://www.yuque.com/dataflux/datakit-community)
+- [DataKit Community Docs](https://www.yuque.com/dataflux/datakit)
