@@ -32,7 +32,7 @@ case $current_branch in
 "yuque") ;;
   # pass
 
-"yuque-github-unstable")
+"yuque-github-mirror")
   waque_yml="yuque_community.yml"
   printf "${GREEN}[I] current branch is %s, use %s ${CLR}\n" $current_branch $waque_yml
   ;;
