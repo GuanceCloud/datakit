@@ -12,6 +12,7 @@ M3DB更多介绍和文档 请参考：
 - [m3db-官方文档](https://m3db.io/docs)
 
 ### 快速上手 安装单机版 m3db
+
 ``` shell 
 # 下载并启动
 wget https://s3-gz01.didistatic.com/n9e-pub/tarball/m3dbnode-single-v0.0.1.tar.gz
@@ -37,7 +38,7 @@ ss -tlnp|grep m3dbnode
 
 ## 在 datakit 上开启 sink-m3db
 
-### 方式一 通过配置文件形式开启：
+### 通过配置文件指定 M3DB
 
 1. 修改配置 datakit 配置文件
 
@@ -53,22 +54,26 @@ vim /usr/local/datakit/conf/datakit.conf
     scheme = "http"
     host = "localhost:7201"
     path = "/api/v1/prom/remote/write"
-    categories = ["M"]
+    categories = ["M"] # M3DB 目前只支持时序时序（metric）
     target = "m3db"
-
 ```
 
 3. 重启 datakit
+
 ``` shell
 datakit --restart
 ```
 
-### 方式二 通过环境变量形式开启：
-```shell script
-DK_SINK_M="m3db://localhost:7201?scheme=http" bash -c "$(curl -L <datakit download url>)"
+### 安装阶段指定 M3DB 设置
+
+```shell
+DK_SINK_M="m3db://localhost:7201?scheme=http" \
+DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" \
+bash -c "$(curl -L https://static.guance.com/datakit/community/install.sh)"
 ```
+
 通过环境变量安装的 Datakit，会在自动在配置文件中生成相应的配置。
 
+## M3DB 可视化
 
-## m3db 可视化
 这里推荐您使用 [prometheus](https://prometheus.io/download/) 和 [grafana](https://grafana.com/) 去查询和展示数据。

@@ -9,7 +9,8 @@
     - [各种其它工具使用](datakit-tools-how-to)
     - [如何排查无数据问题](why-no-data)
 
-- [DataKit 版本历史](changelog)
+- [DataKit 社区版版本历史](changelog-community)
+  - [DataKit 版本历史](changelog)
 
 - [DataKit 安装]()
   - [宿主机安装](datakit-install)
@@ -21,6 +22,13 @@
   - [DataKit 选举支持](election)
   - [DCA 客户端(beta)](dca)
 
+	- [Sinker 设置]()
+    - [Sinker 使用方法](datakit-sink-guide)
+		- [已有 Sinker 支持]()
+      - [InfluxDB](datakit-sink-influxdb)
+      - [Logstash](datakit-sink-logstash)
+      - [M3DB](datakit-sink-m3db)
+
 - [文本数据处理（Pipeline）](pipeline)
   - [如何编写 Pipeline 脚本](datakit-pl-how-to)
 
@@ -29,8 +37,7 @@
 		- [DataKit 整体架构简介](datakit-arch)
 	- [行协议过滤器](datakit-filter)
   - [DataKit API](apis)
-
-    - [DataKit Sink 开发文档](datakit-sink-dev)
+  - [DataKit Sinker 开发](datakit-sink-dev)
 
 - [采集器]()
   - [主机]()

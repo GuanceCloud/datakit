@@ -1,5 +1,4 @@
-
-# InfluxDB Sink 使用教程
+# InfluxDB Sink 使用教程 
 
 InfluxDB 仅支持写入 Metric 种类的数据。
 
@@ -14,11 +13,10 @@ InfluxDB 仅支持写入 Metric 种类的数据。
 ```conf
 ...
 [sinks]
-
   [[sinks.sink]]
-    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    categories = ["M"]
     target = "influxdb"
-    host = "10.200.7.21:8087"
+    host = "localhost:8087"
     protocol = "http"
     database = "db1"
     precision = "ns"
@@ -44,3 +42,13 @@ InfluxDB 仅支持写入 Metric 种类的数据。
 ## 第三步: 重启 DataKit
 
 `$ sudo datakit --restart`
+
+## 安装阶段指定 InfluxDB Sink 设置
+
+InfluxDB 支持安装时环境变量开启的方式。
+
+```shell
+DK_SINK_M="influxdb://localhost:8087?protocol=http&database=db1&precision=ns&timeout=15s" \
+DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" \
+bash -c "$(curl -L https://static.guance.com/datakit/community/install.sh)"
+```

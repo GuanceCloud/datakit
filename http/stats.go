@@ -332,11 +332,13 @@ func GetStats() (*DatakitStats, error) {
 
 	var err error
 
+	l.Debugf("io.GetStats()...")
 	stats.InputsStats, err = io.GetStats() // get all inputs stats
 	if err != nil {
 		return nil, err
 	}
 
+	l.Debugf("get inputs info...")
 	for k := range inputs.Inputs {
 		if !datakit.Enabled(k) {
 			continue
