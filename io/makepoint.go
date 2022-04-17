@@ -67,10 +67,12 @@ type PointOption struct {
 	MaxFieldValueLen  int
 }
 
-var defaultPointOption = &PointOption{
-	Time:     time.Now(),
-	Category: datakit.Metric,
-	Strict:   true,
+func defaultPointOption() *PointOption {
+	return &PointOption{
+		Time:     time.Now(),
+		Category: datakit.Metric,
+		Strict:   true,
+	}
 }
 
 func NewPoint(name string,
@@ -81,7 +83,7 @@ func NewPoint(name string,
 	if len(opt) > 0 {
 		o = opt[0]
 	} else {
-		o = defaultPointOption
+		o = defaultPointOption()
 	}
 
 	lpOpt := &lp.Option{
