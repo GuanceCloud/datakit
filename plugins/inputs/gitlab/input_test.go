@@ -502,7 +502,7 @@ func TestPipelineTagsAndFields(t *testing.T) {
 	fields := getPipelineEventFields(ppl)
 	expectedFields := map[string]interface{}{
 		"duration":       int64(63),
-		"pipeline_id":    int64(31),
+		"pipeline_id":    "31",
 		"commit_message": "test\n",
 		"created_at":     int64(1471015408),
 		"finished_at":    int64(1471015589),
@@ -544,10 +544,10 @@ func TestJobTagsAndFields(t *testing.T) {
 		"build_commit_sha":     "2293ada6b400935a1378653304eaf6221e0fdb8f",
 	}
 	expectedFields := map[string]interface{}{
-		"runner_id":            int64(380987),
-		"build_id":             int64(1977),
-		"pipeline_id":          int64(2366),
-		"project_id":           int64(380),
+		"runner_id":            "380987",
+		"build_id":             "1977",
+		"pipeline_id":          "2366",
+		"project_id":           "380",
 		"build_started_at":     int64(1614048097),
 		"build_commit_message": "test\n",
 	}

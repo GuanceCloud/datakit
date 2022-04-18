@@ -378,7 +378,7 @@ type Author struct {
 func getJobEventFields(j JobEventPayload) map[string]interface{} {
 	fields := map[string]interface{}{}
 	if j.BuildID != nil {
-		fields["build_id"] = *j.BuildID
+		fields["build_id"] = strconv.FormatInt(*j.BuildID, 10)
 	}
 	if j.BuildStartedAt != nil {
 		fields["build_started_at"] = j.BuildStartedAt.Unix()
@@ -390,13 +390,13 @@ func getJobEventFields(j JobEventPayload) map[string]interface{} {
 		fields["build_duration"] = *j.BuildDuration
 	}
 	if j.PipelineID != nil {
-		fields["pipeline_id"] = *j.PipelineID
+		fields["pipeline_id"] = strconv.FormatInt(*j.PipelineID, 10)
 	}
 	if j.ProjectID != nil {
-		fields["project_id"] = *j.ProjectID
+		fields["project_id"] = strconv.FormatInt(*j.ProjectID, 10)
 	}
 	if j.Runner != nil && j.Runner.ID != nil {
-		fields["runner_id"] = *j.Runner.ID
+		fields["runner_id"] = strconv.FormatInt(*j.Runner.ID, 10)
 	}
 	if j.Commit != nil && j.Commit.Message != nil {
 		fields["build_commit_message"] = *j.Commit.Message
@@ -442,7 +442,7 @@ func getJobEventTags(j JobEventPayload) map[string]string {
 func getPipelineEventFields(pl PipelineEventPayload) map[string]interface{} {
 	fields := map[string]interface{}{}
 	if pl.ObjectAttributes != nil && pl.ObjectAttributes.ID != nil {
-		fields["pipeline_id"] = *pl.ObjectAttributes.ID
+		fields["pipeline_id"] = strconv.FormatInt(*pl.ObjectAttributes.ID, 10)
 	}
 	if pl.ObjectAttributes != nil && pl.ObjectAttributes.Duration != nil {
 		fields["duration"] = *pl.ObjectAttributes.Duration
