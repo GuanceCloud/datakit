@@ -278,20 +278,24 @@ func protectRunningInput(name string, ii *inputInfo) {
 			crashTime = append(crashTime, fmt.Sprintf("%v", time.Now()))
 			addPanic(name)
 
-			io.FeedEventLog(&io.Reporter{Status: "warning", Message: string(trace), Category: "input"})
+			io.FeedEventLog(&io.DKEvent{
+				Status:   "error",
+				Message:  string(trace),
+				Category: "input",
+			})
 
 			if len(crashTime) >= MaxCrash {
 				l.Warnf("input %s crash %d times(at %+#v), exit now.",
 					name, len(crashTime), strings.Join(crashTime, "\n"))
 
-				message := fmt.Sprintf("input '%s' has exceeded the max crash times %v and it will be stopped.", name, MaxCrash)
-				io.FeedEventLog(&io.Reporter{Message: message, Status: "error", Category: "input"})
+				io.FeedEventLog(&io.DKEvent{
+					Message:  fmt.Sprintf("input '%s' has exceeded the max crash times %v and it will be stopped.", name, MaxCrash),
+					Status:   "error",
+					Category: "input",
+				})
 
 				return
 			}
-		} else {
-			message := fmt.Sprintf("input '%s' starts to run, totally %v instances.", name, InputEnabled(name))
-			io.FeedEventLog(&io.Reporter{Message: message, Category: "input"})
 		}
 
 		select {

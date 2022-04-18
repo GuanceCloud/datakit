@@ -156,7 +156,7 @@ func (i *Input) Run() {
 		tlsCfg, err = i.TLSConf.TLSConfig()
 		if err != nil {
 			l.Error(err)
-			io.FeedLastError(inputName, err.Error())
+			io.ReportLastError(inputName, err.Error())
 			return
 		}
 	} else {

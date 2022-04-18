@@ -512,6 +512,7 @@ func (i *Input) Run() {
 	client, err := i.createHTTPClient()
 	if err != nil {
 		l.Error(err)
+		io.ReportLastError(inputName, err.Error())
 		return
 	}
 	i.client = client
@@ -522,22 +523,9 @@ func (i *Input) Run() {
 	defer tick.Stop()
 
 	for {
-		select {
-		case <-datakit.Exit.Wait():
-			i.exit()
-			l.Info("elasticsearch exit")
-			return
-
-		case <-i.semStop.Wait():
-			i.exit()
-			l.Info("elasticsearch return")
-			return
-
-		case <-tick.C:
-			if i.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
+		if i.pause {
+			l.Debugf("not leader, skipped")
+		} else {
 			start := time.Now()
 			if err := i.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
@@ -553,6 +541,20 @@ func (i *Input) Run() {
 				}
 				i.collectCache = i.collectCache[:0]
 			}
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			i.exit()
+			l.Info("elasticsearch exit")
+			return
+
+		case <-i.semStop.Wait():
+			i.exit()
+			l.Info("elasticsearch return")
+			return
+
+		case <-tick.C:
 
 		case i.pause = <-i.pauseCh:
 			// nil

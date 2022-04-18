@@ -388,7 +388,6 @@ func (i *Input) resetLastError() {
 func (i *Input) handleLastError() {
 	if len(i.lastErrors) > 0 {
 		io.FeedLastError(inputName, strings.Join(i.lastErrors, "; "))
-		i.resetLastError()
 	}
 }
 
@@ -531,14 +530,13 @@ func (i *Input) Run() {
 	// Try until init OK.
 	for {
 		if err := i.initCfg(); err != nil {
-			io.FeedLastError(inputName, err.Error())
+			io.ReportLastError(inputName, err.Error())
 		} else {
 			break
 		}
 
 		select {
 		case <-datakit.Exit.Wait():
-
 			if i.tail != nil {
 				i.tail.Close() //nolint:errcheck
 			}
@@ -576,9 +574,9 @@ func (i *Input) Run() {
 						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
 						l.Warnf("io.Feed failed: %v", err)
 						io.FeedLastError(inputName, err.Error())
-					} // if err
+					}
 				}
-			} // for
+			}
 
 			i.handleLastError()
 		}

@@ -444,6 +444,7 @@ func (p *Input) WriteObject(lastProc map[int32]proccpu) {
 		l.Errorf("FeedMeasurement err :%s", err.Error())
 		p.lastErr = err
 	}
+
 	if p.lastErr != nil {
 		io.FeedLastError(inputName, p.lastErr.Error())
 		p.lastErr = nil

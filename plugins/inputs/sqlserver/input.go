@@ -105,8 +105,7 @@ func (n *Input) Run() {
 	for {
 		if err := n.initDB(); err != nil {
 			l.Errorf("initDB: %s", err.Error())
-
-			io.FeedLastError(inputName, err.Error())
+			io.ReportLastError(inputName, err.Error())
 		} else {
 			break
 		}

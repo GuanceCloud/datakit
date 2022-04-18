@@ -210,6 +210,16 @@ func (m *Input) Run() {
 
 	tick := time.NewTicker(m.Interval.Duration)
 	for {
+		if m.pause {
+			l.Debugf("not leader, skipped")
+			continue
+		} else {
+			if err := m.gather(); err != nil {
+				l.Errorf("gather: %s", err.Error())
+				io.FeedLastError(inputName, err.Error())
+			}
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			m.exit()
@@ -222,14 +232,6 @@ func (m *Input) Run() {
 			return
 
 		case <-tick.C:
-			if m.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
-			if err := m.gather(); err != nil {
-				l.Errorf("gather: %s", err.Error())
-				io.FeedLastError(inputName, err.Error())
-			}
 
 		case m.pause = <-m.pauseCh:
 			// nil

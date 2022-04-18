@@ -65,8 +65,9 @@ type IO struct {
 
 	dw *dataway.DataWayCfg
 
-	in  chan *iodata
-	in2 chan *iodata // high-freq chan
+	in        chan *iodata
+	in2       chan *iodata // high-freq chan
+	inLastErr chan *lastError
 
 	lastBodyBytes int
 	SentBytes     int
@@ -317,6 +318,18 @@ func (x *IO) StartIO(recoverable bool) {
 			case <-highFreqRecvTicker.C:
 				x.cleanHighFreqIOData()
 
+			case <-tick.C:
+				x.flushAll()
+				if x.conf.EnableCache {
+					x.flushCache()
+					log.Debugf("cache info:%s", cache.Info())
+				}
+
+			case e := <-x.inLastErr:
+				// Every inptus may report error, we append these errors into
+				// input's stats info.
+				x.updateLastErr(e)
+
 			case <-heartBeatTick.C:
 				log.Debugf("### enter heartBeat")
 				if !DisableHeartbeat {
@@ -347,13 +360,6 @@ func (x *IO) StartIO(recoverable bool) {
 					}
 				}
 
-			case <-tick.C:
-				x.flushAll()
-				if x.conf.EnableCache {
-					x.flushCache()
-					log.Debugf("cache info:%s", cache.Info())
-				}
-
 			case <-datakit.Exit.Wait():
 				log.Info("io exit on exit")
 				return nil
@@ -362,6 +368,23 @@ func (x *IO) StartIO(recoverable bool) {
 	})
 
 	log.Info("starting...")
+}
+
+func (x *IO) updateLastErr(e *lastError) {
+	x.lock.Lock()
+	defer x.lock.Unlock()
+
+	stat, ok := x.inputstats[e.from]
+	if !ok {
+		stat = &InputsStat{
+			First: time.Now(),
+			Last:  time.Now(),
+		}
+		x.inputstats[e.from] = stat
+	}
+
+	stat.LastErr = e.err
+	stat.LastErrTS = e.ts
 }
 
 func (x *IO) flushAll() {
@@ -503,7 +526,7 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 	}
 	for _, body := range bodies {
 		if err := x.dw.Send(category, body.buf, body.gzon); err != nil {
-			addReporter(Reporter{Message: err.Error(), Status: "error", Category: "dataway"})
+			FeedEventLog(&DKEvent{Message: err.Error(), Status: "error", Category: "dataway"})
 			return err
 		}
 		x.SentBytes += x.lastBodyBytes
