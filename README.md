@@ -64,7 +64,7 @@ For more documentations about DataKit installation, see [here](https://www.yuque
 
 ### Install community release
 
-We also released the community version of DataKit. Compared to the previous version, the community edition will introduce some radical new features, but less compatible and stable. We can install community verison as following:
+We also released the community version of DataKit. Compared to the previous version, the community version will introduce some radical new features, but less compatible and stable. We can install community verison as following:
 
 - Linux & Mac
 
