@@ -146,6 +146,14 @@ spec:
 | `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`          | `exclude_pause_container`           | `true`/`false`                                               |
 | `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `true`/`false`                                               |
 | `ENV_INPUT_CONTAINER_TAGS`                             | `tags`                              | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+| `ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_METRIC` | `container_include_metric` | `"image:*"` 以英文逗号隔开 |
+| `ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_METRIC` | `container_exclude_metric` | `"image:*"` 以英文逗号隔开 |
+| `ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG` | `container_include_log` | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"` 以英文逗号隔开 |
+| `ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG` | `container_exclude_log` | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"` 以英文逗号隔开 |
+| `ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH` | `max_logging_length` | `32766` |
+| `ENV_INPUT_CONTAINER_KUBERNETES_URL` | `kubernetes_url` | `https://kubernetes.default:443` |
+| `ENV_INPUT_CONTAINER_BEARER_TOKEN` | `bearer_token` | `/run/secrets/kubernetes.io/serviceaccount/token` |
+| `ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING` | `bearer_token_string` | `<your-token-string>` |
 
 ### 支持 Kubernetes 自定义 Export
 

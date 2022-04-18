@@ -31,6 +31,9 @@ CPU 采集器用于系统 CPU 使用率的采集
 | `ENV_INPUT_CPU_PERCPU`             | `percpu`             | `true/false`                                                 |
 | `ENV_INPUT_CPU_ENABLE_TEMPERATURE` | `enable_temperature` | `true/false`                                                 |
 | `ENV_INPUT_CPU_TAGS`               | `tags`               | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+| `ENV_INPUT_CPU_INTERVAL` | `interval` | `10s` |
+| `ENV_INPUT_CPU_DISABLE_TEMPERATURE_COLLECT` | `disable_temperature_collect` | `false/true` |
+| `ENV_INPUT_CPU_ENABLE_LOAD5S` | `enable_load5s` | `false/true` |
 
 ## 指标集
 
