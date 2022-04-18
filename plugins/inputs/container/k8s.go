@@ -61,7 +61,7 @@ func (k *kubernetesInput) gather() (metrics, objects []inputs.Measurement, lastE
 		return res
 	}
 
-	warpper := func(name string, res k8sResourceStats) {
+	wrapper := func(name string, res k8sResourceStats) {
 		for namespace, v := range res {
 			if x := resourceCount[namespace]; x == nil {
 				resourceCount[namespace] = make(map[string]int)
@@ -71,14 +71,14 @@ func (k *kubernetesInput) gather() (metrics, objects []inputs.Measurement, lastE
 		}
 	}
 
-	warpper("cluster", must(gatherCluster(k.client, k.cfg.extraTags)))
-	warpper("cronjob", must(gatherCronJob(k.client, k.cfg.extraTags)))
-	warpper("deployment", must(gatherDeployment(k.client, k.cfg.extraTags)))
-	warpper("job", must(gatherJob(k.client, k.cfg.extraTags)))
-	warpper("node", must(gatherNode(k.client, k.cfg.extraTags)))
-	warpper("pod", must(gatherPod(k.client, k.cfg.extraTags)))
-	warpper("replica_set", must(gatherReplicaSet(k.client, k.cfg.extraTags)))
-	warpper("service", must(gatherService(k.client, k.cfg.extraTags)))
+	wrapper("cluster", must(gatherCluster(k.client, k.cfg.extraTags)))
+	wrapper("cronjob", must(gatherCronJob(k.client, k.cfg.extraTags)))
+	wrapper("deployment", must(gatherDeployment(k.client, k.cfg.extraTags)))
+	wrapper("job", must(gatherJob(k.client, k.cfg.extraTags)))
+	wrapper("node", must(gatherNode(k.client, k.cfg.extraTags)))
+	wrapper("pod", must(gatherPod(k.client, k.cfg.extraTags)))
+	wrapper("replica_set", must(gatherReplicaSet(k.client, k.cfg.extraTags)))
+	wrapper("service", must(gatherService(k.client, k.cfg.extraTags)))
 
 	for namespace, resource := range resourceCount {
 		c := newCount()
@@ -139,7 +139,7 @@ func (*count) Info() *inputs.MeasurementInfo {
 			"namespace": &inputs.TagInfo{Desc: "namespace"},
 		},
 		Fields: map[string]interface{}{
-			"cluster":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "cluster count"},
+			"cluster":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "RBAC cluster role count(**Deprecated: this field should named with cluster_role, it's a typo**)"},
 			"deployment":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "deployment count"},
 			"node":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "node count"},
 			"pod":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "pod count"},

@@ -44,7 +44,7 @@ spec:
             - name: ENV_ENABLE_ELECTION
               value: {{ .Values.datakit.enabled_election | quote }}
             - name: ENV_LOG
-              value: {{ .Values.log }}
+              value: {{ .Values.datakit.log }}
             - name: ENV_HTTP_LISTEN
               value: {{ .Values.datakit.http_listen }}
             {{- if .Values.git_repos.enable }}

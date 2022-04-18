@@ -31,13 +31,19 @@ questions:
   default: ""
   description: "Enable the default collector Configurations. For details, see https://yuque.com/dataflux/datakit/datakit-input-conf#764ffbc2"
   type: string
-  label: Enable the default_enabled_inputs
+  label: Enable The Default Inputs
   group: "Datakit Configuration"
 - variable: datakit.global_tags
   default: ""
   description: "Datakit allows you to configure global tags for all the data it collects. These tags will be added to each piece of data collected by the Datakit by default. For details, see https://www.yuque.com/dataflux/datakit/datakit-conf#53181faf"
   type: string
-  label: DataKit global tags
+  label: DataKit Global Tags
+  group: "Datakit Configuration"
+- variable: datakit.http_listen
+  default: ""
+  description: "The address can be modified so that it can be called externally"
+  type: string
+  label: DataKit Http Listen
   group: "Datakit Configuration"
 - variable: datakit.log
   default: "info"

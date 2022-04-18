@@ -446,6 +446,14 @@ func getPipelineEventFields(pl PipelineEventPayload) map[string]interface{} {
 	if pl.Commit != nil && pl.Commit.Message != nil {
 		fields["commit_message"] = *pl.Commit.Message
 	}
+	if pl.ObjectAttributes != nil {
+		if pl.ObjectAttributes.CreatedAt != nil {
+			fields["created_at"] = pl.ObjectAttributes.CreatedAt.Unix()
+		}
+		if pl.ObjectAttributes.FinishedAt != nil {
+			fields["finished_at"] = pl.ObjectAttributes.FinishedAt.Unix()
+		}
+	}
 	return fields
 }
 
