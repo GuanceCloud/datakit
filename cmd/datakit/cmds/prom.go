@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
-	tomlAst "github.com/influxdata/toml/ast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -62,41 +61,43 @@ func promDebugger(configFile string) error {
 
 // collectorName parses given config file and returns collector name.
 func collectorName(file string) (string, error) {
-	table, err := config.ParseCfgFile(file)
+	x, err := config.LoadSingleConfFile(file, inputs.Inputs)
 	if err != nil {
 		return "", err
 	}
-	it := table.Fields["inputs"]
-	tbl, ok := it.(*tomlAst.Table)
-	if !ok {
-		return "", fmt.Errorf("expect to be *tomlAst.Table")
-	}
 
-	for k := range tbl.Fields {
+	for k := range x {
 		return k, nil
 	}
+
 	return "", fmt.Errorf("collector name not found in config file")
 }
 
 // getPromRemoteWriteInput constructs a prom_remote_write.Input by given config file.
 func getPromRemoteWriteInput(configPath string) (*pr.Input, error) {
-	inputList, err := config.LoadInputConfigFile(configPath, func() inputs.Input {
-		return pr.NewInput()
-	})
+	inputList, err := config.LoadSingleConfFile(configPath, inputs.Inputs)
 	if err != nil {
 		return nil, err
 	}
+
 	if len(inputList) != 1 {
 		return nil, fmt.Errorf("should test only one prom_remote_write config, now get %v", len(inputList))
 	}
 
-	input, ok := inputList[0].(*pr.Input)
+	for _, arr := range inputList {
+		if len(arr) != 1 {
+			return nil, fmt.Errorf("should test only one prom_remote_write config, now get %v", len(inputList))
+		}
 
-	if !ok {
-		return nil, fmt.Errorf("invalid prom_remote_write instance")
+		input, ok := arr[0].(*pr.Input)
+		if !ok {
+			return nil, fmt.Errorf("invalid prom_remote_write instance")
+		}
+
+		return input, nil
 	}
 
-	return input, nil
+	return nil, fmt.Errorf("invalid prom_remote_write instance")
 }
 
 // showPromRemoteWriteInput reads raw data file specified by prom_remote_write.Input.Output,
@@ -138,23 +139,30 @@ func showPromRemoteWriteInput(input *pr.Input) error {
 }
 
 func getPromInput(configPath string) (*prom.Input, error) {
-	inputList, err := config.LoadInputConfigFile(configPath, func() inputs.Input {
-		return prom.NewProm()
-	})
+	res, err := config.LoadSingleConfFile(configPath, inputs.Inputs)
 	if err != nil {
 		return nil, err
 	}
-	if len(inputList) != 1 {
-		return nil, fmt.Errorf("should test only one prom config, now get %v", len(inputList))
+
+	if len(res) != 1 {
+		return nil, fmt.Errorf("should test only one prom config, now get %v", len(res))
 	}
 
-	input, ok := inputList[0].(*prom.Input)
+	for _, arr := range res {
+		if len(arr) != 1 {
+			return nil, fmt.Errorf("should test only one prom config, now get %v", len(arr))
+		}
 
-	if !ok {
-		return nil, fmt.Errorf("invalid prom instance")
+		input, ok := arr[0].(*prom.Input)
+		if !ok {
+			return nil, fmt.Errorf("invalid prom instance")
+		}
+
+		// use the first 1
+		return input, nil
 	}
 
-	return input, nil
+	return nil, fmt.Errorf("invalid prom instance")
 }
 
 func showPromInput(input *prom.Input) error {

@@ -3,20 +3,22 @@ package config
 import (
 	"bytes"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	bstoml "github.com/BurntSushi/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func doLoadConf(confData string, creators map[string]inputs.Creator) (map[string][]inputs.Input, error) {
+func LoadSingleConf(confData string, creators map[string]inputs.Creator) (map[string][]inputs.Input, error) {
 	ret := map[string][]inputs.Input{}
 
 	var res map[string]interface{}
 
 	if _, err := bstoml.Decode(confData, &res); err != nil {
-		l.Warnf("bstoml.Decode: %s, ignored", err)
+		l.Warnf("bstoml.Decode: %s, ignored, confData:\n%s", err, confData)
 		return nil, err
 	}
 
@@ -75,28 +77,69 @@ func doLoadConf(confData string, creators map[string]inputs.Creator) (map[string
 	return ret, nil
 }
 
-// LoadInputConf read all inputs configures(toml) from @root,
-// then create various inputs object.
-func LoadInputConf(root string) (ret map[string][]inputs.Input) {
-	confs := SearchDir(root, ".conf")
+func SearchDir(dir string, suffix string) []string {
+	fps := []string{}
 
-	ret = map[string][]inputs.Input{}
-
-	for _, fp := range confs {
-		data, err := ioutil.ReadFile(filepath.Clean(fp))
+	if err := filepath.Walk(dir, func(fp string, f os.FileInfo, err error) error {
 		if err != nil {
-			l.Errorf("ioutil.ReadFile: %s", err.Error())
+			l.Errorf("walk on %s failed: %s", fp, err)
 			return nil
 		}
 
-		x, err := doLoadConf(string(data), inputs.Inputs)
+		if f == nil {
+			l.Warnf("nil FileInfo on %s", fp)
+			return nil
+		}
+
+		if f.IsDir() {
+			l.Debugf("ignore dir %s", fp)
+			return nil
+		}
+
+		if suffix == "" || strings.HasSuffix(f.Name(), suffix) {
+			fps = append(fps, fp)
+		}
+		return nil
+	}); err != nil {
+		l.Error(err)
+	}
+
+	return fps
+}
+
+func LoadSingleConfFile(fp string, creators map[string]inputs.Creator) (map[string][]inputs.Input, error) {
+	data, err := ioutil.ReadFile(filepath.Clean(fp))
+	if err != nil {
+		l.Errorf("ioutil.ReadFile: %s", err.Error())
+		return nil, err
+	}
+
+	data = feedEnvs(data)
+
+	return LoadSingleConf(string(data), creators)
+}
+
+// LoadInputConf read all inputs configures(toml) from @root,
+// then create various inputs object.
+func LoadInputConf(root string) map[string][]inputs.Input {
+	confs := SearchDir(root, ".conf")
+
+	ret := map[string][]inputs.Input{}
+
+	l.Infof("find %d confs", len(confs))
+	for _, fp := range confs {
+		if filepath.Base(fp) == "datakit.conf" {
+			continue
+		}
+
+		x, err := LoadSingleConfFile(fp, inputs.Inputs)
 		if err != nil {
 			l.Warnf("load conf(%s) failed: %s, ignored", fp, err)
 			continue
 		}
 
-		for k, v := range x {
-			ret[k] = append(ret[k], v...)
+		for k, arr := range x {
+			ret[k] = append(ret[k], arr...)
 		}
 	}
 

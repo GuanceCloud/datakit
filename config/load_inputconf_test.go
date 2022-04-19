@@ -50,7 +50,7 @@ func TestDoLoadConf(t *testing.T) {
 			name: "empty-cpu-conf",
 			conf: `[[inputs.cpu]]`,
 			expectInputs: map[string][]inputs.Input{
-				"cpu": []inputs.Input{&cpu{}},
+				"cpu": {&cpu{}},
 			},
 		},
 
@@ -77,7 +77,7 @@ interval = "20s"
 percpu = true
 `,
 			expectInputs: map[string][]inputs.Input{
-				"cpu": []inputs.Input{
+				"cpu": {
 					&cpu{Interval: "10s", Percpu: false},
 					&cpu{Interval: "20s", Percpu: true},
 				},
@@ -113,7 +113,7 @@ percpu = true
 	`,
 
 			expectInputs: map[string][]inputs.Input{
-				"cpu": []inputs.Input{&cpu{Interval: "15s", Percpu: true}},
+				"cpu": {&cpu{Interval: "15s", Percpu: true}},
 			},
 		},
 
@@ -123,7 +123,7 @@ percpu = true
 interval = "11s"
 percpu = false`,
 			expectInputs: map[string][]inputs.Input{
-				"cpu": []inputs.Input{&cpu{Interval: "11s", Percpu: false}},
+				"cpu": {&cpu{Interval: "11s", Percpu: false}},
 			},
 		},
 
@@ -166,10 +166,10 @@ interval = "10s"
 percpu = false
 `,
 			expectInputs: map[string][]inputs.Input{
-				"cpu": []inputs.Input{
+				"cpu": {
 					&cpu{Interval: "10s", Percpu: false},
 				},
-				"disk": []inputs.Input{
+				"disk": {
 					&disk{Interval: "10s", Percpu: false},
 				},
 			},
@@ -195,11 +195,11 @@ interval = "10s"
 percpu = false
 `,
 			expectInputs: map[string][]inputs.Input{
-				"cpu": []inputs.Input{
+				"cpu": {
 					&cpu{Interval: "10s", Percpu: false},
 					&cpu{Interval: "10s", Percpu: false},
 				},
-				"disk": []inputs.Input{
+				"disk": {
 					&disk{Interval: "11s", Percpu: false},
 					&disk{Interval: "10s", Percpu: false},
 				},
@@ -219,7 +219,7 @@ percpu = false
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			ret, err := doLoadConf(tc.conf, creators)
+			ret, err := LoadSingleConf(tc.conf, creators)
 			if err != nil {
 				t.Logf("doLoadConf: %s", err)
 			}

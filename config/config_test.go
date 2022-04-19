@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -9,7 +8,6 @@ import (
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func TestEmptyDir(t *testing.T) {
@@ -266,114 +264,6 @@ global = "global config"
 				t.Logf("unknown type: %v", tpe)
 			}
 		}
-	}
-}
-
-func TestBlackWhiteList(t *testing.T) {
-	wlists := []*inputHostList{
-		{
-			Hosts:  []string{"host1", "host2"},
-			Inputs: []string{"input1", "input2"},
-		},
-		{
-			Hosts:  []string{"hostx", "hosty"},
-			Inputs: []string{"inputx", "inputy"},
-		},
-	}
-
-	blists := []*inputHostList{
-		{
-			Hosts:  []string{"host_3", "host_4"},
-			Inputs: []string{"input_3", "input_4"},
-		},
-		{
-			Hosts:  []string{"host_i", "host_j"},
-			Inputs: []string{"input_i", "input_j"},
-		},
-	}
-
-	t.Logf("host1.inputx on? %v", !isDisabled(wlists, blists, "host1", "inputx"))
-	t.Logf("host2.inputy on? %v", !isDisabled(wlists, blists, "host2", "inputy"))
-	t.Logf("host2.input1 on? %v", !isDisabled(wlists, blists, "host2", "input1"))
-	t.Logf("host2.input_foo on? %v", !isDisabled(wlists, blists, "host2", "input_foo"))
-	t.Logf("host_bar.input_foo on? %v", !isDisabled(wlists, blists, "host_bar", "input_foo"))
-
-	t.Logf("host_3.input_foo on? %v", !isDisabled(wlists, blists, "host_3", "input_foo"))
-	t.Logf("host_3.input_4 on? %v", !isDisabled(wlists, blists, "host_3", "input_4"))
-	t.Logf("host_3.input_j on? %v", !isDisabled(wlists, blists, "host_3", "input_j"))
-}
-
-func TestLoadCfg(t *testing.T) {
-	availableInputCfgs := map[string]*ast.Table{}
-	conf := map[string]string{
-		"1.conf": `[[inputs.aliyunobject]]
-					 ## @param - aliyun authorization informations - string - required
-					 region_id = ''
-					 # access_key_id = ''
-					 access_key_secret = ''
-					 a = ""
-					 ## @param - collection interval - string - optional - default: 5m
-					 interval = '5m'
-
-					[[inputs.aliyunobject]]
-					 ## @param - aliyun authorization informations - string - required
-					 region_id = ''
-					 # access_key_id = ''
-					 access_key_secret = ''
-					 ## @param - collection interval - string - optional - default: 5m
-					 interval = '5m'`,
-		"2.conf": `[[inputs.host_processes]]`,
-	}
-
-	for k, v := range conf {
-		as, _ := toml.Parse([]byte(v))
-		availableInputCfgs[k] = as
-	}
-
-	for name, creator := range inputs.Inputs {
-		doLoadInputConf(name, creator, availableInputCfgs)
-	}
-	fmt.Println(inputs.InputsInfo)
-}
-
-func TestRemoveDepercatedInputs(t *testing.T) {
-	cases := []struct {
-		tomlStr      string
-		res, entries map[string]string
-	}{
-		{
-			tomlStr: `[[intputs.abc]]`,
-			entries: map[string]string{"abc": "cba"},
-			res:     map[string]string{"abc": "cba"},
-		},
-		{
-			tomlStr: `[intputs.abc]`,
-			entries: map[string]string{"abc": "cba"},
-			res:     map[string]string{"abc": "cba"},
-		},
-		{
-			tomlStr: `[intputs.def]`,
-			entries: map[string]string{"abc": "cba"},
-			res:     nil,
-		},
-		{
-			tomlStr: `[intputs.abc.xyz]`,
-			entries: map[string]string{"abc": "cba"},
-			res:     map[string]string{"abc": "cba"},
-		},
-	}
-
-	for _, tc := range cases {
-		tbl, err := toml.Parse([]byte(tc.tomlStr))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		res := checkDepercatedInputs(tbl, tc.entries)
-		t.Logf("res: %+#v", res)
-		tu.Assert(t,
-			len(res) == len(tc.res),
-			"got %+#v", res)
 	}
 }
 

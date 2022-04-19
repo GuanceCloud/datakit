@@ -5,15 +5,12 @@ package config
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
 
-	"github.com/influxdata/toml"
-	"github.com/influxdata/toml/ast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
@@ -84,17 +81,16 @@ func LoadCfg(c *Config, mcp string) error {
 	l.Infof("init %d default plugins...", len(c.DefaultEnabledInputs))
 	initDefaultEnabledPlugins(c)
 
-	return ReloadInputConfig()
+	loadInputsConfFromDirs(getConfRootPaths())
+	return nil
 }
 
-func GetConfRootPaths() []string {
-	var confRootPath *[]string
+func getConfRootPaths() []string {
 	if GitHasEnabled() {
-		confRootPath = &[]string{datakit.GitReposRepoFullPath}
+		return []string{datakit.GitReposRepoFullPath}
 	} else {
-		confRootPath = &[]string{datakit.ConfdDir}
+		return []string{datakit.ConfdDir}
 	}
-	return *confRootPath
 }
 
 func trimBOM(f []byte) []byte {
@@ -131,28 +127,6 @@ func feedEnvs(data []byte) []byte {
 	}
 
 	return data
-}
-
-func ParseCfgFile(f string) (*ast.Table, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(f))
-	if err != nil {
-		l.Errorf("ioutil.ReadFile: %s", err.Error())
-		return nil, fmt.Errorf("read config %s failed: %w", f, err)
-	}
-
-	return parseCfgBytes(data)
-}
-
-func parseCfgBytes(bys []byte) (*ast.Table, error) {
-	data := feedEnvs(bys)
-
-	tbl, err := toml.Parse(data)
-	if err != nil {
-		l.Errorf("parse toml %s failed", string(data))
-		return nil, err
-	}
-
-	return tbl, nil
 }
 
 func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
@@ -247,95 +221,4 @@ func GetNamespacePipelineFiles(namespace string) ([]string, error) {
 		return path.GetSuffixFilesFromDirDeepOne(datakit.GitReposRepoFullPath, datakit.StrPipelineFileSuffix)
 	}
 	return nil, fmt.Errorf("invalid namespace")
-}
-
-type CheckedInputCfgResult struct {
-	Failed  int
-	Unknown int
-	Passed  int
-	Ignored int
-
-	AvailableInputs []inputs.Input
-}
-
-func (r *CheckedInputCfgResult) Runnable() bool {
-	return r.Failed == 0
-}
-
-func ReloadCheckInputCfg() ([]inputs.Input, error) {
-	var availableInputs []inputs.Input
-	confRootPath := GetConfRootPaths()
-	confSuffix := ".conf"
-
-	for _, v := range confRootPath {
-		iputs, err := CheckInputCfgEx(v, confSuffix)
-		if err != nil {
-			return nil, err
-		}
-		availableInputs = append(availableInputs, iputs...)
-	}
-
-	return availableInputs, nil
-}
-
-func CheckInputCfgEx(rootPath, suffix string) ([]inputs.Input, error) {
-	var availableInputs []inputs.Input
-	fps := SearchDir(rootPath, suffix)
-
-	for _, fp := range fps {
-		tpl, err := ParseCfgFile(fp)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %s", err, fp)
-		} else {
-			res := getCheckInputCfgResult(tpl)
-			if !res.Runnable() {
-				return nil, fmt.Errorf("input_cfg_invalid: %s", fp)
-			}
-			availableInputs = append(availableInputs, res.AvailableInputs...)
-		}
-	}
-
-	return availableInputs, nil
-}
-
-func getCheckInputCfgResult(tpl *ast.Table) *CheckedInputCfgResult {
-	res := CheckedInputCfgResult{}
-
-	if len(tpl.Fields) == 0 {
-		res.Failed++
-		return &res
-	}
-
-	for field, node := range tpl.Fields {
-		switch field {
-		default:
-			// not input
-			res.Ignored++
-			return &res
-
-		case "inputs": //nolint:goconst
-			stbl, ok := node.(*ast.Table)
-			if !ok {
-				// bad toml node
-				res.Failed++
-			} else {
-				for inputName, v := range stbl.Fields {
-					if c, ok := inputs.Inputs[inputName]; !ok {
-						// unknown input
-						res.Unknown++
-					} else {
-						iputs, err := TryUnmarshal(v, inputName, c)
-						if err != nil {
-							res.Failed++
-							continue
-						}
-						res.Passed++
-						res.AvailableInputs = append(res.AvailableInputs, iputs...)
-					} // if c, ok := inputs.Inputs[inputName];
-				} // for inputName, v := range stbl.Fields
-			} // stbl, ok := node.(*ast.Table)
-		} // switch field
-	} // for field, node := range tpl.Fields
-
-	return &res
 }

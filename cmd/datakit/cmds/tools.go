@@ -84,7 +84,7 @@ func runToolFlags() error {
 			confdir = datakit.ConfdDir
 		}
 
-		if err := checkConfig(confdir, ""); err != nil {
+		if err := checkConfig(confdir, ".conf"); err != nil {
 			os.Exit(-1)
 		}
 		os.Exit(0)

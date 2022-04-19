@@ -152,7 +152,6 @@ func initOldStyleFlags() { //nolint:gochecknoinits
 	pflag.StringVar(&FlagCmdLogPath, "cmd-log", "/dev/null", "command line log path")
 	pflag.StringVar(&FlagDumpSamples, "dump-samples", "", "dump all inputs samples")
 
-	pflag.BoolVar(&config.DisableSelfInput, "disable-self-input", false, "disable self input")
 	pflag.BoolVar(&io.DisableDatawayList, "disable-dataway-list", false, "disable list available dataway")
 	pflag.BoolVar(&io.DisableLogFilter, "disable-logfilter", false, "disable logfilter")
 	pflag.BoolVar(&io.DisableHeartbeat, "disable-heartbeat", false, "disable heartbeat")
