@@ -1,4 +1,4 @@
-.PHONY: default testing local man
+.PHONY: default testing local deps prepare man plparser_disable_line
 
 default: local
 
@@ -99,8 +99,32 @@ define pub
 endef
 
 define build_docker_image
-	@sudo docker buildx build --platform $(1) -t $(2)/datakit/datakit:$(VERSION) . --push
-	@sudo docker buildx build --platform $(1) -t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push
+	@if [ $(2) = "registry.jiagouyun.com" ]; then \
+		echo 'publish to $(2)...'; \
+		sudo docker buildx build --platform $(1) \
+			-t $(2)/datakit/datakit:$(VERSION) . --push ; \
+		sudo docker buildx build --platform $(1) \
+			-t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push ; \
+	else \
+		echo 'publish to $(2)...'; \
+		sudo docker buildx build --platform $(1) \
+			-t $(2)/datakit/datakit:$(VERSION) \
+			-t $(2)/dataflux/datakit:$(VERSION) \
+			-t $(2)/dataflux-prev/datakit:$(VERSION) . --push; \
+		sudo docker buildx build --platform $(1) \
+			-t $(2)/datakit/logfwd:$(VERSION) \
+			-t $(2)/dataflux/logfwd:$(VERSION) \
+			-t $(2)/dataflux-prev/logfwd:$(VERSION) -f Dockerfile_logfwd . --push; \
+	fi
+endef
+
+define build_k8s_charts
+	@helm repo ls
+	@echo `echo $(VERSION) | cut -d'-' -f1`
+	@sed "s,{{tag}},$(VERSION),g" charts/values.yaml > charts/datakit/values.yaml
+	@helm package charts/datakit --version `echo $(VERSION) | cut -d'-' -f1` --app-version `echo $(VERSION) | cut -d'-' -f1`
+	@helm push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1)
+	@rm -f datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz
 endef
 
 define check_golint_version
@@ -127,6 +151,9 @@ testing: deps
 
 testing_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
+	# we also publish testing image to public image repo
+	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
+	$(call build_k8s_charts, 'datakit-test-chart')
 
 production: deps # stable release
 	$(call build, production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -134,6 +161,7 @@ production: deps # stable release
 
 production_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
+	$(call build_k8s_charts, 'datakit-prod-chart')
 
 production_mac: deps
 	$(call build, production, $(MAC_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -150,6 +178,12 @@ pub_testing_win_img:
 	@sudo docker build -t registry.jiagouyun.com/datakit/datakit-win:$(VERSION) -f ./Dockerfile_win .
 	@sudo docker push registry.jiagouyun.com/datakit/datakit-win:$(VERSION)
 
+
+# not used
+pub_testing_charts:
+	@helm package ${CHART_PATH%/*} --version $(VERSION) --app-version $(VERSION)
+	@helm helm push ${TEMP\#\#*/}-$TAG.tgz datakit-test-chart
+
 # not used
 pub_release_win_img:
 	# release to pub hub
@@ -157,6 +191,8 @@ pub_release_win_img:
 	@wget --quiet -O - "https://$(PRODUCTION_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit-win:$(VERSION) -f ./Dockerfile_win .
 	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit-win:$(VERSION)
+
+
 
 # Config samples should only be published by production release,
 # because config samples in multiple testing releases may not be compatible to each other.
@@ -183,7 +219,7 @@ endef
 
 define do_lint
 	truncate -s 0 lint.err
-	golangci-lint --version 
+	golangci-lint --version
 	GOARCH=$(1) GOOS=$(2) golangci-lint run --fix --allow-parallel-runners
 endef
 

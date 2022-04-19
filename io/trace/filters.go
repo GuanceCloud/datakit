@@ -9,65 +9,21 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
 )
 
-// tracing data keep priority.
-const (
-	// reject trace before send to dataway.
-	PriorityReject = -1
-	// auto calculate with sampling rate.
-	PriorityAuto = 0
-	// always send to dataway and do not consider sampling and filters.
-	PriorityKeep = 1
-)
-
-type Sampler struct {
-	Priority           int     `toml:"priority" json:"priority"`
-	SamplingRateGlobal float64 `toml:"sampling_rate" json:"sampling_rate"`
-	ratio              int
-	once               sync.Once
-}
-
-func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
-	smp.once.Do(func() {
-		smp.ratio = int(smp.SamplingRateGlobal * 100)
-	})
+func PenetrateErrorTracing(dktrace DatakitTrace) (DatakitTrace, bool) {
+	if len(dktrace) == 0 {
+		return dktrace, true
+	}
 
 	for i := range dktrace {
-		if IsRootSpan(dktrace[i]) {
-			switch smp.Priority {
-			case PriorityAuto:
-				if smp.SamplingRateGlobal >= 1 {
-					return dktrace, false
-				}
-				if int(UnifyToInt64ID(dktrace[i].TraceID)%100) < smp.ratio {
-					return dktrace, false
-				} else {
-					log.Debugf("drop service: %s resource: %s trace_id: %s span_id: %s according to sampling ratio: %d%%",
-						dktrace[i].Service, dktrace[i].Resource, dktrace[i].TraceID, dktrace[i].SpanID, smp.ratio)
+		switch dktrace[i].Status {
+		case STATUS_ERR, STATUS_CRITICAL:
+			log.Debugf("penetrate tracing %s:%s with status %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Status)
 
-					return nil, true
-				}
-			case PriorityReject:
-				return nil, true
-			case PriorityKeep:
-				return dktrace, true
-			default:
-				log.Debug("unrecognized trace proority")
-			}
+			return dktrace, true
 		}
 	}
 
 	return dktrace, false
-}
-
-func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
-	switch priority {
-	case PriorityAuto, PriorityReject, PriorityKeep:
-		smp.Priority = priority
-	}
-	if samplingRateGlobal >= 0 && samplingRateGlobal <= 1 {
-		smp.SamplingRateGlobal = samplingRateGlobal
-		smp.ratio = int(smp.SamplingRateGlobal * 100)
-	}
 }
 
 type CloseResource struct {
@@ -76,12 +32,15 @@ type CloseResource struct {
 }
 
 func (cres *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
+	if len(dktrace) == 0 {
+		return dktrace, true
+	}
 	if len(cres.IgnoreResources) == 0 {
 		return dktrace, false
 	}
 
 	for i := range dktrace {
-		if IsRootSpan(dktrace[i]) {
+		if dktrace[i].SpanType == SPAN_TYPE_ENTRY {
 			for service, resList := range cres.IgnoreResources {
 				if dktrace[i].Service == service {
 					for j := range resList {
@@ -124,13 +83,16 @@ type KeepRareResource struct {
 }
 
 func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
+	if len(dktrace) == 0 {
+		return dktrace, true
+	}
 	if !kprres.Open {
 		return dktrace, false
 	}
 
 	var skip bool
 	for i := range dktrace {
-		if IsRootSpan(dktrace[i]) {
+		if dktrace[i].SpanType == SPAN_TYPE_ENTRY {
 			sed := fmt.Sprintf("%s%s%s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
 			if len(sed) == 0 {
 				break
@@ -154,5 +116,66 @@ func (kprres *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
 	kprres.Duration = span
 	if !open {
 		kprres.presentMap = sync.Map{}
+	}
+}
+
+// tracing data storing priority.
+const (
+	// reject trace before send to dataway.
+	PriorityReject = -1
+	// auto calculate with sampling rate.
+	PriorityAuto = 0
+	// always send to dataway and do not consider sampling and filters.
+	PriorityKeep = 1
+)
+
+type Sampler struct {
+	Priority           int     `toml:"priority" json:"priority"`
+	SamplingRateGlobal float64 `toml:"sampling_rate" json:"sampling_rate"`
+	ratio              int
+	once               sync.Once
+}
+
+func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
+	smp.once.Do(func() {
+		smp.ratio = int(smp.SamplingRateGlobal * 100)
+	})
+
+	if len(dktrace) == 0 {
+		return dktrace, true
+	}
+
+	switch smp.Priority {
+	case PriorityAuto:
+		if smp.SamplingRateGlobal >= 1 {
+			return dktrace, false
+		}
+		if int(UnifyToInt64ID(dktrace[0].TraceID)%100) < smp.ratio {
+			return dktrace, false
+		} else {
+			log.Debugf("drop service: %s resource: %s trace_id: %s span_id: %s according to sampling ratio: %d%%",
+				dktrace[0].Service, dktrace[0].Resource, dktrace[0].TraceID, dktrace[0].SpanID, smp.ratio)
+
+			return nil, true
+		}
+	case PriorityReject:
+		return nil, true
+	case PriorityKeep:
+		return dktrace, true
+	default:
+		log.Debug("unrecognized trace proority")
+	}
+
+	return dktrace, false
+}
+
+func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
+	switch priority {
+	case PriorityAuto, PriorityReject, PriorityKeep:
+		smp.Priority = priority
+	}
+	if samplingRateGlobal >= 0 && samplingRateGlobal <= 1 {
+		smp.SamplingRateGlobal = samplingRateGlobal
+		smp.ratio = int(smp.SamplingRateGlobal * 100)
 	}
 }

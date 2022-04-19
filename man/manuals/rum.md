@@ -8,6 +8,14 @@
 
 RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用户访问监测数据。
 
+## 接入方式
+
+- [Web 端](https://www.yuque.com/dataflux/doc/eqs7v2)
+- [微信小程序](https://www.yuque.com/dataflux/doc/clgea8)
+- [Android](https://www.yuque.com/dataflux/doc/pnzoyp)
+- [iOS](https://www.yuque.com/dataflux/doc/gsto6k)
+- [Flutter](https://www.yuque.com/dataflux/doc/nst0ca)
+
 ## 前置条件
 
 - 将 DataKit 部署成公网可访问
@@ -130,5 +138,3 @@ curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version
 - 当前只支持 js 的 `sourcemap` 转换。
 - `sourcemap` 文件名称需要与原文件保持一致，如果未找到对应的`sourcemap`文件，将不进行转换。
 - 通过接口上传的`sourcemap`压缩包，不需要重启 DataKit即可生效，但如果是手动上传，需要重启 DataKit，方可生效。
-
-

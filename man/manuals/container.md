@@ -2,7 +2,7 @@
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：{{.AvailableArchs}}
 
 # {{.InputName}}
 
@@ -11,7 +11,7 @@
 ## 前置条件
 
 - 目前 container 会默认连接 Docker 服务，需安装 Docker v17.04 及以上版本。
-- 采集 Kubernetes 数据需要 DataKit 以 Kubernetes daemonset 方式运行。
+- 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](datakit-daemonset-deploy)。
 - 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation)。
 
 ## 配置
@@ -22,9 +22,9 @@
 {{.InputSample}}
 ```
 
-_对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂不支持配置_
+> 对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂不支持配置
 
-### 根据 image 过滤容器
+### 根据容器 image 配置指标和日志采集
 
 配置文件中的 `container_include_metric / container_exclude_metric` 是针对指标数据，`container_include_log / container_exclude_log` 是针对日志数据。
 
@@ -40,6 +40,8 @@ _对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂
   ## 忽略所有容器
   container_exclude_metric = ["image:*"]
 ```
+
+> ==[Daemonset 方式部署](datakit-daemonset-deploy)时，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to#ebf019c2) 来配置这些镜像的开关==
 
 假设有 3 个容器，image 分别是：
 
@@ -65,17 +67,7 @@ docker inspect --format "{{`{{.Config.Image}}`}}" $CONTAINER_ID
 echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
 ```
 
-### 环境变量配置
-
-支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
-
-| 环境变量名                                             | 对应的配置参数项                    | 参数示例                                                     |
-| :----------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------ |
-| `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`          | `exclude_pause_container`           | `true`/`false`                                               |
-| `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `true`/`false`                                               |
-| `ENV_INPUT_CONTAINER_TAGS`                             | `tags`                              | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-
-### 指定容器日志配置
+### 通过 Annotation/Label 调整容器日志采集
 
 可以通过配置容器的 Labels，或容器所属 Pod 的 Annotations，为容器指定日志配置。
 
@@ -137,28 +129,60 @@ spec:
           ]
 ```
 
-### 容器日志的特殊字节码过滤
+### 通过 Sidecar 形式采集 Pod 内部日志
 
-容器日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以将 `logging_remove_ansi_escape_codes` 设置为 `true` 对其删除过滤。
+参见 [logfwd](logfwd)
 
-此配置可能会影响日志的处理性能，基准测试结果如下：
+### 环境变量配置
 
-```
-goos: linux
-goarch: amd64
-pkg: gitlab.jiagouyun.com/cloudcare-tools/test
-cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
-BenchmarkRemoveAnsiCodes
-BenchmarkRemoveAnsiCodes-8        636033              1616 ns/op
-PASS
-ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
-```
+支持以环境变量的方式修改配置参数：
 
-每一条文本的处理耗时增加 `1616 ns` 不等。如果不开启此功能将无额外损耗。
+> 只有 DataKit 以 K8s DaemonSet 方式运行时生效，==主机部署时，以下环境变量不生效==。
+
+| 环境变量名                                             | 对应的配置参数项                    | 参数示例                                                     |
+| :----------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------ |
+| `ENV_INPUT_CONTAINER_DOCKER_ENDPOINT`                  | `docker_endpoint`                   | `unix:///var/run/docker.sock`                                |
+| `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`               | `containerd_address`                | `/var/run/containerd/containerd.sock`                        |
+| `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`          | `exclude_pause_container`           | `true`/`false`                                               |
+| `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `true`/`false`                                               |
+| `ENV_INPUT_CONTAINER_TAGS`                             | `tags`                              | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
 
 ### 支持 Kubernetes 自定义 Export
 
 详见[Kubernetes-prom](kubernetes-prom)
+
+### 支持 containerd
+
+- 容器指标和对象：适配 docker container 指标集，详见下面文档
+- 容器/Pod 日志：推荐使用 [logfwd](logfwd) 进行采集。
+- Kubernetes 其它采集均不受影响
+
+如果 containerd.sock 路径不是默认的 `/var/run/containerd/containerd.sock`，需要指定新的 `containerd.sock` 路径：
+
+- 主机部署：修改 container.conf 的 `containerd_address` 配置项
+- 以 Kubernetes daemonset 运行 DataKit：更改 datakit.yaml 的 volumes `containerd-socket`，将新路径 mount 到 DataKit daemonset 中，同时配置环境变量 `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`，值为新路径。例如新的路径是 `/var/containerd/containerd.sock`，datakit.yaml 片段如下：
+
+```
+      # 添加 env
+      - env:
+        - name: ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS
+          value: /var/containerd/containerd.sock
+```
+```
+      # 修改 mountPath
+        - mountPath: /var/containerd/containerd.sock
+          name: containerd-socket
+          readOnly: true
+```
+```
+      # 修改 volumes
+      volumes:
+      - hostPath:
+          path: /var/containerd/containerd.sock
+        name: containerd-socket
+```
+
+
 
 ## 指标集
 
@@ -171,13 +195,13 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
   # ...
 ```
 
-## 指标
+### 指标
 
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "metric"}}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -185,20 +209,20 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 {{$m.TagsMarkdownTable}}
 
-- 字段列表
+- 指标列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
 
 {{ end }}
 
-## 对象
+### 对象
 
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "object"}}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -206,20 +230,20 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 {{$m.TagsMarkdownTable}}
 
-- 字段列表
+- 指标列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
 
 {{ end }}
 
-## 日志
+### 日志
 
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "logging"}}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -234,8 +258,34 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 {{ end }}
 
+## FAQ
+
+### 容器日志的特殊字节码过滤
+
+容器日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以
+
+- 将 `logging_remove_ansi_escape_codes` 设置为 `true` 
+- DataKit DaemonSet 部署时，将 `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` 置为 `true`
+
+此配置会影响日志的处理性能，基准测试结果如下：
+
+```
+goos: linux
+goarch: amd64
+pkg: gitlab.jiagouyun.com/cloudcare-tools/test
+cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
+BenchmarkRemoveAnsiCodes
+BenchmarkRemoveAnsiCodes-8        636033              1616 ns/op
+PASS
+ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
+```
+
+每一条文本的处理耗时将==额外增加== `1616 ns` 不等。如果日志中不带有颜色等修饰，不要开启该功能。
+
 ## 延伸阅读
 
 - [eBPF 采集器：支持容器环境下的流量采集](ebpf)
 - [Pipeline：文本数据处理](pipeline)
-- [正确使用正则表达式来配置](datakit-conf-how-to#fe110086) 
+- [正确使用正则表达式来配置](datakit-input-conf#9da8bc26) 
+- [Kubernetes 下 DataKit 的几种配置方式](k8s-config-how-to)
+- [DataKit 日志采集综述](datakit-logging)

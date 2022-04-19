@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package remote contains pipeline remote pulling source code
 package remote
 
@@ -15,18 +20,20 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/mytargz"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 )
 
 const (
-	pipelineRemoteName       = "PipelineRemote"
-	pipelineRemoteConfigFile = ".config"
-	pipelineWarning          = `
-	#------------------------------------   警告   -------------------------------------
-	# 不要修改或删除本文件
-	#-----------------------------------------------------------------------------------
-	`
+	pipelineRemoteName        = "PipelineRemote"
+	pipelineRemoteConfigFile  = ".config"
+	pipelineRemoteContentFile = "content.tar.gz"
+	// pipelineWarning           = `
+	// #------------------------------------   警告   -------------------------------------
+	// # 不要修改或删除本文件
+	// #-----------------------------------------------------------------------------------
+	// `.
 	deleteAll = 1
 )
 
@@ -34,6 +41,8 @@ var (
 	l                 = logger.DefaultSLogger(pipelineRemoteName)
 	runPipelineRemote sync.Once
 	isFirst           = true
+
+	pathContent string
 )
 
 type pipelineRemoteConfig struct {
@@ -65,7 +74,8 @@ type IPipelineRemote interface {
 	GetTickerDurationAndBreak() (time.Duration, bool)
 	Remove(name string) error
 	FeedLastError(inputName string, err string)
-	GetNamespacePipelineFiles(namespace string) ([]string, error)
+	ReadTarToMap(srcFile string) (map[string]string, error)
+	WriteTarFromMap(data map[string]string, dest string) error
 }
 
 type pipelineRemoteImpl struct{}
@@ -115,8 +125,12 @@ func (*pipelineRemoteImpl) FeedLastError(inputName string, err string) {
 	io.FeedLastError(inputName, err)
 }
 
-func (*pipelineRemoteImpl) GetNamespacePipelineFiles(namespace string) ([]string, error) {
-	return config.GetNamespacePipelineFiles(namespace)
+func (*pipelineRemoteImpl) ReadTarToMap(srcFile string) (map[string]string, error) {
+	return mytargz.ReadTarToMap(srcFile)
+}
+
+func (*pipelineRemoteImpl) WriteTarFromMap(data map[string]string, dest string) error {
+	return mytargz.WriteTarFromMap(data, dest)
 }
 
 //------------------------------------------------------------------------------
@@ -129,6 +143,7 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 	}
 
 	pathConfig := filepath.Join(datakit.PipelineRemoteDir, pipelineRemoteConfigFile)
+	pathContent = filepath.Join(datakit.PipelineRemoteDir, pipelineRemoteContentFile)
 
 	td, isReturn := ipr.GetTickerDurationAndBreak()
 	l.Infof("duration: %s", td.String())
@@ -186,13 +201,15 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 
 		l.Infof("localTS = %d, updateTime = %d, so update", localTS, updateTime)
 
-		files, err := dumpFiles(mFiles, ipr)
+		err := dumpFiles(mFiles, ipr)
 		if err != nil {
 			l.Errorf("dumpFiles failed: %s", err.Error())
 			return err
 		}
 
-		worker.ReloadAllRemoteDotPScript2Store(files)
+		l.Debug("dumpFiles succeeded")
+
+		scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(mFiles)
 
 		err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
 		if err != nil {
@@ -223,30 +240,21 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 			}
 		}
 	}
-	worker.CleanAllScriptWithNS(worker.RemoteScriptNS)
+	scriptstore.CleanAllScriptWithNS(scriptstore.RemoteScriptNS)
 	return nil
 }
 
-func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) ([]string, error) {
+func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) error {
 	l.Debugf("dumpFiles: %#v", mFiles)
-
 	// remove lcoal files
 	if err := removeLocalRemote(ipr); err != nil {
-		return nil, err
+		return err
 	}
-
 	// dump
-	var plPaths []string
-	for k, v := range mFiles {
-		fullPath := filepath.Join(datakit.PipelineRemoteDir, k)
-		if err := ipr.WriteFile(fullPath, []byte(pipelineWarning+v), datakit.ConfPerm); err != nil {
-			l.Errorf("failed to write pipeline remote %s, err: %s", k, err.Error())
-			continue
-		}
-		plPaths = append(plPaths, fullPath)
+	if err := ipr.WriteTarFromMap(mFiles, pathContent); err != nil {
+		return err
 	}
-	l.Debugf("plPaths: %#v", plPaths)
-	return plPaths, nil
+	return nil
 }
 
 func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (int64, error) {
@@ -270,13 +278,14 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		}
 		return 0, nil // need update when token has changed
 	} else if isFirst {
+		// init load pipeline remotes
 		isFirst = false
 
-		pls, err := ipr.GetNamespacePipelineFiles(datakit.StrPipelineRemote)
+		mContent, err := ipr.ReadTarToMap(pathContent)
 		if err != nil {
-			l.Errorf("GetNamespacePipelineFiles failed: %v", err)
+			l.Errorf("ReadTarToMap failed: %v", err)
 		} else {
-			worker.ReloadAllRemoteDotPScript2Store(pls)
+			scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(mContent)
 		}
 	} // isFirst
 	return cf.UpdateTime, nil

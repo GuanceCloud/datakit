@@ -11,6 +11,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
@@ -211,7 +212,7 @@ func (std *SocketTaskData) GetContent() string {
 	return std.Log
 }
 
-func (std *SocketTaskData) Handler(result *worker.Result) error {
+func (std *SocketTaskData) Handler(result *pipeline.Result) error {
 	// result.SetSource(std.source)
 	if std.Tag != nil && len(std.Tag) != 0 {
 		for k, v := range std.Tag {
@@ -224,25 +225,25 @@ func (std *SocketTaskData) Handler(result *worker.Result) error {
 }
 
 func (sl *socketLogger) sendToPipeline(pending []string) {
-	taskDates := make([]worker.TaskData, 0)
+	taskCnt := []string{}
 	for _, data := range pending {
 		if data != "" {
-			taskDates = append(taskDates, &SocketTaskData{Tag: sl.tags, Log: data, Source: sl.opt.Source})
+			taskCnt = append(taskCnt, data)
 		}
 	}
-	if len(taskDates) != 0 {
-		task := &worker.Task{
-			TaskName:   "socklogging/" + sl.opt.InputName,
-			ScriptName: sl.opt.Pipeline,
-			Source:     sl.opt.Source,
-			Data:       taskDates,
-			Opt: &worker.TaskOpt{
-				Category:              datakit.Logging,
-				IgnoreStatus:          sl.opt.IgnoreStatus,
-				DisableAddStatusField: sl.opt.DisableAddStatusField,
-			},
-			TS:            time.Now(),
-			MaxMessageLen: maxFieldsLength,
+	if len(taskCnt) != 0 {
+		task := &worker.TaskTemplate{
+			TaskName:              "socklogging/" + sl.opt.InputName,
+			ContentDataType:       worker.ContentString,
+			Tags:                  sl.tags,
+			ScriptName:            sl.opt.Pipeline,
+			Source:                sl.opt.Source,
+			Content:               taskCnt,
+			Category:              datakit.Logging,
+			IgnoreStatus:          sl.opt.IgnoreStatus,
+			DisableAddStatusField: sl.opt.DisableAddStatusField,
+			TS:                    time.Now(),
+			MaxMessageLen:         maxFieldsLength,
 		}
 		// 阻塞型channel
 		_ = worker.FeedPipelineTaskBlock(task)

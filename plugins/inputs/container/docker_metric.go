@@ -42,6 +42,7 @@ func getContainerTags(container *types.Container) tagsType {
 	tags["image_tag"] = imageTag
 	tags["container_name"] = getContainerName(container.Names)
 	tags["container_id"] = container.ID
+	tags["namespace"] = "moby"
 
 	if !containerIsFromKubernetes(getContainerName(container.Names)) {
 		tags["container_type"] = "docker"
@@ -196,32 +197,33 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 		Type: "metric",
 		Desc: "容器指标数据，只采集正在运行的容器",
 		Tags: map[string]interface{}{
-			"container_id":     inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
+			"container_id":     inputs.NewTagInfo(`容器 ID`),
 			"container_name":   inputs.NewTagInfo(`容器名称`),
 			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
+			"namespace":        inputs.NewTagInfo(`该容器所在的命名空间`),
 			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
 			"image_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
 			"image_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),
 			"image_tag":        inputs.NewTagInfo("镜像 tag，例如 `1.21.0`"),
-			"container_type":   inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
-			"state":            inputs.NewTagInfo(`运行状态，running`),
+			"container_type":   inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker/containerd`),
+			"state":            inputs.NewTagInfo(`运行状态，running（containerd 缺少此字段）`),
 			"pod_name":         inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
 			"pod_namespace":    inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
-			"deployment":       inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）`),
+			"deployment":       inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在，containerd 缺少此字段）`),
 		},
 		Fields: map[string]interface{}{
 			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 占主机总量的使用率"},
-			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "容器 CPU 增量"},
-			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "系统 CPU 增量"},
-			"cpu_numbers":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "CPU 核心数"},
+			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "容器 CPU 增量（containerd 缺少此字段）"},
+			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "系统 CPU 增量（containerd 缺少此字段）"},
+			"cpu_numbers":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "CPU 核心数（containerd 缺少此字段）"},
 			"mem_limit":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存可用总量，如果未对容器做内存限制，则为主机内存容量"},
 			"mem_usage":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存使用量"},
 			"mem_used_percent":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "内存使用率，使用量除以可用总量"},
-			"mem_failed_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存分配失败的次数"},
-			"network_bytes_rcvd": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "从网络接收到的总字节数"},
-			"network_bytes_sent": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "向网络发送出的总字节数"},
-			"block_read_byte":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "从容器文件系统读取的总字节数"},
-			"block_write_byte":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "向容器文件系统写入的总字节数"},
+			"mem_failed_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存分配失败的次数（containerd 缺少此字段）"},
+			"network_bytes_rcvd": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "从网络接收到的总字节数（containerd 缺少此字段）"},
+			"network_bytes_sent": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "向网络发送出的总字节数（containerd 缺少此字段）"},
+			"block_read_byte":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "从容器文件系统读取的总字节数（containerd 缺少此字段）"},
+			"block_write_byte":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "向容器文件系统写入的总字节数（containerd 缺少此字段）"},
 		},
 	}
 }

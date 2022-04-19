@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
@@ -46,7 +47,7 @@ func DefaultConfig() *Config {
 			"ENV_HOSTNAME": "", // not set
 		}, // default nothing
 
-		IOConf: &IOConfig{
+		IOConf: &dkio.IOConfig{
 			FeedChanSize:              1024,
 			HighFreqFeedChanSize:      2048,
 			MaxCacheCount:             1024,
@@ -56,6 +57,7 @@ func DefaultConfig() *Config {
 			FlushInterval:             "10s",
 			OutputFileInputs:          []string{},
 			EnableCache:               false,
+			Filters:                   map[string][]string{},
 		},
 
 		DataWay: &dataway.DataWayCfg{
@@ -77,7 +79,7 @@ func DefaultConfig() *Config {
 			WhiteList: []string{},
 		},
 		Pipeline: &pipeline.PipelineCfg{
-			IPdbType:           "iploc",
+			IPdbType:           "-",
 			RemotePullInterval: "1m",
 		},
 		Logging: &LoggerCfg{
@@ -87,7 +89,13 @@ func DefaultConfig() *Config {
 			GinLog: filepath.Join("/var/log/datakit", "gin.log"),
 		},
 
-		Cgroup: &Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
+		Cgroup: &cgroup.CgroupOptions{
+			Path:   "/datakit",
+			Enable: true,
+			CPUMax: 20.0,
+			CPUMin: 5.0,
+			MemMax: 4096, // MB
+		},
 
 		GitRepos: &GitRepost{
 			PullInterval: "1m",
@@ -101,6 +109,8 @@ func DefaultConfig() *Config {
 				},
 			},
 		},
+
+		Ulimit: 64000,
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起
@@ -110,25 +120,6 @@ func DefaultConfig() *Config {
 	}
 
 	return c
-}
-
-type Cgroup struct {
-	Enable bool    `toml:"enable"`
-	CPUMax float64 `toml:"cpu_max"`
-	CPUMin float64 `toml:"cpu_min"`
-}
-
-type IOConfig struct {
-	FeedChanSize              int      `toml:"feed_chan_size"`
-	HighFreqFeedChanSize      int      `toml:"high_frequency_feed_chan_size"`
-	MaxCacheCount             int64    `toml:"max_cache_count"`
-	CacheDumpThreshold        int64    `toml:"cache_dump_threshold"`
-	MaxDynamicCacheCount      int64    `toml:"max_dynamic_cache_count"`
-	DynamicCacheDumpThreshold int64    `toml:"dynamic_cache_dump_threshold"`
-	FlushInterval             string   `toml:"flush_interval"`
-	OutputFile                string   `toml:"output_file"`
-	OutputFileInputs          []string `toml:"output_file_inputs"`
-	EnableCache               bool     `toml:"enable_cache"`
 }
 
 type LoggerCfg struct {
@@ -193,16 +184,16 @@ type Config struct {
 	InstallVer string `toml:"install_version,omitempty"`
 
 	HTTPAPI *dkhttp.APIConfig   `toml:"http_api"`
-	IOConf  *IOConfig           `toml:"io"`
+	IOConf  *dkio.IOConfig      `toml:"io"`
 	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
 	Logging *LoggerCfg          `toml:"logging"`
 
 	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
 	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
 
-	GlobalTags   map[string]string `toml:"global_tags"`
-	Environments map[string]string `toml:"environments"`
-	Cgroup       *Cgroup           `toml:"cgroup"`
+	GlobalTags   map[string]string     `toml:"global_tags"`
+	Environments map[string]string     `toml:"environments"`
+	Cgroup       *cgroup.CgroupOptions `toml:"cgroup"`
 
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
 	ProtectMode              bool `toml:"protect_mode"`
@@ -217,6 +208,8 @@ type Config struct {
 	Tracer *tracer.Tracer `toml:"tracer,omitempty"`
 
 	GitRepos *GitRepost `toml:"git_repos"`
+
+	Ulimit uint64 `toml:"ulimit"`
 }
 
 func (c *Config) String() string {
@@ -417,6 +410,20 @@ func (c *Config) ApplyMainConfig() error {
 
 	l = logger.SLogger("config")
 
+	// Set up ulimit.
+	if runtime.GOOS == `linux` {
+		if err := setUlimit(c.Ulimit); err != nil {
+			return fmt.Errorf("fail to set ulimit to %d: %w", c.Ulimit, err)
+		} else {
+			soft, hard, err := getUlimit()
+			if err != nil {
+				l.Warnf("fail to get ulimit: %v", err)
+			} else {
+				l.Infof("ulimit set to softLimit = %d, hardLimit = %d", soft, hard)
+			}
+		}
+	}
+
 	if c.EnableUncheckedInputs {
 		datakit.EnableUncheckInputs = true
 	}
@@ -441,17 +448,9 @@ func (c *Config) ApplyMainConfig() error {
 		if c.IOConf.OutputFile == "" && c.OutputFileDeprecated != "" {
 			c.IOConf.OutputFile = c.OutputFileDeprecated
 		}
-		dkio.ConfigDefaultIO(dkio.SetFeedChanSize(c.IOConf.FeedChanSize),
-			dkio.SetHighFreqFeedChanSize(c.IOConf.HighFreqFeedChanSize),
-			dkio.SetMaxCacheCount(c.IOConf.MaxCacheCount),
-			dkio.SetCacheDumpThreshold(c.IOConf.CacheDumpThreshold),
-			dkio.SetMaxDynamicCacheCount(c.IOConf.MaxDynamicCacheCount),
-			dkio.SetDynamicCacheDumpThreshold(c.IOConf.DynamicCacheDumpThreshold),
-			dkio.SetFlushInterval(c.IOConf.FlushInterval),
-			dkio.SetOutputFile(c.IOConf.OutputFile),
-			dkio.SetOutputFileInput(c.IOConf.OutputFileInputs),
-			dkio.SetEnableCache(c.IOConf.EnableCache),
-			dkio.SetDataway(c.DataWay))
+
+		dkio.ConfigDefaultIO(c.IOConf)
+		dkio.SetDataway(c.DataWay)
 	}
 
 	if err := c.setupGlobalTags(); err != nil {
@@ -500,10 +499,11 @@ func (c *Config) setHostname() error {
 		l.Errorf("get hostname failed: %s", err.Error())
 		return err
 	}
-	l.Infof("here is hostname:%s", c.Hostname)
+
 	c.Hostname = hn
+
+	l.Infof("hostname: %s", c.Hostname)
 	datakit.DatakitHostName = c.Hostname
-	l.Infof("set hostname to %s", hn)
 	return nil
 }
 
@@ -531,7 +531,7 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 
 func (c *Config) LoadEnvs() error {
 	if c.IOConf == nil {
-		c.IOConf = &IOConfig{}
+		c.IOConf = &dkio.IOConfig{}
 	}
 
 	for _, envkey := range []string{
@@ -557,6 +557,23 @@ func (c *Config) LoadEnvs() error {
 			case "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD":
 				c.IOConf.DynamicCacheDumpThreshold = value
 			}
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_IPDB"); v != "" {
+		switch v {
+		case "iploc":
+			c.Pipeline.IPdbType = v
+		default:
+			l.Warnf("unknown IPDB type: %s, ignored", v)
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT"); v != "" {
+		if x, err := strconv.ParseFloat(v, 64); err != nil {
+			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT, expect int or float, got %s, ignored", v)
+		} else {
+			c.HTTPAPI.RequestRateLimit = x
 		}
 	}
 
@@ -664,6 +681,15 @@ func (c *Config) LoadEnvs() error {
 				}, // GitRepository
 			}, // Repos
 		} // GitRepost
+	}
+
+	if v := datakit.GetEnv("ENV_ULIMIT"); v != "" {
+		u, err := strconv.ParseUint(v, 10, 64)
+		if err != nil {
+			l.Warnf("invalid ulimit input through ENV_ULIMIT: %v", err)
+		} else {
+			c.Ulimit = u
+		}
 	}
 
 	return nil

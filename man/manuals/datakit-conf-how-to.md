@@ -4,6 +4,11 @@
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
+> 本文档已经被废弃，其内容被分割到如下两个文档：
+> 
+> - [DataKit 主配置](datakit-conf)
+> - [采集器配置](datakit-input-conf)
+
 # 配置文件
 
 DataKit 的配置均使用 [Toml 文件](https://toml.io/cn)。在 DataKit 中，配置文件分为两类，其一是 DataKit 主配置，一般情况下，无需修改；另一种为具体的采集器配置，在日常使用过程中，我们可能经常需要对其进行修改。
@@ -35,7 +40,7 @@ DataKit 安装完成后，默认会开启一批采集器，这些采集器一般
 | [`net`](net)                       | 采集主机网络流量情况                           |
 | [`host_processes`](host_processes) | 采集主机上常驻（存活 10min 以上）进程列表      |
 | [`hostobject`](hostobject)         | 采集主机基础信息（如操作系统信息、硬件信息等） |
-| [`container`](container)           | 采集主机上可能的容器对象以及容器日志           |
+| [`container`](container)           | 采集主机上可能的容器或 Kubernetes 数据         |
 
 ## 采集器配置文件
 
@@ -244,7 +249,7 @@ gin.log 也会按照同样的方式自动切割。
 
 ### DataKit 限制运行资源
 
-通过 cgourp 限制 DataKit 运行资源（例如 CPU 使用率等），仅支持 Linux 操作系统。
+通过 cgourp 限制 DataKit 运行资源（例如 CPU 使用率等），==仅支持 Linux 操作系统==。
 
 进入 DataKit 安装目录下的 `conf.d` 目录，修改 `datakit.conf` 配置文件，将 `enable` 设置为 `true`，示例如下：
 

@@ -7,10 +7,12 @@ import (
 const (
 	StatusStop = "stop"
 
-	ClassHTTP     = "HTTP"
-	ClassTCP      = "TCP"
-	ClassDNS      = "DNS"
-	ClassHeadless = "BROWSER"
+	ClassHTTP      = "HTTP"
+	ClassTCP       = "TCP"
+	ClassWebsocket = "WEBSOCKET"
+	ClassICMP      = "ICMP"
+	ClassDNS       = "DNS"
+	ClassHeadless  = "BROWSER"
 
 	ClassOther = "OTHER"
 )
@@ -20,6 +22,7 @@ type Task interface {
 	Status() string
 	Run() error
 	Init() error
+	InitDebug() error
 	CheckResult() ([]string, bool)
 	Class() string
 	GetResults() (map[string]string, map[string]interface{})

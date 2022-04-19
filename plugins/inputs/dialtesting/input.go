@@ -25,6 +25,8 @@ import (
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
+var _ inputs.ReadEnv = (*Input)(nil)
+
 var (
 	AuthorizationType = `DIAL_TESTING`
 	SignHeaders       = []string{
@@ -98,6 +100,9 @@ func (*Input) Catalog() string {
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&httpMeasurement{},
+		&tcpMeasurement{},
+		&icmpMeasurement{},
+		&websocketMeasurement{},
 	}
 }
 
@@ -141,7 +146,7 @@ func (d *Input) Run() {
 		d.doLocalTask(reqURL.String())
 
 	default:
-		l.Warnf(`no invalid scheme`)
+		l.Warnf(`no invalid scheme: %s`, reqURL.Scheme)
 	}
 }
 
@@ -225,6 +230,10 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 	case dt.ClassDNS:
 		// TODO
 	case dt.ClassTCP:
+		// TODO
+	case dt.ClassWebsocket:
+		// TODO
+	case dt.ClassICMP:
 		// TODO
 	case dt.ClassOther:
 		// TODO
@@ -348,9 +357,11 @@ func (d *Input) dispatchTasks(j []byte) error {
 				l.Warnf("DNS task deprecated, ignored")
 				continue
 			case dt.ClassTCP:
-				// TODO
-				l.Warnf("TCP task deprecated, ignored")
-				continue
+				t = &dt.TcpTask{}
+			case dt.ClassWebsocket:
+				t = &dt.WebsocketTask{}
+			case dt.ClassICMP:
+				t = &dt.IcmpTask{}
 			case dt.ClassOther:
 				// TODO
 				l.Warnf("OTHER task deprecated, ignored")
@@ -531,6 +542,29 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error
 			d.stopAlltask()
 		}
 		return nil, resp.StatusCode / 100, fmt.Errorf("pull task failed")
+	}
+}
+
+// ReadEnv support envs:
+// ENV_INPUT_DIALTESTING_AK: string
+// ENV_INPUT_DIALTESTING_SK: string
+// ENV_INPUT_DIALTESTING_REGION_ID: string
+// ENV_INPUT_DIALTESTING_SERVER: string.
+func (d *Input) ReadEnv(envs map[string]string) {
+	if ak, ok := envs["ENV_INPUT_DIALTESTING_AK"]; ok {
+		d.AK = ak
+	}
+
+	if sk, ok := envs["ENV_INPUT_DIALTESTING_SK"]; ok {
+		d.SK = sk
+	}
+
+	if regionID, ok := envs["ENV_INPUT_DIALTESTING_REGION_ID"]; ok {
+		d.RegionID = regionID
+	}
+
+	if server, ok := envs["ENV_INPUT_DIALTESTING_SERVER"]; ok {
+		d.Server = server
 	}
 }
 

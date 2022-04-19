@@ -6,10 +6,9 @@
 
 # {{.InputName}}
 
-
-日志采集器支持两种模式:
-- 从磁盘读取 ：采集文件尾部数据（类似命令行 `tail -f`），上报到观测云。
-- socket端口获取：可通过tcp/udp 将文件发送到datakit
+本文档主要介绍本地磁盘日志采集和 Socket 日志采集：
+- 磁盘日志采集 ：采集文件尾部数据（类似命令行 `tail -f`）
+- Socket 端口获取：通过 TCP/UDP 方式将日志发送给 DataKit 
 
 ## 配置
 
@@ -56,7 +55,7 @@
   character_encoding = ""
   
   ## 无论从文件读取还是从socket中读取的日志, 默认的单行最大长度为 32k
-  ## 如果您的日志单行有超过32K的情况， 请配置 maximum_length 为可能的最大长度
+  ## 如果您的日志单行有超过32K的情况，请配置 maximum_length 为可能的最大长度
   ## 但是 maximum_length 最大可以配置成32M
   # maximum_length = 32766
 
@@ -69,6 +68,10 @@
   ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
   remove_ansi_escape_codes = false
   
+  ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
+  ## 时间单位支持 "ms", "s", "m", "h"
+  ignore_dead_log = "10m"
+
   # 自定义 tags
   [inputs.logging.tags]
   # some_tag = "some_value"
@@ -76,17 +79,14 @@
   # ...
 ```
 
-注意：
-
-1. DataKit 启动后，`logfiles` 中配置的日志文件有新的日志产生才会采集上来，**老的日志数据是不会采集的**
-1. 两种采集方式目前互斥，当以 socket 方式上传日志时，需将配置中的 `logfiles` 字段置空：`logfiles=[]`
+> 关于 `ignore_dead_log` 的说明：如果文件已经在采集，但 10min 内没有新日志写入的话，DataKit 会关闭该文件的采集。在这期间（10min），该文件**不能**被物理删除（如 `rm` 之后，该文件只是标记删除，DataKit 关闭该文件后，该文件才会真正被删除）。
 
 ### socket 采集日志
 
 将 conf 中 `logfiles` 注释掉，并配置 `sockets`。以 log4j2 为例:
 
 ``` xml
- <!--socket配置日志传输到本机9540端口，protocol默认tcp-->
+ <!-- socket 配置日志传输到本机 9540 端口，protocol 默认 tcp -->
  <Socket name="name1" host="localHost" port="9540" charset="utf8">
      <!-- 输出格式  序列布局-->
      <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
@@ -150,18 +150,20 @@ testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.
 - `time`：即日志的产生时间，如果没有提取 `time` 字段或解析此字段失败，默认使用系统当前时间
 - `status`：日志的等级，如果没有提取出 `status` 字段，则默认将 `stauts` 置为 `info`
 
-有效的 `status` 字段值（不区分大小写）：
+#### 可用日志等级
 
-| status 有效字段值                | 对应值     |
-| :---                             | ---        |
-| `a`, `alert`                     | `alert`    |
-| `c`, `critical`                  | `critical` |
-| `e`, `error`                     | `error`    |
-| `w`, `warning`                   | `warning`  |
-| `n`, `notice`                    | `notice`   |
-| `i`, `info`                      | `info`     |
-| `d`, `debug`, `trace`, `verbose` | `debug`    |
-| `o`, `s`, `OK`                   | `OK`       |
+有效的 `status` 字段值如下（不区分大小写）：
+
+| 简写                  | 有效字段值            | 最终显示值 |
+| :----                 | ------------          | ----       |
+| `a`                   | `alert`               | `alert`    |
+| `c`                   | `critical`            | `critical` |
+| `e`                   | `error`               | `error`    |
+| `w`                   | `warning`             | `warning`  |
+| `n`                   | `notice`              | `notice`   |
+| `i`                   | `info`                | `info`     |
+| `d`                   | `debug/trace/verbose` | `debug`    |
+| `o` 或 `s`（success） | `OK`                  | `OK`       |
 
 示例：假定文本数据如下：
 
@@ -241,7 +243,23 @@ Pipeline 的几个注意事项：
 
 {{ end }} 
 
-## 常见问题
+## FAQ
+
+### 为什么在页面上看不到日志数据？
+
+DataKit 启动后，`logfiles` 中配置的日志文件==有新的日志产生才会采集上来，老的日志数据是不会采集的==。
+
+另外，一旦开始采集某个日志文件，将会自动触发一条日志，内容大概如下：
+
+```
+First Message. filename: /some/path/to/new/log ...
+```
+
+如果看到这样的信息，证明指定的文件==已经开始采集，只是当前尚无新的日志数据产生==。另外，日志数据的上传、处理、入库也有一定的时延，即使有新的数据产生，也需要等待一定时间（< 1min）。
+
+### 磁盘日志采集和 Socket 日志采集的互斥性
+
+两种采集方式目前互斥，当以 Socket 方式采集日志时，需将配置中的 `logfiles` 字段置空：`logfiles=[]`
 
 ### 远程文件采集方案
 
@@ -277,11 +295,44 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 这个问题并不会影响到正常的服务运行，因为 socket 处理如果不是异步并主动丢弃堆积日志的话，日志会在 client 端产生堆积，严重情况造成内存泄露从而影响主业务的运行。
 datakit 也会在处理不及造成日志堆积之后 缓存一定量日志到内存当中
 
+### 如何估算日志的总量
+
+由于日志的收费是按照条数来计费的，但一般情况下，大部分的日志都是程序写到磁盘的，只能看到磁盘占用大小（比如每天 100GB 日志）。
+
+一种可行的方式，可以用以下简单的 shell 来判断：
+
+```shell
+# 统计 1GB 日志的行数
+head -c 1g path/to/your/log.txt | wc -l
+```
+
+有时候，要估计一下日志采集可能带来的流量消耗：
+
+```shell
+# 统计 1GB 日志压缩后大小（字节）
+head -c 1g path/to/your/log.txt | gzip | wc -c
+```
+
+这里拿到的是压缩后的字节数(bytes)，按照网络 bit 的计算方法（x8），其计算方式如下，以此可拿到大概的带宽消耗：
+
+```
+bytes * 2 * 8 /1024/1024 = xxx MBit
+``` 
+
+但实际上 DataKit 的压缩率不会这么高，因为 DataKit 不会一次性发送 1GB 的数据，而且分多次发送的，这个压缩率在 85% 左右（即 100MB 压缩到 15MB），故一个大概的计算方式是：
+
+```
+1GB * 2 * 8 * 0.15/1024/1024 = xxx MBit
+```
+
+> 此处 `*2` 考虑到了 [Pipeline 切割](pipeline)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
+
 ## 延伸阅读
 
-- [DataKit 整体日志采集介绍](datakit-logging)
+- [DataKit 日志采集综述](datakit-logging)
 - [Pipeline: 文本数据处理](pipeline)
 - [Pipeline 调试](datakit-pl-how-to)
 - [Pipeline 性能测试和对比](logging-pipeline-bench)
-- [`logfwd`: 容器内部日志采集](logfwd)
-- [正确使用正则表达式来配置](datakit-conf-how-to#fe110086) 
+- [容器采日志采集](container#224e2ccd)
+  - [通过 Sidecar(logfwd) 采集容器内部日志](logfwd)
+- [正确使用正则表达式来配置](datakit-input-conf#9da8bc26) 

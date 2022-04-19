@@ -12,7 +12,9 @@ const sampleCfg = `
   ##
   # disable_temperature_collect = false
   enable_temperature = true
-
+  ##
+  enable_load5s = true
+  ##
   [inputs.cpu.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"

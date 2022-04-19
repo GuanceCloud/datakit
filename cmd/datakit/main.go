@@ -35,6 +35,7 @@ var (
 	// injected during building: -X.
 	InputsReleaseType = ""
 	ReleaseVersion    = ""
+	DownloadAddr      = ""
 )
 
 func main() {
@@ -43,9 +44,20 @@ func main() {
 		datakit.Version = ReleaseVersion
 	}
 
+	if DownloadAddr != "" {
+		datakit.DownloadAddr = DownloadAddr
+	}
+
 	datakit.EnableUncheckInputs = (InputsReleaseType == "all")
 	cmds.ReleaseVersion = ReleaseVersion
 	cmds.InputsReleaseType = InputsReleaseType
+
+	var workdir string
+	// Debugging running, not start as service
+	if v := datakit.GetEnv("DK_DEBUG_WORKDIR"); v != "" {
+		datakit.SetWorkDir(v)
+		workdir = v
+	}
 
 	cmds.ParseFlags()
 	applyFlags()
@@ -68,12 +80,12 @@ func main() {
 		// start the entry under docker.
 		run()
 	} else {
-		go cgroup.Run()
+		// Auto enable cgroup limit under host running(debug mode and service mode)
+		cgroup.Run(config.Cfg.Cgroup)
 
-		// debugging running, not start as service
-		if cmds.FlagWorkDir != "" /* Deprecated */ || *cmds.FlagDebugWorkDir != "" {
+		if workdir != "" {
 			run()
-		} else {
+		} else { // running as System service
 			service.Entry = run
 			if err := service.StartService(); err != nil {
 				l.Errorf("start service failed: %s", err.Error())
@@ -87,10 +99,6 @@ func main() {
 
 func applyFlags() {
 	inputs.TODO = cmds.FlagTODO
-
-	if cmds.FlagWorkDir != "" {
-		datakit.SetWorkDir(cmds.FlagWorkDir)
-	}
 
 	if cmds.FlagDocker /* Deprecated */ || *cmds.FlagRunInContainer {
 		datakit.Docker = true

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -77,12 +82,13 @@ grok(_, "%{time}")`,
 
 			err = runner.Run(tc.in)
 			tu.Equals(t, err, nil)
-			t.Log(runner.Result())
 
-			v, err := runner.GetContent(tc.outkey)
-			tu.Equals(t, err, nil)
+			ret := runner.Result()
+			t.Log(ret)
+
+			v, ok := ret.Fields[tc.outkey]
+			tu.Equals(t, true, ok)
 			tu.Equals(t, tc.expected, v)
-
 			t.Logf("[%d] PASS", idx)
 		})
 	}

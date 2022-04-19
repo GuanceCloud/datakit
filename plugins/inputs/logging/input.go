@@ -9,6 +9,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -61,6 +62,10 @@ const (
   ## removes ANSI escape codes from text strings
   remove_ansi_escape_codes = false
 
+  ## if file is inactive, it is ignored
+  ## time units are "ms", "s", "m", "h"
+  ignore_dead_log = "10m"
+
   [inputs.logging.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -80,6 +85,7 @@ type Input struct {
 	MultilineMatch        string            `toml:"multiline_match"`
 	MultilineMaxLines     int               `toml:"multiline_maxlines"`
 	RemoveAnsiEscapeCodes bool              `toml:"remove_ansi_escape_codes"`
+	IgnoreDeadLog         string            `toml:"ignore_dead_log"`
 	Tags                  map[string]string `toml:"tags"`
 	FromBeginning         bool              `toml:"-"`
 
@@ -114,6 +120,11 @@ func (ipt *Input) Run() {
 		ipt.MultilineMatch = ipt.DeprecatedMultilineMatch
 	}
 
+	var ignoreDuration time.Duration
+	if dur, err := timex.ParseDuration(ipt.IgnoreDeadLog); err == nil {
+		ignoreDuration = dur
+	}
+
 	opt := &tailer.Option{
 		Source:                ipt.Source,
 		Service:               ipt.Service,
@@ -126,6 +137,7 @@ func (ipt *Input) Run() {
 		MultilineMatch:        ipt.MultilineMatch,
 		MultilineMaxLines:     ipt.MultilineMaxLines,
 		RemoveAnsiEscapeCodes: ipt.RemoveAnsiEscapeCodes,
+		IgnoreDeadLog:         ignoreDuration,
 		GlobalTags:            ipt.Tags,
 	}
 	ipt.process = make([]LogProcessor, 0)

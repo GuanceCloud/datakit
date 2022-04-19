@@ -12,7 +12,8 @@ const (
 	inputName = "container"
 	catelog   = "container"
 
-	dockerEndpoint = "unix:///var/run/docker.sock"
+	dockerEndpoint    = "unix:///var/run/docker.sock"
+	containerdAddress = "/var/run/containerd/containerd.sock"
 
 	timeoutDuration = time.Second * 5
 )
@@ -25,7 +26,8 @@ func registerMeasurement(mea inputs.Measurement) {
 
 const sampleCfg = `
 [inputs.container]
-  endpoint = "unix:///var/run/docker.sock"
+  docker_endpoint = "unix:///var/run/docker.sock"
+  containerd_address = "/var/run/containerd/containerd.sock"
 
   ## Containers metrics to include and exclude, default not collect. Globs accepted.
   container_include_metric = []

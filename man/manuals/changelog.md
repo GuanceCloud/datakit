@@ -2,6 +2,82 @@
 
 # DataKit 版本历史
 
+## 1.2.14(2022/04/12)
+
+本次发布属于 hotfix 发布，同时包含部分小的修改和调整：
+
+- 修复日志采集器的 monitor 展示问题以及部分出错日志等级调整(#706)
+- 修复拨测采集器内存泄露问题(#702)
+- 修复主机进程采集器奔溃问题(#700)
+- 日志采集器采集选项 `ignore_dead_log = '10m'` 默认开启(#698)
+- 优化 Git 管理的配置同步逻辑(#696)
+- eBPF 修复 netflow 中错误的 ip 协议字段(#694)
+- 丰富 Gitlab 采集器字段
+
+---
+
+## 1.2.13(2022/04/08)
+
+本次发布属于迭代发布，更新内容如下：
+
+- 增加宿主机运行时的[内存限制](datakit-conf#4e7ff8f3)(#641)
+	- 安装阶段即支持[内存限制配置](datakit-install#03be369a)
+- CPU 采集器增加 [load5s 指标](cpu#13e60209)(#606)
+- 完善 datakit.yaml 示例(#678)
+- 支持主机安装时通过 [cgroup 限制内存](datakit-conf#4e7ff8f3)使用(#641)
+- 完善日志黑名单功能，新增 contain/notcontain 判定规则(#665)
+  - 支持在 datakit.conf 中[配置日志/对象/Tracing/时序指标这几类黑名单](datakit-filter#045b45e3)
+- 进一步完善 [containerd 下的容器采集](container)(#402)
+- 调整 monitor 布局，增加黑名单过滤情况展示(#634)
+- DaemonSet 安装增加 [Helm 支持](datakit-daemonset-deploy)(#653)
+  - 新增 [DaemonSet 安装最佳实践](datakit-daemonset-bp)(#673)
+- 完善 [Gitlab 采集器](gitlab)(#661)
+- 增加 [ulimit 配置项](datakit-conf#8f9f4364)用于配置文件打开数限制(#667)
+- Pipeline [脱敏函数](pipeline#52a4c41c)有更新，新增 [SQL 脱敏函数](pipeline#711d6fe4)(#670)
+- 进程对象和时序指标[新增 `cpu_usage_top` 字段](host_processes#a30fc2c1-1)，以跟 `top` 命令的结果对应(#621)
+- eBPF 增加 [HTTP 协议采集](ebpf#905896c5)(#563)
+- 主机安装时，eBPF 采集器默认不再会安装（减少二进制分发体积），如需安装[需用特定的安装指令](ebpf#852abae7)(#605)
+  - DaemonSet 安装不受影响
+- 其它 Bug 修复（#688/#681/#679/#680）
+
+---
+
+## 1.2.12(2022/03/24)
+
+本次发布属于迭代发布，更新内容如下：
+
+1. 增加 [DataKit 命令行补全](datakit-tools-how-to#9e4e5d5f)功能(#76)
+1. 允许 DataKit [升级到非稳定版](datakit-update#42d8b0e4)(#639)
+1. 调整 Remote Pipeline 的在 DataKit 本地的存储，避免不同文件系统差异导致的文件名大小写问题(#649)
+1. (Alpha)初步支持 [Kubernetes/Containerd 架构的数据采集](container#b3edf30c)(#402)
+1. 修复 Redis 采集器的不合理报错(#671) 
+1. OpenTelemetry 采集器字段微调(#672)
+1. 修复 [DataKit 自身采集器](self) CPU 计算错误(#664)
+1. 修复 RUM 采集器因 IPDB 缺失导致的 IP 关联字段缺失问题(#652)
+1. Pipeline 支持调试数据上传至 OSS(#650)
+1. DataKit HTTP API 上均会[带上 DataKit 版本号信息](apis#be896a47)
+1. [网络拨测](dialtesting)增加 TCP/UDP/ICMP/Websocket 几种协议支持(#519)
+1. 修复[主机对象采集器](hostobject)字段超长问题(#669)
+1. Pipeline
+  - 新增 [decode()](pipeline#837c4e09) 函数(#559)，这样可以避免在日志采集器中去配置编码，可以在 Pipeline 中实现编码转换
+  - 修复 Pipeline 导入 pattern 文件可能失败的问题(#666)
+  - [add_pattern()](pipeline#89bd3d4e) 增加作用域管理
+
+---
+
+## 1.2.11(2022/03/17)
+
+本次发布属于 hotfix 发布，同时包含部分小的修改和调整：
+
+- 修复 Tracing 采集器资源过滤（`close_resource`）的算法问题，将过滤机制下放到 Entry Span 级别，而非之前的 Root Span
+- 修复[日志采集器](logging)文件句柄泄露问题(#658)，同时新增配置（`ignore_dead_log`），以忽略不再更新（删除）的文件
+- 新增[DataKit 自身指标文档](self)
+- DaemonSet 安装时
+  - [支持安装 IPDB](datakit-tools-how-to#11f01544)(#659)
+  - 支持[设定 HTTP 限流（ENV_REQUEST_RATE_LIMIT）](datakit-daemonset-deploy#00c8a780)(#654)
+
+---
+
 ## 1.2.10(2022/03/11)
 
 修复 Tracing 相关采集器可能的奔溃问题
@@ -12,9 +88,9 @@
 
 本次发布属于迭代发布，更新内容如下：
 
-- DataKit 9529 HTTP 服务添加 [API 限流措施](datakit-conf-how-to#e35bf313)(#637)
+- DataKit 9529 HTTP 服务添加 [API 限流措施](datakit-conf#39e48d64)(#637)
 - 统一各种 Tracing 数据的[采样率设置](datakit-tracing#64df2902)(#631)
-- 发布 [DataKit 整体日志采集介绍](datakit-logging)
+- 发布 [DataKit 日志采集综述](datakit-logging)
 - 支持 [OpenTelemetry 数据接入](opentelemetry)(#609)
 - 支持[禁用 Pod 内部部分镜像的日志](container#2a6149d7)(#586)
 - 进程对象采集[增加监听端口列表](host_processes#a30fc2c1-1)(#562)
@@ -177,7 +253,7 @@
   - 优化磁盘采集，默认不会再采集无效磁盘（比如总大小为 0 的一些磁盘）(#505)
 - [日志采集器](logging) 支持接收 TCP/UDP 日志流(#503)
 - [Prom 采集器](prom) 支持多 URL 采集(#506)
-- 新增 [eBPF](ebpf) 采集器，它集成了 L4-network/DNS/Bash 等 eBFP 数据采集(507)
+- 新增 [eBPF](ebpf) 采集器，它集成了 L4-network/DNS/Bash 等 eBPF 数据采集(507)
 - [ElasticSearch 采集器](elasticsearch) 增加 [Open Distro](https://opendistro.github.io/for-elasticsearch/) 分支的 ElasticSearch 支持(#510)
 
 ### Bug 修复
@@ -190,16 +266,16 @@
 - [Pipeline](pipeline)
   - 增强 Pipeline 并行处理能力
   - 增加 [`set_tag()`](pipeline#6e8c5285) 函数(#444)
-  - 增加 [`drop()`](pipeline#6e8c5285) 函数(#498)
+  - 增加 [`drop()`](pipeline#fb024a10) 函数(#498)
 - Git 模式
   - 在 DaemonSet 模式下的 Git，支持识别 `ENV_DEFAULT_ENABLED_INPUTS` 并将其生效，非 DaemonSet 模式下，会自动开启 datakit.conf 中默认开启的采集器(#501)
   - 调整 Git 模式下文件夹[存放策略]()(#509)
 - 推行新的版本号机制(#484)
-	- 新的版本号形式为 1.2.3，此处 `1` 为 master 版本号，`2` 为 minor 版本号，`3` 为 mini 版本号
-	- 以 minor 版本号的奇偶性来判定是稳定版（偶数）还是非稳定版（奇数）
-	- 同一个 minor 版本号上，会有多个不同的 mini 版本号，主要用于问题修复以及功能调整
-	- 新功能预计会发布在非稳定版上，待新功能稳定后，会发布新的稳定版本。如 1.3.x 新功能稳定后，会发布 1.4.0 稳定版，以合并 1.3.x 上的新功能
-	- 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装非稳定版
+  - 新的版本号形式为 1.2.3，此处 `1` 为 major 版本号，`2` 为 minor 版本号，`3` 为 patch 版本号
+  - 以 minor 版本号的奇偶性来判定是稳定版（偶数）还是非稳定版（奇数）
+  - 同一个 minor 版本号上，会有多个不同的 patch 版本号，主要用于问题修复以及功能调整
+  - 新功能预计会发布在非稳定版上，待新功能稳定后，会发布新的稳定版本。如 1.3.x 新功能稳定后，会发布 1.4.0 稳定版，以合并 1.3.x 上的新功能
+  - 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装非稳定版
 
 ### Breaking Changes
 
@@ -242,7 +318,7 @@ $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Mo
 - 其它：
   - DataKit 支持自身事件上报（以日志形式）(#463)
   - [ElasticSearch](elasticsearch) 采集器指标集下增加 `indices_lifecycle_error_count` 指标（注意： 采集该指标，需在 ES [增加 `ilm` 角色](elasticsearch#852abae7)）
-  - DataKit 安装完成后自动增加 [cgroup 限制](datakit-conf-how-to#9e364a84)
+  - DataKit 安装完成后自动增加 [cgroup 限制](datakit-conf#4e7ff8f3)
   - 部分跟中心对接的接口升级到了 v2 版本，故对接**非 SAAS 节点**的 DataKit，如果升级到当前版本，其对应的 DataWay 以及 Kodo 也需要升级，否则部分接口会报告 404 错误
 
 ### Breaking Changes
@@ -296,9 +372,9 @@ $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Mo
 ## 1.1.9-rc5(2021/11/23)
 
 - 增加 [pythond(alpha)](pythond) ，便于用 Python3 编写自定义采集器(#367)
-<!-- - 支持 source map 文件处理，便于 RUM 采集器收集 JavaScript 调用栈信息(#266) -->
+<!-- - 支持 source map 文件处理，便于 RUM 采集器收集 JavaScript 调用栈信息(#267) -->
 - [SkyWalking V3](skywalking) 已支持到 8.5.0/8.6.0/8.7.0 三个版本(#385)
-- DataKit 初步支持[磁盘数据缓存(alpha)](datakit-conf-how-to#9dc84d15)(#420)
+- DataKit 初步支持[磁盘数据缓存(alpha)](datakit-conf#caa0869c)(#420)
 - DataKit 支持选举状态上报(#427)
 - DataKit 支持 scheck 状态上报(#428)
 - 调整 DataKit 使用入门文档，新的分类更便于找到具体文档
@@ -328,7 +404,7 @@ $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Mo
 
 ## 1.1.9-rc4(2021/11/09)
 
-- 支持[通过 Git 来管理](datakit-conf-how-to#5dd2079e) 各种采集器配置（`datakit.conf` 除外）以及 Pipeline(#366)
+- 支持[通过 Git 来管理](datakit-conf#90362fd0) 各种采集器配置（`datakit.conf` 除外）以及 Pipeline(#366)
 - 支持[全离线安装](datakit-offline-install#7f3c40b6)(#421)
 <!--
 - eBPF-network
@@ -595,7 +671,7 @@ $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Mo
 - 支持从 `ENV_HOSTNAME` 获取主机名，以应付原始主机名不可用的问题
 - 支持 tag 级别的 [Trace](ddtrace) 过滤
 - [容器采集器](container)支持采集容器内进程对象
-- 支持通过 [cgroup 控制 DataKit CPU 占用](datakit-conf-how-to#9e364a84)（仅 Linux 支持）
+- 支持通过 [cgroup 控制 DataKit CPU 占用](datakit-conf#4e7ff8f3)（仅 Linux 支持）
 - 新增 [IIS 采集器](iis)
 
 ### Bug 修复

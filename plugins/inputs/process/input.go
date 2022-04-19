@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/host"
+	"github.com/shirou/gopsutil/v3/cpu"
 	pr "github.com/shirou/gopsutil/v3/process"
 	"github.com/tweekmonster/luser"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -18,19 +19,23 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ReadEnv = (*Input)(nil)
-
 var (
-	l                 = logger.DefaultSLogger(inputName)
-	minObjectInterval = time.Minute * 5
-	maxObjectInterval = time.Minute * 15
-	minMetricInterval = time.Second * 30
-	maxMetricInterval = time.Minute
+	l                                = logger.DefaultSLogger(inputName)
+	minObjectInterval                = time.Second * 30
+	maxObjectInterval                = time.Minute * 15
+	minMetricInterval                = time.Second * 10
+	maxMetricInterval                = time.Minute
+	_                 inputs.ReadEnv = (*Input)(nil)
 )
+
+type proccpu struct {
+	createTime int64
+	cputime    *cpu.TimesStat
+	ts         time.Time
+}
 
 type Input struct {
 	ProcessName    []string          `toml:"process_name,omitempty"`
@@ -38,8 +43,10 @@ type Input struct {
 	RunTime        datakit.Duration  `toml:"min_run_time,omitempty"`
 	OpenMetric     bool              `toml:"open_metric,omitempty"`
 	MetricInterval datakit.Duration  `toml:"metric_interval,omitempty"`
-	Pipeline       string            `toml:"pipeline,omitempty"`
 	Tags           map[string]string `toml:"tags"`
+
+	// pipeline on process object removed
+	PipelineDeprecated string `toml:"pipeline,omitempty"`
 
 	lastErr error
 	re      string
@@ -67,7 +74,7 @@ func (p *Input) Run() {
 	if p.ProcessName != nil {
 		re := strings.Join(p.ProcessName, "|")
 		if regexp.MustCompile(re) == nil {
-			l.Error("[error] regexp err")
+			l.Error("regexp err")
 			return
 		}
 		p.re = re
@@ -85,10 +92,13 @@ func (p *Input) Run() {
 				maxMetricInterval,
 				p.MetricInterval.Duration)
 
+			lastProc := p.getProcessMap()
+			time.Sleep(time.Second * 2)
 			tick := time.NewTicker(p.MetricInterval.Duration)
 			defer tick.Stop()
 			for {
-				p.WriteMetric()
+				p.WriteMetric(lastProc)
+				lastProc = p.getProcessMap()
 				select {
 				case <-tick.C:
 				case <-datakit.Exit.Wait():
@@ -103,8 +113,11 @@ func (p *Input) Run() {
 		}()
 	}
 
+	lastProc := p.getProcessMap()
+	time.Sleep(time.Second * 2)
 	for {
-		p.WriteObject()
+		p.WriteObject(lastProc)
+		lastProc = p.getProcessMap()
 		select {
 		case <-tick.C:
 		case <-datakit.Exit.Wait():
@@ -159,17 +172,34 @@ func (p *Input) ReadEnv(envs map[string]string) {
 func (p *Input) getProcesses() (processList []*pr.Process) {
 	pses, err := pr.Processes()
 	if err != nil {
-		l.Errorf("[error] get process err:%s", err.Error())
+		l.Errorf("get process err: %s", err.Error())
 		p.lastErr = err
 		return
 	}
 
 	for _, ps := range pses {
-		name, _ := ps.Name()
-		if ok, _ := regexp.Match(p.re, []byte(name)); !ok {
+		name, err := ps.Name()
+		if err != nil {
+			l.Errorf("ps.Name: %s", err)
 			continue
 		}
-		t, _ := ps.CreateTime()
+
+		ok, err := regexp.Match(p.re, []byte(name))
+		if err != nil {
+			l.Errorf("regexp.Match: %s", err)
+			continue
+		}
+
+		if !ok {
+			continue
+		}
+
+		t, err := ps.CreateTime()
+		if err != nil {
+			l.Errorf("ps.CreateTime: %s", err)
+			continue
+		}
+
 		tm := time.Unix(0, t*1000000) // 转纳秒
 		if time.Since(tm) > p.RunTime.Duration {
 			processList = append(processList, ps)
@@ -178,17 +208,61 @@ func (p *Input) getProcesses() (processList []*pr.Process) {
 	return processList
 }
 
+func (p *Input) getProcessMap() map[int32]proccpu {
+	procMap := map[int32]proccpu{}
+	pses, err := pr.Processes()
+	ctime := time.Now()
+	if err != nil {
+		l.Errorf("get process err: %s", err.Error())
+		p.lastErr = err
+		return procMap
+	}
+
+	for _, ps := range pses {
+		name, err := ps.Name()
+		if err != nil {
+			l.Errorf("ps.Name: %s", err)
+			continue
+		}
+
+		cputime, err := ps.Times()
+		if err != nil {
+			l.Errorf("ps.Times: %s", err)
+			continue
+		}
+
+		ok, err := regexp.Match(p.re, []byte(name))
+		if err != nil {
+			l.Errorf("regexp.Match: %s", err)
+			continue
+		}
+
+		t := getStartTime(ps)
+
+		if !ok {
+			continue
+		}
+
+		procMap[ps.Pid] = proccpu{
+			createTime: t,
+			cputime:    cputime,
+			ts:         ctime,
+		}
+	}
+	return procMap
+}
+
 func getUser(ps *pr.Process) string {
 	username, err := ps.Username()
 	if err != nil {
 		uid, err := ps.Uids()
 		if err != nil {
-			l.Warnf("[warning] process get uid err:%s", err.Error())
+			l.Warnf("process get uid err:%s", err.Error())
 			return ""
 		}
 		u, err := luser.LookupId(fmt.Sprintf("%d", uid[0])) //nolint:stylecheck
 		if err != nil {
-			l.Warnf("[warning] process: pid:%d get username err:%s", ps.Pid, err.Error())
+			l.Warnf("process: pid:%d get username err:%s", ps.Pid, err.Error())
 			return ""
 		}
 		return u.Username
@@ -201,18 +275,18 @@ func getStartTime(ps *pr.Process) int64 {
 	if err != nil {
 		l.Warnf("get start time err:%s", err.Error())
 		if bootTime, err := host.BootTime(); err != nil {
-			return int64(bootTime)
+			return int64(bootTime) * 1000
 		}
 	}
 	return start
 }
 
-func (p *Input) Parse(ps *pr.Process) (username, state, name string, fields, message map[string]interface{}) {
+func (p *Input) Parse(ps *pr.Process, lastProcess map[int32]proccpu) (username, state, name string, fields, message map[string]interface{}) {
 	fields = map[string]interface{}{}
 	message = map[string]interface{}{}
 	name, err := ps.Name()
 	if err != nil {
-		l.Warnf("[warning] process get name err:%s", err.Error())
+		l.Warnf("process get name err:%s", err.Error())
 	}
 	username = getUser(ps)
 	if username == "" {
@@ -220,7 +294,7 @@ func (p *Input) Parse(ps *pr.Process) (username, state, name string, fields, mes
 	}
 	status, err := ps.Status()
 	if err != nil {
-		l.Warnf("[warning] process:%s,pid:%d get state err:%s", name, ps.Pid, err.Error())
+		l.Warnf("process:%s,pid:%d get state err:%s", name, ps.Pid, err.Error())
 		state = ""
 	} else {
 		state = status[0]
@@ -228,39 +302,59 @@ func (p *Input) Parse(ps *pr.Process) (username, state, name string, fields, mes
 
 	mem, err := ps.MemoryInfo()
 	if err != nil {
-		l.Warnf("[warning] process:%s,pid:%d get memoryinfo err:%s", name, ps.Pid, err.Error())
+		l.Warnf("process:%s,pid:%d get memoryinfo err:%s", name, ps.Pid, err.Error())
 	} else {
 		message["memory"] = mem
 		fields["rss"] = mem.RSS
 	}
 	memPercent, err := ps.MemoryPercent()
 	if err != nil {
-		l.Warnf("[warning] process:%s,pid:%d get mempercent err:%s", name, ps.Pid, err.Error())
+		l.Warnf("process:%s,pid:%d get mempercent err:%s", name, ps.Pid, err.Error())
 	} else {
 		fields["mem_used_percent"] = memPercent
 	}
+
+	crtTime := getStartTime(ps)
+	created := time.Unix(0, crtTime*int64(time.Millisecond))
 	cpu, err := ps.Times()
 	if err != nil {
-		l.Warnf("[warning] process:%s,pid:%d get cpu err:%s", name, ps.Pid, err.Error())
+		l.Warnf("process:%s,pid:%d get cpu err:%s", name, ps.Pid, err.Error())
+		l.Warnf("process:%s,pid:%d get cpupercent err:%s", name, ps.Pid, err.Error())
 	} else {
+		totalTime := time.Since(created).Seconds()
 		message["cpu"] = cpu
+		fields["cpu_usage"] = 100 * (cpu.User + cpu.System) / totalTime
 	}
-	cpuPercent, _ := ps.CPUPercent()
-	if err != nil {
-		l.Warnf("[warning] process:%s,pid:%d get cpupercent err:%s", name, ps.Pid, err.Error())
+
+	if lastP, ok := lastProcess[ps.Pid]; ok {
+		var usage float64
+		if lastP.createTime == crtTime {
+			sec := time.Since(lastP.ts).Seconds()
+			if sec > 0 {
+				usage = 100 * (cpu.User + cpu.System - lastP.cputime.User - lastP.cputime.System) / sec
+			}
+		} else {
+			l.Debug("cpu_usage_top: lastP %d %d", lastP.createTime, crtTime)
+		}
+		if usage < 0 {
+			usage = 0
+		}
+		fields["cpu_usage_top"] = usage
 	} else {
-		fields["cpu_usage"] = cpuPercent
+		fields["cpu_usage_top"] = 0
+		l.Debug("cpu_usage_top: pid %d", ps.Pid)
 	}
+
 	Threads, err := ps.NumThreads()
 	if err != nil {
-		l.Warnf("[warning] process:%s,pid:%d get threads err:%s", name, ps.Pid, err.Error())
+		l.Warnf("process:%s,pid:%d get threads err:%s", name, ps.Pid, err.Error())
 	} else {
 		fields["threads"] = Threads
 	}
 	if runtime.GOOS == "linux" {
 		OpenFiles, err := ps.OpenFiles()
 		if err != nil {
-			l.Warnf("[warning] process:%s,pid:%d get openfile err:%s", name, ps.Pid, err.Error())
+			l.Warnf("process:%s,pid:%d get openfile err:%s", name, ps.Pid, err.Error())
 		} else {
 			fields["open_files"] = len(OpenFiles)
 			message["open_files"] = OpenFiles
@@ -270,12 +364,12 @@ func (p *Input) Parse(ps *pr.Process) (username, state, name string, fields, mes
 	return username, state, name, fields, message
 }
 
-func (p *Input) WriteObject() {
+func (p *Input) WriteObject(lastProc map[int32]proccpu) {
 	t := time.Now().UTC()
 	var collectCache []inputs.Measurement
 
 	for _, ps := range p.getProcesses() {
-		username, state, name, fields, message := p.Parse(ps)
+		username, state, name, fields, message := p.Parse(ps, lastProc)
 		tags := map[string]string{
 			"username":     username,
 			"state":        state,
@@ -298,14 +392,14 @@ func (p *Input) WriteObject() {
 		if runtime.GOOS == "linux" {
 			dir, err := ps.Cwd()
 			if err != nil {
-				l.Warnf("[warning] process:%s,pid:%d get work_directory err:%s", name, ps.Pid, err.Error())
+				l.Warnf("process:%s,pid:%d get work_directory err:%s", name, ps.Pid, err.Error())
 			} else {
 				fields["work_directory"] = dir
 			}
 		}
 		cmd, err := ps.Cmdline()
 		if err != nil {
-			l.Warnf("[warning] process:%s,pid:%d get cmd err:%s", name, ps.Pid, err.Error())
+			l.Warnf("process:%s,pid:%d get cmd err:%s", name, ps.Pid, err.Error())
 			cmd = ""
 		}
 		if cmd == "" {
@@ -330,29 +424,6 @@ func (p *Input) WriteObject() {
 			l.Errorf("marshal message err:%s", err.Error())
 		}
 
-		if p.Pipeline != "" {
-			plPath, err := config.GetPipelinePath(p.Pipeline)
-			if err != nil {
-				l.Errorf("[error] process get pipeline err:%s", err.Error())
-				continue
-			}
-			pipe, err := pipeline.NewPipelineByScriptPath(plPath, false)
-			if err == nil {
-				pipeMap, err := pipe.Run(string(m)).Result()
-				if err == nil && pipeMap != nil {
-					for k, v := range pipeMap.Data {
-						fields[k] = v
-					}
-					for k, v := range pipeMap.Tags {
-						tags[k] = v
-					}
-				} else {
-					l.Errorf("[error] process run pipeline err:%s", err.Error())
-				}
-			} else {
-				l.Errorf("[error] process new pipeline err:%s", err.Error())
-			}
-		}
 		if len(fields) == 0 {
 			continue
 		}
@@ -367,7 +438,7 @@ func (p *Input) WriteObject() {
 	if len(collectCache) == 0 {
 		return
 	}
-	if err := inputs.FeedMeasurement(inputName,
+	if err := inputs.FeedMeasurement(inputName+"-object",
 		datakit.Object,
 		collectCache,
 		&io.Option{CollectCost: time.Since(t)}); err != nil {
@@ -380,7 +451,7 @@ func (p *Input) WriteObject() {
 	}
 }
 
-func (p *Input) WriteMetric() {
+func (p *Input) WriteMetric(lastProc map[int32]proccpu) {
 	t := time.Now().UTC()
 	var collectCache []inputs.Measurement
 	for _, ps := range p.getProcesses() {
@@ -388,7 +459,7 @@ func (p *Input) WriteMetric() {
 		if err != nil || cmd == "" {
 			continue
 		}
-		username, _, name, fields, _ := p.Parse(ps)
+		username, _, name, fields, _ := p.Parse(ps, lastProc)
 		tags := map[string]string{
 			"username":     username,
 			"pid":          fmt.Sprintf("%d", ps.Pid),
@@ -411,7 +482,7 @@ func (p *Input) WriteMetric() {
 	if len(collectCache) == 0 {
 		return
 	}
-	if err := inputs.FeedMeasurement(inputName,
+	if err := inputs.FeedMeasurement(inputName+"-metric",
 		datakit.Metric,
 		collectCache,
 		&io.Option{CollectCost: time.Since(t)}); err != nil {
@@ -429,8 +500,7 @@ func (p *Input) WriteMetric() {
 func getListeningPorts(proc *pr.Process) string {
 	connections, err := proc.Connections()
 	if err != nil {
-		name, _ := proc.Name()
-		l.Warnf("fail to get ports process %s is listening: %v", name, err)
+		l.Warnf("proc.Connections: %s", err)
 		return "[]"
 	}
 	var listening []string

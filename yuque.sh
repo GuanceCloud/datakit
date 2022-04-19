@@ -16,13 +16,13 @@ rm -rf .docs
 mkdir -p .docs
 cp man/summary.md .docs/
 
-latest_tag=$(git tag -l | sort -nr | head -n 1)
+latest_tag=$(git tag --sort=-creatordate | head -n 1)
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 
 man_version=$1
 
 if [ -z $man_version ]; then
-  printf "${YELLOW}[E] manual version missing, use current tag %s as version${CLR}\n" $latest_tag
+  printf "${YELLOW}[W] manual version missing, use current tag %s as version${CLR}\n" $latest_tag
   man_version="${latest_tag}"
 fi
 
@@ -45,12 +45,25 @@ else
   os="linux"
 fi
 
-LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit \
+make
+
+LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit doc \
+	--export-docs .docs \
 	--ignore demo \
-	--cmd-log stdout \
-	--export-manuals .docs \
-	--man-version "${man_version}" \
-	--TODO "-" && \
-	waque upload .docs/*.md -c "${waque_yml}" && \
-	printf "${GREEN}----------------------${CLR}\n" && \
-	printf "${GREEN}[I] upload manuals ok (using %s).${CLR}\n" ${waque_yml}
+	--log stdout \
+	--export-docs .docs \
+	--version "${man_version}" \
+	--TODO "-"
+
+# 雨雀有时候会返回 429 错误，只能不断重试了。但如果是其它问题（比如文档被别
+# 人手动篡改），需手动结束并移除对应文档，重新上传。
+while true
+do
+	if waque upload .docs/*.md -c "${waque_yml}"; then
+		printf "${GREEN}----------------------${CLR}\n";
+		printf "${GREEN}[I] upload manuals ok (using %s).${CLR}\n" ${waque_yml};
+		break
+	fi
+	printf "try again...\n"
+	sleep 1
+done
