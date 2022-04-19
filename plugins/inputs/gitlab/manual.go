@@ -99,7 +99,7 @@ func (g *gitlabPipelineMeasurement) Info() *inputs.MeasurementInfo {
 			"commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "触发该 pipeline 的代码的最近一次提交附带的 message"},
 			"created_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "pipeline 创建的秒时间戳"},
 			"finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "pipeline 结束的秒时间戳"},
-			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "触发该 pipeline 的代码的最近一次提交附带的 message"},
+			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "触发该 pipeline 的代码的最近一次提交附带的 message，与 commit_message 相同"},
 		},
 		Tags: map[string]interface{}{
 			"object_kind":     inputs.NewTagInfo("Event 类型，此处为 Pipeline"),
@@ -131,7 +131,7 @@ func (g *gitlabJobMeasurement) Info() *inputs.MeasurementInfo {
 			"project_id":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build 对应的项目 id"},
 			"runner_id":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build 对应的 runner id"},
 			"build_commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "触发该 build 的最近一次 commit 的 message"},
-			"message":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "触发该 build 的最近一次 commit 的 message"},
+			"message":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "触发该 build 的最近一次 commit 的 message，与 build_commit_message 相同"},
 		},
 		Tags: map[string]interface{}{
 			"object_kind":          inputs.NewTagInfo("Event 类型，此处为 Job"),
