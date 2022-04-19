@@ -400,6 +400,7 @@ func getJobEventFields(j JobEventPayload) map[string]interface{} {
 	}
 	if j.Commit != nil && j.Commit.Message != nil {
 		fields["build_commit_message"] = *j.Commit.Message
+		fields["message"] = *j.Commit.Message
 	}
 	return fields
 }
@@ -449,6 +450,7 @@ func getPipelineEventFields(pl PipelineEventPayload) map[string]interface{} {
 	}
 	if pl.Commit != nil && pl.Commit.Message != nil {
 		fields["commit_message"] = *pl.Commit.Message
+		fields["message"] = *pl.Commit.Message
 	}
 	if pl.ObjectAttributes != nil {
 		if pl.ObjectAttributes.CreatedAt != nil {

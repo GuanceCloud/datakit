@@ -476,6 +476,67 @@ var jobJson = `
   "environment": null
 }`
 
+var failedJobJson = `{
+  "object_kind": "build",
+  "ref": "testing-ci4",
+  "tag": false,
+  "before_sha": "ef286a974090ddb2c6b399d13c806562e8fbc334",
+  "sha": "d062ab827c6c0dfe1164a6c6f02128778e93e592",
+  "build_id": 121672,
+  "build_name": "release-testing",
+  "build_stage": "deploy",
+  "build_status": "failed",
+  "build_created_at": "2022-04-17 10:12:05 +0800",
+  "build_started_at": "2022-04-17 10:12:15 +0800",
+  "build_finished_at": "2022-04-17 10:12:32 +0800",
+  "build_duration": 16.791868,
+  "build_queued_duration": 10.100971,
+  "build_allow_failure": false,
+  "build_failure_reason": "script_failure",
+  "pipeline_id": 111536,
+  "runner": {
+    "id": 33,
+    "description": "ubuntu-3",
+    "runner_type": "project_type",
+    "active": true,
+    "is_shared": false,
+    "tags": [
+      "cloudcare-ft"
+    ]
+  },
+  "project_id": 806,
+  "project_name": "pengyonghui / datakit",
+  "user": {
+    "id": 397,
+    "name": "pengyonghui",
+    "username": "pengyonghui",
+    "avatar_url": "http://gitlab.jiagouyun.com/uploads/-/system/user/avatar/397/avatar.png",
+    "email": "421640644@qq.com"
+  },
+  "commit": {
+    "id": 111536,
+    "sha": "d062ab827c6c0dfe1164a6c6f02128778e93e592",
+    "message": "Update .gitlab-ci.yml",
+    "author_name": "pengyonghui",
+    "author_email": "397-pengyonghui@users.noreply.gitlab.jiagouyun.com",
+    "author_url": "http://gitlab.jiagouyun.com/pengyonghui",
+    "status": "failed",
+    "duration": 16,
+    "started_at": "2022-04-16 22:20:43 +0800",
+    "finished_at": "2022-04-17 10:12:32 +0800"
+  },
+  "repository": {
+    "name": "datakit",
+    "url": "ssh://git@gitlab.jiagouyun.com:40022/pengyonghui/datakit.git",
+    "description": "",
+    "homepage": "http://gitlab.jiagouyun.com/pengyonghui/datakit",
+    "git_http_url": "http://gitlab.jiagouyun.com/pengyonghui/datakit.git",
+    "git_ssh_url": "ssh://git@gitlab.jiagouyun.com:40022/pengyonghui/datakit.git",
+    "visibility_level": 0
+  },
+  "environment": null
+}`
+
 func TestPipelineJson(t *testing.T) {
 	var ppl PipelineEventPayload
 	if err := json.Unmarshal([]byte(pipelineJson1), &ppl); err != nil {
@@ -494,65 +555,124 @@ func TestJobJson(t *testing.T) {
 }
 
 func TestPipelineTagsAndFields(t *testing.T) {
-	var ppl PipelineEventPayload
-	if err := json.Unmarshal([]byte(pipelineJson1), &ppl); err != nil {
-		t.Error(err)
+	testCases := []struct {
+		name           string
+		eventJson      string
+		expectedTags   map[string]string
+		expectedFields map[string]interface{}
+	}{
+		{
+			"success pipeline",
+			pipelineJson1,
+			map[string]string{
+				"ci_status":       "success",
+				"pipeline_name":   "gitlab-org/gitlab-test",
+				"author_email":    "user@gitlab.com",
+				"pipeline_source": "merge_request_event",
+				"operation_name":  "pipeline",
+				"resource":        "Gitlab Test",
+				"object_kind":     "pipeline",
+				"pipeline_url":    "http://192.168.64.1:3005/gitlab-org/gitlab-test/pipelines/31",
+				"commit_sha":      "bcbb5ec396a2c0f828686f14fac9b80b780504f2",
+				"repository_url":  "http://192.168.64.1:3005/gitlab-org/gitlab-test.git",
+				"ref":             "master",
+			},
+			map[string]interface{}{
+				"duration":       int64(63),
+				"pipeline_id":    "31",
+				"commit_message": "test\n",
+				"message":        "test\n",
+				"created_at":     int64(1471015408),
+				"finished_at":    int64(1471015589),
+			},
+		},
 	}
-	tags := getPipelineEventTags(ppl)
-	fields := getPipelineEventFields(ppl)
-	expectedFields := map[string]interface{}{
-		"duration":       int64(63),
-		"pipeline_id":    "31",
-		"commit_message": "test\n",
-		"created_at":     int64(1471015408),
-		"finished_at":    int64(1471015589),
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var pipeline PipelineEventPayload
+			if err := json.Unmarshal([]byte(tc.eventJson), &pipeline); err != nil {
+				t.Error(err)
+			}
+			tags := getPipelineEventTags(pipeline)
+			fields := getPipelineEventFields(pipeline)
+			tu.Equals(t, tc.expectedTags, tags)
+			tu.Equals(t, tc.expectedFields, fields)
+		})
 	}
-	expectedTags := map[string]string{
-		"ci_status":       "success",
-		"pipeline_name":   "gitlab-org/gitlab-test",
-		"author_email":    "user@gitlab.com",
-		"pipeline_source": "merge_request_event",
-		"operation_name":  "pipeline",
-		"resource":        "Gitlab Test",
-		"object_kind":     "pipeline",
-		"pipeline_url":    "http://192.168.64.1:3005/gitlab-org/gitlab-test/pipelines/31",
-		"commit_sha":      "bcbb5ec396a2c0f828686f14fac9b80b780504f2",
-		"repository_url":  "http://192.168.64.1:3005/gitlab-org/gitlab-test.git",
-		"ref":             "master",
-	}
-	tu.Equals(t, expectedTags, tags)
-	tu.Equals(t, expectedFields, fields)
 }
 
 func TestJobTagsAndFields(t *testing.T) {
-	var job JobEventPayload
-	if err := json.Unmarshal([]byte(jobJson), &job); err != nil {
-		t.Error(err)
+	testCases := []struct {
+		name           string
+		eventJson      string
+		expectedTags   map[string]string
+		expectedFields map[string]interface{}
+	}{
+		{
+			"success job",
+			jobJson,
+			map[string]string{
+				"object_kind":          "build",
+				"build_status":         "success",
+				"project_name":         "gitlab-org/gitlab-test",
+				"user_email":           "user@gitlab.com",
+				"build_repo_name":      "gitlab_test",
+				"sha":                  "2293ada6b400935a1378653304eaf6221e0fdb8f",
+				"build_name":           "test",
+				"build_stage":          "test",
+				"build_failure_reason": "script_failure",
+				"build_commit_sha":     "2293ada6b400935a1378653304eaf6221e0fdb8f",
+			},
+			map[string]interface{}{
+				"runner_id":            "380987",
+				"build_id":             "1977",
+				"pipeline_id":          "2366",
+				"project_id":           "380",
+				"build_started_at":     int64(1614048097),
+				"build_commit_message": "test\n",
+				"message":              "test\n",
+			},
+		},
+		{
+			"failed job",
+			failedJobJson,
+			map[string]string{
+				"object_kind":          "build",
+				"build_status":         "failed",
+				"project_name":         "pengyonghui / datakit",
+				"user_email":           "421640644@qq.com",
+				"build_repo_name":      "datakit",
+				"sha":                  "d062ab827c6c0dfe1164a6c6f02128778e93e592",
+				"build_name":           "release-testing",
+				"build_stage":          "deploy",
+				"build_failure_reason": "script_failure",
+				"build_commit_sha":     "d062ab827c6c0dfe1164a6c6f02128778e93e592",
+			},
+			map[string]interface{}{
+				"runner_id":            "33",
+				"build_id":             "121672",
+				"pipeline_id":          "111536",
+				"project_id":           "806",
+				"build_started_at":     int64(1650161535),
+				"build_commit_message": "Update .gitlab-ci.yml",
+				"message":              "Update .gitlab-ci.yml",
+				"build_duration":       16.791868,
+				"build_finished_at":    int64(1650161552),
+			},
+		},
 	}
-	tags := getJobEventTags(job)
-	fields := getJobEventFields(job)
-	expectedTags := map[string]string{
-		"object_kind":          "build",
-		"build_status":         "success",
-		"project_name":         "gitlab-org/gitlab-test",
-		"user_email":           "user@gitlab.com",
-		"build_repo_name":      "gitlab_test",
-		"sha":                  "2293ada6b400935a1378653304eaf6221e0fdb8f",
-		"build_name":           "test",
-		"build_stage":          "test",
-		"build_failure_reason": "script_failure",
-		"build_commit_sha":     "2293ada6b400935a1378653304eaf6221e0fdb8f",
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var job JobEventPayload
+			if err := json.Unmarshal([]byte(tc.eventJson), &job); err != nil {
+				t.Error(err)
+			}
+			tags := getJobEventTags(job)
+			fields := getJobEventFields(job)
+			tu.Equals(t, tc.expectedTags, tags)
+			tu.Equals(t, tc.expectedFields, fields)
+		})
 	}
-	expectedFields := map[string]interface{}{
-		"runner_id":            "380987",
-		"build_id":             "1977",
-		"pipeline_id":          "2366",
-		"project_id":           "380",
-		"build_started_at":     int64(1614048097),
-		"build_commit_message": "test\n",
-	}
-	tu.Equals(t, expectedTags, tags)
-	tu.Equals(t, expectedFields, fields)
 }
 
 func getInput(expired time.Duration) *Input {
