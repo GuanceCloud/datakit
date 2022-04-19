@@ -4,6 +4,7 @@ package container
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -475,6 +476,40 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			i.Tags[k] = v
 		}
 	}
+
+	//   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_METRIC : []string
+	//   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_METRIC : []string
+	//   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG : []string
+	//   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG : []string
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_METRIC"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add CONTAINER_INCLUDE_METRIC from ENV: %v", arrays)
+		i.ContainerIncludeMetric = append(i.ContainerIncludeMetric, arrays...)
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_METRIC"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add CONTAINER_EXCLUDE_METRIC from ENV: %v", arrays)
+		i.ContainerExcludeMetric = append(i.ContainerExcludeMetric, arrays...)
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add CONTAINER_INCLUDE_LOG from ENV: %v", arrays)
+		i.ContainerIncludeLog = append(i.ContainerIncludeLog, arrays...)
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add CONTAINER_EXCLUDE_LOG from ENV: %v", arrays)
+		i.ContainerExcludeLog = append(i.ContainerExcludeLog, arrays...)
+	}
+
+	//   ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH : int
+	//   ENV_INPUT_CONTAINER_KUBERNETES_URL : string
+	//   ENV_INPUT_CONTAINER_BEARER_TOKEN : string
+	//   ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING : string
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH"]; ok {
 		n, err := strconv.Atoi(str)

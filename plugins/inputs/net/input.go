@@ -310,6 +310,8 @@ func (i *Input) Terminate() {
 //   ENV_INPUT_NET_IGNORE_PROTOCOL_STATS : booler
 //   ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES : booler
 //   ENV_INPUT_NET_TAGS : "a=b,c=d"
+//   ENV_INPUT_NET_INTERVAL : datakit.Duration
+//   ENV_INPUT_NET_INTERFACES : []string
 func (i *Input) ReadEnv(envs map[string]string) {
 	if ignore, ok := envs["ENV_INPUT_NET_IGNORE_PROTOCOL_STATS"]; ok {
 		b, err := strconv.ParseBool(ignore)
@@ -334,6 +336,25 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		for k, v := range tags {
 			i.Tags[k] = v
 		}
+	}
+
+	//   ENV_INPUT_NET_INTERVAL : datakit.Duration
+	//   ENV_INPUT_NET_INTERFACES : []string
+	if str, ok := envs["ENV_INPUT_NET_INTERVAL"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_NET_INTERVAL to time.Duration: %s, ignore", err)
+		} else {
+			i.Interval.Duration = config.ProtectedInterval(minInterval,
+				maxInterval,
+				da)
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_NET_INTERFACES"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add ENV_INPUT_NET_INTERFACES from ENV: %v", arrays)
+		i.Interfaces = append(i.Interfaces, arrays...)
 	}
 }
 

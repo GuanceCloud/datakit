@@ -254,6 +254,12 @@ func (ipt *Input) Terminate() {
 	}
 }
 
+// ReadEnv support envs：
+//   ENV_INPUT_DISK_IGNORE_FS : []string
+//   ENV_INPUT_DISK_TAGS : "a=b,c=d"
+//   ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE : bool
+//   ENV_INPUT_DISK_INTERVAL : datakit.Duration
+//   ENV_INPUT_DISK_MOUNT_POINTS : []string
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if fsList, ok := envs["ENV_INPUT_DISK_IGNORE_FS"]; ok {
 		list := strings.Split(fsList, ",")
@@ -268,8 +274,27 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
-	if _, ok := envs["ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE"]; ok {
+	if str := envs["ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE"]; str != "" {
 		ipt.OnlyPhysicalDevice = true
+	}
+
+	//   ENV_INPUT_DISK_INTERVAL : datakit.Duration
+	//   ENV_INPUT_DISK_MOUNT_POINTS : []string
+	if str, ok := envs["ENV_INPUT_DISK_INTERVAL"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_DISK_INTERVAL to time.Duration: %s, ignore", err)
+		} else {
+			ipt.Interval.Duration = config.ProtectedInterval(minInterval,
+				maxInterval,
+				da)
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_DISK_MOUNT_POINTS"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add ENV_INPUT_DISK_MOUNT_POINTS from ENV: %v", arrays)
+		ipt.MountPoints = append(ipt.MountPoints, arrays...)
 	}
 }
 
