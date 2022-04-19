@@ -73,7 +73,7 @@ Datakit Tracing Backend 包括几个部分 Tracing <!--Statistics,--> Filters �
 - Samplers: 基于概率的 Tracing 数据采样。多服务环境下采样率必须配置一致才能达到采样效果，
   - 例一：A-Service(0.3) --> B-Service(0.3) --> C-Service(0.3) 配置正确，最终采样率为 30%。
   - 例二：A-Service(0.1) --> B-Service(0.3) --> C-Service(0.1) 配置错误，链路不能正常工作。
-- Piplines: [Pipeline](pipeline)为 Datakit Tracing 提供一种可以自定义编程的数据操纵能力。配置文件参考 Tracing Input 的配置文件\[inputs.ddtrace.pipelines\]项。配置文件放置在/datakit/install/path/pipeline 目录下并以 xxx.p 命名，其中 xxx 为用户想要操作的 Tracing 服务名。
+- Piplines: [Pipeline](pipeline)为 Datakit Tracing 提供通过自定义脚本的数据操纵能力。配置文件参考 Tracing Input 的配置文件\[inputs.ddtrace.pipelines\]项。配置文件放置在/datakit/install/path/pipeline 目录下并以 xxx.p 命名，其中 xxx 为用户想要操作的 Tracing 服务名。
 
 ## About Datakit Span Struct In Production
 
