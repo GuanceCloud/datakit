@@ -631,6 +631,7 @@ func TestJobTagsAndFields(t *testing.T) {
 				"build_started_at":     int64(1614048097),
 				"build_commit_message": "test\n",
 				"message":              "test\n",
+				"build_duration":       0.0,
 			},
 		},
 		{

@@ -388,6 +388,8 @@ func getJobEventFields(j JobEventPayload) map[string]interface{} {
 	}
 	if j.BuildDuration != nil {
 		fields["build_duration"] = *j.BuildDuration
+	} else {
+		fields["build_duration"] = 0.0
 	}
 	if j.PipelineID != nil {
 		fields["pipeline_id"] = strconv.FormatInt(*j.PipelineID, 10)
@@ -447,6 +449,8 @@ func getPipelineEventFields(pl PipelineEventPayload) map[string]interface{} {
 	}
 	if pl.ObjectAttributes != nil && pl.ObjectAttributes.Duration != nil {
 		fields["duration"] = *pl.ObjectAttributes.Duration
+	} else {
+		fields["duration"] = int64(0)
 	}
 	if pl.Commit != nil && pl.Commit.Message != nil {
 		fields["commit_message"] = *pl.Commit.Message
