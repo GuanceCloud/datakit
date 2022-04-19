@@ -434,6 +434,14 @@ func (i *Input) Resume() error {
 //   ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
 //   ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
 //   ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER : booler
+//   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_METRIC : []string
+//   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_METRIC : []string
+//   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG : []string
+//   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG : []string
+//   ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH : int
+//   ENV_INPUT_CONTAINER_KUBERNETES_URL : string
+//   ENV_INPUT_CONTAINER_BEARER_TOKEN : string
+//   ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING : string
 func (i *Input) ReadEnv(envs map[string]string) {
 	if endpoint, ok := envs["ENV_INPUT_CONTAINER_DOCKER_ENDPOINT"]; ok {
 		i.DockerEndpoint = endpoint
@@ -466,6 +474,27 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		for k, v := range tags {
 			i.Tags[k] = v
 		}
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH"]; ok {
+		n, err := strconv.Atoi(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH to int: %s, ignore", err)
+		} else {
+			i.MaxLoggingLength = n
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_KUBERNETES_URL"]; ok {
+		i.K8sURL = str
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_BEARER_TOKEN"]; ok {
+		i.K8sBearerToken = str
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING"]; ok {
+		i.K8sBearerTokenString = str
 	}
 }
 

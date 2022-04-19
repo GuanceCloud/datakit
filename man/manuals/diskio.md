@@ -39,7 +39,7 @@ diskperf -Y
 | `ENV_INPUT_DISKIO_INTERVAL` | `interval` | `10s`|
 | `ENV_INPUT_DISKIO_DEVICES` | `devices` | `'''^sdb\d*'''` |
 | `ENV_INPUT_DISKIO_DEVICE_TAGS` | `device_tags` | `"ID_FS_TYPE", "ID_FS_USAGE"` 以英文逗号隔开 |
-| `ENV_INPUT_DISKIO_NAME_TEMPLATES` | `name_templates` | `"$ID_FS_LABEL","$DM_VG_NAME/$DM_LV_NAME"` 以英文逗号隔开 |
+| `ENV_INPUT_DISKIO_NAME_TEMPLATES` | `name_templates` | `"$ID_FS_LABEL", "$DM_VG_NAME/$DM_LV_NAME"` 以英文逗号隔开 |
 
 ## 指标集
 
