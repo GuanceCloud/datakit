@@ -170,6 +170,7 @@ func (ipt *Input) Run() {
 	}
 
 	customerKeys = ipt.CustomerTags
+	customerKeys = append(customerKeys, "runtime-id")
 	tags = ipt.Tags
 }
 
