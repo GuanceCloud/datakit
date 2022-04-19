@@ -81,7 +81,7 @@ var (
 	keepRareResource   *itrace.KeepRareResource
 	closeResource      *itrace.CloseResource
 	sampler            *itrace.Sampler
-	customerKeys       []string
+	customerKeys       = []string{"runtime-id"}
 	tags               map[string]string
 )
 
@@ -169,8 +169,9 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(itrace.PiplineFilterWrapper(inputName, ipt.Pipelines))
 	}
 
-	customerKeys = ipt.CustomerTags
-	customerKeys = append(customerKeys, "runtime-id")
+	for i := range ipt.CustomerTags {
+		customerKeys = append(customerKeys, ipt.CustomerTags[i])
+	}
 	tags = ipt.Tags
 }
 
