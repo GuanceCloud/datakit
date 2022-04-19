@@ -4,6 +4,8 @@
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
+# [Tracing Python Applications](https://docs.datadoghq.com/tracing/setup_overview/setup/python)
+
 ## [Compatibility requirements](#compatibility-requirements)
 
 The Python library supports CPython versions 2.7 and 3.5-3.10 on Linux, MacOS and Windows. For more information about Datadog’s Python version support, see the [Compatibility Requirements](https://docs.datadoghq.com/tracing/compatibility_requirements/python) page.
@@ -44,7 +46,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 - [AWS Lambda](#)
 - [Other Environments](#)
 
-- [AWS Lambda](#)
+- [Containers](#)
 
   [Containers](#)[AWS Lambda](#)[Other Environments](#)
 
