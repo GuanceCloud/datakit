@@ -56,46 +56,48 @@ var resourceList = []string{
 func (k *kubernetesInput) gather() (metrics, objects []inputs.Measurement, lastErr error) {
 	resourceCount := make(map[string]map[string]int)
 
-	must := func(res k8sResourceStats, err error) k8sResourceStats {
-		lastErr = err
-		return res
-	}
-
-	wrapper := func(name string, res k8sResourceStats) {
-		for namespace, v := range res {
-			if x := resourceCount[namespace]; x == nil {
-				resourceCount[namespace] = make(map[string]int)
-			}
-			resourceCount[namespace][name] += len(v)
-			objects = append(objects, v...)
-		}
-	}
-
-	wrapper("cluster", must(gatherCluster(k.client, k.cfg.extraTags)))
-	wrapper("cronjob", must(gatherCronJob(k.client, k.cfg.extraTags)))
-	wrapper("deployment", must(gatherDeployment(k.client, k.cfg.extraTags)))
-	wrapper("job", must(gatherJob(k.client, k.cfg.extraTags)))
-	wrapper("node", must(gatherNode(k.client, k.cfg.extraTags)))
-	wrapper("pod", must(gatherPod(k.client, k.cfg.extraTags)))
-	wrapper("replica_set", must(gatherReplicaSet(k.client, k.cfg.extraTags)))
-	wrapper("service", must(gatherService(k.client, k.cfg.extraTags)))
-
-	for namespace, resource := range resourceCount {
-		c := newCount()
-		c.tags["namespace"] = namespace
-		for name, elem := range resource {
-			c.fields[name] = elem
+	/*
+		must := func(res k8sResourceStats, err error) k8sResourceStats {
+			lastErr = err
+			return res
 		}
 
-		for _, r := range resourceList {
-			if _, ok := c.fields[r]; !ok {
-				c.fields[r] = 0
+		wrapper := func(name string, res k8sResourceStats) {
+			for namespace, v := range res {
+				if x := resourceCount[namespace]; x == nil {
+					resourceCount[namespace] = make(map[string]int)
+				}
+				resourceCount[namespace][name] += len(v)
+				objects = append(objects, v...)
 			}
 		}
 
-		c.time = time.Now()
-		metrics = append(metrics, c)
-	}
+		wrapper("cluster", must(gatherCluster(k.client, k.cfg.extraTags)))
+		wrapper("cronjob", must(gatherCronJob(k.client, k.cfg.extraTags)))
+		// wrapper("deployment", must(gatherDeployment(k.client, k.cfg.extraTags)))
+		wrapper("job", must(gatherJob(k.client, k.cfg.extraTags)))
+		wrapper("node", must(gatherNode(k.client, k.cfg.extraTags)))
+		wrapper("pod", must(gatherPod(k.client, k.cfg.extraTags)))
+		wrapper("replica_set", must(gatherReplicaSet(k.client, k.cfg.extraTags)))
+		wrapper("service", must(gatherService(k.client, k.cfg.extraTags)))
+
+		for namespace, resource := range resourceCount {
+			c := newCount()
+			c.tags["namespace"] = namespace
+			for name, elem := range resource {
+				c.fields[name] = elem
+			}
+
+			for _, r := range resourceList {
+				if _, ok := c.fields[r]; !ok {
+					c.fields[r] = 0
+				}
+			}
+
+			c.time = time.Now()
+			metrics = append(metrics, c)
+		}
+	*/
 	return //nolint:nakedret
 }
 

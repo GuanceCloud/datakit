@@ -13,7 +13,7 @@ import (
 
 const k8sJobName = "kubernetes_jobs"
 
-func gatherJob(client k8sClientX, extraTags map[string]string) (k8sResourceStats, error) {
+func gatherJob(client k8sClientX, extraTags map[string]string) (*k8sResourceStats, error) {
 	list, err := client.getJobs().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get jobs resource: %w", err)
@@ -25,7 +25,7 @@ func gatherJob(client k8sClientX, extraTags map[string]string) (k8sResourceStats
 	return exportJob(list.Items, extraTags), nil
 }
 
-func exportJob(items []v1.Job, extraTags tagsType) k8sResourceStats {
+func exportJob(items []v1.Job, extraTags tagsType) *k8sResourceStats {
 	res := newK8sResourceStats()
 
 	for _, item := range items {
@@ -74,7 +74,8 @@ func exportJob(items []v1.Job, extraTags tagsType) k8sResourceStats {
 		obj.fields.mergeToMessage(obj.tags)
 
 		obj.time = time.Now()
-		res.set(defaultNamespace(item.Namespace), obj)
+
+		res.meas = append(res.meas, obj)
 	}
 	return res
 }

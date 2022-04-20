@@ -13,7 +13,7 @@ import (
 
 const k8sServiceName = "kubernetes_services"
 
-func gatherService(client k8sClientX, extraTags map[string]string) (k8sResourceStats, error) {
+func gatherService(client k8sClientX, extraTags map[string]string) (*k8sResourceStats, error) {
 	list, err := client.getServices().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get services resource: %w", err)
@@ -25,7 +25,7 @@ func gatherService(client k8sClientX, extraTags map[string]string) (k8sResourceS
 	return exportService(list.Items, extraTags), nil
 }
 
-func exportService(items []v1.Service, extraTags tagsType) k8sResourceStats {
+func exportService(items []v1.Service, extraTags tagsType) *k8sResourceStats {
 	res := newK8sResourceStats()
 
 	for _, item := range items {
@@ -56,7 +56,8 @@ func exportService(items []v1.Service, extraTags tagsType) k8sResourceStats {
 		obj.fields.mergeToMessage(obj.tags)
 
 		obj.time = time.Now()
-		res.set(defaultNamespace(item.Namespace), obj)
+
+		res.meas = append(res.meas, obj)
 	}
 	return res
 }

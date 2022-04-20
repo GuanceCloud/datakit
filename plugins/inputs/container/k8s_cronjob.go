@@ -13,7 +13,7 @@ import (
 
 const k8sCronJobName = "kubernetes_cron_jobs"
 
-func gatherCronJob(client k8sClientX, extraTags map[string]string) (k8sResourceStats, error) {
+func gatherCronJob(client k8sClientX, extraTags map[string]string) (*k8sResourceStats, error) {
 	list, err := client.getCronJobs().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cronjobs resource: %w", err)
@@ -25,7 +25,7 @@ func gatherCronJob(client k8sClientX, extraTags map[string]string) (k8sResourceS
 	return exportCronJob(list.Items, extraTags), nil
 }
 
-func exportCronJob(items []v1beta1.CronJob, extraTags tagsType) k8sResourceStats {
+func exportCronJob(items []v1beta1.CronJob, extraTags tagsType) *k8sResourceStats {
 	res := newK8sResourceStats()
 
 	for _, item := range items {
@@ -52,7 +52,7 @@ func exportCronJob(items []v1beta1.CronJob, extraTags tagsType) k8sResourceStats
 		obj.fields.mergeToMessage(obj.tags)
 
 		obj.time = time.Now()
-		res.set(defaultNamespace(item.Namespace), obj)
+		res.meas = append(res.meas, obj)
 	}
 	return res
 }

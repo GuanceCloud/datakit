@@ -13,7 +13,7 @@ import (
 
 const k8sNodeName = "kubernetes_nodes"
 
-func gatherNode(client k8sClientX, extraTags map[string]string) (k8sResourceStats, error) {
+func gatherNode(client k8sClientX, extraTags map[string]string) (*k8sResourceStats, error) {
 	list, err := client.getNodes().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nodes resource: %w", err)
@@ -25,7 +25,7 @@ func gatherNode(client k8sClientX, extraTags map[string]string) (k8sResourceStat
 	return exportNode(list.Items, extraTags), nil
 }
 
-func exportNode(items []v1.Node, extraTags tagsType) k8sResourceStats {
+func exportNode(items []v1.Node, extraTags tagsType) *k8sResourceStats {
 	res := newK8sResourceStats()
 
 	for _, item := range items {
@@ -58,7 +58,7 @@ func exportNode(items []v1.Node, extraTags tagsType) k8sResourceStats {
 		obj.fields.mergeToMessage(obj.tags)
 
 		obj.time = time.Now()
-		res.set(defaultNamespace(item.Namespace), obj)
+		res.meas = append(res.meas, obj)
 	}
 	return res
 }

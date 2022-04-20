@@ -13,7 +13,7 @@ import (
 
 const k8sReplicaSetName = "kubernetes_replica_sets"
 
-func gatherReplicaSet(client k8sClientX, extraTags map[string]string) (k8sResourceStats, error) {
+func gatherReplicaSet(client k8sClientX, extraTags map[string]string) (*k8sResourceStats, error) {
 	list, err := client.getReplicaSets().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get replicaSet resource: %w", err)
@@ -25,7 +25,7 @@ func gatherReplicaSet(client k8sClientX, extraTags map[string]string) (k8sResour
 	return exportReplicaSet(list.Items, extraTags), nil
 }
 
-func exportReplicaSet(items []v1.ReplicaSet, extraTags tagsType) k8sResourceStats {
+func exportReplicaSet(items []v1.ReplicaSet, extraTags tagsType) *k8sResourceStats {
 	res := newK8sResourceStats()
 
 	for _, item := range items {
@@ -53,7 +53,7 @@ func exportReplicaSet(items []v1.ReplicaSet, extraTags tagsType) k8sResourceStat
 		obj.fields.mergeToMessage(obj.tags)
 
 		obj.time = time.Now()
-		res.set(defaultNamespace(item.Namespace), obj)
+		res.meas = append(res.meas, obj)
 	}
 	return res
 }

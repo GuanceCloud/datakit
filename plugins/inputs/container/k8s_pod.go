@@ -13,7 +13,7 @@ import (
 
 const k8sPodObjectName = "kubelet_pod"
 
-func gatherPod(client k8sClientX, extraTags map[string]string) (k8sResourceStats, error) {
+func gatherPod(client k8sClientX, extraTags map[string]string) (*k8sResourceStats, error) {
 	list, err := client.getPods().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pods resource: %w", err)
@@ -24,7 +24,7 @@ func gatherPod(client k8sClientX, extraTags map[string]string) (k8sResourceStats
 	return exportPod(list.Items, extraTags), nil
 }
 
-func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
+func exportPod(items []v1.Pod, extraTags tagsType) *k8sResourceStats {
 	res := newK8sResourceStats()
 
 	for idx, item := range items {
@@ -95,7 +95,7 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 		obj.fields.mergeToMessage(obj.tags)
 
 		obj.time = time.Now()
-		res.set(defaultNamespace(item.Namespace), obj)
+		res.meas = append(res.meas, obj)
 
 		if err := tryRunInput(&items[idx]); err != nil {
 			l.Warnf("failed to run input(discovery), %w", err)

@@ -7,14 +7,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type k8sResourceStats map[string][]inputs.Measurement
-
-func newK8sResourceStats() k8sResourceStats {
-	return make(k8sResourceStats)
+type k8sResourceStats struct {
+	meas          []inputs.Measurement
+	namespaceList map[string]int
 }
 
-func (k k8sResourceStats) set(namespace string, obj inputs.Measurement) {
-	k[namespace] = append(k[namespace], obj)
+func newK8sResourceStats() *k8sResourceStats {
+	return &k8sResourceStats{namespaceList: make(map[string]int)}
 }
 
 type tagsType map[string]string
@@ -65,6 +64,10 @@ func (fields fieldsType) mergeToMessage(tags map[string]string) {
 		return
 	}
 	fields["message"] = string(b)
+}
+
+func (fields fieldsType) delete(key string) { //nolint:unparam
+	delete(fields, key)
 }
 
 func (fields fieldsType) addLabel(labels map[string]string) {

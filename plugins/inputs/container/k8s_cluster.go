@@ -13,7 +13,7 @@ import (
 
 const k8sClusterName = "kubernetes_clusters"
 
-func gatherCluster(client k8sClientX, extraTags map[string]string) (k8sResourceStats, error) {
+func gatherCluster(client k8sClientX, extraTags map[string]string) (*k8sResourceStats, error) {
 	list, err := client.getClusters().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get clusters resource: %w", err)
@@ -25,7 +25,7 @@ func gatherCluster(client k8sClientX, extraTags map[string]string) (k8sResourceS
 	return exportCluster(list.Items, extraTags), nil
 }
 
-func exportCluster(items []v1.ClusterRole, extraTags tagsType) k8sResourceStats {
+func exportCluster(items []v1.ClusterRole, extraTags tagsType) *k8sResourceStats {
 	res := newK8sResourceStats()
 
 	for _, item := range items {
@@ -44,7 +44,7 @@ func exportCluster(items []v1.ClusterRole, extraTags tagsType) k8sResourceStats 
 		obj.fields.mergeToMessage(obj.tags)
 
 		obj.time = time.Now()
-		res.set(defaultNamespace(item.Namespace), obj)
+		res.meas = append(res.meas, obj)
 	}
 	return res
 }
