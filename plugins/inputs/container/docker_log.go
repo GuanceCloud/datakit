@@ -376,7 +376,7 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 			"container_type": inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty`),
 			"pod_name":       inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"pod_namespace":  inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
+			"pod_namespace":  inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'pod_namespace'）`),
 			"deployment":     inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）`),
 			"service":        inputs.NewTagInfo(`服务名称`),
 		},
