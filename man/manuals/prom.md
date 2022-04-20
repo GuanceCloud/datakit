@@ -22,6 +22,10 @@ Prom 采集器可以获取各种 Prometheus Exporters 暴露出来的指标数�
 
 配置好后，重启 DataKit 即可。
 
+### 关于 tag 重命名
+
+上面的 `rename_tags`，这里可以实现对采集到的 Prometheus Exporter 数据做 tag 名称的替换，这里的 tag 名称是大小写敏感的，可以用下面的调试工具现行测试一下数据的情况，以决定 tag 名称如何替换。
+
 ## 协议转换说明
 
 由于 Prometheus 的数据格式跟 Influxdb 的行协议格式存在一定的差别。 对 Prometheus 而言，以下为一个 K8s 集群中一段分暴露出来的数据：

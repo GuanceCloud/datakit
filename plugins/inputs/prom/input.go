@@ -97,15 +97,21 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.pm.Option().GetIntervalDuration())
 	defer tick.Stop()
 
-	source := i.pm.Option().GetSource()
-
 	l.Info("prom start")
 
 	for {
 		if i.pause {
 			l.Debug("prom paused")
 		} else {
-			i.doCollect()
+			start := time.Now()
+			pts := i.doCollect()
+			if pts != nil {
+				if err := io.Feed(i.Source, datakit.Metric, pts,
+					&io.Option{CollectCost: time.Since(start)}); err != nil {
+					l.Errorf("Feed: %s", err)
+					io.FeedLastError(i.Source, err.Error())
+				}
+			}
 		}
 
 		select {
@@ -133,7 +139,7 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) doCollect() {
+func (i *Input) doCollect() []*io.Point {
 	l.Debugf("collect URLs %v", i.URLs)
 
 	// If Output is configured, data is written to local file specified by Output.
@@ -141,16 +147,15 @@ func (i *Input) doCollect() {
 	if i.Output != "" {
 		err := i.WriteMetricText2File()
 		if err != nil {
-			l.Debugf(err.Error())
+			l.Errorf("WriteMetricText2File: %s", err.Error())
 		}
-		continue
+		return nil
 	}
 
-	start := time.Now()
 	pts, err := i.Collect()
 	if err != nil {
 		l.Errorf("Collect: %s", err)
-		io.FeedLastError(source, err.Error())
+		io.FeedLastError(i.Source, err.Error())
 
 		// Try testing the connect
 		for _, u := range i.urls {
@@ -159,22 +164,15 @@ func (i *Input) doCollect() {
 			}
 		}
 
-		continue
+		return nil
 	}
 
 	if len(pts) == 0 {
-		l.Debug("len(points) is 0")
-		continue
+		l.Warnf("no data")
+		return nil
 	}
 
-	if err := io.Feed(source,
-		datakit.Metric,
-		pts,
-		&io.Option{CollectCost: time.Since(start)}); err != nil {
-		l.Errorf("Feed: %s", err)
-
-		io.FeedLastError(source, err.Error())
-	}
+	return pts
 }
 
 func (i *Input) Terminate() {
@@ -339,6 +337,7 @@ func NewProm() *Input {
 		stopCh:      make(chan interface{}, 1),
 		chPause:     make(chan bool, maxPauseCh),
 		MaxFileSize: defaultMaxFileSize,
+		Source:      "prom",
 
 		semStop: cliutils.NewSem(),
 	}

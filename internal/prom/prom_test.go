@@ -626,49 +626,6 @@ func TestProm(t *testing.T) {
 		},
 
 		{
-			name: "rename-tags",
-			in: &Option{
-				URL: promURL,
-				RenameTags: map[string]string{
-					"status_code": "statusCode",
-					"method":      "method_",
-				},
-				Measurements: []Rule{
-					{
-						Prefix: "go_",
-						Name:   "with_prefix_go",
-					},
-					{
-						Prefix: "request_",
-						Name:   "with_prefix_request",
-					},
-				},
-			},
-			fail: false,
-			expected: []string{
-				"http,le=+Inf,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
-				"http,Method=GET,StatusCode=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
-				"promhttp metric_handler_requests_in_flight=1",
-				"promhttp,cause=encoding metric_handler_errors_total=0",
-				"promhttp,cause=gathering metric_handler_errors_total=0",
-				"promhttp,code=200 metric_handler_requests_total=15143",
-				"promhttp,code=500 metric_handler_requests_total=0",
-				"promhttp,code=503 metric_handler_requests_total=0",
-				"up up=1",
-				"with_prefix_go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
-				"with_prefix_go,quantile=0 gc_duration_seconds=0",
-				"with_prefix_go,quantile=0.25 gc_duration_seconds=0",
-				"with_prefix_go,quantile=0.5 gc_duration_seconds=0",
-			},
-		},
-
-		{
 			name: "custom tags",
 			in: &Option{
 				URL:  promURL,

@@ -50,12 +50,6 @@ const sampleCfg = `
   # 匹配的tag将被忽略
   # tags_ignore = ["xxxx"]
 
-  ## 重命名 prom 数据中的 tag key
-	[inputs.prom.rename_tags]
-		# tag1 = "new-name-1"
-		# tag2 = "new-name-2"
-		# tag3 = "new-name-3"
-
   ## TLS 配置
   tls_open = false
   # tls_ca = "/tmp/ca.crt"
@@ -79,6 +73,12 @@ const sampleCfg = `
   # [[inputs.prom.measurements]]
   # prefix = "mem_"
   # name = "mem"
+
+  ## 重命名 prom 数据中的 tag key
+	[inputs.prom.rename_tags]
+		# tag1 = "new-name-1"
+		# tag2 = "new-name-2"
+		# tag3 = "new-name-3"
 
   ## 自定义Tags
   [inputs.prom.tags]
