@@ -37,6 +37,10 @@ const (
   ## to data center and do not consider samplers and filters.
   # keep_rare_resource = false
 
+  ## By default every error presents in span will be send to data center and omit any filters or
+  ## sampler. If you want to get rid of some error status, you can set the error status list here.
+  # omit_err_status = ["404"]
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -93,6 +97,7 @@ type Input struct {
 	Endpoints        []string            `toml:"endpoints"`
 	CustomerTags     []string            `toml:"customer_tags"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
+	OmitErrStatus    []string            `toml:"omit_err_status"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	Sampler          *itrace.Sampler     `toml:"sampler"`
 	Pipelines        map[string]string   `toml:"pipelines"`
@@ -152,6 +157,10 @@ func (ipt *Input) Run() {
 		closeResource = &itrace.CloseResource{}
 		closeResource.UpdateIgnResList(ipt.CloseResource)
 		afterGather.AppendFilter(closeResource.Close)
+	}
+	// add omit certain error status list
+	if len(ipt.OmitErrStatus) != 0 {
+		afterGather.AppendFilter(itrace.OmitStatusCodeFilterWrapper(ipt.OmitErrStatus))
 	}
 	// add rare resource keeper
 	if ipt.KeepRareResource {

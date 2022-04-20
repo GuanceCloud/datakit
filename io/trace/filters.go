@@ -10,8 +10,29 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
+// NonFilter always return current trace.
 func NonFilter(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
+}
+
+func OmitStatusCodeFilterWrapper(statusCodeList []string) FilterFunc {
+	if len(statusCodeList) == 0 {
+		return NonFilter
+	} else {
+		return func(dktrace DatakitTrace) (DatakitTrace, bool) {
+			for i := range dktrace {
+				for j := range statusCodeList {
+					if dktrace[i].HTTPStatusCode == statusCodeList[j] {
+						log.Debugf("omit trace with status code: %s", dktrace[i].HTTPStatusCode)
+
+						return nil, true
+					}
+				}
+			}
+
+			return dktrace, false
+		}
+	}
 }
 
 func PenetrateErrorTracing(dktrace DatakitTrace) (DatakitTrace, bool) {
