@@ -141,6 +141,52 @@ ZeroDivisionError: division by zero
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.0" 1611746443938917265
 ```
 
+#### 超长多行日志处理的限制
+
+目前最多能处理不超过 1000 行的单条多行日志，如果实际多行日志超过 1000 行，DataKit 会将其识别成多条。举例如下，假定有如下多行日志，我们要将其识别成单条日志：
+
+```log
+2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+    response = self.full_dispatch_request()
+      ...                                 <---- 此处省略 996 行，加上上面的 4 行，刚好 1000 行
+        File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+          response = self.full_dispatch_request()
+             ZeroDivisionError: division by zero
+2020-10-23 06:41:56,688 INFO demo.py 5.0  <---- 全新的一条多行日志
+Traceback (most recent call last):
+ ...
+```
+
+此处，由于有超长的多行日志，第一条日志总共有 1003 行，但 DataKit 这里会做一个截取动作，具体而言，这里会切割出三条日志：
+
+第一条：即头部的 1000 行
+
+```log
+2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+    response = self.full_dispatch_request()
+      ...                                 <---- 此处省略 996 行，加上上面的 4 行，刚好 1000 行
+```
+
+第二条：除去头部的 1000 条，剩余的部分独立成为一条日志
+
+```log
+        File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+          response = self.full_dispatch_request()
+             ZeroDivisionError: division by zero
+```
+
+第三条：下面一条全新的日志：
+
+```log
+2020-10-23 06:41:56,688 INFO demo.py 5.0  <---- 全新的一条多行日志
+Traceback (most recent call last):
+ ...
+```
+
 ### Pipeline 配置和使用
 
 [Pipeline](pipeline) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
