@@ -634,11 +634,12 @@ func (m *requestMemo) remove(digest [16]byte) {
 	m.removeReqCh <- digest
 }
 
-// memoHouseKeeper is in charge of maintaining memo of requests' md5 sums.
-// Each md5 sum will be expired in du.
+// memoHouseKeeper is in charge of maintaining a memo of requests' md5 sums.
+// Saving requests' md5 sums is to prevent sending duplicated points to datakit io.
+// Each md5 sum will be expired in du, then they will be removed from memory.
 // memoHouseKeeper will traverse memoMap and remove expired md5 sums every du seconds.
 func (m *requestMemo) memoHouseKeeper(du time.Duration) {
-	// Clear expired md5 sums every duration seconds.
+	// Clear expired md5 sums every du seconds.
 	ticker := time.NewTicker(du)
 
 	for {
@@ -663,9 +664,11 @@ func (m *requestMemo) memoHouseKeeper(du time.Duration) {
 			delete(m.memoMap, r)
 
 		case <-datakit.Exit.Wait():
+			l.Debugf("memoHouseKeeper exited")
 			return
 
 		case <-m.semStop.Wait():
+			l.Debugf("memoHouseKeeper exited")
 			return
 		}
 	}

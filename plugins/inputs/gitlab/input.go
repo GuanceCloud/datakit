@@ -110,11 +110,11 @@ func (ipt *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			l.Info("exit")
+			l.Info("gitlab exited")
 			return
 
 		case <-ipt.semStop.Wait():
-			l.Info("gitlab return")
+			l.Info("gitlab returned")
 			return
 
 		case <-ticker.C:
