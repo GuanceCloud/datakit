@@ -11,7 +11,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
+	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -35,27 +35,29 @@ type Input struct {
 	Source   string `toml:"source"`
 	Interval string `toml:"interval"`
 
-	URL               string      `toml:"url,omitempty"` // Deprecated
-	URLs              []string    `toml:"urls"`
-	IgnoreReqErr      bool        `toml:"ignore_req_err"`
-	MetricTypes       []string    `toml:"metric_types"`
-	MetricNameFilter  []string    `toml:"metric_name_filter"`
-	MeasurementPrefix string      `toml:"measurement_prefix"`
-	MeasurementName   string      `toml:"measurement_name"`
-	Measurements      []prom.Rule `json:"measurements"`
-	Output            string      `toml:"output"`
-	MaxFileSize       int64       `toml:"max_file_size"`
+	URL               string       `toml:"url,omitempty"` // Deprecated
+	URLs              []string     `toml:"urls"`
+	IgnoreReqErr      bool         `toml:"ignore_req_err"`
+	MetricTypes       []string     `toml:"metric_types"`
+	MetricNameFilter  []string     `toml:"metric_name_filter"`
+	MeasurementPrefix string       `toml:"measurement_prefix"`
+	MeasurementName   string       `toml:"measurement_name"`
+	Measurements      []iprom.Rule `json:"measurements"`
+	Output            string       `toml:"output"`
+	MaxFileSize       int64        `toml:"max_file_size"`
 
 	TLSOpen    bool   `toml:"tls_open"`
 	CacertFile string `toml:"tls_ca"`
 	CertFile   string `toml:"tls_cert"`
 	KeyFile    string `toml:"tls_key"`
 
-	Tags       map[string]string `toml:"tags"`
 	TagsIgnore []string          `toml:"tags_ignore"`
-	Auth       map[string]string `toml:"auth"`
+	RenameTags map[string]string `toml:"rename_tags"`
+	Tags       map[string]string `toml:"tags"`
 
-	pm *prom.Prom
+	Auth map[string]string `toml:"auth"`
+
+	pm *iprom.Prom
 
 	chPause chan bool
 	pause   bool
@@ -100,6 +102,12 @@ func (i *Input) Run() {
 	l.Info("prom start")
 
 	for {
+		if i.pause {
+			l.Debug("prom paused")
+		} else {
+			i.doCollect()
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("prom exit")
@@ -118,51 +126,54 @@ func (i *Input) Run() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-			l.Debugf("collect URLs %v", i.URLs)
-
-			// If Output is configured, data is written to local file specified by Output.
-			// Data will no more be written to datakit io.
-			if i.Output != "" {
-				err := i.WriteMetricText2File()
-				if err != nil {
-					l.Debugf(err.Error())
-				}
-				continue
-			}
-
-			start := time.Now()
-			pts, err := i.Collect()
-			if err != nil {
-				l.Errorf("Collect: %s", err)
-				io.FeedLastError(source, err.Error())
-
-				// Try testing the connect
-				for _, u := range i.urls {
-					if err := net.RawConnect(u.Hostname(), u.Port(), time.Second*3); err != nil {
-						l.Errorf("failed to connect to %s:%s, %s", u.Hostname(), u.Port(), err)
-					}
-				}
-
-				continue
-			}
-
-			if len(pts) == 0 {
-				l.Debug("len(points) is 0")
-				continue
-			}
-
-			if err := io.Feed(source,
-				datakit.Metric,
-				pts,
-				&io.Option{CollectCost: time.Since(start)}); err != nil {
-				l.Errorf("Feed: %s", err)
-
-				io.FeedLastError(source, err.Error())
-			}
 
 		case i.pause = <-i.chPause:
 			// nil
 		}
+	}
+}
+
+func (i *Input) doCollect() {
+	l.Debugf("collect URLs %v", i.URLs)
+
+	// If Output is configured, data is written to local file specified by Output.
+	// Data will no more be written to datakit io.
+	if i.Output != "" {
+		err := i.WriteMetricText2File()
+		if err != nil {
+			l.Debugf(err.Error())
+		}
+		continue
+	}
+
+	start := time.Now()
+	pts, err := i.Collect()
+	if err != nil {
+		l.Errorf("Collect: %s", err)
+		io.FeedLastError(source, err.Error())
+
+		// Try testing the connect
+		for _, u := range i.urls {
+			if err := net.RawConnect(u.Hostname(), u.Port(), time.Second*3); err != nil {
+				l.Errorf("failed to connect to %s:%s, %s", u.Hostname(), u.Port(), err)
+			}
+		}
+
+		continue
+	}
+
+	if len(pts) == 0 {
+		l.Debug("len(points) is 0")
+		continue
+	}
+
+	if err := io.Feed(source,
+		datakit.Metric,
+		pts,
+		&io.Option{CollectCost: time.Since(start)}); err != nil {
+		l.Errorf("Feed: %s", err)
+
+		io.FeedLastError(source, err.Error())
 	}
 }
 
@@ -205,7 +216,7 @@ func (i *Input) Init() error {
 	}
 
 	// toml 不支持匿名字段的 marshal，JSON 支持
-	opt := &prom.Option{
+	opt := &iprom.Option{
 		Source:            i.Source,
 		Interval:          i.Interval,
 		URL:               i.URL,
@@ -222,12 +233,13 @@ func (i *Input) Init() error {
 		KeyFile:           i.KeyFile,
 		Tags:              i.Tags,
 		TagsIgnore:        i.TagsIgnore,
+		RenameTags:        i.RenameTags,
 		Output:            i.Output,
 		MaxFileSize:       i.MaxFileSize,
 		Auth:              i.Auth,
 	}
 
-	pm, err := prom.NewProm(opt)
+	pm, err := iprom.NewProm(opt)
 	if err != nil {
 		l.Error(err)
 		return err

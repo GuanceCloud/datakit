@@ -1,6 +1,7 @@
 package prom
 
 import (
+	"bytes"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -585,7 +586,7 @@ func TestProm(t *testing.T) {
 		},
 
 		{
-			name: "tags filtering",
+			name: "rename-measurement",
 			in: &Option{
 				URL: promURL,
 				Measurements: []Rule{
@@ -609,6 +610,49 @@ func TestProm(t *testing.T) {
 				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
 				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
 				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
+				"promhttp metric_handler_requests_in_flight=1",
+				"promhttp,cause=encoding metric_handler_errors_total=0",
+				"promhttp,cause=gathering metric_handler_errors_total=0",
+				"promhttp,code=200 metric_handler_requests_total=15143",
+				"promhttp,code=500 metric_handler_requests_total=0",
+				"promhttp,code=503 metric_handler_requests_total=0",
+				"up up=1",
+				"with_prefix_go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
+				"with_prefix_go,quantile=0 gc_duration_seconds=0",
+				"with_prefix_go,quantile=0.25 gc_duration_seconds=0",
+				"with_prefix_go,quantile=0.5 gc_duration_seconds=0",
+			},
+		},
+
+		{
+			name: "rename-tags",
+			in: &Option{
+				URL: promURL,
+				RenameTags: map[string]string{
+					"status_code": "statusCode",
+					"method":      "method_",
+				},
+				Measurements: []Rule{
+					{
+						Prefix: "go_",
+						Name:   "with_prefix_go",
+					},
+					{
+						Prefix: "request_",
+						Name:   "with_prefix_request",
+					},
+				},
+			},
+			fail: false,
+			expected: []string{
+				"http,le=+Inf,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
+				"http,le=0.003,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
+				"http,le=0.03,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
+				"http,le=0.1,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
+				"http,le=0.3,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
+				"http,le=1.5,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
+				"http,le=10,method_=GET,statusCode=404 request_duration_seconds_bucket=1i",
+				"http,Method=GET,StatusCode=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp,cause=encoding metric_handler_errors_total=0",
 				"promhttp,cause=gathering metric_handler_errors_total=0",
@@ -737,7 +781,7 @@ func TestProm(t *testing.T) {
 				got = append(got, s)
 			}
 			sort.Strings(got)
-			tu.Equals(t, tc.expected, got)
+			tu.Equals(t, strings.Join(tc.expected, "\n"), strings.Join(got, "\n"))
 			t.Logf("[%d] PASS", idx)
 		})
 	}
@@ -778,4 +822,48 @@ func TestGetTimestampS(t *testing.T) {
 	m2 := dto.Metric{}
 	tu.Equals(t, int64(1647959040000000000), getTimestampS(&m1, startTime).UnixNano())
 	tu.Equals(t, int64(1600000000000000000), getTimestampS(&m2, startTime).UnixNano())
+}
+
+func TestRenameTag(t *testing.T) {
+	cases := []struct {
+		name     string
+		opt      *Option
+		promdata string
+		expect   []*io.Point
+	}{
+		{
+			name: "1",
+			opt: &Option{
+				URL: "http://not-set",
+				RenameTags: map[string]string{
+					"status_code": "StatusCode",
+				},
+			},
+			expect: []*io.Point{},
+			promdata: `# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
+`,
+		},
+	}
+
+	for _, tc := range cases {
+		p, err := NewProm(tc.opt)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		t.Run(tc.name, func(t *testing.T) {
+			pts, err := p.Text2Metrics(bytes.NewBufferString(tc.promdata))
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			for idx, pt := range pts {
+				tu.Equals(t, tc.expect[idx].String(), pt.String())
+			}
+		})
+	}
 }

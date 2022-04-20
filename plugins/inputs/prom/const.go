@@ -23,7 +23,7 @@ const sampleCfg = `
   # 采集数据大小上限默认设置为32MB
   # max_file_size = 0
 
-  ## 指标类型过滤, 可选值为 counter, gauge, histogram, summary
+  ## 指标类型过滤, 可选值为 counter, gauge, histogram, summary, untyped
   # 默认只采集 counter 和 gauge 类型的指标
   # 如果为空，则不进行过滤
   metric_types = ["counter", "gauge"]
@@ -46,9 +46,15 @@ const sampleCfg = `
   ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
 
-  ## 过滤tags, 可配置多个tag
+  ## 过滤 tags, 可配置多个tag
   # 匹配的tag将被忽略
   # tags_ignore = ["xxxx"]
+
+  ## 重命名 prom 数据中的 tag key
+	[inputs.prom.rename_tags]
+		# tag1 = "new-name-1"
+		# tag2 = "new-name-2"
+		# tag3 = "new-name-3"
 
   ## TLS 配置
   tls_open = false
