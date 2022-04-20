@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const promURL = "http://127.0.0.1:9100/metrics"
@@ -836,14 +837,25 @@ func TestRenameTag(t *testing.T) {
 			opt: &Option{
 				URL: "http://not-set",
 				RenameTags: map[string]string{
-					"status_code": "StatusCode",
+					"status_code":    "StatusCode",
+					"tag-not-exists": "do-nothing",
 				},
 			},
-			expect: []*io.Point{},
-			promdata: `# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
-# TYPE http_request_duration_seconds histogram
+			expect: []*io.Point{
+				func() *io.Point {
+					pt, err := iod.MakePoint("http",
+						map[string]string{"le": "0.003", "StatusCode": "404", "method": "GET"},
+						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
+					if err != nil {
+						t.Errorf("MakePoint: %s", err)
+						return nil
+					}
+					return pt
+				}(),
+			},
+			promdata: `
 http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
-`,
+			`,
 		},
 	}
 
@@ -862,7 +874,8 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 
 			}
 
 			for idx, pt := range pts {
-				tu.Equals(t, tc.expect[idx].String(), pt.String())
+				tu.Equals(t, tc.expect[idx].PrecisionString("m"), pt.PrecisionString("m"))
+				t.Log(tc.expect[idx].PrecisionString("m"))
 			}
 		})
 	}
