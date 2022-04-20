@@ -18,12 +18,14 @@ import (
 var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
-	inputName         = "gitlab"
-	catalog           = "gitlab"
+	inputName = "gitlab"
+	catalog   = "gitlab"
+
+	gitlabEventHeader = "X-Gitlab-Event"
 	pipelineHook      = "Pipeline Hook"
 	jobHook           = "Job Hook"
-	gitlabEventHeader = "X-Gitlab-Event"
-	sampleCfg         = `
+
+	sampleCfg = `
 [[inputs.gitlab]]
     ## param type: string - default: http://127.0.0.1:80/-/metrics
     prometheus_url = "http://127.0.0.1:80/-/metrics"

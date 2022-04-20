@@ -15,27 +15,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-type mockWriter struct {
-	statusCode int
-}
-
-func (m *mockWriter) Header() http.Header {
-	return nil
-}
-
-func (m *mockWriter) Write(i []byte) (int, error) {
-	return 0, nil
-}
-
-func (m *mockWriter) WriteHeader(statusCode int) {
-	m.statusCode = statusCode
-}
-
-func newMockWriter() *mockWriter {
-	return &mockWriter{statusCode: 200}
-}
-
-var pipelineJson1 = `
+const (
+	pipelineJson1 = `
 {
   "object_kind": "pipeline",
   "object_attributes":{
@@ -270,8 +251,7 @@ var pipelineJson1 = `
     }
   ]
 }`
-
-var pipelineJson2 = `
+	pipelineJson2 = `
 {
   "object_kind": "pipeline",
   "object_attributes": {
@@ -357,67 +337,7 @@ var pipelineJson2 = `
     }
   ]
 }`
-
-var unwantedJobJson = `
-{
-  "object_kind": "build",
-  "ref": "gitlab-script-trigger",
-  "tag": false,
-  "before_sha": "2293ada6b400935a1378653304eaf6221e0fdb8f",
-  "sha": "2293ada6b400935a1378653304eaf6221e0fdb8f",
-  "build_id": 1977,
-  "build_name": "test",
-  "build_stage": "test",
-  "build_status": "unwanted",
-  "build_created_at": "2021-02-23T02:41:37.886Z",
-  "build_started_at": "2021-02-23T02:41:37.886Z",
-  "build_finished_at": null,
-  "build_duration": null,
-  "build_allow_failure": false,
-  "build_failure_reason": "script_failure",
-  "pipeline_id": 2366,
-  "project_id": 380,
-  "project_name": "gitlab-org/gitlab-test",
-  "user": {
-    "id": 3,
-    "name": "User",
-    "email": "user@gitlab.com",
-    "avatar_url": "http://www.gravatar.com/avatar/e32bd13e2add097461cb96824b7a829c?s=80\u0026d=identicon"
-  },
-  "commit": {
-    "id": 2366,
-    "sha": "2293ada6b400935a1378653304eaf6221e0fdb8f",
-    "message": "test\n",
-    "author_name": "User",
-    "author_email": "user@gitlab.com",
-    "status": "created",
-    "duration": null,
-    "started_at": null,
-    "finished_at": null
-  },
-  "repository": {
-    "name": "gitlab_test",
-    "description": "Atque in sunt eos similique dolores voluptatem.",
-    "homepage": "http://192.168.64.1:3005/gitlab-org/gitlab-test",
-    "git_ssh_url": "git@192.168.64.1:gitlab-org/gitlab-test.git",
-    "git_http_url": "http://192.168.64.1:3005/gitlab-org/gitlab-test.git",
-    "visibility_level": 20
-  },
-  "runner": {
-    "active": true,
-    "runner_type": "project_type",
-    "is_shared": false,
-    "id": 380987,
-    "description": "shared-runners-manager-6.gitlab.com",
-    "tags": [
-      "linux",
-      "docker"
-    ]
-  },
-  "environment": null
-}`
-
-var jobJson = `
+	jobJson = `
 {
   "object_kind": "build",
   "ref": "gitlab-script-trigger",
@@ -475,8 +395,7 @@ var jobJson = `
   },
   "environment": null
 }`
-
-var failedJobJson = `{
+	failedJobJson = `{
   "object_kind": "build",
   "ref": "testing-ci4",
   "tag": false,
@@ -536,6 +455,85 @@ var failedJobJson = `{
   },
   "environment": null
 }`
+	unwantedJobJson = `
+{
+  "object_kind": "build",
+  "ref": "gitlab-script-trigger",
+  "tag": false,
+  "before_sha": "2293ada6b400935a1378653304eaf6221e0fdb8f",
+  "sha": "2293ada6b400935a1378653304eaf6221e0fdb8f",
+  "build_id": 1977,
+  "build_name": "test",
+  "build_stage": "test",
+  "build_status": "unwanted",
+  "build_created_at": "2021-02-23T02:41:37.886Z",
+  "build_started_at": "2021-02-23T02:41:37.886Z",
+  "build_finished_at": null,
+  "build_duration": null,
+  "build_allow_failure": false,
+  "build_failure_reason": "script_failure",
+  "pipeline_id": 2366,
+  "project_id": 380,
+  "project_name": "gitlab-org/gitlab-test",
+  "user": {
+    "id": 3,
+    "name": "User",
+    "email": "user@gitlab.com",
+    "avatar_url": "http://www.gravatar.com/avatar/e32bd13e2add097461cb96824b7a829c?s=80\u0026d=identicon"
+  },
+  "commit": {
+    "id": 2366,
+    "sha": "2293ada6b400935a1378653304eaf6221e0fdb8f",
+    "message": "test\n",
+    "author_name": "User",
+    "author_email": "user@gitlab.com",
+    "status": "created",
+    "duration": null,
+    "started_at": null,
+    "finished_at": null
+  },
+  "repository": {
+    "name": "gitlab_test",
+    "description": "Atque in sunt eos similique dolores voluptatem.",
+    "homepage": "http://192.168.64.1:3005/gitlab-org/gitlab-test",
+    "git_ssh_url": "git@192.168.64.1:gitlab-org/gitlab-test.git",
+    "git_http_url": "http://192.168.64.1:3005/gitlab-org/gitlab-test.git",
+    "visibility_level": 20
+  },
+  "runner": {
+    "active": true,
+    "runner_type": "project_type",
+    "is_shared": false,
+    "id": 380987,
+    "description": "shared-runners-manager-6.gitlab.com",
+    "tags": [
+      "linux",
+      "docker"
+    ]
+  },
+  "environment": null
+}`
+)
+
+type mockWriter struct {
+	statusCode int
+}
+
+func (m *mockWriter) Header() http.Header {
+	return nil
+}
+
+func (m *mockWriter) Write(i []byte) (int, error) {
+	return 0, nil
+}
+
+func (m *mockWriter) WriteHeader(statusCode int) {
+	m.statusCode = statusCode
+}
+
+func newMockWriter() *mockWriter {
+	return &mockWriter{statusCode: 200}
+}
 
 func TestPipelineJson(t *testing.T) {
 	var ppl PipelineEventPayload
@@ -554,7 +552,7 @@ func TestJobJson(t *testing.T) {
 	}
 }
 
-func TestPipelineTagsAndFields(t *testing.T) {
+func TestGetPipelineTagsAndFields(t *testing.T) {
 	testCases := []struct {
 		name           string
 		eventJson      string
@@ -601,7 +599,7 @@ func TestPipelineTagsAndFields(t *testing.T) {
 	}
 }
 
-func TestJobTagsAndFields(t *testing.T) {
+func TestGetJobTagsAndFields(t *testing.T) {
 	testCases := []struct {
 		name           string
 		eventJson      string
@@ -676,16 +674,6 @@ func TestJobTagsAndFields(t *testing.T) {
 	}
 }
 
-func getInput(expired time.Duration) *Input {
-	ipt := newInput()
-	ipt.feed = func(name, category string, pts []*io.Point, opt *io.Option) error {
-		return nil
-	}
-	ipt.feedLastError = func(inputName string, err string) {}
-	go ipt.reqMemo.memoHouseKeeper(expired)
-	return ipt
-}
-
 func TestServeHTTP(t *testing.T) {
 	ipt := getInput(30 * time.Second)
 	table := []struct {
@@ -722,18 +710,6 @@ func TestRemove(t *testing.T) {
 	assert.False(t, ipt.reqMemo.has(md5.Sum([]byte(pipelineJson1))))
 }
 
-func getPipelineRequest(reqBody string) *http.Request {
-	r := httptest.NewRequest("POST", "/", bytes.NewReader([]byte(reqBody)))
-	r.Header.Set(gitlabEventHeader, pipelineHook)
-	return r
-}
-
-func getJobRequest(reqBody string) *http.Request {
-	r := httptest.NewRequest("POST", "/", bytes.NewReader([]byte(reqBody)))
-	r.Header.Set(gitlabEventHeader, jobHook)
-	return r
-}
-
 func TestFailToFeed(t *testing.T) {
 	ipt := getInput(30 * time.Second)
 	ipt.feed = func(name, category string, pts []*io.Point, opt *io.Option) error {
@@ -755,4 +731,26 @@ func TestUnwantedEvent(t *testing.T) {
 	ipt.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.statusCode)
 	assert.True(t, ipt.reqMemo.has(digest))
+}
+
+func getInput(expired time.Duration) *Input {
+	ipt := newInput()
+	ipt.feed = func(name, category string, pts []*io.Point, opt *io.Option) error {
+		return nil
+	}
+	ipt.feedLastError = func(inputName string, err string) {}
+	go ipt.reqMemo.memoHouseKeeper(expired)
+	return ipt
+}
+
+func getPipelineRequest(reqBody string) *http.Request {
+	r := httptest.NewRequest("POST", "/", bytes.NewReader([]byte(reqBody)))
+	r.Header.Set(gitlabEventHeader, pipelineHook)
+	return r
+}
+
+func getJobRequest(reqBody string) *http.Request {
+	r := httptest.NewRequest("POST", "/", bytes.NewReader([]byte(reqBody)))
+	r.Header.Set(gitlabEventHeader, jobHook)
+	return r
 }
