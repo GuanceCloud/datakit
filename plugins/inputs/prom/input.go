@@ -52,7 +52,7 @@ type Input struct {
 	KeyFile    string `toml:"tls_key"`
 
 	TagsIgnore []string          `toml:"tags_ignore"`
-	RenameTags map[string]string `toml:"rename_tags"`
+	TagsRename map[string]string `toml:"tags_rename"`
 	Tags       map[string]string `toml:"tags"`
 
 	Auth map[string]string `toml:"auth"`
@@ -231,7 +231,7 @@ func (i *Input) Init() error {
 		KeyFile:           i.KeyFile,
 		Tags:              i.Tags,
 		TagsIgnore:        i.TagsIgnore,
-		RenameTags:        i.RenameTags,
+		RenameTags:        i.TagsRename,
 		Output:            i.Output,
 		MaxFileSize:       i.MaxFileSize,
 		Auth:              i.Auth,

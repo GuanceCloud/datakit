@@ -75,7 +75,7 @@ const sampleCfg = `
   # name = "mem"
 
   ## 重命名 prom 数据中的 tag key
-	[inputs.prom.rename_tags]
+	[inputs.prom.tags_rename]
 		# tag1 = "new-name-1"
 		# tag2 = "new-name-2"
 		# tag3 = "new-name-3"
