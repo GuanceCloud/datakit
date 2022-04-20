@@ -1,5 +1,5 @@
 - [DataKit 使用]()
-  - [服务安装和管理](datakit-service-how-to)
+  - [DataKit 服务管理](datakit-service-how-to)
   - [如何配置 DataKit]()
     - [DataKit 主配置](datakit-conf)
     - [采集器配置](datakit-input-conf)
@@ -27,6 +27,7 @@
 - [DataKit 开发]()
   - [DataKit 开发手册](development)
 		- [DataKit 整体架构简介](datakit-arch)
+	- [行协议过滤器](datakit-filter)
   - [DataKit API](apis)
 
 - [采集器]()
@@ -50,6 +51,7 @@
 
   - [云原生]()
     - [Kubernetes 环境下的 DataKit 配置综述](k8s-config-how-to)
+    - [DaemonSet 配置管理最佳实践](datakit-daemonset-bp)
     - [数据采集]()
       - [容器](container)
         - [通过 Sidecar 方式采集 Pod 日志](logfwd)
@@ -73,6 +75,7 @@
 
   - [日志]()
     - [DataKit 日志采集综述](datakit-logging)
+    - [DataKit 日志处理综述](datakit-logging-how)
     - [数据采集]()
       - [文件日志](logging)
         - [Socket 日志接入示例](logging_socket)

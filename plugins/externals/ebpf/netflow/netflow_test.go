@@ -303,8 +303,8 @@ func TestConvConn2M(t *testing.T) {
 		},
 		{
 			conn: ConnectionInfo{
-				Saddr: [4]uint32{0, 0, 0xffff0000, 0x0101007F},
-				Daddr: [4]uint32{0, 0, 0xffff0000, 0x0100007F},
+				Saddr: [4]uint32{0, 0, 0xffff0000, 0x0101005F},
+				Daddr: [4]uint32{0, 0, 0xffff0000, 0x0100005F},
 				Sport: 8080,
 				Dport: 23456,
 				Pid:   1222,
@@ -332,15 +332,15 @@ func TestConvConn2M(t *testing.T) {
 					"service":     testServiceName,
 					"status":      "info",
 					"pid":         "1222",
-					"src_ip":      "127.0.1.1",
+					"src_ip":      "95.0.1.1",
 					"src_port":    "8080",
 					"src_ip_type": "other",
-					"dst_ip":      "127.0.0.1",
+					"dst_ip":      "95.0.0.1",
 					"dst_port":    "23456",
 					"dst_ip_type": "other",
 					"transport":   "tcp",
 					"direction":   "incoming",
-					"family":      "IPv6",
+					"family":      "IPv4",
 				},
 				fields: map[string]interface{}{
 					"bytes_written":   int64(1),
@@ -737,13 +737,13 @@ func TestRecord(t *testing.T) {
 func TestConnMeta(t *testing.T) {
 	var meta uint32
 	meta = ConnL3IPv4 | ConnL4TCP
-	assert.Equal(t, true, connAddrIsIPv4(meta))
-	assert.Equal(t, true, connProtocolIsTCP(meta))
+	assert.Equal(t, true, ConnAddrIsIPv4(meta))
+	assert.Equal(t, true, ConnProtocolIsTCP(meta))
 
 	meta = meta&(^ConnL3Mask) | ConnL3IPv6
-	assert.Equal(t, false, connAddrIsIPv4(meta))
+	assert.Equal(t, false, ConnAddrIsIPv4(meta))
 	meta = meta&(^ConnL4Mask) | ConnL4UDP
-	assert.Equal(t, false, connProtocolIsTCP(meta))
+	assert.Equal(t, false, ConnProtocolIsTCP(meta))
 }
 
 func TestDirection(t *testing.T) {
@@ -773,7 +773,7 @@ func TestIPv4Type(t *testing.T) {
 		uint32(0x04030265): "other",
 	}
 	for k, v := range cases {
-		assert.Equal(t, v, connIPv4Type(k))
+		assert.Equal(t, v, ConnIPv4Type(k))
 	}
 }
 
@@ -814,7 +814,7 @@ func TestIPv6Type(t *testing.T) {
 		{0x00040420, 0, 0, 0}: "other",
 	}
 	for k, v := range cases {
-		assert.Equal(t, v, connIPv6Type(k))
+		assert.Equal(t, v, ConnIPv6Type(k))
 	}
 }
 
@@ -1226,7 +1226,7 @@ func newFullStats(meta uint32, sent_bytes, recv_bytes uint64, tcp_established, t
 		},
 	}
 
-	if connProtocolIsTCP(meta) {
+	if ConnProtocolIsTCP(meta) {
 		fullStats.TotalClosed = tcp_closed
 		fullStats.TotalEstablished = tcp_established
 	}

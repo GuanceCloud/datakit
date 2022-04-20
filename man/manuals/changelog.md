@@ -2,6 +2,46 @@
 
 # DataKit 版本历史
 
+## 1.2.14(2022/04/12)
+
+本次发布属于 hotfix 发布，同时包含部分小的修改和调整：
+
+- 修复日志采集器的 monitor 展示问题以及部分出错日志等级调整(#706)
+- 修复拨测采集器内存泄露问题(#702)
+- 修复主机进程采集器奔溃问题(#700)
+- 日志采集器采集选项 `ignore_dead_log = '10m'` 默认开启(#698)
+- 优化 Git 管理的配置同步逻辑(#696)
+- eBPF 修复 netflow 中错误的 ip 协议字段(#694)
+- 丰富 Gitlab 采集器字段
+
+---
+
+## 1.2.13(2022/04/08)
+
+本次发布属于迭代发布，更新内容如下：
+
+- 增加宿主机运行时的[内存限制](datakit-conf#4e7ff8f3)(#641)
+	- 安装阶段即支持[内存限制配置](datakit-install#03be369a)
+- CPU 采集器增加 [load5s 指标](cpu#13e60209)(#606)
+- 完善 datakit.yaml 示例(#678)
+- 支持主机安装时通过 [cgroup 限制内存](datakit-conf#4e7ff8f3)使用(#641)
+- 完善日志黑名单功能，新增 contain/notcontain 判定规则(#665)
+  - 支持在 datakit.conf 中[配置日志/对象/Tracing/时序指标这几类黑名单](datakit-filter#045b45e3)
+- 进一步完善 [containerd 下的容器采集](container)(#402)
+- 调整 monitor 布局，增加黑名单过滤情况展示(#634)
+- DaemonSet 安装增加 [Helm 支持](datakit-daemonset-deploy)(#653)
+  - 新增 [DaemonSet 安装最佳实践](datakit-daemonset-bp)(#673)
+- 完善 [Gitlab 采集器](gitlab)(#661)
+- 增加 [ulimit 配置项](datakit-conf#8f9f4364)用于配置文件打开数限制(#667)
+- Pipeline [脱敏函数](pipeline#52a4c41c)有更新，新增 [SQL 脱敏函数](pipeline#711d6fe4)(#670)
+- 进程对象和时序指标[新增 `cpu_usage_top` 字段](host_processes#a30fc2c1-1)，以跟 `top` 命令的结果对应(#621)
+- eBPF 增加 [HTTP 协议采集](ebpf#905896c5)(#563)
+- 主机安装时，eBPF 采集器默认不再会安装（减少二进制分发体积），如需安装[需用特定的安装指令](ebpf#852abae7)(#605)
+  - DaemonSet 安装不受影响
+- 其它 Bug 修复（#688/#681/#679/#680）
+
+---
+
 ## 1.2.12(2022/03/24)
 
 本次发布属于迭代发布，更新内容如下：
@@ -213,7 +253,7 @@
   - 优化磁盘采集，默认不会再采集无效磁盘（比如总大小为 0 的一些磁盘）(#505)
 - [日志采集器](logging) 支持接收 TCP/UDP 日志流(#503)
 - [Prom 采集器](prom) 支持多 URL 采集(#506)
-- 新增 [eBPF](ebpf) 采集器，它集成了 L4-network/DNS/Bash 等 eBFP 数据采集(507)
+- 新增 [eBPF](ebpf) 采集器，它集成了 L4-network/DNS/Bash 等 eBPF 数据采集(507)
 - [ElasticSearch 采集器](elasticsearch) 增加 [Open Distro](https://opendistro.github.io/for-elasticsearch/) 分支的 ElasticSearch 支持(#510)
 
 ### Bug 修复

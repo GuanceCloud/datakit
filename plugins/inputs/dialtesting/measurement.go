@@ -107,6 +107,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 			"internal":  &inputs.TagInfo{Desc: "示例 true（国内 true /海外 false）"},
 			"isp":       &inputs.TagInfo{Desc: "示例 电信/移动/联通"},
 			"status":    &inputs.TagInfo{Desc: "示例 OK/FAIL 两种状态 "},
+			"proto":     &inputs.TagInfo{Desc: "示例 tcp"},
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
@@ -114,6 +115,12 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "包括响应时间(response_time_in_micros)/错误原因(fail_reason)",
+			},
+			"traceroute": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "路由跟踪数据文本(JSON格式)",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
@@ -167,6 +174,7 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 			"internal":  &inputs.TagInfo{Desc: "示例 true（国内 true /海外 false）"},
 			"isp":       &inputs.TagInfo{Desc: "示例 电信/移动/联通"},
 			"status":    &inputs.TagInfo{Desc: "示例 OK/FAIL 两种状态 "},
+			"proto":     &inputs.TagInfo{Desc: "示例 icmp"},
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
@@ -181,6 +189,12 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.UnknownUnit,
 				Desc:     "拨测失败原因",
 			},
+			"traceroute": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "路由跟踪数据文本(JSON格式)",
+			},
 			"average_round_trip_time_in_millis": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
@@ -193,6 +207,12 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.DurationMS,
 				Desc:     "最小往返时间(RTT)",
 			},
+			"std_round_trip_time_in_millis": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationMS,
+				Desc:     "往返时间(RTT)标准差",
+			},
 			"max_round_trip_time_in_millis": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
@@ -204,6 +224,18 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationMS,
 				Desc:     "丢包率",
+			},
+			"packets_received": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Count,
+				Desc:     "接受的数据包",
+			},
+			"packets_sent": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Count,
+				Desc:     "发送的数据包",
 			},
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -239,6 +271,7 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 			"internal": &inputs.TagInfo{Desc: "示例 true（国内 true /海外 false）"},
 			"isp":      &inputs.TagInfo{Desc: "示例 电信/移动/联通"},
 			"status":   &inputs.TagInfo{Desc: "示例 OK/FAIL 两种状态 "},
+			"proto":    &inputs.TagInfo{Desc: "示例 websocket"},
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
@@ -258,6 +291,12 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "拨测返回的消息",
+			},
+			"sent_message": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "拨测发送的消息",
 			},
 			"response_time": &inputs.FieldInfo{
 				DataType: inputs.Int,

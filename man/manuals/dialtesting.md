@@ -29,6 +29,8 @@ sk = "BNFxxxxxxxxxxxxxxxxxxxxxxxxxxx"
   # ...
 ```
 
+> 注意：目前只有 linux 的拨测节点才支持「路由跟踪」，跟踪数据会保存在相关指标的 [traceroute](#traceroute-字段描述) 字段中。
+
 ## 拨测部署图
 
 ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-net-arch.png)
@@ -60,3 +62,72 @@ sk = "BNFxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+
+## `traceroute` 字段描述
+
+traceroute 是「路由跟踪」数据的 JSON 文本，整个数据是一个数组对象，对象中的每个数组元素记录了一次路由探测的相关情况，示例如下：
+
+```json
+[
+    {
+        "total": 2,
+        "failed": 0,
+        "loss": 0,
+        "avg_cost": 12700395,
+        "min_cost": 11902041,
+        "max_cost": 13498750,
+        "std_cost": 1129043,
+        "items": [
+            {
+                "ip": "10.8.9.1",
+                "response_time": 13498750
+            },
+            {
+                "ip": "10.8.9.1",
+                "response_time": 11902041
+            }
+        ]
+    },
+    {
+        "total": 2,
+        "failed": 0,
+        "loss": 0,
+        "avg_cost": 13775021,
+        "min_cost": 13740084,
+        "max_cost": 13809959,
+        "std_cost": 49409,
+        "items": [
+            {
+                "ip": "10.12.168.218",
+                "response_time": 13740084
+            },
+            {
+                "ip": "10.12.168.218",
+                "response_time": 13809959
+            }
+        ]
+    }
+]
+```
+
+**字段描述：**
+
+| 字段              | 类型   |  说明                                    |
+| :---              | ---    |  ---                                     |
+| `total` | number | 总探测次数 |
+| `failed` | number | 失败次数 |
+| `loss` | number | 失败百分比 |
+| `avg_cost` | number | 平均耗时(ns) |
+| `min_cost` | number | 最小耗时(ns) |
+| `max_cost` | number | 最大耗时(ns) |
+| `std_cost` | number | 耗时标准差(ns) |
+| `items` | Item 的 Array | 每次探测信息([详见](#Item)) |
+
+### Item
+
+| 字段              | 类型   |  说明                                    |
+| :---              | ---    |  ---                                     |
+| `ip` | string | IP 地址，如果失败，值为 * |
+| `response_time` | number | 响应时间(ns) |
+

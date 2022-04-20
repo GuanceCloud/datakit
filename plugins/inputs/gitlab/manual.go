@@ -97,6 +97,8 @@ func (g *gitlabPipelineMeasurement) Info() *inputs.MeasurementInfo {
 			"pipeline_id":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "pipeline id"},
 			"duration":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "pipeline 持续时长（秒）"},
 			"commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "最近一次 commit 的 message"},
+			"created_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "pipeline 创建的秒时间戳"},
+			"finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "pipeline 结束的秒时间戳"},
 		},
 		Tags: map[string]interface{}{
 			"object_kind":    inputs.NewTagInfo("Event 类型，此处为 Pipeline"),
@@ -109,7 +111,7 @@ func (g *gitlabPipelineMeasurement) Info() *inputs.MeasurementInfo {
 			"source":         inputs.NewTagInfo("pipeline 触发的来源"),
 			"operation_name": inputs.NewTagInfo("操作名称"),
 			"resource":       inputs.NewTagInfo("项目名"),
-			"ref":            inputs.NewTagInfo("设计分支"),
+			"ref":            inputs.NewTagInfo("涉及的分支"),
 		},
 	}
 }
