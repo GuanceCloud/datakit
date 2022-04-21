@@ -33,7 +33,7 @@ var (
 
 type proccpu struct {
 	createTime int64
-	cputime    *cpu.TimesStat
+	cputime    cpu.TimesStat
 	ts         time.Time
 }
 
@@ -244,7 +244,7 @@ func (p *Input) getProcessMap() map[int32]proccpu {
 
 		procMap[ps.Pid] = proccpu{
 			createTime: t,
-			cputime:    cputime,
+			cputime:    *cputime,
 			ts:         ctime,
 		}
 	}
@@ -299,13 +299,15 @@ func (p *Input) Parse(ps *pr.Process, lastProcess map[int32]proccpu) (username, 
 		state = status[0]
 	}
 
-	mem, err := ps.MemoryInfo()
+	// you may get a null pointer here
+	memInfo, err := ps.MemoryInfo()
 	if err != nil {
 		l.Warnf("process:%s,pid:%d get memoryinfo err:%s", name, ps.Pid, err.Error())
 	} else {
-		message["memory"] = mem
-		fields["rss"] = mem.RSS
+		message["memory"] = memInfo
+		fields["rss"] = memInfo.RSS
 	}
+
 	memPercent, err := ps.MemoryPercent()
 	if err != nil {
 		l.Warnf("process:%s,pid:%d get mempercent err:%s", name, ps.Pid, err.Error())
@@ -315,33 +317,35 @@ func (p *Input) Parse(ps *pr.Process, lastProcess map[int32]proccpu) (username, 
 
 	crtTime := getStartTime(ps)
 	created := time.Unix(0, crtTime*int64(time.Millisecond))
-	cpu, err := ps.Times()
+
+	// you may get a null pointer here
+	cpuTime, err := ps.Times()
 	if err != nil {
 		l.Warnf("process:%s,pid:%d get cpu err:%s", name, ps.Pid, err.Error())
 		l.Warnf("process:%s,pid:%d get cpupercent err:%s", name, ps.Pid, err.Error())
 	} else {
 		totalTime := time.Since(created).Seconds()
-		message["cpu"] = cpu
-		fields["cpu_usage"] = 100 * (cpu.User + cpu.System) / totalTime
-	}
+		message["cpu"] = cpuTime
+		fields["cpu_usage"] = 100 * (cpuTime.User + cpuTime.System) / totalTime
 
-	if lastP, ok := lastProcess[ps.Pid]; ok {
-		var usage float64
-		if lastP.createTime == crtTime {
-			sec := time.Since(lastP.ts).Seconds()
-			if sec > 0 {
-				usage = 100 * (cpu.User + cpu.System - lastP.cputime.User - lastP.cputime.System) / sec
+		if lastP, ok := lastProcess[ps.Pid]; ok {
+			var usage float64
+			if lastP.createTime == crtTime {
+				sec := time.Since(lastP.ts).Seconds()
+				if sec > 0 {
+					usage = 100 * (cpuTime.User + cpuTime.System - lastP.cputime.User - lastP.cputime.System) / sec
+				}
+			} else {
+				l.Debug("cpu_usage_top: lastP %d %d", lastP.createTime, crtTime)
 			}
+			if usage < 0 {
+				usage = 0
+			}
+			fields["cpu_usage_top"] = usage
 		} else {
-			l.Debug("cpu_usage_top: lastP %d %d", lastP.createTime, crtTime)
+			fields["cpu_usage_top"] = 0
+			l.Debug("cpu_usage_top: pid %d", ps.Pid)
 		}
-		if usage < 0 {
-			usage = 0
-		}
-		fields["cpu_usage_top"] = usage
-	} else {
-		fields["cpu_usage_top"] = 0
-		l.Debug("cpu_usage_top: pid %d", ps.Pid)
 	}
 
 	Threads, err := ps.NumThreads()
