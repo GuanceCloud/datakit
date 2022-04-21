@@ -22,6 +22,7 @@ type Task interface {
 	Status() string
 	Run() error
 	Init() error
+	InitDebug() error
 	CheckResult() ([]string, bool)
 	Class() string
 	GetResults() (map[string]string, map[string]interface{})

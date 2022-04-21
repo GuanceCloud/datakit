@@ -183,6 +183,14 @@ spec:
           name: rootfs
         - mountPath: /sys/kernel/debug
           name: debugfs
+        #- mountPath: /usr/local/datakit/conf.d/db/mysql.conf
+        #  name: datakit-conf
+        #  subPath: mysql.conf
+        #  readOnly: true
+        #- mountPath: /usr/local/datakit/conf.d/db/redis.conf
+        #  name: datakit-conf
+        #  subPath: redis.conf
+        #  readOnly: true
         workingDir: /usr/local/datakit
       hostIPC: true
       hostPID: true
@@ -225,3 +233,18 @@ spec:
     rollingUpdate:
       maxUnavailable: 1
     type: RollingUpdate
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: datakit-conf
+  namespace: datakit
+data:
+    #mysql.conf: |-
+    #  [inputs.mysql]
+    #  ...
+    #redis.conf: |-
+    #  [inputs.redis]
+    #  ...

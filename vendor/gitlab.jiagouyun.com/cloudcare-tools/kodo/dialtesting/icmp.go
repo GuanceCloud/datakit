@@ -3,6 +3,7 @@ package dialtesting
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -21,16 +22,27 @@ type ICMP struct {
 	SequenceNum uint16
 }
 
+type ResponseTimeSucess struct {
+	Func   string `json:"func,omitempty"`
+	Op     string `json:"op,omitempty"`
+	Target string `json:"target,omitempty"`
+
+	target float64
+}
+
 type IcmpSuccess struct {
-	PacketLossPercent float64 `json:"packet_loss_percent,omitempty"`
-	ResponseTime      string  `json:"response_time,omitempty"`
-	respTime          time.Duration
+	PacketLossPercent []*ValueSuccess       `json:"packet_loss_percent,omitempty"`
+	ResponseTime      []*ResponseTimeSucess `json:"response_time,omitempty"`
+	Hops              []*ValueSuccess       `json:"hops,omitempty"`
+	Packets           []*ValueSuccess       `json:"packets,omitempty"`
 }
 
 type IcmpTask struct {
 	Host             string            `json:"host"`
 	PacketCount      int               `json:"packet_count"`
 	Timeout          string            `json:"timeout"`
+	EnableTraceroute bool              `json:"enable_traceroute"`
+	TracerouteConfig *TracerouteOption `json:"traceroute_config"`
 	SuccessWhen      []*IcmpSuccess    `json:"success_when"`
 	SuccessWhenLogic string            `json:"success_when_logic"`
 	ExternalID       string            `json:"external_id"`
@@ -49,13 +61,25 @@ type IcmpTask struct {
 	avgRoundTripTime  float64 // ms
 	minRoundTripTime  float64
 	maxRoundTripTime  float64
+	stdRoundTripTime  float64
 	originBytes       []byte
 	reqError          string
+	sentPackets       int
+	recvPackets       int
 	timeout           time.Duration
 	ticker            *time.Ticker
+	traceroute        []*Route
+}
+
+func (t *IcmpTask) InitDebug() error {
+	return t.init(true)
 }
 
 func (t *IcmpTask) Init() error {
+	return t.init(false)
+}
+
+func (t *IcmpTask) init(debug bool) error {
 	if len(t.Timeout) == 0 {
 		t.timeout = PING_TIMEOUT
 	} else {
@@ -66,14 +90,16 @@ func (t *IcmpTask) Init() error {
 		}
 	}
 
-	du, err := time.ParseDuration(t.Frequency)
-	if err != nil {
-		return err
+	if !debug {
+		du, err := time.ParseDuration(t.Frequency)
+		if err != nil {
+			return err
+		}
+		if t.ticker != nil {
+			t.ticker.Stop()
+		}
+		t.ticker = time.NewTicker(du)
 	}
-	if t.ticker != nil {
-		t.ticker.Stop()
-	}
-	t.ticker = time.NewTicker(du)
 
 	if strings.ToLower(t.CurStatus) == StatusStop {
 		return nil
@@ -88,12 +114,19 @@ func (t *IcmpTask) Init() error {
 	}
 
 	for _, checker := range t.SuccessWhen {
-		if checker.ResponseTime != "" {
-			du, err := time.ParseDuration(checker.ResponseTime)
-			if err != nil {
-				return err
+		if checker.ResponseTime != nil {
+			for _, resp := range checker.ResponseTime {
+				du, err := time.ParseDuration(resp.Target)
+				if err != nil {
+					return err
+				}
+				resp.target = float64(du.Nanoseconds()) / 1e6 // ms
 			}
-			checker.respTime = du
+		}
+
+		// if [checker.Hops] is not nil, set traceroute to be true
+		if checker.Hops != nil {
+			t.EnableTraceroute = true
 		}
 
 	}
@@ -118,20 +151,67 @@ func (t *IcmpTask) Check() error {
 func (t *IcmpTask) CheckResult() (reasons []string, succFlag bool) {
 	for _, chk := range t.SuccessWhen {
 		// check response time
-		if chk.respTime > 0 && t.avgRoundTripTime > float64(chk.respTime.Milliseconds()) {
-			reasons = append(reasons,
-				fmt.Sprintf("ICMP average round-trip time (%v ms) larger than %v", t.avgRoundTripTime, chk.respTime))
-		} else if chk.respTime > 0 {
-			succFlag = true
+		for _, v := range chk.ResponseTime {
+			vs := &ValueSuccess{
+				Op:     v.Op,
+				Target: v.target,
+			}
+
+			checkVal := float64(0)
+
+			switch v.Func {
+			case "avg":
+				checkVal = t.avgRoundTripTime
+			case "min":
+				checkVal = t.minRoundTripTime
+			case "max":
+				checkVal = t.maxRoundTripTime
+			case "std":
+				checkVal = t.stdRoundTripTime
+			}
+
+			if err := vs.check(checkVal); err != nil {
+				reasons = append(reasons,
+					fmt.Sprintf("ICMP round-trip(%s) check failed: %s", v.Func, err.Error()))
+			} else {
+				succFlag = true
+			}
 		}
 
 		// check packet loss
-		if chk.PacketLossPercent > 0 && t.packetLossPercent > chk.PacketLossPercent {
-			reasons = append(reasons,
-				fmt.Sprintf("ICMP packet loss %v, larger than %v", t.packetLossPercent, chk.PacketLossPercent))
-		} else if chk.PacketLossPercent > 0 {
-			succFlag = true
+		for _, v := range chk.PacketLossPercent {
+			if err := v.check(t.packetLossPercent); err != nil {
+				reasons = append(reasons, fmt.Sprintf("packet_loss_percent check failed: %s", err.Error()))
+			} else {
+				succFlag = true
+			}
 		}
+
+		// check packets received
+		for _, v := range chk.Packets {
+			if err := v.check(float64(t.recvPackets)); err != nil {
+				reasons = append(reasons, fmt.Sprintf("packets received check failed: %s", err.Error()))
+			} else {
+				succFlag = true
+			}
+		}
+
+		// check traceroute
+		if t.EnableTraceroute {
+			hops := float64(len(t.traceroute))
+			if hops == 0 {
+				reasons = append(reasons, "traceroute failed with no hops")
+			} else {
+				for _, v := range chk.Hops {
+					if err := v.check(hops); err != nil {
+						reasons = append(reasons, fmt.Sprintf("traceroute hops check failed: %s", err.Error()))
+					} else {
+						succFlag = true
+					}
+				}
+			}
+		}
+
 	}
 
 	return
@@ -142,18 +222,37 @@ func (t *IcmpTask) GetResults() (tags map[string]string, fields map[string]inter
 		"name":      t.Name,
 		"dest_host": t.Host,
 		"status":    "FAIL",
+		"proto":     "icmp",
 	}
 
 	fields = map[string]interface{}{
 		"average_round_trip_time_in_millis": t.avgRoundTripTime,
 		"min_round_trip_time_in_millis":     t.minRoundTripTime,
+		"std_round_trip_time_in_millis":     t.stdRoundTripTime,
 		"max_round_trip_time_in_millis":     t.maxRoundTripTime,
 		"packet_loss_percent":               t.packetLossPercent,
+		"packets_sent":                      t.sentPackets,
+		"packets_received":                  t.recvPackets,
 		"success":                           int64(-1),
 	}
 
 	for k, v := range t.Tags {
 		tags[k] = v
+	}
+
+	if t.EnableTraceroute {
+		fields["hops"] = 0
+		if t.traceroute == nil {
+			fields["traceroute"] = "[]"
+		} else {
+			tracerouteData, err := json.Marshal(t.traceroute)
+			if err == nil && len(tracerouteData) > 0 {
+				fields["traceroute"] = string(tracerouteData)
+				fields["hops"] = len(t.traceroute)
+			} else {
+				fields["traceroute"] = "[]"
+			}
+		}
 	}
 
 	message := map[string]interface{}{}
@@ -209,13 +308,17 @@ func (t *IcmpTask) Clear() {
 		t.timeout = PING_TIMEOUT
 	}
 
-	timeout := float64(t.timeout.Milliseconds())
-	t.avgRoundTripTime = timeout
-	t.minRoundTripTime = timeout
-	t.maxRoundTripTime = timeout
+	t.avgRoundTripTime = 0
+	t.minRoundTripTime = 0
+	t.maxRoundTripTime = 0
+	t.stdRoundTripTime = 0
+
+	t.recvPackets = 0
+	t.sentPackets = 0
 
 	t.packetLossPercent = 100
 	t.reqError = ""
+	t.traceroute = nil
 }
 
 func (t *IcmpTask) Run() error {
@@ -234,21 +337,48 @@ func (t *IcmpTask) Run() error {
 		pinger.Count = 3
 	}
 
-	pinger.Timeout = t.timeout
+	pinger.Interval = 1 * time.Second
 
-	pinger.OnFinish = func(stats *ping.Statistics) {
-		if stats.PacketLoss != 100 {
-			t.packetLossPercent = stats.PacketLoss
-			t.minRoundTripTime = t.round(float64(stats.MinRtt.Nanoseconds())/1e6, 3)
-			t.avgRoundTripTime = t.round(float64(stats.AvgRtt.Nanoseconds())/1e6, 3)
-			t.maxRoundTripTime = t.round(float64(stats.MaxRtt.Nanoseconds())/1e6, 3)
-		}
+	pinger.Timeout = time.Duration(pinger.Count) * pinger.Interval
 
-	}
+	pinger.SetPrivileged(true)
 
 	if err := pinger.Run(); err != nil {
 		t.reqError = err.Error()
-		return err
+	} else {
+		stats := pinger.Statistics()
+
+		t.packetLossPercent = stats.PacketLoss
+		t.sentPackets = stats.PacketsSent
+		t.recvPackets = stats.PacketsRecv
+		t.minRoundTripTime = t.round(float64(stats.MinRtt.Nanoseconds())/1e6, 3)
+		t.avgRoundTripTime = t.round(float64(stats.AvgRtt.Nanoseconds())/1e6, 3)
+		t.maxRoundTripTime = t.round(float64(stats.MaxRtt.Nanoseconds())/1e6, 3)
+		t.stdRoundTripTime = t.round(float64(stats.StdDevRtt.Nanoseconds())/1e6, 3)
+	}
+
+	if t.EnableTraceroute {
+		hostIP := net.ParseIP(t.Host)
+		if hostIP == nil {
+			if ips, err := net.LookupIP(t.Host); err != nil {
+				t.reqError = err.Error()
+				return err
+			} else {
+				if len(ips) == 0 {
+					err := fmt.Errorf("invalid host: %s, found no ip record", t.Host)
+					t.reqError = err.Error()
+					return err
+				} else {
+					hostIP = ips[0]
+				}
+			}
+		}
+		routes, err := TracerouteIP(hostIP.String(), t.TracerouteConfig)
+		if err != nil {
+			t.reqError = err.Error()
+		} else {
+			t.traceroute = routes
+		}
 	}
 
 	return nil

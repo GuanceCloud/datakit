@@ -35,6 +35,10 @@ var (
   ## Set mount_points will restrict the stats to only the specified mount points.
   # mount_points = ["/"]
 
+  # Physical devices only (e.g. hard disks, cd-rom drives, USB keys)
+  # and ignore all others (e.g. memory partitions such as /dev/shm)
+  only_physical_device = false
+
   ## Ignore mount points by filesystem type.
   ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
 
@@ -111,10 +115,14 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type Input struct {
-	Interval    datakit.Duration
+	Interval datakit.Duration
+
+	Tags        map[string]string `toml:"tags"`
 	MountPoints []string          `toml:"mount_points"`
 	IgnoreFS    []string          `toml:"ignore_fs"`
-	Tags        map[string]string `toml:"tags"`
+
+	IgnoreZeroBytesDisk bool `toml:"ignore_zero_bytes_disk"`
+	OnlyPhysicalDevice  bool `toml:"only_physical_device"`
 
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr inputs.Measurement
@@ -151,7 +159,7 @@ func (*Input) AvailableArchs() []string {
 
 func (ipt *Input) Collect() error {
 	ipt.collectCache = make([]inputs.Measurement, 0)
-	disks, partitions, err := ipt.diskStats.FilterUsage(ipt.MountPoints, ipt.IgnoreFS)
+	disks, partitions, err := ipt.diskStats.FilterUsage()
 	if err != nil {
 		return fmt.Errorf("error getting disk usage info: %w", err)
 	}
@@ -246,8 +254,6 @@ func (ipt *Input) Terminate() {
 	}
 }
 
-// ReadEnv support envs：
-//   ENV_INPUT_DISK_IGNORE_FS : []string
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if fsList, ok := envs["ENV_INPUT_DISK_IGNORE_FS"]; ok {
 		list := strings.Split(fsList, ",")
@@ -260,6 +266,10 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		for k, v := range tags {
 			ipt.Tags[k] = v
 		}
+	}
+
+	if _, ok := envs["ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE"]; ok {
+		ipt.OnlyPhysicalDevice = true
 	}
 }
 
@@ -275,14 +285,30 @@ func unique(strSlice []string) []string {
 	return list
 }
 
+func newDefaultInput() *Input {
+	ipt := &Input{
+		Interval: datakit.Duration{Duration: time.Second * 10},
+		IgnoreFS: []string{
+			"autofs",
+			"tmpfs",
+			"devtmpfs",
+			"devfs",
+			"iso9660",
+			"overlay",
+			"aufs",
+			"squashfs",
+		},
+		semStop: cliutils.NewSem(),
+		Tags:    make(map[string]string),
+	}
+
+	x := &PSDisk{ipt: ipt}
+	ipt.diskStats = x
+	return ipt
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			diskStats: &PSDisk{},
-			Interval:  datakit.Duration{Duration: time.Second * 10},
-
-			semStop: cliutils.NewSem(),
-			Tags:    make(map[string]string),
-		}
+		return newDefaultInput()
 	})
 }

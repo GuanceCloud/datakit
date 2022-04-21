@@ -16,9 +16,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ReadEnv = (*Input)(nil)
+var (
+	_ inputs.ReadEnv = (*Input)(nil)
 
-var l = logger.DefaultSLogger(InputName)
+	l = logger.DefaultSLogger(InputName)
+
+	ptsOpt = &io.PointOption{
+		Category:         datakit.Object,
+		MaxFieldValueLen: 1024 * 1024,
+	}
+)
 
 type Input struct {
 	Name  string `toml:"name,omitempty"`        // deprecated
@@ -56,7 +63,7 @@ func (ipt *Input) SampleConfig() string {
 
 const (
 	maxInterval            = 30 * time.Minute
-	minInterval            = 1 * time.Minute
+	minInterval            = 10 * time.Second
 	hostObjMeasurementName = "HOST"
 )
 
@@ -177,7 +184,7 @@ func (hm *hostMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 func (hm *hostMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(hm.name, hm.tags, hm.fields)
+	return io.NewPoint(hm.name, hm.tags, hm.fields, ptsOpt)
 }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
@@ -201,6 +208,8 @@ func (ipt *Input) doCollect() error {
 		l.Errorf("json marshal err:%s", err.Error())
 		return err
 	}
+
+	l.Debugf("messageData len: %d", len(messageData))
 
 	ipt.collectData = &hostMeasurement{
 		name: hostObjMeasurementName,

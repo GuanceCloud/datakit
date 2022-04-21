@@ -1,0 +1,15 @@
+apiVersion: v2
+appVersion: 1.2.10
+description: Chart for the DaemonSet datakit
+home: http://www.guance.com
+icon: https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-icon-white-bg.png
+keywords:
+- Observable
+maintainers:
+- email: tanbiao@jiagouyun.com
+  name: coanor
+name: datakit
+sources:
+- https://github.com/GuanceCloud/datakit
+type: application
+version: 1.2.10
