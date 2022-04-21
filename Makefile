@@ -123,10 +123,10 @@ define build_k8s_charts
 	@echo `echo $(VERSION) | cut -d'-' -f1`
 	@sed "s,{{tag}},$(VERSION),g" charts/values.yaml > charts/datakit/values.yaml
 	@helm package charts/datakit --version `echo $(VERSION) | cut -d'-' -f1` --app-version `echo $(VERSION) | cut -d'-' -f1`
-	@if [ $((`echo $(VERSION) | awk -F . '{print $2}'`%2)) -eq 0 ];then \
-        @helm push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1) \
+	@if [ $$((`echo $(VERSION) | awk -F . '{print $$2}'`%2)) -eq 0 ];then \
+        helm push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1); \
      else \
-        @helm push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(2) \
+        helm push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(2); \
      fi
 
 	@rm -f datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz
