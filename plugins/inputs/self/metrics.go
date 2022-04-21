@@ -28,7 +28,7 @@ func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {
 			"os_version_detail": &inputs.TagInfo{Desc: "Operation System release of the DataKit, such as Ubuntu 20.04.2 LTS, macOS 10.15 Catalina"},
 			"host":              &inputs.TagInfo{Desc: "Hostname of the DataKit"},
 			"uuid":              &inputs.TagInfo{Desc: "**Deprecated**, currently use `hostname` as DataKit's UUID"},
-			"namespace":         &inputs.TagInfo{Desc: "Namespace of the DataKit, may be not set"},
+			"namespace":         &inputs.TagInfo{Desc: "Election namespace(datakit.conf/namespace) of DataKit, may be not set"},
 
 			"version": &inputs.TagInfo{Desc: "DataKit version"},
 			"vserion": &inputs.TagInfo{Desc: "**Deprecated**, same as `version`"},
