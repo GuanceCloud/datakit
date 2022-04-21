@@ -4,17 +4,17 @@
 
 ## 1.2.15(2022/04/21)
 
-本次发布属于迭代发布，含大量问题修复
+本次发布属于迭代发布，含大量问题修复：
 
 - Pipeline 模块修复 Grok 中[动态多行 pattern](datakit-pl-how-to#88b72768) 问题(#720)
 - 移除掉一些不必要的 DataKit 事件日志上报(#704)
 - 修复升级程序可能导致的升级失败问题(#699)
-- DaemonSet 增加[开启 pprof 环境变量]()配置(#697)
-- DaemonSet 中所有[默认开启采集器]()各个配置均支持通过环境变量配置(#693)
-- Tracing 采集器初步支持 [Pipeline 数据处理]()(#675)
+- DaemonSet 增加[开启 pprof 环境变量](datakit-daemonset-deploy#cc08ec8c)配置(#697)
+- DaemonSet 中所有[默认开启采集器](datakit-input-conf#764ffbc2)各个配置均支持通过环境变量配置(#693)
+- Tracing 采集器初步支持 Pipeline 数据处理(#675)
   - [DDtrace 配置示例](ddtrace#69995abe)
 - 拨测采集器增加失败任务退出机制(#54)
-- 优化 Helm 安装(#695)
+- 优化 [Helm 安装](datakit-daemonset-deploy#e4d3facf)(#695)
 - 日志新增 `unknown` 等级（status），对于未指定等级的日志均为 `unknown`(#685)
 - 容器采集器大量修复
   - 修复 cluster 字段命名问题(#542)
