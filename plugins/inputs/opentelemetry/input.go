@@ -46,13 +46,23 @@ const (
 
   ## Sampler config uses to set global sampling strategy.
   ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
-  ##   -1: always reject any tracing data send to datakit
-  ##    0: accept tracing data and calculate with sampling_rate
-  ##    1: always send to data center and do not consider sampling_rate
+  ##  -1: always reject any tracing data send to datakit
+  ##   0: accept tracing data and calculate with sampling_rate
+  ##   1: always send to data center and do not consider sampling_rate
   ## sampling_rate used to set global sampling rate
   # [inputs.opentelemetry.sampler]
     # priority = 0
     # sampling_rate = 1.0
+
+  ## Piplines use to manipulate message and meta data. If this item configured right then
+  ## the current input procedure will run the scripts wrote in pipline config file against the data
+  ## present in span message.
+  ## The string on the left side of the equal sign must be identical to the service name that
+  ## you try to handle.
+  # [inputs.ddtrace.pipelines]
+    # service1 = "service1.p"
+    # service2 = "service2.p"
+    # ...
 
   # [inputs.opentelemetry.tags]
     # key1 = "value1"
@@ -97,6 +107,7 @@ type Input struct {
 	OHTTPc              *otlpHTTPCollector  `toml:"http"`
 	CloseResource       map[string][]string `toml:"close_resource"`
 	Sampler             *itrace.Sampler     `toml:"sampler"`
+	Pipelines           map[string]string   `toml:"pipelines"`
 	IgnoreAttributeKeys []string            `toml:"ignore_attribute_keys"`
 	Tags                map[string]string   `toml:"tags"`
 	ExpectedHeaders     map[string]string   `toml:"expectedHeaders"`
@@ -146,6 +157,10 @@ func (i *Input) Run() {
 	if i.Sampler != nil {
 		defSampler := i.Sampler
 		storage.AfterGather.AppendFilter(defSampler.Sample)
+	}
+	// add piplines
+	if len(i.Pipelines) != 0 {
+		storage.AfterGather.AppendFilter(itrace.PiplineFilterWrapper(inputName, i.Pipelines))
 	}
 
 	storage.GlobalTags = i.Tags

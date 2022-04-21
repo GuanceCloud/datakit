@@ -48,13 +48,23 @@ const (
 
   ## Sampler config uses to set global sampling strategy.
   ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
-  ##   -1: always reject any tracing data send to datakit
-  ##    0: accept tracing data and calculate with sampling_rate
-  ##    1: always send to data center and do not consider sampling_rate
+  ##  -1: always reject any tracing data send to datakit
+  ##   0: accept tracing data and calculate with sampling_rate
+  ##   1: always send to data center and do not consider sampling_rate
   ## sampling_rate used to set global sampling rate
   # [inputs.jaeger.sampler]
     # priority = 0
     # sampling_rate = 1.0
+
+  ## Piplines use to manipulate message and meta data. If this item configured right then
+  ## the current input procedure will run the scripts wrote in pipline config file against the data
+  ## present in span message.
+  ## The string on the left side of the equal sign must be identical to the service name that
+  ## you try to handle.
+  # [inputs.ddtrace.pipelines]
+    # service1 = "service1.p"
+    # service2 = "service2.p"
+    # ...
 
   # [inputs.jaeger.tags]
     # key1 = "value1"
@@ -69,7 +79,7 @@ var (
 	afterGatherRun   itrace.AfterGatherHandler = afterGather
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
-	defSampler       *itrace.Sampler
+	sampler          *itrace.Sampler
 	customerKeys     []string
 	tags             map[string]string
 )
@@ -83,6 +93,7 @@ type Input struct {
 	KeepRareResource bool                `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	Sampler          *itrace.Sampler     `toml:"sampler"`
+	Pipelines        map[string]string   `toml:"pipelines"`
 	Tags             map[string]string   `toml:"tags"`
 }
 
@@ -134,8 +145,12 @@ func (ipt *Input) Run() {
 	}
 	// add sampler
 	if ipt.Sampler != nil {
-		defSampler = ipt.Sampler
-		afterGather.AppendFilter(defSampler.Sample)
+		sampler = ipt.Sampler
+		afterGather.AppendFilter(sampler.Sample)
+	}
+	// add piplines
+	if len(ipt.Pipelines) != 0 {
+		afterGather.AppendFilter(itrace.PiplineFilterWrapper(inputName, ipt.Pipelines))
 	}
 
 	// start up UDP agent
