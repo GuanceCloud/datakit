@@ -147,12 +147,16 @@ func (p *Prom) removeIgnoredTags(tags map[string]string) {
 }
 
 func (p *Prom) renameTags(tags map[string]string) {
-	if tags == nil {
+	if tags == nil || p.opt.RenameTags == nil {
 		return
 	}
 
-	for oldKey, newKey := range p.opt.RenameTags {
+	for oldKey, newKey := range p.opt.RenameTags.Mapping {
 		if v, ok := tags[oldKey]; ok { // rename the tag
+			if _, exists := tags[newKey]; exists && !p.opt.RenameTags.OverwriteExistTags {
+				continue
+			}
+
 			delete(tags, oldKey)
 			tags[newKey] = v
 		}

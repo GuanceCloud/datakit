@@ -790,12 +790,15 @@ func TestRenameTag(t *testing.T) {
 		expect   []*io.Point
 	}{
 		{
-			name: "1",
+			name: "rename-tags",
 			opt: &Option{
 				URL: "http://not-set",
-				RenameTags: map[string]string{
-					"status_code":    "StatusCode",
-					"tag-not-exists": "do-nothing",
+				RenameTags: &RenameTags{
+					OverwriteExistTags: false,
+					Mapping: map[string]string{
+						"status_code":    "StatusCode",
+						"tag-not-exists": "do-nothing",
+					},
 				},
 			},
 			expect: []*io.Point{
@@ -812,6 +815,94 @@ func TestRenameTag(t *testing.T) {
 			},
 			promdata: `
 http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
+			`,
+		},
+
+		{
+			name: "rename-overwrite-tags",
+			opt: &Option{
+				URL: "http://not-set",
+				RenameTags: &RenameTags{
+					OverwriteExistTags: true, // enable overwrite
+					Mapping: map[string]string{
+						"status_code": "StatusCode",
+						"method":      "tag_exists", // rename `method` to a exists tag key
+					},
+				},
+			},
+			expect: []*io.Point{
+				func() *io.Point {
+					pt, err := iod.MakePoint("http",
+						// method key removed, it's value overwrite tag_exists's value
+						map[string]string{"le": "0.003", "StatusCode": "404", "tag_exists": "GET"},
+						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
+					if err != nil {
+						t.Errorf("MakePoint: %s", err)
+						return nil
+					}
+					return pt
+				}(),
+			},
+			promdata: `
+http_request_duration_seconds_bucket{le="0.003",tag_exists="yes",status_code="404",method="GET"} 1
+			`,
+		},
+
+		{
+			name: "rename-tags-disable-overwrite",
+			opt: &Option{
+				URL: "http://not-set",
+				RenameTags: &RenameTags{
+					OverwriteExistTags: false, // enable overwrite
+					Mapping: map[string]string{
+						"status_code": "StatusCode",
+						"method":      "tag_exists", // rename `method` to a exists tag key
+					},
+				},
+			},
+			expect: []*io.Point{
+				func() *io.Point {
+					pt, err := iod.MakePoint("http",
+						map[string]string{"le": "0.003", "tag_exists": "yes", "StatusCode": "404", "method": "GET"}, // overwrite not work on method
+						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
+					if err != nil {
+						t.Errorf("MakePoint: %s", err)
+						return nil
+					}
+					return pt
+				}(),
+			},
+			promdata: `
+http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="yes", method="GET"} 1
+			`,
+		},
+
+		{
+			name: "empty-tags",
+			opt: &Option{
+				URL: "http://not-set",
+				RenameTags: &RenameTags{
+					OverwriteExistTags: true, // enable overwrite
+					Mapping: map[string]string{
+						"status_code": "StatusCode",
+						"method":      "tag_exists", // rename `method` to a exists tag key
+					},
+				},
+			},
+			expect: []*io.Point{
+				func() *io.Point {
+					pt, err := iod.MakePoint("http",
+						nil,
+						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
+					if err != nil {
+						t.Errorf("MakePoint: %s", err)
+						return nil
+					}
+					return pt
+				}(),
+			},
+			promdata: `
+http_request_duration_seconds_bucket 1
 			`,
 		},
 	}

@@ -76,9 +76,11 @@ const sampleCfg = `
 
   ## 重命名 prom 数据中的 tag key
 	[inputs.prom.tags_rename]
-		# tag1 = "new-name-1"
-		# tag2 = "new-name-2"
-		# tag3 = "new-name-3"
+		overwrite_exist_tags = false
+		[inputs.prom.tags_rename.mapping]
+			# tag1 = "new-name-1"
+			# tag2 = "new-name-2"
+			# tag3 = "new-name-3"
 
   ## 自定义Tags
   [inputs.prom.tags]

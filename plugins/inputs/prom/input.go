@@ -52,7 +52,7 @@ type Input struct {
 	KeyFile    string `toml:"tls_key"`
 
 	TagsIgnore []string          `toml:"tags_ignore"`
-	TagsRename map[string]string `toml:"tags_rename"`
+	TagsRename *iprom.RenameTags `toml:"tags_rename"`
 	Tags       map[string]string `toml:"tags"`
 
 	Auth map[string]string `toml:"auth"`

@@ -24,7 +24,37 @@ Prom 采集器可以获取各种 Prometheus Exporters 暴露出来的指标数�
 
 ### 关于 tag 重命名
 
-上面的 `rename_tags`，这里可以实现对采集到的 Prometheus Exporter 数据做 tag 名称的替换，这里的 tag 名称是大小写敏感的，可以用下面的调试工具现行测试一下数据的情况，以决定 tag 名称如何替换。
+`tags_rename` 可以实现对采集到的 Prometheus Exporter 数据做 tag 名称的替换，里面的 `overwrite_exist_tags` 用于开启覆盖已有 tag 的选项。举个例子，对于已有 Prometheus Exporter 数据：
+
+```
+http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="yes", method="GET"} 1
+```
+
+假定这里的 `tags_rename` 配置如下：
+
+```toml
+[inputs.prom.tags_rename]
+  overwrite_exist_tags = true
+  [inputs.prom.tags_rename.mapping]
+	  status_code = "StatusCode",
+	  method      = "tag_exists", // 将 `method` 这个 tag 重命名为一个已存在的 tag
+```
+
+那么最终的行协议数据会变成（忽略时间戳）：
+
+```shell
+# 注意，这里的 tag_exists 被殃及，其值为原 method 的值
+http,StatusCode=404,le=0.003,tag_exists=GET request_duration_seconds_bucket=1
+```
+
+如果 `overwrite_exist_tags` 禁用，则最终数据为：
+
+```shell
+# tag_exists 和 method 这两个 tag 均未发生变化
+http,StatusCode=404,le=0.003,method=GET,tag_exists=yes request_duration_seconds_bucket=1
+```
+
+注意，这里的 tag 名称是大小写敏感的，可以用下面的调试工具测试一下数据情况，以决定 tag 名称如何替换。
 
 ## 协议转换说明
 

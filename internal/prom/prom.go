@@ -23,6 +23,11 @@ type Rule struct {
 	Name    string `toml:"name"`
 }
 
+type RenameTags struct {
+	OverwriteExistTags bool              `toml:"overwrite_exist_tags"`
+	Mapping            map[string]string `toml:"mapping"`
+}
+
 type Option struct {
 	MetricTypes       []string `toml:"metric_types"`
 	MetricNameFilter  []string `toml:"metric_name_filter"`
@@ -44,7 +49,7 @@ type Option struct {
 	interval time.Duration
 
 	Tags       map[string]string `toml:"tags"`
-	RenameTags map[string]string `toml:"rename_tags"`
+	RenameTags *RenameTags       `toml:"rename_tags"`
 	TagsIgnore []string          `toml:"tags_ignore"`
 
 	TLSOpen bool `toml:"tls_open"`
