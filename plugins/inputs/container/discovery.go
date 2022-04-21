@@ -2,10 +2,6 @@ package container
 
 import (
 	"context"
-
-	//nolint:gosec
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"strconv"
 	"strings"
@@ -34,15 +30,14 @@ func tryRunInput(item *v1.Pod) error {
 		return nil
 	}
 
-	md5str := md5sum(config)
-	if _, ok := discoveryInputsMap[md5str]; ok {
+	if _, ok := discoveryInputsMap[string(item.UID)]; ok {
 		return nil
 	}
 
 	instance := discoveryInput{
-		name:      "prom",
-		config:    complatePromConfig(config, item),
-		configMD5: md5str,
+		id:     string(item.UID),
+		name:   "prom",
+		config: complatePromConfig(config, item),
 		extraTags: map[string]string{
 			"pod_name":  item.Name,
 			"node_name": item.Spec.NodeName,
@@ -53,13 +48,12 @@ func tryRunInput(item *v1.Pod) error {
 	return instance.run()
 }
 
-// map[md5sum(cfg)] = nil.
-var discoveryInputsMap = make(map[string]interface{})
+var discoveryInputsMap = make(map[string][]inputs.Input)
 
 type discoveryInput struct {
+	id        string
 	name      string
 	config    string
-	configMD5 string
 	extraTags map[string]string
 }
 
@@ -75,7 +69,7 @@ func (d *discoveryInput) run() error {
 	}
 
 	// add to inputsMap
-	discoveryInputsMap[d.configMD5] = nil
+	discoveryInputsMap[d.id] = inputList
 
 	l.Infof("discovery: add %s inputs, len %d", d.name, len(inputList))
 
@@ -142,10 +136,4 @@ func shouldForkInput(nodeName string) bool {
 
 	// Node 名称为空属于 unreachable
 	return datakit.GetEnv("NODE_NAME") == nodeName
-}
-
-func md5sum(str string) string {
-	h := md5.New() //nolint:gosec
-	h.Write([]byte(str))
-	return hex.EncodeToString(h.Sum(nil))
 }
