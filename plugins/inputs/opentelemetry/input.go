@@ -187,6 +187,10 @@ func (i *Input) Run() {
 	}
 }
 
+func (i *Input) Terminate() {
+	// TODO: 必须写
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
