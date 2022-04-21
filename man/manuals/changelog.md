@@ -12,7 +12,9 @@
 - DaemonSet 增加[开启 pprof 环境变量]()配置(#697)
 - DaemonSet 中所有[默认开启采集器]()各个配置均支持通过环境变量配置(#693)
 - Tracing 采集器初步支持 [Pipeline 数据处理]()(#675)
+  - [DDtrace 配置示例](ddtrace#69995abe)
 - 拨测采集器增加失败任务退出机制(#54)
+- 优化 Helm 安装(#695)
 - 日志新增 `unknown` 等级（status），对于未指定等级的日志均为 `unknown`(#685)
 - 容器采集器大量修复
   - 修复 cluster 字段命名问题(#542)
@@ -24,6 +26,7 @@
     - short-image-name: 镜像名，如 `nginx.org/nginx:1.21.0` 则取 `nginx`
     - `unknown`: 如果镜像名无效（如 `sha256...`），则取该未知值
   - 对象上报不再受 32KB 字长限制（因 Annotation 内容超 32KB）(#709)
+	  - 所有 Kubernetes 对象均删除 `annotation` 这一 field
   - 修复 prom 采集器不因 Pod 退出的问题(#716)
 - 其它问题修复(#721)
 
