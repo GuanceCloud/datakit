@@ -146,9 +146,12 @@ spec:
 | `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`          | `exclude_pause_container`           | `true`/`false`                                               |
 | `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `true`/`false`                                               |
 | `ENV_INPUT_CONTAINER_TAGS`                             | `tags`                              | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-| `ENV_INPUT_K8S_CLUSTER_NAME`                           |  k8s `cluster_name` 字段的缺省值    | `kube` |
+| `ENV_K8S_CLUSTER_NAME`                                 |  k8s `cluster_name` 字段的缺省值    | `kube`                                                       |
 
-补充，k8s 数据的 `cluster_name` 字段，取值优先级依次为：k8s 集群返回的 ClusterName 值，环境变量 `ENV_INPUT_K8S_CLUSTER_NAME` 指定的值，默认值 `kubernetes`。
+补充，k8s 数据的 `cluster_name` 字段可能会为空，为此提供注入环境变量的方式，取值优先级依次为：
+1. k8s 集群返回的 ClusterName 值（不为空）
+2. 环境变量 `ENV_INPUT_K8S_CLUSTER_NAME` 指定的值
+3. 默认值 `kubernetes`
 
 ### 支持 Kubernetes 自定义 Export
 
