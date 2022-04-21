@@ -128,10 +128,6 @@ func (i *Input) Run() {
 			return
 
 		case <-tick.C:
-			if i.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
 
 		case i.pause = <-i.chPause:
 			// nil
