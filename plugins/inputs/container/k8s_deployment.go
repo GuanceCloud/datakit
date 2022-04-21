@@ -33,7 +33,7 @@ func exportDeployment(items []v1.Deployment, extraTags tagsType) k8sResourceStat
 		obj.tags["name"] = fmt.Sprintf("%v", item.UID)
 		obj.tags["deployment_name"] = item.Name
 
-		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
+		obj.tags.addValueIfNotEmpty("cluster_name", defaultClusterName(item.ClusterName))
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		obj.tags.append(extraTags)
 
@@ -109,11 +109,6 @@ func (*deployment) Info() *inputs.MeasurementInfo {
 			"strategy":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: `Type of deployment. Can be "Recreate" or "RollingUpdate". Default is RollingUpdate.`},
 			"annotations":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
 			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
-			// TODO:
-			// "selectors":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			// "condition":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			// "paused":                 &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			// "current/desired":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }

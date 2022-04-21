@@ -36,7 +36,7 @@ func exportService(items []v1.Service, extraTags tagsType) k8sResourceStats {
 			"type":         fmt.Sprintf("%v", item.Spec.Type),
 		}
 
-		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
+		obj.tags.addValueIfNotEmpty("cluster_name", defaultClusterName(item.ClusterName))
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		obj.tags.append(extraTags)
 

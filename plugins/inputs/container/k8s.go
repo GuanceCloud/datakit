@@ -2,6 +2,7 @@ package container
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -71,7 +72,7 @@ func (k *kubernetesInput) gather() (metrics, objects []inputs.Measurement, lastE
 		}
 	}
 
-	wrapper("cluster", must(gatherCluster(k.client, k.cfg.extraTags)))
+	wrapper("cluster_role", must(gatherClusterRole(k.client, k.cfg.extraTags)))
 	wrapper("cronjob", must(gatherCronJob(k.client, k.cfg.extraTags)))
 	wrapper("deployment", must(gatherDeployment(k.client, k.cfg.extraTags)))
 	wrapper("job", must(gatherJob(k.client, k.cfg.extraTags)))
@@ -156,6 +157,16 @@ func defaultNamespace(ns string) string {
 		return "default"
 	}
 	return ns
+}
+
+func defaultClusterName(name string) string {
+	if name != "" {
+		return name
+	}
+	if e := os.Getenv("ENV_K8S_CLUSTER_NAME"); e != "" {
+		return e
+	}
+	return "kubernetes"
 }
 
 //nolint:gochecknoinits
