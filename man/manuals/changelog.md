@@ -16,6 +16,8 @@
 - 日志新增 `unknown` 等级（status），对于未指定等级的日志均为 `unknown`(#685)
 - 容器采集器大量修复
   - 修复 cluster 字段命名问题(#542)
+    - 对象 `kubernetes_clusters` 这个指标集改名为 `kubernetes_cluster_roles`
+    - 原 `kubernetes.cluster` 这个 count 改名为 `kubernetes.cluster_role`
   - 修复 namespace 字段命名问题(#724)
   - 容器日志采集中，如果 Pod Annotation 不指定日志 `source`，那么 `source` 默认的取值顺序依次为(#708/#723)
     - 容器名：一般从容器的 `io.kubernetes.container.name` 这个 label 上取值
@@ -46,7 +48,7 @@
 本次发布属于迭代发布，更新内容如下：
 
 - 增加宿主机运行时的[内存限制](datakit-conf#4e7ff8f3)(#641)
-	- 安装阶段即支持[内存限制配置](datakit-install#03be369a)
+  - 安装阶段即支持[内存限制配置](datakit-install#03be369a)
 - CPU 采集器增加 [load5s 指标](cpu#13e60209)(#606)
 - 完善 datakit.yaml 示例(#678)
 - 支持主机安装时通过 [cgroup 限制内存](datakit-conf#4e7ff8f3)使用(#641)
