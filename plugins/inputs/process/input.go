@@ -140,6 +140,8 @@ func (p *Input) Terminate() {
 //   ENV_INPUT_OPEN_METRIC : booler   // deprecated
 //   ENV_INPUT_HOST_PROCESSES_OPEN_METRIC : booler
 //   ENV_INPUT_HOST_PROCESSES_TAGS : "a=b,c=d"
+//   ENV_INPUT_HOST_PROCESSES_PROCESS_NAME : []string
+//   ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME : datakit.Duration
 func (p *Input) ReadEnv(envs map[string]string) {
 	// deprecated
 	if open, ok := envs["ENV_INPUT_OPEN_METRIC"]; ok {
@@ -164,6 +166,25 @@ func (p *Input) ReadEnv(envs map[string]string) {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
 			p.Tags[k] = v
+		}
+	}
+
+	//   ENV_INPUT_HOST_PROCESSES_PROCESS_NAME : []string
+	//   ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME : datakit.Duration
+	if str, ok := envs["ENV_INPUT_HOST_PROCESSES_PROCESS_NAME"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add PROCESS_NAME from ENV: %v", arrays)
+		p.ProcessName = append(p.ProcessName, arrays...)
+	}
+
+	if str, ok := envs["ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME to time.Duration: %s, ignore", err)
+		} else {
+			p.RunTime.Duration = config.ProtectedInterval(minObjectInterval,
+				maxObjectInterval,
+				da)
 		}
 	}
 }

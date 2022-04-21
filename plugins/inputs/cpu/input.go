@@ -249,6 +249,9 @@ func (ipt *Input) Terminate() {
 // ReadEnv support envs：
 //   ENV_INPUT_CPU_PERCPU : booler
 //   ENV_INPUT_CPU_ENABLE_TEMPERATURE : booler
+//   ENV_INPUT_CPU_INTERVAL : datakit.Duration
+//   ENV_INPUT_CPU_DISABLE_TEMPERATURE_COLLECT : bool
+//   ENV_INPUT_CPU_ENABLE_LOAD5S : bool
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if percpu, ok := envs["ENV_INPUT_CPU_PERCPU"]; ok {
 		b, err := strconv.ParseBool(percpu)
@@ -273,6 +276,28 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		for k, v := range tags {
 			ipt.Tags[k] = v
 		}
+	}
+
+	//   ENV_INPUT_CPU_INTERVAL : datakit.Duration
+	//   ENV_INPUT_CPU_DISABLE_TEMPERATURE_COLLECT : bool
+	//   ENV_INPUT_CPU_ENABLE_LOAD5S : bool
+	if str, ok := envs["ENV_INPUT_CPU_INTERVAL"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CPU_INTERVAL to time.Duration: %s, ignore", err)
+		} else {
+			ipt.Interval.Duration = config.ProtectedInterval(minInterval,
+				maxInterval,
+				da)
+		}
+	}
+
+	if str := envs["ENV_INPUT_CPU_DISABLE_TEMPERATURE_COLLECT"]; str != "" {
+		ipt.DisableTemperatureCollect = true
+	}
+
+	if str := envs["ENV_INPUT_CPU_ENABLE_LOAD5S"]; str != "" {
+		ipt.EnableLoad5s = true
 	}
 }
 
