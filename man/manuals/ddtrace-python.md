@@ -8,15 +8,13 @@
 
 ## Install Essential Python Packages
 
-### Install Flask For Python
-
-安装 flask 包
+Install Flask For Python
 
 ```shell
 pip install flask
 ```
 
-### Install DDTrace Library for Python
+Install DDTrace Library for Python
 
 ```shell
 pip install ddtrace
