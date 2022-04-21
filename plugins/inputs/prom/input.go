@@ -60,8 +60,7 @@ type Input struct {
 	chPause chan bool
 	pause   bool
 
-	urls   []*url.URL
-	stopCh chan interface{}
+	urls []*url.URL
 
 	semStop *cliutils.Sem // start stop signal
 }
@@ -107,10 +106,6 @@ func (i *Input) Run() {
 
 		case <-i.semStop.Wait():
 			l.Info("prom return")
-			return
-
-		case <-i.stopCh:
-			l.Info("prom stop")
 			return
 
 		case <-tick.C:
@@ -324,7 +319,6 @@ var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func NewProm() *Input {
 	return &Input{
-		stopCh:      make(chan interface{}, 1),
 		chPause:     make(chan bool, maxPauseCh),
 		MaxFileSize: defaultMaxFileSize,
 

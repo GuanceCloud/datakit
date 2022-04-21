@@ -27,6 +27,8 @@ func gatherPod(client k8sClientX, extraTags map[string]string) (k8sResourceStats
 func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 	res := newK8sResourceStats()
 
+	podIDs := make(map[string]interface{})
+
 	for idx, item := range items {
 		obj := newPod()
 		obj.tags = map[string]string{
@@ -98,8 +100,24 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 		obj.time = time.Now()
 		res.set(defaultNamespace(item.Namespace), obj)
 
+		podIDs[string(item.UID)] = nil
+
 		if err := tryRunInput(&items[idx]); err != nil {
 			l.Warnf("failed to run input(discovery), %w", err)
+		}
+	}
+
+	for id, inputList := range discoveryInputsMap {
+		if _, ok := podIDs[id]; ok {
+			continue
+		}
+		for _, ii := range inputList {
+			if ii == nil {
+				continue
+			}
+			if inp, ok := ii.(inputs.Stoppable); ok {
+				inp.Terminate()
+			}
 		}
 	}
 
