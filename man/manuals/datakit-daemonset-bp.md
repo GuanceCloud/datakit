@@ -35,7 +35,7 @@ ComfigMap 注入，可以分为以下2种：
 #### 添加 Helm 仓库
 
 ```shell
-$ helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
+$ helm repo add datakti  https://pubrepo.guance.com/chartrepo/datakit
 ``` 
 
 #### 查看 DataKit 版本
@@ -43,24 +43,25 @@ $ helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
 ```shell
 $ helm search repo datakit
 NAME                	CHART VERSION	APP VERSION	DESCRIPTION
-dataflux/datakit	1.2.10       	1.2.10     	Chart for the DaemonSet datakit
+datakit/datakit	1.2.10       	1.2.10     	Chart for the DaemonSet datakit
 ```
 
 #### 下载 Helm 包
 
 ```shell
 $ helm repo update 
-$ helm pull dataflux/datakit --untar
+$ helm pull datakit/datakit --untar
 ``` 
 
 #### 修改 values.yaml 配置
 
-修改 `datakit/values.yaml` 的 `dataway_url` 和 `dkconfig`数组。 `dataway_url` 为 dataway 地址， `dkconfig.path` 为挂载路径， `dkconfig.name` 为配置名称， ` dkconfig.value` 为配置内容。
+修改 `datakit/values.yaml` 的 `datakit.dataway_url` 和 `dkconfig`数组。 `datakit.dataway_url` 为 dataway 地址， `dkconfig.path` 为挂载路径， `dkconfig.name` 为配置名称， ` dkconfig.value` 为配置内容。
 
 > 注：`values.yaml` 可以用于下次升级使用
 
 ```yaml
-dataway_url: https://openway.guance.com?token=<your-token>
+datakit:
+  dataway_url: https://openway.guance.com?token=<your-token>
 
 ... 
 dkconfig:
@@ -131,14 +132,14 @@ dkconfig:
 ```shell
 $ cd datakit # 此目录为 helm pull 的目录
 $ helm repo update 
-$ helm install my-datakit dataflux/datakit -f values.yaml -n datakit  --create-namespace 
+$ helm install <RELEASE_NAME> datakit/datakit -f values.yaml -n datakit  --create-namespace 
 ```
 
 升级
 
 ```shell
 $ helm repo update 
-$ helm upgrade my-datakit . -n datakit  -f values.yaml
+$ helm upgrade <RELEASE_NAME> . -n datakit  -f values.yaml
 
 Release "datakit" has been upgraded. Happy Helming!
 NAME: datakit
@@ -202,15 +203,14 @@ path/to/local/git/repo
 
 需要修改如下两个字段：
 
-- `dataway_url`
+- `datakit.dataway_url`
 - `git_repos.git_url`
 
+
 ```shell
-$ helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
-
+$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
 $ helm repo update 
-
-$ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" \
+$ helm install <RELEASE_NAME> datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
 --set git_repos.git_url="http://username:password@github.com/path/to/repository.git" \
 --create-namespace 
 ```
@@ -219,17 +219,15 @@ $ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https:/
 
 需要修改 
 
-- `dataway_url`
+- `datakit.dataway_url`
 - `git_repos.git_url`
 - `git_repos.git_key_path`（绝对路径）
 
 ```shell
-$ helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
-
+$ helm repo add datakti  https://pubrepo.guance.com/chartrepo/datakit
 $ helm repo update 
-
-$ helm install my-datakit dataflux/datakit -n datakit \
-  --set dataway_url="https://openway.guance.com?token=<your-token>" \
+$ helm install <RELEASE_NAME> datakti/datakit -n datakit \
+  --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
   --set git_repos.git_url="git@github.com:path/to/repository.git" \
   --set-file git_repos.git_key_path="/Users/buleleaf/.ssh/id_rsa" \
   --create-namespace 

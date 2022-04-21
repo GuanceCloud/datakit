@@ -208,7 +208,7 @@ func (e ReporterMeasurement) Info() *MeasurementInfo {
 	return &MeasurementInfo{}
 }
 
-func getReporterMeasurement(reporter *io.Reporter) ReporterMeasurement {
+func getReporterMeasurement(reporter *io.DKEvent) ReporterMeasurement {
 	now := time.Now()
 	m := ReporterMeasurement{
 		name: "datakit",

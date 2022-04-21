@@ -75,7 +75,7 @@ func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types
 
 	logconf := func() *containerLogConfig {
 		if datakit.Docker && tags["pod_name"] != "" {
-			return getContainerLogConfigForK8s(d.k8sClient, tags["pod_name"], tags["pod_namespace"])
+			return getContainerLogConfigForK8s(d.k8sClient, tags["pod_name"], tags["namespace"])
 		}
 		return getContainerLogConfigForDocker(container.Labels)
 	}()
@@ -393,7 +393,7 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 			"service":        inputs.NewTagInfo(`服务名称`),
 		},
 		Fields: map[string]interface{}{
-			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK"},
+			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK/unknown"},
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
 		},
 	}

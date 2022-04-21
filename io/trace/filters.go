@@ -7,7 +7,12 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
+
+func NonFilter(dktrace DatakitTrace) (DatakitTrace, bool) {
+	return dktrace, false
+}
 
 func PenetrateErrorTracing(dktrace DatakitTrace) (DatakitTrace, bool) {
 	if len(dktrace) == 0 {
@@ -177,5 +182,56 @@ func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 	if samplingRateGlobal >= 0 && samplingRateGlobal <= 1 {
 		smp.SamplingRateGlobal = samplingRateGlobal
 		smp.ratio = int(smp.SamplingRateGlobal * 100)
+	}
+}
+
+func PiplineFilterWrapper(source string, piplines map[string]string) FilterFunc {
+	if len(piplines) == 0 {
+		return NonFilter
+	}
+
+	var (
+		pips = make(map[string]*pipeline.Pipeline)
+		err  error
+	)
+	for k := range piplines {
+		if pips[k], err = pipeline.NewPipeline(piplines[k]); err != nil {
+			log.Debugf("create pipeline %s failed: %s", k, err)
+			continue
+		}
+	}
+	if len(pips) == 0 {
+		return NonFilter
+	}
+
+	return func(dktrace DatakitTrace) (DatakitTrace, bool) {
+		if len(dktrace) == 0 {
+			return dktrace, true
+		}
+
+		for s, p := range pips {
+			for i := range dktrace {
+				if dktrace[i].Service == s {
+					if rslt, err := p.Run(dktrace[i].Content, source); err != nil {
+						log.Debugf("run pipeline %s.p failed: %s", s, err.Error())
+					} else {
+						if len(rslt.Output.Tags) > 0 {
+							dktrace[i].Tags = make(map[string]string)
+							for k, v := range rslt.Output.Tags {
+								dktrace[i].Tags[k] = v
+							}
+						}
+						if len(rslt.Output.Fields) > 0 {
+							dktrace[i].Metrics = make(map[string]interface{})
+							for k, v := range rslt.Output.Fields {
+								dktrace[i].Metrics[k] = v
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return dktrace, false
 	}
 }

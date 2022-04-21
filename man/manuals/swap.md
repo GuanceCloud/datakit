@@ -27,6 +27,7 @@ swap 采集器用于采集主机 swap 内存的使用情况
 | 环境变量名            | 对应的配置参数项 | 参数示例                                                     |
 | :---                  | ---              | ---                                                          |
 | `ENV_INPUT_SWAP_TAGS` | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+| `ENV_INPUT_SWAP_INTERVAL` | `interval` | `10s` |
 
 ## 指标集
 

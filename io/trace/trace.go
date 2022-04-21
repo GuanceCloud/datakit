@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -41,6 +42,7 @@ const (
 	SPAN_SERVICE_CUSTOM = "custom"
 	SPAN_SERVICE_DB     = "db"
 	SPAN_SERVICE_WEB    = "web"
+	SPAN_SERVICE_UNKNOW = "unknow"
 
 	// line protocol tags.
 	TAG_CONTAINER_HOST = "container_host"
@@ -75,30 +77,31 @@ var (
 )
 
 type DatakitSpan struct {
-	TraceID            string            `json:"trace_id"`
-	ParentID           string            `json:"parent_id"`
-	SpanID             string            `json:"span_id"`
-	Service            string            `json:"service"`     // process name
-	Resource           string            `json:"resource"`    // a resource name in process
-	Operation          string            `json:"operation"`   // a operation name behind resource
-	Source             string            `json:"source"`      // tracer name
-	SpanType           string            `json:"span_type"`   // span type of entry, local, exit or unknow
-	SourceType         string            `json:"source_type"` // process role in service
-	Env                string            `json:"env"`
-	Project            string            `json:"project"`
-	Version            string            `json:"version"`
-	Tags               map[string]string `json:"tags"`
-	EndPoint           string            `json:"end_point"`
-	HTTPMethod         string            `json:"http_method"`
-	HTTPStatusCode     string            `json:"http_status_code"`
-	ContainerHost      string            `json:"container_host"`
-	PID                string            `json:"p_id"`     // process id
-	Start              int64             `json:"start"`    // unit: nano sec
-	Duration           int64             `json:"duration"` // unit: nano sec
-	Status             string            `json:"status"`
-	Content            string            `json:"content"`              // raw tracing data in json
-	Priority           int               `json:"priority"`             // smapling priority
-	SamplingRateGlobal float64           `json:"sampling_rate_global"` // global sampling ratio
+	TraceID            string                 `json:"trace_id"`
+	ParentID           string                 `json:"parent_id"`
+	SpanID             string                 `json:"span_id"`
+	Service            string                 `json:"service"`     // process name
+	Resource           string                 `json:"resource"`    // a resource name in process
+	Operation          string                 `json:"operation"`   // a operation name behind resource
+	Source             string                 `json:"source"`      // tracer name
+	SpanType           string                 `json:"span_type"`   // span type of entry, local, exit or unknow
+	SourceType         string                 `json:"source_type"` // process role in service
+	Env                string                 `json:"env"`
+	Project            string                 `json:"project"`
+	Version            string                 `json:"version"`
+	Tags               map[string]string      `json:"tags"`
+	Metrics            map[string]interface{} `json:"metrics"`
+	EndPoint           string                 `json:"end_point"`
+	HTTPMethod         string                 `json:"http_method"`
+	HTTPStatusCode     string                 `json:"http_status_code"`
+	ContainerHost      string                 `json:"container_host"`
+	PID                string                 `json:"p_id"`     // process id
+	Start              int64                  `json:"start"`    // unit: nano sec
+	Duration           int64                  `json:"duration"` // unit: nano sec
+	Status             string                 `json:"status"`
+	Content            string                 `json:"content"`              // raw tracing data in json
+	Priority           int                    `json:"priority"`             // smapling priority
+	SamplingRateGlobal float64                `json:"sampling_rate_global"` // global sampling ratio
 }
 
 type DatakitTrace []*DatakitSpan
@@ -250,4 +253,8 @@ func ParseTracingRequest(req *http.Request) (contentType string, body io.ReadClo
 	}
 
 	return
+}
+
+func UnknowServiceName(dkspan *DatakitSpan) string {
+	return fmt.Sprintf("unknow-service-%s", dkspan.Source)
 }
