@@ -338,10 +338,6 @@ func PubDatakit() error {
 
 	// tar files and collect OSS upload/backup info
 	for _, arch := range curArchs {
-		if arch == datakit.OSArchDarwinAmd64 && runtime.GOOS != datakit.OSDarwin {
-			l.Warn("Not a darwin system, skip the upload of related files.")
-			continue
-		}
 
 		parts := strings.Split(arch, "/")
 		if len(parts) != 2 {
@@ -386,7 +382,7 @@ func PubDatakit() error {
 
 	// Darwin release not under CI, so disable upload `version' file under darwin,
 	// only upload darwin related files.
-	if Archs == datakit.OSArchDarwinAmd64 {
+	if Archs == datakit.OSArchDarwinAmd64 && runtime.GOOS == datakit.OSDarwin {
 		delete(basics, "version")
 	}
 
