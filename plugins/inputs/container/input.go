@@ -99,7 +99,6 @@ func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("container input startd")
-	io.FeedEventLog(&io.Reporter{Message: "container start ok, ready for collecting metrics.", Logtype: "event"})
 
 	if i.setup() {
 		return

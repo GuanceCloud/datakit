@@ -69,7 +69,6 @@ func (p *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("process start...")
-	io.FeedEventLog(&io.Reporter{Message: "process start ok, ready for collecting metrics.", Logtype: "event"})
 
 	if p.ProcessName != nil {
 		re := strings.Join(p.ProcessName, "|")
@@ -445,6 +444,7 @@ func (p *Input) WriteObject(lastProc map[int32]proccpu) {
 		l.Errorf("FeedMeasurement err :%s", err.Error())
 		p.lastErr = err
 	}
+
 	if p.lastErr != nil {
 		io.FeedLastError(inputName, p.lastErr.Error())
 		p.lastErr = nil
