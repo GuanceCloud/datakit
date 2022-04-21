@@ -314,7 +314,7 @@ func ResultUtilsFeedIO(result []*pipeline.Result, category, version, source, fee
 			continue
 		}
 		if pt, err := v.MakePoint(source, maxMessageLen, category); err != nil {
-			l.Debug(err)
+			l.Error(err)
 		} else {
 			pts = append(pts, pt)
 		}

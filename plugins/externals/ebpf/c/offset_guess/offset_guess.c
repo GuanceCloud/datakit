@@ -82,41 +82,41 @@ static __always_inline void read_netns_inum(struct sock *sk, struct offset_guess
     }
 }
 
-static __always_inline int read_conn_info(struct sock *sk, struct offset_guess *status)
-{
-    unsigned short family = AF_UNSPEC;
-    // read_netns_inum(sk, status);
+// static __always_inline int read_conn_info(struct sock *sk, struct offset_guess *status)
+// {
+//     unsigned short family = AF_UNSPEC;
+//     // read_netns_inum(sk, status);
 
-    bpf_probe_read(&family, sizeof(family), (__u8 *)sk + status->offset_sk_family);
-    if (family == AF_INET)
-    {
-        status->meta = CONN_L3_IPv4;
-    }
-    else if (family == AF_INET6)
-    {
-        status->meta = CONN_L3_IPv6;
-    }
-    else
-    {
-        status->meta = CONN_L3_MASK; // unknown
-    }
+//     bpf_probe_read(&family, sizeof(family), (__u8 *)sk + status->offset_sk_family);
+//     if (family == AF_INET)
+//     {
+//         status->meta = CONN_L3_IPv4;
+//     }
+//     else if (family == AF_INET6)
+//     {
+//         status->meta = CONN_L3_IPv6;
+//     }
+//     else
+//     {
+//         status->meta = CONN_L3_MASK; // unknown
+//     }
 
-    if ((status->conn_type & CONN_L3_MASK) == CONN_L3_IPv4)
-    {
-        // src ip
-        bpf_probe_read(status->daddr + 3, sizeof(__be32), (__u8 *)sk + status->offset_sk_daddr);
+//     if ((status->conn_type & CONN_L3_MASK) == CONN_L3_IPv4)
+//     {
+//         // src ip
+//         bpf_probe_read(status->daddr + 3, sizeof(__be32), (__u8 *)sk + status->offset_sk_daddr);
 
-        bpf_probe_read(&status->dport, sizeof(__u16), (__u8 *)sk + status->offset_sk_dport);
-        swap_u16(&status->dport);
-        bpf_probe_read(&status->sport, sizeof(__u16), (__u8 *)sk + status->offset_inet_sport);
-        swap_u16(&status->sport);
-    }
-    else
-    {
-        bpf_probe_read(status->daddr, sizeof(__be32) * 4, (__u8 *)sk + status->offset_sk_v6_daddr);
-    }
-    return 0;
-}
+//         bpf_probe_read(&status->dport, sizeof(__u16), (__u8 *)sk + status->offset_sk_dport);
+//         swap_u16(&status->dport);
+//         bpf_probe_read(&status->sport, sizeof(__u16), (__u8 *)sk + status->offset_inet_sport);
+//         swap_u16(&status->sport);
+//     }
+//     else
+//     {
+//         bpf_probe_read(status->daddr, sizeof(__be32) * 4, (__u8 *)sk + status->offset_sk_v6_daddr);
+//     }
+//     return 0;
+// }
 
 SEC("kprobe/sock_common_getsockopt")
 int kprobe_sock_common_getsockopt(struct pt_regs *ctx)
@@ -165,7 +165,14 @@ int kprobe__tcp_getsockopt(struct pt_regs *ctx)
         return 0;
     }
 
-    read_conn_info(sk, &status);
+    // src ip
+    bpf_probe_read(status.daddr + 3, sizeof(__be32), (__u8 *)sk + status.offset_sk_daddr);
+
+    bpf_probe_read(&status.dport, sizeof(__u16), (__u8 *)sk + status.offset_sk_dport);
+    swap_u16(&status.dport);
+    bpf_probe_read(&status.sport, sizeof(__u16), (__u8 *)sk + status.offset_inet_sport);
+    swap_u16(&status.sport);
+
     read_netns_inum(sk, &status);
     status.state++;
 
@@ -210,7 +217,26 @@ int kretprobe__tcp_v6_connect(struct pt_regs *ctx)
     {
         return 0;
     }
-    read_conn_info(sk, &status);
+
+    unsigned short family = AF_UNSPEC;
+    // read_netns_inum(sk, status);
+
+    bpf_probe_read(&family, sizeof(family), (__u8 *)sk + status.offset_sk_family);
+    if (family == AF_INET)
+    {
+        status.meta = CONN_L3_IPv4;
+    }
+    else if (family == AF_INET6)
+    {
+        status.meta = CONN_L3_IPv6;
+    }
+    else
+    {
+        status.meta = CONN_L3_MASK; // unknown
+    }
+
+    bpf_probe_read(status.daddr, sizeof(__be32) * 4, (__u8 *)sk + status.offset_sk_v6_daddr);
+
     status.state++;
     update_offset(&status);
 

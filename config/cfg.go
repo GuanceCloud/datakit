@@ -47,7 +47,7 @@ func DefaultConfig() *Config {
 			"ENV_HOSTNAME": "", // not set
 		}, // default nothing
 
-		IOConf: &IOConfig{
+		IOConf: &dkio.IOConfig{
 			FeedChanSize:              1024,
 			HighFreqFeedChanSize:      2048,
 			MaxCacheCount:             1024,
@@ -57,6 +57,7 @@ func DefaultConfig() *Config {
 			FlushInterval:             "10s",
 			OutputFileInputs:          []string{},
 			EnableCache:               false,
+			Filters:                   map[string][]string{},
 		},
 
 		DataWay: &dataway.DataWayCfg{
@@ -88,7 +89,13 @@ func DefaultConfig() *Config {
 			GinLog: filepath.Join("/var/log/datakit", "gin.log"),
 		},
 
-		Cgroup: &cgroup.Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
+		Cgroup: &cgroup.CgroupOptions{
+			Path:   "/datakit",
+			Enable: true,
+			CPUMax: 20.0,
+			CPUMin: 5.0,
+			MemMax: 4096, // MB
+		},
 
 		GitRepos: &GitRepost{
 			PullInterval: "1m",
@@ -113,19 +120,6 @@ func DefaultConfig() *Config {
 	}
 
 	return c
-}
-
-type IOConfig struct {
-	FeedChanSize              int      `toml:"feed_chan_size"`
-	HighFreqFeedChanSize      int      `toml:"high_frequency_feed_chan_size"`
-	MaxCacheCount             int64    `toml:"max_cache_count"`
-	CacheDumpThreshold        int64    `toml:"cache_dump_threshold"`
-	MaxDynamicCacheCount      int64    `toml:"max_dynamic_cache_count"`
-	DynamicCacheDumpThreshold int64    `toml:"dynamic_cache_dump_threshold"`
-	FlushInterval             string   `toml:"flush_interval"`
-	OutputFile                string   `toml:"output_file"`
-	OutputFileInputs          []string `toml:"output_file_inputs"`
-	EnableCache               bool     `toml:"enable_cache"`
 }
 
 type LoggerCfg struct {
@@ -190,16 +184,16 @@ type Config struct {
 	InstallVer string `toml:"install_version,omitempty"`
 
 	HTTPAPI *dkhttp.APIConfig   `toml:"http_api"`
-	IOConf  *IOConfig           `toml:"io"`
+	IOConf  *dkio.IOConfig      `toml:"io"`
 	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
 	Logging *LoggerCfg          `toml:"logging"`
 
 	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
 	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
 
-	GlobalTags   map[string]string `toml:"global_tags"`
-	Environments map[string]string `toml:"environments"`
-	Cgroup       *cgroup.Cgroup    `toml:"cgroup"`
+	GlobalTags   map[string]string     `toml:"global_tags"`
+	Environments map[string]string     `toml:"environments"`
+	Cgroup       *cgroup.CgroupOptions `toml:"cgroup"`
 
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
 	ProtectMode              bool `toml:"protect_mode"`
@@ -454,17 +448,9 @@ func (c *Config) ApplyMainConfig() error {
 		if c.IOConf.OutputFile == "" && c.OutputFileDeprecated != "" {
 			c.IOConf.OutputFile = c.OutputFileDeprecated
 		}
-		dkio.ConfigDefaultIO(dkio.SetFeedChanSize(c.IOConf.FeedChanSize),
-			dkio.SetHighFreqFeedChanSize(c.IOConf.HighFreqFeedChanSize),
-			dkio.SetMaxCacheCount(c.IOConf.MaxCacheCount),
-			dkio.SetCacheDumpThreshold(c.IOConf.CacheDumpThreshold),
-			dkio.SetMaxDynamicCacheCount(c.IOConf.MaxDynamicCacheCount),
-			dkio.SetDynamicCacheDumpThreshold(c.IOConf.DynamicCacheDumpThreshold),
-			dkio.SetFlushInterval(c.IOConf.FlushInterval),
-			dkio.SetOutputFile(c.IOConf.OutputFile),
-			dkio.SetOutputFileInput(c.IOConf.OutputFileInputs),
-			dkio.SetEnableCache(c.IOConf.EnableCache),
-			dkio.SetDataway(c.DataWay))
+
+		dkio.ConfigDefaultIO(c.IOConf)
+		dkio.SetDataway(c.DataWay)
 	}
 
 	if err := c.setupGlobalTags(); err != nil {
@@ -513,10 +499,11 @@ func (c *Config) setHostname() error {
 		l.Errorf("get hostname failed: %s", err.Error())
 		return err
 	}
-	l.Infof("here is hostname:%s", c.Hostname)
+
 	c.Hostname = hn
+
+	l.Infof("hostname: %s", c.Hostname)
 	datakit.DatakitHostName = c.Hostname
-	l.Infof("set hostname to %s", hn)
 	return nil
 }
 
@@ -544,7 +531,7 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 
 func (c *Config) LoadEnvs() error {
 	if c.IOConf == nil {
-		c.IOConf = &IOConfig{}
+		c.IOConf = &dkio.IOConfig{}
 	}
 
 	for _, envkey := range []string{

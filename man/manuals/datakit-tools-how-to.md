@@ -278,7 +278,17 @@ telegraf --config telegraf.conf
 datakit install --scheck
 ```
 
-安装成功后会自动运行，Security Checker 具体使用，参见[这里](https://www.yuque.com/dataflux/sec_checker/install) 
+安装成功后会自动运行，Security Checker 具体使用，参见[这里](https://www.yuque.com/dataflux/sec_checker/install)
+
+### DataKit eBPF 集成
+
+安装 DataKit eBPF 采集器, 当前只支持 `linux/amd64` 平台，采集器使用说明见 [DataKit eBPF 采集器](https://www.yuque.com/dataflux/datakit/ebpf)
+
+```shell
+datakit install --datakit-ebpf
+```
+
+如若提示 `open /usr/local/datakit/externals/datakit-ebpf: text file busy`，停止 DataKit 服务后再执行该命令
 
 ## 上传 DataKit 运行日志
 

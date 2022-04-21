@@ -417,6 +417,8 @@ func TestPipelineTagsAndFields(t *testing.T) {
 		"duration":       int64(63),
 		"pipeline_id":    int64(31),
 		"commit_message": "test\n",
+		"created_at":     int64(1471015408),
+		"finished_at":    int64(1471015589),
 	}
 	expectedTags := map[string]string{
 		"ci_status":      "success",

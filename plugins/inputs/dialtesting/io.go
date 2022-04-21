@@ -18,7 +18,6 @@ func (d *dialer) pointsFeed(urlStr string) error {
 			l.Warnf("ignore dialer tag %s: %s", k, v)
 		}
 	}
-
 	data, err := io.MakePoint(d.task.MetricName(), tags, fields, time.Now())
 	if err != nil {
 		l.Warnf("make metric failed: %s", err.Error)
