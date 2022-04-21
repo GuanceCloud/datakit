@@ -51,7 +51,7 @@ func exportReplicaSet(items []v1.ReplicaSet, extraTags tagsType) k8sResourceStat
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
-		obj.fields.delete("annotations")
+		delete(obj.fields, "annotations")
 
 		obj.time = time.Now()
 		res.set(defaultNamespace(item.Namespace), obj)

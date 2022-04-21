@@ -93,7 +93,7 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
-		obj.fields.delete("annotations")
+		delete(obj.fields, "annotations")
 
 		obj.time = time.Now()
 		res.set(defaultNamespace(item.Namespace), obj)
