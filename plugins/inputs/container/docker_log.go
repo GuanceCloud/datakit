@@ -60,6 +60,12 @@ func (d *dockerInput) cancelTails() {
 
 func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types.Container) error {
 	tags := getContainerInfo(container, d.k8sClient)
+
+	source := getContainerLogSource(tags["image_short_name"])
+	if n := container.Labels[containerLableForPodContainerName]; n != "" {
+		source = n
+	}
+
 	// add extra tags
 	for k, v := range d.cfg.extraTags {
 		if _, ok := tags[k]; !ok {
@@ -75,13 +81,19 @@ func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types
 	}()
 
 	if logconf != nil {
+		if logconf.Source == "" {
+			logconf.Source = source
+		}
+		if logconf.Service == "" {
+			logconf.Service = logconf.Source
+		}
 		logconf.tags = tags
 		logconf.containerID = container.ID
 		l.Debugf("use container logconfig:%#v, containerName:%s", logconf, tags["container_name"])
 	} else {
 		logconf = &containerLogConfig{
-			Source:      getContainerLogSource(tags["image_short_name"]),
-			Service:     tags["image_short_name"],
+			Source:      source,
+			Service:     source,
 			tags:        tags,
 			containerID: container.ID,
 		}
@@ -369,14 +381,14 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "日志数据",
 		Type: "logging",
-		Desc: "source 默认使用容器 image_short_name",
+		Desc: "source 默认使用容器 image_short_name（如果是 k8s 创建容器，会打上一个形如 'io.kubernetes.container.name' 的 label，DataKit 将其用作 source",
 		Tags: map[string]interface{}{
 			"container_name": inputs.NewTagInfo(`容器名称`),
 			"container_id":   inputs.NewTagInfo(`容器ID`),
 			"container_type": inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty`),
 			"pod_name":       inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"pod_namespace":  inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'pod_namespace'）`),
+			"namespace":      inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
 			"deployment":     inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）`),
 			"service":        inputs.NewTagInfo(`服务名称`),
 		},
@@ -391,7 +403,7 @@ func getContainerLogSource(image string) string {
 	if image != "" {
 		return image
 	}
-	return "default"
+	return "unknown"
 }
 
 //nolint:gochecknoinits
