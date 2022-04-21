@@ -158,7 +158,7 @@ spec:
 
 补充，k8s 数据的 `cluster_name` 字段可能会为空，为此提供注入环境变量的方式，取值优先级依次为：
 1. k8s 集群返回的 ClusterName 值（不为空）
-2. 环境变量 `ENV_INPUT_K8S_CLUSTER_NAME` 指定的值
+2. 环境变量 `ENV_K8S_CLUSTER_NAME` 指定的值
 3. 默认值 `kubernetes`
 
 ### 支持 Kubernetes 自定义 Export
