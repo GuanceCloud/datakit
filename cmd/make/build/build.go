@@ -216,7 +216,7 @@ func compileArch(bin, goos, goarch, dir string) error {
 	}
 
 	cgoEnabled := "0"
-	if goos == datakit.OSDarwin && runtime.GOOS == datakit.OSDarwin { // darwin verison need CGO to build inputs CPU
+	if goos == datakit.OSDarwin && runtime.GOOS == datakit.OSDarwin { // darwin version need CGO to build inputs CPU
 		cgoEnabled = "1"
 	}
 

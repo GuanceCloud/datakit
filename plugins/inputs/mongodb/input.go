@@ -213,11 +213,9 @@ func (m *Input) Run() {
 		if m.pause {
 			l.Debugf("not leader, skipped")
 			continue
-		} else {
-			if err := m.gather(); err != nil {
-				l.Errorf("gather: %s", err.Error())
-				io.FeedLastError(inputName, err.Error())
-			}
+		} else if err := m.gather(); err != nil {
+			l.Errorf("gather: %s", err.Error())
+			io.FeedLastError(inputName, err.Error())
 		}
 
 		select {

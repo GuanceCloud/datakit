@@ -208,18 +208,6 @@ func (e ReporterMeasurement) Info() *MeasurementInfo {
 	return &MeasurementInfo{}
 }
 
-func getReporterMeasurement(reporter *io.DKEvent) ReporterMeasurement {
-	now := time.Now()
-	m := ReporterMeasurement{
-		name: "datakit",
-		ts:   now,
-	}
-
-	m.tags = reporter.Tags()
-	m.fields = reporter.Fields()
-	return m
-}
-
 // BuildTags used to test all measurements tags.
 func BuildTags(t *testing.T, ti map[string]interface{}) map[string]string {
 	t.Helper()

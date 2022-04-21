@@ -23,8 +23,6 @@ const (
 	defaultSleepDuration = time.Second
 	readBuffSize         = 1024 * 4
 	timeoutDuration      = time.Second * 3
-
-	firstMessage = "[DataKit-logging] First Message. filename: %s, source: %s"
 )
 
 type Single struct {

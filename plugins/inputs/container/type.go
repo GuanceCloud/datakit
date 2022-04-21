@@ -34,10 +34,6 @@ func (tags tagsType) addValueIfNotEmpty(key, value string) {
 
 type fieldsType map[string]interface{}
 
-func (fields fieldsType) delete(key string) { //nolint:unparam
-	delete(fields, key)
-}
-
 func (fields fieldsType) addMapWithJSON(key string, value map[string]string) { //nolint:unparam
 	if len(value) == 0 {
 		// 如果该map为空，则对应值为空字符串，否则在json序列化为"null"

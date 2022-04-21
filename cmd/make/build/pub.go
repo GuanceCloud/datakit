@@ -338,7 +338,6 @@ func PubDatakit() error {
 
 	// tar files and collect OSS upload/backup info
 	for _, arch := range curArchs {
-
 		parts := strings.Split(arch, "/")
 		if len(parts) != 2 {
 			return fmt.Errorf("invalid arch: %s", arch)
