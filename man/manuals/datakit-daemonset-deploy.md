@@ -24,16 +24,17 @@
 #### 添加 DataKit Helm 仓库
 
 ```shell 
-$ helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
+$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
 $ helm repo update 
 ``` 
 
+
 #### Helm 安装 Datakit
 
-注意更换下面的 `dataway_url`
+注意更换下面的 `datakit.dataway_url`
 
 ```shell
-$ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+$ helm install <RELEASE_NAME> datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
 ``` 
 
 #### 查看部署状态
@@ -46,13 +47,13 @@ $ helm -n datakit list
 
 ```shell
 $ helm repo update 
-$ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" 
+$ helm install <RELEASE_NAME> datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
 ```
 
 #### 卸载
 
 ```shell
-$ helm uninstall my-datakit -n datakit
+$ helm uninstall <RELEASE_NAME> -n datakit
 ```
 
 ### 普通 yaml 安装
