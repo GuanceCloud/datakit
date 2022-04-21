@@ -2,6 +2,31 @@
 
 # DataKit 版本历史
 
+## 1.2.15(2022/04/21)
+
+本次发布属于迭代发布，含大量问题修复
+
+- Pipeline 模块修复 Grok 中[动态多行 pattern](datakit-pl-how-to#88b72768) 问题(#720)
+- 移除掉一些不必要的 DataKit 事件日志上报(#704)
+- 修复升级程序可能导致的升级失败问题(#699)
+- DaemonSet 增加[开启 pprof 环境变量]()配置(#697)
+- DaemonSet 中所有[默认开启采集器]()各个配置均支持通过环境变量配置(#693)
+- Tracing 采集器初步支持 [Pipeline 数据处理]()(#675)
+- 拨测采集器增加失败任务退出机制(#54)
+- 日志新增 `unknown` 等级（status），对于未指定等级的日志均为 `unknown`(#685)
+- 容器采集器大量修复
+  - 修复 cluster 字段命名问题(#542)
+  - 修复 namespace 字段命名问题(#724)
+  - 容器日志采集中，如果 Pod Annotation 不指定日志 `source`，那么 `source` 默认的取值顺序依次为(#708/#723)
+    - 容器名：一般从容器的 `io.kubernetes.container.name` 这个 label 上取值
+    - short-image-name: 镜像名，如 `nginx.org/nginx:1.21.0` 则取 `nginx`
+    - `unknown`: 如果镜像名无效（如 `sha256...`），则取该未知值
+  - 对象上报不再受 32KB 字长限制（因 Annotation 内容超 32KB）(#709)
+  - 修复 prom 采集器不因 Pod 退出的问题(#716)
+- 其它问题修复(#721)
+
+---
+
 ## 1.2.14(2022/04/12)
 
 本次发布属于 hotfix 发布，同时包含部分小的修改和调整：
