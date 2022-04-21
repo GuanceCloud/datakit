@@ -50,7 +50,7 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 			obj.tags["deployment"] = deployment
 		}
 
-		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
+		obj.tags.addValueIfNotEmpty("cluster_name", defaultClusterName(item.ClusterName))
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		obj.tags.append(extraTags)
 

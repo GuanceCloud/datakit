@@ -40,7 +40,7 @@ func exportReplicaSet(items []v1.ReplicaSet, extraTags tagsType) k8sResourceStat
 			}
 		}
 
-		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
+		obj.tags.addValueIfNotEmpty("cluster_name", defaultClusterName(item.ClusterName))
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		obj.tags.append(extraTags)
 

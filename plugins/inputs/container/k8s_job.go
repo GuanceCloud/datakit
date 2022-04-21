@@ -33,7 +33,7 @@ func exportJob(items []v1.Job, extraTags tagsType) k8sResourceStats {
 		obj.tags["name"] = fmt.Sprintf("%v", item.UID)
 		obj.tags["job_name"] = item.Name
 
-		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
+		obj.tags.addValueIfNotEmpty("cluster_name", defaultClusterName(item.ClusterName))
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		obj.tags.append(extraTags)
 

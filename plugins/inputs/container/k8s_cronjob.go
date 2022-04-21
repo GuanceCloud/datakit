@@ -33,7 +33,7 @@ func exportCronJob(items []v1beta1.CronJob, extraTags tagsType) k8sResourceStats
 		obj.tags["name"] = fmt.Sprintf("%v", item.UID)
 		obj.tags["cron_job_name"] = item.Name
 
-		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
+		obj.tags.addValueIfNotEmpty("cluster_name", defaultClusterName(item.ClusterName))
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		obj.tags.append(extraTags)
 
