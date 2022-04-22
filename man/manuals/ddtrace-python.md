@@ -8,19 +8,19 @@
 
 ## Install Essential Python Packages
 
-Install Flask For Python
+安装 Python Flask
 
 ```shell
 pip install flask
 ```
 
-Install DDTrace Library for Python
+安装 DDTrace Python 函数库
 
 ```shell
 pip install ddtrace
 ```
 
-**Note**: This command requires pip version 18.0.0 or greater. For Ubuntu, Debian, or another package manager, update your pip version with the following command:
+**Note**: 这条命令需要 pip 版本 18.0.0 或更高。 对于 Ubuntu, Debian 或其他的包管理工具, 使用下面的命令升级 pip 版本:
 
 ```shell
 pip install --upgrade pip
@@ -92,25 +92,25 @@ if __name__ == '__main__':
 
 这里以 Python 中常用的 Webserver Flask 应用为例。示例中 `SERVICE_A` 提供 HTTP 服务，并且调用 `SERVICE_B` HTTP 服务。
 
-Run SERVICE_A
+运行 SERVICE_A
 
 ```shell
-DD_SERVICE=SERVICE_A
-DD_SERVICE_MAPPING=postgres:postgresql,defaultdb:postgresql
-DD_TAGS=project:your_project_name,env=test,version=v1
-DD_AGENT_HOST=[datakit-listening-host,default:localhost]
-DD_AGENT_PORT=[datakit-listening-port,default:9529]
+DD_SERVICE=SERVICE_A \
+DD_SERVICE_MAPPING=postgres:postgresql,defaultdb:postgresql \
+DD_TAGS=project:your_project_name,env=test,version=v1 \
+DD_AGENT_HOST=[datakit-listening-host,default:localhost] \
+DD_AGENT_PORT=[datakit-listening-port,default:9529] \
 ddtrace-run python3 service_a.py &> a.log &
 ```
 
-Run SERVICE_B
+运行 SERVICE_B
 
 ```shell
-DD_SERVICE=SERVICE_B
-DD_SERVICE_MAPPING=postgres:postgresql,defaultdb:postgresql
-DD_TAGS=project:your_project_name,env=test,version=v1
-DD_AGENT_HOST=[datakit-listening-host,default:localhost]
-DD_AGENT_PORT=[datakit-listening-port,default:9529]
+DD_SERVICE=SERVICE_B \
+DD_SERVICE_MAPPING=postgres:postgresql,defaultdb:postgresql \
+DD_TAGS=project:your_project_name,env=test,version=v1 \
+DD_AGENT_HOST=[datakit-listening-host,default:localhost] \
+DD_AGENT_PORT=[datakit-listening-port,default:9529] \
 ddtrace-run python3 service_b.py &> b.log &
 ```
 
