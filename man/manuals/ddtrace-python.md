@@ -6,7 +6,7 @@
 
 # Tracing Python Applications
 
-## Install Essential Python Packages
+## 安装依赖库
 
 安装 Python Flask
 
@@ -26,9 +26,9 @@ pip install ddtrace
 pip install --upgrade pip
 ```
 
-## Python Code Example
+## Python 代码示例
 
-service_a.py
+- *service_a.py*
 
 ```python
 from flask import Flask, request
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     app.run(host="0.0.0.0", port=54321, debug=True)
 ```
 
-service_b.py
+- *service_b.py*
 
 ```python
 from flask import Flask, request
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     app.run(host="0.0.0.0", port=54322, debug=True)
 ```
 
-## Run Python Code With DDTrace
+## 用 DDTrace 启动 Python 应用
 
 这里以 Python 中常用的 Webserver Flask 应用为例。示例中 `SERVICE_A` 提供 HTTP 服务，并且调用 `SERVICE_B` HTTP 服务。
 

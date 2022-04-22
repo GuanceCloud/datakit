@@ -59,7 +59,7 @@ const (
   ## present in span message.
   ## The string on the left side of the equal sign must be identical to the service name that
   ## you try to handle.
-  # [inputs.ddtrace.pipelines]
+  # [inputs.opentelemetry.pipelines]
     # service1 = "service1.p"
     # service2 = "service2.p"
     # ...

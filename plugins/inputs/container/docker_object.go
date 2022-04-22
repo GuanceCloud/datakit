@@ -15,7 +15,7 @@ func gatherDockerContainerObject(client dockerClientX, k8sClient k8sClientX, con
 	m := &containerObject{}
 	m.tags = getContainerInfo(container, k8sClient)
 	m.tags["name"] = container.ID
-	m.tags["namespace"] = "moby"
+	m.tags["linux_namespace"] = "moby"
 	m.tags["status"] = container.Status
 
 	if hostname, err := getContainerHostname(client, container.ID); err == nil {
@@ -107,7 +107,7 @@ func (c *containerObject) Info() *inputs.MeasurementInfo {
 			"container_name":   inputs.NewTagInfo(`容器名称`),
 			"container_id":     inputs.NewTagInfo(`容器 ID`),
 			"name":             inputs.NewTagInfo(`对象数据的指定 ID`),
-			"namespace":        inputs.NewTagInfo(`该容器所在的命名空间`),
+			"linux_namespace":  inputs.NewTagInfo(`该容器所在的 [linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html)`),
 			"status":           inputs.NewTagInfo("容器状态，例如 `Up 5 hours`（containerd 缺少此字段）"),
 			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
 			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
@@ -118,7 +118,7 @@ func (c *containerObject) Info() *inputs.MeasurementInfo {
 			"container_type":   inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker/containerd`),
 			"state":            inputs.NewTagInfo(`运行状态，running/exited/removed（containerd 缺少此字段）`),
 			"pod_name":         inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"pod_namespace":    inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
+			"namespace":        inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
 			"deployment":       inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）（containerd 缺少此字段）`),
 		},
 		Fields: map[string]interface{}{

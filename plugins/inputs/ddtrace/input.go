@@ -8,7 +8,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -81,7 +80,7 @@ var (
 	keepRareResource   *itrace.KeepRareResource
 	closeResource      *itrace.CloseResource
 	sampler            *itrace.Sampler
-	customerKeys       []string
+	customerKeys       = []string{"runtime-id"}
 	tags               map[string]string
 )
 
@@ -139,7 +138,6 @@ func (ipt *Input) RegHTTPHandler() {
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
-	dkio.FeedEventLog(&dkio.Reporter{Message: "ddtrace start ok, ready for collecting metrics.", Logtype: "event"})
 
 	// add calculators
 	// afterGather.AppendCalculator(itrace.StatTracingInfo)
@@ -169,7 +167,9 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(itrace.PiplineFilterWrapper(inputName, ipt.Pipelines))
 	}
 
-	customerKeys = ipt.CustomerTags
+	for i := range ipt.CustomerTags {
+		customerKeys = append(customerKeys, ipt.CustomerTags[i])
+	}
 	tags = ipt.Tags
 }
 

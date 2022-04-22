@@ -24,35 +24,42 @@
 #### 添加 DataKit Helm 仓库
 
 ```shell 
-$ helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
+$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
 $ helm repo update 
-``` 
+```
+
 
 #### Helm 安装 Datakit
 
-注意更换下面的 `dataway_url`
-
 ```shell
-$ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
-``` 
+$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+```
+
+> 注意修改 `datakit.dataway_url` 参数
+
+具体执行如下：
+
+```
+$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=xxxxxxxxx" --create-namespace 
+```
 
 #### 查看部署状态
 
 ```shell
 $ helm -n datakit list
-``` 
+```
 
 #### 升级
 
 ```shell
 $ helm repo update 
-$ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" 
+$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
 ```
 
 #### 卸载
 
 ```shell
-$ helm uninstall my-datakit -n datakit
+$ helm uninstall datakit -n datakit
 ```
 
 ### 普通 yaml 安装
@@ -81,7 +88,7 @@ $ helm uninstall my-datakit -n datakit
 
 ```shell
 $ kubectl apply -f datakit.yaml
-``` 
+```
 
 #### 查看运行状态
 
@@ -89,7 +96,7 @@ $ kubectl apply -f datakit.yaml
 
 ```shell
 $ kubectl get pod -n datakit
-``` 
+```
 
 #### Kubernetes 污点容忍度配置
 
@@ -181,6 +188,13 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_GIN_LOG   | */var/log/datakit/gin.log* | 否     | 如果改成 `stdout`，日志将不写文件，而是终端输出 |
 | ENV_LOG       | */var/log/datakit/log*     | 否     | 如果改成 `stdout`，日志将不写文件，而是终端输出 |
 | ENV_LOG_LEVEL | info                       | 否     | 可选值 `info/debug`                             |
+
+###  DataKit pprof 相关
+
+| 环境变量名称  | 默认值                     | 必须   | 说明                                            |
+| ---------:    | ---:                       | ------ | ----                                            |
+| ENV_ENABLE_PPROF   | false | 否     | 是否开启 `pprof` |
+| ENV_PPROF_LISTEN       | 无     | 否     | `pprof`服务监听地址 |
 
 ### 选举相关环境变量
 

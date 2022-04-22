@@ -2,6 +2,33 @@
 
 # DataKit 版本历史
 
+## 1.2.15(2022/04/21)
+
+本次发布属于迭代发布，含大量问题修复：
+
+- Pipeline 模块修复 Grok 中[动态多行 pattern](datakit-pl-how-to#88b72768) 问题(#720)
+- 移除掉一些不必要的 DataKit 事件日志上报(#704)
+- 修复升级程序可能导致的升级失败问题(#699)
+- DaemonSet 增加[开启 pprof 环境变量](datakit-daemonset-deploy#cc08ec8c)配置(#697)
+- DaemonSet 中所有[默认开启采集器](datakit-input-conf#764ffbc2)各个配置均支持通过环境变量配置(#693)
+- Tracing 采集器初步支持 Pipeline 数据处理(#675)
+  - [DDtrace 配置示例](ddtrace#69995abe)
+- 拨测采集器增加失败任务退出机制(#54)
+- 优化 [Helm 安装](datakit-daemonset-deploy#e4d3facf)(#695)
+- 日志新增 `unknown` 等级（status），对于未指定等级的日志均为 `unknown`(#685)
+- 容器采集器大量修复
+  - 修复 cluster 字段命名问题(#542)
+    - 对象 `kubernetes_clusters` 这个指标集改名为 `kubernetes_cluster_roles`
+    - 原 `kubernetes.cluster` 这个 count 改名为 `kubernetes.cluster_role`
+  - 修复 namespace 字段命名问题(#724)
+  - 容器日志采集中，如果 Pod Annotation 不指定日志 `source`，那么 DataKit 将按照[此优先级来推导日志来源](container#6de978c3)(#708/#723)
+  - 对象上报不再受 32KB 字长限制（因 Annotation 内容超 32KB）(#709)
+	  - 所有 Kubernetes 对象均删除 `annotation` 这一 field
+  - 修复 prom 采集器不会随 Pod 退出而停止的问题(#716)
+- 其它问题修复(#721)
+
+---
+
 ## 1.2.14(2022/04/12)
 
 本次发布属于 hotfix 发布，同时包含部分小的修改和调整：
@@ -21,7 +48,7 @@
 本次发布属于迭代发布，更新内容如下：
 
 - 增加宿主机运行时的[内存限制](datakit-conf#4e7ff8f3)(#641)
-	- 安装阶段即支持[内存限制配置](datakit-install#03be369a)
+  - 安装阶段即支持[内存限制配置](datakit-install#03be369a)
 - CPU 采集器增加 [load5s 指标](cpu#13e60209)(#606)
 - 完善 datakit.yaml 示例(#678)
 - 支持主机安装时通过 [cgroup 限制内存](datakit-conf#4e7ff8f3)使用(#641)
