@@ -12,14 +12,14 @@
 
 本篇将描述以下2种不同的管理方法:
 
-- [ComfigMap 管理配置](#c28055b2)
+- [ConfigMap 管理配置](#c28055b2)
 - [启用 Git 管理配置](#02801a95)
 
-## ComfigMap 管理配置
+## ConfigMap 管理配置
 
-Datakit 部分采集器的开启，可以通过 [ConfigMap](https://kubernetes.io/zh/docs/concepts/configuration/configmap/) 来注入。ComfigMap 注入灵活，但不易管理。
+Datakit 部分采集器的开启，可以通过 [ConfigMap](https://kubernetes.io/zh/docs/concepts/configuration/configmap/) 来注入。ConfigMap 注入灵活，但不易管理。
 
-ComfigMap 注入，可以分为以下2种：
+ConfigMap 注入，可以分为以下2种：
 
 - [Helm 安装注入](#74ceef30)
 
@@ -35,7 +35,7 @@ ComfigMap 注入，可以分为以下2种：
 #### 添加 Helm 仓库
 
 ```shell
-$ helm repo add datakti  https://pubrepo.guance.com/chartrepo/datakit
+$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
 ``` 
 
 #### 查看 DataKit 版本
@@ -132,14 +132,14 @@ dkconfig:
 ```shell
 $ cd datakit # 此目录为 helm pull 的目录
 $ helm repo update 
-$ helm install <RELEASE_NAME> datakit/datakit -f values.yaml -n datakit  --create-namespace 
+$ helm install datakit datakit/datakit -f values.yaml -n datakit  --create-namespace 
 ```
 
 升级
 
 ```shell
 $ helm repo update 
-$ helm upgrade <RELEASE_NAME> . -n datakit  -f values.yaml
+$ helm upgrade datakit . -n datakit  -f values.yaml
 
 Release "datakit" has been upgraded. Happy Helming!
 NAME: datakit
@@ -169,10 +169,10 @@ $ kubectl get pods -n datakit
 
 ## 启用 Git 管理配置
 
-由于 ComfigMap 注入灵活，但不易管理特性，我们可以采用 Git 仓库来管理我们的配置。启用 [Git 管理](datakit-conf#90362fd0) ，DataKit 会定时 pull 远程仓库的配置，既不需要频繁修改 ComfigMap，也不需要重启 DataKit，更重要的是有修改记录，可回滚配置。
+由于 ConfigMap 注入灵活，但不易管理特性，我们可以采用 Git 仓库来管理我们的配置。启用 [Git 管理](datakit-conf#90362fd0) ，DataKit 会定时 pull 远程仓库的配置，既不需要频繁修改 ConfigMap，也不需要重启 DataKit，更重要的是有修改记录，可回滚配置。
 
 > 注意：
-> - 如果启用 Git 管理配置，则 ComfigMap 将失效
+> - 如果启用 Git 管理配置，则 ConfigMap 将失效
 > - 由于会[自动启动一些采集器](datakit-input-conf#764ffbc2)，故在 Git 仓库中，不要再放置这些自启动的采集器配置，不然会导致这些数据的多份采集
 
 ### 前提条件
@@ -210,7 +210,7 @@ path/to/local/git/repo
 ```shell
 $ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
 $ helm repo update 
-$ helm install <RELEASE_NAME> datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
+$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
 --set git_repos.git_url="http://username:password@github.com/path/to/repository.git" \
 --create-namespace 
 ```
@@ -224,9 +224,9 @@ $ helm install <RELEASE_NAME> datakit/datakit -n datakit --set datakit.dataway_u
 - `git_repos.git_key_path`（绝对路径）
 
 ```shell
-$ helm repo add datakti  https://pubrepo.guance.com/chartrepo/datakit
+$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
 $ helm repo update 
-$ helm install <RELEASE_NAME> datakti/datakit -n datakit \
+$ helm install datakit datakit/datakit -n datakit \
   --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
   --set git_repos.git_url="git@github.com:path/to/repository.git" \
   --set-file git_repos.git_key_path="/Users/buleleaf/.ssh/id_rsa" \
@@ -264,7 +264,7 @@ $ kubectl apply -f datakit.yaml
 
 ##### 修改配置
 
-- 在 *datakit.yaml* 中添加 ComfigMap
+- 在 *datakit.yaml* 中添加 ConfigMap
 
 ```yaml
 apiVersion: v1
