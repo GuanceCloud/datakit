@@ -24,7 +24,7 @@
   - 容器日志采集中，如果 Pod Annotation 不指定日志 `source`，那么 DataKit 将按照[此优先级来推导日志来源](container#6de978c3)(#708/#723)
   - 对象上报不再受 32KB 字长限制（因 Annotation 内容超 32KB）(#709)
 	  - 所有 Kubernetes 对象均删除 `annotation` 这一 field
-  - 修复 prom 采集器不因 Pod 退出的问题(#716)
+  - 修复 prom 采集器不会随 Pod 退出而停止的问题(#716)
 - 其它问题修复(#721)
 
 ---
