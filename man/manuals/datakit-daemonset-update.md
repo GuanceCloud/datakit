@@ -35,13 +35,13 @@ $ helm repo update
 - 如果没有通过修改 `values.yaml` 安装 DataKit，直接执行如下命令，升级 DataKit 
 
 ```shell
-helm update datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
+helm upgrade datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
 ```
 
 - 如果是通过修改 `values.yaml` 安装 DataKit，直接执行如下命令，升级 DataKit 
 
 ```shell
-helm update datakit datakit/datakit -f values.yaml -n datakit 
+helm upgrade datakit datakit/datakit -f values.yaml -n datakit 
 ```
 
 ## yaml 文件方式升级 DataKit
