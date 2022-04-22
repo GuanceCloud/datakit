@@ -26,34 +26,40 @@
 ```shell 
 $ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
 $ helm repo update 
-``` 
+```
 
 
 #### Helm 安装 Datakit
 
-注意更换下面的 `datakit.dataway_url`
-
 ```shell
-$ helm install <RELEASE_NAME> datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
-``` 
+$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+```
+
+> 注意修改 `datakit.dataway_url` 参数
+
+具体执行如下：
+
+```
+$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=xxxxxxxxx" --create-namespace 
+```
 
 #### 查看部署状态
 
 ```shell
 $ helm -n datakit list
-``` 
+```
 
 #### 升级
 
 ```shell
 $ helm repo update 
-$ helm install <RELEASE_NAME> datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
+$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
 ```
 
 #### 卸载
 
 ```shell
-$ helm uninstall <RELEASE_NAME> -n datakit
+$ helm uninstall datakit -n datakit
 ```
 
 ### 普通 yaml 安装
@@ -82,7 +88,7 @@ $ helm uninstall <RELEASE_NAME> -n datakit
 
 ```shell
 $ kubectl apply -f datakit.yaml
-``` 
+```
 
 #### 查看运行状态
 
@@ -90,7 +96,7 @@ $ kubectl apply -f datakit.yaml
 
 ```shell
 $ kubectl get pod -n datakit
-``` 
+```
 
 #### Kubernetes 污点容忍度配置
 
