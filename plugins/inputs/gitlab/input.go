@@ -33,8 +33,16 @@ const (
     ## param type: string - optional: time units are "ms", "s", "m", "h" - default: 10s
     interval = "10s"
 
+	## datakit can listen to gitlab ci data at /v1/gitlab when enabled
     enable_ci_visibility = true
 
+	## extra tags for gitlab-ci data.
+	## these tags will not overwrite existing tags.
+    [inputs.gitlab.ci_extra_tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
+
+	## extra tags for gitlab metrics
     [inputs.gitlab.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"
@@ -50,10 +58,12 @@ func init() { //nolint:gochecknoinits
 }
 
 type Input struct {
-	URL                string            `toml:"prometheus_url"`
-	Interval           string            `toml:"interval"`
-	Tags               map[string]string `toml:"tags"`
+	URL      string            `toml:"prometheus_url"`
+	Interval string            `toml:"interval"`
+	Tags     map[string]string `toml:"tags"`
+
 	EnableCIVisibility bool              `toml:"enable_ci_visibility"`
+	CIExtraTags        map[string]string `toml:"ci_extra_tags"`
 
 	httpClient *http.Client
 	duration   time.Duration
@@ -89,6 +99,7 @@ func newInput() *Input {
 		semStop: sem,
 
 		EnableCIVisibility: true,
+		CIExtraTags:        make(map[string]string),
 		reqMemo: requestMemo{
 			memoMap:     map[[16]byte]time.Time{},
 			hasReqCh:    make(chan hasRequest),
