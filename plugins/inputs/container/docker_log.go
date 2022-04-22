@@ -379,9 +379,9 @@ func (c *containerLog) LineProto() (*iod.Point, error) { return nil, nil }
 //nolint:lll
 func (c *containerLog) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "日志数据",
+		Name: "容器日志",
 		Type: "logging",
-		Desc: "source 默认使用容器 image_short_name（如果是 k8s 创建容器，会打上一个形如 'io.kubernetes.container.name' 的 label，DataKit 将其用作 source",
+		Desc: "日志来源设置，参见[这里](container#6de978c3)",
 		Tags: map[string]interface{}{
 			"container_name": inputs.NewTagInfo(`容器名称`),
 			"container_id":   inputs.NewTagInfo(`容器ID`),

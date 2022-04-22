@@ -21,10 +21,7 @@
     - 对象 `kubernetes_clusters` 这个指标集改名为 `kubernetes_cluster_roles`
     - 原 `kubernetes.cluster` 这个 count 改名为 `kubernetes.cluster_role`
   - 修复 namespace 字段命名问题(#724)
-  - 容器日志采集中，如果 Pod Annotation 不指定日志 `source`，那么 `source` 默认的取值顺序依次为(#708/#723)
-    - 容器名：一般从容器的 `io.kubernetes.container.name` 这个 label 上取值
-    - short-image-name: 镜像名，如 `nginx.org/nginx:1.21.0` 则取 `nginx`
-    - `unknown`: 如果镜像名无效（如 `sha256...`），则取该未知值
+  - 容器日志采集中，如果 Pod Annotation 不指定日志 `source`，那么 DataKit 将按照[此优先级来推导日志来源](container#6de978c3)(#708/#723)
   - 对象上报不再受 32KB 字长限制（因 Annotation 内容超 32KB）(#709)
 	  - 所有 Kubernetes 对象均删除 `annotation` 这一 field
   - 修复 prom 采集器不因 Pod 退出的问题(#716)

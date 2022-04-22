@@ -34,7 +34,7 @@ $ helm repo update
 注意更换下面的 `datakit.dataway_url`
 
 ```shell
-$ helm install <RELEASE_NAME> datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
 ``` 
 
 #### 查看部署状态
@@ -47,13 +47,13 @@ $ helm -n datakit list
 
 ```shell
 $ helm repo update 
-$ helm install <RELEASE_NAME> datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
+$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
 ```
 
 #### 卸载
 
 ```shell
-$ helm uninstall <RELEASE_NAME> -n datakit
+$ helm uninstall datakit -n datakit
 ```
 
 ### 普通 yaml 安装

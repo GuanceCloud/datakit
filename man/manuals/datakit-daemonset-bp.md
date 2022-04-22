@@ -132,14 +132,14 @@ dkconfig:
 ```shell
 $ cd datakit # 此目录为 helm pull 的目录
 $ helm repo update 
-$ helm install <RELEASE_NAME> datakit/datakit -f values.yaml -n datakit  --create-namespace 
+$ helm install datakit datakit/datakit -f values.yaml -n datakit  --create-namespace 
 ```
 
 升级
 
 ```shell
 $ helm repo update 
-$ helm upgrade <RELEASE_NAME> . -n datakit  -f values.yaml
+$ helm upgrade datakit . -n datakit  -f values.yaml
 
 Release "datakit" has been upgraded. Happy Helming!
 NAME: datakit
@@ -210,7 +210,7 @@ path/to/local/git/repo
 ```shell
 $ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
 $ helm repo update 
-$ helm install <RELEASE_NAME> datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
+$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
 --set git_repos.git_url="http://username:password@github.com/path/to/repository.git" \
 --create-namespace 
 ```
@@ -226,7 +226,7 @@ $ helm install <RELEASE_NAME> datakit/datakit -n datakit --set datakit.dataway_u
 ```shell
 $ helm repo add datakti  https://pubrepo.guance.com/chartrepo/datakit
 $ helm repo update 
-$ helm install <RELEASE_NAME> datakti/datakit -n datakit \
+$ helm install datakit datakti/datakit -n datakit \
   --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
   --set git_repos.git_url="git@github.com:path/to/repository.git" \
   --set-file git_repos.git_key_path="/Users/buleleaf/.ssh/id_rsa" \

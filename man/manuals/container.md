@@ -80,7 +80,7 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
 [
   {
     "disable"        : false,
-    "source"         : "testing-source",
+    "source"         : "testing-source", 
     "service"        : "testing-service",
     "pipeline"       : "test.p",
     "only_images"    : ["image:<your_image_regexp>"], # 用法和上文的 `根据 image 过滤容器` 完全相同，`image:` 后面填写正则表达式
@@ -89,20 +89,27 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
 ]
 ```
 
+
+各个字段说明：
+
+| 字段名            | 必填 | 取值             | 默认值 | 说明                                                                                                                                                       |
+| -----             | ---- | ----             | ----   | ----                                                                                                                                                       |
+| `disable`         | N    | true/false       | false  | 是否禁用该 pod/容器的日志采集                                                                                                                              |
+| `source`          | N    | 字符串           | 无     | 日志来源，参见[容器日志采集的 source 设置](container#6de978c3)                                                                                                               |
+| `service`         | N    | 字符串           | 无     | 日志隶属的服务，默认值为日志来源（source）                                                                                                                 |
+| `pipeline`        | N    | 字符串           | 无     | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                 |
+| `only_images`     | N    | 字符串数组       | 无     | 针对 Pod 内部多容器情景，如果填写了任何 image 通配，则只采集能匹配这些 image 的容器的日志，类似白名单功能；如果字段为空，即认为采集该 Pod 中所有容器的日志 |
+| `multiline_match` | N    | 正则表达式字符串 | 无     | 用于多行日志匹配时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是4个数字，在正则表达式规则中`\d` 是数字，前面的 `\` 是用来转义                   |
+
 如果是在终端命令行添加 Annotations，注意添加转义字符（以下示例两边是单引号，所以无需对双引号做转义）：
 
-```
-## foo 是 Pod name
-kubectl annotate pods foo datakit/logs='[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\d{4}-\\d{2}\"}]'
+```shell
+kubectl annotate pods my-pod datakit/logs='[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\d{4}-\\d{2}\"}]'
 ```
 
-注意：
+> 关于 Docker 容器添加 Label 的方法，参见[这里](https://docs.docker.com/engine/reference/commandline/run/#set-metadata-on-container--l---label---label-file)。
 
-- 如果该 JSON 配置的 `disable` 字段为 `true`，则不采集此 Pod 的所有容器日志。
-- `only_images` 针对 Pod 内部多容器情景，如果填写了任何 image 通配，则只采集能匹配这些 image 的容器的日志，类似白名单功能；如果字段为空，即认为采集该 Pod 中所有容器的日志
-- `multiline_match` 配置要做转义，例如 `"multiline_match":"^\\d{4}"` 表示行首是4个数字，在正则表达式规则中`\d` 是数字，前面的 `\` 是用来转义。
-- 容器添加 Labels 的方法[文档](https://docs.docker.com/engine/reference/commandline/run/#set-metadata-on-container--l---label---label-file)
-- Kubernetes 一般不会直接创建 Pod 也不添加 Annotations，可以在创建 Deployment 时以 `template` 模式添加 Annotations，由此 Deployment 生成的所有 Pod 都会携带 Annotations，例如：
+在 Kubernetes 可以在创建 Deployment 时，以 `template` 模式添加 Pod Annotations，例如：
 
 ```yaml
 apiVersion: apps/v1
@@ -124,7 +131,8 @@ spec:
               "source": "testing-source",
               "service": "testing-service",
               "pipeline": "test.p",
-              "multiline_match": "^\d{4}-\d{2}"
+              "multiline_match": "^\d{4}-\d{2}",
+							"only_images": ["image:.*nginx.*", "image:.*my_app.*"]
             }
           ]
 ```
@@ -295,6 +303,16 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 ```
 
 每一条文本的处理耗时将==额外增加== `1616 ns` 不等。如果日志中不带有颜色等修饰，不要开启该功能。
+
+### 容器日志采集的 source 设置
+
+在容器环境下，日志来源（`source`）设置是一个很重要的配置项，它直接影响在页面上的展示效果。但如果挨个给每个容器的日志配置一个 source 未免残暴。如果不手动配置容器日志来源，DataKit 有如下规则（优先级递减）用于自动推断容器日志的来源：
+
+> 所谓不手动指定容器日志来源，就是指在 Pod Annotation 中不指定，在 container.conf 中也不指定（目前 container.conf 中无指定容器日志来源的配置项）
+
+- 容器名：一般从容器的 `io.kubernetes.container.name` 这个 label 上取值。如果不是 Kubernetes 创建的容器（比如只是单纯的 Docker 环境，那么此 label 没有，故不以容器名作为日志来源）
+- short-image-name: 镜像名，如 `nginx.org/nginx:1.21.0` 则取 `nginx`。在非 Kubernetes 容器环境下，一般首先就是取（精简后的）镜像名
+- `unknown`: 如果镜像名无效（如 `sha256:b733d4a32c...`），则取该未知值
 
 ## 延伸阅读
 

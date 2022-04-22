@@ -200,16 +200,18 @@ Traceback (most recent call last):
 
 有效的 `status` 字段值如下（不区分大小写）：
 
-| 简写                  | 有效字段值            | 最终显示值 |
-| :----                 | ------------          | ----       |
-| `a`                   | `alert`               | `alert`    |
-| `c`                   | `critical`            | `critical` |
-| `e`                   | `error`               | `error`    |
-| `w`                   | `warning`             | `warning`  |
-| `n`                   | `notice`              | `notice`   |
-| `i`                   | `info`                | `info`     |
-| `d`                   | `debug/trace/verbose` | `debug`    |
-| `o` 或 `s`（success） | `OK`                  | `OK`       |
+| 日志可用等级          | 简写    | Studio 显示值 |
+| ------------          | :----   | ----          |
+| `alert`               | `a`     | `alert`       |
+| `critical`            | `c`     | `critical`    |
+| `error`               | `e`     | `error`       |
+| `warning`             | `w`     | `warning`     |
+| `notice`              | `n`     | `notice`      |
+| `info`                | `i`     | `info`        |
+| `debug/trace/verbose` | `d`     | `debug`       |
+| `OK`                  | `o`/`s` | `OK`          |
+
+> 注：如果日志等级（status）不属于上述任何一种（含简写），那么 DataKit 会将其 status 字段置为 `unknown`。该功能在 [1.2.15](changelog#b6b4b295) 版本发布。
 
 示例：假定文本数据如下：
 
