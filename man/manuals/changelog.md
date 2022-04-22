@@ -54,6 +54,7 @@
 - 支持主机安装时通过 [cgroup 限制内存](datakit-conf#4e7ff8f3)使用(#641)
 - 完善日志黑名单功能，新增 contain/notcontain 判定规则(#665)
   - 支持在 datakit.conf 中[配置日志/对象/Tracing/时序指标这几类黑名单](datakit-filter#045b45e3)
+	- 注意：升级该版本，要求 DataWay 升级到 1.2.1+，kodo 升级到 xxx 版本
 - 进一步完善 [containerd 下的容器采集](container)(#402)
 - 调整 monitor 布局，增加黑名单过滤情况展示(#634)
 - DaemonSet 安装增加 [Helm 支持](datakit-daemonset-deploy)(#653)

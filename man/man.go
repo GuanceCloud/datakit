@@ -35,6 +35,7 @@ var (
 		"datakit-input-conf": "man/manuals/datakit-input-conf.md",
 
 		"datakit-daemonset-deploy": "man/manuals/datakit-daemonset-deploy.md",
+		"datakit-daemonset-update": "man/manuals/datakit-daemonset-update.md",
 		"datakit-daemonset-bp":     "man/manuals/datakit-daemonset-bp.md",
 		"datakit-dql-how-to":       "man/manuals/datakit-dql-how-to.md",
 		"datakit-filter":           "man/manuals/datakit-filter.md",
