@@ -52,6 +52,8 @@ func (fields fieldsType) addSlice(key string, value []string) {
 	fields[key] = strings.Join(value, ",")
 }
 
+const maxMessageLength = 256 * 1024 // 256KB
+
 func (fields fieldsType) mergeToMessage(tags map[string]string) {
 	temp := make(map[string]interface{})
 	for k, v := range tags {
@@ -63,6 +65,10 @@ func (fields fieldsType) mergeToMessage(tags map[string]string) {
 	b, err := json.Marshal(temp)
 	if err != nil {
 		return
+	}
+	// limit length
+	if len(b) > maxMessageLength {
+		b = b[:maxMessageLength]
 	}
 	fields["message"] = string(b)
 }

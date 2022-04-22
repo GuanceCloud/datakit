@@ -39,7 +39,8 @@ func Start() error {
 
 	defaultIO.in = make(chan *iodata, defaultIO.conf.FeedChanSize)
 	defaultIO.in2 = make(chan *iodata, defaultIO.conf.HighFreqFeedChanSize)
-	defaultIO.inLastErr = make(chan *lastError, 128)
+	defaultIO.inLastErr = make(chan *lastError, datakit.CommonChanCap)
+
 	defaultIO.inputstats = map[string]*InputsStat{}
 	defaultIO.cache = map[string][]*Point{}
 	defaultIO.dynamicCache = map[string][]*Point{}

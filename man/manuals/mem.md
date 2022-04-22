@@ -27,6 +27,7 @@ mem 采集器用于收集系统内存信息，一些通用的指标如主机总�
 | 环境变量名           | 对应的配置参数项 | 参数示例                                                     |
 | :---                 | ---              | ---                                                          |
 | `ENV_INPUT_MEM_TAGS` | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+| `ENV_INPUT_MEM_INTERVAL` | `interval` | `10s` |
 
 ## 指标集
 
