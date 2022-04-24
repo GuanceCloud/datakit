@@ -437,7 +437,7 @@ func installNewDatakit(svc service.Service) {
 		case service.StatusUnknown: // pass
 		case service.StatusStopped:
 			if err := service.Control(svc, "uninstall"); err != nil {
-				l.Fatalf("uninstall service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
+				l.Warnf("uninstall service failed: %s", err.Error())
 			}
 		case service.StatusRunning: // should not been here
 			l.Fatalf("unexpected: datakit service should have stopped")
@@ -837,7 +837,7 @@ func mvOldDatakit(svc service.Service) {
 	}
 
 	if err := service.Control(svc, "uninstall"); err != nil {
-		l.Fatalf("uninstall service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
+		l.Warnf("uninstall service failed: %s", err.Error())
 	}
 
 	if err := os.Rename(olddir, datakit.InstallDir); err != nil {
