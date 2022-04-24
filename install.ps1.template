@@ -307,7 +307,7 @@ if ($x -ne $null) {
 ##########################
 $arch = "amd64"
 if ([Environment]::Is64BitProcess -ne [Environment]::Is64BitOperatingSystem) {
-	$arch="i386"
+	$arch="386"
 }
 
 $installer_url = "$installer_base_url/installer-windows-$arch-{{.Version}}.exe"
