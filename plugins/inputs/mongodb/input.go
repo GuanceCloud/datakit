@@ -212,7 +212,6 @@ func (m *Input) Run() {
 	for {
 		if m.pause {
 			l.Debugf("not leader, skipped")
-			continue
 		} else if err := m.gather(); err != nil {
 			l.Errorf("gather: %s", err.Error())
 			io.FeedLastError(inputName, err.Error())
