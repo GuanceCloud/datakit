@@ -141,6 +141,12 @@ func (i *Input) exit() {
 	i.Ogrpc.stop()
 }
 
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+	}
+}
+
 func (i *Input) Run() {
 	l = logger.SLogger("otlp-log")
 	storage := collector.NewSpansStorage()
