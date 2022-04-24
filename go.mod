@@ -5,10 +5,9 @@ go 1.16
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
 	github.com/BurntSushi/toml v0.3.1
-	github.com/DataDog/datadog-go v4.8.3+incompatible // indirect
+	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/DataDog/gopsutil v0.0.0-20210826200402-bbfc5b0ae6e9 // indirect
-	github.com/DataDog/obfuscate v1.0.0
 	github.com/DataDog/sketches-go v1.3.0 // indirect
 	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/Microsoft/go-winio v0.5.2 // indirect
@@ -21,11 +20,12 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/chromedp/cdproto v0.0.0-20210910012206-68626162910d // indirect
 	github.com/chromedp/chromedp v0.7.4 // indirect
+	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575
 	github.com/containerd/cgroups v1.0.1
 	github.com/containerd/containerd v1.5.5
 	github.com/containerd/typeurl v1.0.2
 	github.com/denisenkom/go-mssqldb v0.10.0
-	github.com/dgraph-io/ristretto v0.1.0 // indirect
+	github.com/dgraph-io/ristretto v0.1.0
 	github.com/didip/tollbooth/v6 v6.1.2
 	github.com/docker/docker v20.10.8+incompatible
 	github.com/dustin/go-humanize v1.0.0
@@ -116,7 +116,6 @@ require (
 	golang.org/x/sys v0.0.0-20220330033206-e17cdc41300f
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/text v0.3.7
-	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65 // indirect
 	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.18
