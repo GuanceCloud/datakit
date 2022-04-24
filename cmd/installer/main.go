@@ -79,6 +79,8 @@ var (
 	flagIpdb,
 	flagGinLog,
 	flagEnableElection,
+	flagEnablePProf,
+	flagPProfListen,
 	flagDisable404Page string
 
 	flagInstallOnly,
@@ -127,6 +129,8 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagLogLevel, "log-level", "", "log level setting")
 	flag.StringVar(&flagLog, "log", "", "log setting")
 	flag.StringVar(&flagGinLog, "gin-log", "", "gin log setting")
+	flag.StringVar(&flagEnablePProf, "enable-pprof", "", "enable pprof")
+	flag.StringVar(&flagPProfListen, "pprof-listen", "", "pprof listen")
 	flag.StringVar(&flagSrc, "srcs",
 		fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz",
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
@@ -296,7 +300,7 @@ Data           : %s
 		case service.StatusRunning:
 			l.Info("stoping datakit...")
 			if err = service.Control(svc, "stop"); err != nil {
-				l.Fatalf("stop service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error())
+				l.Fatalf("stop service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
 			}
 		}
 	}
@@ -333,7 +337,7 @@ Data           : %s
 	} else {
 		l.Infof("starting service %s...", dkservice.ServiceName)
 		if err = service.Control(svc, "start"); err != nil {
-			l.Fatalf("start service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error())
+			l.Fatalf("start service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
 		}
 	}
 
@@ -413,7 +417,7 @@ func upgradeDatakit(svc service.Service) error {
 	}
 
 	if err := service.Control(svc, "install"); err != nil {
-		l.Fatalf("install service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error())
+		l.Fatalf("install service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
 	}
 
 	return nil
@@ -480,6 +484,14 @@ func installNewDatakit(svc service.Service) {
 				}
 			}
 		}
+	}
+
+	if flagEnablePProf != "" {
+		config.Cfg.EnablePProf = true
+	}
+
+	if flagPProfListen != "" {
+		config.Cfg.PProfListen = flagPProfListen
 	}
 
 	// Only linux support cgroup.
@@ -608,7 +620,7 @@ func installNewDatakit(svc service.Service) {
 
 	l.Infof("installing service %s...", dkservice.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
-		l.Fatalf("uninstall service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error())
+		l.Fatalf("uninstall service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
 	}
 }
 

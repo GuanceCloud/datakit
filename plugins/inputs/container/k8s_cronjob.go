@@ -33,7 +33,7 @@ func exportCronJob(items []v1beta1.CronJob, extraTags tagsType) k8sResourceStats
 		obj.tags["name"] = fmt.Sprintf("%v", item.UID)
 		obj.tags["cron_job_name"] = item.Name
 
-		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
+		obj.tags.addValueIfNotEmpty("cluster_name", defaultClusterName(item.ClusterName))
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		obj.tags.append(extraTags)
 
@@ -50,6 +50,7 @@ func exportCronJob(items []v1beta1.CronJob, extraTags tagsType) k8sResourceStats
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
+		delete(obj.fields, "annotations")
 
 		obj.time = time.Now()
 		res.set(defaultNamespace(item.Namespace), obj)
@@ -91,7 +92,6 @@ func (*cronJob) Info() *inputs.MeasurementInfo {
 			"schedule":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron"},
 			"active_jobs": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of pointers to currently running jobs."},
 			"suspend":     &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "This flag tells the controller to suspend subsequent executions, it does not apply to already started executions."},
-			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
 			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 		},
 	}

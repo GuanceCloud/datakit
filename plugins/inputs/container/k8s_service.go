@@ -36,7 +36,7 @@ func exportService(items []v1.Service, extraTags tagsType) k8sResourceStats {
 			"type":         fmt.Sprintf("%v", item.Spec.Type),
 		}
 
-		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
+		obj.tags.addValueIfNotEmpty("cluster_name", defaultClusterName(item.ClusterName))
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		obj.tags.append(extraTags)
 
@@ -48,12 +48,11 @@ func exportService(items []v1.Service, extraTags tagsType) k8sResourceStats {
 			"session_affinity":        fmt.Sprintf("%v", item.Spec.SessionAffinity),
 		}
 
-		// obj.fields.addSlice("selectors", item.Spec.Selector)
-		// obj.fields.addSlice("load_balancer_ingress", item.Status.LoadBalancer)
 		obj.fields.addSlice("external_ips", item.Spec.ExternalIPs)
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
+		delete(obj.fields, "annotations")
 
 		obj.time = time.Now()
 		res.set(defaultNamespace(item.Namespace), obj)
@@ -98,13 +97,7 @@ func (*service) Info() *inputs.MeasurementInfo {
 			"external_name":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "externalName is the external reference that kubedns or equivalent will return as a CNAME record for this service."},
 			"external_traffic_policy": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "externalTrafficPolicy denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints."},
 			"session_affinity":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: `Supports "ClientIP" and "None".`},
-			"annotations":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
 			"message":                 &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
-			// TODO:
-			// "load_balancer_ingress":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			// "selectors":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			// "ip_family":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			// "ports":                   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }

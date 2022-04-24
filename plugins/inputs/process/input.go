@@ -33,7 +33,7 @@ var (
 
 type proccpu struct {
 	createTime int64
-	cputime    *cpu.TimesStat
+	cputime    cpu.TimesStat
 	ts         time.Time
 }
 
@@ -69,7 +69,6 @@ func (p *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("process start...")
-	io.FeedEventLog(&io.Reporter{Message: "process start ok, ready for collecting metrics.", Logtype: "event"})
 
 	if p.ProcessName != nil {
 		re := strings.Join(p.ProcessName, "|")
@@ -98,10 +97,9 @@ func (p *Input) Run() {
 			defer tick.Stop()
 			for {
 				p.WriteMetric(lastProc)
+				lastProc = p.getProcessMap()
 				select {
 				case <-tick.C:
-					lastProc = p.getProcessMap()
-
 				case <-datakit.Exit.Wait():
 					l.Info("process write metric exit")
 					return
@@ -116,12 +114,11 @@ func (p *Input) Run() {
 
 	lastProc := p.getProcessMap()
 	time.Sleep(time.Second * 2)
-
 	for {
 		p.WriteObject(lastProc)
+		lastProc = p.getProcessMap()
 		select {
 		case <-tick.C:
-			lastProc = p.getProcessMap()
 		case <-datakit.Exit.Wait():
 			l.Info("process write object exit")
 			return
@@ -143,6 +140,8 @@ func (p *Input) Terminate() {
 //   ENV_INPUT_OPEN_METRIC : booler   // deprecated
 //   ENV_INPUT_HOST_PROCESSES_OPEN_METRIC : booler
 //   ENV_INPUT_HOST_PROCESSES_TAGS : "a=b,c=d"
+//   ENV_INPUT_HOST_PROCESSES_PROCESS_NAME : []string
+//   ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME : datakit.Duration
 func (p *Input) ReadEnv(envs map[string]string) {
 	// deprecated
 	if open, ok := envs["ENV_INPUT_OPEN_METRIC"]; ok {
@@ -167,6 +166,25 @@ func (p *Input) ReadEnv(envs map[string]string) {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
 			p.Tags[k] = v
+		}
+	}
+
+	//   ENV_INPUT_HOST_PROCESSES_PROCESS_NAME : []string
+	//   ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME : datakit.Duration
+	if str, ok := envs["ENV_INPUT_HOST_PROCESSES_PROCESS_NAME"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add PROCESS_NAME from ENV: %v", arrays)
+		p.ProcessName = append(p.ProcessName, arrays...)
+	}
+
+	if str, ok := envs["ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME to time.Duration: %s, ignore", err)
+		} else {
+			p.RunTime.Duration = config.ProtectedInterval(minObjectInterval,
+				maxObjectInterval,
+				da)
 		}
 	}
 }
@@ -247,7 +265,7 @@ func (p *Input) getProcessMap() map[int32]proccpu {
 
 		procMap[ps.Pid] = proccpu{
 			createTime: t,
-			cputime:    cputime,
+			cputime:    *cputime,
 			ts:         ctime,
 		}
 	}
@@ -302,13 +320,15 @@ func (p *Input) Parse(ps *pr.Process, lastProcess map[int32]proccpu) (username, 
 		state = status[0]
 	}
 
-	mem, err := ps.MemoryInfo()
+	// you may get a null pointer here
+	memInfo, err := ps.MemoryInfo()
 	if err != nil {
 		l.Warnf("process:%s,pid:%d get memoryinfo err:%s", name, ps.Pid, err.Error())
 	} else {
-		message["memory"] = mem
-		fields["rss"] = mem.RSS
+		message["memory"] = memInfo
+		fields["rss"] = memInfo.RSS
 	}
+
 	memPercent, err := ps.MemoryPercent()
 	if err != nil {
 		l.Warnf("process:%s,pid:%d get mempercent err:%s", name, ps.Pid, err.Error())
@@ -318,30 +338,35 @@ func (p *Input) Parse(ps *pr.Process, lastProcess map[int32]proccpu) (username, 
 
 	crtTime := getStartTime(ps)
 	created := time.Unix(0, crtTime*int64(time.Millisecond))
-	cpu, err := ps.Times()
+
+	// you may get a null pointer here
+	cpuTime, err := ps.Times()
 	if err != nil {
 		l.Warnf("process:%s,pid:%d get cpu err:%s", name, ps.Pid, err.Error())
 		l.Warnf("process:%s,pid:%d get cpupercent err:%s", name, ps.Pid, err.Error())
 	} else {
 		totalTime := time.Since(created).Seconds()
-		message["cpu"] = cpu
-		fields["cpu_usage"] = 100 * (cpu.User + cpu.System) / totalTime
-	}
+		message["cpu"] = cpuTime
+		fields["cpu_usage"] = 100 * (cpuTime.User + cpuTime.System) / totalTime
 
-	if lastP, ok := lastProcess[ps.Pid]; ok {
-		if lastP.createTime == crtTime {
-			usage := 100 * (cpu.User + cpu.System - lastP.cputime.User - lastP.cputime.System) / time.Since(lastP.ts).Seconds()
+		if lastP, ok := lastProcess[ps.Pid]; ok {
+			var usage float64
+			if lastP.createTime == crtTime {
+				sec := time.Since(lastP.ts).Seconds()
+				if sec > 0 {
+					usage = 100 * (cpuTime.User + cpuTime.System - lastP.cputime.User - lastP.cputime.System) / sec
+				}
+			} else {
+				l.Debug("cpu_usage_top: lastP %d %d", lastP.createTime, crtTime)
+			}
 			if usage < 0 {
 				usage = 0
 			}
 			fields["cpu_usage_top"] = usage
 		} else {
 			fields["cpu_usage_top"] = 0
-			l.Debug("cpu_usage_top: lastP %d %d", lastP.createTime, crtTime)
+			l.Debug("cpu_usage_top: pid %d", ps.Pid)
 		}
-	} else {
-		fields["cpu_usage_top"] = 0
-		l.Debug("cpu_usage_top: pid %d", ps.Pid)
 	}
 
 	Threads, err := ps.NumThreads()
@@ -444,6 +469,7 @@ func (p *Input) WriteObject(lastProc map[int32]proccpu) {
 		l.Errorf("FeedMeasurement err :%s", err.Error())
 		p.lastErr = err
 	}
+
 	if p.lastErr != nil {
 		io.FeedLastError(inputName, p.lastErr.Error())
 		p.lastErr = nil

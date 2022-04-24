@@ -64,7 +64,7 @@ const (
 
   ## if file is inactive, it is ignored
   ## time units are "ms", "s", "m", "h"
-  # ignore_dead_log = "1h"
+  ignore_dead_log = "10m"
 
   [inputs.logging.tags]
   # some_tag = "some_value"
@@ -247,7 +247,7 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志正文，默认存在，可以使用 pipeline 删除此字段"},
-			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，默认为 `info`，采集器会该字段做支持映射，映射表见上述 pipelie 配置和使用"},
+			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，默认为 `unknown`，采集器会该字段做支持映射，映射表见上述 pipelie 配置和使用"},
 		},
 	}
 }

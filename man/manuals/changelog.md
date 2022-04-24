@@ -2,12 +2,56 @@
 
 # DataKit 版本历史
 
+## 1.2.15(2022/04/21)
+
+本次发布属于迭代发布，含大量问题修复
+
+- Pipeline 模块修复 Grok 中[动态多行 pattern](datakit-pl-how-to#88b72768) 问题(#720)
+- 移除掉一些不必要的 DataKit 事件日志上报(#704)
+- 修复升级程序可能导致的升级失败问题(#699)
+- DaemonSet 增加[开启 pprof 环境变量]()配置(#697)
+- DaemonSet 中所有[默认开启采集器]()各个配置均支持通过环境变量配置(#693)
+- Tracing 采集器初步支持 [Pipeline 数据处理]()(#675)
+  - [DDtrace 配置示例](ddtrace#69995abe)
+- 拨测采集器增加失败任务退出机制(#54)
+- 优化 Helm 安装(#695)
+- 日志新增 `unknown` 等级（status），对于未指定等级的日志均为 `unknown`(#685)
+- 容器采集器大量修复
+  - 修复 cluster 字段命名问题(#542)
+    - 对象 `kubernetes_clusters` 这个指标集改名为 `kubernetes_cluster_roles`
+    - 原 `kubernetes.cluster` 这个 count 改名为 `kubernetes.cluster_role`
+  - 修复 namespace 字段命名问题(#724)
+  - 容器日志采集中，如果 Pod Annotation 不指定日志 `source`，那么 `source` 默认的取值顺序依次为(#708/#723)
+    - 容器名：一般从容器的 `io.kubernetes.container.name` 这个 label 上取值
+    - short-image-name: 镜像名，如 `nginx.org/nginx:1.21.0` 则取 `nginx`
+    - `unknown`: 如果镜像名无效（如 `sha256...`），则取该未知值
+  - 对象上报不再受 32KB 字长限制（因 Annotation 内容超 32KB）(#709)
+	  - 所有 Kubernetes 对象均删除 `annotation` 这一 field
+  - 修复 prom 采集器不因 Pod 退出的问题(#716)
+- 其它问题修复(#721)
+
+---
+
+## 1.2.14(2022/04/12)
+
+本次发布属于 hotfix 发布，同时包含部分小的修改和调整：
+
+- 修复日志采集器的 monitor 展示问题以及部分出错日志等级调整(#706)
+- 修复拨测采集器内存泄露问题(#702)
+- 修复主机进程采集器奔溃问题(#700)
+- 日志采集器采集选项 `ignore_dead_log = '10m'` 默认开启(#698)
+- 优化 Git 管理的配置同步逻辑(#696)
+- eBPF 修复 netflow 中错误的 ip 协议字段(#694)
+- 丰富 Gitlab 采集器字段
+
+---
+
 ## 1.2.13(2022/04/08)
 
 本次发布属于迭代发布，更新内容如下：
 
 - 增加宿主机运行时的[内存限制](datakit-conf#4e7ff8f3)(#641)
-	- 安装阶段即支持[内存限制配置](datakit-install#03be369a)
+  - 安装阶段即支持[内存限制配置](datakit-install#03be369a)
 - CPU 采集器增加 [load5s 指标](cpu#13e60209)(#606)
 - 完善 datakit.yaml 示例(#678)
 - 支持主机安装时通过 [cgroup 限制内存](datakit-conf#4e7ff8f3)使用(#641)
@@ -239,7 +283,7 @@
   - 优化磁盘采集，默认不会再采集无效磁盘（比如总大小为 0 的一些磁盘）(#505)
 - [日志采集器](logging) 支持接收 TCP/UDP 日志流(#503)
 - [Prom 采集器](prom) 支持多 URL 采集(#506)
-- 新增 [eBPF](ebpf) 采集器，它集成了 L4-network/DNS/Bash 等 eBFP 数据采集(507)
+- 新增 [eBPF](ebpf) 采集器，它集成了 L4-network/DNS/Bash 等 eBPF 数据采集(507)
 - [ElasticSearch 采集器](elasticsearch) 增加 [Open Distro](https://opendistro.github.io/for-elasticsearch/) 分支的 ElasticSearch 支持(#510)
 
 ### Bug 修复

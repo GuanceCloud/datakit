@@ -10,4 +10,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: {{ include "datakit.fullname" . }}
-  namespace: default
+  namespace: {{ .Release.Namespace }}

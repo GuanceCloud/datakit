@@ -55,7 +55,7 @@
   character_encoding = ""
   
   ## 无论从文件读取还是从socket中读取的日志, 默认的单行最大长度为 32k
-  ## 如果您的日志单行有超过32K的情况， 请配置 maximum_length 为可能的最大长度
+  ## 如果您的日志单行有超过32K的情况，请配置 maximum_length 为可能的最大长度
   ## 但是 maximum_length 最大可以配置成32M
   # maximum_length = 32766
 
@@ -68,9 +68,9 @@
   ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
   remove_ansi_escape_codes = false
   
-  ## 忽略不活跃的文件，例如文件最后一次修改是 2 个小时之前，距今超出 1h，则会忽略此文件
+  ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
   ## 时间单位支持 "ms", "s", "m", "h"
-  # ignore_dead_log = "1h"
+  ignore_dead_log = "10m"
 
   # 自定义 tags
   [inputs.logging.tags]
@@ -78,6 +78,8 @@
   # more_tag = "some_other_value"
   # ...
 ```
+
+> 关于 `ignore_dead_log` 的说明：如果文件已经在采集，但 10min 内没有新日志写入的话，DataKit 会关闭该文件的采集。在这期间（10min），该文件**不能**被物理删除（如 `rm` 之后，该文件只是标记删除，DataKit 关闭该文件后，该文件才会真正被删除）。
 
 ### socket 采集日志
 
@@ -137,6 +139,52 @@ Traceback (most recent call last):
 ZeroDivisionError: division by zero
 " 1611746441941718584
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.0" 1611746443938917265
+```
+
+#### 超长多行日志处理的限制
+
+目前最多能处理不超过 1000 行的单条多行日志，如果实际多行日志超过 1000 行，DataKit 会将其识别成多条。举例如下，假定有如下多行日志，我们要将其识别成单条日志：
+
+```log
+2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+    response = self.full_dispatch_request()
+      ...                                 <---- 此处省略 996 行，加上上面的 4 行，刚好 1000 行
+        File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+          response = self.full_dispatch_request()
+             ZeroDivisionError: division by zero
+2020-10-23 06:41:56,688 INFO demo.py 5.0  <---- 全新的一条多行日志
+Traceback (most recent call last):
+ ...
+```
+
+此处，由于有超长的多行日志，第一条日志总共有 1003 行，但 DataKit 这里会做一个截取动作，具体而言，这里会切割出三条日志：
+
+第一条：即头部的 1000 行
+
+```log
+2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+    response = self.full_dispatch_request()
+      ...                                 <---- 此处省略 996 行，加上上面的 4 行，刚好 1000 行
+```
+
+第二条：除去头部的 1000 条，剩余的部分独立成为一条日志
+
+```log
+        File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+          response = self.full_dispatch_request()
+             ZeroDivisionError: division by zero
+```
+
+第三条：下面一条全新的日志：
+
+```log
+2020-10-23 06:41:56,688 INFO demo.py 5.0  <---- 全新的一条多行日志
+Traceback (most recent call last):
+ ...
 ```
 
 ### Pipeline 配置和使用

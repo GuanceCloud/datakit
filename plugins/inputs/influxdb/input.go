@@ -148,8 +148,6 @@ func (i *Input) Run() {
 
 	l.Infof("influxdb input started")
 
-	io.FeedEventLog(&io.Reporter{Message: "influxdb start ok, ready for collecting metrics.", Logtype: "event"})
-
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	var tlsCfg *tls.Config
 
@@ -158,7 +156,7 @@ func (i *Input) Run() {
 		tlsCfg, err = i.TLSConf.TLSConfig()
 		if err != nil {
 			l.Error(err)
-			io.FeedLastError(inputName, err.Error())
+			io.ReportLastError(inputName, err.Error())
 			return
 		}
 	} else {

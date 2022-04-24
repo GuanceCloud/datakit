@@ -55,6 +55,8 @@ LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit doc \
 	--version "${man_version}" \
 	--TODO "-"
 
+# 雨雀有时候会返回 429 错误，只能不断重试了。但如果是其它问题（比如文档被别
+# 人手动篡改），需手动结束并移除对应文档，重新上传。
 while true
 do
 	if waque upload .docs/*.md -c "${waque_yml}"; then
