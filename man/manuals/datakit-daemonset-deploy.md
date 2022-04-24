@@ -183,11 +183,11 @@ DataKit 支持的环境变量如下各表所示。
 
 ### 日志配置相关环境变量
 
-| 环境变量名称  | 默认值                     | 必须   | 说明                                            |
-| ---------:    | ---:                       | ------ | ----                                            |
-| ENV_GIN_LOG   | */var/log/datakit/gin.log* | 否     | 如果改成 `stdout`，日志将不写文件，而是终端输出 |
-| ENV_LOG       | */var/log/datakit/log*     | 否     | 如果改成 `stdout`，日志将不写文件，而是终端输出 |
-| ENV_LOG_LEVEL | info                       | 否     | 可选值 `info/debug`                             |
+| 环境变量名称  | 默认值                     | 必须   | 说明                                                             |
+| ---------:    | ---:                       | ------ | ----                                                             |
+| ENV_GIN_LOG   | */var/log/datakit/gin.log* | 否     | 如果改成 `stdout`，DataKit 自身 gin 日志将不写文件，而是终端输出 |
+| ENV_LOG       | */var/log/datakit/log*     | 否     | 如果改成 `stdout`，DatakIt 自身日志将不写文件，而是终端输出      |
+| ENV_LOG_LEVEL | info                       | 否     | 设置 DataKit 自身日志等级，可选 `info/debug`                     |
 
 ###  DataKit pprof 相关
 
