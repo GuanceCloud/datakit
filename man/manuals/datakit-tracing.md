@@ -49,6 +49,16 @@ keep_rare_resource = false
 [sampler]
   priority = 0
   sampling_rate = 1.0
+
+## Piplines use to manipulate message and meta data. If this item configured right then
+## the current input procedure will run the scripts wrote in pipline config file against the data
+## present in span message.
+## The string on the left side of the equal sign must be identical to the service name that
+## you try to handle.
+# [inputs.ddtrace.pipelines]
+  # service1 = "service1.p"
+  # service2 = "service2.p"
+  # ...
 ```
 
 ## Datakit Tracing Backend
@@ -63,6 +73,7 @@ Datakit Tracing Backend 包括几个部分 Tracing <!--Statistics,--> Filters �
 - Samplers: 基于概率的 Tracing 数据采样。多服务环境下采样率必须配置一致才能达到采样效果，
   - 例一：A-Service(0.3) --> B-Service(0.3) --> C-Service(0.3) 配置正确，最终采样率为 30%。
   - 例二：A-Service(0.1) --> B-Service(0.3) --> C-Service(0.1) 配置错误，链路不能正常工作。
+- Piplines: [Pipeline](pipeline)为 Datakit Tracing 提供通过自定义脚本的数据操纵能力。配置文件参考 Tracing Input 的配置文件\[inputs.ddtrace.pipelines\]项。配置文件放置在/datakit/install/path/pipeline 目录下并以 xxx.p 命名，其中 xxx 为用户想要操作的 Tracing 服务名。
 
 ## About Datakit Span Struct In Production
 

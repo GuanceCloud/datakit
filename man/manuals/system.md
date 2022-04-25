@@ -27,6 +27,7 @@ system 采集器收集系统负载、正常运行时间、CPU 核心数量以及
 | 环境变量名              | 对应的配置参数项 | 参数示例                                                     |
 | :---                    | ---              | ---                                                          |
 | `ENV_INPUT_SYSTEM_TAGS` | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+| `ENV_INPUT_SYSTEM_INTERVAL` | `interval` | `10s` |
 
 ## 指标集
 

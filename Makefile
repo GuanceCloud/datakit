@@ -123,7 +123,12 @@ define build_k8s_charts
 	@echo `echo $(VERSION) | cut -d'-' -f1`
 	@sed "s,{{tag}},$(VERSION),g" charts/values.yaml > charts/datakit/values.yaml
 	@helm package charts/datakit --version `echo $(VERSION) | cut -d'-' -f1` --app-version `echo $(VERSION) | cut -d'-' -f1`
-	@helm push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1)
+	@if [ $$((`echo $(VERSION) | awk -F . '{print $$2}'`%2)) -eq 0 ];then \
+        helm cm-push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1); \
+     else \
+        helm cm-push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(2); \
+     fi
+
 	@rm -f datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz
 endef
 
@@ -153,7 +158,7 @@ testing_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
 	# we also publish testing image to public image repo
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
-	$(call build_k8s_charts, 'datakit-test-chart')
+	$(call build_k8s_charts, 'datakit-test-chart', 'datakit-community-test')
 
 production: deps # stable release
 	$(call build, production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -161,7 +166,7 @@ production: deps # stable release
 
 production_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
-	$(call build_k8s_charts, 'datakit-prod-chart')
+	$(call build_k8s_charts, 'datakit-prod-chart', 'datakit-community')
 
 production_mac: deps
 	$(call build, production, $(MAC_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))

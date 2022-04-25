@@ -33,6 +33,7 @@ var (
 	log                     = logger.DefaultSLogger("dk-election")
 	HTTPTimeout             = time.Second * 3
 	electionIntervalDefault = 4
+	CurrentElected          = "<none>"
 )
 
 const (
@@ -91,8 +92,8 @@ func (x *candidate) startElection() {
 }
 
 // Elected 此处暂不考虑互斥性，只用于状态展示.
-func Elected() (string, string) {
-	return defaultCandidate.status, defaultCandidate.namespace
+func Elected() (string, string, string) {
+	return defaultCandidate.status, defaultCandidate.namespace, CurrentElected
 }
 
 func GetElectedTime() time.Time {
@@ -151,6 +152,8 @@ func (x *candidate) keepalive() (int, error) {
 
 	log.Debugf("result body: %s", body)
 
+	CurrentElected = e.Content.IncumbencyID
+
 	switch e.Content.Status {
 	case statusFail:
 		x.status = statusFail
@@ -193,16 +196,12 @@ func (x *candidate) tryElection() (int, error) {
 
 	log.Debugf("result body: %s", body)
 
+	CurrentElected = e.Content.IncumbencyID
+
 	switch e.Content.Status {
 	case statusFail:
-		if x.status != statusFail {
-			io.FeedEventLog(&io.Reporter{Message: "election fail", Logtype: "event"})
-		}
 		x.status = statusFail
 	case statusSuccess:
-		if x.status != statusSuccess {
-			io.FeedEventLog(&io.Reporter{Message: "election success", Logtype: "event"})
-		}
 		x.status = statusSuccess
 		x.resumePlugins()
 		x.nElected++

@@ -173,7 +173,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			Operation:          span.Name,
 			Source:             inputName,
 			SpanType:           itrace.FindSpanTypeInMultiServersIntSpanID(int64(span.SpanID), int64(span.ParentID), span.Service, spanIDs, parentIDs),
-			SourceType:         ddtraceSpanType[span.Type],
+			SourceType:         getDDTraceSourceType(span.Type),
 			Tags:               itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
 			ContainerHost:      span.Meta[itrace.CONTAINER_HOST],
 			PID:                fmt.Sprintf("%d", int64(span.Metrics["system.pid"])),
@@ -211,9 +211,9 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			dkspan.Priority = itrace.PriorityReject
 		}
 
-		if dkspan.ParentID == "0" && defSampler != nil {
-			dkspan.Priority = defSampler.Priority
-			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		if dkspan.ParentID == "0" && sampler != nil {
+			dkspan.Priority = sampler.Priority
+			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
 		}
 
 		if buf, err := json.Marshal(span); err != nil {

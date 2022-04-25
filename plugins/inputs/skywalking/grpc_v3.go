@@ -79,7 +79,6 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   segment.TraceId,
 			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
-			ParentID:  "0",
 			Service:   segment.Service,
 			Resource:  span.OperationName,
 			Operation: span.OperationName,
@@ -89,12 +88,18 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
 		}
 
-		if span.SpanType == skyimpl.SpanType_Entry {
+		if span.ParentSpanId < 0 {
 			if len(span.Refs) > 0 {
 				dkspan.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId)
+			} else {
+				dkspan.ParentID = "0"
 			}
 		} else {
-			dkspan.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)
+			if len(span.Refs) > 0 {
+				dkspan.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId)
+			} else {
+				dkspan.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)
+			}
 		}
 
 		dkspan.Status = itrace.STATUS_OK
@@ -105,10 +110,10 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		switch span.SpanType {
 		case skyimpl.SpanType_Entry:
 			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
-		case skyimpl.SpanType_Local:
-			dkspan.SpanType = itrace.SPAN_TYPE_LOCAL
 		case skyimpl.SpanType_Exit:
 			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
+		case skyimpl.SpanType_Local:
+			dkspan.SpanType = itrace.SPAN_TYPE_LOCAL
 		}
 
 		sourceTags := make(map[string]string)
@@ -117,9 +122,9 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if dkspan.ParentID == "0" && defSampler != nil {
-			dkspan.Priority = defSampler.Priority
-			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		if dkspan.ParentID == "0" && sampler != nil {
+			dkspan.Priority = sampler.Priority
+			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
 		}
 
 		if buf, err := json.Marshal(span); err != nil {

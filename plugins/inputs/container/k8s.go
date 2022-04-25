@@ -2,6 +2,7 @@ package container
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -54,27 +55,27 @@ var resourceList = []string{
 }
 
 func (k *kubernetesInput) gather() (metrics, objects []inputs.Measurement, lastErr error) {
-	resourceCount := make(map[string]map[string]int)
+	// resourceCount := make(map[string]map[string]int)
 
 	/*
-		must := func(res k8sResourceStats, err error) k8sResourceStats {
-			lastErr = err
-			return res
-		}
-
-		wrapper := func(name string, res k8sResourceStats) {
-			for namespace, v := range res {
-				if x := resourceCount[namespace]; x == nil {
-					resourceCount[namespace] = make(map[string]int)
-				}
-				resourceCount[namespace][name] += len(v)
-				objects = append(objects, v...)
+			must := func(res k8sResourceStats, err error) k8sResourceStats {
+				lastErr = err
+				return res
 			}
-		}
 
-		wrapper("cluster", must(gatherCluster(k.client, k.cfg.extraTags)))
+			wrapper := func(name string, res k8sResourceStats) {
+				for namespace, v := range res {
+					if x := resourceCount[namespace]; x == nil {
+						resourceCount[namespace] = make(map[string]int)
+					}
+					resourceCount[namespace][name] += len(v)
+					objects = append(objects, v...)
+				}
+			}
+
+		wrapper("cluster_role", must(gatherClusterRole(k.client, k.cfg.extraTags)))
 		wrapper("cronjob", must(gatherCronJob(k.client, k.cfg.extraTags)))
-		// wrapper("deployment", must(gatherDeployment(k.client, k.cfg.extraTags)))
+		wrapper("deployment", must(gatherDeployment(k.client, k.cfg.extraTags)))
 		wrapper("job", must(gatherJob(k.client, k.cfg.extraTags)))
 		wrapper("node", must(gatherNode(k.client, k.cfg.extraTags)))
 		wrapper("pod", must(gatherPod(k.client, k.cfg.extraTags)))
@@ -88,15 +89,15 @@ func (k *kubernetesInput) gather() (metrics, objects []inputs.Measurement, lastE
 				c.fields[name] = elem
 			}
 
-			for _, r := range resourceList {
-				if _, ok := c.fields[r]; !ok {
-					c.fields[r] = 0
+				for _, r := range resourceList {
+					if _, ok := c.fields[r]; !ok {
+						c.fields[r] = 0
+					}
 				}
-			}
 
-			c.time = time.Now()
-			metrics = append(metrics, c)
-		}
+				c.time = time.Now()
+				metrics = append(metrics, c)
+			}
 	*/
 	return //nolint:nakedret
 }
@@ -141,14 +142,14 @@ func (*count) Info() *inputs.MeasurementInfo {
 			"namespace": &inputs.TagInfo{Desc: "namespace"},
 		},
 		Fields: map[string]interface{}{
-			"cluster":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "RBAC cluster role count(**Deprecated: this field should named with cluster_role, it's a typo**)"},
-			"deployment":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "deployment count"},
-			"node":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "node count"},
-			"pod":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "pod count"},
-			"cronjob":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "cronjob count"},
-			"job":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "job count"},
-			"service":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "service count"},
-			"replica_set": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "replica_set count"},
+			"cluster_role": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "RBAC cluster role count"},
+			"deployment":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "deployment count"},
+			"node":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "node count"},
+			"pod":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "pod count"},
+			"cronjob":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "cronjob count"},
+			"job":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "job count"},
+			"service":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "service count"},
+			"replica_set":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "replica_set count"},
 		},
 	}
 }
@@ -158,6 +159,16 @@ func defaultNamespace(ns string) string {
 		return "default"
 	}
 	return ns
+}
+
+func defaultClusterName(name string) string {
+	if name != "" {
+		return name
+	}
+	if e := os.Getenv("ENV_K8S_CLUSTER_NAME"); e != "" {
+		return e
+	}
+	return "kubernetes"
 }
 
 //nolint:gochecknoinits

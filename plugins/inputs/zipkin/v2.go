@@ -153,6 +153,10 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			Tags:      tags,
 		}
 
+		if isRootSpan(dkspan.ParentID) {
+			dkspan.ParentID = "0"
+		}
+
 		if span.TraceID.High != 0 {
 			dkspan.TraceID = fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low)
 		} else {
@@ -177,9 +181,9 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, span.Tags)
 
-		if dkspan.ParentID == "0" && defSampler != nil {
-			dkspan.Priority = defSampler.Priority
-			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		if dkspan.ParentID == "0" && sampler != nil {
+			dkspan.Priority = sampler.Priority
+			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
 		}
 
 		if buf, err := json.Marshal(span); err != nil {

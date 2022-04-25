@@ -17,7 +17,7 @@ type errMessage struct {
 	ErrContent string `json:"err_content"`
 }
 
-// apiGetDatakitLastError 获取外部采集器错误，并feederror处理.
+// apiGetDatakitLastError 获取外部采集器错误，并 feederror 处理.
 func apiGetDatakitLastError(c *gin.Context) {
 	em, err := doAPIGetDatakitLastError(c.Request, c.Writer)
 	if err != nil {
