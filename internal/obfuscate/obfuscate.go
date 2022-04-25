@@ -46,7 +46,7 @@ func (o *Obfuscator) SQLLiteralEscapes() bool {
 	return atomic.LoadInt32(&o.sqlLiteralEscapes) == 1
 }
 
-// NewObfuscator creates a new obfuscator
+// NewObfuscator creates a new obfuscator.
 func NewObfuscator(cfg *Config) *Obfuscator {
 	if cfg == nil {
 		cfg = &Config{

@@ -18,7 +18,7 @@ type Config struct {
 	// SQLExecPlanNormalize holds the normalization configuration for SQL Exec Plans.
 	SQLExecPlanNormalize JSONConfig `mapstructure:"sql_exec_plan_normalize"`
 
-	// SQL specifies additonal SQL configuration options.
+	// SQL specifies additional SQL configuration options.
 	SQL SQLConfig `mapstructure:"-"`
 
 	// HTTP holds the obfuscation settings for HTTP URLs.
