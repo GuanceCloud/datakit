@@ -6,7 +6,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -117,7 +116,6 @@ var log = logger.DefaultSLogger(inputName)
 
 func (i *Input) Run() {
 	log = logger.SLogger(inputName)
-	iod.FeedEventLog(&iod.Reporter{Message: "jvm start ok, ready for collecting metrics.", Logtype: "event"})
 	if i.Interval == "" {
 		i.Interval = defaultInterval
 	}

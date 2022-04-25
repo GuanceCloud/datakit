@@ -10,7 +10,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
@@ -138,15 +137,11 @@ func (sl *socketLogger) toReceive() {
 		if s.lis != nil {
 			sl.tcpListeners[s.addr] = s.lis
 			l.Infof("TCP port:%s start to accept", s.addr)
-			dkio.FeedEventLog(&dkio.Reporter{Message: fmt.Sprintf("[DataKit-logging] First Message. sockets log port: %s is open, source: %s",
-				s.addr, sl.opt.Source), Logtype: "event"})
 			go sl.accept(s.lis)
 		}
 		if s.conn != nil {
 			sl.udpConns[s.addr] = s.conn
 			l.Infof("UDP port:%s start to accept", s.addr)
-			dkio.FeedEventLog(&dkio.Reporter{Message: fmt.Sprintf("[DataKit-logging] First Message. sockets log port: %s is open, source: %s",
-				s.addr, sl.opt.Source), Logtype: "event"})
 			go sl.doSocket(s.conn)
 		}
 	}

@@ -193,7 +193,7 @@ if ($x -ne $null) {
 }
 
 $dca_enable=
-$x = [Environment]::GetEnvironmentVariable("DK_DCA_ENABLE") 
+$x = [Environment]::GetEnvironmentVariable("DK_DCA_ENABLE")
 if ($x -ne $null) {
 	$dca_enable = $x
 	Write-COutput yellow "* enable DCA server"
@@ -202,6 +202,21 @@ if ($x -ne $null) {
 		Exit
 	}
 }
+
+$enable_pprof=
+$x = [Environment]::GetEnvironmentVariable("DK_ENABLE_PPROF")
+if ($x -ne $null) {
+	$enable_pprof = $x
+	Write-COutput yellow "* set pprof"
+}
+
+$pprof_listen=
+$x = [Environment]::GetEnvironmentVariable("DK_PPROF_LISTEN")
+if ($x -ne $null) {
+	$pprof_listen = $x
+	Write-COutput yellow "* set pprof listen address"
+}
+
 
 $git_url=""
 $x = [Environment]::GetEnvironmentVariable("DK_GIT_URL")
@@ -292,7 +307,7 @@ if ($x -ne $null) {
 ##########################
 $arch = "amd64"
 if ([Environment]::Is64BitProcess -ne [Environment]::Is64BitOperatingSystem) {
-	$arch="i386"
+	$arch="386"
 }
 
 $installer_url = "$installer_base_url/installer-windows-$arch-{{.Version}}.exe"
@@ -318,7 +333,7 @@ Invoke-Expression $dl_installer_action
 if ($upgrade -ne $null) { # upgrade
 	$action = "$installer -upgrade --proxy=${proxy} --env_enable_experimental=${env_enable_experimental}"
 } else { # install new datakit
-	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-tags='${global_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list --git-url='${git_url}' --git-key-path='${git_key_path}' --git-key-pw='${git_key_pw}' --git-branch='${git_branch}' --git-pull-interval='${git_pull_interval}' --install-only='${install_only}' --enable-election='${enable_election}' --rum-origin-ip-header='${rum_origin_ip_header}' --disable-404page='${disable_404page}' --log-level='${log_level}' --log='${log}' --gin-log='${gin_log}' --ipdb-type='${ipdb_type}'"
+	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-tags='${global_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list --git-url='${git_url}' --git-key-path='${git_key_path}' --git-key-pw='${git_key_pw}' --git-branch='${git_branch}' --git-pull-interval='${git_pull_interval}' --install-only='${install_only}' --enable-election='${enable_election}' --rum-origin-ip-header='${rum_origin_ip_header}' --disable-404page='${disable_404page}' --log-level='${log_level}' --log='${log}' --gin-log='${gin_log}' --ipdb-type='${ipdb_type}' --enable-pprof='${enable_pprof}' --pprof-listen='${pprof_listen}'"
 }
 
 Write-COutput green "action: $action"
@@ -329,7 +344,7 @@ Remove-Item -Force -ErrorAction SilentlyContinue $installer
 Remove-Item -Force -ErrorAction SilentlyContinue .\installer.ps1
 
 # clean envs
-$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HOSTNAME","DK_HTTP_LISTEN","DK_INSTALL_ONLY","DK_DCA_ENABLE","DK_DCA_WHITE_LIST","DK_PROXY_TYPE","DK_NGINX_IP","DK_GIT_URL","DK_GIT_KEY_PATH","DK_GIT_KEY_PW","DK_GIT_BRANCH","DK_GIT_INTERVAL","DK_ENABLE_ELECTION","DK_DISABLE_404PAGE","DK_RUM_ORIGIN_IP_HEADER","DK_LOG_LEVEL","DK_LOG","DK_GIN_LOG","DK_INSTALL_IPDB"
+$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HOSTNAME","DK_HTTP_LISTEN","DK_INSTALL_ONLY","DK_DCA_ENABLE","DK_DCA_WHITE_LIST","DK_PROXY_TYPE","DK_NGINX_IP","DK_GIT_URL","DK_GIT_KEY_PATH","DK_GIT_KEY_PW","DK_GIT_BRANCH","DK_GIT_INTERVAL","DK_ENABLE_ELECTION","DK_DISABLE_404PAGE","DK_RUM_ORIGIN_IP_HEADER","DK_LOG_LEVEL","DK_LOG","DK_GIN_LOG","DK_INSTALL_IPDB","DK_ENABLE_PPROF","DK_PPROF_LISTEN"
 foreach ($env in $optional_envs) {
 	Remove-Item -ErrorAction SilentlyContinue Env:$env
 }

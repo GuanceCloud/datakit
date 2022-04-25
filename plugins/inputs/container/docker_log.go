@@ -60,6 +60,12 @@ func (d *dockerInput) cancelTails() {
 
 func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types.Container) error {
 	tags := getContainerInfo(container, d.k8sClient)
+
+	source := getContainerLogSource(tags["image_short_name"])
+	if n := container.Labels[containerLableForPodContainerName]; n != "" {
+		source = n
+	}
+
 	// add extra tags
 	for k, v := range d.cfg.extraTags {
 		if _, ok := tags[k]; !ok {
@@ -69,19 +75,25 @@ func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types
 
 	logconf := func() *containerLogConfig {
 		if datakit.Docker && tags["pod_name"] != "" {
-			return getContainerLogConfigForK8s(d.k8sClient, tags["pod_name"], tags["pod_namespace"])
+			return getContainerLogConfigForK8s(d.k8sClient, tags["pod_name"], tags["namespace"])
 		}
 		return getContainerLogConfigForDocker(container.Labels)
 	}()
 
 	if logconf != nil {
+		if logconf.Source == "" {
+			logconf.Source = source
+		}
+		if logconf.Service == "" {
+			logconf.Service = logconf.Source
+		}
 		logconf.tags = tags
 		logconf.containerID = container.ID
 		l.Debugf("use container logconfig:%#v, containerName:%s", logconf, tags["container_name"])
 	} else {
 		logconf = &containerLogConfig{
-			Source:      getContainerLogSource(tags["image_short_name"]),
-			Service:     tags["image_short_name"],
+			Source:      source,
+			Service:     source,
 			tags:        tags,
 			containerID: container.ID,
 		}
@@ -367,21 +379,21 @@ func (c *containerLog) LineProto() (*iod.Point, error) { return nil, nil }
 //nolint:lll
 func (c *containerLog) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "日志数据",
+		Name: "容器日志",
 		Type: "logging",
-		Desc: "source 默认使用容器 image_short_name",
+		Desc: "日志来源设置，参见[这里](container#6de978c3)",
 		Tags: map[string]interface{}{
 			"container_name": inputs.NewTagInfo(`容器名称`),
 			"container_id":   inputs.NewTagInfo(`容器ID`),
 			"container_type": inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty`),
 			"pod_name":       inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"pod_namespace":  inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
+			"namespace":      inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
 			"deployment":     inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）`),
 			"service":        inputs.NewTagInfo(`服务名称`),
 		},
 		Fields: map[string]interface{}{
-			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK"},
+			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK/unknown"},
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
 		},
 	}
@@ -391,7 +403,7 @@ func getContainerLogSource(image string) string {
 	if image != "" {
 		return image
 	}
-	return "default"
+	return "unknown"
 }
 
 //nolint:gochecknoinits
