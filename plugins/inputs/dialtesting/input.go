@@ -20,7 +20,6 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
@@ -38,7 +37,8 @@ var (
 	inputName = "dialtesting"
 	l         = logger.DefaultSLogger(inputName)
 
-	MaxFails = 100
+	MaxFails               = 100
+	MaxSendFailCount int32 = 16
 )
 
 const (
@@ -49,15 +49,16 @@ const (
 var apiTasksNum int
 
 type Input struct {
-	Region       string            `toml:"region,omitempty"`
-	RegionID     string            `toml:"region_id"`
-	Server       string            `toml:"server,omitempty"`
-	AK           string            `toml:"ak"`
-	SK           string            `toml:"sk"`
-	PullInterval string            `toml:"pull_interval,omitempty"`
-	TimeOut      *datakit.Duration `toml:"time_out,omitempty"` // 单位为秒
-	Workers      int               `toml:"workers,omitempty"`
-	Tags         map[string]string
+	Region           string            `toml:"region,omitempty"`
+	RegionID         string            `toml:"region_id"`
+	Server           string            `toml:"server,omitempty"`
+	AK               string            `toml:"ak"`
+	SK               string            `toml:"sk"`
+	PullInterval     string            `toml:"pull_interval,omitempty"`
+	TimeOut          *datakit.Duration `toml:"time_out,omitempty"` // 单位为秒
+	Workers          int               `toml:"workers,omitempty"`
+	MaxSendFailCount int32             `toml:"max_send_fail_count,omitempty"` // max send fail count
+	Tags             map[string]string
 
 	cli *http.Client
 	// class string
@@ -84,6 +85,10 @@ const sample = `
 
   time_out = "1m"
   workers = 6
+  
+  # 发送数据失败最大次数，根据任务的post_url进行累计，超过最大次数后，发送至该地址的拨测任务将退出
+  max_send_fail_count = 16
+  
   [inputs.dialtesting.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -112,13 +117,16 @@ func (*Input) AvailableArchs() []string {
 
 func (d *Input) Run() {
 	l = logger.SLogger(inputName)
-	iod.FeedEventLog(&iod.Reporter{Message: "dialtesting start ok, ready for collecting metrics.", Logtype: "event"})
 
 	// 根据Server配置，若为服务地址则定时拉取任务数据；
 	// 若为本地json文件，则读取任务
 
 	if d.Workers == 0 {
 		d.Workers = 6
+	}
+
+	if d.MaxSendFailCount > 0 {
+		MaxSendFailCount = d.MaxSendFailCount
 	}
 
 	reqURL, err := url.Parse(d.Server)

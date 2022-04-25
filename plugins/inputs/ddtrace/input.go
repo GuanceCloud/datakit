@@ -8,7 +8,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -144,7 +143,6 @@ func (ipt *Input) RegHTTPHandler() {
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
-	dkio.FeedEventLog(&dkio.Reporter{Message: "ddtrace start ok, ready for collecting metrics.", Logtype: "event"})
 
 	// add calculators
 	// afterGather.AppendCalculator(itrace.StatTracingInfo)
