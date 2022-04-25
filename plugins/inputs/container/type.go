@@ -3,18 +3,7 @@ package container
 import (
 	"encoding/json"
 	"strings"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
-
-type k8sResourceStats struct {
-	meas          []inputs.Measurement
-	namespaceList map[string]int
-}
-
-func newK8sResourceStats() *k8sResourceStats {
-	return &k8sResourceStats{namespaceList: make(map[string]int)}
-}
 
 type tagsType map[string]string
 

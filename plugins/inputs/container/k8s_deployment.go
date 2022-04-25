@@ -11,27 +11,93 @@ import (
 	v1 "k8s.io/api/apps/v1"
 )
 
-func gatherDeploymentObject(client k8sClientX, extraTags map[string]string) (*k8sResourceStats, error) {
-	list, err := client.getDeployments().List(context.Background(), metaV1ListOption)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get deployments resource: %w", err)
-	}
+var (
+	_ k8sResourceMetricInterface = (*deployment)(nil)
+	_ k8sResourceObjectInterface = (*deployment)(nil)
+)
 
-	if len(list.Items) == 0 {
-		return nil, nil
-	}
-	return exportDeploymentObject(list.Items, extraTags), nil
+type deployment struct {
+	client    k8sClientX
+	extraTags map[string]string
+	items     []v1.Deployment
 }
 
-func exportDeploymentObject(items []v1.Deployment, extraTags tagsType) *k8sResourceStats {
-	res := newK8sResourceStats()
+func newDeployment(client k8sClientX, extraTags map[string]string) *deployment {
+	return &deployment{
+		client:    client,
+		extraTags: extraTags,
+	}
+}
 
-	for _, item := range items {
+func (d *deployment) pullItems() error {
+	if len(d.items) != 0 {
+		return nil
+	}
+
+	list, err := d.client.getDeployments().List(context.Background(), metaV1ListOption)
+	if err != nil {
+		return fmt.Errorf("failed to get deployments resource: %w", err)
+	}
+
+	d.items = list.Items
+	return nil
+}
+
+func (d *deployment) metric() (inputsMeas, error) {
+	if err := d.pullItems(); err != nil {
+		return nil, err
+	}
+	var res inputsMeas
+
+	for _, item := range d.items {
+		met := &deploymentMetric{
+			tags: map[string]string{
+				"deployment": item.Name,
+				"namespace":  item.Namespace,
+			},
+			fields: map[string]interface{}{
+				"count":                         -1,
+				"paused":                        item.Spec.Paused,
+				"condition":                     "",
+				"replicas":                      item.Status.Replicas,
+				"replicas_available":            item.Status.AvailableReplicas,
+				"replicas_unavailable":          item.Status.UnavailableReplicas,
+				"replicas_updated":              item.Status.UpdatedReplicas,
+				"rollingupdate_max_unavailable": 0,
+				"rollingupdate_max_surge":       0,
+				// TODO:"replicas_desired"
+			},
+			time: time.Now(),
+		}
+
+		if item.Spec.Strategy.RollingUpdate != nil {
+			if item.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
+				met.fields["rollingupdate_max_unavailable"] = item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()
+			}
+			if item.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
+				met.fields["rollingupdate_max_surge"] = item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()
+			}
+		}
+
+		met.tags.append(d.extraTags)
+		res = append(res, met)
+	}
+
+	return res, nil
+}
+
+func (d *deployment) object() (inputsMeas, error) {
+	if err := d.pullItems(); err != nil {
+		return nil, err
+	}
+	var res inputsMeas
+
+	for _, item := range d.items {
 		obj := &deploymentObject{
 			tags: map[string]string{
 				"name":            fmt.Sprintf("%v", item.UID),
 				"deployment_name": item.Name,
-				"cluster_name":    item.ClusterName,
+				"cluster_name":    defaultClusterName(item.ClusterName),
 				"namespace":       defaultNamespace(item.Namespace),
 			},
 			fields: map[string]interface{}{
@@ -56,17 +122,64 @@ func exportDeploymentObject(items []v1.Deployment, extraTags tagsType) *k8sResou
 			}
 		}
 
-		obj.tags.append(extraTags)
+		obj.tags.append(d.extraTags)
 
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
 		obj.fields.delete("annotations")
 
-		res.meas = append(res.meas, obj)
+		res = append(res, obj)
 	}
 
-	return res
+	return res, nil
+}
+
+func (d *deployment) count() (map[string]int, error) {
+	if err := d.pullItems(); err != nil {
+		return nil, err
+	}
+
+	m := make(map[string]int)
+	for _, item := range d.items {
+		m[defaultNamespace(item.Namespace)]++
+	}
+
+	return m, nil
+}
+
+type deploymentMetric struct {
+	tags   tagsType
+	fields fieldsType
+	time   time.Time
+}
+
+func (d *deploymentMetric) LineProto() (*io.Point, error) {
+	return io.NewPoint("kube_deployment", d.tags, d.fields, &io.PointOption{Time: d.time, Category: datakit.Metric})
+}
+
+//nolint:lll
+func (*deploymentMetric) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "kube_deployment",
+		Desc: "Kubernetes Deployment 指标数据",
+		Type: "metric",
+		Tags: map[string]interface{}{
+			"deployment": inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":  inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+		},
+		Fields: map[string]interface{}{
+			"paused":             &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "Indicates that the deployment is paused (true or false)."},
+			"condition":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The current status conditions of a deployment"},
+			"replicas":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of non-terminated pods targeted by this deployment (their labels match the selector)."},
+			"replicas_available": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of available pods (ready for at least minReadySeconds) targeted by this deployment."},
+
+			"replicas_unavailable":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of unavailable pods targeted by this deployment."},
+			"replicas_updated":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of non-terminated pods targeted by this deployment that have the desired template spec."},
+			"rollingupdate_max_unavailable": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The maximum number of pods that can be unavailable during the update."},
+			"rollingupdate_max_surge":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The maximum number of pods that can be scheduled above the desired number of pods. "},
+		},
+	}
 }
 
 type deploymentObject struct {
@@ -101,91 +214,6 @@ func (*deploymentObject) Info() *inputs.MeasurementInfo {
 			"up_dated":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "Total number of non-terminated pods targeted by this deployment that have the desired template spec."},
 			"strategy":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: `Type of deployment. Can be "Recreate" or "RollingUpdate". Default is RollingUpdate.`},
 			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
-		},
-	}
-}
-
-func gatherDeploymentMetric(client k8sClientX, extraTags map[string]string) (*k8sResourceStats, error) {
-	list, err := client.getDeployments().List(context.Background(), metaV1ListOption)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get deployments resource: %w", err)
-	}
-	if len(list.Items) == 0 {
-		return nil, nil
-	}
-	return exportDeploymentMetric(list.Items, extraTags), nil
-}
-
-func exportDeploymentMetric(items []v1.Deployment, extraTags tagsType) *k8sResourceStats {
-	res := newK8sResourceStats()
-
-	for _, item := range items {
-		met := &deploymentMetric{
-			tags: map[string]string{
-				"deployment": item.Name,
-				"namespace":  item.Namespace,
-			},
-			fields: map[string]interface{}{
-				"count":                         -1,
-				"paused":                        item.Spec.Paused,
-				"condition":                     "",
-				"replicas":                      item.Status.Replicas,
-				"replicas_available":            item.Status.AvailableReplicas,
-				"replicas_unavailable":          item.Status.UnavailableReplicas,
-				"replicas_updated":              item.Status.UpdatedReplicas,
-				"rollingupdate_max_unavailable": 0,
-				"rollingupdate_max_surge":       0,
-			},
-			time: time.Now(),
-		}
-		met.fields["replicas_desired"] = ""
-
-		if item.Spec.Strategy.RollingUpdate != nil {
-			if item.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-				met.fields["rollingupdate_max_unavailable"] = item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()
-			}
-			if item.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-				met.fields["rollingupdate_max_surge"] = item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()
-			}
-		}
-
-		met.tags.append(extraTags)
-		res.meas = append(res.meas, met)
-		res.namespaceList[item.Namespace]++
-	}
-	return res
-}
-
-type deploymentMetric struct {
-	tags   tagsType
-	fields fieldsType
-	time   time.Time
-}
-
-func (d *deploymentMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_deployment", d.tags, d.fields, &io.PointOption{Time: d.time, Category: datakit.Metric})
-}
-
-//nolint:lll
-func (*deploymentMetric) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: "kube_deployment",
-		Desc: "Kubernetes Deployment 指标数据",
-		Type: "object",
-		Tags: map[string]interface{}{
-			"deployment": inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace":  inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
-		},
-		Fields: map[string]interface{}{
-			"paused":             &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "Indicates that the deployment is paused (true or false)."},
-			"condition":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The current status conditions of a deployment"},
-			"replicas":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of non-terminated pods targeted by this deployment (their labels match the selector)."},
-			"replicas_available": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of available pods (ready for at least minReadySeconds) targeted by this deployment."},
-
-			"replicas_unavailable":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of unavailable pods targeted by this deployment."},
-			"replicas_updated":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of non-terminated pods targeted by this deployment that have the desired template spec."},
-			"rollingupdate_max_unavailable": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The maximum number of pods that can be unavailable during the update."},
-			"rollingupdate_max_surge":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The maximum number of pods that can be scheduled above the desired number of pods. "},
 		},
 	}
 }

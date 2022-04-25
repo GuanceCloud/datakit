@@ -43,63 +43,154 @@ func newKubernetesInput(cfg *kubernetesInputConfig) (*kubernetesInput, error) {
 	return k, nil
 }
 
-var resourceList = []string{
-	"cluster",
-	"cronjob",
-	"deployment",
-	"job",
-	"node",
-	"pod",
-	"replica_set",
-	"service",
+type inputsMeas []inputs.Measurement
+
+func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
+	var (
+		res     inputsMeas
+		lastErr error
+	)
+
+	{
+		x := newDeployment(k.client, k.cfg.extraTags)
+		if m, err := x.metric(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newDaemonset(k.client, k.cfg.extraTags)
+		if m, err := x.metric(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newEndpoint(k.client, k.cfg.extraTags)
+		if m, err := x.metric(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newCronjob(k.client, k.cfg.extraTags)
+		if m, err := x.metric(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newJob(k.client, k.cfg.extraTags)
+		if m, err := x.metric(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newPod(k.client, k.cfg.extraTags)
+		if m, err := x.metric(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newNode(k.client, k.cfg.extraTags)
+		if m, err := x.metric(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newReplicaset(k.client, k.cfg.extraTags)
+		if m, err := x.metric(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+
+	return res, lastErr
 }
 
-func (k *kubernetesInput) gather() (metrics, objects []inputs.Measurement, lastErr error) {
-	// resourceCount := make(map[string]map[string]int)
+func (k *kubernetesInput) gatherResourceObject() (inputsMeas, error) {
+	var (
+		res     inputsMeas
+		lastErr error
+	)
 
-	/*
-			must := func(res k8sResourceStats, err error) k8sResourceStats {
-				lastErr = err
-				return res
-			}
+	{
+		x := newCronjob(k.client, k.cfg.extraTags)
+		if m, err := x.object(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newDeployment(k.client, k.cfg.extraTags)
+		if m, err := x.object(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newJob(k.client, k.cfg.extraTags)
+		if m, err := x.object(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newNode(k.client, k.cfg.extraTags)
+		if m, err := x.object(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newPod(k.client, k.cfg.extraTags)
+		if m, err := x.object(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newReplicaset(k.client, k.cfg.extraTags)
+		if m, err := x.object(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newService(k.client, k.cfg.extraTags)
+		if m, err := x.object(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
+	{
+		x := newClusterRole(k.client, k.cfg.extraTags)
+		if m, err := x.object(); err != nil {
+			res = append(m)
+		} else {
+			lastErr = err
+		}
+	}
 
-			wrapper := func(name string, res k8sResourceStats) {
-				for namespace, v := range res {
-					if x := resourceCount[namespace]; x == nil {
-						resourceCount[namespace] = make(map[string]int)
-					}
-					resourceCount[namespace][name] += len(v)
-					objects = append(objects, v...)
-				}
-			}
-
-		wrapper("cluster_role", must(gatherClusterRole(k.client, k.cfg.extraTags)))
-		wrapper("cronjob", must(gatherCronJob(k.client, k.cfg.extraTags)))
-		wrapper("deployment", must(gatherDeployment(k.client, k.cfg.extraTags)))
-		wrapper("job", must(gatherJob(k.client, k.cfg.extraTags)))
-		wrapper("node", must(gatherNode(k.client, k.cfg.extraTags)))
-		wrapper("pod", must(gatherPod(k.client, k.cfg.extraTags)))
-		wrapper("replica_set", must(gatherReplicaSet(k.client, k.cfg.extraTags)))
-		wrapper("service", must(gatherService(k.client, k.cfg.extraTags)))
-
-		for namespace, resource := range resourceCount {
-			c := newCount()
-			c.tags["namespace"] = namespace
-			for name, elem := range resource {
-				c.fields[name] = elem
-			}
-
-				for _, r := range resourceList {
-					if _, ok := c.fields[r]; !ok {
-						c.fields[r] = 0
-					}
-				}
-
-				c.time = time.Now()
-				metrics = append(metrics, c)
-			}
-	*/
-	return //nolint:nakedret
+	return res, lastErr
 }
 
 func (k *kubernetesInput) gatherPodMetrics() ([]inputs.Measurement, error) {
@@ -111,6 +202,15 @@ func (k *kubernetesInput) gatherPodMetrics() ([]inputs.Measurement, error) {
 
 func (k *kubernetesInput) watchingEventLog(stop <-chan interface{}) {
 	watchingEvent(k.client, k.cfg.extraTags, stop)
+}
+
+type k8sResourceMetricInterface interface {
+	metric() (inputsMeas, error)
+	count() (map[string]int, error)
+}
+
+type k8sResourceObjectInterface interface {
+	object() (inputsMeas, error)
 }
 
 type count struct {

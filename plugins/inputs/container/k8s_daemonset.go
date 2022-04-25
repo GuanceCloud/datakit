@@ -11,20 +11,42 @@ import (
 	v1 "k8s.io/api/apps/v1"
 )
 
-func gatherDaemonsetMetric(client k8sClientX, extraTags map[string]string) (*k8sResourceStats, error) {
-	list, err := client.getDaemonSets().List(context.Background(), metaV1ListOption)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get daemonSets resource: %w", err)
-	}
-	if len(list.Items) == 0 {
-		return nil, nil
-	}
-	return exportDaemonsetMetric(list.Items, extraTags), nil
+var _ k8sResourceMetricInterface = (*daemonset)(nil)
+
+type daemonset struct {
+	client    k8sClientX
+	extraTags map[string]string
+	items     []v1.DaemonSet
 }
 
-func exportDaemonsetMetric(items []v1.DaemonSet, extraTags tagsType) *k8sResourceStats {
-	res := newK8sResourceStats()
-	for _, item := range items {
+func newDaemonset(client k8sClientX, extraTags map[string]string) *daemonset {
+	return &daemonset{
+		client:    client,
+		extraTags: extraTags,
+	}
+}
+
+func (d *daemonset) pullItems() error {
+	if len(d.items) != 0 {
+		return nil
+	}
+
+	list, err := d.client.getDaemonSets().List(context.Background(), metaV1ListOption)
+	if err != nil {
+		return fmt.Errorf("failed to get daemonSets resource: %w", err)
+	}
+
+	d.items = list.Items
+	return nil
+}
+
+func (d *daemonset) metric() (inputsMeas, error) {
+	if err := d.pullItems(); err != nil {
+		return nil, err
+	}
+	var res inputsMeas
+
+	for _, item := range d.items {
 		met := &daemonsetMetric{
 			tags: map[string]string{
 				"daemonset": item.Name,
@@ -41,11 +63,24 @@ func exportDaemonsetMetric(items []v1.DaemonSet, extraTags tagsType) *k8sResourc
 			},
 			time: time.Now(),
 		}
-		met.tags.append(extraTags)
-		res.meas = append(res.meas, met)
-		res.namespaceList[item.Namespace]++
+		met.tags.append(d.extraTags)
+		res = append(res, met)
 	}
-	return res
+
+	return res, nil
+}
+
+func (d *daemonset) count() (map[string]int, error) {
+	if err := d.pullItems(); err != nil {
+		return nil, err
+	}
+
+	m := make(map[string]int)
+	for _, item := range d.items {
+		m[defaultNamespace(item.Namespace)]++
+	}
+
+	return m, nil
 }
 
 type daemonsetMetric struct {
@@ -62,8 +97,8 @@ func (d *daemonsetMetric) LineProto() (*io.Point, error) {
 func (*daemonsetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kube_daemonset",
-		Desc: "Kubernetes DaemonSet 指标数据",
-		Type: "object",
+		Desc: "Kubernetes Daemonset 指标数据",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"daemonset": inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),

@@ -294,19 +294,24 @@ func (i *Input) gatherContainerdObject() error {
 func (i *Input) gatherK8sResource() error {
 	start := time.Now()
 
-	metricMeas, objectMeas, err := i.k8sInput.gather()
-	if err != nil {
-		l.Errorf("k8s gather resource error: %w", err)
-		return err
+	metricMeas, err := i.k8sInput.gatherResourceMetric()
+	if err == nil {
+		if err := inputs.FeedMeasurement("k8s-metric", datakit.Metric, metricMeas,
+			&io.Option{CollectCost: time.Since(start)}); err != nil {
+			l.Errorf("failed to feed k8s metrics: %w", err)
+		}
+	} else {
+		l.Errorf("k8s gather metric error: %w", err)
 	}
 
-	if err := inputs.FeedMeasurement("k8s-metric", datakit.Metric, metricMeas,
-		&io.Option{CollectCost: time.Since(start)}); err != nil {
-		l.Errorf("failed to feed k8s metrics: %w", err)
-	}
-	if err := inputs.FeedMeasurement("k8s-object", datakit.Object, objectMeas,
-		&io.Option{CollectCost: time.Since(start)}); err != nil {
-		l.Errorf("failed to feed k8s objects: %w", err)
+	objectMeas, err := i.k8sInput.gatherResourceObject()
+	if err == nil {
+		if err := inputs.FeedMeasurement("k8s-object", datakit.Object, objectMeas,
+			&io.Option{CollectCost: time.Since(start)}); err != nil {
+			l.Errorf("failed to feed k8s objects: %w", err)
+		}
+	} else {
+		l.Errorf("k8s gather object error: %w", err)
 	}
 
 	return nil
