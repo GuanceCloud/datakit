@@ -5,22 +5,17 @@
 
 package obfuscate
 
-import (
-	"strings"
+import "strings"
 
-	"github.com/DataDog/tracepb/pb"
-)
-
-func (*Obfuscator) obfuscateMemcached(span *pb.Span) {
-	const k = "memcached.command"
-	if span.Meta == nil || span.Meta[k] == "" {
-		return
+func (*Obfuscator) obfuscateMemcached(q string) string {
+	if q == "" {
+		return ""
 	}
 	// All memcached commands end with new lines [1]. In the case of storage
 	// commands, key values follow after. Knowing this, all we have to do
 	// to obfuscate sensitive information is to remove everything that follows
 	// a new line. For non-storage commands, this will have no effect.
 	// [1]: https://github.com/memcached/memcached/blob/master/doc/protocol.txt
-	cmd := strings.SplitN(span.Meta[k], "\r\n", 2)[0]
-	span.Meta[k] = strings.TrimSpace(cmd)
+	cmd := strings.SplitN(q, "\r\n", 2)[0]
+	return strings.TrimSpace(cmd)
 }

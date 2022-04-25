@@ -8,21 +8,23 @@ package obfuscate
 import (
 	"strconv"
 	"strings"
-
-	"github.com/DataDog/tracepb/pb"
 )
 
 // obfuscateJSON obfuscates the given span's tag using the given obfuscator. If the obfuscator is
 // nil it is considered disabled.
-func (o *Obfuscator) obfuscateJSON(span *pb.Span, tag string, obfuscator *jsonObfuscator) {
-	if obfuscator == nil || span.Meta == nil || span.Meta[tag] == "" {
-		// obfuscator is disabled or tag is not present
-		return
+func (o *Obfuscator) obfuscateJSON(q string, obfuscator *jsonObfuscator) string {
+	if obfuscator == nil {
+		return q
 	}
-	span.Meta[tag], _ = obfuscator.obfuscate([]byte(span.Meta[tag]))
+	if q == "" {
+		// obfuscator is disabled or tag is not present
+		return ""
+	}
+	out, _ := obfuscator.obfuscate([]byte(q))
 	// we should accept whatever the obfuscator returns, even if it's an error: a parsing
 	// error simply means that the JSON was invalid, meaning that we've only obfuscated
 	// as much of it as we could. It is safe to accept the output, even if partial.
+	return out
 }
 
 type jsonObfuscator struct {
