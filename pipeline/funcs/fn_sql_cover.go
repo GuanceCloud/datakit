@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/DataDog/obfuscate"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
