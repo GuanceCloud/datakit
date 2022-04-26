@@ -6,7 +6,7 @@
 
 本次发布属于迭代发布，主要涉及如下几个方面：
 
-- [容器采集器](container)增加更多 KSM（kube-state-metrics）指标采集(#668)
+- [容器采集器](container#7e687515)增加更多指标（`kube_` 开头）采集(#668)
 - DDTrace 和 OpenTelemetry 采集器支持通过 HTTP Status Code（`omit_err_status`）来过滤部分错误的 trace
 - 修复几个 Trace 采集器（DDtrace/OpenTelemetry/Zipkin/SkyWalking/Jaeger）在 git 模式下配置 reload 不生效的问题(#725)
 - 修复 Gitlab 采集器不能 tag 导致的奔溃问题(#730)
