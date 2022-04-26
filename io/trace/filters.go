@@ -237,13 +237,17 @@ func PiplineFilterWrapper(source string, piplines map[string]string) FilterFunc 
 						log.Debugf("run pipeline %s.p failed: %s", s, err.Error())
 					} else {
 						if len(rslt.Output.Tags) > 0 {
-							dktrace[i].Tags = make(map[string]string)
+							if dktrace[i].Tags == nil {
+								dktrace[i].Tags = make(map[string]string)
+							}
 							for k, v := range rslt.Output.Tags {
 								dktrace[i].Tags[k] = v
 							}
 						}
 						if len(rslt.Output.Fields) > 0 {
-							dktrace[i].Metrics = make(map[string]interface{})
+							if dktrace[i].Metrics == nil {
+								dktrace[i].Metrics = make(map[string]interface{})
+							}
 							for k, v := range rslt.Output.Fields {
 								dktrace[i].Metrics[k] = v
 							}
