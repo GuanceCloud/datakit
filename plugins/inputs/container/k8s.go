@@ -75,8 +75,9 @@ func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 
 	for ns, ct := range counts {
 		count := &count{
-			tags: map[string]string{"namespace": ns},
-			time: time.Now(),
+			tags:   map[string]string{"namespace": ns},
+			fields: map[string]interface{}{},
+			time:   time.Now(),
 		}
 		for name, n := range ct {
 			count.fields[name] = n
