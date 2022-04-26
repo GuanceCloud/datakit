@@ -13,7 +13,7 @@ const redisTruncationMark = "..."
 
 const maxRedisNbCommands = 3
 
-// Redis commands consisting in 2 words
+// Redis commands consisting in 2 words.
 var redisCompoundCommandSet = map[string]bool{
 	"CLIENT": true, "CLUSTER": true, "COMMAND": true, "CONFIG": true, "DEBUG": true, "SCRIPT": true,
 }

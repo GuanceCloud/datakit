@@ -278,7 +278,7 @@ func stateEndValue(s *scanner, c byte) int {
 // Only space characters should be seen now.
 func stateEndTop(s *scanner, c byte) int {
 	if c != ' ' && c != '\t' && c != '\r' && c != '\n' {
-		// The former behaviour has been removed. Now, if anything
+		// The former behavior has been removed. Now, if anything
 		// other than whitespace follows, we assume a new JSON string
 		// might be starting. This allows us to continue obfuscating
 		// further strings in cases where there are multiple JSON
@@ -551,7 +551,7 @@ func (s *scanner) error(c byte, context string) int {
 	return scanError
 }
 
-// quoteChar formats c as a quoted character literal
+// quoteChar formats c as a quoted character literal.
 func quoteChar(c byte) string {
 	// special cases - different from quoted strings
 	if c == '\'' {

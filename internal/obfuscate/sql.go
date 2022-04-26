@@ -90,7 +90,7 @@ type replaceFilter struct {
 	quantizeTableNames bool
 }
 
-// Filter the given token so that it will be replaced if in the token replacement list
+// Filter the given token so that it will be replaced if in the token replacement list.
 func (f *replaceFilter) Filter(token, lastToken TokenKind, buffer []byte) (tokenType TokenKind, tokenBytes []byte, err error) {
 	switch lastToken {
 	case Savepoint:

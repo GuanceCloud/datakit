@@ -10,8 +10,29 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
-func NonFilter(dktrace DatakitTrace) (DatakitTrace, bool) {
+// NoneFilter always return current trace.
+func NoneFilter(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
+}
+
+func OmitStatusCodeFilterWrapper(statusCodeList []string) FilterFunc {
+	if len(statusCodeList) == 0 {
+		return NoneFilter
+	} else {
+		return func(dktrace DatakitTrace) (DatakitTrace, bool) {
+			for i := range dktrace {
+				for j := range statusCodeList {
+					if dktrace[i].HTTPStatusCode == statusCodeList[j] {
+						log.Debugf("omit trace with status code: %s", dktrace[i].HTTPStatusCode)
+
+						return nil, true
+					}
+				}
+			}
+
+			return dktrace, false
+		}
+	}
 }
 
 func PenetrateErrorTracing(dktrace DatakitTrace) (DatakitTrace, bool) {
@@ -187,7 +208,7 @@ func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 
 func PiplineFilterWrapper(source string, piplines map[string]string) FilterFunc {
 	if len(piplines) == 0 {
-		return NonFilter
+		return NoneFilter
 	}
 
 	var (
@@ -201,7 +222,7 @@ func PiplineFilterWrapper(source string, piplines map[string]string) FilterFunc 
 		}
 	}
 	if len(pips) == 0 {
-		return NonFilter
+		return NoneFilter
 	}
 
 	return func(dktrace DatakitTrace) (DatakitTrace, bool) {
@@ -216,13 +237,17 @@ func PiplineFilterWrapper(source string, piplines map[string]string) FilterFunc 
 						log.Debugf("run pipeline %s.p failed: %s", s, err.Error())
 					} else {
 						if len(rslt.Output.Tags) > 0 {
-							dktrace[i].Tags = make(map[string]string)
+							if dktrace[i].Tags == nil {
+								dktrace[i].Tags = make(map[string]string)
+							}
 							for k, v := range rslt.Output.Tags {
 								dktrace[i].Tags[k] = v
 							}
 						}
 						if len(rslt.Output.Fields) > 0 {
-							dktrace[i].Metrics = make(map[string]interface{})
+							if dktrace[i].Metrics == nil {
+								dktrace[i].Metrics = make(map[string]interface{})
+							}
 							for k, v := range rslt.Output.Fields {
 								dktrace[i].Metrics[k] = v
 							}
