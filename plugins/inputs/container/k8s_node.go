@@ -93,6 +93,17 @@ func (n *node) metric() (inputsMeas, error) {
 		res = append(res, met)
 	}
 
+	count, _ := n.count()
+	for ns, c := range count {
+		met := &nodeMetric{
+			tags:   map[string]string{"namespace": ns},
+			fields: map[string]interface{}{"count": c},
+			time:   time.Now(),
+		}
+		met.tags.append(n.extraTags)
+		res = append(res, met)
+	}
+
 	return res, nil
 }
 

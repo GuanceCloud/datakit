@@ -76,6 +76,17 @@ func (e *endpoint) metric() (inputsMeas, error) {
 		res = append(res, met)
 	}
 
+	count, _ := e.count()
+	for ns, c := range count {
+		met := &endpointMetric{
+			tags:   map[string]string{"namespace": ns},
+			fields: map[string]interface{}{"count": c},
+			time:   time.Now(),
+		}
+		met.tags.append(e.extraTags)
+		res = append(res, met)
+	}
+
 	return res, nil
 }
 

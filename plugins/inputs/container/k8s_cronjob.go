@@ -71,6 +71,17 @@ func (c *cronjob) metric() (inputsMeas, error) {
 		res = append(res, met)
 	}
 
+	count, _ := c.count()
+	for ns, ct := range count {
+		met := &cronjobMetric{
+			tags:   map[string]string{"namespace": ns},
+			fields: map[string]interface{}{"count": ct},
+			time:   time.Now(),
+		}
+		met.tags.append(c.extraTags)
+		res = append(res, met)
+	}
+
 	return res, nil
 }
 

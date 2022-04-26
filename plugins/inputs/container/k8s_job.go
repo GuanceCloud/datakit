@@ -88,6 +88,17 @@ func (j *job) metric() (inputsMeas, error) {
 		res = append(res, met)
 	}
 
+	count, _ := j.count()
+	for ns, c := range count {
+		met := &jobMetric{
+			tags:   map[string]string{"namespace": ns},
+			fields: map[string]interface{}{"count": c},
+			time:   time.Now(),
+		}
+		met.tags.append(j.extraTags)
+		res = append(res, met)
+	}
+
 	return res, nil
 }
 
