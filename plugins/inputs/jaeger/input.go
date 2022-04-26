@@ -163,6 +163,10 @@ func (ipt *Input) Run() {
 	tags = ipt.Tags
 }
 
+func (ipt *Input) Terminate() {
+	// TODO: 必须写
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}

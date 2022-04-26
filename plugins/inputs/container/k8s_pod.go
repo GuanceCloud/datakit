@@ -115,7 +115,7 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 			if ii == nil {
 				continue
 			}
-			if inp, ok := ii.(inputs.Stoppable); ok {
+			if inp, ok := ii.(inputs.InputV2); ok {
 				inp.Terminate()
 			}
 		}

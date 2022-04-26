@@ -45,6 +45,10 @@ func RegGinHandler(method, path string, handler gin.HandlerFunc) {
 	}
 }
 
+func CleanHTTPHandler() {
+	httpRouteList = make(map[string]*httpRouteInfo)
+}
+
 func applyHTTPRoute(router *gin.Engine) {
 	for _, routeInfo := range httpRouteList {
 		method := routeInfo.Method

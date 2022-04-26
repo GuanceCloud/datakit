@@ -167,6 +167,7 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
+	log.Debugf("Sampler = %v", ipt.Sampler)
 	if ipt.Sampler != nil {
 		sampler = ipt.Sampler
 		afterGather.AppendFilter(sampler.Sample)
@@ -180,6 +181,10 @@ func (ipt *Input) Run() {
 		customerKeys = append(customerKeys, ipt.CustomerTags[i])
 	}
 	tags = ipt.Tags
+}
+
+func (ipt *Input) Terminate() {
+	// TODO: 必须写
 }
 
 func init() { //nolint:gochecknoinits
