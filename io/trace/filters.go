@@ -10,14 +10,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
-// NonFilter always return current trace.
-func NonFilter(dktrace DatakitTrace) (DatakitTrace, bool) {
+// NoneFilter always return current trace.
+func NoneFilter(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
 }
 
 func OmitStatusCodeFilterWrapper(statusCodeList []string) FilterFunc {
 	if len(statusCodeList) == 0 {
-		return NonFilter
+		return NoneFilter
 	} else {
 		return func(dktrace DatakitTrace) (DatakitTrace, bool) {
 			for i := range dktrace {
@@ -208,7 +208,7 @@ func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 
 func PiplineFilterWrapper(source string, piplines map[string]string) FilterFunc {
 	if len(piplines) == 0 {
-		return NonFilter
+		return NoneFilter
 	}
 
 	var (
@@ -222,7 +222,7 @@ func PiplineFilterWrapper(source string, piplines map[string]string) FilterFunc 
 		}
 	}
 	if len(pips) == 0 {
-		return NonFilter
+		return NoneFilter
 	}
 
 	return func(dktrace DatakitTrace) (DatakitTrace, bool) {
