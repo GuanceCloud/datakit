@@ -14,7 +14,6 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -711,7 +710,7 @@ func TestProm(t *testing.T) {
 				t.Errorf("[%d] failed to init prom: %s", idx, err)
 			}
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			var points []*io.Point
+			var points []*iod.Point
 			for _, u := range p.opt.URLs {
 				pts, err := p.CollectFromHTTP(u)
 				if err != nil {
@@ -787,7 +786,7 @@ func TestRenameTag(t *testing.T) {
 		name     string
 		opt      *Option
 		promdata string
-		expect   []*io.Point
+		expect   []*iod.Point
 	}{
 		{
 			name: "rename-tags",
@@ -801,8 +800,8 @@ func TestRenameTag(t *testing.T) {
 					},
 				},
 			},
-			expect: []*io.Point{
-				func() *io.Point {
+			expect: []*iod.Point{
+				func() *iod.Point {
 					pt, err := iod.MakePoint("http",
 						map[string]string{"le": "0.003", "StatusCode": "404", "method": "GET"},
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
@@ -830,8 +829,8 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 
 					},
 				},
 			},
-			expect: []*io.Point{
-				func() *io.Point {
+			expect: []*iod.Point{
+				func() *iod.Point {
 					pt, err := iod.MakePoint("http",
 						// method key removed, it's value overwrite tag_exists's value
 						map[string]string{"le": "0.003", "StatusCode": "404", "tag_exists": "GET"},
@@ -860,8 +859,8 @@ http_request_duration_seconds_bucket{le="0.003",tag_exists="yes",status_code="40
 					},
 				},
 			},
-			expect: []*io.Point{
-				func() *io.Point {
+			expect: []*iod.Point{
+				func() *iod.Point {
 					pt, err := iod.MakePoint("http",
 						map[string]string{"le": "0.003", "tag_exists": "yes", "StatusCode": "404", "method": "GET"}, // overwrite not work on method
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
@@ -889,8 +888,8 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="ye
 					},
 				},
 			},
-			expect: []*io.Point{
-				func() *io.Point {
+			expect: []*iod.Point{
+				func() *iod.Point {
 					pt, err := iod.MakePoint("http",
 						nil,
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
