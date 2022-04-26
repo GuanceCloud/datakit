@@ -733,6 +733,37 @@ func TestUnwantedEvent(t *testing.T) {
 	assert.True(t, ipt.reqMemo.has(digest))
 }
 
+func TestAddExtraTags(t *testing.T) {
+	testCases := []struct {
+		name     string
+		existing map[string]string
+		extra    map[string]string
+		expected map[string]string
+	}{
+		{
+			"add extra tags",
+			map[string]string{"a": "b"},
+			map[string]string{"c": "d"},
+			map[string]string{"a": "b", "c": "d"},
+		},
+		{
+			"do not overwrite existing tags",
+			map[string]string{"a": "b"},
+			map[string]string{"a": "c"},
+			map[string]string{"a": "b"},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ipt := newInput()
+			ipt.CIExtraTags = tc.extra
+			tags := tc.existing
+			ipt.addExtraTags(tags)
+			assert.Equal(t, tc.expected, tags)
+		})
+	}
+}
+
 func getInput(expired time.Duration) *Input {
 	ipt := newInput()
 	ipt.feed = func(name, category string, pts []*io.Point, opt *io.Option) error {

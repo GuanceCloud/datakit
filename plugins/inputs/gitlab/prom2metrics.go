@@ -87,10 +87,10 @@ func (p *prom) histogram(name string, metrics []*dto.Metric) []*samplePoint {
 }
 
 func labelToTags(label []*dto.LabelPair) map[string]string {
+	tags := make(map[string]string)
 	if len(label) == 0 {
-		return nil
+		return tags
 	}
-	tags := make(map[string]string, len(label))
 	for _, lab := range label {
 		tags[lab.GetName()] = lab.GetValue()
 	}
