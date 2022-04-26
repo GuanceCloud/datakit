@@ -1,6 +1,10 @@
+annotations:
+  catalog.cattle.io/certified: partner # Enables the "partner" badge in the UI for easier identification
+  catalog.cattle.io/release-name: datakit # Your chart's name in kebab-case, this is used for deployment
+  catalog.cattle.io/display-name: DataKit # The chart's name you want displayed in the UI
 apiVersion: v2
 appVersion: 1.2.10
-description: Chart for the DaemonSet datakit
+description: Chart for the DaemonSet DataKit
 home: http://www.guance.com
 icon: https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-icon-white-bg.png
 keywords:

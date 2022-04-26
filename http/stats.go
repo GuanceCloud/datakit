@@ -300,7 +300,11 @@ func (x *DatakitStats) GoroutineStatTable() string {
 
 func GetStats() (*DatakitStats, error) {
 	now := time.Now()
-	elected, ns := election.Elected()
+	elected, ns, who := election.Elected()
+	if ns == "" {
+		ns = "<default>"
+	}
+
 	stats := &DatakitStats{
 		Version:        datakit.Version,
 		BuildAt:        git.BuildAt,
@@ -311,7 +315,7 @@ func GetStats() (*DatakitStats, error) {
 		IOChanStat:     io.ChanStat(),
 		IoStats:        io.GetIoStats(),
 		PLWorkerStat:   plWorker.ShowPLWkrStats().String(),
-		Elected:        fmt.Sprintf("%s/%s", elected, ns),
+		Elected:        fmt.Sprintf("%s::%s|%s", ns, elected, who),
 		Cgroup:         cgroup.Info(),
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),

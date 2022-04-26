@@ -36,6 +36,10 @@ const (
   ## to data center and do not consider samplers and filters.
   # keep_rare_resource = false
 
+  ## By default every error presents in span will be send to data center and omit any filters or
+  ## sampler. If you want to get rid of some error status, you can set the error status list here.
+  # omit_err_status = ["404"]
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -46,13 +50,23 @@ const (
 
   ## Sampler config uses to set global sampling strategy.
   ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
-  ##   -1: always reject any tracing data send to datakit
-  ##    0: accept tracing data and calculate with sampling_rate
-  ##    1: always send to data center and do not consider sampling_rate
+  ##  -1: always reject any tracing data send to datakit
+  ##   0: accept tracing data and calculate with sampling_rate
+  ##   1: always send to data center and do not consider sampling_rate
   ## sampling_rate used to set global sampling rate
   # [inputs.opentelemetry.sampler]
     # priority = 0
     # sampling_rate = 1.0
+
+  ## Piplines use to manipulate message and meta data. If this item configured right then
+  ## the current input procedure will run the scripts wrote in pipline config file against the data
+  ## present in span message.
+  ## The string on the left side of the equal sign must be identical to the service name that
+  ## you try to handle.
+  # [inputs.opentelemetry.pipelines]
+    # service1 = "service1.p"
+    # service2 = "service2.p"
+    # ...
 
   # [inputs.opentelemetry.tags]
     # key1 = "value1"
@@ -96,7 +110,9 @@ type Input struct {
 	Ogrpc               *otlpGrpcCollector  `toml:"grpc"`
 	OHTTPc              *otlpHTTPCollector  `toml:"http"`
 	CloseResource       map[string][]string `toml:"close_resource"`
+	OmitErrStatus       []string            `toml:"omit_err_status"`
 	Sampler             *itrace.Sampler     `toml:"sampler"`
+	Pipelines           map[string]string   `toml:"pipelines"`
 	IgnoreAttributeKeys []string            `toml:"ignore_attribute_keys"`
 	Tags                map[string]string   `toml:"tags"`
 	ExpectedHeaders     map[string]string   `toml:"expectedHeaders"`
@@ -130,6 +146,12 @@ func (i *Input) exit() {
 	i.Ogrpc.stop()
 }
 
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+	}
+}
+
 func (i *Input) Run() {
 	l = logger.SLogger("otlp-log")
 	storage := collector.NewSpansStorage()
@@ -142,10 +164,18 @@ func (i *Input) Run() {
 		closeResource.UpdateIgnResList(i.CloseResource)
 		storage.AfterGather.AppendFilter(closeResource.Close)
 	}
+	// add omit certain error status list
+	if len(i.OmitErrStatus) != 0 {
+		storage.AfterGather.AppendFilter(itrace.OmitStatusCodeFilterWrapper(i.OmitErrStatus))
+	}
 	// add sampler
 	if i.Sampler != nil {
 		defSampler := i.Sampler
 		storage.AfterGather.AppendFilter(defSampler.Sample)
+	}
+	// add piplines
+	if len(i.Pipelines) != 0 {
+		storage.AfterGather.AppendFilter(itrace.PiplineFilterWrapper(inputName, i.Pipelines))
 	}
 
 	storage.GlobalTags = i.Tags
@@ -185,10 +215,6 @@ func (i *Input) Run() {
 			}
 		}
 	}
-}
-
-func (i *Input) Terminate() {
-	// TODO: 必须写
 }
 
 func init() { //nolint:gochecknoinits

@@ -427,7 +427,7 @@ func getHostConfig() *HostConfig {
 func getElectionInfo() *ElectionInfo {
 	electionInfo := &ElectionInfo{}
 	if config.Cfg.EnableElection {
-		elected, namespace := election.Elected()
+		elected, namespace, _ := election.Elected()
 		electionInfo.Elected = elected
 		electionInfo.Namespace = namespace
 		return electionInfo

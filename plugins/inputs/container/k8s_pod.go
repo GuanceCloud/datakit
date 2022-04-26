@@ -27,6 +27,8 @@ func gatherPod(client k8sClientX, extraTags map[string]string) (k8sResourceStats
 func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 	res := newK8sResourceStats()
 
+	podIDs := make(map[string]interface{})
+
 	for idx, item := range items {
 		obj := newPod()
 		obj.tags = map[string]string{
@@ -50,7 +52,7 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 			obj.tags["deployment"] = deployment
 		}
 
-		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
+		obj.tags.addValueIfNotEmpty("cluster_name", defaultClusterName(item.ClusterName))
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		obj.tags.append(extraTags)
 
@@ -93,12 +95,29 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
+		delete(obj.fields, "annotations")
 
 		obj.time = time.Now()
 		res.set(defaultNamespace(item.Namespace), obj)
 
+		podIDs[string(item.UID)] = nil
+
 		if err := tryRunInput(&items[idx]); err != nil {
 			l.Warnf("failed to run input(discovery), %w", err)
+		}
+	}
+
+	for id, inputList := range discoveryInputsMap {
+		if _, ok := podIDs[id]; ok {
+			continue
+		}
+		for _, ii := range inputList {
+			if ii == nil {
+				continue
+			}
+			if inp, ok := ii.(inputs.InputV2); ok {
+				inp.Terminate()
+			}
 		}
 	}
 
@@ -197,7 +216,6 @@ func (*pod) Info() *inputs.MeasurementInfo {
 			"restarts":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
 			"ready":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "container ready"},
 			"available":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "container count"},
-			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
 			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 		},
 	}

@@ -87,7 +87,6 @@ func pullMain(cg *config.GitRepost) error {
 
 		case <-tick.C:
 			// empty here
-
 		} // select
 	} // for
 }
@@ -155,8 +154,6 @@ func doRun(c *config.GitRepository) error {
 			return err
 		}
 	}
-
-	io.FeedEventLog(&io.Reporter{Message: "Gitrepo synchronizes the latest data", Logtype: "event"})
 
 	l.Debug("completed")
 	return nil

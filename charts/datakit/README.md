@@ -22,9 +22,9 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
 ​	Once you've added this Helm repository as per the repository-level [README](../../README.md#installing) then you can install the chart as follows:
 
  ```shell
- helm repo add dataflux https://pubrepo.guance.com/chartrepo/datakit
+$ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit
  
- helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+$ helm install <RELEASE_NAME> datakit/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
  ```
 
 ​	The command deploys DataKit on the Kubernetes cluster in the default configuration.
@@ -35,9 +35,9 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
   - git passwd
   
     ```
-    helm repo add dataflux https://pubrepo.guance.com/chartrepo/datakit
+    $ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit
     
-    helm install my-datakit dataflux/datakit -n datakit --set git_repos.enable=true  --set dataway_url="https://openway.guance.com?token=<your-token>" \
+    $helm install <RELEASE_NAME> datakit/datakit -n datakit --set git_repos.enable=true  --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
     --set git_repos.git_url="http://username:password@github.com/path/to/repository.git" \
     --create-namespace 
     ```
@@ -45,9 +45,9 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
   - git key
   
     ```
-    helm repo add dataflux https://pubrepo.guance.com/chartrepo/datakit
+    $ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit
     
-    helm install my-datakit dataflux/datakit -n datakit --set git_repos.enable=true  --set dataway_url="https://openway.guance.com?token=<your-token>"  \
+    $ helm install <RELEASE_NAME> datakit/datakit -n datakit --set git_repos.enable=true  --set datakit.dataway_url="https://openway.guance.com?token=<your-token>"  \
     --set git_repos.git_url="git@github.com:path/to/repository.git" \
     --set-file git_repos.git_key_path="/Users/buleleaf/.ssh/id_rsa" \
     --create-namespace 
@@ -59,7 +59,7 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
 To delete/uninstall the chart with the release name `my-release`:
 
 ```shell
-helm uninstall my-datakit -n datakit
+$ helm uninstall <RELEASE_NAME> -n datakit
 ```
 
 ## Configuration
@@ -69,12 +69,12 @@ helm uninstall my-datakit -n datakit
 | `image.repository`       | The DataKit Docker image                                     | `pubrepo.guance.com/chartrepo/datakit`                      | `true`   |
 | `image.pullPolicy`       | The Kubernetes [imagePullPolicy][] value                     | `IfNotPresent`                                               |          |
 | `image.tag`              | The DataKit Docker image tag                                 | `""`                                                         |          |
-| `dataway_url`            | The DataWay url, contain`TOKEN`                              | `https://openway.guance.com?token=<your-token>`              | `true`   |
-| `global_tags`            | It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas) | `host=__datakit_hostname,host_ip=__datakit_ip`               |          |
-| `default_enabled_inputs` | The default open collector list, format example: input1, input2, input3 | cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container |          |
-| `enabled_election`       | When the election is enabled, it is not enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false) | `enable`                                                     |          |
-| `log`                    | Optional value info / debug / stdout                         | `stdout`                                                     |          |
-| `http_listen`            | It supports specifying the network card bound to the Datakit HTTP service in the installation phase (default localhost) | `0.0.0.0:9529`                                               |          |
+| `datakit.dataway_url`            | The DataWay url, contain`TOKEN`                              | `https://openway.guance.com?token=<your-token>`              | `true`   |
+| `datakit.global_tags`            | It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas) | `host=__datakit_hostname,host_ip=__datakit_ip`               |          |
+| `datakit.default_enabled_inputs` | The default open collector list, format example: input1, input2, input3 | cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container |          |
+| `datakit.enabled_election`       | When the election is enabled, it is not enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false) | `enable`                                                     |          |
+| `datakit.log`                    | Optional value info / debug / stdout                         | `stdout`                                                     |          |
+| `datakit.http_listen`            | It supports specifying the network card bound to the Datakit HTTP service in the installation phase (default localhost) | `0.0.0.0:9529`                                               |          |
 | `git_repos.enable`       | use git management DataKit input                             | `false`                                                      |          |
 | `git_repos.git_url`      | The remote git repo address of the management profile. (e.g http://username:password @github. com/username/repository. git） | `-`                                                          |          |
 | `git_repos.git_key_path` | The full path of the local privatekey. (e.g. / users / username /. SSH / id_rsa) | `-`                                                          |          |
@@ -91,6 +91,7 @@ helm uninstall my-datakit -n datakit
 | `dkconfig.path`          | DataKit input path                                           | `nil`                                                        |          |
 | `dkconfig.name`          | DataKit input name                                           | `nil`                                                        |          |
 | `dkconfig.value`         | DataKit input value                                          | `nil`                                                        |          |
+| `datakit.kubeStateMetricsEnabled` | For large clusters where the Kubernetes State Metrics Check Core needs to be distributed on dedicated workers. | `true` | |
 
 
 

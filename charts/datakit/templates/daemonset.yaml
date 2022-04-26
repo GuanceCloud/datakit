@@ -36,17 +36,17 @@ spec:
                   apiVersion: v1
                   fieldPath: spec.nodeName
             - name: ENV_DATAWAY
-              value: {{ .Values.dataway_url }}
+              value: {{ .Values.datakit.dataway_url }}
             - name: ENV_GLOBAL_TAGS
-              value: {{ .Values.global_tags }}
+              value: {{ .Values.datakit.global_tags }}
             - name: ENV_DEFAULT_ENABLED_INPUTS
-              value: {{ .Values.default_enabled_inputs }}
+              value: {{ .Values.datakit.default_enabled_inputs }}
             - name: ENV_ENABLE_ELECTION
-              value: {{ .Values.enabled_election | quote }}
+              value: {{ .Values.datakit.enabled_election | quote }}
             - name: ENV_LOG
-              value: {{ .Values.log }}
+              value: {{ .Values.datakit.log }}
             - name: ENV_HTTP_LISTEN
-              value: {{ .Values.http_listen }}
+              value: {{ .Values.datakit.http_listen }}
             {{- if .Values.git_repos.enable }}
             {{- if not (eq  "-" .Values.git_repos.git_url) }}
             - name: DK_GIT_URL
