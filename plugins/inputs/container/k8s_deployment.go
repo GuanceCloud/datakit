@@ -172,6 +172,7 @@ func (*deploymentMetric) Info() *inputs.MeasurementInfo {
 			"namespace":  inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
 		Fields: map[string]interface{}{
+			"count":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of deployments"},
 			"paused":             &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "Indicates that the deployment is paused (true or false)."},
 			"condition":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The current status conditions of a deployment"},
 			"replicas":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of non-terminated pods targeted by this deployment (their labels match the selector)."},

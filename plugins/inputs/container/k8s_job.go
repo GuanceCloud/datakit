@@ -192,6 +192,7 @@ func (*jobMetric) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			// "active":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of actively running pods."},
+			"count":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of jobs"},
 			"failed":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of pods which reached phase Failed."},
 			"succeeded":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of pods which reached phase Succeeded."},
 			"completion_succeeded": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The job has completed its execution."},

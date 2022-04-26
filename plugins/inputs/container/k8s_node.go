@@ -188,6 +188,7 @@ func (*nodeMetric) Info() *inputs.MeasurementInfo {
 			"node_name": inputs.NewTagInfo("Name must be unique within a namespace."),
 		},
 		Fields: map[string]interface{}{
+			"count":                         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of nodes"},
 			"age":                           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "The time in seconds since the creation of the node"},
 			"cpu_allocatable":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The allocatable CPU of a node that is available for scheduling."},
 			"memory_allocatable":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The allocatable memory of a node that is available for scheduling."},

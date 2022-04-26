@@ -159,6 +159,7 @@ func (*cronjobMetric) Info() *inputs.MeasurementInfo {
 			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
 		Fields: map[string]interface{}{
+			"count":                        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of cronjobs"},
 			"spec_suspend":                 &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "This flag tells the controller to suspend subsequent executions."},
 			"duration_since_last_schedule": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "The duration since the last time the cronjob was scheduled."},
 		},
