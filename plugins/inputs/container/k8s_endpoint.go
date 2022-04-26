@@ -26,6 +26,10 @@ func newEndpoint(client k8sClientX, extraTags map[string]string) *endpoint {
 	}
 }
 
+func (e *endpoint) name() string {
+	return "endpoint"
+}
+
 func (e *endpoint) pullItems() error {
 	if len(e.items) != 0 {
 		return nil
@@ -117,5 +121,6 @@ func (*endpointMetric) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newEndpoint(c, m) })
 	registerMeasurement(&endpointMetric{})
 }

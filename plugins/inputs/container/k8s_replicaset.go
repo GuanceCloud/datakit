@@ -29,6 +29,10 @@ func newReplicaset(client k8sClientX, extraTags map[string]string) *replicaset {
 	}
 }
 
+func (r *replicaset) name() string {
+	return "replica_set"
+}
+
 func (r *replicaset) pullItems() error {
 	if len(r.items) != 0 {
 		return nil
@@ -197,5 +201,8 @@ func (*replicasetObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newReplicaset(c, m) })
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newReplicaset(c, m) })
+	registerMeasurement(&replicasetMetric{})
 	registerMeasurement(&replicasetObject{})
 }

@@ -29,6 +29,10 @@ func newNode(client k8sClientX, extraTags map[string]string) *node {
 	}
 }
 
+func (n *node) name() string {
+	return "node"
+}
+
 func (n *node) pullItems() error {
 	if len(n.items) != 0 {
 		return nil
@@ -221,6 +225,8 @@ func (*nodeObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newNode(c, m) })
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newNode(c, m) })
 	registerMeasurement(&nodeMetric{})
 	registerMeasurement(&nodeObject{})
 }

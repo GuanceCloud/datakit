@@ -26,6 +26,10 @@ func newClusterRole(client k8sClientX, extraTags map[string]string) *clusterRole
 	}
 }
 
+func (c *clusterRole) name() string {
+	return "cluster_role"
+}
+
 func (c *clusterRole) pullItems() error {
 	if len(c.items) != 0 {
 		return nil
@@ -105,5 +109,6 @@ func (*clusterRoleObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newClusterRole(c, m) })
 	registerMeasurement(&clusterRoleObject{})
 }

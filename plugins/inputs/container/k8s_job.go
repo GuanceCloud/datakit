@@ -29,6 +29,10 @@ func newJob(client k8sClientX, extraTags map[string]string) *job {
 	}
 }
 
+func (j *job) name() string {
+	return "job"
+}
+
 func (j *job) pullItems() error {
 	if len(j.items) != 0 {
 		return nil
@@ -223,6 +227,8 @@ func (*jobObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newJob(c, m) })
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newJob(c, m) })
 	registerMeasurement(&jobMetric{})
 	registerMeasurement(&jobObject{})
 }

@@ -29,6 +29,10 @@ func newDeployment(client k8sClientX, extraTags map[string]string) *deployment {
 	}
 }
 
+func (d *deployment) name() string {
+	return "deployment"
+}
+
 func (d *deployment) pullItems() error {
 	if len(d.items) != 0 {
 		return nil
@@ -220,6 +224,8 @@ func (*deploymentObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newDeployment(c, m) })
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newDeployment(c, m) })
 	registerMeasurement(&deploymentObject{})
 	registerMeasurement(&deploymentMetric{})
 }

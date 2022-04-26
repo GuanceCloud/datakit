@@ -26,6 +26,10 @@ func newDaemonset(client k8sClientX, extraTags map[string]string) *daemonset {
 	}
 }
 
+func (d *daemonset) name() string {
+	return "daemonset"
+}
+
 func (d *daemonset) pullItems() error {
 	if len(d.items) != 0 {
 		return nil
@@ -118,5 +122,6 @@ func (*daemonsetMetric) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newDaemonset(c, m) })
 	registerMeasurement(&daemonsetMetric{})
 }

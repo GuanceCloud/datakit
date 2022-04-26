@@ -29,6 +29,10 @@ func newCronjob(client k8sClientX, extraTags map[string]string) *cronjob {
 	}
 }
 
+func (c *cronjob) name() string {
+	return "cronjob"
+}
+
 func (c *cronjob) pullItems() error {
 	if len(c.items) != 0 {
 		return nil
@@ -184,6 +188,8 @@ func (*cronjobObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newCronjob(c, m) })
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newCronjob(c, m) })
 	registerMeasurement(&cronjobMetric{})
 	registerMeasurement(&cronjobObject{})
 }

@@ -48,72 +48,40 @@ type inputsMeas []inputs.Measurement
 func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 	var (
 		res     inputsMeas
+		counts  = make(map[string]map[string]int)
 		lastErr error
 	)
 
-	{
-		x := newDeployment(k.client, k.cfg.extraTags)
-		if m, err := x.metric(); err != nil {
+	for _, fn := range k8sResourceMetricList {
+		x := fn(k.client, k.cfg.extraTags)
+		if m, err := x.metric(); err == nil {
 			res = append(m)
 		} else {
 			lastErr = err
+		}
+
+		nsCount, err := x.count()
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		for ns, count := range nsCount {
+			if c := counts[ns]; c == nil {
+				counts[ns] = make(map[string]int)
+			}
+			counts[ns][x.name()] = count
 		}
 	}
-	{
-		x := newDaemonset(k.client, k.cfg.extraTags)
-		if m, err := x.metric(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
+
+	for ns, ct := range counts {
+		count := &count{
+			tags: map[string]string{"namespace": ns},
+			time: time.Now(),
 		}
-	}
-	{
-		x := newEndpoint(k.client, k.cfg.extraTags)
-		if m, err := x.metric(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
+		for name, n := range ct {
+			count.fields[name] = n
 		}
-	}
-	{
-		x := newCronjob(k.client, k.cfg.extraTags)
-		if m, err := x.metric(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
-		}
-	}
-	{
-		x := newJob(k.client, k.cfg.extraTags)
-		if m, err := x.metric(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
-		}
-	}
-	{
-		x := newPod(k.client, k.cfg.extraTags)
-		if m, err := x.metric(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
-		}
-	}
-	{
-		x := newNode(k.client, k.cfg.extraTags)
-		if m, err := x.metric(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
-		}
-	}
-	{
-		x := newReplicaset(k.client, k.cfg.extraTags)
-		if m, err := x.metric(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
-		}
+		res = append(res, count)
 	}
 
 	return res, lastErr
@@ -125,65 +93,9 @@ func (k *kubernetesInput) gatherResourceObject() (inputsMeas, error) {
 		lastErr error
 	)
 
-	{
-		x := newCronjob(k.client, k.cfg.extraTags)
-		if m, err := x.object(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
-		}
-	}
-	{
-		x := newDeployment(k.client, k.cfg.extraTags)
-		if m, err := x.object(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
-		}
-	}
-	{
-		x := newJob(k.client, k.cfg.extraTags)
-		if m, err := x.object(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
-		}
-	}
-	{
-		x := newNode(k.client, k.cfg.extraTags)
-		if m, err := x.object(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
-		}
-	}
-	{
-		x := newPod(k.client, k.cfg.extraTags)
-		if m, err := x.object(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
-		}
-	}
-	{
-		x := newReplicaset(k.client, k.cfg.extraTags)
-		if m, err := x.object(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
-		}
-	}
-	{
-		x := newService(k.client, k.cfg.extraTags)
-		if m, err := x.object(); err != nil {
-			res = append(m)
-		} else {
-			lastErr = err
-		}
-	}
-	{
-		x := newClusterRole(k.client, k.cfg.extraTags)
-		if m, err := x.object(); err != nil {
+	for _, fn := range k8sResourceObjectList {
+		x := fn(k.client, k.cfg.extraTags)
+		if m, err := x.object(); err == nil {
 			res = append(m)
 		} else {
 			lastErr = err
@@ -205,6 +117,7 @@ func (k *kubernetesInput) watchingEventLog(stop <-chan interface{}) {
 }
 
 type k8sResourceMetricInterface interface {
+	name() string
 	metric() (inputsMeas, error)
 	count() (map[string]int, error)
 }
@@ -269,6 +182,24 @@ func defaultClusterName(name string) string {
 		return e
 	}
 	return "kubernetes"
+}
+
+type (
+	newK8sResourceMetricHandle func(k8sClientX, map[string]string) k8sResourceMetricInterface
+	newK8sResourceObjectHandle func(k8sClientX, map[string]string) k8sResourceObjectInterface
+)
+
+var (
+	k8sResourceMetricList []newK8sResourceMetricHandle
+	k8sResourceObjectList []newK8sResourceObjectHandle
+)
+
+func registerK8sResourceMetric(newfn newK8sResourceMetricHandle) {
+	k8sResourceMetricList = append(k8sResourceMetricList, newfn)
+}
+
+func registerK8sResourceObject(newfn newK8sResourceObjectHandle) {
+	k8sResourceObjectList = append(k8sResourceObjectList, newfn)
 }
 
 //nolint:gochecknoinits

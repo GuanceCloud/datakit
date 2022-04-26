@@ -26,6 +26,10 @@ func newService(client k8sClientX, extraTags map[string]string) *service {
 	}
 }
 
+func (s *service) name() string {
+	return "service"
+}
+
 func (s *service) pullItems() error {
 	if len(s.items) != 0 {
 		return nil
@@ -116,5 +120,6 @@ func (*serviceObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newService(c, m) })
 	registerMeasurement(&serviceObject{})
 }

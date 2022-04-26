@@ -29,6 +29,10 @@ func newPod(client k8sClientX, extraTags map[string]string) *pod {
 	}
 }
 
+func (p *pod) name() string {
+	return "pod"
+}
+
 func (p *pod) pullItems() error {
 	if len(p.items) != 0 {
 		return nil
@@ -305,5 +309,8 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newPod(c, m) })
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newPod(c, m) })
+	registerMeasurement(&podMetric{})
 	registerMeasurement(&podObject{})
 }
