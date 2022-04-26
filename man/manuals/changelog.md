@@ -2,6 +2,19 @@
 
 # DataKit 版本历史
 
+## 1.2.17(2022/04/26)
+
+本次发布属于迭代发布，主要涉及如下几个方面：
+
+- [容器采集器](container)增加更多 KSM（kube-state-metrics）指标采集(#668)
+- DDTrace 和 OpenTelemetry 采集器支持通过 HTTP Status Code（`omit_err_status`）来过滤部分错误的 trace
+- 修复几个 Trace 采集器（DDtrace/OpenTelemetry/Zipkin/SkyWalking/Jaeger）在 git 模式下配置 reload 不生效的问题(#725)
+- 修复 Gitlab 采集器不能 tag 导致的奔溃问题(#730)
+- [prom 采集器](prom) 支持 [Tag 重命名](prom#e42139cb)(#719)
+- 完善部分文档描述
+
+----
+
 ## 1.2.16(2022/04/24)
 
 本次发布属于 hotfix 修复，主要涉及如下几个方面(#728)：
@@ -10,6 +23,8 @@
 - 修复 Windows 安装脚本的拼写错误，该错误导致 32 位安装程序下载失败
 - 调整 Monitor 关于选举情况的展示
 - 开启选举的情况下，修复 MongoDB 死循环导致无法采集的问题
+
+----
 
 ## 1.2.15(2022/04/21)
 
@@ -63,7 +78,7 @@
 - 支持主机安装时通过 [cgroup 限制内存](datakit-conf#4e7ff8f3)使用(#641)
 - 完善日志黑名单功能，新增 contain/notcontain 判定规则(#665)
   - 支持在 datakit.conf 中[配置日志/对象/Tracing/时序指标这几类黑名单](datakit-filter#045b45e3)
-	- 注意：升级该版本，要求 DataWay 升级到 1.2.1+，kodo 升级到 xxx 版本
+	- 注意：升级该版本，要求 DataWay 升级到 1.2.1+
 - 进一步完善 [containerd 下的容器采集](container)(#402)
 - 调整 monitor 布局，增加黑名单过滤情况展示(#634)
 - DaemonSet 安装增加 [Helm 支持](datakit-daemonset-deploy)(#653)
