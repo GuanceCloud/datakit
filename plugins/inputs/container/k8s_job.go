@@ -66,7 +66,7 @@ func (j *job) metric() (inputsMeas, error) {
 				"succeeded":            item.Status.Succeeded,
 				"completion_succeeded": 0,
 				"completion_failed":    0,
-				//"active":               item.Status.Active,
+				// "active":item.Status.Active,
 			},
 			time: time.Now(),
 		}

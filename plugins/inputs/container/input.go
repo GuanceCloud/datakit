@@ -175,9 +175,7 @@ func (i *Input) collectObject() {
 
 	l.Debug("collect k8s resource")
 
-	if err := i.gatherK8sResource(); err != nil {
-		l.Errorf("failed fo collect k8s: %w", err)
-	}
+	i.gatherK8sResource()
 }
 
 func (i *Input) collectMetric() {
@@ -291,7 +289,7 @@ func (i *Input) gatherContainerdObject() error {
 		&io.Option{CollectCost: time.Since(start)})
 }
 
-func (i *Input) gatherK8sResource() error {
+func (i *Input) gatherK8sResource() {
 	start := time.Now()
 
 	metricMeas, err := i.k8sInput.gatherResourceMetric()
@@ -313,8 +311,6 @@ func (i *Input) gatherK8sResource() error {
 	} else {
 		l.Errorf("k8s gather object error: %w", err)
 	}
-
-	return nil
 }
 
 func (i *Input) gatherK8sPodMetrics() error {

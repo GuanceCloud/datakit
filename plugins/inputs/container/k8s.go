@@ -55,7 +55,7 @@ func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 	for _, fn := range k8sResourceMetricList {
 		x := fn(k.client, k.cfg.extraTags)
 		if m, err := x.metric(); err == nil {
-			res = append(m)
+			res = append(res, m...)
 		} else {
 			lastErr = err
 		}
@@ -96,7 +96,7 @@ func (k *kubernetesInput) gatherResourceObject() (inputsMeas, error) {
 	for _, fn := range k8sResourceObjectList {
 		x := fn(k.client, k.cfg.extraTags)
 		if m, err := x.object(); err == nil {
-			res = append(m)
+			res = append(res, m...)
 		} else {
 			lastErr = err
 		}
@@ -123,6 +123,7 @@ type k8sResourceMetricInterface interface {
 }
 
 type k8sResourceObjectInterface interface {
+	name() string
 	object() (inputsMeas, error)
 }
 
@@ -132,23 +133,14 @@ type count struct {
 	time   time.Time
 }
 
-func newCount() *count {
-	return &count{
-		tags:   make(tagsType),
-		fields: make(fieldsType),
-	}
-}
-
-const kubernetesMetricName = "kubernetes"
-
 func (c *count) LineProto() (*io.Point, error) {
-	return io.NewPoint(kubernetesMetricName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Metric})
+	return io.NewPoint("kubernetes", c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Metric})
 }
 
 //nolint:lll
 func (*count) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: kubernetesMetricName,
+		Name: "kubernetes",
 		Desc: "Kubernetes count 指标数据",
 		Type: "metric",
 		Tags: map[string]interface{}{

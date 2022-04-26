@@ -59,7 +59,7 @@ func (p *pod) metric() (inputsMeas, error) {
 				"pod":       item.Name,
 				"namespace": defaultNamespace(item.Namespace),
 				// "condition":  "",
-				// "depolyment": "",
+				// "deployment": "",
 				// "daemonset":  "",
 			},
 			fields: map[string]interface{}{
@@ -169,7 +169,8 @@ func (p *pod) object() (inputsMeas, error) {
 
 		podIDs[string(item.UID)] = nil
 
-		if err := tryRunInput(&item); err != nil {
+		tempItem := item
+		if err := tryRunInput(&tempItem); err != nil {
 			l.Warnf("failed to run input(discovery), %w", err)
 		}
 	}
