@@ -83,11 +83,20 @@ func (p *pod) metric() (inputsMeas, error) {
 		res = append(res, met)
 	}
 
-	return nil, nil
+	return res, nil
 }
 
 func (p *pod) count() (map[string]int, error) {
-	return nil, nil
+	if err := p.pullItems(); err != nil {
+		return nil, err
+	}
+
+	m := make(map[string]int)
+	for _, item := range p.items {
+		m[defaultNamespace(item.Namespace)]++
+	}
+
+	return m, nil
 }
 
 func (p *pod) object() (inputsMeas, error) {

@@ -60,9 +60,8 @@ func (d *deployment) metric() (inputsMeas, error) {
 				"namespace":  item.Namespace,
 			},
 			fields: map[string]interface{}{
-				"count":                         -1,
 				"paused":                        item.Spec.Paused,
-				"condition":                     "",
+				"condition":                     len(item.Status.Conditions),
 				"replicas":                      item.Status.Replicas,
 				"replicas_available":            item.Status.AvailableReplicas,
 				"replicas_unavailable":          item.Status.UnavailableReplicas,

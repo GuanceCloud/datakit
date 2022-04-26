@@ -57,7 +57,6 @@ func (d *daemonset) metric() (inputsMeas, error) {
 				"namespace": item.Namespace,
 			},
 			fields: map[string]interface{}{
-				"count":               -1,
 				"scheduled":           item.Status.CurrentNumberScheduled,
 				"desired":             item.Status.DesiredNumberScheduled,
 				"misscheduled":        item.Status.NumberMisscheduled,
