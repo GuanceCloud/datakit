@@ -11,67 +11,87 @@ import (
 	v1 "k8s.io/api/rbac/v1"
 )
 
-const k8sClusterRoleName = "kubernetes_cluster_roles"
+var _ k8sResourceObjectInterface = (*clusterRole)(nil)
 
-func gatherClusterRole(client k8sClientX, extraTags map[string]string) (k8sResourceStats, error) {
-	list, err := client.getClusters().List(context.Background(), metaV1ListOption)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get clusters resource: %w", err)
-	}
-
-	if len(list.Items) == 0 {
-		return nil, nil
-	}
-	return exportClusterRole(list.Items, extraTags), nil
+type clusterRole struct {
+	client    k8sClientX
+	extraTags map[string]string
+	items     []v1.ClusterRole
 }
 
-func exportClusterRole(items []v1.ClusterRole, extraTags tagsType) k8sResourceStats {
-	res := newK8sResourceStats()
+func newClusterRole(client k8sClientX, extraTags map[string]string) *clusterRole {
+	return &clusterRole{
+		client:    client,
+		extraTags: extraTags,
+	}
+}
 
-	for _, item := range items {
-		obj := newClusterRole()
-		obj.tags["name"] = fmt.Sprintf("%v", item.UID)
-		obj.tags["cluster_name"] = defaultClusterName(item.ClusterName)
+func (c *clusterRole) name() string {
+	return "cluster_role"
+}
 
-		obj.tags.addValueIfNotEmpty("cluster_role_name", item.Name)
-		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
-		obj.tags.append(extraTags)
+func (c *clusterRole) pullItems() error {
+	if len(c.items) != 0 {
+		return nil
+	}
 
-		obj.fields["age"] = int64(time.Since(item.CreationTimestamp.Time).Seconds())
-		obj.fields["create_time"] = item.CreationTimestamp.Time.Unix()
+	list, err := c.client.getClusterRoles().List(context.Background(), metaV1ListOption)
+	if err != nil {
+		return fmt.Errorf("failed to get clusterRoles resource: %w", err)
+	}
+
+	c.items = list.Items
+	return nil
+}
+
+func (c *clusterRole) object() (inputsMeas, error) {
+	if err := c.pullItems(); err != nil {
+		return nil, err
+	}
+	var res inputsMeas
+
+	for _, item := range c.items {
+		obj := &clusterRoleObject{
+			tags: map[string]string{
+				"name":              fmt.Sprintf("%v", item.UID),
+				"cluster_role_name": item.Name,
+				"cluster_name":      defaultClusterName(item.ClusterName),
+				"namespace":         defaultNamespace(item.Namespace),
+			},
+			fields: map[string]interface{}{
+				"age":         int64(time.Since(item.CreationTimestamp.Time).Seconds()),
+				"create_time": item.CreationTimestamp.Time.Unix(),
+			},
+			time: time.Now(),
+		}
+
+		obj.tags.append(c.extraTags)
 
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
-		delete(obj.fields, "annotations")
+		obj.fields.delete("annotations")
 
-		obj.time = time.Now()
-		res.set(defaultNamespace(item.Namespace), obj)
+		res = append(res, obj)
 	}
-	return res
+
+	return res, nil
 }
 
-type clusterRole struct {
+type clusterRoleObject struct {
 	tags   tagsType
 	fields fieldsType
 	time   time.Time
 }
 
-func newClusterRole() *clusterRole {
-	return &clusterRole{
-		tags:   make(tagsType),
-		fields: make(fieldsType),
-	}
-}
-
-func (c *clusterRole) LineProto() (*io.Point, error) {
-	return io.NewPoint(k8sClusterRoleName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Object})
+func (c *clusterRoleObject) LineProto() (*io.Point, error) {
+	return io.NewPoint("kubernetes_cluster_roles", c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Object})
 }
 
 //nolint:lll
-func (*clusterRole) Info() *inputs.MeasurementInfo {
+func (*clusterRoleObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: k8sClusterRoleName,
+		Name: "kubernetes_cluster_roles",
 		Desc: "Kubernetes cluster role 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
@@ -89,5 +109,6 @@ func (*clusterRole) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerMeasurement(&clusterRole{})
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newClusterRole(c, m) })
+	registerMeasurement(&clusterRoleObject{})
 }

@@ -63,10 +63,15 @@ func gatherPodMetrics(client k8sMetricsClientX, extraTags map[string]string) ([]
 		if len(item.Containers) == 0 {
 			continue
 		}
-		obj := newPodMetric()
-		obj.tags["pod_name"] = item.Name
-		obj.tags.addValueIfNotEmpty("cluster_name", defaultClusterName(item.ClusterName))
-		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
+		obj := &podSrvMetric{
+			tags: map[string]string{
+				"pod_name":     item.Name,
+				"cluster_name": defaultClusterName(item.ClusterName),
+				"namespace":    defaultNamespace(item.Namespace),
+			},
+			fields: map[string]interface{}{},
+			time:   time.Now(),
+		}
 		obj.tags.append(extraTags)
 
 		cpu := item.Containers[0].Usage["cpu"]
@@ -89,31 +94,23 @@ func gatherPodMetrics(client k8sMetricsClientX, extraTags map[string]string) ([]
 		obj.fields["cpu_usage"] = cpuUsage * 100 // percentage
 		obj.fields["memory_usage_bytes"] = memUsage
 
-		obj.time = time.Now()
 		res = append(res, obj)
 	}
 	return res, nil
 }
 
-type podMetric struct {
+type podSrvMetric struct {
 	tags   tagsType
 	fields fieldsType
 	time   time.Time
 }
 
-func newPodMetric() *podMetric {
-	return &podMetric{
-		tags:   make(tagsType),
-		fields: make(fieldsType),
-	}
-}
-
-func (p *podMetric) LineProto() (*io.Point, error) {
+func (p *podSrvMetric) LineProto() (*io.Point, error) {
 	return io.NewPoint(k8sPodMetricName, p.tags, p.fields, &io.PointOption{Time: p.time, Category: datakit.Metric})
 }
 
 //nolint:lll
-func (*podMetric) Info() *inputs.MeasurementInfo {
+func (*podSrvMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: k8sPodMetricName,
 		Desc: "Kubernetes pod 指标数据",
@@ -132,5 +129,5 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerMeasurement(&podMetric{})
+	registerMeasurement(&podSrvMetric{})
 }

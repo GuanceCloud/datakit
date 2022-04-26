@@ -682,7 +682,6 @@ func TestServeHTTP(t *testing.T) {
 		expectedStatusCode int
 	}{
 		{
-
 			request:            getPipelineRequest(pipelineJson1),
 			expectedStatusCode: http.StatusOK,
 		},

@@ -11,74 +11,175 @@ import (
 	v1beta1 "k8s.io/api/batch/v1beta1"
 )
 
-const k8sCronJobName = "kubernetes_cron_jobs"
+var (
+	_ k8sResourceMetricInterface = (*cronjob)(nil)
+	_ k8sResourceObjectInterface = (*cronjob)(nil)
+)
 
-func gatherCronJob(client k8sClientX, extraTags map[string]string) (k8sResourceStats, error) {
-	list, err := client.getCronJobs().List(context.Background(), metaV1ListOption)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get cronjobs resource: %w", err)
-	}
-
-	if len(list.Items) == 0 {
-		return nil, nil
-	}
-	return exportCronJob(list.Items, extraTags), nil
+type cronjob struct {
+	client    k8sClientX
+	extraTags map[string]string
+	items     []v1beta1.CronJob
 }
 
-func exportCronJob(items []v1beta1.CronJob, extraTags tagsType) k8sResourceStats {
-	res := newK8sResourceStats()
+func newCronjob(client k8sClientX, extraTags map[string]string) *cronjob {
+	return &cronjob{
+		client:    client,
+		extraTags: extraTags,
+	}
+}
 
-	for _, item := range items {
-		obj := newCronJob()
-		obj.tags["name"] = fmt.Sprintf("%v", item.UID)
-		obj.tags["cron_job_name"] = item.Name
+func (c *cronjob) name() string {
+	return "cronjob"
+}
 
-		obj.tags.addValueIfNotEmpty("cluster_name", defaultClusterName(item.ClusterName))
-		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
-		obj.tags.append(extraTags)
+func (c *cronjob) pullItems() error {
+	if len(c.items) != 0 {
+		return nil
+	}
 
-		obj.fields["age"] = int64(time.Since(item.CreationTimestamp.Time).Seconds())
-		obj.fields["schedule"] = item.Spec.Schedule
-		obj.fields["active_jobs"] = len(item.Status.Active)
+	list, err := c.client.getCronJobs().List(context.Background(), metaV1ListOption)
+	if err != nil {
+		return fmt.Errorf("failed to get cronjobs resource: %w", err)
+	}
+
+	c.items = list.Items
+	return nil
+}
+
+func (c *cronjob) metric() (inputsMeas, error) {
+	if err := c.pullItems(); err != nil {
+		return nil, err
+	}
+	var res inputsMeas
+
+	for _, item := range c.items {
+		met := &cronjobMetric{
+			tags: map[string]string{
+				"cronjob":   item.Name,
+				"namespace": defaultNamespace(item.Namespace),
+			},
+			fields: map[string]interface{}{
+				"spec_suspend": *item.Spec.Suspend,
+			},
+			time: time.Now(),
+		}
+		// t := item.Status.LastScheduleTime
+		// met.fields["duration_since_last_schedule"] = int64(time.Since(t).Seconds())
+
+		met.tags.append(c.extraTags)
+		res = append(res, met)
+	}
+
+	count, _ := c.count()
+	for ns, ct := range count {
+		met := &cronjobMetric{
+			tags:   map[string]string{"namespace": ns},
+			fields: map[string]interface{}{"count": ct},
+			time:   time.Now(),
+		}
+		met.tags.append(c.extraTags)
+		res = append(res, met)
+	}
+
+	return res, nil
+}
+
+func (c *cronjob) object() (inputsMeas, error) {
+	if err := c.pullItems(); err != nil {
+		return nil, err
+	}
+	var res inputsMeas
+
+	for _, item := range c.items {
+		obj := &cronjobObject{
+			tags: map[string]string{
+				"name":          fmt.Sprintf("%v", item.UID),
+				"cron_job_name": item.Name,
+				"cluster_name":  defaultClusterName(item.ClusterName),
+				"namespace":     defaultNamespace(item.Namespace),
+			},
+			fields: map[string]interface{}{
+				"age": int64(time.Since(item.CreationTimestamp.Time).Seconds()),
+
+				"schedule":    item.Spec.Schedule,
+				"active_jobs": len(item.Status.Active),
+				"suspend":     false,
+			},
+			time: time.Now(),
+		}
+		obj.tags.append(c.extraTags)
 
 		if item.Spec.Suspend != nil {
 			obj.fields["suspend"] = *item.Spec.Suspend
-		} else {
-			obj.fields["suspend"] = false
 		}
 
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
-		delete(obj.fields, "annotations")
+		obj.fields.delete("annotations")
 
-		obj.time = time.Now()
-		res.set(defaultNamespace(item.Namespace), obj)
+		res = append(res, obj)
 	}
-	return res
+
+	return res, nil
 }
 
-type cronJob struct {
+func (c *cronjob) count() (map[string]int, error) {
+	if err := c.pullItems(); err != nil {
+		return nil, err
+	}
+
+	m := make(map[string]int)
+	for _, item := range c.items {
+		m[defaultNamespace(item.Namespace)]++
+	}
+
+	return m, nil
+}
+
+type cronjobMetric struct {
 	tags   tagsType
 	fields fieldsType
 	time   time.Time
 }
 
-func newCronJob() *cronJob {
-	return &cronJob{
-		tags:   make(tagsType),
-		fields: make(fieldsType),
-	}
-}
-
-func (c *cronJob) LineProto() (*io.Point, error) {
-	return io.NewPoint(k8sCronJobName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Object})
+func (c *cronjobMetric) LineProto() (*io.Point, error) {
+	return io.NewPoint("kuber_cronjob", c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Metric})
 }
 
 //nolint:lll
-func (*cronJob) Info() *inputs.MeasurementInfo {
+func (*cronjobMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: k8sCronJobName,
+		Name: "kube_cronjob",
+		Desc: "Kubernetes cron job 指标数据",
+		Type: "metric",
+		Tags: map[string]interface{}{
+			"cronjob":   inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+		},
+		Fields: map[string]interface{}{
+			"count":                        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of cronjobs"},
+			"spec_suspend":                 &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "This flag tells the controller to suspend subsequent executions."},
+			"duration_since_last_schedule": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "The duration since the last time the cronjob was scheduled."},
+		},
+	}
+}
+
+type cronjobObject struct {
+	tags   tagsType
+	fields fieldsType
+	time   time.Time
+}
+
+func (c *cronjobObject) LineProto() (*io.Point, error) {
+	return io.NewPoint("kubernetes_cron_jobs", c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Object})
+}
+
+//nolint:lll
+func (*cronjobObject) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "kubernetes_cron_jobs",
 		Desc: "Kubernetes cron job 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
@@ -99,5 +200,8 @@ func (*cronJob) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerMeasurement(&cronJob{})
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newCronjob(c, m) })
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newCronjob(c, m) })
+	registerMeasurement(&cronjobMetric{})
+	registerMeasurement(&cronjobObject{})
 }
