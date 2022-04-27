@@ -96,7 +96,9 @@ Datakit Tracing Backend 包括几个部分 Tracing <!--Statistics,--> Filters �
 
 ### The Order of Executing Filters
 
-当前的 Datakit 版本中
+当前的 Datakit 版本中的 Filters (Sampler 也是一种 Filter)的执行顺序是固定的：
+
+>
 
 ## About Datakit Span Struct In Production
 
