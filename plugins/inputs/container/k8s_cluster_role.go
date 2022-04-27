@@ -11,7 +11,10 @@ import (
 	v1 "k8s.io/api/rbac/v1"
 )
 
-var _ k8sResourceObjectInterface = (*clusterRole)(nil)
+var (
+	_ k8sResourceObjectInterface = (*clusterRole)(nil)
+	_ k8sResourceMetricInterface = (*clusterRole)(nil)
+)
 
 type clusterRole struct {
 	client    k8sClientX
@@ -42,6 +45,27 @@ func (c *clusterRole) pullItems() error {
 
 	c.items = list.Items
 	return nil
+}
+
+func (c *clusterRole) metric() (inputsMeas, error) {
+	return nil, nil
+}
+
+func (c *clusterRole) count() (map[string]int, error) {
+	if err := c.pullItems(); err != nil {
+		return nil, err
+	}
+
+	m := make(map[string]int)
+	for _, item := range c.items {
+		m[defaultNamespace(item.Namespace)]++
+	}
+
+	if len(m) == 0 {
+		m["default"] = 0
+	}
+
+	return m, nil
 }
 
 func (c *clusterRole) object() (inputsMeas, error) {
@@ -109,6 +133,7 @@ func (*clusterRoleObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newClusterRole(c, m) })
 	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newClusterRole(c, m) })
 	registerMeasurement(&clusterRoleObject{})
 }
