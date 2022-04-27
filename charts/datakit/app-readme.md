@@ -14,10 +14,10 @@ By default, the DataKit Agent runs in a DaemonSet. It can alternatively run insi
 
 ### Installing the DataKit Chart
 
-To install the chart with the release name `<RELEASE_NAME>`, retrieve your DataWay url from your [Agent Installation Instructions](https://auth.guance.com/) and run:
+To install the chart with the release name `datakit`, retrieve your DataWay url from your [Agent Installation Instructions](https://auth.guance.com/) and run:
 
 ```bash
-helm install --name <RELEASE_NAME> \
+helm install --name datakit \
   --set datakit.dataway_url=<DATAWAY_URL> datakit/datakit
 ```
 
