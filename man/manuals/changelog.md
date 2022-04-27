@@ -2,7 +2,7 @@
 
 # DataKit 版本历史
 
-## 1.2.17(2022/04/26)
+## 1.2.17(2022/04/27)
 
 本次发布属于迭代发布，主要涉及如下几个方面：
 
@@ -10,6 +10,7 @@
 - DDTrace 和 OpenTelemetry 采集器支持通过 HTTP Status Code（`omit_err_status`）来过滤部分错误的 trace
 - 修复几个 Trace 采集器（DDtrace/OpenTelemetry/Zipkin/SkyWalking/Jaeger）在 git 模式下配置 reload 不生效的问题(#725)
 - 修复 Gitlab 采集器不能 tag 导致的奔溃问题(#730)
+- 修复 Kubernetes 下 eBPF 采集器对 Pod 标签（tag）不更新的问题(#736)
 - [prom 采集器](prom) 支持 [Tag 重命名](prom#e42139cb)(#719)
 - 完善部分文档描述
 

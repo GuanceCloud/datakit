@@ -70,7 +70,7 @@
 
     - [Datakit Tracing 综述](datakit-tracing)
       - [Datakit Tracing 数据结构](datakit-tracing-struct)
-    - [Datakit Tracing With Pipeline](datakit-tracing-pl)
+    - [在 Tracing 数据上应用 Pipeline](datakit-tracing-pl)
     - [各种 Tracing 接入]()
       - [DDTrace](ddtrace)
         - [Golang 示例](ddtrace-golang)
