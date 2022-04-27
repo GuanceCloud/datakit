@@ -1,7 +1,12 @@
-// Package output handle multiple output data.
-package output
+// Package beats_output receive and process multiple elastic beats output data.
+package beats_output
 
 import (
+	"encoding/json"
+	"fmt"
+	"net"
+	"net/url"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -9,73 +14,51 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+
+	v2 "github.com/elastic/go-lumber/server/v2"
 )
 
 //------------------------------------------------------------------------------
 
 func (ipt *Input) Run() {
-	// l = logger.SLogger(inputName)
+	l = logger.SLogger(inputName)
+	l.Debug("Run entry")
 
-	// // 兼容旧版配置 pipeline_path
-	// if ipt.Pipeline == "" && ipt.DeprecatedPipeline != "" {
-	// 	ipt.Pipeline = path.Base(ipt.DeprecatedPipeline)
-	// }
+	opServer, err := NewOutputServerTCP(ipt.Listen)
+	if err != nil {
+		l.Errorf("NewOutputServerTCP failed: %v", err)
+		l.Warn(inputName + ".Run() exit")
+		return
+	}
+	server, _ := v2.NewWithListener(opServer.Listener)
+	defer server.Close()
 
-	// if ipt.MultilineMatch == "" && ipt.DeprecatedMultilineMatch != "" {
-	// 	ipt.MultilineMatch = ipt.DeprecatedMultilineMatch
-	// }
+	l.Debug("listening...")
 
-	// var ignoreDuration time.Duration
-	// if dur, err := timex.ParseDuration(ipt.IgnoreDeadLog); err == nil {
-	// 	ignoreDuration = dur
-	// }
+	go func() {
+		for {
+			// try to receive event from server
+			batch := server.Receive()
+			if batch == nil {
+				continue
+			}
 
-	// opt := &tailer.Option{
-	// 	Source:                ipt.Source,
-	// 	Service:               ipt.Service,
-	// 	Pipeline:              ipt.Pipeline,
-	// 	Sockets:               ipt.Sockets,
-	// 	IgnoreStatus:          ipt.IgnoreStatus,
-	// 	FromBeginning:         ipt.FromBeginning,
-	// 	CharacterEncoding:     ipt.CharacterEncoding,
-	// 	MaximumLength:         ipt.MaximumLength,
-	// 	MultilineMatch:        ipt.MultilineMatch,
-	// 	MultilineMaxLines:     ipt.MultilineMaxLines,
-	// 	RemoveAnsiEscapeCodes: ipt.RemoveAnsiEscapeCodes,
-	// 	IgnoreDeadLog:         ignoreDuration,
-	// 	GlobalTags:            ipt.Tags,
-	// }
-	// ipt.process = make([]LogProcessor, 0)
-	// if len(ipt.LogFiles) != 0 {
-	// 	tailerL, err := tailer.NewTailer(ipt.LogFiles, opt, ipt.Ignore)
-	// 	if err != nil {
-	// 		l.Error(err)
-	// 	} else {
-	// 		ipt.process = append(ipt.process, tailerL)
-	// 	}
-	// }
+			// host.name
+			// log.file.path
+			// message
+			for _, v := range batch.Events {
+				// hostName := eventGet(v, "host.name").(string)
+				// logFilePath := eventGet(v, "log.file.path").(string)
+				// message := eventGet(v, "message").(string)
 
-	// // 互斥：只有当logFile为空，socket不为空才开启socket采集日志
-	// if len(ipt.LogFiles) == 0 && len(ipt.Sockets) != 0 {
-	// 	socker, err := tailer.NewWithOpt(opt, ipt.Ignore)
-	// 	if err != nil {
-	// 		l.Error(err)
-	// 	} else {
-	// 		l.Infof("new socket logging")
-	// 		ipt.process = append(ipt.process, socker)
-	// 	}
-	// } else {
-	// 	l.Warn("socket len =0")
-	// }
+				l.Infof("host.name = %s", eventGet(v, "host.name").(string))
+				l.Infof("log.file.path = %s", eventGet(v, "log.file.path").(string))
+				l.Infof("message = %s", eventGet(v, "message").(string))
+			}
 
-	// if ipt.process != nil && len(ipt.process) > 0 {
-	// 	// start all process
-	// 	for _, proce := range ipt.process {
-	// 		go proce.Start()
-	// 	}
-	// } else {
-	// 	l.Warnf("There are no logging processors here")
-	// }
+			batch.ACK()
+		}
+	}()
 
 	for {
 		select {
@@ -112,12 +95,80 @@ func (ipt *Input) Terminate() {
 
 //------------------------------------------------------------------------------
 
+func NewOutputServerTCP(listen string) (*OutputServer, error) {
+	mVal, err := parseListen(listen)
+	if err != nil {
+		return nil, fmt.Errorf("parseListen failed: %v", err)
+	}
+
+	tcpListener, err := net.Listen(mVal["scheme"], mVal["host"])
+	if err != nil {
+		return nil, fmt.Errorf("net.Listen failed: %v", err)
+	}
+
+	return &OutputServer{Listener: tcpListener}, nil
+}
+
+type OutputServer struct {
+	net.Listener
+	Timeout time.Duration
+	Err     error
+}
+
+func (m *OutputServer) Addr() string {
+	return m.Listener.Addr().String()
+}
+
+func (m *OutputServer) Accept() net.Conn {
+	if m.Err != nil {
+		return nil
+	}
+
+	client, err := m.Listener.Accept()
+	m.Err = err
+	return client
+}
+
+//------------------------------------------------------------------------------
+
+func debugPrettyPrintMap(x map[string]interface{}) string {
+	b, err := json.MarshalIndent(x, "", "  ")
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	return string(b)
+}
+
+func parseListen(listen string) (map[string]string, error) {
+	uurl, err := url.Parse(listen)
+	if err != nil {
+		return nil, err
+	}
+
+	mVal := make(map[string]string)
+	mVal["scheme"] = uurl.Scheme
+	mVal["host"] = uurl.Host
+
+	return mVal, nil
+}
+
+func eventGet(event interface{}, path string) interface{} {
+	doc := event.(map[string]interface{})
+	elems := strings.Split(path, ".")
+	for i := 0; i < len(elems)-1; i++ {
+		doc = doc[elems[i]].(map[string]interface{})
+	}
+	return doc[elems[len(elems)-1]]
+}
+
+//------------------------------------------------------------------------------
+
 const (
-	inputName = "output"
+	inputName = "beats_output"
 
 	sampleCfg = `
-[[inputs.output]]
-  # listen address, with protocol schema and port
+[[inputs.beats_output]]
+  # listen address, with protocol scheme and port
   listen = "tcp://0.0.0.0:5044"
 
   ## action type, for now, we support: logstash
@@ -132,7 +183,7 @@ const (
   ## grok pipeline script name
   pipeline = ""
 
-  [inputs.output.tags]
+  [inputs.beats_output.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
 `
@@ -149,9 +200,11 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
+var _ inputs.InputV2 = &Input{}
+
 var l = logger.DefaultSLogger(inputName)
 
-func (*Input) Catalog() string { return "log" }
+func (*Input) Catalog() string { return inputName }
 
 func (*Input) SampleConfig() string { return sampleCfg }
 

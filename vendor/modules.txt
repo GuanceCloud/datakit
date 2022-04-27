@@ -355,6 +355,13 @@ github.com/docker/go-units
 # github.com/dustin/go-humanize v1.0.0
 ## explicit
 github.com/dustin/go-humanize
+# github.com/elastic/go-lumber v0.1.1
+## explicit
+github.com/elastic/go-lumber/lj
+github.com/elastic/go-lumber/log
+github.com/elastic/go-lumber/protocol/v2
+github.com/elastic/go-lumber/server/internal
+github.com/elastic/go-lumber/server/v2
 # github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
 ## explicit
 github.com/elazarl/goproxy
@@ -683,8 +690,10 @@ github.com/karrick/godirwalk
 github.com/kevinburke/ssh_config
 # github.com/klauspost/compress v1.13.4
 github.com/klauspost/compress
+github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
+github.com/klauspost/compress/zlib
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/kr/fs v0.1.0
@@ -1066,7 +1075,6 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20220224211638-0e9765cccd65
-## explicit
 golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
