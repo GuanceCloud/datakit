@@ -92,9 +92,11 @@ Datakit Tracing Backend 包括几个部分 Tracing <!--Statistics,--> Filters �
     # ...
 ```
 
-通过 Pipeline 脚本操作数据详细说明请参考[Apply Pipeline Onto Datakit Tracing](datakit-tracing-pl)
+通过 Pipeline 脚本操作数据详细说明请参考[Datakit Tracing With Pipeline](datakit-tracing-pl)
 
 ### The Order of Executing Filters
+
+当前的 Datakit 版本中
 
 ## About Datakit Span Struct In Production
 
