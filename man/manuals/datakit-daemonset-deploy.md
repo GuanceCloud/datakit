@@ -222,6 +222,20 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_GIT_KEY_PW   | 无     | 否     | 本地 PrivateKey 的使用密码。（如 `passwd`）                                                            |
 | ENV_GIT_URL      | 无     | 否     | 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`） |
 
+### Sinker 配置相关环境变量
+
+| 环境变量名称 | 默认值 | 必须   | 说明                              |
+| ---------:   | ---:   | ------ | ----                              |
+| ENV_SINK_M   | 无     | 否     | 安装时指定 Metric 的 sink。       |
+| ENV_SINK_N   | 无     | 否     | 安装时指定 Network 的 sink。      |
+| ENV_SINK_K   | 无     | 否     | 安装时指定 KeyEvent 的 sink。     |
+| ENV_SINK_O   | 无     | 否     | 安装时指定 Object 的 sink。       |
+| ENV_SINK_CO  | 无     | 否     | 安装时指定 CustomObject 的 sink。 |
+| ENV_SINK_L   | 无     | 否     | 安装时指定 Logging 的 sink。      |
+| ENV_SINK_T   | 无     | 否     | 安装时指定 Tracing 的 sink。      |
+| ENV_SINK_R   | 无     | 否     | 安装时指定 RUM 的 sink。          |
+| ENV_SINK_S   | 无     | 否     | 安装时指定 Security 的 sink。     |
+
 ### 其它杂项
 
 |       环境变量名称 |         默认值 | 必须 | 说明                                                       |
