@@ -24,7 +24,7 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
  ```shell
 $ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit-ce
  
-$ helm install <RELEASE_NAME> datakit/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+$ helm install datakit datakit/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
  ```
 
 ​	The command deploys DataKit on the Kubernetes cluster in the default configuration.
@@ -37,7 +37,7 @@ $ helm install <RELEASE_NAME> datakit/datakit -n datakit --set dataway_url="http
     ```
     $ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit-ce
     
-    $helm install <RELEASE_NAME> datakit/datakit -n datakit --set git_repos.enable=true  --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
+    $helm install datakit datakit/datakit -n datakit --set git_repos.enable=true  --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
     --set git_repos.git_url="http://username:password@github.com/path/to/repository.git" \
     --create-namespace 
     ```
@@ -47,7 +47,7 @@ $ helm install <RELEASE_NAME> datakit/datakit -n datakit --set dataway_url="http
     ```
     $ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit-ce
     
-    $ helm install <RELEASE_NAME> datakit/datakit -n datakit --set git_repos.enable=true  --set datakit.dataway_url="https://openway.guance.com?token=<your-token>"  \
+    $ helm install datakit datakit/datakit -n datakit --set git_repos.enable=true  --set datakit.dataway_url="https://openway.guance.com?token=<your-token>"  \
     --set git_repos.git_url="git@github.com:path/to/repository.git" \
     --set-file git_repos.git_key_path="/Users/buleleaf/.ssh/id_rsa" \
     --create-namespace 
@@ -59,7 +59,7 @@ $ helm install <RELEASE_NAME> datakit/datakit -n datakit --set dataway_url="http
 To delete/uninstall the chart with the release name `my-release`:
 
 ```shell
-$ helm uninstall <RELEASE_NAME> -n datakit
+$ helm uninstall datakit -n datakit
 ```
 
 ## Configuration
