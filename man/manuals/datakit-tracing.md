@@ -98,7 +98,9 @@ Datakit Tracing Backend 包括几个部分 Tracing <!--Statistics,--> Filters �
 
 当前的 Datakit 版本中的 Filters (Sampler 也是一种 Filter)的执行顺序是固定的：
 
->
+> error status penetration --> close resource filter --> omit certain http status code list --> rare resource keeper --> sampler --> piplines
+
+每个 Filter 都具备终止执行链路的能力，即符合终止条件的 Filter 将不会在执行后续的 Filter。
 
 ## About Datakit Span Struct In Production
 
