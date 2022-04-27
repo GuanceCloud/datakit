@@ -100,6 +100,10 @@ func (e *endpoint) count() (map[string]int, error) {
 		m[defaultNamespace(item.Namespace)]++
 	}
 
+	if len(m) == 0 {
+		m["default"] = 0
+	}
+
 	return m, nil
 }
 

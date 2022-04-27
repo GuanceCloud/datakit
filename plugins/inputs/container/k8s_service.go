@@ -11,7 +11,10 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-var _ k8sResourceObjectInterface = (*service)(nil)
+var (
+	_ k8sResourceObjectInterface = (*service)(nil)
+	_ k8sResourceMetricInterface = (*service)(nil)
+)
 
 type service struct {
 	client    k8sClientX
@@ -30,6 +33,23 @@ func (s *service) name() string {
 	return "service"
 }
 
+func (s *service) count() (map[string]int, error) {
+	if err := s.pullItems(); err != nil {
+		return nil, err
+	}
+
+	m := make(map[string]int)
+	for _, item := range s.items {
+		m[defaultNamespace(item.Namespace)]++
+	}
+
+	if len(m) == 0 {
+		m["default"] = 0
+	}
+
+	return m, nil
+}
+
 func (s *service) pullItems() error {
 	if len(s.items) != 0 {
 		return nil
@@ -42,6 +62,10 @@ func (s *service) pullItems() error {
 
 	s.items = list.Items
 	return nil
+}
+
+func (s *service) metric() (inputsMeas, error) {
+	return nil, nil
 }
 
 func (s *service) object() (inputsMeas, error) {
@@ -120,6 +144,7 @@ func (*serviceObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newService(c, m) })
 	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newService(c, m) })
 	registerMeasurement(&serviceObject{})
 }
