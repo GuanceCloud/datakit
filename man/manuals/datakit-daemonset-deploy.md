@@ -24,7 +24,7 @@
 #### 添加 DataKit Helm 仓库
 
 ```shell 
-$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
+$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit-ce
 $ helm repo update 
 ```
 

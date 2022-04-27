@@ -18,6 +18,7 @@
     - [批量部署](datakit-batch-deploy)
     - [DataKit 更新](datakit-update)
   - [DaemonSet 安装](datakit-daemonset-deploy)
+    - [DaemonSet 升级](datakit-daemonset-update)
   - [DataKit 代理](proxy)
   - [DataKit 选举支持](election)
   - [DCA 客户端(beta)](dca)

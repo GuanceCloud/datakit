@@ -35,7 +35,7 @@ ConfigMap 注入，可以分为以下2种：
 #### 添加 Helm 仓库
 
 ```shell
-$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
+$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit-ce
 ``` 
 
 #### 查看 DataKit 版本
@@ -208,7 +208,7 @@ path/to/local/git/repo
 
 
 ```shell
-$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
+$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit-ce
 $ helm repo update 
 $ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
 --set git_repos.git_url="http://username:password@github.com/path/to/repository.git" \
@@ -224,7 +224,7 @@ $ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="htt
 - `git_repos.git_key_path`（绝对路径）
 
 ```shell
-$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
+$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit-ce
 $ helm repo update 
 $ helm install datakit datakit/datakit -n datakit \
   --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
