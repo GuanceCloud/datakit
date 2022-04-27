@@ -12,14 +12,14 @@
 
 本篇将描述以下2种不同的管理方法:
 
-- [ComfigMap 管理配置](#c28055b2)
+- [ConfigMap 管理配置](#c28055b2)
 - [启用 Git 管理配置](#02801a95)
 
-## ComfigMap 管理配置
+## ConfigMap 管理配置
 
-Datakit 部分采集器的开启，可以通过 [ConfigMap](https://kubernetes.io/zh/docs/concepts/configuration/configmap/) 来注入。ComfigMap 注入灵活，但不易管理。
+Datakit 部分采集器的开启，可以通过 [ConfigMap](https://kubernetes.io/zh/docs/concepts/configuration/configmap/) 来注入。ConfigMap 注入灵活，但不易管理。
 
-ComfigMap 注入，可以分为以下2种：
+ConfigMap 注入，可以分为以下2种：
 
 - [Helm 安装注入](#74ceef30)
 
@@ -35,7 +35,7 @@ ComfigMap 注入，可以分为以下2种：
 #### 添加 Helm 仓库
 
 ```shell
-$ helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
+$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit-ce
 ``` 
 
 #### 查看 DataKit 版本
@@ -43,24 +43,25 @@ $ helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
 ```shell
 $ helm search repo datakit
 NAME                	CHART VERSION	APP VERSION	DESCRIPTION
-dataflux/datakit	1.2.10       	1.2.10     	Chart for the DaemonSet datakit
+datakit/datakit	1.2.10       	1.2.10     	Chart for the DaemonSet datakit
 ```
 
 #### 下载 Helm 包
 
 ```shell
 $ helm repo update 
-$ helm pull dataflux/datakit --untar
+$ helm pull datakit/datakit --untar
 ``` 
 
 #### 修改 values.yaml 配置
 
-修改 `datakit/values.yaml` 的 `dataway_url` 和 `dkconfig`数组。 `dataway_url` 为 dataway 地址， `dkconfig.path` 为挂载路径， `dkconfig.name` 为配置名称， ` dkconfig.value` 为配置内容。
+修改 `datakit/values.yaml` 的 `datakit.dataway_url` 和 `dkconfig`数组。 `datakit.dataway_url` 为 dataway 地址， `dkconfig.path` 为挂载路径， `dkconfig.name` 为配置名称， ` dkconfig.value` 为配置内容。
 
 > 注：`values.yaml` 可以用于下次升级使用
 
 ```yaml
-dataway_url: https://openway.guance.com?token=<your-token>
+datakit:
+  dataway_url: https://openway.guance.com?token=<your-token>
 
 ... 
 dkconfig:
@@ -131,14 +132,14 @@ dkconfig:
 ```shell
 $ cd datakit # 此目录为 helm pull 的目录
 $ helm repo update 
-$ helm install my-datakit dataflux/datakit -f values.yaml -n datakit  --create-namespace 
+$ helm install datakit datakit/datakit -f values.yaml -n datakit  --create-namespace 
 ```
 
 升级
 
 ```shell
 $ helm repo update 
-$ helm upgrade my-datakit . -n datakit  -f values.yaml
+$ helm upgrade datakit . -n datakit  -f values.yaml
 
 Release "datakit" has been upgraded. Happy Helming!
 NAME: datakit
@@ -168,10 +169,10 @@ $ kubectl get pods -n datakit
 
 ## 启用 Git 管理配置
 
-由于 ComfigMap 注入灵活，但不易管理特性，我们可以采用 Git 仓库来管理我们的配置。启用 [Git 管理](datakit-conf#90362fd0) ，DataKit 会定时 pull 远程仓库的配置，既不需要频繁修改 ComfigMap，也不需要重启 DataKit，更重要的是有修改记录，可回滚配置。
+由于 ConfigMap 注入灵活，但不易管理特性，我们可以采用 Git 仓库来管理我们的配置。启用 [Git 管理](datakit-conf#90362fd0) ，DataKit 会定时 pull 远程仓库的配置，既不需要频繁修改 ConfigMap，也不需要重启 DataKit，更重要的是有修改记录，可回滚配置。
 
 > 注意：
-> - 如果启用 Git 管理配置，则 ComfigMap 将失效
+> - 如果启用 Git 管理配置，则 ConfigMap 将失效
 > - 由于会[自动启动一些采集器](datakit-input-conf#764ffbc2)，故在 Git 仓库中，不要再放置这些自启动的采集器配置，不然会导致这些数据的多份采集
 
 ### 前提条件
@@ -202,15 +203,14 @@ path/to/local/git/repo
 
 需要修改如下两个字段：
 
-- `dataway_url`
+- `datakit.dataway_url`
 - `git_repos.git_url`
 
+
 ```shell
-$ helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
-
+$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit-ce
 $ helm repo update 
-
-$ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" \
+$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
 --set git_repos.git_url="http://username:password@github.com/path/to/repository.git" \
 --create-namespace 
 ```
@@ -219,17 +219,15 @@ $ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https:/
 
 需要修改 
 
-- `dataway_url`
+- `datakit.dataway_url`
 - `git_repos.git_url`
 - `git_repos.git_key_path`（绝对路径）
 
 ```shell
-$ helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
-
+$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit-ce
 $ helm repo update 
-
-$ helm install my-datakit dataflux/datakit -n datakit \
-  --set dataway_url="https://openway.guance.com?token=<your-token>" \
+$ helm install datakit datakit/datakit -n datakit \
+  --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
   --set git_repos.git_url="git@github.com:path/to/repository.git" \
   --set-file git_repos.git_key_path="/Users/buleleaf/.ssh/id_rsa" \
   --create-namespace 
@@ -266,7 +264,7 @@ $ kubectl apply -f datakit.yaml
 
 ##### 修改配置
 
-- 在 *datakit.yaml* 中添加 ComfigMap
+- 在 *datakit.yaml* 中添加 ConfigMap
 
 ```yaml
 apiVersion: v1
