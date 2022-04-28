@@ -105,4 +105,4 @@ output.logstash:
 
 ## 其它
 
-本接收器与日志采集器很相似，Pipeline 语法方面可参考[日志采集器](logging)。
+此接收器与日志采集器很相似，Pipeline 语法方面可参考[日志采集器](logging)。
