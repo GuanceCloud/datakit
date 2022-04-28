@@ -144,6 +144,9 @@ func (r *replicaset) count() (map[string]int, error) {
 	for _, item := range r.items {
 		m[defaultNamespace(item.Namespace)]++
 	}
+	if len(m) == 0 {
+		m["default"] = 0
+	}
 
 	return m, nil
 }

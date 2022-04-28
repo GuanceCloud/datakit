@@ -28,9 +28,9 @@ const sampleCfg = `
   # 如果为空，则不进行过滤
   metric_types = ["counter", "gauge"]
 
-  ## 指标名称过滤
+  ## 指标名称筛选：符合条件的指标将被保留下来
   # 支持正则，可以配置多个，即满足其中之一即可
-  # 如果为空，则不进行过滤
+  # 如果为空，则不进行筛选，所有指标均保留
   # metric_name_filter = ["cpu"]
 
   ## 指标集名称前缀
@@ -64,8 +64,8 @@ const sampleCfg = `
   # token_file = "/tmp/token"
 
   ## 自定义指标集名称
-  # 可以将包含前缀prefix的指标归为一类指标集
-  # 自定义指标集名称配置优先measurement_name配置项
+  # 可以将包含前缀 prefix 的指标归为一类指标集
+  # 自定义指标集名称配置优先 measurement_name 配置项
   #[[inputs.prom.measurements]]
   #  prefix = "cpu_"
   #  name = "cpu"
