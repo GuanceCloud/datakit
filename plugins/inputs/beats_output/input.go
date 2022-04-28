@@ -2,7 +2,6 @@
 package beats_output
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
@@ -13,10 +12,104 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	v2 "github.com/elastic/go-lumber/server/v2"
 )
+
+//------------------------------------------------------------------------------
+
+const (
+	inputName = "beats_output"
+
+	sampleCfg = `
+[[inputs.beats_output]]
+  # listen address, with protocol scheme and port
+  listen = "tcp://0.0.0.0:5044"
+
+  ## source, if it's empty, use 'default'
+  source = ""
+
+  ## add service tag, if it's empty, use $source.
+  service = ""
+
+  ## grok pipeline script name
+  pipeline = ""
+
+  ## datakit read text from Files or Socket , default max_textline is 256k
+  ## If your log text line exceeds 256Kb, please configure the length of your text,
+  ## but the maximum length cannot exceed 256Mb
+  # maximum_length = 262144
+
+  [inputs.beats_output.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+`
+)
+
+type Input struct {
+	Listen        string            `toml:"listen"`
+	Source        string            `toml:"source"`
+	Service       string            `toml:"service"`
+	Pipeline      string            `toml:"pipeline"`
+	MaximumLength int               `toml:"maximum_length,omitempty"`
+	Tags          map[string]string `toml:"tags"`
+
+	semStop *cliutils.Sem // start stop signal
+	stopped bool
+}
+
+var _ inputs.InputV2 = &Input{}
+
+var l = logger.DefaultSLogger(inputName)
+
+func (*Input) Catalog() string { return inputName }
+
+func (*Input) SampleConfig() string { return sampleCfg }
+
+func (*Input) AvailableArchs() []string { return datakit.AllArch }
+
+type DataStruct struct {
+	HostName    string
+	LogFilePath string
+	Message     string
+}
+
+//------------------------------------------------------------------------------
+
+type loggingMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&loggingMeasurement{},
+	}
+}
+
+func (ipt *loggingMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(ipt.name, ipt.tags, ipt.fields, ipt.ts)
+}
+
+//nolint:lll
+func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "elastic beats 接收器",
+		Type: "logging",
+		Desc: "使用配置文件中的 `source` 字段值，如果该值为空，则默认为 `default`",
+		Tags: map[string]interface{}{
+			"filepath": inputs.NewTagInfo(`此条记录来源的文件名，全路径`), // log.file.path
+			"host":     inputs.NewTagInfo(`主机名`),            // host.name
+		},
+		Fields: map[string]interface{}{
+			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "记录正文，默认存在，可以使用 pipeline 删除此字段"}, // message
+		},
+	}
+}
 
 //------------------------------------------------------------------------------
 
@@ -58,15 +151,19 @@ func (ipt *Input) Run() {
 			// host.name
 			// log.file.path
 			// message
+			var pending []*DataStruct
 			for _, v := range batch.Events {
-				// hostName := eventGet(v, "host.name").(string)
-				// logFilePath := eventGet(v, "log.file.path").(string)
-				// message := eventGet(v, "message").(string)
+				// l.Infof("host.name = %s", eventGet(v, "host.name").(string))
+				// l.Infof("log.file.path = %s", eventGet(v, "log.file.path").(string))
+				// l.Infof("message = %s", eventGet(v, "message").(string))
 
-				l.Infof("host.name = %s", eventGet(v, "host.name").(string))
-				l.Infof("log.file.path = %s", eventGet(v, "log.file.path").(string))
-				l.Infof("message = %s", eventGet(v, "message").(string))
+				pending = append(pending, &DataStruct{
+					HostName:    eventGet(v, "host.name").(string),
+					LogFilePath: eventGet(v, "log.file.path").(string),
+					Message:     eventGet(v, "message").(string),
+				})
 			}
+			ipt.sendToPipeline(pending)
 
 			batch.ACK()
 		}
@@ -84,6 +181,36 @@ func (ipt *Input) Run() {
 			l.Infof(inputName + " return")
 			return
 		}
+	}
+}
+
+func (ipt *Input) sendToPipeline(pending []*DataStruct) {
+	for _, v := range pending {
+		if len(v.Message) == 0 {
+			continue
+		}
+
+		// merge map
+		newTags := make(map[string]string)
+		for kk, vv := range ipt.Tags {
+			newTags[kk] = vv
+		}
+		newTags["host.name"] = v.HostName
+		newTags["log.file.path"] = v.LogFilePath
+
+		task := &worker.TaskTemplate{
+			TaskName:        inputName + "/" + ipt.Listen,
+			ContentDataType: worker.ContentString,
+			Tags:            newTags,
+			ScriptName:      ipt.Pipeline,
+			Source:          ipt.Source,
+			Content:         []string{v.Message},
+			Category:        datakit.Logging,
+			TS:              time.Now(),
+			MaxMessageLen:   ipt.MaximumLength,
+		}
+		// 阻塞型channel
+		_ = worker.FeedPipelineTaskBlock(task)
 	}
 }
 
@@ -135,13 +262,13 @@ func (m *OutputServer) Accept() net.Conn {
 
 //------------------------------------------------------------------------------
 
-func debugPrettyPrintMap(x map[string]interface{}) string {
-	b, err := json.MarshalIndent(x, "", "  ")
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	return string(b)
-}
+// func debugPrettyPrintMap(x map[string]interface{}) string {
+// 	b, err := json.MarshalIndent(x, "", "  ")
+// 	if err != nil {
+// 		fmt.Println("error:", err)
+// 	}
+// 	return string(b)
+// }
 
 func parseListen(listen string) (map[string]string, error) {
 	uurl, err := url.Parse(listen)
@@ -163,87 +290,6 @@ func eventGet(event interface{}, path string) interface{} {
 		doc = doc[elems[i]].(map[string]interface{})
 	}
 	return doc[elems[len(elems)-1]]
-}
-
-//------------------------------------------------------------------------------
-
-const (
-	inputName = "beats_output"
-
-	sampleCfg = `
-[[inputs.beats_output]]
-  # listen address, with protocol scheme and port
-  listen = "tcp://0.0.0.0:5044"
-
-  ## source, if it's empty, use 'default'
-  source = ""
-
-  ## add service tag, if it's empty, use $source.
-  service = ""
-
-  ## grok pipeline script name
-  pipeline = ""
-
-  [inputs.beats_output.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-`
-)
-
-type Input struct {
-	Listen   string            `toml:"listen"`
-	Source   string            `toml:"source"`
-	Service  string            `toml:"service"`
-	Pipeline string            `toml:"pipeline"`
-	Tags     map[string]string `toml:"tags"`
-
-	semStop *cliutils.Sem // start stop signal
-	stopped bool
-}
-
-var _ inputs.InputV2 = &Input{}
-
-var l = logger.DefaultSLogger(inputName)
-
-func (*Input) Catalog() string { return inputName }
-
-func (*Input) SampleConfig() string { return sampleCfg }
-
-func (*Input) AvailableArchs() []string { return datakit.AllArch }
-
-//------------------------------------------------------------------------------
-
-type loggingMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		&loggingMeasurement{},
-	}
-}
-
-func (ipt *loggingMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(ipt.name, ipt.tags, ipt.fields, ipt.ts)
-}
-
-//nolint:lll
-func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: "接收器",
-		Type: "logging",
-		Desc: "使用配置文件中的 `source` 字段值，如果该值为空，则默认为 `default`",
-		Tags: map[string]interface{}{
-			"filepath": inputs.NewTagInfo(`此条记录来源的文件名，全路径`), // log.file.path
-			"host":     inputs.NewTagInfo(`主机名`),            // host.name
-		},
-		Fields: map[string]interface{}{
-			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "记录正文，默认存在，可以使用 pipeline 删除此字段"}, // message
-		},
-	}
 }
 
 //------------------------------------------------------------------------------
