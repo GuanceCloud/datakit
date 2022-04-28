@@ -24,6 +24,13 @@ func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Debug("Run entry")
 
+	if ipt.Source == "" {
+		ipt.Source = "default"
+	}
+	if ipt.Service == "" {
+		ipt.Service = ipt.Source
+	}
+
 	opServer, err := NewOutputServerTCP(ipt.Listen)
 	if err != nil {
 		l.Errorf("NewOutputServerTCP failed: %v", err)
@@ -168,9 +175,6 @@ const (
   # listen address, with protocol scheme and port
   listen = "tcp://0.0.0.0:5044"
 
-  ## action type, for now, we support: logstash
-  action_type = "logstash"
-
   ## source, if it's empty, use 'default'
   source = ""
 
@@ -187,12 +191,11 @@ const (
 )
 
 type Input struct {
-	Listen     string            `toml:"listen"`
-	ActionType string            `toml:"action_type"`
-	Source     string            `toml:"source"`
-	Service    string            `toml:"service"`
-	Pipeline   string            `toml:"pipeline"`
-	Tags       map[string]string `toml:"tags"`
+	Listen   string            `toml:"listen"`
+	Source   string            `toml:"source"`
+	Service  string            `toml:"service"`
+	Pipeline string            `toml:"pipeline"`
+	Tags     map[string]string `toml:"tags"`
 
 	semStop *cliutils.Sem // start stop signal
 	stopped bool
