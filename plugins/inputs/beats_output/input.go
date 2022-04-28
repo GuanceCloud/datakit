@@ -20,7 +20,8 @@ import (
 //------------------------------------------------------------------------------
 
 const (
-	inputName = "beats_output"
+	inputName            = "beats_output"
+	defaultMaximumLength = 262144
 
 	sampleCfg = `
 [[inputs.beats_output]]
@@ -39,7 +40,7 @@ const (
   ## datakit read text from Files or Socket , default max_textline is 256k
   ## If your log text line exceeds 256Kb, please configure the length of your text,
   ## but the maximum length cannot exceed 256Mb
-  # maximum_length = 262144
+  maximum_length = 262144
 
   [inputs.beats_output.tags]
   # some_tag = "some_value"
@@ -121,6 +122,9 @@ func (ipt *Input) Run() {
 	}
 	if ipt.Service == "" {
 		ipt.Service = ipt.Source
+	}
+	if ipt.MaximumLength == 0 {
+		ipt.MaximumLength = defaultMaximumLength
 	}
 
 	opServer, err := NewOutputServerTCP(ipt.Listen)
