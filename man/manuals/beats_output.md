@@ -7,6 +7,7 @@
 # {{.InputName}}
 
 本文档主要介绍 [Elastic Beats](https://www.elastic.co/products/beats/) 接收器。目前支持:
+
 - [Filebeat](https://www.elastic.co/products/beats/filebeat/)
 
 ## 接收 Filebeat 采集的数据
@@ -41,9 +42,9 @@
 
 ### 配置 Filebeat
 
-将 Filebeat 目录下的 `filebeat.yml` 配置如下。
+将 Filebeat 安装目录下的 `filebeat.yml` 配置如下。
 
-- `filebeat.inputs`:
+- `filebeat.inputs`
 
 ```yml
 filebeat.inputs:
@@ -63,7 +64,7 @@ filebeat.inputs:
     - /Users/mac/Downloads/tmp/1.log
 ```
 
-- `output.logstash`:
+- `output.logstash`
 
 ```yml
 output.logstash:
@@ -73,11 +74,11 @@ output.logstash:
 
 这里的 `5044` 端口要与 `<Datakit 安装目录>/conf.d/beats_output/beats_output.conf` 中配置的 `listen` 端口一致。
 
-这样就实现 Filebeat 采集日志文件 `/Users/mac/Downloads/tmp/1.log` 到 Datakit 了。
+这样就实现 Filebeat 采集日志文件 `/Users/mac/Downloads/tmp/1.log` 上报到 Datakit 了。
 
 ## 指标集
 
-以下所有数据采集, 默认会追加名为 `host.name`(值为 Filebeat 所在主机名) 和 `log.file.path`(值为 Filebate 采集文件的全路径) 的全局 tag, 也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签: 
+以下所有数据采集, 默认会追加名为 `host`(值为 Filebeat 所在主机名) 和 `filepath`(值为 Filebate 采集文件的全路径) 的全局 tag, 也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签:
 
 ``` toml
  [inputs.{{.InputName}}.tags]

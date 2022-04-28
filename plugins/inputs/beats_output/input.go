@@ -194,8 +194,8 @@ func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 		for kk, vv := range ipt.Tags {
 			newTags[kk] = vv
 		}
-		newTags["host.name"] = v.HostName
-		newTags["log.file.path"] = v.LogFilePath
+		newTags["host"] = v.HostName        // host.name
+		newTags["filepath"] = v.LogFilePath // log.file.path
 
 		task := &worker.TaskTemplate{
 			TaskName:        inputName + "/" + ipt.Listen,
