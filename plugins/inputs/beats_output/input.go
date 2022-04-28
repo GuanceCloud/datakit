@@ -34,9 +34,14 @@ func (ipt *Input) Run() {
 	defer server.Close()
 
 	l.Debug("listening...")
+	ipt.stopped = false
 
 	go func() {
 		for {
+			if ipt.stopped {
+				return
+			}
+
 			// try to receive event from server
 			batch := server.Receive()
 			if batch == nil {
@@ -76,7 +81,7 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) exit() {
-	// ipt.Stop()
+	ipt.stopped = true
 }
 
 func (ipt *Input) Terminate() {
@@ -84,14 +89,6 @@ func (ipt *Input) Terminate() {
 		ipt.semStop.Close()
 	}
 }
-
-// func (ipt *Input) Stop() {
-// 	// if ipt.process != nil {
-// 	// 	for _, proce := range ipt.process {
-// 	// 		proce.Close()
-// 	// 	}
-// 	// }
-// }
 
 //------------------------------------------------------------------------------
 
@@ -198,6 +195,7 @@ type Input struct {
 	Tags       map[string]string `toml:"tags"`
 
 	semStop *cliutils.Sem // start stop signal
+	stopped bool
 }
 
 var _ inputs.InputV2 = &Input{}
