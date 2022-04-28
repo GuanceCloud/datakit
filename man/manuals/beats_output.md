@@ -10,7 +10,7 @@
 
 - [Filebeat](https://www.elastic.co/products/beats/filebeat/)
 
-## 配置: 接收 Filebeat 采集的数据
+## 配置示例: 接收 Filebeat 采集的数据
 
 ### 配置 DataKit 接收
 
