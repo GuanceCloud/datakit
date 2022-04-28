@@ -87,7 +87,6 @@ func pullMain(cg *config.GitRepost) error {
 
 		case <-tick.C:
 			// empty here
-
 		} // select
 	} // for
 }

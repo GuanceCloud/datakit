@@ -8,14 +8,13 @@ import (
 	"strings"
 	"time"
 
+	v2 "github.com/elastic/go-lumber/server/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
-	v2 "github.com/elastic/go-lumber/server/v2"
 )
 
 //------------------------------------------------------------------------------
@@ -131,7 +130,7 @@ func (ipt *Input) Run() {
 		return
 	}
 	server, _ := v2.NewWithListener(opServer.Listener)
-	defer server.Close()
+	defer server.Close() //nolint:errcheck
 
 	l.Debug("listening...")
 	ipt.stopped = false
@@ -229,12 +228,12 @@ func (ipt *Input) Terminate() {
 func NewOutputServerTCP(listen string) (*OutputServer, error) {
 	mVal, err := parseListen(listen)
 	if err != nil {
-		return nil, fmt.Errorf("parseListen failed: %v", err)
+		return nil, fmt.Errorf("parseListen failed: %w", err)
 	}
 
 	tcpListener, err := net.Listen(mVal["scheme"], mVal["host"])
 	if err != nil {
-		return nil, fmt.Errorf("net.Listen failed: %v", err)
+		return nil, fmt.Errorf("net.Listen failed: %w", err)
 	}
 
 	return &OutputServer{Listener: tcpListener}, nil
@@ -284,10 +283,16 @@ func parseListen(listen string) (map[string]string, error) {
 }
 
 func eventGet(event interface{}, path string) interface{} {
-	doc := event.(map[string]interface{})
+	doc, ok := event.(map[string]interface{})
+	if !ok {
+		return nil
+	}
 	elems := strings.Split(path, ".")
 	for i := 0; i < len(elems)-1; i++ {
-		doc = doc[elems[i]].(map[string]interface{})
+		doc, ok = doc[elems[i]].(map[string]interface{})
+		if !ok {
+			return nil
+		}
 	}
 	return doc[elems[len(elems)-1]]
 }
