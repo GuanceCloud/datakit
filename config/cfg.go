@@ -295,6 +295,14 @@ func (c *Config) InitCfg(p string) error {
 	return nil
 }
 
+func (c *Config) InitCfgSample(p string) error {
+	if err := ioutil.WriteFile(p, []byte(DatakitConfSample), datakit.ConfPerm); err != nil {
+		l.Errorf("error creating %s: %s", p, err)
+		return err
+	}
+	return nil
+}
+
 func (c *Config) setupDataway() error {
 	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
 	// 避免俩边配置了同样的 dataway, 造成数据混乱
