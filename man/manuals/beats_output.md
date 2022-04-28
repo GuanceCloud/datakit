@@ -8,7 +8,7 @@
 
 本文档主要介绍 [Elastic Beats](https://www.elastic.co/products/beats/) 接收器。目前支持:
 
-- [Filebeat](https://www.elastic.co/products/beats/filebeat/)
+- [Filebeat](https://www.elastic.co/beats/filebeat/) ([下载地址](http://www.elastic.co/cn/downloads/past-releases/filebeat-7-17-3))
 
 ## 配置示例: 接收 Filebeat 采集的数据
 
