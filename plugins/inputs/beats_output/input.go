@@ -1,5 +1,5 @@
 // Package beats_output receive and process multiple elastic beats output data.
-package beats_output
+package beats_output //nolint:stylecheck
 
 import (
 	"fmt"
@@ -152,10 +152,6 @@ func (ipt *Input) Run() {
 			// message
 			var pending []*DataStruct
 			for _, v := range batch.Events {
-				// l.Infof("host.name = %s", eventGet(v, "host.name").(string))
-				// l.Infof("log.file.path = %s", eventGet(v, "log.file.path").(string))
-				// l.Infof("message = %s", eventGet(v, "message").(string))
-
 				pending = append(pending, &DataStruct{
 					HostName:    eventGet(v, "host.name").(string),
 					LogFilePath: eventGet(v, "log.file.path").(string),
@@ -260,14 +256,6 @@ func (m *OutputServer) Accept() net.Conn {
 }
 
 //------------------------------------------------------------------------------
-
-// func debugPrettyPrintMap(x map[string]interface{}) string {
-// 	b, err := json.MarshalIndent(x, "", "  ")
-// 	if err != nil {
-// 		fmt.Println("error:", err)
-// 	}
-// 	return string(b)
-// }
 
 func parseListen(listen string) (map[string]string, error) {
 	uurl, err := url.Parse(listen)
