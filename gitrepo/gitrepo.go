@@ -297,7 +297,7 @@ func reloadCore(ctx context.Context) (int, error) {
 			case 3:
 				l.Info("before set pipelines")
 
-				allGitReposPipelines, err := config.GetNamespacePipelineFiles(datakit.GitReposRepoFullPath)
+				allGitReposPipelines, err := config.GetNamespacePipelineFiles(datakit.StrGitRepos)
 				if err != nil {
 					l.Infof("GetNamespacePipelineFiles failed: %v", err)
 				} else {
