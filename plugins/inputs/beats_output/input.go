@@ -1,4 +1,4 @@
-// Package beats_output receive and process multiple elastic beats output data.
+// Package beats_output receive and process multiple Elastic Beats output data.
 package beats_output //nolint:stylecheck
 
 import (
@@ -98,7 +98,7 @@ func (ipt *loggingMeasurement) LineProto() (*io.Point, error) {
 //nolint:lll
 func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "elastic beats 接收器",
+		Name: "Elastic Beats 接收器",
 		Type: "logging",
 		Desc: "使用配置文件中的 `source` 字段值，如果该值为空，则默认为 `default`",
 		Tags: map[string]interface{}{
