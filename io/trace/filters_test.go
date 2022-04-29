@@ -12,6 +12,30 @@ import (
 	"time"
 )
 
+func TestOmitStatusCode(t *testing.T) {
+	testcases := make(DatakitTraces, 100)
+	for i := 0; i < 100; i++ {
+		testcases[i] = randDatakitTrace(t, 10)
+	}
+
+	var afterOmitStatusCode DatakitTraces
+	for i := range testcases {
+		if t, ok := OmitStatusCodeFilterWrapper([]string{"404", "500", "307"})(testcases[i]); !ok {
+			afterOmitStatusCode = append(afterOmitStatusCode, t)
+		}
+	}
+
+	for i := range afterOmitStatusCode {
+		for j := range afterOmitStatusCode[i] {
+			switch afterOmitStatusCode[i][j].HTTPStatusCode {
+			case "404", "500", "307":
+				t.Errorf("status code %s should be omitted", afterOmitStatusCode[i][j].HTTPStatusCode)
+				t.FailNow()
+			}
+		}
+	}
+}
+
 func TestPenetrateError(t *testing.T) {
 	testcases := make(DatakitTraces, 100)
 	for i := 0; i < 100; i++ {

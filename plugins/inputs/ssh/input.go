@@ -72,7 +72,6 @@ var errSSHCfg = errors.New("both password and privateKeyFile missed")
 
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
-	io.FeedEventLog(&io.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
 	if ipt.Host == "" {
 		l.Errorf("host configuration missed")
 		return

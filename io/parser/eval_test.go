@@ -19,7 +19,6 @@ func TestExprConditions(t *testing.T) {
 		fields map[string]interface{}
 		pass   bool
 	}{
-
 		{
 			in:     "{ abc notmatch []}",
 			fields: map[string]interface{}{"abc": "abc123"},

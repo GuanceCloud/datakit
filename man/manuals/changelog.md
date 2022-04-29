@@ -2,6 +2,58 @@
 
 # DataKit 版本历史
 
+## 1.2.17(2022/04/27)
+
+本次发布属于迭代发布，主要涉及如下几个方面：
+
+- [容器采集器](container#7e687515)增加更多指标（`kube_` 开头）采集(#668)
+- DDTrace 和 OpenTelemetry 采集器支持通过 HTTP Status Code（`omit_err_status`）来过滤部分错误的 trace
+- 修复几个 Trace 采集器（DDtrace/OpenTelemetry/Zipkin/SkyWalking/Jaeger）在 git 模式下配置 reload 不生效的问题(#725)
+- 修复 Gitlab 采集器不能 tag 导致的奔溃问题(#730)
+- 修复 Kubernetes 下 eBPF 采集器对 Pod 标签（tag）不更新的问题(#736)
+- [prom 采集器](prom) 支持 [Tag 重命名](prom#e42139cb)(#719)
+- 完善部分文档描述
+
+----
+
+## 1.2.16(2022/04/24)
+
+本次发布属于 hotfix 修复，主要涉及如下几个方面(#728)：
+
+- 修复安装程序可能的报错导致无法继续安装/升级，目前选择容忍部分情况的服务操作错误
+- 修复 Windows 安装脚本的拼写错误，该错误导致 32 位安装程序下载失败
+- 调整 Monitor 关于选举情况的展示
+- 开启选举的情况下，修复 MongoDB 死循环导致无法采集的问题
+
+----
+
+## 1.2.15(2022/04/21)
+
+本次发布属于迭代发布，含大量问题修复：
+
+- Pipeline 模块修复 Grok 中[动态多行 pattern](datakit-pl-how-to#88b72768) 问题(#720)
+- 移除掉一些不必要的 DataKit 事件日志上报(#704)
+- 修复升级程序可能导致的升级失败问题(#699)
+- DaemonSet 增加[开启 pprof 环境变量](datakit-daemonset-deploy#cc08ec8c)配置(#697)
+- DaemonSet 中所有[默认开启采集器](datakit-input-conf#764ffbc2)各个配置均支持通过环境变量配置(#693)
+- Tracing 采集器初步支持 Pipeline 数据处理(#675)
+  - [DDtrace 配置示例](ddtrace#69995abe)
+- 拨测采集器增加失败任务退出机制(#54)
+- 优化 [Helm 安装](datakit-daemonset-deploy#e4d3facf)(#695)
+- 日志新增 `unknown` 等级（status），对于未指定等级的日志均为 `unknown`(#685)
+- 容器采集器大量修复
+  - 修复 cluster 字段命名问题(#542)
+    - 对象 `kubernetes_clusters` 这个指标集改名为 `kubernetes_cluster_roles`
+    - 原 `kubernetes.cluster` 这个 count 改名为 `kubernetes.cluster_role`
+  - 修复 namespace 字段命名问题(#724)
+  - 容器日志采集中，如果 Pod Annotation 不指定日志 `source`，那么 DataKit 将按照[此优先级来推导日志来源](container#6de978c3)(#708/#723)
+  - 对象上报不再受 32KB 字长限制（因 Annotation 内容超 32KB）(#709)
+	  - 所有 Kubernetes 对象均删除 `annotation` 这一 field
+  - 修复 prom 采集器不会随 Pod 退出而停止的问题(#716)
+- 其它问题修复(#721)
+
+---
+
 ## 1.2.14(2022/04/12)
 
 本次发布属于 hotfix 发布，同时包含部分小的修改和调整：
@@ -21,12 +73,13 @@
 本次发布属于迭代发布，更新内容如下：
 
 - 增加宿主机运行时的[内存限制](datakit-conf#4e7ff8f3)(#641)
-	- 安装阶段即支持[内存限制配置](datakit-install#03be369a)
+  - 安装阶段即支持[内存限制配置](datakit-install#03be369a)
 - CPU 采集器增加 [load5s 指标](cpu#13e60209)(#606)
 - 完善 datakit.yaml 示例(#678)
 - 支持主机安装时通过 [cgroup 限制内存](datakit-conf#4e7ff8f3)使用(#641)
 - 完善日志黑名单功能，新增 contain/notcontain 判定规则(#665)
   - 支持在 datakit.conf 中[配置日志/对象/Tracing/时序指标这几类黑名单](datakit-filter#045b45e3)
+	- 注意：升级该版本，要求 DataWay 升级到 1.2.1+
 - 进一步完善 [containerd 下的容器采集](container)(#402)
 - 调整 monitor 布局，增加黑名单过滤情况展示(#634)
 - DaemonSet 安装增加 [Helm 支持](datakit-daemonset-deploy)(#653)

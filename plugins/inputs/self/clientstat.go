@@ -171,7 +171,7 @@ func (s *ClientStat) getElectedInfo() (int64, string) {
 		return 0, ""
 	}
 
-	elected, ns := election.Elected()
+	elected, ns, _ := election.Elected()
 	if elected == "success" {
 		return int64(time.Since(election.GetElectedTime()) / time.Second), ns
 	} else {

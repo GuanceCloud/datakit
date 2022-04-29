@@ -30,7 +30,7 @@ type TokenKind uint32
 const EndChar = unicode.MaxRune + 1
 
 // list of available tokens; this list has been reduced because we don't
-// need a full-fledged tokenizer to implement a Lexer
+// need a full-fledged tokenizer to implement a Lexer.
 const (
 	LexError = TokenKind(57346) + iota
 
@@ -152,7 +152,7 @@ func NewSQLTokenizer(sql string, literalEscapes bool, cfg SQLConfig) *SQLTokeniz
 	}
 }
 
-// Reset the underlying buffer and positions
+// Reset the underlying buffer and positions.
 func (tkn *SQLTokenizer) Reset(in string) {
 	tkn.pos = 0
 	tkn.lastChar = 0
@@ -161,7 +161,7 @@ func (tkn *SQLTokenizer) Reset(in string) {
 	tkn.err = nil
 }
 
-// keywords used to recognize string tokens
+// keywords used to recognize string tokens.
 var keywords = map[string]TokenKind{
 	"NULL":      Null,
 	"TRUE":      BooleanLiteral,
@@ -186,7 +186,7 @@ func (tkn *SQLTokenizer) setErr(format string, args ...interface{}) {
 	tkn.err = fmt.Errorf("at position %d: %v", tkn.pos, fmt.Errorf(format, args...))
 }
 
-// SeenEscape returns whether or not this tokenizer has seen an escape character within a scanned string
+// SeenEscape returns whether or not this tokenizer has seen an escape character within a scanned string.
 func (tkn *SQLTokenizer) SeenEscape() bool { return tkn.seenEscape }
 
 // Scan scans the tokenizer for the next token and returns
@@ -336,7 +336,7 @@ func (tkn *SQLTokenizer) skipBlank() {
 // will be used as the destination of the upper-case copy of src, if it fits. As a special case,
 // toUpper will return src if the byte slice is already upper-case. This function is used rather
 // than bytes.ToUpper to improve the memory performance of the obfuscator by saving unnecessary
-// allocations happening in bytes.ToUpper
+// allocations happening in bytes.ToUpper.
 func toUpper(src, dst []byte) []byte {
 	dst = dst[:0]
 	isASCII, hasLower := true, false
@@ -629,7 +629,7 @@ func (tkn *SQLTokenizer) advance() {
 }
 
 // bytes returns all the bytes that were advanced over since its last call.
-// This excludes tkn.lastChar, which will remain in the buffer
+// This excludes tkn.lastChar, which will remain in the buffer.
 func (tkn *SQLTokenizer) bytes() []byte {
 	if tkn.lastChar == EndChar {
 		ret := tkn.buf[:tkn.off]

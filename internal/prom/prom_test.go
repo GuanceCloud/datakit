@@ -6,6 +6,7 @@
 package prom
 
 import (
+	"bytes"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -18,7 +19,7 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const promURL = "http://127.0.0.1:9100/metrics"
@@ -590,7 +591,7 @@ func TestProm(t *testing.T) {
 		},
 
 		{
-			name: "tags filtering",
+			name: "rename-measurement",
 			in: &Option{
 				URL: promURL,
 				Measurements: []Rule{
@@ -714,7 +715,7 @@ func TestProm(t *testing.T) {
 				t.Errorf("[%d] failed to init prom: %s", idx, err)
 			}
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			var points []*io.Point
+			var points []*iod.Point
 			for _, u := range p.opt.URLs {
 				pts, err := p.CollectFromHTTP(u)
 				if err != nil {
@@ -742,7 +743,7 @@ func TestProm(t *testing.T) {
 				got = append(got, s)
 			}
 			sort.Strings(got)
-			tu.Equals(t, tc.expected, got)
+			tu.Equals(t, strings.Join(tc.expected, "\n"), strings.Join(got, "\n"))
 			t.Logf("[%d] PASS", idx)
 		})
 	}
@@ -783,4 +784,151 @@ func TestGetTimestampS(t *testing.T) {
 	m2 := dto.Metric{}
 	tu.Equals(t, int64(1647959040000000000), getTimestampS(&m1, startTime).UnixNano())
 	tu.Equals(t, int64(1600000000000000000), getTimestampS(&m2, startTime).UnixNano())
+}
+
+func TestRenameTag(t *testing.T) {
+	cases := []struct {
+		name     string
+		opt      *Option
+		promdata string
+		expect   []*iod.Point
+	}{
+		{
+			name: "rename-tags",
+			opt: &Option{
+				URL: "http://not-set",
+				RenameTags: &RenameTags{
+					OverwriteExistTags: false,
+					Mapping: map[string]string{
+						"status_code":    "StatusCode",
+						"tag-not-exists": "do-nothing",
+					},
+				},
+			},
+			expect: []*iod.Point{
+				func() *iod.Point {
+					pt, err := iod.MakePoint("http",
+						map[string]string{"le": "0.003", "StatusCode": "404", "method": "GET"},
+						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
+					if err != nil {
+						t.Errorf("MakePoint: %s", err)
+						return nil
+					}
+					return pt
+				}(),
+			},
+			promdata: `
+http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
+			`,
+		},
+
+		{
+			name: "rename-overwrite-tags",
+			opt: &Option{
+				URL: "http://not-set",
+				RenameTags: &RenameTags{
+					OverwriteExistTags: true, // enable overwrite
+					Mapping: map[string]string{
+						"status_code": "StatusCode",
+						"method":      "tag_exists", // rename `method` to a exists tag key
+					},
+				},
+			},
+			expect: []*iod.Point{
+				func() *iod.Point {
+					pt, err := iod.MakePoint("http",
+						// method key removed, it's value overwrite tag_exists's value
+						map[string]string{"le": "0.003", "StatusCode": "404", "tag_exists": "GET"},
+						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
+					if err != nil {
+						t.Errorf("MakePoint: %s", err)
+						return nil
+					}
+					return pt
+				}(),
+			},
+			promdata: `
+http_request_duration_seconds_bucket{le="0.003",tag_exists="yes",status_code="404",method="GET"} 1
+			`,
+		},
+
+		{
+			name: "rename-tags-disable-overwrite",
+			opt: &Option{
+				URL: "http://not-set",
+				RenameTags: &RenameTags{
+					OverwriteExistTags: false, // enable overwrite
+					Mapping: map[string]string{
+						"status_code": "StatusCode",
+						"method":      "tag_exists", // rename `method` to a exists tag key
+					},
+				},
+			},
+			expect: []*iod.Point{
+				func() *iod.Point {
+					pt, err := iod.MakePoint("http",
+						map[string]string{"le": "0.003", "tag_exists": "yes", "StatusCode": "404", "method": "GET"}, // overwrite not work on method
+						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
+					if err != nil {
+						t.Errorf("MakePoint: %s", err)
+						return nil
+					}
+					return pt
+				}(),
+			},
+			promdata: `
+http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="yes", method="GET"} 1
+			`,
+		},
+
+		{
+			name: "empty-tags",
+			opt: &Option{
+				URL: "http://not-set",
+				RenameTags: &RenameTags{
+					OverwriteExistTags: true, // enable overwrite
+					Mapping: map[string]string{
+						"status_code": "StatusCode",
+						"method":      "tag_exists", // rename `method` to a exists tag key
+					},
+				},
+			},
+			expect: []*iod.Point{
+				func() *iod.Point {
+					pt, err := iod.MakePoint("http",
+						nil,
+						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
+					if err != nil {
+						t.Errorf("MakePoint: %s", err)
+						return nil
+					}
+					return pt
+				}(),
+			},
+			promdata: `
+http_request_duration_seconds_bucket 1
+			`,
+		},
+	}
+
+	for _, tc := range cases {
+		p, err := NewProm(tc.opt)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		t.Run(tc.name, func(t *testing.T) {
+			pts, err := p.Text2Metrics(bytes.NewBufferString(tc.promdata))
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			for idx, pt := range pts {
+				tu.Equals(t, tc.expect[idx].PrecisionString("m"), pt.PrecisionString("m"))
+				t.Log(tc.expect[idx].PrecisionString("m"))
+			}
+		})
+	}
 }

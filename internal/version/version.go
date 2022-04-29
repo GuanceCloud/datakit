@@ -162,6 +162,10 @@ func (vi *VerInfo) Parse() error {
 }
 
 func IsNewVersion(newVer, curver *VerInfo, acceptRC bool) bool {
+	if newVer.Commit != curver.Commit {
+		return true
+	}
+
 	if newVer.Compare(curver) > 0 { // new version
 		if newVer.rc == "" { // no rc version
 			return true

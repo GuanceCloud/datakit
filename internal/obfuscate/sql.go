@@ -12,8 +12,6 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/DataDog/tracepb/pb"
 )
 
 const (
@@ -92,7 +90,7 @@ type replaceFilter struct {
 	quantizeTableNames bool
 }
 
-// Filter the given token so that it will be replaced if in the token replacement list
+// Filter the given token so that it will be replaced if in the token replacement list.
 func (f *replaceFilter) Filter(token, lastToken TokenKind, buffer []byte) (tokenType TokenKind, tokenBytes []byte, err error) {
 	switch lastToken {
 	case Savepoint:
@@ -369,43 +367,6 @@ func attemptObfuscation(tokenizer *SQLTokenizer) (*ObfuscatedQuery, error) {
 		Query:     out.String(),
 		TablesCSV: tableFinder.CSV(),
 	}, nil
-}
-
-func (o *Obfuscator) obfuscateSQL(span *pb.Span) {
-	if span.Resource == "" {
-		return
-	}
-	oq, err := o.ObfuscateSQLString(span.Resource)
-	if err != nil {
-		// we have an error, discard the SQL to avoid polluting user resources.
-		o.opts.Log.Debugf("Error parsing SQL query: %v. Resource: %q", err, span.Resource)
-		if span.Meta == nil {
-			span.Meta = make(map[string]string, 1)
-		}
-		if _, ok := span.Meta[sqlQueryTag]; !ok {
-			span.Meta[sqlQueryTag] = nonParsableResource
-		}
-		span.Resource = nonParsableResource
-		return
-	}
-
-	span.Resource = oq.Query
-
-	if len(oq.TablesCSV) > 0 {
-		setMeta(span, "sql.tables", oq.TablesCSV)
-	}
-	if span.Meta != nil && span.Meta[sqlQueryTag] != "" {
-		// "sql.query" tag already set by user, do not change it.
-		return
-	}
-	setMeta(span, sqlQueryTag, oq.Query)
-}
-
-func setMeta(s *pb.Span, key, val string) {
-	if s.Meta == nil {
-		s.Meta = make(map[string]string)
-	}
-	s.Meta[key] = val
 }
 
 // ObfuscateSQLExecPlan obfuscates query conditions in the provided JSON encoded execution plan. If normalize=True,

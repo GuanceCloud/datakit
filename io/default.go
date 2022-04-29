@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink"
@@ -45,7 +46,8 @@ func Start(sincfg []map[string]interface{}) error {
 
 	defaultIO.in = make(chan *iodata, defaultIO.conf.FeedChanSize)
 	defaultIO.in2 = make(chan *iodata, defaultIO.conf.HighFreqFeedChanSize)
-	defaultIO.inLastErr = make(chan *lastError, 128)
+	defaultIO.inLastErr = make(chan *lastError, datakit.CommonChanCap)
+
 	defaultIO.inputstats = map[string]*InputsStat{}
 	defaultIO.cache = map[string][]*Point{}
 	defaultIO.dynamicCache = map[string][]*Point{}

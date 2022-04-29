@@ -1,3 +1,9 @@
+{{.CSS}}
+
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
+- 操作系统支持：全平台
+
 # Datakit Tracing Data Flow
 
 > Third Party Tracing Agent --> Datakit Frontend --> Datakit Backend --> Data Center
@@ -14,13 +20,11 @@
 
 ## Datakit Tracing Frontend
 
-Datakit Frontend 即 Tracing Agent 负责接收并转换第三方 Tracing 数据结构，Datakit 内部使用 [DatakitSpan](datakit-tracing-struct) 数据结构。
+Datakit Frontend 即 Datakit Tracing Agent 负责接收并转换第三方 Tracing Agent 数据结构，Datakit 内部使用 [DatakitSpan](datakit-tracing-struct) 数据结构。
 
-Datakit Frontend 会解析接收到的 Tracing 数据并转换成 [DatakitSpan](datakit-tracing-struct) 然后发送到 [Datakit Tracing Backend](datakit-tracing#e7b3d9f2)。
+[Datakit Tracing Frontend](#Datakit-Tracing-Frontend) 会解析接收到的 Tracing Span 数据并转换成 [DatakitSpan](datakit-tracing-struct) 后发送到 [Datakit Tracing Backend](#datakit-tracing-backend)。[Datakit Tracing Frontend](#Datakit-Tracing-Frontend) 可以完成对[Datakit Tracing Backend](#datakit-tracing-backend)中过滤单元和运算单元的配置，请参考[Datakit Tracing Common Configuration](#Datakit-Tracing-Common-Configuration)。
 
-Datakit Frontend 还负责配置 [Datakit Tracing Backend](datakit-tracing#e7b3d9f2) 的运算单元。
-
-## Tracing 通用配置
+## Datakit Tracing Common Configuration
 
 ```toml
 ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
@@ -39,6 +43,7 @@ keep_rare_resource = false
 [close_resource]
   service1 = ["resource1", "resource2", ...]
   service2 = ["resource1", "resource2", ...]
+  # ...
 
 ## Sampler config uses to set global sampling strategy.
 ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
@@ -49,6 +54,16 @@ keep_rare_resource = false
 [sampler]
   priority = 0
   sampling_rate = 1.0
+
+## Piplines use to manipulate message and meta data. If this item configured right then
+## the current input procedure will run the scripts wrote in pipline config file against the data
+## present in span message.
+## The string on the left side of the equal sign must be identical to the service name that
+## you try to handle.
+ [inputs.ddtrace.pipelines]
+  service1 = "service1.p"
+  service2 = "service2.p"
+  # ...
 ```
 
 ## Datakit Tracing Backend
@@ -63,6 +78,29 @@ Datakit Tracing Backend 包括几个部分 Tracing <!--Statistics,--> Filters �
 - Samplers: 基于概率的 Tracing 数据采样。多服务环境下采样率必须配置一致才能达到采样效果，
   - 例一：A-Service(0.3) --> B-Service(0.3) --> C-Service(0.3) 配置正确，最终采样率为 30%。
   - 例二：A-Service(0.1) --> B-Service(0.3) --> C-Service(0.1) 配置错误，链路不能正常工作。
+- Piplines: [Pipeline](pipeline)为 Datakit Tracing 提供通过自定义脚本进行数据操纵的能力。配置请参考安装目录下当前开启的 Tracer xxx.conf 文件，例如 ddtrace.conf：
+
+```toml
+  ## Piplines use to manipulate message and meta data. If this item configured right then
+  ## the current input procedure will run the scripts wrote in pipline config file against the data
+  ## present in span message.
+  ## The string on the left side of the equal sign must be identical to the service name that
+  ## you try to handle.
+  # [inputs.ddtrace.pipelines]
+    # service1 = "service1.p"
+    # service2 = "service2.p"
+    # ...
+```
+
+通过 Pipeline 脚本操作数据详细说明请参考[Datakit Tracing With Pipeline](datakit-tracing-pl)
+
+### The Order of Executing Filters
+
+当前的 Datakit 版本中的 Filters (Sampler 也是一种 Filter)的执行顺序是固定的：
+
+> error status penetration --> close resource filter --> omit certain http status code list --> rare resource keeper --> sampler --> piplines
+
+每个 Filter 都具备终止执行链路的能力，即符合终止条件的 Filter 将不会在执行后续的 Filter。
 
 ## About Datakit Span Struct In Production
 

@@ -21,15 +21,24 @@ datakit monitor
 
 DataKit 基本 Monitor 页面信息如下图所示：
 
-![基础Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-basic.gif) 
+![基础Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-basic-v1.gif) 
 
 该图中的元素可以通过鼠标或键盘操作。被鼠标选中的块会以双边框突出显示（如上图左上角的 `Basic Info` 块所示），另外，还能通过鼠标滚轮或者键盘上下方向键（或者 vim 的 J/K）来浏览。
 
 上图中的每个 UI 块的信息分别是：
 
-- `Basic Info`
-
-用来展示 DataKit 的基本信息，如版本号、主机名、运行时长等信息。从这里我们可以对 DataKit 当前的情况有个基本了解。
+- `Basic Info` 用来展示 DataKit 的基本信息，如版本号、主机名、运行时长等信息。从这里我们可以对 DataKit 当前的情况有个基本了解。现挑选几个字段出来单独说明：
+  - `Version`：DataKit 当前的版本号
+	- `Branch`：DataKit 当前的代码分支，一般情况下都是 master
+	- `Uptime`：DataKit 的启动时间
+	- `CGroup`：展示当前 DataKit 的 cgroup 配置，其中 `mem` 指最大内存限制，`cpu` 指使用率限制范围
+	- `OS/Arch`：当前 DataKit 的软硬件平台
+	- `IO`：展示 DataKit 当前 IO 通道的拥塞情况
+	- `Pipeline`：展示 DataKit 当前 Pipeline 的处理情况
+	- `Elected`：展示选举情况
+	  - 如果选举未开启，则显示 `<namespace-name>::disabled|<none>`
+	  - 如果选举开启，则显示 `<namespace-name>::<disabled-or-success>|<elected-datakit-host-name>`，如 `my-namespace::success|my-host123`
+	- `From`：当前被 Monitor 的 DataKit 地址，如 `http://localhost:9529/stats`
 
 - `Runtime Info` 用来展示 DataKit 的基本运行消耗（主要是内存以及 Goroutine 有关），其中：
 
@@ -67,7 +76,7 @@ DataKit 基本 Monitor 页面信息如下图所示：
 
 如果运行 Monitor 时，指定了 verbose 选项（`-V`），则会额外输出更多信息，如下图所示：
 
-![完整Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-verbose.gif) 
+![完整Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-verbose-v1.gif) 
 
 - `Goroutine Groups` 展示 DataKit 中已有的 Goroutine 分组（该分组中的 Goroutine 个数 <= 上面面板中的 `Goroutines` 个数）
 - `HTTP APIs` 展示 DataKit 中 API 调用情况

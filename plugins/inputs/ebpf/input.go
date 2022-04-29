@@ -51,7 +51,6 @@ type Input struct {
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	tick := time.NewTicker(time.Second * 60)
-	io.FeedEventLog(&io.Reporter{Message: "ebpf start ok, ready for collecting metrics.", Logtype: "event"})
 	defer tick.Stop()
 
 loop:

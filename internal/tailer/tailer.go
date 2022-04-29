@@ -81,10 +81,7 @@ type Option struct {
 	// 是否关闭高频IO
 	DisableHighFreqIODdata bool
 	// 日志文本的另一种发送方式（和Feed冲突）
-	ForwardFunc ForwardFunc
-	// 关闭发送 event
-	DisableSendEvent bool
-	//
+	ForwardFunc   ForwardFunc
 	IgnoreDeadLog time.Duration
 }
 

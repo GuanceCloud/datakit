@@ -148,6 +148,7 @@ func main() {
 		if err != nil {
 			l.Warn(err)
 		} else {
+			go k8sinfo.AutoUpdate(ctx)
 			dknetflow.SetK8sNetInfo(k8sinfo)
 			dkhttpflow.SetK8sNetInfo(k8sinfo)
 		}

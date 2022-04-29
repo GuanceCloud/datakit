@@ -101,7 +101,6 @@ func (n *Input) RunPipeline() {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("sqlserver start")
-	io.FeedEventLog(&io.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
 	tick := time.NewTicker(n.Interval.Duration)
@@ -111,8 +110,7 @@ func (n *Input) Run() {
 	for {
 		if err := n.initDB(); err != nil {
 			l.Errorf("initDB: %s", err.Error())
-
-			io.FeedLastError(inputName, err.Error())
+			io.ReportLastError(inputName, err.Error())
 		} else {
 			break
 		}

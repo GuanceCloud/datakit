@@ -98,6 +98,11 @@ NAME1="value1" NAME2="value2"
 - `DK_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
 - `DK_GIN_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
 
+### DataKit pprof 相关
+
+- `DK_ENABLE_PPROF`: 是否开启 `pprof`
+- `DK_PPROF_LISTEN`: `pprof`服务监听地址
+
 ### DataKit 选举相关
 
 - `DK_ENABLE_ELECTION`: 开启选举, 默认不开启, 如需开启, 给该环境变量任意一个非空字符串值即可。（如 `True`/`False`）

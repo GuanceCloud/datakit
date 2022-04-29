@@ -7,6 +7,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -84,7 +85,6 @@ var (
 	flagIpdb,
 	flagGinLog,
 	flagEnableElection,
-	flagDisable404Page,
 	flagSinkMetric,
 	flagSinkNetwork,
 	flagSinkKeyEvent,
@@ -94,6 +94,9 @@ var (
 	flagSinkTracing,
 	flagSinkRUM,
 	flagSinkSecurity string
+	flagEnablePProf,
+	flagPProfListen,
+	flagDisable404Page string
 
 	flagInstallOnly,
 	flagCgroupDisabled,
@@ -141,6 +144,8 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagLogLevel, "log-level", "", "log level setting")
 	flag.StringVar(&flagLog, "log", "", "log setting")
 	flag.StringVar(&flagGinLog, "gin-log", "", "gin log setting")
+	flag.StringVar(&flagEnablePProf, "enable-pprof", "", "enable pprof")
+	flag.StringVar(&flagPProfListen, "pprof-listen", "", "pprof listen")
 	flag.StringVar(&flagSrc, "srcs",
 		fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz",
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
@@ -304,9 +309,25 @@ Data           : %s
 		return
 	}
 
-	l.Info("stoping datakit...")
-	if err = service.Control(svc, "stop"); err != nil {
-		l.Warnf("stop service: %s, ignored", err.Error())
+	svcStatus, err := svc.Status()
+	if err != nil {
+		if errors.Is(err, service.ErrNotInstalled) {
+			l.Infof("datakit service not installed before")
+		} else {
+			l.Fatalf("svc.Status: %s", err.Error())
+		}
+	} else {
+		switch svcStatus {
+		case service.StatusUnknown: // not installed
+			l.Info("datakit service maybe not installed")
+		case service.StatusStopped: // pass
+			l.Info("datakit service stopped")
+		case service.StatusRunning:
+			l.Info("stoping datakit...")
+			if err = service.Control(svc, "stop"); err != nil {
+				l.Fatalf("stop service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
+			}
+		}
 	}
 
 	applyFlags()
@@ -341,7 +362,7 @@ Data           : %s
 	} else {
 		l.Infof("starting service %s...", dkservice.ServiceName)
 		if err = service.Control(svc, "start"); err != nil {
-			l.Warnf("star service: %s, ignored", err.Error())
+			l.Fatalf("start service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
 		}
 	}
 
@@ -371,10 +392,6 @@ func promptReferences() {
 }
 
 func upgradeDatakit(svc service.Service) error {
-	if err := service.Control(svc, "stop"); err != nil {
-		l.Warnf("stop service: %s, ignored", err.Error())
-	}
-
 	mc := config.Cfg
 
 	if err := mc.LoadMainTOML(datakit.MainConfPath); err == nil {
@@ -425,15 +442,31 @@ func upgradeDatakit(svc service.Service) error {
 	}
 
 	if err := service.Control(svc, "install"); err != nil {
-		l.Warnf("install datakit service: %s, ignored", err.Error())
+		l.Fatalf("install service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
 	}
 
 	return nil
 }
 
 func installNewDatakit(svc service.Service) {
-	if err := service.Control(svc, "uninstall"); err != nil {
-		l.Warnf("uninstall service: %s, ignored", err.Error())
+	svcStatus, err := svc.Status()
+	if err != nil {
+		if errors.Is(err, service.ErrNotInstalled) {
+			l.Infof("datakit service not installed before")
+			// pass
+		} else {
+			l.Fatalf("svc.Status: %s", err.Error())
+		}
+	} else {
+		switch svcStatus {
+		case service.StatusUnknown: // pass
+		case service.StatusStopped:
+			if err := service.Control(svc, "uninstall"); err != nil {
+				l.Warnf("uninstall service failed: %s", err.Error())
+			}
+		case service.StatusRunning: // should not been here
+			l.Fatalf("unexpected: datakit service should have stopped")
+		}
 	}
 
 	mc := config.Cfg
@@ -474,6 +507,14 @@ func installNewDatakit(svc service.Service) {
 				}
 			}
 		}
+	}
+
+	if flagEnablePProf != "" {
+		config.Cfg.EnablePProf = true
+	}
+
+	if flagPProfListen != "" {
+		config.Cfg.PProfListen = flagPProfListen
 	}
 
 	// Only linux support cgroup.
@@ -568,7 +609,7 @@ func installNewDatakit(svc service.Service) {
 	}
 	if flagGinLog != "" {
 		l.Infof("set gin log: %s", flagGinLog)
-		mc.GinLogDeprecated = flagGinLog
+		mc.Logging.GinLog = flagGinLog
 	}
 
 	// parse sink
@@ -608,7 +649,7 @@ func installNewDatakit(svc service.Service) {
 
 	l.Infof("installing service %s...", dkservice.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
-		l.Warnf("install service: %s, ignored", err.Error())
+		l.Fatalf("uninstall service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
 	}
 }
 
@@ -878,7 +919,7 @@ func mvOldDatakit(svc service.Service) {
 	}
 
 	if err := service.Control(svc, "uninstall"); err != nil {
-		l.Warnf("uninstall service datakit failed: %s, ignored", err.Error())
+		l.Warnf("uninstall service failed: %s", err.Error())
 	}
 
 	if err := os.Rename(olddir, datakit.InstallDir); err != nil {

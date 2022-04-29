@@ -39,8 +39,6 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 
 DataKit 允许给其采集的所有数据配置全局标签，这些标签会默认添加到该 DataKit 采集的每一条数据上。这里是一个全局标签配置示例：
 
-> 如果被采集上来的数据中，本来就带有同名的 Tag，那么 DataKit 不会再追加这里配置的全局 Tag。
-
 ```toml
 [global_tags]
 	ip         = "__datakit_ip"
@@ -56,6 +54,9 @@ DataKit 允许给其采集的所有数据配置全局标签，这些标签会默
   - `__datakit_id/$datakit_id`：标签值会设置成 DataKit 的 ID
 
 - 由于 [DataKit 数据传输协议限制](apis#2fc2526a)，不要在全局标签（Tag）中出现任何指标（Field）字段，否则会因为违反协议导致数据处理失败。具体参见具体采集器的字段列表。当然，也不要加太多 Tag，而且每个 Tag 的 Key 以及 Value 长度都有限制。
+
+- 如果被采集上来的数据中，本来就带有同名的 Tag，那么 DataKit 不会再追加这里配置的全局 Tag。
+- 即使 `global_tags` 不配置任何全局 Tag，DataKit 仍然会==在所有数据上尝试添加==一个 `host=$HOSTNAME` 的全局 Tag。
 
 ### 全局 Tag 可能导致的问题
 

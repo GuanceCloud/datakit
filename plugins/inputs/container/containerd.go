@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package container
 
 import (
@@ -79,13 +84,13 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 		return nil, err
 	}
 
-	l.Debugf("containerd namespaces: %v", nsList)
+	l.Debugf("containerd linux_namespaces: %v", nsList)
 
 	for _, ns := range nsList {
 		ctx := namespaces.WithNamespace(context.Background(), ns)
 		cList, err := c.client.Containers(ctx)
 		if err != nil {
-			l.Warn("failed to collect containers in containerd, namespace: %s, skip", ns)
+			l.Warn("failed to collect containers in containerd, linux_namespace: %s, skip", ns)
 			continue
 		}
 
@@ -99,7 +104,7 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 				continue
 			}
 			obj := newContainerdObject(&info)
-			obj.tags["namespace"] = ns
+			obj.tags["linux_namespace"] = ns
 			obj.tags.append(c.cfg.extraTags)
 
 			metricsData, err := getContainerdMetricsData(ctx, container)
@@ -208,7 +213,7 @@ func newContainerdObject(info *containers.Container) *containerdObject {
 	}
 
 	obj.tags.addValueIfNotEmpty("pod_name", info.Labels[containerLableForPodName])
-	obj.tags.addValueIfNotEmpty("pod_namespace", info.Labels[containerLableForPodNamespace])
+	obj.tags.addValueIfNotEmpty("namespace", info.Labels[containerLableForPodNamespace])
 	return obj
 }
 

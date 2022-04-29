@@ -366,7 +366,7 @@ func (ipt *input) Run() {
 		}
 
 		if err := ipt.setup(); err != nil {
-			io.FeedLastError(inputName, err.Error())
+			io.ReportLastError(inputName, err.Error())
 			time.Sleep(time.Second * 5)
 			continue
 		}

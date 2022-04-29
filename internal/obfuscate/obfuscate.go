@@ -12,7 +12,6 @@ import (
 	"sync/atomic"
 
 	"github.com/DataDog/datadog-go/statsd"
-	"github.com/DataDog/tracepb/pb"
 )
 
 // Obfuscator quantizes and obfuscates spans. The obfuscator is not safe for
@@ -47,7 +46,7 @@ func (o *Obfuscator) SQLLiteralEscapes() bool {
 	return atomic.LoadInt32(&o.sqlLiteralEscapes) == 1
 }
 
-// NewObfuscator creates a new obfuscator
+// NewObfuscator creates a new obfuscator.
 func NewObfuscator(cfg *Config) *Obfuscator {
 	if cfg == nil {
 		cfg = &Config{
@@ -83,41 +82,54 @@ func (o *Obfuscator) Stop() { o.queryCache.Close() }
 
 // Obfuscate may obfuscate span's properties based on its type and on the Obfuscator's
 // configuration.
-func (o *Obfuscator) Obfuscate(span *pb.Span) {
-	switch span.Type {
+func (o *Obfuscator) Obfuscate(typ, q string) (*ObfuscatedQuery, error) {
+	switch typ {
 	case "sql", "cassandra":
-		o.obfuscateSQL(span)
-	case "redis":
-		o.quantizeRedis(span)
-		if o.opts.Redis.Enabled {
-			o.obfuscateRedis(span)
+		out, err := o.ObfuscateSQLString(q)
+		if err != nil {
+			return &ObfuscatedQuery{Query: nonParsableResource}, err
 		}
-	case "memcached":
-		if o.opts.Memcached.Enabled {
-			o.obfuscateMemcached(span)
-		}
-	case "web", "http":
-		o.obfuscateHTTP(span)
-	case "mongodb":
-		o.obfuscateJSON(span, "mongodb.query", o.mongo)
-	case "elasticsearch":
-		o.obfuscateJSON(span, "elasticsearch.body", o.es)
+		return out, nil
+	default:
+		return &ObfuscatedQuery{Query: o.obfuscateNonDB(typ, q)}, nil
 	}
 }
 
+func (o *Obfuscator) obfuscateNonDB(typ, q string) string {
+	switch typ {
+	case "redis":
+		if o.opts.Redis.Enabled {
+			return o.obfuscateRedis(q)
+		}
+	case "memcached":
+		if o.opts.Memcached.Enabled {
+			return o.obfuscateMemcached(q)
+		}
+	case "web", "http":
+		return o.obfuscateHTTP(q)
+	case "mongodb":
+		return o.obfuscateJSON(q, o.mongo)
+	case "elasticsearch":
+		return o.obfuscateJSON(q, o.es)
+	}
+	return q
+}
+
 // ObfuscateStatsGroup obfuscates the given stats bucket group.
-func (o *Obfuscator) ObfuscateStatsGroup(b *pb.ClientGroupedStats) {
-	switch b.Type {
+func (o *Obfuscator) ObfuscateStatsGroup(typ, q string) string {
+	switch typ {
 	case "sql", "cassandra":
-		oq, err := o.ObfuscateSQLString(b.Resource)
+		oq, err := o.ObfuscateSQLString(q)
 		if err != nil {
-			o.opts.Log.Errorf("Error obfuscating stats group resource %q: %v", b.Resource, err)
-			b.Resource = nonParsableResource
+			o.opts.Log.Errorf("Error obfuscating stats group resource %q: %v", q, err)
+			return nonParsableResource
 		} else {
-			b.Resource = oq.Query
+			return oq.Query
 		}
 	case "redis":
-		b.Resource = o.QuantizeRedisString(b.Resource)
+		return o.QuantizeRedisString(q)
+	default:
+		return q
 	}
 }
 

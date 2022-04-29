@@ -119,7 +119,6 @@ func run() {
 		if err := doRun(); err != nil {
 			return
 		}
-		io.FeedEventLog(&io.Reporter{Message: "datakit start ok, ready for collecting metrics."})
 
 	case datakit.ModeDev:
 		startDKHttp()

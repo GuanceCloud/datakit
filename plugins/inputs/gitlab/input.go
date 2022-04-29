@@ -23,12 +23,14 @@ import (
 var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
-	inputName         = "gitlab"
-	catalog           = "gitlab"
+	inputName = "gitlab"
+	catalog   = "gitlab"
+
+	gitlabEventHeader = "X-Gitlab-Event"
 	pipelineHook      = "Pipeline Hook"
 	jobHook           = "Job Hook"
-	gitlabEventHeader = "X-Gitlab-Event"
-	sampleCfg         = `
+
+	sampleCfg = `
 [[inputs.gitlab]]
     ## param type: string - default: http://127.0.0.1:80/-/metrics
     prometheus_url = "http://127.0.0.1:80/-/metrics"
@@ -36,8 +38,16 @@ const (
     ## param type: string - optional: time units are "ms", "s", "m", "h" - default: 10s
     interval = "10s"
 
+    ## datakit can listen to gitlab ci data at /v1/gitlab when enabled
     enable_ci_visibility = true
 
+    ## extra tags for gitlab-ci data.
+    ## these tags will not overwrite existing tags.
+    [inputs.gitlab.ci_extra_tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
+
+    ## extra tags for gitlab metrics
     [inputs.gitlab.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"
@@ -53,10 +63,12 @@ func init() { //nolint:gochecknoinits
 }
 
 type Input struct {
-	URL                string            `toml:"prometheus_url"`
-	Interval           string            `toml:"interval"`
-	Tags               map[string]string `toml:"tags"`
+	URL      string            `toml:"prometheus_url"`
+	Interval string            `toml:"interval"`
+	Tags     map[string]string `toml:"tags"`
+
 	EnableCIVisibility bool              `toml:"enable_ci_visibility"`
+	CIExtraTags        map[string]string `toml:"ci_extra_tags"`
 
 	httpClient *http.Client
 	duration   time.Duration
@@ -65,11 +77,16 @@ type Input struct {
 	pauseCh chan bool
 
 	semStop *cliutils.Sem // start stop signal
+	reqMemo requestMemo
+	// For testing purpose.
+	feed          func(name, category string, pts []*iod.Point, opt *iod.Option) error
+	feedLastError func(inputName string, err string)
 }
 
 func (ipt *Input) RegHTTPHandler() {
 	if ipt.EnableCIVisibility {
 		l.Infof("start listening to gitlab webhooks")
+		go ipt.reqMemo.memoHouseKeeper(time.Second * 30)
 		dhttp.RegHTTPHandler("POST", "/v1/gitlab", ihttp.ProtectedHandlerFunc(ipt.ServeHTTP, l))
 	}
 }
@@ -77,15 +94,26 @@ func (ipt *Input) RegHTTPHandler() {
 var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func newInput() *Input {
+	sem := cliutils.NewSem()
 	return &Input{
 		Tags:       make(map[string]string),
 		pauseCh:    make(chan bool, maxPauseCh),
 		duration:   time.Second * 10,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 
-		semStop: cliutils.NewSem(),
+		semStop: sem,
 
 		EnableCIVisibility: true,
+		CIExtraTags:        make(map[string]string),
+		reqMemo: requestMemo{
+			memoMap:     map[[16]byte]time.Time{},
+			hasReqCh:    make(chan hasRequest),
+			addReqCh:    make(chan [16]byte),
+			removeReqCh: make(chan [16]byte),
+			semStop:     sem,
+		},
+		feed:          iod.Feed,
+		feedLastError: iod.FeedLastError,
 	}
 }
 
@@ -100,11 +128,11 @@ func (ipt *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			l.Info("exit")
+			l.Info("gitlab exited")
 			return
 
 		case <-ipt.semStop.Wait():
-			l.Info("gitlab return")
+			l.Info("gitlab returned")
 			return
 
 		case <-ticker.C:

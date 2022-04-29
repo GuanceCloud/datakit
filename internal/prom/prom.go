@@ -28,11 +28,15 @@ type Rule struct {
 	Name    string `toml:"name"`
 }
 
+type RenameTags struct {
+	OverwriteExistTags bool              `toml:"overwrite_exist_tags"`
+	Mapping            map[string]string `toml:"mapping"`
+}
+
 type Option struct {
 	MetricTypes       []string `toml:"metric_types"`
 	MetricNameFilter  []string `toml:"metric_name_filter"`
 	Measurements      []Rule   `json:"measurements"`
-	TagsIgnore        []string `toml:"tags_ignore"`
 	Source            string   `toml:"source"`
 	Interval          string   `toml:"interval"`
 	URL               string   `toml:"url,omitempty"` // Deprecated
@@ -47,8 +51,11 @@ type Option struct {
 	KeyFile           string   `toml:"tls_key"`
 
 	Auth     map[string]string `toml:"auth"`
-	Tags     map[string]string `toml:"tags"`
 	interval time.Duration
+
+	Tags       map[string]string `toml:"tags"`
+	RenameTags *RenameTags       `toml:"rename_tags"`
+	TagsIgnore []string          `toml:"tags_ignore"`
 
 	TLSOpen bool `toml:"tls_open"`
 	Disabel bool `toml:"disble"`

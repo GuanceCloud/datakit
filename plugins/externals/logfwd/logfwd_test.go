@@ -9,18 +9,11 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
-	"net"
-	"net/http"
 	"os"
-	"runtime"
 	"testing"
-	"time"
 
-	gws "github.com/gobwas/ws"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws"
 )
 
 func TestForwardFunc(t *testing.T) {
@@ -340,81 +333,4 @@ func TestMessageToJSON(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, tc.out, out)
 	}
-}
-
-func TestStartLog(t *testing.T) {
-	if runtime.GOOS != "linux" {
-		return
-	}
-
-	f, err := ioutil.TempFile("", "")
-	assert.NoError(t, err)
-
-	defer func() {
-		err := f.Close()
-		assert.NoError(t, err)
-
-		err = os.Remove(f.Name())
-		assert.NoError(t, err)
-	}()
-
-	const addr = "0.0.0.0:9090"
-
-	cfg := &config{
-		DataKitAddr: addr,
-		Loggings: loggings{
-			{
-				LogFiles: []string{f.Name()},
-				Source:   "t_source",
-				Service:  "t_service",
-				Pipeline: "t_pipeline",
-			},
-		},
-	}
-
-	go func() {
-		srv, err := ws.NewServer(addr, "/logfwd")
-		assert.NoError(t, err)
-		defer srv.Stop()
-
-		srv.MsgHandler = func(s *ws.Server, c net.Conn, data []byte, op gws.OpCode) error {
-			t.Logf("ws-reciver: %s", string(data))
-			return nil
-		}
-		srv.AddCli = func(w http.ResponseWriter, r *http.Request) {
-			conn, _, _, err := gws.UpgradeHTTP(r, w)
-			if err != nil {
-				l.Error("ws.UpgradeHTTP error: %s", err.Error())
-				return
-			}
-
-			if err := srv.AddConnection(conn); err != nil {
-				l.Error(err)
-			}
-		}
-
-		go srv.Start()
-		<-time.Tick(time.Second * 10)
-	}()
-
-	go func() {
-		idx := 0
-		for {
-			select {
-			case <-time.Tick(time.Second * 10):
-				return
-			default:
-				// nil
-			}
-			f.WriteString(fmt.Sprintf("[%s] logfwd - %d\n", time.Now(), idx))
-			idx++
-			time.Sleep(time.Second)
-		}
-	}()
-
-	quitChannel := make(chan struct{})
-	go startLog(cfg, quitChannel)
-
-	<-time.Tick(time.Second * 11)
-	quitChannel <- struct{}{}
 }
