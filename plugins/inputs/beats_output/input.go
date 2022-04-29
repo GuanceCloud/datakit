@@ -163,7 +163,7 @@ func (ipt *Input) Run() {
 				// debug print
 				dbg, ok := v.(map[string]interface{})
 				if ok {
-					l.Debug(debugPrettyPrintMap(dbg))
+					l.Debugf("event = %#v", dbg)
 				}
 
 				dataPiece := &DataStruct{
@@ -227,6 +227,7 @@ func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 				}
 			}
 		}
+		l.Debugf("newTags = %#v", newTags)
 
 		task := &worker.TaskTemplate{
 			TaskName:        inputName + "/" + ipt.Listen,
