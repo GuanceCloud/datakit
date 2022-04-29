@@ -518,10 +518,11 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*iod.Point, error) 
 		}
 		// We need pipeline event with ci status success or failed only.
 		if pl.ObjectAttributes == nil || pl.ObjectAttributes.Status == nil {
+			l.Debugf("ignore pipeline event with empty ci_status")
 			return nil, nil
 		}
 		if *pl.ObjectAttributes.Status != "success" && *pl.ObjectAttributes.Status != "failed" {
-			l.Debugf("ignore pipeline event point with ci_status = %s", *pl.ObjectAttributes.Status)
+			l.Debugf("ignore pipeline event with ci_status = %s", *pl.ObjectAttributes.Status)
 			return nil, nil
 		}
 		tags = getPipelineEventTags(pl)
@@ -535,6 +536,7 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*iod.Point, error) 
 		}
 		// We need job event with build status success or failed only.
 		if j.BuildStatus == nil {
+			l.Debugf("ignore job event with empty build_status")
 			return nil, nil
 		}
 		if *j.BuildStatus != "success" && *j.BuildStatus != "failed" {
@@ -599,7 +601,7 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 
 	pts, err := ipt.getPoint(data, event)
 	if err != nil {
-		l.Errorf("fail to make points: %v", err)
+		l.Errorf("get point: %v", err)
 		resp.WriteHeader(http.StatusInternalServerError)
 		ipt.reqMemo.remove(digest)
 		return
