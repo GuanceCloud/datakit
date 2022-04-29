@@ -608,7 +608,7 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		// Skip unwanted events.
 		return
 	}
-	if err := ipt.feed(inputName, datakit.Logging, pts, &iod.Option{}); err != nil {
+	if err := ipt.feed("gitlab_ci", datakit.Logging, pts, &iod.Option{}); err != nil {
 		ipt.feedLastError(inputName, err.Error())
 		resp.WriteHeader(http.StatusInternalServerError)
 		ipt.reqMemo.remove(digest)
