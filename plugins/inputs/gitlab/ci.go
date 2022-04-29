@@ -571,13 +571,14 @@ func (ipt *Input) addExtraTags(tags map[string]string) {
 
 func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	event := req.Header.Get(gitlabEventHeader)
-	// Unrecognized event payloads.
-	// Webhooks that return failure codes in the 4xx range
-	// are understood to be misconfigured, and these are
-	// disabled until you manually re-enable them.
+
 	if event != pipelineHook && event != jobHook {
-		l.Debugf("unrecognized event payload: %s", event)
-		resp.WriteHeader(http.StatusBadRequest)
+		// Webhooks that return failure codes in the 4xx range
+		// are understood to be misconfigured, and these are
+		// disabled until you manually re-enable them.
+		// Here we still return 200 to prevent webhook from disabling,
+		// and log that we receive unrecognized event payload.
+		l.Warnf("receive unrecognized event payload: %s, webhook may be misconfigured", event)
 		return
 	}
 
