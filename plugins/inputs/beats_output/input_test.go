@@ -84,7 +84,7 @@ func TestEventGet(t *testing.T) {
 	cases := []struct {
 		name   string
 		path   string
-		expect string
+		expect interface{}
 	}{
 		{
 			name:   "host.name",
@@ -104,7 +104,7 @@ func TestEventGet(t *testing.T) {
 		{
 			name:   "fields",
 			path:   "fields",
-			expect: "hello world",
+			expect: map[string]interface{}(map[string]interface{}{"logtype": "sshd-log", "product": "beijing", "type": "sshd-log"}),
 		},
 	}
 
