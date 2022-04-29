@@ -76,6 +76,7 @@ var (
 		"sec-checker":              "man/manuals/sec-checker.md",
 		"telegraf":                 "man/manuals/telegraf.md",
 		"why-no-data":              "man/manuals/why-no-data.md",
+		"git-config-how-to":        "man/manuals/git-config-how-to.md",
 	}
 	l = logger.DefaultSLogger("man")
 )
