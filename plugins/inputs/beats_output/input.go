@@ -2,7 +2,6 @@
 package beats_output //nolint:stylecheck
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
@@ -319,14 +318,6 @@ func eventGet(event interface{}, path string) interface{} {
 		}
 	}
 	return doc[elems[len(elems)-1]]
-}
-
-func debugPrettyPrintMap(x map[string]interface{}) string {
-	b, err := json.MarshalIndent(x, "", "  ")
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	return string(b)
 }
 
 //------------------------------------------------------------------------------
