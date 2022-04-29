@@ -59,23 +59,6 @@ type Option struct {
 	Sample      func(points []*Point) []*Point
 }
 
-type lastError struct {
-	from, err string
-	ts        time.Time
-}
-
-func (e *lastError) Error() string {
-	return fmt.Sprintf("%s [%s] %s", e.ts, e.from, e.err)
-}
-
-func NewLastError(from, err string) *lastError {
-	return &lastError{
-		from: from,
-		err:  err,
-		ts:   time.Now(),
-	}
-}
-
 type IO struct {
 	conf *IOConfig
 
@@ -179,23 +162,6 @@ func (x *IO) ioStop() {
 	if err := x.sender.Stop(); err != nil {
 		log.Error(err)
 	}
-}
-
-func (x *IO) updateLastErr(e *lastError) {
-	x.lock.Lock()
-	defer x.lock.Unlock()
-
-	stat, ok := x.inputstats[e.from]
-	if !ok {
-		stat = &InputsStat{
-			First: time.Now(),
-			Last:  time.Now(),
-		}
-		x.inputstats[e.from] = stat
-	}
-
-	stat.LastErr = e.err
-	stat.LastErrTS = e.ts
 }
 
 // updateStats update io input stats with a new groutine, do not block io.
@@ -412,6 +378,23 @@ func (x *IO) StartIO(recoverable bool) {
 	})
 
 	log.Info("starting...")
+}
+
+func (x *IO) updateLastErr(e *lastError) {
+	x.lock.Lock()
+	defer x.lock.Unlock()
+
+	stat, ok := x.inputstats[e.from]
+	if !ok {
+		stat = &InputsStat{
+			First: time.Now(),
+			Last:  time.Now(),
+		}
+		x.inputstats[e.from] = stat
+	}
+
+	stat.LastErr = e.err
+	stat.LastErrTS = e.ts
 }
 
 func (x *IO) flushAll() {

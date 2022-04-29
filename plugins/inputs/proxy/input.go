@@ -16,7 +16,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -67,7 +66,6 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("http proxy input started...")
-	iod.FeedEventLog(&iod.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
 
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.Verbose = false

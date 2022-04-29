@@ -125,7 +125,6 @@ func (n *Input) RunPipeline() {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("apache start")
-	iod.FeedEventLog(&iod.Reporter{Message: "apache start ok, ready for collecting metrics.", Logtype: "event"})
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
 	client, err := n.createHTTPClient()

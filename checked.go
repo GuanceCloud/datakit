@@ -161,5 +161,6 @@ var (
 		"consul":                 true,
 		"prom_remote_write":      true,
 		"pythond":                true,
+		"beats_output":           true,
 	}
 )

@@ -13,7 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -42,6 +41,10 @@ const (
   ## to data center and do not consider samplers and filters.
   # keep_rare_resource = false
 
+  ## By default every error presents in span will be send to data center and omit any filters or
+  ## sampler. If you want to get rid of some error status, you can set the error status list here.
+  # omit_err_status = ["404"]
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -52,13 +55,23 @@ const (
 
   ## Sampler config uses to set global sampling strategy.
   ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
-  ##   -1: always reject any tracing data send to datakit
-  ##    0: accept tracing data and calculate with sampling_rate
-  ##    1: always send to data center and do not consider sampling_rate
+  ##  -1: always reject any tracing data send to datakit
+  ##   0: accept tracing data and calculate with sampling_rate
+  ##   1: always send to data center and do not consider sampling_rate
   ## sampling_rate used to set global sampling rate
   # [inputs.ddtrace.sampler]
     # priority = 0
     # sampling_rate = 1.0
+
+  ## Piplines use to manipulate message and meta data. If this item configured right then
+  ## the current input procedure will run the scripts wrote in pipline config file against the data
+  ## present in span message.
+  ## The string on the left side of the equal sign must be identical to the service name that
+  ## you try to handle.
+  # [inputs.ddtrace.pipelines]
+    # service1 = "service1.p"
+    # service2 = "service2.p"
+    # ...
 
   # [inputs.ddtrace.tags]
     # key1 = "value1"
@@ -75,8 +88,8 @@ var (
 	afterGatherRun     itrace.AfterGatherHandler = afterGather
 	keepRareResource   *itrace.KeepRareResource
 	closeResource      *itrace.CloseResource
-	defSampler         *itrace.Sampler
-	customerKeys       []string
+	sampler            *itrace.Sampler
+	customerKeys       = []string{"runtime-id"}
 	tags               map[string]string
 )
 
@@ -88,8 +101,10 @@ type Input struct {
 	Endpoints        []string            `toml:"endpoints"`
 	CustomerTags     []string            `toml:"customer_tags"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
+	OmitErrStatus    []string            `toml:"omit_err_status"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	Sampler          *itrace.Sampler     `toml:"sampler"`
+	Pipelines        map[string]string   `toml:"pipelines"`
 	Tags             map[string]string   `toml:"tags"`
 }
 
@@ -133,7 +148,6 @@ func (ipt *Input) RegHTTPHandler() {
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
-	dkio.FeedEventLog(&dkio.Reporter{Message: "ddtrace start ok, ready for collecting metrics.", Logtype: "event"})
 
 	// add calculators
 	// afterGather.AppendCalculator(itrace.StatTracingInfo)
@@ -147,6 +161,10 @@ func (ipt *Input) Run() {
 		closeResource.UpdateIgnResList(ipt.CloseResource)
 		afterGather.AppendFilter(closeResource.Close)
 	}
+	// add omit certain error status list
+	if len(ipt.OmitErrStatus) != 0 {
+		afterGather.AppendFilter(itrace.OmitStatusCodeFilterWrapper(ipt.OmitErrStatus))
+	}
 	// add rare resource keeper
 	if ipt.KeepRareResource {
 		keepRareResource = &itrace.KeepRareResource{}
@@ -154,13 +172,24 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
+	log.Debugf("Sampler = %v", ipt.Sampler)
 	if ipt.Sampler != nil {
-		defSampler = ipt.Sampler
-		afterGather.AppendFilter(defSampler.Sample)
+		sampler = ipt.Sampler
+		afterGather.AppendFilter(sampler.Sample)
+	}
+	// add piplines
+	if len(ipt.Pipelines) != 0 {
+		afterGather.AppendFilter(itrace.PiplineFilterWrapper(inputName, ipt.Pipelines))
 	}
 
-	customerKeys = ipt.CustomerTags
+	for i := range ipt.CustomerTags {
+		customerKeys = append(customerKeys, ipt.CustomerTags[i])
+	}
 	tags = ipt.Tags
+}
+
+func (ipt *Input) Terminate() {
+	// TODO: 必须写
 }
 
 func init() { //nolint:gochecknoinits

@@ -4,42 +4,36 @@
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
-## Python Flask 完整示例
+# Tracing Python Applications
 
-这里以 Python 中常用的 Webserver Flask 应用为例。示例中 `SERVICE_A` 提供 HTTP 服务，并且调用 `SERVICE_B` HTTP 服务。
+## 安装依赖库
+
+安装 Python Flask
 
 ```shell
-# 安装 flask 包
 pip install flask
+```
 
-# 安装 ddtrace python 包以及 ddtrace-run 工具
+安装 DDTrace Python 函数库
+
+```shell
 pip install ddtrace
 ```
 
-以下是示例代码。
+**Note**: 这条命令需要 pip 版本 18.0.0 或更高。 对于 Ubuntu, Debian 或其他的包管理工具, 使用下面的命令升级 pip 版本:
+
+```shell
+pip install --upgrade pip
+```
+
+## Python 代码示例
+
+- *service_a.py*
 
 ```python
-# -*- encoding: utf8 -*-
-#--------- service_a.py ----------
-
 from flask import Flask, request
 import requests, os
 from ddtrace import tracer
-
-# 设置服务名
-os.environ["DD_SERVICE"] = "SERVICE_A"
-
-# 设置服务名映射关系
-os.environ["DD_SERVICE_MAPPING"] = "postgres:postgresql,defaultdb:postgresql"
-
-# 通过环境变量设置项目名，环境名，版本号
-os.environ["DD_TAGS"] = "project:your_project_name,env=test,version=v1"
-
-# 配置 DataKit trace API 服务地址
-tracer.configure(
-    hostname = "localhost",  # 视具体 DataKit 地址而定
-    port     = "9529",
-)
 
 app = Flask(__name__)
 
@@ -64,28 +58,12 @@ if __name__ == '__main__':
     app.run(host="0.0.0.0", port=54321, debug=True)
 ```
 
+- *service_b.py*
+
 ```python
-# -*- encoding: utf8 -*-
-
-#--------- service_b.py ----------
-
 from flask import Flask, request
 import os, time, requests
 from ddtrace import tracer
-
-# 设置服务名
-os.environ["DD_SERVICE"] = "SERVICE_B"
-
-# 设置服务名映射关系
-os.environ["DD_SERVICE_MAPPING"] = "postgres:postgresql,defaultdb:postgresql"
-
-# 通过环境变量设置项目名，环境名，版本号
-os.environ["DD_TAGS"] = "project:your_project_name,env=test,version=v1"
-
-tracer.configure(
-    hostname = "localhost",  # 视具体 DataKit 地址而定
-    port="9529",
-)
 
 app = Flask(__name__)
 
@@ -110,43 +88,51 @@ if __name__ == '__main__':
     app.run(host="0.0.0.0", port=54322, debug=True)
 ```
 
-执行以下命令来验证：
+## 用 DDTrace 启动 Python 应用
+
+这里以 Python 中常用的 Webserver Flask 应用为例。示例中 `SERVICE_A` 提供 HTTP 服务，并且调用 `SERVICE_B` HTTP 服务。
+
+运行 SERVICE_A
 
 ```shell
-# 分别后台启动两个服务：
-(ddtrace-run python3 service_a.py &> a.log &)
-(ddtrace-run python3 service_b.py &> b.log &)
+DD_SERVICE=SERVICE_A \
+DD_SERVICE_MAPPING=postgres:postgresql,defaultdb:postgresql \
+DD_TAGS=project:your_project_name,env=test,version=v1 \
+DD_AGENT_HOST=localhost \
+DD_AGENT_PORT=9529 \
+ddtrace-run python3 service_a.py &> a.log &
+```
 
-# 调用 A 服务，促使其调用 B 服务，这样就能产生对应 trace 数据（此处可多次执行触发）
+运行 SERVICE_B
+
+```shell
+DD_SERVICE=SERVICE_B \
+DD_SERVICE_MAPPING=postgres:postgresql,defaultdb:postgresql \
+DD_TAGS=project:your_project_name,env=test,version=v1 \
+DD_AGENT_HOST=localhost \
+DD_AGENT_PORT=9529 \
+ddtrace-run python3 service_b.py &> b.log &
+```
+
+调用 A 服务，促使其调用 B 服务，这样就能产生对应 trace 数据（此处可多次执行触发）
+
+```shell
 curl http://localhost:54321/a
+```
 
-# 分别停止两个服务
+分别停止两个服务
+
+```shell
 curl http://localhost:54321/stop
 curl http://localhost:54322/stop
 ```
 
-可以通过 [DQL](https://www.yuque.com/dataflux/doc/fsnd2r) 验证上报的数据：
+## Environment Variables For Tracing Python Code
 
-```python
-
-> T::SERVICE_A limit
------------------[ 1.SERVICE_A ]-----------------
-parent_id '14606556292855197324'
- resource 'flask.process_response'
- trace_id '3967842463447887098'
-     time 2021-04-28 15:24:11 +0800 CST
-span_type 'exit'
-     type 'custom'
- duration 35
-     host 'testing.server'
-  service 'SERVICE_A'
-   source 'ddtrace'
-  span_id '11450815711192661499'
-    start 1619594651033484
-   status 'ok'
-  __docid 'T_c24gr8edtv6gq5cghnvg'
-  message '{"name":"flask.process_response","service":"SERVICE_A","resource":"flask.process_response","type":"","start":1619594651033484000,"duration":35000,"span_id":11450815711192661499,"trace_id":3967842463447887098,"parent_id":14606556292855197324,"error":0}'
-operation 'flask.process_response'
----------
-1 rows, cost 3ms
-```
+- DD_ENV: 为服务设置环境变量
+- DD_SERVICE: 用于此应用程序的服务名称。 在为 Pylons、Flask 或 Django 等 Web 框架集成设置中间件时，会传递该值。 对于没有 Web 集成的 Tracing，建议您在代码中设置服务名称。
+- DD_SERVICE_MAPPING: 定义服务名映射用于在 Tracing 里重命名服务。
+- DD_VERSION: APP 版本号
+- DD_TAGS: 为每个 Span 添加默认 Tags。
+- DD_AGENT_HOST: Datakit 监听的地址名，默认 localhost。
+- DD_AGENT_PORT: Datakit 监听的端口号，默认 9529。

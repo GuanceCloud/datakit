@@ -1,6 +1,14 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package gitlab
 
 import (
+
+	// nolint:gosec
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
@@ -374,7 +383,7 @@ type Author struct {
 func getJobEventFields(j JobEventPayload) map[string]interface{} {
 	fields := map[string]interface{}{}
 	if j.BuildID != nil {
-		fields["build_id"] = *j.BuildID
+		fields["build_id"] = strconv.FormatInt(*j.BuildID, 10)
 	}
 	if j.BuildStartedAt != nil {
 		fields["build_started_at"] = j.BuildStartedAt.Unix()
@@ -384,18 +393,21 @@ func getJobEventFields(j JobEventPayload) map[string]interface{} {
 	}
 	if j.BuildDuration != nil {
 		fields["build_duration"] = *j.BuildDuration
+	} else {
+		fields["build_duration"] = 0.0
 	}
 	if j.PipelineID != nil {
-		fields["pipeline_id"] = *j.PipelineID
+		fields["pipeline_id"] = strconv.FormatInt(*j.PipelineID, 10)
 	}
 	if j.ProjectID != nil {
-		fields["project_id"] = *j.ProjectID
+		fields["project_id"] = strconv.FormatInt(*j.ProjectID, 10)
 	}
 	if j.Runner != nil && j.Runner.ID != nil {
-		fields["runner_id"] = *j.Runner.ID
+		fields["runner_id"] = strconv.FormatInt(*j.Runner.ID, 10)
 	}
 	if j.Commit != nil && j.Commit.Message != nil {
 		fields["build_commit_message"] = *j.Commit.Message
+		fields["message"] = *j.Commit.Message
 	}
 	return fields
 }
@@ -438,13 +450,16 @@ func getJobEventTags(j JobEventPayload) map[string]string {
 func getPipelineEventFields(pl PipelineEventPayload) map[string]interface{} {
 	fields := map[string]interface{}{}
 	if pl.ObjectAttributes != nil && pl.ObjectAttributes.ID != nil {
-		fields["pipeline_id"] = *pl.ObjectAttributes.ID
+		fields["pipeline_id"] = strconv.FormatInt(*pl.ObjectAttributes.ID, 10)
 	}
 	if pl.ObjectAttributes != nil && pl.ObjectAttributes.Duration != nil {
 		fields["duration"] = *pl.ObjectAttributes.Duration
+	} else {
+		fields["duration"] = int64(0)
 	}
 	if pl.Commit != nil && pl.Commit.Message != nil {
 		fields["commit_message"] = *pl.Commit.Message
+		fields["message"] = *pl.Commit.Message
 	}
 	if pl.ObjectAttributes != nil {
 		if pl.ObjectAttributes.CreatedAt != nil {
@@ -481,7 +496,7 @@ func getPipelineEventTags(pl PipelineEventPayload) map[string]string {
 		tags["repository_url"] = *pl.Project.GitHTTPURL
 	}
 	if pl.ObjectAttributes != nil && pl.ObjectAttributes.Source != nil {
-		tags["source"] = *pl.ObjectAttributes.Source
+		tags["pipeline_source"] = *pl.ObjectAttributes.Source
 	}
 	if pl.ObjectKind != nil {
 		tags["operation_name"] = *pl.ObjectKind
@@ -495,20 +510,24 @@ func getPipelineEventTags(pl PipelineEventPayload) map[string]string {
 	return tags
 }
 
-func getPoints(req *http.Request) ([]*iod.Point, error) {
-	data, err := io.ReadAll(req.Body)
-	if err != nil {
-		return nil, err
-	}
+func (ipt *Input) getPoint(data []byte, eventType string) ([]*iod.Point, error) {
 	var tags map[string]string
 	var fields map[string]interface{}
 	var measurementName string
-	switch req.Header.Get(gitlabEventHeader) {
+	switch eventType {
 	case pipelineHook:
 		measurementName = "gitlab_pipeline"
 		var pl PipelineEventPayload
 		if err := json.Unmarshal(data, &pl); err != nil {
 			return nil, err
+		}
+		// We need pipeline event with ci status success or failed only.
+		if pl.ObjectAttributes == nil || pl.ObjectAttributes.Status == nil {
+			return nil, nil
+		}
+		if *pl.ObjectAttributes.Status != "success" && *pl.ObjectAttributes.Status != "failed" {
+			l.Debugf("ignore pipeline event point with ci_status = %s", *pl.ObjectAttributes.Status)
+			return nil, nil
 		}
 		tags = getPipelineEventTags(pl)
 		fields = getPipelineEventFields(pl)
@@ -519,39 +538,154 @@ func getPoints(req *http.Request) ([]*iod.Point, error) {
 		if err := json.Unmarshal(data, &j); err != nil {
 			return nil, err
 		}
+		// We need job event with build status success or failed only.
+		if j.BuildStatus == nil {
+			return nil, nil
+		}
+		if *j.BuildStatus != "success" && *j.BuildStatus != "failed" {
+			l.Debugf("ignore job event with build_status = '%s'", *j.BuildStatus)
+			return nil, nil
+		}
 		tags = getJobEventTags(j)
 		fields = getJobEventFields(j)
+
 	default:
-		return nil, fmt.Errorf("unrecognized event payload: %v", req.Header.Get(gitlabEventHeader))
+		return nil, fmt.Errorf("unrecognized event payload: %v", eventType)
 	}
-	pt, err := iod.NewPoint(measurementName, tags, fields)
+	ipt.addExtraTags(tags)
+	pt, err := iod.NewPoint(measurementName, tags, fields, &iod.PointOption{
+		Time:     time.Now(),
+		Category: datakit.Logging,
+		Strict:   true,
+	})
 	if err != nil {
 		return nil, err
 	}
 	return []*iod.Point{pt}, nil
 }
 
+func (ipt *Input) addExtraTags(tags map[string]string) {
+	for k, v := range ipt.CIExtraTags {
+		// Existing tags will not be overwritten.
+		if _, has := tags[k]; has {
+			continue
+		}
+		tags[k] = v
+	}
+}
+
 func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	event := req.Header.Get("X-Gitlab-Event")
+	event := req.Header.Get(gitlabEventHeader)
 	// Unrecognized event payloads.
 	// Webhooks that return failure codes in the 4xx range
 	// are understood to be misconfigured, and these are
 	// disabled until you manually re-enable them.
 	if event != pipelineHook && event != jobHook {
+		l.Debugf("unrecognized event payload: %s", event)
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	pts, err := getPoints(req)
+	data, err := io.ReadAll(req.Body)
+	if err != nil {
+		l.Errorf("fail to read from webhook request body: %v", err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	digest := md5.Sum(data) //nolint:gosec
+	if ipt.reqMemo.has(digest) {
+		// Skip duplicated requests.
+		l.Debugf("skip duplicated event with md5 = %v", digest)
+		return
+	}
+	ipt.reqMemo.add(digest)
+
+	pts, err := ipt.getPoint(data, event)
 	if err != nil {
 		l.Errorf("fail to make points: %v", err)
 		resp.WriteHeader(http.StatusInternalServerError)
+		ipt.reqMemo.remove(digest)
 		return
 	}
-	if err := iod.Feed(inputName, datakit.Metric, pts, &iod.Option{}); err != nil {
-		iod.FeedLastError(inputName, err.Error())
+	if pts == nil {
+		// Skip unwanted events.
+		return
+	}
+	if err := ipt.feed(inputName, datakit.Logging, pts, &iod.Option{}); err != nil {
+		ipt.feedLastError(inputName, err.Error())
 		resp.WriteHeader(http.StatusInternalServerError)
+		ipt.reqMemo.remove(digest)
 		return
 	}
-	resp.WriteHeader(http.StatusAccepted)
+}
+
+type requestMemo struct {
+	memoMap     map[[16]byte]time.Time
+	hasReqCh    chan hasRequest
+	addReqCh    chan [16]byte
+	removeReqCh chan [16]byte
+	semStop     *cliutils.Sem
+}
+
+type hasRequest struct {
+	digest [16]byte
+	respCh chan bool
+}
+
+func (m *requestMemo) has(digest [16]byte) bool {
+	r := hasRequest{
+		digest: digest,
+		respCh: make(chan bool, 1),
+	}
+	m.hasReqCh <- r
+	return <-r.respCh
+}
+
+func (m *requestMemo) add(digest [16]byte) {
+	m.addReqCh <- digest
+}
+
+func (m *requestMemo) remove(digest [16]byte) {
+	m.removeReqCh <- digest
+}
+
+// memoHouseKeeper is in charge of maintaining a memo of requests' md5 sums.
+// Saving requests' md5 sums is to prevent sending duplicated points to datakit io.
+// Each md5 sum will be expired in du, then they will be removed from memory.
+// memoHouseKeeper will traverse memoMap and remove expired md5 sums every du seconds.
+func (m *requestMemo) memoHouseKeeper(du time.Duration) {
+	// Clear expired md5 sums every du seconds.
+	ticker := time.NewTicker(du)
+
+	for {
+		select {
+		case <-ticker.C:
+			for k, v := range m.memoMap {
+				if time.Since(v) > du {
+					delete(m.memoMap, k)
+				}
+			}
+
+		case r := <-m.hasReqCh:
+			_, has := m.memoMap[r.digest]
+			r.respCh <- has
+
+		case r := <-m.addReqCh:
+			l.Debugf("md5 = %v is added to memo", r)
+			m.memoMap[r] = time.Now()
+
+		case r := <-m.removeReqCh:
+			l.Debugf("md5 = %v is removed from memo", r)
+			delete(m.memoMap, r)
+
+		case <-datakit.Exit.Wait():
+			l.Debugf("memoHouseKeeper exited")
+			return
+
+		case <-m.semStop.Wait():
+			l.Debugf("memoHouseKeeper exited")
+			return
+		}
+	}
 }

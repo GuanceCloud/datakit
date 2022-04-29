@@ -20,7 +20,7 @@ const (
 	PipelineMessageField  = "message"
 	PipelineStatusField   = "status"
 	PipelineMSource       = "source"
-	DefaultPipelineStatus = "info"
+	DefaultPipelineStatus = "unknown"
 	// ES value can be at most 32766 bytes long.
 	maxFieldsLength = 32766
 )

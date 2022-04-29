@@ -35,6 +35,7 @@ PATH_EXCLUSION_REGEX = [
     '/plugins/inputs/skywalking/v3',
     '/internal/win_utils/pdh',
     '/internal/msgpack',
+    '/internal/obfuscate',
     '/.git/',
     '/git/',
 ]

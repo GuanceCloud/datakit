@@ -176,10 +176,7 @@ func Compile() error {
 		}
 
 		goos, goarch := parts[0], parts[1]
-		if goos == datakit.OSDarwin && runtime.GOOS != datakit.OSDarwin {
-			l.Warnf("skip build datakit under %s", arch)
-			continue
-		}
+
 		dir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, AppName, goos, goarch)
 
 		err := os.MkdirAll(dir, os.ModePerm)
@@ -222,8 +219,9 @@ func compileArch(bin, goos, goarch, dir string) error {
 	if goos == datakit.OSWindows {
 		output += winBinSuffix
 	}
+
 	cgoEnabled := "0"
-	if goos == datakit.OSDarwin {
+	if goos == datakit.OSDarwin && runtime.GOOS == datakit.OSDarwin { // darwin version need CGO to build inputs CPU
 		cgoEnabled = "1"
 	}
 

@@ -119,7 +119,6 @@ func run() {
 		if err := doRun(); err != nil {
 			return
 		}
-		io.FeedEventLog(&io.Reporter{Message: "datakit start ok, ready for collecting metrics."})
 
 	case datakit.ModeDev:
 		startDKHttp()
@@ -230,7 +229,7 @@ func doRun() error {
 			return err
 		}
 	} else {
-		if err := inputs.RunInputs(false); err != nil {
+		if err := inputs.RunInputs(); err != nil {
 			l.Error("error running inputs: %v", err)
 			return err
 		}

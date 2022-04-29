@@ -7,6 +7,7 @@ package container
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -47,61 +48,67 @@ func newKubernetesInput(cfg *kubernetesInputConfig) (*kubernetesInput, error) {
 	return k, nil
 }
 
-var resourceList = []string{
-	"cluster",
-	"cronjob",
-	"deployment",
-	"job",
-	"node",
-	"pod",
-	"replica_set",
-	"service",
+type inputsMeas []inputs.Measurement
+
+func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
+	var (
+		res     inputsMeas
+		counts  = make(map[string]map[string]int)
+		lastErr error
+	)
+
+	for _, fn := range k8sResourceMetricList {
+		x := fn(k.client, k.cfg.extraTags)
+		if m, err := x.metric(); err == nil {
+			res = append(res, m...)
+		} else {
+			lastErr = err
+		}
+
+		nsCount, err := x.count()
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		for ns, count := range nsCount {
+			if c := counts[ns]; c == nil {
+				counts[ns] = make(map[string]int)
+			}
+			counts[ns][x.name()] = count
+		}
+	}
+
+	for ns, ct := range counts {
+		count := &count{
+			tags:   map[string]string{"namespace": ns},
+			fields: map[string]interface{}{},
+			time:   time.Now(),
+		}
+		for name, n := range ct {
+			count.fields[name] = n
+		}
+		res = append(res, count)
+	}
+
+	return res, lastErr
 }
 
-func (k *kubernetesInput) gather() (metrics, objects []inputs.Measurement, lastErr error) {
-	resourceCount := make(map[string]map[string]int)
+func (k *kubernetesInput) gatherResourceObject() (inputsMeas, error) {
+	var (
+		res     inputsMeas
+		lastErr error
+	)
 
-	must := func(res k8sResourceStats, err error) k8sResourceStats {
-		lastErr = err
-		return res
-	}
-
-	wrapper := func(name string, res k8sResourceStats) {
-		for namespace, v := range res {
-			if x := resourceCount[namespace]; x == nil {
-				resourceCount[namespace] = make(map[string]int)
-			}
-			resourceCount[namespace][name] += len(v)
-			objects = append(objects, v...)
+	for _, fn := range k8sResourceObjectList {
+		x := fn(k.client, k.cfg.extraTags)
+		if m, err := x.object(); err == nil {
+			res = append(res, m...)
+		} else {
+			lastErr = err
 		}
 	}
 
-	wrapper("cluster", must(gatherCluster(k.client, k.cfg.extraTags)))
-	wrapper("cronjob", must(gatherCronJob(k.client, k.cfg.extraTags)))
-	wrapper("deployment", must(gatherDeployment(k.client, k.cfg.extraTags)))
-	wrapper("job", must(gatherJob(k.client, k.cfg.extraTags)))
-	wrapper("node", must(gatherNode(k.client, k.cfg.extraTags)))
-	wrapper("pod", must(gatherPod(k.client, k.cfg.extraTags)))
-	wrapper("replica_set", must(gatherReplicaSet(k.client, k.cfg.extraTags)))
-	wrapper("service", must(gatherService(k.client, k.cfg.extraTags)))
-
-	for namespace, resource := range resourceCount {
-		c := newCount()
-		c.tags["namespace"] = namespace
-		for name, elem := range resource {
-			c.fields[name] = elem
-		}
-
-		for _, r := range resourceList {
-			if _, ok := c.fields[r]; !ok {
-				c.fields[r] = 0
-			}
-		}
-
-		c.time = time.Now()
-		metrics = append(metrics, c)
-	}
-	return //nolint:nakedret
+	return res, lastErr
 }
 
 func (k *kubernetesInput) gatherPodMetrics() ([]inputs.Measurement, error) {
@@ -115,43 +122,45 @@ func (k *kubernetesInput) watchingEventLog(stop <-chan interface{}) {
 	watchingEvent(k.client, k.cfg.extraTags, stop)
 }
 
+type k8sResourceMetricInterface interface {
+	name() string
+	metric() (inputsMeas, error)
+	count() (map[string]int, error)
+}
+
+type k8sResourceObjectInterface interface {
+	name() string
+	object() (inputsMeas, error)
+}
+
 type count struct {
 	tags   tagsType
 	fields fieldsType
 	time   time.Time
 }
 
-func newCount() *count {
-	return &count{
-		tags:   make(tagsType),
-		fields: make(fieldsType),
-	}
-}
-
-const kubernetesMetricName = "kubernetes"
-
 func (c *count) LineProto() (*io.Point, error) {
-	return io.NewPoint(kubernetesMetricName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Metric})
+	return io.NewPoint("kubernetes", c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Metric})
 }
 
 //nolint:lll
 func (*count) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: kubernetesMetricName,
+		Name: "kubernetes",
 		Desc: "Kubernetes count 指标数据",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"namespace": &inputs.TagInfo{Desc: "namespace"},
 		},
 		Fields: map[string]interface{}{
-			"cluster":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "RBAC cluster role count(**Deprecated: this field should named with cluster_role, it's a typo**)"},
-			"deployment":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "deployment count"},
-			"node":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "node count"},
-			"pod":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "pod count"},
-			"cronjob":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "cronjob count"},
-			"job":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "job count"},
-			"service":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "service count"},
-			"replica_set": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "replica_set count"},
+			"cluster_role": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "RBAC cluster role count"},
+			"deployment":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "deployment count"},
+			"node":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "node count"},
+			"pod":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "pod count"},
+			"cronjob":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "cronjob count"},
+			"job":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "job count"},
+			"service":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "service count"},
+			"replica_set":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "replica_set count"},
 		},
 	}
 }
@@ -161,6 +170,34 @@ func defaultNamespace(ns string) string {
 		return "default"
 	}
 	return ns
+}
+
+func defaultClusterName(name string) string {
+	if name != "" {
+		return name
+	}
+	if e := os.Getenv("ENV_K8S_CLUSTER_NAME"); e != "" {
+		return e
+	}
+	return "kubernetes"
+}
+
+type (
+	newK8sResourceMetricHandle func(k8sClientX, map[string]string) k8sResourceMetricInterface
+	newK8sResourceObjectHandle func(k8sClientX, map[string]string) k8sResourceObjectInterface
+)
+
+var (
+	k8sResourceMetricList []newK8sResourceMetricHandle
+	k8sResourceObjectList []newK8sResourceObjectHandle
+)
+
+func registerK8sResourceMetric(newfn newK8sResourceMetricHandle) {
+	k8sResourceMetricList = append(k8sResourceMetricList, newfn)
+}
+
+func registerK8sResourceObject(newfn newK8sResourceObjectHandle) {
+	k8sResourceObjectList = append(k8sResourceObjectList, newfn)
 }
 
 //nolint:gochecknoinits

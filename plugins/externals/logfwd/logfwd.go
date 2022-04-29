@@ -150,7 +150,6 @@ func startTailing(lg *logging, fn tailer.ForwardFunc, stop <-chan struct{}) {
 		MultilineMatch:        lg.MultilineMatch,
 		RemoveAnsiEscapeCodes: lg.RemoveAnsiEscapeCodes,
 		ForwardFunc:           fn,
-		DisableSendEvent:      true,
 	}
 
 	tailer, err := tailer.NewTailer(lg.LogFiles, opt, lg.Ignore)

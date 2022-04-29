@@ -143,7 +143,7 @@ func TestRunAsTask(t *testing.T) {
 				},
 				fields: map[string]interface{}{
 					"message": `{"time":"02/Dec/2021:11:55:34 +0800", "source": "bb"}`,
-					"status":  "info",
+					"status":  "unknown",
 				},
 				ts: time.Unix(1638417334, 0),
 			},
@@ -156,7 +156,7 @@ func TestRunAsTask(t *testing.T) {
 				},
 				fields: map[string]interface{}{
 					"message": `{"time":"02/Dec/2021:11:55:35 +0800"}`,
-					"status":  "info",
+					"status":  "unknown",
 				},
 				ts: time.Unix(1638417335, 0),
 			},
@@ -169,7 +169,7 @@ func TestRunAsTask(t *testing.T) {
 				},
 				fields: map[string]interface{}{
 					"message": `{"time":"02/Dec/2021:11:55:36 +0800"}`,
-					"status":  "info",
+					"status":  "unknown",
 				},
 				ts: time.Unix(1638417336, 0),
 			},
@@ -373,7 +373,7 @@ func TestWorker(t *testing.T) {
 				},
 				fields: map[string]interface{}{
 					"message": `{"time":"02/Dec/2021:11:55:34 +0800"}`,
-					"status":  "info",
+					"status":  "unknown",
 					"f1":      int64(1),
 					"f2":      "1",
 					"f3":      1.,
@@ -389,7 +389,7 @@ func TestWorker(t *testing.T) {
 				},
 				fields: map[string]interface{}{
 					"message": `{"time":"02/Dec/2021:11:55:34 +0800"}`,
-					"status":  "info",
+					"status":  "unknown",
 				},
 				ts: time.Unix(1638417334, 0),
 			},
@@ -400,7 +400,7 @@ func TestWorker(t *testing.T) {
 				},
 				fields: map[string]interface{}{
 					"message": `{"time":"02/Dec/2021:11:55:35 +0800"}`,
-					"status":  "info",
+					"status":  "unknown",
 				},
 				ts: time.Unix(1638417335, 0),
 			},
@@ -435,7 +435,7 @@ func TestWorker(t *testing.T) {
 				},
 				fields: map[string]interface{}{
 					"message": `{"timex":"02/Dec/2021:11:55:34 +0800"}`,
-					"status":  "info",
+					"status":  "unknown",
 				},
 				ts: ts.Add(time.Nanosecond * -2),
 			},
@@ -445,7 +445,7 @@ func TestWorker(t *testing.T) {
 				},
 				fields: map[string]interface{}{
 					"message": `{"timex":"02/Dec/2021:11:55:35 +0800"}`,
-					"status":  "info",
+					"status":  "unknown",
 				},
 				ts: ts.Add(time.Nanosecond * -1),
 			},
