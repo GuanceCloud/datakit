@@ -154,13 +154,19 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
+	log.Debugf("Sampler = %v", ipt.Sampler)
 	if ipt.Sampler != nil {
+		log.Debugf("SamplingRateGlobal = %v", ipt.Sampler.SamplingRateGlobal)
 		defSampler = ipt.Sampler
 		afterGather.AppendFilter(defSampler.Sample)
 	}
 
 	customerKeys = ipt.CustomerTags
 	tags = ipt.Tags
+}
+
+func (ipt *Input) Terminate() {
+	// TODO: 必须写
 }
 
 func init() { //nolint:gochecknoinits
