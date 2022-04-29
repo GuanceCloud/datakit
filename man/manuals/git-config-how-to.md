@@ -95,7 +95,7 @@ $ git push origin master                 # 提交改动到远程仓库
 第 2 步: 配置完成后，重启 datakit 即可。
 
 ```shell
-$ sudo datakit --restart
+$ sudo datakit service -R
 ```
 
 第 3 步: 观察 Git 是否已拉取更新并加载配置。
@@ -103,7 +103,7 @@ $ sudo datakit --restart
 可以通过观察新增/修改的采集器是否生效:
 
 ```shell
-$ sudo datakit -M --vvv
+$ sudo datakit monitor -V
 ```
 
 ## 更新 Git 仓库, 演示一下 dk 拉取到了新的 conf 并生效
@@ -128,10 +128,10 @@ git 验证方式采用用户名和密码方式。
 
 在 Kubernates 里面安装的时候需要设置如下的环境变量，把 Git 配置信息带进去:
 
-|  环境变量名   | 环境变量值  |
-|  ----  | ----  |
-| ENV_GIT_URL  | `http://username:password@github.com/path/to/repository.git` |
-| ENV_GIT_BRANCH  | `master` |
-| ENV_GIT_INTERVAL  | `1m` |
+| 环境变量名       | 环境变量值                                                   |
+| ----             | ----                                                         |
+| ENV_GIT_URL      | `http://username:password@github.com/path/to/repository.git` |
+| ENV_GIT_BRANCH   | `master`                                                     |
+| ENV_GIT_INTERVAL | `1m`                                                         |
 
 更多关于 Datakit 的 Kubernates 环境下面的配置可以参见[这个文档](https://www.yuque.com/dataflux/datakit/k8s-config-how-to#40747310)。
