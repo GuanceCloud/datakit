@@ -13,15 +13,18 @@ const (
 
 	sampleConfig = `
 [[inputs.host_processes]]
-  ## process name support regexp
-  # process_name = [".*datakit.*"]
+  # Only collect these matched process' metrics. For process objects
+  # these white list not applied. Process name support regexp.
+  # process_name = [".*nginx.*", ".*mysql.*"]
 
-  ## process min run time default 10m,Collection  the process of running more than ten minutes
-  min_run_time     = "10m"
+  # Process minimal run time(default 10m)
+  # If process running time less than the setting, we ignore it(both for metric and object)
+  min_run_time = "10m"
 
-  ## open collection metric
+  ## Enable process metric collecting
   open_metric = false
 
+  # Extra tags
   [inputs.host_processes.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
