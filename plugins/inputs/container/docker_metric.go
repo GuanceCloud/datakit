@@ -205,7 +205,7 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 			"container_id":     inputs.NewTagInfo(`容器 ID`),
 			"container_name":   inputs.NewTagInfo(`容器名称`),
 			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
-			"namespace":        inputs.NewTagInfo(`该容器所在的命名空间`),
+			"namespace":        inputs.NewTagInfo(`该容器所在的 [linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html)`),
 			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
 			"image_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
 			"image_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),
@@ -213,7 +213,7 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 			"container_type":   inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker/containerd`),
 			"state":            inputs.NewTagInfo(`运行状态，running（containerd 缺少此字段）`),
 			"pod_name":         inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"pod_namespace":    inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
+			"pod_namespace":    inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'pod_namespace'）`),
 			"deployment":       inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在，containerd 缺少此字段）`),
 		},
 		Fields: map[string]interface{}{

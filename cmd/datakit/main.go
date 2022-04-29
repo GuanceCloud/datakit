@@ -230,7 +230,7 @@ func doRun() error {
 			return err
 		}
 	} else {
-		if err := inputs.RunInputs(false); err != nil {
+		if err := inputs.RunInputs(); err != nil {
 			l.Error("error running inputs: %v", err)
 			return err
 		}

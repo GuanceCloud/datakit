@@ -8,6 +8,7 @@ package inputs
 
 import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/apache"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/beats_output"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/clickhousev1"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cloudprober"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/consul"

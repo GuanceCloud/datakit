@@ -301,9 +301,9 @@ func reloadCore(ctx context.Context) (int, error) {
 			case 3:
 				l.Info("before set pipelines")
 
-				allGitReposPipelines, err := config.GetNamespacePipelineFiles(datakit.GitReposRepoFullPath)
+				allGitReposPipelines, err := config.GetNamespacePipelineFiles(datakit.StrGitRepos)
 				if err != nil {
-					l.Infof("GetNamespacePipelineFiles failed: %v", err)
+					l.Warnf("GetNamespacePipelineFiles failed: %v", err)
 				} else {
 					scriptstore.ReloadAllGitReposDotPScript2Store(allGitReposPipelines)
 				}
@@ -311,7 +311,8 @@ func reloadCore(ctx context.Context) (int, error) {
 			case 4:
 				l.Info("before RunInputs")
 
-				if err := inputs.RunInputs(true); err != nil {
+				httpd.CleanHTTPHandler()
+				if err := inputs.RunInputs(); err != nil {
 					l.Errorf("RunInputs failed: %v", err)
 					return round, err
 				}
@@ -320,22 +321,14 @@ func reloadCore(ctx context.Context) (int, error) {
 				l.Info("before ReloadTheNormalServer")
 
 				httpd.ReloadTheNormalServer()
-
-			case 6:
-				l.Info("before RunInputExtra")
-
-				if err := inputs.RunInputExtra(); err != nil {
-					l.Errorf("RunInputExtra failed: %v", err)
-					return round, err
-				}
-			}
-		}
+			} // switch round
+		} // select
 
 		round++
 		if round > 6 {
 			return round, nil // round + 1
-		}
-	}
+		} // if round
+	} // for
 }
 
 func getGitClonePathFromGitURL(gitURL string) (string, error) {
