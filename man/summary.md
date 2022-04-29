@@ -4,6 +4,7 @@
   - [如何配置 DataKit]()
     - [DataKit 主配置](datakit-conf)
     - [采集器配置](datakit-input-conf)
+    - [如何通过 Git 来管理 DataKit 的配置](git-config-how-to)
   - [DataKit 日常使用]()
     - [通过 DQL 查询数据](datakit-dql-how-to)
     - [查看 DataKit Monitor](datakit-monitor)
