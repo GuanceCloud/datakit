@@ -2,6 +2,7 @@
 package beats_output //nolint:stylecheck
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
@@ -159,6 +160,12 @@ func (ipt *Input) Run() {
 			// message
 			var pending []*DataStruct
 			for _, v := range batch.Events {
+				// debug print
+				dbg, ok := v.(map[string]interface{})
+				if ok {
+					l.Debug(debugPrettyPrintMap(dbg))
+				}
+
 				dataPiece := &DataStruct{
 					HostName:    eventGet(v, "host.name").(string),
 					LogFilePath: eventGet(v, "log.file.path").(string),
@@ -311,6 +318,14 @@ func eventGet(event interface{}, path string) interface{} {
 		}
 	}
 	return doc[elems[len(elems)-1]]
+}
+
+func debugPrettyPrintMap(x map[string]interface{}) string {
+	b, err := json.MarshalIndent(x, "", "  ")
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	return string(b)
 }
 
 //------------------------------------------------------------------------------
