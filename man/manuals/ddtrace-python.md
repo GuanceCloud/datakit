@@ -4,9 +4,9 @@
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
-# Tracing Python Applications
+# Tracing Python Application
 
-## 安装依赖库
+## Install Libarary & Dependence
 
 安装 Python Flask
 
@@ -26,9 +26,9 @@ pip install ddtrace
 pip install --upgrade pip
 ```
 
-## Python 代码示例
+## Python Code Example
 
-- *service_a.py*
+**service_a.py**
 
 ```python
 from flask import Flask, request
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     app.run(host="0.0.0.0", port=54321, debug=True)
 ```
 
-- *service_b.py*
+**service_b.py**
 
 ```python
 from flask import Flask, request
@@ -88,11 +88,11 @@ if __name__ == '__main__':
     app.run(host="0.0.0.0", port=54322, debug=True)
 ```
 
-## 用 DDTrace 启动 Python 应用
+## Run Python Code With DDTrace
 
 这里以 Python 中常用的 Webserver Flask 应用为例。示例中 `SERVICE_A` 提供 HTTP 服务，并且调用 `SERVICE_B` HTTP 服务。
 
-运行 SERVICE_A
+**运行 SERVICE_A**
 
 ```shell
 DD_SERVICE=SERVICE_A \
@@ -103,7 +103,7 @@ DD_AGENT_PORT=9529 \
 ddtrace-run python3 service_a.py &> a.log &
 ```
 
-运行 SERVICE_B
+**运行 SERVICE_B**
 
 ```shell
 DD_SERVICE=SERVICE_B \
@@ -129,10 +129,10 @@ curl http://localhost:54322/stop
 
 ## Environment Variables For Tracing Python Code
 
-- DD_ENV: 为服务设置环境变量
+- DD_ENV: 为服务设置环境变量。
+- DD_VERSION: APP 版本号。
 - DD_SERVICE: 用于此应用程序的服务名称。 在为 Pylons、Flask 或 Django 等 Web 框架集成设置中间件时，会传递该值。 对于没有 Web 集成的 Tracing，建议您在代码中设置服务名称。
 - DD_SERVICE_MAPPING: 定义服务名映射用于在 Tracing 里重命名服务。
-- DD_VERSION: APP 版本号
 - DD_TAGS: 为每个 Span 添加默认 Tags。
 - DD_AGENT_HOST: Datakit 监听的地址名，默认 localhost。
 - DD_AGENT_PORT: Datakit 监听的端口号，默认 9529。
