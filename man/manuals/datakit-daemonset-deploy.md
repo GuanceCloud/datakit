@@ -24,10 +24,13 @@
 #### 添加 DataKit Helm 仓库
 
 ```shell 
-$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit-ce
+# 社区版
+$ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit-ce
+
+# 商业版
+$ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit
 $ helm repo update 
 ```
-
 
 #### Helm 安装 Datakit
 
