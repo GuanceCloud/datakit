@@ -32,19 +32,15 @@ case $branch_name in
 			git tag -f $new_tag  &&
 
 			if [[ "$OSTYPE" == "darwin"* ]]; then # Release darwin version first
-				make release_mac     &&
-				make pub_release_mac &&
+				make production_mac VERSION=$new_tag &&
 				echo "[I] darwin prod release ok"
 			fi
-
-			# Trigger CI to release other platforms
-			git push -f --tags   &&
-			git push
 		fi
 		;;
 
 	"github-mirror") echo "release to github"
 		git push github github-mirror
+		git push github github-mirror --tags
 		;;
 
 	*) echo "[E] unsupported branch '$branch_name' for release, exited"

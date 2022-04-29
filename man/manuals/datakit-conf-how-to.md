@@ -4,6 +4,11 @@
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
+> 本文档已经被废弃，其内容被分割到如下两个文档：
+> 
+> - [DataKit 主配置](datakit-conf)
+> - [采集器配置](datakit-input-conf)
+
 # 配置文件
 
 DataKit 的配置均使用 [Toml 文件](https://toml.io/cn)。在 DataKit 中，配置文件分为两类，其一是 DataKit 主配置，一般情况下，无需修改；另一种为具体的采集器配置，在日常使用过程中，我们可能经常需要对其进行修改。
@@ -35,7 +40,7 @@ DataKit 安装完成后，默认会开启一批采集器，这些采集器一般
 | [`net`](net)                       | 采集主机网络流量情况                           |
 | [`host_processes`](host_processes) | 采集主机上常驻（存活 10min 以上）进程列表      |
 | [`hostobject`](hostobject)         | 采集主机基础信息（如操作系统信息、硬件信息等） |
-| [`container`](container)           | 采集主机上可能的容器对象以及容器日志           |
+| [`container`](container)           | 采集主机上可能的容器或 Kubernetes 数据         |
 
 ## 采集器配置文件
 
@@ -154,10 +159,12 @@ DataKit 安装完成后，默认会开启一批采集器，这些采集器一般
 以下涉及 DataKit 主配置的修改，均需重启 DataKit：
 
 ```shell
-sudo datakit --restart
+sudo datakit service -R
 ```
 
-### HTTP 绑定端口
+### HTTP 设定
+
+#### HTTP 端口绑定
 
 出于安全考虑，DataKit 的 HTTP 服务默认绑定在 `localhost:9529` 上，如果希望从外部访问 DataKit API，需编辑 `conf.d/datakit.conf` 中的 `listen` 字段，这样就能从其它主机上请求 DataKit 接口了：
 
@@ -172,6 +179,17 @@ sudo datakit --restart
 - [远程查看 DataKit 文档](http://localhost:9529/man)
 - [RUM 采集](rum)
 - 其它诸如 [APM](ddtrace)/[安全巡检](sec-checker) 等，看具体的部署情况，可能也需要修改 `listen` 配置
+
+#### HTTP API 限流
+
+为保证 DataKit 能较为平稳的在服务器上运行，对于其一些打数据的接口，提供了简单的限流功能（默认不开启限流）：
+
+```toml
+[http_api]
+  request_rate_limit = 1000.0 # 每秒只能处理 1000 个请求
+```
+
+该设定影响所有的[数据上传接口](apis#f53903a9)、[HTTP 远程日志上报](logstreaming) 以及一系列 Tracing 采集器，对于被限流的 API 请求，客户端将收到 429 的 HTTP Code。
 
 ### 全局标签（tag）的开启
 
@@ -231,7 +249,7 @@ gin.log 也会按照同样的方式自动切割。
 
 ### DataKit 限制运行资源
 
-通过 cgourp 限制 DataKit 运行资源（例如 CPU 使用率等），仅支持 Linux 操作系统。
+通过 cgourp 限制 DataKit 运行资源（例如 CPU 使用率等），==仅支持 Linux 操作系统==。
 
 进入 DataKit 安装目录下的 `conf.d` 目录，修改 `datakit.conf` 配置文件，将 `enable` 设置为 `true`，示例如下：
 
@@ -263,9 +281,9 @@ DataKit 会持续以当前 CPU 使用率为基准，动态调整自身能使用�
 
 ### 手动配置 Git 管理
 
-Datakit 支持使用 git 来管理采集器配置以及 Pipeline。示例如下：
+Datakit 支持使用 git 来管理采集器配置、Pipeline 以及 Python 脚本。在 *datakit.conf* 中，找到 *git_repos* 位置，编辑如下内容：
 
-```conf
+```toml
 [git_repos]
   pull_interval = "1m" # 同步配置间隔，即 1 分钟同步一次
 
@@ -286,38 +304,24 @@ Datakit 支持使用 git 来管理采集器配置以及 Pipeline。示例如下�
     branch = "master" # 指定 git branch
 ```
 
-注意：开启 Git 同步后，原 `conf.d` 目录下的采集器配置将不再生效（但 datakit.conf 继续生效）。DataKit 随带的 pipeline 依然有效。
+注意：开启 Git 同步后，原 `conf.d` 目录下的采集器配置将不再生效（*datakit.conf* 除外）。
 
-#### 应用 Git 管理的 Pipeline
+#### 应用 Git 管理的 Pipeline 示例
 
-我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用。
-
-当使用 DataKit 自带的 Pipeline 时，支持 2 种路径方式，一种是绝对路径（完整路径），一种是纯文件名（含扩展名 `.p`）。
-
-- 绝对路径
+我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，**DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用**。在 [Nginx 采集器](nginx)的配置中，一个 pipeline 的配置示例：
 
 ```toml
 [[inputs.nginx]]
     ...
     [inputs.nginx.log]
     ...
-    pipeline = "/user/pipelines/nginx.p" # 对应加载 /user/pipelines/nginx.p 文件
-```
-
-
-- 纯文件名路径
-
-```toml
-[[inputs.nginx]]
-    ...
-    [inputs.nginx.log]
-    ...
-    pipeline = "nginx.p" # 具体加载哪看下面的 "约束" 说明
+    pipeline = "my-nginx.p" # 具体加载哪里的 my-nginx.p，参见下面的 「约束」 说明
 ```
 
 ### Git 管理的使用约束
 
-在 git repo 使用过程必须遵循以下约束:
+在 Git 使用过程必须遵循以下约束:
+
 - git repo 里面新建 `conf.d` 文件夹，下面放 DataKit 采集器配置
 - git repo 里面新建 `pipeline` 文件夹，下面放置 Pipeline 文件
 - git repo 里面新建 `python.d` 文件夹，下面放置 Python 脚本文件
@@ -333,10 +337,10 @@ datakit 根目录
 ├── externals
 └── gitrepos
     ├── repo-1  # 仓库 1
-    │   ├── conf.d    # conf.d 专门存放采集器配置
-    │   ├── pipeline
-    │   │   └── nginx.p # 合法的 Pipeline 脚本
-    │   │   └── 123     # 不合法的 Pipeline 目录，其下文件也不会生效
+    │   ├── conf.d    # 专门存放采集器配置
+    │   ├── pipeline  # 专门存放 pipeline 切割脚本
+    │   │   └── my-nginx.p # 合法的 pipeline 脚本
+    │   │   └── 123     # 不合法的 Pipeline 子目录，其下文件也不会生效
     │   │       └── some-invalid.p
     │   └── python.d    存放 python.d 脚本
     │       └── core
@@ -344,7 +348,22 @@ datakit 根目录
         ├── ...
 ```
 
-如果 pipeline 和 pythond.conf 中填写的是 "纯文件名路径"，则查找优先级统一如下:
+查找优先级定义如下:
 
-1. 按 datakit.conf 里面的 `git_repos -> git_repos.repo` 配置逐个查找指定文件名，若找到，返回第一个;
-2. 在上面找不到的情况下，使用 `<Datakit 安装目录>/pipeline` 或者 `<Datakit 安装目录>/python.d` 再次进行查找，返回第一个;
+1. 按 *datakit.conf* 中配置的 *git_repos* 次序（它是一个数组，可配置多个 Git 仓库），逐个查找指定文件名，若找到，返回第一个。比如查找 *my-nginx.p*，如果在第一个仓库目录的 *pipeline* 下找到，则以该找到的为准，**即使第二个仓库中也有同名的 *my-nginx.p*，也不会选择它**。
+
+2. 在 *git_repos* 中找不到的情况下，则去 *<Datakit 安装目录>/pipeline* 目录查找 Pipeline 脚本，或者去 *<Datakit 安装目录>/python.d* 目录查找 Python 脚本。
+
+## 正确使用正则表达式来配置
+
+由于 DataKit 绝大部分使用 Golang 开发，故涉及配置部分中所使用的正则通配，也是使用 Golang 自身的正则实现。由于不同语言的正则体系有一些差异，导致难以一次性正确的将配置写好。
+
+这里推荐一个[在线工具来调试我们的正则通配](https://regex101.com/)。如下图所示：
+
+![](https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/images/datakit/debug-golang-regexp.png)
+
+另外，由于 DataKit 中的配置均使用 Toml，故建议大家使用 `'''这里是一个具体的正则表达式'''` 的方式来填写正则（即正则俩边分别用三个英文单引号），这样可以避免一些复杂的转义。
+
+## 延伸阅读
+
+- [Kubernetes 环境下的 DataKit 配置](k8s-config-how-to)

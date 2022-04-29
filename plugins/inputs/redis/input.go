@@ -261,7 +261,6 @@ func (i *Input) RunPipeline() {
 
 func (i *Input) Run() {
 	l = logger.SLogger("redis")
-	io.FeedEventLog(&io.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
 
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
@@ -398,7 +397,7 @@ func init() { //nolint:gochecknoinits
 			Timeout: "10s",
 			pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
 			DB:      -1,
-
+			Tags:    make(map[string]string),
 			semStop: cliutils.NewSem(),
 		}
 	})

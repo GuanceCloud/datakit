@@ -15,6 +15,44 @@ func TestExprConditions(t *testing.T) {
 		pass   bool
 	}{
 		{
+			in:     "{ abc notmatch []}",
+			fields: map[string]interface{}{"abc": "abc123"},
+			pass:   false,
+		},
+
+		{
+			in:     "{ abc match ['g(-z]+ng wrong regex']} # invalid regexp",
+			fields: map[string]interface{}{"abc": "abc123"},
+			pass:   false,
+		},
+
+		{
+			in:     "{ abc match ['a.*']}",
+			fields: map[string]interface{}{"abc": "abc123"},
+			pass:   true,
+		},
+
+		{
+			in:     "{ abc match ['a.*']}",
+			fields: map[string]interface{}{"abc": "abc123"},
+			pass:   true,
+		},
+
+		{
+			in:     "{ source = re(`.*`) and (abc match ['a.*'])}",
+			fields: map[string]interface{}{"abc": "abc123"},
+			tags:   map[string]string{"source": "12345"},
+			pass:   true,
+		},
+
+		{
+			in:     "{ abc notmatch ['a.*'] or xyz match ['.*']}",
+			fields: map[string]interface{}{"abc": "abc123"},
+			tags:   map[string]string{"xyz": "def"},
+			pass:   true,
+		},
+
+		{
 			in:     "{abc notin [1.1,1.2,1.3] and (a > 1 || c< 0)}",
 			fields: map[string]interface{}{"abc": int64(4), "a": int64(-1), "c": int64(-2)},
 			pass:   true,
@@ -76,19 +114,19 @@ func TestExprConditions(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		conditions := GetConds(tc.in)
-		tu.Assert(t, conditions != nil, "conditions should not nil")
+		t.Run(tc.in, func(t *testing.T) {
+			conditions := GetConds(tc.in)
 
-		tu.Equals(t, tc.pass, conditions.Eval(tc.source, tc.tags, tc.fields))
+			tu.Equals(t, tc.pass, conditions.Eval(tc.tags, tc.fields))
 
-		t.Logf("[ok] %s => %v, source: %s, tags: %+#v, fields: %+#v", tc.in, tc.pass, tc.source, tc.tags, tc.fields)
+			t.Logf("[ok] %s => %v, source: %s, tags: %+#v, fields: %+#v", tc.in, tc.pass, tc.source, tc.tags, tc.fields)
+		})
 	}
 }
 
 func TestConditions(t *testing.T) {
 	cases := []struct {
 		in     WhereConditions
-		source string
 		tags   map[string]string
 		fields map[string]interface{}
 		pass   bool
@@ -156,8 +194,8 @@ func TestConditions(t *testing.T) {
 		},
 
 		{
-			pass:   true,
-			source: "abc",
+			pass: true,
+			tags: map[string]string{"source": "abc"},
 			in: WhereConditions{
 				&WhereCondition{
 					conditions: []Node{
@@ -176,8 +214,8 @@ func TestConditions(t *testing.T) {
 		},
 
 		{
-			pass:   true,
-			source: "abc",
+			pass: true,
+			tags: map[string]string{"source": "abc"},
 			in: WhereConditions{
 				&WhereCondition{
 					conditions: []Node{
@@ -192,8 +230,8 @@ func TestConditions(t *testing.T) {
 		},
 
 		{
-			pass:   false,
-			source: "abc",
+			pass: false,
+			tags: map[string]string{"source": "abc"},
 			in: WhereConditions{
 				&WhereCondition{
 					conditions: []Node{
@@ -209,8 +247,10 @@ func TestConditions(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tu.Equals(t, tc.pass, tc.in.Eval(tc.source, tc.tags, tc.fields))
-		t.Logf("[ok] %s => %v, source: %s, tags: %+#v, fields: %+#v", tc.in, tc.pass, tc.source, tc.tags, tc.fields)
+		t.Run(tc.in.String(), func(t *testing.T) {
+			tu.Equals(t, tc.pass, tc.in.Eval(tc.tags, tc.fields))
+			t.Logf("[ok] %s => %v,  tags: %+#v, fields: %+#v", tc.in, tc.pass, tc.tags, tc.fields)
+		})
 	}
 }
 
@@ -308,7 +348,6 @@ func TestBinEval(t *testing.T) {
 func TestEval(t *testing.T) {
 	cases := []struct {
 		cond   *BinaryExpr
-		source string
 		tags   map[string]string
 		fields map[string]interface{}
 		pass   bool
@@ -334,7 +373,7 @@ func TestEval(t *testing.T) {
 		},
 
 		{
-			source: "abc",
+			tags: map[string]string{"source": "abc"},
 			cond: &BinaryExpr{
 				Op:  EQ,
 				LHS: &Identifier{Name: "source"},
@@ -344,7 +383,7 @@ func TestEval(t *testing.T) {
 		},
 
 		{
-			source: "abc",
+			tags: map[string]string{"source": "abc"},
 			cond: &BinaryExpr{
 				Op:  IN,
 				LHS: &Identifier{Name: "source"},
@@ -373,7 +412,13 @@ func TestEval(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Logf("[ok] %s => %v", tc.cond, tc.pass)
-		tu.Equals(t, tc.pass, tc.cond.Eval(tc.source, tc.tags, tc.fields))
+		t.Run(tc.cond.String(), func(t *testing.T) {
+			t.Logf("[ok] %s => %v", tc.cond, tc.pass)
+			tu.Equals(t, tc.pass, tc.cond.Eval(tc.tags, tc.fields))
+		})
 	}
+}
+
+func BenchmarkRegexp(b *testing.B) {
+	// cliutils.CreateRandomString()
 }

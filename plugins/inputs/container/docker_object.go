@@ -15,6 +15,7 @@ func gatherDockerContainerObject(client dockerClientX, k8sClient k8sClientX, con
 	m := &containerObject{}
 	m.tags = getContainerInfo(container, k8sClient)
 	m.tags["name"] = container.ID
+	m.tags["linux_namespace"] = "moby"
 	m.tags["status"] = container.Status
 
 	if hostname, err := getContainerHostname(client, container.ID); err == nil {
@@ -103,39 +104,40 @@ func (c *containerObject) Info() *inputs.MeasurementInfo {
 		Desc: "容器对象数据，如果容器处于非 running 状态，则`cpu_usage`等指标将不存在",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"container_id":     inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
-			"name":             inputs.NewTagInfo(`对象数据的指定 ID`),
-			"status":           inputs.NewTagInfo("容器状态，例如 `Up 5 hours`"),
 			"container_name":   inputs.NewTagInfo(`容器名称`),
+			"container_id":     inputs.NewTagInfo(`容器 ID`),
+			"name":             inputs.NewTagInfo(`对象数据的指定 ID`),
+			"linux_namespace":  inputs.NewTagInfo(`该容器所在的 [linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html)`),
+			"status":           inputs.NewTagInfo("容器状态，例如 `Up 5 hours`（containerd 缺少此字段）"),
 			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
 			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
 			"image_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
 			"image_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),
 			"image_tag":        inputs.NewTagInfo("镜像tag，例如 `1.21.0`"),
-			"container_host":   inputs.NewTagInfo(`容器内部的主机名`),
-			"container_type":   inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
-			"state":            inputs.NewTagInfo(`运行状态，running/exited/removed`),
+			"container_host":   inputs.NewTagInfo(`容器内部的主机名（containerd 缺少此字段）`),
+			"container_type":   inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker/containerd`),
+			"state":            inputs.NewTagInfo(`运行状态，running/exited/removed（containerd 缺少此字段）`),
 			"pod_name":         inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"pod_namesapce":    inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
-			"deployment":       inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）`),
+			"namespace":        inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
+			"deployment":       inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）（containerd 缺少此字段）`),
 		},
 		Fields: map[string]interface{}{
-			"process":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "容器进程列表，即运行命令`ps -ef`所得，内容为 JSON 字符串，格式是 map 数组"},
+			"process":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "容器进程列表，即运行命令`ps -ef`所得，内容为 JSON 字符串，格式是 map 数组（containerd 缺少此字段）"},
 			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: `该容器创建时长，单位秒`},
 			"from_kubernetes":    &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "该容器是否由 Kubernetes 创建（deprecated）"},
 			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 占主机总量的使用率"},
-			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "容器 CPU 增量"},
-			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "系统 CPU 增量"},
-			"cpu_numbers":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "CPU 核心数"},
+			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "容器 CPU 增量（containerd 缺少此字段）"},
+			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "系统 CPU 增量（containerd 缺少此字段）"},
+			"cpu_numbers":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "CPU 核心数（containerd 缺少此字段）"},
 			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "容器对象详情"},
 			"mem_limit":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存可用总量，如果未对容器做内存限制，则为主机内存容量"},
 			"mem_usage":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存使用量"},
 			"mem_used_percent":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "内存使用率，使用量除以可用总量"},
-			"mem_failed_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存分配失败的次数"},
-			"network_bytes_rcvd": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "从网络接收到的总字节数"},
-			"network_bytes_sent": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "向网络发送出的总字节数"},
-			"block_read_byte":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "从容器文件系统读取的总字节数"},
-			"block_write_byte":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "向容器文件系统写入的总字节数"},
+			"mem_failed_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存分配失败的次数（containerd 缺少此字段）"},
+			"network_bytes_rcvd": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "从网络接收到的总字节数（containerd 缺少此字段）"},
+			"network_bytes_sent": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "向网络发送出的总字节数（containerd 缺少此字段）"},
+			"block_read_byte":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "从容器文件系统读取的总字节数（containerd 缺少此字段）"},
+			"block_write_byte":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "向容器文件系统写入的总字节数（containerd 缺少此字段）"},
 		},
 	}
 }

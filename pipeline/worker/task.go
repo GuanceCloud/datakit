@@ -1,111 +1,157 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package worker
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-type TaskOpt struct {
-	// 忽略这些status，如果数据的status在此列表中，数据将不再上传
-	// ex: "info"
-	//     "debug"
+const (
+	ContentString = "string"
+	ContentByte   = "byte"
+)
 
+type Task interface {
+	GetSource() string
+	GetScriptName() string // 待调用的 pipeline 脚本
+	GetMaxMessageLen() int
+	ContentType() string // TaskDataString or TaskDataByte
+	ContentEncode() string
+	GetContent() interface{} // []string or [][]byte
+
+	// feed 给 pipeline 时 pl worker 会调用此方法
+	Callback([]*pipeline.Result) error
+}
+
+func TaskDataContentType(task Task) string {
+	defer func() {
+		if err := recover(); err != nil {
+			l.Error(err)
+		}
+	}()
+	return task.ContentType()
+}
+
+func TaskDataGetContentStr(data Task) (value []string, err error) {
+	defer func() {
+		if errR := recover(); errR != nil {
+			err = fmt.Errorf("%w", errR)
+		}
+	}()
+	cnt := data.GetContent()
+	if d, ok := cnt.([]string); ok {
+		value = d
+		return
+	} else {
+		return nil, fmt.Errorf("unsupported type '%v'", reflect.TypeOf(cnt))
+	}
+}
+
+func TaskDataGetContentByte(data Task) (value [][]byte, err error) {
+	defer func() {
+		if errR := recover(); errR != nil {
+			err = fmt.Errorf("%w", errR)
+		}
+	}()
+	cnt := data.GetContent()
+	if d, ok := cnt.([][]byte); ok {
+		value = d
+		return
+	} else {
+		return nil, fmt.Errorf("unsupported type '%v'", reflect.TypeOf(cnt))
+	}
+}
+
+func TaskDataContentEncode(data Task) string {
+	defer func() {
+		if err := recover(); err != nil {
+			l.Error(err)
+		}
+	}()
+	return data.ContentEncode()
+}
+
+type TaskTemplate struct {
 	Category string
 
 	Version string
+
+	Source     string // measurement name
+	ScriptName string // 为空则根据 source 匹配对应的脚本
+
+	TaskName string
+
+	TS time.Time
+
+	MaxMessageLen int
 
 	IgnoreStatus []string
 
 	// 是否关闭添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'
 	DisableAddStatusField bool
+
+	ContentDataType string
+	Encode          string
+	Content         interface{}
+
+	Tags   map[string]string
+	Fields map[string]interface{}
 }
 
-type Result struct {
-	output *parser.Output
+func (data *TaskTemplate) GetSource() string {
+	return data.Source
 }
 
-func (r *Result) String() string {
-	return fmt.Sprintf("%+#v", r.output)
-}
-
-func NewResult() *Result {
-	return &Result{
-		output: &parser.Output{
-			Tags: make(map[string]string),
-			Data: make(map[string]interface{}),
-			Cost: make(map[string]string),
-		},
-	}
-}
-
-func (r *Result) SetTime(t time.Time) {
-	r.SetField("time", t.UnixNano())
-}
-
-func (r *Result) GetTag(k string) (string, error) {
-	if v, ok := r.output.Tags[k]; ok {
-		return v, nil
+func (data *TaskTemplate) GetScriptName() string {
+	if data.ScriptName != "" {
+		return data.ScriptName
 	} else {
-		return "", fmt.Errorf("tag not found")
+		return data.Source + ".p"
 	}
 }
 
-func (r *Result) SetTag(k, v string) {
-	r.output.Tags[k] = v
+func (data *TaskTemplate) GetMaxMessageLen() int {
+	return data.MaxMessageLen
 }
 
-func (r *Result) DeleteTag(k string) {
-	delete(r.output.Tags, k)
-}
-
-func (r *Result) GetField(k string) (interface{}, error) {
-	if v, ok := r.output.Data[k]; ok {
-		return v, nil
-	} else {
-		return nil, fmt.Errorf("field not found")
+func (data *TaskTemplate) ContentType() string {
+	if data.ContentDataType == "" {
+		return ContentString
 	}
+	return data.ContentDataType
 }
 
-func (r *Result) SetField(k string, v interface{}) {
-	r.output.Data[k] = v
+func (data *TaskTemplate) GetContent() interface{} {
+	return data.Content
 }
 
-func (r *Result) DeleteField(k string) {
-	delete(r.output.Data, k)
+func (data *TaskTemplate) ContentEncode() string {
+	return data.Encode
 }
 
-func (r *Result) Drop() {
-	r.output.Dropped = true
-}
-
-type TaskData interface {
-	GetContent() string
-	Handler(*Result) error
-}
-
-type Task struct {
-	TaskName   string
-	ScriptName string // 为空则根据 source 匹配对应的脚本
-	Source     string // measurement name
-	Data       []TaskData
-	Opt        *TaskOpt
-	TS         time.Time
-
-	// 保留字段
-	Namespace string
-}
-
-func (task *Task) GetScriptName() string {
-	if task.ScriptName != "" {
-		return task.ScriptName
-	} else {
-		return task.Source + ".p"
+func (data *TaskTemplate) Callback(result []*pipeline.Result) error {
+	result = ResultUtilsLoggingProcessor(result, data.Tags, data.Fields,
+		data.DisableAddStatusField, data.IgnoreStatus)
+	ts := data.TS
+	if ts.IsZero() {
+		ts = time.Now()
 	}
+	result = ResultUtilsAutoFillTime(result, ts)
+	return ResultUtilsFeedIO(result, data.Category, data.Version, data.Source, data.TaskName, data.MaxMessageLen)
 }
 
-func FeedPipelineTask(task *Task) error {
+func FeedPipelineTask(task Task) error {
 	if task == nil {
 		return nil
 	}
@@ -126,7 +172,7 @@ func FeedPipelineTask(task *Task) error {
 	}
 }
 
-func FeedPipelineTaskBlock(task *Task) error {
+func FeedPipelineTaskBlock(task Task) error {
 	if task == nil {
 		return nil
 	}
@@ -143,4 +189,139 @@ func FeedPipelineTaskBlock(task *Task) error {
 			return nil
 		}
 	}
+}
+
+func RunAsPlTask(category string, source string, service, dataType string,
+	content interface{}, encode string, ng *parser.Engine) []*pipeline.Result {
+	tags := map[string]string{}
+	if service != "" {
+		tags["service"] = service
+	}
+
+	task := &TaskTemplate{
+		Source:          source,
+		Encode:          encode,
+		ContentDataType: dataType,
+		Content:         content,
+		Category:        category,
+	}
+
+	result, _ := RunPlTask(task, ng)
+	ResultUtilsLoggingProcessor(result, tags, nil, task.DisableAddStatusField, task.IgnoreStatus)
+	ts := task.TS
+	if ts.IsZero() {
+		ts = time.Now()
+	}
+	result = ResultUtilsAutoFillTime(result, ts)
+	return result
+}
+
+func ParsePlScript(plScript string) (*parser.Engine, error) {
+	if ng, err := parser.NewEngine(plScript, funcs.FuncsMap, funcs.FuncsCheckMap, false); err != nil {
+		return nil, err
+	} else {
+		return ng, nil
+	}
+}
+
+func RunPlTask(task Task, ng *parser.Engine) ([]*pipeline.Result, error) {
+	taskResult := []*pipeline.Result{}
+
+	cntType := TaskDataContentType(task)
+	switch cntType {
+	case ContentByte:
+		cntByte, err := TaskDataGetContentByte(task)
+		if err != nil {
+			return nil, err
+		}
+		encode := TaskDataContentType(task)
+		for _, cnt := range cntByte {
+			if r, err := pipeline.RunPlByte(cnt, encode, task.GetSource(), task.GetMaxMessageLen(), ng); err != nil {
+				l.Debug(err)
+				continue
+			} else {
+				taskResult = append(taskResult, r)
+			}
+		}
+	default:
+		cntStr, err := TaskDataGetContentStr(task)
+		if err != nil {
+			return nil, err
+		}
+		for _, cnt := range cntStr {
+			if r, err := pipeline.RunPlStr(cnt, task.GetSource(),
+				task.GetMaxMessageLen(), ng); err != nil {
+				l.Debug(err)
+				continue
+			} else {
+				taskResult = append(taskResult, r)
+			}
+		}
+	}
+
+	return taskResult, nil
+}
+
+func ResultUtilsAutoFillTime(result []*pipeline.Result, lastTime time.Time) []*pipeline.Result {
+	for di := len(result) - 1; di >= 0; di-- {
+		rTS, err := result[di].GetTime()
+		if err != nil {
+			lastTime = lastTime.Add(-time.Nanosecond)
+		} else {
+			lastTime = rTS
+		}
+		result[di].SetTime(lastTime)
+	}
+	return result
+}
+
+func ResultUtilsLoggingProcessor(result []*pipeline.Result, tags map[string]string, fields map[string]interface{},
+	disableAddStatusField bool, ignoreStatus []string) []*pipeline.Result {
+	for _, res := range result {
+		for k, v := range tags {
+			if _, err := res.GetTag(k); err != nil {
+				res.SetTag(k, v)
+			}
+		}
+		for k, v := range fields {
+			if _, err := res.GetField(k); err != nil {
+				res.SetField(k, v)
+			}
+		}
+		status := PPAddSatus(res, disableAddStatusField)
+		if PPIgnoreStatus(status, ignoreStatus) {
+			res.MarkAsDropped()
+		}
+	}
+
+	return result
+}
+
+func ResultUtilsFeedIO(result []*pipeline.Result, category, version, source, feedName string, maxMessageLen int) error {
+	if len(result) == 0 {
+		return nil
+	}
+	if category == "" {
+		category = datakit.Logging
+	}
+	if source == "" {
+		source = "default"
+	}
+
+	pts := []*io.Point{}
+	for _, v := range result {
+		if v.IsDropped() {
+			continue
+		}
+		if pt, err := v.MakePoint(source, maxMessageLen, category); err != nil {
+			l.Error(err)
+		} else {
+			pts = append(pts, pt)
+		}
+	}
+	return io.Feed(feedName, category, pts,
+		&io.Option{
+			HighFreq: disableHighFreqIODdata,
+			Version:  version,
+		})
 }

@@ -88,6 +88,12 @@ type MeasurementInfo struct {
 	Tags   map[string]interface{}
 }
 
+type CommonMeasurement struct {
+	Name   string
+	Fields map[string]interface{}
+	Tags   map[string]string
+}
+
 func (m *MeasurementInfo) FieldsMarkdownTable() string {
 	const tableHeader = `
 | 指标 | 描述| 数据类型 | 单位   |
@@ -200,18 +206,6 @@ func (e ReporterMeasurement) LineProto() (*io.Point, error) {
 
 func (e ReporterMeasurement) Info() *MeasurementInfo {
 	return &MeasurementInfo{}
-}
-
-func getReporterMeasurement(reporter *io.Reporter) ReporterMeasurement {
-	now := time.Now()
-	m := ReporterMeasurement{
-		name: "datakit",
-		ts:   now,
-	}
-
-	m.tags = reporter.Tags()
-	m.fields = reporter.Fields()
-	return m
 }
 
 // BuildTags used to test all measurements tags.

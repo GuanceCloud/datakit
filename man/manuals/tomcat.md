@@ -94,27 +94,47 @@ $ $tomcat_dir/bin/startup.sh
 
 * Access Log
 
+日志示例：
+
+```
+0:0:0:0:0:0:0:1 - admin [24/Feb/2015:15:57:10 +0530] "GET /manager/images/tomcat.gif HTTP/1.1" 200 2066
+```
+
+
+
+切割后的字段列表如下：
+
 |字段名|字段值|说明|
 |---|---|---|
-|time|time|日志产生的时间|
-|status|status|日志等级|
-|client_ip|ip or host|客户端 ip|
-|http_auth|http auth|通过 HTTP Basic 认证的授权用户|
-|http_method|http method|HTTP 方法|
-|http_url|http url|客户端请求地址|
-|http_version|http version|HTTP 协议版本|
-|status_code|http status code|HTTP 状态码|
-|bytes|bytes|HTTP 响应 body 的字节数|
+|time|1424773630000000000|日志产生的时间|
+|status|OK|日志等级|
+|client_ip|0:0:0:0:0:0:0:1|客户端 ip|
+|http_auth|admin|通过 HTTP Basic 认证的授权用户|
+|http_method|GET|HTTP 方法|
+|http_url|/manager/images/tomcat.gif|客户端请求地址|
+|http_version|1.1|HTTP 协议版本|
+|status_code|200|HTTP 状态码|
+|bytes|2066|HTTP 响应 body 的字节数|
 
 * Cataline / Host-manager / Localhost / Manager Log
 
+日志示例：
+
+```
+06-Sep-2021 22:33:30.513 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Xmx256m
+```
+
+
+
+切割后的字段列表如下：
+
 |字段名|字段值|说明|
 |---|---|---|
-|time|time|日志产生的时间|
-|status|status|日志等级|
-|thread_name|thread name|线程名|
-|report_source|report source|ClassName.MethodName|
-|msg|msg|消息|
+|time|1630938810513000000|日志产生的时间|
+|status|INFO|日志等级|
+|thread_name|main|线程名|
+|report_source|org.apache.catalina.startup.VersionLoggerListener.log|ClassName.MethodName|
+|msg|Command line argument: -Xmx256m|消息|
 
 **注意**
 

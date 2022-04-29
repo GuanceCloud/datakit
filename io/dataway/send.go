@@ -8,14 +8,54 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/tracer"
 )
 
+var (
+	sendFailStats = map[string]int32{}
+	lock          sync.RWMutex
+)
+
+// GetSendStat return the sent fail count of the specified category.
+func GetSendStat(category string) int32 {
+	lock.RLock()
+	defer lock.RUnlock()
+	if failCount, ok := sendFailStats[category]; ok {
+		return failCount
+	} else {
+		return 0
+	}
+}
+
+func updateSendFailStats(category string, isOk bool) {
+	lock.Lock()
+	defer lock.Unlock()
+
+	if failCount, ok := sendFailStats[category]; ok {
+		if isOk {
+			sendFailStats[category] = 0
+		} else {
+			sendFailStats[category] = failCount + 1
+		}
+	} else {
+		if !isOk {
+			sendFailStats[category] = 1
+		}
+	}
+
+	log.Debugf("update send fail stats: %+#v", sendFailStats)
+}
+
 func (dc *endPoint) send(category string, data []byte, gz bool) error {
-	var err error
+	var (
+		err      error
+		isSendOk bool // data sent successfully, http response code is 200
+	)
+
 	span, _ := tracer.StartSpanFromContext(context.Background(), "io.dataway.send", tracer.SpanType(ext.SpanTypeHTTP))
 	defer func() {
 		span.SetTag("fails", dc.fails)
@@ -27,6 +67,11 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 
 	requrl, ok := dc.categoryURL[category]
 	if !ok {
+		// update send stats
+		defer func() {
+			updateSendFailStats(category, isSendOk)
+		}()
+
 		// for dialtesting, there are user-defined url to post
 		if x, err := url.ParseRequestURI(category); err != nil {
 			return fmt.Errorf("invalid url %s", category)
@@ -80,12 +125,13 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 	postbeg := time.Now()
 	switch resp.StatusCode / 100 {
 	case 2:
+		isSendOk = true
 		dc.fails = 0
 		log.Debugf("post %d to %s ok(gz: %v), cost %v, response: %s",
 			len(data), requrl, gz, time.Since(postbeg), string(body))
 	case 4:
 		dc.fails = 0
-		log.Warnf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
+		log.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
 			len(data),
 			requrl,
 			resp.Status,
@@ -93,7 +139,7 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 			time.Since(postbeg))
 	case 5:
 		dc.fails++
-		log.Errorf("[%d] post %d to %s failed(HTTP: %s): %s, cost %v", dc.fails,
+		log.Errorf("fails count [%d] post %d to %s failed(HTTP: %s): %s, cost %v", dc.fails,
 			len(data),
 			requrl,
 			resp.Status,
@@ -106,7 +152,9 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 }
 
 func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
-	log.Debugf("send request %s, proxy: %s, dwcli: %p", req.URL.String(), dw.HTTPProxy, dw.httpCli.Transport)
+	log.Debugf("send request %s, proxy: %s, dwcli: %p, timeout: %s(%s)",
+		req.URL.String(), dw.HTTPProxy, dw.httpCli.Transport,
+		dw.HTTPTimeout, dw.TimeoutDuration.String())
 
 	return dw.httpCli.Do(req)
 }

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -142,14 +147,14 @@ parse_date(key="time", h=hour, M=min, s=sec, ns=ns, zone="CST")
 		},
 
 		{
-			name: "missed second: use current second offset",
+			name: "missed second: use 0",
 			pl: `
 grok(_, "%{INT:hour}:%{INT:min}")
 parse_date(key="time", h=hour, M=min, zone="CST")`,
 			in:     "16:40",
 			outKey: "time",
 			expected: time.Date(now.Year(), now.Month(), now.Day(),
-				16, 40, now.Second(), 0, time.FixedZone("UTC+8", 8*60*60)).UnixNano(),
+				16, 40, 0o0, 0, time.FixedZone("UTC+8", 8*60*60)).UnixNano(),
 		},
 
 		{
@@ -246,8 +251,9 @@ parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 					t.Error(err)
 				}
 			} else {
-				t.Log(runner.Result())
-				v, _ := runner.GetContent(tc.outKey)
+				ret := runner.Result()
+				t.Log(ret)
+				v := ret.Fields[tc.outKey]
 				tu.Equals(t, tc.expected, v)
 				t.Logf("[%d] PASS", idx)
 			}

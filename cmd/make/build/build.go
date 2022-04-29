@@ -46,6 +46,10 @@ var (
 	AppBin  = "datakit"
 	OSSPath = "datakit"
 
+	StandaloneApps = []string{
+		"datakit-ebpf",
+	}
+
 	// Architectures and OS distributions, i.e,
 	// darwin/amd64
 	// windows/amd64
@@ -167,10 +171,7 @@ func Compile() error {
 		}
 
 		goos, goarch := parts[0], parts[1]
-		if goos == datakit.OSDarwin && runtime.GOOS != datakit.OSDarwin {
-			l.Warnf("skip build datakit under %s", arch)
-			continue
-		}
+
 		dir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, AppName, goos, goarch)
 
 		err := os.MkdirAll(dir, os.ModePerm)
@@ -189,7 +190,13 @@ func Compile() error {
 			return err
 		}
 
-		if err := buildExternals(dir, goos, goarch); err != nil {
+		// build externals
+		if err := buildExternals(dir, goos, goarch, false); err != nil {
+			return err
+		}
+
+		// build standalone externals
+		if err := buildExternals(BuildDir, goos, goarch, true); err != nil {
 			return err
 		}
 
@@ -207,8 +214,9 @@ func compileArch(bin, goos, goarch, dir string) error {
 	if goos == datakit.OSWindows {
 		output += winBinSuffix
 	}
+
 	cgoEnabled := "0"
-	if goos == datakit.OSDarwin {
+	if goos == datakit.OSDarwin && runtime.GOOS == datakit.OSDarwin { // darwin version need CGO to build inputs CPU
 		cgoEnabled = "1"
 	}
 
@@ -216,7 +224,8 @@ func compileArch(bin, goos, goarch, dir string) error {
 		"go", "build",
 		"-o", output,
 		"-ldflags",
-		fmt.Sprintf("-w -s -X main.InputsReleaseType=%s -X main.ReleaseVersion=%s", InputsReleaseType, ReleaseVersion),
+		fmt.Sprintf("-w -s -X main.InputsReleaseType=%s -X main.ReleaseVersion=%s -X main.DownloadAddr=%s",
+			InputsReleaseType, ReleaseVersion, DownloadAddr),
 		MainEntry,
 	}
 

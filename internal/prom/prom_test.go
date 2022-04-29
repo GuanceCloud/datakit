@@ -1,14 +1,20 @@
 package prom
 
 import (
+	"bytes"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
 
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const promURL = "http://127.0.0.1:9100/metrics"
@@ -90,7 +96,7 @@ func newTransportMock(body string) http.RoundTripper {
 	}
 }
 
-func TestProm(t *testing.T) {
+func TestCollect(t *testing.T) {
 	testcases := []struct {
 		in   *Option
 		fail bool
@@ -133,46 +139,7 @@ func TestProm(t *testing.T) {
 
 		p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
 
-		pts, err := p.Collect()
-		if tc.fail && assert.Error(t, err) {
-			continue
-		} else {
-			assert.NoError(t, err)
-		}
-
-		for _, pt := range pts {
-			t.Log(pt.String())
-		}
-	}
-}
-
-func TestProm_DebugCollect(t *testing.T) {
-	testcases := []struct {
-		in   *Option
-		fail bool
-	}{
-		{
-			in:   &Option{},
-			fail: true,
-		},
-
-		{
-			in:   &Option{URL: "http://127.0.0.1:9100/metrics"},
-			fail: false,
-		},
-	}
-
-	for _, tc := range testcases {
-		p, err := NewProm(tc.in)
-		if tc.fail && assert.Error(t, err) {
-			continue
-		} else {
-			assert.NoError(t, err)
-		}
-
-		p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-
-		pts, err := p.CollectFromFile()
+		pts, err := p.CollectFromHTTP(p.opt.URL)
 		if tc.fail && assert.Error(t, err) {
 			continue
 		} else {
@@ -186,11 +153,15 @@ func TestProm_DebugCollect(t *testing.T) {
 }
 
 func Test_BearerToken(t *testing.T) {
-	f, err := ioutil.TempFile(os.TempDir(), "token")
+	tmpDir, err := ioutil.TempDir("./", "__tmp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir) // nolint:errcheck
+	f, err := ioutil.TempFile(tmpDir, "token")
 	assert.NoError(t, err)
 	token_file := f.Name()
 	defer os.Remove(token_file) // nolint:errcheck
-
 	testcases := []struct {
 		auth    map[string]string
 		url     string
@@ -246,7 +217,12 @@ func Test_Tls(t *testing.T) {
 	})
 
 	t.Run("tls with ca", func(t *testing.T) {
-		f, err := ioutil.TempFile(os.TempDir(), "ca.crt")
+		tmpDir, err := ioutil.TempDir("./", "__tmp")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(tmpDir) // nolint:errcheck
+		f, err := ioutil.TempFile(tmpDir, "ca.crt")
 		assert.NoError(t, err)
 		_, err = f.WriteString(caContent)
 		assert.NoError(t, err)
@@ -306,10 +282,17 @@ func Test_Option(t *testing.T) {
 }
 
 func Test_WriteFile(t *testing.T) {
-	f, err := ioutil.TempFile(os.TempDir(), "output")
+	tmpDir, err := ioutil.TempDir("./", "__tmp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir) // nolint:errcheck
+	f, err := ioutil.TempFile(tmpDir, "output")
 	assert.NoError(t, err)
-	outputFile := f.Name()
-	defer os.Remove(outputFile) // nolint:errcheck
+	outputFile, err := filepath.Abs(f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	p, err := NewProm(&Option{
 		URL:         promURL,
@@ -319,7 +302,7 @@ func Test_WriteFile(t *testing.T) {
 
 	assert.NoError(t, err)
 	p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-	err = p.WriteFile()
+	err = p.WriteMetricText2File(p.opt.URL)
 
 	assert.NoError(t, err)
 
@@ -328,4 +311,619 @@ func Test_WriteFile(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, string(fileContent), mockBody)
+}
+
+func TestIgnoreReqErr(t *testing.T) {
+	testCases := []struct {
+		name string
+		in   *Option
+		fail bool
+	}{
+		{
+			name: "ignore url request error",
+			in:   &Option{IgnoreReqErr: true, URL: "127.0.0.1:999999"},
+			fail: false,
+		},
+		{
+			name: "do not ignore url request error",
+			in:   &Option{IgnoreReqErr: false, URL: "127.0.0.1:999999"},
+			fail: true,
+		},
+	}
+	for idx, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			p, err := NewProm(tc.in)
+			if err != nil {
+				t.Errorf("[%d] failed to init prom: %s", idx, err)
+			}
+			_, err = p.CollectFromHTTP(p.opt.URL)
+			if err != nil {
+				if tc.fail {
+					t.Logf("[%d] returned an error as expected: %s", idx, err)
+				} else {
+					t.Errorf("[%d] failed: %s", idx, err)
+				}
+				return
+			}
+			// Expect to fail but it didn't.
+			if tc.fail {
+				t.Errorf("[%d] expected to fail but it didn't", idx)
+			}
+			t.Logf("[%d] PASS", idx)
+		})
+	}
+}
+
+func TestProm(t *testing.T) {
+	testCases := []struct {
+		name     string
+		in       *Option
+		fail     bool
+		expected []string
+	}{
+		{
+			name: "counter metric type only",
+			in: &Option{
+				URL:         promURL,
+				MetricTypes: []string{"counter"},
+			},
+			fail: false,
+			expected: []string{
+				"promhttp,cause=encoding metric_handler_errors_total=0",
+				"promhttp,cause=gathering metric_handler_errors_total=0",
+				"promhttp,code=200 metric_handler_requests_total=15143",
+				"promhttp,code=500 metric_handler_requests_total=0",
+				"promhttp,code=503 metric_handler_requests_total=0",
+			},
+		},
+
+		{
+			name: "histogram metric type only",
+			in: &Option{
+				URL:         promURL,
+				MetricTypes: []string{"histogram"},
+			},
+			fail: false,
+			expected: []string{
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
+			},
+		},
+
+		{
+			name: "default metric types",
+			in: &Option{
+				URL:         promURL,
+				MetricTypes: []string{},
+			},
+			fail: false,
+			expected: []string{
+				"go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
+				"go,quantile=0 gc_duration_seconds=0",
+				"go,quantile=0.25 gc_duration_seconds=0",
+				"go,quantile=0.5 gc_duration_seconds=0",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
+				"promhttp metric_handler_requests_in_flight=1",
+				"promhttp,cause=encoding metric_handler_errors_total=0",
+				"promhttp,cause=gathering metric_handler_errors_total=0",
+				"promhttp,code=200 metric_handler_requests_total=15143",
+				"promhttp,code=500 metric_handler_requests_total=0",
+				"promhttp,code=503 metric_handler_requests_total=0",
+				"up up=1",
+			},
+		},
+
+		{
+			name: "all metric types",
+			in: &Option{
+				URL:         promURL,
+				MetricTypes: []string{"histogram", "gauge", "counter", "summary", "untyped"},
+			},
+			fail: false,
+			expected: []string{
+				"go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
+				"go,quantile=0 gc_duration_seconds=0",
+				"go,quantile=0.25 gc_duration_seconds=0",
+				"go,quantile=0.5 gc_duration_seconds=0",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
+				"promhttp metric_handler_requests_in_flight=1",
+				"promhttp,cause=encoding metric_handler_errors_total=0",
+				"promhttp,cause=gathering metric_handler_errors_total=0",
+				"promhttp,code=200 metric_handler_requests_total=15143",
+				"promhttp,code=500 metric_handler_requests_total=0",
+				"promhttp,code=503 metric_handler_requests_total=0",
+				"up up=1",
+			},
+		},
+
+		{
+			name: "metric name filtering",
+			in: &Option{
+				URL:              promURL,
+				MetricNameFilter: []string{"http"},
+			},
+			fail: false,
+			expected: []string{
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
+				"promhttp metric_handler_requests_in_flight=1",
+				"promhttp,cause=encoding metric_handler_errors_total=0",
+				"promhttp,cause=gathering metric_handler_errors_total=0",
+				"promhttp,code=200 metric_handler_requests_total=15143",
+				"promhttp,code=500 metric_handler_requests_total=0",
+				"promhttp,code=503 metric_handler_requests_total=0",
+			},
+		},
+
+		{
+			name: "regex metric name filtering",
+			in: &Option{
+				URL:              promURL,
+				MetricNameFilter: []string{"promht+p_metric_han[a-z]ler_req[^abcd]ests_total?"},
+			},
+			fail: false,
+			expected: []string{
+				"promhttp,code=200 metric_handler_requests_total=15143",
+				"promhttp,code=500 metric_handler_requests_total=0",
+				"promhttp,code=503 metric_handler_requests_total=0",
+			},
+		},
+
+		{
+			name: "measurement name prefix",
+			in: &Option{
+				URL:               promURL,
+				MeasurementPrefix: "prefix_",
+			},
+			fail: false,
+			expected: []string{
+				"prefix_go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
+				"prefix_go,quantile=0 gc_duration_seconds=0",
+				"prefix_go,quantile=0.25 gc_duration_seconds=0",
+				"prefix_go,quantile=0.5 gc_duration_seconds=0",
+				"prefix_http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"prefix_http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"prefix_http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"prefix_http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"prefix_http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"prefix_http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"prefix_http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"prefix_http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
+				"prefix_promhttp metric_handler_requests_in_flight=1",
+				"prefix_promhttp,cause=encoding metric_handler_errors_total=0",
+				"prefix_promhttp,cause=gathering metric_handler_errors_total=0",
+				"prefix_promhttp,code=200 metric_handler_requests_total=15143",
+				"prefix_promhttp,code=500 metric_handler_requests_total=0",
+				"prefix_promhttp,code=503 metric_handler_requests_total=0",
+				"prefix_up up=1",
+			},
+		},
+
+		{
+			name: "measurement name",
+			in: &Option{
+				URL:             promURL,
+				MeasurementName: "measurement_name",
+			},
+			fail: false,
+			expected: []string{
+				"measurement_name go_gc_duration_seconds_count=0,go_gc_duration_seconds_sum=0",
+				"measurement_name promhttp_metric_handler_requests_in_flight=1",
+				"measurement_name up=1",
+				"measurement_name,cause=encoding promhttp_metric_handler_errors_total=0",
+				"measurement_name,cause=gathering promhttp_metric_handler_errors_total=0",
+				"measurement_name,code=200 promhttp_metric_handler_requests_total=15143",
+				"measurement_name,code=500 promhttp_metric_handler_requests_total=0",
+				"measurement_name,code=503 promhttp_metric_handler_requests_total=0",
+				"measurement_name,le=+Inf,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
+				"measurement_name,le=0.003,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
+				"measurement_name,le=0.03,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
+				"measurement_name,le=0.1,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
+				"measurement_name,le=0.3,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
+				"measurement_name,le=1.5,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
+				"measurement_name,le=10,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
+				"measurement_name,method=GET,status_code=404 http_request_duration_seconds_count=1,http_request_duration_seconds_sum=0.002451013",
+				"measurement_name,quantile=0 go_gc_duration_seconds=0",
+				"measurement_name,quantile=0.25 go_gc_duration_seconds=0",
+				"measurement_name,quantile=0.5 go_gc_duration_seconds=0",
+			},
+		},
+
+		{
+			name: "tags filtering",
+			in: &Option{
+				URL:        promURL,
+				TagsIgnore: []string{"status_code", "method"},
+			},
+			fail: false,
+			expected: []string{
+				"go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
+				"go,quantile=0 gc_duration_seconds=0",
+				"go,quantile=0.25 gc_duration_seconds=0",
+				"go,quantile=0.5 gc_duration_seconds=0",
+				"http request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
+				"http,le=+Inf request_duration_seconds_bucket=1i",
+				"http,le=0.003 request_duration_seconds_bucket=1i",
+				"http,le=0.03 request_duration_seconds_bucket=1i",
+				"http,le=0.1 request_duration_seconds_bucket=1i",
+				"http,le=0.3 request_duration_seconds_bucket=1i",
+				"http,le=1.5 request_duration_seconds_bucket=1i",
+				"http,le=10 request_duration_seconds_bucket=1i",
+				"promhttp metric_handler_requests_in_flight=1",
+				"promhttp,cause=encoding metric_handler_errors_total=0",
+				"promhttp,cause=gathering metric_handler_errors_total=0",
+				"promhttp,code=200 metric_handler_requests_total=15143",
+				"promhttp,code=500 metric_handler_requests_total=0",
+				"promhttp,code=503 metric_handler_requests_total=0",
+				"up up=1",
+			},
+		},
+
+		{
+			name: "rename-measurement",
+			in: &Option{
+				URL: promURL,
+				Measurements: []Rule{
+					{
+						Prefix: "go_",
+						Name:   "with_prefix_go",
+					},
+					{
+						Prefix: "request_",
+						Name:   "with_prefix_request",
+					},
+				},
+			},
+			fail: false,
+			expected: []string{
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
+				"promhttp metric_handler_requests_in_flight=1",
+				"promhttp,cause=encoding metric_handler_errors_total=0",
+				"promhttp,cause=gathering metric_handler_errors_total=0",
+				"promhttp,code=200 metric_handler_requests_total=15143",
+				"promhttp,code=500 metric_handler_requests_total=0",
+				"promhttp,code=503 metric_handler_requests_total=0",
+				"up up=1",
+				"with_prefix_go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
+				"with_prefix_go,quantile=0 gc_duration_seconds=0",
+				"with_prefix_go,quantile=0.25 gc_duration_seconds=0",
+				"with_prefix_go,quantile=0.5 gc_duration_seconds=0",
+			},
+		},
+
+		{
+			name: "custom tags",
+			in: &Option{
+				URL:  promURL,
+				Tags: map[string]string{"some_tag": "some_value", "more_tag": "some_other_value"},
+			},
+			fail: false,
+			expected: []string{
+				"go,more_tag=some_other_value,quantile=0,some_tag=some_value gc_duration_seconds=0",
+				"go,more_tag=some_other_value,quantile=0.25,some_tag=some_value gc_duration_seconds=0",
+				"go,more_tag=some_other_value,quantile=0.5,some_tag=some_value gc_duration_seconds=0",
+				"go,more_tag=some_other_value,some_tag=some_value gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
+				"http,le=+Inf,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.003,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.03,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.1,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.3,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=1.5,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=10,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
+				"http,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
+				"promhttp,cause=encoding,more_tag=some_other_value,some_tag=some_value metric_handler_errors_total=0",
+				"promhttp,cause=gathering,more_tag=some_other_value,some_tag=some_value metric_handler_errors_total=0",
+				"promhttp,code=200,more_tag=some_other_value,some_tag=some_value metric_handler_requests_total=15143",
+				"promhttp,code=500,more_tag=some_other_value,some_tag=some_value metric_handler_requests_total=0",
+				"promhttp,code=503,more_tag=some_other_value,some_tag=some_value metric_handler_requests_total=0",
+				"promhttp,more_tag=some_other_value,some_tag=some_value metric_handler_requests_in_flight=1",
+				"up,more_tag=some_other_value,some_tag=some_value up=1",
+			},
+		},
+
+		{
+			name: "multiple urls",
+			in: &Option{
+				URLs:         []string{"localhost:1234", "localhost:5678"},
+				IgnoreReqErr: true,
+			},
+			fail: false,
+			expected: []string{
+				"go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
+				"go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
+				"go,quantile=0 gc_duration_seconds=0",
+				"go,quantile=0 gc_duration_seconds=0",
+				"go,quantile=0.25 gc_duration_seconds=0",
+				"go,quantile=0.25 gc_duration_seconds=0",
+				"go,quantile=0.5 gc_duration_seconds=0",
+				"go,quantile=0.5 gc_duration_seconds=0",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
+				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
+				"promhttp metric_handler_requests_in_flight=1",
+				"promhttp metric_handler_requests_in_flight=1",
+				"promhttp,cause=encoding metric_handler_errors_total=0",
+				"promhttp,cause=encoding metric_handler_errors_total=0",
+				"promhttp,cause=gathering metric_handler_errors_total=0",
+				"promhttp,cause=gathering metric_handler_errors_total=0",
+				"promhttp,code=200 metric_handler_requests_total=15143",
+				"promhttp,code=200 metric_handler_requests_total=15143",
+				"promhttp,code=500 metric_handler_requests_total=0",
+				"promhttp,code=500 metric_handler_requests_total=0",
+				"promhttp,code=503 metric_handler_requests_total=0",
+				"promhttp,code=503 metric_handler_requests_total=0",
+				"up up=1",
+				"up up=1",
+			},
+		},
+	}
+	for idx, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			p, err := NewProm(tc.in)
+			if err != nil {
+				t.Errorf("[%d] failed to init prom: %s", idx, err)
+			}
+			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
+			var points []*iod.Point
+			for _, u := range p.opt.URLs {
+				pts, err := p.CollectFromHTTP(u)
+				if err != nil {
+					break
+				}
+				points = append(points, pts...)
+			}
+			if err != nil {
+				if tc.fail {
+					t.Logf("[%d] returned an error as expected: %s", idx, err)
+				} else {
+					t.Errorf("[%d] failed: %s", idx, err)
+				}
+				return
+			}
+			// Expect to fail but it didn't.
+			if tc.fail {
+				t.Errorf("[%d] expected to fail but it didn't", idx)
+			}
+			var got []string
+			for _, p := range points {
+				s := p.String()
+				// remove timestamp
+				s = s[:strings.LastIndex(s, " ")]
+				got = append(got, s)
+			}
+			sort.Strings(got)
+			tu.Equals(t, strings.Join(tc.expected, "\n"), strings.Join(got, "\n"))
+			t.Logf("[%d] PASS", idx)
+		})
+	}
+}
+
+func TestCollectFromFile(t *testing.T) {
+	f, err := os.CreateTemp("./", "test_collect_from_file_")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	defer os.Remove(f.Name()) //nolint:errcheck,gosec
+	if _, err := f.WriteString(mockBody); err != nil {
+		t.Errorf("fail to write mock body to temporary file: %v", err)
+	}
+	if err := f.Sync(); err != nil {
+		t.Errorf("fail to flush data to disk: %v", err)
+	}
+	option := Option{
+		URLs: []string{f.Name()},
+	}
+	p, err := NewProm(&option)
+	if err != nil {
+		t.Errorf("failed to init prom: %s", err)
+	}
+	if _, err := p.CollectFromFile(f.Name()); err != nil {
+		t.Errorf(err.Error())
+	}
+}
+
+func TestGetTimestampS(t *testing.T) {
+	var (
+		ts        int64 = 1647959040488
+		startTime       = time.Unix(1600000000, 0)
+	)
+	m1 := dto.Metric{
+		TimestampMs: &ts,
+	}
+	m2 := dto.Metric{}
+	tu.Equals(t, int64(1647959040000000000), getTimestampS(&m1, startTime).UnixNano())
+	tu.Equals(t, int64(1600000000000000000), getTimestampS(&m2, startTime).UnixNano())
+}
+
+func TestRenameTag(t *testing.T) {
+	cases := []struct {
+		name     string
+		opt      *Option
+		promdata string
+		expect   []*iod.Point
+	}{
+		{
+			name: "rename-tags",
+			opt: &Option{
+				URL: "http://not-set",
+				RenameTags: &RenameTags{
+					OverwriteExistTags: false,
+					Mapping: map[string]string{
+						"status_code":    "StatusCode",
+						"tag-not-exists": "do-nothing",
+					},
+				},
+			},
+			expect: []*iod.Point{
+				func() *iod.Point {
+					pt, err := iod.MakePoint("http",
+						map[string]string{"le": "0.003", "StatusCode": "404", "method": "GET"},
+						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
+					if err != nil {
+						t.Errorf("MakePoint: %s", err)
+						return nil
+					}
+					return pt
+				}(),
+			},
+			promdata: `
+http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
+			`,
+		},
+
+		{
+			name: "rename-overwrite-tags",
+			opt: &Option{
+				URL: "http://not-set",
+				RenameTags: &RenameTags{
+					OverwriteExistTags: true, // enable overwrite
+					Mapping: map[string]string{
+						"status_code": "StatusCode",
+						"method":      "tag_exists", // rename `method` to a exists tag key
+					},
+				},
+			},
+			expect: []*iod.Point{
+				func() *iod.Point {
+					pt, err := iod.MakePoint("http",
+						// method key removed, it's value overwrite tag_exists's value
+						map[string]string{"le": "0.003", "StatusCode": "404", "tag_exists": "GET"},
+						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
+					if err != nil {
+						t.Errorf("MakePoint: %s", err)
+						return nil
+					}
+					return pt
+				}(),
+			},
+			promdata: `
+http_request_duration_seconds_bucket{le="0.003",tag_exists="yes",status_code="404",method="GET"} 1
+			`,
+		},
+
+		{
+			name: "rename-tags-disable-overwrite",
+			opt: &Option{
+				URL: "http://not-set",
+				RenameTags: &RenameTags{
+					OverwriteExistTags: false, // enable overwrite
+					Mapping: map[string]string{
+						"status_code": "StatusCode",
+						"method":      "tag_exists", // rename `method` to a exists tag key
+					},
+				},
+			},
+			expect: []*iod.Point{
+				func() *iod.Point {
+					pt, err := iod.MakePoint("http",
+						map[string]string{"le": "0.003", "tag_exists": "yes", "StatusCode": "404", "method": "GET"}, // overwrite not work on method
+						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
+					if err != nil {
+						t.Errorf("MakePoint: %s", err)
+						return nil
+					}
+					return pt
+				}(),
+			},
+			promdata: `
+http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="yes", method="GET"} 1
+			`,
+		},
+
+		{
+			name: "empty-tags",
+			opt: &Option{
+				URL: "http://not-set",
+				RenameTags: &RenameTags{
+					OverwriteExistTags: true, // enable overwrite
+					Mapping: map[string]string{
+						"status_code": "StatusCode",
+						"method":      "tag_exists", // rename `method` to a exists tag key
+					},
+				},
+			},
+			expect: []*iod.Point{
+				func() *iod.Point {
+					pt, err := iod.MakePoint("http",
+						nil,
+						map[string]interface{}{"request_duration_seconds_bucket": 1.0})
+					if err != nil {
+						t.Errorf("MakePoint: %s", err)
+						return nil
+					}
+					return pt
+				}(),
+			},
+			promdata: `
+http_request_duration_seconds_bucket 1
+			`,
+		},
+	}
+
+	for _, tc := range cases {
+		p, err := NewProm(tc.opt)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		t.Run(tc.name, func(t *testing.T) {
+			pts, err := p.Text2Metrics(bytes.NewBufferString(tc.promdata))
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			for idx, pt := range pts {
+				tu.Equals(t, tc.expect[idx].PrecisionString("m"), pt.PrecisionString("m"))
+				t.Log(tc.expect[idx].PrecisionString("m"))
+			}
+		})
+	}
 }

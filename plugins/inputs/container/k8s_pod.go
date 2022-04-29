@@ -11,31 +11,138 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-const k8sPodObjectName = "kubelet_pod"
+var (
+	_ k8sResourceMetricInterface = (*pod)(nil)
+	_ k8sResourceObjectInterface = (*pod)(nil)
+)
 
-func gatherPod(client k8sClientX, extraTags map[string]string) (k8sResourceStats, error) {
-	list, err := client.getPods().List(context.Background(), metaV1ListOption)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get pods resource: %w", err)
-	}
-	if len(list.Items) == 0 {
-		return nil, nil
-	}
-	return exportPod(list.Items, extraTags), nil
+type pod struct {
+	client    k8sClientX
+	extraTags map[string]string
+	items     []v1.Pod
 }
 
-func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
-	res := newK8sResourceStats()
+func newPod(client k8sClientX, extraTags map[string]string) *pod {
+	return &pod{
+		client:    client,
+		extraTags: extraTags,
+	}
+}
 
-	for idx, item := range items {
-		obj := newPod()
-		obj.tags["name"] = fmt.Sprintf("%v", item.UID)
-		obj.tags["pod_name"] = item.Name
-		obj.tags["node_name"] = item.Spec.NodeName
-		obj.tags["phase"] = fmt.Sprintf("%v", item.Status.Phase)
-		obj.tags["qos_class"] = fmt.Sprintf("%v", item.Status.QOSClass)
-		obj.tags["state"] = fmt.Sprintf("%v", item.Status.Phase) // Depercated
-		obj.tags["status"] = fmt.Sprintf("%v", item.Status.Phase)
+func (p *pod) name() string {
+	return "pod"
+}
+
+func (p *pod) pullItems() error {
+	if len(p.items) != 0 {
+		return nil
+	}
+
+	list, err := p.client.getPods().List(context.Background(), metaV1ListOption)
+	if err != nil {
+		return fmt.Errorf("failed to get pods resource: %w", err)
+	}
+
+	p.items = list.Items
+	return nil
+}
+
+func (p *pod) metric() (inputsMeas, error) {
+	if err := p.pullItems(); err != nil {
+		return nil, err
+	}
+	var res inputsMeas
+
+	for _, item := range p.items {
+		met := &podMetric{
+			tags: map[string]string{
+				"pod":       item.Name,
+				"namespace": defaultNamespace(item.Namespace),
+				// "condition":  "",
+				// "deployment": "",
+				// "daemonset":  "",
+			},
+			fields: map[string]interface{}{
+				"ready": 0,
+				// "scheduled": 0,
+				// "volumes_persistentvolumeclaims_readonly": 0,
+				// "unschedulable": 0,
+			},
+			time: time.Now(),
+		}
+
+		containerReadyCount := 0
+		for _, cs := range item.Status.ContainerStatuses {
+			if cs.State.Running != nil {
+				containerReadyCount++
+			}
+		}
+		met.fields["ready"] = containerReadyCount
+
+		met.tags.append(p.extraTags)
+		res = append(res, met)
+	}
+
+	count, _ := p.count()
+	for ns, c := range count {
+		met := &podMetric{
+			tags:   map[string]string{"namespace": ns},
+			fields: map[string]interface{}{"count": c},
+			time:   time.Now(),
+		}
+		met.tags.append(p.extraTags)
+		res = append(res, met)
+	}
+
+	return res, nil
+}
+
+func (p *pod) count() (map[string]int, error) {
+	if err := p.pullItems(); err != nil {
+		return nil, err
+	}
+
+	m := make(map[string]int)
+	for _, item := range p.items {
+		m[defaultNamespace(item.Namespace)]++
+	}
+
+	if len(m) == 0 {
+		m["default"] = 0
+	}
+
+	return m, nil
+}
+
+func (p *pod) object() (inputsMeas, error) {
+	if err := p.pullItems(); err != nil {
+		return nil, err
+	}
+	var res inputsMeas
+
+	podIDs := make(map[string]interface{})
+
+	for _, item := range p.items {
+		obj := &podObject{
+			tags: map[string]string{
+				"name":         fmt.Sprintf("%v", item.UID),
+				"pod_name":     item.Name,
+				"node_name":    item.Spec.NodeName,
+				"host":         item.Spec.NodeName, // 指定 pod 所在的 host
+				"phase":        fmt.Sprintf("%v", item.Status.Phase),
+				"qos_class":    fmt.Sprintf("%v", item.Status.QOSClass),
+				"state":        fmt.Sprintf("%v", item.Status.Phase), // Depercated
+				"status":       fmt.Sprintf("%v", item.Status.Phase),
+				"cluster_name": defaultClusterName(item.ClusterName),
+				"namespace":    defaultNamespace(item.Namespace),
+			},
+			fields: map[string]interface{}{
+				"age":         int64(time.Since(item.CreationTimestamp.Time).Seconds()),
+				"availale":    len(item.Status.ContainerStatuses),
+				"create_time": item.CreationTimestamp.Time.Unix(),
+			},
+			time: time.Now(),
+		}
 
 		for _, ref := range item.OwnerReferences {
 			if ref.Kind == "ReplicaSet" {
@@ -47,10 +154,6 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 			obj.tags["deployment"] = deployment
 		}
 
-		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
-		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
-		obj.tags.append(extraTags)
-
 		for _, containerStatus := range item.Status.ContainerStatuses {
 			if containerStatus.State.Waiting != nil {
 				obj.tags["state"] = containerStatus.State.Waiting.Reason // Depercated
@@ -58,18 +161,15 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 				break
 			}
 		}
+		obj.tags.append(p.extraTags)
 
-		containerAllCount := len(item.Status.ContainerStatuses)
 		containerReadyCount := 0
 		for _, cs := range item.Status.ContainerStatuses {
 			if cs.State.Running != nil {
 				containerReadyCount++
 			}
 		}
-		obj.fields["age"] = int64(time.Since(item.CreationTimestamp.Time).Seconds())
 		obj.fields["ready"] = containerReadyCount
-		obj.fields["availale"] = containerAllCount
-		obj.fields["create_time"] = item.CreationTimestamp.Time.Unix()
 
 		restartCount := 0
 		for _, containerStatus := range item.Status.InitContainerStatuses {
@@ -81,22 +181,39 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 		for _, containerStatus := range item.Status.EphemeralContainerStatuses {
 			restartCount += int(containerStatus.RestartCount)
 		}
-		obj.fields["restart"] = restartCount // Depercated
+		obj.fields["restart"] = restartCount
 		obj.fields["restarts"] = restartCount
 
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
+		obj.fields.delete("annotations")
 
-		obj.time = time.Now()
-		res.set(defaultNamespace(item.Namespace), obj)
+		res = append(res, obj)
 
-		if err := tryRunInput(&items[idx]); err != nil {
+		podIDs[string(item.UID)] = nil
+
+		tempItem := item
+		if err := tryRunInput(&tempItem); err != nil {
 			l.Warnf("failed to run input(discovery), %w", err)
 		}
 	}
 
-	return res
+	for id, inputList := range discoveryInputsMap {
+		if _, ok := podIDs[id]; ok {
+			continue
+		}
+		for _, ii := range inputList {
+			if ii == nil {
+				continue
+			}
+			if inp, ok := ii.(inputs.InputV2); ok {
+				inp.Terminate()
+			}
+		}
+	}
+
+	return res, nil
 }
 
 //nolint:deadcode,unused
@@ -130,19 +247,13 @@ func (item *podMeta) labels() map[string]string { return item.Labels }
 
 func (item *podMeta) annotations() map[string]string { return item.Annotations }
 
-//nolint:unused
-func (item *podMeta) containerName() string {
-	if len(item.Spec.Containers) == 0 {
-		return ""
+func (item *podMeta) containerImage(name string) string {
+	for _, container := range item.Spec.Containers {
+		if container.Name == name {
+			return container.Image
+		}
 	}
-	return item.Spec.Containers[0].Name
-}
-
-func (item *podMeta) containerImage() string {
-	if len(item.Spec.Containers) == 0 {
-		return ""
-	}
-	return item.Spec.Containers[0].Image
+	return ""
 }
 
 func (item *podMeta) replicaSet() string {
@@ -154,27 +265,47 @@ func (item *podMeta) replicaSet() string {
 	return ""
 }
 
-type pod struct {
+type podMetric struct {
 	tags   tagsType
 	fields fieldsType
 	time   time.Time
 }
 
-func newPod() *pod {
-	return &pod{
-		tags:   make(tagsType),
-		fields: make(fieldsType),
-	}
-}
-
-func (p *pod) LineProto() (*io.Point, error) {
-	return io.NewPoint(k8sPodObjectName, p.tags, p.fields, &io.PointOption{Time: p.time, Category: datakit.Object})
+func (p *podMetric) LineProto() (*io.Point, error) {
+	return io.NewPoint("kube_pod", p.tags, p.fields, &io.PointOption{Time: p.time, Category: datakit.Metric})
 }
 
 //nolint:lll
-func (*pod) Info() *inputs.MeasurementInfo {
+func (*podMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: k8sPodObjectName,
+		Name: "kube_pod",
+		Desc: "Kubernetes pod 指标数据",
+		Type: "metric",
+		Tags: map[string]interface{}{
+			"pod":       inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+		},
+		Fields: map[string]interface{}{
+			"count": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of pods"},
+			"ready": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
+		},
+	}
+}
+
+type podObject struct {
+	tags   tagsType
+	fields fieldsType
+	time   time.Time
+}
+
+func (p *podObject) LineProto() (*io.Point, error) {
+	return io.NewPoint("kubelet_pod", p.tags, p.fields, &io.PointOption{Time: p.time, Category: datakit.Object})
+}
+
+//nolint:lll
+func (*podObject) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "kubelet_pod",
 		Desc: "Kubernetes pod 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
@@ -195,9 +326,8 @@ func (*pod) Info() *inputs.MeasurementInfo {
 			"create_time": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(second)"},
 			"restart":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted. (Depercated, use restarts)"},
 			"restarts":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
-			"ready":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "container ready"},
-			"available":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "container count"},
-			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
+			"ready":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Describes whether the pod is ready to serve requests."},
+			"available":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Number of containers"},
 			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 		},
 	}
@@ -205,5 +335,8 @@ func (*pod) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerMeasurement(&pod{})
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newPod(c, m) })
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newPod(c, m) })
+	registerMeasurement(&podMetric{})
+	registerMeasurement(&podObject{})
 }

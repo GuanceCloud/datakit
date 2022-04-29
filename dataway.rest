@@ -92,3 +92,128 @@ X-Precision: {{xprecision}}
 {
   "json":"jsoncontent",
 }
+
+###
+POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
+
+{
+  "task_type":"HTTP",
+  "task":{
+    "advance_options":{
+
+    },
+    "external_id":"dial_f3b1736db8964c32b43e8b13fa65ea49",
+    "frequency":"1m",
+    "method":"GET",
+    "name":"whytest",
+    "owner_external_id":"wksp_2dc431d6693711eb8ff97aeee04b54af",
+    "success_when_logic":"or",
+    "success_when":[
+        {
+            "status_code":[
+                {
+                    "is":"200"
+                }
+            ],
+            "response_time": "100ms"
+        }
+    ],
+    "url":"https://www.baidu.com"
+  }
+}
+
+###
+POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
+
+{
+  "task_type":"TCP",
+  "task":{
+      "name": "tcp_test",
+      "host": "www.baidu.com",
+      "port": "80",
+      "enable_traceroute": true,
+      "timeout": "20ms",
+      "region": "reg_c7b5kmodh47a55mu9nq0",
+      "success_when": [
+        {
+          "response_time":[ 
+            {
+              "is_contain_dns": true,
+              "target": "10ms"
+            }
+          ],
+          "hops": [
+            {
+              "op": "leq",
+              "target": 30
+            }
+          ]
+        }
+      ],
+      "status": "OK",
+      "frequency": "1m"
+    }
+}
+
+###
+POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
+
+{
+  "task_type":"WEBSOCKET",
+  "task":{
+      "name": "websocket-test",
+      "url": "ws://localhost:8080",
+      "message": "hello",
+      //"post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "10s",
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "response_time": [
+            {
+              "is_contain_dns": true,
+              "target": "10ms"
+            }
+          ],
+          "response_message": [
+            {
+              "is": "hello1"
+            }
+          ],
+          "header": {
+            "status": [
+              {
+                "is": "ok"
+              }
+            ]
+          }
+        }
+      ]
+		}
+}
+
+###
+POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
+
+{
+  "task_type":"ICMP",
+  "task":{
+      "name": "icmp-test",
+      "host": "www.baidu.com",
+      "timeout": "10ms",
+      "packet_count": 3,
+      "enable_traceroute":true,
+     // "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "10s",
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "response_time": "20ms",
+          "packet_loss_percent": 60
+        }
+      ]
+		}
+}
+

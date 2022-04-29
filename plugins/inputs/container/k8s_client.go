@@ -36,7 +36,7 @@ type k8sClientX interface {
 	getNamespaces() kubev1core.NamespaceInterface
 	getPods() kubev1core.PodInterface
 	getPodsForNamespace(namespace string) kubev1core.PodInterface
-	getClusters() kubev1rbac.ClusterRoleInterface
+	getClusterRoles() kubev1rbac.ClusterRoleInterface
 	getIngress() kubev1extensionsbeta1.IngressInterface
 	getEvents() kubev1core.EventInterface
 }
@@ -174,7 +174,7 @@ func (c *k8sClient) getPodsForNamespace(namespace string) kubev1core.PodInterfac
 	return c.CoreV1().Pods(namespace)
 }
 
-func (c *k8sClient) getClusters() kubev1rbac.ClusterRoleInterface {
+func (c *k8sClient) getClusterRoles() kubev1rbac.ClusterRoleInterface {
 	return c.RbacV1().ClusterRoles()
 }
 

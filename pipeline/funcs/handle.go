@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -132,7 +137,7 @@ func GeoIPHandle(ip string) (map[string]string, error) {
 
 	res["city"] = record.City
 	res["province"] = record.Region
-	res["country"] = record.Country_short
+	res["country"] = record.Country
 	res["isp"] = ip2isp.SearchIsp(ip)
 
 	return res, nil

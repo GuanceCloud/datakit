@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package tailer
 
 import (
@@ -8,9 +13,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/pborman/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
@@ -18,14 +23,12 @@ const (
 	defaultSleepDuration = time.Second
 	readBuffSize         = 1024 * 4
 	timeoutDuration      = time.Second * 3
-
-	firstMessage = "[DataKit-logging] First Message. filename: %s, source: %s"
 )
 
 type Single struct {
-	opt      *Option
-	file     *os.File
-	filename string
+	opt                    *Option
+	file                   *os.File
+	filename, baseFilename string
 
 	decoder *encoding.Decoder
 	mult    *multiline.Multiline
@@ -71,6 +74,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 
 	t.readBuff = make([]byte, readBuffSize)
 	t.filename = t.file.Name()
+	t.baseFilename = filepath.Base(t.filename)
 	t.tags = t.buildTags(opt.GlobalTags)
 
 	return t, nil
@@ -97,7 +101,6 @@ func (t *Single) forwardMessage() {
 	)
 	defer timeout.Stop()
 
-	dkio.FeedEventLog(&dkio.Reporter{Message: fmt.Sprintf(firstMessage, t.filename, t.opt.Source), Logtype: "event"})
 	for {
 		select {
 		case <-t.stopCh:
@@ -108,7 +111,7 @@ func (t *Single) forwardMessage() {
 			return
 		case <-timeout.C:
 			if str := t.mult.FlushString(); str != "" {
-				t.sendToPipeline([]worker.TaskData{&SocketTaskData{Source: t.opt.Source, Log: str, Tag: t.tags}})
+				t.send(str)
 			}
 		default:
 			// nil
@@ -125,23 +128,29 @@ func (t *Single) forwardMessage() {
 		}
 
 		lines = b.split()
-		var pending []worker.TaskData
+		pending := []string{}
 		for _, line := range lines {
 			if line == "" {
 				continue
 			}
+
 			var text string
 			text, err = t.decode(line)
 			if err != nil {
 				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
-				dkio.FeedEventLog(&dkio.Reporter{Message: line, Logtype: "event", Status: "warning"}) // event:warning
 			}
 
 			text = t.multiline(text)
 			if text == "" {
 				continue
 			}
-			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: text, Tag: t.tags})
+
+			if t.opt.ForwardFunc != nil {
+				t.sendToForwardCallback(text)
+				continue
+			}
+			logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+			pending = append(pending, logstr)
 		}
 		if len(pending) > 0 {
 			t.sendToPipeline(pending)
@@ -149,17 +158,34 @@ func (t *Single) forwardMessage() {
 	}
 }
 
-func (t *Single) sendToPipeline(pending []worker.TaskData) {
-	task := &worker.Task{
-		TaskName:   "logging/" + t.opt.Pipeline,
-		ScriptName: t.opt.Pipeline,
-		Source:     t.opt.Source,
-		Data:       pending,
-		Opt: &worker.TaskOpt{
-			IgnoreStatus:          t.opt.IgnoreStatus,
-			DisableAddStatusField: t.opt.DisableAddStatusField,
-		},
-		TS: time.Now(),
+func (t *Single) send(text string) {
+	if t.opt.ForwardFunc != nil {
+		t.sendToForwardCallback(text)
+		return
+	}
+
+	t.sendToPipeline([]string{text})
+}
+
+func (t *Single) sendToForwardCallback(text string) {
+	err := t.opt.ForwardFunc(t.baseFilename, text)
+	if err != nil {
+		t.opt.log.Warnf("failed to forward text from file %s, error: %s", t.filename, err)
+	}
+}
+
+func (t *Single) sendToPipeline(pending []string) {
+	task := &worker.TaskTemplate{
+		TaskName:              "logging/" + t.opt.Source,
+		ScriptName:            t.opt.Pipeline,
+		Source:                t.opt.Source,
+		ContentDataType:       worker.ContentString,
+		Content:               pending,
+		IgnoreStatus:          t.opt.IgnoreStatus,
+		DisableAddStatusField: t.opt.DisableAddStatusField,
+		TS:                    time.Now(),
+		MaxMessageLen:         maxFieldsLength,
+		Tags:                  t.tags,
 	}
 
 	err := worker.FeedPipelineTaskBlock(task)
@@ -201,7 +227,7 @@ func (t *Single) buildTags(globalTags map[string]string) map[string]string {
 		tags[k] = v
 	}
 	if _, ok := tags["filename"]; !ok {
-		tags["filename"] = filepath.Base(t.filename)
+		tags["filename"] = t.baseFilename
 	}
 	return tags
 }
@@ -253,4 +279,18 @@ func (b *buffer) split() []string {
 	}
 
 	return res
+}
+
+func removeAnsiEscapeCodes(oldtext string, run bool) string {
+	if !run {
+		return oldtext
+	}
+
+	newtext, err := ansi.Strip([]byte(oldtext))
+	if err != nil {
+		l.Debugf("remove ansi code error: %w", err)
+		return oldtext
+	}
+
+	return string(newtext)
 }

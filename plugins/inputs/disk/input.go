@@ -3,6 +3,7 @@ package disk
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -33,6 +34,10 @@ var (
   ## By default stats will be gathered for all mount points.
   ## Set mount_points will restrict the stats to only the specified mount points.
   # mount_points = ["/"]
+
+  # Physical devices only (e.g. hard disks, cd-rom drives, USB keys)
+  # and ignore all others (e.g. memory partitions such as /dev/shm)
+  only_physical_device = false
 
   ## Ignore mount points by filesystem type.
   ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
@@ -76,15 +81,27 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"inodes_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Total inodes",
+				Desc: "Total inodes(**DEPRECATED: use inodes_total_mb instead**)",
+			},
+			"inodes_total_mb": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
+				Desc: "Total inodes(in MB)",
 			},
 			"inodes_free": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Free inodes",
+				Desc: "Free inodes(**DEPRECATED: use inodes_free_mb instead**)",
+			},
+			"inodes_free_mb": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
+				Desc: "Free inodes(in MB)",
+			},
+			"inodes_used_mb": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
+				Desc: "Used inodes(in MB)",
 			},
 			"inodes_used": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Used inodes",
+				Desc: "Used inodes(**DEPRECATED: use inodes_used_mb instead**)",
 			},
 		},
 		Tags: map[string]interface{}{
@@ -98,10 +115,14 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type Input struct {
-	Interval    datakit.Duration
+	Interval datakit.Duration
+
+	Tags        map[string]string `toml:"tags"`
 	MountPoints []string          `toml:"mount_points"`
 	IgnoreFS    []string          `toml:"ignore_fs"`
-	Tags        map[string]string `toml:"tags"`
+
+	IgnoreZeroBytesDisk bool `toml:"ignore_zero_bytes_disk"`
+	OnlyPhysicalDevice  bool `toml:"only_physical_device"`
 
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr inputs.Measurement
@@ -138,7 +159,7 @@ func (*Input) AvailableArchs() []string {
 
 func (ipt *Input) Collect() error {
 	ipt.collectCache = make([]inputs.Measurement, 0)
-	disks, partitions, err := ipt.diskStats.FilterUsage(ipt.MountPoints, ipt.IgnoreFS)
+	disks, partitions, err := ipt.diskStats.FilterUsage()
 	if err != nil {
 		return fmt.Errorf("error getting disk usage info: %w", err)
 	}
@@ -164,13 +185,18 @@ func (ipt *Input) Collect() error {
 				(float64(du.Used) + float64(du.Free)) * 100
 		}
 		fields := map[string]interface{}{
-			"total":        du.Total,
-			"free":         du.Free,
-			"used":         du.Used,
-			"used_percent": usedPercent,
-			"inodes_total": du.InodesTotal,
-			"inodes_free":  du.InodesFree,
-			"inodes_used":  du.InodesUsed,
+			"total":           du.Total,
+			"free":            du.Free,
+			"used":            du.Used,
+			"used_percent":    usedPercent,
+			"inodes_total_mb": du.InodesTotal / (1024 * 1024),
+			"inodes_free_mb":  du.InodesFree / (1024 * 1024),
+			"inodes_used_mb":  du.InodesUsed / (1024 * 1024),
+
+			// Deprecated
+			"inodes_total": wrapUint64(du.InodesTotal),
+			"inodes_free":  wrapUint64(du.InodesFree),
+			"inodes_used":  wrapUint64(du.InodesUsed),
 		}
 		ipt.appendMeasurement(metricName, tags, fields, ts)
 	}
@@ -178,10 +204,16 @@ func (ipt *Input) Collect() error {
 	return nil
 }
 
+func wrapUint64(x uint64) int64 {
+	if x > uint64(math.MaxInt64) {
+		return -1
+	}
+	return int64(x)
+}
+
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("disk input started")
-	io.FeedEventLog(&io.Reporter{Message: "disk start ok, ready for collecting metrics.", Logtype: "event"})
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	ipt.IgnoreFS = unique(ipt.IgnoreFS)
 
@@ -223,6 +255,10 @@ func (ipt *Input) Terminate() {
 
 // ReadEnv support envs：
 //   ENV_INPUT_DISK_IGNORE_FS : []string
+//   ENV_INPUT_DISK_TAGS : "a=b,c=d"
+//   ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE : bool
+//   ENV_INPUT_DISK_INTERVAL : datakit.Duration
+//   ENV_INPUT_DISK_MOUNT_POINTS : []string
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if fsList, ok := envs["ENV_INPUT_DISK_IGNORE_FS"]; ok {
 		list := strings.Split(fsList, ",")
@@ -235,6 +271,29 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		for k, v := range tags {
 			ipt.Tags[k] = v
 		}
+	}
+
+	if str := envs["ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE"]; str != "" {
+		ipt.OnlyPhysicalDevice = true
+	}
+
+	//   ENV_INPUT_DISK_INTERVAL : datakit.Duration
+	//   ENV_INPUT_DISK_MOUNT_POINTS : []string
+	if str, ok := envs["ENV_INPUT_DISK_INTERVAL"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_DISK_INTERVAL to time.Duration: %s, ignore", err)
+		} else {
+			ipt.Interval.Duration = config.ProtectedInterval(minInterval,
+				maxInterval,
+				da)
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_DISK_MOUNT_POINTS"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add ENV_INPUT_DISK_MOUNT_POINTS from ENV: %v", arrays)
+		ipt.MountPoints = append(ipt.MountPoints, arrays...)
 	}
 }
 
@@ -250,14 +309,30 @@ func unique(strSlice []string) []string {
 	return list
 }
 
+func newDefaultInput() *Input {
+	ipt := &Input{
+		Interval: datakit.Duration{Duration: time.Second * 10},
+		IgnoreFS: []string{
+			"autofs",
+			"tmpfs",
+			"devtmpfs",
+			"devfs",
+			"iso9660",
+			"overlay",
+			"aufs",
+			"squashfs",
+		},
+		semStop: cliutils.NewSem(),
+		Tags:    make(map[string]string),
+	}
+
+	x := &PSDisk{ipt: ipt}
+	ipt.diskStats = x
+	return ipt
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			diskStats: &PSDisk{},
-			Interval:  datakit.Duration{Duration: time.Second * 10},
-
-			semStop: cliutils.NewSem(),
-			Tags:    make(map[string]string),
-		}
+		return newDefaultInput()
 	})
 }

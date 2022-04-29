@@ -6,12 +6,9 @@
 
 # {{.InputName}}
 
-
-日志采集器支持两种模式:
-- 从磁盘读取 ：采集文件尾部数据（类似命令行 `tail -f`），上报到观测云。
-- socket端口获取：可通过tcp/udp 将文件发送到datakit
-
-> 注意：两种采集方式目前互斥，当需要 socket 传输日志时 请修改配置文件中的`文件列表`： *logfiles=[]*
+本文档主要介绍本地磁盘日志采集和 Socket 日志采集：
+- 磁盘日志采集 ：采集文件尾部数据（类似命令行 `tail -f`）
+- Socket 端口获取：通过 TCP/UDP 方式将日志发送给 DataKit 
 
 ## 配置
 
@@ -30,8 +27,8 @@
     "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
   ]
 
-  ## socket目前支持两种协议：tcp,udp。建议开启内网端口防止安全隐患
-  ## socket和log目前是互斥行为，要开启socket采集日志 需要配置logfiles=[]
+  ## socket 目前支持两种协议：tcp/udp。建议开启内网端口防止安全隐患
+  ## socket 和 log 目前只能选择其中之一，不能既通过文件采集，又通过 socket 采集
   socket = [
    "tcp://0.0.0.0:9540"
    "udp://0.0.0.0:9541"
@@ -57,6 +54,11 @@
   #    `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
   character_encoding = ""
   
+  ## 无论从文件读取还是从socket中读取的日志, 默认的单行最大长度为 32k
+  ## 如果您的日志单行有超过32K的情况，请配置 maximum_length 为可能的最大长度
+  ## 但是 maximum_length 最大可以配置成32M
+  # maximum_length = 32766
+
   ## 设置正则表达式，例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
   ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
   ## 使用3个单引号 '''this-regexp''' 避免转义
@@ -66,6 +68,10 @@
   ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
   remove_ansi_escape_codes = false
   
+  ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
+  ## 时间单位支持 "ms", "s", "m", "h"
+  ignore_dead_log = "10m"
+
   # 自定义 tags
   [inputs.logging.tags]
   # some_tag = "some_value"
@@ -73,14 +79,14 @@
   # ...
 ```
 
->  注意：DataKit 启动后，`logfiles` 中配置的日志文件有新的日志产生才会采集上来，**老的日志数据是不会采集的**。
+> 关于 `ignore_dead_log` 的说明：如果文件已经在采集，但 10min 内没有新日志写入的话，DataKit 会关闭该文件的采集。在这期间（10min），该文件**不能**被物理删除（如 `rm` 之后，该文件只是标记删除，DataKit 关闭该文件后，该文件才会真正被删除）。
 
 ### socket 采集日志
 
 将 conf 中 `logfiles` 注释掉，并配置 `sockets`。以 log4j2 为例:
 
 ``` xml
- <!--socket配置日志传输到本机9540端口，protocol默认tcp-->
+ <!-- socket 配置日志传输到本机 9540 端口，protocol 默认 tcp -->
  <Socket name="name1" host="localHost" port="9540" charset="utf8">
      <!-- 输出格式  序列布局-->
      <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
@@ -89,6 +95,8 @@
      <!-- <SerializedLayout/>-->
  </Socket>
 ```
+
+更多: Java Go Python 主流日志组件的配置及代码示例 请参阅：[socket client 配置](logging_socket)
 
 ### 多行日志采集
 
@@ -101,7 +109,7 @@
 在 `logging.conf` 中，修改如下配置：
 
 ```toml
-match = '''这里填写具体的正则表达式''' # 注意，这里的正则俩边，建议分别加上三个「英文单引号」
+multiline_match = '''这里填写具体的正则表达式''' # 注意，这里的正则俩边，建议分别加上三个「英文单引号」
 ```
 
 日志采集器中使用的正则表达式风格[参考](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
@@ -118,9 +126,9 @@ ZeroDivisionError: division by zero
 2020-10-23 06:41:56,688 INFO demo.py 5.0
 ```
 
-Match 配置为 `^\d{4}-\d{2}-\d{2}.*`（意即匹配形如 `2020-10-23` 这样的行首）
+`multiline_match` 配置为 `^\d{4}-\d{2}-\d{2}.*` 时，（意即匹配形如 `2020-10-23` 这样的行首）
 
-切割出的行协议如下。可以看到 `Traceback ...` 这一行没有单独形成一条（行协议）日志，而是追加在上一条日志中。
+切割出的三个行协议点如下（行号分别是 1/2/8）。可以看到 `Traceback ...` 这一段（第 3 ~ 6 行）没有单独形成一条日志，而是追加在上一条日志（第 2 行）的 `message` 字段中。
 
 ```
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 1.0" 1611746438938808642
@@ -133,6 +141,52 @@ ZeroDivisionError: division by zero
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.0" 1611746443938917265
 ```
 
+#### 超长多行日志处理的限制
+
+目前最多能处理不超过 1000 行的单条多行日志，如果实际多行日志超过 1000 行，DataKit 会将其识别成多条。举例如下，假定有如下多行日志，我们要将其识别成单条日志：
+
+```log
+2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+    response = self.full_dispatch_request()
+      ...                                 <---- 此处省略 996 行，加上上面的 4 行，刚好 1000 行
+        File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+          response = self.full_dispatch_request()
+             ZeroDivisionError: division by zero
+2020-10-23 06:41:56,688 INFO demo.py 5.0  <---- 全新的一条多行日志
+Traceback (most recent call last):
+ ...
+```
+
+此处，由于有超长的多行日志，第一条日志总共有 1003 行，但 DataKit 这里会做一个截取动作，具体而言，这里会切割出三条日志：
+
+第一条：即头部的 1000 行
+
+```log
+2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+    response = self.full_dispatch_request()
+      ...                                 <---- 此处省略 996 行，加上上面的 4 行，刚好 1000 行
+```
+
+第二条：除去头部的 1000 条，剩余的部分独立成为一条日志
+
+```log
+        File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+          response = self.full_dispatch_request()
+             ZeroDivisionError: division by zero
+```
+
+第三条：下面一条全新的日志：
+
+```log
+2020-10-23 06:41:56,688 INFO demo.py 5.0  <---- 全新的一条多行日志
+Traceback (most recent call last):
+ ...
+```
+
 ### Pipeline 配置和使用
 
 [Pipeline](pipeline) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
@@ -142,18 +196,22 @@ testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.
 - `time`：即日志的产生时间，如果没有提取 `time` 字段或解析此字段失败，默认使用系统当前时间
 - `status`：日志的等级，如果没有提取出 `status` 字段，则默认将 `stauts` 置为 `info`
 
-有效的 `status` 字段值（不区分大小写）：
+#### 可用日志等级
 
-| status 有效字段值                | 对应值     |
-| :---                             | ---        |
-| `a`, `alert`                     | `alert`    |
-| `c`, `critical`                  | `critical` |
-| `e`, `error`                     | `error`    |
-| `w`, `warning`                   | `warning`  |
-| `n`, `notice`                    | `notice`   |
-| `i`, `info`                      | `info`     |
-| `d`, `debug`, `trace`, `verbose` | `debug`    |
-| `o`, `s`, `OK`                   | `OK`       |
+有效的 `status` 字段值如下（不区分大小写）：
+
+| 日志可用等级          | 简写    | Studio 显示值 |
+| ------------          | :----   | ----          |
+| `alert`               | `a`     | `alert`       |
+| `critical`            | `c`     | `critical`    |
+| `error`               | `e`     | `error`       |
+| `warning`             | `w`     | `warning`     |
+| `notice`              | `n`     | `notice`      |
+| `info`                | `i`     | `info`        |
+| `debug/trace/verbose` | `d`     | `debug`       |
+| `OK`                  | `o`/`s` | `OK`          |
+
+> 注：如果日志等级（status）不属于上述任何一种（含简写），那么 DataKit 会将其 status 字段置为 `unknown`。该功能在 [1.2.15](changelog#b6b4b295) 版本发布。
 
 示例：假定文本数据如下：
 
@@ -233,7 +291,23 @@ Pipeline 的几个注意事项：
 
 {{ end }} 
 
-## 常见问题
+## FAQ
+
+### 为什么在页面上看不到日志数据？
+
+DataKit 启动后，`logfiles` 中配置的日志文件==有新的日志产生才会采集上来，老的日志数据是不会采集的==。
+
+另外，一旦开始采集某个日志文件，将会自动触发一条日志，内容大概如下：
+
+```
+First Message. filename: /some/path/to/new/log ...
+```
+
+如果看到这样的信息，证明指定的文件==已经开始采集，只是当前尚无新的日志数据产生==。另外，日志数据的上传、处理、入库也有一定的时延，即使有新的数据产生，也需要等待一定时间（< 1min）。
+
+### 磁盘日志采集和 Socket 日志采集的互斥性
+
+两种采集方式目前互斥，当以 Socket 方式采集日志时，需将配置中的 `logfiles` 字段置空：`logfiles=[]`
 
 ### 远程文件采集方案
 
@@ -269,6 +343,44 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 这个问题并不会影响到正常的服务运行，因为 socket 处理如果不是异步并主动丢弃堆积日志的话，日志会在 client 端产生堆积，严重情况造成内存泄露从而影响主业务的运行。
 datakit 也会在处理不及造成日志堆积之后 缓存一定量日志到内存当中
 
-### 更多参考
+### 如何估算日志的总量
 
-- pipeline 性能测试和对比[文档](logging-pipeline-bench)
+由于日志的收费是按照条数来计费的，但一般情况下，大部分的日志都是程序写到磁盘的，只能看到磁盘占用大小（比如每天 100GB 日志）。
+
+一种可行的方式，可以用以下简单的 shell 来判断：
+
+```shell
+# 统计 1GB 日志的行数
+head -c 1g path/to/your/log.txt | wc -l
+```
+
+有时候，要估计一下日志采集可能带来的流量消耗：
+
+```shell
+# 统计 1GB 日志压缩后大小（字节）
+head -c 1g path/to/your/log.txt | gzip | wc -c
+```
+
+这里拿到的是压缩后的字节数(bytes)，按照网络 bit 的计算方法（x8），其计算方式如下，以此可拿到大概的带宽消耗：
+
+```
+bytes * 2 * 8 /1024/1024 = xxx MBit
+``` 
+
+但实际上 DataKit 的压缩率不会这么高，因为 DataKit 不会一次性发送 1GB 的数据，而且分多次发送的，这个压缩率在 85% 左右（即 100MB 压缩到 15MB），故一个大概的计算方式是：
+
+```
+1GB * 2 * 8 * 0.15/1024/1024 = xxx MBit
+```
+
+> 此处 `*2` 考虑到了 [Pipeline 切割](pipeline)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
+
+## 延伸阅读
+
+- [DataKit 日志采集综述](datakit-logging)
+- [Pipeline: 文本数据处理](pipeline)
+- [Pipeline 调试](datakit-pl-how-to)
+- [Pipeline 性能测试和对比](logging-pipeline-bench)
+- [容器采日志采集](container#224e2ccd)
+  - [通过 Sidecar(logfwd) 采集容器内部日志](logfwd)
+- [正确使用正则表达式来配置](datakit-input-conf#9da8bc26) 

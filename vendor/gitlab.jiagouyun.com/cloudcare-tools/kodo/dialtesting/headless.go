@@ -17,7 +17,6 @@ import (
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/cdproto/security"
 	"github.com/chromedp/chromedp"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
@@ -332,8 +331,29 @@ func (t *HeadlessTask) rumSpecialSteps() {
 	t.hasAddSpecialSteps = true
 }
 
-func (t *HeadlessTask) CheckResult() (reasons []string) {
+func (t *HeadlessTask) CheckResult() (reasons []string, flag bool) {
 	return
+}
+
+func (t *HeadlessTask) InitDebug() error {
+	var err error
+	t.timeOutDuration, err = time.ParseDuration(t.TimeOut)
+	if err != nil {
+		log.Printf(`[warn] no set timeout, use task frequency`)
+	}
+
+	if strings.ToLower(t.CurStatus) == StatusStop {
+		return nil
+	}
+
+	// 当前headless主要做browse rum 性能指标采集
+	if !t.hasAddSpecialSteps {
+		t.rumSpecialSteps()
+	}
+
+	// TODO: more checking on task validity
+
+	return nil
 }
 
 func (t *HeadlessTask) Init() error {

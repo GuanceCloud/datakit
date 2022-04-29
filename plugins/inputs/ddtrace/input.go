@@ -2,133 +2,189 @@
 package ddtrace
 
 import (
-	"regexp"
-	"strings"
+	"net/http"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
-	inputName           = "ddtrace"
-	ddtraceSampleConfig = `
+	_ inputs.InputV2   = &Input{}
+	_ inputs.HTTPInput = &Input{}
+)
+
+const (
+	inputName    = "ddtrace"
+	sampleConfig = `
 [[inputs.ddtrace]]
   ## DDTrace Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
   ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
   endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
 
-  ## Ignore ddtrace resources list. List of strings
-  ## A list of regular expressions filter out certain resource name.
-  ## All entries must be double quoted and split by comma.
-  # ignore_resources = []
+  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
+  ## that want to send to data center. Those keys set by client code will take precedence over
+  ## keys in [inputs.ddtrace.tags]. DOT(.) IN KEY WILL BE REPLACED BY DASH(_) WHEN SENDING.
+  # customer_tags = ["key1", "key2", ...]
 
-  ## customer_tags is a list of keys set by client code like span.SetTag(key, value)
-  ## this field will take precedence over [tags] while [customer_tags] merge with [tags].
-  ## IT'S EMPTY STRING VALUE AS DEFAULT indicates that no customer tag set up. DO NOT USE DOT(.) IN TAGS
-  # customer_tags = []
+  ## Keep rare tracing resources list switch.
+  ## If some resources are rare enough(not presend in 1 hour), those resource will always send
+  ## to data center and do not consider samplers and filters.
+  # keep_rare_resource = false
 
-  ## tags is ddtrace configed key value pairs
+  ## By default every error presents in span will be send to data center and omit any filters or
+  ## sampler. If you want to get rid of some error status, you can set the error status list here.
+  # omit_err_status = ["404"]
+
+  ## Ignore tracing resources map like service:[resources...].
+  ## The service name is the full service name in current application.
+  ## The resource list is regular expressions uses to block resource names.
+  # [inputs.ddtrace.close_resource]
+    # service1 = ["resource1", "resource2", ...]
+    # service2 = ["resource1", "resource2", ...]
+    # ...
+
+  ## Sampler config uses to set global sampling strategy.
+  ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
+  ##  -1: always reject any tracing data send to datakit
+  ##   0: accept tracing data and calculate with sampling_rate
+  ##   1: always send to data center and do not consider sampling_rate
+  ## sampling_rate used to set global sampling rate
+  # [inputs.ddtrace.sampler]
+    # priority = 0
+    # sampling_rate = 1.0
+
+  ## Piplines use to manipulate message and meta data. If this item configured right then
+  ## the current input procedure will run the scripts wrote in pipline config file against the data
+  ## present in span message.
+  ## The string on the left side of the equal sign must be identical to the service name that
+  ## you try to handle.
+  # [inputs.ddtrace.pipelines]
+    # service1 = "service1.p"
+    # service2 = "service2.p"
+    # ...
+
   # [inputs.ddtrace.tags]
-    # some_tag = "some_value"
-    # more_tag = "some_other_value"
-    ## ...
+    # key1 = "value1"
+    # key2 = "value2"
+    # ...
 `
-	customerKeys []string
-	ddTags       map[string]string
-	log                         = logger.DefaultSLogger(inputName)
-	_            inputs.InputV2 = &Input{}
 )
 
 var (
-	//nolint: unused,deadcode,varcheck
-	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
-	ignoreResources      []*regexp.Regexp
-	filters              []traceFilter
+	log                                          = logger.DefaultSLogger(inputName)
+	v1, v2, v3, v4, v5                           = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
+	info, stats                                  = "/info", "/v0.6/stats"
+	afterGather                                  = itrace.NewAfterGather()
+	afterGatherRun     itrace.AfterGatherHandler = afterGather
+	keepRareResource   *itrace.KeepRareResource
+	closeResource      *itrace.CloseResource
+	sampler            *itrace.Sampler
+	customerKeys       = []string{"runtime-id"}
+	tags               map[string]string
 )
 
 type Input struct {
-	Path             string                     `toml:"path,omitempty"`           // deprecated
-	TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs,omitempty"` // deprecated
-	TraceSampleConf  *trace.TraceSampleConfig   `toml:"sample_config"`            // deprecated
-	Endpoints        []string                   `toml:"endpoints"`
-	IgnoreResources  []string                   `toml:"ignore_resources"`
-	CustomerTags     []string                   `toml:"customer_tags"`
-	Tags             map[string]string          `toml:"tags"`
+	Path             string              `toml:"path,omitempty"`           // deprecated
+	TraceSampleConfs interface{}         `toml:"sample_configs,omitempty"` // deprecated []*itrace.TraceSampleConfig
+	TraceSampleConf  interface{}         `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
+	IgnoreResources  []string            `toml:"ignore_resources"`         // deprecated []string
+	Endpoints        []string            `toml:"endpoints"`
+	CustomerTags     []string            `toml:"customer_tags"`
+	KeepRareResource bool                `toml:"keep_rare_resource"`
+	OmitErrStatus    []string            `toml:"omit_err_status"`
+	CloseResource    map[string][]string `toml:"close_resource"`
+	Sampler          *itrace.Sampler     `toml:"sampler"`
+	Pipelines        map[string]string   `toml:"pipelines"`
+	Tags             map[string]string   `toml:"tags"`
 }
 
 func (*Input) Catalog() string {
 	return inputName
 }
 
-func (*Input) SampleConfig() string {
-	return ddtraceSampleConfig
-}
-
 func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
+func (*Input) SampleConfig() string {
+	return sampleConfig
+}
+
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&DDTraceMeasurement{}}
+	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
 }
 
-func (i *Input) Run() {
-	log = logger.SLogger(inputName)
-	log.Infof("%s input started...", inputName)
-	iod.FeedEventLog(&iod.Reporter{Message: "ddtrace start ok, ready for collecting metrics.", Logtype: "event"})
-
-	// rare traces penetration
-	filters = append(filters, rare)
-	// add resource filter
-	for k := range i.IgnoreResources {
-		if reg, err := regexp.Compile(i.IgnoreResources[k]); err != nil {
-			log.Warnf("parse regular expression %q failed", i.IgnoreResources[k])
-			continue
-		} else {
-			ignoreResources = append(ignoreResources, reg)
-		}
-	}
-	if len(ignoreResources) != 0 {
-		filters = append(filters, checkResource)
-	}
-	// add sample filter
-	filters = append(filters, sample)
-
-	for k := range i.CustomerTags {
-		if strings.Contains(i.CustomerTags[k], ".") {
-			log.Warn("customer tag can not contains dot(.)")
-		} else {
-			customerKeys = append(customerKeys, i.CustomerTags[k])
-		}
-	}
-
-	if i.Tags != nil {
-		ddTags = i.Tags
-	} else {
-		ddTags = map[string]string{}
-	}
-}
-
-func (i *Input) RegHTTPHandler() {
-	for _, endpoint := range i.Endpoints {
+func (ipt *Input) RegHTTPHandler() {
+	var isReg bool
+	for _, endpoint := range ipt.Endpoints {
 		switch endpoint {
-		case v3, v4, v5:
-			http.RegHTTPHandler("POST", endpoint, handleTraces(endpoint))
-			http.RegHTTPHandler("PUT", endpoint, handleTraces(endpoint))
-			log.Infof("pattern %s registered", endpoint)
-		case v6:
-			http.RegHTTPHandler("POST", endpoint, handleStats)
-			http.RegHTTPHandler("PUT", endpoint, handleStats)
+		case v1, v2, v3, v4, v5:
+			isReg = true
+			dkhttp.RegHTTPHandler(http.MethodPost, endpoint, handleDDTraceWithVersion(endpoint))
+			dkhttp.RegHTTPHandler(http.MethodPut, endpoint, handleDDTraceWithVersion(endpoint))
 			log.Infof("pattern %s registered", endpoint)
 		default:
 			log.Errorf("unrecognized ddtrace agent endpoint")
 		}
 	}
+	if isReg {
+		// itrace.StartTracingStatistic()
+		// unsupported api yet
+		dkhttp.RegHTTPHandler(http.MethodPost, info, handleDDInfo)
+		dkhttp.RegHTTPHandler(http.MethodPost, stats, handleDDStats)
+	}
+}
+
+func (ipt *Input) Run() {
+	log = logger.SLogger(inputName)
+	log.Infof("%s input started...", inputName)
+
+	// add calculators
+	// afterGather.AppendCalculator(itrace.StatTracingInfo)
+
+	// add filters: the order append in AfterGather is important!!!
+	// add error status penetration
+	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
+	// add close resource filter
+	if len(ipt.CloseResource) != 0 {
+		closeResource = &itrace.CloseResource{}
+		closeResource.UpdateIgnResList(ipt.CloseResource)
+		afterGather.AppendFilter(closeResource.Close)
+	}
+	// add omit certain error status list
+	if len(ipt.OmitErrStatus) != 0 {
+		afterGather.AppendFilter(itrace.OmitStatusCodeFilterWrapper(ipt.OmitErrStatus))
+	}
+	// add rare resource keeper
+	if ipt.KeepRareResource {
+		keepRareResource = &itrace.KeepRareResource{}
+		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
+		afterGather.AppendFilter(keepRareResource.Keep)
+	}
+	// add sampler
+	log.Debugf("Sampler = %v", ipt.Sampler)
+	if ipt.Sampler != nil {
+		sampler = ipt.Sampler
+		afterGather.AppendFilter(sampler.Sample)
+	}
+	// add piplines
+	if len(ipt.Pipelines) != 0 {
+		afterGather.AppendFilter(itrace.PiplineFilterWrapper(inputName, ipt.Pipelines))
+	}
+
+	for i := range ipt.CustomerTags {
+		customerKeys = append(customerKeys, ipt.CustomerTags[i])
+	}
+	tags = ipt.Tags
+}
+
+func (ipt *Input) Terminate() {
+	// TODO: 必须写
 }
 
 func init() { //nolint:gochecknoinits

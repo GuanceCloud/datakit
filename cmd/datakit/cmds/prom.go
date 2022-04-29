@@ -3,7 +3,6 @@ package cmds
 import (
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -159,22 +158,18 @@ func getPromInput(configPath string) (*prom.Input, error) {
 }
 
 func showPromInput(input *prom.Input) error {
-	// init client
 	err := input.Init()
 	if err != nil {
 		return err
 	}
 
-	// get collected points
-	u, err := url.Parse(input.URL)
-	if err != nil {
-		return err
-	}
-
 	var points []*io.Point
-	if input.Output != "" || u.Scheme != "http" && u.Scheme != "https" {
-		points, err = input.CollectFromFile()
+	if input.Output != "" {
+		// If input.Output is configured, raw metric text is written to file.
+		// In this case, read the file and perform Text2Metric.
+		points, err = input.CollectFromFile(input.Output)
 	} else {
+		// Collect from all URLs.
 		points, err = input.Collect()
 	}
 	if err != nil {

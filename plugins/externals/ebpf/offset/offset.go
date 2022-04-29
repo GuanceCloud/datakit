@@ -1,5 +1,5 @@
-//go:build (linux && ignore) || ebpf
-// +build linux,ignore ebpf
+//go:build (linux && amd64 && ebpf) || (linux && arm64 && ebpf)
+// +build linux,amd64,ebpf linux,arm64,ebpf
 
 package offset
 
@@ -257,7 +257,7 @@ func guessTCP4(serverAddr string, conninfo Conninfo, ebpfMapGuess *ebpf.Map,
 	if err := updateMapGuessStatus(ebpfMapGuess, status); err != nil {
 		return err
 	}
-	time.Sleep(time.Millisecond * 17)
+	time.Sleep(time.Millisecond * 15)
 	conn, err := net.Dial("tcp4", serverAddr)
 	if err != nil {
 		return err
@@ -309,7 +309,6 @@ func guessTCP4(serverAddr string, conninfo Conninfo, ebpfMapGuess *ebpf.Map,
 	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_TCP_SK_SRTT_US)
 	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_TCP_SK_MDEV_US)
 	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_SK_DADDR)
-	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_SK_FAMILY)
 	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_NS_COMMON_INUM)
 	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_SOCKET_SK)
 
@@ -320,7 +319,6 @@ func guessTCP4(serverAddr string, conninfo Conninfo, ebpfMapGuess *ebpf.Map,
 		status.offset_sk_dport > MAXOFFSET ||
 		status.offset_socket_sk > MAXOFFSET ||
 		status.offset_sk_daddr > MAXOFFSET ||
-		status.offset_sk_family > MAXOFFSET ||
 		status.offset_sk_net > MAXOFFSET ||
 		status.offset_ns_common_inum > MAXOFFSET {
 		l.Error(status)

@@ -167,6 +167,9 @@ spec:
         - mountPath: /var/run/docker.sock
           name: docker-socket
           readOnly: true
+        - mountPath: /var/run/containerd/containerd.sock
+          name: containerd-socket
+          readOnly: true
         - mountPath: /host/proc
           name: proc
           readOnly: true
@@ -180,12 +183,22 @@ spec:
           name: rootfs
         - mountPath: /sys/kernel/debug
           name: debugfs
+        #- mountPath: /usr/local/datakit/conf.d/db/mysql.conf
+        #  name: datakit-conf
+        #  subPath: mysql.conf
+        #  readOnly: true
+        #- mountPath: /usr/local/datakit/conf.d/db/redis.conf
+        #  name: datakit-conf
+        #  subPath: redis.conf
+        #  readOnly: true
         workingDir: /usr/local/datakit
       hostIPC: true
       hostPID: true
       restartPolicy: Always
       serviceAccount: datakit
       serviceAccountName: datakit
+      tolerations:
+      - operator: Exists
       volumes:
       - configMap:
           name: datakit-conf
@@ -193,6 +206,9 @@ spec:
       - hostPath:
           path: /var/run/docker.sock
         name: docker-socket
+      - hostPath:
+          path: /var/run/containerd/containerd.sock
+        name: containerd-socket
       - hostPath:
           path: /proc
           type: ""
@@ -217,3 +233,18 @@ spec:
     rollingUpdate:
       maxUnavailable: 1
     type: RollingUpdate
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: datakit-conf
+  namespace: datakit
+data:
+    #mysql.conf: |-
+    #  [inputs.mysql]
+    #  ...
+    #redis.conf: |-
+    #  [inputs.redis]
+    #  ...

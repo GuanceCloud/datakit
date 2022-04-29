@@ -67,9 +67,13 @@ func TestHandleBody(t *testing.T) {
 	}{
 		{
 			name: `[json]tag exceed limit`,
-			opt: &lp.Option{
-				MaxTags: 1,
-			},
+
+			opt: func() *lp.Option {
+				o := lp.NewDefaultOption()
+				o.MaxTags = 1
+				return o
+			}(),
+
 			body: []byte(`[
 			{
 				"measurement":"abc",
@@ -138,14 +142,24 @@ func TestHandleBody(t *testing.T) {
 				"time":1624550216
 			}
 			]`),
-			opt:  &lp.Option{Precision: `s`},
+
+			opt: func() *lp.Option {
+				o := lp.NewDefaultOption()
+				o.Precision = "s"
+				return o
+			}(),
+
 			npts: 2,
 			js:   true,
 		},
 
 		{
 			name: `raw point body with/wthout timestamp`,
-			opt:  &lp.Option{Precision: `s`},
+			opt: func() *lp.Option {
+				o := lp.NewDefaultOption()
+				o.Precision = "s"
+				return o
+			}(),
 			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
 			view,t1=tag2,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
 			resource,t1=tag3,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
@@ -212,18 +226,33 @@ type apiWriteMock struct {
 	t *testing.T
 }
 
-func (x *apiWriteMock) sendToPipLine(t *plw.Task) error {
+func (x *apiWriteMock) sendToPipLine(t plw.Task) error {
 	x.t.Helper()
 	x.t.Log("under mock impl: sendToPipLine")
 
-	for _, td := range t.Data {
-		r := plw.NewResult()
-		if err := td.Handler(r); err != nil {
-			x.t.Error(err)
+	dLen := 0
+	cntType := plw.TaskDataContentType(t)
+	switch cntType {
+	case plw.ContentByte:
+		d, err := plw.TaskDataGetContentByte(t)
+		if err != nil {
+			x.t.Fatal(err)
 		} else {
-			x.t.Logf("result: %v", r)
+			dLen = len(d)
 		}
+	case plw.ContentString:
+		d, err := plw.TaskDataGetContentStr(t)
+		if err != nil {
+			x.t.Fatal(err)
+		} else {
+			dLen = len(d)
+		}
+	default:
+		x.t.Fatalf("unknown content type %s", cntType)
 	}
+	x.t.Log(dLen)
+
+	// 执行 Callback 将 feed 导致计算 dataway client count 时 panic
 
 	return nil
 }
@@ -243,7 +272,7 @@ func (x *apiWriteMock) geoInfo(ip string) map[string]string {
 func TestAPIWrite(t *testing.T) {
 	router := gin.New()
 	router.Use(uhttp.RequestLoggerMiddleware)
-	router.POST("/v1/write/:category", wrap(apiWrite, &apiWriteMock{t: t}))
+	router.POST("/v1/write/:category", rawHTTPWraper(nil, apiWrite, &apiWriteMock{t: t}))
 
 	ts := httptest.NewServer(router)
 	defer ts.Close()

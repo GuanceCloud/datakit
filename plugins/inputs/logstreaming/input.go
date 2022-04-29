@@ -4,6 +4,7 @@ package logstreaming
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -14,8 +15,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -121,22 +122,31 @@ func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) 
 			break
 		}
 		pts1 := io.WrapPoint(pts)
-		cs := &categorys{input: inputName, source: make(map[string][]worker.TaskData)}
+		cs := &categorys{input: inputName, source: make(map[string]*HTTPTask)}
 		for _, pt := range pts1 {
 			if _, ok := cs.source[pt.Name()]; !ok {
-				cs.source[pt.Name()] = make([]worker.TaskData, 0)
+				cs.source[pt.Name()] = &HTTPTask{
+					source:                pt.Name(),
+					scriptName:            pt.Name() + ".p",
+					taskName:              cs.input,
+					category:              datakit.Logging,
+					ignoreStatus:          []string{},
+					disableAddStatusField: true,
+					ts:                    time.Now(),
+					point:                 []*io.Point{},
+				}
 			}
-			cs.source[pt.Name()] = append(cs.source[pt.Name()],
-				&HTTPTaskData{source: pt.Name(), category: datakit.Metric, point: pt})
+			cs.source[pt.Name()].point = append(cs.source[pt.Name()].point, pt)
 		}
 		err = sendToPipLine(cs)
 	default:
 		scanner := bufio.NewScanner(req.Body)
-		pending := make([]worker.TaskData, 0)
+		pending := []string{}
 		for scanner.Scan() {
-			pending = append(pending, &tailer.SocketTaskData{Tag: extraTags, Log: scanner.Text(), Source: source})
+			pending = append(pending, scanner.Text())
 		}
-		err = sendPipOfPending(pending, pipelinePath, source)
+
+		err = sendPipOfPending(pending, extraTags, pipelinePath, source)
 	}
 
 	if err != nil {
@@ -203,81 +213,121 @@ func (*logstreamingMeasurement) Info() *inputs.MeasurementInfo {
 
 type categorys struct {
 	input  string
-	source map[string][]worker.TaskData
+	source map[string]*HTTPTask
 }
 
-type HTTPTaskData struct {
-	source   string
-	category string
-	point    *io.Point
+type HTTPTask struct {
+	taskName   string
+	scriptName string
+	category   string
+	source     string
+	point      []*io.Point
+
+	ts time.Time
+
+	ignoreStatus          []string
+	disableAddStatusField bool
 }
 
-func (std *HTTPTaskData) GetContent() string {
-	fields, err := std.point.Fields()
-	if err != nil {
-		return ""
-	}
-	if len(fields) > 0 {
-		if msg, ok := fields["message"]; ok {
-			switch msg := msg.(type) {
-			case string:
-				return msg
-			default:
-				return ""
+func (std *HTTPTask) GetSource() string {
+	return std.source
+}
+
+func (std *HTTPTask) GetScriptName() string {
+	return std.scriptName
+}
+
+func (std *HTTPTask) GetMaxMessageLen() int {
+	return 0
+}
+
+func (std *HTTPTask) ContentType() string {
+	return worker.ContentString
+}
+
+func (std *HTTPTask) GetContent() interface{} {
+	cntStr := []string{}
+	for _, pt := range std.point {
+		fields, err := pt.Fields()
+		if err != nil {
+			cntStr = append(cntStr, "")
+			continue
+		}
+		if len(fields) > 0 {
+			if msg, ok := fields["message"]; ok {
+				switch msg := msg.(type) {
+				case string:
+					cntStr = append(cntStr, msg)
+					continue
+				default:
+					cntStr = append(cntStr, "")
+					continue
+				}
 			}
 		}
+		cntStr = append(cntStr, "")
 	}
+	return cntStr
+}
+
+func (std *HTTPTask) ContentEncode() string {
 	return ""
 }
 
-func (std *HTTPTaskData) Handler(result *worker.Result) error {
-	tags := std.point.Tags()
-	for k, v := range tags {
-		if _, err := result.GetTag(k); err != nil {
-			result.SetTag(k, v)
-		}
+func (std *HTTPTask) Callback(result []*pipeline.Result) error {
+	if len(result) != len(std.point) {
+		return fmt.Errorf("result count is less than input")
 	}
 
-	fields, err := std.point.Fields()
-	if err != nil {
-		for k, i := range fields {
-			if _, err := result.GetField(k); err != nil {
-				result.SetField(k, i)
+	result = worker.ResultUtilsLoggingProcessor(result, nil, nil, false, nil)
+	ts := std.ts
+	if ts.IsZero() {
+		ts = time.Now()
+	}
+	result = worker.ResultUtilsAutoFillTime(result, ts)
+
+	for idx, pt := range std.point {
+		tags := pt.Tags()
+		for k, v := range tags {
+			if _, err := result[idx].GetTag(k); err != nil {
+				result[idx].SetTag(k, v)
+			}
+		}
+
+		fields, err := pt.Fields()
+		if err != nil {
+			for k, i := range fields {
+				if _, err := result[idx].GetField(k); err != nil {
+					result[idx].SetField(k, i)
+				}
 			}
 		}
 	}
-	return nil
+
+	return worker.ResultUtilsFeedIO(result, std.category, "", std.source, std.taskName, std.GetMaxMessageLen())
 }
 
 func sendToPipLine(cs *categorys) error {
 	var err error
 	if cs != nil && cs.source != nil && len(cs.source) != 0 {
-		for sourceName, data := range cs.source {
-			task := &worker.Task{
-				TaskName:   cs.input,
-				ScriptName: "",
-				Source:     sourceName,
-				Data:       data,
-				Opt: &worker.TaskOpt{
-					IgnoreStatus:          []string{},
-					DisableAddStatusField: true,
-				},
-				TS: time.Now(),
-			}
+		for _, task := range cs.source {
+			task.ts = time.Now()
 			err = worker.FeedPipelineTask(task)
 		}
 	}
 	return err
 }
 
-func sendPipOfPending(pending []worker.TaskData, pipelinePath, source string) error {
-	task := &worker.Task{
-		TaskName:   datakit.Metric,
-		ScriptName: pipelinePath,
-		Source:     source,
-		Data:       pending,
-		Opt:        &worker.TaskOpt{},
-		TS:         time.Now(),
+func sendPipOfPending(pending []string, tags map[string]string, pipelinePath, source string) error {
+	task := &worker.TaskTemplate{
+		TaskName:        datakit.Metric,
+		ScriptName:      pipelinePath,
+		Source:          source,
+		ContentDataType: worker.ContentString,
+		Content:         pending,
+		Category:        datakit.Logging,
+		Tags:            tags,
+		TS:              time.Now(),
 	}
 	return worker.FeedPipelineTask(task)
 }

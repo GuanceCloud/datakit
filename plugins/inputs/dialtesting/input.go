@@ -20,10 +20,11 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
+
+var _ inputs.ReadEnv = (*Input)(nil)
 
 var (
 	AuthorizationType = `DIAL_TESTING`
@@ -36,7 +37,8 @@ var (
 	inputName = "dialtesting"
 	l         = logger.DefaultSLogger(inputName)
 
-	MaxFails = 100
+	MaxFails               = 100
+	MaxSendFailCount int32 = 16
 )
 
 const (
@@ -47,15 +49,16 @@ const (
 var apiTasksNum int
 
 type Input struct {
-	Region       string            `toml:"region,omitempty"`
-	RegionID     string            `toml:"region_id"`
-	Server       string            `toml:"server,omitempty"`
-	AK           string            `toml:"ak"`
-	SK           string            `toml:"sk"`
-	PullInterval string            `toml:"pull_interval,omitempty"`
-	TimeOut      *datakit.Duration `toml:"time_out,omitempty"` // 单位为秒
-	Workers      int               `toml:"workers,omitempty"`
-	Tags         map[string]string
+	Region           string            `toml:"region,omitempty"`
+	RegionID         string            `toml:"region_id"`
+	Server           string            `toml:"server,omitempty"`
+	AK               string            `toml:"ak"`
+	SK               string            `toml:"sk"`
+	PullInterval     string            `toml:"pull_interval,omitempty"`
+	TimeOut          *datakit.Duration `toml:"time_out,omitempty"` // 单位为秒
+	Workers          int               `toml:"workers,omitempty"`
+	MaxSendFailCount int32             `toml:"max_send_fail_count,omitempty"` // max send fail count
+	Tags             map[string]string
 
 	cli *http.Client
 	// class string
@@ -68,7 +71,7 @@ type Input struct {
 const sample = `
 [[inputs.dialtesting]]
   # 中心任务存储的服务地址，即df_dialtesting center service。
-  # 此处同时可配置成本地json 文件全路径 "files:///your/dir/json-file-name", 为task任务的json字符串。
+  # 此处同时可配置成本地json 文件全路径 "file:///your/dir/json-file-name", 为task任务的json字符串。
   server = "https://dflux-dial.guance.com"
 
   # require，节点惟一标识ID
@@ -82,6 +85,10 @@ const sample = `
 
   time_out = "1m"
   workers = 6
+  
+  # 发送数据失败最大次数，根据任务的post_url进行累计，超过最大次数后，发送至该地址的拨测任务将退出
+  max_send_fail_count = 16
+  
   [inputs.dialtesting.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -98,6 +105,9 @@ func (*Input) Catalog() string {
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&httpMeasurement{},
+		&tcpMeasurement{},
+		&icmpMeasurement{},
+		&websocketMeasurement{},
 	}
 }
 
@@ -107,13 +117,16 @@ func (*Input) AvailableArchs() []string {
 
 func (d *Input) Run() {
 	l = logger.SLogger(inputName)
-	iod.FeedEventLog(&iod.Reporter{Message: "dialtesting start ok, ready for collecting metrics.", Logtype: "event"})
 
 	// 根据Server配置，若为服务地址则定时拉取任务数据；
 	// 若为本地json文件，则读取任务
 
 	if d.Workers == 0 {
 		d.Workers = 6
+	}
+
+	if d.MaxSendFailCount > 0 {
+		MaxSendFailCount = d.MaxSendFailCount
 	}
 
 	reqURL, err := url.Parse(d.Server)
@@ -141,7 +154,7 @@ func (d *Input) Run() {
 		d.doLocalTask(reqURL.String())
 
 	default:
-		l.Warnf(`no invalid scheme`)
+		l.Warnf(`no invalid scheme: %s`, reqURL.Scheme)
 	}
 }
 
@@ -192,7 +205,13 @@ func (d *Input) doServerTask() {
 }
 
 func (d *Input) doLocalTask(path string) {
-	j, err := d.getLocalJSONTasks(path)
+	data, err := ioutil.ReadFile(filepath.Clean(path))
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return
+	}
+
+	j, err := d.getLocalJSONTasks(data)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return
@@ -219,6 +238,10 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 	case dt.ClassDNS:
 		// TODO
 	case dt.ClassTCP:
+		// TODO
+	case dt.ClassWebsocket:
+		// TODO
+	case dt.ClassICMP:
 		// TODO
 	case dt.ClassOther:
 		// TODO
@@ -253,7 +276,8 @@ func protectedRun(d *dialer) {
 	f = func(trace []byte, err error) {
 		defer rtpanic.Recover(f, nil)
 		if trace != nil {
-			l.Warnf("task %s panic: %+#v", d.task.ID(), err)
+			l.Warnf("task %s panic: %+#v, trace: %s", d.task.ID(), err, string(trace))
+
 			crashcnt++
 			if crashcnt > maxCrashCnt {
 				l.Warnf("task %s crashed %d times, exit now", d.task.ID(), crashcnt)
@@ -341,9 +365,11 @@ func (d *Input) dispatchTasks(j []byte) error {
 				l.Warnf("DNS task deprecated, ignored")
 				continue
 			case dt.ClassTCP:
-				// TODO
-				l.Warnf("TCP task deprecated, ignored")
-				continue
+				t = &dt.TcpTask{}
+			case dt.ClassWebsocket:
+				t = &dt.WebsocketTask{}
+			case dt.ClassICMP:
+				t = &dt.IcmpTask{}
 			case dt.ClassOther:
 				// TODO
 				l.Warnf("OTHER task deprecated, ignored")
@@ -412,13 +438,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 	return nil
 }
 
-func (d *Input) getLocalJSONTasks(path string) ([]byte, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(path))
-	if err != nil {
-		l.Errorf(`%s`, err.Error())
-		return nil, err
-	}
-
+func (d *Input) getLocalJSONTasks(data []byte) ([]byte, error) {
 	// 转化结构，json结构转成与kodo服务一样的格式
 	var resp map[string][]interface{}
 	if err := json.Unmarshal(data, &resp); err != nil {
@@ -426,7 +446,8 @@ func (d *Input) getLocalJSONTasks(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	res := map[string]interface{}{}
+	content := map[string]interface{}{}
+
 	for k, v := range resp {
 		vs := []string{}
 		for _, v1 := range v {
@@ -439,13 +460,13 @@ func (d *Input) getLocalJSONTasks(path string) ([]byte, error) {
 			vs = append(vs, string(dt))
 		}
 
-		res[k] = vs
+		content[k] = vs
 	}
 
 	tasks := taskPullResp{
-		Content: res,
+		Content: content,
 	}
-	rs, err := json.Marshal(tasks)
+	rs, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
 		l.Error(err)
 		return nil, err
@@ -532,6 +553,29 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error
 	}
 }
 
+// ReadEnv support envs:
+// ENV_INPUT_DIALTESTING_AK: string
+// ENV_INPUT_DIALTESTING_SK: string
+// ENV_INPUT_DIALTESTING_REGION_ID: string
+// ENV_INPUT_DIALTESTING_SERVER: string.
+func (d *Input) ReadEnv(envs map[string]string) {
+	if ak, ok := envs["ENV_INPUT_DIALTESTING_AK"]; ok {
+		d.AK = ak
+	}
+
+	if sk, ok := envs["ENV_INPUT_DIALTESTING_SK"]; ok {
+		d.SK = sk
+	}
+
+	if regionID, ok := envs["ENV_INPUT_DIALTESTING_REGION_ID"]; ok {
+		d.RegionID = regionID
+	}
+
+	if server, ok := envs["ENV_INPUT_DIALTESTING_SERVER"]; ok {
+		d.Server = server
+	}
+}
+
 func (d *Input) stopAlltask() {
 	for tid, dialer := range d.curTasks {
 		dialer.stop()
@@ -539,21 +583,25 @@ func (d *Input) stopAlltask() {
 	}
 }
 
+func newDefaultInput() *Input {
+	return &Input{
+		Tags:     map[string]string{},
+		curTasks: map[string]*dialer{},
+		wg:       sync.WaitGroup{},
+		cli: &http.Client{
+			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
+				TLSHandshakeTimeout: 30 * time.Second,
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 100,
+			},
+		},
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			Tags:     map[string]string{},
-			curTasks: map[string]*dialer{},
-			wg:       sync.WaitGroup{},
-			cli: &http.Client{
-				Timeout: 30 * time.Second,
-				Transport: &http.Transport{
-					TLSClientConfig:     &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
-					TLSHandshakeTimeout: 30 * time.Second,
-					MaxIdleConns:        100,
-					MaxIdleConnsPerHost: 100,
-				},
-			},
-		}
+		return newDefaultInput()
 	})
 }

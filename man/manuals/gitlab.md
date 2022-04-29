@@ -28,7 +28,7 @@ GitLab 设置完成后，对 DataKit 进行配置。注意，根据 GitLab 版�
 
 此 input 支持选举功能，[关于选举](election)。
 
-### GitLab开启数据采集功能
+### GitLab 开启数据采集功能
 
 GitLab 需要开启 promtheus 数据采集功能，开启方式如下（以英文页面为例）：
 
@@ -48,9 +48,24 @@ GitLab 需要开启 promtheus 数据采集功能，开启方式如下（以英�
 
 详情见[官方配置文档](https://docs.gitlab.com/ee/administration/monitoring/ip_whitelist.html)。
 
+### 开启 Gitlab CI 可视化
+
+确保当前 Datakit 版本（1.2.13 及以后）支持 Gitlab CI 可视化功能。
+
+通过配置 Gitlab Webhook，可以实现 Gitlab CI 可视化。开启步骤如下：
+
+1. 在 Gitlab 转到 `Settings` > `Webhooks` 中，将 URL 配置为 http://Datakit_IP:PORT/v1/gitlab，Trigger 配置 Job events 和 Pipeline events 两项，点击 Add webhook 确认添加；
+2. 可点击 Test 按钮测试 Webhook 配置是否正确。正确配置后，Datakit 可以顺利采集到 Gitlab 的 CI 信息。
+
+注意：如果将 Gitlab 数据打到本地网络的 Datakit，需要对 Gitlab 进行额外的配置，见 [allow requests to the local network](https://docs.gitlab.com/ee/security/webhooks.html) 。
+
+另外：Gitlab CI 功能不参与采集器选举，用户只需将 Gitlab Webhook 的 URL 配置为其中一个 Datakit 的 URL 即可。 
+
 ## 指标集
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名）。
+
+可以在配置中通过 `[inputs.{{.InputName}}.tags]` 为 **Gitlab 指标数据**指定其它标签：
 
 ``` toml
  [inputs.{{.InputName}}.tags]
@@ -58,6 +73,17 @@ GitLab 需要开启 promtheus 数据采集功能，开启方式如下（以英�
   # more_tag = "some_other_value"
   # ...
 ```
+
+可以在配置中通过 `[inputs.{{.InputName}}.ci_extra_tags]` 为 **Gitlab CI 数据**指定其它标签：
+
+``` toml
+ [inputs.{{.InputName}}.ci_extra_tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
+```
+
+注意：为了确保 Gitlab CI 功能正常，为 Gitlab CI 数据指定的 extra tags 不会覆盖其数据中已有的标签（Gitlab CI 标签列表见下）。
 
 {{ range $i, $m := .Measurements }}
 

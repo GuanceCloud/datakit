@@ -2,12 +2,14 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -17,6 +19,7 @@ import (
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
@@ -49,9 +52,7 @@ var (
 	flagOffline,
 	flagDownloadOnly,
 	flagInfo,
-	flagOTA,
-	flagEnableElection,
-	flagDisable404Page bool
+	flagOTA bool
 
 	flagDataway,
 	flagDCAEnable,
@@ -62,6 +63,7 @@ var (
 	flagDatakitHTTPListen,
 	flagNamespace,
 	flagInstallLog,
+	flagInstallExternals,
 	flagDCAListen,
 	flagDCAWhiteList,
 	flagGitURL,
@@ -74,13 +76,20 @@ var (
 	flagRumOriginIPHeader,
 	flagLogLevel,
 	flagLog,
-	flagGinLog string
+	flagIpdb,
+	flagGinLog,
+	flagEnableElection,
+	flagEnablePProf,
+	flagPProfListen,
+	flagDisable404Page string
 
 	flagInstallOnly,
-	flagCgroupEnabled,
+	flagCgroupDisabled,
+	envEnableExperimental,
 	flagDatakitHTTPPort int
 
 	flagLimitCPUMax float64
+	flagLimitMemMax int64
 	flagLimitCPUMin float64
 )
 
@@ -105,6 +114,8 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagNamespace, "namespace", "", "datakit namespace")
 	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
 	flag.StringVar(&flagHostName, "env_hostname", "", "host name")
+	flag.StringVar(&flagIpdb, "ipdb-type", "", "ipdb type")
+	flag.StringVar(&flagInstallExternals, "install-externals", "", "install some external inputs")
 	flag.StringVar(&flagCloudProvider,
 		"cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
 	flag.StringVar(&flagGitURL, "git-url", "", "git repo url")
@@ -112,27 +123,31 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagGitKeyPW, "git-key-pw", "", "git repo access private use password")
 	flag.StringVar(&flagGitBranch, "git-branch", "", "git repo branch name")
 	flag.StringVar(&flagGitPullInterval, "git-pull-interval", "", "git repo pull interval")
-	flag.BoolVar(&flagEnableElection, "enable-election", false, "datakit election")
+	flag.StringVar(&flagEnableElection, "enable-election", "", "datakit election")
 	flag.StringVar(&flagRumOriginIPHeader, "rum-origin-ip-header", "", "rum only")
-	flag.BoolVar(&flagDisable404Page, "disable-404page", false, "datakit rum 404 page")
+	flag.StringVar(&flagDisable404Page, "disable-404page", "", "datakit rum 404 page")
 	flag.StringVar(&flagLogLevel, "log-level", "", "log level setting")
 	flag.StringVar(&flagLog, "log", "", "log setting")
 	flag.StringVar(&flagGinLog, "gin-log", "", "gin log setting")
+	flag.StringVar(&flagEnablePProf, "enable-pprof", "", "enable pprof")
+	flag.StringVar(&flagPProfListen, "pprof-listen", "", "pprof listen")
 	flag.StringVar(&flagSrc, "srcs",
 		fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz",
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
 		`local path of install files`)
 
-	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Croup CPU max usage")
-	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Croup CPU min usage")
+	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Cgroup CPU max usage")
+	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Cgroup CPU min usage")
+	flag.Int64Var(&flagLimitMemMax, "limit-mem", 4096, "Cgroup memory limit")
 
-	flag.IntVar(&flagCgroupEnabled, "cgroup-enabled", 0, "enable Cgroup under Linux")
+	flag.IntVar(&flagCgroupDisabled, "cgroup-disabled", 0, "enable disable cgroup(Linux) limits for CPU and memory")
 	flag.IntVar(&flagDatakitHTTPPort, "port", 9529, "datakit HTTP port")
 	flag.IntVar(&flagInstallOnly, "install-only", 0, "install only, not start")
 
 	flag.BoolVar(&flagInfo, "info", false, "show installer info")
 	flag.BoolVar(&flagOffline, "offline", false, "-offline option removed")
 	flag.BoolVar(&flagDownloadOnly, "download-only", false, "only download install packages")
+	flag.IntVar(&envEnableExperimental, "env_enable_experimental", 0, "")
 }
 
 func downloadFiles(to string) error {
@@ -162,6 +177,17 @@ func downloadFiles(to string) error {
 	dl.CurDownloading = "data"
 	if err := dl.Download(cli, dataURL, to, true, flagDownloadOnly); err != nil {
 		return err
+	}
+
+	if flagIpdb != "" {
+		fmt.Printf("\n")
+		baseURL := "https://" + DataKitBaseURL
+		if _, err := cmds.InstallIpdb(baseURL, flagIpdb); err != nil {
+			l.Warnf("ipdb install failed error: %s, please try later.", err.Error())
+			time.Sleep(1 * time.Second)
+		} else {
+			config.Cfg.Pipeline.IPdbType = flagIpdb
+		}
 	}
 
 	fmt.Printf("\n")
@@ -258,9 +284,25 @@ Data           : %s
 		return
 	}
 
-	l.Info("stoping datakit...")
-	if err = service.Control(svc, "stop"); err != nil {
-		l.Warnf("stop service: %s, ignored", err.Error())
+	svcStatus, err := svc.Status()
+	if err != nil {
+		if errors.Is(err, service.ErrNotInstalled) {
+			l.Infof("datakit service not installed before")
+		} else {
+			l.Fatalf("svc.Status: %s", err.Error())
+		}
+	} else {
+		switch svcStatus {
+		case service.StatusUnknown: // not installed
+			l.Info("datakit service maybe not installed")
+		case service.StatusStopped: // pass
+			l.Info("datakit service stopped")
+		case service.StatusRunning:
+			l.Info("stoping datakit...")
+			if err = service.Control(svc, "stop"); err != nil {
+				l.Fatalf("stop service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
+			}
+		}
 	}
 
 	applyFlags()
@@ -295,7 +337,7 @@ Data           : %s
 	} else {
 		l.Infof("starting service %s...", dkservice.ServiceName)
 		if err = service.Control(svc, "start"); err != nil {
-			l.Warnf("star service: %s, ignored", err.Error())
+			l.Fatalf("start service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
 		}
 	}
 
@@ -325,10 +367,6 @@ func promptReferences() {
 }
 
 func upgradeDatakit(svc service.Service) error {
-	if err := service.Control(svc, "stop"); err != nil {
-		l.Warnf("stop service: %s, ignored", err.Error())
-	}
-
 	mc := config.Cfg
 
 	if err := mc.LoadMainTOML(datakit.MainConfPath); err == nil {
@@ -356,22 +394,69 @@ func upgradeDatakit(svc service.Service) error {
 		}
 	}
 
+	installExternals := map[string]struct{}{}
+	for _, v := range strings.Split(flagInstallExternals, ",") {
+		installExternals[v] = struct{}{}
+	}
+	updateEBPF := false
+	if runtime.GOOS == datakit.OSLinux && runtime.GOARCH == "amd64" {
+		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
+			updateEBPF = true
+		}
+		if _, ok := installExternals["datakit-ebpf"]; ok {
+			updateEBPF = true
+		}
+	}
+	if updateEBPF {
+		l.Info("upgrade datakit-ebpf...")
+		// nolint:gosec
+		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
+		if msg, err := cmd.CombinedOutput(); err != nil {
+			l.Errorf("upgrade external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
+		}
+	}
+
 	if err := service.Control(svc, "install"); err != nil {
-		l.Warnf("install datakit service: %s, ignored", err.Error())
+		l.Fatalf("install service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
 	}
 
 	return nil
 }
 
 func installNewDatakit(svc service.Service) {
-	if err := service.Control(svc, "uninstall"); err != nil {
-		l.Warnf("uninstall service: %s, ignored", err.Error())
+	svcStatus, err := svc.Status()
+	if err != nil {
+		if errors.Is(err, service.ErrNotInstalled) {
+			l.Infof("datakit service not installed before")
+			// pass
+		} else {
+			l.Fatalf("svc.Status: %s", err.Error())
+		}
+	} else {
+		switch svcStatus {
+		case service.StatusUnknown: // pass
+		case service.StatusStopped:
+			if err := service.Control(svc, "uninstall"); err != nil {
+				l.Warnf("uninstall service failed: %s", err.Error())
+			}
+		case service.StatusRunning: // should not been here
+			l.Fatalf("unexpected: datakit service should have stopped")
+		}
 	}
 
 	mc := config.Cfg
 
-	// prepare dataway info
+	// prepare dataway info and check token format
 	mc.DataWay = getDataWayCfg()
+	tokens := mc.DataWay.GetToken()
+	if len(tokens) == 0 {
+		l.Fatalf("dataway token should not be empty")
+	}
+
+	if err := mc.DataWay.CheckToken(tokens[0]); err != nil {
+		l.Fatal(err)
+	}
+
 	if flagOTA {
 		l.Debugf("set auto update flag")
 		mc.AutoUpdate = flagOTA
@@ -401,8 +486,16 @@ func installNewDatakit(svc service.Service) {
 		}
 	}
 
+	if flagEnablePProf != "" {
+		config.Cfg.EnablePProf = true
+	}
+
+	if flagPProfListen != "" {
+		config.Cfg.PProfListen = flagPProfListen
+	}
+
 	// Only linux support cgroup.
-	if flagCgroupEnabled == 1 && runtime.GOOS == datakit.OSLinux {
+	if flagCgroupDisabled != 1 && runtime.GOOS == datakit.OSLinux {
 		l.Infof("Croups enabled under Linux")
 		mc.Cgroup.Enable = true
 
@@ -416,6 +509,13 @@ func installNewDatakit(svc service.Service) {
 
 		if mc.Cgroup.CPUMax < mc.Cgroup.CPUMin {
 			l.Fatalf("invalid CGroup CPU limit, max should larger than min")
+		}
+
+		if flagLimitMemMax > 0 {
+			l.Infof("cgroup set max memory to %dMB", flagLimitMemMax)
+			mc.Cgroup.MemMax = flagLimitMemMax
+		} else {
+			l.Infof("cgroup max memory not set")
 		}
 	}
 
@@ -464,13 +564,13 @@ func installNewDatakit(svc service.Service) {
 		} // GitRepost
 	}
 
-	if flagEnableElection {
+	if flagEnableElection != "" {
 		l.Infof("set enable election: %v", flagEnableElection)
-		mc.EnableElection = flagEnableElection
+		mc.EnableElection = true
 	}
-	if flagDisable404Page {
+	if flagDisable404Page != "" {
 		l.Infof("set disable 404 page: %v", flagDisable404Page)
-		mc.Disable404PageDeprecated = flagDisable404Page
+		mc.Disable404PageDeprecated = true
 	}
 	if flagRumOriginIPHeader != "" {
 		l.Infof("set rum origin IP header: %s", flagRumOriginIPHeader)
@@ -486,7 +586,7 @@ func installNewDatakit(svc service.Service) {
 	}
 	if flagGinLog != "" {
 		l.Infof("set gin log: %s", flagGinLog)
-		mc.GinLogDeprecated = flagGinLog
+		mc.Logging.GinLog = flagGinLog
 	}
 
 	writeDefInputToMainCfg(mc)
@@ -496,9 +596,31 @@ func installNewDatakit(svc service.Service) {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
+	installExternals := map[string]struct{}{}
+	for _, v := range strings.Split(flagInstallExternals, ",") {
+		installExternals[v] = struct{}{}
+	}
+	updateEBPF := false
+	if runtime.GOOS == datakit.OSLinux && runtime.GOARCH == "amd64" {
+		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
+			updateEBPF = true
+		}
+		if _, ok := installExternals["datakit-ebpf"]; ok {
+			updateEBPF = true
+		}
+	}
+	if updateEBPF {
+		l.Info("install datakit-ebpf...")
+		// nolint:gosec
+		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
+		if msg, err := cmd.CombinedOutput(); err != nil {
+			l.Errorf("upgradde external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
+		}
+	}
+
 	l.Infof("installing service %s...", dkservice.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
-		l.Warnf("install service: %s, ignored", err.Error())
+		l.Fatalf("uninstall service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
 	}
 }
 
@@ -542,10 +664,14 @@ func writeDefInputToMainCfg(mc *config.Config) {
 
 	mc.EnableDefaultsInputs(flagEnableInputs)
 
-	if err := injectCloudProvider(flagCloudProvider); err != nil {
-		l.Fatalf("failed to inject cloud-provider: %s", err.Error())
+	if flagCloudProvider != "" {
+		if err := injectCloudProvider(flagCloudProvider); err != nil {
+			l.Fatalf("failed to inject cloud-provider: %s", err.Error())
+		} else {
+			l.Infof("set cloud provider to %s ok", flagCloudProvider)
+		}
 	} else {
-		l.Infof("set cloud provider to %s ok", flagCloudProvider)
+		l.Infof("cloud provider not set")
 	}
 
 	l.Debugf("main config:\n%s", mc.String())
@@ -711,7 +837,7 @@ func mvOldDatakit(svc service.Service) {
 	}
 
 	if err := service.Control(svc, "uninstall"); err != nil {
-		l.Warnf("uninstall service datakit failed: %s, ignored", err.Error())
+		l.Warnf("uninstall service failed: %s", err.Error())
 	}
 
 	if err := os.Rename(olddir, datakit.InstallDir); err != nil {
@@ -733,7 +859,11 @@ func checkUpgradeVersion(s string) error {
 	}
 
 	if !v.IsStable() {
-		return fmt.Errorf("not stable version, only stable version allowed to upgrade")
+		if envEnableExperimental == 1 {
+			l.Info("upgrade version is unstable")
+		} else {
+			return fmt.Errorf("upgrade to %s is not stable version, use env: <$DK_ENABLE_EXPEIMENTAL=1> to upgrade", DataKitVersion)
+		}
 	}
 	return nil
 }

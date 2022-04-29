@@ -20,16 +20,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 var (
 	Cfg = DefaultConfig()
-
-	l = logger.DefaultSLogger("config")
+	l   = logger.DefaultSLogger("config")
 )
 
 func SetLog() {
@@ -48,7 +47,7 @@ func DefaultConfig() *Config {
 			"ENV_HOSTNAME": "", // not set
 		}, // default nothing
 
-		IOConf: &IOConfig{
+		IOConf: &dkio.IOConfig{
 			FeedChanSize:              1024,
 			HighFreqFeedChanSize:      2048,
 			MaxCacheCount:             1024,
@@ -58,6 +57,7 @@ func DefaultConfig() *Config {
 			FlushInterval:             "10s",
 			OutputFileInputs:          []string{},
 			EnableCache:               false,
+			Filters:                   map[string][]string{},
 		},
 
 		DataWay: &dataway.DataWayCfg{
@@ -78,6 +78,10 @@ func DefaultConfig() *Config {
 			Listen:    "0.0.0.0:9531",
 			WhiteList: []string{},
 		},
+		Pipeline: &pipeline.PipelineCfg{
+			IPdbType:           "-",
+			RemotePullInterval: "1m",
+		},
 		Logging: &LoggerCfg{
 			Level:  "info",
 			Rotate: 32,
@@ -85,15 +89,13 @@ func DefaultConfig() *Config {
 			GinLog: filepath.Join("/var/log/datakit", "gin.log"),
 		},
 
-		BlackList: []*inputHostList{
-			{Hosts: []string{}, Inputs: []string{}},
+		Cgroup: &cgroup.CgroupOptions{
+			Path:   "/datakit",
+			Enable: true,
+			CPUMax: 20.0,
+			CPUMin: 5.0,
+			MemMax: 4096, // MB
 		},
-		WhiteList: []*inputHostList{
-			{Hosts: []string{}, Inputs: []string{}},
-		},
-		Cgroup: &Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
-
-		Tracer: &tracer.Tracer{TraceEnabled: false},
 
 		GitRepos: &GitRepost{
 			PullInterval: "1m",
@@ -107,6 +109,8 @@ func DefaultConfig() *Config {
 				},
 			},
 		},
+
+		Ulimit: 64000,
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起
@@ -116,25 +120,6 @@ func DefaultConfig() *Config {
 	}
 
 	return c
-}
-
-type Cgroup struct {
-	Enable bool    `toml:"enable"`
-	CPUMax float64 `toml:"cpu_max"`
-	CPUMin float64 `toml:"cpu_min"`
-}
-
-type IOConfig struct {
-	FeedChanSize              int      `toml:"feed_chan_size"`
-	HighFreqFeedChanSize      int      `toml:"high_frequency_feed_chan_size"`
-	MaxCacheCount             int64    `toml:"max_cache_count"`
-	CacheDumpThreshold        int64    `toml:"cache_dump_threshold"`
-	MaxDynamicCacheCount      int64    `toml:"max_dynamic_cache_count"`
-	DynamicCacheDumpThreshold int64    `toml:"dynamic_cache_dump_threshold"`
-	FlushInterval             string   `toml:"flush_interval"`
-	OutputFile                string   `toml:"output_file"`
-	OutputFileInputs          []string `toml:"output_file_inputs"`
-	EnableCache               bool     `toml:"enable_cache"`
 }
 
 type LoggerCfg struct {
@@ -166,7 +151,8 @@ type Config struct {
 	BlackList []*inputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
 
-	UUID string `toml:"-"`
+	UUID    string `toml:"-"`
+	RunMode int    `toml:"-"`
 
 	Name      string `toml:"name,omitempty"`
 	Hostname  string `toml:"-"`
@@ -175,12 +161,20 @@ type Config struct {
 	// http config: TODO: merge into APIConfig
 	HTTPBindDeprecated   string `toml:"http_server_addr,omitempty"`
 	HTTPListenDeprecated string `toml:"http_listen,omitempty"`
+
 	IntervalDeprecated   string `toml:"interval,omitempty"`
 	OutputFileDeprecated string `toml:"output_file,omitempty"`
 	UUIDDeprecated       string `toml:"uuid,omitempty"` // deprecated
 
+	// pprof
+	EnablePProf bool   `toml:"enable_pprof"`
+	PProfListen string `toml:"pprof_listen"`
+
 	// DCA config
 	DCAConfig *dkhttp.DCAConfig `toml:"dca"`
+
+	// pipeline
+	Pipeline *pipeline.PipelineCfg `toml:"pipeline"`
 
 	// logging config
 	LogDeprecated      string `toml:"log,omitempty"`
@@ -190,18 +184,17 @@ type Config struct {
 	InstallVer string `toml:"install_version,omitempty"`
 
 	HTTPAPI *dkhttp.APIConfig   `toml:"http_api"`
-	IOConf  *IOConfig           `toml:"io"`
+	IOConf  *dkio.IOConfig      `toml:"io"`
 	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
 	Logging *LoggerCfg          `toml:"logging"`
 
 	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
 	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
 
-	GlobalTags   map[string]string `toml:"global_tags"`
-	Environments map[string]string `toml:"environments"`
-	Cgroup       *Cgroup           `toml:"cgroup"`
+	GlobalTags   map[string]string     `toml:"global_tags"`
+	Environments map[string]string     `toml:"environments"`
+	Cgroup       *cgroup.CgroupOptions `toml:"cgroup"`
 
-	EnablePProf              bool `toml:"enable_pprof,omitempty"`
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
 	ProtectMode              bool `toml:"protect_mode"`
 
@@ -215,6 +208,8 @@ type Config struct {
 	Tracer *tracer.Tracer `toml:"tracer,omitempty"`
 
 	GitRepos *GitRepost `toml:"git_repos"`
+
+	Ulimit uint64 `toml:"ulimit"`
 }
 
 func (c *Config) String() string {
@@ -309,6 +304,12 @@ func (c *Config) setupDataway() error {
 
 	if len(c.DataWay.URLs) == 0 {
 		return fmt.Errorf("dataway not set")
+	}
+	if c.DataWay.URLs[0] == datakit.DatawayDisableURL {
+		c.RunMode = datakit.ModeDev
+		return nil
+	} else {
+		c.RunMode = datakit.ModeNormal
 	}
 
 	dataway.ExtraHeaders = map[string]string{
@@ -409,6 +410,20 @@ func (c *Config) ApplyMainConfig() error {
 
 	l = logger.SLogger("config")
 
+	// Set up ulimit.
+	if runtime.GOOS == `linux` {
+		if err := setUlimit(c.Ulimit); err != nil {
+			return fmt.Errorf("fail to set ulimit to %d: %w", c.Ulimit, err)
+		} else {
+			soft, hard, err := getUlimit()
+			if err != nil {
+				l.Warnf("fail to get ulimit: %v", err)
+			} else {
+				l.Infof("ulimit set to softLimit = %d, hardLimit = %d", soft, hard)
+			}
+		}
+	}
+
 	if c.EnableUncheckedInputs {
 		datakit.EnableUncheckInputs = true
 	}
@@ -433,17 +448,9 @@ func (c *Config) ApplyMainConfig() error {
 		if c.IOConf.OutputFile == "" && c.OutputFileDeprecated != "" {
 			c.IOConf.OutputFile = c.OutputFileDeprecated
 		}
-		dkio.ConfigDefaultIO(dkio.SetFeedChanSize(c.IOConf.FeedChanSize),
-			dkio.SetHighFreqFeedChanSize(c.IOConf.HighFreqFeedChanSize),
-			dkio.SetMaxCacheCount(c.IOConf.MaxCacheCount),
-			dkio.SetCacheDumpThreshold(c.IOConf.CacheDumpThreshold),
-			dkio.SetMaxDynamicCacheCount(c.IOConf.MaxDynamicCacheCount),
-			dkio.SetDynamicCacheDumpThreshold(c.IOConf.DynamicCacheDumpThreshold),
-			dkio.SetFlushInterval(c.IOConf.FlushInterval),
-			dkio.SetOutputFile(c.IOConf.OutputFile),
-			dkio.SetOutputFileInput(c.IOConf.OutputFileInputs),
-			dkio.SetEnableCache(c.IOConf.EnableCache),
-			dkio.SetDataway(c.DataWay))
+
+		dkio.ConfigDefaultIO(c.IOConf)
+		dkio.SetDataway(c.DataWay)
 	}
 
 	if err := c.setupGlobalTags(); err != nil {
@@ -472,31 +479,7 @@ func (c *Config) ApplyMainConfig() error {
 		l.Info("refresh main configure ok")
 	}
 
-	mExistCloneDirs := make(map[string]struct{})
-
-	for _, v := range c.GitRepos.Repos {
-		if !v.Enable {
-			continue
-		}
-		v.URL = dkstring.TrimString(v.URL)
-		if v.URL == "" {
-			continue
-		}
-		repoName, err := path.GetGitPureName(v.URL)
-		if err != nil {
-			continue
-		}
-		// check repeat
-		if _, ok := mExistCloneDirs[repoName]; ok {
-			continue
-		}
-		mExistCloneDirs[repoName] = struct{}{}
-		clonePath, err := GetGitRepoSubDir(repoName, datakit.GitRepoSubDirNameConfd)
-		if err != nil {
-			continue
-		}
-		datakit.GetReposConfDirs = append(datakit.GetReposConfDirs, clonePath)
-	}
+	InitGitreposDir()
 
 	return nil
 }
@@ -516,10 +499,11 @@ func (c *Config) setHostname() error {
 		l.Errorf("get hostname failed: %s", err.Error())
 		return err
 	}
-	l.Infof("here is hostname:%s", c.Hostname)
+
 	c.Hostname = hn
+
+	l.Infof("hostname: %s", c.Hostname)
 	datakit.DatakitHostName = c.Hostname
-	l.Infof("set hostname to %s", hn)
 	return nil
 }
 
@@ -547,7 +531,7 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 
 func (c *Config) LoadEnvs() error {
 	if c.IOConf == nil {
-		c.IOConf = &IOConfig{}
+		c.IOConf = &dkio.IOConfig{}
 	}
 
 	for _, envkey := range []string{
@@ -573,6 +557,23 @@ func (c *Config) LoadEnvs() error {
 			case "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD":
 				c.IOConf.DynamicCacheDumpThreshold = value
 			}
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_IPDB"); v != "" {
+		switch v {
+		case "iploc":
+			c.Pipeline.IPdbType = v
+		default:
+			l.Warnf("unknown IPDB type: %s, ignored", v)
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT"); v != "" {
+		if x, err := strconv.ParseFloat(v, 64); err != nil {
+			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT, expect int or float, got %s, ignored", v)
+		} else {
+			c.HTTPAPI.RequestRateLimit = x
 		}
 	}
 
@@ -648,6 +649,10 @@ func (c *Config) LoadEnvs() error {
 		c.EnablePProf = true
 	}
 
+	if v := datakit.GetEnv("ENV_PPROF_LISTEN"); v != "" {
+		c.PProfListen = v
+	}
+
 	if v := datakit.GetEnv("ENV_DISABLE_PROTECT_MODE"); v != "" {
 		c.ProtectMode = false
 	}
@@ -676,6 +681,15 @@ func (c *Config) LoadEnvs() error {
 				}, // GitRepository
 			}, // Repos
 		} // GitRepost
+	}
+
+	if v := datakit.GetEnv("ENV_ULIMIT"); v != "" {
+		u, err := strconv.ParseUint(v, 10, 64)
+		if err != nil {
+			l.Warnf("invalid ulimit input through ENV_ULIMIT: %v", err)
+		} else {
+			c.Ulimit = u
+		}
 	}
 
 	return nil
@@ -861,42 +875,5 @@ func GetToken() string {
 }
 
 func GitHasEnabled() bool {
-	hasEnable := false
-	for _, v := range Cfg.GitRepos.Repos {
-		if v.Enable {
-			hasEnable = true
-			break
-		}
-	}
-
-	return hasEnable
-}
-
-func GitEnabledRepoNames() []string {
-	mExistCloneDirs := make(map[string]struct{})
-	for _, v := range Cfg.GitRepos.Repos {
-		if !v.Enable {
-			continue
-		}
-		v.URL = dkstring.TrimString(v.URL)
-		if v.URL == "" {
-			continue
-		}
-		repoName, err := path.GetGitPureName(v.URL)
-		if err != nil {
-			continue
-		}
-		// check repeat
-		if _, ok := mExistCloneDirs[repoName]; ok {
-			continue
-		}
-		mExistCloneDirs[repoName] = struct{}{}
-	}
-
-	var arr []string
-	for k := range mExistCloneDirs {
-		arr = append(arr, k)
-	}
-
-	return arr
+	return datakit.GitReposRepoName != "" && datakit.GitReposRepoFullPath != ""
 }

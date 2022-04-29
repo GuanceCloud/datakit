@@ -18,50 +18,74 @@ DataKit 支持手动更新和自动更新两种方式。
 
 直接执行如下命令查看当前 DataKit 版本。如果线上有最新版本，则会提示对应的更新命令，如：
 
+> - 如果 [DataKit < 1.2.7](changelog#dbbe856a)，此处只能用 `datakit --version`
+> - 如果 DataKit < 1.2.0，请[直接使用更新命令](changelog#d73823de-2)
+
 ```shell
 # Linux/Mac
-$ datakit --version
+$ datakit version
 
-       Version: 1.1.6-rc0
-        Commit: d1f4604d
-        Branch: dk-api
- Build At(UTC): 2021-05-11 11:07:06
-Golang Version: go version go1.15.8 darwin/amd64
+       Version: 1.2.8
+        Commit: e9ccdfbae4
+        Branch: testing
+ Build At(UTC): 2022-03-11 11:07:06
+Golang Version: go version go1.16.4 linux/amd64
       Uploader: xxxxxxxxxxxxx/xxxxxxx/xxxxxxx
 ReleasedInputs: all
 ---------------------------------------------------
 
-Online version available: 1.1.8-rc1.1, commit 658339b6eb (release at 2021-08-13 05:52:17)
+Online version available: 1.2.9, commit 9f5ac898be (release at 2022-03-10 12:03:12)
 
 Upgrade:
     DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 
 # Windows
 
-$ datakit.exe --version
+$ datakit.exe version
 
-       Version: 1.1.6-rc0
-        Commit: d1f4604d
-        Branch: dk-api
- Build At(UTC): 2021-05-11 11:07:06
-Golang Version: go version go1.15.8 darwin/amd64
-      Uploader: xxxxxxxxxxxxx/xxxxxxx/yyyyyyy
+       Version: 1.2.8
+        Commit: e9ccdfbae4
+        Branch: testing
+ Build At(UTC): 2022-03-11 11:07:36
+Golang Version: go version go1.16.4 linux/amd64
+      Uploader: xxxxxxxxxxxxx/xxxxxxx/xxxxxxx
 ReleasedInputs: all
 ---------------------------------------------------
 
-Online version available: 1.1.8-rc1.1, commit 658339b6eb (release at 2021-08-13 05:52:17)
+Online version available: 1.2.9, commit 9f5ac898be (release at 2022-03-10 12:03:12)
 
 Upgrade:
     $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
-> 如果当前 DataKit 处于被代理模式，自动更新的提示命令中，会自动加上代理设置：
+## DataKit 的稳定（stable）和非稳定版（alpha）
+
+任何版本要升级到非稳定版，都需要额外添加环境变量 `DK_ENABLE_EXPEIMENTAL` 
+
+- Linux/Mac：
+
+``` shell
+DK_UPGRADE=1 DK_ENABLE_EXPEIMENTAL=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+```
+
+- Windows
+
+```powershell
+$env:DK_UPGRADE="1";$env:DK_ENABLE_EXPEIMENTAL="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+```
+
+如果当前 DataKit 处于被代理模式，自动更新的提示命令中，会自动加上代理设置：
+
+- Linux
 
 ```shell
 # Linux/Mac
 HTTPS_PROXY=http://10.100.64.198:9530 DK_UPGRADE=1 ...
+```
 
-# Windows
+- Windows
+
+```powershell
 $env:HTTPS_PROXY="http://10.100.64.198:9530"; $env:DK_UPGRADE="1" ...
 ```
 
@@ -147,3 +171,19 @@ service cron restart
 2021-05-10T09:52:18.391+0800 INFO  ota-update datakit/main.go:219 New online version available: 1.1.6-rc0, commit 9bc4b960 (release at 2021-04-30 14:31:27)
 ...
 ``` 
+
+## DataKit 版本回退
+
+如果新版本有不尽人意的地方，急于回退老版本恢复功能，可以通过如下方式直接逆向升级：
+
+```shell
+# Linux/Mac
+DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install-<版本号>.sh)"
+```
+
+```powershell
+# Windows
+$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install-<版本号>.ps1 -destination .install.ps1; powershell .install.ps1;
+```
+
+这里的版本号，可以从 [DataKit 的发布历史](changelog)页面找到。目前只支持退回到 [1.2.0](changelog#0f7b9708) 以后的版本，之前的 rc 版本不建议回退。回退版本后，可能会碰到一些新版本中才有的配置，无法在回退后的版本中解析，这个暂时只能手动调整配置，适配老版本的 DataKit。

@@ -17,7 +17,6 @@ import (
 	"github.com/influxdata/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -139,7 +138,7 @@ func (d *dcaContext) fail(errors ...dcaError) {
 // dca reload.
 func dcaReload(c *gin.Context) {
 	context := getContext(c)
-	if err := restartDataKit(); err != nil {
+	if err := dcaAPI.RestartDataKit(); err != nil {
 		l.Error("restartDataKit: %s", err)
 		context.fail(dcaError{ErrorCode: "system.restart.error", ErrorMsg: "restart datakit error"})
 		return
@@ -160,7 +159,7 @@ func restartDataKit() error {
 }
 
 func dcaStats(c *gin.Context) {
-	s, err := GetStats()
+	s, err := dcaAPI.GetStats()
 	context := dcaContext{c: c}
 
 	if err != nil {
@@ -334,7 +333,7 @@ func dcaInputDoc(c *gin.Context) {
 		return
 	}
 
-	md, err := man.BuildMarkdownManual(inputName, &man.Option{})
+	md, err := dcaAPI.GetMarkdownContent(inputName)
 	if err != nil {
 		l.Warn(err)
 		// context.fail(dcaError{ErrorCode: "record.not.exist", ErrorMsg: "record not exist", Code: http.StatusNotFound})
@@ -512,26 +511,22 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 }
 
 func pipelineTest(pipelineFile string, text string) (string, error) {
-	if err := pipeline.Init(datakit.DataDir); err != nil {
-		return "", err
-	}
-
-	pl, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, pipelineFile), false)
+	pl, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, pipelineFile))
 	if err != nil {
 		return "", err
 	}
 
-	res, err := pl.Run(text).Result()
+	res, err := pl.Run(text, "")
 	if err != nil {
 		return "", err
 	}
 
-	if res == nil || (len(res.Tags) == 0 || len(res.Data) == 0) {
+	if res == nil || (len(res.Output.Tags) == 0 || len(res.Output.Fields) == 0) {
 		l.Debug("No data extracted from pipeline")
 		return "", nil
 	}
 
-	if res.Dropped {
+	if res.Output.Dropped {
 		l.Debug("the current log has been dropped by the pipeline script")
 		return "", nil
 	}
@@ -565,7 +560,7 @@ func dcaTestPipelines(c *gin.Context) {
 		return
 	}
 
-	parsedText, err := pipelineTest(fileName, text)
+	parsedText, err := dcaAPI.TestPipeline(fileName, text)
 	if err != nil {
 		l.Error(err)
 		context.fail(dcaError{ErrorCode: "pipeline.parse.error", ErrorMsg: err.Error()})

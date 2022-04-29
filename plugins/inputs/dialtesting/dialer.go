@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/go-ping/ping"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
@@ -23,6 +23,8 @@ type dialer struct {
 
 	tags     map[string]string
 	updateCh chan dt.Task
+
+	category string
 
 	failCnt int
 }
@@ -55,6 +57,14 @@ func newDialer(t dt.Task, ts map[string]string) *dialer {
 	}
 }
 
+func (d *dialer) getSendFailCount() int32 {
+	if d.category != "" {
+		return dataway.GetSendStat(d.category)
+	}
+
+	return 0
+}
+
 func (d *dialer) run() error {
 	d.ticker = d.task.Ticker()
 
@@ -70,8 +80,13 @@ func (d *dialer) run() error {
 			return nil
 
 		case <-d.ticker.C:
+			failCount := d.getSendFailCount()
+			if failCount > MaxSendFailCount {
+				l.Warnf("dial testing %s send data failed %d times", d.task.ID(), failCount)
+				return nil
+			}
 
-			l.Debugf(`dialer run %+#v`, d)
+			l.Debugf(`dialer run %+#v, fail count: %d`, d, failCount)
 			d.testCnt++
 
 			switch d.task.Class() {
@@ -112,7 +127,8 @@ func (d *dialer) feedIO() error {
 
 	urlStr := u.String()
 	switch d.task.Class() {
-	case dt.ClassHTTP:
+	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket:
+		d.category = urlStr
 		return d.pointsFeed(urlStr)
 	case dt.ClassHeadless:
 		return fmt.Errorf("headless task deprecated")
@@ -134,79 +150,4 @@ func (d *dialer) doUpdateTask(t dt.Task) {
 	}
 
 	d.task = t
-}
-
-type httpMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-func (m *httpMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
-}
-
-//nolint:lll
-func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: "http_dial_testing",
-		Tags: map[string]interface{}{
-			"name":               &inputs.TagInfo{Desc: "示例：拨测名称,百度测试"},
-			"url":                &inputs.TagInfo{Desc: "示例 http://wwww.baidu.com"},
-			"country":            &inputs.TagInfo{Desc: "示例 中国"},
-			"province":           &inputs.TagInfo{Desc: "示例 浙江"},
-			"city":               &inputs.TagInfo{Desc: "示例 杭州"},
-			"internal":           &inputs.TagInfo{Desc: "示例 true（国内 true /海外 false）"},
-			"isp":                &inputs.TagInfo{Desc: "示例 电信/移动/联通"},
-			"status":             &inputs.TagInfo{Desc: "示例 OK/FAIL 两种状态 "},
-			"status_code_class":  &inputs.TagInfo{Desc: "示例 2xx"},
-			"status_code_string": &inputs.TagInfo{Desc: "示例 200 OK"},
-			"proto":              &inputs.TagInfo{Desc: "示例 HTTP/1.0"},
-		},
-		Fields: map[string]interface{}{
-			"status_code": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "web page response code",
-			},
-			"message": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "包括请求头(request_header)/请求体(request_body)/返回头(response_header)/返回体(response_body)/fail_reason 冗余一份",
-			},
-			"fail_reason": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "拨测失败原因",
-			},
-			"response_time": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.DurationUS,
-				Desc:     "HTTP 相应时间, 单位 ms",
-			},
-			"response_body_size": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.SizeByte,
-				Desc:     "body 长度",
-			},
-			"success": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "只有 1/-1 两种状态, 1 表示成功, -1 表示失败",
-			},
-			"proto": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "示例 HTTP/1.0",
-			},
-		},
-	}
 }

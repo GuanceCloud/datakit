@@ -3,19 +3,46 @@ package cmds
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"sort"
+	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
-func pipelineDebugger(plname, txt string) error {
-	if txt == "" {
-		l.Fatal("-txt required")
+func runPLFlags() error {
+	var txt string
+
+	if *flagPLTxtFile != "" {
+		txtBytes, err := ioutil.ReadFile(*flagPLTxtFile)
+		if err != nil {
+			return fmt.Errorf("ioutil.ReadFile: %w", err)
+		}
+		txt = string(txtBytes)
+		txt = strings.TrimSuffix(txt, "\n")
 	}
 
-	if err := pipeline.Init(datakit.DataDir); err != nil {
+	if txt == "" {
+		if *flagPLTxtData != "" {
+			txt = *flagPLTxtData
+		}
+	}
+
+	if txt == "" {
+		return fmt.Errorf("no testing string")
+	}
+
+	if strings.HasSuffix(txt, "\n") {
+		warnf("[E] txt has suffix EOL\n")
+	}
+
+	return pipelineDebugger(debugPipelineName, txt)
+}
+
+func pipelineDebugger(plname, txt string) error {
+	if err := pipeline.Init(config.Cfg.Pipeline); err != nil {
 		return err
 	}
 
@@ -23,37 +50,74 @@ func pipelineDebugger(plname, txt string) error {
 	if err != nil {
 		return fmt.Errorf("get pipeline failed: %w", err)
 	}
-	pl, err := pipeline.NewPipelineFromFile(plPath, true)
+	pl, err := pipeline.NewPipelineFromFile(plPath)
 	if err != nil {
 		return fmt.Errorf("new pipeline failed: %w", err)
 	}
 
 	start := time.Now()
-
-	res, err := pl.Run(txt).Result()
+	res, err := pl.Run(txt, "")
 	if err != nil {
 		return fmt.Errorf("run pipeline failed: %w", err)
 	}
+	cost := time.Since(start)
 
-	if res == nil || (len(res.Data) == 0 && len(res.Tags) == 0) {
-		fmt.Println("No data extracted from pipeline")
+	if res == nil || (len(res.Output.Fields) == 0 && len(res.Output.Tags) == 0) {
+		errorf("[E] No data extracted from pipeline\n")
 		return nil
 	}
 
 	result := map[string]interface{}{}
+	maxWidth := 0
 
-	for k, v := range res.Data {
+	if plTime, err := res.GetTime(); err == nil {
+		if *flagPLDate {
+			result["time"] = plTime
+		} else {
+			result["time"] = plTime.UnixNano()
+		}
+	}
+
+	for k, v := range res.Output.Fields {
+		if len(k) > maxWidth {
+			maxWidth = len(k)
+		}
 		result[k] = v
 	}
-	for k, v := range res.Tags {
+
+	for k, v := range res.Output.Tags {
 		result[k+"#"] = v
-	}
-	j, err := json.MarshalIndent(result, "", defaultJSONIndent)
-	if err != nil {
-		return err
+		if len(k)+1 > maxWidth {
+			maxWidth = len(k) + 1
+		}
 	}
 
-	fmt.Printf("Extracted data(drop: %v, cost: %v):\n", res.Dropped, time.Since(start))
-	fmt.Printf("%s\n", string(j))
+	if res.Output.DataMeasurement != "" {
+		result["source#"] = res.Output.DataMeasurement
+	}
+
+	if *flagPLTable {
+		fmtStr := fmt.Sprintf("%% %ds: %%v", maxWidth)
+		lines := []string{}
+		for k, v := range result {
+			lines = append(lines, fmt.Sprintf(fmtStr, k, v))
+		}
+
+		sort.Strings(lines)
+		for _, l := range lines {
+			fmt.Println(l)
+		}
+	} else {
+		j, err := json.MarshalIndent(result, "", defaultJSONIndent)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%s\n", string(j))
+	}
+
+	infof("---------------\n")
+	infof("Extracted %d fields, %d tags; drop: %v, cost: %v\n",
+		len(res.Output.Fields), len(res.Output.Tags), res.Output.Dropped, cost)
+
 	return nil
 }

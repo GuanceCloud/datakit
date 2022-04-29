@@ -8,20 +8,31 @@
 
 本文档主要描述 DataKit 开放出来 HTTP API 接口。
 
+## API 综述
+
+DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
+
+### 通过 API 获取远端 DataKit 版本号
+
+有两种方式可获取版本号：
+
+- 请求 DataKit ping 接口： `curl http://ip:9529/v1/ping`
+- 在下述每个 API 请求的返回 Header 中，通过 `X-DataKit` 可获知当前请求的 DataKit 版本
+
 ## `/v1/write/:category`
 
-写入日志数据，参数列表：
+本 API 用于给 DataKit 上报各类数据（`category`），参数说明如下：
 
-| 参数名               | 类型   | 是否必选 | 默认值    | 说明                                                                                       |
-| -------------------- | ------ | -------- | --------- | --------------------------------------------------                                         |
-| `category`           | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                         |
-| `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                              |
-| `input`              | string | false    | `datakit` | 数据源名称                                                                                 |
-| `ignore_global_tags` | string | false    | 无        | 任意给值即认为忽略 DataKit 上的全局 tag                                                    |
-| `version`            | string | false    | 无        | 当前采集器的版本号                                                                         |
-| `source`             | string | false    | 无        | 仅仅针对 logging 支持指定该字段。如果不指定 `source`，则上传的日志数据不会执行 pipeline 切割 |
+| 参数名               | 类型   | 是否必选 | 默认值    | 说明                                                                                                                       |
+| -------------------- | ------ | -------- | --------- | --------------------------------------------------                                                                         |
+| `category`           | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                                                         |
+| `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                              |
+| `input`              | string | false    | `datakit` | 数据源名称                                                                                                                 |
+| `ignore_global_tags` | string | false    | 无        | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag                                                                                    |
+| `version`            | string | false    | 无        | 当前采集器的版本号                                                                                                         |
+| `source`             | string | false    | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割 |
 
-HTTP body 支持行协议以及 JSON 俩种形式。
+HTTP body 支持行协议以及 JSON 俩种形式。关于数据结构（不管是行协议形式还是 JSON 形式）的约束，参见[这里](apis#2fc2526a)。
 
 ### JSON Body 示例
 
@@ -147,7 +158,7 @@ slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 
 ## `/v1/ping`
 
-检测目标地址是否有 DataKit 运行
+检测目标地址是否有 DataKit 运行，可获取 DataKit 启动时间以及版本信息。
 
 ### 示例
 
@@ -247,20 +258,27 @@ Content-Type: application/json
 }
 ```
 
-参数说明：
+参数说明
+
+> 注：此处参数需更详细的说明以及举例，待补充。
 
 | 名称                     | 说明                                                                                                                                                                                                                       |
 | :----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `queries`                | 基础查询模块，包含查询语句和各项附加参数                                                                                                                                                                                   |
-| `echo_explain`           | 是否返回最终执行语句（返回 JSON 数据中的 `raw_query` 字段）                                                                                                                                                                |
-| `query`                  | DQL 查询语句（DQL [文档](https://www.yuque.com/dataflux/doc/fsnd2r)）                                                                                                                                                      |
 | `conditions`             | 额外添加条件表达式，使用 DQL 语法，例如`hostname="cloudserver01" OR system="ubuntu"`。与现有 `query` 中的条件表达式成 `AND` 关系，且会在最外层添加括号避免与其混乱                                                         |
-| `time_range`             | 限制时间范围，采用时间戳格式，单位为毫秒，数组大小为 2 的 int，如果只有一个元素则认为是起始时间，会覆盖原查询语句中的查询时间区间                                                                                          |
-| `max_duration`           | 限制最大查询时间，支持单位 `ns/us/ms/s/m/h/d/w/y` ，例如 `3d` 是 3 天，`2w` 是 2 周，`1y` 是 1 年。默认是 1 年，此参数同样会限制 `time_range` 参数                                                                         |
-| `orderby`                | 指定`order by`参数，内容格式为 `map[string]string` 数组，`key` 为要排序的字段名，`value` 只能是排序方式即 `asc` 和 `desc`，例如 `[ { "column01" : "asc" }, { "column02" : "desc" } ]`。此条会替换原查询语句中的 `order by` |
-| `max_point`              | 限制聚合最大点数。在使用聚合函数时，如果聚合密度过小导致点数太多，则会以 `(end_time-start_time)/max_point` 得到新的聚合间隔将其替换                                                                                        |
-| `disable_slimit`         | 是否禁用默认 SLimit，当为 true 时，将不添加默认 SLimit 值，否则会强制添加 SLimit 20，默认为 `false`                                                                                                                        |
 | `disable_multiple_field` | 是否禁用多字段。当为 true 时，只能查询单个字段的数据（不包括 time 字段），默认为 `false`                                                                                                                                   |
+| `disable_slimit`         | 是否禁用默认 SLimit，当为 true 时，将不添加默认 SLimit 值，否则会强制添加 SLimit 20，默认为 `false`                                                                                                                        |
+| `echo_explain`           | 是否返回最终执行语句（返回 JSON 数据中的 `raw_query` 字段）                                                                                                                                                                |
+| `highlight`              | 高亮搜索结果                                                                                                                                                                                                               |
+| `limit`                  | 限制单个时间线返回的点数，将覆盖 DQL 中存在的 limit                                                                                                                                                                        |
+| `max_duration`           | 限制最大查询时间，支持单位 `ns/us/ms/s/m/h/d/w/y` ，例如 `3d` 是 3 天，`2w` 是 2 周，`1y` 是 1 年。默认是 1 年，此参数同样会限制 `time_range` 参数                                                                         |
+| `max_point`              | 限制聚合最大点数。在使用聚合函数时，如果聚合密度过小导致点数太多，则会以 `(end_time-start_time)/max_point` 得到新的聚合间隔将其替换                                                                                        |
+| `offset`                 | 一般跟 limit 配置使用，用于结果分页                                                                                                                                                                                        |
+| `orderby`                | 指定`order by`参数，内容格式为 `map[string]string` 数组，`key` 为要排序的字段名，`value` 只能是排序方式即 `asc` 和 `desc`，例如 `[ { "column01" : "asc" }, { "column02" : "desc" } ]`。此条会替换原查询语句中的 `order by` |
+| `queries`                | 基础查询模块，包含查询语句和各项附加参数                                                                                                                                                                                   |
+| `query`                  | DQL 查询语句（DQL [文档](https://www.yuque.com/dataflux/doc/fsnd2r)）                                                                                                                                                      |
+| `search_after`           | 深度分页，第一次调用分页的时候，传入空列表：`"search_after": []`，成功后服务端会返回一个列表，客户端直接复用这个列表的值再次通过 `search_after` 参数回传给后续的查询即可                                                   |
+| `slimit`                 | 限制时间线个数，将覆盖 DQL 中存在的 slimit                                                                                                                                                                                 |
+| `time_range`             | 限制时间范围，采用时间戳格式，单位为毫秒，数组大小为 2 的 int，如果只有一个元素则认为是起始时间，会覆盖原查询语句中的查询时间区间                                                                                          |
 
 返回数据：
 
@@ -297,8 +315,6 @@ Content-Type: application/json
 
 创建或者更新对象的 `labels`
 
-请求示例:
-
 `request body`说明
 
 |           参数 | 描述                                                                          | 类型       |
@@ -308,6 +324,8 @@ Content-Type: application/json
 |          `key` | 表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`     | `string`   |
 |        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`     |
 |       `labels` | `labels` 列表，一个 `string` 数组                                             | `[]string` |
+
+### 示例
 
 ```shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels" \
@@ -345,9 +363,7 @@ status_code: 500
 
 删除对象的 `labels`
 
-请求示例:
-
-`request body`说明
+`request body` 说明
 
 |           参数 | 描述                                                                          | 类型     |
 | -------------: | ----------------------------------------------------------------------------- | -------- |
@@ -355,6 +371,8 @@ status_code: 500
 |  `object_name` | 表示 `labels` 所关联的 `object`名称，如 `host-123`                            | `string` |
 |          `key` | 表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`     | `string` |
 |        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`   |
+
+### 示例
 
 ```shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
@@ -387,9 +405,134 @@ status_code: 500
 }
 ```
 
-## DataKit 行协议约束
+## `/v1/pipeline/debug` | `POST`
 
-为规范观测云中的数据，现对经过 DataKit 的行协议数据，做如下约束：
+提供远程调试 PL 的功能。
 
-- tags 和 fields 中的 key 不允许重名
-- tags 内部或 fields 内部不允许出现同名 key
+### 示例 
+
+```
+POST /v1/pipeline/debug
+Content-Type: application/json
+
+{
+  "pipeline": base64("pipeline-source-code"),
+  "category": "logging", # 暂时只支持日志的 PL 调试
+  "data": base64("raw-logging-data"), # 此处 raw data 可以是多行， API 会自动做分行处理
+  "multiline": "用于多行匹配的正则指定",  # 如果不传，则 API 以「非空白字符开头」为多行分割标识
+  "encode": "@data 的字符编码",         # 默认是 utf8 编码
+  "benchmark": true,                  # 是否开启 benchmark
+}
+```
+
+正常返回:
+
+```
+HTTP/1.1 200 OK
+
+{
+    "content": {
+        "cost": "2.3ms",
+        "benchmark": BenchmarkResult.String(), # 返回 benchmark 结果
+        "error_msg": "",
+        "plresults": [ # 由于日志可能是多行的，此处会返回多个切割结果
+            {
+                "measurement" : "指标集名称，一般是日志 source",
+                "tags": { "key": "val", "other-key": "other-val"},
+                "fields": { "f1": 1, "f2": "abc", "f3": 1.2 },
+                "time": 1644380607 # Unix 时间戳（单位秒）, 前端可将其转成可读日期,
+                "time_ns": 421869748 # 余下的纳秒时间，便于精确转换成日期，完整的纳秒时间戳为 1644380607421869748,
+                "error":"",
+            },
+           {  another-result},
+           ...
+        ]
+    }
+}
+```
+
+错误返回:
+
+```
+HTTP Code: 40x
+
+{
+    "error_code": "datakit.invalidCategory",
+    "message": "invalid category"
+}
+```
+
+## `/v1/dialtesting/debug` | `POST`
+
+提供远程调试 dialtesting 的功能。
+
+### 示例 
+
+```
+POST /v1/dialtesting/debug
+Content-Type: application/json
+
+{
+    "task_type":"http",//"http","tcp","icmp","websocket"
+    "task": {
+        "name":"",
+        "method":"",
+        "url":"",
+        "post_url":"",
+        "cur_status":"",
+        "frequency":"",
+        "enable_traceroute":true,//true代表勾选，tcp，icmp才有用
+        "success_when_logic":"",
+        "SuccessWhen":[]*HTTPSuccess ,
+        "tags":map[string]string ,
+        "labels":[]string,
+        "advance_options":*HTTPAdvanceOption,
+    }
+}
+```
+
+正常返回:
+
+```
+HTTP/1.1 200 OK
+
+{
+    "content": {
+        "cost": "2.3ms",
+        "status": "success",//  success/fail
+        "error_msg": "",
+        "traceroute":[{"total":3,"failed":0,"loss":0,"avg_cost":0,"min_cost":2,"max_cost":3,"std_cost":33,"items":[{"ip":"127.0.0.1","response_time":33}]}],
+    }
+}
+```
+
+错误返回:
+
+```
+HTTP Code: 40x
+
+{
+    "error_code": "datakit.invalidClass",
+    "message": "invalid class"
+}
+```
+
+## DataKit 数据结构约束
+
+为规范观测云中的数据，现对 DataKit 采集的数据，做如下约束（不管是行协议还是 JSON 形式的数据），如无特殊标记，DataKit 将拒绝处理违反如下任一规则的数据。
+
+1. Tag 和 Field 之间的 key 不允许重名，即同一个 key 不能在 Tag 和 Field 中同时出现
+1. Tag 或 Field 内部不允许出现同名 key，即同一个 key 不能在 Tag/Field 中出现多次
+1. Tag 个数不超过 256 个
+1. Field 个数不超过 1024 个
+1. Tag/Field Key 长度不超过 256 字节
+1. Tag Value 长度不超过 1024 字节
+1. Field Value 不超过 32K(32x1024) 字节
+
+关于特殊标记，目前通过 HTTP 接口打进来的数据，均无法标记（比如允许 Tag 个数大于 256 个），而 DataKit 自身的采集器，在某些特殊情况下，可能需要绕过这些限制（比如日志采集中，field 的长度可以放开）。
+
+## 延伸阅读
+
+- [API 访问设置](datakit-conf#db159fbc)
+- [API 限流配置](datakit-conf#39e48d64)
+- [API 安全控制](rum#b896ec48)

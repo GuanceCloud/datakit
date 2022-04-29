@@ -34,19 +34,28 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "netflow",
 		Tags: map[string]interface{}{
-			"host":        inputs.TagInfo{Desc: "主机名"},
-			"dst_ip":      inputs.TagInfo{Desc: "目标 IP"},
-			"dst_domain":  inputs.TagInfo{Desc: "目标域名"},
-			"dst_port":    inputs.TagInfo{Desc: "目标端口"},
-			"dst_ip_type": inputs.TagInfo{Desc: "目标 IP 类型 (other/private/multicast)"},
-			"src_ip":      inputs.TagInfo{Desc: "源 IP"},
-			"src_port":    inputs.TagInfo{Desc: "源端口, 临时端口(32768 ~ 60999)聚合后的值为 `*`"},
-			"src_ip_type": inputs.TagInfo{Desc: "源 IP 类型 (other/private/multicast)"},
-			"pid":         inputs.TagInfo{Desc: "进程号"},
-			"transport":   inputs.TagInfo{Desc: "传输协议 (udp/tcp)"},
-			"family":      inputs.TagInfo{Desc: "TCP/IP 协议族 (IPv4/IPv6)"},
-			"direction":   inputs.TagInfo{Desc: "传输方向 (incoming/outgoing)"},
-			"source":      inputs.TagInfo{Desc: "固定值: netflow"},
+			"host":                 inputs.TagInfo{Desc: "主机名"},
+			"dst_ip":               inputs.TagInfo{Desc: "目标 IP"},
+			"dst_domain":           inputs.TagInfo{Desc: "目标域名"},
+			"dst_port":             inputs.TagInfo{Desc: "目标端口"},
+			"dst_ip_type":          inputs.TagInfo{Desc: "目标 IP 类型 (other/private/multicast)"},
+			"src_ip":               inputs.TagInfo{Desc: "源 IP"},
+			"src_port":             inputs.TagInfo{Desc: "源端口, 临时端口(32768 ~ 60999)聚合后的值为 `*`"},
+			"src_ip_type":          inputs.TagInfo{Desc: "源 IP 类型 (other/private/multicast)"},
+			"src_k8s_pod_name":     inputs.TagInfo{Desc: "源 IP 所属 k8s 的 pod name"},
+			"src_k8s_service_name": inputs.TagInfo{Desc: "源 IP 所属 k8s 的 service name"},
+			"src_k8s_namespace":    inputs.TagInfo{Desc: "源 IP 所在 k8s 的 namespace"},
+			"dst_k8s_pod_name":     inputs.TagInfo{Desc: "目标 IP 所属 k8s 的 pod name"},
+			"dst_k8s_service_name": inputs.TagInfo{
+				Desc: "目标 IP 所属 service, 如果是 dst_ip 是 cluster(service) ip 则 dst_k8s_pod_name 值为 `N/A`",
+			},
+			"dst_k8s_namespace": inputs.TagInfo{Desc: "目标 IP 所在 k8s 的 namespace"},
+			"pid":               inputs.TagInfo{Desc: "进程号"},
+			"transport":         inputs.TagInfo{Desc: "传输协议 (udp/tcp)"},
+			"family":            inputs.TagInfo{Desc: "TCP/IP 协议族 (IPv4/IPv6)"},
+			"direction":         inputs.TagInfo{Desc: "传输方向 (incoming/outgoing)"},
+			"source":            inputs.TagInfo{Desc: "固定值: netflow"},
+			"sub_source":        inputs.TagInfo{Desc: "用于 netflow 的部分特定连接分类，如 Kubernetes 流量的值为 K8s"},
 		},
 		Fields: map[string]interface{}{
 			"bytes_read":      newFInfInt("读取字节数", inputs.SizeByte),
@@ -56,6 +65,49 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 			"rtt_var":         newFInfInt("TCP Jitter", inputs.DurationUS),
 			"tcp_closed":      newFInfInt("TCP 关闭次数", inputs.NCount),
 			"tcp_established": newFInfInt("TCP 建立连接次数", inputs.NCount),
+		},
+	}
+}
+
+type HTTPFlowM measurement
+
+func (m *HTTPFlowM) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+}
+
+//nolint:lll
+func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "httpflow",
+		Tags: map[string]interface{}{
+			"host":                 inputs.TagInfo{Desc: "主机名"},
+			"dst_ip":               inputs.TagInfo{Desc: "目标 IP"},
+			"dst_port":             inputs.TagInfo{Desc: "目标端口"},
+			"dst_ip_type":          inputs.TagInfo{Desc: "目标 IP 类型 (other/private/multicast)"},
+			"src_ip":               inputs.TagInfo{Desc: "源 IP"},
+			"src_port":             inputs.TagInfo{Desc: "源端口, 临时端口(32768 ~ 60999)聚合后的值为 `*`"},
+			"src_ip_type":          inputs.TagInfo{Desc: "源 IP 类型 (other/private/multicast)"},
+			"src_k8s_pod_name":     inputs.TagInfo{Desc: "源 IP 所属 k8s 的 pod name"},
+			"src_k8s_service_name": inputs.TagInfo{Desc: "源 IP 所属 k8s 的 service name"},
+			"src_k8s_namespace":    inputs.TagInfo{Desc: "源 IP 所在 k8s 的 namespace"},
+			"dst_k8s_pod_name":     inputs.TagInfo{Desc: "目标 IP 所属 k8s 的 pod name"},
+			"dst_k8s_service_name": inputs.TagInfo{
+				Desc: "目标 IP 所属 service, 如果是 dst_ip 是 cluster(service) ip 则 dst_k8s_pod_name 值为 `N/A`",
+			},
+			"dst_k8s_namespace": inputs.TagInfo{Desc: "目标 IP 所在 k8s 的 namespace"},
+			// "pid":               inputs.TagInfo{Desc: "进程号"},
+			"transport":  inputs.TagInfo{Desc: "传输协议 (udp/tcp)"},
+			"family":     inputs.TagInfo{Desc: "TCP/IP 协议族 (IPv4/IPv6)"},
+			"direction":  inputs.TagInfo{Desc: "传输方向 (incoming/outgoing)"},
+			"source":     inputs.TagInfo{Desc: "固定值: httpflow"},
+			"sub_source": inputs.TagInfo{Desc: "用于 httpflow 的部分特定连接分类，如 Kubernetes 流量的值为 K8s"},
+		},
+		Fields: map[string]interface{}{
+			"path":         newFString("请求路径"),
+			"status_code":  newFInfInt("http 状态码，如 200, 301, 404 ...", inputs.UnknownUnit),
+			"method":       newFString("GET/POST/..."),
+			"latency":      newFInfInt("ttfb", inputs.DurationNS),
+			"http_version": newFString("1.1 / 1.0 ..."),
 		},
 	}
 }

@@ -10,8 +10,14 @@ import (
 var OK = newErr(nil, http.StatusOK)
 
 var (
-	ErrBadReq                 = newErr(errors.New("bad request"), http.StatusBadRequest)
-	ErrInvalidCategory        = newErr(errors.New("invalid category"), http.StatusBadRequest)
+	ErrBadReq = newErr(errors.New("bad request"), http.StatusBadRequest)
+
+	ErrInvalidRequest  = newErr(errors.New("invalid request"), http.StatusBadRequest)
+	ErrInvalidCategory = newErr(errors.New("invalid category"), http.StatusBadRequest)
+	ErrInvalidPipeline = newErr(errors.New("invalid pipeline"), http.StatusBadRequest)
+	ErrInvalidData     = newErr(errors.New("invalid data"), http.StatusBadRequest)
+	ErrCompiledFailed  = newErr(errors.New("pipeline compile failed"), http.StatusBadRequest)
+
 	ErrInvalidPrecision       = newErr(errors.New("invalid precision"), http.StatusBadRequest)
 	ErrHTTPReadErr            = newErr(errors.New("HTTP read error"), http.StatusInternalServerError)
 	ErrEmptyBody              = newErr(errors.New("empty body"), http.StatusBadRequest)
@@ -24,6 +30,7 @@ var (
 	ErrInvalidAPIHandler      = newErr(errors.New("invalid API handler"), http.StatusInternalServerError)
 	ErrInvalidObjectPoint     = newErr(errors.New("invalid object point"), http.StatusBadRequest)
 	ErrPublicAccessDisabled   = newErr(errors.New("public access disabled"), http.StatusForbidden)
+	ErrReachLimit             = newErr(errors.New("reach max API limit"), http.StatusTooManyRequests)
 
 	// write body error.
 	ErrInvalidJSONPoint = newErr(errors.New("invalid json point"), http.StatusBadRequest)

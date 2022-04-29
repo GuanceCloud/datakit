@@ -6,22 +6,26 @@
 
 # {{.InputName}}
 
-ebpf 采集器，采集主机网络 tcp、udp 连接信息，bash 执行日志等，包含 ebpf-net 及 ebpf-bash:
+eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志等。本采集器主要包含 `ebpf-net` 及 `ebpf-bash` 俩类:
 
-  * ebpf-net:
+  * `ebpf-net`:
     * 数据类别: Network
-    * 由 netflow 和 dnsflow 构成，分别用于采集主机 tcp/udp 连接统计信息和主机 dns 解析信息；
+    * 由 netflow、httpflow 和 dnsflow 构成，分别用于采集主机 TCP/UDP 连接统计信息和主机 DNS 解析信息；
 
-  * ebpf-bash:
+  * `ebpf-bash`:
     * 数据类别: Logging
-    * 采集 bash 的执行日志，包含 bash 进程号，用户名，执行的命令和时间等;
+    * 采集 Bash 的执行日志，包含 Bash 进程号、用户名、执行的命令和时间等;
 
-## 前置条
+## 前置条件
+
+该采集器不再打包在 DataKit 中，对于新装 DataKit，需执行安装命令进行安装，有以下两种方法：
+
+- 安装时[指定环境变量](datakit-install#f9858758)：`DK_INSTALL_EXTERNALS="datakit-ebpf"`
+- DataKit 安装完后，再手动安装 eBPF 采集器：`datakit install --datakit-ebpf`
 
 ### Linux 内核版本要求
 
-除 CentOS 7.6+ 和 Ubuntu 16.04 以外，其他发行版本需要 Linux 内核版本高于 4.0.0,
-可使用命令 `uname -r` 查看，如下：
+除 CentOS 7.6+ 和 Ubuntu 16.04 以外，其他发行版本需要 Linux 内核版本高于 4.0.0, 可使用命令 `uname -r` 查看，如下：
 
 ```sh
 $ uname -r 
@@ -44,9 +48,14 @@ setenforce 0
 {{.InputSample}}
 ```
 
-默认配置不开启 ebpf-bash，若需开启在 enabled_plugins 配置项中添加 "ebpf-bash"；
+默认配置不开启 ebpf-bash，若需开启在 `enabled_plugins` 配置项中添加 `ebpf-bash`；
 
 配置好后，重启 DataKit 即可。
+
+### Kubernetes 安装
+
+参照通用的 [ConfigMap 安装示例](datakit-daemonset-deploy#fb919c14)。
+
 ## 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：

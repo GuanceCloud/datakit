@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-进程采集器可以对系统中各种运行的进程进行实施监控， 获取、分析进程运行时各项指标，包括内存使用率、占用CPU时间、进程当前状态等，并根据进程运行时的各项指标信息，用户可以在观测云中配置相关告警，使用户了解进程的状态，在进程发生故障时，可以及时对发生故障的进程进行维护
+进程采集器可以对系统中各种运行的进程进行实施监控， 获取、分析进程运行时各项指标，包括内存使用率、占用CPU时间、进程当前状态、进程监听的端口等，并根据进程运行时的各项指标信息，用户可以在观测云中配置相关告警，使用户了解进程的状态，在进程发生故障时，可以及时对发生故障的进程进行维护。
 
 ## 前置条件
 
@@ -34,6 +34,8 @@
 | :---                                   | ---              | ---                                                          |
 | `ENV_INPUT_HOST_PROCESSES_OPEN_METRIC` | `open_metric`    | `true`/`false`                                               |
 | `ENV_INPUT_HOST_PROCESSES_TAGS`        | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+| `ENV_INPUT_HOST_PROCESSES_PROCESS_NAME` | `process_name` | `".*datakit.*", "guance"` 以英文逗号隔开 |
+| `ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME` | `min_run_time` | `"10m"` |
 
 ## 指标集
 
@@ -46,38 +48,42 @@
   # ...
 ```
 
+### 指标
+
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "metric"}}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
+
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
 
 {{ end }}
 
-## 对象
+### 对象
 
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "object"}}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
+
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}

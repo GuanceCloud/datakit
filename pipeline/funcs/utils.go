@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -111,9 +116,9 @@ func fixMinute(now time.Time, x int64) (int, error) {
 	return int(x), nil
 }
 
-func fixSecond(now time.Time, x int64) (int, error) {
+func fixSecond(x int64) (int, error) {
 	if x == DefaultInt {
-		return now.Second(), nil
+		return 0, nil
 	}
 
 	if x < 0 || x > 59 {

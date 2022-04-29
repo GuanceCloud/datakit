@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package funcs implement functions for datakit's pipeline.
 package funcs
 
@@ -39,9 +44,12 @@ var FuncsMap = map[string]parser.FuncCallback{
 	"user_agent":            UserAgent,
 	"parse_duration":        ParseDuration,
 	"parse_date":            ParseDate,
-	"cover":                 Dz,
+	"cover":                 Cover,
 	"replace":               Replace,
 	"duration_precision":    DurationPrecision,
+	// "match":                 Match,
+	"sql_cover": SQLCover,
+	"decode":    Decode,
 	// disable
 	"json_all": JSONAll,
 	"expr":     Expr,
@@ -74,9 +82,12 @@ var FuncsCheckMap = map[string]parser.FuncCallbackCheck{
 	"user_agent":            UserAgentChecking,
 	"parse_duration":        ParseDurationChecking,
 	"parse_date":            ParseDateChecking,
-	"cover":                 DzChecking,
+	"cover":                 CoverChecking,
 	"replace":               ReplaceChecking,
 	"duration_precision":    DurationPrecisionChecking,
+	"sql_cover":             SQLCoverChecking,
+	// "match":                 MatchChecking,
+	"decode": DecodeChecking,
 	// disable
 	"json_all": JSONAllChecking,
 	"expr":     ExprChecking,

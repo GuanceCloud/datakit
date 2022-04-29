@@ -76,31 +76,31 @@ func Test_mkServer(t *testing.T) {
 	}{
 		{
 			name:    "case1",
-			args:    args{socket: "tcp://127.0.0.1:7000"},
+			args:    args{socket: "tcp://127.0.0.1:7002"},
 			wantS:   &server{},
 			wantErr: false,
 		},
 		{
 			name:    "case2",
-			args:    args{socket: "udp://127.0.0.1:7000"}, // tcp 和 udp 可以使用同一端口
+			args:    args{socket: "udp://127.0.0.1:7001"}, // tcp 和 udp 可以使用同一端口
 			wantS:   &server{},
 			wantErr: false,
 		},
 		{
 			name:    "case3",
-			args:    args{socket: "udp://127.0.0.1:7000"}, // eq port
+			args:    args{socket: "udp://127.0.0.1:7001"}, // eq port
 			wantS:   &server{},
 			wantErr: true,
 		},
 		{
 			name:    "case4",
-			args:    args{socket: "udp1://127.0.0.1:7001"}, // err socket
+			args:    args{socket: "udp1://127.0.0.1:7004"}, // err socket
 			wantS:   &server{},
 			wantErr: true,
 		},
 		{
 			name:    "case5",
-			args:    args{socket: "udp127.0.0.1:7001"}, // err socket
+			args:    args{socket: "udp127.0.0.1:7005"}, // err socket
 			wantS:   &server{},
 			wantErr: true,
 		},
@@ -109,7 +109,7 @@ func Test_mkServer(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gotS, err := mkServer(tt.args.socket)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("mkServer() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("case:%s mkServer() error = %v, wantErr %v", tt.name, err, tt.wantErr)
 				return
 			}
 			if gotS == nil {

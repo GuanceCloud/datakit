@@ -14,7 +14,7 @@ import (
 )
 
 type IApiWrite interface {
-	sendToPipLine(*plw.Task) error
+	sendToPipLine(plw.Task) error
 	sendToIO(string, string, []*io.Point, *io.Option) error
 	geoInfo(string) map[string]string
 }
@@ -47,7 +47,7 @@ func (x *apiWriteImpl) geoInfo(ip string) map[string]string {
 }
 
 // sendToPipLine will send each point from @pts to pipeline module.
-func (x *apiWriteImpl) sendToPipLine(t *plw.Task) error {
+func (x *apiWriteImpl) sendToPipLine(t plw.Task) error {
 	return plw.FeedPipelineTaskBlock(t)
 }
 
@@ -148,12 +148,12 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 		}
 
 	default:
-		pts, err = handleWriteBody(body, isjson, &lp.Option{
-			Precision: precision,
-			Time:      time.Now(),
-			ExtraTags: extags,
-			Strict:    true,
-		})
+		opt := lp.NewDefaultOption()
+		opt.Precision = precision
+		opt.Time = time.Now()
+		opt.ExtraTags = extags
+		opt.Strict = true
+		pts, err = handleWriteBody(body, isjson, opt)
 		if err != nil {
 			return nil, err
 		}

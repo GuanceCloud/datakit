@@ -1,0 +1,161 @@
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+  {{- include "datakit.labels" . | nindent 4 }}
+  name: {{ include "datakit.fullname" . }}
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+  {{- include "datakit.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ randAlphaNum 5 | quote }}
+      {{- with .Values.podAnnotations }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+    {{- include "datakit.selectorLabels" . | nindent 8 }}
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+            - name: ENV_DATAWAY
+              value: {{ .Values.datakit.dataway_url }}
+            - name: ENV_GLOBAL_TAGS
+              value: {{ .Values.datakit.global_tags }}
+            - name: ENV_DEFAULT_ENABLED_INPUTS
+              value: {{ .Values.datakit.default_enabled_inputs }}
+            - name: ENV_ENABLE_ELECTION
+              value: {{ .Values.datakit.enabled_election | quote }}
+            - name: ENV_LOG
+              value: {{ .Values.datakit.log }}
+            - name: ENV_HTTP_LISTEN
+              value: {{ .Values.datakit.http_listen }}
+            {{- if .Values.git_repos.enable }}
+            {{- if not (eq  "-" .Values.git_repos.git_url) }}
+            - name: DK_GIT_URL
+              value: {{ .Values.git_repos.git_url }}
+            {{- end }}
+            {{- if not (eq "-" .Values.git_repos.git_key_path ) }}
+            - name: DK_GIT_KEY_PATH
+              value: "/usr/local/datakit/id_rsa"
+            {{- end }}
+            {{- if not (eq .Values.git_repos.git_key_pw "-") }}
+            - name: DK_GIT_KEY_PW
+              value: {{ .Values.git_repos.git_key_pw | quote  }}
+            {{- end }}
+            - name: DK_GIT_BRANCH
+              value: {{ .Values.git_repos.git_branch | quote }}
+            - name: DK_GIT_INTERVAL
+              value: {{ .Values.git_repos.git_interval | quote  }}
+          {{- end }}
+
+          {{- if .Values.extraEnvs }}
+          {{ toYaml .Values.extraEnvs | indent 8 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          name: {{ .Chart.Name }}
+          ports:
+            - containerPort: 9529
+              hostPort: 9529
+              name: port
+              protocol: TCP
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - mountPath: /var/run/docker.sock
+              name: docker-socket
+              readOnly: true
+            - mountPath: /host/proc
+              name: proc
+              readOnly: true
+            - mountPath: /host/dev
+              name: dev
+              readOnly: true
+            - mountPath: /host/sys
+              name: sys
+              readOnly: true
+            - mountPath: /rootfs
+              name: rootfs
+            - mountPath: /sys/kernel/debug
+              name: debugfs
+            {{- if .Values.git_repos.enable }}
+            {{- if not (eq .Values.git_repos.git_key_path "-") }}
+            - mountPath: /usr/local/datakit/id_rsa
+              name: id-rsa
+            {{- end }}
+            {{- end }}
+            {{- if .Values.dkconfig }}
+            {{- range $index, $vaule := .Values.dkconfig }}
+            {{- with $vaule }}
+            - mountPath: {{ .path }}
+              name: datakit-conf
+              subPath: {{ .name }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+          workingDir: /usr/local/datakit
+      hostIPC: true
+      hostPID: true
+      restartPolicy: Always
+      {{- with .Values.tolerations }}
+      tolerations:
+      {{ toYaml . | indent 6 }}
+      {{- end }}
+      serviceAccount: {{ include "datakit.fullname" . }}
+      serviceAccountName: {{ include "datakit.fullname" . }}
+      volumes:
+        - configMap:
+            name: datakit-conf
+          name: datakit-conf
+        - hostPath:
+            path: /var/run/docker.sock
+          name: docker-socket
+        - hostPath:
+            path: /proc
+            type: ""
+          name: proc
+        - hostPath:
+            path: /dev
+            type: ""
+          name: dev
+        - hostPath:
+            path: /sys
+            type: ""
+          name: sys
+        - hostPath:
+            path: /
+            type: ""
+          name: rootfs
+        - hostPath:
+            path: /sys/kernel/debug
+            type: ""
+          name: debugfs
+        {{- if .Values.git_repos.enable }}
+        {{- if not (eq .Values.git_repos.git_key_path "-") }}
+        - configMap:
+            name: id-rsa
+          name: id-rsa
+      {{- end }}
+  {{- end }}
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate

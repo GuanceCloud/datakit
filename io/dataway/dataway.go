@@ -15,25 +15,27 @@ import (
 
 var (
 	apis = []string{
-		datakit.MetricDeprecated,
-		datakit.Metric,
-		datakit.Network,
-		datakit.KeyEvent,
-		datakit.Object,
 		datakit.CustomObject,
-		datakit.Logging,
-		datakit.LogFilter,
-		datakit.Tracing,
-		datakit.RUM,
-		datakit.Security,
-		datakit.HeartBeat,
+		datakit.DatakitPull,
 		datakit.Election,
 		datakit.ElectionHeartbeat,
-		datakit.QueryRaw,
-		datakit.Workspace,
+		datakit.HeartBeat,
+		datakit.KeyEvent,
 		datakit.ListDataWay,
-		datakit.ObjectLabel,
+		datakit.LogFilter,
 		datakit.LogUpload,
+		datakit.Logging,
+		datakit.Metric,
+		datakit.MetricDeprecated,
+		datakit.Network,
+		datakit.Object,
+		datakit.ObjectLabel,
+		datakit.PipelinePull,
+		datakit.QueryRaw,
+		datakit.RUM,
+		datakit.Security,
+		datakit.Tracing,
+		datakit.Workspace,
 	}
 
 	ExtraHeaders               = map[string]string{}
@@ -47,10 +49,11 @@ type DataWayCfg struct {
 	URLs      []string `toml:"urls"`
 	endPoints []*endPoint
 
-	DeprecatedURL    string `toml:"url,omitempty"`
-	HTTPTimeout      string `toml:"timeout"`
-	HTTPProxy        string `toml:"http_proxy"`
-	Hostname         string `toml:"-"`
+	DeprecatedURL string `toml:"url,omitempty"`
+	HTTPTimeout   string `toml:"timeout"`
+	HTTPProxy     string `toml:"http_proxy"`
+	Hostname      string `toml:"-"`
+
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
 	DeprecatedToken  string `toml:"token,omitempty"`
@@ -105,6 +108,31 @@ func (dw *DataWayCfg) GetToken() []string {
 	}
 
 	return resToken
+}
+
+func (dw *DataWayCfg) CheckToken(token string) (err error) {
+	err = fmt.Errorf("token invalid format")
+
+	tokenFormatMap := map[string]int{
+		"token_": 32,
+		"tkn_":   32,
+		"tokn_":  24,
+	}
+
+	parts := strings.Split(token, "_")
+
+	if len(parts) == 2 {
+		prefix := parts[0] + "_"
+		tokenVal := parts[1]
+
+		if tokenLen, ok := tokenFormatMap[prefix]; ok {
+			if len(tokenVal) == tokenLen {
+				err = nil
+			}
+		}
+	}
+
+	return
 }
 
 func (dw *DataWayCfg) Apply() error {
@@ -205,6 +233,7 @@ func (dw *DataWayCfg) initHTTP() error {
 	}
 
 	dw.httpCli = ihttp.Cli(cliopts)
+	dw.httpCli.Timeout = dw.TimeoutDuration // set HTTP request timeout
 	log.Debugf("httpCli: %p", dw.httpCli.Transport)
 
 	return nil
