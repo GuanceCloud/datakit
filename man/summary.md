@@ -4,12 +4,12 @@
   - [如何配置 DataKit]()
     - [DataKit 主配置](datakit-conf)
     - [采集器配置](datakit-input-conf)
+	  - [如何通过 Git 来管理 DataKit 的配置](git-config-how-to)
   - [DataKit 日常使用]()
     - [通过 DQL 查询数据](datakit-dql-how-to)
     - [查看 DataKit Monitor](datakit-monitor)
     - [各种其它工具使用](datakit-tools-how-to)
     - [如何排查无数据问题](why-no-data)
-	  - [如何通过 Git 来管理 DataKit 的配置](git-config-how-to)
 
 - [DataKit 版本历史](changelog)
 
