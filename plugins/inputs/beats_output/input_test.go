@@ -104,7 +104,7 @@ func TestEventGet(t *testing.T) {
 		{
 			name:   "fields",
 			path:   "fields",
-			expect: map[string]interface{}(map[string]interface{}{"logtype": "sshd-log", "product": "beijing", "type": "sshd-log"}),
+			expect: map[string]interface{}{"logtype": "sshd-log", "product": "beijing", "type": "sshd-log"},
 		},
 	}
 
