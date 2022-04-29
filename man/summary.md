@@ -12,7 +12,7 @@
     - [如何排查无数据问题](why-no-data)
 
 - [DataKit 社区版版本历史](changelog-community)
-  - [DataKit 版本历史](changelog)
+  - [DataKit 线上版本历史](changelog)
 
 - [DataKit 安装]()
 
@@ -146,6 +146,7 @@
       - [Prometheus Remote Write 支持](prom_remote_write)
 
     - [Statsd 数据接入](statsd)
+    - [Filebeat 数据接入](beats_output)
     - [Cloudprober 接入](cloudprober)
     - [Telegraf 数据接入](telegraf)
     - [Scheck 接入](sec-checker)
