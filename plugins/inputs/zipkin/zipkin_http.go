@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	zpkmodel "github.com/openzipkin/zipkin-go/model"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin/corev1"
 )
 

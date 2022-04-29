@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 const (

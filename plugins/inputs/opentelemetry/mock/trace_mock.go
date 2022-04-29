@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
 	"go.opentelemetry.io/otel/sdk/resource"
