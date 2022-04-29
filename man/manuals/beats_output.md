@@ -35,10 +35,13 @@
   ## but the maximum length cannot exceed 256Mb
   maximum_length = 262144
 
+  ## would replaced by origin fields if repeated
   [inputs.beats_output.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
 ```
+
+注意: 上面配置的 `inputs.beats_output.tags` 中如果与原始 fields 中的 key 同名重复，则会被原始数据覆盖。
 
 ### 配置 Filebeat
 

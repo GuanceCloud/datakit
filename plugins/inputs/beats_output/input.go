@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 
@@ -42,6 +43,7 @@ const (
   ## but the maximum length cannot exceed 256Mb
   maximum_length = 262144
 
+  ## would replaced by origin fields if repeated
   [inputs.beats_output.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -74,6 +76,7 @@ type DataStruct struct {
 	HostName    string
 	LogFilePath string
 	Message     string
+	Fields      map[string]interface{}
 }
 
 //------------------------------------------------------------------------------
@@ -156,11 +159,16 @@ func (ipt *Input) Run() {
 			// message
 			var pending []*DataStruct
 			for _, v := range batch.Events {
-				pending = append(pending, &DataStruct{
+				dataPiece := &DataStruct{
 					HostName:    eventGet(v, "host.name").(string),
 					LogFilePath: eventGet(v, "log.file.path").(string),
 					Message:     eventGet(v, "message").(string),
-				})
+				}
+				fields, ok := eventGet(v, "fields").(map[string]interface{})
+				if ok {
+					dataPiece.Fields = fields
+				}
+				pending = append(pending, dataPiece)
 			}
 			ipt.sendToPipeline(pending)
 
@@ -196,6 +204,22 @@ func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 		}
 		newTags["host"] = v.HostName        // host.name
 		newTags["filepath"] = v.LogFilePath // log.file.path
+		for kk, vv := range v.Fields {
+			if str, ok := vv.(string); ok {
+				newTags[kk] = str
+			} else {
+				// TODO: 这里有 bug。这里的 Tag 目前只有 map[string]string 形式，
+				// 没有 map[string]interface{} 形式，后面 PL 改良了，这边需要再改一下。
+				// 现在是强行 format 为 string
+				switch n := vv.(type) {
+				case int, int64, int32:
+					newTags[kk] = fmt.Sprintf("%d", n)
+				default:
+					l.Warnf("ignore fields: %s, type name = %s, string = %s",
+						kk, reflect.TypeOf(n).Name(), reflect.TypeOf(n).String())
+				}
+			}
+		}
 
 		task := &worker.TaskTemplate{
 			TaskName:        inputName + "/" + ipt.Listen,

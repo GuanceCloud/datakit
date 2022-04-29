@@ -38,37 +38,42 @@ func TestParseListen(t *testing.T) {
 func TestEventGet(t *testing.T) {
 	const testEventPiece = `
 {
-	"@metadata": {
-	  "beat": "filebeat",
-	  "type": "_doc",
-	  "version": "7.13.3"
-	},
-	"@timestamp": "2022-04-26T14:05:23.283Z",
-	"agent": {
-	  "ephemeral_id": "62dfa2ab-f165-444e-a97d-1cf82ec69fa6",
-	  "hostname": "MacBook-Air-2.local",
-	  "id": "24627faf-48e9-4253-8c5f-d64657ee6e4e",
-	  "name": "MacBook-Air-2.local",
-	  "type": "filebeat",
-	  "version": "7.13.3"
-	},
-	"ecs": {
-	  "version": "1.8.0"
-	},
-	"host": {
-	  "name": "MacBook-Air-2.local"
-	},
-	"input": {
-	  "type": "filestream"
-	},
-	"log": {
-	  "file": {
-		"path": "/Users/mac/Downloads/tmp/1.log"
-	  },
-	  "offset": 12
-	},
-	"message": "hello world"
-  }
+  "@metadata": {
+    "beat": "filebeat",
+    "type": "_doc",
+    "version": "7.13.3"
+  },
+  "@timestamp": "2022-04-29T08:28:05.060Z",
+  "agent": {
+    "ephemeral_id": "c11e357a-f28f-439f-8981-868db91c72ff",
+    "hostname": "MacBook-Air-2.local",
+    "id": "c12dca3e-5add-4cd0-9890-2a721c867ab0",
+    "name": "MacBook-Air-2.local",
+    "type": "filebeat",
+    "version": "7.13.3"
+  },
+  "ecs": {
+    "version": "1.8.0"
+  },
+  "fields": {
+    "logtype": "sshd-log",
+    "product": "beijing",
+    "type": "sshd-log"
+  },
+  "host": {
+    "name": "MacBook-Air-2.local"
+  },
+  "input": {
+    "type": "filestream"
+  },
+  "log": {
+    "file": {
+      "path": "/Users/mac/Downloads/tmp/1.log"
+    },
+    "offset": 12
+  },
+  "message": "hello world"
+}
 `
 
 	// json to map
@@ -94,6 +99,11 @@ func TestEventGet(t *testing.T) {
 		{
 			name:   "message",
 			path:   "message",
+			expect: "hello world",
+		},
+		{
+			name:   "fields",
+			path:   "fields",
 			expect: "hello world",
 		},
 	}
