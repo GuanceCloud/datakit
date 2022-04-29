@@ -27,6 +27,9 @@ const (
 
 	sampleCfg = `
 [[inputs.gitlab]]
+    ## set true if you need to collect metric from url below
+    enable_collect = true
+
     ## param type: string - default: http://127.0.0.1:80/-/metrics
     prometheus_url = "http://127.0.0.1:80/-/metrics"
 
@@ -58,9 +61,10 @@ func init() { //nolint:gochecknoinits
 }
 
 type Input struct {
-	URL      string            `toml:"prometheus_url"`
-	Interval string            `toml:"interval"`
-	Tags     map[string]string `toml:"tags"`
+	EnableCollect bool              `toml:"enable_collect"`
+	URL           string            `toml:"prometheus_url"`
+	Interval      string            `toml:"interval"`
+	Tags          map[string]string `toml:"tags"`
 
 	EnableCIVisibility bool              `toml:"enable_ci_visibility"`
 	CIExtraTags        map[string]string `toml:"ci_extra_tags"`
@@ -80,7 +84,7 @@ type Input struct {
 
 func (ipt *Input) RegHTTPHandler() {
 	if ipt.EnableCIVisibility {
-		l.Infof("start listening to gitlab webhooks")
+		l.Infof("start listening to gitlab pipeline/job webhooks")
 		go ipt.reqMemo.memoHouseKeeper(time.Second * 30)
 		dhttp.RegHTTPHandler("POST", "/v1/gitlab", ihttp.ProtectedHandlerFunc(ipt.ServeHTTP, l))
 	}
@@ -91,10 +95,11 @@ var maxPauseCh = inputs.ElectionPauseChannelLength
 func newInput() *Input {
 	sem := cliutils.NewSem()
 	return &Input{
-		Tags:       make(map[string]string),
-		pauseCh:    make(chan bool, maxPauseCh),
-		duration:   time.Second * 10,
-		httpClient: &http.Client{Timeout: 5 * time.Second},
+		EnableCollect: true,
+		Tags:          make(map[string]string),
+		pauseCh:       make(chan bool, maxPauseCh),
+		duration:      time.Second * 10,
+		httpClient:    &http.Client{Timeout: 5 * time.Second},
 
 		semStop: sem,
 
@@ -114,6 +119,11 @@ func newInput() *Input {
 
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
+
+	if !ipt.EnableCollect {
+		l.Infof("metric collecting is disabled, gitlab exited")
+		return
+	}
 
 	ipt.loadCfg()
 
