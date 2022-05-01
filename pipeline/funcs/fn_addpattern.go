@@ -40,7 +40,7 @@ func AddPatternChecking(ngData *parser.EngineData, node parser.Node) error {
 		return nil
 		// return fmt.Errorf("pattern %s redefine", name)
 	}
-	dePatterns := []map[string]string{}
+	dePatterns := []map[string]*grok.GrokPattern{}
 	dePatterns = append(dePatterns, g.GlobalDenormalizedPatterns, g.DenormalizedPatterns)
 	dePatterns = append(dePatterns, pStack...)
 

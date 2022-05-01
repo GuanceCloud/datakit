@@ -171,7 +171,7 @@ func loadPatterns() error {
 	denormalizedGlobalPatterns, invalidPatterns := grok.DenormalizePatternsFromMap(loadedPatterns)
 
 	for k, v := range denormalizedGlobalPatterns {
-		if _, err := regexp.Compile(v); err != nil {
+		if _, err := regexp.Compile(v.Denormalized()); err != nil {
 			invalidPatterns[k] = err.Error()
 		}
 	}
