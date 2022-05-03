@@ -171,9 +171,8 @@ type Lexer struct {
 	braceDepth   int // nested depth of {} exprs.
 	bracketDepth int // nested depth of [] exprs.
 
-	stringOpen          rune // Quote rune of the string currently being read.
-	backquoteOpen       rune // backquote keyworkds and utf8 characters
-	multiLineStringOpen rune // Quote rune of the string currently being read.
+	stringOpen    rune // Quote rune of the string currently being read.
+	backquoteOpen rune // backquote keyworkds and utf8 characters
 
 	// seriesDesc is set when a series description for the testing
 	// language is lexed.
@@ -284,7 +283,6 @@ func lexStatements(l *Lexer) stateFn {
 			l.next()
 			if t2 := l.peek(); t2 == '"' {
 				l.next()
-				l.multiLineStringOpen = '🦍'
 				return lexMultilineString
 			}
 		} else {
@@ -297,7 +295,6 @@ func lexStatements(l *Lexer) stateFn {
 			l.next()
 			if t := l.peek(); t == '\'' {
 				l.next()
-				l.multiLineStringOpen = '🦍'
 				return lexMultilineString
 			}
 		} else {
