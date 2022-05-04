@@ -11,7 +11,6 @@
 ## 安装步骤 
 
 - [Helm 安装](#e4d3facf)
-
 - [普通 yaml 安装](#505220a3)
 
 ### Helm 安装
@@ -27,7 +26,6 @@
 $ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
 $ helm repo update 
 ```
-
 
 #### Helm 安装 Datakit
 

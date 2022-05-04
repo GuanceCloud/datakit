@@ -11,9 +11,10 @@ RED="\033[31m"
 GREEN="\033[32m"
 YELLOW="\033[33m"
 CLR="\033[0m"
+docs_dir=dkdocs/docs
 
-rm -rf .docs
-mkdir -p .docs
+rm -rf $docs_dir
+mkdir -p $docs_dir
 cp man/summary.md .docs/
 
 latest_tag=$(git tag --sort=-creatordate | head -n 1)
@@ -45,25 +46,24 @@ else
   os="linux"
 fi
 
-make
+#make
 
 LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit doc \
-	--export-docs .docs \
+	--export-docs $docs_dir \
 	--ignore demo \
 	--log stdout \
-	--export-docs .docs \
 	--version "${man_version}" \
 	--TODO "-"
 
 # 雨雀有时候会返回 429 错误，只能不断重试了。但如果是其它问题（比如文档被别
 # 人手动篡改），需手动结束并移除对应文档，重新上传。
-while true
-do
-	if waque upload .docs/*.md -c "${waque_yml}"; then
-		printf "${GREEN}----------------------${CLR}\n";
-		printf "${GREEN}[I] upload manuals ok (using %s).${CLR}\n" ${waque_yml};
-		break
-	fi
-	printf "try again...\n"
-	sleep 1
-done
+#while true
+#do
+#	if waque upload .docs/*.md -c "${waque_yml}"; then
+#		printf "${GREEN}----------------------${CLR}\n";
+#		printf "${GREEN}[I] upload manuals ok (using %s).${CLR}\n" ${waque_yml};
+#		break
+#	fi
+#	printf "try again...\n"
+#	sleep 1
+#done

@@ -29,7 +29,7 @@ case $branch_name in
 		if [ -z $new_tag ]; then
 			echo "[E] new tag required to release production datakit, latest tag is ${latest_tag}"
 		else
-			git tag -f $new_tag  &&
+			#git tag -f $new_tag  &&
 
 			if [[ "$OSTYPE" == "darwin"* ]]; then # Release darwin version first
 				make production_mac VERSION=$new_tag &&

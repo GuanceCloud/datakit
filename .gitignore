@@ -73,3 +73,5 @@ test.output
 y.output
 datakit.yaml
 test.bin
+dkdocs/docs
+dkdocs/site
