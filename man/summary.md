@@ -77,6 +77,7 @@
         - [Golang 示例](ddtrace-golang)
         - [Java 示例](ddtrace-java)
         - [Python 示例](ddtrace-python)
+        - [PHP 示例](ddtrace-php)
       - [SkyWalking](skywalking)
       - [Opentelemetry](opentelemetry)
         - [Golang 示例](opentelemetry-go)

@@ -131,7 +131,7 @@ curl http://localhost:54322/stop
 
 - DD_ENV: 为服务设置环境变量。
 - DD_VERSION: APP 版本号。
-- DD_SERVICE: 用于此应用程序的服务名称。 在为 Pylons、Flask 或 Django 等 Web 框架集成设置中间件时，会传递该值。 对于没有 Web 集成的 Tracing，建议您在代码中设置服务名称。
+- DD_SERVICE: 用于设置应用程序的服务名称。 在为 Pylons、Flask 或 Django 等 Web 框架集成设置中间件时，会传递该值。 对于没有 Web 集成的 Tracing，建议您在代码中设置服务名称。
 - DD_SERVICE_MAPPING: 定义服务名映射用于在 Tracing 里重命名服务。
 - DD_TAGS: 为每个 Span 添加默认 Tags。
 - DD_AGENT_HOST: Datakit 监听的地址名，默认 localhost。

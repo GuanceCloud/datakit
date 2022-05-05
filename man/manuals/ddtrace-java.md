@@ -28,7 +28,7 @@ java -javaagent:/path/to/dd-java-agent.jar \
 -Ddd.logs.injection=true \
 -Ddd.service=my-app \
 -Ddd.env=staging \
--Ddd.version=1.0 \
+-Ddd.version=1.0.0 \
 -Ddd.agent.host=localhost \
 -Ddd.trace.agent.port=9529 \
 -jar path/to/your/app.jar
