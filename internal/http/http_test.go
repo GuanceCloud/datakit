@@ -419,7 +419,7 @@ func TestClientTimeout(t *testing.T) {
 
 	resp, err := cli.Do(req)
 	if err != nil {
-		t.Logf("Do: %s, type: %s, %+#v, Err: %+#v", err, reflect.TypeOf(err), err, err.(*url.Error).Err)
+		t.Logf("Do: %s, type: %s, %+#v, Err: %+#v", err, reflect.TypeOf(err), err, err.(*url.Error).Err) //nolint:errorlint
 	} else {
 		defer resp.Body.Close()
 	}

@@ -615,7 +615,7 @@ func (c *Config) LoadEnvs() error {
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_TIMEOUT"); v != "" {
-		value, err := time.ParseDuration(v)
+		_, err := time.ParseDuration(v)
 		if err != nil {
 			l.Warnf("invalid ENV_DATAWAY_TIMEOUT: %s", v)
 			c.DataWay.HTTPTimeout = "30s"
