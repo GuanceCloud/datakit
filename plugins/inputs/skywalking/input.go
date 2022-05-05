@@ -65,10 +65,9 @@ const (
 )
 
 var (
-	log                                        = logger.DefaultSLogger(inputName)
-	defAddr                                    = "localhost:13800"
-	afterGather                                = itrace.NewAfterGather()
-	afterGatherRun   itrace.AfterGatherHandler = afterGather
+	log              = logger.DefaultSLogger(inputName)
+	defAddr          = "localhost:13800"
+	afterGatherRun   itrace.AfterGatherHandler
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	sampler          *itrace.Sampler
@@ -111,6 +110,9 @@ func (ipt *Input) Run() {
 	if len(ipt.Address) == 0 {
 		ipt.Address = defAddr
 	}
+
+	afterGather := itrace.NewAfterGather()
+	afterGatherRun = afterGather
 
 	// add calculators
 	// afterGather.AppendCalculator(itrace.StatTracingInfo)

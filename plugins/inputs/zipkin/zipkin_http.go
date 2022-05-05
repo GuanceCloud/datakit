@@ -93,7 +93,7 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 	if len(dktrace) == 0 {
 		log.Warn("empty datakit trace")
 	} else {
-		afterGather.Run(inputName, dktrace, false)
+		afterGatherRun.Run(inputName, dktrace, false)
 	}
 
 	resp.WriteHeader(http.StatusOK)
