@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"runtime"
 	"sync"
 	"testing"
@@ -390,5 +391,36 @@ func TestClientTimeWait(t *testing.T) {
 	time.Sleep(time.Second * 8)
 	if err := server.Shutdown(context.Background()); err != nil {
 		t.Log(err)
+	}
+}
+
+// test what error if client request timeout
+func TestClientTimeout(t *testing.T) {
+	r := gin.New()
+
+	sec := 3
+
+	r.GET("/test", func(c *gin.Context) {
+		time.Sleep(time.Second * time.Duration(sec+1))
+	})
+
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+	time.Sleep(time.Second)
+
+	cli := http.Client{
+		Timeout: time.Second,
+	}
+
+	req, err := http.NewRequest("GET", ts.URL+"/test", nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		t.Logf("Do: %s, type: %s, %+#v, Err: %+#v", err, reflect.TypeOf(err), err, err.(*url.Error).Err)
+	} else {
+		defer resp.Body.Close()
 	}
 }

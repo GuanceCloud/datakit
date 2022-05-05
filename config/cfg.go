@@ -614,6 +614,16 @@ func (c *Config) LoadEnvs() error {
 		c.DataWay.URLs = strings.Split(v, ",")
 	}
 
+	if v := datakit.GetEnv("ENV_DATAWAY_TIMEOUT"); v != "" {
+		value, err := time.ParseDuration(v)
+		if err != nil {
+			l.Warnf("invalid ENV_DATAWAY_TIMEOUT: %s", v)
+			c.DataWay.HTTPTimeout = "30s"
+		} else {
+			c.DataWay.HTTPTimeout = v
+		}
+	}
+
 	if v := datakit.GetEnv("ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST"); v != "" {
 		value, err := strconv.ParseInt(v, 10, 64)
 		if err == nil {
