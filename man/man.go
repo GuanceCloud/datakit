@@ -51,6 +51,7 @@ var (
 		"datakit-tools-how-to":     "man/manuals/datakit-tools-how-to.md",
 		"datakit-tracing":          "man/manuals/datakit-tracing.md",
 		"datakit-tracing-struct":   "man/manuals/datakit-tracing-struct.md",
+		"datakit-tracing-pl":       "man/manuals/datakit-tracing-pl.md",
 		"datakit-update":           "man/manuals/datakit-update.md",
 		"datatypes":                "man/manuals/datatypes.md",
 		"dataway":                  "man/manuals/dataway.md",
@@ -75,6 +76,7 @@ var (
 		"sec-checker":              "man/manuals/sec-checker.md",
 		"telegraf":                 "man/manuals/telegraf.md",
 		"why-no-data":              "man/manuals/why-no-data.md",
+		"git-config-how-to":        "man/manuals/git-config-how-to.md",
 	}
 	l = logger.DefaultSLogger("man")
 )

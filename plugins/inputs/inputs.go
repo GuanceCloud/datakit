@@ -93,6 +93,7 @@ type InputV2 interface {
 	Input
 	SampleMeasurement() []Measurement
 	AvailableArchs() []string
+	Terminate()
 }
 
 type ElectionInput interface {
@@ -102,10 +103,6 @@ type ElectionInput interface {
 
 type ReadEnv interface {
 	ReadEnv(map[string]string)
-}
-
-type Stoppable interface {
-	Terminate()
 }
 
 type InputOnceRunnable interface {
@@ -176,7 +173,7 @@ func getEnvs() map[string]string {
 	return envs
 }
 
-func RunInputs(isReload bool) error {
+func RunInputs() error {
 	mtx.RLock()
 	defer mtx.RUnlock()
 	g := datakit.G("inputs")
@@ -188,12 +185,6 @@ func RunInputs(isReload bool) error {
 			if ii.input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
 				continue
-			}
-
-			if isReload {
-				if _, ok := ii.input.(Stoppable); !ok {
-					continue
-				}
 			}
 
 			if inp, ok := ii.input.(HTTPInput); ok {
@@ -254,7 +245,7 @@ func StopInputs() error {
 				continue
 			}
 
-			if inp, ok := ii.input.(Stoppable); ok {
+			if inp, ok := ii.input.(InputV2); ok {
 				inp.Terminate()
 			}
 		}

@@ -20,7 +20,7 @@ var _ inputs.ReadEnv = (*Input)(nil)
 
 const (
 	objectInterval = time.Minute * 5
-	metricInterval = time.Second * 20
+	metricInterval = time.Second * 60
 )
 
 type Input struct {
@@ -173,10 +173,10 @@ func (i *Input) collectObject() {
 		return
 	}
 
-	l.Debug("collect k8s resource")
+	l.Debug("collect k8s resource object")
 
-	if err := i.gatherK8sResource(); err != nil {
-		l.Errorf("failed fo collect k8s: %w", err)
+	if err := i.gatherK8sResourceObject(); err != nil {
+		l.Errorf("failed to collect resource object: %w", err)
 	}
 }
 
@@ -209,6 +209,10 @@ func (i *Input) collectMetric() {
 	}
 
 	l.Debug("collect k8s-pod metric")
+
+	if err := i.gatherK8sResourceMetric(); err != nil {
+		l.Errorf("failed to collect resource metric: %w", err)
+	}
 
 	if err := i.gatherK8sPodMetrics(); err != nil {
 		l.Errorf("failed to collect pod metric: %w", err)
@@ -291,25 +295,28 @@ func (i *Input) gatherContainerdObject() error {
 		&io.Option{CollectCost: time.Since(start)})
 }
 
-func (i *Input) gatherK8sResource() error {
+func (i *Input) gatherK8sResourceMetric() error {
 	start := time.Now()
 
-	metricMeas, objectMeas, err := i.k8sInput.gather()
+	metricMeas, err := i.k8sInput.gatherResourceMetric()
 	if err != nil {
-		l.Errorf("k8s gather resource error: %w", err)
 		return err
 	}
 
-	if err := inputs.FeedMeasurement("k8s-metric", datakit.Metric, metricMeas,
-		&io.Option{CollectCost: time.Since(start)}); err != nil {
-		l.Errorf("failed to feed k8s metrics: %w", err)
-	}
-	if err := inputs.FeedMeasurement("k8s-object", datakit.Object, objectMeas,
-		&io.Option{CollectCost: time.Since(start)}); err != nil {
-		l.Errorf("failed to feed k8s objects: %w", err)
+	return inputs.FeedMeasurement("k8s-metric", datakit.Metric, metricMeas,
+		&io.Option{CollectCost: time.Since(start)})
+}
+
+func (i *Input) gatherK8sResourceObject() error {
+	start := time.Now()
+
+	objectMeas, err := i.k8sInput.gatherResourceObject()
+	if err != nil {
+		return err
 	}
 
-	return nil
+	return inputs.FeedMeasurement("k8s-object", datakit.Object, objectMeas,
+		&io.Option{CollectCost: time.Since(start)})
 }
 
 func (i *Input) gatherK8sPodMetrics() error {

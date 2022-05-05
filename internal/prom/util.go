@@ -131,6 +131,7 @@ func (p *Prom) getTags(labels []*dto.LabelPair) map[string]string {
 	}
 
 	p.removeIgnoredTags(tags)
+	p.renameTags(tags)
 
 	return tags
 }
@@ -141,6 +142,23 @@ func (p *Prom) removeIgnoredTags(tags map[string]string) {
 			if t == ignoredTag {
 				delete(tags, t)
 			}
+		}
+	}
+}
+
+func (p *Prom) renameTags(tags map[string]string) {
+	if tags == nil || p.opt.RenameTags == nil {
+		return
+	}
+
+	for oldKey, newKey := range p.opt.RenameTags.Mapping {
+		if v, ok := tags[oldKey]; ok { // rename the tag
+			if _, exists := tags[newKey]; exists && !p.opt.RenameTags.OverwriteExistTags {
+				continue
+			}
+
+			delete(tags, oldKey)
+			tags[newKey] = v
 		}
 	}
 }

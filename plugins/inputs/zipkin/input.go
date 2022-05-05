@@ -158,6 +158,10 @@ func (ipt *Input) RegHTTPHandler() {
 	http.RegHTTPHandler("POST", ipt.PathV2, handleZipkinTraceV2)
 }
 
+func (ipt *Input) Terminate() {
+	// TODO: 必须写
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}

@@ -547,6 +547,7 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*iod.Point, error) 
 	default:
 		return nil, fmt.Errorf("unrecognized event payload: %v", eventType)
 	}
+	ipt.addExtraTags(tags)
 	pt, err := iod.NewPoint(measurementName, tags, fields, &iod.PointOption{
 		Time:     time.Now(),
 		Category: datakit.Logging,
@@ -558,8 +559,18 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*iod.Point, error) 
 	return []*iod.Point{pt}, nil
 }
 
+func (ipt *Input) addExtraTags(tags map[string]string) {
+	for k, v := range ipt.CIExtraTags {
+		// Existing tags will not be overwritten.
+		if _, has := tags[k]; has {
+			continue
+		}
+		tags[k] = v
+	}
+}
+
 func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	event := req.Header.Get("X-Gitlab-Event")
+	event := req.Header.Get(gitlabEventHeader)
 	// Unrecognized event payloads.
 	// Webhooks that return failure codes in the 4xx range
 	// are understood to be misconfigured, and these are

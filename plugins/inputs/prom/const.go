@@ -23,14 +23,14 @@ const sampleCfg = `
   # 采集数据大小上限默认设置为32MB
   # max_file_size = 0
 
-  ## 指标类型过滤, 可选值为 counter, gauge, histogram, summary
+  ## 指标类型过滤, 可选值为 counter, gauge, histogram, summary, untyped
   # 默认只采集 counter 和 gauge 类型的指标
   # 如果为空，则不进行过滤
   metric_types = ["counter", "gauge"]
 
-  ## 指标名称过滤
+  ## 指标名称筛选：符合条件的指标将被保留下来
   # 支持正则，可以配置多个，即满足其中之一即可
-  # 如果为空，则不进行过滤
+  # 如果为空，则不进行筛选，所有指标均保留
   # metric_name_filter = ["cpu"]
 
   ## 指标集名称前缀
@@ -46,7 +46,7 @@ const sampleCfg = `
   ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
 
-  ## 过滤tags, 可配置多个tag
+  ## 过滤 tags, 可配置多个tag
   # 匹配的tag将被忽略
   # tags_ignore = ["xxxx"]
 
@@ -64,8 +64,8 @@ const sampleCfg = `
   # token_file = "/tmp/token"
 
   ## 自定义指标集名称
-  # 可以将包含前缀prefix的指标归为一类指标集
-  # 自定义指标集名称配置优先measurement_name配置项
+  # 可以将包含前缀 prefix 的指标归为一类指标集
+  # 自定义指标集名称配置优先 measurement_name 配置项
   #[[inputs.prom.measurements]]
   #  prefix = "cpu_"
   #  name = "cpu"
@@ -73,6 +73,14 @@ const sampleCfg = `
   # [[inputs.prom.measurements]]
   # prefix = "mem_"
   # name = "mem"
+
+  ## 重命名 prom 数据中的 tag key
+	[inputs.prom.tags_rename]
+		overwrite_exist_tags = false
+		[inputs.prom.tags_rename.mapping]
+			# tag1 = "new-name-1"
+			# tag2 = "new-name-2"
+			# tag3 = "new-name-3"
 
   ## 自定义Tags
   [inputs.prom.tags]
