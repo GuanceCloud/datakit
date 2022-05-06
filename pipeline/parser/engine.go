@@ -45,7 +45,7 @@ type EngineData struct {
 	output *Output
 
 	readOnlyGrok     **grok.Grok
-	grokPatternStack []map[string]string
+	grokPatternStack []map[string]*grok.GrokPattern
 	grokPatternIndex []int
 	stackDeep        int
 
@@ -115,7 +115,7 @@ func NewEngine(script string, callbacks map[string]FuncCallback, check map[strin
 		debugMode: debug,
 		grok: &grok.Grok{
 			GlobalDenormalizedPatterns: DenormalizedGlobalPatterns,
-			DenormalizedPatterns:       make(map[string]string),
+			DenormalizedPatterns:       make(map[string]*grok.GrokPattern),
 			CompliedGrokRe:             make(map[string]map[string]*grok.GrokRegexp),
 		},
 		callbackCheck: check,
@@ -131,7 +131,7 @@ func NewEngine(script string, callbacks map[string]FuncCallback, check map[strin
 func (ng *Engine) Check() error {
 	data := &EngineData{
 		output:           NewOutput(),
-		grokPatternStack: make([]map[string]string, 0),
+		grokPatternStack: make([]map[string]*grok.GrokPattern, 0),
 		grokPatternIndex: make([]int, 0),
 		readOnlyGrok:     &ng.grok,
 	}
@@ -142,7 +142,7 @@ func (ng *Engine) Check() error {
 func (ng *Engine) Run(input string) (*Output, error) {
 	data := &EngineData{
 		output:           NewOutput(),
-		grokPatternStack: make([]map[string]string, 0),
+		grokPatternStack: make([]map[string]*grok.GrokPattern, 0),
 		grokPatternIndex: make([]int, 0),
 		readOnlyGrok:     &ng.grok,
 		ts:               time.Now(),
@@ -341,7 +341,7 @@ func (ngData *EngineData) StackDeep() int {
 	return ngData.stackDeep
 }
 
-func (ngData *EngineData) PatternStack() []map[string]string {
+func (ngData *EngineData) PatternStack() []map[string]*grok.GrokPattern {
 	return ngData.grokPatternStack
 }
 
@@ -773,7 +773,7 @@ func (e *AssignmentStmt) Check() error {
 // Check IfelseStmt.
 func (e *IfelseStmt) Check(ng *Engine, data *EngineData) error {
 	data.stackDeep += 1
-	data.grokPatternStack = append(data.grokPatternStack, map[string]string{})
+	data.grokPatternStack = append(data.grokPatternStack, map[string]*grok.GrokPattern{})
 	data.grokPatternIndex = append(data.grokPatternIndex, 0)
 	defer func() {
 		data.stackDeep -= 1
@@ -785,7 +785,7 @@ func (e *IfelseStmt) Check(ng *Engine, data *EngineData) error {
 		return err
 	}
 
-	data.grokPatternStack[data.stackDeep-1] = make(map[string]string)
+	data.grokPatternStack[data.stackDeep-1] = make(map[string]*grok.GrokPattern)
 	data.grokPatternIndex[data.stackDeep-1] += 1
 	return e.Else.Check(ng, data)
 }
@@ -793,7 +793,7 @@ func (e *IfelseStmt) Check(ng *Engine, data *EngineData) error {
 // Check IfList.
 func (e IfList) Check(ng *Engine, data *EngineData) error {
 	for _, i := range e {
-		data.grokPatternStack[data.stackDeep-1] = make(map[string]string)
+		data.grokPatternStack[data.stackDeep-1] = make(map[string]*grok.GrokPattern)
 		data.grokPatternIndex[data.stackDeep-1] += 1
 		if err := i.Check(ng, data); err != nil {
 			return err

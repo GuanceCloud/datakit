@@ -44,7 +44,7 @@ func GrokChecking(ng *parser.EngineData, node parser.Node) error {
 	var re *grok.GrokRegexp
 	var err error
 	if ng.StackDeep() > 0 {
-		deP := []map[string]string{}
+		deP := []map[string]*grok.GrokPattern{}
 		deP = append(deP, g.GlobalDenormalizedPatterns, g.DenormalizedPatterns)
 		deP = append(deP, ng.PatternStack()...)
 		re, err = grok.CompilePattern(pattern, deP...)
@@ -110,12 +110,15 @@ func Grok(ng *parser.EngineData, node parser.Node) interface{} {
 		return nil
 	}
 
-	m, err := grokRe.Run(val)
+	m, mFailed, err := grokRe.RunWithTypeInfo(val)
 	if err != nil {
 		l.Warn(err)
 		return nil
 	}
-
+	for k, v := range mFailed {
+		// m[k+"@string"] = v
+		l.Warnf("unable to cast %s(%#v) of type %T to bool", k, v, v)
+	}
 	for k, v := range m {
 		err := ng.SetContent(k, v)
 		if err != nil {
