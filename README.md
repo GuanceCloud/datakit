@@ -27,6 +27,7 @@ DataKit is an open source, integrated data collection agent, which provides full
 	- [Prometheus](https://www.yuque.com/dataflux/datakit/prom)
 	- [Statsd](https://www.yuque.com/dataflux/datakit/statsd)
 	- [Fluentd](https://www.yuque.com/dataflux/datakit/logstreaming#a653042e)
+	- [Filebeats](https://www.yuque.com/dataflux/datakit-community/beats_output)
 	- [Function](https://www.yuque.com/dataflux/func/write-data-via-datakit)
 	- Tracing related(OpenTelemetry/[DDTrace](https://www.yuque.com/dataflux/datakit/ddtrace)/Zipkin/[Jaeger](https://www.yuque.com/dataflux/datakit/jaeger)/[Skywalking](https://www.yuque.com/dataflux/datakit/skywalking))
 

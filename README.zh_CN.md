@@ -25,6 +25,7 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
 	- [Prometheus](https://www.yuque.com/dataflux/datakit/prom)
 	- [Statsd](https://www.yuque.com/dataflux/datakit/statsd)
 	- [Fluentd](https://www.yuque.com/dataflux/datakit/logstreaming#a653042e)
+	- [Filebeats](https://www.yuque.com/dataflux/datakit-community/beats_output)
 	- [Function](https://www.yuque.com/dataflux/func/write-data-via-datakit)
 	- Tracing 相关（[OpenTelemetry]()/[DDTrace]()/[Zipkin]()/[Jaeger]()/[Skywalking]()）
 
