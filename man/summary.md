@@ -129,6 +129,9 @@
 
     - [eBPF](ebpf)
 
+  - [自定义采集器]()
+    - [用 Python 开发自定义采集器](pythond)
+
   - [第三方数据接入]()
 
     - [Prometheus 数据接入]()
@@ -140,7 +143,6 @@
     - [Cloudprober 接入](cloudprober)
     - [Telegraf 数据接入](telegraf)
     - [Scheck 接入](sec-checker)
-    - [用 Python 开发自定义采集器](pythond)
 
   - [其它采集器]()
     - [Jenkins](jenkins)
