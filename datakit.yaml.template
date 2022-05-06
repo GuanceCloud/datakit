@@ -164,12 +164,8 @@ spec:
         securityContext:
           privileged: true
         volumeMounts:
-        - mountPath: /var/run/docker.sock
-          name: docker-socket
-          readOnly: true
-        - mountPath: /var/run/containerd/containerd.sock
-          name: containerd-socket
-          readOnly: true
+        - mountPath: /var/run
+          name: run
         - mountPath: /host/proc
           name: proc
           readOnly: true
@@ -204,11 +200,8 @@ spec:
           name: datakit-conf
         name: datakit-conf
       - hostPath:
-          path: /var/run/docker.sock
-        name: docker-socket
-      - hostPath:
-          path: /var/run/containerd/containerd.sock
-        name: containerd-socket
+          path: /var/run
+        name: run
       - hostPath:
           path: /proc
           type: ""
