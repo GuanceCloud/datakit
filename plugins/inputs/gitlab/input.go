@@ -85,7 +85,7 @@ type Input struct {
 func (ipt *Input) RegHTTPHandler() {
 	if ipt.EnableCIVisibility {
 		l.Infof("start listening to gitlab pipeline/job webhooks")
-		go ipt.reqMemo.memoHouseKeeper(time.Second * 30)
+		go ipt.reqMemo.memoMaintainer(time.Second * 30)
 		dhttp.RegHTTPHandler("POST", "/v1/gitlab", ihttp.ProtectedHandlerFunc(ipt.ServeHTTP, l))
 	}
 }
