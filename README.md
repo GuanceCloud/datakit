@@ -36,11 +36,11 @@ All DataKit changelog refers to [here](https://www.yuque.com/dataflux/datakit/ch
 
 ## Minimal Requirements
 
-| OS | Arch | Install Path |
-| --- | --- | --- |
-| Linux Kernel 2.6.23+ | amd64/386/arm/arm64 | `/usr/local/datakit` |
-| macOS 10.12+([Why](https://github.com/golang/go/issues/25633)) | amd64 | `/usr/local/datakit` |
-| Windows 7+/Server 2008R2+ | amd64/386 | 64-bit：`C:\Program Files\datakit`<br />32-nit：`C:\Program Files(32)\datakit` |
+| OS                                                             | Arch                | Install Path                                                                   |
+| ---                                                            | ---                 | ---                                                                            |
+| Linux Kernel 2.6.23+                                           | amd64/386/arm/arm64 | `/usr/local/datakit`                                                           |
+| macOS 10.12+([Why](https://github.com/golang/go/issues/25633)) | amd64               | `/usr/local/datakit`                                                           |
+| Windows 7+/Server 2008R2+                                      | amd64/386           | 64-bit：`C:\Program Files\datakit`<br />32-nit：`C:\Program Files(32)\datakit` |
 
 
 ## Install DataKit
@@ -89,53 +89,73 @@ wget https://static.guance.com/datakit/community/datakit.yaml
 
 DataKit building relies on some external tools/libs, we must install them all before compile the source code.
 
-> We do not support build DataKit on Windows.
-
+> We recommend to build source on Ubuntu 20.04+, other linux distribition may failed to install these dependencies. We do not support build DataKit on Windows.
 
 - Go-1.16.4+
+- gcc
 - gcc-multilib: Used to build Oracle input(`apt-get install gcc-multilib`)
+	- apt: `apt-get install -y gcc-multilib`
 - tree: After building datakit, `tree` used to show all bianries(`apt-get install tree`)
 - packr2: Used to package resources(mainly documents)
-- goyacc: Used to build grammar for Pipleine(`go get -u golang.org/x/tools/cmd/goyacc`)
+  - `go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
+- goyacc: Used to build grammar for Pipeline
+  - `go get -u golang.org/x/tools/cmd/goyacc`
 - Docker: Used to build DataKit image
 - lint related:
-	- gofumpt: Used to format go source code(`go install mvdan.cc/gofumpt@latest`)
+	- gofumpt: Used to format go source code
+    - `go install mvdan.cc/gofumpt@latest`
 	- [golangci-lint 1.42.1](https://github.com/golangci/golangci-lint/releases/tag/v1.42.1)
 - eBPF related:
 	- clang 10.0+
 	- llvm 10.0+
 	- `apt install go-bindata`
+	- kernel headers
+		- apt: `apt-get install -y linux-headers-$(uname -r)`
 - Documentation exporting:
 	- [waque 1.13.1+](https://github.com/yesmeck/waque)
 
 ### Build
 
-1. Clone
+1. Setup Golang environments:
 
 ```shell
-git clone https://github.com/DataFlux-cn/datakit.git
+export GOPRIVATE=gitlab.jiagouyun.com/*
+export GOPROXY=https://goproxy.cn,direct
+export GOPATH=~/go            # depends on your local settings
+export GOROOT=~/golang-1.16.4 # depends on your local settings 
+export PATH=$GOROOT/bin:~/go/bin:$PATH
 ```
 
-2. Building
+2. Clone
 
 ```shell
-cd datakit
+$ mkdir -p $GOPATH/src/gitlab.jiagouyun.com/cloudcare-tools
+$ cd $GOPATH/src/gitlab.jiagouyun.com/cloudcare-tools
+$ git clone https://github.com/GuanceCloud/datakit.git
+$ cd datakit
+```
+
+3. Building
+
+```shell
 make
 ```
 
 If building ok, all binaries are generated under *dist*:
 
 ```
-dist/
-├── datakit-linux-amd64
-│   ├── datakit             # DataKit main binary
-│   └── externals      
-│       ├── datakit-ebpf    # eBPF collector
-│       ├── logfwd          # logfwd collector
-│       └── oracle          # Oracle collector
-└── local
-    ├── installer-linux-amd64 # installer used fo Linux 
-    └── version               # version descriptor
+dist
+├── [4.0K]  datakit-linux-amd64
+│   ├── [ 72M]  datakit
+│   └── [4.0K]  externals
+│       ├── [ 14M]  logfwd
+│       └── [10.0M]  oracle
+├── [4.0K]  local
+│   ├── [ 26M]  installer-linux-amd64
+│   └── [ 228]  version
+└── [4.0K]  standalone
+    └── [4.0K]  datakit-ebpf-linux-amd64
+		        └── [ 38M]  datakit-ebpf
 ```
 
 We can build all platforms(Linux/Mac/Windows) with following command:
