@@ -14,7 +14,7 @@ import (
 
 %token <item> SEMICOLON COMMA COMMENT DOT EOF ERROR ID NUMBER 
 	LEFT_PAREN LEFT_BRACKET LEFT_BRACE RIGHT_BRACE
-	RIGHT_PAREN RIGHT_BRACKET SPACE STRING QUOTED_STRING
+	RIGHT_PAREN RIGHT_BRACKET SPACE STRING QUOTED_STRING MULTILINE_STRING
 
 // operator
 %token operatorsStart
@@ -305,6 +305,8 @@ bool_literal	: TRUE
 
 string_literal	: STRING
 			{ $$ = &StringLiteral{Val: yylex.(*parser).unquoteString($1.Val)} }
+		| MULTILINE_STRING
+			{ $$ = &StringLiteral{Val: yylex.(*parser).unquoteMultilineString($1.Val)} }
 		;
 
 

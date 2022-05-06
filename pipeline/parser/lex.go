@@ -25,6 +25,10 @@ func (i *Item) PositionRange() *PositionRange {
 	}
 }
 
+func (i Item) lexStr() string {
+	return fmt.Sprintf("% 06d %02d %s", i.Typ, i.Pos, i.String())
+}
+
 func (i Item) String() string {
 	switch {
 	case i.Typ == EOF:
@@ -68,8 +72,6 @@ var (
 		"re":         RE,
 		"true":       TRUE,
 		"jp":         JP,
-		// "or":         OR,
-		// "and":        AND,
 	}
 
 	ItemTypeStr = map[ItemType]string{
@@ -276,15 +278,35 @@ func lexStatements(l *Lexer) stateFn {
 		l.backup()
 		return lexNumberOrDuration
 
-	case r == '"' || r == '\'':
-		l.stringOpen = r
-		return lexString
+	case r == '"':
+		if t1 := l.peek(); t1 == '"' {
+			l.next()
+			if t2 := l.peek(); t2 == '"' {
+				l.next()
+				return lexMultilineString
+			}
+		} else {
+			l.stringOpen = r
+			return lexString
+		}
+
+	case r == '\'':
+		if t := l.peek(); t == '\'' {
+			l.next()
+			if t := l.peek(); t == '\'' {
+				l.next()
+				return lexMultilineString
+			}
+		} else {
+			l.stringOpen = r
+			return lexString
+		}
 
 	case r == '`':
 		l.backquoteOpen = r
 		return lexRawString
 
-	case isAlpha(r):
+	case isAlpha(r) || isUTF8(r):
 		l.backup()
 		return lexKeywordOrIdentifier
 
@@ -347,7 +369,7 @@ func lexKeywordOrIdentifier(l *Lexer) stateFn {
 __goon:
 	for {
 		switch r := l.next(); {
-		case isAlphaNumeric(r):
+		case isAlphaNumeric(r), isUTF8(r):
 			// absorb
 		default:
 			l.backup()
@@ -467,16 +489,46 @@ func lexEscape(l *Lexer) stateFn {
 	return lexString
 }
 
+func lexMultilineString(l *Lexer) stateFn {
+__goon:
+	for {
+		c := l.next()
+		switch c {
+		case eof:
+			return l.errorf("unterminated quoted string within lexMultilineString")
+
+		case utf8.RuneError:
+			l.errorf("invalid UTF-8 rune")
+
+		case '"', '\'':
+			if t := l.peek(); t == '"' || t == '\'' {
+				l.next()
+				if t := l.peek(); t == '"' || t == '\'' {
+					l.next()
+					break __goon
+				}
+			}
+		default: // pass
+		}
+	}
+
+	l.emit(MULTILINE_STRING)
+	return lexStatements
+}
+
 func lexString(l *Lexer) stateFn {
 __goon:
 	for {
 		switch l.next() {
 		case '\\':
 			return lexEscape
+
 		case utf8.RuneError:
 			l.errorf("invalid UTF-8 rune")
+
 		case eof, '\n':
-			return l.errorf("unterminated quoted string")
+			return l.errorf("unterminated quoted string within lexString")
+
 		case l.stringOpen:
 			break __goon
 		}
@@ -507,10 +559,9 @@ func (l *Lexer) peek() rune {
 func (l *Lexer) emit(t ItemType) {
 	*l.itemp = Item{t, l.start, l.input[l.start:l.pos]}
 
-	// log.Debugf("emit: %+#v", l.itemp)
-
 	l.start = l.pos
 	l.scannedItem = true
+	log.Debugf("emit: %+#v", l.itemp)
 }
 
 func (l *Lexer) errorf(format string, args ...interface{}) stateFn {
@@ -587,6 +638,7 @@ func (l *Lexer) scanNumber() bool {
 // helpers.
 func isAlphaNumeric(r rune) bool { return isAlpha(r) || isDigit(r) }
 func isAlpha(r rune) bool        { return r == '_' || ('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z') }
+func isUTF8(r rune) bool         { return utf8.RuneLen(r) > 1 }
 func isDigit(r rune) bool        { return '0' <= r && r <= '9' }
 func isSpace(r rune) bool        { return r == ' ' || r == '\t' || r == '\n' || r == '\r' }
 func isEOL(r rune) bool          { return r == '\r' || r == '\n' }
