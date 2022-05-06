@@ -512,7 +512,8 @@ string'''`,
 					{MULTILINE_STRING, 0, `'''this
 is
 '
-string'''`}},
+string'''`},
+				},
 			},
 		},
 	},
