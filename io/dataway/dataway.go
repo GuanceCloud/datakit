@@ -151,7 +151,7 @@ func (dw *DataWayCfg) Apply() error {
 	}
 
 	if dw.HTTPTimeout == "" {
-		dw.HTTPTimeout = "5s"
+		dw.HTTPTimeout = "30s"
 	}
 
 	if dw.MaxIdleConnsPerHost == 0 {
