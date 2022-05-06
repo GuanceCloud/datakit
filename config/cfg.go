@@ -300,6 +300,7 @@ func (c *Config) InitCfgSample(p string) error {
 		l.Errorf("error creating %s: %s", p, err)
 		return err
 	}
+	l.Debugf("create datakit sample conf ok, %s!", p)
 	return nil
 }
 
