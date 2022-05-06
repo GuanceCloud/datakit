@@ -26,8 +26,8 @@ add_pattern("_minute", "(?:[0-5][0-9])")
 add_pattern("_hour", "(?:2[0123]|[01]?[0-9])")
 add_pattern("time", "([^0-9]?)%{_hour:hour}:%{_minute:minute}(?::%{_second:second})([^0-9]?)")
 grok(_, "%{time}")`,
-			in:       "12:13:14",
-			expected: "14",
+			in:       "12:13:14.123",
+			expected: "14.123",
 			outkey:   "second",
 		},
 		{
@@ -64,6 +64,48 @@ add_pattern("time", "([^0-9]?)%{_hour:hour}:%{_minute:minute}(?::%{_second:secon
 grok(_, "%{time}")`,
 			in:       "12:13:14",
 			expected: "14",
+			outkey:   "second",
+		},
+		{
+			name: "normal",
+			pl: `
+add_pattern("time", "%{NUMBER:time:float}")
+grok(_, '''%{time}
+%{WORD:word:string}
+	%{WORD:code:int}
+%{WORD:w1}''')`,
+			in: `1.1
+s
+	123cvf
+aa222`,
+			expected: int64(0),
+			outkey:   "code",
+		},
+		{
+			name: "normal",
+			pl: `
+add_pattern("time", "%{NUMBER:time:float}")
+grok(_, '''%{time}
+%{WORD:word:string}
+	%{WORD:code:int}
+%{WORD:w1}''')`,
+			in: `1.1
+s
+	123
+aa222`,
+			expected: int64(123),
+			outkey:   "code",
+		},
+		{
+			name: "normal",
+			pl: `
+add_pattern("_second", "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)")
+add_pattern("_minute", "(?:[0-5][0-9])")
+add_pattern("_hour", "(?:2[0123]|[01]?[0-9])")
+add_pattern("time", "([^0-9]?)%{_hour:hour:string}:%{_minute:minute:int}(?::%{_second:second:float})([^0-9]?)")
+grok(_, "%{WORD:date} %{time}")`,
+			in:       "2021/1/11 2:13:14.123",
+			expected: float64(14.123),
 			outkey:   "second",
 		},
 	}
