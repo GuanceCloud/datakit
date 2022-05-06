@@ -502,6 +502,15 @@ var cases = []struct {
 				input:    "`中文`",
 				expected: []Item{{QUOTED_STRING, 0, "`中文`"}},
 			},
+			{
+				input:    "''",
+				expected: []Item{{STRING, 0, "''"}},
+			},
+
+			{
+				input:    `""`,
+				expected: []Item{{STRING, 0, `""`}},
+			},
 
 			{
 				input: `'''this

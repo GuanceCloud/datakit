@@ -284,6 +284,8 @@ func lexStatements(l *Lexer) stateFn {
 			if t2 := l.peek(); t2 == '"' {
 				l.next()
 				return lexMultilineString
+			} else {
+				l.emit(STRING)
 			}
 		} else {
 			l.stringOpen = r
@@ -296,6 +298,8 @@ func lexStatements(l *Lexer) stateFn {
 			if t := l.peek(); t == '\'' {
 				l.next()
 				return lexMultilineString
+			} else {
+				l.emit(STRING)
 			}
 		} else {
 			l.stringOpen = r
