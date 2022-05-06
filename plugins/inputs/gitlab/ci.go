@@ -576,7 +576,7 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 
 	if event != pipelineHook && event != jobHook {
 		// Webhooks that return failure codes in the 4xx range
-		// are understood to be misconfigured, and these are
+		// are considered to be misconfigured, and these are
 		// disabled until you manually re-enable them.
 		// Here we still return 200 to prevent webhook from disabling,
 		// and log that we receive unrecognized event payload.
