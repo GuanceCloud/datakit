@@ -14,8 +14,9 @@ import (
 )
 
 func GrokChecking(ng *parser.EngineData, node parser.Node) error {
-	g := ng.GetGrok()
-	if g == nil {
+	// 只能在 checking 函数中修改 engine 的 grok
+	g, ok := ng.GetEngineRGrok()
+	if !ok {
 		return fmt.Errorf("no grok obj")
 	}
 
@@ -68,8 +69,8 @@ func GrokChecking(ng *parser.EngineData, node parser.Node) error {
 }
 
 func Grok(ng *parser.EngineData, node parser.Node) interface{} {
-	g := ng.GetGrok()
-	if g == nil {
+	g, ok := ng.GetEngineRGrok()
+	if !ok {
 		return fmt.Errorf("no grok obj")
 	}
 	var err error

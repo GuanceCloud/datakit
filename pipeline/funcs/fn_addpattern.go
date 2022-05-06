@@ -9,8 +9,11 @@ import (
 )
 
 func AddPatternChecking(ngData *parser.EngineData, node parser.Node) error {
-	g := ngData.GetGrok()
-
+	// 只能在 checking 函数中修改 engine 的 grok
+	g, ok := ngData.GetEngineRGrok()
+	if !ok {
+		return fmt.Errorf("grok: nil ptr")
+	}
 	funcExpr := fexpr(node)
 
 	if len(funcExpr.Param) != 2 {

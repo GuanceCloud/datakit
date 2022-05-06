@@ -99,11 +99,11 @@ func TestDefaultTimeWithFmt(t *testing.T) {
 				return
 			}
 			for idxIn := 0; idxIn < len(tc.in); idxIn++ {
-				if err := runner.Run(tc.in[idxIn]); err != nil {
+				ret, err := runner.Run(tc.in[idxIn])
+				if err != nil {
 					t.Error(err)
 					return
 				}
-				ret := runner.Result()
 				t.Log(ret)
 				v := ret.Fields[tc.outkey]
 				tu.Equals(t, tc.expect[idxIn], v)

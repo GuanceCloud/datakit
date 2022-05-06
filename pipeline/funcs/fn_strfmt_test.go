@@ -120,7 +120,7 @@ strfmt(bb, "%v%s", a.forth, "tone")
 				return
 			}
 
-			err = runner.Run(tc.in)
+			ret, err := runner.Run(tc.in)
 			if err != nil {
 				if tc.fail {
 					t.Logf("[%d]expect error: %s", idx, err)
@@ -128,7 +128,6 @@ strfmt(bb, "%v%s", a.forth, "tone")
 					t.Error(err)
 				}
 			} else {
-				ret := runner.Result()
 				t.Log(ret)
 				v := ret.Fields[tc.outKey]
 				tu.Equals(t, tc.expected, v)

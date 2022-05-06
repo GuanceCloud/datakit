@@ -128,11 +128,11 @@ func TestGeoIpFunc(t *testing.T) {
 			return
 		}
 
-		if err := runner.Run(tt.data); err != nil {
+		ret, err := runner.Run(tt.data)
+		if err != nil {
 			t.Error(err)
 			return
 		}
-		ret := runner.Result()
 		t.Log(ret)
 		for k, v := range tt.expected {
 			r, ok := ret.Fields[k]

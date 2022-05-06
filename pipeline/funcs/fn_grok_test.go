@@ -80,10 +80,9 @@ grok(_, "%{time}")`,
 				return
 			}
 
-			err = runner.Run(tc.in)
+			ret, err := runner.Run(tc.in)
 			tu.Equals(t, err, nil)
 
-			ret := runner.Result()
 			t.Log(ret)
 
 			v, ok := ret.Fields[tc.outkey]

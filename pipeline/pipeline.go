@@ -193,11 +193,11 @@ func RunPlStr(cntStr, source string, maxMessageLen int, ng *parser.Engine) (*Res
 		Output: nil,
 	}
 	if ng != nil {
-		if err := ng.Run(cntStr); err != nil {
+		var err error
+		if result.Output, err = ng.Run(cntStr); err != nil {
 			l.Debug(err)
 			result.Err = err.Error()
 		}
-		result.Output = ng.Result()
 	} else {
 		result.Output = &parser.Output{
 			Cost: map[string]string{},

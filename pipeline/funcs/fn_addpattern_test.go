@@ -162,8 +162,7 @@ func TestAddPattern(t *testing.T) {
 				return
 			}
 
-			if err := runner.Run(tc.in); err == nil {
-				ret := runner.Result()
+			if ret, err := runner.Run(tc.in); err == nil {
 				t.Log(ret)
 				v := ret.Fields[tc.outkey]
 				tu.Equals(t, tc.expect, v)

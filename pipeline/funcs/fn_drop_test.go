@@ -44,11 +44,11 @@ func TestDrop(t *testing.T) {
 				return
 			}
 
-			if err := runner.Run(tc.in); err != nil {
+			ret, err := runner.Run(tc.in)
+			if err != nil {
 				t.Error(err)
 				return
 			}
-			ret := runner.Result()
 			t.Log(ret)
 			if ret.Dropped {
 				return

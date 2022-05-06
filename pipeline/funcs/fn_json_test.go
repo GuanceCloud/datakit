@@ -46,10 +46,8 @@ func TestJSON(t *testing.T) {
 			runner, err := NewTestingRunner(tc.script)
 			tu.Equals(t, nil, err)
 
-			err = runner.Run(tc.data)
+			ret, err := runner.Run(tc.data)
 			tu.Equals(t, nil, err)
-
-			ret := runner.Result()
 
 			r, ok := ret.Fields[tc.key]
 			tu.Equals(t, true, ok)

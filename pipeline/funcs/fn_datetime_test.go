@@ -279,11 +279,11 @@ func TestDateTime(t *testing.T) {
 				return
 			}
 
-			if err := runner.Run(tc.in); err != nil {
+			ret, err := runner.Run(tc.in)
+			if err != nil {
 				t.Error(err)
 				return
 			}
-			ret := runner.Result()
 			t.Log(ret)
 			v := ret.Fields[tc.outkey]
 			tu.Equals(t, tc.expect, v)

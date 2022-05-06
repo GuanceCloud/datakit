@@ -74,10 +74,9 @@ func TestNullIf(t *testing.T) {
 				return
 			}
 
-			err = runner.Run(tc.in)
+			ret, err := runner.Run(tc.in)
 			tu.Equals(t, nil, err)
 
-			ret := runner.Result()
 			t.Log(ret)
 			v := ret.Fields[tc.outkey]
 			// tu.Equals(t, nil, err)

@@ -277,9 +277,9 @@ if invalid_status_code != nil {
 				return
 			}
 
-			if err := runner.Run(tc.in); err == nil {
+			if ret, err := runner.Run(tc.in); err == nil {
 				// t.Log(runner.Result())
-				v := runner.Result().Fields["add_new_key"]
+				v := ret.Fields["add_new_key"]
 				tu.Equals(t, tc.expect, v)
 				t.Logf("[%d] PASS", idx)
 			} else {

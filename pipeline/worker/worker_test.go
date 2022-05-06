@@ -221,9 +221,8 @@ func TestNewEmptyNg(t *testing.T) {
 		return
 	}
 	in := "aaa"
-	_ = ng.Run(in)
-	v, _ := ng.Data.GetContent("message")
-	if v != in {
+	ret, _ := ng.Run(in)
+	if v := ret.Fields["message"]; v != in {
 		t.Error(v)
 	}
 }
@@ -551,8 +550,7 @@ func TestGrokStack(t *testing.T) {
 		return
 	}
 	for k, v := range cases {
-		ng.Run(v)
-		ret := ng.Result()
+		ret, _ := ng.Run(v)
 		t.Log("case", k)
 		assert.Equal(t, result[k].Fields, ret.Fields)
 	}

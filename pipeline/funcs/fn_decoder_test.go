@@ -28,10 +28,10 @@ func TestDecode(t *testing.T) {
 			runner, err := NewTestingRunner(tc.script)
 			tu.Equals(t, nil, err)
 
-			err = runner.Run(tc.data)
+			ret, err := runner.Run(tc.data)
 			tu.Equals(t, nil, err)
 
-			r, err := runner.Data.GetContentStr(tc.key)
+			r := ret.Fields[tc.key]
 			res, _ := decode.decoder.String(tc.data)
 			tu.Equals(t, nil, err)
 			tu.Equals(t, res, r)
