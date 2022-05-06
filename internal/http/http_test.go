@@ -461,6 +461,10 @@ func TestServerTimeout(t *testing.T) {
 
 	req, err := http.NewRequest("GET", ts.URL+"/test",
 		&slowReader{buf: bytes.NewBufferString("body string")})
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
 	resp, err := cli.Do(req)
 	if err != nil {
