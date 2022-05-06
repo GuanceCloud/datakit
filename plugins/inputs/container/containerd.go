@@ -85,14 +85,14 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 		ctx := namespaces.WithNamespace(context.Background(), ns)
 		cList, err := c.client.Containers(ctx)
 		if err != nil {
-			l.Warn("failed to collect containers in containerd, linux_namespace: %s, skip", ns)
+			l.Warnf("failed to collect containers in containerd, linux_namespace: %s, skip", ns)
 			continue
 		}
 
 		for _, container := range cList {
 			info, err := container.Info(ctx)
 			if err != nil {
-				l.Warn("failed to get containerd info, err: %w, skip", err)
+				l.Warnf("failed to get containerd info, err: %w, skip", err)
 				continue
 			}
 			if isPauseContainerd(&info) {
@@ -104,7 +104,7 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 
 			metricsData, err := getContainerdMetricsData(ctx, container)
 			if err != nil {
-				l.Warn("failed to get containerd metrics, err: %w, skip", err)
+				l.Debugf("failed to get containerd metrics, err: %w, skip", err)
 				continue
 			}
 			oldCPU, err := cpuContainerStats(metricsData, time.Now())
@@ -132,7 +132,7 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 			time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
 			metricsData2, err := getContainerdMetricsData(ctx, container)
 			if err != nil {
-				l.Warn("failed to get containerd metrics, err: %w, skip", err)
+				l.Warnf("failed to get containerd metrics, err: %w, skip", err)
 				continue
 			}
 			newCPU, err := cpuContainerStats(metricsData2, time.Now())

@@ -50,7 +50,7 @@ func handleDDTraceWithVersion(v string) http.HandlerFunc {
 
 			if dktrace := ddtraceToDkTrace(trace); len(dktrace) == 0 {
 				log.Warn("empty datakit trace")
-			} else {
+			} else if afterGatherRun != nil {
 				afterGatherRun.Run(inputName, dktrace, false)
 			}
 		}

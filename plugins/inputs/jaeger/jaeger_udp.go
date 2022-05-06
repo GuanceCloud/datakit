@@ -62,7 +62,7 @@ func StartUDPAgent(addr string) error {
 		if len(dktrace) == 0 {
 			log.Warn("empty datakit trace")
 		} else {
-			afterGather.Run(inputName, dktrace, false)
+			afterGatherRun.Run(inputName, dktrace, false)
 		}
 	}
 }
