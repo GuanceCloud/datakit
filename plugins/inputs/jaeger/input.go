@@ -73,9 +73,8 @@ const (
 )
 
 var (
-	log                                        = logger.DefaultSLogger(inputName)
-	afterGather                                = itrace.NewAfterGather()
-	afterGatherRun   itrace.AfterGatherHandler = afterGather
+	log              = logger.DefaultSLogger(inputName)
+	afterGatherRun   itrace.AfterGatherHandler
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	sampler          *itrace.Sampler
@@ -122,6 +121,9 @@ func (ipt *Input) RegHTTPHandler() {
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
+
+	afterGather := itrace.NewAfterGather()
+	afterGatherRun = afterGather
 
 	// add calculators
 	// afterGather.AppendCalculator(itrace.StatTracingInfo)
