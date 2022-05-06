@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -416,6 +417,50 @@ func TestClientTimeout(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		t.Logf("Do: %s, type: %s, %+#v, Err: %+#v", err, reflect.TypeOf(err), err, err.(*url.Error).Err) //nolint:errorlint
+	} else {
+		defer resp.Body.Close()
+	}
+}
+
+type slowReader struct {
+	buf *bytes.Buffer
+}
+
+func (r *slowReader) Read(p []byte) (int, error) {
+	if r.buf == nil {
+		return 0, nil
+	}
+
+	time.Sleep(time.Millisecond * 100) // slow reader
+	return r.buf.Read(p)
+}
+
+func TestServerTimeout(t *testing.T) {
+	r := gin.New()
+
+	r.GET("/test", func(c *gin.Context) {
+		sr := &slowReader{buf: bytes.NewBufferString("response body")}
+		c.DataFromReader(200, int64(sr.buf.Len()), "application/json", sr, nil)
+	})
+
+	ts := httptest.NewUnstartedServer(r)
+	ts.Config.ReadTimeout = 1000 * time.Millisecond // easy to timeout
+	ts.Config.WriteTimeout = 20 * time.Millisecond  // easy to timeout
+	ts.Start()
+
+	defer ts.Close()
+	time.Sleep(time.Second)
+
+	cli := http.Client{
+		// Timeout: time.Second, not set
+	}
+
+	req, err := http.NewRequest("GET", ts.URL+"/test",
+		&slowReader{buf: bytes.NewBufferString("body string")})
 
 	resp, err := cli.Do(req)
 	if err != nil {
