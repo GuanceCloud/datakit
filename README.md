@@ -105,7 +105,8 @@ DataKit building relies on some external tools/libs, we must install them all be
 - lint related:
 	- gofumpt: Used to format go source code
     - `go install mvdan.cc/gofumpt@latest`
-	- [golangci-lint 1.42.1](https://github.com/golangci/golangci-lint/releases/tag/v1.42.1)
+  - lint
+	  - `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
 - eBPF related:
 	- clang 10.0+
 	- llvm 10.0+
