@@ -179,25 +179,29 @@ func TestLoadEnv(t *testing.T) {
 		{
 			name: "normal",
 			envs: map[string]string{
-				"ENV_GLOBAL_TAGS":            "a=b,c=d",
-				"ENV_LOG_LEVEL":              "debug",
-				"ENV_DATAWAY":                "http://host1.org,http://host2.com",
-				"ENV_HOSTNAME":               "1024.coding",
-				"ENV_NAME":                   "testing-datakit",
-				"ENV_HTTP_LISTEN":            "localhost:9559",
-				"ENV_RUM_ORIGIN_IP_HEADER":   "not-set",
-				"ENV_ENABLE_PPROF":           "true",
-				"ENV_DISABLE_PROTECT_MODE":   "true",
-				"ENV_DEFAULT_ENABLED_INPUTS": "cpu,mem,disk",
-				"ENV_ENABLE_ELECTION":        "1",
-				"ENV_DISABLE_404PAGE":        "on",
-				"ENV_REQUEST_RATE_LIMIT":     "1234",
+				"ENV_GLOBAL_TAGS":                     "a=b,c=d",
+				"ENV_LOG_LEVEL":                       "debug",
+				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
+				"ENV_HOSTNAME":                        "1024.coding",
+				"ENV_NAME":                            "testing-datakit",
+				"ENV_HTTP_LISTEN":                     "localhost:9559",
+				"ENV_RUM_ORIGIN_IP_HEADER":            "not-set",
+				"ENV_ENABLE_PPROF":                    "true",
+				"ENV_DISABLE_PROTECT_MODE":            "true",
+				"ENV_DEFAULT_ENABLED_INPUTS":          "cpu,mem,disk",
+				"ENV_ENABLE_ELECTION":                 "1",
+				"ENV_DISABLE_404PAGE":                 "on",
+				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "123",
+				"ENV_REQUEST_RATE_LIMIT":              "1234",
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
 
 				cfg.Name = "testing-datakit"
-				cfg.DataWay = &dataway.DataWayCfg{URLs: []string{"http://host1.org", "http://host2.com"}}
+				cfg.DataWay = &dataway.DataWayCfg{
+					URLs:                []string{"http://host1.org", "http://host2.com"},
+					MaxIdleConnsPerHost: 123,
+				}
 
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"
 				cfg.HTTPAPI.Listen = "localhost:9559"
@@ -266,6 +270,7 @@ func TestLoadEnv(t *testing.T) {
 		},
 
 		{
+			name: "test-ENV_ENABLE_INPUTS",
 			envs: map[string]string{
 				"ENV_ENABLE_INPUTS": "cpu,mem,disk",
 			},
@@ -277,6 +282,7 @@ func TestLoadEnv(t *testing.T) {
 		},
 
 		{
+			name: "test-ENV_GLOBAL_TAGS",
 			envs: map[string]string{
 				"ENV_GLOBAL_TAGS": "cpu,mem,disk=sda",
 			},
@@ -284,6 +290,24 @@ func TestLoadEnv(t *testing.T) {
 			expect: func() *Config {
 				cfg := DefaultConfig()
 				cfg.GlobalTags = map[string]string{"disk": "sda"}
+				return cfg
+			}(),
+		},
+
+		{
+			name: "test-ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST",
+			envs: map[string]string{
+				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "-1",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+
+				cfg.DataWay = &dataway.DataWayCfg{
+					URLs:                []string{},
+					MaxIdleConnsPerHost: 0,
+				}
+
 				return cfg
 			}(),
 		},
