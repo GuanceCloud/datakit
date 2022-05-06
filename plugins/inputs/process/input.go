@@ -365,7 +365,7 @@ func (p *Input) Parse(ps *pr.Process, lastProcess map[int32]proccpu) (username, 
 					usage = 100 * (cpuTime.User + cpuTime.System - lastP.cputime.User - lastP.cputime.System) / sec
 				}
 			} else {
-				l.Debug("cpu_usage_top: lastP %d %d", lastP.createTime, crtTime)
+				l.Debugf("cpu_usage_top: lastP %d %d", lastP.createTime, crtTime)
 			}
 			if usage < 0 {
 				usage = 0

@@ -6,8 +6,8 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 

@@ -19,7 +19,6 @@ import (
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	plRemote "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote"
@@ -27,6 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
 )
 
 var (

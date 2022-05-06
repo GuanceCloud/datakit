@@ -8,7 +8,7 @@ import (
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/agent"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 func StartUDPAgent(addr string) error {
