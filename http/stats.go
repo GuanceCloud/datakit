@@ -69,9 +69,8 @@ func getRuntimeInfo() *runtimeInfo {
 type DatakitStats struct {
 	GoroutineStats *goroutine.Summary `json:"goroutine_stats"`
 
-	EnabledInputsDeprecated []*enabledInput           `json:"enabled_inputs,omitempty"`
-	EnabledInputs           map[string]*enabledInput  `json:"enabled_input_list"`
-	ConfigInfo              map[string]*inputs.Config `json:"config_info"`
+	EnabledInputsDeprecated []*enabledInput          `json:"enabled_inputs,omitempty"`
+	EnabledInputs           map[string]*enabledInput `json:"enabled_input_list"`
 
 	GolangRuntime *runtimeInfo `json:"golang_runtime"`
 
@@ -325,7 +324,6 @@ func GetStats() (*DatakitStats, error) {
 		HTTPMetrics:    getMetrics(),
 		GolangRuntime:  getRuntimeInfo(),
 		FilterStats:    io.GetFilterStats(),
-		ConfigInfo:     inputs.ConfigInfo,
 	}
 
 	var err error
