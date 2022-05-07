@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cmds
 
 import (
@@ -578,7 +583,7 @@ func (dc *dqlCmd) prettyShowRow(s *models.Row, val []interface{}, fmtStr string)
 				}
 
 				// convert ms to second
-				val[colIdx] = time.Unix(i/1000, 0) //nolint
+				val[colIdx] = time.Unix(i/1000, 0)
 			}
 		}
 

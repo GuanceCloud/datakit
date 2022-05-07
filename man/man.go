@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package man manages all datakit documents
 package man
 
@@ -23,8 +28,15 @@ var (
 	OtherDocs = map[string]interface{}{
 		// value not used, just document the markdown relative path
 		// all manuals under man/manuals/
+		"datakit-sink-guide":    "man/manuals/datakit-sink-guide.md",
+		"datakit-sink-dev":      "man/manuals/datakit-sink-dev.md",
+		"datakit-sink-influxdb": "man/manuals/datakit-sink-influxdb.md",
+		"datakit-sink-logstash": "man/manuals/datakit-sink-logstash.md",
+		"datakit-sink-m3db":     "man/manuals/datakit-sink-m3db.md",
+
 		"apis":                 "man/manuals/apis.md",
 		"changelog":            "man/manuals/changelog.md",
+		"changelog-community":  "man/manuals/changelog-community.md",
 		"datakit-arch":         "man/manuals/datakit-arch.md",
 		"datakit-batch-deploy": "man/manuals/datakit-batch-deploy.md",
 

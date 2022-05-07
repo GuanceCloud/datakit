@@ -351,6 +351,13 @@ github.com/docker/go-units
 # github.com/dustin/go-humanize v1.0.0
 ## explicit
 github.com/dustin/go-humanize
+# github.com/elastic/go-lumber v0.1.1
+## explicit
+github.com/elastic/go-lumber/lj
+github.com/elastic/go-lumber/log
+github.com/elastic/go-lumber/protocol/v2
+github.com/elastic/go-lumber/server/internal
+github.com/elastic/go-lumber/server/v2
 # github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
 ## explicit
 github.com/elazarl/goproxy
@@ -640,6 +647,7 @@ github.com/hashicorp/go-multierror
 github.com/imdario/mergo
 # github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 ## explicit
+github.com/influxdata/influxdb1-client
 github.com/influxdata/influxdb1-client/models
 github.com/influxdata/influxdb1-client/pkg/escape
 github.com/influxdata/influxdb1-client/v2
@@ -679,8 +687,10 @@ github.com/karrick/godirwalk
 github.com/kevinburke/ssh_config
 # github.com/klauspost/compress v1.13.4
 github.com/klauspost/compress
+github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
+github.com/klauspost/compress/zlib
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/kr/fs v0.1.0
@@ -855,6 +865,9 @@ github.com/uber/jaeger-client-go/thrift
 github.com/uber/jaeger-client-go/thrift-gen/agent
 github.com/uber/jaeger-client-go/thrift-gen/jaeger
 github.com/uber/jaeger-client-go/thrift-gen/zipkincore
+# github.com/ubwbu/grok v1.0.6
+## explicit
+github.com/ubwbu/grok
 # github.com/ugorji/go/codec v1.2.6
 ## explicit
 github.com/ugorji/go/codec

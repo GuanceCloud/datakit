@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package main
 
 import (
@@ -25,6 +30,7 @@ import (
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
@@ -81,7 +87,16 @@ var (
 	flagEnableElection,
 	flagEnablePProf,
 	flagPProfListen,
-	flagDisable404Page string
+	flagDisable404Page,
+	flagSinkMetric,
+	flagSinkNetwork,
+	flagSinkKeyEvent,
+	flagSinkObject,
+	flagSinkCustomObject,
+	flagSinkLogging,
+	flagSinkTracing,
+	flagSinkRUM,
+	flagSinkSecurity string
 
 	flagInstallOnly,
 	flagCgroupDisabled,
@@ -136,6 +151,17 @@ func init() { //nolint:gochecknoinits
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
 		`local path of install files`)
 
+	// sink parameters
+	flag.StringVar(&flagSinkMetric, "sink-metric", "", "sink for Metric")
+	flag.StringVar(&flagSinkNetwork, "sink-network", "", "sink for Network")
+	flag.StringVar(&flagSinkKeyEvent, "sink-keyevent", "", "sink for Key Event")
+	flag.StringVar(&flagSinkObject, "sink-object", "", "sink for Object")
+	flag.StringVar(&flagSinkCustomObject, "sink-custom-object", "", "sink for CustomObject")
+	flag.StringVar(&flagSinkLogging, "sink-logging", "", "sink for Logging")
+	flag.StringVar(&flagSinkTracing, "sink-tracing", "", "sink for Tracing")
+	flag.StringVar(&flagSinkRUM, "sink-rum", "", "sink for RUM")
+	flag.StringVar(&flagSinkSecurity, "sink-security", "", "sink for Security")
+
 	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Cgroup CPU max usage")
 	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Cgroup CPU min usage")
 	flag.Int64Var(&flagLimitMemMax, "limit-mem", 4096, "Cgroup memory limit")
@@ -181,8 +207,7 @@ func downloadFiles(to string) error {
 
 	if flagIpdb != "" {
 		fmt.Printf("\n")
-		baseURL := "https://" + DataKitBaseURL
-		if _, err := cmds.InstallIpdb(baseURL, flagIpdb); err != nil {
+		if _, err := cmds.InstallIpdb(flagIpdb); err != nil {
 			l.Warnf("ipdb install failed error: %s, please try later.", err.Error())
 			time.Sleep(1 * time.Second)
 		} else {
@@ -447,14 +472,12 @@ func installNewDatakit(svc service.Service) {
 	mc := config.Cfg
 
 	// prepare dataway info and check token format
-	mc.DataWay = getDataWayCfg()
-	tokens := mc.DataWay.GetToken()
-	if len(tokens) == 0 {
-		l.Fatalf("dataway token should not be empty")
-	}
-
-	if err := mc.DataWay.CheckToken(tokens[0]); err != nil {
-		l.Fatal(err)
+	if len(flagDataway) != 0 {
+		var err error
+		mc.DataWay, err = getDataWay()
+		if err != nil {
+			l.Fatal(err)
+		}
 	}
 
 	if flagOTA {
@@ -589,6 +612,12 @@ func installNewDatakit(svc service.Service) {
 		mc.Logging.GinLog = flagGinLog
 	}
 
+	// parse sink
+	if err := parseSinkArgs(mc); err != nil {
+		mc.Sinks.Sink = []map[string]interface{}{{}} // clear
+		l.Fatalf("parseSinkArgs failed: %s", err.Error())
+	}
+
 	writeDefInputToMainCfg(mc)
 
 	// build datakit main config
@@ -622,6 +651,48 @@ func installNewDatakit(svc service.Service) {
 	if err := service.Control(svc, "install"); err != nil {
 		l.Fatalf("uninstall service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
 	}
+}
+
+func parseSinkArgs(mc *config.Config) error {
+	if mc == nil {
+		return fmt.Errorf("invalid main config")
+	}
+
+	if mc.Sinks == nil {
+		return fmt.Errorf("invalid main config sinks")
+	}
+
+	categoryShorts := []string{
+		datakit.SinkCategoryMetric,
+		datakit.SinkCategoryNetwork,
+		datakit.SinkCategoryKeyEvent,
+		datakit.SinkCategoryObject,
+		datakit.SinkCategoryCustomObject,
+		datakit.SinkCategoryLogging,
+		datakit.SinkCategoryTracing,
+		datakit.SinkCategoryRUM,
+		datakit.SinkCategorySecurity,
+	}
+
+	args := []string{
+		flagSinkMetric,
+		flagSinkNetwork,
+		flagSinkKeyEvent,
+		flagSinkObject,
+		flagSinkCustomObject,
+		flagSinkLogging,
+		flagSinkTracing,
+		flagSinkRUM,
+		flagSinkSecurity,
+	}
+
+	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
+	if err != nil {
+		return err
+	}
+
+	mc.Sinks.Sink = sinks
+	return nil
 }
 
 var (
@@ -732,8 +803,8 @@ func preEnableHostobjectInput(cloud string) []byte {
 }
 
 func upgradeMainConfig(c *config.Config) *config.Config {
-	if c.DataWay != nil {
-		c.DataWay.DeprecatedURL = ""
+	if c.DataWayCfg != nil {
+		c.DataWayCfg.DeprecatedURL = ""
 	}
 
 	// XXX: 无脑更改日志位置
@@ -792,8 +863,8 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 		c.IntervalDeprecated = ""
 	}
 
-	if c.DataWay != nil {
-		c.DataWay.HTTPProxy = flagProxy
+	if c.DataWayCfg != nil {
+		c.DataWayCfg.HTTPProxy = flagProxy
 	}
 
 	c.InstallVer = DataKitVersion
@@ -802,24 +873,35 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 	return c
 }
 
-func getDataWayCfg() *dataway.DataWayCfg {
-	dw := &dataway.DataWayCfg{}
-
+func getDataWay() (dataway.DataWay, error) {
+	var dwCfg *dataway.DataWayCfg
 	if flagDataway != "" {
-		dw.URLs = strings.Split(flagDataway, ",")
-		if err := dw.Apply(); err != nil {
-			l.Fatal(err)
-		}
+		dwCfg = &dataway.DataWayCfg{}
+		dwCfg.URLs = strings.Split(flagDataway, ",")
 
 		if flagProxy != "" {
 			l.Debugf("set proxy to %s", flagProxy)
-			dw.HTTPProxy = flagProxy
+			dwCfg.HTTPProxy = flagProxy
+		}
+
+		dw := &dataway.DataWayDefault{}
+		if err := dw.Init(dwCfg); err != nil {
+			return nil, err
+		} else {
+			tokens := dw.GetTokens()
+			if len(tokens) == 0 {
+				return nil, fmt.Errorf("dataway token should not be empty")
+			}
+
+			if err := dw.CheckToken(tokens[0]); err != nil {
+				return nil, err
+			}
+			config.Cfg.DataWayCfg = dwCfg
+			return dw, nil
 		}
 	} else {
-		l.Fatal("should not been here")
+		return nil, fmt.Errorf("dataway is not set")
 	}
-
-	return dw
 }
 
 func mvOldDatakit(svc service.Service) {

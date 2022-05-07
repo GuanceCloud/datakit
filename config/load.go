@@ -1,4 +1,7 @@
-// Loading datakit configures
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
 
 package config
 
@@ -126,6 +129,9 @@ func ReloadInputTables(confTables []map[string]*ast.Table) error {
 						continue
 					}
 					res := getCheckInputCfgResult(tpl)
+					if res == nil {
+						continue
+					}
 					if !res.Runnable() {
 						l.Errorf("getCheckInputCfgResult failed: input_cfg_invalid")
 						continue
@@ -357,6 +363,9 @@ func CheckInputCfgEx(rootPath, suffix string) ([]inputs.Input, error) {
 			return nil, fmt.Errorf("%w: %s", err, fp)
 		} else {
 			res := getCheckInputCfgResult(tpl)
+			if res == nil {
+				continue
+			}
 			if !res.Runnable() {
 				return nil, fmt.Errorf("input_cfg_invalid: %s", fp)
 			}
@@ -368,12 +377,11 @@ func CheckInputCfgEx(rootPath, suffix string) ([]inputs.Input, error) {
 }
 
 func getCheckInputCfgResult(tpl *ast.Table) *CheckedInputCfgResult {
-	res := CheckedInputCfgResult{}
-
 	if len(tpl.Fields) == 0 {
-		res.Failed++
-		return &res
+		return nil // no conf available
 	}
+
+	res := CheckedInputCfgResult{}
 
 	for field, node := range tpl.Fields {
 		switch field {

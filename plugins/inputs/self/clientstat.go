@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package self collect datakit self metrics.
 package self
 
@@ -67,8 +72,8 @@ func setMin(prev, cur int64) int64 {
 
 func (s *ClientStat) Update() {
 	s.HostName = config.Cfg.Hostname
-	if config.Cfg.DataWay.HTTPProxy != "" {
-		s.Proxy = config.Cfg.DataWay.HTTPProxy
+	if config.Cfg.DataWayCfg != nil && config.Cfg.DataWayCfg.HTTPProxy != "" {
+		s.Proxy = config.Cfg.DataWayCfg.HTTPProxy
 	}
 
 	var memStatus runtime.MemStats
