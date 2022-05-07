@@ -13,7 +13,6 @@ type DKEvent struct {
 	Message  string `json:"message"`
 	Category string `josn:"category"`
 	Logtype  string `josn:"Logtype"`
-	feed     func(string, string, []*Point, *Option) error
 }
 
 func (e *DKEvent) Tags() map[string]string {
@@ -21,6 +20,7 @@ func (e *DKEvent) Tags() map[string]string {
 		"status":   "info",
 		"category": "default",
 		"log_type": "",
+		"service":  "datakit",
 	}
 
 	if e.Status != "" {
@@ -75,6 +75,7 @@ func (e *DKEvent) feedLog() {
 	g.Go(func(ctx context.Context) error {
 		if err := Feed("dkevent", datakit.Logging, []*Point{pt}, nil); err != nil {
 			log.Errorf("Feed: %s", err.Error())
+			return err
 		}
 		return nil
 	})

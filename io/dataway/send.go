@@ -176,13 +176,13 @@ func (ts *httpTraceStat) String() string {
 		ts.reuseConn, ts.idle, ts.idleTime, ts.dnsResolve, ts.tlsHSDone, ts.connDone, ts.ttfbTime)
 }
 
-type DatawayErr struct {
+type DatawayError struct {
 	Err   error
 	Trace *httpTraceStat
 	API   string
 }
 
-func (de *DatawayErr) Error() string {
+func (de *DatawayError) Error() string {
 	return fmt.Sprintf("HTTP error: %s, API: %s, httptrace: %s",
 		de.Err, de.Trace, de.API)
 }
@@ -222,9 +222,7 @@ func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
 	}
 
 	if err != nil {
-		return resp, &DatawayErr{Err: err, Trace: ts, API: req.URL.Path}
-	} else {
-		return resp, nil
+		return nil, &DatawayError{Err: err, Trace: ts, API: req.URL.Path}
 	}
 
 	return resp, err
