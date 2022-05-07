@@ -233,7 +233,6 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_IPDB                     | 无（string）   | 否   | 指定 IP 信息库类型，目前只支持 `iploc`                     |
 | ENV_ULIMIT                   | 无             | 否   | 指定 Datakit 最大的可打开文件数                            |
 | ENV_DATAWAY_TIMEOUT          | 30s            | 否   | 设置 DataKit 请求 DataWay 的超时时间                       |
-| ENV_DATAWAY_TIMEOUT          | 30s            | 否   | 设置 DataKit 请求 DataWay 的超时时间                       |
 | ENV_DATAWAY_ENABLE_HTTPTRACE | false          | 否   | 在 debug 日志中输出 dataway HTTP 请求的网络日志            |
 | ENV_DATAWAY_HTTP_PROXY       | 无             | 否   | 设置 DataWay HTTP 代理                                     |
 

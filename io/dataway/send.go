@@ -167,6 +167,26 @@ type httpTraceStat struct {
 	ttfbTime   time.Duration
 }
 
+func (ts *httpTraceStat) String() string {
+	if ts == nil {
+		return "-"
+	}
+
+	return fmt.Sprintf("dataway httptrace: Conn: [reuse: %v,idle: %v/%s], DNS: %s, TLS: %s, Connect: %s, TTFB: %s",
+		ts.reuseConn, ts.idle, ts.idleTime, ts.dnsResolve, ts.tlsHSDone, ts.connDone, ts.ttfbTime)
+}
+
+type DatawayErr struct {
+	Err   error
+	Trace *httpTraceStat
+	API   string
+}
+
+func (de *DatawayErr) Error() string {
+	return fmt.Sprintf("HTTP error: %s, API: %s, httptrace: %s",
+		de.Err, de.Trace, de.API)
+}
+
 func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
 	log.Debugf("send request %s, proxy: %s, dwcli: %p, timeout: %s(%s)",
 		req.URL.String(), dw.HTTPProxy, dw.httpCli.Transport,
@@ -197,9 +217,16 @@ func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
 	reqStart = time.Now()
 	resp, err := dw.httpCli.Do(req)
 	if ts != nil {
-		log.Debugf("dataway httptrace: Conn: [reuse: %v,idle: %v/%s], Reuse: %v, DNS: %s, TLS: %s, Connect: %s, TTFB: %s",
-			ts.reuseConn, ts.idle, ts.idleTime, ts.reuseConn, ts.dnsResolve, ts.tlsHSDone, ts.connDone, ts.ttfbTime)
+		log.Debugf("dataway httptrace: Conn: [reuse: %v,idle: %v/%s], DNS: %s, TLS: %s, Connect: %s, TTFB: %s",
+			ts.reuseConn, ts.idle, ts.idleTime, ts.dnsResolve, ts.tlsHSDone, ts.connDone, ts.ttfbTime)
 	}
+
+	if err != nil {
+		return resp, &DatawayErr{Err: err, Trace: ts, API: req.URL.Path}
+	} else {
+		return resp, nil
+	}
+
 	return resp, err
 }
 
