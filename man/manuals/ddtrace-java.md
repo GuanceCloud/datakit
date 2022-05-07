@@ -16,7 +16,7 @@ wget -O dd-java-agent.jar https://dtdg.co/latest-java-tracer
 
 ## Run Java Code With DDTrace
 
-可以通过多种途径运行你的 Java Code，如 IDE，Maven，Gradle 或直接通过 java -jar 命令一下通过 java 命令启动应用：
+可以通过多种途径运行你的 Java Code，如 IDE，Maven，Gradle 或直接通过 java -jar 命令，以下通过 java 命令启动应用：
 
 ```shell
 java -javaagent:/path/to/dd-java-agent.jar \
