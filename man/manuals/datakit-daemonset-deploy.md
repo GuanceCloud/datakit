@@ -224,15 +224,18 @@ DataKit 支持的环境变量如下各表所示。
 
 ### 其它杂项
 
-| 环境变量名称        | 默认值         | 必须 | 说明                                                       |
-| -----------------:  | -------------: | ---- | ---------------------------------------------------------- |
-| ENV_CLOUD_PROVIDER  | 无             | 否   | 支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`) |
-| ENV_DCA_LISTEN      | localhost:9531 | 否   | 可修改改地址，使得 [DCA](dca) 客户端能管理该 DataKit       |
-| ENV_DCA_WHITE_LIST  | 无             | 否   | 配置 DCA 白名单，以英文逗号分隔                            |
-| ENV_HOSTNAME        | 无             | 否   | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`    |
-| ENV_IPDB            | 无（string）   | 否   | 指定 IP 信息库类型，目前只支持 `iploc`                     |
-| ENV_ULIMIT          | 无             | 否   | 指定 Datakit 最大的可打开文件数                            |
-| ENV_DATAWAY_TIMEOUT | 30s            | 否   | 设置 DataKit 请求 DataWay 的超时时间                       |
+| 环境变量名称                 | 默认值         | 必须 | 说明                                                       |
+| -----------------:           | -------------: | ---- | ---------------------------------------------------------- |
+| ENV_CLOUD_PROVIDER           | 无             | 否   | 支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`) |
+| ENV_DCA_LISTEN               | localhost:9531 | 否   | 可修改改地址，使得 [DCA](dca) 客户端能管理该 DataKit       |
+| ENV_DCA_WHITE_LIST           | 无             | 否   | 配置 DCA 白名单，以英文逗号分隔                            |
+| ENV_HOSTNAME                 | 无             | 否   | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`    |
+| ENV_IPDB                     | 无（string）   | 否   | 指定 IP 信息库类型，目前只支持 `iploc`                     |
+| ENV_ULIMIT                   | 无             | 否   | 指定 Datakit 最大的可打开文件数                            |
+| ENV_DATAWAY_TIMEOUT          | 30s            | 否   | 设置 DataKit 请求 DataWay 的超时时间                       |
+| ENV_DATAWAY_TIMEOUT          | 30s            | 否   | 设置 DataKit 请求 DataWay 的超时时间                       |
+| ENV_DATAWAY_ENABLE_HTTPTRACE | false          | 否   | 在 debug 日志中输出 dataway HTTP 请求的网络日志            |
+| ENV_DATAWAY_HTTP_PROXY       | 无             | 否   | 设置 DataWay HTTP 代理                                     |
 
 
 ### 各个采集器专用环境变量

@@ -3,10 +3,12 @@ package dataway
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"sync"
 	"time"
@@ -151,12 +153,54 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 	return err
 }
 
+type httpTraceStat struct {
+	reuseConn bool
+	idle      bool
+	idleTime  time.Duration
+
+	dnsStart   time.Time
+	dnsResolve time.Duration
+	tlsHSStart time.Time
+	tlsHSDone  time.Duration
+	connStart  time.Time
+	connDone   time.Duration
+	ttfbTime   time.Duration
+}
+
 func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
 	log.Debugf("send request %s, proxy: %s, dwcli: %p, timeout: %s(%s)",
 		req.URL.String(), dw.HTTPProxy, dw.httpCli.Transport,
 		dw.HTTPTimeout, dw.TimeoutDuration.String())
 
-	return dw.httpCli.Do(req)
+	var reqStart time.Time
+	var ts *httpTraceStat
+	if dw.EnableHTTPTrace {
+		ts = &httpTraceStat{}
+		t := &httptrace.ClientTrace{
+			GotConn: func(ci httptrace.GotConnInfo) {
+				ts.reuseConn = ci.Reused
+				ts.idle = ci.WasIdle
+				ts.idleTime = ci.IdleTime
+			},
+			DNSStart:             func(httptrace.DNSStartInfo) { ts.dnsStart = time.Now() },
+			DNSDone:              func(httptrace.DNSDoneInfo) { ts.dnsResolve = time.Since(ts.dnsStart) },
+			TLSHandshakeStart:    func() { ts.tlsHSStart = time.Now() },
+			TLSHandshakeDone:     func(tls.ConnectionState, error) { ts.tlsHSDone = time.Since(ts.tlsHSStart) },
+			ConnectStart:         func(string, string) { ts.connStart = time.Now() },
+			ConnectDone:          func(string, string, error) { ts.connDone = time.Since(ts.connStart) },
+			GotFirstResponseByte: func() { ts.ttfbTime = time.Since(reqStart) },
+		}
+
+		req = req.WithContext(httptrace.WithClientTrace(req.Context(), t))
+	}
+
+	reqStart = time.Now()
+	resp, err := dw.httpCli.Do(req)
+	if ts != nil {
+		log.Debugf("dataway httptrace: Conn: [reuse: %v,idle: %v/%s], Reuse: %v, DNS: %s, TLS: %s, Connect: %s, TTFB: %s",
+			ts.reuseConn, ts.idle, ts.idleTime, ts.reuseConn, ts.dnsResolve, ts.tlsHSDone, ts.connDone, ts.ttfbTime)
+	}
+	return resp, err
 }
 
 func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
