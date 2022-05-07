@@ -36,7 +36,7 @@ export DD_TRACE_PHP_BIN=$(which version of php-fpm7)
 
 安装完成后重启 PHP (PHP-FPM or the Apache SAPI) 然后访问启动了 tracing 的 endpoint。
 
-**Note**: 如果你的 PHP 应用没有使用 Composer 或使用 spl_autoload_register()注册了 autoloader，你需要设置环境变量 DD_TRACE_NO_AUTOLOADER=true, 用来开启自动检测。
+**Note:** 如果你的 PHP 应用没有使用 Composer 或使用 spl_autoload_register()注册了 autoloader，你需要设置环境变量 DD_TRACE_NO_AUTOLOADER=true, 用来开启自动检测。
 
 ## PHP Configuration
 
@@ -44,7 +44,7 @@ PHP tracer 可以通过环境变量和 ini 配置文件进行配置。
 
 ini 可以进行全局配置，例如：使用 php.ini 配置特定的 web server 或 virtual host。
 
-**Note**: 如果你使用了自动检测（建议方案），需要注意的是用于自动检测的代码会在任何业务代码前运行。那么，以下环境变量和 ini 配置需要在相应服务器上进行配置，并且能被 PHP runtime 访问到。例如： putenv()函数和 .env 文件会失效。
+**Note:** 如果你使用了自动检测（建议方案），需要注意的是用于自动检测的代码会在任何业务代码前运行。那么，以下环境变量和 ini 配置需要在相应服务器上进行配置，并且能被 PHP runtime 访问到。例如： putenv()函数和 .env 文件会失效。
 
 **Apache**
 

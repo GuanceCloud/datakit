@@ -78,6 +78,7 @@
         - [Java 示例](ddtrace-java)
         - [Python 示例](ddtrace-python)
         - [PHP 示例](ddtrace-php)
+        - [NodeJS 示例](ddtrace-nodejs)
       - [SkyWalking](skywalking)
       - [Opentelemetry](opentelemetry)
         - [Golang 示例](opentelemetry-go)

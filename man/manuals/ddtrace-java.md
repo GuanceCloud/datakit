@@ -16,12 +16,7 @@ wget -O dd-java-agent.jar https://dtdg.co/latest-java-tracer
 
 ## Run Java Code With DDTrace
 
-To run your app from an IDE, Maven or Gradle application script, or java -jar command, with continuous profiler, deployment tracking, logs injection (if you are sending logs to Datadog), and trace volume control, add the -javaagent JVM argument and the following configuration options, as applicable:
-
-java -javaagent:/path/to/dd-java-agent.jar -Ddd.profiling.enabled=true -XX:FlightRecorderOptions=stackdepth=256 -Ddd.logs.injection=true -Ddd.trace.sample.rate=1 -Ddd.service=my-app -Ddd.env=staging -jar path/to/your/app.jar -Ddd.version=1.0
-Note: Enabling profiling may have an impact on your bill depending on your APM bundle. See the pricing page for more information.
-
-通过如下命令开启 Java 应用：
+可以通过多种途径运行你的 Java Code，如 IDE，Maven，Gradle 或直接通过 java -jar 命令一下通过 java 命令启动应用：
 
 ```shell
 java -javaagent:/path/to/dd-java-agent.jar \
