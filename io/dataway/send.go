@@ -184,7 +184,7 @@ type DatawayError struct {
 
 func (de *DatawayError) Error() string {
 	return fmt.Sprintf("HTTP error: %s, API: %s, httptrace: %s",
-		de.Err, de.Trace, de.API)
+		de.Err, de.API, de.Trace)
 }
 
 func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
