@@ -204,7 +204,7 @@ func TestLoadEnv(t *testing.T) {
 				cfg := DefaultConfig()
 
 				cfg.Name = "testing-datakit"
-				cfg.DataWay = &dataway.DataWayCfg{
+				cfg.DataWayCfg = &dataway.DataWayCfg{
 					URLs:                []string{"http://host1.org", "http://host2.com"},
 					MaxIdleConnsPerHost: 123,
 				}
@@ -303,14 +303,15 @@ func TestLoadEnv(t *testing.T) {
 		{
 			name: "test-ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST",
 			envs: map[string]string{
+				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
 				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "-1",
 			},
 
 			expect: func() *Config {
 				cfg := DefaultConfig()
 
-				cfg.DataWay = &dataway.DataWayCfg{
-					URLs:                []string{},
+				cfg.DataWayCfg = &dataway.DataWayCfg{
+					URLs:                []string{"http://host1.org", "http://host2.com"},
 					MaxIdleConnsPerHost: 0,
 				}
 

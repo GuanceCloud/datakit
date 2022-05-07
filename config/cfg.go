@@ -634,22 +634,28 @@ func (c *Config) LoadEnvs() error {
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_TIMEOUT"); v != "" {
+		if c.DataWayCfg == nil {
+			c.DataWayCfg = &dataway.DataWayCfg{}
+		}
 		_, err := time.ParseDuration(v)
 		if err != nil {
 			l.Warnf("invalid ENV_DATAWAY_TIMEOUT: %s", v)
-			c.DataWay.HTTPTimeout = "30s"
+			c.DataWayCfg.HTTPTimeout = "30s"
 		} else {
-			c.DataWay.HTTPTimeout = v
+			c.DataWayCfg.HTTPTimeout = v
 		}
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST"); v != "" {
+		if c.DataWayCfg == nil {
+			c.DataWayCfg = &dataway.DataWayCfg{}
+		}
 		value, err := strconv.ParseInt(v, 10, 64)
 		if err == nil {
 			if value <= 0 {
 				l.Warnf("invalid ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST: %s", v)
 			} else {
-				c.DataWay.MaxIdleConnsPerHost = int(value)
+				c.DataWayCfg.MaxIdleConnsPerHost = int(value)
 			}
 		}
 	}
