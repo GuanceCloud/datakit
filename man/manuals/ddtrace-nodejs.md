@@ -22,7 +22,7 @@ npm install dd-trace --save
 npm install dd-trace@latest-node10
 ```
 
-**Note:** 你需要在任何 NodeJS 代码或任何载入的 Module 运行前 import 并 initialize ddtracer lib，如果 ddtrace lib 没有被适当的初始化可能无法接收检测数据。
+**Note:** 你需要在任何 NodeJS 代码或载入任何 Module 前 import 并 initialize ddtracer lib，如果 ddtrace lib 没有被适当的初始化可能无法接收检测数据。
 
 ## NodeJS Code Example
 
