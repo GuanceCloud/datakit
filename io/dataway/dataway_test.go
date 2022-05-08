@@ -388,7 +388,7 @@ func runTestDatawayConnections(t *testing.T, nreq int) {
 	}
 
 	t.Logf("cw: %s", cw.String())
-	tu.Assert(t, cw.Max == 1, "single dataway should only 1 http client")
+	tu.Assert(t, cw.Max == 1, "single dataway should only 1 http client, got %d", cw.Max)
 }
 
 func TestUploadLog(t *testing.T) {

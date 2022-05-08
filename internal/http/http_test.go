@@ -437,7 +437,8 @@ func (r *slowReader) Read(p []byte) (int, error) {
 		return 0, nil
 	}
 
-	time.Sleep(sleepms * time.Millisecond) // slow reader
+	// slow reader
+	time.Sleep(sleepms * time.Millisecond) //nolint:durationcheck
 	return r.buf.Read(p)
 }
 
@@ -450,8 +451,8 @@ func TestServerTimeout(t *testing.T) {
 	})
 
 	ts := httptest.NewUnstartedServer(r)
-	// ts.Config.ReadTimeout = sleepms * time.Millisecond // easy to timeout
-	ts.Config.WriteTimeout = (sleepms * 10) * time.Millisecond // easy to timeout
+	// ts.Config.ReadTimeout = sleepms * time.Millisecond // nolint:durationcheck
+	ts.Config.WriteTimeout = (sleepms * 10) * time.Millisecond //nolint:durationcheck
 	ts.Start()
 
 	defer ts.Close()
@@ -470,9 +471,8 @@ func TestServerTimeout(t *testing.T) {
 
 	start := time.Now()
 	resp, err := cli.Do(req)
-	cost := time.Since(start)
 	if err != nil {
-		t.Errorf("Do: %s\ntype: %s, %+#v, Err: %+#v\ncost: %s", err, reflect.TypeOf(err), err, err.(*url.Error).Err, cost) //nolint:errorlint
+		t.Logf("Do: %s\ntype: %s, %+#v, Err: %+#v\ncost: %s", err, reflect.TypeOf(err), err, err.(*url.Error).Err, time.Since(start)) //nolint:errorlint
 	} else {
 		defer resp.Body.Close()
 	}
