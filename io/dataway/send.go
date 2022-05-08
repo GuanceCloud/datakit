@@ -105,7 +105,10 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 
 	tracer.Inject(span.Context(), tracer.HTTPHeadersCarrier(req.Header)) //nolint:errcheck,gosec
 
-	var resp *http.Response
+	var (
+		resp    *http.Response
+		postbeg = time.Now()
+	)
 	if resp, err = dc.dw.sendReq(req); err != nil {
 		dc.fails++
 		log.Errorf("request url %s failed(proxy: %s): %s", requrl, dc.proxy, err)
@@ -122,7 +125,6 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 		return err
 	}
 
-	postbeg := time.Now()
 	switch resp.StatusCode / 100 {
 	case 2:
 		isSendOk = true
