@@ -13,13 +13,17 @@ import (
 	"time"
 )
 
+var (
+	DefaultKeepAlive = 90 * time.Second
+)
+
 func DefTransport() *http.Transport {
 	return newCliTransport(&Options{
 		DialTimeout:           30 * time.Second,
-		DialKeepAlive:         30 * time.Second,
+		DialKeepAlive:         DefaultKeepAlive,
 		MaxIdleConns:          100,
 		MaxIdleConnsPerHost:   runtime.NumGoroutine(),
-		IdleConnTimeout:       90 * time.Second,
+		IdleConnTimeout:       DefaultKeepAlive, // keep the same with keep-aliva
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: time.Second,
 	})
@@ -58,7 +62,7 @@ func newCliTransport(opt *Options) *http.Transport {
 				if opt.DialKeepAlive > time.Duration(0) {
 					return opt.DialKeepAlive
 				}
-				return 30 * time.Second
+				return DefaultKeepAlive
 			}(),
 		}).DialContext,
 
@@ -89,7 +93,7 @@ func newCliTransport(opt *Options) *http.Transport {
 			if opt.IdleConnTimeout > time.Duration(0) {
 				return opt.IdleConnTimeout
 			}
-			return 90 * time.Second
+			return DefaultKeepAlive
 		}(),
 
 		TLSHandshakeTimeout: func() time.Duration {
