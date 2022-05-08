@@ -194,9 +194,6 @@ func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
 		req.URL.String(), dw.HTTPProxy, dw.httpCli.Transport,
 		dw.HTTPTimeout, dw.TimeoutDuration.String())
 
-	// disable connection reuse
-	req.Close = true
-
 	var reqStart time.Time
 	var ts *httpTraceStat
 	if dw.EnableHTTPTrace {
