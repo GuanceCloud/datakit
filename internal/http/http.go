@@ -13,9 +13,7 @@ import (
 	"time"
 )
 
-var (
-	DefaultKeepAlive = 90 * time.Second
-)
+var DefaultKeepAlive = 90 * time.Second
 
 func DefTransport() *http.Transport {
 	return newCliTransport(&Options{

@@ -430,12 +430,14 @@ type slowReader struct {
 	buf *bytes.Buffer
 }
 
+var sleepms = time.Duration(1000)
+
 func (r *slowReader) Read(p []byte) (int, error) {
 	if r.buf == nil {
 		return 0, nil
 	}
 
-	time.Sleep(time.Millisecond * 100) // slow reader
+	time.Sleep(sleepms * time.Millisecond) // slow reader
 	return r.buf.Read(p)
 }
 
@@ -448,8 +450,8 @@ func TestServerTimeout(t *testing.T) {
 	})
 
 	ts := httptest.NewUnstartedServer(r)
-	ts.Config.ReadTimeout = 1000 * time.Millisecond // easy to timeout
-	ts.Config.WriteTimeout = 20 * time.Millisecond  // easy to timeout
+	// ts.Config.ReadTimeout = sleepms * time.Millisecond // easy to timeout
+	ts.Config.WriteTimeout = (sleepms * 10) * time.Millisecond // easy to timeout
 	ts.Start()
 
 	defer ts.Close()
@@ -459,16 +461,18 @@ func TestServerTimeout(t *testing.T) {
 		// Timeout: time.Second, not set
 	}
 
-	req, err := http.NewRequest("GET", ts.URL+"/test",
-		&slowReader{buf: bytes.NewBufferString("body string")})
+	// req, err := http.NewRequest("GET", ts.URL+"/test", &slowReader{buf: bytes.NewBufferString("body string")})
+	req, err := http.NewRequest("GET", ts.URL+"/test", nil)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
+	start := time.Now()
 	resp, err := cli.Do(req)
+	cost := time.Since(start)
 	if err != nil {
-		t.Logf("Do: %s, type: %s, %+#v, Err: %+#v", err, reflect.TypeOf(err), err, err.(*url.Error).Err) //nolint:errorlint
+		t.Errorf("Do: %s\ntype: %s, %+#v, Err: %+#v\ncost: %s", err, reflect.TypeOf(err), err, err.(*url.Error).Err, cost) //nolint:errorlint
 	} else {
 		defer resp.Body.Close()
 	}

@@ -165,6 +165,8 @@ type httpTraceStat struct {
 	connStart  time.Time
 	connDone   time.Duration
 	ttfbTime   time.Duration
+
+	cost time.Duration
 }
 
 func (ts *httpTraceStat) String() string {
@@ -172,8 +174,8 @@ func (ts *httpTraceStat) String() string {
 		return "-"
 	}
 
-	return fmt.Sprintf("dataway httptrace: Conn: [reuse: %v,idle: %v/%s], DNS: %s, TLS: %s, Connect: %s, TTFB: %s",
-		ts.reuseConn, ts.idle, ts.idleTime, ts.dnsResolve, ts.tlsHSDone, ts.connDone, ts.ttfbTime)
+	return fmt.Sprintf("dataway httptrace: Conn: [reuse: %v,idle: %v/%s], DNS: %s, TLS: %s, Connect: %s, TTFB: %s, cost: %s",
+		ts.reuseConn, ts.idle, ts.idleTime, ts.dnsResolve, ts.tlsHSDone, ts.connDone, ts.ttfbTime, ts.cost)
 }
 
 type DatawayError struct {
@@ -191,6 +193,9 @@ func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
 	log.Debugf("send request %s, proxy: %s, dwcli: %p, timeout: %s(%s)",
 		req.URL.String(), dw.HTTPProxy, dw.httpCli.Transport,
 		dw.HTTPTimeout, dw.TimeoutDuration.String())
+
+	// disable connection reuse
+	req.Close = true
 
 	var reqStart time.Time
 	var ts *httpTraceStat
@@ -217,8 +222,8 @@ func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
 	reqStart = time.Now()
 	resp, err := dw.httpCli.Do(req)
 	if ts != nil {
-		log.Debugf("dataway httptrace: Conn: [reuse: %v,idle: %v/%s], DNS: %s, TLS: %s, Connect: %s, TTFB: %s",
-			ts.reuseConn, ts.idle, ts.idleTime, ts.dnsResolve, ts.tlsHSDone, ts.connDone, ts.ttfbTime)
+		ts.cost = time.Since(reqStart)
+		log.Debugf("dataway httptrace: Conn: %s", ts.String())
 	}
 
 	if err != nil {
