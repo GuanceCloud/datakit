@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/tracer"
 )
@@ -191,7 +192,7 @@ func (de *DatawayError) Error() string {
 
 func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
 	log.Debugf("send request %s, proxy: %s, dwcli: %p, timeout: %s(%s)",
-		req.URL.String(), dw.HTTPProxy, dw.httpCli.Transport,
+		req.URL.String(), dw.HTTPProxy, dw.httpCli.HTTPClient.Transport,
 		dw.HTTPTimeout, dw.TimeoutDuration.String())
 
 	var reqStart time.Time
@@ -217,17 +218,23 @@ func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
 	}
 
 	reqStart = time.Now()
-	resp, err := dw.httpCli.Do(req)
+	x, err := retryablehttp.FromRequest(req)
+	if err != nil {
+		log.Errorf("retryablehttp.FromRequest: %s", err)
+		return nil, err
+	}
+
+	resp, err := dw.httpCli.Do(x)
 	if ts != nil {
 		ts.cost = time.Since(reqStart)
-		log.Debugf("dataway httptrace: Conn: %s", ts.String())
+		log.Debugf("%s", ts.String())
 	}
 
 	if err != nil {
 		return nil, &DatawayError{Err: err, Trace: ts, API: req.URL.Path}
 	}
 
-	return resp, err
+	return resp, nil
 }
 
 func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
