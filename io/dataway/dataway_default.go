@@ -21,6 +21,7 @@ import (
 var (
 	apis = []string{
 		datakit.MetricDeprecated,
+		datakit.DatakitPull,
 		datakit.Metric,
 		datakit.Network,
 		datakit.KeyEvent,
