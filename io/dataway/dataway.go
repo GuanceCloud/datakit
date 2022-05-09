@@ -58,6 +58,8 @@ type DataWayCfg struct {
 	DeprecatedScheme string `toml:"scheme,omitempty"`
 	DeprecatedToken  string `toml:"token,omitempty"`
 
+	MaxIdleConnsPerHost int `toml:"max_idle_conns_per_host,omitempty"`
+
 	TimeoutDuration time.Duration `toml:"-"`
 	httpCli         *http.Client
 
@@ -149,7 +151,11 @@ func (dw *DataWayCfg) Apply() error {
 	}
 
 	if dw.HTTPTimeout == "" {
-		dw.HTTPTimeout = "5s"
+		dw.HTTPTimeout = "30s"
+	}
+
+	if dw.MaxIdleConnsPerHost == 0 {
+		dw.MaxIdleConnsPerHost = 64
 	}
 
 	if dw.MaxFails == 0 {
@@ -220,7 +226,8 @@ func (dw *DataWayCfg) initEndpoint(httpurl string) (*endPoint, error) {
 
 func (dw *DataWayCfg) initHTTP() error {
 	cliopts := &ihttp.Options{
-		DialTimeout: dw.TimeoutDuration,
+		DialTimeout:         dw.TimeoutDuration,
+		MaxIdleConnsPerHost: dw.MaxIdleConnsPerHost,
 	}
 
 	if dw.HTTPProxy != "" { // set proxy

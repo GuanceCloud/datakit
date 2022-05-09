@@ -8,7 +8,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -76,11 +76,10 @@ const (
 )
 
 var (
-	log                                          = logger.DefaultSLogger(inputName)
-	v1, v2, v3, v4, v5                           = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
-	info, stats                                  = "/info", "/v0.6/stats"
-	afterGather                                  = itrace.NewAfterGather()
-	afterGatherRun     itrace.AfterGatherHandler = afterGather
+	log                = logger.DefaultSLogger(inputName)
+	v1, v2, v3, v4, v5 = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
+	info, stats        = "/info", "/v0.6/stats"
+	afterGatherRun     itrace.AfterGatherHandler
 	keepRareResource   *itrace.KeepRareResource
 	closeResource      *itrace.CloseResource
 	sampler            *itrace.Sampler
@@ -143,6 +142,9 @@ func (ipt *Input) RegHTTPHandler() {
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
+
+	afterGather := itrace.NewAfterGather()
+	afterGatherRun = afterGather
 
 	// add calculators
 	// afterGather.AppendCalculator(itrace.StatTracingInfo)

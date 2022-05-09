@@ -342,6 +342,8 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 			continue
 		}
 
+		// 接收到数据，重置 ticker
+		timeout.Reset(timeoutDuration)
 		content := []string{}
 
 		for _, line := range lines {

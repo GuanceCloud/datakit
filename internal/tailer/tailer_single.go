@@ -127,6 +127,9 @@ func (t *Single) forwardMessage() {
 			continue
 		}
 
+		// 如果接收到数据，则重置 ticker
+		timeout.Reset(timeoutDuration)
+
 		lines = b.split()
 		pending := []string{}
 		for _, line := range lines {
