@@ -215,6 +215,8 @@ func (*Input) AvailableArchs() []string {
 func (n *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&Measurement{},
+		&jenkinsPipelineMeasurement{},
+		&jenkinsJobMeasurement{},
 	}
 }
 
