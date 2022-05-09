@@ -227,7 +227,7 @@ func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
 	resp, err := dw.httpCli.Do(x)
 	if ts != nil {
 		ts.cost = time.Since(reqStart)
-		log.Debugf("%s", ts.String())
+		log.Debugf("%s: %s", req.URL.Path, ts.String())
 	}
 
 	if err != nil {
