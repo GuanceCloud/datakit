@@ -19,6 +19,9 @@ var (
 	maxInterval = time.Second * 30
 	sample      = `
 [[inputs.jenkins]]
+  ## Set true if you want to collect metric from url below.
+  enable_collect = true
+
   ## The Jenkins URL in the format "schema://host:port",required
   url = "http://my-jenkins-instance:8080"
 
@@ -75,6 +78,7 @@ type jenkinslog struct {
 }
 
 type Input struct {
+	EnableCollect      bool              `toml:"enable_collect"`
 	URL                string            `toml:"url"`
 	Key                string            `toml:"key"`
 	Interval           datakit.Duration  `toml:"interval"`

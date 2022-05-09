@@ -59,7 +59,7 @@ func (n *Input) setup() {
 
 	if n.EnableCIVisibility {
 		n.setupServer()
-		l.Info("start listening to jenkins CI events")
+		l.Infof("start listening to jenkins CI events at %s", n.CIEventPort)
 	}
 }
 
@@ -81,7 +81,10 @@ func (n *Input) Run() {
 	l.Info("jenkins start")
 
 	n.setup()
-
+	if !n.EnableCollect {
+		l.Info("metric collecting is disabled, exit")
+		return
+	}
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
 
