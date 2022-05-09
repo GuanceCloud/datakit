@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -55,6 +56,24 @@ func (n *Input) setup() {
 		return
 	}
 	n.client = client
+
+	if n.EnableCIVisibility {
+		n.setupServer()
+		l.Info("start listening to jenkins CI events")
+	}
+}
+
+func (n *Input) setupServer() {
+	router := gin.New()
+	router.POST("/v0.3/traces", gin.WrapH(n))
+	srv := &http.Server{
+		Addr:    n.CIEventPort,
+		Handler: router,
+	}
+	go func() {
+		err := srv.ListenAndServe()
+		l.Infof("server listens for jenkins CI event is shutdown: %v", err)
+	}()
 }
 
 func (n *Input) Run() {
