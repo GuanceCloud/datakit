@@ -96,6 +96,8 @@ type Input struct {
 	start time.Time
 	tail  *tailer.Tailer
 
+	srv *http.Server
+
 	lastErr      error
 	collectCache []inputs.Measurement
 

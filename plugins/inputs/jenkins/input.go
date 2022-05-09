@@ -2,6 +2,7 @@
 package jenkins
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -64,14 +65,14 @@ func (n *Input) setup() {
 }
 
 func (n *Input) setupServer() {
-	router := gin.New()
-	router.POST("/v0.3/traces", gin.WrapH(n))
-	srv := &http.Server{
+	router := gin.Default()
+	router.PUT("/v0.3/traces", gin.WrapH(n))
+	n.srv = &http.Server{
 		Addr:    n.CIEventPort,
 		Handler: router,
 	}
 	go func() {
-		err := srv.ListenAndServe()
+		err := n.srv.ListenAndServe()
 		l.Infof("server listens for jenkins CI event is shutdown: %v", err)
 	}()
 }
@@ -82,15 +83,16 @@ func (n *Input) Run() {
 
 	n.setup()
 	if !n.EnableCollect {
-		l.Info("metric collecting is disabled, exit")
-		return
+		l.Info("metric collecting is disabled")
 	}
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
-
 	for {
 		select {
 		case <-tick.C:
+			if !n.EnableCollect {
+				continue
+			}
 			n.start = time.Now()
 			n.getPluginMetric()
 			if len(n.collectCache) > 0 {
@@ -111,15 +113,24 @@ func (n *Input) Run() {
 			}
 		case <-datakit.Exit.Wait():
 			n.exit()
-			l.Info("jenkins exit")
+			n.shutdownServer()
+			l.Info("jenkins exited")
 			return
 
 		case <-n.semStop.Wait():
 			n.exit()
-			l.Info("jenkins return")
+			n.shutdownServer()
+			l.Info("jenkins returned")
 			return
 		}
 	}
+}
+
+func (n *Input) shutdownServer() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = n.srv.Shutdown(ctx) //nolint:gosec,errcheck
+	l.Infof("server listens for jenkins pipeline event is shutdown")
 }
 
 func (n *Input) exit() {
