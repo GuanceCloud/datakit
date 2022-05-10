@@ -44,7 +44,7 @@ const (
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
   ## If you want to block some resources universally under all services, you can set the
-  ## service name as "*", double quotes "" cannot omit.
+  ## service name as "*". Note: double quotes "" cannot be omitted.
   # [inputs.ddtrace.close_resource]
     # service1 = ["resource1", "resource2", ...]
     # service2 = ["resource1", "resource2", ...]
