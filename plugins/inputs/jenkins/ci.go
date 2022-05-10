@@ -163,7 +163,7 @@ func getPipelineTags(span *ddSpan) map[string]string {
 func getPipelineFields(span *ddSpan) map[string]interface{} {
 	fields := make(map[string]interface{})
 	putFieldIfExist(fields, span, "git.commit.message", "commit_message")
-	putFieldIfExist(fields, span, "git.commit.message", "message")
+	putFieldIfExist(fields, span, "ci.pipeline.id", "message")
 	putFieldIfExist(fields, span, "ci.pipeline.id", "pipeline_id")
 	fields["created_at"] = nsToS(span.Start)
 	fields["duration"] = nsToS(span.Duration)
@@ -195,9 +195,8 @@ func getJobTags(span *ddSpan) map[string]string {
 
 func getJobFields(span *ddSpan) map[string]interface{} {
 	fields := make(map[string]interface{})
-	putFieldIfExist(fields, span, "git.commit.message", "build_commit_message")
 	putFieldIfExist(fields, span, "ci.job.number", "build_id")
-	putFieldIfExist(fields, span, "git.commit.message", "message")
+	putFieldIfExist(fields, span, "ci.job.name", "message")
 	putFieldIfExist(fields, span, "ci.pipeline.id", "pipeline_id")
 	putFieldIfExist(fields, span, "ci.node.name", "runner_id")
 	fields["build_started_at"] = nsToS(span.Start)
