@@ -90,23 +90,33 @@ wget https://static.guance.com/datakit/community/datakit.yaml
 
 DataKit building relies on some external tools/libs, we must install them all before compile the source code.
 
-> We recommend to build source on Ubuntu 20.04+, other linux distribition may failed to install these dependencies. We do not support build DataKit on Windows.
+> - We recommend to build source on Ubuntu 20.04+, other linux distribition may failed to install these dependencies. We do not support build DataKit on Windows.
+> - Please build the project with `make`, we haven't testing with Golang/VSCode IDEs
 
-- Go-1.16.4+
-- gcc
-- gcc-multilib: Used to build Oracle input(`apt-get install gcc-multilib`)
-	- apt: `apt-get install -y gcc-multilib`
-- tree: After building datakit, `tree` used to show all bianries(`apt-get install tree`)
-- packr2: Used to package resources(mainly documents)
-  - `go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
-- goyacc: Used to build grammar for Pipeline
-  - `go get -u golang.org/x/tools/cmd/goyacc`
-- Docker: Used to build DataKit image
+### Setup Golang
+
+Install and setup Golang(1.16.4+):
+
+```shell
+export GOPRIVATE=gitlab.jiagouyun.com/*
+export GOPROXY=https://goproxy.cn,direct
+export GOPATH=~/go            # depends on your local settings
+export GOROOT=~/golang-1.16.4 # depends on your local settings 
+export PATH=$GOROOT/bin:~/go/bin:$PATH
+```
+
+### Install other tools
+
+> !!! Do not install these dependencies under datakit source code dir.
+
+- make: `apt-get install make`
+- gcc: `apt-get install gcc`
+- gcc-multilib: `apt-get install -y gcc-multilib`
+- tree: `apt-get install tree`
+- packr2: `go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
+- goyacc: `go get golang.org/x/tools/cmd/goyacc`
 - lint related:
-	- gofumpt: Used to format go source code
-    - `go install mvdan.cc/gofumpt@latest`
-  - lint
-	  - `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
+  - lint: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
 - eBPF related:
 	- clang 10.0+
 	- llvm 10.0+
@@ -118,26 +128,19 @@ DataKit building relies on some external tools/libs, we must install them all be
 
 ### Build
 
-1. Setup Golang environments:
-
-```shell
-export GOPRIVATE=gitlab.jiagouyun.com/*
-export GOPROXY=https://goproxy.cn,direct
-export GOPATH=~/go            # depends on your local settings
-export GOROOT=~/golang-1.16.4 # depends on your local settings 
-export PATH=$GOROOT/bin:~/go/bin:$PATH
-```
-
-2. Clone
+1. Clone code
 
 ```shell
 $ mkdir -p $GOPATH/src/gitlab.jiagouyun.com/cloudcare-tools
 $ cd $GOPATH/src/gitlab.jiagouyun.com/cloudcare-tools
-$ git clone https://github.com/GuanceCloud/datakit.git
+
+$ git clone https://github.com/GuanceCloud/datakit.git   # may be blocked by GFW
+$ git clone https://jihulab.com/guance-cloud/datakit.git # jihulab mirror
+
 $ cd datakit
 ```
 
-3. Building
+2. Building
 
 ```shell
 make

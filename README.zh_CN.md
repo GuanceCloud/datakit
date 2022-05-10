@@ -87,36 +87,15 @@ wget https://static.guance.com/datakit/community/datakit.yaml
 
 DataKit 开发过程中依赖了一些外部工具，我们必须先将这些工具准备好才能比较顺利的编译 DataKit。
 
-> 建议在 Ubuntu 20.04+ 下编译 DataKit, 其它 Linux 发行版在安装这些依赖时可能会碰到困。另外，不建议在 Windows 上编译。
+> - 建议在 Ubuntu 20.04+ 下编译 DataKit, 其它 Linux 发行版在安装这些依赖时可能会碰到困。另外，不建议在 Windows 上编译
+> - 请在命令行终端运行 make，暂时尚未针对 Goland/VSCode 等做编译适配
+> - 请**先安装这些依赖，然后再 clone 代码**。如果在 DataKit 代码目录来安装这些依赖，可能导致一些 vendor 库拉取的问题
 
-- Go-1.16.4 及以上版本
-- gcc
-- gcc-multilib
-	- apt: `apt-get install -y gcc-multilib`
-- tree
-- packr2
-  - `go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
-- goyacc
-  - `go get -u golang.org/x/tools/cmd/goyacc`
-- docker
-- lint 相关
-	- gofumpt
-    - `go install mvdan.cc/gofumpt@latest`
-  - lint
-	  - `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
-- eBPF 相关
-	- clang 10.0+
-	- llvm 10.0+
-	- go-bindata
-	  - `apt install go-bindata`
-	- kernel headers
-		- `apt-get install -y linux-headers-$(uname -r)`
-- 文档相关
-	- [waque 1.13.1+](https://github.com/yesmeck/waque)
+### 设置 Golang
 
-### 编译
+设置 Go 编译环境
 
-1. 设置 Go 编译环境
+> Go-1.16.4 及以上版本
 
 ```shell
 export GOPRIVATE=gitlab.jiagouyun.com/*
@@ -126,12 +105,37 @@ export GOROOT=~/golang-1.16.4 # 视实际情况而定
 export PATH=$GOROOT/bin:~/go/bin:$PATH
 ```
 
-2. 拉取代码：
+### 安装其它工具
+
+> !!! 不要在 datakit 代码目录安装这些工具/依赖，不然会触发包拉取不到的问题。
+
+- make: `apt-get install make`
+- gcc: `apt-get install gcc`
+- gcc-multilib: `apt-get install -y gcc-multilib`
+- tree: `apt-get install tree`
+- packr2: `go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
+- goyacc: `go get golang.org/x/tools/cmd/goyacc`
+- lint 相关
+  - lint: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
+- eBPF 相关（eBPF 不是编译 DataKit 本身必须的，如果不安装它们，只会导致 eBPF 部分编译失败）
+	- clang 10.0+
+	- llvm 10.0+
+	- go-bindata: `apt install go-bindata`
+	- kernel headers: `apt-get install -y linux-headers-$(uname -r)`
+- 文档相关: [waque 1.13.1+](https://github.com/yesmeck/waque)
+  - 文档工具也不是必须的，可不安装
+
+### 编译
+
+1. 拉取代码：上面这些依赖装好之后，再拉取代码不迟。
 
 ```shell
 $ mkdir -p $GOPATH/src/gitlab.jiagouyun.com/cloudcare-tools
 $ cd $GOPATH/src/gitlab.jiagouyun.com/cloudcare-tools
-$ git clone https://github.com/GuanceCloud/datakit.git
+
+$ git clone https://github.com/GuanceCloud/datakit.git   # 可能被墙
+$ git clone https://jihulab.com/guance-cloud/datakit.git # 国内极狐分站
+
 $ cd datakit
 ```
 
