@@ -90,7 +90,7 @@ wget https://static.guance.com/datakit/community/datakit.yaml
 
 DataKit building relies on some external tools/libs, we must install them all before compile the source code.
 
-> - We recommend to build source on Ubuntu 20.04+, other linux distribition may failed to install these dependencies. We do not support build DataKit on Windows.
+> - **We recommend to build source on Ubuntu 20.04+**, other linux distribition may failed to install these dependencies. We do not support build DataKit on Windows.
 > - Please build the project with `make`, we haven't testing with Golang/VSCode IDEs
 
 ### Setup Golang
@@ -118,8 +118,8 @@ export PATH=$GOROOT/bin:~/go/bin:$PATH
 - lint related:
   - lint: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
 - eBPF related:
-	- clang 10.0+
-	- llvm 10.0+
+	- clang 10.0+: `apt-get install clang`
+	- llvm 10.0+: `apt-get install llvm`
 	- `apt install go-bindata`
 	- kernel headers
 		- apt: `apt-get install -y linux-headers-$(uname -r)`
