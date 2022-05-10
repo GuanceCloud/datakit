@@ -41,7 +41,7 @@ const (
   # [inputs.zipkin.close_resource]
     # service1 = ["resource1", "resource2", ...]
     # service2 = ["resource1", "resource2", ...]
-		# * = ["close_resource_under_all_services"]
+		# "*" = ["close_resource_under_all_services"]
     # ...
 
   ## Sampler config uses to set global sampling strategy.
