@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -182,6 +184,8 @@ func downloadFiles(to string) error {
 	if flagIpdb != "" {
 		fmt.Printf("\n")
 		baseURL := "https://" + DataKitBaseURL
+
+		l.Debugf("get ipdb from %s", baseURL)
 		if _, err := cmds.InstallIpdb(baseURL, flagIpdb); err != nil {
 			l.Warnf("ipdb install failed error: %s, please try later.", err.Error())
 			time.Sleep(1 * time.Second)
@@ -289,7 +293,7 @@ Data           : %s
 		if errors.Is(err, service.ErrNotInstalled) {
 			l.Infof("datakit service not installed before")
 		} else {
-			l.Fatalf("svc.Status: %s", err.Error())
+			l.Warnf("svc.Status: %s, ignored", err.Error())
 		}
 	} else {
 		switch svcStatus {
@@ -300,7 +304,7 @@ Data           : %s
 		case service.StatusRunning:
 			l.Info("stoping datakit...")
 			if err = service.Control(svc, "stop"); err != nil {
-				l.Fatalf("stop service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
+				l.Warnf("stop service failed %s, ignored", err.Error()) //nolint:lll
 			}
 		}
 	}
@@ -311,8 +315,13 @@ Data           : %s
 	mvOldDatakit(svc)
 
 	if !flagOffline {
-		if err = downloadFiles(datakit.InstallDir); err != nil { // download 过程直接覆盖已有安装
-			l.Fatalf("download failed: %s", err.Error())
+		for i := 0; i < 5; i++ {
+			if err = downloadFiles(datakit.InstallDir); err != nil { // download 过程直接覆盖已有安装
+				l.Errorf("[%d] download failed: %s, retry...", i, err.Error())
+				continue
+			}
+			l.Infof("[%d] download installer ok", i)
+			break
 		}
 	}
 
@@ -325,7 +334,7 @@ Data           : %s
 
 		l.Infof("Upgrading to version %s...", DataKitVersion)
 		if err = upgradeDatakit(svc); err != nil {
-			l.Fatalf("upgrade datakit: %s", err.Error())
+			l.Warnf("upgrade datakit failed: %s", err.Error())
 		}
 	} else { // install new datakit
 		l.Infof("Installing version %s...", DataKitVersion)
@@ -337,7 +346,7 @@ Data           : %s
 	} else {
 		l.Infof("starting service %s...", dkservice.ServiceName)
 		if err = service.Control(svc, "start"); err != nil {
-			l.Fatalf("start service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
+			l.Warnf("start service failed: %s", err.Error()) //nolint:lll
 		}
 	}
 
@@ -345,25 +354,64 @@ Data           : %s
 		l.Errorf("CreateSymlinks: %s", err.Error())
 	}
 
-	if flagDKUpgrade {
-		l.Info(":) Upgrade Success!")
+	if err := checkIsNewVersion("http://"+config.Cfg.HTTPAPI.Listen, DataKitVersion); err != nil {
+		l.Errorf("checkIsNewVersion: %s", err.Error()) //nolint:lll
 	} else {
-		l.Info(":) Install Success!")
+		l.Infof("current running datakit is verison: %s", DataKitVersion) //nolint:lll
+
+		if flagDKUpgrade {
+			l.Info(":) Upgrade Success!")
+		} else {
+			l.Info(":) Install Success!")
+		}
+		promptReferences()
+	}
+}
+
+func checkIsNewVersion(host, version string) error {
+	x := struct {
+		Content map[string]string `json:"content"`
+	}{}
+
+	for i := 0; i < 5; i++ {
+		time.Sleep(time.Second)
+
+		resp, err := http.Get(host + "/v1/ping")
+		if err != nil {
+			l.Errorf("http.Get: %s", err)
+			continue
+		}
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			l.Errorf("ioutil.ReadAll: %s", err)
+			continue
+		}
+
+		defer resp.Body.Close()
+
+		if err := json.Unmarshal(body, &x); err != nil {
+			l.Errorf("json.Unmarshal: %s", err)
+			return err
+		}
+
+		if x.Content["version"] != version {
+			return fmt.Errorf("current version: %s, expect %s", x.Content["version"], version)
+		} else {
+			return nil
+		}
 	}
 
-	promptReferences()
+	return fmt.Errorf("check current version failed")
 }
 
 func promptReferences() {
-	fmt.Printf("\n\tVisit http://%s:%d/man/changelog to see DataKit change logs.\n",
-		flagDatakitHTTPListen,
-		flagDatakitHTTPPort)
-	fmt.Printf("\tVisit http://%s:%d/monitor to see DataKit running status.\n",
-		flagDatakitHTTPListen,
-		flagDatakitHTTPPort)
-	fmt.Printf("\tVisit http://%s:%d/man to see DataKit manuals.\n\n",
-		flagDatakitHTTPListen,
-		flagDatakitHTTPPort)
+	fmt.Println("\n\tVisit https://www.yuque.com/dataflux/datakit/changelog to see DataKit change logs.")
+	if config.Cfg.HTTPAPI.Listen != "localhost:9529" {
+		fmt.Printf("\tUse `datakit monitor --to %s` to see DataKit running status.\n", config.Cfg.HTTPAPI.Listen)
+	} else {
+		fmt.Println("\tUse `datakit monitor` to see DataKit running status.")
+	}
 }
 
 func upgradeDatakit(svc service.Service) error {
@@ -412,12 +460,12 @@ func upgradeDatakit(svc service.Service) error {
 		// nolint:gosec
 		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
 		if msg, err := cmd.CombinedOutput(); err != nil {
-			l.Errorf("upgrade external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
+			l.Warnf("upgrade datakit-ebpf failed: %s(%s), ignored", err.Error(), msg)
 		}
 	}
 
 	if err := service.Control(svc, "install"); err != nil {
-		l.Fatalf("install service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
+		return err
 	}
 
 	return nil
@@ -430,7 +478,7 @@ func installNewDatakit(svc service.Service) {
 			l.Infof("datakit service not installed before")
 			// pass
 		} else {
-			l.Fatalf("svc.Status: %s", err.Error())
+			l.Warnf("svc.Status: %s", err.Error())
 		}
 	} else {
 		switch svcStatus {
@@ -440,7 +488,7 @@ func installNewDatakit(svc service.Service) {
 				l.Warnf("uninstall service failed: %s", err.Error())
 			}
 		case service.StatusRunning: // should not been here
-			l.Fatalf("unexpected: datakit service should have stopped")
+			l.Warnf("unexpected: datakit service should have stopped")
 		}
 	}
 
@@ -620,7 +668,7 @@ func installNewDatakit(svc service.Service) {
 
 	l.Infof("installing service %s...", dkservice.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
-		l.Fatalf("uninstall service failed %s. Please see \n\thttps://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e \nto fix the issue.", err.Error()) //nolint:lll
+		l.Warnf("uninstall service failed %s", err.Error()) //nolint:lll
 	}
 }
 
