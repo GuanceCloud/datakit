@@ -16,11 +16,18 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	cri "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 type containerdInput struct {
 	client *containerd.Client
-	cfg    *containerdInputConfig
+
+	criClient         cri.RuntimeServiceClient
+	criRuntimeVersion *cri.VersionResponse
+
+	cfg *containerdInputConfig
+
+	logpathList map[string]interface{}
 }
 
 type containerdInputConfig struct {
@@ -29,12 +36,27 @@ type containerdInputConfig struct {
 }
 
 func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
-	cli, err := containerd.New(cfg.endpoint)
+	criClient, err := newCRIClient(cfg.endpoint)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to new CRI-Client: %s ", err.Error())
 	}
 
-	return &containerdInput{client: cli, cfg: cfg}, nil
+	runtimeVersion, err := getCRIRuntimeVersion(criClient)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get CRI-RuntimeVersion: %s ", err.Error())
+	}
+
+	client, err := containerd.New(cfg.endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to new containerd: %s ", err.Error())
+	}
+
+	return &containerdInput{
+		criClient:         criClient,
+		criRuntimeVersion: runtimeVersion,
+		client:            client,
+		cfg:               cfg,
+	}, nil
 }
 
 func (c *containerdInput) stop() {
@@ -201,14 +223,14 @@ func newContainerdObject(info *containers.Container) *containerdObject {
 		"age": time.Since(info.CreatedAt).Milliseconds() / 1e3,
 	}
 
-	if containerName := info.Labels[containerLableForPodContainerName]; containerName != "" {
+	if containerName := getContainerNameForLabels(info.Labels); containerName != "" {
 		obj.tags["container_name"] = containerName
 	} else {
 		obj.tags["container_name"] = "unknown"
 	}
 
-	obj.tags.addValueIfNotEmpty("pod_name", info.Labels[containerLableForPodName])
-	obj.tags.addValueIfNotEmpty("namespace", info.Labels[containerLableForPodNamespace])
+	obj.tags.addValueIfNotEmpty("pod_name", getPodNameForLabels(info.Labels))
+	obj.tags.addValueIfNotEmpty("namespace", getPodNamespaceForLabels(info.Labels))
 	return obj
 }
 

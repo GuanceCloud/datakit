@@ -62,7 +62,7 @@ func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types
 	tags := getContainerInfo(container, d.k8sClient)
 
 	source := getContainerLogSource(tags["image_short_name"])
-	if n := container.Labels[containerLableForPodContainerName]; n != "" {
+	if n := getContainerNameForLabels(container.Labels); n != "" {
 		source = n
 	}
 
@@ -231,12 +231,7 @@ func (c *containerLogConfig) checking() error {
 	return err
 }
 
-const (
-	containerLableForPodName          = "io.kubernetes.pod.name"
-	containerLableForPodNamespace     = "io.kubernetes.pod.namespace"
-	containerLableForPodContainerName = "io.kubernetes.container.name"
-	containerLogConfigKey             = "datakit/logs"
-)
+const containerLogConfigKey = "datakit/logs"
 
 func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
 	configStr := m[containerLogConfigKey]

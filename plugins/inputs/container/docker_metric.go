@@ -33,16 +33,17 @@ func gatherDockerContainerMetric(client dockerClientX, k8sClient k8sClientX, con
 func getContainerTags(container *types.Container) tagsType {
 	imageName, imageShortName, imageTag := ParseImage(container.Image)
 
-	tags := make(tagsType)
-	tags["state"] = container.State
-	tags["docker_image"] = container.Image
-	tags["image"] = container.Image
-	tags["image_name"] = imageName
-	tags["image_short_name"] = imageShortName
-	tags["image_tag"] = imageTag
-	tags["container_name"] = getContainerName(container.Names)
-	tags["container_id"] = container.ID
-	tags["linux_namespace"] = "moby"
+	tags := map[string]string{
+		"state":            container.State,
+		"docker_image":     container.Image,
+		"image":            container.Image,
+		"image_name":       imageName,
+		"image_short_name": imageShortName,
+		"image_tag":        imageTag,
+		"container_name":   getContainerName(container.Names),
+		"container_id":     container.ID,
+		"linux_namespace":  "moby",
+	}
 
 	if !containerIsFromKubernetes(getContainerName(container.Names)) {
 		tags["container_type"] = "docker"
@@ -50,11 +51,11 @@ func getContainerTags(container *types.Container) tagsType {
 		tags["container_type"] = "kubernetes"
 	}
 
-	if container.Labels[containerLableForPodName] != "" {
-		tags["pod_name"] = container.Labels[containerLableForPodName]
+	if n := getPodNameForLabels(container.Labels); n != "" {
+		tags["pod_name"] = n
 	}
-	if container.Labels[containerLableForPodNamespace] != "" {
-		tags["namespace"] = container.Labels[containerLableForPodNamespace]
+	if n := getPodNamespaceForLabels(container.Labels); n != "" {
+		tags["namespace"] = n
 	}
 
 	return tags
@@ -63,9 +64,9 @@ func getContainerTags(container *types.Container) tagsType {
 func getContainerInfo(container *types.Container, k8sClient k8sClientX) tagsType {
 	tags := getContainerTags(container)
 
-	podname := container.Labels[containerLableForPodName]
-	podnamespace := container.Labels[containerLableForPodNamespace]
-	podContainerName := container.Labels[containerLableForPodContainerName]
+	podname := getPodNameForLabels(container.Labels)
+	podnamespace := getPodNamespaceForLabels(container.Labels)
+	podContainerName := getContainerNameForLabels(container.Labels)
 
 	if k8sClient == nil || podname == "" {
 		return tags

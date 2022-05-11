@@ -194,6 +194,10 @@ func (i *Input) collectMetric() {
 		l.Errorf("failed to watch container log: %w", err)
 	}
 
+	if err := i.watchNewContainerdLogs(); err != nil {
+		l.Errorf("failed to watch containerd log: %w", err)
+	}
+
 	if !datakit.Docker {
 		return
 	}
@@ -293,6 +297,13 @@ func (i *Input) gatherContainerdObject() error {
 
 	return inputs.FeedMeasurement("containerd-object", datakit.Object, res,
 		&io.Option{CollectCost: time.Since(start)})
+}
+
+func (i *Input) watchNewContainerdLogs() error {
+	if i.containerdInput == nil {
+		return nil
+	}
+	return i.containerdInput.watchNewLogs()
 }
 
 func (i *Input) gatherK8sResourceMetric() error {

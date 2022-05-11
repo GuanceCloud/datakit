@@ -80,7 +80,7 @@ type Option struct {
 	IgnoreDeadLog time.Duration
 }
 
-func (opt *Option) init() error {
+func (opt *Option) Init() error {
 	if opt.Source == "" {
 		opt.Source = defaultSource
 	}
@@ -156,7 +156,7 @@ func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (
 		t.opt = &Option{}
 	}
 
-	if err := t.opt.init(); err != nil {
+	if err := t.opt.Init(); err != nil {
 		return nil, err
 	}
 	return &t, nil
