@@ -163,16 +163,24 @@ func restartDataKit() error {
 	return cmd.Start()
 }
 
+type dcastats struct {
+	*DatakitStats
+	ConfigInfo map[string]*inputs.Config `json:"config_info"`
+}
+
 func dcaStats(c *gin.Context) {
 	s, err := dcaAPI.GetStats()
 	context := dcaContext{c: c}
-
+	stats := &dcastats{
+		DatakitStats: s,
+		ConfigInfo:   inputs.ConfigInfo,
+	}
 	if err != nil {
 		context.fail()
 		return
 	}
 
-	context.success(s)
+	context.success(stats)
 }
 
 func dcaDefault(c *gin.Context) {
@@ -526,7 +534,7 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 		return "", err
 	}
 
-	if res == nil || (len(res.Output.Tags) == 0 || len(res.Output.Fields) == 0) {
+	if res == nil || (len(res.Output.Tags) == 0 && len(res.Output.Fields) == 0) {
 		l.Debug("No data extracted from pipeline")
 		return "", nil
 	}

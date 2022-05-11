@@ -245,6 +245,7 @@ func GZipStr(str string) ([]byte, error) {
 func GZip(data []byte) ([]byte, error) {
 	var z bytes.Buffer
 	zw := gzip.NewWriter(&z)
+
 	if _, err := zw.Write(data); err != nil {
 		return nil, err
 	}
