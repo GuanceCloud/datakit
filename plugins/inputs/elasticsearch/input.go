@@ -996,8 +996,12 @@ func (i *Input) stop() {
 }
 
 func (i *Input) createHTTPClient() (*http.Client, error) {
+	timeout := 10 * time.Second
+	if i.HTTPTimeout.Duration > 0 {
+		timeout = i.HTTPTimeout.Duration
+	}
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: timeout,
 	}
 
 	if i.TLSOpen {
