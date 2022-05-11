@@ -406,3 +406,100 @@ func PubDatakit() error {
 	l.Infof("Done!(elapsed: %v)", time.Since(start))
 	return nil
 }
+
+//nolint:funlen,gocyclo
+func PubDatakitEBpf() error {
+	start := time.Now()
+	var ak, sk, bucket, ossHost string
+
+	// 在你本地设置好这些 oss-key 环境变量
+	switch ReleaseType {
+	case ReleaseTesting, ReleaseProduction, ReleaseLocal:
+		tag := strings.ToUpper(ReleaseType)
+		ak = os.Getenv(tag + "_OSS_ACCESS_KEY")
+		sk = os.Getenv(tag + "_OSS_SECRET_KEY")
+		bucket = os.Getenv(tag + "_OSS_BUCKET")
+		ossHost = os.Getenv(tag + "_OSS_HOST")
+	default:
+		return fmt.Errorf("unknown release type: %s", ReleaseType)
+	}
+
+	if ak == "" || sk == "" {
+		return fmt.Errorf("OSS %s/%s not set",
+			strings.ToUpper(ReleaseType)+"_OSS_ACCESS_KEY",
+			strings.ToUpper(ReleaseType)+"_OSS_SECRET_KEY")
+	}
+
+	ossSlice := strings.SplitN(DownloadAddr, "/", 2) // at least 2 parts
+	if len(ossSlice) != 2 {
+		return fmt.Errorf("invalid download addr: %s", DownloadAddr)
+	}
+	OSSPath = ossSlice[1]
+
+	oc := &cliutils.OssCli{
+		Host:       ossHost,
+		PartSize:   512 * 1024 * 1024,
+		AccessKey:  ak,
+		SecretKey:  sk,
+		BucketName: bucket,
+		WorkDir:    OSSPath,
+	}
+
+	if err := oc.Init(); err != nil {
+		return err
+	}
+
+	// upload all build archs
+	curTmpArchs := parseArchs(Archs)
+
+	basics := map[string]string{}
+
+	// tar files and collect OSS upload/backup info
+	for _, arch := range curTmpArchs {
+		parts := strings.Split(arch, "/")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid arch: %s", arch)
+		}
+
+		for _, appName := range StandaloneApps {
+			buildPath := filepath.Join(BuildDir, "standalone")
+			switch appName {
+			case "datakit-ebpf":
+				if parts[0] != runtime.GOOS {
+					continue
+				}
+				if parts[0] != "linux" {
+					continue
+				}
+				if parts[1] != runtime.GOARCH {
+					continue
+				}
+			default:
+			}
+			curEBpfArchs = append(curEBpfArchs, arch)
+			gz, gzP := tarFiles(PubDir, buildPath, appName, parts[0], parts[1])
+			basics[gz] = gzP
+		}
+	}
+
+	ossfiles := addOSSFiles(OSSPath, basics)
+
+	// test if all file ok before uploading
+	for _, k := range ossfiles {
+		if _, err := os.Stat(k); err != nil {
+			return err
+		}
+	}
+
+	for k, v := range ossfiles {
+		fi, _ := os.Stat(v)
+		l.Debugf("%s => %s(%s)...", v, k, humanize.Bytes(uint64(fi.Size())))
+
+		if err := oc.Upload(v, k); err != nil {
+			return err
+		}
+	}
+
+	l.Infof("Done!(elapsed: %v)", time.Since(start))
+	return nil
+}

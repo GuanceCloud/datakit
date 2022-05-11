@@ -447,20 +447,20 @@ func upgradeDatakit(svc service.Service) error {
 		installExternals[v] = struct{}{}
 	}
 	updateEBPF := false
-	if runtime.GOOS == datakit.OSLinux && runtime.GOARCH == "amd64" {
+	if runtime.GOOS == datakit.OSLinux && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") {
 		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
 			updateEBPF = true
 		}
-		if _, ok := installExternals["datakit-ebpf"]; ok {
+		if _, ok := installExternals["ebpf"]; ok {
 			updateEBPF = true
 		}
 	}
 	if updateEBPF {
-		l.Info("upgrade datakit-ebpf...")
+		l.Info("upgrade DataKit eBPF plugin...")
 		// nolint:gosec
-		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
+		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--ebpf")
 		if msg, err := cmd.CombinedOutput(); err != nil {
-			l.Warnf("upgrade datakit-ebpf failed: %s(%s), ignored", err.Error(), msg)
+			l.Warnf("upgrade external input plugin %s failed: %s msg: %s", "ebpf", err.Error(), msg)
 		}
 	}
 
@@ -649,20 +649,20 @@ func installNewDatakit(svc service.Service) {
 		installExternals[v] = struct{}{}
 	}
 	updateEBPF := false
-	if runtime.GOOS == datakit.OSLinux && runtime.GOARCH == "amd64" {
+	if runtime.GOOS == datakit.OSLinux && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") {
 		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
 			updateEBPF = true
 		}
-		if _, ok := installExternals["datakit-ebpf"]; ok {
+		if _, ok := installExternals["ebpf"]; ok {
 			updateEBPF = true
 		}
 	}
 	if updateEBPF {
-		l.Info("install datakit-ebpf...")
+		l.Info("install DataKit eBPF plugin...")
 		// nolint:gosec
-		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
+		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--ebpf")
 		if msg, err := cmd.CombinedOutput(); err != nil {
-			l.Errorf("upgradde external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
+			l.Errorf("upgradde external input plugin %s failed: %s msg: %s", "ebpf", err.Error(), msg)
 		}
 	}
 

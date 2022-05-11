@@ -157,6 +157,8 @@ func parseArchs(s string) (archs []string) {
 
 var curArchs []string
 
+var curEBpfArchs []string
+
 func Compile() error {
 	start := time.Now()
 
