@@ -460,7 +460,7 @@ func upgradeDatakit(svc service.Service) error {
 		// nolint:gosec
 		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
 		if msg, err := cmd.CombinedOutput(); err != nil {
-			l.Errorf("upgrade external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
+			l.Warnf("upgrade datakit-ebpf failed: %s(%s), ignored", err.Error(), msg)
 		}
 	}
 
