@@ -61,6 +61,8 @@ var (
 		"ddtrace-python":           "man/manuals/ddtrace-python.md",
 		"ddtrace-php":              "man/manuals/ddtrace-php.md",
 		"ddtrace-nodejs":           "man/manuals/ddtrace-nodejs.md",
+		"ddtrace-cpp":              "man/manuals/ddtrace-cpp.md",
+		"ddtrace-ruby":             "man/manuals/ddtrace-ruby.md",
 		"development":              "man/manuals/development.md",
 		"dialtesting_json":         "man/manuals/dialtesting_json.md",
 		"election":                 "man/manuals/election.md",
