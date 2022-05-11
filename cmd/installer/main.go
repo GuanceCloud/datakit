@@ -436,6 +436,11 @@ func upgradeDatakit(svc service.Service) error {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
+	// build datakit sample config
+	if err := mc.InitCfgSample(datakit.MainConfSamplePath); err != nil {
+		l.Fatalf("failed to init datakit main sample config: %s", err.Error())
+	}
+
 	for _, dir := range []string{datakit.DataDir, datakit.ConfdDir} {
 		if err := os.MkdirAll(dir, datakit.ConfPerm); err != nil {
 			return err
@@ -642,6 +647,11 @@ func installNewDatakit(svc service.Service) {
 	// build datakit main config
 	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
+	}
+
+	// build datakit sample config
+	if err := mc.InitCfgSample(datakit.MainConfSamplePath); err != nil {
+		l.Fatalf("failed to init datakit main sample config: %s", err.Error())
 	}
 
 	installExternals := map[string]struct{}{}
