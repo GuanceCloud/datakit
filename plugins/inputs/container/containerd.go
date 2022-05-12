@@ -153,8 +153,10 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 			} else {
 				obj.fields["mem_usage"] = mem.worksetBytes
 				obj.fields["mem_limit"] = mem.limitBytes
-				if mem.limitBytes != 0 {
+				if mem.limitBytes > 0 {
 					obj.fields["mem_used_percent"] = float64(mem.worksetBytes) / float64(mem.limitBytes) * 100
+				} else {
+					obj.fields["mem_used_percent"] = 0
 				}
 			}
 
