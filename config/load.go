@@ -72,16 +72,6 @@ func isValidSink(c *Config) bool {
 }
 
 func LoadCfg(c *Config, mcp string) error {
-	// check dataway and sink config
-	checkutil.CheckConditionExit(func() bool {
-		if !isValidDataway(c) && !isValidSink(c) {
-			l.Errorf("dataway and sink not set")
-			return false
-		}
-
-		return true
-	})
-
 	datakit.InitDirs()
 
 	if datakit.Docker { // only accept configs from ENV under docker(or daemon-set) mode
@@ -116,6 +106,16 @@ func LoadCfg(c *Config, mcp string) error {
 	if err := c.ApplyMainConfig(); err != nil {
 		return err
 	}
+
+	// check dataway and sink config
+	checkutil.CheckConditionExit(func() bool {
+		if !isValidDataway(c) && !isValidSink(c) {
+			l.Errorf("dataway and sink not set")
+			return false
+		}
+
+		return true
+	})
 
 	l.Infof("loaded main cfg: \n%s", c.String())
 
