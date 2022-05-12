@@ -7,11 +7,10 @@ RUN mkdir -p /usr/local/datakit \
 
 COPY dist/datakit-linux-${TARGETARCH}/ /usr/local/datakit/
 
-
 RUN sed -i 's/\(archive\|security\|ports\).ubuntu.com/mirrors.aliyun.com/' /etc/apt/sources.list \
     && apt-get update \
     && apt-get install -y libaio-dev libaio1 unzip wget curl \
-    && if [ "${TARGETARCH}" = "amd64" ]; then /usr/local/datakit/datakit install --datakit-ebpf ; fi
+    && /usr/local/datakit/datakit install --ebpf
 
 # download 3rd party libraries
 RUN \

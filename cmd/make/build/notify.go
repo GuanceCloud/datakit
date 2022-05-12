@@ -11,6 +11,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"text/template"
 
@@ -80,6 +82,14 @@ var (
   	"content": "%s 正在执行发布 %s..."
   }
 }`, git.Uploader, ReleaseVersion)
+
+	CINotifyStartPubEBpfMsg = fmt.Sprintf(`
+{
+  "msgtype": "text",
+  "text": {
+  	"content": "%s 正在执行发布 DataKit eBPF %s..."
+  }
+}`, git.Uploader, ReleaseVersion)
 )
 
 func notify(tkn string, body io.Reader) {
@@ -100,6 +110,7 @@ func notify(tkn string, body io.Reader) {
 
 	defer resp.Body.Close() //nolint:errcheck
 
+	// TODO 校验 respbody 中的 errcode，如 310000
 	respbody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf("ioutil.ReadAll: %s", err)
@@ -119,6 +130,13 @@ func NotifyStartPub() {
 		return
 	}
 	notify(NotifyToken, bytes.NewBufferString(CINotifyStartPubMsg))
+}
+
+func NotifyStartPubEBpf() {
+	if NotifyToken == "" {
+		return
+	}
+	notify(NotifyToken, bytes.NewBufferString(CINotifyStartPubEBpfMsg))
 }
 
 func NotifyStartBuild() {
@@ -208,5 +226,63 @@ func NotifyPubDone() {
 		notify(NotifyToken, &buf)
 	case ReleaseProduction:
 		notify(NotifyToken, bytes.NewBufferString(CIOnlineNewVersion))
+	}
+}
+
+func NotifyPubEBpfDone() {
+	if NotifyToken == "" {
+		return
+	}
+
+	x := struct {
+		Uploader, Version, DownloadAddr string
+	}{
+		Uploader:     git.Uploader,
+		Version:      ReleaseVersion,
+		DownloadAddr: DownloadAddr,
+	}
+
+	switch ReleaseType {
+	case ReleaseLocal, ReleaseTesting:
+
+		content := func() []string {
+			x := []string{
+				fmt.Sprintf(`{{.Uploader}} 「私自」发布了 DataKit eBPF %d 个平台测试版({{.Version}})。`, len(curEBpfArchs)),
+			}
+			for _, arch := range curEBpfArchs {
+				x = append(x, "--------------------------")
+				x = append(x, fmt.Sprintf("%s 下载地址：", arch))
+				x = append(x, "https://"+filepath.Join(DownloadAddr, fmt.Sprintf(
+					"datakit-ebpf-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, ReleaseVersion)))
+			}
+			return x
+		}()
+
+		CINotifyNewEBpfVersion := fmt.Sprintf(`
+{
+	"msgtype": "text",
+	"text": {
+		"content": "%s"
+		}
+}`, strings.Join(content, "\n"))
+
+		var buf bytes.Buffer
+		t, err := template.New("").Parse(CINotifyNewEBpfVersion)
+		if err != nil {
+			l.Fatal(err)
+		}
+
+		if err := t.Execute(&buf, x); err != nil {
+			l.Fatal(err)
+		}
+		notify(NotifyToken, &buf)
+	case ReleaseProduction:
+		notify(NotifyToken, bytes.NewBufferString(fmt.Sprintf(`
+		{
+			"msgtype": "text",
+			"text": {
+				"content": "%s 发布了 DataKit eBPF %s 新版本(%s)"
+			}
+		}`, git.Uploader, strings.Join(curEBpfArchs, ", "), ReleaseVersion)))
 	}
 }
