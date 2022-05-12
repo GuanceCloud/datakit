@@ -53,7 +53,7 @@ $ helm -n datakit list
 
 ```shell
 $ helm repo update 
-$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
+$ helm upgrade datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
 ```
 
 #### 卸载
