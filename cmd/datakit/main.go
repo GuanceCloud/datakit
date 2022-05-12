@@ -23,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
@@ -159,7 +160,7 @@ func tryLoadConfig() {
 	config.MoveDeprecatedCfg()
 
 	l.Infof("load config from %s...", datakit.MainConfPath)
-	checkConditionExit(func() bool {
+	checkutil.CheckConditionExit(func() bool {
 		if err := config.LoadCfg(config.Cfg, datakit.MainConfPath); err != nil {
 			l.Errorf("load config failed: %s", err)
 			return false
@@ -194,79 +195,9 @@ func initPythonCore() error {
 	return nil
 }
 
-func isValidDataway() bool {
-	if config.Cfg.DataWayCfg == nil {
-		l.Debug("config.Cfg.DataWayCfg == nil")
-		return false
-	}
-
-	if len(config.Cfg.DataWayCfg.URLs) == 0 {
-		l.Debug("len(config.Cfg.DataWayCfg.URLs) == 0")
-		return false
-	}
-
-	return true
-}
-
-func isValidSink() bool {
-	if config.Cfg.Sinks == nil {
-		l.Debug("config.Cfg.Sinks == nil")
-		return false
-	}
-
-	if len(config.Cfg.Sinks.Sink) == 0 {
-		l.Debug("len(config.Cfg.Sinks.Sink) == 0")
-		return false
-	}
-
-	empty := true
-	for _, v := range config.Cfg.Sinks.Sink {
-		if _, ok := v["target"]; ok {
-			empty = false
-			break
-		}
-	}
-
-	return !empty
-}
-
-func gracefulExit() {
-	time.Sleep(2 * time.Second)
-	os.Exit(-1)
-}
-
-func checkConditionExit(f func() bool) {
-	tick := time.NewTicker(time.Second)
-	defer tick.Stop()
-
-	for {
-		if f() {
-			return
-		}
-
-		select {
-		case <-tick.C:
-
-		case <-datakit.Exit.Wait():
-			gracefulExit()
-			return
-		}
-	}
-}
-
 func doRun() error {
-	// check dataway and sink config
-	checkConditionExit(func() bool {
-		if !isValidDataway() && !isValidSink() {
-			l.Errorf("dataway and sink not set")
-			return false
-		}
-
-		return true
-	})
-
 	// check io start
-	checkConditionExit(func() bool {
+	checkutil.CheckConditionExit(func() bool {
 		if err := io.Start(config.Cfg.Sinks.Sink); err != nil {
 			return false
 		}
