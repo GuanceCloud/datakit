@@ -245,6 +245,7 @@ func checkConditionExit(f func() bool, countLimit int) {
 		if tryCount > countLimit {
 			datakit.Quit()
 			gracefulExit()
+			return
 		}
 
 		select {
