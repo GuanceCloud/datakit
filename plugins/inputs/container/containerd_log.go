@@ -61,7 +61,7 @@ func (c *containerdInput) inLogList(logpath string) bool {
 func (c *containerdInput) watchNewLogs() error {
 	list, err := c.criClient.ListContainers(context.Background(), &cri.ListContainersRequest{Filter: nil})
 	if err != nil {
-		return fmt.Errorf("failed to get cri-ListContainers err: %s", err)
+		return fmt.Errorf("failed to get cri-ListContainers err: %w", err)
 	}
 
 	for _, resp := range list.GetContainers() {
