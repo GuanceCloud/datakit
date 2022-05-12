@@ -248,11 +248,12 @@ func checkConditionExit(f func() bool, countLimit int) {
 			return
 		}
 
+		if f() {
+			return
+		}
+
 		select {
 		case <-tick.C:
-			if f() {
-				return
-			}
 
 		case <-datakit.Exit.Wait():
 			gracefulExit()
