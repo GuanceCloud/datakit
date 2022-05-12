@@ -24,8 +24,6 @@ import (
 var (
 	minGZSize   = 1024
 	maxKodoPack = 10 * 1024 * 1024
-
-	cacheBucket = "io_upload_metric"
 )
 
 var (
