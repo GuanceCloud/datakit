@@ -194,7 +194,52 @@ func initPythonCore() error {
 	return nil
 }
 
+func isValidDataway() bool {
+	if config.Cfg.DataWayCfg == nil {
+		l.Debug("config.Cfg.DataWayCfg == nil")
+		return false
+	}
+
+	if len(config.Cfg.DataWayCfg.URLs) == 0 {
+		l.Debug("len(config.Cfg.DataWayCfg.URLs) == 0")
+		return false
+	}
+
+	return true
+}
+
+func isValidSink() bool {
+	if config.Cfg.Sinks == nil {
+		l.Debug("config.Cfg.Sinks == nil")
+		return false
+	}
+
+	if len(config.Cfg.Sinks.Sink) == 0 {
+		l.Debug("len(config.Cfg.Sinks.Sink) == 0")
+		return false
+	}
+
+	empty := true
+	for _, v := range config.Cfg.Sinks.Sink {
+		if _, ok := v["target"]; ok {
+			empty = false
+			break
+		}
+	}
+
+	return !empty
+}
+
 func doRun() error {
+	for {
+		if !isValidDataway() && !isValidSink() {
+			l.Errorf("dataway and sink not set")
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
+	}
+
 	for {
 		if err := io.Start(config.Cfg.Sinks.Sink); err != nil {
 			time.Sleep(time.Second)

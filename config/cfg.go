@@ -65,6 +65,10 @@ func DefaultConfig() *Config {
 			Filters:                   map[string][]string{},
 		},
 
+		DataWayCfg: &dataway.DataWayCfg{
+			URLs: []string{},
+		},
+
 		ProtectMode: true,
 
 		HTTPAPI: &dkhttp.APIConfig{
