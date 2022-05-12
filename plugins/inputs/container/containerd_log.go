@@ -41,6 +41,21 @@ func dial(addr string, timeout time.Duration) (net.Conn, error) {
 	return net.DialTimeout("unix", addr, timeout)
 }
 
+func (c *containerdInput) addToLogList(logpath string) {
+	c.logpathList[logpath] = nil
+}
+
+func (c *containerdInput) removeFromLogList(logpath string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.logpathList, logpath)
+}
+
+func (c *containerdInput) inLogList(logpath string) bool {
+	_, ok := c.logpathList[logpath]
+	return ok
+}
+
 func (c *containerdInput) watchNewLogs() error {
 	list, err := c.criClient.ListContainers(context.Background(), &cri.ListContainersRequest{Filter: nil})
 	if err != nil {
@@ -51,6 +66,12 @@ func (c *containerdInput) watchNewLogs() error {
 		status, err := c.criClient.ContainerStatus(context.Background(), &cri.ContainerStatusRequest{ContainerId: resp.Id})
 		if err != nil {
 			l.Warn(err)
+			continue
+		}
+
+		logpath := status.GetStatus().GetLogPath()
+
+		if c.inLogList(logpath) {
 			continue
 		}
 
@@ -83,7 +104,6 @@ func (c *containerdInput) watchNewLogs() error {
 			source = n.Name
 		}
 
-		logpath := status.GetStatus().GetLogPath()
 		opt := &tailer.Option{
 			Source:     source,
 			GlobalTags: tags,
@@ -116,9 +136,12 @@ func (c *containerdInput) watchNewLogs() error {
 			l.Warn(err)
 			continue
 		}
-		go func() {
+
+		c.addToLogList(logpath)
+		go func(logpath string) {
+			defer c.removeFromLogList(logpath)
 			t.Run()
-		}()
+		}(logpath)
 	}
 
 	return nil

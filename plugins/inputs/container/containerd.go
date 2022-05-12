@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 
 	v1 "github.com/containerd/cgroups/stats/v1"
@@ -28,6 +29,7 @@ type containerdInput struct {
 	cfg *containerdInputConfig
 
 	logpathList map[string]interface{}
+	mu          sync.Mutex
 }
 
 type containerdInputConfig struct {
