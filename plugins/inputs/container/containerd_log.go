@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"time"
 
@@ -19,6 +20,7 @@ func newCRIClient(endpoint string) (cri.RuntimeServiceClient, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
+	//nolint:lll
 	conn, err := grpc.DialContext(ctx, endpoint, grpc.WithInsecure(), grpc.WithDialer(dial), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMsgSize))) //nolint:staticcheck
 	if err != nil {
 		return nil, err
@@ -59,29 +61,32 @@ func (c *containerdInput) inLogList(logpath string) bool {
 func (c *containerdInput) watchNewLogs() error {
 	list, err := c.criClient.ListContainers(context.Background(), &cri.ListContainersRequest{Filter: nil})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get cri-ListContainers err: %w", err)
 	}
 
 	for _, resp := range list.GetContainers() {
 		status, err := c.criClient.ContainerStatus(context.Background(), &cri.ContainerStatusRequest{ContainerId: resp.Id})
 		if err != nil {
-			l.Warn(err)
+			l.Warnf("failed to get cri-container status, id: %s, err: %w", resp.Id, err)
 			continue
 		}
 
 		logpath := status.GetStatus().GetLogPath()
 
 		if c.inLogList(logpath) {
+			l.Debugf("", resp.Id, err)
 			continue
 		}
 
 		tags := map[string]string{
-			// "container_type": "containerd",
 			// "state":          "running",
 			"container_name": getContainerNameForLabels(status.GetStatus().GetLabels()),
 			"container_id":   status.GetStatus().GetId(),
 			"pod_name":       getPodNameForLabels(status.GetStatus().GetLabels()),
 			"namespace":      getPodNamespaceForLabels(status.GetStatus().GetLabels()),
+		}
+		if c.criRuntimeVersion != nil {
+			tags["container_type"] = c.criRuntimeVersion.RuntimeName
 		}
 		// add extra tags
 		for k, v := range c.cfg.extraTags {
@@ -111,9 +116,7 @@ func (c *containerdInput) watchNewLogs() error {
 
 		logconf, err := getContainerLogConfig(status.GetStatus().GetAnnotations())
 		if err != nil {
-
-			l.Warn(err)
-			continue
+			l.Warnf("invalid logconfig from annotation, err: %w, skip", err)
 		}
 
 		if logconf != nil {
@@ -126,18 +129,20 @@ func (c *containerdInput) watchNewLogs() error {
 			opt.Pipeline = logconf.Pipeline
 			opt.MultilineMatch = logconf.Multiline
 
-			l.Debugf("use container logconfig:%#v, containerName:%s", logconf, tags["container_name"])
+			l.Debugf("use container logconfig:%#v, containerId: %s, source: %s, logpath: %s", logconf, resp.Id, opt.Source, logpath)
 		}
 
 		_ = opt.Init()
 
 		t, err := tailer.NewTailerSingle(logpath, opt)
 		if err != nil {
-			l.Warn(err)
+			l.Errorf("failed to new containerd log, containerId: %s, source: %s, logpath: %s", resp.Id, opt.Source, logpath)
 			continue
 		}
 
 		c.addToLogList(logpath)
+		l.Infof("add containerd log, containerId: %s, source: %s, logpath: %s", resp.Id, opt.Source, logpath)
+
 		go func(logpath string) {
 			defer c.removeFromLogList(logpath)
 			t.Run()
