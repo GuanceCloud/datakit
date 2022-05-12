@@ -81,8 +81,8 @@ func TestHandleBody(t *testing.T) {
 				"tags": {"t1": "abc", "t2": "def"}
 			}
 			]`),
-			fail: true,
 			js:   true,
+			npts: 1,
 		},
 
 		{
