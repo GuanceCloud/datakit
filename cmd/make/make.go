@@ -29,6 +29,7 @@ import (
 )
 
 var (
+	flagNotifyOnly      = flag.Bool("notify-only", false, "notify CI process")
 	flagBinary          = flag.String("binary", "", "binary name to build")
 	flagName            = flag.String("name", *flagBinary, "same as -binary")
 	flagBuildDir        = flag.String("build-dir", "build", "output of build files")
@@ -38,6 +39,7 @@ var (
 	flagArchs           = flag.String("archs", "local", "os archs")
 	flagRelease         = flag.String("release", "", `build for local/testing/production`)
 	flagPub             = flag.Bool("pub", false, `publish binaries to OSS: local/testing/production`)
+	flagPubEBpf         = flag.Bool("pub-ebpf", false, `publish datakit-ebpf to OSS: local/testing/production`)
 	flagBuildISP        = flag.Bool("build-isp", false, "generate ISP data")
 	flagDownloadSamples = flag.Bool("download-samples", false, "download samples from OSS to samples/")
 	flagDumpSamples     = flag.Bool("dump-samples", false, "download and dump local samples to OSS")
@@ -363,6 +365,23 @@ func main() {
 	flag.Parse()
 	applyFlags()
 
+	if *flagNotifyOnly {
+		build.NotifyStartBuild()
+		return
+	}
+
+	if *flagPubEBpf {
+		build.NotifyStartPubEBpf()
+		if err := build.PubDatakitEBpf(); err != nil {
+			l.Error(err)
+			build.NotifyFail(err.Error())
+		} else {
+			l.Info("")
+			build.NotifyPubEBpfDone()
+		}
+		return
+	}
+
 	if *flagPub {
 		build.NotifyStartPub()
 		if err := build.PubDatakit(); err != nil {
@@ -372,7 +391,6 @@ func main() {
 			build.NotifyPubDone()
 		}
 	} else {
-		build.NotifyStartBuild()
 		if err := build.Compile(); err != nil {
 			l.Error(err)
 			build.NotifyFail(err.Error())
