@@ -383,7 +383,7 @@ Data           : %s
 	if err := checkIsNewVersion("http://"+config.Cfg.HTTPAPI.Listen, DataKitVersion); err != nil {
 		l.Errorf("checkIsNewVersion: %s", err.Error()) //nolint:lll
 	} else {
-		l.Infof("current running datakit is verison: %s", DataKitVersion) //nolint:lll
+		l.Infof("current running datakit is version: %s", DataKitVersion) //nolint:lll
 
 		if flagDKUpgrade {
 			l.Info(":) Upgrade Success!")
