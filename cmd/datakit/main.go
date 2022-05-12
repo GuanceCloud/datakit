@@ -231,7 +231,13 @@ func isValidSink() bool {
 }
 
 func doRun() error {
+	tryCount := 0
 	for {
+		tryCount++
+		if tryCount > 5 {
+			os.Exit(-1)
+		}
+
 		if !isValidDataway() && !isValidSink() {
 			l.Errorf("dataway and sink not set")
 			time.Sleep(time.Second)
@@ -240,7 +246,13 @@ func doRun() error {
 		}
 	}
 
+	tryCount = 0
 	for {
+		tryCount++
+		if tryCount > 5 {
+			os.Exit(-1)
+		}
+
 		if err := io.Start(config.Cfg.Sinks.Sink); err != nil {
 			time.Sleep(time.Second)
 		} else {
