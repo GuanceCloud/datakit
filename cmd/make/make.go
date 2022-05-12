@@ -135,7 +135,7 @@ func applyFlags() {
 		l.Debug("under release, only checked inputs released")
 		build.InputsReleaseType = "checked"
 		if !version.IsValidReleaseVersion(build.ReleaseVersion) {
-			l.Fatalf("invalid releaseVersion: %s, expect format 1.2.3-rc0", build.ReleaseVersion)
+			l.Fatalf("invalid releaseVersion: %s, expect format 1.2.3", build.ReleaseVersion)
 		}
 
 	default:

@@ -18,9 +18,10 @@ dk-test-production:
   stage: test
   only:
     - unstable
+    - master
   script:
     - make clean
-    - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH
+    - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.19
     - make lint
     - make all_test
   tags:
@@ -63,7 +64,7 @@ release-ebpf-production:
     - unstable
   script:
     - make clean
-    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/arm64" GIT_BRANCH=$CI_COMMIT_BRANCH
+    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/arm64" GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.19
   tags:
     - dk-arm-docker-runner
 
