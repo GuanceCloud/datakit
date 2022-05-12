@@ -1,7 +1,13 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package config
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -200,7 +206,7 @@ func TestLoadEnv(t *testing.T) {
 				cfg := DefaultConfig()
 
 				cfg.Name = "testing-datakit"
-				cfg.DataWay = &dataway.DataWayCfg{
+				cfg.DataWayCfg = &dataway.DataWayCfg{
 					URLs:                []string{"http://host1.org", "http://host2.com"},
 					MaxIdleConnsPerHost: 123,
 					HTTPProxy:           "http://1.2.3.4:1234",
@@ -302,14 +308,15 @@ func TestLoadEnv(t *testing.T) {
 		{
 			name: "test-ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST",
 			envs: map[string]string{
+				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
 				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "-1",
 			},
 
 			expect: func() *Config {
 				cfg := DefaultConfig()
 
-				cfg.DataWay = &dataway.DataWayCfg{
-					URLs:                []string{},
+				cfg.DataWayCfg = &dataway.DataWayCfg{
+					URLs:                []string{"http://host1.org", "http://host2.com"},
 					MaxIdleConnsPerHost: 0,
 				}
 
@@ -430,5 +437,81 @@ hostname = "should-not-set"`,
 		if err := os.Remove(tomlfile); err != nil {
 			t.Error(err)
 		}
+	}
+}
+
+// go test -v -timeout 30s -run ^TestWriteConfigFile$ gitlab.jiagouyun.com/cloudcare-tools/datakit/config
+/*
+[sinks]
+
+  [[sinks.sink]]
+    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    database = "db0"
+    host = "1.1.1.1:8086"
+    precision = "ns"
+    protocol = "http"
+    target = "influxdb"
+    timeout = "6s"
+
+  [[sinks.sink]]
+    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    database = "db1"
+    host = "1.1.1.1:8087"
+    precision = "ns"
+    protocol = "http"
+    target = "influxdb"
+    timeout = "6s"
+
+[sinks]
+
+  [[sinks.sink]]
+*/
+func TestWriteConfigFile(t *testing.T) {
+	c := DefaultConfig()
+
+	cases := []struct {
+		name string
+		in   []map[string]interface{}
+	}{
+		{
+			name: "has_data",
+			in: []map[string]interface{}{
+				{
+					"target":     "influxdb",
+					"categories": []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"precision":  "ns",
+					"database":   "db0",
+					"timeout":    "5s",
+				},
+				{
+					"target":       "logstash",
+					"categories":   []string{"L"},
+					"host":         "1.1.1.1:8080",
+					"protocol":     "http",
+					"request_path": "/twitter/tweet/1",
+					"timeout":      "5s",
+				},
+			},
+		},
+		{
+			name: "no_data",
+			in: []map[string]interface{}{
+				{},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c.Sinks.Sink = tc.in
+			mcdata, err := datakit.TomlMarshal(c)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println("=====================================================")
+			fmt.Println(string(mcdata))
+		})
 	}
 }

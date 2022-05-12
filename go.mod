@@ -29,6 +29,7 @@ require (
 	github.com/didip/tollbooth/v6 v6.1.2
 	github.com/docker/docker v20.10.8+incompatible
 	github.com/dustin/go-humanize v1.0.0
+	github.com/elastic/go-lumber v0.1.1
 	github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
 	github.com/fatih/color v1.12.0
 	github.com/fsnotify/fsnotify v1.5.1
@@ -89,6 +90,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
+	github.com/ubwbu/grok v1.0.6
 	github.com/ugorji/go/codec v1.2.6
 	github.com/vishvananda/netlink v1.1.1-0.20210508154835-66ddd91f7ddd // indirect
 	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect

@@ -122,6 +122,7 @@ NAME1="value1" NAME2="value2"
 
 ### 外部采集器相关
 - `DK_INSTALL_EXTERNALS`: 可用于安装如 datakit-ebpf 等未与 DataKit 一起打包的外部采集器
+
 ### Git 配置相关
 
 - `DK_GIT_URL`: 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`）
@@ -129,6 +130,20 @@ NAME1="value1" NAME2="value2"
 - `DK_GIT_KEY_PW`: 本地 PrivateKey 的使用密码。（如 `passwd`）
 - `DK_GIT_BRANCH`: 指定拉取的分支。<stong>为空则是默认</strong>，默认是远程指定的主分支，一般是 `master`。
 - `DK_GIT_INTERVAL`: 定时拉取的间隔。（如 `1m`）
+
+### Sinker 相关配置
+
+- `DK_SINK_M`:  安装时指定 Metric 的 sink。
+- `DK_SINK_N`:  安装时指定 Network 的 sink。
+- `DK_SINK_K`:  安装时指定 KeyEvent 的 sink。
+- `DK_SINK_O`:  安装时指定 Object 的 sink。
+- `DK_SINK_CO`: 安装时指定 CustomObject 的 sink。
+- `DK_SINK_L`:  安装时指定 Logging 的 sink。
+- `DK_SINK_T`:  安装时指定 Tracing 的 sink。
+- `DK_SINK_R`:  安装时指定 RUM 的 sink。
+- `DK_SINK_S`:  安装时指定 Security 的 sink。
+
+参见 [M3DB 示例](datakit-sink-m3db#5ccfbb76)
 
 ### cgroup 配置相关
 

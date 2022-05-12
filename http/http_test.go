@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -78,8 +83,9 @@ func TestRestartAPI(t *testing.T) {
 		"http://4.3.2.1?token=tkn_abc456",
 	}
 
-	dw = &dataway.DataWayCfg{URLs: tokens}
-	if err := dw.Apply(); err != nil {
+	dwCfg := &dataway.DataWayCfg{URLs: tokens}
+	dw = &dataway.DataWayDefault{}
+	if err := dw.Init(dwCfg); err != nil {
 		t.Error(err)
 	}
 

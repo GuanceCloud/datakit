@@ -32,6 +32,11 @@ case $current_branch in
 "yuque") ;;
   # pass
 
+"yuque-github-mirror")
+  waque_yml="yuque_community.yml"
+  printf "${GREEN}[I] current branch is %s, use %s ${CLR}\n" $current_branch $waque_yml
+  ;;
+
 *)
   waque_yml="yuque_testing.yml"
   printf "${GREEN}[I] current branch is %s, use %s ${CLR}\n" $current_branch $waque_yml

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cmds
 
 import (
@@ -67,7 +72,7 @@ func checkUpdate(curverStr string, acceptRC bool) int {
 	if ver != nil && version.IsNewVersion(ver, curver, acceptRC) {
 		l.Infof("New online version available: %s, commit %s (release at %s)",
 			ver.VersionString, ver.Commit, ver.ReleaseDate)
-		return 42 // nolint
+		return 42
 	} else {
 		if acceptRC {
 			l.Infof("Up to date(%s)", curver.VersionString)
@@ -156,8 +161,9 @@ var versionInfos = map[string]string{
 }
 
 func getUpgradeCommand(dlurl string) string {
-	proxy := config.Cfg.DataWay.HTTPProxy
 	var upgradeCmd string
+
+	proxy := config.Cfg.DataWayCfg.HTTPProxy
 
 	switch runtime.GOOS {
 	case datakit.OSWindows:

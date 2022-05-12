@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 //go:build windows
 // +build windows
 
@@ -31,7 +36,7 @@ var (
 const SFalse = 0x00000001
 
 // QueryNamespace invokes Query with the given namespace on the local machine.
-func QueryNamespace(query string, dst interface{}, namespace string) error { //nolint
+func QueryNamespace(query string, dst interface{}, namespace string) error {
 	return Query(query, dst, nil, namespace)
 }
 

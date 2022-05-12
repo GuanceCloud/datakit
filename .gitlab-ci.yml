@@ -46,14 +46,14 @@ release-stable:
 release-unstable:
   stage: deploy
   only:
-    - unstable # 专用分支来发布 unstable 版本
+    - github-mirror # 专用分支来发布 community 版本
   script:
     - make clean
     - make lint
     - make all_test
-    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.3.0
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.3.2
     - make check_production_conf_compatible
-    - make production_image VERSION=1.3.0
+    - make production_image VERSION=1.3.2
   tags:
     - cloudcare-ft
 
