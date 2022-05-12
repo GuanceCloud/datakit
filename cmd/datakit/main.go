@@ -166,7 +166,7 @@ func tryLoadConfig() {
 		}
 
 		return true
-	}, 5)
+	})
 
 	l = logger.SLogger("main")
 
@@ -235,19 +235,11 @@ func gracefulExit() {
 	os.Exit(-1)
 }
 
-func checkConditionExit(f func() bool, countLimit int) {
-	tryCount := 0
+func checkConditionExit(f func() bool) {
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
 
 	for {
-		tryCount++
-		if tryCount > countLimit {
-			datakit.Quit()
-			gracefulExit()
-			return
-		}
-
 		if f() {
 			return
 		}
@@ -271,7 +263,7 @@ func doRun() error {
 		}
 
 		return true
-	}, 5)
+	})
 
 	// check io start
 	checkConditionExit(func() bool {
@@ -280,7 +272,7 @@ func doRun() error {
 		}
 
 		return true
-	}, 5)
+	})
 
 	if config.Cfg.DataWay != nil {
 		if config.Cfg.EnableElection {
