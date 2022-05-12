@@ -159,14 +159,14 @@ func tryLoadConfig() {
 	config.MoveDeprecatedCfg()
 
 	l.Infof("load config from %s...", datakit.MainConfPath)
-	for {
+	checkConditionExit(func() bool {
 		if err := config.LoadCfg(config.Cfg, datakit.MainConfPath); err != nil {
 			l.Errorf("load config failed: %s", err)
-			time.Sleep(time.Second)
-		} else {
-			break
+			return false
 		}
-	}
+
+		return true
+	}, 5)
 
 	l = logger.SLogger("main")
 
@@ -230,35 +230,55 @@ func isValidSink() bool {
 	return !empty
 }
 
-func doRun() error {
+func gracefulExit() {
+	time.Sleep(2 * time.Second)
+	os.Exit(-1)
+}
+
+func checkConditionExit(f func() bool, countLimit int) {
 	tryCount := 0
+	tick := time.NewTicker(time.Second)
+	defer tick.Stop()
+
 	for {
 		tryCount++
-		if tryCount > 5 {
-			os.Exit(-1)
+		if tryCount > countLimit {
+			datakit.Quit()
+			gracefulExit()
 		}
 
+		select {
+		case <-tick.C:
+			if f() {
+				return
+			}
+
+		case <-datakit.Exit.Wait():
+			gracefulExit()
+			return
+		}
+	}
+}
+
+func doRun() error {
+	// check dataway and sink config
+	checkConditionExit(func() bool {
 		if !isValidDataway() && !isValidSink() {
 			l.Errorf("dataway and sink not set")
-			time.Sleep(time.Second)
-		} else {
-			break
-		}
-	}
-
-	tryCount = 0
-	for {
-		tryCount++
-		if tryCount > 5 {
-			os.Exit(-1)
+			return false
 		}
 
+		return true
+	}, 5)
+
+	// check io start
+	checkConditionExit(func() bool {
 		if err := io.Start(config.Cfg.Sinks.Sink); err != nil {
-			time.Sleep(time.Second)
-		} else {
-			break
+			return false
 		}
-	}
+
+		return true
+	}, 5)
 
 	if config.Cfg.DataWay != nil {
 		if config.Cfg.EnableElection {
