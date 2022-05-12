@@ -94,7 +94,7 @@ require (
 	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
 	github.com/vjeantet/grok v1.0.0
 	github.com/whilp/git-urls v1.0.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220331024026-678324178a3c
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220511102220-db7ca5ac4a29
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220412070245-d0b4d9eb07d3
 	go.etcd.io/bbolt v1.3.5
 	go.opentelemetry.io/otel v1.4.1
