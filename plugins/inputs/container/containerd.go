@@ -58,12 +58,13 @@ func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
 		criRuntimeVersion: runtimeVersion,
 		client:            client,
 		cfg:               cfg,
+		logpathList:       make(map[string]interface{}),
 	}, nil
 }
 
 func (c *containerdInput) stop() {
 	if err := c.client.Close(); err != nil {
-		l.Errorf("closed contianerd, err: %w", err)
+		l.Errorf("closed contianerd, err: %s", err)
 	}
 }
 
@@ -116,7 +117,7 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 		for _, container := range cList {
 			info, err := container.Info(ctx)
 			if err != nil {
-				l.Warnf("failed to get containerd info, err: %w, skip", err)
+				l.Warnf("failed to get containerd info, err: %s, skip", err)
 				continue
 			}
 			if isPauseContainerd(&info) {
@@ -128,7 +129,7 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 
 			metricsData, err := getContainerdMetricsData(ctx, container)
 			if err != nil {
-				l.Debugf("failed to get containerd metrics, err: %w, skip", err)
+				l.Debugf("failed to get containerd metrics, err: %s, skip", err)
 				continue
 			}
 			oldCPU, err := cpuContainerStats(metricsData, time.Now())
@@ -156,7 +157,7 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 			time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
 			metricsData2, err := getContainerdMetricsData(ctx, container)
 			if err != nil {
-				l.Warnf("failed to get containerd metrics, err: %w, skip", err)
+				l.Warnf("failed to get containerd metrics, err: %s, skip", err)
 				continue
 			}
 			newCPU, err := cpuContainerStats(metricsData2, time.Now())

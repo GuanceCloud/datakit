@@ -61,13 +61,13 @@ func (c *containerdInput) inLogList(logpath string) bool {
 func (c *containerdInput) watchNewLogs() error {
 	list, err := c.criClient.ListContainers(context.Background(), &cri.ListContainersRequest{Filter: nil})
 	if err != nil {
-		return fmt.Errorf("failed to get cri-ListContainers err: %w", err)
+		return fmt.Errorf("failed to get cri-ListContainers err: %s", err)
 	}
 
 	for _, resp := range list.GetContainers() {
 		status, err := c.criClient.ContainerStatus(context.Background(), &cri.ContainerStatusRequest{ContainerId: resp.Id})
 		if err != nil {
-			l.Warnf("failed to get cri-container status, id: %s, err: %w", resp.Id, err)
+			l.Warnf("failed to get cri-container status, id: %s, err: %s", resp.Id, err)
 			continue
 		}
 
@@ -116,7 +116,7 @@ func (c *containerdInput) watchNewLogs() error {
 
 		logconf, err := getContainerLogConfig(status.GetStatus().GetAnnotations())
 		if err != nil {
-			l.Warnf("invalid logconfig from annotation, err: %w, skip", err)
+			l.Warnf("invalid logconfig from annotation, err: %s, skip", err)
 		}
 
 		if logconf != nil {
