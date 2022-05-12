@@ -660,12 +660,12 @@ func (c *Config) LoadEnvs() error {
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_ENABLE_HTTPTRACE"); v != "" {
-		c.DataWay.EnableHTTPTrace = true
+		c.DataWayCfg.EnableHTTPTrace = true
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_HTTP_PROXY"); v != "" {
-		c.DataWay.HTTPProxy = v
-		c.DataWay.Proxy = true
+		c.DataWayCfg.HTTPProxy = v
+		c.DataWayCfg.Proxy = true
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST"); v != "" {
