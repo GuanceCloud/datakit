@@ -193,6 +193,8 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DISABLE_404PAGE":                 "on",
 				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "123",
 				"ENV_REQUEST_RATE_LIMIT":              "1234",
+				"ENV_DATAWAY_ENABLE_HTTPTRACE":        "any",
+				"ENV_DATAWAY_HTTP_PROXY":              "http://1.2.3.4:1234",
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
@@ -201,6 +203,9 @@ func TestLoadEnv(t *testing.T) {
 				cfg.DataWay = &dataway.DataWayCfg{
 					URLs:                []string{"http://host1.org", "http://host2.com"},
 					MaxIdleConnsPerHost: 123,
+					HTTPProxy:           "http://1.2.3.4:1234",
+					Proxy:               true,
+					EnableHTTPTrace:     true,
 				}
 
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"

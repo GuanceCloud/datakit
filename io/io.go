@@ -599,7 +599,13 @@ func (x *IO) flushCache() {
 		if err := pb.Unmarshal(v, &d); err != nil {
 			return err
 		}
-		return x.dw.Send(d.Category, d.Body, d.Gz)
+
+		if err := x.dw.Send(d.Category, d.Body, d.Gz); err != nil {
+			FeedEventLog(&DKEvent{Message: err.Error(), Status: "error", Category: "dataway"})
+			return err
+		} else {
+			return nil
+		}
 	}
 
 	if err := cache.ForEach(cacheBucket, fn, clean); err != nil {

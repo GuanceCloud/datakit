@@ -412,17 +412,17 @@ func TestUploadLog(t *testing.T) {
 
 func TestDatawayTimeout(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(time.Second * 3) // timeout
+		time.Sleep(time.Second * 1) // timeout
 		fmt.Fprint(w, "OK")
 	}))
 	defer ts.Close()
 
-	dw := &DataWayCfg{URLs: []string{ts.URL}, HTTPTimeout: "1s"}
+	dw := &DataWayCfg{URLs: []string{ts.URL}, HTTPTimeout: "100ms"}
 	if err := dw.Apply(); err != nil {
 		t.Errorf("Apply: %s", err.Error())
 	}
 
-	t.Logf("http client timeout: %s", dw.httpCli.Timeout)
+	t.Logf("http client timeout: %s", dw.httpCli.HTTPClient.Timeout)
 
 	ch := make(chan interface{})
 	go func() {
@@ -433,7 +433,9 @@ func TestDatawayTimeout(t *testing.T) {
 		close(ch)
 	}()
 
-	tick := time.NewTicker(time.Second * 2)
+	// for timeout 3 times,1st time, wait for 1s(server sleep 1s) + 1s(1st retry) + 2s(2nd retry)
+	// 1st send + 1st retry + 2nd retry = 3 times
+	tick := time.NewTicker(time.Second * 5)
 	defer tick.Stop()
 	select {
 	case <-ch:

@@ -3,11 +3,11 @@ package dataway
 
 import (
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
@@ -61,11 +61,13 @@ type DataWayCfg struct {
 	MaxIdleConnsPerHost int `toml:"max_idle_conns_per_host,omitempty"`
 
 	TimeoutDuration time.Duration `toml:"-"`
-	httpCli         *http.Client
+	httpCli         *retryablehttp.Client
 
 	MaxFails int `toml:"max_fail"`
 
-	Proxy  bool `toml:"proxy,omitempty"`
+	Proxy           bool `toml:"proxy,omitempty"`
+	EnableHTTPTrace bool `toml:"enable_httptrace,omitempty"`
+
 	ontest bool
 }
 
@@ -239,9 +241,7 @@ func (dw *DataWayCfg) initHTTP() error {
 		}
 	}
 
-	dw.httpCli = ihttp.Cli(cliopts)
-	dw.httpCli.Timeout = dw.TimeoutDuration // set HTTP request timeout
-	log.Debugf("httpCli: %p", dw.httpCli.Transport)
+	dw.httpCli = newRetryCli(cliopts, dw.TimeoutDuration)
 
 	return nil
 }
