@@ -125,6 +125,9 @@ spec:
             name: datakit-conf
           name: datakit-conf
         - hostPath:
+            path: /var/run
+          name: run
+        - hostPath:
             path: /var/run/docker.sock
           name: docker-socket
         - hostPath:

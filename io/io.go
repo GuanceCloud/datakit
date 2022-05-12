@@ -293,7 +293,7 @@ func (x *IO) StartIO(recoverable bool) {
 			Cache:              x.conf.EnableCache,
 			FlushCacheInterval: du,
 			ErrorCallback: func(err error) {
-				addReporter(Reporter{Status: "error", Message: err.Error()})
+				FeedEventLog(&DKEvent{Message: err.Error(), Status: "error", Category: "dataway"})
 			},
 		}); err != nil {
 		log.Errorf("init sender error: %s", err.Error())

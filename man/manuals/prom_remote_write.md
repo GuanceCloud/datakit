@@ -25,6 +25,36 @@ remote_write:
 {{.InputSample}} 
 ```
 
+### tags 添加、忽略及重命名
+
+可以通过配置 `tags` 为采集到的指标加上标签，如下：
+
+```toml
+  ## custom tags
+  [inputs.prom_remote_write.tags]
+  some_tag = "some_value"
+  more_tag = "some_other_value"
+```
+
+可以通过配置 `tags_ignore` 忽略指标上的某些标签，如下：
+
+```toml
+  ## tags to ignore
+  tags_ignore = ["xxxx"]
+```
+
+可以通过配置 `tags_rename` 重命名指标已有的某些标签名，如下：
+```toml
+  ## tags to rename
+  [inputs.prom_remote_write.tags_rename]
+  old_tag_name = "new_tag_name"
+  more_old_tag_name = "other_new_tag_name"
+```
+
+另外，当重命名后的 tag key 与已有 tag key 相同时:可以通过 `overwrite` 配置是否覆盖掉已有的 tag key。
+
+> 注意：对于 [DataKit 全局 tag key](datakit-conf#53181faf)，此处不支持将它们重命名。
+
 ## 指标集
 
 指标集以 Prometheus 发送过来的指标集为准。

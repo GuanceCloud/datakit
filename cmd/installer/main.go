@@ -414,7 +414,7 @@ func checkIsNewVersion(host, version string) error {
 			continue
 		}
 
-		defer resp.Body.Close()
+		defer resp.Body.Close() //nolint:errcheck
 
 		if err := json.Unmarshal(body, &x); err != nil {
 			l.Errorf("json.Unmarshal: %s", err)
@@ -460,6 +460,11 @@ func upgradeDatakit(svc service.Service) error {
 	// build datakit main config
 	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
+	}
+
+	// build datakit sample config
+	if err := mc.InitCfgSample(datakit.MainConfSamplePath); err != nil {
+		l.Fatalf("failed to init datakit main sample config: %s", err.Error())
 	}
 
 	for _, dir := range []string{datakit.DataDir, datakit.ConfdDir} {
@@ -672,6 +677,11 @@ func installNewDatakit(svc service.Service) {
 	// build datakit main config
 	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
+	}
+
+	// build datakit sample config
+	if err := mc.InitCfgSample(datakit.MainConfSamplePath); err != nil {
+		l.Fatalf("failed to init datakit main sample config: %s", err.Error())
 	}
 
 	installExternals := map[string]struct{}{}

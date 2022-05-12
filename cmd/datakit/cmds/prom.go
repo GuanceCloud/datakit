@@ -132,7 +132,7 @@ func showPromRemoteWriteInput(input *pr.Input) error {
 			return fmt.Errorf("expect to be *prom_remote_write.Measurement")
 		}
 
-		input.AddAndIgnoreTags(mm)
+		input.SetTags(mm)
 		p, err := mm.LineProto()
 		if err != nil {
 			return err

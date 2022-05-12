@@ -57,6 +57,7 @@ require (
 	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 	github.com/influxdata/telegraf v1.15.2
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
@@ -95,7 +96,7 @@ require (
 	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
 	github.com/vjeantet/grok v1.0.0
 	github.com/whilp/git-urls v1.0.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220331024026-678324178a3c
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220511102220-db7ca5ac4a29
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220412070245-d0b4d9eb07d3
 	go.etcd.io/bbolt v1.3.5
 	go.opentelemetry.io/otel v1.4.1

@@ -34,12 +34,8 @@ func HTTPAPIWrapper(p *WrapPlugins, next apiHandler, any ...interface{}) func(*g
 			}
 		}
 
-		f := func(r *http.Request) string {
-			return ""
-		}
-
 		if p != nil && p.Limiter != nil {
-			if p.Limiter.RequestLimited(c.Request, f) {
+			if p.Limiter.RequestLimited(c.Request) {
 				HttpErr(c, ErrTooManyRequest)
 				p.Limiter.LimitReadchedCallback(c.Request)
 				if m != nil {

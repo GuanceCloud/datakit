@@ -41,4 +41,6 @@ type DataWayCfg struct {
 	MaxFails int `toml:"max_fail"`
 
 	Proxy bool `toml:"proxy,omitempty"`
+
+	EnableHTTPTrace bool `toml:"enable_httptrace,omitempty"`
 }

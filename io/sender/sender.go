@@ -367,6 +367,9 @@ func (s *Sender) flushCache() {
 		points := WrapPoint(pts)
 		err = s.write(d.Category, points)
 		if err != nil {
+			if s.opt.ErrorCallback != nil {
+				s.opt.ErrorCallback(err)
+			}
 			l.Warnf("cache sink write error: %s", err.Error())
 		} else {
 			toCleanKeys = append(toCleanKeys, k)

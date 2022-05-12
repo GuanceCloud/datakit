@@ -310,6 +310,15 @@ func (c *Config) InitCfg(p string) error {
 	return nil
 }
 
+func (c *Config) InitCfgSample(p string) error {
+	if err := ioutil.WriteFile(p, []byte(DatakitConfSample), datakit.ConfPerm); err != nil {
+		l.Errorf("error creating %s: %s", p, err)
+		return err
+	}
+	l.Debugf("create datakit sample conf ok, %s!", p)
+	return nil
+}
+
 func (c *Config) setupDataway() error {
 	if c.DataWayCfg == nil {
 		return fmt.Errorf("dataway config is empty")
@@ -648,6 +657,15 @@ func (c *Config) LoadEnvs() error {
 		} else {
 			c.DataWayCfg.HTTPTimeout = v
 		}
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_ENABLE_HTTPTRACE"); v != "" {
+		c.DataWay.EnableHTTPTrace = true
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_HTTP_PROXY"); v != "" {
+		c.DataWay.HTTPProxy = v
+		c.DataWay.Proxy = true
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST"); v != "" {
