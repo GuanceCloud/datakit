@@ -40,17 +40,17 @@ type containerdInputConfig struct {
 func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
 	criClient, err := newCRIClient(cfg.endpoint)
 	if err != nil {
-		return nil, fmt.Errorf("failed to new CRI-Client: %s ", err.Error())
+		return nil, fmt.Errorf("failed to new CRI-Client: %w ", err)
 	}
 
 	runtimeVersion, err := getCRIRuntimeVersion(criClient)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get CRI-RuntimeVersion: %s ", err.Error())
+		return nil, fmt.Errorf("failed to get CRI-RuntimeVersion: %w ", err)
 	}
 
 	client, err := containerd.New(cfg.endpoint)
 	if err != nil {
-		return nil, fmt.Errorf("failed to new containerd: %s ", err.Error())
+		return nil, fmt.Errorf("failed to new containerd: %w ", err)
 	}
 
 	return &containerdInput{
