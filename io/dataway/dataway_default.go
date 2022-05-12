@@ -153,7 +153,7 @@ func (dw *DataWayDefault) Apply() error {
 	}
 
 	if len(dw.URLs) == 0 {
-		return fmt.Errorf("dataway not set")
+		return fmt.Errorf("dataway not set: urls is empty")
 	}
 
 	if dw.HTTPTimeout == "" {

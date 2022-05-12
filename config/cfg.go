@@ -455,7 +455,7 @@ func (c *Config) ApplyMainConfig() error {
 		}
 	}
 
-	if c.DataWayCfg != nil {
+	if c.DataWayCfg != nil && len(c.DataWayCfg.URLs) > 0 {
 		if err := c.setupDataway(); err != nil {
 			return err
 		}
