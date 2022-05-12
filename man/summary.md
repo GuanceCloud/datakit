@@ -86,6 +86,10 @@
         - [Golang 示例](ddtrace-golang)
         - [Java 示例](ddtrace-java)
         - [Python 示例](ddtrace-python)
+        - [PHP 示例](ddtrace-php)
+        - [NodeJS 示例](ddtrace-nodejs)
+        - [Cpp 示例](ddtrace-cpp)
+        - [Ruby 示例](ddtrace-ruby)
       - [SkyWalking](skywalking)
       - [Opentelemetry](opentelemetry)
         - [Golang 示例](opentelemetry-go)
@@ -139,6 +143,7 @@
     - [eBPF](ebpf)
 
   - [自定义采集器]()
+
     - [用 Python 开发自定义采集器](pythond)
 
   - [第三方数据接入]()
