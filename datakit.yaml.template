@@ -166,6 +166,8 @@ spec:
         volumeMounts:
         - mountPath: /var/run
           name: run
+        - mountPath: /var/log
+          name: log
         - mountPath: /host/proc
           name: proc
           readOnly: true
@@ -202,6 +204,9 @@ spec:
       - hostPath:
           path: /var/run
         name: run
+      - hostPath:
+          path: /var/log
+        name: log
       - hostPath:
           path: /proc
           type: ""

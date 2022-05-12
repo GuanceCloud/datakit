@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 
 	v1 "github.com/containerd/cgroups/stats/v1"
@@ -16,11 +17,19 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	cri "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 type containerdInput struct {
 	client *containerd.Client
-	cfg    *containerdInputConfig
+
+	criClient         cri.RuntimeServiceClient
+	criRuntimeVersion *cri.VersionResponse
+
+	cfg *containerdInputConfig
+
+	logpathList map[string]interface{}
+	mu          sync.Mutex
 }
 
 type containerdInputConfig struct {
@@ -29,17 +38,33 @@ type containerdInputConfig struct {
 }
 
 func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
-	cli, err := containerd.New(cfg.endpoint)
+	criClient, err := newCRIClient(cfg.endpoint)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to new CRI-Client: %w ", err)
 	}
 
-	return &containerdInput{client: cli, cfg: cfg}, nil
+	runtimeVersion, err := getCRIRuntimeVersion(criClient)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get CRI-RuntimeVersion: %w ", err)
+	}
+
+	client, err := containerd.New(cfg.endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to new containerd: %w ", err)
+	}
+
+	return &containerdInput{
+		criClient:         criClient,
+		criRuntimeVersion: runtimeVersion,
+		client:            client,
+		cfg:               cfg,
+		logpathList:       make(map[string]interface{}),
+	}, nil
 }
 
 func (c *containerdInput) stop() {
 	if err := c.client.Close(); err != nil {
-		l.Errorf("closed contianerd, err: %w", err)
+		l.Errorf("closed contianerd, err: %s", err)
 	}
 }
 
@@ -92,7 +117,7 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 		for _, container := range cList {
 			info, err := container.Info(ctx)
 			if err != nil {
-				l.Warnf("failed to get containerd info, err: %w, skip", err)
+				l.Warnf("failed to get containerd info, err: %s, skip", err)
 				continue
 			}
 			if isPauseContainerd(&info) {
@@ -104,7 +129,7 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 
 			metricsData, err := getContainerdMetricsData(ctx, container)
 			if err != nil {
-				l.Debugf("failed to get containerd metrics, err: %w, skip", err)
+				l.Debugf("failed to get containerd metrics, err: %s, skip", err)
 				continue
 			}
 			oldCPU, err := cpuContainerStats(metricsData, time.Now())
@@ -132,7 +157,7 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 			time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
 			metricsData2, err := getContainerdMetricsData(ctx, container)
 			if err != nil {
-				l.Warnf("failed to get containerd metrics, err: %w, skip", err)
+				l.Warnf("failed to get containerd metrics, err: %s, skip", err)
 				continue
 			}
 			newCPU, err := cpuContainerStats(metricsData2, time.Now())
@@ -201,14 +226,14 @@ func newContainerdObject(info *containers.Container) *containerdObject {
 		"age": time.Since(info.CreatedAt).Milliseconds() / 1e3,
 	}
 
-	if containerName := info.Labels[containerLableForPodContainerName]; containerName != "" {
+	if containerName := getContainerNameForLabels(info.Labels); containerName != "" {
 		obj.tags["container_name"] = containerName
 	} else {
 		obj.tags["container_name"] = "unknown"
 	}
 
-	obj.tags.addValueIfNotEmpty("pod_name", info.Labels[containerLableForPodName])
-	obj.tags.addValueIfNotEmpty("namespace", info.Labels[containerLableForPodNamespace])
+	obj.tags.addValueIfNotEmpty("pod_name", getPodNameForLabels(info.Labels))
+	obj.tags.addValueIfNotEmpty("namespace", getPodNamespaceForLabels(info.Labels))
 	return obj
 }
 

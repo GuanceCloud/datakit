@@ -63,7 +63,7 @@ func NewWithOpt(opt *Option, ignorePatterns ...[]string) (sl *socketLogger, err 
 		opt:  opt,
 		stop: make(chan struct{}, 1),
 	}
-	if err := sl.opt.init(); err != nil {
+	if err := sl.opt.Init(); err != nil {
 		return nil, err
 	}
 	sl.tags = buildTags(opt.GlobalTags)
