@@ -136,7 +136,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: status.hostIP
-        - name: NODE_NAME
+        - name: ENV_K8S_NODE_NAME
           valueFrom:
             fieldRef:
               apiVersion: v1
