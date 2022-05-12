@@ -17,7 +17,6 @@ stages:
 dk-test-production:
   stage: test
   only:
-    - master
     - unstable
   script:
     - make clean
