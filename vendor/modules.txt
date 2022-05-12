@@ -351,6 +351,13 @@ github.com/docker/go-units
 # github.com/dustin/go-humanize v1.0.0
 ## explicit
 github.com/dustin/go-humanize
+# github.com/elastic/go-lumber v0.1.1
+## explicit
+github.com/elastic/go-lumber/lj
+github.com/elastic/go-lumber/log
+github.com/elastic/go-lumber/protocol/v2
+github.com/elastic/go-lumber/server/internal
+github.com/elastic/go-lumber/server/v2
 # github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
 ## explicit
 github.com/elazarl/goproxy
@@ -633,13 +640,19 @@ github.com/grpc-ecosystem/grpc-gateway/runtime
 github.com/grpc-ecosystem/grpc-gateway/utilities
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
+# github.com/hashicorp/go-cleanhttp v0.5.1
+github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-multierror v1.1.1
 ## explicit
 github.com/hashicorp/go-multierror
+# github.com/hashicorp/go-retryablehttp v0.7.1
+## explicit
+github.com/hashicorp/go-retryablehttp
 # github.com/imdario/mergo v0.3.12
 github.com/imdario/mergo
 # github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 ## explicit
+github.com/influxdata/influxdb1-client
 github.com/influxdata/influxdb1-client/models
 github.com/influxdata/influxdb1-client/pkg/escape
 github.com/influxdata/influxdb1-client/v2
@@ -679,8 +692,10 @@ github.com/karrick/godirwalk
 github.com/kevinburke/ssh_config
 # github.com/klauspost/compress v1.13.4
 github.com/klauspost/compress
+github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
+github.com/klauspost/compress/zlib
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/kr/fs v0.1.0
@@ -855,6 +870,9 @@ github.com/uber/jaeger-client-go/thrift
 github.com/uber/jaeger-client-go/thrift-gen/agent
 github.com/uber/jaeger-client-go/thrift-gen/jaeger
 github.com/uber/jaeger-client-go/thrift-gen/zipkincore
+# github.com/ubwbu/grok v1.0.6
+## explicit
+github.com/ubwbu/grok
 # github.com/ugorji/go/codec v1.2.6
 ## explicit
 github.com/ugorji/go/codec
@@ -873,7 +891,7 @@ github.com/vjeantet/grok
 github.com/whilp/git-urls
 # github.com/xanzy/ssh-agent v0.3.0
 github.com/xanzy/ssh-agent
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220331024026-678324178a3c
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220511102220-db7ca5ac4a29
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
@@ -1002,7 +1020,7 @@ golang.org/x/image/tiff/lzw
 golang.org/x/image/vp8
 golang.org/x/image/vp8l
 golang.org/x/image/webp
-# golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
+# golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -1029,7 +1047,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20220330033206-e17cdc41300f
+# golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -1074,13 +1092,14 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20210921142501-181ce0d877f6
+# google.golang.org/genproto v0.0.0-20220505152158-f39f71e6c8f3
+## explicit
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
 google.golang.org/genproto/protobuf/field_mask
-# google.golang.org/grpc v1.44.0
+# google.golang.org/grpc v1.46.0
 ## explicit
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -1090,6 +1109,7 @@ google.golang.org/grpc/balancer/base
 google.golang.org/grpc/balancer/grpclb/state
 google.golang.org/grpc/balancer/roundrobin
 google.golang.org/grpc/binarylog/grpc_binarylog_v1
+google.golang.org/grpc/channelz
 google.golang.org/grpc/codes
 google.golang.org/grpc/connectivity
 google.golang.org/grpc/credentials
@@ -1101,6 +1121,7 @@ google.golang.org/grpc/grpclog
 google.golang.org/grpc/health/grpc_health_v1
 google.golang.org/grpc/internal
 google.golang.org/grpc/internal/backoff
+google.golang.org/grpc/internal/balancer/gracefulswitch
 google.golang.org/grpc/internal/balancerload
 google.golang.org/grpc/internal/binarylog
 google.golang.org/grpc/internal/buffer
@@ -1112,6 +1133,7 @@ google.golang.org/grpc/internal/grpcrand
 google.golang.org/grpc/internal/grpcsync
 google.golang.org/grpc/internal/grpcutil
 google.golang.org/grpc/internal/metadata
+google.golang.org/grpc/internal/pretty
 google.golang.org/grpc/internal/resolver
 google.golang.org/grpc/internal/resolver/dns
 google.golang.org/grpc/internal/resolver/passthrough
@@ -1129,7 +1151,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.27.1
+# google.golang.org/protobuf v1.28.0
 ## explicit
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
@@ -1340,6 +1362,9 @@ k8s.io/client-go/util/connrotation
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/workqueue
+# k8s.io/cri-api v0.20.6 => k8s.io/cri-api v0.20.5
+## explicit
+k8s.io/cri-api/pkg/apis/runtime/v1alpha2
 # k8s.io/klog/v2 v2.40.1
 ## explicit
 k8s.io/klog/v2

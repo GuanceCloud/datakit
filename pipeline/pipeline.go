@@ -188,6 +188,24 @@ func loadPatterns() error {
 	return nil
 }
 
+// GbToUtf8 Gb to UTF-8.
+// http/api_pipeline.go.
+func GbToUtf8(s []byte, encoding string) ([]byte, error) {
+	var t transform.Transformer
+	switch encoding {
+	case "gbk":
+		t = simplifiedchinese.GBK.NewDecoder()
+	case "gb18030":
+		t = simplifiedchinese.GB18030.NewDecoder()
+	}
+	reader := transform.NewReader(bytes.NewReader(s), t)
+	d, e := ioutil.ReadAll(reader)
+	if e != nil {
+		return nil, e
+	}
+	return d, nil
+}
+
 func RunPlStr(cntStr, source string, maxMessageLen int, ng *parser.Engine) (*Result, error) {
 	result := &Result{
 		Output: nil,
@@ -234,22 +252,4 @@ func DecodeContent(content []byte, encode string) (string, error) {
 	default:
 	}
 	return string(content), nil
-}
-
-// GbToUtf8 Gb to UTF-8.
-// http/api_pipeline.go.
-func GbToUtf8(s []byte, encoding string) ([]byte, error) {
-	var t transform.Transformer
-	switch encoding {
-	case "gbk":
-		t = simplifiedchinese.GBK.NewDecoder()
-	case "gb18030":
-		t = simplifiedchinese.GB18030.NewDecoder()
-	}
-	reader := transform.NewReader(bytes.NewReader(s), t)
-	d, e := ioutil.ReadAll(reader)
-	if e != nil {
-		return nil, e
-	}
-	return d, nil
 }

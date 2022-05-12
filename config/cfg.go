@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package config manage datakit's configurations, include all inputs TOML configure.
 package config
 
@@ -9,7 +14,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -21,6 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
@@ -60,7 +65,7 @@ func DefaultConfig() *Config {
 			Filters:                   map[string][]string{},
 		},
 
-		DataWay: &dataway.DataWayCfg{
+		DataWayCfg: &dataway.DataWayCfg{
 			URLs: []string{},
 		},
 
@@ -110,6 +115,10 @@ func DefaultConfig() *Config {
 			},
 		},
 
+		Sinks: &Sinker{
+			Sink: []map[string]interface{}{{}},
+		},
+
 		Ulimit: 64000,
 	}
 
@@ -141,6 +150,10 @@ type GitRepository struct {
 type GitRepost struct {
 	PullInterval string           `toml:"pull_interval"`
 	Repos        []*GitRepository `toml:"repo"`
+}
+
+type Sinker struct {
+	Sink []map[string]interface{} `toml:"sink"`
 }
 
 type Config struct {
@@ -183,10 +196,12 @@ type Config struct {
 
 	InstallVer string `toml:"install_version,omitempty"`
 
-	HTTPAPI *dkhttp.APIConfig   `toml:"http_api"`
-	IOConf  *dkio.IOConfig      `toml:"io"`
-	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
-	Logging *LoggerCfg          `toml:"logging"`
+	HTTPAPI    *dkhttp.APIConfig   `toml:"http_api"`
+	IOConf     *dkio.IOConfig      `toml:"io"`
+	DataWayCfg *dataway.DataWayCfg `toml:"dataway,omitempty"`
+	DataWay    dataway.DataWay     `toml:"-"`
+	Sinks      *Sinker             `toml:"sinks"`
+	Logging    *LoggerCfg          `toml:"logging"`
 
 	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
 	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
@@ -305,30 +320,36 @@ func (c *Config) InitCfgSample(p string) error {
 }
 
 func (c *Config) setupDataway() error {
-	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
-	// 避免俩边配置了同样的 dataway, 造成数据混乱
-	if c.DataWay.DeprecatedURL != "" && len(c.DataWay.URLs) == 0 {
-		c.DataWay.URLs = []string{c.DataWay.DeprecatedURL}
+	if c.DataWayCfg == nil {
+		return fmt.Errorf("dataway config is empty")
 	}
 
-	if len(c.DataWay.URLs) == 0 {
-		return fmt.Errorf("dataway not set")
-	}
-	if c.DataWay.URLs[0] == datakit.DatawayDisableURL {
-		c.RunMode = datakit.ModeDev
-		return nil
-	} else {
-		c.RunMode = datakit.ModeNormal
+	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
+	// 避免俩边配置了同样的 dataway, 造成数据混乱
+	if c.DataWayCfg.DeprecatedURL != "" && len(c.DataWayCfg.URLs) == 0 {
+		c.DataWayCfg.URLs = []string{c.DataWayCfg.DeprecatedURL}
 	}
 
 	dataway.ExtraHeaders = map[string]string{
 		"X-Datakit-Info": fmt.Sprintf("%s; %s", c.Hostname, datakit.Version),
 	}
 
-	c.DataWay.Hostname = c.Hostname
+	c.DataWay = &dataway.DataWayDefault{}
 
-	// setup dataway
-	return c.DataWay.Apply()
+	c.DataWayCfg.Hostname = c.Hostname
+	if err := c.DataWay.Init(c.DataWayCfg); err != nil {
+		c.DataWay = nil
+		return err
+	}
+
+	if len(c.DataWayCfg.URLs) > 0 && c.DataWayCfg.URLs[0] == datakit.DatawayDisableURL {
+		c.RunMode = datakit.ModeDev
+		return nil
+	} else {
+		c.RunMode = datakit.ModeNormal
+	}
+
+	return nil
 }
 
 func (c *Config) setupGlobalTags() error {
@@ -443,8 +464,10 @@ func (c *Config) ApplyMainConfig() error {
 		}
 	}
 
-	if err := c.setupDataway(); err != nil {
-		return err
+	if c.DataWayCfg != nil && len(c.DataWayCfg.URLs) > 0 {
+		if err := c.setupDataway(); err != nil {
+			return err
+		}
 	}
 
 	datakit.AutoUpdate = c.AutoUpdate
@@ -617,29 +640,44 @@ func (c *Config) LoadEnvs() error {
 
 	// 多个 dataway 支持 ',' 分割
 	if v := datakit.GetEnv("ENV_DATAWAY"); v != "" {
-		if c.DataWay == nil {
-			c.DataWay = &dataway.DataWayCfg{}
+		if c.DataWayCfg == nil {
+			c.DataWayCfg = &dataway.DataWayCfg{}
 		}
-		c.DataWay.URLs = strings.Split(v, ",")
+		c.DataWayCfg.URLs = strings.Split(v, ",")
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_TIMEOUT"); v != "" {
+		if c.DataWayCfg == nil {
+			c.DataWayCfg = &dataway.DataWayCfg{}
+		}
 		_, err := time.ParseDuration(v)
 		if err != nil {
 			l.Warnf("invalid ENV_DATAWAY_TIMEOUT: %s", v)
-			c.DataWay.HTTPTimeout = "30s"
+			c.DataWayCfg.HTTPTimeout = "30s"
 		} else {
-			c.DataWay.HTTPTimeout = v
+			c.DataWayCfg.HTTPTimeout = v
 		}
 	}
 
+	if v := datakit.GetEnv("ENV_DATAWAY_ENABLE_HTTPTRACE"); v != "" {
+		c.DataWayCfg.EnableHTTPTrace = true
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_HTTP_PROXY"); v != "" {
+		c.DataWayCfg.HTTPProxy = v
+		c.DataWayCfg.Proxy = true
+	}
+
 	if v := datakit.GetEnv("ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST"); v != "" {
+		if c.DataWayCfg == nil {
+			c.DataWayCfg = &dataway.DataWayCfg{}
+		}
 		value, err := strconv.ParseInt(v, 10, 64)
 		if err == nil {
 			if value <= 0 {
 				l.Warnf("invalid ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST: %s", v)
 			} else {
-				c.DataWay.MaxIdleConnsPerHost = int(value)
+				c.DataWayCfg.MaxIdleConnsPerHost = int(value)
 			}
 		}
 	}
@@ -712,6 +750,55 @@ func (c *Config) LoadEnvs() error {
 			}, // Repos
 		} // GitRepost
 	}
+
+	if err := c.getSinkConfig(); err != nil {
+		l.Fatalf("getSinkConfig failed: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (c *Config) getSinkConfig() error {
+	sinkMetric := datakit.GetEnv("ENV_SINK_M")
+	sinkNetwork := datakit.GetEnv("ENV_SINK_N")
+	sinkKeyEvent := datakit.GetEnv("ENV_SINK_K")
+	sinkObject := datakit.GetEnv("ENV_SINK_O")
+	sinkCustomObject := datakit.GetEnv("ENV_SINK_CO")
+	sinkLogging := datakit.GetEnv("ENV_SINK_L")
+	sinkTracing := datakit.GetEnv("ENV_SINK_T")
+	sinkRUM := datakit.GetEnv("ENV_SINK_R")
+	sinkSecurity := datakit.GetEnv("ENV_SINK_S")
+
+	categoryShorts := []string{
+		datakit.SinkCategoryMetric,
+		datakit.SinkCategoryNetwork,
+		datakit.SinkCategoryKeyEvent,
+		datakit.SinkCategoryObject,
+		datakit.SinkCategoryCustomObject,
+		datakit.SinkCategoryLogging,
+		datakit.SinkCategoryTracing,
+		datakit.SinkCategoryRUM,
+		datakit.SinkCategorySecurity,
+	}
+
+	args := []string{
+		sinkMetric,
+		sinkNetwork,
+		sinkKeyEvent,
+		sinkObject,
+		sinkCustomObject,
+		sinkLogging,
+		sinkTracing,
+		sinkRUM,
+		sinkSecurity,
+	}
+
+	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
+	if err != nil {
+		return err
+	}
+	c.Sinks.Sink = sinks
 
 	if v := datakit.GetEnv("ENV_ULIMIT"); v != "" {
 		u, err := strconv.ParseUint(v, 10, 64)
@@ -888,17 +975,14 @@ func symlink(src, dst string) error {
 }
 
 func GetToken() string {
-	urls := Cfg.DataWay.URLs
+	if Cfg.DataWay == nil {
+		return ""
+	}
 
-	if len(urls) > 0 {
-		url := urls[0] // only choose the first
-		reg := regexp.MustCompile(`.*token=(.*)$`)
-		if reg != nil {
-			result := reg.FindAllStringSubmatch(url, -1)
-			if len(result) > 0 && len(result[0]) > 1 {
-				return result[0][1]
-			}
-		}
+	tokens := Cfg.DataWay.GetTokens()
+
+	if len(tokens) > 0 {
+		return tokens[0]
 	}
 
 	return ""

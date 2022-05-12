@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package sender;
+
+option go_package = "./;sender";
+
+message PBData {
+  string Category = 1;
+  bytes Lines = 2;
+}

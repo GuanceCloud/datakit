@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package mongodb
 
 /* test: failed
@@ -198,7 +203,7 @@ func TestTlsConnectCollect(t *testing.T) {
 	input := &Input{
 		Interval: datakit.Duration{Duration: 3 * time.Second},
 		// Servers:               []string{"mongodb://127.0.0.1:27017"},
-		Servers:               []string{"mongodb://10.200.7.21:27017"},
+		Servers:               []string{"mongodb://1.1.1.1:27017"},
 		GatherReplicaSetStats: true,
 		GatherClusterStats:    true,
 		GatherPerDBStats:      true,

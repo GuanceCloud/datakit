@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package main
 
 import (
@@ -18,11 +23,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	plRemote "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote"
-	plworker "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond"
@@ -155,14 +160,14 @@ func tryLoadConfig() {
 	config.MoveDeprecatedCfg()
 
 	l.Infof("load config from %s...", datakit.MainConfPath)
-	for {
+	checkutil.CheckConditionExit(func() bool {
 		if err := config.LoadCfg(config.Cfg, datakit.MainConfPath); err != nil {
 			l.Errorf("load config failed: %s", err)
-			time.Sleep(time.Second)
-		} else {
-			break
+			return false
 		}
-	}
+
+		return true
+	})
 
 	l = logger.SLogger("main")
 
@@ -191,21 +196,28 @@ func initPythonCore() error {
 }
 
 func doRun() error {
-	if err := io.Start(); err != nil {
-		return err
-	}
+	// check io start
+	checkutil.CheckConditionExit(func() bool {
+		if err := io.Start(config.Cfg.Sinks.Sink); err != nil {
+			return false
+		}
 
-	plworker.InitManager(-1)
+		return true
+	})
 
-	if config.Cfg.EnableElection {
-		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
-	}
+	if config.Cfg.DataWay != nil {
+		if config.Cfg.EnableElection {
+			election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
+		}
 
-	if len(config.Cfg.DataWay.URLs) == 1 {
-		// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/524
-		plRemote.StartPipelineRemote(config.Cfg.DataWay.URLs)
+		if len(config.Cfg.DataWayCfg.URLs) == 1 {
+			// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/524
+			plRemote.StartPipelineRemote(config.Cfg.DataWayCfg.URLs)
+		} else {
+			io.FeedLastError(datakit.DatakitInputName, "dataway empty or multi, not run pipeline remote")
+		}
 	} else {
-		io.FeedLastError(datakit.DatakitInputName, "dataway empty or multi, not run pipeline remote")
+		l.Warn("Ignore election or pipeline remote because dataway is not set")
 	}
 
 	if err := initPythonCore(); err != nil {

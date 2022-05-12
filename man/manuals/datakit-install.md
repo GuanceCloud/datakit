@@ -130,6 +130,20 @@ NAME1="value1" NAME2="value2"
 - `DK_GIT_BRANCH`: 指定拉取的分支。<stong>为空则是默认</strong>，默认是远程指定的主分支，一般是 `master`。
 - `DK_GIT_INTERVAL`: 定时拉取的间隔。（如 `1m`）
 
+### Sinker 相关配置
+
+- `DK_SINK_M`:  安装时指定 Metric 的 sink。
+- `DK_SINK_N`:  安装时指定 Network 的 sink。
+- `DK_SINK_K`:  安装时指定 KeyEvent 的 sink。
+- `DK_SINK_O`:  安装时指定 Object 的 sink。
+- `DK_SINK_CO`: 安装时指定 CustomObject 的 sink。
+- `DK_SINK_L`:  安装时指定 Logging 的 sink。
+- `DK_SINK_T`:  安装时指定 Tracing 的 sink。
+- `DK_SINK_R`:  安装时指定 RUM 的 sink。
+- `DK_SINK_S`:  安装时指定 Security 的 sink。
+
+参见 [M3DB 示例](datakit-sink-m3db#5ccfbb76)
+
 ### cgroup 配置相关
 
 以下安装选项仅 Linux 平台支持：
