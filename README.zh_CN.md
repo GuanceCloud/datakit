@@ -64,7 +64,7 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPol
 
 DataKit 开发过程中依赖了一些外部工具，我们必须先将这些工具准备好才能比较顺利的编译 DataKit。
 
-> - **建议在 Ubuntu 20.04+ 下编译 DataKit**, 其它 Linux 发行版在安装这些依赖时可能会碰到困。另外，不建议在 Windows 上编译
+> - **建议在 Ubuntu 20.04+ 下编译 DataKit**, 其它 Linux 发行版在安装这些依赖时可能会碰到困难。另外，不建议在 Windows 上编译
 > - 请在命令行终端运行 make，暂时尚未针对 Goland/VSCode 等做编译适配
 > - 请**先安装这些依赖，然后再 clone 代码**。如果在 DataKit 代码目录来安装这些依赖，可能导致一些 vendor 库拉取的问题
 
