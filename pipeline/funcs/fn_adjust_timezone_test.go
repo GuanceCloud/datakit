@@ -11,6 +11,7 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const Hour8 = int64(8 * time.Hour)
@@ -236,7 +237,11 @@ func TestAdjustTimezone(t *testing.T) {
 				}
 				return
 			}
-			ret, err := runner.Run(tc.in)
+			pt, _ := io.MakePoint("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, time.Now())
+			ret, err := runner.Run(pt)
 			tu.Equals(t, nil, err)
 			t.Log(ret)
 			v := ret.Fields[tc.outkey]

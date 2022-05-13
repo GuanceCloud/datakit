@@ -7,8 +7,10 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestAddPattern(t *testing.T) {
@@ -161,8 +163,11 @@ func TestAddPattern(t *testing.T) {
 				}
 				return
 			}
-
-			if ret, err := runner.Run(tc.in); err == nil {
+			pt, _ := io.MakePoint("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, time.Now())
+			if ret, err := runner.Run(pt); err == nil {
 				t.Log(ret)
 				v := ret.Fields[tc.outkey]
 				tu.Equals(t, tc.expect, v)

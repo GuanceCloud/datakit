@@ -565,7 +565,7 @@ func (l *Lexer) emit(t ItemType) {
 
 	l.start = l.pos
 	l.scannedItem = true
-	log.Debugf("emit: %+#v", l.itemp)
+	// log.Debugf("emit: %+#v", l.itemp)
 }
 
 func (l *Lexer) errorf(format string, args ...interface{}) stateFn {

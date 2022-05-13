@@ -19,7 +19,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -233,19 +234,31 @@ func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 		}
 		l.Debugf("newTags = %#v", newTags)
 
-		task := &worker.TaskTemplate{
-			TaskName:        inputName + "/" + ipt.Listen,
-			ContentDataType: worker.ContentString,
-			Tags:            newTags,
-			ScriptName:      ipt.Pipeline,
-			Source:          ipt.Source,
-			Content:         []string{v.Message},
-			Category:        datakit.Logging,
-			TS:              time.Now(),
-			MaxMessageLen:   ipt.MaximumLength,
+		pt, err := io.MakePoint(ipt.Source, newTags,
+			map[string]interface{}{pipeline.PipelineMessageField: v.Message},
+			time.Now(),
+		)
+		if err != nil {
+			l.Error(err)
+			continue
 		}
-		// 阻塞型channel
-		_ = worker.FeedPipelineTaskBlock(task)
+		drop := false
+		if script, ok := scriptstore.QueryScript(ipt.Pipeline); ok {
+			if ptRet, dropRet, err := pipeline.RunScript(pt, script, func(res *pipeline.Result) (*pipeline.Result, error) {
+				res.CheckFieldValLen(ipt.MaximumLength)
+				return pipeline.ResultUtilsLoggingProcessor(res, false, nil), nil
+			}); err != nil {
+				l.Error(err)
+			} else {
+				pt = ptRet
+				drop = dropRet
+			}
+		}
+		if !drop {
+			if err := io.Feed(inputName+"/"+ipt.Listen, datakit.Logging, []*io.Point{pt}, nil); err != nil {
+				l.Error(err)
+			}
+		}
 	}
 }
 

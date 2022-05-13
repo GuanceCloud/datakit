@@ -6,61 +6,60 @@
 package scriptstore
 
 import (
+	"fmt"
 	"os"
 	"testing"
 )
 
 func TestCall(t *testing.T) {
 	LoadDefaultDotPScript2Store()
-	ReloadAllDefaultDotPScript2Store()
-	LoadGitReposDotPScript2Store(nil)
 	ReloadAllGitReposDotPScript2Store(nil)
-	LoadRemoteDotPScript2Store(nil)
 	ReloadAllRemoteDotPScript2Store(nil)
 	_ = os.WriteFile("/tmp/nginx-time123.p", []byte(`
 	json(_, time)
 	set_tag(bb, "aa0")
 	default_time(time)
 	`), os.FileMode(0o755))
-	LoadDotPScript2StoreWithNS("xxxx", []string{"/tmp/nginx-time.p123"}, "")
+	LoadDotPScript2StoreWithNS("xxxx", "", []string{"/tmp/nginx-time.p123"})
 	_ = os.Remove("/tmp/nginx-time123.p")
-	LoadDotPScript2StoreWithNS("xxx", nil, "")
+	LoadDotPScript2StoreWithNS("xxx", "", nil)
 }
 
 func TestPlScriptStore(t *testing.T) {
-	store := &DotPScriptStore{
-		scripts: map[string]map[string]*ScriptInfo{},
-	}
+	store := NewScriptStore()
 
-	err := store.appendScript(DefaultScriptNS, "abc.p", "default_time(time)", true)
+	err := store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time)"})
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = store.appendScript(GitRepoScriptNS, "abc.p", "default_time(time)", true)
+	err = store.UpdateScriptsWithNS(GitRepoScriptNS, map[string]string{"abc.p": "default_time(time)"})
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = store.appendScript(RemoteScriptNS, "abc.p", "default_time(time)", true)
+	err = store.UpdateScriptsWithNS(RemoteScriptNS, map[string]string{"abc.p": "default_time(time)"})
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = store.appendScript(RemoteScriptNS, "abc.p", "default(time)", true)
-	if err == nil {
-		t.Error("err")
-	}
-
-	for _, ns := range plScriptNSSearchOrder {
-		sInfo, err := store.queryScript("abc.p", nil)
-		if err != nil {
-			t.Error(err)
-			return
+	for i, ns := range plScriptNSSearchOrder {
+		store.UpdateScriptsWithNS(ns, nil)
+		if i < len(plScriptNSSearchOrder)-1 {
+			sInfo, ok := store.Get("abc.p")
+			if !ok {
+				t.Error(fmt.Errorf("!ok"))
+				return
+			}
+			if sInfo.ns != plScriptNSSearchOrder[i+1] {
+				t.Error(sInfo.ns, plScriptNSSearchOrder[i+1])
+			}
+		} else {
+			_, ok := store.Get("abc.p")
+			if ok {
+				t.Error(fmt.Errorf("shoud not be ok"))
+				return
+			}
 		}
-		if sInfo.ns != ns {
-			t.Error(sInfo.ns, ns)
-		}
-		store.cleanAllScriptWithNS(ns)
 	}
 }

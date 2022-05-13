@@ -19,6 +19,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
@@ -56,70 +57,30 @@ type PipelineCfg struct {
 	RemotePullInterval string            `toml:"remote_pull_interval"`
 }
 
-func NewPipeline(srciptname string) (*Pipeline, error) {
-	script, err := scriptstore.QueryScript(srciptname, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &Pipeline{
-		scriptInfo: script,
-	}, nil
-}
-
 func NewPipelineFromFile(path string) (*Pipeline, error) {
 	data, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
 
-	sc, err := scriptstore.NewScriptInfo("", string(data), "")
+	sc, err := scriptstore.NewScript("", string(data), "")
 	if err != nil {
 		return nil, err
 	}
 	return &Pipeline{
-		DisableUpdate: true,
-		scriptInfo:    sc,
+		scriptInfo: sc,
 	}, nil
 }
 
 type Pipeline struct {
-	DisableUpdate bool
-	scriptInfo    *scriptstore.ScriptInfo
+	scriptInfo *scriptstore.PlScript
 }
 
-func (p *Pipeline) Run(data string, source string) (*Result, error) {
-	if p.scriptInfo.Engine() == nil {
-		return nil, fmt.Errorf("pipeline engine not initialized")
+func (p *Pipeline) Run(pt *io.Point, callback func(*Result) (*Result, error)) (*io.Point, bool, error) {
+	if p.scriptInfo == nil || p.scriptInfo.Engine() == nil {
+		return nil, false, fmt.Errorf("pipeline engine not initialized")
 	}
-
-	if result, err := RunPlStr(data, source, 0, p.scriptInfo.Engine()); err != nil {
-		return nil, err
-	} else {
-		return result, nil
-	}
-}
-
-func (p *Pipeline) RunByte(data []byte, encode string, source string) (*Result, error) {
-	if p.scriptInfo.Engine() == nil {
-		return nil, fmt.Errorf("pipeline engine not initialized")
-	}
-
-	if result, err := RunPlByte(data, encode, source, 0, p.scriptInfo.Engine()); err != nil {
-		return nil, err
-	} else {
-		return result, nil
-	}
-}
-
-func (p *Pipeline) UpdateScriptInfo() error {
-	var err error
-	if p.DisableUpdate {
-		return fmt.Errorf("current pipeline update disabled")
-	}
-	if p.scriptInfo, err = scriptstore.QueryScript(p.scriptInfo.Name(), p.scriptInfo); err != nil {
-		return err
-	}
-	return nil
+	return RunScript(pt, p.scriptInfo, callback)
 }
 
 func Init(pipelineCfg *PipelineCfg) error {
@@ -206,35 +167,39 @@ func GbToUtf8(s []byte, encoding string) ([]byte, error) {
 	return d, nil
 }
 
-func RunPlStr(cntStr, source string, maxMessageLen int, ng *parser.Engine) (*Result, error) {
+func RunScript(pt *io.Point, script *scriptstore.PlScript, callback func(*Result) (*Result, error)) (*io.Point, bool, error) {
 	result := &Result{
 		Output: nil,
 	}
-	if ng != nil {
+	if script != nil && script.Engine() != nil {
 		var err error
-		if result.Output, err = ng.Run(cntStr); err != nil {
+		if result.Output, err = script.Engine().Run(pt); err != nil {
 			l.Debug(err)
 			result.Err = err.Error()
 		}
 	} else {
 		result.Output = &parser.Output{
-			Cost: map[string]string{},
-			Tags: map[string]string{},
-			Fields: map[string]interface{}{
-				PipelineMessageField: cntStr,
-			},
+			Tags:   map[string]string{},
+			Fields: map[string]interface{}{},
+		}
+		if fields, err := pt.Fields(); err != nil {
+			return nil, false, err
+		} else if v, ok := fields[PipelineMessageField]; ok {
+			result.Output.Fields[PipelineMessageField] = v
 		}
 	}
-	result.preprocessing(source, maxMessageLen)
-	return result, nil
-}
-
-func RunPlByte(cntByte []byte, encode string, source string, maxMessageLen int, ng *parser.Engine) (*Result, error) {
-	cntStr, err := DecodeContent(cntByte, encode)
-	if err != nil {
-		return nil, err
+	var err error
+	if callback != nil {
+		result, err = callback(result)
+		if err != nil {
+			return nil, false, err
+		}
 	}
-	return RunPlStr(cntStr, source, maxMessageLen, ng)
+	if pt, err := io.MakePoint(result.Output.Measurement, result.Output.Tags, result.Output.Fields, result.Output.Time); err != nil {
+		return nil, false, err
+	} else {
+		return pt, result.IsDropped(), nil
+	}
 }
 
 func DecodeContent(content []byte, encode string) (string, error) {

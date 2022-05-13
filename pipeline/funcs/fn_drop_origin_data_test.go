@@ -5,7 +5,12 @@
 
 package funcs
 
-import "testing"
+import (
+	"testing"
+	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+)
 
 func TestDropOriginData(t *testing.T) {
 	cases := []struct {
@@ -36,8 +41,11 @@ func TestDropOriginData(t *testing.T) {
 				}
 				return
 			}
-
-			ret, err := runner.Run(tc.in)
+			pt, _ := io.MakePoint("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, time.Now())
+			ret, err := runner.Run(pt)
 			if err != nil {
 				t.Error(err)
 				return

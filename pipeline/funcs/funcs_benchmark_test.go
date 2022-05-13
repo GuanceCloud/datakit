@@ -7,6 +7,9 @@ package funcs
 
 import (
 	"testing"
+	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 /*
@@ -158,7 +161,11 @@ func BenchmarkParseLog(b *testing.B) {
 	data := `2017-12-29T12:33:33.095243Z         2 Query     SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE CREATE_OPTIONS LIKE '%partitioned%'`
 
 	for n := 0; n < b.N; n++ {
-		if _, err := runner.Run(data); err != nil {
+		pt, _ := io.MakePoint("test", map[string]string{},
+			map[string]interface{}{
+				"message": data,
+			}, time.Now())
+		if _, err := runner.Run(pt); err != nil {
 			b.Error(err)
 		}
 	}
@@ -187,7 +194,11 @@ func BenchmarkParseLog_tz(b *testing.B) {
 	data := `2017-12-29T12:33:33.095243Z     1.1.1.1    2 `
 
 	for n := 0; n < b.N; n++ {
-		if _, err := runner.Run(data); err != nil {
+		pt, _ := io.MakePoint("test", map[string]string{},
+			map[string]interface{}{
+				"message": data,
+			}, time.Now())
+		if _, err := runner.Run(pt); err != nil {
 			b.Error(err)
 		}
 	}
@@ -207,7 +218,11 @@ grok(_, "%{IPORHOST:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \\[%
 	// data := `fe80:d::127.0.0.1 - - [21/Jul/2021:14:14:38 +0800] "GET /?1 HTTP/1.1" 200 2178 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.164 Safari/537.36"`
 
 	for n := 0; n < b.N; n++ {
-		if _, err := runner.Run(data); err != nil {
+		pt, _ := io.MakePoint("test", map[string]string{},
+			map[string]interface{}{
+				"message": data,
+			}, time.Now())
+		if _, err := runner.Run(pt); err != nil {
 			b.Error(err)
 		}
 	}
@@ -252,7 +267,11 @@ default_time(time)
 	}
 	data := `127.0.0.1 - - [21/Jul/2021:14:14:38 +0800] "GET /?1 HTTP/1.1" 200 2178 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.164 Safari/537.36"`
 	for n := 0; n < b.N; n++ {
-		if _, err := runner.Run(data); err != nil {
+		pt, _ := io.MakePoint("test", map[string]string{},
+			map[string]interface{}{
+				"message": data,
+			}, time.Now())
+		if _, err := runner.Run(pt); err != nil {
 			b.Error(err)
 		}
 	}
@@ -276,7 +295,11 @@ func BenchmarkParseLogWithTfmt(b *testing.B) {
 	data := `2021-07-20T12:33:33.095243Z         2 Query     SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE CREATE_OPTIONS LIKE '%partitioned%'`
 
 	for n := 0; n < b.N; n++ {
-		if _, err := runner.Run(data); err != nil {
+		pt, _ := io.MakePoint("test", map[string]string{},
+			map[string]interface{}{
+				"message": data,
+			}, time.Now())
+		if _, err := runner.Run(pt); err != nil {
 			b.Error(err)
 		}
 	}
@@ -301,7 +324,11 @@ func BenchmarkParseLogWithTfmt_tz(b *testing.B) {
 	data := `2021-07-20T12:33:33.095243Z         2 Query     SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE CREATE_OPTIONS LIKE '%partitioned%'`
 
 	for n := 0; n < b.N; n++ {
-		if _, err := runner.Run(data); err != nil {
+		pt, _ := io.MakePoint("test", map[string]string{},
+			map[string]interface{}{
+				"message": data,
+			}, time.Now())
+		if _, err := runner.Run(pt); err != nil {
 			b.Error(err)
 		}
 	}
@@ -321,7 +348,11 @@ func BenchmarkParseLogWithTfmt_NoAddPattern(b *testing.B) {
 	data := `2021-07-20T12:33:33.095243Z         2 Query     SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE CREATE_OPTIONS LIKE '%partitioned%'`
 
 	for n := 0; n < b.N; n++ {
-		if _, err := runner.Run(data); err != nil {
+		pt, _ := io.MakePoint("test", map[string]string{},
+			map[string]interface{}{
+				"message": data,
+			}, time.Now())
+		if _, err := runner.Run(pt); err != nil {
 			b.Error(err)
 		}
 	}

@@ -11,11 +11,33 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"sync"
 	"time"
 
 	conv "github.com/spf13/cast"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 )
+
+var ngDataPool = sync.Pool{
+	New: func() interface{} {
+		return &EngineData{
+			grokPatternStack: make([]map[string]*grok.GrokPattern, 0),
+			grokPatternIndex: make([]int, 0),
+			ts:               time.Now(),
+		}
+	},
+}
+
+func getNgData() *EngineData {
+	data, _ := ngDataPool.Get().(*EngineData)
+	return data
+}
+
+func putNgData(ngData *EngineData) {
+	ngData.Reset()
+	ngDataPool.Put(ngData)
+}
 
 type phase string
 
@@ -30,8 +52,6 @@ type (
 )
 
 type Engine struct {
-	debugMode bool
-
 	grok *grok.Grok
 
 	callbacks     map[string]FuncCallback
@@ -49,38 +69,58 @@ type EngineData struct {
 	grokPatternIndex []int
 	stackDeep        int
 
-	stopRunPP bool // stop run()
+	stopRunPL bool // stop run()
 
 	ts      time.Time
 	lastErr error
+}
+
+func (ngData *EngineData) Reset() {
+	ngData.content = ""
+
+	ngData.output = nil
+
+	ngData.readOnlyGrok = nil
+	if len(ngData.grokPatternStack) > 0 {
+		ngData.grokPatternStack = ngData.grokPatternStack[:0]
+	} else if ngData.grokPatternStack == nil {
+		ngData.grokPatternStack = make([]map[string]*grok.GrokPattern, 0)
+	}
+	if len(ngData.grokPatternIndex) > 0 {
+		ngData.grokPatternIndex = ngData.grokPatternIndex[:0]
+	} else if ngData.grokPatternIndex == nil {
+		ngData.grokPatternIndex = make([]int, 0)
+	}
+	ngData.stackDeep = 0
+
+	ngData.stopRunPL = false
+
+	ngData.ts = time.Now()
+	ngData.lastErr = nil
 }
 
 //nolint:structcheck,unused
 type Output struct {
 	Error string
 
-	Dropped bool
+	Drop bool
 
-	DataMeasurement string
-	DataTS          int64
+	Measurement string
+	Time        time.Time
 
 	Tags   map[string]string
 	Fields map[string]interface{}
-
-	Cost map[string]string
 }
 
 func NewOutput() *Output {
 	return &Output{
 		Tags:   make(map[string]string),
 		Fields: make(map[string]interface{}),
-		Cost:   make(map[string]string),
 	}
 }
 
 func (ng *Engine) Copy() *Engine {
 	newNg := &Engine{
-		debugMode: ng.debugMode,
 		grok: &grok.Grok{
 			CompliedGrokRe: make(map[string]map[string]*grok.GrokRegexp),
 		},
@@ -111,7 +151,6 @@ func NewEngine(script string, callbacks map[string]FuncCallback, check map[strin
 		return nil, fmt.Errorf("invalid AST, should not been here")
 	}
 	ng := &Engine{
-		debugMode: debug,
 		grok: &grok.Grok{
 			GlobalDenormalizedPatterns: DenormalizedGlobalPatterns,
 			DenormalizedPatterns:       make(map[string]*grok.GrokPattern),
@@ -138,25 +177,36 @@ func (ng *Engine) Check() error {
 	return ng.stmts.Check(ng, data)
 }
 
-func (ng *Engine) Run(input string) (*Output, error) {
-	data := &EngineData{
-		output:           NewOutput(),
-		grokPatternStack: make([]map[string]*grok.GrokPattern, 0),
-		grokPatternIndex: make([]int, 0),
-		readOnlyGrok:     &ng.grok,
-		ts:               time.Now(),
+func (ng *Engine) Run(pt *io.Point) (*Output, error) {
+	fields, err := pt.Fields()
+	if err != nil {
+		return nil, err
 	}
-	data.content = input
-	data.output.Fields["message"] = input
-	data.stopRunPP = false
+
+	data := getNgData()
+	defer putNgData(data)
+
+	data.output = &Output{
+		Fields:      fields,
+		Tags:        pt.Tags(),
+		Measurement: pt.Name(),
+		Time:        pt.Time(),
+	}
+	// data.output.Fields = fields
+	// data.output.Tags = pt.Tags()
+	// data.output.DataMeasurement = pt.Name()
+	// data.output.DataTS = pt.UnixNano()
+	data.readOnlyGrok = &ng.grok
+
+	if cnt, ok := data.output.Fields["message"]; ok {
+		if cnt, ok := cnt.(string); ok {
+			data.content = cnt
+		}
+	}
+
+	data.stopRunPL = false
 	ng.stmts.Run(ng, data)
-	if src, err := data.GetContentStr("source"); err == nil {
-		data.output.DataMeasurement = src
-		_ = data.DeleteContent("source")
-	}
-	if ng.debugMode {
-		data.output.Cost["script-total"] = time.Since(data.ts).String()
-	}
+
 	return result(data), data.lastErr
 }
 
@@ -232,7 +282,7 @@ func (ngData *EngineData) SetKey(k string, v interface{}) {
 }
 
 func (ngData *EngineData) MarkDrop() {
-	ngData.output.Dropped = true
+	ngData.output.Drop = true
 }
 
 const (
@@ -477,7 +527,7 @@ func (ngData *EngineData) DeleteContent(k interface{}) error {
 
 func (e Stmts) Run(ng *Engine, data *EngineData) {
 	for _, stmt := range e {
-		if data.lastErr != nil || data.stopRunPP {
+		if data.lastErr != nil || data.stopRunPL {
 			return
 		}
 		switch v := stmt.(type) {
@@ -486,7 +536,7 @@ func (e Stmts) Run(ng *Engine, data *EngineData) {
 		case *FuncStmt:
 			v.Run(ng, data)
 			if v.Name == "exit" {
-				data.stopRunPP = true
+				data.stopRunPL = true
 			}
 
 		case *AssignmentStmt:

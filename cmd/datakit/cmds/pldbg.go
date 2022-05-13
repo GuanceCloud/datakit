@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
@@ -61,13 +62,21 @@ func pipelineDebugger(plname, txt string) error {
 	}
 
 	start := time.Now()
-	res, err := pl.Run(txt, "")
+	pt, _ := io.MakePoint("", nil, map[string]interface{}{pipeline.PipelineMessageField: txt}, time.Now())
+	res, dropFlag, err := pl.Run(pt, nil)
 	if err != nil {
 		return fmt.Errorf("run pipeline failed: %w", err)
 	}
 	cost := time.Since(start)
 
-	if res == nil || (len(res.Output.Fields) == 0 && len(res.Output.Tags) == 0) {
+	if res == nil {
+		errorf("[E] No data extracted from pipeline\n")
+		return nil
+	}
+
+	fields, _ := res.Fields()
+	tags := res.Tags()
+	if len(fields) == 0 && len(tags) == 0 {
 		errorf("[E] No data extracted from pipeline\n")
 		return nil
 	}
@@ -75,30 +84,28 @@ func pipelineDebugger(plname, txt string) error {
 	result := map[string]interface{}{}
 	maxWidth := 0
 
-	if plTime, err := res.GetTime(); err == nil {
-		if *flagPLDate {
-			result["time"] = plTime
-		} else {
-			result["time"] = plTime.UnixNano()
-		}
+	if *flagPLDate {
+		result["time"] = res.Time()
+	} else {
+		result["time"] = res.Time().UnixNano()
 	}
 
-	for k, v := range res.Output.Fields {
+	for k, v := range fields {
 		if len(k) > maxWidth {
 			maxWidth = len(k)
 		}
 		result[k] = v
 	}
 
-	for k, v := range res.Output.Tags {
+	for k, v := range tags {
 		result[k+"#"] = v
 		if len(k)+1 > maxWidth {
 			maxWidth = len(k) + 1
 		}
 	}
 
-	if res.Output.DataMeasurement != "" {
-		result["source#"] = res.Output.DataMeasurement
+	if res.Name() != "" {
+		result["source#"] = res.Name()
 	}
 
 	if *flagPLTable {
@@ -122,7 +129,7 @@ func pipelineDebugger(plname, txt string) error {
 
 	infof("---------------\n")
 	infof("Extracted %d fields, %d tags; drop: %v, cost: %v\n",
-		len(res.Output.Fields), len(res.Output.Tags), res.Output.Dropped, cost)
+		len(fields), len(tags), dropFlag, cost)
 
 	return nil
 }

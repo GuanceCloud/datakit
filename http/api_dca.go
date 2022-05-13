@@ -17,12 +17,15 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -523,27 +526,48 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 	context.success(pipeline)
 }
 
+func plCallback(res *pipeline.Result) (*pipeline.Result, error) {
+	// res.CheckFieldValLen(0)
+	return pipeline.ResultUtilsLoggingProcessor(res, false, nil), nil
+}
+
 func pipelineTest(pipelineFile string, text string) (string, error) {
 	pl, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, pipelineFile))
 	if err != nil {
 		return "", err
 	}
 
-	res, err := pl.Run(text, "")
+	pt, _ := io.MakePoint("", nil, map[string]interface{}{pipeline.PipelineMessageField: text}, time.Now())
+	pt, dropFlag, err := pl.Run(pt, plCallback)
 	if err != nil {
 		return "", err
 	}
 
-	if res == nil || (len(res.Output.Tags) == 0 && len(res.Output.Fields) == 0) {
+	if pt == nil {
 		l.Debug("No data extracted from pipeline")
 		return "", nil
 	}
 
-	if res.Output.Dropped {
+	fields, err := pt.Fields()
+	if err != nil {
+		return "", err
+	}
+	tags := pt.Tags()
+
+	if dropFlag {
 		l.Debug("the current log has been dropped by the pipeline script")
 		return "", nil
 	}
 
+	res := pipeline.Result{
+		Output: &parser.Output{
+			Drop:        dropFlag,
+			Measurement: pt.Name(),
+			Time:        pt.Time(),
+			Tags:        tags,
+			Fields:      fields,
+		},
+	}
 	if j, err := json.Marshal(res); err != nil {
 		return "", err
 	} else {

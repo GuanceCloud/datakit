@@ -7,8 +7,10 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestExit(t *testing.T) {
@@ -43,14 +45,17 @@ func TestExit(t *testing.T) {
 				}
 				return
 			}
-
-			ret, err := runner.Run(tc.in)
+			pt, _ := io.MakePoint("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, time.Now())
+			ret, err := runner.Run(pt)
 			if err != nil {
 				t.Error(err)
 				return
 			}
 			t.Log(ret)
-			if ret.Dropped {
+			if ret.Drop {
 				return
 			}
 			t.Log(ret)

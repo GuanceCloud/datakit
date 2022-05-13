@@ -7,13 +7,15 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 type funcCase struct {
 	name     string
-	data     string
+	in       string
 	script   string
 	expected interface{}
 	key      string
@@ -22,7 +24,7 @@ type funcCase struct {
 func TestDecode(t *testing.T) {
 	testCase := []*funcCase{
 		{
-			data:   "他没测试哎",
+			in:     "他没测试哎",
 			script: `decode(_,"gbk")`,
 			key:    "changed",
 		},
@@ -32,12 +34,15 @@ func TestDecode(t *testing.T) {
 			decode, _ := NewDecoder("gbk")
 			runner, err := NewTestingRunner(tc.script)
 			tu.Equals(t, nil, err)
-
-			ret, err := runner.Run(tc.data)
+			pt, _ := io.MakePoint("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, time.Now())
+			ret, err := runner.Run(pt)
 			tu.Equals(t, nil, err)
 
 			r := ret.Fields[tc.key]
-			res, _ := decode.decoder.String(tc.data)
+			res, _ := decode.decoder.String(tc.in)
 			tu.Equals(t, nil, err)
 			tu.Equals(t, res, r)
 

@@ -28,8 +28,6 @@ const (
 type Result struct {
 	Output *parser.Output
 
-	TS time.Time
-
 	Err string
 }
 
@@ -42,7 +40,6 @@ func NewResult() *Result {
 		Output: &parser.Output{
 			Tags:   make(map[string]string),
 			Fields: make(map[string]interface{}),
-			Cost:   make(map[string]string),
 		},
 	}
 }
@@ -64,25 +61,25 @@ func (r *Result) GetField(k string) (interface{}, error) {
 }
 
 func (r *Result) GetMeasurement() string {
-	return r.Output.DataMeasurement
+	return r.Output.Measurement
 }
 
 func (r *Result) SetMeasurement(m string) {
-	r.Output.DataMeasurement = m
+	r.Output.Measurement = m
 }
 
 func (r *Result) GetTime() (time.Time, error) {
 	var ts time.Time
 	if v, err := r.GetField(PipelineTimeField); err == nil {
 		if nanots, ok := v.(int64); ok {
-			r.TS = time.Unix(nanots/int64(time.Second),
+			r.Output.Time = time.Unix(nanots/int64(time.Second),
 				nanots%int64(time.Second))
 			r.DeleteField(PipelineTimeField)
 		}
 	}
 
-	if !r.TS.IsZero() {
-		return r.TS, nil
+	if !r.Output.Time.IsZero() {
+		return r.Output.Time, nil
 	}
 	return ts, fmt.Errorf("no time")
 }
@@ -101,7 +98,7 @@ func (r *Result) GetLastErr() string {
 
 func (r *Result) SetTime(t time.Time) {
 	r.DeleteField(PipelineTimeField)
-	r.TS = t
+	r.Output.Time = t
 }
 
 func (r *Result) SetTag(k, v string) {
@@ -121,11 +118,11 @@ func (r *Result) DeleteTag(k string) {
 }
 
 func (r *Result) IsDropped() bool {
-	return r.Output.Dropped
+	return r.Output.Drop
 }
 
 func (r *Result) MarkAsDropped() {
-	r.Output.Dropped = true
+	r.Output.Drop = true
 }
 
 func (r *Result) MakePointIgnoreDropped(measurement string, maxMessageLen int, category string) (*io.Point, error) {
@@ -139,15 +136,15 @@ func (r *Result) MakePoint(measurement string, maxMessageLen int, category strin
 	if category == "" {
 		category = datakit.Logging
 	}
-	if r.Output.DataMeasurement == "" {
+	if r.Output.Measurement == "" {
 		if measurement == "" {
 			measurement = "default"
 		}
-		r.Output.DataMeasurement = measurement
+		r.Output.Measurement = measurement
 	}
-	return io.NewPoint(r.Output.DataMeasurement, r.Output.Tags, r.Output.Fields,
+	return io.NewPoint(r.Output.Measurement, r.Output.Tags, r.Output.Fields,
 		&io.PointOption{
-			Time:              r.TS,
+			Time:              r.Output.Time,
 			Category:          category,
 			DisableGlobalTags: false,
 			Strict:            true,
@@ -172,15 +169,10 @@ func (r *Result) CheckFieldValLen(messageLen int) {
 	}
 }
 
-func (r *Result) preprocessing(source string, maxMessageLen int) {
-	m := r.GetMeasurement()
-	if m == "" {
-		m = source
+func ResultUtilsLoggingProcessor(result *Result, disableAddStatusField bool, ignoreStatus []string) *Result {
+	status := PPAddSatus(result, disableAddStatusField)
+	if PPIgnoreStatus(status, ignoreStatus) {
+		result.MarkAsDropped()
 	}
-	r.SetMeasurement(m)
-
-	rTS, _ := r.GetTime()
-	r.SetTime(rTS)
-
-	r.CheckFieldValLen(maxMessageLen)
+	return result
 }

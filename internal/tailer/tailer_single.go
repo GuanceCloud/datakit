@@ -14,9 +14,12 @@ import (
 	"time"
 
 	"github.com/pborman/ansi"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 )
 
 const (
@@ -178,23 +181,36 @@ func (t *Single) sendToForwardCallback(text string) {
 }
 
 func (t *Single) sendToPipeline(pending []string) {
-	task := &worker.TaskTemplate{
-		TaskName:              "logging/" + t.opt.Source,
-		ScriptName:            t.opt.Pipeline,
-		Source:                t.opt.Source,
-		ContentDataType:       worker.ContentString,
-		Content:               pending,
-		IgnoreStatus:          t.opt.IgnoreStatus,
-		DisableAddStatusField: t.opt.DisableAddStatusField,
-		TS:                    time.Now(),
-		MaxMessageLen:         maxFieldsLength,
-		Tags:                  t.tags,
+	res := []*iod.Point{}
+	for _, cnt := range pending {
+		pt, err := iod.MakePoint(t.opt.Source, t.tags,
+			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+			time.Now(),
+		)
+		if err != nil {
+			l.Error(err)
+			continue
+		}
+		drop := false
+		if script, ok := scriptstore.QueryScript(t.opt.Pipeline); ok {
+			if ptRet, dropRet, err := pipeline.RunScript(pt, script, func(res *pipeline.Result) (*pipeline.Result, error) {
+				res.CheckFieldValLen(maxFieldsLength)
+				return pipeline.ResultUtilsLoggingProcessor(res, t.opt.DisableAddStatusField, t.opt.IgnoreStatus), nil
+			}); err != nil {
+				l.Error(err)
+			} else {
+				pt = ptRet
+				drop = dropRet
+			}
+		}
+		if !drop {
+			res = append(res, pt)
+		}
 	}
-
-	err := worker.FeedPipelineTaskBlock(task)
-	if err != nil {
-		t.opt.log.Warnf("pipline feed err = %v", err)
-		return
+	if len(res) > 0 {
+		if err := iod.Feed("logging/"+t.opt.Source, datakit.Logging, res, nil); err != nil {
+			l.Error(err)
+		}
 	}
 }
 

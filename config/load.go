@@ -285,7 +285,7 @@ func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
 				if vv.Pipeline == "" {
 					continue
 				}
-				pl, err := pipeline.NewPipeline(vv.Pipeline)
+				pl, err := pipeline.NewPipelineFromFile(vv.Pipeline)
 				if err != nil {
 					return vv, err
 				}

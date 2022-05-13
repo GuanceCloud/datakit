@@ -12,7 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	plWorker "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -28,7 +28,7 @@ func initPluginPipeline() error {
 	if err := pipeline.Init(Cfg.Pipeline); err != nil {
 		return err
 	}
-	plWorker.InitManager(-1)
+	scriptstore.LoadDefaultDotPScript2Store()
 
 	scriptMap, err := GetScriptMap(true)
 	if err != nil {

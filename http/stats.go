@@ -29,7 +29,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
-	plWorker "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -313,15 +312,15 @@ func GetStats() (*DatakitStats, error) {
 	}
 
 	stats := &DatakitStats{
-		Version:        datakit.Version,
-		BuildAt:        git.BuildAt,
-		Branch:         git.Branch,
-		Uptime:         fmt.Sprintf("%v", now.Sub(uptime)),
-		OSArch:         fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		WithinDocker:   datakit.Docker,
-		IOChanStat:     io.ChanStat(),
-		IoStats:        io.GetIoStats(),
-		PLWorkerStat:   plWorker.ShowPLWkrStats().String(),
+		Version:      datakit.Version,
+		BuildAt:      git.BuildAt,
+		Branch:       git.Branch,
+		Uptime:       fmt.Sprintf("%v", now.Sub(uptime)),
+		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		WithinDocker: datakit.Docker,
+		IOChanStat:   io.ChanStat(),
+		IoStats:      io.GetIoStats(),
+		// PLWorkerStat:   plWorker.ShowPLWkrStats().String(),
 		Elected:        fmt.Sprintf("%s::%s|%s", ns, elected, who),
 		Cgroup:         cgroup.Info(),
 		AutoUpdate:     datakit.AutoUpdate,

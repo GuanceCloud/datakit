@@ -7,8 +7,10 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestSetTag(t *testing.T) {
@@ -82,8 +84,11 @@ func TestSetTag(t *testing.T) {
 				}
 				return
 			}
-
-			ret, err := runner.Run(tc.in)
+			pt, _ := io.MakePoint("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, time.Now())
+			ret, err := runner.Run(pt)
 			if err != nil {
 				t.Error(err)
 				return

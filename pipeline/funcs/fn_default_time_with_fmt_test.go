@@ -10,6 +10,7 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestDefaultTimeWithFmt(t *testing.T) {
@@ -99,7 +100,11 @@ func TestDefaultTimeWithFmt(t *testing.T) {
 				return
 			}
 			for idxIn := 0; idxIn < len(tc.in); idxIn++ {
-				ret, err := runner.Run(tc.in[idxIn])
+				pt, _ := io.MakePoint("test", map[string]string{},
+					map[string]interface{}{
+						"message": tc.in[idxIn],
+					}, time.Now())
+				ret, err := runner.Run(pt)
 				if err != nil {
 					t.Error(err)
 					return

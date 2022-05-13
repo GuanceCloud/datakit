@@ -7,8 +7,10 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestGroup(t *testing.T) {
@@ -73,8 +75,11 @@ func TestGroup(t *testing.T) {
 				}
 				return
 			}
-
-			ret, err := runner.Run(tc.in)
+			pt, _ := io.MakePoint("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, time.Now())
+			ret, err := runner.Run(pt)
 			tu.Equals(t, nil, err)
 
 			t.Log(ret)

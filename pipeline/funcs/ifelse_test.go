@@ -7,8 +7,10 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestIfelse(t *testing.T) {
@@ -276,8 +278,11 @@ if invalid_status_code != nil {
 				}
 				return
 			}
-
-			if ret, err := runner.Run(tc.in); err == nil {
+			pt, _ := io.MakePoint("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, time.Now())
+			if ret, err := runner.Run(pt); err == nil {
 				// t.Log(runner.Result())
 				v := ret.Fields["add_new_key"]
 				tu.Equals(t, tc.expect, v)

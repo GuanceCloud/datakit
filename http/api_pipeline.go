@@ -20,7 +20,9 @@ import (
 
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
@@ -62,6 +64,10 @@ type pipelineDebugResponse struct {
 	PLResults    []*pipelineDebugResult `json:"plresults"`
 }
 
+func plAPIDebugCallback(ret *pipeline.Result) (*pipeline.Result, error) {
+	return pipeline.ResultUtilsLoggingProcessor(ret, false, nil), nil
+}
+
 func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever ...interface{}) (interface{}, error) {
 	tid := req.Header.Get(uhttp.XTraceId)
 
@@ -86,7 +92,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 		return nil, uhttp.Error(ErrInvalidPipeline, err.Error())
 	}
 
-	scriptInfo, err := scriptstore.NewScriptInfo(reqDebug.Source+".p", string(decodePipeline), "api_pipeline")
+	scriptInfo, err := scriptstore.NewScript(reqDebug.Source+".p", string(decodePipeline), "api_pipeline")
 	if err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrCompiledFailed, err.Error())
@@ -109,16 +115,33 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 	start := time.Now()
 	res := []*pipeline.Result{}
 	for _, line := range dataLines {
-		r, _ := pipeline.RunPlStr(line, reqDebug.Source, 0, scriptInfo.Engine())
-		if r != nil {
-			if svc, err := r.GetTag("service"); err != nil {
-				if reqDebug.Service == "" {
-					svc = reqDebug.Source
-				}
-				r.SetTag("service", svc)
-			}
-			res = append(res, r)
+		pt, _ := io.MakePoint(reqDebug.Source, nil, map[string]interface{}{pipeline.PipelineMessageField: line})
+		retPt, drop, err := pipeline.RunScript(pt, scriptInfo, plAPIDebugCallback)
+		if err != nil {
+			pt = retPt
 		}
+		fields, err := pt.Fields()
+		if err != nil {
+			continue
+		}
+		tags := pt.Tags()
+
+		if svc, ok := tags["service"]; !ok {
+			if reqDebug.Service == "" {
+				svc = reqDebug.Source
+			}
+			tags["service"] = svc
+		}
+
+		res = append(res, &pipeline.Result{
+			Output: &parser.Output{
+				Drop:        drop,
+				Measurement: pt.Name(),
+				Time:        pt.Time(),
+				Tags:        tags,
+				Fields:      fields,
+			},
+		})
 	}
 
 	// STEP 4 (optional): benchmark
@@ -128,7 +151,8 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 			b.Helper()
 			for n := 0; n < b.N; n++ {
 				for _, line := range dataLines {
-					_, _ = pipeline.RunPlStr(line, reqDebug.Source, 0, scriptInfo.Engine())
+					pt, _ := io.MakePoint(reqDebug.Source, nil, map[string]interface{}{pipeline.PipelineMessageField: line})
+					_, _, _ = pipeline.RunScript(pt, scriptInfo, plAPIDebugCallback)
 				}
 			}
 		})

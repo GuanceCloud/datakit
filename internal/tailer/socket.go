@@ -15,8 +15,9 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 )
 
 /*
@@ -208,28 +209,6 @@ func (sl *socketLogger) spiltBuffer(fromCache string, date string, full bool) (p
 	return pipdata, cacheDate
 }
 
-type SocketTaskData struct {
-	Log    string
-	Source string
-	Tag    map[string]string
-}
-
-func (std *SocketTaskData) GetContent() string {
-	return std.Log
-}
-
-func (std *SocketTaskData) Handler(result *pipeline.Result) error {
-	// result.SetSource(std.source)
-	if std.Tag != nil && len(std.Tag) != 0 {
-		for k, v := range std.Tag {
-			if _, err := result.GetTag(k); err != nil {
-				result.SetTag(k, v)
-			}
-		}
-	}
-	return nil
-}
-
 func (sl *socketLogger) sendToPipeline(pending []string) {
 	taskCnt := []string{}
 	for _, data := range pending {
@@ -237,22 +216,37 @@ func (sl *socketLogger) sendToPipeline(pending []string) {
 			taskCnt = append(taskCnt, data)
 		}
 	}
-	if len(taskCnt) != 0 {
-		task := &worker.TaskTemplate{
-			TaskName:              "socklogging/" + sl.opt.InputName,
-			ContentDataType:       worker.ContentString,
-			Tags:                  sl.tags,
-			ScriptName:            sl.opt.Pipeline,
-			Source:                sl.opt.Source,
-			Content:               taskCnt,
-			Category:              datakit.Logging,
-			IgnoreStatus:          sl.opt.IgnoreStatus,
-			DisableAddStatusField: sl.opt.DisableAddStatusField,
-			TS:                    time.Now(),
-			MaxMessageLen:         maxFieldsLength,
+
+	res := []*iod.Point{}
+	for _, cnt := range taskCnt {
+		pt, err := iod.MakePoint(sl.opt.Source, sl.tags,
+			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+			time.Now(),
+		)
+		if err != nil {
+			l.Error(err)
+			continue
 		}
-		// 阻塞型channel
-		_ = worker.FeedPipelineTaskBlock(task)
+		drop := false
+		if script, ok := scriptstore.QueryScript(sl.opt.Pipeline); ok {
+			if ptRet, dropRet, err := pipeline.RunScript(pt, script, func(res *pipeline.Result) (*pipeline.Result, error) {
+				res.CheckFieldValLen(maxFieldsLength)
+				return pipeline.ResultUtilsLoggingProcessor(res, sl.opt.DisableAddStatusField, sl.opt.IgnoreStatus), nil
+			}); err != nil {
+				l.Error(err)
+			} else {
+				pt = ptRet
+				drop = dropRet
+			}
+		}
+		if !drop {
+			res = append(res, pt)
+		}
+	}
+	if len(res) > 0 {
+		if err := iod.Feed("socklogging/"+sl.opt.InputName, datakit.Logging, res, nil); err != nil {
+			l.Error(err)
+		}
 	}
 }
 

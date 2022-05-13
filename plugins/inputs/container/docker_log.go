@@ -19,7 +19,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/readbuf"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -276,6 +277,36 @@ func getContainerLogConfigForDocker(labels map[string]string) *containerLogConfi
 	return c
 }
 
+func runPipeline(source, scriptName string, cnt []string, tags map[string]string,
+	callback func(*pipeline.Result) (*pipeline.Result, error)) []*iod.Point {
+	ret := []*iod.Point{}
+
+	for _, cnt := range cnt {
+		pt, err := iod.MakePoint(source, tags,
+			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+			time.Now(),
+		)
+		if err != nil {
+			l.Error(err)
+			continue
+		}
+		drop := false
+		if script, ok := scriptstore.QueryScript(scriptName); ok {
+			if ptRet, dropRet, err := pipeline.RunScript(pt, script, callback); err != nil {
+				l.Error(err)
+			} else {
+				pt = ptRet
+				drop = dropRet
+			}
+		}
+		if !drop {
+			ret = append(ret, pt)
+		}
+	}
+
+	return ret
+}
+
 func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stream string, logconf *containerLogConfig) error {
 	defer reader.Close() //nolint:errcheck
 
@@ -290,16 +321,16 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		return err
 	}
 
-	newTask := func() *worker.TaskTemplate {
-		return &worker.TaskTemplate{
-			TaskName:        "containerlog/" + logconf.Source,
-			Source:          logconf.Source,
-			ScriptName:      logconf.Pipeline,
-			MaxMessageLen:   d.cfg.maxLoggingLength,
-			Tags:            logconf.tags,
-			ContentDataType: worker.ContentString,
-			TS:              time.Now(),
-		}
+	plScriptName := logconf.Pipeline
+	if plScriptName == "" && logconf.Source != "" {
+		plScriptName = logconf.Source + ".p"
+	}
+
+	feedName := "containerlog/" + logconf.Source
+
+	callback := func(res *pipeline.Result) (*pipeline.Result, error) {
+		res.CheckFieldValLen(d.cfg.maxLoggingLength)
+		return pipeline.ResultUtilsLoggingProcessor(res, false, nil), nil
 	}
 
 	r := readbuf.NewReadBuffer(reader, readBuffSize)
@@ -313,10 +344,12 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 			return nil
 		case <-timeout.C:
 			if text := mult.Flush(); len(text) != 0 {
-				task := newTask()
-				task.Content = []string{string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes))}
-				if err := worker.FeedPipelineTaskBlock(task); err != nil {
-					l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)
+				cnt := string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes))
+				if pts := runPipeline(logconf.Source, plScriptName, []string{cnt},
+					logconf.tags, callback); len(pts) > 0 {
+					if err := iod.Feed(feedName, datakit.Logging, pts, nil); err != nil {
+						l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)
+					}
 				}
 			}
 		default:
@@ -360,11 +393,11 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 			continue
 		}
 
-		task := newTask()
-		task.Content = content
-
-		if err := worker.FeedPipelineTaskBlock(task); err != nil {
-			l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)
+		if pts := runPipeline(logconf.Source, plScriptName, content,
+			logconf.tags, callback); len(pts) > 0 {
+			if err := iod.Feed(feedName, datakit.Logging, pts, nil); err != nil {
+				l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)
+			}
 		}
 	}
 }

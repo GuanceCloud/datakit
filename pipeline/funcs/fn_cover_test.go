@@ -7,8 +7,10 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestDz(t *testing.T) {
@@ -127,8 +129,11 @@ func TestDz(t *testing.T) {
 				}
 				return
 			}
-
-			if ret, err := runner.Run(tc.in); err != nil {
+			pt, _ := io.MakePoint("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, time.Now())
+			if ret, err := runner.Run(pt); err != nil {
 				if tc.fail {
 					t.Logf("[%d]expect error: %s", idx, err)
 				} else {

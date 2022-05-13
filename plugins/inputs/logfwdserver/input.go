@@ -20,7 +20,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -113,20 +115,11 @@ func (ipt *Input) setup() bool {
 		if tags["pod_name"] != "" {
 			name += fmt.Sprintf("(podname:%s)", tags["pod_name"])
 		}
-		task := &worker.TaskTemplate{
-			TaskName:   name,
-			Source:     msg.Source,
-			ScriptName: msg.Pipeline,
-
-			ContentDataType: worker.ContentString,
-			Tags:            tags,
-			Content:         []string{msg.Log},
-			TS:              time.Now(),
-		}
-
-		if err := worker.FeedPipelineTaskBlock(task); err != nil {
-			l.Errorf("logfwd failed to feed log, pod_name:%s filename:%s, err: %w", tags["pod_name"], tags["filename"], err)
-			return err
+		if pts := runPipeline(msg.Source, msg.Pipeline, []string{msg.Log}, tags, plCallback); len(pts) > 0 {
+			if err := io.Feed(name, datakit.Logging, pts, nil); err != nil {
+				l.Errorf("logfwd failed to feed log, pod_name:%s filename:%s, err: %w", tags["pod_name"], tags["filename"], err)
+				return err
+			}
 		}
 
 		return nil
@@ -188,4 +181,38 @@ func init() { //nolint:gochecknoinits
 			semStop: cliutils.NewSem(),
 		}
 	})
+}
+
+func plCallback(res *pipeline.Result) (*pipeline.Result, error) {
+	res.CheckFieldValLen(0)
+	return pipeline.ResultUtilsLoggingProcessor(res, false, nil), nil
+}
+
+func runPipeline(source, scriptName string, cnt []string, tags map[string]string,
+	callback func(*pipeline.Result) (*pipeline.Result, error)) []*io.Point {
+	ret := []*io.Point{}
+
+	for _, cnt := range cnt {
+		pt, err := io.MakePoint(source, tags,
+			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+			time.Now(),
+		)
+		if err != nil {
+			l.Error(err)
+			continue
+		}
+		drop := false
+		if script, ok := scriptstore.QueryScript(scriptName); ok {
+			if ptRet, dropRet, err := pipeline.RunScript(pt, script, callback); err != nil {
+				l.Error(err)
+			} else {
+				pt = ptRet
+				drop = dropRet
+			}
+		}
+		if !drop {
+			ret = append(ret, pt)
+		}
+	}
+	return ret
 }

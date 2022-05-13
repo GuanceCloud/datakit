@@ -255,7 +255,7 @@ func unquoteChar(s string, quote byte, multiline bool) (value rune, multibyte bo
 		return
 	}
 	tail = s
-	return
+	return value, multibyte, tail, err
 }
 
 // contains reports whether the string contains the byte c.

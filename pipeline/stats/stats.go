@@ -3,11 +3,10 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package worker
+// Package stats used to record pl metrics
+package stats
 
 import (
-	"fmt"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -42,23 +41,21 @@ func NewPLWkrStats() *PLWkrStats {
 }
 
 type PLWkrStats struct {
-	taskChLen int64
-
 	doFeedTaskNum int64
 	taskNum       int64
 	tNumPow10_17  uint64
 }
 
-func (s PLWkrStats) String() string {
-	totalProcessed := strconv.FormatInt(s.taskNum, 10)
-	if s.tNumPow10_17 > 0 {
-		totalProcessed += fmt.Sprintf("+ %d*10^17", s.tNumPow10_17)
-	}
-	return fmt.Sprintf(
-		"taskCh: %d/%d waitingQueue: %d totalProcessed: %s",
-		s.taskChLen, taskChMaxL, s.doFeedTaskNum, totalProcessed,
-	)
-}
+// func (s PLWkrStats) String() string {
+// 	totalProcessed := strconv.FormatInt(s.taskNum, 10)
+// 	if s.tNumPow10_17 > 0 {
+// 		totalProcessed += fmt.Sprintf("+ %d*10^17", s.tNumPow10_17)
+// 	}
+// 	return fmt.Sprintf(
+// 		"taskCh: %d/%d waitingQueue: %d totalProcessed: %s",
+// 		s.taskChLen, taskChMaxL, s.doFeedTaskNum, totalProcessed,
+// 	)
+// }
 
 var (
 	lastPLWkrStats      = &PLWkrStats{}
@@ -71,7 +68,7 @@ func ShowPLWkrStats() PLWkrStats {
 	defer lastPLWkrStatsMutex.Unlock()
 
 	s := PLWkrStats{
-		taskChLen: int64(len(taskCh)),
+		// taskChLen: int64(len(taskCh)),
 		doFeedTaskNum: atomic.LoadInt64(
 			&plWkrStats.doFeedTaskNum),
 		taskNum: atomic.LoadInt64(&plWkrStats.taskNum),
@@ -91,14 +88,14 @@ func ShowPLWkrStats() PLWkrStats {
 	return s
 }
 
-func taskNumIncrease() {
+func TaskNumIncrease() {
 	atomic.AddInt64(&(plWkrStats.taskNum), 1)
 }
 
-func taskChFeedNumIncrease() {
+func TaskChFeedNumIncrease() {
 	atomic.AddInt64(&(plWkrStats.doFeedTaskNum), 1)
 }
 
-func taskChFeedNumDecrease() {
+func TaskChFeedNumDecrease() {
 	atomic.AddInt64(&(plWkrStats.doFeedTaskNum), -1)
 }
