@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package mytargz
+package targzutil
 
 import (
 	"os"
@@ -22,7 +22,7 @@ func checkDevHost() bool {
 
 //------------------------------------------------------------------------------
 
-// go test -v -timeout 30s -run ^TestWriteTarFromMap$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/mytargz
+// go test -v -timeout 30s -run ^TestWriteTarFromMap$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil
 func TestWriteTarFromMap(t *testing.T) {
 	if !checkDevHost() {
 		return
@@ -39,7 +39,7 @@ func TestWriteTarFromMap(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// go test -v -timeout 30s -run ^TestReadTarToMap$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/mytargz
+// go test -v -timeout 30s -run ^TestReadTarToMap$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil
 func TestReadTarToMap(t *testing.T) {
 	if !checkDevHost() {
 		return

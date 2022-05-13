@@ -20,7 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/mytargz"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 )
@@ -126,11 +126,11 @@ func (*pipelineRemoteImpl) FeedLastError(inputName string, err string) {
 }
 
 func (*pipelineRemoteImpl) ReadTarToMap(srcFile string) (map[string]string, error) {
-	return mytargz.ReadTarToMap(srcFile)
+	return targzutil.ReadTarToMap(srcFile)
 }
 
 func (*pipelineRemoteImpl) WriteTarFromMap(data map[string]string, dest string) error {
-	return mytargz.WriteTarFromMap(data, dest)
+	return targzutil.WriteTarFromMap(data, dest)
 }
 
 //------------------------------------------------------------------------------
