@@ -11,7 +11,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -37,9 +37,12 @@ const (
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
+  ## If you want to block some resources universally under all services, you can set the
+  ## service name as "*". Note: double quotes "" cannot be omitted.
   # [inputs.skywalking.close_resource]
     # service1 = ["resource1", "resource2", ...]
     # service2 = ["resource1", "resource2", ...]
+		# "*" = ["close_resource_under_all_services"]
     # ...
 
   ## Sampler config uses to set global sampling strategy.
@@ -70,10 +73,9 @@ const (
 )
 
 var (
-	log                                        = logger.DefaultSLogger(inputName)
-	defAddr                                    = "localhost:13800"
-	afterGather                                = itrace.NewAfterGather()
-	afterGatherRun   itrace.AfterGatherHandler = afterGather
+	log              = logger.DefaultSLogger(inputName)
+	defAddr          = "localhost:13800"
+	afterGatherRun   itrace.AfterGatherHandler
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	sampler          *itrace.Sampler
@@ -116,6 +118,9 @@ func (ipt *Input) Run() {
 	if len(ipt.Address) == 0 {
 		ipt.Address = defAddr
 	}
+
+	afterGather := itrace.NewAfterGather()
+	afterGatherRun = afterGather
 
 	// add calculators
 	// afterGather.AppendCalculator(itrace.StatTracingInfo)

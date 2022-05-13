@@ -25,7 +25,7 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
 	- [Prometheus](https://www.yuque.com/dataflux/datakit/prom)
 	- [Statsd](https://www.yuque.com/dataflux/datakit/statsd)
 	- [Fluentd](https://www.yuque.com/dataflux/datakit/logstreaming#a653042e)
-	- [Filebeats](https://www.yuque.com/dataflux/datakit-community/beats_output)
+	- [Filebeats](https://www.yuque.com/dataflux/datakit/beats_output)
 	- [Function](https://www.yuque.com/dataflux/func/write-data-via-datakit)
 	- Tracing 相关（[OpenTelemetry]()/[DDTrace]()/[Zipkin]()/[Jaeger]()/[Skywalking]()）
 
@@ -59,29 +59,6 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPol
 - [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
 
 更多关于安装的文档，参见[这里](https://www.yuque.com/dataflux/datakit/datakit-install)。
-
-### 安装社区版
-
-同时我们也发布了 DataKit 的社区版，相比上面的版本，社区版会激进的加入一些新的功能，但不一定具有较好的兼容性以及稳定。可通过如下方式安装社区版：
-
-- Linux & Mac
-
-```bash
-DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" bash -c "$(curl -L https://static.guance.com/datakit/community/install.sh)"
-```
-
-- Windows
-
-```powershell
-$env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/community/install.ps1 -destination .install.ps1; powershell .install.ps1;
-```
-
-- [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
-
-```bash
-# 我们须替换上文中的 yaml 地址
-wget https://static.guance.com/datakit/community/datakit.yaml
-```
 
 ## 源码编译
 
@@ -186,4 +163,3 @@ datakit help
 ## 文档
 
 - [DataKit 文档库](https://www.yuque.com/dataflux/datakit)
-- [DataKit 社区版文档库](https://www.yuque.com/dataflux/datakit-community)

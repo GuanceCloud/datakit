@@ -141,6 +141,7 @@ var (
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
+	MainConfSamplePath     = filepath.Join(ConfdDir, "datakit.conf.sample")
 
 	pidFile = filepath.Join(InstallDir, ".pid")
 

@@ -57,6 +57,7 @@ var externals = []*dkexternal{
 		entry: "Makefile",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
+			"linux/arm64": true,
 		},
 
 		buildArgs: nil,

@@ -48,9 +48,6 @@ const (
   # measurement_prefix will be added to the start of measurement_name
   # measurement_name = "prom_remote_write"
 
-  ## tags to ignore
-  # tags_ignore = ["xxxx"]
-
   ## max body size in bytes, default set to 500MB
   # max_body_size = 0
 
@@ -59,10 +56,21 @@ const (
   # basic_username = ""
   # basic_password = ""
 
+  ## tags to ignore
+  # tags_ignore = ["xxxx"]
+
+  ## Indicate whether tags_rename overwrites existing key if tag with the new key name already exists.
+  overwrite = false
+
+  ## tags to rename
+  [inputs.prom_remote_write.tags_rename]
+  # old_tag_name = "new_tag_name"
+  # more_old_tag_name = "other_new_tag_name"
+
   ## Optional setting to map http headers into tags
   ## If the http header is not present on the request, no corresponding tag will be added
   ## If multiple instances of the http header are present, only the first value will be used
-  # [inputs.prom_remote_write.http_header_tags]
+  [inputs.prom_remote_write.http_header_tags]
   # HTTP_HEADER = "TAG_NAME"
 
   ## custom tags

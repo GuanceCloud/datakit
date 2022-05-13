@@ -22,10 +22,6 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
 ​	Once you've added this Helm repository as per the repository-level [README](../../README.md#installing) then you can install the chart as follows:
 
  ```shell
-# Community version
-$ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit-ce
-
-# Official version
 $ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit
  
 $ helm install datakit datakit/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
@@ -39,12 +35,7 @@ $ helm install datakit datakit/datakit -n datakit --set dataway_url="https://ope
   - git passwd
   
     ```
-    # Community version
-    $ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit-ce
-
-    # Official version
     $ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit
-
     
     $helm install datakit datakit/datakit -n datakit --set git_repos.enable=true  --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
     --set git_repos.git_url="http://username:password@github.com/path/to/repository.git" \
@@ -54,10 +45,6 @@ $ helm install datakit datakit/datakit -n datakit --set dataway_url="https://ope
   - git key
   
     ```
-    # Community version
-    $ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit-ce
-
-    # Official version
     $ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit
     
     $ helm install datakit datakit/datakit -n datakit --set git_repos.enable=true  --set datakit.dataway_url="https://openway.guance.com?token=<your-token>"  \

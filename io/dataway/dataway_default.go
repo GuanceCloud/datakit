@@ -8,11 +8,11 @@ package dataway
 
 import (
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
@@ -21,6 +21,7 @@ import (
 var (
 	apis = []string{
 		datakit.MetricDeprecated,
+		datakit.DatakitPull,
 		datakit.Metric,
 		datakit.Network,
 		datakit.KeyEvent,
@@ -53,7 +54,7 @@ type DataWayDefault struct {
 	*DataWayCfg
 	endPoints []*endPoint
 	ontest    bool
-	httpCli   *http.Client
+	httpCli   *retryablehttp.Client
 }
 
 type endPoint struct {
@@ -152,11 +153,15 @@ func (dw *DataWayDefault) Apply() error {
 	}
 
 	if len(dw.URLs) == 0 {
-		return fmt.Errorf("dataway not set")
+		return fmt.Errorf("dataway not set: urls is empty")
 	}
 
 	if dw.HTTPTimeout == "" {
-		dw.HTTPTimeout = "5s"
+		dw.HTTPTimeout = "30s"
+	}
+
+	if dw.MaxIdleConnsPerHost == 0 {
+		dw.MaxIdleConnsPerHost = 64
 	}
 
 	if dw.MaxFails == 0 {
@@ -227,7 +232,8 @@ func (dw *DataWayDefault) initEndpoint(httpurl string) (*endPoint, error) {
 
 func (dw *DataWayDefault) initHTTP() error {
 	cliopts := &ihttp.Options{
-		DialTimeout: dw.TimeoutDuration,
+		DialTimeout:         dw.TimeoutDuration,
+		MaxIdleConnsPerHost: dw.MaxIdleConnsPerHost,
 	}
 
 	if dw.HTTPProxy != "" { // set proxy
@@ -239,9 +245,7 @@ func (dw *DataWayDefault) initHTTP() error {
 		}
 	}
 
-	dw.httpCli = ihttp.Cli(cliopts)
-	dw.httpCli.Timeout = dw.TimeoutDuration // set HTTP request timeout
-	log.Debugf("httpCli: %p", dw.httpCli.Transport)
+	dw.httpCli = newRetryCli(cliopts, dw.TimeoutDuration)
 
 	return nil
 }

@@ -176,7 +176,7 @@ func GetPointsFromMeasurement(measurements []Measurement) ([]*io.Point, error) {
 	var pts []*io.Point
 	for _, m := range measurements {
 		if pt, err := m.LineProto(); err != nil {
-			return nil, err
+			l.Warnf("make point failed: %v, ignore", err)
 		} else {
 			pts = append(pts, pt)
 		}

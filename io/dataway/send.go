@@ -8,15 +8,18 @@ package dataway
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
@@ -63,8 +66,8 @@ func updateSendFailStats(category string, isOk bool) {
 func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 	var (
 		err        error
-		statusCode int
 		isSendOk   bool // data sent successfully, http response code is 200
+		statusCode int
 	)
 
 	span, _ := tracer.StartSpanFromContext(context.Background(), "io.dataway.send", tracer.SpanType(ext.SpanTypeHTTP))
@@ -116,7 +119,10 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 
 	tracer.Inject(span.Context(), tracer.HTTPHeadersCarrier(req.Header)) //nolint:errcheck,gosec
 
-	var resp *http.Response
+	var (
+		resp    *http.Response
+		postbeg = time.Now()
+	)
 	if resp, err = dc.dw.sendReq(req); err != nil {
 		dc.fails++
 		log.Errorf("request url %s failed(proxy: %s): %s", requrl, dc.proxy, err)
@@ -139,10 +145,7 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 		return statusCode, err
 	}
 
-	statusCode = resp.StatusCode
-
-	postbeg := time.Now()
-	switch statusCode / 100 {
+	switch resp.StatusCode / 100 {
 	case 2:
 		isSendOk = true
 		dc.fails = 0
@@ -170,12 +173,87 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 	return statusCode, err
 }
 
+type httpTraceStat struct {
+	reuseConn bool
+	idle      bool
+	idleTime  time.Duration
+
+	dnsStart   time.Time
+	dnsResolve time.Duration
+	tlsHSStart time.Time
+	tlsHSDone  time.Duration
+	connStart  time.Time
+	connDone   time.Duration
+	ttfbTime   time.Duration
+
+	cost time.Duration
+}
+
+func (ts *httpTraceStat) String() string {
+	if ts == nil {
+		return "-"
+	}
+
+	return fmt.Sprintf("dataway httptrace: Conn: [reuse: %v,idle: %v/%s], DNS: %s, TLS: %s, Connect: %s, TTFB: %s, cost: %s",
+		ts.reuseConn, ts.idle, ts.idleTime, ts.dnsResolve, ts.tlsHSDone, ts.connDone, ts.ttfbTime, ts.cost)
+}
+
+type DatawayError struct {
+	Err   error
+	Trace *httpTraceStat
+	API   string
+}
+
+func (de *DatawayError) Error() string {
+	return fmt.Sprintf("HTTP error: %s, API: %s, httptrace: %s",
+		de.Err, de.API, de.Trace)
+}
+
 func (dw *DataWayDefault) sendReq(req *http.Request) (*http.Response, error) {
 	log.Debugf("send request %s, proxy: %s, dwcli: %p, timeout: %s(%s)",
-		req.URL.String(), dw.HTTPProxy, dw.httpCli.Transport,
+		req.URL.String(), dw.HTTPProxy, dw.httpCli.HTTPClient.Transport,
 		dw.HTTPTimeout, dw.TimeoutDuration.String())
 
-	return dw.httpCli.Do(req)
+	var reqStart time.Time
+	var ts *httpTraceStat
+	if dw.EnableHTTPTrace {
+		ts = &httpTraceStat{}
+		t := &httptrace.ClientTrace{
+			GotConn: func(ci httptrace.GotConnInfo) {
+				ts.reuseConn = ci.Reused
+				ts.idle = ci.WasIdle
+				ts.idleTime = ci.IdleTime
+			},
+			DNSStart:             func(httptrace.DNSStartInfo) { ts.dnsStart = time.Now() },
+			DNSDone:              func(httptrace.DNSDoneInfo) { ts.dnsResolve = time.Since(ts.dnsStart) },
+			TLSHandshakeStart:    func() { ts.tlsHSStart = time.Now() },
+			TLSHandshakeDone:     func(tls.ConnectionState, error) { ts.tlsHSDone = time.Since(ts.tlsHSStart) },
+			ConnectStart:         func(string, string) { ts.connStart = time.Now() },
+			ConnectDone:          func(string, string, error) { ts.connDone = time.Since(ts.connStart) },
+			GotFirstResponseByte: func() { ts.ttfbTime = time.Since(reqStart) },
+		}
+
+		req = req.WithContext(httptrace.WithClientTrace(req.Context(), t))
+	}
+
+	reqStart = time.Now()
+	x, err := retryablehttp.FromRequest(req)
+	if err != nil {
+		log.Errorf("retryablehttp.FromRequest: %s", err)
+		return nil, err
+	}
+
+	resp, err := dw.httpCli.Do(x)
+	if ts != nil {
+		ts.cost = time.Since(reqStart)
+		log.Debugf("%s: %s", req.URL.Path, ts.String())
+	}
+
+	if err != nil {
+		return nil, &DatawayError{Err: err, Trace: ts, API: req.URL.Path}
+	}
+
+	return resp, nil
 }
 
 func (dw *DataWayDefault) Send(category string, data []byte, gz bool) (statusCode int, err error) {

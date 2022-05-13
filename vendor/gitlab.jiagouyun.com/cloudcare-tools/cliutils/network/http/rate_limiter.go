@@ -25,8 +25,14 @@ type RateLimiter interface {
 // are limited under the rate)
 type RequestKey func(r *http.Request) string
 
+// DefaultRequestKey used to get key of HTTP request if you don't know how
+// to get the key.
+func DefaultRequestKey(r *http.Request) string {
+	return r.Header.Get("X-Forwarded-For") + r.RemoteAddr + r.Method + r.Proto + r.URL.String()
+}
+
 type APIRateLimiter interface {
-	RequestLimited(*http.Request, RequestKey) bool
+	RequestLimited(*http.Request) bool
 	// If rate limited, do anything what you want(cache the request, or do nothing)
 	LimitReadchedCallback(*http.Request)
 	// Update rate limite exclusively
@@ -36,13 +42,14 @@ type APIRateLimiter interface {
 // APIRateLimiterImpl is default implemented of APIRateLimiter based on tollbooth
 type APIRateLimiterImpl struct {
 	*limiter.Limiter
+	rk RequestKey
 }
 
-func NewAPIRateLimiter(rate float64) *APIRateLimiterImpl {
+func NewAPIRateLimiter(rate float64, rk RequestKey) *APIRateLimiterImpl {
 	return &APIRateLimiterImpl{
-		Limiter: tollbooth.NewLimiter(rate, &limiter.ExpirableOptions{
-			DefaultExpirationTTL: time.Second,
-		}).SetBurst(1),
+		Limiter: tollbooth.NewLimiter(rate,
+			&limiter.ExpirableOptions{DefaultExpirationTTL: time.Second}).SetBurst(1),
+		rk: rk,
 	}
 }
 
@@ -50,8 +57,12 @@ func NewAPIRateLimiter(rate float64) *APIRateLimiterImpl {
 // it means, if @key is `token', for specific token=abc123, if limit is 100/second,
 // then token `abc123' can only request 100 APIs per second, no matter whiching
 // API the token request.
-func (rl *APIRateLimiterImpl) RequestLimited(r *http.Request, f RequestKey) bool {
-	return rl.Limiter.LimitReached(f(r))
+func (rl *APIRateLimiterImpl) RequestLimited(r *http.Request) bool {
+	if rl.rk == nil {
+		return false // no RequestKey callback set, always pass
+	}
+
+	return rl.Limiter.LimitReached(rl.rk(r))
 }
 
 // LimitReadchedCallback do nothing, just drop the request

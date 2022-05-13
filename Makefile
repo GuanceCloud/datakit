@@ -23,6 +23,7 @@ BUILD_DIR = dist
 
 BIN = datakit
 NAME = datakit
+NAME_EBPF = datakit-ebpf
 ENTRY = cmd/datakit/main.go
 
 LOCAL_ARCHS:="local"
@@ -36,7 +37,9 @@ COMMIT:=$(shell git rev-parse --short HEAD)
 GIT_BRANCH?=$(shell git rev-parse --abbrev-ref HEAD)
 COMMITER:=$(shell git log -1 --pretty=format:'%an')
 UPLOADER:=$(shell hostname)/${USER}/${COMMITER}
-DOCKER_IMAGE_ARCHS:="linux/arm64,linux/amd64"
+DOCKER_IMAGE_ARCHS:="linux/arm64,linux/amd64" 
+DATAKIT_EBPF_ARCHS?="linux/arm64,linux/amd64"
+IGN_EBPF_INSTALL_ERR?=0
 
 GO_MAJOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
 GO_MINOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
@@ -71,6 +74,23 @@ const (
 endef
 export GIT_INFO
 
+define notify_build
+	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
+		exit 0 ; \
+	elif [ $(GO_MAJOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
+		echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
+		exit 1; \
+	elif [ $(GO_MINOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MINOR_VERSION) ] ; then \
+		echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
+		exit 1; \
+	fi
+	@echo "===== notify $(BIN) $(1) ===="
+	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go \
+		-main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
+		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3) \
+		-notify-only
+endef
+
 define build
 	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
 		exit 0 ; \
@@ -99,11 +119,19 @@ define pub
 		-build-dir $(BUILD_DIR) -archs $(3)
 endef
 
+define pub_ebpf
+	@echo "publish $(1) $(NAME_EBPF) ..."
+	@GO111MODULE=off go run cmd/make/make.go \
+		-pub-ebpf -release $(1) -pub-dir $(PUB_DIR) \
+		-name $(NAME_EBPF) -download-addr $(2) \
+		-build-dir $(BUILD_DIR) -archs $(3)
+endef
+
 define build_docker_image
 	@if [ $(2) = "registry.jiagouyun.com" ]; then \
 		echo 'publish to $(2)...'; \
 		sudo docker buildx build --platform $(1) \
-			-t $(2)/datakit/datakit:$(VERSION) . --push ; \
+			-t $(2)/datakit/datakit:$(VERSION) . --push --build-arg IGN_EBPF_INSTALL_ERR=$(IGN_EBPF_INSTALL_ERR); \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push ; \
 	else \
@@ -111,7 +139,7 @@ define build_docker_image
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/datakit:$(VERSION) \
 			-t $(2)/dataflux/datakit:$(VERSION) \
-			-t $(2)/dataflux-prev/datakit:$(VERSION) . --push; \
+			-t $(2)/dataflux-prev/datakit:$(VERSION) . --push --build-arg IGN_EBPF_INSTALL_ERR=$(IGN_EBPF_INSTALL_ERR); \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/logfwd:$(VERSION) \
 			-t $(2)/dataflux/logfwd:$(VERSION) \
@@ -149,8 +177,23 @@ endef
 local: deps
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
-pub_local:
+pub_local: deps
 	$(call pub, local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
+
+pub_ebpf_local: deps
+	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
+	$(call pub_ebpf, local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
+
+pub_epbf_testing: deps
+	$(call build,testing, $(DATAKIT_EBPF_ARCHS), $(TESTING_DOWNLOAD_ADDR))
+	$(call pub_ebpf, testing,$(TESTING_DOWNLOAD_ADDR),$(DATAKIT_EBPF_ARCHS))
+
+pub_ebpf_production: deps
+	$(call build,production, $(DATAKIT_EBPF_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
+	$(call pub_ebpf, production,$(PRODUCTION_DOWNLOAD_ADDR),$(DATAKIT_EBPF_ARCHS))
+
+testing_notify: deps
+	$(call notify_build,testing, $(DEFAULT_ARCHS), $(TESTING_DOWNLOAD_ADDR))
 
 testing: deps
 	$(call build, testing, $(DEFAULT_ARCHS), $(TESTING_DOWNLOAD_ADDR))
@@ -161,6 +204,9 @@ testing_image:
 	# we also publish testing image to public image repo
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
 	$(call build_k8s_charts, 'datakit-testing', 'datakit-ce-testing')
+
+production_notify: deps
+	$(call notify_build,production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
 
 production: deps # stable release
 	$(call build, production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -189,7 +235,7 @@ pub_testing_win_img:
 # not used
 pub_testing_charts:
 	@helm package ${CHART_PATH%/*} --version $(VERSION) --app-version $(VERSION)
-	@helm helm push ${TEMP\#\#*/}-$TAG.tgz datakit-test-chart
+	@helm helm cm-push ${TEMP\#\#*/}-$TAG.tgz datakit-test-chart
 
 # not used
 pub_release_win_img:

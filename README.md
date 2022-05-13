@@ -27,7 +27,7 @@ DataKit is an open source, integrated data collection agent, which provides full
 	- [Prometheus](https://www.yuque.com/dataflux/datakit/prom)
 	- [Statsd](https://www.yuque.com/dataflux/datakit/statsd)
 	- [Fluentd](https://www.yuque.com/dataflux/datakit/logstreaming#a653042e)
-	- [Filebeats](https://www.yuque.com/dataflux/datakit-community/beats_output)
+	- [Filebeats](https://www.yuque.com/dataflux/datakit/beats_output)
 	- [Function](https://www.yuque.com/dataflux/func/write-data-via-datakit)
 	- Tracing related(OpenTelemetry/[DDTrace](https://www.yuque.com/dataflux/datakit/ddtrace)/Zipkin/[Jaeger](https://www.yuque.com/dataflux/datakit/jaeger)/[Skywalking](https://www.yuque.com/dataflux/datakit/skywalking))
 
@@ -62,29 +62,6 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPol
 - [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
 
 For more documentations about DataKit installation, see [here](https://www.yuque.com/dataflux/datakit/datakit-install).
-
-### Install community release
-
-We also released the community version of DataKit. Compared to the previous version, the community version will introduce some radical new features, but less compatible and stable. We can install community verison as following:
-
-- Linux & Mac
-
-```bash
-DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" bash -c "$(curl -L https://static.guance.com/datakit/community/install.sh)"
-```
-
-- Windows
-
-```powershell
-$env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/community/install.ps1 -destination .install.ps1; powershell .install.ps1;
-```
-
-- [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
-
-```bash
-# We should use the community version yaml
-wget https://static.guance.com/datakit/community/datakit.yaml
-```
 
 ## Build From Source
 
@@ -193,4 +170,3 @@ Before contributing, check out some guideline of DataKit:
 For full documents of DataKit, see
 
 - [DataKit Doc](https://www.yuque.com/dataflux/datakit)
-- [DataKit Community Docs](https://www.yuque.com/dataflux/datakit-community)

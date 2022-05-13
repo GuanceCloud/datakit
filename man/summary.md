@@ -11,8 +11,7 @@
     - [各种其它工具使用](datakit-tools-how-to)
     - [如何排查无数据问题](why-no-data)
 
-- [DataKit 社区版版本历史](changelog-community)
-  - [DataKit 线上版本历史](changelog)
+- [DataKit 线上版本历史](changelog)
 
 - [DataKit 安装]()
 
@@ -86,6 +85,10 @@
         - [Golang 示例](ddtrace-golang)
         - [Java 示例](ddtrace-java)
         - [Python 示例](ddtrace-python)
+        - [PHP 示例](ddtrace-php)
+        - [NodeJS 示例](ddtrace-nodejs)
+        - [Cpp 示例](ddtrace-cpp)
+        - [Ruby 示例](ddtrace-ruby)
       - [SkyWalking](skywalking)
       - [Opentelemetry](opentelemetry)
         - [Golang 示例](opentelemetry-go)
@@ -138,6 +141,10 @@
 
     - [eBPF](ebpf)
 
+  - [自定义采集器]()
+
+    - [用 Python 开发自定义采集器](pythond)
+
   - [第三方数据接入]()
 
     - [Prometheus 数据接入]()
@@ -150,7 +157,6 @@
     - [Cloudprober 接入](cloudprober)
     - [Telegraf 数据接入](telegraf)
     - [Scheck 接入](sec-checker)
-    - [用 Python 开发自定义采集器](pythond)
 
   - [其它采集器]()
     - [Jenkins](jenkins)

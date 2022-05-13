@@ -21,10 +21,10 @@ type ipdbInfo struct {
 	Time    int64  `json:"time"` // ms
 }
 
-var baseURL = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit"
-
 func installIpdb(ipdbType string) error {
-	ipdb, err := InstallIpdb(ipdbType)
+	baseURL := "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit"
+
+	ipdb, err := InstallIpdb(baseURL, ipdbType)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func installIpdb(ipdbType string) error {
 	return nil
 }
 
-func InstallIpdb(ipdbType string) (*ipdbInfo, error) {
+func InstallIpdb(baseURL string, ipdbType string) (*ipdbInfo, error) {
 	ipdbBaseURL := baseURL + "/ipdb/"
 	ipdbJSONURL := ipdbBaseURL + ipdbType + ".json"
 	installDir := datakit.DataDir + "/ipdb/" + ipdbType

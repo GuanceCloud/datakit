@@ -774,7 +774,7 @@ func getInput(expired time.Duration) *Input {
 		return nil
 	}
 	ipt.feedLastError = func(inputName string, err string) {}
-	go ipt.reqMemo.memoHouseKeeper(expired)
+	go ipt.reqMemo.memoMaintainer(expired)
 	return ipt
 }
 

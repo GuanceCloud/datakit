@@ -79,6 +79,16 @@ func pullMain(cg *config.GitRepost) error {
 				continue
 			}
 			if err = doRun(v); err != nil {
+				if isFirst {
+					if strings.Contains(err.Error(), "connect: operation timed out") {
+						isFirst = false
+
+						if err := inputs.RunInputs(); err != nil {
+							l.Error("error running inputs: %v", err)
+						}
+					}
+				}
+
 				tip := fmt.Sprintf("[gitrepo] failed: %v", err)
 				l.Error(tip)
 				io.SelfError(tip)

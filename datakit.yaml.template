@@ -136,7 +136,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: status.hostIP
-        - name: NODE_NAME
+        - name: ENV_K8S_NODE_NAME
           valueFrom:
             fieldRef:
               apiVersion: v1
@@ -164,12 +164,10 @@ spec:
         securityContext:
           privileged: true
         volumeMounts:
-        - mountPath: /var/run/docker.sock
-          name: docker-socket
-          readOnly: true
-        - mountPath: /var/run/containerd/containerd.sock
-          name: containerd-socket
-          readOnly: true
+        - mountPath: /var/run
+          name: run
+        - mountPath: /var/log
+          name: log
         - mountPath: /host/proc
           name: proc
           readOnly: true
@@ -204,11 +202,11 @@ spec:
           name: datakit-conf
         name: datakit-conf
       - hostPath:
-          path: /var/run/docker.sock
-        name: docker-socket
+          path: /var/run
+        name: run
       - hostPath:
-          path: /var/run/containerd/containerd.sock
-        name: containerd-socket
+          path: /var/log
+        name: log
       - hostPath:
           path: /proc
           type: ""

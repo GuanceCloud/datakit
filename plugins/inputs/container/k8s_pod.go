@@ -8,6 +8,7 @@ package container
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -133,7 +134,6 @@ func (p *pod) object() (inputsMeas, error) {
 				"name":         fmt.Sprintf("%v", item.UID),
 				"pod_name":     item.Name,
 				"node_name":    item.Spec.NodeName,
-				"host":         item.Spec.NodeName, // 指定 pod 所在的 host
 				"phase":        fmt.Sprintf("%v", item.Status.Phase),
 				"qos_class":    fmt.Sprintf("%v", item.Status.QOSClass),
 				"state":        fmt.Sprintf("%v", item.Status.Phase), // Depercated
@@ -147,6 +147,10 @@ func (p *pod) object() (inputsMeas, error) {
 				"create_time": item.CreationTimestamp.Time.Unix(),
 			},
 			time: time.Now(),
+		}
+
+		if n := getHostname(); n != "" {
+			obj.tags["host"] = n // 指定 pod 所在的 host
 		}
 
 		for _, ref := range item.OwnerReferences {
@@ -336,6 +340,14 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 		},
 	}
+}
+
+func getHostname() string {
+	if e := os.Getenv("ENV_K8S_NODE_NAME"); e != "" {
+		return e
+	}
+	n, _ := os.Hostname()
+	return n
 }
 
 //nolint:gochecknoinits

@@ -18,6 +18,7 @@ import (
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -33,6 +34,42 @@ var (
 		`\`, `\\`,
 	)
 )
+
+func isValidDataway(c *Config) bool {
+	if c.DataWayCfg == nil {
+		l.Debug("config.Cfg.DataWayCfg == nil")
+		return false
+	}
+
+	if len(c.DataWayCfg.URLs) == 0 {
+		l.Debug("len(config.Cfg.DataWayCfg.URLs) == 0")
+		return false
+	}
+
+	return true
+}
+
+func isValidSink(c *Config) bool {
+	if c.Sinks == nil {
+		l.Debug("config.Cfg.Sinks == nil")
+		return false
+	}
+
+	if len(c.Sinks.Sink) == 0 {
+		l.Debug("len(config.Cfg.Sinks.Sink) == 0")
+		return false
+	}
+
+	empty := true
+	for _, v := range c.Sinks.Sink {
+		if _, ok := v["target"]; ok {
+			empty = false
+			break
+		}
+	}
+
+	return !empty
+}
 
 func LoadCfg(c *Config, mcp string) error {
 	datakit.InitDirs()
@@ -69,6 +106,16 @@ func LoadCfg(c *Config, mcp string) error {
 	if err := c.ApplyMainConfig(); err != nil {
 		return err
 	}
+
+	// check dataway and sink config
+	checkutil.CheckConditionExit(func() bool {
+		if !isValidDataway(c) && !isValidSink(c) {
+			l.Errorf("dataway and sink not set")
+			return false
+		}
+
+		return true
+	})
 
 	l.Infof("loaded main cfg: \n%s", c.String())
 

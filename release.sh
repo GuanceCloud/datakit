@@ -9,7 +9,7 @@ branch_name="$(git symbolic-ref HEAD 2>/dev/null)" ||
 branch_name=${branch_name##refs/heads/} # remove suffix: refs/heads/
 
 case $branch_name in
-	"master"|"community") echo "release prod ..."
+	"master") echo "release prod ..."
 		if [[ "$OSTYPE" == "darwin"* ]]; then # Release darwin version first
 			make production_mac VERSION=$1 &&
 				echo "[I] darwin prod release ok"

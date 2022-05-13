@@ -30,7 +30,7 @@ only_physical_device = false
 ignore_zero_bytes_disk = true
 
 [inputs.hostobject.tags] # (optional) custom tags
-# cloud_provider = "aliyun" # aliyun/tencent/aws
+# cloud_provider = "aliyun" # aliyun/tencent/aws/hwcloud/azure
 # some_tag = "some_value"
 # more_tag = "some_other_value"
 # ...

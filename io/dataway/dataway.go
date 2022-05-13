@@ -39,9 +39,13 @@ type DataWayCfg struct {
 	DeprecatedScheme string `toml:"scheme,omitempty"`
 	DeprecatedToken  string `toml:"token,omitempty"`
 
+	MaxIdleConnsPerHost int `toml:"max_idle_conns_per_host,omitempty"`
+
 	TimeoutDuration time.Duration `toml:"-"`
 
 	MaxFails int `toml:"max_fail"`
 
 	Proxy bool `toml:"proxy,omitempty"`
+
+	EnableHTTPTrace bool `toml:"enable_httptrace,omitempty"`
 }

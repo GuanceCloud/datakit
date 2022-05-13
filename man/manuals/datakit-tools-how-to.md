@@ -282,10 +282,10 @@ datakit install --scheck
 
 ### DataKit eBPF 集成
 
-安装 DataKit eBPF 采集器, 当前只支持 `linux/amd64` 平台，采集器使用说明见 [DataKit eBPF 采集器](https://www.yuque.com/dataflux/datakit/ebpf)
+安装 DataKit eBPF 采集器, 当前只支持 `linux/amd64 | linux/arm64` 平台，采集器使用说明见 [DataKit eBPF 采集器](https://www.yuque.com/dataflux/datakit/ebpf)
 
 ```shell
-datakit install --datakit-ebpf
+datakit install --ebpf
 ```
 
 如若提示 `open /usr/local/datakit/externals/datakit-ebpf: text file busy`，停止 DataKit 服务后再执行该命令

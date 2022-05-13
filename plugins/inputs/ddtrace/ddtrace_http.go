@@ -13,7 +13,7 @@ import (
 	"net/http"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 const (
@@ -55,7 +55,7 @@ func handleDDTraceWithVersion(v string) http.HandlerFunc {
 
 			if dktrace := ddtraceToDkTrace(trace); len(dktrace) == 0 {
 				log.Warn("empty datakit trace")
-			} else {
+			} else if afterGatherRun != nil {
 				afterGatherRun.Run(inputName, dktrace, false)
 			}
 		}

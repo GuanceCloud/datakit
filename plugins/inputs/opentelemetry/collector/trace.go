@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )

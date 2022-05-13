@@ -17,7 +17,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	zpkmodel "github.com/openzipkin/zipkin-go/model"
 	zpkprotov2 "github.com/openzipkin/zipkin-go/proto/v2"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 func parseZipkinProtobuf3(body []byte) (zss []*zpkmodel.SpanModel, err error) {

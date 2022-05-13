@@ -235,7 +235,7 @@ func (i *Input) Init() error {
 
 	pm, err := iprom.NewProm(opt)
 	if err != nil {
-		l.Error(err)
+		l.Warnf("prom.NewProm: %s, ignored", err)
 		return err
 	}
 	i.pm = pm

@@ -69,7 +69,7 @@ datakit --restart
 ```shell
 DK_SINK_M="m3db://localhost:7201?scheme=http" \
 DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" \
-bash -c "$(curl -L https://static.guance.com/datakit/community/install.sh)"
+bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 ```
 
 通过环境变量安装的 Datakit，会在自动在配置文件中生成相应的配置。

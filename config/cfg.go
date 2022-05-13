@@ -65,6 +65,10 @@ func DefaultConfig() *Config {
 			Filters:                   map[string][]string{},
 		},
 
+		DataWayCfg: &dataway.DataWayCfg{
+			URLs: []string{},
+		},
+
 		ProtectMode: true,
 
 		HTTPAPI: &dkhttp.APIConfig{
@@ -306,6 +310,15 @@ func (c *Config) InitCfg(p string) error {
 	return nil
 }
 
+func (c *Config) InitCfgSample(p string) error {
+	if err := ioutil.WriteFile(p, []byte(DatakitConfSample), datakit.ConfPerm); err != nil {
+		l.Errorf("error creating %s: %s", p, err)
+		return err
+	}
+	l.Debugf("create datakit sample conf ok, %s!", p)
+	return nil
+}
+
 func (c *Config) setupDataway() error {
 	if c.DataWayCfg == nil {
 		return fmt.Errorf("dataway config is empty")
@@ -451,7 +464,7 @@ func (c *Config) ApplyMainConfig() error {
 		}
 	}
 
-	if c.DataWayCfg != nil {
+	if c.DataWayCfg != nil && len(c.DataWayCfg.URLs) > 0 {
 		if err := c.setupDataway(); err != nil {
 			return err
 		}
@@ -631,6 +644,42 @@ func (c *Config) LoadEnvs() error {
 			c.DataWayCfg = &dataway.DataWayCfg{}
 		}
 		c.DataWayCfg.URLs = strings.Split(v, ",")
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_TIMEOUT"); v != "" {
+		if c.DataWayCfg == nil {
+			c.DataWayCfg = &dataway.DataWayCfg{}
+		}
+		_, err := time.ParseDuration(v)
+		if err != nil {
+			l.Warnf("invalid ENV_DATAWAY_TIMEOUT: %s", v)
+			c.DataWayCfg.HTTPTimeout = "30s"
+		} else {
+			c.DataWayCfg.HTTPTimeout = v
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_ENABLE_HTTPTRACE"); v != "" {
+		c.DataWayCfg.EnableHTTPTrace = true
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_HTTP_PROXY"); v != "" {
+		c.DataWayCfg.HTTPProxy = v
+		c.DataWayCfg.Proxy = true
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST"); v != "" {
+		if c.DataWayCfg == nil {
+			c.DataWayCfg = &dataway.DataWayCfg{}
+		}
+		value, err := strconv.ParseInt(v, 10, 64)
+		if err == nil {
+			if value <= 0 {
+				l.Warnf("invalid ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST: %s", v)
+			} else {
+				c.DataWayCfg.MaxIdleConnsPerHost = int(value)
+			}
+		}
 	}
 
 	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {

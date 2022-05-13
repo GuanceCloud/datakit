@@ -63,7 +63,7 @@ func NewWithOpt(opt *Option, ignorePatterns ...[]string) (sl *socketLogger, err 
 		opt:  opt,
 		stop: make(chan struct{}, 1),
 	}
-	if err := sl.opt.init(); err != nil {
+	if err := sl.opt.Init(); err != nil {
 		return nil, err
 	}
 	sl.tags = buildTags(opt.GlobalTags)
@@ -105,31 +105,37 @@ func mkServer(socket string) (s *server, err error) {
 	s = &server{addr: socket}
 	socketURL, err := url.Parse(socket)
 	if err != nil {
-		return s, fmt.Errorf("error socket config err=%w", err)
+		return nil, fmt.Errorf("error socket config err=%w", err)
 	}
+
 	network := socketURL.Scheme
 	listenAddr := socketURL.Host
-	l.Infof("check logging socket Scheme=%s listenerAddr=%s", network, listenAddr)
+
+	l.Debugf("check logging socket Scheme=%s listenerAddr=%s", network, listenAddr)
+
 	switch network {
-	case "", "tcp", "tcp4", "tcp6": // 建议使用tcp
+	case "", "tcp", "tcp4", "tcp6": // default use TCP
 		listener, err := net.Listen(network, listenAddr)
 		if err != nil {
-			return s, fmt.Errorf("socket listen port error:%w", err)
+			return nil, fmt.Errorf("socket listen port error:%w", err)
 		}
 		s.lis = listener
+
 	case "udp", "udp4", "udp6":
 		udpAddr, err := net.ResolveUDPAddr(network, listenAddr)
 		if err != nil {
-			return s, fmt.Errorf("resolve UDP addr error:%w", err)
+			return nil, fmt.Errorf("resolve UDP addr error:%w", err)
 		}
 		conn, err := net.ListenUDP(network, udpAddr)
 		if err != nil {
-			return s, fmt.Errorf(" net.ListenUDP error:%w", err)
+			return nil, fmt.Errorf(" net.ListenUDP error:%w", err)
 		}
 		s.conn = conn
+
 	default:
-		err = fmt.Errorf("socket config like this: socket=[tcp://127.0.0.1:9540] , and please check your logging.conf")
+		return nil, fmt.Errorf("socket config like this: socket=[tcp://127.0.0.1:9540] , and please check your logging.conf")
 	}
+
 	return s, err
 }
 

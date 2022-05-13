@@ -8,7 +8,7 @@ package zipkin
 import (
 	"testing"
 
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 func TestZipkinAgent(t *testing.T) {

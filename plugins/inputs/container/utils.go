@@ -13,6 +13,18 @@ import (
 	"github.com/pborman/ansi"
 )
 
+func getPodNameForLabels(labels map[string]string) string {
+	return labels["io.kubernetes.pod.name"]
+}
+
+func getPodNamespaceForLabels(labels map[string]string) string {
+	return labels["io.kubernetes.pod.namespace"]
+}
+
+func getContainerNameForLabels(labels map[string]string) string {
+	return labels["io.kubernetes.container.name"]
+}
+
 // ParseImage adapts some of the logic from the actual Docker library's image parsing
 // routines:
 // https://github.com/docker/distribution/blob/release/2.7/reference/normalize.go

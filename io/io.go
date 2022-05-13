@@ -21,9 +21,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
-const (
+var (
 	minGZSize   = 1024
-	maxKodoPack = 10 * 1000 * 1000
+	maxKodoPack = 10 * 1024 * 1024
 )
 
 var (
@@ -164,7 +164,6 @@ func (x *IO) ioStop() {
 	}
 }
 
-// updateStats update io input stats with a new groutine, do not block io.
 func (x *IO) updateStats(d *iodata) {
 	g.Go(func(ctx context.Context) error {
 		x.lock.Lock()
@@ -292,7 +291,7 @@ func (x *IO) StartIO(recoverable bool) {
 			Cache:              x.conf.EnableCache,
 			FlushCacheInterval: du,
 			ErrorCallback: func(err error) {
-				addReporter(Reporter{Status: "error", Message: err.Error()})
+				FeedEventLog(&DKEvent{Message: err.Error(), Status: "error", Category: "dataway"})
 			},
 		}); err != nil {
 		log.Errorf("init sender error: %s", err.Error())
@@ -458,31 +457,29 @@ type body struct {
 	gzon bool
 }
 
-var lines = bytes.Buffer{}
-
-func (x *IO) buildBody(pts []*Point) ([]*body, error) {
+func doBuildBody(pts []*Point, outfile string) ([]*body, error) {
 	var (
-		gz = func(lines []byte) (*body, error) {
-			var (
-				body = &body{buf: lines}
-				err  error
-			)
-			log.Debugf("### io body size before GZ: %dM %dK", len(body.buf)/1000/1000, len(body.buf)/1000)
-			if len(lines) > minGZSize && x.conf.OutputFile == "" {
-				if body.buf, err = datakit.GZip(body.buf); err != nil {
-					log.Errorf("gz: %s", err.Error())
+		gz = func(data []byte) (*body, error) {
+			body := &body{buf: data}
 
+			if len(data) > minGZSize && outfile == "" {
+				if gzbuf, err := datakit.GZip(body.buf); err != nil {
+					log.Errorf("Gzip: %s", err.Error())
 					return nil, err
+				} else {
+					log.Debugf("GZip: %d/%d=%f", len(gzbuf), len(body.buf), float64(len(gzbuf))/float64(len(body.buf)))
+					body.buf = gzbuf
+					body.gzon = true
 				}
-				body.gzon = true
 			}
 
 			return body, nil
 		}
-		// lines  bytes.Buffer
+
 		bodies []*body
+		lines  = bytes.Buffer{}
 	)
-	lines.Reset()
+
 	for _, pt := range pts {
 		ptstr := pt.String()
 		if lines.Len()+len(ptstr)+1 >= maxKodoPack {
@@ -493,14 +490,21 @@ func (x *IO) buildBody(pts []*Point) ([]*body, error) {
 			}
 			lines.Reset()
 		}
+
+		if lines.Len() != 0 {
+			lines.WriteString("\n")
+		}
 		lines.WriteString(ptstr)
-		lines.WriteString("\n")
 	}
 	if body, err := gz(lines.Bytes()); err != nil {
 		return nil, err
 	} else {
 		return append(bodies, body), nil
 	}
+}
+
+func (x *IO) buildBody(pts []*Point) ([]*body, error) {
+	return doBuildBody(pts, x.conf.OutputFile)
 }
 
 func (x *IO) doFlush(pts []*Point, category string) error {

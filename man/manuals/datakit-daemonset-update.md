@@ -19,10 +19,6 @@ DataKit DaemonSet 支持两种方式安装，Helm 部署和 yaml 文件部署。
 直接执行如下命令，添加 Helm 仓库
 
 ```shell
-# 社区版
-$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit-ce
-
-# 商业版
 $ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
 ```
 
