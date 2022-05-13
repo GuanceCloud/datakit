@@ -11,7 +11,8 @@
     - [各种其它工具使用](datakit-tools-how-to)
     - [如何排查无数据问题](why-no-data)
 
-- [DataKit 版本历史](changelog)
+- [DataKit 社区版版本历史](changelog-community)
+  - [DataKit 版本历史](changelog)
 
 - [DataKit 安装]()
 
@@ -25,6 +26,13 @@
   - [DataKit 选举支持](election)
   - [DCA 客户端(beta)](dca)
 
+	- [Sinker 设置]()
+    - [Sinker 使用方法](datakit-sink-guide)
+		- [已有 Sinker 支持]()
+      - [InfluxDB](datakit-sink-influxdb)
+      - [Logstash](datakit-sink-logstash)
+      - [M3DB](datakit-sink-m3db)
+
 - [文本数据处理（Pipeline）](pipeline)
 
   - [如何编写 Pipeline 脚本](datakit-pl-how-to)
@@ -35,6 +43,7 @@
     - [DataKit 整体架构简介](datakit-arch)
   - [行协议过滤器](datakit-filter)
   - [DataKit API](apis)
+  - [DataKit Sinker 开发](datakit-sink-dev)
 
 - [采集器]()
 
@@ -129,6 +138,9 @@
 
     - [eBPF](ebpf)
 
+  - [自定义采集器]()
+    - [用 Python 开发自定义采集器](pythond)
+
   - [第三方数据接入]()
 
     - [Prometheus 数据接入]()
@@ -140,7 +152,6 @@
     - [Cloudprober 接入](cloudprober)
     - [Telegraf 数据接入](telegraf)
     - [Scheck 接入](sec-checker)
-    - [用 Python 开发自定义采集器](pythond)
 
   - [其它采集器]()
     - [Jenkins](jenkins)

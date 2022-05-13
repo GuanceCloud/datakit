@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package elasticsearch Collect ElasticSearch metrics.
 package elasticsearch
 
@@ -996,8 +1001,12 @@ func (i *Input) stop() {
 }
 
 func (i *Input) createHTTPClient() (*http.Client, error) {
+	timeout := 10 * time.Second
+	if i.HTTPTimeout.Duration > 0 {
+		timeout = i.HTTPTimeout.Duration
+	}
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: timeout,
 	}
 
 	if i.TLSOpen {

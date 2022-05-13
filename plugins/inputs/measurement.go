@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package inputs
 
 import (
@@ -171,7 +176,7 @@ func GetPointsFromMeasurement(measurements []Measurement) ([]*io.Point, error) {
 	var pts []*io.Point
 	for _, m := range measurements {
 		if pt, err := m.LineProto(); err != nil {
-			return nil, err
+			l.Warnf("make point failed: %v, ignore", err)
 		} else {
 			pts = append(pts, pt)
 		}

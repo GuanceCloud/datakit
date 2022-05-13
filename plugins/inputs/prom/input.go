@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package prom scrape prometheus exporter metrics.
 package prom
 
@@ -230,7 +235,7 @@ func (i *Input) Init() error {
 
 	pm, err := iprom.NewProm(opt)
 	if err != nil {
-		l.Error(err)
+		l.Warnf("prom.NewProm: %s, ignored", err)
 		return err
 	}
 	i.pm = pm

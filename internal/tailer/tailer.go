@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package tailer wraps logging file collection
 package tailer
 
@@ -80,7 +85,7 @@ type Option struct {
 	IgnoreDeadLog time.Duration
 }
 
-func (opt *Option) init() error {
+func (opt *Option) Init() error {
 	if opt.Source == "" {
 		opt.Source = defaultSource
 	}
@@ -156,7 +161,7 @@ func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (
 		t.opt = &Option{}
 	}
 
-	if err := t.opt.init(); err != nil {
+	if err := t.opt.Init(); err != nil {
 		return nil, err
 	}
 	return &t, nil

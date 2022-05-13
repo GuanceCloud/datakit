@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package hostobject
 
 const (
@@ -25,7 +30,7 @@ only_physical_device = false
 ignore_zero_bytes_disk = true
 
 [inputs.hostobject.tags] # (optional) custom tags
-# cloud_provider = "aliyun" # aliyun/tencent/aws
+# cloud_provider = "aliyun" # aliyun/tencent/aws/hwcloud/azure
 # some_tag = "some_value"
 # more_tag = "some_other_value"
 # ...

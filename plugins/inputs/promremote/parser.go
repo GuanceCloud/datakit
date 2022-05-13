@@ -1,9 +1,13 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package promremote
 
 import (
 	"fmt"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -52,7 +56,6 @@ func (p *Parser) Parse(buf []byte) ([]inputs.Measurement, error) {
 			if !math.IsNaN(s.Value) {
 				fields[subName] = s.Value
 			}
-			// convert to measurement
 			if len(fields) > 0 {
 				t := now
 				if s.Timestamp > 0 {
@@ -68,20 +71,5 @@ func (p *Parser) Parse(buf []byte) ([]inputs.Measurement, error) {
 			}
 		}
 	}
-
 	return metrics, err
-}
-
-func (p *Parser) getNames(metric string) (firstName, subName string) {
-	if p.MeasurementName != "" {
-		return p.MeasurementPrefix + p.MeasurementName, metric
-	}
-	// divide metric name by first '_' met
-	index := strings.Index(metric, "_")
-	firstName, subName = metric, metric
-	if index != -1 {
-		firstName = metric[:index]
-		subName = metric[index+1:]
-	}
-	return p.MeasurementPrefix + firstName, subName
 }

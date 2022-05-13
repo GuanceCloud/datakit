@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package container
 
 import (
@@ -131,9 +136,9 @@ func shouldForkInput(nodeName string) bool {
 	if !datakit.Docker {
 		return true
 	}
-	// ENV NODE_NAME 在 daemonset.yaml 配置，是当前程序所在的 Node 名称
+	// ENV_K8S_NODE_NAME 在 daemonset.yaml 配置，是当前程序所在的 Node 名称
 	// Node 名称匹配，表示运行在同一个 Node，此时才需要 fork
 
 	// Node 名称为空属于 unreachable
-	return datakit.GetEnv("NODE_NAME") == nodeName
+	return datakit.GetEnv("ENV_K8S_NODE_NAME") == nodeName
 }

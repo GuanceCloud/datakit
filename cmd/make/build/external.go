@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package build
 
 import (
@@ -52,6 +57,7 @@ var externals = []*dkexternal{
 		entry: "Makefile",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
+			"linux/arm64": true,
 		},
 
 		buildArgs: nil,

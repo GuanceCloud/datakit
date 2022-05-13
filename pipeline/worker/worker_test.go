@@ -497,7 +497,7 @@ func TestGrokStack(t *testing.T) {
 	add_pattern("aa", "\\d{2}")
 	grok(_, "%{aa:aa}")
 	if false {
-	
+
 	} else {
 		add_pattern("bb", "[a-z]{3}")
 		if aa == "11" {
@@ -508,7 +508,7 @@ func TestGrokStack(t *testing.T) {
 		} elif aa == "33" {
 			add_pattern("bb", "[\\d]{5}")	# 此处覆盖 bb 失败
 			add_pattern("cc", "end3")
-			grok(_, "%{aa:aa},%{bb:bb},%{cc:cc}")	
+			grok(_, "%{aa:aa},%{bb:bb},%{cc:cc}")
 		}
 	}
 	`

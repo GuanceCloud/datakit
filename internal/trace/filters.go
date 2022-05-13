@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package trace
 
 import (
@@ -68,7 +73,7 @@ func (cres *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
 	for i := range dktrace {
 		if dktrace[i].SpanType == SPAN_TYPE_ENTRY {
 			for service, resList := range cres.IgnoreResources {
-				if dktrace[i].Service == service {
+				if service == "*" || service == dktrace[i].Service {
 					for j := range resList {
 						if resList[j].MatchString(dktrace[i].Resource) {
 							log.Debugf("close trace from service: %s resource: %s send by source: %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)

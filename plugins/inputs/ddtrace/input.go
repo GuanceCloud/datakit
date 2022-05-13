@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package ddtrace handle DDTrace APM traces.
 package ddtrace
 
@@ -43,9 +48,12 @@ const (
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
+  ## If you want to block some resources universally under all services, you can set the
+  ## service name as "*". Note: double quotes "" cannot be omitted.
   # [inputs.ddtrace.close_resource]
     # service1 = ["resource1", "resource2", ...]
     # service2 = ["resource1", "resource2", ...]
+    # "*" = ["close_resource_under_all_services"]
     # ...
 
   ## Sampler config uses to set global sampling strategy.

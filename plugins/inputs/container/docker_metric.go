@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package container
 
 import (
@@ -33,16 +38,17 @@ func gatherDockerContainerMetric(client dockerClientX, k8sClient k8sClientX, con
 func getContainerTags(container *types.Container) tagsType {
 	imageName, imageShortName, imageTag := ParseImage(container.Image)
 
-	tags := make(tagsType)
-	tags["state"] = container.State
-	tags["docker_image"] = container.Image
-	tags["image"] = container.Image
-	tags["image_name"] = imageName
-	tags["image_short_name"] = imageShortName
-	tags["image_tag"] = imageTag
-	tags["container_name"] = getContainerName(container.Names)
-	tags["container_id"] = container.ID
-	tags["linux_namespace"] = "moby"
+	tags := map[string]string{
+		"state":            container.State,
+		"docker_image":     container.Image,
+		"image":            container.Image,
+		"image_name":       imageName,
+		"image_short_name": imageShortName,
+		"image_tag":        imageTag,
+		"container_name":   getContainerName(container.Names),
+		"container_id":     container.ID,
+		"linux_namespace":  "moby",
+	}
 
 	if !containerIsFromKubernetes(getContainerName(container.Names)) {
 		tags["container_type"] = "docker"
@@ -50,11 +56,11 @@ func getContainerTags(container *types.Container) tagsType {
 		tags["container_type"] = "kubernetes"
 	}
 
-	if container.Labels[containerLableForPodName] != "" {
-		tags["pod_name"] = container.Labels[containerLableForPodName]
+	if n := getPodNameForLabels(container.Labels); n != "" {
+		tags["pod_name"] = n
 	}
-	if container.Labels[containerLableForPodNamespace] != "" {
-		tags["namespace"] = container.Labels[containerLableForPodNamespace]
+	if n := getPodNamespaceForLabels(container.Labels); n != "" {
+		tags["namespace"] = n
 	}
 
 	return tags
@@ -63,9 +69,9 @@ func getContainerTags(container *types.Container) tagsType {
 func getContainerInfo(container *types.Container, k8sClient k8sClientX) tagsType {
 	tags := getContainerTags(container)
 
-	podname := container.Labels[containerLableForPodName]
-	podnamespace := container.Labels[containerLableForPodNamespace]
-	podContainerName := container.Labels[containerLableForPodContainerName]
+	podname := getPodNameForLabels(container.Labels)
+	podnamespace := getPodNamespaceForLabels(container.Labels)
+	podContainerName := getContainerNameForLabels(container.Labels)
 
 	if k8sClient == nil || podname == "" {
 		return tags
@@ -198,7 +204,7 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 		Desc: "容器指标数据，只采集正在运行的容器",
 		Tags: map[string]interface{}{
 			"container_id":     inputs.NewTagInfo(`容器 ID`),
-			"container_name":   inputs.NewTagInfo(`容器名称`),
+			"container_name":   inputs.NewTagInfo(`容器名称（containerd 容器会在 labels 中取 'io.kubernetes.container.name'，如果值为空则默认是 unknown`),
 			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
 			"linux_namespace":  inputs.NewTagInfo(`该容器所在的 [linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html)`),
 			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
@@ -213,8 +219,8 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 占主机总量的使用率"},
-			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "容器 CPU 增量（containerd 缺少此字段）"},
-			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "系统 CPU 增量（containerd 缺少此字段）"},
+			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationNS, Desc: "容器 CPU 增量（containerd 缺少此字段）"},
+			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationNS, Desc: "系统 CPU 增量，仅支持 Linux（containerd 缺少此字段）"},
 			"cpu_numbers":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "CPU 核心数（containerd 缺少此字段）"},
 			"mem_limit":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存可用总量，如果未对容器做内存限制，则为主机内存容量"},
 			"mem_usage":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存使用量"},

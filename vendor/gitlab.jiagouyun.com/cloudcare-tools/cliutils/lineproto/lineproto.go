@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"sort"
 	"strings"
 	"time"
 
@@ -160,28 +161,12 @@ func MakeLineProtoPoint(name string,
 		opt.MaxFields = 1024
 	}
 
-	if len(tags) > opt.MaxTags {
-		return nil, fmt.Errorf("exceed max tag count(%d), got %d tags", opt.MaxTags, len(tags))
-	}
-
-	if len(fields) > opt.MaxFields {
-		return nil, fmt.Errorf("exceed max field count(%d), got %d fields", opt.MaxFields, len(fields))
-	}
-
 	if err := checkTags(tags, opt); err != nil {
 		return nil, err
 	}
 
-	for k, v := range fields {
-		if x, err := checkField(k, v, opt); err != nil {
-			return nil, err
-		} else {
-			if x == nil {
-				delete(fields, k)
-			} else {
-				fields[k] = x
-			}
-		}
+	if err := checkFields(fields, opt); err != nil {
+		return nil, err
 	}
 
 	if err := checkTagFieldSameKey(tags, fields); err != nil {
@@ -257,9 +242,8 @@ func checkTagFieldSameKey(tags map[string]string, fields map[string]interface{})
 	}
 
 	for k := range tags {
-		if _, ok := fields[k]; ok {
-			return fmt.Errorf("same key `%s' in tag and field", k)
-		}
+		// delete same key from fields
+		delete(fields, k)
 	}
 
 	return nil
@@ -280,10 +264,6 @@ func trimSuffixAll(s, sfx string) string {
 func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
 	if strings.Contains(k, ".") && !opt.EnablePointInKey {
 		return nil, fmt.Errorf("invalid field key `%s': found `.'", k)
-	}
-
-	if len(k) > opt.MaxFieldKeyLen {
-		return nil, fmt.Errorf("exceed max field key limit(%d), got key %s with length %d", opt.MaxFieldKeyLen, k, len(k))
 	}
 
 	if err := opt.checkDisabledField(k); err != nil {
@@ -314,7 +294,7 @@ func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
 
 	case string:
 		if len(x) > opt.MaxFieldValueLen && opt.MaxFieldValueLen > 0 {
-			return nil, fmt.Errorf("exceed max field value limit(%d), got key %s with length %d", opt.MaxFieldValueLen, k, len(x))
+			return x[:opt.MaxFieldValueLen], nil
 		}
 		return v, nil
 
@@ -331,15 +311,72 @@ func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
 	}
 }
 
-func checkTags(tags map[string]string, opt *Option) error {
-	for k, v := range tags {
-
-		if len(k) > opt.MaxTagKeyLen {
-			return fmt.Errorf("exceed max tag key limit(%d), got key %s with length %d", opt.MaxTagKeyLen, k, len(k))
+func checkFields(fields map[string]interface{}, opt *Option) error {
+	// delete extra key
+	if opt.MaxFields > 0 && len(fields) > opt.MaxFields {
+		var keys []string
+		for k := range fields {
+			keys = append(keys, k)
 		}
 
-		if len(v) > opt.MaxTagValueLen {
-			return fmt.Errorf("exceed max tag value limit(%d), got key %s with length %d", opt.MaxTagValueLen, k, len(v))
+		sort.Strings(keys)
+
+		deleteKeys := keys[opt.MaxFields:]
+
+		for _, k := range deleteKeys {
+			delete(fields, k)
+		}
+	}
+
+	for k, v := range fields {
+		// trim key
+		if opt.MaxFieldKeyLen > 0 && len(k) > opt.MaxFieldKeyLen {
+			delete(fields, k)
+			k = k[:opt.MaxFieldKeyLen]
+			fields[k] = v
+		}
+
+		if x, err := checkField(k, v, opt); err != nil {
+			return err
+		} else {
+			if x == nil {
+				delete(fields, k)
+			} else {
+				fields[k] = x
+			}
+		}
+	}
+
+	return nil
+}
+
+func checkTags(tags map[string]string, opt *Option) error {
+	// delete extra key
+	if len(tags) > opt.MaxTags {
+		var keys []string
+		for k := range tags {
+			keys = append(keys, k)
+		}
+
+		sort.Strings(keys)
+
+		deleteKeys := keys[opt.MaxTags:]
+
+		for _, k := range deleteKeys {
+			delete(tags, k)
+		}
+	}
+
+	for k, v := range tags {
+
+		if opt.MaxTagKeyLen > 0 && len(k) > opt.MaxTagKeyLen {
+			delete(tags, k)
+			k = k[:opt.MaxTagKeyLen]
+			tags[k] = v
+		}
+
+		if opt.MaxTagValueLen > 0 && len(v) > opt.MaxTagValueLen {
+			tags[k] = v[:opt.MaxTagValueLen]
 		}
 
 		// check tag key

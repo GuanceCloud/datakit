@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -158,16 +163,24 @@ func restartDataKit() error {
 	return cmd.Start()
 }
 
+type dcastats struct {
+	*DatakitStats
+	ConfigInfo map[string]*inputs.Config `json:"config_info"`
+}
+
 func dcaStats(c *gin.Context) {
 	s, err := dcaAPI.GetStats()
 	context := dcaContext{c: c}
-
+	stats := &dcastats{
+		DatakitStats: s,
+		ConfigInfo:   inputs.ConfigInfo,
+	}
 	if err != nil {
 		context.fail()
 		return
 	}
 
-	context.success(s)
+	context.success(stats)
 }
 
 func dcaDefault(c *gin.Context) {
@@ -201,7 +214,7 @@ func dcaAuthMiddleware(c *gin.Context) {
 	}
 
 	token := tokens[0]
-	localTokens := dw.GetToken()
+	localTokens := dw.GetTokens()
 	if len(token) == 0 || len(localTokens) == 0 || (token != localTokens[0]) {
 		context.fail(dcaError{Code: 401, ErrorCode: "auth.failed", ErrorMsg: "auth failed"})
 		c.Abort()
@@ -521,7 +534,7 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 		return "", err
 	}
 
-	if res == nil || (len(res.Output.Tags) == 0 || len(res.Output.Fields) == 0) {
+	if res == nil || (len(res.Output.Tags) == 0 && len(res.Output.Fields) == 0) {
 		l.Debug("No data extracted from pipeline")
 		return "", nil
 	}

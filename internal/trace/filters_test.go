@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package trace
 
 import (
@@ -63,18 +68,21 @@ func TestPenetrateError(t *testing.T) {
 
 func TestCloseResource(t *testing.T) {
 	testcases := DatakitTraces{
-		randDatakitTraceByService(t, 10, "login", "Allen123", "ddtrace"),
+		randDatakitTraceByService(t, 10, "", "Allen123", "ddtrace"),
 		randDatakitTraceByService(t, 10, "game", "Bravo333", "ddtrace"),
 		randDatakitTraceByService(t, 10, "logout", "Clear666", "ddtrace"),
 	}
 	expected := []func(trace DatakitTrace) bool{
-		func(trace DatakitTrace) bool { return trace != nil },
+		func(trace DatakitTrace) bool { return trace == nil },
 		func(trace DatakitTrace) bool { return trace == nil },
 		func(trace DatakitTrace) bool { return trace != nil },
 	}
 
 	closer := &CloseResource{}
-	closer.UpdateIgnResList(map[string][]string{"game": {".*333"}})
+	closer.UpdateIgnResList(map[string][]string{
+		"game": {".*333"},
+		"*":    {"Allen\\d*"},
+	})
 
 	wg := sync.WaitGroup{}
 	wg.Add(10)

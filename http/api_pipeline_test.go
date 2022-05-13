@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -11,6 +16,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -200,7 +206,7 @@ default_time(time)`)),
 							"server":       "localhost",
 							"status":       "error",
 						},
-						Time:    1636534793,
+						Time:    time.Date(2021, 11, 10, 16, 59, 53, 0, time.Local).Unix(),
 						TimeNS:  0,
 						Dropped: false,
 					},

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package promremote handle promremote remote write data.
 package promremote
 
@@ -39,6 +44,8 @@ type Input struct {
 	HTTPHeaderTags map[string]string `toml:"http_header_tags"`
 	Tags           map[string]string `toml:"tags"`
 	TagsIgnore     []string          `toml:"tags_ignore"`
+	TagsRename     map[string]string `toml:"tags_rename"`
+	Overwrite      bool              `toml:"overwrite"`
 	Output         string            `toml:"output"`
 	Parser
 }
@@ -58,9 +65,6 @@ func (h *Input) Catalog() string {
 
 func (h *Input) Run() {
 	l.Infof("%s input started...", inputName)
-	if h.MaxBodySize == 0 {
-		h.MaxBodySize = defaultMaxBodySize
-	}
 	for i, m := range h.Methods {
 		h.Methods[i] = strings.ToUpper(m)
 	}
@@ -98,14 +102,7 @@ func (h *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// Check if the requested HTTP method was specified in config.
-	isAcceptedMethod := false
-	for _, method := range h.Methods {
-		if req.Method == method {
-			isAcceptedMethod = true
-			break
-		}
-	}
-	if !isAcceptedMethod {
+	if !h.isAcceptedMethod(req.Method) {
 		if err := methodNotAllowed(res); err != nil {
 			l.Debugf("error in method-not-allowed: %v", err)
 		}
@@ -152,13 +149,13 @@ func (h *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		for headerName, measurementName := range h.HTTPHeaderTags {
+		for headerName, tagName := range h.HTTPHeaderTags {
 			headerValues := req.Header.Get(headerName)
 			if len(headerValues) > 0 {
-				m.tags[measurementName] = headerValues
+				m.tags[tagName] = headerValues
 			}
 		}
-		h.AddAndIgnoreTags(m)
+		h.SetTags(m)
 	}
 	if len(metrics) > 0 {
 		if err := inputs.FeedMeasurement(inputName,
@@ -171,13 +168,43 @@ func (h *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Input) AddAndIgnoreTags(m *Measurement) {
+func (h *Input) isAcceptedMethod(method string) bool {
+	for _, m := range h.Methods {
+		if method == m {
+			return true
+		}
+	}
+	return false
+}
+
+func (h *Input) SetTags(m *Measurement) {
+	h.addTags(m)
+	h.ignoreTags(m)
+	h.renameTags(m)
+}
+
+func (h *Input) addTags(m *Measurement) {
 	for k, v := range h.Tags {
 		m.tags[k] = v
 	}
+}
 
+func (h *Input) ignoreTags(m *Measurement) {
 	for _, t := range h.TagsIgnore {
 		delete(m.tags, t)
+	}
+}
+
+func (h *Input) renameTags(m *Measurement) {
+	for oldKey, newKey := range h.TagsRename {
+		if _, has := m.tags[oldKey]; !has {
+			continue
+		}
+		_, has := m.tags[newKey]
+		if has && h.Overwrite || !has {
+			m.tags[newKey] = m.tags[oldKey]
+			delete(m.tags, oldKey)
+		}
 	}
 }
 
@@ -309,8 +336,13 @@ func (h *Input) AvailableArchs() []string {
 
 func NewInput() *Input {
 	i := Input{
-		Methods:    []string{"POST", "PUT"},
-		DataSource: body,
+		Methods:        []string{"POST", "PUT"},
+		DataSource:     body,
+		Tags:           map[string]string{},
+		TagsRename:     map[string]string{},
+		HTTPHeaderTags: map[string]string{},
+		TagsIgnore:     []string{},
+		MaxBodySize:    defaultMaxBodySize,
 	}
 	return &i
 }
