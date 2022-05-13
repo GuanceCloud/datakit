@@ -155,7 +155,8 @@ define build_k8s_charts
 	@if [ $$((`echo $(VERSION) | awk -F . '{print $$2}'`%2)) -eq 0 ];then \
         helm cm-push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1); \
      else \
-        helm cm-push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(2); \
+			  printf "\033[31m [FAIL] unstable version not allowed\n\033[0m"; \
+        exit 1; \
      fi
 
 	@rm -f datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz
@@ -203,7 +204,7 @@ testing_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
 	# we also publish testing image to public image repo
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
-	$(call build_k8s_charts, 'datakit-testing', 'datakit-ce-testing')
+	$(call build_k8s_charts, 'datakit-testing')
 
 production_notify: deps
 	$(call notify_build,production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -214,7 +215,7 @@ production: deps # stable release
 
 production_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
-	$(call build_k8s_charts, 'datakit', 'datakit-ce')
+	$(call build_k8s_charts, 'datakit')
 
 production_mac: deps
 	$(call build, production, $(MAC_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
