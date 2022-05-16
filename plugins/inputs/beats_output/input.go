@@ -215,6 +215,7 @@ func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 		}
 		newTags["host"] = v.HostName        // host.name
 		newTags["filepath"] = v.LogFilePath // log.file.path
+		newTags["service"] = ipt.Service
 		for kk, vv := range v.Fields {
 			if str, ok := vv.(string); ok {
 				newTags[kk] = str
