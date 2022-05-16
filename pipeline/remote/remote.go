@@ -35,6 +35,12 @@ const (
 	// #-----------------------------------------------------------------------------------
 	// `.
 	deleteAll = 1
+
+	// files: map[string]string{
+	// 	"metric|||||123.p": "text123",
+	// 	"logging|||||456.p": "text456",
+	// },
+	pipelineSep = "|||||"
 )
 
 var (
@@ -209,7 +215,7 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 
 		l.Debug("dumpFiles succeeded")
 
-		scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(mFiles)
+		loadContentPipeline(mFiles)
 
 		err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
 		if err != nil {
@@ -285,7 +291,7 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		if err != nil {
 			l.Errorf("ReadTarToMap failed: %v", err)
 		} else {
-			scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(mContent)
+			loadContentPipeline(mContent)
 		}
 	} // isFirst
 	return cf.UpdateTime, nil
@@ -304,4 +310,41 @@ func updatePipelineRemoteConfig(pathConfig, siteURL string, latestTime int64, ip
 		return err
 	}
 	return nil
+}
+
+func convertContentMap(in map[string]string) map[string]map[string]string {
+	out := make(map[string]map[string]string)
+	for k, v := range in {
+		arr := strings.Split(k, pipelineSep)
+		if len(arr) > 1 {
+			// new
+			//   arr[0] -> category pure name
+			//   arr[1] -> file name(.p)
+			if existOne, ok := out[arr[0]]; ok {
+				// found exist, append
+				existOne[arr[1]] = v
+				out[arr[0]] = existOne
+			} else {
+				// not found, new one
+				new := map[string]string{
+					arr[1]: v,
+				}
+				out[arr[0]] = new
+			}
+		} else {
+			// old
+			out[""] = in
+			break
+		}
+	}
+	return out
+}
+
+func loadContentPipeline(in map[string]string) {
+	out := convertContentMap(in)
+	// TODO: category, convertutil.TestGetMapCategoryShortToFull
+	// for category, val := range out {
+	for _, val := range out {
+		scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(val)
+	}
 }

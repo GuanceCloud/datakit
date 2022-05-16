@@ -9,22 +9,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
-
-//------------------------------------------------------------------------------
-
-// 检查是不是开发机，如果不是开发机，则直接退出。开发机上需要定义 LOCAL_UNIT_TEST 环境变量。
-func checkDevHost() bool {
-	if envs := os.Getenv("LOCAL_UNIT_TEST"); envs == "" {
-		return false
-	}
-	return true
-}
 
 //------------------------------------------------------------------------------
 
@@ -541,6 +530,72 @@ func TestUpdatePipelineRemoteConfig(t *testing.T) {
 			err := updatePipelineRemoteConfig(tc.pathConfig, tc.siteURL, tc.latestTime, &pipelineRemoteMockerTest{})
 			assert.Equal(t, tc.expectError, err, "updatePipelineRemoteConfig found error: %v", err)
 			assert.Equal(t, tc.expect, writeFileData, "updatePipelineRemoteConfig not equal!")
+		})
+	}
+}
+
+// go test -v -timeout 30s -run ^TestConvertContentMap$ gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote
+func TestConvertContentMap(t *testing.T) {
+	cases := []struct {
+		name   string
+		in     map[string]string
+		expect map[string]map[string]string
+	}{
+		{
+			name: "new",
+			in: map[string]string{
+				"metric|||||123.p":  "text123",
+				"logging|||||456.p": "text456",
+			},
+			expect: map[string]map[string]string{
+				"metric": {
+					"123.p": "text123",
+				},
+				"logging": {
+					"456.p": "text456",
+				},
+			},
+		},
+		{
+			name: "old",
+			in: map[string]string{
+				"123.p": "text123",
+				"456.p": "text456",
+			},
+			expect: map[string]map[string]string{
+				"": {
+					"123.p": "text123",
+					"456.p": "text456",
+				},
+			},
+		},
+		{
+			name: "append",
+			in: map[string]string{
+				"metric|||||123.p":   "text123",
+				"logging|||||456.p":  "text456",
+				"metric|||||1234.p":  "text1234",
+				"logging|||||123.p":  "text123",
+				"metric|||||12345.p": "text12345",
+			},
+			expect: map[string]map[string]string{
+				"metric": {
+					"123.p":   "text123",
+					"1234.p":  "text1234",
+					"12345.p": "text12345",
+				},
+				"logging": {
+					"456.p": "text456",
+					"123.p": "text123",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := convertContentMap(tc.in)
+			assert.Equal(t, tc.expect, out)
 		})
 	}
 }

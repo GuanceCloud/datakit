@@ -51,6 +51,17 @@ const (
 	RUM              = "/v1/write/rum"
 	Security         = "/v1/write/security"
 
+	// data category pure name
+	CategoryMetric       = "metric"
+	CategoryNetwork      = "network"
+	CategoryKeyEvent     = "keyevent"
+	CategoryObject       = "object"
+	CategoryCustomObject = "custom_object"
+	CategoryLogging      = "logging"
+	CategoryTracing      = "tracing"
+	CategoryRUM          = "rum"
+	CategorySecurity     = "security"
+
 	// other APIS.
 	HeartBeat         = "/v1/write/heartbeat"
 	Election          = "/v1/election"
