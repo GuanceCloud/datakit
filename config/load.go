@@ -363,8 +363,6 @@ func InitGitreposDir() {
 
 func GetNamespacePipelineFiles(namespace string) ([]string, error) {
 	switch namespace {
-	case datakit.StrPipelineRemote:
-		return path.GetSuffixFilesFromDirDeepOne(datakit.PipelineRemoteDir, datakit.StrPipelineFileSuffix)
 	case datakit.StrGitRepos:
 		return path.GetSuffixFilesFromDirDeepOne(datakit.GitReposRepoFullPath, datakit.StrPipelineFileSuffix)
 	}
