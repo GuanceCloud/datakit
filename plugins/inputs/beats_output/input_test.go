@@ -134,6 +134,10 @@ func TestGetNewTags(t *testing.T) {
 			name: "normal",
 			ipt: &Input{
 				Service: "test-service",
+				Tags: map[string]string{
+					"tag1": "val1",
+					"tag2": "val2",
+				},
 			},
 			in: &DataStruct{
 				HostName:    "MacBook-Air-2.local",
@@ -143,15 +147,24 @@ func TestGetNewTags(t *testing.T) {
 					"logtype": "sshd-log",
 					"product": "beijing",
 					"type":    "sshd-log",
+					"int":     123,
+					"int64":   int64(456),
+					"int32":   int32(789),
+					"float":   1.0,
 				},
 			},
 			expect: map[string]string{
 				"service":  "test-service",
+				"tag1":     "val1",
+				"tag2":     "val2",
 				"host":     "MacBook-Air-2.local",
 				"filepath": "/Users/mac/Downloads/tmp/1.log",
 				"logtype":  "sshd-log",
 				"product":  "beijing",
 				"type":     "sshd-log",
+				"int":      "123",
+				"int64":    "456",
+				"int32":    "789",
 			},
 		},
 	}
