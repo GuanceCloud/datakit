@@ -209,7 +209,8 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 
 		l.Debug("dumpFiles succeeded")
 
-		scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(mFiles)
+		// TODO
+		scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(datakit.Logging, mFiles)
 
 		err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
 		if err != nil {
@@ -285,7 +286,8 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		if err != nil {
 			l.Errorf("ReadTarToMap failed: %v", err)
 		} else {
-			scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(mContent)
+			// TODO
+			scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(datakit.Logging, mContent)
 		}
 	} // isFirst
 	return cf.UpdateTime, nil

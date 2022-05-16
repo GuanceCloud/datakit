@@ -20,7 +20,46 @@ import (
 
 var l = logger.DefaultSLogger("pipeline-scriptstore")
 
-var _scriptStore = NewScriptStore()
+var (
+	_metricScriptStore       = NewScriptStore(datakit.Metric)
+	_networkScriptStore      = NewScriptStore(datakit.Network)
+	_keyEventScriptStore     = NewScriptStore(datakit.KeyEvent)
+	_objectScriptStore       = NewScriptStore(datakit.Object)
+	_customObjectScriptStore = NewScriptStore(datakit.CustomObject)
+	_loggingScriptStore      = NewScriptStore(datakit.Logging)
+	_tracingScriptStore      = NewScriptStore(datakit.Tracing)
+	_rumScriptStore          = NewScriptStore(datakit.RUM)
+	_securityScriptStore     = NewScriptStore(datakit.Security)
+
+	_heartBeatScriptStore = NewScriptStore(datakit.HeartBeat)
+)
+
+func whichStore(category string) *ScriptStore {
+	switch category {
+	case datakit.Metric, datakit.MetricDeprecated:
+		return _metricScriptStore
+	case datakit.Network:
+		return _networkScriptStore
+	case datakit.KeyEvent:
+		return _keyEventScriptStore
+	case datakit.Object:
+		return _objectScriptStore
+	case datakit.CustomObject:
+		return _customObjectScriptStore
+	case datakit.Logging:
+		return _loggingScriptStore
+	case datakit.Tracing:
+		return _tracingScriptStore
+	case datakit.RUM:
+		return _rumScriptStore
+	case datakit.Security:
+		return _securityScriptStore
+	case datakit.HeartBeat:
+		return _heartBeatScriptStore
+	default:
+		return _loggingScriptStore
+	}
+}
 
 const (
 	DefaultScriptNS = "default"  // 内置 pl script， 优先级最低
@@ -53,8 +92,9 @@ func NSFindPriority(ns string) int {
 }
 
 type ScriptStore struct {
-	index   sync.Map
-	storage scriptStorage
+	category string
+	index    sync.Map
+	storage  scriptStorage
 }
 
 type scriptStorage struct {
@@ -63,14 +103,18 @@ type scriptStorage struct {
 }
 
 type PlScript struct {
-	name     string // script name
+	name   string // script name
+	script string // script content
+
 	ns       string // script 所属 namespace
-	script   string // script content
-	ng       *parser.Engine
+	category string
+
+	ng *parser.Engine
+
 	updateTS int64
 }
 
-func NewScript(name, script, ns string) (*PlScript, error) {
+func NewScript(name, script, ns, category string) (*PlScript, error) {
 	ng, err := parser.NewEngine(script, funcs.FuncsMap, funcs.FuncsCheckMap, false)
 	if err != nil {
 		return nil, err
@@ -80,13 +124,15 @@ func NewScript(name, script, ns string) (*PlScript, error) {
 		script:   script,
 		name:     name,
 		ns:       ns,
+		category: category,
 		ng:       ng,
 		updateTS: time.Now().UnixNano(),
 	}, nil
 }
 
-func NewScriptStore() *ScriptStore {
+func NewScriptStore(category string) *ScriptStore {
 	return &ScriptStore{
+		category: category,
 		storage: scriptStorage{
 			scripts: map[string]map[string]*PlScript{
 				RemoteScriptNS:  {},
@@ -103,6 +149,14 @@ func (script *PlScript) Engine() *parser.Engine {
 
 func (script *PlScript) Name() string {
 	return script.name
+}
+
+func (script *PlScript) Category() string {
+	return script.category
+}
+
+func (script *PlScript) NS() string {
+	return script.ns
 }
 
 func (store *ScriptStore) Get(name string) (*PlScript, bool) {
@@ -175,7 +229,7 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 	errScript := map[string]error{}
 
 	for name, v := range namedScript {
-		if s, err := NewScript(name, v, ns); err == nil && s != nil {
+		if s, err := NewScript(name, v, ns, store.category); err == nil && s != nil {
 			script[name] = s
 		} else {
 			errScript[name] = err
@@ -210,8 +264,8 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 	return nil
 }
 
-func QueryScript(name string) (*PlScript, bool) {
-	return _scriptStore.Get(name)
+func QueryScript(name, category string) (*PlScript, bool) {
+	return whichStore(category).Get(name)
 }
 
 func ReadPlScriptFromFile(fp string) (string, string, error) {
@@ -249,8 +303,8 @@ func ReadPlScriptFromDir(dirPath string) map[string]string {
 	return ret
 }
 
-// LoadDotPScript2StoreWithNS will clean current layer data and then add new script.
-func LoadDotPScript2StoreWithNS(ns string, dirPath string, filePath []string) {
+// LoadDotPScript2Store will diff current layer data and then add new script.
+func LoadDotPScript2Store(category, ns string, dirPath string, filePath []string) {
 	if len(filePath) > 0 {
 		namedScript := map[string]string{}
 		for _, fp := range filePath {
@@ -260,14 +314,14 @@ func LoadDotPScript2StoreWithNS(ns string, dirPath string, filePath []string) {
 				namedScript[name] = script
 			}
 		}
-		if err := _scriptStore.UpdateScriptsWithNS(ns, namedScript); err != nil {
+		if err := whichStore(category).UpdateScriptsWithNS(ns, namedScript); err != nil {
 			l.Error(err)
 		}
 	}
 
 	if dirPath != "" {
 		namedScript := ReadPlScriptFromDir(dirPath)
-		if err := _scriptStore.UpdateScriptsWithNS(ns, namedScript); err != nil {
+		if err := whichStore(category).UpdateScriptsWithNS(ns, namedScript); err != nil {
 			l.Error(err)
 		}
 	}
@@ -275,17 +329,17 @@ func LoadDotPScript2StoreWithNS(ns string, dirPath string, filePath []string) {
 
 func LoadDefaultDotPScript2Store() {
 	plPath := filepath.Join(datakit.InstallDir, "pipeline")
-	LoadDotPScript2StoreWithNS(DefaultScriptNS, plPath, nil)
+	LoadDotPScript2Store(datakit.Logging, DefaultScriptNS, plPath, nil)
 }
 
-func ReloadAllGitReposDotPScript2Store(filePath []string) {
-	LoadDotPScript2StoreWithNS(GitRepoScriptNS, "", filePath)
+func ReloadAllGitReposDotPScript2Store(category string, filePath []string) {
+	LoadDotPScript2Store(category, GitRepoScriptNS, "", filePath)
 }
 
-func ReloadAllRemoteDotPScript2Store(filePath []string) {
-	LoadDotPScript2StoreWithNS(RemoteScriptNS, "", filePath)
+func ReloadAllRemoteDotPScript2Store(category string, filePath []string) {
+	LoadDotPScript2Store(category, RemoteScriptNS, "", filePath)
 }
 
-func ReloadAllRemoteDotPScript2StoreFromMap(m map[string]string) {
-	_ = _scriptStore.UpdateScriptsWithNS(RemoteScriptNS, m)
+func ReloadAllRemoteDotPScript2StoreFromMap(category string, m map[string]string) {
+	_ = whichStore(category).UpdateScriptsWithNS(RemoteScriptNS, m)
 }

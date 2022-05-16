@@ -9,24 +9,26 @@ import (
 	"fmt"
 	"os"
 	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func TestCall(t *testing.T) {
 	LoadDefaultDotPScript2Store()
-	ReloadAllGitReposDotPScript2Store(nil)
-	ReloadAllRemoteDotPScript2Store(nil)
+	ReloadAllGitReposDotPScript2Store(datakit.Logging, nil)
+	ReloadAllRemoteDotPScript2Store(datakit.Logging, nil)
 	_ = os.WriteFile("/tmp/nginx-time123.p", []byte(`
 	json(_, time)
 	set_tag(bb, "aa0")
 	default_time(time)
 	`), os.FileMode(0o755))
-	LoadDotPScript2StoreWithNS("xxxx", "", []string{"/tmp/nginx-time.p123"})
+	LoadDotPScript2Store(datakit.Logging, "xxxx", "", []string{"/tmp/nginx-time.p123"})
 	_ = os.Remove("/tmp/nginx-time123.p")
-	LoadDotPScript2StoreWithNS("xxx", "", nil)
+	LoadDotPScript2Store(datakit.Logging, "xxx", "", nil)
 }
 
 func TestPlScriptStore(t *testing.T) {
-	store := NewScriptStore()
+	store := NewScriptStore(datakit.Logging)
 
 	err := store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time)"})
 	if err != nil {

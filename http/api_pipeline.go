@@ -92,7 +92,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 		return nil, uhttp.Error(ErrInvalidPipeline, err.Error())
 	}
 
-	scriptInfo, err := scriptstore.NewScript(reqDebug.Source+".p", string(decodePipeline), "api_pipeline")
+	scriptInfo, err := scriptstore.NewScript(reqDebug.Category, reqDebug.Source+".p", string(decodePipeline), "api_pipeline")
 	if err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrCompiledFailed, err.Error())

@@ -57,13 +57,13 @@ type PipelineCfg struct {
 	RemotePullInterval string            `toml:"remote_pull_interval"`
 }
 
-func NewPipelineFromFile(path string) (*Pipeline, error) {
+func NewPipelineFromFile(category string, path string) (*Pipeline, error) {
 	data, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
 
-	sc, err := scriptstore.NewScript("", string(data), "")
+	sc, err := scriptstore.NewScript(category, "", string(data), "")
 	if err != nil {
 		return nil, err
 	}

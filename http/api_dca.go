@@ -532,7 +532,8 @@ func plCallback(res *pipeline.Result) (*pipeline.Result, error) {
 }
 
 func pipelineTest(pipelineFile string, text string) (string, error) {
-	pl, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, pipelineFile))
+	// TODO
+	pl, err := pipeline.NewPipelineFromFile(datakit.Logging, filepath.Join(datakit.PipelineDir, pipelineFile))
 	if err != nil {
 		return "", err
 	}

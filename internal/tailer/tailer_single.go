@@ -192,7 +192,7 @@ func (t *Single) sendToPipeline(pending []string) {
 			continue
 		}
 		drop := false
-		if script, ok := scriptstore.QueryScript(t.opt.Pipeline); ok {
+		if script, ok := scriptstore.QueryScript(datakit.Logging, t.opt.Pipeline); ok {
 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, func(res *pipeline.Result) (*pipeline.Result, error) {
 				res.CheckFieldValLen(maxFieldsLength)
 				return pipeline.ResultUtilsLoggingProcessor(res, t.opt.DisableAddStatusField, t.opt.IgnoreStatus), nil

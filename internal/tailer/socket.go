@@ -228,7 +228,7 @@ func (sl *socketLogger) sendToPipeline(pending []string) {
 			continue
 		}
 		drop := false
-		if script, ok := scriptstore.QueryScript(sl.opt.Pipeline); ok {
+		if script, ok := scriptstore.QueryScript(datakit.Logging, sl.opt.Pipeline); ok {
 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, func(res *pipeline.Result) (*pipeline.Result, error) {
 				res.CheckFieldValLen(maxFieldsLength)
 				return pipeline.ResultUtilsLoggingProcessor(res, sl.opt.DisableAddStatusField, sl.opt.IgnoreStatus), nil

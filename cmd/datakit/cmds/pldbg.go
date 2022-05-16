@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
@@ -44,10 +45,11 @@ func runPLFlags() error {
 		warnf("[E] txt has suffix EOL\n")
 	}
 
-	return pipelineDebugger(debugPipelineName, txt)
+	// TODO
+	return pipelineDebugger(datakit.Logging, debugPipelineName, txt)
 }
 
-func pipelineDebugger(plname, txt string) error {
+func pipelineDebugger(category, plname, txt string) error {
 	if err := pipeline.Init(config.Cfg.Pipeline); err != nil {
 		return err
 	}
@@ -56,7 +58,7 @@ func pipelineDebugger(plname, txt string) error {
 	if err != nil {
 		return fmt.Errorf("get pipeline failed: %w", err)
 	}
-	pl, err := pipeline.NewPipelineFromFile(plPath)
+	pl, err := pipeline.NewPipelineFromFile(category, plPath)
 	if err != nil {
 		return fmt.Errorf("new pipeline failed: %w", err)
 	}

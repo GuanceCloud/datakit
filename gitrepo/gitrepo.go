@@ -313,7 +313,8 @@ func reloadCore(ctx context.Context) (int, error) {
 				if err != nil {
 					l.Warnf("GetNamespacePipelineFiles failed: %v", err)
 				} else {
-					scriptstore.ReloadAllGitReposDotPScript2Store(allGitReposPipelines)
+					// TODO
+					scriptstore.ReloadAllGitReposDotPScript2Store(datakit.Logging, allGitReposPipelines)
 				}
 
 			case 4:

@@ -56,11 +56,11 @@ func plAPIWriteLogCallback(res *pipeline.Result) (*pipeline.Result, error) {
 	return pipeline.ResultUtilsLoggingProcessor(res, false, nil), nil
 }
 
-func runPipeline(scriptName string, pts []*io.Point) []*io.Point {
+func runPipeline(category string, scriptName string, pts []*io.Point) []*io.Point {
 	ret := []*io.Point{}
 	for _, pt := range pts {
 		drop := false
-		if script, ok := scriptstore.QueryScript(scriptName); ok {
+		if script, ok := scriptstore.QueryScript(category, scriptName); ok {
 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plAPIWriteLogCallback); err != nil {
 				l.Error(err)
 			} else {
@@ -206,7 +206,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 
 		// for logging upload, we redirect them to pipeline
 		l.Debugf("send pts to pipeline")
-		pts = runPipeline(pipelineSource+".p", pts)
+		pts = runPipeline(datakit.Logging, pipelineSource+".p", pts)
 		err = h.sendToIO(input, category, pts, &io.Option{HighFreq: true, Version: version})
 	} else {
 		err = h.sendToIO(input, category, pts, &io.Option{HighFreq: true, Version: version})

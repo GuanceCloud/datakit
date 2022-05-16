@@ -218,7 +218,7 @@ func plRunCnt(source, scriptName string, cnt []string, tags map[string]string) [
 			continue
 		}
 		drop := false
-		if script, ok := scriptstore.QueryScript(scriptName); ok {
+		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plCallback); err != nil {
 				l.Error(err)
 			} else {
@@ -238,7 +238,7 @@ func plRunPt(pts []*io.Point) []*io.Point {
 	for _, pt := range pts {
 		scriptName := pt.Name() + ".p"
 		drop := false
-		if script, ok := scriptstore.QueryScript(scriptName); ok {
+		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plCallback); err != nil {
 				l.Error(err)
 			} else {

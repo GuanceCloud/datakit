@@ -243,7 +243,7 @@ func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 			continue
 		}
 		drop := false
-		if script, ok := scriptstore.QueryScript(ipt.Pipeline); ok {
+		if script, ok := scriptstore.QueryScript(datakit.HeartBeat, ipt.Pipeline); ok {
 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, func(res *pipeline.Result) (*pipeline.Result, error) {
 				res.CheckFieldValLen(ipt.MaximumLength)
 				return pipeline.ResultUtilsLoggingProcessor(res, false, nil), nil

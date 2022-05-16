@@ -202,7 +202,7 @@ func runPipeline(source, scriptName string, cnt []string, tags map[string]string
 			continue
 		}
 		drop := false
-		if script, ok := scriptstore.QueryScript(scriptName); ok {
+		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, callback); err != nil {
 				l.Error(err)
 			} else {
