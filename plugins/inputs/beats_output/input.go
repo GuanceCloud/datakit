@@ -112,6 +112,7 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"filepath": inputs.NewTagInfo(`此条记录来源的文件名，全路径`), // log.file.path
 			"host":     inputs.NewTagInfo(`主机名`),            // host.name
+			"service":  inputs.NewTagInfo("service 名称，对应配置文件中的 `service` 字段值"),
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "记录正文，默认存在，可以使用 pipeline 删除此字段"}, // message
