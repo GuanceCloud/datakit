@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
 type funcCase struct {
@@ -20,9 +21,10 @@ type funcCase struct {
 }
 
 func TestDecode(t *testing.T) {
+	data, _ := simplifiedchinese.GBK.NewEncoder().Bytes([]byte("wwwwww"))
 	testCase := []*funcCase{
 		{
-			data:   "jjjjj世界",
+			data:   string(data),
 			script: `decode(_,"gbk")`,
 			key:    "_",
 		},
