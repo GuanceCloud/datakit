@@ -1,5 +1,3 @@
-KERNEL_RELEASE := $(shell uname -r)
-
 ARCH ?= $(shell uname -m | sed -e s/x86_64/x86_64/ \
 				  -e s/aarch64.*/arm64/)
 
@@ -27,17 +25,16 @@ OUT_PATH := $(OUTPATH)
 
 $(shell mkdir -p $(BIN_PATH))
 
-KERNELSRC ?= /usr/src/linux-headers-$(KERNEL_RELEASE)
-KERNEL_SRC := $(KERNELSRC)
+DK_BPF_KERNEL_SRC_PATH ?= /usr/src/linux-headers-$(shell uname -r)
 
-KERNEL_UAPI_INCLUDE := -isystem$(KERNEL_SRC)/arch/$(MACHINE_ARCH)/include/uapi \
-		-isystem$(KERNEL_SRC)/arch/$(MACHINE_ARCH)/include/generated/uapi \
-		-isystem$(KERNEL_SRC)/include/uapi \
-		-isystem$(KERNEL_SRC)/include/generated/uapi
+KERNEL_UAPI_INCLUDE := -isystem$(DK_BPF_KERNEL_SRC_PATH)/arch/$(MACHINE_ARCH)/include/uapi \
+		-isystem$(DK_BPF_KERNEL_SRC_PATH)/arch/$(MACHINE_ARCH)/include/generated/uapi \
+		-isystem$(DK_BPF_KERNEL_SRC_PATH)/include/uapi \
+		-isystem$(DK_BPF_KERNEL_SRC_PATH)/include/generated/uapi
 
-KERNEL_INCLUDE := -isystem$(KERNEL_SRC)/arch/$(MACHINE_ARCH)/include \
-		-isystem$(KERNEL_SRC)/arch/$(MACHINE_ARCH)/include/generated \
-		-isystem$(KERNEL_SRC)/include \
+KERNEL_INCLUDE := -isystem$(DK_BPF_KERNEL_SRC_PATH)/arch/$(MACHINE_ARCH)/include \
+		-isystem$(DK_BPF_KERNEL_SRC_PATH)/arch/$(MACHINE_ARCH)/include/generated \
+		-isystem$(DK_BPF_KERNEL_SRC_PATH)/include \
 		$(KERNEL_UAPI_INCLUDE)
 
 BPF_INCLUDE := $(KERNEL_INCLUDE) \

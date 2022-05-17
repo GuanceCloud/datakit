@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package ebpf wrap ebpf external input to collect eBPF metrics
 package ebpf
 
@@ -83,7 +88,7 @@ loop:
 		if _, err := os.Stat(execFile); err == nil && ok {
 			break loop
 		} else {
-			l.Errorf("please run `datakit install --datakit-ebpf`")
+			l.Errorf("please run `datakit install --ebpf`")
 		}
 
 		select {
@@ -174,7 +179,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSArchLinuxAmd64}
+	return []string{datakit.OSArchLinuxAmd64, datakit.OSArchLinuxArm64}
 }
 
 func init() { //nolint:gochecknoinits

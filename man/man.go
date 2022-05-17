@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package man manages all datakit documents
 package man
 
@@ -23,6 +28,12 @@ var (
 	OtherDocs = map[string]interface{}{
 		// value not used, just document the markdown relative path
 		// all manuals under man/manuals/
+		"datakit-sink-guide":    "man/manuals/datakit-sink-guide.md",
+		"datakit-sink-dev":      "man/manuals/datakit-sink-dev.md",
+		"datakit-sink-influxdb": "man/manuals/datakit-sink-influxdb.md",
+		"datakit-sink-logstash": "man/manuals/datakit-sink-logstash.md",
+		"datakit-sink-m3db":     "man/manuals/datakit-sink-m3db.md",
+
 		"apis":                 "man/manuals/apis.md",
 		"changelog":            "man/manuals/changelog.md",
 		"datakit-arch":         "man/manuals/datakit-arch.md",
@@ -59,6 +70,10 @@ var (
 		"ddtrace-golang":           "man/manuals/ddtrace-golang.md",
 		"ddtrace-java":             "man/manuals/ddtrace-java.md",
 		"ddtrace-python":           "man/manuals/ddtrace-python.md",
+		"ddtrace-php":              "man/manuals/ddtrace-php.md",
+		"ddtrace-nodejs":           "man/manuals/ddtrace-nodejs.md",
+		"ddtrace-cpp":              "man/manuals/ddtrace-cpp.md",
+		"ddtrace-ruby":             "man/manuals/ddtrace-ruby.md",
 		"development":              "man/manuals/development.md",
 		"dialtesting_json":         "man/manuals/dialtesting_json.md",
 		"election":                 "man/manuals/election.md",

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -209,7 +214,7 @@ func dcaAuthMiddleware(c *gin.Context) {
 	}
 
 	token := tokens[0]
-	localTokens := dw.GetToken()
+	localTokens := dw.GetTokens()
 	if len(token) == 0 || len(localTokens) == 0 || (token != localTokens[0]) {
 		context.fail(dcaError{Code: 401, ErrorCode: "auth.failed", ErrorMsg: "auth failed"})
 		c.Abort()

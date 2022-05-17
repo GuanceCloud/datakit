@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package container
 
 import (
@@ -221,17 +226,17 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 	podAnnotationState := podAnnotationNil
 
 	func() {
-		podName := container.Labels[containerLableForPodName]
+		podName := getPodNameForLabels(container.Labels)
 		if d.k8sClient == nil || podName == "" {
 			return
 		}
-		podNamespace := container.Labels[containerLableForPodNamespace]
+		podNamespace := getPodNamespaceForLabels(container.Labels)
 
 		meta, err := queryPodMetaData(d.k8sClient, podName, podNamespace)
 		if err != nil {
 			return
 		}
-		if containerImage := meta.containerImage(container.Labels[containerLableForPodContainerName]); containerImage != "" {
+		if containerImage := meta.containerImage(getContainerNameForLabels(container.Labels)); containerImage != "" {
 			image = containerImage
 		}
 		podAnnotationState = getPodAnnotationState(container, meta)
@@ -271,7 +276,7 @@ func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotat
 
 	if logconf.Disable {
 		l.Debugf("ignore containerlog because of annotation disable, podName:%s, containerName:%s",
-			container.Labels[containerLableForPodName], getContainerName(container.Names))
+			getPodNameForLabels(container.Labels), getContainerName(container.Names))
 		return podAnnotationDisable
 	}
 
@@ -285,7 +290,7 @@ func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotat
 		return podAnnotationEnable
 	}
 
-	podContainerName := container.Labels[containerLableForPodContainerName]
+	podContainerName := getContainerNameForLabels(container.Labels)
 	image := meta.containerImage(podContainerName)
 	if image != "" && f.Match(image) {
 		l.Debugf("match pod only_images, name:%s, image: %s", podContainerName, image)
@@ -381,14 +386,14 @@ func getImageOfPodContainer(container *types.Container, k8sClient k8sClientX) (i
 	if k8sClient == nil {
 		return
 	}
-	if container.Labels[containerLableForPodName] == "" {
+	if getPodNameForLabels(container.Labels) == "" {
 		return
 	}
 
-	meta, err := queryPodMetaData(k8sClient, container.Labels[containerLableForPodName], container.Labels[containerLableForPodNamespace])
+	meta, err := queryPodMetaData(k8sClient, getPodNameForLabels(container.Labels), getPodNamespaceForLabels(container.Labels))
 	if err != nil {
 		return
 	}
-	image = meta.containerImage(container.Labels[containerLableForPodContainerName])
+	image = meta.containerImage(getContainerNameForLabels(container.Labels))
 	return
 }

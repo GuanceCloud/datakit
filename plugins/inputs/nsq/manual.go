@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package nsq
 
 import (
@@ -9,7 +14,7 @@ type nsqTopicMeasurement struct{}
 
 func (*nsqTopicMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
-//nolint
+//nolint:lll
 func (*nsqTopicMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "nsq_topics",
@@ -34,7 +39,7 @@ type nsqNodesMeasurement struct{}
 
 func (*nsqNodesMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
-//nolint
+//nolint:lll
 func (*nsqNodesMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "nsq_nodes",
