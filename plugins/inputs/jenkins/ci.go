@@ -143,7 +143,7 @@ func (n *Input) getJobPoint(span *ddSpan) (*io.Point, error) {
 
 func getPipelineTags(span *ddSpan) map[string]string {
 	tags := make(map[string]string)
-	putTagIfExist(tags, span, "user.email", "author_email")
+	putTagIfExist(tags, span, "git.commit.author.email", "author_email")
 	switch span.Meta["ci.status"] {
 	case "success":
 		tags["ci_status"] = success
