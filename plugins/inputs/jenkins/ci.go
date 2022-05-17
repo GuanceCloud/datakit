@@ -46,6 +46,7 @@ type ddTrace []*ddSpan
 type ddTraces []ddTrace
 
 func (n *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+	l.Debugf("Jenkins CI event server receives request: %s", req.URL.Path)
 	traces, err := decodeTraces(req)
 	if err != nil {
 		l.Errorf(err.Error())
@@ -54,7 +55,8 @@ func (n *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	var pts []*io.Point
 	for _, trace := range traces {
 		for _, span := range trace {
-			if !need(span) {
+			if !needStatus(span) {
+				l.Debugf("skip span with ci.status = %s", span.Meta["ci.status"])
 				continue
 			}
 			pt, err := n.getPoint(span)
@@ -69,7 +71,7 @@ func (n *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		}
 	}
 	if len(pts) == 0 {
-		l.Debugf("empty point array")
+		l.Debugf("empty Jenkins CI point array")
 		return
 	}
 	if err := io.Feed("jenkins_ci", datakit.Logging, pts, &io.Option{}); err != nil {
@@ -107,9 +109,10 @@ func (n *Input) getPoint(span *ddSpan) (*io.Point, error) {
 		return n.getJobPoint(span)
 	case stage, unknown:
 		// We don't need this type of span currently.
+		l.Debugf("unneeded CI event type: %s, skipped", span.Meta["_dd.ci.level"])
 		return nil, nil
 	default:
-		l.Info("unrecognized CI event type received, skipped")
+		l.Debugf("unrecognized CI event type received, skipped")
 		return nil, nil
 	}
 }
@@ -240,7 +243,9 @@ func (n *Input) putExtraTags(tags map[string]string) {
 	}
 }
 
-func need(span *ddSpan) bool {
+// needStatus filters spans that are needed.
+// i.e. spans with ci.status = success/error.
+func needStatus(span *ddSpan) bool {
 	status, has := span.Meta["ci.status"]
 	if !has {
 		return false

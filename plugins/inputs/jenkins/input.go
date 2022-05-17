@@ -129,8 +129,11 @@ func (n *Input) Run() {
 func (n *Input) shutdownServer() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_ = n.srv.Shutdown(ctx) //nolint:gosec,errcheck
-	l.Infof("server listens for jenkins pipeline event is shutdown")
+	if err := n.srv.Shutdown(ctx); err != nil {
+		l.Errorf("server listens for jenkins CI event failed to shutdown: %v", err)
+	} else {
+		l.Infof("server listens for jenkins CI event is shutdown")
+	}
 }
 
 func (n *Input) exit() {
