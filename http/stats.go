@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -22,6 +27,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	plWorker "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -89,6 +95,7 @@ type DatakitStats struct {
 	CSS          string `json:"-"`
 
 	InputsStats map[string]*io.InputsStat `json:"inputs_status"`
+	SenderStat  map[string]*sender.Metric `json:"sender_stat"`
 	IoStats     io.IoStat                 `json:"io_stats"`
 	HTTPMetrics map[string]*apiStat       `json:"http_metrics"`
 
@@ -319,6 +326,7 @@ func GetStats() (*DatakitStats, error) {
 		Cgroup:         cgroup.Info(),
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),
+		SenderStat:     sender.GetStat(),
 		HostName:       datakit.DatakitHostName,
 		EnabledInputs:  map[string]*enabledInput{},
 		HTTPMetrics:    getMetrics(),
@@ -328,11 +336,13 @@ func GetStats() (*DatakitStats, error) {
 
 	var err error
 
+	l.Debugf("io.GetStats()...")
 	stats.InputsStats, err = io.GetStats() // get all inputs stats
 	if err != nil {
 		return nil, err
 	}
 
+	l.Debugf("get inputs info...")
 	for k := range inputs.Inputs {
 		if !datakit.Enabled(k) {
 			continue

@@ -1,7 +1,15 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package dkstring contains string utils
 package dkstring
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 func TrimString(s string) string {
 	ns := strings.ReplaceAll(s, " ", "")
@@ -21,4 +29,38 @@ func GetUniqueArray(arr []string) []string {
 		ret = append(ret, k)
 	}
 	return ret
+}
+
+func GetMapAssertString(name string, m map[string]interface{}) (string, error) {
+	val, ok := m[name]
+	if !ok {
+		// not exist
+		return "", nil
+	}
+	str, ok := val.(string)
+	if !ok {
+		return "", fmt.Errorf("invalid %s: not string", name)
+	}
+	return str, nil
+}
+
+func GetMapAssertInt(name string, m map[string]interface{}) (int, error) {
+	val, ok := m[name]
+	if !ok {
+		// not exist
+		return 0, nil
+	}
+	num, ok := val.(int)
+	if !ok {
+		return 0, fmt.Errorf("invalid %s: not int", name)
+	}
+	return num, nil
+}
+
+func CheckNotEmpty(str, name string) (string, error) {
+	strNew := TrimString(str)
+	if strNew == "" {
+		return "", fmt.Errorf("%s could not be empty", name)
+	}
+	return strNew, nil
 }

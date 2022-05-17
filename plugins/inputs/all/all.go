@@ -1,8 +1,14 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package inputs wraps all inputs implements
 package inputs
 
 import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/apache"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/beats_output"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/clickhousev1"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cloudprober"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/consul"
@@ -20,7 +26,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/elasticsearch"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/filecollector"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flinkv1"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostdir"

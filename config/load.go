@@ -1,4 +1,7 @@
-// Loading datakit configures
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
 
 package config
 
@@ -15,6 +18,7 @@ import (
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -30,6 +34,42 @@ var (
 		`\`, `\\`,
 	)
 )
+
+func isValidDataway(c *Config) bool {
+	if c.DataWayCfg == nil {
+		l.Debug("config.Cfg.DataWayCfg == nil")
+		return false
+	}
+
+	if len(c.DataWayCfg.URLs) == 0 {
+		l.Debug("len(config.Cfg.DataWayCfg.URLs) == 0")
+		return false
+	}
+
+	return true
+}
+
+func isValidSink(c *Config) bool {
+	if c.Sinks == nil {
+		l.Debug("config.Cfg.Sinks == nil")
+		return false
+	}
+
+	if len(c.Sinks.Sink) == 0 {
+		l.Debug("len(config.Cfg.Sinks.Sink) == 0")
+		return false
+	}
+
+	empty := true
+	for _, v := range c.Sinks.Sink {
+		if _, ok := v["target"]; ok {
+			empty = false
+			break
+		}
+	}
+
+	return !empty
+}
 
 func LoadCfg(c *Config, mcp string) error {
 	datakit.InitDirs()
@@ -66,6 +106,16 @@ func LoadCfg(c *Config, mcp string) error {
 	if err := c.ApplyMainConfig(); err != nil {
 		return err
 	}
+
+	// check dataway and sink config
+	checkutil.CheckConditionExit(func() bool {
+		if !isValidDataway(c) && !isValidSink(c) {
+			l.Errorf("dataway and sink not set")
+			return false
+		}
+
+		return true
+	})
 
 	l.Infof("loaded main cfg: \n%s", c.String())
 
@@ -126,6 +176,9 @@ func ReloadInputTables(confTables []map[string]*ast.Table) error {
 						continue
 					}
 					res := getCheckInputCfgResult(tpl)
+					if res == nil {
+						continue
+					}
 					if !res.Runnable() {
 						l.Errorf("getCheckInputCfgResult failed: input_cfg_invalid")
 						continue
@@ -357,6 +410,9 @@ func CheckInputCfgEx(rootPath, suffix string) ([]inputs.Input, error) {
 			return nil, fmt.Errorf("%w: %s", err, fp)
 		} else {
 			res := getCheckInputCfgResult(tpl)
+			if res == nil {
+				continue
+			}
 			if !res.Runnable() {
 				return nil, fmt.Errorf("input_cfg_invalid: %s", fp)
 			}
@@ -368,12 +424,11 @@ func CheckInputCfgEx(rootPath, suffix string) ([]inputs.Input, error) {
 }
 
 func getCheckInputCfgResult(tpl *ast.Table) *CheckedInputCfgResult {
-	res := CheckedInputCfgResult{}
-
 	if len(tpl.Fields) == 0 {
-		res.Failed++
-		return &res
+		return nil // no conf available
 	}
+
+	res := CheckedInputCfgResult{}
 
 	for field, node := range tpl.Fields {
 		switch field {

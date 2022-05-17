@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package gitrepo ...
 package gitrepo
 
@@ -74,6 +79,16 @@ func pullMain(cg *config.GitRepost) error {
 				continue
 			}
 			if err = doRun(v); err != nil {
+				if isFirst {
+					if strings.Contains(err.Error(), "connect: operation timed out") {
+						isFirst = false
+
+						if err := inputs.RunInputs(); err != nil {
+							l.Error("error running inputs: %v", err)
+						}
+					}
+				}
+
 				tip := fmt.Sprintf("[gitrepo] failed: %v", err)
 				l.Error(tip)
 				io.SelfError(tip)
@@ -294,9 +309,9 @@ func reloadCore(ctx context.Context) (int, error) {
 			case 3:
 				l.Info("before set pipelines")
 
-				allGitReposPipelines, err := config.GetNamespacePipelineFiles(datakit.GitReposRepoFullPath)
+				allGitReposPipelines, err := config.GetNamespacePipelineFiles(datakit.StrGitRepos)
 				if err != nil {
-					l.Infof("GetNamespacePipelineFiles failed: %v", err)
+					l.Warnf("GetNamespacePipelineFiles failed: %v", err)
 				} else {
 					scriptstore.ReloadAllGitReposDotPScript2Store(allGitReposPipelines)
 				}

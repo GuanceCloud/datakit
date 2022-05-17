@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cache
 
 import (
@@ -8,6 +13,11 @@ var (
 	ErrGlobalCacheNotInitialize = errors.New("global cache is not initialized")
 	defaultCache                *Cache
 )
+
+type CacheInfo struct {
+	CacheCount   int64
+	FlushedCount int64
+}
 
 func Initialize(dir string, opt *Options) error {
 	c, err := NewCache(dir, opt)
@@ -64,9 +74,28 @@ func Get(bucket string, key []byte) ([]byte, error) {
 	return defaultCache.Get(bucket, key)
 }
 
+func Del(bucket string, keys [][]byte) error {
+	if defaultCache == nil {
+		return ErrGlobalCacheNotInitialize
+	}
+	defaultCache.cleanCache(bucket, keys)
+	return nil
+}
+
 func ForEach(bucket string, handle ProcessHandle, clean bool) error {
 	if defaultCache == nil {
 		return ErrGlobalCacheNotInitialize
 	}
 	return defaultCache.ForEach(bucket, handle, clean)
+}
+
+func GetInfo() (*CacheInfo, error) {
+	if defaultCache == nil {
+		return nil, ErrGlobalCacheNotInitialize
+	}
+
+	return &CacheInfo{
+		CacheCount:   defaultCache.totalCacheCnt,
+		FlushedCount: defaultCache.totalFlushed,
+	}, nil
 }

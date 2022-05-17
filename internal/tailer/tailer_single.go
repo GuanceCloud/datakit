@@ -26,9 +26,9 @@ const (
 )
 
 type Single struct {
-	opt                    *Option
-	file                   *os.File
-	filename, baseFilename string
+	opt                *Option
+	file               *os.File
+	filepath, filename string
 
 	decoder *encoding.Decoder
 	mult    *multiline.Multiline
@@ -73,8 +73,8 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 	}
 
 	t.readBuff = make([]byte, readBuffSize)
-	t.filename = t.file.Name()
-	t.baseFilename = filepath.Base(t.filename)
+	t.filepath = t.file.Name()
+	t.filename = filepath.Base(t.filepath)
 	t.tags = t.buildTags(opt.GlobalTags)
 
 	return t, nil
@@ -171,7 +171,7 @@ func (t *Single) send(text string) {
 }
 
 func (t *Single) sendToForwardCallback(text string) {
-	err := t.opt.ForwardFunc(t.baseFilename, text)
+	err := t.opt.ForwardFunc(t.filename, text)
 	if err != nil {
 		t.opt.log.Warnf("failed to forward text from file %s, error: %s", t.filename, err)
 	}
@@ -229,8 +229,11 @@ func (t *Single) buildTags(globalTags map[string]string) map[string]string {
 	for k, v := range globalTags {
 		tags[k] = v
 	}
+	if _, ok := tags["filepath"]; !ok {
+		tags["filepath"] = t.filepath
+	}
 	if _, ok := tags["filename"]; !ok {
-		tags["filename"] = t.baseFilename
+		tags["filename"] = t.filename
 	}
 	return tags
 }

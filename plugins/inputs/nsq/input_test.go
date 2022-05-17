@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package nsq
 
 import (
@@ -12,7 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-//nolint
+//nolint:lll
 func TestGather(t *testing.T) {
 	bodyCases := []string{
 		`{"version":"1.2.0","health":"OK","start_time":1630393108,"topics":[{"topic_name":"topic-A","channels":[{"channel_name":"chan-A","depth":10,"backend_depth":0,"in_flight_count":0,"deferred_count":0,"message_count":0,"requeue_count":0,"timeout_count":0,"client_count":0,"clients":[],"paused":false,"e2e_processing_latency":{"count":0,"percentiles":null}}],"depth":10,"backend_depth":0,"message_count":0,"message_bytes":0,"paused":false,"e2e_processing_latency":{"count":0,"percentiles":null}},{"topic_name":"topic-B","channels":[{"channel_name":"chan-B","depth":20,"backend_depth":0,"in_flight_count":0,"deferred_count":0,"message_count":0,"requeue_count":0,"timeout_count":0,"client_count":0,"clients":[],"paused":false,"e2e_processing_latency":{"count":0,"percentiles":null}}],"depth":20,"backend_depth":0,"message_count":0,"message_bytes":0,"paused":false,"e2e_processing_latency":{"count":0,"percentiles":null}},{"topic_name":"topic-C","channels":[{"channel_name":"chan-C","depth":30,"backend_depth":0,"in_flight_count":0,"deferred_count":0,"message_count":0,"requeue_count":0,"timeout_count":0,"client_count":0,"clients":[],"paused":false,"e2e_processing_latency":{"count":0,"percentiles":null}}],"depth":30,"backend_depth":0,"message_count":0,"message_bytes":0,"paused":false,"e2e_processing_latency":{"count":0,"percentiles":null}},{"topic_name":"topic-D","channels":[{"channel_name":"chan-D","depth":40,"backend_depth":0,"in_flight_count":0,"deferred_count":0,"message_count":0,"requeue_count":0,"timeout_count":0,"client_count":0,"clients":[],"paused":false,"e2e_processing_latency":{"count":0,"percentiles":null}}],"depth":40,"backend_depth":0,"message_count":0,"message_bytes":0,"paused":false,"e2e_processing_latency":{"count":0,"percentiles":null}}],"memory":{"heap_objects":5781,"heap_idle_bytes":63447040,"heap_in_use_bytes":2842624,"heap_released_bytes":0,"gc_pause_usec_100":0,"gc_pause_usec_99":0,"gc_pause_usec_95":0,"next_gc_bytes":4473924,"gc_total_runs":0},"producers":[]}`,
@@ -40,7 +45,7 @@ func TestGather(t *testing.T) {
 	}
 }
 
-//nolint
+//nolint:lll
 func TestNSQDList(t *testing.T) {
 	cases := []struct {
 		body string
@@ -84,7 +89,7 @@ func TestNSQDList(t *testing.T) {
 	}
 }
 
-//nolint
+//nolint:lll
 func TestSetup(t *testing.T) {
 	cases := []struct {
 		in   *Input
@@ -122,7 +127,7 @@ func TestSetup(t *testing.T) {
 	}
 }
 
-//nolint
+//nolint:lll
 func TestBuildURL(t *testing.T) {
 	cases := []struct {
 		in   string
@@ -148,7 +153,7 @@ func TestBuildURL(t *testing.T) {
 	}
 }
 
-//nolint
+//nolint:lll
 func TestRUn(t *testing.T) {
 	minInterval = time.Second * 1
 	updateEndpointListInterval = time.Second * 1

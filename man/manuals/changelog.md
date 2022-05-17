@@ -2,6 +2,25 @@
 
 # DataKit 版本历史
 
+## 1.2.19(2022/05/12)
+
+本次发布属于迭代发布，主要修复如下问题：
+
+- eBPF 增加 arm64 支持(#662)
+- 行协议构造支持自动纠错(#710)
+- DataKit 主配置增加示例配置(#715)
+- [Prometheus Remote Write](prom_remote_write) 支持 tag 重命名(#731)
+- 修复 DCA 客户端获取工作空间不全的问题(#747)
+- 合并社区版 DataKit 已有的功能，主要包含 Sinker 功能以及 filebeat 采集器(#754)
+- 调整容器日志采集，DataKit 直接支持 containerd 下容器 stdout/stderr 日志采集(#756)
+- 修复 ElasticSearch 采集器超时问题(#762)
+- 修复安装程序检查过于严格的问题(#763)
+- 调整 DaemonSet 模式下主机名获取策略(#648)
+- Trace 采集器支持通过服务名（`service`）通配来过滤资源（`resource`）(#759)
+- 其它一些细节问题修复
+
+----
+
 ## 1.2.18(2022/05/06)
 
 本次发布属于 hotfix 发布，主要修复如下问题：

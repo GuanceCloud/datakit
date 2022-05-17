@@ -83,6 +83,19 @@ DataKit 基本 Monitor 页面信息如下图所示：
 - `Filter` 展示 DataKit 中黑名单过滤规则拉取情况
 - `Filter Rules` 展示每类黑名单的过滤情况
 
+- `Sender Info` 展示 Sender 管理的各个 Sink 运行情况
+	- `Sink`: Sink 名称
+	- `Uptime`: 运行时间
+	- `Count`: Write 次数
+	- `Failed`: Write 失败次数
+	- `Pts`: Write 点数
+	- `Raw Bytes`: Write 字节数（压缩前）
+	- `Bytes`: Write 字节数（压缩后）
+	- `2XX`: HTTP 状态码 2XX 次数
+	- `4XX`: HTTP 状态码 4XX 次数
+	- `5XX`: HTTP 状态码 5XX 次数
+	- `Timeout`: HTTP 超时次数
+
 ## FAQ
 
 ### 如何只展示指定采集器的运行情况？

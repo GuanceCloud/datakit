@@ -62,7 +62,7 @@ func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types
 	tags := getContainerInfo(container, d.k8sClient)
 
 	source := getContainerLogSource(tags["image_short_name"])
-	if n := container.Labels[containerLableForPodContainerName]; n != "" {
+	if n := getContainerNameForLabels(container.Labels); n != "" {
 		source = n
 	}
 
@@ -231,12 +231,7 @@ func (c *containerLogConfig) checking() error {
 	return err
 }
 
-const (
-	containerLableForPodName          = "io.kubernetes.pod.name"
-	containerLableForPodNamespace     = "io.kubernetes.pod.namespace"
-	containerLableForPodContainerName = "io.kubernetes.container.name"
-	containerLogConfigKey             = "datakit/logs"
-)
+const containerLogConfigKey = "datakit/logs"
 
 func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
 	configStr := m[containerLogConfigKey]
@@ -388,10 +383,10 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 			"container_name": inputs.NewTagInfo(`容器名称`),
 			"container_id":   inputs.NewTagInfo(`容器ID`),
 			"container_type": inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
-			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty`),
+			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty（containerd 日志缺少此字段）`),
 			"pod_name":       inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
 			"namespace":      inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
-			"deployment":     inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）`),
+			"deployment":     inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在，containerd 日志缺少此字段）`),
 			"service":        inputs.NewTagInfo(`服务名称`),
 		},
 		Fields: map[string]interface{}{

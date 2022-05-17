@@ -117,7 +117,6 @@ func NewEngine(script string, callbacks map[string]FuncCallback, check map[strin
 	if !ok {
 		return nil, fmt.Errorf("invalid AST, should not been here")
 	}
-
 	ng := &Engine{
 		debugMode: debug,
 		Data: &EngineData{
@@ -837,10 +836,6 @@ func (e *ConditionalExpr) Check(ng *Engine) error {
 	case *NumberLiteral:
 	case *BoolLiteral:
 	case *NilLiteral:
-	// case *FuncStmt:
-	// 	if err := v.Check(ng); err != nil {
-	// 		return err
-	// 	}
 	default:
 		return fmt.Errorf(`unsupported type %s, from: %s`,
 			reflect.TypeOf(e.LHS), e.LHS)

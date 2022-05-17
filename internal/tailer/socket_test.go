@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package tailer
 
 import (
@@ -71,37 +76,27 @@ func Test_mkServer(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		wantS   *server
 		wantErr bool
 	}{
+		// we use random port(:0) here, see https://stackoverflow.com/a/43425461/342348
 		{
 			name:    "case1",
-			args:    args{socket: "tcp://127.0.0.1:7002"},
-			wantS:   &server{},
+			args:    args{socket: "tcp://127.0.0.1:0"},
 			wantErr: false,
 		},
 		{
 			name:    "case2",
-			args:    args{socket: "udp://127.0.0.1:7001"}, // tcp 和 udp 可以使用同一端口
-			wantS:   &server{},
+			args:    args{socket: "udp://127.0.0.1:0"}, // tcp 和 udp 可以使用同一端口
 			wantErr: false,
 		},
 		{
-			name:    "case3",
-			args:    args{socket: "udp://127.0.0.1:7001"}, // eq port
-			wantS:   &server{},
-			wantErr: true,
-		},
-		{
 			name:    "case4",
-			args:    args{socket: "udp1://127.0.0.1:7004"}, // err socket
-			wantS:   &server{},
+			args:    args{socket: "udp1://127.0.0.1:0"}, // err socket
 			wantErr: true,
 		},
 		{
 			name:    "case5",
-			args:    args{socket: "udp127.0.0.1:7005"}, // err socket
-			wantS:   &server{},
+			args:    args{socket: "udp127.0.0.1:0"}, // err socket
 			wantErr: true,
 		},
 	}
@@ -112,8 +107,15 @@ func Test_mkServer(t *testing.T) {
 				t.Errorf("case:%s mkServer() error = %v, wantErr %v", tt.name, err, tt.wantErr)
 				return
 			}
-			if gotS == nil {
-				t.Errorf("mkServer() gotS = %v, want %v", gotS, tt.wantS)
+
+			if gotS != nil {
+				if gotS.lis != nil {
+					t.Logf("TCP addr: %s", gotS.lis.Addr().String())
+				}
+
+				if gotS.conn != nil {
+					t.Logf("UDP addr: %+#v", gotS.conn.LocalAddr().String())
+				}
 			}
 		})
 	}

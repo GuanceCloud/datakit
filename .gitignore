@@ -71,5 +71,7 @@ test.go
 test.jso
 test.output
 y.output
+__debug_bin
+*.pdf
 datakit.yaml
 test.bin
