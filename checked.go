@@ -156,5 +156,6 @@ var (
 		"consul":                 true,
 		"prom_remote_write":      true,
 		"pythond":                true,
+		"socket":                 true,
 	}
 )

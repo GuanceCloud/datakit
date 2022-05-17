@@ -66,7 +66,6 @@ func Decode(ng *parser.EngineData, node parser.Node) interface{} {
 	}
 
 	codeTypeMode := codeType.String()
-	fmt.Println(codeTypeMode)
 
 	encode, err := NewDecoder(codeTypeMode)
 	if err != nil {
