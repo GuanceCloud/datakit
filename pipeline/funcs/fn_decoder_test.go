@@ -22,14 +22,13 @@ type funcCase struct {
 func TestDecode(t *testing.T) {
 	testCase := []*funcCase{
 		{
-			data:   "他没测试哎",
+			data:   "jjjjj世界",
 			script: `decode(_,"gbk")`,
-			key:    "changed",
+			key:    "_",
 		},
 	}
 	for idx, tc := range testCase {
 		t.Run(tc.name, func(t *testing.T) {
-			decode, _ := NewDecoder("gbk")
 			runner, err := NewTestingRunner(tc.script)
 			tu.Equals(t, nil, err)
 
@@ -37,9 +36,9 @@ func TestDecode(t *testing.T) {
 			tu.Equals(t, nil, err)
 
 			r, err := runner.Data.GetContentStr(tc.key)
-			res, _ := decode.decoder.String(tc.data)
+			res := isUtf8([]byte(r))
 			tu.Equals(t, nil, err)
-			tu.Equals(t, res, r)
+			tu.Equals(t, res, true)
 
 			t.Logf("[%d] PASS", idx)
 		})

@@ -71,7 +71,6 @@ func Decode(ng *parser.EngineData, node parser.Node) interface{} {
 	}
 
 	codeTypeMode := codeType.String()
-	fmt.Println(codeTypeMode)
 
 	encode, err := NewDecoder(codeTypeMode)
 	if err != nil {
@@ -85,7 +84,7 @@ func Decode(ng *parser.EngineData, node parser.Node) interface{} {
 		return nil
 	}
 
-	if err := ng.SetContent("changed", newcont); err != nil {
+	if err := ng.SetContent(text, newcont); err != nil {
 		l.Warn(err)
 		return nil
 	}
@@ -113,4 +112,46 @@ func DecodeChecking(ng *parser.EngineData, node parser.Node) error {
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 	return nil
+}
+
+func preNUm(data byte) int {
+	str := fmt.Sprintf("%b", data)
+	var i int = 0
+	for i < len(str) {
+		if str[i] != '1' {
+			break
+		}
+		i++
+	}
+	return i
+}
+
+// jude if utf-8
+func isUtf8(data []byte) bool {
+	for i := 0; i < len(data); {
+		if data[i]&0x80 == 0x00 {
+			// 0XXX_XXXX
+			i++
+			continue
+		} else if num := preNUm(data[i]); num > 2 {
+			// 110X_XXXX 10XX_XXXX
+			// 1110_XXXX 10XX_XXXX 10XX_XXXX
+			// 1111_0XXX 10XX_XXXX 10XX_XXXX 10XX_XXXX
+			// 1111_10XX 10XX_XXXX 10XX_XXXX 10XX_XXXX 10XX_XXXX
+			// 1111_110X 10XX_XXXX 10XX_XXXX 10XX_XXXX 10XX_XXXX 10XX_XXXX
+			// preNUm() 返回首个字节的8个bits中首个0bit前面1bit的个数，该数量也是该字符所使用的字节数
+			i++
+			for j := 0; j < num-1; j++ {
+				//判断后面的 num - 1 个字节是不是都是10开头
+				if data[i]&0xc0 != 0x80 {
+					return false
+				}
+				i++
+			}
+		} else {
+			//其他情况说明不是utf-8
+			return false
+		}
+	}
+	return true
 }
