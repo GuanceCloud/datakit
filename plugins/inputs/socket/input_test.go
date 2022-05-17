@@ -39,8 +39,7 @@ func TestInput_CollectMeasurement(t *testing.T) {
 		}
 		s.CollectMeasurement(out, proto)
 	}
-
-	fmt.Println(len(s.collectCache))
+	
 	for _, i := range s.collectCache {
 		fmt.Println(i.LineProto())
 	}
