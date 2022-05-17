@@ -45,7 +45,13 @@ questions:
   type: string
   label: DataKit Http Listen
   group: "Datakit Configuration"
-- variable: datakit.log
+- variable: datakit.cluster_name
+  default: ""
+  description: "Your Kubernetes Cluster Name"
+  type: string
+  label: Kubernetes Cluster Name
+  group: "Datakit Configuration"
+- variable: datakit.log_level
   default: "info"
   description: "Set DataKit logging level"
   type: enum

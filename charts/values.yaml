@@ -21,10 +21,13 @@ datakit:
   ## @param log - string
   ## Set logging verbosity, valid log levels are:
   ## info, debug, stdout, warn, error, critical, and off
-  log: stdout
+  log_level: info
   ## @param http_listen - string
   ## It supports specifying the network card bound to the Datakit HTTP service in the installation phase (default localhost)
   http_listen: 0.0.0.0:9529
+  ## @param cluster_name - string - optional
+  ## Your Kubernetes Cluster Name
+  cluster_name: kube
 
 image:
   ## @param repository - string - required
@@ -36,6 +39,11 @@ image:
   ## Define the Cluster-Agent version to use.
   #
   tag: "{{tag}}"
+
+  ## @param pullPolicy - string - optional
+  ## The Kubernetes [imagePullPolicy][] value
+  #
+  pullPolicy: Always
 
 # https://www.yuque.com/dataflux/datakit/datakit-install#f9858758
 

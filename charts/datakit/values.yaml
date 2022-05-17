@@ -12,19 +12,22 @@ datakit:
   ## @param global_tags - string - optional - default: 'host=__datakit_hostname,host_ip=__datakit_ip'
   ## It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas)
   global_tags: host=__datakit_hostname,host_ip=__datakit_ip
-  ## @param default_enabled_inputs - string
+  ## @param default_enabled_inputs - string - optional
   ## The default open collector list, format example: input1, input2, input3
   default_enabled_inputs: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
   ## @param enabled_election - boolean
   ## When the election is enabled, it is not enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false)
   enabled_election: true
-  ## @param log - string
+  ## @param log - string - optional
   ## Set logging verbosity, valid log levels are:
   ## info, debug, stdout, warn, error, critical, and off
-  log: stdout
-  ## @param http_listen - string
+  log_level: stdout
+  ## @param http_listen - string - optional
   ## It supports specifying the network card bound to the Datakit HTTP service in the installation phase (default localhost)
   http_listen: 0.0.0.0:9529
+  ## @param cluster_name - string - optional
+  ## Your Kubernetes Cluster Name
+  cluster_name: kube
 
 image:
   ## @param repository - string - required
@@ -36,6 +39,10 @@ image:
   ## Define the Cluster-Agent version to use.
   #
   tag: ""
+  ## @param pullPolicy - string - optional
+  ## The Kubernetes [imagePullPolicy][] value
+  #
+  pullPolicy: Always
 
 # https://www.yuque.com/dataflux/datakit/datakit-install#f9858758
 
