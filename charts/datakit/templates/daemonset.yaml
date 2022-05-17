@@ -4,6 +4,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
+    app: {{ include "datakit.fullname" . }}
   {{- include "datakit.labels" . | nindent 4 }}
   name: {{ include "datakit.fullname" . }}
 spec:
@@ -19,6 +20,7 @@ spec:
       {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
+        app: {{ include "datakit.fullname" . }}
     {{- include "datakit.selectorLabels" . | nindent 8 }}
     spec:
       hostNetwork: true
@@ -43,8 +45,8 @@ spec:
               value: {{ .Values.datakit.default_enabled_inputs }}
             - name: ENV_ENABLE_ELECTION
               value: {{ .Values.datakit.enabled_election | quote }}
-            - name: ENV_LOG
-              value: {{ .Values.datakit.log }}
+            - name: ENV_LOG_LEVEL
+              value: {{ .Values.datakit.log_level }}
             - name: ENV_HTTP_LISTEN
               value: {{ .Values.datakit.http_listen }}
             {{- if .Values.git_repos.enable }}
