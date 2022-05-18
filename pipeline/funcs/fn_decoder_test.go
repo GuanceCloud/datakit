@@ -21,10 +21,37 @@ type funcCase struct {
 }
 
 func TestDecode(t *testing.T) {
-	data, _ := simplifiedchinese.GBK.NewEncoder().Bytes([]byte("wwwwww"))
+	data := []string{"测试一下", "不知道", "测试一下123456", "哈哈哈哈哈", "-汪98阿萨德离开家"}
+	decode_data_slice := make([]string, 10)
+
+	for idx, cont := range data {
+		decode_data, _ := simplifiedchinese.GBK.NewEncoder().Bytes([]byte(cont))
+		decode_data_slice[idx] = string(decode_data)
+	}
+
 	testCase := []*funcCase{
 		{
-			data:   string(data),
+			data:   decode_data_slice[0],
+			script: `decode(_,"gbk")`,
+			key:    "_",
+		},
+		{
+			data:   decode_data_slice[1],
+			script: `decode(_,"gbk")`,
+			key:    "_",
+		},
+		{
+			data:   decode_data_slice[2],
+			script: `decode(_,"gbk")`,
+			key:    "_",
+		},
+		{
+			data:   decode_data_slice[3],
+			script: `decode(_,"gbk")`,
+			key:    "_",
+		},
+		{
+			data:   decode_data_slice[4],
 			script: `decode(_,"gbk")`,
 			key:    "_",
 		},
@@ -37,10 +64,9 @@ func TestDecode(t *testing.T) {
 			err = runner.Run(tc.data)
 			tu.Equals(t, nil, err)
 
-			r, err := runner.Data.GetContentStr(tc.key)
-			res := isUtf8([]byte(r))
+			ret := runner.Result()
 			tu.Equals(t, nil, err)
-			tu.Equals(t, res, true)
+			tu.Equals(t, data[idx], ret.Fields[tc.key])
 
 			t.Logf("[%d] PASS", idx)
 		})
