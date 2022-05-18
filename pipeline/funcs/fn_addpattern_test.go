@@ -10,7 +10,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestAddPattern(t *testing.T) {
@@ -163,17 +162,16 @@ func TestAddPattern(t *testing.T) {
 				}
 				return
 			}
-			pt, _ := io.MakePoint("test", map[string]string{},
+			if ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
-				}, time.Now())
-			if ret, err := runner.Run(pt); err == nil {
+				}, time.Now()); err == nil && ret.Error == nil {
 				t.Log(ret)
 				v := ret.Fields[tc.outkey]
 				tu.Equals(t, tc.expect, v)
 				t.Logf("[%d] PASS", idx)
 			} else {
-				t.Error(err)
+				t.Error(err, " ", ret.Error)
 			}
 		})
 	}

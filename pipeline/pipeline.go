@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -26,7 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
+	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 )
@@ -58,29 +57,59 @@ type PipelineCfg struct {
 }
 
 func NewPipelineFromFile(category string, path string) (*Pipeline, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(path))
+	name, script, err := plscript.ReadPlScriptFromFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	sc, err := scriptstore.NewScript(category, "", string(data), "")
+	sc, err := plscript.NewScript(name, script, "", category)
 	if err != nil {
 		return nil, err
 	}
 	return &Pipeline{
-		scriptInfo: sc,
+		script: sc,
+	}, nil
+}
+
+func NewPipeline(category string, name, script string) (*Pipeline, error) {
+	sc, err := plscript.NewScript(name, script, "", category)
+	if err != nil {
+		return nil, err
+	}
+	return &Pipeline{
+		script: sc,
 	}, nil
 }
 
 type Pipeline struct {
-	scriptInfo *scriptstore.PlScript
+	script *plscript.PlScript
 }
 
-func (p *Pipeline) Run(pt *io.Point, callback func(*Result) (*Result, error)) (*io.Point, bool, error) {
-	if p.scriptInfo == nil || p.scriptInfo.Engine() == nil {
+func (p *Pipeline) Run(pt *io.Point, plOpt *plscript.Option, ioPtOpt io.PointOption) (*io.Point, bool, error) {
+	if p.script == nil || p.script.Engine() == nil {
 		return nil, false, fmt.Errorf("pipeline engine not initialized")
 	}
-	return RunScript(pt, p.scriptInfo, callback)
+	if pt == nil {
+		return nil, false, fmt.Errorf("no data")
+	}
+	field, err := pt.Fields()
+	if err != nil {
+		return nil, false, err
+	}
+
+	if out, drop, err := p.script.Run(pt.Name(), pt.Tags(), field, ioPtOpt.Time, plOpt); err != nil {
+		return nil, drop, err
+	} else {
+		if !out.Time.IsZero() {
+			ioPtOpt.Time = out.Time
+		}
+		if pt, err := io.NewPoint(out.Measurement, out.Tags, out.Fields, &ioPtOpt); err != nil {
+			p.script.WriteStatPtCount(0, 0, 1)
+			return nil, drop, err
+		} else {
+			return pt, drop, nil
+		}
+	}
 }
 
 func Init(pipelineCfg *PipelineCfg) error {
@@ -96,7 +125,7 @@ func Init(pipelineCfg *PipelineCfg) error {
 		return err
 	}
 
-	scriptstore.InitStore()
+	plscript.InitStore()
 
 	return nil
 }
@@ -165,41 +194,6 @@ func GbToUtf8(s []byte, encoding string) ([]byte, error) {
 		return nil, e
 	}
 	return d, nil
-}
-
-func RunScript(pt *io.Point, script *scriptstore.PlScript, callback func(*Result) (*Result, error)) (*io.Point, bool, error) {
-	result := &Result{
-		Output: nil,
-	}
-	if script != nil && script.Engine() != nil {
-		var err error
-		if result.Output, err = script.Engine().Run(pt); err != nil {
-			l.Debug(err)
-			result.Err = err.Error()
-		}
-	} else {
-		result.Output = &parser.Output{
-			Tags:   map[string]string{},
-			Fields: map[string]interface{}{},
-		}
-		if fields, err := pt.Fields(); err != nil {
-			return nil, false, err
-		} else if v, ok := fields[PipelineMessageField]; ok {
-			result.Output.Fields[PipelineMessageField] = v
-		}
-	}
-	var err error
-	if callback != nil {
-		result, err = callback(result)
-		if err != nil {
-			return nil, false, err
-		}
-	}
-	if pt, err := io.MakePoint(result.Output.Measurement, result.Output.Tags, result.Output.Fields, result.Output.Time); err != nil {
-		return nil, false, err
-	} else {
-		return pt, result.IsDropped(), nil
-	}
 }
 
 func DecodeContent(content []byte, encode string) (string, error) {

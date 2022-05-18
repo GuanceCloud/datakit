@@ -10,7 +10,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestJSON(t *testing.T) {
@@ -47,13 +46,12 @@ func TestJSON(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			runner, err := NewTestingRunner(tc.script)
 			tu.Equals(t, nil, err)
-
-			pt, _ := io.MakePoint("test", map[string]string{},
+			ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
 				}, time.Now())
-			ret, err := runner.Run(pt)
 			tu.Equals(t, nil, err)
+			tu.Equals(t, nil, ret.Error)
 
 			r, ok := ret.Fields[tc.key]
 			tu.Equals(t, true, ok)

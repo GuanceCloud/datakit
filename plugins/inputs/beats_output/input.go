@@ -20,7 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -204,6 +204,7 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) sendToPipeline(pending []*DataStruct) {
+	pts := []*io.Point{}
 	for _, v := range pending {
 		if len(v.Message) == 0 {
 			continue
@@ -234,30 +235,29 @@ func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 		}
 		l.Debugf("newTags = %#v", newTags)
 
-		pt, err := io.MakePoint(ipt.Source, newTags,
+		pt, err := io.NewPoint(ipt.Source, newTags,
 			map[string]interface{}{pipeline.PipelineMessageField: v.Message},
-			time.Now(),
+			&io.PointOption{
+				Time:             time.Now(),
+				MaxFieldValueLen: ipt.MaximumLength,
+			},
 		)
 		if err != nil {
 			l.Error(err)
 			continue
 		}
-		drop := false
-		if script, ok := scriptstore.QueryScript(datakit.HeartBeat, ipt.Pipeline); ok {
-			if ptRet, dropRet, err := pipeline.RunScript(pt, script, func(res *pipeline.Result) (*pipeline.Result, error) {
-				res.CheckFieldValLen(ipt.MaximumLength)
-				return pipeline.ResultUtilsLoggingProcessor(res, false, nil), nil
-			}); err != nil {
-				l.Error(err)
-			} else {
-				pt = ptRet
-				drop = dropRet
-			}
-		}
-		if !drop {
-			if err := io.Feed(inputName+"/"+ipt.Listen, datakit.Logging, []*io.Point{pt}, nil); err != nil {
-				l.Error(err)
-			}
+		pts = append(pts, pt)
+	}
+	if len(pts) > 0 {
+		if err := io.Feed(inputName+"/"+ipt.Listen, datakit.Logging, pts, &io.Option{
+			PlScript: map[string]string{
+				ipt.Source: ipt.Pipeline,
+			},
+			PlOption: &script.Option{
+				MaxFieldValLen: ipt.MaximumLength,
+			},
+		}); err != nil {
+			l.Error(err)
 		}
 	}
 }

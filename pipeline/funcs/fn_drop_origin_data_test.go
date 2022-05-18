@@ -8,8 +8,6 @@ package funcs
 import (
 	"testing"
 	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestDropOriginData(t *testing.T) {
@@ -41,13 +39,12 @@ func TestDropOriginData(t *testing.T) {
 				}
 				return
 			}
-			pt, _ := io.MakePoint("test", map[string]string{},
+			ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
 				}, time.Now())
-			ret, err := runner.Run(pt)
-			if err != nil {
-				t.Error(err)
+			if err != nil || ret.Error != nil {
+				t.Error(err, " ", ret.Error)
 				return
 			}
 			t.Log(ret)

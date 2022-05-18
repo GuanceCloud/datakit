@@ -10,7 +10,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestLowercase(t *testing.T) {
@@ -86,12 +85,12 @@ lowercase(age)
 				}
 				return
 			}
-			pt, _ := io.MakePoint("test", map[string]string{},
+			ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
 				}, time.Now())
-			ret, err := runner.Run(pt)
 			tu.Equals(t, nil, err)
+			tu.Equals(t, nil, ret.Error)
 
 			t.Log(ret)
 			v := ret.Fields[tc.outkey]

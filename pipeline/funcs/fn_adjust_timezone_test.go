@@ -11,7 +11,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const Hour8 = int64(8 * time.Hour)
@@ -36,7 +35,7 @@ func TestAdjustTimezone(t *testing.T) {
 			default_time(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano() - int64(tn.Nanosecond()) - Hour8,
+			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())-Hour8),
 			fail:   false,
 		},
 		{
@@ -48,7 +47,7 @@ func TestAdjustTimezone(t *testing.T) {
 			adjust_timezone(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano() - int64(tn.Nanosecond()),
+			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())),
 			fail:   false,
 		},
 		{
@@ -59,7 +58,7 @@ func TestAdjustTimezone(t *testing.T) {
 			default_time(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano() - int64(tn.Nanosecond()),
+			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())),
 			fail:   false,
 		},
 		{
@@ -71,7 +70,7 @@ func TestAdjustTimezone(t *testing.T) {
 			adjust_timezone(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano() - int64(tn.Nanosecond()),
+			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())),
 			fail:   false,
 		},
 		{
@@ -82,7 +81,7 @@ func TestAdjustTimezone(t *testing.T) {
 			default_time(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano()/1000000*1000000 - Hour8,
+			expect: time.Unix(0, tn.UnixNano()/1000000*1000000-Hour8),
 			fail:   false,
 		},
 		{
@@ -94,7 +93,7 @@ func TestAdjustTimezone(t *testing.T) {
 			adjust_timezone(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano() / 1000000 * 1000000,
+			expect: time.Unix(0, tn.UnixNano()/1000000*1000000),
 			fail:   false,
 		},
 		{
@@ -105,7 +104,7 @@ func TestAdjustTimezone(t *testing.T) {
 			default_time(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano() - int64(tn.Nanosecond()) - Hour8,
+			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())-Hour8),
 			fail:   false,
 		},
 		{
@@ -117,7 +116,7 @@ func TestAdjustTimezone(t *testing.T) {
 			adjust_timezone(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano() - int64(tn.Nanosecond()),
+			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())),
 			fail:   false,
 		},
 		{
@@ -128,7 +127,7 @@ func TestAdjustTimezone(t *testing.T) {
 			default_time(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano() - int64(tn.Nanosecond()) - Hour8,
+			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())-Hour8),
 			fail:   false,
 		},
 		{
@@ -140,7 +139,7 @@ func TestAdjustTimezone(t *testing.T) {
 			adjust_timezone(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano() - int64(tn.Nanosecond()),
+			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())),
 			fail:   false,
 		},
 		{
@@ -151,7 +150,7 @@ func TestAdjustTimezone(t *testing.T) {
 			default_time(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano()/1000*1000 - Hour8,
+			expect: time.Unix(0, tn.UnixNano()/1000*1000-Hour8),
 			fail:   false,
 		},
 		{
@@ -163,7 +162,7 @@ func TestAdjustTimezone(t *testing.T) {
 			adjust_timezone(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano() / 1000 * 1000,
+			expect: time.Unix(0, tn.UnixNano()/1000*1000),
 			fail:   false,
 		},
 		{
@@ -174,7 +173,7 @@ func TestAdjustTimezone(t *testing.T) {
 			default_time(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano()/1000000*1000000 - Hour8,
+			expect: time.Unix(0, tn.UnixNano()/1000000*1000000-Hour8),
 			fail:   false,
 		},
 		{
@@ -186,21 +185,9 @@ func TestAdjustTimezone(t *testing.T) {
 			adjust_timezone(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano() / 1000000 * 1000000,
+			expect: time.Unix(0, tn.UnixNano()/1000000*1000000),
 			fail:   false,
 		},
-		/* remove temporary
-		{
-			name: "3 postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Add(9*time.Hour).Format("2006-01-02 15:04:05.000 UTC")),
-			pl: `
-			json(_, time)
-			default_time(time, "Asia/Tokyo")
-		`, // utc +0900
-			outkey: "time",
-			expect: tn.UnixNano() / 1000000 * 1000000,
-			fail:   false,
-		}, */
 		{
 			name: "4 postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
 			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Add(-time.Duration(Hour8)).Format("2006-01-02 15:04:05.000 UTC")),
@@ -209,7 +196,7 @@ func TestAdjustTimezone(t *testing.T) {
 			default_time(time)
 		`, // utc -0800
 			outkey: "time",
-			expect: tn.UnixNano()/1000000*1000000 - 2*Hour8,
+			expect: time.Unix(0, tn.UnixNano()/1000000*1000000-2*Hour8),
 			fail:   false,
 		},
 		{
@@ -221,7 +208,7 @@ func TestAdjustTimezone(t *testing.T) {
 			adjust_timezone(time)
 		`,
 			outkey: "time",
-			expect: tn.UnixNano() / 1000000 * 1000000,
+			expect: time.Unix(0, tn.UnixNano()/1000000*1000000),
 			fail:   false,
 		},
 	}
@@ -237,14 +224,19 @@ func TestAdjustTimezone(t *testing.T) {
 				}
 				return
 			}
-			pt, _ := io.MakePoint("test", map[string]string{},
+			ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
 				}, time.Now())
-			ret, err := runner.Run(pt)
 			tu.Equals(t, nil, err)
+			tu.Equals(t, nil, ret.Error)
 			t.Log(ret)
-			v := ret.Fields[tc.outkey]
+			var v interface{}
+			if tc.outkey != "time" {
+				v = ret.Fields[tc.outkey]
+			} else {
+				v = ret.Time
+			}
 			tu.Equals(t, nil, err)
 			tu.Equals(t, tc.expect, v)
 			t.Logf("[%d] PASS", idx)

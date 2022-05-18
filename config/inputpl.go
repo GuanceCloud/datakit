@@ -12,7 +12,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -28,7 +27,6 @@ func initPluginPipeline() error {
 	if err := pipeline.Init(Cfg.Pipeline); err != nil {
 		return err
 	}
-	scriptstore.LoadDefaultDotPScript2Store()
 
 	scriptMap, err := GetScriptMap(true)
 	if err != nil {

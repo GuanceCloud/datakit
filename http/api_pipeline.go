@@ -19,11 +19,11 @@ import (
 	"time"
 
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 )
@@ -64,9 +64,9 @@ type pipelineDebugResponse struct {
 	PLResults    []*pipelineDebugResult `json:"plresults"`
 }
 
-func plAPIDebugCallback(ret *pipeline.Result) (*pipeline.Result, error) {
-	return pipeline.ResultUtilsLoggingProcessor(ret, false, nil), nil
-}
+// func plAPIDebugCallback(ret *pipeline.Result) (*pipeline.Result, error) {
+// 	return pipeline.ResultUtilsLoggingProcessor(ret, false, nil), nil
+// }
 
 func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever ...interface{}) (interface{}, error) {
 	tid := req.Header.Get(uhttp.XTraceId)
@@ -81,6 +81,12 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, err
 	}
+	category := getPointCategory(reqDebug.Category)
+	if category == "" {
+		err := uhttp.Error(ErrInvalidCategory, "invalid category")
+		l.Errorf("[%s] %s", tid, err.Error())
+		return nil, err
+	}
 
 	//------------------------------------------------------------------
 	// -- pipeline debug procedure start --
@@ -92,7 +98,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 		return nil, uhttp.Error(ErrInvalidPipeline, err.Error())
 	}
 
-	scriptInfo, err := scriptstore.NewScript(reqDebug.Category, reqDebug.Source+".p", string(decodePipeline), "api_pipeline")
+	scriptInfo, err := pipeline.NewPipeline(category, reqDebug.Source+".p", string(decodePipeline))
 	if err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrCompiledFailed, err.Error())
@@ -111,14 +117,19 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 		return nil, uhttp.Error(ErrInvalidData, err.Error())
 	}
 
+	opt := io.PointOption{
+		Category: category,
+		Time:     time.Now(),
+	}
+
 	// STEP 3: pipeline processing
 	start := time.Now()
 	res := []*pipeline.Result{}
 	for _, line := range dataLines {
 		pt, _ := io.MakePoint(reqDebug.Source, nil, map[string]interface{}{pipeline.PipelineMessageField: line})
-		retPt, drop, err := pipeline.RunScript(pt, scriptInfo, plAPIDebugCallback)
-		if err != nil {
-			pt = retPt
+		pt, drop, err := scriptInfo.Run(pt, nil, opt)
+		if err != nil || pt == nil {
+			continue
 		}
 		fields, err := pt.Fields()
 		if err != nil {
@@ -152,7 +163,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 			for n := 0; n < b.N; n++ {
 				for _, line := range dataLines {
 					pt, _ := io.MakePoint(reqDebug.Source, nil, map[string]interface{}{pipeline.PipelineMessageField: line})
-					_, _, _ = pipeline.RunScript(pt, scriptInfo, plAPIDebugCallback)
+					_, _, _ = scriptInfo.Run(pt, nil, opt)
 				}
 			}
 		})
@@ -276,6 +287,33 @@ func getAPIDebugPipelineRequest(req *http.Request) (*pipelineDebugRequest, error
 	}
 
 	return &reqDebug, nil
+}
+
+func getPointCategory(category string) string {
+	switch category {
+	case datakit.Metric, datakit.MetricDeprecated, "metric", "metrics":
+		return datakit.Metric
+	case datakit.Network, "network":
+		return datakit.Network
+	case datakit.KeyEvent, "keyevent":
+		return datakit.KeyEvent
+	case datakit.Object, "object":
+		return datakit.Object
+	case datakit.CustomObject, "custom_object":
+		return datakit.CustomObject
+	case datakit.Tracing, "tracing":
+		return datakit.Tracing
+	case datakit.RUM, "rum":
+		return datakit.RUM
+	case datakit.Security, "security":
+		return datakit.Security
+	case datakit.HeartBeat, "heartbeat":
+		return datakit.HeartBeat
+	case datakit.Logging, categoryPipelineLogging:
+		return datakit.Logging
+	default:
+		return ""
+	}
 }
 
 //------------------------------------------------------------------------------

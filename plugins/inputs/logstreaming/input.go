@@ -21,7 +21,6 @@ import (
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -126,16 +125,29 @@ func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) 
 			break
 		}
 		pts1 := io.WrapPoint(pts)
-		pts1 = plRunPt(pts1)
-		err = io.Feed(inputName, datakit.Logging, pts1, nil)
+		scriptMap := map[string]string{}
+		for _, v := range pts1 {
+			if v != nil {
+				scriptMap[v.Name()] = v.Name() + ".p"
+			}
+		}
+		err = io.Feed(inputName, datakit.Logging, pts1, &io.Option{PlScript: scriptMap})
 	default:
 		scanner := bufio.NewScanner(req.Body)
-		pending := []string{}
+		pts := []*io.Point{}
 		for scanner.Scan() {
-			pending = append(pending, scanner.Text())
+			if pt, err := io.NewPoint(source, extraTags, map[string]interface{}{pipeline.DefaultPipelineStatus: scanner.Text()}, nil); err != nil {
+				pts = append(pts, pt)
+			} else {
+				l.Error(err)
+			}
 		}
-		pts := plRunCnt(source, pipelinePath, pending, extraTags)
-		err = io.Feed(source, datakit.Logging, pts, nil)
+		// pts := plRunCnt(source, pipeLlinePath, pending, extraTags)
+		if len(pts) == 0 {
+			l.Debugf("len(points) is zero, skip")
+			break
+		}
+		err = io.Feed(source, datakit.Logging, pts, &io.Option{PlScript: map[string]string{source: pipelinePath}})
 	}
 
 	if err != nil {
@@ -200,55 +212,55 @@ func (*logstreamingMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func plCallback(ret *pipeline.Result) (*pipeline.Result, error) {
-	return pipeline.ResultUtilsLoggingProcessor(ret, false, nil), nil
-}
+// func plCallback(ret *pipeline.Result) (*pipeline.Result, error) {
+// 	return pipeline.ResultUtilsLoggingProcessor(ret, false, nil), nil
+// }
 
-func plRunCnt(source, scriptName string, cnt []string, tags map[string]string) []*io.Point {
-	ret := []*io.Point{}
+// func plRunCnt(source, scriptName string, cnt []string, tags map[string]string) []*io.Point {
+// 	ret := []*io.Point{}
 
-	ts := time.Now().Add(-time.Duration(int(time.Nanosecond) * len(cnt)))
-	for i, cnt := range cnt {
-		pt, err := io.MakePoint(source, tags,
-			map[string]interface{}{pipeline.PipelineMessageField: cnt},
-			ts.Add(time.Duration(int(time.Nanosecond)*i)),
-		)
-		if err != nil {
-			l.Error(err)
-			continue
-		}
-		drop := false
-		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
-			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plCallback); err != nil {
-				l.Error(err)
-			} else {
-				pt = ptRet
-				drop = dropRet
-			}
-		}
-		if !drop {
-			ret = append(ret, pt)
-		}
-	}
-	return ret
-}
+// 	ts := time.Now().Add(-time.Duration(int(time.Nanosecond) * len(cnt)))
+// 	for i, cnt := range cnt {
+// 		pt, err := io.MakePoint(source, tags,
+// 			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+// 			ts.Add(time.Duration(int(time.Nanosecond)*i)),
+// 		)
+// 		if err != nil {
+// 			l.Error(err)
+// 			continue
+// 		}
+// 		drop := false
+// 		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
+// 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plCallback); err != nil {
+// 				l.Error(err)
+// 			} else {
+// 				pt = ptRet
+// 				drop = dropRet
+// 			}
+// 		}
+// 		if !drop {
+// 			ret = append(ret, pt)
+// 		}
+// 	}
+// 	return ret
+// }
 
-func plRunPt(pts []*io.Point) []*io.Point {
-	ret := []*io.Point{}
-	for _, pt := range pts {
-		scriptName := pt.Name() + ".p"
-		drop := false
-		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
-			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plCallback); err != nil {
-				l.Error(err)
-			} else {
-				pt = ptRet
-				drop = dropRet
-			}
-		}
-		if !drop {
-			ret = append(ret, pt)
-		}
-	}
-	return ret
-}
+// func plRunPt(pts []*io.Point) []*io.Point {
+// 	ret := []*io.Point{}
+// 	for _, pt := range pts {
+// 		scriptName := pt.Name() + ".p"
+// 		drop := false
+// 		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
+// 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plCallback); err != nil {
+// 				l.Error(err)
+// 			} else {
+// 				pt = ptRet
+// 				drop = dropRet
+// 			}
+// 		}
+// 		if !drop {
+// 			ret = append(ret, pt)
+// 		}
+// 	}
+// 	return ret
+// }

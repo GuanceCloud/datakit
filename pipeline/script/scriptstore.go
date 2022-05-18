@@ -3,8 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package scriptstore used to store pipeline script
-package scriptstore
+package script
 
 import (
 	"os"
@@ -14,11 +13,10 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 )
 
-var l = logger.DefaultSLogger("pipeline-scriptstore")
+var l = logger.DefaultSLogger("pl-script")
 
 var (
 	_metricScriptStore       = NewScriptStore(datakit.Metric)
@@ -57,6 +55,7 @@ func whichStore(category string) *ScriptStore {
 	case datakit.HeartBeat:
 		return _heartBeatScriptStore
 	default:
+		l.Warn("unsuppored category: %s", category)
 		return _loggingScriptStore
 	}
 }
@@ -74,7 +73,8 @@ var plScriptNSSearchOrder = [3]string{
 }
 
 func InitStore() {
-	l = logger.SLogger("pipeline-scriptstore")
+	l = logger.SLogger("pl-script")
+	stats.InitStats()
 	LoadDefaultDotPScript2Store()
 }
 
@@ -102,34 +102,6 @@ type scriptStorage struct {
 	scripts map[string](map[string]*PlScript)
 }
 
-type PlScript struct {
-	name   string // script name
-	script string // script content
-
-	ns       string // script 所属 namespace
-	category string
-
-	ng *parser.Engine
-
-	updateTS int64
-}
-
-func NewScript(name, script, ns, category string) (*PlScript, error) {
-	ng, err := parser.NewEngine(script, funcs.FuncsMap, funcs.FuncsCheckMap, false)
-	if err != nil {
-		return nil, err
-	}
-
-	return &PlScript{
-		script:   script,
-		name:     name,
-		ns:       ns,
-		category: category,
-		ng:       ng,
-		updateTS: time.Now().UnixNano(),
-	}, nil
-}
-
 func NewScriptStore(category string) *ScriptStore {
 	return &ScriptStore{
 		category: category,
@@ -141,22 +113,6 @@ func NewScriptStore(category string) *ScriptStore {
 			},
 		},
 	}
-}
-
-func (script *PlScript) Engine() *parser.Engine {
-	return script.ng
-}
-
-func (script *PlScript) Name() string {
-	return script.name
-}
-
-func (script *PlScript) Category() string {
-	return script.category
-}
-
-func (script *PlScript) NS() string {
-	return script.ns
 }
 
 func (store *ScriptStore) Get(name string) (*PlScript, bool) {
@@ -176,6 +132,14 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 	curScript, ok := store.Get(script.name)
 	if !ok {
 		store.index.Store(script.name, script)
+		stats.WriteEvent(&stats.ChangeEvent{
+			Name:     script.name,
+			Category: script.category,
+			NS:       script.ns,
+			Script:   script.script,
+			Op:       stats.OpIndex,
+			Time:     time.Now(),
+		})
 		return
 	}
 
@@ -183,10 +147,20 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 	nsNew := NSFindPriority(script.ns)
 	if nsNew >= nsCur {
 		store.index.Store(script.name, script)
+		stats.WriteEvent(&stats.ChangeEvent{
+			Name:      script.name,
+			Category:  script.category,
+			NS:        script.ns,
+			NSOld:     curScript.ns,
+			Script:    script.script,
+			ScriptOld: curScript.script,
+			Op:        stats.OpIndexUpdate,
+			Time:      time.Now(),
+		})
 	}
 }
 
-func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts map[string](map[string]*PlScript)) {
+func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[string](map[string]*PlScript)) {
 	curScript, ok := store.Get(name)
 	if !ok {
 		return
@@ -198,6 +172,14 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts map[string
 	}
 	if nsCur == -1 {
 		store.index.Delete(name)
+		stats.WriteEvent(&stats.ChangeEvent{
+			Name:     name,
+			Category: curScript.category,
+			NS:       curScript.ns,
+			Script:   curScript.script,
+			Op:       stats.OpIndexDelete,
+			Time:     time.Now(),
+		})
 		return
 	}
 
@@ -206,14 +188,32 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts map[string
 	}
 
 	for _, v := range plScriptNSSearchOrder[len(plScriptNSSearchOrder)-nsCur:] {
-		if v, ok := scripts[v]; ok {
+		if v, ok := scripts4back[v]; ok {
 			if s, ok := v[name]; ok {
 				store.index.Store(s.name, s)
+				stats.WriteEvent(&stats.ChangeEvent{
+					Name:      name,
+					Category:  s.category,
+					NS:        s.ns,
+					NSOld:     curScript.ns,
+					Script:    s.script,
+					ScriptOld: curScript.script,
+					Op:        stats.OpIndexDeleteAndBack,
+					Time:      time.Now(),
+				})
 				return
 			}
 		}
 	}
 	store.index.Delete(name)
+	stats.WriteEvent(&stats.ChangeEvent{
+		Name:     name,
+		Category: curScript.category,
+		NS:       curScript.ns,
+		Script:   curScript.script,
+		Op:       stats.OpIndexDelete,
+		Time:     time.Now(),
+	})
 }
 
 func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]string) error {
@@ -232,6 +232,16 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 		if s, err := NewScript(name, v, ns, store.category); err == nil && s != nil {
 			script[name] = s
 		} else {
+			change := stats.ChangeEvent{
+				Name:         name,
+				Category:     store.category,
+				NS:           ns,
+				Script:       v,
+				Op:           stats.OpCompileError,
+				Time:         time.Now(),
+				CompileError: err,
+			}
+			stats.WriteEvent(&change)
 			errScript[name] = err
 		}
 	}
@@ -264,7 +274,7 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 	return nil
 }
 
-func QueryScript(name, category string) (*PlScript, bool) {
+func QueryScript(category, name string) (*PlScript, bool) {
 	return whichStore(category).Get(name)
 }
 
@@ -293,7 +303,7 @@ func ReadPlScriptFromDir(dirPath string) map[string]string {
 				continue
 			}
 			sPath := filepath.Join(dirPath, sName)
-			if name, script, err := ReadPlScriptFromFile(sPath); err != nil {
+			if name, script, err := ReadPlScriptFromFile(sPath); err == nil {
 				ret[name] = script
 			} else {
 				l.Error(err)

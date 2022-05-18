@@ -526,20 +526,22 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 	context.success(pipeline)
 }
 
-func plCallback(res *pipeline.Result) (*pipeline.Result, error) {
-	// res.CheckFieldValLen(0)
-	return pipeline.ResultUtilsLoggingProcessor(res, false, nil), nil
-}
-
 func pipelineTest(pipelineFile string, text string) (string, error) {
 	// TODO
 	pl, err := pipeline.NewPipelineFromFile(datakit.Logging, filepath.Join(datakit.PipelineDir, pipelineFile))
 	if err != nil {
 		return "", err
 	}
+	opt := &io.PointOption{
+		Category: datakit.Logging,
+		Time:     time.Now(),
+	}
+	pt, err := io.NewPoint("", nil, map[string]interface{}{pipeline.PipelineMessageField: text}, opt)
+	if err != nil {
+		return "", err
+	}
 
-	pt, _ := io.MakePoint("", nil, map[string]interface{}{pipeline.PipelineMessageField: text}, time.Now())
-	pt, dropFlag, err := pl.Run(pt, plCallback)
+	pt, dropFlag, err := pl.Run(pt, nil, *opt)
 	if err != nil {
 		return "", err
 	}

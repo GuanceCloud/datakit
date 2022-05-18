@@ -7,95 +7,113 @@
 package stats
 
 import (
+	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
-const Pow10_17 = int64(100_000_000_000_000_000)
+var l = logger.DefaultSLogger("pl-stats")
 
-var plWkrStats = NewPLWkrStats()
+var _changeEvent = ScriptChangeEvent{}
 
-func NewPLWkrStats() *PLWkrStats {
-	stats := &PLWkrStats{}
-	go func(s *PLWkrStats) {
-		ticker := time.NewTicker(time.Second * 45)
-		for {
-			select {
-			case <-ticker.C:
-				n := atomic.LoadInt64(&s.taskNum)
-				if n >= Pow10_17 {
-					// 由 ShowPLWkrStats 处理此处可能导致的进位问题
-					atomic.AddInt64(&s.taskNum, -Pow10_17)
-					atomic.AddUint64(&s.tNumPow10_17, 1)
-				}
+const MaxEventLen int = 100
 
-			case <-datakit.Exit.Wait():
-				return
-			}
+func InitStats() {
+	l = logger.SLogger("pl-stats")
+}
+
+type ScriptChangeEvent struct {
+	last100event [MaxEventLen]*ChangeEvent
+	pos          int
+	sync.RWMutex
+}
+
+func (event *ScriptChangeEvent) Write(change *ChangeEvent) {
+	if change == nil {
+		return
+	}
+	l.Info(change)
+	event.Lock()
+	defer event.Unlock()
+	if event.pos >= MaxEventLen {
+		event.pos %= MaxEventLen
+	}
+	event.last100event[event.pos] = change
+	event.pos += 1
+}
+
+func (event *ScriptChangeEvent) Read() []ChangeEvent {
+	ret := []ChangeEvent{}
+	event.RLock()
+	defer event.RUnlock()
+	curPos := event.pos
+	if curPos >= MaxEventLen {
+		curPos %= MaxEventLen
+	}
+
+	if event.last100event[curPos] == nil {
+		for i := 0; i < curPos; i++ {
+			ret = append(ret, *event.last100event[i])
 		}
-	}(stats)
-	return stats
+		return ret
+	}
+
+	for i := curPos; i < MaxEventLen; i++ {
+		ret = append(ret, *event.last100event[i])
+	}
+
+	for i := 0; i < curPos; i++ {
+		ret = append(ret, *event.last100event[i])
+	}
+
+	return ret
 }
 
-type PLWkrStats struct {
-	doFeedTaskNum int64
-	taskNum       int64
-	tNumPow10_17  uint64
-}
+type Op string
 
-// func (s PLWkrStats) String() string {
-// 	totalProcessed := strconv.FormatInt(s.taskNum, 10)
-// 	if s.tNumPow10_17 > 0 {
-// 		totalProcessed += fmt.Sprintf("+ %d*10^17", s.tNumPow10_17)
-// 	}
-// 	return fmt.Sprintf(
-// 		"taskCh: %d/%d waitingQueue: %d totalProcessed: %s",
-// 		s.taskChLen, taskChMaxL, s.doFeedTaskNum, totalProcessed,
-// 	)
-// }
+const (
+	OpAdd                Op = "ADD"
+	OpUpdate             Op = "UPDATE"
+	OpDelete             Op = "DELETE"
+	OpIndex              Op = "INDEX"
+	OpIndexUpdate        Op = "INDEX_UPDATE"
+	OpIndexDelete        Op = "INDEX_DELETE"
+	OpIndexDeleteAndBack Op = "INDEX_DELETE_AND_BACK"
 
-var (
-	lastPLWkrStats      = &PLWkrStats{}
-	lastPLWkrStatsMutex = sync.Mutex{}
+	OpCompileError Op = "COMPILE_ERROR"
 )
 
-func ShowPLWkrStats() PLWkrStats {
-	// lock
-	lastPLWkrStatsMutex.Lock()
-	defer lastPLWkrStatsMutex.Unlock()
+type ChangeEvent struct {
+	Name              string
+	Category          string
+	NS, NSOld         string
+	Script, ScriptOld string
 
-	s := PLWkrStats{
-		// taskChLen: int64(len(taskCh)),
-		doFeedTaskNum: atomic.LoadInt64(
-			&plWkrStats.doFeedTaskNum),
-		taskNum: atomic.LoadInt64(&plWkrStats.taskNum),
+	Op Op //
+
+	CompileError error
+	Time         time.Time
+}
+
+func (event ChangeEvent) String() string {
+	ns := event.NS
+	if event.NSOld != "" && event.NS != event.NSOld {
+		ns = event.NSOld + "->" + ns
 	}
-	// 可能此时仍未进位
-	s.tNumPow10_17 = atomic.LoadUint64(
-		&plWkrStats.tNumPow10_17)
-
-	// 处理进位问题
-	if lastPLWkrStats.taskNum > s.taskNum &&
-		lastPLWkrStats.tNumPow10_17 == s.tNumPow10_17 {
-		s.tNumPow10_17++
+	ret := fmt.Sprintf("ScriptStore %s %s category: %s, ns: %s, script_name: %s",
+		event.Time.Format(time.RFC3339Nano), event.Op, event.Category, ns, event.Name)
+	if event.CompileError != nil {
+		ret += ", compile_error: " + event.CompileError.Error()
 	}
-
-	lastPLWkrStats = &s
-
-	return s
+	return ret
 }
 
-func TaskNumIncrease() {
-	atomic.AddInt64(&(plWkrStats.taskNum), 1)
+func WriteEvent(event *ChangeEvent) {
+	_changeEvent.Write(event)
 }
 
-func TaskChFeedNumIncrease() {
-	atomic.AddInt64(&(plWkrStats.doFeedTaskNum), 1)
-}
-
-func TaskChFeedNumDecrease() {
-	atomic.AddInt64(&(plWkrStats.doFeedTaskNum), -1)
+func ReadEvent() []ChangeEvent {
+	return _changeEvent.Read()
 }

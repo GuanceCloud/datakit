@@ -10,7 +10,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestSqlCover(t *testing.T) {
@@ -62,7 +61,7 @@ func TestSqlCover(t *testing.T) {
 			pl:   `sql_cover(_)`,
 			in: `select abc from def where x > 3 and y < 5
 						SELECT ( ? )`,
-			outKey:   "_",
+			outKey:   "message",
 			expected: `select abc from def where x > ? and y < ? SELECT ( ? )`,
 			fail:     false,
 		},
@@ -71,7 +70,7 @@ func TestSqlCover(t *testing.T) {
 			pl:   `sql_cover(_)`,
 			in: `#test
 select abc from def where x > 3 and y < 5`,
-			outKey:   "_",
+			outKey:   "message",
 			expected: `select abc from def where x > ? and y < ?`,
 			fail:     false,
 		},
@@ -88,12 +87,14 @@ select abc from def where x > 3 and y < 5`,
 				}
 				return
 			}
-			pt, _ := io.MakePoint("test", map[string]string{},
+			ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
 				}, time.Now())
-			ret, err := runner.Run(pt)
 			if err != nil {
+				t.Fatal(err)
+			}
+			if ret.Error != nil {
 				if tc.fail {
 					t.Logf("[%d]expect error: %s", idx, err)
 				} else {

@@ -22,7 +22,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -115,8 +114,10 @@ func (ipt *Input) setup() bool {
 		if tags["pod_name"] != "" {
 			name += fmt.Sprintf("(podname:%s)", tags["pod_name"])
 		}
-		if pts := runPipeline(msg.Source, msg.Pipeline, []string{msg.Log}, tags, plCallback); len(pts) > 0 {
-			if err := io.Feed(name, datakit.Logging, pts, nil); err != nil {
+		if pts := makePts(msg.Source, []string{msg.Log}, tags); len(pts) > 0 {
+			if err := io.Feed(name, datakit.Logging, pts, &io.Option{
+				PlScript: map[string]string{msg.Source: msg.Pipeline},
+			}); err != nil {
 				l.Errorf("logfwd failed to feed log, pod_name:%s filename:%s, err: %w", tags["pod_name"], tags["filename"], err)
 				return err
 			}
@@ -183,13 +184,7 @@ func init() { //nolint:gochecknoinits
 	})
 }
 
-func plCallback(res *pipeline.Result) (*pipeline.Result, error) {
-	res.CheckFieldValLen(0)
-	return pipeline.ResultUtilsLoggingProcessor(res, false, nil), nil
-}
-
-func runPipeline(source, scriptName string, cnt []string, tags map[string]string,
-	callback func(*pipeline.Result) (*pipeline.Result, error)) []*io.Point {
+func makePts(source string, cnt []string, tags map[string]string) []*io.Point {
 	ret := []*io.Point{}
 
 	for _, cnt := range cnt {
@@ -201,18 +196,7 @@ func runPipeline(source, scriptName string, cnt []string, tags map[string]string
 			l.Error(err)
 			continue
 		}
-		drop := false
-		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
-			if ptRet, dropRet, err := pipeline.RunScript(pt, script, callback); err != nil {
-				l.Error(err)
-			} else {
-				pt = ptRet
-				drop = dropRet
-			}
-		}
-		if !drop {
-			ret = append(ret, pt)
-		}
+		ret = append(ret, pt)
 	}
 	return ret
 }

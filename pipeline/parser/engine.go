@@ -15,8 +15,12 @@ import (
 	"time"
 
 	conv "github.com/spf13/cast"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
+)
+
+const (
+	PipelineMessageField = "message"
+	PipelineTimeField    = "time"
 )
 
 var ngDataPool = sync.Pool{
@@ -60,8 +64,6 @@ type Engine struct {
 }
 
 type EngineData struct {
-	content string
-
 	output *Output
 
 	readOnlyGrok     **grok.Grok
@@ -76,8 +78,6 @@ type EngineData struct {
 }
 
 func (ngData *EngineData) Reset() {
-	ngData.content = ""
-
 	ngData.output = nil
 
 	ngData.readOnlyGrok = nil
@@ -101,7 +101,7 @@ func (ngData *EngineData) Reset() {
 
 //nolint:structcheck,unused
 type Output struct {
-	Error string
+	Error error
 
 	Drop bool
 
@@ -177,37 +177,32 @@ func (ng *Engine) Check() error {
 	return ng.stmts.Check(ng, data)
 }
 
-func (ng *Engine) Run(pt *io.Point) (*Output, error) {
-	fields, err := pt.Fields()
-	if err != nil {
-		return nil, err
-	}
-
+func (ng *Engine) Run(measurement string, tags map[string]string, fields map[string]interface{}, rTime time.Time) (*Output, error) {
 	data := getNgData()
 	defer putNgData(data)
 
+	if rTime.IsZero() {
+		rTime = time.Now()
+	}
+	if tags == nil {
+		tags = map[string]string{}
+	}
+	if fields == nil {
+		fields = map[string]interface{}{}
+	}
 	data.output = &Output{
 		Fields:      fields,
-		Tags:        pt.Tags(),
-		Measurement: pt.Name(),
-		Time:        pt.Time(),
+		Tags:        tags,
+		Measurement: measurement,
+		Time:        rTime,
 	}
-	// data.output.Fields = fields
-	// data.output.Tags = pt.Tags()
-	// data.output.DataMeasurement = pt.Name()
-	// data.output.DataTS = pt.UnixNano()
-	data.readOnlyGrok = &ng.grok
 
-	if cnt, ok := data.output.Fields["message"]; ok {
-		if cnt, ok := cnt.(string); ok {
-			data.content = cnt
-		}
-	}
+	data.readOnlyGrok = &ng.grok
 
 	data.stopRunPL = false
 	ng.stmts.Run(ng, data)
 
-	return result(data), data.lastErr
+	return result(data), nil
 }
 
 func result(data *EngineData) *Output {
@@ -221,6 +216,20 @@ func result(data *EngineData) *Output {
 			}
 			data.output.Fields[k] = string(str)
 		}
+	}
+	if v, ok := data.output.Fields[PipelineTimeField]; ok {
+		if nanots, ok := v.(int64); ok {
+			t := time.Unix(nanots/int64(time.Second),
+				nanots%int64(time.Second))
+			if !t.IsZero() {
+				data.output.Time = t
+			}
+			delete(data.output.Fields, PipelineTimeField)
+		}
+	}
+
+	if data.lastErr != nil {
+		data.output.Error = data.lastErr
 	}
 	return data.output
 }
@@ -257,7 +266,7 @@ func (ngData *EngineData) GetContent(key interface{}) (interface{}, error) {
 	}
 
 	if k == "_" {
-		return ngData.content, nil
+		k = PipelineMessageField
 	}
 
 	if v, ok := ngData.output.Tags[k]; ok {
@@ -277,6 +286,10 @@ func (ngData *EngineData) SetKey(k string, v interface{}) {
 	}
 
 	checkOutPutNilPtr(&ngData.output)
+
+	if k == "_" {
+		k = PipelineMessageField
+	}
 
 	ngData.output.Fields[k] = v
 }
@@ -439,6 +452,10 @@ func (ngData *EngineData) SetContent(k, v interface{}) error {
 		return nil
 	}
 
+	if key == "_" {
+		key = PipelineMessageField
+	}
+
 	if _, ok := ngData.output.Tags[key]; ok {
 		var value string
 		switch v := v.(type) {
@@ -452,6 +469,10 @@ func (ngData *EngineData) SetContent(k, v interface{}) error {
 		ngData.output.Fields[key] = v
 	}
 	return nil
+}
+
+func (ngData *EngineData) SetMeasurement(v string) {
+	ngData.output.Measurement = v
 }
 
 func (ngData *EngineData) SetTag(k interface{}, v string) error {
@@ -470,6 +491,9 @@ func (ngData *EngineData) SetTag(k interface{}, v string) error {
 	}
 	checkOutPutNilPtr(&ngData.output)
 
+	if key == "_" {
+		key = PipelineMessageField
+	}
 	delete(ngData.output.Fields, key)
 
 	ngData.output.Tags[key] = v
@@ -491,6 +515,10 @@ func (ngData *EngineData) IsTag(k interface{}) bool {
 	default:
 		return false
 	}
+
+	if key == "_" {
+		key = PipelineMessageField
+	}
 	if _, ok := ngData.output.Tags[key]; ok {
 		return true
 	}
@@ -511,6 +539,10 @@ func (ngData *EngineData) DeleteContent(k interface{}) error {
 		key = t
 	default:
 		return fmt.Errorf("unsupported %v set", reflect.TypeOf(key).String())
+	}
+
+	if key == "_" {
+		key = PipelineMessageField
 	}
 
 	if _, ok := ngData.output.Tags[key]; ok {

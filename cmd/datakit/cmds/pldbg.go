@@ -64,8 +64,15 @@ func pipelineDebugger(category, plname, txt string) error {
 	}
 
 	start := time.Now()
-	pt, _ := io.MakePoint("", nil, map[string]interface{}{pipeline.PipelineMessageField: txt}, time.Now())
-	res, dropFlag, err := pl.Run(pt, nil)
+	opt := &io.PointOption{
+		Category: category,
+		Time:     time.Now(),
+	}
+	pt, err := io.NewPoint("", nil, map[string]interface{}{pipeline.PipelineMessageField: txt}, opt)
+	if err != nil {
+		return err
+	}
+	res, dropFlag, err := pl.Run(pt, nil, *opt)
 	if err != nil {
 		return fmt.Errorf("run pipeline failed: %w", err)
 	}

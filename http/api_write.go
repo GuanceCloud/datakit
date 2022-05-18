@@ -15,8 +15,6 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 )
 
 type IApiWrite interface {
@@ -49,30 +47,6 @@ func (x *apiWriteImpl) sendToIO(input, category string, pts []*io.Point, opt *io
 
 func (x *apiWriteImpl) geoInfo(ip string) map[string]string {
 	return geoTags(ip)
-}
-
-func plAPIWriteLogCallback(res *pipeline.Result) (*pipeline.Result, error) {
-	res.CheckFieldValLen(0)
-	return pipeline.ResultUtilsLoggingProcessor(res, false, nil), nil
-}
-
-func runPipeline(category string, scriptName string, pts []*io.Point) []*io.Point {
-	ret := []*io.Point{}
-	for _, pt := range pts {
-		drop := false
-		if script, ok := scriptstore.QueryScript(category, scriptName); ok {
-			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plAPIWriteLogCallback); err != nil {
-				l.Error(err)
-			} else {
-				pt = ptRet
-				drop = dropRet
-			}
-		}
-		if !drop {
-			ret = append(ret, pt)
-		}
-	}
-	return ret
 }
 
 func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (interface{}, error) {
@@ -206,8 +180,10 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 
 		// for logging upload, we redirect them to pipeline
 		l.Debugf("send pts to pipeline")
-		pts = runPipeline(datakit.Logging, pipelineSource+".p", pts)
-		err = h.sendToIO(input, category, pts, &io.Option{HighFreq: true, Version: version})
+		err = h.sendToIO(input, category, pts, &io.Option{
+			HighFreq: true, Version: version,
+			PlScript: map[string]string{pipelineSource: pipelineSource + ".p"},
+		})
 	} else {
 		err = h.sendToIO(input, category, pts, &io.Option{HighFreq: true, Version: version})
 	}

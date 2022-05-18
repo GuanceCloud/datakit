@@ -10,7 +10,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestDz(t *testing.T) {
@@ -129,15 +128,14 @@ func TestDz(t *testing.T) {
 				}
 				return
 			}
-			pt, _ := io.MakePoint("test", map[string]string{},
+			if ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
-				}, time.Now())
-			if ret, err := runner.Run(pt); err != nil {
+				}, time.Now()); err != nil || ret.Error != nil {
 				if tc.fail {
-					t.Logf("[%d]expect error: %s", idx, err)
+					t.Logf("[%d]expect error: %s %s", idx, err, ret.Error)
 				} else {
-					t.Error(err)
+					t.Error(err, " ", ret.Error)
 				}
 			} else {
 				t.Log(ret)

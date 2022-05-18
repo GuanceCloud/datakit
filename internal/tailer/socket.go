@@ -17,7 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
 /*
@@ -227,24 +227,21 @@ func (sl *socketLogger) sendToPipeline(pending []string) {
 			l.Error(err)
 			continue
 		}
-		drop := false
-		if script, ok := scriptstore.QueryScript(datakit.Logging, sl.opt.Pipeline); ok {
-			if ptRet, dropRet, err := pipeline.RunScript(pt, script, func(res *pipeline.Result) (*pipeline.Result, error) {
-				res.CheckFieldValLen(maxFieldsLength)
-				return pipeline.ResultUtilsLoggingProcessor(res, sl.opt.DisableAddStatusField, sl.opt.IgnoreStatus), nil
-			}); err != nil {
-				l.Error(err)
-			} else {
-				pt = ptRet
-				drop = dropRet
-			}
-		}
-		if !drop {
-			res = append(res, pt)
+		res = append(res, pt)
+	}
+	var ioOpt *iod.Option
+	if sl.opt.Pipeline != "" {
+		ioOpt = &iod.Option{
+			PlScript: map[string]string{sl.opt.Source: sl.opt.Pipeline},
+			PlOption: &script.Option{
+				MaxFieldValLen:        maxFieldsLength,
+				DisableAddStatusField: sl.opt.DisableAddStatusField,
+				IgnoreStatus:          sl.ignorePatterns,
+			},
 		}
 	}
 	if len(res) > 0 {
-		if err := iod.Feed("socklogging/"+sl.opt.InputName, datakit.Logging, res, nil); err != nil {
+		if err := iod.Feed("socklogging/"+sl.opt.InputName, datakit.Logging, res, ioOpt); err != nil {
 			l.Error(err)
 		}
 	}

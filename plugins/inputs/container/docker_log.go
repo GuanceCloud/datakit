@@ -20,7 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/readbuf"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -277,8 +277,7 @@ func getContainerLogConfigForDocker(labels map[string]string) *containerLogConfi
 	return c
 }
 
-func runPipeline(source, scriptName string, cnt []string, tags map[string]string,
-	callback func(*pipeline.Result) (*pipeline.Result, error)) []*iod.Point {
+func makePts(source string, cnt []string, tags map[string]string) []*iod.Point {
 	ret := []*iod.Point{}
 
 	for _, cnt := range cnt {
@@ -290,18 +289,19 @@ func runPipeline(source, scriptName string, cnt []string, tags map[string]string
 			l.Error(err)
 			continue
 		}
-		drop := false
-		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
-			if ptRet, dropRet, err := pipeline.RunScript(pt, script, callback); err != nil {
-				l.Error(err)
-			} else {
-				pt = ptRet
-				drop = dropRet
-			}
-		}
-		if !drop {
-			ret = append(ret, pt)
-		}
+		ret = append(ret, pt)
+		// drop := false
+		// if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
+		// 	if ptRet, dropRet, err := pipeline.RunScript(pt, script, callback); err != nil {
+		// 		l.Error(err)
+		// 	} else {
+		// 		pt = ptRet
+		// 		drop = dropRet
+		// 	}
+		// }
+		// if !drop {
+		// 	ret = append(ret, pt)
+		// }
 	}
 
 	return ret
@@ -328,10 +328,10 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 
 	feedName := "containerlog/" + logconf.Source
 
-	callback := func(res *pipeline.Result) (*pipeline.Result, error) {
-		res.CheckFieldValLen(d.cfg.maxLoggingLength)
-		return pipeline.ResultUtilsLoggingProcessor(res, false, nil), nil
-	}
+	// callback := func(res *pipeline.Result) (*pipeline.Result, error) {
+	// 	res.CheckFieldValLen(d.cfg.maxLoggingLength)
+	// 	return pipeline.ResultUtilsLoggingProcessor(res, false, nil), nil
+	// }
 
 	r := readbuf.NewReadBuffer(reader, readBuffSize)
 
@@ -345,9 +345,13 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		case <-timeout.C:
 			if text := mult.Flush(); len(text) != 0 {
 				cnt := string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes))
-				if pts := runPipeline(logconf.Source, plScriptName, []string{cnt},
-					logconf.tags, callback); len(pts) > 0 {
-					if err := iod.Feed(feedName, datakit.Logging, pts, nil); err != nil {
+				if pts := makePts(logconf.Source, []string{cnt}, logconf.tags); len(pts) > 0 {
+					if err := iod.Feed(feedName, datakit.Logging, pts, &iod.Option{
+						PlScript: map[string]string{logconf.Source: plScriptName},
+						PlOption: &script.Option{
+							MaxFieldValLen: d.cfg.maxLoggingLength,
+						},
+					}); err != nil {
 						l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)
 					}
 				}
@@ -393,9 +397,13 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 			continue
 		}
 
-		if pts := runPipeline(logconf.Source, plScriptName, content,
-			logconf.tags, callback); len(pts) > 0 {
-			if err := iod.Feed(feedName, datakit.Logging, pts, nil); err != nil {
+		if pts := makePts(logconf.Source, content, logconf.tags); len(pts) > 0 {
+			if err := iod.Feed(feedName, datakit.Logging, pts, &iod.Option{
+				PlScript: map[string]string{logconf.Source: plScriptName},
+				PlOption: &script.Option{
+					MaxFieldValLen: d.cfg.maxLoggingLength,
+				},
+			}); err != nil {
 				l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)
 			}
 		}

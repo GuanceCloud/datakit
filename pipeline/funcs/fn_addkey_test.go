@@ -10,7 +10,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestAddkey(t *testing.T) {
@@ -112,17 +111,16 @@ add_key(add_new_key, nil)
 				}
 				return
 			}
-			pt, _ := io.MakePoint("test", map[string]string{},
+			if ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
-				}, time.Now())
-			if ret, err := runner.Run(pt); err == nil {
+				}, time.Now()); err == nil && ret.Error == nil {
 				t.Log(ret)
 				v := ret.Fields["add_new_key"]
 				tu.Equals(t, tc.expect, v)
 				t.Logf("[%d] PASS", idx)
 			} else {
-				t.Error(err)
+				t.Error(err, " ", ret.Error)
 			}
 		})
 	}

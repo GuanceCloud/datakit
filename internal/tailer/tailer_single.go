@@ -19,7 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
 const (
@@ -191,24 +191,17 @@ func (t *Single) sendToPipeline(pending []string) {
 			l.Error(err)
 			continue
 		}
-		drop := false
-		if script, ok := scriptstore.QueryScript(datakit.Logging, t.opt.Pipeline); ok {
-			if ptRet, dropRet, err := pipeline.RunScript(pt, script, func(res *pipeline.Result) (*pipeline.Result, error) {
-				res.CheckFieldValLen(maxFieldsLength)
-				return pipeline.ResultUtilsLoggingProcessor(res, t.opt.DisableAddStatusField, t.opt.IgnoreStatus), nil
-			}); err != nil {
-				l.Error(err)
-			} else {
-				pt = ptRet
-				drop = dropRet
-			}
-		}
-		if !drop {
-			res = append(res, pt)
-		}
+		res = append(res, pt)
 	}
 	if len(res) > 0 {
-		if err := iod.Feed("logging/"+t.opt.Source, datakit.Logging, res, nil); err != nil {
+		if err := iod.Feed("logging/"+t.opt.Source, datakit.Logging, res, &iod.Option{
+			PlScript: map[string]string{t.opt.Source: t.opt.Pipeline},
+			PlOption: &script.Option{
+				MaxFieldValLen:        maxFieldsLength,
+				DisableAddStatusField: t.opt.DisableAddStatusField,
+				IgnoreStatus:          t.opt.IgnoreStatus,
+			},
+		}); err != nil {
 			l.Error(err)
 		}
 	}

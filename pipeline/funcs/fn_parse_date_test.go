@@ -10,7 +10,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestParseDate(t *testing.T) {
@@ -243,20 +242,24 @@ parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 				}
 				return
 			}
-			pt, _ := io.MakePoint("test", map[string]string{},
+			ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
 				}, time.Now())
-			ret, err := runner.Run(pt)
-			if err != nil {
+			if err != nil || ret.Error != nil {
 				if tc.fail {
-					t.Logf("[%d]expect error: %s", idx, err)
+					t.Logf("[%d]expect error: %s %s", idx, err, ret.Error)
 				} else {
-					t.Error(err)
+					t.Error(err, " ", ret.Error)
 				}
 			} else {
 				t.Log(ret)
-				v := ret.Fields[tc.outKey]
+				var v interface{}
+				if tc.outKey != "time" && tc.outKey != "" {
+					v = ret.Fields[tc.outKey]
+				} else {
+					v = ret.Time.UnixNano()
+				}
 				tu.Equals(t, tc.expected, v)
 				t.Logf("[%d] PASS", idx)
 			}
