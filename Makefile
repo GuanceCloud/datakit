@@ -15,6 +15,7 @@ TESTING_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com
 # export LOCAL_OSS_HOST='oss-cn-hangzhou.aliyuncs.com' # 一般都是这个地址
 # export LOCAL_OSS_ADDR='<your-oss-bucket>.oss-cn-hangzhou.aliyuncs.com/datakit'
 # 如果只是编译，LOCAL_OSS_ADDR 这个环境变量可以随便给个值
+LOCAL_OSS_ADDR?="not-set"
 LOCAL_DOWNLOAD_ADDR=${LOCAL_OSS_ADDR}
 
 PUB_DIR = dist
@@ -154,7 +155,8 @@ define build_k8s_charts
 	@if [ $$((`echo $(VERSION) | awk -F . '{print $$2}'`%2)) -eq 0 ];then \
         helm cm-push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1); \
      else \
-        helm cm-push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(2); \
+			  printf "\033[31m [FAIL] unstable version not allowed\n\033[0m"; \
+        exit 1; \
      fi
 
 	@rm -f datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz
@@ -202,7 +204,7 @@ testing_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
 	# we also publish testing image to public image repo
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
-	$(call build_k8s_charts, 'datakit-testing', 'datakit-ce-testing')
+	$(call build_k8s_charts, 'datakit-testing')
 
 production_notify: deps
 	$(call notify_build,production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -213,7 +215,7 @@ production: deps # stable release
 
 production_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
-	$(call build_k8s_charts, 'datakit', 'datakit-ce')
+	$(call build_k8s_charts, 'datakit')
 
 production_mac: deps
 	$(call build, production, $(MAC_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -285,9 +287,8 @@ man:
 	@packr2
 
 # ignore files under vendor/.git/git
-# install gofumpt: go install mvdan.cc/gofumpt@latest
 gofmt:
-	@GO111MODULE=off gofumpt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go")
+	@GO111MODULE=off gofmt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go")
 
 vet:
 	@go vet ./...

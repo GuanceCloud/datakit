@@ -28,14 +28,13 @@ $ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
 $ helm repo update 
 ```
 
-
 #### Helm 安装 Datakit
 
 ```shell
 $ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
 ```
 
-> 注意修改 `datakit.dataway_url` 参数
+> 注意修改 `datakit.dataway_url` 参数。
 
 具体执行如下：
 

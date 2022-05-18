@@ -36,7 +36,6 @@ var (
 
 		"apis":                 "man/manuals/apis.md",
 		"changelog":            "man/manuals/changelog.md",
-		"changelog-community":  "man/manuals/changelog-community.md",
 		"datakit-arch":         "man/manuals/datakit-arch.md",
 		"datakit-batch-deploy": "man/manuals/datakit-batch-deploy.md",
 
@@ -71,6 +70,10 @@ var (
 		"ddtrace-golang":           "man/manuals/ddtrace-golang.md",
 		"ddtrace-java":             "man/manuals/ddtrace-java.md",
 		"ddtrace-python":           "man/manuals/ddtrace-python.md",
+		"ddtrace-php":              "man/manuals/ddtrace-php.md",
+		"ddtrace-nodejs":           "man/manuals/ddtrace-nodejs.md",
+		"ddtrace-cpp":              "man/manuals/ddtrace-cpp.md",
+		"ddtrace-ruby":             "man/manuals/ddtrace-ruby.md",
 		"development":              "man/manuals/development.md",
 		"dialtesting_json":         "man/manuals/dialtesting_json.md",
 		"election":                 "man/manuals/election.md",

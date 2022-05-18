@@ -14,7 +14,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -124,10 +123,7 @@ func applyFlags() {
 
 	build.DownloadAddr = *flagDownloadAddr
 	if !vi.IsStable() {
-		build.DownloadAddr = path.Join(*flagDownloadAddr, "community")
-
-		l.Debugf("under unstable version %s, reset download address to %s",
-			build.ReleaseVersion, build.DownloadAddr)
+		l.Fatalf("unstable version %s not allowed", build.ReleaseVersion)
 	}
 
 	switch *flagRelease {
@@ -135,7 +131,7 @@ func applyFlags() {
 		l.Debug("under release, only checked inputs released")
 		build.InputsReleaseType = "checked"
 		if !version.IsValidReleaseVersion(build.ReleaseVersion) {
-			l.Fatalf("invalid releaseVersion: %s, expect format 1.2.3-rc0", build.ReleaseVersion)
+			l.Fatalf("invalid releaseVersion: %s, expect format 1.2.3", build.ReleaseVersion)
 		}
 
 	default:

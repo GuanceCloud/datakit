@@ -25,6 +25,7 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
 	- [Prometheus](https://www.yuque.com/dataflux/datakit/prom)
 	- [Statsd](https://www.yuque.com/dataflux/datakit/statsd)
 	- [Fluentd](https://www.yuque.com/dataflux/datakit/logstreaming#a653042e)
+	- [Filebeats](https://www.yuque.com/dataflux/datakit/beats_output)
 	- [Function](https://www.yuque.com/dataflux/func/write-data-via-datakit)
 	- Tracing 相关（[OpenTelemetry]()/[DDTrace]()/[Zipkin]()/[Jaeger]()/[Skywalking]()）
 
@@ -59,79 +60,83 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPol
 
 更多关于安装的文档，参见[这里](https://www.yuque.com/dataflux/datakit/datakit-install)。
 
-### 安装非稳定版
-
-同时我们也发布了 DataKit 的[非稳定版](https://www.yuque.com/dataflux/datakit/changelog#5a0afc9d)，可通过如下方式安装：
-
-- Linux & Mac
-
-```bash
-DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" bash -c "$(curl -L https://static.guance.com/datakit/community/install.sh)"
-```
-
-- Windows
-
-```powershell
-$env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/community/install.ps1 -destination .install.ps1; powershell .install.ps1;
-```
-
-- [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
-
-```bash
-# 我们须替换上文中的 yaml 地址
-wget https://static.guance.com/datakit/community/datakit.yaml
-```
-
 ## 源码编译
 
 DataKit 开发过程中依赖了一些外部工具，我们必须先将这些工具准备好才能比较顺利的编译 DataKit。
 
-以下依赖（库/工具）主要用于 DataKit 自身的编译、打包以及发布流程。其中，**不建议在 Windows 上编译 DataKit**。
+> - **建议在 Ubuntu 20.04+ 下编译 DataKit**, 其它 Linux 发行版在安装这些依赖时可能会碰到困难。另外，不建议在 Windows 上编译
+> - 请在命令行终端运行 make，暂时尚未针对 Goland/VSCode 等做编译适配
+> - 请**先安装这些依赖，然后再 clone 代码**。如果在 DataKit 代码目录来安装这些依赖，可能导致一些 vendor 库拉取的问题
 
-- Go-1.16.4 及以上版本
-- `apt-get install gcc-multilib`: 用于编译 Oracle 采集器
-- `apt-get install tree`: Makefile 中用于显示编译结果
-- `packr2`: 用于打包一些资源文件
-- `go get -u golang.org/x/tools/cmd/goyacc`: 用于生成 Pipeline 语法代码
-- Docker 用于生成 DataKit 镜像
+### 设置 Golang
+
+设置 Go 编译环境
+
+> Go-1.16.4 及以上版本
+
+```shell
+export GOPRIVATE=gitlab.jiagouyun.com/*
+export GOPROXY=https://goproxy.cn,direct
+export GOPATH=~/go            # 视实际情况而定
+export GOROOT=~/golang-1.16.4 # 视实际情况而定
+export PATH=$GOROOT/bin:~/go/bin:$PATH
+```
+
+### 安装其它工具
+
+> !!! 不要在 datakit 代码目录安装这些工具/依赖，不然会触发包拉取不到的问题。
+
+- make: `apt-get install make`
+- gcc: `apt-get install gcc`
+- gcc-multilib: `apt-get install -y gcc-multilib`
+- tree: `apt-get install tree`
+- packr2: `go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
+- goyacc: `go get golang.org/x/tools/cmd/goyacc`
 - lint 相关
-	- `go install mvdan.cc/gofumpt@latest` 用于规范化 Golang 代码格式
-	- [golangci-lint 1.42.1](https://github.com/golangci/golangci-lint/releases/tag/v1.42.1)
-- eBPF 相关
-	- clang 10.0+
-	- llvm 10.0+
-	- `apt install go-bindata`
-- 文档相关
-	- [waque 1.13.1+](https://github.com/yesmeck/waque)
+  - lint: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
+- eBPF 相关（eBPF 不是编译 DataKit 本身必须的，如果不安装它们，只会导致 eBPF 部分编译失败）
+	- clang 10.0+: `apt-get install clang`
+	- llvm 10.0+: `apt-get install llvm`
+	- go-bindata: `apt install go-bindata`
+	- kernel headers: `apt-get install -y linux-headers-$(uname -r)`
+- 文档相关: [waque 1.13.1+](https://github.com/yesmeck/waque)
+  - 文档工具也不是必须的，可不安装
 
 ### 编译
 
-1. 拉取代码：
+1. 拉取代码：上面这些依赖装好之后，再拉取代码不迟。
 
 ```shell
-git clone https://github.com/DataFlux-cn/datakit.git
+$ mkdir -p $GOPATH/src/gitlab.jiagouyun.com/cloudcare-tools
+$ cd $GOPATH/src/gitlab.jiagouyun.com/cloudcare-tools
+
+$ git clone https://github.com/GuanceCloud/datakit.git   # 可能被墙
+$ git clone https://jihulab.com/guance-cloud/datakit.git # 国内极狐分站
+
+$ cd datakit
 ```
 
-2. 编译：
+3. 编译：
 
 ```shell
-cd datakit
 make
 ```
 
 如果编译通过，将在当前目录的 *dist* 目录下生成如下文件：
 
 ```
-dist/
-├── datakit-linux-amd64
-│   ├── datakit             # DataKit 主程序
-│   └── externals      
-│       ├── datakit-ebpf    # eBPF 相关采集器
-│       ├── logfwd          # logfwd 采集器
-│       └── oracle          # Oracle 采集器
-└── local
-    ├── installer-linux-amd64 # Linux 平台安装程序
-    └── version               # version 信息描述文件
+dist
+├── [4.0K]  datakit-linux-amd64
+│   ├── [ 72M]  datakit
+│   └── [4.0K]  externals
+│       ├── [ 14M]  logfwd
+│       └── [10.0M]  oracle
+├── [4.0K]  local
+│   ├── [ 26M]  installer-linux-amd64
+│   └── [ 228]  version
+└── [4.0K]  standalone
+    └── [4.0K]  datakit-ebpf-linux-amd64
+		        └── [ 38M]  datakit-ebpf
 ```
 
 如果要编译全平台版本，执行：
@@ -157,4 +162,4 @@ datakit help
 
 ## 文档
 
-DataKit 文档，参见[DataKit 文档库](https://www.yuque.com/dataflux/datakit)。
+- [DataKit 文档库](https://www.yuque.com/dataflux/datakit)
