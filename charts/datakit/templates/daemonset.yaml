@@ -49,8 +49,6 @@ spec:
               value: {{ .Values.datakit.log_level }}
             - name: ENV_HTTP_LISTEN
               value: {{ .Values.datakit.http_listen }}
-            - name: ENV_K8S_CLUSTER_NAME
-              value: {{ .Values.datakit.cluster_name }}
             {{- if .Values.git_repos.enable }}
             {{- if not (eq  "-" .Values.git_repos.git_url) }}
             - name: DK_GIT_URL
