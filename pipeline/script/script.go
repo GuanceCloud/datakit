@@ -72,11 +72,11 @@ func (script *PlScript) Engine() *parser.Engine {
 }
 
 func (script *PlScript) Run(measurement string, tags map[string]string, fields map[string]interface{},
-	t time.Time, opt *Option) (*parser.Output, bool, error) {
+	contentKey string, t time.Time, opt *Option) (*parser.Output, bool, error) {
 	if script == nil || script.ng == nil {
 		return nil, false, fmt.Errorf("no engine")
 	}
-	out, err := script.ng.Run(measurement, tags, fields, t)
+	out, err := script.ng.Run(measurement, tags, fields, contentKey, t)
 	if err != nil {
 		script.WriteStatErr(err.Error())
 		script.WriteStatPtCount(1, 0, 1)

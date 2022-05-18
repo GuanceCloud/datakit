@@ -245,7 +245,7 @@ parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 			ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
-				}, time.Now())
+				}, "message", time.Now())
 			if err != nil || ret.Error != nil {
 				if tc.fail {
 					t.Logf("[%d]expect error: %s %s", idx, err, ret.Error)

@@ -281,7 +281,7 @@ func TestDateTime(t *testing.T) {
 			ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
-				}, time.Now())
+				}, "message", time.Now())
 			if err != nil || ret.Error != nil {
 				t.Error(err, " ", ret.Error)
 				return

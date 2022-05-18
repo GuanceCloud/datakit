@@ -123,7 +123,7 @@ strfmt(bb, "%v%s", a.forth, "tone")
 			ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
-				}, time.Now())
+				}, "message", time.Now())
 			if err != nil {
 				t.Fatal(err)
 			}

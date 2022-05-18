@@ -36,7 +36,7 @@ func TestDecode(t *testing.T) {
 			ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
-				}, time.Now())
+				}, "message", time.Now())
 			tu.Equals(t, nil, err)
 			tu.Equals(t, nil, ret.Error)
 

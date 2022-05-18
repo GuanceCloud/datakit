@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
@@ -40,13 +41,26 @@ func runPl(category string, pts []*Point, scriptMap map[string]string, plOpt *sc
 			continue
 		}
 
-		field, err := pt.Fields()
+		fields, err := pt.Fields()
 		if err != nil {
 			plLogger.Debug(err)
 			continue
 		}
 		// run pl
-		out, drop, err := script.Run(pt.Name(), pt.Tags(), field, pt.Time(), plOpt)
+
+		cntKey := ""
+		switch category {
+		case datakit.Logging:
+			if _, ok := fields["message"]; ok {
+				cntKey = "message"
+				break
+			}
+			if _, ok := fields["message@json"]; ok {
+				cntKey = "message@json"
+			}
+		}
+
+		out, drop, err := script.Run(pt.Name(), pt.Tags(), fields, cntKey, pt.Time(), plOpt)
 		if err != nil {
 			plLogger.Debug(err)
 			ret = append(ret, pt)

@@ -114,7 +114,7 @@ add_key(add_new_key, nil)
 			if ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
-				}, time.Now()); err == nil && ret.Error == nil {
+				}, "message", time.Now()); err == nil && ret.Error == nil {
 				t.Log(ret)
 				v := ret.Fields["add_new_key"]
 				tu.Equals(t, tc.expect, v)

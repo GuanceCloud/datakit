@@ -162,7 +162,7 @@ func BenchmarkParseLog(b *testing.B) {
 		if _, err := runner.Run("test", map[string]string{},
 			map[string]interface{}{
 				"message": data,
-			}, time.Now()); err != nil {
+			}, "message", time.Now()); err != nil {
 			b.Error(err)
 		}
 	}
@@ -194,7 +194,7 @@ func BenchmarkParseLog_tz(b *testing.B) {
 		if _, err := runner.Run("test", map[string]string{},
 			map[string]interface{}{
 				"message": data,
-			}, time.Now()); err != nil {
+			}, "message", time.Now()); err != nil {
 			b.Error(err)
 		}
 	}
@@ -217,7 +217,7 @@ grok(_, "%{IPORHOST:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \\[%
 		if _, err := runner.Run("test", map[string]string{},
 			map[string]interface{}{
 				"message": data,
-			}, time.Now()); err != nil {
+			}, "message", time.Now()); err != nil {
 			b.Error(err)
 		}
 	}
@@ -265,7 +265,7 @@ default_time(time)
 		if _, err := runner.Run("test", map[string]string{},
 			map[string]interface{}{
 				"message": data,
-			}, time.Now()); err != nil {
+			}, "message", time.Now()); err != nil {
 			b.Error(err)
 		}
 	}
@@ -292,7 +292,7 @@ func BenchmarkParseLogWithTfmt(b *testing.B) {
 		if _, err := runner.Run("test", map[string]string{},
 			map[string]interface{}{
 				"message": data,
-			}, time.Now()); err != nil {
+			}, "message", time.Now()); err != nil {
 			b.Error(err)
 		}
 	}
@@ -320,7 +320,7 @@ func BenchmarkParseLogWithTfmt_tz(b *testing.B) {
 		if _, err := runner.Run("test", map[string]string{},
 			map[string]interface{}{
 				"message": data,
-			}, time.Now()); err != nil {
+			}, "message", time.Now()); err != nil {
 			b.Error(err)
 		}
 	}
@@ -343,7 +343,7 @@ func BenchmarkParseLogWithTfmt_NoAddPattern(b *testing.B) {
 		if _, err := runner.Run("test", map[string]string{},
 			map[string]interface{}{
 				"message": data,
-			}, time.Now()); err != nil {
+			}, "message", time.Now()); err != nil {
 			b.Error(err)
 		}
 	}

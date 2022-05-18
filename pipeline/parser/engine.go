@@ -19,8 +19,7 @@ import (
 )
 
 const (
-	PipelineMessageField = "message"
-	PipelineTimeField    = "time"
+	PipelineTimeField = "time"
 )
 
 var ngDataPool = sync.Pool{
@@ -66,6 +65,8 @@ type Engine struct {
 type EngineData struct {
 	output *Output
 
+	contentKey string
+
 	readOnlyGrok     **grok.Grok
 	grokPatternStack []map[string]*grok.GrokPattern
 	grokPatternIndex []int
@@ -79,6 +80,7 @@ type EngineData struct {
 
 func (ngData *EngineData) Reset() {
 	ngData.output = nil
+	ngData.contentKey = ""
 
 	ngData.readOnlyGrok = nil
 	if len(ngData.grokPatternStack) > 0 {
@@ -177,7 +179,8 @@ func (ng *Engine) Check() error {
 	return ng.stmts.Check(ng, data)
 }
 
-func (ng *Engine) Run(measurement string, tags map[string]string, fields map[string]interface{}, rTime time.Time) (*Output, error) {
+func (ng *Engine) Run(measurement string, tags map[string]string, fields map[string]interface{},
+	contentKey string, rTime time.Time) (*Output, error) {
 	data := getNgData()
 	defer putNgData(data)
 
@@ -190,6 +193,9 @@ func (ng *Engine) Run(measurement string, tags map[string]string, fields map[str
 	if fields == nil {
 		fields = map[string]interface{}{}
 	}
+
+	data.contentKey = contentKey
+
 	data.output = &Output{
 		Fields:      fields,
 		Tags:        tags,
@@ -266,7 +272,7 @@ func (ngData *EngineData) GetContent(key interface{}) (interface{}, error) {
 	}
 
 	if k == "_" {
-		k = PipelineMessageField
+		k = ngData.contentKey
 	}
 
 	if v, ok := ngData.output.Tags[k]; ok {
@@ -288,7 +294,7 @@ func (ngData *EngineData) SetKey(k string, v interface{}) {
 	checkOutPutNilPtr(&ngData.output)
 
 	if k == "_" {
-		k = PipelineMessageField
+		k = ngData.contentKey
 	}
 
 	ngData.output.Fields[k] = v
@@ -453,7 +459,7 @@ func (ngData *EngineData) SetContent(k, v interface{}) error {
 	}
 
 	if key == "_" {
-		key = PipelineMessageField
+		key = ngData.contentKey
 	}
 
 	if _, ok := ngData.output.Tags[key]; ok {
@@ -492,7 +498,7 @@ func (ngData *EngineData) SetTag(k interface{}, v string) error {
 	checkOutPutNilPtr(&ngData.output)
 
 	if key == "_" {
-		key = PipelineMessageField
+		key = ngData.contentKey
 	}
 	delete(ngData.output.Fields, key)
 
@@ -517,7 +523,7 @@ func (ngData *EngineData) IsTag(k interface{}) bool {
 	}
 
 	if key == "_" {
-		key = PipelineMessageField
+		key = ngData.contentKey
 	}
 	if _, ok := ngData.output.Tags[key]; ok {
 		return true
@@ -542,7 +548,7 @@ func (ngData *EngineData) DeleteContent(k interface{}) error {
 	}
 
 	if key == "_" {
-		key = PipelineMessageField
+		key = ngData.contentKey
 	}
 
 	if _, ok := ngData.output.Tags[key]; ok {

@@ -92,12 +92,23 @@ func (p *Pipeline) Run(pt *io.Point, plOpt *plscript.Option, ioPtOpt io.PointOpt
 	if pt == nil {
 		return nil, false, fmt.Errorf("no data")
 	}
-	field, err := pt.Fields()
+	fields, err := pt.Fields()
 	if err != nil {
 		return nil, false, err
 	}
+	cntKey := ""
+	switch ioPtOpt.Category {
+	case datakit.Logging:
+		if _, ok := fields["message"]; ok {
+			cntKey = "message"
+			break
+		}
+		if _, ok := fields["message@json"]; ok {
+			cntKey = "message@json"
+		}
+	}
 
-	if out, drop, err := p.script.Run(pt.Name(), pt.Tags(), field, ioPtOpt.Time, plOpt); err != nil {
+	if out, drop, err := p.script.Run(pt.Name(), pt.Tags(), fields, cntKey, ioPtOpt.Time, plOpt); err != nil {
 		return nil, drop, err
 	} else {
 		if !out.Time.IsZero() {

@@ -130,8 +130,8 @@ func TestDz(t *testing.T) {
 			}
 			if ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
-					"message": tc.in,
-				}, time.Now()); err != nil || ret.Error != nil {
+					"message@json": tc.in,
+				}, "message@json", time.Now()); err != nil || ret.Error != nil {
 				if tc.fail {
 					t.Logf("[%d]expect error: %s %s", idx, err, ret.Error)
 				} else {
