@@ -1168,6 +1168,7 @@ var (
 			"",
 			"# Extracted data(drop: false, cost: 33.279µs):",
 			"# {",
+			`#   "_": "wwwwww",`,
 			`#   "message": "wwwwww",`,
 			"# }",
 			"```",
