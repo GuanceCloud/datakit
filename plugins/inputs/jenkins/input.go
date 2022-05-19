@@ -68,12 +68,14 @@ func (n *Input) setupServer() {
 	router := gin.Default()
 	router.PUT("/v0.3/traces", gin.WrapH(n))
 	n.srv = &http.Server{
-		Addr:    n.CIEventPort,
-		Handler: router,
+		Addr:        n.CIEventPort,
+		Handler:     router,
+		IdleTimeout: 120 * time.Second,
 	}
 	go func() {
-		err := n.srv.ListenAndServe()
-		l.Infof("server listens for jenkins CI event is shutdown: %v", err)
+		if err := n.srv.ListenAndServe(); err != nil {
+			l.Errorf("jenkins CI event server shutdown: %v", err)
+		}
 	}()
 }
 
@@ -130,9 +132,9 @@ func (n *Input) shutdownServer() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := n.srv.Shutdown(ctx); err != nil {
-		l.Errorf("server listens for jenkins CI event failed to shutdown: %v", err)
+		l.Errorf("jenkins CI event server failed to shutdown: %v", err)
 	} else {
-		l.Infof("server listens for jenkins CI event is shutdown")
+		l.Infof("jenkins CI event server is shutdown")
 	}
 }
 
