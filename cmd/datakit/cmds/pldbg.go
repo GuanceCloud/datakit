@@ -68,7 +68,8 @@ func pipelineDebugger(category, plname, txt string) error {
 		Category: category,
 		Time:     time.Now(),
 	}
-	pt, err := io.NewPoint("", nil, map[string]interface{}{pipeline.PipelineMessageField: txt}, opt)
+	measurementName := "default"
+	pt, err := io.NewPoint(measurementName, nil, map[string]interface{}{pipeline.PipelineMessageField: txt}, opt)
 	if err != nil {
 		return err
 	}
@@ -113,9 +114,7 @@ func pipelineDebugger(category, plname, txt string) error {
 		}
 	}
 
-	if res.Name() != "" {
-		result["source#"] = res.Name()
-	}
+	measurementName = res.Name()
 
 	if *flagPLTable {
 		fmtStr := fmt.Sprintf("%% %ds: %%v", maxWidth)
@@ -137,8 +136,8 @@ func pipelineDebugger(category, plname, txt string) error {
 	}
 
 	infof("---------------\n")
-	infof("Extracted %d fields, %d tags; drop: %v, cost: %v\n",
-		len(fields), len(tags), dropFlag, cost)
+	infof("Extracted %d fields, %d tags; measurement(M)<source(L),class(O)...>: %s, drop: %v, cost: %v\n",
+		len(fields), len(tags), measurementName, dropFlag, cost)
 
 	return nil
 }

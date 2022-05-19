@@ -536,7 +536,7 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 		Category: datakit.Logging,
 		Time:     time.Now(),
 	}
-	pt, err := io.NewPoint("", nil, map[string]interface{}{pipeline.PipelineMessageField: text}, opt)
+	pt, err := io.NewPoint("default", nil, map[string]interface{}{pipeline.PipelineMessageField: text}, opt)
 	if err != nil {
 		return "", err
 	}
