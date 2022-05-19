@@ -68,11 +68,13 @@ func TestDecode(t *testing.T) {
 			r, _ := runner.Data.GetContentStr("_")
 			_ = runner.Data.SetContent("ww", "dddd")
 			r1, _ := runner.Data.GetContentStr("ww")
+			r2, _ := runner.Data.GetContentStr("message")
 
-			tu.Equals(t, r, data[idx])
+			tu.Equals(t, data[idx], r)
 			tu.Equals(t, r1, "dddd")
 			tu.Equals(t, nil, err)
 			tu.Equals(t, data[idx], ret.Fields[tc.key])
+			tu.Equals(t, data[idx], r2)
 
 			t.Logf("[%d] PASS", idx)
 		})
