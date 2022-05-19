@@ -33,27 +33,27 @@ func TestDecode(t *testing.T) {
 		{
 			data:   decode_data_slice[0],
 			script: `decode(_,"gbk")`,
-			key:    "_",
+			key:    "message",
 		},
 		{
 			data:   decode_data_slice[1],
 			script: `decode(_,"gbk")`,
-			key:    "_",
+			key:    "message",
 		},
 		{
 			data:   decode_data_slice[2],
 			script: `decode(_,"gbk")`,
-			key:    "_",
+			key:    "message",
 		},
 		{
 			data:   decode_data_slice[3],
 			script: `decode(_,"gbk")`,
-			key:    "_",
+			key:    "message",
 		},
 		{
 			data:   decode_data_slice[4],
 			script: `decode(_,"gbk")`,
-			key:    "_",
+			key:    "message",
 		},
 	}
 	for idx, tc := range testCase {
@@ -65,6 +65,12 @@ func TestDecode(t *testing.T) {
 			tu.Equals(t, nil, err)
 
 			ret := runner.Result()
+			r, _ := runner.Data.GetContentStr("_")
+			_ = runner.Data.SetContent("ww", "dddd")
+			r1, _ := runner.Data.GetContentStr("ww")
+
+			tu.Equals(t, r, data[idx])
+			tu.Equals(t, r1, "dddd")
 			tu.Equals(t, nil, err)
 			tu.Equals(t, data[idx], ret.Fields[tc.key])
 
