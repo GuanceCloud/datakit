@@ -276,6 +276,8 @@ func getContainerLogConfigForDocker(labels map[string]string) *containerLogConfi
 	return c
 }
 
+const maxFieldsLength = 32 * 1024 * 1024
+
 func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stream string, logconf *containerLogConfig) error {
 	defer reader.Close() //nolint:errcheck
 
@@ -295,7 +297,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 			TaskName:        "containerlog/" + logconf.Source,
 			Source:          logconf.Source,
 			ScriptName:      logconf.Pipeline,
-			MaxMessageLen:   d.cfg.maxLoggingLength,
+			MaxMessageLen:   maxFieldsLength,
 			Tags:            logconf.tags,
 			ContentDataType: worker.ContentString,
 			TS:              time.Now(),

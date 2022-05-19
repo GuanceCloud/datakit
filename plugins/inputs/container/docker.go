@@ -36,7 +36,6 @@ type dockerInputConfig struct {
 
 	excludePauseContainer  bool
 	removeLoggingAnsiCodes bool
-	maxLoggingLength       int
 
 	containerIncludeMetric []string
 	containerExcludeMetric []string

@@ -35,7 +35,6 @@ type Input struct {
 
 	LoggingRemoveAnsiEscapeCodes bool `toml:"logging_remove_ansi_escape_codes"`
 	ExcludePauseContainer        bool `toml:"exclude_pause_container"`
-	MaxLoggingLength             int  `toml:"max_logging_length"`
 
 	ContainerIncludeMetric []string `toml:"container_include_metric"`
 	ContainerExcludeMetric []string `toml:"container_exclude_metric"`
@@ -378,7 +377,6 @@ func (i *Input) setup() bool {
 			endpoint:               i.DockerEndpoint,
 			excludePauseContainer:  i.ExcludePauseContainer,
 			removeLoggingAnsiCodes: i.LoggingRemoveAnsiEscapeCodes,
-			maxLoggingLength:       i.MaxLoggingLength,
 			containerIncludeMetric: i.ContainerIncludeMetric,
 			containerExcludeMetric: i.ContainerExcludeMetric,
 			containerIncludeLog:    i.ContainerIncludeLog,

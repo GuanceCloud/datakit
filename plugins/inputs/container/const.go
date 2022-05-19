@@ -46,8 +46,6 @@ const sampleCfg = `
 
   ## Removes ANSI escape codes from text strings
   logging_remove_ansi_escape_codes = false
-  ## Maximum length of logging, default 32766 bytes.
-  max_logging_length = 32766
 
   kubernetes_url = "https://kubernetes.default:443"
 
@@ -69,6 +67,7 @@ type DepercatedConf struct {
 	EnableObject        bool           `toml:"enable_object,omitempty"`
 	EnableLogging       bool           `toml:"enable_logging,omitempty"`
 	MetricInterval      timex.Duration `toml:"metric_interval,omitempty"`
+	MaxLoggingLength    int            `toml:"max_logging_length"`
 	IgnoreImageName     []string       `toml:"ignore_image_name,omitempty"`
 	IgnoreContainerName []string       `toml:"ignore_container_name,omitempty"`
 	DropTags            []string       `toml:"drop_tags,omitempty"`
