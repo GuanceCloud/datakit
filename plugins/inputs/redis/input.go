@@ -128,6 +128,14 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+func (i *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"Redis log": `122:M 14 May 2019 19:11:40.164 * Background saving terminated with success`,
+		},
+	}
+}
+
 func (i *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
