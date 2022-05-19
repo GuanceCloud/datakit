@@ -109,10 +109,10 @@ func (n *Input) getPoint(span *ddSpan) (*io.Point, error) {
 		return n.getJobPoint(span)
 	case stage, unknown:
 		// We don't need this type of span currently.
-		l.Debugf("unneeded CI event type: %s, skipped", span.Meta["_dd.ci.level"])
+		l.Debugf("received unneeded CI event type: %s, skipped", span.Meta["_dd.ci.level"])
 		return nil, nil
 	default:
-		l.Debugf("unrecognized CI event type received, skipped")
+		l.Debugf("received unrecognized CI event type, skipped")
 		return nil, nil
 	}
 }
