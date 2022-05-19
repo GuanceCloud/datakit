@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"k8s.io/client-go/rest"
@@ -78,6 +79,10 @@ func gatherPodMetrics(client k8sMetricsClientX, extraTags map[string]string) ([]
 			time:   time.Now(),
 		}
 		obj.tags.append(extraTags)
+
+		if namespace := config.GetElectionNamespace(); namespace != "" {
+			obj.tags["election_namespace"] = namespace
+		}
 
 		cpu := item.Containers[0].Usage["cpu"]
 		mem := item.Containers[0].Usage["memory"]

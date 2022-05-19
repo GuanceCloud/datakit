@@ -180,6 +180,11 @@ func (i *Input) AvailableArchs() []string {
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("solr input started")
+
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		i.Tags["election_namespace"] = namespace
+	}
+
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	tick := time.NewTicker(i.Interval.Duration)

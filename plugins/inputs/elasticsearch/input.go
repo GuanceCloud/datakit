@@ -527,6 +527,10 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.duration)
 	defer tick.Stop()
 
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		i.Tags["election_namespace"] = namespace
+	}
+
 	for {
 		if i.pause {
 			l.Debugf("not leader, skipped")

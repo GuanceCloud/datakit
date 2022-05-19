@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -66,6 +67,10 @@ func (ipt *Input) Run() {
 
 	if ipt.EatCPU {
 		eatCPU(runtime.NumCPU())
+	}
+
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		ipt.Tags["election_namespace"] = namespace
 	}
 
 	for {

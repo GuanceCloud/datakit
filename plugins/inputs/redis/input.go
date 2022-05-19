@@ -267,6 +267,10 @@ func (i *Input) RunPipeline() {
 func (i *Input) Run() {
 	l = logger.SLogger("redis")
 
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		i.Tags["election_namespace"] = namespace
+	}
+
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	tick := time.NewTicker(i.Interval.Duration)

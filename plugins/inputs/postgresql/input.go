@@ -425,6 +425,10 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.duration)
 
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		ipt.Tags["election_namespace"] = namespace
+	}
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
