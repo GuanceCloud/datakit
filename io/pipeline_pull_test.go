@@ -6,17 +6,17 @@
 package io
 
 import (
+	"encoding/base64"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
-var debugPipelinePullData *dataway.PullPipelineReturn
+var debugPipelinePullData *PullPipelineReturn
 
 type debugPipelinePullMock struct{}
 
-func (*debugPipelinePullMock) getPipelinePull(ts int64) (*dataway.PullPipelineReturn, error) {
+func (*debugPipelinePullMock) getPipelinePull(ts int64) (*PullPipelineReturn, error) {
 	return debugPipelinePullData, nil
 }
 
@@ -25,7 +25,7 @@ func TestPullPipeline(t *testing.T) {
 	cases := []struct {
 		Name      string
 		LocalTS   int64
-		Pipelines *dataway.PullPipelineReturn
+		Pipelines *PullPipelineReturn
 		Expect    *struct {
 			mFiles     map[string]string
 			updateTime int64
@@ -34,9 +34,9 @@ func TestPullPipeline(t *testing.T) {
 		{
 			Name:    "has_data",
 			LocalTS: 0,
-			Pipelines: &dataway.PullPipelineReturn{
+			Pipelines: &PullPipelineReturn{
 				UpdateTime: 1641796675,
-				Pipelines: []*dataway.PipelineUnit{
+				Pipelines: []*PipelineUnit{
 					{
 						Name:       "123.p",
 						Base64Text: "dGV4dDE=",
@@ -61,7 +61,7 @@ func TestPullPipeline(t *testing.T) {
 		{
 			Name:    "no_data",
 			LocalTS: 1641796675,
-			Pipelines: &dataway.PullPipelineReturn{
+			Pipelines: &PullPipelineReturn{
 				UpdateTime: -1,
 			},
 			Expect: &struct {
@@ -87,4 +87,104 @@ func TestPullPipeline(t *testing.T) {
 
 func init() { //nolint:gochecknoinits
 	defPipelinePullMock = &debugPipelinePullMock{}
+}
+
+// go test -v -timeout 30s -run ^TestParsePipelinePullStruct$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io
+func TestParsePipelinePullStruct(t *testing.T) {
+	cases := []struct {
+		name      string
+		pipelines *PullPipelineReturn
+		expect    *struct {
+			mfiles     map[string]map[string]string
+			updateTime int64
+			err        error
+		}
+	}{
+		{
+			name: "normal",
+			pipelines: &PullPipelineReturn{
+				UpdateTime: 1653020819,
+				Pipelines: []*PipelineUnit{
+					{
+						Name:       "123.p",
+						Base64Text: base64.StdEncoding.EncodeToString([]byte("text123")),
+						Category:   "logging",
+					},
+					{
+						Name:       "1234.p",
+						Base64Text: base64.StdEncoding.EncodeToString([]byte("text1234")),
+						Category:   "logging",
+					},
+					{
+						Name:       "456.p",
+						Base64Text: base64.StdEncoding.EncodeToString([]byte("text456")),
+						Category:   "metric",
+					},
+				},
+			},
+			expect: &struct {
+				mfiles     map[string]map[string]string
+				updateTime int64
+				err        error
+			}{
+				mfiles: map[string]map[string]string{
+					"logging": {
+						"123.p":  "text123",
+						"1234.p": "text1234",
+					},
+					"metric": {
+						"456.p": "text456",
+					},
+				},
+				updateTime: 1653020819,
+			},
+		},
+		{
+			name: "repeat",
+			pipelines: &PullPipelineReturn{
+				UpdateTime: 1653020819,
+				Pipelines: []*PipelineUnit{
+					{
+						Name:       "123.p",
+						Base64Text: base64.StdEncoding.EncodeToString([]byte("text123")),
+						Category:   "logging",
+					},
+					{
+						Name:       "123.p",
+						Base64Text: base64.StdEncoding.EncodeToString([]byte("text1234")),
+						Category:   "logging",
+					},
+					{
+						Name:       "456.p",
+						Base64Text: base64.StdEncoding.EncodeToString([]byte("text456")),
+						Category:   "metric",
+					},
+				},
+			},
+			expect: &struct {
+				mfiles     map[string]map[string]string
+				updateTime int64
+				err        error
+			}{
+				mfiles: map[string]map[string]string{
+					"logging": {
+						"123.p": "text1234",
+					},
+					"metric": {
+						"456.p": "text456",
+					},
+				},
+				updateTime: 1653020819,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mFiles, updateTime, err := parsePipelinePullStruct(tc.pipelines)
+			assert.Equal(t, tc.expect.mfiles, mFiles)
+			assert.Equal(t, tc.expect.updateTime, updateTime)
+			assert.Equal(t, tc.expect.err, err)
+		})
+	}
 }

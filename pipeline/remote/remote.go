@@ -35,12 +35,6 @@ const (
 	// #-----------------------------------------------------------------------------------
 	// `.
 	deleteAll = 1
-
-	// files: map[string]string{
-	// 	"metric|||||123.p": "text123",
-	// 	"logging|||||456.p": "text456",
-	// },
-	pipelineSep = "|||||"
 )
 
 var (
@@ -76,13 +70,15 @@ type IPipelineRemote interface {
 	ReadFile(filename string) ([]byte, error)
 	WriteFile(filename string, data []byte, perm fs.FileMode) error
 	ReadDir(dirname string) ([]fs.FileInfo, error)
-	PullPipeline(ts int64) (mFiles map[string]string, updateTime int64, err error)
+	PullPipeline(ts int64) (mFiles map[string]map[string]string, updateTime int64, err error)
 	GetTickerDurationAndBreak() (time.Duration, bool)
 	Remove(name string) error
 	FeedLastError(inputName string, err string)
 	ReadTarToMap(srcFile string) (map[string]string, error)
 	WriteTarFromMap(data map[string]string, dest string) error
 }
+
+var _ IPipelineRemote = new(pipelineRemoteImpl)
 
 type pipelineRemoteImpl struct{}
 
@@ -110,7 +106,7 @@ func (*pipelineRemoteImpl) ReadDir(dirname string) ([]fs.FileInfo, error) {
 	return ioutil.ReadDir(dirname)
 }
 
-func (*pipelineRemoteImpl) PullPipeline(ts int64) (mFiles map[string]string, updateTime int64, err error) {
+func (*pipelineRemoteImpl) PullPipeline(ts int64) (mFiles map[string]map[string]string, updateTime int64, err error) {
 	return io.PullPipeline(ts)
 }
 
@@ -250,14 +246,15 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 	return nil
 }
 
-func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) error {
+func dumpFiles(mFiles map[string]map[string]string, ipr IPipelineRemote) error {
 	l.Debugf("dumpFiles: %#v", mFiles)
 	// remove lcoal files
 	if err := removeLocalRemote(ipr); err != nil {
 		return err
 	}
 	// dump
-	if err := ipr.WriteTarFromMap(mFiles, pathContent); err != nil {
+	data := convertThreeMapToContentMap(mFiles)
+	if err := ipr.WriteTarFromMap(data, pathContent); err != nil {
 		return err
 	}
 	return nil
@@ -267,6 +264,7 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 	if !ipr.FileExist(pathConfig) {
 		return 0, nil //nolint:nilerr
 	}
+
 	bys, err := ipr.ReadFile(pathConfig) //nolint:gosec
 	if err != nil {
 		return 0, err
@@ -291,9 +289,21 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		if err != nil {
 			l.Errorf("ReadTarToMap failed: %v", err)
 		} else {
-			loadContentPipeline(mContent)
+			data := convertContentMapToThreeMap(mContent)
+			if _, ok := data["."]; ok { // check old version
+				if err := ipr.Remove(pathConfig); err != nil {
+					l.Warnf("not compatible content file, remove config failed: %v", err)
+				}
+				if err := removeLocalRemote(ipr); err != nil {
+					l.Warnf("not compatible content file, removeLocalRemote failed: %v", err)
+				}
+				return 0, nil // need update when using compatible content file
+			} else {
+				loadContentPipeline(data)
+			}
 		}
 	} // isFirst
+
 	return cf.UpdateTime, nil
 }
 
@@ -312,39 +322,42 @@ func updatePipelineRemoteConfig(pathConfig, siteURL string, latestTime int64, ip
 	return nil
 }
 
-func convertContentMap(in map[string]string) map[string]map[string]string {
+// more info see test case
+func convertContentMapToThreeMap(in map[string]string) map[string]map[string]string {
 	out := make(map[string]map[string]string)
-	for k, v := range in {
-		arr := strings.Split(k, pipelineSep)
-		if len(arr) > 1 {
-			// new
-			//   arr[0] -> category pure name
-			//   arr[1] -> file name(.p)
-			if existOne, ok := out[arr[0]]; ok {
-				// found exist, append
-				existOne[arr[1]] = v
-				out[arr[0]] = existOne
+	for categoryAndName, content := range in {
+		categoryGet, name := filepath.Split(categoryAndName)
+		category := filepath.Clean(categoryGet)
+		if len(category) > 0 && len(name) > 0 {
+			// normal
+			if mVal, ok := out[category]; ok {
+				mVal[name] = content
+				out[category] = mVal
 			} else {
-				// not found, new one
-				new := map[string]string{
-					arr[1]: v,
-				}
-				out[arr[0]] = new
+				mPiece := make(map[string]string)
+				mPiece[name] = content
+				out[category] = mPiece
 			}
-		} else {
-			// old
-			out[""] = in
-			break
 		}
 	}
 	return out
 }
 
-func loadContentPipeline(in map[string]string) {
-	out := convertContentMap(in)
+// more info see test case
+func convertThreeMapToContentMap(in map[string]map[string]string) map[string]string {
+	out := make(map[string]string)
+	for category, mVal := range in {
+		for name, content := range mVal {
+			out[filepath.Join(category, name)] = content
+		}
+	}
+	return out
+}
+
+func loadContentPipeline(in map[string]map[string]string) {
 	// TODO: category, convertutil.TestGetMapCategoryShortToFull
 	// for category, val := range out {
-	for _, val := range out {
+	for _, val := range in {
 		scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(val)
 	}
 }

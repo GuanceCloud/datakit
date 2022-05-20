@@ -82,6 +82,8 @@ func (fileInfoStruct) Sys() interface{} {
 	return nil
 }
 
+var _ IPipelineRemote = new(pipelineRemoteMockerTest)
+
 type pipelineRemoteMockerTest struct{}
 
 type FileDataStruct struct {
@@ -137,14 +139,16 @@ func (*pipelineRemoteMockerTest) ReadDir(dirname string) ([]fs.FileInfo, error) 
 	return readDirResult, nil
 }
 
-func (*pipelineRemoteMockerTest) PullPipeline(ts int64) (mFiles map[string]string, updateTime int64, err error) {
+func (*pipelineRemoteMockerTest) PullPipeline(ts int64) (mFiles map[string]map[string]string, updateTime int64, err error) {
 	if errPullPipeline != nil {
 		return nil, 0, errPullPipeline
 	}
 
-	return map[string]string{
-		"123.p": "text123",
-		"456.p": "text456",
+	return map[string]map[string]string{
+		"logging": {
+			"123.p": "text123",
+			"456.p": "text456",
+		},
 	}, pullPipelineUpdateTime, nil
 }
 
@@ -340,7 +344,7 @@ func TestDoPull(t *testing.T) {
 func TestDumpFiles(t *testing.T) {
 	cases := []struct {
 		name                  string
-		files                 map[string]string
+		files                 map[string]map[string]string
 		readDir               []fs.FileInfo
 		failedReadDir         error
 		failedWriteTarFromMap error
@@ -348,9 +352,11 @@ func TestDumpFiles(t *testing.T) {
 	}{
 		{
 			name: "normal",
-			files: map[string]string{
-				"123.p": "text123",
-				"456.p": "text456",
+			files: map[string]map[string]string{
+				"logging": {
+					"123.p": "text123",
+					"456.p": "text456",
+				},
 			},
 		},
 		{
@@ -361,9 +367,11 @@ func TestDumpFiles(t *testing.T) {
 		{
 			name:                  "WriteTarFromMap_fail",
 			failedWriteTarFromMap: errGeneral,
-			files: map[string]string{
-				"123.p": "text123",
-				"456.p": "text456",
+			files: map[string]map[string]string{
+				"logging": {
+					"123.p": "text123",
+					"456.p": "text456",
+				},
 			},
 			expectError: errGeneral,
 		},
@@ -534,8 +542,8 @@ func TestUpdatePipelineRemoteConfig(t *testing.T) {
 	}
 }
 
-// go test -v -timeout 30s -run ^TestConvertContentMap$ gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote
-func TestConvertContentMap(t *testing.T) {
+// go test -v -timeout 30s -run ^TestConvertContentMapToThreeMap$ gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote
+func TestConvertContentMapToThreeMap(t *testing.T) {
 	cases := []struct {
 		name   string
 		in     map[string]string
@@ -544,8 +552,8 @@ func TestConvertContentMap(t *testing.T) {
 		{
 			name: "new",
 			in: map[string]string{
-				"metric|||||123.p":  "text123",
-				"logging|||||456.p": "text456",
+				"metric/123.p":  "text123",
+				"logging/456.p": "text456",
 			},
 			expect: map[string]map[string]string{
 				"metric": {
@@ -563,7 +571,7 @@ func TestConvertContentMap(t *testing.T) {
 				"456.p": "text456",
 			},
 			expect: map[string]map[string]string{
-				"": {
+				".": {
 					"123.p": "text123",
 					"456.p": "text456",
 				},
@@ -572,11 +580,11 @@ func TestConvertContentMap(t *testing.T) {
 		{
 			name: "append",
 			in: map[string]string{
-				"metric|||||123.p":   "text123",
-				"logging|||||456.p":  "text456",
-				"metric|||||1234.p":  "text1234",
-				"logging|||||123.p":  "text123",
-				"metric|||||12345.p": "text12345",
+				"metric/123.p":   "text123",
+				"logging/456.p":  "text456",
+				"metric/1234.p":  "text1234",
+				"logging/123.p":  "text123",
+				"metric/12345.p": "text12345",
 			},
 			expect: map[string]map[string]string{
 				"metric": {
@@ -594,7 +602,41 @@ func TestConvertContentMap(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			out := convertContentMap(tc.in)
+			out := convertContentMapToThreeMap(tc.in)
+			assert.Equal(t, tc.expect, out)
+		})
+	}
+}
+
+// go test -v -timeout 30s -run ^TestConvertThreeMapToContentMap$ gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote
+func TestConvertThreeMapToContentMap(t *testing.T) {
+	cases := []struct {
+		name   string
+		in     map[string]map[string]string
+		expect map[string]string
+	}{
+		{
+			name: "normal",
+			in: map[string]map[string]string{
+				"logging": {
+					"123.p":  "text123",
+					"1234.p": "text1234",
+				},
+				"metric": {
+					"456.p": "text456",
+				},
+			},
+			expect: map[string]string{
+				"logging/123.p":  "text123",
+				"logging/1234.p": "text1234",
+				"metric/456.p":   "text456",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := convertThreeMapToContentMap(tc.in)
 			assert.Equal(t, tc.expect, out)
 		})
 	}
