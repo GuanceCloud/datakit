@@ -132,12 +132,14 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 	curScript, ok := store.Get(script.name)
 	if !ok {
 		store.index.Store(script.name, script)
+
+		stats.UpdateScriptStatsMeta(script.category, script.ns, script.name, false, true)
 		stats.WriteEvent(&stats.ChangeEvent{
 			Name:     script.name,
 			Category: script.category,
 			NS:       script.ns,
 			Script:   script.script,
-			Op:       stats.OpIndex,
+			Op:       stats.EventOpIndex,
 			Time:     time.Now(),
 		})
 		return
@@ -146,7 +148,11 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 	nsCur := NSFindPriority(curScript.ns)
 	nsNew := NSFindPriority(script.ns)
 	if nsNew >= nsCur {
+
 		store.index.Store(script.name, script)
+
+		stats.UpdateScriptStatsMeta(curScript.category, curScript.ns, curScript.name, false, false)
+		stats.UpdateScriptStatsMeta(script.category, script.ns, script.name, false, true)
 		stats.WriteEvent(&stats.ChangeEvent{
 			Name:      script.name,
 			Category:  script.category,
@@ -154,7 +160,7 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 			NSOld:     curScript.ns,
 			Script:    script.script,
 			ScriptOld: curScript.script,
-			Op:        stats.OpIndexUpdate,
+			Op:        stats.EventOpIndexUpdate,
 			Time:      time.Now(),
 		})
 	}
@@ -172,12 +178,14 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 	}
 	if nsCur == -1 {
 		store.index.Delete(name)
+
+		stats.UpdateScriptStatsMeta(curScript.category, curScript.ns, curScript.name, false, false)
 		stats.WriteEvent(&stats.ChangeEvent{
 			Name:     name,
 			Category: curScript.category,
 			NS:       curScript.ns,
 			Script:   curScript.script,
-			Op:       stats.OpIndexDelete,
+			Op:       stats.EventOpIndexDelete,
 			Time:     time.Now(),
 		})
 		return
@@ -191,6 +199,8 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 		if v, ok := scripts4back[v]; ok {
 			if s, ok := v[name]; ok {
 				store.index.Store(s.name, s)
+				stats.UpdateScriptStatsMeta(curScript.category, curScript.ns, curScript.name, false, false)
+				stats.UpdateScriptStatsMeta(s.category, s.ns, s.name, false, true)
 				stats.WriteEvent(&stats.ChangeEvent{
 					Name:      name,
 					Category:  s.category,
@@ -198,20 +208,23 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 					NSOld:     curScript.ns,
 					Script:    s.script,
 					ScriptOld: curScript.script,
-					Op:        stats.OpIndexDeleteAndBack,
+					Op:        stats.EventOpIndexDeleteAndBack,
 					Time:      time.Now(),
 				})
 				return
 			}
 		}
 	}
+
 	store.index.Delete(name)
+
+	stats.UpdateScriptStatsMeta(curScript.category, curScript.ns, curScript.name, false, false)
 	stats.WriteEvent(&stats.ChangeEvent{
 		Name:     name,
 		Category: curScript.category,
 		NS:       curScript.ns,
 		Script:   curScript.script,
-		Op:       stats.OpIndexDelete,
+		Op:       stats.EventOpIndexDelete,
 		Time:     time.Now(),
 	})
 }
@@ -226,8 +239,6 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 
 	script := map[string]*PlScript{}
 
-	errScript := map[string]error{}
-
 	for name, v := range namedScript {
 		if s, err := NewScript(name, v, ns, store.category); err == nil && s != nil {
 			script[name] = s
@@ -237,12 +248,12 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 				Category:     store.category,
 				NS:           ns,
 				Script:       v,
-				Op:           stats.OpCompileError,
+				Op:           stats.EventOpCompileError,
 				Time:         time.Now(),
 				CompileError: err,
 			}
+			stats.UpdateScriptStatsMeta(store.category, ns, name, true, false, err)
 			stats.WriteEvent(&change)
-			errScript[name] = err
 		}
 	}
 
@@ -253,6 +264,7 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 		if newScript, ok := script[name]; ok {
 			if newScript.script != curScript.script {
 				store.storage.scripts[ns][name] = newScript
+				stats.UpdateScriptStatsMeta(store.category, ns, name, true, false)
 				store.indexUpdate(newScript)
 			}
 			continue

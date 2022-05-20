@@ -7,113 +7,130 @@
 package stats
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
-var l = logger.DefaultSLogger("pl-stats")
+type EventOP string
 
-var _changeEvent = ScriptChangeEvent{}
+const (
+	MaxEventLen   int = 100
+	MaxErrorCount int = 100
 
-const MaxEventLen int = 100
+	EventOpAdd                EventOP = "ADD"
+	EventOpUpdate             EventOP = "UPDATE"
+	EventOpDelete             EventOP = "DELETE"
+	EventOpIndex              EventOP = "INDEX"
+	EventOpIndexUpdate        EventOP = "INDEX_UPDATE"
+	EventOpIndexDelete        EventOP = "INDEX_DELETE"
+	EventOpIndexDeleteAndBack EventOP = "INDEX_DELETE_AND_BACK"
+	EventOpCompileError       EventOP = "COMPILE_ERROR"
+)
+
+var (
+	l = logger.DefaultSLogger("pl-stats")
+
+	_plstats = Stats{}
+)
 
 func InitStats() {
 	l = logger.SLogger("pl-stats")
+	// // debug only
+	// go func() {
+	// 	tk := time.NewTicker(time.Second * 10)
+	// 	for {
+	// 		<-tk.C
+	// 		for _, v := range ReadStats() {
+	// 			if v != nil {
+	// 				l.Info(*v)
+	// 			}
+	// 		}
+	// 	}
+	// }()
 }
 
-type ScriptChangeEvent struct {
-	last100event [MaxEventLen]*ChangeEvent
-	pos          int
-	sync.RWMutex
-}
-
-func (event *ScriptChangeEvent) Write(change *ChangeEvent) {
-	if change == nil {
-		return
-	}
-	l.Info(change)
-	event.Lock()
-	defer event.Unlock()
-	if event.pos >= MaxEventLen {
-		event.pos %= MaxEventLen
-	}
-	event.last100event[event.pos] = change
-	event.pos += 1
-}
-
-func (event *ScriptChangeEvent) Read() []ChangeEvent {
-	ret := []ChangeEvent{}
-	event.RLock()
-	defer event.RUnlock()
-	curPos := event.pos
-	if curPos >= MaxEventLen {
-		curPos %= MaxEventLen
-	}
-
-	if event.last100event[curPos] == nil {
-		for i := 0; i < curPos; i++ {
-			ret = append(ret, *event.last100event[i])
-		}
-		return ret
-	}
-
-	for i := curPos; i < MaxEventLen; i++ {
-		ret = append(ret, *event.last100event[i])
-	}
-
-	for i := 0; i < curPos; i++ {
-		ret = append(ret, *event.last100event[i])
-	}
-
-	return ret
-}
-
-type Op string
-
-const (
-	OpAdd                Op = "ADD"
-	OpUpdate             Op = "UPDATE"
-	OpDelete             Op = "DELETE"
-	OpIndex              Op = "INDEX"
-	OpIndexUpdate        Op = "INDEX_UPDATE"
-	OpIndexDelete        Op = "INDEX_DELETE"
-	OpIndexDeleteAndBack Op = "INDEX_DELETE_AND_BACK"
-
-	OpCompileError Op = "COMPILE_ERROR"
-)
-
-type ChangeEvent struct {
-	Name              string
-	Category          string
-	NS, NSOld         string
-	Script, ScriptOld string
-
-	Op Op //
-
-	CompileError error
-	Time         time.Time
-}
-
-func (event ChangeEvent) String() string {
-	ns := event.NS
-	if event.NSOld != "" && event.NS != event.NSOld {
-		ns = event.NSOld + "->" + ns
-	}
-	ret := fmt.Sprintf("ScriptStore %s %s category: %s, ns: %s, script_name: %s",
-		event.Time.Format(time.RFC3339Nano), event.Op, event.Category, ns, event.Name)
-	if event.CompileError != nil {
-		ret += ", compile_error: " + event.CompileError.Error()
-	}
-	return ret
+type Stats struct {
+	stats sync.Map
+	event ScriptChangeEvent
 }
 
 func WriteEvent(event *ChangeEvent) {
-	_changeEvent.Write(event)
+	_plstats.event.Write(event)
 }
 
 func ReadEvent() []ChangeEvent {
-	return _changeEvent.Read()
+	return _plstats.event.Read()
+}
+
+func UpdateScriptStatsMeta(category, ns, name string, scriptUpdate, enable bool, err ...error) {
+	ts := time.Now().UnixNano()
+
+	var compileErr error
+	if len(err) > 0 {
+		compileErr = err[0]
+	}
+
+	if stats, loaded := _plstats.stats.LoadOrStore(StatsKey(category, ns, name), &ScriptStats{
+		meta: struct {
+			startTS           int64
+			scriptUpdateTS    int64
+			scriptUpdateTimes uint64
+
+			category, ns, name string
+			enable             bool
+			err                error
+
+			metaUpdateTS int64
+
+			sync.RWMutex
+		}{
+			startTS:           ts,
+			scriptUpdateTS:    ts,
+			scriptUpdateTimes: 1,
+			category:          category,
+			ns:                ns,
+			name:              name,
+			enable:            enable,
+			metaUpdateTS:      ts,
+			err:               compileErr,
+		},
+	}); loaded {
+		if stats, ok := stats.(*ScriptStats); ok {
+			if len(err) > 0 {
+				stats.UpdateMeta(scriptUpdate, enable, err...)
+			} else {
+				stats.UpdateMeta(scriptUpdate, enable)
+			}
+		}
+	}
+}
+
+func WriteScriptStats(category, ns, name string, pt, ptDrop, ptError uint64, err error) {
+	v, ok := _plstats.stats.Load(StatsKey(category, ns, name))
+	if !ok {
+		return
+	}
+	if v, ok := v.(*ScriptStats); ok {
+		v.WritePtCount(pt, ptDrop, ptDrop)
+		if err != nil {
+			v.WriteErr(err.Error())
+		}
+	}
+}
+
+func ReadStats() []*ScriptStatsROnly {
+	ret := []*ScriptStatsROnly{}
+	_plstats.stats.Range(func(key, value interface{}) bool {
+		if value, ok := value.(*ScriptStats); ok && value != nil {
+			ret = append(ret, value.Read())
+		}
+		return true
+	})
+	return ret
+}
+
+func StatsKey(category, ns, name string) string {
+	return category + "::" + ns + "::" + name
 }

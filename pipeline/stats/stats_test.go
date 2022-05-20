@@ -21,7 +21,7 @@ func TestPlChangeEvent(t *testing.T) {
 			event.Write(&ChangeEvent{
 				Name: fmt.Sprintf("%d.p", i),
 				NS:   fmt.Sprintf("%d", i),
-				Op:   OpAdd,
+				Op:   EventOpAdd,
 			})
 		}
 	}()

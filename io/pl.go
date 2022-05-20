@@ -6,6 +6,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 )
 
 var plLogger = logger.DefaultSLogger("pipeline")
@@ -80,8 +81,7 @@ func runPl(category string, pts []*Point, scriptMap map[string]string, plOpt *sc
 		}
 		if p, err := NewPoint(out.Measurement, out.Tags, out.Fields, ptOpt); err != nil {
 			plLogger.Error(err)
-			script.WriteStatErr(err.Error())
-			script.WriteStatPtCount(0, 0, 1)
+			stats.WriteScriptStats(script.Category(), script.NS(), script.Name(), 0, 0, 1, err)
 		} else {
 			pt = p
 		}

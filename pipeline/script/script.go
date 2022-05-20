@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 )
 
 // ES value can be at most 32766 bytes long.
@@ -33,7 +34,6 @@ type PlScript struct {
 
 	ng *parser.Engine
 
-	stats    scriptStats
 	updateTS int64
 }
 
@@ -78,8 +78,7 @@ func (script *PlScript) Run(measurement string, tags map[string]string, fields m
 	}
 	out, err := script.ng.Run(measurement, tags, fields, contentKey, t)
 	if err != nil {
-		script.WriteStatErr(err.Error())
-		script.WriteStatPtCount(1, 0, 1)
+		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 0, 1, err)
 		return nil, false, err
 	}
 
@@ -113,9 +112,9 @@ func (script *PlScript) Run(measurement string, tags map[string]string, fields m
 	}
 
 	if out.Drop {
-		script.WriteStatPtCount(1, 1, 0)
+		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 1, 0, nil)
 	} else {
-		script.WriteStatPtCount(1, 0, 0)
+		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 0, 0, nil)
 	}
 
 	return out, out.Drop, nil
@@ -131,16 +130,4 @@ func (script *PlScript) Category() string {
 
 func (script *PlScript) NS() string {
 	return script.ns
-}
-
-func (script *PlScript) ReadStats() *ScriptStats {
-	return script.stats.Read()
-}
-
-func (script *PlScript) WriteStatPtCount(pt, ptDrop, ptError uint64) {
-	script.stats.WritePtCount(pt, ptDrop, ptError)
-}
-
-func (script *PlScript) WriteStatErr(err string) {
-	script.stats.WriteErr(err)
 }

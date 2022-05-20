@@ -115,8 +115,9 @@ func (p *Pipeline) Run(pt *io.Point, plOpt *plscript.Option, ioPtOpt io.PointOpt
 			ioPtOpt.Time = out.Time
 		}
 		if pt, err := io.NewPoint(out.Measurement, out.Tags, out.Fields, &ioPtOpt); err != nil {
-			p.script.WriteStatPtCount(0, 0, 1)
-			return nil, drop, err
+			// TODO
+			// stats.WriteScriptStats(p.script.Category(), p.script.NS(), p.script.Name(), 0, 0, 1, err)
+			return nil, false, err
 		} else {
 			return pt, drop, nil
 		}
