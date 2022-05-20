@@ -19,12 +19,6 @@ type pipelinePullMock interface {
 
 type prodPipelinePullMock struct{}
 
-type HTTPError struct {
-	ErrCode  string `json:"error_code,omitempty"`
-	Err      error  `json:"-"`
-	HTTPCode int    `json:"-"`
-}
-
 //------------------------------------------------------------------------------
 // copied from kodo project
 
