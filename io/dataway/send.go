@@ -369,7 +369,6 @@ func (dw *DataWayDefault) buildBody(pts []sinkcommon.ISinkPoint, isGzip bool) ([
 			if body, err := gz(lines.Bytes()); err != nil {
 				return nil, err
 			} else {
-				log.Warn(string(body.buf))
 				bodies = append(bodies, body)
 			}
 			lines.Reset()
