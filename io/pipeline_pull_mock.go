@@ -8,12 +8,13 @@ package io
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 var defPipelinePullMock pipelinePullMock = &prodPipelinePullMock{}
 
 type pipelinePullMock interface {
-	getPipelinePull(ts int64) (*PullPipelineReturn, error)
+	getPipelinePull(ts int64) (*pullPipelineReturn, error)
 }
 
 type prodPipelinePullMock struct{}
@@ -24,34 +25,45 @@ type HTTPError struct {
 	HTTPCode int    `json:"-"`
 }
 
-type bodyResp struct {
-	*HTTPError
-	Message string              `json:"message,omitempty"`
-	Content *PullPipelineReturn `json:"content,omitempty"` // 注意与 kodo 中的不一样
+//------------------------------------------------------------------------------
+// copied from kodo project
+
+type dataways struct {
+	Regions    map[string][]string `json:"regions"`
+	UpdateTime int64               `json:"update_time"` // not used
 }
 
-type PipelineUnit struct {
+type pipelineUnit struct {
 	Name       string `json:"name"`
 	Base64Text string `json:"base64text"`
 	Category   string `json:"category"`
 }
 
-type PullPipelineReturn struct {
+type pullPipelineReturn struct {
 	UpdateTime int64           `json:"update_time"`
-	Pipelines  []*PipelineUnit `json:"pipelines"`
+	Pipelines  []*pipelineUnit `json:"pipelines"`
 }
 
-func (*prodPipelinePullMock) getPipelinePull(ts int64) (*PullPipelineReturn, error) {
-	body, err := defaultIO.dw.DatakitPull(fmt.Sprintf("ts=%d", ts))
+type pullResp struct {
+	Filters      map[string][]string `json:"filters"`
+	RemotePL     *pullPipelineReturn `json:"remote_pipelines"`
+	Dataways     *dataways           `json:"dataways"`
+	PullInterval time.Duration       `json:"pull_interval"`
+}
+
+//------------------------------------------------------------------------------
+
+func (*prodPipelinePullMock) getPipelinePull(ts int64) (*pullPipelineReturn, error) {
+	body, err := defaultIO.dw.DatakitPull(fmt.Sprintf("remote_pipelines=true&ts=%d", ts))
 	if err != nil {
 		return nil, err
 	}
-	var br bodyResp
+	var br pullResp
 	err = json.Unmarshal(body, &br)
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
 	}
 
-	return br.Content, err
+	return br.RemotePL, err
 }

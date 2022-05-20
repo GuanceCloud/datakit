@@ -12,11 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var debugPipelinePullData *PullPipelineReturn
+var debugPipelinePullData *pullPipelineReturn
 
 type debugPipelinePullMock struct{}
 
-func (*debugPipelinePullMock) getPipelinePull(ts int64) (*PullPipelineReturn, error) {
+func (*debugPipelinePullMock) getPipelinePull(ts int64) (*pullPipelineReturn, error) {
 	return debugPipelinePullData, nil
 }
 
@@ -25,7 +25,7 @@ func TestPullPipeline(t *testing.T) {
 	cases := []struct {
 		Name      string
 		LocalTS   int64
-		Pipelines *PullPipelineReturn
+		Pipelines *pullPipelineReturn
 		Expect    *struct {
 			mFiles     map[string]string
 			updateTime int64
@@ -34,7 +34,7 @@ func TestPullPipeline(t *testing.T) {
 		{
 			Name:    "has_data",
 			LocalTS: 0,
-			Pipelines: &PullPipelineReturn{
+			Pipelines: &pullPipelineReturn{
 				UpdateTime: 1641796675,
 				Pipelines: []*PipelineUnit{
 					{
@@ -61,7 +61,7 @@ func TestPullPipeline(t *testing.T) {
 		{
 			Name:    "no_data",
 			LocalTS: 1641796675,
-			Pipelines: &PullPipelineReturn{
+			Pipelines: &pullPipelineReturn{
 				UpdateTime: -1,
 			},
 			Expect: &struct {
@@ -93,7 +93,7 @@ func init() { //nolint:gochecknoinits
 func TestParsePipelinePullStruct(t *testing.T) {
 	cases := []struct {
 		name      string
-		pipelines *PullPipelineReturn
+		pipelines *pullPipelineReturn
 		expect    *struct {
 			mfiles     map[string]map[string]string
 			updateTime int64
@@ -102,7 +102,7 @@ func TestParsePipelinePullStruct(t *testing.T) {
 	}{
 		{
 			name: "normal",
-			pipelines: &PullPipelineReturn{
+			pipelines: &pullPipelineReturn{
 				UpdateTime: 1653020819,
 				Pipelines: []*PipelineUnit{
 					{
@@ -141,7 +141,7 @@ func TestParsePipelinePullStruct(t *testing.T) {
 		},
 		{
 			name: "repeat",
-			pipelines: &PullPipelineReturn{
+			pipelines: &pullPipelineReturn{
 				UpdateTime: 1653020819,
 				Pipelines: []*PipelineUnit{
 					{
