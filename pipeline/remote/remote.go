@@ -322,7 +322,7 @@ func updatePipelineRemoteConfig(pathConfig, siteURL string, latestTime int64, ip
 	return nil
 }
 
-// more info see test case
+// more info see test case.
 func convertContentMapToThreeMap(in map[string]string) map[string]map[string]string {
 	out := make(map[string]map[string]string)
 	for categoryAndName, content := range in {
@@ -343,7 +343,7 @@ func convertContentMapToThreeMap(in map[string]string) map[string]map[string]str
 	return out
 }
 
-// more info see test case
+// more info see test case.
 func convertThreeMapToContentMap(in map[string]map[string]string) map[string]string {
 	out := make(map[string]string)
 	for category, mVal := range in {

@@ -51,7 +51,7 @@ const (
 	RUM              = "/v1/write/rum"
 	Security         = "/v1/write/security"
 
-	// data category pure name
+	// data category pure name.
 	CategoryMetric       = "metric"
 	CategoryNetwork      = "network"
 	CategoryKeyEvent     = "keyevent"

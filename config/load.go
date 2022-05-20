@@ -362,8 +362,7 @@ func InitGitreposDir() {
 }
 
 func GetNamespacePipelineFiles(namespace string) ([]string, error) {
-	switch namespace {
-	case datakit.StrGitRepos:
+	if namespace == datakit.StrGitRepos {
 		return path.GetSuffixFilesFromDirDeepOne(datakit.GitReposRepoFullPath, datakit.StrPipelineFileSuffix)
 	}
 	return nil, fmt.Errorf("invalid namespace")

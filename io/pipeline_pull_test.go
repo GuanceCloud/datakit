@@ -16,6 +16,8 @@ var debugPipelinePullData *pullPipelineReturn
 
 type debugPipelinePullMock struct{}
 
+var _ pipelinePullMock = new(debugPipelinePullMock)
+
 func (*debugPipelinePullMock) getPipelinePull(ts int64) (*pullPipelineReturn, error) {
 	return debugPipelinePullData, nil
 }
@@ -27,7 +29,7 @@ func TestPullPipeline(t *testing.T) {
 		LocalTS   int64
 		Pipelines *pullPipelineReturn
 		Expect    *struct {
-			mFiles     map[string]string
+			mFiles     map[string]map[string]string
 			updateTime int64
 		}
 	}{
@@ -36,24 +38,26 @@ func TestPullPipeline(t *testing.T) {
 			LocalTS: 0,
 			Pipelines: &pullPipelineReturn{
 				UpdateTime: 1641796675,
-				Pipelines: []*PipelineUnit{
+				Pipelines: []*pipelineUnit{
 					{
 						Name:       "123.p",
-						Base64Text: "dGV4dDE=",
+						Base64Text: base64.StdEncoding.EncodeToString([]byte("text1")),
 					},
 					{
 						Name:       "456.p",
-						Base64Text: "dGV4dDI=",
+						Base64Text: base64.StdEncoding.EncodeToString([]byte("text2")),
 					},
 				},
 			},
 			Expect: &struct {
-				mFiles     map[string]string
+				mFiles     map[string]map[string]string
 				updateTime int64
 			}{
-				mFiles: map[string]string{
-					"123.p": "text1",
-					"456.p": "text2",
+				mFiles: map[string]map[string]string{
+					"": {
+						"123.p": "text1",
+						"456.p": "text2",
+					},
 				},
 				updateTime: 1641796675,
 			},
@@ -65,10 +69,10 @@ func TestPullPipeline(t *testing.T) {
 				UpdateTime: -1,
 			},
 			Expect: &struct {
-				mFiles     map[string]string
+				mFiles     map[string]map[string]string
 				updateTime int64
 			}{
-				mFiles:     map[string]string{},
+				mFiles:     map[string]map[string]string{},
 				updateTime: -1,
 			},
 		},
@@ -104,7 +108,7 @@ func TestParsePipelinePullStruct(t *testing.T) {
 			name: "normal",
 			pipelines: &pullPipelineReturn{
 				UpdateTime: 1653020819,
-				Pipelines: []*PipelineUnit{
+				Pipelines: []*pipelineUnit{
 					{
 						Name:       "123.p",
 						Base64Text: base64.StdEncoding.EncodeToString([]byte("text123")),
@@ -143,7 +147,7 @@ func TestParsePipelinePullStruct(t *testing.T) {
 			name: "repeat",
 			pipelines: &pullPipelineReturn{
 				UpdateTime: 1653020819,
-				Pipelines: []*PipelineUnit{
+				Pipelines: []*pipelineUnit{
 					{
 						Name:       "123.p",
 						Base64Text: base64.StdEncoding.EncodeToString([]byte("text123")),

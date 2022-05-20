@@ -7,7 +7,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-// example "metric" -> "/v1/write/metrics"
+// GetMapCategoryShortToFull ...
+// example "metric" -> "/v1/write/metrics".
 func GetMapCategoryShortToFull(categoryShort string) (string, error) {
 	var out string
 
