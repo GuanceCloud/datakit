@@ -182,10 +182,12 @@ func (t *Single) sendToForwardCallback(text string) {
 
 func (t *Single) sendToPipeline(pending []string) {
 	res := []*iod.Point{}
-	for _, cnt := range pending {
+	// -1ns
+	timeNow := time.Now().Add(-time.Duration(len(pending)))
+	for i, cnt := range pending {
 		pt, err := iod.MakePoint(t.opt.Source, t.tags,
 			map[string]interface{}{pipeline.PipelineMessageField: cnt},
-			time.Now(),
+			timeNow.Add(time.Duration(i)),
 		)
 		if err != nil {
 			l.Error(err)

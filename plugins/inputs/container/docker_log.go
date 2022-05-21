@@ -280,28 +280,18 @@ func getContainerLogConfigForDocker(labels map[string]string) *containerLogConfi
 func makePts(source string, cnt []string, tags map[string]string) []*iod.Point {
 	ret := []*iod.Point{}
 
-	for _, cnt := range cnt {
+	// -1ns
+	timeNow := time.Now().Add(-time.Duration(len(cnt)))
+	for i, cnt := range cnt {
 		pt, err := iod.MakePoint(source, tags,
 			map[string]interface{}{pipeline.PipelineMessageField: cnt},
-			time.Now(),
+			timeNow.Add(time.Duration(i)),
 		)
 		if err != nil {
 			l.Error(err)
 			continue
 		}
 		ret = append(ret, pt)
-		// drop := false
-		// if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
-		// 	if ptRet, dropRet, err := pipeline.RunScript(pt, script, callback); err != nil {
-		// 		l.Error(err)
-		// 	} else {
-		// 		pt = ptRet
-		// 		drop = dropRet
-		// 	}
-		// }
-		// if !drop {
-		// 	ret = append(ret, pt)
-		// }
 	}
 
 	return ret

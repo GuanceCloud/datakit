@@ -30,6 +30,20 @@ var (
 	_securityScriptStore     = NewScriptStore(datakit.Security)
 
 	_heartBeatScriptStore = NewScriptStore(datakit.HeartBeat)
+
+	_ = map[string]struct{}{
+		datakit.Metric:           {},
+		datakit.MetricDeprecated: {},
+		datakit.Network:          {},
+		datakit.KeyEvent:         {},
+		datakit.Object:           {},
+		datakit.CustomObject:     {},
+		datakit.Logging:          {},
+		datakit.Tracing:          {},
+		datakit.RUM:              {},
+		datakit.Security:         {},
+		datakit.HeartBeat:        {},
+	}
 )
 
 func whichStore(category string) *ScriptStore {
@@ -148,7 +162,6 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 	nsCur := NSFindPriority(curScript.ns)
 	nsNew := NSFindPriority(script.ns)
 	if nsNew >= nsCur {
-
 		store.index.Store(script.name, script)
 
 		stats.UpdateScriptStatsMeta(curScript.category, curScript.ns, curScript.name, false, false)
@@ -243,6 +256,10 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 		if s, err := NewScript(name, v, ns, store.category); err == nil && s != nil {
 			script[name] = s
 		} else {
+			var errStr string
+			if err != nil {
+				errStr = err.Error()
+			}
 			change := stats.ChangeEvent{
 				Name:         name,
 				Category:     store.category,
@@ -250,9 +267,9 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 				Script:       v,
 				Op:           stats.EventOpCompileError,
 				Time:         time.Now(),
-				CompileError: err,
+				CompileError: errStr,
 			}
-			stats.UpdateScriptStatsMeta(store.category, ns, name, true, false, err)
+			stats.UpdateScriptStatsMeta(store.category, ns, name, true, false, errStr)
 			stats.WriteEvent(&change)
 		}
 	}

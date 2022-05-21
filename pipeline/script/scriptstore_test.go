@@ -65,3 +65,101 @@ func TestPlScriptStore(t *testing.T) {
 		}
 	}
 }
+
+func TestWhichStore(t *testing.T) {
+	r := whichStore(datakit.Metric)
+	if r == nil {
+		t.Fatal("err")
+	}
+	if r != _metricScriptStore {
+		t.Fatal("not equal")
+	}
+
+	r = whichStore(datakit.MetricDeprecated)
+	if r == nil {
+		t.Fatal("err")
+	}
+	if r != _metricScriptStore {
+		t.Fatal("not equal")
+	}
+
+	r = whichStore(datakit.Network)
+	if r == nil {
+		t.Fatal("err")
+	}
+	if r != _networkScriptStore {
+		t.Fatal("not equal")
+	}
+
+	r = whichStore(datakit.KeyEvent)
+	if r == nil {
+		t.Fatal("err")
+	}
+	if r != _keyEventScriptStore {
+		t.Fatal("not equal")
+	}
+
+	r = whichStore(datakit.Object)
+	if r == nil {
+		t.Fatal("err")
+	}
+	if r != _objectScriptStore {
+		t.Fatal("not equal")
+	}
+
+	r = whichStore(datakit.CustomObject)
+	if r == nil {
+		t.Fatal("err")
+	}
+	if r != _customObjectScriptStore {
+		t.Fatal("not equal")
+	}
+
+	r = whichStore(datakit.Logging)
+	if r == nil {
+		t.Fatal("err")
+	}
+	if r != _loggingScriptStore {
+		t.Fatal("not equal")
+	}
+
+	r = whichStore(datakit.Tracing)
+	if r == nil {
+		t.Fatal("err")
+	}
+	if r != _tracingScriptStore {
+		t.Fatal("not equal")
+	}
+
+	r = whichStore(datakit.RUM)
+	if r == nil {
+		t.Fatal("err")
+	}
+	if r != _rumScriptStore {
+		t.Fatal("not equal")
+	}
+
+	r = whichStore(datakit.Security)
+	if r == nil {
+		t.Fatal("err")
+	}
+	if r != _securityScriptStore {
+		t.Fatal("not equal")
+	}
+
+	r = whichStore(datakit.HeartBeat)
+	if r == nil {
+		t.Fatal("err")
+	}
+	if r != _heartBeatScriptStore {
+		t.Fatal("not equal")
+	}
+
+	r = whichStore("")
+	if r == nil {
+		t.Fatal("err")
+	}
+	if r != _loggingScriptStore {
+		t.Fatal("not equal")
+	}
+}

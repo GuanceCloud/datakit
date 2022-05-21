@@ -7,6 +7,7 @@
 package stats
 
 import (
+	"sort"
 	"sync"
 	"time"
 
@@ -16,6 +17,8 @@ import (
 type EventOP string
 
 const (
+	StatsTimeFormat = "2006-01-02T15:04:05.999Z07:00"
+
 	MaxEventLen   int = 100
 	MaxErrorCount int = 100
 
@@ -37,18 +40,6 @@ var (
 
 func InitStats() {
 	l = logger.SLogger("pl-stats")
-	// // debug only
-	// go func() {
-	// 	tk := time.NewTicker(time.Second * 10)
-	// 	for {
-	// 		<-tk.C
-	// 		for _, v := range ReadStats() {
-	// 			if v != nil {
-	// 				l.Info(*v)
-	// 			}
-	// 		}
-	// 	}
-	// }()
 }
 
 type Stats struct {
@@ -56,33 +47,33 @@ type Stats struct {
 	event ScriptChangeEvent
 }
 
-func WriteEvent(event *ChangeEvent) {
-	_plstats.event.Write(event)
+func (stats *Stats) WriteEvent(event *ChangeEvent) {
+	stats.event.Write(event)
 }
 
-func ReadEvent() []ChangeEvent {
-	return _plstats.event.Read()
+func (stats *Stats) ReadEvent() []ChangeEvent {
+	return stats.event.Read()
 }
 
-func UpdateScriptStatsMeta(category, ns, name string, scriptUpdate, enable bool, err ...error) {
-	ts := time.Now().UnixNano()
+func (stats *Stats) UpdateScriptStatsMeta(category, ns, name string, scriptUpdate, enable bool, err ...string) {
+	ts := time.Now()
 
-	var compileErr error
+	var compileErr string
 	if len(err) > 0 {
 		compileErr = err[0]
 	}
 
-	if stats, loaded := _plstats.stats.LoadOrStore(StatsKey(category, ns, name), &ScriptStats{
+	if stats, loaded := stats.stats.LoadOrStore(StatsKey(category, ns, name), &ScriptStats{
 		meta: struct {
-			startTS           int64
-			scriptUpdateTS    int64
+			startTS           time.Time
+			scriptUpdateTS    time.Time
 			scriptUpdateTimes uint64
 
 			category, ns, name string
 			enable             bool
-			err                error
+			err                string
 
-			metaUpdateTS int64
+			metaUpdateTS time.Time
 
 			sync.RWMutex
 		}{
@@ -107,30 +98,97 @@ func UpdateScriptStatsMeta(category, ns, name string, scriptUpdate, enable bool,
 	}
 }
 
-func WriteScriptStats(category, ns, name string, pt, ptDrop, ptError uint64, err error) {
-	v, ok := _plstats.stats.Load(StatsKey(category, ns, name))
+func (stats *Stats) WriteScriptStats(category, ns, name string, pt, ptDrop, ptError uint64, err error) {
+	v, ok := stats.stats.Load(StatsKey(category, ns, name))
 	if !ok {
 		return
 	}
 	if v, ok := v.(*ScriptStats); ok {
 		v.WritePtCount(pt, ptDrop, ptDrop)
 		if err != nil {
-			v.WriteErr(err.Error())
+			v.WriteErr("time: " + time.Now().Format(StatsTimeFormat) + "error: " + err.Error())
 		}
 	}
 }
 
-func ReadStats() []*ScriptStatsROnly {
-	ret := []*ScriptStatsROnly{}
-	_plstats.stats.Range(func(key, value interface{}) bool {
+func (stats *Stats) ReadStats() []ScriptStatsROnly {
+	ret := []ScriptStatsROnly{}
+	stats.stats.Range(func(key, value interface{}) bool {
 		if value, ok := value.(*ScriptStats); ok && value != nil {
-			ret = append(ret, value.Read())
+			if v := value.Read(); v != nil {
+				ret = append(ret, *v)
+			}
 		}
 		return true
 	})
 	return ret
 }
 
+func WriteEvent(event *ChangeEvent) {
+	_plstats.WriteEvent(event)
+}
+
+func ReadEvent() []ChangeEvent {
+	return _plstats.ReadEvent()
+}
+
+func UpdateScriptStatsMeta(category, ns, name string, scriptUpdate, enable bool, err ...string) {
+	_plstats.UpdateScriptStatsMeta(category, ns, name, scriptUpdate, enable, err...)
+}
+
+func WriteScriptStats(category, ns, name string, pt, ptDrop, ptError uint64, err error) {
+	_plstats.WriteScriptStats(category, ns, name, pt, ptDrop, ptError, err)
+}
+
+func ReadStats() []ScriptStatsROnly {
+	ret := SortStatsROnly(_plstats.ReadStats())
+	sort.Sort(ret)
+	return ret
+}
+
 func StatsKey(category, ns, name string) string {
 	return category + "::" + ns + "::" + name
+}
+
+type SortStatsROnly []ScriptStatsROnly
+
+func (s SortStatsROnly) Less(i, j int) bool {
+	si := s[i]
+	sj := s[j]
+	if si.Enable != sj.Enable {
+		if si.Enable {
+			return true
+		} else {
+			return false
+		}
+	}
+
+	if si.Pt != sj.Pt {
+		if si.Pt > sj.Pt {
+			return true
+		} else {
+			return false
+		}
+	}
+
+	if si.Name != sj.Name {
+		return sort.StringsAreSorted([]string{si.Name, sj.Name})
+	}
+
+	if si.Category != sj.Category {
+		return sort.StringsAreSorted([]string{si.Category, sj.Category})
+	}
+
+	if si.NS != sj.NS {
+		return sort.StringsAreSorted([]string{si.NS, sj.NS})
+	}
+	return false
+}
+
+func (s SortStatsROnly) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s SortStatsROnly) Len() int {
+	return len(s)
 }

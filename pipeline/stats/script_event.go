@@ -61,7 +61,7 @@ type ChangeEvent struct {
 
 	Op EventOP //
 
-	CompileError error
+	CompileError string
 	Time         time.Time
 }
 
@@ -71,9 +71,9 @@ func (event ChangeEvent) String() string {
 		ns = event.NSOld + "->" + ns
 	}
 	ret := fmt.Sprintf("ScriptStore %s %s category: %s, ns: %s, script_name: %s",
-		event.Time.Format(time.RFC3339Nano), event.Op, event.Category, ns, event.Name)
-	if event.CompileError != nil {
-		ret += ", compile_error: " + event.CompileError.Error()
+		event.Time.Format(StatsTimeFormat), event.Op, event.Category, ns, event.Name)
+	if event.CompileError != "" {
+		ret += ", compile_error: " + event.CompileError
 	}
 	return ret
 }

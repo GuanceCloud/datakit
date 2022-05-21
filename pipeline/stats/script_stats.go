@@ -6,6 +6,7 @@
 package stats
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -21,15 +22,15 @@ type ScriptStats struct {
 	}
 
 	meta struct {
-		startTS           int64
-		scriptUpdateTS    int64
+		startTS           time.Time
+		scriptUpdateTS    time.Time
 		scriptUpdateTimes uint64
 
 		category, ns, name string
 		enable             bool
-		err                error
+		err                string
 
-		metaUpdateTS int64
+		metaUpdateTS time.Time
 
 		sync.RWMutex
 	}
@@ -38,18 +39,25 @@ type ScriptStats struct {
 type ScriptStatsROnly struct {
 	Pt, PtDrop, PtError uint64
 
-	LastRunErrs []string
+	RunLastErrs []string
 
-	StartTS     int64
-	UpdateTS    int64
-	UpdateTimes uint64
+	MetaTS time.Time
+
+	FirstTS           time.Time
+	ScriptTS          time.Time
+	ScriptUpdateTimes uint64
 
 	Category, NS, Name string
 
-	Enable bool
-	Error  error
+	Enable       bool
+	CompileError string
+}
 
-	MetaTS int64
+func (statsR ScriptStatsROnly) String() string {
+	return fmt.Sprintf("%s enable: %v total_pt: %d dropped_pt: %d error_pt: %d "+
+		"start: %s script: %s meta: %s compile_error: %v", StatsKey(statsR.Category, statsR.NS, statsR.Name),
+		statsR.Enable, statsR.Pt, statsR.PtDrop, statsR.PtError, statsR.FirstTS.Format(StatsTimeFormat),
+		statsR.ScriptTS.Format(StatsTimeFormat), statsR.MetaTS.Format(StatsTimeFormat), statsR.CompileError)
 }
 
 func (stats *ScriptStats) WritePtCount(pt, ptDrop, ptError uint64) {
@@ -90,11 +98,11 @@ func (stats *ScriptStats) Read() *ScriptStatsROnly {
 	ret.NS = stats.meta.ns
 	ret.Name = stats.meta.name
 
-	ret.StartTS = stats.meta.startTS
-	ret.UpdateTS = stats.meta.scriptUpdateTS
-	ret.UpdateTimes = stats.meta.scriptUpdateTimes
+	ret.FirstTS = stats.meta.startTS
+	ret.ScriptTS = stats.meta.scriptUpdateTS
+	ret.ScriptUpdateTimes = stats.meta.scriptUpdateTimes
 	ret.Enable = stats.meta.enable
-	ret.Error = stats.meta.err
+	ret.CompileError = stats.meta.err
 
 	ret.MetaTS = stats.meta.metaUpdateTS
 
@@ -120,18 +128,18 @@ func (stats *ScriptStats) Read() *ScriptStatsROnly {
 		}
 	}
 
-	ret.LastRunErrs = last100
+	ret.RunLastErrs = last100
 
 	return ret
 }
 
-func (stats *ScriptStats) UpdateMeta(scriptUpdate bool, enable bool, err ...error) {
+func (stats *ScriptStats) UpdateMeta(scriptUpdate bool, enable bool, err ...string) {
 	stats.meta.Lock()
 	defer stats.meta.Unlock()
 
-	ts := time.Now().UnixNano()
+	t := time.Now()
 	if scriptUpdate {
-		stats.meta.scriptUpdateTS = ts
+		stats.meta.scriptUpdateTS = t
 		stats.meta.scriptUpdateTimes += 1
 	}
 
@@ -140,5 +148,5 @@ func (stats *ScriptStats) UpdateMeta(scriptUpdate bool, enable bool, err ...erro
 		stats.meta.err = err[0]
 	}
 
-	stats.meta.metaUpdateTS = ts
+	stats.meta.metaUpdateTS = t
 }
