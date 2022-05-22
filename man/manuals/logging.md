@@ -54,11 +54,6 @@
   #    `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
   character_encoding = ""
   
-  ## 无论从文件读取还是从socket中读取的日志, 默认的单行最大长度为 32k
-  ## 如果您的日志单行有超过32K的情况，请配置 maximum_length 为可能的最大长度
-  ## 但是 maximum_length 最大可以配置成32M
-  # maximum_length = 32766
-
   ## 设置正则表达式，例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
   ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
   ## 使用3个单引号 '''this-regexp''' 避免转义
@@ -186,6 +181,10 @@ Traceback (most recent call last):
 Traceback (most recent call last):
  ...
 ```
+
+#### 日志单行最大长度
+
+无论从文件还是从 socket 中读取的日志, 单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃。
 
 ### Pipeline 配置和使用
 

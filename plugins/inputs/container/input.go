@@ -35,7 +35,6 @@ type Input struct {
 
 	LoggingRemoveAnsiEscapeCodes bool `toml:"logging_remove_ansi_escape_codes"`
 	ExcludePauseContainer        bool `toml:"exclude_pause_container"`
-	MaxLoggingLength             int  `toml:"max_logging_length"`
 
 	ContainerIncludeMetric []string `toml:"container_include_metric"`
 	ContainerExcludeMetric []string `toml:"container_exclude_metric"`
@@ -158,11 +157,11 @@ func (i *Input) stop() {
 func (i *Input) collectObject() {
 	l.Debug("collect object in func")
 	if err := i.gatherDockerContainerObject(); err != nil {
-		l.Errorf("failed to collect docker container object: %w", err)
+		l.Errorf("failed to collect docker container object: %s", err)
 	}
 
 	if err := i.gatherContainerdObject(); err != nil {
-		l.Errorf("failed to collect containerd object: %w", err)
+		l.Errorf("failed to collect containerd object: %s", err)
 	}
 
 	if !datakit.Docker {
@@ -181,26 +180,26 @@ func (i *Input) collectObject() {
 	l.Debug("collect k8s resource object")
 
 	if err := i.gatherK8sResourceObject(); err != nil {
-		l.Errorf("failed to collect resource object: %w", err)
+		l.Errorf("failed to collect resource object: %s", err)
 	}
 }
 
 func (i *Input) collectMetric() {
 	l.Debug("collect mertric in func")
 	if err := i.gatherDockerContainerMetric(); err != nil {
-		l.Errorf("failed to collect docker container metric: %w", err)
+		l.Errorf("failed to collect docker container metric: %s", err)
 	}
 
 	if err := i.gatherContainerdMetric(); err != nil {
-		l.Errorf("failed to collect containerd metric: %w", err)
+		l.Errorf("failed to collect containerd metric: %s", err)
 	}
 
 	if err := i.watchNewDockerContainerLogs(); err != nil {
-		l.Errorf("failed to watch container log: %w", err)
+		l.Errorf("failed to watch container log: %s", err)
 	}
 
 	if err := i.watchNewContainerdLogs(); err != nil {
-		l.Errorf("failed to watch containerd log: %w", err)
+		l.Errorf("failed to watch containerd log: %s", err)
 	}
 
 	if !datakit.Docker {
@@ -220,11 +219,11 @@ func (i *Input) collectMetric() {
 	l.Debug("collect k8s-pod metric")
 
 	if err := i.gatherK8sResourceMetric(); err != nil {
-		l.Errorf("failed to collect resource metric: %w", err)
+		l.Errorf("failed to collect resource metric: %s", err)
 	}
 
 	if err := i.gatherK8sPodMetrics(); err != nil {
-		l.Errorf("failed to collect pod metric: %w", err)
+		l.Errorf("failed to collect pod metric: %s", err)
 	}
 }
 
@@ -378,14 +377,13 @@ func (i *Input) setup() bool {
 			endpoint:               i.DockerEndpoint,
 			excludePauseContainer:  i.ExcludePauseContainer,
 			removeLoggingAnsiCodes: i.LoggingRemoveAnsiEscapeCodes,
-			maxLoggingLength:       i.MaxLoggingLength,
 			containerIncludeMetric: i.ContainerIncludeMetric,
 			containerExcludeMetric: i.ContainerExcludeMetric,
 			containerIncludeLog:    i.ContainerIncludeLog,
 			containerExcludeLog:    i.ContainerExcludeLog,
 			extraTags:              i.Tags,
 		}); err != nil {
-			l.Errorf("create docker input err: %w, skip", err)
+			l.Warnf("create docker input err: %s, skip", err)
 		} else {
 			i.dockerInput = d
 		}
@@ -397,7 +395,7 @@ func (i *Input) setup() bool {
 				bearerTokenString: i.K8sBearerTokenString,
 				extraTags:         i.Tags,
 			}); err != nil {
-				l.Errorf("create k8s input err: %w", err)
+				l.Errorf("create k8s input err: %s", err)
 				continue
 			} else {
 				i.k8sInput = k
@@ -413,7 +411,7 @@ func (i *Input) setup() bool {
 				endpoint:  i.ContainerdAddress,
 				extraTags: i.Tags,
 			}); err != nil {
-				l.Warnf("create containerd input err: %w, skip", err)
+				l.Warnf("create containerd input err: %s, skip", err)
 			} else {
 				i.containerdInput = c
 			}

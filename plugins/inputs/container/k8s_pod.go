@@ -204,7 +204,7 @@ func (p *pod) object() (inputsMeas, error) {
 
 		tempItem := item
 		if err := tryRunInput(&tempItem); err != nil {
-			l.Warnf("failed to run input(discovery), %w", err)
+			l.Warnf("failed to run input(discovery), %s", err)
 		}
 	}
 
