@@ -222,7 +222,7 @@ func (ngData *EngineData) GetContent(key interface{}) (interface{}, error) {
 	}
 
 	if k == "_" {
-		return ngData.content, nil
+		k = "message"
 	}
 
 	if v, ok := ngData.output.Tags[k]; ok {
@@ -393,6 +393,10 @@ func (ngData *EngineData) SetContent(k, v interface{}) error {
 		return nil
 	}
 
+	if key == "_" {
+		key = "message"
+	}
+
 	if _, ok := ngData.output.Tags[key]; ok {
 		var value string
 		switch v := v.(type) {
@@ -425,6 +429,10 @@ func (ngData *EngineData) SetTag(k interface{}, v string) error {
 	checkOutPutNilPtr(&ngData.output)
 
 	delete(ngData.output.Fields, key)
+
+	if key == "_" {
+		key = "message"
+	}
 
 	ngData.output.Tags[key] = v
 

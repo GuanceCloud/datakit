@@ -40,6 +40,15 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+//nolint:lll
+func (n *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"SQLServer log": `2021-05-28 10:46:07.78 spid10s     0 transactions rolled back in database 'msdb' (4:0). This is an informational message only. No user action is required`,
+		},
+	}
+}
+
 func (n *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
