@@ -8,36 +8,14 @@ package container
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"io"
-	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/pkg/stdcopy"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/readbuf"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
-
-const (
-	// Maximum bytes of a log line before it will be split, size is mirroring
-	// docker code:
-	// https://github.com/moby/moby/blob/master/daemon/logger/copier.go#L21
-	// maxLineBytes = 16 * 1024.
-
-	readBuffSize = 2 * 1024
-)
-
-var containerLogsOptions = types.ContainerLogsOptions{
-	ShowStdout: true,
-	ShowStderr: true,
-	Follow:     true,
-	Tail:       "0", // 默认关闭FromBeginning，避免数据量巨大。开启为 'all'
-}
 
 func (d *dockerInput) addToContainerList(containerID string, cancel context.CancelFunc) {
 	d.containerLogList[containerID] = cancel
@@ -80,114 +58,62 @@ func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types
 		return getContainerLogConfigForDocker(container.Labels)
 	}()
 
-	if logconf != nil {
-		if logconf.Source == "" {
-			logconf.Source = source
-		}
-		if logconf.Service == "" {
-			logconf.Service = logconf.Source
-		}
-		logconf.tags = tags
-		logconf.containerID = container.ID
-		l.Debugf("use container logconfig:%#v, containerName:%s", logconf, tags["container_name"])
-	} else {
-		logconf = &containerLogConfig{
-			Source:      source,
-			Service:     source,
-			tags:        tags,
-			containerID: container.ID,
-		}
+	if logconf == nil {
+		logconf = &containerLogConfig{}
+	}
+	if logconf.Source == "" {
+		logconf.Source = source
+	}
+	if logconf.Service == "" {
+		logconf.Service = logconf.Source
 	}
 
-	if err := logconf.checking(); err != nil {
+	logconf.tags = tags
+	logconf.containerId = container.ID
+
+	l.Debugf("use container logconfig:%#v, containerName:%s", logconf, tags["container_name"])
+
+	inspect, err := d.client.ContainerInspect(ctx, container.ID)
+	if err != nil {
 		return err
 	}
+	logconf.logpath = inspect.LogPath
+	logconf.created = inspect.Created
 
 	return d.tailContainerLog(ctx, logconf)
 }
 
 func (d *dockerInput) tailContainerLog(ctx context.Context, logconf *containerLogConfig) error {
-	hasTTY, err := d.hasTTY(ctx, logconf.containerID)
+	opt := &tailer.Option{
+		Source:         logconf.Source,
+		Service:        logconf.Service,
+		Pipeline:       logconf.Pipeline,
+		MultilineMatch: logconf.Multiline,
+		GlobalTags:     logconf.tags,
+		DockerMode:     true,
+	}
+	if !checkContainerIsOlder(logconf.created, time.Minute) {
+		opt.FromBeginning = true
+	}
+
+	l.Debugf("use container logconfig:%#v, containerId: %s, source: %s, logpath: %s", logconf, logconf.containerId, opt.Source, logconf.logpath)
+
+	_ = opt.Init()
+
+	t, err := tailer.NewTailerSingle(logconf.logpath, opt)
 	if err != nil {
+		l.Errorf("failed to new containerd log, containerId: %s, source: %s, logpath: %s", logconf.containerId, opt.Source, logconf.logpath)
 		return err
 	}
 
-	logReader, err := d.client.ContainerLogs(ctx, logconf.containerID, containerLogsOptions)
-	if err != nil {
-		return err
-	}
+	d.addToContainerList(logconf.containerId, t.Close)
 
-	// If the container is using a TTY, there is only a single stream
-	// (stdout), and data is copied directly from the container output stream,
-	// no extra multiplexing or headers.
-	//
-	// If the container is *not* using a TTY, streams for stdout and stderr are
-	// multiplexed.
-	if hasTTY {
-		return d.tailStream(ctx, logReader, "tty", logconf)
-	} else {
-		return d.tailMultiplexed(ctx, logReader, logconf)
-	}
-}
+	l.Infof("add containerd log, containerId: %s, source: %s, logpath: %s", logconf.containerId, opt.Source, logconf.logpath)
 
-func (d *dockerInput) hasTTY(ctx context.Context, containerID string) (bool, error) {
-	ctx, cancel := context.WithTimeout(ctx, timeoutDuration)
-	defer cancel()
-	c, err := d.client.ContainerInspect(ctx, containerID)
-	if err != nil {
-		return false, err
-	}
-	return c.Config.Tty, nil
-}
-
-func (d *dockerInput) tailMultiplexed(ctx context.Context, src io.ReadCloser, logconf *containerLogConfig) error {
-	outReader, outWriter := io.Pipe()
-	errReader, errWriter := io.Pipe()
-
-	// 避免goroutine共享数据，clone一份
-	logconfStderr := logconf.clone()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err := d.tailStream(ctx, outReader, "stdout", logconf)
-		if err != nil {
-			l.Error(err)
-		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err := d.tailStream(ctx, errReader, "stderr", logconfStderr)
-		if err != nil {
-			l.Error(err)
-		}
-	}()
-
-	defer func() {
-		wg.Wait()
-
-		if err := outWriter.Close(); err != nil {
-			l.Warnf("Close: %s", err)
-		}
-
-		if err := errWriter.Close(); err != nil {
-			l.Warnf("Close: %s", err)
-		}
-
-		if err := src.Close(); err != nil {
-			l.Warnf("Close: %s", err)
-		}
-	}()
-
-	_, err := stdcopy.StdCopy(outWriter, errWriter, src)
-	if err != nil {
-		l.Warnf("StdCopy: %s", err)
-		return err
-	}
-
+	go func(id string) {
+		defer d.removeFromContainerList(id)
+		t.Run()
+	}(logconf.containerId)
 	return nil
 }
 
@@ -199,36 +125,10 @@ type containerLogConfig struct {
 	Multiline  string   `json:"multiline_match"`
 	OnlyImages []string `json:"only_images"`
 
-	containerID string
+	containerId string
+	created     string
+	logpath     string
 	tags        map[string]string
-}
-
-func (c *containerLogConfig) clone() *containerLogConfig {
-	t := make(map[string]string)
-	for k, v := range c.tags {
-		t[k] = v
-	}
-	return &containerLogConfig{
-		Disable:     c.Disable,
-		Source:      c.Source,
-		Pipeline:    c.Pipeline,
-		Service:     c.Service,
-		Multiline:   c.Multiline,
-		containerID: c.containerID,
-		tags:        t,
-	}
-}
-
-// multiline maxLines.
-const maxLines = 1000
-
-func (c *containerLogConfig) checking() error {
-	if c.Multiline == "" {
-		return nil
-	}
-
-	_, err := multiline.New(c.Multiline, maxLines)
-	return err
 }
 
 const containerLogConfigKey = "datakit/logs"
@@ -276,101 +176,6 @@ func getContainerLogConfigForDocker(labels map[string]string) *containerLogConfi
 	return c
 }
 
-const maxFieldsLength = 32 * 1024 * 1024
-
-func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stream string, logconf *containerLogConfig) error {
-	defer reader.Close() //nolint:errcheck
-
-	logconf.tags["service"] = logconf.Service
-	logconf.tags["stream"] = stream
-
-	containerName := logconf.tags["container_name"]
-
-	mult, err := multiline.New(logconf.Multiline, maxLines)
-	if err != nil {
-		// unreachable
-		return err
-	}
-
-	newTask := func() *worker.TaskTemplate {
-		return &worker.TaskTemplate{
-			TaskName:        "containerlog/" + logconf.Source,
-			Source:          logconf.Source,
-			ScriptName:      logconf.Pipeline,
-			MaxMessageLen:   maxFieldsLength,
-			Tags:            logconf.tags,
-			ContentDataType: worker.ContentString,
-			TS:              time.Now(),
-		}
-	}
-
-	r := readbuf.NewReadBuffer(reader, readBuffSize)
-
-	timeout := time.NewTicker(timeoutDuration)
-	defer timeout.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-timeout.C:
-			if text := mult.Flush(); len(text) != 0 {
-				task := newTask()
-				task.Content = []string{string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes))}
-				if err := worker.FeedPipelineTaskBlock(task); err != nil {
-					l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)
-				}
-			}
-		default:
-			// nil
-		}
-
-		lines, err := r.ReadLines()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				return nil
-			}
-			return err
-		}
-
-		if len(lines) == 0 {
-			// 如果没有数据，那就等待1秒，避免频繁read
-			time.Sleep(time.Second)
-			continue
-		}
-
-		// 接收到数据，重置 ticker
-		timeout.Reset(timeoutDuration)
-		content := []string{}
-
-		for _, line := range lines {
-			if len(line) == 0 {
-				continue
-			}
-
-			text := mult.ProcessLine(line)
-			if len(text) == 0 {
-				continue
-			}
-
-			content = append(content,
-				string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
-			)
-		}
-
-		if len(content) == 0 {
-			continue
-		}
-
-		task := newTask()
-		task.Content = content
-
-		if err := worker.FeedPipelineTaskBlock(task); err != nil {
-			l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)
-		}
-	}
-}
-
 type containerLog struct{}
 
 func (c *containerLog) LineProto() (*iod.Point, error) { return nil, nil }
@@ -403,6 +208,14 @@ func getContainerLogSource(image string) string {
 		return image
 	}
 	return "unknown"
+}
+
+func checkContainerIsOlder(createdTime string, limit time.Duration) bool {
+	t, err := time.Parse(time.RFC3339, createdTime)
+	if err != nil {
+		return false
+	}
+	return time.Since(t) > limit
 }
 
 //nolint:gochecknoinits

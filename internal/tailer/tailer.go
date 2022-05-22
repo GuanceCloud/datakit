@@ -81,6 +81,8 @@ type Option struct {
 	// 日志文本的另一种发送方式（和Feed冲突）
 	ForwardFunc   ForwardFunc
 	IgnoreDeadLog time.Duration
+
+	DockerMode bool
 }
 
 func (opt *Option) Init() error {
@@ -199,7 +201,7 @@ func (t *Tailer) scan() {
 		if t.opt.IgnoreDeadLog > 0 && !FileIsActive(filename, t.opt.IgnoreDeadLog) {
 			t.closeFromFileList(filename)
 			t.removeFromFileList(filename)
-			continue
+			//continue
 		}
 		if t.fileInFileList(filename) {
 			continue

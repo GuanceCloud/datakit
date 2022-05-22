@@ -118,14 +118,6 @@ spec:
     metadata:
       labels:
         app: daemonset-datakit
-      annotations:
-        datakit/logs: |
-          [
-            {
-              "disable": true
-            }
-          ]
-
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
@@ -164,10 +156,8 @@ spec:
         securityContext:
           privileged: true
         volumeMounts:
-        - mountPath: /var/run
-          name: run
-        - mountPath: /var/log
-          name: log
+        - mountPath: /var
+          name: var
         - mountPath: /host/proc
           name: proc
           readOnly: true
@@ -202,11 +192,8 @@ spec:
           name: datakit-conf
         name: datakit-conf
       - hostPath:
-          path: /var/run
-        name: run
-      - hostPath:
-          path: /var/log
-        name: log
+          path: /var
+        name: var
       - hostPath:
           path: /proc
           type: ""
