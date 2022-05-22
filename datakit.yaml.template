@@ -160,6 +160,8 @@ spec:
           name: run
         - mountPath: /var/lib
           name: lib
+        - mountPath: /var/log
+          name: log
         - mountPath: /host/proc
           name: proc
           readOnly: true
@@ -199,6 +201,9 @@ spec:
       - hostPath:
           path: /var/lib
         name: lib
+      - hostPath:
+          path: /var/log
+        name: log
       - hostPath:
           path: /proc
           type: ""

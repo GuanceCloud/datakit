@@ -79,6 +79,7 @@ func (d *dockerInput) stop() {
 func (d *dockerInput) pingOK() bool {
 	ping, err := d.client.Ping(context.TODO())
 	if err != nil {
+		l.Warnf("docker ping error: %s", err)
 		return false
 	}
 	if ping.APIVersion == "" || ping.OSType == "" {

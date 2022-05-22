@@ -383,7 +383,7 @@ func (i *Input) setup() bool {
 			containerExcludeLog:    i.ContainerExcludeLog,
 			extraTags:              i.Tags,
 		}); err != nil {
-			l.Errorf("create docker input err: %s, skip", err)
+			l.Warnf("create docker input err: %s, skip", err)
 		} else {
 			i.dockerInput = d
 		}
