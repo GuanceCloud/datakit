@@ -7,7 +7,6 @@ package container
 
 import (
 	"reflect"
-	"time"
 
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -19,8 +18,6 @@ const (
 
 	dockerEndpoint    = "unix:///var/run/docker.sock"
 	containerdAddress = "/var/run/containerd/containerd.sock"
-
-	timeoutDuration = time.Second * 5
 )
 
 var measurements = make(map[reflect.Type]inputs.Measurement)

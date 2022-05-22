@@ -69,7 +69,7 @@ func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types
 	}
 
 	logconf.tags = tags
-	logconf.containerId = container.ID
+	logconf.containerID = container.ID
 
 	l.Debugf("use container logconfig:%#v, containerName:%s", logconf, tags["container_name"])
 
@@ -80,10 +80,10 @@ func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types
 	logconf.logpath = inspect.LogPath
 	logconf.created = inspect.Created
 
-	return d.tailContainerLog(ctx, logconf)
+	return d.tailContainerLog(logconf)
 }
 
-func (d *dockerInput) tailContainerLog(ctx context.Context, logconf *containerLogConfig) error {
+func (d *dockerInput) tailContainerLog(logconf *containerLogConfig) error {
 	opt := &tailer.Option{
 		Source:         logconf.Source,
 		Service:        logconf.Service,
@@ -96,24 +96,21 @@ func (d *dockerInput) tailContainerLog(ctx context.Context, logconf *containerLo
 		opt.FromBeginning = true
 	}
 
-	l.Debugf("use container logconfig:%#v, containerId: %s, source: %s, logpath: %s", logconf, logconf.containerId, opt.Source, logconf.logpath)
+	l.Debugf("use container logconfig:%#v, containerID: %s, source: %s, logpath: %s", logconf, logconf.containerID, opt.Source, logconf.logpath)
 
 	_ = opt.Init()
 
 	t, err := tailer.NewTailerSingle(logconf.logpath, opt)
 	if err != nil {
-		l.Errorf("failed to new containerd log, containerId: %s, source: %s, logpath: %s", logconf.containerId, opt.Source, logconf.logpath)
+		l.Errorf("failed to new containerd log, containerID: %s, source: %s, logpath: %s", logconf.containerID, opt.Source, logconf.logpath)
 		return err
 	}
 
-	d.addToContainerList(logconf.containerId, t.Close)
+	d.addToContainerList(logconf.containerID, t.Close)
 
-	l.Infof("add containerd log, containerId: %s, source: %s, logpath: %s", logconf.containerId, opt.Source, logconf.logpath)
+	l.Infof("add containerd log, containerID: %s, source: %s, logpath: %s", logconf.containerID, opt.Source, logconf.logpath)
 
-	go func(id string) {
-		defer d.removeFromContainerList(id)
-		t.Run()
-	}(logconf.containerId)
+	t.Run()
 	return nil
 }
 
@@ -125,7 +122,7 @@ type containerLogConfig struct {
 	Multiline  string   `json:"multiline_match"`
 	OnlyImages []string `json:"only_images"`
 
-	containerId string
+	containerID string
 	created     string
 	logpath     string
 	tags        map[string]string

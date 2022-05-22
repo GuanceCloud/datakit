@@ -201,7 +201,6 @@ func (t *Tailer) scan() {
 		if t.opt.IgnoreDeadLog > 0 && !FileIsActive(filename, t.opt.IgnoreDeadLog) {
 			t.closeFromFileList(filename)
 			t.removeFromFileList(filename)
-			//continue
 		}
 		if t.fileInFileList(filename) {
 			continue
