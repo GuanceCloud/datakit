@@ -152,13 +152,13 @@ func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
 func getContainerLogConfigForK8s(k8sClient k8sClientX, podname, podnamespace string) *containerLogConfig {
 	annotations, err := getPodAnnotations(k8sClient, podname, podnamespace)
 	if err != nil {
-		l.Errorf("failed to get pod annotations, %w", err)
+		l.Errorf("failed to get pod annotations, %s", err)
 		return nil
 	}
 
 	c, err := getContainerLogConfig(annotations)
 	if err != nil {
-		l.Errorf("failed to get container logConfig: %w", err)
+		l.Errorf("failed to get container logConfig: %s", err)
 		return nil
 	}
 	return c
@@ -167,7 +167,7 @@ func getContainerLogConfigForK8s(k8sClient k8sClientX, podname, podnamespace str
 func getContainerLogConfigForDocker(labels map[string]string) *containerLogConfig {
 	c, err := getContainerLogConfig(labels)
 	if err != nil {
-		l.Errorf("failed to get container logConfig: %w", err)
+		l.Errorf("failed to get container logConfig: %s", err)
 		return nil
 	}
 	return c

@@ -156,8 +156,10 @@ spec:
         securityContext:
           privileged: true
         volumeMounts:
-        - mountPath: /var
-          name: var
+        - mountPath: /var/run
+          name: run
+        - mountPath: /var/lib
+          name: lib
         - mountPath: /host/proc
           name: proc
           readOnly: true
@@ -192,8 +194,11 @@ spec:
           name: datakit-conf
         name: datakit-conf
       - hostPath:
-          path: /var
-        name: var
+          path: /var/run
+        name: run
+      - hostPath:
+          path: /var/lib
+        name: lib
       - hostPath:
           path: /proc
           type: ""

@@ -283,7 +283,7 @@ func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotat
 
 	f, err := filter.NewIncludeExcludeFilter(splitRules(logconf.OnlyImages), nil)
 	if err != nil {
-		l.Warnf("failed to new filter of only_images, err:%w", err)
+		l.Warnf("failed to new filter of only_images, err: %s", err)
 		return podAnnotationEnable
 	}
 
