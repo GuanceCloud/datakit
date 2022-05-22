@@ -2,6 +2,8 @@
 
 # DataKit 版本历史
 
+> **注意：目前语雀的跳转可能有问题，请大家暂时通过目录或搜索的方式定位到具体文档。**
+
 ## 1.2.20(2022/05/22)
 
 本次发布属于 hotfix 发布，主要修复如下问题：
@@ -12,7 +14,7 @@
   - 对于新创建的日志，默认从头开始采集（主要是容器类日志，磁盘文件类日志目前无法判定是否是新创建的日志）
   - 优化 Docker 日志处理，不再依赖 Docker 日志 API
 
-- 修复 Pipeline 中的 [decode](pipeline#837c4e09) 函数问题(769)
+- 修复 Pipeline 中的 [decode](pipeline#837c4e09) 函数问题(#769)
 - OpenTelemetry gRPC 方式支持 gzip(#774)
 - 修复 [filebeat](beats_output) 采集器不能设置 service 的问题(#767)
 
