@@ -69,10 +69,10 @@ func (g *GrokRegexp) RunWithTypeInfo(content interface{}) (map[string]interface{
 	if err != nil {
 		return nil, nil, err
 	}
-
+	var dstV interface{}
 	for k, v := range ret {
 		var err error
-		var dstV interface{} = v
+		dstV = v
 		if varType, ok := g.grokPattern.varType[k]; ok {
 			switch varType {
 			case GTypeInt:

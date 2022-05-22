@@ -98,13 +98,13 @@ func (stats *Stats) UpdateScriptStatsMeta(category, ns, name string, scriptUpdat
 	}
 }
 
-func (stats *Stats) WriteScriptStats(category, ns, name string, pt, ptDrop, ptError uint64, err error) {
+func (stats *Stats) WriteScriptStats(category, ns, name string, pt, ptDrop, ptError uint64, cost int64, err error) {
 	v, ok := stats.stats.Load(StatsKey(category, ns, name))
 	if !ok {
 		return
 	}
 	if v, ok := v.(*ScriptStats); ok {
-		v.WritePtCount(pt, ptDrop, ptDrop)
+		v.WritePtCount(pt, ptDrop, ptDrop, cost)
 		if err != nil {
 			v.WriteErr("time: " + time.Now().Format(StatsTimeFormat) + "error: " + err.Error())
 		}
@@ -136,8 +136,8 @@ func UpdateScriptStatsMeta(category, ns, name string, scriptUpdate, enable bool,
 	_plstats.UpdateScriptStatsMeta(category, ns, name, scriptUpdate, enable, err...)
 }
 
-func WriteScriptStats(category, ns, name string, pt, ptDrop, ptError uint64, err error) {
-	_plstats.WriteScriptStats(category, ns, name, pt, ptDrop, ptError, err)
+func WriteScriptStats(category, ns, name string, pt, ptDrop, ptError uint64, cost int64, err error) {
+	_plstats.WriteScriptStats(category, ns, name, pt, ptDrop, ptError, cost, err)
 }
 
 func ReadStats() []ScriptStatsROnly {

@@ -15,6 +15,8 @@ import (
 type ScriptStats struct {
 	pt, ptDrop, ptError uint64
 
+	totalCost int64
+
 	lastRunErr struct {
 		last100err [MaxErrorCount]string
 		pos        int
@@ -41,7 +43,8 @@ type ScriptStatsROnly struct {
 
 	RunLastErrs []string
 
-	MetaTS time.Time
+	TotalCost int64 // ns
+	MetaTS    time.Time
 
 	FirstTS           time.Time
 	ScriptTS          time.Time
@@ -60,7 +63,7 @@ func (statsR ScriptStatsROnly) String() string {
 		statsR.ScriptTS.Format(StatsTimeFormat), statsR.MetaTS.Format(StatsTimeFormat), statsR.CompileError)
 }
 
-func (stats *ScriptStats) WritePtCount(pt, ptDrop, ptError uint64) {
+func (stats *ScriptStats) WritePtCount(pt, ptDrop, ptError uint64, cost int64) {
 	if pt > 0 {
 		atomic.AddUint64(&stats.pt, pt)
 	}
@@ -69,6 +72,9 @@ func (stats *ScriptStats) WritePtCount(pt, ptDrop, ptError uint64) {
 	}
 	if ptError > 0 {
 		atomic.AddUint64(&stats.ptError, ptError)
+	}
+	if cost > 0 {
+		atomic.AddInt64(&stats.totalCost, cost)
 	}
 }
 
@@ -87,9 +93,10 @@ func (stats *ScriptStats) WriteErr(err string) {
 
 func (stats *ScriptStats) Read() *ScriptStatsROnly {
 	ret := &ScriptStatsROnly{
-		Pt:      atomic.LoadUint64(&stats.pt),
-		PtDrop:  atomic.LoadUint64(&stats.ptDrop),
-		PtError: atomic.LoadUint64(&stats.ptError),
+		Pt:        atomic.LoadUint64(&stats.pt),
+		PtDrop:    atomic.LoadUint64(&stats.ptDrop),
+		PtError:   atomic.LoadUint64(&stats.ptError),
+		TotalCost: atomic.LoadInt64(&stats.totalCost),
 	}
 
 	stats.meta.RLock()

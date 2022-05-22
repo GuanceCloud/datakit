@@ -67,7 +67,7 @@ type EngineData struct {
 
 	contentKey string
 
-	readOnlyGrok     **grok.Grok
+	OnlyForCheckFunc **grok.Grok
 	grokPatternStack []map[string]*grok.GrokPattern
 	grokPatternIndex []int
 	stackDeep        int
@@ -82,7 +82,7 @@ func (ngData *EngineData) Reset() {
 	ngData.output = nil
 	ngData.contentKey = ""
 
-	ngData.readOnlyGrok = nil
+	ngData.OnlyForCheckFunc = nil
 	if len(ngData.grokPatternStack) > 0 {
 		ngData.grokPatternStack = ngData.grokPatternStack[:0]
 	} else if ngData.grokPatternStack == nil {
@@ -97,7 +97,6 @@ func (ngData *EngineData) Reset() {
 
 	ngData.stopRunPL = false
 
-	ngData.ts = time.Now()
 	ngData.lastErr = nil
 }
 
@@ -119,27 +118,6 @@ func NewOutput() *Output {
 		Tags:   make(map[string]string),
 		Fields: make(map[string]interface{}),
 	}
-}
-
-func (ng *Engine) Copy() *Engine {
-	newNg := &Engine{
-		grok: &grok.Grok{
-			CompliedGrokRe: make(map[string]map[string]*grok.GrokRegexp),
-		},
-		callbacks:     ng.callbacks,
-		callbackCheck: ng.callbackCheck,
-		stmts:         ng.stmts,
-	}
-
-	// 仅保留编译好的 grok pattern，此 map 在 pl 运行时只读
-	for k, v := range ng.grok.CompliedGrokRe {
-		newNg.grok.CompliedGrokRe[k] = make(map[string]*grok.GrokRegexp)
-		for idx, value := range v {
-			newNg.grok.CompliedGrokRe[k][idx] = value
-		}
-	}
-
-	return newNg
 }
 
 func NewEngine(script string, callbacks map[string]FuncCallback, check map[string]FuncCallbackCheck, debug bool) (*Engine, error) {
@@ -173,7 +151,7 @@ func (ng *Engine) Check() error {
 		output:           NewOutput(),
 		grokPatternStack: make([]map[string]*grok.GrokPattern, 0),
 		grokPatternIndex: make([]int, 0),
-		readOnlyGrok:     &ng.grok,
+		OnlyForCheckFunc: &ng.grok,
 	}
 
 	return ng.stmts.Check(ng, data)
@@ -202,8 +180,6 @@ func (ng *Engine) Run(measurement string, tags map[string]string, fields map[str
 		Measurement: measurement,
 		Time:        rTime,
 	}
-
-	data.readOnlyGrok = &ng.grok
 
 	data.stopRunPL = false
 	ng.stmts.Run(ng, data)
@@ -391,15 +367,15 @@ func GetFuncFloatArg(ngData *EngineData, f *FuncStmt, idx int, kw string) (float
 }
 
 func (ngData *EngineData) GetEngineRGrok() (*grok.Grok, bool) {
-	if ngData.readOnlyGrok != nil && *ngData.readOnlyGrok != nil {
-		return *ngData.readOnlyGrok, true
+	if ngData.OnlyForCheckFunc != nil && *ngData.OnlyForCheckFunc != nil {
+		return *ngData.OnlyForCheckFunc, true
 	}
 	return nil, false
 }
 
 func (ngData *EngineData) SetEngineRGrok(grok *grok.Grok) bool {
-	if ngData.readOnlyGrok != nil {
-		*ngData.readOnlyGrok = grok
+	if ngData.OnlyForCheckFunc != nil {
+		*ngData.OnlyForCheckFunc = grok
 		return true
 	}
 	return false

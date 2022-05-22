@@ -30,7 +30,7 @@ func TestStats(t *testing.T) {
 		NS:       "default",
 		Category: datakit.Metric,
 	}
-	stats.WriteScriptStats(statsR.Category, statsR.NS, statsR.Name, 0, 0, 0, nil)
+	stats.WriteScriptStats(statsR.Category, statsR.NS, statsR.Name, 0, 0, 0, 0, nil)
 	statsRL := stats.ReadStats()
 	if len(statsRL) != 0 {
 		t.Fatal("len(stats)", len(statsRL))

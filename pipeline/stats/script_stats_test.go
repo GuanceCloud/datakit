@@ -23,7 +23,7 @@ func TestPlStats(t *testing.T) {
 		defer g.Done()
 		for i := 0; i < 199; i++ {
 			stats.WriteErr(fmt.Sprint(i))
-			stats.WritePtCount(1, 1, 1)
+			stats.WritePtCount(1, 1, 1, 1)
 			stats.UpdateMeta(true, true)
 			stats.UpdateMeta(true, false)
 			stats.UpdateMeta(false, true, "")

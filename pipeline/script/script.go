@@ -73,12 +73,13 @@ func (script *PlScript) Engine() *parser.Engine {
 
 func (script *PlScript) Run(measurement string, tags map[string]string, fields map[string]interface{},
 	contentKey string, t time.Time, opt *Option) (*parser.Output, bool, error) {
+	startTime := time.Now()
 	if script == nil || script.ng == nil {
 		return nil, false, fmt.Errorf("no engine")
 	}
 	out, err := script.ng.Run(measurement, tags, fields, contentKey, t)
 	if err != nil {
-		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 0, 1, err)
+		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 0, 1, int64(time.Since(startTime)), err)
 		return nil, false, err
 	}
 
@@ -112,9 +113,9 @@ func (script *PlScript) Run(measurement string, tags map[string]string, fields m
 	}
 
 	if out.Drop {
-		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 1, 0, nil)
+		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 1, 0, int64(time.Since(startTime)), nil)
 	} else {
-		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 0, 0, nil)
+		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 0, 0, int64(time.Since(startTime)), nil)
 	}
 
 	return out, out.Drop, nil

@@ -43,7 +43,7 @@ var (
 		`Input,Category,Freq,Avg Pts,Total Feed,Total Pts,1st Feed,Last Feed,Avg Cost,Max Cost,Error(date)`, ",")
 	plStatsCols = strings.Split(
 		"Script,Category,Namespace,Enabled,Total Pts,Dropped Pts,Error Pts,Script Update,"+
-			"First Time,Update Time,Script Update Time,Errors", ",")
+			"Cost,Avg Cost,First Time,Update Time,Script Update Time,Errors", ",")
 	enabledInputCols = strings.Split(`Input,Instaces,Crashed`, ",")
 	goroutineCols    = strings.Split(`Name,Done,Running,Total Cost,Min Cost,Max Cost,Failed`, ",")
 	httpAPIStatCols  = strings.Split(`API,Total,Limited(%),Max Latency,Avg Latency,2xx,3xx,4xx,5xx`, ",")
@@ -617,16 +617,26 @@ func (m *monitorAPP) renderPLStatTable(ds *dkhttp.DatakitStats, colArr []string)
 				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 
 		table.SetCell(row, 8,
+			tview.NewTableCell(fmt.Sprintf("%12s", time.Duration(plStats.TotalCost))).
+				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+
+		var avgCost time.Duration
+		if plStats.Pt > 0 {
+			avgCost = time.Duration(plStats.TotalCost / int64(plStats.Pt))
+		}
+		table.SetCell(row, 9,
+			tview.NewTableCell(fmt.Sprintf("%12s", avgCost)).
+				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+
+		table.SetCell(row, 10,
 			tview.NewTableCell(humanize.RelTime(plStats.FirstTS, now, "ago", "")).
 				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 
-		table.SetCell(row, 9, tview.NewTableCell(humanize.RelTime(plStats.MetaTS, now, "ago", "")).
+		table.SetCell(row, 11, tview.NewTableCell(humanize.RelTime(plStats.MetaTS, now, "ago", "")).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 
-		table.SetCell(row, 10, tview.NewTableCell(humanize.RelTime(plStats.ScriptTS, now, "ago", "")).
+		table.SetCell(row, 12, tview.NewTableCell(humanize.RelTime(plStats.ScriptTS, now, "ago", "")).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-
-		// carefully treat the error message column
 
 		var ret string
 		if plStats.CompileError != "" {
@@ -644,14 +654,12 @@ func (m *monitorAPP) renderPLStatTable(ds *dkhttp.DatakitStats, colArr []string)
 		lastErrCell := tview.NewTableCell(ret).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter)
 
-		if plStats.CompileError != "" || len(plStats.RunLastErrs) > 0 {
-			lastErrCell.SetClickedFunc(func() bool {
-				m.setupLastErr(ret)
-				return true
-			})
-		}
+		lastErrCell.SetClickedFunc(func() bool {
+			m.setupLastErr(ret)
+			return true
+		})
 
-		table.SetCell(row, 11, lastErrCell)
+		table.SetCell(row, 13, lastErrCell)
 
 		row++
 	}

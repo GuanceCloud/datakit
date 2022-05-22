@@ -65,23 +65,24 @@ func GrokChecking(ng *parser.EngineData, node parser.Node) error {
 	}
 	g.CompliedGrokRe[pattern][ng.PatternIndex()] = re
 
+	funcExpr.Grok = re
 	return nil
 }
 
 func Grok(ng *parser.EngineData, node parser.Node) interface{} {
-	g, ok := ng.GetEngineRGrok()
-	if !ok {
+	funcExpr := fexpr(node)
+
+	grokRe := funcExpr.Grok
+	if grokRe == nil {
 		return fmt.Errorf("no grok obj")
 	}
 	var err error
 
-	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
 	var key parser.Node
-	var pattern string
 	switch v := funcExpr.Param[0].(type) {
 	case *parser.Identifier, *parser.AttrExpr:
 		key = v
@@ -90,19 +91,14 @@ func Grok(ng *parser.EngineData, node parser.Node) interface{} {
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
-	switch v := funcExpr.Param[1].(type) {
-	case *parser.StringLiteral:
-		pattern = v.Val
-	default:
-		return fmt.Errorf("expect StringLiteral, got %s",
-			reflect.TypeOf(funcExpr.Param[1]).String())
-	}
-
-	grokRe, ok := g.CompliedGrokRe[pattern][ng.PatternIndex()]
-	// 此处在 pl script 编译时进行优化，提前进行 pattern 的编译
-	if !ok {
-		return fmt.Errorf("can not complie grok")
-	}
+	// 由 check 函数检测
+	// switch v := funcExpr.Param[1].(type) {
+	// case *parser.StringLiteral:
+	// 	_ = v.Val
+	// default:
+	// 	return fmt.Errorf("expect StringLiteral, got %s",
+	// 		reflect.TypeOf(funcExpr.Param[1]).String())
+	// }
 
 	val, err := ng.GetContentStr(key)
 	if err != nil {

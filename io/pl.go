@@ -81,7 +81,7 @@ func runPl(category string, pts []*Point, scriptMap map[string]string, plOpt *sc
 		}
 		if p, err := NewPoint(out.Measurement, out.Tags, out.Fields, ptOpt); err != nil {
 			plLogger.Error(err)
-			stats.WriteScriptStats(script.Category(), script.NS(), script.Name(), 0, 0, 1, err)
+			stats.WriteScriptStats(script.Category(), script.NS(), script.Name(), 0, 0, 1, 0, err)
 		} else {
 			pt = p
 		}

@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 )
 
 type Node interface {
@@ -27,6 +29,7 @@ type FuncStmt struct {
 	Name    string
 	Param   []Node
 	KwParam KwArgs
+	Grok    *grok.GrokRegexp
 }
 
 type IfelseStmt struct {
