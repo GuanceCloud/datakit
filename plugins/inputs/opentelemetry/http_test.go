@@ -694,7 +694,14 @@ func Test_unmarshalTraceRequest1(t *testing.T) {
 				t.Errorf("unmarshalTraceRequest() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != nil && len(got.ResourceSpans) != 1 && len(got.ResourceSpans[0].Resource.Attributes) != 4 {
+			if got != nil {
+				t.Logf("%+v", got)
+				t.Logf("%+v", got.ResourceSpans[0])
+			} else {
+				return
+			}
+
+			if len(got.ResourceSpans) != 1 && len(got.ResourceSpans[0].Resource.Attributes) != 4 {
 				t.Errorf("json marshal error")
 			}
 		})

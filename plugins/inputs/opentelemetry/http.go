@@ -15,10 +15,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/golang/protobuf/jsonpb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 	collectormetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -124,7 +124,7 @@ func unmarshalTraceRequest(rawRequest []byte, contentType string) (*collectortra
 	case pbContentType:
 		err = proto.Unmarshal(rawRequest, request)
 	case jsonContentType:
-		err = jsonpb.Unmarshal(bytes.NewReader(rawRequest), request)
+		err = protojson.Unmarshal(rawRequest, request)
 	default:
 		err = fmt.Errorf("invalid content-type: %s, only application/x-protobuf and application/json is supported", contentType)
 	}
@@ -138,7 +138,7 @@ func unmarshalMetricsRequest(rawRequest []byte, contentType string) (*collectorm
 	case pbContentType:
 		err = proto.Unmarshal(rawRequest, request)
 	case jsonContentType:
-		err = jsonpb.Unmarshal(bytes.NewReader(rawRequest), request)
+		err = protojson.Unmarshal(rawRequest, request)
 	default:
 		err = fmt.Errorf("invalid content-type: %s, only application/x-protobuf and application/json is supported", contentType)
 	}
