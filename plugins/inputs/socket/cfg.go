@@ -1,7 +1,6 @@
 package socket
 
 import (
-	"bytes"
 	"regexp"
 	"time"
 
@@ -10,6 +9,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
+
+const (
+	KillGrace = 5 * time.Second
+	TCP       = "tcp"
+	UDP       = "udp"
 )
 
 var (
@@ -24,18 +29,20 @@ var (
   ## support tcp, udp, raw, unix, packet, dccp and sctp sockets
   ## if socket_types is null, default on udp and tcp
   socket_types = [ "tcp", "udp" ]
-  ## The default timeout of 1s for ss execution can be overridden here:
-  # interval = "1s"
+  ## The default time for ss execution
+  timeout = "1s"
+
+  ## @param interval - number - optional - default: 15
+  interval = "15s"
 
 [inputs.socket.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"`
 )
 
-type socketLister func(cmdName string, proto string) (*bytes.Buffer, error)
-
 type Input struct {
 	Interval    datakit.Duration `toml:"interval"`
+	TimeOut     datakit.Duration `toml:"timeout"`
 	SocketProto []string         `toml:"socket_types"`
 
 	isNewConnection *regexp.Regexp
@@ -48,20 +55,31 @@ type Input struct {
 	semStop      *cliutils.Sem     // start stop signal
 }
 
-type Measurement struct {
+type TCPMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
 }
 
-func (m *Measurement) LineProto() (*io.Point, error) {
+type UDPMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
+
+func (m *TCPMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-func (m *Measurement) Info() *inputs.MeasurementInfo {
+func (m *UDPMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+}
+
+func (m *TCPMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: inputName,
+		Name: "tcp",
 		Fields: map[string]interface{}{
 			"bytes_acked":    newCountFieldInfo("acked bytes"),
 			"bytes_received": newCountFieldInfo("bytes received"),
@@ -69,6 +87,26 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"segs_in":        newCountFieldInfo("segments in"),
 			"data_segs_out":  newCountFieldInfo("data segmentsout"),
 			"data_segs_in":   newCountFieldInfo("data segments in"),
+			"recv-q":         newCountFieldInfo("The count of bytes not copied by the user program connected to this socket."),
+			"send-q":         newCountFieldInfo("The count of bytes not acknowledged by the remote"),
+			"rto":            newCountFieldInfo("retransmission timeout"),
+		},
+		Tags: map[string]interface{}{
+			"proto":       inputs.NewTagInfo("the proto type"),
+			"local_addr":  inputs.NewTagInfo("local addr"),
+			"local_port":  inputs.NewTagInfo("local port"),
+			"remote_addr": inputs.NewTagInfo("remote addr"),
+			"remote_port": inputs.NewTagInfo("remote port"),
+		},
+	}
+}
+
+func (m *UDPMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "udp",
+		Fields: map[string]interface{}{
+			"recv-q": newCountFieldInfo("The count of bytes not copied by the user program connected to this socket."),
+			"send-q": newCountFieldInfo("The count of bytes not acknowledged by the remote"),
 		},
 		Tags: map[string]interface{}{
 			"proto":       inputs.NewTagInfo("the proto type"),

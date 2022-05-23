@@ -4,10 +4,12 @@ package socket
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -22,8 +24,13 @@ func (i *Input) SampleConfig() string {
 	return sample
 }
 
-func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
-	tmp := &Measurement{name: name, tags: tags, fields: fields, ts: ts}
+func (i *Input) appendTCPMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
+	tmp := &TCPMeasurement{name: name, tags: tags, fields: fields, ts: ts}
+	i.collectCache = append(i.collectCache, tmp)
+}
+
+func (i *Input) appendUDPMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
+	tmp := &UDPMeasurement{name: name, tags: tags, fields: fields, ts: ts}
 	i.collectCache = append(i.collectCache, tmp)
 }
 
@@ -59,11 +66,11 @@ func (i *Input) Run() {
 		select {
 		case <-tick.C:
 		case <-datakit.Exit.Wait():
-			l.Infof("hostdir input exit")
+			l.Infof("socket input exit")
 			return
 
 		case <-i.semStop.Wait():
-			l.Infof("hostdir input return")
+			l.Infof("socket input return")
 			return
 		}
 	}
@@ -81,13 +88,14 @@ func (*Input) AvailableArchs() []string {
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&Measurement{},
+		&TCPMeasurement{},
+		&UDPMeasurement{},
 	}
 }
 
 func (i *Input) Collect() error {
 	for _, proto := range i.SocketProto {
-		out, err := i.lister(i.cmdName, proto)
+		out, err := i.lister(i.cmdName, proto, i.TimeOut)
 		if err != nil {
 			return err
 		}
@@ -130,14 +138,23 @@ func (i *Input) CollectMeasurement(data *bytes.Buffer, proto string) {
 				l.Warnf("socket input found orphaned metrics: %s", words)
 				l.Warn("socket input added them to the last known connection.")
 			}
-			i.appendMeasurement(inputName, tags, fields, TimeNow)
+			if tags["proto"] == TCP {
+				i.appendTCPMeasurement(TCP, tags, fields, TimeNow)
+			} else if tags["proto"] == UDP {
+				i.appendUDPMeasurement(UDP, tags, fields, TimeNow)
+			}
+
 			flushData = false
 			continue
 		}
 		// A line with no starting whitespace means we're going to parse a new connection.
 		// Flush what we gathered about the previous one, if any.
 		if flushData {
-			i.appendMeasurement(inputName, tags, fields, TimeNow)
+			if tags["proto"] == TCP {
+				i.appendTCPMeasurement(TCP, tags, fields, TimeNow)
+			} else if tags["proto"] == UDP {
+				i.appendUDPMeasurement(UDP, tags, fields, TimeNow)
+			}
 		}
 
 		// Delegate the real parsing to getTagsAndState, which manages various
@@ -148,18 +165,71 @@ func (i *Input) CollectMeasurement(data *bytes.Buffer, proto string) {
 		flushData = true
 	}
 	if flushData {
-		i.appendMeasurement(inputName, tags, fields, TimeNow)
+		if tags["proto"] == TCP {
+			i.appendTCPMeasurement(TCP, tags, fields, TimeNow)
+		} else if tags["proto"] == UDP {
+			i.appendUDPMeasurement(UDP, tags, fields, TimeNow)
+		}
 	}
 }
 
-func socketList(cmdName string, proto string) (*bytes.Buffer, error) {
+func RunTimeout(c *exec.Cmd, timeout time.Duration) error {
+	if err := c.Start(); err != nil {
+		return err
+	}
+	return WaitTimeout(c, timeout)
+}
+
+func WaitTimeout(c *exec.Cmd, timeout time.Duration) error {
+	var kill *time.Timer
+	term := time.AfterFunc(timeout, func() {
+		err := c.Process.Signal(syscall.SIGTERM)
+		if err != nil {
+			l.Errorf("E! [agent] Error terminating process: %s", err)
+			return
+		}
+
+		kill = time.AfterFunc(KillGrace, func() {
+			err := c.Process.Kill()
+			if err != nil {
+				l.Errorf("E! [agent] Error killing process: %s", err)
+				return
+			}
+		})
+	})
+
+	err := c.Wait()
+
+	// Shutdown all timers
+	if kill != nil {
+		kill.Stop()
+	}
+
+	// If the process exited without error treat it as success.  This allows a
+	// process to do a clean shutdown on signal.
+	if err == nil {
+		return nil
+	}
+
+	// If SIGTERM was sent then treat any process error as a timeout.
+	if !term.Stop() {
+		return fmt.Errorf("\"command timed out\"")
+	}
+
+	// Otherwise there was an error unrelated to termination.
+	return err
+}
+
+func socketList(cmdName string, proto string, timeout datakit.Duration) (*bytes.Buffer, error) {
 	// Run ss for the given protocol, return the output as bytes.Buffer
 	args := []string{"-in", "--" + proto}
+	//nolint
 	cmd := exec.Command(cmdName, args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
-	if err := cmd.Run(); err != nil {
-		return &out, err
+	err := RunTimeout(cmd, timeout.Duration)
+	if err != nil {
+		return &out, fmt.Errorf("error running ss -in --%s: %w", proto, err)
 	}
 	return &out, nil
 }
@@ -170,28 +240,19 @@ func getTagsAndState(proto string, words []string) (map[string]string, map[strin
 	}
 	fields := make(map[string]interface{})
 	switch proto {
-	case "udp", "raw":
+	case "udp":
 		words = append([]string{"dummy"}, words...)
-	case "tcp", "dccp", "sctp":
+	case "tcp":
 		fields["state"] = words[0]
 	}
-	switch proto {
-	case "tcp", "udp", "raw", "dccp", "sctp":
-		// Local and remote addresses are fields 3 and 4
-		// Separate addresses and ports with the last ':'
-		localIndex := strings.LastIndex(words[3], ":")
-		remoteIndex := strings.LastIndex(words[4], ":")
-		tags["local_addr"] = words[3][:localIndex]
-		tags["local_port"] = words[3][localIndex+1:]
-		tags["remote_addr"] = words[4][:remoteIndex]
-		tags["remote_port"] = words[4][remoteIndex+1:]
-	case "unix", "packet":
-		fields["netid"] = words[0]
-		tags["local_addr"] = words[4]
-		tags["local_port"] = words[5]
-		tags["remote_addr"] = words[6]
-		tags["remote_port"] = words[7]
-	}
+	// Local and remote addresses are fields 3 and 4
+	// Separate addresses and ports with the last ':'
+	localIndex := strings.LastIndex(words[3], ":")
+	remoteIndex := strings.LastIndex(words[4], ":")
+	tags["local_addr"] = words[3][:localIndex]
+	tags["local_port"] = words[3][localIndex+1:]
+	tags["remote_addr"] = words[4][:remoteIndex]
+	tags["remote_port"] = words[4][remoteIndex+1:]
 	tags["proto"] = proto
 	v, err := strconv.ParseUint(words[1], 10, 64)
 	if err != nil {
@@ -208,6 +269,8 @@ func getTagsAndState(proto string, words []string) (map[string]string, map[strin
 	return tags, fields
 }
 
+type socketLister func(cmdName string, proto string, timeout datakit.Duration) (*bytes.Buffer, error)
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
@@ -219,11 +282,12 @@ func init() { //nolint:gochecknoinits
 		}
 
 		// Initialize regexps to validate input data
-		validFields := "(bytes_acked|bytes_received|segs_out|segs_in|data_segs_in|data_segs_out)"
+		validFields := "(bytes_acked|bytes_received|segs_out|segs_in|data_segs_in|data_segs_out|rto)"
 		s.validValues = regexp.MustCompile("^" + validFields + ":[0-9]+$")
 		s.isNewConnection = regexp.MustCompile(`^\s+.*$`)
-
+		s.Interval = datakit.Duration{Duration: time.Second * 5}
 		s.lister = socketList
+
 		ssPath, err := exec.LookPath("ss")
 		if err != nil {
 			io.FeedLastError(inputName, "socket input init error:"+err.Error())
