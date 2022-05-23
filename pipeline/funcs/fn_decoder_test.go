@@ -15,7 +15,7 @@ import (
 
 type funcCase struct {
 	name     string
-	data     string
+	in       string
 	script   string
 	expected interface{}
 	key      string
@@ -32,27 +32,27 @@ func TestDecode(t *testing.T) {
 
 	testCase := []*funcCase{
 		{
-			data:   decode_data_slice[0],
+			in:     decode_data_slice[0],
 			script: `decode(_,"gbk")`,
 			key:    "message",
 		},
 		{
-			data:   decode_data_slice[1],
+			in:     decode_data_slice[1],
 			script: `decode(_,"gbk")`,
 			key:    "message",
 		},
 		{
-			data:   decode_data_slice[2],
+			in:     decode_data_slice[2],
 			script: `decode(_,"gbk")`,
 			key:    "message",
 		},
 		{
-			data:   decode_data_slice[3],
+			in:     decode_data_slice[3],
 			script: `decode(_,"gbk")`,
 			key:    "message",
 		},
 		{
-			data:   decode_data_slice[4],
+			in:     decode_data_slice[4],
 			script: `decode(_,"gbk")`,
 			key:    "message",
 		},
@@ -63,7 +63,7 @@ func TestDecode(t *testing.T) {
 			tu.Equals(t, nil, err)
 			ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
-					"message": tc.data,
+					"message": tc.in,
 				}, "message", time.Now())
 			tu.Equals(t, nil, err)
 			tu.Equals(t, nil, ret.Error)

@@ -193,22 +193,7 @@ func (t *Single) dockerHandler(lines []string) {
 		return
 	}
 
-	task := &worker.TaskTemplate{
-		TaskName:              "logging/" + t.opt.Source,
-		ScriptName:            t.opt.Pipeline,
-		Source:                t.opt.Source,
-		ContentDataType:       worker.ContentString,
-		Content:               pending,
-		IgnoreStatus:          t.opt.IgnoreStatus,
-		DisableAddStatusField: t.opt.DisableAddStatusField,
-		TS:                    time.Now(),
-		MaxMessageLen:         maxFieldsLength,
-		Tags:                  tags,
-	}
-
-	if err := worker.FeedPipelineTaskBlock(task); err != nil {
-		t.opt.log.Warnf("pipline feed err = %v", err)
-	}
+	t.sendToPipeline(pending)
 }
 
 func (t *Single) defaultHandler(lines []string) {
