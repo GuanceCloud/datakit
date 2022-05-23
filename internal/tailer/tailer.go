@@ -23,10 +23,8 @@ const (
 
 	defaultSource   = "default"
 	defaultMaxLines = 1000
-	LineMaxLen      = 32 * 1024 * 1024
+	maxFieldsLength = 32 * 1024 * 1024
 )
-
-var maxFieldsLength = 32766
 
 type ForwardFunc func(filename, text string) error
 
@@ -55,9 +53,9 @@ type Option struct {
 	//     ""
 	CharacterEncoding string
 
-	// datakit 默认的单行最大长度为32k 同时用户也可以配置
-	// 但是 允许最大配置的是32M
+	// Depercated
 	MaximumLength int
+
 	// 匹配正则表达式
 	// 符合此正则匹配的数据，将被认定为有效数据。否则会累积追加到上一条有效数据的末尾
 	// 例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
@@ -83,6 +81,8 @@ type Option struct {
 	// 日志文本的另一种发送方式（和Feed冲突）
 	ForwardFunc   ForwardFunc
 	IgnoreDeadLog time.Duration
+
+	DockerMode bool
 }
 
 func (opt *Option) Init() error {
@@ -108,10 +108,6 @@ func (opt *Option) Init() error {
 
 	opt.GlobalTags["service"] = opt.Service
 	opt.log = logger.SLogger(opt.InputName)
-
-	if opt.MaximumLength > 0 && opt.MaximumLength < LineMaxLen {
-		maxFieldsLength = opt.MaximumLength
-	}
 
 	if _, err := encoding.NewDecoder(opt.CharacterEncoding); err != nil {
 		return err
@@ -205,7 +201,6 @@ func (t *Tailer) scan() {
 		if t.opt.IgnoreDeadLog > 0 && !FileIsActive(filename, t.opt.IgnoreDeadLog) {
 			t.closeFromFileList(filename)
 			t.removeFromFileList(filename)
-			continue
 		}
 		if t.fileInFileList(filename) {
 			continue

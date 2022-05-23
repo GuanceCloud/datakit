@@ -36,7 +36,6 @@ type dockerInputConfig struct {
 
 	excludePauseContainer  bool
 	removeLoggingAnsiCodes bool
-	maxLoggingLength       int
 
 	containerIncludeMetric []string
 	containerExcludeMetric []string
@@ -80,6 +79,7 @@ func (d *dockerInput) stop() {
 func (d *dockerInput) pingOK() bool {
 	ping, err := d.client.Ping(context.TODO())
 	if err != nil {
+		l.Warnf("docker ping error: %s", err)
 		return false
 	}
 	if ping.APIVersion == "" || ping.OSType == "" {
@@ -182,8 +182,6 @@ func (d *dockerInput) watchNewContainerLogs() error {
 		}
 
 		l.Infof("add container log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
-		ctx, cancel := context.WithCancel(context.Background())
-		d.addToContainerList(container.ID, cancel)
 
 		// Start a new goroutine for every new container that has logs to collect
 		go func(container *types.Container) {
@@ -192,7 +190,7 @@ func (d *dockerInput) watchNewContainerLogs() error {
 				l.Debugf("remove container log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
 			}()
 
-			if err := d.watchingContainerLog(ctx, container); err != nil {
+			if err := d.watchingContainerLog(context.Background(), container); err != nil {
 				if !errors.Is(err, context.Canceled) {
 					l.Errorf("tailContainerLog: %s", err)
 				}
@@ -286,7 +284,7 @@ func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotat
 
 	f, err := filter.NewIncludeExcludeFilter(splitRules(logconf.OnlyImages), nil)
 	if err != nil {
-		l.Warnf("failed to new filter of only_images, err:%w", err)
+		l.Warnf("failed to new filter of only_images, err: %s", err)
 		return podAnnotationEnable
 	}
 

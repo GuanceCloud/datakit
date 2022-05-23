@@ -112,6 +112,7 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"filepath": inputs.NewTagInfo(`此条记录来源的文件名，全路径`), // log.file.path
 			"host":     inputs.NewTagInfo(`主机名`),            // host.name
+			"service":  inputs.NewTagInfo("service 名称，对应配置文件中的 `service` 字段值"),
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "记录正文，默认存在，可以使用 pipeline 删除此字段"}, // message
@@ -202,35 +203,41 @@ func (ipt *Input) Run() {
 	}
 }
 
+func (ipt *Input) getNewTags(dataPiece *DataStruct) map[string]string {
+	// merge map
+	newTags := make(map[string]string)
+	for kk, vv := range ipt.Tags {
+		newTags[kk] = vv
+	}
+	newTags["host"] = dataPiece.HostName        // host.name
+	newTags["filepath"] = dataPiece.LogFilePath // log.file.path
+	newTags["service"] = ipt.Service
+	for kk, vv := range dataPiece.Fields {
+		if str, ok := vv.(string); ok {
+			newTags[kk] = str
+		} else {
+			// TODO: 这里有 bug。这里的 Tag 目前只有 map[string]string 形式，
+			// 没有 map[string]interface{} 形式，后面 PL 改良了，这边需要再改一下。
+			// 现在是强行 format 为 string
+			switch n := vv.(type) {
+			case int, int64, int32:
+				newTags[kk] = fmt.Sprintf("%d", n)
+			default:
+				l.Warnf("ignore fields: %s, type name = %s, string = %s",
+					kk, reflect.TypeOf(n).Name(), reflect.TypeOf(n).String())
+			}
+		}
+	}
+	return newTags
+}
+
 func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 	for _, v := range pending {
 		if len(v.Message) == 0 {
 			continue
 		}
 
-		// merge map
-		newTags := make(map[string]string)
-		for kk, vv := range ipt.Tags {
-			newTags[kk] = vv
-		}
-		newTags["host"] = v.HostName        // host.name
-		newTags["filepath"] = v.LogFilePath // log.file.path
-		for kk, vv := range v.Fields {
-			if str, ok := vv.(string); ok {
-				newTags[kk] = str
-			} else {
-				// TODO: 这里有 bug。这里的 Tag 目前只有 map[string]string 形式，
-				// 没有 map[string]interface{} 形式，后面 PL 改良了，这边需要再改一下。
-				// 现在是强行 format 为 string
-				switch n := vv.(type) {
-				case int, int64, int32:
-					newTags[kk] = fmt.Sprintf("%d", n)
-				default:
-					l.Warnf("ignore fields: %s, type name = %s, string = %s",
-						kk, reflect.TypeOf(n).Name(), reflect.TypeOf(n).String())
-				}
-			}
-		}
+		newTags := ipt.getNewTags(v)
 		l.Debugf("newTags = %#v", newTags)
 
 		task := &worker.TaskTemplate{

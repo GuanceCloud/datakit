@@ -60,7 +60,7 @@ func TestSqlCover(t *testing.T) {
 			pl:   `sql_cover(_)`,
 			in: `select abc from def where x > 3 and y < 5
 						SELECT ( ? )`,
-			outKey:   "_",
+			outKey:   "message",
 			expected: `select abc from def where x > ? and y < ? SELECT ( ? )`,
 			fail:     false,
 		},
@@ -69,7 +69,7 @@ func TestSqlCover(t *testing.T) {
 			pl:   `sql_cover(_)`,
 			in: `#test
 select abc from def where x > 3 and y < 5`,
-			outKey:   "_",
+			outKey:   "message",
 			expected: `select abc from def where x > ? and y < ?`,
 			fail:     false,
 		},

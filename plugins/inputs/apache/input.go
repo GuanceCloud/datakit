@@ -56,6 +56,16 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
+//nolint:lll
+func (n *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"Apache error log":  `[Tue May 19 18:39:45.272121 2021] [access_compat:error] [pid 9802] [client ::1:50547] AH01797: client denied by server configuration: /Library/WebServer/Documents/server-status`,
+			"Apache access log": `127.0.0.1 - - [17/May/2021:14:51:09 +0800] "GET /server-status?auto HTTP/1.1" 200 917`,
+		},
+	}
+}
+
 var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func newInput() *Input {

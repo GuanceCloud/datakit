@@ -114,6 +114,10 @@ type InputOnceRunnable interface {
 	Collect() (map[string][]*io.Point, error)
 }
 
+type LogExampler interface {
+	LogExamples() map[string]map[string]string
+}
+
 type Creator func() Input
 
 func Add(name string, creator Creator) {
