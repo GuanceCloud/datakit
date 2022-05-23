@@ -105,8 +105,8 @@ const (
   ## http path (do not edit):
   ##	trace : /otel/v1/trace
   ##	metric: /otel/v1/metric
-  ## use as : http://127.0.0.1:9529/otel/v11/trace . Method = POST
-  enable = false
+  ## use as : http://127.0.0.1:9529/otel/v1/trace . Method = POST
+  enable = true
   ## return to client status_ok_code :200/202
   http_status_ok = 200
 `

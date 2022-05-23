@@ -611,3 +611,92 @@ func Test_otlpHTTPCollector_apiOtlpMetric(t *testing.T) {
 		})
 	}
 }
+
+func Test_unmarshalTraceRequest1(t *testing.T) {
+	jsonBody := `{
+	"resourceSpans": [{
+		"resource": {
+			"attributes": [{
+				"key": "service.name",
+				"value": {
+					"stringValue": "front-app"
+				}
+			}, {
+				"key": "telemetry.sdk.language",
+				"value": {
+					"stringValue": "webjs"
+				}
+			}, {
+				"key": "telemetry.sdk.name",
+				"value": {
+					"stringValue": "opentelemetry"
+				}
+			}, {
+				"key": "telemetry.sdk.version",
+				"value": {
+					"stringValue": "1.2.0"
+				}
+			}],
+			"droppedAttributesCount": 0
+		},
+		"instrumentationLibrarySpans": [{
+			"spans": [{
+				"traceId": "b974aa3f8e95387f959024e0472c62d5",
+				"spanId": "bd1b8a16de09d8fe",
+				"name": "files-series-info-0",
+				"kind": 1,
+				"startTimeUnixNano": 1653030257075199700,
+				"endTimeUnixNano": 1653030257141699800,
+				"attributes": [],
+				"droppedAttributesCount": 0,
+				"events": [{
+					"timeUnixNano": 1653030257141599700,
+					"name": "fetching-span1-completed",
+					"attributes": [],
+					"droppedAttributesCount": 0
+				}],
+				"droppedEventsCount": 0,
+				"status": {
+					"code": 0
+				},
+				"links": [],
+				"droppedLinksCount": 0
+			}],
+			"instrumentationLibrary": {
+				"name": "example-tracer-web"
+			}
+		}]
+	}]
+}`
+	type args struct {
+		rawRequest  []byte
+		contentType string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *collectortracepb.ExportTraceServiceRequest
+		wantErr bool
+	}{
+		{
+			name: "json",
+			args: args{
+				rawRequest:  []byte(jsonBody),
+				contentType: "application/json",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := unmarshalTraceRequest(tt.args.rawRequest, tt.args.contentType)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("unmarshalTraceRequest() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != nil && len(got.ResourceSpans) != 1 && len(got.ResourceSpans[0].Resource.Attributes) != 4 {
+				t.Errorf("json marshal error")
+			}
+		})
+	}
+}
