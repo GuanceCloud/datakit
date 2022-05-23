@@ -241,7 +241,7 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 			}
 		}
 	}
-	// scriptstore.CleanAllScriptWithNS(scriptstore.RemoteScriptNS)
+	script.CleanAllScript(script.RemoteScriptNS)
 	return nil
 }
 

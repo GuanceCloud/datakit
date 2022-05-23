@@ -8,23 +8,133 @@ package script
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-func TestCall(t *testing.T) {
-	LoadDefaultDotPScript2Store()
-	ReloadAllGitReposDotPScript2Store(datakit.Logging, nil)
-	ReloadAllRemoteDotPScript2Store(datakit.Logging, nil)
-	_ = os.WriteFile("/tmp/nginx-time123.p", []byte(`
+func TestScriptLoadFunc(t *testing.T) {
+	if _, err := os.Stat(filepath.Join(datakit.InstallDir, "pipeline")); err != nil {
+		t.Error(err)
+		return
+	}
+	case1 := map[string]map[string]string{
+		datakit.Logging: {
+			"abcd": "if true {}",
+		},
+		datakit.Metric: {
+			"abc": "if true {}",
+			"def": "if true {}",
+		},
+	}
+
+	CleanAllScript(DefaultScriptNS)
+	CleanAllScript(GitRepoScriptNS)
+	CleanAllScript(RemoteScriptNS)
+
+	LoadAllScript(DefaultScriptNS, case1)
+	for category, v := range case1 {
+		for name := range v {
+			if y, ok := QueryScript(category, name); !ok {
+				t.Error(category, " ", name, y)
+				if y, ok := QueryScript(category, name); !ok {
+					t.Error(y)
+				}
+			}
+		}
+	}
+
+	CleanAllScript(DefaultScriptNS)
+	CleanAllScript(GitRepoScriptNS)
+	CleanAllScript(RemoteScriptNS)
+	for k, v := range case1 {
+		LoadScript(k, DefaultScriptNS, v)
+	}
+	for category, v := range case1 {
+		for name := range v {
+			if _, ok := QueryScript(category, name); !ok {
+				t.Error(category, " ", name)
+			}
+		}
+	}
+
+	CleanAllScript(DefaultScriptNS)
+	CleanAllScript(GitRepoScriptNS)
+	CleanAllScript(RemoteScriptNS)
+	for category, v := range case1 {
+		for name := range v {
+			if _, ok := QueryScript(category, name); ok {
+				t.Error(category, " ", name)
+			}
+		}
+	}
+
+	CleanAllScript(DefaultScriptNS)
+	CleanAllScript(GitRepoScriptNS)
+	CleanAllScript(RemoteScriptNS)
+
+	for k, v := range case1 {
+		LoadScript(k, "DefaultScriptNS", v)
+		ReloadAllRemoteDotPScript2StoreFromMap(k, v)
+	}
+	for category, v := range case1 {
+		for name := range v {
+			if s, ok := QueryScript(category, name); !ok || s.NS() != RemoteScriptNS {
+				t.Error(category, " ", name)
+			}
+		}
+	}
+
+	CleanAllScript(DefaultScriptNS)
+	CleanAllScript(GitRepoScriptNS)
+	CleanAllScript(RemoteScriptNS)
+
+	for k, v := range case1 {
+		LoadScript(k, "aabb", v)
+	}
+	CleanAllScript("aabb")
+
+	_ = os.WriteFile("/tmp/nginx-xx.p", []byte(`
 	json(_, time)
 	set_tag(bb, "aa0")
 	default_time(time)
 	`), os.FileMode(0o755))
+	LoadAllScriptThrFilepath(DefaultScriptNS, map[string][]string{datakit.RUM: {"/tmp/nginx-xx.p"}})
+	_ = os.Remove("/tmp/nginx-xx.p")
+	if _, ok := QueryScript(datakit.RUM, "nginx-xx.p"); !ok {
+		t.Error(datakit.RUM, " ", "nginx-xx.p")
+	}
+
+	LoadAllDefaultScripts2Store()
+	ReloadAllGitReposDotPScript2Store(datakit.Logging, nil)
+	_ = os.WriteFile("/tmp/nginx-time123.p", []byte(`
+		json(_, time)
+		set_tag(bb, "aa0")
+		default_time(time)
+		`), os.FileMode(0o755))
 	LoadDotPScript2Store(datakit.Logging, "xxxx", "", []string{"/tmp/nginx-time.p123"})
 	_ = os.Remove("/tmp/nginx-time123.p")
 	LoadDotPScript2Store(datakit.Logging, "xxx", "", nil)
+}
+
+func TestCmpCategory(t *testing.T) {
+	c, dc := datakit.AllCategory()
+	c1, dc1 := func() (map[string]struct{}, map[string]struct{}) {
+		ret1 := map[string]struct{}{}
+		ret2 := map[string]struct{}{}
+		for k := range _allCategory {
+			ret1[k] = struct{}{}
+		}
+		for k := range _allDeprecatedCategory {
+			ret2[k] = struct{}{}
+		}
+		return ret1, ret2
+	}()
+
+	assert.Equal(t, c, c1)
+	assert.Equal(t, dc, dc1)
 }
 
 func TestPlScriptStore(t *testing.T) {
@@ -150,9 +260,6 @@ func TestWhichStore(t *testing.T) {
 	r = whichStore(datakit.HeartBeat)
 	if r == nil {
 		t.Fatal("err")
-	}
-	if r != _heartBeatScriptStore {
-		t.Fatal("not equal")
 	}
 
 	r = whichStore("")

@@ -29,20 +29,34 @@ var (
 	_rumScriptStore          = NewScriptStore(datakit.RUM)
 	_securityScriptStore     = NewScriptStore(datakit.Security)
 
-	_heartBeatScriptStore = NewScriptStore(datakit.HeartBeat)
+	// TODO: If you add a store, please add the relevant content in the whichStore function.
 
-	_ = map[string]struct{}{
-		datakit.Metric:           {},
-		datakit.MetricDeprecated: {},
-		datakit.Network:          {},
-		datakit.KeyEvent:         {},
-		datakit.Object:           {},
-		datakit.CustomObject:     {},
-		datakit.Logging:          {},
-		datakit.Tracing:          {},
-		datakit.RUM:              {},
-		datakit.Security:         {},
-		datakit.HeartBeat:        {},
+	_allCategory = map[string]*ScriptStore{
+		datakit.Metric:       _metricScriptStore,
+		datakit.Network:      _networkScriptStore,
+		datakit.KeyEvent:     _keyEventScriptStore,
+		datakit.Object:       _objectScriptStore,
+		datakit.CustomObject: _customObjectScriptStore,
+		datakit.Logging:      _loggingScriptStore,
+		datakit.Tracing:      _tracingScriptStore,
+		datakit.RUM:          _rumScriptStore,
+		datakit.Security:     _securityScriptStore,
+	}
+
+	_allDeprecatedCategory = map[string]*ScriptStore{
+		datakit.MetricDeprecated: _metricScriptStore,
+	}
+
+	CategoryDirName = map[string]string{
+		datakit.Metric:       "metric",
+		datakit.Network:      "network",
+		datakit.KeyEvent:     "keyevent",
+		datakit.Object:       "object",
+		datakit.CustomObject: "custom_object",
+		datakit.Logging:      "logging",
+		datakit.Tracing:      "tracing",
+		datakit.RUM:          "rum",
+		datakit.Security:     "security",
 	}
 )
 
@@ -66,8 +80,6 @@ func whichStore(category string) *ScriptStore {
 		return _rumScriptStore
 	case datakit.Security:
 		return _securityScriptStore
-	case datakit.HeartBeat:
-		return _heartBeatScriptStore
 	default:
 		l.Warn("unsuppored category: %s", category)
 		return _loggingScriptStore
@@ -89,7 +101,7 @@ var plScriptNSSearchOrder = [3]string{
 func InitStore() {
 	l = logger.SLogger("pl-script")
 	stats.InitStats()
-	LoadDefaultDotPScript2Store()
+	LoadAllDefaultScripts2Store()
 }
 
 func NSFindPriority(ns string) int {
@@ -189,6 +201,11 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 	if NSFindPriority(ns) != nsCur {
 		return
 	}
+
+	if nsCur > len(plScriptNSSearchOrder) {
+		return
+	}
+
 	if nsCur == -1 {
 		store.index.Delete(name)
 
@@ -201,10 +218,6 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 			Op:       stats.EventOpIndexDelete,
 			Time:     time.Now(),
 		})
-		return
-	}
-
-	if nsCur > len(plScriptNSSearchOrder) {
 		return
 	}
 
@@ -366,19 +379,84 @@ func LoadDotPScript2Store(category, ns string, dirPath string, filePath []string
 	}
 }
 
-func LoadDefaultDotPScript2Store() {
+func LoadAllDefaultScripts2Store() {
+	scripts := map[string](map[string]string){}
+
 	plPath := filepath.Join(datakit.InstallDir, "pipeline")
-	LoadDotPScript2Store(datakit.Logging, DefaultScriptNS, plPath, nil)
+
+	scripts[datakit.Logging] = ReadPlScriptFromDir(plPath)
+
+	for category, dirName := range CategoryDirName {
+		s := ReadPlScriptFromDir(filepath.Join(plPath, dirName))
+		if _, ok := scripts[category]; !ok {
+			scripts[category] = map[string]string{}
+		}
+		for k, v := range s {
+			scripts[category][k] = v
+		}
+	}
+
+	LoadAllScript(DefaultScriptNS, scripts)
 }
 
+func LoadScript(category, ns string, scripts map[string]string) {
+	_ = whichStore(category).UpdateScriptsWithNS(ns, scripts)
+}
+
+func FillScriptCategoryMap(scripts map[string](map[string]string)) map[string](map[string]string) {
+	allCategoryScript := map[string](map[string]string){}
+	for k := range _allCategory {
+		allCategoryScript[k] = map[string]string{}
+	}
+	for k, v := range scripts {
+		for name, script := range v {
+			allCategoryScript[k][name] = script
+		}
+	}
+	return allCategoryScript
+}
+
+func FillScriptCategoryMapFp(scripts map[string]([]string)) map[string]([]string) {
+	allCategoryScript := map[string]([]string){}
+	for k := range _allCategory {
+		allCategoryScript[k] = []string{}
+	}
+	for k, v := range scripts {
+		allCategoryScript[k] = append(allCategoryScript[k], v...)
+	}
+	return allCategoryScript
+}
+
+// LoadAllScript is used to load and clean the script, parameter scripts example: {datakit.Logging: {ScriptName: ScriptContent},... }.
+func LoadAllScript(ns string, scripts map[string](map[string]string)) {
+	allCategoryScript := FillScriptCategoryMap(scripts)
+	for category, m := range allCategoryScript {
+		_ = whichStore(category).UpdateScriptsWithNS(ns, m)
+	}
+}
+
+// LoadAllScriptThrFilepath is used to load and clean  the script, parameter scripts example: {datakit.Logging: [filepath1,..],... }.
+func LoadAllScriptThrFilepath(ns string, scripts map[string]([]string)) {
+	allCategoryScript := FillScriptCategoryMapFp(scripts)
+	for category, filePath := range allCategoryScript {
+		LoadDotPScript2Store(category, GitRepoScriptNS, "", filePath)
+	}
+}
+
+// CleanAllScript is used to clean up all scripts.
+func CleanAllScript(ns string) {
+	allCategoryScript := FillScriptCategoryMap(nil)
+	for category, m := range allCategoryScript {
+		_ = whichStore(category).UpdateScriptsWithNS(ns, m)
+	}
+}
+
+// ReloadAllGitReposDotPScript2Store Deprecated.
 func ReloadAllGitReposDotPScript2Store(category string, filePath []string) {
 	LoadDotPScript2Store(category, GitRepoScriptNS, "", filePath)
 }
 
-func ReloadAllRemoteDotPScript2Store(category string, filePath []string) {
-	LoadDotPScript2Store(category, RemoteScriptNS, "", filePath)
-}
-
+// ReloadAllRemoteDotPScript2StoreFromMap Deprecated.
 func ReloadAllRemoteDotPScript2StoreFromMap(category string, m map[string]string) {
 	_ = whichStore(category).UpdateScriptsWithNS(RemoteScriptNS, m)
 }

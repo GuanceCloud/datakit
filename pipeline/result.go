@@ -19,7 +19,7 @@ const (
 	PipelineMessageField  = script.PipelineMessageField
 	PipelineStatusField   = script.PipelineStatusField
 	PipelineMSource       = script.PipelineMSource
-	DefaultPipelineStatus = script.DefaultPipelineStatus
+	DefaultPipelineStatus = script.PipelineDefaultStatus
 )
 
 type Result struct {

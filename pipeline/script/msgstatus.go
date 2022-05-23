@@ -17,7 +17,7 @@ const (
 	PipelineMessageField  = "message"
 	PipelineStatusField   = "status"
 	PipelineMSource       = "source"
-	DefaultPipelineStatus = "unknown"
+	PipelineDefaultStatus = "unknown"
 )
 
 var statusMap = map[string]string{
@@ -57,7 +57,7 @@ func ProcLoggingStatus(output *parser.Output, disable bool, ignore []string, spi
 		if s, ok := statusMap[status]; ok {
 			status = s
 		} else {
-			status = DefaultPipelineStatus
+			status = PipelineDefaultStatus
 			output.Fields[PipelineStatusField] = status
 		}
 	}

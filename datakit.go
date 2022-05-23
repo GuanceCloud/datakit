@@ -39,6 +39,8 @@ const (
 
 	CommonChanCap = 32
 
+	// TODO: If you add a category, please add the relevant content in the function AllCategory.
+
 	// data category, aka API /v1/write/category.
 	MetricDeprecated = "/v1/write/metrics"
 	Metric           = "/v1/write/metric"
@@ -151,6 +153,22 @@ var (
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
 )
+
+func AllCategory() (map[string]struct{}, map[string]struct{}) {
+	return map[string]struct{}{
+			Metric:       {},
+			Network:      {},
+			KeyEvent:     {},
+			Object:       {},
+			CustomObject: {},
+			Logging:      {},
+			Tracing:      {},
+			RUM:          {},
+			Security:     {},
+		}, map[string]struct{}{
+			MetricDeprecated: {},
+		}
+}
 
 func SetWorkDir(dir string) {
 	InstallDir = dir
