@@ -53,7 +53,7 @@ func TestTree(t *testing.T) {
 			if !ok {
 				t.Fatal("")
 			}
-			if expected != v {
+			if expected != v.denormalized {
 				t.Errorf("value %s act: %s exp: %s", k, v, expected)
 			}
 		}

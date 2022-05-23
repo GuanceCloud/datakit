@@ -7,4 +7,4 @@ package parser
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 
-var DenormalizedGlobalPatterns map[string]string = grok.CopyDenormalizedDefalutPatterns()
+var DenormalizedGlobalPatterns map[string]*grok.GrokPattern = grok.CopyDenormalizedDefalutPatterns()

@@ -22,7 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/mytargz"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
 const (
@@ -209,7 +209,8 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 
 		l.Debug("dumpFiles succeeded")
 
-		scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(mFiles)
+		// TODO
+		script.ReloadAllRemoteDotPScript2StoreFromMap(datakit.Logging, mFiles)
 
 		err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
 		if err != nil {
@@ -240,7 +241,7 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 			}
 		}
 	}
-	scriptstore.CleanAllScriptWithNS(scriptstore.RemoteScriptNS)
+	// scriptstore.CleanAllScriptWithNS(scriptstore.RemoteScriptNS)
 	return nil
 }
 
@@ -285,7 +286,8 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		if err != nil {
 			l.Errorf("ReadTarToMap failed: %v", err)
 		} else {
-			scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(mContent)
+			// TODO
+			script.ReloadAllRemoteDotPScript2StoreFromMap(datakit.Logging, mContent)
 		}
 	} // isFirst
 	return cf.UpdateTime, nil

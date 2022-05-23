@@ -14,8 +14,9 @@ import (
 )
 
 func GrokChecking(ng *parser.EngineData, node parser.Node) error {
-	g := ng.GetGrok()
-	if g == nil {
+	// 只能在 checking 函数中修改 engine 的 grok
+	g, ok := ng.GetEngineRGrok()
+	if !ok {
 		return fmt.Errorf("no grok obj")
 	}
 
@@ -43,7 +44,7 @@ func GrokChecking(ng *parser.EngineData, node parser.Node) error {
 	var re *grok.GrokRegexp
 	var err error
 	if ng.StackDeep() > 0 {
-		deP := []map[string]string{}
+		deP := []map[string]*grok.GrokPattern{}
 		deP = append(deP, g.GlobalDenormalizedPatterns, g.DenormalizedPatterns)
 		deP = append(deP, ng.PatternStack()...)
 		re, err = grok.CompilePattern(pattern, deP...)
@@ -64,23 +65,24 @@ func GrokChecking(ng *parser.EngineData, node parser.Node) error {
 	}
 	g.CompliedGrokRe[pattern][ng.PatternIndex()] = re
 
+	funcExpr.Grok = re
 	return nil
 }
 
 func Grok(ng *parser.EngineData, node parser.Node) interface{} {
-	g := ng.GetGrok()
-	if g == nil {
+	funcExpr := fexpr(node)
+
+	grokRe := funcExpr.Grok
+	if grokRe == nil {
 		return fmt.Errorf("no grok obj")
 	}
 	var err error
 
-	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
 	var key parser.Node
-	var pattern string
 	switch v := funcExpr.Param[0].(type) {
 	case *parser.Identifier, *parser.AttrExpr:
 		key = v
@@ -89,19 +91,14 @@ func Grok(ng *parser.EngineData, node parser.Node) interface{} {
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
-	switch v := funcExpr.Param[1].(type) {
-	case *parser.StringLiteral:
-		pattern = v.Val
-	default:
-		return fmt.Errorf("expect StringLiteral, got %s",
-			reflect.TypeOf(funcExpr.Param[1]).String())
-	}
-
-	grokRe, ok := g.CompliedGrokRe[pattern][ng.PatternIndex()]
-	// 此处在 pl script 编译时进行优化，提前进行 pattern 的编译
-	if !ok {
-		return fmt.Errorf("can not complie grok")
-	}
+	// 由 check 函数检测
+	// switch v := funcExpr.Param[1].(type) {
+	// case *parser.StringLiteral:
+	// 	_ = v.Val
+	// default:
+	// 	return fmt.Errorf("expect StringLiteral, got %s",
+	// 		reflect.TypeOf(funcExpr.Param[1]).String())
+	// }
 
 	val, err := ng.GetContentStr(key)
 	if err != nil {
@@ -109,12 +106,15 @@ func Grok(ng *parser.EngineData, node parser.Node) interface{} {
 		return nil
 	}
 
-	m, err := grokRe.Run(val)
+	m, mFailed, err := grokRe.RunWithTypeInfo(val)
 	if err != nil {
 		l.Warn(err)
 		return nil
 	}
-
+	for k, v := range mFailed {
+		// m[k+"@string"] = v
+		l.Warnf("unable to cast %s(%#v) of type %T to bool", k, v, v)
+	}
 	for k, v := range m {
 		err := ng.SetContent(k, v)
 		if err != nil {

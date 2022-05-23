@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -19,13 +18,14 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
+	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 )
@@ -56,70 +56,72 @@ type PipelineCfg struct {
 	RemotePullInterval string            `toml:"remote_pull_interval"`
 }
 
-func NewPipeline(srciptname string) (*Pipeline, error) {
-	script, err := scriptstore.QueryScript(srciptname, nil)
+func NewPipelineFromFile(category string, path string) (*Pipeline, error) {
+	name, script, err := plscript.ReadPlScriptFromFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	sc, err := plscript.NewScript(name, script, "", category)
 	if err != nil {
 		return nil, err
 	}
 	return &Pipeline{
-		scriptInfo: script,
+		script: sc,
 	}, nil
 }
 
-func NewPipelineFromFile(path string) (*Pipeline, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(path))
-	if err != nil {
-		return nil, err
-	}
-
-	sc, err := scriptstore.NewScriptInfo("", string(data), "")
+func NewPipeline(category string, name, script string) (*Pipeline, error) {
+	sc, err := plscript.NewScript(name, script, "", category)
 	if err != nil {
 		return nil, err
 	}
 	return &Pipeline{
-		DisableUpdate: true,
-		scriptInfo:    sc,
+		script: sc,
 	}, nil
 }
 
 type Pipeline struct {
-	DisableUpdate bool
-	scriptInfo    *scriptstore.ScriptInfo
+	script *plscript.PlScript
 }
 
-func (p *Pipeline) Run(data string, source string) (*Result, error) {
-	if p.scriptInfo.Engine() == nil {
-		return nil, fmt.Errorf("pipeline engine not initialized")
+func (p *Pipeline) Run(pt *io.Point, plOpt *plscript.Option, ioPtOpt io.PointOption) (*io.Point, bool, error) {
+	if p.script == nil || p.script.Engine() == nil {
+		return nil, false, fmt.Errorf("pipeline engine not initialized")
+	}
+	if pt == nil {
+		return nil, false, fmt.Errorf("no data")
+	}
+	fields, err := pt.Fields()
+	if err != nil {
+		return nil, false, err
+	}
+	cntKey := ""
+	switch ioPtOpt.Category {
+	case datakit.Logging:
+		if _, ok := fields["message"]; ok {
+			cntKey = "message"
+			break
+		}
+		if _, ok := fields["message@json"]; ok {
+			cntKey = "message@json"
+		}
 	}
 
-	if result, err := RunPlStr(data, source, 0, p.scriptInfo.Engine()); err != nil {
-		return nil, err
+	if out, drop, err := p.script.Run(pt.Name(), pt.Tags(), fields, cntKey, ioPtOpt.Time, plOpt); err != nil {
+		return nil, drop, err
 	} else {
-		return result, nil
+		if !out.Time.IsZero() {
+			ioPtOpt.Time = out.Time
+		}
+		if pt, err := io.NewPoint(out.Measurement, out.Tags, out.Fields, &ioPtOpt); err != nil {
+			// TODO
+			// stats.WriteScriptStats(p.script.Category(), p.script.NS(), p.script.Name(), 0, 0, 1, err)
+			return nil, false, err
+		} else {
+			return pt, drop, nil
+		}
 	}
-}
-
-func (p *Pipeline) RunByte(data []byte, encode string, source string) (*Result, error) {
-	if p.scriptInfo.Engine() == nil {
-		return nil, fmt.Errorf("pipeline engine not initialized")
-	}
-
-	if result, err := RunPlByte(data, encode, source, 0, p.scriptInfo.Engine()); err != nil {
-		return nil, err
-	} else {
-		return result, nil
-	}
-}
-
-func (p *Pipeline) UpdateScriptInfo() error {
-	var err error
-	if p.DisableUpdate {
-		return fmt.Errorf("current pipeline update disabled")
-	}
-	if p.scriptInfo, err = scriptstore.QueryScript(p.scriptInfo.Name(), p.scriptInfo); err != nil {
-		return err
-	}
-	return nil
 }
 
 func Init(pipelineCfg *PipelineCfg) error {
@@ -135,7 +137,7 @@ func Init(pipelineCfg *PipelineCfg) error {
 		return err
 	}
 
-	scriptstore.InitStore()
+	plscript.InitStore()
 
 	return nil
 }
@@ -171,7 +173,7 @@ func loadPatterns() error {
 	denormalizedGlobalPatterns, invalidPatterns := grok.DenormalizePatternsFromMap(loadedPatterns)
 
 	for k, v := range denormalizedGlobalPatterns {
-		if _, err := regexp.Compile(v); err != nil {
+		if _, err := regexp.Compile(v.Denormalized()); err != nil {
 			invalidPatterns[k] = err.Error()
 		}
 	}
@@ -204,37 +206,6 @@ func GbToUtf8(s []byte, encoding string) ([]byte, error) {
 		return nil, e
 	}
 	return d, nil
-}
-
-func RunPlStr(cntStr, source string, maxMessageLen int, ng *parser.Engine) (*Result, error) {
-	result := &Result{
-		Output: nil,
-	}
-	if ng != nil {
-		if err := ng.Run(cntStr); err != nil {
-			l.Debug(err)
-			result.Err = err.Error()
-		}
-		result.Output = ng.Result()
-	} else {
-		result.Output = &parser.Output{
-			Cost: map[string]string{},
-			Tags: map[string]string{},
-			Fields: map[string]interface{}{
-				PipelineMessageField: cntStr,
-			},
-		}
-	}
-	result.preprocessing(source, maxMessageLen)
-	return result, nil
-}
-
-func RunPlByte(cntByte []byte, encode string, source string, maxMessageLen int, ng *parser.Engine) (*Result, error) {
-	cntStr, err := DecodeContent(cntByte, encode)
-	if err != nil {
-		return nil, err
-	}
-	return RunPlStr(cntStr, source, maxMessageLen, ng)
 }
 
 func DecodeContent(content []byte, encode string) (string, error) {

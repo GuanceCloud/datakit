@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"golang.org/x/text/encoding/simplifiedchinese"
@@ -60,21 +61,15 @@ func TestDecode(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			runner, err := NewTestingRunner(tc.script)
 			tu.Equals(t, nil, err)
-
-			err = runner.Run(tc.data)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.data,
+				}, "message", time.Now())
 			tu.Equals(t, nil, err)
+			tu.Equals(t, nil, ret.Error)
 
-			ret := runner.Result()
-			r, _ := runner.Data.GetContentStr("_")
-			_ = runner.Data.SetContent("ww", "dddd")
-			r1, _ := runner.Data.GetContentStr("ww")
-			r2, _ := runner.Data.GetContentStr("message")
-
-			tu.Equals(t, data[idx], r)
-			tu.Equals(t, r1, "dddd")
 			tu.Equals(t, nil, err)
 			tu.Equals(t, data[idx], ret.Fields[tc.key])
-			tu.Equals(t, data[idx], r2)
 
 			t.Logf("[%d] PASS", idx)
 		})

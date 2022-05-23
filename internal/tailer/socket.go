@@ -15,8 +15,9 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
 /*
@@ -208,28 +209,6 @@ func (sl *socketLogger) spiltBuffer(fromCache string, date string, full bool) (p
 	return pipdata, cacheDate
 }
 
-type SocketTaskData struct {
-	Log    string
-	Source string
-	Tag    map[string]string
-}
-
-func (std *SocketTaskData) GetContent() string {
-	return std.Log
-}
-
-func (std *SocketTaskData) Handler(result *pipeline.Result) error {
-	// result.SetSource(std.source)
-	if std.Tag != nil && len(std.Tag) != 0 {
-		for k, v := range std.Tag {
-			if _, err := result.GetTag(k); err != nil {
-				result.SetTag(k, v)
-			}
-		}
-	}
-	return nil
-}
-
 func (sl *socketLogger) sendToPipeline(pending []string) {
 	taskCnt := []string{}
 	for _, data := range pending {
@@ -237,22 +216,36 @@ func (sl *socketLogger) sendToPipeline(pending []string) {
 			taskCnt = append(taskCnt, data)
 		}
 	}
-	if len(taskCnt) != 0 {
-		task := &worker.TaskTemplate{
-			TaskName:              "socklogging/" + sl.opt.InputName,
-			ContentDataType:       worker.ContentString,
-			Tags:                  sl.tags,
-			ScriptName:            sl.opt.Pipeline,
-			Source:                sl.opt.Source,
-			Content:               taskCnt,
-			Category:              datakit.Logging,
-			IgnoreStatus:          sl.opt.IgnoreStatus,
-			DisableAddStatusField: sl.opt.DisableAddStatusField,
-			TS:                    time.Now(),
-			MaxMessageLen:         maxFieldsLength,
+
+	// -1ns
+	timeNow := time.Now().Add(-time.Duration(len(pending)))
+	res := []*iod.Point{}
+	for i, cnt := range taskCnt {
+		pt, err := iod.MakePoint(sl.opt.Source, sl.tags,
+			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+			timeNow.Add(time.Duration(i)),
+		)
+		if err != nil {
+			l.Error(err)
+			continue
 		}
-		// 阻塞型channel
-		_ = worker.FeedPipelineTaskBlock(task)
+		res = append(res, pt)
+	}
+	var ioOpt *iod.Option
+	if sl.opt.Pipeline != "" {
+		ioOpt = &iod.Option{
+			PlScript: map[string]string{sl.opt.Source: sl.opt.Pipeline},
+			PlOption: &script.Option{
+				MaxFieldValLen:        maxFieldsLength,
+				DisableAddStatusField: sl.opt.DisableAddStatusField,
+				IgnoreStatus:          sl.ignorePatterns,
+			},
+		}
+	}
+	if len(res) > 0 {
+		if err := iod.Feed("socklogging/"+sl.opt.InputName, datakit.Logging, res, ioOpt); err != nil {
+			l.Error(err)
+		}
 	}
 }
 

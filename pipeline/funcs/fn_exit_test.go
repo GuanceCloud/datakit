@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
@@ -43,16 +44,18 @@ func TestExit(t *testing.T) {
 				}
 				return
 			}
-
-			if err := runner.Run(tc.in); err != nil {
-				t.Error(err)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
+			if err != nil || ret.Error != nil {
+				t.Error(err, " ", ret.Error)
 				return
 			}
-			t.Log(runner.Result())
-			if runner.Result().Dropped {
+			t.Log(ret)
+			if ret.Drop {
 				return
 			}
-			ret := runner.Result()
 			t.Log(ret)
 			v := ret.Fields[tc.outkey]
 			tu.Equals(t, tc.expect, v)

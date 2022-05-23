@@ -7,6 +7,7 @@ package http
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -140,11 +141,47 @@ func TestApiDebugPipelineHandler(t *testing.T) {
 		{
 			name: "normal",
 			in: &pipelineDebugRequest{
-				Pipeline:  "Iy0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSAgIOitpuWRiiAgIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KIyDkuI3opoHkv67mlLnmnKzmlofku7bvvIzlpoLmnpzopoHmm7TmlrDvvIzor7fmi7fotJ3oh7PlhbblroPmlofku7bvvIzmnIDlpb3ku6Xmn5Dnp43liY3nvIDljLrliIbvvIzpgb/lhY3ph43lkK/lkI7ooqvopobnm5YKIy0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCgphZGRfcGF0dGVybigiZGF0ZTIiLCAiJXtZRUFSfVsuL10le01PTlRITlVNfVsuL10le01PTlRIREFZfSAle1RJTUV9IikKCiMgYWNjZXNzIGxvZwpncm9rKF8sICIle05PVFNQQUNFOmNsaWVudF9pcH0gJXtOT1RTUEFDRTpodHRwX2lkZW50fSAle05PVFNQQUNFOmh0dHBfYXV0aH0gXFxbJXtIVFRQREFURTp0aW1lfVxcXSBcIiV7REFUQTpodHRwX21ldGhvZH0gJXtHUkVFRFlEQVRBOmh0dHBfdXJsfSBIVFRQLyV7TlVNQkVSOmh0dHBfdmVyc2lvbn1cIiAle0lOVDpzdGF0dXNfY29kZX0gJXtJTlQ6Ynl0ZXN9IikKCiMgYWNjZXNzIGxvZwphZGRfcGF0dGVybigiYWNjZXNzX2NvbW1vbiIsICIle05PVFNQQUNFOmNsaWVudF9pcH0gJXtOT1RTUEFDRTpodHRwX2lkZW50fSAle05PVFNQQUNFOmh0dHBfYXV0aH0gXFxbJXtIVFRQREFURTp0aW1lfVxcXSBcIiV7REFUQTpodHRwX21ldGhvZH0gJXtHUkVFRFlEQVRBOmh0dHBfdXJsfSBIVFRQLyV7TlVNQkVSOmh0dHBfdmVyc2lvbn1cIiAle0lOVDpzdGF0dXNfY29kZX0gJXtJTlQ6Ynl0ZXN9IikKZ3JvayhfLCAnJXthY2Nlc3NfY29tbW9ufSAiJXtOT1RTUEFDRTpyZWZlcnJlcn0iICIle0dSRUVEWURBVEE6YWdlbnR9JykKdXNlcl9hZ2VudChhZ2VudCkKCiMgZXJyb3IgbG9nCmdyb2soXywgIiV7ZGF0ZTI6dGltZX0gXFxbJXtMT0dMRVZFTDpzdGF0dXN9XFxdICV7R1JFRURZREFUQTptc2d9LCBjbGllbnQ6ICV7Tk9UU1BBQ0U6Y2xpZW50X2lwfSwgc2VydmVyOiAle05PVFNQQUNFOnNlcnZlcn0sIHJlcXVlc3Q6IFwiJXtEQVRBOmh0dHBfbWV0aG9kfSAle0dSRUVEWURBVEE6aHR0cF91cmx9IEhUVFAvJXtOVU1CRVI6aHR0cF92ZXJzaW9ufVwiLCAodXBzdHJlYW06IFwiJXtHUkVFRFlEQVRBOnVwc3RyZWFtfVwiLCApP2hvc3Q6IFwiJXtOT1RTUEFDRTppcF9vcl9ob3N0fVwiIikKZ3JvayhfLCAiJXtkYXRlMjp0aW1lfSBcXFsle0xPR0xFVkVMOnN0YXR1c31cXF0gJXtHUkVFRFlEQVRBOm1zZ30sIGNsaWVudDogJXtOT1RTUEFDRTpjbGllbnRfaXB9LCBzZXJ2ZXI6ICV7Tk9UU1BBQ0U6c2VydmVyfSwgcmVxdWVzdDogXCIle0dSRUVEWURBVEE6aHR0cF9tZXRob2R9ICV7R1JFRURZREFUQTpodHRwX3VybH0gSFRUUC8le05VTUJFUjpodHRwX3ZlcnNpb259XCIsIGhvc3Q6IFwiJXtOT1RTUEFDRTppcF9vcl9ob3N0fVwiIikKZ3JvayhfLCIle2RhdGUyOnRpbWV9IFxcWyV7TE9HTEVWRUw6c3RhdHVzfVxcXSAle0dSRUVEWURBVEE6bXNnfSIpCgpncm91cF9pbihzdGF0dXMsIFsid2FybiIsICJub3RpY2UiXSwgIndhcm5pbmciKQpncm91cF9pbihzdGF0dXMsIFsiZXJyb3IiLCAiY3JpdCIsICJhbGVydCIsICJlbWVyZyJdLCAiZXJyb3IiKQoKY2FzdChzdGF0dXNfY29kZSwgImludCIpCmNhc3QoYnl0ZXMsICJpbnQiKQoKZ3JvdXBfYmV0d2VlbihzdGF0dXNfY29kZSwgWzIwMCwyOTldLCAiT0siLCBzdGF0dXMpCmdyb3VwX2JldHdlZW4oc3RhdHVzX2NvZGUsIFszMDAsMzk5XSwgIm5vdGljZSIsIHN0YXR1cykKZ3JvdXBfYmV0d2VlbihzdGF0dXNfY29kZSwgWzQwMCw0OTldLCAid2FybmluZyIsIHN0YXR1cykKZ3JvdXBfYmV0d2VlbihzdGF0dXNfY29kZSwgWzUwMCw1OTldLCAiZXJyb3IiLCBzdGF0dXMpCgoKbnVsbGlmKGh0dHBfaWRlbnQsICItIikKbnVsbGlmKGh0dHBfYXV0aCwgIi0iKQpudWxsaWYodXBzdHJlYW0sICIiKQpkZWZhdWx0X3RpbWUodGltZSk=",
-				Source:    "nginx",
-				Service:   "",
-				Category:  "logging",
-				Data:      "MjAyMS8xMS8xMCAxNjo1OTo1MyBbZXJyb3JdIDE2MzkzIzA6ICoxNyBvcGVuKCkgIi91c3IvbG9jYWwvQ2VsbGFyL25naW54LzEuMjEuMy9odG1sL3NlcnZlcl9zdGF0dXMiIGZhaWxlZCAoMjogTm8gc3VjaCBmaWxlIG9yIGRpcmVjdG9yeSksIGNsaWVudDogMTI3LjAuMC4xLCBzZXJ2ZXI6IGxvY2FsaG9zdCwgcmVxdWVzdDogIkdFVCAvc2VydmVyX3N0YXR1cyBIVFRQLzEuMSIsIGhvc3Q6ICJsb2NhbGhvc3Q6ODA4MCI=",
+				Pipeline: base64.StdEncoding.EncodeToString([]byte(
+					`#------------------------------------   警告   -------------------------------------
+# 不要修改本文件，如果要更新，请拷贝至其它文件，最好以某种前缀区分，避免重启后被覆盖
+#-----------------------------------------------------------------------------------
+
+add_pattern("date2", "%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}")
+
+# access log
+grok(_, "%{NOTSPACE:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \\[%{HTTPDATE:time}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{INT:status_code} %{INT:bytes}")
+
+# access log
+add_pattern("access_common", "%{NOTSPACE:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \\[%{HTTPDATE:time}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{INT:status_code} %{INT:bytes}")
+grok(_, '%{access_common} "%{NOTSPACE:referrer}" "%{GREEDYDATA:agent}')
+user_agent(agent)
+
+# error log
+grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg}, client: %{NOTSPACE:client_ip}, server: %{NOTSPACE:server}, request: \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\", (upstream: \"%{GREEDYDATA:upstream}\", )?host: \"%{NOTSPACE:ip_or_host}\"")
+grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg}, client: %{NOTSPACE:client_ip}, server: %{NOTSPACE:server}, request: \"%{GREEDYDATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\", host: \"%{NOTSPACE:ip_or_host}\"")
+grok(_,"%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg}")
+
+group_in(status, ["warn", "notice"], "warning")
+group_in(status, ["error", "crit", "alert", "emerg"], "error")
+
+cast(status_code, "int")
+cast(bytes, "int")
+
+group_between(status_code, [200,299], "OK", status)
+group_between(status_code, [300,399], "notice", status)
+group_between(status_code, [400,499], "warning", status)
+group_between(status_code, [500,599], "error", status)
+
+
+nullif(http_ident, "-")
+nullif(http_auth, "-")
+nullif(upstream, "")
+default_time(time)`)),
+				Source:   "nginx",
+				Service:  "",
+				Category: "logging",
+				Data: base64.StdEncoding.EncodeToString([]byte(
+					`2021/11/10 16:59:53 [error] 16393#0: *17 open() "/usr/local/Cellar/nginx/1.21.3/html/server_status" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: "GET /server_status HTTP/1.1", host: "localhost:8080"`)),
 				Multiline: "",
 				Encode:    "",
 				Benchmark: true,
