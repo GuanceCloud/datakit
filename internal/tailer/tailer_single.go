@@ -7,6 +7,7 @@ package tailer
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -14,9 +15,12 @@ import (
 	"time"
 
 	"github.com/pborman/ansi"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
 const (
@@ -131,34 +135,97 @@ func (t *Single) forwardMessage() {
 		timeout.Reset(timeoutDuration)
 
 		lines = b.split()
-		pending := []string{}
-		for _, line := range lines {
-			if line == "" {
-				continue
-			}
 
-			var text string
-			text, err = t.decode(line)
-			if err != nil {
-				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
-			}
-
-			text = t.multiline(text)
-			if text == "" {
-				continue
-			}
-
-			if t.opt.ForwardFunc != nil {
-				t.sendToForwardCallback(text)
-				continue
-			}
-			logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
-			pending = append(pending, logstr)
+		if t.opt.DockerMode {
+			t.dockerHandler(lines)
+			continue
 		}
-		if len(pending) > 0 {
-			t.sendToPipeline(pending)
-		}
+		t.defaultHandler(lines)
 	}
+}
+
+type dockerMessage struct {
+	Log    string `json:"log"`
+	Stream string `json:"stream"`
+	// Time string `json:"time"`
+}
+
+func (t *Single) dockerHandler(lines []string) {
+	var err error
+	pending := []string{}
+
+	tags := make(map[string]string)
+	for k, v := range t.tags {
+		tags[k] = v
+	}
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
+		var msg dockerMessage
+		if err := json.Unmarshal([]byte(line), &msg); err != nil {
+			t.opt.log.Warn(err)
+			continue
+		}
+
+		tags["stream"] = msg.Stream
+
+		var text string
+		text, err = t.decode(msg.Log)
+		if err != nil {
+			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
+		}
+
+		if len(text) > 0 && text[len(text)-1] == '\n' {
+			text = text[:len(text)-1]
+		}
+
+		text = t.multiline(text)
+		if text == "" {
+			continue
+		}
+
+		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+		pending = append(pending, logstr)
+	}
+	if len(pending) == 0 {
+		return
+	}
+
+	t.sendToPipeline(pending)
+}
+
+func (t *Single) defaultHandler(lines []string) {
+	var err error
+	pending := []string{}
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
+		var text string
+		text, err = t.decode(line)
+		if err != nil {
+			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
+		}
+
+		text = t.multiline(text)
+		if text == "" {
+			continue
+		}
+
+		if t.opt.ForwardFunc != nil {
+			t.sendToForwardCallback(text)
+			continue
+		}
+		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+		pending = append(pending, logstr)
+	}
+	if len(pending) == 0 {
+		return
+	}
+	t.sendToPipeline(pending)
 }
 
 func (t *Single) send(text string) {
@@ -178,23 +245,31 @@ func (t *Single) sendToForwardCallback(text string) {
 }
 
 func (t *Single) sendToPipeline(pending []string) {
-	task := &worker.TaskTemplate{
-		TaskName:              "logging/" + t.opt.Source,
-		ScriptName:            t.opt.Pipeline,
-		Source:                t.opt.Source,
-		ContentDataType:       worker.ContentString,
-		Content:               pending,
-		IgnoreStatus:          t.opt.IgnoreStatus,
-		DisableAddStatusField: t.opt.DisableAddStatusField,
-		TS:                    time.Now(),
-		MaxMessageLen:         maxFieldsLength,
-		Tags:                  t.tags,
+	res := []*iod.Point{}
+	// -1ns
+	timeNow := time.Now().Add(-time.Duration(len(pending)))
+	for i, cnt := range pending {
+		pt, err := iod.MakePoint(t.opt.Source, t.tags,
+			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+			timeNow.Add(time.Duration(i)),
+		)
+		if err != nil {
+			l.Error(err)
+			continue
+		}
+		res = append(res, pt)
 	}
-
-	err := worker.FeedPipelineTaskBlock(task)
-	if err != nil {
-		t.opt.log.Warnf("pipline feed err = %v", err)
-		return
+	if len(res) > 0 {
+		if err := iod.Feed("logging/"+t.opt.Source, datakit.Logging, res, &iod.Option{
+			PlScript: map[string]string{t.opt.Source: t.opt.Pipeline},
+			PlOption: &script.Option{
+				MaxFieldValLen:        maxFieldsLength,
+				DisableAddStatusField: t.opt.DisableAddStatusField,
+				IgnoreStatus:          t.opt.IgnoreStatus,
+			},
+		}); err != nil {
+			l.Error(err)
+		}
 	}
 }
 

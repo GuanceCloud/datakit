@@ -371,7 +371,8 @@ func runOldStyleCmds() {
 	if FlagPipeline != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		if err := pipelineDebugger(FlagPipeline, FlagText); err != nil {
+		// TODO
+		if err := pipelineDebugger(datakit.Logging, FlagPipeline, FlagText); err != nil {
 			errorf("[E] %s\n", err)
 			os.Exit(-1)
 		}

@@ -36,6 +36,7 @@ PATH_EXCLUSION_REGEX = [
     '/internal/win_utils/pdh',
     '/internal/obfuscate',
     '/internal/msgpack',
+    '/internal/obfuscate',
     '/.git/',
     '/git/',
 ]

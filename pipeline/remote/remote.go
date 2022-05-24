@@ -20,9 +20,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/convertutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
 const (
@@ -242,7 +243,7 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 			}
 		}
 	}
-	scriptstore.CleanAllScriptWithNS(scriptstore.RemoteScriptNS)
+	script.CleanAllScript(script.RemoteScriptNS)
 	return nil
 }
 
@@ -355,9 +356,12 @@ func convertThreeMapToContentMap(in map[string]map[string]string) map[string]str
 }
 
 func loadContentPipeline(in map[string]map[string]string) {
-	// TODO: category, convertutil.TestGetMapCategoryShortToFull
-	// for category, val := range out {
-	for _, val := range in {
-		scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(val)
+	for categoryShort, val := range in {
+		category, err := convertutil.GetMapCategoryShortToFull(categoryShort)
+		if err != nil {
+			l.Warnf("GetMapCategoryShortToFull failed: err = %s, categoryShort = %s", err, categoryShort)
+			continue
+		}
+		script.ReloadAllRemoteDotPScript2StoreFromMap(category, val)
 	}
 }

@@ -7,39 +7,69 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
 type funcCase struct {
 	name     string
-	data     string
+	in       string
 	script   string
 	expected interface{}
 	key      string
 }
 
 func TestDecode(t *testing.T) {
+	data := []string{"测试一下", "不知道", "测试一下123456", "哈哈哈哈哈", "-汪98阿萨德离开家"}
+	decode_data_slice := make([]string, 10)
+
+	for idx, cont := range data {
+		decode_data, _ := simplifiedchinese.GBK.NewEncoder().Bytes([]byte(cont))
+		decode_data_slice[idx] = string(decode_data)
+	}
+
 	testCase := []*funcCase{
 		{
-			data:   "他没测试哎",
+			in:     decode_data_slice[0],
 			script: `decode(_,"gbk")`,
-			key:    "changed",
+			key:    "message",
+		},
+		{
+			in:     decode_data_slice[1],
+			script: `decode(_,"gbk")`,
+			key:    "message",
+		},
+		{
+			in:     decode_data_slice[2],
+			script: `decode(_,"gbk")`,
+			key:    "message",
+		},
+		{
+			in:     decode_data_slice[3],
+			script: `decode(_,"gbk")`,
+			key:    "message",
+		},
+		{
+			in:     decode_data_slice[4],
+			script: `decode(_,"gbk")`,
+			key:    "message",
 		},
 	}
 	for idx, tc := range testCase {
 		t.Run(tc.name, func(t *testing.T) {
-			decode, _ := NewDecoder("gbk")
 			runner, err := NewTestingRunner(tc.script)
 			tu.Equals(t, nil, err)
-
-			err = runner.Run(tc.data)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
 			tu.Equals(t, nil, err)
+			tu.Equals(t, nil, ret.Error)
 
-			r, err := runner.Data.GetContentStr(tc.key)
-			res, _ := decode.decoder.String(tc.data)
 			tu.Equals(t, nil, err)
-			tu.Equals(t, res, r)
+			tu.Equals(t, data[idx], ret.Fields[tc.key])
 
 			t.Logf("[%d] PASS", idx)
 		})

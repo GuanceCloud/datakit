@@ -2,6 +2,24 @@
 
 # DataKit 版本历史
 
+> **注意：目前语雀的跳转可能有问题，请大家暂时通过目录或搜索的方式定位到具体文档。**
+
+## 1.2.20(2022/05/22)
+
+本次发布属于 hotfix 发布，主要修复如下问题：
+
+- 日志采集功能优化(#775)
+  - 去掉 32KB 限制（保留 32MB 最大限制）(#776)
+  - 修复可能丢失头部日志的问题
+  - 对于新创建的日志，默认从头开始采集（主要是容器类日志，磁盘文件类日志目前无法判定是否是新创建的日志）
+  - 优化 Docker 日志处理，不再依赖 Docker 日志 API
+
+- 修复 Pipeline 中的 [decode](pipeline#837c4e09) 函数问题(#769)
+- OpenTelemetry gRPC 方式支持 gzip(#774)
+- 修复 [filebeat](beats_output) 采集器不能设置 service 的问题(#767)
+
+----
+
 ## 1.2.19(2022/05/12)
 
 本次发布属于迭代发布，主要修复如下问题：
@@ -11,12 +29,13 @@
 - DataKit 主配置增加示例配置(#715)
 - [Prometheus Remote Write](prom_remote_write) 支持 tag 重命名(#731)
 - 修复 DCA 客户端获取工作空间不全的问题(#747)
-- 合并社区版 DataKit 已有的功能，主要包含 Sinker 功能以及 filebeat 采集器(#754)
+- 合并社区版 DataKit 已有的功能，主要包含 Sinker 功能以及 [filebeat](beats_output) 采集器(#754)
 - 调整容器日志采集，DataKit 直接支持 containerd 下容器 stdout/stderr 日志采集(#756)
 - 修复 ElasticSearch 采集器超时问题(#762)
 - 修复安装程序检查过于严格的问题(#763)
 - 调整 DaemonSet 模式下主机名获取策略(#648)
-- Trace 采集器自持通过服务名（`service`）通配来过滤资源（`resource`）(#759)
+- Trace 采集器支持通过服务名（`service`）通配来过滤资源（`resource`）(#759)
+- 其它一些细节问题修复
 
 ----
 

@@ -121,3 +121,58 @@ func TestEventGet(t *testing.T) {
 		})
 	}
 }
+
+// go test -v -timeout 30s -run ^TestGetNewTags$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/beats_output
+func TestGetNewTags(t *testing.T) {
+	cases := []struct {
+		name   string
+		ipt    *Input
+		in     *DataStruct
+		expect map[string]string
+	}{
+		{
+			name: "normal",
+			ipt: &Input{
+				Service: "test-service",
+				Tags: map[string]string{
+					"tag1": "val1",
+					"tag2": "val2",
+				},
+			},
+			in: &DataStruct{
+				HostName:    "MacBook-Air-2.local",
+				LogFilePath: "/Users/mac/Downloads/tmp/1.log",
+				Message:     "hello world",
+				Fields: map[string]interface{}{
+					"logtype": "sshd-log",
+					"product": "beijing",
+					"type":    "sshd-log",
+					"int":     123,
+					"int64":   int64(456),
+					"int32":   int32(789),
+					"float":   1.0,
+				},
+			},
+			expect: map[string]string{
+				"service":  "test-service",
+				"tag1":     "val1",
+				"tag2":     "val2",
+				"host":     "MacBook-Air-2.local",
+				"filepath": "/Users/mac/Downloads/tmp/1.log",
+				"logtype":  "sshd-log",
+				"product":  "beijing",
+				"type":     "sshd-log",
+				"int":      "123",
+				"int64":    "456",
+				"int32":    "789",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mVal := tc.ipt.getNewTags(tc.in)
+			assert.Equal(t, tc.expect, mVal)
+		})
+	}
+}

@@ -9,7 +9,6 @@ package logstreaming
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -22,7 +21,6 @@ import (
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -127,31 +125,29 @@ func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) 
 			break
 		}
 		pts1 := io.WrapPoint(pts)
-		cs := &categorys{input: inputName, source: make(map[string]*HTTPTask)}
-		for _, pt := range pts1 {
-			if _, ok := cs.source[pt.Name()]; !ok {
-				cs.source[pt.Name()] = &HTTPTask{
-					source:                pt.Name(),
-					scriptName:            pt.Name() + ".p",
-					taskName:              cs.input,
-					category:              datakit.Logging,
-					ignoreStatus:          []string{},
-					disableAddStatusField: true,
-					ts:                    time.Now(),
-					point:                 []*io.Point{},
-				}
+		scriptMap := map[string]string{}
+		for _, v := range pts1 {
+			if v != nil {
+				scriptMap[v.Name()] = v.Name() + ".p"
 			}
-			cs.source[pt.Name()].point = append(cs.source[pt.Name()].point, pt)
 		}
-		err = sendToPipLine(cs)
+		err = io.Feed(inputName, datakit.Logging, pts1, &io.Option{PlScript: scriptMap})
 	default:
 		scanner := bufio.NewScanner(req.Body)
-		pending := []string{}
+		pts := []*io.Point{}
 		for scanner.Scan() {
-			pending = append(pending, scanner.Text())
+			if pt, err := io.NewPoint(source, extraTags, map[string]interface{}{pipeline.DefaultPipelineStatus: scanner.Text()}, nil); err != nil {
+				pts = append(pts, pt)
+			} else {
+				l.Error(err)
+			}
 		}
-
-		err = sendPipOfPending(pending, extraTags, pipelinePath, source)
+		// pts := plRunCnt(source, pipeLlinePath, pending, extraTags)
+		if len(pts) == 0 {
+			l.Debugf("len(points) is zero, skip")
+			break
+		}
+		err = io.Feed(source, datakit.Logging, pts, &io.Option{PlScript: map[string]string{source: pipelinePath}})
 	}
 
 	if err != nil {
@@ -216,123 +212,55 @@ func (*logstreamingMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type categorys struct {
-	input  string
-	source map[string]*HTTPTask
-}
+// func plCallback(ret *pipeline.Result) (*pipeline.Result, error) {
+// 	return pipeline.ResultUtilsLoggingProcessor(ret, false, nil), nil
+// }
 
-type HTTPTask struct {
-	taskName   string
-	scriptName string
-	category   string
-	source     string
-	point      []*io.Point
+// func plRunCnt(source, scriptName string, cnt []string, tags map[string]string) []*io.Point {
+// 	ret := []*io.Point{}
 
-	ts time.Time
+// 	ts := time.Now().Add(-time.Duration(int(time.Nanosecond) * len(cnt)))
+// 	for i, cnt := range cnt {
+// 		pt, err := io.MakePoint(source, tags,
+// 			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+// 			ts.Add(time.Duration(int(time.Nanosecond)*i)),
+// 		)
+// 		if err != nil {
+// 			l.Error(err)
+// 			continue
+// 		}
+// 		drop := false
+// 		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
+// 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plCallback); err != nil {
+// 				l.Error(err)
+// 			} else {
+// 				pt = ptRet
+// 				drop = dropRet
+// 			}
+// 		}
+// 		if !drop {
+// 			ret = append(ret, pt)
+// 		}
+// 	}
+// 	return ret
+// }
 
-	ignoreStatus          []string
-	disableAddStatusField bool
-}
-
-func (std *HTTPTask) GetSource() string {
-	return std.source
-}
-
-func (std *HTTPTask) GetScriptName() string {
-	return std.scriptName
-}
-
-func (std *HTTPTask) GetMaxMessageLen() int {
-	return 0
-}
-
-func (std *HTTPTask) ContentType() string {
-	return worker.ContentString
-}
-
-func (std *HTTPTask) GetContent() interface{} {
-	cntStr := []string{}
-	for _, pt := range std.point {
-		fields, err := pt.Fields()
-		if err != nil {
-			cntStr = append(cntStr, "")
-			continue
-		}
-		if len(fields) > 0 {
-			if msg, ok := fields["message"]; ok {
-				switch msg := msg.(type) {
-				case string:
-					cntStr = append(cntStr, msg)
-					continue
-				default:
-					cntStr = append(cntStr, "")
-					continue
-				}
-			}
-		}
-		cntStr = append(cntStr, "")
-	}
-	return cntStr
-}
-
-func (std *HTTPTask) ContentEncode() string {
-	return ""
-}
-
-func (std *HTTPTask) Callback(result []*pipeline.Result) error {
-	if len(result) != len(std.point) {
-		return fmt.Errorf("result count is less than input")
-	}
-
-	result = worker.ResultUtilsLoggingProcessor(result, nil, nil, false, nil)
-	ts := std.ts
-	if ts.IsZero() {
-		ts = time.Now()
-	}
-	result = worker.ResultUtilsAutoFillTime(result, ts)
-
-	for idx, pt := range std.point {
-		tags := pt.Tags()
-		for k, v := range tags {
-			if _, err := result[idx].GetTag(k); err != nil {
-				result[idx].SetTag(k, v)
-			}
-		}
-
-		fields, err := pt.Fields()
-		if err != nil {
-			for k, i := range fields {
-				if _, err := result[idx].GetField(k); err != nil {
-					result[idx].SetField(k, i)
-				}
-			}
-		}
-	}
-
-	return worker.ResultUtilsFeedIO(result, std.category, "", std.source, std.taskName, std.GetMaxMessageLen())
-}
-
-func sendToPipLine(cs *categorys) error {
-	var err error
-	if cs != nil && cs.source != nil && len(cs.source) != 0 {
-		for _, task := range cs.source {
-			task.ts = time.Now()
-			err = worker.FeedPipelineTask(task)
-		}
-	}
-	return err
-}
-
-func sendPipOfPending(pending []string, tags map[string]string, pipelinePath, source string) error {
-	task := &worker.TaskTemplate{
-		TaskName:        datakit.Metric,
-		ScriptName:      pipelinePath,
-		Source:          source,
-		ContentDataType: worker.ContentString,
-		Content:         pending,
-		Category:        datakit.Logging,
-		Tags:            tags,
-		TS:              time.Now(),
-	}
-	return worker.FeedPipelineTask(task)
-}
+// func plRunPt(pts []*io.Point) []*io.Point {
+// 	ret := []*io.Point{}
+// 	for _, pt := range pts {
+// 		scriptName := pt.Name() + ".p"
+// 		drop := false
+// 		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
+// 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plCallback); err != nil {
+// 				l.Error(err)
+// 			} else {
+// 				pt = ptRet
+// 				drop = dropRet
+// 			}
+// 		}
+// 		if !drop {
+// 			ret = append(ret, pt)
+// 		}
+// 	}
+// 	return ret
+// }

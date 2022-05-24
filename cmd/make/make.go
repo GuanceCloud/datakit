@@ -14,7 +14,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -124,10 +123,7 @@ func applyFlags() {
 
 	build.DownloadAddr = *flagDownloadAddr
 	if !vi.IsStable() {
-		build.DownloadAddr = path.Join(*flagDownloadAddr, "community")
-
-		l.Debugf("under unstable version %s, reset download address to %s",
-			build.ReleaseVersion, build.DownloadAddr)
+		l.Fatalf("unstable version %s not allowed", build.ReleaseVersion)
 	}
 
 	switch *flagRelease {
@@ -135,7 +131,7 @@ func applyFlags() {
 		l.Debug("under release, only checked inputs released")
 		build.InputsReleaseType = "checked"
 		if !version.IsValidReleaseVersion(build.ReleaseVersion) {
-			l.Fatalf("invalid releaseVersion: %s, expect format 1.2.3-rc0", build.ReleaseVersion)
+			l.Fatalf("invalid releaseVersion: %s, expect format 1.2.3", build.ReleaseVersion)
 		}
 
 	default:
@@ -201,9 +197,21 @@ func getOSSClient() (*cliutils.OssCli, error) {
 	case build.ReleaseTesting, build.ReleaseProduction, build.ReleaseLocal:
 		tag := strings.ToUpper(build.ReleaseType)
 		ak = os.Getenv(tag + "_OSS_ACCESS_KEY")
+		if ak == "" {
+			return nil, errors.New("env " + tag + "_OSS_ACCESS_KEY" + " is not configured")
+		}
 		sk = os.Getenv(tag + "_OSS_SECRET_KEY")
+		if sk == "" {
+			return nil, errors.New("env " + tag + "_OSS_SECRET_KEY" + " is not configured")
+		}
 		bucket = os.Getenv(tag + "_OSS_BUCKET")
+		if bucket == "" {
+			return nil, errors.New("env " + tag + "_OSS_BUCKET" + " is not configured")
+		}
 		ossHost = os.Getenv(tag + "_OSS_HOST")
+		if ossHost == "" {
+			return nil, errors.New("env " + tag + "_OSS_HOST" + " is not configured")
+		}
 	default:
 		return nil, fmt.Errorf("unknown release type: %s", build.ReleaseType)
 	}

@@ -55,11 +55,6 @@ const (
   ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
   character_encoding = ""
 
-  ## datakit read text from Files or Socket , default max_textline is 32k
-  ## If your log text line exceeds 32Kb, please configure the length of your text, 
-  ## but the maximum length cannot exceed 32Mb 
-  # maximum_length = 32766
-
   ## The pattern should be a regexp. Note the use of '''this regexp'''
   ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
   # multiline_match = '''^\S'''
@@ -69,7 +64,7 @@ const (
 
   ## if file is inactive, it is ignored
   ## time units are "ms", "s", "m", "h"
-  ignore_dead_log = "10m"
+  ignore_dead_log = "1h"
 
   [inputs.logging.tags]
   # some_tag = "some_value"
@@ -86,17 +81,16 @@ type Input struct {
 	Pipeline              string            `toml:"pipeline"`
 	IgnoreStatus          []string          `toml:"ignore_status"`
 	CharacterEncoding     string            `toml:"character_encoding"`
-	MaximumLength         int               `toml:"maximum_length,omitempty"`
 	MultilineMatch        string            `toml:"multiline_match"`
 	MultilineMaxLines     int               `toml:"multiline_maxlines"`
 	RemoveAnsiEscapeCodes bool              `toml:"remove_ansi_escape_codes"`
 	IgnoreDeadLog         string            `toml:"ignore_dead_log"`
 	Tags                  map[string]string `toml:"tags"`
-	FromBeginning         bool              `toml:"-"`
+	FromBeginning         bool              `toml:"from_beginning,omitempty"`
 
 	DeprecatedPipeline       string `toml:"pipeline_path"`
 	DeprecatedMultilineMatch string `toml:"match"`
-	DeprecatedFromBeginning  bool   `toml:"from_beginning"`
+	DeprecatedMaximumLength  int    `toml:"maximum_length,omitempty"`
 
 	process []LogProcessor
 	// 在输出 log 内容时，区分是 tailf 还是 logging
@@ -138,7 +132,6 @@ func (ipt *Input) Run() {
 		IgnoreStatus:          ipt.IgnoreStatus,
 		FromBeginning:         ipt.FromBeginning,
 		CharacterEncoding:     ipt.CharacterEncoding,
-		MaximumLength:         ipt.MaximumLength,
 		MultilineMatch:        ipt.MultilineMatch,
 		MultilineMaxLines:     ipt.MultilineMaxLines,
 		RemoveAnsiEscapeCodes: ipt.RemoveAnsiEscapeCodes,

@@ -27,7 +27,7 @@ import (
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
+	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	ssh2 "golang.org/x/crypto/ssh"
 )
@@ -313,7 +313,8 @@ func reloadCore(ctx context.Context) (int, error) {
 				if err != nil {
 					l.Warnf("GetNamespacePipelineFiles failed: %v", err)
 				} else {
-					scriptstore.ReloadAllGitReposDotPScript2Store(allGitReposPipelines)
+					// TODO
+					plscript.ReloadAllGitReposDotPScript2Store(datakit.Logging, allGitReposPipelines)
 				}
 
 			case 4:

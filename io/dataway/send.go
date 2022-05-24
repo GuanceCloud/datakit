@@ -29,6 +29,7 @@ import (
 
 var (
 	sendFailStats = map[string]int32{}
+	startTime     = time.Now()
 	lock          sync.RWMutex
 )
 
@@ -61,8 +62,6 @@ func updateSendFailStats(category string, isOk bool) {
 
 	log.Debugf("update send fail stats: %+#v", sendFailStats)
 }
-
-var startTime = time.Now()
 
 func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 	var (

@@ -92,7 +92,7 @@ func gatherPodMetrics(client k8sMetricsClientX, extraTags map[string]string) ([]
 
 		cpuUsage, err := strconv.ParseFloat(cpu.AsDec().String(), 64)
 		if err != nil {
-			l.Debugf("k8s pod metrics, parsed cpu err: %w", err)
+			l.Debugf("k8s pod metrics, parsed cpu err: %s", err)
 		}
 		memUsage, _ := mem.AsInt64()
 

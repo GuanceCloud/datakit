@@ -15,11 +15,9 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	plw "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
 type IApiWrite interface {
-	sendToPipLine(plw.Task) error
 	sendToIO(string, string, []*io.Point, *io.Option) error
 	geoInfo(string) map[string]string
 }
@@ -49,11 +47,6 @@ func (x *apiWriteImpl) sendToIO(input, category string, pts []*io.Point, opt *io
 
 func (x *apiWriteImpl) geoInfo(ip string) map[string]string {
 	return geoTags(ip)
-}
-
-// sendToPipLine will send each point from @pts to pipeline module.
-func (x *apiWriteImpl) sendToPipLine(t plw.Task) error {
-	return plw.FeedPipelineTaskBlock(t)
 }
 
 func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (interface{}, error) {
@@ -187,7 +180,10 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 
 		// for logging upload, we redirect them to pipeline
 		l.Debugf("send pts to pipeline")
-		err = h.sendToPipLine(buildLogPLTask(input, pipelineSource, version, category, pts))
+		err = h.sendToIO(input, category, pts, &io.Option{
+			HighFreq: true, Version: version,
+			PlScript: map[string]string{pipelineSource: pipelineSource + ".p"},
+		})
 	} else {
 		err = h.sendToIO(input, category, pts, &io.Option{HighFreq: true, Version: version})
 	}
