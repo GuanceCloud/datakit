@@ -99,7 +99,7 @@ OTEL 提供与 vendor 无关的实现，根据用户的需要将观测类数据�
 
 1. 在涉及到 `float` `double` 类型数据时，会最多保留两位小数。
 
-1. http 和 grpc 都支持 gzip 压缩格式。可配置 env：`OTEL_EXPORTER_OTLP_COMPRESSION`, 默认是不会开启 gzip。
+1. http 和 grpc 都支持 gzip 压缩格式。在 exporter 中可配置环境变量来开启：`OTEL_EXPORTER_OTLP_COMPRESSION = gzip`, 默认是不会开启 gzip。
     
 1. http 协议请求格式同时支持 json 和 protobuf 两种序列化格式。但 grpc 仅支持 protobuf 一种。
 
