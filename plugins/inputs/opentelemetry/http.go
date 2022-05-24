@@ -18,7 +18,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 	collectormetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+)
+
+const (
+	pbContentType   = "application/x-protobuf"
+	jsonContentType = "application/json"
 )
 
 // handler collector.
@@ -63,7 +69,7 @@ func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	writeReply(w, rawResponse, o.HTTPStatusOK, nil) // 先将信息返回到客户端 然后再处理spans
+	writeReply(w, rawResponse, o.HTTPStatusOK, r.Header.Get("content-type"), nil) // 先将信息返回到客户端 然后再处理spans
 	if len(request.ResourceSpans) > 0 {
 		o.storage.AddSpans(request.ResourceSpans)
 	}
@@ -96,7 +102,7 @@ func (o *otlpHTTPCollector) apiOtlpMetric(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	writeReply(w, rawResponse, 200, nil) // 先将信息返回到客户端 然后再处理spans
+	writeReply(w, rawResponse, o.HTTPStatusOK, r.Header.Get("content-type"), nil) // 先将信息返回到客户端 然后再处理spans
 	orms := o.storage.ToDatakitMetric(request.ResourceMetrics)
 	o.storage.AddMetric(orms)
 }
@@ -113,19 +119,29 @@ func (o *otlpHTTPCollector) checkHeaders(r *http.Request) bool {
 
 func unmarshalTraceRequest(rawRequest []byte, contentType string) (*collectortracepb.ExportTraceServiceRequest, error) {
 	request := &collectortracepb.ExportTraceServiceRequest{}
-	if contentType != "application/x-protobuf" {
-		return request, fmt.Errorf("invalid content-type: %s, only application/x-protobuf is supported", contentType)
+	var err error
+	switch contentType {
+	case pbContentType:
+		err = proto.Unmarshal(rawRequest, request)
+	case jsonContentType:
+		err = protojson.Unmarshal(rawRequest, request)
+	default:
+		err = fmt.Errorf("invalid content-type: %s, only application/x-protobuf and application/json is supported", contentType)
 	}
-	err := proto.Unmarshal(rawRequest, request)
 	return request, err
 }
 
 func unmarshalMetricsRequest(rawRequest []byte, contentType string) (*collectormetricpb.ExportMetricsServiceRequest, error) {
 	request := &collectormetricpb.ExportMetricsServiceRequest{}
-	if contentType != "application/x-protobuf" {
-		return request, fmt.Errorf("invalid content-type: %s, only application/x-protobuf is supported", contentType)
+	var err error
+	switch contentType {
+	case pbContentType:
+		err = proto.Unmarshal(rawRequest, request)
+	case jsonContentType:
+		err = protojson.Unmarshal(rawRequest, request)
+	default:
+		err = fmt.Errorf("invalid content-type: %s, only application/x-protobuf and application/json is supported", contentType)
 	}
-	err := proto.Unmarshal(rawRequest, request)
 	return request, err
 }
 
@@ -150,8 +166,11 @@ func readGzipBody(body io.Reader) ([]byte, error) {
 	return rawRequest.Bytes(), nil
 }
 
-func writeReply(w http.ResponseWriter, rawResponse []byte, status int, h map[string]string) {
+func writeReply(w http.ResponseWriter, rawResponse []byte, status int, ct string, h map[string]string) {
 	contentType := "application/x-protobuf"
+	if ct != "" {
+		contentType = ct
+	}
 	w.Header().Set("Content-Type", contentType)
 	for k, v := range h {
 		w.Header().Add(k, v)
