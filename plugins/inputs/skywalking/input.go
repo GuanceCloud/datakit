@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"google.golang.org/grpc"
 )
 
 var _ inputs.InputV2 = &Input{}
@@ -42,7 +43,7 @@ const (
   # [inputs.skywalking.close_resource]
     # service1 = ["resource1", "resource2", ...]
     # service2 = ["resource1", "resource2", ...]
-		# "*" = ["close_resource_under_all_services"]
+    # "*" = ["close_resource_under_all_services"]
     # ...
 
   ## Sampler config uses to set global sampling strategy.
@@ -81,6 +82,7 @@ var (
 	sampler          *itrace.Sampler
 	customerKeys     []string
 	tags             map[string]string
+	skysvr           *grpc.Server
 )
 
 type Input struct {
@@ -160,7 +162,9 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) Terminate() {
-	// TODO: 必须写
+	if skysvr != nil {
+		skysvr.Stop()
+	}
 }
 
 func init() { //nolint:gochecknoinits
