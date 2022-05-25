@@ -24,10 +24,10 @@ func TestPlStats(t *testing.T) {
 		for i := 0; i < 199; i++ {
 			stats.WriteErr(fmt.Sprint(i))
 			stats.WritePtCount(1, 1, 1, 1)
-			stats.UpdateMeta(true, true)
-			stats.UpdateMeta(true, false)
-			stats.UpdateMeta(false, true, "")
-			stats.UpdateMeta(false, false, "test")
+			stats.UpdateMeta("", true, true)
+			stats.UpdateMeta("", true, false)
+			stats.UpdateMeta("", false, true, "")
+			stats.UpdateMeta("", false, false, "test")
 		}
 	}()
 	g.Add(1)

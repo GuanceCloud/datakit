@@ -51,3 +51,46 @@ func TestScript(t *testing.T) {
 		t.Fatal("!drop")
 	}
 }
+
+func TestNewScript(t *testing.T) {
+	for category := range datakit.CategoryDirName() {
+		if s, err := NewScript("abc", "if true{}", DefaultScriptNS, category); err != nil {
+			l.Error(err)
+		} else if _, _, err := s.Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
+			l.Error(err)
+		}
+	}
+	for category := range _allCategory {
+		if s, err := NewScript("abc", "if true{}", DefaultScriptNS, category); err != nil {
+			l.Error(err)
+		} else if _, _, err := s.Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
+			l.Error(err)
+		}
+	}
+	for category := range _allDeprecatedCategory {
+		if s, err := NewScript("abc", "if true{}", DefaultScriptNS, category); err != nil {
+			l.Error(err)
+		} else if _, _, err := s.Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
+			l.Error(err)
+		}
+	}
+	m1, m2 := datakit.CategoryList()
+	for category := range m1 {
+		if s, err := NewScript("abc", "if true{}", DefaultScriptNS, category); err != nil {
+			l.Error(err)
+		} else if _, _, err := s.Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
+			l.Error(err)
+		}
+	}
+	for category := range m2 {
+		if s, err := NewScript("abc", "if true{}", DefaultScriptNS, category); err != nil {
+			l.Error(err)
+		} else if _, _, err := s.Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
+			l.Error(err)
+		}
+	}
+
+	if _, err := NewScript("abc", "if true{}", DefaultScriptNS, "-!-c-a-t-e-g-0-r-Y"); err == nil {
+		l.Error("error == nil")
+	}
+}

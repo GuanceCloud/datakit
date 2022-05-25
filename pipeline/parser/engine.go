@@ -165,6 +165,7 @@ func (ng *Engine) Run(measurement string, tags map[string]string, fields map[str
 	if rTime.IsZero() {
 		rTime = time.Now()
 	}
+
 	if tags == nil {
 		tags = map[string]string{}
 	}
@@ -199,14 +200,14 @@ func result(data *EngineData) *Output {
 			data.output.Fields[k] = string(str)
 		}
 	}
-	if v, ok := data.output.Fields[PipelineTimeField]; ok {
+	if v, err := data.GetContent(PipelineTimeField); err == nil {
 		if nanots, ok := v.(int64); ok {
 			t := time.Unix(nanots/int64(time.Second),
 				nanots%int64(time.Second))
 			if !t.IsZero() {
 				data.output.Time = t
 			}
-			delete(data.output.Fields, PipelineTimeField)
+			_ = data.DeleteContent(PipelineTimeField)
 		}
 	}
 
@@ -267,12 +268,12 @@ func (ngData *EngineData) SetKey(k string, v interface{}) {
 		return
 	}
 
-	checkOutPutNilPtr(&ngData.output)
+	checkOutputNilPtr(&ngData.output)
 
 	if k == "_" {
 		k = ngData.contentKey
 	}
-
+	delete(ngData.output.Tags, k)
 	ngData.output.Fields[k] = v
 }
 
@@ -397,7 +398,7 @@ func (ngData *EngineData) PatternIndex() string {
 	return idx
 }
 
-func checkOutPutNilPtr(outptr **Output) {
+func checkOutputNilPtr(outptr **Output) {
 	if *outptr == nil {
 		*outptr = &Output{
 			Tags:   make(map[string]string),
@@ -428,7 +429,7 @@ func (ngData *EngineData) SetContent(k, v interface{}) error {
 		return fmt.Errorf("unsupported %v set", reflect.TypeOf(key).String())
 	}
 
-	checkOutPutNilPtr(&ngData.output)
+	checkOutputNilPtr(&ngData.output)
 
 	if v == nil {
 		return nil
@@ -471,7 +472,7 @@ func (ngData *EngineData) SetTag(k interface{}, v string) error {
 	default:
 		return fmt.Errorf("unsupported %v set", reflect.TypeOf(key).String())
 	}
-	checkOutPutNilPtr(&ngData.output)
+	checkOutputNilPtr(&ngData.output)
 
 	if key == "_" {
 		key = ngData.contentKey
@@ -564,19 +565,19 @@ func (e Stmts) Run(ng *Engine, data *EngineData) {
 }
 
 func (e *IfelseStmt) Run(ng *Engine, data *EngineData) {
-	data.stackDeep += 1
-	data.grokPatternIndex = append(data.grokPatternIndex, 0)
-	defer func() {
-		data.stackDeep -= 1
-		data.grokPatternIndex = data.grokPatternIndex[:data.stackDeep]
-	}()
+	// data.stackDeep += 1
+	// data.grokPatternIndex = append(data.grokPatternIndex, 0)
+	// defer func() {
+	// 	data.stackDeep -= 1
+	// 	data.grokPatternIndex = data.grokPatternIndex[:data.stackDeep]
+	// }()
 
 	if data.lastErr != nil {
 		return
 	}
 
 	if !e.IfList.Run(ng, data) {
-		data.grokPatternIndex[data.stackDeep-1] += 1
+		// data.grokPatternIndex[data.stackDeep-1] += 1
 		e.Else.Run(ng, data)
 	}
 }
@@ -586,7 +587,7 @@ func (e IfList) Run(ng *Engine, data *EngineData) (end bool) {
 		return false
 	}
 	for _, ifexpr := range e {
-		data.grokPatternIndex[data.stackDeep-1] += 1
+		// data.grokPatternIndex[data.stackDeep-1] += 1
 		end = ifexpr.Run(ng, data)
 		if end {
 			return
@@ -631,7 +632,7 @@ func (e *ConditionalExpr) Run(ng *Engine, data *EngineData) (pass bool) {
 
 	switch v := e.LHS.(type) {
 	case *Identifier:
-		left = data.output.Fields[v.Name] // left maybe nil
+		left, _ = data.GetContent(v.Name) // left maybe nil
 	case *ParenExpr:
 		left = v.Run(ng, data)
 	case *ConditionalExpr:
@@ -658,7 +659,7 @@ func (e *ConditionalExpr) Run(ng *Engine, data *EngineData) (pass bool) {
 
 	switch v := e.RHS.(type) {
 	case *Identifier:
-		right = data.output.Fields[v.Name] // right maybe nil
+		right, _ = data.GetContent(v.Name) // right maybe nil
 	case *ParenExpr:
 		right = v.Run(ng, data)
 	case *ConditionalExpr:
@@ -720,11 +721,11 @@ func (e *AssignmentStmt) Run(ng *Engine, data *EngineData) {
 	case *Identifier:
 		switch vv := e.RHS.(type) {
 		case *StringLiteral:
-			data.output.Fields[v.Name] = vv.Value()
+			_ = data.SetContent(v.Name, vv.Value())
 		case *NumberLiteral:
-			data.output.Fields[v.Name] = vv.Value()
+			_ = data.SetContent(v.Name, vv.Value())
 		case *BoolLiteral:
-			data.output.Fields[v.Name] = vv.Value()
+			_ = data.SetContent(v.Name, vv.Value())
 		default:
 			data.lastErr = fmt.Errorf("unsupported AssignmentStmt type %s, from: %s", reflect.TypeOf(vv), e.RHS)
 		}

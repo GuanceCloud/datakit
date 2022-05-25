@@ -138,12 +138,10 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 		return fmt.Errorf("invalid category `%s'", category)
 	}
 
-	if opt != nil && len(opt.PlScript) > 0 { // run pl
-		if pts1, err := runPl(category, pts, opt.PlScript, opt.PlOption); err != nil {
-			l.Error(err)
-		} else {
-			pts = pts1
-		}
+	if pts1, err := runPl(category, pts, opt); err != nil {
+		l.Error(err)
+	} else {
+		pts = pts1
 	}
 
 	// Maybe all points been filtered, but we still send the feeding into io.

@@ -12,6 +12,23 @@ import (
 	"time"
 )
 
+type ScriptMeta struct {
+	script  string
+	enable  bool
+	deleted bool
+
+	startTS           time.Time
+	scriptUpdateTS    time.Time
+	scriptUpdateTimes uint64
+
+	category, ns, name string
+	err                string
+
+	metaUpdateTS time.Time
+
+	sync.RWMutex
+}
+
 type ScriptStats struct {
 	pt, ptDrop, ptError uint64
 
@@ -23,19 +40,7 @@ type ScriptStats struct {
 		sync.RWMutex
 	}
 
-	meta struct {
-		startTS           time.Time
-		scriptUpdateTS    time.Time
-		scriptUpdateTimes uint64
-
-		category, ns, name string
-		enable             bool
-		err                string
-
-		metaUpdateTS time.Time
-
-		sync.RWMutex
-	}
+	meta ScriptMeta
 }
 
 type ScriptStatsROnly struct {
@@ -46,6 +51,7 @@ type ScriptStatsROnly struct {
 	TotalCost int64 // ns
 	MetaTS    time.Time
 
+	Script            string
 	FirstTS           time.Time
 	ScriptTS          time.Time
 	ScriptUpdateTimes uint64
@@ -53,6 +59,7 @@ type ScriptStatsROnly struct {
 	Category, NS, Name string
 
 	Enable       bool
+	Deleted      bool
 	CompileError string
 }
 
@@ -105,10 +112,12 @@ func (stats *ScriptStats) Read() *ScriptStatsROnly {
 	ret.NS = stats.meta.ns
 	ret.Name = stats.meta.name
 
+	ret.Script = stats.meta.script
 	ret.FirstTS = stats.meta.startTS
 	ret.ScriptTS = stats.meta.scriptUpdateTS
 	ret.ScriptUpdateTimes = stats.meta.scriptUpdateTimes
 	ret.Enable = stats.meta.enable
+	ret.Deleted = stats.meta.deleted
 	ret.CompileError = stats.meta.err
 
 	ret.MetaTS = stats.meta.metaUpdateTS
@@ -140,17 +149,20 @@ func (stats *ScriptStats) Read() *ScriptStatsROnly {
 	return ret
 }
 
-func (stats *ScriptStats) UpdateMeta(scriptUpdate bool, enable bool, err ...string) {
+func (stats *ScriptStats) UpdateMeta(script string, enable, deleted bool, err ...string) {
 	stats.meta.Lock()
 	defer stats.meta.Unlock()
 
 	t := time.Now()
-	if scriptUpdate {
+	if script != stats.meta.script {
 		stats.meta.scriptUpdateTS = t
 		stats.meta.scriptUpdateTimes += 1
+		stats.meta.script = script
 	}
 
 	stats.meta.enable = enable
+	stats.meta.deleted = deleted
+
 	if len(err) > 0 {
 		stats.meta.err = err[0]
 	}

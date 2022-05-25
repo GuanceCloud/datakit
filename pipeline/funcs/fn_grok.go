@@ -102,19 +102,17 @@ func Grok(ng *parser.EngineData, node parser.Node) interface{} {
 
 	val, err := ng.GetContentStr(key)
 	if err != nil {
-		l.Warn(err)
 		return nil
 	}
 
-	m, mFailed, err := grokRe.RunWithTypeInfo(val)
+	m, _, err := grokRe.RunWithTypeInfo(val)
 	if err != nil {
-		l.Warn(err)
 		return nil
 	}
-	for k, v := range mFailed {
-		// m[k+"@string"] = v
-		l.Warnf("unable to cast %s(%#v) of type %T to bool", k, v, v)
-	}
+	// for k, v := range mFailed {
+	// m[k+"@string"] = v
+	// l.Warnf("unable to cast %s(%#v) of type %T to bool", k, v, v)
+	// }
 	for k, v := range m {
 		err := ng.SetContent(k, v)
 		if err != nil {

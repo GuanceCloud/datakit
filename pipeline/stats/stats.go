@@ -55,7 +55,7 @@ func (stats *Stats) ReadEvent() []ChangeEvent {
 	return stats.event.Read()
 }
 
-func (stats *Stats) UpdateScriptStatsMeta(category, ns, name string, scriptUpdate, enable bool, err ...string) {
+func (stats *Stats) UpdateScriptStatsMeta(category, ns, name, script string, enable, deleted bool, err ...string) {
 	ts := time.Now()
 
 	var compileErr string
@@ -64,35 +64,25 @@ func (stats *Stats) UpdateScriptStatsMeta(category, ns, name string, scriptUpdat
 	}
 
 	if stats, loaded := stats.stats.LoadOrStore(StatsKey(category, ns, name), &ScriptStats{
-		meta: struct {
-			startTS           time.Time
-			scriptUpdateTS    time.Time
-			scriptUpdateTimes uint64
-
-			category, ns, name string
-			enable             bool
-			err                string
-
-			metaUpdateTS time.Time
-
-			sync.RWMutex
-		}{
+		meta: ScriptMeta{
+			script:            script,
+			deleted:           deleted,
+			enable:            enable,
 			startTS:           ts,
 			scriptUpdateTS:    ts,
 			scriptUpdateTimes: 1,
 			category:          category,
 			ns:                ns,
 			name:              name,
-			enable:            enable,
 			metaUpdateTS:      ts,
 			err:               compileErr,
 		},
 	}); loaded {
 		if stats, ok := stats.(*ScriptStats); ok {
 			if len(err) > 0 {
-				stats.UpdateMeta(scriptUpdate, enable, err...)
+				stats.UpdateMeta(script, enable, deleted, err...)
 			} else {
-				stats.UpdateMeta(scriptUpdate, enable)
+				stats.UpdateMeta(script, enable, deleted)
 			}
 		}
 	}
@@ -132,8 +122,8 @@ func ReadEvent() []ChangeEvent {
 	return _plstats.ReadEvent()
 }
 
-func UpdateScriptStatsMeta(category, ns, name string, scriptUpdate, enable bool, err ...string) {
-	_plstats.UpdateScriptStatsMeta(category, ns, name, scriptUpdate, enable, err...)
+func UpdateScriptStatsMeta(category, ns, name, script string, enable, deleted bool, err ...string) {
+	_plstats.UpdateScriptStatsMeta(category, ns, name, script, enable, deleted, err...)
 }
 
 func WriteScriptStats(category, ns, name string, pt, ptDrop, ptError uint64, cost int64, err error) {
@@ -155,6 +145,14 @@ type SortStatsROnly []ScriptStatsROnly
 func (s SortStatsROnly) Less(i, j int) bool {
 	si := s[i]
 	sj := s[j]
+	if si.Deleted != sj.Deleted {
+		if !si.Deleted {
+			return true
+		} else {
+			return false
+		}
+	}
+
 	if si.Enable != sj.Enable {
 		if si.Enable {
 			return true

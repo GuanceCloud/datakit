@@ -43,7 +43,7 @@ var (
 		`Input,Category,Freq,Avg Pts,Total Feed,Total Pts,1st Feed,Last Feed,Avg Cost,Max Cost,Error(date)`, ",")
 	plStatsCols = strings.Split(
 		"Script,Category,Namespace,Enabled,Total Pts,Dropped Pts,Error Pts,Script Update,"+
-			"Cost,Avg Cost,First Time,Update Time,Script Update Time,Errors", ",")
+			"Cost,Avg Cost,First Time,Update Time,Script Update Time,Deleted,Errors", ",")
 	enabledInputCols = strings.Split(`Input,Instaces,Crashed`, ",")
 	goroutineCols    = strings.Split(`Name,Done,Running,Total Cost,Min Cost,Max Cost,Failed`, ",")
 	httpAPIStatCols  = strings.Split(`API,Total,Limited(%),Max Latency,Avg Latency,2xx,3xx,4xx,5xx`, ",")
@@ -638,28 +638,38 @@ func (m *monitorAPP) renderPLStatTable(ds *dkhttp.DatakitStats, colArr []string)
 		table.SetCell(row, 12, tview.NewTableCell(humanize.RelTime(plStats.ScriptTS, now, "ago", "")).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 
-		var ret string
+		table.SetCell(row, 13,
+			tview.NewTableCell(fmt.Sprintf("%8v", plStats.Deleted)).
+				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+
+		var errInfo string
 		if plStats.CompileError != "" {
-			ret = "Compile Error: " + plStats.CompileError + "\n\n"
+			errInfo = "Compile Error: " + plStats.CompileError + "\n\n"
 		}
 		if len(plStats.RunLastErrs) > 0 {
-			ret += "Run Error:\n"
+			errInfo += "Run Error:\n"
 			for _, e := range plStats.RunLastErrs {
-				ret += "  " + e + "\n"
+				errInfo += "  " + e + "\n"
 			}
 		}
-		if ret == "" {
-			ret = "-"
+		click := "\n__________script__________\n" +
+			plStats.Script +
+			"__________________________\n"
+		if errInfo == "" {
+			errInfo = "-"
+		} else {
+			click = errInfo + click
 		}
-		lastErrCell := tview.NewTableCell(ret).
+
+		lastErrCell := tview.NewTableCell(errInfo).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter)
 
 		lastErrCell.SetClickedFunc(func() bool {
-			m.setupLastErr(ret)
+			m.setupLastErr(click)
 			return true
 		})
 
-		table.SetCell(row, 13, lastErrCell)
+		table.SetCell(row, 14, lastErrCell)
 
 		row++
 	}

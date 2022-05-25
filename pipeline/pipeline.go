@@ -126,6 +126,7 @@ func (p *Pipeline) Run(pt *io.Point, plOpt *plscript.Option, ioPtOpt io.PointOpt
 
 func Init(pipelineCfg *PipelineCfg) error {
 	l = logger.SLogger("pipeline")
+	plscript.InitStore()
 	funcs.InitLog()
 	parser.InitLog()
 
@@ -136,8 +137,6 @@ func Init(pipelineCfg *PipelineCfg) error {
 	if err := loadPatterns(); err != nil {
 		return err
 	}
-
-	plscript.InitStore()
 
 	return nil
 }

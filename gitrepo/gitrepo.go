@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -309,13 +310,8 @@ func reloadCore(ctx context.Context) (int, error) {
 			case 3:
 				l.Info("before set pipelines")
 
-				allGitReposPipelines, err := config.GetNamespacePipelineFiles(datakit.StrGitRepos)
-				if err != nil {
-					l.Warnf("GetNamespacePipelineFiles failed: %v", err)
-				} else {
-					// TODO
-					plscript.ReloadAllGitReposDotPScript2Store(datakit.Logging, allGitReposPipelines)
-				}
+				plscript.LoadAllScripts2StoreFromPlStructPath(plscript.GitRepoScriptNS,
+					filepath.Join(datakit.GitReposRepoFullPath, "pipeline"))
 
 			case 4:
 				l.Info("before RunInputs")

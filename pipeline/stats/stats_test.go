@@ -36,14 +36,22 @@ func TestStats(t *testing.T) {
 		t.Fatal("len(stats)", len(statsRL))
 	}
 
-	stats.UpdateScriptStatsMeta(statsR.Category, statsR.NS, statsR.Name, true, false)
+	stats.UpdateScriptStatsMeta(statsR.Category, statsR.NS, statsR.Name, "", true, false)
 	statsRL = stats.ReadStats()
 	if len(statsRL) != 1 {
 		t.Fatal("len(stats)", len(statsRL))
 	}
-	stats.UpdateScriptStatsMeta(statsR.Category, statsR.NS, statsR.Name, true, false)
+	stats.UpdateScriptStatsMeta(statsR.Category, statsR.NS, statsR.Name, "", true, false)
 	statsRL = stats.ReadStats()
 	if len(statsRL) != 1 {
 		t.Fatal("len(stats)", len(statsRL))
 	}
+}
+
+func TestEventAndStats(t *testing.T) {
+	WriteEvent(nil)
+	_ = ReadEvent()
+	_ = ReadStats()
+	UpdateScriptStatsMeta("a", "b", "c", "x", false, false, "")
+	WriteScriptStats("d", "d", "d", 1, 1, 0, 1, nil)
 }

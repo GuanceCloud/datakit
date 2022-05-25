@@ -120,7 +120,7 @@ func TestScriptLoadFunc(t *testing.T) {
 }
 
 func TestCmpCategory(t *testing.T) {
-	c, dc := datakit.AllCategory()
+	c, dc := datakit.CategoryList()
 	c1, dc1 := func() (map[string]struct{}, map[string]struct{}) {
 		ret1 := map[string]struct{}{}
 		ret2 := map[string]struct{}{}
@@ -135,12 +135,36 @@ func TestCmpCategory(t *testing.T) {
 
 	assert.Equal(t, c, c1)
 	assert.Equal(t, dc, dc1)
+	assert.Equal(t, c1, func() map[string]struct{} {
+		ret := map[string]struct{}{}
+		for k := range datakit.CategoryDirName() {
+			ret[k] = struct{}{}
+		}
+		return ret
+	}())
 }
 
 func TestPlScriptStore(t *testing.T) {
 	store := NewScriptStore(datakit.Logging)
 
-	err := store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time)"})
+	store.indexUpdate(nil)
+
+	err := store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time) set_tag(a, \"1\")"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time)"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time) set_tag(a, 1)"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time)"})
 	if err != nil {
 		t.Error(err)
 	}

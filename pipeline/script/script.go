@@ -39,7 +39,9 @@ type PlScript struct {
 
 func NewScript(name, script, ns, category string) (*PlScript, error) {
 	switch category {
-	case datakit.Metric, datakit.MetricDeprecated:
+	case datakit.Metric:
+	case datakit.MetricDeprecated:
+		category = datakit.Metric
 	case datakit.Network:
 	case datakit.KeyEvent:
 	case datakit.Object:
@@ -47,7 +49,6 @@ func NewScript(name, script, ns, category string) (*PlScript, error) {
 	case datakit.Tracing:
 	case datakit.RUM:
 	case datakit.Security:
-	case datakit.HeartBeat:
 	case datakit.Logging:
 	default:
 		return nil, fmt.Errorf("unsupported category: %s", category)
@@ -74,7 +75,7 @@ func (script *PlScript) Engine() *parser.Engine {
 func (script *PlScript) Run(measurement string, tags map[string]string, fields map[string]interface{},
 	contentKey string, t time.Time, opt *Option) (*parser.Output, bool, error) {
 	startTime := time.Now()
-	if script == nil || script.ng == nil {
+	if script.ng == nil {
 		return nil, false, fmt.Errorf("no engine")
 	}
 	out, err := script.ng.Run(measurement, tags, fields, contentKey, t)
@@ -84,7 +85,7 @@ func (script *PlScript) Run(measurement string, tags map[string]string, fields m
 	}
 
 	switch script.category {
-	case datakit.Metric, datakit.MetricDeprecated:
+	case datakit.Metric:
 	case datakit.Network:
 	case datakit.KeyEvent:
 	case datakit.Object:
@@ -92,7 +93,6 @@ func (script *PlScript) Run(measurement string, tags map[string]string, fields m
 	case datakit.Tracing:
 	case datakit.RUM:
 	case datakit.Security:
-	case datakit.HeartBeat:
 	case datakit.Logging:
 		var disable bool
 		var ignore []string

@@ -11,34 +11,30 @@ import (
 
 var plLogger = logger.DefaultSLogger("pipeline")
 
-func runPl(category string, pts []*Point, scriptMap map[string]string, plOpt *script.Option) (ret []*Point, retErr error) {
+func runPl(category string, pts []*Point, opt *Option) (ret []*Point, retErr error) {
 	defer func() {
 		if err := recover(); err != nil {
 			retErr = fmt.Errorf("run pl: %s", err)
 		}
 	}()
 
-	if len(scriptMap) == 0 {
-		return pts, nil
+	var scriptMap map[string]string
+	var plOpt *script.Option
+	if opt != nil {
+		scriptMap = opt.PlScript
+		plOpt = opt.PlOption
 	}
-
 	ret = []*Point{}
-
 	for _, pt := range pts {
-		scriptName, ok := scriptMap[pt.Name()]
-		if !ok || scriptName == "-" { // skip
+		scriptName, ok := scriptName(category, pt, scriptMap)
+		if !ok {
 			ret = append(ret, pt)
 			continue
-		}
-
-		if scriptName == "" {
-			scriptName = pt.Name() + ".p"
 		}
 
 		script, ok := script.QueryScript(category, scriptName)
 		if !ok { // script not found
 			ret = append(ret, pt)
-			plLogger.Warnf("category: %s, name: %s : script not found", category, scriptName)
 			continue
 		}
 
@@ -73,9 +69,11 @@ func runPl(category string, pts []*Point, scriptMap map[string]string, plOpt *sc
 		}
 
 		ptOpt := &PointOption{
-			Category: category,
-			Time:     out.Time,
+			DisableGlobalTags: true,
+			Category:          category,
+			Time:              out.Time,
 		}
+
 		if plOpt != nil {
 			ptOpt.MaxFieldValueLen = plOpt.MaxFieldValLen
 		}
@@ -89,4 +87,32 @@ func runPl(category string, pts []*Point, scriptMap map[string]string, plOpt *sc
 	}
 
 	return ret, nil
+}
+
+func scriptName(category string, pt *Point, scriptMap map[string]string) (string, bool) {
+	if pt == nil {
+		return "", false
+	}
+	var scriptName string
+	switch category {
+	case datakit.Tracing:
+		svc, ok := pt.Tags()["service"]
+		if ok {
+			scriptName = scriptMap[svc]
+			if scriptName == "" {
+				scriptName = svc + ".p"
+			}
+		} else {
+			return "", false
+		}
+	default:
+		scriptName = scriptMap[pt.Name()]
+		if scriptName == "" {
+			scriptName = pt.Name() + ".p"
+		}
+	}
+	if scriptName == "-" {
+		return "", false
+	}
+	return scriptName, true
 }

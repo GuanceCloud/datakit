@@ -46,18 +46,6 @@ var (
 	_allDeprecatedCategory = map[string]*ScriptStore{
 		datakit.MetricDeprecated: _metricScriptStore,
 	}
-
-	CategoryDirName = map[string]string{
-		datakit.Metric:       "metric",
-		datakit.Network:      "network",
-		datakit.KeyEvent:     "keyevent",
-		datakit.Object:       "object",
-		datakit.CustomObject: "custom_object",
-		datakit.Logging:      "logging",
-		datakit.Tracing:      "tracing",
-		datakit.RUM:          "rum",
-		datakit.Security:     "security",
-	}
 )
 
 func whichStore(category string) *ScriptStore {
@@ -87,9 +75,9 @@ func whichStore(category string) *ScriptStore {
 }
 
 const (
-	DefaultScriptNS = "default"  // 内置 pl script， 优先级最低
-	GitRepoScriptNS = "git_repo" // git 管理的 pl script
-	RemoteScriptNS  = "remote"   // remote pl script，优先级最高
+	DefaultScriptNS = "default" // 内置 pl script， 优先级最低
+	GitRepoScriptNS = "gitrepo" // git 管理的 pl script
+	RemoteScriptNS  = "remote"  // remote pl script，优先级最高
 )
 
 var plScriptNSSearchOrder = [3]string{
@@ -159,7 +147,7 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 	if !ok {
 		store.index.Store(script.name, script)
 
-		stats.UpdateScriptStatsMeta(script.category, script.ns, script.name, false, true)
+		stats.UpdateScriptStatsMeta(script.category, script.ns, script.name, script.script, true, false)
 		stats.WriteEvent(&stats.ChangeEvent{
 			Name:     script.name,
 			Category: script.category,
@@ -176,8 +164,8 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 	if nsNew >= nsCur {
 		store.index.Store(script.name, script)
 
-		stats.UpdateScriptStatsMeta(curScript.category, curScript.ns, curScript.name, false, false)
-		stats.UpdateScriptStatsMeta(script.category, script.ns, script.name, false, true)
+		stats.UpdateScriptStatsMeta(curScript.category, curScript.ns, curScript.name, curScript.script, false, false)
+		stats.UpdateScriptStatsMeta(script.category, script.ns, script.name, script.script, true, false)
 		stats.WriteEvent(&stats.ChangeEvent{
 			Name:      script.name,
 			Category:  script.category,
@@ -209,7 +197,6 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 	if nsCur == -1 {
 		store.index.Delete(name)
 
-		stats.UpdateScriptStatsMeta(curScript.category, curScript.ns, curScript.name, false, false)
 		stats.WriteEvent(&stats.ChangeEvent{
 			Name:     name,
 			Category: curScript.category,
@@ -225,8 +212,7 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 		if v, ok := scripts4back[v]; ok {
 			if s, ok := v[name]; ok {
 				store.index.Store(s.name, s)
-				stats.UpdateScriptStatsMeta(curScript.category, curScript.ns, curScript.name, false, false)
-				stats.UpdateScriptStatsMeta(s.category, s.ns, s.name, false, true)
+				stats.UpdateScriptStatsMeta(s.category, s.ns, s.name, s.script, true, false)
 				stats.WriteEvent(&stats.ChangeEvent{
 					Name:      name,
 					Category:  s.category,
@@ -244,7 +230,6 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 
 	store.index.Delete(name)
 
-	stats.UpdateScriptStatsMeta(curScript.category, curScript.ns, curScript.name, false, false)
 	stats.WriteEvent(&stats.ChangeEvent{
 		Name:     name,
 		Category: curScript.category,
@@ -282,26 +267,29 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 				Time:         time.Now(),
 				CompileError: errStr,
 			}
-			stats.UpdateScriptStatsMeta(store.category, ns, name, true, false, errStr)
+			stats.UpdateScriptStatsMeta(store.category, ns, name, v, false, true, errStr)
+			store.indexDeleteAndBack(name, ns, store.storage.scripts)
+			delete(store.storage.scripts[ns], name)
 			stats.WriteEvent(&change)
 		}
 	}
 
-	needDelete := []string{}
+	needDelete := map[string]string{}
 
 	// 在 storage & index 执行删除以及更新操作
 	for name, curScript := range store.storage.scripts[ns] {
 		if newScript, ok := script[name]; ok {
 			if newScript.script != curScript.script {
 				store.storage.scripts[ns][name] = newScript
-				stats.UpdateScriptStatsMeta(store.category, ns, name, true, false)
+				stats.UpdateScriptStatsMeta(store.category, ns, name, newScript.script, false, false)
 				store.indexUpdate(newScript)
 			}
 			continue
 		}
-		needDelete = append(needDelete, name)
+		needDelete[name] = curScript.script
 	}
-	for _, name := range needDelete {
+	for name, script := range needDelete {
+		stats.UpdateScriptStatsMeta(store.category, ns, name, script, false, true)
 		store.indexDeleteAndBack(name, ns, store.storage.scripts)
 		delete(store.storage.scripts[ns], name)
 	}
@@ -310,6 +298,7 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 	for name, newScript := range script {
 		if _, ok := store.storage.scripts[ns][name]; !ok {
 			store.storage.scripts[ns][name] = newScript
+			stats.UpdateScriptStatsMeta(store.category, ns, name, newScript.script, false, false)
 			store.indexUpdate(newScript)
 		}
 	}
@@ -334,7 +323,7 @@ func ReadPlScriptFromDir(dirPath string) map[string]string {
 	ret := map[string]string{}
 	dirPath = filepath.Clean(dirPath)
 	if dirEntry, err := os.ReadDir(dirPath); err != nil {
-		l.Error(err)
+		l.Warn(err)
 	} else {
 		for _, v := range dirEntry {
 			if v.IsDir() {
@@ -380,13 +369,16 @@ func LoadDotPScript2Store(category, ns string, dirPath string, filePath []string
 }
 
 func LoadAllDefaultScripts2Store() {
-	scripts := map[string](map[string]string){}
-
 	plPath := filepath.Join(datakit.InstallDir, "pipeline")
+	LoadAllScripts2StoreFromPlStructPath(DefaultScriptNS, plPath)
+}
+
+func LoadAllScripts2StoreFromPlStructPath(ns, plPath string) {
+	scripts := map[string](map[string]string){}
 
 	scripts[datakit.Logging] = ReadPlScriptFromDir(plPath)
 
-	for category, dirName := range CategoryDirName {
+	for category, dirName := range datakit.CategoryDirName() {
 		s := ReadPlScriptFromDir(filepath.Join(plPath, dirName))
 		if _, ok := scripts[category]; !ok {
 			scripts[category] = map[string]string{}
@@ -396,7 +388,7 @@ func LoadAllDefaultScripts2Store() {
 		}
 	}
 
-	LoadAllScript(DefaultScriptNS, scripts)
+	LoadAllScript(ns, scripts)
 }
 
 func LoadScript(category, ns string, scripts map[string]string) {
