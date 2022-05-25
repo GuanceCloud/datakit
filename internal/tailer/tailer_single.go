@@ -180,8 +180,6 @@ func (t *Single) forwardMessage() {
 				t.opt.log.Warnf("receive events error, file %s", t.filepath)
 				return
 			}
-			t.opt.log.Warnf("event: %s", event)
-
 			switch {
 			case event.Op&fsnotify.Remove == fsnotify.Remove:
 				t.opt.log.Debugf("receive remove event from file %s", t.filepath)
