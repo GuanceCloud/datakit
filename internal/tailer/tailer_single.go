@@ -66,13 +66,13 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 
 	t.file, err = os.Open(filename) //nolint:gosec
 	if err != nil {
-		if os.IsNotExist(err) {
-			filename = filepath.Join("/rootfs", filename)
-			t.file, err = os.Open(filename) //nolint:gosec
-			if err != nil {
-				return nil, err
-			}
-		}
+		// if os.IsNotExist(err) {
+		// 	filename = filepath.Join("/rootfs", filename)
+		// 	t.file, err = os.Open(filename) //nolint:gosec
+		// 	if err != nil {
+		// 		return nil, err
+		// 	}
+		// }
 		return nil, err
 	}
 
@@ -135,12 +135,12 @@ func (t *Single) closeWatcher() {
 
 func (t *Single) closeFile() {
 	if t.file != nil {
-		err := t.file.Close()
-		if err != nil {
-			t.opt.log.Warnf("close file err: %s, ignored", err)
-		}
-		t.file = nil
+		return
 	}
+	if err := t.file.Close(); err != nil {
+		t.opt.log.Warnf("close file err: %s, ignored", err)
+	}
+	t.file = nil
 }
 
 func (t *Single) reopen() error {
