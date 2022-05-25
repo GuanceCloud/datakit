@@ -69,6 +69,7 @@ require (
 	github.com/lib/pq v1.10.2
 	github.com/mdlayher/netlink v1.4.1 // indirect
 	github.com/mssola/user_agent v0.5.2
+	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/pborman/ansi v1.0.0

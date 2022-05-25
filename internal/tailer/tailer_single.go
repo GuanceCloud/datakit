@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/pborman/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
@@ -29,6 +30,7 @@ const (
 type Single struct {
 	opt                *Option
 	file               *os.File
+	watcher            *fsnotify.Watcher
 	filepath, filename string
 
 	decoder *encoding.Decoder
@@ -64,6 +66,13 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 
 	t.file, err = os.Open(filename) //nolint:gosec
 	if err != nil {
+		if os.IsNotExist(err) {
+			filename = filepath.Join("/rootfs", filename)
+			t.file, err = os.Open(filename) //nolint:gosec
+			if err != nil {
+				return nil, err
+			}
+		}
 		return nil, err
 	}
 
@@ -71,6 +80,15 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		if _, err := t.file.Seek(0, os.SEEK_END); err != nil {
 			return nil, err
 		}
+	}
+
+	t.watcher, err = fsnotify.NewWatcher()
+	if err != nil {
+		return nil, err
+	}
+	err = t.watcher.Add(filename)
+	if err != nil {
+		return nil, err
 	}
 
 	t.readBuff = make([]byte, readBuffSize)
@@ -88,7 +106,57 @@ func (t *Single) Run() {
 
 func (t *Single) Close() {
 	t.stopCh <- struct{}{}
-	t.opt.log.Infof("closing %s", t.filename)
+	t.closeWatcher()
+	t.opt.log.Infof("closing %s", t.filepath)
+}
+
+func (t *Single) addWatcher(fn string) error {
+	if t.watcher == nil {
+		return nil
+	}
+	return t.watcher.Add(fn)
+}
+
+func (t *Single) removeWatcher(fn string) error {
+	if t.watcher == nil {
+		return nil
+	}
+	return t.watcher.Remove(fn)
+}
+
+func (t *Single) closeWatcher() {
+	if t.watcher == nil {
+		return
+	}
+	if err := t.watcher.Close(); err != nil {
+		t.opt.log.Warnf("close watcher err: %s, ignored", err)
+	}
+}
+
+func (t *Single) closeFile() {
+	if t.file != nil {
+		err := t.file.Close()
+		if err != nil {
+			t.opt.log.Warnf("close file err: %s, ignored", err)
+		}
+		t.file = nil
+	}
+}
+
+func (t *Single) reopen() error {
+	t.closeFile()
+	t.opt.log.Debugf("reopen file %s", t.filepath)
+
+	var err error
+	t.file, err = os.Open(t.filepath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("file %s is not exist", t.filepath)
+		}
+		return fmt.Errorf("unable to open file %s: %w", t.filepath, err)
+	}
+
+	return nil
 }
 
 //nolint:cyclop
@@ -102,18 +170,66 @@ func (t *Single) forwardMessage() {
 	)
 	defer timeout.Stop()
 
+	stat, _ := t.file.Stat()
+	prevSize := stat.Size()
+
 	for {
 		select {
-		case <-t.stopCh:
-			if err := t.file.Close(); err != nil {
-				t.opt.log.Warnf("Close(): %s, ignored", err.Error())
+		case event, ok := <-t.watcher.Events:
+			if !ok {
+				t.opt.log.Warnf("receive events error, file %s", t.filepath)
+				return
 			}
+			t.opt.log.Warnf("event: %s", event)
+
+			switch {
+			case event.Op&fsnotify.Remove == fsnotify.Remove:
+				t.opt.log.Debugf("receive remove event from file %s", t.filepath)
+				if err := t.reopen(); err != nil {
+					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
+					return
+				}
+				t.removeWatcher(t.filepath)
+				t.addWatcher(t.filepath)
+			case event.Op&fsnotify.Rename == fsnotify.Rename:
+				t.opt.log.Debugf("receive rename event from file %s", t.filepath)
+				if err := t.reopen(); err != nil {
+					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
+					return
+				}
+			case event.Op&fsnotify.Write == fsnotify.Write:
+				fi, err := os.Stat(t.filepath)
+				if err != nil {
+					t.opt.log.Warnf("unable to open file %s, err: %s", t.filepath, err)
+					return
+				}
+				size := fi.Size()
+				if prevSize > 0 && prevSize > size {
+					t.opt.log.Debugf("truncate file %s", t.filepath)
+					if err := t.reopen(); err != nil {
+						t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
+						return
+					}
+				}
+				prevSize = size
+			}
+
+		case err, ok := <-t.watcher.Errors:
+			if !ok {
+				return
+			}
+			t.opt.log.Warnf("receive error event from file %s, err: %s", t.filepath, err)
+
+		case <-t.stopCh:
+			t.closeFile()
 			t.opt.log.Infof("stop reading data from file %s", t.filename)
 			return
+
 		case <-timeout.C:
 			if str := t.mult.FlushString(); str != "" {
 				t.send(str)
 			}
+
 		default:
 			// nil
 		}
@@ -123,6 +239,7 @@ func (t *Single) forwardMessage() {
 			t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
 			return
 		}
+
 		if readNum == 0 {
 			t.wait()
 			continue
@@ -162,8 +279,11 @@ func (t *Single) dockerHandler(lines []string) {
 
 		var msg dockerMessage
 		if err := json.Unmarshal([]byte(line), &msg); err != nil {
-			t.opt.log.Warn(err)
-			continue
+			t.opt.log.Warnf("unmarshal err: %s, data: %s, ignored", err, line)
+			msg = dockerMessage{
+				Log:    string(line),
+				Stream: "stdout",
+			}
 		}
 
 		tags["stream"] = msg.Stream
@@ -295,7 +415,6 @@ func (t *Single) read() ([]byte, int, error) {
 		t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
 		return nil, 0, err
 	}
-
 	return t.readBuff[:n], n, nil
 }
 
@@ -349,7 +468,7 @@ func (b *buffer) split() []string {
 	// block 置空
 	if len(b.previousBlock) != 0 {
 		lines[0] = append(b.previousBlock, lines[0]...)
-		b.previousBlock = b.previousBlock[:0]
+		b.previousBlock = nil
 	}
 
 	// 当 lines 最后一个元素不为空时，说明这段内容并不包含换行符，将其暂存到 previousBlock
