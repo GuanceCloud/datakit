@@ -89,6 +89,15 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+//nolint:lll
+func (i *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"Kafka log": `[2020-07-07 15:04:29,333] DEBUG Progress event: HTTP_REQUEST_COMPLETED_EVENT, bytes: 0 (io.confluent.connect.s3.storage.S3OutputStream:286)`,
+		},
+	}
+}
+
 func (i *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{

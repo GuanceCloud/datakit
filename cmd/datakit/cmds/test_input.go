@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
+
+	// nolint
 	"github.com/influxdata/toml/ast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
