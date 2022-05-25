@@ -189,8 +189,14 @@ func (t *Single) forwardMessage() {
 					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
 					return
 				}
-				t.removeWatcher(t.filepath)
-				t.addWatcher(t.filepath)
+				if err := t.removeWatcher(t.filepath); err != nil {
+					t.opt.log.Warnf("unable remove watcher %s, err: %s", t.filepath, err)
+					return
+				}
+				if err := t.addWatcher(t.filepath); err != nil {
+					t.opt.log.Warnf("unable add watcher %s, err: %s", t.filepath, err)
+					return
+				}
 			case event.Op&fsnotify.Rename == fsnotify.Rename:
 				t.opt.log.Debugf("receive rename event from file %s", t.filepath)
 				if err := t.reopen(); err != nil {
@@ -281,7 +287,7 @@ func (t *Single) dockerHandler(lines []string) {
 		if err := json.Unmarshal([]byte(line), &msg); err != nil {
 			t.opt.log.Warnf("unmarshal err: %s, data: %s, ignored", err, line)
 			msg = dockerMessage{
-				Log:    string(line),
+				Log:    line,
 				Stream: "stdout",
 			}
 		}
