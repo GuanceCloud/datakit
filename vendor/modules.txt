@@ -892,7 +892,7 @@ github.com/vjeantet/grok
 github.com/whilp/git-urls
 # github.com/xanzy/ssh-agent v0.3.0
 github.com/xanzy/ssh-agent
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220520084159-b8514e379490
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220526124657-111c6cd47c52
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
