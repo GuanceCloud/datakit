@@ -94,7 +94,7 @@ func (stats *Stats) WriteScriptStats(category, ns, name string, pt, ptDrop, ptEr
 		return
 	}
 	if v, ok := v.(*ScriptStats); ok {
-		v.WritePtCount(pt, ptDrop, ptDrop, cost)
+		v.WritePtCount(pt, ptDrop, ptError, cost)
 		if err != nil {
 			v.WriteErr("time: " + time.Now().Format(StatsTimeFormat) + "error: " + err.Error())
 		}
