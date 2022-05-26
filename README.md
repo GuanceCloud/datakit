@@ -41,7 +41,7 @@ All DataKit changelog refers to [here](https://www.yuque.com/dataflux/datakit/ch
 | ---                                                            | ---                 | ---                                                                            |
 | Linux Kernel 2.6.23+                                           | amd64/386/arm/arm64 | `/usr/local/datakit`                                                           |
 | macOS 10.12+([Why](https://github.com/golang/go/issues/25633)) | amd64               | `/usr/local/datakit`                                                           |
-| Windows 7+/Server 2008R2+                                      | amd64/386           | 64-bit：`C:\Program Files\datakit`<br />32-nit：`C:\Program Files(32)\datakit` |
+| Windows 7+/Server 2008R2+                                      | amd64/386           | 64-bit：`C:\Program Files\datakit`<br />32-bit：`C:\Program Files(32)\datakit` |
 
 
 ## Install DataKit

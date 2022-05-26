@@ -72,6 +72,14 @@ type Input struct { // keep compatible with old version's conf
 	DatacenterDeprecated string `toml:"datacenter,omitempty"`
 }
 
+func (ipt *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"Consul log": `Sep 18 19:30:23 derrick-ThinkPad-X230 consul[11803]: 2021-09-18T19:30:23.522+0800 [INFO]  agent.server.connect: initialized primary datacenter CA with provider: provider=consul`,
+		},
+	}
+}
+
 func (*Input) Catalog() string {
 	return inputName
 }

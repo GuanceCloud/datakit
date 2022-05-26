@@ -18,10 +18,14 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 
 ## 前置条件
 
-由于该采集器的可执行文件体积较大，不再打包在 DataKit 中（DataKit 容器镜像默认包含该采集器），对于新装 DataKit，需执行安装命令进行安装，有以下两种方法：
+由于该采集器的可执行文件体积较大，自 v1.2.13 起不再打包在 DataKit 中，但 DataKit 容器镜像默认包含该采集器；对于新装 DataKit，需执行安装命令进行安装，有以下两种方法：
 
-- 安装时[指定环境变量](datakit-install#f9858758)：`DK_INSTALL_EXTERNALS="ebpf"`
-- DataKit 安装完后，再手动安装 eBPF 采集器：`datakit install --ebpf`
+- v1.2.13 ~ v1.2.18
+  - 安装时[指定环境变量](datakit-install#f9858758)：`DK_INSTALL_EXTERNALS="datakit-ebpf"`
+  - DataKit 安装完后，再手动安装 eBPF 采集器：`datakit install --datakit-ebpf`
+- v1.2.19+
+  - 安装时[指定环境变量](datakit-install#f9858758)：`DK_INSTALL_EXTERNALS="ebpf"`
+  - DataKit 安装完后，再手动安装 eBPF 采集器：`datakit install --ebpf`
 
 ### Linux 内核版本要求
 
