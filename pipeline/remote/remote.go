@@ -20,7 +20,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/mytargz"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/convertutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
@@ -70,13 +71,15 @@ type IPipelineRemote interface {
 	ReadFile(filename string) ([]byte, error)
 	WriteFile(filename string, data []byte, perm fs.FileMode) error
 	ReadDir(dirname string) ([]fs.FileInfo, error)
-	PullPipeline(ts int64) (mFiles map[string]string, updateTime int64, err error)
+	PullPipeline(ts int64) (mFiles map[string]map[string]string, updateTime int64, err error)
 	GetTickerDurationAndBreak() (time.Duration, bool)
 	Remove(name string) error
 	FeedLastError(inputName string, err string)
 	ReadTarToMap(srcFile string) (map[string]string, error)
 	WriteTarFromMap(data map[string]string, dest string) error
 }
+
+var _ IPipelineRemote = new(pipelineRemoteImpl)
 
 type pipelineRemoteImpl struct{}
 
@@ -104,7 +107,7 @@ func (*pipelineRemoteImpl) ReadDir(dirname string) ([]fs.FileInfo, error) {
 	return ioutil.ReadDir(dirname)
 }
 
-func (*pipelineRemoteImpl) PullPipeline(ts int64) (mFiles map[string]string, updateTime int64, err error) {
+func (*pipelineRemoteImpl) PullPipeline(ts int64) (mFiles map[string]map[string]string, updateTime int64, err error) {
 	return io.PullPipeline(ts)
 }
 
@@ -126,11 +129,11 @@ func (*pipelineRemoteImpl) FeedLastError(inputName string, err string) {
 }
 
 func (*pipelineRemoteImpl) ReadTarToMap(srcFile string) (map[string]string, error) {
-	return mytargz.ReadTarToMap(srcFile)
+	return targzutil.ReadTarToMap(srcFile)
 }
 
 func (*pipelineRemoteImpl) WriteTarFromMap(data map[string]string, dest string) error {
-	return mytargz.WriteTarFromMap(data, dest)
+	return targzutil.WriteTarFromMap(data, dest)
 }
 
 //------------------------------------------------------------------------------
@@ -209,8 +212,7 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 
 		l.Debug("dumpFiles succeeded")
 
-		// TODO
-		script.ReloadAllRemoteDotPScript2StoreFromMap(datakit.Logging, mFiles)
+		loadContentPipeline(mFiles)
 
 		err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
 		if err != nil {
@@ -245,14 +247,15 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 	return nil
 }
 
-func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) error {
+func dumpFiles(mFiles map[string]map[string]string, ipr IPipelineRemote) error {
 	l.Debugf("dumpFiles: %#v", mFiles)
 	// remove lcoal files
 	if err := removeLocalRemote(ipr); err != nil {
 		return err
 	}
 	// dump
-	if err := ipr.WriteTarFromMap(mFiles, pathContent); err != nil {
+	data := convertThreeMapToContentMap(mFiles)
+	if err := ipr.WriteTarFromMap(data, pathContent); err != nil {
 		return err
 	}
 	return nil
@@ -262,6 +265,7 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 	if !ipr.FileExist(pathConfig) {
 		return 0, nil //nolint:nilerr
 	}
+
 	bys, err := ipr.ReadFile(pathConfig) //nolint:gosec
 	if err != nil {
 		return 0, err
@@ -286,10 +290,21 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		if err != nil {
 			l.Errorf("ReadTarToMap failed: %v", err)
 		} else {
-			// TODO
-			script.ReloadAllRemoteDotPScript2StoreFromMap(datakit.Logging, mContent)
+			data := convertContentMapToThreeMap(mContent)
+			if _, ok := data["."]; ok { // check old version
+				if err := ipr.Remove(pathConfig); err != nil {
+					l.Warnf("not compatible content file, remove config failed: %v", err)
+				}
+				if err := removeLocalRemote(ipr); err != nil {
+					l.Warnf("not compatible content file, removeLocalRemote failed: %v", err)
+				}
+				return 0, nil // need update when using compatible content file
+			} else {
+				loadContentPipeline(data)
+			}
 		}
 	} // isFirst
+
 	return cf.UpdateTime, nil
 }
 
@@ -306,4 +321,47 @@ func updatePipelineRemoteConfig(pathConfig, siteURL string, latestTime int64, ip
 		return err
 	}
 	return nil
+}
+
+// more info see test case.
+func convertContentMapToThreeMap(in map[string]string) map[string]map[string]string {
+	out := make(map[string]map[string]string)
+	for categoryAndName, content := range in {
+		categoryGet, name := filepath.Split(categoryAndName)
+		category := filepath.Clean(categoryGet)
+		if len(category) > 0 && len(name) > 0 {
+			// normal
+			if mVal, ok := out[category]; ok {
+				mVal[name] = content
+				out[category] = mVal
+			} else {
+				mPiece := make(map[string]string)
+				mPiece[name] = content
+				out[category] = mPiece
+			}
+		}
+	}
+	return out
+}
+
+// more info see test case.
+func convertThreeMapToContentMap(in map[string]map[string]string) map[string]string {
+	out := make(map[string]string)
+	for category, mVal := range in {
+		for name, content := range mVal {
+			out[filepath.Join(category, name)] = content
+		}
+	}
+	return out
+}
+
+func loadContentPipeline(in map[string]map[string]string) {
+	for categoryShort, val := range in {
+		category, err := convertutil.GetMapCategoryShortToFull(categoryShort)
+		if err != nil {
+			l.Warnf("GetMapCategoryShortToFull failed: err = %s, categoryShort = %s", err, categoryShort)
+			continue
+		}
+		script.ReloadAllRemoteDotPScript2StoreFromMap(category, val)
+	}
 }

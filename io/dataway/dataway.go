@@ -17,7 +17,6 @@ type DataWay interface {
 	DatawayList() ([]string, int, error)
 	GetTokens() []string
 	GetLogFilter() ([]byte, error)
-	GetPipelinePull(int64) (*PullPipelineReturn, error)
 	ElectionHeartbeat(string, string) ([]byte, error)
 	Election(string, string) ([]byte, error)
 	UpsertObjectLabels(string, []byte) (*http.Response, error)

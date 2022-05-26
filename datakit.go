@@ -53,6 +53,17 @@ const (
 	RUM              = "/v1/write/rum"
 	Security         = "/v1/write/security"
 
+	// data category pure name.
+	CategoryMetric       = "metric"
+	CategoryNetwork      = "network"
+	CategoryKeyEvent     = "keyevent"
+	CategoryObject       = "object"
+	CategoryCustomObject = "custom_object"
+	CategoryLogging      = "logging"
+	CategoryTracing      = "tracing"
+	CategoryRUM          = "rum"
+	CategorySecurity     = "security"
+
 	// other APIS.
 	HeartBeat         = "/v1/write/heartbeat"
 	Election          = "/v1/election"
@@ -61,7 +72,7 @@ const (
 	Workspace         = "/v1/workspace"
 	ObjectLabel       = "/v1/object/labels" // object label
 	LogUpload         = "/v1/log"
-	PipelinePull      = "/v1/pipeline/pull"
+	PipelinePull      = "/v1/pipeline/pull"  // deprecated
 	LogFilter         = "/v2/logfilter/pull" // deprecated
 	DatakitPull       = "/v1/datakit/pull"
 	ListDataWay       = "/v2/list/dataway"
