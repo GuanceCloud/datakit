@@ -20,7 +20,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -113,20 +114,13 @@ func (ipt *Input) setup() bool {
 		if tags["pod_name"] != "" {
 			name += fmt.Sprintf("(podname:%s)", tags["pod_name"])
 		}
-		task := &worker.TaskTemplate{
-			TaskName:   name,
-			Source:     msg.Source,
-			ScriptName: msg.Pipeline,
-
-			ContentDataType: worker.ContentString,
-			Tags:            tags,
-			Content:         []string{msg.Log},
-			TS:              time.Now(),
-		}
-
-		if err := worker.FeedPipelineTaskBlock(task); err != nil {
-			l.Errorf("logfwd failed to feed log, pod_name:%s filename:%s, err: %w", tags["pod_name"], tags["filename"], err)
-			return err
+		if pts := makePts(msg.Source, []string{msg.Log}, tags); len(pts) > 0 {
+			if err := io.Feed(name, datakit.Logging, pts, &io.Option{
+				PlScript: map[string]string{msg.Source: msg.Pipeline},
+			}); err != nil {
+				l.Errorf("logfwd failed to feed log, pod_name:%s filename:%s, err: %w", tags["pod_name"], tags["filename"], err)
+				return err
+			}
 		}
 
 		return nil
@@ -188,4 +182,21 @@ func init() { //nolint:gochecknoinits
 			semStop: cliutils.NewSem(),
 		}
 	})
+}
+
+func makePts(source string, cnt []string, tags map[string]string) []*io.Point {
+	ret := []*io.Point{}
+
+	for _, cnt := range cnt {
+		pt, err := io.MakePoint(source, tags,
+			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+			time.Now(),
+		)
+		if err != nil {
+			l.Error(err)
+			continue
+		}
+		ret = append(ret, pt)
+	}
+	return ret
 }

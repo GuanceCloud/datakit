@@ -45,7 +45,7 @@ questions:
   type: string
   label: DataKit Http Listen
   group: "Datakit Configuration"
-- variable: datakit.log
+- variable: datakit.log_level
   default: "info"
   description: "Set DataKit logging level"
   type: enum
@@ -116,10 +116,18 @@ questions:
   show_if: "git_repos.enable=true"
 
 
-  #Kube State Metrics
+#Kube State Metrics
 - variable: kubeStateMetrics.enabled
   default: true
   description: "Create a kube-state-metrics deployment"
   type: boolean
   label: Deployment KubeState Metrics Deployment
   group: "Kube-State-Metrics"
+
+#Kube Metrics Server
+- variable: MetricsServerEnabled.enabled
+  default: true
+  description: "Create a metrics-server deployment"
+  type: boolean
+  label: Deployment KubeState Metrics Server Deployment
+  group: "metrics-server"

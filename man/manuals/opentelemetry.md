@@ -99,6 +99,10 @@ OTEL 提供与 vendor 无关的实现，根据用户的需要将观测类数据�
 
 1. 在涉及到 `float` `double` 类型数据时，会最多保留两位小数。
 
+1. http 和 grpc 都支持 gzip 压缩格式。在 exporter 中可配置环境变量来开启：`OTEL_EXPORTER_OTLP_COMPRESSION = gzip`, 默认是不会开启 gzip。
+    
+1. http 协议请求格式同时支持 json 和 protobuf 两种序列化格式。但 grpc 仅支持 protobuf 一种。
+
 1. 配置字段 `ignore_attribute_keys` 是过滤掉一些不需要的 Key 。但是在 OTEL 中的 `attributes` 大多数的标签中用 `.` 分隔。例如在 resource 的源码中：
 
 ```golang
@@ -124,3 +128,8 @@ OSDescriptionKey = attribute.Key("os.description")
 ### 最佳实践
 
 datakit 目前提供了 [Go 语言](opentelemetry-go)、[Java](opentelemetry-java) 两种语言的最佳实践，其他语言会在后续提供。
+
+### 更多文档
+- go开源地址 [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go)
+- 官方使用手册 ：[opentelemetry-io-docs](https://opentelemetry.io/docs/)
+- 环境变量配置: [sdk-extensions](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters)

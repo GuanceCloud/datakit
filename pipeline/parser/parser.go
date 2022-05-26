@@ -15,7 +15,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/prometheus/prometheus/util/strutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
@@ -128,10 +127,19 @@ func (p *parser) addParseErrf(pr *PositionRange, format string, args ...interfac
 }
 
 func (p *parser) unquoteString(s string) string {
-	unq, err := strutil.Unquote(s)
+	unq, err := Unquote(s)
 	if err != nil {
 		p.addParseErrf(p.yyParser.lval.item.PositionRange(),
 			"error unquoting string %q: %s", s, err)
+	}
+	return unq
+}
+
+func (p *parser) unquoteMultilineString(s string) string {
+	unq, err := UnquoteMultiline(s)
+	if err != nil {
+		p.addParseErrf(p.yyParser.lval.item.PositionRange(),
+			"error unquoting multiline string %q: %s", s, err)
 	}
 	return unq
 }

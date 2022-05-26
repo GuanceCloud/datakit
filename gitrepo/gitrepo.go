@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -27,7 +28,7 @@ import (
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
+	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	ssh2 "golang.org/x/crypto/ssh"
 )
@@ -309,12 +310,8 @@ func reloadCore(ctx context.Context) (int, error) {
 			case 3:
 				l.Info("before set pipelines")
 
-				allGitReposPipelines, err := config.GetNamespacePipelineFiles(datakit.StrGitRepos)
-				if err != nil {
-					l.Warnf("GetNamespacePipelineFiles failed: %v", err)
-				} else {
-					scriptstore.ReloadAllGitReposDotPScript2Store(allGitReposPipelines)
-				}
+				plscript.LoadAllScripts2StoreFromPlStructPath(plscript.GitRepoScriptNS,
+					filepath.Join(datakit.GitReposRepoFullPath, "pipeline"))
 
 			case 4:
 				l.Info("before RunInputs")

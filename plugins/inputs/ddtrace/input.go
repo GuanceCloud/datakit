@@ -91,7 +91,7 @@ var (
 	keepRareResource   *itrace.KeepRareResource
 	closeResource      *itrace.CloseResource
 	sampler            *itrace.Sampler
-	customerKeys       = []string{"runtime-id"}
+	customerKeys       []string
 	tags               map[string]string
 )
 

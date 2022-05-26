@@ -83,10 +83,10 @@ const (
 
   [inputs.opentelemetry.expectedHeaders]
     ## 如有header配置 则请求中必须要携带 否则返回状态码500
-	## 可作为安全检测使用,必须全部小写
-	# ex_version = xxx
-	# ex_name = xxx
-	# ...
+  ## 可作为安全检测使用,必须全部小写
+  # ex_version = xxx
+  # ex_name = xxx
+  # ...
 
   ## grpc
   [inputs.opentelemetry.grpc]
@@ -105,8 +105,8 @@ const (
   ## http path (do not edit):
   ##	trace : /otel/v1/trace
   ##	metric: /otel/v1/metric
-  ## use as : http://127.0.0.1:9529/otel/v11/trace . Method = POST
-  enable = false
+  ## use as : http://127.0.0.1:9529/otel/v1/trace . Method = POST
+  enable = true
   ## return to client status_ok_code :200/202
   http_status_ok = 200
 `

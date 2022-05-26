@@ -171,7 +171,7 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 }
 
 func (d *dockerInput) watchNewContainerLogs() error {
-	cList, err := d.getContainerList()
+	cList, err := d.getRunningContainerList()
 	if err != nil {
 		return err
 	}
@@ -299,11 +299,18 @@ func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotat
 }
 
 func (d *dockerInput) getContainerList() ([]types.Container, error) {
-	cList, err := d.client.ContainerList(context.Background(), dockerContainerListOption)
+	cList, err := d.client.ContainerList(context.Background(), types.ContainerListOptions{All: true})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container list: %w", err)
 	}
+	return cList, nil
+}
 
+func (d *dockerInput) getRunningContainerList() ([]types.Container, error) {
+	cList, err := d.client.ContainerList(context.Background(), types.ContainerListOptions{All: false})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get container list: %w", err)
+	}
 	return cList, nil
 }
 

@@ -20,8 +20,6 @@ import (
 
 const dockerContainerName = "docker_containers"
 
-var dockerContainerListOption = types.ContainerListOptions{All: true}
-
 func gatherDockerContainerMetric(client dockerClientX, k8sClient k8sClientX, container *types.Container) (*containerMetric, error) {
 	m := &containerMetric{}
 	m.tags = getContainerInfo(container, k8sClient)

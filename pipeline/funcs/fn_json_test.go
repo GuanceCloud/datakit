@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
@@ -14,7 +15,7 @@ import (
 func TestJSON(t *testing.T) {
 	testCase := []*funcCase{
 		{
-			data: `{
+			in: `{
 			  "name": {"first": "Tom", "last": "Anderson"},
 			  "age":37,
 			  "children": ["Sara","Alex","Jack"],
@@ -30,7 +31,7 @@ func TestJSON(t *testing.T) {
 			key:      "first",
 		},
 		{
-			data: `[
+			in: `[
 				    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
 				    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
 				    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
@@ -45,11 +46,12 @@ func TestJSON(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			runner, err := NewTestingRunner(tc.script)
 			tu.Equals(t, nil, err)
-
-			err = runner.Run(tc.data)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
 			tu.Equals(t, nil, err)
-
-			ret := runner.Result()
+			tu.Equals(t, nil, ret.Error)
 
 			r, ok := ret.Fields[tc.key]
 			tu.Equals(t, true, ok)

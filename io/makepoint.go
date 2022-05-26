@@ -56,9 +56,18 @@ func doMakePoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
 	opt *lp.Option) (*Point, error) {
-	p, err := lp.MakeLineProtoPoint(name, tags, fields, opt)
+	p, warnings, err := lp.MakeLineProtoPointWithWarnings(name, tags, fields, opt)
+
 	if err != nil {
 		return nil, err
+	} else {
+		if len(warnings) > 0 {
+			warningsStr := ""
+			for _, warn := range warnings {
+				warningsStr += warn.Message + ";"
+			}
+			l.Warnf("make metric(%s) point successfully but with warnings: %s", name, warningsStr)
+		}
 	}
 
 	return &Point{Point: p}, nil
@@ -87,7 +96,8 @@ func NewPoint(name string,
 	var o *PointOption
 	if len(opt) > 0 {
 		o = opt[0]
-	} else {
+	}
+	if o == nil {
 		o = defaultPointOption()
 	}
 
@@ -122,6 +132,7 @@ func NewPoint(name string,
 		lpOpt.EnablePointInKey = true
 		lpOpt.DisabledTagKeys = DisabledTagKeys[o.Category]
 		lpOpt.DisabledFieldKeys = DisabledFieldKeys[o.Category]
+		lpOpt.DisableStringField = true // ingore string field value in metric point
 	case datakit.Network,
 		datakit.KeyEvent,
 		datakit.Object,

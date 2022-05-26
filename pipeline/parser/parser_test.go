@@ -752,6 +752,43 @@ func TestParser(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			name: `func-arg-with-multi-line-string`,
+			in: `abc(x, """
+this
+is
+multiline-string
+""")`,
+			expected: Stmts{
+				&FuncStmt{
+					Name: "abc",
+					Param: []Node{
+						&Identifier{Name: "x"},
+						&StringLiteral{Val: `
+this
+is
+multiline-string
+`},
+					},
+				},
+			},
+		},
+
+		{
+			name: `func-func`,
+			in:   `f1() f2()`,
+			expected: Stmts{
+				&FuncStmt{
+					Name:  "f1",
+					Param: nil,
+				},
+				&FuncStmt{
+					Name:  "f2",
+					Param: nil,
+				},
+			},
+		},
 	}
 
 	// for idx := len(cases) - 1; idx >= 0; idx-- {
