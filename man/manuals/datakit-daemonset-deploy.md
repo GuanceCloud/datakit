@@ -249,6 +249,22 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_DATAWAY_ENABLE_HTTPTRACE | false          | 否   | 在 debug 日志中输出 dataway HTTP 请求的网络日志            |
 | ENV_DATAWAY_HTTP_PROXY       | 无             | 否   | 设置 DataWay HTTP 代理                                     |
 
+### 特殊环境变量
+
+#### ENV_K8S_NODE_NAME
+
+当 k8s node 名称跟其对应的主机名不同时，可将 k8s 的 node 名称顶替默认采集到的主机名，在 *datakit.yaml* 中增加环境变量：
+
+> [1.2.19](changelog#9bec76a9) 版本的 datakit.yaml 中默认就带了这个配置，如果是从老版本的 yaml 直接升级而来，需要对 *datakit.yaml* 做如下手动改动。
+
+```yaml
+- env:
+	- name: ENV_K8S_NODE_NAME
+		valueFrom:
+			fieldRef:
+				apiVersion: v1
+				fieldPath: spec.nodeName
+```
 
 ### 各个采集器专用环境变量
 
