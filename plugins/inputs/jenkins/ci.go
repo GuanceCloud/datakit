@@ -13,7 +13,7 @@ import (
 type ciEventType byte
 
 const (
-	pipeline ciEventType = 1<<iota + 1
+	pipeline ciEventType = 1 << (iota + 1)
 	stage
 	job
 	unknown
@@ -88,19 +88,6 @@ func decodeTraces(req *http.Request) (ddTraces, error) {
 	return traces, nil
 }
 
-func typeOf(span *ddSpan) ciEventType {
-	switch span.Meta["_dd.ci.level"] {
-	case "pipeline":
-		return pipeline
-	case "job":
-		return job
-	case "stage":
-		return stage
-	default:
-		return unknown
-	}
-}
-
 func (n *Input) getPoint(span *ddSpan) (*io.Point, error) {
 	switch typeOf(span) {
 	case pipeline:
@@ -114,6 +101,19 @@ func (n *Input) getPoint(span *ddSpan) (*io.Point, error) {
 	default:
 		l.Debugf("received unrecognized CI event type, skipped")
 		return nil, nil
+	}
+}
+
+func typeOf(span *ddSpan) ciEventType {
+	switch span.Meta["_dd.ci.level"] {
+	case "pipeline":
+		return pipeline
+	case "job":
+		return job
+	case "stage":
+		return stage
+	default:
+		return unknown
 	}
 }
 
@@ -234,6 +234,8 @@ func extractProjectName(projectURL string) string {
 	return projectURL[strings.LastIndex(projectURL, "/")+1 : len(projectURL)-4]
 }
 
+// putExtraTags puts extra tags specified in CIExtraTags into tags.
+// If a tag key already exists in tags, it will not be overwritten.
 func (n *Input) putExtraTags(tags map[string]string) {
 	for k, v := range n.CIExtraTags {
 		if _, has := tags[k]; has {
