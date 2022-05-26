@@ -15,6 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -93,6 +94,10 @@ func (i *Input) SetTags(m map[string]string) {
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
+
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		i.Tags["election_namespace"] = namespace
+	}
 
 	if i.setup() {
 		return

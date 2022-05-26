@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	kubeapi "k8s.io/api/core/v1"
@@ -122,6 +123,10 @@ func buildEventData(item *kubeapi.Event, extraTags tagsType) inputs.Measurement 
 	obj.tags["reason"] = item.Reason
 	obj.tags["status"] = "info"
 	obj.tags.append(extraTags)
+
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		obj.tags["election_namespace"] = namespace
+	}
 
 	obj.tags["message"] = item.Message
 	msg, err := json.Marshal(obj.tags)
