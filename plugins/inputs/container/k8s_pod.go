@@ -201,7 +201,7 @@ func (p *pod) object() (inputsMeas, error) {
 		if cli, ok := p.client.(*k8sClient); ok && cli.metricsClient != nil {
 			met, err := getPodSrvMetric(cli.metricsClient, item.Namespace, item.Name)
 			if err != nil {
-				l.Debugf("unable get pod metric, namespace %s name %s", defaultNamespace(item.Namespace), item.Name)
+				l.Debugf("unable get pod metric %s, namespace %s, name %s", err, defaultNamespace(item.Namespace), item.Name)
 			} else {
 				obj.fields["cpu_usage"] = met.fields["cpu_usage"]
 				obj.fields["memory_usage_bytes"] = met.fields["memory_usage_bytes"]
