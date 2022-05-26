@@ -90,7 +90,8 @@ $ helm uninstall datakit -n datakit
 | `dkconfig.path`                   | DataKit input path                                                                                                                                                                 | `nil`                                                                   |                      |
 | `dkconfig.name`                   | DataKit input name                                                                                                                                                                 | `nil`                                                                   |                      |
 | `dkconfig.value`                  | DataKit input value                                                                                                                                                                | `nil`                                                                   |                      |
-| `datakit.kubeStateMetricsEnabled` | For large clusters where the Kubernetes State Metrics Check Core needs to be distributed on dedicated workers.                                                                     | `true`                                                                  |                      |
+| `kubeStateMetricsEnabled` | For large clusters where the Kubernetes State Metrics Check Core needs to be distributed on dedicated workers.                                                                             | `true`                                                                  |                      |
+| `MetricsServerEnabled`            | Kubernetes Metrics Server                                                                                                                                                          | `true`                                                                  |                      |
 
 
 

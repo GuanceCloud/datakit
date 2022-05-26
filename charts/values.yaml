@@ -31,7 +31,7 @@ image:
   ## @param repository - string - required
   ## Define the repository to use:
   #
-  repository: pubrepo.guance.com/datakit/datakit
+  repository: {{repository}}
 
   ## @param tag - string - required
   ## Define the Cluster-Agent version to use.
@@ -134,3 +134,7 @@ dkconfig: []
 ## If true, deploys the kube-state-metrics deployment.
 ## ref: https://github.com/kubernetes/charts/tree/master/stable/kube-state-metrics
 kubeStateMetricsEnabled: true
+
+## If true, deploys the metrics-server deployment.
+## ref: https://github.com/kubernetes-sigs/metrics-server/tree/master/charts/metrics-server
+MetricsServerEnabled: true
