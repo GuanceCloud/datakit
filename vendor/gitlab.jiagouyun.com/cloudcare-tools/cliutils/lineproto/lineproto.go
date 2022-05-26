@@ -23,7 +23,7 @@ type Option struct {
 
 	Strict             bool
 	EnablePointInKey   bool
-	DisableStringField bool
+	DisableStringField bool // disable string field value
 	Callback           func(models.Point) (models.Point, error)
 
 	MaxTags,
