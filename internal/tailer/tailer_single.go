@@ -52,6 +52,14 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		opt:    opt,
 	}
 
+	if opt.DockerMode && !fileExists(filename) {
+		filename2 := filepath.Join("/rootfs", filename)
+		if !fileExists(filename2) {
+			return nil, fmt.Errorf("file %s does not exist", filename)
+		}
+		filename = filename2
+	}
+
 	var err error
 	if opt.CharacterEncoding != "" {
 		t.decoder, err = encoding.NewDecoder(opt.CharacterEncoding)
@@ -66,13 +74,6 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 
 	t.file, err = os.Open(filename) //nolint:gosec
 	if err != nil {
-		// if os.IsNotExist(err) {
-		// 	filename = filepath.Join("/rootfs", filename)
-		// 	t.file, err = os.Open(filename) //nolint:gosec
-		// 	if err != nil {
-		// 		return nil, err
-		// 	}
-		// }
 		return nil, err
 	}
 
@@ -503,4 +504,12 @@ func removeAnsiEscapeCodes(oldtext string, run bool) string {
 	}
 
 	return string(newtext)
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }
