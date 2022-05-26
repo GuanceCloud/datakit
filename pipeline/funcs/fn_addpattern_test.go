@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
@@ -161,15 +162,16 @@ func TestAddPattern(t *testing.T) {
 				}
 				return
 			}
-
-			if err := runner.Run(tc.in); err == nil {
-				ret := runner.Result()
+			if ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message@json": tc.in,
+				}, "message@json", time.Now()); err == nil && ret.Error == nil {
 				t.Log(ret)
 				v := ret.Fields[tc.outkey]
 				tu.Equals(t, tc.expect, v)
 				t.Logf("[%d] PASS", idx)
 			} else {
-				t.Error(err)
+				t.Error(err, " ", ret.Error)
 			}
 		})
 	}

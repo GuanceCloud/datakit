@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
+	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
 var (
@@ -57,6 +58,9 @@ type Option struct {
 	HTTPHost    string
 	PostTimeout time.Duration
 	Sample      func(points []*Point) []*Point
+
+	PlScript map[string]string // <measurement>: <script name>
+	PlOption *plscript.Option
 }
 
 type IO struct {
@@ -132,6 +136,12 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	case datakit.RUM:
 	default:
 		return fmt.Errorf("invalid category `%s'", category)
+	}
+
+	if pts1, err := runPl(category, pts, opt); err != nil {
+		l.Error(err)
+	} else {
+		pts = pts1
 	}
 
 	// Maybe all points been filtered, but we still send the feeding into io.

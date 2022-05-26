@@ -39,6 +39,8 @@ const (
 
 	CommonChanCap = 32
 
+	// TODO: If you add a category, please add the relevant content in the function CategoryList.
+
 	// data category, aka API /v1/write/category.
 	MetricDeprecated = "/v1/write/metrics"
 	Metric           = "/v1/write/metric"
@@ -152,6 +154,36 @@ var (
 	GRPCSock           = ""
 )
 
+func CategoryList() (map[string]struct{}, map[string]struct{}) {
+	return map[string]struct{}{
+			Metric:       {},
+			Network:      {},
+			KeyEvent:     {},
+			Object:       {},
+			CustomObject: {},
+			Logging:      {},
+			Tracing:      {},
+			RUM:          {},
+			Security:     {},
+		}, map[string]struct{}{
+			MetricDeprecated: {},
+		}
+}
+
+func CategoryDirName() map[string]string {
+	return map[string]string{
+		Metric:       "metric",
+		Network:      "network",
+		KeyEvent:     "keyevent",
+		Object:       "object",
+		CustomObject: "custom_object",
+		Logging:      "logging",
+		Tracing:      "tracing",
+		RUM:          "rum",
+		Security:     "security",
+	}
+}
+
 func SetWorkDir(dir string) {
 	InstallDir = dir
 
@@ -184,6 +216,13 @@ func InitDirs() {
 		GitReposDir,
 		PipelineRemoteDir,
 	} {
+		if err := os.MkdirAll(dir, ConfPerm); err != nil {
+			l.Fatalf("create %s failed: %s", dir, err)
+		}
+	}
+
+	for _, v := range CategoryDirName() {
+		dir := filepath.Join(PipelineDir, v)
 		if err := os.MkdirAll(dir, ConfPerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)
 		}
