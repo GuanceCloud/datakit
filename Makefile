@@ -37,7 +37,7 @@ COMMIT:=$(shell git rev-parse --short HEAD)
 GIT_BRANCH?=$(shell git rev-parse --abbrev-ref HEAD)
 COMMITER:=$(shell git log -1 --pretty=format:'%an')
 UPLOADER:=$(shell hostname)/${USER}/${COMMITER}
-DOCKER_IMAGE_ARCHS:="linux/arm64,linux/amd64" 
+DOCKER_IMAGE_ARCHS:="linux/arm64,linux/amd64"
 DATAKIT_EBPF_ARCHS?="linux/arm64,linux/amd64"
 IGN_EBPF_INSTALL_ERR?=0
 
@@ -150,7 +150,7 @@ endef
 define build_k8s_charts
 	@helm repo ls
 	@echo `echo $(VERSION) | cut -d'-' -f1`
-	@sed "s,{{tag}},$(VERSION),g" charts/values.yaml > charts/datakit/values.yaml
+	@sed -e "s,{{tag}},$(VERSION),g" -e "s,{{repository}},$(2)/datakit/datakit,g" charts/values.yaml > charts/datakit/values.yaml
 	@helm package charts/datakit --version `echo $(VERSION) | cut -d'-' -f1` --app-version `echo $(VERSION) | cut -d'-' -f1`
 	@if [ $$((`echo $(VERSION) | awk -F . '{print $$2}'`%2)) -eq 0 ];then \
         helm cm-push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1); \
@@ -204,7 +204,7 @@ testing_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
 	# we also publish testing image to public image repo
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
-	$(call build_k8s_charts, 'datakit-testing')
+	$(call build_k8s_charts, 'datakit-testing', 'registry.jiagouyun.com')
 
 production_notify: deps
 	$(call notify_build,production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -215,7 +215,7 @@ production: deps # stable release
 
 production_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
-	$(call build_k8s_charts, 'datakit')
+	$(call build_k8s_charts, 'datakit', 'pubrepo.guance.com')
 
 production_mac: deps
 	$(call build, production, $(MAC_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))

@@ -21,21 +21,27 @@ datakit:
   ## @param log - string
   ## Set logging verbosity, valid log levels are:
   ## info, debug, stdout, warn, error, critical, and off
-  log: stdout
+  log_level: info
   ## @param http_listen - string
   ## It supports specifying the network card bound to the Datakit HTTP service in the installation phase (default localhost)
   http_listen: 0.0.0.0:9529
+
 
 image:
   ## @param repository - string - required
   ## Define the repository to use:
   #
-  repository: pubrepo.guance.com/datakit/datakit
+  repository: {{repository}}
 
   ## @param tag - string - required
   ## Define the Cluster-Agent version to use.
   #
   tag: "{{tag}}"
+
+  ## @param pullPolicy - string - optional
+  ## The Kubernetes [imagePullPolicy][] value
+  #
+  pullPolicy: Always
 
 # https://www.yuque.com/dataflux/datakit/datakit-install#f9858758
 
@@ -128,3 +134,7 @@ dkconfig: []
 ## If true, deploys the kube-state-metrics deployment.
 ## ref: https://github.com/kubernetes/charts/tree/master/stable/kube-state-metrics
 kubeStateMetricsEnabled: true
+
+## If true, deploys the metrics-server deployment.
+## ref: https://github.com/kubernetes-sigs/metrics-server/tree/master/charts/metrics-server
+MetricsServerEnabled: true
