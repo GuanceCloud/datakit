@@ -8,7 +8,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  VERSION: "1.2.20"
+  CI_VERSION: "1.4.0"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -23,7 +23,7 @@ dk-test-production:
     - master
   script:
     - make clean
-    - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$VERSION"
+    - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make lint
     - make all_test
   tags:
@@ -66,7 +66,7 @@ release-ebpf-production:
     - unstable
   script:
     - make clean
-    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/arm64" GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$VERSION"
+    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/arm64" GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
   tags:
     - dk-arm-docker-runner
 
@@ -95,10 +95,10 @@ release-stable:
     - make clean
     - make lint
     - make all_test
-    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$VERSION" # update the version on each release
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" # update the version on each release
     - make check_production_conf_compatible
     - make pub_conf_samples
-    - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$VERSION"
+    - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
   tags:
     - cloudcare-ft
 
