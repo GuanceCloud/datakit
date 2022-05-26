@@ -10,11 +10,11 @@
 
 - Pipeline 做了很大调整(#761)
   - 所有数据类型，均可通过配置 Pipeline 来额外处理数据(#761/#739)
-	- [grok()]() 支持直接将字段提取为指定类型，无需再额外通过 `cast()` 函数进行类型转换(#760)
-	- Pipeline 支持多行字符串表达，对于很长的字符串（比如 grok 中的正则切割），可以通过将它们写成多行，提升了可读性(#744)
+	- [grok()](pipeline#965ead3c) 支持直接将字段提取为指定类型，无需再额外通过 `cast()` 函数进行类型转换(#760)
+	- Pipeline 增加[多行字符串支持](pipeline#3ab24547)，对于很长的字符串（比如 grok 中的正则切割），可以通过将它们写成多行，提升了可读性(#744)
 	- 每个 Pipeline 的运行情况，通过 datakit monitor -V 可直接查看(#701)
-- 增加 Kubernetes Pod 对象 CPU/内存指标(#770)
-- Helm 增加更多 Kubernetes 版本适配(#783)
+- 增加 Kubernetes [Pod 对象](container#23ae0855-1) CPU/内存指标(#770)
+- Helm 增加更多 Kubernetes 版本安装适配(#783)
 - 优化 [OpenTelemetry](opentelemetry)，HTTP 协议增加 JSON 支持(#781)
 - DataKit 在自动纠错行协议时，对纠错行为增加了日志记录，便于调试数据问题(#777)
 - 移除时序类数据中的所有字符串指标(#773)
@@ -26,7 +26,7 @@
 - 修复 monitor 中 DataWay 统计错误(#785)
 - 修复日志采集器相关 bug(#783)
   - 有一定概率，日志采集会导致脏数据串流的情况
-	- 在文件日志采集的场景下（磁盘文件/容器日志/logfwd），修复被采集日志因为 truncate/rename/remove 等因素导致的采集不稳定问题
+	- 在文件日志采集的场景下（磁盘文件/容器日志/logfwd），修复被采集日志因为 truncate/rename/remove 等因素导致的采集不稳定问题（丢失数据）
 - 其它 Bug 修复(#790)
 
 ----
