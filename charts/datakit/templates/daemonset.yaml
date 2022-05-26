@@ -84,6 +84,8 @@ spec:
           volumeMounts:
             - mountPath: /var/run
               name: run
+            - mountPath: /var/lib
+              name: lib
             - mountPath: /var/log
               name: log
             - mountPath: /host/proc
@@ -131,6 +133,9 @@ spec:
         - hostPath:
             path: /var/run
           name: run
+        - hostPath:
+            path: /var/lib
+          name: lib
         - hostPath:
             path: /var/log
           name: log
