@@ -319,6 +319,26 @@ func ReadPlScriptFromFile(fp string) (string, string, error) {
 	}
 }
 
+func SearchPlFilePathFormDir(dirPath string) map[string]string {
+	ret := map[string]string{}
+	dirPath = filepath.Clean(dirPath)
+	if dirEntry, err := os.ReadDir(dirPath); err != nil {
+		l.Warn(err)
+	} else {
+		for _, v := range dirEntry {
+			if v.IsDir() {
+				continue
+			}
+			sName := v.Name()
+			if filepath.Ext(sName) != ".p" {
+				continue
+			}
+			ret[sName] = filepath.Join(dirPath, sName)
+		}
+	}
+	return ret
+}
+
 func ReadPlScriptFromDir(dirPath string) map[string]string {
 	ret := map[string]string{}
 	dirPath = filepath.Clean(dirPath)
@@ -342,6 +362,40 @@ func ReadPlScriptFromDir(dirPath string) map[string]string {
 		}
 	}
 	return ret
+}
+
+func SearchPlFilePathFromPlStructPath(basePath string) map[string](map[string]string) {
+	fields := map[string](map[string]string){}
+
+	fields[datakit.Logging] = SearchPlFilePathFormDir(basePath)
+
+	for category, dirName := range datakit.CategoryDirName() {
+		s := SearchPlFilePathFormDir(filepath.Join(basePath, dirName))
+		if _, ok := fields[category]; !ok {
+			fields[category] = map[string]string{}
+		}
+		for k, v := range s {
+			fields[category][k] = v
+		}
+	}
+	return fields
+}
+
+func ReadPlScriptFromPlStructPath(basePath string) map[string](map[string]string) {
+	scripts := map[string](map[string]string){}
+
+	scripts[datakit.Logging] = ReadPlScriptFromDir(basePath)
+
+	for category, dirName := range datakit.CategoryDirName() {
+		s := ReadPlScriptFromDir(filepath.Join(basePath, dirName))
+		if _, ok := scripts[category]; !ok {
+			scripts[category] = map[string]string{}
+		}
+		for k, v := range s {
+			scripts[category][k] = v
+		}
+	}
+	return scripts
 }
 
 // LoadDotPScript2Store will diff current layer data and then add new script.
@@ -374,19 +428,7 @@ func LoadAllDefaultScripts2Store() {
 }
 
 func LoadAllScripts2StoreFromPlStructPath(ns, plPath string) {
-	scripts := map[string](map[string]string){}
-
-	scripts[datakit.Logging] = ReadPlScriptFromDir(plPath)
-
-	for category, dirName := range datakit.CategoryDirName() {
-		s := ReadPlScriptFromDir(filepath.Join(plPath, dirName))
-		if _, ok := scripts[category]; !ok {
-			scripts[category] = map[string]string{}
-		}
-		for k, v := range s {
-			scripts[category][k] = v
-		}
-	}
+	scripts := ReadPlScriptFromPlStructPath(plPath)
 
 	LoadAllScript(ns, scripts)
 }
