@@ -71,7 +71,6 @@ func Decode(ng *parser.EngineData, node parser.Node) interface{} {
 	}
 
 	codeTypeMode := codeType.String()
-	fmt.Println(codeTypeMode)
 
 	encode, err := NewDecoder(codeTypeMode)
 	if err != nil {
@@ -85,7 +84,7 @@ func Decode(ng *parser.EngineData, node parser.Node) interface{} {
 		return nil
 	}
 
-	if err := ng.SetContent("changed", newcont); err != nil {
+	if err := ng.SetContent(text, newcont); err != nil {
 		l.Warn(err)
 		return nil
 	}
