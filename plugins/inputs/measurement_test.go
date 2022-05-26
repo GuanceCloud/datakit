@@ -42,7 +42,7 @@ func TestGetPointsFromMeasurement(t *testing.T) {
 				&MockMeasurement{
 					Name: "test",
 					Tags: map[string]string{},
-					Fields: map[string]interface{}{
+					Fields: map[string]interface{}{ // empty field
 						"f1": map[string]string{},
 					},
 					Opt: &io.PointOption{
@@ -71,8 +71,9 @@ func TestGetPointsFromMeasurement(t *testing.T) {
 					Name: "test",
 					Tags: map[string]string{"t1": "t1", "t2": "t2"},
 					Fields: map[string]interface{}{
-						"f1": "f111111",
-						"f2": "f222222",
+						"f1": 2.0,
+						"f2": 1.0,
+						"f3": "abc", // dropped
 					},
 					Opt: &io.PointOption{
 						Time:             time.Unix(0, 123),
@@ -81,7 +82,7 @@ func TestGetPointsFromMeasurement(t *testing.T) {
 					},
 				},
 			},
-			expected: `test,t1=t1,t2=t2 f1="f1",f2="f2" 123`,
+			expected: `test,t1=t1,t2=t2 f1=2,f2=1 123`,
 		},
 	}
 
@@ -93,6 +94,8 @@ func TestGetPointsFromMeasurement(t *testing.T) {
 				return
 			}
 			assert.NoError(t, err)
+
+			t.Logf("points: %+#v", points)
 			assert.Equal(t, c.expected, points[0].String())
 		})
 	}
