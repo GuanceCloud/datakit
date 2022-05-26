@@ -21,9 +21,10 @@ type Option struct {
 	DisabledTagKeys   []string
 	DisabledFieldKeys []string
 
-	Strict           bool
-	EnablePointInKey bool
-	Callback         func(models.Point) (models.Point, error)
+	Strict             bool
+	EnablePointInKey   bool
+	DisableStringField bool // disable string field value
+	Callback           func(models.Point) (models.Point, error)
 
 	MaxTags,
 	MaxFields,
@@ -32,6 +33,23 @@ type Option struct {
 	MaxTagValueLen,
 	MaxFieldValueLen int
 }
+
+type PointWarning struct {
+	WarningType string
+	Message     string
+}
+
+const (
+	WarnMaxTags               = "warn_exceed_max_tags"
+	WarnMaxFields             = "warn_exceed_max_fields"
+	WarnMaxTagKeyLen          = "warn_exceed_max_tag_key_len"
+	WarnMaxFieldKeyLen        = "warn_exceed_max_field_key_len"
+	WarnMaxTagValueLen        = "warn_exceed_max_tag_value_len"
+	WarnMaxFieldValueLen      = "warn_exceed_max_field_value_len"
+	WarnMaxFieldValueInt      = "warn_exceed_max_field_value_int"
+	WarnSameTagFieldKey       = "warn_same_tag_field_key"
+	WarnInvalidFieldValueType = "warn_invalid_field_value_type"
+)
 
 var DefaultOption = NewDefaultOption()
 
@@ -133,8 +151,20 @@ func MakeLineProtoPoint(name string,
 	fields map[string]interface{},
 	opt *Option) (*influxdb.Point, error) {
 
+	pt, _, err := MakeLineProtoPointWithWarnings(name, tags, fields, opt)
+	return pt, err
+}
+
+func MakeLineProtoPointWithWarnings(name string,
+	tags map[string]string,
+	fields map[string]interface{},
+	opt *Option) (pt *influxdb.Point, warnings []*PointWarning, err error) {
+
+	warnings = []*PointWarning{}
+
 	if name == "" {
-		return nil, fmt.Errorf("empty measurement name")
+		err = fmt.Errorf("empty measurement name")
+		return
 	}
 
 	if opt == nil {
@@ -161,22 +191,24 @@ func MakeLineProtoPoint(name string,
 		opt.MaxFields = 1024
 	}
 
-	if err := checkTags(tags, opt); err != nil {
-		return nil, err
+	if err = checkTags(tags, opt, &warnings); err != nil {
+		return
 	}
 
-	if err := checkFields(fields, opt); err != nil {
-		return nil, err
+	if err = checkFields(fields, opt, &warnings); err != nil {
+		return
 	}
 
-	if err := checkTagFieldSameKey(tags, fields); err != nil {
-		return nil, err
+	if err = checkTagFieldSameKey(tags, fields, &warnings); err != nil {
+		return
 	}
 
 	if opt.Time.IsZero() {
-		return influxdb.NewPoint(name, tags, fields, time.Now().UTC())
+		pt, err = influxdb.NewPoint(name, tags, fields, time.Now().UTC())
+		return
 	} else {
-		return influxdb.NewPoint(name, tags, fields, opt.Time)
+		pt, err = influxdb.NewPoint(name, tags, fields, opt.Time)
+		return
 	}
 }
 
@@ -236,14 +268,22 @@ func checkPoint(p models.Point, opt *Option) error {
 	return nil
 }
 
-func checkTagFieldSameKey(tags map[string]string, fields map[string]interface{}) error {
+func checkTagFieldSameKey(tags map[string]string, fields map[string]interface{}, warnings *[]*PointWarning) error {
 	if tags == nil || fields == nil {
 		return nil
 	}
 
 	for k := range tags {
 		// delete same key from fields
-		delete(fields, k)
+		if _, ok := fields[k]; ok {
+
+			*warnings = append(*warnings, &PointWarning{
+				WarningType: WarnSameTagFieldKey,
+				Message:     fmt.Sprintf("same key `%s' in tag and field, ", k),
+			})
+
+			delete(fields, k)
+		}
 	}
 
 	return nil
@@ -261,7 +301,8 @@ func trimSuffixAll(s, sfx string) string {
 	return x
 }
 
-func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
+func checkField(k string, v interface{}, opt *Option, pointWarnings *[]*PointWarning) (interface{}, error) {
+
 	if strings.Contains(k, ".") && !opt.EnablePointInKey {
 		return nil, fmt.Errorf("invalid field key `%s': found `.'", k)
 	}
@@ -278,6 +319,11 @@ func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
 					k, x, uint64(math.MaxInt64))
 			}
 
+			*pointWarnings = append(*pointWarnings, &PointWarning{
+				WarningType: WarnMaxFieldValueInt,
+				Message:     fmt.Sprintf("too large int field: key=%s, field dropped", k),
+			})
+
 			return nil, nil // drop the field
 		} else {
 			// Force convert uint64 to int64: to disable line proto like
@@ -293,7 +339,22 @@ func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
 		return v, nil
 
 	case string:
+		if opt.DisableStringField {
+			*pointWarnings = append(*pointWarnings, &PointWarning{
+				WarningType: WarnInvalidFieldValueType,
+				Message:     fmt.Sprintf(" field(%s) dropped with string value, when [DisableStringField] enabled", k),
+			})
+			return nil, nil // drop the field
+
+		}
+
 		if len(x) > opt.MaxFieldValueLen && opt.MaxFieldValueLen > 0 {
+
+			*pointWarnings = append(*pointWarnings, &PointWarning{
+				WarningType: WarnMaxFieldValueLen,
+				Message:     fmt.Sprintf("exceed max field value length(%d), got %d, value truncated", opt.MaxFieldValueLen, len(x)),
+			})
+
 			return x[:opt.MaxFieldValueLen], nil
 		}
 		return v, nil
@@ -301,8 +362,20 @@ func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
 	default:
 		if opt.Strict {
 			if v == nil {
-				return nil, fmt.Errorf("invalid field %s, value is nil", k)
+
+				*pointWarnings = append(*pointWarnings, &PointWarning{
+					WarningType: WarnInvalidFieldValueType,
+					Message:     "invalid field value type: nil value, field dropped",
+				})
+
+				return nil, fmt.Errorf("invalid field value type %s, value is nil", k)
 			} else {
+
+				*pointWarnings = append(*pointWarnings, &PointWarning{
+					WarningType: WarnInvalidFieldValueType,
+					Message:     fmt.Sprintf("invalid field type: %s, field dropped", reflect.TypeOf(v).String()),
+				})
+
 				return nil, fmt.Errorf("invalid field type: %s", reflect.TypeOf(v).String())
 			}
 		}
@@ -311,7 +384,10 @@ func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
 	}
 }
 
-func checkFields(fields map[string]interface{}, opt *Option) error {
+func checkFields(fields map[string]interface{}, opt *Option, pointWarnings *[]*PointWarning) error {
+	// warnings: WarnMaxFields
+	warnings := []*PointWarning{}
+
 	// delete extra key
 	if opt.MaxFields > 0 && len(fields) > opt.MaxFields {
 		var keys []string
@@ -326,17 +402,27 @@ func checkFields(fields map[string]interface{}, opt *Option) error {
 		for _, k := range deleteKeys {
 			delete(fields, k)
 		}
+
+		warnings = append(warnings, &PointWarning{
+			WarningType: WarnMaxFields,
+			Message:     fmt.Sprintf("exceed max field count(%d), got %d fields, extra fields deleted", opt.MaxFields, len(fields)),
+		})
 	}
 
 	for k, v := range fields {
 		// trim key
 		if opt.MaxFieldKeyLen > 0 && len(k) > opt.MaxFieldKeyLen {
+			warnings = append(warnings, &PointWarning{
+				WarningType: WarnMaxFieldKeyLen,
+				Message:     fmt.Sprintf("exceed max field key length(%d), got %d, key truncated", opt.MaxFieldKeyLen, len(k)),
+			})
+
 			delete(fields, k)
 			k = k[:opt.MaxFieldKeyLen]
 			fields[k] = v
 		}
 
-		if x, err := checkField(k, v, opt); err != nil {
+		if x, err := checkField(k, v, opt, &warnings); err != nil {
 			return err
 		} else {
 			if x == nil {
@@ -347,10 +433,16 @@ func checkFields(fields map[string]interface{}, opt *Option) error {
 		}
 	}
 
+	if pointWarnings != nil {
+		*pointWarnings = append(*pointWarnings, warnings...)
+	}
+
 	return nil
 }
 
-func checkTags(tags map[string]string, opt *Option) error {
+func checkTags(tags map[string]string, opt *Option, pointWarnings *[]*PointWarning) error {
+	// warnings: WarnMaxTags, WarnMaxTagKeyLen, WarnMaxTagKeyLen
+	warnings := []*PointWarning{}
 	// delete extra key
 	if len(tags) > opt.MaxTags {
 		var keys []string
@@ -365,11 +457,21 @@ func checkTags(tags map[string]string, opt *Option) error {
 		for _, k := range deleteKeys {
 			delete(tags, k)
 		}
+
+		warnings = append(warnings, &PointWarning{
+			WarningType: WarnMaxTags,
+			Message:     fmt.Sprintf("exceed max tag count(%d), got %d tags, extra tags deleted", opt.MaxTags, len(tags)),
+		})
 	}
 
 	for k, v := range tags {
 
 		if opt.MaxTagKeyLen > 0 && len(k) > opt.MaxTagKeyLen {
+			warnings = append(warnings, &PointWarning{
+				WarningType: WarnMaxTagKeyLen,
+				Message:     fmt.Sprintf("exceed max tag key length(%d), got %d, key truncated", opt.MaxTagKeyLen, len(k)),
+			})
+
 			delete(tags, k)
 			k = k[:opt.MaxTagKeyLen]
 			tags[k] = v
@@ -377,9 +479,13 @@ func checkTags(tags map[string]string, opt *Option) error {
 
 		if opt.MaxTagValueLen > 0 && len(v) > opt.MaxTagValueLen {
 			tags[k] = v[:opt.MaxTagValueLen]
+			warnings = append(warnings, &PointWarning{
+				WarningType: WarnMaxTagValueLen,
+				Message:     fmt.Sprintf("exceed max tag value length(%d), got %d, value truncated", opt.MaxTagValueLen, len(v)),
+			})
 		}
 
-		// check tag key
+		// check tag key '\', '\n'
 		if strings.HasSuffix(k, `\`) || strings.Contains(k, "\n") {
 			if !opt.Strict {
 				delete(tags, k)
@@ -390,7 +496,7 @@ func checkTags(tags map[string]string, opt *Option) error {
 			}
 		}
 
-		// check tag value
+		// check tag value: '\', '\n'
 		if strings.HasSuffix(v, `\`) || strings.Contains(v, "\n") {
 			if !opt.Strict {
 				tags[k] = adjustKV(v)
@@ -407,6 +513,10 @@ func checkTags(tags map[string]string, opt *Option) error {
 		if err := opt.checkDisabledTag(k); err != nil {
 			return err
 		}
+	}
+
+	if pointWarnings != nil {
+		*pointWarnings = append(*pointWarnings, warnings...)
 	}
 
 	return nil

@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -292,7 +293,7 @@ func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
 	return nil, nil
 }
 
-func GetPipelinePath(pipeLineName string) (string, error) {
+func GetPipelinePath(category, pipeLineName string) (string, error) {
 	if pipeLineName == "" {
 		// you shouldn't be here, check before you call this function.
 		return "", fmt.Errorf("pipeline_empty")
@@ -315,11 +316,26 @@ func GetPipelinePath(pipeLineName string) (string, error) {
 	}
 
 	{
-		plPath := filepath.Join(datakit.GitReposRepoFullPath, pipeLineName)
-		if _, err := os.Stat(plPath); err != nil {
-			l.Errorf("os.Stat failed: %v", err)
-		} else {
-			return plPath, nil // return once found the pipeline file
+		files := script.SearchPlFilePathFromPlStructPath(datakit.GitReposRepoFullPath)
+		if f, ok := files[category]; ok {
+			if plPath, ok := f[pipeLineName]; ok {
+				if _, err := os.Stat(plPath); err != nil {
+					l.Errorf("os.Stat failed: %v", err)
+				} else {
+					return plPath, nil // return once found the pipeline file
+				}
+			}
+		}
+	}
+
+	files := script.SearchPlFilePathFromPlStructPath(datakit.PipelineDir)
+	if f, ok := files[category]; ok {
+		if plPath, ok := f[pipeLineName]; ok {
+			if _, err := os.Stat(plPath); err != nil {
+				return "", err
+			} else {
+				return plPath, nil // return once found the pipeline file
+			}
 		}
 	}
 
@@ -355,10 +371,7 @@ func InitGitreposDir() {
 }
 
 func GetNamespacePipelineFiles(namespace string) ([]string, error) {
-	switch namespace {
-	case datakit.StrPipelineRemote:
-		return path.GetSuffixFilesFromDirDeepOne(datakit.PipelineRemoteDir, datakit.StrPipelineFileSuffix)
-	case datakit.StrGitRepos:
+	if namespace == datakit.StrGitRepos {
 		return path.GetSuffixFilesFromDirDeepOne(datakit.GitReposRepoFullPath, datakit.StrPipelineFileSuffix)
 	}
 	return nil, fmt.Errorf("invalid namespace")

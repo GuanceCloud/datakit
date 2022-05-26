@@ -178,6 +178,10 @@ func (i *Input) Run() {
 
 	tick := time.NewTicker(i.Interval.Duration)
 
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		i.Tags["election_namespace"] = namespace
+	}
+
 	defer tick.Stop()
 	for {
 		if !i.pause {

@@ -97,6 +97,10 @@ func (n *Input) Run() {
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
 
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		n.Tags["election_namespace"] = namespace
+	}
+
 	for {
 		if !n.pause {
 			n.getMetric()

@@ -652,7 +652,7 @@ func (m *monitorAPP) renderPLStatTable(ds *dkhttp.DatakitStats, colArr []string)
 				errInfo += "  " + e + "\n"
 			}
 		}
-		click := "\n__________script__________\n" +
+		click := "__________script__________\n" +
 			plStats.Script +
 			"__________________________\n"
 		if errInfo == "" {

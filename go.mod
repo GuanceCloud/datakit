@@ -69,6 +69,7 @@ require (
 	github.com/lib/pq v1.10.2
 	github.com/mdlayher/netlink v1.4.1 // indirect
 	github.com/mssola/user_agent v0.5.2
+	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/pborman/ansi v1.0.0
@@ -96,7 +97,7 @@ require (
 	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
 	github.com/vjeantet/grok v1.0.0
 	github.com/whilp/git-urls v1.0.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220511102220-db7ca5ac4a29
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220526124657-111c6cd47c52
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220412070245-d0b4d9eb07d3
 	go.etcd.io/bbolt v1.3.5
 	go.opentelemetry.io/otel v1.4.1

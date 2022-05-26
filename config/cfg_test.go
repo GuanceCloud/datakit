@@ -515,3 +515,16 @@ func TestWriteConfigFile(t *testing.T) {
 		})
 	}
 }
+
+func TestGetElectionNamespace(t *testing.T) {
+	Cfg = DefaultConfig()
+	tu.Equals(t, GetElectionNamespace(), "")
+	Cfg.Namespace = "test"
+	tu.Equals(t, GetElectionNamespace(), "")
+
+	Cfg.EnableElection = true
+	tu.Equals(t, GetElectionNamespace(), "test")
+
+	Cfg.Namespace = ""
+	tu.Equals(t, GetElectionNamespace(), "default")
+}

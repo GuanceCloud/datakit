@@ -22,6 +22,10 @@ enable_election = true
 namespace = "dk-namespace-example"
 ```
 
+开启选举后，参与选举的采集数据，会自动加上 tag: `election_namespace:<namespace-name>`。如果未配置 namespace， election_namespace 会取默认值 `default`。
+
+> 注意：并不是参与选举的采集器的所有数据都会添加 election_namespace，而是参与选举的数据才会添加。比如容器采集器中，只有部分数据的采集是参与选举的（event/对象等），而日志采集则不参与选举。
+
 ## 选举原理
 
 以 Kubernetes 为例，在同一个集群中，假定有 10 DataKit 如果都开启了选举，且都开启了 Kubernetes 采集器：

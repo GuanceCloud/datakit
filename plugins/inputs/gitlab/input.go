@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -134,6 +135,10 @@ func (ipt *Input) Run() {
 
 	ticker := time.NewTicker(ipt.duration)
 	defer ticker.Stop()
+
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		ipt.Tags["election_namespace"] = namespace
+	}
 
 	for {
 		select {

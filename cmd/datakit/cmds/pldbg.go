@@ -54,7 +54,7 @@ func pipelineDebugger(category, plname, txt string) error {
 		return err
 	}
 
-	plPath, err := config.GetPipelinePath(plname)
+	plPath, err := config.GetPipelinePath(datakit.Logging, plname)
 	if err != nil {
 		return fmt.Errorf("get pipeline failed: %w", err)
 	}

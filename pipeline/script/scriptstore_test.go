@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -293,4 +294,37 @@ func TestWhichStore(t *testing.T) {
 	if r != _loggingScriptStore {
 		t.Fatal("not equal")
 	}
+}
+
+func TestPlDirStruct(t *testing.T) {
+	bPath := fmt.Sprintf("/tmp/%d/pipeline/", time.Now().UnixNano())
+	_ = os.MkdirAll(bPath, os.FileMode(0o755))
+
+	expt := map[string]map[string]string{}
+	for category, dirName := range datakit.CategoryDirName() {
+		if _, ok := expt[category]; !ok {
+			expt[category] = map[string]string{}
+		}
+		expt[category][dirName+"-xx.p"] = filepath.Join(bPath, dirName, dirName+"-xx.p")
+	}
+
+	_ = os.WriteFile(filepath.Join(bPath, "nginx-xx.p"), []byte(`
+	json(_, time)
+	set_tag(bb, "aa0")
+	default_time(time)
+	`), os.FileMode(0o755))
+
+	expt[datakit.Logging]["nginx-xx.p"] = filepath.Join(bPath, "nginx-xx.p")
+
+	for _, dirName := range datakit.CategoryDirName() {
+		_ = os.MkdirAll(filepath.Join(bPath, dirName), os.FileMode(0o755))
+		_ = os.WriteFile(filepath.Join(bPath, dirName, dirName+"-xx.p"), []byte(`
+		json(_, time)
+		set_tag(bb, "aa0")
+		default_time(time)
+		`), os.FileMode(0o755))
+	}
+	act := SearchPlFilePathFromPlStructPath(bPath)
+
+	assert.Equal(t, expt, act)
 }

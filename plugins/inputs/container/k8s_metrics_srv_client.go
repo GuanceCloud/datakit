@@ -11,9 +11,11 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"k8s.io/client-go/rest"
+	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	metricsv1beta1 "k8s.io/metrics/pkg/client/clientset/versioned/typed/metrics/v1beta1"
 )
 
@@ -64,44 +66,63 @@ func gatherPodMetrics(client k8sMetricsClientX, extraTags map[string]string) ([]
 
 	var res []inputs.Measurement
 
-	for _, item := range list.Items {
-		if len(item.Containers) == 0 {
-			continue
+	for idx := range list.Items {
+		obj := parsePodMetrics(&list.Items[idx], extraTags)
+		if obj != nil {
+			res = append(res, obj)
 		}
-		obj := &podSrvMetric{
-			tags: map[string]string{
-				"pod_name":     item.Name,
-				"cluster_name": defaultClusterName(item.ClusterName),
-				"namespace":    defaultNamespace(item.Namespace),
-			},
-			fields: map[string]interface{}{},
-			time:   time.Now(),
-		}
-		obj.tags.append(extraTags)
-
-		cpu := item.Containers[0].Usage["cpu"]
-		mem := item.Containers[0].Usage["memory"]
-		for i := 1; i < len(item.Containers); i++ {
-			if c, ok := item.Containers[i].Usage["cpu"]; ok {
-				cpu.Add(c)
-			}
-			if m, ok := item.Containers[i].Usage["memory"]; ok {
-				mem.Add(m)
-			}
-		}
-
-		cpuUsage, err := strconv.ParseFloat(cpu.AsDec().String(), 64)
-		if err != nil {
-			l.Debugf("k8s pod metrics, parsed cpu err: %s", err)
-		}
-		memUsage, _ := mem.AsInt64()
-
-		obj.fields["cpu_usage"] = cpuUsage * 100 // percentage
-		obj.fields["memory_usage_bytes"] = memUsage
-
-		res = append(res, obj)
 	}
 	return res, nil
+}
+
+func getPodSrvMetric(client k8sMetricsClientX, namespace, name string) (*podSrvMetric, error) {
+	met, err := client.getPodMetricsForNamespace(namespace).Get(context.Background(), name, metaV1GetOption)
+	if err != nil {
+		return nil, err
+	}
+	return parsePodMetrics(met, nil), nil
+}
+
+func parsePodMetrics(item *v1beta1.PodMetrics, extraTags map[string]string) *podSrvMetric {
+	if len(item.Containers) == 0 {
+		return nil
+	}
+	obj := &podSrvMetric{
+		tags: map[string]string{
+			"pod_name":     item.Name,
+			"cluster_name": defaultClusterName(item.ClusterName),
+			"namespace":    defaultNamespace(item.Namespace),
+		},
+		fields: map[string]interface{}{},
+		time:   time.Now(),
+	}
+	obj.tags.append(extraTags)
+
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		obj.tags["election_namespace"] = namespace
+	}
+
+	cpu := item.Containers[0].Usage["cpu"]
+	mem := item.Containers[0].Usage["memory"]
+	for i := 1; i < len(item.Containers); i++ {
+		if c, ok := item.Containers[i].Usage["cpu"]; ok {
+			cpu.Add(c)
+		}
+		if m, ok := item.Containers[i].Usage["memory"]; ok {
+			mem.Add(m)
+		}
+	}
+
+	cpuUsage, err := strconv.ParseFloat(cpu.AsDec().String(), 64)
+	if err != nil {
+		l.Debugf("k8s pod metrics, parsed cpu err: %s", err)
+	}
+	memUsage, _ := mem.AsInt64()
+
+	obj.fields["cpu_usage"] = cpuUsage * 100 // percentage
+	obj.fields["memory_usage_bytes"] = memUsage
+
+	return obj
 }
 
 type podSrvMetric struct {
