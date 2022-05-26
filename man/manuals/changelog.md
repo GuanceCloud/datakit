@@ -44,6 +44,23 @@
 - OpenTelemetry gRPC 方式支持 gzip(#774)
 - 修复 [filebeat](beats_output) 采集器不能设置 service 的问题(#767)
 
+## Breaking changes
+
+对于 Docker 类容器日志的采集，需要将宿主机（Node）的 */varl/lib* 路径挂载到 DataKit 里面（因为 Docker 日志默认落在宿主机的 */var/lib/* 下面），在 *datakit.yaml* 中，`volumeMounts` 和 `volumes` 中新增如下配置：
+
+```yaml
+volumeMounts:
+- mountPath: /var/lib
+  name: lib
+
+# 省略其它部分...
+
+volumes:
+- hostPath:
+    path: /var/lib
+  name: lib
+```
+
 ----
 
 ## 1.2.19(2022/05/12)
