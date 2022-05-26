@@ -136,16 +136,20 @@ func TestParseDuration(t *testing.T) {
 				}
 				return
 			}
-
-			err = runner.Run(tc.in)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
 			if err != nil {
+				t.Fatal(err)
+			}
+			if ret.Error != nil {
 				if tc.fail {
 					t.Logf("[%d]expect error: %s", idx, err)
 				} else {
 					t.Error(err)
 				}
 			} else {
-				ret := runner.Result()
 				t.Log(ret)
 				v := ret.Fields[tc.outKey]
 				tu.Equals(t, tc.expected, v)

@@ -219,7 +219,7 @@ func TestContrast(t *testing.T) {
 
 func TestCheckOutPutNilPtr(t *testing.T) {
 	var out *Output
-	checkOutPutNilPtr(&out)
+	checkOutputNilPtr(&out)
 	if out == nil {
 		t.Error("nil")
 	}

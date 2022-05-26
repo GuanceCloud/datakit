@@ -22,7 +22,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -285,13 +284,7 @@ func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
 				if vv.Pipeline == "" {
 					continue
 				}
-				pl, err := pipeline.NewPipeline(vv.Pipeline)
-				if err != nil {
-					return vv, err
-				}
-				if pl == nil {
-					return vv, fmt.Errorf("pipeline_file_error")
-				}
+				// 跳过检查
 			}
 		}
 	}

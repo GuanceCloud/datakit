@@ -87,7 +87,8 @@ func NewPoint(name string,
 	var o *PointOption
 	if len(opt) > 0 {
 		o = opt[0]
-	} else {
+	}
+	if o == nil {
 		o = defaultPointOption()
 	}
 

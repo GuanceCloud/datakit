@@ -14,8 +14,11 @@ import (
 )
 
 func AddPatternChecking(ngData *parser.EngineData, node parser.Node) error {
-	g := ngData.GetGrok()
-
+	// 只能在 checking 函数中修改 engine 的 grok
+	g, ok := ngData.GetEngineRGrok()
+	if !ok {
+		return fmt.Errorf("grok: nil ptr")
+	}
 	funcExpr := fexpr(node)
 
 	if len(funcExpr.Param) != 2 {
@@ -45,7 +48,7 @@ func AddPatternChecking(ngData *parser.EngineData, node parser.Node) error {
 		return nil
 		// return fmt.Errorf("pattern %s redefine", name)
 	}
-	dePatterns := []map[string]string{}
+	dePatterns := []map[string]*grok.GrokPattern{}
 	dePatterns = append(dePatterns, g.GlobalDenormalizedPatterns, g.DenormalizedPatterns)
 	dePatterns = append(dePatterns, pStack...)
 
