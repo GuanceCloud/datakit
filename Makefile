@@ -204,7 +204,7 @@ testing_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
 	# we also publish testing image to public image repo
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
-	$(call build_k8s_charts, 'datakit-testing', 'registry.jiagouyun.com')
+	$(call build_k8s_charts, 'datakit-testing', registry.jiagouyun.com)
 
 production_notify: deps
 	$(call notify_build,production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -215,7 +215,7 @@ production: deps # stable release
 
 production_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
-	$(call build_k8s_charts, 'datakit', 'pubrepo.guance.com')
+	$(call build_k8s_charts, 'datakit', pubrepo.guance.com)
 
 production_mac: deps
 	$(call build, production, $(MAC_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
