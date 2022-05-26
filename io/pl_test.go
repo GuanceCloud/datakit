@@ -11,8 +11,11 @@ func TestRunPl(t *testing.T) {
 }
 
 func TestSCriptName(t *testing.T) {
-	pt, err := NewPoint("m_name", map[string]string{"service": "svc_name"}, map[string]interface{}{"message@json": "a"})
+	pt, err := NewPoint("m_name", map[string]string{"service": "svc_name"}, map[string]interface{}{"message@json": "a"}, &PointOption{
+		Category: datakit.Logging,
+	})
 	assert.Equal(t, nil, err)
+
 	name, ok := scriptName(datakit.Tracing, pt, nil)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "svc_name.p", name)
@@ -28,7 +31,9 @@ func TestSCriptName(t *testing.T) {
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "def.p", name)
 
-	pt2, err := NewPoint("m_name", map[string]string{}, map[string]interface{}{"message@json": "a"})
+	pt2, err := NewPoint("m_name", map[string]string{}, map[string]interface{}{"message@json": "a"}, &PointOption{
+		Category: datakit.Logging,
+	})
 	assert.Equal(t, nil, err)
 	_, ok = scriptName(datakit.Tracing, pt2, map[string]string{"m_name": "def.p"})
 	assert.Equal(t, false, ok)

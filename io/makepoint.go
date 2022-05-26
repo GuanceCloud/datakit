@@ -90,18 +90,14 @@ func defaultPointOption() *PointOption {
 func NewPoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
-	opt ...*PointOption) (*Point, error) {
-	var o *PointOption
-	if len(opt) > 0 {
-		o = opt[0]
-	}
-	if o == nil {
-		o = defaultPointOption()
+	opt *PointOption) (*Point, error) {
+	if opt == nil {
+		opt = defaultPointOption()
 	}
 
 	lpOpt := &lp.Option{
-		Time:      o.Time,
-		Strict:    o.Strict,
+		Time:      opt.Time,
+		Strict:    opt.Strict,
 		Precision: "n",
 
 		MaxTags:   MaxTags,
@@ -119,17 +115,17 @@ func NewPoint(name string,
 		Callback:          nil,
 	}
 
-	if o.DisableGlobalTags {
+	if opt.DisableGlobalTags {
 		lpOpt.ExtraTags = nil
 	}
-	if o.MaxFieldValueLen > 0 {
-		lpOpt.MaxFieldValueLen = o.MaxFieldValueLen
+	if opt.MaxFieldValueLen > 0 {
+		lpOpt.MaxFieldValueLen = opt.MaxFieldValueLen
 	}
-	switch o.Category {
+	switch opt.Category {
 	case datakit.Metric:
 		lpOpt.EnablePointInKey = true
-		lpOpt.DisabledTagKeys = DisabledTagKeys[o.Category]
-		lpOpt.DisabledFieldKeys = DisabledFieldKeys[o.Category]
+		lpOpt.DisabledTagKeys = DisabledTagKeys[opt.Category]
+		lpOpt.DisabledFieldKeys = DisabledFieldKeys[opt.Category]
 		lpOpt.DisableStringField = true // ingore string field value in metric point
 	case datakit.Network,
 		datakit.KeyEvent,
@@ -139,10 +135,10 @@ func NewPoint(name string,
 		datakit.Tracing,
 		datakit.RUM,
 		datakit.Security:
-		lpOpt.DisabledTagKeys = DisabledTagKeys[o.Category]
-		lpOpt.DisabledFieldKeys = DisabledFieldKeys[o.Category]
+		lpOpt.DisabledTagKeys = DisabledTagKeys[opt.Category]
+		lpOpt.DisabledFieldKeys = DisabledFieldKeys[opt.Category]
 	default:
-		return nil, fmt.Errorf("invalid point category: %s", o.Category)
+		return nil, fmt.Errorf("invalid point category: %s", opt.Category)
 	}
 	return doMakePoint(name, tags, fields, lpOpt)
 }
