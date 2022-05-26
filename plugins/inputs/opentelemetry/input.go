@@ -83,10 +83,10 @@ const (
 
   [inputs.opentelemetry.expectedHeaders]
     ## 如有header配置 则请求中必须要携带 否则返回状态码500
-	## 可作为安全检测使用,必须全部小写
-	# ex_version = xxx
-	# ex_name = xxx
-	# ...
+  ## 可作为安全检测使用,必须全部小写
+  # ex_version = xxx
+  # ex_name = xxx
+  # ...
 
   ## grpc
   [inputs.opentelemetry.grpc]
