@@ -60,14 +60,12 @@ func doMakePoint(name string,
 
 	if err != nil {
 		return nil, err
-	} else {
-		if len(warnings) > 0 {
-			warningsStr := ""
-			for _, warn := range warnings {
-				warningsStr += warn.Message + ";"
-			}
-			l.Warnf("make metric(%s) point successfully but with warnings: %s", name, warningsStr)
+	} else if len(warnings) > 0 {
+		warningsStr := ""
+		for _, warn := range warnings {
+			warningsStr += warn.Message + ";"
 		}
+		l.Warnf("make metric(%s) point successfully but with warnings: %s", name, warningsStr)
 	}
 
 	return &Point{Point: p}, nil

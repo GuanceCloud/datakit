@@ -194,7 +194,6 @@ func Test_makeSeries(t *testing.T) {
 					t.Errorf("makeSeries() = %v, want %v", got[i], tt.want[i])
 				}
 			}
-
 		})
 	}
 }

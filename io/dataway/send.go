@@ -127,7 +127,7 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 		dc.fails++
 		log.Errorf("request url %s failed(proxy: %s): %s", requrl, dc.proxy, err)
 
-		if dwError, ok := err.(*DatawayError); ok {
+		if dwError, ok := err.(*DatawayError); ok { //nolint:errorlint
 			err := dwError.Err
 			var urlError *url.Error
 			if errors.As(err, &urlError) && urlError.Timeout() {
