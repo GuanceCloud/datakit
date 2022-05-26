@@ -66,13 +66,13 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 
 	t.file, err = os.Open(filename) //nolint:gosec
 	if err != nil {
-		// if os.IsNotExist(err) {
-		// 	filename = filepath.Join("/rootfs", filename)
-		// 	t.file, err = os.Open(filename) //nolint:gosec
-		// 	if err != nil {
-		// 		return nil, err
-		// 	}
-		// }
+		if os.IsNotExist(err) {
+			filename = filepath.Join("/rootfs", filename)
+			t.file, err = os.Open(filename) //nolint:gosec
+			if err != nil {
+				return nil, err
+			}
+		}
 		return nil, err
 	}
 
@@ -147,16 +147,54 @@ func (t *Single) reopen() error {
 	t.closeFile()
 	t.opt.log.Debugf("reopen file %s", t.filepath)
 
-	var err error
-	t.file, err = os.Open(t.filepath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("file %s is not exist", t.filepath)
+	for {
+		var err error
+		t.file, err = os.Open(t.filepath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				t.opt.log.Debugf("waiting for %s to appear..", t.filepath)
+				time.Sleep(time.Second)
+				continue
+			}
+			return fmt.Errorf("unable to open file %s: %w", t.filepath, err)
 		}
-		return fmt.Errorf("unable to open file %s: %w", t.filepath, err)
+		break
 	}
 
 	return nil
+}
+
+func (t *Single) tellEvent(event fsnotify.Event) (err error) {
+	switch {
+	case event.Op&fsnotify.Remove == fsnotify.Remove:
+		t.opt.log.Debugf("receive remove event from file %s", t.filepath)
+
+		if err = t.reopen(); err != nil {
+			t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
+			return
+		}
+		if err = t.removeWatcher(t.filepath); err != nil {
+			t.opt.log.Warnf("unable remove watcher %s, err: %s", t.filepath, err)
+			return
+		}
+		if err = t.addWatcher(t.filepath); err != nil {
+			t.opt.log.Warnf("unable add watcher %s, err: %s", t.filepath, err)
+			return
+		}
+
+	case event.Op&fsnotify.Rename == fsnotify.Rename:
+		t.opt.log.Debugf("receive rename event from file %s", t.filepath)
+
+		if err = t.reopen(); err != nil {
+			t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
+			return
+		}
+
+	default:
+		t.opt.log.Debugf("receive %s event from file %s, ignored", event, t.filepath)
+	}
+
+	return
 }
 
 //nolint:cyclop
@@ -170,9 +208,6 @@ func (t *Single) forwardMessage() {
 	)
 	defer timeout.Stop()
 
-	stat, _ := t.file.Stat()
-	prevSize := stat.Size()
-
 	for {
 		select {
 		case event, ok := <-t.watcher.Events:
@@ -180,49 +215,16 @@ func (t *Single) forwardMessage() {
 				t.opt.log.Warnf("receive events error, file %s", t.filepath)
 				return
 			}
-			switch {
-			case event.Op&fsnotify.Remove == fsnotify.Remove:
-				t.opt.log.Debugf("receive remove event from file %s", t.filepath)
-				if err := t.reopen(); err != nil {
-					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
-					return
-				}
-				if err := t.removeWatcher(t.filepath); err != nil {
-					t.opt.log.Warnf("unable remove watcher %s, err: %s", t.filepath, err)
-					return
-				}
-				if err := t.addWatcher(t.filepath); err != nil {
-					t.opt.log.Warnf("unable add watcher %s, err: %s", t.filepath, err)
-					return
-				}
-			case event.Op&fsnotify.Rename == fsnotify.Rename:
-				t.opt.log.Debugf("receive rename event from file %s", t.filepath)
-				if err := t.reopen(); err != nil {
-					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
-					return
-				}
-			case event.Op&fsnotify.Write == fsnotify.Write:
-				fi, err := os.Stat(t.filepath)
-				if err != nil {
-					t.opt.log.Warnf("unable to open file %s, err: %s", t.filepath, err)
-					return
-				}
-				size := fi.Size()
-				if prevSize > 0 && prevSize > size {
-					t.opt.log.Debugf("truncate file %s", t.filepath)
-					if err := t.reopen(); err != nil {
-						t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
-						return
-					}
-				}
-				prevSize = size
+			if err := t.tellEvent(event); err != nil {
+				t.opt.log.Warn(err)
+				return
 			}
 
 		case err, ok := <-t.watcher.Errors:
+			t.opt.log.Warnf("receive error event from file %s, err: %s", t.filepath, err)
 			if !ok {
 				return
 			}
-			t.opt.log.Warnf("receive error event from file %s, err: %s", t.filepath, err)
 
 		case <-t.stopCh:
 			t.closeFile()
