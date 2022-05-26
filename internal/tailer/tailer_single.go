@@ -194,7 +194,7 @@ func (t *Single) tellEvent(event fsnotify.Event) (err error) {
 		t.opt.log.Debugf("receive %s event from file %s, ignored", event, t.filepath)
 	}
 
-	return
+	return nil
 }
 
 //nolint:cyclop
