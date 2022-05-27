@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package mem collects host memory metrics.
 package mem
 
@@ -176,7 +181,6 @@ func (ipt *Input) Collect() error {
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("memory input started")
-	io.FeedEventLog(&io.Reporter{Message: "mem start ok, ready for collecting metrics.", Logtype: "event"})
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
@@ -234,11 +238,24 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 // ReadEnv support envs：
 //   ENV_INPUT_MEM_TAGS : "a=b,c=d"
+//   ENV_INPUT_MEM_INTERVAL : datakit.Duration
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if tagsStr, ok := envs["ENV_INPUT_MEM_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
 			ipt.Tags[k] = v
+		}
+	}
+
+	//   ENV_INPUT_MEM_INTERVAL : datakit.Duration
+	if str, ok := envs["ENV_INPUT_MEM_INTERVAL"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_MEM_INTERVAL to time.Duration: %s, ignore", err)
+		} else {
+			ipt.Interval.Duration = config.ProtectedInterval(minInterval,
+				maxInterval,
+				da)
 		}
 	}
 }

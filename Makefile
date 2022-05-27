@@ -15,14 +15,15 @@ TESTING_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com
 # export LOCAL_OSS_HOST='oss-cn-hangzhou.aliyuncs.com' # 一般都是这个地址
 # export LOCAL_OSS_ADDR='<your-oss-bucket>.oss-cn-hangzhou.aliyuncs.com/datakit'
 # 如果只是编译，LOCAL_OSS_ADDR 这个环境变量可以随便给个值
+LOCAL_OSS_ADDR?="not-set"
 LOCAL_DOWNLOAD_ADDR=${LOCAL_OSS_ADDR}
-
 
 PUB_DIR = dist
 BUILD_DIR = dist
 
 BIN = datakit
 NAME = datakit
+NAME_EBPF = datakit-ebpf
 ENTRY = cmd/datakit/main.go
 
 LOCAL_ARCHS:="local"
@@ -37,6 +38,8 @@ GIT_BRANCH?=$(shell git rev-parse --abbrev-ref HEAD)
 COMMITER:=$(shell git log -1 --pretty=format:'%an')
 UPLOADER:=$(shell hostname)/${USER}/${COMMITER}
 DOCKER_IMAGE_ARCHS:="linux/arm64,linux/amd64"
+DATAKIT_EBPF_ARCHS?="linux/arm64,linux/amd64"
+IGN_EBPF_INSTALL_ERR?=0
 
 GO_MAJOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
 GO_MINOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
@@ -56,9 +59,10 @@ GOLINT_VERSION_VALIDATION_ERR_MSG = golangci-lint version($(GOLINT_VERSION)) is 
 #####################
 
 define GIT_INFO
-//nolint
+// Package git used to define basic git info abount current version.
 package git
 
+//nolint
 const (
 	BuildAt  string = "$(DATE)"
 	Version  string = "$(VERSION)"
@@ -69,6 +73,23 @@ const (
 );
 endef
 export GIT_INFO
+
+define notify_build
+	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
+		exit 0 ; \
+	elif [ $(GO_MAJOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
+		echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
+		exit 1; \
+	elif [ $(GO_MINOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MINOR_VERSION) ] ; then \
+		echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
+		exit 1; \
+	fi
+	@echo "===== notify $(BIN) $(1) ===="
+	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go \
+		-main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
+		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3) \
+		-notify-only
+endef
 
 define build
 	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
@@ -98,11 +119,19 @@ define pub
 		-build-dir $(BUILD_DIR) -archs $(3)
 endef
 
+define pub_ebpf
+	@echo "publish $(1) $(NAME_EBPF) ..."
+	@GO111MODULE=off go run cmd/make/make.go \
+		-pub-ebpf -release $(1) -pub-dir $(PUB_DIR) \
+		-name $(NAME_EBPF) -download-addr $(2) \
+		-build-dir $(BUILD_DIR) -archs $(3)
+endef
+
 define build_docker_image
 	@if [ $(2) = "registry.jiagouyun.com" ]; then \
 		echo 'publish to $(2)...'; \
 		sudo docker buildx build --platform $(1) \
-			-t $(2)/datakit/datakit:$(VERSION) . --push ; \
+			-t $(2)/datakit/datakit:$(VERSION) . --push --build-arg IGN_EBPF_INSTALL_ERR=$(IGN_EBPF_INSTALL_ERR); \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push ; \
 	else \
@@ -110,7 +139,7 @@ define build_docker_image
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/datakit:$(VERSION) \
 			-t $(2)/dataflux/datakit:$(VERSION) \
-			-t $(2)/dataflux-prev/datakit:$(VERSION) . --push; \
+			-t $(2)/dataflux-prev/datakit:$(VERSION) . --push --build-arg IGN_EBPF_INSTALL_ERR=$(IGN_EBPF_INSTALL_ERR); \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/logfwd:$(VERSION) \
 			-t $(2)/dataflux/logfwd:$(VERSION) \
@@ -121,11 +150,18 @@ endef
 define build_k8s_charts
 	@helm repo ls
 	@echo `echo $(VERSION) | cut -d'-' -f1`
-	@sed "s,{{tag}},$(VERSION),g" charts/values.yaml > charts/datakit/values.yaml
+	@sed -e "s,{{tag}},$(VERSION),g" -e "s,{{repository}},$(2)/datakit/datakit,g" charts/values.yaml > charts/datakit/values.yaml
 	@helm package charts/datakit --version `echo $(VERSION) | cut -d'-' -f1` --app-version `echo $(VERSION) | cut -d'-' -f1`
-	@helm push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1)
+	@if [ $$((`echo $(VERSION) | awk -F . '{print $$2}'`%2)) -eq 0 ];then \
+        helm cm-push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1); \
+     else \
+			  printf "\033[31m [FAIL] unstable version not allowed\n\033[0m"; \
+        exit 1; \
+     fi
+
 	@rm -f datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz
 endef
+
 
 define check_golint_version
 	@case $(GOLINT_VERSION) in \
@@ -142,8 +178,23 @@ endef
 local: deps
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
-pub_local:
+pub_local: deps
 	$(call pub, local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
+
+pub_ebpf_local: deps
+	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
+	$(call pub_ebpf, local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
+
+pub_epbf_testing: deps
+	$(call build,testing, $(DATAKIT_EBPF_ARCHS), $(TESTING_DOWNLOAD_ADDR))
+	$(call pub_ebpf, testing,$(TESTING_DOWNLOAD_ADDR),$(DATAKIT_EBPF_ARCHS))
+
+pub_ebpf_production: deps
+	$(call build,production, $(DATAKIT_EBPF_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
+	$(call pub_ebpf, production,$(PRODUCTION_DOWNLOAD_ADDR),$(DATAKIT_EBPF_ARCHS))
+
+testing_notify: deps
+	$(call notify_build,testing, $(DEFAULT_ARCHS), $(TESTING_DOWNLOAD_ADDR))
 
 testing: deps
 	$(call build, testing, $(DEFAULT_ARCHS), $(TESTING_DOWNLOAD_ADDR))
@@ -153,7 +204,10 @@ testing_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
 	# we also publish testing image to public image repo
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
-	$(call build_k8s_charts, 'datakit-test-chart')
+	$(call build_k8s_charts, 'datakit-testing', registry.jiagouyun.com)
+
+production_notify: deps
+	$(call notify_build,production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
 
 production: deps # stable release
 	$(call build, production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -161,7 +215,7 @@ production: deps # stable release
 
 production_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
-	$(call build_k8s_charts, 'datakit-prod-chart')
+	$(call build_k8s_charts, 'datakit', pubrepo.guance.com)
 
 production_mac: deps
 	$(call build, production, $(MAC_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -182,7 +236,7 @@ pub_testing_win_img:
 # not used
 pub_testing_charts:
 	@helm package ${CHART_PATH%/*} --version $(VERSION) --app-version $(VERSION)
-	@helm helm push ${TEMP\#\#*/}-$TAG.tgz datakit-test-chart
+	@helm helm cm-push ${TEMP\#\#*/}-$TAG.tgz datakit-test-chart
 
 # not used
 pub_release_win_img:
@@ -233,9 +287,8 @@ man:
 	@packr2
 
 # ignore files under vendor/.git/git
-# install gofumpt: go install mvdan.cc/gofumpt@latest
 gofmt:
-	@GO111MODULE=off gofumpt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go")
+	@GO111MODULE=off gofmt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go")
 
 vet:
 	@go vet ./...
@@ -297,6 +350,12 @@ plparser_disable_line:
 prepare:
 	@mkdir -p git
 	@echo "$$GIT_INFO" > git/git.go
+
+copyright_check:
+	@python3 copyright.py --dry-run
+
+copyright_check_auto_fix:
+	@python3 copyright.py --fix
 
 check_man:
 	grep --color=always -nrP "[a-zA-Z0-9][\p{Han}]|[\p{Han}][a-zA-Z0-9]" man > bad-doc.log

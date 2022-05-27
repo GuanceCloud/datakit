@@ -1,8 +1,12 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package container
 
 import (
 	"reflect"
-	"time"
 
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -14,8 +18,6 @@ const (
 
 	dockerEndpoint    = "unix:///var/run/docker.sock"
 	containerdAddress = "/var/run/containerd/containerd.sock"
-
-	timeoutDuration = time.Second * 5
 )
 
 var measurements = make(map[reflect.Type]inputs.Measurement)
@@ -35,14 +37,12 @@ const sampleCfg = `
 
   ## Containers logs to include and exclude, default collect all containers. Globs accepted.
   container_include_log = []
-  container_exclude_log = ["image:pubrepo.jiagouyun.com/datakit/logfwd*"]
+  container_exclude_log = ["image:pubrepo.jiagouyun.com/datakit/logfwd*", "image:pubrepo.jiagouyun.com/datakit/datakit*"]
 
   exclude_pause_container = true
 
   ## Removes ANSI escape codes from text strings
   logging_remove_ansi_escape_codes = false
-  ## Maximum length of logging, default 32766 bytes.
-  max_logging_length = 32766
 
   kubernetes_url = "https://kubernetes.default:443"
 
@@ -64,6 +64,7 @@ type DepercatedConf struct {
 	EnableObject        bool           `toml:"enable_object,omitempty"`
 	EnableLogging       bool           `toml:"enable_logging,omitempty"`
 	MetricInterval      timex.Duration `toml:"metric_interval,omitempty"`
+	MaxLoggingLength    int            `toml:"max_logging_length"`
 	IgnoreImageName     []string       `toml:"ignore_image_name,omitempty"`
 	IgnoreContainerName []string       `toml:"ignore_container_name,omitempty"`
 	DropTags            []string       `toml:"drop_tags,omitempty"`

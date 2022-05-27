@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package version implements datakit's version parsing/compare
 package version
 
@@ -157,6 +162,10 @@ func (vi *VerInfo) Parse() error {
 }
 
 func IsNewVersion(newVer, curver *VerInfo, acceptRC bool) bool {
+	if newVer.Commit != curver.Commit {
+		return true
+	}
+
 	if newVer.Compare(curver) > 0 { // new version
 		if newVer.rc == "" { // no rc version
 			return true

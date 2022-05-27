@@ -7,31 +7,34 @@ package tailer
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/pborman/ansi"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
 const (
 	defaultSleepDuration = time.Second
 	readBuffSize         = 1024 * 4
 	timeoutDuration      = time.Second * 3
-
-	firstMessage = "[DataKit-logging] First Message. filename: %s, source: %s"
 )
 
 type Single struct {
-	opt                    *Option
-	file                   *os.File
-	filename, baseFilename string
+	opt                *Option
+	file               *os.File
+	watcher            *fsnotify.Watcher
+	filepath, filename string
 
 	decoder *encoding.Decoder
 	mult    *multiline.Multiline
@@ -50,6 +53,14 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 	t := &Single{
 		stopCh: make(chan struct{}, 1),
 		opt:    opt,
+	}
+
+	if opt.DockerMode && !fileExists(filename) {
+		filename2 := filepath.Join("/rootfs", filename)
+		if !fileExists(filename2) {
+			return nil, fmt.Errorf("file %s does not exist", filename)
+		}
+		filename = filename2
 	}
 
 	var err error
@@ -75,9 +86,18 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		}
 	}
 
+	t.watcher, err = fsnotify.NewWatcher()
+	if err != nil {
+		return nil, err
+	}
+	err = t.watcher.Add(filename)
+	if err != nil {
+		return nil, err
+	}
+
 	t.readBuff = make([]byte, readBuffSize)
-	t.filename = t.file.Name()
-	t.baseFilename = filepath.Base(t.filename)
+	t.filepath = t.file.Name()
+	t.filename = filepath.Base(t.filepath)
 	t.tags = t.buildTags(opt.GlobalTags)
 
 	return t, nil
@@ -90,7 +110,95 @@ func (t *Single) Run() {
 
 func (t *Single) Close() {
 	t.stopCh <- struct{}{}
-	t.opt.log.Infof("closing %s", t.filename)
+	t.closeWatcher()
+	t.opt.log.Infof("closing %s", t.filepath)
+}
+
+func (t *Single) addWatcher(fn string) error {
+	if t.watcher == nil {
+		return nil
+	}
+	return t.watcher.Add(fn)
+}
+
+func (t *Single) removeWatcher(fn string) error {
+	if t.watcher == nil {
+		return nil
+	}
+	return t.watcher.Remove(fn)
+}
+
+func (t *Single) closeWatcher() {
+	if t.watcher == nil {
+		return
+	}
+	if err := t.watcher.Close(); err != nil {
+		t.opt.log.Warnf("close watcher err: %s, ignored", err)
+	}
+}
+
+func (t *Single) closeFile() {
+	if t.file != nil {
+		return
+	}
+	if err := t.file.Close(); err != nil {
+		t.opt.log.Warnf("close file err: %s, ignored", err)
+	}
+	t.file = nil
+}
+
+func (t *Single) reopen() error {
+	t.closeFile()
+	t.opt.log.Debugf("reopen file %s", t.filepath)
+
+	for {
+		var err error
+		t.file, err = os.Open(t.filepath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				t.opt.log.Debugf("waiting for %s to appear..", t.filepath)
+				time.Sleep(time.Second)
+				continue
+			}
+			return fmt.Errorf("unable to open file %s: %w", t.filepath, err)
+		}
+		break
+	}
+
+	return nil
+}
+
+func (t *Single) tellEvent(event fsnotify.Event) (err error) {
+	switch {
+	case event.Op&fsnotify.Remove == fsnotify.Remove:
+		t.opt.log.Debugf("receive remove event from file %s", t.filepath)
+
+		if err = t.reopen(); err != nil {
+			t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
+			return
+		}
+		if err = t.removeWatcher(t.filepath); err != nil {
+			t.opt.log.Warnf("unable remove watcher %s, err: %s", t.filepath, err)
+			return
+		}
+		if err = t.addWatcher(t.filepath); err != nil {
+			t.opt.log.Warnf("unable add watcher %s, err: %s", t.filepath, err)
+			return
+		}
+
+	case event.Op&fsnotify.Rename == fsnotify.Rename:
+		t.opt.log.Debugf("receive rename event from file %s", t.filepath)
+
+		if err = t.reopen(); err != nil {
+			t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
+			return
+		}
+
+	default:
+		t.opt.log.Debugf("receive %s event from file %s, ignored", event, t.filepath)
+	}
+
+	return nil
 }
 
 //nolint:cyclop
@@ -104,21 +212,34 @@ func (t *Single) forwardMessage() {
 	)
 	defer timeout.Stop()
 
-	if !t.opt.DisableSendEvent {
-		dkio.FeedEventLog(&dkio.Reporter{Message: fmt.Sprintf(firstMessage, t.filename, t.opt.Source), Logtype: "event"})
-	}
 	for {
 		select {
-		case <-t.stopCh:
-			if err := t.file.Close(); err != nil {
-				t.opt.log.Warnf("Close(): %s, ignored", err.Error())
+		case event, ok := <-t.watcher.Events:
+			if !ok {
+				t.opt.log.Warnf("receive events error, file %s", t.filepath)
+				return
 			}
+			if err := t.tellEvent(event); err != nil {
+				t.opt.log.Warn(err)
+				return
+			}
+
+		case err, ok := <-t.watcher.Errors:
+			t.opt.log.Warnf("receive error event from file %s, err: %s", t.filepath, err)
+			if !ok {
+				return
+			}
+
+		case <-t.stopCh:
+			t.closeFile()
 			t.opt.log.Infof("stop reading data from file %s", t.filename)
 			return
+
 		case <-timeout.C:
 			if str := t.mult.FlushString(); str != "" {
 				t.send(str)
 			}
+
 		default:
 			// nil
 		}
@@ -128,43 +249,110 @@ func (t *Single) forwardMessage() {
 			t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
 			return
 		}
+
 		if readNum == 0 {
 			t.wait()
 			continue
 		}
 
+		// 如果接收到数据，则重置 ticker
+		timeout.Reset(timeoutDuration)
+
 		lines = b.split()
-		pending := []string{}
-		for _, line := range lines {
-			if line == "" {
-				continue
-			}
 
-			var text string
-			text, err = t.decode(line)
-			if err != nil {
-				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
-				if !t.opt.DisableSendEvent {
-					dkio.FeedEventLog(&dkio.Reporter{Message: line, Logtype: "event", Status: "warning"}) // event:warning
-				}
-			}
-
-			text = t.multiline(text)
-			if text == "" {
-				continue
-			}
-
-			if t.opt.ForwardFunc != nil {
-				t.sendToForwardCallback(text)
-				continue
-			}
-			logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
-			pending = append(pending, logstr)
+		if t.opt.DockerMode {
+			t.dockerHandler(lines)
+			continue
 		}
-		if len(pending) > 0 {
-			t.sendToPipeline(pending)
-		}
+		t.defaultHandler(lines)
 	}
+}
+
+type dockerMessage struct {
+	Log    string `json:"log"`
+	Stream string `json:"stream"`
+	// Time string `json:"time"`
+}
+
+func (t *Single) dockerHandler(lines []string) {
+	var err error
+	pending := []string{}
+
+	tags := make(map[string]string)
+	for k, v := range t.tags {
+		tags[k] = v
+	}
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
+		var msg dockerMessage
+		if err := json.Unmarshal([]byte(line), &msg); err != nil {
+			t.opt.log.Warnf("unmarshal err: %s, data: %s, ignored", err, line)
+			msg = dockerMessage{
+				Log:    line,
+				Stream: "stdout",
+			}
+		}
+
+		tags["stream"] = msg.Stream
+
+		var text string
+		text, err = t.decode(msg.Log)
+		if err != nil {
+			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
+		}
+
+		if len(text) > 0 && text[len(text)-1] == '\n' {
+			text = text[:len(text)-1]
+		}
+
+		text = t.multiline(text)
+		if text == "" {
+			continue
+		}
+
+		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+		pending = append(pending, logstr)
+	}
+	if len(pending) == 0 {
+		return
+	}
+
+	t.sendToPipeline(pending)
+}
+
+func (t *Single) defaultHandler(lines []string) {
+	var err error
+	pending := []string{}
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
+		var text string
+		text, err = t.decode(line)
+		if err != nil {
+			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
+		}
+
+		text = t.multiline(text)
+		if text == "" {
+			continue
+		}
+
+		if t.opt.ForwardFunc != nil {
+			t.sendToForwardCallback(text)
+			continue
+		}
+		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+		pending = append(pending, logstr)
+	}
+	if len(pending) == 0 {
+		return
+	}
+	t.sendToPipeline(pending)
 }
 
 func (t *Single) send(text string) {
@@ -177,30 +365,38 @@ func (t *Single) send(text string) {
 }
 
 func (t *Single) sendToForwardCallback(text string) {
-	err := t.opt.ForwardFunc(t.baseFilename, text)
+	err := t.opt.ForwardFunc(t.filename, text)
 	if err != nil {
 		t.opt.log.Warnf("failed to forward text from file %s, error: %s", t.filename, err)
 	}
 }
 
 func (t *Single) sendToPipeline(pending []string) {
-	task := &worker.TaskTemplate{
-		TaskName:              "logging/" + t.opt.Source,
-		ScriptName:            t.opt.Pipeline,
-		Source:                t.opt.Source,
-		ContentDataType:       worker.ContentString,
-		Content:               pending,
-		IgnoreStatus:          t.opt.IgnoreStatus,
-		DisableAddStatusField: t.opt.DisableAddStatusField,
-		TS:                    time.Now(),
-		MaxMessageLen:         maxFieldsLength,
-		Tags:                  t.tags,
+	res := []*iod.Point{}
+	// -1ns
+	timeNow := time.Now().Add(-time.Duration(len(pending)))
+	for i, cnt := range pending {
+		pt, err := iod.MakePoint(t.opt.Source, t.tags,
+			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+			timeNow.Add(time.Duration(i)),
+		)
+		if err != nil {
+			l.Error(err)
+			continue
+		}
+		res = append(res, pt)
 	}
-
-	err := worker.FeedPipelineTaskBlock(task)
-	if err != nil {
-		t.opt.log.Warnf("pipline feed err = %v", err)
-		return
+	if len(res) > 0 {
+		if err := iod.Feed("logging/"+t.opt.Source, datakit.Logging, res, &iod.Option{
+			PlScript: map[string]string{t.opt.Source: t.opt.Pipeline},
+			PlOption: &script.Option{
+				MaxFieldValLen:        maxFieldsLength,
+				DisableAddStatusField: t.opt.DisableAddStatusField,
+				IgnoreStatus:          t.opt.IgnoreStatus,
+			},
+		}); err != nil {
+			l.Error(err)
+		}
 	}
 }
 
@@ -222,7 +418,6 @@ func (t *Single) read() ([]byte, int, error) {
 		t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
 		return nil, 0, err
 	}
-
 	return t.readBuff[:n], n, nil
 }
 
@@ -235,8 +430,11 @@ func (t *Single) buildTags(globalTags map[string]string) map[string]string {
 	for k, v := range globalTags {
 		tags[k] = v
 	}
+	if _, ok := tags["filepath"]; !ok {
+		tags["filepath"] = t.filepath
+	}
 	if _, ok := tags["filename"]; !ok {
-		tags["filename"] = t.baseFilename
+		tags["filename"] = t.filename
 	}
 	return tags
 }
@@ -273,7 +471,7 @@ func (b *buffer) split() []string {
 	// block 置空
 	if len(b.previousBlock) != 0 {
 		lines[0] = append(b.previousBlock, lines[0]...)
-		b.previousBlock = b.previousBlock[:0]
+		b.previousBlock = nil
 	}
 
 	// 当 lines 最后一个元素不为空时，说明这段内容并不包含换行符，将其暂存到 previousBlock
@@ -302,4 +500,12 @@ func removeAnsiEscapeCodes(oldtext string, run bool) string {
 	}
 
 	return string(newtext)
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }

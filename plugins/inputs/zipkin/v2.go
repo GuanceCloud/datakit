@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package zipkin
 
 import (
@@ -12,7 +17,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	zpkmodel "github.com/openzipkin/zipkin-go/model"
 	zpkprotov2 "github.com/openzipkin/zipkin-go/proto/v2"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 func parseZipkinProtobuf3(body []byte) (zss []*zpkmodel.SpanModel, err error) {
@@ -153,6 +158,10 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			Tags:      tags,
 		}
 
+		if isRootSpan(dkspan.ParentID) {
+			dkspan.ParentID = "0"
+		}
+
 		if span.TraceID.High != 0 {
 			dkspan.TraceID = fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low)
 		} else {
@@ -177,9 +186,9 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, span.Tags)
 
-		if dkspan.ParentID == "0" && defSampler != nil {
-			dkspan.Priority = defSampler.Priority
-			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		if dkspan.ParentID == "0" && sampler != nil {
+			dkspan.Priority = sampler.Priority
+			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
 		}
 
 		if buf, err := json.Marshal(span); err != nil {

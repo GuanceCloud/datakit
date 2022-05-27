@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package hostobject
 
 import (
@@ -427,7 +432,7 @@ func getHostConfig() *HostConfig {
 func getElectionInfo() *ElectionInfo {
 	electionInfo := &ElectionInfo{}
 	if config.Cfg.EnableElection {
-		elected, namespace := election.Elected()
+		elected, namespace, _ := election.Elected()
 		electionInfo.Elected = elected
 		electionInfo.Namespace = namespace
 		return electionInfo

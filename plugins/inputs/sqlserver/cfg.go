@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package sqlserver
 
 import (
@@ -19,6 +24,9 @@ var (
   host = ""
 
   ## your sqlserver user,password
+	## We recommend **use simple password** here, only use [a-zA-Z_0-9], do not
+	## use special characters, such as #, @, $, theses characters may cause
+	## error on parsing sqlserver connection string.
   user = ""
   password = ""
 

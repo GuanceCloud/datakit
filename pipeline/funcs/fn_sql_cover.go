@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/DataDog/obfuscate"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
@@ -72,7 +72,7 @@ func obfuscatedResource(o *obfuscate.Obfuscator, typ, resource string) (string, 
 	}
 	oq, err := o.ObfuscateSQLString(resource)
 	if err != nil {
-		l.Error("Error obfuscating stats group resource %q: %v", resource, err)
+		l.Errorf("Error obfuscating stats group resource %q: %w", resource, err)
 		return "", err
 	}
 	return oq.Query, nil

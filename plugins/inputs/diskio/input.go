@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package diskio collet disk IO metrics.
 package diskio
 
@@ -243,7 +248,6 @@ func (i *Input) Collect() error {
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("diskio input started")
-	io.FeedEventLog(&io.Reporter{Message: "diskio start ok, ready for collecting metrics.", Logtype: "event"})
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	l.Infof("diskio input started, collect interval: %v", i.Interval.Duration)
@@ -291,6 +295,10 @@ func (i *Input) Terminate() {
 // ReadEnv support envs：
 //   ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER : booler
 //   ENV_INPUT_DISKIO_TAGS : "a=b,c=d"
+//   ENV_INPUT_DISKIO_INTERVAL : datakit.Duration
+//   ENV_INPUT_DISKIO_DEVICES : []string
+//   ENV_INPUT_DISKIO_DEVICE_TAGS : []string
+//   ENV_INPUT_DISKIO_NAME_TEMPLATES : []string
 func (i *Input) ReadEnv(envs map[string]string) {
 	if skip, ok := envs["ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER"]; ok {
 		b, err := strconv.ParseBool(skip)
@@ -306,6 +314,39 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		for k, v := range tags {
 			i.Tags[k] = v
 		}
+	}
+
+	//   ENV_INPUT_DISKIO_INTERVAL : datakit.Duration
+	//   ENV_INPUT_DISKIO_DEVICES : []string
+	//   ENV_INPUT_DISKIO_DEVICE_TAGS : []string
+	//   ENV_INPUT_DISKIO_NAME_TEMPLATES : []string
+	if str, ok := envs["ENV_INPUT_DISKIO_INTERVAL"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_DISKIO_INTERVAL to time.Duration: %s, ignore", err)
+		} else {
+			i.Interval.Duration = config.ProtectedInterval(minInterval,
+				maxInterval,
+				da)
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_DISKIO_DEVICES"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add ENV_INPUT_DISKIO_DEVICES from ENV: %v", arrays)
+		i.Devices = append(i.Devices, arrays...)
+	}
+
+	if str, ok := envs["ENV_INPUT_DISKIO_DEVICE_TAGS"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add ENV_INPUT_DISKIO_DEVICE_TAGS from ENV: %v", arrays)
+		i.DeviceTags = append(i.DeviceTags, arrays...)
+	}
+
+	if str, ok := envs["ENV_INPUT_DISKIO_NAME_TEMPLATES"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add ENV_INPUT_DISKIO_NAME_TEMPLATES from ENV: %v", arrays)
+		i.NameTemplates = append(i.NameTemplates, arrays...)
 	}
 }
 

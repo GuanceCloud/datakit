@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package net collects host network metrics.
 package net
 
@@ -271,7 +276,6 @@ func (i *Input) Collect() error {
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("net input started")
-	io.FeedEventLog(&io.Reporter{Message: "net start ok, ready for collecting metrics.", Logtype: "event"})
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
@@ -310,6 +314,8 @@ func (i *Input) Terminate() {
 //   ENV_INPUT_NET_IGNORE_PROTOCOL_STATS : booler
 //   ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES : booler
 //   ENV_INPUT_NET_TAGS : "a=b,c=d"
+//   ENV_INPUT_NET_INTERVAL : datakit.Duration
+//   ENV_INPUT_NET_INTERFACES : []string
 func (i *Input) ReadEnv(envs map[string]string) {
 	if ignore, ok := envs["ENV_INPUT_NET_IGNORE_PROTOCOL_STATS"]; ok {
 		b, err := strconv.ParseBool(ignore)
@@ -334,6 +340,25 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		for k, v := range tags {
 			i.Tags[k] = v
 		}
+	}
+
+	//   ENV_INPUT_NET_INTERVAL : datakit.Duration
+	//   ENV_INPUT_NET_INTERFACES : []string
+	if str, ok := envs["ENV_INPUT_NET_INTERVAL"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_NET_INTERVAL to time.Duration: %s, ignore", err)
+		} else {
+			i.Interval.Duration = config.ProtectedInterval(minInterval,
+				maxInterval,
+				da)
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_NET_INTERFACES"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add ENV_INPUT_NET_INTERFACES from ENV: %v", arrays)
+		i.Interfaces = append(i.Interfaces, arrays...)
 	}
 }
 

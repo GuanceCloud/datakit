@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package dataway
 
 import (
@@ -13,28 +18,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-func (dw *DataWayCfg) GetLogFilter() ([]byte, error) {
+func (dw *DataWayDefault) GetLogFilter() ([]byte, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("[error] dataway url empty")
 	}
 
 	return dw.endPoints[0].getLogFilter()
-}
-
-func (dw *DataWayCfg) DatakitPull(args string) ([]byte, error) {
-	if len(dw.endPoints) == 0 {
-		return nil, fmt.Errorf("[error] dataway url empty")
-	}
-
-	return dw.endPoints[0].datakitPull(args)
-}
-
-func (dw *DataWayCfg) GetPipelinePull(ts int64) (*PullPipelineReturn, error) {
-	if len(dw.endPoints) == 0 {
-		return nil, fmt.Errorf("[error] dataway url empty")
-	}
-
-	return dw.endPoints[0].getPipelinePull(ts)
 }
 
 func (dc *endPoint) getLogFilter() ([]byte, error) {
@@ -95,77 +84,13 @@ func (dc *endPoint) datakitPull(args string) ([]byte, error) {
 
 	defer resp.Body.Close() //nolint:errcheck
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("getLogFilter failed with status code %d, body: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("datakitPull failed with status code %d, body: %s", resp.StatusCode, string(body))
 	}
 
 	return body, nil
 }
 
-type HTTPError struct {
-	ErrCode  string `json:"error_code,omitempty"`
-	Err      error  `json:"-"`
-	HTTPCode int    `json:"-"`
-}
-
-type bodyResp struct {
-	*HTTPError
-	Message string              `json:"message,omitempty"`
-	Content *PullPipelineReturn `json:"content,omitempty"` // 注意与 kodo 中的不一样
-}
-
-type PipelineUnit struct {
-	Name       string `json:"name"`
-	Base64Text string `json:"base64text"`
-}
-
-type PullPipelineReturn struct {
-	UpdateTime int64           `json:"update_time"`
-	Pipelines  []*PipelineUnit `json:"pipelines"`
-}
-
-func (dc *endPoint) getPipelinePull(ts int64) (*PullPipelineReturn, error) {
-	url, ok := dc.categoryURL[datakit.PipelinePull]
-	if !ok {
-		return nil, fmt.Errorf("PipelinePull API missing, should not been here")
-	}
-
-	url += "&ts=" + fmt.Sprintf("%d", ts)
-
-	log.Debugf("PipelinePull GET: %s", url)
-
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := dc.dw.sendReq(req)
-	if err != nil {
-		log.Error(err.Error())
-		return nil, err
-	}
-
-	defer resp.Body.Close() //nolint:errcheck
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(err.Error())
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("getPipelinePull failed with status code %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	var br bodyResp
-	err = json.Unmarshal(body, &br)
-	if err != nil {
-		log.Error(err.Error())
-		return nil, err
-	}
-
-	return br.Content, err
-}
-
-func (dw *DataWayCfg) WorkspaceQuery(body []byte) (*http.Response, error) {
+func (dw *DataWayDefault) WorkspaceQuery(body []byte) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -185,7 +110,7 @@ func (dw *DataWayCfg) WorkspaceQuery(body []byte) (*http.Response, error) {
 	return dw.sendReq(req)
 }
 
-func (dw *DataWayCfg) DQLQuery(body []byte) (*http.Response, error) {
+func (dw *DataWayDefault) DQLQuery(body []byte) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -204,7 +129,7 @@ func (dw *DataWayCfg) DQLQuery(body []byte) (*http.Response, error) {
 	return dw.sendReq(req)
 }
 
-func (dw *DataWayCfg) Election(namespace, id string) ([]byte, error) {
+func (dw *DataWayDefault) Election(namespace, id string) ([]byte, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -246,7 +171,7 @@ func (dw *DataWayCfg) Election(namespace, id string) ([]byte, error) {
 	}
 }
 
-func (dw *DataWayCfg) ElectionHeartbeat(namespace, id string) ([]byte, error) {
+func (dw *DataWayDefault) ElectionHeartbeat(namespace, id string) ([]byte, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -330,7 +255,7 @@ func (dc *endPoint) heartBeat(data []byte) (int, error) {
 	return hb.Content.Interval, nil
 }
 
-func (dw *DataWayCfg) DatawayList() ([]string, int, error) {
+func (dw *DataWayDefault) DatawayList() ([]string, int, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, datawayListIntervalDefault, fmt.Errorf("no dataway available")
 	}
@@ -374,7 +299,7 @@ func (dw *DataWayCfg) DatawayList() ([]string, int, error) {
 	return dws.Content.DatawayList, dws.Content.Interval, nil
 }
 
-func (dw *DataWayCfg) HeartBeat() (int, error) {
+func (dw *DataWayDefault) HeartBeat() (int, error) {
 	body := map[string]interface{}{
 		"dk_uuid":   dw.Hostname, // 暂用 hostname 代之, 后将弃用该字段
 		"heartbeat": time.Now().Unix(),
@@ -404,7 +329,7 @@ func (dw *DataWayCfg) HeartBeat() (int, error) {
 }
 
 // UpsertObjectLabels , dw api create or update object labels.
-func (dw *DataWayCfg) UpsertObjectLabels(tkn string, body []byte) (*http.Response, error) {
+func (dw *DataWayDefault) UpsertObjectLabels(tkn string, body []byte) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -424,7 +349,7 @@ func (dw *DataWayCfg) UpsertObjectLabels(tkn string, body []byte) (*http.Respons
 }
 
 // DeleteObjectLabels , dw api delete object labels.
-func (dw *DataWayCfg) DeleteObjectLabels(tkn string, body []byte) (*http.Response, error) {
+func (dw *DataWayDefault) DeleteObjectLabels(tkn string, body []byte) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -444,7 +369,7 @@ func (dw *DataWayCfg) DeleteObjectLabels(tkn string, body []byte) (*http.Respons
 	return dw.sendReq(req)
 }
 
-func (dw *DataWayCfg) UploadLog(r io.Reader, hostName string) (*http.Response, error) {
+func (dw *DataWayDefault) UploadLog(r io.Reader, hostName string) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}

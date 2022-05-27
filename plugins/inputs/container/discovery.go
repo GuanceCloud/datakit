@@ -1,11 +1,13 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package container
 
 import (
 	"context"
 
-	//nolint:gosec
-	"crypto/md5"
-	"encoding/hex"
 	"strconv"
 	"strings"
 
@@ -33,15 +35,14 @@ func tryRunInput(item *v1.Pod) error {
 		return nil
 	}
 
-	md5str := md5sum(config)
-	if _, ok := discoveryInputsMap[md5str]; ok {
+	if _, ok := discoveryInputsMap[string(item.UID)]; ok {
 		return nil
 	}
 
 	instance := discoveryInput{
-		name:      "prom",
-		config:    complatePromConfig(config, item),
-		configMD5: md5str,
+		id:     string(item.UID),
+		name:   "prom",
+		config: complatePromConfig(config, item),
 		extraTags: map[string]string{
 			"pod_name":  item.Name,
 			"node_name": item.Spec.NodeName,
@@ -52,10 +53,10 @@ func tryRunInput(item *v1.Pod) error {
 	return instance.run()
 }
 
-// map[md5sum(cfg)] = nil.
-var discoveryInputsMap = make(map[string]interface{})
+var discoveryInputsMap = make(map[string][]inputs.Input)
 
 type discoveryInput struct {
+	id        string
 	name      string
 	config    string
 	configMD5 string
@@ -78,6 +79,8 @@ func (d *discoveryInput) run() error {
 		inputList = arr
 		break // get the first iterate elem in the map
 	}
+	// add to inputsMap
+	discoveryInputsMap[d.id] = inputList
 
 	l.Infof("discovery: add %s inputs, len %d", d.name, len(inputList))
 	// add to inputsMap
@@ -141,15 +144,9 @@ func shouldForkInput(nodeName string) bool {
 	if !datakit.Docker {
 		return true
 	}
-	// ENV NODE_NAME 在 daemonset.yaml 配置，是当前程序所在的 Node 名称
+	// ENV_K8S_NODE_NAME 在 daemonset.yaml 配置，是当前程序所在的 Node 名称
 	// Node 名称匹配，表示运行在同一个 Node，此时才需要 fork
 
 	// Node 名称为空属于 unreachable
-	return datakit.GetEnv("NODE_NAME") == nodeName
-}
-
-func md5sum(str string) string {
-	h := md5.New() //nolint:gosec
-	h.Write([]byte(str))
-	return hex.EncodeToString(h.Sum(nil))
+	return datakit.GetEnv("ENV_K8S_NODE_NAME") == nodeName
 }

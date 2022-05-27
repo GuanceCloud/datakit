@@ -4,6 +4,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
+    app: {{ include "datakit.fullname" . }}
   {{- include "datakit.labels" . | nindent 4 }}
   name: {{ include "datakit.fullname" . }}
 spec:
@@ -19,6 +20,7 @@ spec:
       {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
+        app: {{ include "datakit.fullname" . }}
     {{- include "datakit.selectorLabels" . | nindent 8 }}
     spec:
       hostNetwork: true
@@ -30,23 +32,23 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.hostIP
-            - name: NODE_NAME
+            - name: ENV_K8S_NODE_NAME
               valueFrom:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: spec.nodeName
             - name: ENV_DATAWAY
-              value: {{ .Values.dataway_url }}
+              value: {{ .Values.datakit.dataway_url }}
             - name: ENV_GLOBAL_TAGS
-              value: {{ .Values.global_tags }}
+              value: {{ .Values.datakit.global_tags }}
             - name: ENV_DEFAULT_ENABLED_INPUTS
-              value: {{ .Values.default_enabled_inputs }}
+              value: {{ .Values.datakit.default_enabled_inputs }}
             - name: ENV_ENABLE_ELECTION
-              value: {{ .Values.enabled_election | quote }}
-            - name: ENV_LOG
-              value: {{ .Values.log }}
+              value: {{ .Values.datakit.enabled_election | quote }}
+            - name: ENV_LOG_LEVEL
+              value: {{ .Values.datakit.log_level }}
             - name: ENV_HTTP_LISTEN
-              value: {{ .Values.http_listen }}
+              value: {{ .Values.datakit.http_listen }}
             {{- if .Values.git_repos.enable }}
             {{- if not (eq  "-" .Values.git_repos.git_url) }}
             - name: DK_GIT_URL
@@ -80,9 +82,12 @@ spec:
           securityContext:
             privileged: true
           volumeMounts:
-            - mountPath: /var/run/docker.sock
-              name: docker-socket
-              readOnly: true
+            - mountPath: /var/run
+              name: run
+            - mountPath: /var/lib
+              name: lib
+            - mountPath: /var/log
+              name: log
             - mountPath: /host/proc
               name: proc
               readOnly: true
@@ -122,12 +127,18 @@ spec:
       serviceAccount: {{ include "datakit.fullname" . }}
       serviceAccountName: {{ include "datakit.fullname" . }}
       volumes:
-        - configMap:
-            name: datakit-conf
-          name: datakit-conf
+{{/*        - configMap:*/}}
+{{/*            name: datakit-conf*/}}
+{{/*          name: datakit-conf*/}}
         - hostPath:
-            path: /var/run/docker.sock
-          name: docker-socket
+            path: /var/run
+          name: run
+        - hostPath:
+            path: /var/lib
+          name: lib
+        - hostPath:
+            path: /var/log
+          name: log
         - hostPath:
             path: /proc
             type: ""

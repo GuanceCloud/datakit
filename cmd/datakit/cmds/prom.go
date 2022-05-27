@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cmds
 
 import (
@@ -10,6 +15,7 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -128,7 +134,7 @@ func showPromRemoteWriteInput(input *pr.Input) error {
 			return fmt.Errorf("expect to be *prom_remote_write.Measurement")
 		}
 
-		input.AddAndIgnoreTags(mm)
+		input.SetTags(mm)
 		p, err := mm.LineProto()
 		if err != nil {
 			return err

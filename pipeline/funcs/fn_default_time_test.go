@@ -1079,14 +1079,21 @@ func TestDefaultTime(t *testing.T) {
 				}
 				return
 			}
-
-			if err := runner.Run(tc.in); err != nil {
-				t.Error(err)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
+			if err != nil || ret.Error != nil {
+				t.Error(err, " ", ret.Error)
 				return
 			}
-			ret := runner.Result()
 			t.Log(ret)
-			v := ret.Fields[tc.outkey]
+			var v interface{}
+			if tc.outkey != "time" && tc.outkey != "" {
+				v = ret.Fields[tc.outkey]
+			} else {
+				v = ret.Time.UnixNano()
+			}
 			tu.Equals(t, tc.expect, v)
 			t.Logf("[%d] PASS", idx)
 		})

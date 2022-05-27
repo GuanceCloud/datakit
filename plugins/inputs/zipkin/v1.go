@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package zipkin
 
 import (
@@ -6,10 +11,11 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	zpkcorev1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin/corev1"
 )
 
@@ -57,13 +63,17 @@ func thriftV1SpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 		service := getServiceFromZpkCoreV1Span(span)
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   fmt.Sprintf("%x", uint64(span.TraceID)),
-			ParentID:  fmt.Sprintf("%x", uint64(*span.ParentID)),
+			ParentID:  "0",
 			SpanID:    fmt.Sprintf("%x", uint64(span.ID)),
 			Service:   service,
 			Resource:  span.Name,
 			Operation: span.Name,
 			Source:    inputName,
 			SpanType:  itrace.FindSpanTypeInMultiServersIntSpanID(span.ID, *span.ParentID, service, spanIDs, parentIDs),
+		}
+
+		if span.ParentID != nil {
+			dkspan.ParentID = fmt.Sprintf("%x", uint64(*span.ParentID))
 		}
 
 		if span.Timestamp != nil {
@@ -101,9 +111,9 @@ func thriftV1SpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if dkspan.ParentID == "0" && defSampler != nil {
-			dkspan.Priority = defSampler.Priority
-			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		if dkspan.ParentID == "0" && sampler != nil {
+			dkspan.Priority = sampler.Priority
+			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
 		}
 
 		if buf, err := json.Marshal(zipkinConvThriftToJSON(span)); err != nil {
@@ -334,7 +344,7 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 			Duration:  span.Duration * int64(time.Microsecond),
 		}
 
-		if dkspan.ParentID == "" {
+		if isRootSpan(dkspan.ParentID) {
 			dkspan.ParentID = "0"
 		}
 
@@ -365,9 +375,9 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if dkspan.ParentID == "0" && defSampler != nil {
-			dkspan.Priority = defSampler.Priority
-			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		if dkspan.ParentID == "0" && sampler != nil {
+			dkspan.Priority = sampler.Priority
+			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
 		}
 
 		if buf, err := json.Marshal(span); err != nil {
@@ -471,4 +481,16 @@ func findZpkV1BinaryAnnotation(bannos []*BinaryAnnotation, key string) (string, 
 	}
 
 	return "", false
+}
+
+func isRootSpan(parentID string) bool {
+	if len(parentID) == 0 || parentID == "0" {
+		return true
+	} else {
+		if i, err := strconv.ParseInt(parentID, 10, 64); err != nil {
+			return false
+		} else {
+			return i == 0
+		}
+	}
 }

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package redis collects redis metrics.
 package redis
 
@@ -121,6 +126,14 @@ func (*Input) PipelineConfig() map[string]string {
 		inputName: pipelineCfg,
 	}
 	return pipelineMap
+}
+
+func (i *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"Redis log": `122:M 14 May 2019 19:11:40.164 * Background saving terminated with success`,
+		},
+	}
 }
 
 func (i *Input) GetPipeline() []*tailer.Option {
@@ -261,7 +274,10 @@ func (i *Input) RunPipeline() {
 
 func (i *Input) Run() {
 	l = logger.SLogger("redis")
-	io.FeedEventLog(&io.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
+
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		i.Tags["election_namespace"] = namespace
+	}
 
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 

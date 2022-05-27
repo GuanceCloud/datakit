@@ -1,9 +1,15 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package container collect container metrics/loggings/objects.
 package container
 
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -19,7 +25,7 @@ var _ inputs.ReadEnv = (*Input)(nil)
 
 const (
 	objectInterval = time.Minute * 5
-	metricInterval = time.Second * 20
+	metricInterval = time.Second * 60
 )
 
 type Input struct {
@@ -29,7 +35,6 @@ type Input struct {
 
 	LoggingRemoveAnsiEscapeCodes bool `toml:"logging_remove_ansi_escape_codes"`
 	ExcludePauseContainer        bool `toml:"exclude_pause_container"`
-	MaxLoggingLength             int  `toml:"max_logging_length"`
 
 	ContainerIncludeMetric []string `toml:"container_include_metric"`
 	ContainerExcludeMetric []string `toml:"container_exclude_metric"`
@@ -99,7 +104,6 @@ func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("container input startd")
-	io.FeedEventLog(&io.Reporter{Message: "container start ok, ready for collecting metrics.", Logtype: "event"})
 
 	if i.setup() {
 		return
@@ -153,11 +157,11 @@ func (i *Input) stop() {
 func (i *Input) collectObject() {
 	l.Debug("collect object in func")
 	if err := i.gatherDockerContainerObject(); err != nil {
-		l.Errorf("failed to collect docker container object: %w", err)
+		l.Errorf("failed to collect docker container object: %s", err)
 	}
 
 	if err := i.gatherContainerdObject(); err != nil {
-		l.Errorf("failed to collect containerd object: %w", err)
+		l.Errorf("failed to collect containerd object: %s", err)
 	}
 
 	if !datakit.Docker {
@@ -173,25 +177,29 @@ func (i *Input) collectObject() {
 		return
 	}
 
-	l.Debug("collect k8s resource")
+	l.Debug("collect k8s resource object")
 
-	if err := i.gatherK8sResource(); err != nil {
-		l.Errorf("failed fo collect k8s: %w", err)
+	if err := i.gatherK8sResourceObject(); err != nil {
+		l.Errorf("failed to collect resource object: %s", err)
 	}
 }
 
 func (i *Input) collectMetric() {
 	l.Debug("collect mertric in func")
 	if err := i.gatherDockerContainerMetric(); err != nil {
-		l.Errorf("failed to collect docker container metric: %w", err)
+		l.Errorf("failed to collect docker container metric: %s", err)
 	}
 
 	if err := i.gatherContainerdMetric(); err != nil {
-		l.Errorf("failed to collect containerd metric: %w", err)
+		l.Errorf("failed to collect containerd metric: %s", err)
 	}
 
 	if err := i.watchNewDockerContainerLogs(); err != nil {
-		l.Errorf("failed to watch container log: %w", err)
+		l.Errorf("failed to watch container log: %s", err)
+	}
+
+	if err := i.watchNewContainerdLogs(); err != nil {
+		l.Errorf("failed to watch containerd log: %s", err)
 	}
 
 	if !datakit.Docker {
@@ -210,8 +218,12 @@ func (i *Input) collectMetric() {
 
 	l.Debug("collect k8s-pod metric")
 
+	if err := i.gatherK8sResourceMetric(); err != nil {
+		l.Errorf("failed to collect resource metric: %s", err)
+	}
+
 	if err := i.gatherK8sPodMetrics(); err != nil {
-		l.Errorf("failed to collect pod metric: %w", err)
+		l.Errorf("failed to collect pod metric: %s", err)
 	}
 }
 
@@ -291,25 +303,35 @@ func (i *Input) gatherContainerdObject() error {
 		&io.Option{CollectCost: time.Since(start)})
 }
 
-func (i *Input) gatherK8sResource() error {
+func (i *Input) watchNewContainerdLogs() error {
+	if i.containerdInput == nil {
+		return nil
+	}
+	return i.containerdInput.watchNewLogs()
+}
+
+func (i *Input) gatherK8sResourceMetric() error {
 	start := time.Now()
 
-	metricMeas, objectMeas, err := i.k8sInput.gather()
+	metricMeas, err := i.k8sInput.gatherResourceMetric()
 	if err != nil {
-		l.Errorf("k8s gather resource error: %w", err)
 		return err
 	}
 
-	if err := inputs.FeedMeasurement("k8s-metric", datakit.Metric, metricMeas,
-		&io.Option{CollectCost: time.Since(start)}); err != nil {
-		l.Errorf("failed to feed k8s metrics: %w", err)
-	}
-	if err := inputs.FeedMeasurement("k8s-object", datakit.Object, objectMeas,
-		&io.Option{CollectCost: time.Since(start)}); err != nil {
-		l.Errorf("failed to feed k8s objects: %w", err)
+	return inputs.FeedMeasurement("k8s-metric", datakit.Metric, metricMeas,
+		&io.Option{CollectCost: time.Since(start)})
+}
+
+func (i *Input) gatherK8sResourceObject() error {
+	start := time.Now()
+
+	objectMeas, err := i.k8sInput.gatherResourceObject()
+	if err != nil {
+		return err
 	}
 
-	return nil
+	return inputs.FeedMeasurement("k8s-object", datakit.Object, objectMeas,
+		&io.Option{CollectCost: time.Since(start)})
 }
 
 func (i *Input) gatherK8sPodMetrics() error {
@@ -355,14 +377,13 @@ func (i *Input) setup() bool {
 			endpoint:               i.DockerEndpoint,
 			excludePauseContainer:  i.ExcludePauseContainer,
 			removeLoggingAnsiCodes: i.LoggingRemoveAnsiEscapeCodes,
-			maxLoggingLength:       i.MaxLoggingLength,
 			containerIncludeMetric: i.ContainerIncludeMetric,
 			containerExcludeMetric: i.ContainerExcludeMetric,
 			containerIncludeLog:    i.ContainerIncludeLog,
 			containerExcludeLog:    i.ContainerExcludeLog,
 			extraTags:              i.Tags,
 		}); err != nil {
-			l.Errorf("create docker input err: %w, skip", err)
+			l.Warnf("create docker input err: %s, skip", err)
 		} else {
 			i.dockerInput = d
 		}
@@ -374,7 +395,7 @@ func (i *Input) setup() bool {
 				bearerTokenString: i.K8sBearerTokenString,
 				extraTags:         i.Tags,
 			}); err != nil {
-				l.Errorf("create k8s input err: %w", err)
+				l.Errorf("create k8s input err: %s", err)
 				continue
 			} else {
 				i.k8sInput = k
@@ -390,7 +411,7 @@ func (i *Input) setup() bool {
 				endpoint:  i.ContainerdAddress,
 				extraTags: i.Tags,
 			}); err != nil {
-				l.Warnf("create containerd input err: %w, skip", err)
+				l.Warnf("create containerd input err: %s, skip", err)
 			} else {
 				i.containerdInput = c
 			}
@@ -434,6 +455,14 @@ func (i *Input) Resume() error {
 //   ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
 //   ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
 //   ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER : booler
+//   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_METRIC : []string
+//   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_METRIC : []string
+//   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG : []string
+//   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG : []string
+//   ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH : int
+//   ENV_INPUT_CONTAINER_KUBERNETES_URL : string
+//   ENV_INPUT_CONTAINER_BEARER_TOKEN : string
+//   ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING : string
 func (i *Input) ReadEnv(envs map[string]string) {
 	if endpoint, ok := envs["ENV_INPUT_CONTAINER_DOCKER_ENDPOINT"]; ok {
 		i.DockerEndpoint = endpoint
@@ -466,6 +495,61 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		for k, v := range tags {
 			i.Tags[k] = v
 		}
+	}
+
+	//   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_METRIC : []string
+	//   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_METRIC : []string
+	//   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG : []string
+	//   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG : []string
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_METRIC"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add CONTAINER_INCLUDE_METRIC from ENV: %v", arrays)
+		i.ContainerIncludeMetric = append(i.ContainerIncludeMetric, arrays...)
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_METRIC"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add CONTAINER_EXCLUDE_METRIC from ENV: %v", arrays)
+		i.ContainerExcludeMetric = append(i.ContainerExcludeMetric, arrays...)
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add CONTAINER_INCLUDE_LOG from ENV: %v", arrays)
+		i.ContainerIncludeLog = append(i.ContainerIncludeLog, arrays...)
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add CONTAINER_EXCLUDE_LOG from ENV: %v", arrays)
+		i.ContainerExcludeLog = append(i.ContainerExcludeLog, arrays...)
+	}
+
+	//   ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH : int
+	//   ENV_INPUT_CONTAINER_KUBERNETES_URL : string
+	//   ENV_INPUT_CONTAINER_BEARER_TOKEN : string
+	//   ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING : string
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH"]; ok {
+		n, err := strconv.Atoi(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH to int: %s, ignore", err)
+		} else {
+			i.MaxLoggingLength = n
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_KUBERNETES_URL"]; ok {
+		i.K8sURL = str
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_BEARER_TOKEN"]; ok {
+		i.K8sBearerToken = str
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING"]; ok {
+		i.K8sBearerTokenString = str
 	}
 }
 

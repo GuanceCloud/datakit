@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 //go:build linux
 // +build linux
 
@@ -145,7 +150,7 @@ func startTailing(lg *logging, fn tailer.ForwardFunc, stop <-chan struct{}) {
 		MultilineMatch:        lg.MultilineMatch,
 		RemoveAnsiEscapeCodes: lg.RemoveAnsiEscapeCodes,
 		ForwardFunc:           fn,
-		DisableSendEvent:      true,
+		FromBeginning:         true,
 	}
 
 	tailer, err := tailer.NewTailer(lg.LogFiles, opt, lg.Ignore)

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package grok
 
 import (
@@ -6,6 +11,7 @@ import (
 
 type nodeP struct {
 	cnt   string
+	ptn   *GrokPattern
 	cNode []string
 }
 
@@ -17,8 +23,8 @@ type path struct {
 func (p *path) String() {
 }
 
-func runTree(m map[string]*nodeP) (map[string]string, map[string]string) {
-	ret := map[string]string{}
+func runTree(m map[string]*nodeP) (map[string]*GrokPattern, map[string]string) {
+	ret := map[string]*GrokPattern{}
 	invalid := map[string]string{}
 	pt := &path{
 		m: map[string]struct{}{},
@@ -32,7 +38,7 @@ func runTree(m map[string]*nodeP) (map[string]string, map[string]string) {
 	return ret, invalid
 }
 
-func dfs(deP map[string]string, top map[string]*nodeP, startName string, start *nodeP, pt *path) error {
+func dfs(deP map[string]*GrokPattern, top map[string]*nodeP, startName string, start *nodeP, pt *path) error {
 	if _, ok := pt.m[startName]; ok {
 		lineStr := ""
 		for _, k := range pt.l {
@@ -52,7 +58,11 @@ func dfs(deP map[string]string, top map[string]*nodeP, startName string, start *
 	if _, ok := deP[startName]; ok {
 		return nil
 	} else if len(start.cNode) == 0 {
-		deP[startName] = start.cnt
+		if ptn, err := DenormalizePattern(start.cnt, deP); err != nil {
+			return err
+		} else {
+			deP[startName] = ptn
+		}
 		return nil
 	}
 
@@ -68,10 +78,10 @@ func dfs(deP map[string]string, top map[string]*nodeP, startName string, start *
 		}
 	}
 
-	if cnt, err := DenormalizePattern(start.cnt, deP); err != nil {
+	if ptn, err := DenormalizePattern(start.cnt, deP); err != nil {
 		return err
 	} else {
-		deP[startName] = cnt
+		deP[startName] = ptn
 	}
 
 	return nil

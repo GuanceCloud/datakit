@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
@@ -127,16 +128,16 @@ func TestDz(t *testing.T) {
 				}
 				return
 			}
-
-			err = runner.Run(tc.in)
-			if err != nil {
+			if ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message@json": tc.in,
+				}, "message@json", time.Now()); err != nil || ret.Error != nil {
 				if tc.fail {
-					t.Logf("[%d]expect error: %s", idx, err)
+					t.Logf("[%d]expect error: %s %s", idx, err, ret.Error)
 				} else {
-					t.Error(err)
+					t.Error(err, " ", ret.Error)
 				}
 			} else {
-				ret := runner.Result()
 				t.Log(ret)
 				v := ret.Fields[tc.outKey]
 				tu.Equals(t, tc.expected, v)

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package gitlab
 
 import (
@@ -87,10 +92,10 @@ func (p *prom) histogram(name string, metrics []*dto.Metric) []*samplePoint {
 }
 
 func labelToTags(label []*dto.LabelPair) map[string]string {
+	tags := make(map[string]string)
 	if len(label) == 0 {
-		return nil
+		return tags
 	}
-	tags := make(map[string]string, len(label))
 	for _, lab := range label {
 		tags[lab.GetName()] = lab.GetValue()
 	}

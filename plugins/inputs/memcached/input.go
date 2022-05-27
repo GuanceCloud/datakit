@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package memcached collects memcached metrics.
 package memcached
 
@@ -123,6 +128,7 @@ func (i *Input) gatherServer(address string, unix bool) error {
 	if unix {
 		conn, err = net.DialTimeout("unix", address, defaultTimeout)
 		if err != nil {
+			io.ReportLastError(inputName, err.Error())
 			return err
 		}
 		defer conn.Close() //nolint:errcheck
@@ -134,6 +140,7 @@ func (i *Input) gatherServer(address string, unix bool) error {
 
 		conn, err = net.DialTimeout("tcp", address, defaultTimeout)
 		if err != nil {
+			io.ReportLastError(inputName, err.Error())
 			return err
 		}
 		defer conn.Close() //nolint:errcheck

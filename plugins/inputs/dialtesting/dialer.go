@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package dialtesting
 
 import (
@@ -8,6 +13,7 @@ import (
 
 	_ "github.com/go-ping/ping"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
@@ -22,6 +28,8 @@ type dialer struct {
 
 	tags     map[string]string
 	updateCh chan dt.Task
+
+	category string
 
 	failCnt int
 }
@@ -54,6 +62,14 @@ func newDialer(t dt.Task, ts map[string]string) *dialer {
 	}
 }
 
+func (d *dialer) getSendFailCount() int32 {
+	if d.category != "" {
+		return dataway.GetSendStat(d.category)
+	}
+
+	return 0
+}
+
 func (d *dialer) run() error {
 	d.ticker = d.task.Ticker()
 
@@ -69,8 +85,13 @@ func (d *dialer) run() error {
 			return nil
 
 		case <-d.ticker.C:
+			failCount := d.getSendFailCount()
+			if failCount > MaxSendFailCount {
+				l.Warnf("dial testing %s send data failed %d times", d.task.ID(), failCount)
+				return nil
+			}
 
-			l.Debugf(`dialer run %+#v`, d)
+			l.Debugf(`dialer run %+#v, fail count: %d`, d, failCount)
 			d.testCnt++
 
 			switch d.task.Class() {
@@ -112,6 +133,7 @@ func (d *dialer) feedIO() error {
 	urlStr := u.String()
 	switch d.task.Class() {
 	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket:
+		d.category = urlStr
 		return d.pointsFeed(urlStr)
 	case dt.ClassHeadless:
 		return fmt.Errorf("headless task deprecated")

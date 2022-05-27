@@ -1,4 +1,7 @@
-// tool to build datakit
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
 
 package main
 
@@ -11,7 +14,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -26,6 +28,7 @@ import (
 )
 
 var (
+	flagNotifyOnly      = flag.Bool("notify-only", false, "notify CI process")
 	flagBinary          = flag.String("binary", "", "binary name to build")
 	flagName            = flag.String("name", *flagBinary, "same as -binary")
 	flagBuildDir        = flag.String("build-dir", "build", "output of build files")
@@ -35,6 +38,7 @@ var (
 	flagArchs           = flag.String("archs", "local", "os archs")
 	flagRelease         = flag.String("release", "", `build for local/testing/production`)
 	flagPub             = flag.Bool("pub", false, `publish binaries to OSS: local/testing/production`)
+	flagPubEBpf         = flag.Bool("pub-ebpf", false, `publish datakit-ebpf to OSS: local/testing/production`)
 	flagBuildISP        = flag.Bool("build-isp", false, "generate ISP data")
 	flagDownloadSamples = flag.Bool("download-samples", false, "download samples from OSS to samples/")
 	flagDumpSamples     = flag.Bool("dump-samples", false, "download and dump local samples to OSS")
@@ -119,10 +123,7 @@ func applyFlags() {
 
 	build.DownloadAddr = *flagDownloadAddr
 	if !vi.IsStable() {
-		build.DownloadAddr = path.Join(*flagDownloadAddr, "rc")
-
-		l.Debugf("under unstable version %s, reset download address to %s",
-			build.ReleaseVersion, build.DownloadAddr)
+		l.Fatalf("unstable version %s not allowed", build.ReleaseVersion)
 	}
 
 	switch *flagRelease {
@@ -130,7 +131,7 @@ func applyFlags() {
 		l.Debug("under release, only checked inputs released")
 		build.InputsReleaseType = "checked"
 		if !version.IsValidReleaseVersion(build.ReleaseVersion) {
-			l.Fatalf("invalid releaseVersion: %s, expect format 1.2.3-rc0", build.ReleaseVersion)
+			l.Fatalf("invalid releaseVersion: %s, expect format 1.2.3", build.ReleaseVersion)
 		}
 
 	default:
@@ -196,9 +197,21 @@ func getOSSClient() (*cliutils.OssCli, error) {
 	case build.ReleaseTesting, build.ReleaseProduction, build.ReleaseLocal:
 		tag := strings.ToUpper(build.ReleaseType)
 		ak = os.Getenv(tag + "_OSS_ACCESS_KEY")
+		if ak == "" {
+			return nil, errors.New("env " + tag + "_OSS_ACCESS_KEY" + " is not configured")
+		}
 		sk = os.Getenv(tag + "_OSS_SECRET_KEY")
+		if sk == "" {
+			return nil, errors.New("env " + tag + "_OSS_SECRET_KEY" + " is not configured")
+		}
 		bucket = os.Getenv(tag + "_OSS_BUCKET")
+		if bucket == "" {
+			return nil, errors.New("env " + tag + "_OSS_BUCKET" + " is not configured")
+		}
 		ossHost = os.Getenv(tag + "_OSS_HOST")
+		if ossHost == "" {
+			return nil, errors.New("env " + tag + "_OSS_HOST" + " is not configured")
+		}
 	default:
 		return nil, fmt.Errorf("unknown release type: %s", build.ReleaseType)
 	}
@@ -360,6 +373,23 @@ func main() {
 	flag.Parse()
 	applyFlags()
 
+	if *flagNotifyOnly {
+		build.NotifyStartBuild()
+		return
+	}
+
+	if *flagPubEBpf {
+		build.NotifyStartPubEBpf()
+		if err := build.PubDatakitEBpf(); err != nil {
+			l.Error(err)
+			build.NotifyFail(err.Error())
+		} else {
+			l.Info("")
+			build.NotifyPubEBpfDone()
+		}
+		return
+	}
+
 	if *flagPub {
 		build.NotifyStartPub()
 		if err := build.PubDatakit(); err != nil {
@@ -369,7 +399,6 @@ func main() {
 			build.NotifyPubDone()
 		}
 	} else {
-		build.NotifyStartBuild()
 		if err := build.Compile(); err != nil {
 			l.Error(err)
 			build.NotifyFail(err.Error())

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package gitrepo ...
 package gitrepo
 
@@ -6,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -22,7 +28,7 @@ import (
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
+	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	ssh2 "golang.org/x/crypto/ssh"
 )
@@ -74,6 +80,16 @@ func pullMain(cg *config.GitRepost) error {
 				continue
 			}
 			if err = doRun(v); err != nil {
+				if isFirst {
+					if strings.Contains(err.Error(), "connect: operation timed out") {
+						isFirst = false
+
+						if err := inputs.RunInputs(); err != nil {
+							l.Error("error running inputs: %v", err)
+						}
+					}
+				}
+
 				tip := fmt.Sprintf("[gitrepo] failed: %v", err)
 				l.Error(tip)
 				io.SelfError(tip)
@@ -154,8 +170,6 @@ func doRun(c *config.GitRepository) error {
 			return err
 		}
 	}
-
-	io.FeedEventLog(&io.Reporter{Message: "Gitrepo synchronizes the latest data", Logtype: "event"})
 
 	l.Debug("completed")
 	return nil
@@ -296,17 +310,14 @@ func reloadCore(ctx context.Context) (int, error) {
 			case 3:
 				l.Info("before set pipelines")
 
-				allGitReposPipelines, err := config.GetNamespacePipelineFiles(datakit.GitReposRepoFullPath)
-				if err != nil {
-					l.Infof("GetNamespacePipelineFiles failed: %v", err)
-				} else {
-					scriptstore.ReloadAllGitReposDotPScript2Store(allGitReposPipelines)
-				}
+				plscript.LoadAllScripts2StoreFromPlStructPath(plscript.GitRepoScriptNS,
+					filepath.Join(datakit.GitReposRepoFullPath, "pipeline"))
 
 			case 4:
 				l.Info("before RunInputs")
 
-				if err := inputs.RunInputs(true); err != nil {
+				httpd.CleanHTTPHandler()
+				if err := inputs.RunInputs(); err != nil {
 					l.Errorf("RunInputs failed: %v", err)
 					return round, err
 				}
@@ -315,22 +326,14 @@ func reloadCore(ctx context.Context) (int, error) {
 				l.Info("before ReloadTheNormalServer")
 
 				httpd.ReloadTheNormalServer()
-
-			case 6:
-				l.Info("before RunInputExtra")
-
-				if err := inputs.RunInputExtra(); err != nil {
-					l.Errorf("RunInputExtra failed: %v", err)
-					return round, err
-				}
-			}
-		}
+			} // switch round
+		} // select
 
 		round++
 		if round > 6 {
 			return round, nil // round + 1
-		}
-	}
+		} // if round
+	} // for
 }
 
 func getGitClonePathFromGitURL(gitURL string) (string, error) {

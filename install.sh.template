@@ -133,14 +133,6 @@ if [ -n "$DK_UPGRADE" ]; then
 	upgrade=$DK_UPGRADE
 fi
 
-if [ ! "$dataway" ]; then # check dataway on new install
-	if [ ! "$upgrade" ]; then
-		# shellcheck disable=SC2059
-		printf "${RED}[E] DataWay not set in DK_DATAWAY.${CLR}\n"
-		exit 1;
-	fi
-fi
-
 def_inputs=
 if [ -n "$DK_DEF_INPUTS" ]; then
 	# shellcheck disable=SC2034
@@ -194,6 +186,16 @@ if [ -n "$DK_DCA_ENABLE" ]; then
 		printf "${RED}[E] DCA service is enabled, but white list is not set in DK_DCA_WHITE_LIST!${CLR}\n"
 		exit 1;
 	fi
+fi
+
+enable_pprof=""
+if [ -n "$DK_ENABLE_PPROF" ]; then
+	enable_pprof=$DK_ENABLE_PPROF
+fi
+
+pprof_listen=""
+if [ -n "$DK_PPROF_LISTEN" ]; then
+	pprof_listen=$DK_PPROF_LISTEN
 fi
 
 ipdb_type=""
@@ -327,6 +329,52 @@ if [ -n "$DK_GIN_LOG" ]; then
   gin_log=$DK_GIN_LOG
 fi
 
+
+sink_metric=""
+if [ -n "$DK_SINK_M" ]; then
+  sink_metric=$DK_SINK_M
+fi
+
+sink_network=""
+if [ -n "$DK_SINK_N" ]; then
+  sink_network=$DK_SINK_N
+fi
+
+sink_keyevent=""
+if [ -n "$DK_SINK_K" ]; then
+  sink_keyevent=$DK_SINK_K
+fi
+
+sink_object=""
+if [ -n "$DK_SINK_O" ]; then
+  sink_object=$DK_SINK_O
+fi
+
+sink_custom_object=""
+if [ -n "$DK_SINK_CO" ]; then
+  sink_custom_object=$DK_SINK_CO
+fi
+
+sink_logging=""
+if [ -n "$DK_SINK_L" ]; then
+  sink_logging=$DK_SINK_L
+fi
+
+sink_tracing=""
+if [ -n "$DK_SINK_T" ]; then
+  sink_tracing=$DK_SINK_T
+fi
+
+sink_rum=""
+if [ -n "$DK_SINK_R" ]; then
+  sink_rum=$DK_SINK_R
+fi
+
+sink_security=""
+if [ -n "$DK_SINK_S" ]; then
+  sink_security=$DK_SINK_S
+fi
+
 ##################
 # Try install...
 ##################
@@ -353,8 +401,8 @@ if [ "$upgrade" ]; then
 		--upgrade --proxy="${proxy}" --env_enable_experimental=${env_enable_experimental} | $sudo_cmd tee ${install_log}
 else
 	printf "${BLU}\n* Installing DataKit...${CLR}\n"
-		$sudo_cmd $installer                         \
-		  --install-only="$install_only"             \
+		$sudo_cmd $installer                           \
+		  --install-only="$install_only"               \
 			--dataway="${dataway}"                     \
 			--global-tags="${global_tags}"             \
 			--cloud-provider="${cloud_provider}"       \
@@ -366,6 +414,8 @@ else
 			--dca-enable="${dca_enable}"               \
 			--dca-listen="${dca_listen}"               \
 			--dca-white-list="${dca_white_list}"       \
+			--enable-pprof="${enable_pprof}"           \
+			--pprof-listen="${pprof_listen}"           \
 			--install-externals="${install_externals}" \
 			--git-url="${git_url}"                     \
 			--git-key-path="${git_key_path}"           \
@@ -381,6 +431,16 @@ else
 			--disable-404page="${disable_404page}"           \
 			--log-level="${log_level}"                       \
 			--log="${log}"                                   \
+			--ipdb-type="${ipdb_type}"                       \
+			--sink-metric="${sink_metric}"                   \
+			--sink-network="${sink_network}"                 \
+			--sink-keyevent="${sink_keyevent}"               \
+			--sink-object="${sink_object}"                   \
+			--sink-custom-object="${sink_custom_object}"     \
+			--sink-logging="${sink_logging}"                 \
+			--sink-tracing="${sink_tracing}"                 \
+			--sink-rum="${sink_rum}"                         \
+			--sink-security="${sink_security}"               \
 			--ipdb-type="${ipdb_type}"                       \
 			--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
 fi

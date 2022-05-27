@@ -24,35 +24,41 @@
 #### 添加 DataKit Helm 仓库
 
 ```shell 
-$ helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
+$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
 $ helm repo update 
-``` 
+```
 
 #### Helm 安装 Datakit
 
-注意更换下面的 `dataway_url`
-
 ```shell
-$ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
-``` 
+$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+```
+
+> 注意修改 `datakit.dataway_url` 参数。
+
+具体执行如下：
+
+```
+$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=xxxxxxxxx" --create-namespace 
+```
 
 #### 查看部署状态
 
 ```shell
 $ helm -n datakit list
-``` 
+```
 
 #### 升级
 
 ```shell
 $ helm repo update 
-$ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" 
+$ helm upgrade datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
 ```
 
 #### 卸载
 
 ```shell
-$ helm uninstall my-datakit -n datakit
+$ helm uninstall datakit -n datakit
 ```
 
 ### 普通 yaml 安装
@@ -81,7 +87,7 @@ $ helm uninstall my-datakit -n datakit
 
 ```shell
 $ kubectl apply -f datakit.yaml
-``` 
+```
 
 #### 查看运行状态
 
@@ -89,7 +95,7 @@ $ kubectl apply -f datakit.yaml
 
 ```shell
 $ kubectl get pod -n datakit
-``` 
+```
 
 #### Kubernetes 污点容忍度配置
 
@@ -176,11 +182,18 @@ DataKit 支持的环境变量如下各表所示。
 
 ### 日志配置相关环境变量
 
+| 环境变量名称  | 默认值                     | 必须   | 说明                                                             |
+| ---------:    | ---:                       | ------ | ----                                                             |
+| ENV_GIN_LOG   | */var/log/datakit/gin.log* | 否     | 如果改成 `stdout`，DataKit 自身 gin 日志将不写文件，而是终端输出 |
+| ENV_LOG       | */var/log/datakit/log*     | 否     | 如果改成 `stdout`，DatakIt 自身日志将不写文件，而是终端输出      |
+| ENV_LOG_LEVEL | info                       | 否     | 设置 DataKit 自身日志等级，可选 `info/debug`                     |
+
+###  DataKit pprof 相关
+
 | 环境变量名称  | 默认值                     | 必须   | 说明                                            |
 | ---------:    | ---:                       | ------ | ----                                            |
-| ENV_GIN_LOG   | */var/log/datakit/gin.log* | 否     | 如果改成 `stdout`，日志将不写文件，而是终端输出 |
-| ENV_LOG       | */var/log/datakit/log*     | 否     | 如果改成 `stdout`，日志将不写文件，而是终端输出 |
-| ENV_LOG_LEVEL | info                       | 否     | 可选值 `info/debug`                             |
+| ENV_ENABLE_PPROF   | false | 否     | 是否开启 `pprof` |
+| ENV_PPROF_LISTEN       | 无     | 否     | `pprof`服务监听地址 |
 
 ### 选举相关环境变量
 
@@ -208,16 +221,50 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_GIT_KEY_PW   | 无     | 否     | 本地 PrivateKey 的使用密码。（如 `passwd`）                                                            |
 | ENV_GIT_URL      | 无     | 否     | 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`） |
 
+### Sinker 配置相关环境变量
+
+| 环境变量名称 | 默认值 | 必须   | 说明                              |
+| ---------:   | ---:   | ------ | ----                              |
+| ENV_SINK_M   | 无     | 否     | 安装时指定 Metric 的 sink。       |
+| ENV_SINK_N   | 无     | 否     | 安装时指定 Network 的 sink。      |
+| ENV_SINK_K   | 无     | 否     | 安装时指定 KeyEvent 的 sink。     |
+| ENV_SINK_O   | 无     | 否     | 安装时指定 Object 的 sink。       |
+| ENV_SINK_CO  | 无     | 否     | 安装时指定 CustomObject 的 sink。 |
+| ENV_SINK_L   | 无     | 否     | 安装时指定 Logging 的 sink。      |
+| ENV_SINK_T   | 无     | 否     | 安装时指定 Tracing 的 sink。      |
+| ENV_SINK_R   | 无     | 否     | 安装时指定 RUM 的 sink。          |
+| ENV_SINK_S   | 无     | 否     | 安装时指定 Security 的 sink。     |
+
 ### 其它杂项
 
-|       环境变量名称 |         默认值 | 必须 | 说明                                                       |
-| -----------------: | -------------: | ---- | ---------------------------------------------------------- |
-| ENV_CLOUD_PROVIDER |             无 | 否   | 支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`) |
-|     ENV_DCA_LISTEN | localhost:9531 | 否   | 可修改改地址，使得 [DCA](dca) 客户端能管理该 DataKit       |
-| ENV_DCA_WHITE_LIST |             无 | 否   | 配置 DCA 白名单，以英文逗号分隔                            |
-|       ENV_HOSTNAME |             无 | 否   | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`    |
-|           ENV_IPDB |   无（string） | 否   | 指定 IP 信息库类型，目前只支持 `iploc`                     |
-|         ENV_ULIMIT |             无 | 否   | 指定 Datakit 最大的可打开文件数                            |
+| 环境变量名称                 | 默认值         | 必须 | 说明                                                       |
+| -----------------:           | -------------: | ---- | ---------------------------------------------------------- |
+| ENV_CLOUD_PROVIDER           | 无             | 否   | 支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`) |
+| ENV_DCA_LISTEN               | localhost:9531 | 否   | 可修改改地址，使得 [DCA](dca) 客户端能管理该 DataKit       |
+| ENV_DCA_WHITE_LIST           | 无             | 否   | 配置 DCA 白名单，以英文逗号分隔                            |
+| ENV_HOSTNAME                 | 无             | 否   | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`    |
+| ENV_IPDB                     | 无（string）   | 否   | 指定 IP 信息库类型，目前只支持 `iploc`                     |
+| ENV_ULIMIT                   | 无             | 否   | 指定 Datakit 最大的可打开文件数                            |
+| ENV_DATAWAY_TIMEOUT          | 30s            | 否   | 设置 DataKit 请求 DataWay 的超时时间                       |
+| ENV_DATAWAY_ENABLE_HTTPTRACE | false          | 否   | 在 debug 日志中输出 dataway HTTP 请求的网络日志            |
+| ENV_DATAWAY_HTTP_PROXY       | 无             | 否   | 设置 DataWay HTTP 代理                                     |
+
+### 特殊环境变量
+
+#### ENV_K8S_NODE_NAME
+
+当 k8s node 名称跟其对应的主机名不同时，可将 k8s 的 node 名称顶替默认采集到的主机名，在 *datakit.yaml* 中增加环境变量：
+
+> [1.2.19](changelog#9bec76a9) 版本的 datakit.yaml 中默认就带了这个配置，如果是从老版本的 yaml 直接升级而来，需要对 *datakit.yaml* 做如下手动改动。
+
+```yaml
+- env:
+	- name: ENV_K8S_NODE_NAME
+		valueFrom:
+			fieldRef:
+				apiVersion: v1
+				fieldPath: spec.nodeName
+```
 
 ### 各个采集器专用环境变量
 

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package filecollector collect file changings.
 package filecollector
 
@@ -98,7 +103,6 @@ func (fc *FileCollector) initFileCollector() error {
 func (fc *FileCollector) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("file_collector start")
-	io.FeedEventLog(&io.Reporter{Message: "file_collector start ok, ready for collecting metrics.", Logtype: "event"})
 	if !datakit.FileExist(fc.Path) {
 		l.Errorf("[error] file:%s not exist", fc.Path)
 		return
@@ -257,7 +261,7 @@ func (fc *FileCollector) handFail() {
 }
 
 func (fc *FileCollector) getRemotePath(name string) string {
-	token := config.Cfg.DataWay.GetToken()
+	token := config.Cfg.DataWay.GetTokens()
 	hostName := config.Cfg.Hostname
 	name = strings.ReplaceAll(name, "/", "_")
 	name = strings.ReplaceAll(name, "\\", "_")

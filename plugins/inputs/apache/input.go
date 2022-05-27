@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package apache collects Apache metrics.
 package apache
 
@@ -49,6 +54,16 @@ type Input struct {
 	pauseCh chan bool
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+//nolint:lll
+func (n *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"Apache error log":  `[Tue May 19 18:39:45.272121 2021] [access_compat:error] [pid 9802] [client ::1:50547] AH01797: client denied by server configuration: /Library/WebServer/Documents/server-status`,
+			"Apache access log": `127.0.0.1 - - [17/May/2021:14:51:09 +0800] "GET /server-status?auto HTTP/1.1" 200 917`,
+		},
+	}
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -120,7 +135,6 @@ func (n *Input) RunPipeline() {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("apache start")
-	iod.FeedEventLog(&iod.Reporter{Message: "apache start ok, ready for collecting metrics.", Logtype: "event"})
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
 	client, err := n.createHTTPClient()
@@ -129,6 +143,10 @@ func (n *Input) Run() {
 		return
 	}
 	n.client = client
+
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		n.Tags["election_namespace"] = namespace
+	}
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()

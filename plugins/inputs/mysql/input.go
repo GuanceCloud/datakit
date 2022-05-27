@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package mysql collect MySQL metrics
 package mysql
 
@@ -169,6 +174,22 @@ func (i *Input) getDsnString() string {
 
 	// tls (todo)
 	return cfg.FormatDSN()
+}
+
+//nolint:lll
+func (i *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"MySQL log": `2017-12-29T12:33:33.095243Z         2 Query     SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE CREATE_OPTIONS LIKE '%partitioned%';`,
+			"MySQL slow log": `# Time: 2019-11-27T10:43:13.460744Z
+# User@Host: root[root] @ localhost [1.2.3.4]  Id:    35
+# Query_time: 0.214922  Lock_time: 0.000184 Rows_sent: 248832  Rows_examined: 72
+# Thread_id: 55   Killed: 0  Errno: 0
+# Bytes_sent: 123456   Bytes_received: 0
+SET timestamp=1574851393;
+SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5`,
+		},
+	}
 }
 
 func (*Input) PipelineConfig() map[string]string {
@@ -388,7 +409,6 @@ func (i *Input) resetLastError() {
 func (i *Input) handleLastError() {
 	if len(i.lastErrors) > 0 {
 		io.FeedLastError(inputName, strings.Join(i.lastErrors, "; "))
-		i.resetLastError()
 	}
 }
 
@@ -523,23 +543,25 @@ func (i *Input) RunPipeline() {
 
 func (i *Input) Run() {
 	l = logger.SLogger("mysql")
-	io.FeedEventLog(&io.Reporter{Message: "mysql start ok, ready for collecting metrics.", Logtype: "event"})
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		i.Tags["election_namespace"] = namespace
+	}
+
 	// Try until init OK.
 	for {
 		if err := i.initCfg(); err != nil {
-			io.FeedLastError(inputName, err.Error())
+			io.ReportLastError(inputName, err.Error())
 		} else {
 			break
 		}
 
 		select {
 		case <-datakit.Exit.Wait():
-
 			if i.tail != nil {
 				i.tail.Close() //nolint:errcheck
 			}
@@ -577,9 +599,9 @@ func (i *Input) Run() {
 						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
 						l.Warnf("io.Feed failed: %v", err)
 						io.FeedLastError(inputName, err.Error())
-					} // if err
+					}
 				}
-			} // for
+			}
 
 			i.handleLastError()
 		}

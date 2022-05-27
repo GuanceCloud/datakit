@@ -1,0 +1,7 @@
+dependencies:
+- condition: kubeStateMetricsEnabled
+  name: kube-state-metrics
+  repository: file://./charts/kube-state-metrics
+- condition: MetricsServerEnabled
+  name: metrics-server
+  repository: file://./charts/metrics-server

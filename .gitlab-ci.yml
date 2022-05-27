@@ -4,15 +4,75 @@ before_script:
   - cp -r ./. /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - source ~/.ossenv
+  - echo $DK_BPF_KERNEL_SRC_PATH
 
 variables:
   PROJECT: "datakit"
+  CI_VERSION: "1.4.0"
+  TEST_VERSION: "1.999.0"
 
 stages:
+  - test
+  - deploy_ebpf
   - deploy
+
+dk-test-production:
+  stage: test
+  only:
+    - unstable
+    - master
+  script:
+    - make clean
+    - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
+    - make lint
+    - make all_test
+  tags:
+    - cloudcare-ft
+
+dk-test-testing:
+  stage: test
+  only:
+    - testing
+    - hotfix
+    - /^testing-.*$/
+  script:
+    - make clean
+    - make testing_notify GIT_BRANCH=$CI_COMMIT_BRANCH
+    - make lint
+    - make all_test
+  tags:
+    - cloudcare-ft
+
+release-ebpf-testing:
+  stage: deploy_ebpf
+  needs: [dk-test-testing]
+  image: vircoys/datakit-developer:1.3
+  only:
+    - testing
+    - hotfix
+    - /^testing-.*$/
+  script:
+    - make clean
+    - make pub_epbf_testing DATAKIT_EBPF_ARCHS="linux/arm64" GIT_BRANCH=$CI_COMMIT_BRANCH
+  tags:
+    - dk-arm-docker-runner
+
+release-ebpf-production:
+  stage: deploy_ebpf
+  needs: [dk-test-production]
+  image: vircoys/datakit-developer:1.3
+  only:
+    - master
+    - unstable
+  script:
+    - make clean
+    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/arm64" GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
+  tags:
+    - dk-arm-docker-runner
 
 release-testing:
   stage: deploy
+  needs: [dk-test-testing, release-ebpf-testing]
   only:
     - testing
     - hotfix
@@ -20,40 +80,25 @@ release-testing:
   script:
     # building && publish testing
     - make clean
-    - make lint
-    - make all_test
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH # do not set VERSION here, use git version
     - make check_testing_conf_compatible
-    - make testing_image
+    - make testing_image IGN_EBPF_INSTALL_ERR=1
   tags:
     - cloudcare-ft
 
 release-stable:
   stage: deploy
+  needs: [dk-test-production, release-ebpf-production]
   only:
     - master
   script:
     - make clean
     - make lint
     - make all_test
-    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.14 # update the version on each release
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" # update the version on each release
     - make check_production_conf_compatible
     - make pub_conf_samples
-    - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.14
-  tags:
-    - cloudcare-ft
-
-release-unstable:
-  stage: deploy
-  only:
-    - unstable # 专用分支来发布 unstable 版本
-  script:
-    - make clean
-    - make lint
-    - make all_test
-    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.3.0
-    - make check_production_conf_compatible
-    - make production_image VERSION=1.3.0
+    - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
   tags:
     - cloudcare-ft
 
@@ -64,7 +109,7 @@ current-testing:
     - /^xxx-.*$/
   script:
     - make clean
-    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.999.0
-    - make testing_image VERSION=1.999.0
+    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$TEST_VERSION"
+    - make testing_image VERSION="$TEST_VERSION"
   tags:
     - cloudcare-ft

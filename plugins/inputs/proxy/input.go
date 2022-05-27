@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package proxy used to proxy HTTP request for no-public-network datakits.
 package proxy
 
@@ -11,7 +16,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -62,7 +66,6 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("http proxy input started...")
-	iod.FeedEventLog(&iod.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
 
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.Verbose = false

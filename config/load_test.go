@@ -1,7 +1,14 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package config
 
 import (
 	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func initGitRepos() {
@@ -67,7 +74,7 @@ func TestGetPipelinePath(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			ss, err := GetPipelinePath(tc.pipeline)
+			ss, err := GetPipelinePath(datakit.Logging, tc.pipeline)
 			if err != nil {
 				t.Logf("GetPipelinePath failed: %v", err)
 				return

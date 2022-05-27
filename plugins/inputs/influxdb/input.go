@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package influxdb collects InfluxDB metrics.
 package influxdb
 
@@ -148,8 +153,6 @@ func (i *Input) Run() {
 
 	l.Infof("influxdb input started")
 
-	io.FeedEventLog(&io.Reporter{Message: "influxdb start ok, ready for collecting metrics.", Logtype: "event"})
-
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	var tlsCfg *tls.Config
 
@@ -158,7 +161,7 @@ func (i *Input) Run() {
 		tlsCfg, err = i.TLSConf.TLSConfig()
 		if err != nil {
 			l.Error(err)
-			io.FeedLastError(inputName, err.Error())
+			io.ReportLastError(inputName, err.Error())
 			return
 		}
 	} else {
@@ -174,6 +177,10 @@ func (i *Input) Run() {
 	}
 
 	tick := time.NewTicker(i.Interval.Duration)
+
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		i.Tags["election_namespace"] = namespace
+	}
 
 	defer tick.Stop()
 	for {

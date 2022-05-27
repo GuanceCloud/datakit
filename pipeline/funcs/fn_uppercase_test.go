@@ -8,6 +8,7 @@ package funcs
 import (
 	"strings"
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
@@ -88,8 +89,13 @@ uppercase(a.forth)
 				}
 				return
 			}
-
-			err = runner.Run(tc.in)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
+			if err != nil {
+				t.Fatal(err)
+			}
 			if err != nil {
 				if tc.fail {
 					t.Logf("[%d]expect error: %s", idx, err)
@@ -97,7 +103,6 @@ uppercase(a.forth)
 					t.Error(err)
 				}
 			} else {
-				ret := runner.Result()
 				t.Log(ret)
 				v := ret.Fields[tc.outKey]
 				tu.Equals(t, tc.expected, v)

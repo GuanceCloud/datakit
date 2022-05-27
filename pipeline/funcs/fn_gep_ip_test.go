@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
@@ -127,12 +128,14 @@ func TestGeoIpFunc(t *testing.T) {
 			t.Errorf("[%d] failed: %s", idx, err)
 			return
 		}
-
-		if err := runner.Run(tt.data); err != nil {
-			t.Error(err)
+		ret, err := runner.Run("test", map[string]string{},
+			map[string]interface{}{
+				"message": tt.data,
+			}, "message", time.Now())
+		if err != nil || ret.Error != nil {
+			t.Error(err, " ", ret.Error)
 			return
 		}
-		ret := runner.Result()
 		t.Log(ret)
 		for k, v := range tt.expected {
 			r, ok := ret.Fields[k]

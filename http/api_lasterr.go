@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -17,7 +22,7 @@ type errMessage struct {
 	ErrContent string `json:"err_content"`
 }
 
-// apiGetDatakitLastError 获取外部采集器错误，并feederror处理.
+// apiGetDatakitLastError 获取外部采集器错误，并 feederror 处理.
 func apiGetDatakitLastError(c *gin.Context) {
 	em, err := doAPIGetDatakitLastError(c.Request, c.Writer)
 	if err != nil {

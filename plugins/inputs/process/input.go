@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package process collect host processes metrics/objects
 package process
 
@@ -33,23 +38,23 @@ var (
 
 type proccpu struct {
 	createTime int64
-	cputime    *cpu.TimesStat
+	cputime    cpu.TimesStat
 	ts         time.Time
 }
 
 type Input struct {
-	ProcessName    []string          `toml:"process_name,omitempty"`
-	ObjectInterval datakit.Duration  `toml:"object_interval,omitempty"`
-	RunTime        datakit.Duration  `toml:"min_run_time,omitempty"`
-	OpenMetric     bool              `toml:"open_metric,omitempty"`
-	MetricInterval datakit.Duration  `toml:"metric_interval,omitempty"`
-	Tags           map[string]string `toml:"tags"`
+	MatchedProcessNames []string          `toml:"process_name,omitempty"`
+	ObjectInterval      datakit.Duration  `toml:"object_interval,omitempty"`
+	RunTime             datakit.Duration  `toml:"min_run_time,omitempty"`
+	OpenMetric          bool              `toml:"open_metric,omitempty"`
+	MetricInterval      datakit.Duration  `toml:"metric_interval,omitempty"`
+	Tags                map[string]string `toml:"tags"`
 
 	// pipeline on process object removed
 	PipelineDeprecated string `toml:"pipeline,omitempty"`
 
 	lastErr error
-	re      string
+	res     []*regexp.Regexp
 	isTest  bool
 
 	semStop *cliutils.Sem // start stop signal
@@ -69,15 +74,13 @@ func (p *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("process start...")
-	io.FeedEventLog(&io.Reporter{Message: "process start ok, ready for collecting metrics.", Logtype: "event"})
-
-	if p.ProcessName != nil {
-		re := strings.Join(p.ProcessName, "|")
-		if regexp.MustCompile(re) == nil {
-			l.Error("regexp err")
-			return
+	for _, x := range p.MatchedProcessNames {
+		if re, err := regexp.Compile(x); err != nil {
+			l.Warnf("regexp.Compile(%s): %s, ignored", x, err)
+		} else {
+			l.Debugf("add regexp %s", x)
+			p.res = append(p.res, re)
 		}
-		p.re = re
 	}
 
 	p.ObjectInterval.Duration = config.ProtectedInterval(minObjectInterval,
@@ -92,13 +95,13 @@ func (p *Input) Run() {
 				maxMetricInterval,
 				p.MetricInterval.Duration)
 
-			lastProc := p.getProcessMap()
+			lastProc := p.getProcessMap(true)
 			time.Sleep(time.Second * 2)
 			tick := time.NewTicker(p.MetricInterval.Duration)
 			defer tick.Stop()
 			for {
 				p.WriteMetric(lastProc)
-				lastProc = p.getProcessMap()
+				lastProc = p.getProcessMap(true)
 				select {
 				case <-tick.C:
 				case <-datakit.Exit.Wait():
@@ -113,11 +116,11 @@ func (p *Input) Run() {
 		}()
 	}
 
-	lastProc := p.getProcessMap()
+	lastProc := p.getProcessMap(false)
 	time.Sleep(time.Second * 2)
 	for {
 		p.WriteObject(lastProc)
-		lastProc = p.getProcessMap()
+		lastProc = p.getProcessMap(false)
 		select {
 		case <-tick.C:
 		case <-datakit.Exit.Wait():
@@ -141,6 +144,8 @@ func (p *Input) Terminate() {
 //   ENV_INPUT_OPEN_METRIC : booler   // deprecated
 //   ENV_INPUT_HOST_PROCESSES_OPEN_METRIC : booler
 //   ENV_INPUT_HOST_PROCESSES_TAGS : "a=b,c=d"
+//   ENV_INPUT_HOST_PROCESSES_PROCESS_NAME : []string
+//   ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME : datakit.Duration
 func (p *Input) ReadEnv(envs map[string]string) {
 	// deprecated
 	if open, ok := envs["ENV_INPUT_OPEN_METRIC"]; ok {
@@ -167,12 +172,45 @@ func (p *Input) ReadEnv(envs map[string]string) {
 			p.Tags[k] = v
 		}
 	}
+
+	//   ENV_INPUT_HOST_PROCESSES_PROCESS_NAME : []string
+	//   ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME : datakit.Duration
+	if str, ok := envs["ENV_INPUT_HOST_PROCESSES_PROCESS_NAME"]; ok {
+		arrays := strings.Split(str, ",")
+		l.Debugf("add PROCESS_NAME from ENV: %v", arrays)
+		p.MatchedProcessNames = append(p.MatchedProcessNames, arrays...)
+	}
+
+	if str, ok := envs["ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME to time.Duration: %s, ignore", err)
+		} else {
+			p.RunTime.Duration = config.ProtectedInterval(minObjectInterval,
+				maxObjectInterval,
+				da)
+		}
+	}
 }
 
-func (p *Input) getProcesses() (processList []*pr.Process) {
+func (p *Input) matched(name string) bool {
+	if len(p.res) == 0 {
+		return true
+	}
+
+	for _, re := range p.res {
+		if re.MatchString(name) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (p *Input) getProcesses(match bool) (processList []*pr.Process) {
 	pses, err := pr.Processes()
 	if err != nil {
-		l.Errorf("get process err: %s", err.Error())
+		l.Warnf("get process err: %s", err.Error())
 		p.lastErr = err
 		return
 	}
@@ -180,23 +218,22 @@ func (p *Input) getProcesses() (processList []*pr.Process) {
 	for _, ps := range pses {
 		name, err := ps.Name()
 		if err != nil {
-			l.Errorf("ps.Name: %s", err)
+			l.Warnf("ps.Name: %s", err)
 			continue
 		}
 
-		ok, err := regexp.Match(p.re, []byte(name))
-		if err != nil {
-			l.Errorf("regexp.Match: %s", err)
-			continue
-		}
+		if match {
+			if !p.matched(name) {
+				l.Warnf("%s not matched", name)
+				continue
+			}
 
-		if !ok {
-			continue
+			l.Debugf("%s match ok", name)
 		}
 
 		t, err := ps.CreateTime()
 		if err != nil {
-			l.Errorf("ps.CreateTime: %s", err)
+			l.Warnf("ps.CreateTime: %s", err)
 			continue
 		}
 
@@ -208,7 +245,7 @@ func (p *Input) getProcesses() (processList []*pr.Process) {
 	return processList
 }
 
-func (p *Input) getProcessMap() map[int32]proccpu {
+func (p *Input) getProcessMap(match bool) map[int32]proccpu {
 	procMap := map[int32]proccpu{}
 	pses, err := pr.Processes()
 	ctime := time.Now()
@@ -221,31 +258,27 @@ func (p *Input) getProcessMap() map[int32]proccpu {
 	for _, ps := range pses {
 		name, err := ps.Name()
 		if err != nil {
-			l.Errorf("ps.Name: %s", err)
+			l.Warnf("ps.Name: %s", err)
 			continue
+		}
+
+		if match {
+			if !p.matched(name) {
+				l.Debugf("%s not matched(re: %d)", name, len(p.res))
+				continue
+			}
+			l.Debugf("%s match(re: %d) ok", name, len(p.res))
 		}
 
 		cputime, err := ps.Times()
 		if err != nil {
-			l.Errorf("ps.Times: %s", err)
-			continue
-		}
-
-		ok, err := regexp.Match(p.re, []byte(name))
-		if err != nil {
-			l.Errorf("regexp.Match: %s", err)
-			continue
-		}
-
-		t := getStartTime(ps)
-
-		if !ok {
+			l.Warnf("ps.Times: %s", err)
 			continue
 		}
 
 		procMap[ps.Pid] = proccpu{
-			createTime: t,
-			cputime:    cputime,
+			createTime: getStartTime(ps),
+			cputime:    *cputime,
 			ts:         ctime,
 		}
 	}
@@ -300,13 +333,15 @@ func (p *Input) Parse(ps *pr.Process, lastProcess map[int32]proccpu) (username, 
 		state = status[0]
 	}
 
-	mem, err := ps.MemoryInfo()
+	// you may get a null pointer here
+	memInfo, err := ps.MemoryInfo()
 	if err != nil {
 		l.Warnf("process:%s,pid:%d get memoryinfo err:%s", name, ps.Pid, err.Error())
 	} else {
-		message["memory"] = mem
-		fields["rss"] = mem.RSS
+		message["memory"] = memInfo
+		fields["rss"] = memInfo.RSS
 	}
+
 	memPercent, err := ps.MemoryPercent()
 	if err != nil {
 		l.Warnf("process:%s,pid:%d get mempercent err:%s", name, ps.Pid, err.Error())
@@ -316,33 +351,35 @@ func (p *Input) Parse(ps *pr.Process, lastProcess map[int32]proccpu) (username, 
 
 	crtTime := getStartTime(ps)
 	created := time.Unix(0, crtTime*int64(time.Millisecond))
-	cpu, err := ps.Times()
+
+	// you may get a null pointer here
+	cpuTime, err := ps.Times()
 	if err != nil {
 		l.Warnf("process:%s,pid:%d get cpu err:%s", name, ps.Pid, err.Error())
 		l.Warnf("process:%s,pid:%d get cpupercent err:%s", name, ps.Pid, err.Error())
 	} else {
 		totalTime := time.Since(created).Seconds()
-		message["cpu"] = cpu
-		fields["cpu_usage"] = 100 * (cpu.User + cpu.System) / totalTime
-	}
+		message["cpu"] = cpuTime
+		fields["cpu_usage"] = 100 * (cpuTime.User + cpuTime.System) / totalTime
 
-	if lastP, ok := lastProcess[ps.Pid]; ok {
-		var usage float64
-		if lastP.createTime == crtTime {
-			sec := time.Since(lastP.ts).Seconds()
-			if sec > 0 {
-				usage = 100 * (cpu.User + cpu.System - lastP.cputime.User - lastP.cputime.System) / sec
+		if lastP, ok := lastProcess[ps.Pid]; ok {
+			var usage float64
+			if lastP.createTime == crtTime {
+				sec := time.Since(lastP.ts).Seconds()
+				if sec > 0 {
+					usage = 100 * (cpuTime.User + cpuTime.System - lastP.cputime.User - lastP.cputime.System) / sec
+				}
+			} else {
+				l.Debugf("cpu_usage_top: lastP %d %d", lastP.createTime, crtTime)
 			}
+			if usage < 0 {
+				usage = 0
+			}
+			fields["cpu_usage_top"] = usage
 		} else {
-			l.Debug("cpu_usage_top: lastP %d %d", lastP.createTime, crtTime)
+			fields["cpu_usage_top"] = 0
+			l.Debug("cpu_usage_top: pid %d", ps.Pid)
 		}
-		if usage < 0 {
-			usage = 0
-		}
-		fields["cpu_usage_top"] = usage
-	} else {
-		fields["cpu_usage_top"] = 0
-		l.Debug("cpu_usage_top: pid %d", ps.Pid)
 	}
 
 	Threads, err := ps.NumThreads()
@@ -368,7 +405,7 @@ func (p *Input) WriteObject(lastProc map[int32]proccpu) {
 	t := time.Now().UTC()
 	var collectCache []inputs.Measurement
 
-	for _, ps := range p.getProcesses() {
+	for _, ps := range p.getProcesses(false) {
 		username, state, name, fields, message := p.Parse(ps, lastProc)
 		tags := map[string]string{
 			"username":     username,
@@ -445,6 +482,7 @@ func (p *Input) WriteObject(lastProc map[int32]proccpu) {
 		l.Errorf("FeedMeasurement err :%s", err.Error())
 		p.lastErr = err
 	}
+
 	if p.lastErr != nil {
 		io.FeedLastError(inputName, p.lastErr.Error())
 		p.lastErr = nil
@@ -454,7 +492,7 @@ func (p *Input) WriteObject(lastProc map[int32]proccpu) {
 func (p *Input) WriteMetric(lastProc map[int32]proccpu) {
 	t := time.Now().UTC()
 	var collectCache []inputs.Measurement
-	for _, ps := range p.getProcesses() {
+	for _, ps := range p.getProcesses(true) {
 		cmd, err := ps.Cmdline() // 无cmd的进程 没有采集指标的意义
 		if err != nil || cmd == "" {
 			continue

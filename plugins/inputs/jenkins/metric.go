@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package jenkins
 
 import (
@@ -34,6 +39,76 @@ var fieldMap = map[string]string{
 type Metric struct {
 	Version string                            `json:"version"`
 	Gauges  map[string]map[string]interface{} `json:"gauges"`
+}
+
+type jenkinsPipelineMeasurement struct{}
+
+func (j *jenkinsPipelineMeasurement) LineProto() (*io.Point, error) {
+	return nil, nil
+}
+
+//nolint:lll
+func (j *jenkinsPipelineMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "jenkins_pipeline",
+		Desc: "Jenkins Pipeline Event 相关指标",
+		Fields: map[string]interface{}{
+			"pipeline_id":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "pipeline id"},
+			"duration":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "pipeline 持续时长（秒）"},
+			"commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "触发该 pipeline 的代码的最近一次提交附带的 message"},
+			"created_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "pipeline 创建的秒时间戳"},
+			"finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "pipeline 结束的秒时间戳"},
+			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "该 pipeline 的 id，与 pipeline_id 相同"},
+		},
+		Tags: map[string]interface{}{
+			"object_kind":    inputs.NewTagInfo("Event 类型，此处为 Pipeline"),
+			"ci_status":      inputs.NewTagInfo("CI 状态"),
+			"pipeline_name":  inputs.NewTagInfo("pipeline 名称"),
+			"pipeline_url":   inputs.NewTagInfo("pipeline 的 URL"),
+			"commit_sha":     inputs.NewTagInfo("触发 pipeline 的最近一次 commit 的哈希值"),
+			"author_email":   inputs.NewTagInfo("作者邮箱"),
+			"repository_url": inputs.NewTagInfo("仓库 URL"),
+			"operation_name": inputs.NewTagInfo("操作名称"),
+			"resource":       inputs.NewTagInfo("项目名"),
+			"ref":            inputs.NewTagInfo("涉及的分支"),
+		},
+	}
+}
+
+type jenkinsJobMeasurement struct{}
+
+func (j *jenkinsJobMeasurement) LineProto() (*io.Point, error) {
+	return nil, nil
+}
+
+//nolint:lll
+func (j *jenkinsJobMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "jenkins_job",
+		Desc: "Jenkins Job Event 相关指标",
+		Fields: map[string]interface{}{
+			"build_id":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build id"},
+			"build_started_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "build 开始的秒时间戳"},
+			"build_finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "build 结束的秒时间戳"},
+			"build_duration":       &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.DurationSecond, Desc: "build 持续时长（秒）"},
+			"pipeline_id":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build 对应的 pipeline id"},
+			"runner_id":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build 对应的 runner id"},
+			"build_commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "触发该 build 的最近一次 commit 的 message"},
+			"message":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build 对应的 job name"},
+		},
+		Tags: map[string]interface{}{
+			"object_kind":          inputs.NewTagInfo("Event 类型，此处为 Job"),
+			"sha":                  inputs.NewTagInfo("build 对应的 commit 的哈希值"),
+			"build_name":           inputs.NewTagInfo("build 的名称"),
+			"build_stage":          inputs.NewTagInfo("build 的阶段"),
+			"build_status":         inputs.NewTagInfo("build 的状态"),
+			"project_name":         inputs.NewTagInfo("项目名"),
+			"build_failure_reason": inputs.NewTagInfo("build 失败的原因"),
+			"user_email":           inputs.NewTagInfo("作者邮箱"),
+			"build_commit_sha":     inputs.NewTagInfo("build 对应的 commit 的哈希值"),
+			"build_repo_name":      inputs.NewTagInfo("build 对应的仓库名"),
+		},
+	}
 }
 
 func (n *Input) getPluginMetric() {

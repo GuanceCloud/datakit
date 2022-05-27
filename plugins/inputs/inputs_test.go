@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package inputs
 
 import (
@@ -5,9 +10,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestGetEnvs(t *testing.T) {
@@ -49,14 +52,4 @@ func TestGetEnvs(t *testing.T) {
 			tu.Assert(t, val == v && ok, fmt.Sprintf("%s <> %s && %v", v, val, ok))
 		}
 	}
-}
-
-func TestEventMeasurement(t *testing.T) {
-	m := getReporterMeasurement(&io.Reporter{Status: "info", Message: "message"})
-	assert.Equal(t, m.tags["source"], "datakit")
-	assert.Equal(t, m.tags["status"], "info")
-	assert.Equal(t, m.fields["message"], "message")
-
-	_, err := m.LineProto()
-	assert.NoError(t, err)
 }

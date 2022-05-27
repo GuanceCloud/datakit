@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package jaeger
 
 import (
@@ -8,7 +13,7 @@ import (
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/agent"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 func StartUDPAgent(addr string) error {
@@ -62,7 +67,7 @@ func StartUDPAgent(addr string) error {
 		if len(dktrace) == 0 {
 			log.Warn("empty datakit trace")
 		} else {
-			afterGather.Run(inputName, dktrace, false)
+			afterGatherRun.Run(inputName, dktrace, false)
 		}
 	}
 }

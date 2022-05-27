@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package sqlserver collects SQL Server metrics.
 package sqlserver
 
@@ -33,6 +38,15 @@ func (*Input) PipelineConfig() map[string]string {
 		inputName: pipeline,
 	}
 	return pipelineMap
+}
+
+//nolint:lll
+func (n *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"SQLServer log": `2021-05-28 10:46:07.78 spid10s     0 transactions rolled back in database 'msdb' (4:0). This is an informational message only. No user action is required`,
+		},
+	}
 }
 
 func (n *Input) GetPipeline() []*tailer.Option {
@@ -96,7 +110,6 @@ func (n *Input) RunPipeline() {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("sqlserver start")
-	io.FeedEventLog(&io.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
 	tick := time.NewTicker(n.Interval.Duration)
@@ -106,8 +119,7 @@ func (n *Input) Run() {
 	for {
 		if err := n.initDB(); err != nil {
 			l.Errorf("initDB: %s", err.Error())
-
-			io.FeedLastError(inputName, err.Error())
+			io.ReportLastError(inputName, err.Error())
 		} else {
 			break
 		}

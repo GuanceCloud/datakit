@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package skywalking
 
 import (
@@ -9,7 +14,7 @@ import (
 	"net"
 	"time"
 
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	skyimpl "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile"
 	"google.golang.org/grpc"
 )
@@ -23,13 +28,13 @@ func registerServerV3(addr string) {
 	}
 	log.Infof("skywalking v3 listening on: %s", addr)
 
-	srv := grpc.NewServer()
-	skyimpl.RegisterTraceSegmentReportServiceServer(srv, &TraceReportServerV3{})
-	skyimpl.RegisterEventServiceServer(srv, &EventServerV3{})
-	skyimpl.RegisterJVMMetricReportServiceServer(srv, &JVMMetricReportServerV3{})
-	skyimpl.RegisterManagementServiceServer(srv, &ManagementServerV3{})
-	skyimpl.RegisterConfigurationDiscoveryServiceServer(srv, &DiscoveryServerV3{})
-	if err = srv.Serve(listener); err != nil {
+	skysvr = grpc.NewServer()
+	skyimpl.RegisterTraceSegmentReportServiceServer(skysvr, &TraceReportServerV3{})
+	skyimpl.RegisterEventServiceServer(skysvr, &EventServerV3{})
+	skyimpl.RegisterJVMMetricReportServiceServer(skysvr, &JVMMetricReportServerV3{})
+	skyimpl.RegisterManagementServiceServer(skysvr, &ManagementServerV3{})
+	skyimpl.RegisterConfigurationDiscoveryServiceServer(skysvr, &DiscoveryServerV3{})
+	if err = skysvr.Serve(listener); err != nil {
 		log.Error(err)
 	}
 	log.Info("skywalking v3 exits")
@@ -79,7 +84,6 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   segment.TraceId,
 			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
-			ParentID:  "0",
 			Service:   segment.Service,
 			Resource:  span.OperationName,
 			Operation: span.OperationName,
@@ -89,12 +93,18 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
 		}
 
-		if span.SpanType == skyimpl.SpanType_Entry {
+		if span.ParentSpanId < 0 {
 			if len(span.Refs) > 0 {
 				dkspan.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId)
+			} else {
+				dkspan.ParentID = "0"
 			}
 		} else {
-			dkspan.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)
+			if len(span.Refs) > 0 {
+				dkspan.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId)
+			} else {
+				dkspan.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)
+			}
 		}
 
 		dkspan.Status = itrace.STATUS_OK
@@ -105,10 +115,10 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		switch span.SpanType {
 		case skyimpl.SpanType_Entry:
 			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
-		case skyimpl.SpanType_Local:
-			dkspan.SpanType = itrace.SPAN_TYPE_LOCAL
 		case skyimpl.SpanType_Exit:
 			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
+		case skyimpl.SpanType_Local:
+			dkspan.SpanType = itrace.SPAN_TYPE_LOCAL
 		}
 
 		sourceTags := make(map[string]string)
@@ -117,9 +127,9 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if dkspan.ParentID == "0" && defSampler != nil {
-			dkspan.Priority = defSampler.Priority
-			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		if dkspan.ParentID == "0" && sampler != nil {
+			dkspan.Priority = sampler.Priority
+			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
 		}
 
 		if buf, err := json.Marshal(span); err != nil {

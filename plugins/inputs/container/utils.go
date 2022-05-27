@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package container
 
 import (
@@ -5,8 +10,19 @@ import (
 	"strings"
 
 	"github.com/docker/docker/api/types"
-	"github.com/pborman/ansi"
 )
+
+func getPodNameForLabels(labels map[string]string) string {
+	return labels["io.kubernetes.pod.name"]
+}
+
+func getPodNamespaceForLabels(labels map[string]string) string {
+	return labels["io.kubernetes.pod.namespace"]
+}
+
+func getContainerNameForLabels(labels map[string]string) string {
+	return labels["io.kubernetes.container.name"]
+}
 
 // ParseImage adapts some of the logic from the actual Docker library's image parsing
 // routines:
@@ -147,18 +163,4 @@ func calculateMemPercentUnixNoCache(limit float64, usedNoCache float64) float64 
 		return usedNoCache / limit * 100.0
 	}
 	return 0
-}
-
-func removeAnsiEscapeCodes(oldtext []byte, run bool) []byte {
-	if !run {
-		return oldtext
-	}
-
-	newtext, err := ansi.Strip(oldtext)
-	if err != nil {
-		l.Debugf("remove ansi code error: %w", err)
-		return oldtext
-	}
-
-	return newtext
 }

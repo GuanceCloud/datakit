@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package system collect system level metrics
 package system
 
@@ -171,7 +176,6 @@ func (ipt *Input) Collect() error {
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("system input started")
-	io.FeedEventLog(&io.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
@@ -210,11 +214,24 @@ func (ipt *Input) Terminate() {
 
 // ReadEnv support envs：
 //   ENV_INPUT_SYSTEM_TAGS : "a=b,c=d"
+//   ENV_INPUT_SYSTEM_INTERVAL : datakit.Duration
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if tagsStr, ok := envs["ENV_INPUT_SYSTEM_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
 			ipt.Tags[k] = v
+		}
+	}
+
+	//   ENV_INPUT_SYSTEM_INTERVAL : datakit.Duration
+	if str, ok := envs["ENV_INPUT_SYSTEM_INTERVAL"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_SYSTEM_INTERVAL to time.Duration: %s, ignore", err)
+		} else {
+			ipt.Interval.Duration = config.ProtectedInterval(minInterval,
+				maxInterval,
+				da)
 		}
 	}
 }

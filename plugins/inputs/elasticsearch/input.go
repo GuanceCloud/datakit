@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package elasticsearch Collect ElasticSearch metrics.
 package elasticsearch
 
@@ -227,6 +232,17 @@ type Input struct {
 	pauseCh chan bool
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+//nolint:lll
+func (i *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"ElasticSearch log":             `[2021-06-01T11:45:15,927][WARN ][o.e.c.r.a.DiskThresholdMonitor] [master] high disk watermark [90%] exceeded on [A2kEFgMLQ1-vhMdZMJV3Iw][master][/tmp/elasticsearch-cluster/nodes/0] free: 17.1gb[7.3%], shards will be relocated away from this node; currently relocating away shards totalling [0] bytes; the node is expected to continue to exceed the high disk watermark when these relocations are complete`,
+			"ElasticSearch search slow log": `[2021-06-01T11:56:06,712][WARN ][i.s.s.query              ] [master] [shopping][0] took[36.3ms], took_millis[36], total_hits[5 hits], types[], stats[], search_type[QUERY_THEN_FETCH], total_shards[1], source[{"query":{"match":{"name":{"query":"Nariko","operator":"OR","prefix_length":0,"max_expansions":50,"fuzzy_transpositions":true,"lenient":false,"zero_terms_query":"NONE","auto_generate_synonyms_phrase_query":true,"boost":1.0}}},"sort":[{"price":{"order":"desc"}}]}], id[],`,
+			"ElasticSearch index slow log":  `[2021-06-01T11:56:19,084][WARN ][i.i.s.index              ] [master] [shopping/X17jbNZ4SoS65zKTU9ZAJg] took[34.1ms], took_millis[34], type[_doc], id[LgC3xXkBLT9WrDT1Dovp], routing[], source[{"price":222,"name":"hello"}]`,
+		},
+	}
 }
 
 type userPrivilege struct {
@@ -497,7 +513,6 @@ func (i *Input) RunPipeline() {
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
-	io.FeedEventLog(&io.Reporter{Message: "elasticsearch start ok, ready for collecting metrics.", Logtype: "event"})
 
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
@@ -513,6 +528,7 @@ func (i *Input) Run() {
 	client, err := i.createHTTPClient()
 	if err != nil {
 		l.Error(err)
+		io.ReportLastError(inputName, err.Error())
 		return
 	}
 	i.client = client
@@ -522,23 +538,14 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.duration)
 	defer tick.Stop()
 
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		i.Tags["election_namespace"] = namespace
+	}
+
 	for {
-		select {
-		case <-datakit.Exit.Wait():
-			i.exit()
-			l.Info("elasticsearch exit")
-			return
-
-		case <-i.semStop.Wait():
-			i.exit()
-			l.Info("elasticsearch return")
-			return
-
-		case <-tick.C:
-			if i.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
+		if i.pause {
+			l.Debugf("not leader, skipped")
+		} else {
 			start := time.Now()
 			if err := i.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
@@ -554,6 +561,20 @@ func (i *Input) Run() {
 				}
 				i.collectCache = i.collectCache[:0]
 			}
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			i.exit()
+			l.Info("elasticsearch exit")
+			return
+
+		case <-i.semStop.Wait():
+			i.exit()
+			l.Info("elasticsearch return")
+			return
+
+		case <-tick.C:
 
 		case i.pause = <-i.pauseCh:
 			// nil
@@ -995,8 +1016,12 @@ func (i *Input) stop() {
 }
 
 func (i *Input) createHTTPClient() (*http.Client, error) {
+	timeout := 10 * time.Second
+	if i.HTTPTimeout.Duration > 0 {
+		timeout = i.HTTPTimeout.Duration
+	}
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: timeout,
 	}
 
 	if i.TLSOpen {

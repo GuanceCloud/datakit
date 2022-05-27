@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package ddtrace
 
 import (
@@ -8,7 +13,7 @@ import (
 	"net/http"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 const (
@@ -50,7 +55,7 @@ func handleDDTraceWithVersion(v string) http.HandlerFunc {
 
 			if dktrace := ddtraceToDkTrace(trace); len(dktrace) == 0 {
 				log.Warn("empty datakit trace")
-			} else {
+			} else if afterGatherRun != nil {
 				afterGatherRun.Run(inputName, dktrace, false)
 			}
 		}
@@ -173,7 +178,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			Operation:          span.Name,
 			Source:             inputName,
 			SpanType:           itrace.FindSpanTypeInMultiServersIntSpanID(int64(span.SpanID), int64(span.ParentID), span.Service, spanIDs, parentIDs),
-			SourceType:         ddtraceSpanType[span.Type],
+			SourceType:         getDDTraceSourceType(span.Type),
 			Tags:               itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
 			ContainerHost:      span.Meta[itrace.CONTAINER_HOST],
 			PID:                fmt.Sprintf("%d", int64(span.Metrics["system.pid"])),
@@ -202,6 +207,10 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			dkspan.Version = tags[itrace.VERSION]
 		}
 
+		if id, ok := span.Meta["runtime-id"]; ok {
+			dkspan.Tags["runtime_id"] = id
+		}
+
 		dkspan.Status = itrace.STATUS_OK
 		if span.Error != 0 {
 			dkspan.Status = itrace.STATUS_ERR
@@ -211,9 +220,9 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			dkspan.Priority = itrace.PriorityReject
 		}
 
-		if dkspan.ParentID == "0" && defSampler != nil {
-			dkspan.Priority = defSampler.Priority
-			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		if dkspan.ParentID == "0" && sampler != nil {
+			dkspan.Priority = sampler.Priority
+			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
 		}
 
 		if buf, err := json.Marshal(span); err != nil {

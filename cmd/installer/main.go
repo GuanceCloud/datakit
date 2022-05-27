@@ -1,11 +1,19 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -24,6 +32,7 @@ import (
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
@@ -78,7 +87,18 @@ var (
 	flagIpdb,
 	flagGinLog,
 	flagEnableElection,
-	flagDisable404Page string
+	flagEnablePProf,
+	flagPProfListen,
+	flagDisable404Page,
+	flagSinkMetric,
+	flagSinkNetwork,
+	flagSinkKeyEvent,
+	flagSinkObject,
+	flagSinkCustomObject,
+	flagSinkLogging,
+	flagSinkTracing,
+	flagSinkRUM,
+	flagSinkSecurity string
 
 	flagInstallOnly,
 	flagCgroupDisabled,
@@ -126,10 +146,23 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagLogLevel, "log-level", "", "log level setting")
 	flag.StringVar(&flagLog, "log", "", "log setting")
 	flag.StringVar(&flagGinLog, "gin-log", "", "gin log setting")
+	flag.StringVar(&flagEnablePProf, "enable-pprof", "", "enable pprof")
+	flag.StringVar(&flagPProfListen, "pprof-listen", "", "pprof listen")
 	flag.StringVar(&flagSrc, "srcs",
 		fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz",
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
 		`local path of install files`)
+
+	// sink parameters
+	flag.StringVar(&flagSinkMetric, "sink-metric", "", "sink for Metric")
+	flag.StringVar(&flagSinkNetwork, "sink-network", "", "sink for Network")
+	flag.StringVar(&flagSinkKeyEvent, "sink-keyevent", "", "sink for Key Event")
+	flag.StringVar(&flagSinkObject, "sink-object", "", "sink for Object")
+	flag.StringVar(&flagSinkCustomObject, "sink-custom-object", "", "sink for CustomObject")
+	flag.StringVar(&flagSinkLogging, "sink-logging", "", "sink for Logging")
+	flag.StringVar(&flagSinkTracing, "sink-tracing", "", "sink for Tracing")
+	flag.StringVar(&flagSinkRUM, "sink-rum", "", "sink for RUM")
+	flag.StringVar(&flagSinkSecurity, "sink-security", "", "sink for Security")
 
 	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Cgroup CPU max usage")
 	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Cgroup CPU min usage")
@@ -177,6 +210,8 @@ func downloadFiles(to string) error {
 	if flagIpdb != "" {
 		fmt.Printf("\n")
 		baseURL := "https://" + DataKitBaseURL
+
+		l.Debugf("get ipdb from %s", baseURL)
 		if _, err := cmds.InstallIpdb(baseURL, flagIpdb); err != nil {
 			l.Warnf("ipdb install failed error: %s, please try later.", err.Error())
 			time.Sleep(1 * time.Second)
@@ -279,9 +314,25 @@ Data           : %s
 		return
 	}
 
-	l.Info("stoping datakit...")
-	if err = service.Control(svc, "stop"); err != nil {
-		l.Warnf("stop service: %s, ignored", err.Error())
+	svcStatus, err := svc.Status()
+	if err != nil {
+		if errors.Is(err, service.ErrNotInstalled) {
+			l.Infof("datakit service not installed before")
+		} else {
+			l.Warnf("svc.Status: %s, ignored", err.Error())
+		}
+	} else {
+		switch svcStatus {
+		case service.StatusUnknown: // not installed
+			l.Info("datakit service maybe not installed")
+		case service.StatusStopped: // pass
+			l.Info("datakit service stopped")
+		case service.StatusRunning:
+			l.Info("stoping datakit...")
+			if err = service.Control(svc, "stop"); err != nil {
+				l.Warnf("stop service failed %s, ignored", err.Error()) //nolint:lll
+			}
+		}
 	}
 
 	applyFlags()
@@ -290,8 +341,13 @@ Data           : %s
 	mvOldDatakit(svc)
 
 	if !flagOffline {
-		if err = downloadFiles(datakit.InstallDir); err != nil { // download 过程直接覆盖已有安装
-			l.Fatalf("download failed: %s", err.Error())
+		for i := 0; i < 5; i++ {
+			if err = downloadFiles(datakit.InstallDir); err != nil { // download 过程直接覆盖已有安装
+				l.Errorf("[%d] download failed: %s, retry...", i, err.Error())
+				continue
+			}
+			l.Infof("[%d] download installer ok", i)
+			break
 		}
 	}
 
@@ -304,7 +360,7 @@ Data           : %s
 
 		l.Infof("Upgrading to version %s...", DataKitVersion)
 		if err = upgradeDatakit(svc); err != nil {
-			l.Fatalf("upgrade datakit: %s", err.Error())
+			l.Warnf("upgrade datakit failed: %s", err.Error())
 		}
 	} else { // install new datakit
 		l.Infof("Installing version %s...", DataKitVersion)
@@ -316,7 +372,7 @@ Data           : %s
 	} else {
 		l.Infof("starting service %s...", dkservice.ServiceName)
 		if err = service.Control(svc, "start"); err != nil {
-			l.Warnf("star service: %s, ignored", err.Error())
+			l.Warnf("start service failed: %s", err.Error()) //nolint:lll
 		}
 	}
 
@@ -324,32 +380,67 @@ Data           : %s
 		l.Errorf("CreateSymlinks: %s", err.Error())
 	}
 
-	if flagDKUpgrade {
-		l.Info(":) Upgrade Success!")
+	if err := checkIsNewVersion("http://"+config.Cfg.HTTPAPI.Listen, DataKitVersion); err != nil {
+		l.Errorf("checkIsNewVersion: %s", err.Error()) //nolint:lll
 	} else {
-		l.Info(":) Install Success!")
+		l.Infof("current running datakit is version: %s", DataKitVersion) //nolint:lll
+
+		if flagDKUpgrade {
+			l.Info(":) Upgrade Success!")
+		} else {
+			l.Info(":) Install Success!")
+		}
+		promptReferences()
+	}
+}
+
+func checkIsNewVersion(host, version string) error {
+	x := struct {
+		Content map[string]string `json:"content"`
+	}{}
+
+	for i := 0; i < 5; i++ {
+		time.Sleep(time.Second)
+
+		resp, err := http.Get(host + "/v1/ping")
+		if err != nil {
+			l.Errorf("http.Get: %s", err)
+			continue
+		}
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			l.Errorf("ioutil.ReadAll: %s", err)
+			continue
+		}
+
+		defer resp.Body.Close() //nolint:errcheck
+
+		if err := json.Unmarshal(body, &x); err != nil {
+			l.Errorf("json.Unmarshal: %s", err)
+			return err
+		}
+
+		if x.Content["version"] != version {
+			return fmt.Errorf("current version: %s, expect %s", x.Content["version"], version)
+		} else {
+			return nil
+		}
 	}
 
-	promptReferences()
+	return fmt.Errorf("check current version failed")
 }
 
 func promptReferences() {
-	fmt.Printf("\n\tVisit http://%s:%d/man/changelog to see DataKit change logs.\n",
-		flagDatakitHTTPListen,
-		flagDatakitHTTPPort)
-	fmt.Printf("\tVisit http://%s:%d/monitor to see DataKit running status.\n",
-		flagDatakitHTTPListen,
-		flagDatakitHTTPPort)
-	fmt.Printf("\tVisit http://%s:%d/man to see DataKit manuals.\n\n",
-		flagDatakitHTTPListen,
-		flagDatakitHTTPPort)
+	fmt.Println("\n\tVisit https://www.yuque.com/dataflux/datakit/changelog to see DataKit change logs.")
+	if config.Cfg.HTTPAPI.Listen != "localhost:9529" {
+		fmt.Printf("\tUse `datakit monitor --to %s` to see DataKit running status.\n", config.Cfg.HTTPAPI.Listen)
+	} else {
+		fmt.Println("\tUse `datakit monitor` to see DataKit running status.")
+	}
 }
 
 func upgradeDatakit(svc service.Service) error {
-	if err := service.Control(svc, "stop"); err != nil {
-		l.Warnf("stop service: %s, ignored", err.Error())
-	}
-
 	mc := config.Cfg
 
 	if err := mc.LoadMainTOML(datakit.MainConfPath); err == nil {
@@ -371,6 +462,11 @@ func upgradeDatakit(svc service.Service) error {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
+	// build datakit sample config
+	if err := mc.InitCfgSample(datakit.MainConfSamplePath); err != nil {
+		l.Fatalf("failed to init datakit main sample config: %s", err.Error())
+	}
+
 	for _, dir := range []string{datakit.DataDir, datakit.ConfdDir} {
 		if err := os.MkdirAll(dir, datakit.ConfPerm); err != nil {
 			return err
@@ -382,46 +478,60 @@ func upgradeDatakit(svc service.Service) error {
 		installExternals[v] = struct{}{}
 	}
 	updateEBPF := false
-	if runtime.GOOS == datakit.OSLinux && runtime.GOARCH == "amd64" {
+	if runtime.GOOS == datakit.OSLinux && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") {
 		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
 			updateEBPF = true
 		}
-		if _, ok := installExternals["datakit-ebpf"]; ok {
+		if _, ok := installExternals["ebpf"]; ok {
 			updateEBPF = true
 		}
 	}
 	if updateEBPF {
-		l.Info("upgrade datakit-ebpf...")
+		l.Info("upgrade DataKit eBPF plugin...")
 		// nolint:gosec
-		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
+		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--ebpf")
 		if msg, err := cmd.CombinedOutput(); err != nil {
-			l.Errorf("upgrade external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
+			l.Warnf("upgrade external input plugin %s failed: %s msg: %s", "ebpf", err.Error(), msg)
 		}
 	}
 
 	if err := service.Control(svc, "install"); err != nil {
-		l.Warnf("install datakit service: %s, ignored", err.Error())
+		return err
 	}
 
 	return nil
 }
 
 func installNewDatakit(svc service.Service) {
-	if err := service.Control(svc, "uninstall"); err != nil {
-		l.Warnf("uninstall service: %s, ignored", err.Error())
+	svcStatus, err := svc.Status()
+	if err != nil {
+		if errors.Is(err, service.ErrNotInstalled) {
+			l.Infof("datakit service not installed before")
+			// pass
+		} else {
+			l.Warnf("svc.Status: %s", err.Error())
+		}
+	} else {
+		switch svcStatus {
+		case service.StatusUnknown: // pass
+		case service.StatusStopped:
+			if err := service.Control(svc, "uninstall"); err != nil {
+				l.Warnf("uninstall service failed: %s", err.Error())
+			}
+		case service.StatusRunning: // should not been here
+			l.Warnf("unexpected: datakit service should have stopped")
+		}
 	}
 
 	mc := config.Cfg
 
 	// prepare dataway info and check token format
-	mc.DataWay = getDataWayCfg()
-	tokens := mc.DataWay.GetToken()
-	if len(tokens) == 0 {
-		l.Fatalf("dataway token should not be empty")
-	}
-
-	if err := mc.DataWay.CheckToken(tokens[0]); err != nil {
-		l.Fatal(err)
+	if len(flagDataway) != 0 {
+		var err error
+		mc.DataWay, err = getDataWay()
+		if err != nil {
+			l.Fatal(err)
+		}
 	}
 
 	if flagOTA {
@@ -451,6 +561,14 @@ func installNewDatakit(svc service.Service) {
 				}
 			}
 		}
+	}
+
+	if flagEnablePProf != "" {
+		config.Cfg.EnablePProf = true
+	}
+
+	if flagPProfListen != "" {
+		config.Cfg.PProfListen = flagPProfListen
 	}
 
 	// Only linux support cgroup.
@@ -545,7 +663,13 @@ func installNewDatakit(svc service.Service) {
 	}
 	if flagGinLog != "" {
 		l.Infof("set gin log: %s", flagGinLog)
-		mc.GinLogDeprecated = flagGinLog
+		mc.Logging.GinLog = flagGinLog
+	}
+
+	// parse sink
+	if err := parseSinkArgs(mc); err != nil {
+		mc.Sinks.Sink = []map[string]interface{}{{}} // clear
+		l.Fatalf("parseSinkArgs failed: %s", err.Error())
 	}
 
 	writeDefInputToMainCfg(mc)
@@ -555,32 +679,79 @@ func installNewDatakit(svc service.Service) {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
+	// build datakit sample config
+	if err := mc.InitCfgSample(datakit.MainConfSamplePath); err != nil {
+		l.Fatalf("failed to init datakit main sample config: %s", err.Error())
+	}
+
 	installExternals := map[string]struct{}{}
 	for _, v := range strings.Split(flagInstallExternals, ",") {
 		installExternals[v] = struct{}{}
 	}
 	updateEBPF := false
-	if runtime.GOOS == datakit.OSLinux && runtime.GOARCH == "amd64" {
+	if runtime.GOOS == datakit.OSLinux && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") {
 		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
 			updateEBPF = true
 		}
-		if _, ok := installExternals["datakit-ebpf"]; ok {
+		if _, ok := installExternals["ebpf"]; ok {
 			updateEBPF = true
 		}
 	}
 	if updateEBPF {
-		l.Info("install datakit-ebpf...")
+		l.Info("install DataKit eBPF plugin...")
 		// nolint:gosec
-		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
+		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--ebpf")
 		if msg, err := cmd.CombinedOutput(); err != nil {
-			l.Errorf("upgradde external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
+			l.Errorf("upgradde external input plugin %s failed: %s msg: %s", "ebpf", err.Error(), msg)
 		}
 	}
 
 	l.Infof("installing service %s...", dkservice.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
-		l.Warnf("install service: %s, ignored", err.Error())
+		l.Warnf("uninstall service failed %s", err.Error()) //nolint:lll
 	}
+}
+
+func parseSinkArgs(mc *config.Config) error {
+	if mc == nil {
+		return fmt.Errorf("invalid main config")
+	}
+
+	if mc.Sinks == nil {
+		return fmt.Errorf("invalid main config sinks")
+	}
+
+	categoryShorts := []string{
+		datakit.SinkCategoryMetric,
+		datakit.SinkCategoryNetwork,
+		datakit.SinkCategoryKeyEvent,
+		datakit.SinkCategoryObject,
+		datakit.SinkCategoryCustomObject,
+		datakit.SinkCategoryLogging,
+		datakit.SinkCategoryTracing,
+		datakit.SinkCategoryRUM,
+		datakit.SinkCategorySecurity,
+	}
+
+	args := []string{
+		flagSinkMetric,
+		flagSinkNetwork,
+		flagSinkKeyEvent,
+		flagSinkObject,
+		flagSinkCustomObject,
+		flagSinkLogging,
+		flagSinkTracing,
+		flagSinkRUM,
+		flagSinkSecurity,
+	}
+
+	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
+	if err != nil {
+		return err
+	}
+
+	mc.Sinks.Sink = sinks
+	return nil
 }
 
 var (
@@ -691,8 +862,8 @@ func preEnableHostobjectInput(cloud string) []byte {
 }
 
 func upgradeMainConfig(c *config.Config) *config.Config {
-	if c.DataWay != nil {
-		c.DataWay.DeprecatedURL = ""
+	if c.DataWayCfg != nil {
+		c.DataWayCfg.DeprecatedURL = ""
 	}
 
 	// XXX: 无脑更改日志位置
@@ -751,8 +922,8 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 		c.IntervalDeprecated = ""
 	}
 
-	if c.DataWay != nil {
-		c.DataWay.HTTPProxy = flagProxy
+	if c.DataWayCfg != nil {
+		c.DataWayCfg.HTTPProxy = flagProxy
 	}
 
 	c.InstallVer = DataKitVersion
@@ -761,24 +932,35 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 	return c
 }
 
-func getDataWayCfg() *dataway.DataWayCfg {
-	dw := &dataway.DataWayCfg{}
-
+func getDataWay() (dataway.DataWay, error) {
+	var dwCfg *dataway.DataWayCfg
 	if flagDataway != "" {
-		dw.URLs = strings.Split(flagDataway, ",")
-		if err := dw.Apply(); err != nil {
-			l.Fatal(err)
-		}
+		dwCfg = &dataway.DataWayCfg{}
+		dwCfg.URLs = strings.Split(flagDataway, ",")
 
 		if flagProxy != "" {
 			l.Debugf("set proxy to %s", flagProxy)
-			dw.HTTPProxy = flagProxy
+			dwCfg.HTTPProxy = flagProxy
+		}
+
+		dw := &dataway.DataWayDefault{}
+		if err := dw.Init(dwCfg); err != nil {
+			return nil, err
+		} else {
+			tokens := dw.GetTokens()
+			if len(tokens) == 0 {
+				return nil, fmt.Errorf("dataway token should not be empty")
+			}
+
+			if err := dw.CheckToken(tokens[0]); err != nil {
+				return nil, err
+			}
+			config.Cfg.DataWayCfg = dwCfg
+			return dw, nil
 		}
 	} else {
-		l.Fatal("should not been here")
+		return nil, fmt.Errorf("dataway is not set")
 	}
-
-	return dw
 }
 
 func mvOldDatakit(svc service.Service) {
@@ -796,7 +978,7 @@ func mvOldDatakit(svc service.Service) {
 	}
 
 	if err := service.Control(svc, "uninstall"); err != nil {
-		l.Warnf("uninstall service datakit failed: %s, ignored", err.Error())
+		l.Warnf("uninstall service failed: %s", err.Error())
 	}
 
 	if err := os.Rename(olddir, datakit.InstallDir); err != nil {

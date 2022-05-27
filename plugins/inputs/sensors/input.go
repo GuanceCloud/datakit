@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 //go:build linux
 // +build linux
 
@@ -55,7 +60,6 @@ func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("sensors input started")
-	io.FeedEventLog(&io.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
 
 	var err error
 	if ipt.Path == "" || !path.IsFileExists(ipt.Path) {

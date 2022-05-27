@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package http wraps http related functions
 package http
 
@@ -13,13 +18,15 @@ import (
 	"time"
 )
 
+var DefaultKeepAlive = 90 * time.Second
+
 func DefTransport() *http.Transport {
 	return newCliTransport(&Options{
 		DialTimeout:           30 * time.Second,
-		DialKeepAlive:         30 * time.Second,
+		DialKeepAlive:         DefaultKeepAlive,
 		MaxIdleConns:          100,
 		MaxIdleConnsPerHost:   runtime.NumGoroutine(),
-		IdleConnTimeout:       90 * time.Second,
+		IdleConnTimeout:       DefaultKeepAlive, // keep the same with keep-aliva
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: time.Second,
 	})
@@ -58,7 +65,7 @@ func newCliTransport(opt *Options) *http.Transport {
 				if opt.DialKeepAlive > time.Duration(0) {
 					return opt.DialKeepAlive
 				}
-				return 30 * time.Second
+				return DefaultKeepAlive
 			}(),
 		}).DialContext,
 
@@ -89,7 +96,7 @@ func newCliTransport(opt *Options) *http.Transport {
 			if opt.IdleConnTimeout > time.Duration(0) {
 				return opt.IdleConnTimeout
 			}
-			return 90 * time.Second
+			return DefaultKeepAlive
 		}(),
 
 		TLSHandshakeTimeout: func() time.Duration {

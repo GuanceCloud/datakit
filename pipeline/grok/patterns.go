@@ -1,45 +1,205 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package grok
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
+	"strings"
 )
 
-type GrokRegexp struct {
-	Pattern             string
-	DenormalizedPattern string
-	Re                  *regexp.Regexp
+const (
+	GTypeString = "string"
+	GTypeInt    = "int"
+	GTypeFloat  = "float"
+	GTypeBool   = "bool"
+)
+
+type GrokPattern struct {
+	pattern      string
+	denormalized string
+	varType      map[string]string
 }
 
-func (g *GrokRegexp) Run(content interface{}) (map[string]string, error) {
-	if g.Re == nil {
-		return nil, fmt.Errorf("not complied")
-	}
-	result := map[string]string{}
+func (g *GrokPattern) Pattern() string {
+	return g.pattern
+}
 
-	switch v := content.(type) {
-	case []byte:
-		match := g.Re.FindSubmatch(v)
-		if len(match) == 0 {
-			return nil, fmt.Errorf("no match")
-		}
-		for i, name := range g.Re.SubexpNames() {
-			if name != "" {
-				result[name] = string(match[i])
-			}
-		}
-	case string:
-		match := g.Re.FindStringSubmatch(v)
-		if len(match) == 0 {
-			return nil, fmt.Errorf("no match")
-		}
-		for i, name := range g.Re.SubexpNames() {
-			if name != "" {
-				result[name] = match[i]
-			}
-		}
+func (g *GrokPattern) Denormalized() string {
+	return g.denormalized
+}
+
+func (g *GrokPattern) TypedVar() map[string]string {
+	ret := map[string]string{}
+	for k, v := range g.varType {
+		ret[k] = v
 	}
-	return result, nil
+	return ret
+}
+
+func DenormalizePattern(pattern string, denormalized ...map[string]*GrokPattern) (*GrokPattern, error) {
+	deP := &GrokPattern{
+		pattern: pattern,
+		varType: make(map[string]string),
+	}
+
+	patternCpy := pattern
+	depVarType := map[string]string{}
+
+	for _, values := range normal.FindAllStringSubmatch(patternCpy, -1) {
+		if !valid.MatchString(values[1]) {
+			return deP, fmt.Errorf("invalid pattern %%{%s}", values[1])
+		}
+		names := strings.Split(values[1], ":")
+
+		syntax, alias := names[0], names[0]
+		if len(names) > 1 {
+			alias = symbolic.ReplaceAllString(names[1], "_")
+		}
+		if len(names) > 2 {
+			switch names[2] {
+			case GTypeInt, GTypeFloat, GTypeString, GTypeBool:
+				deP.varType[alias] = names[2]
+			}
+		}
+
+		ok := false
+		var storedPattern *GrokPattern
+		for _, denormalized := range denormalized {
+			storedPattern, ok = denormalized[syntax]
+			if ok {
+				for k, v := range storedPattern.varType {
+					depVarType[k] = v
+				}
+				break
+			}
+		}
+		if !ok {
+			return deP, fmt.Errorf("no pattern found for %%{%s}", syntax)
+		}
+
+		var buffer bytes.Buffer
+		if len(names) > 1 {
+			buffer.WriteString("(?P<")
+			buffer.WriteString(alias)
+			buffer.WriteString(">")
+			buffer.WriteString(storedPattern.denormalized)
+			buffer.WriteString(")")
+		} else {
+			buffer.WriteString("(")
+			buffer.WriteString(storedPattern.denormalized)
+			buffer.WriteString(")")
+		}
+
+		patternCpy = strings.ReplaceAll(patternCpy, values[0], buffer.String())
+	}
+
+	// 当前 pattern 的变量类型优先级别最高，覆盖子 pattern 中的最后一次出现的变量的类型
+	for k, v := range deP.varType {
+		depVarType[k] = v
+	}
+	deP.varType = depVarType
+
+	deP.denormalized = patternCpy
+	return deP, nil
+}
+
+func LoadPatternsFromPath(path string) (map[string]string, error) {
+	if fi, err := os.Stat(path); err == nil {
+		if fi.IsDir() {
+			path += "/*"
+		}
+	} else {
+		return nil, fmt.Errorf("invalid path : %s", path)
+	}
+
+	// only one error can be raised, when pattern is malformed
+	// pattern is hard-coded "/*" so we ignore err
+	files, _ := filepath.Glob(path)
+
+	filePatterns := map[string]string{}
+	for _, fileName := range files {
+		// TODO limit filepath range
+		// nolint:gosec
+		file, err := os.Open(fileName)
+		if err != nil {
+			return nil, err
+		}
+
+		scanner := bufio.NewScanner(bufio.NewReader(file))
+
+		for scanner.Scan() {
+			l := scanner.Text()
+			if len(l) > 0 && l[0] != '#' {
+				names := strings.SplitN(l, " ", 2)
+				if len(names) == 2 {
+					filePatterns[names[0]] = names[1]
+				}
+			}
+		}
+
+		_ = file.Close()
+	}
+	return filePatterns, nil
+}
+
+// DenormalizePatternsFromMap denormalize pattern from map,
+// will return a valid pattern:value map and an invalid pattern:error map.
+func DenormalizePatternsFromMap(m map[string]string, denormalized ...map[string]*GrokPattern) (map[string]*GrokPattern, map[string]string) {
+	patternDeps := map[string]*nodeP{}
+
+	for key, value := range m {
+		node := &nodeP{
+			cnt:   value,
+			cNode: []string{},
+		}
+
+		// sub pattern
+		for _, key := range normal.FindAllStringSubmatch(value, -1) {
+			names := strings.Split(key[1], ":")
+			syntax := names[0]
+
+			if _, ok := m[syntax]; ok {
+			} else { // 取 denormalized 的
+				for _, v := range denormalized {
+					if deV, ok := v[syntax]; ok {
+						node.cNode = append(node.cNode, syntax)
+						patternDeps[syntax] = &nodeP{
+							cnt: syntax,
+							ptn: deV,
+						}
+						break
+					}
+				}
+			}
+			node.cNode = append(node.cNode, syntax)
+		}
+		patternDeps[key] = node
+	}
+
+	return runTree(patternDeps)
+}
+
+func CompilePattern(pattern string, denormalized ...map[string]*GrokPattern) (*GrokRegexp, error) {
+	grokPattern, err := DenormalizePattern(pattern, denormalized...)
+	if err != nil {
+		return nil, err
+	}
+	re, err := regexp.Compile(grokPattern.denormalized)
+	if err != nil {
+		return nil, err
+	}
+	return &GrokRegexp{
+		grokPattern: grokPattern,
+		re:          re,
+	}, nil
 }
 
 func CopyDefalutPatterns() map[string]string {
@@ -58,9 +218,9 @@ var defalutPatterns = map[string]string{
 	"EMAILADDRESS":         `%{EMAILLOCALPART}@%{HOSTNAME}`,
 	"HTTPDUSER":            `%{EMAILADDRESS}|%{USER}`,
 	"INT":                  `(?:[+-]?(?:[0-9]+))`,
-	"BASE10NUM":            `([+-]?(?:[0-9]+(?:\.[0-9]+)?)|\.[0-9]+)`,
+	"BASE10NUM":            `(?:[+-]?(?:[0-9]+(?:\.[0-9]+)?)|\.[0-9]+)`,
 	"NUMBER":               `(?:%{BASE10NUM})`,
-	"BASE16NUM":            `(0[xX]?[0-9a-fA-F]+)`,
+	"BASE16NUM":            `(?:0[xX]?[0-9a-fA-F]+)`,
 	"POSINT":               `\b(?:[1-9][0-9]*)\b`,
 	"NONNEGINT":            `\b(?:[0-9]+)\b`,
 	"WORD":                 `\b\w+\b`,
@@ -68,24 +228,25 @@ var defalutPatterns = map[string]string{
 	"SPACE":                `\s*`,
 	"DATA":                 `.*?`,
 	"GREEDYDATA":           `.*`,
-	"QUOTEDSTRING":         `"([^"\\]*(\\.[^"\\]*)*)"|\'([^\'\\]*(\\.[^\'\\]*)*)\'`,
+	"GREEDYLINES":          `(?s).*`, // make . match \n
+	"QUOTEDSTRING":         `"(?:[^"\\]*(?:\\.[^"\\]*)*)"|\'(?:[^\'\\]*(?:\\.[^\'\\]*)*)\'`,
 	"UUID":                 `[A-Fa-f0-9]{8}-(?:[A-Fa-f0-9]{4}-){3}[A-Fa-f0-9]{12}`,
 	"MAC":                  `(?:%{CISCOMAC}|%{WINDOWSMAC}|%{COMMONMAC})`,
 	"CISCOMAC":             `(?:(?:[A-Fa-f0-9]{4}\.){2}[A-Fa-f0-9]{4})`,
 	"WINDOWSMAC":           `(?:(?:[A-Fa-f0-9]{2}-){5}[A-Fa-f0-9]{2})`,
 	"COMMONMAC":            `(?:(?:[A-Fa-f0-9]{2}:){5}[A-Fa-f0-9]{2})`,
-	"IPV6":                 `((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?`,
+	"IPV6":                 `(?:(?:(?:[0-9A-Fa-f]{1,4}:){7}(?:[0-9A-Fa-f]{1,4}|:))|(?:(?:[0-9A-Fa-f]{1,4}:){6}(?::[0-9A-Fa-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(?:(?:[0-9A-Fa-f]{1,4}:){5}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,2})|:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(?:(?:[0-9A-Fa-f]{1,4}:){4}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,3})|(?:(?::[0-9A-Fa-f]{1,4})?:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(?:(?:[0-9A-Fa-f]{1,4}:){3}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,4})|(?:(?::[0-9A-Fa-f]{1,4}){0,2}:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(?:(?:[0-9A-Fa-f]{1,4}:){2}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,5})|(?:(?::[0-9A-Fa-f]{1,4}){0,3}:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(?:(?:[0-9A-Fa-f]{1,4}:){1}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|(?:(?::[0-9A-Fa-f]{1,4}){0,4}:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(?::(?:(?:(?::[0-9A-Fa-f]{1,4}){1,7})|(?:(?::[0-9A-Fa-f]{1,4}){0,5}:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(?:%.+)?`,
 	"IPV4":                 `(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)`,
 	"IP":                   `(?:%{IPV6}|%{IPV4})`,
-	"HOSTNAME":             `\b(?:[0-9A-Za-z][0-9A-Za-z-]{0,62})(?:\.(?:[0-9A-Za-z][0-9A-Za-z-]{0,62}))*(\.?|\b)`,
+	"HOSTNAME":             `\b(?:[0-9A-Za-z][0-9A-Za-z-]{0,62})(?:\.(?:[0-9A-Za-z][0-9A-Za-z-]{0,62}))*(?:\.?|\b)`,
 	"HOST":                 `%{HOSTNAME}`,
 	"IPORHOST":             `(?:%{IP}|%{HOSTNAME})`,
 	"HOSTPORT":             `%{IPORHOST}:%{POSINT}`,
 	"PATH":                 `(?:%{UNIXPATH}|%{WINPATH})`,
-	"UNIXPATH":             `(/[\w_%!$@:.,-]?/?)(\S+)?`,
-	"TTY":                  `(?:/dev/(pts|tty([pq])?)(\w+)?/?(?:[0-9]+))`,
-	"WINPATH":              `([A-Za-z]:|\\)(?:\\[^\\?*]*)+`,
-	"URIPROTO":             `[A-Za-z]+(\+[A-Za-z+]+)?`,
+	"UNIXPATH":             `(?:/[\w_%!$@:.,-]?/?)(?:\S+)?`,
+	"TTY":                  `(?:/dev/(?:pts|tty(?:[pq])?)(?:\w+)?/?(?:[0-9]+))`,
+	"WINPATH":              `(?:[A-Za-z]:|\\)(?:\\[^\\?*]*)+`,
+	"URIPROTO":             `[A-Za-z]+(?:\+[A-Za-z+]+)?`,
 	"URIHOST":              `%{IPORHOST}(?::%{POSINT:port})?`,
 	"URIPATH":              `(?:/[A-Za-z0-9$.+!*'(){},~:;=@#%_\-]*)+`,
 	"URIPARAM":             `\?[A-Za-z0-9$.+!*'|(){},~@#%&/=:;_?\-\[\]<>]*`,
@@ -100,7 +261,7 @@ var defalutPatterns = map[string]string{
 	"HOUR":                 `(?:2[0123]|[01]?[0-9])`,
 	"MINUTE":               `(?:[0-5][0-9])`,
 	"SECOND":               `(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)`,
-	"TIME":                 `([^0-9]?)%{HOUR}:%{MINUTE}(?::%{SECOND})([^0-9]?)`,
+	"TIME":                 `(?:[^0-9]?)%{HOUR}:%{MINUTE}(?::%{SECOND})(?:[^0-9]?)`,
 	"DATE_US":              `%{MONTHNUM}[/-]%{MONTHDAY}[/-]%{YEAR}`,
 	"DATE_EU":              `%{MONTHDAY}[./-]%{MONTHNUM}[./-]%{YEAR}`,
 	"ISO8601_TIMEZONE":     `(?:Z|[+-]%{HOUR}(?::?%{MINUTE}))`,
@@ -127,18 +288,18 @@ var defalutPatterns = map[string]string{
 	"HTTPD20_ERRORLOG":     `\[%{HTTPDERROR_DATE:timestamp}\] \[%{LOGLEVEL:loglevel}\] (?:\[client %{IPORHOST:clientip}\] ){0,1}%{GREEDYDATA:errormsg}`,
 	"HTTPD24_ERRORLOG":     `\[%{HTTPDERROR_DATE:timestamp}\] \[%{WORD:module}:%{LOGLEVEL:loglevel}\] \[pid %{POSINT:pid}:tid %{NUMBER:tid}\]( \(%{POSINT:proxy_errorcode}\)%{DATA:proxy_errormessage}:)?( \[client %{IPORHOST:client}:%{POSINT:clientport}\])? %{DATA:errorcode}: %{GREEDYDATA:message}`,
 	"HTTPD_ERRORLOG":       `%{HTTPD20_ERRORLOG}|%{HTTPD24_ERRORLOG}`,
-	"LOGLEVEL":             `([Aa]lert|ALERT|[Tt]race|TRACE|[Dd]ebug|DEBUG|[Nn]otice|NOTICE|[Ii]nfo|INFO|[Ww]arn?(?:ing)?|WARN?(?:ING)?|[Ee]rr?(?:or)?|ERR?(?:OR)?|[Cc]rit?(?:ical)?|CRIT?(?:ICAL)?|[Ff]atal|FATAL|[Ss]evere|SEVERE|EMERG(?:ENCY)?|[Ee]merg(?:ency)?)`,
+	"LOGLEVEL":             `(?:[Aa]lert|ALERT|[Tt]race|TRACE|[Dd]ebug|DEBUG|[Nn]otice|NOTICE|[Ii]nfo|INFO|[Ww]arn?(?:ing)?|WARN?(?:ING)?|[Ee]rr?(?:or)?|ERR?(?:OR)?|[Cc]rit?(?:ical)?|CRIT?(?:ICAL)?|[Ff]atal|FATAL|[Ss]evere|SEVERE|EMERG(?:ENCY)?|[Ee]merg(?:ency)?)`,
 	"COMMONENVOYACCESSLOG": `\[%{TIMESTAMP_ISO8601:timestamp}\] \"%{DATA:method} (?:%{URIPATH:uri_path}(?:%{URIPARAM:uri_param})?|%{DATA:}) %{DATA:protocol}\" %{NUMBER:status_code} %{DATA:response_flags} %{NUMBER:bytes_received} %{NUMBER:bytes_sent} %{NUMBER:duration} (?:%{NUMBER:upstream_service_time}|%{DATA:tcp_service_time}) \"%{DATA:forwarded_for}\" \"%{DATA:user_agent}\" \"%{DATA:request_id}\" \"%{DATA:authority}\" \"%{DATA:upstream_service}\"`,
 }
 
-var defalutDenormalizedPatterns map[string]string = func() map[string]string {
+var defalutDenormalizedPatterns map[string]*GrokPattern = func() map[string]*GrokPattern {
 	patterns := CopyDefalutPatterns()
 	dePs, _ := DenormalizePatternsFromMap(patterns)
 	return dePs
 }()
 
-func CopyDenormalizedDefalutPatterns() map[string]string {
-	m := map[string]string{}
+func CopyDenormalizedDefalutPatterns() map[string]*GrokPattern {
+	m := map[string]*GrokPattern{}
 	for k, v := range defalutDenormalizedPatterns {
 		m[k] = v
 	}

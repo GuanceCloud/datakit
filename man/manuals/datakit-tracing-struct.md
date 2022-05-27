@@ -1,3 +1,9 @@
+{{.CSS}}
+
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
+- 操作系统支持：全平台
+
 # Tracing Data Struct
 
 ## 简述
@@ -156,18 +162,18 @@ otel 中的 `resource_spans` 和 dkspan 的对应关系 如下：
 | end_time_unix_nano                              | int64                                          | 纳秒                                       | Span 终止时间                                    | dkspan.Duration = end - start                                                                                                                                     |
 | status                                          | string                                         |                                            | Span Status                                      | dkspan.Status                                                                                                                                                     |
 | name                                            | string                                         |                                            | resource Name                                    | dkspan.Resource                                                                                                                                                   |
-| resource.attributes                             | map[string]string                              |                                            | resource 标签                                     | dkspan.tags.service, dkspan.tags.project, dkspan.tags.env, dkspan.tags.version, dkspan.tags.container_host, dkspan.tags.http_method, dkspan.tags.http_status_code |
+| resource.attributes                             | map[string]string                              |                                            | resource 标签                                    | dkspan.tags.service, dkspan.tags.project, dkspan.tags.env, dkspan.tags.version, dkspan.tags.container_host, dkspan.tags.http_method, dkspan.tags.http_status_code |
 | span.attributes                                 | map[string]string                              |                                            | Span 标签                                        | dkspan.tags                                                                                                                                                       |
 
 otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在了标签中，只有这些值非 0 时才会显示，如：
 
-| Field | Date Type | Uint | Description |Correspond |
-| :--- | :--- | :--- | :--- | :--- |
-| span.dropped_attributes_count   | int   |     | Span 被删除的标签数量      | dkspan.tags.dropped_attributes_count                                                                                                                              |
-| span.dropped_events_count       | int   |     | Span 被删除的事件数量      | dkspan.tags.dropped_events_count                                                                                                                                  |
-| span.dropped_links_count        | int   |     | Span 被删除的连接数量      | dkspan.tags.dropped_links_count                                                                                                                                   |
-| span.events_count               | int   |     | Span 关联事件数量          | dkspan.tags.events_count                                                                                                                                          |
-| span.links_count                | int   |     | Span 所关联的 span 数量    | dkspan.tags.links_count                                                                                                                                           |
+| Field                         | Date Type | Uint | Description             | Correspond                           |
+| :---------------------------- | :-------- | :--- | :---------------------- | :----------------------------------- |
+| span.dropped_attributes_count | int       |      | Span 被删除的标签数量   | dkspan.tags.dropped_attributes_count |
+| span.dropped_events_count     | int       |      | Span 被删除的事件数量   | dkspan.tags.dropped_events_count     |
+| span.dropped_links_count      | int       |      | Span 被删除的连接数量   | dkspan.tags.dropped_links_count      |
+| span.events_count             | int       |      | Span 关联事件数量       | dkspan.tags.events_count             |
+| span.links_count              | int       |      | Span 所关联的 span 数量 | dkspan.tags.links_count              |
 
 ---
 

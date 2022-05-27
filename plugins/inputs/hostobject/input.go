@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package hostobject collect host object.
 package hostobject
 
@@ -69,7 +74,6 @@ const (
 
 func (ipt *Input) Run() {
 	l = logger.SLogger(InputName)
-	io.FeedEventLog(&io.Reporter{Message: "hostobject start ok, ready for collecting metrics.", Logtype: "event"})
 
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)

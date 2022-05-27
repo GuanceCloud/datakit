@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 //go:build windows && amd64
 // +build windows,amd64
 
@@ -122,7 +127,6 @@ func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Infof("iis input started")
-	io.FeedEventLog(&io.Reporter{Message: "iis start ok, ready for collecting metrics.", Logtype: "event"})
 
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)

@@ -1,4 +1,8 @@
-//nolint:lll
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cmds
 
 import (
@@ -137,14 +141,14 @@ var (
 	//
 	// install related flags.
 	//
-	fsInstallName          = "install"
-	fsInstall              = pflag.NewFlagSet(fsInstallName, pflag.ContinueOnError)
-	flagInstallLogPath     = fsInstall.String("log", commonLogFlag(), "command line log path")
-	flagInstallTelegraf    = fsInstall.Bool("telegraf", false, "install Telegraf")
-	flagInstallScheck      = fsInstall.Bool("scheck", false, "install SCheck")
-	flagInstallDatakitEbpf = fsInstall.Bool("datakit-ebpf", false, "install datakit-ebpf")
-	flagInstallIPDB        = fsInstall.String("ipdb", "", "install IP database(currently only iploc available)")
-	fsInstallUsage         = func() {
+	fsInstallName       = "install"
+	fsInstall           = pflag.NewFlagSet(fsInstallName, pflag.ContinueOnError)
+	flagInstallLogPath  = fsInstall.String("log", commonLogFlag(), "command line log path")
+	flagInstallTelegraf = fsInstall.Bool("telegraf", false, "install Telegraf")
+	flagInstallScheck   = fsInstall.Bool("scheck", false, "install SCheck")
+	flagInstallEbpf     = fsInstall.Bool("ebpf", false, "install DataKit eBPF plugin")
+	flagInstallIPDB     = fsInstall.String("ipdb", "", "install IP database(currently only iploc available)")
+	fsInstallUsage      = func() {
 		fmt.Printf("usage: datakit install [options]\n\n")
 		fmt.Printf("Install used to install DataKit related packages and plugins\n\n")
 		fmt.Println(fsInstall.FlagUsagesWrapped(0))

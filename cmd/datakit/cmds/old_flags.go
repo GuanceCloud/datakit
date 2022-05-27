@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cmds
 
 import (
@@ -14,7 +19,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -151,10 +155,6 @@ func initOldStyleFlags() { //nolint:gochecknoinits
 	pflag.BoolVar(&FlagVVV, "vvv", false, "more verbose info")
 	pflag.StringVar(&FlagCmdLogPath, "cmd-log", "/dev/null", "command line log path")
 	pflag.StringVar(&FlagDumpSamples, "dump-samples", "", "dump all inputs samples")
-
-	pflag.BoolVar(&io.DisableDatawayList, "disable-dataway-list", false, "disable list available dataway")
-	pflag.BoolVar(&io.DisableLogFilter, "disable-logfilter", false, "disable logfilter")
-	pflag.BoolVar(&io.DisableHeartbeat, "disable-heartbeat", false, "disable heartbeat")
 
 	pflag.BoolVar(&FlagUploadLog, "upload-log", false, "upload log")
 }
@@ -371,7 +371,8 @@ func runOldStyleCmds() {
 	if FlagPipeline != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		if err := pipelineDebugger(FlagPipeline, FlagText); err != nil {
+		// TODO
+		if err := pipelineDebugger(datakit.Logging, FlagPipeline, FlagText); err != nil {
 			errorf("[E] %s\n", err)
 			os.Exit(-1)
 		}
@@ -548,8 +549,14 @@ func runOldStyleCmds() {
 
 	if FlagUploadLog {
 		tryLoadMainCfg()
+
+		if config.Cfg.DataWayCfg == nil {
+			errorf("[E] upload log failed: dataway should be set\n")
+			os.Exit(-1)
+		}
+
 		infof("Upload log start...\n")
-		if err := uploadLog(config.Cfg.DataWay.URLs); err != nil {
+		if err := uploadLog(config.Cfg.DataWayCfg.URLs); err != nil {
 			errorf("[E] upload log failed : %s\n", err.Error())
 			os.Exit(-1)
 		}

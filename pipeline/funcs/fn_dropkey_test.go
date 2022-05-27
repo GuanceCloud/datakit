@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"testing"
+	"time"
 )
 
 func TestDropKey(t *testing.T) {
@@ -38,12 +39,14 @@ drop_key(client_ip)
 				}
 				return
 			}
-
-			if err := runner.Run(tc.in); err != nil {
-				t.Error(err)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
+			if err != nil || ret.Error != nil {
+				t.Error(err, " ", ret.Error)
 				return
 			}
-			ret := runner.Result()
 			t.Log(ret)
 			if v, ok := ret.Fields[tc.key]; ok {
 				t.Errorf("[%d] failed: key `%s` value `%v`", idx, tc.key, v)

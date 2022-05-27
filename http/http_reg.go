@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -43,6 +48,10 @@ func RegGinHandler(method, path string, handler gin.HandlerFunc) {
 			Handler: handler,
 		}
 	}
+}
+
+func CleanHTTPHandler() {
+	httpRouteList = make(map[string]*httpRouteInfo)
 }
 
 func applyHTTPRoute(router *gin.Engine) {

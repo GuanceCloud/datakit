@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package prom scrape prometheus exporter metrics.
 package prom
 
@@ -10,8 +15,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
+	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -35,33 +41,34 @@ type Input struct {
 	Source   string `toml:"source"`
 	Interval string `toml:"interval"`
 
-	URL               string      `toml:"url,omitempty"` // Deprecated
-	URLs              []string    `toml:"urls"`
-	IgnoreReqErr      bool        `toml:"ignore_req_err"`
-	MetricTypes       []string    `toml:"metric_types"`
-	MetricNameFilter  []string    `toml:"metric_name_filter"`
-	MeasurementPrefix string      `toml:"measurement_prefix"`
-	MeasurementName   string      `toml:"measurement_name"`
-	Measurements      []prom.Rule `json:"measurements"`
-	Output            string      `toml:"output"`
-	MaxFileSize       int64       `toml:"max_file_size"`
+	URL               string       `toml:"url,omitempty"` // Deprecated
+	URLs              []string     `toml:"urls"`
+	IgnoreReqErr      bool         `toml:"ignore_req_err"`
+	MetricTypes       []string     `toml:"metric_types"`
+	MetricNameFilter  []string     `toml:"metric_name_filter"`
+	MeasurementPrefix string       `toml:"measurement_prefix"`
+	MeasurementName   string       `toml:"measurement_name"`
+	Measurements      []iprom.Rule `json:"measurements"`
+	Output            string       `toml:"output"`
+	MaxFileSize       int64        `toml:"max_file_size"`
 
 	TLSOpen    bool   `toml:"tls_open"`
 	CacertFile string `toml:"tls_ca"`
 	CertFile   string `toml:"tls_cert"`
 	KeyFile    string `toml:"tls_key"`
 
-	Tags       map[string]string `toml:"tags"`
 	TagsIgnore []string          `toml:"tags_ignore"`
-	Auth       map[string]string `toml:"auth"`
+	TagsRename *iprom.RenameTags `toml:"tags_rename"`
+	Tags       map[string]string `toml:"tags"`
 
-	pm *prom.Prom
+	Auth map[string]string `toml:"auth"`
+
+	pm *iprom.Prom
 
 	chPause chan bool
 	pause   bool
 
-	urls   []*url.URL
-	stopCh chan interface{}
+	urls []*url.URL
 
 	semStop *cliutils.Sem // start stop signal
 }
@@ -88,6 +95,10 @@ func (i *Input) SetTags(m map[string]string) {
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		i.Tags["election_namespace"] = namespace
+	}
+
 	if i.setup() {
 		return
 	}
@@ -95,11 +106,23 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.pm.Option().GetIntervalDuration())
 	defer tick.Stop()
 
-	source := i.pm.Option().GetSource()
-
 	l.Info("prom start")
 
 	for {
+		if i.pause {
+			l.Debug("prom paused")
+		} else {
+			start := time.Now()
+			pts := i.doCollect()
+			if pts != nil {
+				if err := io.Feed(i.Source, datakit.Metric, pts,
+					&io.Option{CollectCost: time.Since(start)}); err != nil {
+					l.Errorf("Feed: %s", err)
+					io.FeedLastError(i.Source, err.Error())
+				}
+			}
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("prom exit")
@@ -109,61 +132,48 @@ func (i *Input) Run() {
 			l.Info("prom return")
 			return
 
-		case <-i.stopCh:
-			l.Info("prom stop")
-			return
-
 		case <-tick.C:
-			if i.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
-			l.Debugf("collect URLs %v", i.URLs)
-
-			// If Output is configured, data is written to local file specified by Output.
-			// Data will no more be written to datakit io.
-			if i.Output != "" {
-				err := i.WriteMetricText2File()
-				if err != nil {
-					l.Debugf(err.Error())
-				}
-				continue
-			}
-
-			start := time.Now()
-			pts, err := i.Collect()
-			if err != nil {
-				l.Errorf("Collect: %s", err)
-				io.FeedLastError(source, err.Error())
-
-				// Try testing the connect
-				for _, u := range i.urls {
-					if err := net.RawConnect(u.Hostname(), u.Port(), time.Second*3); err != nil {
-						l.Errorf("failed to connect to %s:%s, %s", u.Hostname(), u.Port(), err)
-					}
-				}
-
-				continue
-			}
-
-			if len(pts) == 0 {
-				l.Debug("len(points) is 0")
-				continue
-			}
-
-			if err := io.Feed(source,
-				datakit.Metric,
-				pts,
-				&io.Option{CollectCost: time.Since(start)}); err != nil {
-				l.Errorf("Feed: %s", err)
-
-				io.FeedLastError(source, err.Error())
-			}
 
 		case i.pause = <-i.chPause:
 			// nil
 		}
 	}
+}
+
+func (i *Input) doCollect() []*io.Point {
+	l.Debugf("collect URLs %v", i.URLs)
+
+	// If Output is configured, data is written to local file specified by Output.
+	// Data will no more be written to datakit io.
+	if i.Output != "" {
+		err := i.WriteMetricText2File()
+		if err != nil {
+			l.Errorf("WriteMetricText2File: %s", err.Error())
+		}
+		return nil
+	}
+
+	pts, err := i.Collect()
+	if err != nil {
+		l.Errorf("Collect: %s", err)
+		io.FeedLastError(i.Source, err.Error())
+
+		// Try testing the connect
+		for _, u := range i.urls {
+			if err := net.RawConnect(u.Hostname(), u.Port(), time.Second*3); err != nil {
+				l.Errorf("failed to connect to %s:%s, %s", u.Hostname(), u.Port(), err)
+			}
+		}
+
+		return nil
+	}
+
+	if len(pts) == 0 {
+		l.Warnf("no data")
+		return nil
+	}
+
+	return pts
 }
 
 func (i *Input) Terminate() {
@@ -205,7 +215,7 @@ func (i *Input) Init() error {
 	}
 
 	// toml 不支持匿名字段的 marshal，JSON 支持
-	opt := &prom.Option{
+	opt := &iprom.Option{
 		Source:            i.Source,
 		Interval:          i.Interval,
 		URL:               i.URL,
@@ -222,14 +232,15 @@ func (i *Input) Init() error {
 		KeyFile:           i.KeyFile,
 		Tags:              i.Tags,
 		TagsIgnore:        i.TagsIgnore,
+		RenameTags:        i.TagsRename,
 		Output:            i.Output,
 		MaxFileSize:       i.MaxFileSize,
 		Auth:              i.Auth,
 	}
 
-	pm, err := prom.NewProm(opt)
+	pm, err := iprom.NewProm(opt)
 	if err != nil {
-		l.Error(err)
+		l.Warnf("prom.NewProm: %s, ignored", err)
 		return err
 	}
 	i.pm = pm
@@ -324,9 +335,9 @@ var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func NewProm() *Input {
 	return &Input{
-		stopCh:      make(chan interface{}, 1),
 		chPause:     make(chan bool, maxPauseCh),
 		MaxFileSize: defaultMaxFileSize,
+		Source:      "prom",
 
 		semStop: cliutils.NewSem(),
 	}

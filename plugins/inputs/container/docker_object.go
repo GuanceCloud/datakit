@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package container
 
 import (
@@ -15,7 +20,7 @@ func gatherDockerContainerObject(client dockerClientX, k8sClient k8sClientX, con
 	m := &containerObject{}
 	m.tags = getContainerInfo(container, k8sClient)
 	m.tags["name"] = container.ID
-	m.tags["namespace"] = "moby"
+	m.tags["linux_namespace"] = "moby"
 	m.tags["status"] = container.Status
 
 	if hostname, err := getContainerHostname(client, container.ID); err == nil {
@@ -104,10 +109,10 @@ func (c *containerObject) Info() *inputs.MeasurementInfo {
 		Desc: "容器对象数据，如果容器处于非 running 状态，则`cpu_usage`等指标将不存在",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"container_name":   inputs.NewTagInfo(`容器名称`),
+			"container_name":   inputs.NewTagInfo(`容器名称（containerd 容器会在 labels 中取 'io.kubernetes.container.name'，如果值为空则默认是 unknown`),
 			"container_id":     inputs.NewTagInfo(`容器 ID`),
 			"name":             inputs.NewTagInfo(`对象数据的指定 ID`),
-			"namespace":        inputs.NewTagInfo(`该容器所在的命名空间`),
+			"linux_namespace":  inputs.NewTagInfo(`该容器所在的 [linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html)`),
 			"status":           inputs.NewTagInfo("容器状态，例如 `Up 5 hours`（containerd 缺少此字段）"),
 			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
 			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
@@ -118,7 +123,7 @@ func (c *containerObject) Info() *inputs.MeasurementInfo {
 			"container_type":   inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker/containerd`),
 			"state":            inputs.NewTagInfo(`运行状态，running/exited/removed（containerd 缺少此字段）`),
 			"pod_name":         inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"pod_namespace":    inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
+			"namespace":        inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
 			"deployment":       inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）（containerd 缺少此字段）`),
 		},
 		Fields: map[string]interface{}{
@@ -126,8 +131,8 @@ func (c *containerObject) Info() *inputs.MeasurementInfo {
 			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: `该容器创建时长，单位秒`},
 			"from_kubernetes":    &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "该容器是否由 Kubernetes 创建（deprecated）"},
 			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 占主机总量的使用率"},
-			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "容器 CPU 增量（containerd 缺少此字段）"},
-			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "系统 CPU 增量（containerd 缺少此字段）"},
+			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationNS, Desc: "容器 CPU 增量（containerd 缺少此字段）"},
+			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationNS, Desc: "系统 CPU 增量，仅支持 Linux（containerd 缺少此字段）"},
 			"cpu_numbers":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "CPU 核心数（containerd 缺少此字段）"},
 			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "容器对象详情"},
 			"mem_limit":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存可用总量，如果未对容器做内存限制，则为主机内存容量"},

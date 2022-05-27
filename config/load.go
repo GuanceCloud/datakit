@@ -1,4 +1,7 @@
-// Loading datakit configures
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
 
 package config
 
@@ -12,10 +15,11 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -27,6 +31,42 @@ var (
 		`\`, `\\`,
 	)
 )
+
+func isValidDataway(c *Config) bool {
+	if c.DataWayCfg == nil {
+		l.Debug("config.Cfg.DataWayCfg == nil")
+		return false
+	}
+
+	if len(c.DataWayCfg.URLs) == 0 {
+		l.Debug("len(config.Cfg.DataWayCfg.URLs) == 0")
+		return false
+	}
+
+	return true
+}
+
+func isValidSink(c *Config) bool {
+	if c.Sinks == nil {
+		l.Debug("config.Cfg.Sinks == nil")
+		return false
+	}
+
+	if len(c.Sinks.Sink) == 0 {
+		l.Debug("len(config.Cfg.Sinks.Sink) == 0")
+		return false
+	}
+
+	empty := true
+	for _, v := range c.Sinks.Sink {
+		if _, ok := v["target"]; ok {
+			empty = false
+			break
+		}
+	}
+
+	return !empty
+}
 
 func LoadCfg(c *Config, mcp string) error {
 	datakit.InitDirs()
@@ -63,6 +103,16 @@ func LoadCfg(c *Config, mcp string) error {
 	if err := c.ApplyMainConfig(); err != nil {
 		return err
 	}
+
+	// check dataway and sink config
+	checkutil.CheckConditionExit(func() bool {
+		if !isValidDataway(c) && !isValidSink(c) {
+			l.Errorf("dataway and sink not set")
+			return false
+		}
+
+		return true
+	})
 
 	l.Infof("loaded main cfg: \n%s", c.String())
 
@@ -137,13 +187,7 @@ func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
 				if vv.Pipeline == "" {
 					continue
 				}
-				pl, err := pipeline.NewPipeline(vv.Pipeline)
-				if err != nil {
-					return vv, err
-				}
-				if pl == nil {
-					return vv, fmt.Errorf("pipeline_file_error")
-				}
+				// 跳过检查
 			}
 		}
 	}
@@ -151,7 +195,7 @@ func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
 	return nil, nil
 }
 
-func GetPipelinePath(pipeLineName string) (string, error) {
+func GetPipelinePath(category, pipeLineName string) (string, error) {
 	if pipeLineName == "" {
 		// you shouldn't be here, check before you call this function.
 		return "", fmt.Errorf("pipeline_empty")
@@ -174,11 +218,26 @@ func GetPipelinePath(pipeLineName string) (string, error) {
 	}
 
 	{
-		plPath := filepath.Join(datakit.GitReposRepoFullPath, pipeLineName)
-		if _, err := os.Stat(plPath); err != nil {
-			l.Errorf("os.Stat failed: %v", err)
-		} else {
-			return plPath, nil // return once found the pipeline file
+		files := script.SearchPlFilePathFromPlStructPath(datakit.GitReposRepoFullPath)
+		if f, ok := files[category]; ok {
+			if plPath, ok := f[pipeLineName]; ok {
+				if _, err := os.Stat(plPath); err != nil {
+					l.Errorf("os.Stat failed: %v", err)
+				} else {
+					return plPath, nil // return once found the pipeline file
+				}
+			}
+		}
+	}
+
+	files := script.SearchPlFilePathFromPlStructPath(datakit.PipelineDir)
+	if f, ok := files[category]; ok {
+		if plPath, ok := f[pipeLineName]; ok {
+			if _, err := os.Stat(plPath); err != nil {
+				return "", err
+			} else {
+				return plPath, nil // return once found the pipeline file
+			}
 		}
 	}
 
@@ -214,11 +273,101 @@ func InitGitreposDir() {
 }
 
 func GetNamespacePipelineFiles(namespace string) ([]string, error) {
-	switch namespace {
-	case datakit.StrPipelineRemote:
-		return path.GetSuffixFilesFromDirDeepOne(datakit.PipelineRemoteDir, datakit.StrPipelineFileSuffix)
-	case datakit.StrGitRepos:
+	if namespace == datakit.StrGitRepos {
 		return path.GetSuffixFilesFromDirDeepOne(datakit.GitReposRepoFullPath, datakit.StrPipelineFileSuffix)
 	}
 	return nil, fmt.Errorf("invalid namespace")
 }
+
+// type CheckedInputCfgResult struct {
+// 	Failed  int
+// 	Unknown int
+// 	Passed  int
+// 	Ignored int
+
+// 	AvailableInputs []inputs.Input
+// }
+
+// func (r *CheckedInputCfgResult) Runnable() bool {
+// 	return r.Failed == 0
+// }
+
+// func ReloadCheckInputCfg() ([]inputs.Input, error) {
+// 	var availableInputs []inputs.Input
+// 	confRootPath := GetConfRootPaths()
+// 	confSuffix := ".conf"
+
+// 	for _, v := range confRootPath {
+// 		iputs, err := CheckInputCfgEx(v, confSuffix)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		availableInputs = append(availableInputs, iputs...)
+// 	}
+
+// 	return availableInputs, nil
+// }
+
+// func CheckInputCfgEx(rootPath, suffix string) ([]inputs.Input, error) {
+// 	var availableInputs []inputs.Input
+// 	fps := SearchDir(rootPath, suffix)
+
+// 	for _, fp := range fps {
+// 		tpl, err := ParseCfgFile(fp)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("%w: %s", err, fp)
+// 		} else {
+// 			res := getCheckInputCfgResult(tpl)
+// 			if res == nil {
+// 				continue
+// 			}
+// 			if !res.Runnable() {
+// 				return nil, fmt.Errorf("input_cfg_invalid: %s", fp)
+// 			}
+// 			availableInputs = append(availableInputs, res.AvailableInputs...)
+// 		}
+// 	}
+
+// 	return availableInputs, nil
+// }
+
+// func getCheckInputCfgResult(tpl *ast.Table) *CheckedInputCfgResult {
+// 	if len(tpl.Fields) == 0 {
+// 		return nil // no conf available
+// 	}
+
+// 	res := CheckedInputCfgResult{}
+
+// 	for field, node := range tpl.Fields {
+// 		switch field {
+// 		default:
+// 			// not input
+// 			res.Ignored++
+// 			return &res
+
+// 		case "inputs": //nolint:goconst
+// 			stbl, ok := node.(*ast.Table)
+// 			if !ok {
+// 				// bad toml node
+// 				res.Failed++
+// 			} else {
+// 				for inputName, v := range stbl.Fields {
+// 					if c, ok := inputs.Inputs[inputName]; !ok {
+// 						// unknown input
+// 						res.Unknown++
+// 					} else {
+// 						iputs, err := TryUnmarshal(v, inputName, c)
+// 						if err != nil {
+// 							res.Failed++
+// 							continue
+// 						}
+// 						res.Passed++
+// 						res.AvailableInputs = append(res.AvailableInputs, iputs...)
+// 					} // if c, ok := inputs.Inputs[inputName];
+// 				} // for inputName, v := range stbl.Fields
+// 			} // stbl, ok := node.(*ast.Table)
+// 		} // switch field
+// 	} // for field, node := range tpl.Fields
+
+// 	return &res
+// }

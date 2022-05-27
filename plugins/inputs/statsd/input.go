@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package statsd serve a UDP/TCP(not used) server to handle statsd metrics.
 package statsd
 
@@ -361,7 +366,7 @@ func (ipt *input) Run() {
 		}
 
 		if err := ipt.setup(); err != nil {
-			io.FeedLastError(inputName, err.Error())
+			io.ReportLastError(inputName, err.Error())
 			time.Sleep(time.Second * 5)
 			continue
 		}

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package cloudprober scrape Google cloudprober metrics.
 package cloudprober
 
@@ -28,7 +33,6 @@ func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("cloudprober start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
-	iod.FeedEventLog(&iod.Reporter{Message: "cloudprober start  ok, ready for collecting metrics.", Logtype: "event"})
 	client, err := n.createHTTPClient()
 	if err != nil {
 		l.Errorf("[error] cloudprober init client err:%s", err.Error())

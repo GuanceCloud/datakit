@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package postgresql collects PostgreSQL metrics.
 package postgresql
 
@@ -179,6 +184,15 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (*Input) PipelineConfig() map[string]string {
 	return map[string]string{
 		"postgresql": pipelineCfg,
+	}
+}
+
+//nolint:lll
+func (ipt *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		"postgresql": {
+			"PostgreSQL log": `2021-05-31 15:23:45.110 CST [74305] test [pgAdmin 4 - DB:postgres] postgres [127.0.0.1] 60b48f01.12241 LOG: statement: 		SELECT psd.*, 2^31 - age(datfrozenxid) as wraparound, pg_database_size(psd.datname) as pg_database_size 		FROM pg_stat_database psd 		JOIN pg_database pd ON psd.datname = pd.datname 		WHERE psd.datname not ilike 'template%' AND psd.datname not ilike 'rdsadmin' 		AND psd.datname not ilike 'azure_maintenance' AND psd.datname not ilike 'postgres'`,
+		},
 	}
 }
 
@@ -408,7 +422,6 @@ const (
 
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
-	io.FeedEventLog(&io.Reporter{Message: "postgresql start ok, ready for collecting metrics.", Logtype: "event"})
 
 	duration, err := time.ParseDuration(ipt.Interval)
 	if err != nil {
@@ -420,6 +433,10 @@ func (ipt *Input) Run() {
 	ipt.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
 	tick := time.NewTicker(ipt.duration)
+
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		ipt.Tags["election_namespace"] = namespace
+	}
 
 	for {
 		select {

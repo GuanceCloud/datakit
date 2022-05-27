@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package inputs manage all input's interfaces.
 package inputs
 
@@ -93,6 +98,7 @@ type InputV2 interface {
 	Input
 	SampleMeasurement() []Measurement
 	AvailableArchs() []string
+	Terminate()
 }
 
 type ElectionInput interface {
@@ -104,12 +110,12 @@ type ReadEnv interface {
 	ReadEnv(map[string]string)
 }
 
-type Stoppable interface {
-	Terminate()
-}
-
 type InputOnceRunnable interface {
 	Collect() (map[string][]*io.Point, error)
+}
+
+type LogExampler interface {
+	LogExamples() map[string]map[string]string
 }
 
 type Creator func() Input
@@ -176,7 +182,7 @@ func getEnvs() map[string]string {
 	return envs
 }
 
-func RunInputs(isReload bool) error {
+func RunInputs() error {
 	mtx.RLock()
 	defer mtx.RUnlock()
 	g := datakit.G("inputs")
@@ -188,12 +194,6 @@ func RunInputs(isReload bool) error {
 			if ii.input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
 				continue
-			}
-
-			if isReload {
-				if _, ok := ii.input.(Stoppable); !ok {
-					continue
-				}
 			}
 
 			if inp, ok := ii.input.(HTTPInput); ok {
@@ -254,7 +254,7 @@ func StopInputs() error {
 				continue
 			}
 
-			if inp, ok := ii.input.(Stoppable); ok {
+			if inp, ok := ii.input.(InputV2); ok {
 				inp.Terminate()
 			}
 		}
@@ -278,20 +278,24 @@ func protectRunningInput(name string, ii *inputInfo) {
 			crashTime = append(crashTime, fmt.Sprintf("%v", time.Now()))
 			addPanic(name)
 
-			io.FeedEventLog(&io.Reporter{Status: "warning", Message: string(trace), Category: "input"})
+			io.FeedEventLog(&io.DKEvent{
+				Status:   "error",
+				Message:  string(trace),
+				Category: "input",
+			})
 
 			if len(crashTime) >= MaxCrash {
 				l.Warnf("input %s crash %d times(at %+#v), exit now.",
 					name, len(crashTime), strings.Join(crashTime, "\n"))
 
-				message := fmt.Sprintf("input '%s' has exceeded the max crash times %v and it will be stopped.", name, MaxCrash)
-				io.FeedEventLog(&io.Reporter{Message: message, Status: "error", Category: "input"})
+				io.FeedEventLog(&io.DKEvent{
+					Message:  fmt.Sprintf("input '%s' has exceeded the max crash times %v and it will be stopped.", name, MaxCrash),
+					Status:   "error",
+					Category: "input",
+				})
 
 				return
 			}
-		} else {
-			message := fmt.Sprintf("input '%s' starts to run, totally %v instances.", name, InputEnabled(name))
-			io.FeedEventLog(&io.Reporter{Message: message, Category: "input"})
 		}
 
 		select {

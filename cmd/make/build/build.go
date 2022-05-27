@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package build implement datakit build & release functions.
 package build
 
@@ -157,6 +162,8 @@ func parseArchs(s string) (archs []string) {
 
 var curArchs []string
 
+var curEBpfArchs []string
+
 func Compile() error {
 	start := time.Now()
 
@@ -171,10 +178,7 @@ func Compile() error {
 		}
 
 		goos, goarch := parts[0], parts[1]
-		if goos == datakit.OSDarwin && runtime.GOOS != datakit.OSDarwin {
-			l.Warnf("skip build datakit under %s", arch)
-			continue
-		}
+
 		dir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, AppName, goos, goarch)
 
 		err := os.MkdirAll(dir, os.ModePerm)
@@ -217,8 +221,9 @@ func compileArch(bin, goos, goarch, dir string) error {
 	if goos == datakit.OSWindows {
 		output += winBinSuffix
 	}
+
 	cgoEnabled := "0"
-	if goos == datakit.OSDarwin {
+	if goos == datakit.OSDarwin && runtime.GOOS == datakit.OSDarwin { // darwin version need CGO to build inputs CPU
 		cgoEnabled = "1"
 	}
 

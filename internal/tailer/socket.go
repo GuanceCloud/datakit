@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package tailer
 
 import (
@@ -10,9 +15,9 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
 /*
@@ -59,7 +64,7 @@ func NewWithOpt(opt *Option, ignorePatterns ...[]string) (sl *socketLogger, err 
 		opt:  opt,
 		stop: make(chan struct{}, 1),
 	}
-	if err := sl.opt.init(); err != nil {
+	if err := sl.opt.Init(); err != nil {
 		return nil, err
 	}
 	sl.tags = buildTags(opt.GlobalTags)
@@ -101,31 +106,37 @@ func mkServer(socket string) (s *server, err error) {
 	s = &server{addr: socket}
 	socketURL, err := url.Parse(socket)
 	if err != nil {
-		return s, fmt.Errorf("error socket config err=%w", err)
+		return nil, fmt.Errorf("error socket config err=%w", err)
 	}
+
 	network := socketURL.Scheme
 	listenAddr := socketURL.Host
-	l.Infof("check logging socket Scheme=%s listenerAddr=%s", network, listenAddr)
+
+	l.Debugf("check logging socket Scheme=%s listenerAddr=%s", network, listenAddr)
+
 	switch network {
-	case "", "tcp", "tcp4", "tcp6": // 建议使用tcp
+	case "", "tcp", "tcp4", "tcp6": // default use TCP
 		listener, err := net.Listen(network, listenAddr)
 		if err != nil {
-			return s, fmt.Errorf("socket listen port error:%w", err)
+			return nil, fmt.Errorf("socket listen port error:%w", err)
 		}
 		s.lis = listener
+
 	case "udp", "udp4", "udp6":
 		udpAddr, err := net.ResolveUDPAddr(network, listenAddr)
 		if err != nil {
-			return s, fmt.Errorf("resolve UDP addr error:%w", err)
+			return nil, fmt.Errorf("resolve UDP addr error:%w", err)
 		}
 		conn, err := net.ListenUDP(network, udpAddr)
 		if err != nil {
-			return s, fmt.Errorf(" net.ListenUDP error:%w", err)
+			return nil, fmt.Errorf(" net.ListenUDP error:%w", err)
 		}
 		s.conn = conn
+
 	default:
-		err = fmt.Errorf("socket config like this: socket=[tcp://127.0.0.1:9540] , and please check your logging.conf")
+		return nil, fmt.Errorf("socket config like this: socket=[tcp://127.0.0.1:9540] , and please check your logging.conf")
 	}
+
 	return s, err
 }
 
@@ -138,15 +149,11 @@ func (sl *socketLogger) toReceive() {
 		if s.lis != nil {
 			sl.tcpListeners[s.addr] = s.lis
 			l.Infof("TCP port:%s start to accept", s.addr)
-			dkio.FeedEventLog(&dkio.Reporter{Message: fmt.Sprintf("[DataKit-logging] First Message. sockets log port: %s is open, source: %s",
-				s.addr, sl.opt.Source), Logtype: "event"})
 			go sl.accept(s.lis)
 		}
 		if s.conn != nil {
 			sl.udpConns[s.addr] = s.conn
 			l.Infof("UDP port:%s start to accept", s.addr)
-			dkio.FeedEventLog(&dkio.Reporter{Message: fmt.Sprintf("[DataKit-logging] First Message. sockets log port: %s is open, source: %s",
-				s.addr, sl.opt.Source), Logtype: "event"})
 			go sl.doSocket(s.conn)
 		}
 	}
@@ -202,28 +209,6 @@ func (sl *socketLogger) spiltBuffer(fromCache string, date string, full bool) (p
 	return pipdata, cacheDate
 }
 
-type SocketTaskData struct {
-	Log    string
-	Source string
-	Tag    map[string]string
-}
-
-func (std *SocketTaskData) GetContent() string {
-	return std.Log
-}
-
-func (std *SocketTaskData) Handler(result *pipeline.Result) error {
-	// result.SetSource(std.source)
-	if std.Tag != nil && len(std.Tag) != 0 {
-		for k, v := range std.Tag {
-			if _, err := result.GetTag(k); err != nil {
-				result.SetTag(k, v)
-			}
-		}
-	}
-	return nil
-}
-
 func (sl *socketLogger) sendToPipeline(pending []string) {
 	taskCnt := []string{}
 	for _, data := range pending {
@@ -231,22 +216,36 @@ func (sl *socketLogger) sendToPipeline(pending []string) {
 			taskCnt = append(taskCnt, data)
 		}
 	}
-	if len(taskCnt) != 0 {
-		task := &worker.TaskTemplate{
-			TaskName:              "socklogging/" + sl.opt.InputName,
-			ContentDataType:       worker.ContentString,
-			Tags:                  sl.tags,
-			ScriptName:            sl.opt.Pipeline,
-			Source:                sl.opt.Source,
-			Content:               taskCnt,
-			Category:              datakit.Logging,
-			IgnoreStatus:          sl.opt.IgnoreStatus,
-			DisableAddStatusField: sl.opt.DisableAddStatusField,
-			TS:                    time.Now(),
-			MaxMessageLen:         maxFieldsLength,
+
+	// -1ns
+	timeNow := time.Now().Add(-time.Duration(len(pending)))
+	res := []*iod.Point{}
+	for i, cnt := range taskCnt {
+		pt, err := iod.MakePoint(sl.opt.Source, sl.tags,
+			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+			timeNow.Add(time.Duration(i)),
+		)
+		if err != nil {
+			l.Error(err)
+			continue
 		}
-		// 阻塞型channel
-		_ = worker.FeedPipelineTaskBlock(task)
+		res = append(res, pt)
+	}
+	var ioOpt *iod.Option
+	if sl.opt.Pipeline != "" {
+		ioOpt = &iod.Option{
+			PlScript: map[string]string{sl.opt.Source: sl.opt.Pipeline},
+			PlOption: &script.Option{
+				MaxFieldValLen:        maxFieldsLength,
+				DisableAddStatusField: sl.opt.DisableAddStatusField,
+				IgnoreStatus:          sl.ignorePatterns,
+			},
+		}
+	}
+	if len(res) > 0 {
+		if err := iod.Feed("socklogging/"+sl.opt.InputName, datakit.Logging, res, ioOpt); err != nil {
+			l.Error(err)
+		}
 	}
 }
 
