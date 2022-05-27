@@ -117,7 +117,7 @@ questions:
 
 
 #Kube State Metrics
-- variable: kubeStateMetrics.enabled
+- variable: kubeStateMetrics
   default: true
   description: "Create a kube-state-metrics deployment"
   type: boolean
@@ -125,7 +125,7 @@ questions:
   group: "Kube-State-Metrics"
 
 #Kube Metrics Server
-- variable: MetricsServerEnabled.enabled
+- variable: MetricsServerEnabled
   default: true
   description: "Create a metrics-server deployment"
   type: boolean
