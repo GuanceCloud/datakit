@@ -167,15 +167,19 @@ func (ipt *Input) Run() {
 			var pending []*DataStruct
 			for _, v := range batch.Events {
 				// debug print
-				dbg, ok := v.(map[string]interface{})
-				if ok {
-					l.Debugf("event = %#v", dbg)
+				eventMap := getEventPrint(v)
+				if eventMap != nil {
+					l.Debugf("event = %#v", eventMap)
 				}
 
+				hostName := getEventPathStringValue(v, "host.name")
+				logFilePath := getEventPathStringValue(v, "log.file.path")
+				message := getEventPathStringValue(v, "message")
+
 				dataPiece := &DataStruct{
-					HostName:    eventGet(v, "host.name").(string),
-					LogFilePath: eventGet(v, "log.file.path").(string),
-					Message:     eventGet(v, "message").(string),
+					HostName:    hostName,
+					LogFilePath: logFilePath,
+					Message:     message,
 				}
 				fields, ok := eventGet(v, "fields").(map[string]interface{})
 				if ok {
@@ -343,6 +347,22 @@ func eventGet(event interface{}, path string) interface{} {
 		}
 	}
 	return doc[elems[len(elems)-1]]
+}
+
+func getEventPrint(event interface{}) map[string]interface{} {
+	eventMap, ok := event.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	return eventMap
+}
+
+func getEventPathStringValue(event interface{}, path string) string {
+	val, ok := eventGet(event, path).(string)
+	if !ok {
+		l.Warnf("cannot find %s, event = %#v", path, event)
+	}
+	return val
 }
 
 //------------------------------------------------------------------------------
