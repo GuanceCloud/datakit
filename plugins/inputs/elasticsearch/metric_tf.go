@@ -94,7 +94,8 @@ var clusterStatsFields = map[string]interface{}{
 
 // clusterHealth.
 var clusterHealthTags = map[string]interface{}{
-	"name": inputs.NewTagInfo("Name of the cluster."),
+	"name":           inputs.NewTagInfo("Name of the cluster."),
+	"cluster_status": inputs.NewTagInfo("The cluster status: red, yellow, green."),
 }
 
 //nolint:lll
@@ -105,8 +106,8 @@ var clusterHealthFields = map[string]interface{}{
 	"number_of_data_nodes":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of data nodes in the cluster."},
 	"number_of_pending_tasks":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of pending tasks."},
 	"relocating_shards":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are relocating from one node to another."},
-	"status":                        &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The cluster status: red, yellow, green."},
 	"unassigned_shards":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are unassigned to a node."},
+	"status_code":                   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The health as a number: red = 3, yellow = 2, green = 1."},
 	"indices_lifecycle_error_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of indices that are managed by ILM and are in an error state."},
 }
 
