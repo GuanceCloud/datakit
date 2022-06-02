@@ -238,6 +238,7 @@ func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 			map[string]interface{}{pipeline.PipelineMessageField: v.Message},
 			&io.PointOption{
 				Time:             time.Now(),
+				Category:         datakit.Logging,
 				MaxFieldValueLen: ipt.MaximumLength,
 			},
 		)
