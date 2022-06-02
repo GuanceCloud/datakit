@@ -166,25 +166,7 @@ func (ipt *Input) Run() {
 			// message
 			var pending []*DataStruct
 			for _, v := range batch.Events {
-				// debug print
-				eventMap := getEventPrint(v)
-				if eventMap != nil {
-					l.Debugf("event = %#v", eventMap)
-				}
-
-				hostName := getEventPathStringValue(v, "host.name")
-				logFilePath := getEventPathStringValue(v, "log.file.path")
-				message := getEventPathStringValue(v, "message")
-
-				dataPiece := &DataStruct{
-					HostName:    hostName,
-					LogFilePath: logFilePath,
-					Message:     message,
-				}
-				fields, ok := eventGet(v, "fields").(map[string]interface{})
-				if ok {
-					dataPiece.Fields = fields
-				}
+				dataPiece := getDataPieceFromEvent(v)
 				pending = append(pending, dataPiece)
 			}
 			ipt.sendToPipeline(pending)
@@ -363,6 +345,29 @@ func getEventPathStringValue(event interface{}, path string) string {
 		l.Warnf("cannot find %s, event = %#v", path, event)
 	}
 	return val
+}
+
+func getDataPieceFromEvent(event interface{}) *DataStruct {
+	// debug print
+	eventMap := getEventPrint(event)
+	if eventMap != nil {
+		l.Debugf("event = %#v", eventMap)
+	}
+
+	hostName := getEventPathStringValue(event, "host.name")
+	logFilePath := getEventPathStringValue(event, "log.file.path")
+	message := getEventPathStringValue(event, "message")
+
+	dataPiece := &DataStruct{
+		HostName:    hostName,
+		LogFilePath: logFilePath,
+		Message:     message,
+	}
+	fields, ok := eventGet(event, "fields").(map[string]interface{})
+	if ok {
+		dataPiece.Fields = fields
+	}
+	return dataPiece
 }
 
 //------------------------------------------------------------------------------
