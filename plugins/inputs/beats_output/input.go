@@ -196,9 +196,15 @@ func (ipt *Input) getNewTags(dataPiece *DataStruct) map[string]string {
 	for kk, vv := range ipt.Tags {
 		newTags[kk] = vv
 	}
-	newTags["host"] = dataPiece.HostName        // host.name
-	newTags["filepath"] = dataPiece.LogFilePath // log.file.path
-	newTags["service"] = ipt.Service
+	if len(dataPiece.HostName) > 0 {
+		newTags["host"] = dataPiece.HostName // host.name
+	}
+	if len(dataPiece.LogFilePath) > 0 {
+		newTags["filepath"] = dataPiece.LogFilePath // log.file.path
+	}
+	if len(ipt.Service) > 0 {
+		newTags["service"] = ipt.Service
+	}
 	for kk, vv := range dataPiece.Fields {
 		if str, ok := vv.(string); ok {
 			newTags[kk] = str
