@@ -24,10 +24,8 @@ var (
 	minInterval = time.Second * 300
 	maxInterval = time.Second * 30000
 	sample      = `
-# Gather indicators from established connections, using iproute2's ss command.
 [[inputs.socket]]
-  ## support tcp, udp, raw, unix, packet, dccp and sctp sockets
-  ## if socket_types is null, default on udp and tcp
+  ## support tcp, udp
   dest_url = ["tcp:47.110.144.10:443", "udp:1.1.1.1:5555"]
 
   ## @param interval - number - optional - default: 900, min 300
@@ -75,7 +73,7 @@ func (m *UDPMeasurement) LineProto() (*io.Point, error) {
 
 func (m *TCPMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "tcp_dial_testing",
+		Name: "tcp",
 		Tags: map[string]interface{}{
 			"dest_host": &inputs.TagInfo{Desc: "示例 wwww.baidu.com"},
 			"dest_port": &inputs.TagInfo{Desc: "示例 80"},

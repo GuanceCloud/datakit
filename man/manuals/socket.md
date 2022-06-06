@@ -10,11 +10,7 @@ socket采集器用于采集udp,tcp端口信息
 
 ## 前置条件
 
-操作系统需要有ss程序,不同版本的ss，采集的tcp字段也不同
-较新版本的ss采集字段如下:
-```tcp,host=ubuntu,local_addr=127.0.0.1,local_port=45132,proto=tcp,remote_addr=127.0.0.1,remote_port=63342 bytes_acked=904i,bytes_received=7700i,data_segs_in=2i,data_segs_out=2i,recv_q=0i,rto=204i,segs_in=15i,segs_out=16i,send_q=0i,state="ESTAB" 1653291648478275368 ```
-较老版本的ss程序采集字段如下:
-```tcp,host=ubuntu,local_addr=127.0.0.1,local_port=45132,proto=tcp,remote_addr=127.0.0.1,remote_port=63342 ,recv_q=0i,rto=204i,send_q=0i,state="ESTAB" 1653291648478275368```
+udp指标需要操作系统有nc程序
 
 ## 配置
 
@@ -28,7 +24,7 @@ socket采集器用于采集udp,tcp端口信息
 
 ## 指标集
 
-以下所有指标集，默认会追加 `proto`  `local_addr` `local_port`  `remote_addr`  `remote_port` 的全局 tag，也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+以下所有指标集，默认会追加 `proto`  `dest_host` `dest_port` 的全局 tag，也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ``` toml
  [inputs.{{.InputName}}.tags]
