@@ -104,7 +104,6 @@ func (kinfo *K8sNetInfo) Update() error {
 							pod.ServiceName = svc.Name
 							k8sPodNetPortMap[ip][port] = pod
 						}
-
 					}
 					k8sPodTmpNetMap[ip] = otherPods
 				}
@@ -147,7 +146,7 @@ func (kinfo *K8sNetInfo) AutoUpdate(ctx context.Context) {
 	}()
 }
 
-// QueryPodInfo returns (server(ture) or client, pod name, svc name, namespace, depolyment,port, err).
+// QueryPodInfo returns (server(ture) or client, pod name, svc name, namespace, deployment,port, err).
 func (kinfo *K8sNetInfo) QueryPodInfo(ip string, port uint32, protocol string) (bool,
 	string, string, string, string, uint32, error) {
 	kinfo.RLock()
