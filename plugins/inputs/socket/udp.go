@@ -1,0 +1,120 @@
+package socket
+
+import (
+	"bytes"
+	"fmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"os/exec"
+	"strings"
+	"syscall"
+	"time"
+)
+
+const successString string = "succeeded!"
+const ncUnknownError string = "unknown fail reason or nc run time out"
+
+func findNc() (string, error) {
+	ncPath, err := exec.LookPath("nc")
+	if err != nil {
+		return " ", err
+	} else {
+		return ncPath, nil
+	}
+}
+
+func (i *Input) CollectUdp(destHost string, destPort string) error {
+	ncPath, err := findNc()
+	if err != nil {
+		l.Warnf("input socket: %s", err)
+	}
+
+	// -vuz 1.1.1.1 5555
+	args := []string{"-vuz", destHost, destPort}
+	tags := map[string]string{
+		"dest_host": destHost,
+		"dest_port": destPort,
+		"proto":     "udp",
+	}
+
+	fields := map[string]interface{}{
+		"success": int64(-1),
+	}
+
+	cmd := exec.Command(ncPath, args...)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	err = RunTimeout(cmd, 200*time.Second)
+	if err != nil {
+		l.Warnf("error running nc or services port host or port error: nc %s", err)
+	}
+	res := out.String()
+	if len(res) == 0 {
+		res = ncUnknownError
+	}
+	if i.platform == datakit.OSWindows {
+		if !strings.Contains(res, destPort+"(?)") {
+			fields["success"] = 1
+		} else {
+			fields["fail_message"] = res
+		}
+	} else {
+		if strings.Contains(res, successString) {
+			fields["success"] = 1
+		} else {
+			fields["fail_message"] = res
+		}
+	}
+	ts := time.Now()
+	tmp := &UDPMeasurement{name: "udp", tags: tags, fields: fields, ts: ts}
+	i.collectCache = append(i.collectCache, tmp)
+
+	return nil
+}
+
+func RunTimeout(c *exec.Cmd, timeout time.Duration) error {
+	if err := c.Start(); err != nil {
+		return err
+	}
+	return WaitTimeout(c, timeout)
+}
+
+func WaitTimeout(c *exec.Cmd, timeout time.Duration) error {
+	var kill *time.Timer
+	term := time.AfterFunc(timeout, func() {
+		err := c.Process.Signal(syscall.SIGTERM)
+		if err != nil {
+			l.Errorf("E! [agent] Error terminating process: %s", err)
+			return
+		}
+
+		kill = time.AfterFunc(KillGrace, func() {
+			err := c.Process.Kill()
+			if err != nil {
+				l.Errorf("E! [agent] Error killing process: %s", err)
+				return
+			}
+		})
+	})
+
+	err := c.Wait()
+
+	// Shutdown all timers
+	if kill != nil {
+		kill.Stop()
+	}
+
+	// If the process exited without error treat it as success.  This allows a
+	// process to do a clean shutdown on signal.
+	if err == nil {
+		return nil
+	}
+
+	// If SIGTERM was sent then treat any process error as a timeout.
+	if !term.Stop() {
+		return fmt.Errorf("\"command timed out\"")
+	}
+
+	// Otherwise there was an error unrelated to termination.
+	return err
+}
