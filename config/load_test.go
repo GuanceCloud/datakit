@@ -7,6 +7,8 @@ package config
 
 import (
 	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func initGitRepos() {
@@ -72,7 +74,7 @@ func TestGetPipelinePath(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			ss, err := GetPipelinePath(tc.pipeline)
+			ss, err := GetPipelinePath(datakit.Logging, tc.pipeline)
 			if err != nil {
 				t.Logf("GetPipelinePath failed: %v", err)
 				return

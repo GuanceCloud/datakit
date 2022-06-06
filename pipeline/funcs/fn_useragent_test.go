@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
@@ -107,8 +108,13 @@ func TestUserAgent(t *testing.T) {
 				}
 				return
 			}
-
-			err = runner.Run(tc.in)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
+			if err != nil {
+				t.Fatal(err)
+			}
 			if err != nil {
 				if tc.fail {
 					t.Logf("[%d]expect error: %s", idx, err)
@@ -116,7 +122,6 @@ func TestUserAgent(t *testing.T) {
 					t.Error(err)
 				}
 			} else {
-				ret := runner.Result()
 				t.Log(ret)
 				fieldsToCompare := make(map[string]interface{})
 				for k := range tc.expected {

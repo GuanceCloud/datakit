@@ -110,7 +110,7 @@ func Test_makeSeries(t *testing.T) {
 			args: args{
 				tags:     map[string]string{"host": "testHostName"},
 				key:      "tot",
-				i:        map[string]int64{"cpu": 10, "mem": 20},
+				i:        map[string]int64{"cpu": 10},
 				dataTime: timeNow,
 			},
 			want: []*TimeSeries{
@@ -127,23 +127,7 @@ func Test_makeSeries(t *testing.T) {
 					},
 					Datapoint: Datapoint{
 						Timestamp: timeNow,
-						Value:     10,
-					},
-				},
-				{
-					Labels: []Label{
-						{
-							Name:  "host",
-							Value: "testHostName",
-						},
-						{
-							Name:  "__name__",
-							Value: "mem",
-						},
-					},
-					Datapoint: Datapoint{
-						Timestamp: timeNow,
-						Value:     20,
+						Value:     float64(10),
 					},
 				},
 			},
@@ -204,8 +188,11 @@ func Test_makeSeries(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := makeSeries(tt.args.tags, tt.args.key, tt.args.i, tt.args.dataTime); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("makeSeries() = %v, want %v", got, tt.want)
+			got := makeSeries(tt.args.tags, tt.args.key, tt.args.i, tt.args.dataTime)
+			for i := range got {
+				if !reflect.DeepEqual(got[i], tt.want[i]) {
+					t.Errorf("makeSeries() = %v, want %v", got[i], tt.want[i])
+				}
 			}
 		})
 	}

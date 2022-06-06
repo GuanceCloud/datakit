@@ -127,10 +127,12 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 		dc.fails++
 		log.Errorf("request url %s failed(proxy: %s): %s", requrl, dc.proxy, err)
 
-		var urlError *url.Error
-
-		if errors.As(err, &urlError) && urlError.Timeout() {
-			statusCode = -1 // timeout
+		if dwError, ok := err.(*DatawayError); ok { //nolint:errorlint
+			err := dwError.Err
+			var urlError *url.Error
+			if errors.As(err, &urlError) && urlError.Timeout() {
+				statusCode = -1 // timeout
+			}
 		}
 
 		return statusCode, err
@@ -144,6 +146,8 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 
 		return statusCode, err
 	}
+
+	statusCode = resp.StatusCode
 
 	switch resp.StatusCode / 100 {
 	case 2:
@@ -369,7 +373,6 @@ func (dw *DataWayDefault) buildBody(pts []sinkcommon.ISinkPoint, isGzip bool) ([
 			if body, err := gz(lines.Bytes()); err != nil {
 				return nil, err
 			} else {
-				log.Warn(string(body.buf))
 				bodies = append(bodies, body)
 			}
 			lines.Reset()

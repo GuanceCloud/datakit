@@ -15,6 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -94,6 +95,10 @@ func (i *Input) SetTags(m map[string]string) {
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		i.Tags["election_namespace"] = namespace
+	}
+
 	if i.setup() {
 		return
 	}
@@ -103,6 +108,7 @@ func (i *Input) Run() {
 
 	l.Info("prom start")
 
+	ioname := inputName + "/" + i.Source
 	for {
 		if i.pause {
 			l.Debug("prom paused")
@@ -110,10 +116,10 @@ func (i *Input) Run() {
 			start := time.Now()
 			pts := i.doCollect()
 			if pts != nil {
-				if err := io.Feed(i.Source, datakit.Metric, pts,
+				if err := io.Feed(ioname, datakit.Metric, pts,
 					&io.Option{CollectCost: time.Since(start)}); err != nil {
 					l.Errorf("Feed: %s", err)
-					io.FeedLastError(i.Source, err.Error())
+					io.FeedLastError(ioname, err.Error())
 				}
 			}
 		}

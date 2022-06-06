@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
@@ -86,17 +87,17 @@ func TestRename(t *testing.T) {
 				}
 				return
 			}
-
-			err = runner.Run(tc.in)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
 			tu.Equals(t, nil, err)
-			t.Log(runner.Result())
+			tu.Equals(t, nil, ret.Error)
 
-			ret := runner.Result()
 			t.Log(ret)
 			v, ok := ret.Fields[tc.outkey]
 			tu.Equals(t, true, ok)
 			tu.Equals(t, tc.expected, v)
-
 			t.Logf("[%d] PASS", idx)
 		})
 	}

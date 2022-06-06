@@ -991,3 +991,18 @@ func GetToken() string {
 func GitHasEnabled() bool {
 	return datakit.GitReposRepoName != "" && datakit.GitReposRepoFullPath != ""
 }
+
+// GetElectionNamespace returns the namespace of datakit election.
+// 	If election is not enabled, return empty string.
+//  If election is enabled, return the namespace of election or default when the namespace is empty.
+func GetElectionNamespace() string {
+	if Cfg.EnableElection {
+		if Cfg.Namespace == "" {
+			return "default"
+		} else {
+			return Cfg.Namespace
+		}
+	}
+
+	return ""
+}

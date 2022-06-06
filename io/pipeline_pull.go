@@ -11,7 +11,7 @@ import (
 )
 
 // PullPipeline returns name/text, updateTime, err.
-func PullPipeline(ts int64) (mFiles map[string]string, updateTime int64, err error) {
+func PullPipeline(ts int64) (mFiles map[string]map[string]string, updateTime int64, err error) {
 	defer func() {
 		if err := recover(); err != nil {
 			if log != nil {
@@ -28,16 +28,26 @@ func PullPipeline(ts int64) (mFiles map[string]string, updateTime int64, err err
 		return nil, 0, err
 	}
 
-	updateTime = pulledStruct.UpdateTime
-	mFiles = make(map[string]string)
+	mFiles, updateTime, err = parsePipelinePullStruct(pulledStruct)
+	return
+}
+
+func parsePipelinePullStruct(pulledStruct *pullPipelineReturn) (
+	map[string]map[string]string, int64, error) {
+	mFiles := make(map[string]map[string]string)
 	for _, v := range pulledStruct.Pipelines {
-		bys, e := base64.StdEncoding.DecodeString(v.Base64Text)
-		if e != nil {
-			err = e
+		bys, err := base64.StdEncoding.DecodeString(v.Base64Text)
+		if err != nil {
 			return nil, 0, err
 		}
-		mFiles[v.Name] = string(bys)
-	}
 
-	return
+		if val, ok := mFiles[v.Category]; ok {
+			val[v.Name] = string(bys)
+		} else {
+			mf := make(map[string]string)
+			mf[v.Name] = string(bys)
+			mFiles[v.Category] = mf
+		}
+	}
+	return mFiles, pulledStruct.UpdateTime, nil
 }

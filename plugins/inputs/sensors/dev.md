@@ -55,7 +55,7 @@ temp2:
 # config sample
 
 ```
-[[inputs.sensors]] ## Command path of 'senssor' usually under /usr/bin/sensors # path = "/usr/bin/senssors"
+[[inputs.sensors]] ## Command path of 'sensors' usually under /usr/bin/sensors # path = "/usr/bin/sensors"
 
     ## Gathering interval
     # interval = "10s"

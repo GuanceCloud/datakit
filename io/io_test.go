@@ -113,7 +113,7 @@ func randPt(t *testing.T) *Point {
 			"f110": rand.Float64(),
 			"f111": rand.Float64(),
 			"f112": rand.Float64(),
-		})
+		}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

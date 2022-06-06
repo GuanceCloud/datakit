@@ -339,7 +339,6 @@ github.com/docker/docker/api/types/versions
 github.com/docker/docker/api/types/volume
 github.com/docker/docker/client
 github.com/docker/docker/errdefs
-github.com/docker/docker/pkg/stdcopy
 # github.com/docker/go-connections v0.4.0
 github.com/docker/go-connections/nat
 github.com/docker/go-connections/sockets
@@ -753,6 +752,8 @@ github.com/modern-go/reflect2
 github.com/mssola/user_agent
 # github.com/naoina/go-stringutil v0.1.0
 github.com/naoina/go-stringutil
+# github.com/nxadm/tail v1.4.8
+## explicit
 # github.com/opencontainers/go-digest v1.0.0
 github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.1
@@ -891,7 +892,7 @@ github.com/vjeantet/grok
 github.com/whilp/git-urls
 # github.com/xanzy/ssh-agent v0.3.0
 github.com/xanzy/ssh-agent
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220511102220-db7ca5ac4a29
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220526124657-111c6cd47c52
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto

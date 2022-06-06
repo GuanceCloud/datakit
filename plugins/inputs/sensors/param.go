@@ -15,8 +15,8 @@ var (
 
 	sampleConfig = `
 [[inputs.sensors]]
-  ## Command path of 'senssor' usually under /usr/bin/sensors
-  # path = "/usr/bin/senssors"
+  ## Command path of 'sensor' usually under /usr/bin/sensors
+  # path = "/usr/bin/sensors"
 
   ## Gathering interval
   # interval = "10s"

@@ -5,7 +5,10 @@
 
 package funcs
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestDropOriginData(t *testing.T) {
 	cases := []struct {
@@ -36,12 +39,14 @@ func TestDropOriginData(t *testing.T) {
 				}
 				return
 			}
-
-			if err := runner.Run(tc.in); err != nil {
-				t.Error(err)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
+			if err != nil || ret.Error != nil {
+				t.Error(err, " ", ret.Error)
 				return
 			}
-			ret := runner.Result()
 			t.Log(ret)
 			if v, ok := ret.Fields[tc.key]; ok {
 				t.Errorf("[%d] failed: key `%s` value `%v`", idx, tc.key, v)

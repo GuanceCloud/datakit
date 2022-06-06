@@ -21,7 +21,6 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	plw "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
 func BenchmarkHandleWriteBody(b *testing.B) {
@@ -229,37 +228,6 @@ test,t1=abc f1=1i,f2=2,f3="str"`),
 
 type apiWriteMock struct {
 	t *testing.T
-}
-
-func (x *apiWriteMock) sendToPipLine(t plw.Task) error {
-	x.t.Helper()
-	x.t.Log("under mock impl: sendToPipLine")
-
-	dLen := 0
-	cntType := plw.TaskDataContentType(t)
-	switch cntType {
-	case plw.ContentByte:
-		d, err := plw.TaskDataGetContentByte(t)
-		if err != nil {
-			x.t.Fatal(err)
-		} else {
-			dLen = len(d)
-		}
-	case plw.ContentString:
-		d, err := plw.TaskDataGetContentStr(t)
-		if err != nil {
-			x.t.Fatal(err)
-		} else {
-			dLen = len(d)
-		}
-	default:
-		x.t.Fatalf("unknown content type %s", cntType)
-	}
-	x.t.Log(dLen)
-
-	// 执行 Callback 将 feed 导致计算 dataway client count 时 panic
-
-	return nil
 }
 
 func (x *apiWriteMock) sendToIO(string, string, []*io.Point, *io.Option) error {

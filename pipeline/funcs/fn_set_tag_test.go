@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -82,12 +83,14 @@ func TestSetTag(t *testing.T) {
 				}
 				return
 			}
-
-			if err := runner.Run(tc.in); err != nil {
-				t.Error(err)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
+			if err != nil || ret.Error != nil {
+				t.Error(err, " ", ret.Error)
 				return
 			}
-			ret := runner.Result()
 			t.Log(ret)
 			v := ret.Tags[tc.outtag]
 			assert.Equal(t, tc.expect, v)

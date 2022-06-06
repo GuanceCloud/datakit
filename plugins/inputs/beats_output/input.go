@@ -19,7 +19,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -232,6 +233,7 @@ func (ipt *Input) getNewTags(dataPiece *DataStruct) map[string]string {
 }
 
 func (ipt *Input) sendToPipeline(pending []*DataStruct) {
+	pts := []*io.Point{}
 	for _, v := range pending {
 		if len(v.Message) == 0 {
 			continue
@@ -240,19 +242,30 @@ func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 		newTags := ipt.getNewTags(v)
 		l.Debugf("newTags = %#v", newTags)
 
-		task := &worker.TaskTemplate{
-			TaskName:        inputName + "/" + ipt.Listen,
-			ContentDataType: worker.ContentString,
-			Tags:            newTags,
-			ScriptName:      ipt.Pipeline,
-			Source:          ipt.Source,
-			Content:         []string{v.Message},
-			Category:        datakit.Logging,
-			TS:              time.Now(),
-			MaxMessageLen:   ipt.MaximumLength,
+		pt, err := io.NewPoint(ipt.Source, newTags,
+			map[string]interface{}{pipeline.PipelineMessageField: v.Message},
+			&io.PointOption{
+				Time:             time.Now(),
+				MaxFieldValueLen: ipt.MaximumLength,
+			},
+		)
+		if err != nil {
+			l.Error(err)
+			continue
 		}
-		// 阻塞型channel
-		_ = worker.FeedPipelineTaskBlock(task)
+		pts = append(pts, pt)
+	}
+	if len(pts) > 0 {
+		if err := io.Feed(inputName+"/"+ipt.Listen, datakit.Logging, pts, &io.Option{
+			PlScript: map[string]string{
+				ipt.Source: ipt.Pipeline,
+			},
+			PlOption: &script.Option{
+				MaxFieldValLen: ipt.MaximumLength,
+			},
+		}); err != nil {
+			l.Error(err)
+		}
 	}
 }
 
