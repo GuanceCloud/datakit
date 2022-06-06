@@ -3,13 +3,14 @@ package socket
 import (
 	"context"
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"net"
 	"strings"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
-type TcpTask struct {
+type TCPTask struct {
 	Host            string
 	Port            string
 	Timeout         string
@@ -17,7 +18,7 @@ type TcpTask struct {
 	OwnerExternalID string
 
 	reqCost    time.Duration
-	reqDnsCost time.Duration
+	reqDNSCost time.Duration
 	reqError   string
 	timeout    time.Duration
 	ticker     *time.Ticker
@@ -25,7 +26,7 @@ type TcpTask struct {
 	ExternalID string
 }
 
-func (t *TcpTask) init(debug bool) error {
+func (t *TCPTask) init(debug bool) error {
 	if len(t.Timeout) == 0 {
 		t.timeout = 10 * time.Second
 	} else {
@@ -53,12 +54,11 @@ func (t *TcpTask) init(debug bool) error {
 	return nil
 }
 
-func (t *TcpTask) Init() error {
-
+func (t *TCPTask) Init() error {
 	return t.init(false)
 }
 
-func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
+func (t *TCPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
 		"dest_host": t.Host,
 		"dest_port": t.Port,
@@ -66,7 +66,7 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 	}
 
 	responseTime := int64(t.reqCost) / 1000                     // us
-	responseTimeWithDNS := int64(t.reqCost+t.reqDnsCost) / 1000 // us
+	responseTimeWithDNS := int64(t.reqCost+t.reqDNSCost) / 1000 // us
 
 	fields = map[string]interface{}{
 		"response_time":          responseTime,
@@ -91,15 +91,15 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 		fields["success"] = int64(1)
 	}
 
-	return
+	return tags, fields
 }
 
-func (t *TcpTask) Clear() {
+func (t *TCPTask) Clear() {
 	t.reqCost = 0
 	t.reqError = ""
 }
 
-func (t *TcpTask) Run() error {
+func (t *TCPTask) Run() error {
 	t.Clear()
 
 	var d net.Dialer
@@ -119,7 +119,7 @@ func (t *TcpTask) Run() error {
 				t.reqError = err.Error()
 				return err
 			} else {
-				t.reqDnsCost = time.Since(start)
+				t.reqDNSCost = time.Since(start)
 				hostIP = ips[0]
 			}
 		}
@@ -131,37 +131,37 @@ func (t *TcpTask) Run() error {
 	conn, err := d.DialContext(ctx, "tcp", tcpIPAddr)
 	if err != nil {
 		t.reqError = err.Error()
-		t.reqDnsCost = 0
+		t.reqDNSCost = 0
 	} else {
 		t.reqCost = time.Since(start)
 		err := conn.Close()
 		if err != nil {
-			return fmt.Errorf("socket input close connection fail : %s", err)
+			return fmt.Errorf("socket input close connection fail : %w", err)
 		}
 	}
 
 	return nil
 }
 
-func (t *TcpTask) ID() string {
+func (t *TCPTask) ID() string {
 	if t.ExternalID == `` {
 		return cliutils.XID("dtst_")
 	}
 	return fmt.Sprintf("_%s", t.ExternalID)
 }
 
-func (t *TcpTask) SetStatus(status string) {
+func (t *TCPTask) SetStatus(status string) {
 	t.CurStatus = status
 }
 
-func (t *TcpTask) Status() string {
+func (t *TCPTask) Status() string {
 	return t.CurStatus
 }
 
-func (t *TcpTask) Ticker() *time.Ticker {
+func (t *TCPTask) Ticker() *time.Ticker {
 	return t.ticker
 }
 
-func (t *TcpTask) Class() string {
+func (t *TCPTask) Class() string {
 	return ClassTCP
 }

@@ -2,13 +2,13 @@
 package socket
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"runtime"
 	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -17,16 +17,6 @@ import (
 
 func (i *Input) SampleConfig() string {
 	return sample
-}
-
-func (i *Input) appendTCPMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
-	tmp := &TCPMeasurement{name: name, tags: tags, fields: fields, ts: ts}
-	i.collectCache = append(i.collectCache, tmp)
-}
-
-func (i *Input) appendUDPMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
-	tmp := &UDPMeasurement{name: name, tags: tags, fields: fields, ts: ts}
-	i.collectCache = append(i.collectCache, tmp)
 }
 
 func (i *Input) Catalog() string {
@@ -89,7 +79,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) Collect() error {
-	for _, cont := range i.DestUrl {
+	for _, cont := range i.DestURL {
 		kv := strings.Split(cont, ":")
 		if len(kv) != 3 {
 			io.FeedLastError(inputName, "input socket desturl error:"+cont)
@@ -100,7 +90,7 @@ func (i *Input) Collect() error {
 				return err
 			}
 		} else {
-			err := i.CollectUdp(kv[1], kv[2])
+			err := i.CollectUDP(kv[1], kv[2])
 			if err != nil {
 				return err
 			}
@@ -126,7 +116,7 @@ func init() { //nolint:gochecknoinits
 }
 
 func (i *Input) dispatchTasks(destHost string, destPort string) error {
-	t := &TcpTask{}
+	t := &TCPTask{}
 	t.Host = destHost
 	t.Port = destPort
 	t.Timeout = "10s"

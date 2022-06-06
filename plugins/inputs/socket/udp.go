@@ -3,15 +3,18 @@ package socket
 import (
 	"bytes"
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"os/exec"
 	"strings"
 	"syscall"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-const successString string = "succeeded!"
-const ncUnknownError string = "unknown fail reason or nc run time out"
+const (
+	successString  string = "succeeded!"
+	ncUnknownError string = "unknown fail reason or nc run time out"
+)
 
 func findNc() (string, error) {
 	ncPath, err := exec.LookPath("nc")
@@ -22,10 +25,11 @@ func findNc() (string, error) {
 	}
 }
 
-func (i *Input) CollectUdp(destHost string, destPort string) error {
+func (i *Input) CollectUDP(destHost string, destPort string) error {
 	ncPath, err := findNc()
 	if err != nil {
 		l.Warnf("input socket: %s", err)
+		return err
 	}
 
 	// -vuz 1.1.1.1 5555
@@ -39,7 +43,7 @@ func (i *Input) CollectUdp(destHost string, destPort string) error {
 	fields := map[string]interface{}{
 		"success": int64(-1),
 	}
-
+	// nolint
 	cmd := exec.Command(ncPath, args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out

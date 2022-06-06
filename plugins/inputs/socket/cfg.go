@@ -28,9 +28,9 @@ var (
 [[inputs.socket]]
   ## support tcp, udp, raw, unix, packet, dccp and sctp sockets
   ## if socket_types is null, default on udp and tcp
-  dest_url = ["127.0.0.1:655","127.0.0.1:133"]
+  dest_url = ["tcp:47.110.144.10:443", "udp:1.1.1.1:5555"]
 
-  ## @param interval - number - optional - default: 900
+  ## @param interval - number - optional - default: 900, min 300
   interval = "900s"
 
 [inputs.socket.tags]
@@ -39,12 +39,11 @@ var (
 )
 
 type Input struct {
-	DestUrl  []string         `toml:"dest_url"`
+	DestURL  []string         `toml:"dest_url"`
 	Interval datakit.Duration `toml:"interval"` // 单位为秒
 
 	curTasks map[string]*dialer
 	wg       sync.WaitGroup
-	pos      int64 // current largest-task-update-time
 
 	collectCache []inputs.Measurement
 	Tags         map[string]string `toml:"tags"`

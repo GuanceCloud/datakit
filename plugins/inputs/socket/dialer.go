@@ -1,28 +1,20 @@
 package socket
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"time"
 
 	_ "github.com/go-ping/ping"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type dialer struct {
 	task Task
 
-	ticker *time.Ticker
-
 	initTime time.Time
-	testCnt  int64
 	class    string
 
-	tags     map[string]string
-	updateCh chan Task
-
-	category string
-
-	failCnt int
+	tags map[string]string
 
 	collectCache inputs.Measurement
 }
