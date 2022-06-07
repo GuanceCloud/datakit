@@ -1,10 +1,11 @@
 package socket
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"sync"
 	"testing"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func TestInput_Run(t *testing.T) {

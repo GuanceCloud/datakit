@@ -80,26 +80,28 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 
 func (i *Input) Collect() error {
 	for _, cont := range i.DestURL {
-		parseUrl := strings.Split(cont, "://")
-		if len(parseUrl) != 2 {
+		parseURL := strings.Split(cont, "://")
+		if len(parseURL) != 2 {
 			io.FeedLastError(inputName, "input socket desturl error:"+cont)
 		}
-		kv := strings.Split(parseUrl[1], ":")
-		protoType := parseUrl[0]
+		kv := strings.Split(parseURL[1], ":")
+		protoType := parseURL[0]
 		if len(kv) != 2 {
 			io.FeedLastError(inputName, "input socket desturl error:"+cont)
 		}
-		if protoType == TCP {
+
+		switch protoType {
+		case TCP:
 			err := i.dispatchTasks(kv[0], kv[1])
 			if err != nil {
 				return err
 			}
-		} else if protoType == UDP {
+		case UDP:
 			err := i.CollectUDP(kv[0], kv[1])
 			if err != nil {
 				return err
 			}
-		} else {
+		default:
 			l.Warnf("input socket can not support proto : %s", kv[0])
 		}
 	}
