@@ -20,7 +20,7 @@ udp指标需要操作系统有nc程序
 {{.InputSample}}
 ```
 
-配置好后，重启 DataKit 即可。m
+配置好后，重启 DataKit 即可。
 
 ## 指标集
 
