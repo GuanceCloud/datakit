@@ -41,6 +41,7 @@ func tryRunInput(item *v1.Pod) error {
 
 	instance := discoveryInput{
 		id:     string(item.UID),
+		source: item.Name,
 		name:   "prom",
 		config: complatePromConfig(config, item),
 		extraTags: map[string]string{
@@ -57,9 +58,9 @@ var discoveryInputsMap = make(map[string][]inputs.Input)
 
 type discoveryInput struct {
 	id        string
+	source    string
 	name      string
 	config    string
-	configMD5 string
 	extraTags map[string]string
 }
 
@@ -82,9 +83,7 @@ func (d *discoveryInput) run() error {
 	// add to inputsMap
 	discoveryInputsMap[d.id] = inputList
 
-	l.Infof("discovery: add %s inputs, len %d", d.name, len(inputList))
-	// add to inputsMap
-	discoveryInputsMap[d.configMD5] = nil
+	l.Infof("discovery: add %s inputs, source %s, len %d", d.name, d.source, len(inputList))
 
 	// input run() 不受全局 election 影响
 	// election 模块运行在此之前，且其列表是固定的
@@ -99,15 +98,18 @@ func (d *discoveryInput) run() error {
 			inp.SetTags(d.extraTags)
 		}
 
-		func(name string, ii inputs.Input) {
+		func(source, name string, ii inputs.Input) {
 			g.Go(func(ctx context.Context) error {
-				l.Infof("discovery: starting input %s ...", name)
+				inputs.AddInput(name+"/"+source, ii)
+				defer inputs.RemoveInput(name+"/"+source, ii)
+
+				l.Infof("discovery: starting input %s (source: %s) ...", name, source)
 				// main
 				ii.Run()
-				l.Infof("discovery: input %s exited", d.name)
+				l.Infof("discovery: input %s (source: %s) exited", name, source)
 				return nil
 			})
-		}(d.name, ii)
+		}(d.source, d.name, ii)
 	}
 
 	return nil
