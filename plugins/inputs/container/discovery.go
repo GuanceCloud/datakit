@@ -7,7 +7,7 @@ package container
 
 import (
 	"context"
-	"fmt"
+
 	"strconv"
 	"strings"
 
@@ -59,24 +59,32 @@ type discoveryInput struct {
 	id        string
 	name      string
 	config    string
+	configMD5 string
 	extraTags map[string]string
 }
 
 func (d *discoveryInput) run() error {
-	creator, ok := inputs.Inputs["prom"]
-	if !ok {
-		return fmt.Errorf("unreachable, invalid inputName")
-	}
-
-	inputList, err := config.LoadInputConfig(d.config, creator)
+	inputInstances, err := config.LoadSingleConf(d.config, inputs.Inputs)
 	if err != nil {
 		return err
 	}
 
+	if len(inputInstances) != 1 {
+		l.Warnf("discover invalid input conf, only 1 type of input allowed in annotation, but got %d, ignored", len(inputInstances))
+		return nil
+	}
+
+	var inputList []inputs.Input
+	for _, arr := range inputInstances {
+		inputList = arr
+		break // get the first iterate elem in the map
+	}
 	// add to inputsMap
 	discoveryInputsMap[d.id] = inputList
 
 	l.Infof("discovery: add %s inputs, len %d", d.name, len(inputList))
+	// add to inputsMap
+	discoveryInputsMap[d.configMD5] = nil
 
 	// input run() 不受全局 election 影响
 	// election 模块运行在此之前，且其列表是固定的

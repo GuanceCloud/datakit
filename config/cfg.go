@@ -891,20 +891,6 @@ func MoveDeprecatedCfg() {
 	}
 }
 
-func ProtectedInterval(min, max, cur time.Duration) time.Duration {
-	if Cfg.ProtectMode {
-		if cur >= max {
-			return max
-		}
-
-		if cur <= min {
-			return min
-		}
-	}
-
-	return cur
-}
-
 func CreateSymlinks() error {
 	var x [][2]string
 
@@ -990,6 +976,20 @@ func GetToken() string {
 
 func GitHasEnabled() bool {
 	return datakit.GitReposRepoName != "" && datakit.GitReposRepoFullPath != ""
+}
+
+func ProtectedInterval(min, max, cur time.Duration) time.Duration {
+	if Cfg.ProtectMode {
+		if cur >= max {
+			return max
+		}
+
+		if cur <= min {
+			return min
+		}
+	}
+
+	return cur
 }
 
 // GetElectionNamespace returns the namespace of datakit election.

@@ -132,8 +132,8 @@ type Duration struct {
 	Duration time.Duration
 }
 
-// UnmarshalTOML parses the duration from the TOML config file.
-func (d *Duration) UnmarshalTOML(b []byte) error {
+// UnmarshalText parses the duration from the TOML config file.
+func (d *Duration) UnmarshalText(b []byte) error {
 	b = bytes.Trim(b, "'")
 
 	// see if we can directly convert it
