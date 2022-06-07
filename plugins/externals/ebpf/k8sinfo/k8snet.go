@@ -49,8 +49,19 @@ func (kinfo *K8sNetInfo) Update() error {
 			return err
 		}
 
+		deploymnt, err := kinfo.cli.GetDeployment(ns)
+		if err != nil {
+			return err
+		}
+
 		for ip, list := range podNet {
 			for _, v := range list {
+				for _, d := range deploymnt {
+					if MatchLabel(d.MatchLabels, v.Labels) {
+						v.DeploymentName = d.Name
+						break
+					}
+				}
 				if !v.HostNetwork {
 					k8sPodMap[ip] = v
 				}
@@ -81,23 +92,17 @@ func (kinfo *K8sNetInfo) Update() error {
 					otherPods := []*K8sPodNet{}
 					// for range pods
 					for _, pod := range pods {
-						flag := true
-						for k, v := range svc.Selector {
-							if tv, ok := pod.Labels[k]; ok && tv == v {
-							} else {
-								flag = false
-								otherPods = append(otherPods, pod)
-								break
-							}
+						if !MatchLabel(svc.Selector, pod.Labels) {
+							otherPods = append(otherPods, pod)
+							continue
 						}
-						if flag {
-							if _, ok := k8sPodNetPortMap[ip]; !ok {
-								k8sPodNetPortMap[ip] = map[Port]*K8sPodNet{}
-							}
-							for _, port := range ports {
-								pod.ServiceName = svc.Name
-								k8sPodNetPortMap[ip][port] = pod
-							}
+						svc.DeploymentName = pod.DeploymentName
+						if _, ok := k8sPodNetPortMap[ip]; !ok {
+							k8sPodNetPortMap[ip] = map[Port]*K8sPodNet{}
+						}
+						for _, port := range ports {
+							pod.ServiceName = svc.Name
+							k8sPodNetPortMap[ip][port] = pod
 						}
 					}
 					k8sPodTmpNetMap[ip] = otherPods
@@ -141,8 +146,9 @@ func (kinfo *K8sNetInfo) AutoUpdate(ctx context.Context) {
 	}()
 }
 
-// QueryPodInfo returns (server(ture) or client, pod name, svc name, namespace, port, err).
-func (kinfo *K8sNetInfo) QueryPodInfo(ip string, port uint32, protocol string) (bool, string, string, string, uint32, error) {
+// QueryPodInfo returns (server(ture) or client, pod name, svc name, namespace, deployment,port, err).
+func (kinfo *K8sNetInfo) QueryPodInfo(ip string, port uint32, protocol string) (bool,
+	string, string, string, string, uint32, error) {
 	kinfo.RLock()
 	defer kinfo.RUnlock()
 
@@ -158,26 +164,26 @@ func (kinfo *K8sNetInfo) QueryPodInfo(ip string, port uint32, protocol string) (
 	if p, ok := kinfo.poNetInfoPort[ip]; ok {
 		// 可能是 HostNetwork ip pod, 需要 port 辅助判定
 		if v, ok := p[pP]; ok {
-			return true, v.Name, v.ServiceName, v.Namespace, port, nil
+			return true, v.Name, v.ServiceName, v.Namespace, v.DeploymentName, port, nil
 		}
 	}
 
 	// 作为 client 发送请求的 pod， 不含(host network ip)
 	if v, ok := kinfo.poNetInfoIP[ip]; ok {
-		return false, v.Name, v.ServiceName, v.Namespace, 0, nil
+		return false, v.Name, v.ServiceName, v.Namespace, v.DeploymentName, 0, nil
 	}
 
-	return false, "", "", "", 0, fmt.Errorf("no match pod")
+	return false, "", "", "", "", 0, fmt.Errorf("no match pod")
 }
 
 // QuerySvcInfo returns (svc name, namespace, error).
-func (kinfo *K8sNetInfo) QuerySvcInfo(ip string) (string, string, error) {
+func (kinfo *K8sNetInfo) QuerySvcInfo(ip string) (string, string, string, error) {
 	kinfo.RLock()
 	defer kinfo.RUnlock()
 	if v, ok := kinfo.svcNetInfo[ip]; ok {
-		return v.Name, v.Namespace, nil
+		return v.Name, v.Namespace, v.DeploymentName, nil
 	}
-	return "", "", fmt.Errorf("no match svc")
+	return "", "", "", fmt.Errorf("no match svc")
 }
 
 func NewK8sNetInfo(cli *K8sClient) (*K8sNetInfo, error) {

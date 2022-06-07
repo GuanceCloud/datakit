@@ -19,7 +19,7 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 
 ## 用户权限配置
 
-如果开启账号密码访问，需要配置相应的权限，否则会导致监控信息获取失败错误。目前支持 Elasticsearch 和 Open Distro for Elasticsearch。
+如果开启账号密码访问，需要配置相应的权限，否则会导致监控信息获取失败错误。目前支持 Elasticsearch , Open Distro for Elasticsearch 和 OpenSearch。
 ### Elasticsearch
 
   - 创建角色`monitor`，设置如下权限
@@ -58,6 +58,38 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 
   ```
   PUT _opendistro/_security/api/roles/monitor
+  {
+    "description": "monitor es cluster",
+    "cluster_permissions": [
+      "cluster:admin/opendistro/ism/managedindex/explain",
+      "cluster_monitor",
+      "cluster_composite_ops_ro"
+    ],
+    "index_permissions": [
+      {
+        "index_patterns": [
+          "*"
+        ],
+        "fls": [],
+        "masked_fields": [],
+        "allowed_actions": [
+          "read",
+          "indices_monitor"
+        ]
+      }
+    ],
+    "tenant_permissions": []
+  }
+  ```
+  - 设置角色与用户之间的映射关系
+
+### OpenSearch
+
+  - 创建用户
+  - 创建角色 `monitor`, 设置如下权限：
+
+  ```
+  PUT _plugins/_security/api/roles/monitor
   {
     "description": "monitor es cluster",
     "cluster_permissions": [

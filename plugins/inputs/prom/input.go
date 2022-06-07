@@ -108,6 +108,7 @@ func (i *Input) Run() {
 
 	l.Info("prom start")
 
+	ioname := inputName + "/" + i.Source
 	for {
 		if i.pause {
 			l.Debug("prom paused")
@@ -115,10 +116,10 @@ func (i *Input) Run() {
 			start := time.Now()
 			pts := i.doCollect()
 			if pts != nil {
-				if err := io.Feed(i.Source, datakit.Metric, pts,
+				if err := io.Feed(ioname, datakit.Metric, pts,
 					&io.Option{CollectCost: time.Since(start)}); err != nil {
 					l.Errorf("Feed: %s", err)
-					io.FeedLastError(i.Source, err.Error())
+					io.FeedLastError(ioname, err.Error())
 				}
 			}
 		}

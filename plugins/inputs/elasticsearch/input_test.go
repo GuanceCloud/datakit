@@ -157,7 +157,7 @@ func TestGatherClusterHealthEmptyClusterHealth(t *testing.T) {
 
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health",
 		clusterHealthExpected,
-		map[string]string{"name": clusterName}, es.collectCache)
+		map[string]string{"name": clusterName, "cluster_status": "green"}, es.collectCache)
 
 	// AssertDoesNotContainsTaggedFields(t, "elasticsearch_cluster_health_indices",
 	// 	v1IndexExpected,
@@ -185,7 +185,7 @@ func TestGatherClusterHealthSpecificClusterHealth(t *testing.T) {
 
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health",
 		clusterHealthExpected,
-		map[string]string{"name": clusterName}, es.collectCache)
+		map[string]string{"name": clusterName, "cluster_status": "green"}, es.collectCache)
 
 	AssertDoesNotContainsTaggedFields(t, "elasticsearch_cluster_health_indices",
 		v1IndexExpected,
@@ -214,7 +214,7 @@ func TestGatherClusterHealthAlsoIndicesHealth(t *testing.T) {
 	clusterHealthExpected["indices_lifecycle_error_count"] = 2
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health",
 		clusterHealthExpected,
-		map[string]string{"name": clusterName}, es.collectCache)
+		map[string]string{"name": clusterName, "cluster_status": "green"}, es.collectCache)
 }
 
 func TestGatherClusterIndicesStats(t *testing.T) {
