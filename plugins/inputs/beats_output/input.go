@@ -235,7 +235,10 @@ func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 		l.Debugf("newTags = %#v", newTags)
 
 		pt, err := io.NewPoint(ipt.Source, newTags,
-			map[string]interface{}{pipeline.PipelineMessageField: v.Message},
+			map[string]interface{}{
+				pipeline.FieldMessage: v.Message,
+				pipeline.FieldStatus:  pipeline.DefaultStatus,
+			},
 			&io.PointOption{
 				Time:             time.Now(),
 				Category:         datakit.Logging,

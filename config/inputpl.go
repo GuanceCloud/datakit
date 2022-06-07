@@ -29,10 +29,6 @@ type PipelineDemo struct {
 }
 
 func initPluginPipeline() error {
-	if err := pipeline.Init(Cfg.Pipeline); err != nil {
-		return err
-	}
-
 	scriptMap, err := GetScriptMap()
 	if err != nil {
 		l.Errorf(err.Error())
@@ -46,6 +42,11 @@ func initPluginPipeline() error {
 			return err
 		}
 	}
+
+	if err := pipeline.Init(Cfg.Pipeline); err != nil {
+		return err
+	}
+
 	return nil
 }
 

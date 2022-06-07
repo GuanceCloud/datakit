@@ -20,7 +20,7 @@ func TestScript(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, outp.Fields, map[string]interface{}{"status": PipelineDefaultStatus})
+	assert.Equal(t, outp.Fields, map[string]interface{}{"status": DefaultStatus})
 	assert.Equal(t, outp.Tags, map[string]string{})
 	assert.Equal(t, "abc.p", s.Name())
 	assert.Equal(t, datakit.Logging, s.Category())
@@ -42,7 +42,7 @@ func TestScript(t *testing.T) {
 
 	_, drop, err = s.Run("ng", nil, nil, "msg", time.Now(), &Option{
 		DisableAddStatusField: false,
-		IgnoreStatus:          []string{PipelineDefaultStatus},
+		IgnoreStatus:          []string{DefaultStatus},
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -126,7 +126,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 	start := time.Now()
 	res := []*pipeline.Result{}
 	for _, line := range dataLines {
-		pt, _ := io.MakePoint(reqDebug.Source, nil, map[string]interface{}{pipeline.PipelineMessageField: line})
+		pt, _ := io.MakePoint(reqDebug.Source, nil, map[string]interface{}{pipeline.FieldMessage: line})
 		pt, drop, err := scriptInfo.Run(pt, nil, opt)
 		if err != nil || pt == nil {
 			continue
@@ -162,7 +162,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 			b.Helper()
 			for n := 0; n < b.N; n++ {
 				for _, line := range dataLines {
-					pt, _ := io.MakePoint(reqDebug.Source, nil, map[string]interface{}{pipeline.PipelineMessageField: line})
+					pt, _ := io.MakePoint(reqDebug.Source, nil, map[string]interface{}{pipeline.FieldMessage: line})
 					_, _, _ = scriptInfo.Run(pt, nil, opt)
 				}
 			}
