@@ -21,6 +21,14 @@ import (
 // There may be some error returned here.
 func runToolFlags() error {
 	switch {
+	case *flagPromConf != "":
+		if err := promDebugger(*flagPromConf); err != nil {
+			errorf("[E] %s\n", err)
+			os.Exit(-1)
+		}
+
+		os.Exit(0)
+
 	case *flagSetupCompleterScripts:
 		setupCompleterScripts()
 		os.Exit(0)
