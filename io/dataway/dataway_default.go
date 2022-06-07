@@ -10,12 +10,14 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
+	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
 var (
@@ -52,9 +54,11 @@ var (
 
 type DataWayDefault struct {
 	*DataWayCfg
-	endPoints []*endPoint
-	ontest    bool
-	httpCli   *retryablehttp.Client
+	endPoints  []*endPoint
+	ontest     bool
+	httpCli    *retryablehttp.Client
+	locker     sync.Mutex
+	dnsCachers []*dnsCacher
 }
 
 type endPoint struct {
@@ -189,9 +193,24 @@ func (dw *DataWayDefault) Apply() error {
 		}
 
 		dw.endPoints = append(dw.endPoints, ep)
+
+		dw.addDNSCache(ep.host)
 	}
 
 	return nil
+}
+
+func (dw *DataWayDefault) addDNSCache(host string) {
+	for _, v := range dw.dnsCachers {
+		if v.GetDomain() == host {
+			return // avoid repeat add same domain
+		}
+	}
+
+	dnsCache := &dnsCacher{}
+	dnsCache.initDNSCache(host, dw.initHTTP)
+
+	dw.dnsCachers = append(dw.dnsCachers, dnsCache)
 }
 
 func (dw *DataWayDefault) initEndpoint(httpurl string) (*endPoint, error) {
@@ -230,10 +249,25 @@ func (dw *DataWayDefault) initEndpoint(httpurl string) (*endPoint, error) {
 	return cli, nil
 }
 
+const (
+	defaultDNSCacheFreq          = time.Minute
+	defaultDNSCacheLookUpTimeout = 10 * time.Second
+)
+
 func (dw *DataWayDefault) initHTTP() error {
+	dw.locker.Lock()
+	defer dw.locker.Unlock()
+
+	dialContext, err := dnet.GetDNSCacheDialContext(defaultDNSCacheFreq, defaultDNSCacheLookUpTimeout)
+	if err != nil {
+		log.Warnf("GetDNSCacheDialContext failed: %v", err)
+		dialContext = nil // if failed, then not use dns cache.
+	}
+
 	cliopts := &ihttp.Options{
 		DialTimeout:         dw.TimeoutDuration,
 		MaxIdleConnsPerHost: dw.MaxIdleConnsPerHost,
+		DialContext:         dialContext,
 	}
 
 	if dw.HTTPProxy != "" { // set proxy
