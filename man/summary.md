@@ -90,7 +90,7 @@
         - [Cpp 示例](ddtrace-cpp)
         - [Ruby 示例](ddtrace-ruby)
       - [SkyWalking](skywalking)
-      - [Opentelemetry](opentelemetry)
+      - [OpenTelemetry](opentelemetry)
         - [Golang 示例](opentelemetry-go)
         - [Java 示例](opentelemetry-java)
       - [Jaeger](jaeger)

@@ -8,6 +8,7 @@ package collector
 // see:vendor/go.opentelemetry.io/otel/semconv/v1.4.0/trace.go.
 const (
 	otelResourceServiceKey = "service.name"
+	otelServiceName        = "otel-service"
 	defaultServiceVal      = "unknown.service"
 	// HTTP.
 	otelResourceHTTPMethodKey     = "http.method"

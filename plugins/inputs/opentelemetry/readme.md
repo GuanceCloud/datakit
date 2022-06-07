@@ -67,7 +67,15 @@ resource (server.name or inputName)
 
 
 ```
-
+20220530 变更如下
+``` text
+一级 - 固定 service_name:"otel_service"
+二级  - 子类：指标A（metricName）
+            tag：{tagA:A,tagB:b} // 观测云上筛选使用
+            field : {metricName : metricVal} // 指标的时序图展示使用
+        子类：指标B
+            ...
+```
         
 ---
  

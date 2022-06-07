@@ -40,6 +40,7 @@ type SpansStorage struct {
 
 // NewSpansStorage creates a new spans storage.
 func NewSpansStorage() *SpansStorage {
+	l = logger.SLogger(inputName)
 	return &SpansStorage{
 		AfterGather: DKtrace.NewAfterGather(),
 		rsm:         make([]DKtrace.DatakitTrace, 0),
