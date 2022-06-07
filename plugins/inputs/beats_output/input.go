@@ -166,21 +166,7 @@ func (ipt *Input) Run() {
 			// message
 			var pending []*DataStruct
 			for _, v := range batch.Events {
-				// debug print
-				dbg, ok := v.(map[string]interface{})
-				if ok {
-					l.Debugf("event = %#v", dbg)
-				}
-
-				dataPiece := &DataStruct{
-					HostName:    eventGet(v, "host.name").(string),
-					LogFilePath: eventGet(v, "log.file.path").(string),
-					Message:     eventGet(v, "message").(string),
-				}
-				fields, ok := eventGet(v, "fields").(map[string]interface{})
-				if ok {
-					dataPiece.Fields = fields
-				}
+				dataPiece := getDataPieceFromEvent(v)
 				pending = append(pending, dataPiece)
 			}
 			ipt.sendToPipeline(pending)
@@ -210,9 +196,15 @@ func (ipt *Input) getNewTags(dataPiece *DataStruct) map[string]string {
 	for kk, vv := range ipt.Tags {
 		newTags[kk] = vv
 	}
-	newTags["host"] = dataPiece.HostName        // host.name
-	newTags["filepath"] = dataPiece.LogFilePath // log.file.path
-	newTags["service"] = ipt.Service
+	if len(dataPiece.HostName) > 0 {
+		newTags["host"] = dataPiece.HostName // host.name
+	}
+	if len(dataPiece.LogFilePath) > 0 {
+		newTags["filepath"] = dataPiece.LogFilePath // log.file.path
+	}
+	if len(ipt.Service) > 0 {
+		newTags["service"] = ipt.Service
+	}
 	for kk, vv := range dataPiece.Fields {
 		if str, ok := vv.(string); ok {
 			newTags[kk] = str
@@ -243,9 +235,13 @@ func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 		l.Debugf("newTags = %#v", newTags)
 
 		pt, err := io.NewPoint(ipt.Source, newTags,
-			map[string]interface{}{pipeline.PipelineMessageField: v.Message},
+			map[string]interface{}{
+				pipeline.FieldMessage: v.Message,
+				pipeline.FieldStatus:  pipeline.DefaultStatus,
+			},
 			&io.PointOption{
 				Time:             time.Now(),
+				Category:         datakit.Logging,
 				MaxFieldValueLen: ipt.MaximumLength,
 			},
 		)
@@ -343,6 +339,45 @@ func eventGet(event interface{}, path string) interface{} {
 		}
 	}
 	return doc[elems[len(elems)-1]]
+}
+
+func getEventPrint(event interface{}) map[string]interface{} {
+	eventMap, ok := event.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	return eventMap
+}
+
+func getEventPathStringValue(event interface{}, path string) string {
+	val, ok := eventGet(event, path).(string)
+	if !ok {
+		l.Warnf("cannot find %s, event = %#v", path, event)
+	}
+	return val
+}
+
+func getDataPieceFromEvent(event interface{}) *DataStruct {
+	// debug print
+	eventMap := getEventPrint(event)
+	if eventMap != nil {
+		l.Debugf("event = %#v", eventMap)
+	}
+
+	hostName := getEventPathStringValue(event, "host.name")
+	logFilePath := getEventPathStringValue(event, "log.file.path")
+	message := getEventPathStringValue(event, "message")
+
+	dataPiece := &DataStruct{
+		HostName:    hostName,
+		LogFilePath: logFilePath,
+		Message:     message,
+	}
+	fields, ok := eventGet(event, "fields").(map[string]interface{})
+	if ok {
+		dataPiece.Fields = fields
+	}
+	return dataPiece
 }
 
 //------------------------------------------------------------------------------

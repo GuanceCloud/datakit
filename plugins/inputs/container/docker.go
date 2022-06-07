@@ -25,7 +25,6 @@ type dockerInput struct {
 
 	containerLogList map[string]context.CancelFunc
 
-	metricFilter  filter.Filter
 	loggingFilter filter.Filter
 
 	cfg *dockerInputConfig
@@ -36,9 +35,6 @@ type dockerInputConfig struct {
 
 	excludePauseContainer  bool
 	removeLoggingAnsiCodes bool
-
-	containerIncludeMetric []string
-	containerExcludeMetric []string
 
 	containerIncludeLog []string
 	containerExcludeLog []string
@@ -62,9 +58,6 @@ func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
 		return nil, fmt.Errorf("cannot connect to the Docker daemon at unix:///var/run/docker.sock")
 	}
 
-	if err := d.createMetricFilters(cfg.containerIncludeMetric, cfg.containerExcludeMetric); err != nil {
-		return nil, err
-	}
 	if err := d.createLoggingFilters(cfg.containerIncludeLog, cfg.containerExcludeLog); err != nil {
 		return nil, err
 	}
@@ -107,9 +100,7 @@ func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
 
 		go func(c *types.Container) {
 			defer wg.Done()
-
-			image := getImageOfPodContainer(c, d.k8sClient)
-			if d.ignoreContainer(c) || d.ignoreImageForMetric(image) {
+			if d.ignoreContainer(c) {
 				return
 			}
 
@@ -314,19 +305,6 @@ func (d *dockerInput) getRunningContainerList() ([]types.Container, error) {
 	return cList, nil
 }
 
-func (d *dockerInput) createMetricFilters(include, exclude []string) error {
-	in := splitRules(include)
-	ex := splitRules(exclude)
-
-	f, err := filter.NewIncludeExcludeFilter(in, ex)
-	if err != nil {
-		return err
-	}
-
-	d.metricFilter = f
-	return nil
-}
-
 func (d *dockerInput) createLoggingFilters(include, exclude []string) error {
 	in := splitRules(include)
 	ex := splitRules(exclude)
@@ -340,20 +318,13 @@ func (d *dockerInput) createLoggingFilters(include, exclude []string) error {
 	return nil
 }
 
-func (d *dockerInput) ignoreImageForMetric(image string) (ignore bool) {
-	if d.metricFilter == nil {
+func (d *dockerInput) ignoreImageForLogging(image string) (ignore bool) {
+	if d.loggingFilter == nil {
 		return
 	}
 	// 注意，match 和 ignore 是相反的逻辑
 	// 如果 match 通过，则表示不需要 ignore
 	// 所以要取反
-	return !d.metricFilter.Match(image)
-}
-
-func (d *dockerInput) ignoreImageForLogging(image string) (ignore bool) {
-	if d.loggingFilter == nil {
-		return
-	}
 	return !d.loggingFilter.Match(image)
 }
 
@@ -385,6 +356,7 @@ func splitRules(arr []string) (rules []string) {
 	return
 }
 
+//nolint:deadcode,unused
 func getImageOfPodContainer(container *types.Container, k8sClient k8sClientX) (image string) {
 	image = container.Image
 

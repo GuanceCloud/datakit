@@ -116,8 +116,10 @@ func (c *K8sClient) GetEndpointNet(ns string) (map[string]*K8sEndpointsNet, erro
 }
 
 type K8sServicesNet struct {
-	Namespace   string
-	Name        string
+	Namespace      string
+	Name           string
+	DeploymentName string
+
 	ClusterIPs  []string
 	ExternalIPs []string
 	// format: <port>/protocol 9529/TCP, 80/TCP, 53/UDP, ...
@@ -142,14 +144,15 @@ func (c *K8sClient) GetServiceNet(ns string) (map[string]*K8sServicesNet, error)
 	}
 	for _, v := range list.Items {
 		svc := &K8sServicesNet{
-			Namespace:   v.GetNamespace(),
-			Name:        v.GetName(),
-			ClusterIPs:  []string{},
-			ExternalIPs: []string{},
-			Port:        []Port{},
-			NodePort:    []Port{},
-			TargetPort:  []Port{},
-			Selector:    map[string]string{},
+			Namespace:      v.GetNamespace(),
+			Name:           v.GetName(),
+			DeploymentName: "N/A",
+			ClusterIPs:     []string{},
+			ExternalIPs:    []string{},
+			Port:           []Port{},
+			NodePort:       []Port{},
+			TargetPort:     []Port{},
+			Selector:       map[string]string{},
 		}
 
 		svc.Type = string(v.Spec.Type)
@@ -196,8 +199,9 @@ type K8sPodNet struct {
 	ClusterName string
 	Name        string
 
-	ServiceName string
-	NodeName    string
+	DeploymentName string
+	ServiceName    string
+	NodeName       string
 
 	Labels map[string]string
 	PodIPs []string
@@ -220,7 +224,9 @@ func (c *K8sClient) GetPodNet(ns string) (map[string][]*K8sPodNet, error) {
 			ClusterName: v.GetClusterName(),
 			Name:        v.GetName(),
 
-			NodeName: v.Spec.NodeName,
+			DeploymentName: "N/A",
+			ServiceName:    "N/A",
+			NodeName:       v.Spec.NodeName,
 
 			Labels: map[string]string{},
 			PodIPs: []string{},
@@ -246,4 +252,50 @@ func (c *K8sClient) GetPodNet(ns string) (map[string][]*K8sPodNet, error) {
 	}
 
 	return result, nil
+}
+
+type K8sDeployment struct {
+	Namespace string
+	Name      string
+
+	MatchLabels map[string]string
+}
+
+func (c *K8sClient) GetDeployment(ns string) (map[string]*K8sDeployment, error) {
+	result := map[string]*K8sDeployment{}
+	deploymentIface := c.AppsV1().Deployments(ns)
+	list, err := deploymentIface.List(context.Background(), metaV1ListOption)
+	if err != nil {
+		return result, err
+	}
+
+	for _, v := range list.Items {
+		result[v.Name] = &K8sDeployment{
+			Namespace: v.GetNamespace(),
+			Name:      v.GetName(),
+
+			MatchLabels: func() map[string]string {
+				r := map[string]string{}
+				for k, v := range v.Spec.Selector.MatchLabels {
+					r[k] = v
+				}
+				return r
+			}(),
+		}
+	}
+	return result, nil
+}
+
+func MatchLabel(selector, labels map[string]string) bool {
+	if len(selector) > len(labels) {
+		return false
+	}
+
+	for k, v := range selector {
+		if v2, ok := labels[k]; !ok || v2 != v {
+			return false
+		}
+	}
+
+	return true
 }

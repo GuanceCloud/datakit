@@ -752,8 +752,6 @@ github.com/modern-go/reflect2
 github.com/mssola/user_agent
 # github.com/naoina/go-stringutil v0.1.0
 github.com/naoina/go-stringutil
-# github.com/nxadm/tail v1.4.8
-## explicit
 # github.com/opencontainers/go-digest v1.0.0
 github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.1
@@ -908,6 +906,9 @@ gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 # go.etcd.io/bbolt v1.3.5
 ## explicit
 go.etcd.io/bbolt
+# go.mercari.io/go-dnscache v0.0.0-20220124075326-2701c2ab5df5
+## explicit
+go.mercari.io/go-dnscache
 # go.opencensus.io v0.23.0
 go.opencensus.io
 go.opencensus.io/internal
@@ -925,6 +926,13 @@ go.opentelemetry.io/otel/internal/baggage
 go.opentelemetry.io/otel/internal/global
 go.opentelemetry.io/otel/propagation
 go.opentelemetry.io/otel/semconv/v1.7.0
+# go.opentelemetry.io/otel/exporters/jaeger v1.4.1
+## explicit
+go.opentelemetry.io/otel/exporters/jaeger
+go.opentelemetry.io/otel/exporters/jaeger/internal/gen-go/agent
+go.opentelemetry.io/otel/exporters/jaeger/internal/gen-go/jaeger
+go.opentelemetry.io/otel/exporters/jaeger/internal/gen-go/zipkincore
+go.opentelemetry.io/otel/exporters/jaeger/internal/third_party/thrift/lib/go/thrift
 # go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.4.1
 go.opentelemetry.io/otel/exporters/otlp/internal/retry
 # go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.27.0
@@ -980,13 +988,12 @@ go.opentelemetry.io/proto/otlp/common/v1
 go.opentelemetry.io/proto/otlp/metrics/v1
 go.opentelemetry.io/proto/otlp/resource/v1
 go.opentelemetry.io/proto/otlp/trace/v1
-# go.uber.org/atomic v1.7.0
+# go.uber.org/atomic v1.9.0
 ## explicit
 go.uber.org/atomic
 # go.uber.org/multierr v1.7.0
-## explicit
 go.uber.org/multierr
-# go.uber.org/zap v1.17.0
+# go.uber.org/zap v1.20.0
 ## explicit
 go.uber.org/zap
 go.uber.org/zap/buffer

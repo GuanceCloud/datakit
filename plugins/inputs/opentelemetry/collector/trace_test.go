@@ -484,3 +484,45 @@ func Test_dkTags_checkCustomTags(t *testing.T) {
 		})
 	}
 }
+
+func Test_dkTags_getResourceType(t *testing.T) {
+	type fields struct {
+		regexpString string
+		globalTags   map[string]string
+		tags         map[string]string
+		replaceTags  map[string]string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "db_type",
+			fields: fields{
+				tags: map[string]string{"db.system": "mysql", "other.key": "123"},
+			},
+			want: "db",
+		},
+		{
+			name: "web_type",
+			fields: fields{
+				tags: map[string]string{"http.scheme": "http", "http.method": "GET"},
+			},
+			want: "web",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dt := &dkTags{
+				regexpString: tt.fields.regexpString,
+				globalTags:   tt.fields.globalTags,
+				tags:         tt.fields.tags,
+				replaceTags:  tt.fields.replaceTags,
+			}
+			if got := dt.getResourceType(); got != tt.want {
+				t.Errorf("getResourceType() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

@@ -69,7 +69,16 @@ func pipelineDebugger(category, plname, txt string) error {
 		Time:     time.Now(),
 	}
 	measurementName := "default"
-	pt, err := io.NewPoint(measurementName, nil, map[string]interface{}{pipeline.PipelineMessageField: txt}, opt)
+
+	fieldsSrc := map[string]interface{}{pipeline.FieldMessage: txt}
+	switch category {
+	case datakit.Logging:
+		// 由采集器实现
+		// fieldsSrc[pipeline.FieldStatus]  = pipeline.DefaultStatus
+	default:
+	}
+
+	pt, err := io.NewPoint(measurementName, nil, fieldsSrc, opt)
 	if err != nil {
 		return err
 	}

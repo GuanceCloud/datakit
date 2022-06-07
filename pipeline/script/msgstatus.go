@@ -13,11 +13,12 @@ import (
 
 const (
 	// pipeline关键字段.
-	PipelineTimeField     = "time"
-	PipelineMessageField  = "message"
-	PipelineStatusField   = "status"
-	PipelineMSource       = "source"
-	PipelineDefaultStatus = "unknown"
+	FieldTime       = "time"
+	FieldMessage    = "message"
+	FieldStatus     = "status"
+	PlLoggingSource = "source"
+
+	DefaultStatus = "unknown"
 )
 
 var statusMap = map[string]string{
@@ -32,6 +33,8 @@ var statusMap = map[string]string{
 	"w":        "warning",
 	"warn":     "warning",
 	"warning":  "warning",
+	"n":        "notice",
+	"notice":   "notice",
 	"i":        "info",
 	"info":     "info",
 	"d":        "debug",
@@ -43,22 +46,19 @@ var statusMap = map[string]string{
 	"ok":       "OK",
 }
 
-func ProcLoggingStatus(output *parser.Output, disable bool, ignore []string, spiltLen int) *parser.Output {
+func ProcLoggingStatus(output *parser.Output, disable bool, ignore []string) *parser.Output {
 	var status string
 
-	if v, ok := output.Fields[PipelineStatusField]; ok {
-		if v, ok := v.(string); ok {
-			status = strings.ToLower(v)
-		}
-	}
+	status, _ = getStatus(output)
 
 	if !disable {
 		status = strings.ToLower(status)
 		if s, ok := statusMap[status]; ok {
 			status = s
+			setStatus(output, status)
 		} else {
-			status = PipelineDefaultStatus
-			output.Fields[PipelineStatusField] = status
+			status = DefaultStatus
+			setStatus(output, status)
 		}
 	}
 
@@ -70,20 +70,28 @@ func ProcLoggingStatus(output *parser.Output, disable bool, ignore []string, spi
 			}
 		}
 	}
+	return output
+}
 
-	if spiltLen <= 0 { // 当初始化 task 时没有注入最大长度则使用默认值
-		spiltLen = maxFieldsLength
+func getStatus(output *parser.Output) (string, bool) {
+	if v, ok := output.Tags[FieldStatus]; ok {
+		return v, ok
 	}
-	for key := range output.Fields {
-		if i, ok := output.Fields[key]; ok {
-			if mass, isString := i.(string); isString {
-				if len(mass) > spiltLen {
-					mass = mass[:spiltLen]
-					output.Fields[key] = mass
-				}
-			}
+
+	if v, ok := output.Fields[FieldStatus]; ok {
+		if s, ok := v.(string); ok {
+			return s, ok
 		}
 	}
 
-	return output
+	return "", false
+}
+
+func setStatus(output *parser.Output, status string) {
+	if _, ok := output.Tags[FieldStatus]; ok {
+		output.Tags[FieldStatus] = status
+		return
+	}
+
+	output.Fields[FieldStatus] = status
 }

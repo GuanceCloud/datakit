@@ -118,8 +118,8 @@ Datakit 支持命令行直接调试 prom 采集器的配置文件，从 conf.d/{
 
 执行如下命令，即可调试 `prom.conf`
 
-```
-datakit --prom-conf prom.conf
+```shell
+datakit tool --prom-conf prom.conf
 ```
 
 参数说明：

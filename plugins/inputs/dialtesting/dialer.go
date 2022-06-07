@@ -66,7 +66,6 @@ func (d *dialer) getSendFailCount() int32 {
 	if d.category != "" {
 		return dataway.GetSendStat(d.category)
 	}
-
 	return 0
 }
 

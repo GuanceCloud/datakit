@@ -171,6 +171,7 @@ var (
 	flagToolGrokQ             = fsTool.Bool("grokq", false, "query groks interactively")
 	flagSetupCompleterScripts = fsTool.Bool("setup-completer-script", false, "auto generate auto completion script(Linux only)")
 	flagCompleterScripts      = fsTool.Bool("completer-script", false, "show completion script(Linux only)")
+	flagPromConf              = fsTool.String("prom-conf", "", "specify the prom input conf to debug")
 
 	fsToolUsage = func() {
 		fmt.Printf("usage: datakit tool [options]\n\n")

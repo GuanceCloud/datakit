@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"regexp"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -57,9 +58,11 @@ type Input struct {
 	CertFile   string `toml:"tls_cert"`
 	KeyFile    string `toml:"tls_key"`
 
-	TagsIgnore []string          `toml:"tags_ignore"`
-	TagsRename *iprom.RenameTags `toml:"tags_rename"`
-	Tags       map[string]string `toml:"tags"`
+	TagsIgnore  []string            `toml:"tags_ignore"`
+	TagsRename  *iprom.RenameTags   `toml:"tags_rename"`
+	IgnoreTagKV map[string][]string `toml:"ignore_tag_kv_match"`
+
+	Tags map[string]string `toml:"tags"`
 
 	Auth map[string]string `toml:"auth"`
 
@@ -108,6 +111,7 @@ func (i *Input) Run() {
 
 	l.Info("prom start")
 
+	ioname := inputName + "/" + i.Source
 	for {
 		if i.pause {
 			l.Debug("prom paused")
@@ -115,10 +119,10 @@ func (i *Input) Run() {
 			start := time.Now()
 			pts := i.doCollect()
 			if pts != nil {
-				if err := io.Feed(i.Source, datakit.Metric, pts,
+				if err := io.Feed(ioname, datakit.Metric, pts,
 					&io.Option{CollectCost: time.Since(start)}); err != nil {
 					l.Errorf("Feed: %s", err)
-					io.FeedLastError(i.Source, err.Error())
+					io.FeedLastError(ioname, err.Error())
 				}
 			}
 		}
@@ -214,28 +218,47 @@ func (i *Input) Init() error {
 		i.urls = append(i.urls, uu)
 	}
 
+	kvIgnore := iprom.IgnoreTagKeyValMatch{}
+	for k, arr := range i.IgnoreTagKV {
+		for _, x := range arr {
+			if re, err := regexp.Compile(x); err != nil {
+				l.Warnf("regexp.Compile('%s'): %s, ignored", x, err)
+			} else {
+				kvIgnore[k] = append(kvIgnore[k], re)
+			}
+		}
+	}
+
 	// toml 不支持匿名字段的 marshal，JSON 支持
 	opt := &iprom.Option{
-		Source:            i.Source,
-		Interval:          i.Interval,
-		URL:               i.URL,
-		URLs:              i.URLs,
-		IgnoreReqErr:      i.IgnoreReqErr,
-		MetricTypes:       i.MetricTypes,
+		Source:   i.Source,
+		Interval: i.Interval,
+
+		URL:  i.URL,
+		URLs: i.URLs,
+
+		MetricTypes: i.MetricTypes,
+
+		IgnoreReqErr: i.IgnoreReqErr,
+
 		MetricNameFilter:  i.MetricNameFilter,
 		MeasurementPrefix: i.MeasurementPrefix,
 		MeasurementName:   i.MeasurementName,
 		Measurements:      i.Measurements,
-		TLSOpen:           i.TLSOpen,
-		CacertFile:        i.CacertFile,
-		CertFile:          i.CertFile,
-		KeyFile:           i.KeyFile,
-		Tags:              i.Tags,
-		TagsIgnore:        i.TagsIgnore,
-		RenameTags:        i.TagsRename,
-		Output:            i.Output,
-		MaxFileSize:       i.MaxFileSize,
-		Auth:              i.Auth,
+
+		TLSOpen:    i.TLSOpen,
+		CacertFile: i.CacertFile,
+		CertFile:   i.CertFile,
+		KeyFile:    i.KeyFile,
+
+		Tags:        i.Tags,
+		TagsIgnore:  i.TagsIgnore,
+		IgnoreTagKV: kvIgnore,
+
+		RenameTags:  i.TagsRename,
+		Output:      i.Output,
+		MaxFileSize: i.MaxFileSize,
+		Auth:        i.Auth,
 	}
 
 	pm, err := iprom.NewProm(opt)

@@ -43,7 +43,7 @@ var (
 	MaxTagKeyLen     int = 256
 	MaxFieldKeyLen   int = 256
 	MaxTagValueLen   int = 1024
-	MaxFieldValueLen int = 32 * 1024 // if field value is string,limit to 32K
+	MaxFieldValueLen int = 32 * 1024 * 1024 // if field value is string,limit to 32M
 
 	Precision string = "n"
 )

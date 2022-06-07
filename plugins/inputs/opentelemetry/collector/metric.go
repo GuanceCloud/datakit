@@ -104,7 +104,7 @@ func (s *SpansStorage) getData(metric *metricpb.Metric) []*date {
 type OtelResourceMetric struct {
 	Operation   string            `json:"operation"`   // metric.name
 	Attributes  map[string]string `json:"attributes"`  // tags
-	Service     string            `json:"service"`     // metric.resource.(service.name)
+	Service     string            `json:"service"`     // metric.resource.(service.name) -> 固定值 otel-service
 	Resource    string            `json:"resource"`    // global.Meter name
 	Description string            `json:"description"` // metric.Description
 	StartTime   uint64            `json:"start_time"`  // start time
@@ -120,7 +120,6 @@ func (s *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*OtelR
 	for _, resourceMetrics := range rss {
 		dt := newEmptyTags(s.RegexpString, s.GlobalTags)
 		tags := dt.setAttributesToTags(resourceMetrics.Resource.Attributes).tags
-		service := dt.getAttributeVal(otelResourceServiceKey)
 		LibraryMetrics := resourceMetrics.GetInstrumentationLibraryMetrics()
 		for _, libraryMetric := range LibraryMetrics {
 			resource := libraryMetric.InstrumentationLibrary.Name
@@ -131,7 +130,7 @@ func (s *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*OtelR
 					orm := &OtelResourceMetric{
 						Operation:   metrice.Name,
 						Attributes:  tags,
-						Service:     service,
+						Service:     otelServiceName,
 						Resource:    resource,
 						Description: metrice.Description,
 						ValueType:   p.typeName,
