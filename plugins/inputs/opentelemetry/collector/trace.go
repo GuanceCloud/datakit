@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
@@ -39,7 +40,7 @@ func (s *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.Datakit
 					Operation:          span.Name,
 					Source:             inputName,
 					SpanType:           DKtrace.FindSpanTypeStrSpanID(spanID, ParentID, spanIDs, parentIDs),
-					SourceType:         DKtrace.SPAN_SERVICE_CUSTOM,
+					SourceType:         dt.getResourceType(),
 					Env:                "",
 					Project:            "",
 					Version:            librarySpans.InstrumentationLibrary.Version,
@@ -223,6 +224,22 @@ func (dt *dkTags) getAttributeVal(keyName string) string {
 		return defaultServiceVal // set default to 'service.name'
 	}
 	return ""
+}
+
+func (dt *dkTags) getResourceType() string {
+	// 从 tag 中判断 span resource 类型，app、db、cache 等
+	for key, val := range dt.tags {
+		l.Debugf("tag = %s val =%s", key, val)
+		switch key {
+		case string(semconv.HTTPSchemeKey), string(semconv.HTTPMethodKey):
+			return DKtrace.SPAN_SERVICE_WEB
+		case string(semconv.DBSystemKey):
+			return DKtrace.SPAN_SERVICE_DB
+		default:
+			continue
+		}
+	}
+	return DKtrace.SPAN_SERVICE_CUSTOM
 }
 
 func byteToString(bts []byte) string {
