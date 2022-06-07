@@ -193,9 +193,8 @@ func (t *Single) tellEvent(event fsnotify.Event) (err error) {
 			t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
 			return
 		}
-
-	default:
-		t.opt.log.Debugf("receive %s event from file %s, ignored", event, t.filepath)
+		// default:
+		// 	t.opt.log.Debugf("receive %s event from file %s, ignored", event, t.filepath)
 	}
 
 	return nil

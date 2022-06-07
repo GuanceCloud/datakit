@@ -29,6 +29,9 @@ type kubernetesInputConfig struct {
 	bearerToken       string
 	bearerTokenString string
 	extraTags         map[string]string
+
+	enablePodMetric bool
+	enableK8sMetric bool
 }
 
 func newKubernetesInput(cfg *kubernetesInputConfig) (*kubernetesInput, error) {
@@ -72,10 +75,20 @@ func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 
 	for _, fn := range k8sResourceMetricList {
 		x := fn(k.client, extraTags)
-		if m, err := x.metric(); err == nil {
-			res = append(res, m...)
-		} else {
+
+		if m, err := x.metric(); err != nil {
 			lastErr = err
+		} else {
+			switch x.name() {
+			case "pod":
+				if k.cfg.enablePodMetric {
+					res = append(res, m...)
+				}
+			default:
+				if k.cfg.enableK8sMetric {
+					res = append(res, m...)
+				}
+			}
 		}
 
 		nsCount, err := x.count()
@@ -139,13 +152,6 @@ func (k *kubernetesInput) gatherResourceObject() (inputsMeas, error) {
 	}
 
 	return res, lastErr
-}
-
-func (k *kubernetesInput) gatherPodMetrics() ([]inputs.Measurement, error) {
-	if k.client.metricsClient == nil {
-		return nil, nil
-	}
-	return gatherPodMetrics(k.client.metricsClient, k.cfg.extraTags)
 }
 
 func (k *kubernetesInput) watchingEventLog(stop <-chan interface{}) {
