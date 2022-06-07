@@ -144,7 +144,7 @@ func (p *pod) object() (inputsMeas, error) {
 			fields: map[string]interface{}{
 				"age":         int64(time.Since(item.CreationTimestamp.Time).Seconds()),
 				"availale":    len(item.Status.ContainerStatuses),
-				"create_time": item.CreationTimestamp.Time.Unix(),
+				"create_time": item.CreationTimestamp.Time.UnixNano() / int64(time.Millisecond),
 			},
 			time: time.Now(),
 		}
@@ -342,7 +342,7 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
-			"create_time":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(second)"},
+			"create_time":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(milliseconds)"},
 			"restart":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted. (Depercated, use restarts)"},
 			"restarts":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
 			"ready":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Describes whether the pod is ready to serve requests."},
