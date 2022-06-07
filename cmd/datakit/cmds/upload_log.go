@@ -26,8 +26,10 @@ type successRes struct {
 func uploadLog(urls []string) error {
 	dwCfg := dataway.DataWayCfg{URLs: urls}
 
-	if config.Cfg.DataWayCfg != nil && len(config.Cfg.DataWayCfg.HTTPProxy) > 0 {
-		dwCfg.HTTPProxy = config.Cfg.DataWayCfg.HTTPProxy
+	if config.Cfg.DataWayCfg != nil {
+		if len(config.Cfg.DataWayCfg.HTTPProxy) > 0 {
+			dwCfg.HTTPProxy = config.Cfg.DataWayCfg.HTTPProxy
+		}
 	}
 
 	dw := &dataway.DataWayDefault{}

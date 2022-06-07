@@ -99,6 +99,7 @@ require (
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220526124657-111c6cd47c52
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220412070245-d0b4d9eb07d3
 	go.etcd.io/bbolt v1.3.5
+	go.mercari.io/go-dnscache v0.0.0-20220124075326-2701c2ab5df5
 	go.opentelemetry.io/otel v1.4.1
 	go.opentelemetry.io/otel/exporters/jaeger v1.4.1
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.27.0
@@ -111,9 +112,8 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v0.27.0
 	go.opentelemetry.io/otel/trace v1.4.1
 	go.opentelemetry.io/proto/otlp v0.12.0
-	go.uber.org/atomic v1.7.0
-	go.uber.org/multierr v1.7.0 // indirect
-	go.uber.org/zap v1.17.0 // indirect
+	go.uber.org/atomic v1.9.0
+	go.uber.org/zap v1.20.0
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect

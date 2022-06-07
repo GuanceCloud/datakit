@@ -8,6 +8,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -26,6 +27,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dnswatcher"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	plRemote "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -44,6 +46,8 @@ var (
 )
 
 func main() {
+	rand.Seed(time.Now().UTC().UnixNano()) // rand seed global
+
 	datakit.Version = ReleaseVersion
 	if ReleaseVersion != "" {
 		datakit.Version = ReleaseVersion
@@ -199,6 +203,13 @@ func doRun() error {
 	// check io start
 	checkutil.CheckConditionExit(func() bool {
 		if err := io.Start(config.Cfg.Sinks.Sink); err != nil {
+			return false
+		}
+
+		return true
+	})
+	checkutil.CheckConditionExit(func() bool {
+		if err := dnswatcher.StartWatch(); err != nil {
 			return false
 		}
 
