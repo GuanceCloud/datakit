@@ -15,11 +15,12 @@ import (
 
 const (
 	// pipeline关键字段.
-	PipelineTimeField     = script.PipelineTimeField
-	PipelineMessageField  = script.PipelineMessageField
-	PipelineStatusField   = script.PipelineStatusField
-	PipelineMSource       = script.PipelineMSource
-	DefaultPipelineStatus = script.PipelineDefaultStatus
+	FieldTime       = script.FieldTime
+	FieldMessage    = script.FieldMessage
+	FieldStatus     = script.FieldStatus
+	PlLoggingSource = script.PlLoggingSource
+
+	DefaultStatus = script.DefaultStatus
 )
 
 type Result struct {

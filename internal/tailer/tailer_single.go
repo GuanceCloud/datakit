@@ -377,7 +377,10 @@ func (t *Single) sendToPipeline(pending []string) {
 	timeNow := time.Now().Add(-time.Duration(len(pending)))
 	for i, cnt := range pending {
 		pt, err := iod.MakePoint(t.opt.Source, t.tags,
-			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+			map[string]interface{}{
+				pipeline.FieldMessage: cnt,
+				pipeline.FieldStatus:  pipeline.DefaultStatus,
+			},
 			timeNow.Add(time.Duration(i)),
 		)
 		if err != nil {

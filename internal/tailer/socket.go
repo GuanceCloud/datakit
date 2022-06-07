@@ -222,7 +222,10 @@ func (sl *socketLogger) sendToPipeline(pending []string) {
 	res := []*iod.Point{}
 	for i, cnt := range taskCnt {
 		pt, err := iod.MakePoint(sl.opt.Source, sl.tags,
-			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+			map[string]interface{}{
+				pipeline.FieldMessage: cnt,
+				pipeline.FieldStatus:  pipeline.DefaultStatus,
+			},
 			timeNow.Add(time.Duration(i)),
 		)
 		if err != nil {

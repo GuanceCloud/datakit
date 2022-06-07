@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package script used to create pipeline script
+// Package script for managing pipeline scripts
 package script
 
 import (
@@ -16,11 +16,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 )
 
-// ES value can be at most 32766 bytes long.
-const maxFieldsLength = 32766
-
 type Option struct {
-	MaxFieldValLen        int
+	MaxFieldValLen        int // deprecated
 	DisableAddStatusField bool
 	IgnoreStatus          []string
 }
@@ -97,17 +94,13 @@ func (script *PlScript) Run(measurement string, tags map[string]string, fields m
 		var disable bool
 		var ignore []string
 
-		var spiltLen int
-
 		if opt != nil {
 			disable = opt.DisableAddStatusField
 			ignore = opt.IgnoreStatus
-			spiltLen = opt.MaxFieldValLen
+			// spiltLen = opt.MaxFieldValLen
 		}
-		if spiltLen <= 0 { // 当初始化 task 时没有注入最大长度则使用默认值
-			spiltLen = maxFieldsLength
-		}
-		out = ProcLoggingStatus(out, disable, ignore, spiltLen)
+		// out = ProcLoggingStatus(out, disable, ignore, spiltLen)
+		out = ProcLoggingStatus(out, disable, ignore)
 	default:
 		return nil, false, fmt.Errorf("unsupported category: %s", script.category)
 	}

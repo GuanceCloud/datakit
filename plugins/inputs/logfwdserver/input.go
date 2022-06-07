@@ -189,7 +189,10 @@ func makePts(source string, cnt []string, tags map[string]string) []*io.Point {
 
 	for _, cnt := range cnt {
 		pt, err := io.MakePoint(source, tags,
-			map[string]interface{}{pipeline.PipelineMessageField: cnt},
+			map[string]interface{}{
+				pipeline.FieldMessage: cnt,
+				pipeline.FieldStatus:  pipeline.DefaultStatus,
+			},
 			time.Now(),
 		)
 		if err != nil {

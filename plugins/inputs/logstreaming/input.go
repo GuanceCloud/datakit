@@ -136,10 +136,19 @@ func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) 
 		scanner := bufio.NewScanner(req.Body)
 		pts := []*io.Point{}
 		for scanner.Scan() {
-			if pt, err := io.NewPoint(source, extraTags, map[string]interface{}{pipeline.DefaultPipelineStatus: scanner.Text()}, nil); err != nil {
-				pts = append(pts, pt)
-			} else {
+			pt, err := io.NewPoint(source, extraTags,
+				map[string]interface{}{
+					pipeline.FieldMessage: scanner.Text(),
+					pipeline.FieldStatus:  pipeline.DefaultStatus,
+				},
+				&io.PointOption{
+					Category: datakit.Logging,
+					Time:     time.Now(),
+				})
+			if err != nil {
 				l.Error(err)
+			} else {
+				pts = append(pts, pt)
 			}
 		}
 		// pts := plRunCnt(source, pipeLlinePath, pending, extraTags)
