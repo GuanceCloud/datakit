@@ -9,7 +9,7 @@
 - 修复 toml 配置文件兼容性问题(#195)
 - 增加 [TCP/UDP 端口检测](socket)采集器(#743)
 - DataKit 跟 DataWay 之间增加 DNS 检测，支持 DataWay DNS 动态切换(#758)
-- [eBPF](ebpf) L4/L7 流量数据增加 `deployment` 字段(#793)
+- [eBPF](ebpf) L4/L7 流量数据增加 k8s deployment name 字段(#793)
 - 优化 [OpenTelemetry](opentelemetry) 指标数据(#794)
 - [ElasticSearch](elasticsearch) 增加 AWS OpenSearch 支持(#797)
 - [行协议限制](apis#2fc2526a)中，字符串长度限制放宽到 32MB(#801)

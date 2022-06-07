@@ -31,9 +31,9 @@ const sampleCfg = `
   docker_endpoint = "unix:///var/run/docker.sock"
   containerd_address = "/var/run/containerd/containerd.sock"
 
-  ## Containers metrics to include and exclude, default not collect. Globs accepted.
-  container_include_metric = []
-  container_exclude_metric = ["image:*"]
+  enable_container_metric = false
+  enable_k8s_metric = false
+  enable_pod_metric = false
 
   ## Containers logs to include and exclude, default collect all containers. Globs accepted.
   container_include_log = []
@@ -60,15 +60,17 @@ const sampleCfg = `
 `
 
 type DepercatedConf struct {
-	EnableMetric        bool           `toml:"enable_metric,omitempty"`
-	EnableObject        bool           `toml:"enable_object,omitempty"`
-	EnableLogging       bool           `toml:"enable_logging,omitempty"`
-	MetricInterval      timex.Duration `toml:"metric_interval,omitempty"`
-	MaxLoggingLength    int            `toml:"max_logging_length"`
-	IgnoreImageName     []string       `toml:"ignore_image_name,omitempty"`
-	IgnoreContainerName []string       `toml:"ignore_container_name,omitempty"`
-	DropTags            []string       `toml:"drop_tags,omitempty"`
-	Kubernetes          struct {
+	EnableMetric           bool           `toml:"enable_metric,omitempty"`
+	EnableObject           bool           `toml:"enable_object,omitempty"`
+	EnableLogging          bool           `toml:"enable_logging,omitempty"`
+	MetricInterval         timex.Duration `toml:"metric_interval,omitempty"`
+	MaxLoggingLength       int            `toml:"max_logging_length"`
+	IgnoreImageName        []string       `toml:"ignore_image_name,omitempty"`
+	IgnoreContainerName    []string       `toml:"ignore_container_name,omitempty"`
+	DropTags               []string       `toml:"drop_tags,omitempty"`
+	ContainerIncludeMetric []string       `toml:"container_include_metric"`
+	ContainerExcludeMetric []string       `toml:"container_exclude_metric"`
+	Kubernetes             struct {
 		URL                string   `toml:"kubelet_url,omitempty"`
 		IgnorePodName      []string `toml:"ignore_pod_name,omitempty"`
 		BearerToken        string   `toml:"bearer_token,omitempty"`

@@ -6,11 +6,11 @@
 
 # {{.InputName}}
 
-socket采集器用于采集udp,tcp端口信息
+socket 采集器用于采集 UDP/TCP 端口信息。
 
 ## 前置条件
 
-udp指标需要操作系统有nc程序
+UDP 指标需要操作系统有 `nc` 程序
 
 ## 配置
 
@@ -24,7 +24,7 @@ udp指标需要操作系统有nc程序
 
 ## 指标集
 
-以下所有指标集，默认会追加 `proto`  `dest_host` `dest_port` 的全局 tag，也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+以下所有指标集，默认会追加 `proto/dest_host/dest_port` 全局 tag，也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ``` toml
  [inputs.{{.InputName}}.tags]

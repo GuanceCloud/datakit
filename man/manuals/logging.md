@@ -193,7 +193,7 @@ Traceback (most recent call last):
 对日志数据而言，主要提取两个字段：
 
 - `time`：即日志的产生时间，如果没有提取 `time` 字段或解析此字段失败，默认使用系统当前时间
-- `status`：日志的等级，如果没有提取出 `status` 字段，则默认将 `stauts` 置为 `info`
+- `status`：日志的等级，如果没有提取出 `status` 字段，则默认将 `stauts` 置为 `unknown`
 
 #### 可用日志等级
 

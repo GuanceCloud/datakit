@@ -247,7 +247,9 @@ func (dw *DataWayDefault) sendReq(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
+	dw.locker.Lock()
 	resp, err := dw.httpCli.Do(x)
+	dw.locker.Unlock()
 	if ts != nil {
 		ts.cost = time.Since(reqStart)
 		log.Debugf("%s: %s", req.URL.Path, ts.String())
@@ -265,7 +267,6 @@ func (dw *DataWayDefault) Send(category string, data []byte, gz bool) (statusCod
 		log.Debugf("send to %dth dataway, fails: %d/%d", i, ep.fails, dw.MaxFails)
 		// 判断 fails
 		if ep.fails > dw.MaxFails && len(AvailableDataways) > 0 {
-			rand.Seed(time.Now().UnixNano())
 			index := rand.Intn(len(AvailableDataways)) //nolint:gosec
 
 			url := fmt.Sprintf(`%s?%s`, AvailableDataways[index], ep.urlValues.Encode())

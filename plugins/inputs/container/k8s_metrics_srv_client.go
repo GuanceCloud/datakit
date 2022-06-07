@@ -8,12 +8,7 @@ package container
 import (
 	"context"
 	"strconv"
-	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"k8s.io/client-go/rest"
 	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	metricsv1beta1 "k8s.io/metrics/pkg/client/clientset/versioned/typed/metrics/v1beta1"
@@ -50,60 +45,27 @@ func (c *k8sMetricsClient) getNodeMetrics() metricsv1beta1.NodeMetricsInterface 
 	return c.NodeMetricses()
 }
 
-const (
-	k8sPodMetricName = "kubelet_pod"
-)
-
-func gatherPodMetrics(client k8sMetricsClientX, extraTags map[string]string) ([]inputs.Measurement, error) {
-	list, err := client.getPodMetrics().List(context.Background(), metaV1ListOption)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(list.Items) == 0 {
-		return nil, nil
-	}
-
-	var res []inputs.Measurement
-
-	for idx := range list.Items {
-		obj := parsePodMetrics(&list.Items[idx], extraTags)
-		if obj != nil {
-			res = append(res, obj)
-		}
-	}
-	return res, nil
-}
-
-func getPodSrvMetric(client k8sMetricsClientX, namespace, name string) (*podSrvMetric, error) {
+func gatherPodMetrics(client k8sMetricsClientX, namespace, name string) (*podSrvMetric, error) {
 	met, err := client.getPodMetricsForNamespace(namespace).Get(context.Background(), name, metaV1GetOption)
 	if err != nil {
 		return nil, err
 	}
-	return parsePodMetrics(met, nil), nil
+	return parsePodMetrics(met), nil
 }
 
-func parsePodMetrics(item *v1beta1.PodMetrics, extraTags map[string]string) *podSrvMetric {
+type podSrvMetric struct {
+	cpuUsage         float64
+	memoryUsageBytes int64
+}
+
+func parsePodMetrics(item *v1beta1.PodMetrics) *podSrvMetric {
 	if len(item.Containers) == 0 {
 		return nil
-	}
-	obj := &podSrvMetric{
-		tags: map[string]string{
-			"pod_name":     item.Name,
-			"cluster_name": defaultClusterName(item.ClusterName),
-			"namespace":    defaultNamespace(item.Namespace),
-		},
-		fields: map[string]interface{}{},
-		time:   time.Now(),
-	}
-	obj.tags.append(extraTags)
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		obj.tags["election_namespace"] = namespace
 	}
 
 	cpu := item.Containers[0].Usage["cpu"]
 	mem := item.Containers[0].Usage["memory"]
+
 	for i := 1; i < len(item.Containers); i++ {
 		if c, ok := item.Containers[i].Usage["cpu"]; ok {
 			cpu.Add(c)
@@ -119,41 +81,8 @@ func parsePodMetrics(item *v1beta1.PodMetrics, extraTags map[string]string) *pod
 	}
 	memUsage, _ := mem.AsInt64()
 
-	obj.fields["cpu_usage"] = cpuUsage * 100 // percentage
-	obj.fields["memory_usage_bytes"] = memUsage
-
-	return obj
-}
-
-type podSrvMetric struct {
-	tags   tagsType
-	fields fieldsType
-	time   time.Time
-}
-
-func (p *podSrvMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint(k8sPodMetricName, p.tags, p.fields, &io.PointOption{Time: p.time, Category: datakit.Metric})
-}
-
-//nolint:lll
-func (*podSrvMetric) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: k8sPodMetricName,
-		Desc: "Kubernetes pod 指标数据",
-		Type: "metric",
-		Tags: map[string]interface{}{
-			"pod_name":     inputs.NewTagInfo(`pod name`),
-			"cluster_name": inputs.NewTagInfo("The name of the cluster which the object belongs to."),
-			"namespace":    inputs.NewTagInfo(`Namespace defines the space within each name must be unique.`),
-		},
-		Fields: map[string]interface{}{
-			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
-			"memory_usage_bytes": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of memory used in bytes"},
-		},
+	return &podSrvMetric{
+		cpuUsage:         cpuUsage * 100, // percentage
+		memoryUsageBytes: memUsage,
 	}
-}
-
-//nolint:gochecknoinits
-func init() {
-	registerMeasurement(&podSrvMetric{})
 }

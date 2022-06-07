@@ -73,7 +73,7 @@ func (i *Input) Terminate() {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return []string{"linux", "darwin"}
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
