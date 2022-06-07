@@ -28,11 +28,12 @@ var (
 	OtherDocs = map[string]interface{}{
 		// value not used, just document the markdown relative path
 		// all manuals under man/manuals/
-		"datakit-sink-guide":    "man/manuals/datakit-sink-guide.md",
-		"datakit-sink-dev":      "man/manuals/datakit-sink-dev.md",
-		"datakit-sink-influxdb": "man/manuals/datakit-sink-influxdb.md",
-		"datakit-sink-logstash": "man/manuals/datakit-sink-logstash.md",
-		"datakit-sink-m3db":     "man/manuals/datakit-sink-m3db.md",
+		"datakit-sink-guide":       "man/manuals/datakit-sink-guide.md",
+		"datakit-sink-dev":         "man/manuals/datakit-sink-dev.md",
+		"datakit-sink-influxdb":    "man/manuals/datakit-sink-influxdb.md",
+		"datakit-sink-logstash":    "man/manuals/datakit-sink-logstash.md",
+		"datakit-sink-m3db":        "man/manuals/datakit-sink-m3db.md",
+		"datakit-sink-otel-jaeger": "man/manuals/datakit-sink-otel-jaeger.md",
 
 		"apis":                 "man/manuals/apis.md",
 		"changelog":            "man/manuals/changelog.md",

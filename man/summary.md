@@ -31,7 +31,7 @@
       - [InfluxDB](datakit-sink-influxdb)
       - [Logstash](datakit-sink-logstash)
       - [M3DB](datakit-sink-m3db)
-
+      - [OpenTelemetry and Jaeger](datakit-sink-otel-jaeger)
 - [文本数据处理（Pipeline）](pipeline)
 
   - [如何编写 Pipeline 脚本](datakit-pl-how-to)
