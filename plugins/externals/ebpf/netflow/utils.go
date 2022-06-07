@@ -263,34 +263,38 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	if k8sNetInfo != nil {
 		srcK8sFlag := false
 		dstK8sFlag := false
-		_, srcPoName, srcSvcName, ns, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["src_ip"], k.Sport, m.tags["transport"])
-		if err == nil {
+		if _, srcPoName, srcSvcName, ns, srcDeployment, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["src_ip"],
+			k.Sport, m.tags["transport"]); err == nil {
 			srcK8sFlag = true
 			m.tags["src_k8s_namespace"] = ns
 			m.tags["src_k8s_pod_name"] = srcPoName
 			m.tags["src_k8s_service_name"] = srcSvcName
+			m.tags["src_k8s_deployment_name"] = srcDeployment
 			if svcP == k.Sport {
 				m.tags["direction"] = "incoming"
 			}
 		}
 
-		_, dstPodName, dstSvcName, ns, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["dst_ip"], k.Dport, m.tags["transport"])
-		if err == nil {
+		if _, dstPodName, dstSvcName, ns, dstDeployment, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["dst_ip"],
+			k.Dport, m.tags["transport"]); err == nil {
 			dstK8sFlag = true
 			m.tags["dst_k8s_namespace"] = ns
 			m.tags["dst_k8s_pod_name"] = dstPodName
 			m.tags["dst_k8s_service_name"] = dstSvcName
+			m.tags["dst_k8s_deployment_name"] = dstDeployment
+
 			if svcP == k.Dport {
 				m.tags["direction"] = "outgoing"
 			}
 
 		} else {
-			dstSvcName, ns, err := k8sNetInfo.QuerySvcInfo(m.tags["dst_ip"])
+			dstSvcName, ns, dp, err := k8sNetInfo.QuerySvcInfo(m.tags["dst_ip"])
 			if err == nil {
 				dstK8sFlag = true
 				m.tags["dst_k8s_namespace"] = ns
 				m.tags["dst_k8s_pod_name"] = "N/A"
 				m.tags["dst_k8s_service_name"] = dstSvcName
+				m.tags["dst_k8s_deployment_name"] = dp
 				m.tags["direction"] = "outgoing"
 			}
 		}
@@ -301,11 +305,13 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 				m.tags["src_k8s_namespace"] = "N/A"
 				m.tags["src_k8s_pod_name"] = "N/A"
 				m.tags["src_k8s_service_name"] = "N/A"
+				m.tags["src_k8s_deployment_name"] = "N/A"
 			}
 			if !dstK8sFlag {
 				m.tags["dst_k8s_namespace"] = "N/A"
 				m.tags["dst_k8s_pod_name"] = "N/A"
 				m.tags["dst_k8s_service_name"] = "N/A"
+				m.tags["dst_k8s_deployment_name"] = "N/A"
 			}
 		}
 	}

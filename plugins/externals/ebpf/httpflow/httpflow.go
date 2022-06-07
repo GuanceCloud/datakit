@@ -294,33 +294,37 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measuremen
 	if k8sNetInfo != nil {
 		srcK8sFlag := false
 		dstK8sFlag := false
-		_, srcPodName, srcSvcName, ns, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["src_ip"], httpFinReq.ConnInfo.Sport, m.tags["transport"])
-		if err == nil {
+		if _, srcPodName, srcSvcName, ns, srcDeployment, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["src_ip"],
+			httpFinReq.ConnInfo.Sport, m.tags["transport"]); err == nil {
 			srcK8sFlag = true
 			m.tags["src_k8s_namespace"] = ns
 			m.tags["src_k8s_pod_name"] = srcPodName
 			m.tags["src_k8s_service_name"] = srcSvcName
+			m.tags["src_k8s_deployment_name"] = srcDeployment
 			if svcP == httpFinReq.ConnInfo.Sport {
 				m.tags["direction"] = "incoming"
 			}
 		}
 
-		_, dstPoName, dstSvcName, ns, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["dst_ip"], httpFinReq.ConnInfo.Dport, m.tags["transport"])
-		if err == nil {
+		if _, dstPoName, dstSvcName, ns, dstDeployment, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["dst_ip"],
+			httpFinReq.ConnInfo.Dport, m.tags["transport"]); err == nil {
 			dstK8sFlag = true
 			m.tags["dst_k8s_namespace"] = ns
 			m.tags["dst_k8s_pod_name"] = dstPoName
 			m.tags["dst_k8s_service_name"] = dstSvcName
+			m.tags["dst_k8s_deployment_name"] = dstDeployment
+
 			if svcP == httpFinReq.ConnInfo.Dport {
 				m.tags["direction"] = "outgoing"
 			}
 		} else {
-			dstSvcName, ns, err := k8sNetInfo.QuerySvcInfo(m.tags["dst_ip"])
+			dstSvcName, ns, dp, err := k8sNetInfo.QuerySvcInfo(m.tags["dst_ip"])
 			if err == nil {
 				dstK8sFlag = true
 				m.tags["dst_k8s_namespace"] = ns
 				m.tags["dst_k8s_pod_name"] = "N/A"
 				m.tags["dst_k8s_service_name"] = dstSvcName
+				m.tags["dst_k8s_deployment_name"] = dp
 				m.tags["direction"] = "outgoing"
 			}
 		}
@@ -331,11 +335,13 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measuremen
 				m.tags["src_k8s_namespace"] = "N/A"
 				m.tags["src_k8s_pod_name"] = "N/A"
 				m.tags["src_k8s_service_name"] = "N/A"
+				m.tags["src_k8s_deployment_name"] = "N/A"
 			}
 			if !dstK8sFlag {
 				m.tags["dst_k8s_namespace"] = "N/A"
 				m.tags["dst_k8s_pod_name"] = "N/A"
 				m.tags["dst_k8s_service_name"] = "N/A"
+				m.tags["dst_k8s_deployment_name"] = "N/A"
 			}
 		}
 	}
