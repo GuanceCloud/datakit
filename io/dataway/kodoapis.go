@@ -148,7 +148,14 @@ func (dw *DataWayDefault) Election(namespace, id string) ([]byte, error) {
 	}
 
 	log.Debugf("election sending %s", requrl)
-	resp, err := dw.httpCli.Post(requrl, "", nil)
+
+	req, err := http.NewRequest("POST", requrl, nil)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	resp, err := dc.dw.sendReq(req)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -190,7 +197,14 @@ func (dw *DataWayDefault) ElectionHeartbeat(namespace, id string) ([]byte, error
 	}
 
 	log.Debugf("election sending heartbeat %s", requrl)
-	resp, err := dw.httpCli.Post(requrl, "", nil)
+
+	req, err := http.NewRequest("POST", requrl, nil)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	resp, err := dc.dw.sendReq(req)
 	if err != nil {
 		log.Error(err)
 		return nil, err
