@@ -8,6 +8,7 @@ package elasticsearch
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	internalIo "io"
@@ -120,7 +121,7 @@ const sampleConfig = `
   ## HTTP超时设置
   http_timeout = "5s"
 
-  ## 发行版本: elasticsearch, opendistro
+  ## 发行版本: elasticsearch, opendistro, opensearch
   distribution = "elasticsearch"
 
   ## 默认local是开启的，只采集当前Node自身指标，如果需要采集集群所有Node，需要将local设置为false
@@ -215,10 +216,11 @@ type Input struct {
 
 	Tags map[string]string `toml:"tags"`
 
-	TLSOpen    bool   `toml:"tls_open"`
-	CacertFile string `toml:"tls_ca"`
-	CertFile   string `toml:"tls_cert"`
-	KeyFile    string `toml:"tls_key"`
+	TLSOpen            bool   `toml:"tls_open"`
+	CacertFile         string `toml:"tls_ca"`
+	CertFile           string `toml:"tls_cert"`
+	KeyFile            string `toml:"tls_key"`
+	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
 
 	client          *http.Client
 	serverInfo      map[string]serverInfo
@@ -871,11 +873,16 @@ func (i *Input) getLifeCycleErrorCount(url string) (errCount int) {
 		}
 	}
 
-	// opendistro
-	if i.Distribution == "opendistro" {
+	// opendistro or opensearch
+	if i.Distribution == "opendistro" || i.Distribution == "opensearch" {
 		res := map[string]interface{}{}
+		pluginName := "_opendistro"
 
-		if err := i.gatherJSONData(url+"/_opendistro/_ism/explain/*", &res); err != nil {
+		if i.Distribution == "opensearch" {
+			pluginName = "_plugins"
+		}
+
+		if err := i.gatherJSONData(url+"/"+pluginName+"/_ism/explain/*", &res); err != nil {
 			l.Warn(err)
 		} else {
 			for _, index := range res {
@@ -917,7 +924,6 @@ func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 		"number_of_nodes":                  healthStats.NumberOfNodes,
 		"number_of_pending_tasks":          healthStats.NumberOfPendingTasks,
 		"relocating_shards":                healthStats.RelocatingShards,
-		"status":                           healthStats.Status,
 		"status_code":                      mapHealthStatusToCode(healthStats.Status),
 		"task_max_waiting_in_queue_millis": healthStats.TaskMaxWaitingInQueueMillis,
 		"timed_out":                        healthStats.TimedOut,
@@ -934,7 +940,11 @@ func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 		}
 	}
 
-	tags := map[string]string{"name": healthStats.ClusterName}
+	tags := map[string]string{
+		"name":           healthStats.ClusterName,
+		"cluster_status": healthStats.Status,
+	}
+
 	i.extendSelfTag(tags)
 	metric := &clusterHealthMeasurement{
 		elasticsearchMeasurement: elasticsearchMeasurement{
@@ -1025,12 +1035,27 @@ func (i *Input) createHTTPClient() (*http.Client, error) {
 	}
 
 	if i.TLSOpen {
-		tc, err := TLSConfig(i.CacertFile, i.CertFile, i.KeyFile)
-		if err != nil {
-			return nil, err
+		if i.InsecureSkipVerify {
+			client.Transport = &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // nolint:gosec
+			}
 		} else {
-			i.client.Transport = &http.Transport{
-				TLSClientConfig: tc,
+			tc, err := TLSConfig(i.CacertFile, i.CertFile, i.KeyFile)
+			if err != nil {
+				return nil, err
+			} else {
+				client.Transport = &http.Transport{
+					TLSClientConfig: tc,
+				}
+			}
+		}
+	} else {
+		if len(i.Servers) > 0 {
+			server := i.Servers[0]
+			if strings.HasPrefix(server, "https://") {
+				client.Transport = &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // nolint:gosec
+				}
 			}
 		}
 	}
