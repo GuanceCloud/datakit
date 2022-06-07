@@ -60,9 +60,18 @@ _datakit()
 				;;
 
 			tool)
-				COMPREPLY=( $(compgen -W '--check-config --check-sample --default-main-conf --dump-samples
-				--ipinfo --log --show-cloud-info --upload-log --workspace-info --setup-completer-script
-				--completer-script' -- "${cur_word}") )
+				COMPREPLY=( $(compgen -W '--check-config
+				--check-sample
+				--completer-script
+				--default-main-conf
+				--dump-samples
+				--ipinfo
+				--log
+				--prom-conf
+				--setup-completer-script
+				--show-cloud-info
+				--upload-log
+				--workspace-info' -- "${cur_word}") )
 				;;
 
 			help)

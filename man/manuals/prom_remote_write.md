@@ -67,16 +67,16 @@ Datakit 支持命令行直接调试 prom_remote_write 采集器的配置文件�
 
 重启 Datakit，让配置文件生效：
 
-```
+```shell
 datakit service -R
 ```
 
 这时 *prom_remote_write* 采集器将把采集的数据写到 output 指明的本地文件中。
 
-这时执行如下命令，即可调试 prom_remote_write.conf
+这时执行如下命令，即可调试 *prom_remote_write.conf*
 
-```
-datakit --prom-conf prom_remote_write.conf
+```shell
+datakit tool --prom-conf prom_remote_write.conf
 ```
 
 参数说明：
