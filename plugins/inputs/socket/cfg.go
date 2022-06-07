@@ -26,7 +26,7 @@ var (
 	sample      = `
 [[inputs.socket]]
   ## support tcp, udp
-  dest_url = ["tcp://47.110.144.10:443", "udp://1.1.1.1:5555"]
+  dest_url = ["tcp://host:port", "udp://host:port"]
 
   ## @param interval - number - optional - default: 30
   interval = "30s"
