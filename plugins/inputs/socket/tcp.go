@@ -13,7 +13,6 @@ import (
 type TCPTask struct {
 	Host            string
 	Port            string
-	Timeout         string
 	CurStatus       string
 	OwnerExternalID string
 
@@ -27,27 +26,6 @@ type TCPTask struct {
 }
 
 func (t *TCPTask) init(debug bool) error {
-	if len(t.Timeout) == 0 {
-		t.timeout = 10 * time.Second
-	} else {
-		if timeout, err := time.ParseDuration(t.Timeout); err != nil {
-			return err
-		} else {
-			t.timeout = timeout
-		}
-	}
-
-	if !debug {
-		du, err := time.ParseDuration(t.Frequency)
-		if err != nil {
-			return err
-		}
-		if t.ticker != nil {
-			t.ticker.Stop()
-		}
-		t.ticker = time.NewTicker(du)
-	}
-
 	if strings.ToLower(t.CurStatus) == StatusStop {
 		return nil
 	}
@@ -77,13 +55,12 @@ func (t *TCPTask) GetResults() (tags map[string]string, fields map[string]interf
 	message := map[string]interface{}{}
 
 	var reasons []string
+
 	if t.reqError != "" {
 		reasons = append(reasons, t.reqError)
 	}
-	if len(reasons) != 0 {
-		message[`fail_reason`] = strings.Join(reasons, `;`)
-		fields[`fail_reason`] = strings.Join(reasons, `;`)
-	} else {
+
+	if len(reasons) == 0 {
 		message["response_time_in_micros"] = responseTime
 	}
 

@@ -80,20 +80,27 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 
 func (i *Input) Collect() error {
 	for _, cont := range i.DestURL {
-		kv := strings.Split(cont, ":")
-		if len(kv) != 3 {
+		parseUrl := strings.Split(cont, "://")
+		if len(parseUrl) != 2 {
 			io.FeedLastError(inputName, "input socket desturl error:"+cont)
 		}
-		if kv[0] == TCP {
-			err := i.dispatchTasks(kv[1], kv[2])
+		kv := strings.Split(parseUrl[1], ":")
+		protoType := parseUrl[0]
+		if len(kv) != 2 {
+			io.FeedLastError(inputName, "input socket desturl error:"+cont)
+		}
+		if protoType == TCP {
+			err := i.dispatchTasks(kv[0], kv[1])
+			if err != nil {
+				return err
+			}
+		} else if protoType == UDP {
+			err := i.CollectUDP(kv[0], kv[1])
 			if err != nil {
 				return err
 			}
 		} else {
-			err := i.CollectUDP(kv[1], kv[2])
-			if err != nil {
-				return err
-			}
+			l.Warnf("input socket can not support proto : %s", kv[0])
 		}
 	}
 
@@ -107,10 +114,12 @@ func (i *Input) Collect() error {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			Interval: datakit.Duration{Duration: time.Second * 900},
-			semStop:  cliutils.NewSem(),
-			curTasks: map[string]*dialer{},
-			platform: runtime.GOOS,
+			Interval:   datakit.Duration{Duration: time.Second * 30},
+			semStop:    cliutils.NewSem(),
+			curTasks:   map[string]*dialer{},
+			platform:   runtime.GOOS,
+			UDPTimeOut: datakit.Duration{Duration: time.Second * 10},
+			TCPTimeOut: datakit.Duration{Duration: time.Second * 10},
 		}
 	})
 }
@@ -119,8 +128,7 @@ func (i *Input) dispatchTasks(destHost string, destPort string) error {
 	t := &TCPTask{}
 	t.Host = destHost
 	t.Port = destPort
-	t.Timeout = "10s"
-	t.Frequency = "10s"
+	t.timeout = 10 * time.Second
 	dialer, err := i.newTaskRun(t)
 	if err != nil {
 		l.Errorf(`%s, ignore`, err.Error())
@@ -165,7 +173,6 @@ func protectedRun(d *dialer) {
 				return
 			}
 		}
-
 		d.run()
 	}
 

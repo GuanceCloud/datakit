@@ -21,15 +21,19 @@ var (
 	inputName   = "socket"
 	metricName  = inputName
 	l           = logger.DefaultSLogger(inputName)
-	minInterval = time.Second * 300
-	maxInterval = time.Second * 30000
+	minInterval = time.Second * 10
+	maxInterval = time.Second * 60
 	sample      = `
 [[inputs.socket]]
   ## support tcp, udp
-  dest_url = ["tcp:47.110.144.10:443", "udp:1.1.1.1:5555"]
+  dest_url = ["tcp://47.110.144.10:443", "udp://1.1.1.1:5555"]
 
-  ## @param interval - number - optional - default: 900, min 300
-  interval = "900s"
+  ## @param interval - number - optional - default: 30
+  interval = "30s"
+  ## @param interval - number - optional - default: 10	
+  udp_timeout = "10s"
+  ## @param interval - number - optional - default: 10
+  tcp_timeout = "10s"
 
 [inputs.socket.tags]
   # some_tag = "some_value"
@@ -37,8 +41,10 @@ var (
 )
 
 type Input struct {
-	DestURL  []string         `toml:"dest_url"`
-	Interval datakit.Duration `toml:"interval"` // 单位为秒
+	DestURL    []string         `toml:"dest_url"`
+	Interval   datakit.Duration `toml:"interval"` // 单位为秒
+	UDPTimeOut datakit.Duration `toml:"udp_timeout"`
+	TCPTimeOut datakit.Duration `toml:"tcp_timeout"`
 
 	curTasks map[string]*dialer
 	wg       sync.WaitGroup
@@ -80,23 +86,17 @@ func (m *TCPMeasurement) Info() *inputs.MeasurementInfo {
 			"proto":     &inputs.TagInfo{Desc: "示例 tcp"},
 		},
 		Fields: map[string]interface{}{
-			"fail_reason": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "拨测失败原因",
-			},
 			"response_time": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "TCP 连接时间, 单位",
+				Desc:     "TCP 连接时间, 单位us",
 			},
 			"response_time_with_dns": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "连接时间（含DNS解析）, 单位",
+				Desc:     "连接时间（含DNS解析）, 单位us",
 			},
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -118,16 +118,10 @@ func (m *UDPMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.UnknownUnit,
 				Desc:     "只有 1/-1 两种状态, 1 表示成功, -1 表示失败",
 			},
-			"fail_reason": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "拨测失败原因",
-			},
 		},
 		Tags: map[string]interface{}{
-			"dest_host": &inputs.TagInfo{Desc: "示例 wwww.baidu.com"},
-			"dest_port": &inputs.TagInfo{Desc: "示例 80"},
+			"dest_host": &inputs.TagInfo{Desc: "目的主机的host"},
+			"dest_port": &inputs.TagInfo{Desc: "目的主机的端口号"},
 			"proto":     &inputs.TagInfo{Desc: "示例 udp"},
 		},
 	}

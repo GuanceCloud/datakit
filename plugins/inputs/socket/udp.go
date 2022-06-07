@@ -48,7 +48,7 @@ func (i *Input) CollectUDP(destHost string, destPort string) error {
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
-	err = RunTimeout(cmd, 200*time.Second)
+	err = RunTimeout(cmd, i.UDPTimeOut.Duration)
 	if err != nil {
 		l.Warnf("error running nc or services port host or port error: nc %s", err)
 	}
@@ -59,14 +59,10 @@ func (i *Input) CollectUDP(destHost string, destPort string) error {
 	if i.platform == datakit.OSWindows {
 		if !strings.Contains(res, destPort+"(?)") {
 			fields["success"] = 1
-		} else {
-			fields["fail_message"] = res
 		}
 	} else {
 		if strings.Contains(res, successString) {
 			fields["success"] = 1
-		} else {
-			fields["fail_message"] = res
 		}
 	}
 	ts := time.Now()
@@ -88,7 +84,7 @@ func WaitTimeout(c *exec.Cmd, timeout time.Duration) error {
 	term := time.AfterFunc(timeout, func() {
 		err := c.Process.Signal(syscall.SIGTERM)
 		if err != nil {
-			l.Errorf("E! [agent] Error terminating process: %s", err)
+			l.Warnf("[agent] Error terminating process: %s", err)
 			return
 		}
 
