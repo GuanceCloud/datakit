@@ -10,12 +10,11 @@ import (
 	"context"
 	"fmt"
 
-	"go.opentelemetry.io/otel/exporters/jaeger"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
+	"go.opentelemetry.io/otel/exporters/jaeger"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -27,12 +26,12 @@ var (
 	defScheme = "http"
 	defHost   = "localhost"
 	// 14268  collector: accept "jaeger thrift" directly from clients
-	// 6831  agent: port
+	// 6831  agent: port.
 	defPort = "14268"
 	defPath = "/api/traces"
 )
 
-// sinkJaeger: use otel jaeger.exporter
+// sinkJaeger: use otel jaeger.exporter.
 type sinkJaeger struct {
 	id     string
 	scheme string

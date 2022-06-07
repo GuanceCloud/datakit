@@ -812,7 +812,7 @@ func TestProm(t *testing.T) {
 		},
 	}
 
-	var mockBody = `
+	mockBody := `
 # HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
 # TYPE promhttp_metric_handler_errors_total counter
 promhttp_metric_handler_errors_total{cause="encoding"} 0

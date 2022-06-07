@@ -11,14 +11,13 @@ import (
 	"fmt"
 	"time"
 
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -30,9 +29,7 @@ const (
 	defaultPort   = "4317"
 )
 
-var (
-	l = logger.DefaultSLogger("sink-otel")
-)
+var l = logger.DefaultSLogger("sink-otel")
 
 type otelSink struct {
 	id     string
@@ -126,7 +123,7 @@ func (s *otelSink) GetInfo() *sinkcommon.SinkInfo {
 	}
 }
 
-// newGrpcExport is use http, send msg to remote
+// newGrpcExport is use http, send msg to remote.
 func newHTTPExport(cxt context.Context, path string, endpoint string) *otlptrace.Exporter {
 	httpClient, err := otlptracehttp.New(
 		cxt,
@@ -141,7 +138,7 @@ func newHTTPExport(cxt context.Context, path string, endpoint string) *otlptrace
 	return httpClient
 }
 
-// newGrpcExport use tcp
+// newGrpcExport use tcp.
 func newGrpcExport(cxt context.Context, endpoint string) *otlptrace.Exporter {
 	grpcClient, err := otlptracegrpc.New(
 		cxt,

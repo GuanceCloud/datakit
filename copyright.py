@@ -37,6 +37,8 @@ PATH_EXCLUSION_REGEX = [
     '/internal/obfuscate',
     '/internal/msgpack',
     '/internal/obfuscate',
+    '/pipeline/parser/lex_test.go',
+    '/pipeline/parser/strutil.go',
     '/.git/',
     '/git/',
 ]

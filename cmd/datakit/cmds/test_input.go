@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
