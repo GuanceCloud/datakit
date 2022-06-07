@@ -2,20 +2,27 @@
 
 # DataKit 版本历史
 
-## 1.4.1(2022/05/26)
-
-本次发布属于迭代发布，主要更新如下内容：
-
-- [prom](prom) 采集器增加额外配置，支持忽略指定的 tag=value 的匹配，以减少不必要的时序时间线(#808)
-
-----
-
-
 ## 1.4.1(2022/06/07)
 
 本次发布属于迭代发布，主要更新如下内容：
 
+- 修复 toml 配置文件兼容性问题(#195)
+- 增加 [TCP/UDP 端口检测](socket)采集器(#743)
+- DataKit 跟 DataWay 之间增加 DNS 检测，支持 DataWay DNS 动态切换(#758)
+- [eBPF](ebpf) L4/L7 流量数据增加 `deployment` 字段(#793)
+- 优化 [OpenTelemetry](opentelemetry) 指标数据(#794)
+- [ElasticSearch](elasticsearch) 增加 AWS OpenSearch 支持(#797)
 - [行协议限制](apis#2fc2526a)中，字符串长度限制放宽到 32MB(#801)
+- [prom](prom) 采集器增加额外配置，支持忽略指定的 tag=value 的匹配，以减少不必要的时序时间线(#808)
+- Sink 增加 Jaeger 支持(#813)
+- Kubernetes 相关的[指标](container#7e687515)采集，默认全部关闭，以避免时间线暴增问题(#807)
+- [DataKit Monitor](monitor)增加动态发现（比如 prom）的采集器列表刷新(#711)
+
+### Bug 修复
+- 修复默认 Pipeline 加载问题(#796)
+- 修复 Pipeline 中关于日志 status 的处理(#800)
+- 修复 [Filebeat](beats_output) 奔溃问题(#805)
+- 修复 [logstreaming](logstreaming) 导致的脏数据问题(#802)
 
 ----
 
