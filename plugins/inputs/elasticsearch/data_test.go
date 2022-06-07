@@ -110,7 +110,7 @@ const clusterHealthResponseWithIndices = `
 
 var clusterHealthExpected = map[string]interface{}{
 	// "status": "green",
-	// "status_code":                      1,
+	"status_code": 1,
 	// "timed_out":                        false,
 	// "number_of_nodes":                  3,
 	"number_of_data_nodes": 3,

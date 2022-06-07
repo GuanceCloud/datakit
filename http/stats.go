@@ -342,11 +342,7 @@ func GetStats() (*DatakitStats, error) {
 	}
 
 	l.Debugf("get inputs info...")
-	for k := range inputs.Inputs {
-		if !datakit.Enabled(k) {
-			continue
-		}
-
+	for k := range inputs.InputsInfo {
 		n := inputs.InputEnabled(k)
 		npanic := inputs.GetPanicCnt(k)
 		if n > 0 {
