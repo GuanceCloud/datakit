@@ -146,25 +146,25 @@ spec:
 
 支持以环境变量的方式修改配置参数：
 
-> 只有 DataKit 以 K8s DaemonSet 方式运行时生效，==主机部署时，以下环境变量不生效==。
+> 只有 DataKit 以 K8s DaemonSet 方式运行时生效，参数需要用英文双引号括起来需要，==主机部署时，以下环境变量不生效==。
 
-| 环境变量名                                             | 对应的配置参数项                    | 参数示例                                                       |
+| 环境变量名                                             | 对应的配置参数项                    | 参数示例（yaml 配置时需要用英文双引号括起来）                  |
 | :----------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------   |
-| `ENV_INPUT_CONTAINER_DOCKER_ENDPOINT`                  | `docker_endpoint`                   | `unix:///var/run/docker.sock`                                  |
-| `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`               | `containerd_address`                | `/var/run/containerd/containerd.sock`                          |
-| `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`          | `exclude_pause_container`           | `t`/`f` （`t`是`true`，`f`是`false`）                          |
-| `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `t`/`f`                                                        |
-| `ENV_INPUT_CONTAINER_TAGS`                             | `tags`                              | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它   |
-| `ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC`          | `enable_container_metric`           | `t`/`f`                                                        |
-| `ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC`                | `enable_k8s_metric`                 | `t`/`f`                                                        |
-| `ENV_INPUT_CONTAINER_ENABLE_POD_METRIC`                | `enable_pod_metric`                 | `t`/`f`                                                        |
+| `ENV_INPUT_CONTAINER_DOCKER_ENDPOINT`                  | `docker_endpoint`                   | `"unix:///var/run/docker.sock"`                                |
+| `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`               | `containerd_address`                | `"/var/run/containerd/containerd.sock"`                        |
+| `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`          | `exclude_pause_container`           | `"true"`/`"false"`                                             |
+| `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `"true"`/`"false"`                                             |
+| `ENV_INPUT_CONTAINER_TAGS`                             | `tags`                              | `"tag1=value1,tag2=value2"` 如果配置文件中有同名 tag，会覆盖它 |
+| `ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC`          | `enable_container_metric`           | `"true"`/`"false"`                                             |
+| `ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC`                | `enable_k8s_metric`                 | `"true"`/`"false"`                                             |
+| `ENV_INPUT_CONTAINER_ENABLE_POD_METRIC`                | `enable_pod_metric`                 | `"true"`/`"false"`                                             |
 | `ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG`            | `container_include_log`             | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"` 以英文逗号隔开 |
 | `ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG`            | `container_exclude_log`             | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"` 以英文逗号隔开 |
-| `ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH`               | `max_logging_length`                | `32766`                                                        |
-| `ENV_INPUT_CONTAINER_KUBERNETES_URL`                   | `kubernetes_url`                    | `https://kubernetes.default:443`                               |
-| `ENV_INPUT_CONTAINER_BEARER_TOKEN`                     | `bearer_token`                      | `/run/secrets/kubernetes.io/serviceaccount/token`              |
-| `ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING`              | `bearer_token_string`               | `<your-token-string>`                                          |
-| `ENV_K8S_CLUSTER_NAME`                                 | k8s `cluster_name` 字段的缺省值     | `kube`                                                         |
+| `ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH`               | `max_logging_length`                | `"32766"`                                                      |
+| `ENV_INPUT_CONTAINER_KUBERNETES_URL`                   | `kubernetes_url`                    | `"https://kubernetes.default:443"`                             |
+| `ENV_INPUT_CONTAINER_BEARER_TOKEN`                     | `bearer_token`                      | `"/run/secrets/kubernetes.io/serviceaccount/token"`            |
+| `ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING`              | `bearer_token_string`               | `"<your-token-string>"`                                        |
+| `ENV_K8S_CLUSTER_NAME`                                 | k8s `cluster_name` 字段的缺省值     | `"kube"`                                                       |
 
 补充，k8s 数据的 `cluster_name` 字段可能会为空，为此提供注入环境变量的方式，取值优先级依次为：
 1. k8s 集群返回的 ClusterName 值（不为空）
