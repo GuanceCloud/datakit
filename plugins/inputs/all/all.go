@@ -35,7 +35,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jaeger"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jenkins"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jvm"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/k8sextra"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafka"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/logfwdserver"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/logging"
@@ -73,4 +72,6 @@ import (
 	// only windows.
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/winevent"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin"
+	// deprecated
+	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/k8sextra"
 )

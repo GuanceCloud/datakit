@@ -6,11 +6,16 @@
 //go:build !windows
 // +build !windows
 
+// This file used to build documents.
 package winevent
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
+
+var (
+	_ inputs.InputV2 = (*Input)(nil)
 )
 
 type EvtHandle uintptr
@@ -30,6 +35,10 @@ func (*Input) Catalog() string {
 
 func (*Input) RunPipeline() {
 	// TODO.
+}
+
+func (ipt *Input) Terminate() {
+	// Do nothing
 }
 
 func (*Input) AvailableArchs() []string {

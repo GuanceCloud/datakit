@@ -12,9 +12,9 @@ GREEN="\033[32m"
 YELLOW="\033[33m"
 CLR="\033[0m"
 docs_dir=~/git/dataflux-doc/docs/datakit
+integration_docs_dir=~/git/dataflux-doc/docs/integrations
 
-#rm -rf $docs_dir
-mkdir -p $docs_dir
+mkdir -p $docs_dir $integration_docs_dir
 cp man/summary.md .docs/
 
 latest_tag=$(git tag --sort=-creatordate | head -n 1)
@@ -51,12 +51,19 @@ else
   os="linux"
 fi
 
-make
+#make
 
-LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit doc \
+echo 'export to datakit docs...'
+dist/datakit-${os}-amd64/datakit doc \
 	--export-docs $docs_dir \
 	--ignore demo \
-	--log stdout \
+	--version "${man_version}" \
+	--TODO "-"
+
+echo 'export to integrations docs...'
+dist/datakit-${os}-amd64/datakit doc \
+	--export-docs $integration_docs_dir \
+	--ignore demo \
 	--version "${man_version}" \
 	--TODO "-"
 

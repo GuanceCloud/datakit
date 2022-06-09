@@ -29,10 +29,11 @@ const (
 )
 
 var (
-	inputName            = "iis"
-	metricNameWebService = "iis_web_service"
-	metricNameAppPoolWas = "iis_app_pool_was"
-	l                    = logger.DefaultSLogger("iis")
+	inputName                           = "iis"
+	metricNameWebService                = "iis_web_service"
+	metricNameAppPoolWas                = "iis_app_pool_was"
+	l                                   = logger.DefaultSLogger("iis")
+	_                    inputs.InputV2 = (*Input)(nil)
 )
 
 type Input struct {
