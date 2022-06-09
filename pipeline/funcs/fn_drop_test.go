@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
@@ -43,14 +44,16 @@ func TestDrop(t *testing.T) {
 				}
 				return
 			}
-
-			if err := runner.Run(tc.in); err != nil {
-				t.Error(err)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
+			if err != nil || ret.Error != nil {
+				t.Error(err, " ", ret.Error)
 				return
 			}
-			ret := runner.Result()
 			t.Log(ret)
-			if ret.Dropped {
+			if ret.Drop {
 				return
 			}
 			v := ret.Fields[tc.outkey]

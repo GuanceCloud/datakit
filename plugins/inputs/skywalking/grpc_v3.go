@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package skywalking
 
 import (
@@ -9,7 +14,7 @@ import (
 	"net"
 	"time"
 
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	skyimpl "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile"
 	"google.golang.org/grpc"
 )
@@ -23,13 +28,13 @@ func registerServerV3(addr string) {
 	}
 	log.Infof("skywalking v3 listening on: %s", addr)
 
-	srv := grpc.NewServer()
-	skyimpl.RegisterTraceSegmentReportServiceServer(srv, &TraceReportServerV3{})
-	skyimpl.RegisterEventServiceServer(srv, &EventServerV3{})
-	skyimpl.RegisterJVMMetricReportServiceServer(srv, &JVMMetricReportServerV3{})
-	skyimpl.RegisterManagementServiceServer(srv, &ManagementServerV3{})
-	skyimpl.RegisterConfigurationDiscoveryServiceServer(srv, &DiscoveryServerV3{})
-	if err = srv.Serve(listener); err != nil {
+	skysvr = grpc.NewServer()
+	skyimpl.RegisterTraceSegmentReportServiceServer(skysvr, &TraceReportServerV3{})
+	skyimpl.RegisterEventServiceServer(skysvr, &EventServerV3{})
+	skyimpl.RegisterJVMMetricReportServiceServer(skysvr, &JVMMetricReportServerV3{})
+	skyimpl.RegisterManagementServiceServer(skysvr, &ManagementServerV3{})
+	skyimpl.RegisterConfigurationDiscoveryServiceServer(skysvr, &DiscoveryServerV3{})
+	if err = skysvr.Serve(listener); err != nil {
 		log.Error(err)
 	}
 	log.Info("skywalking v3 exits")

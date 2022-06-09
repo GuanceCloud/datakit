@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cmds
 
 import (
@@ -16,6 +21,14 @@ import (
 // There may be some error returned here.
 func runToolFlags() error {
 	switch {
+	case *flagPromConf != "":
+		if err := promDebugger(*flagPromConf); err != nil {
+			errorf("[E] %s\n", err)
+			os.Exit(-1)
+		}
+
+		os.Exit(0)
+
 	case *flagSetupCompleterScripts:
 		setupCompleterScripts()
 		os.Exit(0)
@@ -84,7 +97,7 @@ func runToolFlags() error {
 			confdir = datakit.ConfdDir
 		}
 
-		if err := checkConfig(confdir, ""); err != nil {
+		if err := checkConfig(confdir, ".conf"); err != nil {
 			os.Exit(-1)
 		}
 		os.Exit(0)
@@ -107,8 +120,9 @@ func runToolFlags() error {
 		os.Exit(0)
 
 	case *flagToolLoadLog:
+		tryLoadMainCfg()
 		infof("Upload log start...\n")
-		if err := uploadLog(config.Cfg.DataWay.URLs); err != nil {
+		if err := uploadLog(config.Cfg.DataWayCfg.URLs); err != nil {
 			errorf("[E] upload log failed : %s\n", err.Error())
 			os.Exit(-1)
 		}

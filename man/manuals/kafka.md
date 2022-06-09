@@ -1,10 +1,9 @@
 {{.CSS}}
+# Kafka
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 采集 Kafka 指标和日志上报到观测云，帮助你监控分析 Kafka 各种异常情况
 

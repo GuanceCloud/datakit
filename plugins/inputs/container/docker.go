@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package container
 
 import (
@@ -20,7 +25,6 @@ type dockerInput struct {
 
 	containerLogList map[string]context.CancelFunc
 
-	metricFilter  filter.Filter
 	loggingFilter filter.Filter
 
 	cfg *dockerInputConfig
@@ -31,10 +35,6 @@ type dockerInputConfig struct {
 
 	excludePauseContainer  bool
 	removeLoggingAnsiCodes bool
-	maxLoggingLength       int
-
-	containerIncludeMetric []string
-	containerExcludeMetric []string
 
 	containerIncludeLog []string
 	containerExcludeLog []string
@@ -58,9 +58,6 @@ func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
 		return nil, fmt.Errorf("cannot connect to the Docker daemon at unix:///var/run/docker.sock")
 	}
 
-	if err := d.createMetricFilters(cfg.containerIncludeMetric, cfg.containerExcludeMetric); err != nil {
-		return nil, err
-	}
 	if err := d.createLoggingFilters(cfg.containerIncludeLog, cfg.containerExcludeLog); err != nil {
 		return nil, err
 	}
@@ -75,6 +72,7 @@ func (d *dockerInput) stop() {
 func (d *dockerInput) pingOK() bool {
 	ping, err := d.client.Ping(context.TODO())
 	if err != nil {
+		l.Warnf("docker ping error: %s", err)
 		return false
 	}
 	if ping.APIVersion == "" || ping.OSType == "" {
@@ -102,9 +100,7 @@ func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
 
 		go func(c *types.Container) {
 			defer wg.Done()
-
-			image := getImageOfPodContainer(c, d.k8sClient)
-			if d.ignoreContainer(c) || d.ignoreImageForMetric(image) {
+			if d.ignoreContainer(c) {
 				return
 			}
 
@@ -166,7 +162,7 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 }
 
 func (d *dockerInput) watchNewContainerLogs() error {
-	cList, err := d.getContainerList()
+	cList, err := d.getRunningContainerList()
 	if err != nil {
 		return err
 	}
@@ -177,8 +173,6 @@ func (d *dockerInput) watchNewContainerLogs() error {
 		}
 
 		l.Infof("add container log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
-		ctx, cancel := context.WithCancel(context.Background())
-		d.addToContainerList(container.ID, cancel)
 
 		// Start a new goroutine for every new container that has logs to collect
 		go func(container *types.Container) {
@@ -187,7 +181,7 @@ func (d *dockerInput) watchNewContainerLogs() error {
 				l.Debugf("remove container log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
 			}()
 
-			if err := d.watchingContainerLog(ctx, container); err != nil {
+			if err := d.watchingContainerLog(context.Background(), container); err != nil {
 				if !errors.Is(err, context.Canceled) {
 					l.Errorf("tailContainerLog: %s", err)
 				}
@@ -221,17 +215,17 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 	podAnnotationState := podAnnotationNil
 
 	func() {
-		podName := container.Labels[containerLableForPodName]
+		podName := getPodNameForLabels(container.Labels)
 		if d.k8sClient == nil || podName == "" {
 			return
 		}
-		podNamespace := container.Labels[containerLableForPodNamespace]
+		podNamespace := getPodNamespaceForLabels(container.Labels)
 
 		meta, err := queryPodMetaData(d.k8sClient, podName, podNamespace)
 		if err != nil {
 			return
 		}
-		if containerImage := meta.containerImage(container.Labels[containerLableForPodContainerName]); containerImage != "" {
+		if containerImage := meta.containerImage(getContainerNameForLabels(container.Labels)); containerImage != "" {
 			image = containerImage
 		}
 		podAnnotationState = getPodAnnotationState(container, meta)
@@ -271,7 +265,7 @@ func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotat
 
 	if logconf.Disable {
 		l.Debugf("ignore containerlog because of annotation disable, podName:%s, containerName:%s",
-			container.Labels[containerLableForPodName], getContainerName(container.Names))
+			getPodNameForLabels(container.Labels), getContainerName(container.Names))
 		return podAnnotationDisable
 	}
 
@@ -281,11 +275,11 @@ func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotat
 
 	f, err := filter.NewIncludeExcludeFilter(splitRules(logconf.OnlyImages), nil)
 	if err != nil {
-		l.Warnf("failed to new filter of only_images, err:%w", err)
+		l.Warnf("failed to new filter of only_images, err: %s", err)
 		return podAnnotationEnable
 	}
 
-	podContainerName := container.Labels[containerLableForPodContainerName]
+	podContainerName := getContainerNameForLabels(container.Labels)
 	image := meta.containerImage(podContainerName)
 	if image != "" && f.Match(image) {
 		l.Debugf("match pod only_images, name:%s, image: %s", podContainerName, image)
@@ -296,25 +290,19 @@ func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotat
 }
 
 func (d *dockerInput) getContainerList() ([]types.Container, error) {
-	cList, err := d.client.ContainerList(context.Background(), dockerContainerListOption)
+	cList, err := d.client.ContainerList(context.Background(), types.ContainerListOptions{All: true})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container list: %w", err)
 	}
-
 	return cList, nil
 }
 
-func (d *dockerInput) createMetricFilters(include, exclude []string) error {
-	in := splitRules(include)
-	ex := splitRules(exclude)
-
-	f, err := filter.NewIncludeExcludeFilter(in, ex)
+func (d *dockerInput) getRunningContainerList() ([]types.Container, error) {
+	cList, err := d.client.ContainerList(context.Background(), types.ContainerListOptions{All: false})
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to get container list: %w", err)
 	}
-
-	d.metricFilter = f
-	return nil
+	return cList, nil
 }
 
 func (d *dockerInput) createLoggingFilters(include, exclude []string) error {
@@ -330,20 +318,13 @@ func (d *dockerInput) createLoggingFilters(include, exclude []string) error {
 	return nil
 }
 
-func (d *dockerInput) ignoreImageForMetric(image string) (ignore bool) {
-	if d.metricFilter == nil {
+func (d *dockerInput) ignoreImageForLogging(image string) (ignore bool) {
+	if d.loggingFilter == nil {
 		return
 	}
 	// 注意，match 和 ignore 是相反的逻辑
 	// 如果 match 通过，则表示不需要 ignore
 	// 所以要取反
-	return !d.metricFilter.Match(image)
-}
-
-func (d *dockerInput) ignoreImageForLogging(image string) (ignore bool) {
-	if d.loggingFilter == nil {
-		return
-	}
 	return !d.loggingFilter.Match(image)
 }
 
@@ -375,20 +356,21 @@ func splitRules(arr []string) (rules []string) {
 	return
 }
 
+//nolint:deadcode,unused
 func getImageOfPodContainer(container *types.Container, k8sClient k8sClientX) (image string) {
 	image = container.Image
 
 	if k8sClient == nil {
 		return
 	}
-	if container.Labels[containerLableForPodName] == "" {
+	if getPodNameForLabels(container.Labels) == "" {
 		return
 	}
 
-	meta, err := queryPodMetaData(k8sClient, container.Labels[containerLableForPodName], container.Labels[containerLableForPodNamespace])
+	meta, err := queryPodMetaData(k8sClient, getPodNameForLabels(container.Labels), getPodNamespaceForLabels(container.Labels))
 	if err != nil {
 		return
 	}
-	image = meta.containerImage(container.Labels[containerLableForPodContainerName])
+	image = meta.containerImage(getContainerNameForLabels(container.Labels))
 	return
 }

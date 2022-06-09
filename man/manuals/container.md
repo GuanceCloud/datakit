@@ -1,10 +1,9 @@
 {{.CSS}}
+# 容器
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：{{.AvailableArchs}}
-
-# {{.InputName}}
 
 采集 container 和 Kubernetes 的指标数据、对象数据和容器日志，上报到观测云。
 
@@ -23,10 +22,12 @@
 ```
 
 > 对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂不支持配置
+> 采集到的日志, 单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃
 
-### 根据容器 image 配置指标和日志采集
 
-配置文件中的 `container_include_metric / container_exclude_metric` 是针对指标数据，`container_include_log / container_exclude_log` 是针对日志数据。
+### 根据容器 image 配置日志采集
+
+配置文件中的 `container_include_log / container_exclude_log` 是针对日志数据。
 
 - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为 `"image:<glob规则>"`，表示 glob 规则是针对容器 image 生效
 - [Glob 规则](https://en.wikipedia.org/wiki/Glob_(programming))是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元
@@ -34,11 +35,10 @@
 例如，配置如下：
 
 ```
-  ## 当容器的 image 能够匹配 `hello*` 时，会采集此容器的指标
-  container_include_metric = ["image:hello*"]
-
+  ## 当容器的 image 能够匹配 `hello*` 时，会采集此容器的日志
+  container_include_logging = ["image:hello*"]
   ## 忽略所有容器
-  container_exclude_metric = ["image:*"]
+  container_exclude_logging = ["image:*"]
 ```
 
 > ==[Daemonset 方式部署](datakit-daemonset-deploy)时，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to#ebf019c2) 来配置这些镜像的开关==
@@ -151,11 +151,12 @@ spec:
 | :----------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------   |
 | `ENV_INPUT_CONTAINER_DOCKER_ENDPOINT`                  | `docker_endpoint`                   | `unix:///var/run/docker.sock`                                  |
 | `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`               | `containerd_address`                | `/var/run/containerd/containerd.sock`                          |
-| `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`          | `exclude_pause_container`           | `true`/`false`                                                 |
-| `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `true`/`false`                                                 |
+| `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`          | `exclude_pause_container`           | `t`/`f` （`t`是`true`，`f`是`false`）                          |
+| `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `t`/`f`                                                        |
 | `ENV_INPUT_CONTAINER_TAGS`                             | `tags`                              | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它   |
-| `ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_METRIC`         | `container_include_metric`          | `"image:*"` 以英文逗号隔开                                     |
-| `ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_METRIC`         | `container_exclude_metric`          | `"image:*"` 以英文逗号隔开                                     |
+| `ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC`          | `enable_container_metric`           | `t`/`f`                                                        |
+| `ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC`                | `enable_k8s_metric`                 | `t`/`f`                                                        |
+| `ENV_INPUT_CONTAINER_ENABLE_POD_METRIC`                | `enable_pod_metric`                 | `t`/`f`                                                        |
 | `ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG`            | `container_include_log`             | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"` 以英文逗号隔开 |
 | `ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG`            | `container_exclude_log`             | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"` 以英文逗号隔开 |
 | `ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH`               | `max_logging_length`                | `32766`                                                        |

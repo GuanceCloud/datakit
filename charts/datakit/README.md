@@ -52,8 +52,6 @@ $ helm install datakit datakit/datakit -n datakit --set dataway_url="https://ope
     --set-file git_repos.git_key_path="/Users/buleleaf/.ssh/id_rsa" \
     --create-namespace 
     ```
-    
-    
 
 ## Uninstalling
 To delete/uninstall the chart with the release name `my-release`:
@@ -64,34 +62,36 @@ $ helm uninstall datakit -n datakit
 
 ## Configuration
 
-| Parameter                | Description                                                  | Default                                                      | Required |
-| ------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- |
-| `image.repository`       | The DataKit Docker image                                     | `pubrepo.guance.com/chartrepo/datakit`                      | `true`   |
-| `image.pullPolicy`       | The Kubernetes [imagePullPolicy][] value                     | `IfNotPresent`                                               |          |
-| `image.tag`              | The DataKit Docker image tag                                 | `""`                                                         |          |
-| `datakit.dataway_url`            | The DataWay url, contain`TOKEN`                              | `https://openway.guance.com?token=<your-token>`              | `true`   |
-| `datakit.global_tags`            | It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas) | `host=__datakit_hostname,host_ip=__datakit_ip`               |          |
-| `datakit.default_enabled_inputs` | The default open collector list, format example: input1, input2, input3 | cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container |          |
-| `datakit.enabled_election`       | When the election is enabled, it is not enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false) | `enable`                                                     |          |
-| `datakit.log`                    | Optional value info / debug / stdout                         | `stdout`                                                     |          |
-| `datakit.http_listen`            | It supports specifying the network card bound to the Datakit HTTP service in the installation phase (default localhost) | `0.0.0.0:9529`                                               |          |
-| `git_repos.enable`       | use git management DataKit input                             | `false`                                                      |          |
-| `git_repos.git_url`      | The remote git repo address of the management profile. (e.g http://username:password @github. com/username/repository. git） | `-`                                                          |          |
-| `git_repos.git_key_path` | The full path of the local privatekey. (e.g. / users / username /. SSH / id_rsa) | `-`                                                          |          |
-| `git_repos.git_key_pw`   | The password used by the local privatekey. (e.g. passwd)     | `-`                                                          |          |
-| `git_repos.git_branch`   | Specifies the branch to pull. If it is blank, it is the default. The default is the main branch specified remotely, usually the master. | `master`                                                     |          |
-| `git_repos.git_interval` | Timed pull interval. (e.g. 1m)                               | `1m`                                                         |          |
-| `extraEnvs`              | extra env Add env for customization,[more](https://www.yuque.com/dataflux/datakit/datakit-install#f9858758) | `[]`                                                         |          |
-| `nameOverride`           | Overrides the `clusterName` when used in the naming of resources | ""                                                           |          |
-| `fullnameOverride`       | Overrides the `clusterName` and `nodeGroup` when used in the naming of resources. This should only be used when using a single `nodeGroup`, otherwise you will have name conflicts | ""                                                           |          |
-| `podAnnotations`         | Configurable [annotations][] applied to all OpenSearch pods  | `  datakit/logs: | [{"disable": true}]`                      |          |
-| `tolerations`            | Configurable [tolerations][]                                 | `- operator: Exists`                                         |          |
-| `service.type`           | DataKit [Service Types][]                                    | `ClusterIP`                                                  |          |
-| `service.port`           | DataKit service port                                         | `9529`                                                       |          |
-| `dkconfig.path`          | DataKit input path                                           | `nil`                                                        |          |
-| `dkconfig.name`          | DataKit input name                                           | `nil`                                                        |          |
-| `dkconfig.value`         | DataKit input value                                          | `nil`                                                        |          |
-| `datakit.kubeStateMetricsEnabled` | For large clusters where the Kubernetes State Metrics Check Core needs to be distributed on dedicated workers. | `true` | |
+| Parameter                         | Description                                                                                                                                                                        | Default                                                                 | Required             |
+| ------------------------          | ------------------------------------------------------------                                                                                                                       | ------------------------------------------------------------            | --------             |
+| `image.repository`                | The DataKit Docker image                                                                                                                                                           | `pubrepo.guance.com/chartrepo/datakit`                                  | `true`               |
+| `image.pullPolicy`                | The Kubernetes [imagePullPolicy][] value                                                                                                                                           | `IfNotPresent`                                                          |                      |
+| `image.tag`                       | The DataKit Docker image tag                                                                                                                                                       | `""`                                                                    |                      |
+| `datakit.dataway_url`             | The DataWay url, contain`TOKEN`                                                                                                                                                    | `https://openway.guance.com?token=<your-token>`                         | `true`               |
+| `datakit.global_tags`             | It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas)              | `host=__datakit_hostname,host_ip=__datakit_ip`                          |                      |
+| `datakit.default_enabled_inputs`  | The default open collector list, format example: input1, input2, input3                                                                                                            | cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container |                      |
+| `datakit.enabled_election`        | When the election is enabled, it is not enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false)    | `enable`                                                                |                      |
+| `datakit.log_level`                     | Optional value info / debug                                                                                                                                                | `stdout`                                                                |                      |
+| `datakit.http_listen`             | It supports specifying the network card bound to the Datakit HTTP service in the installation phase (default localhost)                                                            | `0.0.0.0:9529`                                                          |                      |
+| `datakit.cluster_name`             | Your Kubernetes Cluster Name                                                                                                                                                       | `kube`                                                          |                      |
+| `git_repos.enable`                | use git management DataKit input                                                                                                                                                   | `false`                                                                 |                      |
+| `git_repos.git_url`               | The remote git repo address of the management profile. (e.g http://username:password @github. com/username/repository. git）                                                       | `-`                                                                     |                      |
+| `git_repos.git_key_path`          | The full path of the local privatekey. (e.g. / users / username /. SSH / id_rsa)                                                                                                   | `-`                                                                     |                      |
+| `git_repos.git_key_pw`            | The password used by the local privatekey. (e.g. passwd)                                                                                                                           | `-`                                                                     |                      |
+| `git_repos.git_branch`            | Specifies the branch to pull. If it is blank, it is the default. The default is the main branch specified remotely, usually the master.                                            | `master`                                                                |                      |
+| `git_repos.git_interval`          | Timed pull interval. (e.g. 1m)                                                                                                                                                     | `1m`                                                                    |                      |
+| `extraEnvs`                       | extra env Add env for customization,[more](https://www.yuque.com/dataflux/datakit/datakit-install#f9858758)                                                                        | `[]`                                                                    |                      |
+| `nameOverride`                    | Overrides the `clusterName` when used in the naming of resources                                                                                                                   | ""                                                                      |                      |
+| `fullnameOverride`                | Overrides the `clusterName` and `nodeGroup` when used in the naming of resources. This should only be used when using a single `nodeGroup`, otherwise you will have name conflicts | ""                                                                      |                      |
+| `podAnnotations`                  | Configurable [annotations][] applied to all OpenSearch pods                                                                                                                        | `  datakit/logs:                                                        | [{"disable": true}]` |  |
+| `tolerations`                     | Configurable [tolerations][]                                                                                                                                                       | `- operator: Exists`                                                    |                      |
+| `service.type`                    | DataKit [Service Types][]                                                                                                                                                          | `ClusterIP`                                                             |                      |
+| `service.port`                    | DataKit service port                                                                                                                                                               | `9529`                                                                  |                      |
+| `dkconfig.path`                   | DataKit input path                                                                                                                                                                 | `nil`                                                                   |                      |
+| `dkconfig.name`                   | DataKit input name                                                                                                                                                                 | `nil`                                                                   |                      |
+| `dkconfig.value`                  | DataKit input value                                                                                                                                                                | `nil`                                                                   |                      |
+| `kubeStateMetricsEnabled` | For large clusters where the Kubernetes State Metrics Check Core needs to be distributed on dedicated workers.                                                                             | `true`                                                                  |                      |
+| `MetricsServerEnabled`            | Kubernetes Metrics Server                                                                                                                                                          | `true`                                                                  |                      |
 
 
 
@@ -100,7 +100,6 @@ $ helm uninstall datakit -n datakit
 [hostAliases]: https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
 
 [image.pullPolicy]: https://kubernetes.io/docs/concepts/containers/images/#updating-images
-
 
 [annotations]: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
 

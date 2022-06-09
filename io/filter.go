@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package io
 
 import (
@@ -15,7 +20,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 )
 
-var l = logger.DefaultSLogger("filter")
+var (
+	l         = logger.DefaultSLogger("filter")
+	isStarted = false
+)
 
 func newFilter(dw IDataway) *filter {
 	pullInterval := time.Second * 10
@@ -292,6 +300,11 @@ func filterPts(category string, pts []*Point) []*Point {
 }
 
 func GetFilterStats() *FilterStats {
+	// return nil when not started
+	if !isStarted {
+		return nil
+	}
+
 	q := &qstats{
 		ch: make(chan *FilterStats),
 	}
@@ -414,6 +427,11 @@ func (f *filter) start() {
 
 func StartFilter() {
 	l = logger.SLogger("filter")
+	if len(defaultIO.conf.Filters) == 0 && defaultIO.dw == nil {
+		l.Warnf("filter not started: neither dataway nor filter conf set!")
+		return
+	}
+	isStarted = true
 	parser.Init()
 
 	var f rtpanic.RecoverCallback

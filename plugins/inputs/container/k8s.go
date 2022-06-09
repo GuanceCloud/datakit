@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package container
 
 import (
@@ -6,6 +11,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -23,6 +29,9 @@ type kubernetesInputConfig struct {
 	bearerToken       string
 	bearerTokenString string
 	extraTags         map[string]string
+
+	enablePodMetric bool
+	enableK8sMetric bool
 }
 
 func newKubernetesInput(cfg *kubernetesInputConfig) (*kubernetesInput, error) {
@@ -52,12 +61,34 @@ func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 		lastErr error
 	)
 
+	extraTags := k.cfg.extraTags
+
+	// add namespace tag
+	electionNamespace := config.GetElectionNamespace()
+	if electionNamespace != "" {
+		extraTags = map[string]string{}
+		for k, v := range k.cfg.extraTags {
+			extraTags[k] = v
+		}
+		extraTags["election_namespace"] = electionNamespace
+	}
+
 	for _, fn := range k8sResourceMetricList {
-		x := fn(k.client, k.cfg.extraTags)
-		if m, err := x.metric(); err == nil {
-			res = append(res, m...)
-		} else {
+		x := fn(k.client, extraTags)
+
+		if m, err := x.metric(); err != nil {
 			lastErr = err
+		} else {
+			switch x.name() {
+			case "pod":
+				if k.cfg.enablePodMetric {
+					res = append(res, m...)
+				}
+			default:
+				if k.cfg.enableK8sMetric {
+					res = append(res, m...)
+				}
+			}
 		}
 
 		nsCount, err := x.count()
@@ -79,6 +110,11 @@ func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 			fields: map[string]interface{}{},
 			time:   time.Now(),
 		}
+
+		if electionNamespace != "" {
+			count.tags["election_namespace"] = electionNamespace
+		}
+
 		for name, n := range ct {
 			count.fields[name] = n
 		}
@@ -94,8 +130,20 @@ func (k *kubernetesInput) gatherResourceObject() (inputsMeas, error) {
 		lastErr error
 	)
 
+	extraTags := k.cfg.extraTags
+
+	// add namespace tag
+	electionNamespace := config.GetElectionNamespace()
+	if electionNamespace != "" {
+		extraTags = map[string]string{}
+		for k, v := range k.cfg.extraTags {
+			extraTags[k] = v
+		}
+		extraTags["election_namespace"] = electionNamespace
+	}
+
 	for _, fn := range k8sResourceObjectList {
-		x := fn(k.client, k.cfg.extraTags)
+		x := fn(k.client, extraTags)
 		if m, err := x.object(); err == nil {
 			res = append(res, m...)
 		} else {
@@ -104,13 +152,6 @@ func (k *kubernetesInput) gatherResourceObject() (inputsMeas, error) {
 	}
 
 	return res, lastErr
-}
-
-func (k *kubernetesInput) gatherPodMetrics() ([]inputs.Measurement, error) {
-	if k.client.metricsClient == nil {
-		return nil, nil
-	}
-	return gatherPodMetrics(k.client.metricsClient, k.cfg.extraTags)
 }
 
 func (k *kubernetesInput) watchingEventLog(stop <-chan interface{}) {

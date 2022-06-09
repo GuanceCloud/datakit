@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package elasticsearch
 
 const clusterInfo = `
@@ -104,8 +109,8 @@ const clusterHealthResponseWithIndices = `
 `
 
 var clusterHealthExpected = map[string]interface{}{
-	"status": "green",
-	// "status_code":                      1,
+	// "status": "green",
+	"status_code": 1,
 	// "timed_out":                        false,
 	// "number_of_nodes":                  3,
 	"number_of_data_nodes": 3,

@@ -1,7 +1,13 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package config
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -179,25 +185,34 @@ func TestLoadEnv(t *testing.T) {
 		{
 			name: "normal",
 			envs: map[string]string{
-				"ENV_GLOBAL_TAGS":            "a=b,c=d",
-				"ENV_LOG_LEVEL":              "debug",
-				"ENV_DATAWAY":                "http://host1.org,http://host2.com",
-				"ENV_HOSTNAME":               "1024.coding",
-				"ENV_NAME":                   "testing-datakit",
-				"ENV_HTTP_LISTEN":            "localhost:9559",
-				"ENV_RUM_ORIGIN_IP_HEADER":   "not-set",
-				"ENV_ENABLE_PPROF":           "true",
-				"ENV_DISABLE_PROTECT_MODE":   "true",
-				"ENV_DEFAULT_ENABLED_INPUTS": "cpu,mem,disk",
-				"ENV_ENABLE_ELECTION":        "1",
-				"ENV_DISABLE_404PAGE":        "on",
-				"ENV_REQUEST_RATE_LIMIT":     "1234",
+				"ENV_GLOBAL_TAGS":                     "a=b,c=d",
+				"ENV_LOG_LEVEL":                       "debug",
+				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
+				"ENV_HOSTNAME":                        "1024.coding",
+				"ENV_NAME":                            "testing-datakit",
+				"ENV_HTTP_LISTEN":                     "localhost:9559",
+				"ENV_RUM_ORIGIN_IP_HEADER":            "not-set",
+				"ENV_ENABLE_PPROF":                    "true",
+				"ENV_DISABLE_PROTECT_MODE":            "true",
+				"ENV_DEFAULT_ENABLED_INPUTS":          "cpu,mem,disk",
+				"ENV_ENABLE_ELECTION":                 "1",
+				"ENV_DISABLE_404PAGE":                 "on",
+				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "123",
+				"ENV_REQUEST_RATE_LIMIT":              "1234",
+				"ENV_DATAWAY_ENABLE_HTTPTRACE":        "any",
+				"ENV_DATAWAY_HTTP_PROXY":              "http://1.2.3.4:1234",
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
 
 				cfg.Name = "testing-datakit"
-				cfg.DataWay = &dataway.DataWayCfg{URLs: []string{"http://host1.org", "http://host2.com"}}
+				cfg.DataWayCfg = &dataway.DataWayCfg{
+					URLs:                []string{"http://host1.org", "http://host2.com"},
+					MaxIdleConnsPerHost: 123,
+					HTTPProxy:           "http://1.2.3.4:1234",
+					Proxy:               true,
+					EnableHTTPTrace:     true,
+				}
 
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"
 				cfg.HTTPAPI.Listen = "localhost:9559"
@@ -266,6 +281,7 @@ func TestLoadEnv(t *testing.T) {
 		},
 
 		{
+			name: "test-ENV_ENABLE_INPUTS",
 			envs: map[string]string{
 				"ENV_ENABLE_INPUTS": "cpu,mem,disk",
 			},
@@ -277,6 +293,7 @@ func TestLoadEnv(t *testing.T) {
 		},
 
 		{
+			name: "test-ENV_GLOBAL_TAGS",
 			envs: map[string]string{
 				"ENV_GLOBAL_TAGS": "cpu,mem,disk=sda",
 			},
@@ -284,6 +301,25 @@ func TestLoadEnv(t *testing.T) {
 			expect: func() *Config {
 				cfg := DefaultConfig()
 				cfg.GlobalTags = map[string]string{"disk": "sda"}
+				return cfg
+			}(),
+		},
+
+		{
+			name: "test-ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST",
+			envs: map[string]string{
+				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
+				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "-1",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+
+				cfg.DataWayCfg = &dataway.DataWayCfg{
+					URLs:                []string{"http://host1.org", "http://host2.com"},
+					MaxIdleConnsPerHost: 0,
+				}
+
 				return cfg
 			}(),
 		},
@@ -402,4 +438,93 @@ hostname = "should-not-set"`,
 			t.Error(err)
 		}
 	}
+}
+
+// go test -v -timeout 30s -run ^TestWriteConfigFile$ gitlab.jiagouyun.com/cloudcare-tools/datakit/config
+/*
+[sinks]
+
+  [[sinks.sink]]
+    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    database = "db0"
+    host = "1.1.1.1:8086"
+    precision = "ns"
+    protocol = "http"
+    target = "influxdb"
+    timeout = "6s"
+
+  [[sinks.sink]]
+    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    database = "db1"
+    host = "1.1.1.1:8087"
+    precision = "ns"
+    protocol = "http"
+    target = "influxdb"
+    timeout = "6s"
+
+[sinks]
+
+  [[sinks.sink]]
+*/
+func TestWriteConfigFile(t *testing.T) {
+	c := DefaultConfig()
+
+	cases := []struct {
+		name string
+		in   []map[string]interface{}
+	}{
+		{
+			name: "has_data",
+			in: []map[string]interface{}{
+				{
+					"target":     "influxdb",
+					"categories": []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"precision":  "ns",
+					"database":   "db0",
+					"timeout":    "5s",
+				},
+				{
+					"target":       "logstash",
+					"categories":   []string{"L"},
+					"host":         "1.1.1.1:8080",
+					"protocol":     "http",
+					"request_path": "/twitter/tweet/1",
+					"timeout":      "5s",
+				},
+			},
+		},
+		{
+			name: "no_data",
+			in: []map[string]interface{}{
+				{},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c.Sinks.Sink = tc.in
+			mcdata, err := datakit.TomlMarshal(c)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println("=====================================================")
+			fmt.Println(string(mcdata))
+		})
+	}
+}
+
+func TestGetElectionNamespace(t *testing.T) {
+	Cfg = DefaultConfig()
+	tu.Equals(t, GetElectionNamespace(), "")
+	Cfg.Namespace = "test"
+	tu.Equals(t, GetElectionNamespace(), "")
+
+	Cfg.EnableElection = true
+	tu.Equals(t, GetElectionNamespace(), "test")
+
+	Cfg.Namespace = ""
+	tu.Equals(t, GetElectionNamespace(), "default")
 }

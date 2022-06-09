@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -26,8 +31,9 @@ func getResponse(req *http.Request, config *DCAConfig) *httptest.ResponseRecorde
 	if config != nil {
 		dcaConfig = config
 	}
-	dw = &dataway.DataWayCfg{URLs: []string{"http://localhost:9529?token=123456"}}
-	dw.Apply() //nolint: errcheck
+	dwCfg := &dataway.DataWayCfg{URLs: []string{"http://localhost:9529?token=123456"}}
+	dw = &dataway.DataWayDefault{}
+	dw.Init(dwCfg) //nolint: errcheck
 	router := setupDcaRouter()
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)

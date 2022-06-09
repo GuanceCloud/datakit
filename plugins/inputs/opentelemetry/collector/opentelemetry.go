@@ -1,8 +1,14 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package collector
 
 // see:vendor/go.opentelemetry.io/otel/semconv/v1.4.0/trace.go.
 const (
 	otelResourceServiceKey = "service.name"
+	otelServiceName        = "otel-service"
 	defaultServiceVal      = "unknown.service"
 	// HTTP.
 	otelResourceHTTPMethodKey     = "http.method"

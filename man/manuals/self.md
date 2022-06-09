@@ -1,10 +1,9 @@
 {{.CSS}}
+# DataKit 自身指标
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 self 采集器用于 DataKit 自身基本信息的采集，包括运行环境信息、CPU、内存占用情况等。
 

@@ -1,10 +1,9 @@
 {{.CSS}}
+# Prometheus Exportor 数据采集
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# 简介
 
 Prom 采集器可以获取各种 Prometheus Exporters 暴露出来的指标数据，只要配置相应的 Exporter 地址，就可以将指标数据接入。
 
@@ -118,8 +117,8 @@ Datakit 支持命令行直接调试 prom 采集器的配置文件，从 conf.d/{
 
 执行如下命令，即可调试 `prom.conf`
 
-```
-datakit --prom-conf prom.conf
+```shell
+datakit tool --prom-conf prom.conf
 ```
 
 参数说明：

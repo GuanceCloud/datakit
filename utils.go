@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package datakit
 
 import (
@@ -127,8 +132,8 @@ type Duration struct {
 	Duration time.Duration
 }
 
-// UnmarshalTOML parses the duration from the TOML config file.
-func (d *Duration) UnmarshalTOML(b []byte) error {
+// UnmarshalText parses the duration from the TOML config file.
+func (d *Duration) UnmarshalText(b []byte) error {
 	b = bytes.Trim(b, "'")
 
 	// see if we can directly convert it
@@ -240,6 +245,7 @@ func GZipStr(str string) ([]byte, error) {
 func GZip(data []byte) ([]byte, error) {
 	var z bytes.Buffer
 	zw := gzip.NewWriter(&z)
+
 	if _, err := zw.Write(data); err != nil {
 		return nil, err
 	}

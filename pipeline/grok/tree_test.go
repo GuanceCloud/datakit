@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package grok
 
 import (
@@ -48,7 +53,7 @@ func TestTree(t *testing.T) {
 			if !ok {
 				t.Fatal("")
 			}
-			if expected != v {
+			if expected != v.denormalized {
 				t.Errorf("value %s act: %s exp: %s", k, v, expected)
 			}
 		}

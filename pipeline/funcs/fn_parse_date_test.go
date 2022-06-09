@@ -242,18 +242,24 @@ parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 				}
 				return
 			}
-
-			err = runner.Run(tc.in)
-			if err != nil {
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
+			if err != nil || ret.Error != nil {
 				if tc.fail {
-					t.Logf("[%d]expect error: %s", idx, err)
+					t.Logf("[%d]expect error: %s %s", idx, err, ret.Error)
 				} else {
-					t.Error(err)
+					t.Error(err, " ", ret.Error)
 				}
 			} else {
-				ret := runner.Result()
 				t.Log(ret)
-				v := ret.Fields[tc.outKey]
+				var v interface{}
+				if tc.outKey != "time" && tc.outKey != "" {
+					v = ret.Fields[tc.outKey]
+				} else {
+					v = ret.Time.UnixNano()
+				}
 				tu.Equals(t, tc.expected, v)
 				t.Logf("[%d] PASS", idx)
 			}

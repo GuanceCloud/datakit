@@ -4,43 +4,28 @@
 # NOTE: 必须先发布 Mac 版本，不然 Mac 版本发布会缺少历史安装包入口，参见 #53
 
 branch_name="$(git symbolic-ref HEAD 2>/dev/null)" ||
-branch_name="(unnamed branch)"     # detached HEAD
+	branch_name="(unnamed branch)"     # detached HEAD
 
-branch_name=${branch_name##refs/heads/}
-
-new_tag=$1
-latest_tag=$(git describe --abbrev=0 --tags)
+branch_name=${branch_name##refs/heads/} # remove suffix: refs/heads/
 
 case $branch_name in
-	"testing")
-
-		# Darwin's datakit is CGO-enabled, so build it locally
-		if [[ "$OSTYPE" == "darwin"* ]]; then
-			echo "release testing release for Darwin..."
-			make testing_mac && make pub_testing_mac
-		else
-			echo "release testing DataKit without Darwin"
-		fi
-
-		git push origin testing
-		;;
-
-	"master") echo "release prod release..."
-		if [ -z $new_tag ]; then
-			echo "[E] new tag required to release production datakit, latest tag is ${latest_tag}"
-		else
-			#git tag -f $new_tag  &&
-
-			if [[ "$OSTYPE" == "darwin"* ]]; then # Release darwin version first
-				make production_mac VERSION=$new_tag &&
+	"master") echo "release prod ..."
+		if [[ "$OSTYPE" == "darwin"* ]]; then # Release darwin version first
+			make production_mac VERSION=$1 &&
 				echo "[I] darwin prod release ok"
-			fi
 		fi
 		;;
 
-	"github-mirror") echo "release to github"
+	"github-mirror") echo "release to github & jihulab"
 		git push github github-mirror
 		git push github github-mirror --tags
+		git push jihulab github-mirror
+		git push jihulab github-mirror --tags
+
+		if [[ "$OSTYPE" == "darwin"* ]]; then # Release darwin version first
+			make production_mac VERSION=$1 &&
+				echo "[I] darwin prod release ok"
+		fi
 		;;
 
 	*) echo "[E] unsupported branch '$branch_name' for release, exited"

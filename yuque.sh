@@ -11,9 +11,9 @@ RED="\033[31m"
 GREEN="\033[32m"
 YELLOW="\033[33m"
 CLR="\033[0m"
-docs_dir=dkdocs/docs
+docs_dir=~/git/dataflux-doc/docs/datakit
 
-rm -rf $docs_dir
+#rm -rf $docs_dir
 mkdir -p $docs_dir
 cp man/summary.md .docs/
 
@@ -33,6 +33,11 @@ case $current_branch in
 "yuque") ;;
   # pass
 
+"yuque-github-mirror")
+  waque_yml="yuque_community.yml"
+  printf "${GREEN}[I] current branch is %s, use %s ${CLR}\n" $current_branch $waque_yml
+  ;;
+
 *)
   waque_yml="yuque_testing.yml"
   printf "${GREEN}[I] current branch is %s, use %s ${CLR}\n" $current_branch $waque_yml
@@ -46,7 +51,7 @@ else
   os="linux"
 fi
 
-#make
+make
 
 LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit doc \
 	--export-docs $docs_dir \

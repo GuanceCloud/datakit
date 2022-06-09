@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package ebpf
 
 import (
@@ -34,18 +39,20 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "netflow",
 		Tags: map[string]interface{}{
-			"host":                 inputs.TagInfo{Desc: "主机名"},
-			"dst_ip":               inputs.TagInfo{Desc: "目标 IP"},
-			"dst_domain":           inputs.TagInfo{Desc: "目标域名"},
-			"dst_port":             inputs.TagInfo{Desc: "目标端口"},
-			"dst_ip_type":          inputs.TagInfo{Desc: "目标 IP 类型 (other/private/multicast)"},
-			"src_ip":               inputs.TagInfo{Desc: "源 IP"},
-			"src_port":             inputs.TagInfo{Desc: "源端口, 临时端口(32768 ~ 60999)聚合后的值为 `*`"},
-			"src_ip_type":          inputs.TagInfo{Desc: "源 IP 类型 (other/private/multicast)"},
-			"src_k8s_pod_name":     inputs.TagInfo{Desc: "源 IP 所属 k8s 的 pod name"},
-			"src_k8s_service_name": inputs.TagInfo{Desc: "源 IP 所属 k8s 的 service name"},
-			"src_k8s_namespace":    inputs.TagInfo{Desc: "源 IP 所在 k8s 的 namespace"},
-			"dst_k8s_pod_name":     inputs.TagInfo{Desc: "目标 IP 所属 k8s 的 pod name"},
+			"host":                    inputs.TagInfo{Desc: "主机名"},
+			"dst_ip":                  inputs.TagInfo{Desc: "目标 IP"},
+			"dst_domain":              inputs.TagInfo{Desc: "目标域名"},
+			"dst_port":                inputs.TagInfo{Desc: "目标端口"},
+			"dst_ip_type":             inputs.TagInfo{Desc: "目标 IP 类型 (other/private/multicast)"},
+			"src_ip":                  inputs.TagInfo{Desc: "源 IP"},
+			"src_port":                inputs.TagInfo{Desc: "源端口, 临时端口(32768 ~ 60999)聚合后的值为 `*`"},
+			"src_ip_type":             inputs.TagInfo{Desc: "源 IP 类型 (other/private/multicast)"},
+			"src_k8s_pod_name":        inputs.TagInfo{Desc: "源 IP 所属 k8s 的 pod name"},
+			"src_k8s_deployment_name": inputs.TagInfo{Desc: "源 IP 所属 k8s 的 deployment name"},
+			"src_k8s_service_name":    inputs.TagInfo{Desc: "源 IP 所属 k8s 的 service name"},
+			"src_k8s_namespace":       inputs.TagInfo{Desc: "源 IP 所在 k8s 的 namespace"},
+			"dst_k8s_pod_name":        inputs.TagInfo{Desc: "目标 IP 所属 k8s 的 pod name"},
+			"dst_k8s_deployment_name": inputs.TagInfo{Desc: "目标 IP 所属 k8s 的 deployment name"},
 			"dst_k8s_service_name": inputs.TagInfo{
 				Desc: "目标 IP 所属 service, 如果是 dst_ip 是 cluster(service) ip 则 dst_k8s_pod_name 值为 `N/A`",
 			},
@@ -80,17 +87,19 @@ func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "httpflow",
 		Tags: map[string]interface{}{
-			"host":                 inputs.TagInfo{Desc: "主机名"},
-			"dst_ip":               inputs.TagInfo{Desc: "目标 IP"},
-			"dst_port":             inputs.TagInfo{Desc: "目标端口"},
-			"dst_ip_type":          inputs.TagInfo{Desc: "目标 IP 类型 (other/private/multicast)"},
-			"src_ip":               inputs.TagInfo{Desc: "源 IP"},
-			"src_port":             inputs.TagInfo{Desc: "源端口, 临时端口(32768 ~ 60999)聚合后的值为 `*`"},
-			"src_ip_type":          inputs.TagInfo{Desc: "源 IP 类型 (other/private/multicast)"},
-			"src_k8s_pod_name":     inputs.TagInfo{Desc: "源 IP 所属 k8s 的 pod name"},
-			"src_k8s_service_name": inputs.TagInfo{Desc: "源 IP 所属 k8s 的 service name"},
-			"src_k8s_namespace":    inputs.TagInfo{Desc: "源 IP 所在 k8s 的 namespace"},
-			"dst_k8s_pod_name":     inputs.TagInfo{Desc: "目标 IP 所属 k8s 的 pod name"},
+			"host":                    inputs.TagInfo{Desc: "主机名"},
+			"dst_ip":                  inputs.TagInfo{Desc: "目标 IP"},
+			"dst_port":                inputs.TagInfo{Desc: "目标端口"},
+			"dst_ip_type":             inputs.TagInfo{Desc: "目标 IP 类型 (other/private/multicast)"},
+			"src_ip":                  inputs.TagInfo{Desc: "源 IP"},
+			"src_port":                inputs.TagInfo{Desc: "源端口, 临时端口(32768 ~ 60999)聚合后的值为 `*`"},
+			"src_ip_type":             inputs.TagInfo{Desc: "源 IP 类型 (other/private/multicast)"},
+			"src_k8s_pod_name":        inputs.TagInfo{Desc: "源 IP 所属 k8s 的 pod name"},
+			"src_k8s_deployment_name": inputs.TagInfo{Desc: "源 IP 所属 k8s 的 deployment name"},
+			"src_k8s_service_name":    inputs.TagInfo{Desc: "源 IP 所属 k8s 的 service name"},
+			"src_k8s_namespace":       inputs.TagInfo{Desc: "源 IP 所在 k8s 的 namespace"},
+			"dst_k8s_pod_name":        inputs.TagInfo{Desc: "目标 IP 所属 k8s 的 pod name"},
+			"dst_k8s_deployment_name": inputs.TagInfo{Desc: "目标 IP 所属 k8s 的 deployment name"},
 			"dst_k8s_service_name": inputs.TagInfo{
 				Desc: "目标 IP 所属 service, 如果是 dst_ip 是 cluster(service) ip 则 dst_k8s_pod_name 值为 `N/A`",
 			},

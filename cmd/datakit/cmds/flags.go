@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cmds
 
 import (
@@ -30,7 +35,10 @@ func tryLoadMainCfg() {
 }
 
 func getcli() *http.Client {
-	proxy := config.Cfg.DataWay.HTTPProxy
+	var proxy string
+	if config.Cfg.DataWayCfg != nil {
+		proxy = config.Cfg.DataWayCfg.HTTPProxy
+	}
 
 	cliopt := &ihttp.Options{
 		InsecureSkipVerify: true,

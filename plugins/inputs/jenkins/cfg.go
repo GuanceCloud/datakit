@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package jenkins
 
 import (
@@ -19,6 +24,9 @@ var (
 	maxInterval = time.Second * 30
 	sample      = `
 [[inputs.jenkins]]
+  ## Set true if you want to collect metric from url below.
+  enable_collect = true
+
   ## The Jenkins URL in the format "schema://host:port",required
   url = "http://my-jenkins-instance:8080"
 
@@ -35,6 +43,12 @@ var (
   ## Use SSL but skip chain & host verification
   # insecure_skip_verify = false
 
+  ## set true to receive jenkins CI event
+  enable_ci_visibility = true
+
+  ## which port to listen to jenkins CI event
+  ci_event_port = ":9539"
+
   # [inputs.jenkins.log]
   # files = []
   # #grok pipeline script path
@@ -43,7 +57,12 @@ var (
   [inputs.jenkins.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
-  # ...`
+  # ...
+
+  [inputs.jenkins.ci_extra_tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+`
 
 	pipelineCfg = `
 grok(_, "%{TIMESTAMP_ISO8601:time} \\[id=%{GREEDYDATA:id}\\]\t%{GREEDYDATA:status}\t")
@@ -64,12 +83,16 @@ type jenkinslog struct {
 }
 
 type Input struct {
-	URL             string            `toml:"url"`
-	Key             string            `toml:"key"`
-	Interval        datakit.Duration  `toml:"interval"`
-	ResponseTimeout datakit.Duration  `toml:"response_timeout"`
-	Log             *jenkinslog       `toml:"log"`
-	Tags            map[string]string `toml:"tags"`
+	EnableCollect      bool              `toml:"enable_collect"`
+	URL                string            `toml:"url"`
+	Key                string            `toml:"key"`
+	Interval           datakit.Duration  `toml:"interval"`
+	ResponseTimeout    datakit.Duration  `toml:"response_timeout"`
+	Log                *jenkinslog       `toml:"log"`
+	Tags               map[string]string `toml:"tags"`
+	EnableCIVisibility bool              `toml:"enable_ci_visibility"`
+	CIEventPort        string            `toml:"ci_event_port"`
+	CIExtraTags        map[string]string `toml:"ci_extra_tags"`
 
 	tls.ClientConfig
 	// HTTP client
@@ -77,6 +100,8 @@ type Input struct {
 
 	start time.Time
 	tail  *tailer.Tailer
+
+	srv *http.Server
 
 	lastErr      error
 	collectCache []inputs.Measurement

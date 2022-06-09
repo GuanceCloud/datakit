@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package prom
 
 import (
@@ -117,6 +122,24 @@ func (p *Prom) getNamesByDefault(name string) (measurementName string, fieldName
 	return
 }
 
+func (p *Prom) tagKVMatched(tags map[string]string) bool {
+	if p.opt.IgnoreTagKV == nil {
+		return false
+	}
+
+	for k, v := range tags {
+		if res, ok := p.opt.IgnoreTagKV[k]; ok {
+			for _, re := range res {
+				if re.MatchString(v) {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 func (p *Prom) getTags(labels []*dto.LabelPair) map[string]string {
 	tags := map[string]string{}
 
@@ -200,11 +223,13 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 				}
 				tags := p.getTags(m.GetLabel())
 
-				pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
-				if err != nil {
-					lastErr = err
-				} else {
-					pts = append(pts, pt)
+				if !p.tagKVMatched(tags) {
+					pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+					if err != nil {
+						lastErr = err
+					} else {
+						pts = append(pts, pt)
+					}
 				}
 			}
 
@@ -217,11 +242,13 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 
 				tags := p.getTags(m.GetLabel())
 
-				pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
-				if err != nil {
-					lastErr = err
-				} else {
-					pts = append(pts, pt)
+				if !p.tagKVMatched(tags) {
+					pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+					if err != nil {
+						lastErr = err
+					} else {
+						pts = append(pts, pt)
+					}
 				}
 
 				for _, q := range m.GetSummary().Quantile {
@@ -232,11 +259,13 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 					tags := p.getTags(m.GetLabel())
 					tags["quantile"] = fmt.Sprint(q.GetQuantile())
 
-					pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
-					if err != nil {
-						lastErr = err
-					} else {
-						pts = append(pts, pt)
+					if !p.tagKVMatched(tags) {
+						pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+						if err != nil {
+							lastErr = err
+						} else {
+							pts = append(pts, pt)
+						}
 					}
 				}
 			}
@@ -250,12 +279,15 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 
 				tags := p.getTags(m.GetLabel())
 
-				pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
-				if err != nil {
-					lastErr = err
-				} else {
-					pts = append(pts, pt)
+				if !p.tagKVMatched(tags) {
+					pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+					if err != nil {
+						lastErr = err
+					} else {
+						pts = append(pts, pt)
+					}
 				}
+
 				for _, b := range m.GetHistogram().GetBucket() {
 					fields := map[string]interface{}{
 						fieldName + "_bucket": b.GetCumulativeCount(),
@@ -264,11 +296,13 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 					tags := p.getTags(m.GetLabel())
 					tags["le"] = fmt.Sprint(b.GetUpperBound())
 
-					pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
-					if err != nil {
-						lastErr = err
-					} else {
-						pts = append(pts, pt)
+					if !p.tagKVMatched(tags) {
+						pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+						if err != nil {
+							lastErr = err
+						} else {
+							pts = append(pts, pt)
+						}
 					}
 				}
 			}

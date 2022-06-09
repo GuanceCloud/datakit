@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package gitlab
 
 import (
@@ -518,10 +523,11 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*iod.Point, error) 
 		}
 		// We need pipeline event with ci status success or failed only.
 		if pl.ObjectAttributes == nil || pl.ObjectAttributes.Status == nil {
+			l.Debugf("ignore pipeline event with empty ci_status")
 			return nil, nil
 		}
 		if *pl.ObjectAttributes.Status != "success" && *pl.ObjectAttributes.Status != "failed" {
-			l.Debugf("ignore pipeline event point with ci_status = %s", *pl.ObjectAttributes.Status)
+			l.Debugf("ignore pipeline event with ci_status = %s", *pl.ObjectAttributes.Status)
 			return nil, nil
 		}
 		tags = getPipelineEventTags(pl)
@@ -535,6 +541,7 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*iod.Point, error) 
 		}
 		// We need job event with build status success or failed only.
 		if j.BuildStatus == nil {
+			l.Debugf("ignore job event with empty build_status")
 			return nil, nil
 		}
 		if *j.BuildStatus != "success" && *j.BuildStatus != "failed" {
@@ -571,13 +578,14 @@ func (ipt *Input) addExtraTags(tags map[string]string) {
 
 func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	event := req.Header.Get(gitlabEventHeader)
-	// Unrecognized event payloads.
-	// Webhooks that return failure codes in the 4xx range
-	// are understood to be misconfigured, and these are
-	// disabled until you manually re-enable them.
+
 	if event != pipelineHook && event != jobHook {
-		l.Debugf("unrecognized event payload: %s", event)
-		resp.WriteHeader(http.StatusBadRequest)
+		// Webhooks that return failure codes in the 4xx range
+		// are considered to be misconfigured, and these are
+		// disabled until you manually re-enable them.
+		// Here we still return 200 to prevent webhook from disabling,
+		// and log that we receive unrecognized event payload.
+		l.Warnf("receive unrecognized event payload: %s, webhook may be misconfigured", event)
 		return
 	}
 
@@ -598,7 +606,7 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 
 	pts, err := ipt.getPoint(data, event)
 	if err != nil {
-		l.Errorf("fail to make points: %v", err)
+		l.Errorf("get point: %v", err)
 		resp.WriteHeader(http.StatusInternalServerError)
 		ipt.reqMemo.remove(digest)
 		return
@@ -607,7 +615,7 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		// Skip unwanted events.
 		return
 	}
-	if err := ipt.feed(inputName, datakit.Logging, pts, &iod.Option{}); err != nil {
+	if err := ipt.feed("gitlab_ci", datakit.Logging, pts, &iod.Option{}); err != nil {
 		ipt.feedLastError(inputName, err.Error())
 		resp.WriteHeader(http.StatusInternalServerError)
 		ipt.reqMemo.remove(digest)
@@ -645,11 +653,11 @@ func (m *requestMemo) remove(digest [16]byte) {
 	m.removeReqCh <- digest
 }
 
-// memoHouseKeeper is in charge of maintaining a memo of requests' md5 sums.
+// memoMaintainer is in charge of maintaining a memo of requests' md5 sums.
 // Saving requests' md5 sums is to prevent sending duplicated points to datakit io.
 // Each md5 sum will be expired in du, then they will be removed from memory.
-// memoHouseKeeper will traverse memoMap and remove expired md5 sums every du seconds.
-func (m *requestMemo) memoHouseKeeper(du time.Duration) {
+// memoMaintainer will traverse memoMap and remove expired md5 sums every du seconds.
+func (m *requestMemo) memoMaintainer(du time.Duration) {
 	// Clear expired md5 sums every du seconds.
 	ticker := time.NewTicker(du)
 
@@ -675,11 +683,11 @@ func (m *requestMemo) memoHouseKeeper(du time.Duration) {
 			delete(m.memoMap, r)
 
 		case <-datakit.Exit.Wait():
-			l.Debugf("memoHouseKeeper exited")
+			l.Debugf("memoMaintainer exited")
 			return
 
 		case <-m.semStop.Wait():
-			l.Debugf("memoHouseKeeper exited")
+			l.Debugf("memoMaintainer exited")
 			return
 		}
 	}

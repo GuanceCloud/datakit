@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package gitlab
 
 import (
@@ -769,7 +774,7 @@ func getInput(expired time.Duration) *Input {
 		return nil
 	}
 	ipt.feedLastError = func(inputName string, err string) {}
-	go ipt.reqMemo.memoHouseKeeper(expired)
+	go ipt.reqMemo.memoMaintainer(expired)
 	return ipt
 }
 

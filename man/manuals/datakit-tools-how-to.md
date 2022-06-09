@@ -1,10 +1,9 @@
 {{.CSS}}
+# 各种其它工具使用
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# DataKit 各种小工具介绍
 
 DataKit 内置很多不同的小工具，便于大家日常使用。可通过如下命令来查看 DataKit 的命令行帮助：
 
@@ -282,10 +281,10 @@ datakit install --scheck
 
 ### DataKit eBPF 集成
 
-安装 DataKit eBPF 采集器, 当前只支持 `linux/amd64` 平台，采集器使用说明见 [DataKit eBPF 采集器](https://www.yuque.com/dataflux/datakit/ebpf)
+安装 DataKit eBPF 采集器, 当前只支持 `linux/amd64 | linux/arm64` 平台，采集器使用说明见 [DataKit eBPF 采集器](https://www.yuque.com/dataflux/datakit/ebpf)
 
 ```shell
-datakit install --datakit-ebpf
+datakit install --ebpf
 ```
 
 如若提示 `open /usr/local/datakit/externals/datakit-ebpf: text file busy`，停止 DataKit 服务后再执行该命令

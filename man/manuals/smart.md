@@ -1,10 +1,9 @@
 {{.CSS}}
+# 磁盘 S.M.A.R.T
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 计算机硬盘运行状态数据采集
 

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package jaeger
 
 import (
@@ -9,7 +14,7 @@ import (
 
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {

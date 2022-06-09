@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package consul collect consul metrics by using input prom
 //nolint:lll
 package consul
@@ -65,6 +70,14 @@ type Input struct { // keep compatible with old version's conf
 	UsernameDeprecated   string `toml:"username,omitempty"`
 	PasswordDeprecated   string `toml:"password,omitempty"`
 	DatacenterDeprecated string `toml:"datacenter,omitempty"`
+}
+
+func (ipt *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"Consul log": `Sep 18 19:30:23 derrick-ThinkPad-X230 consul[11803]: 2021-09-18T19:30:23.522+0800 [INFO]  agent.server.connect: initialized primary datacenter CA with provider: provider=consul`,
+		},
+	}
 }
 
 func (*Input) Catalog() string {

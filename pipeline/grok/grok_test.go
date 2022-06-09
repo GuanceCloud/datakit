@@ -1,7 +1,14 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package grok
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDenormalizeGlobalPatterns(t *testing.T) {
@@ -25,7 +32,7 @@ func TestParse(t *testing.T) {
 		t.Error(err)
 	}
 
-	patterns := map[string]string{
+	patterns := map[string]*GrokPattern{
 		"INT": patternINT,
 	}
 
@@ -72,6 +79,85 @@ func TestLoadPatternsFromPathErr(t *testing.T) {
 	_, err := LoadPatternsFromPath("./Lorem ipsum Minim qui in.")
 	if err == nil {
 		t.Fatalf("AddPatternsFromPath should returns an error when path is invalid")
+	}
+}
+
+func TestRunWithTypeInfo(t *testing.T) {
+	tCase := []struct {
+		data      string
+		ptn       string
+		ret       map[string]interface{}
+		failedRet map[string]string
+		failed    bool
+	}{
+		{
+			data: `1
+true 1.1`,
+			ptn: `%{INT:A:int}
+%{WORD:B:bool} %{BASE10NUM:C:float}`,
+			ret: map[string]interface{}{
+				"A": int64(1),
+				"B": true,
+				"C": float64(1.1),
+			},
+			failedRet: map[string]string{},
+		},
+		{
+			data: `1
+true 1.1`,
+			ptn: `%{INT:A:int}
+%{WORD:B:bool} %{BASE10NUM:C:int}`,
+			ret: map[string]interface{}{
+				"A": int64(1),
+				"B": true,
+				"C": int64(0),
+			},
+			failedRet: map[string]string{
+				"C": "1.1",
+			},
+		},
+		{
+			data: `1 ijk123abc
+true 1.1`,
+			ptn: `%{INT:A:int} %{WORD:S:string}
+%{WORD:B:bool} %{BASE10NUM:C:int}`,
+			ret: map[string]interface{}{
+				"A": int64(1),
+				"S": "ijk123abc",
+				"B": true,
+				"C": int64(0),
+			},
+			failedRet: map[string]string{
+				"C": "1.1",
+			},
+		},
+		{
+			data: `1
+true 1.1`,
+			ptn: `%{INT:A}
+%{WORD:B:bool} %{BASE10NUM:C:int}`,
+			ret: map[string]interface{}{
+				"A": "1",
+				"B": true,
+				"C": int64(0),
+			},
+			failedRet: map[string]string{
+				"C": "1.1",
+			},
+		},
+	}
+
+	for _, item := range tCase {
+		g, err := CompilePattern(item.ptn, defalutDenormalizedPatterns)
+		if err != nil {
+			t.Fatal(err)
+		}
+		v, vf, err := g.RunWithTypeInfo(item.data)
+		if err != nil && !item.failed {
+			t.Fatal(err)
+		}
+		assert.Equal(t, item.ret, v)
+		assert.Equal(t, item.failedRet, vf)
 	}
 }
 

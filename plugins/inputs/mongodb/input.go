@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package mongodb collects MongoDB metrics.
 package mongodb
 
@@ -13,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -144,6 +150,15 @@ func (*Input) PipelineConfig() map[string]string {
 	return map[string]string{inputName: pipelineConfig}
 }
 
+//nolint:lll
+func (m *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"MongoDB log": `{"t":{"$date":"2021-06-03T09:12:19.977+00:00"},"s":"I",  "c":"STORAGE",  "id":22430,   "ctx":"WTCheckpointThread","msg":"WiredTiger message","attr":{"message":"[1622711539:977142][1:0x7f1b9f159700], WT_SESSION.checkpoint: [WT_VERB_CHECKPOINT_PROGRESS] saving checkpoint snapshot min: 653, snapshot max: 653 snapshot count: 0, oldest timestamp: (0, 0) , meta checkpoint timestamp: (0, 0)"}}`,
+		},
+	}
+}
+
 func (m *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
@@ -209,6 +224,11 @@ func (m *Input) Run() {
 	defTags = m.Tags
 
 	tick := time.NewTicker(m.Interval.Duration)
+
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		m.Tags["election_namespace"] = namespace
+	}
+
 	for {
 		if m.pause {
 			l.Debugf("not leader, skipped")

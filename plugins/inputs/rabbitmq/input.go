@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package rabbitmq collects rabbitmq metrics.
 package rabbitmq
 
@@ -23,6 +28,15 @@ func (*Input) Catalog() string { return inputName }
 func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) PipelineConfig() map[string]string { return map[string]string{"rabbitmq": pipelineCfg} }
+
+//nolint:lll
+func (n *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		"rabbitmq": {
+			"RabbitMQ log": `2021-05-26 14:20:06.105 [warning] <0.12897.46> rabbitmqctl node_health_check and its HTTP API counterpart are DEPRECATED. See https://www.rabbitmq.com/monitoring.html#health-checks for replacement options.`,
+		},
+	}
+}
 
 func (n *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
@@ -82,6 +96,10 @@ func (n *Input) Run() {
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
+
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		n.Tags["election_namespace"] = namespace
+	}
 
 	for {
 		if !n.pause {

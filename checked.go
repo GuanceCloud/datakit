@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package datakit
 
 func Enabled(name string) bool {
@@ -156,5 +161,7 @@ var (
 		"consul":                 true,
 		"prom_remote_write":      true,
 		"pythond":                true,
+		"socket":                 true,
+		"beats_output":           true,
 	}
 )

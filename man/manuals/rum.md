@@ -1,10 +1,9 @@
 {{.CSS}}
+# 用户访问监测（RUM）
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# RUM 简介
 
 RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用户访问监测数据。
 

@@ -1,12 +1,19 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package jenkins collects Jenkins metrics.
 package jenkins
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -22,6 +29,14 @@ func (*Input) SampleConfig() string {
 
 func (*Input) Catalog() string {
 	return inputName
+}
+
+func (n *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		"jenkins": {
+			"Jenkins log": `2021-05-18 03:08:58.053+0000 [id=32]	INFO	jenkins.InitReactorRunner$1#onAttained: Started all plugins`,
+		},
+	}
 }
 
 func (*Input) PipelineConfig() map[string]string {
@@ -55,6 +70,26 @@ func (n *Input) setup() {
 		return
 	}
 	n.client = client
+
+	if n.EnableCIVisibility {
+		n.setupServer()
+		l.Infof("start listening to jenkins CI events at %s", n.CIEventPort)
+	}
+}
+
+func (n *Input) setupServer() {
+	router := gin.Default()
+	router.PUT("/v0.3/traces", gin.WrapH(n))
+	n.srv = &http.Server{
+		Addr:        n.CIEventPort,
+		Handler:     router,
+		IdleTimeout: 120 * time.Second,
+	}
+	go func() {
+		if err := n.srv.ListenAndServe(); err != nil {
+			l.Errorf("jenkins CI event server shutdown: %v", err)
+		}
+	}()
 }
 
 func (n *Input) Run() {
@@ -62,13 +97,17 @@ func (n *Input) Run() {
 	l.Info("jenkins start")
 
 	n.setup()
-
+	if !n.EnableCollect {
+		l.Info("metric collecting is disabled")
+	}
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
-
 	for {
 		select {
 		case <-tick.C:
+			if !n.EnableCollect {
+				continue
+			}
 			n.start = time.Now()
 			n.getPluginMetric()
 			if len(n.collectCache) > 0 {
@@ -89,14 +128,26 @@ func (n *Input) Run() {
 			}
 		case <-datakit.Exit.Wait():
 			n.exit()
-			l.Info("jenkins exit")
+			n.shutdownServer()
+			l.Info("jenkins exited")
 			return
 
 		case <-n.semStop.Wait():
 			n.exit()
-			l.Info("jenkins return")
+			n.shutdownServer()
+			l.Info("jenkins returned")
 			return
 		}
+	}
+}
+
+func (n *Input) shutdownServer() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := n.srv.Shutdown(ctx); err != nil {
+		l.Errorf("jenkins CI event server failed to shutdown: %v", err)
+	} else {
+		l.Infof("jenkins CI event server is shutdown")
 	}
 }
 
@@ -193,6 +244,8 @@ func (*Input) AvailableArchs() []string {
 func (n *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&Measurement{},
+		&jenkinsPipelineMeasurement{},
+		&jenkinsJobMeasurement{},
 	}
 }
 

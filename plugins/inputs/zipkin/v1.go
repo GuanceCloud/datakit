@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package zipkin
 
 import (
@@ -10,7 +15,7 @@ import (
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	zpkcorev1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin/corev1"
 )
 

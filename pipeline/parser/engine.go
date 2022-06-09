@@ -11,11 +11,36 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"sync"
 	"time"
 
 	conv "github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 )
+
+const (
+	PipelineTimeField = "time"
+)
+
+var ngDataPool = sync.Pool{
+	New: func() interface{} {
+		return &EngineData{
+			grokPatternStack: make([]map[string]*grok.GrokPattern, 0),
+			grokPatternIndex: make([]int, 0),
+			ts:               time.Now(),
+		}
+	},
+}
+
+func getNgData() *EngineData {
+	data, _ := ngDataPool.Get().(*EngineData)
+	return data
+}
+
+func putNgData(ngData *EngineData) {
+	ngData.Reset()
+	ngDataPool.Put(ngData)
+}
 
 type phase string
 
@@ -29,82 +54,70 @@ type (
 	FuncCallbackCheck func(*EngineData, Node) error
 )
 
-type EngineData struct {
-	content string
+type Engine struct {
+	grok *grok.Grok
 
+	callbacks     map[string]FuncCallback
+	callbackCheck map[string]FuncCallbackCheck
+	stmts         Stmts
+}
+
+type EngineData struct {
 	output *Output
 
-	grok             *grok.Grok
-	grokPatternStack []map[string]string
+	contentKey string
+
+	OnlyForCheckFunc **grok.Grok
+	grokPatternStack []map[string]*grok.GrokPattern
 	grokPatternIndex []int
 	stackDeep        int
 
-	stopRunPP bool // stop run()
+	stopRunPL bool // stop run()
+
+	ts      time.Time
+	lastErr error
+}
+
+func (ngData *EngineData) Reset() {
+	ngData.output = nil
+	ngData.contentKey = ""
+
+	ngData.OnlyForCheckFunc = nil
+	if len(ngData.grokPatternStack) > 0 {
+		ngData.grokPatternStack = ngData.grokPatternStack[:0]
+	} else if ngData.grokPatternStack == nil {
+		ngData.grokPatternStack = make([]map[string]*grok.GrokPattern, 0)
+	}
+	if len(ngData.grokPatternIndex) > 0 {
+		ngData.grokPatternIndex = ngData.grokPatternIndex[:0]
+	} else if ngData.grokPatternIndex == nil {
+		ngData.grokPatternIndex = make([]int, 0)
+	}
+	ngData.stackDeep = 0
+
+	ngData.stopRunPL = false
+
+	ngData.lastErr = nil
 }
 
 //nolint:structcheck,unused
 type Output struct {
-	Error string
+	Error error
 
-	Dropped bool
+	Drop bool
 
-	DataMeasurement string
-	DataTS          int64
+	Measurement string
+	Time        time.Time
 
 	Tags   map[string]string
 	Fields map[string]interface{}
-
-	Cost map[string]string
 }
 
 func NewOutput() *Output {
 	return &Output{
 		Tags:   make(map[string]string),
 		Fields: make(map[string]interface{}),
-		Cost:   make(map[string]string),
 	}
-}
-
-type Engine struct {
-	debugMode bool
-	ts        time.Time
-
-	Data *EngineData
-
-	callbacks     map[string]FuncCallback
-	callbackCheck map[string]FuncCallbackCheck
-	stmts         Stmts
-
-	lastErr error
-}
-
-func (ng *Engine) Copy() *Engine {
-	newNg := &Engine{
-		debugMode: ng.debugMode,
-		ts:        ng.ts,
-		Data: &EngineData{
-			output: NewOutput(),
-
-			grok: &grok.Grok{
-				CompliedGrokRe: make(map[string]map[string]*grok.GrokRegexp),
-			},
-			grokPatternStack: make([]map[string]string, 0),
-			grokPatternIndex: make([]int, 0),
-		},
-		callbacks:     ng.callbacks,
-		callbackCheck: ng.callbackCheck,
-		stmts:         ng.stmts,
-	}
-
-	// 仅保留编译好的 grok pattern，此 map 在 pl 运行时只读
-	for k, v := range ng.Data.grok.CompliedGrokRe {
-		newNg.Data.grok.CompliedGrokRe[k] = make(map[string]*grok.GrokRegexp)
-		for idx, value := range v {
-			newNg.Data.grok.CompliedGrokRe[k][idx] = value
-		}
-	}
-
-	return newNg
 }
 
 func NewEngine(script string, callbacks map[string]FuncCallback, check map[string]FuncCallbackCheck, debug bool) (*Engine, error) {
@@ -117,18 +130,11 @@ func NewEngine(script string, callbacks map[string]FuncCallback, check map[strin
 	if !ok {
 		return nil, fmt.Errorf("invalid AST, should not been here")
 	}
-
 	ng := &Engine{
-		debugMode: debug,
-		Data: &EngineData{
-			output: NewOutput(),
-			grok: &grok.Grok{
-				GlobalDenormalizedPatterns: DenormalizedGlobalPatterns,
-				DenormalizedPatterns:       make(map[string]string),
-				CompliedGrokRe:             make(map[string]map[string]*grok.GrokRegexp),
-			},
-			grokPatternStack: make([]map[string]string, 0),
-			grokPatternIndex: make([]int, 0),
+		grok: &grok.Grok{
+			GlobalDenormalizedPatterns: DenormalizedGlobalPatterns,
+			DenormalizedPatterns:       make(map[string]*grok.GrokPattern),
+			CompliedGrokRe:             make(map[string]map[string]*grok.GrokRegexp),
 		},
 		callbackCheck: check,
 		callbacks:     callbacks,
@@ -141,28 +147,49 @@ func NewEngine(script string, callbacks map[string]FuncCallback, check map[strin
 }
 
 func (ng *Engine) Check() error {
-	return ng.stmts.Check(ng)
+	data := &EngineData{
+		output:           NewOutput(),
+		grokPatternStack: make([]map[string]*grok.GrokPattern, 0),
+		grokPatternIndex: make([]int, 0),
+		OnlyForCheckFunc: &ng.grok,
+	}
+
+	return ng.stmts.Check(ng, data)
 }
 
-func (ng *Engine) Run(input string) error {
-	ng.reset()
-	ng.ts = time.Now()
-	ng.Data.content = input
-	ng.Data.output.Fields["message"] = input
-	ng.Data.stopRunPP = false
-	ng.stmts.Run(ng)
-	if src, err := ng.Data.GetContentStr("source"); err == nil {
-		ng.Data.output.DataMeasurement = src
-		_ = ng.Data.DeleteContent("source")
+func (ng *Engine) Run(measurement string, tags map[string]string, fields map[string]interface{},
+	contentKey string, rTime time.Time) (*Output, error) {
+	data := getNgData()
+	defer putNgData(data)
+
+	if rTime.IsZero() {
+		rTime = time.Now()
 	}
-	if ng.debugMode {
-		ng.Data.output.Cost["script-total"] = time.Since(ng.ts).String()
+
+	if tags == nil {
+		tags = map[string]string{}
 	}
-	return ng.lastErr
+	if fields == nil {
+		fields = map[string]interface{}{}
+	}
+
+	data.contentKey = contentKey
+
+	data.output = &Output{
+		Fields:      fields,
+		Tags:        tags,
+		Measurement: measurement,
+		Time:        rTime,
+	}
+
+	data.stopRunPL = false
+	ng.stmts.Run(ng, data)
+
+	return result(data), nil
 }
 
-func (ng *Engine) Result() *Output {
-	for k, v := range ng.Data.output.Fields {
+func result(data *EngineData) *Output {
+	for k, v := range data.output.Fields {
 		switch v.(type) {
 		case int, uint64, uint32, uint16, uint8, int64, int32, int16, int8, bool, string, float32, float64:
 		default:
@@ -170,25 +197,24 @@ func (ng *Engine) Result() *Output {
 			if err != nil {
 				log.Errorf("object type marshal error %v", err)
 			}
-			ng.Data.output.Fields[k] = string(str)
+			data.output.Fields[k] = string(str)
 		}
 	}
-	return ng.Data.output
-}
-
-func (ng *Engine) LastErr() error {
-	return ng.lastErr
-}
-
-func (ng *Engine) reset() {
-	ng.Data.output = &Output{
-		Tags:   make(map[string]string),
-		Fields: make(map[string]interface{}),
-		Cost:   make(map[string]string),
+	if v, err := data.GetContent(PipelineTimeField); err == nil {
+		if nanots, ok := v.(int64); ok {
+			t := time.Unix(nanots/int64(time.Second),
+				nanots%int64(time.Second))
+			if !t.IsZero() {
+				data.output.Time = t
+			}
+			_ = data.DeleteContent(PipelineTimeField)
+		}
 	}
-	ng.ts = time.Now()
-	ng.lastErr = nil
-	ng.Data.content = ""
+
+	if data.lastErr != nil {
+		data.output.Error = data.lastErr
+	}
+	return data.output
 }
 
 func (ngData *EngineData) GetContentStr(key interface{}) (string, error) {
@@ -223,7 +249,7 @@ func (ngData *EngineData) GetContent(key interface{}) (interface{}, error) {
 	}
 
 	if k == "_" {
-		return ngData.content, nil
+		k = ngData.contentKey
 	}
 
 	if v, ok := ngData.output.Tags[k]; ok {
@@ -242,13 +268,17 @@ func (ngData *EngineData) SetKey(k string, v interface{}) {
 		return
 	}
 
-	checkOutPutNilPtr(&ngData.output)
+	checkOutputNilPtr(&ngData.output)
 
+	if k == "_" {
+		k = ngData.contentKey
+	}
+	delete(ngData.output.Tags, k)
 	ngData.output.Fields[k] = v
 }
 
 func (ngData *EngineData) MarkDrop() {
-	ngData.output.Dropped = true
+	ngData.output.Drop = true
 }
 
 const (
@@ -337,15 +367,26 @@ func GetFuncFloatArg(ngData *EngineData, f *FuncStmt, idx int, kw string) (float
 	return InvalidFloat, fmt.Errorf("not implemented")
 }
 
-func (ngData *EngineData) GetGrok() *grok.Grok {
-	return ngData.grok
+func (ngData *EngineData) GetEngineRGrok() (*grok.Grok, bool) {
+	if ngData.OnlyForCheckFunc != nil && *ngData.OnlyForCheckFunc != nil {
+		return *ngData.OnlyForCheckFunc, true
+	}
+	return nil, false
+}
+
+func (ngData *EngineData) SetEngineRGrok(grok *grok.Grok) bool {
+	if ngData.OnlyForCheckFunc != nil {
+		*ngData.OnlyForCheckFunc = grok
+		return true
+	}
+	return false
 }
 
 func (ngData *EngineData) StackDeep() int {
 	return ngData.stackDeep
 }
 
-func (ngData *EngineData) PatternStack() []map[string]string {
+func (ngData *EngineData) PatternStack() []map[string]*grok.GrokPattern {
 	return ngData.grokPatternStack
 }
 
@@ -357,7 +398,7 @@ func (ngData *EngineData) PatternIndex() string {
 	return idx
 }
 
-func checkOutPutNilPtr(outptr **Output) {
+func checkOutputNilPtr(outptr **Output) {
 	if *outptr == nil {
 		*outptr = &Output{
 			Tags:   make(map[string]string),
@@ -388,10 +429,14 @@ func (ngData *EngineData) SetContent(k, v interface{}) error {
 		return fmt.Errorf("unsupported %v set", reflect.TypeOf(key).String())
 	}
 
-	checkOutPutNilPtr(&ngData.output)
+	checkOutputNilPtr(&ngData.output)
 
 	if v == nil {
 		return nil
+	}
+
+	if key == "_" {
+		key = ngData.contentKey
 	}
 
 	if _, ok := ngData.output.Tags[key]; ok {
@@ -409,6 +454,10 @@ func (ngData *EngineData) SetContent(k, v interface{}) error {
 	return nil
 }
 
+func (ngData *EngineData) SetMeasurement(v string) {
+	ngData.output.Measurement = v
+}
+
 func (ngData *EngineData) SetTag(k interface{}, v string) error {
 	var key string
 	switch t := k.(type) {
@@ -423,8 +472,11 @@ func (ngData *EngineData) SetTag(k interface{}, v string) error {
 	default:
 		return fmt.Errorf("unsupported %v set", reflect.TypeOf(key).String())
 	}
-	checkOutPutNilPtr(&ngData.output)
+	checkOutputNilPtr(&ngData.output)
 
+	if key == "_" {
+		key = ngData.contentKey
+	}
 	delete(ngData.output.Fields, key)
 
 	ngData.output.Tags[key] = v
@@ -445,6 +497,10 @@ func (ngData *EngineData) IsTag(k interface{}) bool {
 		key = t
 	default:
 		return false
+	}
+
+	if key == "_" {
+		key = ngData.contentKey
 	}
 	if _, ok := ngData.output.Tags[key]; ok {
 		return true
@@ -468,6 +524,10 @@ func (ngData *EngineData) DeleteContent(k interface{}) error {
 		return fmt.Errorf("unsupported %v set", reflect.TypeOf(key).String())
 	}
 
+	if key == "_" {
+		key = ngData.contentKey
+	}
+
 	if _, ok := ngData.output.Tags[key]; ok {
 		delete(ngData.output.Tags, key)
 	} else {
@@ -480,55 +540,55 @@ func (ngData *EngineData) DeleteContent(k interface{}) error {
 // Runner
 ///
 
-func (e Stmts) Run(ng *Engine) {
+func (e Stmts) Run(ng *Engine, data *EngineData) {
 	for _, stmt := range e {
-		if ng.lastErr != nil || ng.Data.stopRunPP {
+		if data.lastErr != nil || data.stopRunPL {
 			return
 		}
 		switch v := stmt.(type) {
 		case *IfelseStmt:
-			v.Run(ng)
+			v.Run(ng, data)
 		case *FuncStmt:
-			v.Run(ng)
+			v.Run(ng, data)
 			if v.Name == "exit" {
-				ng.Data.stopRunPP = true
+				data.stopRunPL = true
 			}
 
 		case *AssignmentStmt:
-			v.Run(ng)
+			v.Run(ng, data)
 		case Stmts:
-			v.Run(ng)
+			v.Run(ng, data)
 		default:
-			ng.lastErr = fmt.Errorf("unsupported Stmts type %s, from: %s", reflect.TypeOf(v), stmt)
+			data.lastErr = fmt.Errorf("unsupported Stmts type %s, from: %s", reflect.TypeOf(v), stmt)
 		}
 	}
 }
 
-func (e *IfelseStmt) Run(ng *Engine) {
-	ng.Data.stackDeep += 1
-	ng.Data.grokPatternIndex = append(ng.Data.grokPatternIndex, 0)
-	defer func() {
-		ng.Data.stackDeep -= 1
-		ng.Data.grokPatternIndex = ng.Data.grokPatternIndex[:ng.Data.stackDeep]
-	}()
+func (e *IfelseStmt) Run(ng *Engine, data *EngineData) {
+	// data.stackDeep += 1
+	// data.grokPatternIndex = append(data.grokPatternIndex, 0)
+	// defer func() {
+	// 	data.stackDeep -= 1
+	// 	data.grokPatternIndex = data.grokPatternIndex[:data.stackDeep]
+	// }()
 
-	if ng.lastErr != nil {
+	if data.lastErr != nil {
 		return
 	}
 
-	if !e.IfList.Run(ng) {
-		ng.Data.grokPatternIndex[ng.Data.stackDeep-1] += 1
-		e.Else.Run(ng)
+	if !e.IfList.Run(ng, data) {
+		// data.grokPatternIndex[data.stackDeep-1] += 1
+		e.Else.Run(ng, data)
 	}
 }
 
-func (e IfList) Run(ng *Engine) (end bool) {
-	if ng.lastErr != nil {
+func (e IfList) Run(ng *Engine, data *EngineData) (end bool) {
+	if data.lastErr != nil {
 		return false
 	}
 	for _, ifexpr := range e {
-		ng.Data.grokPatternIndex[ng.Data.stackDeep-1] += 1
-		end = ifexpr.Run(ng)
+		// data.grokPatternIndex[data.stackDeep-1] += 1
+		end = ifexpr.Run(ng, data)
 		if end {
 			return
 		}
@@ -536,32 +596,32 @@ func (e IfList) Run(ng *Engine) (end bool) {
 	return
 }
 
-func (e *IfExpr) Run(ng *Engine) (pass bool) {
-	if ng.lastErr != nil {
+func (e *IfExpr) Run(ng *Engine, data *EngineData) (pass bool) {
+	if data.lastErr != nil {
 		return false
 	}
 
 	switch v := e.Condition.(type) {
 	case *ParenExpr:
-		pass = v.Run(ng)
+		pass = v.Run(ng, data)
 	case *ConditionalExpr:
-		pass = v.Run(ng)
+		pass = v.Run(ng, data)
 	case *BoolLiteral:
 		pass = v.Val
 	default:
-		ng.lastErr = fmt.Errorf("unsupported IfExpr type %s, from: %s", reflect.TypeOf(v), e.Condition)
+		data.lastErr = fmt.Errorf("unsupported IfExpr type %s, from: %s", reflect.TypeOf(v), e.Condition)
 		return false
 	}
 
 	if pass {
-		e.Stmts.Run(ng)
+		e.Stmts.Run(ng, data)
 	}
 
 	return
 }
 
-func (e *ConditionalExpr) Run(ng *Engine) (pass bool) {
-	if ng.lastErr != nil {
+func (e *ConditionalExpr) Run(ng *Engine, data *EngineData) (pass bool) {
+	if data.lastErr != nil {
 		return false
 	}
 
@@ -572,11 +632,11 @@ func (e *ConditionalExpr) Run(ng *Engine) (pass bool) {
 
 	switch v := e.LHS.(type) {
 	case *Identifier:
-		left = ng.Data.output.Fields[v.Name] // left maybe nil
+		left, _ = data.GetContent(v.Name) // left maybe nil
 	case *ParenExpr:
-		left = v.Run(ng)
+		left = v.Run(ng, data)
 	case *ConditionalExpr:
-		left = v.Run(ng)
+		left = v.Run(ng, data)
 	case *StringLiteral:
 		left = v.Value()
 	case *NumberLiteral:
@@ -593,17 +653,17 @@ func (e *ConditionalExpr) Run(ng *Engine) (pass bool) {
 	// 		left = ret
 	// 	}
 	default:
-		ng.lastErr = fmt.Errorf("unsupported ConditionalExpr type %s, from: %s", reflect.TypeOf(v), e.LHS)
+		data.lastErr = fmt.Errorf("unsupported ConditionalExpr type %s, from: %s", reflect.TypeOf(v), e.LHS)
 		return false
 	}
 
 	switch v := e.RHS.(type) {
 	case *Identifier:
-		right = ng.Data.output.Fields[v.Name] // right maybe nil
+		right, _ = data.GetContent(v.Name) // right maybe nil
 	case *ParenExpr:
-		right = v.Run(ng)
+		right = v.Run(ng, data)
 	case *ConditionalExpr:
-		right = v.Run(ng)
+		right = v.Run(ng, data)
 	case *StringLiteral:
 		right = v.Value()
 	case *NumberLiteral:
@@ -613,36 +673,36 @@ func (e *ConditionalExpr) Run(ng *Engine) (pass bool) {
 	case *NilLiteral:
 		right = v.Value()
 	default:
-		ng.lastErr = fmt.Errorf("unsupported ConditionalExpr type %s, from: %s", reflect.TypeOf(v), e.RHS)
+		data.lastErr = fmt.Errorf("unsupported ConditionalExpr type %s, from: %s", reflect.TypeOf(v), e.RHS)
 		return false
 	}
 
-	if ng.lastErr != nil {
+	if data.lastErr != nil {
 		return false
 	}
 
 	p, err := contrast(left, e.Op.String(), right)
 	if err != nil {
-		ng.lastErr = fmt.Errorf("failed to contrast, err: %w", err)
+		data.lastErr = fmt.Errorf("failed to contrast, err: %w", err)
 		return false
 	}
 	return p
 }
 
-func (e *ParenExpr) Run(ng *Engine) (pass bool) {
-	if ng.lastErr != nil {
+func (e *ParenExpr) Run(ng *Engine, data *EngineData) (pass bool) {
+	if data.lastErr != nil {
 		return false
 	}
 
 	switch v := e.Param.(type) {
 	case *ParenExpr:
-		pass = v.Run(ng)
+		pass = v.Run(ng, data)
 	case *ConditionalExpr:
-		pass = v.Run(ng)
+		pass = v.Run(ng, data)
 	case *BoolLiteral:
 		pass = v.Val
 	default:
-		ng.lastErr = fmt.Errorf("unsupported ParenExpr type %s, from: %s", reflect.TypeOf(v), e.Param)
+		data.lastErr = fmt.Errorf("unsupported ParenExpr type %s, from: %s", reflect.TypeOf(v), e.Param)
 		return
 	}
 	return
@@ -652,8 +712,8 @@ func (e *ComputationExpr) Run(ng *Engine) {
 	// TODO
 }
 
-func (e *AssignmentStmt) Run(ng *Engine) {
-	if ng.lastErr != nil {
+func (e *AssignmentStmt) Run(ng *Engine, data *EngineData) {
+	if data.lastErr != nil {
 		return
 	}
 
@@ -661,27 +721,27 @@ func (e *AssignmentStmt) Run(ng *Engine) {
 	case *Identifier:
 		switch vv := e.RHS.(type) {
 		case *StringLiteral:
-			ng.Data.output.Fields[v.Name] = vv.Value()
+			_ = data.SetContent(v.Name, vv.Value())
 		case *NumberLiteral:
-			ng.Data.output.Fields[v.Name] = vv.Value()
+			_ = data.SetContent(v.Name, vv.Value())
 		case *BoolLiteral:
-			ng.Data.output.Fields[v.Name] = vv.Value()
+			_ = data.SetContent(v.Name, vv.Value())
 		default:
-			ng.lastErr = fmt.Errorf("unsupported AssignmentStmt type %s, from: %s", reflect.TypeOf(vv), e.RHS)
+			data.lastErr = fmt.Errorf("unsupported AssignmentStmt type %s, from: %s", reflect.TypeOf(vv), e.RHS)
 		}
 	default:
-		ng.lastErr = fmt.Errorf("unsupported AssignmentStmt type %s, from: %s", reflect.TypeOf(v), e.LHS)
+		data.lastErr = fmt.Errorf("unsupported AssignmentStmt type %s, from: %s", reflect.TypeOf(v), e.LHS)
 	}
 }
 
-func (e *FuncStmt) Run(ng *Engine) interface{} {
+func (e *FuncStmt) Run(ng *Engine, data *EngineData) interface{} {
 	if fn := ng.callbacks[e.Name]; fn == nil {
-		ng.lastErr = fmt.Errorf("unsupported func: `%v'", e.Name)
-		return ng.lastErr
+		data.lastErr = fmt.Errorf("unsupported func: `%v'", e.Name)
+		return data.lastErr
 	} else {
-		switch ret := fn(ng.Data, e).(type) {
+		switch ret := fn(data, e).(type) {
 		case error:
-			ng.lastErr = fmt.Errorf("Run func %v: %w", e.Name, ret)
+			data.lastErr = fmt.Errorf("Run func %v: %w", e.Name, ret)
 			return ret
 		case nil:
 			return nil
@@ -711,15 +771,15 @@ func (e *NilLiteral) Value() interface{} { return nil }
 
 // Check Stmts
 //   stmt only support IfelseStmt/FuncStmt/AssignmentStmt
-func (e Stmts) Check(ng *Engine) error {
+func (e Stmts) Check(ng *Engine, data *EngineData) error {
 	for _, stmt := range e {
 		switch v := stmt.(type) {
 		case *IfelseStmt:
-			if err := v.Check(ng); err != nil {
+			if err := v.Check(ng, data); err != nil {
 				return err
 			}
 		case *FuncStmt:
-			if err := v.Check(ng); err != nil {
+			if err := v.Check(ng, data); err != nil {
 				return fmt.Errorf("func %s: %w", v.Name, err)
 			}
 		case *AssignmentStmt:
@@ -727,7 +787,7 @@ func (e Stmts) Check(ng *Engine) error {
 				return err
 			}
 		case Stmts:
-			if err := v.Check(ng); err != nil {
+			if err := v.Check(ng, data); err != nil {
 				return err
 			}
 		default:
@@ -740,7 +800,7 @@ func (e Stmts) Check(ng *Engine) error {
 
 // Check IfExpr
 //   Condition support BoolLiteral/ConditionalExpr
-func (e *FuncStmt) Check(ng *Engine) error {
+func (e *FuncStmt) Check(ng *Engine, data *EngineData) error {
 	if _, ok := ng.callbacks[e.Name]; !ok {
 		return fmt.Errorf("unsupported func: `%v'", e.Name)
 	}
@@ -749,7 +809,7 @@ func (e *FuncStmt) Check(ng *Engine) error {
 	if !ok {
 		return fmt.Errorf("not found check for func: `%v'", e.Name)
 	}
-	return checkFn(ng.Data, e)
+	return checkFn(data, e)
 }
 
 // Check AssignmentStmt
@@ -775,31 +835,31 @@ func (e *AssignmentStmt) Check() error {
 }
 
 // Check IfelseStmt.
-func (e *IfelseStmt) Check(ng *Engine) error {
-	ng.Data.stackDeep += 1
-	ng.Data.grokPatternStack = append(ng.Data.grokPatternStack, map[string]string{})
-	ng.Data.grokPatternIndex = append(ng.Data.grokPatternIndex, 0)
+func (e *IfelseStmt) Check(ng *Engine, data *EngineData) error {
+	data.stackDeep += 1
+	data.grokPatternStack = append(data.grokPatternStack, map[string]*grok.GrokPattern{})
+	data.grokPatternIndex = append(data.grokPatternIndex, 0)
 	defer func() {
-		ng.Data.stackDeep -= 1
-		ng.Data.grokPatternStack = ng.Data.grokPatternStack[:ng.Data.stackDeep]
-		ng.Data.grokPatternIndex = ng.Data.grokPatternIndex[:ng.Data.stackDeep]
+		data.stackDeep -= 1
+		data.grokPatternStack = data.grokPatternStack[:data.stackDeep]
+		data.grokPatternIndex = data.grokPatternIndex[:data.stackDeep]
 	}()
 
-	if err := e.IfList.Check(ng); err != nil {
+	if err := e.IfList.Check(ng, data); err != nil {
 		return err
 	}
 
-	ng.Data.grokPatternStack[ng.Data.stackDeep-1] = make(map[string]string)
-	ng.Data.grokPatternIndex[ng.Data.stackDeep-1] += 1
-	return e.Else.Check(ng)
+	data.grokPatternStack[data.stackDeep-1] = make(map[string]*grok.GrokPattern)
+	data.grokPatternIndex[data.stackDeep-1] += 1
+	return e.Else.Check(ng, data)
 }
 
 // Check IfList.
-func (e IfList) Check(ng *Engine) error {
+func (e IfList) Check(ng *Engine, data *EngineData) error {
 	for _, i := range e {
-		ng.Data.grokPatternStack[ng.Data.stackDeep-1] = make(map[string]string)
-		ng.Data.grokPatternIndex[ng.Data.stackDeep-1] += 1
-		if err := i.Check(ng); err != nil {
+		data.grokPatternStack[data.stackDeep-1] = make(map[string]*grok.GrokPattern)
+		data.grokPatternIndex[data.stackDeep-1] += 1
+		if err := i.Check(ng, data); err != nil {
 			return err
 		}
 	}
@@ -808,7 +868,7 @@ func (e IfList) Check(ng *Engine) error {
 
 // Check IfExpr
 //   Condition support BoolLiteral/ConditionalExpr
-func (e *IfExpr) Check(ng *Engine) error {
+func (e *IfExpr) Check(ng *Engine, data *EngineData) error {
 	switch v := e.Condition.(type) {
 	case *ParenExpr:
 		// nil
@@ -822,7 +882,7 @@ func (e *IfExpr) Check(ng *Engine) error {
 		return fmt.Errorf(`unsupported type %s, from: %s`,
 			reflect.TypeOf(e.Condition), e.Condition)
 	}
-	return e.Stmts.Check(ng)
+	return e.Stmts.Check(ng, data)
 }
 
 // Check ConditionalExpr
@@ -837,10 +897,6 @@ func (e *ConditionalExpr) Check(ng *Engine) error {
 	case *NumberLiteral:
 	case *BoolLiteral:
 	case *NilLiteral:
-	// case *FuncStmt:
-	// 	if err := v.Check(ng); err != nil {
-	// 		return err
-	// 	}
 	default:
 		return fmt.Errorf(`unsupported type %s, from: %s`,
 			reflect.TypeOf(e.LHS), e.LHS)

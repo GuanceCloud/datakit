@@ -1,12 +1,12 @@
 {{.CSS}}
+# 文件日志
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
-# {{.InputName}}
-
 本文档主要介绍本地磁盘日志采集和 Socket 日志采集：
+
 - 磁盘日志采集 ：采集文件尾部数据（类似命令行 `tail -f`）
 - Socket 端口获取：通过 TCP/UDP 方式将日志发送给 DataKit 
 
@@ -54,11 +54,6 @@
   #    `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
   character_encoding = ""
   
-  ## 无论从文件读取还是从socket中读取的日志, 默认的单行最大长度为 32k
-  ## 如果您的日志单行有超过32K的情况，请配置 maximum_length 为可能的最大长度
-  ## 但是 maximum_length 最大可以配置成32M
-  # maximum_length = 32766
-
   ## 设置正则表达式，例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
   ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
   ## 使用3个单引号 '''this-regexp''' 避免转义
@@ -187,6 +182,10 @@ Traceback (most recent call last):
  ...
 ```
 
+#### 日志单行最大长度
+
+无论从文件还是从 socket 中读取的日志, 单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃。
+
 ### Pipeline 配置和使用
 
 [Pipeline](pipeline) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
@@ -194,7 +193,7 @@ Traceback (most recent call last):
 对日志数据而言，主要提取两个字段：
 
 - `time`：即日志的产生时间，如果没有提取 `time` 字段或解析此字段失败，默认使用系统当前时间
-- `status`：日志的等级，如果没有提取出 `status` 字段，则默认将 `stauts` 置为 `info`
+- `status`：日志的等级，如果没有提取出 `status` 字段，则默认将 `stauts` 置为 `unknown`
 
 #### 可用日志等级
 

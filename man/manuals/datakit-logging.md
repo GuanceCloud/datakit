@@ -1,4 +1,4 @@
-# DataKit 整体日志采集和处理介绍
+# DataKit 日志采集综述
 
 日志数据对于整体的可观测性，其提供了足够灵活、多变的的信息组合方式，正因如此，相比指标和 Tracing，日志的采集、处理方式方案更多，以适应不同环境、架构以及技术栈的采集场景。
 
@@ -37,12 +37,14 @@
 在 DataKit 现有 stdout 采集方案中（主要针对 k8s 环境），日志的采集有如下几个特点：
 
 - 由于部署在容器环境中的应用，均需构建对应的容器镜像。对 DataKit 而言，可以基于镜像名称，选择性的针对某些应用做日志采集
-	1. 通过在 ConfigMap 的 container.conf 中，[选择部分镜像名称](container#fd39c219)（或其通配）来定点采集 stdout 日志
-	1. 染色标记：[通过 Annotation 修改 Pod 标注](container#2a6149d7)，DataKit 能识别到这些特殊的 Pod，进而对其 stdout 日志进行采集
+
+	- 通过在 ConfigMap 的 container.conf 中，[选择部分镜像名称](container#34ec06f1)（或其通配）来定点采集 stdout 日志
+	- 染色标记：[通过 Annotation 修改 Pod 标注](container#f3cb35b8)，DataKit 能识别到这些特殊的 Pod，进而对其 stdout 日志进行采集
 
 这也是这种策略的一个缺陷，即要求应用将日志输出到 stdout，在一般的应用开发中，日志不太会直接写到 stdout（但主流的日志框架一般都支持输出到 stdout），需要开发者调整日志配置。但是，随着容器化部署方案不断普及，这种方案不失为一种可行的日志采集方式。
 
-> 随着 k8s 逐渐摒弃 Docker，通过 Docker API 获取日志这一方案可能会不再适用新的 k8s 发布，届时社区可能会提供配套的类似实现。
+> - 随着 k8s 逐渐摒弃 Docker，通过 Docker API 获取日志这一方案可能会不再适用新的 k8s 发布，届时社区可能会提供配套的类似实现
+> - 在 [1.2.20](changelog#) 中，容器日志已不再依赖 Docker 日志 API
 
 ## 远程推送日志给 DataKit
 

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -22,8 +27,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
-	plWorker "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	plstats "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -76,21 +82,22 @@ type DatakitStats struct {
 
 	AvailableInputs []string `json:"available_inputs"`
 
-	HostName     string `json:"hostname"`
-	Version      string `json:"version"`
-	BuildAt      string `json:"build_at"`
-	Branch       string `json:"branch"`
-	Uptime       string `json:"uptime"`
-	OSArch       string `json:"os_arch"`
-	IOChanStat   string `json:"io_chan_stats"`
-	PLWorkerStat string `json:"pl_wroker_stats"`
-	Elected      string `json:"elected"`
-	Cgroup       string `json:"cgroup"`
-	CSS          string `json:"-"`
+	HostName   string `json:"hostname"`
+	Version    string `json:"version"`
+	BuildAt    string `json:"build_at"`
+	Branch     string `json:"branch"`
+	Uptime     string `json:"uptime"`
+	OSArch     string `json:"os_arch"`
+	IOChanStat string `json:"io_chan_stats"`
+	Elected    string `json:"elected"`
+	Cgroup     string `json:"cgroup"`
+	CSS        string `json:"-"`
 
-	InputsStats map[string]*io.InputsStat `json:"inputs_status"`
-	IoStats     io.IoStat                 `json:"io_stats"`
-	HTTPMetrics map[string]*apiStat       `json:"http_metrics"`
+	InputsStats map[string]*io.InputsStat  `json:"inputs_status"`
+	SenderStat  map[string]*sender.Metric  `json:"sender_stat"`
+	IoStats     io.IoStat                  `json:"io_stats"`
+	PLStats     []plstats.ScriptStatsROnly `json:"pl_stats"`
+	HTTPMetrics map[string]*apiStat        `json:"http_metrics"`
 
 	WithinDocker bool            `json:"docker"`
 	AutoUpdate   bool            `json:"auto_update"`
@@ -112,7 +119,6 @@ var (
 - 系统类型   : {{.OSArch}}
 - 容器运行   : {{.WithinDocker}}
 - IO 消耗统计: {{.IOChanStat}}
-- Pipeline Worker 统计: {{.PLWorkerStat}}
 - 自动更新   ：{{.AutoUpdate}}
 - 选举状态   ：{{.Elected}}
 	`
@@ -314,11 +320,12 @@ func GetStats() (*DatakitStats, error) {
 		WithinDocker:   datakit.Docker,
 		IOChanStat:     io.ChanStat(),
 		IoStats:        io.GetIoStats(),
-		PLWorkerStat:   plWorker.ShowPLWkrStats().String(),
+		PLStats:        plstats.ReadStats(),
 		Elected:        fmt.Sprintf("%s::%s|%s", ns, elected, who),
 		Cgroup:         cgroup.Info(),
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),
+		SenderStat:     sender.GetStat(),
 		HostName:       datakit.DatakitHostName,
 		EnabledInputs:  map[string]*enabledInput{},
 		HTTPMetrics:    getMetrics(),
@@ -328,16 +335,14 @@ func GetStats() (*DatakitStats, error) {
 
 	var err error
 
+	l.Debugf("io.GetStats()...")
 	stats.InputsStats, err = io.GetStats() // get all inputs stats
 	if err != nil {
 		return nil, err
 	}
 
-	for k := range inputs.Inputs {
-		if !datakit.Enabled(k) {
-			continue
-		}
-
+	l.Debugf("get inputs info...")
+	for k := range inputs.InputsInfo {
 		n := inputs.InputEnabled(k)
 		npanic := inputs.GetPanicCnt(k)
 		if n > 0 {

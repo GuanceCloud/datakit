@@ -1,10 +1,9 @@
 {{.CSS}}
+# Scheck 接入
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
-
-# Security Checker 接入
 
 Datakit 可以直接接入 Security Checker的数据。Security Checker 具体使用，参见[这里](https://www.yuque.com/dataflux/sec_checker/scheck-install) 
 

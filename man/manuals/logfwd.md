@@ -1,12 +1,9 @@
 {{.CSS}}
+# 通过 Sidecar 方式采集 Pod 日志
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
-
-# logfwd 日志采集客户端
-
-## 介绍
 
 为了便于在 Kubernetes Pod 中采集应用容器的日志，提供一个轻量的日志采集客户端，以 sidecar 方式挂载到 Pod 中，并将采集到的日志发送给 DataKit。
 

@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
@@ -110,15 +111,16 @@ add_key(add_new_key, nil)
 				}
 				return
 			}
-
-			if err := runner.Run(tc.in); err == nil {
-				ret := runner.Result()
+			if ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now()); err == nil && ret.Error == nil {
 				t.Log(ret)
 				v := ret.Fields["add_new_key"]
 				tu.Equals(t, tc.expect, v)
 				t.Logf("[%d] PASS", idx)
 			} else {
-				t.Error(err)
+				t.Error(err, " ", ret.Error)
 			}
 		})
 	}

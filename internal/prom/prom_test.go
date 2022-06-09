@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package prom
 
 import (
@@ -6,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -18,40 +24,6 @@ import (
 )
 
 const promURL = "http://127.0.0.1:9100/metrics"
-
-const mockBody = `
-# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
-# TYPE promhttp_metric_handler_errors_total counter
-promhttp_metric_handler_errors_total{cause="encoding"} 0
-promhttp_metric_handler_errors_total{cause="gathering"} 0
-# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
-# TYPE promhttp_metric_handler_requests_in_flight gauge
-promhttp_metric_handler_requests_in_flight 1
-# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
-# TYPE promhttp_metric_handler_requests_total counter
-promhttp_metric_handler_requests_total{code="200"} 15143
-promhttp_metric_handler_requests_total{code="500"} 0
-promhttp_metric_handler_requests_total{code="503"} 0
-# HELP go_gc_duration_seconds A summary of the GC invocation durations.
-# TYPE go_gc_duration_seconds summary
-go_gc_duration_seconds{quantile="0"} 0
-go_gc_duration_seconds{quantile="0.25"} 0
-go_gc_duration_seconds{quantile="0.5"} 0
-# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
-# TYPE http_request_duration_seconds histogram
-http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
-http_request_duration_seconds_bucket{le="0.03",status_code="404",method="GET"} 1
-http_request_duration_seconds_bucket{le="0.1",status_code="404",method="GET"} 1
-http_request_duration_seconds_bucket{le="0.3",status_code="404",method="GET"} 1
-http_request_duration_seconds_bucket{le="1.5",status_code="404",method="GET"} 1
-http_request_duration_seconds_bucket{le="10",status_code="404",method="GET"} 1
-http_request_duration_seconds_bucket{le="+Inf",status_code="404",method="GET"} 1
-http_request_duration_seconds_sum{status_code="404",method="GET"} 0.002451013
-http_request_duration_seconds_count{status_code="404",method="GET"} 1
-# HELP up 1 = up, 0 = not up
-# TYPE up untyped
-up 1
-`
 
 const caContent = `-----BEGIN CERTIFICATE-----
 MIICqDCCAZACCQC27UZHg8A/CjANBgkqhkiG9w0BAQsFADAWMRQwEgYDVQQDDAt0
@@ -86,29 +58,36 @@ func (t *transportMock) RoundTrip(r *http.Request) (*http.Response, error) {
 	return res, nil
 }
 
-func (t *transportMock) CancelRequest(_ *http.Request) {
-}
+func (t *transportMock) CancelRequest(_ *http.Request) {}
 
 func newTransportMock(body string) http.RoundTripper {
-	return &transportMock{
-		statusCode: http.StatusOK,
-		body:       body,
-	}
+	return &transportMock{statusCode: http.StatusOK, body: body}
 }
 
 func TestCollect(t *testing.T) {
 	testcases := []struct {
-		in   *Option
-		fail bool
+		in     *Option
+		name   string
+		fail   bool
+		expect []string
 	}{
 		{
+			name: "nil option",
 			fail: true,
 		},
 		{
+			name: "empty option",
 			in:   &Option{},
 			fail: true,
 		},
 		{
+			name: "ok",
+			expect: []string{
+				`gogo gc_duration_seconds_count=0,gc_duration_seconds_sum=0 1000000000000000000`,
+				`gogo,quantile=0 gc_duration_seconds=0 1000000000000000000`,
+				`gogo,quantile=0.25 gc_duration_seconds=0 1000000000000000000`,
+				`gogo,quantile=0.5 gc_duration_seconds=0 1000000000000000000`,
+			},
 			in: &Option{
 				URL:         promURL,
 				MetricTypes: []string{},
@@ -121,34 +100,129 @@ func TestCollect(t *testing.T) {
 				},
 				MetricNameFilter: []string{"go"},
 			},
-			fail: false,
 		},
+
 		{
+			name: "option-only-URL",
 			in:   &Option{URL: promURL},
-			fail: false,
+			expect: []string{
+				`go gc_duration_seconds_count=0,gc_duration_seconds_sum=0 1000000000000000000`,
+				`go,quantile=0 gc_duration_seconds=0 1000000000000000000`,
+				`go,quantile=0.25 gc_duration_seconds=0 1000000000000000000`,
+				`go,quantile=0.5 gc_duration_seconds=0 1000000000000000000`,
+				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i 1000000000000000000",
+				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1i 1000000000000000000",
+				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i 1000000000000000000`,
+				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i 1000000000000000000`,
+				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i 1000000000000000000`,
+				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i 1000000000000000000`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i 1000000000000000000`,
+				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i 1000000000000000000`,
+				`http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013 1000000000000000000`,
+				"http,method=GET,status_code=403 request_duration_seconds_count=0,request_duration_seconds_sum=0 1000000000000000000",
+				`promhttp metric_handler_requests_in_flight=1 1000000000000000000`,
+				`promhttp,cause=encoding metric_handler_errors_total=0 1000000000000000000`,
+				`promhttp,cause=gathering metric_handler_errors_total=0 1000000000000000000`,
+				`promhttp,code=200 metric_handler_requests_total=15143 1000000000000000000`,
+				`promhttp,code=500 metric_handler_requests_total=0 1000000000000000000`,
+				`promhttp,code=503 metric_handler_requests_total=0 1000000000000000000`,
+				`up up=1 1000000000000000000`,
+			},
+		},
+
+		{
+			name: "option-ignore-tag-kv",
+			in: &Option{
+				URL: promURL,
+				IgnoreTagKV: IgnoreTagKeyValMatch{
+					"le":          []*regexp.Regexp{regexp.MustCompile("0.*")},
+					"status_code": []*regexp.Regexp{regexp.MustCompile("403")},
+				},
+			},
+			expect: []string{
+				`go gc_duration_seconds_count=0,gc_duration_seconds_sum=0 1000000000000000000`,
+				`go,quantile=0 gc_duration_seconds=0 1000000000000000000`,
+				`go,quantile=0.25 gc_duration_seconds=0 1000000000000000000`,
+				`go,quantile=0.5 gc_duration_seconds=0 1000000000000000000`,
+				`http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i 1000000000000000000`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i 1000000000000000000`,
+				`http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013 1000000000000000000`,
+				`promhttp metric_handler_requests_in_flight=1 1000000000000000000`,
+				`promhttp,cause=encoding metric_handler_errors_total=0 1000000000000000000`,
+				`promhttp,cause=gathering metric_handler_errors_total=0 1000000000000000000`,
+				`promhttp,code=200 metric_handler_requests_total=15143 1000000000000000000`,
+				`promhttp,code=500 metric_handler_requests_total=0 1000000000000000000`,
+				`promhttp,code=503 metric_handler_requests_total=0 1000000000000000000`,
+				`up up=1 1000000000000000000`,
+			},
 		},
 	}
 
+	mockBody := `
+# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0 1000000000000
+promhttp_metric_handler_errors_total{cause="gathering"} 0 1000000000000
+# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
+# TYPE promhttp_metric_handler_requests_in_flight gauge
+promhttp_metric_handler_requests_in_flight 1 1000000000000
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 15143 1000000000000
+promhttp_metric_handler_requests_total{code="500"} 0 1000000000000
+promhttp_metric_handler_requests_total{code="503"} 0 1000000000000
+# HELP go_gc_duration_seconds A summary of the GC invocation durations.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 0 1000000000000
+go_gc_duration_seconds{quantile="0.25"} 0 1000000000000
+go_gc_duration_seconds{quantile="0.5"} 0 1000000000000
+# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1 1000000000000
+http_request_duration_seconds_bucket{le="0.03",status_code="404",method="GET"} 1 1000000000000
+http_request_duration_seconds_bucket{le="0.1",status_code="404",method="GET"} 1 1000000000000
+http_request_duration_seconds_bucket{le="0.3",status_code="404",method="GET"} 1 1000000000000
+http_request_duration_seconds_bucket{le="1.5",status_code="404",method="GET"} 1 1000000000000
+http_request_duration_seconds_bucket{le="10",status_code="404",method="GET"} 1 1000000000000
+http_request_duration_seconds_bucket{le="1.2",status_code="404",method="GET"} 1 1000000000000
+http_request_duration_seconds_bucket{le="+Inf",status_code="403",method="GET"} 1 1000000000000
+http_request_duration_seconds_sum{status_code="404",method="GET"} 0.002451013 1000000000000
+http_request_duration_seconds_count{status_code="404",method="GET"} 1 1000000000000
+# HELP up 1 = up, 0 = not up
+# TYPE up untyped
+up 1 1000000000000
+`
+
 	for _, tc := range testcases {
-		p, err := NewProm(tc.in)
-		if tc.fail && assert.Error(t, err) {
-			continue
-		} else {
-			assert.NoError(t, err)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			p, err := NewProm(tc.in)
+			if tc.fail && assert.Error(t, err) {
+				return
+			} else {
+				assert.NoError(t, err)
+			}
 
-		p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
+			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
 
-		pts, err := p.CollectFromHTTP(p.opt.URL)
-		if tc.fail && assert.Error(t, err) {
-			continue
-		} else {
-			assert.NoError(t, err)
-		}
+			pts, err := p.CollectFromHTTP(p.opt.URL)
+			if tc.fail && assert.Error(t, err) {
+				return
+			} else {
+				assert.NoError(t, err)
+			}
 
-		for _, pt := range pts {
-			t.Log(pt.String())
-		}
+			arr := []string{}
+			for _, pt := range pts {
+				arr = append(arr, pt.String())
+			}
+
+			sort.Strings(arr)
+			sort.Strings(tc.expect)
+
+			t.Logf("\n%s", strings.Join(arr, "\n"))
+
+			assert.Equal(t, strings.Join(tc.expect, "\n"), strings.Join(arr, "\n"))
+		})
 	}
 }
 
@@ -282,6 +356,40 @@ func Test_Option(t *testing.T) {
 }
 
 func Test_WriteFile(t *testing.T) {
+	mockBody := `
+# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 0
+# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
+# TYPE promhttp_metric_handler_requests_in_flight gauge
+promhttp_metric_handler_requests_in_flight 1
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 15143
+promhttp_metric_handler_requests_total{code="500"} 0
+promhttp_metric_handler_requests_total{code="503"} 0
+# HELP go_gc_duration_seconds A summary of the GC invocation durations.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 0
+go_gc_duration_seconds{quantile="0.25"} 0
+go_gc_duration_seconds{quantile="0.5"} 0
+# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.03",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.1",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.3",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="1.5",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="10",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="+Inf",status_code="404",method="GET"} 1
+http_request_duration_seconds_sum{status_code="404",method="GET"} 0.002451013
+http_request_duration_seconds_count{status_code="404",method="GET"} 1
+# HELP up 1 = up, 0 = not up
+# TYPE up untyped
+up 1
+`
+
 	tmpDir, err := ioutil.TempDir("./", "__tmp")
 	if err != nil {
 		t.Fatal(err)
@@ -703,6 +811,41 @@ func TestProm(t *testing.T) {
 			},
 		},
 	}
+
+	mockBody := `
+# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 0
+# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
+# TYPE promhttp_metric_handler_requests_in_flight gauge
+promhttp_metric_handler_requests_in_flight 1
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 15143
+promhttp_metric_handler_requests_total{code="500"} 0
+promhttp_metric_handler_requests_total{code="503"} 0
+# HELP go_gc_duration_seconds A summary of the GC invocation durations.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 0
+go_gc_duration_seconds{quantile="0.25"} 0
+go_gc_duration_seconds{quantile="0.5"} 0
+# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.03",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.1",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.3",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="1.5",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="10",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="+Inf",status_code="404",method="GET"} 1
+http_request_duration_seconds_sum{status_code="404",method="GET"} 0.002451013
+http_request_duration_seconds_count{status_code="404",method="GET"} 1
+# HELP up 1 = up, 0 = not up
+# TYPE up untyped
+up 1
+`
+
 	for idx, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			p, err := NewProm(tc.in)
@@ -745,11 +888,46 @@ func TestProm(t *testing.T) {
 }
 
 func TestCollectFromFile(t *testing.T) {
+	mockBody := `
+# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 0
+# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
+# TYPE promhttp_metric_handler_requests_in_flight gauge
+promhttp_metric_handler_requests_in_flight 1
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 15143
+promhttp_metric_handler_requests_total{code="500"} 0
+promhttp_metric_handler_requests_total{code="503"} 0
+# HELP go_gc_duration_seconds A summary of the GC invocation durations.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 0
+go_gc_duration_seconds{quantile="0.25"} 0
+go_gc_duration_seconds{quantile="0.5"} 0
+# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.03",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.1",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.3",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="1.5",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="10",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="+Inf",status_code="404",method="GET"} 1
+http_request_duration_seconds_sum{status_code="404",method="GET"} 0.002451013
+http_request_duration_seconds_count{status_code="404",method="GET"} 1
+# HELP up 1 = up, 0 = not up
+# TYPE up untyped
+up 1
+`
+
 	f, err := os.CreateTemp("./", "test_collect_from_file_")
 	if err != nil {
 		t.Errorf(err.Error())
 	}
 	defer os.Remove(f.Name()) //nolint:errcheck,gosec
+
 	if _, err := f.WriteString(mockBody); err != nil {
 		t.Errorf("fail to write mock body to temporary file: %v", err)
 	}

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package ddtrace
 
 import (
@@ -8,7 +13,7 @@ import (
 	"net/http"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 const (
@@ -50,7 +55,7 @@ func handleDDTraceWithVersion(v string) http.HandlerFunc {
 
 			if dktrace := ddtraceToDkTrace(trace); len(dktrace) == 0 {
 				log.Warn("empty datakit trace")
-			} else {
+			} else if afterGatherRun != nil {
 				afterGatherRun.Run(inputName, dktrace, false)
 			}
 		}
@@ -200,6 +205,10 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			dkspan.Version = span.Meta[itrace.VERSION]
 		} else {
 			dkspan.Version = tags[itrace.VERSION]
+		}
+
+		if id, ok := span.Meta["runtime-id"]; ok {
+			dkspan.Tags["runtime_id"] = id
 		}
 
 		dkspan.Status = itrace.STATUS_OK

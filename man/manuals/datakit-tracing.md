@@ -1,14 +1,9 @@
 {{.CSS}}
+# Datakit Tracing 综述
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# Datakit Tracing Data Flow
-
-> Third Party Tracing Agent --> Datakit Frontend --> Datakit Backend --> Data Center
-
-## Third Party Tracing Agent
 
 目前 Datakit 支持的第三方 Tracing 数据包括：
 

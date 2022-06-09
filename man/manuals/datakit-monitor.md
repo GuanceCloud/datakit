@@ -1,10 +1,8 @@
-
 {{.CSS}}
+# 查看 DataKit 的 Monitor
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
-
-# 查看 DataKit 的 Monitor 信息
 
 DataKit 提供了相对完善的基本可观测信息输出，通过查看 DataKit 的 monitor 输出，我们能清晰的知道当前 DataKit 的运行情况。
 
@@ -82,6 +80,19 @@ DataKit 基本 Monitor 页面信息如下图所示：
 - `HTTP APIs` 展示 DataKit 中 API 调用情况
 - `Filter` 展示 DataKit 中黑名单过滤规则拉取情况
 - `Filter Rules` 展示每类黑名单的过滤情况
+
+- `Sender Info` 展示 Sender 管理的各个 Sink 运行情况
+	- `Sink`: Sink 名称
+	- `Uptime`: 运行时间
+	- `Count`: Write 次数
+	- `Failed`: Write 失败次数
+	- `Pts`: Write 点数
+	- `Raw Bytes`: Write 字节数（压缩前）
+	- `Bytes`: Write 字节数（压缩后）
+	- `2XX`: HTTP 状态码 2XX 次数
+	- `4XX`: HTTP 状态码 4XX 次数
+	- `5XX`: HTTP 状态码 5XX 次数
+	- `Timeout`: HTTP 超时次数
 
 ## FAQ
 

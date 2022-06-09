@@ -1,10 +1,9 @@
 {{.CSS}}
+# 文本数据处理（Pipeline）
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# Pipeline 使用文档
 
 以下是文本处理器定义。随着不同语法的逐步支持，该文档会做不同程度的调整和增删。
 
@@ -13,11 +12,23 @@
 - 函数名大小写不敏感
 - 以 `#` 为行注释字符。不支持行内注释
 - 标识符：只能出现 `[_a-zA-Z0-9]` 这些字符，且首字符不能是数字。如 `_abc, _abc123, _123ab`
-- 字符串值可用双引号和单引号： `"this is a string"` 和 `'this is a string'` 是等价的
+- 字符串值可用双引号或单引号，多行字符串可以使用三双引号或三单引号： 
+  - `"this is a string"` 
+  - `'this is a string'`
+  - ```
+    """%{NUMBER:a:int}
+    %{WORD:B:bool} %{NUMBER:b:float}"""
+    ```
+  - ```
+    '''%{NUMBER:a:int}
+    %{WORD:B:bool} %{NUMBER:b:float}'''
+    ```
+
 - 数据类型：支持浮点（`123.4`, `5.67E3`）、整形（`123`, `-1`）、字符串（`'张三'`, `"hello world"`）、Boolean（`true`, `false`）四种类型
 - 多个函数之间，可以用空白字符（空格、换行、Tab 等）分割
 - 切割出来的字段中如果带有特殊字符（如 `@`、`$`、中文字符、表情包等），在代码中引用时，需额外修饰，如 `` `@some-variable` ``，`` `这是一个表情包变量👍` ``
 	- 字段名中出现的字符只能是 `[_a-zA-Z0-9]`，即只能是下划线（`_`）、大小写英文字母以及数字。另外，**首字符不能是数字**
+    - 对于日志，`_` 为 `message` 的别名
 
 ## 快速开始
 
@@ -74,6 +85,53 @@ drop_origin_data()
 DataKit 中 grok 模式可以分为两类：全局模式与局部模式，`pattern` 目录下的模式文件都是全局模式，所有 pipeline 脚本都可使用，而在 pipeline 脚本中通过 `add_pattern()` 函数新增的模式属于局部模式，只针对当前 pipeline 脚本有效。
 
 当 DataKit 内置模式不能满足所有用户需求，用户可以自行在 pipeline 目录中增加模式文件来扩充。若自定义模式是全局级别，则需在 `pattern` 目录中新建一个文件并把模式添加进去，不要在已有内置模式文件中添加或修改，因为datakit启动过程会把内置模式文件覆盖掉。
+
+
+grok 函数和 add_pattern 函数使用时可供参考的一些技巧，以处理一条 Nginx access log 为例:
+
+日志格式:
+```log
+127.0.0.1 - - [26/May/2022:20:53:52 +0800] "GET /server_status HTTP/1.1" 404 134 "-" "Go-http-client/1.1"
+```
+
+需求与分析:
+
+假设我们需要从该访问日志中获取 client_ip、time (request)、http_method、http_url、http_version、status_code 这些内容
+
+那么 grok pattern 可以写成:
+```python
+grok(_,"%{NOTSPACE:client_ip} %{NOTSPACE} %{NOTSPACE} \\[%{HTTPDATE:time}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{INT:status_code} %{INT} \"%{NOTSPACE}\" \"%{NOTSPACE}\"")
+cast(status_code, "int")
+group_between(status_code, [200,299], "OK", status)
+group_between(status_code, [300,399], "notice", status)
+group_between(status_code, [400,499], "warning", status)
+group_between(status_code, [500,599], "error", status)
+default_time(time)
+```
+
+显然这不够优雅，我们来优化一下:
+
+```python
+# 日志首部的 client_ip、http_ident、http_auth 作为一个 pattern
+add_pattern("p1", "%{NOTSPACE:client_ip} %{NOTSPACE} %{NOTSPACE}")
+
+# 中间的 http_method、http_url、http_version、status_code 作为一个 pattern，
+# 并在 pattern 内指定 status_code 的数据类型 int 来替代使用的 cast 函数
+add_pattern("p3", '"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}" %{INT:status_code:int}')
+
+grok(_, "%{p1} \\[%{HTTPDATE:time}\\] %{p3} %{INT} \"%{NOTSPACE}\" \"%{NOTSPACE}\"")
+
+group_between(status_code, [200,299], "OK", status)
+group_between(status_code, [300,399], "notice", status)
+group_between(status_code, [400,499], "warning", status)
+group_between(status_code, [500,599], "error", status)
+
+default_time(time)
+```
+
+以上，相较于单行 pattern 来说可读性更强些；
+
+由于 grok 解析出的字段默认数据类型是 string，在此处指定字段的数据类型可以被避免因 INT、NUMBER 之类的内置 pattern 影响而不使用 cast 函数
 
 ### 添加局部模式
 

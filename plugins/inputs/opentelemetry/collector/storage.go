@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package collector
 
 import (
@@ -6,8 +11,8 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
@@ -35,6 +40,7 @@ type SpansStorage struct {
 
 // NewSpansStorage creates a new spans storage.
 func NewSpansStorage() *SpansStorage {
+	l = logger.SLogger(inputName)
 	return &SpansStorage{
 		AfterGather: DKtrace.NewAfterGather(),
 		rsm:         make([]DKtrace.DatakitTrace, 0),

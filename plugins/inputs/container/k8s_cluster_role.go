@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package container
 
 import (
@@ -84,7 +89,7 @@ func (c *clusterRole) object() (inputsMeas, error) {
 			},
 			fields: map[string]interface{}{
 				"age":         int64(time.Since(item.CreationTimestamp.Time).Seconds()),
-				"create_time": item.CreationTimestamp.Time.Unix(),
+				"create_time": item.CreationTimestamp.Time.Unix() / int64(time.Millisecond),
 			},
 			time: time.Now(),
 		}
@@ -125,7 +130,7 @@ func (*clusterRoleObject) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
-			"create_time": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(second)"},
+			"create_time": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(milliseconds)"},
 			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 		},
 	}

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cmds
 
 import (
@@ -19,8 +24,16 @@ type successRes struct {
 }
 
 func uploadLog(urls []string) error {
-	dw := dataway.DataWayCfg{URLs: urls, HTTPProxy: config.Cfg.DataWay.HTTPProxy}
-	if err := dw.Apply(); err != nil {
+	dwCfg := dataway.DataWayCfg{URLs: urls}
+
+	if config.Cfg.DataWayCfg != nil {
+		if len(config.Cfg.DataWayCfg.HTTPProxy) > 0 {
+			dwCfg.HTTPProxy = config.Cfg.DataWayCfg.HTTPProxy
+		}
+	}
+
+	dw := &dataway.DataWayDefault{}
+	if err := dw.Init(&dwCfg); err != nil {
 		return err
 	}
 

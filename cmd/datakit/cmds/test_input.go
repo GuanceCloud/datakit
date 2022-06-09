@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cmds
 
 import (
@@ -10,7 +15,6 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
-	"github.com/influxdata/toml/ast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -29,78 +33,46 @@ func inputDebugger(configFile string) error {
 		currentDir, _ := os.Getwd()
 		configPath = filepath.Join(currentDir, configFile)
 		if _, err = os.Stat(configPath); err != nil {
-			fmt.Printf("stat failed: %v\n", err)
+			warnf("[W] stat failed: %v\n", err)
 			return err
 		}
 	}
 
-	fmt.Printf("config path: %s\n", configPath)
+	infof("[I] config path: %s\n", configPath)
 
-	tpl, err := config.ParseCfgFile(configPath)
+	inputsInstance, err := config.LoadSingleConfFile(configPath, inputs.Inputs)
 	if err != nil {
-		fmt.Printf("parse failed: %v\n", err)
+		errorf("[E] parse failed: %v\n", err)
 		return err
 	}
 
-	for field, node := range tpl.Fields {
-		switch field {
-		case "inputs": //nolint:goconst
-			{
-				stbl, ok := node.(*ast.Table)
-				if !ok {
-					fmt.Println("not node!")
-					continue
+	for k, arr := range inputsInstance {
+		for _, x := range arr {
+			if i, ok := x.(inputs.InputOnceRunnable); !ok {
+				warnf("[W] %s not implement for now.\n", k)
+				continue
+			} else {
+				mpts, e := i.Collect()
+				if e != nil {
+					err = e
+					warnf("[W] %s Collect failed: %s\n", k, e.Error())
+					return err
 				}
-				for inputName, tbl := range stbl.Fields {
-					creator, ok := inputs.Inputs[inputName]
-					if !ok {
-						fmt.Printf("%s not found!\n", inputName)
-						continue
-					}
+				if err = printResultEx(mpts); err != nil {
+					warnf("[W] %s print failed: %s\n", k, e.Error())
+					return err
+				}
 
-					ctor := creator()
-					switch ctor.(type) {
-					case inputs.InputV2:
-					default:
-						fmt.Printf("%s is not input!\n", inputName)
-						continue
-					}
-
-					var inputList []inputs.Input
-					if inputList, err = config.TryUnmarshal(tbl, inputName, creator); err != nil {
-						fmt.Printf("%s unmarshal failed!\n", inputName)
-						continue
-					}
-
-					for _, input := range inputList {
-						ipt, ok := input.(inputs.InputOnceRunnable)
-						if !ok {
-							fmt.Printf("%s not implement for now.\n", inputName)
-							continue
-						}
-						mpts, e := ipt.Collect()
-						if e != nil {
-							err = e
-							fmt.Printf("%s Collect failed: %s\n", inputName, e.Error())
-							return err
-						}
-						if err = printResultEx(mpts); err != nil {
-							fmt.Printf("%s print failed: %s\n", inputName, e.Error())
-							return err
-						}
-
-						if len(mpts) > 0 {
-							fmt.Println("check succeeded!")
-						} else {
-							fmt.Println("Collect empty!")
-							return fmt.Errorf("collect_empty")
-						}
-					}
+				if len(mpts) > 0 {
+					fmt.Println("check succeeded!")
+				} else {
+					fmt.Println("Collect empty!")
+					return fmt.Errorf("collect_empty")
 				}
 			}
-		default:
-		} // field
+		}
 	}
+
 	return nil
 }
 

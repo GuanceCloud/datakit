@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package http wraps http related functions
 package http
 
@@ -11,19 +16,14 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
-func DefTransport() *http.Transport {
-	return newCliTransport(&Options{
-		DialTimeout:           30 * time.Second,
-		DialKeepAlive:         30 * time.Second,
-		MaxIdleConns:          100,
-		MaxIdleConnsPerHost:   runtime.NumGoroutine(),
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: time.Second,
-	})
-}
+//------------------------------------------------------------------------------
+// Options ...
+
+const DefaultKeepAlive = 90 * time.Second
 
 type Options struct {
 	DialTimeout   time.Duration
@@ -36,18 +36,43 @@ type Options struct {
 	ExpectContinueTimeout time.Duration
 	InsecureSkipVerify    bool
 	ProxyURL              *url.URL
+	DialContext           dnet.DialFunc
+}
+
+func NewOptions() *Options {
+	return &Options{
+		DialTimeout:           30 * time.Second,
+		DialKeepAlive:         DefaultKeepAlive,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   runtime.NumGoroutine(),
+		IdleConnTimeout:       DefaultKeepAlive, // keep the same with keep-aliva
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: time.Second,
+		DialContext:           nil,
+	}
+}
+
+//------------------------------------------------------------------------------
+
+func DefTransport() *http.Transport {
+	return newCliTransport(NewOptions())
 }
 
 //nolint:gomnd
 func newCliTransport(opt *Options) *http.Transport {
-	var proxy func(*http.Request) (*url.URL, error)
+	var (
+		proxy       func(*http.Request) (*url.URL, error)
+		dialContext dnet.DialFunc
+	)
 
 	if opt.ProxyURL != nil {
 		proxy = http.ProxyURL(opt.ProxyURL)
 	}
 
-	return &http.Transport{
-		DialContext: (&net.Dialer{
+	if opt.DialContext != nil {
+		dialContext = opt.DialContext
+	} else {
+		dialContext = (&net.Dialer{
 			Timeout: func() time.Duration {
 				if opt.DialTimeout > time.Duration(0) {
 					return opt.DialTimeout
@@ -58,11 +83,14 @@ func newCliTransport(opt *Options) *http.Transport {
 				if opt.DialKeepAlive > time.Duration(0) {
 					return opt.DialKeepAlive
 				}
-				return 30 * time.Second
+				return DefaultKeepAlive
 			}(),
-		}).DialContext,
+		}).DialContext
+	}
 
-		Proxy: proxy,
+	return &http.Transport{
+		Proxy:       proxy,
+		DialContext: dialContext,
 
 		MaxIdleConns: func() int {
 			if opt.MaxIdleConns == 0 {
@@ -89,7 +117,7 @@ func newCliTransport(opt *Options) *http.Transport {
 			if opt.IdleConnTimeout > time.Duration(0) {
 				return opt.IdleConnTimeout
 			}
-			return 90 * time.Second
+			return DefaultKeepAlive
 		}(),
 
 		TLSHandshakeTimeout: func() time.Duration {

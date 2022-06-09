@@ -1,10 +1,9 @@
 {{.CSS}}
+# DataKit 选举
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# DataKit 选举
 
 当集群中只有一个被采集对象（如 Kubernetes），但是在批量部署情况下，多个 DataKit 的配置完全相同，都开启了对该中心对象的采集，为了避免重复采集，我们可以开启 DataKit 的选举功能。
 
@@ -21,6 +20,10 @@ enable_election = true
 ```
 namespace = "dk-namespace-example"
 ```
+
+开启选举后，参与选举的采集数据，会自动加上 tag: `election_namespace:<namespace-name>`。如果未配置 namespace， election_namespace 会取默认值 `default`。
+
+> 注意：并不是参与选举的采集器的所有数据都会添加 election_namespace，而是参与选举的数据才会添加。比如容器采集器中，只有部分数据的采集是参与选举的（event/对象等），而日志采集则不参与选举。
 
 ## 选举原理
 

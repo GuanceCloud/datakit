@@ -1,4 +1,4 @@
-# 如何通过 Git 来管理 DataKit 的配置
+# Git 来管理 DataKit 的配置
 
 ## Git 的工作原理
 

@@ -1,10 +1,9 @@
 {{.CSS}}
+# Prometheus Exportor 指标采集
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
-
-# Kubernetes 集群中自定义 Exporter 指标采集
 
 ## 介绍
 

@@ -1,10 +1,9 @@
 {{.CSS}}
+# MongoDB
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采集。
 

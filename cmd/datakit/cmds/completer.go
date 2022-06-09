@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cmds
 
 import (
@@ -55,9 +60,18 @@ _datakit()
 				;;
 
 			tool)
-				COMPREPLY=( $(compgen -W '--check-config --check-sample --default-main-conf --dump-samples
-				--ipinfo --log --show-cloud-info --upload-log --workspace-info --setup-completer-script
-				--completer-script' -- "${cur_word}") )
+				COMPREPLY=( $(compgen -W '--check-config
+				--check-sample
+				--completer-script
+				--default-main-conf
+				--dump-samples
+				--ipinfo
+				--log
+				--prom-conf
+				--setup-completer-script
+				--show-cloud-info
+				--upload-log
+				--workspace-info' -- "${cur_word}") )
 				;;
 
 			help)

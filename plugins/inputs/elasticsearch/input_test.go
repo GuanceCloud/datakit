@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package elasticsearch
 
 import (
@@ -152,7 +157,7 @@ func TestGatherClusterHealthEmptyClusterHealth(t *testing.T) {
 
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health",
 		clusterHealthExpected,
-		map[string]string{"name": clusterName}, es.collectCache)
+		map[string]string{"name": clusterName, "cluster_status": "green"}, es.collectCache)
 
 	// AssertDoesNotContainsTaggedFields(t, "elasticsearch_cluster_health_indices",
 	// 	v1IndexExpected,
@@ -180,7 +185,7 @@ func TestGatherClusterHealthSpecificClusterHealth(t *testing.T) {
 
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health",
 		clusterHealthExpected,
-		map[string]string{"name": clusterName}, es.collectCache)
+		map[string]string{"name": clusterName, "cluster_status": "green"}, es.collectCache)
 
 	AssertDoesNotContainsTaggedFields(t, "elasticsearch_cluster_health_indices",
 		v1IndexExpected,
@@ -209,7 +214,7 @@ func TestGatherClusterHealthAlsoIndicesHealth(t *testing.T) {
 	clusterHealthExpected["indices_lifecycle_error_count"] = 2
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health",
 		clusterHealthExpected,
-		map[string]string{"name": clusterName}, es.collectCache)
+		map[string]string{"name": clusterName, "cluster_status": "green"}, es.collectCache)
 }
 
 func TestGatherClusterIndicesStats(t *testing.T) {

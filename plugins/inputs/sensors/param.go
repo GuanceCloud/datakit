@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package sensors collect hardware sensor metrics.
 package sensors
 
@@ -10,8 +15,8 @@ var (
 
 	sampleConfig = `
 [[inputs.sensors]]
-  ## Command path of 'senssor' usually under /usr/bin/sensors
-  # path = "/usr/bin/senssors"
+  ## Command path of 'sensor' usually under /usr/bin/sensors
+  # path = "/usr/bin/sensors"
 
   ## Gathering interval
   # interval = "10s"

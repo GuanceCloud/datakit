@@ -1,6 +1,119 @@
-{{.CSS}}
-
 # DataKit 版本历史
+
+## 1.4.1(2022/06/07)
+
+本次发布属于迭代发布，主要更新如下内容：
+
+- 修复 toml 配置文件兼容性问题(#195)
+- 增加 [TCP/UDP 端口检测](socket)采集器(#743)
+- DataKit 跟 DataWay 之间增加 DNS 检测，支持 DataWay DNS 动态切换(#758)
+- [eBPF](ebpf) L4/L7 流量数据增加 k8s deployment name 字段(#793)
+- 优化 [OpenTelemetry](opentelemetry) 指标数据(#794)
+- [ElasticSearch](elasticsearch) 增加 AWS OpenSearch 支持(#797)
+- [行协议限制](apis#2fc2526a)中，字符串长度限制放宽到 32MB(#801)
+- [prom](prom) 采集器增加额外配置，支持忽略指定的 tag=value 的匹配，以减少不必要的时序时间线(#808)
+- Sink 增加 Jaeger 支持(#813)
+- Kubernetes 相关的[指标](container#7e687515)采集，默认全部关闭，以避免时间线暴增问题(#807)
+- [DataKit Monitor](monitor)增加动态发现（比如 prom）的采集器列表刷新(#711)
+
+### Bug 修复
+- 修复默认 Pipeline 加载问题(#796)
+- 修复 Pipeline 中关于日志 status 的处理(#800)
+- 修复 [Filebeat](beats_output) 奔溃问题(#805)
+- 修复 [logstreaming](logstreaming) 导致的脏数据问题(#802)
+
+----
+
+## 1.4.0(2022/05/26)
+
+本次发布属于迭代发布， 次版本号进入 1.4 序列。主要更新如下内容：
+
+- Pipeline 做了很大调整(#761)
+  - 所有数据类型，均可通过配置 Pipeline 来额外处理数据(#761/#739)
+	- [grok()](pipeline#965ead3c) 支持直接将字段提取为指定类型，无需再额外通过 `cast()` 函数进行类型转换(#760)
+	- Pipeline 增加[多行字符串支持](pipeline#3ab24547)，对于很长的字符串（比如 grok 中的正则切割），可以通过将它们写成多行，提升了可读性(#744)
+	- 每个 Pipeline 的运行情况，通过 datakit monitor -V 可直接查看(#701)
+- 增加 Kubernetes [Pod 对象](container#23ae0855-1) CPU/内存指标(#770)
+- Helm 增加更多 Kubernetes 版本安装适配(#783)
+- 优化 [OpenTelemetry](opentelemetry)，HTTP 协议增加 JSON 支持(#781)
+- DataKit 在自动纠错行协议时，对纠错行为增加了日志记录，便于调试数据问题(#777)
+- 移除时序类数据中的所有字符串指标(#773)
+- 在 DaemonSet 安装中，如果配置了[选举](election)的命名空间，对参与选举的采集器，其数据上均会新增特定的 tag（`election_namespace`）(#743)
+- CI 可观测，增加 [Jenkins](jenkins) 支持(#729)
+
+### Bug 修复
+
+- 修复 monitor 中 DataWay 统计错误(#785)
+- 修复日志采集器相关 bug(#783)
+  - 有一定概率，日志采集会导致脏数据串流的情况
+	- 在文件日志采集的场景下（磁盘文件/容器日志/logfwd），修复被采集日志因为 truncate/rename/remove 等因素导致的采集不稳定问题（丢失数据）
+- 其它 Bug 修复(#790)
+
+----
+
+## 1.2.20(2022/05/22)
+
+本次发布属于 hotfix 发布，主要修复如下问题：
+
+- 日志采集功能优化(#775)
+  - 去掉 32KB 限制（保留 32MB 最大限制）(#776)
+  - 修复可能丢失头部日志的问题
+  - 对于新创建的日志，默认从头开始采集（主要是容器类日志，磁盘文件类日志目前无法判定是否是新创建的日志）
+  - 优化 Docker 日志处理，不再依赖 Docker 日志 API
+
+- 修复 Pipeline 中的 [decode](pipeline#837c4e09) 函数问题(#769)
+- OpenTelemetry gRPC 方式支持 gzip(#774)
+- 修复 [filebeat](beats_output) 采集器不能设置 service 的问题(#767)
+
+## Breaking changes
+
+对于 Docker 类容器日志的采集，需要将宿主机（Node）的 */varl/lib* 路径挂载到 DataKit 里面（因为 Docker 日志默认落在宿主机的 */var/lib/* 下面），在 *datakit.yaml* 中，`volumeMounts` 和 `volumes` 中新增如下配置：
+
+```yaml
+volumeMounts:
+- mountPath: /var/lib
+  name: lib
+
+# 省略其它部分...
+
+volumes:
+- hostPath:
+    path: /var/lib
+  name: lib
+```
+
+----
+
+## 1.2.19(2022/05/12)
+
+本次发布属于迭代发布，主要更新如下内容：
+
+- eBPF 增加 arm64 支持(#662)
+- 行协议构造支持自动纠错(#710)
+- DataKit 主配置增加示例配置(#715)
+- [Prometheus Remote Write](prom_remote_write) 支持 tag 重命名(#731)
+- 修复 DCA 客户端获取工作空间不全的问题(#747)
+- 合并社区版 DataKit 已有的功能，主要包含 Sinker 功能以及 [filebeat](beats_output) 采集器(#754)
+- 调整容器日志采集，DataKit 直接支持 containerd 下容器 stdout/stderr 日志采集(#756)
+- 修复 ElasticSearch 采集器超时问题(#762)
+- 修复安装程序检查过于严格的问题(#763)
+- 调整 DaemonSet 模式下主机名获取策略(#648)
+- Trace 采集器支持通过服务名（`service`）通配来过滤资源（`resource`）(#759)
+- 其它一些细节问题修复
+
+----
+
+## 1.2.18(2022/05/06)
+
+本次发布属于 hotfix 发布，主要修复如下问题：
+
+- [进程采集器](host_processes)的过滤功能仅作用于指标采集，对象采集不受影响(#740)
+- 缓解 DataKit 发送 DataWay 超时问题(#741)
+- [Gitlab 采集器](gitlab) 稍作调整(#742)
+- 修复日志采集截断的问题(#749)
+- 修复各种 trace 采集器 reload 后部分配置不生效的问题(#750)
+
+----
 
 ## 1.2.17(2022/04/27)
 

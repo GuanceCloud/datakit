@@ -1,10 +1,9 @@
 {{.CSS}}
+# DataKit API
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# DataKit API 文档
 
 本文档主要描述 DataKit 开放出来 HTTP API 接口。
 
@@ -526,15 +525,15 @@ HTTP Code: 40x
 
 ## DataKit 数据结构约束
 
-为规范观测云中的数据，现对 DataKit 采集的数据，做如下约束（不管是行协议还是 JSON 形式的数据），如无特殊标记，DataKit 将拒绝处理违反如下任一规则的数据。
+为规范观测云中的数据，现对 DataKit 采集的数据，做如下约束（不管是行协议还是 JSON 形式的数据），并对违反约束的数据将进行相应的处理。
 
-1. Tag 和 Field 之间的 key 不允许重名，即同一个 key 不能在 Tag 和 Field 中同时出现
-1. Tag 或 Field 内部不允许出现同名 key，即同一个 key 不能在 Tag/Field 中出现多次
-1. Tag 个数不超过 256 个
-1. Field 个数不超过 1024 个
-1. Tag/Field Key 长度不超过 256 字节
-1. Tag Value 长度不超过 1024 字节
-1. Field Value 不超过 32K(32x1024) 字节
+1. Tag 和 Field 之间的 key 不允许重名，即同一个 key 不能在 Tag 和 Field 中同时出现，否则将丢弃重名的 Field
+1. Tag 或 Field 内部不允许出现同名 key，即同一个 key 不能在 Tag/Field 中出现多次，对于同名 key，将仅保留其中一个
+1. Tag 个数不超过 256 个，超过个数后，将按 key 排序，去掉多余的
+1. Field 个数不超过 1024 个，超过个数后，将按 key 排序，去掉多余的
+1. Tag/Field Key 长度不超过 256 字节，超过长度时，将进行截断处理
+1. Tag Value 长度不超过 1024 字节，超过长度时，将进行截断处理
+1. Field Value 不超过 32M(32x1024x1024) 字节，超过长度时，将进行截断处理
 
 关于特殊标记，目前通过 HTTP 接口打进来的数据，均无法标记（比如允许 Tag 个数大于 256 个），而 DataKit 自身的采集器，在某些特殊情况下，可能需要绕过这些限制（比如日志采集中，field 的长度可以放开）。
 

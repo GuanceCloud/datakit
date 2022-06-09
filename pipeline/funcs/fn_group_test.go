@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"testing"
+	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
@@ -73,11 +74,13 @@ func TestGroup(t *testing.T) {
 				}
 				return
 			}
-
-			err = runner.Run(tc.in)
+			ret, err := runner.Run("test", map[string]string{},
+				map[string]interface{}{
+					"message": tc.in,
+				}, "message", time.Now())
 			tu.Equals(t, nil, err)
+			tu.Equals(t, nil, ret.Error)
 
-			ret := runner.Result()
 			t.Log(ret)
 
 			v := ret.Fields[tc.outkey]

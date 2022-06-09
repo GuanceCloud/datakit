@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package tomcat collect Tomcat metrics.
 package tomcat
 
@@ -63,6 +68,16 @@ func (*Input) PipelineConfig() map[string]string {
 		inputName: pipelineCfg,
 	}
 	return pipelineMap
+}
+
+//nolint:lll
+func (i *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"Tomcat access log":   `0:0:0:0:0:0:0:1 - admin [24/Feb/2015:15:57:10 +0530] "GET /manager/images/tomcat.gif HTTP/1.1" 200 2066`,
+			"Tomcat Catalina log": `06-Sep-2021 22:33:30.513 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Xmx256m`,
+		},
+	}
 }
 
 func (i *Input) GetPipeline() []*tailer.Option {

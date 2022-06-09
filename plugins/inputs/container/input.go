@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package container collect container metrics/loggings/objects.
 package container
 
@@ -28,14 +33,15 @@ type Input struct {
 	DockerEndpoint     string `toml:"docker_endpoint"`
 	ContainerdAddress  string `toml:"containerd_address"`
 
+	EnableContainerMetric bool `toml:"enable_container_metric"`
+	EnableK8sMetric       bool `toml:"enable_k8s_metric"`
+	EnablePodMetric       bool `toml:"enable_pod_metric"`
+
 	LoggingRemoveAnsiEscapeCodes bool `toml:"logging_remove_ansi_escape_codes"`
 	ExcludePauseContainer        bool `toml:"exclude_pause_container"`
-	MaxLoggingLength             int  `toml:"max_logging_length"`
 
-	ContainerIncludeMetric []string `toml:"container_include_metric"`
-	ContainerExcludeMetric []string `toml:"container_exclude_metric"`
-	ContainerIncludeLog    []string `toml:"container_include_log"`
-	ContainerExcludeLog    []string `toml:"container_exclude_log"`
+	ContainerIncludeLog []string `toml:"container_include_log"`
+	ContainerExcludeLog []string `toml:"container_exclude_log"`
 
 	K8sURL               string `toml:"kubernetes_url"`
 	K8sBearerToken       string `toml:"bearer_token"`
@@ -153,11 +159,11 @@ func (i *Input) stop() {
 func (i *Input) collectObject() {
 	l.Debug("collect object in func")
 	if err := i.gatherDockerContainerObject(); err != nil {
-		l.Errorf("failed to collect docker container object: %w", err)
+		l.Errorf("failed to collect docker container object: %s", err)
 	}
 
 	if err := i.gatherContainerdObject(); err != nil {
-		l.Errorf("failed to collect containerd object: %w", err)
+		l.Errorf("failed to collect containerd object: %s", err)
 	}
 
 	if !datakit.Docker {
@@ -176,22 +182,29 @@ func (i *Input) collectObject() {
 	l.Debug("collect k8s resource object")
 
 	if err := i.gatherK8sResourceObject(); err != nil {
-		l.Errorf("failed to collect resource object: %w", err)
+		l.Errorf("failed to collect resource object: %s", err)
 	}
 }
 
 func (i *Input) collectMetric() {
 	l.Debug("collect mertric in func")
-	if err := i.gatherDockerContainerMetric(); err != nil {
-		l.Errorf("failed to collect docker container metric: %w", err)
-	}
 
-	if err := i.gatherContainerdMetric(); err != nil {
-		l.Errorf("failed to collect containerd metric: %w", err)
+	if i.EnableContainerMetric {
+		if err := i.gatherDockerContainerMetric(); err != nil {
+			l.Errorf("failed to collect docker container metric: %s", err)
+		}
+
+		if err := i.gatherContainerdMetric(); err != nil {
+			l.Errorf("failed to collect containerd metric: %s", err)
+		}
 	}
 
 	if err := i.watchNewDockerContainerLogs(); err != nil {
-		l.Errorf("failed to watch container log: %w", err)
+		l.Errorf("failed to watch container log: %s", err)
+	}
+
+	if err := i.watchNewContainerdLogs(); err != nil {
+		l.Errorf("failed to watch containerd log: %s", err)
 	}
 
 	if !datakit.Docker {
@@ -211,11 +224,7 @@ func (i *Input) collectMetric() {
 	l.Debug("collect k8s-pod metric")
 
 	if err := i.gatherK8sResourceMetric(); err != nil {
-		l.Errorf("failed to collect resource metric: %w", err)
-	}
-
-	if err := i.gatherK8sPodMetrics(); err != nil {
-		l.Errorf("failed to collect pod metric: %w", err)
+		l.Errorf("failed to collect resource metric: %s", err)
 	}
 }
 
@@ -295,6 +304,13 @@ func (i *Input) gatherContainerdObject() error {
 		&io.Option{CollectCost: time.Since(start)})
 }
 
+func (i *Input) watchNewContainerdLogs() error {
+	if i.containerdInput == nil {
+		return nil
+	}
+	return i.containerdInput.watchNewLogs()
+}
+
 func (i *Input) gatherK8sResourceMetric() error {
 	start := time.Now()
 
@@ -316,18 +332,6 @@ func (i *Input) gatherK8sResourceObject() error {
 	}
 
 	return inputs.FeedMeasurement("k8s-object", datakit.Object, objectMeas,
-		&io.Option{CollectCost: time.Since(start)})
-}
-
-func (i *Input) gatherK8sPodMetrics() error {
-	start := time.Now()
-
-	podMetrics, err := i.k8sInput.gatherPodMetrics()
-	if err != nil {
-		return err
-	}
-
-	return inputs.FeedMeasurement("k8s-pod", datakit.Metric, podMetrics,
 		&io.Option{CollectCost: time.Since(start)})
 }
 
@@ -362,14 +366,11 @@ func (i *Input) setup() bool {
 			endpoint:               i.DockerEndpoint,
 			excludePauseContainer:  i.ExcludePauseContainer,
 			removeLoggingAnsiCodes: i.LoggingRemoveAnsiEscapeCodes,
-			maxLoggingLength:       i.MaxLoggingLength,
-			containerIncludeMetric: i.ContainerIncludeMetric,
-			containerExcludeMetric: i.ContainerExcludeMetric,
 			containerIncludeLog:    i.ContainerIncludeLog,
 			containerExcludeLog:    i.ContainerExcludeLog,
 			extraTags:              i.Tags,
 		}); err != nil {
-			l.Errorf("create docker input err: %w, skip", err)
+			l.Warnf("create docker input err: %s, skip", err)
 		} else {
 			i.dockerInput = d
 		}
@@ -380,8 +381,10 @@ func (i *Input) setup() bool {
 				bearerToken:       i.K8sBearerToken,
 				bearerTokenString: i.K8sBearerTokenString,
 				extraTags:         i.Tags,
+				enablePodMetric:   i.EnablePodMetric,
+				enableK8sMetric:   i.EnableK8sMetric,
 			}); err != nil {
-				l.Errorf("create k8s input err: %w", err)
+				l.Errorf("create k8s input err: %s", err)
 				continue
 			} else {
 				i.k8sInput = k
@@ -397,7 +400,7 @@ func (i *Input) setup() bool {
 				endpoint:  i.ContainerdAddress,
 				extraTags: i.Tags,
 			}); err != nil {
-				l.Warnf("create containerd input err: %w, skip", err)
+				l.Warnf("create containerd input err: %s, skip", err)
 			} else {
 				i.containerdInput = c
 			}
@@ -439,10 +442,11 @@ func (i *Input) Resume() error {
 //   ENV_INPUT_CONTAINER_DOCKER_ENDPOINT : string
 //   ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS : string
 //   ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
+//   ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC : booler
+//   ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC : booler
+//   ENV_INPUT_CONTAINER_ENABLE_POD_METRIC : booler
 //   ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
 //   ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER : booler
-//   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_METRIC : []string
-//   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_METRIC : []string
 //   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG : []string
 //   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG : []string
 //   ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH : int
@@ -467,6 +471,31 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC to bool: %s, ignore", err)
+		} else {
+			i.EnableContainerMetric = b
+		}
+	}
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC to bool: %s, ignore", err)
+		} else {
+			i.EnableK8sMetric = b
+		}
+	}
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_POD_METRIC"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_POD_METRIC to bool: %s, ignore", err)
+		} else {
+			i.EnablePodMetric = b
+		}
+	}
+
 	if exclude, ok := envs["ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER"]; ok {
 		b, err := strconv.ParseBool(exclude)
 		if err != nil {
@@ -483,22 +512,8 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
-	//   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_METRIC : []string
-	//   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_METRIC : []string
 	//   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG : []string
 	//   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG : []string
-
-	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_METRIC"]; ok {
-		arrays := strings.Split(str, ",")
-		l.Debugf("add CONTAINER_INCLUDE_METRIC from ENV: %v", arrays)
-		i.ContainerIncludeMetric = append(i.ContainerIncludeMetric, arrays...)
-	}
-
-	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_METRIC"]; ok {
-		arrays := strings.Split(str, ",")
-		l.Debugf("add CONTAINER_EXCLUDE_METRIC from ENV: %v", arrays)
-		i.ContainerExcludeMetric = append(i.ContainerExcludeMetric, arrays...)
-	}
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG"]; ok {
 		arrays := strings.Split(str, ",")

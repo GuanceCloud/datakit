@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package prom used to parsing promemetheuse exportor metrics.
 package prom
 
@@ -9,6 +14,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	"github.com/prometheus/common/expfmt"
@@ -28,29 +34,42 @@ type RenameTags struct {
 	Mapping            map[string]string `toml:"mapping"`
 }
 
+type IgnoreTagKeyValMatch map[string][]*regexp.Regexp
+
 type Option struct {
-	MetricTypes       []string `toml:"metric_types"`
-	MetricNameFilter  []string `toml:"metric_name_filter"`
-	Measurements      []Rule   `json:"measurements"`
-	Source            string   `toml:"source"`
-	Interval          string   `toml:"interval"`
-	URL               string   `toml:"url,omitempty"` // Deprecated
-	URLs              []string `toml:"urls"`
-	IgnoreReqErr      bool     `toml:"ignore_req_err"`
-	Output            string   `toml:"output"`
-	MaxFileSize       int64    `toml:"max_file_size"`
-	MeasurementPrefix string   `toml:"measurement_prefix"`
-	MeasurementName   string   `toml:"measurement_name"`
-	CacertFile        string   `toml:"tls_ca"`
-	CertFile          string   `toml:"tls_cert"`
-	KeyFile           string   `toml:"tls_key"`
+	MetricTypes      []string `toml:"metric_types"`
+	MetricNameFilter []string `toml:"metric_name_filter"`
+	Measurements     []Rule   `json:"measurements"`
+	Source           string   `toml:"source"`
+	Interval         string   `toml:"interval"`
+
+	URL  string   `toml:"url,omitempty"` // Deprecated
+	URLs []string `toml:"urls"`
+
+	IgnoreReqErr bool `toml:"ignore_req_err"`
+
+	Output string `toml:"output"`
+
+	MaxFileSize int64 `toml:"max_file_size"`
+
+	MeasurementPrefix string `toml:"measurement_prefix"`
+	MeasurementName   string `toml:"measurement_name"`
+
+	CacertFile string `toml:"tls_ca"`
+	CertFile   string `toml:"tls_cert"`
+	KeyFile    string `toml:"tls_key"`
 
 	Auth     map[string]string `toml:"auth"`
 	interval time.Duration
 
 	Tags       map[string]string `toml:"tags"`
 	RenameTags *RenameTags       `toml:"rename_tags"`
-	TagsIgnore []string          `toml:"tags_ignore"`
+
+	// do not keep these tags in scraped prom data
+	TagsIgnore []string `toml:"tags_ignore"`
+
+	// drop scraped prom data if tag key's value matched
+	IgnoreTagKV IgnoreTagKeyValMatch
 
 	TLSOpen bool `toml:"tls_open"`
 	Disabel bool `toml:"disble"`

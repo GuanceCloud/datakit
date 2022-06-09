@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package opentelemetry is input for opentelemetry
 
 package opentelemetry
@@ -9,7 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkHTTP "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 )
@@ -43,9 +48,12 @@ const (
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
+  ## If you want to block some resources universally under all services, you can set the
+  ## service name as "*". Note: double quotes "" cannot be omitted.
   # [inputs.opentelemetry.close_resource]
     # service1 = ["resource1", "resource2", ...]
     # service2 = ["resource1", "resource2", ...]
+    # "*" = ["close_resource_under_all_services"]
     # ...
 
   ## Sampler config uses to set global sampling strategy.
@@ -75,10 +83,10 @@ const (
 
   [inputs.opentelemetry.expectedHeaders]
     ## 如有header配置 则请求中必须要携带 否则返回状态码500
-	## 可作为安全检测使用,必须全部小写
-	# ex_version = xxx
-	# ex_name = xxx
-	# ...
+  ## 可作为安全检测使用,必须全部小写
+  # ex_version = xxx
+  # ex_name = xxx
+  # ...
 
   ## grpc
   [inputs.opentelemetry.grpc]
@@ -97,8 +105,8 @@ const (
   ## http path (do not edit):
   ##	trace : /otel/v1/trace
   ##	metric: /otel/v1/metric
-  ## use as : http://127.0.0.1:9529/otel/v11/trace . Method = POST
-  enable = false
+  ## use as : http://127.0.0.1:9529/otel/v1/trace . Method = POST
+  enable = true
   ## return to client status_ok_code :200/202
   http_status_ok = 200
 `

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package inputs manage all input's interfaces.
 package inputs
 
@@ -6,6 +11,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -109,6 +115,10 @@ type InputOnceRunnable interface {
 	Collect() (map[string][]*io.Point, error)
 }
 
+type LogExampler interface {
+	LogExamples() map[string]map[string]string
+}
+
 type Creator func() Input
 
 func Add(name string, creator Creator) {
@@ -143,6 +153,28 @@ func AddInput(name string, input Input) {
 	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input})
 
 	l.Debugf("add input %s, total %d", name, len(InputsInfo[name]))
+}
+
+func RemoveInput(name string, input Input) {
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	oldList, ok := InputsInfo[name]
+	if !ok {
+		return
+	}
+
+	newList := []*inputInfo{}
+
+	for _, ii := range oldList {
+		if !reflect.DeepEqual(input, ii.input) {
+			newList = append(newList, ii)
+		}
+	}
+
+	InputsInfo[name] = newList
+
+	l.Debugf("remove input %s, current total %d", name, len(InputsInfo[name]))
 }
 
 func AddSelf() {

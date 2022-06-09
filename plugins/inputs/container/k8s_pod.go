@@ -1,8 +1,14 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package container
 
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -54,6 +60,11 @@ func (p *pod) metric() (inputsMeas, error) {
 	var res inputsMeas
 
 	for _, item := range p.items {
+		// 如果找到 datakit 自身，将不采集
+		if item.Labels["app"] == "daemonset-datakit" {
+			continue
+		}
+
 		met := &podMetric{
 			tags: map[string]string{
 				"pod":       item.Name,
@@ -78,6 +89,16 @@ func (p *pod) metric() (inputsMeas, error) {
 			}
 		}
 		met.fields["ready"] = containerReadyCount
+
+		if cli, ok := p.client.(*k8sClient); ok && cli.metricsClient != nil {
+			m, err := gatherPodMetrics(cli.metricsClient, item.Namespace, item.Name)
+			if err != nil {
+				l.Debugf("unable get pod metric %s, namespace %s, name %s, ignored", err, defaultNamespace(item.Namespace), item.Name)
+			} else if met != nil {
+				met.fields["cpu_usage"] = m.cpuUsage
+				met.fields["memory_usage_bytes"] = m.memoryUsageBytes
+			}
+		}
 
 		met.tags.append(p.extraTags)
 		res = append(res, met)
@@ -128,7 +149,6 @@ func (p *pod) object() (inputsMeas, error) {
 				"name":         fmt.Sprintf("%v", item.UID),
 				"pod_name":     item.Name,
 				"node_name":    item.Spec.NodeName,
-				"host":         item.Spec.NodeName, // 指定 pod 所在的 host
 				"phase":        fmt.Sprintf("%v", item.Status.Phase),
 				"qos_class":    fmt.Sprintf("%v", item.Status.QOSClass),
 				"state":        fmt.Sprintf("%v", item.Status.Phase), // Depercated
@@ -139,9 +159,13 @@ func (p *pod) object() (inputsMeas, error) {
 			fields: map[string]interface{}{
 				"age":         int64(time.Since(item.CreationTimestamp.Time).Seconds()),
 				"availale":    len(item.Status.ContainerStatuses),
-				"create_time": item.CreationTimestamp.Time.Unix(),
+				"create_time": item.CreationTimestamp.Time.UnixNano() / int64(time.Millisecond),
 			},
 			time: time.Now(),
+		}
+
+		if n := getHostname(); n != "" {
+			obj.tags["host"] = n // 指定 pod 所在的 host
 		}
 
 		for _, ref := range item.OwnerReferences {
@@ -189,13 +213,23 @@ func (p *pod) object() (inputsMeas, error) {
 		obj.fields.mergeToMessage(obj.tags)
 		obj.fields.delete("annotations")
 
+		if cli, ok := p.client.(*k8sClient); ok && cli.metricsClient != nil {
+			met, err := gatherPodMetrics(cli.metricsClient, item.Namespace, item.Name)
+			if err != nil {
+				l.Debugf("unable get pod metric %s, namespace %s, name %s, ignored", err, defaultNamespace(item.Namespace), item.Name)
+			} else if met != nil {
+				obj.fields["cpu_usage"] = met.cpuUsage
+				obj.fields["memory_usage_bytes"] = met.memoryUsageBytes
+			}
+		}
+
 		res = append(res, obj)
 
 		podIDs[string(item.UID)] = nil
 
 		tempItem := item
 		if err := tryRunInput(&tempItem); err != nil {
-			l.Warnf("failed to run input(discovery), %w", err)
+			l.Warnf("failed to run input(discovery), %s", err)
 		}
 	}
 
@@ -286,8 +320,10 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
 		Fields: map[string]interface{}{
-			"count": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of pods"},
-			"ready": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
+			"count":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of pods"},
+			"ready":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
+			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
+			"memory_usage_bytes": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of memory used in bytes"},
 		},
 	}
 }
@@ -322,15 +358,29 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 			"replica_set":  inputs.NewTagInfo("The name of the replicaSet which the object belongs to. (Probably empty)"),
 		},
 		Fields: map[string]interface{}{
-			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
-			"create_time": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(second)"},
-			"restart":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted. (Depercated, use restarts)"},
-			"restarts":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
-			"ready":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Describes whether the pod is ready to serve requests."},
-			"available":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Number of containers"},
-			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
+			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
+			"create_time":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(milliseconds)"},
+			"restart":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted. (Depercated, use restarts)"},
+			"restarts":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
+			"ready":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Describes whether the pod is ready to serve requests."},
+			"available":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Number of containers"},
+			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
+			"memory_usage_bytes": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of memory used in bytes"},
+			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 		},
 	}
+}
+
+func getHostname() string {
+	// 保持兼容，优先使用 ENV_K8S_NODE_NAME
+	if e := os.Getenv("ENV_K8S_NODE_NAME"); e != "" {
+		return e
+	}
+	if e := os.Getenv("NODE_NAME"); e != "" {
+		return e
+	}
+	n, _ := os.Hostname()
+	return n
 }
 
 //nolint:gochecknoinits

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package container
 
 import (
@@ -16,6 +21,7 @@ import (
 	kubev1extensionsbeta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	kubev1rbac "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 )
 
 var (
@@ -69,6 +75,7 @@ func newK8sClientFromBearerTokenString(baseURL, token string) (*k8sClient, error
 		TLSClientConfig: rest.TLSClientConfig{
 			Insecure: true,
 		},
+		RateLimiter: flowcontrol.NewTokenBucketRateLimiter(1000, 1000), // setting default limit
 	}
 	return newK8sClient(restConfig)
 }
@@ -98,7 +105,8 @@ func newK8sClientFromTLS(baseURL string, tlsconfig *net.TLSClientConfig) (*k8sCl
 			CertFile: tlsconfig.Cert,
 			KeyFile:  tlsconfig.CertKey,
 		},
-		Host: baseURL,
+		Host:        baseURL,
+		RateLimiter: flowcontrol.NewTokenBucketRateLimiter(1000, 1000), // setting default limit
 	}
 
 	return newK8sClient(restConfig)
@@ -113,7 +121,7 @@ func newK8sClient(restConfig *rest.Config) (*k8sClient, error) {
 	k := &k8sClient{Clientset: config}
 
 	if c, err := newK8sMetricsClient(restConfig); err != nil {
-		l.Errorf("failed to connect k8s metrics-server, error: %w", err)
+		l.Errorf("failed to connect k8s metrics-server, error: %s", err)
 	} else {
 		k.metricsClient = c
 	}
