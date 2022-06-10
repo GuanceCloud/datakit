@@ -30,7 +30,7 @@
 
 具体的国家/地域以及 ISP 选择，可按照下图所示方式来选择（注意，不要真的新建「自建节点」，此处只是提供一个可供选择的来源）：
 
-![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-select-country-city-isp.png)
+![](imgs/dialtesting-select-country-city-isp.png)
 
 ### 配置拨测任务
 

@@ -7,13 +7,13 @@
 
 我们可以通过 Ansible 等方式来批量安装 DataKit。
 
-## 前置条件
+## 前置条件 {#requirements}
 
 - 管理机安装 Ansible
 - 在 Ansible 默认配置路径 `/etc/ansible/` 下配置好 `host` 文件跟 `install.yaml` 文件
 - 如果通过 Ansible 管理 Windows 机器，参考 [Ansible 文档](https://ansible-tran.readthedocs.io/en/latest/docs/intro_windows.html#windows-installing) 做相应前置准备
 
-## 配置
+## 配置 {#config}
 
 Ansible `host` 文件配置示例：
 
@@ -49,7 +49,7 @@ Ansible `install.yaml` 文件配置示例
     poll: 10
 ```
 
-## 部署
+## 部署 {#deploy}
 
 在管理机上运行如下命令即可实现批量部署：
 

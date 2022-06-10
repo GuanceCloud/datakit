@@ -7,7 +7,7 @@
 
 [DataKit 安装](datakit-install)完后，有必要对安装好的 DataKit 做一些基本的介绍。
 
-## DataKit 目录介绍
+## DataKit 目录介绍 {#install-dir}
 
 DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
 
@@ -46,7 +46,7 @@ DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
 
 > 注：Linux/Mac 平台下，DataKit 运行日志在 `/var/log/datakit` 目录下。
 
-## DataKit 服务管理
+## DataKit 服务管理 {#manage-service}
 
 可直接使用如下命令直接管理 DataKit：
 
@@ -59,7 +59,7 @@ datakit service -R # restart
 
 > 可通过 `datakit help service` 查看更多帮助信息。
 
-#### 服务管理失败处理
+#### 服务管理失败处理 {#when-service-failed}
 
 有时候可能因为 DataKit 部分组件的 bug，导致服务操作失败（如 `datakit service -T` 之后，服务并未停止），可按照如下方式来强制处理。
 

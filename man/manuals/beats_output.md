@@ -9,9 +9,7 @@
 
 - [Filebeat](https://www.elastic.co/beats/filebeat/) ([下载地址](http://www.elastic.co/cn/downloads/past-releases/filebeat-7-17-3))
 
-## 配置示例: 接收 Filebeat 采集的数据
-
-### 配置 DataKit 接收
+## 配置采集器 {#config-input}
 
 进入 DataKit 安装目录下的 `conf.d/beats_output/` 目录, 复制 `beats_output.conf.sample` 并命名为 `beats_output.conf`。示例如下: 
 
@@ -42,7 +40,7 @@
 
 注意: 上面配置的 `inputs.beats_output.tags` 中如果与原始 fields 中的 key 同名重复，则会被原始数据覆盖。
 
-### 配置 Filebeat
+### 配置 Filebeat {#config-filebeat}
 
 将 Filebeat 安装目录下的 `filebeat.yml` 配置如下。
 
@@ -309,7 +307,7 @@ processors:
 #migration.6_to_7.enabled: true
 ```
 
-## 指标集
+## 指标集 {#measurements}
 
 以下所有数据采集, 默认会追加名为 `host`(值为 Filebeat 所在主机名) 和 `filepath`(值为 Filebeat 采集文件的全路径) 的全局 tag, 也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签:
 
@@ -336,6 +334,6 @@ processors:
 
 {{ end }} 
 
-## 其它
+## 其它 {#others}
 
-此接收器与日志采集器很相似，Pipeline 语法方面可参考[日志采集器](logging)。
+此接收器与日志采集器很相似，Pipeline 语法方面可参考[日志采集器](logging.md)。

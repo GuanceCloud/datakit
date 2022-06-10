@@ -360,7 +360,7 @@ datakit 根目录
 
 这里推荐一个[在线工具来调试我们的正则通配](https://regex101.com/)。如下图所示：
 
-![](https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/images/datakit/debug-golang-regexp.png)
+![](imgs/debug-golang-regexp.png)
 
 另外，由于 DataKit 中的配置均使用 Toml，故建议大家使用 `'''这里是一个具体的正则表达式'''` 的方式来填写正则（即正则俩边分别用三个英文单引号），这样可以避免一些复杂的转义。
 

@@ -121,7 +121,8 @@ NAME1="value1" NAME2="value2"
 
 ### 外部采集器相关
 - `DK_INSTALL_EXTERNALS`: 可用于安装如 ebpf 等未与 DataKit 一起打包的外部采集器
-### Git 配置相关
+
+### Git 配置相关 {#env-gitrepo}
 
 - `DK_GIT_URL`: 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`）
 - `DK_GIT_KEY_PATH`: 本地 PrivateKey 的全路径。（如 `/Users/username/.ssh/id_rsa`）

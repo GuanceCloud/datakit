@@ -124,7 +124,7 @@ public class otlpdemo {
 
 登录 [观测云](https://console.guance.com/tracing/service/table?time=15m) 后查看 `应用性能监测` -> `链路` -> 点击单条 `链路`
 
-![avatar](https://cdn.nlark.com/yuque/0/2022/png/21511848/1646641904377-7c558260-1479-4050-a35b-7eec172fa9d3.png)
+![avatar](imgs/otel-java-example.png)
 
 在火焰图中可看到每一个模块中执行的时间、调用流程等。
 

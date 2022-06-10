@@ -51,7 +51,7 @@ else
   os="linux"
 fi
 
-#make
+make
 
 echo 'export to datakit docs...'
 dist/datakit-${os}-amd64/datakit doc \

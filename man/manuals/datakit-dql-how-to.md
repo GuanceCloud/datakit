@@ -13,7 +13,7 @@ DataKit 支持以交互式方式执行 DQL 查询，在交互模式下，DataKit
 datakit dql      # 或者 datakit -Q
 ```
 
-![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-dql-gif.gif) 
+![](imgs/dk-dql-gif.gif) 
 
 Tips：
 

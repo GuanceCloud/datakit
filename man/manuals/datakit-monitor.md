@@ -19,7 +19,7 @@ datakit monitor
 
 DataKit 基本 Monitor 页面信息如下图所示：
 
-![基础Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-basic-v1.gif) 
+![基础Monitor信息展示](imgs/monitor-basic-v1.gif) 
 
 该图中的元素可以通过鼠标或键盘操作。被鼠标选中的块会以双边框突出显示（如上图左上角的 `Basic Info` 块所示），另外，还能通过鼠标滚轮或者键盘上下方向键（或者 vim 的 J/K）来浏览。
 
@@ -74,7 +74,7 @@ DataKit 基本 Monitor 页面信息如下图所示：
 
 如果运行 Monitor 时，指定了 verbose 选项（`-V`），则会额外输出更多信息，如下图所示：
 
-![完整Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-verbose-v1.gif) 
+![完整Monitor信息展示](imgs/monitor-verbose-v1.gif) 
 
 - `Goroutine Groups` 展示 DataKit 中已有的 Goroutine 分组（该分组中的 Goroutine 个数 <= 上面面板中的 `Goroutines` 个数）
 - `HTTP APIs` 展示 DataKit 中 API 调用情况

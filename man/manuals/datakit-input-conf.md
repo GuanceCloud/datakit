@@ -141,7 +141,7 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn)，所有�
 
 相比而言，第一种方式更粗暴简单，第二种需小心修改，它可能会导致 Toml 配置错误。
 
-### 采集器配置中的正则表达式
+### 采集器配置中的正则表达式 {#debug-regex}
 
 在编辑采集器配置时，部分可能需要配置一些正则表达式。
 
@@ -149,23 +149,23 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn)，所有�
 
 这里推荐一个[在线工具来调试我们的正则通配](https://regex101.com/)。如下图所示：
 
-![](https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/images/datakit/debug-golang-regexp.png)
+![](imgs/debug-golang-regexp.png)
 
 另外，由于 DataKit 中的配置均使用 Toml，故建议大家使用 `'''这里是一个具体的正则表达式'''` 的方式来填写正则（即正则俩边分别用三个英文单引号），这样可以避免一些复杂的转义。
 
-## 默认开启的采集器
+## 默认开启的采集器 {#default-enabled-inputs}
 
 DataKit 安装完成后，默认会开启一批采集器，无需手动开启。这些采集器一般跟主机相关，列表如下：
 
-| 采集器名称                       | 说明                                                                           |
-| ---------                        | ---                                                                            |
-| [cpu](cpu)                       | 采集主机的 CPU 使用情况                                                        |
-| [disk](disk)                     | 采集磁盘占用情况                                                               |
-| [diskio](diskio)                 | 采集主机的磁盘 IO 情况                                                         |
-| [mem](mem)                       | 采集主机的内存使用情况                                                         |
-| [swap](swap)                     | 采集 Swap 内存使用情况                                                         |
-| [system](system)                 | 采集主机操作系统负载                                                           |
-| [net](net)                       | 采集主机网络流量情况                                                           |
-| [host_processes](host_processes) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
-| [hostobject](hostobject)         | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
-| [container](container)           | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
+| 采集器名称                          | 说明                                                                           |
+| ---------                           | ---                                                                            |
+| [cpu](cpu.md)                       | 采集主机的 CPU 使用情况                                                        |
+| [disk](disk.md)                     | 采集磁盘占用情况                                                               |
+| [diskio](diskio.md)                 | 采集主机的磁盘 IO 情况                                                         |
+| [mem](mem.md)                       | 采集主机的内存使用情况                                                         |
+| [swap](swap.md)                     | 采集 Swap 内存使用情况                                                         |
+| [system](system.md)                 | 采集主机操作系统负载                                                           |
+| [net](net.md)                       | 采集主机网络流量情况                                                           |
+| [host_processes](host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
+| [hostobject](hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
+| [container](container.md)           | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |

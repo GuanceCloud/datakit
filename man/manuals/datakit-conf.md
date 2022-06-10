@@ -10,22 +10,22 @@ DataKit 主配置用来配置 DataKit 自己的运行行为，其目录一般位
 - Linux/Mac: `/usr/local/datakit/conf.d/datakit.conf`
 - Windows: `C:\Program Files\datakit\conf.d\datakit.conf`
 
-> DaemonSet 安装时，虽然在对应目录下也存在这个文件，==但实际上 DataKit 并不加载这里的配置==。这些配是通过在 datakit.yaml 中[注入环境变量](datakit-daemonset-deploy#00c8a780)来生成的。
+> DaemonSet 安装时，虽然在对应目录下也存在这个文件，==但实际上 DataKit 并不加载这里的配置==。这些配是通过在 datakit.yaml 中[注入环境变量](datakit-daemonset-deploy.md#using-k8-env)来生成的。
 
-## HTTP 服务的配置
+## HTTP 服务的配置 {#config-http-server}
 
 DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基础的数据服务。
 
-### 修改 HTTP 服务地址
+### 修改 HTTP 服务地址 {#update-http-server-host}
 
-默认的 HTTP 服务地址是 `localhost:9529`，如果 9529 端口被占用，或希望从外部访问 DataKit 的 HTTP 服务（比如希望接收 [RUM](rum) 或 [Tracing](datakit-tracing) 数据），可将其修改成：
+默认的 HTTP 服务地址是 `localhost:9529`，如果 9529 端口被占用，或希望从外部访问 DataKit 的 HTTP 服务（比如希望接收 [RUM](rum.md) 或 [Tracing](datakit-tracing.md) 数据），可将其修改成：
 
 ```toml
 [http_api]
    listen = "0.0.0.0:<other-port>"
 ```
 
-### HTTP 请求频率控制
+### HTTP 请求频率控制 {#set-http-api-limit}
 
 由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，可修改如下 HTTP 配置（默认不开启）：
 
@@ -34,7 +34,7 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 	request_rate_limit = 1000.0 # 限制每个 HTTP API 每秒只接收 1000 次请求
 ```
 
-## 全局标签（Tag）修改
+## 全局标签（Tag）修改 {#set-global-tag}
 
 DataKit 允许给其采集的所有数据配置全局标签，这些标签会默认添加到该 DataKit 采集的每一条数据上。这里是一个全局标签配置示例：
 
@@ -52,12 +52,12 @@ DataKit 允许给其采集的所有数据配置全局标签，这些标签会默
   - `__datakit_ip/$datakit_ip`：标签值会设置成 DataKit 获取到的第一个主网卡 IP
   - `__datakit_id/$datakit_id`：标签值会设置成 DataKit 的 ID
 
-- 由于 [DataKit 数据传输协议限制](apis#2fc2526a)，不要在全局标签（Tag）中出现任何指标（Field）字段，否则会因为违反协议导致数据处理失败。具体参见具体采集器的字段列表。当然，也不要加太多 Tag，而且每个 Tag 的 Key 以及 Value 长度都有限制。
+- 由于 [DataKit 数据传输协议限制](apis.md#lineproto-limitation)，不要在全局标签（Tag）中出现任何指标（Field）字段，否则会因为违反协议导致数据处理失败。具体参见具体采集器的字段列表。当然，也不要加太多 Tag，而且每个 Tag 的 Key 以及 Value 长度都有限制。
 
 - 如果被采集上来的数据中，本来就带有同名的 Tag，那么 DataKit 不会再追加这里配置的全局 Tag。
 - 即使 `global_tags` 不配置任何全局 Tag，DataKit 仍然会==在所有数据上尝试添加==一个 `host=$HOSTNAME` 的全局 Tag。
 
-### 全局 Tag 可能导致的问题
+### 全局 Tag 可能导致的问题 {#notice-global-tags}
 
 因为 DataKit 会默认给采集到的所有数据追加标签 `host=<DataKit所在主机名>`，但某些情况这个默认追加的 `host` 会带来困扰。
 
@@ -72,9 +72,9 @@ DataKit 允许给其采集的所有数据配置全局标签，这些标签会默
   host = "real-mysql-host-name" 
 ```
 
-- 以 [HTTP API 方式往 DataKit 推送数据](apis#f53903a9)时，可以通过 API 参数 `ignore_global_tags` 来屏蔽所有全局 Tag
+- 以 [HTTP API 方式往 DataKit 推送数据](apis.md#api-v1-write)时，可以通过 API 参数 `ignore_global_tags` 来屏蔽所有全局 Tag
 
-## DataKit 自身运行日志配置
+## DataKit 自身运行日志配置 {#logging-config}
 
 DataKit 自身日志有两个，一个是自身运行日志（*/var/log/datakit/log*），一个是 HTTP Access 日志（*/var/log/datakit/gin.log*）。 
 
@@ -89,11 +89,11 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 - `level`：置为 `debug` 后，即可看到更多日志（目前只支持 `debug/info` 两个级别）。
 - `rotate`：DataKit 默认会对日志进行分片，默认分片大小为 32MB，总共 6 个分片（1 个当前写入分片加上 5 个切割分片，分片个数尚不支持配置）。如果嫌弃 DataKit 日志占用太多磁盘空间（最多 32 x 6 = 192MB），可减少 `rotate` 大小（比如改成 4，单位为 MB）。HTTP 访问日志也按照同样的方式自动切割。
 
-## 高级配置
+## 高级配置 {#advance-config}
 
 下面涉及的内容涉及一些高级配置，如果对配置不是很有把握，建议咨询我们的技术专家。
 
-### cgroup 限制 
+### cgroup 限制  {#enable-cgroup}
 
 由于 DataKit 上处理的数据量无法估计，如果不对 DataKit 消耗的资源做物理限制，将有可能消耗所在节点大量资源。这里我们可以借助 cgroup 来限制，在 *datakit.conf* 中有如下配置：
 
@@ -112,7 +112,7 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 	mem_max_mb = 4096 
 ```
 
-如果 DataKit 超出内存限制后，会被操作系统强制杀掉，通过命令可以看到如下结果，此时需要[手动启动服务](datakit-service-how-to#147762ed)：
+如果 DataKit 超出内存限制后，会被操作系统强制杀掉，通过命令可以看到如下结果，此时需要[手动启动服务](datakit-service-how-to.md#when-service-failed)：
 
 ```shell
 $ systemctl status datakit 
@@ -124,10 +124,10 @@ $ systemctl status datakit
 ```
 
 > 注意：
-> - 目前 cgroup 限制只在[宿主机安装](datakit-install)的时候会默认开启<!--，[DaemonSet 安装可使用专用方案]() -->
+> - 目前 cgroup 限制只在[宿主机安装](datakit-install.md)的时候会默认开启
 > - 目前 cgourp 只支持 CPU 使用率和内存使用量（mem+swap）控制，且支持 Linux 操作系统。
 
-### 启用磁盘缓存（Alpha）
+### 启用磁盘缓存（Alpha） {#using-cache}
 
 在 DataKit 日常运行中，有简单的缓存机制，如果发送 DataWay 失败，会缓存大概 1000 个数据点。一旦超出这个点数，就会丢弃掉。
 
@@ -145,16 +145,16 @@ $ systemctl status datakit
 
 开启磁盘缓存后，最大能缓存 1GB 的数据（目前不可配置），超过该大小的数据，将被丢弃。
 
-### 使用 Git 管理 DataKit 配置
+### 使用 Git 管理 DataKit 配置 {#using-gitrepo}
 
 由于 DataKit 各种采集器的配置都是文本类型，如果逐个修改、生效，需要耗费大量的精力。这里我们可以使用 Git 来管理这些配置，其优点如下：
 
 - 自动从远端 Git 仓库同步最新的配置，并自动生效
 - Git 自带的版本管理，能有效的追踪各种配置的变更历史
 
-在安装 DataKit 时（[DaemonSet 安装](datakit-daemonset-deploy)和[主机安装](datakit-install#f9858758)都支持），即可指定 Git 配置仓库。
+在安装 DataKit 时（[DaemonSet 安装](datakit-daemonset-deploy.md)和[主机安装](datakit-install.md#env-gitrepo)都支持），即可指定 Git 配置仓库。
 
-#### 手动配置 Git 管理
+#### 手动配置 Git 管理 {#setup-gitrepo}
 
 Datakit 支持使用 git 来管理采集器配置、Pipeline 以及 Python 脚本。在 *datakit.conf* 中，找到 *git_repos* 位置，编辑如下内容：
 
@@ -181,9 +181,9 @@ Datakit 支持使用 git 来管理采集器配置、Pipeline 以及 Python 脚�
 
 注意：开启 Git 同步后，原 `conf.d` 目录下的采集器配置将不再生效（*datakit.conf* 除外）。
 
-#### 应用 Git 管理的 Pipeline 示例
+#### 应用 Git 管理的 Pipeline 示例 {#gitrepo-example}
 
-我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，**DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用**。在 [Nginx 采集器](nginx)的配置中，一个 pipeline 的配置示例：
+我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，**DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用**。在 [Nginx 采集器](nginx.md)的配置中，一个 pipeline 的配置示例：
 
 ```toml
 [[inputs.nginx]]
@@ -193,7 +193,7 @@ Datakit 支持使用 git 来管理采集器配置、Pipeline 以及 Python 脚�
     pipeline = "my-nginx.p" # 具体加载哪里的 my-nginx.p，参见下面的 「约束」 说明
 ```
 
-#### Git 管理的使用约束
+#### Git 管理的使用约束 {#gitrepo-limitation}
 
 在 Git 使用过程必须遵循以下约束:
 
@@ -229,7 +229,7 @@ datakit 根目录
 
 2. 在 *git_repos* 中找不到的情况下，则去 *<Datakit 安装目录>/pipeline* 目录查找 Pipeline 脚本，或者去 *<Datakit 安装目录>/python.d* 目录查找 Python 脚本。
 
-### 设置打开的文件描述符的最大值
+### 设置打开的文件描述符的最大值 {#enable-max-fd}
 
 Linux 环境下，可以在 Datakit 主配置文件中配置 ulimit 项，以设置 Datakit 的最大可打开文件数，如下：
 
@@ -239,17 +239,17 @@ ulimit = 64000
 
 ulimit 默认配置为 64000。
 
-## FAQ
+## FAQ {#faq}
 
-### cgroup 设置失败
+### cgroup 设置失败 {#cgoup-fail}
 
-有时候启用 cgroup 会失败，在 [DataKit Monitor](datakit-monitor) 的 `Basic Info` 中会报告类似如下错误：
+有时候启用 cgroup 会失败，在 [DataKit Monitor](datakit-monitor.md) 的 `Basic Info` 中会报告类似如下错误：
 
 ```
 write /sys/fs/cgroup/memory/datakit/memory.limit_in_bytes: invalid argument
 ```
 
-此时需手动删除已有 cgroup 规则库，然后再[重启 DataKit 服务](datakit-service-how-to#147762ed)。
+此时需手动删除已有 cgroup 规则库，然后再[重启 DataKit 服务](datakit-service-how-to.md#manage-service)。
 
 ```shell
 sudo cgdelete memory:/datakit
@@ -260,12 +260,12 @@ sudo cgdelete memory:/datakit
 > - Ubuntu: `apt-get install libcgroup-tools`
 > - CentOS: `yum install libcgroup-tools`
 
-### cgroup CPU 使用率说明
+### cgroup CPU 使用率说明 {#cgroup-how}
 
 CPU 使用率是百分比制（==最大值 100.0==），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，==在 top 命令上将显示为 160% 左右==。`cpu_min` 同理。
 
-## 延伸阅读
+## 延伸阅读 {#more-reading}
 
-- [DataKit 宿主机安装](datakit-install)
-- [DataKit DaemonSet 安装](datakit-daemonset-install)
-- [DataKit 行协议过滤器](datakit-filter)
+- [DataKit 宿主机安装](datakit-install.md)
+- [DataKit DaemonSet 安装](datakit-daemonset-install.md)
+- [DataKit 行协议过滤器](datakit-filter.md)

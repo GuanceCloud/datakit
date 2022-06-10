@@ -10,7 +10,7 @@
 - 通过 DataKit 内置的正向代理服务
 - 通过 Nginx 反向代理服务
 
-## DataKit 代理
+## DataKit 代理 {#datakit-proxy}
 
 挑选网络中的一个能访问外网的 DataKit，作为代理，配置其代理设置。
 
@@ -44,14 +44,14 @@ curl -x <PROXY-IP:PROXY-PORT> -v -X POST https://openway.guance.com/v1/write/met
 
 配置好后，[重启 DataKit](datakit-service-how-to#147762ed)。
 
-## Nginx 正向代理配置
+## Nginx 正向代理配置 {#nginx-proxy}
 
 代理 HTTPS 流量这里 nginx 采用 4 层的透明代理方式，即需要:
 
 - 一台可以访问外网的 nginx 的透明代理服务器
 - datakit 所在的客户机使用 hosts 文件进行域名配置
 
-### 配置 `Nginx` 代理服务
+### 配置 `Nginx` 代理服务 {#config-nginx-proxy}
 
 ```
 # 代理 HTTPS
@@ -98,7 +98,7 @@ http {
 }
 ```
 
-### 加载新配置及测试
+### 加载新配置及测试 {#load-test}
 
 ```shell
 nginx -t        # 测试配置

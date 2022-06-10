@@ -7,7 +7,7 @@
 
 RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用户访问监测数据。
 
-## 接入方式
+## 接入方式 {#supported-platforms}
 
 - [Web 端](https://www.yuque.com/dataflux/doc/eqs7v2)
 - [微信小程序](https://www.yuque.com/dataflux/doc/clgea8)
@@ -15,7 +15,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 - [iOS](https://www.yuque.com/dataflux/doc/gsto6k)
 - [Flutter](https://www.yuque.com/dataflux/doc/nst0ca)
 
-## 前置条件
+## 前置条件 {#requirements}
 
 - 将 DataKit 部署成公网可访问
 
@@ -24,7 +24,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 - 在 DataKit 上[安装 IP 地理信息库](datakit-tools-how-to#ab5cd5ad)
 	- 自 [1.2.7](changelog#dbbe856a) 之后，由于调整了 IP 地理信息库的安装方式，默认安装不再自带 IP 信息库，需手动安装
 
-## 安全限制
+## 安全限制 {#security-setting}
 
 由于 RUM DataKit 一般部署在公网环境，但是只会使用其中特定的 [DataKit API](apis) 接口，其它接口是不能开放的。通过如下方式可加强 API 访问控制，在 *datakit.conf* 中，修改如下 *public_apis* 字段配置：
 

@@ -7,7 +7,7 @@
 
 ClickHouse 采集器可以采集 ClickHouse 服务器实例主动暴露的多种指标，比如语句执行数量和内存存储量，IO交互等多种指标，并将指标采集到观测云，帮助你监控分析 ClickHouse 各种异常情况。
 
-## 前置条件
+## 前置条件 {#requirements}
 
 - ClickHouse 版本 >=v20.1.2.4
 
@@ -35,7 +35,7 @@ vim /etc/clickhouse-server/config.xml
 
 详见[ClickHouse 官方文档](https://ClickHouse.com/docs/en/operations/server-configuration-parameters/settings/#server_configuration_parameters-prometheus)
 
-## 配置
+## 配置 {#input-config}
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
@@ -47,7 +47,7 @@ vim /etc/clickhouse-server/config.xml
 
 配置好后，重启 DataKit 即可。
 
-## 指标集
+## 指标集 {#measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.prom.tags]`自定义指定其它Tags：(集群可添加主机名)
 
@@ -57,7 +57,7 @@ vim /etc/clickhouse-server/config.xml
     # more_tag = "some_other_value"
 ```
 
-## 指标
+## 指标 {#metrics}
 
 {{ range $i, $m := .Measurements }}
 

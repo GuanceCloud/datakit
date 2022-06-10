@@ -7,7 +7,8 @@
 
 Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prometheus 格式的数据
 
-## 前置条件
+## 前置条件 {#requirements}
+
 - 安装 consul-exporter
   - 下载 consul_exporter 压缩包
 
@@ -25,7 +26,7 @@ Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prom
     ./consul_exporter     
     ```
 
-## 配置
+## 配置 {#input-config}
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。
 配置如下：
@@ -35,7 +36,7 @@ Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prom
 
 配置好后，重启 DataKit 即可。
 
-## 指标集
+## 指标集 {#measurements}
 
 {{ range $i, $m := .Measurements }}
 
@@ -51,7 +52,7 @@ Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prom
 
 {{ end }}
 
-## 日志
+## 日志 {#logging}
 
 如需采集 Consul 的日志，需要在开启 Consul 的时候，使用 -syslog 参数，例如
 
@@ -113,5 +114,3 @@ Sep 18 19:30:23 derrick-ThinkPad-X230 consul[11803]: 2021-09-18T19:30:23.522+080
 | `level`     | `INFO`                                                             | 日志级别 |
 | `character` | `agent.server.connect`                                             | 角色     |
 | `msg`       | `initialized primary datacenter CA with provider: provider=consul` | 日志内容 |
-
-

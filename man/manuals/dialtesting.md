@@ -34,7 +34,7 @@ sk = "BNFxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 ## 拨测部署图
 
-![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-net-arch.png)
+![](imgs/dialtesting-net-arch.png)
 
 ## 配置
 

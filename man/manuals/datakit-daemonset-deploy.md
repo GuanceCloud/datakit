@@ -9,8 +9,8 @@
 
 ## 安装步骤 
 
-- [Helm 安装](#e4d3facf)
-- [普通 yaml 安装](#505220a3)
+- Helm 安装
+- 普通 yaml 安装
 
 ### Helm 安装
 
@@ -61,9 +61,9 @@ $ helm uninstall datakit -n datakit
 
 ### 普通 yaml 安装
 
-先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml)，其中开启了很多[默认采集器](datakit-input-conf#764ffbc2)，无需配置。
+先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml)，其中开启了很多[默认采集器](datakit-input-conf#default-enabled-inputs)，无需配置。
 
-> 如果要修改这些采集器的默认配置，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to#ebf019c2) 来配置。部分采集器可以直接通过环境变量的方式来调整，具体参见具体采集器的文档（[容器采集器示例](container#5cf8fecf)）。总而言之，不管是默认开启的采集器，还是其它采集器，在 DaemonSet 方式部署 DataKit 时，==通过 [Configmap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/) 来配置采集器总是生效的==
+> 如果要修改这些采集器的默认配置，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to.md#via-configmap-conf) 来配置。部分采集器可以直接通过环境变量的方式来调整，具体参见具体采集器的文档（[容器采集器示例](container#5cf8fecf)）。总而言之，不管是默认开启的采集器，还是其它采集器，在 DaemonSet 方式部署 DataKit 时，==通过 [Configmap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/) 来配置采集器总是生效的==
 
 #### 修改配置
 
@@ -106,7 +106,7 @@ DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有
 
 具体绕过策略，参见[官方文档](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration)。
 
-#### ConfigMap 设置
+#### ConfigMap 设置 {#configmap-setting}
 
 部分采集器的开启，需通过 ConfigMap 来注入。以下是 MySQL 和 Redis 采集器的注入示例：
 
@@ -139,7 +139,7 @@ data:
 			   ...
 ```
 
-## DataKit 中其它环境变量设置
+## DataKit 中其它环境变量设置 {#using-k8-env}
 
 > 注意： ENV_LOG 如果配置成 `stdout`，则不要将 ENV_LOG_LEVEL 设置成 `debug`，否则可能循环产生日志，产生大量日志数据。
 
@@ -174,7 +174,7 @@ DataKit 支持的环境变量如下各表所示。
 | 环境变量名称               | 默认值 | 必须   | 说明                                                                                 |
 | ---------:                 | ---:   | ------ | ----                                                                                 |
 | ENV_DATAWAY                | 无     | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx`                         |
-| ENV_DEFAULT_ENABLED_INPUTS | 无     | 否     | 默认开启[采集器列表](datakit-input-conf#764ffbc2)，以英文逗号分割，如 `cpu,mem,disk` |
+| ENV_DEFAULT_ENABLED_INPUTS | 无     | 否     | 默认开启[采集器列表](datakit-input-conf.md#default-enabled-inputs)，以英文逗号分割，如 `cpu,mem,disk` |
 | ENV_ENABLE_INPUTS          | 无     | 否     | ==已弃用==，同 ENV_DEFAULT_ENABLED_INPUTS                                            |
 | ENV_GLOBAL_TAGS            | 无     | 否     | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`                       |
 
@@ -197,7 +197,7 @@ DataKit 支持的环境变量如下各表所示。
 
 | 环境变量名称        | 默认值     | 必须   | 说明                                                                                                                                                |
 | ---------:          | ---:       | ------ | ----                                                                                                                                                |
-| ENV_ENABLE_ELECTION | 默认不开启 | 否     | 开启[选举](election)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                                                                    |
+| ENV_ENABLE_ELECTION | 默认不开启 | 否     | 开启[选举](election.md)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                                                                    |
 | ENV_NAMESPACE       | 无         | 否     | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。 |
 
 ### HTTP/API 相关环境变量
