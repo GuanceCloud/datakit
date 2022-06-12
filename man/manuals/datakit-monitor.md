@@ -6,7 +6,6 @@
 
 DataKit 提供了相对完善的基本可观测信息输出，通过查看 DataKit 的 monitor 输出，我们能清晰的知道当前 DataKit 的运行情况。
 
-<a name="how-to-show-monitor"></a>
 ## 查看 Monitor
 
 执行如下命令即可获取本机 DataKit 的运行情况。
