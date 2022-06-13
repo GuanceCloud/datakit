@@ -96,11 +96,36 @@ func GroupIn(ng *parser.EngineData, node parser.Node) interface{} {
 		return nil //nolint:nilerr
 	}
 
-	if GroupInHandle(cont, setdata) {
+	if GroupInHandle(cont, setdata) && len(funcExpr.Param) == 3 {
 		switch v := value.(type) {
 		case *parser.NumberLiteral:
 			if v.IsInt {
-				if err := ng.SetContent(newkey, v.IsInt); err != nil {
+				if err := ng.SetContent(key, v.Int); err != nil {
+					l.Warn(err)
+					return nil
+				}
+			} else if err := ng.SetContent(key, v.Float); err != nil {
+				l.Warn(err)
+				return nil
+			}
+		case *parser.StringLiteral:
+			if err := ng.SetContent(key, v.Val); err != nil {
+				l.Warn(err)
+				return nil
+			}
+		case *parser.BoolLiteral:
+			if err := ng.SetContent(key, v.Val); err != nil {
+				l.Warn(err)
+				return nil
+			}
+		}
+	}
+
+	if GroupInHandle(cont, setdata) && len(funcExpr.Param) == 4 {
+		switch v := value.(type) {
+		case *parser.NumberLiteral:
+			if v.IsInt {
+				if err := ng.SetContent(newkey, v.Int); err != nil {
 					l.Warn(err)
 					return nil
 				}
