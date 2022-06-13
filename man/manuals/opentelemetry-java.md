@@ -1,4 +1,5 @@
 # Java 示例
+---
 
 在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经配置好了采集器。
 配置：[Datakit 配置 OTEL](https://www.yuque.com/dataflux/datakit/opentelemetry)

@@ -1,8 +1,8 @@
 {{.CSS}}
 # 批量部署
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
 我们可以通过 Ansible 等方式来批量安装 DataKit。

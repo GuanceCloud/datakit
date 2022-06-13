@@ -1,8 +1,8 @@
 {{.CSS}}
 # DataKit 服务管理
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
 [DataKit 安装](datakit-install)完后，有必要对安装好的 DataKit 做一些基本的介绍。

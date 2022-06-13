@@ -1,4 +1,5 @@
 # Logstash
+---
 
 Logstash 仅支持写入 Logging 种类的数据。
 

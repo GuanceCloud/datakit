@@ -1,8 +1,8 @@
 {{.CSS}}
 # DaemonSet 安装 DataKit 
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
 
 本文档介绍如何在 K8s 中通过 DaemonSet 方式安装 DataKit。

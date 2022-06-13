@@ -1,8 +1,8 @@
 {{.CSS}}
 # SSH
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
 监控 SSH/SFTP 服务，并把数据上报到观测云。

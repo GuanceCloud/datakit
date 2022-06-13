@@ -1,8 +1,8 @@
 {{.CSS}}
 # 主机安装
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
 本文介绍 DataKit 的基本安装。

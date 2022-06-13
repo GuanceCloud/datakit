@@ -1,4 +1,5 @@
 # Socket 日志接入示例
+---
 
 本篇主要介绍 Java Go Python 日志框架 如何配置 socket 输出到 datakit socket 日志采集器中。
 

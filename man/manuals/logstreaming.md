@@ -1,8 +1,8 @@
 {{.CSS}}
 # 第三方（logstreaming）日志接入
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
 启动一个 HTTP Server，接收日志文本数据，上报到观测云。

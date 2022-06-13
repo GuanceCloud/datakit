@@ -1,8 +1,8 @@
 {{.CSS}}
 # 行协议过滤器
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
 本文档主要描述 DataKit Filter 基本使用以及注意事项。

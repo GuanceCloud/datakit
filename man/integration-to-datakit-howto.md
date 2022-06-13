@@ -1,4 +1,5 @@
 # 集成文档合并
+---
 
 本文档主要介绍如何将现有的集成文档合并进 datakit 的文档中。现有集成文档在[这里](https://www.yuque.com/dataflux/integrations)。
 

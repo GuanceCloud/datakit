@@ -1,8 +1,8 @@
 {{.CSS}}
 # DataKit 主配置
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
 DataKit 主配置用来配置 DataKit 自己的运行行为，其目录一般位于：

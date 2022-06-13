@@ -1,8 +1,8 @@
 {{.CSS}}
 # DaemonSet 升级
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
 DataKit DaemonSet 支持两种方式安装，Helm 部署和 yaml 文件部署。此篇文章将讲述两种部署的升级方式。

@@ -1,4 +1,5 @@
 # InfluxDB
+---
 
 InfluxDB 仅支持写入 Metric 种类的数据。
 

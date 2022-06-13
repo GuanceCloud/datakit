@@ -1,7 +1,6 @@
 {{.CSS}}
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
 
 # Kubernetes 扩展指标采集

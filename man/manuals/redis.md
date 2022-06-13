@@ -1,8 +1,8 @@
 {{.CSS}}
 # Redis
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
 Redis 指标采集器，采集以下数据：
