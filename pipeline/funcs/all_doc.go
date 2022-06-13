@@ -151,7 +151,6 @@ var (
 	docXML string
 )
 
-//nolint:lll
 var (
 	addPatternMarkdown        = PLDoc{Doc: docAddPattern, Deprecated: false}
 	grokMarkdown              = PLDoc{Doc: docGrok, Deprecated: false}
