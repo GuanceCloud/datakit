@@ -100,6 +100,18 @@ func scriptName(category string, pt *Point, scriptMap map[string]string) (string
 	}
 	var scriptName string
 	switch category {
+	case datakit.RUM:
+		appID, ok := pt.Tags()["app_id"]
+		if !ok {
+			return "", false
+		}
+		scriptName = fmt.Sprintf("%s_%s.p", appID, pt.Name())
+	case datakit.Security:
+		scheckCategory, ok := pt.Tags()["category"]
+		if !ok {
+			return "", false
+		}
+		scriptName = scheckCategory + ".p"
 	case datakit.Tracing:
 		svc, ok := pt.Point.Tags()["service"]
 		if ok {
