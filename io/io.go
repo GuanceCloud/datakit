@@ -94,9 +94,11 @@ type IoStat struct {
 }
 
 type iodata struct {
-	category, name string
-	opt            *Option
-	pts            []*Point
+	category,
+	name string
+	filtered int
+	opt      *Option
+	pts      []*Point
 }
 
 func TestOutput() {
@@ -120,6 +122,9 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 		ch = x.in2
 	}
 
+	filtered := 0
+	var after []*Point
+
 	switch category {
 	case datakit.MetricDeprecated:
 	case datakit.Network:
@@ -130,7 +135,11 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 		datakit.Tracing,
 		datakit.Metric,
 		datakit.Object:
-		pts = filterPts(category, pts)
+
+		// run filters
+		after = filterPts(category, pts)
+		filtered = len(pts) - len(after)
+		pts = after
 
 	case datakit.Security:
 	case datakit.RUM:
@@ -138,10 +147,12 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 		return fmt.Errorf("invalid category `%s'", category)
 	}
 
-	if pts1, err := runPl(category, pts, opt); err != nil {
+	// run pipeline
+	after, err := runPl(category, pts, opt)
+	if err != nil {
 		l.Error(err)
 	} else {
-		pts = pts1
+		pts = after
 	}
 
 	// Maybe all points been filtered, but we still send the feeding into io.
@@ -152,6 +163,7 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	case ch <- &iodata{
 		category: category,
 		pts:      pts,
+		filtered: filtered,
 		name:     name,
 		opt:      opt,
 	}:
@@ -175,42 +187,40 @@ func (x *IO) ioStop() {
 }
 
 func (x *IO) updateStats(d *iodata) {
-	g.Go(func(ctx context.Context) error {
-		x.lock.Lock()
-		defer x.lock.Unlock()
-		now := time.Now()
-		stat, ok := x.inputstats[d.name]
+	x.lock.Lock()
+	defer x.lock.Unlock()
 
-		if !ok {
-			stat = &InputsStat{
-				Total: int64(len(d.pts)),
-				First: now,
-			}
-			x.inputstats[d.name] = stat
+	now := time.Now()
+	stat, ok := x.inputstats[d.name]
+
+	if !ok {
+		stat = &InputsStat{
+			Total: int64(len(d.pts)),
+			First: now,
 		}
+		x.inputstats[d.name] = stat
+	}
 
-		stat.Total += int64(len(d.pts))
-		stat.Count++
-		stat.Last = now
-		stat.Category = d.category
+	stat.Total += int64(len(d.pts))
+	stat.Count++
+	stat.Filtered += int64(d.filtered)
+	stat.Last = now
+	stat.Category = d.category
 
-		if (stat.Last.Unix() - stat.First.Unix()) > 0 {
-			stat.Frequency = fmt.Sprintf("%.02f/min",
-				float64(stat.Count)/(float64(stat.Last.Unix()-stat.First.Unix())/60))
+	if (stat.Last.Unix() - stat.First.Unix()) > 0 {
+		stat.Frequency = fmt.Sprintf("%.02f/min",
+			float64(stat.Count)/(float64(stat.Last.Unix()-stat.First.Unix())/60))
+	}
+	stat.AvgSize = (stat.Total) / stat.Count
+
+	if d.opt != nil {
+		stat.Version = d.opt.Version
+		stat.totalCost += d.opt.CollectCost
+		stat.AvgCollectCost = (stat.totalCost) / time.Duration(stat.Count)
+		if d.opt.CollectCost > stat.MaxCollectCost {
+			stat.MaxCollectCost = d.opt.CollectCost
 		}
-		stat.AvgSize = (stat.Total) / stat.Count
-
-		if d.opt != nil {
-			stat.Version = d.opt.Version
-			stat.totalCost += d.opt.CollectCost
-			stat.AvgCollectCost = (stat.totalCost) / time.Duration(stat.Count)
-			if d.opt.CollectCost > stat.MaxCollectCost {
-				stat.MaxCollectCost = d.opt.CollectCost
-			}
-		}
-
-		return nil
-	})
+	}
 }
 
 func (x *IO) ifMatchOutputFileInput(feedName string) bool {
