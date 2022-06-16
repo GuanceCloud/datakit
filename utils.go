@@ -20,6 +20,7 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
+	pr "github.com/shirou/gopsutil/v3/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
@@ -363,4 +364,18 @@ func GetEnv(env string) string {
 		}
 	}
 	return ""
+}
+
+func OpenFiles() int {
+	pid := os.Getpid()
+	p, err := pr.NewProcess(int32(pid))
+	if err != nil {
+		return -1
+	}
+
+	if fs, err := p.OpenFiles(); err != nil {
+		return -1
+	} else {
+		return len(fs)
+	}
 }

@@ -93,6 +93,8 @@ type DatakitStats struct {
 	Cgroup     string `json:"cgroup"`
 	CSS        string `json:"-"`
 
+	OpenFiles int `json:"open_files"`
+
 	InputsStats map[string]*io.InputsStat  `json:"inputs_status"`
 	SenderStat  map[string]*sender.Metric  `json:"sender_stat"`
 	IoStats     io.IoStat                  `json:"io_stats"`
@@ -331,6 +333,7 @@ func GetStats() (*DatakitStats, error) {
 		HTTPMetrics:    getMetrics(),
 		GolangRuntime:  getRuntimeInfo(),
 		FilterStats:    io.GetFilterStats(),
+		OpenFiles:      datakit.OpenFiles(),
 	}
 
 	var err error

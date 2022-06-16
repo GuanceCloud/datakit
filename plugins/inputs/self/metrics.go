@@ -163,6 +163,13 @@ func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.DurationSecond,
 				Desc:     "Uptime of DataKit",
 			},
+
+			"open_files": &inputs.FieldInfo{
+				Type:     inputs.Gauge,
+				DataType: inputs.Int,
+				Unit:     inputs.NCount,
+				Desc:     "open files of DataKit(Only Linux support, others are -1)",
+			},
 		},
 	}
 }
