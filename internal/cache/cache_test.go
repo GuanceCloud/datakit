@@ -14,6 +14,7 @@ import (
 
 var (
 	dir    = "cache_testing_dir"
+	file   = "cache_testing_dir/testing.bolt"
 	bucket = "bucket_abc"
 )
 
@@ -28,7 +29,7 @@ func TestCachePutGet(t *testing.T) {
 		}
 	})
 
-	c, err := NewCache(dir, defaultCacheOptions)
+	c, err := NewCache(file, DefaultCacheOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +70,7 @@ func TestCacheForEachNotClean(t *testing.T) {
 		}
 	})
 
-	c, err := NewCache(dir, defaultCacheOptions)
+	c, err := NewCache(file, DefaultCacheOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +130,7 @@ func TestCacheForEachAndClean(t *testing.T) {
 		}
 	})
 
-	c, err := NewCache(dir, defaultCacheOptions)
+	c, err := NewCache(file, DefaultCacheOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +190,7 @@ func TestCacheMove(t *testing.T) {
 		}
 	})
 
-	c, err := NewCache(dir, defaultCacheOptions)
+	c, err := NewCache(file, DefaultCacheOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +244,8 @@ func TestCacheMove(t *testing.T) {
 
 func TestCacheForEachForTemp(t *testing.T) {
 	tmpdir := "tmp"
-	c, err := NewCache(tmpdir, defaultCacheOptions)
+	tmpfile := "tmp/123"
+	c, err := NewCache(tmpfile, DefaultCacheOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -285,7 +287,7 @@ func TestLoadHist(t *testing.T) {
 		}
 	})
 
-	c1, err := NewCache(dir, defaultCacheOptions)
+	c1, err := NewCache(file, DefaultCacheOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -314,7 +316,7 @@ func TestLoadHist(t *testing.T) {
 
 	//
 
-	c2, err := NewCache(dir, defaultCacheOptions)
+	c2, err := NewCache(file, DefaultCacheOptions)
 	if err != nil {
 		t.Fatal(err)
 	}

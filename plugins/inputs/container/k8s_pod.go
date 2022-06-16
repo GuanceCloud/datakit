@@ -68,6 +68,7 @@ func (p *pod) metric() (inputsMeas, error) {
 		met := &podMetric{
 			tags: map[string]string{
 				"pod":       item.Name,
+				"pod_name":  item.Name,
 				"namespace": defaultNamespace(item.Namespace),
 				// "condition":  "",
 				// "deployment": "",
@@ -317,6 +318,7 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"pod":       inputs.NewTagInfo("Name must be unique within a namespace."),
+			"pod_name":  inputs.NewTagInfo("Name must be unique within a namespace. (depercated)"),
 			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
 		Fields: map[string]interface{}{

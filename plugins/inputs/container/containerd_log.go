@@ -69,26 +69,30 @@ func (c *containerdInput) watchNewLogs() error {
 		return fmt.Errorf("failed to get cri-ListContainers err: %w", err)
 	}
 
-	for _, resp := range list.GetContainers() {
-		status, err := c.criClient.ContainerStatus(context.Background(), &cri.ContainerStatusRequest{ContainerId: resp.Id})
+	for _, container := range list.GetContainers() {
+		resp, err := c.criClient.ContainerStatus(context.Background(), &cri.ContainerStatusRequest{ContainerId: container.Id})
 		if err != nil {
-			l.Warnf("failed to get cri-container status, id: %s, err: %s", resp.Id, err)
+			l.Warnf("failed to get cri-container respone, id: %s, err: %s", container.Id, err)
 			continue
 		}
 
-		logpath := status.GetStatus().GetLogPath()
+		status := resp.GetStatus()
+		if status == nil {
+			continue
+		}
+
+		logpath := status.GetLogPath()
 
 		if c.inLogList(logpath) {
-			l.Debugf("", resp.Id, err)
 			continue
 		}
 
 		tags := map[string]string{
 			// "state":          "running",
-			"container_name": getContainerNameForLabels(status.GetStatus().GetLabels()),
-			"container_id":   status.GetStatus().GetId(),
-			"pod_name":       getPodNameForLabels(status.GetStatus().GetLabels()),
-			"namespace":      getPodNamespaceForLabels(status.GetStatus().GetLabels()),
+			"container_name": getContainerNameForLabels(status.GetLabels()),
+			"container_id":   status.GetId(),
+			"pod_name":       getPodNameForLabels(status.GetLabels()),
+			"namespace":      getPodNamespaceForLabels(status.GetLabels()),
 		}
 		if c.criRuntimeVersion != nil {
 			tags["container_type"] = c.criRuntimeVersion.RuntimeName
@@ -100,7 +104,7 @@ func (c *containerdInput) watchNewLogs() error {
 			}
 		}
 
-		if image := status.GetStatus().GetImage(); image != nil {
+		if image := status.GetImage(); image != nil {
 			// 如果能找到 pod image，则使用它
 			imageName, imageShortName, imageTag := ParseImage(image.Image)
 			tags["image"] = image.Image
@@ -109,8 +113,8 @@ func (c *containerdInput) watchNewLogs() error {
 			tags["image_tag"] = imageTag
 		}
 
-		source := getContainerNameForLabels(status.GetStatus().GetLabels())
-		if n := status.GetStatus().Metadata; n != nil {
+		source := getContainerNameForLabels(status.GetLabels())
+		if n := status.Metadata; n != nil {
 			source = n.Name
 		}
 
@@ -119,7 +123,7 @@ func (c *containerdInput) watchNewLogs() error {
 			GlobalTags: tags,
 		}
 
-		logconf, err := getContainerLogConfig(status.GetStatus().GetAnnotations())
+		logconf, err := getContainerLogConfig(status.GetAnnotations())
 		if err != nil {
 			l.Warnf("invalid logconfig from annotation, err: %s, skip", err)
 		}
@@ -134,19 +138,19 @@ func (c *containerdInput) watchNewLogs() error {
 			opt.Pipeline = logconf.Pipeline
 			opt.MultilineMatch = logconf.Multiline
 
-			l.Debugf("use container logconfig:%#v, containerId: %s, source: %s, logpath: %s", logconf, resp.Id, opt.Source, logpath)
+			l.Debugf("use container logconfig:%#v, containerId: %s, source: %s, logpath: %s", logconf, container.Id, opt.Source, logpath)
 		}
 
 		_ = opt.Init()
 
 		t, err := tailer.NewTailerSingle(logpath, opt)
 		if err != nil {
-			l.Errorf("failed to new containerd log, containerId: %s, source: %s, logpath: %s", resp.Id, opt.Source, logpath)
+			l.Warnf("failed to new containerd log, containerId: %s, source: %s, logpath: %s, err: %s", container.Id, opt.Source, logpath, err)
 			continue
 		}
 
 		c.addToLogList(logpath)
-		l.Infof("add containerd log, containerId: %s, source: %s, logpath: %s", resp.Id, opt.Source, logpath)
+		l.Infof("add containerd log, containerId: %s, source: %s, logpath: %s", container.Id, opt.Source, logpath)
 
 		go func(logpath string) {
 			defer c.removeFromLogList(logpath)

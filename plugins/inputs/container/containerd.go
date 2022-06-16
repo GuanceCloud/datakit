@@ -69,7 +69,7 @@ func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
 
 func (c *containerdInput) stop() {
 	if err := c.client.Close(); err != nil {
-		l.Errorf("closed contianerd, err: %s", err)
+		l.Warnf("closed contianerd, err: %s", err)
 	}
 }
 
