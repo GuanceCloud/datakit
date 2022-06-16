@@ -14,8 +14,10 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
+	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 func TestInitCfg(t *testing.T) {
@@ -357,4 +359,29 @@ func TestGetElectionNamespace(t *testing.T) {
 
 	Cfg.Namespace = ""
 	tu.Equals(t, GetElectionNamespace(), "default")
+}
+
+func TestSetupDataway(t *testing.T) {
+	cases := []struct {
+		name   string
+		dwcfg  *dataway.DataWayCfg
+		expect error
+	}{
+		{
+			name: "check_dev_null",
+			dwcfg: &dataway.DataWayCfg{
+				URLs: []string{datakit.DatawayDisableURL},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := DefaultConfig()
+			c.DataWayCfg = tc.dwcfg
+
+			err := c.setupDataway()
+			assert.Equal(t, tc.expect, err)
+		})
+	}
 }

@@ -330,6 +330,13 @@ func (c *Config) setupDataway() error {
 		c.DataWayCfg.URLs = []string{c.DataWayCfg.DeprecatedURL}
 	}
 
+	if len(c.DataWayCfg.URLs) > 0 && c.DataWayCfg.URLs[0] == datakit.DatawayDisableURL {
+		c.RunMode = datakit.ModeDev
+		return nil
+	} else {
+		c.RunMode = datakit.ModeNormal
+	}
+
 	dataway.ExtraHeaders = map[string]string{
 		"X-Datakit-Info": fmt.Sprintf("%s; %s", c.Hostname, datakit.Version),
 	}
@@ -340,13 +347,6 @@ func (c *Config) setupDataway() error {
 	if err := c.DataWay.Init(c.DataWayCfg); err != nil {
 		c.DataWay = nil
 		return err
-	}
-
-	if len(c.DataWayCfg.URLs) > 0 && c.DataWayCfg.URLs[0] == datakit.DatawayDisableURL {
-		c.RunMode = datakit.ModeDev
-		return nil
-	} else {
-		c.RunMode = datakit.ModeNormal
 	}
 
 	return nil
