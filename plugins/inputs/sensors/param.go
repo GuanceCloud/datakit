@@ -11,11 +11,10 @@ import (
 )
 
 var (
-	inputName = "sensors"
-
+	inputName    = "sensors"
 	sampleConfig = `
 [[inputs.sensors]]
-  ## Command path of 'sensor' usually under /usr/bin/sensors
+  ## Command path of 'sensors' usually is /usr/bin/sensors
   # path = "/usr/bin/sensors"
 
   ## Gathering interval

@@ -19,10 +19,11 @@ import (
 var _ inputs.InputV2 = &Input{}
 
 const (
-	inputName    = "skywalking"
-	sampleConfig = `
+	inputName     = "skywalking"
+	jvmMetricName = "skywalking_jvm"
+	sampleConfig  = `
 [[inputs.skywalking]]
-  ## skywalking grpc server listening on address
+  ## skywalking grpc server listening on address.
   address = "localhost:13800"
 
   ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
@@ -75,14 +76,14 @@ const (
 
 var (
 	log              = logger.DefaultSLogger(inputName)
-	defAddr          = "localhost:13800"
+	address          = "localhost:13800"
 	afterGatherRun   itrace.AfterGatherHandler
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	sampler          *itrace.Sampler
 	customerKeys     []string
 	tags             map[string]string
-	skysvr           *grpc.Server
+	skySvr           *grpc.Server
 )
 
 type Input struct {
@@ -116,10 +117,6 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
-
-	if len(ipt.Address) == 0 {
-		ipt.Address = defAddr
-	}
 
 	afterGather := itrace.NewAfterGather()
 	afterGatherRun = afterGather
@@ -158,12 +155,17 @@ func (ipt *Input) Run() {
 	log.Debug("start skywalking grpc v3 server")
 
 	// itrace.StartTracingStatistic()
+
+	// start up grpc v3 routine
+	if len(ipt.Address) == 0 {
+		ipt.Address = address
+	}
 	go registerServerV3(ipt.Address)
 }
 
 func (ipt *Input) Terminate() {
-	if skysvr != nil {
-		skysvr.Stop()
+	if skySvr != nil {
+		skySvr.Stop()
 	}
 }
 

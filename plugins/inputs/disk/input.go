@@ -244,10 +244,11 @@ func (ipt *Input) Run() {
 		case <-tick.C:
 		case <-datakit.Exit.Wait():
 			l.Infof("disk input exit")
-			return
 
+			return
 		case <-ipt.semStop.Wait():
 			l.Info("disk input return")
+
 			return
 		}
 	}
