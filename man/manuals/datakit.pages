@@ -22,6 +22,7 @@ nav:
       - '安装': datakit-daemonset-deploy.md
       - datakit-daemonset-update.md
     - proxy.md
+    - aliyun-access.md
     - election.md
     - dca.md
     - 'Sinker 设置':
