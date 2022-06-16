@@ -1,4 +1,5 @@
 # DataKit Sinker 开发
+---
 
 本文将讲述如何开发 DataKit 的 Sinker 模块(以下简称 Sinker 模块、Sinker)的新实例。适合于想开发 Sinker 新实例、或者想深入了解 Sinker 模块原理的同学。
 

@@ -26,7 +26,7 @@ make
 
 echo 'export to datakit docs...'
 dist/datakit-${os}-amd64/datakit doc \
-	--export-docs $docs_dir \
+	--export-docs $datakit_docs_dir \
 	--ignore demo \
 	--version "${man_version}" \
 	--TODO "-"

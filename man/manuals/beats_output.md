@@ -1,8 +1,8 @@
 {{.CSS}}
 # Filebeat
+---
 
 - DataKit 版本: {{.Version}}
-- 文档发布日期: {{.ReleaseDate}}
 - 操作系统支持: 全平台
 
 本文档主要介绍 [Elastic Beats](https://www.elastic.co/products/beats/) 接收器。目前支持:

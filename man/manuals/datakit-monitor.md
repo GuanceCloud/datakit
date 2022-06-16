@@ -1,8 +1,9 @@
 {{.CSS}}
 # 查看 DataKit 的 Monitor
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
+- 操作系统支持：全平台
 
 DataKit 提供了相对完善的基本可观测信息输出，通过查看 DataKit 的 monitor 输出，我们能清晰的知道当前 DataKit 的运行情况。
 

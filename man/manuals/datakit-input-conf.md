@@ -1,8 +1,8 @@
 {{.CSS}}
 # 采集器配置
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
 DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn)，所有采集器配置均位于 *conf.d* 目录下：

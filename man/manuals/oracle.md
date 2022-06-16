@@ -1,9 +1,8 @@
 {{.CSS}}
-
 # Oracle
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
 Oracle 监控指标采集，具有以下数据收集功能
