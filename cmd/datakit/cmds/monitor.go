@@ -40,10 +40,10 @@ var (
 	MaxTableWidth = 128
 
 	inputsStatsCols = strings.Split(
-		`Input,Category,Freq,Avg Pts,Total Feed,Total Pts,1st Feed,Last Feed,Avg Cost,Max Cost,Error(date)`, ",")
+		`Input,Cat,Freq,AvgFeed,Feeds,TotalPts,Filtered,1stFeed,LastFeed,AvgCost,MaxCost,Error(date)`, ",")
 	plStatsCols = strings.Split(
-		"Script,Category,Namespace,Enabled,Total Pts,Dropped Pts,Error Pts,Script Update,"+
-			"Cost,Avg Cost,First Time,Update Time,Script Update Time,Deleted,Errors", ",")
+		"Script,Cat,Namespace,Enabled,TotalPts,DropPts,ErrPts,PLUpdate,"+
+			"Cost,AvgCost,1StTime,Update,UpdateTime,Deleted,Errors", ",")
 	enabledInputCols = strings.Split(`Input,Instaces,Crashed`, ",")
 	goroutineCols    = strings.Split(`Name,Done,Running,Total Cost,Min Cost,Max Cost,Failed`, ",")
 	httpAPIStatCols  = strings.Split(`API,Total,Limited(%),Max Latency,Avg Latency,2xx,3xx,4xx,5xx`, ",")
@@ -513,16 +513,20 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 		table.SetCell(row, 5,
 			tview.NewTableCell(number(v.Total)).
 				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 6, tview.NewTableCell(func() string {
+		table.SetCell(row, 6,
+			tview.NewTableCell(number(v.Filtered)).
+				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+
+		table.SetCell(row, 7, tview.NewTableCell(func() string {
 			return humanize.RelTime(v.First, now, "ago", "")
 		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 7, tview.NewTableCell(func() string {
+		table.SetCell(row, 8, tview.NewTableCell(func() string {
 			return humanize.RelTime(v.Last, now, "ago", "")
 		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 8,
+		table.SetCell(row, 9,
 			tview.NewTableCell(v.AvgCollectCost.String()).
 				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 9,
+		table.SetCell(row, 10,
 			tview.NewTableCell(v.MaxCollectCost.String()).
 				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 
@@ -543,7 +547,7 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 			})
 		}
 
-		table.SetCell(row, 10, lastErrCell)
+		table.SetCell(row, 11, lastErrCell)
 
 		row++
 	}
