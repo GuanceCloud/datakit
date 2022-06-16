@@ -288,7 +288,7 @@ man:
 
 # ignore files under vendor/.git/git
 gofmt:
-	@GO111MODULE=off gofmt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go")
+	@GO111MODULE=off gofmt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go\|packed-packr.go")
 
 vet:
 	@go vet ./...
