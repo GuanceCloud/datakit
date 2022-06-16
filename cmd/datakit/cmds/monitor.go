@@ -119,6 +119,12 @@ func (m *monitorAPP) renderGolangRuntimeTable(ds *dkhttp.DatakitStats) {
 	table.SetCell(row, 1,
 		tview.NewTableCell(fmt.Sprintf("%d", ds.GolangRuntime.GCNum)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0,
+		tview.NewTableCell("OpenFiles").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1,
+		tview.NewTableCell(fmt.Sprintf("%d", ds.OpenFiles)).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
 }
 
 func (m *monitorAPP) renderFilterStatsTable(ds *dkhttp.DatakitStats) {
@@ -221,10 +227,6 @@ func (m *monitorAPP) renderBasicInfoTable(ds *dkhttp.DatakitStats) {
 	row++
 	table.SetCell(row, 0, tview.NewTableCell("IO").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(ds.IOChanStat).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
-
-	// row++
-	// table.SetCell(row, 0, tview.NewTableCell("Pipeline").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
-	// table.SetCell(row, 1, tview.NewTableCell(ds.PLWorkerStat).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
 
 	row++
 	table.SetCell(row, 0, tview.NewTableCell("Elected").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
