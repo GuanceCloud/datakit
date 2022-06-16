@@ -148,7 +148,8 @@ func (kinfo *K8sNetInfo) AutoUpdate(ctx context.Context) {
 
 // QueryPodInfo returns (server(ture) or client, pod name, svc name, namespace, deployment,port, err).
 func (kinfo *K8sNetInfo) QueryPodInfo(ip string, port uint32, protocol string) (bool,
-	string, string, string, string, uint32, error) {
+	string, string, string, string, uint32, error,
+) {
 	kinfo.RLock()
 	defer kinfo.RUnlock()
 

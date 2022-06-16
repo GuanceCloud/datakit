@@ -241,15 +241,14 @@ func (m *Input) Run() {
 		case <-datakit.Exit.Wait():
 			m.exit()
 			l.Info("mongodb input exit")
-			return
 
+			return
 		case <-m.semStop.Wait():
 			m.exit()
 			l.Info("mongodb input return")
+
 			return
-
 		case <-tick.C:
-
 		case m.pause = <-m.pauseCh:
 			// nil
 		}

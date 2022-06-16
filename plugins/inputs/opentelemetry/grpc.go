@@ -60,7 +60,8 @@ type ExportTrace struct { //nolint:structcheck,stylecheck
 }
 
 func (et *ExportTrace) Export(ctx context.Context, //nolint:structcheck,stylecheck
-	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
+	ets *collectortracepb.ExportTraceServiceRequest,
+) (*collectortracepb.ExportTraceServiceResponse, error) {
 	md, haveHeader := metadata.FromIncomingContext(ctx)
 	if haveHeader {
 		if !checkHandler(et.ExpectedHeaders, md) {
@@ -81,7 +82,8 @@ type ExportMetric struct { //nolint:structcheck,stylecheck
 }
 
 func (em *ExportMetric) Export(ctx context.Context, //nolint:structcheck,stylecheck
-	ets *collectormetricepb.ExportMetricsServiceRequest) (*collectormetricepb.ExportMetricsServiceResponse, error) {
+	ets *collectormetricepb.ExportMetricsServiceRequest,
+) (*collectormetricepb.ExportMetricsServiceResponse, error) {
 	md, haveHeader := metadata.FromIncomingContext(ctx)
 	if haveHeader {
 		if !checkHandler(em.ExpectedHeaders, md) {

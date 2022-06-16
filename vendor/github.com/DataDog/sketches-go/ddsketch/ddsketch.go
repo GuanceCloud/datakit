@@ -31,7 +31,10 @@ type quantileSketch interface {
 	RelativeAccuracy() float64
 	IsEmpty() bool
 	GetCount() float64
+	GetZeroCount() float64
 	GetSum() float64
+	GetPositiveValueStore() store.Store
+	GetNegativeValueStore() store.Store
 	GetMinValue() (float64, error)
 	GetMaxValue() (float64, error)
 	GetValueAtQuantile(quantile float64) (float64, error)
@@ -200,6 +203,13 @@ func (s *DDSketch) GetCount() float64 {
 	return s.zeroCount + s.positiveValueStore.TotalCount() + s.negativeValueStore.TotalCount()
 }
 
+// GetZeroCount returns the number of zero values that have been added to this sketch.
+// Note: values that are very small (lower than MinIndexableValue if positive, or higher than -MinIndexableValue if negative)
+// are also mapped to the zero bucket.
+func (s *DDSketch) GetZeroCount() float64 {
+	return s.zeroCount
+}
+
 // Return true iff no value has been added to this sketch.
 func (s *DDSketch) IsEmpty() bool {
 	return s.zeroCount == 0 && s.positiveValueStore.IsEmpty() && s.negativeValueStore.IsEmpty()
@@ -248,6 +258,18 @@ func (s *DDSketch) GetSum() (sum float64) {
 		return false
 	})
 	return sum
+}
+
+// GetPositiveValueStore returns the store.Store object that contains the positive
+// values of the sketch.
+func (s *DDSketch) GetPositiveValueStore() (store.Store) {
+	return s.positiveValueStore
+}
+
+// GetNegativeValueStore returns the store.Store object that contains the negative
+// values of the sketch.
+func (s *DDSketch) GetNegativeValueStore() (store.Store) {
+	return s.negativeValueStore
 }
 
 // ForEach applies f on the bins of the sketches until f returns true.
@@ -524,8 +546,27 @@ func (s *DDSketchWithExactSummaryStatistics) GetCount() float64 {
 	return s.summaryStatistics.Count()
 }
 
+// GetZeroCount returns the number of zero values that have been added to this sketch.
+// Note: values that are very small (lower than MinIndexableValue if positive, or higher than -MinIndexableValue if negative)
+// are also mapped to the zero bucket.
+func (s *DDSketchWithExactSummaryStatistics) GetZeroCount() float64 {
+	return s.DDSketch.zeroCount
+}
+
 func (s *DDSketchWithExactSummaryStatistics) GetSum() float64 {
 	return s.summaryStatistics.Sum()
+}
+
+// GetPositiveValueStore returns the store.Store object that contains the positive
+// values of the sketch.
+func (s *DDSketchWithExactSummaryStatistics) GetPositiveValueStore() (store.Store) {
+	return s.DDSketch.positiveValueStore
+}
+
+// GetNegativeValueStore returns the store.Store object that contains the negative
+// values of the sketch.
+func (s *DDSketchWithExactSummaryStatistics) GetNegativeValueStore() (store.Store) {
+	return s.DDSketch.negativeValueStore
 }
 
 func (s *DDSketchWithExactSummaryStatistics) GetMinValue() (float64, error) {

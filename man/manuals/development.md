@@ -98,7 +98,7 @@ datakit -M --vvv            # 检查所有采集器的运行情况
 
 #### 安装 Golang
 
-当前 Go 版本 [1.16.4](https://golang.org/dl/go1.16.4.linux-amd64.tar.gz)
+当前 Go 版本 [1.18.3](https://golang.org/dl/go1.18.3.linux-amd64.tar.gz)
 
 #### CI 设置
 
@@ -121,7 +121,7 @@ export GOPRIVATE=gitlab.jiagouyun.com/*
 export GOPROXY=https://goproxy.io
 
 # 假定 golang 安装在 /root 目录下
-export GOROOT=/root/golang-1.16.4
+export GOROOT=/root/golang-1.18.3
 # 将 go 代码 clone 到 GOPATH 里面
 export GOPATH=/root/go
 export PATH=$GOROOT/bin:~/go/bin:$PATH

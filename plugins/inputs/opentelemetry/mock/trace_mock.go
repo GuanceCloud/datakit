@@ -39,7 +39,8 @@ func (et *MockTrace) GetHeader() metadata.MD {
 }
 
 func (et *MockTrace) Export(ctx context.Context,
-	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
+	ets *collectortracepb.ExportTraceServiceRequest,
+) (*collectortracepb.ExportTraceServiceResponse, error) {
 	if rss := ets.GetResourceSpans(); len(rss) > 0 {
 		et.Rss = rss
 	}

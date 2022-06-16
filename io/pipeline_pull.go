@@ -33,7 +33,8 @@ func PullPipeline(ts int64) (mFiles map[string]map[string]string, updateTime int
 }
 
 func parsePipelinePullStruct(pulledStruct *pullPipelineReturn) (
-	map[string]map[string]string, int64, error) {
+	map[string]map[string]string, int64, error,
+) {
 	mFiles := make(map[string]map[string]string)
 	for _, v := range pulledStruct.Pipelines {
 		bys, err := base64.StdEncoding.DecodeString(v.Base64Text)

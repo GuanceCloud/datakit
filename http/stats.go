@@ -16,7 +16,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/dustin/go-humanize"
+	humanize "github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
@@ -92,6 +92,8 @@ type DatakitStats struct {
 	Elected    string `json:"elected"`
 	Cgroup     string `json:"cgroup"`
 	CSS        string `json:"-"`
+
+	OpenFiles int `json:"open_files"`
 
 	InputsStats map[string]*io.InputsStat  `json:"inputs_status"`
 	SenderStat  map[string]*sender.Metric  `json:"sender_stat"`
@@ -331,6 +333,7 @@ func GetStats() (*DatakitStats, error) {
 		HTTPMetrics:    getMetrics(),
 		GolangRuntime:  getRuntimeInfo(),
 		FilterStats:    io.GetFilterStats(),
+		OpenFiles:      datakit.OpenFiles(),
 	}
 
 	var err error

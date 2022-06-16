@@ -134,12 +134,12 @@ func (i *Input) Run() {
 			}
 		}
 	}()
-	if d, err := time.ParseDuration(i.Interval); err != nil {
-		i.Interval = (time.Second * 10).String()
+	if d, err := time.ParseDuration(i.JolokiaAgent.Interval); err != nil {
+		i.JolokiaAgent.Interval = (time.Second * 10).String()
 	} else {
-		i.Interval = config.ProtectedInterval(minInterval, maxInterval, d).String()
+		i.JolokiaAgent.Interval = config.ProtectedInterval(minInterval, maxInterval, d).String()
 	}
-	i.PluginName = inputName
+	i.JolokiaAgent.PluginName = inputName
 	i.JolokiaAgent.Tags = i.Tags
 	i.JolokiaAgent.Types = TomcatMetricType
 	i.JolokiaAgent.Collect()

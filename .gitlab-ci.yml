@@ -5,10 +5,13 @@ before_script:
   - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - source ~/.ossenv
   - echo $DK_BPF_KERNEL_SRC_PATH
+  - export PATH=/usr/local/go1.18.3/bin:$PATH
+  - export GOROOT=/usr/local/go1.18.3
+  - go version
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.4.1"
+  CI_VERSION: "1.4.2"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -16,7 +19,7 @@ stages:
   - deploy_ebpf
   - deploy
 
-dk-test-production:
+test-datakit-production:
   stage: test
   only:
     - unstable
@@ -29,7 +32,7 @@ dk-test-production:
   tags:
     - cloudcare-ft
 
-dk-test-testing:
+test-datakit-testing:
   stage: test
   only:
     - testing
@@ -45,8 +48,8 @@ dk-test-testing:
 
 release-ebpf-testing:
   stage: deploy_ebpf
-  needs: [dk-test-testing]
-  image: vircoys/datakit-developer:1.3
+  needs: [test-datakit-testing]
+  image: vircoys/datakit-developer:1.4
   only:
     - testing
     - hotfix
@@ -59,8 +62,8 @@ release-ebpf-testing:
 
 release-ebpf-production:
   stage: deploy_ebpf
-  needs: [dk-test-production]
-  image: vircoys/datakit-developer:1.3
+  needs: [test-datakit-production]
+  image: vircoys/datakit-developer:1.4
   only:
     - master
     - unstable
@@ -72,7 +75,7 @@ release-ebpf-production:
 
 release-testing:
   stage: deploy
-  needs: [dk-test-testing, release-ebpf-testing]
+  needs: [test-datakit-testing, release-ebpf-testing]
   only:
     - testing
     - hotfix
@@ -88,13 +91,11 @@ release-testing:
 
 release-stable:
   stage: deploy
-  needs: [dk-test-production, release-ebpf-production]
+  needs: [test-datakit-production, release-ebpf-production]
   only:
     - master
   script:
     - make clean
-    - make lint
-    - make all_test
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" # update the version on each release
     - make check_production_conf_compatible
     - make pub_conf_samples

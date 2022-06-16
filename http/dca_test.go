@@ -388,7 +388,7 @@ func TestDcaGetPipelines(t *testing.T) {
 	fileDir, ok := pipelineInfo["fileDir"]
 	assert.True(t, ok)
 
-	assert.Equal(t, f.Name(), filepath.Join(fmt.Sprintf("%v", fileDir), fmt.Sprintf("%v", fileName)))
+	assert.Equal(t, filepath.Clean(f.Name()), filepath.Join(fmt.Sprintf("%v", fileDir), fmt.Sprintf("%v", fileName)))
 }
 
 func TestDcaGetPipelinesDetail(t *testing.T) {
@@ -677,7 +677,7 @@ func TestDcaDeleteSourcemap(t *testing.T) {
 
 	defer os.RemoveAll(filepath.Dir(zipFilePath)) //nolint: errcheck
 
-	err = ioutil.WriteFile(filepath.Join(zipFilePath), []byte(""), os.ModePerm)
+	err = ioutil.WriteFile(zipFilePath, []byte(""), os.ModePerm)
 	if err != nil {
 		t.Fatal("create temp zip file failed", err)
 	}
