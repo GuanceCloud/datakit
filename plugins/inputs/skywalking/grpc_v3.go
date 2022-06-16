@@ -68,7 +68,8 @@ func (s *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_Coll
 
 func (*TraceReportServerV3) CollectInSync(
 	ctx context.Context,
-	seg *skyimpl.SegmentCollection) (*skyimpl.Commands, error) {
+	seg *skyimpl.SegmentCollection,
+) (*skyimpl.Commands, error) {
 	log.Debugf("reveived collect insync: %s", seg.String())
 
 	return &skyimpl.Commands{}, nil
@@ -169,7 +170,8 @@ type ManagementServerV3 struct {
 }
 
 func (*ManagementServerV3) ReportInstanceProperties(ctx context.Context,
-	mng *skyimpl.InstanceProperties) (*skyimpl.Commands, error) {
+	mng *skyimpl.InstanceProperties,
+) (*skyimpl.Commands, error) {
 	var kvpStr string
 	for _, kvp := range mng.Properties {
 		kvpStr += fmt.Sprintf("[%v:%v]", kvp.Key, kvp.Value)
@@ -181,7 +183,8 @@ func (*ManagementServerV3) ReportInstanceProperties(ctx context.Context,
 
 func (*ManagementServerV3) KeepAlive(
 	ctx context.Context,
-	ping *skyimpl.InstancePingPkg) (*skyimpl.Commands, error) {
+	ping *skyimpl.InstancePingPkg,
+) (*skyimpl.Commands, error) {
 	log.Debugf("KeepAlive service:%v instance:%v", ping.Service, ping.ServiceInstance)
 
 	return &skyimpl.Commands{}, nil
@@ -192,7 +195,8 @@ type JVMMetricReportServerV3 struct {
 }
 
 func (*JVMMetricReportServerV3) Collect(ctx context.Context,
-	jvm *skyimpl.JVMMetricCollection) (*skyimpl.Commands, error) {
+	jvm *skyimpl.JVMMetricCollection,
+) (*skyimpl.Commands, error) {
 	log.Debugf("JVMMetricReportService service:%v instance:%v", jvm.Service, jvm.ServiceInstance)
 
 	return &skyimpl.Commands{}, nil
@@ -203,7 +207,8 @@ type DiscoveryServerV3 struct {
 }
 
 func (*DiscoveryServerV3) FetchConfigurations(ctx context.Context,
-	cfgReq *skyimpl.ConfigurationSyncRequest) (*skyimpl.Commands, error) {
+	cfgReq *skyimpl.ConfigurationSyncRequest,
+) (*skyimpl.Commands, error) {
 	log.Debugf("DiscoveryServerV3 service: %s", cfgReq.String())
 
 	return &skyimpl.Commands{}, nil

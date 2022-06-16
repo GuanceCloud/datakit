@@ -57,7 +57,8 @@ type JSONFlattener struct {
 // FlattenJSON flattens nested maps/interfaces into a fields map (ignoring bools and string).
 func (f *JSONFlattener) FlattenJSON(
 	fieldname string,
-	v interface{}) error {
+	v interface{},
+) error {
 	if f.Fields == nil {
 		f.Fields = make(map[string]interface{})
 	}

@@ -29,6 +29,28 @@ type BucketProperties struct {
 	StorageClass string    `xml:"StorageClass"` // Bucket storage class
 }
 
+// ListCloudBoxesResult defines the result object from ListBuckets request
+type ListCloudBoxResult struct {
+	XMLName     xml.Name             `xml:"ListCloudBoxResult"`
+	Prefix      string               `xml:"Prefix"`              // The prefix in this query
+	Marker      string               `xml:"Marker"`              // The marker filter
+	MaxKeys     int                  `xml:"MaxKeys"`             // The max entry count to return. This information is returned when IsTruncated is true.
+	IsTruncated bool                 `xml:"IsTruncated"`         // Flag true means there's remaining cloudboxes to return.
+	NextMarker  string               `xml:"NextMarker"`          // The marker filter for the next list call
+	Owner       string               `xml:"Owner>DisplayName"`   // The owner information
+	CloudBoxes  []CloudBoxProperties `xml:"CloudBoxes>CloudBox"` // The cloudbox list
+}
+
+// CloudBoxProperties defines cloudbox properties
+type CloudBoxProperties struct {
+	XMLName         xml.Name `xml:"CloudBox"`
+	ID              string   `xml:"ID"`
+	Name            string   `xml:"Name"`
+	Region          string   `xml:"Region"`
+	ControlEndpoint string   `xml:"ControlEndpoint"`
+	DataEndpoint    string   `xml:"DataEndpoint"`
+}
+
 // GetBucketACLResult defines GetBucketACL request's result
 type GetBucketACLResult struct {
 	XMLName xml.Name `xml:"AccessControlPolicy"`
@@ -96,6 +118,7 @@ type LifecycleVersionTransition struct {
 }
 
 const iso8601DateFormat = "2006-01-02T15:04:05.000Z"
+const iso8601DateFormatSecond = "2006-01-02T15:04:05Z"
 
 // BuildLifecycleRuleByDays builds a lifecycle rule objects will expiration in days after the last modified time
 func BuildLifecycleRuleByDays(id, prefix string, status bool, days int) LifecycleRule {
@@ -1260,3 +1283,24 @@ type ReplicationXML struct {
 	XMLName xml.Name `xml:"ReplicationRules"`
 	ID      string   `xml:"ID,omitempty"`
 }
+
+// CnameConfigurationXML define cname configuration
+type CnameConfigurationXML struct {
+	XMLName xml.Name `xml:"BucketCnameConfiguration"`
+	Domain  string   `xml:"Cname>Domain"`
+}
+
+// CnameTokenXML define cname token information
+type CnameTokenXML struct {
+	XMLName    xml.Name `xml:"CnameToken"`
+	Bucket     string   `xml:"Bucket,omitempty"`
+	Cname      string   `xml:"Cname,omitempty"`
+	Token      string   `xml:"Token,omitempty"`
+	ExpireTime string   `xml:"ExpireTime,omitempty"`
+}
+
+// CreateBucketCnameTokenResult defines result object for CreateBucketCnameToken request
+type CreateBucketCnameTokenResult CnameTokenXML
+
+// GetBucketCnameTokenResult defines result object for GetBucketCnameToken request
+type GetBucketCnameTokenResult CnameTokenXML

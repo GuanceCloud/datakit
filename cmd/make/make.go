@@ -277,7 +277,7 @@ func extractSamples(from string) error {
 		if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
 			return err
 		}
-		dest, err := os.Create(path)
+		dest, err := os.Create(filepath.Clean(path))
 		if err != nil {
 			return err
 		}
@@ -309,7 +309,7 @@ func dumpLocalSamples(to string) error {
 				return err
 			}
 		}
-		f, err := os.Create(filepath.Join(catalogPath, name+".conf"))
+		f, err := os.Create(filepath.Clean(filepath.Join(catalogPath, name+".conf")))
 		if err != nil {
 			return err
 		}
@@ -323,7 +323,7 @@ func dumpLocalSamples(to string) error {
 
 // compressSamples compresses given samples directory.
 func compressSamples(from, to string) error {
-	fw, err := os.Create(to)
+	fw, err := os.Create(filepath.Clean(to))
 	if err != nil {
 		return err
 	}

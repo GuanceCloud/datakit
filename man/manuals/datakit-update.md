@@ -29,7 +29,7 @@ $ datakit version
         Commit: e9ccdfbae4
         Branch: testing
  Build At(UTC): 2022-03-11 11:07:06
-Golang Version: go version go1.16.4 linux/amd64
+Golang Version: go version go1.18.3 linux/amd64
       Uploader: xxxxxxxxxxxxx/xxxxxxx/xxxxxxx
 ReleasedInputs: all
 ---------------------------------------------------
@@ -47,7 +47,7 @@ $ datakit.exe version
         Commit: e9ccdfbae4
         Branch: testing
  Build At(UTC): 2022-03-11 11:07:36
-Golang Version: go version go1.16.4 linux/amd64
+Golang Version: go version go1.18.3 linux/amd64
       Uploader: xxxxxxxxxxxxx/xxxxxxx/xxxxxxx
 ReleasedInputs: all
 ---------------------------------------------------

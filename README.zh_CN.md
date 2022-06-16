@@ -72,13 +72,13 @@ DataKit 开发过程中依赖了一些外部工具，我们必须先将这些工
 
 设置 Go 编译环境
 
-> Go-1.16.4 及以上版本
+> Go-1.18.3 及以上版本
 
 ```shell
 export GOPRIVATE=gitlab.jiagouyun.com/*
 export GOPROXY=https://goproxy.cn,direct
 export GOPATH=~/go            # 视实际情况而定
-export GOROOT=~/golang-1.16.4 # 视实际情况而定
+export GOROOT=~/golang-1.18.3 # 视实际情况而定
 export PATH=$GOROOT/bin:~/go/bin:$PATH
 ```
 

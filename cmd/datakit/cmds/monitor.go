@@ -16,8 +16,8 @@ import (
 	"time"
 
 	markdown "github.com/MichaelMure/go-term-markdown"
-	"github.com/dustin/go-humanize"
-	"github.com/gdamore/tcell/v2"
+	humanize "github.com/dustin/go-humanize"
+	tcell "github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
