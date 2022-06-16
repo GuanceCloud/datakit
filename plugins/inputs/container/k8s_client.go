@@ -121,7 +121,7 @@ func newK8sClient(restConfig *rest.Config) (*k8sClient, error) {
 	k := &k8sClient{Clientset: config}
 
 	if c, err := newK8sMetricsClient(restConfig); err != nil {
-		l.Errorf("failed to connect k8s metrics-server, error: %s", err)
+		l.Warnf("failed to connect k8s metrics-server, error: %s", err)
 	} else {
 		k.metricsClient = c
 	}

@@ -60,6 +60,11 @@ func (c *Config) LoadEnvs() error {
 		}
 	}
 
+	if v := datakit.GetEnv("ENV_K8S_NODE_NAME"); v != "" {
+		c.Hostname = v
+		datakit.DatakitHostName = c.Hostname
+	}
+
 	if v := datakit.GetEnv("ENV_NAMESPACE"); v != "" {
 		c.Namespace = v
 	}
