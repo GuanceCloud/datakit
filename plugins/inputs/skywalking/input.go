@@ -111,7 +111,7 @@ func (*Input) SampleConfig() string {
 }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
+	return []inputs.Measurement{&skywalkingMetricMeasurement{}}
 }
 
 func (ipt *Input) Run() {
