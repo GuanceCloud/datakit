@@ -124,16 +124,16 @@ loop:
 	}
 
 	if ipt.K8sURL != "" {
-		ipt.Envs = append(ipt.Envs,
-			fmt.Sprintf("K8S_URL=%s", ipt.K8sURL))
+		ipt.ExernalInput.Envs = append(ipt.ExernalInput.Envs,
+			fmt.Sprintf("K8S_URL=%s", ipt.K8sConf.K8sURL))
 	}
 	if ipt.K8sBearerToken != "" {
-		ipt.Envs = append(ipt.Envs,
-			fmt.Sprintf("K8S_BEARER_TOKEN_PATH=%s", ipt.K8sBearerToken))
+		ipt.ExernalInput.Envs = append(ipt.ExernalInput.Envs,
+			fmt.Sprintf("K8S_BEARER_TOKEN_PATH=%s", ipt.K8sConf.K8sBearerToken))
 	}
 	if ipt.K8sBearerTokenStr != "" {
-		ipt.Envs = append(ipt.Envs,
-			fmt.Sprintf("K8S_BEARER_TOKEN_STRING=%s", ipt.K8sBearerTokenStr))
+		ipt.ExernalInput.Envs = append(ipt.ExernalInput.Envs,
+			fmt.Sprintf("K8S_BEARER_TOKEN_STRING=%s", ipt.K8sConf.K8sBearerTokenStr))
 	}
 
 	if len(ipt.EnabledPlugins) == 0 {

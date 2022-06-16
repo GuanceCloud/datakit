@@ -1,10 +1,11 @@
 [run]
 timeout = "10m"
 issues-exit-code = 1
-skip-files = []
+skip-files = ["packrd"]
+go = "1.18"
 skip-dirs = [
 	# TODO: we should add lint check on the package
-	"internal/obfuscate"
+	"internal/obfuscate",
 ]
 
 [linters-settings]
@@ -93,6 +94,7 @@ disable = [
   "interfacer",
   "scopelint",        # obsoluted: https://github.com/kyoh86/scopelint#obsoleted
 
+
   # 代码太复杂
   "gocognit",
   "gocyclo",
@@ -104,6 +106,17 @@ disable = [
   "gomoddirectives", # used `replace' in go.mod
   "nolintlint",
   "revive",
+  "exhaustruct",     # [升级 Go1.18 后加入] 要求结构体每次务必每个字段都要填
+  "varnamelen",      # [升级 Go1.18 后加入] 变量名长度检查
+  "nonamedreturns",  # [升级 Go1.18 后加入] 不允许函数有名返回
+  "forcetypeassert", # [升级 Go1.18 后加入] 强制断言检查
+  "gci",             # [升级 Go1.18 后加入] Tab 键检查
+  "maintidx",        # [升级 Go1.18 后加入] 函数长度检查
+  "containedctx",    # [升级 Go1.18 后加入] Go 不推荐把 context 放在结构体中：https://go.dev/blog/context-and-structs
+  "ireturn",         # [升级 Go1.18 后加入] 函数 interface 返回检查
+  "contextcheck",    # [升级 Go1.18 后加入] 函数参数必须传入 context
+  "errchkjson",      # [升级 Go1.18 后加入] json 序列号/反序列号必须检查
+  "nilnil",          # [升级 Go1.18 后加入] 函数返回 nil, nil 检查
 ]
 
 [issues]

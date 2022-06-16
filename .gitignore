@@ -75,3 +75,4 @@ __debug_bin
 *.pdf
 datakit.yaml
 test.bin
+cache_testing_dir

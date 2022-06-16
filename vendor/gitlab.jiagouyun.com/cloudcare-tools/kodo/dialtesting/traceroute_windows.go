@@ -1,5 +1,4 @@
-//go:build linux
-// +build windows
+//go:build windows
 
 package dialtesting
 

@@ -501,7 +501,7 @@ func doBuildBody(pts []*Point, outfile string) ([]*body, error) {
 	)
 
 	for _, pt := range pts {
-		ptstr := pt.String()
+		ptstr := pt.Point.String()
 		if lines.Len()+len(ptstr)+1 >= maxKodoPack {
 			if body, err := gz(lines.Bytes()); err != nil {
 				return nil, err

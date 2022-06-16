@@ -55,7 +55,8 @@ func SetExtraTags(k, v string) {
 func doMakePoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
-	opt *lp.Option) (*Point, error) {
+	opt *lp.Option,
+) (*Point, error) {
 	p, warnings, err := lp.MakeLineProtoPointWithWarnings(name, tags, fields, opt)
 
 	if err != nil {
@@ -90,7 +91,8 @@ func defaultPointOption() *PointOption {
 func NewPoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
-	opt *PointOption) (*Point, error) {
+	opt *PointOption,
+) (*Point, error) {
 	if opt == nil {
 		opt = defaultPointOption()
 	}
@@ -147,7 +149,8 @@ func NewPoint(name string,
 func MakePoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
-	t ...time.Time) (*Point, error) {
+	t ...time.Time,
+) (*Point, error) {
 	lpOpt := &lp.Option{
 		Strict:    true,
 		Precision: "n",
@@ -180,7 +183,8 @@ func MakePoint(name string,
 func MakeMetric(name string,
 	tags map[string]string,
 	fields map[string]interface{},
-	t ...time.Time) ([]byte, error) {
+	t ...time.Time,
+) ([]byte, error) {
 	p, err := MakePoint(name, tags, fields, t...)
 	if err != nil {
 		return nil, err

@@ -217,7 +217,8 @@ func (c *Client) Query(query string, dst interface{}, connectServerArgs ...inter
 }
 
 func (c *Client) QueryEx(query string, propNames []string,
-	connectServerArgs ...interface{}) ([]map[string]interface{}, error) {
+	connectServerArgs ...interface{},
+) ([]map[string]interface{}, error) {
 	lock.Lock()
 	defer lock.Unlock()
 	runtime.LockOSThread()

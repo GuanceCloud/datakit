@@ -20,7 +20,7 @@ import (
 //------------------------------------------------------------------------------
 
 func WriteTarFromMap(data map[string]string, dest string) error {
-	tarFile, err := os.Create(dest)
+	tarFile, err := os.Create(filepath.Clean(dest))
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func UntartarFromMemory(releasedDir string, data []byte) ([]string, error) {
 
 func CreateTarGz(files []string, dest string) error {
 	// Create output file
-	f, err := os.Create(dest)
+	f, err := os.Create(filepath.Clean(dest))
 	if err != nil {
 		return err
 	}
