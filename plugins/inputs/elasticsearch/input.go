@@ -196,7 +196,7 @@ type Input struct {
 	Local                      bool     `toml:"local"`
 	Distribution               string   `toml:"distribution"`
 	Servers                    []string `toml:"servers"`
-	HTTPTimeout                Duration `toml:"http_timeout"`
+	HTTPTimeout                string   `toml:"http_timeout"`
 	ClusterHealth              bool     `toml:"cluster_health"`
 	ClusterHealthLevel         string   `toml:"cluster_health_level"`
 	ClusterStats               bool     `toml:"cluster_stats"`
@@ -222,6 +222,7 @@ type Input struct {
 	KeyFile            string `toml:"tls_key"`
 	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
 
+	httpTimeout     Duration
 	client          *http.Client
 	serverInfo      map[string]serverInfo
 	serverInfoMutex sync.Mutex
@@ -272,7 +273,7 @@ var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func NewElasticsearch() *Input {
 	return &Input{
-		HTTPTimeout:                Duration{Duration: time.Second * 5},
+		httpTimeout:                Duration{Duration: time.Second * 5},
 		ClusterStatsOnlyFromMaster: true,
 		ClusterHealthLevel:         "indices",
 		pauseCh:                    make(chan bool, maxPauseCh),
@@ -526,6 +527,14 @@ func (i *Input) Run() {
 	}
 
 	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
+
+	i.httpTimeout = Duration{}
+	if len(i.HTTPTimeout) > 0 {
+		err := i.httpTimeout.UnmarshalTOML([]byte(i.HTTPTimeout))
+		if err != nil {
+			l.Warnf("invalid http timeout, %s", i.HTTPTimeout)
+		}
+	}
 
 	client, err := i.createHTTPClient()
 	if err != nil {
@@ -1027,8 +1036,8 @@ func (i *Input) stop() {
 
 func (i *Input) createHTTPClient() (*http.Client, error) {
 	timeout := 10 * time.Second
-	if i.HTTPTimeout.Duration > 0 {
-		timeout = i.HTTPTimeout.Duration
+	if i.httpTimeout.Duration > 0 {
+		timeout = i.httpTimeout.Duration
 	}
 	client := &http.Client{
 		Timeout: timeout,

@@ -114,11 +114,6 @@ func TestUtilDuration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = d.UnmarshalTOML([]byte("\"1619059234299\""))
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	err = d.UnmarshalTOML([]byte("1619059234299.001"))
 	if err != nil {
 		t.Fatal(err)

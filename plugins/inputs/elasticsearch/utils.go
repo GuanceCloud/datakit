@@ -47,7 +47,7 @@ func (d *Duration) UnmarshalTOML(b []byte) error {
 		return nil
 	}
 
-	return nil
+	return fmt.Errorf("failed to parse duration %s", b)
 }
 
 type JSONFlattener struct {
