@@ -11,6 +11,9 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -84,6 +87,10 @@ type filterPull struct {
 	PullInterval time.Duration `json:"pull_interval"`
 }
 
+func dump(rules []byte, dir string) error {
+	return ioutil.WriteFile(filepath.Join(dir, ".pull"), rules, os.ModePerm)
+}
+
 func (f *filter) pull() {
 	start := time.Now()
 
@@ -141,6 +148,10 @@ func (f *filter) pull() {
 			for _, condition := range v {
 				f.conditions[k] = append(f.conditions[k], parser.GetConds(condition)...)
 			}
+		}
+
+		if err := dump(body, datakit.DataDir); err != nil {
+			l.Warnf("dump: %s, ignored", err)
 		}
 	}
 }
