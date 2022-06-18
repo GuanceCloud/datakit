@@ -59,8 +59,9 @@ type Option struct {
 	CertFile   string `toml:"tls_cert"`
 	KeyFile    string `toml:"tls_key"`
 
-	Auth     map[string]string `toml:"auth"`
-	interval time.Duration
+	Auth        map[string]string `toml:"auth"`
+	HTTPHeaders map[string]string `toml:"http_headers"`
+	interval    time.Duration
 
 	Tags       map[string]string `toml:"tags"`
 	RenameTags *RenameTags       `toml:"rename_tags"`
@@ -193,6 +194,9 @@ func (p *Prom) GetReq(url string) (*http.Request, error) {
 		}
 	} else {
 		req, err = http.NewRequest("GET", url, nil)
+	}
+	for k, v := range p.opt.HTTPHeaders {
+		req.Header.Set(k, v)
 	}
 	return req, err
 }
