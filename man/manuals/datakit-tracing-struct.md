@@ -25,7 +25,7 @@
 - Line Protocol 为数据流最后落盘数据
 - Line Protocol 数据结构是由 Name, Tags, Fields, Timestamp 四部分和分隔符 (英文逗号，空格) 组成的字符串，形如：
 
-```line protocol
+```
 source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 ```
 
@@ -182,28 +182,28 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 
 ### Jaeger Thrift Protocol Batch Structure
 
-| Field Name | Data Type | Unit | Description |
-| ---| ---| ---| ---| ---|
-| Process                                         | struct pointer                                 |                                           | 进程相关数据结构                                 | dkspan.Service                                     |
-| SeqNo                                           | int64 pointer                                  |                                           | 序列号                                           | 不接对应关系 dkspan                                |
-| Spans                                           | array                                          |                                           | Span 数组结构                                    | 见下表                                             |
-| Stats                                           | struct pointer                                 |                                           | 客户端统计结构                                   | 不直接对应 dkspan                                  |
+| Field Name | Data Type      | Unit | Description      | Correspond to       |
+| ---        | ---            | ---  | ---              | ---                 |
+| Process    | struct pointer |      | 进程相关数据结构 | dkspan.Service      |
+| SeqNo      | int64 pointer  |      | 序列号           | 不接对应关系 dkspan |
+| Spans      | array          |      | Span 数组结构    | 见下表              |
+| Stats      | struct pointer |      | 客户端统计结构   | 不直接对应 dkspan   |
 
 ### Jaeger Thrift Protocol Span Structure
 
-| Field Name | Data Type | Unit | Description | Correspond To |
-| ---| ---| ---| ---| ---|
-| TraceIdHigh                                     | int64                                          |                                           | Trace ID 高位与 TraceIdLow 组成 Trace ID         | dkspan.TraceID                                     |
-| TraceIdLow                                      | int64                                          |                                           | Trace ID 低位与 TraceIdHigh 组成 Trace ID        | dkspan.TraceID                                     |
-| ParentSpanId                                    | int64                                          |                                           | Parent Span ID                                   | dkspan.ParentID                                    |
-| SpanId                                          | int64                                          |                                           | Span ID                                          | dkspan.SpanID                                      |
-| OperationName                                   | string                                         |                                           | 生产此条 Span 的方法名                           | dkspan.Operation                                   |
-| Flags                                           | int32                                          |                                           | Span Flags                                       | 不直接对应 dkspan                                  |
-| Logs                                            | array                                          |                                           | Span Logs                                        | 不直接对应 dkspan                                  |
-| References                                      | array                                          |                                           | Span References                                  | 不直接对应 dkspan                                  |
-| StartTime                                       | int64                                          | 纳秒                                      | Span 起始时间                                    | dkspan.Start                                       |
-| Duration                                        | int64                                          | 纳秒                                      | 耗时                                             | dkspan.Duration                                    |
-| Tags                                            | array                                          |                                           | Span Tags 目前只取 Span 状态字段                 | dkspan.Status                                      |
+| Field Name    | Data Type | Unit | Description                               | Correspond To     |
+| ---           | ---       | ---  | ---                                       | ---               |
+| TraceIdHigh   | int64     |      | Trace ID 高位与 TraceIdLow 组成 Trace ID  | dkspan.TraceID    |
+| TraceIdLow    | int64     |      | Trace ID 低位与 TraceIdHigh 组成 Trace ID | dkspan.TraceID    |
+| ParentSpanId  | int64     |      | Parent Span ID                            | dkspan.ParentID   |
+| SpanId        | int64     |      | Span ID                                   | dkspan.SpanID     |
+| OperationName | string    |      | 生产此条 Span 的方法名                    | dkspan.Operation  |
+| Flags         | int32     |      | Span Flags                                | 不直接对应 dkspan |
+| Logs          | array     |      | Span Logs                                 | 不直接对应 dkspan |
+| References    | array     |      | Span References                           | 不直接对应 dkspan |
+| StartTime     | int64     | 纳秒 | Span 起始时间                             | dkspan.Start      |
+| Duration      | int64     | 纳秒 | 耗时                                      | dkspan.Duration   |
+| Tags          | array     |      | Span Tags 目前只取 Span 状态字段          | dkspan.Status     |
 
 ---
 
@@ -211,33 +211,33 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 
 ### Skywalking Segment Object Generated By Proto Buffer Protocol V3
 
-| Field Name | Data Type | Unit | Description | Correspond To |
-| ---| ---| ---| ---| ---|
-| TraceId                                         | string                                         |                                           | Trace ID                                         | dkspan.TraceID                                     |
-| TraceSegmentId                                  | string                                         |                                           | Segment ID 与 Span ID 一起使用唯一标志一个 Span  | dkspan.SpanID 高位                                 |
-| Service                                         | string                                         |                                           | 服务名                                           | dkspan.Service                                     |
-| ServiceInstance                                 | string                                         |                                           | 节点逻辑关系名                                   | 未使用字段                                         |
-| Spans                                           | array                                          |                                           | Tracing Span 数组                                | 见下表                                             |
-| IsSizeLimited                                   | bool                                           |                                           | 是否包含连路上所有 Span                          | 未使用字段                                         |
+| Field Name      | Data Type | Unit | Description                                     | Correspond To      |
+| ---             | ---       | ---  | ---                                             | ---                |
+| TraceId         | string    |      | Trace ID                                        | dkspan.TraceID     |
+| TraceSegmentId  | string    |      | Segment ID 与 Span ID 一起使用唯一标志一个 Span | dkspan.SpanID 高位 |
+| Service         | string    |      | 服务名                                          | dkspan.Service     |
+| ServiceInstance | string    |      | 节点逻辑关系名                                  | 未使用字段         |
+| Spans           | array     |      | Tracing Span 数组                               | 见下表             |
+| IsSizeLimited   | bool      |      | 是否包含连路上所有 Span                         | 未使用字段         |
 
 ### Skywalking Span Object Structure in Segment Object
 
-| Field Name | Data Type | Unit | Description              | Correspond To |
-| ---| ---| ---| ---| ---|
-| ComponentId                                     | int32                                          |                                           | 第三方框架数值化定义                                          | 未使用字段                                         |
-| Refs                                            | array                                          |                                           | 跨线程跨进程情况下存储 Parent Segment                         | dkspan.ParentID 高位                               |
-| ParentSpanId                                    | int32                                          |                                           | Parent Span ID 与 Segment ID 一起使用唯一标志一个 Parent Span | dkspan.ParentID 低位                               |
-| SpanId                                          | int32                                          |                                           | Span ID 与 Segment ID 一起使用唯一标志一个 Span               | dkspan.SpanID 低位                                 |
-| OperationName                                   | string                                         |                                           | Span Operation Name                                           | dkspan.Operation                                   |
-| Peer                                            | string                                         |                                           | 通讯对端                                                      | dkspan.Endpoint                                    |
-| IsError                                         | bool                                           |                                           | Span 状态字段                                                 | dkspan.Status                                      |
-| SpanType                                        | int32                                          |                                           | Span Type 数值化定义                                          | dkspan.SpanType                                    |
-| StartTime                                       | int64                                          | 毫秒                                      | Span 起始时间                                                 | dkspan.Start                                       |
-| EndTime                                         | int64                                          | 毫秒                                      | Span 结束时间与 StartTime 相减代表耗时                        | dkspan.Duration                                    |
-| Logs                                            | array                                          |                                           | Span Logs                                                     | 未使用字段                                         |
-| SkipAnalysis                                    | bool                                           |                                           | 跳过后端分析                                                  | 未使用字段                                         |
-| SpanLayer                                       | int32                                          |                                           | Span 技术栈数值化定义                                         | 未使用字段                                         |
-| Tags                                            | array                                          |                                           | Span Tags                                                     | 未使用字段                                         |
+| Field Name    | Data Type | Unit | Description                                                   | Correspond To        |
+| ---           | ---       | ---  | ---                                                           | ---                  |
+| ComponentId   | int32     |      | 第三方框架数值化定义                                          | 未使用字段           |
+| Refs          | array     |      | 跨线程跨进程情况下存储 Parent Segment                         | dkspan.ParentID 高位 |
+| ParentSpanId  | int32     |      | Parent Span ID 与 Segment ID 一起使用唯一标志一个 Parent Span | dkspan.ParentID 低位 |
+| SpanId        | int32     |      | Span ID 与 Segment ID 一起使用唯一标志一个 Span               | dkspan.SpanID 低位   |
+| OperationName | string    |      | Span Operation Name                                           | dkspan.Operation     |
+| Peer          | string    |      | 通讯对端                                                      | dkspan.Endpoint      |
+| IsError       | bool      |      | Span 状态字段                                                 | dkspan.Status        |
+| SpanType      | int32     |      | Span Type 数值化定义                                          | dkspan.SpanType      |
+| StartTime     | int64     | 毫秒 | Span 起始时间                                                 | dkspan.Start         |
+| EndTime       | int64     | 毫秒 | Span 结束时间与 StartTime 相减代表耗时                        | dkspan.Duration      |
+| Logs          | array     |      | Span Logs                                                     | 未使用字段           |
+| SkipAnalysis  | bool      |      | 跳过后端分析                                                  | 未使用字段           |
+| SpanLayer     | int32     |      | Span 技术栈数值化定义                                         | 未使用字段           |
+| Tags          | array     |      | Span Tags                                                     | 未使用字段           |
 
 ---
 
@@ -245,35 +245,35 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 
 ### Zipkin Thrift Protocol Span Structure V1
 
-| Field Name | Data Type | Unit | Description | Correspond To |
-| ---| ---| ---| ---| ---|
-| TraceIDHigh                                     | uint64                                         |                                           | Trace ID 高位                                    | 无直接对应关系                                     |
-| TraceID                                         | uint64                                         |                                           | Trace ID                                         | dkspan.TraceID                                     |
-| ID                                              | uint64                                         |                                           | Span ID                                          | dkspan.SpanID                                      |
-| ParentID                                        | uint64                                         |                                           | Parent Span ID                                   | dkspan.ParentID                                    |
-| Annotations                                     | array                                          |                                           | 获取 Service Name                                | dkspan.Service                                     |
-| Name                                            | string                                         |                                           | Span Operation Name                              | dkspan.Operation                                   |
-| BinaryAnnotations                               | array                                          |                                           | 获取 Span 状态字段                               | dkspan.Status                                      |
-| Timestamp                                       | uint64                                         | 微秒                                      | Span 起始时间                                    | dkspan.Start                                       |
-| Duration                                        | uint64                                         | 微秒                                      | Span 耗时                                        | dkspan.Duration                                    |
-| Debug                                           | bool                                           |                                           | Debug 状态字段                                   | 未使用字段                                         |
+| Field Name        | Data Type | Unit | Description         | Correspond To    |
+| ---               | ---       | ---  | ---                 | ---              |
+| TraceIDHigh       | uint64    |      | Trace ID 高位       | 无直接对应关系   |
+| TraceID           | uint64    |      | Trace ID            | dkspan.TraceID   |
+| ID                | uint64    |      | Span ID             | dkspan.SpanID    |
+| ParentID          | uint64    |      | Parent Span ID      | dkspan.ParentID  |
+| Annotations       | array     |      | 获取 Service Name   | dkspan.Service   |
+| Name              | string    |      | Span Operation Name | dkspan.Operation |
+| BinaryAnnotations | array     |      | 获取 Span 状态字段  | dkspan.Status    |
+| Timestamp         | uint64    | 微秒 | Span 起始时间       | dkspan.Start     |
+| Duration          | uint64    | 微秒 | Span 耗时           | dkspan.Duration  |
+| Debug             | bool      |      | Debug 状态字段      | 未使用字段       |
 
 ### Zipkin Span Structure V2
 
-| Field Name | Data Type | Unit | Description | Correspond To |
-| ---| ---| ---| ---| ---|
-| TraceID                                         | struct                                         |                                           | Trace ID                                         | dkspan.TraceID                                     |
-| ID                                              | uint64                                         |                                           | Span ID                                          | dkspan.SpanID                                      |
-| ParentID                                        | uint64                                         |                                           | Parent Span ID                                   | dkspan.ParentID                                    |
-| Name                                            | string                                         |                                           | Span Operation Name                              | dkspan.Operation                                   |
-| Debug                                           | bool                                           |                                           | Debug 状态                                       | 未使用字段                                         |
-| Sampled                                         | bool                                           |                                           | 采样状态字段                                     | 未使用字段                                         |
-| Err                                             | string                                         |                                           | Error Message                                    | 不直接对应 dkspan                                  |
-| Kind                                            | string                                         |                                           | Span Type                                        | dkspan.SpanType                                    |
-| Timestamp                                       | struct                                         | 微秒                                      | 微秒级时间结构表示 Span 起始时间                 | dkspan.Start                                       |
-| Duration                                        | int64                                          | 微秒                                      | Span 耗时                                        | dkspan.Duration                                    |
-| Shared                                          | bool                                           |                                           | 共享状态                                         | 未使用字段                                         |
-| LocalEndpoint                                   | struct                                         |                                           | 用于获取 Service Name                            | dkspan.Service                                     |
-| RemoteEndpoint                                  | struct                                         |                                           | 通讯对端                                         | dkspan.Endpoint                                    |
-| Annotations                                     | array                                          |                                           | 用于解释延迟相关的事件                           | 未使用字段                                         |
-| Tags                                            | map                                            |                                           | 用于获取 Span 状态                               | dkspan.Status                                      |
+| Field Name     | Data Type | Unit | Description                      | Correspond To     |
+| ---            | ---       | ---  | ---                              | ---               |
+| TraceID        | struct    |      | Trace ID                         | dkspan.TraceID    |
+| ID             | uint64    |      | Span ID                          | dkspan.SpanID     |
+| ParentID       | uint64    |      | Parent Span ID                   | dkspan.ParentID   |
+| Name           | string    |      | Span Operation Name              | dkspan.Operation  |
+| Debug          | bool      |      | Debug 状态                       | 未使用字段        |
+| Sampled        | bool      |      | 采样状态字段                     | 未使用字段        |
+| Err            | string    |      | Error Message                    | 不直接对应 dkspan |
+| Kind           | string    |      | Span Type                        | dkspan.SpanType   |
+| Timestamp      | struct    | 微秒 | 微秒级时间结构表示 Span 起始时间 | dkspan.Start      |
+| Duration       | int64     | 微秒 | Span 耗时                        | dkspan.Duration   |
+| Shared         | bool      |      | 共享状态                         | 未使用字段        |
+| LocalEndpoint  | struct    |      | 用于获取 Service Name            | dkspan.Service    |
+| RemoteEndpoint | struct    |      | 通讯对端                         | dkspan.Endpoint   |
+| Annotations    | array     |      | 用于解释延迟相关的事件           | 未使用字段        |
+| Tags           | map       |      | 用于获取 Span 状态               | dkspan.Status     |
