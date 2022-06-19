@@ -37,6 +37,7 @@ dist/datakit-${os}-amd64/datakit doc \
 
 cp man/manuals/datakit.pages $datakit_docs_dir/.pages
 cp man/manuals/datakit-index.md $datakit_docs_dir/index.md
+cp man/manuals/aliyun-access.md $datakit_docs_dir/
 
 #--- 以下是集成文档导出 ---#
 
