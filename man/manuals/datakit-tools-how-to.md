@@ -51,7 +51,7 @@ $ datakit dql <tab> # 输入 \tab 即可提示如下选项
 datakit tool --completer-script > datakit-completer.sh
 ```
 
-## 查看 DataKit 运行情况
+## 查看 DataKit 运行情况 {#using-monitor}
 
 > 当前的 monitor 查看方式已经废弃（仍然可用，不久将废弃），新的 monitor 功能[参见这里](datakit-monitor)
 
@@ -159,7 +159,7 @@ create_time 1639657028706
  - category: 类别，默认为`default`, 还可取值为`input`， 表明是与采集器 (`input`) 相关
  - status: 事件等级，可取值为 `info`, `warning`, `error`
 
-## DataKit 更新 IP 数据库文件
+## DataKit 更新 IP 数据库文件 {#install-ipdb}
 
 可直接使用如下命令安装/更新 IP 地理信息库：
 

@@ -202,12 +202,12 @@ DataKit 支持的环境变量如下各表所示。
 
 ### HTTP/API 相关环境变量
 
-| 环境变量名称             | 默认值            | 必须   | 说明                                                 |
-| ---------:               | ---:              | ------ | ----                                                 |
-| ENV_DISABLE_404PAGE      | 无                | 否     | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用） |
-| ENV_HTTP_LISTEN          | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [DataKit 接口](apis)    |
-| ENV_REQUEST_RATE_LIMIT   | 无(float)         | 否     | 限制 9529 [API 每秒请求数](datakit-conf#39e48d64)    |
-| ENV_RUM_ORIGIN_IP_HEADER | `X-Forwarded-For` | 否     | RUM 专用                                             |
+| 环境变量名称             | 默认值            | 必须   | 说明                                                        |
+| ---------:               | ---:              | ------ | ----                                                        |
+| ENV_DISABLE_404PAGE      | 无                | 否     | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用）        |
+| ENV_HTTP_LISTEN          | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [DataKit 接口](apis)           |
+| ENV_REQUEST_RATE_LIMIT   | 无(float)         | 否     | 限制 9529 [API 每秒请求数](datakit-conf#set-http-api-limit) |
+| ENV_RUM_ORIGIN_IP_HEADER | `X-Forwarded-For` | 否     | RUM 专用                                                    |
 
 ### Git 配置相关环境变量
 
@@ -253,7 +253,7 @@ DataKit 支持的环境变量如下各表所示。
 
 当 k8s node 名称跟其对应的主机名不同时，可将 k8s 的 node 名称顶替默认采集到的主机名，在 *datakit.yaml* 中增加环境变量：
 
-> [1.2.19](changelog#9bec76a9) 版本的 datakit.yaml 中默认就带了这个配置，如果是从老版本的 yaml 直接升级而来，需要对 *datakit.yaml* 做如下手动改动。
+> [1.2.19](changelog#cl-1.2.19) 版本的 datakit.yaml 中默认就带了这个配置，如果是从老版本的 yaml 直接升级而来，需要对 *datakit.yaml* 做如下手动改动。
 
 ```yaml
 - env:

@@ -7,7 +7,7 @@
 
 以下是文本处理器定义。随着不同语法的逐步支持，该文档会做不同程度的调整和增删。
 
-## 基本规则：
+## 基本规则 {#basic-syntax}
 
 - 函数名大小写不敏感
 - 以 `#` 为行注释字符。不支持行内注释
@@ -56,7 +56,7 @@ group_between(status_code, [200, 300], "HTTP_OK", "http_status")
 drop_origin_data()
 ```
 
-> 注意，切割过程中，需避免[可能出现的跟 tag key 重名的问题](datakit-pl-how-to#5cf855c0)
+> 注意，切割过程中，需避免[可能出现的跟 tag key 重名的问题](datakit-pl-how-to.md#naming)
 
 - 第二步：配置对应的采集器来使用上面的 pipeline
 

@@ -61,7 +61,7 @@ tail -f /var/log/datakit/gin.log
 ...
 ```
 
-> 注意：如果没有 trace 发送过来，在 [monitor 页面](datakit-tools-how-to#44462aae)是看不到 ddtrace 的采集信息的。
+> 注意：如果没有 trace 发送过来，在 [monitor 页面](datakit-tools-how-to.md#monitor)是看不到 ddtrace 的采集信息的。
 
 ## ddtrace 环境变量设置
 
@@ -143,6 +143,6 @@ customer_tags = [
 
 ## 延伸阅读
 
-- [DataKit Tracing 字段定义](datakit-tracing-struct)
-- [DataKit 通用 Tracing 数据采集说明](datakit-tracing)
-- [正确使用正则表达式来配置](datakit-input-conf#9da8bc26) 
+- [DataKit Tracing 字段定义](datakit-tracing-struct.md)
+- [DataKit 通用 Tracing 数据采集说明](datakit-tracing.md)
+- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex) 

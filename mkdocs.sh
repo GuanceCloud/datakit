@@ -2,8 +2,12 @@
 
 datakit_docs_dir=~/git/dataflux-doc/docs/datakit
 integration_docs_dir=~/git/dataflux-doc/docs/integrations
+mkdocs_dir=~/git/dataflux-doc
 
 mkdir -p $datakit_docs_dir $integration_docs_dir
+rm -rf $datakit_docs_dir/*.md
+rm -rf $integration_docs_dir/*.md
+
 cp man/summary.md .docs/
 
 latest_tag=$(git tag --sort=-creatordate | head -n 1)
@@ -22,7 +26,7 @@ else
   os="linux"
 fi
 
-make
+make || exit -1
 
 echo 'export to datakit docs...'
 dist/datakit-${os}-amd64/datakit doc \
@@ -48,3 +52,5 @@ cp man/manuals/integrations-index.md $integration_docs_dir/index.md
 cp man/integration-to-datakit-howto.md $integration_docs_dir/
 
 cp man/manuals/resin.md $integration_docs_dir/
+
+cd $mkdocs_dir && mkdocs serve

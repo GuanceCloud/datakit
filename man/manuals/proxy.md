@@ -20,7 +20,7 @@
 {{.InputSample}}
 ```
 
-配置好后，[重启该代理 DataKit](datakit-service-how-to#147762ed)。
+配置好后，[重启该代理 DataKit](datakit-service-how-to.md#manage-service)。
 
 测试下代理服务是否正常：
 
@@ -42,7 +42,7 @@ curl -x <PROXY-IP:PROXY-PORT> -v -X POST https://openway.guance.com/v1/write/met
   http_proxy = "http://<PROXY-IP:PROXY-PORT>"
 ```
 
-配置好后，[重启 DataKit](datakit-service-how-to#147762ed)。
+配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service)。
 
 ## Nginx 正向代理配置 {#nginx-proxy}
 

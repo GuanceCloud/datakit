@@ -59,7 +59,7 @@ sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
 $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
-## 额外支持的安装变量
+## 额外支持的安装变量 {#extra-envs}
 
 如果需要在安装阶段定义一些 DataKit 配置，可在安装命令中增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 
