@@ -21,9 +21,9 @@ enable_election = true
 namespace = "dk-namespace-example"
 ```
 
-开启选举后，参与选举的采集数据，会自动加上 tag: `election_namespace:<namespace-name>`。如果未配置 namespace， election_namespace 会取默认值 `default`。
+开启选举后，参与选举的采集数据，会自动加上 tag: `election_namespace:<namespace-name>`。如果未配置 namespace， `election_namespace` 会取默认值 `default`。
 
-> 注意：并不是参与选举的采集器的所有数据都会添加 election_namespace，而是参与选举的数据才会添加。比如容器采集器中，只有部分数据的采集是参与选举的（event/对象等），而日志采集则不参与选举。
+> 注意：并不是参与选举的采集器的所有数据都会添加 `election_namespace`，而是参与选举的数据才会添加。比如容器采集器中，只有部分数据的采集是参与选举的（event/对象等），而日志采集则不参与选举。
 
 ## 选举原理
 
@@ -40,17 +40,17 @@ namespace = "dk-namespace-example"
 
 目前支持选举的采集器列表如下：
 
-- [Kubernetes](kubernetes)
-- [Prometheus 指标采集](prom)
-- [Gitlab](gitlab)
-- [NSQ](nsq)
-- [Apache](apache)
-- [InfluxDB](influxdb)
-- [ElasticSearch](elasticsearch)
-- [MongoDB](mongodb)
-- [MySQL](mysql)
-- [Nginx](nginx)
-- [PostgreSQL](postgresql)
-- [RabbitMQ](rabbitmq)
-- [Redis](redis)
-- [Solr](solr)
+- [Kubernetes](kubernetes.md)
+- [Prometheus 指标采集](prom.md)
+- [Gitlab](gitlab.md)
+- [NSQ](nsq.md)
+- [Apache](apache.md)
+- [InfluxDB](influxdb.md)
+- [ElasticSearch](elasticsearch.md)
+- [MongoDB](mongodb.md)
+- [MySQL](mysql.md)
+- [Nginx](nginx.md)
+- [PostgreSQL](postgresql.md)
+- [RabbitMQ](rabbitmq.md)
+- [Redis](redis.md)
+- [Solr](solr.md)

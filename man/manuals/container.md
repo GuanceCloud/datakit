@@ -11,7 +11,7 @@
 
 - 目前 container 会默认连接 Docker 服务，需安装 Docker v17.04 及以上版本。
 - 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](datakit-daemonset-deploy.md)。
-- 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation)。
+- 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation){:target="_blank"}。
 
 ## 配置 {#config}
 
@@ -29,7 +29,7 @@
 配置文件中的 `container_include_log / container_exclude_log` 是针对日志数据。
 
 - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为 `"image:<glob规则>"`，表示 glob 规则是针对容器 image 生效
-- [Glob 规则](https://en.wikipedia.org/wiki/Glob_(programming))是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元
+- [Glob 规则](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元
 
 例如，配置如下：
 
@@ -106,7 +106,7 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
 kubectl annotate pods my-pod datakit/logs='[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\d{4}-\\d{2}\"}]'
 ```
 
-> 关于 Docker 容器添加 Label 的方法，参见[这里](https://docs.docker.com/engine/reference/commandline/run/#set-metadata-on-container--l---label---label-file)。
+> 关于 Docker 容器添加 Label 的方法，参见[这里](https://docs.docker.com/engine/reference/commandline/run/#set-metadata-on-container--l---label---label-file){:target="_blank"}。
 
 在 Kubernetes 可以在创建 Deployment 时，以 `template` 模式添加 Pod Annotations，例如：
 

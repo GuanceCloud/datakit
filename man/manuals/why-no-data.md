@@ -51,7 +51,7 @@ Wed Jul 21 08:22:32 UTC 2021
 
 ## 查看 Monitor 页面
 
-参见[这里](datakit-monitor)
+参见[这里](datakit-monitor.md)
 
 ## 通过 DQL 查看是否有数据产生
 

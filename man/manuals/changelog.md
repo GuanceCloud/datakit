@@ -52,7 +52,7 @@
 
 ----
 
-## 1.2.20(2022/05/22)
+## 1.2.20(2022/05/22) {#cl-1.2.20}
 
 本次发布属于 hotfix 发布，主要修复如下问题：
 
@@ -272,7 +272,7 @@ volumes:
 
 ---
 
-## 1.2.8(2022/03/04)
+## 1.2.8(2022/03/04) {#cl-1.2.8}
 
 本次发布属于 hotfix 修复，内容如下：
 
@@ -421,7 +421,7 @@ volumes:
 - [日志采集器](logging) 支持接收 TCP/UDP 日志流(#503)
 - [Prom 采集器](prom) 支持多 URL 采集(#506)
 - 新增 [eBPF](ebpf) 采集器，它集成了 L4-network/DNS/Bash 等 eBPF 数据采集(507)
-- [ElasticSearch 采集器](elasticsearch) 增加 [Open Distro](https://opendistro.github.io/for-elasticsearch/) 分支的 ElasticSearch 支持(#510)
+- [ElasticSearch 采集器](elasticsearch) 增加 [Open Distro](https://opendistro.github.io/for-elasticsearch/){:target="_blank"} 分支的 ElasticSearch 支持(#510)
 
 ### Bug 修复
 
@@ -526,7 +526,7 @@ $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Mo
   - 移除 `json_all()` 函数，这个函数对于异常的 json 有严重的数据问题，故选择禁用之(#457)
   - 修正 `default_time()` 函数时区设置问题(#434)
 - 解决 [prom](prom) 采集器在 Kubernetes 环境下 HTTPS 访问问题(#447)
-- DataKit DaemonSet 安装的 [yaml 文件](https://static.guance.com/datakit/datakit.yaml) 公网可直接下载
+- DataKit DaemonSet 安装的 [yaml 文件](https://static.guance.com/datakit/datakit.yaml){:target="_blank"} 公网可直接下载
 
 ---
 

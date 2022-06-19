@@ -9,7 +9,7 @@
 
 ## 前置条件
 
-- 已安装 GitLab（[GitLab 官方链接](https://about.gitlab.com/)）
+- 已安装 GitLab（[GitLab 官方链接](https://about.gitlab.com/){:target="_blank"}）
 
 ## 配置
 
@@ -36,7 +36,7 @@ GitLab 需要开启 promtheus 数据采集功能，开启方式如下（以英�
 3. 选择 `Metrics - Prometheus`，点击 `Enable Prometheus Metrics` 并且 `save change`
 4. 重启 GitLab 服务
 
-详情见[官方配置文档](https://docs.gitlab.com/ee/administration/monitoring/prometheus/gitlab_metrics.html#gitlab-prometheus-metrics)。
+详情见[官方配置文档](https://docs.gitlab.com/ee/administration/monitoring/prometheus/gitlab_metrics.html#gitlab-prometheus-metrics){:target="_blank"}。
 
 ### 配置数据访问端白名单
 
@@ -45,7 +45,7 @@ GitLab 需要开启 promtheus 数据采集功能，开启方式如下（以英�
 1. 修改 GitLab 配置文件 `/etc/gitlab/gitlab.rb`，找到 `gitlab_rails['monitoring_whitelist'] = ['::1/128']` 并在该数组中添加 DataKit 的访问 IP（通常情况为 DataKit 所在主机的 IP，如果 GitLab 运行在容器中需根据实际情况添加）
 2. 重启 GitLab 服务
 
-详情见[官方配置文档](https://docs.gitlab.com/ee/administration/monitoring/ip_whitelist.html)。
+详情见[官方配置文档](https://docs.gitlab.com/ee/administration/monitoring/ip_whitelist.html){:target="_blank"}。
 
 ### 开启 Gitlab CI 可视化
 
@@ -58,7 +58,7 @@ GitLab 需要开启 promtheus 数据采集功能，开启方式如下（以英�
 
 Datakit 接收到 Webhook Event 后，是将数据作为 logging 打到数据中心的。
 
-注意：如果将 Gitlab 数据打到本地网络的 Datakit，需要对 Gitlab 进行额外的配置，见 [allow requests to the local network](https://docs.gitlab.com/ee/security/webhooks.html) 。
+注意：如果将 Gitlab 数据打到本地网络的 Datakit，需要对 Gitlab 进行额外的配置，见 [allow requests to the local network](https://docs.gitlab.com/ee/security/webhooks.html){:target="_blank"} 。
 
 另外：Gitlab CI 功能不参与采集器选举，用户只需将 Gitlab Webhook 的 URL 配置为其中一个 Datakit 的 URL 即可；若只需要 Gitlab CI 可视化功能而不需要 Gitlab 指标采集，可通过配置 `enable_collect = false` 关闭指标采集功能。
 

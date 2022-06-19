@@ -9,7 +9,7 @@
 
 ## 前置条件
 
-下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war), 重命名为 jolokia.war, 并放置于 tomcat 的 webapps 目录下。也可从Datakit 的安装目录下的 data 目录下获取 jolokia war 包。
+下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war){:target="_blank"}, 重命名为 jolokia.war, 并放置于 tomcat 的 webapps 目录下。也可从Datakit 的安装目录下的 data 目录下获取 jolokia war 包。
 编辑 tomcat 的 conf 目录下的 tomcat-users.xml，增加 role 为 jolokia 的用户。
 
 以 apache-tomcat-9.0.45 为例（示例中的 jolokia user 的 username 和 password 请务必修改！！！）:

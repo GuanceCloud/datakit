@@ -70,7 +70,7 @@ Error 1045: Access denied for user 'datakit'@'::1' (using password: YES)
 SHOW VARIABLES LIKE 'log_bin';
 ```
 
-binlog 开启，参见[这个问答](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging)，或者[这个问答](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu)
+binlog 开启，参见[这个问答](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging){:target="_blank"}，或者[这个问答](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu){:target="_blank"}
 
 ### 数据库性能指标采集
 

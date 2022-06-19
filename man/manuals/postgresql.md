@@ -58,7 +58,7 @@ log_file_mode = 0644
 #log_destination = 'eventlog'
 ```
 
-更多配置，请参考[官方文档](https://www.postgresql.org/docs/11/runtime-config-logging.html)。
+更多配置，请参考[官方文档](https://www.postgresql.org/docs/11/runtime-config-logging.html){:target="_blank"}。
 
 - Postgresql 采集器默认是未开启日志采集功能，可在 `conf.d/{{.Catalog}}/{{.InputName}}.conf` 中 将 `files` 打开，并写入 Postgresql 日志文件的绝对路径。比如:
 
@@ -89,14 +89,14 @@ log_file_mode = 0644
 
 切割后的字段说明：
 
-| 字段名 | 字段值 | 说明 |
-|---|---|---|
-|application_name|pgAdmin 4 - DB:postgres|连接当前数据库的应用的名称|
-|db_name|test|访问的数据库|
-|process_id|74305|当前连接的客户端进程ID|
-|remote_host|127.0.0.1|客户端的地址|
-|session_id|60b48f01.12241|当前会话的ID|
-|user|postgres|当前访问用户名|
-|status|LOG|当前日志的级别(LOG,ERROR,FATAL,PANIC,WARNING,NOTICE,INFO)|
-|time|1622445825110000000|日志产生时间|
+| 字段名           | 字段值                  | 说明                                                      |
+| ---              | ---                     | ---                                                       |
+| application_name | pgAdmin 4 - DB:postgres | 连接当前数据库的应用的名称                                |
+| db_name          | test                    | 访问的数据库                                              |
+| process_id       | 74305                   | 当前连接的客户端进程ID                                    |
+| remote_host      | 127.0.0.1               | 客户端的地址                                              |
+| session_id       | 60b48f01.12241          | 当前会话的ID                                              |
+| user             | postgres                | 当前访问用户名                                            |
+| status           | LOG                     | 当前日志的级别(LOG,ERROR,FATAL,PANIC,WARNING,NOTICE,INFO) |
+| time             | 1622445825110000000     | 日志产生时间                                              |
 

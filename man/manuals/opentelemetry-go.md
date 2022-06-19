@@ -3,7 +3,7 @@
 
 本文以常见 Web 端三层架构模式实现 OTEL 的链路追踪及可观测性。
 
-在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经[配置](https://www.yuque.com/dataflux/datakit/opentelemetry)好了采集器。
+在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经[配置](https://www.yuque.com/dataflux/datakit/opentelemetry){:target="_blank"}好了采集器。
 
 ## 接下来使用伪代码实现
 
@@ -152,7 +152,7 @@ func main() {
 
 ## 观测
 
-登录 [观测云](https://console.guance.com/tracing/service/table?time=15m) 后查看 `应用性能监测` -> `链路` -> 点击单条 `链路`
+登录 [观测云](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} 后查看 `应用性能监测` -> `链路` -> 点击单条 `链路`
 
 ![](imgs/otel-go-example.png)
 
@@ -162,5 +162,5 @@ func main() {
 
 参考
 
-- 源码示例 [github-opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go/tree/main/example/otel-collector)
-- 文档 [官方文档](https://opentelemetry.io/docs/instrumentation/go/getting-started/)
+- 源码示例 [github-opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go/tree/main/example/otel-collector){:target="_blank"}
+- 文档 [官方文档](https://opentelemetry.io/docs/instrumentation/go/getting-started/){:target="_blank"}

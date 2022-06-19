@@ -11,28 +11,28 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
 ### Referenc
 
-- [Java](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers)
-- [Python](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers)
-- [Ruby](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby)
-- [Golang](https://docs.datadoghq.com/tracing/setup_overview/setup/go?tab=containers)
-- [NodeJS](https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs?tab=containers)
-- [PHP](https://docs.datadoghq.com/tracing/setup_overview/setup/php?tab=containers)
-- [C++](https://docs.datadoghq.com/tracing/setup_overview/setup/cpp?tab=containers)
-- [.Net Core](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-core?tab=windows)
-- [.Net Framework](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows)
+- [Java](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} 
+- [Python](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers){:target="_blank"}
+- [Ruby](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby){:target="_blank"}
+- [Golang](https://docs.datadoghq.com/tracing/setup_overview/setup/go?tab=containers){:target="_blank"}
+- [NodeJS](https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs?tab=containers){:target="_blank"}
+- [PHP](https://docs.datadoghq.com/tracing/setup_overview/setup/php?tab=containers){:target="_blank"}
+- [C++](https://docs.datadoghq.com/tracing/setup_overview/setup/cpp?tab=containers){:target="_blank"}
+- [.Net Core](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-core?tab=windows){:target="_blank"}
+- [.Net Framework](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"}
 
 ### Source Code
 
-- [Java](https://github.com/DataDog/dd-trace-java)
-- [Python](https://github.com/DataDog/dd-trace-py)
-- [Ruby](https://github.com/DataDog/dd-trace-rb)
-- [Golang](https://github.com/DataDog/dd-trace-go)
-- [NodeJS](https://github.com/DataDog/dd-trace-js)
-- [PHP](https://github.com/DataDog/dd-trace-php)
-- [C++](https://github.com/opentracing/opentracing-cpp)
-- [.Net](https://github.com/DataDog/dd-trace-dotnet)
+- [Java](https://github.com/DataDog/dd-trace-java){:target="_blank"}
+- [Python](https://github.com/DataDog/dd-trace-py){:target="_blank"}
+- [Ruby](https://github.com/DataDog/dd-trace-rb){:target="_blank"}
+- [Golang](https://github.com/DataDog/dd-trace-go){:target="_blank"}
+- [NodeJS](https://github.com/DataDog/dd-trace-js){:target="_blank"}
+- [PHP](https://github.com/DataDog/dd-trace-php){:target="_blank"}
+- [C++](https://github.com/opentracing/opentracing-cpp){:target="_blank"}
+- [.Net](https://github.com/DataDog/dd-trace-dotnet){:target="_blank"}
 
-> Java： DataKit 安装目录 `data` 目录下，有预先准备好的 `dd-java-agent.jar`（推荐使用）。也可以直接去 [Maven 下载](https://mvnrepository.com/artifact/com.datadoghq/dd-java-agent)
+> Java： DataKit 安装目录 `data` 目录下，有预先准备好的 `dd-java-agent.jar`（推荐使用）。也可以直接去 [Maven 下载](https://mvnrepository.com/artifact/com.datadoghq/dd-java-agent){:target="_blank"}
 
 ## 配置 DDTrace Agent
 

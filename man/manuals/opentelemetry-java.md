@@ -2,7 +2,7 @@
 ---
 
 在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经配置好了采集器。
-配置：[Datakit 配置 OTEL](https://www.yuque.com/dataflux/datakit/opentelemetry)
+配置：[Datakit 配置 OTEL](https://www.yuque.com/dataflux/datakit/opentelemetry){:target="_blank"}
 
 ## 添加依赖
 
@@ -123,7 +123,7 @@ public class otlpdemo {
 
 ## 观测
 
-登录 [观测云](https://console.guance.com/tracing/service/table?time=15m) 后查看 `应用性能监测` -> `链路` -> 点击单条 `链路`
+登录 [观测云](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} 后查看 `应用性能监测` -> `链路` -> 点击单条 `链路`
 
 ![avatar](imgs/otel-java-example.png)
 
@@ -133,5 +133,5 @@ public class otlpdemo {
 
 参考
 
-- 源码示例 [github-opentelemetry-java](https://github.com/open-telemetry/opentelemetry-java)
-- 文档 [官方文档](https://opentelemetry.io/docs/instrumentation/go/getting-started/)
+- 源码示例 [github-opentelemetry-java](https://github.com/open-telemetry/opentelemetry-java){:target="_blank"}
+- 文档 [官方文档](https://opentelemetry.io/docs/instrumentation/go/getting-started/){:target="_blank"}

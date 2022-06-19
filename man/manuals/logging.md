@@ -107,7 +107,7 @@
 multiline_match = '''这里填写具体的正则表达式''' # 注意，这里的正则俩边，建议分别加上三个「英文单引号」
 ```
 
-日志采集器中使用的正则表达式风格[参考](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
+日志采集器中使用的正则表达式风格[参考](https://golang.org/pkg/regexp/syntax/#hdr-Syntax){:target="_blank"}
 
 假定原数据为：
 
@@ -248,7 +248,7 @@ Pipeline 的几个注意事项：
 - 所有 pipeline 脚本文件，统一存放在 DataKit 安装路径下的 pipeline 目录下
 - 如果日志文件配置的是通配目录，logging 采集器会自动发现新的日志文件，以确保符合规则的新日志文件能够尽快采集到
 
-### glob 规则简述（图表数据[来源](https://rgb-24bit.github.io/blog/2018/glob.html)）
+### glob 规则简述（图表数据[来源](https://rgb-24bit.github.io/blog/2018/glob.html){:target="_blank"}）
 
 使用 glob 规则更方便地指定日志文件，以及自动发现和文件过滤。
 
@@ -310,7 +310,7 @@ First Message. filename: /some/path/to/new/log ...
 
 ### 远程文件采集方案
 
-在 linux 上，可通过 [NFS 方式](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/)，将日志所在主机的文件路径，挂载到 DataKit 主机下，logging 采集器配置对应日志路径即可。
+在 linux 上，可通过 [NFS 方式](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/){:target="_blank"}，将日志所在主机的文件路径，挂载到 DataKit 主机下，logging 采集器配置对应日志路径即可。
 
 ### 日志的特殊字节码过滤
 
@@ -333,7 +333,7 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 ### MacOS 日志采集器报错 `operation not permitted`
 
-在 MacOS 中，因为系统安全策略的原因，DataKit 日志采集器可能会无法打开文件，报错 `operation not permitted`，解决方法参考 [apple developer doc](https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection)。
+在 MacOS 中，因为系统安全策略的原因，DataKit 日志采集器可能会无法打开文件，报错 `operation not permitted`，解决方法参考 [apple developer doc](https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection){:target="_blank"}。
 
 ### 日志量太大可能会引发的问题
 
@@ -376,10 +376,10 @@ bytes * 2 * 8 /1024/1024 = xxx MBit
 
 ## 延伸阅读
 
-- [DataKit 日志采集综述](datakit-logging)
-- [Pipeline: 文本数据处理](pipeline)
-- [Pipeline 调试](datakit-pl-how-to)
-- [Pipeline 性能测试和对比](logging-pipeline-bench)
-- [容器采日志采集](container#224e2ccd)
-  - [通过 Sidecar(logfwd) 采集容器内部日志](logfwd)
-- [正确使用正则表达式来配置](datakit-input-conf#9da8bc26) 
+- [DataKit 日志采集综述](datakit-logging.md)
+- [Pipeline: 文本数据处理](pipeline.md)
+- [Pipeline 调试](datakit-pl-how-to.md)
+- [Pipeline 性能测试和对比](logging-pipeline-bench.md)
+- [容器采日志采集](container#config)
+  - [通过 Sidecar(logfwd) 采集容器内部日志](logfwd.md)
+- [正确使用正则表达式来配置](datakit-input-conf#debug-regex) 

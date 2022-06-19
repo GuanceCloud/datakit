@@ -5,7 +5,7 @@
 - DataKit 版本：{{.Version}}
 - 操作系统支持：全平台
 
-DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn)，所有采集器配置均位于 *conf.d* 目录下：
+DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_blank"}，所有采集器配置均位于 *conf.d* 目录下：
 
 - Linux/Mac：`/usr/local/datakit/conf.d/`
 - Windows：`C:\Program Files\datakit\conf.d\`
@@ -147,7 +147,7 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn)，所有�
 
 由于 DataKit 绝大部分使用 Golang 开发，故涉及配置部分中所使用的正则通配，也是使用 Golang 自身的正则实现。由于不同语言的正则体系有一些差异，导致难以一次性正确的将配置写好。
 
-这里推荐一个[在线工具来调试我们的正则通配](https://regex101.com/)。如下图所示：
+这里推荐一个[在线工具来调试我们的正则通配](https://regex101.com/){:target="_blank"}。如下图所示：
 
 ![](imgs/debug-golang-regexp.png)
 

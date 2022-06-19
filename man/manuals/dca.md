@@ -53,5 +53,5 @@ white_list = ["0.0.0.0/0", "192.168.1.0/24"]
 
 ## 下载地址
 
-- [Mac](https://static.dataflux.cn/dca/dca-v0.0.2.dmg)
-- [Windows](https://static.dataflux.cn/dca/dca-v0.0.2-x86.exe)
+- [Mac](https://static.dataflux.cn/dca/dca-v0.0.2.dmg){:target="_blank"}
+- [Windows](https://static.dataflux.cn/dca/dca-v0.0.2-x86.exe){:target="_blank"}

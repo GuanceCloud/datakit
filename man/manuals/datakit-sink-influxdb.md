@@ -25,7 +25,7 @@ InfluxDB 仅支持写入 Metric 种类的数据。
 ...
 ```
 
-除了 Sink 必须配置[通用参数](datakit-sink-guide)外, InfluxDB 的 Sink 实例目前支持以下参数:
+除了 Sink 必须配置[通用参数](datakit-sink-guide.md)外, InfluxDB 的 Sink 实例目前支持以下参数:
 
 - `host`(必须): HTTP/UDP host should be of the form `host:port` or `[ipv6-host%zone]:port`.
 - `protocol`(必须): `http` or `udp`.

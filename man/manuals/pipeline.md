@@ -78,7 +78,7 @@ drop_origin_data()
     ... # 其它配置
 ```
 
-重启采集器，即可切割对应的日志。关于 Pipeline 编写、调试以及注意事项，参见[这里](datakit-pl-how-to)。
+重启采集器，即可切割对应的日志。关于 Pipeline 编写、调试以及注意事项，参见[这里](datakit-pl-how-to.md)。
 
 ## Grok 模式分类
 

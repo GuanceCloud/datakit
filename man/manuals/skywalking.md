@@ -11,10 +11,10 @@ Datakit 内嵌的 SkyWalking Agent 用于接收，运算，分析 Skywalking Tra
 
 > APM v8.8.3 目前存在不兼容问题无法使用。目前已支持 v8.5.0 v8.6.0 v8.7.0
 
-- [Quickstart](https://skywalking.apache.org/docs/skywalking-showcase/latest/readme/)
-- [Docs](https://skywalking.apache.org/docs/)
-- [Clients Download](https://skywalking.apache.org/downloads/)
-- [Souce Code](https://github.com/apache/skywalking)
+- [Quickstart](https://skywalking.apache.org/docs/skywalking-showcase/latest/readme/){:target="_blank"}
+- [Docs](https://skywalking.apache.org/docs/){:target="_blank"}
+- [Clients Download](https://skywalking.apache.org/downloads/){:target="_blank"}
+- [Souce Code](https://github.com/apache/skywalking){:target="_blank"}
 
 ## 配置 SkyWalking Client
 

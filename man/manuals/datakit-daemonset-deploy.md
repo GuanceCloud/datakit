@@ -61,9 +61,9 @@ $ helm uninstall datakit -n datakit
 
 ### 普通 yaml 安装
 
-先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml)，其中开启了很多[默认采集器](datakit-input-conf#default-enabled-inputs)，无需配置。
+先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml){:target="_blank"}，其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。
 
-> 如果要修改这些采集器的默认配置，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to.md#via-configmap-conf) 来配置。部分采集器可以直接通过环境变量的方式来调整，具体参见具体采集器的文档（[容器采集器示例](container#5cf8fecf)）。总而言之，不管是默认开启的采集器，还是其它采集器，在 DaemonSet 方式部署 DataKit 时，==通过 [Configmap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/) 来配置采集器总是生效的==
+> 如果要修改这些采集器的默认配置，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to.md#via-configmap-conf) 来配置。部分采集器可以直接通过环境变量的方式来调整，具体参见具体采集器的文档（[容器采集器示例](container.md#env-config)）。总而言之，不管是默认开启的采集器，还是其它采集器，在 DaemonSet 方式部署 DataKit 时，通过 [Configmap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/){:target="_blank"} 来配置采集器总是生效的。
 
 #### 修改配置
 
@@ -104,7 +104,7 @@ DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有
       - operator: Exists    <--- 修改这里的污点容忍度
 ```
 
-具体绕过策略，参见[官方文档](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration)。
+具体绕过策略，参见[官方文档](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration){:target="_blank"}。
 
 #### ConfigMap 设置 {#configmap-setting}
 
@@ -197,17 +197,17 @@ DataKit 支持的环境变量如下各表所示。
 
 | 环境变量名称        | 默认值     | 必须   | 说明                                                                                                                                                |
 | ---------:          | ---:       | ------ | ----                                                                                                                                                |
-| ENV_ENABLE_ELECTION | 默认不开启 | 否     | 开启[选举](election.md)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                                                                    |
+| ENV_ENABLE_ELECTION | 默认不开启 | 否     | 开启[选举](election.md)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                                                                 |
 | ENV_NAMESPACE       | 无         | 否     | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。 |
 
 ### HTTP/API 相关环境变量
 
-| 环境变量名称             | 默认值            | 必须   | 说明                                                        |
-| ---------:               | ---:              | ------ | ----                                                        |
-| ENV_DISABLE_404PAGE      | 无                | 否     | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用）        |
-| ENV_HTTP_LISTEN          | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [DataKit 接口](apis)           |
-| ENV_REQUEST_RATE_LIMIT   | 无(float)         | 否     | 限制 9529 [API 每秒请求数](datakit-conf#set-http-api-limit) |
-| ENV_RUM_ORIGIN_IP_HEADER | `X-Forwarded-For` | 否     | RUM 专用                                                    |
+| 环境变量名称             | 默认值            | 必须   | 说明                                                           |
+| ---------:               | ---:              | ------ | ----                                                           |
+| ENV_DISABLE_404PAGE      | 无                | 否     | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用）           |
+| ENV_HTTP_LISTEN          | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [DataKit 接口](apis.md)           |
+| ENV_REQUEST_RATE_LIMIT   | 无(float)         | 否     | 限制 9529 [API 每秒请求数](datakit-conf.md#set-http-api-limit) |
+| ENV_RUM_ORIGIN_IP_HEADER | `X-Forwarded-For` | 否     | RUM 专用                                                       |
 
 ### Git 配置相关环境变量
 
@@ -238,7 +238,7 @@ DataKit 支持的环境变量如下各表所示。
 | 环境变量名称                 | 默认值         | 必须 | 说明                                                       |
 | -----------------:           | -------------: | ---- | ---------------------------------------------------------- |
 | ENV_CLOUD_PROVIDER           | 无             | 否   | 支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`) |
-| ENV_DCA_LISTEN               | localhost:9531 | 否   | 可修改改地址，使得 [DCA](dca) 客户端能管理该 DataKit       |
+| ENV_DCA_LISTEN               | localhost:9531 | 否   | 可修改改地址，使得 [DCA](dca.md) 客户端能管理该 DataKit       |
 | ENV_DCA_WHITE_LIST           | 无             | 否   | 配置 DCA 白名单，以英文逗号分隔                            |
 | ENV_HOSTNAME                 | 无             | 否   | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`    |
 | ENV_IPDB                     | 无（string）   | 否   | 指定 IP 信息库类型，目前只支持 `iploc`                     |
@@ -253,7 +253,7 @@ DataKit 支持的环境变量如下各表所示。
 
 当 k8s node 名称跟其对应的主机名不同时，可将 k8s 的 node 名称顶替默认采集到的主机名，在 *datakit.yaml* 中增加环境变量：
 
-> [1.2.19](changelog#cl-1.2.19) 版本的 datakit.yaml 中默认就带了这个配置，如果是从老版本的 yaml 直接升级而来，需要对 *datakit.yaml* 做如下手动改动。
+> [1.2.19](changelog.md#cl-1.2.19) 版本的 datakit.yaml 中默认就带了这个配置，如果是从老版本的 yaml 直接升级而来，需要对 *datakit.yaml* 做如下手动改动。
 
 ```yaml
 - env:
@@ -270,6 +270,6 @@ DataKit 支持的环境变量如下各表所示。
 
 ## 延伸阅读
 
-- [DataKit 选举](election)
-- [DataKit 的几种配置方式](k8s-config-how-to)
-- [DataKit DaemonSet 配置管理最佳实践](datakit-daemonset-bp)
+- [DataKit 选举](election.md)
+- [DataKit 的几种配置方式](k8s-config-how-to.md)
+- [DataKit DaemonSet 配置管理最佳实践](datakit-daemonset-bp.md)

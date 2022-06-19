@@ -40,9 +40,6 @@ var (
 		"datakit-arch":         "man/manuals/datakit-arch.md",
 		"datakit-batch-deploy": "man/manuals/datakit-batch-deploy.md",
 
-		// deprecated
-		"datakit-conf-how-to": "man/manuals/datakit-conf-how-to.md",
-
 		"datakit-conf":       "man/manuals/datakit-conf.md",
 		"datakit-input-conf": "man/manuals/datakit-input-conf.md",
 
@@ -51,7 +48,6 @@ var (
 		"datakit-daemonset-bp":     "man/manuals/datakit-daemonset-bp.md",
 		"datakit-dql-how-to":       "man/manuals/datakit-dql-how-to.md",
 		"datakit-filter":           "man/manuals/datakit-filter.md",
-		"datakit-how-to":           "man/manuals/datakit-how-to.md", // deprecated
 		"datakit-logging-how":      "man/manuals/datakit-logging-how.md",
 		"datakit-install":          "man/manuals/datakit-install.md",
 		"datakit-logging":          "man/manuals/datakit-logging.md",

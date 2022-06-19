@@ -11,7 +11,7 @@
 
 - 管理机安装 Ansible
 - 在 Ansible 默认配置路径 `/etc/ansible/` 下配置好 `host` 文件跟 `install.yaml` 文件
-- 如果通过 Ansible 管理 Windows 机器，参考 [Ansible 文档](https://ansible-tran.readthedocs.io/en/latest/docs/intro_windows.html#windows-installing) 做相应前置准备
+- 如果通过 Ansible 管理 Windows 机器，参考 [Ansible 文档](https://ansible-tran.readthedocs.io/en/latest/docs/intro_windows.html#windows-installing){:target="_blank"} 做相应前置准备
 
 ## 配置 {#config}
 
