@@ -34,6 +34,11 @@ type RenameTags struct {
 	Mapping            map[string]string `toml:"mapping"`
 }
 
+type AsLogging struct {
+	Enable  bool   `toml:"enable"`
+	Service string `toml:"service"`
+}
+
 type IgnoreTagKeyValMatch map[string][]*regexp.Regexp
 
 type Option struct {
@@ -64,6 +69,7 @@ type Option struct {
 
 	Tags       map[string]string `toml:"tags"`
 	RenameTags *RenameTags       `toml:"rename_tags"`
+	AsLogging  *AsLogging        `toml:"as_logging"`
 
 	// do not keep these tags in scraped prom data
 	TagsIgnore []string `toml:"tags_ignore"`
