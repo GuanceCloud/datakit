@@ -1,5 +1,5 @@
 {{.CSS}}
-# 第三方（logstreaming）日志接入
+# 采集器配置
 ---
 
 - DataKit 版本：{{.Version}}
