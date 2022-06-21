@@ -76,3 +76,9 @@ test.go
 test.jso
 test.output
 y.output
+.pid
+cmd/datakit/conf.d/
+cmd/datakit/data/
+cmd/datakit/gitrepos/
+cmd/datakit/pipeline/
+cmd/datakit/python.d/
