@@ -530,7 +530,7 @@ func runOldStyleCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 
-		if err := updateIPDB(FlagAddr); err != nil {
+		if err := updateIPDB(); err != nil {
 			errorf("[E] update IPDB failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
