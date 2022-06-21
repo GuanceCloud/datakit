@@ -22,10 +22,10 @@ else
   os="linux"
 fi
 
-make
+#make
 
 echo 'export to datakit docs...'
-dist/datakit-${os}-amd64/datakit doc \
+dist/datakit-${os}-arm64/datakit doc \
 	--export-docs $datakit_docs_dir \
 	--ignore demo \
 	--version "${man_version}" \
@@ -33,12 +33,11 @@ dist/datakit-${os}-amd64/datakit doc \
 
 cp man/manuals/datakit.pages $datakit_docs_dir/.pages
 cp man/manuals/datakit-index.md $datakit_docs_dir/index.md
-cp man/manuals/aliyun-access.md $datakit_docs_dir/
 
 #--- 以下是集成文档导出 ---#
 
 echo 'export to integrations docs...'
-dist/datakit-${os}-amd64/datakit doc \
+dist/datakit-${os}-arm64/datakit doc \
 	--export-docs $integration_docs_dir \
 	--ignore demo \
 	--version "${man_version}" \
@@ -46,6 +45,29 @@ dist/datakit-${os}-amd64/datakit doc \
 
 cp man/manuals/integrations.pages $integration_docs_dir/.pages
 cp man/manuals/integrations-index.md $integration_docs_dir/index.md
-cp man/integration-to-datakit-howto.md $integration_docs_dir/
 
-cp man/manuals/resin.md $integration_docs_dir/
+# 这些文件没有集成在 datakit 代码中（没法通过 export-docs 命令导出），故直接拷贝到文档库中。
+extra_files=(
+	man/integration-to-datakit-howto.md
+	man/manuals/aliyun-access.md
+	man/manuals/aliyun-charges.md
+	man/manuals/aliyun-edas.md
+	man/manuals/aliyun-slb.md
+	man/manuals/aliyun-sls.md
+	man/manuals/ddtrace-csharp.md
+	man/manuals/ddtrace-php-2.md
+	man/manuals/ddtrace-ruby-2.md
+	man/manuals/ddtrace-dotnetcore.md
+	man/manuals/haproxy.md
+	man/manuals/logstreaming-fluentd.md
+	man/manuals/resin.md
+	man/manuals/rum-android.md
+	man/manuals/rum-ios.md
+	man/manuals/rum-miniapp.md
+	man/manuals/rum-web-h5.md
+)
+
+for f in "${extra_files[@]}"; do
+	cp $f $datakit_docs_dir/
+	cp $f $integration_docs_dir/
+done
