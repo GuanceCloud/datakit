@@ -162,7 +162,13 @@ func (n *Input) Run() {
 	defer tick.Stop()
 
 	if namespace := config.GetElectionNamespace(); namespace != "" {
-		n.Tags["election_namespace"] = namespace
+		if n.Tags == nil {
+			n.Tags = map[string]string{
+				"election_namespace": namespace,
+			}
+		} else {
+			n.Tags["election_namespace"] = namespace
+		}
 	}
 
 	for {
