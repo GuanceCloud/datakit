@@ -101,7 +101,13 @@ func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	if namespace := config.GetElectionNamespace(); namespace != "" {
-		i.Tags["election_namespace"] = namespace
+		if i.Tags == nil {
+			i.Tags = map[string]string{
+				"election_namespace": namespace,
+			}
+		} else {
+			i.Tags["election_namespace"] = namespace
+		}
 	}
 
 	if i.setup() {
