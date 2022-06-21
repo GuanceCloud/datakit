@@ -89,7 +89,7 @@ func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod b
 			break
 		}
 	}
-	if dktrace == nil {
+	if len(dktrace) == 0 {
 		return
 	}
 
@@ -154,16 +154,14 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*dkio.Point, error) {
 	}
 
 	fields := map[string]interface{}{
-		FIELD_DURATION:           dkspan.Duration / int64(time.Microsecond),
-		FIELD_MSG:                dkspan.Content,
-		FIELD_PARENTID:           dkspan.ParentID,
-		FIELD_PID:                dkspan.PID,
-		FIELD_PRIORITY:           dkspan.Priority,
-		FIELD_RESOURCE:           dkspan.Resource,
-		FIELD_SAMPLE_RATE_GLOBAL: dkspan.SamplingRateGlobal,
-		FIELD_SPANID:             dkspan.SpanID,
-		FIELD_START:              dkspan.Start / int64(time.Microsecond),
-		FIELD_TRACEID:            dkspan.TraceID,
+		FIELD_DURATION: dkspan.Duration / int64(time.Microsecond),
+		FIELD_MSG:      dkspan.Content,
+		FIELD_PARENTID: dkspan.ParentID,
+		FIELD_PID:      dkspan.PID,
+		FIELD_RESOURCE: dkspan.Resource,
+		FIELD_SPANID:   dkspan.SpanID,
+		FIELD_START:    dkspan.Start / int64(time.Microsecond),
+		FIELD_TRACEID:  dkspan.TraceID,
 	}
 	for k, v := range dkspan.Metrics {
 		fields[k] = v

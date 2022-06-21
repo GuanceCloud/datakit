@@ -47,9 +47,9 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"uppercase()":          &uppercaseMarkdown,
 	"url_decode()":         &URLDecodeMarkdown,
 	"user_agent()":         &userAgentMarkdown,
-	// "match":                &matchMarkdown,
-	"decode":    &decodeMarkdown,
-	"sql_cover": &sqlCoverMarkdown,
+	"xml()":                &xmlMarkdown,
+	"decode":               &decodeMarkdown,
+	"sql_cover":            &sqlCoverMarkdown,
 }
 
 // embed docs
@@ -146,6 +146,9 @@ var (
 
 	//go:embed md/adjust_timezone.md
 	docAdjustTimezone string
+
+	//go:embed md/xml.md
+	docXML string
 )
 
 //nolint:lll
@@ -181,4 +184,5 @@ var (
 	durationPrecisionMarkdown = PLDoc{Doc: docDurationPresicion, Deprecated: false}
 	decodeMarkdown            = PLDoc{Doc: docDecode, Deprecated: false}
 	sqlCoverMarkdown          = PLDoc{Doc: docSQLCover, Deprecated: false}
+	xmlMarkdown               = PLDoc{Doc: docXML, Deprecated: false}
 )

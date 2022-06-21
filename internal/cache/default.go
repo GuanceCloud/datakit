@@ -7,7 +7,11 @@ package cache
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 )
+
+const cacheFileName = "cache.bolt"
 
 var (
 	ErrGlobalCacheNotInitialize = errors.New("global cache is not initialized")
@@ -19,8 +23,15 @@ type CacheInfo struct {
 	FlushedCount int64
 }
 
-func Initialize(dir string, opt *Options) error {
-	c, err := NewCache(dir, opt)
+func Initialize(cachePath string, opt *Options) error {
+	info, err := os.Stat(cachePath)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		cachePath = filepath.Join(cachePath, cacheFileName)
+	}
+	c, err := NewCache(cachePath, opt)
 	if err != nil {
 		return err
 	}

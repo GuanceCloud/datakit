@@ -93,11 +93,6 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if dkspan.ParentID == "0" && sampler != nil {
-			dkspan.Priority = sampler.Priority
-			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
-		}
-
 		if buf, err := json.Marshal(span); err != nil {
 			log.Warn(err.Error())
 		} else {
@@ -105,6 +100,10 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		}
 
 		dktrace = append(dktrace, dkspan)
+	}
+	if len(dktrace) != 0 {
+		dktrace[0].Metrics = make(map[string]interface{})
+		dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
 	}
 
 	return dktrace

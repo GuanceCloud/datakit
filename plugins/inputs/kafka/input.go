@@ -41,11 +41,11 @@ func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	if i.Interval == "" { //nolint:typecheck
-		i.Interval = defaultInterval
+		i.JolokiaAgent.Interval = defaultInterval
 	}
 
 	i.JolokiaAgent.L = l
-	i.PluginName = inputName
+	i.JolokiaAgent.PluginName = inputName
 	i.JolokiaAgent.Tags = i.Tags
 	i.JolokiaAgent.Types = KafkaTypeMap
 

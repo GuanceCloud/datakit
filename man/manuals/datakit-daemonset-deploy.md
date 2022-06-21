@@ -95,7 +95,7 @@ $ kubectl apply -f datakit.yaml
 $ kubectl get pod -n datakit
 ```
 
-#### Kubernetes 污点容忍度配置
+#### Kubernetes 污点容忍度配置 {#toleration}
 
 DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有污点），如果 Kubernetes 中某些 node 节点添加了污点调度，且不希望在其上部署 DataKit，可修改 datakit.yaml，调整其中的污点容忍度：
 
@@ -169,7 +169,7 @@ spec:
 
 DataKit 支持的环境变量如下各表所示。
 
-### 最常用环境变量
+### 最常用环境变量 {#env-common}
 
 | 环境变量名称               | 默认值 | 必须   | 说明                                                                                 |
 | ---------:                 | ---:   | ------ | ----                                                                                 |
@@ -178,7 +178,7 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_ENABLE_INPUTS          | 无     | 否     | ==已弃用==，同 ENV_DEFAULT_ENABLED_INPUTS                                            |
 | ENV_GLOBAL_TAGS            | 无     | 否     | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`                       |
 
-### 日志配置相关环境变量
+### 日志配置相关环境变量 {#env-log}
 
 | 环境变量名称  | 默认值                     | 必须   | 说明                                                             |
 | ---------:    | ---:                       | ------ | ----                                                             |
@@ -186,30 +186,32 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_LOG       | */var/log/datakit/log*     | 否     | 如果改成 `stdout`，DatakIt 自身日志将不写文件，而是终端输出      |
 | ENV_LOG_LEVEL | info                       | 否     | 设置 DataKit 自身日志等级，可选 `info/debug`                     |
 
-###  DataKit pprof 相关
+###  DataKit pprof 相关 {#env-pprof}
 
 | 环境变量名称  | 默认值                     | 必须   | 说明                                            |
 | ---------:    | ---:                       | ------ | ----                                            |
 | ENV_ENABLE_PPROF   | false | 否     | 是否开启 `pprof` |
 | ENV_PPROF_LISTEN       | 无     | 否     | `pprof`服务监听地址 |
 
-### 选举相关环境变量
+### 选举相关环境变量 {#env-elect}
 
 | 环境变量名称        | 默认值     | 必须   | 说明                                                                                                                                                |
 | ---------:          | ---:       | ------ | ----                                                                                                                                                |
 | ENV_ENABLE_ELECTION | 默认不开启 | 否     | 开启[选举](election.md)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                                                                 |
 | ENV_NAMESPACE       | 无         | 否     | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。 |
 
-### HTTP/API 相关环境变量
+### HTTP/API 相关环境变量 {#env-http-api}
 
-| 环境变量名称             | 默认值            | 必须   | 说明                                                           |
-| ---------:               | ---:              | ------ | ----                                                           |
-| ENV_DISABLE_404PAGE      | 无                | 否     | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用）           |
-| ENV_HTTP_LISTEN          | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [DataKit 接口](apis.md)           |
+| 环境变量名称             | 默认值            | 必须   | 说明                                                 |
+| ---------:               | ---:              | ------ | ----                                                 |
+| ENV_DISABLE_404PAGE      | 无                | 否     | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用） |
+| ENV_HTTP_LISTEN          | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [DataKit 接口](apis)    |
 | ENV_REQUEST_RATE_LIMIT   | 无(float)         | 否     | 限制 9529 [API 每秒请求数](datakit-conf.md#set-http-api-limit) |
-| ENV_RUM_ORIGIN_IP_HEADER | `X-Forwarded-For` | 否     | RUM 专用                                                       |
+| ENV_RUM_ORIGIN_IP_HEADER | `X-Forwarded-For` | 否     | RUM 专用                                             |
+| ENV_RUM_APP_ID_WHITE_LIST | 无 | 否     | RUM app-id 白名单列表，以 `,` 分割，如 `appid-1,appid-2`|
+| ENV_HTTP_PUBLIC_APIS | 无 | 否     | 允许外部访问的 DataKit [API 列表](apis)，当 DataKit 部署在公网时，可以禁用部分 API|
 
-### Git 配置相关环境变量
+### Git 配置相关环境变量 {#env-git}
 
 | 环境变量名称     | 默认值 | 必须   | 说明                                                                                                   |
 | ---------:       | ---:   | ------ | ----                                                                                                   |
@@ -219,7 +221,7 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_GIT_KEY_PW   | 无     | 否     | 本地 PrivateKey 的使用密码。（如 `passwd`）                                                            |
 | ENV_GIT_URL      | 无     | 否     | 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`） |
 
-### Sinker 配置相关环境变量
+### Sinker 配置相关环境变量 {#env-sinker}
 
 | 环境变量名称 | 默认值 | 必须   | 说明                              |
 | ---------:   | ---:   | ------ | ----                              |
@@ -233,21 +235,42 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_SINK_R   | 无     | 否     | 安装时指定 RUM 的 sink。          |
 | ENV_SINK_S   | 无     | 否     | 安装时指定 Security 的 sink。     |
 
-### 其它杂项
+### IO 模块配置相关环境变量 {#env-io}
 
-| 环境变量名称                 | 默认值         | 必须 | 说明                                                       |
-| -----------------:           | -------------: | ---- | ---------------------------------------------------------- |
+| 环境变量名称 | 默认值 | 必须   | 说明                              |
+| ---------:   | ---:   | ------ | ----                              |
+| ENV_IO_FILTERS | 无   | 否   | 添加[行协议过滤器](datakit-filter)  |
+
+`ENV_IO_FILTERS` 是一个 json 字符串，示例如下:
+
+```json
+{
+  "logging":[
+  	"{ source = 'datakit' and ( host in ['ubt-dev-01', 'tanb-ubt-dev-test'] )}",
+  	"{ source = 'abc' and ( host in ['ubt-dev-02', 'tanb-ubt-dev-test-1'] )}"
+  ],
+
+  "metric":[
+  	"{ measurement in in ['datakit', 'redis_client'] )}"
+  ],
+}
+```
+
+### 其它杂项 {#env-others}
+
+| 环境变量名称                 | 默认值         | 必须 | 说明                                             |
+| -----------------:           | -------------: | ---- |------------------------------------------------|
 | ENV_CLOUD_PROVIDER           | 无             | 否   | 支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`) |
-| ENV_DCA_LISTEN               | localhost:9531 | 否   | 可修改改地址，使得 [DCA](dca.md) 客户端能管理该 DataKit       |
-| ENV_DCA_WHITE_LIST           | 无             | 否   | 配置 DCA 白名单，以英文逗号分隔                            |
-| ENV_HOSTNAME                 | 无             | 否   | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`    |
-| ENV_IPDB                     | 无（string）   | 否   | 指定 IP 信息库类型，目前只支持 `iploc`                     |
-| ENV_ULIMIT                   | 无             | 否   | 指定 Datakit 最大的可打开文件数                            |
-| ENV_DATAWAY_TIMEOUT          | 30s            | 否   | 设置 DataKit 请求 DataWay 的超时时间                       |
-| ENV_DATAWAY_ENABLE_HTTPTRACE | false          | 否   | 在 debug 日志中输出 dataway HTTP 请求的网络日志            |
-| ENV_DATAWAY_HTTP_PROXY       | 无             | 否   | 设置 DataWay HTTP 代理                                     |
+| ENV_DCA_LISTEN               | localhost:9531 | 否   | 可修改改地址，使得 [DCA](dca) 客户端能管理该 DataKit           |
+| ENV_DCA_WHITE_LIST           | 无             | 否   | 配置 DCA 白名单，以英文逗号分隔                             |
+| ENV_HOSTNAME                 | 无             | 否   | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`          |
+| ENV_IPDB                     | 无（string）   | 否   | 指定 IP 信息库类型，目前只支持 `iploc`,`geolite2`           |
+| ENV_ULIMIT                   | 无             | 否   | 指定 Datakit 最大的可打开文件数                           |
+| ENV_DATAWAY_TIMEOUT          | 30s            | 否   | 设置 DataKit 请求 DataWay 的超时时间                    |
+| ENV_DATAWAY_ENABLE_HTTPTRACE | false          | 否   | 在 debug 日志中输出 dataway HTTP 请求的网络日志             |
+| ENV_DATAWAY_HTTP_PROXY       | 无             | 否   | 设置 DataWay HTTP 代理                             |
 
-### 特殊环境变量
+### 特殊环境变量 {#env-special}
 
 #### ENV_K8S_NODE_NAME
 

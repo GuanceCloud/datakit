@@ -422,7 +422,8 @@ func gatherIntelNVMeDisk(tags map[string]string,
 	timeout time.Duration,
 	useSudo bool,
 	nvme string,
-	device nvmeDevice) (*smartMeasurement, error) {
+	device nvmeDevice,
+) (*smartMeasurement, error) {
 	args := append([]string{"intel", "smart-log-add"}, strings.Split(device.name, " ")...)
 	output, err := cmd.RunWithTimeout(timeout, useSudo, nvme, args...)
 	if _, err = cmd.ExitStatus(err); err != nil {
@@ -503,7 +504,8 @@ func parseRawValue(rawVal string) (int64, error) {
 func gatherDisk(tags map[string]string,
 	timeout time.Duration,
 	sudo bool,
-	smartctl, nocheck, device string) (*smartMeasurement, error) {
+	smartctl, nocheck, device string,
+) (*smartMeasurement, error) {
 	// smartctl 5.41 & 5.42 have are broken regarding handling of --nocheck/-n
 	args := append([]string{
 		"--info",

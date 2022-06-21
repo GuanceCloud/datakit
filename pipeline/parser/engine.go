@@ -158,7 +158,8 @@ func (ng *Engine) Check() error {
 }
 
 func (ng *Engine) Run(measurement string, tags map[string]string, fields map[string]interface{},
-	contentKey string, rTime time.Time) (*Output, error) {
+	contentKey string, rTime time.Time,
+) (*Output, error) {
 	data := getNgData()
 	defer putNgData(data)
 

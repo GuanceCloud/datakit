@@ -114,11 +114,6 @@ func TestUtilDuration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = d.UnmarshalTOML([]byte("\"1619059234299\""))
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	err = d.UnmarshalTOML([]byte("1619059234299.001"))
 	if err != nil {
 		t.Fatal(err)
@@ -422,7 +417,8 @@ func AssertContainsTaggedFields(t *testing.T,
 	measurement string,
 	fields map[string]interface{},
 	tags map[string]string,
-	collectCache []inputs.Measurement) {
+	collectCache []inputs.Measurement,
+) {
 	t.Helper()
 	for _, metric := range collectCache {
 		m := getMeasurement(t, metric)
@@ -448,7 +444,8 @@ func AssertDoesNotContainsTaggedFields(t *testing.T,
 	measurement string,
 	fields map[string]interface{},
 	tags map[string]string,
-	collectCache []inputs.Measurement) {
+	collectCache []inputs.Measurement,
+) {
 	t.Helper()
 	for _, metric := range collectCache {
 		m := getMeasurement(t, metric)

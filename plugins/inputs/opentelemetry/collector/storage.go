@@ -121,8 +121,7 @@ func (s *SpansStorage) feedAll() {
 		s.AfterGather.Run(inputName, trace, false)
 	}
 	l.Debugf("send %d trace to io.trace", len(traces))
-	metrics := s.GetDKMetric()
-	if len(metrics) > 0 {
+	if metrics := s.GetDKMetric(); len(metrics) > 0 {
 		pts := makePoints(metrics)
 		err := dkio.Feed(inputName, datakit.Metric, pts, &dkio.Option{HighFreq: true})
 		if err != nil {

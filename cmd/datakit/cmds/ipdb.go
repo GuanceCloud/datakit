@@ -23,7 +23,6 @@ type ipdbInfo struct {
 
 func installIpdb(ipdbType string) error {
 	baseURL := "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit"
-
 	ipdb, err := InstallIpdb(baseURL, ipdbType)
 	if err != nil {
 		return err
@@ -41,7 +40,6 @@ func InstallIpdb(baseURL string, ipdbType string) (*ipdbInfo, error) {
 	ipdbBaseURL := baseURL + "/ipdb/"
 	ipdbJSONURL := ipdbBaseURL + ipdbType + ".json"
 	installDir := datakit.DataDir + "/ipdb/" + ipdbType
-
 	// nolint:gosec
 	if resp, err := http.Get(ipdbJSONURL); err != nil {
 		return nil, err
@@ -50,7 +48,8 @@ func InstallIpdb(baseURL string, ipdbType string) (*ipdbInfo, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close() // nolint:errcheck
+		// nolint:errcheck
+		defer resp.Body.Close()
 
 		ipdb := ipdbInfo{}
 

@@ -23,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/geoip"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
@@ -42,7 +43,8 @@ var (
 		},
 	}
 	pipelineIPDbmap = map[string]ipdb.IPdb{
-		"iploc": &iploc.IPloc{},
+		"iploc":    &iploc.IPloc{},
+		"geolite2": &geoip.Geoip{},
 	}
 )
 
@@ -150,7 +152,9 @@ func InitIPdb(pipelineCfg *PipelineCfg) (ipdb.IPdb, error) {
 		ipdbInstance = instance
 		ipdbInstance.Init(datakit.DataDir, pipelineCfg.IPdbAttr)
 		funcs.InitIPdb(ipdbInstance)
-		ip2isp.InitIPdb(ipdbInstance)
+		if pipelineCfg.IPdbType != "geolite2" {
+			ip2isp.InitIPdb(ipdbInstance)
+		}
 	} else { // invalid ipdb type, then use the default iploc to ignore the error.
 		l.Warnf("invalid ipdb_type %s", pipelineCfg.IPdbType)
 		return pipelineIPDbmap["iploc"], nil

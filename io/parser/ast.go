@@ -910,7 +910,8 @@ func (x WhereConditions) String() string {
 }
 
 func (x WhereConditions) Eval(tags map[string]string,
-	fields map[string]interface{}) bool {
+	fields map[string]interface{},
+) bool {
 	for _, item := range x {
 		switch c := item.(type) {
 		case *WhereCondition:

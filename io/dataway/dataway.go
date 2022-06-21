@@ -6,7 +6,9 @@
 package dataway
 
 import (
+	"mime/multipart"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -24,6 +26,8 @@ type DataWay interface {
 	DQLQuery([]byte) (*http.Response, error)
 	WorkspaceQuery([]byte) (*http.Response, error)
 	DatakitPull(string) ([]byte, error)
+	UploadProfile(string, map[string][]*multipart.FileHeader) (*http.Response, error)
+	ProfileProxyURL() (*url.URL, error)
 }
 
 type DataWayCfg struct {

@@ -126,7 +126,7 @@ func TestBuildBody(t *testing.T) {
 	expect := []string{}
 	for i := 0; i < 100; i++ {
 		pt := randPt(t)
-		expect = append(expect, pt.String())
+		expect = append(expect, pt.Point.String())
 		pts = append(pts, pt)
 	}
 
@@ -169,7 +169,7 @@ func TestSplitBody(t *testing.T) {
 		pts = append(pts, randPt(t))
 	}
 
-	t.Logf("pt len: %d", len(pts[0].String()))
+	t.Logf("pt len: %d", len(pts[0].Point.String()))
 
 	// maxKodoPack = 1024 * 1024 * 32
 	bodies, err := doBuildBody(pts, "")

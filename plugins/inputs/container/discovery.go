@@ -29,11 +29,6 @@ func tryRunInput(item *v1.Pod) error {
 
 	l.Debugf("k8s export, find prom export, config: %s", config)
 
-	if !shouldForkInput(item.Spec.NodeName) {
-		l.Debugf("should not fork input, pod-nodeName:%s", item.Spec.NodeName)
-		return nil
-	}
-
 	if _, ok := discoveryInputsMap[string(item.UID)]; ok {
 		return nil
 	}
@@ -139,15 +134,4 @@ func complatePromConfig(config string, podObj *v1.Pod) string {
 	config = strings.ReplaceAll(config, "$PODNAME", podObj.Name)
 
 	return config
-}
-
-func shouldForkInput(nodeName string) bool {
-	if !datakit.Docker {
-		return true
-	}
-	// ENV_K8S_NODE_NAME 在 daemonset.yaml 配置，是当前程序所在的 Node 名称
-	// Node 名称匹配，表示运行在同一个 Node，此时才需要 fork
-
-	// Node 名称为空属于 unreachable
-	return datakit.GetEnv("ENV_K8S_NODE_NAME") == nodeName
 }

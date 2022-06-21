@@ -84,6 +84,7 @@ nav:
     - memcached.md
     - mongodb.md
     - influxdb.md
+    - tdengine.md
     - sqlserver.md
     - postgresql.md
     - elasticsearch.md

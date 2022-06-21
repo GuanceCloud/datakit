@@ -111,11 +111,6 @@ func thriftV1SpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if dkspan.ParentID == "0" && sampler != nil {
-			dkspan.Priority = sampler.Priority
-			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
-		}
-
 		if buf, err := json.Marshal(zipkinConvThriftToJSON(span)); err != nil {
 			log.Warn(err.Error())
 		} else {
@@ -123,6 +118,10 @@ func thriftV1SpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 		}
 
 		dktrace = append(dktrace, dkspan)
+	}
+	if len(dktrace) != 0 {
+		dktrace[0].Metrics = make(map[string]interface{})
+		dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
 	}
 
 	return dktrace
@@ -375,11 +374,6 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if dkspan.ParentID == "0" && sampler != nil {
-			dkspan.Priority = sampler.Priority
-			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
-		}
-
 		if buf, err := json.Marshal(span); err != nil {
 			continue
 		} else {
@@ -387,6 +381,10 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 		}
 
 		dktrace = append(dktrace, dkspan)
+	}
+	if len(dktrace) != 0 {
+		dktrace[0].Metrics = make(map[string]interface{})
+		dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
 	}
 
 	return dktrace

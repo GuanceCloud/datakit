@@ -71,11 +71,8 @@ var allTag = map[string]string{
 func Test_mkDKTrace(t *testing.T) {
 	/*
 		mock server
-
 		mock client 发送 readOnlySpans
-
 		从export中获取 ResourceSpans
-
 	*/
 	trace := &mock.MockTrace{}
 	endpoint := "localhost:20010"

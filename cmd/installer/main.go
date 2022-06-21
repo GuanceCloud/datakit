@@ -766,6 +766,7 @@ var (
 		"net",
 		"host_processes",
 	}
+
 	defaultHostInputsForLinux = []string{
 		"cpu",
 		"disk",
@@ -778,21 +779,39 @@ var (
 		"host_processes",
 		"container",
 	}
+
+	defaultHostInputsForMacOS = []string{
+		"cpu",
+		"disk",
+		"diskio",
+		"mem",
+		"swap",
+		"system",
+		"hostobject",
+		"net",
+		"container",
+
+		// host_processes is costly, maybe we should disable default
+		"host_processes",
+	}
 )
 
 func writeDefInputToMainCfg(mc *config.Config) {
 	hostInputs := defaultHostInputs
-	if runtime.GOOS == datakit.OSLinux {
+
+	switch runtime.GOOS {
+	case datakit.OSLinux:
 		hostInputs = defaultHostInputsForLinux
+	case datakit.OSDarwin:
+		hostInputs = defaultHostInputsForMacOS
 	}
 
+	// Enable default input, auto remove duplicated input name.
 	if flagEnableInputs == "" {
-		flagEnableInputs = strings.Join(hostInputs, ",")
+		mc.EnableDefaultsInputs(strings.Join(hostInputs, ","))
 	} else {
-		flagEnableInputs = flagEnableInputs + "," + strings.Join(hostInputs, ",")
+		mc.EnableDefaultsInputs(flagEnableInputs + "," + strings.Join(hostInputs, ","))
 	}
-
-	mc.EnableDefaultsInputs(flagEnableInputs)
 
 	if flagCloudProvider != "" {
 		if err := injectCloudProvider(flagCloudProvider); err != nil {

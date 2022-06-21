@@ -25,9 +25,9 @@
   - [DataKit 选举支持](election)
   - [DCA 客户端(beta)](dca)
 
-	- [Sinker 设置]()
+  - [Sinker 设置]()
     - [Sinker 使用方法](datakit-sink-guide)
-		- [已有 Sinker 支持]()
+    - [已有 Sinker 支持]()
       - [InfluxDB](datakit-sink-influxdb)
       - [Logstash](datakit-sink-logstash)
       - [M3DB](datakit-sink-m3db)
@@ -35,6 +35,7 @@
 - [文本数据处理（Pipeline）](pipeline)
 
   - [如何编写 Pipeline 脚本](datakit-pl-how-to)
+  - [将 Pipeline 应用到所有数据类型](datakit-pl-global)
 
 - [DataKit 开发]()
 
@@ -80,7 +81,6 @@
 
     - [Datakit Tracing 综述](datakit-tracing)
       - [Datakit Tracing 数据结构](datakit-tracing-struct)
-    - [在 Tracing 数据上应用 Pipeline](datakit-tracing-pl)
     - [各种 Tracing 接入]()
       - [DDTrace](ddtrace)
         - [Golang 示例](ddtrace-golang)
@@ -167,3 +167,4 @@
     - [CoreDNS](coredns)
     - [硬件温度 Sensors](sensors)
     - [磁盘 S.M.A.R.T](smart)
+    - [TDEngine](tdengine)
