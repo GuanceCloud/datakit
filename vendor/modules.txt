@@ -543,8 +543,6 @@ github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.6.1
 ## explicit; go 1.13
 github.com/go-playground/validator/v10
-# github.com/go-redis/redis v6.15.9+incompatible
-## explicit
 # github.com/go-redis/redis/v8 v8.11.3
 ## explicit; go 1.13
 github.com/go-redis/redis/v8
