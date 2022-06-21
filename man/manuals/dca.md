@@ -63,10 +63,8 @@ DCA 客户端支持远程连接 DataKit ，在线变更采集器，变更完成�
 
 您也可以直接点击如下链接下载 DCA 客户端。
 
-- [Mac](https://static.dataflux.cn/dca/dca-v0.0.2.dmg)
-- [Windows](https://static.dataflux.cn/dca/dca-v0.0.2-x86.exe)
-
-
+- [Mac](https://static.dataflux.cn/dca/dca-v0.0.2.dmg){:target="_blank"}
+- [Windows](https://static.dataflux.cn/dca/dca-v0.0.2-x86.exe){:target="_blank"}
 
 ## 登录 DCA 客户端
 

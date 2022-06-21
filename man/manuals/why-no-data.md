@@ -51,13 +51,13 @@ Wed Jul 21 08:22:32 UTC 2021
 
 ## 查看 Monitor 页面
 
-参见[这里](datakit-monitor)
+参见[这里](datakit-monitor.md)
 
 ## 通过 DQL 查看是否有数据产生
 
 在 Windows/Linux/Mac 上，这一功能均支持，其中 Windows 需在 Powershell 中执行
 
-> DataKit [1.1.7-rc7](changelog#494d6cd5) 才支持这一功能
+> DataKit [1.1.7-rc7](changelog#cl-1.1.7-rc7) 才支持这一功能
 
 ```shell
 datakit dql

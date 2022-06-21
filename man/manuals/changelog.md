@@ -52,7 +52,7 @@
 
 ----
 
-## 1.2.20(2022/05/22)
+## 1.2.20(2022/05/22) {#cl-1.2.20}
 
 本次发布属于 hotfix 发布，主要修复如下问题：
 
@@ -85,7 +85,7 @@ volumes:
 
 ----
 
-## 1.2.19(2022/05/12)
+## 1.2.19(2022/05/12) {#cl-1.2.19}
 
 本次发布属于迭代发布，主要更新如下内容：
 
@@ -272,7 +272,7 @@ volumes:
 
 ---
 
-## 1.2.8(2022/03/04)
+## 1.2.8(2022/03/04) {#cl-1.2.8}
 
 本次发布属于 hotfix 修复，内容如下：
 
@@ -286,7 +286,7 @@ volumes:
 
 ---
 
-## 1.2.7(2022/02/22)
+## 1.2.7(2022/02/22) {#cl-1.2.7}
 
 本次发布属于迭代发布，内容如下：
 
@@ -405,7 +405,7 @@ volumes:
 
 ---
 
-## 1.2.0(2021/12/30)
+## 1.2.0(2021/12/30) {#cl-1.2.0}
 
 ### 采集器更新
 
@@ -421,7 +421,7 @@ volumes:
 - [日志采集器](logging) 支持接收 TCP/UDP 日志流(#503)
 - [Prom 采集器](prom) 支持多 URL 采集(#506)
 - 新增 [eBPF](ebpf) 采集器，它集成了 L4-network/DNS/Bash 等 eBPF 数据采集(507)
-- [ElasticSearch 采集器](elasticsearch) 增加 [Open Distro](https://opendistro.github.io/for-elasticsearch/) 分支的 ElasticSearch 支持(#510)
+- [ElasticSearch 采集器](elasticsearch) 增加 [Open Distro](https://opendistro.github.io/for-elasticsearch/){:target="_blank"} 分支的 ElasticSearch 支持(#510)
 
 ### Bug 修复
 
@@ -444,7 +444,7 @@ volumes:
   - 新功能预计会发布在非稳定版上，待新功能稳定后，会发布新的稳定版本。如 1.3.x 新功能稳定后，会发布 1.4.0 稳定版，以合并 1.3.x 上的新功能
   - 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装非稳定版
 
-### Breaking Changes
+### Breaking Changes {cl-1.2.0-break-changes}
 
 **老版本的 DataKit 通过 `datakit --version` 已经无法推送新升级命令**，直接使用如下命令：
 
@@ -526,7 +526,7 @@ $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Mo
   - 移除 `json_all()` 函数，这个函数对于异常的 json 有严重的数据问题，故选择禁用之(#457)
   - 修正 `default_time()` 函数时区设置问题(#434)
 - 解决 [prom](prom) 采集器在 Kubernetes 环境下 HTTPS 访问问题(#447)
-- DataKit DaemonSet 安装的 [yaml 文件](https://static.guance.com/datakit/datakit.yaml) 公网可直接下载
+- DataKit DaemonSet 安装的 [yaml 文件](https://static.guance.com/datakit/datakit.yaml){:target="_blank"} 公网可直接下载
 
 ---
 
@@ -847,7 +847,7 @@ $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Mo
 
 ---
 
-## 1.1.7-rc7(2021/07/01)
+## 1.1.7-rc7(2021/07/01) {#cl-1.1.7-rc7}
 
 ### 发布说明
 

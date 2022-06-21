@@ -33,7 +33,7 @@ vim /etc/clickhouse-server/config.xml
 - `events` 从 ClickHouse 的 `system.events` 表中抓取暴露的事件标志
 - `asynchronous_metrics` 从 ClickHouse 中 `system.asynchronous_metrics` 表中抓取暴露的异步指标标志
 
-详见[ClickHouse 官方文档](https://ClickHouse.com/docs/en/operations/server-configuration-parameters/settings/#server_configuration_parameters-prometheus)
+详见[ClickHouse 官方文档](https://ClickHouse.com/docs/en/operations/server-configuration-parameters/settings/#server_configuration_parameters-prometheus){:target="_blank"}
 
 ## 配置 {#input-config}
 

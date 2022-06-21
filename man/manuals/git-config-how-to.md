@@ -3,7 +3,7 @@
 
 ## Git 的工作原理
 
-Git 是用于版本控制的一项技术, 同 SVN。更多介绍详见[这里](https://www.runoob.com/git/git-tutorial.html)。
+Git 是用于版本控制的一项技术, 同 SVN。更多介绍详见[这里](https://www.runoob.com/git/git-tutorial.html){:target="_blank"}。
 
 Git 组件分为 Git Server 和 Git Client。在远程服务器上运行的是 Git Server, 即远程仓库。在本地 (或 Kubernates 容器里面。以下说的 "本地" 都是这层意思。) 运行的是 Git Client, 即本地副本。
 
@@ -45,7 +45,7 @@ git push origin master
 
 ## 如何远程提交一个 conf 文件以及目录?
 
-下面以 [clickhouse](https://www.yuque.com/dataflux/datakit/clickhousev1) 采集器为例进行演示。
+下面以 [clickhouse](../integrations/clickhousev1.md) 采集器为例进行演示。
 
 第 1 步: 切换到 `/root` 目录下，使用 `git clone http://github.com/path/to/repository.git` 命令拉取远程仓库到本地。
 
@@ -135,4 +135,4 @@ git 验证方式采用用户名和密码方式。
 | ENV_GIT_BRANCH   | `master`                                                     |
 | ENV_GIT_INTERVAL | `1m`                                                         |
 
-更多关于 Datakit 的 Kubernates 环境下面的配置可以参见[这个文档](https://www.yuque.com/dataflux/datakit/k8s-config-how-to#40747310)。
+更多关于 Datakit 的 Kubernates 环境下面的配置可以参见[这个文档](k8s-config-how-to.md#via-env-config)。

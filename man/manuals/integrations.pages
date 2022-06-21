@@ -1,6 +1,6 @@
 nav:
   - index.md
-  - '集成文档合并（临时条目）': integration-to-datakit-howto.md
+  #- '集成文档合并（临时条目）': integration-to-datakit-howto.md
   - '主机':
     - 'DataKit 自身指标': self.md
     - hostobject.md

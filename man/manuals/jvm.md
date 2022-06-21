@@ -12,7 +12,7 @@
 
 ## 通过 ddtrace 采集 JVM 指标
 
-DataKit 内置了 [statsd 采集器](statsd)，用于接收网络上发送过来的 statsd 协议的数据。此处我们利用 ddtrace 来采集 JVM 的指标数据，并通过 statsd 协议发送给 DataKit。
+DataKit 内置了 [statsd 采集器](statsd.md)，用于接收网络上发送过来的 statsd 协议的数据。此处我们利用 ddtrace 来采集 JVM 的指标数据，并通过 statsd 协议发送给 DataKit。
 
 ### 准备 statsd 配置
 
@@ -101,7 +101,7 @@ java -javaagent:dd-java-agent.jar \
 
 注意：
 
-- 关于 `dd-jave-agent.jar` 包的下载，参见 [这里](ddtrace)
+- 关于 `dd-jave-agent.jar` 包的下载，参见 [这里](ddtrace.md)
 - 建议给如下几个字段命名：
 	- `service` 用于表示该 JVM 数据来自哪个应用
 	- `env` 用于表示该 JVM 数据来自某个应用的哪个环境（如 prod/testing/preprod 等）
@@ -163,7 +163,7 @@ JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到观�
 
 ## 前置条件
 
-安装或下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar)。DataKit 安装目录下的 `data` 目录中已经有下载好的 Jolokia jar 包。通过如下方式开启 Java 应用： 
+安装或下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar){:target="_blank"}。DataKit 安装目录下的 `data` 目录中已经有下载好的 Jolokia jar 包。通过如下方式开启 Java 应用： 
 
 ```shell
 java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar your_app.jar
@@ -206,6 +206,6 @@ java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar you
 
 ## 延伸阅读
 
-- [DDTrace Java 示例](ddtrace-java)
-- [SkyWalking](skywalking)
-- [Opentelemetry Java 示例](opentelemetry-java)
+- [DDTrace Java 示例](ddtrace-java.md)
+- [SkyWalking](skywalking.md)
+- [Opentelemetry Java 示例](opentelemetry-java.md)

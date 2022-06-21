@@ -72,7 +72,3 @@ Datadog.configure do |c|
 
 ## 常见问题排查
 <[无数据上报排查](https://www.yuque.com/dataflux/datakit/why-no-data)>
-
-## 进一步阅读
-
-![](imgs/input-ruby-02.png)

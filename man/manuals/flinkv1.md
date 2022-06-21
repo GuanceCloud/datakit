@@ -11,7 +11,7 @@ Flink 采集器可以从 Flink 实例中采取很多指标，比如 Flink 服务
 
 ## 前置条件
 
-目前 Flink 官方提供两种 metrics 上报方式: [Prometheus](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/deployment/metric_reporters/#prometheus) 和 [PrometheusPushGateway](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/deployment/metric_reporters/#prometheuspushgateway)。
+目前 Flink 官方提供两种 metrics 上报方式: [Prometheus](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/deployment/metric_reporters/#prometheus){:target="_blank"} 和 [PrometheusPushGateway](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/deployment/metric_reporters/#prometheuspushgateway){:target="_blank"}。
 
 它们主要的区别是:
 - PrometheusPushGateway 方式是把集群所有的 metrics 统一汇报给 pushgateway，所以需要额外安装 pushgateway
@@ -21,7 +21,7 @@ Flink 采集器可以从 Flink 实例中采取很多指标，比如 Flink 服务
 
 #### pushgateway 下载与启动
 
-可以在 [Prometheuse 官方页面](https://prometheus.io/download/#pushgateway) 进行下载。
+可以在 [Prometheuse 官方页面](https://prometheus.io/download/#pushgateway){:target="_blank"} 进行下载。
 
 启动 pushgateway: `nohup ./pushgateway &`（此命令仅供参考，具体命令根据实际环境可能有所不同）
 
