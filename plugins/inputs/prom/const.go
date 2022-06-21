@@ -97,6 +97,11 @@ const sampleCfg = `
     # tag2 = "new-name-2"
     # tag3 = "new-name-3"
 
+  # 将采集到的指标作为日志打到中心
+  [inputs.prom.as_logging]
+    enable = false
+    service = "service_name"
+
   # 自定义Tags
   [inputs.prom.tags]
   # some_tag = "some_value"
