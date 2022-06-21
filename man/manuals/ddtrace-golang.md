@@ -71,3 +71,4 @@ go run your-go-code.go
 - WithLogStartup: 开启启动配置和诊断日志，对应环境变量 DD_TRACE_STARTUP_LOGS。
 - WithDebugMode: 开启 debug 日志，对应环境变量 DD_TRACE_DEBUG。
 - WithAgentAddr: Datakit 监听的地址和端口号，默认 localhost:9529。
+- WithSampler: 设置采样率从 0.0(0%) ~ 1.0(100%)。

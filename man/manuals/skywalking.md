@@ -36,14 +36,6 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
 {{.InputSample}}
 ```
 
-## 启动 Java Client
-
-```command
-java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
-```
-
-## 指标集
-
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ```toml
@@ -53,9 +45,15 @@ java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
   # ...
 ```
 
-{{ range $i, $m := .Measurements }}
+## 启动 Java Client
 
-### `{{$m.Name}}`
+```command
+java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
+```
+
+## SkyWalking JVM 指标集
+
+{{ range $i, $m := .Measurements }}
 
 {{$m.Desc}}
 
