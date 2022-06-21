@@ -26,7 +26,7 @@ else
   os="linux"
 fi
 
-#make || exit -1
+make || exit -1
 
 # datakit 文档导出
 echo 'export to datakit docs...'

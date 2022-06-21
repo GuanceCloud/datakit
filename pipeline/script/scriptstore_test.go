@@ -17,10 +17,6 @@ import (
 )
 
 func TestScriptLoadFunc(t *testing.T) {
-	if _, err := os.Stat(filepath.Join(datakit.InstallDir, "pipeline")); err != nil {
-		t.Error(err)
-		return
-	}
 	case1 := map[string]map[string]string{
 		datakit.Logging: {
 			"abcd": "if true {}",

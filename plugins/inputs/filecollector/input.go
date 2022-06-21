@@ -378,7 +378,7 @@ func FileCopy(f *os.File, tmpPath string) error {
 	if err != nil {
 		return err
 	}
-	tmpf, err := os.Create(tmpPath)
+	tmpf, err := os.Create(filepath.Clean(tmpPath))
 	if err != nil {
 		return err
 	}

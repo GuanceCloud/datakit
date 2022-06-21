@@ -311,7 +311,7 @@ func QueryScript(category, name string) (*PlScript, bool) {
 
 func ReadPlScriptFromFile(fp string) (string, string, error) {
 	fp = filepath.Clean(fp)
-	if v, err := os.ReadFile(fp); err == nil {
+	if v, err := os.ReadFile(filepath.Clean(fp)); err == nil {
 		_, sName := filepath.Split(fp)
 		return sName, string(v), nil
 	} else {

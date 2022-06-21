@@ -119,6 +119,9 @@ func (t *Traceroute) startTrace(ip net.IP) error {
 				return err
 			}
 			icmpResponse = <-t.response
+			t.mu.Lock()
+			t.sentPacket = nil
+			t.mu.Unlock()
 			routeItem := &RouteItem{
 				IP:           icmpResponse.From.String(),
 				ResponseTime: icmpResponse.ResponseTime,
@@ -183,7 +186,6 @@ func (t *Traceroute) dealPacket(from *net.IPAddr, data []byte) {
 	}
 
 	if packetRecvTime.Sub(packet.startTime) > t.Timeout {
-		t.sentPacket = nil
 		t.response <- &Response{fail: true}
 		return
 	}
@@ -241,7 +243,6 @@ func (t *Traceroute) dealPacket(from *net.IPAddr, data []byte) {
 		}
 	}
 
-	t.sentPacket = nil
 	t.response <- &Response{From: from.IP, ResponseTime: packetRecvTime.Sub(packet.startTime)}
 }
 

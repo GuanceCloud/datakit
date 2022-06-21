@@ -161,13 +161,15 @@ create_time 1639657028706
 
 ## DataKit 更新 IP 数据库文件 {#install-ipdb}
 
-可直接使用如下命令安装/更新 IP 地理信息库：
+可直接使用如下命令安装/更新 IP 地理信息库,安装geolite2只需把iploc换成geolite2：
+
 
 ```shell
 datakit install --ipdb iploc
 ```
 
 更新完 IP 地理信息库后，修改 datakit.conf 配置：
+
 
 ```
 [pipeline]

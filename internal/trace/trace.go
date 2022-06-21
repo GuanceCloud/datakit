@@ -64,16 +64,36 @@ const (
 	TAG_VERSION        = "version"
 
 	// line protocol fields.
-	FIELD_DURATION           = "duration"
-	FIELD_MSG                = "message"
-	FIELD_PARENTID           = "parent_id"
-	FIELD_PID                = "pid"
-	FIELD_PRIORITY           = "priority"
-	FIELD_RESOURCE           = "resource"
-	FIELD_SAMPLE_RATE_GLOBAL = "sample_rate_global"
-	FIELD_SPANID             = "span_id"
-	FIELD_START              = "start"
-	FIELD_TRACEID            = "trace_id"
+	FIELD_DURATION    = "duration"
+	FIELD_MSG         = "message"
+	FIELD_PARENTID    = "parent_id"
+	FIELD_PID         = "pid"
+	FIELD_PRIORITY    = "priority"
+	FIELD_RESOURCE    = "resource"
+	FIELD_SAMPLE_RATE = "sample_rate"
+	FIELD_SPANID      = "span_id"
+	FIELD_START       = "start"
+	FIELD_TRACEID     = "trace_id"
+)
+
+// nolint:stylecheck
+const (
+	// PriorityRuleSamplerReject specifies that the rule sampler has decided that this trace should be rejected.
+	PRIORITY_RULE_SAMPLER_REJECT = -3
+	// PriorityUserReject informs the backend that a trace should be rejected and not stored.
+	// This should be used by user code overriding default priority.
+	PRIORITY_USER_REJECT = -1
+	// PriorityAutoReject informs the backend that a trace should be rejected and not stored.
+	// This is used by the builtin sampler.
+	PRIORITY_AUTO_REJECT = 0
+	// PriorityAutoKeep informs the backend that a trace should be kept and not stored.
+	// This is used by the builtin sampler.
+	PRIORITY_AUTO_KEEP = 1
+	// PriorityUserKeep informs the backend that a trace should be kept and not stored.
+	// This should be used by user code overriding default priority.
+	PRIORITY_USER_KEEP = 2
+	// PriorityRuleSamplerKeep specifies that the rule sampler has decided that this trace should be kept.
+	PRIORITY_RULE_SAMPLER_KEEP = 3
 )
 
 var (
@@ -82,31 +102,31 @@ var (
 )
 
 type DatakitSpan struct {
-	TraceID            string                 `json:"trace_id"`
-	ParentID           string                 `json:"parent_id"`
-	SpanID             string                 `json:"span_id"`
-	Service            string                 `json:"service"`     // process name
-	Resource           string                 `json:"resource"`    // a resource name in process
-	Operation          string                 `json:"operation"`   // a operation name behind resource
-	Source             string                 `json:"source"`      // tracer name
-	SpanType           string                 `json:"span_type"`   // span type of entry, local, exit or unknow
-	SourceType         string                 `json:"source_type"` // process role in service
-	Env                string                 `json:"env"`
-	Project            string                 `json:"project"`
-	Version            string                 `json:"version"`
-	Tags               map[string]string      `json:"tags"`
-	Metrics            map[string]interface{} `json:"metrics"`
-	EndPoint           string                 `json:"end_point"`
-	HTTPMethod         string                 `json:"http_method"`
-	HTTPStatusCode     string                 `json:"http_status_code"`
-	ContainerHost      string                 `json:"container_host"`
-	PID                string                 `json:"p_id"`     // process id
-	Start              int64                  `json:"start"`    // unit: nano sec
-	Duration           int64                  `json:"duration"` // unit: nano sec
-	Status             string                 `json:"status"`
-	Content            string                 `json:"content"`              // raw tracing data in json
-	Priority           int                    `json:"priority"`             // smapling priority
-	SamplingRateGlobal float64                `json:"sampling_rate_global"` // global sampling ratio
+	TraceID        string                 `json:"trace_id"`
+	ParentID       string                 `json:"parent_id"`
+	SpanID         string                 `json:"span_id"`
+	Service        string                 `json:"service"`     // process name
+	Resource       string                 `json:"resource"`    // a resource name in process
+	Operation      string                 `json:"operation"`   // a operation name behind resource
+	Source         string                 `json:"source"`      // tracer name
+	SpanType       string                 `json:"span_type"`   // span type of entry, local, exit or unknow
+	SourceType     string                 `json:"source_type"` // process role in service
+	Env            string                 `json:"env"`
+	Project        string                 `json:"project"`
+	Version        string                 `json:"version"`
+	Tags           map[string]string      `json:"tags"`
+	Metrics        map[string]interface{} `json:"metrics"`
+	EndPoint       string                 `json:"end_point"`
+	HTTPMethod     string                 `json:"http_method"`
+	HTTPStatusCode string                 `json:"http_status_code"`
+	ContainerHost  string                 `json:"container_host"`
+	PID            string                 `json:"p_id"`     // process id
+	Start          int64                  `json:"start"`    // unit: nano sec
+	Duration       int64                  `json:"duration"` // unit: nano sec
+	Status         string                 `json:"status"`
+	Content        string                 `json:"content"` // raw tracing data in json
+	// Priority       int                    `json:"priority"` // smapling priority
+	// SamplingRateGlobal float64                `json:"sampling_rate_global"` // global sampling ratio
 }
 
 type DatakitTrace []*DatakitSpan

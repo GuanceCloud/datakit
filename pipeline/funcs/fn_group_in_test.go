@@ -49,10 +49,24 @@ func TestGroupIn(t *testing.T) {
 		},
 		{
 			name:     "normal",
-			in:       `{"status": "test","age":"47"}`,
-			pl:       `json(_, status) group_in(status, [200, "test"], 119)`,
+			in:       `{"log_level": "test","age":"47"}`,
+			pl:       `json(_, log_level) group_in(log_level, [200, "test"], 119)`,
+			expected: int64(119),
+			outkey:   "log_level",
+		},
+		{
+			name:     "normal",
+			in:       `{"log_level": "test","age":"47"}`,
+			pl:       `json(_, log_level) group_in(log_level, [200, "test1"], 119)`,
 			expected: "test",
-			outkey:   "status",
+			outkey:   "log_level",
+		},
+		{
+			name:     "normal",
+			in:       `{"log_level": "test","age":"47"}`,
+			pl:       `json(_, log_level) group_in(log_level, [200, "test"], 119, "hh")`,
+			expected: int64(119),
+			outkey:   "hh",
 		},
 	}
 

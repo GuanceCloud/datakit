@@ -41,8 +41,9 @@ type Single struct {
 
 	readBuff []byte
 
-	tags   map[string]string
-	stopCh chan struct{}
+	tags            map[string]string
+	stopCh          chan struct{}
+	expectMultiLine bool // only for docker log, relation to log size (16K)
 }
 
 func NewTailerSingle(filename string, opt *Option) (*Single, error) {
@@ -80,8 +81,15 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		return nil, err
 	}
 
-	if !opt.FromBeginning {
-		if _, err := t.file.Seek(0, os.SEEK_END); err != nil {
+	checkpointData, err := getLogCheckpoint(getFileKey(filename))
+	if err != nil {
+		if !opt.FromBeginning {
+			if _, err := t.file.Seek(0, io.SeekEnd); err != nil {
+				return nil, err
+			}
+		}
+	} else if checkpointData != nil && checkpointData.Offset > 0 {
+		if _, err := t.file.Seek(checkpointData.Offset, io.SeekStart); err != nil {
 			return nil, err
 		}
 	}
@@ -104,28 +112,34 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 }
 
 func (t *Single) Run() {
-	defer t.Close()
 	t.forwardMessage()
+	t.Close()
+}
+
+func (t *Single) Stop() {
+	t.stopCh <- struct{}{}
 }
 
 func (t *Single) Close() {
-	t.stopCh <- struct{}{}
+	t.removeWatcher(t.filepath)
 	t.closeWatcher()
+	if offset := t.currentOffset(); offset > 0 {
+		err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: offset})
+		if err != nil {
+			t.opt.log.Warnf("update checkpoint %s, offset %d, err: %s", t.filepath, offset, err)
+		}
+	}
+	t.closeFile()
 	t.opt.log.Infof("closing %s", t.filepath)
 }
 
-func (t *Single) addWatcher(fn string) error {
+func (t *Single) removeWatcher(fn string) {
 	if t.watcher == nil {
-		return nil
+		return
 	}
-	return t.watcher.Add(fn)
-}
-
-func (t *Single) removeWatcher(fn string) error {
-	if t.watcher == nil {
-		return nil
+	if err := t.watcher.Remove(fn); err != nil {
+		t.opt.log.Warnf("remove watcher err: %s, ignored", err)
 	}
-	return t.watcher.Remove(fn)
 }
 
 func (t *Single) closeWatcher() {
@@ -138,7 +152,7 @@ func (t *Single) closeWatcher() {
 }
 
 func (t *Single) closeFile() {
-	if t.file != nil {
+	if t.file == nil {
 		return
 	}
 	if err := t.file.Close(); err != nil {
@@ -168,38 +182,6 @@ func (t *Single) reopen() error {
 	return nil
 }
 
-func (t *Single) tellEvent(event fsnotify.Event) (err error) {
-	switch {
-	case event.Op&fsnotify.Remove == fsnotify.Remove:
-		t.opt.log.Debugf("receive remove event from file %s", t.filepath)
-
-		if err = t.reopen(); err != nil {
-			t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
-			return
-		}
-		if err = t.removeWatcher(t.filepath); err != nil {
-			t.opt.log.Warnf("unable remove watcher %s, err: %s", t.filepath, err)
-			return
-		}
-		if err = t.addWatcher(t.filepath); err != nil {
-			t.opt.log.Warnf("unable add watcher %s, err: %s", t.filepath, err)
-			return
-		}
-
-	case event.Op&fsnotify.Rename == fsnotify.Rename:
-		t.opt.log.Debugf("receive rename event from file %s", t.filepath)
-
-		if err = t.reopen(); err != nil {
-			t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
-			return
-		}
-		// default:
-		// 	t.opt.log.Debugf("receive %s event from file %s, ignored", event, t.filepath)
-	}
-
-	return nil
-}
-
 //nolint:cyclop
 func (t *Single) forwardMessage() {
 	var (
@@ -215,28 +197,37 @@ func (t *Single) forwardMessage() {
 		select {
 		case event, ok := <-t.watcher.Events:
 			if !ok {
-				t.opt.log.Warnf("receive events error, file %s", t.filepath)
 				return
 			}
-			if err := t.tellEvent(event); err != nil {
-				t.opt.log.Warn(err)
-				return
+			if event.Op&fsnotify.Rename == fsnotify.Rename {
+				t.opt.log.Debugf("receive rename event from file %s", t.filepath)
+				if err = t.reopen(); err != nil {
+					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
+				}
 			}
 
 		case err, ok := <-t.watcher.Errors:
-			t.opt.log.Warnf("receive error event from file %s, err: %s", t.filepath, err)
 			if !ok {
 				return
 			}
+			t.opt.log.Warnf("receive error event from file %s, err: %s", t.filepath, err)
 
 		case <-t.stopCh:
-			t.closeFile()
-			t.opt.log.Infof("stop reading data from file %s", t.filename)
 			return
 
 		case <-timeout.C:
 			if str := t.mult.FlushString(); str != "" {
 				t.send(str)
+			}
+			if !fileIsHealthy(t.filepath, t.opt.IgnoreDeadLog) {
+				t.opt.log.Debugf("file %s does not exist, exit", t.filepath)
+				return
+			}
+			if offset := t.currentOffset(); offset > 0 {
+				err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: offset})
+				if err != nil {
+					t.opt.log.Warnf("update checkpoint %s, offset %d, err: %s", t.filepath, offset, err)
+				}
 			}
 
 		default:
@@ -281,6 +272,7 @@ func (t *Single) dockerHandler(lines []string) {
 	for k, v := range t.tags {
 		tags[k] = v
 	}
+
 	for _, line := range lines {
 		if line == "" {
 			continue
@@ -303,11 +295,26 @@ func (t *Single) dockerHandler(lines []string) {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
 
-		if len(text) > 0 && text[len(text)-1] == '\n' {
-			text = text[:len(text)-1]
+		if len(text) > 0 {
+			// deal with docker log size exceed 16 K
+			if text[len(text)-1] != '\n' {
+				textLen := len(text)
+				if t.expectMultiLine {
+					text = t.multilineWithFlag(text, true)
+				} else {
+					text = t.multiline(multiline.TrimRightSpace(text))
+				}
+				t.expectMultiLine = textLen/1000 == 16 // almost to 16 K
+			} else {
+				if t.expectMultiLine {
+					text = t.multilineWithFlag(text, true)
+					t.expectMultiLine = false
+				} else {
+					text = t.multiline(multiline.TrimRightSpace(text))
+				}
+			}
 		}
 
-		text = t.multiline(text)
 		if text == "" {
 			continue
 		}
@@ -336,7 +343,7 @@ func (t *Single) defaultHandler(lines []string) {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
 
-		text = t.multiline(text)
+		text = t.multiline(multiline.TrimRightSpace(text))
 		if text == "" {
 			continue
 		}
@@ -406,7 +413,7 @@ func (t *Single) currentOffset() int64 {
 	if t.file == nil {
 		return -1
 	}
-	offset, err := t.file.Seek(0, os.SEEK_CUR)
+	offset, err := t.file.Seek(0, io.SeekCurrent)
 	if err != nil {
 		return -1
 	}
@@ -453,6 +460,13 @@ func (t *Single) multiline(text string) string {
 		return text
 	}
 	return t.mult.ProcessLineString(text)
+}
+
+func (t *Single) multilineWithFlag(text string, flag bool) string {
+	if t.mult == nil {
+		return text
+	}
+	return t.mult.ProcessLineStringWithFlag(text, flag)
 }
 
 type buffer struct {
@@ -510,4 +524,21 @@ func fileExists(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+func fileIsHealthy(fn string, timeout time.Duration) bool {
+	info, err := os.Stat(fn)
+	if err != nil {
+		if os.IsExist(err) {
+			return true
+		}
+		if os.IsNotExist(err) {
+			return false
+		}
+		return false
+	}
+	if timeout > 0 && time.Since(info.ModTime()) > timeout {
+		return false
+	}
+	return true
 }

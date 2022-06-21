@@ -1,6 +1,31 @@
 # DataKit 版本历史
 ---
 
+## 1.4.2(2022/06/16)
+
+本次发布属于迭代发布，主要更新如下内容：
+
+- 日志采集支持记录采集位置，避免因为 DataKit 重启等情况导致的数据漏采(#812)
+- 调整 Pipeline 在处理不同类数据时的设定(#806)
+- 支持接收 SkyWalking 指标数据(#780)
+- 优化日志黑名单调试功能：
+  - 在 Monitor 中会展示被过滤掉的点数(#827)
+  - 在 datakit/data 目录下会增加一个 *.filter* 文件，用来记录拉取到的过滤器
+- Monitor 中增加 DataKit 打开文件数显示(#828)
+- DataKit 编译器升级到 golang 1.18.3(#674)
+
+### Bug 修复
+
+- 修复 `ENV_K8S_NODE_NAME` 未全局生效的问题(#840)
+- 修复日志采集器中文件描述符泄露问题，**强烈推荐升级**(#838)
+- 修复 Pipeline `group_in` 问题(#826)
+- 修复 ElasticSearch 采集器配置的 `http_timeout` 解析问题(#821)
+- 修复 DCA API 问题(#747)
+- DDTrace 采集器恢复识别 trace SDK 上的采样设定(#834)
+- 修复 `dev_null` DataWay 设置无效问题(#842)
+
+----
+
 ## 1.4.1(2022/06/07)
 
 本次发布属于迭代发布，主要更新如下内容：
@@ -31,9 +56,9 @@
 
 - Pipeline 做了很大调整(#761)
   - 所有数据类型，均可通过配置 Pipeline 来额外处理数据(#761/#739)
-	- [grok()](pipeline#965ead3c) 支持直接将字段提取为指定类型，无需再额外通过 `cast()` 函数进行类型转换(#760)
-	- Pipeline 增加[多行字符串支持](pipeline#3ab24547)，对于很长的字符串（比如 grok 中的正则切割），可以通过将它们写成多行，提升了可读性(#744)
-	- 每个 Pipeline 的运行情况，通过 datakit monitor -V 可直接查看(#701)
+  - [grok()](pipeline#965ead3c) 支持直接将字段提取为指定类型，无需再额外通过 `cast()` 函数进行类型转换(#760)
+  - Pipeline 增加[多行字符串支持](pipeline#3ab24547)，对于很长的字符串（比如 grok 中的正则切割），可以通过将它们写成多行，提升了可读性(#744)
+  - 每个 Pipeline 的运行情况，通过 datakit monitor -V 可直接查看(#701)
 - 增加 Kubernetes [Pod 对象](container#23ae0855-1) CPU/内存指标(#770)
 - Helm 增加更多 Kubernetes 版本安装适配(#783)
 - 优化 [OpenTelemetry](opentelemetry)，HTTP 协议增加 JSON 支持(#781)
@@ -47,7 +72,7 @@
 - 修复 monitor 中 DataWay 统计错误(#785)
 - 修复日志采集器相关 bug(#783)
   - 有一定概率，日志采集会导致脏数据串流的情况
-	- 在文件日志采集的场景下（磁盘文件/容器日志/logfwd），修复被采集日志因为 truncate/rename/remove 等因素导致的采集不稳定问题（丢失数据）
+  - 在文件日志采集的场景下（磁盘文件/容器日志/logfwd），修复被采集日志因为 truncate/rename/remove 等因素导致的采集不稳定问题（丢失数据）
 - 其它 Bug 修复(#790)
 
 ----

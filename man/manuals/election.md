@@ -40,20 +40,21 @@ namespace = "dk-namespace-example"
 
 目前支持选举的采集器列表如下：
 
-- [Kubernetes](kubernetes.md)
-- [Prometheus 指标采集](prom.md)
-- [Gitlab](gitlab.md)
-- [NSQ](nsq.md)
 - [Apache](apache.md)
-- [InfluxDB](influxdb.md)
 - [ElasticSearch](elasticsearch.md)
+- [Gitlab](gitlab.md)
+- [InfluxDB](influxdb.md)
+- [Kubernetes](kubernetes.md)
 - [MongoDB](mongodb.md)
 - [MySQL](mysql.md)
+- [NSQ](nsq.md)
 - [Nginx](nginx.md)
 - [PostgreSQL](postgresql.md)
+- [Prometheus 指标采集](prom.md)
 - [RabbitMQ](rabbitmq.md)
 - [Redis](redis.md)
 - [Solr](solr.md)
+- [TDengine](tdengine)
 
 ## FAQ
 

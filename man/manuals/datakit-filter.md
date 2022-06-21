@@ -61,17 +61,17 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 [io]
   [io.Filters]
     logging = [ # 针对日志数据的过滤
-    	"{ source = 'datakit' or f1 IN [ 1, 2, 3] }"
+      "{ source = 'datakit' or f1 IN [ 1, 2, 3] }"
     ]
     metric = [ # 针对指标的过滤
-    	"{ measurement IN ['datakit', 'disk'] }",
-    	"{ measurement CONTAIN ['host.*', 'swap'] }",
+      "{ measurement IN ['datakit', 'disk'] }",
+      "{ measurement MATCH ['host.*', 'swap'] }",
     ]
     object = [ # 针对对象过滤
-    	"{ class CONTAIN ['host_.*'] }",
+      "{ class MATCH ['host_.*'] }",
     ]
     tracing = [ # 针对 tracing 过滤
-    	"{ service = re("abc.*") AND some_tag CONTAIN ['def_.*'] }",
+      "{ service = re("abc.*") AND some_tag MATCH ['def_.*'] }",
     ]
 ```
 
@@ -107,19 +107,19 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 - 括号表达式：用于任意关系之间的逻辑组合，如
 
 ```
-{ service = re('.*') AND ( abc IN [1,2,'foo', 2.3] OR def CONTAIN ['foo.*', 'bar.*']) }
+{ service = re('.*') AND ( abc IN [1,2,'foo', 2.3] OR def MATCH ['foo.*', 'bar.*']) }
 ```
 
 除此之外，还支持如下列表操作：
 
-| 操作符                  | 支持数值类型   | 说明                                                   | 示例                                |
-| ----                    | ----           | ----                                                   | ----                                |
-| `IN`, `NOTIN`           | 数值列表列表   | 指定的字段是否在列表中，列表中支持多类型混杂           | `{ abc IN [1,2, "foo", 3.5]}`       |
-| `CONTAIN`, `NOTCONTAIN` | 正则表达式列表 | 指定的字段是否匹配列表中的正则，该列表只支持字符串类型 | `{ abc CONTAIN ["foo.*", "bar.*"]}` |
+| 操作符              | 支持数值类型   | 说明                                                   | 示例                              |
+| ----                | ----           | ----                                                   | ----                              |
+| `IN`, `NOTIN`       | 数值列表列表   | 指定的字段是否在列表中，列表中支持多类型混杂           | `{ abc IN [1,2, "foo", 3.5]}`     |
+| `MATCH`, `NOTMATCH` | 正则表达式列表 | 指定的字段是否匹配列表中的正则，该列表只支持字符串类型 | `{ abc MATCH ["foo.*", "bar.*"]}` |
 
 > 列表中==只能出现普通的数据类型==，如字符串、整数、浮点，其它表达式均不支持。 
 
-`IN/NOTIN/CONTAIN/NOTCONTAIN` 这些关键字==大小写不敏感==，即 `in` 和 `IN` 以及 `In` 效果是一样的。除此之外，其它操作数的大小写都是敏感的，比如如下两个过滤器表达的意思不同：
+`IN/NOTIN/MATCH/NOTMATCH` 这些关键字==大小写不敏感==，即 `in` 和 `IN` 以及 `In` 效果是一样的。除此之外，其它操作数的大小写都是敏感的，比如如下两个过滤器表达的意思不同：
 
 ```
 { abc IN [1,2, "foo", 3.5]} # 字段 abc（tag 或 field）是否在列表中
@@ -128,3 +128,24 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 
 在行协议中，所有字段都是大小写敏感的。
 
+## 故障排查
+
+### 查看同步下来的过滤器 {#debug-filter}
+
+对于从中心同步下来的过滤器，DataKit 记录了一份到 *<DataKit 安装目录>/data/.filters* 下，可直接查看
+
+```shell
+$ cat .filters  | jq
+{
+  "dataways": null,
+  "filters": {
+    "logging": [
+      "{ source = 'datakit'  and ( host in ['ubt-dev-01', 'tanb-ubt-dev-test'] )}"
+    ]
+  },
+  "pull_interval": 10000000000,
+  "remote_pipelines": null
+}
+```
+
+这里 JSON 中的 `filters` 字段就是拉取到的过滤器，目前里面只有针对日志的黑名单。

@@ -60,7 +60,9 @@ type Input struct {
 
 	TagsIgnore  []string            `toml:"tags_ignore"`
 	TagsRename  *iprom.RenameTags   `toml:"tags_rename"`
+	AsLogging   *iprom.AsLogging    `toml:"as_logging"`
 	IgnoreTagKV map[string][]string `toml:"ignore_tag_kv_match"`
+	HTTPHeaders map[string]string   `toml:"http_headers"`
 
 	Tags map[string]string `toml:"tags"`
 
@@ -99,7 +101,13 @@ func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	if namespace := config.GetElectionNamespace(); namespace != "" {
-		i.Tags["election_namespace"] = namespace
+		if i.Tags == nil {
+			i.Tags = map[string]string{
+				"election_namespace": namespace,
+			}
+		} else {
+			i.Tags["election_namespace"] = namespace
+		}
 	}
 
 	if i.setup() {
@@ -119,10 +127,23 @@ func (i *Input) Run() {
 			start := time.Now()
 			pts := i.doCollect()
 			if pts != nil {
-				if err := io.Feed(ioname, datakit.Metric, pts,
-					&io.Option{CollectCost: time.Since(start)}); err != nil {
-					l.Errorf("Feed: %s", err)
-					io.FeedLastError(ioname, err.Error())
+				if i.AsLogging != nil && i.AsLogging.Enable {
+					// Feed measurement as logging.
+					for _, pt := range pts {
+						// We need to feed each point separately because
+						// each point might have different measurement name.
+						if err := io.Feed(pt.Name(), datakit.Logging, []*io.Point{pt},
+							&io.Option{CollectCost: time.Since(start)}); err != nil {
+							l.Errorf("Feed: %s", err)
+							io.FeedLastError(ioname, err.Error())
+						}
+					}
+				} else {
+					if err := io.Feed(ioname, datakit.Metric, pts,
+						&io.Option{CollectCost: time.Since(start)}); err != nil {
+						l.Errorf("Feed: %s", err)
+						io.FeedLastError(ioname, err.Error())
+					}
 				}
 			}
 		}
@@ -254,8 +275,10 @@ func (i *Input) Init() error {
 		Tags:        i.Tags,
 		TagsIgnore:  i.TagsIgnore,
 		IgnoreTagKV: kvIgnore,
+		HTTPHeaders: i.HTTPHeaders,
 
 		RenameTags:  i.TagsRename,
+		AsLogging:   i.AsLogging,
 		Output:      i.Output,
 		MaxFileSize: i.MaxFileSize,
 		Auth:        i.Auth,

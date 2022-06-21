@@ -112,7 +112,7 @@ NAME1="value1" NAME2="value2"
 - `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM 专用
 - `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用.如 `True`/`False`)
-- `DK_INSTALL_IPDB`: 安装时指定IP库(当前仅支持`iploc`)
+- `DK_INSTALL_IPDB`: 安装时指定IP库(当前仅支持`iploc`, `geolite2`)
 
 ### DCA 相关
 - `DK_DCA_ENABLE`：支持安装阶段开启 DCA 服务（默认未开启）

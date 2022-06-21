@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/dustin/go-humanize"
+	humanize "github.com/dustin/go-humanize"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	bolt "go.etcd.io/bbolt"
@@ -22,12 +22,10 @@ import (
 
 const (
 	LocalBufferSize = 256
-
-	CacheFileName = "cache.bolt"
 )
 
 var (
-	defaultCacheOptions = &Options{
+	DefaultCacheOptions = &Options{
 		SwapInterval: 30 * time.Second,
 		BatchSize:    128,
 		MaxDiskSize:  int64(1024 * 1024 * 1024), // 1GB
@@ -42,18 +40,6 @@ type Options struct {
 	SwapInterval time.Duration
 	BatchSize    int
 	MaxDiskSize  int64
-}
-
-func complateOptions(opt *Options) *Options {
-	if opt == nil {
-		opt = defaultCacheOptions
-	}
-	if !opt.ok() {
-		l.Warnf("invalid cache option: %s, use default: %s",
-			opt, defaultCacheOptions)
-		opt = defaultCacheOptions
-	}
-	return opt
 }
 
 func (opt *Options) String() string {
@@ -124,16 +110,19 @@ type Cache struct {
 	stopChannle chan struct{}
 }
 
-func NewCache(dir string, opt *Options) (*Cache, error) {
+func NewCache(cachePath string, opt *Options) (*Cache, error) {
 	l = logger.SLogger("cache")
 
-	opt = complateOptions(opt)
+	if opt == nil || !opt.ok() {
+		l.Warnf("invalid cache option: %s, use default: %s", opt, DefaultCacheOptions)
+		opt = DefaultCacheOptions
+	}
 
 	c := Cache{
-		Directory: dir,
+		Directory: filepath.Dir(cachePath),
 		opt:       opt,
 
-		dbfile:   filepath.Join(dir, CacheFileName),
+		dbfile:   cachePath,
 		swapTick: time.NewTicker(opt.SwapInterval),
 
 		localBuffer: make(chan *Data, LocalBufferSize),

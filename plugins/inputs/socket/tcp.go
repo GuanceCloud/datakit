@@ -9,36 +9,17 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
 type TCPTask struct {
-	Host            string
-	Port            string
-	CurStatus       string
-	OwnerExternalID string
+	Host string
+	Port string
 
 	reqCost    time.Duration
 	reqDNSCost time.Duration
 	reqError   string
 	timeout    time.Duration
-	ticker     *time.Ticker
-	Frequency  string
-	ExternalID string
-}
-
-func (t *TCPTask) init(debug bool) error {
-	if strings.ToLower(t.CurStatus) == StatusStop {
-		return nil
-	}
-	return nil
-}
-
-func (t *TCPTask) Init() error {
-	return t.init(false)
 }
 
 func (t *TCPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
@@ -121,29 +102,22 @@ func (t *TCPTask) Run() error {
 			return fmt.Errorf("socket input close connection fail : %w", err)
 		}
 	}
-
 	return nil
 }
 
-func (t *TCPTask) ID() string {
-	if t.ExternalID == `` {
-		return cliutils.XID("dtst_")
+//nolint
+func (i *Input) runTCP(t *TCPTask) error {
+	err := t.Run() //nolint:errcheck
+	// 无论成功或失败，都要记录测试结果
+	i.feedMeasurement(t)
+	if err != nil {
+		return err
 	}
-	return fmt.Sprintf("_%s", t.ExternalID)
+	return nil
 }
 
-func (t *TCPTask) SetStatus(status string) {
-	t.CurStatus = status
-}
-
-func (t *TCPTask) Status() string {
-	return t.CurStatus
-}
-
-func (t *TCPTask) Ticker() *time.Ticker {
-	return t.ticker
-}
-
-func (t *TCPTask) Class() string {
-	return ClassTCP
+func (i *Input) feedMeasurement(t *TCPTask) {
+	tags, fields := t.GetResults()
+	ts := time.Now()
+	i.collectCache = append(i.collectCache, &TCPMeasurement{name: "tcp", tags: tags, fields: fields, ts: ts})
 }

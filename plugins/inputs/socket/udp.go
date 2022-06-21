@@ -89,14 +89,14 @@ func WaitTimeout(c *exec.Cmd, timeout time.Duration) error {
 	term := time.AfterFunc(timeout, func() {
 		err := c.Process.Signal(syscall.SIGTERM)
 		if err != nil {
-			l.Warnf("[agent] Error terminating process: %s", err)
+			l.Infof("input socket nc terminating process: %s", err)
 			return
 		}
 
 		kill = time.AfterFunc(KillGrace, func() {
 			err := c.Process.Kill()
 			if err != nil {
-				l.Errorf("E! [agent] Error killing process: %s", err)
+				l.Infof("input socket nc Error killing process: %s", err)
 				return
 			}
 		})
@@ -117,7 +117,7 @@ func WaitTimeout(c *exec.Cmd, timeout time.Duration) error {
 
 	// If SIGTERM was sent then treat any process error as a timeout.
 	if !term.Stop() {
-		return fmt.Errorf("\"command timed out\"")
+		return fmt.Errorf("\"nc command timed out\"")
 	}
 
 	// Otherwise there was an error unrelated to termination.

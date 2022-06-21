@@ -224,7 +224,7 @@ func (h *Input) writeFile(data []byte) error {
 		fp = filepath.Join(dir, fp)
 	}
 
-	f, err := os.Create(fp)
+	f, err := os.Create(filepath.Clean(fp))
 	if err != nil {
 		return err
 	}

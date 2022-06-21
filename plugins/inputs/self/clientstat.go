@@ -153,6 +153,7 @@ func (s *ClientStat) ToMetric() *io.Point {
 
 		"dropped_points_total": s.DroppedPointsTotal,
 		"dropped_points":       s.DroppedPoints,
+		"open_files":           datakit.OpenFiles(),
 
 		"incumbency": s.Incumbency, // deprecated, used elected
 		"elected":    s.Incumbency,
