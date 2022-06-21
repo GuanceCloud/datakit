@@ -55,3 +55,4 @@ namespace = "dk-namespace-example"
 - [RabbitMQ](rabbitmq)
 - [Redis](redis)
 - [Solr](solr)
+- [TDengine](tdengine)

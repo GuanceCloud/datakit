@@ -69,6 +69,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/statsd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/swap"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/system"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tdengine"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tomcat"
 
 	// only windows.
