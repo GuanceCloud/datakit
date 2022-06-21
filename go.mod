@@ -9,6 +9,7 @@ require (
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.4+incompatible
+	github.com/antchfx/xmlquery v1.3.11
 	github.com/apache/thrift v0.13.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/c-bata/go-prompt v0.2.5
@@ -126,6 +127,7 @@ require (
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/alecthomas/chroma v0.7.1 // indirect
 	github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1 // indirect
+	github.com/antchfx/xpath v1.2.1 // indirect
 	github.com/avast/retry-go v2.7.0+incompatible // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.2 // indirect

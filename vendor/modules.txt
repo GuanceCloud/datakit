@@ -132,6 +132,12 @@ github.com/alecthomas/chroma/styles
 # github.com/aliyun/aliyun-oss-go-sdk v2.2.4+incompatible
 ## explicit
 github.com/aliyun/aliyun-oss-go-sdk/oss
+# github.com/antchfx/xmlquery v1.3.11
+## explicit; go 1.14
+github.com/antchfx/xmlquery
+# github.com/antchfx/xpath v1.2.1
+## explicit; go 1.14
+github.com/antchfx/xpath
 # github.com/apache/thrift v0.13.0
 ## explicit
 github.com/apache/thrift/lib/go/thrift
@@ -1135,6 +1141,7 @@ golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
 golang.org/x/net/html/atom
+golang.org/x/net/html/charset
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
@@ -1174,9 +1181,14 @@ golang.org/x/term
 # golang.org/x/text v0.3.7
 ## explicit; go 1.17
 golang.org/x/text/encoding
+golang.org/x/text/encoding/charmap
+golang.org/x/text/encoding/htmlindex
 golang.org/x/text/encoding/internal
 golang.org/x/text/encoding/internal/identifier
+golang.org/x/text/encoding/japanese
+golang.org/x/text/encoding/korean
 golang.org/x/text/encoding/simplifiedchinese
+golang.org/x/text/encoding/traditionalchinese
 golang.org/x/text/encoding/unicode
 golang.org/x/text/internal/language
 golang.org/x/text/internal/language/compact
