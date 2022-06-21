@@ -54,3 +54,18 @@ namespace = "dk-namespace-example"
 - [RabbitMQ](rabbitmq.md)
 - [Redis](redis.md)
 - [Solr](solr.md)
+
+## FAQ
+
+### `host` 字段问题 {#host}
+
+在选举模式下，对于某个具体的被采集对象而言，比如 MySQL，由于采集其数据的 DataKit 可能会变迁（发生了选举轮换），这会导致同一个 MySQL 实例出现多个不同的 `host` 字段。
+
+为避免这种情况，建议在 MySQL 采集器配置上，增加额外的 `tags` 字段：
+
+```toml
+[inputs.{{.InputName}}.tags]
+  host = "real-mysql-instance-name"
+```
+
+这样，当 DataKit 发生选举轮换时，会继续沿用 tags 中配置的 `host` 字段，而不会因为选举轮换而出现 `host` 字段变迁问题。
