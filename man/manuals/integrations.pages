@@ -1,6 +1,6 @@
 nav:
   - index.md
-  - '集成文档合并（临时条目）': integration-to-datakit-howto.md
+  #- '集成文档合并（临时条目）': integration-to-datakit-howto.md
   - '主机':
     - 'DataKit 自身指标': self.md
     - hostobject.md
@@ -27,6 +27,9 @@ nav:
       - '容器': container.md
       - logfwd.md
       - kubernetes-prom.md
+      - kube-state-metrics.md
+      - kube-scheduler.md
+      - kube-state-metrics.md 
 
   - 应用性能监测（APM）:
     - 'Datakit Tracing 综述': datakit-tracing.md
@@ -37,10 +40,10 @@ nav:
       - ddtrace-golang.md
       - ddtrace-java.md
       - ddtrace-python.md
-      - ddtrace-php.md
+      - ddtrace-php-2.md
       - ddtrace-nodejs.md
       - ddtrace-cpp.md
-      - ddtrace-ruby.md
+      - ddtrace-ruby-2.md
 
     - 'SkyWalking':
       - 'SkyWalking 采集配置': skywalking.md
@@ -61,9 +64,16 @@ nav:
     - datakit-logging-how.md
     - logging.md
     - logging_socket.md
-    - logstreaming.md
+    - '第三方日志接入':
+      - '采集器配置': logstreaming.md
+      - logstreaming-fluentd.md
 
-  - rum.md
+  - '用户访问监测(RUM)':
+    - '采集器配置': rum.md
+    - rum-android.md
+    - rum-ios.md
+    - rum-miniapp.md
+    - rum-web-h5.md
 
   - 中间件:
     - 'ClickHouse': clickhousev1.md
@@ -85,6 +95,7 @@ nav:
       - 'Nginx': nginx.md
       - apache.md
       - resin.md
+      - haproxy.md
     - 'Java':
       - 'JVM': jvm.md
       - tomcat.md
@@ -95,6 +106,12 @@ nav:
 
   - 'eBPF':
     - 'eBPF 采集配置': ebpf.md
+
+  - '阿里云':
+    - '阿里云账单及费用': aliyun-charges.md
+    - aliyun-edas.md
+    - aliyun-slb.md
+    - aliyun-sls.md
 
   - '自定义采集器':
     - '用 Python 开发自定义采集器': pythond.md
