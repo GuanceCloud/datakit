@@ -206,3 +206,24 @@ func foo() {
   span.SetTag("finish_ts", time.Now())
 }
 ```
+
+## Tracing 数据
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "tracing"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}

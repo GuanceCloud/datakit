@@ -50,7 +50,7 @@ const (
     # ...
 
   ## Sampler config uses to set global sampling strategy.
-  ## sampling_rate used to set global sampling rate
+  ## sampling_rate used to set global sampling rate.
   # [inputs.zipkin.sampler]
     # sampling_rate = 1.0
 
