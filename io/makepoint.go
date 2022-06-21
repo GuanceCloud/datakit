@@ -136,7 +136,8 @@ func NewPoint(name string,
 		datakit.Logging,
 		datakit.Tracing,
 		datakit.RUM,
-		datakit.Security:
+		datakit.Security,
+		datakit.Profile:
 		lpOpt.DisabledTagKeys = DisabledTagKeys[opt.Category]
 		lpOpt.DisabledFieldKeys = DisabledFieldKeys[opt.Category]
 	default:
