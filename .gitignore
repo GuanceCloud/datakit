@@ -1,3 +1,5 @@
+__debug_bin
+!datakit.yaml
 .docs/
 .DS_Store
 .idea/
@@ -11,11 +13,11 @@
 *.log
 *.o
 *.out
+*.pdf
 *.pyc
 *.rpm
 *.tar.gz
 *.yaml
-!datakit.yaml
 *.zip
 **build/
 ag.sh
@@ -24,6 +26,7 @@ agent.conf
 agent.pid
 b.sh
 build.sh
+cache_testing_dir
 cfg.json
 china-operator-ip
 cmd/installer/bin/
@@ -33,6 +36,7 @@ data/*
 data/iploc.bin
 data/jolokia-jvm-agent.jar
 datakit.conf
+datakit.yaml
 deps/*
 dist/
 dk-installer
@@ -66,13 +70,9 @@ run_mac.sh
 run.s
 run.sh
 samples/*
+test.bin
 test.conf
 test.go
 test.jso
 test.output
 y.output
-__debug_bin
-*.pdf
-datakit.yaml
-test.bin
-cache_testing_dir
