@@ -98,6 +98,7 @@ const sampleCfg = `
     # tag3 = "new-name-3"
 
   # 将采集到的指标作为日志打到中心
+  # service 字段留空时，会把 service tag 设为指标集名称
   [inputs.prom.as_logging]
     enable = false
     service = "service_name"
