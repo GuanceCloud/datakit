@@ -147,7 +147,7 @@ var (
 	flagInstallTelegraf = fsInstall.Bool("telegraf", false, "install Telegraf")
 	flagInstallScheck   = fsInstall.Bool("scheck", false, "install SCheck")
 	flagInstallEbpf     = fsInstall.Bool("ebpf", false, "install DataKit eBPF plugin")
-	flagInstallIPDB     = fsInstall.String("ipdb", "", "install IP database(currently only iploc available)")
+	flagInstallIPDB     = fsInstall.String("ipdb", "", "install IP database")
 	fsInstallUsage      = func() {
 		fmt.Printf("usage: datakit install [options]\n\n")
 		fmt.Printf("Install used to install DataKit related packages and plugins\n\n")

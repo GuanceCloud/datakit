@@ -556,7 +556,7 @@ datakit --reinstall
 
 ### DataKit 更新 IP 数据库文件
 
-可直接使用如下命令更新数据库文件（仅 Mac/Linux 支持）
+可直接使用如下命令更新数据库文件（仅 Mac/Linux 支持,如果想使用geolite2库，把iploc改成geolite2即可
 
 ```shell
 sudo datakit install --ipdb iploc
