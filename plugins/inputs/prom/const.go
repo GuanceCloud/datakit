@@ -84,6 +84,11 @@ const sampleCfg = `
   # key1 = [ "val1.*", "val2.*"]
   # key2 = [ "val1.*", "val2.*"]
 
+  # 在数据拉取的 HTTP 请求中添加额外的请求头
+  [inputs.prom.http_headers]
+  # Root = "passwd"
+  # Michael = "1234"
+
   # 重命名 prom 数据中的 tag key
   [inputs.prom.tags_rename]
     overwrite_exist_tags = false

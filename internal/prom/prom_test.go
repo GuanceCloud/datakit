@@ -1105,3 +1105,36 @@ http_request_duration_seconds_bucket 1
 		})
 	}
 }
+
+func TestSetHeaders(t *testing.T) {
+	testcases := []struct {
+		name string
+		opt  *Option
+	}{
+		{
+			name: "add custom http header",
+			opt: &Option{
+				URL: "dummy_url",
+				HTTPHeaders: map[string]string{
+					"Root":    "passwd",
+					"Michael": "12345",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			p, err := NewProm(tc.opt)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			req, err := p.GetReq(p.opt.URL)
+			assert.NoError(t, err)
+			for k, v := range p.opt.HTTPHeaders {
+				assert.Equal(t, v, req.Header.Get(k))
+			}
+		})
+	}
+}

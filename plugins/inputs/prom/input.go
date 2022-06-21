@@ -61,6 +61,7 @@ type Input struct {
 	TagsIgnore  []string            `toml:"tags_ignore"`
 	TagsRename  *iprom.RenameTags   `toml:"tags_rename"`
 	IgnoreTagKV map[string][]string `toml:"ignore_tag_kv_match"`
+	HTTPHeaders map[string]string   `toml:"http_headers"`
 
 	Tags map[string]string `toml:"tags"`
 
@@ -254,6 +255,7 @@ func (i *Input) Init() error {
 		Tags:        i.Tags,
 		TagsIgnore:  i.TagsIgnore,
 		IgnoreTagKV: kvIgnore,
+		HTTPHeaders: i.HTTPHeaders,
 
 		RenameTags:  i.TagsRename,
 		Output:      i.Output,
