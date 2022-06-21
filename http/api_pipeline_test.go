@@ -20,6 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 // go test -v -timeout 30s -run ^TestGetPipelineLines$ gitlab.jiagouyun.com/cloudcare-tools/datakit/http
@@ -177,9 +178,8 @@ nullif(http_ident, "-")
 nullif(http_auth, "-")
 nullif(upstream, "")
 default_time(time)`)),
-				Source:   "nginx",
-				Service:  "",
-				Category: "logging",
+				Category:   "logging",
+				ScriptName: "nginx",
 				Data: base64.StdEncoding.EncodeToString([]byte(
 					`2021/11/10 16:59:53 [error] 16393#0: *17 open() "/usr/local/Cellar/nginx/1.21.3/html/server_status" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: "GET /server_status HTTP/1.1", host: "localhost:8080"`)),
 				Multiline: "",
@@ -381,3 +381,41 @@ func HttpErr(err error) (int, string, []byte) {
 }
 
 //------------------------------------------------------------------------------
+
+// go test -v -timeout 30s -run ^TestCheckRequest$ gitlab.jiagouyun.com/cloudcare-tools/datakit/http
+func TestCheckRequest(t *testing.T) {
+	var categories = []string{
+		datakit.CategoryMetric,
+		datakit.CategoryNetwork,
+		datakit.CategoryKeyEvent,
+		datakit.CategoryObject,
+		datakit.CategoryCustomObject,
+		datakit.CategoryLogging,
+		datakit.CategoryTracing,
+		datakit.CategoryRUM,
+		datakit.CategorySecurity,
+	}
+	for _, category := range categories {
+		err := checkRequest(&pipelineDebugRequest{Category: category})
+		assert.NoError(t, err)
+	}
+
+	cases := []struct {
+		name   string
+		in     *pipelineDebugRequest
+		expect error
+	}{
+		{
+			name:   "invalid_category",
+			in:     &pipelineDebugRequest{Category: "logging1"},
+			expect: uhttp.Error(ErrInvalidCategory, "invalid category"),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := checkRequest(tc.in)
+			assert.Equal(t, tc.expect, err)
+		})
+	}
+}
