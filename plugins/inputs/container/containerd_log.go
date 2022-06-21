@@ -72,7 +72,7 @@ func (c *containerdInput) watchNewLogs() error {
 	for _, container := range list.GetContainers() {
 		resp, err := c.criClient.ContainerStatus(context.Background(), &cri.ContainerStatusRequest{ContainerId: container.Id})
 		if err != nil {
-			l.Warnf("failed to get cri-container respone, id: %s, err: %s", container.Id, err)
+			l.Warnf("failed to get cri-container response, id: %s, err: %s", container.Id, err)
 			continue
 		}
 
