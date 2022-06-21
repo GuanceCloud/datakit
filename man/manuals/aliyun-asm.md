@@ -37,24 +37,24 @@ Istio 版本：v1.11.5.41-g10eacaaf-aliyun、v1.24.4.20-g4d72612f-aliyun
 
 #### 指标采集 (必选)
 
-1. 开通 Sidecar 注入
+1、 开通 Sidecar 注入
 
      为集群中的 namespace 设置 sidecar 自动注入，在该 namespace 下，新创建的 Pod 就会注入一个 Envoy容器用来接管流量。开通方式是为 namespace 添加标签，下面以 default 名称空间为例。
 
-- 登录[容器服务管理控制台](https://cs.console.aliyun.com/?spm=a2c4g.11186623.0.0.1b483e068AVz8k)。
-- 在控制台左侧导航栏中，单击**集群**。
-- 在**集群列表**页面中，单击目标集群名称或者目标集群右侧**操作**列下的**详情**。
-- 在集群管理页左侧导航栏单击**命名空间与配额。**
-- 在**命名空间**页面，单击**创建。**
-- 在**创建命名空间**对话框中，名称输入 default。
-   1. 在**变量名称**文本框中输入 istio-injection。
-   1. 在**变量值**文本框中输入 enabled。
+    - 登录[容器服务管理控制台](https://cs.console.aliyun.com/?spm=a2c4g.11186623.0.0.1b483e068AVz8k)。
+    - 在控制台左侧导航栏中，单击**集群**。
+    - 在**集群列表**页面中，单击目标集群名称或者目标集群右侧**操作**列下的**详情**。
+    - 在集群管理页左侧导航栏单击**命名空间与配额。**
+    - 在**命名空间**页面，单击**创建。**
+    - 在**创建命名空间**对话框中，名称输入 default。
+      a. 在**变量名称**文本框中输入 istio-injection。
+      b. 在**变量值**文本框中输入 enabled。
 
 点击**添加**后，再点**确定**。
 
 ![image](imgs/input-aliyun-asm-7.png)
 
-2. 开启 Zipkin 采集器
+2、 开启 Zipkin 采集器
 
 登录 [观测云](https://console.guance.com/)，【集成】->【Datakit】-> 【Kubernetes】，请按照指引在 Kubernetes 集群中安装 DataKit ，其中部署使用的 datakit.yaml 文件，在接下来的操作中会使用到。<br />        在观测云的一个工作空间中，可能收到多个集群的采集数据，为了区分集群，使用全局 Tag 为这个集群增加 ** cluster_name 值为 k8s-ack** 的 Tag。Tag 请自定义，不同集群不能相同。
 
@@ -206,7 +206,7 @@ data:  # 下面是新增部分
 kubectl apply -f  datakit.yaml
 ```
 
-3. 开启 Annotations
+3、 开启 Annotations
 
 在业务Pod处添加如下annotations（具体路径deployment.spec.template.metadata下），这样即可采集 Envoy 的指标数据。
 
@@ -669,11 +669,14 @@ DataKit 默认的配置，采集容器输出到 /dev/stdout 的日志。更多�
 ## 场景视图
 
 场景 - 新建仪表板 
+
 - 阿里云 ASM Workload 监控视图
+  
 - 阿里云 ASM Mesh 监控视图
+  
 - 阿里云 ASM Control Plane 监控视图
-- 阿里云 ASM Service 监控视图
-  相关文档 <[DataFlux 场景管理](https://www.yuque.com/dataflux/doc/trq02t)> 
+  
+- 阿里云 ASM Service 监控视图  
   
 ## 指标详解
 
