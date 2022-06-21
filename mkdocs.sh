@@ -49,9 +49,22 @@ cp man/manuals/integrations-index.md $integration_docs_dir/index.md
 # 这些文件没有集成在 datakit 代码中（没法通过 export-docs 命令导出），故直接拷贝到文档库中。
 extra_files=(
 	man/integration-to-datakit-howto.md
-	man/manuals/aliyun-access.md
+	man/manuals/aliyun-asm.md
+	man/manuals/aliyun-cdn.md
 	man/manuals/aliyun-charges.md
+	man/manuals/aliyun-ecs.md
 	man/manuals/aliyun-edas.md
+	man/manuals/aliyun-eip.md
+	man/manuals/aliyun-es.md
+	man/manuals/aliyun-mongodb.md
+	man/manuals/aliyun-mysql.md
+	man/manuals/aliyun-nat.md
+	man/manuals/aliyun-oracle.md
+	man/manuals/aliyun-oss.md
+	man/manuals/aliyun-postgresql.md
+	man/manuals/aliyun-rds-mysql.md
+	man/manuals/aliyun-rds-sqlserver.md
+	man/manuals/aliyun-redis.md
 	man/manuals/aliyun-slb.md
 	man/manuals/aliyun-sls.md
 	man/manuals/ddtrace-csharp.md
