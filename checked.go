@@ -164,5 +164,6 @@ var (
 		"profile":                true,
 		"socket":                 true,
 		"beats_output":           true,
+		"tdengine":               true,
 	}
 )
