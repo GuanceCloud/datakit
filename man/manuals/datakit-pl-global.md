@@ -1,10 +1,9 @@
 {{.CSS}}
+# Pipeline 各类别数据处理
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# Pipeline 各类别数据处理
 
 自 DataKit v1.4.0 起，可通过内置的 Pipeline 功能直接操作 DataKit 采集数据，支持的类别如下:
 
@@ -21,17 +20,17 @@
 > 注意：
 >
 > - Pipeline 应用到所有数据，目前处于实验阶段，不保证后面会对机制或行为做不兼容的调整。
-> - 即使是通过 [DataKit API](apis) 上报的数据也支持 Pipeline 处理。
+> - 即使是通过 [DataKit API](apis.md) 上报的数据也支持 Pipeline 处理。
 > - 用 Pipeline 对现有采集的数据进行处理（特别是非日志类数据），极有可能破坏已有的数据结构，导致数据在观测云上表现异常
-> - 应用 Pipeline 之前，请大家务必使用 [Pipeline 调试工具](datakit-pl-how-to)确认数据处理是否符合预期
+> - 应用 Pipeline 之前，请大家务必使用 [Pipeline 调试工具](datakit-pl-how-to.md)确认数据处理是否符合预期
 
 Pipeline 可以对 DataKit 采集的数据执行如下操作：
 
 - 新增、删除、修改 field 和 tag 的值或数据类型
 - 将 field 变更为 tag
 - 修改指标集名字
-- 丢弃当前数据（[drop()](pipeline#fb024a10)）
-- 终止 Pipeline 脚本的运行（[exit()](pipeline#c5da63c5)）
+- 丢弃当前数据（[drop()](pipeline.md#fn-drop)）
+- 终止 Pipeline 脚本的运行（[exit()](pipeline.md#fn-exit)）
 - ...
 
 ## Pipeline 脚本存储、加载与选择
