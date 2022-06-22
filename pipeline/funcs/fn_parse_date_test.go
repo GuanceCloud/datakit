@@ -14,6 +14,7 @@ import (
 
 func TestParseDate(t *testing.T) {
 	now := time.Now()
+	collectTime := now.Add(time.Hour * 12345)
 	cases := []struct {
 		name     string
 		pl, in   string
@@ -176,8 +177,9 @@ parse_date("time", "", "", "", hour, min, sec, msec, "", "", "")
 grok(_, "%{NOTSPACE:wd}\\s+%{NOTSPACE:month}\\s+%{INT:day}\\s+%{INT:hour}:%{INT:min}:%{INT:sec}\\s+%{NOTSPACE:tz}\\s+%{INT:year}")
 parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 `,
-			in:   "Mon Sep  6 25:40:03 CST 2021",
-			fail: true,
+			in:       "Mon Sep  6 25:40:03 CST 2021",
+			expected: collectTime.UnixNano(),
+			fail:     true,
 		},
 
 		{
@@ -186,8 +188,9 @@ parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 grok(_, "%{NOTSPACE:wd}\\s+%{NOTSPACE:month}\\s+%{INT:day}\\s+%{INT:hour}:%{INT:min}:%{INT:sec}\\s+%{NOTSPACE:tz}\\s+%{INT:year}")
 parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 `,
-			in:   "Mon Sep  6 -2:40:03 CST 2021",
-			fail: true,
+			in:       "Mon Sep  6 -2:40:03 CST 2021",
+			expected: collectTime.UnixNano(),
+			fail:     true,
 		},
 
 		{
@@ -196,8 +199,9 @@ parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 grok(_, "%{NOTSPACE:wd}\\s+%{NOTSPACE:month}\\s+%{INT:day}\\s+%{INT:hour}:%{INT:min}:%{INT:sec}\\s+%{NOTSPACE:tz}\\s+%{INT:year}")
 parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 `,
-			in:   "Mon Sep  6 12:61:03 CST 2021",
-			fail: true,
+			in:       "Mon Sep  6 12:61:03 CST 2021",
+			expected: collectTime.UnixNano(),
+			fail:     true,
 		},
 
 		{
@@ -206,8 +210,9 @@ parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 grok(_, "%{NOTSPACE:wd}\\s+%{NOTSPACE:month}\\s+%{INT:day}\\s+%{INT:hour}:%{INT:min}:%{INT:sec}\\s+%{NOTSPACE:tz}\\s+%{INT:year}")
 parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 `,
-			in:   "Mon Sep  6 12:60:03 CST 2021",
-			fail: true,
+			in:       "Mon Sep  6 12:60:03 CST 2021",
+			expected: collectTime.UnixNano(),
+			fail:     true,
 		},
 
 		{
@@ -216,8 +221,9 @@ parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 grok(_, "%{NOTSPACE:wd}\\s+%{NOTSPACE:month}\\s+%{INT:day}\\s+%{INT:hour}:%{INT:min}:%{INT:sec}\\s+%{NOTSPACE:tz}\\s+%{INT:year}")
 parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 `,
-			in:   "Mon Sep  6 12:11:61 CST 2021",
-			fail: true,
+			in:       "Mon Sep  6 12:11:61 CST 2021",
+			expected: collectTime.UnixNano(),
+			fail:     true,
 		},
 
 		{
@@ -226,8 +232,9 @@ parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 grok(_, "%{NOTSPACE:wd}\\s+%{NOTSPACE:month}\\s+%{INT:day}\\s+%{INT:hour}:%{INT:min}:%{INT:sec}\\s+%{NOTSPACE:tz}\\s+%{INT:year}")
 parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 `,
-			in:   "Mon Sep  6 12:12:-1 CST 2021",
-			fail: true,
+			in:       "Mon Sep  6 12:12:-1 CST 2021",
+			expected: collectTime.UnixNano(),
+			fail:     true,
 		},
 	}
 
@@ -245,7 +252,7 @@ parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 			ret, err := runner.Run("test", map[string]string{},
 				map[string]interface{}{
 					"message": tc.in,
-				}, "message", time.Now())
+				}, "message", collectTime)
 			if err != nil || ret.Error != nil {
 				if tc.fail {
 					t.Logf("[%d]expect error: %s %s", idx, err, ret.Error)

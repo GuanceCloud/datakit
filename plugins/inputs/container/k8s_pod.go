@@ -149,6 +149,7 @@ func (p *pod) object() (inputsMeas, error) {
 			tags: map[string]string{
 				"name":         fmt.Sprintf("%v", item.UID),
 				"pod_name":     item.Name,
+				"pod_ip":       item.Status.PodIP,
 				"node_name":    item.Spec.NodeName,
 				"phase":        fmt.Sprintf("%v", item.Status.Phase),
 				"qos_class":    fmt.Sprintf("%v", item.Status.QOSClass),
@@ -249,23 +250,6 @@ func (p *pod) object() (inputsMeas, error) {
 	}
 
 	return res, nil
-}
-
-//nolint:deadcode,unused
-func getPodLables(k8sClient k8sClientX, podname, podnamespace string) (map[string]string, error) {
-	pod, err := queryPodMetaData(k8sClient, podname, podnamespace)
-	if err != nil {
-		return nil, err
-	}
-	return pod.labels(), nil
-}
-
-func getPodAnnotations(k8sClient k8sClientX, podname, podnamespace string) (map[string]string, error) {
-	pod, err := queryPodMetaData(k8sClient, podname, podnamespace)
-	if err != nil {
-		return nil, err
-	}
-	return pod.annotations(), nil
 }
 
 type podMeta struct{ *v1.Pod }

@@ -111,6 +111,8 @@ func (i *Input) Run() {
 		return
 	}
 
+	l.Debugf("container input, dockerInput: %#v, containerdInput: %#v", i.dockerInput, i.containerdInput)
+
 	objectTick := time.NewTicker(objectInterval)
 	defer objectTick.Stop()
 	metricTick := time.NewTicker(metricInterval)
@@ -339,7 +341,7 @@ func (i *Input) watchNewDockerContainerLogs() error {
 	if i.dockerInput == nil {
 		return nil
 	}
-	return i.dockerInput.watchNewContainerLogs()
+	return i.dockerInput.watchNewLogs()
 }
 
 func (i *Input) watchingK8sEventLog() {
@@ -370,9 +372,22 @@ func (i *Input) setup() bool {
 			containerExcludeLog:    i.ContainerExcludeLog,
 			extraTags:              i.Tags,
 		}); err != nil {
-			l.Warnf("create docker input err: %s, skip", err)
+			l.Warnf("create docker input err: %s", err)
 		} else {
 			i.dockerInput = d
+		}
+
+		if i.dockerInput == nil {
+			if c, err := newContainerdInput(&containerdInputConfig{
+				endpoint:            i.ContainerdAddress,
+				extraTags:           i.Tags,
+				containerIncludeLog: i.ContainerIncludeLog,
+				containerExcludeLog: i.ContainerExcludeLog,
+			}); err != nil {
+				l.Warnf("create containerd input err: %s", err)
+			} else {
+				i.containerdInput = c
+			}
 		}
 
 		if datakit.Docker {
@@ -391,18 +406,9 @@ func (i *Input) setup() bool {
 				if i.dockerInput != nil {
 					i.dockerInput.k8sClient = i.k8sInput.client
 				}
-			}
-		}
-
-		// docker 和 containerd 互斥
-		if i.dockerInput == nil {
-			if c, err := newContainerdInput(&containerdInputConfig{
-				endpoint:  i.ContainerdAddress,
-				extraTags: i.Tags,
-			}); err != nil {
-				l.Warnf("create containerd input err: %s, skip", err)
-			} else {
-				i.containerdInput = c
+				if i.containerdInput != nil {
+					i.containerdInput.k8sClient = i.k8sInput.client
+				}
 			}
 		}
 
