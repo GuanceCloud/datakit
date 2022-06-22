@@ -74,6 +74,5 @@ import (
 	// only windows.
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/winevent"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin"
-	// deprecated
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/k8sextra"
+	// deprecated.
 )
