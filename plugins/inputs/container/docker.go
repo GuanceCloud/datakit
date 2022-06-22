@@ -55,7 +55,7 @@ func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
 	d.client = client
 
 	if !d.pingOK() {
-		return nil, fmt.Errorf("cannot connect to the Docker daemon at unix:///var/run/docker.sock")
+		return nil, fmt.Errorf("cannot connect to the Docker daemon at %s", cfg.endpoint)
 	}
 
 	if err := d.createLoggingFilters(cfg.containerIncludeLog, cfg.containerExcludeLog); err != nil {
@@ -161,7 +161,7 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 	return res, nil
 }
 
-func (d *dockerInput) watchNewContainerLogs() error {
+func (d *dockerInput) watchNewLogs() error {
 	cList, err := d.getRunningContainerList()
 	if err != nil {
 		return err
@@ -176,12 +176,7 @@ func (d *dockerInput) watchNewContainerLogs() error {
 
 		// Start a new goroutine for every new container that has logs to collect
 		go func(container *types.Container) {
-			defer func() {
-				d.removeFromContainerList(container.ID)
-				l.Debugf("remove container log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
-			}()
-
-			if err := d.watchingContainerLog(context.Background(), container); err != nil {
+			if err := d.tailingLog(context.Background(), container); err != nil {
 				if !errors.Is(err, context.Canceled) {
 					l.Warnf("tail containerLog: %s", err)
 				}
@@ -228,7 +223,7 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 		if containerImage := meta.containerImage(getContainerNameForLabels(container.Labels)); containerImage != "" {
 			image = containerImage
 		}
-		podAnnotationState = getPodAnnotationState(container, meta)
+		podAnnotationState = getPodAnnotationState(container.Labels, meta)
 	}()
 
 	switch podAnnotationState {
@@ -253,7 +248,7 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 	return true
 }
 
-func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotationStateType {
+func getPodAnnotationState(labels map[string]string, meta *podMeta) podAnnotationStateType {
 	if meta == nil {
 		return podAnnotationNil
 	}
@@ -265,7 +260,7 @@ func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotat
 
 	if logconf.Disable {
 		l.Debugf("ignore containerlog because of annotation disable, podName:%s, containerName:%s",
-			getPodNameForLabels(container.Labels), getContainerName(container.Names))
+			getPodNameForLabels(labels), getContainerNameForLabels(labels))
 		return podAnnotationDisable
 	}
 
@@ -279,7 +274,7 @@ func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotat
 		return podAnnotationEnable
 	}
 
-	podContainerName := getContainerNameForLabels(container.Labels)
+	podContainerName := getContainerNameForLabels(labels)
 	image := meta.containerImage(podContainerName)
 	if image != "" && f.Match(image) {
 		l.Debugf("match pod only_images, name:%s, image: %s", podContainerName, image)
