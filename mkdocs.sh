@@ -29,7 +29,7 @@ else # if under windows(amd64):
   datakit=datakit # windows 下应该设置了对应的 $PATH
 fi
 
-make || exit -1
+#make || exit -1
 
 # datakit 文档导出
 echo 'export to datakit docs...'
