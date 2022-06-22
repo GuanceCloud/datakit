@@ -150,6 +150,9 @@ var (
 
 	//go:embed md/xml.md
 	docXML string
+
+	//go:embed md/use.md
+	docUse string
 )
 
 var (
@@ -184,5 +187,6 @@ var (
 	strfmtMarkdown            = PLDoc{Doc: docStrfmt, Deprecated: false}
 	uppercaseMarkdown         = PLDoc{Doc: docUppercase, Deprecated: false}
 	userAgentMarkdown         = PLDoc{Doc: docUserAgent, Deprecated: false}
+	useMarkdown               = PLDoc{Doc: docUse, Deprecated: false}
 	xmlMarkdown               = PLDoc{Doc: docXML, Deprecated: false}
 )
