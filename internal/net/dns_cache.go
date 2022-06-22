@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"go.mercari.io/go-dnscache"
+	dnscache "go.mercari.io/go-dnscache"
 	"go.uber.org/zap"
 )
 

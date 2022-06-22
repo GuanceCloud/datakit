@@ -68,6 +68,7 @@ func (p *pod) metric() (inputsMeas, error) {
 		met := &podMetric{
 			tags: map[string]string{
 				"pod":       item.Name,
+				"pod_name":  item.Name,
 				"namespace": defaultNamespace(item.Namespace),
 				// "condition":  "",
 				// "deployment": "",
@@ -91,12 +92,12 @@ func (p *pod) metric() (inputsMeas, error) {
 		met.fields["ready"] = containerReadyCount
 
 		if cli, ok := p.client.(*k8sClient); ok && cli.metricsClient != nil {
-			m, err := gatherPodMetrics(cli.metricsClient, item.Namespace, item.Name)
+			podMet, err := gatherPodMetrics(cli.metricsClient, item.Namespace, item.Name)
 			if err != nil {
-				l.Debugf("unable get pod metric %s, namespace %s, name %s, ignored", err, defaultNamespace(item.Namespace), item.Name)
-			} else if met != nil {
-				met.fields["cpu_usage"] = m.cpuUsage
-				met.fields["memory_usage_bytes"] = m.memoryUsageBytes
+				l.Debugf("unable get pod metric %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
+			} else if podMet != nil {
+				met.fields["cpu_usage"] = podMet.cpuUsage
+				met.fields["memory_usage_bytes"] = podMet.memoryUsageBytes
 			}
 		}
 
@@ -214,12 +215,12 @@ func (p *pod) object() (inputsMeas, error) {
 		obj.fields.delete("annotations")
 
 		if cli, ok := p.client.(*k8sClient); ok && cli.metricsClient != nil {
-			met, err := gatherPodMetrics(cli.metricsClient, item.Namespace, item.Name)
+			podMet, err := gatherPodMetrics(cli.metricsClient, item.Namespace, item.Name)
 			if err != nil {
-				l.Debugf("unable get pod metric %s, namespace %s, name %s, ignored", err, defaultNamespace(item.Namespace), item.Name)
-			} else if met != nil {
-				obj.fields["cpu_usage"] = met.cpuUsage
-				obj.fields["memory_usage_bytes"] = met.memoryUsageBytes
+				l.Debugf("unable get pod metric %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
+			} else if podMet != nil {
+				obj.fields["cpu_usage"] = podMet.cpuUsage
+				obj.fields["memory_usage_bytes"] = podMet.memoryUsageBytes
 			}
 		}
 
@@ -317,6 +318,7 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"pod":       inputs.NewTagInfo("Name must be unique within a namespace."),
+			"pod_name":  inputs.NewTagInfo("Name must be unique within a namespace. (depercated)"),
 			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
 		Fields: map[string]interface{}{

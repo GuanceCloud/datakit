@@ -38,9 +38,8 @@ type QueryRaw struct {
 }
 
 func (q *QueryRaw) String() (str string) {
-	j, _ := q.JSON()
-	if len(j) != 0 {
-		return string(j)
+	if jsn, _ := q.JSON(); len(jsn) != 0 {
+		return string(jsn)
 	}
 	return
 }

@@ -16,9 +16,9 @@ DF默认支持所有采用opentracing协议的APM监控手段，例如<**skywalk
 
 ### 前置条件
 
-- 需要进行链路追踪的应用服务器<[安装 Datakit](https://www.yuque.com/dataflux/datakit/datakit-install)>
-- [下载ddtrace-.net-agent](https://github.com/DataDog/dd-trace-dotnet/releases)，可根据需求下载x86、arm64或者其他版本的agent。
-- <[ddtrace -.net -agent 框架兼容列表](https://docs.datadoghq.com/tracing/setup_overview/compatibility_requirements/dotnet-framework)>
+- 需要进行链路追踪的应用服务器<[安装 Datakit](../datakit/datakit-install.md)>
+- [下载ddtrace-.net-agent](https://github.com/DataDog/dd-trace-dotnet/releases){:target="_blank"}，可根据需求下载x86、arm64或者其他版本的agent。
+- <[ddtrace -.net -agent 框架兼容列表](https://docs.datadoghq.com/tracing/setup_overview/compatibility_requirements/dotnet-framework){:target="_blank"}>
 
 
 ### 配置实施

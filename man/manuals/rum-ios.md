@@ -17,7 +17,7 @@ iOS应用的JS错误分析，通过统计错误率、Crash、Crash版本、网�
 
 ## 前置条件
 
-- 安装 DataKit（[DataKit 安装文档](https://www.yuque.com/dataflux/datakit/datakit-how-to)）
+- 安装 DataKit（[DataKit 安装文档](../datakit/datakit-install.md)）
 
 ## 应用接入
 总共分两步
@@ -48,7 +48,7 @@ end
 
 #### 方式二：手动集成（直接下载 SDK）
 
-1. 从 [GitHub](https://github.com/DataFlux-cn/datakit-ios) 获取 SDK 的源代码。
+1. 从 [GitHub](https://github.com/DataFlux-cn/datakit-ios){:target="_blank"} 获取 SDK 的源代码。
 1. 将 **FTMobileSDK** 整个文件夹导入项目。
 
 ![image.png](imgs/input-ios-07.png)<br />勾选 `Copy items id needed`

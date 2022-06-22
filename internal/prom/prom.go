@@ -34,6 +34,11 @@ type RenameTags struct {
 	Mapping            map[string]string `toml:"mapping"`
 }
 
+type AsLogging struct {
+	Enable  bool   `toml:"enable"`
+	Service string `toml:"service"`
+}
+
 type IgnoreTagKeyValMatch map[string][]*regexp.Regexp
 
 type Option struct {
@@ -59,11 +64,13 @@ type Option struct {
 	CertFile   string `toml:"tls_cert"`
 	KeyFile    string `toml:"tls_key"`
 
-	Auth     map[string]string `toml:"auth"`
-	interval time.Duration
+	Auth        map[string]string `toml:"auth"`
+	HTTPHeaders map[string]string `toml:"http_headers"`
+	interval    time.Duration
 
 	Tags       map[string]string `toml:"tags"`
 	RenameTags *RenameTags       `toml:"rename_tags"`
+	AsLogging  *AsLogging        `toml:"as_logging"`
 
 	// do not keep these tags in scraped prom data
 	TagsIgnore []string `toml:"tags_ignore"`
@@ -193,6 +200,9 @@ func (p *Prom) GetReq(url string) (*http.Request, error) {
 		}
 	} else {
 		req, err = http.NewRequest("GET", url, nil)
+	}
+	for k, v := range p.opt.HTTPHeaders {
+		req.Header.Set(k, v)
 	}
 	return req, err
 }

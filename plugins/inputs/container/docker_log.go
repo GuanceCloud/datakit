@@ -102,7 +102,7 @@ func (d *dockerInput) tailContainerLog(logconf *containerLogConfig) error {
 
 	t, err := tailer.NewTailerSingle(logconf.logpath, opt)
 	if err != nil {
-		l.Errorf("failed to new containerd log, containerID: %s, source: %s, logpath: %s", logconf.containerID, opt.Source, logconf.logpath)
+		l.Warnf("failed to new containerd log, containerID: %s, source: %s, logpath: %s, err: %s", logconf.containerID, opt.Source, logconf.logpath, err)
 		return err
 	}
 
@@ -150,15 +150,18 @@ func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
 }
 
 func getContainerLogConfigForK8s(k8sClient k8sClientX, podname, podnamespace string) *containerLogConfig {
+	if k8sClient == nil {
+		return nil
+	}
 	annotations, err := getPodAnnotations(k8sClient, podname, podnamespace)
 	if err != nil {
-		l.Errorf("failed to get pod annotations, %s", err)
+		l.Warnf("failed to get pod annotations, %s", err)
 		return nil
 	}
 
 	c, err := getContainerLogConfig(annotations)
 	if err != nil {
-		l.Errorf("failed to get container logConfig: %s", err)
+		l.Warnf("failed to get container logConfig: %s", err)
 		return nil
 	}
 	return c
@@ -167,7 +170,7 @@ func getContainerLogConfigForK8s(k8sClient k8sClientX, podname, podnamespace str
 func getContainerLogConfigForDocker(labels map[string]string) *containerLogConfig {
 	c, err := getContainerLogConfig(labels)
 	if err != nil {
-		l.Errorf("failed to get container logConfig: %s", err)
+		l.Warnf("failed to get container logConfig: %s", err)
 		return nil
 	}
 	return c

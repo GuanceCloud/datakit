@@ -3,6 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//nolint:typecheck, I don't know why lint(typecheck) complain about io/ioutil not used
 package cmds
 
 import (

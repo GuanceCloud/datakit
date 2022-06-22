@@ -98,7 +98,7 @@ datakit -M --vvv            # 检查所有采集器的运行情况
 
 #### 安装 Golang
 
-当前 Go 版本 1.18.3
+当前 Go 版本 [1.18.3](https://golang.org/dl/go1.18.3.linux-amd64.tar.gz)
 
 #### CI 设置
 
@@ -121,7 +121,7 @@ export GOPRIVATE=gitlab.jiagouyun.com/*
 export GOPROXY=https://goproxy.io
 
 # 假定 golang 安装在 /root 目录下
-export GOROOT=/root/golang-1.16.4
+export GOROOT=/root/golang-1.18.3
 # 将 go 代码 clone 到 GOPATH 里面
 export GOPATH=/root/go
 export PATH=$GOROOT/bin:~/go/bin:$PATH
@@ -147,8 +147,8 @@ export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
 
 - tree
 - make
-- goyacc: `go get -u golang.org/x/tools/cmd/goyacc`
-- golangci-lint: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
+- [goyacc](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go get -u golang.org/x/tools/cmd/goyacc`
+- [golangci-lint](https://golangci-lint.run/usage/install/#local-installation): `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`
 - gofumpt: `go install mvdan.cc/gofumpt@v0.1.1`
 - wget
 - docker
@@ -295,26 +295,19 @@ make pub_production_mac VERSION=<the-new-version>
 - 稳定版：其版本号为 `x.y.z`，其中 `y` 必须是偶数
 - 非稳定版：其版本号为 `x.y.z`，其中 `y` 必须是基数
 
-### 语雀文档发布
+### 文档发布
 
-语雀文档的发布，只能在开发机器上发布，需安装 [waque](https://github.com/yesmeck/waque){:target="_blank"} 1.13.1+ 以上的版本。其流程如下：
+文档的发布，只能在开发机器上发布，需安装 [mkdocs](https://www.mkdocs.org/){:target="_blank"}。其流程如下：
 
-- 执行 yuque.sh
+- 执行 mkdocs.sh
 
 ```
-./yuque.sh <the-new-version>
+./mkdocs.sh <the-new-version>
 ```
 
 如果不指定版本，会以最新的一个 tag 名称作为版本号。
 
 > 注意，如果是线上代码发布，最好保证跟**线上 DataKit 当前的稳定版版本号**保持一致，不然会导致用户困扰。
-
-在当前的代码树中，有俩个文档库配置：
-
-- *yuque.yml*: 发布到[线上 DataKit 文档库](https://www.yuque.com/dataflux/datakit){:target="_blank"}
-- *yuque_testing.yml*: 发布到[测试 DataKit 文档库](https://www.yuque.com/dataflux/cd74oo){:target="_blank"}
-
-测试文档库用于测试文档发布效果。当在你本地机器发布文档时，如果当前代码分支是 *yuque*，会自动发布到线上文档库，否则发布到测试文档库。
 
 ## 关于代码规范
 

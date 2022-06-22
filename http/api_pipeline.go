@@ -177,7 +177,8 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 
 func getReturnResult(start time.Time, res []*pipeline.Result,
 	reqDebug *pipelineDebugRequest,
-	benchmarkResult *testing.BenchmarkResult) *pipelineDebugResponse {
+	benchmarkResult *testing.BenchmarkResult,
+) *pipelineDebugResponse {
 	var returnres pipelineDebugResponse
 	cost := time.Since(start)
 	returnres.Cost = cost.String()

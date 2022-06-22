@@ -26,6 +26,7 @@ NAME = datakit
 NAME_EBPF = datakit-ebpf
 ENTRY = cmd/datakit/main.go
 
+UNAME_S:=$(shell uname -s)
 LOCAL_ARCHS:="local"
 DEFAULT_ARCHS:="all"
 MAC_ARCHS:="darwin/amd64"
@@ -49,9 +50,10 @@ MINIMUM_SUPPORTED_GO_MINOR_VERSION = 16
 GO_VERSION_VALIDATION_ERR_MSG = Golang version is not supported, please update to at least $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION).$(MINIMUM_SUPPORTED_GO_MINOR_VERSION)
 BUILDER_GOOS_GOARCH=$(shell go env GOOS)-$(shell go env GOARCH)
 
-GOLINT_VERSION = "$(shell golangci-lint --version | cut -c 27- | cut -d' ' -f1)"
-SUPPORTED_GOLINT_VERSION = "1.42.1"
-SUPPORTED_GOLINT_VERSION_ANOTHER = "v1.42.1"
+GOLINT_BINARY = golangci-lint
+GOLINT_VERSION = "$(shell $(GOLINT_BINARY) --version | cut -c 27- | cut -d' ' -f1)"
+SUPPORTED_GOLINT_VERSION = "1.46.2"
+SUPPORTED_GOLINT_VERSION_ANOTHER = "v1.46.2"
 GOLINT_VERSION_VALIDATION_ERR_MSG = golangci-lint version($(GOLINT_VERSION)) is not supported, please use version $(SUPPORTED_GOLINT_VERSION)
 
 #####################
@@ -272,9 +274,8 @@ define build_ip2isp
 endef
 
 define do_lint
-	truncate -s 0 lint.err
-	golangci-lint --version
-	GOARCH=$(1) GOOS=$(2) golangci-lint run --fix --allow-parallel-runners
+	$(GOLINT_BINARY) --version
+	GOARCH=$(1) GOOS=$(2) $(GOLINT_BINARY) run --fix --allow-parallel-runners
 endef
 
 ip2isp:
@@ -288,7 +289,7 @@ man:
 
 # ignore files under vendor/.git/git
 gofmt:
-	@GO111MODULE=off gofmt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go")
+	@GO111MODULE=off gofmt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go\|packed-packr.go")
 
 vet:
 	@go vet ./...
@@ -325,13 +326,23 @@ all_test: deps
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
 lint: deps
-	$(call do_lint,386,windows)
-	$(call do_lint,amd64,windows)
-	$(call do_lint,amd64,linux)
-	$(call do_lint,386,linux)
-	$(call do_lint,arm,linux)
-	$(call do_lint,arm64,linux)
+	if [ $(UNAME_S) != Darwin ]; then \
+		echo '============== lint under amd64/linux ==================='; \
+		$(GOLINT_BINARY) --version; \
+		GOARCH=amd64 GOOS=linux $(GOLINT_BINARY) run --fix --allow-parallel-runners ; \
+	fi
+	@echo '============== lint under amd64/darwin==================='
 	$(call do_lint,amd64,darwin)
+	@echo '============== lint under 386/windows ==================='
+	$(call do_lint,386,windows)
+	@echo '============== lint under amd64/windows ==================='
+	$(call do_lint,amd64,windows)
+	@echo '============== lint under arm/linux ==================='
+	$(call do_lint,arm,linux)
+	@echo '============== lint under arm64/linux ==================='
+	$(call do_lint,arm64,linux)
+	@echo '============== lint under 386/linux ==================='
+	$(call do_lint,386,linux)
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go

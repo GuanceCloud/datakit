@@ -36,7 +36,6 @@ var cases = []struct {
 	{
 		name: "identifiers",
 		tests: []testCase{
-
 			{
 				input: "中文 abc",
 				expected: []Item{

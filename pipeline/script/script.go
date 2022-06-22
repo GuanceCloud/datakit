@@ -70,7 +70,8 @@ func (script *PlScript) Engine() *parser.Engine {
 }
 
 func (script *PlScript) Run(measurement string, tags map[string]string, fields map[string]interface{},
-	contentKey string, t time.Time, opt *Option) (*parser.Output, bool, error) {
+	contentKey string, t time.Time, opt *Option,
+) (*parser.Output, bool, error) {
 	startTime := time.Now()
 	if script.ng == nil {
 		return nil, false, fmt.Errorf("no engine")

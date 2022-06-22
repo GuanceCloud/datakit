@@ -44,6 +44,7 @@ nav:
       - ddtrace-nodejs.md
       - ddtrace-cpp.md
       - ddtrace-ruby-2.md
+      - ddtrace-csharp.md
 
     - 'SkyWalking':
       - 'SkyWalking 采集配置': skywalking.md
@@ -84,6 +85,7 @@ nav:
     - memcached.md
     - mongodb.md
     - influxdb.md
+    - tdengine.md
     - sqlserver.md
     - postgresql.md
     - elasticsearch.md

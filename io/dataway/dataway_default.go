@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
@@ -43,6 +43,8 @@ var (
 		datakit.ObjectLabel,
 		datakit.LogUpload,
 		datakit.PipelinePull,
+		datakit.Profile,
+		datakit.ProfileUpload,
 	}
 
 	ExtraHeaders               = map[string]string{}
