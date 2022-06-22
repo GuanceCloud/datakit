@@ -106,8 +106,6 @@ func (opt *Option) Init() error {
 		opt.MultilineMaxLines = defaultMaxLines
 	}
 
-	l.Infof("log_log MultilineMaxLines: %d", opt.MultilineMaxLines)
-
 	opt.GlobalTags["service"] = opt.Service
 	opt.log = logger.SLogger(opt.InputName)
 
