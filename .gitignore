@@ -1,5 +1,4 @@
 __debug_bin
-!datakit.yaml
 .docs/
 .DS_Store
 .idea/

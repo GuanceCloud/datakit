@@ -1,10 +1,9 @@
 {{.CSS}}
+# TDengine
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 TDEngine 是一款高性能、分布式、支持 SQL 的时序数据库 (Database)。在开通采集器之前请先阅读一些：[TDEngine-基本概念](https://docs.taosdata.com/concept/)
 
@@ -13,7 +12,8 @@ tdengine 采集器需要的连接 `taos_adapter` 才可以正常工作，taosAda
 本文主要是指标集的详细介绍，tdengine 集群安装不在本篇之内。
 
 ## 开启采集配置文件
-```shell script
+
+```shell
 cd /usr/local/datakit
 
 cp conf.d/tdengine/tdengine.conf.sample conf.d/tdengine/tdengine.conf
@@ -39,6 +39,7 @@ vim conf.d/tdengine/tdengine.conf
 也可以使用 [仪表板模版](https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/dashboard/TDEngine-dashboard.json)。并在观测云-场景-仪表板-导入仪表板 导入仪表板即可。也可以在导入的仪表板中调整和修改。
 
 ## 指标集汇总
+
 - [checkHealth](#checkHealth) 健康检查
 - [td_cluster](#td_cluster) 集群状态
 - [td_node dnode](#td_node) 状态
@@ -56,7 +57,8 @@ vim conf.d/tdengine/tdengine.conf
 | -   | 检查数据库连接并使用用户名密码登陆 |    sql    | show databases; | -   |   -    |  -   |
 
 sql 示例
-```shell script
+
+```shell
 taos> show databases;
               name              |      created_time       |   ntables   |   vgroups   | replica | quorum |  days  |           keep           |  cache(MB)  |   blocks    |   minrows   |   maxrows   | wallevel |    fsync    | comp | cachelast | precision | update |   status   |
 ====================================================================================================================================================================================================================================================================================
@@ -84,7 +86,7 @@ tdengine 集群状态
 
 该指标集需要查询的sql：
 
-```shell script
+```shell
 ## 集群状态表
 taos> select * from log.cluster_info limit 1;
              ts             |            first_ep            |   version    |    master_uptime     | monitor_interval | dnodes_total | dnodes_alive | mnodes_total | mnodes_alive | vgroups_total | vgroups_alive | vnodes_total | vnodes_alive | connections_total |
@@ -104,7 +106,7 @@ td_node 指标集主要是收集节点(node)的版本、end_point、status、cre
 
 该指标集需要查询的sql：
 
-```shell script
+```shell 
 ## 节点状态
 taos> show dnodes;
    id   |           end_point            | vnodes | cores  |   status   | role  |       create_time       |      offline reason      |
@@ -132,7 +134,7 @@ Query OK, 1 row(s) in set (0.000544s)
 | req_http,req_http_rate                | http请求 |    sql    | select ts,req_http,req_http_rate,dnode_ep from log.dnodes_info where ts >= now-1m and ts <= now;                | -   |        req_http,req_http_rate         | dnode_ep |  -  |
 
 该指标集需要查询的sql：
-```shell script
+```shell 
 ## insert
 taos> select ts,req_insert_rate,req_insert_batch_rate,dnode_ep from log.dnodes_info where ts >= now-1m and ts <= now;
              ts             |   req_insert_rate    | req_insert_batch_rate |            dnode_ep            |
@@ -172,7 +174,7 @@ Query OK, 4 row(s) in set (0.001155s)
 
 该指标集需要查询的sql：
 
-```shell script
+```shell 
 taos> select last(ts),last(database_name),last(tables_num),last(status) from log.vgroups_info where ts > now-30s group by vgroup_id;
              ts             |         database_name          | tables_num  |             status             |  vgroup_id  |
 ===========================================================================================================================
@@ -216,7 +218,7 @@ Query OK, 21 row(s) in set (0.004188s)
 
 相关的sql 示例：
 
-```shell script
+```shell 
 taos> select *  from log.dnodes_info where ts > now-1m limit 2;
              ts             |        uptime        |      cpu_engine      |      cpu_system      |  cpu_cores  |      mem_engine      |      mem_system      |      mem_total       |     disk_engine      |      disk_used       |      disk_total      |        net_in        |       net_out        |       io_read        |       io_write       |     io_read_disk     |    io_write_disk     |       req_http        |    req_http_rate     |      req_select       |   req_select_rate    |      req_insert       |  req_insert_success   |   req_insert_rate    |   req_insert_batch    | req_insert_batch_success | req_insert_batch_rate |        errors         | vnodes_num  |   masters   | has_mnode |  dnode_id   |            dnode_ep            |
 ===================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
@@ -238,7 +240,7 @@ taosAdapter 监控指标集
 
 其中涉及到4张表：
 
-```shell script
+```shell 
 ## log.taosadapter_restful_http_total
 taos> select ts,count as total_req_count,endpoint,status_code,client_ip from log.taosadapter_restful_http_total where ts >= now-1m and ts <= now;
              ts             |    total_req_count    |            endpoint            | status_code |           client_ip            |

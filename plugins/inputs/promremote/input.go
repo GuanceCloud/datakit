@@ -26,7 +26,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	l                = logger.DefaultSLogger(inputName)
+	_ inputs.InputV2 = (*Input)(nil)
+)
 
 const (
 	body                   = "body"
@@ -61,6 +64,10 @@ func (h *Input) RegHTTPHandler() {
 
 func (h *Input) Catalog() string {
 	return catalog
+}
+
+func (h *Input) Terminate() {
+	// do nothing
 }
 
 func (h *Input) Run() {

@@ -1,16 +1,15 @@
 {{.CSS}}
+# Cloudprober 接入
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# Cloudprober 接入
 
 Cloudprober 是一个开源的跟踪和监控应用程序。DataKit 通过简单的配置即可接入 Cloudprober 采集的数据集。
 
 ## Cloudprober 安装
 
-以 Ubuntu `cloudprober-v0.11.2` 为例，下载如下，其他版本或系统参见[下载页面](https://github.com/google/cloudprober/releases)：
+以 Ubuntu `cloudprober-v0.11.2` 为例，下载如下，其他版本或系统参见[下载页面](https://github.com/google/cloudprober/releases){:target="_blank"}：
 
 ```shell
 curl -O https://github.com/google/cloudprober/releases/download/v0.11.2/cloudprober-v0.11.2-ubuntu-x86_64.zip

@@ -1,4 +1,5 @@
-# K8s 环境下采集器配置介绍
+# Kubernetes 环境下的 DataKit 配置综述
+---
 
 在 k8s 环境下，由于可能存在多种采集器的配置方式，大家在配置采集器的过程中，容易混淆不同配置方式之间的差异，本文简单介绍一下 K8s 环境下配置的最佳实践。
 
@@ -6,11 +7,11 @@
 
 目前版本(>1.2.0)的 DataKit 支持如下几种方式的配置：
 
-- 通过 [conf]() 配置
-- 通过 ENV 配置
-- 通过 Annotation 配置
-- 通过 [Git](datakit-conf#90362fd0) 配置
-- 通过 [DCA](dca) 配置
+- 通过 [conf 配置](datakit-daemonset-deploy.md#configmap-setting)
+- 通过 [ENV 配置](datakit-daemonset-deploy.md#using-k8-env)
+- 通过 [Annotation 配置](container.md#logging-with-annotation-or-label)
+- 通过 [Git](datakit-conf.md#using-gitrepo) 配置
+- 通过 [DCA](dca.md) 配置
 
 如果进一步归纳，又可以分为两种类型：
 
@@ -24,21 +25,21 @@
 
 由于存在这么多不同的配置方式，不同配置方式之间还存在优先级关系，下文以优先级从低到高的顺序，开始逐个分解。
 
-### 通过 conf 配置
+### 通过 configmap 配置 {#via-configmap-conf}
 
 DataKit 运行在 K8s 环境中时，实际上跟运行在主机上并无太大差异，它仍然会去读取 _.conf_ 目录下的采集器配置。所以，通过 ConfigMap 等方式注入采集器配置是完全可行的，有的时候，甚至是唯一的方式，比如，在当前的 DataKit 版本中，MySQL 采集器的开启，只能通过注入 ConfigMap 方式。
 
-### 通过 ENV 配置
+### 通过 ENV 配置 {#via-env-config}
 
-在 K8s 中，我们启动 DataKit 时，是可以在其 yaml 中[注入很多环境变量的](datakit-daemonset-deploy#00c8a780)。除了 DataKit 的行为可以通过注入环境变量来干预，部分采集器也支持注入**专用的环境变量**，它们命名一般如下：
+在 K8s 中，我们启动 DataKit 时，是可以在其 yaml 中[注入很多环境变量的](datakit-daemonset-deploy.md#using-k8-env)。除了 DataKit 的行为可以通过注入环境变量来干预，部分采集器也支持注入**专用的环境变量**，它们命名一般如下：
 
 ```shell
 ENV_INPUT_XXX_YYY
 ```
 
-此处 `XXX` 指采集器名字，`YYY` 即该采集器配置中的特定配置字段，比如 `ENV_INPUT_CPU_PERCPU` 用来调整 [CPU 采集器](cpu) _是否采集每个 CPU 核心的指标_（默认情况下，该选项是默认关闭的，即不采集每个核心的 CPU 指标）
+此处 `XXX` 指采集器名字，`YYY` 即该采集器配置中的特定配置字段，比如 `ENV_INPUT_CPU_PERCPU` 用来调整 [CPU 采集器](cpu.md) _是否采集每个 CPU 核心的指标_（默认情况下，该选项是默认关闭的，即不采集每个核心的 CPU 指标）
 
-需要注意的是，目前并不是所有的采集器都支持 ENV 注入。支持 ENV 注入的采集器，一般都是[默认开启的采集器](datakit-input-conf#764ffbc2)。通过 ConfigMap 开启的采集器，也支持 ENV 注入的（具体看该采集器是否支持），而且**默认以 ENV 注入的为准**。
+需要注意的是，目前并不是所有的采集器都支持 ENV 注入。支持 ENV 注入的采集器，一般都是[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs)。通过 ConfigMap 开启的采集器，也支持 ENV 注入的（具体看该采集器是否支持），而且**默认以 ENV 注入的为准**。
 
 > 环境变量注入的方式，一般只应用在 K8s 模式下，主机安装方式目前无法注入环境变量。
 
@@ -72,7 +73,7 @@ spec:
 	...
 ```
 
-> 注意：目前 Annotation 方式还不支持主流的采集器开启（目前只支持 [Prom](prom)）。后续会增加更多采集器。
+> 注意：目前 Annotation 方式还不支持主流的采集器开启（目前只支持 [Prom](prom.md)）。后续会增加更多采集器。
 
 到此为止，目前 DataKit 中，主流的几种 K8s 环境下的配置方式就这三种，它们优先级逐次提升，即 conf 方式优先级最低，ENV 次之，Annotation 方式优先级最高。
 
@@ -84,7 +85,7 @@ Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf
 
 #### Git 模式下默认采集器的配置
 
-在 Git 模式下，有一个非常重要的特征，即那些[默认开启的采集器](datakit-input-conf#764ffbc2) 的 **conf 文件是隐身的**，不管是 K8s 模式还是主机模式，故将这些默认开启的采集器配置文件用 Git 管理起来，需要做一些额外的工作，不然这会导致它们被**重复采集**。
+在 Git 模式下，有一个非常重要的特征，即那些[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs) 的 **conf 文件是隐身的**，不管是 K8s 模式还是主机模式，故将这些默认开启的采集器配置文件用 Git 管理起来，需要做一些额外的工作，不然这会导致它们被**重复采集**。
 
 在 Git 模式下，如果要调整默认采集器的配置（不想开启或要对其做对应的配置），有几种方式：
 
@@ -96,7 +97,7 @@ Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf
 
 ### DCA 配置方式
 
-[DCA](dca) 配置方式实际上跟 Git 有点类似，它们都只能影响 DataKit 上的 conf/pipeline/pythond 文件配置。只是对 DCA 而言，它的功能没有 Git 强大，一般只用于小范围管理几台 DataKit 上的文件。
+[DCA](dca.md) 配置方式实际上跟 Git 有点类似，它们都只能影响 DataKit 上的 conf/pipeline/pythond 文件配置。只是对 DCA 而言，它的功能没有 Git 强大，一般只用于小范围管理几台 DataKit 上的文件。
 
 ## 总结
 
@@ -104,6 +105,6 @@ Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf
 
 ## 延伸阅读
 
-- [DataKit 配置](datakit-conf) 
-- [DataKit 采集器配置](datakit-input-conf) 
-- [Daemonset 安装 DataKit](datakit-daemonset-deploy)
+- [DataKit 配置](datakit-conf.md) 
+- [DataKit 采集器配置](datakit-input-conf.md) 
+- [Daemonset 安装 DataKit](datakit-daemonset-deploy.md)

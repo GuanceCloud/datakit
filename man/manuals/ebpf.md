@@ -1,10 +1,9 @@
 {{.CSS}}
+# eBPF
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志等。本采集器主要包含 `ebpf-net` 及 `ebpf-bash` 俩类:
 
@@ -21,10 +20,10 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 由于该采集器的可执行文件体积较大，自 v1.2.13 起不再打包在 DataKit 中，但 DataKit 容器镜像默认包含该采集器；对于新装 DataKit，需执行安装命令进行安装，有以下两种方法：
 
 - v1.2.13 ~ v1.2.18
-  - 安装时[指定环境变量](datakit-install#f9858758)：`DK_INSTALL_EXTERNALS="datakit-ebpf"`
+  - 安装时[指定环境变量](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="datakit-ebpf"`
   - DataKit 安装完后，再手动安装 eBPF 采集器：`datakit install --datakit-ebpf`
 - v1.2.19+
-  - 安装时[指定环境变量](datakit-install#f9858758)：`DK_INSTALL_EXTERNALS="ebpf"`
+  - 安装时[指定环境变量](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="ebpf"`
   - DataKit 安装完后，再手动安装 eBPF 采集器：`datakit install --ebpf`
 
 ### Linux 内核版本要求
@@ -64,7 +63,7 @@ setenforce 0
 
 ### Kubernetes 安装
 
-1. 参照通用的 [ConfigMap 安装示例](datakit-daemonset-deploy#fb919c14)。
+1. 参照通用的 [ConfigMap 安装示例](datakit-daemonset-deploy.md#configmap-setting)。
 2. 在 datakit.yaml 中的环境变量 `ENV_ENABLE_INPUTS` 中追加 `ebpf`，此时使用默认配置，即仅开启 ebpf-net 网络数据采集
 
 ```yaml

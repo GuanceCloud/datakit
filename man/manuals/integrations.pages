@@ -1,0 +1,151 @@
+nav:
+  - index.md
+  #- '集成文档合并（临时条目）': integration-to-datakit-howto.md
+  - '主机':
+    - 'DataKit 自身指标': self.md
+    - hostobject.md
+    - host_processes.md
+    - '主机指标':
+      - 'CPU': cpu.md
+      - disk.md
+      - diskio.md
+      - mem.md
+      - swap.md
+      - net.md
+      - socket.md
+      - system.md
+      - hostdir.md
+      - ssh.md
+      - Windows 相关:
+        - 'Windows 事件': windows_event.md
+        - iis.md
+
+  - '云原生':
+    - 'Kubernetes 环境下的 DataKit 配置综述': k8s-config-how-to.md
+    - datakit-daemonset-bp.md
+    - '数据采集':
+      - '容器': container.md
+      - logfwd.md
+      - kubernetes-prom.md
+      - kube-state-metrics.md
+      - kube-scheduler.md
+      - kube-state-metrics.md 
+
+  - 应用性能监测（APM）:
+    - 'Datakit Tracing 综述': datakit-tracing.md
+    - datakit-tracing-struct.md
+
+    - 'DDTrace':
+      - 'DDtrace 采集配置': ddtrace.md
+      - ddtrace-golang.md
+      - ddtrace-java.md
+      - ddtrace-python.md
+      - ddtrace-php-2.md
+      - ddtrace-nodejs.md
+      - ddtrace-cpp.md
+      - ddtrace-ruby-2.md
+      - ddtrace-csharp.md
+
+    - 'SkyWalking':
+      - 'SkyWalking 采集配置': skywalking.md
+
+    - 'OpenTelemetry':
+      - 'OpenTelemetry 采集配置': opentelemetry.md
+      - opentelemetry-go.md
+      - opentelemetry-java.md
+
+    - 'Zipkin':
+      - 'Zipkin 采集器配置': zipkin.md
+
+    - 'Jaeger' :
+      - 'Jaeger 采集器配置': jaeger.md
+
+  - '日志':
+    - 'DataKit 日志采集综述': datakit-logging.md
+    - datakit-logging-how.md
+    - logging.md
+    - logging_socket.md
+    - '第三方日志接入':
+      - '采集器配置': logstreaming.md
+      - logstreaming-fluentd.md
+
+  - '用户访问监测(RUM)':
+    - '采集器配置': rum.md
+    - rum-android.md
+    - rum-ios.md
+    - rum-miniapp.md
+    - rum-web-h5.md
+
+  - 中间件:
+    - 'ClickHouse': clickhousev1.md
+    - mysql.md
+    - oracle.md
+    - nsq.md
+    - redis.md
+    - memcached.md
+    - mongodb.md
+    - influxdb.md
+    - tdengine.md
+    - sqlserver.md
+    - postgresql.md
+    - elasticsearch.md
+    - kafka.md
+    - rabbitmq.md
+    - solr.md
+    - flinkv1.md
+    - 'Web 服务器':
+      - 'Nginx': nginx.md
+      - apache.md
+      - resin.md
+      - haproxy.md
+    - 'Java':
+      - 'JVM': jvm.md
+      - tomcat.md
+
+  - '网络拨测':
+    - '采集器配置': dialtesting.md
+    - dialtesting_json.md
+
+  - 'eBPF':
+    - 'eBPF 采集配置': ebpf.md
+
+  - '阿里云':
+    - 'ASM': aliyun-asm.md
+    - aliyun-cdn.md
+    - aliyun-charges.md
+    - aliyun-ecs.md
+    - aliyun-edas.md
+    - aliyun-eip.md
+    - aliyun-es.md
+    - aliyun-mongodb.md
+    - aliyun-mysql.md
+    - aliyun-nat.md
+    - aliyun-oracle.md
+    - aliyun-oss.md
+    - aliyun-postgresql.md
+    - aliyun-rds-mysql.md
+    - aliyun-rds-sqlserver.md
+    - aliyun-redis.md
+    - aliyun-slb.md
+    - aliyun-sls.md
+
+  - '自定义采集器':
+    - '用 Python 开发自定义采集器': pythond.md
+
+  - '第三方数据接入':
+    - 'Prometheus Exportor 数据采集': prom.md
+    - prom_remote_write.md
+    - statsd.md
+    - beats_output.md
+    - cloudprober.md
+    - telegraf.md
+    - sec-checker.md
+
+  - '其它采集器':
+    - 'Jenkins': jenkins.md
+    - gitlab.md
+    - etcd.md
+    - consul.md
+    - coredns.md
+    - sensors.md
+    - smart.md

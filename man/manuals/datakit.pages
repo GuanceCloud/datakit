@@ -1,0 +1,45 @@
+nav:
+  - index.md
+  - 'DataKit 使用':
+    - '服务管理': datakit-service-how-to.md
+    - '如何配置 DataKit':
+      - 'DataKit 配置': datakit-conf.md
+      - datakit-input-conf.md
+      - git-config-how-to.md
+    - 'DataKit 日常使用':
+      - '通过 DQL 查询数据': datakit-dql-how-to.md
+      - datakit-monitor.md
+      - datakit-tools-how-to.md
+      - why-no-data.md
+  - changelog.md
+  - 'DataKit 安装':
+    - '宿主机安装':
+      - '主机安装': datakit-install.md
+      - datakit-offline-install.md
+      - datakit-batch-deploy.md
+      - datakit-update.md
+    - 'DaemonSet':
+      - '安装': datakit-daemonset-deploy.md
+      - datakit-daemonset-update.md
+    - proxy.md
+    - aliyun-access.md
+    - election.md
+    - dca.md
+    - 'Sinker 设置':
+      - 'DataKit Sink 使用': datakit-sink-guide.md
+      - '已有 Sinker 支持':
+        - 'InfluxDB': datakit-sink-influxdb.md
+        - datakit-sink-logstash.md
+        - datakit-sink-m3db.md
+        - datakit-sink-otel-jaeger.md
+  - '文本数据处理':
+    - 'Pipeline 介绍': pipeline.md
+    - datakit-pl-how-to.md
+    - datakit-pl-global.md
+  - 'DataKit 开发':
+    - 'DataKit 开发手册': development.md
+    - datakit-arch.md
+    - datakit-filter.md
+    - apis.md
+    - datakit-sink-dev.md
+    - integration-to-datakit-howto.md

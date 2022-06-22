@@ -1,14 +1,17 @@
-# 本篇主要介绍 Java Go Python 日志框架 如何配置 socket 输出到 datakit socket日志采集器中
+# Socket 日志接入示例
+---
 
-> 文件采集和socket是互斥 开启socket之前 请先关闭文件采集 请先配置好`logging.conf` [具体配置说明](logging)  
+本篇主要介绍 Java Go Python 日志框架 如何配置 socket 输出到 datakit socket 日志采集器中。
 
-## java
+> 文件采集和socket是互斥开启socket之前 请先关闭文件采集 请先配置好 `logging.conf` [具体配置说明](logging.md)  
+
+## Java {#java}
 
 在配置log4j的时候需要注意，log4j v1，默认是使用*.properties文件进行配置；而目前log4j v2使用*.xml文件进行配置。
 
 虽然文件名有区别，但是log4j查找配置文件时，都是去classpath目录下查找,按照规范:v1的配置在 resources/log4j.properties, v2配置在resources/log4j.xml。
 
-### log4j v2
+### log4j(v2)
 
 在maven的配置中导入log4j 2.x 的jar包:
 ``` xml
@@ -25,9 +28,8 @@
   </dependency>
 ```
 
-在 resources 中配置 log4j.xml:
+在 resources 中配置 log4j.xml，添加 socket appender：
 
-添加 socket appender：
 ``` xml
  <!-- Socket appender socket 配置日志传输到本机9540端口，protocol默认tcp -->
  <Socket name="socketname" host="localHost" port="9540" charset="utf8">
@@ -51,8 +53,9 @@
  </loggers>
 ```
  
- java代码示例：
- ``` java
+Java 代码示例：
+
+``` java
 package com.example;
 
 import org.apache.logging.log4j.LogManager;
@@ -81,9 +84,7 @@ public class logdemo {
 
 ```
  
- 
- 
-### log4j v1
+### log4j(v1)
 
 在maven的配置中导入log4j 1.x 的jar包
 
@@ -96,6 +97,7 @@ public class logdemo {
 ```
 
 到 resources 目录下 创建log4j.properties文件
+
 ``` text
 log4j.rootLogger=INFO,server
 # ... 其他配置
@@ -104,21 +106,21 @@ log4j.appender.server=org.apache.log4j.net.SocketAppender
 log4j.appender.server.Port=<dk socket port>
 log4j.appender.server.RemoteHost=<dk socket ip>
 log4j.appender.server.ReconnectionDelay=10000
+
 ## 可配置成json格式
 # log4j.appender.server.layout=net.logstash.log4j.JSONEventLayout
 ...
 ```
 
-
 ### logback
 
-logback 中的`SocketAppender` 无法将纯文本发送到 socket上  [官方文档说明](https://logback.qos.ch/manual/appenders.html#SocketAppender)
+logback 中的`SocketAppender` 无法将纯文本发送到 socket上  [官方文档说明](https://logback.qos.ch/manual/appenders.html#SocketAppender){:target="_blank"}
 
 > 问题是 SocketAppender发送序列化Java对象而不是纯文本。您可以使用log4j输入，但我并不建议更换日志组件，而是重写一个将日志数据发送为纯文本的Appender，并且您将其与JSON格式化一起使用。
 
-datakit 同时支持从文件中采集日志 [从文本中采集日志](logging) ,可作为socket采集不可用时的最佳方案。 
+datakit 同时支持从文件中采集日志 [从文本中采集日志](logging.md) ,可作为socket采集不可用时的最佳方案。 
 
-## golang
+## Golang
 
 ### zap
 
@@ -168,8 +170,7 @@ func zapcal() {
 
 ```
 
-
-## Python 
+## Python  {#python}
 
 ### logging.handlers.SocketHandler
 
@@ -229,4 +230,4 @@ if __name__ == '__main__':
     
 ```
 
-TODO: 后续会慢慢补充其他语言的日志框架去使用socket将日志发送到datakit上。
+TODO: 后续会慢慢补充其他语言的日志框架去使用 socket 将日志发送到 DataKit 上。

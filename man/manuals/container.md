@@ -1,20 +1,19 @@
 {{.CSS}}
+# 容器
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：{{.AvailableArchs}}
-
-# {{.InputName}}
 
 采集 container 和 Kubernetes 的指标数据、对象数据和容器日志，上报到观测云。
 
-## 前置条件
+## 前置条件 {#requrements}
 
 - 目前 container 会默认连接 Docker 服务，需安装 Docker v17.04 及以上版本。
-- 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](datakit-daemonset-deploy)。
-- 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation)。
+- 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](datakit-daemonset-deploy.md)。
+- 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation){:target="_blank"}。
 
-## 配置
+## 配置 {#config}
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
@@ -25,13 +24,12 @@
 > 对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂不支持配置
 > 采集到的日志, 单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃
 
-
-### 根据容器 image 配置日志采集
+### 根据容器 image 配置日志采集 {#logging-with-image-config}
 
 配置文件中的 `container_include_log / container_exclude_log` 是针对日志数据。
 
 - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为 `"image:<glob规则>"`，表示 glob 规则是针对容器 image 生效
-- [Glob 规则](https://en.wikipedia.org/wiki/Glob_(programming))是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元
+- [Glob 规则](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元
 
 例如，配置如下：
 
@@ -42,7 +40,7 @@
   container_exclude_logging = ["image:*"]
 ```
 
-> ==[Daemonset 方式部署](datakit-daemonset-deploy)时，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to#ebf019c2) 来配置这些镜像的开关==
+> [Daemonset 方式部署](datakit-daemonset-deploy.md)时，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to.md#via-configmap-conf) 来配置这些镜像的开关。
 
 假设有 3 个容器，image 分别是：
 
@@ -68,7 +66,7 @@ docker inspect --format "{{`{{.Config.Image}}`}}" $CONTAINER_ID
 echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
 ```
 
-### 通过 Annotation/Label 调整容器日志采集
+### 通过 Annotation/Label 调整容器日志采集 {#logging-with-annotation-or-label}
 
 可以通过配置容器的 Labels，或容器所属 Pod 的 Annotations，为容器指定日志配置。
 
@@ -96,7 +94,7 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
 | 字段名            | 必填 | 取值             | 默认值 | 说明                                                                                                                                                       |
 | -----             | ---- | ----             | ----   | ----                                                                                                                                                       |
 | `disable`         | N    | true/false       | false  | 是否禁用该 pod/容器的日志采集                                                                                                                              |
-| `source`          | N    | 字符串           | 无     | 日志来源，参见[容器日志采集的 source 设置](container#6de978c3)                                                                                                               |
+| `source`          | N    | 字符串           | 无     | 日志来源，参见[容器日志采集的 source 设置](container.md#config-logging-source)                                                                                                               |
 | `service`         | N    | 字符串           | 无     | 日志隶属的服务，默认值为日志来源（source）                                                                                                                 |
 | `pipeline`        | N    | 字符串           | 无     | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                 |
 | `only_images`     | N    | 字符串数组       | 无     | 针对 Pod 内部多容器情景，如果填写了任何 image 通配，则只采集能匹配这些 image 的容器的日志，类似白名单功能；如果字段为空，即认为采集该 Pod 中所有容器的日志 |
@@ -108,7 +106,7 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
 kubectl annotate pods my-pod datakit/logs='[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\d{4}-\\d{2}\"}]'
 ```
 
-> 关于 Docker 容器添加 Label 的方法，参见[这里](https://docs.docker.com/engine/reference/commandline/run/#set-metadata-on-container--l---label---label-file)。
+> 关于 Docker 容器添加 Label 的方法，参见[这里](https://docs.docker.com/engine/reference/commandline/run/#set-metadata-on-container--l---label---label-file){:target="_blank"}。
 
 在 Kubernetes 可以在创建 Deployment 时，以 `template` 模式添加 Pod Annotations，例如：
 
@@ -138,11 +136,11 @@ spec:
           ]
 ```
 
-### 通过 Sidecar 形式采集 Pod 内部日志
+### 通过 Sidecar 形式采集 Pod 内部日志 {#logging-with-sidecar-config}
 
-参见 [logfwd](logfwd)
+参见 [logfwd](logfwd.md)
 
-### 环境变量配置
+### 环境变量配置 {#env-config}
 
 支持以环境变量的方式修改配置参数：
 
@@ -171,14 +169,14 @@ spec:
 2. 环境变量 `ENV_K8S_CLUSTER_NAME` 指定的值
 3. 默认值 `kubernetes`
 
-### 支持 Kubernetes 自定义 Export
+### 支持 Kubernetes 自定义 Export {#k8s-prom-exporter}
 
-详见[Kubernetes-prom](kubernetes-prom)
+详见[Kubernetes-prom](kubernetes-prom.md)
 
-### 支持 containerd
+### 支持 containerd {#containerd-support}
 
 - 容器指标和对象：适配 docker container 指标集，详见下面文档
-- 容器/Pod 日志：推荐使用 [logfwd](logfwd) 进行采集。
+- 容器/Pod 日志：推荐使用 [logfwd](logfwd.md) 进行采集。
 - Kubernetes 其它采集均不受影响
 
 如果 containerd.sock 路径不是默认的 `/var/run/containerd/containerd.sock`，需要指定新的 `containerd.sock` 路径：
@@ -208,7 +206,7 @@ spec:
 
 
 
-## 指标集
+## 指标集 {#measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -219,7 +217,7 @@ spec:
   # ...
 ```
 
-### 指标
+### 指标 {#metrics}
 
 {{ range $i, $m := .Measurements }}
 
@@ -240,7 +238,7 @@ spec:
 
 {{ end }}
 
-### 对象
+### 对象 {#objects}
 
 {{ range $i, $m := .Measurements }}
 
@@ -261,7 +259,7 @@ spec:
 
 {{ end }}
 
-### 日志
+### 日志 {#logging}
 
 {{ range $i, $m := .Measurements }}
 
@@ -282,9 +280,9 @@ spec:
 
 {{ end }}
 
-## FAQ
+## FAQ {#faq}
 
-### 容器日志的特殊字节码过滤
+### 容器日志的特殊字节码过滤 {#special-char-filter}
 
 容器日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以
 
@@ -306,7 +304,7 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 每一条文本的处理耗时将==额外增加== `1616 ns` 不等。如果日志中不带有颜色等修饰，不要开启该功能。
 
-### 容器日志采集的 source 设置
+### 容器日志采集的 source 设置 {#config-logging-source}
 
 在容器环境下，日志来源（`source`）设置是一个很重要的配置项，它直接影响在页面上的展示效果。但如果挨个给每个容器的日志配置一个 source 未免残暴。如果不手动配置容器日志来源，DataKit 有如下规则（优先级递减）用于自动推断容器日志的来源：
 
@@ -316,10 +314,10 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 - short-image-name: 镜像名，如 `nginx.org/nginx:1.21.0` 则取 `nginx`。在非 Kubernetes 容器环境下，一般首先就是取（精简后的）镜像名
 - `unknown`: 如果镜像名无效（如 `sha256:b733d4a32c...`），则取该未知值
 
-## 延伸阅读
+## 延伸阅读 {#more-reading}
 
-- [eBPF 采集器：支持容器环境下的流量采集](ebpf)
-- [Pipeline：文本数据处理](pipeline)
-- [正确使用正则表达式来配置](datakit-input-conf#9da8bc26) 
-- [Kubernetes 下 DataKit 的几种配置方式](k8s-config-how-to)
-- [DataKit 日志采集综述](datakit-logging)
+- [eBPF 采集器：支持容器环境下的流量采集](ebpf.md)
+- [Pipeline：文本数据处理](pipeline.md)
+- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex) 
+- [Kubernetes 下 DataKit 的几种配置方式](k8s-config-how-to.md)
+- [DataKit 日志采集综述](datakit-logging.md)

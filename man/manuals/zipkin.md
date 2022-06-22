@@ -1,18 +1,17 @@
 {{.CSS}}
+# Zipkin
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 Datakit 内嵌的 Zipkin Agent 用于接收，运算，分析 Zipkin Tracing 协议数据。
 
 ## Zipkin 文档
 
-- [Quickstart](https://zipkin.io/pages/quickstart.html)
-- [Docs](https://zipkin.io/pages/instrumenting.html)
-- [Souce Code](https://github.com/openzipkin/zipkin)
+- [Quickstart](https://zipkin.io/pages/quickstart.html){:target="_blank"}
+- [Docs](https://zipkin.io/pages/instrumenting.html){:target="_blank"}
+- [Souce Code](https://github.com/openzipkin/zipkin){:target="_blank"}
 
 ## 配置 Zipkin Agent
 
