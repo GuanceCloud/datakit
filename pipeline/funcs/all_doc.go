@@ -24,6 +24,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"cast()":               &castMarkdown,
 	"cover()":              &coverMarkdown,
 	"datetime()":           &datetimeMarkdown,
+	"decode":               &decodeMarkdown,
 	"default_time()":       &defaultTimeMarkdown,
 	"drop()":               &dropMarkdown,
 	"drop_key()":           &dropKeyMarkdown,
@@ -43,13 +44,13 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"replace()":            &replaceMarkdown,
 	"set_measurement":      &setMeasurementMarkdown,
 	"set_tag()":            &setTagMarkdown,
+	"sql_cover":            &sqlCoverMarkdown,
 	"strfmt()":             &strfmtMarkdown,
 	"uppercase()":          &uppercaseMarkdown,
 	"url_decode()":         &URLDecodeMarkdown,
+	"use()":                &useMarkdown,
 	"user_agent()":         &userAgentMarkdown,
 	"xml()":                &xmlMarkdown,
-	"decode":               &decodeMarkdown,
-	"sql_cover":            &sqlCoverMarkdown,
 }
 
 // embed docs
@@ -151,38 +152,37 @@ var (
 	docXML string
 )
 
-//nolint:lll
 var (
-	addPatternMarkdown        = PLDoc{Doc: docAddPattern, Deprecated: false}
-	grokMarkdown              = PLDoc{Doc: docGrok, Deprecated: false}
-	jsonMarkdown              = PLDoc{Doc: docJson, Deprecated: false}
-	renameMarkdown            = PLDoc{Doc: docRename, Deprecated: false}
 	URLDecodeMarkdown         = PLDoc{Doc: docURLDecode, Deprecated: false}
-	geoIPMarkdown             = PLDoc{Doc: docGeoIP, Deprecated: false}
-	datetimeMarkdown          = PLDoc{Doc: docDatetime, Deprecated: false}
+	addKeyMarkdown            = PLDoc{Doc: docAddKey, Deprecated: false}
+	addPatternMarkdown        = PLDoc{Doc: docAddPattern, Deprecated: false}
+	adjustTimezoneMarkdown    = PLDoc{Doc: docAdjustTimezone, Deprecated: false}
 	castMarkdown              = PLDoc{Doc: docCast, Deprecated: false}
+	coverMarkdown             = PLDoc{Doc: docCover, Deprecated: false}
+	datetimeMarkdown          = PLDoc{Doc: docDatetime, Deprecated: false}
+	decodeMarkdown            = PLDoc{Doc: docDecode, Deprecated: false}
+	defaultTimeMarkdown       = PLDoc{Doc: docDefaultTime, Deprecated: false}
+	dropKeyMarkdown           = PLDoc{Doc: docDropKey, Deprecated: false}
+	dropMarkdown              = PLDoc{Doc: docDrop, Deprecated: false}
+	dropOriginDataMarkdown    = PLDoc{Doc: docDropOriginData, Deprecated: false}
+	durationPrecisionMarkdown = PLDoc{Doc: docDurationPresicion, Deprecated: false}
+	exitMarkdown              = PLDoc{Doc: docExit, Deprecated: false}
+	geoIPMarkdown             = PLDoc{Doc: docGeoIP, Deprecated: false}
+	grokMarkdown              = PLDoc{Doc: docGrok, Deprecated: false}
 	groupBetweenMarkdown      = PLDoc{Doc: docGroupBetreen, Deprecated: false}
 	groupInMarkdown           = PLDoc{Doc: docGroupIn, Deprecated: false}
-	uppercaseMarkdown         = PLDoc{Doc: docUppercase, Deprecated: false}
+	jsonMarkdown              = PLDoc{Doc: docJson, Deprecated: false}
 	lowercaseMarkdown         = PLDoc{Doc: docLowercase, Deprecated: false}
 	nullIfMarkdown            = PLDoc{Doc: docNullif, Deprecated: false}
-	strfmtMarkdown            = PLDoc{Doc: docStrfmt, Deprecated: false}
-	dropOriginDataMarkdown    = PLDoc{Doc: docDropOriginData, Deprecated: false}
-	addKeyMarkdown            = PLDoc{Doc: docAddKey, Deprecated: false}
-	defaultTimeMarkdown       = PLDoc{Doc: docDefaultTime, Deprecated: false}
-	adjustTimezoneMarkdown    = PLDoc{Doc: docAdjustTimezone, Deprecated: false}
-	dropKeyMarkdown           = PLDoc{Doc: docDropKey, Deprecated: false}
-	userAgentMarkdown         = PLDoc{Doc: docUserAgent, Deprecated: false}
-	parseDurationMarkdown     = PLDoc{Doc: docParseDuration, Deprecated: false}
 	parseDateMarkdown         = PLDoc{Doc: docParseDate, Deprecated: false}
-	coverMarkdown             = PLDoc{Doc: docCover, Deprecated: false}
+	parseDurationMarkdown     = PLDoc{Doc: docParseDuration, Deprecated: false}
+	renameMarkdown            = PLDoc{Doc: docRename, Deprecated: false}
 	replaceMarkdown           = PLDoc{Doc: docReplace, Deprecated: false}
 	setMeasurementMarkdown    = PLDoc{Doc: docSetMeasurement, Deprecated: false}
 	setTagMarkdown            = PLDoc{Doc: docSetTag, Deprecated: false}
-	dropMarkdown              = PLDoc{Doc: docDrop, Deprecated: false}
-	exitMarkdown              = PLDoc{Doc: docExit, Deprecated: false}
-	durationPrecisionMarkdown = PLDoc{Doc: docDurationPresicion, Deprecated: false}
-	decodeMarkdown            = PLDoc{Doc: docDecode, Deprecated: false}
 	sqlCoverMarkdown          = PLDoc{Doc: docSQLCover, Deprecated: false}
+	strfmtMarkdown            = PLDoc{Doc: docStrfmt, Deprecated: false}
+	uppercaseMarkdown         = PLDoc{Doc: docUppercase, Deprecated: false}
+	userAgentMarkdown         = PLDoc{Doc: docUserAgent, Deprecated: false}
 	xmlMarkdown               = PLDoc{Doc: docXML, Deprecated: false}
 )

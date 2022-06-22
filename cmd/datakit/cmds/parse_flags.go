@@ -79,6 +79,8 @@ var (
 	fsPLName          = "pipeline"
 	debugPipelineName = ""
 	fsPL              = pflag.NewFlagSet(fsPLName, pflag.ContinueOnError)
+	flagPLCategory    = fsPL.StringP("category", "C", "logging", "data category (logging, metric, ...)")
+	flagPLNS          = fsPL.StringP("namespace", "N", "default", "namespace (default, gitrepo, remote)")
 	flagPLLogPath     = fsPL.String("log", commonLogFlag(), "command line log path")
 	flagPLTxtData     = fsPL.StringP("txt", "T", "", "text string for the pipeline or grok(json or raw text)")
 	flagPLTxtFile     = fsPL.StringP("file", "F", "", "text file path for the pipeline or grok(json or raw text)")

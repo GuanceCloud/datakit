@@ -163,7 +163,6 @@ create_time 1639657028706
 
 可直接使用如下命令安装/更新 IP 地理信息库,安装geolite2只需把iploc换成geolite2：
 
-
 ```shell
 datakit install --ipdb iploc
 ```

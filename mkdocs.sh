@@ -1,14 +1,12 @@
 #!/bin/bash
 
-datakit_docs_dir=~/git/dataflux-doc/docs/datakit
-integration_docs_dir=~/git/dataflux-doc/docs/integrations
 mkdocs_dir=~/git/dataflux-doc
+datakit_docs_dir=${mkdocs_dir}/docs/datakit
+integration_docs_dir=${mkdocs_dir}/docs/integrations
 
 mkdir -p $datakit_docs_dir $integration_docs_dir
 rm -rf $datakit_docs_dir/*.md
 rm -rf $integration_docs_dir/*.md
-
-cp man/summary.md .docs/
 
 latest_tag=$(git tag --sort=-creatordate | head -n 1)
 
@@ -28,7 +26,7 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
 	arch=`uname -m`
 	datakit=dist/datakit-${os}-${arch}/datakit
 else # if under windows(amd64):
-  datakit=C:/Program Files/datakit/datakit.exe
+  datakit=datakit # windows 下应该设置了对应的 $PATH
 fi
 
 #make || exit -1
@@ -92,6 +90,7 @@ extra_files=(
 	man/manuals/rum-web-h5.md
 )
 
+# 俩文档库里面的内容保持一致，此处就不各自分了
 for f in "${extra_files[@]}"; do
 	cp $f $datakit_docs_dir/
 	cp $f $integration_docs_dir/

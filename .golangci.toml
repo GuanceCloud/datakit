@@ -115,7 +115,7 @@ disable = [
   "containedctx",    # [升级 Go1.18 后加入] Go 不推荐把 context 放在结构体中：https://go.dev/blog/context-and-structs
   "ireturn",         # [升级 Go1.18 后加入] 函数 interface 返回检查
   "contextcheck",    # [升级 Go1.18 后加入] 函数参数必须传入 context
-  "errchkjson",      # [升级 Go1.18 后加入] json 序列号/反序列号必须检查
+  "errchkjson",      # [升级 Go1.18 后加入] json 序列化/反序列化必须检查
   "nilnil",          # [升级 Go1.18 后加入] 函数返回 nil, nil 检查
 ]
 
