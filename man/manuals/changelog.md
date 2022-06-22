@@ -1,7 +1,7 @@
 # DataKit 版本历史
 ---
 
-## 1.4.3(2022/06/21) {#cl-1.4.3}
+## 1.4.3(2022/06/22) {#cl-1.4.3}
 
 本次发布属于迭代发布，主要更新如下内容：
 
@@ -18,7 +18,7 @@
 - 新增 IP 库（MaxMindIP）支持(#799)
 - 新增 DDTrace Profile 集成(#656)
 - Containerd 日志采集支持通过 image 和 K8s Annotation 配置过滤规则(#849)
-- 文档库整体切换(#745)
+- 文档库整体切换到 MkDocs(#745)
 - 其它杂项(#822)
 
 ### Bug 修复 {#cl-1.4.3-bugfix}
@@ -29,6 +29,7 @@
 - Kubernetes Pod 日志和对象上增加 `pod_ip` 字段(848)
 - DDTrace 采集器恢复识别 trace SDK 上的采样设定(#834)
 - 修复 DaemonSet 模式下，外部采集器（eBPF/Oracle）上的 `host` 字段可能跟 DataKit 自身不一致的问题(#843)
+- 修复 stdout 多行日志采集问题(#859)
 ---
 
 ## 1.4.2(2022/06/16)
@@ -51,7 +52,6 @@
 - 修复 Pipeline `group_in` 问题(#826)
 - 修复 ElasticSearch 采集器配置的 `http_timeout` 解析问题(#821)
 - 修复 DCA API 问题(#747)
-- DDTrace 采集器恢复识别 trace SDK 上的采样设定(#834)
 - 修复 `dev_null` DataWay 设置无效问题(#842)
 
 ----
