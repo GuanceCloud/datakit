@@ -1,5 +1,5 @@
 
-# PolarDB Mysql
+# PolarDB MySQL
 ---
 
 ## 视图预览
