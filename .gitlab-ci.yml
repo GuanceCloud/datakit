@@ -89,6 +89,18 @@ release-testing:
   tags:
     - cloudcare-ft
 
+release-k8s-testing:
+  stage: deploy
+  only:
+    - /^k8stesting-.*$/
+  script:
+    # building && publish testing
+    - make clean
+    - make check_testing_conf_compatible
+    - make testing_k8s_image IGN_EBPF_INSTALL_ERR=1
+  tags:
+    - cloudcare-ft
+
 release-stable:
   stage: deploy
   needs: [test-datakit-production, release-ebpf-production]
