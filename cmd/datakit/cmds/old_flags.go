@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -372,7 +373,7 @@ func runOldStyleCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		// TODO
-		if err := pipelineDebugger(datakit.Logging, FlagPipeline, FlagText); err != nil {
+		if err := pipelineDebugger(datakit.Logging, FlagPipeline, script.DefaultScriptNS, FlagText, false); err != nil {
 			errorf("[E] %s\n", err)
 			os.Exit(-1)
 		}

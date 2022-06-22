@@ -64,31 +64,44 @@ func NewPipelineFromFile(category string, path string) (*Pipeline, error) {
 		return nil, err
 	}
 
-	sc, err := plscript.NewScript(name, script, "", category)
-	if err != nil {
-		return nil, err
-	}
-	return &Pipeline{
-		script: sc,
-	}, nil
+	return NewPipeline(category, name, script)
 }
 
 func NewPipeline(category string, name, script string) (*Pipeline, error) {
-	sc, err := plscript.NewScript(name, script, "", category)
-	if err != nil {
-		return nil, err
+	scs, errs := plscript.NewScripts(map[string]string{name: script}, map[string]string{}, "", category)
+
+	if v, ok := errs[name]; ok {
+		return nil, v
 	}
-	return &Pipeline{
-		script: sc,
-	}, nil
+
+	if sc, ok := scs[name]; ok {
+		return &Pipeline{
+			Script: sc,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("unknown error")
+}
+
+func NewPipelineMulti(category string, scripts map[string]string, scriptPath map[string]string) (map[string]*Pipeline, map[string]error) {
+	ret, retErr := plscript.NewScripts(scripts, scriptPath, "", category)
+
+	retPl := map[string]*Pipeline{}
+	for k, v := range ret {
+		retPl[k] = &Pipeline{
+			Script: v,
+		}
+	}
+
+	return retPl, retErr
 }
 
 type Pipeline struct {
-	script *plscript.PlScript
+	Script *plscript.PlScript
 }
 
 func (p *Pipeline) Run(pt *io.Point, plOpt *plscript.Option, ioPtOpt io.PointOption) (*io.Point, bool, error) {
-	if p.script == nil || p.script.Engine() == nil {
+	if p.Script == nil || p.Script.Engine() == nil {
 		return nil, false, fmt.Errorf("pipeline engine not initialized")
 	}
 	if pt == nil {
@@ -110,7 +123,7 @@ func (p *Pipeline) Run(pt *io.Point, plOpt *plscript.Option, ioPtOpt io.PointOpt
 		}
 	}
 
-	if out, drop, err := p.script.Run(pt.Name(), pt.Tags(), fields, cntKey, ioPtOpt.Time, plOpt); err != nil {
+	if out, drop, err := p.Script.Run(pt.Name(), pt.Tags(), fields, cntKey, ioPtOpt.Time, plOpt); err != nil {
 		return nil, drop, err
 	} else {
 		if !out.Time.IsZero() {
