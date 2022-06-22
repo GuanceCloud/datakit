@@ -121,7 +121,6 @@ func (t *Single) Stop() {
 }
 
 func (t *Single) Close() {
-	t.removeWatcher(t.filepath)
 	t.closeWatcher()
 	if offset := t.currentOffset(); offset > 0 {
 		err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: offset})
@@ -131,15 +130,6 @@ func (t *Single) Close() {
 	}
 	t.closeFile()
 	t.opt.log.Infof("closing %s", t.filepath)
-}
-
-func (t *Single) removeWatcher(fn string) {
-	if t.watcher == nil {
-		return
-	}
-	if err := t.watcher.Remove(fn); err != nil {
-		t.opt.log.Warnf("remove watcher err: %s, ignored", err)
-	}
 }
 
 func (t *Single) closeWatcher() {
