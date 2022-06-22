@@ -135,3 +135,4 @@ curl http://localhost:54322/stop
 - DD_TAGS: 为每个 Span 添加默认 Tags。
 - DD_AGENT_HOST: Datakit 监听的地址名，默认 localhost。
 - DD_AGENT_PORT: Datakit 监听的端口号，默认 9529。
+- DD_TRACE_SAMPLE_RATE: 设置采样率从 0.0(0%) ~ 1.0(100%)。

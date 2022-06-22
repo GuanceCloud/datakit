@@ -19,18 +19,23 @@ if [ -z $man_version ]; then
   man_version="${latest_tag}"
 fi
 
-os=
 if [[ "$OSTYPE" == "darwin"* ]]; then
+	arch=`uname -m`
   os="darwin"
-else
+	datakit=dist/datakit-${os}-${arch}/datakit
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
   os="linux"
+	arch=`uname -m`
+	datakit=dist/datakit-${os}-${arch}/datakit
+else # if under windows(amd64):
+  datakit=C:/Program Files/datakit/datakit.exe
 fi
 
 #make || exit -1
 
 # datakit 文档导出
 echo 'export to datakit docs...'
-dist/datakit-${os}-arm64/datakit doc \
+$datakit doc \
 	--export-docs $datakit_docs_dir \
 	--ignore demo \
 	--version "${man_version}" \
@@ -41,7 +46,7 @@ cp man/manuals/datakit-index.md $datakit_docs_dir/index.md
 
 # 集成文档导出
 echo 'export to integrations docs...'
-dist/datakit-${os}-arm64/datakit doc \
+$datakit doc \
 	--export-docs $integration_docs_dir \
 	--ignore demo \
 	--version "${man_version}" \
@@ -52,7 +57,7 @@ cp man/manuals/integrations-index.md $integration_docs_dir/index.md
 
 # 这些文件没有集成在 datakit 代码中（没法通过 export-docs 命令导出），故直接拷贝到文档库中。
 extra_files=(
-	man/integration-to-datakit-howto.md
+	man/manuals/integration-to-datakit-howto.md
 	man/manuals/aliyun-access.md
 	man/manuals/aliyun-asm.md
 	man/manuals/aliyun-cdn.md
@@ -92,4 +97,4 @@ for f in "${extra_files[@]}"; do
 	cp $f $integration_docs_dir/
 done
 
-cd $mkdocs_dir && mkdocs serve
+cd $mkdocs_dir && mkdocs serve 2>&1 | tee mkdocs.log

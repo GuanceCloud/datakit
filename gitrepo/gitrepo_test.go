@@ -147,6 +147,7 @@ func TestGetUserNamePasswordFromGitURL(t *testing.T) {
 		name          string
 		gitURL        string
 		expect        map[string]string
+		expectAuth    int
 		shouldBeError bool
 	}{
 		{
@@ -155,6 +156,7 @@ func TestGetUserNamePasswordFromGitURL(t *testing.T) {
 			expect: map[string]string{
 				"username": "password",
 			},
+			expectAuth:    authUseHTTP,
 			shouldBeError: false,
 		},
 
@@ -164,6 +166,7 @@ func TestGetUserNamePasswordFromGitURL(t *testing.T) {
 			expect: map[string]string{
 				"": "",
 			},
+			expectAuth:    authUseSSH,
 			shouldBeError: false,
 		},
 
@@ -173,6 +176,7 @@ func TestGetUserNamePasswordFromGitURL(t *testing.T) {
 			expect: map[string]string{
 				"": "",
 			},
+			expectAuth:    authUseSSH,
 			shouldBeError: false,
 		},
 
@@ -182,6 +186,7 @@ func TestGetUserNamePasswordFromGitURL(t *testing.T) {
 			expect: map[string]string{
 				"": "password",
 			},
+			expectAuth:    authUseHTTP,
 			shouldBeError: true,
 		},
 
@@ -191,20 +196,22 @@ func TestGetUserNamePasswordFromGitURL(t *testing.T) {
 			expect: map[string]string{
 				"": "",
 			},
+			expectAuth:    authUseHTTP,
 			shouldBeError: true,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			gitUserName, gitPassword, err := getUserNamePasswordFromGitURL(tc.gitURL)
+			as, err := getUserNamePasswordFromGitURL(tc.gitURL)
 			if err != nil && !tc.shouldBeError {
 				t.Error(err)
 			}
 			mVal := map[string]string{
-				gitUserName: gitPassword,
+				as.GitUserName: as.GitPassword,
 			}
 			tu.Equals(t, tc.expect, mVal)
+			tu.Equals(t, tc.expectAuth, as.Auth)
 		})
 	}
 
@@ -277,17 +284,19 @@ func TestReloadCore(t *testing.T) {
 func TestGetAuthMethod(t *testing.T) {
 	cases := []struct {
 		name          string
-		gitUserName   string
-		gitPassword   string
+		as            *authOpt
 		c             *config.GitRepository
 		expect        transport.AuthMethod
 		shouldBeError bool
 	}{
 		{
-			name:        "auth_username_password",
-			gitUserName: "user",
-			gitPassword: "pass",
-			c:           &config.GitRepository{},
+			name: "auth_username_password",
+			as: &authOpt{
+				Auth:        authUseHTTP,
+				GitUserName: "user",
+				GitPassword: "pass",
+			},
+			c: &config.GitRepository{},
 			expect: &http.BasicAuth{
 				Username: "user",
 				Password: "pass",
@@ -296,7 +305,22 @@ func TestGetAuthMethod(t *testing.T) {
 		},
 
 		{
-			name:          "auth_empty_ssh_path",
+			name: "auth_empty_ssh_path",
+			as: &authOpt{
+				Auth: authUseSSH,
+			},
+			c:             &config.GitRepository{},
+			expect:        nil,
+			shouldBeError: true,
+		},
+
+		{
+			name: "auth_empty_http_path",
+			as: &authOpt{
+				Auth:        authUseHTTP,
+				GitUserName: "",
+				GitPassword: "",
+			},
 			c:             &config.GitRepository{},
 			expect:        nil,
 			shouldBeError: true,
@@ -305,7 +329,7 @@ func TestGetAuthMethod(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			authM, err := getAuthMethod(tc.gitUserName, tc.gitPassword, tc.c)
+			authM, err := getAuthMethod(tc.as, tc.c)
 			if err != nil && !tc.shouldBeError {
 				t.Error(err)
 			}

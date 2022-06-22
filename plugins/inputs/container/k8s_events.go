@@ -29,7 +29,7 @@ func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{
 	for {
 		select {
 		case <-stop:
-			l.Infof("Event watching stopped")
+			l.Infof("event watching stopped")
 			return
 		default:
 			// nil
@@ -37,7 +37,7 @@ func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{
 
 		events, err := client.getEvents().List(context.Background(), metaV1ListOption)
 		if err != nil {
-			l.Errorf("Failed to load events: %v", err)
+			l.Warnf("failed to load events: %s", err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -48,7 +48,7 @@ func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{
 		watcher, err := client.getEvents().Watch(context.Background(),
 			metav1.ListOptions{Watch: true, ResourceVersion: resourceVersion})
 		if err != nil {
-			l.Errorf("Failed to start watch for new events: %v", err)
+			l.Warnf("failed to start watch for new events: %s", err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -60,7 +60,7 @@ func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{
 			select {
 			case watchUpdate, ok := <-watchChannel:
 				if !ok {
-					l.Errorf("Event watch channel closed")
+					l.Warnf("event watch channel closed, retry")
 					break inner_loop
 				}
 
@@ -70,10 +70,10 @@ func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{
 
 				if watchUpdate.Type == kubewatch.Error {
 					if status, ok := watchUpdate.Object.(*metav1.Status); ok {
-						l.Errorf("Error during watch: %#v", status)
+						l.Warnf("error during watch: %#v", status)
 						break inner_loop
 					}
-					l.Errorf("Received unexpected error: %#v", watchUpdate.Object)
+					l.Warnf("received unexpected error: %#v", watchUpdate.Object)
 					break inner_loop
 				}
 
@@ -81,24 +81,24 @@ func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{
 					switch watchUpdate.Type {
 					case kubewatch.Added, kubewatch.Modified:
 						if err := feedEvent(event, extraTags); err != nil {
-							l.Error("Failed to parse event: %v", err)
+							l.Warnf("failed to parse event: %s", err)
 						}
 
 					case kubewatch.Bookmark, kubewatch.Error:
-						l.Info("ignore type %s", watchUpdate.Type)
+						l.Infof("ignore type %s", watchUpdate.Type)
 
 					case kubewatch.Deleted:
 						// Deleted events are silently ignored.
 					default:
-						l.Warnf("Unknown watchUpdate.Type: %#v", watchUpdate.Type)
+						l.Warnf("unknown watchUpdate.Type: %#v", watchUpdate.Type)
 					}
 				} else {
-					l.Errorf("Wrong object received: %v", watchUpdate)
+					l.Warnf("wrong object received: %v", watchUpdate)
 				}
 
 			case <-stop:
 				watcher.Stop()
-				l.Infof("Event watching stopped")
+				l.Infof("event watching stopped")
 				return
 			}
 		}
@@ -131,7 +131,7 @@ func buildEventData(item *kubeapi.Event, extraTags tagsType) inputs.Measurement 
 	obj.tags["message"] = item.Message
 	msg, err := json.Marshal(obj.tags)
 	if err != nil {
-		l.Errorf("Failed to build event message: %s", err)
+		l.Warnf("failed to build event message: %s", err)
 	} else {
 		obj.fields["message"] = string(msg)
 	}

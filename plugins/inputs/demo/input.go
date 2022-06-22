@@ -70,7 +70,13 @@ func (ipt *Input) Run() {
 	}
 
 	if namespace := config.GetElectionNamespace(); namespace != "" {
-		ipt.Tags["election_namespace"] = namespace
+		if ipt.Tags == nil {
+			ipt.Tags = map[string]string{
+				"election_namespace": namespace,
+			}
+		} else {
+			ipt.Tags["election_namespace"] = namespace
+		}
 	}
 
 	for {

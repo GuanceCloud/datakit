@@ -106,6 +106,8 @@ func (opt *Option) Init() error {
 		opt.MultilineMaxLines = defaultMaxLines
 	}
 
+	l.Infof("log_log MultilineMaxLines: %d", opt.MultilineMaxLines)
+
 	opt.GlobalTags["service"] = opt.Service
 	opt.log = logger.SLogger(opt.InputName)
 
@@ -195,12 +197,13 @@ func (t *Tailer) scan() {
 		t.opt.log.Warn(err)
 	}
 
-	t.cleanInvalidFile(filelist)
+	// t.cleanInvalidFile(filelist)
 
 	for _, filename := range filelist {
 		if t.opt.IgnoreDeadLog > 0 && !FileIsActive(filename, t.opt.IgnoreDeadLog) {
-			t.closeFromFileList(filename)
-			t.removeFromFileList(filename)
+			continue
+			// t.closeFromFileList(filename)
+			// t.removeFromFileList(filename)
 		}
 		if t.fileInFileList(filename) {
 			continue
@@ -225,36 +228,36 @@ func (t *Tailer) scan() {
 
 // cleanInvalidFile 清除过期文件，过期的定义包括被 remove/rename/truncate 导致文件不可用，其中 truncate 必须小于文件当前的 offset
 // Tailer 已保存当前文件的列表（currentFileList），和函数参数 newFileList 比对，取 newFileList 对于 currentFileList 的差集，即为要被 clean 的对象.
-func (t *Tailer) cleanInvalidFile(newFileList []string) {
-	for _, oldFilename := range t.getFileList() {
-		shouldClean := false
-
-		tl := t.getTailerSingle(oldFilename)
-		if tl != nil {
-			didRotate, err := DidRotate(tl.file, tl.currentOffset())
-			if err != nil {
-				t.opt.log.Warnf("didRotate error: %s", err)
-			}
-			if didRotate {
-				shouldClean = true
-			}
-		}
-
-		func() {
-			for _, newFilename := range newFileList {
-				if oldFilename == newFilename {
-					return
-				}
-			}
-			shouldClean = true
-		}()
-
-		if shouldClean {
-			t.closeFromFileList(oldFilename)
-			t.opt.log.Debugf("maybe file %s already not exist or truncate, exit", oldFilename)
-		}
-	}
-}
+// func (t *Tailer) cleanInvalidFile(newFileList []string) {
+// 	for _, oldFilename := range t.getFileList() {
+// 		shouldClean := false
+//
+// 		tl := t.getTailerSingle(oldFilename)
+// 		if tl != nil {
+// 			didRotate, err := DidRotate(tl.file, tl.currentOffset())
+// 			if err != nil {
+// 				t.opt.log.Warnf("didRotate error: %s", err)
+// 			}
+// 			if didRotate {
+// 				shouldClean = true
+// 			}
+// 		}
+//
+// 		func() {
+// 			for _, newFilename := range newFileList {
+// 				if oldFilename == newFilename {
+// 					return
+// 				}
+// 			}
+// 			shouldClean = true
+// 		}()
+//
+// 		if shouldClean {
+// 			t.closeFromFileList(oldFilename)
+// 			t.opt.log.Debugf("maybe file %s already not exist or truncate, exit", oldFilename)
+// 		}
+// 	}
+// }
 
 func (t *Tailer) Close() {
 	select {
@@ -277,15 +280,15 @@ func (t *Tailer) removeFromFileList(filename string) {
 	delete(t.fileList, filename)
 }
 
-func (t *Tailer) closeFromFileList(filename string) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	tl, ok := t.fileList[filename]
-	if !ok {
-		return
-	}
-	tl.Close()
-}
+// func (t *Tailer) closeFromFileList(filename string) {
+// 	t.mu.Lock()
+// 	defer t.mu.Unlock()
+// 	tl, ok := t.fileList[filename]
+// 	if !ok {
+// 		return
+// 	}
+// 	tl.Close()
+// }
 
 func (t *Tailer) fileInFileList(filename string) bool {
 	t.mu.Lock()
@@ -294,12 +297,12 @@ func (t *Tailer) fileInFileList(filename string) bool {
 	return ok
 }
 
-func (t *Tailer) getTailerSingle(filename string) *Single {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	tl := t.fileList[filename]
-	return tl
-}
+// func (t *Tailer) getTailerSingle(filename string) *Single {
+// 	t.mu.Lock()
+// 	defer t.mu.Unlock()
+// 	tl := t.fileList[filename]
+// 	return tl
+// }
 
 func (t *Tailer) getFileList() []string {
 	t.mu.Lock()

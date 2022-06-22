@@ -87,6 +87,7 @@ type Input struct {
 	IgnoreDeadLog         string            `toml:"ignore_dead_log"`
 	Tags                  map[string]string `toml:"tags"`
 	FromBeginning         bool              `toml:"from_beginning,omitempty"`
+	DockerMode            bool              `toml:"docker_mode,omitempty"`
 
 	DeprecatedPipeline       string `toml:"pipeline_path"`
 	DeprecatedMultilineMatch string `toml:"match"`
@@ -131,6 +132,7 @@ func (ipt *Input) Run() {
 		Sockets:               ipt.Sockets,
 		IgnoreStatus:          ipt.IgnoreStatus,
 		FromBeginning:         ipt.FromBeginning,
+		DockerMode:            ipt.DockerMode,
 		CharacterEncoding:     ipt.CharacterEncoding,
 		MultilineMatch:        ipt.MultilineMatch,
 		MultilineMaxLines:     ipt.MultilineMaxLines,

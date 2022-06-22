@@ -50,7 +50,6 @@ func TestDoLoadConf(t *testing.T) {
 		conf         string
 		expectInputs map[string][]inputs.Input
 	}{
-
 		{
 			name: "empty-cpu-conf",
 			conf: `[[inputs.cpu]]`,

@@ -130,3 +130,6 @@ php -d datadog.service=my-php-app -S localhost:8888
 - DD_VERSION
   INI: datadog.version
   设置服务版本。
+- DD_TRACE_SAMPLE_RATE
+  INI: datadog.trace.smaple_rate
+  设置采样率从 0.0(0%) ~ 1.0(100%)。

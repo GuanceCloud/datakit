@@ -394,10 +394,12 @@ func (s *Sender) flushCache() {
 
 // Stop stop cache interval and stop cache.
 func (s *Sender) Stop() error {
-	if s.stopCh != nil {
+	select {
+	case <-s.stopCh:
+		//nil
+	default:
 		close(s.stopCh)
 	}
-
 	return cache.Stop()
 }
 

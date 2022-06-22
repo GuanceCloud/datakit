@@ -21,6 +21,16 @@ Prom 采集器可以获取各种 Prometheus Exporters 暴露出来的指标数�
 
 配置好后，重启 DataKit 即可。
 
+### 配置额外的 header
+
+Prom 采集器支持在数据拉取的 HTTP 请求中配置额外的请求头，如下：
+
+```toml
+  [inputs.prom.http_headers]
+  Root = "passwd"
+  Michael = "1234"
+```
+
 ### 关于 tag 重命名
 
 > 注意：对于 [DataKit 全局 tag key](datakit-conf#update-global-tag)，此处不支持将它们重命名。

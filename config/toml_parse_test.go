@@ -17,7 +17,6 @@ func TestTOMLParse(t *testing.T) {
 		name string
 		data []byte
 	}{
-
 		{
 			name: `mixed-array-type`,
 			data: []byte(

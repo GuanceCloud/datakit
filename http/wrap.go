@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/didip/tollbooth/v6"
+	tollbooth "github.com/didip/tollbooth/v6"
 	"github.com/didip/tollbooth/v6/limiter"
 	"github.com/gin-gonic/gin"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -52,7 +52,7 @@ func ginWraper(lmt *limiter.Limiter) gin.HandlerFunc {
 
 type apiHandler func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error)
 
-func rawHTTPWraper(lmt *limiter.Limiter, next apiHandler, any ...interface{}) gin.HandlerFunc {
+func rawHTTPWraper(lmt *limiter.Limiter, next apiHandler, other ...interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		m := &apiMetric{
@@ -68,7 +68,7 @@ func rawHTTPWraper(lmt *limiter.Limiter, next apiHandler, any ...interface{}) gi
 			goto feed
 		}
 
-		if res, err := next(c.Writer, c.Request, any...); err != nil {
+		if res, err := next(c.Writer, c.Request, other...); err != nil {
 			uhttp.HttpErr(c, err)
 		} else {
 			OK.HttpBody(c, res)

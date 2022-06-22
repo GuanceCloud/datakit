@@ -57,24 +57,9 @@ const (
     # ...
 
   ## Sampler config uses to set global sampling strategy.
-  ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
-  ##  -1: always reject any tracing data send to datakit
-  ##   0: accept tracing data and calculate with sampling_rate
-  ##   1: always send to data center and do not consider sampling_rate
-  ## sampling_rate used to set global sampling rate
+  ## sampling_rate used to set global sampling rate.
   # [inputs.opentelemetry.sampler]
-    # priority = 0
     # sampling_rate = 1.0
-
-  ## Piplines use to manipulate message and meta data. If this item configured right then
-  ## the current input procedure will run the scripts wrote in pipline config file against the data
-  ## present in span message.
-  ## The string on the left side of the equal sign must be identical to the service name that
-  ## you try to handle.
-  # [inputs.opentelemetry.pipelines]
-    # service1 = "service1.p"
-    # service2 = "service2.p"
-    # ...
 
   # [inputs.opentelemetry.tags]
     # key1 = "value1"
@@ -112,24 +97,26 @@ const (
 `
 )
 
-var l = logger.DefaultSLogger("otel-log")
+var (
+	l       = logger.DefaultSLogger("otel-log")
+	sampler *itrace.Sampler
+)
 
 type Input struct {
+	Pipelines           map[string]string   `toml:"pipelines"` // deprecated
 	Ogrpc               *otlpGrpcCollector  `toml:"grpc"`
 	OHTTPc              *otlpHTTPCollector  `toml:"http"`
 	CloseResource       map[string][]string `toml:"close_resource"`
 	OmitErrStatus       []string            `toml:"omit_err_status"`
 	Sampler             *itrace.Sampler     `toml:"sampler"`
-	Pipelines           map[string]string   `toml:"pipelines"`
 	IgnoreAttributeKeys []string            `toml:"ignore_attribute_keys"`
 	Tags                map[string]string   `toml:"tags"`
 	ExpectedHeaders     map[string]string   `toml:"expectedHeaders"`
-
-	inputName string
-	semStop   *cliutils.Sem // start stop signal
+	inputName           string
+	semStop             *cliutils.Sem // start stop signal
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return inputName
 }
 
@@ -137,7 +124,7 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
@@ -145,65 +132,63 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
 }
 
-func (i *Input) RegHTTPHandler() {
-	dkHTTP.RegHTTPHandler("POST", "/otel/v1/trace", i.OHTTPc.apiOtlpTrace)
-	dkHTTP.RegHTTPHandler("POST", "/otel/v1/metric", i.OHTTPc.apiOtlpMetric)
+func (ipt *Input) RegHTTPHandler() {
+	dkHTTP.RegHTTPHandler("POST", "/otel/v1/trace", ipt.OHTTPc.apiOtlpTrace)
+	dkHTTP.RegHTTPHandler("POST", "/otel/v1/metric", ipt.OHTTPc.apiOtlpMetric)
 }
 
-func (i *Input) exit() {
-	i.Ogrpc.stop()
+func (ipt *Input) exit() {
+	ipt.Ogrpc.stop()
 }
 
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger("otlp-log")
 	storage := collector.NewSpansStorage()
 	// add filters: the order append in AfterGather is important!!!
 	// add error status penetration
 	storage.AfterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add close resource filter
-	if len(i.CloseResource) != 0 {
+	if len(ipt.CloseResource) != 0 {
 		closeResource := &itrace.CloseResource{}
-		closeResource.UpdateIgnResList(i.CloseResource)
+		closeResource.UpdateIgnResList(ipt.CloseResource)
 		storage.AfterGather.AppendFilter(closeResource.Close)
 	}
 	// add omit certain error status list
-	if len(i.OmitErrStatus) != 0 {
-		storage.AfterGather.AppendFilter(itrace.OmitStatusCodeFilterWrapper(i.OmitErrStatus))
+	if len(ipt.OmitErrStatus) != 0 {
+		storage.AfterGather.AppendFilter(itrace.OmitStatusCodeFilterWrapper(ipt.OmitErrStatus))
 	}
 	// add sampler
-	if i.Sampler != nil {
-		defSampler := i.Sampler
-		storage.AfterGather.AppendFilter(defSampler.Sample)
+	if ipt.Sampler != nil {
+		sampler = ipt.Sampler
+	} else {
+		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
 	}
-	// add piplines
-	if len(i.Pipelines) != 0 {
-		storage.AfterGather.AppendFilter(itrace.PiplineFilterWrapper(inputName, i.Pipelines))
-	}
+	storage.AfterGather.AppendFilter(sampler.Sample)
 
-	storage.GlobalTags = i.Tags
+	storage.GlobalTags = ipt.Tags
 
-	if len(i.IgnoreAttributeKeys) > 0 {
-		storage.RegexpString = strings.Join(i.IgnoreAttributeKeys, "|")
+	if len(ipt.IgnoreAttributeKeys) > 0 {
+		storage.RegexpString = strings.Join(ipt.IgnoreAttributeKeys, "|")
 	}
 
 	open := false
 	// 从配置文件 开启
-	if i.OHTTPc.Enable {
+	if ipt.OHTTPc.Enable {
 		// add option
-		i.OHTTPc.storage = storage
-		i.OHTTPc.ExpectedHeaders = i.ExpectedHeaders
+		ipt.OHTTPc.storage = storage
+		ipt.OHTTPc.ExpectedHeaders = ipt.ExpectedHeaders
 		open = true
 	}
-	if i.Ogrpc.TraceEnable || i.Ogrpc.MetricEnable {
+	if ipt.Ogrpc.TraceEnable || ipt.Ogrpc.MetricEnable {
 		open = true
-		i.Ogrpc.ExpectedHeaders = i.ExpectedHeaders
-		go i.Ogrpc.run(storage)
+		ipt.Ogrpc.ExpectedHeaders = ipt.ExpectedHeaders
+		go ipt.Ogrpc.run(storage)
 	}
 	if open {
 		// add calculators
@@ -212,13 +197,13 @@ func (i *Input) Run() {
 		for {
 			select {
 			case <-datakit.Exit.Wait():
-				i.exit()
-				l.Infof("%s exit", i.inputName)
+				ipt.exit()
+				l.Infof("%s exit", ipt.inputName)
 				return
 
-			case <-i.semStop.Wait():
-				i.exit()
-				l.Infof("%s return", i.inputName)
+			case <-ipt.semStop.Wait():
+				ipt.exit()
+				l.Infof("%s return", ipt.inputName)
 				return
 			}
 		}

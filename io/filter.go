@@ -11,6 +11,9 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -84,6 +87,10 @@ type filterPull struct {
 	PullInterval time.Duration `json:"pull_interval"`
 }
 
+func dump(rules []byte, dir string) error {
+	return ioutil.WriteFile(filepath.Join(dir, ".pull"), rules, os.ModePerm)
+}
+
 func (f *filter) pull() {
 	start := time.Now()
 
@@ -142,6 +149,10 @@ func (f *filter) pull() {
 				f.conditions[k] = append(f.conditions[k], parser.GetConds(condition)...)
 			}
 		}
+
+		if err := dump(body, datakit.DataDir); err != nil {
+			l.Warnf("dump: %s, ignored", err)
+		}
 	}
 }
 
@@ -153,13 +164,13 @@ func (f *filter) filterLogging(cond parser.WhereConditions, pts []*Point) []*Poi
 
 	var after []*Point
 	for _, pt := range pts {
-		tags := pt.Tags()
-		fields, err := pt.Fields()
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
 		if err != nil {
 			continue // filter it!
 		}
 
-		tags["source"] = pt.Name() // set measurement name as tag `source'
+		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
 		if !filtered(cond, tags, fields) {
 			after = append(after, pt)
 		}
@@ -177,14 +188,14 @@ func (f *filter) filterMetric(cond parser.WhereConditions, pts []*Point) []*Poin
 	var after []*Point
 
 	for _, pt := range pts {
-		tags := pt.Tags()
-		fields, err := pt.Fields()
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
 		if err != nil {
 			l.Errorf("pt.Fields: %s, ignored", err.Error())
 			continue // filter it!
 		}
 
-		tags["measurement"] = pt.Name() // set measurement name as tag `measurement'
+		tags["measurement"] = pt.Point.Name() // set measurement name as tag `measurement'
 
 		if !filtered(cond, tags, fields) {
 			after = append(after, pt)
@@ -203,14 +214,14 @@ func (f *filter) filterObject(cond parser.WhereConditions, pts []*Point) []*Poin
 	var after []*Point
 
 	for _, pt := range pts {
-		tags := pt.Tags()
-		fields, err := pt.Fields()
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
 		if err != nil {
 			l.Errorf("pt.Fields: %s, ignored", err.Error())
 			continue // filter it!
 		}
 
-		tags["class"] = pt.Name() // set measurement name as tag `class'
+		tags["class"] = pt.Point.Name() // set measurement name as tag `class'
 
 		if !filtered(cond, tags, fields) {
 			after = append(after, pt)
@@ -229,8 +240,8 @@ func (f *filter) filterTracing(cond parser.WhereConditions, pts []*Point) []*Poi
 	var after []*Point
 
 	for _, pt := range pts {
-		tags := pt.Tags()
-		fields, err := pt.Fields()
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
 		if err != nil {
 			continue // filter it!
 		}

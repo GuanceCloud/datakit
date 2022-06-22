@@ -11,7 +11,7 @@
 
 ## 私有拨测节点部署
 
-私有拨测节点部署，需在 [观测云页面创建私有拨测节点](https://www.yuque.com/dataflux/doc/phmtep)。创建完成后，将页面上相关信息填入 `conf.d/{{.Catalog}}/{{.InputName}}.conf` 即可：
+私有拨测节点部署，需在 [观测云页面创建私有拨测节点](../usability-monitoring/self-node.md)。创建完成后，将页面上相关信息填入 `conf.d/{{.Catalog}}/{{.InputName}}.conf` 即可：
 
 ```toml
 #  中心任务存储的服务地址

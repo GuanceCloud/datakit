@@ -47,7 +47,7 @@ func (d *Duration) UnmarshalTOML(b []byte) error {
 		return nil
 	}
 
-	return nil
+	return fmt.Errorf("failed to parse duration %s", b)
 }
 
 type JSONFlattener struct {
@@ -57,7 +57,8 @@ type JSONFlattener struct {
 // FlattenJSON flattens nested maps/interfaces into a fields map (ignoring bools and string).
 func (f *JSONFlattener) FlattenJSON(
 	fieldname string,
-	v interface{}) error {
+	v interface{},
+) error {
 	if f.Fields == nil {
 		f.Fields = make(map[string]interface{})
 	}

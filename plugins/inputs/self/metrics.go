@@ -20,7 +20,7 @@ type datakitMeasurement struct {
 }
 
 func (m *datakitMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.Name, m.Tags, m.Fields, m.ts)
+	return io.MakePoint(m.CommonMeasurement.Name, m.CommonMeasurement.Tags, m.CommonMeasurement.Fields, m.ts)
 }
 
 func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {
@@ -162,6 +162,13 @@ func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Unit:     inputs.DurationSecond,
 				Desc:     "Uptime of DataKit",
+			},
+
+			"open_files": &inputs.FieldInfo{
+				Type:     inputs.Gauge,
+				DataType: inputs.Int,
+				Unit:     inputs.NCount,
+				Desc:     "open files of DataKit(Only Linux support, others are -1)",
 			},
 		},
 	}

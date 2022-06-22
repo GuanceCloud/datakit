@@ -281,7 +281,8 @@ func TestInstanceName(t *testing.T) {
 // The incoming parameters expectMeasurement and actualMeasurement need to be sorted in advance.
 func AssertMeasurement(t *testing.T,
 	expectMeasurement []inputs.Measurement,
-	actualMeasurement []inputs.Measurement, flag int) {
+	actualMeasurement []inputs.Measurement, flag int,
+) {
 	t.Helper()
 
 	lenE := len(expectMeasurement)

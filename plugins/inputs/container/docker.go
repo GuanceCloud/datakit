@@ -183,7 +183,7 @@ func (d *dockerInput) watchNewContainerLogs() error {
 
 			if err := d.watchingContainerLog(context.Background(), container); err != nil {
 				if !errors.Is(err, context.Canceled) {
-					l.Errorf("tailContainerLog: %s", err)
+					l.Warnf("tail containerLog: %s", err)
 				}
 			}
 		}(&cList[idx])

@@ -89,13 +89,13 @@ T::my_service { duration > 1000 } [10m] BY operation
 | --------- | -------                 | ---                | -----        | ---------                                                          | ----                                | -----            | ---                |
 | PromQL    | Prometheuse 指标查询    | 支持               | 不支持       | [支持](https://prometheus.io/docs/prometheus/latest/querying/api/){:target="_blank"} | 不支持                              | 支持             | [支持](https://prometheus.io/docs/prometheus/latest/querying/operators/#aggregation-operators){:target="_blank"}               |
 | LogQL     | 主要用于查询日志        | 支持从日志生成指标 | 支持         | [支持](https://grafana.com/docs/loki/latest/api/){:target="_blank"}                  | 支持                                | 支持             | [支持](https://grafana.com/docs/loki/latest/logql/#aggregation-operators){:target="_blank"}               |
-| DQL       | DataFlux 全平台数据查询 | 支持               | 支持         | [支持](https://www.yuque.com/dataflux/datakit/apis#6c639732){:target="_blank"}       | 不支持（在 DataKit 端已预先切割好） | 支持             | 支持               |
+| DQL       | DataFlux 全平台数据查询 | 支持               | 支持         | [支持](../datakit/apis.md#api-raw-query){:target="_blank"}       | 不支持（在 DataKit 端已预先切割好） | 支持             | 支持               |
 
 ### 数据处理函数支持情况
 
 - [PromQL 支持的函数列表](https://prometheus.io/docs/prometheus/latest/querying/functions/#functions){:target="_blank"}
 - [LogQL 支持的函数列表](https://grafana.com/docs/loki/latest/logql/#metric-queries){:target="_blank"}
-- [DQL 支持的函数列表](https://www.yuque.com/dataflux/doc/ziezwr){:target="_blank"}
+- [DQL 支持的函数列表](../dql/funcs.md){:target="_blank"}
 
 ## 常见查询语句写法对比
 

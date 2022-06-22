@@ -3,7 +3,7 @@
 
 本文以常见 Web 端三层架构模式实现 OTEL 的链路追踪及可观测性。
 
-在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经[配置](https://www.yuque.com/dataflux/datakit/opentelemetry){:target="_blank"}好了采集器。
+在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经[配置](opentelemetry.md){:target="_blank"}好了采集器。
 
 ## 接下来使用伪代码实现
 

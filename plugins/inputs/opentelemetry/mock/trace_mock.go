@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -39,7 +39,8 @@ func (et *MockTrace) GetHeader() metadata.MD {
 }
 
 func (et *MockTrace) Export(ctx context.Context,
-	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
+	ets *collectortracepb.ExportTraceServiceRequest,
+) (*collectortracepb.ExportTraceServiceResponse, error) {
 	if rss := ets.GetResourceSpans(); len(rss) > 0 {
 		et.Rss = rss
 	}
@@ -49,7 +50,7 @@ func (et *MockTrace) Export(ctx context.Context,
 	return res, nil
 }
 
-func MockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.DatakitTrace) {
+func MockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []itrace.DatakitTrace) {
 	t.Helper()
 	// 固定时间测试 否则格式化content数据不对
 	startTime := time.Date(2020, time.December, 8, 19, 15, 0, 0, time.UTC)
@@ -107,32 +108,31 @@ func MockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.
 
 	// nolint:lll
 	wantContent := `{"trace_id":"AAAAAAAAAAAAAAAAAAAAAQ==","span_id":"AAAAAAAAAAI=","name":"span_name","start_time_unix_nano":1607454900000000000,"end_time_unix_nano":1607454901000000000,"attributes":[{"key":"a","value":{"Value":{"StringValue":"b"}}},{"key":"int","value":{"Value":{"IntValue":123}}}],"status":{}}`
-	want = []DKtrace.DatakitTrace{[]*DKtrace.DatakitSpan{
+	want = []itrace.DatakitTrace{[]*itrace.DatakitSpan{
 		{
-			TraceID:            "00000000000000000000000000000001",
-			ParentID:           "0",
-			SpanID:             "0000000000000002",
-			Service:            "global.ServerName",
-			Resource:           "span_name",
-			Operation:          "span_name",
-			Source:             "opentelemetry",
-			SpanType:           "entry",
-			SourceType:         "custom",
-			Env:                "",
-			Project:            "",
-			Version:            "",
-			Tags:               map[string]string{"a": "b", "int": "123", "service_name": "global.ServerName"},
-			EndPoint:           "",
-			HTTPMethod:         "",
-			HTTPStatusCode:     "",
-			ContainerHost:      "",
-			PID:                "",
-			Start:              startTime.UnixNano(),
-			Duration:           endTime.UnixNano() - startTime.UnixNano(),
-			Status:             "ok",
-			Content:            wantContent,
-			Priority:           0,
-			SamplingRateGlobal: 0,
+			TraceID:        "00000000000000000000000000000001",
+			ParentID:       "0",
+			SpanID:         "0000000000000002",
+			Service:        "global.ServerName",
+			Resource:       "span_name",
+			Operation:      "span_name",
+			Source:         "opentelemetry",
+			SpanType:       "entry",
+			SourceType:     "custom",
+			Env:            "",
+			Project:        "",
+			Version:        "",
+			Tags:           map[string]string{"a": "b", "int": "123", "service_name": "global.ServerName"},
+			Metrics:        map[string]interface{}{itrace.FIELD_PRIORITY: 1},
+			EndPoint:       "",
+			HTTPMethod:     "",
+			HTTPStatusCode: "",
+			ContainerHost:  "",
+			PID:            "",
+			Start:          startTime.UnixNano(),
+			Duration:       endTime.UnixNano() - startTime.UnixNano(),
+			Status:         "ok",
+			Content:        wantContent,
 		},
 	}}
 
