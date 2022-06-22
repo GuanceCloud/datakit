@@ -7,11 +7,20 @@
 
 Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标，并将指标采集到观测云，帮助监控分析 Postgresql 各种异常情况
 
+## 视图预览
+
+PostgreSQL 性能指标展示：包括连接数，缓冲分配，计划检查点，脏块数等
+
+![image.png](../imgs/postgresql-1.png)
+
+
 ## 前置条件
 
 - Postgresql 版本 >= 9.0
 
 ## 配置
+
+### 指标采集 (必选)
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
@@ -19,15 +28,23 @@ Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标
 {{.InputSample}}
 ```
 
+参数说明
+
+- address：服务连接地址
+- ignored_databases：忽略采集的数据库
+- databases：需要采集的数据库 (默认采集所有库)
+- outputaddress：设置服务器标签
+- interval：数据采集频率
+
 配置好后，重启 DataKit 即可。
 
-## 指标集
+### 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。
 
 {{ range $i, $m := .Measurements }}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
 
 -  标签
 
@@ -39,7 +56,7 @@ Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标
 
 {{ end }}
 
-## 日志采集
+### 日志采集
 
 - Postgresql 日志默认是输出至`stderr`，如需开启文件日志，可在 Postgresql 的配置文件 `/etc/postgresql/<VERSION>/main/postgresql.conf` ， 进行如下配置:
 
@@ -69,15 +86,21 @@ log_file_mode = 0644
 
   [inputs.postgresql.log]
   files = ["/tmp/pgsql/postgresql.log"]
+  pipeline = "postgresql.p"
 ```
 
 开启日志采集后，默认会产生日志来源(`source`)为`postgresql`的日志。
+
+参数说明
+
+- files：日志文件路径
+- pipeline：日志切割文件(内置)，实际文件路径 /usr/local/datakit/pipeline/postgresql.p
 
 **注意**
 
 - 日志采集仅支持已安装 DataKit 主机上的日志。
 
-## 日志 pipeline 功能切割字段说明
+#### 日志 pipeline 功能切割字段说明
 
 原始日志为
 `2021-05-31 15:23:45.110 CST [74305] test [pgAdmin 4 - DB:postgres] postgres [127.0.0.1] 60b48f01.12241 LOG:  statement: 
@@ -99,4 +122,15 @@ log_file_mode = 0644
 | user             | postgres                | 当前访问用户名                                            |
 | status           | LOG                     | 当前日志的级别(LOG,ERROR,FATAL,PANIC,WARNING,NOTICE,INFO) |
 | time             | 1622445825110000000     | 日志产生时间                                              |
+
+## 场景视图
+<场景 - 新建仪表板 - 内置模板库 - PostgreSQL 监控视图>
+
+## 常见问题排查
+
+- [无数据上报排查](why-no-data.md)
+
+## 进一步阅读
+
+- [PostgreSQL 简介](https://blog.csdn.net/qq_40223688/article/details/89451616)
 
