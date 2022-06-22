@@ -79,7 +79,7 @@ cp man/manuals/resin.md $integration_docs_dir/
 
 - clone 现有文档库并安装对应依赖
 
-```shell
+``` shell
 git clone ssh://git@gitlab.jiagouyun.com:40022/zy-docs/dataflux-doc.git
 cd dataflux-doc
 pip install -R requirement.txt # 期间可能要求你更新 pip 版本
@@ -89,7 +89,7 @@ pip install -R requirement.txt # 期间可能要求你更新 pip 版本
 
 	mkdocs 安装完成后，可能需要设置 $PATH，Mac 的设置可能是这样的（具体可以 find  下 mkdocs 二进制位置）：
 
-	```
+	``` shell
 	PATH="/System/Volumes/Data/Users/<user-name>/Library/Python/3.8/bin:$PATH"
 	```
 
