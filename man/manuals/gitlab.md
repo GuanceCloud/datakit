@@ -62,7 +62,163 @@ Datakit 接收到 Webhook Event 后，是将数据作为 logging 打到数据中
 
 另外：Gitlab CI 功能不参与采集器选举，用户只需将 Gitlab Webhook 的 URL 配置为其中一个 Datakit 的 URL 即可；若只需要 Gitlab CI 可视化功能而不需要 Gitlab 指标采集，可通过配置 `enable_collect = false` 关闭指标采集功能。
 
-## 指标集
+## 视图预览
+
+Gitlab性能指标展示：包括请求持续时间、队列数量、队列耗时、gc耗时、事务耗时等。
+
+![image](imgs/input-gitlab-1.png)
+
+## 安装部署
+
+说明：示例 Gitlab 版本为：v14.6.2(CentOS)，各个不同版本指标可能存在差异
+
+### 前置条件
+
+- Gitlab所在服务器 <[安装 Datakit](../datakit/datakit-install.md)>
+- Gitlab已安装
+
+### 配置实施
+
+#### 指标采集 (必选)
+
+1、gitlab开启数据采集功能
+
+登录gitlab，点击【Admin Area】->【Settings】-> 【Metrics and profiling】<br />      选中【Enable Prometheus Metrics】，点击【 Save change】。
+
+![image](imgs/input-gitlab-2.png)
+
+
+2、配置数据访问白名单
+
+登录gitlab服务器，打开gitlab.rb文件，找到gitlab_rails['monitoring_whitelist'] = ['127.0.0.0/8', '::1/128']，把::1/128改成服务器的内网地址。
+
+```
+
+vi /etc/gitlab/gitlab.rb
+```
+
+![image](imgs/input-gitlab-3.png)
+
+
+重启gitlab
+
+```
+gitlab-ctl restart
+```
+
+3、开启gitlab插件，复制sample文件
+
+```
+cd /usr/local/datakit/conf.d/gitlab
+cp gitlab.conf.sample gitlab.conf
+```
+
+4、修改 gitlab.conf 配置文件
+
+```
+vi gitlab.conf
+```
+```
+[[inputs.gitlab]]
+    ## param type: string - default: http://127.0.0.1:80/-/metrics
+    prometheus_url = "http://127.0.0.1:80/-/metrics"
+
+    ## param type: string - optional: time units are "ms", "s", "m", "h" - default: 10s
+    interval = "10s"
+
+    ## datakit can listen to gitlab ci data at /v1/gitlab when enabled
+    enable_ci_visibility = true
+
+    ## extra tags for gitlab-ci data.
+    ## these tags will not overwrite existing tags.
+    [inputs.gitlab.ci_extra_tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
+
+    ## extra tags for gitlab metrics
+    [inputs.gitlab.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
+                             
+```
+
+参数说明
+
+- url：gitlab的promtheus 数据采集url
+- interval：采集指标频率，s秒
+- enable_ci_visibility：true 采集 gitlab ci 数据
+
+5、重启 Datakit (如果需要开启日志，请配置日志采集再重启)
+
+```
+systemctl restart datakit
+```
+
+指标预览
+
+![image](imgs/input-gitlab-4.png)
+
+#### 插件标签 (非必选)
+
+参数说明
+
+- 该配置为自定义标签，可以填写任意 key-value 值
+- 以下示例配置完成后，所有 gitlab 指标都会带有 app = oa 的标签，可以进行快速查询
+- 相关文档 <[DataFlux Tag 应用最佳实践](../best-practices/guance-skill/tag.md)>
+
+```
+    ## extra tags for gitlab metrics
+    [inputs.gitlab.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
+
+```
+
+重启 Datakit
+
+```
+systemctl restart datakit
+```
+
+#### Gitlab CI (非必选)
+
+在 gitlab 中使用 pipeline 部署项目，通过 DataKit 采集 pipeline 指标，可以通过观测云可视化 CI 的步骤。<br />依次进入 Projects -> Ruoyi Auth （请选择您的项目）-> Settings -> Webhooks。
+
+![image](imgs/input-gitlab-5.png)
+
+URL 中输入 DataKit 所在的主机 IP 和 DataKit 的 9529 端口，再加 /v1/gitlab。如下图。
+
+![image](imgs/input-gitlab-6.png)
+
+选中 Job events 和 Pipeline events，点击 Add webhook。
+
+![image](imgs/input-gitlab-7.png)
+
+点击刚才创建的 Webhooks 右边的 Test，选择 Pipeline events。
+
+![image](imgs/input-gitlab-8.png)
+
+上方出现 HTTP 200，说明配置成功，如下图。
+
+![image](imgs/input-gitlab-9.png)
+
+执行 Pipeline，登录观测云的 CI 模块查看。
+
+![image](imgs/input-gitlab-10.png)
+
+![image](imgs/input-gitlab-11.png)
+
+![image](imgs/input-gitlab-12.png)
+
+## 场景视图
+
+场景 - 新建仪表板 - Gitlab监控视图
+
+## 异常检测
+
+暂无
+
+## 指标详解
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名）。
 
@@ -101,3 +257,11 @@ Datakit 接收到 Webhook Event 后，是将数据作为 logging 打到数据中
 {{$m.FieldsMarkdownTable}}
 
 {{ end }} 
+
+## 最佳实践
+
+暂无
+
+## 故障排查
+
+<[无数据上报排查](why-no-data.md)>

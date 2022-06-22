@@ -1,5 +1,5 @@
 
-# RDS Mysql
+# RDS MySQL
 ---
 
 ## 视图预览
