@@ -175,7 +175,7 @@ func tryLoadConfig() {
 
 	l = logger.SLogger("main")
 
-	l.Infof("datakit run ID: %s", cliutils.XID("dkrun_"))
+	l.Infof("datakit run ID: %s, version: %s", cliutils.XID("dkrun_"), datakit.Version)
 }
 
 func initPythonCore() error {

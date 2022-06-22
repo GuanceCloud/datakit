@@ -1,44 +1,42 @@
 {{.CSS}}
+# DataKit DaemonSet 部署最佳实践
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# DataKit DaemonSet 部署最佳实践
 
 ## 背景介绍
 
-由于 [Datakit DaemonSet](datakit-daemonset-deploy) 配置管理非常复杂，此篇文章将介绍配置管理最佳实践。本篇将以配置 MySQL 和 Java Pipeline 为演示案例。
+由于 [Datakit DaemonSet](datakit-daemonset-deploy.md) 配置管理非常复杂，此篇文章将介绍配置管理最佳实践。本篇将以配置 MySQL 和 Java Pipeline 为演示案例。
 
 本篇将描述以下2种不同的管理方法:
 
-- [ConfigMap 管理配置](#c28055b2)
-- [启用 Git 管理配置](#02801a95)
+- ConfigMap 管理配置
+- 启用 Git 管理配置
 
 ## ConfigMap 管理配置
 
-Datakit 部分采集器的开启，可以通过 [ConfigMap](https://kubernetes.io/zh/docs/concepts/configuration/configmap/) 来注入。ConfigMap 注入灵活，但不易管理。
+Datakit 部分采集器的开启，可以通过 [ConfigMap](https://kubernetes.io/zh/docs/concepts/configuration/configmap/){:target="_blank"} 来注入。ConfigMap 注入灵活，但不易管理。
 
-ConfigMap 注入，可以分为以下2种：
+ConfigMap 注入，可以分为以下几种：
 
-- [Helm 安装注入](#74ceef30)
+- Helm 安装注入
+- yaml 安装注入
 
-- [yaml 安装注入](#2c302a4c)
+### Helm 安装 {#helm-install}
 
-### Helm 安装注入
-
-#### 前提条件
+前提条件
 
 - Kubernetes 1.14+
 - Helm 3.0+
 
-#### 添加 Helm 仓库
+添加 Helm 仓库
 
 ```shell
 $ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
 ``` 
 
-#### 查看 DataKit 版本
+查看 DataKit 版本
 
 ```shell
 $ helm search repo datakit
@@ -46,14 +44,14 @@ NAME                	CHART VERSION	APP VERSION	DESCRIPTION
 datakit/datakit	1.2.10       	1.2.10     	Chart for the DaemonSet datakit
 ```
 
-#### 下载 Helm 包
+下载 Helm 包
 
 ```shell
 $ helm repo update 
 $ helm pull datakit/datakit --untar
 ``` 
 
-#### 修改 values.yaml 配置
+修改 values.yaml 配置
 
 修改 `datakit/values.yaml` 的 `datakit.dataway_url` 和 `dkconfig`数组。 `datakit.dataway_url` 为 dataway 地址， `dkconfig.path` 为挂载路径， `dkconfig.name` 为配置名称， ` dkconfig.value` 为配置内容。
 
@@ -123,8 +121,6 @@ dkconfig:
 
 ```
 
-
-
 #### 安装或升级 DataKit
 
 安装
@@ -156,24 +152,24 @@ NOTES:
 
 ```
 
-#### 查看是否部署成功
+查看是否部署成功
 
 ```shell
 $ helm list -n datakit
 $ kubectl get pods -n datakit
 ```
 
-### yaml 安装注入 
+### yaml 安装注入 {#yaml-install}
 
-可参考 [DaemonSet ConfigMap 设置](datakit-daemonset-deploy#fb919c14)
+可参考 [DaemonSet ConfigMap 设置](datakit-daemonset-deploy.md#configmap-setting)
 
 ## 启用 Git 管理配置
 
-由于 ConfigMap 注入灵活，但不易管理特性，我们可以采用 Git 仓库来管理我们的配置。启用 [Git 管理](datakit-conf#90362fd0) ，DataKit 会定时 pull 远程仓库的配置，既不需要频繁修改 ConfigMap，也不需要重启 DataKit，更重要的是有修改记录，可回滚配置。
+由于 ConfigMap 注入灵活，但不易管理特性，我们可以采用 Git 仓库来管理我们的配置。启用 [Git 管理](datakit-conf.md#using-gitrepo) ，DataKit 会定时 pull 远程仓库的配置，既不需要频繁修改 ConfigMap，也不需要重启 DataKit，更重要的是有修改记录，可回滚配置。
 
 > 注意：
 > - 如果启用 Git 管理配置，则 ConfigMap 将失效
-> - 由于会[自动启动一些采集器](datakit-input-conf#764ffbc2)，故在 Git 仓库中，不要再放置这些自启动的采集器配置，不然会导致这些数据的多份采集
+> - 由于会[自动启动一些采集器](datakit-input-conf.md#default-enabled-inputs)，故在 Git 仓库中，不要再放置这些自启动的采集器配置，不然会导致这些数据的多份采集
 
 ### 前提条件
 
@@ -182,7 +178,7 @@ $ kubectl get pods -n datakit
 
 以 MySQL 采集器 mysql.conf 和 Java 日志的 Pipeline 脚本（java.p）为例
 
-> 参见 [Git 仓库中目录结构约束](datakit-conf#2639613a)
+> 参见 [Git 仓库中目录结构约束](datakit-conf.md#gitrepo-limitation)
 
 Git 仓库目录结构为：
 
@@ -235,13 +231,9 @@ $ helm install datakit datakit/datakit -n datakit \
 
 ### yaml 启用 Git 管理配置
 
-yaml 配置复杂，建议使用 [Helm 部署](#daa40de1)。
-
-先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml)
+yaml 配置复杂，建议使用 [Helm 部署](#helm-install.md)。先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml){:target="_blank"}
 
 #### 使用密码管理 Git
-
-##### 修改配置
 
 修改 datakit.yaml，添加各种 env 配置：
 
@@ -254,15 +246,13 @@ yaml 配置复杂，建议使用 [Helm 部署](#daa40de1)。
           value: "1m"
 ```
 
-##### 安装 yaml
+安装 yaml
 
 ```shell
 $ kubectl apply -f datakit.yaml
 ```
 
 #### 使用 SSH Key 访问 Git
-
-##### 修改配置
 
 - 在 *datakit.yaml* 中添加 ConfigMap
 
@@ -324,15 +314,13 @@ metadata:
         name: id-rsa
 ```
 
-##### 安装 yaml
+启用 yaml：
 
 ```shell
 $ kubectl apply -f datakit.yaml
 ```
 
-### 验证是否部署成功
-
-登录容器查看 `/usr/local/datakit/gitrepos` 目录是否同步成功
+验证是否部署成功，登录容器查看 `/usr/local/datakit/gitrepos` 目录是否同步成功
 
 ```shell
 $ kubectl exec -ti datakit-xxxx bash
@@ -341,6 +329,6 @@ $ ls gitrepos
 
 ## 更多阅读
 
-- [DataKit 采集器配置](datakit-input-conf)
-- [DataKit 主配置](datakit-conf)
-- [DataKit Daemonset 部署](datakit-daemonset-deploy)
+- [DataKit 采集器配置](datakit-input-conf.md)
+- [DataKit 主配置](datakit-conf.md)
+- [DataKit Daemonset 部署](datakit-daemonset-deploy.md)

@@ -1,10 +1,9 @@
 {{.CSS}}
+# Java 示例
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# Tracing Java Application
 
 ## Install Libarary & Dependence
 
@@ -38,3 +37,4 @@ java -javaagent:/path/to/dd-java-agent.jar \
 - dd.tags: 为每个 Span 添加默认 Tags，对应环境变量 DD_TAGS。
 - dd.agent.host: Datakit 监听的地址名，默认 localhost，对应环境变量 DD_AGENT_HOST。
 - dd.trace.agent.port: Datakit 监听的端口号，默认 9529，对应环境变量 DD_TRACE_AGENT_PORT。
+- dd.trace.sample.rate: 设置采样率从 0.0(0%) ~ 1.0(100%)。

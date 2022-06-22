@@ -9,7 +9,9 @@ package multiline
 import (
 	"bytes"
 	"regexp"
+	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 type Multiline struct {
@@ -65,8 +67,15 @@ func (m *Multiline) ProcessLine(text []byte) []byte {
 }
 
 func (m *Multiline) ProcessLineString(text string) string {
-	if !m.matchString(text) {
-		if m.lines != 0 {
+	return m.ProcessLineStringWithFlag(text, false)
+}
+
+// ProcessLineStringWithFlag process line string with multiFlag
+// when the multiFlag is true, it indicates the text is part of multiline and ignore the match pattern,
+// and will not insert '\n' before the text.
+func (m *Multiline) ProcessLineStringWithFlag(text string, multiFlag bool) string {
+	if multiFlag || !m.matchString(text) {
+		if m.lines != 0 && !multiFlag {
 			m.buff.WriteString("\n")
 		}
 		m.buff.WriteString(text)
@@ -139,4 +148,20 @@ func (m *Multiline) matchStringOfPrefixSpace(text string) bool {
 		return true
 	}
 	return !unicode.IsSpace(rune(text[0]))
+}
+
+var asciiSpace = [256]uint8{'\t': 1, '\n': 1, '\v': 1, '\f': 1, '\r': 1, ' ': 1}
+
+func TrimRightSpace(s string) string {
+	end := len(s)
+	for ; end > 0; end-- {
+		c := s[end-1]
+		if c >= utf8.RuneSelf {
+			return strings.TrimFunc(s[:end], unicode.IsSpace)
+		}
+		if asciiSpace[c] == 0 {
+			break
+		}
+	}
+	return s[:end]
 }

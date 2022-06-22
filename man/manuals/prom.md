@@ -1,10 +1,9 @@
 {{.CSS}}
+# Prometheus Exportor 数据采集
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# 简介
 
 Prom 采集器可以获取各种 Prometheus Exporters 暴露出来的指标数据，只要配置相应的 Exporter 地址，就可以将指标数据接入。
 
@@ -22,9 +21,19 @@ Prom 采集器可以获取各种 Prometheus Exporters 暴露出来的指标数�
 
 配置好后，重启 DataKit 即可。
 
+### 配置额外的 header
+
+Prom 采集器支持在数据拉取的 HTTP 请求中配置额外的请求头，如下：
+
+```toml
+  [inputs.prom.http_headers]
+  Root = "passwd"
+  Michael = "1234"
+```
+
 ### 关于 tag 重命名
 
-> 注意：对于 [DataKit 全局 tag key](datakit-conf#53181faf)，此处不支持将它们重命名。
+> 注意：对于 [DataKit 全局 tag key](datakit-conf#update-global-tag)，此处不支持将它们重命名。
 
 `tags_rename` 可以实现对采集到的 Prometheus Exporter 数据做 tag 名称的替换，里面的 `overwrite_exist_tags` 用于开启覆盖已有 tag 的选项。举个例子，对于已有 Prometheus Exporter 数据：
 

@@ -118,9 +118,7 @@ loop:
 		}
 	}
 	if !haveHostNameArg {
-		if envHostname, ok := config.Cfg.Environments["ENV_HOSTNAME"]; ok && envHostname != "" {
-			ipt.ExernalInput.Args = append(ipt.ExernalInput.Args, "--hostname", envHostname)
-		}
+		ipt.ExernalInput.Args = append(ipt.ExernalInput.Args, "--hostname", config.Cfg.Hostname)
 	}
 
 	if ipt.K8sURL != "" {

@@ -7,7 +7,6 @@ package container
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"time"
 
@@ -63,100 +62,45 @@ func (c *containerdInput) inLogList(logpath string) bool {
 	return ok
 }
 
-func (c *containerdInput) watchNewLogs() error {
-	list, err := c.criClient.ListContainers(context.Background(), &cri.ListContainersRequest{Filter: nil})
+func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
+	info := &containerLogBasisInfo{
+		id:      status.GetId(),
+		logPath: status.GetLogPath(),
+		labels:  status.GetLabels(),
+		tags:    make(map[string]string),
+	}
+	if n := status.GetMetadata(); n != nil {
+		info.name = n.Name
+	}
+	if n := status.GetImage(); n != nil {
+		info.image = n.Image
+	}
+
+	if c.criRuntimeVersion != nil {
+		l.Debugf("containedlog runtime: '%s'", c.criRuntimeVersion.RuntimeName)
+		info.tags["container_type"] = c.criRuntimeVersion.RuntimeName
+	} else {
+		l.Debug("containedlog runtime: default 'containerd'")
+		info.tags["container_type"] = "containerd"
+	}
+	// add extra tags
+	for k, v := range c.cfg.extraTags {
+		if _, ok := info.tags[k]; !ok {
+			info.tags[k] = v
+		}
+	}
+
+	opt := composeTailerOption(c.k8sClient, info)
+
+	c.addToLogList(info.logPath)
+	l.Infof("add containerd log, containerId: %s, source: %s, logpath: %s", status.Id, opt.Source, info.logPath)
+
+	t, err := tailer.NewTailerSingle(info.logPath, opt)
 	if err != nil {
-		return fmt.Errorf("failed to get cri-ListContainers err: %w", err)
+		l.Warnf("failed to new containerd log, containerId: %s, source: %s, logpath: %s, err: %s", status.Id, opt.Source, info.logPath, err)
 	}
-
-	for _, container := range list.GetContainers() {
-		resp, err := c.criClient.ContainerStatus(context.Background(), &cri.ContainerStatusRequest{ContainerId: container.Id})
-		if err != nil {
-			l.Warnf("failed to get cri-container respone, id: %s, err: %s", container.Id, err)
-			continue
-		}
-
-		status := resp.GetStatus()
-		if status == nil {
-			continue
-		}
-
-		logpath := status.GetLogPath()
-
-		if c.inLogList(logpath) {
-			continue
-		}
-
-		tags := map[string]string{
-			// "state":          "running",
-			"container_name": getContainerNameForLabels(status.GetLabels()),
-			"container_id":   status.GetId(),
-			"pod_name":       getPodNameForLabels(status.GetLabels()),
-			"namespace":      getPodNamespaceForLabels(status.GetLabels()),
-		}
-		if c.criRuntimeVersion != nil {
-			tags["container_type"] = c.criRuntimeVersion.RuntimeName
-		}
-		// add extra tags
-		for k, v := range c.cfg.extraTags {
-			if _, ok := tags[k]; !ok {
-				tags[k] = v
-			}
-		}
-
-		if image := status.GetImage(); image != nil {
-			// 如果能找到 pod image，则使用它
-			imageName, imageShortName, imageTag := ParseImage(image.Image)
-			tags["image"] = image.Image
-			tags["image_name"] = imageName
-			tags["image_short_name"] = imageShortName
-			tags["image_tag"] = imageTag
-		}
-
-		source := getContainerNameForLabels(status.GetLabels())
-		if n := status.Metadata; n != nil {
-			source = n.Name
-		}
-
-		opt := &tailer.Option{
-			Source:     source,
-			GlobalTags: tags,
-		}
-
-		logconf, err := getContainerLogConfig(status.GetAnnotations())
-		if err != nil {
-			l.Warnf("invalid logconfig from annotation, err: %s, skip", err)
-		}
-
-		if logconf != nil {
-			if logconf.Source != "" {
-				opt.Source = logconf.Source
-			}
-			if logconf.Service != "" {
-				opt.Service = logconf.Service
-			}
-			opt.Pipeline = logconf.Pipeline
-			opt.MultilineMatch = logconf.Multiline
-
-			l.Debugf("use container logconfig:%#v, containerId: %s, source: %s, logpath: %s", logconf, container.Id, opt.Source, logpath)
-		}
-
-		_ = opt.Init()
-
-		t, err := tailer.NewTailerSingle(logpath, opt)
-		if err != nil {
-			l.Warnf("failed to new containerd log, containerId: %s, source: %s, logpath: %s, err: %s", container.Id, opt.Source, logpath, err)
-			continue
-		}
-
-		c.addToLogList(logpath)
-		l.Infof("add containerd log, containerId: %s, source: %s, logpath: %s", container.Id, opt.Source, logpath)
-
-		go func(logpath string) {
-			defer c.removeFromLogList(logpath)
-			t.Run()
-		}(logpath)
-	}
+	defer c.removeFromLogList(info.logPath)
+	t.Run()
 
 	return nil
 }

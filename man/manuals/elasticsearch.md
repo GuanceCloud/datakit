@@ -1,10 +1,9 @@
 {{.CSS}}
+# ElasticSearch
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性能状况、索引性能、检索性能等。
 

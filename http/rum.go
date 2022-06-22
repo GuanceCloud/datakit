@@ -68,6 +68,11 @@ func geoTags(srcip string) (tags map[string]string) {
 		return
 	}
 
+	// avoid nil pointer error
+	if ipInfo == nil {
+		return tags
+	}
+
 	switch ipInfo.Country { // #issue 354
 	case "TW":
 		ipInfo.Country = "CN"

@@ -143,7 +143,7 @@ func TestGetPodAnnotationState(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			res := getPodAnnotationState(tc.in1, tc.in2)
+			res := getPodAnnotationState(tc.in1.Labels, tc.in2)
 			assert.Equal(t, tc.out, res)
 		})
 	}

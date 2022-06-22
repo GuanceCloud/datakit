@@ -41,8 +41,9 @@ type Single struct {
 
 	readBuff []byte
 
-	tags   map[string]string
-	stopCh chan struct{}
+	tags            map[string]string
+	stopCh          chan struct{}
+	expectMultiLine bool // only for docker log, relation to log size (16K)
 }
 
 func NewTailerSingle(filename string, opt *Option) (*Single, error) {
@@ -120,7 +121,6 @@ func (t *Single) Stop() {
 }
 
 func (t *Single) Close() {
-	t.removeWatcher(t.filepath)
 	t.closeWatcher()
 	if offset := t.currentOffset(); offset > 0 {
 		err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: offset})
@@ -130,15 +130,6 @@ func (t *Single) Close() {
 	}
 	t.closeFile()
 	t.opt.log.Infof("closing %s", t.filepath)
-}
-
-func (t *Single) removeWatcher(fn string) {
-	if t.watcher == nil {
-		return
-	}
-	if err := t.watcher.Remove(fn); err != nil {
-		t.opt.log.Warnf("remove watcher err: %s, ignored", err)
-	}
 }
 
 func (t *Single) closeWatcher() {
@@ -271,6 +262,7 @@ func (t *Single) dockerHandler(lines []string) {
 	for k, v := range t.tags {
 		tags[k] = v
 	}
+
 	for _, line := range lines {
 		if line == "" {
 			continue
@@ -293,11 +285,26 @@ func (t *Single) dockerHandler(lines []string) {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
 
-		if len(text) > 0 && text[len(text)-1] == '\n' {
-			text = text[:len(text)-1]
+		if len(text) > 0 {
+			// deal with docker log size exceed 16 K
+			if text[len(text)-1] != '\n' {
+				textLen := len(text)
+				if t.expectMultiLine {
+					text = t.multilineWithFlag(text, true)
+				} else {
+					text = t.multiline(multiline.TrimRightSpace(text))
+				}
+				t.expectMultiLine = textLen/1000 == 16 // almost to 16 K
+			} else {
+				if t.expectMultiLine {
+					text = t.multilineWithFlag(text, true)
+					t.expectMultiLine = false
+				} else {
+					text = t.multiline(multiline.TrimRightSpace(text))
+				}
+			}
 		}
 
-		text = t.multiline(text)
 		if text == "" {
 			continue
 		}
@@ -326,7 +333,7 @@ func (t *Single) defaultHandler(lines []string) {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
 
-		text = t.multiline(text)
+		text = t.multiline(multiline.TrimRightSpace(text))
 		if text == "" {
 			continue
 		}
@@ -443,6 +450,13 @@ func (t *Single) multiline(text string) string {
 		return text
 	}
 	return t.mult.ProcessLineString(text)
+}
+
+func (t *Single) multilineWithFlag(text string, flag bool) string {
+	if t.mult == nil {
+		return text
+	}
+	return t.mult.ProcessLineStringWithFlag(text, flag)
 }
 
 type buffer struct {

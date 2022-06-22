@@ -11,7 +11,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.4.2"
+  CI_VERSION: "1.4.3"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -86,6 +86,18 @@ release-testing:
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH # do not set VERSION here, use git version
     - make check_testing_conf_compatible
     - make testing_image IGN_EBPF_INSTALL_ERR=1
+  tags:
+    - cloudcare-ft
+
+release-k8s-testing:
+  stage: deploy
+  only:
+    - /^k8stesting-.*$/
+  script:
+    # building && publish testing
+    - make clean
+    - make check_testing_conf_compatible
+    - make testing_k8s_image IGN_EBPF_INSTALL_ERR=1
   tags:
     - cloudcare-ft
 

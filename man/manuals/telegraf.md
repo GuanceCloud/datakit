@@ -1,10 +1,9 @@
 {{.CSS}}
+# Telegraf 数据接入
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# Telegraf 接入
 
 > 注意：建议在使用 Telegraf 之前，先确 DataKit 是否能满足期望的数据采集。如果 DataKit 已经支持，不建议用 Telegraf 来采集，这可能会导致数据冲突，从而造成使用上的困扰。
 
@@ -12,7 +11,7 @@ Telegraf 是一个开源的数据采集工具。DataKit 通过简单的配置即
 
 ## Telegraf 安装
 
-以 Ubuntu 为例，其他系统 [参见](https://docs.influxdata.com/telegraf/v1.18/introduction/installation/)：
+以 Ubuntu 为例，其他系统 [参见](https://docs.influxdata.com/telegraf/v1.18/introduction/installation/){:target="_blank"}：
 
 添加安装源
 
@@ -36,7 +35,7 @@ sudo apt-get update && sudo apt-get install telegraf
 - Linux: `/etc/telegraf/telegraf.conf`
 - Windows：配置文件就在 Telegraf 二进制同级目录（视具体安装情况而定）
 
-> 注意： Mac 下，如果通过 [`datakit --install telegraf` 安装](datakit-tools-how-to#df09fa95)，则配置目录和 Linux 一样。
+> 注意： Mac 下，如果通过 [`datakit --install telegraf` 安装](datakit-tools-how-to#extras)，则配置目录和 Linux 一样。
 
 修改配置文件如下：
 
@@ -67,7 +66,7 @@ sudo apt-get update && sudo apt-get install telegraf
 # 更多其它配置 ...
 ```
 
-如果 [DataKit API 位置有调整](datakit-conf#db159fbc)，需调整如下配置，将 `url` 设置到 DataKit API 真实的地址即可：
+如果 [DataKit API 位置有调整](datakit-conf#config-http-server)，需调整如下配置，将 `url` 设置到 DataKit API 真实的地址即可：
 
 ```toml
 [[outputs.http]]
@@ -75,7 +74,7 @@ sudo apt-get update && sudo apt-get install telegraf
    url = "http://127.0.0.1:9529/v1/write/metric?input=telegraf"
 ```
 
-Telegraf 的采集配置跟 DataKit 类似，也是 [Toml 格式](https://toml.io/cn)，具体每个采集器基本都是以 `[[inputs.xxxx]]` 作为入口，这里以开启 `nvidia_smi` 采集为例：
+Telegraf 的采集配置跟 DataKit 类似，也是 [Toml 格式](https://toml.io/cn){:target="_blank"}，具体每个采集器基本都是以 `[[inputs.xxxx]]` 作为入口，这里以开启 `nvidia_smi` 采集为例：
 
 ```toml
 [[inputs.nvidia_smi]]
@@ -86,6 +85,7 @@ Telegraf 的采集配置跟 DataKit 类似，也是 [Toml 格式](https://toml.i
   timeout = "5s"
 ```
 
-Telegraf 采集器的详细配置，[参见这里](https://docs.influxdata.com/telegraf)
+## 更多阅读
 
-更多 Telegraf 插件，[参见这个列表](https://github.com/influxdata/telegraf#input-plugins)
+- [Telegraf 采集器的详细配置](https://docs.influxdata.com/telegraf){:target="_blank"}
+- [更多 Telegraf 插件](https://github.com/influxdata/telegraf#input-plugins){:target="_blank"}

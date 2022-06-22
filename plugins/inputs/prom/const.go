@@ -84,6 +84,11 @@ const sampleCfg = `
   # key1 = [ "val1.*", "val2.*"]
   # key2 = [ "val1.*", "val2.*"]
 
+  # 在数据拉取的 HTTP 请求中添加额外的请求头
+  [inputs.prom.http_headers]
+  # Root = "passwd"
+  # Michael = "1234"
+
   # 重命名 prom 数据中的 tag key
   [inputs.prom.tags_rename]
     overwrite_exist_tags = false
@@ -91,6 +96,12 @@ const sampleCfg = `
     # tag1 = "new-name-1"
     # tag2 = "new-name-2"
     # tag3 = "new-name-3"
+
+  # 将采集到的指标作为日志打到中心
+  # service 字段留空时，会把 service tag 设为指标集名称
+  [inputs.prom.as_logging]
+    enable = false
+    service = "service_name"
 
   # 自定义Tags
   [inputs.prom.tags]

@@ -1,10 +1,9 @@
 {{.CSS}}
+# etcd
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# etcd
 
 etcd 采集器可以从 etcd 实例中采取很多指标，比如etcd服务器状态和网络的状态等多种指标，并将指标采集到 DataFlux ，帮助你监控分析 etcd 各种异常情况
 

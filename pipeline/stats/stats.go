@@ -55,13 +55,8 @@ func (stats *Stats) ReadEvent() []ChangeEvent {
 	return stats.event.Read()
 }
 
-func (stats *Stats) UpdateScriptStatsMeta(category, ns, name, script string, enable, deleted bool, err ...string) {
+func (stats *Stats) UpdateScriptStatsMeta(category, ns, name, script string, enable, deleted bool, err string) {
 	ts := time.Now()
-
-	var compileErr string
-	if len(err) > 0 {
-		compileErr = err[0]
-	}
 
 	if stats, loaded := stats.stats.LoadOrStore(StatsKey(category, ns, name), &ScriptStats{
 		meta: ScriptMeta{
@@ -75,15 +70,11 @@ func (stats *Stats) UpdateScriptStatsMeta(category, ns, name, script string, ena
 			ns:                ns,
 			name:              name,
 			metaUpdateTS:      ts,
-			err:               compileErr,
+			err:               err,
 		},
 	}); loaded {
 		if stats, ok := stats.(*ScriptStats); ok {
-			if len(err) > 0 {
-				stats.UpdateMeta(script, enable, deleted, err...)
-			} else {
-				stats.UpdateMeta(script, enable, deleted)
-			}
+			stats.UpdateMeta(script, enable, deleted, err)
 		}
 	}
 }
@@ -122,8 +113,8 @@ func ReadEvent() []ChangeEvent {
 	return _plstats.ReadEvent()
 }
 
-func UpdateScriptStatsMeta(category, ns, name, script string, enable, deleted bool, err ...string) {
-	_plstats.UpdateScriptStatsMeta(category, ns, name, script, enable, deleted, err...)
+func UpdateScriptStatsMeta(category, ns, name, script string, enable, deleted bool, err string) {
+	_plstats.UpdateScriptStatsMeta(category, ns, name, script, enable, deleted, err)
 }
 
 func WriteScriptStats(category, ns, name string, pt, ptDrop, ptError uint64, cost int64, err error) {

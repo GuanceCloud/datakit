@@ -1,10 +1,9 @@
 {{.CSS}}
+# DataKit 选举
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# DataKit 选举
 
 当集群中只有一个被采集对象（如 Kubernetes），但是在批量部署情况下，多个 DataKit 的配置完全相同，都开启了对该中心对象的采集，为了避免重复采集，我们可以开启 DataKit 的选举功能。
 
@@ -22,9 +21,9 @@ enable_election = true
 namespace = "dk-namespace-example"
 ```
 
-开启选举后，参与选举的采集数据，会自动加上 tag: `election_namespace:<namespace-name>`。如果未配置 namespace， election_namespace 会取默认值 `default`。
+开启选举后，参与选举的采集数据，会自动加上 tag: `election_namespace:<namespace-name>`。如果未配置 namespace， `election_namespace` 会取默认值 `default`。
 
-> 注意：并不是参与选举的采集器的所有数据都会添加 election_namespace，而是参与选举的数据才会添加。比如容器采集器中，只有部分数据的采集是参与选举的（event/对象等），而日志采集则不参与选举。
+> 注意：并不是参与选举的采集器的所有数据都会添加 `election_namespace`，而是参与选举的数据才会添加。比如容器采集器中，只有部分数据的采集是参与选举的（event/对象等），而日志采集则不参与选举。
 
 ## 选举原理
 
@@ -41,17 +40,33 @@ namespace = "dk-namespace-example"
 
 目前支持选举的采集器列表如下：
 
-- [Kubernetes](kubernetes)
-- [Prometheus 指标采集](prom)
-- [Gitlab](gitlab)
-- [NSQ](nsq)
-- [Apache](apache)
-- [InfluxDB](influxdb)
-- [ElasticSearch](elasticsearch)
-- [MongoDB](mongodb)
-- [MySQL](mysql)
-- [Nginx](nginx)
-- [PostgreSQL](postgresql)
-- [RabbitMQ](rabbitmq)
-- [Redis](redis)
-- [Solr](solr)
+- [Apache](apache.md)
+- [ElasticSearch](elasticsearch.md)
+- [Gitlab](gitlab.md)
+- [InfluxDB](influxdb.md)
+- [Kubernetes](kubernetes.md)
+- [MongoDB](mongodb.md)
+- [MySQL](mysql.md)
+- [NSQ](nsq.md)
+- [Nginx](nginx.md)
+- [PostgreSQL](postgresql.md)
+- [Prometheus 指标采集](prom.md)
+- [RabbitMQ](rabbitmq.md)
+- [Redis](redis.md)
+- [Solr](solr.md)
+- [TDengine](tdengine)
+
+## FAQ
+
+### `host` 字段问题 {#host}
+
+在选举模式下，对于某个具体的被采集对象而言，比如 MySQL，由于采集其数据的 DataKit 可能会变迁（发生了选举轮换），这会导致同一个 MySQL 实例出现多个不同的 `host` 字段。
+
+为避免这种情况，建议在 MySQL 采集器配置上，增加额外的 `tags` 字段：
+
+```toml
+[inputs.{{.InputName}}.tags]
+  host = "real-mysql-instance-name"
+```
+
+这样，当 DataKit 发生选举轮换时，会继续沿用 tags 中配置的 `host` 字段，而不会因为选举轮换而出现 `host` 字段变迁问题。

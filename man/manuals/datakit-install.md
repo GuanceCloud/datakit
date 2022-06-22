@@ -1,16 +1,15 @@
 {{.CSS}}
+# 主机安装
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# 简介
 
 本文介绍 DataKit 的基本安装。
 
 ## 注册/登陆观测云
 
-浏览器访问 [观测云注册入口](https://auth.guance.com/redirectpage/register)，填写对应信息之后，即可[登陆观测云](https://console.guance.com/pageloading/login)
+浏览器访问 [观测云注册入口](https://auth.guance.com/redirectpage/register){:target="_blank"}，填写对应信息之后，即可[登陆观测云](https://console.guance.com/pageloading/login){:target="_blank"}
 
 ## 获取安装命令
 
@@ -60,7 +59,7 @@ sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
 $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
-## 额外支持的安装变量
+## 额外支持的安装变量 {#extra-envs}
 
 如果需要在安装阶段定义一些 DataKit 配置，可在安装命令中增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 
@@ -89,7 +88,7 @@ NAME1="value1" NAME2="value2"
 - `DK_DATAWAY`：指定 DataWay 地址，目前 DataKit 安装命令已经默认带上
 - `DK_GLOBAL_TAGS`：支持安装阶段填写全局 tag，格式范例：`project=abc,owner=张三`（多个 tag 之间以英文逗号分隔）
 - `DK_DEF_INPUTS`：默认开启的采集器名称列表，格式范例：`cpu,mem,disk`
-  - 由于[默认会开启很多采集器](datakit-input-conf#764ffbc2)，这个环境变量用于调整这个默认的采集器列表，比如，可以选择只开启 cpu,mem,disk 三个采集的话，传入 DK_DEF_INPUTS="cpu,mem,disk" 即可
+  - 由于[默认会开启很多采集器](datakit-input-conf.md#default-enabled-inputs)，这个环境变量用于调整这个默认的采集器列表，比如，可以选择只开启 cpu,mem,disk 三个采集的话，传入 `DK_DEF_INPUTS="cpu,mem,disk"` 即可
 - `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`)
 
 ### DataKit 自身日志相关
@@ -113,7 +112,7 @@ NAME1="value1" NAME2="value2"
 - `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM 专用
 - `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用.如 `True`/`False`)
-- `DK_INSTALL_IPDB`: 安装时指定IP库(当前仅支持`iploc`)
+- `DK_INSTALL_IPDB`: 安装时指定IP库(当前仅支持`iploc`, `geolite2`)
 
 ### DCA 相关
 - `DK_DCA_ENABLE`：支持安装阶段开启 DCA 服务（默认未开启）
@@ -122,7 +121,8 @@ NAME1="value1" NAME2="value2"
 
 ### 外部采集器相关
 - `DK_INSTALL_EXTERNALS`: 可用于安装如 ebpf 等未与 DataKit 一起打包的外部采集器
-### Git 配置相关
+
+### Git 配置相关 {#env-gitrepo}
 
 - `DK_GIT_URL`: 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`）
 - `DK_GIT_KEY_PATH`: 本地 PrivateKey 的全路径。（如 `/Users/username/.ssh/id_rsa`）
@@ -142,7 +142,7 @@ NAME1="value1" NAME2="value2"
 - `DK_SINK_R`:  安装时指定 RUM 的 sink。
 - `DK_SINK_S`:  安装时指定 Security 的 sink。
 
-参见 [M3DB 示例](datakit-sink-m3db#5ccfbb76)
+参见 [M3DB 示例](datakit-sink-m3db.md)
 
 ### cgroup 配置相关
 
@@ -180,4 +180,4 @@ NAME1="value1" NAME2="value2"
 
 ## 扩展阅读
 
-- [DataKit 使用入门](datakit-service-how-to)
+- [DataKit 使用入门](datakit-service-how-to.md)

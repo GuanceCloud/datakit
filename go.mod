@@ -9,6 +9,7 @@ require (
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.4+incompatible
+	github.com/antchfx/xmlquery v1.3.11
 	github.com/apache/thrift v0.13.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/c-bata/go-prompt v0.2.5
@@ -43,6 +44,8 @@ require (
 	github.com/golang/snappy v0.0.4
 	github.com/gomarkdown/markdown v0.0.0-20210208175418-bda154fe17d8
 	github.com/google/gopacket v1.1.19
+	github.com/google/uuid v1.3.0
+	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
@@ -55,6 +58,7 @@ require (
 	github.com/mssola/user_agent v0.5.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/openzipkin/zipkin-go v0.2.2
+	github.com/oschwald/geoip2-golang v1.7.0
 	github.com/pborman/ansi v1.0.0
 	github.com/pkg/sftp v1.11.0
 	github.com/prometheus/client_model v0.2.0
@@ -67,7 +71,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cast v1.4.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/tidwall/gjson v1.12.1
 	github.com/tinylib/msgp v1.1.6
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
@@ -123,6 +127,7 @@ require (
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/alecthomas/chroma v0.7.1 // indirect
 	github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1 // indirect
+	github.com/antchfx/xpath v1.2.1 // indirect
 	github.com/avast/retry-go v2.7.0+incompatible // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
@@ -167,8 +172,6 @@ require (
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
-	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.1 // indirect
@@ -206,6 +209,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v1.0.1 // indirect
 	github.com/opencontainers/selinux v1.8.2 // indirect
+	github.com/oschwald/maxminddb-golang v1.9.0 // indirect
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/term v1.1.0 // indirect

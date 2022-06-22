@@ -1,11 +1,11 @@
-
-# Logstash Sink 使用教程
+# Logstash
+---
 
 Logstash 仅支持写入 Logging 种类的数据。
 
 ## 第一步: 搭建后端存储
 
-自己搭建一个 Logstash 的环境, 需要开启 [HTTP 模块](https://www.elastic.co/cn/blog/introducing-logstash-input-http-plugin), 开启的方法也非常简单, 直接在 Logstash 的 pipeline 文件中配置即可。
+自己搭建一个 Logstash 的环境, 需要开启 [HTTP 模块](https://www.elastic.co/cn/blog/introducing-logstash-input-http-plugin){:target="_blank"}, 开启的方法也非常简单, 直接在 Logstash 的 pipeline 文件中配置即可。
 
 ### 新建 Logstash 的 pipeline 文件
 
@@ -67,7 +67,7 @@ $ logstash/bin/logstash -f /opt/elastic/logstash/pipeline-http.conf
 ...
 ```
 
-除了 Sink 必须配置[通用参数](datakit-sink-guide)外, Logstash 的 Sink 实例目前支持以下参数:
+除了 Sink 必须配置[通用参数](datakit-sink-guide.md)外, Logstash 的 Sink 实例目前支持以下参数:
 
 - `host`(必须): HTTP host should be of the form `host:port` or `[ipv6-host%zone]:port`.
 - `protocol`(必须): `http` or `https`.

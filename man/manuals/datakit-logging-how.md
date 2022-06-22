@@ -1,6 +1,7 @@
-# DataKit 日志处理原理介绍
+# DataKit 日志处理综述
+---
 
-本篇用来介绍 DataKit 如何处理日志的。在[另一篇文档](datakit-logging)中，我们介绍了 DataKit 是如何采集日志的，这两篇文档，可结合起来看，希望大家对整个日志处理有更全面的认识。
+本篇用来介绍 DataKit 如何处理日志的。在[另一篇文档](datakit-logging.md)中，我们介绍了 DataKit 是如何采集日志的，这两篇文档，可结合起来看，希望大家对整个日志处理有更全面的认识。
 
 核心问题：
 
@@ -9,16 +10,16 @@
 
 ## 为什么日志采集的配置这么复杂
 
-我们从[这篇文档](datakit-logging)中可得知，因为日志来源多种多样，导致日志的配置方式多种多样，我们有必要在此做一番梳理，便于大家理解。
+我们从[这篇文档](datakit-logging.md)中可得知，因为日志来源多种多样，导致日志的配置方式多种多样，我们有必要在此做一番梳理，便于大家理解。
 
 在日志的采集过程中，DataKit 有主动、被动两大类采集方式：
 
 - 主动采集
-	- 直接采集[磁盘文件日志](logging)
-	- 采集[容器](container)产生的日志
+	- 直接采集[磁盘文件日志](logging.md)
+	- 采集[容器](container.md)产生的日志
 
 - 被动采集
-  - 通过 [HTTP](logstreaming)、[TCP/UDP](logging#7306c0d5) 以及 [Websocket](logfwd) 给 DataKit 注入日志
+  - 通过 [HTTP](logstreaming.md)、[TCP/UDP](logging.md#socket) 以及 [Websocket](logfwd.md) 给 DataKit 注入日志
 
 在这些不同形式的日志采集方式中，它们都要解决同一个核心问题：**DataKit 接下来如何处理这些日志？**
 
@@ -33,25 +34,25 @@
 
 目前，有如下几种方式来告诉 DataKit 如何处理拿到的日志：
 
-- [日志采集器](logging) 中的 conf 配置
+- [日志采集器](logging.md) 中的 conf 配置
 
-日志采集器中，[通过 conf 配置](logging#224e2ccd)要采集的文件列表（或者从哪个 TCP/UDP 端口读取日志流），在 conf 中可配置 source/Pipeline/多行切割/额外添加 tag 等多种设置。
+日志采集器中，[通过 conf 配置](logging.md#config)要采集的文件列表（或者从哪个 TCP/UDP 端口读取日志流），在 conf 中可配置 source/Pipeline/多行切割/额外添加 tag 等多种设置。
 
 如果是以 TCP/UDP 形式将数据发送给 DataKit，也只能通过 logging.conf 来配置后续的日志处理，因为 TCP/UDP 这种协议不便于附加额外的描述信息，它们只负责传送简单的日志流数据。
 
 这种形式的日志采集，是最易于理解的一种方式。
 
-- [容器采集器](container)中的 conf 配置
+- [容器采集器](container.md)中的 conf 配置
 
 目前容器采集器 conf 针对日志，只能做最粗浅的配置（基于容器/Pod 镜像名），无法在此配置日志的后续处理（如 Pipeline/source 设置等），因为这个 conf 针对的是**当前主机上所有日志**的采集，而在容器环境下，一个主机上的日志多种多样，无法在此分门别类逐个配置。
 
 - 通过在请求中告知 DataKit 如何配置日志处理
 
-通过 HTTP 请求 DataKit 的 [logstreaming](logstreaming) 服务，在请求中带上各种请求参数，以告知 DataKit 如何处理收到的日志数据。 
+通过 HTTP 请求 DataKit 的 [logstreaming](logstreaming.md) 服务，在请求中带上各种请求参数，以告知 DataKit 如何处理收到的日志数据。 
 
 - 在被采集对象（比如容器/Pod）上做特定的标注，告知 DataKit 如何处理它们产生的日志
 
-前面提到，单纯在容器采集器 conf 中配置日志采集，因为细粒度太粗，不利于精细配置，但可以在[容器/Pod 上打上标注](container#f3cb35b8)，DataKit 会**主动去发现这些标注**，进而就知道每个容器/Pod 日志要如何处理了。
+前面提到，单纯在容器采集器 conf 中配置日志采集，因为细粒度太粗，不利于精细配置，但可以在[容器/Pod 上打上标注](container.md#logging-with-annotation-or-label)，DataKit 会**主动去发现这些标注**，进而就知道每个容器/Pod 日志要如何处理了。
 
 ### 优先级说明
 
@@ -102,17 +103,17 @@ spec:
 如果对应的日志有配置 Pipeline 切割，那么每一条日志（含单条多行日志）都会通过 Pipeline 切割，Pipeline 主要又分为两个步骤：
 
   1. Grok/Json 切割：通过 Grok/Json，将单条 Raw 日志切割成结构化数据
-	1. 对提取出来的字段，再精细处理：比如[补全 IP 信息](pipeline#9b1bba32)，[日志脱敏](pipeline#52a4c41c)等
+	1. 对提取出来的字段，再精细处理：比如[补全 IP 信息](pipeline.md#fn-geoip)，[日志脱敏](pipeline.md#fn-cover)等
 
 - 黑名单（Filter）
 
-[Filter 是一组过滤器](datakit-filter)，它接收一组结构化数据，通过一定的逻辑判断，决定数据是否丢弃。Filter 是中心下发（DataKit 主动拉取）的一组逻辑运算规则，其形式大概如下：
+[Filter 是一组过滤器](datakit-filter.md)，它接收一组结构化数据，通过一定的逻辑判断，决定数据是否丢弃。Filter 是中心下发（DataKit 主动拉取）的一组逻辑运算规则，其形式大概如下：
 
 ```
 { source = 'datakit' AND bar IN [ 1, 2, 3] }
 ```
 
-如果中心配置了日志黑名单，假定切割出来的 100 条日志中，有 10 条满足这里的条件（即 source 为 `datakit`，且字段 `bar` 字段的值出现在后面的列表中），那么这 10 条日志将不会上报到观测云，被默默丢弃。在 [DataKit Monitor](datakit-monitor) 中能看到丢弃的统计情况。
+如果中心配置了日志黑名单，假定切割出来的 100 条日志中，有 10 条满足这里的条件（即 source 为 `datakit`，且字段 `bar` 字段的值出现在后面的列表中），那么这 10 条日志将不会上报到观测云，被默默丢弃。在 [DataKit Monitor](datakit-monitor.md) 中能看到丢弃的统计情况。
 
 - 上报观测云
 
@@ -122,6 +123,6 @@ spec:
 
 ## 延申阅读
 
-- [DataKit 日志采集综述](datakit-logging)
-- [如何调试 Pipeline](datakit-pl-how-to)
-- [行协议黑名过滤器](datakit-filter)
+- [DataKit 日志采集综述](datakit-logging.md)
+- [如何调试 Pipeline](datakit-pl-how-to.md)
+- [行协议黑名过滤器](datakit-filter.md)

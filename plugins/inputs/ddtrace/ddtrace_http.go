@@ -26,7 +26,7 @@ const (
 	// KeySamplingPriority is the key of the sampling priority value in the metrics map of the root span.
 	keyPriority = "_sampling_priority_v1"
 	// keySamplingRateGlobal is a metric key holding the global sampling rate.
-	keySamplingRateGlobal = "_sample_rate"
+	keySamplingRate = "_sample_rate"
 )
 
 func handleDDTraceWithVersion(v string) http.HandlerFunc {
@@ -170,23 +170,22 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			TraceID:            fmt.Sprintf("%d", span.TraceID),
-			ParentID:           fmt.Sprintf("%d", span.ParentID),
-			SpanID:             fmt.Sprintf("%d", span.SpanID),
-			Service:            span.Service,
-			Resource:           span.Resource,
-			Operation:          span.Name,
-			Source:             inputName,
-			SpanType:           itrace.FindSpanTypeInMultiServersIntSpanID(int64(span.SpanID), int64(span.ParentID), span.Service, spanIDs, parentIDs),
-			SourceType:         getDDTraceSourceType(span.Type),
-			Tags:               itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
-			ContainerHost:      span.Meta[itrace.CONTAINER_HOST],
-			PID:                fmt.Sprintf("%d", int64(span.Metrics["system.pid"])),
-			HTTPMethod:         span.Meta["http.method"],
-			HTTPStatusCode:     span.Meta["http.status_code"],
-			Start:              span.Start,
-			Duration:           span.Duration,
-			SamplingRateGlobal: span.Metrics[keySamplingRateGlobal],
+			TraceID:        fmt.Sprintf("%d", span.TraceID),
+			ParentID:       fmt.Sprintf("%d", span.ParentID),
+			SpanID:         fmt.Sprintf("%d", span.SpanID),
+			Service:        span.Service,
+			Resource:       span.Resource,
+			Operation:      span.Name,
+			Source:         inputName,
+			SpanType:       itrace.FindSpanTypeInMultiServersIntSpanID(int64(span.SpanID), int64(span.ParentID), span.Service, spanIDs, parentIDs),
+			SourceType:     getDDTraceSourceType(span.Type),
+			Tags:           itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
+			ContainerHost:  span.Meta[itrace.CONTAINER_HOST],
+			PID:            fmt.Sprintf("%d", int64(span.Metrics["system.pid"])),
+			HTTPMethod:     span.Meta["http.method"],
+			HTTPStatusCode: span.Meta["http.status_code"],
+			Start:          span.Start,
+			Duration:       span.Duration,
 		}
 
 		if span.Meta[itrace.PROJECT] != "" {
@@ -216,13 +215,12 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			dkspan.Status = itrace.STATUS_ERR
 		}
 
-		if priority := int(span.Metrics[keyPriority]); priority <= 0 {
-			dkspan.Priority = itrace.PriorityReject
+		if priority, ok := span.Metrics[keyPriority]; ok {
+			dkspan.Metrics = make(map[string]interface{})
+			dkspan.Metrics[itrace.FIELD_PRIORITY] = int(priority)
 		}
-
-		if dkspan.ParentID == "0" && sampler != nil {
-			dkspan.Priority = sampler.Priority
-			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
+		if rate, ok := span.Metrics[keySamplingRate]; ok {
+			dkspan.Metrics[itrace.FIELD_SAMPLE_RATE] = rate
 		}
 
 		if buf, err := json.Marshal(span); err != nil {

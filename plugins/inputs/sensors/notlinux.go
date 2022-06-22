@@ -16,16 +16,15 @@ import (
 )
 
 // Input redefine here for sample checking on non-linux platform.
-type Input struct {
-	Path     string            `toml:"path"`
-	Interval datakit.Duration  `toml:"interval"`
-	Timeout  datakit.Duration  `toml:"timeout"`
-	Tags     map[string]string `toml:"tags"`
-}
+type Input struct{}
+
+var _ inputs.InputV2 = (*Input)(nil)
 
 func (*Input) Catalog() string {
 	return inputName
 }
+
+func (*Input) Terminate() {}
 
 func (*Input) SampleConfig() string {
 	return sampleConfig

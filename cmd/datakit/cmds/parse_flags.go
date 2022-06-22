@@ -79,6 +79,8 @@ var (
 	fsPLName          = "pipeline"
 	debugPipelineName = ""
 	fsPL              = pflag.NewFlagSet(fsPLName, pflag.ContinueOnError)
+	flagPLCategory    = fsPL.StringP("category", "C", "logging", "data category (logging, metric, ...)")
+	flagPLNS          = fsPL.StringP("namespace", "N", "default", "namespace (default, gitrepo, remote)")
 	flagPLLogPath     = fsPL.String("log", commonLogFlag(), "command line log path")
 	flagPLTxtData     = fsPL.StringP("txt", "T", "", "text string for the pipeline or grok(json or raw text)")
 	flagPLTxtFile     = fsPL.StringP("file", "F", "", "text file path for the pipeline or grok(json or raw text)")
@@ -147,7 +149,7 @@ var (
 	flagInstallTelegraf = fsInstall.Bool("telegraf", false, "install Telegraf")
 	flagInstallScheck   = fsInstall.Bool("scheck", false, "install SCheck")
 	flagInstallEbpf     = fsInstall.Bool("ebpf", false, "install DataKit eBPF plugin")
-	flagInstallIPDB     = fsInstall.String("ipdb", "", "install IP database(currently only iploc available)")
+	flagInstallIPDB     = fsInstall.String("ipdb", "", "install IP database")
 	fsInstallUsage      = func() {
 		fmt.Printf("usage: datakit install [options]\n\n")
 		fmt.Printf("Install used to install DataKit related packages and plugins\n\n")
