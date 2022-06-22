@@ -1,21 +1,20 @@
 {{.CSS}}
+# DataKit 服务管理
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
-# DataKit 服务管理
+[DataKit 安装](datakit-install.md)完后，有必要对安装好的 DataKit 做一些基本的介绍。
 
-[DataKit 安装](datakit-install)完后，有必要对安装好的 DataKit 做一些基本的介绍。
-
-## DataKit 目录介绍
+## DataKit 目录介绍 {#install-dir}
 
 DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
 
 | 操作系统                                                                  | 架构                | 安装路径                                                                   |
 | ---------                                                                 | ---                 | ------                                                                     |
 | Linux 内核 2.6.23 或更高版本                                              | amd64/386/arm/arm64 | `/usr/local/datakit`                                                       |
-| macOS 10.12 或更高版本([原因](https://github.com/golang/go/issues/25633)) | amd64               | `/usr/local/datakit`                                                       |
+| macOS 10.12 或更高版本([原因](https://github.com/golang/go/issues/25633){:target="_blank"}) | amd64               | `/usr/local/datakit`                                                       |
 | Windows 7, Server 2008R2 或更高版本                                       | amd64/386           | 64位：`C:\Program Files\datakit`<br />32位：`C:\Program Files(32)\datakit` |
 
 > Tips：查看内核版本
@@ -47,7 +46,7 @@ DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
 
 > 注：Linux/Mac 平台下，DataKit 运行日志在 `/var/log/datakit` 目录下。
 
-## DataKit 服务管理
+## DataKit 服务管理 {#manage-service}
 
 可直接使用如下命令直接管理 DataKit：
 
@@ -60,7 +59,7 @@ datakit service -R # restart
 
 > 可通过 `datakit help service` 查看更多帮助信息。
 
-#### 服务管理失败处理
+#### 服务管理失败处理 {#when-service-failed}
 
 有时候可能因为 DataKit 部分组件的 bug，导致服务操作失败（如 `datakit service -T` 之后，服务并未停止），可按照如下方式来强制处理。
 

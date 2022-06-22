@@ -1,10 +1,9 @@
 {{.CSS}}
+# 行协议过滤器
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# DataKit Filter
 
 本文档主要描述 DataKit Filter 基本使用以及注意事项。
 
@@ -89,7 +88,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 
 ### 基本语法规则
 
-过滤器基本语法规则，跟 Pipeline 基本一致，参见[这里](pipeline#3ab24547)。
+过滤器基本语法规则，跟 Pipeline 基本一致，参见[这里](pipeline.md#basic-syntax)。
 
 ### 操作符
 

@@ -1,14 +1,12 @@
-
 {{.CSS}}
+# 查看 DataKit 的 Monitor
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-
-# 查看 DataKit 的 Monitor 信息
+- 操作系统支持：全平台
 
 DataKit 提供了相对完善的基本可观测信息输出，通过查看 DataKit 的 monitor 输出，我们能清晰的知道当前 DataKit 的运行情况。
 
-<a name="how-to-show-monitor"></a>
 ## 查看 Monitor
 
 执行如下命令即可获取本机 DataKit 的运行情况。
@@ -21,7 +19,7 @@ datakit monitor
 
 DataKit 基本 Monitor 页面信息如下图所示：
 
-![基础Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-basic-v1.gif) 
+![基础Monitor信息展示](imgs/monitor-basic-v1.gif) 
 
 该图中的元素可以通过鼠标或键盘操作。被鼠标选中的块会以双边框突出显示（如上图左上角的 `Basic Info` 块所示），另外，还能通过鼠标滚轮或者键盘上下方向键（或者 vim 的 J/K）来浏览。
 
@@ -49,7 +47,7 @@ DataKit 基本 Monitor 页面信息如下图所示：
 	- `GC Paused`：自 DataKit 启动以来，GC（垃圾回收）所消耗的时间
 	- `GC Count`：自 DataKit 启动以来，GC 次数
 
-> 关于这里的 Runtime Info，参见 [Golang 官方文档](https://pkg.go.dev/runtime#ReadMemStats)
+> 关于这里的 Runtime Info，参见 [Golang 官方文档](https://pkg.go.dev/runtime#ReadMemStats){:target="_blank"}
 
 - `Enabled Inputs` 展示开启的采集器列表，其中
 
@@ -76,7 +74,7 @@ DataKit 基本 Monitor 页面信息如下图所示：
 
 如果运行 Monitor 时，指定了 verbose 选项（`-V`），则会额外输出更多信息，如下图所示：
 
-![完整Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-verbose-v1.gif) 
+![完整Monitor信息展示](imgs/monitor-verbose-v1.gif) 
 
 - `Goroutine Groups` 展示 DataKit 中已有的 Goroutine 分组（该分组中的 Goroutine 个数 <= 上面面板中的 `Goroutines` 个数）
 - `HTTP APIs` 展示 DataKit 中 API 调用情况
@@ -138,7 +136,7 @@ datakit monitor --refresh 1s
 
 > 注意，这里的单位需注意，必须是如下几种：s（秒）/m（分钟）/h（小时），如果时间范围小于 1s，则按照 1s 来刷新。
 
-### 如何 Monitor 其它 DataKit？
+### 如何 Monitor 其它 DataKit？ {#remote-monitor}
 
 有时候，安装的 DataKit 并不是使用默认的 9529 端口，这时候就会出现类似如下的错误：
 

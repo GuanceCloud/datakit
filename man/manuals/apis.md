@@ -1,10 +1,9 @@
 {{.CSS}}
+# DataKit API
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# DataKit API 文档
 
 本文档主要描述 DataKit 开放出来 HTTP API 接口。
 
@@ -12,14 +11,14 @@
 
 DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 
-### 通过 API 获取远端 DataKit 版本号
+### 通过 API 获取远端 DataKit 版本号 {#api-get-dk-version}
 
 有两种方式可获取版本号：
 
 - 请求 DataKit ping 接口： `curl http://ip:9529/v1/ping`
 - 在下述每个 API 请求的返回 Header 中，通过 `X-DataKit` 可获知当前请求的 DataKit 版本
 
-## `/v1/write/:category`
+## `/v1/write/:category` {#api-v1-write}
 
 本 API 用于给 DataKit 上报各类数据（`category`），参数说明如下：
 
@@ -32,9 +31,9 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 | `version`            | string | false    | 无        | 当前采集器的版本号                                                                                                         |
 | `source`             | string | false    | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割 |
 
-HTTP body 支持行协议以及 JSON 俩种形式。关于数据结构（不管是行协议形式还是 JSON 形式）的约束，参见[这里](apis#2fc2526a)。
+HTTP body 支持行协议以及 JSON 俩种形式。关于数据结构（不管是行协议形式还是 JSON 形式）的约束，参见[这里](#lineproto-limitation)。
 
-### JSON Body 示例
+### JSON Body 示例 {#api-json-example}
 
 为便于行协议处理，所有数据上传 API 均支持 JSON 形式的 body。JSON body 参数说明
 
@@ -96,7 +95,7 @@ PASS
 ok      gitlab.jiagouyun.com/cloudcare-tools/datakit/http       4.499s
 ```
 
-### 日志(logging)示例
+### 日志(logging)示例 {#api-logging-example}
 
 ```http
 POST /v1/write/logging?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
@@ -109,10 +108,13 @@ redis,tag1=a,tag2=b,filename=c.log f1=1i,f2=1.2,f3="abc",message="more-log-data"
 - 行协议中的指标集名称(此处的 `nginx/mysql/redis`) 会作为日志的 `source` 字段来存储。
 - 原式日志数据存放在 `message` 字段上
 
-> 注意：DK版本自1.2.0之后，为优化处理速度, /v1/write/logging 处理数据时改为异步操作，所以当后台处理 pipeline 时，这一条 http 请求已经完成并返回状态码了。
-> 如果返回状态码为200或者 **观测云** 上数据异常时，请先检查发送的数据是否符合文档中的要求。
+!!! note
 
-### 时序数据(metric)示例
+	DataKit 版本自 1.2.0 之后，为优化处理速度, `/v1/write/logging` 处理数据时改为异步操作，所以当后台处理 Pipeline 时，这一条 HTTP 请求已经完成并返回状态码了。
+
+	如果返回状态码为 200 或者观测云上数据异常时，请先检查发送的数据是否符合文档中的要求。
+
+### 时序数据(metric)示例 {#api-metric-example}
 
 ```http
 POST /v1/write/metric?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
@@ -122,7 +124,7 @@ mem,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 net,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 ```
 
-### 对象数据(object)示例
+### 对象数据(object)示例 {#api-object-example}
 
 ```http
 POST /v1/write/object?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
@@ -132,12 +134,13 @@ rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 ```
 
-> 注意：
+!!! warning
 
-- 对象数据必须有 `name` 这个 tag，否则协议报错
-- 对象数据最好有 `message` 字段，主要便于做全文搜索
+	对象数据必须有 `name` 这个 tag，否则协议报错。
 
-### 自定义对象数据(custom_object)示例
+	对象数据最好有 `message` 字段，主要便于做全文搜索。
+
+### 自定义对象数据(custom_object)示例 {#api-custom-object-example}
 
 ```http
 POST /v1/write/custom_object?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
@@ -147,16 +150,17 @@ rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 ```
 
-> 注意：
+!!! warning
 
-- 自定义对象数据必须有 `name` 这个 tag，否则协议报错
-- 自定义对象数据最好有 `message` 字段，主要便于做全文搜索
+	自定义对象数据必须有 `name` 这个 tag，否则协议报错
 
-### RUM
+	自定义对象数据最好有 `message` 字段，主要便于做全文搜索
 
-参见 [RUM 文档](rum)
+### RUM {#api-rum}
 
-## `/v1/ping`
+参见 [RUM 文档](rum.md)
+
+## `/v1/ping` {#api-ping}
 
 检测目标地址是否有 DataKit 运行，可获取 DataKit 启动时间以及版本信息。
 
@@ -175,7 +179,7 @@ HTTP/1.1 200 OK
 }
 ```
 
-## `/v1/lasterror`
+## `/v1/lasterror` {#api-lasterror}
 
 用于上报外部采集器的错误
 
@@ -191,7 +195,7 @@ Content-Type: application/json
 }
 ```
 
-## `/v1/workspace`
+## `/v1/workspace` {#api-workspace}
 
 查看工作空间信息及数据配额信息
 
@@ -231,7 +235,7 @@ HTTP/1.1 200 OK
 }
 ```
 
-## `/v1/query/raw`
+## `/v1/query/raw` {#api-raw-query}
 
 使用 DQL 进行数据查询（只能查询该 DataKit 所在的工作空间的数据）
 
@@ -260,7 +264,9 @@ Content-Type: application/json
 
 参数说明
 
-> 注：此处参数需更详细的说明以及举例，待补充。
+!!! info
+
+	此处参数需更详细的说明以及举例，待补充。
 
 | 名称                     | 说明                                                                                                                                                                                                                       |
 | :----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -275,7 +281,7 @@ Content-Type: application/json
 | `offset`                 | 一般跟 limit 配置使用，用于结果分页                                                                                                                                                                                        |
 | `orderby`                | 指定`order by`参数，内容格式为 `map[string]string` 数组，`key` 为要排序的字段名，`value` 只能是排序方式即 `asc` 和 `desc`，例如 `[ { "column01" : "asc" }, { "column02" : "desc" } ]`。此条会替换原查询语句中的 `order by` |
 | `queries`                | 基础查询模块，包含查询语句和各项附加参数                                                                                                                                                                                   |
-| `query`                  | DQL 查询语句（DQL [文档](https://www.yuque.com/dataflux/doc/fsnd2r)）                                                                                                                                                      |
+| `query`                  | DQL 查询语句（DQL [文档](../dql/define.md)）                                                                                                                                                      |
 | `search_after`           | 深度分页，第一次调用分页的时候，传入空列表：`"search_after": []`，成功后服务端会返回一个列表，客户端直接复用这个列表的值再次通过 `search_after` 参数回传给后续的查询即可                                                   |
 | `slimit`                 | 限制时间线个数，将覆盖 DQL 中存在的 slimit                                                                                                                                                                                 |
 | `time_range`             | 限制时间范围，采用时间戳格式，单位为毫秒，数组大小为 2 的 int，如果只有一个元素则认为是起始时间，会覆盖原查询语句中的查询时间区间                                                                                          |
@@ -311,7 +317,7 @@ Content-Type: application/json
 }
 ```
 
-## `/v1/object/labels` | `POST`
+## `/v1/object/labels` | `POST` {#api-object-labels}
 
 创建或者更新对象的 `labels`
 
@@ -359,7 +365,7 @@ status_code: 500
 }
 ```
 
-## `/v1/object/labels` | `DELETE`
+## `/v1/object/labels` | `DELETE` {#api-delete-object-labels}
 
 删除对象的 `labels`
 
@@ -405,7 +411,7 @@ status_code: 500
 }
 ```
 
-## `/v1/pipeline/debug` | `POST`
+## `/v1/pipeline/debug` | `POST` {#api-debug-pl}
 
 提供远程调试 PL 的功能。
 
@@ -462,7 +468,7 @@ HTTP Code: 40x
 }
 ```
 
-## `/v1/dialtesting/debug` | `POST`
+## `/v1/dialtesting/debug` | `POST` {#api-debug-dt}
 
 提供远程调试 dialtesting 的功能。
 
@@ -517,7 +523,7 @@ HTTP Code: 40x
 }
 ```
 
-## DataKit 数据结构约束
+## DataKit 数据结构约束 {#lineproto-limitation}
 
 为规范观测云中的数据，现对 DataKit 采集的数据，做如下约束（不管是行协议还是 JSON 形式的数据），并对违反约束的数据将进行相应的处理。
 
@@ -531,8 +537,8 @@ HTTP Code: 40x
 
 关于特殊标记，目前通过 HTTP 接口打进来的数据，均无法标记（比如允许 Tag 个数大于 256 个），而 DataKit 自身的采集器，在某些特殊情况下，可能需要绕过这些限制（比如日志采集中，field 的长度可以放开）。
 
-## 延伸阅读
+## 延伸阅读 {#more-reading}
 
-- [API 访问设置](datakit-conf#db159fbc)
-- [API 限流配置](datakit-conf#39e48d64)
-- [API 安全控制](rum#b896ec48)
+- [API 访问设置](datakit-conf.md#config-http-server)
+- [API 限流配置](datakit-conf.md#set-http-api-limit)
+- [API 安全控制](rum.md#security-setting)

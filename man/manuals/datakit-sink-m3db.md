@@ -1,6 +1,5 @@
-# 将指标型数据存入 m3db 数据库中
-
-## m3db 数据库
+# M3DB
+---
 
 M3DB 是 Uber 开源的一款分布式时序数据库，主要用来存储 Metric 类型数据，已在 Uber 内部使用多年。
 
@@ -8,10 +7,10 @@ Datakit 支持将采集到的指标性数据写入 M3db 中，可以通过配置
 
 M3DB更多介绍和文档 请参考：
 
-- [m3db-github-源码](https://github.com/m3db/m3)
-- [m3db-官方文档](https://m3db.io/docs)
+- [m3db-github-源码](https://github.com/m3db/m3){:target="_blank"}
+- [m3db-官方文档](https://m3db.io/docs){:target="_blank"}
 
-### 快速上手 安装单机版 m3db
+## 安装单机版 m3db
 
 ``` shell 
 # 下载并启动
@@ -64,7 +63,7 @@ vim /usr/local/datakit/conf/datakit.conf
 datakit --restart
 ```
 
-### 安装阶段指定 M3DB 设置
+## 安装阶段指定 m3db 设置
 
 ```shell
 DK_SINK_M="m3db://localhost:7201?scheme=http" \
@@ -74,6 +73,6 @@ bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 
 通过环境变量安装的 Datakit，会在自动在配置文件中生成相应的配置。
 
-## M3DB 可视化
+## m3db 可视化
 
-这里推荐您使用 [prometheus](https://prometheus.io/download/) 和 [grafana](https://grafana.com/) 去查询和展示数据。
+这里推荐您使用 [prometheus](https://prometheus.io/download/){:target="_blank"} 和 [grafana](https://grafana.com/){:target="_blank"} 去查询和展示数据。

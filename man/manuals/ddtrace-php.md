@@ -1,14 +1,13 @@
 {{.CSS}}
+# PHP 示例
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# Tracing PHP Application
 
 ## Install Libarary & Dependence
 
-首先[下载](https://github.com/DataDog/dd-trace-php/releases)需要的 PHP ddtrace 扩展，下载完成后安装扩展
+首先[下载](https://github.com/DataDog/dd-trace-php/releases){:target="_blank"} 需要的 PHP ddtrace 扩展，下载完成后安装扩展
 
 **Using RPM package (RHEL/Centos 6+, Fedora 20+)**
 

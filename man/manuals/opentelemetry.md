@@ -1,10 +1,9 @@
 {{.CSS}}
+# OpenTelemetry
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 OpenTelemetry （以下简称 OTEL）是 CNCF 的一个可观测性项目，旨在提供可观测性领域的标准化方案，解决观测数据的数据模型、采集、处理、导出等的标准化问题。
 
@@ -127,9 +126,9 @@ OSDescriptionKey = attribute.Key("os.description")
 
 ### 最佳实践
 
-datakit 目前提供了 [Go 语言](opentelemetry-go)、[Java](opentelemetry-java) 两种语言的最佳实践，其他语言会在后续提供。
+datakit 目前提供了 [Go 语言](opentelemetry-go.md)、[Java](opentelemetry-java.md) 两种语言的最佳实践，其他语言会在后续提供。
 
 ### 更多文档
-- go开源地址 [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go)
-- 官方使用手册 ：[opentelemetry-io-docs](https://opentelemetry.io/docs/)
-- 环境变量配置: [sdk-extensions](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters)
+- go开源地址 [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go){:target="_blank"}
+- 官方使用手册 ：[opentelemetry-io-docs](https://opentelemetry.io/docs/){:target="_blank"}
+- 环境变量配置: [sdk-extensions](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters){:target="_blank"}

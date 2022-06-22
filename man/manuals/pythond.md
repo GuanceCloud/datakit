@@ -1,10 +1,9 @@
 {{.CSS}}
+# 用 Python 开发自定义采集器
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 {{.InputName}} 是定时触发用户自定义 python 采集脚本的一整套方案。
 
@@ -28,7 +27,7 @@ python -m pip install requests
 python3 -m pip install requests
 ```
 
-上述的安装需要安装 pip，如果你没有，可以参考以下方法(源自: [这里](https://pip.pypa.io/en/stable/installation/)):
+上述的安装需要安装 pip，如果你没有，可以参考以下方法(源自: [这里](https://pip.pypa.io/en/stable/installation/){:target="_blank"}):
 
 ```shell
 # Linux/MacOS

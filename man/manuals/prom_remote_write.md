@@ -1,10 +1,9 @@
 {{.CSS}}
+# Prometheus Remote Write 支持
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 监听 Prometheus Remote Write 数据，上报到观测云。
 
@@ -53,7 +52,7 @@ remote_write:
 
 另外，当重命名后的 tag key 与已有 tag key 相同时:可以通过 `overwrite` 配置是否覆盖掉已有的 tag key。
 
-> 注意：对于 [DataKit 全局 tag key](datakit-conf#53181faf)，此处不支持将它们重命名。
+> 注意：对于 [DataKit 全局 tag key](datakit-conf.md#update-global-tag)，此处不支持将它们重命名。
 
 ## 指标集
 

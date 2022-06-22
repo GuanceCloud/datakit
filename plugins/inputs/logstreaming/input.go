@@ -34,13 +34,18 @@ const (
 `
 )
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	l = logger.DefaultSLogger(inputName)
+
+	_ inputs.InputV2 = (*Input)(nil)
+)
 
 type Input struct {
 	IgnoreURLTags bool `yaml:"ignore_url_tags"`
 }
 
 func (*Input) Catalog() string { return "log" }
+func (*Input) Terminate()      { return /* do nothing */ }
 
 func (*Input) SampleConfig() string { return sampleCfg }
 
@@ -220,56 +225,3 @@ func (*logstreamingMeasurement) Info() *inputs.MeasurementInfo {
 		},
 	}
 }
-
-// func plCallback(ret *pipeline.Result) (*pipeline.Result, error) {
-// 	return pipeline.ResultUtilsLoggingProcessor(ret, false, nil), nil
-// }
-
-// func plRunCnt(source, scriptName string, cnt []string, tags map[string]string) []*io.Point {
-// 	ret := []*io.Point{}
-
-// 	ts := time.Now().Add(-time.Duration(int(time.Nanosecond) * len(cnt)))
-// 	for i, cnt := range cnt {
-// 		pt, err := io.MakePoint(source, tags,
-// 			map[string]interface{}{pipeline.PipelineMessageField: cnt},
-// 			ts.Add(time.Duration(int(time.Nanosecond)*i)),
-// 		)
-// 		if err != nil {
-// 			l.Error(err)
-// 			continue
-// 		}
-// 		drop := false
-// 		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
-// 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plCallback); err != nil {
-// 				l.Error(err)
-// 			} else {
-// 				pt = ptRet
-// 				drop = dropRet
-// 			}
-// 		}
-// 		if !drop {
-// 			ret = append(ret, pt)
-// 		}
-// 	}
-// 	return ret
-// }
-
-// func plRunPt(pts []*io.Point) []*io.Point {
-// 	ret := []*io.Point{}
-// 	for _, pt := range pts {
-// 		scriptName := pt.Name() + ".p"
-// 		drop := false
-// 		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
-// 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plCallback); err != nil {
-// 				l.Error(err)
-// 			} else {
-// 				pt = ptRet
-// 				drop = dropRet
-// 			}
-// 		}
-// 		if !drop {
-// 			ret = append(ret, pt)
-// 		}
-// 	}
-// 	return ret
-// }

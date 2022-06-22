@@ -29,7 +29,10 @@ import (
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
-var _ inputs.ReadEnv = (*Input)(nil)
+var ( // type assertions
+	_  inputs.ReadEnv = (*Input)(nil)
+	__ inputs.InputV2 = (*Input)(nil)
+)
 
 var (
 	AuthorizationType = `DIAL_TESTING`
@@ -65,6 +68,8 @@ type Input struct {
 	MaxSendFailCount int32             `toml:"max_send_fail_count,omitempty"` // max send fail count
 	Tags             map[string]string
 
+	chexit chan interface{}
+
 	cli *http.Client
 	// class string
 
@@ -90,10 +95,10 @@ const sample = `
 
   time_out = "1m"
   workers = 6
-  
+
   # 发送数据失败最大次数，根据任务的post_url进行累计，超过最大次数后，发送至该地址的拨测任务将退出
   max_send_fail_count = 16
-  
+
   [inputs.dialtesting.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -118,6 +123,15 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
+}
+
+func (i *Input) Terminate() {
+	select {
+	case <-i.chexit:
+		return
+	default:
+		close(i.chexit)
+	}
 }
 
 func (d *Input) Run() {
@@ -184,6 +198,10 @@ func (d *Input) doServerTask() {
 
 		for {
 			select {
+			case <-d.chexit:
+				l.Info("exit on chexit")
+				return
+
 			case <-tick.C:
 
 				l.Debug("try pull tasks...")
@@ -593,6 +611,7 @@ func newDefaultInput() *Input {
 		Tags:     map[string]string{},
 		curTasks: map[string]*dialer{},
 		wg:       sync.WaitGroup{},
+		chexit:   make(chan interface{}),
 		cli: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
