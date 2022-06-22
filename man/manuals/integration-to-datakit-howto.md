@@ -1,7 +1,7 @@
 # 集成文档合并
 ---
 
-本文档主要介绍如何将现有的集成文档合并进 datakit 的文档中。现有集成文档在[这里](https://www.yuque.com/dataflux/integrations)。
+本文档主要介绍如何将现有的集成文档合并进 datakit 的文档中。现有集成文档在[这里](https://www.yuque.com/dataflux/integrations){:target="_blank"}。
 
 > 注意： datakit 集成相关的文档，均不建议直接在 *dataflux-doc/docs/integrations* 中修改，因为 datakit 自身的文档导出是覆盖式写到该目录的，可能导致手动添加到 *dataflux-doc/docs/integrations* 的文档被覆盖。
 
@@ -11,12 +11,12 @@
 
 大概看了下，集成文档合并到 datakit 文档，有几种可能：
 
-- 合并集成文档：直接扩展现有采集器文档，比如 [CPU 集成文档](https://www.yuque.com/dataflux/integrations/fyiw75)，可以直接合并到采集器的 cpu.md （man/manuals/cpu.md）中
+- 合并集成文档：直接扩展现有采集器文档，比如 [CPU 集成文档](https://www.yuque.com/dataflux/integrations/fyiw75){:target="_blank"}，可以直接合并到采集器的 cpu.md （man/manuals/cpu.md）中
 - 新增 datakit 文档：如果 datakit 中并无对应的文档，那么需要手动在 datkit 中新增文档
 
 下面将针对以上几种情况，分别说明如何合并。
 
-## 合并集成文档
+## 合并集成文档 {#merge}
 
 已有的 datakit 文档，大部分集成文档中的内容都已具备，主要缺少的是截图信息以及场景导航，除此之外，环境配置和指标信息基本都已具备。故合并的时候，只需要添加一些截图信息即可：
 
@@ -38,17 +38,17 @@ wget http://yuque-img-url.png -O imgs/input-xxx-2.png
 
 - 编译 DataKit
 
-由于修改的是 datakit 自身的文档，故需要编译才能生效。datakit 编译，参见[这里](https://github.com/GuanceCloud/datakit/blob/github-mirror/README.zh_CN.md)。
+由于修改的是 datakit 自身的文档，故需要编译才能生效。datakit 编译，参见[这里](https://github.com/GuanceCloud/datakit/blob/github-mirror/README.zh_CN.md){:target="_blank"}。
 
 如果编译过程有困难，可以暂时不管，直接将上述修改提交 merge request 到 datakit 仓库即可，暂时可以由开发这边编译并最终同步到文档库。
 
-## 新增 datakit 文档
+## 新增 datakit 文档 {#add}
 
 对于 datakit 中没有直接采集器支持的集成文档，添加起来会简单一点，下面以现有集成库中的 resin 为例，分别说明上述过程。
 
 - 从雨雀现有页面获取 markdown 原文，保存到 *man/manuals/* 目录下
 
-直接在 resin 集成页面的 URL 后加上 markdown 后，[访问即可得到其 Markdown 原文](https://www.yuque.com/dataflux/integrations/resin/markdown)，全选拷贝，保存到 *man/manuals/resin.md* 中。
+直接在 resin 集成页面的 URL 后加上 markdown 后，[访问即可得到其 Markdown 原文](https://www.yuque.com/dataflux/integrations/resin/markdown){:target="_blank"}，全选拷贝，保存到 *man/manuals/resin.md* 中。
 
 下载下来之后，要修改里面的排版，具体而言，去掉一些无谓的 html 修饰（可看下当前 resin.md 是怎么改的），另外就是将那些图片全部下载下来（跟上面 CPU 的示例一样）保存，然后在新的 resin.md 中引用这些图片。
 
@@ -71,7 +71,7 @@ wget http://yuque-img-url.png -O imgs/input-xxx-2.png
 cp man/manuals/resin.md $integration_docs_dir/
 ```
 
-## 文档生成和导出
+## 文档生成和导出 {#export}
 
 在 datakit 现有仓库中，直接执行 mkdocs.sh 即可实现编译、发布两个步骤。在 mkdocs.sh 中，目前直接将文档导出成两份，分别同步到文档库的 datakit 和 integrations 两个目录下。目前这两个目录下的文件基本都是一样的（除了各自文档库的 *imgs* 目录）
 
@@ -85,6 +85,14 @@ cd dataflux-doc
 pip install -R requirement.txt # 期间可能要求你更新 pip 版本
 ```
 
+!!! warn
+
+	mkdocs 安装完成后，可能需要设置 $PATH，Mac 的设置可能是这样的（具体可以 find  下 mkdocs 二进制位置）：
+
+	```
+	PATH="/System/Volumes/Data/Users/<user-name>/Library/Python/3.8/bin:$PATH"
+	```
+
 - 启动本地文档库
 
 ```
@@ -92,5 +100,4 @@ mkdocs serve
 ```
 
 - 访问本地 http://localhost:8000 即可看到
-
 - 调试完成后，提交 Merge Request 到 datakit 项目的 `mkdocs` 分支

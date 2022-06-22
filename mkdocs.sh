@@ -52,7 +52,7 @@ cp man/manuals/integrations-index.md $integration_docs_dir/index.md
 
 # 这些文件没有集成在 datakit 代码中（没法通过 export-docs 命令导出），故直接拷贝到文档库中。
 extra_files=(
-	man/integration-to-datakit-howto.md
+	man/manuals/integration-to-datakit-howto.md
 	man/manuals/aliyun-access.md
 	man/manuals/aliyun-asm.md
 	man/manuals/aliyun-cdn.md
@@ -92,4 +92,4 @@ for f in "${extra_files[@]}"; do
 	cp $f $integration_docs_dir/
 done
 
-cd $mkdocs_dir && mkdocs serve
+cd $mkdocs_dir && mkdocs serve 2>&1 | tee mkdocs.log

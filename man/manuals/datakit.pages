@@ -42,3 +42,4 @@ nav:
     - datakit-filter.md
     - apis.md
     - datakit-sink-dev.md
+    - integration-to-datakit-howto.md

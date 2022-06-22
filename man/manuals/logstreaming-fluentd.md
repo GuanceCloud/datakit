@@ -12,7 +12,7 @@
 
 ### 前置条件
 
-- 可以访问外网的主机<[安装 Datakit](https://www.yuque.com/dataflux/datakit/datakit-install)>
+- 可以访问外网的主机<[安装 Datakit](../datakit/datakit-install.md)>
 - 检查 Fluentd 数据是否正常采集
 
 ### 配置实施
@@ -45,6 +45,7 @@ logstreaming 支持在 HTTP URL 中添加参数，对日志数据进行操作。
 #### Linux
 
 ##### Fluentd 采集 nginx 日志接入 DataKit
+
 以 Fluentd 采集 nginx 日志并转发至上级 server 端的 plugin 配置为例，我们不想直接发送到 server 端进行处理，想直接处理好并发送给 DataKit 上报至观测云平台进行分析。
 ```yaml
 ##pc端日志收集
@@ -102,7 +103,7 @@ logstreaming 支持在 HTTP URL 中添加参数，对日志数据进行操作。
 ```
 修改配置之后重启 td-agent ，完成数据上报<br />![image.png](imgs/input-fluentd-01.png)
 
-##### 可以通过 [DQL](https://www.yuque.com/dataflux/doc/fsnd2r) 验证上报的数据：
+##### 可以通过 [DQL](../dql/query.md) 验证上报的数据：
 ```shell
 dql > L::nginx_td LIMIT 1
 -----------------[ r1.nginx_td.s1 ]-----------------
@@ -113,81 +114,6 @@ create_time 1637733374609
     message '{"120.253.192.179 - - [24/Nov/2021":"13:55:10 +0800] \"GET / HTTP/1.1\" 304 0 \"-\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36\" \"-\""}'
      source 'nginx_td'
        time 2021-11-24 13:56:06 +0800 CST
----------
-1 rows, 1 series, cost 2ms
-```
-
-#### windows
-
-##### Fluentd 采集 nginx 日志接入 DataKit
-以 Fluentd 采集 nginx 日志并转发至上级 server 端的 plugin 配置为例，我们不想直接发送到 server 端进行处理，想直接处理好并发送给 DataKit 上报至观测云平台进行分析。
-```bash
-##pc端日志收集
-<source>
-  @type tail
-  format ltsv
-  path D://opt/nginx/log/access.log
-  pos_file D://opt/nginx/log/access.log.pos
-  tag nginx
-  time_key time
-  time_format %d/%b/%Y:%H:%M:%S %z
-</source>
- 
-##收集的数据由tcp协议转发到多个server的49875端口
-## Multiple output
-<match nginx>
- type forward
-  <server>
-   name es01
-   host es01
-   port 49875
-   weight 60
-  </server>
-  <server>
-   name es02
-   host es02
-   port 49875
-   weight 60
-  </server>
-</match>
-```
-对 match 的 output 做修改将类型指定成 http 类型并且将 endpoint 指向开启了 logstreaming 的 DataKit 地址即可完成采集
-```yaml
-##pc端日志收集
-<source>
-  @type tail
-  format ltsv
-  path D://opt/nginx/log/access.log
-  pos_file D://opt/nginx/log/access.log.pos
-  tag nginx
-  time_key time
-  time_format %d/%b/%Y:%H:%M:%S %z
-</source>
- 
-##收集的数据由http协议转发至本地 DataKit
-## nginx output
-<match nginx>
-  @type http
-  endpoint http://127.0.0.1:9529/v1/write/logstreaming?source=nginx_td&pipeline=nginx.p
-  open_timeout 2
-  <format>
-    @type json
-  </format>
-</match>
-```
-修改配置之后重启`fluentd -c `更改的配置文件 ，完成数据上报<br />![image.png](imgs/input-fluentd-02.png)
-
-##### 可以通过 [DQL](https://www.yuque.com/dataflux/doc/fsnd2r) 验证上报的数据：
-```shell
-dql > L::nginx_td LIMIT 1
------------------[ r1.nginx_td.s1 ]-----------------
-    __docid 'L_c6et7vk5jjqulpr6osa0'
-create_time 1637733374609
-    date_ns 96184
-       host 'df-solution-ecs-018'
-    message '{"120.253.192.179 - - [03/Mar/2022":"13:55:10 +0800] \"GET / HTTP/1.1\" 304 0 \"-\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36\" \"-\""}'
-     source 'nginx_td'
-       time 2022-03-03 13:56:06 +0800 CST
 ---------
 1 rows, 1 series, cost 2ms
 ```
@@ -313,7 +239,9 @@ spec:
     port: 80
     nodePort: 32004
 ```
+
 对 Fluentd 挂载配置文件中match 的 output 做修改将类型指定成 http 类型并且将 endpoint 指向开启了 logstreaming 的 DataKit 地址即可完成采集
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -416,21 +344,6 @@ spec:
 ```
 修改配置之后重新部署 yaml 文件即可完成数据上报，可以访问对应 node 的 32004 端口查看数据是否成功采集<br />![image.png](imgs/input-fluentd-03.png)
 
-##### 可以通过 [DQL](https://www.yuque.com/dataflux/doc/fsnd2r) 验证上报的数据：
-```shell
-dql > L::nginx_td LIMIT 1
------------------[ r1.nginx_td.s1 ]-----------------
-    __docid 'L_c6et7vk5jjqulpr6osa0'
-create_time 1637733374609
-    date_ns 96184
-       host 'df-solution-ecs-018'
-    message '{"120.253.192.179 - - [24/Nov/2021":"13:55:10 +0800] \"GET / HTTP/1.1\" 304 0 \"-\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36\" \"-\""}'
-     source 'nginx_td'
-       time 2021-11-24 13:56:06 +0800 CST
----------
-1 rows, 1 series, cost 2ms
-```
-
 # 场景视图
 暂无
 
@@ -441,5 +354,5 @@ create_time 1637733374609
 [观测云日志采集分析最佳实践](https://www.yuque.com/dataflux/bp/logging)
 
 # 故障排查
-<[无数据上报排查](https://www.yuque.com/dataflux/datakit/why-no-data)>
+<[无数据上报排查](../datakit/why-no-data.md)>
 

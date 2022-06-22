@@ -44,6 +44,7 @@ nav:
       - ddtrace-nodejs.md
       - ddtrace-cpp.md
       - ddtrace-ruby-2.md
+      - ddtrace-csharp.md
 
     - 'SkyWalking':
       - 'SkyWalking 采集配置': skywalking.md

@@ -295,26 +295,19 @@ make pub_production_mac VERSION=<the-new-version>
 - 稳定版：其版本号为 `x.y.z`，其中 `y` 必须是偶数
 - 非稳定版：其版本号为 `x.y.z`，其中 `y` 必须是基数
 
-### 语雀文档发布
+### 文档发布
 
-语雀文档的发布，只能在开发机器上发布，需安装 [waque](https://github.com/yesmeck/waque){:target="_blank"} 1.13.1+ 以上的版本。其流程如下：
+文档的发布，只能在开发机器上发布，需安装 [mkdocs](https://www.mkdocs.org/){:target="_blank"}。其流程如下：
 
-- 执行 yuque.sh
+- 执行 mkdocs.sh
 
 ```
-./yuque.sh <the-new-version>
+./mkdocs.sh <the-new-version>
 ```
 
 如果不指定版本，会以最新的一个 tag 名称作为版本号。
 
 > 注意，如果是线上代码发布，最好保证跟**线上 DataKit 当前的稳定版版本号**保持一致，不然会导致用户困扰。
-
-在当前的代码树中，有俩个文档库配置：
-
-- *yuque.yml*: 发布到[线上 DataKit 文档库](https://www.yuque.com/dataflux/datakit){:target="_blank"}
-- *yuque_testing.yml*: 发布到[测试 DataKit 文档库](https://www.yuque.com/dataflux/cd74oo){:target="_blank"}
-
-测试文档库用于测试文档发布效果。当在你本地机器发布文档时，如果当前代码分支是 *yuque*，会自动发布到线上文档库，否则发布到测试文档库。
 
 ## 关于代码规范
 
