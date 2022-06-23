@@ -7,7 +7,6 @@ package container
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -84,38 +83,6 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 	t.Run()
 
 	return nil
-}
-
-type containerLogConfig struct {
-	Disable    bool     `json:"disable"`
-	Source     string   `json:"source"`
-	Pipeline   string   `json:"pipeline"`
-	Service    string   `json:"service"`
-	Multiline  string   `json:"multiline_match"`
-	OnlyImages []string `json:"only_images"`
-}
-
-const containerLogConfigKey = "datakit/logs"
-
-func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
-	if m == nil || m[containerLogConfigKey] == "" {
-		return nil, nil
-	}
-	return parseContainerLogConfig(m[containerLogConfigKey])
-}
-
-func parseContainerLogConfig(cfg string) (*containerLogConfig, error) {
-	var configs []containerLogConfig
-	if err := json.Unmarshal([]byte(cfg), &configs); err != nil {
-		return nil, err
-	}
-
-	if len(configs) < 1 {
-		return nil, nil
-	}
-
-	temp := configs[0]
-	return &temp, nil
 }
 
 type containerLog struct{}
