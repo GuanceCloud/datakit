@@ -6,6 +6,7 @@
 package container
 
 import (
+	"encoding/json"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -107,6 +108,10 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 		opt.Pipeline = logconf.Pipeline
 		opt.MultilineMatch = logconf.Multiline
 
+		for k, v := range logconf.Tags {
+			opt.GlobalTags[k] = v
+		}
+
 		l.Debugf("use container logconfig:%#v, containerId: %s, source: %s, logpath: %s", logconf, info.id, opt.Source, info.logPath)
 	}
 
@@ -115,6 +120,39 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 	l.Debugf("use container-log opt:%#v, containerId: %s", logconf, opt)
 
 	return opt
+}
+
+type containerLogConfig struct {
+	Disable    bool              `json:"disable"`
+	Source     string            `json:"source"`
+	Pipeline   string            `json:"pipeline"`
+	Service    string            `json:"service"`
+	Multiline  string            `json:"multiline_match"`
+	OnlyImages []string          `json:"only_images"`
+	Tags       map[string]string `json:"tags"`
+}
+
+const containerLogConfigKey = "datakit/logs"
+
+func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
+	if m == nil || m[containerLogConfigKey] == "" {
+		return nil, nil
+	}
+	return parseContainerLogConfig(m[containerLogConfigKey])
+}
+
+func parseContainerLogConfig(cfg string) (*containerLogConfig, error) {
+	var configs []containerLogConfig
+	if err := json.Unmarshal([]byte(cfg), &configs); err != nil {
+		return nil, err
+	}
+
+	if len(configs) < 1 {
+		return nil, nil
+	}
+
+	temp := configs[0]
+	return &temp, nil
 }
 
 func getPodNameForLabels(labels map[string]string) string {
