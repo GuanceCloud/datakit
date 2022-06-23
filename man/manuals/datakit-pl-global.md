@@ -77,7 +77,7 @@ Pipeline 可以对 DataKit 采集的数据执行如下操作：
 1. 以特定的行协议标签名（tag）来匹配对应的 Pipeline：
    1. 对 APM（tracing）类数据而言，以标签 `service` 的值来自动匹配 Pipeline。例如，DataKit 采集到一条 APM 数据，如果行协议上其 `service` 值为 `service-a`，则会将该数据送给 _tracing/service-a.p_ 处理。
    1. 对于 SECURITY (scheck) 类数据而言，以标签 `category` 的值来自动匹配 Pipeline。例如，DataKit 接收到一条 SECURITY 数据，如果行协议上其 `category` 值为 `system`，则会将该数据送给 _security/system.p_ 处理。
-1. 以特定的行协议标签名 (tag) 和指标集名来匹配对应的 Pipeline: 对 RUM 类数据而言，以标签名 `app_id` 的值和指标集 `action` 为例，会自动应用 _rum/<app_id>\_action.p_;
+1. 以特定的行协议标签名 (tag) 和指标集名来匹配对应的 Pipeline: 对 RUM 类数据而言，以标签名 `app_id` 的值和指标集 `action` 为例，会自动应用 `rum/<app_id>_action.p`;
 1. 以行协议指标集名称来匹配对应的 Pipeline：其它类数据，均以行协议的指标集来匹配 Pipeline。以时序指标集 `cpu` 为例，会自动应用 _metric/cpu.p_；而对主机对象而言，会自动应用 _object/HOST.p_。
 
 所以，我们可以在对应的目录下，通过适当方式， 可添加对应的 Pipeline 脚本，实现对采集到的数据进行 Pipeline 处理。

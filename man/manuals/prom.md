@@ -165,6 +165,6 @@ Total measurements: 3 (prom_node, prom_go, prom_promhttp)
 
 - Line Protocol Points： 产生的行协议点
 - Summary： 汇总结果
-  - Total time series: 时间线数量
-  - Total line protocol points: 行协议点数
-  - Total measurements: 指标集个数及其名称。
+    - Total time series: 时间线数量
+    - Total line protocol points: 行协议点数
+    - Total measurements: 指标集个数及其名称。

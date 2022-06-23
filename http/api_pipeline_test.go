@@ -384,7 +384,7 @@ func HttpErr(err error) (int, string, []byte) {
 
 // go test -v -timeout 30s -run ^TestCheckRequest$ gitlab.jiagouyun.com/cloudcare-tools/datakit/http
 func TestCheckRequest(t *testing.T) {
-	var categories = []string{
+	categories := []string{
 		datakit.CategoryMetric,
 		datakit.CategoryNetwork,
 		datakit.CategoryKeyEvent,

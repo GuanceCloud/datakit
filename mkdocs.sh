@@ -29,7 +29,7 @@ else # if under windows(amd64):
   datakit=datakit # windows 下应该设置了对应的 $PATH
 fi
 
-#make || exit -1
+make || exit -1
 
 # datakit 文档导出
 echo 'export to datakit docs...'
@@ -88,6 +88,7 @@ extra_files=(
 	man/manuals/rum-ios.md
 	man/manuals/rum-miniapp.md
 	man/manuals/rum-web-h5.md
+	man/manuals/profiling.md
 )
 
 # 俩文档库里面的内容保持一致，此处就不各自分了

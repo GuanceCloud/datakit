@@ -33,8 +33,8 @@ namespace = "dk-namespace-example"
 - 观测云中心会判断当前选上的 DataKit 是否正常，如果异常，则强行踢掉该 DataKit，其它待命状态的 DataKit 将替代它
 - 未开启选举的 DataKit，如果也配置了 Kubernetes 采集，不受选举约束，故不应出现这种情况，否则会出现 Kubernetes 被多次采集，一来造成数据浪费，二来也给 Kubernetes 造成无意义的 IO 开销
 - 选举的范围是 `工作空间+命名空间` 级别的，单个 `工作空间+命名空间` 中，一次最多只能有一个 DataKit 被选上
-	- 关于工作空间，在 datakit.conf 中，通过 DataWay 地址串中的 `token` URL 参数来表示，每个工作空间，都有其对应 token
-	- 关于命名空间，在 datakit.conf 中，通过 `namespace` 配置项来表示，命名空间是工作空间的下层，一个工作空间可以配置多个命名空间
+    - 关于工作空间，在 datakit.conf 中，通过 DataWay 地址串中的 `token` URL 参数来表示，每个工作空间，都有其对应 token
+    - 关于命名空间，在 datakit.conf 中，通过 `namespace` 配置项来表示，命名空间是工作空间的下层，一个工作空间可以配置多个命名空间
 
 ## 支持选举的采集列表
 

@@ -72,11 +72,9 @@ type Input struct { // keep compatible with old version's conf
 	DatacenterDeprecated string `toml:"datacenter,omitempty"`
 }
 
-var (
-	_ inputs.InputV2 = (*Input)(nil)
-)
+var _ inputs.InputV2 = (*Input)(nil)
 
-func (i *Input) Terminate() {
+func (*Input) Terminate() {
 	// do nothing
 }
 

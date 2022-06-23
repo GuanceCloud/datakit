@@ -30,8 +30,8 @@ import (
 )
 
 var ( // type assertions
-	_  inputs.ReadEnv = (*Input)(nil)
-	__ inputs.InputV2 = (*Input)(nil)
+	_ inputs.ReadEnv = (*Input)(nil)
+	_ inputs.InputV2 = (*Input)(nil)
 )
 
 var (
@@ -125,12 +125,12 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) Terminate() {
+func (d *Input) Terminate() {
 	select {
-	case <-i.chexit:
+	case <-d.chexit:
 		return
 	default:
-		close(i.chexit)
+		close(d.chexit)
 	}
 }
 

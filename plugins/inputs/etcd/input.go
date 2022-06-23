@@ -75,9 +75,7 @@ const (
 `
 )
 
-var (
-	_ inputs.InputV2 = (*Input)(nil)
-)
+var _ inputs.InputV2 = (*Input)(nil)
 
 type Input struct{}
 

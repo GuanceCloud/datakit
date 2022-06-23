@@ -95,11 +95,7 @@ func (*Input) RunPipeline() { /*nil*/ }
 func (*Input) AvailableArchs() []string { return []string{datakit.OSLinux} }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	res := []inputs.Measurement{}
-	for _, mea := range measurements {
-		res = append(res, mea)
-	}
-	return res
+	return measurements
 }
 
 func (i *Input) Run() {

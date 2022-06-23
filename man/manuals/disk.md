@@ -28,8 +28,8 @@ disk 采集器用于主机磁盘信息采集，如磁盘存储空间、inodes �
 | `ENV_INPUT_DISK_IGNORE_FS`            | `ignore_fs`            | `tmpfs,devtmpfs,devfs,iso9660,overlay,aufs,squashfs` 以英文逗号隔开                      |
 | `ENV_INPUT_DISK_TAGS`                 | `tags`                 | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它                             |
 | `ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE` | `only_physical_device` | 忽略非物理磁盘（如网盘、NFS 等，只采集本机硬盘/CD ROM/USB 磁盘等）任意给一个字符串值即可 |
-| `ENV_INPUT_DISK_INTERVAL` | `interval` | `10s` |
-| `ENV_INPUT_DISK_MOUNT_POINTS` | `mount_points` | `/, /path/to/point1, /path/to/point2` 以英文逗号隔开 |
+| `ENV_INPUT_DISK_INTERVAL`             | `interval`             | `10s`                                                                                    |
+| `ENV_INPUT_DISK_MOUNT_POINTS`         | `mount_points`         | `/, /path/to/point1, /path/to/point2` 以英文逗号隔开                                     |
 
 ## 指标集
 

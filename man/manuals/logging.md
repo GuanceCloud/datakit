@@ -91,7 +91,7 @@
  </Socket>
 ```
 
-更多: Java Go Python 主流日志组件的配置及代码示例 请参阅：[socket client 配置](logging_socket)
+更多: Java Go Python 主流日志组件的配置及代码示例，请参阅：[socket client 配置](logging_socket.md)
 
 ### 多行日志采集
 
@@ -188,7 +188,7 @@ Traceback (most recent call last):
 
 ### Pipeline 配置和使用
 
-[Pipeline](pipeline) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
+[Pipeline](pipeline.md) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
 
 对日志数据而言，主要提取两个字段：
 
@@ -210,7 +210,7 @@ Traceback (most recent call last):
 | `debug/trace/verbose` | `d`     | `debug`       |
 | `OK`                  | `o`/`s` | `OK`          |
 
-> 注：如果日志等级（status）不属于上述任何一种（含简写），那么 DataKit 会将其 status 字段置为 `unknown`。该功能在 [1.2.15](changelog#b6b4b295) 版本发布。
+> 注：如果日志等级（status）不属于上述任何一种（含简写），那么 DataKit 会将其 status 字段置为 `unknown`。
 
 示例：假定文本数据如下：
 
@@ -372,7 +372,7 @@ bytes * 2 * 8 /1024/1024 = xxx MBit
 1GB * 2 * 8 * 0.15/1024/1024 = xxx MBit
 ```
 
-> 此处 `*2` 考虑到了 [Pipeline 切割](pipeline)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
+> 此处 `*2` 考虑到了 [Pipeline 切割](pipeline.md)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
 
 ## 延伸阅读
 
@@ -381,5 +381,5 @@ bytes * 2 * 8 /1024/1024 = xxx MBit
 - [Pipeline 调试](datakit-pl-how-to.md)
 - [Pipeline 性能测试和对比](logging-pipeline-bench.md)
 - [容器采日志采集](container#config)
-  - [通过 Sidecar(logfwd) 采集容器内部日志](logfwd.md)
+- [通过 Sidecar(logfwd) 采集容器内部日志](logfwd.md)
 - [正确使用正则表达式来配置](datakit-input-conf#debug-regex) 

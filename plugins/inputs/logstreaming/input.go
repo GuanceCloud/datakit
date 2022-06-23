@@ -45,7 +45,7 @@ type Input struct {
 }
 
 func (*Input) Catalog() string { return "log" }
-func (*Input) Terminate()      { return /* do nothing */ }
+func (*Input) Terminate()      {}
 
 func (*Input) SampleConfig() string { return sampleCfg }
 
