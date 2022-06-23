@@ -88,7 +88,6 @@ extra_files=(
 	man/manuals/rum-ios.md
 	man/manuals/rum-miniapp.md
 	man/manuals/rum-web-h5.md
-	man/manuals/profiling.md
 )
 
 # 俩文档库里面的内容保持一致，此处就不各自分了

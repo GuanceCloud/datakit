@@ -37,7 +37,7 @@ nav:
 
     - 'DDTrace':
       - 'DDtrace 采集配置': ddtrace.md
-      - profiling.md
+      - profile.md
       - ddtrace-golang.md
       - ddtrace-java.md
       - ddtrace-python.md
