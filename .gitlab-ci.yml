@@ -11,7 +11,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.4.2"
+  CI_VERSION: "1.4.3"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -108,8 +108,6 @@ release-stable:
     - master
   script:
     - make clean
-    - make lint
-    - make all_test
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" # update the version on each release
     - make check_production_conf_compatible
     - make pub_conf_samples

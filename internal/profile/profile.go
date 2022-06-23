@@ -1,4 +1,9 @@
-// nolint:stylecheck
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+// Package profile defines profile related functions
 package profile
 
 import (
@@ -92,6 +97,7 @@ type PythonFrame struct {
 	*Frame
 }
 
+//nolint:stylecheck
 type Profile struct {
 	ProfileId   string                `json:"profile_id"`   // 使用google uuid作为profile唯一id
 	Endpoint    string                `json:"endpoint"`     // from where eg: /profiling/v1/input
@@ -129,6 +135,7 @@ type TraceFunc struct {
 	Line int    `json:"line"` // 所在源文件行号
 }
 
+//nolint:stylecheck
 type SpanProfileMap struct {
 	SpanId    string
 	ProfileId string
@@ -137,6 +144,7 @@ type SpanProfileMap struct {
 	RuntimeId string
 }
 
+//nolint:stylecheck
 // Sample 代表profile中的某个样本详情.
 type Sample struct {
 	Values        []SampleValue     `json:"values"`         // 采样到的一些数值，比如占用cpu时间，内存使用大小

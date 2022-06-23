@@ -26,9 +26,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-var (
-	statusList = []string{"info", "critical", "error", "warning", "info"}
-)
+var statusList = []string{"info", "critical", "error", "warning", "info"}
 
 func (*Input) SampleConfig() string {
 	return sample

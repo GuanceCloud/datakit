@@ -396,7 +396,7 @@ func (s *Sender) flushCache() {
 func (s *Sender) Stop() error {
 	select {
 	case <-s.stopCh:
-		//nil
+
 	default:
 		close(s.stopCh)
 	}

@@ -89,9 +89,7 @@ tls_open = false
 
 type Input struct{}
 
-var (
-	_ inputs.InputV2 = (*Input)(nil)
-)
+var _ inputs.InputV2 = (*Input)(nil)
 
 func (i *Input) Terminate() {
 	// do nothing

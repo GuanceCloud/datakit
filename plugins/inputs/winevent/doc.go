@@ -9,14 +9,14 @@
 // This file used to build documents.
 package winevent
 
+// this file used to build documents.
+
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	_ inputs.InputV2 = (*Input)(nil)
-)
+var _ inputs.InputV2 = (*Input)(nil)
 
 type EvtHandle uintptr
 
@@ -37,7 +37,7 @@ func (*Input) RunPipeline() {
 	// TODO.
 }
 
-func (ipt *Input) Terminate() {
+func (*Input) Terminate() {
 	// Do nothing
 }
 
@@ -45,13 +45,13 @@ func (*Input) AvailableArchs() []string {
 	return []string{datakit.OSWindows}
 }
 
-func (w *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&Measurement{},
 	}
 }
 
-func (w *Input) Run() {}
+func (*Input) Run() {}
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {

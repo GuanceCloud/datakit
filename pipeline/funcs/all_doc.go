@@ -53,7 +53,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"xml()":                &xmlMarkdown,
 }
 
-// embed docs
+// embed docs.
 var (
 	//go:embed md/add_pattern.md
 	docAddPattern string
@@ -62,7 +62,7 @@ var (
 	docGrok string
 
 	//go:embed md/json.md
-	docJson string
+	docJSON string
 
 	//go:embed md/rename.md
 	docRename string
@@ -150,6 +150,9 @@ var (
 
 	//go:embed md/xml.md
 	docXML string
+
+	//go:embed md/use.md
+	docUse string
 )
 
 var (
@@ -171,7 +174,7 @@ var (
 	grokMarkdown              = PLDoc{Doc: docGrok, Deprecated: false}
 	groupBetweenMarkdown      = PLDoc{Doc: docGroupBetreen, Deprecated: false}
 	groupInMarkdown           = PLDoc{Doc: docGroupIn, Deprecated: false}
-	jsonMarkdown              = PLDoc{Doc: docJson, Deprecated: false}
+	jsonMarkdown              = PLDoc{Doc: docJSON, Deprecated: false}
 	lowercaseMarkdown         = PLDoc{Doc: docLowercase, Deprecated: false}
 	nullIfMarkdown            = PLDoc{Doc: docNullif, Deprecated: false}
 	parseDateMarkdown         = PLDoc{Doc: docParseDate, Deprecated: false}
@@ -184,5 +187,6 @@ var (
 	strfmtMarkdown            = PLDoc{Doc: docStrfmt, Deprecated: false}
 	uppercaseMarkdown         = PLDoc{Doc: docUppercase, Deprecated: false}
 	userAgentMarkdown         = PLDoc{Doc: docUserAgent, Deprecated: false}
+	useMarkdown               = PLDoc{Doc: docUse, Deprecated: false}
 	xmlMarkdown               = PLDoc{Doc: docXML, Deprecated: false}
 )

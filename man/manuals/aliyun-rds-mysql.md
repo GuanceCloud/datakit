@@ -1,4 +1,3 @@
-
 # RDS MySQL
 ---
 
