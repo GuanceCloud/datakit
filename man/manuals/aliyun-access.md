@@ -13,7 +13,7 @@
 - **更安全**：数据不经过公网，完全在阿里云私网内流转，数据更安全
 - **更低资费**：相比公网带宽的高费用，虚拟互联网的资费成本更低
 
-目前已上架的服务为 **cn-hangzhou、cn-beijing **两个地域，其他地域的也即将上架，架构如下：
+目前已上架的服务为 **cn-hangzhou、cn-beijing**两个地域，其他地域的也即将上架，架构如下：
 
 ![](imgs/aliyun_1.png)
 
@@ -22,8 +22,8 @@
 ### 服务部署链接
 
 1. **cn-hangzhou** 地域部署链接：[观测云数据网关虚拟私网-杭州](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-68c8fee7f0554d6b9baa&ServiceVersion=1){:target="_blank"}
-2. **cn-beijing **地域部署链接：[观测云数据网关虚拟私网-北京](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-af3b4511d9214c9ebaba&ServiceVersion=1){:target="_blank"}
-2. 其他地域的虚拟互联网服务即将上线。
+1. **cn-beijing** 地域部署链接：[观测云数据网关虚拟私网-北京](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-af3b4511d9214c9ebaba&ServiceVersion=1){:target="_blank"}
+1. 其他地域的虚拟互联网服务即将上线。
 
 **注：cn-hangzhou 之外 Region 需要接入私网的用户，可以联系我们开通白名单。**
 
@@ -35,7 +35,7 @@
 | cn-beijing | https://beijing-openway.guance.com |
 
 ### 配置服务订阅
-使用您的阿里云账号登录，打开以上的 **服务部署链接，**来订阅我们的虚拟互联网服务，以 cn-hangzhou 为例：
+使用您的阿里云账号登录，打开以上的 **服务部署链接**来订阅我们的虚拟互联网服务，以 cn-hangzhou 为例：
 
 ![](imgs/aliyun_2.png)
 
@@ -56,7 +56,7 @@
 ### 资费情况
 
 资费情况主要看阿里云的私网连接 PrivateLink，以及云解析 PrivateZone 两个服务的费用，参考阿里云官网的 [私网连接 PrivateLink 计费说明](https://help.aliyun.com/document_detail/198081.html){:target="_blank"}，以及 [云解析 PrivateZone 计费说明](https://help.aliyun.com/document_detail/71338.html){:target="_blank"}。
-另外 **杭州 **之外的接入用户，还会收取一定的跨区网络流量费，相比公网流量会有不少的成本优势。
+另外 **杭州**之外的接入用户，还会收取一定的跨区网络流量费，相比公网流量会有不少的成本优势。
 
 ## 如何使用
 
