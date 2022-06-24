@@ -9,7 +9,7 @@ Cloudprober 是一个开源的跟踪和监控应用程序。DataKit 通过简单
 
 ## Cloudprober 安装
 
-以 Ubuntu `cloudprober-v0.11.2` 为例，下载如下，其他版本或系统参见[下载页面](https://github.com/google/cloudprober/releases)：
+以 Ubuntu `cloudprober-v0.11.2` 为例，下载如下，其他版本或系统参见[下载页面](https://github.com/google/cloudprober/releases){:target="_blank"}：
 
 ```shell
 curl -O https://github.com/google/cloudprober/releases/download/v0.11.2/cloudprober-v0.11.2-ubuntu-x86_64.zip

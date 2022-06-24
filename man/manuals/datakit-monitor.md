@@ -47,7 +47,7 @@ DataKit 基本 Monitor 页面信息如下图所示：
 	- `GC Paused`：自 DataKit 启动以来，GC（垃圾回收）所消耗的时间
 	- `GC Count`：自 DataKit 启动以来，GC 次数
 
-> 关于这里的 Runtime Info，参见 [Golang 官方文档](https://pkg.go.dev/runtime#ReadMemStats)
+> 关于这里的 Runtime Info，参见 [Golang 官方文档](https://pkg.go.dev/runtime#ReadMemStats){:target="_blank"}
 
 - `Enabled Inputs` 展示开启的采集器列表，其中
 
@@ -136,7 +136,7 @@ datakit monitor --refresh 1s
 
 > 注意，这里的单位需注意，必须是如下几种：s（秒）/m（分钟）/h（小时），如果时间范围小于 1s，则按照 1s 来刷新。
 
-### 如何 Monitor 其它 DataKit？
+### 如何 Monitor 其它 DataKit？ {#remote-monitor}
 
 有时候，安装的 DataKit 并不是使用默认的 9529 端口，这时候就会出现类似如下的错误：
 

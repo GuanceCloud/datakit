@@ -3,9 +3,9 @@
 
 DQL 是观测云统一的查询语言，为便于大家学习这种语言，下面我们选取几种不同的查询语言来与之对比，以便大家能较为快速的理解和运用 DQL。
 
-这里我们暂时选择 [PromQL](https://prometheus.io/docs/prometheus/latest/querying/basics/) 和 [LogQL](https://grafana.com/docs/loki/latest/logql/) 俩种语言。大家较为熟知的 SQL 语句因为其形式、功能等与 DQL 大相庭径，此处暂略。
+这里我们暂时选择 [PromQL](https://prometheus.io/docs/prometheus/latest/querying/basics/){:target="_blank"} 和 [LogQL](https://grafana.com/docs/loki/latest/logql/){:target="_blank"} 俩种语言。大家较为熟知的 SQL 语句因为其形式、功能等与 DQL 大相庭径，此处暂略。
 
-PromQL 是 [Prometheuse](https://prometheus.io/) 中用于查询其时序数据的一种查询语言；LogQL 是用于 [Grafana Loki](https://grafana.com/oss/loki/) 的一种日志查询语言，它跟 DQL 一样，借鉴了 PromQL 的语法结构。总体上，这三种语言的结构类似，但细微处各有不同。下文将从如下几个方面加以阐述：
+PromQL 是 [Prometheuse](https://prometheus.io/){:target="_blank"} 中用于查询其时序数据的一种查询语言；LogQL 是用于 [Grafana Loki](https://grafana.com/oss/loki/){:target="_blank"} 的一种日志查询语言，它跟 DQL 一样，借鉴了 PromQL 的语法结构。总体上，这三种语言的结构类似，但细微处各有不同。下文将从如下几个方面加以阐述：
 
 - 基本语法结构的差异
 - 支持的常用预定义函数
@@ -87,15 +87,15 @@ T::my_service { duration > 1000 } [10m] BY operation
 
 | 查询语言  | 主要领域                | 支持时序查询       | 支持日志查询 | 是否支持 HTTP API                                                  | 是否支持 Pipeline 切割              | 支持时间范围查找 | 支持 group by 聚合 |
 | --------- | -------                 | ---                | -----        | ---------                                                          | ----                                | -----            | ---                |
-| PromQL    | Prometheuse 指标查询    | 支持               | 不支持       | [支持](https://prometheus.io/docs/prometheus/latest/querying/api/) | 不支持                              | 支持             | [支持](https://prometheus.io/docs/prometheus/latest/querying/operators/#aggregation-operators)               |
-| LogQL     | 主要用于查询日志        | 支持从日志生成指标 | 支持         | [支持](https://grafana.com/docs/loki/latest/api/)                  | 支持                                | 支持             | [支持](https://grafana.com/docs/loki/latest/logql/#aggregation-operators)               |
-| DQL       | DataFlux 全平台数据查询 | 支持               | 支持         | [支持](https://www.yuque.com/dataflux/datakit/apis#6c639732)       | 不支持（在 DataKit 端已预先切割好） | 支持             | 支持               |
+| PromQL    | Prometheuse 指标查询    | 支持               | 不支持       | [支持](https://prometheus.io/docs/prometheus/latest/querying/api/){:target="_blank"} | 不支持                              | 支持             | [支持](https://prometheus.io/docs/prometheus/latest/querying/operators/#aggregation-operators){:target="_blank"}               |
+| LogQL     | 主要用于查询日志        | 支持从日志生成指标 | 支持         | [支持](https://grafana.com/docs/loki/latest/api/){:target="_blank"}                  | 支持                                | 支持             | [支持](https://grafana.com/docs/loki/latest/logql/#aggregation-operators){:target="_blank"}               |
+| DQL       | DataFlux 全平台数据查询 | 支持               | 支持         | [支持](../datakit/apis.md#api-raw-query){:target="_blank"}       | 不支持（在 DataKit 端已预先切割好） | 支持             | 支持               |
 
 ### 数据处理函数支持情况
 
-- [PromQL 支持的函数列表](https://prometheus.io/docs/prometheus/latest/querying/functions/#functions)
-- [LogQL 支持的函数列表]((https://grafana.com/docs/loki/latest/logql/#metric-queries))
-- [DQL 支持的函数列表](https://www.yuque.com/dataflux/doc/ziezwr)
+- [PromQL 支持的函数列表](https://prometheus.io/docs/prometheus/latest/querying/functions/#functions){:target="_blank"}
+- [LogQL 支持的函数列表](https://grafana.com/docs/loki/latest/logql/#metric-queries){:target="_blank"}
+- [DQL 支持的函数列表](../dql/funcs.md){:target="_blank"}
 
 ## 常见查询语句写法对比
 

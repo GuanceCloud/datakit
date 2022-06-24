@@ -16,7 +16,7 @@
 
 ## ConfigMap 管理配置
 
-Datakit 部分采集器的开启，可以通过 [ConfigMap](https://kubernetes.io/zh/docs/concepts/configuration/configmap/) 来注入。ConfigMap 注入灵活，但不易管理。
+Datakit 部分采集器的开启，可以通过 [ConfigMap](https://kubernetes.io/zh/docs/concepts/configuration/configmap/){:target="_blank"} 来注入。ConfigMap 注入灵活，但不易管理。
 
 ConfigMap 注入，可以分为以下几种：
 
@@ -231,7 +231,7 @@ $ helm install datakit datakit/datakit -n datakit \
 
 ### yaml 启用 Git 管理配置
 
-yaml 配置复杂，建议使用 [Helm 部署](#helm-install)。先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml)
+yaml 配置复杂，建议使用 [Helm 部署](#helm-install.md)。先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml){:target="_blank"}
 
 #### 使用密码管理 Git
 

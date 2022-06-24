@@ -6,9 +6,25 @@
 package funcs
 
 import (
+	"fmt"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
 func NewTestingRunner(script string) (*parser.Engine, error) {
-	return parser.NewEngine(script, FuncsMap, FuncsCheckMap, false)
+	name := "default.p"
+	ret1, ret2 := parser.NewEngine(map[string]string{
+		"default.p": script,
+	}, nil, FuncsMap, FuncsCheckMap)
+	if len(ret1) == 1 {
+		return ret1[name], nil
+	}
+	if len(ret2) == 2 {
+		return nil, ret2[name]
+	}
+	return nil, fmt.Errorf("parser func error")
+}
+
+func NewTestingRunner2(scripts map[string]string) (map[string]*parser.Engine, map[string]error) {
+	return parser.NewEngine(scripts, nil, FuncsMap, FuncsCheckMap)
 }

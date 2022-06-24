@@ -17,10 +17,6 @@ import (
 )
 
 func TestScriptLoadFunc(t *testing.T) {
-	if _, err := os.Stat(filepath.Join(datakit.InstallDir, "pipeline")); err != nil {
-		t.Error(err)
-		return
-	}
 	case1 := map[string]map[string]string{
 		datakit.Logging: {
 			"abcd": "if true {}",
@@ -35,7 +31,7 @@ func TestScriptLoadFunc(t *testing.T) {
 	CleanAllScript(GitRepoScriptNS)
 	CleanAllScript(RemoteScriptNS)
 
-	LoadAllScript(DefaultScriptNS, case1)
+	LoadAllScript(DefaultScriptNS, case1, nil)
 	for category, v := range case1 {
 		for name := range v {
 			if y, ok := QueryScript(category, name); !ok {
@@ -51,7 +47,7 @@ func TestScriptLoadFunc(t *testing.T) {
 	CleanAllScript(GitRepoScriptNS)
 	CleanAllScript(RemoteScriptNS)
 	for k, v := range case1 {
-		LoadScript(k, DefaultScriptNS, v)
+		LoadScript(k, DefaultScriptNS, v, nil)
 	}
 	for category, v := range case1 {
 		for name := range v {
@@ -77,7 +73,7 @@ func TestScriptLoadFunc(t *testing.T) {
 	CleanAllScript(RemoteScriptNS)
 
 	for k, v := range case1 {
-		LoadScript(k, "DefaultScriptNS", v)
+		LoadScript(k, "DefaultScriptNS", v, nil)
 		ReloadAllRemoteDotPScript2StoreFromMap(k, v)
 	}
 	for category, v := range case1 {
@@ -93,7 +89,7 @@ func TestScriptLoadFunc(t *testing.T) {
 	CleanAllScript(RemoteScriptNS)
 
 	for k, v := range case1 {
-		LoadScript(k, "aabb", v)
+		LoadScript(k, "aabb", v, nil)
 	}
 	CleanAllScript("aabb")
 
@@ -150,38 +146,38 @@ func TestPlScriptStore(t *testing.T) {
 
 	store.indexUpdate(nil)
 
-	err := store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time) set_tag(a, \"1\")"})
+	err := store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time) set_tag(a, \"1\")"}, nil)
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time)"})
+	err = store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time)"}, nil)
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time) set_tag(a, 1)"})
+	err = store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time) set_tag(a, 1)"}, nil)
+	if err == nil {
+		t.Error("should not be nil")
+	}
+
+	err = store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time)"}, nil)
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time)"})
+	err = store.UpdateScriptsWithNS(GitRepoScriptNS, map[string]string{"abc.p": "default_time(time)"}, nil)
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = store.UpdateScriptsWithNS(GitRepoScriptNS, map[string]string{"abc.p": "default_time(time)"})
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = store.UpdateScriptsWithNS(RemoteScriptNS, map[string]string{"abc.p": "default_time(time)"})
+	err = store.UpdateScriptsWithNS(RemoteScriptNS, map[string]string{"abc.p": "default_time(time)"}, nil)
 	if err != nil {
 		t.Error(err)
 	}
 
 	for i, ns := range plScriptNSSearchOrder {
-		store.UpdateScriptsWithNS(ns, nil)
+		store.UpdateScriptsWithNS(ns, nil, nil)
 		if i < len(plScriptNSSearchOrder)-1 {
 			sInfo, ok := store.Get("abc.p")
 			if !ok {

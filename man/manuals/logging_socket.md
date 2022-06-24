@@ -3,9 +3,9 @@
 
 本篇主要介绍 Java Go Python 日志框架 如何配置 socket 输出到 datakit socket 日志采集器中。
 
-> 文件采集和socket是互斥开启socket之前 请先关闭文件采集 请先配置好 `logging.conf` [具体配置说明](logging)  
+> 文件采集和socket是互斥开启socket之前 请先关闭文件采集 请先配置好 `logging.conf` [具体配置说明](logging.md)  
 
-## Java
+## Java {#java}
 
 在配置log4j的时候需要注意，log4j v1，默认是使用*.properties文件进行配置；而目前log4j v2使用*.xml文件进行配置。
 
@@ -114,11 +114,11 @@ log4j.appender.server.ReconnectionDelay=10000
 
 ### logback
 
-logback 中的`SocketAppender` 无法将纯文本发送到 socket上  [官方文档说明](https://logback.qos.ch/manual/appenders.html#SocketAppender)
+logback 中的`SocketAppender` 无法将纯文本发送到 socket上  [官方文档说明](https://logback.qos.ch/manual/appenders.html#SocketAppender){:target="_blank"}
 
 > 问题是 SocketAppender发送序列化Java对象而不是纯文本。您可以使用log4j输入，但我并不建议更换日志组件，而是重写一个将日志数据发送为纯文本的Appender，并且您将其与JSON格式化一起使用。
 
-datakit 同时支持从文件中采集日志 [从文本中采集日志](logging) ,可作为socket采集不可用时的最佳方案。 
+datakit 同时支持从文件中采集日志 [从文本中采集日志](logging.md) ,可作为socket采集不可用时的最佳方案。 
 
 ## Golang
 
@@ -170,7 +170,7 @@ func zapcal() {
 
 ```
 
-## Python 
+## Python  {#python}
 
 ### logging.handlers.SocketHandler
 

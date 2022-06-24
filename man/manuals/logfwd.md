@@ -13,7 +13,7 @@
 
 ### DataKit 配置
 
-需要开启 logfwdserver，详见[文档](logfwdserver)。以下是抄录。
+需要开启 logfwdserver，详见[文档](logfwdserver.md)。以下是抄录。
 
 进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
 
@@ -29,9 +29,9 @@
 
 配置好后，重启 DataKit 即可。
 
-> 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](datakit-daemonset-deploy)。
+> 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](datakit-daemonset-deploy.md)。
 
-### logfwd 使用和配置
+### logfwd 使用和配置 {#config}
 
 logfwd 主配置是 JSON 格式，以下是配置示例：
 
@@ -64,14 +64,14 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
 
 - `datakit_addr` 是 DataKit logfwdserver 地址，通常使用环境变量 `LOGFWD_DATAKIT_HOST` 和 `LOGFWD_DATAKIT_PORT` 进行配置
 
-- `loggings` 为主要配置，是一个数组，子项也基本和 [logging](logging) 采集器相同。
+- `loggings` 为主要配置，是一个数组，子项也基本和 [logging](logging.md) 采集器相同。
     - `logfiles` 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定，推荐使用绝对路径
     - `ignore` 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
     - `source` 数据来源，如果为空，则默认使用 'default'
     - `service` 新增标记 tag，如果为空，则默认使用 $source
     - `pipeline` pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline（此脚本文件存在于 DataKit 端）
     - `character_encoding` # 选择编码，如果编码有误会导致数据无法查看，默认为空即可。支持`utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
-    - `multiline_match` 多行匹配，与 [logging](logging) 该项配置一样，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
+    - `multiline_match` 多行匹配，与 [logging](logging.md) 该项配置一样，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
     - `remove_ansi_escape_codes` 是否删除 ANSI 转义码，例如标准输出的文本颜色等，值为 `true` 或 `false`
     - `tags` 添加额外 `tag`，书写格式是 JSON map，例如 `{ "key1":"value1", "key2":"value2" }`
 
@@ -148,7 +148,7 @@ data:
 
 将两份配置集成到现有的 Kubernetes yaml 中，并使用 `volumes` 和 `volumeMounts` 将目录在 containers 内部共享，即可实现 logfwd 容器采集其他容器的日志文件。
 
-> 注意，需要使用 `volumes` 和 `volumeMounts` 将应用容器（即示例中的 `count` 容器）的日志目录挂载和共享，以便在 logfwd 容器中能够正常访问到。`volumes` 官方说明[文档](https://kubernetes.io/docs/concepts/storage/volumes/)
+> 注意，需要使用 `volumes` 和 `volumeMounts` 将应用容器（即示例中的 `count` 容器）的日志目录挂载和共享，以便在 logfwd 容器中能够正常访问到。`volumes` 官方说明[文档](https://kubernetes.io/docs/concepts/storage/volumes/){:target="_blank"}
 
 完整示例如下：
 
@@ -278,11 +278,11 @@ MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
 
 ## 延伸阅读
 
-- [DataKit 日志采集综述](datakit-logging)
-- [Socket 日志接入最佳实践](logging_socket)
-- [Kubernetes 中指定 Pod 的日志采集配置](container#2a6149d7)
-- [第三方日志接入](logstreaming)
-- [Kubernetes 环境下 DataKit 配置方式介绍](k8s-config-how-to)
-- [以 DaemonSet 形式安装 DataKit](datakit-daemonset-deploy)
-- [在 DataKit 上部署 `logfwdserver`](logfwdserver)
-- [正确使用正则表达式来配置](datakit-input-conf#9da8bc26) 
+- [DataKit 日志采集综述](datakit-logging.md)
+- [Socket 日志接入最佳实践](logging_socket.md)
+- [Kubernetes 中指定 Pod 的日志采集配置](container.md#logging-with-annotation-or-label)
+- [第三方日志接入](logstreaming.md)
+- [Kubernetes 环境下 DataKit 配置方式介绍](k8s-config-how-to.md)
+- [以 DaemonSet 形式安装 DataKit](datakit-daemonset-deploy.md)
+- [在 DataKit 上部署 `logfwdserver`](logfwdserver.md)
+- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex) 

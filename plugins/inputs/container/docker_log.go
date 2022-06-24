@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -36,81 +35,54 @@ func (d *dockerInput) cancelTails() {
 	}
 }
 
-func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types.Container) error {
-	tags := getContainerInfo(container, d.k8sClient)
-
-	source := getContainerLogSource(tags["image_short_name"])
-	if n := getContainerNameForLabels(container.Labels); n != "" {
-		source = n
-	}
-
-	// add extra tags
-	for k, v := range d.cfg.extraTags {
-		if _, ok := tags[k]; !ok {
-			tags[k] = v
-		}
-	}
-
-	logconf := func() *containerLogConfig {
-		if datakit.Docker && tags["pod_name"] != "" {
-			return getContainerLogConfigForK8s(d.k8sClient, tags["pod_name"], tags["namespace"])
-		}
-		return getContainerLogConfigForDocker(container.Labels)
-	}()
-
-	if logconf == nil {
-		logconf = &containerLogConfig{}
-	}
-	if logconf.Source == "" {
-		logconf.Source = source
-	}
-	if logconf.Service == "" {
-		logconf.Service = logconf.Source
-	}
-
-	logconf.tags = tags
-	logconf.containerID = container.ID
-
-	l.Debugf("use container logconfig:%#v, containerName:%s", logconf, tags["container_name"])
-
+func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container) error {
 	inspect, err := d.client.ContainerInspect(ctx, container.ID)
 	if err != nil {
 		return err
 	}
-	logconf.logpath = inspect.LogPath
-	logconf.created = inspect.Created
 
-	return d.tailContainerLog(logconf)
-}
-
-func (d *dockerInput) tailContainerLog(logconf *containerLogConfig) error {
-	opt := &tailer.Option{
-		Source:         logconf.Source,
-		Service:        logconf.Service,
-		Pipeline:       logconf.Pipeline,
-		MultilineMatch: logconf.Multiline,
-		GlobalTags:     logconf.tags,
-		DockerMode:     true,
-	}
-	if !checkContainerIsOlder(logconf.created, time.Minute) {
-		opt.FromBeginning = true
+	info := &containerLogBasisInfo{
+		name:    getContainerName(container.Names),
+		id:      container.ID,
+		logPath: inspect.LogPath,
+		labels:  container.Labels,
+		image:   container.Image,
+		tags:    make(map[string]string),
+		created: inspect.Created,
 	}
 
-	l.Debugf("use container logconfig:%#v, containerID: %s, source: %s, logpath: %s", logconf, logconf.containerID, opt.Source, logconf.logpath)
+	if containerIsFromKubernetes(getContainerName(container.Names)) {
+		info.tags["container_type"] = "kubernetes"
+	} else {
+		info.tags["container_type"] = "docker"
+	}
 
-	_ = opt.Init()
+	// add extra tags
+	for k, v := range d.cfg.extraTags {
+		if _, ok := info.tags[k]; !ok {
+			info.tags[k] = v
+		}
+	}
 
-	t, err := tailer.NewTailerSingle(logconf.logpath, opt)
+	opt := composeTailerOption(d.k8sClient, info)
+	opt.DockerMode = true
+
+	t, err := tailer.NewTailerSingle(info.logPath, opt)
 	if err != nil {
-		l.Errorf("failed to new containerd log, containerID: %s, source: %s, logpath: %s", logconf.containerID, opt.Source, logconf.logpath)
+		l.Warnf("failed to new docker log, containerID: %s, source: %s, logpath: %s, err: %s", container.ID, opt.Source, info.logPath, err)
 		return err
 	}
 
-	d.addToContainerList(logconf.containerID, t.Close)
+	d.addToContainerList(container.ID, t.Close)
+	l.Infof("add docker log, containerId: %s, source: %s, logpath: %s", container.ID, opt.Source, info.logPath)
 
-	l.Infof("add containerd log, containerID: %s, source: %s, logpath: %s", logconf.containerID, opt.Source, logconf.logpath)
+	defer func() {
+		d.removeFromContainerList(container.ID)
+		l.Debugf("remove docker log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
+	}()
 
 	t.Run()
+
 	return nil
 }
 
@@ -121,23 +93,20 @@ type containerLogConfig struct {
 	Service    string   `json:"service"`
 	Multiline  string   `json:"multiline_match"`
 	OnlyImages []string `json:"only_images"`
-
-	containerID string
-	created     string
-	logpath     string
-	tags        map[string]string
 }
 
 const containerLogConfigKey = "datakit/logs"
 
 func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
-	configStr := m[containerLogConfigKey]
-	if configStr == "" {
+	if m == nil || m[containerLogConfigKey] == "" {
 		return nil, nil
 	}
+	return parseContainerLogConfig(m[containerLogConfigKey])
+}
 
+func parseContainerLogConfig(cfg string) (*containerLogConfig, error) {
 	var configs []containerLogConfig
-	if err := json.Unmarshal([]byte(configStr), &configs); err != nil {
+	if err := json.Unmarshal([]byte(cfg), &configs); err != nil {
 		return nil, err
 	}
 
@@ -147,30 +116,6 @@ func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
 
 	temp := configs[0]
 	return &temp, nil
-}
-
-func getContainerLogConfigForK8s(k8sClient k8sClientX, podname, podnamespace string) *containerLogConfig {
-	annotations, err := getPodAnnotations(k8sClient, podname, podnamespace)
-	if err != nil {
-		l.Errorf("failed to get pod annotations, %s", err)
-		return nil
-	}
-
-	c, err := getContainerLogConfig(annotations)
-	if err != nil {
-		l.Errorf("failed to get container logConfig: %s", err)
-		return nil
-	}
-	return c
-}
-
-func getContainerLogConfigForDocker(labels map[string]string) *containerLogConfig {
-	c, err := getContainerLogConfig(labels)
-	if err != nil {
-		l.Errorf("failed to get container logConfig: %s", err)
-		return nil
-	}
-	return c
 }
 
 type containerLog struct{}
@@ -200,17 +145,21 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func getContainerLogSource(image string) string {
-	if image != "" {
-		return image
+func useDefaultUnknown(n string) string {
+	if n != "" {
+		return n
 	}
 	return "unknown"
 }
 
 func checkContainerIsOlder(createdTime string, limit time.Duration) bool {
+	// default older
+	if createdTime == "" {
+		return true
+	}
 	t, err := time.Parse(time.RFC3339, createdTime)
 	if err != nil {
-		return false
+		return true
 	}
 	return time.Since(t) > limit
 }

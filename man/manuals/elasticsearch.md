@@ -8,6 +8,7 @@
 ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性能状况、索引性能、检索性能等。
 
 ## 前置条件
+
 - ElasticSearch 版本 >= 6.0.0
 - ElasticSearch 默认采集 `Node Stats` 指标，如果需要采集 `Cluster-Health` 相关指标，需要设置 `cluster_health = true`
 - 设置 `cluster_health = true` 可产生如下指标集
@@ -19,100 +20,103 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 ## 用户权限配置
 
 如果开启账号密码访问，需要配置相应的权限，否则会导致监控信息获取失败错误。目前支持 Elasticsearch , Open Distro for Elasticsearch 和 OpenSearch。
+
 ### Elasticsearch
 
-  - 创建角色`monitor`，设置如下权限
+- 创建角色`monitor`，设置如下权限
 
-  ```javascript
-    {
-      "applications": [],
-      "cluster": [
-          "monitor"
-      ],
-      "global": [],
-      "indices": [
-          {
-              "allow_restricted_indices": false,
-              "names": [
-                  "all"
-              ],
-              "privileges": [
-                  "manage_ilm",
-                  "monitor"
-              ]
-          },
-      ],
-      "run_as": []
-    }
+```javascript
+  {
+    "applications": [],
+    "cluster": [
+        "monitor"
+    ],
+    "global": [],
+    "indices": [
+        {
+            "allow_restricted_indices": false,
+            "names": [
+                "all"
+            ],
+            "privileges": [
+                "manage_ilm",
+                "monitor"
+            ]
+        },
+    ],
+    "run_as": []
+  }
 
-  ```
+```
 
 - 创建自定义用户，并赋予新创建的`monitor`角色。
 - 其他信息请参考配置文件说明
 
 ### Open Distro for Elasticsearch
 
-  - 创建用户
-  - 创建角色 `monitor`, 设置如下权限：
+- 创建用户
+- 创建角色 `monitor`, 设置如下权限：
 
-  ```
-  PUT _opendistro/_security/api/roles/monitor
-  {
-    "description": "monitor es cluster",
-    "cluster_permissions": [
-      "cluster:admin/opendistro/ism/managedindex/explain",
-      "cluster_monitor",
-      "cluster_composite_ops_ro"
-    ],
-    "index_permissions": [
-      {
-        "index_patterns": [
-          "*"
-        ],
-        "fls": [],
-        "masked_fields": [],
-        "allowed_actions": [
-          "read",
-          "indices_monitor"
-        ]
-      }
-    ],
-    "tenant_permissions": []
-  }
-  ```
-  - 设置角色与用户之间的映射关系
+```
+PUT _opendistro/_security/api/roles/monitor
+{
+  "description": "monitor es cluster",
+  "cluster_permissions": [
+    "cluster:admin/opendistro/ism/managedindex/explain",
+    "cluster_monitor",
+    "cluster_composite_ops_ro"
+  ],
+  "index_permissions": [
+    {
+      "index_patterns": [
+        "*"
+      ],
+      "fls": [],
+      "masked_fields": [],
+      "allowed_actions": [
+        "read",
+        "indices_monitor"
+      ]
+    }
+  ],
+  "tenant_permissions": []
+}
+```
+
+- 设置角色与用户之间的映射关系
 
 ### OpenSearch
 
-  - 创建用户
-  - 创建角色 `monitor`, 设置如下权限：
+- 创建用户
+- 创建角色 `monitor`, 设置如下权限：
 
-  ```
-  PUT _plugins/_security/api/roles/monitor
-  {
-    "description": "monitor es cluster",
-    "cluster_permissions": [
-      "cluster:admin/opendistro/ism/managedindex/explain",
-      "cluster_monitor",
-      "cluster_composite_ops_ro"
-    ],
-    "index_permissions": [
-      {
-        "index_patterns": [
-          "*"
-        ],
-        "fls": [],
-        "masked_fields": [],
-        "allowed_actions": [
-          "read",
-          "indices_monitor"
-        ]
-      }
-    ],
-    "tenant_permissions": []
-  }
-  ```
-  - 设置角色与用户之间的映射关系
+```
+PUT _plugins/_security/api/roles/monitor
+{
+  "description": "monitor es cluster",
+  "cluster_permissions": [
+    "cluster:admin/opendistro/ism/managedindex/explain",
+    "cluster_monitor",
+    "cluster_composite_ops_ro"
+  ],
+  "index_permissions": [
+    {
+      "index_patterns": [
+        "*"
+      ],
+      "fls": [],
+      "masked_fields": [],
+      "allowed_actions": [
+        "read",
+        "indices_monitor"
+      ]
+    }
+  ],
+  "tenant_permissions": []
+}
+```
+
+- 设置角色与用户之间的映射关系
 
 ## 配置
 
@@ -129,10 +133,10 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ``` toml
- [inputs.{{.InputName}}.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
+[inputs.{{.InputName}}.tags]
+# some_tag = "some_value"
+# more_tag = "some_other_value"
+# ...
 ```
 
 {{ range $i, $m := .Measurements }}
@@ -154,7 +158,7 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 
 如需采集 ElasticSearch 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 ElasticSearch 日志文件的绝对路径。比如：
 
-```
+```toml
 [[inputs.elasticsearch]]
   ...
 [inputs.elasticsearch.log]
@@ -167,58 +171,58 @@ files = ["/path/to/your/file.log"]
 
 - ElasticSearch 通用日志切割
   
-  通用日志文本示例：
-  
-  ```
-  [2021-06-01T11:45:15,927][WARN ][o.e.c.r.a.DiskThresholdMonitor] [master] high disk watermark [90%] exceeded on [A2kEFgMLQ1-vhMdZMJV3Iw][master][/tmp/elasticsearch-cluster/nodes/0] free: 17.1gb[7.3%], shards will be relocated away from this node; currently relocating away shards totalling [0] bytes; the node is expected to continue to exceed the high disk watermark when these relocations are complete
-  ```
+通用日志文本示例：
 
-  切割后的字段列表如下：
+```
+[2021-06-01T11:45:15,927][WARN ][o.e.c.r.a.DiskThresholdMonitor] [master] high disk watermark [90%] exceeded on [A2kEFgMLQ1-vhMdZMJV3Iw][master][/tmp/elasticsearch-cluster/nodes/0] free: 17.1gb[7.3%], shards will be relocated away from this node; currently relocating away shards totalling [0] bytes; the node is expected to continue to exceed the high disk watermark when these relocations are complete
+```
 
-|字段名|字段值|说明|
-|---|---|---|
-|time|1622519115927000000|日志产生时间|
-|name|o.e.c.r.a.DiskThresholdMonitor|组件名称|
-|status|WARN|日志等级|
-|nodeId|master|节点名称|
+切割后的字段列表如下：
+
+| 字段名 | 字段值                         | 说明         |
+| ---    | ---                            | ---          |
+| time   | 1622519115927000000            | 日志产生时间 |
+| name   | o.e.c.r.a.DiskThresholdMonitor | 组件名称     |
+| status | WARN                           | 日志等级     |
+| nodeId | master                         | 节点名称     |
 
 - ElastiSearch 搜索慢日志切割
   
-  搜索慢日志文本示例：
+搜索慢日志文本示例：
 
-  ```
-  [2021-06-01T11:56:06,712][WARN ][i.s.s.query              ] [master] [shopping][0] took[36.3ms], took_millis[36], total_hits[5 hits], types[], stats[], search_type[QUERY_THEN_FETCH], total_shards[1], source[{"query":{"match":{"name":{"query":"Nariko","operator":"OR","prefix_length":0,"max_expansions":50,"fuzzy_transpositions":true,"lenient":false,"zero_terms_query":"NONE","auto_generate_synonyms_phrase_query":true,"boost":1.0}}},"sort":[{"price":{"order":"desc"}}]}], id[], 
-  ```
+```
+[2021-06-01T11:56:06,712][WARN ][i.s.s.query              ] [master] [shopping][0] took[36.3ms], took_millis[36], total_hits[5 hits], types[], stats[], search_type[QUERY_THEN_FETCH], total_shards[1], source[{"query":{"match":{"name":{"query":"Nariko","operator":"OR","prefix_length":0,"max_expansions":50,"fuzzy_transpositions":true,"lenient":false,"zero_terms_query":"NONE","auto_generate_synonyms_phrase_query":true,"boost":1.0}}},"sort":[{"price":{"order":"desc"}}]}], id[], 
+```
 
-  切割后的字段列表如下：
+切割后的字段列表如下：
 
-|字段名|字段值|说明|
-|---|---|---|
-|time|1622519766712000000|日志产生时间|
-|name|i.s.s.query|组件名称|
-|status|WARN|日志等级|
-|nodeId|master|节点名称|
-|index|shopping|索引名称|
-|duration|36000000|请求耗时，单位ns|
+| 字段名   | 字段值              | 说明             |
+| ---      | ---                 | ---              |
+| time     | 1622519766712000000 | 日志产生时间     |
+| name     | i.s.s.query         | 组件名称         |
+| status   | WARN                | 日志等级         |
+| nodeId   | master              | 节点名称         |
+| index    | shopping            | 索引名称         |
+| duration | 36000000            | 请求耗时，单位ns |
 
 - ElasticSearch 索引慢日志切割
 
-  索引慢日志文本示例：
+索引慢日志文本示例：
 
-  ```
-  [2021-06-01T11:56:19,084][WARN ][i.i.s.index              ] [master] [shopping/X17jbNZ4SoS65zKTU9ZAJg] took[34.1ms], took_millis[34], type[_doc], id[LgC3xXkBLT9WrDT1Dovp], routing[], source[{"price":222,"name":"hello"}]
-  ```
-  
-  切割后的字段列表如下：
+```
+[2021-06-01T11:56:19,084][WARN ][i.i.s.index              ] [master] [shopping/X17jbNZ4SoS65zKTU9ZAJg] took[34.1ms], took_millis[34], type[_doc], id[LgC3xXkBLT9WrDT1Dovp], routing[], source[{"price":222,"name":"hello"}]
+```
 
-|字段名|字段值|说明|
-|---|---|---|
-|time|1622519779084000000|日志产生时间|
-|name|i.i.s.index|组件名称|
-|status|WARN|日志等级|
-|nodeId|master|节点名称|
-|index|shopping|索引名称|
-|duration|34000000|请求耗时，单位ns|
+切割后的字段列表如下：
+
+| 字段名   | 字段值              | 说明             |
+| ---      | ---                 | ---              |
+| time     | 1622519779084000000 | 日志产生时间     |
+| name     | i.i.s.index         | 组件名称         |
+| status   | WARN                | 日志等级         |
+| nodeId   | master              | 节点名称         |
+| index    | shopping            | 索引名称         |
+| duration | 34000000            | 请求耗时，单位ns |
 
 **注意**
 

@@ -74,10 +74,10 @@ ulimit = 64000
 # 
 [pipeline]
   ## ipdb_type: string, ipdb 类型
-  ## 目前仅支持 iploc 
+  ## 目前仅支持 iploc, geolite2
   ## 注意：ipdb 库需要手动安装，可通过以下命令安装
-  ##   datakit install --ipdb iploc
-  #
+  ##   datakit install --ipdb iploc (if you want geolite2 you can use datakit install --ipdb geolite2 )
+  #ipdb_type can be iploc and geolite2
   ipdb_type = "iploc"
 
   ## remote_pull_interval: string, 远程拉取 pipeline 配置文件间隔时间

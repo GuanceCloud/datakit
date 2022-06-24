@@ -53,7 +53,7 @@ DataKit 使用 Solr Metrics API 采集指标数据，支持 Solr 7.0 及以上�
 ```toml
 [inputs.solr.log]
     # 填入绝对路径
-    files = ["/path/to/demo.log"] 
+    files = ["/path/to/demo.log"]
 ```
 
 切割日志示例：
@@ -70,4 +70,3 @@ DataKit 使用 Solr Metrics API 采集指标数据，支持 Solr 7.0 及以上�
 | status   | INFO                          |
 | thread   | org.apache.solr.core.SolrCore |
 | time     | 1380630788319000000           |
-

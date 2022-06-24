@@ -11,7 +11,7 @@
 
 - 目前 container 会默认连接 Docker 服务，需安装 Docker v17.04 及以上版本。
 - 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](datakit-daemonset-deploy.md)。
-- 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation)。
+- 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation){:target="_blank"}。
 
 ## 配置 {#config}
 
@@ -29,7 +29,7 @@
 配置文件中的 `container_include_log / container_exclude_log` 是针对日志数据。
 
 - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为 `"image:<glob规则>"`，表示 glob 规则是针对容器 image 生效
-- [Glob 规则](https://en.wikipedia.org/wiki/Glob_(programming))是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元
+- [Glob 规则](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元
 
 例如，配置如下：
 
@@ -106,7 +106,7 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
 kubectl annotate pods my-pod datakit/logs='[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\d{4}-\\d{2}\"}]'
 ```
 
-> 关于 Docker 容器添加 Label 的方法，参见[这里](https://docs.docker.com/engine/reference/commandline/run/#set-metadata-on-container--l---label---label-file)。
+> 关于 Docker 容器添加 Label 的方法，参见[这里](https://docs.docker.com/engine/reference/commandline/run/#set-metadata-on-container--l---label---label-file){:target="_blank"}。
 
 在 Kubernetes 可以在创建 Deployment 时，以 `template` 模式添加 Pod Annotations，例如：
 
@@ -144,25 +144,25 @@ spec:
 
 支持以环境变量的方式修改配置参数：
 
-> 只有 DataKit 以 K8s DaemonSet 方式运行时生效，==主机部署时，以下环境变量不生效==。
+> 只有 DataKit 以 K8s DaemonSet 方式运行时生效，yaml 配置的参数需要用英文双引号括起来，主机部署时，以下环境变量不生效。
 
-| 环境变量名                                             | 对应的配置参数项                    | 参数示例                                                       |
+| 环境变量名                                             | 对应的配置参数项                    | 参数示例（yaml 配置时需要用英文双引号括起来）                  |
 | :----------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------   |
-| `ENV_INPUT_CONTAINER_DOCKER_ENDPOINT`                  | `docker_endpoint`                   | `unix:///var/run/docker.sock`                                  |
-| `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`               | `containerd_address`                | `/var/run/containerd/containerd.sock`                          |
-| `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`          | `exclude_pause_container`           | `t`/`f` （`t`是`true`，`f`是`false`）                          |
-| `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `t`/`f`                                                        |
-| `ENV_INPUT_CONTAINER_TAGS`                             | `tags`                              | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它   |
-| `ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC`          | `enable_container_metric`           | `t`/`f`                                                        |
-| `ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC`                | `enable_k8s_metric`                 | `t`/`f`                                                        |
-| `ENV_INPUT_CONTAINER_ENABLE_POD_METRIC`                | `enable_pod_metric`                 | `t`/`f`                                                        |
+| `ENV_INPUT_CONTAINER_DOCKER_ENDPOINT`                  | `docker_endpoint`                   | `"unix:///var/run/docker.sock"`                                |
+| `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`               | `containerd_address`                | `"/var/run/containerd/containerd.sock"`                        |
+| `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`          | `exclude_pause_container`           | `"true"`/`"false"`                                             |
+| `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `"true"`/`"false"`                                             |
+| `ENV_INPUT_CONTAINER_TAGS`                             | `tags`                              | `"tag1=value1,tag2=value2"` 如果配置文件中有同名 tag，会覆盖它 |
+| `ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC`          | `enable_container_metric`           | `"true"`/`"false"`                                             |
+| `ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC`                | `enable_k8s_metric`                 | `"true"`/`"false"`                                             |
+| `ENV_INPUT_CONTAINER_ENABLE_POD_METRIC`                | `enable_pod_metric`                 | `"true"`/`"false"`                                             |
 | `ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG`            | `container_include_log`             | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"` 以英文逗号隔开 |
 | `ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG`            | `container_exclude_log`             | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"` 以英文逗号隔开 |
-| `ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH`               | `max_logging_length`                | `32766`                                                        |
-| `ENV_INPUT_CONTAINER_KUBERNETES_URL`                   | `kubernetes_url`                    | `https://kubernetes.default:443`                               |
-| `ENV_INPUT_CONTAINER_BEARER_TOKEN`                     | `bearer_token`                      | `/run/secrets/kubernetes.io/serviceaccount/token`              |
-| `ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING`              | `bearer_token_string`               | `<your-token-string>`                                          |
-| `ENV_K8S_CLUSTER_NAME`                                 | k8s `cluster_name` 字段的缺省值     | `kube`                                                         |
+| `ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH`               | `max_logging_length`                | `"32766"`                                                      |
+| `ENV_INPUT_CONTAINER_KUBERNETES_URL`                   | `kubernetes_url`                    | `"https://kubernetes.default:443"`                             |
+| `ENV_INPUT_CONTAINER_BEARER_TOKEN`                     | `bearer_token`                      | `"/run/secrets/kubernetes.io/serviceaccount/token"`            |
+| `ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING`              | `bearer_token_string`               | `"<your-token-string>"`                                        |
+| `ENV_K8S_CLUSTER_NAME`                                 | k8s `cluster_name` 字段的缺省值     | `"kube"`                                                       |
 
 补充，k8s 数据的 `cluster_name` 字段可能会为空，为此提供注入环境变量的方式，取值优先级依次为：
 1. k8s 集群返回的 ClusterName 值（不为空）
@@ -302,7 +302,7 @@ PASS
 ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 ```
 
-每一条文本的处理耗时将==额外增加== `1616 ns` 不等。如果日志中不带有颜色等修饰，不要开启该功能。
+每一条文本的处理耗时将额外增加 `1616 ns` 不等。如果日志中不带有颜色等修饰，不要开启该功能。
 
 ### 容器日志采集的 source 设置 {#config-logging-source}
 

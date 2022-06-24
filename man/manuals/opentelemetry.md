@@ -126,9 +126,9 @@ OSDescriptionKey = attribute.Key("os.description")
 
 ### 最佳实践
 
-datakit 目前提供了 [Go 语言](opentelemetry-go)、[Java](opentelemetry-java) 两种语言的最佳实践，其他语言会在后续提供。
+datakit 目前提供了 [Go 语言](opentelemetry-go.md)、[Java](opentelemetry-java.md) 两种语言的最佳实践，其他语言会在后续提供。
 
 ### 更多文档
-- go开源地址 [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go)
-- 官方使用手册 ：[opentelemetry-io-docs](https://opentelemetry.io/docs/)
-- 环境变量配置: [sdk-extensions](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters)
+- go开源地址 [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go){:target="_blank"}
+- 官方使用手册 ：[opentelemetry-io-docs](https://opentelemetry.io/docs/){:target="_blank"}
+- 环境变量配置: [sdk-extensions](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters){:target="_blank"}

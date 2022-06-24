@@ -7,7 +7,7 @@
 
 ## Install Libarary & Dependence
 
-首先[下载](https://github.com/DataDog/dd-trace-php/releases)需要的 PHP ddtrace 扩展，下载完成后安装扩展
+首先[下载](https://github.com/DataDog/dd-trace-php/releases){:target="_blank"} 需要的 PHP ddtrace 扩展，下载完成后安装扩展
 
 **Using RPM package (RHEL/Centos 6+, Fedora 20+)**
 
@@ -130,3 +130,6 @@ php -d datadog.service=my-php-app -S localhost:8888
 - DD_VERSION
   INI: datadog.version
   设置服务版本。
+- DD_TRACE_SAMPLE_RATE
+  INI: datadog.trace.smaple_rate
+  设置采样率从 0.0(0%) ~ 1.0(100%)。

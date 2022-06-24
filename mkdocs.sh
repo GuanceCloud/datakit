@@ -1,10 +1,12 @@
 #!/bin/bash
 
-datakit_docs_dir=~/git/dataflux-doc/docs/datakit
-integration_docs_dir=~/git/dataflux-doc/docs/integrations
+mkdocs_dir=~/git/dataflux-doc
+datakit_docs_dir=${mkdocs_dir}/docs/datakit
+integration_docs_dir=${mkdocs_dir}/docs/integrations
 
 mkdir -p $datakit_docs_dir $integration_docs_dir
-cp man/summary.md .docs/
+rm -rf $datakit_docs_dir/*.md
+rm -rf $integration_docs_dir/*.md
 
 latest_tag=$(git tag --sort=-creatordate | head -n 1)
 
@@ -15,17 +17,23 @@ if [ -z $man_version ]; then
   man_version="${latest_tag}"
 fi
 
-os=
 if [[ "$OSTYPE" == "darwin"* ]]; then
+	arch=`uname -m`
   os="darwin"
-else
+	datakit=dist/datakit-${os}-${arch}/datakit
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
   os="linux"
+	arch=`uname -m`
+	datakit=dist/datakit-${os}-${arch}/datakit
+else # if under windows(amd64):
+  datakit=datakit # windows 下应该设置了对应的 $PATH
 fi
 
-make
+make || exit -1
 
+# datakit 文档导出
 echo 'export to datakit docs...'
-dist/datakit-${os}-amd64/datakit doc \
+$datakit doc \
 	--export-docs $datakit_docs_dir \
 	--ignore demo \
 	--version "${man_version}" \
@@ -33,12 +41,10 @@ dist/datakit-${os}-amd64/datakit doc \
 
 cp man/manuals/datakit.pages $datakit_docs_dir/.pages
 cp man/manuals/datakit-index.md $datakit_docs_dir/index.md
-cp man/manuals/aliyun-access.md $datakit_docs_dir/
 
-#--- 以下是集成文档导出 ---#
-
+# 集成文档导出
 echo 'export to integrations docs...'
-dist/datakit-${os}-amd64/datakit doc \
+$datakit doc \
 	--export-docs $integration_docs_dir \
 	--ignore demo \
 	--version "${man_version}" \
@@ -46,6 +52,48 @@ dist/datakit-${os}-amd64/datakit doc \
 
 cp man/manuals/integrations.pages $integration_docs_dir/.pages
 cp man/manuals/integrations-index.md $integration_docs_dir/index.md
-cp man/integration-to-datakit-howto.md $integration_docs_dir/
 
-cp man/manuals/resin.md $integration_docs_dir/
+# 这些文件没有集成在 datakit 代码中（没法通过 export-docs 命令导出），故直接拷贝到文档库中。
+extra_files=(
+	man/manuals/integration-to-datakit-howto.md
+	man/manuals/aliyun-access.md
+	man/manuals/aliyun-asm.md
+	man/manuals/aliyun-cdn.md
+	man/manuals/aliyun-charges.md
+	man/manuals/aliyun-ecs.md
+	man/manuals/aliyun-edas.md
+	man/manuals/aliyun-eip.md
+	man/manuals/aliyun-es.md
+	man/manuals/aliyun-mongodb.md
+	man/manuals/aliyun-mysql.md
+	man/manuals/aliyun-nat.md
+	man/manuals/aliyun-oracle.md
+	man/manuals/aliyun-oss.md
+	man/manuals/aliyun-postgresql.md
+	man/manuals/aliyun-rds-mysql.md
+	man/manuals/aliyun-rds-sqlserver.md
+	man/manuals/aliyun-redis.md
+	man/manuals/aliyun-slb.md
+	man/manuals/aliyun-sls.md
+	man/manuals/ddtrace-csharp.md
+	man/manuals/ddtrace-dotnetcore.md
+	man/manuals/ddtrace-php-2.md
+	man/manuals/ddtrace-ruby-2.md
+	man/manuals/haproxy.md
+	man/manuals/kube-scheduler.md
+	man/manuals/kube-state-metrics.md
+	man/manuals/logstreaming-fluentd.md
+	man/manuals/resin.md
+	man/manuals/rum-android.md
+	man/manuals/rum-ios.md
+	man/manuals/rum-miniapp.md
+	man/manuals/rum-web-h5.md
+)
+
+# 俩文档库里面的内容保持一致，此处就不各自分了
+for f in "${extra_files[@]}"; do
+	cp $f $datakit_docs_dir/
+	cp $f $integration_docs_dir/
+done
+
+cd $mkdocs_dir && mkdocs serve 2>&1 | tee mkdocs.log

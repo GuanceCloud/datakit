@@ -98,7 +98,7 @@ datakit -M --vvv            # 检查所有采集器的运行情况
 
 #### 安装 Golang
 
-当前 Go 版本 [1.16.4](https://golang.org/dl/go1.16.4.linux-amd64.tar.gz)
+当前 Go 版本 [1.18.3](https://golang.org/dl/go1.18.3.linux-amd64.tar.gz)
 
 #### CI 设置
 
@@ -121,7 +121,7 @@ export GOPRIVATE=gitlab.jiagouyun.com/*
 export GOPROXY=https://goproxy.io
 
 # 假定 golang 安装在 /root 目录下
-export GOROOT=/root/golang-1.16.4
+export GOROOT=/root/golang-1.18.3
 # 将 go 代码 clone 到 GOPATH 里面
 export GOPATH=/root/go
 export PATH=$GOROOT/bin:~/go/bin:$PATH
@@ -139,7 +139,7 @@ export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
 
 #### 安装 packr2
 
-安装 [packr2](https://github.com/gobuffalo/packr/tree/master/v2)（可能需要翻墙）
+安装 [packr2](https://github.com/gobuffalo/packr/tree/master/v2){:target="_blank"}（可能需要翻墙）
 
 `go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
 
@@ -148,7 +148,7 @@ export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
 - tree
 - make
 - [goyacc](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go get -u golang.org/x/tools/cmd/goyacc`
-- [golangci-lint](https://golangci-lint.run/usage/install/#local-installation): `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
+- [golangci-lint](https://golangci-lint.run/usage/install/#local-installation): `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`
 - gofumpt: `go install mvdan.cc/gofumpt@v0.1.1`
 - wget
 - docker
@@ -157,7 +157,7 @@ export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
 - llvm： 版本 >= 10.0
 - linux 内核（>= 5.4.0-99-generic）头文件：`apt-get install -y linux-headers-$(uname -r)` 
 - go-bindata: `apt install go-bindata` `go get -u github.com/go-bindata/go-bindata/...`
-- [waque](https://github.com/yesmeck/waque)：版本 >= 1.13.1
+- [waque](https://github.com/yesmeck/waque){:target="_blank"}：版本 >= 1.13.1
 
 #### 安装第三方库
 
@@ -184,7 +184,7 @@ DataKit 新功能发布，大家最好做全套测试，包括安装、升级等
 
 大家试用下这个*预设 OSS 路径*：`oss://df-storage-dev/`（华东区域），以下 AK/SK 有需要可申请获取：
 
-> 可下载 [OSS Browser](https://help.aliyun.com/document_detail/209974.htm?spm=a2c4g.11186623.2.4.2f643d3bbtPfN8#task-2065478) 客户端工具来查看 OSS 中的文件。
+> 可下载 [OSS Browser](https://help.aliyun.com/document_detail/209974.htm?spm=a2c4g.11186623.2.4.2f643d3bbtPfN8#task-2065478){:target="_blank"} 客户端工具来查看 OSS 中的文件。
 
 - AK: `LTAIxxxxxxxxxxxxxxxxxxxx`
 - SK: `nRr1xxxxxxxxxxxxxxxxxxxxxxxxxx`
@@ -295,26 +295,19 @@ make pub_production_mac VERSION=<the-new-version>
 - 稳定版：其版本号为 `x.y.z`，其中 `y` 必须是偶数
 - 非稳定版：其版本号为 `x.y.z`，其中 `y` 必须是基数
 
-### 语雀文档发布
+### 文档发布
 
-语雀文档的发布，只能在开发机器上发布，需安装 [waque](https://github.com/yesmeck/waque) 1.13.1+ 以上的版本。其流程如下：
+文档的发布，只能在开发机器上发布，需安装 [mkdocs](https://www.mkdocs.org/){:target="_blank"}。其流程如下：
 
-- 执行 yuque.sh
+- 执行 mkdocs.sh
 
 ```
-./yuque.sh <the-new-version>
+./mkdocs.sh <the-new-version>
 ```
 
 如果不指定版本，会以最新的一个 tag 名称作为版本号。
 
 > 注意，如果是线上代码发布，最好保证跟**线上 DataKit 当前的稳定版版本号**保持一致，不然会导致用户困扰。
-
-在当前的代码树中，有俩个文档库配置：
-
-- *yuque.yml*: 发布到[线上 DataKit 文档库](https://www.yuque.com/dataflux/datakit)
-- *yuque_testing.yml*: 发布到[测试 DataKit 文档库](https://www.yuque.com/dataflux/cd74oo)
-
-测试文档库用于测试文档发布效果。当在你本地机器发布文档时，如果当前代码分支是 *yuque*，会自动发布到线上文档库，否则发布到测试文档库。
 
 ## 关于代码规范
 
@@ -345,7 +338,7 @@ func digitVal(ch rune) int {
 }
 ```
 
-> 何时使用 `nolint`，参见[这里](https://golangci-lint.run/usage/false-positives/)
+> 何时使用 `nolint`，参见[这里](https://golangci-lint.run/usage/false-positives/){:target="_blank"}
 
 但我们不建议频繁加上 `//nolint:xxx,yyy` 来掩耳盗铃，如下几种情况可用 lint：
 
@@ -426,11 +419,11 @@ Generating report in profile001.pdf
 
 ![](imgs/datakit-pprof-pdf.png)
 
-更多 pprof 的使用方法，参见[这里](https://www.freecodecamp.org/news/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192/)。
+更多 pprof 的使用方法，参见[这里](https://www.freecodecamp.org/news/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192/){:target="_blank"}。
 
 ## DataKit 辅助功能
 
-除了[官方文档](datakit-tools-how-to)列出的部分辅助功能外，DataKit 还支持其它功能，这些主要在开发过程中使用。
+除了[官方文档](datakit-tools-how-to.md)列出的部分辅助功能外，DataKit 还支持其它功能，这些主要在开发过程中使用。
 
 ### 检查 sample config 是否正确
 
@@ -451,7 +444,7 @@ datakit --export-manuals /path/to/doc --man-version $man_version --TODO "-" --ig
 
 ### 集成导出
 
-将集成内容导出到指定目录，一般这个目录是另一个 git-repo（当前是 [dataflux-integration](https://gitee.com/dataflux/dataflux-integration.git)）
+将集成内容导出到指定目录，一般这个目录是另一个 git-repo（当前是 [dataflux-integration](https://gitee.com/dataflux/dataflux-integration.git){:target="_blank"}）
 
 ```shell
 datakit --ignore demo,tailf --export-integration /path/to/integration/git/repo
@@ -459,5 +452,5 @@ datakit --ignore demo,tailf --export-integration /path/to/integration/git/repo
 
 ## 延伸阅读
 
-- [DataKit Monitor 查看器](datakit-monitor)
-- [DataKit 整体架构介绍](datakit-arch)
+- [DataKit Monitor 查看器](datakit-monitor.md)
+- [DataKit 整体架构介绍](datakit-arch.md)

@@ -9,7 +9,7 @@
 
 ## 前置条件
 
-- 已安装 NSQ（[NSQ 官方网址](https://nsq.io/)）
+- 已安装 NSQ（[NSQ 官方网址](https://nsq.io/){:target="_blank"}）
 
 - NSQ 版本 >= 1.0.0
 
@@ -30,7 +30,7 @@ NSQ 采集器提供两种配置方式，分别为 `lookupd` 和 `nsqd`，具体�
 
 配置好后，重启 DataKit 即可。
 
-此 input 支持选举功能，[关于选举](election)。
+此 input 支持选举功能，[关于选举](election.md)。
 
 ## 指标集
 

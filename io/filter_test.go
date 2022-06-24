@@ -24,6 +24,7 @@ func (dw *dwMock) Pull() ([]byte, error) {
 		"logging": {
 			`{ source = "test1" and ( f1 in ["1", "2", "3"] )}`,
 			`{ source = "test2" and ( f1 in ["1", "2", "3"] )}`,
+			`{ source = "nginx-ingress-controller" and ( urihost notin ["mall-dev.xxxxxxxx.com", "mall-staging.xxxxxxxx.com", "mall-app.xxxxxxxx.com"] )}`,
 		},
 
 		"tracing": {
@@ -61,6 +62,12 @@ test1,service=test1 f1="1",f2=2i,f3=3 124
 test1,service=test1 f1="1",f2=2i,f3=3 125`,
 			category:  datakit.Tracing,
 			expectPts: 0,
+		},
+
+		{
+			pts:       `nginx-ingress-controller,service=nginx-ingress-controller agent="Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",body_bytes_sent="217",browser="Safari",browserVer="13.0.3",city="",client_ip="124.126.18.162",country="",engine="AppleWebKit",engineVer="605.1.15",http_method="GET",http_referer="http://127.0.0.1:9098/wtrain",http_url="/mall-web/csc/basics/company/canPay?id=xxxxxxxxxxxxxxxxxx",http_version="1.1",isBot=false,isMobile=true,isp="unknown",os="CPU iPhone OS 13_2_3 like Mac OS X",port="",province="",proxy_upstream_name="dev-mall-apisix-80",req_id="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",request_body="",request_length="2296",request_time=0.031,status="info",status_code="200",ua="iPhone",upstream_addr="172.19.251.218:9080",upstream_response_length="258",upstream_response_time=0.031,upstream_status="200",urihost="mall-dev.xxxxxxxx.com"`,
+			category:  datakit.Logging,
+			expectPts: 1,
 		},
 	}
 

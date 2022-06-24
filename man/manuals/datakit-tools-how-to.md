@@ -51,13 +51,13 @@ $ datakit dql <tab> # 输入 \tab 即可提示如下选项
 datakit tool --completer-script > datakit-completer.sh
 ```
 
-## 查看 DataKit 运行情况
+## 查看 DataKit 运行情况 {#using-monitor}
 
-> 当前的 monitor 查看方式已经废弃（仍然可用，不久将废弃），新的 monitor 功能[参见这里](datakit-monitor)
+> 当前的 monitor 查看方式已经废弃（仍然可用，不久将废弃），新的 monitor 功能[参见这里](datakit-monitor.md)
 
 在终端即可查看 DataKit 运行情况，其效果跟浏览器端 monitor 页面相似：
 
-DataKit 新的 monitor 用法[参见这里](datakit-monitor)。
+DataKit 新的 monitor 用法[参见这里](datakit-monitor.md)。
 
 ## 检查采集器配置是否正确
 
@@ -159,15 +159,16 @@ create_time 1639657028706
  - category: 类别，默认为`default`, 还可取值为`input`， 表明是与采集器 (`input`) 相关
  - status: 事件等级，可取值为 `info`, `warning`, `error`
 
-## DataKit 更新 IP 数据库文件
+## DataKit 更新 IP 数据库文件 {#install-ipdb}
 
-可直接使用如下命令安装/更新 IP 地理信息库：
+可直接使用如下命令安装/更新 IP 地理信息库,安装geolite2只需把iploc换成geolite2：
 
 ```shell
 datakit install --ipdb iploc
 ```
 
 更新完 IP 地理信息库后，修改 datakit.conf 配置：
+
 
 ```
 [pipeline]
@@ -178,7 +179,7 @@ datakit install --ipdb iploc
 
 ### DaemonSet 模式安装 IP 信息库
 
-当 DataKit 是 DaemonSet 形式安装时，不能用上述形式安装 IP 信息库（重启后 IP 信息库还是丢弃了），只能在 [datakit.yaml 中指定 IP 信息库]()，其步骤如下：
+当 DataKit 是 DaemonSet 形式安装时，不能用上述形式安装 IP 信息库（重启后 IP 信息库还是丢弃了），只能在 [datakit.yaml 中指定 IP 信息库](datakit-tools-how-to.md#install-ipdb)，其步骤如下：
 
 - 在 Kubernetes Node 上下载 IP 信息库：
 
@@ -247,7 +248,7 @@ kubectl get pod -n datakit
 	 country: 
 ```
 
-## DataKit 安装第三方软件
+## DataKit 安装第三方软件 {#extras}
 
 ### Telegraf 集成
 
@@ -267,7 +268,7 @@ cp telegraf.conf.sample telegraf.conf
 telegraf --config telegraf.conf
 ```
 
-关于 Telegraf 的使用事项，参见[这里](telegraf)。
+关于 Telegraf 的使用事项，参见[这里](telegraf.md)。
 
 ### Security Checker 集成
 
@@ -277,11 +278,11 @@ telegraf --config telegraf.conf
 datakit install --scheck
 ```
 
-安装成功后会自动运行，Security Checker 具体使用，参见[这里](https://www.yuque.com/dataflux/sec_checker/install)
+安装成功后会自动运行，Security Checker 具体使用，参见[这里](../scheck/install.md)
 
 ### DataKit eBPF 集成
 
-安装 DataKit eBPF 采集器, 当前只支持 `linux/amd64 | linux/arm64` 平台，采集器使用说明见 [DataKit eBPF 采集器](https://www.yuque.com/dataflux/datakit/ebpf)
+安装 DataKit eBPF 采集器, 当前只支持 `linux/amd64 | linux/arm64` 平台，采集器使用说明见 [DataKit eBPF 采集器](../integrations/ebpf.md)
 
 ```shell
 datakit install --ebpf

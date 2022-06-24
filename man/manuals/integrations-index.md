@@ -1,3 +1,7 @@
+---
+icon: zy/integrations
+---
+
 # 集成
 ---
 

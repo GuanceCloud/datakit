@@ -68,6 +68,11 @@ func geoTags(srcip string) (tags map[string]string) {
 		return
 	}
 
+	// avoid nil pointer error
+	if ipInfo == nil {
+		return tags
+	}
+
 	switch ipInfo.Country { // #issue 354
 	case "TW":
 		ipInfo.Country = "CN"
@@ -107,7 +112,8 @@ func doHandleRUMBody(body []byte,
 	precision string,
 	isjson bool,
 	extraTags map[string]string,
-	appIDWhiteList []string) ([]*io.Point, error) {
+	appIDWhiteList []string,
+) ([]*io.Point, error) {
 	if isjson {
 		opt := lp.NewDefaultOption()
 		opt.Precision = precision
@@ -217,7 +223,8 @@ func handleRUMBody(body []byte,
 	precision string,
 	isjson bool,
 	geoInfo map[string]string,
-	list []string) ([]*io.Point, error) {
+	list []string,
+) ([]*io.Point, error) {
 	return doHandleRUMBody(body, precision, isjson, geoInfo, list)
 }
 

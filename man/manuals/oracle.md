@@ -31,7 +31,7 @@ GRANT SELECT ON sys.dba_tablespace_usage_metrics TO datakit;
 
 - 安装依赖包
 
-根据操作系统和 Oracle 版本选择安装对应的安装包,参考[这里](https://oracle.github.io/odpi/doc/installation.html)，如：
+根据操作系统和 Oracle 版本选择安装对应的安装包,参考[这里](https://oracle.github.io/odpi/doc/installation.html){:target="_blank"}，如：
 
 ```shell
 wget https://download.oracle.com/otn_software/linux/instantclient/211000/instantclient-basiclite-linux.x64-21.1.0.0.0.zip
@@ -103,11 +103,11 @@ apt-get install -y libaio-dev libaio1
 
 1. Oracle 动态库依赖有问题
 
-即使你本机当前可能已经有对应的 Oracle 包，==仍然建议使用上面文档中指定的依赖包==，且确保其安装路径跟 `LD_LIBRARY_PATH` 所指定的路径一致。
+即使你本机当前可能已经有对应的 Oracle 包，仍然建议使用上面文档中指定的依赖包且确保其安装路径跟 `LD_LIBRARY_PATH` 所指定的路径一致。
 
 2. glibc 版本有问题
 
-由于 Oracle 采集器是独立编译的，且开启了 CGO，故其==运行时需要 glibc 的依赖==，在 Linux 上可通过如下命令检查当前机器的 glibc 依赖是否有问题：
+由于 Oracle 采集器是独立编译的，且开启了 CGO，故其运行时需要 glibc 的依赖在 Linux 上可通过如下命令检查当前机器的 glibc 依赖是否有问题：
 
 ```shell
 $ ldd <DataKit 安装目录>/externals/oracle
@@ -124,6 +124,6 @@ $ ldd <DataKit 安装目录>/externals/oracle
 externals/oracle: /lib64/libc.so.6: version  `GLIBC_2.14` not found (required by externals/oracle)
 ```
 
-3. Oracle 采集器==只能在 Linux/amd64 架构的 DataKit 使用== ，其它平台均不支持
+3. Oracle 采集器只能在 Linux/amd64 架构的 DataKit 使用，其它平台均不支持
 
 这意味着 Oracle 这个采集器只能在 amd64(X86) 的 Linux 上运行，其它平台一律无法运行当前的 Oracle 采集器。

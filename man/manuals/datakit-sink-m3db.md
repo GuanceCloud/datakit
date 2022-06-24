@@ -7,8 +7,8 @@ Datakit 支持将采集到的指标性数据写入 M3db 中，可以通过配置
 
 M3DB更多介绍和文档 请参考：
 
-- [m3db-github-源码](https://github.com/m3db/m3)
-- [m3db-官方文档](https://m3db.io/docs)
+- [m3db-github-源码](https://github.com/m3db/m3){:target="_blank"}
+- [m3db-官方文档](https://m3db.io/docs){:target="_blank"}
 
 ## 安装单机版 m3db
 
@@ -75,4 +75,4 @@ bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 
 ## m3db 可视化
 
-这里推荐您使用 [prometheus](https://prometheus.io/download/) 和 [grafana](https://grafana.com/) 去查询和展示数据。
+这里推荐您使用 [prometheus](https://prometheus.io/download/){:target="_blank"} 和 [grafana](https://grafana.com/){:target="_blank"} 去查询和展示数据。

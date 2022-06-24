@@ -7,7 +7,7 @@
 
 目前社区版只实现有限的几个 Sinker, 如果想要支持其它存储, 可以做对应开发(用 Go 语言), 大致分为以下几步(以 `influxdb` 举例):
 
-- 克隆 [DataKit 代码](https://jihulab.com/guance-cloud/datakit), 在 *io/sink/* 下面新建一个包, 名字叫 `sinkinfluxdb`(建议都以 `sink` 开头)。
+- 克隆 [DataKit 代码](https://jihulab.com/guance-cloud/datakit){:target="_blank"}, 在 *io/sink/* 下面新建一个包, 名字叫 `sinkinfluxdb`(建议都以 `sink` 开头)。
 
 - 在上面的包下新建一个源文件 `sink_influxdb.go`, 新建一个常量 `creatorID`, 不能与其它包里面的 `creatorID` 重名; 实现 `ISink` 的 `interface`, 具体是实现以下几个函数:
 

@@ -23,8 +23,9 @@ type Option struct {
 }
 
 type PlScript struct {
-	name   string // script name
-	script string // script content
+	name     string // script name
+	filePath string
+	script   string // script content
 
 	ns       string // script 所属 namespace
 	category string
@@ -34,7 +35,7 @@ type PlScript struct {
 	updateTS int64
 }
 
-func NewScript(name, script, ns, category string) (*PlScript, error) {
+func NewScripts(scripts map[string]string, scriptPath map[string]string, ns, category string) (map[string]*PlScript, map[string]error) {
 	switch category {
 	case datakit.Metric:
 	case datakit.MetricDeprecated:
@@ -48,21 +49,29 @@ func NewScript(name, script, ns, category string) (*PlScript, error) {
 	case datakit.Security:
 	case datakit.Logging:
 	default:
-		return nil, fmt.Errorf("unsupported category: %s", category)
+		retErr := map[string]error{}
+		for k := range scripts {
+			retErr[k] = fmt.Errorf("unsupported category: %s", category)
+		}
+		return nil, retErr
 	}
-	ng, err := parser.NewEngine(script, funcs.FuncsMap, funcs.FuncsCheckMap, false)
-	if err != nil {
-		return nil, err
+	ret, retErr := parser.NewEngine(scripts, scriptPath, funcs.FuncsMap, funcs.FuncsCheckMap)
+
+	retScipt := map[string]*PlScript{}
+
+	for name, ng := range ret {
+		retScipt[name] = &PlScript{
+			script:   scripts[name],
+			name:     name,
+			filePath: scriptPath[name],
+			ns:       ns,
+			category: category,
+			ng:       ng,
+			updateTS: time.Now().UnixNano(),
+		}
 	}
 
-	return &PlScript{
-		script:   script,
-		name:     name,
-		ns:       ns,
-		category: category,
-		ng:       ng,
-		updateTS: time.Now().UnixNano(),
-	}, nil
+	return retScipt, retErr
 }
 
 func (script *PlScript) Engine() *parser.Engine {
@@ -70,7 +79,8 @@ func (script *PlScript) Engine() *parser.Engine {
 }
 
 func (script *PlScript) Run(measurement string, tags map[string]string, fields map[string]interface{},
-	contentKey string, t time.Time, opt *Option) (*parser.Output, bool, error) {
+	contentKey string, t time.Time, opt *Option,
+) (*parser.Output, bool, error) {
 	startTime := time.Now()
 	if script.ng == nil {
 		return nil, false, fmt.Errorf("no engine")
@@ -116,6 +126,10 @@ func (script *PlScript) Run(measurement string, tags map[string]string, fields m
 
 func (script *PlScript) Name() string {
 	return script.name
+}
+
+func (script PlScript) FilePath() string {
+	return script.filePath
 }
 
 func (script *PlScript) Category() string {

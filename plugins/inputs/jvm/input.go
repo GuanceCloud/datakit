@@ -121,11 +121,11 @@ var log = logger.DefaultSLogger(inputName)
 
 func (i *Input) Run() {
 	log = logger.SLogger(inputName)
-	if i.Interval == "" {
-		i.Interval = defaultInterval
+	if i.JolokiaAgent.Interval == "" {
+		i.JolokiaAgent.Interval = defaultInterval
 	}
 
-	i.PluginName = inputName
+	i.JolokiaAgent.PluginName = inputName
 
 	i.JolokiaAgent.Tags = i.Tags
 	i.JolokiaAgent.Types = JvmTypeMap

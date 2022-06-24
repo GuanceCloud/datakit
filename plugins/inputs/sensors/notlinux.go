@@ -18,9 +18,7 @@ import (
 // Input redefine here for sample checking on non-linux platform.
 type Input struct{}
 
-var (
-	_ inputs.InputV2 = (*Input)(nil)
-)
+var _ inputs.InputV2 = (*Input)(nil)
 
 func (*Input) Catalog() string {
 	return inputName

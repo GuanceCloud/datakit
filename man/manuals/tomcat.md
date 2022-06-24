@@ -1,15 +1,15 @@
 {{.CSS}}
-# Tomcat
+Tomcat
 ---
 
 - DataKit 版本：{{.Version}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-采集 tomcat 指标。
+采集 tomcat 指标
 
 ## 前置条件
 
-下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war), 重命名为 jolokia.war, 并放置于 tomcat 的 webapps 目录下。也可从Datakit 的安装目录下的 data 目录下获取 jolokia war 包。
+下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war){:target="_blank"}, 重命名为 jolokia.war, 并放置于 tomcat 的 webapps 目录下。也可从Datakit 的安装目录下的 data 目录下获取 jolokia war 包。
 编辑 tomcat 的 conf 目录下的 tomcat-users.xml，增加 role 为 jolokia 的用户。
 
 以 apache-tomcat-9.0.45 为例（示例中的 jolokia user 的 username 和 password 请务必修改！！！）:
@@ -33,11 +33,11 @@ $ vim $tomcat_dir/conf/tomcat-users.xml
  43 -->
  44   <role rolename="jolokia"/>
  45   <user username="jolokia_user" password="secPassWd@123" roles="jolokia"/>
- 46 
+ 46
  47 </tomcat-users>
 
 
-$ $tomcat_dir/bin/startup.sh 
+$ $tomcat_dir/bin/startup.sh
 
  ...
  Tomcat started.
@@ -123,17 +123,15 @@ $ $tomcat_dir/bin/startup.sh
 06-Sep-2021 22:33:30.513 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Xmx256m
 ```
 
-
-
 切割后的字段列表如下：
 
-|字段名|字段值|说明|
-|---|---|---|
-|time|1630938810513000000|日志产生的时间|
-|status|INFO|日志等级|
-|thread_name|main|线程名|
-|report_source|org.apache.catalina.startup.VersionLoggerListener.log|ClassName.MethodName|
-|msg|Command line argument: -Xmx256m|消息|
+| 字段名        | 字段值                                                | 说明                 |
+| ---           | ---                                                   | ---                  |
+| time          | 1630938810513000000                                   | 日志产生的时间       |
+| status        | INFO                                                  | 日志等级             |
+| thread_name   | main                                                  | 线程名               |
+| report_source | org.apache.catalina.startup.VersionLoggerListener.log | ClassName.MethodName |
+| msg           | Command line argument: -Xmx256m                       | 消息                 |
 
 **注意**
 

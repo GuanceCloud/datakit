@@ -16,6 +16,7 @@ type InputsStat struct {
 	AvgSize        int64         `json:"avg_size"`
 	Total          int64         `json:"total"`
 	Count          int64         `json:"count"`
+	Filtered       int64         `json:"filtered"`
 	First          time.Time     `json:"first"`
 	Last           time.Time     `json:"last"`
 	LastErr        string        `json:"last_error,omitempty"`

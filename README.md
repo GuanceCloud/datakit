@@ -72,13 +72,13 @@ DataKit building relies on some external tools/libs, we must install them all be
 
 ### Setup Golang
 
-Install and setup Golang(1.16.4+):
+Install and setup Golang(1.18.3+):
 
 ```shell
 export GOPRIVATE=gitlab.jiagouyun.com/*
 export GOPROXY=https://goproxy.cn,direct
 export GOPATH=~/go            # depends on your local settings
-export GOROOT=~/golang-1.16.4 # depends on your local settings 
+export GOROOT=~/golang-1.18.3 # depends on your local settings
 export PATH=$GOROOT/bin:~/go/bin:$PATH
 ```
 
@@ -91,9 +91,9 @@ export PATH=$GOROOT/bin:~/go/bin:$PATH
 - gcc-multilib: `apt-get install -y gcc-multilib`
 - tree: `apt-get install tree`
 - packr2: `go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
-- goyacc: `go get golang.org/x/tools/cmd/goyacc`
+- goyacc: `go install golang.org/x/tools/cmd/goyacc@latest`
 - lint related:
-  - lint: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
+  - lint: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`
 - eBPF related:
 	- clang 10.0+: `apt-get install clang`
 	- llvm 10.0+: `apt-get install llvm`

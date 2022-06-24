@@ -15,7 +15,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/gobuffalo/packr/v2"
+	packr "github.com/gobuffalo/packr/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
@@ -40,9 +40,6 @@ var (
 		"datakit-arch":         "man/manuals/datakit-arch.md",
 		"datakit-batch-deploy": "man/manuals/datakit-batch-deploy.md",
 
-		// deprecated
-		"datakit-conf-how-to": "man/manuals/datakit-conf-how-to.md",
-
 		"datakit-conf":       "man/manuals/datakit-conf.md",
 		"datakit-input-conf": "man/manuals/datakit-input-conf.md",
 
@@ -51,7 +48,6 @@ var (
 		"datakit-daemonset-bp":     "man/manuals/datakit-daemonset-bp.md",
 		"datakit-dql-how-to":       "man/manuals/datakit-dql-how-to.md",
 		"datakit-filter":           "man/manuals/datakit-filter.md",
-		"datakit-how-to":           "man/manuals/datakit-how-to.md", // deprecated
 		"datakit-logging-how":      "man/manuals/datakit-logging-how.md",
 		"datakit-install":          "man/manuals/datakit-install.md",
 		"datakit-logging":          "man/manuals/datakit-logging.md",
@@ -59,11 +55,11 @@ var (
 		"datakit-offline-install":  "man/manuals/datakit-offline-install.md",
 		"datakit-on-public":        "man/manuals/datakit-on-public.md",
 		"datakit-pl-how-to":        "man/manuals/datakit-pl-how-to.md",
+		"datakit-pl-global":        "man/manuals/datakit-pl-global.md",
 		"datakit-service-how-to":   "man/manuals/datakit-service-how-to.md",
 		"datakit-tools-how-to":     "man/manuals/datakit-tools-how-to.md",
 		"datakit-tracing":          "man/manuals/datakit-tracing.md",
 		"datakit-tracing-struct":   "man/manuals/datakit-tracing-struct.md",
-		"datakit-tracing-pl":       "man/manuals/datakit-tracing-pl.md",
 		"datakit-update":           "man/manuals/datakit-update.md",
 		"datatypes":                "man/manuals/datatypes.md",
 		"dataway":                  "man/manuals/dataway.md",

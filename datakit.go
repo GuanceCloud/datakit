@@ -52,6 +52,8 @@ const (
 	Tracing          = "/v1/write/tracing"
 	RUM              = "/v1/write/rum"
 	Security         = "/v1/write/security"
+	Profile          = "/v1/write/profiling"  // write profile metadata.
+	ProfileUpload    = "/v1/upload/profiling" // upload profile binary.
 
 	// data category pure name.
 	CategoryMetric       = "metric"

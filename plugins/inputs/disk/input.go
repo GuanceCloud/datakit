@@ -138,7 +138,8 @@ type Input struct {
 
 func (ipt *Input) appendMeasurement(name string,
 	tags map[string]string,
-	fields map[string]interface{}, ts time.Time) {
+	fields map[string]interface{}, ts time.Time,
+) {
 	tmp := &diskMeasurement{name: name, tags: tags, fields: fields, ts: ts}
 	ipt.collectCache = append(ipt.collectCache, tmp)
 	ipt.collectCacheLast1Ptr = tmp
@@ -243,10 +244,11 @@ func (ipt *Input) Run() {
 		case <-tick.C:
 		case <-datakit.Exit.Wait():
 			l.Infof("disk input exit")
-			return
 
+			return
 		case <-ipt.semStop.Wait():
 			l.Info("disk input return")
+
 			return
 		}
 	}

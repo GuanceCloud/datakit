@@ -16,7 +16,7 @@
 	如果固态硬盘，符合  nvme 标准，建议安装 nvme-cli 以得到更多 nvme 信息：`sudo apt install nvme-cli -y`
 
 - MacOS: `brew install smartmontools -y`
-- WinOS: 下载 [Windows 版本](https://www.smartmontools.org/wiki/Download#InstalltheWindowspackage)
+- WinOS: 下载 [Windows 版本](https://www.smartmontools.org/wiki/Download#InstalltheWindowspackage){:target="_blank"}
 
 
 ## 配置

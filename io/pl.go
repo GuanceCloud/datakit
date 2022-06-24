@@ -62,7 +62,7 @@ func runPl(category string, pts []*Point, opt *Option) (ret []*Point, retErr err
 			}
 		}
 
-		out, drop, err := script.Run(pt.Name(), pt.Tags(), fields, cntKey, pt.Time(), plOpt)
+		out, drop, err := script.Run(pt.Point.Name(), pt.Point.Tags(), fields, cntKey, pt.Point.Time(), plOpt)
 		if err != nil {
 			plLogger.Debug(err)
 			ret = append(ret, pt)
@@ -100,8 +100,20 @@ func scriptName(category string, pt *Point, scriptMap map[string]string) (string
 	}
 	var scriptName string
 	switch category {
+	case datakit.RUM:
+		appID, ok := pt.Tags()["app_id"]
+		if !ok {
+			return "", false
+		}
+		scriptName = fmt.Sprintf("%s_%s.p", appID, pt.Name())
+	case datakit.Security:
+		scheckCategory, ok := pt.Tags()["category"]
+		if !ok {
+			return "", false
+		}
+		scriptName = scheckCategory + ".p"
 	case datakit.Tracing:
-		svc, ok := pt.Tags()["service"]
+		svc, ok := pt.Point.Tags()["service"]
 		if ok {
 			scriptName = scriptMap[svc]
 			if scriptName == "" {
@@ -111,9 +123,9 @@ func scriptName(category string, pt *Point, scriptMap map[string]string) (string
 			return "", false
 		}
 	default:
-		scriptName = scriptMap[pt.Name()]
+		scriptName = scriptMap[pt.Point.Name()]
 		if scriptName == "" {
-			scriptName = pt.Name() + ".p"
+			scriptName = pt.Point.Name() + ".p"
 		}
 	}
 	if scriptName == "-" {

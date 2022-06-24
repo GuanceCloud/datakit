@@ -28,8 +28,8 @@ net 采集器用于采集主机网络信息，如各网络接口的流量信息�
 | `ENV_INPUT_NET_IGNORE_PROTOCOL_STATS`     | `ignore_protocol_stats`     | `true`/`false`                                               |
 | `ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES` | `enable_virtual_interfaces` | `true`/`false`                                               |
 | `ENV_INPUT_NET_TAGS`                      | `tags`                      | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-| `ENV_INPUT_NET_INTERVAL` | `interval` | `10s` |
-| `ENV_INPUT_NET_INTERFACES` | `interfaces` | `'''eth[\w-]+''', '''lo'''` 以英文逗号隔开 |
+| `ENV_INPUT_NET_INTERVAL`                  | `interval`                  | `10s`                                                        |
+| `ENV_INPUT_NET_INTERFACES`                | `interfaces`                | `'''eth[\w-]+''', '''lo'''` 以英文逗号隔开                   |
 
 ## 指标集
 
@@ -58,4 +58,4 @@ net 采集器用于采集主机网络信息，如各网络接口的流量信息�
 
 ## 延伸阅读
 
-- [eBPF 数据采集](ebpf)
+- [eBPF 数据采集](ebpf.md)

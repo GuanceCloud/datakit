@@ -226,7 +226,13 @@ func (m *Input) Run() {
 	tick := time.NewTicker(m.Interval.Duration)
 
 	if namespace := config.GetElectionNamespace(); namespace != "" {
-		m.Tags["election_namespace"] = namespace
+		if m.Tags == nil {
+			m.Tags = map[string]string{
+				"election_namespace": namespace,
+			}
+		} else {
+			m.Tags["election_namespace"] = namespace
+		}
 	}
 
 	for {
@@ -241,15 +247,14 @@ func (m *Input) Run() {
 		case <-datakit.Exit.Wait():
 			m.exit()
 			l.Info("mongodb input exit")
-			return
 
+			return
 		case <-m.semStop.Wait():
 			m.exit()
 			l.Info("mongodb input return")
+
 			return
-
 		case <-tick.C:
-
 		case m.pause = <-m.pauseCh:
 			// nil
 		}

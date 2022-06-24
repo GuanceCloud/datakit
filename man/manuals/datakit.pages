@@ -35,9 +35,11 @@ nav:
   - '文本数据处理':
     - 'Pipeline 介绍': pipeline.md
     - datakit-pl-how-to.md
+    - datakit-pl-global.md
   - 'DataKit 开发':
     - 'DataKit 开发手册': development.md
     - datakit-arch.md
     - datakit-filter.md
     - apis.md
     - datakit-sink-dev.md
+    - integration-to-datakit-howto.md
