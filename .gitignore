@@ -81,3 +81,4 @@ cmd/datakit/data/
 cmd/datakit/gitrepos/
 cmd/datakit/pipeline/
 cmd/datakit/python.d/
+.cl.md
