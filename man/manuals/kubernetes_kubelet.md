@@ -67,11 +67,11 @@ data:
           measurement_name = "prom_kubelet"
 
           ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
-          interval = "10s"
+          interval = "30s"
 
           ## 过滤tags, 可配置多个tag
           # 匹配的tag将被忽略
-          # tags_ignore = ["xxxx"]
+          tags_ignore = ["build_date","compiler","container_state","container_type","git_commit","git_tree_state","git_version","go_version","long_running","major","method","minor","name","node","path","platform","plugin_name","pod","server_type","status","uid","version"] 
 
           ## TLS 配置
           tls_open = true

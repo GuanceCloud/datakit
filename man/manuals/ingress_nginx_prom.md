@@ -41,11 +41,11 @@ vi deploy.yaml
           [[inputs.prom]]
             url = "http://$IP:10254/metrics"
             source = "prom-ingress"
-            metric_types = ["counter", "gauge", "histogram"]
+            metric_types = ["counter", "gauge"]
             # metric_name_filter = ["cpu"]
             # measurement_prefix = ""
             measurement_name = "prom_ingress"
-            interval = "10s"
+            interval = "30s"
             tags_ignore = ["build","le","method","release","repository"]
             # tags_ignore = ["xxxx"]
             [[inputs.prom.measurements]]

@@ -41,10 +41,11 @@ spec:
       annotations:
         datakit/prom.instances: |
           [[inputs.prom]]
-            urls = ["http://$IP:8080/metrics","http://$IP:8081/metrics"]
+            urls = ["http://$IP:8080/metrics"]
             source = "prom_state_metrics"
             metric_types = ["counter", "gauge"]
-            interval = "10s"
+            interval = "30s"
+            tags_ignore = ["access_mode","branch","claim_namespace","cluster_ip","condition","configmap","container","container_id","container_runtime_version","created_by_kind","created_by_name","effect","endpoint","external_name","goversion","host_network","image","image_id","image_spec","ingress","ingressclass","internal_ip","job_name","kernel_version","key","kubelet_version","kubeproxy_version","lease","mutatingwebhookconfiguration","name","networkpolicy","node","node_name","os_image","owner_is_controller","owner_kind","owner_name","path","persistentvolume","persistentvolumeclaim","pod_cidr","pod_ip","poddisruptionbudget","port_name","port_number","port_protocol","priority_class","reason","resource","result","revision","role","secret","service","service_name","service_port","shard_ordinal","status","storageclass","system_uuid","type","uid","unit","version","volume","volumename"]
             #measurement_prefix = ""
             measurement_name = "prom_state_metrics"
             #[[inputs.prom.measurements]]

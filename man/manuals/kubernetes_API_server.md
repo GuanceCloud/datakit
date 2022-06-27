@@ -68,11 +68,12 @@ data:
           measurement_name = "prom_api_server"
 
           ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
-          interval = "10s"
+          interval = "30s"
 
           ## 过滤tags, 可配置多个tag
           # 匹配的tag将被忽略
-          # tags_ignore = ["xxxx"]
+          tags_ignore = ["apiservice","bound","build_date","compiler","component","crd","dry_run","endpoint","error_type","flow_schema","git_commit","git_tree_state","git_version","go_version","group","grpc_code","grpc_method","grpc_service","grpc_type","kind","major","method","minor","operation","platform","priority_level","reason","rejection_code","removed_release","request_kind","resource","result","scope","source","status","subresource","type","usage","username","verb","version"]
+
 
           ## TLS 配置
           tls_open = true
