@@ -10,7 +10,7 @@ import (
 	"github.com/DataDog/ebpf"
 	"github.com/DataDog/ebpf/manager"
 	"github.com/shirou/gopsutil/host"
-	dkfeed "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/feed"
+	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
 	"golang.org/x/net/context"
 )
 
@@ -20,7 +20,7 @@ type ConnResult struct {
 	ts     time.Time
 }
 
-const connExpirationInterval = 8 * 3600 // 8 * 3600s
+const connExpirationInterval = 6 * 3600 // 6 * 3600s
 
 const (
 	srcNameM = "netflow"
@@ -35,13 +35,14 @@ type NetFlowTracer struct {
 func NewNetFlowTracer() *NetFlowTracer {
 	return &NetFlowTracer{
 		connStatsRecord: newConnStatsRecord(),
-		resultCh:        make(chan *ConnResult, 64),
+		resultCh:        make(chan *ConnResult, 4),
 		closedEventCh:   make(chan *ConncetionClosedInfo, 64),
 	}
 }
 
 func (tracer *NetFlowTracer) Run(ctx context.Context, bpfManger *manager.Manager,
-	datakitPostURL string, gTags map[string]string, interval time.Duration) error {
+	datakitPostURL string, gTags map[string]string, interval time.Duration,
+) error {
 	connStatsMap, found, err := bpfManger.GetMap("bpfmap_conn_stats")
 	if err != nil || !found {
 		return err
@@ -58,9 +59,10 @@ func (tracer *NetFlowTracer) Run(ctx context.Context, bpfManger *manager.Manager
 }
 
 func (tracer *NetFlowTracer) ClosedEventHandler(cpu int, data []byte,
-	perfmap *manager.PerfMap, manager *manager.Manager) {
+	perfmap *manager.PerfMap, manager *manager.Manager,
+) {
 	eventC := (*ConncetionClosedInfoC)(unsafe.Pointer(&data[0])) //nolint:gosec
-	event := ConncetionClosedInfo{
+	event := &ConncetionClosedInfo{
 		Info: ConnectionInfo{
 			Saddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.saddr))), //nolint:gosec
 			Daddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.daddr))), //nolint:gosec
@@ -86,7 +88,7 @@ func (tracer *NetFlowTracer) ClosedEventHandler(cpu int, data []byte,
 	}
 	SrcIPPortRecorder.InsertAndUpdate(event.Info.Saddr)
 	if IPPortFilterIn(&event.Info) {
-		tracer.closedEventCh <- &event
+		tracer.closedEventCh <- event
 	}
 }
 
@@ -110,7 +112,8 @@ func (tracer *NetFlowTracer) bpfMapCleanup(cl []ConnectionInfo, connStatsMap *eb
 
 // 在扫描 connStatMap 时锁定资源 connStatsRecord.
 func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMap *ebpf.Map,
-	interval time.Duration, gTags map[string]string) {
+	interval time.Duration, gTags map[string]string,
+) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -228,7 +231,7 @@ func (tracer *NetFlowTracer) feedHandler(ctx context.Context, datakitPostURL str
 			collectCache := ConvertConn2Measurement(result, srcNameM)
 			if len(collectCache) == 0 {
 				l.Warn("netflow: no data")
-			} else if err := dkfeed.FeedMeasurement(collectCache, datakitPostURL); err != nil {
+			} else if err := dkout.FeedMeasurement(datakitPostURL, collectCache); err != nil {
 				l.Error(err)
 			}
 		case <-ctx.Done():

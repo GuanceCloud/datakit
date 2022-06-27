@@ -17,7 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/feed"
+	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 	"golang.org/x/sys/unix"
@@ -126,7 +126,7 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string
 		select {
 		case <-ticker.C:
 			if len(cache) > 0 {
-				if err := feed.FeedMeasurement(cache, datakitPostURL); err != nil {
+				if err := dkout.FeedMeasurement(datakitPostURL, cache); err != nil {
 					l.Error(err)
 				}
 				cache = make([]inputs.Measurement, 0)
@@ -140,7 +140,7 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string
 			l.Debug(m)
 			cache = append(cache, m)
 			if len(cache) > 128 {
-				if err := feed.FeedMeasurement(cache, datakitPostURL); err != nil {
+				if err := dkout.FeedMeasurement(datakitPostURL, cache); err != nil {
 					l.Error(err)
 				}
 				cache = make([]inputs.Measurement, 0)
