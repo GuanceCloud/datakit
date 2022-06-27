@@ -7,11 +7,11 @@
 
 eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志等。本采集器主要包含 `ebpf-net` 及 `ebpf-bash` 俩类:
 
-  * `ebpf-net`:
+* `ebpf-net`:
     * 数据类别: Network
     * 由 netflow、httpflow 和 dnsflow 构成，分别用于采集主机 TCP/UDP 连接统计信息和主机 DNS 解析信息；
 
-  * `ebpf-bash`:
+* `ebpf-bash`:
     * 数据类别: Logging
     * 采集 Bash 的执行日志，包含 Bash 进程号、用户名、执行的命令和时间等;
 
@@ -69,7 +69,6 @@ setenforce 0
 ```yaml
    - name: ENV_ENABLE_INPUTS
           value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,ebpf
-
 ```
 
 ## 指标集

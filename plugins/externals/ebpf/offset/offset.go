@@ -252,7 +252,8 @@ func GuessOffset(ebpfMapGuess *ebpf.Map, guessed *OffsetGuessC) (*OffsetGuessC, 
 }
 
 func guessTCP4(serverAddr string, conninfo Conninfo, ebpfMapGuess *ebpf.Map,
-	offsetCheck *OffsetCheck, status *OffsetGuessC) error {
+	offsetCheck *OffsetCheck, status *OffsetGuessC,
+) error {
 	status.conn_type = ConnL3IPv4 | ConnL4TCP
 	if err := updateMapGuessStatus(ebpfMapGuess, status); err != nil {
 		return err
@@ -333,7 +334,8 @@ func guessTCP4(serverAddr string, conninfo Conninfo, ebpfMapGuess *ebpf.Map,
 }
 
 func guessTCP6(serverAddr6 string, conninfo6 Conninfo, ebpfMapGuess *ebpf.Map,
-	offsetCheck *OffsetCheck, status *OffsetGuessC) error {
+	offsetCheck *OffsetCheck, status *OffsetGuessC,
+) error {
 	if offsetCheck.skV6DaddrOk > MINSUCCESS && offsetCheck.skFamilyOk > MINSUCCESS {
 		return nil
 	}
@@ -383,7 +385,8 @@ func guessTCP6(serverAddr6 string, conninfo6 Conninfo, ebpfMapGuess *ebpf.Map,
 }
 
 func guessUDP4(serverAddrUDP string, conninfoUDP Conninfo, ebpfMapGuess *ebpf.Map,
-	offsetCheck *OffsetCheck, status *OffsetGuessC) error {
+	offsetCheck *OffsetCheck, status *OffsetGuessC,
+) error {
 	if offsetCheck.flowi4DaddrOk > MINSUCCESS &&
 		offsetCheck.flowi4SaddrOk > MINSUCCESS &&
 		offsetCheck.flowi4DportOk > MINSUCCESS {

@@ -51,12 +51,16 @@ type tdEngine struct {
 }
 
 func newTDEngine(user, pw, adapter string) *tdEngine {
+	if !strings.HasPrefix(adapter, "http://") && !strings.HasPrefix(adapter, "https://") {
+		adapter = "http://" + adapter
+	}
 	return &tdEngine{
-		user:    user,
-		pw:      pw,
-		adapter: adapter,
-		basic:   UserToBase64(user, pw),
-		stop:    make(chan struct{}, 1),
+		user:     user,
+		pw:       pw,
+		adapter:  adapter,
+		basic:    UserToBase64(user, pw),
+		stop:     make(chan struct{}, 1),
+		upstream: true,
 	}
 }
 
@@ -70,19 +74,17 @@ func (t *tdEngine) CheckHealth(sql selectSQL) bool {
 }
 
 func (t *tdEngine) getSTablesNum() []inputs.Measurement {
-	l.Debugf("show $database.stables")
 	// show databases.
 	databases := t.getDatabase()
 
 	// show $database.stables.
 	measurements := make([]inputs.Measurement, 0)
 	for i := 0; i < len(databases); i++ {
-		var stableNum int
 		msm := &Measurement{
-			name: "database",
+			name: "td_database",
 			tags: map[string]string{
-				"name":       databases[i].name,
-				"creat_time": databases[i].creatTime,
+				"database_name": databases[i].name,
+				"created_time":  databases[i].creatTime,
 			},
 			fields: map[string]interface{}{},
 			ts:     time.Now(),
@@ -96,34 +98,12 @@ func (t *tdEngine) getSTablesNum() []inputs.Measurement {
 
 		var res restResult
 		if err = json.Unmarshal(body, &res); err != nil {
-			l.Error(fmt.Sprint("parse json error: ", err))
-			return nil
+			l.Errorf("parse json error: %v", err)
+			return measurements
 		}
 
-		var index int
-		for i := 0; i < len(res.ColumnMeta); i++ {
-			l.Debug(res.ColumnMeta[i][0])
-			if res.ColumnMeta[i][0].(string) == "tables" {
-				index = i
-				break
-			}
-		}
-		for i := 0; i < len(res.Data); i++ {
-			x := res.Data[i][index]
-			switch x.(type) {
-			case float32, float64:
-				f := x.(float64)
-				stableNum += int(f)
-			case int, int64:
-				c, ok := x.(int)
-				if ok {
-					stableNum += c
-				}
-			default:
-			}
-		}
 		setGlobalTags(msm)
-		msm.fields["stable_count"] = stableNum
+		msm.fields["stable_count"] = res.Rows
 		measurements = append(measurements, msm)
 	}
 
@@ -208,21 +188,21 @@ func (t *tdEngine) getDatabase() []*database {
 		l.Error(fmt.Sprint("parse json error: ", err))
 		return nil
 	}
-	var nodeIndex int
+	var nameIndex int
 	var creatIndex int
 	for i := 0; i < len(res.ColumnMeta); i++ {
 		l.Debug(res.ColumnMeta[i][0])
-		if res.ColumnMeta[i][0].(string) == "end_point" {
-			nodeIndex = i
+		if res.ColumnMeta[i][0].(string) == "name" {
+			nameIndex = i
 		}
-		if res.ColumnMeta[i][0].(string) == "creat_time" {
+		if res.ColumnMeta[i][0].(string) == "created_time" {
 			creatIndex = i
 		}
 	}
 
 	databases := make([]*database, 0)
 	for i := 0; i < len(res.Data); i++ {
-		name := res.Data[i][nodeIndex].(string)
+		name := res.Data[i][nameIndex].(string)
 		creatTime := res.Data[i][creatIndex].(string)
 		databases = append(databases, &database{
 			name:      name,
@@ -302,6 +282,7 @@ func makeMeasurements(subMetricName string, res restResult, sql selectSQL) (meas
 					default:
 						l.Debugf("unknown")
 					}
+					l.Debugf("tag = %s  val = %s", name, msm.tags[name])
 				}
 			}
 			for _, field := range sql.fields {

@@ -82,14 +82,18 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 	}
 
 	checkpointData, err := getLogCheckpoint(getFileKey(filename))
-	if err != nil {
-		if !opt.FromBeginning {
-			if _, err := t.file.Seek(0, io.SeekEnd); err != nil {
-				return nil, err
+	if err == nil && checkpointData != nil && checkpointData.Offset > 0 {
+		stat, err := t.file.Stat()
+		if err == nil {
+			size := stat.Size()
+			if size > checkpointData.Offset {
+				if _, err := t.file.Seek(checkpointData.Offset, io.SeekStart); err != nil {
+					return nil, err
+				}
 			}
 		}
-	} else if checkpointData != nil && checkpointData.Offset > 0 {
-		if _, err := t.file.Seek(checkpointData.Offset, io.SeekStart); err != nil {
+	} else if !opt.FromBeginning {
+		if _, err := t.file.Seek(0, io.SeekEnd); err != nil {
 			return nil, err
 		}
 	}
@@ -148,6 +152,9 @@ func (t *Single) closeFile() {
 	if err := t.file.Close(); err != nil {
 		t.opt.log.Warnf("close file err: %s, ignored", err)
 	}
+	if err := t.watcher.Remove(t.filepath); err != nil {
+		t.opt.log.Warnf("remove file watcher err: %s, ignored", err)
+	}
 	t.file = nil
 }
 
@@ -155,20 +162,16 @@ func (t *Single) reopen() error {
 	t.closeFile()
 	t.opt.log.Debugf("reopen file %s", t.filepath)
 
-	for {
-		var err error
-		t.file, err = os.Open(t.filepath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				t.opt.log.Debugf("waiting for %s to appear..", t.filepath)
-				time.Sleep(time.Second)
-				continue
-			}
-			return fmt.Errorf("unable to open file %s: %w", t.filepath, err)
-		}
-		break
+	var err error
+	t.file, err = os.Open(t.filepath)
+	if err != nil {
+		return fmt.Errorf("unable to open file %s: %w", t.filepath, err)
 	}
 
+	if err := t.watcher.Add(t.filepath); err != nil {
+		return err
+
+	}
 	return nil
 }
 
@@ -191,8 +194,25 @@ func (t *Single) forwardMessage() {
 			}
 			if event.Op&fsnotify.Rename == fsnotify.Rename {
 				t.opt.log.Debugf("receive rename event from file %s", t.filepath)
+				data, num, err := t.readAll()
+				if err != nil {
+					t.opt.log.Warnf("reading from file %s, err %s", t.filepath, err)
+				} else {
+					t.opt.log.Debugf("read %d bytes from file %s", num, t.filepath)
+					if num != 0 {
+						b.buf = data
+						lines = b.split()
+						if t.opt.DockerMode {
+							t.dockerHandler(lines)
+							continue
+						}
+						t.defaultHandler(lines)
+					}
+				}
+
 				if err = t.reopen(); err != nil {
 					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
+					return
 				}
 			}
 
@@ -229,6 +249,8 @@ func (t *Single) forwardMessage() {
 			t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
 			return
 		}
+
+		t.opt.log.Debugf("reading number %d", readNum)
 
 		if readNum == 0 {
 			t.wait()
@@ -418,6 +440,32 @@ func (t *Single) read() ([]byte, int, error) {
 		return nil, 0, err
 	}
 	return t.readBuff[:n], n, nil
+}
+
+func (t *Single) readAll() ([]byte, int, error) {
+	var res []byte
+	var num int
+
+	var temp = make([]byte, 256)
+
+	for {
+		n, err := t.file.Read(temp)
+		if err != nil && err != io.EOF {
+			// an unexpected error occurred, stop the tailor
+			t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
+			return nil, 0, err
+		}
+
+		if n > 0 {
+			res = append(res, temp[:n]...)
+			num += n
+			temp = temp[:0]
+		} else {
+			break
+		}
+	}
+
+	return res, num, nil
 }
 
 func (t *Single) wait() {
