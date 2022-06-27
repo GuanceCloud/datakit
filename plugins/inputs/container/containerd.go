@@ -320,6 +320,8 @@ func (c *containerdInput) shouldPullContainerLog(container *cri.ContainerStatus)
 		// nil
 	}
 
+	l.Debugf("containerd-log image %s, containerName:%s", image, getContainerNameForLabels(container.Labels))
+
 	if c.ignoreImageForLogging(image) {
 		l.Debugf("ignore containerd-log because of image filter, containerName:%s, shortImage:%s", getContainerNameForLabels(container.Labels), image)
 		return false
