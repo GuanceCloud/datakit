@@ -12,16 +12,69 @@ import (
 	"time"
 )
 
+func TestRespectUserRule(t *testing.T) {
+	testcases := make(DatakitTraces, 100)
+	for i := 0; i < 100; i++ {
+		trace := randDatakitTrace(t, 10, randService(_services...), randResource(_resources...), randPriority(_all_priorities...))
+		parentialize(trace)
+		testcases[i] = trace
+	}
+
+	var keep, auto DatakitTraces
+	for i := range testcases {
+		if trace, ok := RespectUserRule(testcases[i]); ok {
+			if trace != nil {
+				keep = append(keep, trace)
+			}
+		} else {
+			auto = append(auto, trace)
+		}
+	}
+
+	for i := range keep {
+		for j := range keep[i] {
+			if p, ok := keep[i][j].Metrics[FIELD_PRIORITY]; ok {
+				var priority int
+				if priority, ok = p.(int); !ok {
+					t.Errorf("unexpected priority type")
+					t.FailNow()
+				}
+				if priority != PRIORITY_USER_KEEP && priority != PRIORITY_RULE_SAMPLER_KEEP {
+					t.Errorf("unexpected priority %d found", priority)
+					t.FailNow()
+				}
+				break
+			}
+		}
+	}
+	for i := range auto {
+		for j := range auto[i] {
+			if p, ok := auto[i][j].Metrics[FIELD_PRIORITY]; ok {
+				var priority int
+				if priority, ok = p.(int); !ok {
+					t.Errorf("unexpected priority type")
+					t.FailNow()
+				}
+				if priority != PRIORITY_AUTO_KEEP && priority != PRIORITY_AUTO_REJECT {
+					t.Errorf("unexpected priority %d found", priority)
+					t.FailNow()
+				}
+				break
+			}
+		}
+	}
+}
+
 func TestOmitStatusCode(t *testing.T) {
 	testcases := make(DatakitTraces, 100)
 	for i := 0; i < 100; i++ {
-		testcases[i] = randDatakitTrace(t, 10)
+		testcases[i] = randDatakitTrace(t, 10, randService(_services...), randResource(_resources...), randHTTPStatusCode(_http_status_codes...))
 	}
 
 	var afterOmitStatusCode DatakitTraces
 	for i := range testcases {
-		if t, ok := OmitStatusCodeFilterWrapper([]string{"404", "500", "307"})(testcases[i]); !ok {
-			afterOmitStatusCode = append(afterOmitStatusCode, t)
+		if trace, ok := OmitStatusCodeFilterWrapper([]string{"404", "500", "307"})(testcases[i]); !ok {
+			afterOmitStatusCode = append(afterOmitStatusCode, trace)
 		}
 	}
 
@@ -39,7 +92,7 @@ func TestOmitStatusCode(t *testing.T) {
 func TestPenetrateError(t *testing.T) {
 	testcases := make(DatakitTraces, 100)
 	for i := 0; i < 100; i++ {
-		testcases[i] = randDatakitTrace(t, 10)
+		testcases[i] = randDatakitTrace(t, 10, randService(_services...), randResource(_resources...))
 	}
 
 	var afterErrPenetrate DatakitTraces
@@ -68,9 +121,9 @@ func TestPenetrateError(t *testing.T) {
 
 func TestCloseResource(t *testing.T) {
 	testcases := DatakitTraces{
-		randDatakitTraceByService(t, 10, "", "Allen123", "ddtrace"),
-		randDatakitTraceByService(t, 10, "game", "Bravo333", "ddtrace"),
-		randDatakitTraceByService(t, 10, "logout", "Clear666", "ddtrace"),
+		randDatakitTrace(t, 10, randResource("Allen123"), randSource("ddtrace")),
+		randDatakitTrace(t, 10, randService("game"), randResource("Bravo333"), randSource("ddtrace")),
+		randDatakitTrace(t, 10, randService("logout"), randResource("Clear666"), randSource("ddtrace")),
 	}
 	expected := []func(trace DatakitTrace) bool{
 		func(trace DatakitTrace) bool { return trace == nil },
@@ -107,7 +160,7 @@ func TestCloseResource(t *testing.T) {
 func TestKeepRareResource(t *testing.T) {
 	var traces DatakitTraces
 	for i := 0; i < 10; i++ {
-		trace := randDatakitTraceByService(t, 10, "test-rare-resource", "kept", "ddtrace")
+		trace := randDatakitTrace(t, 10, randService("test-rare-resourc"), randResource("kept"), randSource("ddtrace"))
 		parentialize(trace)
 		traces = append(traces, trace)
 	}
@@ -152,13 +205,12 @@ func TestKeepRareResource(t *testing.T) {
 func TestSampler(t *testing.T) {
 	var origin DatakitTraces
 	for i := 0; i < 1000; i++ {
-		dktrace := randDatakitTrace(t, 1)
+		dktrace := randDatakitTrace(t, 1, randService(_services...), randResource(_resources...), randPriority(PRIORITY_AUTO_KEEP))
 		parentialize(dktrace)
 		origin = append(origin, dktrace)
 	}
 
-	sampler := &Sampler{}
-	sampler.UpdateArgs(PriorityAuto, 0.15)
+	sampler := &Sampler{SamplingRateGlobal: 0.15}
 
 	wg := sync.WaitGroup{}
 	wg.Add(10)

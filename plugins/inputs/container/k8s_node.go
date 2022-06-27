@@ -61,6 +61,7 @@ func (n *node) metric() (inputsMeas, error) {
 	for _, item := range n.items {
 		met := &nodeMetric{
 			tags: map[string]string{
+				"node":      item.Name,
 				"node_name": item.Name,
 				// "resource"
 				// "unit"
@@ -194,6 +195,7 @@ func (*nodeMetric) Info() *inputs.MeasurementInfo {
 		Desc: "Kubernetes Node 指标数据",
 		Type: "metric",
 		Tags: map[string]interface{}{
+			"node":      inputs.NewTagInfo("Name must be unique within a namespace. (depercated)"),
 			"node_name": inputs.NewTagInfo("Name must be unique within a namespace."),
 		},
 		Fields: map[string]interface{}{

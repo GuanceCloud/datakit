@@ -23,8 +23,7 @@ func TestStats(t *testing.T) {
 		Time:         time.Now(),
 	}
 	stats.WriteEvent(event)
-	e := stats.ReadEvent()
-	if len(e) == 1 {
+	if e := stats.ReadEvent(); len(e) == 1 {
 		assert.Equal(t, *event, e[0])
 	} else {
 		t.Fatal("len(events): ", len(e))
@@ -41,12 +40,12 @@ func TestStats(t *testing.T) {
 		t.Fatal("len(stats)", len(statsRL))
 	}
 
-	stats.UpdateScriptStatsMeta(statsR.Category, statsR.NS, statsR.Name, "", true, false)
+	stats.UpdateScriptStatsMeta(statsR.Category, statsR.NS, statsR.Name, "", true, false, "")
 	statsRL = stats.ReadStats()
 	if len(statsRL) != 1 {
 		t.Fatal("len(stats)", len(statsRL))
 	}
-	stats.UpdateScriptStatsMeta(statsR.Category, statsR.NS, statsR.Name, "", true, false)
+	stats.UpdateScriptStatsMeta(statsR.Category, statsR.NS, statsR.Name, "", true, false, "")
 	statsRL = stats.ReadStats()
 	if len(statsRL) != 1 {
 		t.Fatal("len(stats)", len(statsRL))

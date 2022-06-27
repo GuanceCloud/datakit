@@ -1,8 +1,6 @@
 {{.CSS}}
-
-- 文档发布日期：{{.ReleaseDate}}
-
-# 观测云无数据排查
+# 如何排查无数据问题
+---
 
 大家在部署完数据采集之后（通过 DataKit 或 Function 采集），有时候在观测云的页面上看不到对应的数据更新，每次排查起来都心力憔悴，为了缓解这一状况，可按照如下的一些步骤，来逐步围歼「为啥没有数据」这一问题。
 
@@ -51,15 +49,21 @@ Wed Jul 21 08:22:32 UTC 2021
 
 另外，如果时间滞后，你会看到一些老数据，不要以为发生了灵异事件，事实上，极有可能是 DataKit 所在机器的时间还停留在过去。
 
+## 查看数据是否被黑名单过滤或 Pipeline 丢弃
+
+如果配置了[黑名单](datakit-filter)（如日志黑名单），新采集的数据可能会被黑名单过滤掉。
+
+同理，如果 Pipeline 中对数据进行了一些[丢弃操作](pipeline#fb024a10)，那么也可能导致中心看不到这些数据。
+
 ## 查看 Monitor 页面
 
-参见[这里](datakit-monitor)
+参见[这里](datakit-monitor.md)
 
 ## 通过 DQL 查看是否有数据产生
 
 在 Windows/Linux/Mac 上，这一功能均支持，其中 Windows 需在 Powershell 中执行
 
-> DataKit [1.1.7-rc7](changelog#494d6cd5) 才支持这一功能
+> DataKit [1.1.7-rc7](changelog#cl-1.1.7-rc7) 才支持这一功能
 
 ```shell
 datakit dql

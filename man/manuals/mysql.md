@@ -1,10 +1,9 @@
 {{.CSS}}
+MySQL
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 MySQL 指标采集，收集以下数据：
 
@@ -71,7 +70,7 @@ Error 1045: Access denied for user 'datakit'@'::1' (using password: YES)
 SHOW VARIABLES LIKE 'log_bin';
 ```
 
-binlog 开启，参见[这个问答](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging)，或者[这个问答](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu)
+binlog 开启，参见[这个问答](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging){:target="_blank"}，或者[这个问答](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu){:target="_blank"}
 
 ### 数据库性能指标采集
 
@@ -94,10 +93,10 @@ dbm = true
 ## 监控指标配置
 [inputs.mysql.dbm_metric]
   enabled = true
-  
+
 ## 监控采样配置
 [inputs.mysql.dbm_sample]
-  enabled = true  
+  enabled = true
 ...
 
 ```
@@ -267,7 +266,7 @@ SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5
 切割后的字段列表如下：
 
 | 字段名              | 字段值                                                                                      | 说明                           |
-| ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------ |
+| ---                 | ---                                                                                         | ---                            |
 | `bytes_sent`        | `123456`                                                                                    | 发送字节数                     |
 | `db_host`           | `localhost`                                                                                 | hostname                       |
 | `db_ip`             | `1.2.3.4`                                                                                   | ip                             |

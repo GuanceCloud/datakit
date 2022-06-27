@@ -51,12 +51,10 @@ type mysqlVersion struct {
 func (m *mysqlVersion) versionCompatible(compatVersion []int) bool {
 	const LEN = 3
 	currentVersion := [LEN]int{0, 0, 0}
-	targetVersion := [LEN]int{0, 0, 0}
+	targetVersion := []int{0, 0, 0}
 	var err error
 
-	for index, value := range compatVersion {
-		targetVersion[index] = value
-	}
+	copy(targetVersion, compatVersion)
 
 	versions := strings.Split(m.version, ".")
 

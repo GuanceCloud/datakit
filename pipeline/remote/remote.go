@@ -62,6 +62,10 @@ func StartPipelineRemote(urls []string) {
 	})
 }
 
+func GetConentFileName() string {
+	return pipelineRemoteContentFile
+}
+
 //------------------------------------------------------------------------------
 
 type IPipelineRemote interface {
@@ -290,7 +294,7 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		if err != nil {
 			l.Errorf("ReadTarToMap failed: %v", err)
 		} else {
-			data := convertContentMapToThreeMap(mContent)
+			data := ConvertContentMapToThreeMap(mContent)
 			if _, ok := data["."]; ok { // check old version
 				if err := ipr.Remove(pathConfig); err != nil {
 					l.Warnf("not compatible content file, remove config failed: %v", err)
@@ -323,8 +327,8 @@ func updatePipelineRemoteConfig(pathConfig, siteURL string, latestTime int64, ip
 	return nil
 }
 
-// more info see test case.
-func convertContentMapToThreeMap(in map[string]string) map[string]map[string]string {
+// ConvertContentMapToThreeMap more info see test case.
+func ConvertContentMapToThreeMap(in map[string]string) map[string]map[string]string {
 	out := make(map[string]map[string]string)
 	for categoryAndName, content := range in {
 		categoryGet, name := filepath.Split(categoryAndName)

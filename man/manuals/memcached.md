@@ -1,10 +1,9 @@
 {{.CSS}}
+# Memcached
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 Memcached 采集器可以从 Memcached 实例中采集实例运行状态指标，并将指标采集到观测云，帮助监控分析 Memcached 各种异常情况
 
@@ -45,4 +44,4 @@ Memcached 采集器可以从 Memcached 实例中采集实例运行状态指标�
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} 
+{{ end }}

@@ -1,14 +1,13 @@
 {{.CSS}}
+# {{.InputName}}
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
-
-# {{.InputName}}
 
 ## 介绍
 
-logfwdserver 会开启 websocket 功能，和 logfwd 配套使用，负责接收和处理 logfwd 发送的数据。logfwd [文档](logfwd)。
+logfwdserver 会开启 websocket 功能，和 logfwd 配套使用，负责接收和处理 logfwd 发送的数据。logfwd [文档](logfwd.md)。
 
 ## DataKit 配置
 
@@ -26,4 +25,4 @@ logfwdserver 会开启 websocket 功能，和 logfwd 配套使用，负责接收
 
 配置好后，重启 DataKit 即可。
 
-> 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](datakit-daemonset-deploy)。
+> 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](datakit-daemonset-deploy.md)。

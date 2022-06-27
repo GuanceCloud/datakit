@@ -19,6 +19,46 @@ func NoneFilter(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
 }
 
+func RespectUserRule(dktrace DatakitTrace) (DatakitTrace, bool) {
+	if len(dktrace) == 0 {
+		return nil, true
+	}
+
+	for i := range dktrace {
+		if p, ok := dktrace[i].Metrics[FIELD_PRIORITY]; ok {
+			var priority int
+			if priority, ok = p.(int); !ok {
+				log.Debugf("wrong type for priority %v", p)
+				continue
+			}
+			switch priority {
+			case PRIORITY_RULE_SAMPLER_REJECT, PRIORITY_USER_REJECT:
+				log.Debugf("drop tid: %s service: %s resource: %s according to PRIORITY_RULE_SAMPLER_REJECT or PRIORITY_USER_REJECT.",
+					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+
+				return nil, true
+			case PRIORITY_USER_KEEP, PRIORITY_RULE_SAMPLER_KEEP:
+				log.Debugf("send tid: %s service: %s resource: %s according to PRIORITY_USER_KEEP or PRIORITY_RULE_SAMPLER_KEEP.",
+					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+
+				return dktrace, true
+			case PRIORITY_AUTO_REJECT, PRIORITY_AUTO_KEEP:
+				return dktrace, false
+			default:
+				log.Infof("[note] no proper priority(%s) rules selected, this may be a potential bug, tid: %s service: %s resource: %s",
+					priority, dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+
+				return dktrace, false
+			}
+		}
+	}
+
+	log.Infof("[note] no priority span found in trace, this may be a potential bug, tid: %s service: %s resource: %s",
+		dktrace[0].TraceID, dktrace[0].Service, dktrace[0].Resource)
+
+	return dktrace, false
+}
+
 func OmitStatusCodeFilterWrapper(statusCodeList []string) FilterFunc {
 	if len(statusCodeList) == 0 {
 		return NoneFilter
@@ -41,7 +81,7 @@ func OmitStatusCodeFilterWrapper(statusCodeList []string) FilterFunc {
 
 func PenetrateErrorTracing(dktrace DatakitTrace) (DatakitTrace, bool) {
 	if len(dktrace) == 0 {
-		return dktrace, true
+		return nil, true
 	}
 
 	for i := range dktrace {
@@ -63,7 +103,7 @@ type CloseResource struct {
 
 func (cres *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
 	if len(dktrace) == 0 {
-		return dktrace, true
+		return nil, true
 	}
 	if len(cres.IgnoreResources) == 0 {
 		return dktrace, false
@@ -75,7 +115,8 @@ func (cres *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
 				if service == "*" || service == dktrace[i].Service {
 					for j := range resList {
 						if resList[j].MatchString(dktrace[i].Resource) {
-							log.Debugf("close trace from service: %s resource: %s send by source: %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+							log.Debugf("close trace tid: %s from service: %s resource: %s send by source: %s",
+								dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
 
 							return nil, true
 						}
@@ -114,7 +155,7 @@ type KeepRareResource struct {
 
 func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
 	if len(dktrace) == 0 {
-		return dktrace, true
+		return nil, true
 	}
 	if !kprres.Open {
 		return dktrace, false
@@ -149,18 +190,8 @@ func (kprres *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
 	}
 }
 
-// tracing data storing priority.
-const (
-	// reject trace before send to dataway.
-	PriorityReject = -1
-	// auto calculate with sampling rate.
-	PriorityAuto = 0
-	// always send to dataway and do not consider sampling and filters.
-	PriorityKeep = 1
-)
-
 type Sampler struct {
-	Priority           int     `toml:"priority" json:"priority"`
+	Priority           int     `toml:"priority" json:"priority"` // deprecated
 	SamplingRateGlobal float64 `toml:"sampling_rate" json:"sampling_rate"`
 	ratio              int
 	once               sync.Once
@@ -172,97 +203,42 @@ func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
 	})
 
 	if len(dktrace) == 0 {
-		return dktrace, true
-	}
-
-	switch smp.Priority {
-	case PriorityAuto:
-		if smp.SamplingRateGlobal >= 1 {
-			return dktrace, false
-		}
-		if int(UnifyToInt64ID(dktrace[0].TraceID)%100) < smp.ratio {
-			return dktrace, false
-		} else {
-			log.Debugf("drop service: %s resource: %s trace_id: %s span_id: %s according to sampling ratio: %d%%",
-				dktrace[0].Service, dktrace[0].Resource, dktrace[0].TraceID, dktrace[0].SpanID, smp.ratio)
-
-			return nil, true
-		}
-	case PriorityReject:
 		return nil, true
-	case PriorityKeep:
-		return dktrace, true
-	default:
-		log.Debug("unrecognized trace proority")
 	}
+
+	for i := range dktrace {
+		if p, ok := dktrace[i].Metrics[FIELD_PRIORITY]; ok {
+			var priority int
+			if priority, ok = p.(int); !ok {
+				log.Debugf("wrong type for priority %v", p)
+				continue
+			}
+			switch priority {
+			case PRIORITY_AUTO_KEEP:
+				if int(UnifyToInt64ID(dktrace[i].TraceID)%100) < smp.ratio {
+					return dktrace, false
+				} else {
+					log.Debugf("drop tid: %s service: %s resource: %s according to PRIORITY_AUTO_KEEP and sampling ratio: %d%%",
+						dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, smp.ratio)
+
+					return nil, true
+				}
+			case PRIORITY_AUTO_REJECT:
+				log.Debugf("drop tid: %s service: %s resource: %s according to PRIORITY_AUTO_REJECT.",
+					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+
+				return nil, true
+			default:
+				log.Infof("[note] no proper priority(%s) rules selected, this may be a potential bug, tid: %s service: %s resource: %s",
+					priority, dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+
+				return dktrace, false
+			}
+		}
+	}
+
+	log.Infof("[note] no priority span found in trace, this may be a potential bug, tid: %s service: %s resource: %s",
+		dktrace[0].TraceID, dktrace[0].Service, dktrace[0].Resource)
 
 	return dktrace, false
-}
-
-func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
-	switch priority {
-	case PriorityAuto, PriorityReject, PriorityKeep:
-		smp.Priority = priority
-	}
-	if samplingRateGlobal >= 0 && samplingRateGlobal <= 1 {
-		smp.SamplingRateGlobal = samplingRateGlobal
-		smp.ratio = int(smp.SamplingRateGlobal * 100)
-	}
-}
-
-func PiplineFilterWrapper(source string, piplines map[string]string) FilterFunc {
-	return NoneFilter
-
-	// if len(piplines) == 0 {
-	// 	return NoneFilter
-	// }
-
-	// var (
-	// 	pips = make(map[string]*pipeline.Pipeline)
-	// 	err  error
-	// )
-	// for k := range piplines {
-	// 	if pips[k], err = pipeline.NewPipeline(piplines[k]); err != nil {
-	// 		log.Debugf("create pipeline %s failed: %s", k, err)
-	// 		continue
-	// 	}
-	// }
-	// if len(pips) == 0 {
-	// 	return NoneFilter
-	// }
-
-	// return func(dktrace DatakitTrace) (DatakitTrace, bool) {
-	// 	if len(dktrace) == 0 {
-	// 		return dktrace, true
-	// 	}
-
-	// 	for s, p := range pips {
-	// 		for i := range dktrace {
-	// 			if dktrace[i].Service == s {
-	// 				if rslt, err := p.Run(dktrace[i].Content, source); err != nil {
-	// 					log.Debugf("run pipeline %s.p failed: %s", s, err.Error())
-	// 				} else {
-	// 					if len(rslt.Output.Tags) > 0 {
-	// 						if dktrace[i].Tags == nil {
-	// 							dktrace[i].Tags = make(map[string]string)
-	// 						}
-	// 						for k, v := range rslt.Output.Tags {
-	// 							dktrace[i].Tags[k] = v
-	// 						}
-	// 					}
-	// 					if len(rslt.Output.Fields) > 0 {
-	// 						if dktrace[i].Metrics == nil {
-	// 							dktrace[i].Metrics = make(map[string]interface{})
-	// 						}
-	// 						for k, v := range rslt.Output.Fields {
-	// 							dktrace[i].Metrics[k] = v
-	// 						}
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-
-	// 	return dktrace, false
-	// }
 }

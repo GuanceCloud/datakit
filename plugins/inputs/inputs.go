@@ -127,6 +127,8 @@ func Add(name string, creator Creator) {
 	}
 
 	Inputs[name] = creator
+
+	AddConfigInfoPath(name, "", 0)
 }
 
 type inputInfo struct {
@@ -143,6 +145,38 @@ func (ii *inputInfo) Run() {
 		ii.input.Run()
 	default:
 		l.Errorf("invalid input type")
+	}
+}
+
+// AddConfigInfoPath add or update input info.
+//  if fp is empty, add new config when inputName not exist, or set ConfigPaths empty when not exist.
+func AddConfigInfoPath(inputName string, fp string, loaded int8) {
+	if c, ok := ConfigInfo[inputName]; ok {
+		if len(fp) == 0 {
+			c.ConfigPaths = []*ConfigPathStat{} // set empty for reload datakit
+			return
+		}
+		for _, p := range c.ConfigPaths {
+			if p.Path == fp {
+				p.Loaded = loaded
+				return
+			}
+		}
+		c.ConfigPaths = append(c.ConfigPaths, &ConfigPathStat{Loaded: loaded, Path: fp})
+	} else {
+		creator, ok := Inputs[inputName]
+		if ok {
+			config := &Config{
+				ConfigPaths:  []*ConfigPathStat{},
+				SampleConfig: creator().SampleConfig(),
+				Catalog:      creator().Catalog(),
+				ConfigDir:    datakit.ConfdDir,
+			}
+			if len(fp) > 0 {
+				config.ConfigPaths = append(config.ConfigPaths, &ConfigPathStat{Loaded: loaded, Path: fp})
+			}
+			ConfigInfo[inputName] = config
+		}
 	}
 }
 

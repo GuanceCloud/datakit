@@ -1,11 +1,9 @@
 {{.CSS}}
+# RabbitMQ
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-
-# {{.InputName}}
 
 RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 RabbitMQ ,它能够：
 
@@ -13,7 +11,6 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 - 跟踪 RabbitMQ queue 信息，比如队列大小，消费者计数等
 - 跟踪 RabbitMQ node 信息，比如使用的 `socket` `mem` 等
 - 跟踪 RabbitMQ exchange 信息 ，比如 `message_publish_count` 等
-
 
 ## 前置条件
 
@@ -26,15 +23,15 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
     sudo apt-get install rabbitmq-server
     sudo service rabbitmq-server start
     ```
-      
-- 开启 `REST API plug-ins` 
-    
+
+- 开启 `REST API plug-ins`
+
     ```shell
     sudo rabbitmq-plugins enable rabbitmq-management
     ```
-      
+
 - 创建 user，比如：
-    
+
     ```shell
     sudo rabbitmqctl add_user guance <SECRET>
     sudo rabbitmqctl set_permissions  -p / guance "^aliveness-test$" "^amq\.default$" ".*"
@@ -88,7 +85,7 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
         files = ["/var/log/rabbitmq/rabbit@your-hostname.log"]
 ```
 
-  
+
 开启日志采集以后，默认会产生日志来源（`source`）为 `rabbitmq` 的日志。
 
 >注意：必须将 DataKit 安装在 RabbitMQ 所在主机才能采集 RabbitMQ 日志
@@ -105,8 +102,8 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 
 切割后的字段列表如下：
 
-| 字段名  |  字段值  | 说明 |
-| ---    | ---     | --- |
-| status    | warning     | 日志等级 |
-| msg    | <0.12897.46>...replacement options     | 日志等级 |
-|  time   | 1622010006000000000     | 纳秒时间戳（作为行协议时间）|
+| 字段名 | 字段值                             | 说明                         |
+| ---    | ---                                | ---                          |
+| status | warning                            | 日志等级                     |
+| msg    | <0.12897.46>...replacement options | 日志等级                     |
+| time   | 1622010006000000000                | 纳秒时间戳（作为行协议时间） |

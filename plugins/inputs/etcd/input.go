@@ -75,7 +75,11 @@ const (
 `
 )
 
+var _ inputs.InputV2 = (*Input)(nil)
+
 type Input struct{}
+
+func (i *Input) Terminate() { /* do nothing */ }
 
 func (i *Input) Catalog() string {
 	return "etcd"

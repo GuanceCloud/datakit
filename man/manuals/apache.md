@@ -1,10 +1,9 @@
 {{.CSS}}
+# Apache
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 Apache 采集器可以从 Apache 服务中采集请求数、连接数等，并将指标采集到观测云，帮助监控分析 Apache 各种异常情况。
 
@@ -12,7 +11,7 @@ Apache 采集器可以从 Apache 服务中采集请求数、连接数等，并�
 
 - Apache 版本 >= 2.4.46 (Unix)
 
-- 一般发行版 Linux 会自带 Apache,如需下载[参见](https://httpd.apache.org/download.cgi)
+- 一般发行版 Linux 会自带 Apache,如需下载[参见](https://httpd.apache.org/download.cgi){:target="_blank"}
 
 - 默认配置路径: `/etc/apache2/apache2.conf`,`/etc/apache2/httpd.conf`
 

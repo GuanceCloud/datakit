@@ -1,7 +1,6 @@
 {{.CSS}}
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 
 # DataKit 支持的数据类型
 

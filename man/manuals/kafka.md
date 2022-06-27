@@ -1,16 +1,15 @@
 {{.CSS}}
+# Kafka
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
 
 采集 Kafka 指标和日志上报到观测云，帮助你监控分析 Kafka 各种异常情况
 
 ## 前置条件
 
-安装或下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar)。DataKit 安装目录下的 `data` 目录中已经有下载好的 Jolokia jar 包。 
+安装或下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar){:target="_blank"}。DataKit 安装目录下的 `data` 目录中已经有下载好的 Jolokia jar 包。 
 
 Jolokia 是作为 Kafka 的 java agent，基于 HTTP 协议提供了一个使用 json 作为数据格式的外部接口，提供给 DataKit 使用。 Kafka 启动时，先配置 `KAFKA_OPTS` 环境变量：(port 可根据实际情况修改成可用端口）
 
@@ -26,7 +25,7 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
 
 在开启 Kafka 服务后，如需采集 Producer/Consumer/Connector 指标，则需分别为其配置 Jolokia。
 
-参考 [KAFKA QUICKSTART](https://kafka.apache.org/quickstart) ，以 Producer 为例，先配置 `KAFKA_OPTS` 环境变量，示例如下：
+参考 [KAFKA QUICKSTART](https://kafka.apache.org/quickstart){:target="_blank"} ，以 Producer 为例，先配置 `KAFKA_OPTS` 环境变量，示例如下：
 
 ```shell
 export KAFKA_OPTS="-javaagent:/usr/local/datakit/data/jolokia-jvm-agent.jar=host=127.0.0.1,port=8090"
@@ -114,12 +113,9 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 
 切割后的字段列表如下：
 
-
-
 | 字段名 | 字段值                                                 |
 | ------ | ------------------------------------------------------ |
 | msg    | Progress event: HTTP_REQUEST_COMPLETED_EVENT, bytes: 0 |
 | name   | io.confluent.connect.s3.storage.S3OutputStream:286     |
 | status | DEBUG                                                  |
 | time   | 1594105469333000000                                    |
-

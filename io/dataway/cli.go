@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 )
 

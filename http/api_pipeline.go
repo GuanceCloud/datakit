@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
@@ -29,7 +30,8 @@ import (
 )
 
 const (
-	categoryPipelineLogging = "logging"
+	defaultNotSetMakePoint = "default_not_set"
+	defaultNotSetService   = "default_not_set_service"
 
 	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/608
 	maxLenPipelineBefore = 3 * 4096
@@ -38,14 +40,13 @@ const (
 )
 
 type pipelineDebugRequest struct {
-	Pipeline  string
-	Source    string
-	Service   string
-	Category  string
-	Data      string
-	Multiline string
-	Encode    string
-	Benchmark bool
+	Pipeline   string `json:"pipeline"`
+	ScriptName string `json:"script_name"`
+	Category   string `json:"category"`
+	Data       string `json:"data"`
+	Multiline  string `json:"multiline"`
+	Encode     string `json:"encode"`
+	Benchmark  bool   `json:"benchmark"`
 }
 
 type pipelineDebugResult struct {
@@ -98,7 +99,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 		return nil, uhttp.Error(ErrInvalidPipeline, err.Error())
 	}
 
-	scriptInfo, err := pipeline.NewPipeline(category, reqDebug.Source+".p", string(decodePipeline))
+	scriptInfo, err := pipeline.NewPipeline(category, reqDebug.ScriptName+".p", string(decodePipeline))
 	if err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrCompiledFailed, err.Error())
@@ -126,33 +127,29 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 	start := time.Now()
 	res := []*pipeline.Result{}
 	for _, line := range dataLines {
-		pt, _ := io.MakePoint(reqDebug.Source, nil, map[string]interface{}{pipeline.FieldMessage: line})
-		pt, drop, err := scriptInfo.Run(pt, nil, opt)
-		if err != nil || pt == nil {
-			continue
-		}
-		fields, err := pt.Fields()
-		if err != nil {
-			continue
-		}
-		tags := pt.Tags()
-
-		if svc, ok := tags["service"]; !ok {
-			if reqDebug.Service == "" {
-				svc = reqDebug.Source
+		switch category {
+		case datakit.Logging:
+			pt, err := io.NewPoint(reqDebug.ScriptName, nil, map[string]interface{}{pipeline.FieldMessage: line}, &opt)
+			if err != nil {
+				l.Errorf("[%s] %s", tid, err.Error())
+				return nil, uhttp.Error(ErrInvalidData, err.Error())
 			}
-			tags["service"] = svc
+			if single := getSinglePointResult(scriptInfo, pt, opt); single != nil {
+				res = append(res, single)
+			}
+		default:
+			pts, err := lp.ParsePoints([]byte(line), nil)
+			if err != nil {
+				l.Errorf("[%s] %s", tid, err.Error())
+				return nil, uhttp.Error(ErrInvalidData, err.Error())
+			}
+			newPts := io.WrapPoint(pts)
+			for _, pt := range newPts {
+				if single := getSinglePointResult(scriptInfo, pt, opt); single != nil {
+					res = append(res, single)
+				}
+			}
 		}
-
-		res = append(res, &pipeline.Result{
-			Output: &parser.Output{
-				Drop:        drop,
-				Measurement: pt.Name(),
-				Time:        pt.Time(),
-				Tags:        tags,
-				Fields:      fields,
-			},
-		})
 	}
 
 	// STEP 4 (optional): benchmark
@@ -162,7 +159,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 			b.Helper()
 			for n := 0; n < b.N; n++ {
 				for _, line := range dataLines {
-					pt, _ := io.MakePoint(reqDebug.Source, nil, map[string]interface{}{pipeline.FieldMessage: line})
+					pt, _ := io.MakePoint(defaultNotSetMakePoint, nil, map[string]interface{}{pipeline.FieldMessage: line})
 					_, _, _ = scriptInfo.Run(pt, nil, opt)
 				}
 			}
@@ -175,9 +172,36 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 	return getReturnResult(start, res, reqDebug, &benchmarkResult), nil
 }
 
+func getSinglePointResult(scriptInfo *pipeline.Pipeline, pt *io.Point, opt io.PointOption) *pipeline.Result {
+	pt, drop, err := scriptInfo.Run(pt, nil, opt)
+	if err != nil || pt == nil {
+		return nil
+	}
+	fields, err := pt.Fields()
+	if err != nil {
+		return nil
+	}
+	tags := pt.Tags()
+
+	if _, ok := tags["service"]; !ok {
+		tags["service"] = defaultNotSetService
+	}
+
+	return &pipeline.Result{
+		Output: &parser.Output{
+			Drop:        drop,
+			Measurement: pt.Name(),
+			Time:        pt.Time(),
+			Tags:        tags,
+			Fields:      fields,
+		},
+	}
+}
+
 func getReturnResult(start time.Time, res []*pipeline.Result,
 	reqDebug *pipelineDebugRequest,
-	benchmarkResult *testing.BenchmarkResult) *pipelineDebugResponse {
+	benchmarkResult *testing.BenchmarkResult,
+) *pipelineDebugResponse {
 	var returnres pipelineDebugResponse
 	cost := time.Since(start)
 	returnres.Cost = cost.String()
@@ -258,13 +282,22 @@ func getBytesLines(bys []byte) ([]string, error) {
 }
 
 func checkRequest(reqDebug *pipelineDebugRequest) error {
-	if reqDebug.Category != categoryPipelineLogging {
+	switch reqDebug.Category {
+	case datakit.CategoryMetric,
+		datakit.CategoryNetwork,
+		datakit.CategoryKeyEvent,
+		datakit.CategoryObject,
+		datakit.CategoryCustomObject,
+		datakit.CategoryLogging,
+		datakit.CategoryTracing,
+		datakit.CategoryRUM,
+		datakit.CategorySecurity:
+	default:
 		return uhttp.Error(ErrInvalidCategory, "invalid category")
 	}
 
 	if len(reqDebug.Pipeline) > maxLenPipelineBefore ||
-		len(reqDebug.Source) > maxLenPipelineBefore ||
-		len(reqDebug.Service) > maxLenPipelineBefore ||
+		len(reqDebug.ScriptName) > maxLenPipelineBefore ||
 		len(reqDebug.Category) > maxLenPipelineBefore ||
 		len(reqDebug.Data) > maxLenDataBefore ||
 		len(reqDebug.Multiline) > maxLenPipelineBefore ||
@@ -309,7 +342,7 @@ func getPointCategory(category string) string {
 		return datakit.Security
 	case datakit.HeartBeat, "heartbeat":
 		return datakit.HeartBeat
-	case datakit.Logging, categoryPipelineLogging:
+	case datakit.Logging, "logging":
 		return datakit.Logging
 	default:
 		return ""

@@ -6,8 +6,6 @@
 package container
 
 import (
-	"reflect"
-
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -20,10 +18,10 @@ const (
 	containerdAddress = "/var/run/containerd/containerd.sock"
 )
 
-var measurements = make(map[reflect.Type]inputs.Measurement)
+var measurements = []inputs.Measurement{}
 
 func registerMeasurement(mea inputs.Measurement) {
-	measurements[reflect.TypeOf(mea)] = mea
+	measurements = append(measurements, mea)
 }
 
 const sampleCfg = `

@@ -145,7 +145,13 @@ func (n *Input) Run() {
 	n.client = client
 
 	if namespace := config.GetElectionNamespace(); namespace != "" {
-		n.Tags["election_namespace"] = namespace
+		if n.Tags == nil {
+			n.Tags = map[string]string{
+				"election_namespace": namespace,
+			}
+		} else {
+			n.Tags["election_namespace"] = namespace
+		}
 	}
 
 	tick := time.NewTicker(n.Interval.Duration)

@@ -68,6 +68,7 @@ func (p *pod) metric() (inputsMeas, error) {
 		met := &podMetric{
 			tags: map[string]string{
 				"pod":       item.Name,
+				"pod_name":  item.Name,
 				"namespace": defaultNamespace(item.Namespace),
 				// "condition":  "",
 				// "deployment": "",
@@ -96,7 +97,7 @@ func (p *pod) metric() (inputsMeas, error) {
 				l.Debugf("unable get pod metric %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
 			} else if podMet != nil {
 				met.fields["cpu_usage"] = podMet.cpuUsage
-				met.fields["memory_usage_bytes"] = pod.Met.memoryUsageBytes
+				met.fields["memory_usage_bytes"] = podMet.memoryUsageBytes
 			}
 		}
 
@@ -148,6 +149,7 @@ func (p *pod) object() (inputsMeas, error) {
 			tags: map[string]string{
 				"name":         fmt.Sprintf("%v", item.UID),
 				"pod_name":     item.Name,
+				"pod_ip":       item.Status.PodIP,
 				"node_name":    item.Spec.NodeName,
 				"phase":        fmt.Sprintf("%v", item.Status.Phase),
 				"qos_class":    fmt.Sprintf("%v", item.Status.QOSClass),
@@ -250,23 +252,6 @@ func (p *pod) object() (inputsMeas, error) {
 	return res, nil
 }
 
-//nolint:deadcode,unused
-func getPodLables(k8sClient k8sClientX, podname, podnamespace string) (map[string]string, error) {
-	pod, err := queryPodMetaData(k8sClient, podname, podnamespace)
-	if err != nil {
-		return nil, err
-	}
-	return pod.labels(), nil
-}
-
-func getPodAnnotations(k8sClient k8sClientX, podname, podnamespace string) (map[string]string, error) {
-	pod, err := queryPodMetaData(k8sClient, podname, podnamespace)
-	if err != nil {
-		return nil, err
-	}
-	return pod.annotations(), nil
-}
-
 type podMeta struct{ *v1.Pod }
 
 func queryPodMetaData(k8sClient k8sClientX, podname, podnamespace string) (*podMeta, error) {
@@ -317,6 +302,7 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"pod":       inputs.NewTagInfo("Name must be unique within a namespace."),
+			"pod_name":  inputs.NewTagInfo("Name must be unique within a namespace. (depercated)"),
 			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
 		Fields: map[string]interface{}{

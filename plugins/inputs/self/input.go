@@ -154,7 +154,7 @@ func macVersion() string {
 	if err != nil {
 		return "macOS"
 	}
-	kernelVersion, err := strconv.Atoi(ver[:strings.Index(ver, ".")])
+	kernelVersion, err := strconv.Atoi(ver[:strings.Index(ver, ".")]) //nolint:gocritic
 	if err != nil {
 		return "macOS"
 	}

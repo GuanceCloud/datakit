@@ -602,7 +602,7 @@ func TestConvertContentMapToThreeMap(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			out := convertContentMapToThreeMap(tc.in)
+			out := ConvertContentMapToThreeMap(tc.in)
 			assert.Equal(t, tc.expect, out)
 		})
 	}

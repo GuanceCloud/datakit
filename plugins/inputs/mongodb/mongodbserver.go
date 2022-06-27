@@ -207,7 +207,8 @@ func (s *Server) gatherData(gatherReplicaSetStats bool,
 	gatherPerDBStats bool,
 	gatherPerColStats bool,
 	colStatsDBs []string,
-	gatherTopStat bool) error {
+	gatherTopStat bool,
+) error {
 	start := time.Now()
 
 	s.Session.SetMode(mgo.Eventual, true)

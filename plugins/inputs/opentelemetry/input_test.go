@@ -105,11 +105,8 @@ func TestInput_Run(t *testing.T) {
 					HTTPStatusOK:    200,
 					ExpectedHeaders: nil,
 				},
-				CloseResource: map[string][]string{"service1": {"name1", "name2"}},
-				Sampler: &itrace.Sampler{
-					Priority:           0,
-					SamplingRateGlobal: 0,
-				},
+				CloseResource:       map[string][]string{"service1": {"name1", "name2"}},
+				Sampler:             &itrace.Sampler{SamplingRateGlobal: 0},
 				IgnoreAttributeKeys: []string{"os_*"},
 				Tags:                map[string]string{},
 				inputName:           "opentelemetry",

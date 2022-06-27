@@ -20,6 +20,7 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/typeurl"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	cri "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -28,17 +29,25 @@ import (
 type containerdInput struct {
 	client *containerd.Client
 
+	// container log 需要添加 pod 信息，所以存一份 k8sclient
+	k8sClient k8sClientX
+
 	criClient         cri.RuntimeServiceClient
 	criRuntimeVersion *cri.VersionResponse
 
-	cfg *containerdInputConfig
+	logpathList   map[string]interface{}
+	loggingFilter filter.Filter
 
-	logpathList map[string]interface{}
-	mu          sync.Mutex
+	cfg *containerdInputConfig
+	mu  sync.Mutex
 }
 
 type containerdInputConfig struct {
-	endpoint  string
+	endpoint string
+
+	containerIncludeLog []string
+	containerExcludeLog []string
+
 	extraTags map[string]string
 }
 
@@ -50,7 +59,7 @@ func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
 
 	runtimeVersion, err := getCRIRuntimeVersion(criClient)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get CRI-RuntimeVersion: %w ", err)
+		return nil, fmt.Errorf("failed to get CRI-RuntimeVersion: %w", err)
 	}
 
 	client, err := containerd.New(cfg.endpoint)
@@ -58,18 +67,24 @@ func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
 		return nil, fmt.Errorf("failed to new containerd: %w ", err)
 	}
 
-	return &containerdInput{
+	c := &containerdInput{
+		client:            client,
 		criClient:         criClient,
 		criRuntimeVersion: runtimeVersion,
-		client:            client,
 		cfg:               cfg,
 		logpathList:       make(map[string]interface{}),
-	}, nil
+	}
+
+	if err := c.createLoggingFilters(cfg.containerIncludeLog, cfg.containerExcludeLog); err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 func (c *containerdInput) stop() {
 	if err := c.client.Close(); err != nil {
-		l.Errorf("closed contianerd, err: %s", err)
+		l.Warnf("closed contianerd, err: %s", err)
 	}
 }
 
@@ -125,12 +140,26 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 				l.Warnf("failed to get containerd info, err: %s, skip", err)
 				continue
 			}
+
+			l.Debugf("containerd-info: %#v", info)
+
 			if isPauseContainerd(&info) {
 				continue
 			}
+
 			obj := newContainerdObject(&info)
 			obj.tags["linux_namespace"] = ns
 			obj.tags.append(c.cfg.extraTags)
+
+			// 使用更准确的 name
+			resp, _ := c.criClient.ContainerStatus(context.Background(), &cri.ContainerStatusRequest{ContainerId: container.ID()})
+			if resp != nil && resp.GetStatus() != nil && resp.GetStatus().State == cri.ContainerState_CONTAINER_EXITED {
+				l.Debug("containerd-state is exited, id %s", container.ID())
+				continue
+			}
+			if resp != nil && resp.GetStatus() != nil && resp.GetStatus().GetMetadata() != nil {
+				obj.tags["container_name"] = useDefaultUnknown(resp.GetStatus().GetMetadata().GetName())
+			}
 
 			metricsData, err := getContainerdMetricsData(ctx, container)
 			if err != nil {
@@ -182,6 +211,123 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 	return res, nil
 }
 
+func (c *containerdInput) watchNewLogs() error {
+	list, err := c.criClient.ListContainers(context.Background(), &cri.ListContainersRequest{Filter: nil})
+	if err != nil {
+		return fmt.Errorf("failed to get cri-ListContainers err: %w", err)
+	}
+
+	containers := list.GetContainers()
+	l.Debugf("containerd length: %d", len(containers))
+
+	for _, container := range containers {
+		resp, err := c.criClient.ContainerStatus(context.Background(), &cri.ContainerStatusRequest{ContainerId: container.Id})
+		if err != nil {
+			l.Warnf("failed to get cri-container response, id: %s, err: %s", container.Id, err)
+			continue
+		}
+
+		status := resp.GetStatus()
+		if status == nil {
+			l.Warnf("invalid containerd status, id: %s", container.Id)
+			continue
+		}
+
+		if !c.shouldPullContainerLog(status) {
+			l.Debugf("containerd-status: %#v", status)
+			continue
+		}
+
+		name := container.Id
+		if m := status.GetMetadata(); m != nil {
+			name = m.Name
+		}
+		l.Infof("add container log, containerName: %s image: %s", name, container.Image)
+
+		go func(status *cri.ContainerStatus) {
+			if err := c.tailingLog(status); err != nil {
+				l.Warnf("tail containerLog: %s", err)
+			}
+		}(status)
+	}
+
+	return nil
+}
+
+func (c *containerdInput) createLoggingFilters(include, exclude []string) error {
+	in := splitRules(include)
+	ex := splitRules(exclude)
+
+	f, err := filter.NewIncludeExcludeFilter(in, ex)
+	if err != nil {
+		return err
+	}
+
+	c.loggingFilter = f
+	return nil
+}
+
+func (c *containerdInput) ignoreImageForLogging(image string) (ignore bool) {
+	if c.loggingFilter == nil {
+		return
+	}
+	// 注意，match 和 ignore 是相反的逻辑
+	// 如果 match 通过，则表示不需要 ignore
+	// 所以要取反
+	return !c.loggingFilter.Match(image)
+}
+
+func (c *containerdInput) shouldPullContainerLog(container *cri.ContainerStatus) bool {
+	if c.inLogList(container.GetLogPath()) {
+		return false
+	}
+
+	var image string
+	if imageSpec := container.GetImage(); imageSpec != nil {
+		image = imageSpec.Image
+	}
+
+	// TODO
+	// 每次获取到容器列表，都要进行以下审核，特别是获取其 k8s Annotation 的配置，需要进行访问和查找
+	// 这消耗很大，且没有意义
+	// 可以使用 container ID 进行缓存，维持一份名单，通过名单再决定是否进行考查
+
+	podAnnotationState := podAnnotationNil
+
+	func() {
+		podName := getPodNameForLabels(container.Labels)
+		if c.k8sClient == nil || podName == "" {
+			return
+		}
+		podNamespace := getPodNamespaceForLabels(container.Labels)
+
+		meta, err := queryPodMetaData(c.k8sClient, podName, podNamespace)
+		if err != nil {
+			return
+		}
+		if containerImage := meta.containerImage(getContainerNameForLabels(container.Labels)); containerImage != "" {
+			image = containerImage
+		}
+		podAnnotationState = getPodAnnotationState(container.Labels, meta)
+	}()
+
+	switch podAnnotationState {
+	case podAnnotationDisable:
+		return false
+	case podAnnotationEnable:
+		return true
+	case podAnnotationNil:
+		// nil
+	}
+
+	if c.ignoreImageForLogging(image) {
+		l.Debugf("ignore containerd-log because of image filter, containerName:%s, shortImage:%s", getContainerNameForLabels(container.Labels), image)
+		return false
+	}
+
+	return true
+}
+
 func getContainerdMetricsData(ctx context.Context, container containerd.Container) (interface{}, error) {
 	task, err := container.Task(ctx, nil)
 	if err != nil {
@@ -227,16 +373,11 @@ func newContainerdObject(info *containers.Container) *containerdObject {
 		"image_tag":        imageTag,
 		"runtime":          info.Runtime.Name,
 		"container_type":   "containerd",
+		"container_name":   getContainerNameForLabels(info.Labels),
 	}
 	obj.fields = map[string]interface{}{
 		// 毫秒除以1000得秒数，不使用Second()因为它返回浮点
 		"age": time.Since(info.CreatedAt).Milliseconds() / 1e3,
-	}
-
-	if containerName := getContainerNameForLabels(info.Labels); containerName != "" {
-		obj.tags["container_name"] = containerName
-	} else {
-		obj.tags["container_name"] = "unknown"
 	}
 
 	obj.tags.addValueIfNotEmpty("pod_name", getPodNameForLabels(info.Labels))

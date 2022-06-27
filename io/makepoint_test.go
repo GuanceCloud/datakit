@@ -33,9 +33,7 @@ func getNFields(n int) map[string]interface{} {
 	fields := map[string]interface{}{}
 	for {
 		var v interface{}
-		if i%1 == 0 { // int
-			v = i
-		}
+		v = i // int
 
 		if i%2 == 0 { // string
 			v = fmt.Sprintf("fieldv-%d", i)
@@ -282,7 +280,7 @@ func TestNewPoint(t *testing.T) {
 			}
 
 			tu.Ok(t, err)
-			x := pt.String()
+			x := pt.Point.String()
 			tu.Equals(t, tc.expect, x)
 		})
 	}

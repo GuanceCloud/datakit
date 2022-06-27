@@ -37,7 +37,7 @@ func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{
 
 		events, err := client.getEvents().List(context.Background(), metaV1ListOption)
 		if err != nil {
-			l.Warnf("failed to load events: %v", err)
+			l.Warnf("failed to load events: %s", err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -48,7 +48,7 @@ func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{
 		watcher, err := client.getEvents().Watch(context.Background(),
 			metav1.ListOptions{Watch: true, ResourceVersion: resourceVersion})
 		if err != nil {
-			l.Warnf("failed to start watch for new events: %v", err)
+			l.Warnf("failed to start watch for new events: %s", err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -81,7 +81,7 @@ func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{
 					switch watchUpdate.Type {
 					case kubewatch.Added, kubewatch.Modified:
 						if err := feedEvent(event, extraTags); err != nil {
-							l.Warnf("failed to parse event: %v", err)
+							l.Warnf("failed to parse event: %s", err)
 						}
 
 					case kubewatch.Bookmark, kubewatch.Error:
@@ -131,7 +131,7 @@ func buildEventData(item *kubeapi.Event, extraTags tagsType) inputs.Measurement 
 	obj.tags["message"] = item.Message
 	msg, err := json.Marshal(obj.tags)
 	if err != nil {
-		l.Warnf("Failed to build event message: %s", err)
+		l.Warnf("failed to build event message: %s", err)
 	} else {
 		obj.fields["message"] = string(msg)
 	}

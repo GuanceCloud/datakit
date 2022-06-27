@@ -32,7 +32,8 @@ func NamedFeed(data []byte, category, name string) error {
 func NamedFeedEx(name, category, metric string,
 	tags map[string]string,
 	fields map[string]interface{},
-	t ...time.Time) error {
+	t ...time.Time,
+) error {
 	var ts time.Time
 	if len(t) > 0 {
 		ts = t[0]

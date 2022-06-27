@@ -1,6 +1,7 @@
-## DataKit 日志采集器性能测试
+# DataKit 日志采集器性能测试
+---
 
-### 环境和工具
+## 环境和工具
 
 - 操作系统：Ubuntu 20.04.2 LTS
 - CPU：Intel(R) Core(TM) i5-7500 CPU @ 3.40GHz
@@ -13,7 +14,7 @@
 - 日志数量：10w 行
 - 使用 pipeline：见后文
 
-### 测试结果
+## 测试结果
 
 | 测试条件                                                                                                   | 耗时   |
 | :--                                                                                                        | ---    |
@@ -30,7 +31,7 @@
 
 > 耗时为 DataKit 程序计算，不同环境下可能会有偏差
 
-### 对比
+## 对比
 
 使用 Fluentd 对同样 10w 行日志进行采集，CPU 使用率在 3秒内从 43% 升至 77% 然后回落，可以预见此时已经处理结束。
 
@@ -38,15 +39,15 @@
 
 Fluentd 的 pipeline 匹配模式单一，没有进行同数据源多格式的 pipeline（例如 nginx 只支持 access log 而不支持 error log）。
 
-### 结论
+## 结论
 
 DataKit 日志采集，在 pipeline 单一匹配模式下，处理耗时和 Fluentd 相差 30% 左右。
 
 但是如果使用完整版全量匹配 pipeline，耗时剧增。
 
-### 附录（pipeline）
+## 附录（pipeline）
 
-#### 一, 完整版/全量匹配 pipeline
+### 一, 完整版/全量匹配 pipeline
 
 ```
 add_pattern("date2", "%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}")
@@ -82,7 +83,7 @@ nullif(upstream, "")
 default_time(time)
 ```
 
-#### 二, 单一匹配 pipeline
+### 二, 单一匹配 pipeline
 
 ```
 # access log
@@ -94,7 +95,7 @@ cast(bytes, "int")
 default_time(time)
 ```
 
-#### 三, 优化过的单一匹配 pipeline（将性能消耗极大的 IPORHOST 改为 NOTSPACE）
+### 三, 优化过的单一匹配 pipeline（将性能消耗极大的 IPORHOST 改为 NOTSPACE）
 
 ```
 # access log

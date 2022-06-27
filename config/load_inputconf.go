@@ -145,6 +145,7 @@ func LoadInputConf(root string) map[string][]inputs.Input {
 
 		for k, arr := range x {
 			ret[k] = append(ret[k], arr...)
+			inputs.AddConfigInfoPath(k, fp, 1)
 		}
 	}
 

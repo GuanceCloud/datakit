@@ -11,9 +11,10 @@ RED="\033[31m"
 GREEN="\033[32m"
 YELLOW="\033[33m"
 CLR="\033[0m"
+docs_dir=~/git/dataflux-doc/docs/datakit
+integration_docs_dir=~/git/dataflux-doc/docs/integrations
 
-rm -rf .docs
-mkdir -p .docs
+mkdir -p $docs_dir $integration_docs_dir
 cp man/summary.md .docs/
 
 latest_tag=$(git tag --sort=-creatordate | head -n 1)
@@ -52,23 +53,16 @@ fi
 
 make
 
-LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit doc \
-	--export-docs .docs \
+echo 'export to datakit docs...'
+dist/datakit-${os}-amd64/datakit doc \
+	--export-docs $docs_dir \
 	--ignore demo \
-	--log stdout \
-	--export-docs .docs \
 	--version "${man_version}" \
 	--TODO "-"
 
-# 雨雀有时候会返回 429 错误，只能不断重试了。但如果是其它问题（比如文档被别
-# 人手动篡改），需手动结束并移除对应文档，重新上传。
-while true
-do
-	if waque upload .docs/*.md -c "${waque_yml}"; then
-		printf "${GREEN}----------------------${CLR}\n";
-		printf "${GREEN}[I] upload manuals ok (using %s).${CLR}\n" ${waque_yml};
-		break
-	fi
-	printf "try again...\n"
-	sleep 1
-done
+echo 'export to integrations docs...'
+dist/datakit-${os}-amd64/datakit doc \
+	--export-docs $integration_docs_dir \
+	--ignore demo \
+	--version "${man_version}" \
+	--TODO "-"

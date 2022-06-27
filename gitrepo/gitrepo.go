@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-git/go-git/v5"
+	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -45,7 +45,18 @@ const (
 	prefixHTTP = "http"
 
 	prefixGitBranchName = "refs/heads/"
+
+	authUseHTTP = 1
+	authUseSSH  = 2
+
+	errTextSameNameNotReally = "unable to authenticate, attempted methods [none publickey], no supported methods remain"
 )
+
+type authOpt struct {
+	Auth        int
+	GitUserName string
+	GitPassword string
+}
 
 func StartPull() error {
 	runGit.Do(func() {
@@ -86,6 +97,8 @@ func pullMain(cg *config.GitRepost) error {
 
 						if err := inputs.RunInputs(); err != nil {
 							l.Error("error running inputs: %v", err)
+						} else {
+							l.Info("first run inputs succeeded")
 						}
 					}
 				}
@@ -113,22 +126,20 @@ func doRun(c *config.GitRepository) error {
 		return err
 	}
 
-	gitUserName, gitPassword, err := getUserNamePasswordFromGitURL(c.URL)
+	as, err := getUserNamePasswordFromGitURL(c.URL)
 	if err != nil {
 		l.Errorf("getUserNamePasswordFromGitURL failed: %v, url = %s", err, c.URL)
 		return err
 	}
 
-	if gitUserName == "" {
+	if as.Auth == authUseSSH && len(c.SSHPrivateKeyPath) == 0 {
 		// use ssh to auth
-		if c.SSHPrivateKeyPath == "" {
-			tip := "ssh need key file"
-			l.Error(tip)
-			return fmt.Errorf(tip)
-		}
+		tip := "ssh need key file"
+		l.Error(tip)
+		return fmt.Errorf(tip)
 	}
 
-	authMethod, err := getAuthMethod(gitUserName, gitPassword, c)
+	authMethod, err := getAuthMethod(as, c)
 	if err != nil {
 		l.Errorf("getAuthMethod failed: %v, url = %s", err, c.URL)
 		return err
@@ -210,6 +221,14 @@ func gitPull(clonePath, branch string, authMethod transport.AuthMethod) (isUpdat
 			isUpdate = false // NOTE: not continue here
 		} else {
 			l.Errorf("Pull failed: %v", err)
+
+			if strings.Contains(err.Error(), errTextSameNameNotReally) {
+				if err := os.RemoveAll(clonePath); err != nil {
+					l.Warnf("failed remove clone path %s with error %v", clonePath, err)
+				} else {
+					l.Infof("succeeded remove clone path %s", clonePath)
+				}
+			}
 			return
 		}
 	}
@@ -365,52 +384,63 @@ func isUserNamePasswordAuth(gitURL string) (bool, error) {
 	}
 }
 
-func getUserNamePasswordFromGitURL(gitURL string) (gitUserName, gitPassword string, err error) {
+func getUserNamePasswordFromGitURL(gitURL string) (*authOpt, error) {
 	// http only could use username & password auth
 	// ssh only could use private key auth
 	uGitURL, err := giturls.Parse(gitURL)
 	if err != nil {
 		l.Errorf("url.Parse failed: %v, url = %s", err, gitURL)
-		return
+		return nil, err
 	}
 
 	bIsUseAuthUserNamePassword, err := isUserNamePasswordAuth(gitURL)
 	if err != nil {
 		l.Errorf("isUserNamePasswordAuth failed: %v, url = %s", err, gitURL)
-		return
+		return nil, err
 	}
+
+	var auth int
+	var gitUserName, gitPassword string
 
 	if bIsUseAuthUserNamePassword {
 		gitUserName = uGitURL.User.Username()
-		if password, ok := uGitURL.User.Password(); !ok {
-			tip := "invalid git password"
-			l.Error(tip)
-			err = fmt.Errorf(tip)
-			return
-		} else {
-			gitPassword = password
-		}
-
-		if gitUserName == "" || gitPassword == "" {
-			tip := "http need username password"
-			l.Error(tip)
-			err = fmt.Errorf(tip)
-			return
-		}
+		gitPassword, _ = uGitURL.User.Password()
+		auth = authUseHTTP
+	} else {
+		auth = authUseSSH
 	}
-	return gitUserName, gitPassword, nil
+
+	return &authOpt{
+		Auth:        auth,
+		GitUserName: gitUserName,
+		GitPassword: gitPassword,
+	}, nil
 }
 
-func getAuthMethod(gitUserName, gitPassword string, c *config.GitRepository) (transport.AuthMethod, error) {
+func getAuthMethod(as *authOpt, c *config.GitRepository) (transport.AuthMethod, error) {
+	if as == nil {
+		return nil, fmt.Errorf("invalid auth struct")
+	}
+
 	var authMethod transport.AuthMethod
-	if gitUserName != "" {
+
+	switch as.Auth {
+	case authUseHTTP:
 		// use username & password to auth
-		authMethod = &http.BasicAuth{
-			Username: gitUserName,
-			Password: gitPassword,
+		if len(as.GitUserName) == 0 {
+			authMethod = nil
+		} else {
+			authMethod = &http.BasicAuth{
+				Username: as.GitUserName,
+				Password: as.GitPassword,
+			}
 		}
-	} else {
+		l.Debugf("authMethod = %#v", authMethod)
+
+	case authUseSSH:
 		// use ssh to auth
+		l.Debug("use ssh to auth")
+
 		if _, err := os.Stat(c.SSHPrivateKeyPath); err != nil {
 			l.Errorf("read file %s failed %s\n", c.SSHPrivateKeyPath, err.Error())
 			return nil, err
@@ -424,6 +454,10 @@ func getAuthMethod(gitUserName, gitPassword string, c *config.GitRepository) (tr
 
 		publicKeys.HostKeyCallback = ssh2.InsecureIgnoreHostKey() //nolint:errcheck,gosec
 		authMethod = publicKeys
-	}
+
+	default:
+		return nil, fmt.Errorf("not supported auth method")
+	} // switch
+
 	return authMethod, nil
 }

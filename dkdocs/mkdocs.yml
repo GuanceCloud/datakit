@@ -1,0 +1,82 @@
+site_name: DataKit Docs
+theme:
+  palette:
+    scheme: orange
+  features:
+    - content.tabs.link
+  name: material
+  icon:
+    admonition:
+      note: octicons/tag-16
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - meta
+  - admonition
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - toc:
+      permalink: True
+      baselevel: 2
+      separator: "_"
+nav:
+  - 'Home': 'index.md'
+  - 'DataKit 服务管理': 'datakit-service-how-to'
+  - '如何配置 DataKit'
+    - 'DataKit 主配置' : 'datakit-conf'
+    - '采集器配置' : 'datakit-input-conf'
+    - '如何通过 Git 来管理采集器配置': 'git-config-how-to'
+  - 'DataKit 日常使用'
+    - '通过 DQL 查询数据': 'datakit-dql-how-to'
+    - '查看 DataKit Monitor': 'datakit-monitor'
+    - '各种其它工具使用': 'datakit-tools-how-to'
+    - '如何排查无数据问题': 'why-no-data'
+
+  - 'DataKit 版本历史': 'changelog.md'
+  - 'DataKit 安装':
+    - '宿主机安装':
+      - '安装': 'datakit-install.md'
+      - '离线部署': 'datakit-offline-install.md'
+      - '批量部署': 'datakit-batch-deploy.md'
+      - 'DataKit 升级': 'datakit-update.md'
+      - 'DataKit 服务管理': 'datakit-service-how-to.md'
+    - 'DaemonSet':
+      - '安装': 'datakit-daemonset-deploy.md'
+      - '升级': 'datakit-daemonset-update.md'
+    - 'DataKit 代理': 'proxy.md'
+    - 'DataKit 选举支持': 'election.md'
+    - 'DCA 客户端(beta)': 'dca.md'
+  - '如何配置 DataKit':
+    - 'DataKit 主配置': 'datakit-conf.md'
+    - '采集器配置': 'datakit-input-conf.md'
+    - '如何通过 Git 来管理采集器配置': 'git-config-how-to.md'
+  - 'DataKit 日常使用':
+    - '通过 DQL 查询数据': 'datakit-dql-how-to.md'
+    - '查看 DataKit Monitor': 'datakit-monitor.md'
+    - '各种其它工具使用': 'datakit-tools-how-to.md'
+    - '如何排查无数据问题': 'why-no-data.md'
+
+  - '文本数据处理':
+    - 'Pipeline 介绍': 'pipeline.md'
+    - '如何编写 Pipeline 脚本': 'datakit-pl-how-to.md'
+
+  - 'DataKit 开发':
+    - '开发以及环境准备': 'development.md'
+    - 'DataKit 整体架构简介': 'datakit-arch.md'
+  - '行协议过滤器': 'datakit-filter.md'
+  - 'DataKit API': 'apis.md'

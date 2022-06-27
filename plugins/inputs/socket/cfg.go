@@ -6,7 +6,6 @@
 package socket
 
 import (
-	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -30,7 +29,7 @@ var (
 	maxInterval = time.Second * 60
 	sample      = `
 [[inputs.socket]]
-  ## support tcp, udp
+  ## support tcp, udp.If the quantity to be detected is too large, it is recommended to open more collectors
   dest_url = ["tcp://host:port", "udp://host:port"]
 
   ## @param interval - number - optional - default: 30
@@ -50,9 +49,6 @@ type Input struct {
 	Interval   datakit.Duration `toml:"interval"` // 单位为秒
 	UDPTimeOut datakit.Duration `toml:"udp_timeout"`
 	TCPTimeOut datakit.Duration `toml:"tcp_timeout"`
-
-	curTasks map[string]*dialer
-	wg       sync.WaitGroup
 
 	collectCache []inputs.Measurement
 	Tags         map[string]string `toml:"tags"`

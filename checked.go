@@ -161,7 +161,9 @@ var (
 		"consul":                 true,
 		"prom_remote_write":      true,
 		"pythond":                true,
+		"profile":                true,
 		"socket":                 true,
 		"beats_output":           true,
+		"tdengine":               true,
 	}
 )
