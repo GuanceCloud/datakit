@@ -19,8 +19,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/feed"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/netflow"
+	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/sys/unix"
 )
@@ -31,6 +31,12 @@ import "C"
 const HTTPPayloadMaxsize = 69
 
 const srcNameM = "httpflow"
+
+const (
+	NoValue           = "N/A"
+	DirectionOutgoing = "outgoing"
+	DirectionIncoming = "incoming"
+)
 
 const (
 	ConnL3Mask uint32 = dknetflow.ConnL3Mask
@@ -50,12 +56,12 @@ type (
 	ConnectionInfo  dknetflow.ConnectionInfo
 	HTTPStats       struct {
 		// payload    [HTTP_PAYLOAD_MAXSIZE]byte
-		payload      string
-		req_method   uint8
-		http_version uint32
-		resp_code    uint32
-		req_ts       uint64
-		resp_ts      uint64
+		Payload     string
+		ReqMethod   uint8
+		HTTPVersion uint32
+		RespCode    uint32
+		ReqTS       uint64
+		RespTS      uint64
 	}
 	HTTPReqFinishedInfo struct {
 		ConnInfo  ConnectionInfo
@@ -118,7 +124,7 @@ type HTTPFlowTracer struct {
 
 func NewHTTPFlowTracer(tags map[string]string, datakitPostURL string) *HTTPFlowTracer {
 	return &HTTPFlowTracer{
-		finReqCh:       make(chan *HTTPReqFinishedInfo, 128),
+		finReqCh:       make(chan *HTTPReqFinishedInfo, 64),
 		gTags:          tags,
 		datakitPostURL: datakitPostURL,
 	}
@@ -127,7 +133,7 @@ func NewHTTPFlowTracer(tags map[string]string, datakitPostURL string) *HTTPFlowT
 func (tracer *HTTPFlowTracer) Run(ctx context.Context) error {
 	rawSocket, err := afpacket.NewTPacket()
 	if err != nil {
-		return fmt.Errorf("error creating raw socket: %s", err)
+		return fmt.Errorf("error creating raw socket: %w", err)
 	}
 
 	go tracer.feedHandler(ctx)
@@ -149,7 +155,7 @@ func (tracer *HTTPFlowTracer) Run(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
 		tracer.TPacket.Close()
-		bpfManger.Stop(manager.CleanAll)
+		_ = bpfManger.Stop(manager.CleanAll)
 	}()
 
 	return nil
@@ -168,12 +174,12 @@ func (tracer *HTTPFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
 			Meta:  uint32(eventC.conn_info.meta),
 		},
 		HTTPStats: HTTPStats{
-			payload:      unix.ByteSliceToString((*(*[HTTPPayloadMaxsize]byte)(unsafe.Pointer(&eventC.http_stats.payload)))[:]),
-			req_method:   uint8(eventC.http_stats.req_method),
-			http_version: uint32(eventC.http_stats.http_version),
-			resp_code:    uint32(eventC.http_stats.resp_code),
-			req_ts:       uint64(eventC.http_stats.req_ts),
-			resp_ts:      uint64(eventC.http_stats.resp_ts),
+			Payload:     unix.ByteSliceToString((*(*[HTTPPayloadMaxsize]byte)(unsafe.Pointer(&eventC.http_stats.payload)))[:]),
+			ReqMethod:   uint8(eventC.http_stats.req_method),
+			HTTPVersion: uint32(eventC.http_stats.http_version),
+			RespCode:    uint32(eventC.http_stats.resp_code),
+			ReqTS:       uint64(eventC.http_stats.req_ts),
+			RespTS:      uint64(eventC.http_stats.resp_ts),
 		},
 	}
 	tracer.finReqCh <- &httpStats
@@ -189,26 +195,18 @@ func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context) {
 			if len(cache) == 0 {
 				continue
 			}
-			ms := make([]inputs.Measurement, 0)
-			for _, httpFinReq := range cache {
-				if !ConnNotNeedToFilter(httpFinReq.ConnInfo) {
-					continue
-				}
-				m := conv2M(httpFinReq, tracer.gTags)
-				if m == nil {
-					continue
-				}
-				ms = append(ms, m)
-			}
-			cache = []*HTTPReqFinishedInfo{}
-			if len(ms) == 0 {
-				continue
-			}
-			if err := feed.FeedMeasurement(ms, tracer.datakitPostURL); err != nil {
+			if err := feed(tracer.datakitPostURL, cache, tracer.gTags); err != nil {
 				l.Error(err)
 			}
+			cache = make([]*HTTPReqFinishedInfo, 0)
 		case finReq := <-tracer.finReqCh:
 			cache = append(cache, finReq)
+			if len(cache) > 512 {
+				if err := feed(tracer.datakitPostURL, cache, tracer.gTags); err != nil {
+					l.Error(err)
+				}
+				cache = make([]*HTTPReqFinishedInfo, 0)
+			}
 		case <-ctx.Done():
 			return
 		}
@@ -237,13 +235,13 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measuremen
 		fields: map[string]interface{}{},
 		ts:     time.Now(),
 	}
-	direction := "outgoing"
+	direction := DirectionOutgoing
 	if _, err := dknetflow.SrcIPPortRecorder.Query(httpFinReq.ConnInfo.Daddr); err == nil {
 		httpFinReq.ConnInfo.Saddr, httpFinReq.ConnInfo.Daddr = httpFinReq.ConnInfo.Daddr, httpFinReq.ConnInfo.Saddr
 		httpFinReq.ConnInfo.Sport, httpFinReq.ConnInfo.Dport = httpFinReq.ConnInfo.Dport, httpFinReq.ConnInfo.Sport
-		direction = "incoming"
+		direction = DirectionIncoming
 	}
-	path := FindHTTPURI(httpFinReq.HTTPStats.payload)
+	path := FindHTTPURI(httpFinReq.HTTPStats.Payload)
 	if path == "" {
 		return nil
 	}
@@ -285,10 +283,10 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measuremen
 
 	m.fields = map[string]interface{}{
 		"path":         path,
-		"status_code":  int(httpFinReq.HTTPStats.resp_code),
-		"latency":      int64(httpFinReq.HTTPStats.resp_ts - httpFinReq.HTTPStats.req_ts),
-		"method":       HTTPMethodInt(int(httpFinReq.HTTPStats.req_method)),
-		"http_version": ParseHTTPVersion(httpFinReq.HTTPStats.http_version),
+		"status_code":  int(httpFinReq.HTTPStats.RespCode),
+		"latency":      int64(httpFinReq.HTTPStats.RespTS - httpFinReq.HTTPStats.ReqTS),
+		"method":       HTTPMethodInt(int(httpFinReq.HTTPStats.ReqMethod)),
+		"http_version": ParseHTTPVersion(httpFinReq.HTTPStats.HTTPVersion),
 	}
 
 	if k8sNetInfo != nil {
@@ -302,7 +300,7 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measuremen
 			m.tags["src_k8s_service_name"] = srcSvcName
 			m.tags["src_k8s_deployment_name"] = srcDeployment
 			if svcP == httpFinReq.ConnInfo.Sport {
-				m.tags["direction"] = "incoming"
+				m.tags["direction"] = DirectionIncoming
 			}
 		}
 
@@ -315,35 +313,59 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measuremen
 			m.tags["dst_k8s_deployment_name"] = dstDeployment
 
 			if svcP == httpFinReq.ConnInfo.Dport {
-				m.tags["direction"] = "outgoing"
+				m.tags["direction"] = DirectionOutgoing
 			}
 		} else {
 			dstSvcName, ns, dp, err := k8sNetInfo.QuerySvcInfo(m.tags["dst_ip"])
 			if err == nil {
 				dstK8sFlag = true
 				m.tags["dst_k8s_namespace"] = ns
-				m.tags["dst_k8s_pod_name"] = "N/A"
+				m.tags["dst_k8s_pod_name"] = NoValue
 				m.tags["dst_k8s_service_name"] = dstSvcName
 				m.tags["dst_k8s_deployment_name"] = dp
-				m.tags["direction"] = "outgoing"
+				m.tags["direction"] = DirectionOutgoing
 			}
 		}
 
 		if srcK8sFlag || dstK8sFlag {
 			m.tags["sub_source"] = "K8s"
 			if !srcK8sFlag {
-				m.tags["src_k8s_namespace"] = "N/A"
-				m.tags["src_k8s_pod_name"] = "N/A"
-				m.tags["src_k8s_service_name"] = "N/A"
-				m.tags["src_k8s_deployment_name"] = "N/A"
+				m.tags["src_k8s_namespace"] = NoValue
+				m.tags["src_k8s_pod_name"] = NoValue
+				m.tags["src_k8s_service_name"] = NoValue
+				m.tags["src_k8s_deployment_name"] = NoValue
 			}
 			if !dstK8sFlag {
-				m.tags["dst_k8s_namespace"] = "N/A"
-				m.tags["dst_k8s_pod_name"] = "N/A"
-				m.tags["dst_k8s_service_name"] = "N/A"
-				m.tags["dst_k8s_deployment_name"] = "N/A"
+				m.tags["dst_k8s_namespace"] = NoValue
+				m.tags["dst_k8s_pod_name"] = NoValue
+				m.tags["dst_k8s_service_name"] = NoValue
+				m.tags["dst_k8s_deployment_name"] = NoValue
 			}
 		}
 	}
 	return &m
+}
+
+func feed(url string, data []*HTTPReqFinishedInfo, tags map[string]string) error {
+	if len(data) == 0 {
+		return nil
+	}
+	ms := make([]inputs.Measurement, 0)
+	for _, httpFinReq := range data {
+		if !ConnNotNeedToFilter(httpFinReq.ConnInfo) {
+			continue
+		}
+		m := conv2M(httpFinReq, tags)
+		if m == nil {
+			continue
+		}
+		ms = append(ms, m)
+	}
+	if len(ms) == 0 {
+		return nil
+	}
+	if err := dkout.FeedMeasurement(url, ms); err != nil {
+		return err
+	}
+	return nil
 }

@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/gopacket/afpacket"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	dkfeed "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/feed"
+	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -112,7 +112,8 @@ func (tracer *DNSFlowTracer) readPacket(ctx context.Context, tp *afpacket.TPacke
 }
 
 func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag map[string]string,
-	dnsRecord *DNSAnswerRecord, feedAddr string) {
+	dnsRecord *DNSAnswerRecord, feedAddr string,
+) {
 	mCh := make(chan []inputs.Measurement)
 	finishedStatsM := []inputs.Measurement{}
 	go tracer.readPacket(ctx, tp)
@@ -155,7 +156,7 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 		case m := <-mCh:
 			if len(m) == 0 {
 				l.Debug("dnsflow: no data")
-			} else if err := dkfeed.FeedMeasurement(m, feedAddr); err != nil {
+			} else if err := dkout.FeedMeasurement(feedAddr, m); err != nil {
 				l.Error(err)
 			}
 		}
