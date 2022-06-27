@@ -271,7 +271,7 @@ func extractJVMThread(service string, start time.Time, thread *skyimpl.Thread) i
 			"thread_peak_count":               thread.PeakCount,
 			"thread_runnable_state_count":     thread.RunnableStateThreadCount,
 			"thread_blocked_state_count":      thread.BlockedStateThreadCount,
-			"thread_waiting_state_tcount":     thread.WaitingStateThreadCount,
+			"thread_waiting_state_count":      thread.WaitingStateThreadCount,
 			"thread_time_waiting_state_count": thread.TimedWaitingStateThreadCount,
 		},
 		ts: start,
