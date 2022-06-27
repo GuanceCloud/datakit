@@ -10,11 +10,10 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -38,7 +37,7 @@ const (
   password = "<pw>"
 
   ## add tag (optional)
-  [inputs.cpu.tags]
+  [inputs.tdengine.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"
 `
@@ -142,6 +141,7 @@ func (i *Input) Run() {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
+			Tags:      map[string]string{},
 			inputName: inputName,
 			pauseCh:   make(chan bool, inputs.ElectionPauseChannelLength),
 			semStop:   cliutils.NewSem(),
