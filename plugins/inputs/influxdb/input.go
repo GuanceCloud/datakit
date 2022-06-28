@@ -279,6 +279,9 @@ func (i *Input) Collect() error {
 			}
 		}
 		if point != nil {
+			if point.Tags == nil {
+				point.Tags = make(map[string]string)
+			}
 			for k, v := range i.Tags {
 				point.Tags[k] = v
 			}
