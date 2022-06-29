@@ -34,13 +34,24 @@ func DidRotate(file *os.File, lastReadOffset int64) (bool, error) {
 	return recreated || truncated, nil
 }
 
-func FileIsActive(fn string, lastActiveDuration time.Duration) bool {
+func FileIsActive(fn string, timeout time.Duration) bool {
+	if timeout <= 0 {
+		return true
+	}
 	info, err := os.Stat(fn)
 	if err != nil {
 		return false
 	}
-	if time.Since(info.ModTime()) > lastActiveDuration {
+	if time.Since(info.ModTime()) > timeout {
 		return false
 	}
 	return true
+}
+
+func FileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }
