@@ -167,10 +167,10 @@ Query OK, 4 row(s) in set (0.001155s)
 
 数据库指标
 
-| 指标            | 说明                  | queryType | sql                                                                                                                            | 单位  |    fields     |           tags           |          补充           |
-|:--------------|:--------------------|:---------:|:-------------------------------------------------------------------------------------------------------------------------------|:----|:-------------:|:------------------------:|:---------------------:|
-| tables_num    | VGroups  dashboard  |    sql    | select last(ts),last(database_name),last(tables_num),last(status) from log.vgroups_info where ts > now-30s group by vgroup_id; | -   |  tables_num   | database_name,vgroup_id  |  查询所有库的状态、ntable_num  |
-| stables_count | every stables count |    sql    | show $database.stables;                                                                                                        | -   | stables_count | stable_name,created_time | 先查询库，再查询每个库下面所有超级表的数量 |
+| 指标         | 说明          | queryType | sql                                                                                                                            | 单位  |   fields   |          tags           |         补充          |
+|:-----------|:------------|:---------:|:-------------------------------------------------------------------------------------------------------------------------------|:----|:----------:|:-----------------------:|:-------------------:|
+| tables_num | VGroups 变化图 |    sql    | select last(ts),last(database_name),last(tables_num),last(status) from log.vgroups_info where ts > now-30s group by vgroup_id; | -   | tables_num | database_name,vgroup_id | 查询所有库的状态、ntable_num |
+
 
 该指标集需要查询的sql：
 
@@ -189,6 +189,16 @@ taos> select last(ts),last(database_name),last(tables_num),last(status) from log
  2022-06-17 08:26:25.837647 | biz_awiand9yzv7ubjh7ny9pje_7d  |           8 | ready                          |          59 |
  2022-06-17 08:26:25.838823 | biz_awiand9yzv7ubjh7ny9pje_14d |           1 | ready                          |          73 |
  2022-06-17 08:26:25.832763 | test                           |           1 | ready                          |          85 |
+ 2022-06-17 08:26:25.839316 | biz_9kuhanpzzcwoxvdpctxyrn_... |           0 | ready                          |          86 |
+ 2022-06-17 08:26:25.833571 | biz_9kuhanpzzcwoxvdpctxyrn_14d |           1 | ready                          |          87 |
+ 2022-06-17 08:26:25.838429 | biz_9kuhanpzzcwoxvdpctxyrn_3d  |           0 | ready                          |          88 |
+ 2022-06-17 08:26:25.834002 | biz_9kuhanpzzcwoxvdpctxyrn_... |           1 | ready                          |          89 |
+ 2022-06-17 08:26:25.833189 | biz_9kuhanpzzcwoxvdpctxyrn_7d  |           8 | ready                          |          90 |
+ 2022-06-17 08:26:25.837220 | biz_j2sxjtz3nfu9dumspjdthg_7d  |           3 | ready                          |          92 |
+ 2022-06-17 08:26:25.839836 | biz_j2sxjtz3nfu9dumspjdthg_14d |           3 | ready                          |          93 |
+ 2022-06-17 08:26:25.832332 | biz_j2sxjtz3nfu9dumspjdthg_30d |           1 | ready                          |          94 |
+ 2022-06-17 08:26:25.834763 | biz_sae3abxbbqe96bw6nfurhn_30d |           1 | ready                          |         142 |
+ 2022-06-17 08:26:25.831440 | biz_sae3abxbbqe96bw6nfurhn_7d  |          15 | ready                          |         143 |
 Query OK, 21 row(s) in set (0.004188s)
 ```
 

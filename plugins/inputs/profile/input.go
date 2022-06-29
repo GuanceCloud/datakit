@@ -42,8 +42,11 @@ endpoints = ["/profiling/v1/input"]
 )
 
 var (
-	log                                    = logger.DefaultSLogger(inputName)
-	_                     inputs.HTTPInput = &Input{}
+	log = logger.DefaultSLogger(inputName)
+
+	_ inputs.HTTPInput = &Input{}
+	_ inputs.InputV2   = &Input{}
+
 	workSpaceUUID         string
 	workSpaceUUIDInitLock sync.Mutex
 

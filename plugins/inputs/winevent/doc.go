@@ -6,6 +6,7 @@
 //go:build !windows
 // +build !windows
 
+// This file used to build documents.
 package winevent
 
 // this file used to build documents.

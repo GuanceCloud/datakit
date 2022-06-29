@@ -79,8 +79,8 @@ nav:
 
   - 中间件:
     - 'ClickHouse': clickhousev1.md
-    - mysql.md
     - oracle.md
+    - mysql.md
     - nsq.md
     - redis.md
     - memcached.md
