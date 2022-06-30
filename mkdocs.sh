@@ -21,20 +21,24 @@ if [ -z $man_version ]; then
   man_version="${latest_tag}"
 fi
 
+arch=$(uname -m)
+if [[ "$arch" == "x86_64" ]]; then
+	arch=amd64
+fi
+
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  arch=$(uname -m)
   os="darwin"
+
   datakit=dist/datakit-${os}-${arch}/datakit
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
   os="linux"
-  arch=$(uname -m)
   datakit=dist/datakit-${os}-${arch}/datakit
 else              # if under windows(amd64):
   datakit=datakit # windows 下应该设置了对应的 $PATH
 fi
 
 # 如果无需编译 datakit，请注释一下此处的编译
-make || exit -1
+#make || exit -1
 
 # 所有文档导出
 echo 'export to all docs...'
