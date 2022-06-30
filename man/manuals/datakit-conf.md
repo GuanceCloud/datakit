@@ -18,7 +18,7 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 
 ### 修改 HTTP 服务地址 {#update-http-server-host}
 
-默认的 HTTP 服务地址是 `localhost:9529`，如果 9529 端口被占用，或希望从外部访问 DataKit 的 HTTP 服务（比如希望接收 [RUM](rum.md) 或 [Tracing](datakit-tracing.md) 数据），可将其修改成：
+默认的 HTTP 服务地址是 `localhost:9529`，如果 9529 端口被占用，或希望从外部访问 DataKit 的 HTTP 服务（比如希望接收 [RUM](../integrations/rum.md) 或 [Tracing](../integrations/datakit-tracing.md) 数据），可将其修改成：
 
 ```toml
 [http_api]
@@ -183,7 +183,7 @@ Datakit 支持使用 git 来管理采集器配置、Pipeline 以及 Python 脚�
 
 #### 应用 Git 管理的 Pipeline 示例 {#gitrepo-example}
 
-我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，**DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用**。在 [Nginx 采集器](nginx.md)的配置中，一个 pipeline 的配置示例：
+我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，**DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用**。在 [Nginx 采集器](../integrations/nginx.md)的配置中，一个 pipeline 的配置示例：
 
 ```toml
 [[inputs.nginx]]
@@ -267,5 +267,5 @@ CPU 使用率是百分比制（==最大值 100.0==），以一个 8 核心的 CP
 ## 延伸阅读 {#more-reading}
 
 - [DataKit 宿主机安装](datakit-install.md)
-- [DataKit DaemonSet 安装](datakit-daemonset-install.md)
+- [DataKit DaemonSet 安装](datakit-daemonset-deploy.md)
 - [DataKit 行协议过滤器](datakit-filter.md)

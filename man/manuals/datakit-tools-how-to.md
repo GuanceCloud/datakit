@@ -268,7 +268,7 @@ cp telegraf.conf.sample telegraf.conf
 telegraf --config telegraf.conf
 ```
 
-关于 Telegraf 的使用事项，参见[这里](telegraf.md)。
+关于 Telegraf 的使用事项，参见[这里](../integrations/telegraf.md)。
 
 ### Security Checker 集成
 
@@ -278,7 +278,7 @@ telegraf --config telegraf.conf
 datakit install --scheck
 ```
 
-安装成功后会自动运行，Security Checker 具体使用，参见[这里](../scheck/install.md)
+安装成功后会自动运行，Security Checker 具体使用，参见[这里](../scheck/scheck-install.md)
 
 ### DataKit eBPF 集成
 

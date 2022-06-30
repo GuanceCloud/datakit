@@ -25,7 +25,7 @@ GitLab 设置完成后，对 DataKit 进行配置。注意，根据 GitLab 版�
 
 配置好后，重启 DataKit 即可。
 
-此 input 支持选举功能，[关于选举](election.md)。
+此 input 支持选举功能，[关于选举](../datakit/election.md)。
 
 ### GitLab 开启数据采集功能
 

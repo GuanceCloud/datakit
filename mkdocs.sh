@@ -38,7 +38,7 @@ else              # if under windows(amd64):
 fi
 
 # 如果无需编译 datakit，请注释一下此处的编译
-#make || exit -1
+make || exit -1
 
 # 所有文档导出
 echo 'export to all docs...'
@@ -59,7 +59,7 @@ datakit_docs=(
 
   # 这些文档需发布在 Datakit 文档库中
   man/manuals/aliyun-access.md
-  man/manuals/integration-to-datakit-howto.md
+  man/manuals/integrations-to-dk-howto.md
 
   $tmp_doc_dir/apis.md
   $tmp_doc_dir/changelog.md
@@ -90,6 +90,7 @@ datakit_docs=(
   $tmp_doc_dir/election.md
   $tmp_doc_dir/git-config-how-to.md
   $tmp_doc_dir/pipeline.md
+  $tmp_doc_dir/logging-pipeline-bench.md
   $tmp_doc_dir/proxy.md
   $tmp_doc_dir/why-no-data.md
 )
@@ -143,6 +144,7 @@ integrations_files_from_datakit=(
   $tmp_doc_dir/kubernetes-prom.md
   $tmp_doc_dir/kubernetes-x.md
   $tmp_doc_dir/logfwd.md
+  $tmp_doc_dir/logfwdserver.md
   $tmp_doc_dir/logging.md
   $tmp_doc_dir/logging_socket.md
   $tmp_doc_dir/logstreaming.md
@@ -216,11 +218,28 @@ integrations_extra_files=(
 	man/manuals/kube-scheduler.md
 	man/manuals/kube-state-metrics.md
 	man/manuals/logstreaming-fluentd.md
+  man/manuals/netstat.md
+  man/manuals/dns-query.md
+  man/manuals/ethtool.md
+  man/manuals/ntpq.md
+  man/manuals/procstat.md
+	man/manuals/opentelemetry-collector.md
 	man/manuals/resin.md
+	man/manuals/redis-sentinel.md
+	man/manuals/nacos.md
 	man/manuals/rum-android.md
 	man/manuals/rum-ios.md
 	man/manuals/rum-miniapp.md
 	man/manuals/rum-web-h5.md
+
+	man/manuals/aerospike.md
+	man/manuals/chrony.md
+	man/manuals/conntrack.md
+	man/manuals/fluentd-metric.md
+	man/manuals/zookeeper.md
+	man/manuals/harbor.md
+	man/manuals/activemq.md
+	man/manuals/rocketmq.md
 )
 
 for f in "${integrations_extra_files[@]}"; do
