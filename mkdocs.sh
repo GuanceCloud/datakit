@@ -22,14 +22,14 @@ if [ -z $man_version ]; then
 fi
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
-	arch=`uname -m`
+  arch=$(uname -m)
   os="darwin"
-	datakit=dist/datakit-${os}-${arch}/datakit
+  datakit=dist/datakit-${os}-${arch}/datakit
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
   os="linux"
-	arch=`uname -m`
-	datakit=dist/datakit-${os}-${arch}/datakit
-else # if under windows(amd64):
+  arch=$(uname -m)
+  datakit=dist/datakit-${os}-${arch}/datakit
+else              # if under windows(amd64):
   datakit=datakit # windows 下应该设置了对应的 $PATH
 fi
 
@@ -54,134 +54,134 @@ cp man/manuals/integrations-index.md $integration_docs_dir/index.md
 datakit_docs=(
 
   # 这些文档需发布在 Datakit 文档库中
-	man/manuals/aliyun-access.md
-	man/manuals/integration-to-datakit-howto.md
+  man/manuals/aliyun-access.md
+  man/manuals/integration-to-datakit-howto.md
 
-	$tmp_doc_dir/apis.md
-	$tmp_doc_dir/changelog.md
-	$tmp_doc_dir/datakit-arch.md
-	$tmp_doc_dir/datakit-batch-deploy.md
-	$tmp_doc_dir/datakit-conf.md
-	$tmp_doc_dir/datakit-daemonset-deploy.md
-	$tmp_doc_dir/datakit-daemonset-update.md
-	$tmp_doc_dir/datakit-dql-how-to.md
-	$tmp_doc_dir/datakit-filter.md
-	$tmp_doc_dir/datakit-input-conf.md
-	$tmp_doc_dir/datakit-install.md
-	$tmp_doc_dir/datakit-monitor.md
-	$tmp_doc_dir/datakit-offline-install.md
-	$tmp_doc_dir/datakit-pl-global.md
-	$tmp_doc_dir/datakit-pl-how-to.md
-	$tmp_doc_dir/datakit-service-how-to.md
-	$tmp_doc_dir/datakit-sink-dev.md
-	$tmp_doc_dir/datakit-sink-guide.md
-	$tmp_doc_dir/datakit-sink-influxdb.md
-	$tmp_doc_dir/datakit-sink-logstash.md
-	$tmp_doc_dir/datakit-sink-m3db.md
-	$tmp_doc_dir/datakit-sink-otel-jaeger.md
-	$tmp_doc_dir/datakit-tools-how-to.md
-	$tmp_doc_dir/datakit-update.md
-	$tmp_doc_dir/dca.md
-	$tmp_doc_dir/development.md
-	$tmp_doc_dir/election.md
-	$tmp_doc_dir/git-config-how-to.md
-	$tmp_doc_dir/pipeline.md
-	$tmp_doc_dir/proxy.md
-	$tmp_doc_dir/why-no-data.md
+  $tmp_doc_dir/apis.md
+  $tmp_doc_dir/changelog.md
+  $tmp_doc_dir/datakit-arch.md
+  $tmp_doc_dir/datakit-batch-deploy.md
+  $tmp_doc_dir/datakit-conf.md
+  $tmp_doc_dir/datakit-daemonset-deploy.md
+  $tmp_doc_dir/datakit-daemonset-update.md
+  $tmp_doc_dir/datakit-dql-how-to.md
+  $tmp_doc_dir/datakit-filter.md
+  $tmp_doc_dir/datakit-input-conf.md
+  $tmp_doc_dir/datakit-install.md
+  $tmp_doc_dir/datakit-monitor.md
+  $tmp_doc_dir/datakit-offline-install.md
+  $tmp_doc_dir/datakit-pl-global.md
+  $tmp_doc_dir/datakit-pl-how-to.md
+  $tmp_doc_dir/datakit-service-how-to.md
+  $tmp_doc_dir/datakit-sink-dev.md
+  $tmp_doc_dir/datakit-sink-guide.md
+  $tmp_doc_dir/datakit-sink-influxdb.md
+  $tmp_doc_dir/datakit-sink-logstash.md
+  $tmp_doc_dir/datakit-sink-m3db.md
+  $tmp_doc_dir/datakit-sink-otel-jaeger.md
+  $tmp_doc_dir/datakit-tools-how-to.md
+  $tmp_doc_dir/datakit-update.md
+  $tmp_doc_dir/dca.md
+  $tmp_doc_dir/development.md
+  $tmp_doc_dir/election.md
+  $tmp_doc_dir/git-config-how-to.md
+  $tmp_doc_dir/pipeline.md
+  $tmp_doc_dir/proxy.md
+  $tmp_doc_dir/why-no-data.md
 )
 
 for f in "${datakit_docs[@]}"; do
-	cp $f $datakit_docs_dir/
+  cp $f $datakit_docs_dir/
 done
 
 # 需发布到集成库的 datakit 已有文档
 integrations_files_from_datakit=(
-	$tmp_doc_dir/apache.md
-	$tmp_doc_dir/beats_output.md
-	$tmp_doc_dir/clickhousev1.md
-	$tmp_doc_dir/cloudprober.md
-	$tmp_doc_dir/consul.md
-	$tmp_doc_dir/container.md
-	$tmp_doc_dir/coredns.md
-	$tmp_doc_dir/cpu.md
-	$tmp_doc_dir/datakit-daemonset-bp.md
-	$tmp_doc_dir/datakit-logging-how.md
-	$tmp_doc_dir/datakit-logging.md
-	$tmp_doc_dir/datakit-tracing-struct.md
-	$tmp_doc_dir/datakit-tracing.md
-	$tmp_doc_dir/ddtrace-cpp.md
-	$tmp_doc_dir/ddtrace-golang.md
-	$tmp_doc_dir/ddtrace-java.md
-	$tmp_doc_dir/ddtrace-nodejs.md
-	$tmp_doc_dir/ddtrace-php.md
-	$tmp_doc_dir/ddtrace-python.md
-	$tmp_doc_dir/ddtrace-ruby.md
-	$tmp_doc_dir/ddtrace.md
-	$tmp_doc_dir/dialtesting.md
-	$tmp_doc_dir/dialtesting_json.md
-	$tmp_doc_dir/disk.md
-	$tmp_doc_dir/diskio.md
-	$tmp_doc_dir/ebpf.md
-	$tmp_doc_dir/elasticsearch.md
-	$tmp_doc_dir/etcd.md
-	$tmp_doc_dir/flinkv1.md
-	$tmp_doc_dir/gitlab.md
-	$tmp_doc_dir/host_processes.md
-	$tmp_doc_dir/hostdir.md
-	$tmp_doc_dir/hostobject.md
-	$tmp_doc_dir/iis.md
-	$tmp_doc_dir/influxdb.md
-	$tmp_doc_dir/jaeger.md
-	$tmp_doc_dir/jenkins.md
-	$tmp_doc_dir/jvm.md
-	$tmp_doc_dir/k8s-config-how-to.md
-	$tmp_doc_dir/kafka.md
-	$tmp_doc_dir/kubernetes-prom.md
-	$tmp_doc_dir/kubernetes-x.md
-	$tmp_doc_dir/logfwd.md
-	$tmp_doc_dir/logging.md
-	$tmp_doc_dir/logging_socket.md
-	$tmp_doc_dir/logstreaming.md
-	$tmp_doc_dir/mem.md
-	$tmp_doc_dir/memcached.md
-	$tmp_doc_dir/mongodb.md
-	$tmp_doc_dir/mysql.md
-	$tmp_doc_dir/net.md
-	$tmp_doc_dir/nginx.md
-	$tmp_doc_dir/nsq.md
-	$tmp_doc_dir/opentelemetry-go.md
-	$tmp_doc_dir/opentelemetry-java.md
-	$tmp_doc_dir/opentelemetry.md
-	$tmp_doc_dir/oracle.md
-	$tmp_doc_dir/postgresql.md
-	$tmp_doc_dir/profile.md
-	$tmp_doc_dir/prom.md
-	$tmp_doc_dir/prom_remote_write.md
-	$tmp_doc_dir/pythond.md
-	$tmp_doc_dir/rabbitmq.md
-	$tmp_doc_dir/redis.md
-	$tmp_doc_dir/rum.md
-	$tmp_doc_dir/sec-checker.md
-	$tmp_doc_dir/self.md
-	$tmp_doc_dir/sensors.md
-	$tmp_doc_dir/skywalking.md
-	$tmp_doc_dir/smart.md
-	$tmp_doc_dir/socket.md
-	$tmp_doc_dir/solr.md
-	$tmp_doc_dir/sqlserver.md
-	$tmp_doc_dir/ssh.md
-	$tmp_doc_dir/statsd.md
-	$tmp_doc_dir/swap.md
-	$tmp_doc_dir/system.md
-	$tmp_doc_dir/tdengine.md
-	$tmp_doc_dir/telegraf.md
-	$tmp_doc_dir/tomcat.md
-	$tmp_doc_dir/windows_event.md
-	$tmp_doc_dir/zipkin.md
+  $tmp_doc_dir/apache.md
+  $tmp_doc_dir/beats_output.md
+  $tmp_doc_dir/clickhousev1.md
+  $tmp_doc_dir/cloudprober.md
+  $tmp_doc_dir/consul.md
+  $tmp_doc_dir/container.md
+  $tmp_doc_dir/coredns.md
+  $tmp_doc_dir/cpu.md
+  $tmp_doc_dir/datakit-daemonset-bp.md
+  $tmp_doc_dir/datakit-logging-how.md
+  $tmp_doc_dir/datakit-logging.md
+  $tmp_doc_dir/datakit-tracing-struct.md
+  $tmp_doc_dir/datakit-tracing.md
+  $tmp_doc_dir/ddtrace-cpp.md
+  $tmp_doc_dir/ddtrace-golang.md
+  $tmp_doc_dir/ddtrace-java.md
+  $tmp_doc_dir/ddtrace-nodejs.md
+  $tmp_doc_dir/ddtrace-php.md
+  $tmp_doc_dir/ddtrace-python.md
+  $tmp_doc_dir/ddtrace-ruby.md
+  $tmp_doc_dir/ddtrace.md
+  $tmp_doc_dir/dialtesting.md
+  $tmp_doc_dir/dialtesting_json.md
+  $tmp_doc_dir/disk.md
+  $tmp_doc_dir/diskio.md
+  $tmp_doc_dir/ebpf.md
+  $tmp_doc_dir/elasticsearch.md
+  $tmp_doc_dir/etcd.md
+  $tmp_doc_dir/flinkv1.md
+  $tmp_doc_dir/gitlab.md
+  $tmp_doc_dir/host_processes.md
+  $tmp_doc_dir/hostdir.md
+  $tmp_doc_dir/hostobject.md
+  $tmp_doc_dir/iis.md
+  $tmp_doc_dir/influxdb.md
+  $tmp_doc_dir/jaeger.md
+  $tmp_doc_dir/jenkins.md
+  $tmp_doc_dir/jvm.md
+  $tmp_doc_dir/k8s-config-how-to.md
+  $tmp_doc_dir/kafka.md
+  $tmp_doc_dir/kubernetes-prom.md
+  $tmp_doc_dir/kubernetes-x.md
+  $tmp_doc_dir/logfwd.md
+  $tmp_doc_dir/logging.md
+  $tmp_doc_dir/logging_socket.md
+  $tmp_doc_dir/logstreaming.md
+  $tmp_doc_dir/mem.md
+  $tmp_doc_dir/memcached.md
+  $tmp_doc_dir/mongodb.md
+  $tmp_doc_dir/mysql.md
+  $tmp_doc_dir/net.md
+  $tmp_doc_dir/nginx.md
+  $tmp_doc_dir/nsq.md
+  $tmp_doc_dir/opentelemetry-go.md
+  $tmp_doc_dir/opentelemetry-java.md
+  $tmp_doc_dir/opentelemetry.md
+  $tmp_doc_dir/oracle.md
+  $tmp_doc_dir/postgresql.md
+  $tmp_doc_dir/profile.md
+  $tmp_doc_dir/prom.md
+  $tmp_doc_dir/prom_remote_write.md
+  $tmp_doc_dir/pythond.md
+  $tmp_doc_dir/rabbitmq.md
+  $tmp_doc_dir/redis.md
+  $tmp_doc_dir/rum.md
+  $tmp_doc_dir/sec-checker.md
+  $tmp_doc_dir/self.md
+  $tmp_doc_dir/sensors.md
+  $tmp_doc_dir/skywalking.md
+  $tmp_doc_dir/smart.md
+  $tmp_doc_dir/socket.md
+  $tmp_doc_dir/solr.md
+  $tmp_doc_dir/sqlserver.md
+  $tmp_doc_dir/ssh.md
+  $tmp_doc_dir/statsd.md
+  $tmp_doc_dir/swap.md
+  $tmp_doc_dir/system.md
+  $tmp_doc_dir/tdengine.md
+  $tmp_doc_dir/telegraf.md
+  $tmp_doc_dir/tomcat.md
+  $tmp_doc_dir/windows_event.md
+  $tmp_doc_dir/zipkin.md
 )
 
 for f in "${integrations_files_from_datakit[@]}"; do
-	cp $f $integration_docs_dir/
+  cp $f $integration_docs_dir/
 done
 
 # 这些文件没有集成在 datakit 代码中（没法通过 export-docs 命令导出），故直接拷贝到文档库中。
