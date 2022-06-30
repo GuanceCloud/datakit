@@ -125,8 +125,6 @@ type DatakitSpan struct {
 	Duration       int64                  `json:"duration"` // unit: nano sec
 	Status         string                 `json:"status"`
 	Content        string                 `json:"content"` // raw tracing data in json
-	// Priority       int                    `json:"priority"` // smapling priority
-	// SamplingRateGlobal float64                `json:"sampling_rate_global"` // global sampling ratio
 }
 
 type DatakitTrace []*DatakitSpan

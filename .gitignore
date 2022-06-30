@@ -1,8 +1,10 @@
 __debug_bin
+.cl.md
 .docs/
 .DS_Store
 .idea/
 .orig
+.pid
 .vscode/
 *-packr.go
 *.ak
@@ -28,6 +30,11 @@ build.sh
 cache_testing_dir
 cfg.json
 china-operator-ip
+cmd/datakit/conf.d/
+cmd/datakit/data/
+cmd/datakit/gitrepos/
+cmd/datakit/pipeline/
+cmd/datakit/python.d/
 cmd/installer/bin/
 config.d/
 config.json
@@ -75,9 +82,3 @@ test.go
 test.jso
 test.output
 y.output
-.pid
-cmd/datakit/conf.d/
-cmd/datakit/data/
-cmd/datakit/gitrepos/
-cmd/datakit/pipeline/
-cmd/datakit/python.d/

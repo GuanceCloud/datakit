@@ -1,5 +1,5 @@
 {{.CSS}}
-# Nginx
+Nginx
 ---
 
 - DataKit 版本：{{.Version}}

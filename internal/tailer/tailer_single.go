@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/pborman/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
@@ -27,13 +26,14 @@ import (
 const (
 	defaultSleepDuration = time.Second
 	readBuffSize         = 1024 * 4
-	timeoutDuration      = time.Second * 3
+
+	flushInterval = time.Second * 3
+	checkInterval = time.Second * 3
 )
 
 type Single struct {
 	opt                *Option
 	file               *os.File
-	watcher            *fsnotify.Watcher
 	filepath, filename string
 
 	decoder *encoding.Decoder
@@ -42,7 +42,6 @@ type Single struct {
 	readBuff []byte
 
 	tags            map[string]string
-	stopCh          chan struct{}
 	expectMultiLine bool // only for docker log, relation to log size (16K)
 }
 
@@ -51,14 +50,11 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		return nil, fmt.Errorf("option cannot be null pointer")
 	}
 
-	t := &Single{
-		stopCh: make(chan struct{}, 1),
-		opt:    opt,
-	}
+	t := &Single{opt: opt}
 
-	if opt.DockerMode && !fileExists(filename) {
+	if opt.DockerMode && !FileExists(filename) {
 		filename2 := filepath.Join("/rootfs", filename)
-		if !fileExists(filename2) {
+		if !FileExists(filename2) {
 			return nil, fmt.Errorf("file %s does not exist", filename)
 		}
 		filename = filename2
@@ -81,26 +77,27 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		return nil, err
 	}
 
-	checkpointData, err := getLogCheckpoint(getFileKey(filename))
-	if err != nil {
-		if !opt.FromBeginning {
-			if _, err := t.file.Seek(0, io.SeekEnd); err != nil {
-				return nil, err
-			}
-		}
-	} else if checkpointData != nil && checkpointData.Offset > 0 {
-		if _, err := t.file.Seek(checkpointData.Offset, io.SeekStart); err != nil {
+	// check if from begine
+	if !opt.FromBeginning {
+		if _, err := t.file.Seek(0, io.SeekEnd); err != nil {
 			return nil, err
 		}
 	}
 
-	t.watcher, err = fsnotify.NewWatcher()
+	checkpointData, err := getLogCheckpoint(getFileKey(filename))
 	if err != nil {
-		return nil, err
-	}
-	err = t.watcher.Add(filename)
-	if err != nil {
-		return nil, err
+		l.Infof("pos missing: %s, ignored", err)
+	} else {
+		stat, err := t.file.Stat()
+		if err != nil {
+			return nil, err
+		}
+
+		if checkpointData.Offset <= stat.Size() {
+			if _, err := t.file.Seek(checkpointData.Offset, io.SeekStart); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	t.readBuff = make([]byte, readBuffSize)
@@ -116,12 +113,7 @@ func (t *Single) Run() {
 	t.Close()
 }
 
-func (t *Single) Stop() {
-	t.stopCh <- struct{}{}
-}
-
 func (t *Single) Close() {
-	t.closeWatcher()
 	if offset := t.currentOffset(); offset > 0 {
 		err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: offset})
 		if err != nil {
@@ -130,15 +122,6 @@ func (t *Single) Close() {
 	}
 	t.closeFile()
 	t.opt.log.Infof("closing %s", t.filepath)
-}
-
-func (t *Single) closeWatcher() {
-	if t.watcher == nil {
-		return
-	}
-	if err := t.watcher.Close(); err != nil {
-		t.opt.log.Warnf("close watcher err: %s, ignored", err)
-	}
 }
 
 func (t *Single) closeFile() {
@@ -155,18 +138,10 @@ func (t *Single) reopen() error {
 	t.closeFile()
 	t.opt.log.Debugf("reopen file %s", t.filepath)
 
-	for {
-		var err error
-		t.file, err = os.Open(t.filepath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				t.opt.log.Debugf("waiting for %s to appear..", t.filepath)
-				time.Sleep(time.Second)
-				continue
-			}
-			return fmt.Errorf("unable to open file %s: %w", t.filepath, err)
-		}
-		break
+	var err error
+	t.file, err = os.Open(t.filepath)
+	if err != nil {
+		return fmt.Errorf("unable to open file %s: %w", t.filepath, err)
 	}
 
 	return nil
@@ -176,75 +151,83 @@ func (t *Single) reopen() error {
 func (t *Single) forwardMessage() {
 	var (
 		b       = &buffer{}
-		timeout = time.NewTicker(timeoutDuration)
 		lines   []string
 		readNum int
 		err     error
+
+		flushTicker = time.NewTicker(flushInterval) // 如果接收到数据，则重置 flush ticker
+		checkTicker = time.NewTicker(checkInterval)
 	)
-	defer timeout.Stop()
+
+	defer flushTicker.Stop()
+	defer checkTicker.Stop()
+
+	handle := func(read func() ([]byte, int, error)) {
+		b.buf, readNum, err = read()
+		if err != nil {
+			t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
+			return
+		}
+
+		t.opt.log.Debugf("read %d bytes from file %s", readNum, t.filepath)
+
+		if readNum == 0 {
+			t.wait()
+			return
+		}
+
+		// 如果接收到数据，则重置 flush ticker
+		flushTicker.Reset(flushInterval)
+
+		lines = b.split()
+
+		if t.opt.DockerMode {
+			t.dockerHandler(lines)
+			return
+		}
+		t.defaultHandler(lines)
+	}
 
 	for {
 		select {
-		case event, ok := <-t.watcher.Events:
-			if !ok {
-				return
-			}
-			if event.Op&fsnotify.Rename == fsnotify.Rename {
-				t.opt.log.Debugf("receive rename event from file %s", t.filepath)
-				if err = t.reopen(); err != nil {
-					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
-				}
-			}
-
-		case err, ok := <-t.watcher.Errors:
-			if !ok {
-				return
-			}
-			t.opt.log.Warnf("receive error event from file %s, err: %s", t.filepath, err)
-
-		case <-t.stopCh:
+		case <-datakit.Exit.Wait():
 			return
 
-		case <-timeout.C:
+		case <-flushTicker.C:
 			if str := t.mult.FlushString(); str != "" {
 				t.send(str)
 			}
-			if !fileIsHealthy(t.filepath, t.opt.IgnoreDeadLog) {
-				t.opt.log.Debugf("file %s does not exist, exit", t.filepath)
+
+		case <-checkTicker.C:
+			if !FileIsActive(t.filepath, t.opt.IgnoreDeadLog) {
+				t.opt.log.Infof("file %s is not active, larger than %s, exit", t.filepath, t.opt.IgnoreDeadLog)
 				return
 			}
-			if offset := t.currentOffset(); offset > 0 {
+			offset := t.currentOffset()
+			if offset > 0 {
 				err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: offset})
 				if err != nil {
 					t.opt.log.Warnf("update checkpoint %s, offset %d, err: %s", t.filepath, offset, err)
 				}
 			}
 
-		default:
-			// nil
+			if did, err := DidRotate(t.file, offset); err != nil {
+				t.opt.log.Warnf("didrotate err: %s", err)
+			} else if did {
+				t.opt.log.Infof("file %s has rotated, try to reopen file", t.filepath)
+
+				handle(t.readAll)
+
+				if err = t.reopen(); err != nil {
+					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
+					return
+				}
+			}
+
+		default: // nil
 		}
 
-		b.buf, readNum, err = t.read()
-		if err != nil {
-			t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
-			return
-		}
-
-		if readNum == 0 {
-			t.wait()
-			continue
-		}
-
-		// 如果接收到数据，则重置 ticker
-		timeout.Reset(timeoutDuration)
-
-		lines = b.split()
-
-		if t.opt.DockerMode {
-			t.dockerHandler(lines)
-			continue
-		}
-		t.defaultHandler(lines)
+		handle(t.read)
 	}
 }
 
@@ -420,6 +403,32 @@ func (t *Single) read() ([]byte, int, error) {
 	return t.readBuff[:n], n, nil
 }
 
+func (t *Single) readAll() ([]byte, int, error) {
+	var res []byte
+	var num int
+
+	temp := make([]byte, 256)
+
+	for {
+		n, err := t.file.Read(temp)
+		if err != nil && err != io.EOF {
+			// an unexpected error occurred, stop the tailor
+			t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
+			return nil, 0, err
+		}
+
+		if n > 0 {
+			res = append(res, temp[:n]...)
+			num += n
+			temp = temp[:0]
+		} else {
+			break
+		}
+	}
+
+	return res, num, nil
+}
+
 func (t *Single) wait() {
 	time.Sleep(defaultSleepDuration)
 }
@@ -506,29 +515,4 @@ func removeAnsiEscapeCodes(oldtext string, run bool) string {
 	}
 
 	return string(newtext)
-}
-
-func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
-}
-
-func fileIsHealthy(fn string, timeout time.Duration) bool {
-	info, err := os.Stat(fn)
-	if err != nil {
-		if os.IsExist(err) {
-			return true
-		}
-		if os.IsNotExist(err) {
-			return false
-		}
-		return false
-	}
-	if timeout > 0 && time.Since(info.ModTime()) > timeout {
-		return false
-	}
-	return true
 }
