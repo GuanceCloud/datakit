@@ -67,11 +67,11 @@ data:
           measurement_name = "prom_controller_manager"
 
           ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
-          interval = "10s"
+          interval = "30s"
 
           ## 过滤tags, 可配置多个tag
           # 匹配的tag将被忽略
-          # tags_ignore = ["xxxx"]
+          tags_ignore = ["action","build_date","clusterCIDR","code","compiler","completion_mode","git_commit","git_tree_state","git_version","go_version","major","method","minor","name","operation","platform","plugin_name","result","status","storage_class","username","version","volume_mode"]
 
           ## TLS 配置
           tls_open = true

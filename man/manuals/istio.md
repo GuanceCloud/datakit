@@ -82,8 +82,8 @@ spec:
           [[inputs.prom]]
             url = "http://$IP:15020/stats/prometheus"
             source = "bookinfo-istio-product"
-            metric_types = ["counter", "gauge", "histogram"]
-            interval = "10s"
+            metric_types = ["counter", "gauge"]
+            interval = "30s"
             tags_ignore = ["cache","cluster_type","component","destination_app","destination_canonical_revision","destination_canonical_service","destination_cluster","destination_principal","group","grpc_code","grpc_method","grpc_service","grpc_type","reason","request_protocol","request_type","resource","responce_code_class","response_flags","source_app","source_canonical_revision","source_canonical-service","source_cluster","source_principal","source_version","wasm_filter"]
             #measurement_prefix = ""
             measurement_name = "istio_prom"
@@ -165,7 +165,7 @@ spec:
             url = "http://$IP:15020/stats/prometheus"
             source = "bookinfo-istio-details"
             metric_types = ["counter", "gauge"]
-            interval = "10s"
+            interval = "30s"
             tags_ignore = ["cache","cluster_type","component","destination_app","destination_canonical_revision","destination_canonical_service","destination_cluster","destination_principal","group","grpc_code","grpc_method","grpc_service","grpc_type","reason","request_protocol","request_type","resource","responce_code_class","response_flags","source_app","source_canonical_revision","source_canonical-service","source_cluster","source_principal","source_version","wasm_filter"]
             #measurement_prefix = ""
             measurement_name = "istio_prom"
@@ -236,7 +236,7 @@ spec:
             url = "http://$IP:15020/stats/prometheus"
             source = "bookinfo-istio-ratings"
             metric_types = ["counter", "gauge"]
-            interval = "10s"
+            interval = "30s"
             tags_ignore = ["cache","cluster_type","component","destination_app","destination_canonical_revision","destination_canonical_service","destination_cluster","destination_principal","group","grpc_code","grpc_method","grpc_service","grpc_type","reason","request_protocol","request_type","resource","responce_code_class","response_flags","source_app","source_canonical_revision","source_canonical-service","source_cluster","source_principal","source_version","wasm_filter"]
             #measurement_prefix = ""
             measurement_name = "istio_prom"
@@ -307,7 +307,7 @@ spec:
             url = "http://$IP:15020/stats/prometheus"
             source = "bookinfo-istio-review1"
             metric_types = ["counter", "gauge"]
-            interval = "10s"
+            interval = "30s"
 			tags_ignore = ["cache","cluster_type","component","destination_app","destination_canonical_revision","destination_canonical_service","destination_cluster","destination_principal","group","grpc_code","grpc_method","grpc_service","grpc_type","reason","request_protocol","request_type","resource","responce_code_class","response_flags","source_app","source_canonical_revision","source_canonical-service","source_cluster","source_principal","source_version","wasm_filter"]
             #measurement_prefix = ""
             measurement_name = "istio_prom"
@@ -365,7 +365,7 @@ spec:
             url = "http://$IP:15020/stats/prometheus"
             source = "bookinfo-istio-review2"
             metric_types = ["counter", "gauge"]
-            interval = "10s"
+            interval = "30s"
 			tags_ignore = ["cache","cluster_type","component","destination_app","destination_canonical_revision","destination_canonical_service","destination_cluster","destination_principal","group","grpc_code","grpc_method","grpc_service","grpc_type","reason","request_protocol","request_type","resource","responce_code_class","response_flags","source_app","source_canonical_revision","source_canonical-service","source_cluster","source_principal","source_version","wasm_filter"]
             #measurement_prefix = ""
             measurement_name = "istio_prom"
@@ -423,7 +423,7 @@ spec:
             url = "http://$IP:15020/stats/prometheus"
             source = "bookinfo-istio-review3"
             metric_types = ["counter", "gauge"]
-            interval = "10s"
+            interval = "30s"
 			tags_ignore = ["cache","cluster_type","component","destination_app","destination_canonical_revision","destination_canonical_service","destination_cluster","destination_principal","group","grpc_code","grpc_method","grpc_service","grpc_type","reason","request_protocol","request_type","resource","responce_code_class","response_flags","source_app","source_canonical_revision","source_canonical-service","source_cluster","source_principal","source_version","wasm_filter"]
             #measurement_prefix = ""
             measurement_name = "istio_prom"
@@ -506,8 +506,8 @@ spec:
           [[inputs.prom]]
             url = "http://$IP:15020/stats/prometheus"
             source = "bookinfo-istio-product"
-            metric_types = ["counter", "gauge", "histogram"]
-            interval = "10s"
+            metric_types = ["counter", "gauge"]
+            interval = "30s"
 			tags_ignore = ["cache","cluster_type","component","destination_app","destination_canonical_revision","destination_canonical_service","destination_cluster","destination_principal","group","grpc_code","grpc_method","grpc_service","grpc_type","reason","request_protocol","request_type","resource","responce_code_class","response_flags","source_app","source_canonical_revision","source_canonical-service","source_cluster","source_principal","source_version","wasm_filter"]
             #measurement_prefix = ""
             measurement_name = "istio_prom"
@@ -602,8 +602,8 @@ data:    # 下面是新增部分
       [[inputs.prom]] 
         url = "http://istiod.istio-system.svc.cluster.local:15014/metrics"
         source = "prom-istiod"
-        metric_types = ["counter", "gauge", "histogram"]
-        interval = "10s"
+        metric_types = ["counter", "gauge"]
+        interval = "30s"
         tags_ignore = ["cache","cluster_type","component","destination_app","destination_canonical_revision","destination_canonical_service","destination_cluster","destination_principal","group","grpc_code","grpc_method","grpc_service","grpc_type","reason","request_protocol","request_type","resource","responce_code_class","response_flags","source_app","source_canonical_revision","source_canonical-service","source_cluster","source_principal","source_version","wasm_filter"]
         #measurement_prefix = ""
         measurement_name = "istio_prom"
@@ -617,8 +617,8 @@ data:    # 下面是新增部分
         [[inputs.prom]] 
           url = "http://istio-ingressgateway-ext.istio-system.svc.cluster.local:15020/stats/prometheus"
           source = "prom-ingressgateway"
-          metric_types = ["counter", "gauge", "histogram"]
-          interval = "10s"
+          metric_types = ["counter", "gauge"]
+          interval = "30s"
           tags_ignore = ["cache","cluster_type","component","destination_app","destination_canonical_revision","destination_canonical_service","destination_cluster","destination_principal","group","grpc_code","grpc_method","grpc_service","grpc_type","reason","request_protocol","request_type","resource","responce_code_class","response_flags","source_app","source_canonical_revision","source_canonical-service","source_cluster","source_principal","source_version","wasm_filter"]
           #measurement_prefix = ""
           measurement_name = "istio_prom"
@@ -630,8 +630,8 @@ data:    # 下面是新增部分
         [[inputs.prom]] 
           url = "http://istio-egressgateway-ext.istio-system.svc.cluster.local:15020/stats/prometheus"
           source = "prom-egressgateway"
-          metric_types = ["counter", "gauge", "histogram"]
-          interval = "10s"
+          metric_types = ["counter", "gauge"]
+          interval = "30s"
           tags_ignore = ["cache","cluster_type","component","destination_app","destination_canonical_revision","destination_canonical_service","destination_cluster","destination_principal","group","grpc_code","grpc_method","grpc_service","grpc_type","reason","request_protocol","request_type","resource","responce_code_class","response_flags","source_app","source_canonical_revision","source_canonical-service","source_cluster","source_principal","source_version","wasm_filter"]
           #measurement_prefix = ""
           measurement_name = "istio_prom"

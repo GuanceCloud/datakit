@@ -63,11 +63,11 @@ data:
           measurement_name = "prom_scheduler"
 
           ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
-          interval = "10s"
+          interval = "30s"
 
           ## 过滤tags, 可配置多个tag
           # 匹配的tag将被忽略
-          # tags_ignore = ["xxxx"]
+          tags_ignore = ["build_date","compiler","event","git_commit","git_tree_state","git_version","go_version","major","method","minor","name","platform","profile","queue","result","status","type","username","version","work"]
 
           ## TLS 配置
           tls_open = true
