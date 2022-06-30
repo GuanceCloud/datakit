@@ -1,4 +1,5 @@
 # 虚拟互联网接入
+
 ---
 
 ## 概述
@@ -29,10 +30,10 @@
 
 ### 不同 Region 的私网数据网关默认 Endpoint
 
-| **地域** | **Endpoint** |
-| --- | --- |
-| cn-hangzhou | https://openway.guance.com |
-| cn-beijing | https://beijing-openway.guance.com |
+| **地域**    | **Endpoint**                       |
+| ----------- | ---------------------------------- |
+| cn-hangzhou | https://openway.guance.com         |
+| cn-beijing  | https://beijing-openway.guance.com |
 
 ### 配置服务订阅
 使用您的阿里云账号登录，打开以上的 **服务部署链接** 来订阅我们的虚拟互联网服务，以 cn-hangzhou 为例：

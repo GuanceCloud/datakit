@@ -1,5 +1,7 @@
 {{.CSS}}
+
 # Datakit Tracing 数据结构
+
 ---
 
 - DataKit 版本：{{.Version}}
@@ -12,9 +14,10 @@
 
 数据转换步骤：
 
-1. 外部 Tracing 数据结构
-1. Datakit Span 
-1. Line Protocol
+1. 外部 Tracing 数据结构接入
+2. Datakit Span 转换
+3. span 数据运算
+4. Line Protocol 转换
 
 ---
 
@@ -29,32 +32,56 @@
 source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 ```
 
-| Section | Name               | Unit | Description                                                                   |
-| ---     | ---                | ---  | ---                                                                           |
-| Tag     | container_host     |      | host name of container                                                        |
-| Tag     | endpoint           |      | end point of resource                                                         |
-| Tag     | env                |      | environment arguments                                                         |
-| Tag     | http_code          |      | HTTP status code                                                              |
-| Tag     | http_method        |      | HTTP method                                                                   |
-| Tag     | operation          |      | operation of resource                                                         |
-| Tag     | project            |      | project name                                                                  |
-| Tag     | service            |      | service name                                                                  |
-| Tag     | source_type        |      | source types [app, cache, custom, db, web]                                    |
-| Tag     | span_status        |      | span status [ok, info, warning, error, critical]                              |
-| Tag     | span_type          |      | span types [entry, local, exit, unknow]                                       |
-| Tag     | version            |      | service version                                                               |
-| Field   | traceid            |      | trace ID                                                                      |
-| Field   | spanid             |      | span ID                                                                       |
-| Field   | parentid           |      | parent ID of span                                                             |
-| Field   | resource           |      | resource of service                                                           |
-| Field   | duration           | 微秒 | span duration                                                                 |
-| Field   | msg                |      | raw data content                                                              |
-| Field   | pid                |      | process id                                                                    |
-| Field   | priority           |      | sampling priority [PriorityReject, PriorityAuto, PriorityKeep]                |
-| Field   | sample_rate_global |      | global sampling ratio (0.1 means roughly 10 percent will send to data center) |
-| Field   | start              | 微秒 | span start timestamp                                                          |
-
 > 以下简称 dkproto
+
+| <span style="color:green">**Section**</span> | <span style="color:green">**Name**</span> | <span style="color:green">**Unit**</span> | <span style="color:green">**Description**</span>                                                    |
+| -------------------------------------------- | ----------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Tag                                          | container_host                            |                                           | host name of container                                                                              |
+| Tag                                          | endpoint                                  |                                           | end point of resource                                                                               |
+| Tag                                          | env                                       |                                           | environment arguments                                                                               |
+| Tag                                          | http_code                                 |                                           | HTTP status code                                                                                    |
+| Tag                                          | http_method                               |                                           | HTTP method                                                                                         |
+| Tag                                          | operation                                 |                                           | operation of resource                                                                               |
+| Tag                                          | project                                   |                                           | project name                                                                                        |
+| Tag                                          | service                                   |                                           | service name                                                                                        |
+| Tag                                          | source_type                               |                                           | source types [app, cache, custom, db, web]                                                          |
+| Tag                                          | span_status                               |                                           | span status [ok, info, warning, error, critical]                                                    |
+| Tag                                          | span_type                                 |                                           | span types [entry, local, exit, unknow]                                                             |
+| Tag                                          | version                                   |                                           | service version                                                                                     |
+| Field                                        | traceid                                   |                                           | trace ID                                                                                            |
+| Field                                        | spanid                                    |                                           | span ID                                                                                             |
+| Field                                        | parentid                                  |                                           | parent ID of span                                                                                   |
+| Field                                        | resource                                  |                                           | resource of service                                                                                 |
+| Field                                        | duration                                  | 微秒                                      | span duration                                                                                       |
+| Field                                        | msg                                       |                                           | raw data content                                                                                    |
+| Field                                        | pid                                       |                                           | process id                                                                                          |
+| Field                                        | priority                                  |                                           | priority rules (PRIORITY_USER_REJECT, PRIORITY_AUTO_REJECT, PRIORITY_AUTO_KEEP, PRIORITY_USER_KEEP) |
+| Field                                        | sample_rate_global                        |                                           | global sampling ratio (0.1 means roughly 10 percent will send to data center)                       |
+| Field                                        | start                                     | 微秒                                      | span start timestamp                                                                                |
+
+<br>
+
+> **Span Type:** the relative position of this span in tracing
+>
+> entry 当前 api 为入口即链路进入进入服务后的第一个调用
+>
+> local 当前 api 为入口后出口前的 api
+>
+> exit 当前 api 为链路在服务上最后一个调用
+>
+> unknow 当前 api 的相对位置状态不明确
+
+<br>
+
+> **Priority Rules:** the sampling priority rules of tracer client or lib
+>
+> PRIORITY_USER_REJECT = -1 用户选择拒绝上报
+>
+> PRIORITY_AUTO_REJECT = 0 客户端采样器选择拒绝上报
+>
+> PRIORITY_AUTO_KEEP = 1 客户端采样器选择上报
+>
+> PRIORITY_USER_KEEP = 2 用户选择上报
 
 ### Datakit Tracing Span Structure
 
@@ -63,7 +90,7 @@ Datakit Span 是 Datakit 内部使用的数据结构。第三方 Tracing Agent �
 > 以下简称 dkspan
 
 | Field Name         | Data Type           | Unit | Description                                                                             | Correspond To                       |
-| ---                | ---                 | ---  | --                                                                                      | --                                  |
+| ------------------ | ------------------- | ---- | --------------------------------------------------------------------------------------- | ----------------------------------- |
 | TraceID            | string              |      | Trace ID                                                                                | dkproto.fields.trace_id             |
 | ParentID           | string              |      | Parent Span ID                                                                          | dkproto.fields.parent_id            |
 | SpanID             | string              |      | Span ID                                                                                 | dkproto.fields.span_id              |
@@ -106,7 +133,7 @@ DataDog Traces Struct
 ### DDTrace Span Structure
 
 | Field Name | Data Type            | Unit | Description                                        | Correspond To                                                                                              |
-| ---        | ---                  | ---  | ---                                                | ---                                                                                                        |
+| ---------- | -------------------- | ---- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | TraceID    | uint64               |      | Trace ID                                           | dkspan.TraceID                                                                                             |
 | ParentID   | uint64               |      | Parent Span ID                                     | dkspan.ParentID                                                                                            |
 | SpanID     | uint64               |      | Span ID                                            | dkspan.SpanID                                                                                              |
@@ -153,7 +180,7 @@ resource_spans:{
 otel 中的 `resource_spans` 和 dkspan 的对应关系 如下：
 
 | Field Name           | Data Type         | Unit | Description    | Correspond To                                                                                                                                                     |
-| ---                  | ---               | ---  | ---            | ---                                                                                                                                                               |
+| -------------------- | ----------------- | ---- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | trace_id             | [16]byte          |      | Trace ID       | dkspan.TraceID                                                                                                                                                    |
 | span_id              | [8]byte           |      | Span ID        | dkspan.SpanID                                                                                                                                                     |
 | parent_span_id       | [8]byte           |      | Parent Span ID | dkspan.ParentID                                                                                                                                                   |
@@ -169,7 +196,7 @@ otel 中的 `resource_spans` 和 dkspan 的对应关系 如下：
 otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在了标签中，只有这些值非 0 时才会显示，如：
 
 | Field                         | Date Type | Uint | Description             | Correspond                           |
-| :---                          | :---      | :--- | :---                    | :---                                 |
+| :---------------------------- | :-------- | :--- | :---------------------- | :----------------------------------- |
 | span.dropped_attributes_count | int       |      | Span 被删除的标签数量   | dkspan.tags.dropped_attributes_count |
 | span.dropped_events_count     | int       |      | Span 被删除的事件数量   | dkspan.tags.dropped_events_count     |
 | span.dropped_links_count      | int       |      | Span 被删除的连接数量   | dkspan.tags.dropped_links_count      |
@@ -183,7 +210,7 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 ### Jaeger Thrift Protocol Batch Structure
 
 | Field Name | Data Type      | Unit | Description      | Correspond to       |
-| ---        | ---            | ---  | ---              | ---                 |
+| ---------- | -------------- | ---- | ---------------- | ------------------- |
 | Process    | struct pointer |      | 进程相关数据结构 | dkspan.Service      |
 | SeqNo      | int64 pointer  |      | 序列号           | 不接对应关系 dkspan |
 | Spans      | array          |      | Span 数组结构    | 见下表              |
@@ -192,7 +219,7 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 ### Jaeger Thrift Protocol Span Structure
 
 | Field Name    | Data Type | Unit | Description                               | Correspond To     |
-| ---           | ---       | ---  | ---                                       | ---               |
+| ------------- | --------- | ---- | ----------------------------------------- | ----------------- |
 | TraceIdHigh   | int64     |      | Trace ID 高位与 TraceIdLow 组成 Trace ID  | dkspan.TraceID    |
 | TraceIdLow    | int64     |      | Trace ID 低位与 TraceIdHigh 组成 Trace ID | dkspan.TraceID    |
 | ParentSpanId  | int64     |      | Parent Span ID                            | dkspan.ParentID   |
@@ -212,7 +239,7 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 ### Skywalking Segment Object Generated By Proto Buffer Protocol V3
 
 | Field Name      | Data Type | Unit | Description                                     | Correspond To      |
-| ---             | ---       | ---  | ---                                             | ---                |
+| --------------- | --------- | ---- | ----------------------------------------------- | ------------------ |
 | TraceId         | string    |      | Trace ID                                        | dkspan.TraceID     |
 | TraceSegmentId  | string    |      | Segment ID 与 Span ID 一起使用唯一标志一个 Span | dkspan.SpanID 高位 |
 | Service         | string    |      | 服务名                                          | dkspan.Service     |
@@ -223,7 +250,7 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 ### Skywalking Span Object Structure in Segment Object
 
 | Field Name    | Data Type | Unit | Description                                                   | Correspond To        |
-| ---           | ---       | ---  | ---                                                           | ---                  |
+| ------------- | --------- | ---- | ------------------------------------------------------------- | -------------------- |
 | ComponentId   | int32     |      | 第三方框架数值化定义                                          | 未使用字段           |
 | Refs          | array     |      | 跨线程跨进程情况下存储 Parent Segment                         | dkspan.ParentID 高位 |
 | ParentSpanId  | int32     |      | Parent Span ID 与 Segment ID 一起使用唯一标志一个 Parent Span | dkspan.ParentID 低位 |
@@ -246,7 +273,7 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 ### Zipkin Thrift Protocol Span Structure V1
 
 | Field Name        | Data Type | Unit | Description         | Correspond To    |
-| ---               | ---       | ---  | ---                 | ---              |
+| ----------------- | --------- | ---- | ------------------- | ---------------- |
 | TraceIDHigh       | uint64    |      | Trace ID 高位       | 无直接对应关系   |
 | TraceID           | uint64    |      | Trace ID            | dkspan.TraceID   |
 | ID                | uint64    |      | Span ID             | dkspan.SpanID    |
@@ -261,7 +288,7 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 ### Zipkin Span Structure V2
 
 | Field Name     | Data Type | Unit | Description                      | Correspond To     |
-| ---            | ---       | ---  | ---                              | ---               |
+| -------------- | --------- | ---- | -------------------------------- | ----------------- |
 | TraceID        | struct    |      | Trace ID                         | dkspan.TraceID    |
 | ID             | uint64    |      | Span ID                          | dkspan.SpanID     |
 | ParentID       | uint64    |      | Parent Span ID                   | dkspan.ParentID   |
