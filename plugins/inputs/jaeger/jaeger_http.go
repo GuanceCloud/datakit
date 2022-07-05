@@ -59,18 +59,19 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			ParentID:  fmt.Sprintf("%x", uint64(span.ParentSpanId)),
-			SpanID:    fmt.Sprintf("%x", uint64(span.SpanId)),
-			Service:   batch.Process.ServiceName,
-			Resource:  span.OperationName,
-			Operation: span.OperationName,
-			Source:    inputName,
-			SpanType:  itrace.FindSpanTypeIntSpanID(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
-			Env:       env,
-			Project:   project,
-			Start:     span.StartTime * int64(time.Microsecond),
-			Duration:  span.Duration * int64(time.Microsecond),
-			Version:   version,
+			ParentID:   fmt.Sprintf("%x", uint64(span.ParentSpanId)),
+			SpanID:     fmt.Sprintf("%x", uint64(span.SpanId)),
+			Service:    batch.Process.ServiceName,
+			Resource:   span.OperationName,
+			Operation:  span.OperationName,
+			Source:     inputName,
+			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
+			SpanType:   itrace.FindSpanTypeIntSpanID(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
+			Env:        env,
+			Project:    project,
+			Start:      span.StartTime * int64(time.Microsecond),
+			Duration:   span.Duration * int64(time.Microsecond),
+			Version:    version,
 		}
 
 		if span.TraceIdHigh != 0 {

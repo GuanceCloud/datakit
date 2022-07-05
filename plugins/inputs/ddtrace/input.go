@@ -143,7 +143,7 @@ func (ipt *Input) Run() {
 	// afterGather.AppendCalculator(itrace.StatTracingInfo)
 
 	// add filters: the order append in AfterGather is important!!!
-	// add RespectUserRule filter to obey client priority rules. like
+	// add RespectUserRule filter to obey client priority rules.
 	afterGather.AppendFilter(itrace.RespectUserRule)
 	// add error status penetration
 	afterGather.AppendFilter(itrace.PenetrateErrorTracing)

@@ -85,15 +85,16 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			TraceID:   segment.TraceId,
-			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
-			Service:   segment.Service,
-			Resource:  span.OperationName,
-			Operation: span.OperationName,
-			Source:    inputName,
-			EndPoint:  span.Peer,
-			Start:     span.StartTime * int64(time.Millisecond),
-			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
+			TraceID:    segment.TraceId,
+			SpanID:     fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
+			Service:    segment.Service,
+			Resource:   span.OperationName,
+			Operation:  span.OperationName,
+			Source:     inputName,
+			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
+			EndPoint:   span.Peer,
+			Start:      span.StartTime * int64(time.Millisecond),
+			Duration:   (span.EndTime - span.StartTime) * int64(time.Millisecond),
 		}
 
 		if span.ParentSpanId < 0 {
@@ -118,10 +119,12 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		switch span.SpanType {
 		case skyimpl.SpanType_Entry:
 			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
-		case skyimpl.SpanType_Exit:
-			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
 		case skyimpl.SpanType_Local:
 			dkspan.SpanType = itrace.SPAN_TYPE_LOCAL
+		case skyimpl.SpanType_Exit:
+			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
+		default:
+			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
 		}
 
 		sourceTags := make(map[string]string)

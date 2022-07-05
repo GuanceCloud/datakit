@@ -22,7 +22,7 @@ var (
 	_resources    = []string{"/get_user/name", "/push/data", "/check/security", "/fetch/data_source", "/pull/all_data", "/list/user_name"}
 	_source       = []string{"ddtrace", "jaeger", "opentelemetry", "skywalking", "zipkin"}
 	_span_types   = []string{SPAN_TYPE_ENTRY, SPAN_TYPE_LOCAL, SPAN_TYPE_EXIT, SPAN_TYPE_UNKNOW}
-	_source_types = []string{SPAN_SERVICE_APP, SPAN_SERVICE_CACHE, SPAN_SERVICE_CUSTOM, SPAN_SERVICE_DB, SPAN_SERVICE_WEB}
+	_source_types = []string{SPAN_SOURCE_APP, SPAN_SOURCE_CACHE, SPAN_SOURCE_CUSTOMER, SPAN_SOURCE_DB, SPAN_SOURCE_WEB}
 	_http_methods = []string{
 		http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch,
 		http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace,

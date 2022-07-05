@@ -145,17 +145,18 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 		}
 		service := getServiceFromSpanModel(span)
 		dkspan := &itrace.DatakitSpan{
-			ParentID:  span.ParentID.String(),
-			SpanID:    span.ID.String(),
-			Service:   service,
-			Resource:  span.Name,
-			Operation: span.Name,
-			Source:    inputName,
-			SpanType:  itrace.FindSpanTypeInMultiServersStrSpanID(span.ID.String(), span.ParentID.String(), service, spanIDs, parentIDs),
-			Status:    itrace.STATUS_OK,
-			Start:     span.Timestamp.UnixNano(),
-			Duration:  int64(span.Duration),
-			Tags:      tags,
+			ParentID:   span.ParentID.String(),
+			SpanID:     span.ID.String(),
+			Service:    service,
+			Resource:   span.Name,
+			Operation:  span.Name,
+			Source:     inputName,
+			SpanType:   itrace.FindSpanTypeInMultiServersStrSpanID(span.ID.String(), span.ParentID.String(), service, spanIDs, parentIDs),
+			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
+			Status:     itrace.STATUS_OK,
+			Start:      span.Timestamp.UnixNano(),
+			Duration:   int64(span.Duration),
+			Tags:       tags,
 		}
 
 		if isRootSpan(dkspan.ParentID) {
