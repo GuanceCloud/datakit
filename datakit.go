@@ -65,6 +65,7 @@ const (
 	CategoryTracing      = "tracing"
 	CategoryRUM          = "rum"
 	CategorySecurity     = "security"
+	CategoryProfile      = "profiling"
 
 	// other APIS.
 	HeartBeat         = "/v1/write/heartbeat"
@@ -178,6 +179,7 @@ func CategoryList() (map[string]struct{}, map[string]struct{}) {
 			Tracing:      {},
 			RUM:          {},
 			Security:     {},
+			Profile:      {},
 		}, map[string]struct{}{
 			MetricDeprecated: {},
 		}
@@ -194,6 +196,7 @@ func CategoryDirName() map[string]string {
 		Tracing:      "tracing",
 		RUM:          "rum",
 		Security:     "security",
+		Profile:      "profiling",
 	}
 }
 

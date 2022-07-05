@@ -65,42 +65,42 @@ func TestScript(t *testing.T) {
 func TestNewScript(t *testing.T) {
 	for category := range datakit.CategoryDirName() {
 		if ret, retErr := NewScripts(map[string]string{"abc": "if true{}"}, nil, DefaultScriptNS, category); len(retErr) > 0 {
-			l.Error(retErr)
+			t.Error(retErr)
 		} else if _, _, err := ret["abc"].Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
-			l.Error(err)
+			t.Error(err)
 		}
 	}
 	for category := range _allCategory {
 		if ret, retErr := NewScripts(map[string]string{"abc": "if true{}"}, nil, DefaultScriptNS, category); len(retErr) > 0 {
-			l.Error(retErr)
+			t.Error(retErr)
 		} else if _, _, err := ret["abc"].Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
-			l.Error(err)
+			t.Error(err)
 		}
 	}
 	for category := range _allDeprecatedCategory {
 		if ret, retErr := NewScripts(map[string]string{"abc": "if true{}"}, nil, DefaultScriptNS, category); len(retErr) > 0 {
-			l.Error(retErr)
+			t.Error(retErr)
 		} else if _, _, err := ret["abc"].Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
-			l.Error(err)
+			t.Error(err)
 		}
 	}
 	m1, m2 := datakit.CategoryList()
 	for category := range m1 {
 		if ret, retErr := NewScripts(map[string]string{"abc": "if true{}"}, nil, DefaultScriptNS, category); len(retErr) > 0 {
-			l.Error(retErr)
+			t.Error(retErr)
 		} else if _, _, err := ret["abc"].Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
-			l.Error(err)
+			t.Error(err)
 		}
 	}
 	for category := range m2 {
 		if ret, retErr := NewScripts(map[string]string{"abc": "if true{}"}, nil, DefaultScriptNS, category); len(retErr) > 0 {
-			l.Error(retErr)
+			t.Error(retErr)
 		} else if _, _, err := ret["abc"].Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
-			l.Error(err)
+			t.Error(err)
 		}
 	}
 
 	if _, err := NewScripts(map[string]string{"abc": "if true{}"}, nil, DefaultScriptNS, "-!-c-a-t-e-g-0-r-Y"); err == nil {
-		l.Error("error == nil")
+		t.Error("error == nil")
 	}
 }
