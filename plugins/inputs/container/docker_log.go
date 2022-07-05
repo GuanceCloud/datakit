@@ -65,7 +65,7 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 	}
 
 	opt := composeTailerOption(d.k8sClient, info)
-	opt.DockerMode = true
+	opt.Mode = tailer.DockerMode
 
 	t, err := tailer.NewTailerSingle(info.logPath, opt)
 	if err != nil {

@@ -35,9 +35,6 @@ func DidRotate(file *os.File, lastReadOffset int64) (bool, error) {
 }
 
 func FileIsActive(fn string, timeout time.Duration) bool {
-	if timeout <= 0 {
-		return true
-	}
 	info, err := os.Stat(fn)
 	if err != nil {
 		return false

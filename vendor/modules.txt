@@ -1491,6 +1491,7 @@ k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/workqueue
 # k8s.io/cri-api v0.20.6 => k8s.io/cri-api v0.20.5
 ## explicit; go 1.15
+k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/apis/runtime/v1alpha2
 # k8s.io/klog/v2 v2.40.1
 ## explicit; go 1.13

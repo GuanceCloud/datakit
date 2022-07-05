@@ -82,8 +82,16 @@ type Option struct {
 	ForwardFunc   ForwardFunc
 	IgnoreDeadLog time.Duration
 
-	DockerMode bool
+	Mode Mode
 }
+
+type Mode uint8
+
+const (
+	FileMode Mode = iota + 1
+	DockerMode
+	ContainerdMode
+)
 
 func (opt *Option) Init() error {
 	if opt.Source == "" {
