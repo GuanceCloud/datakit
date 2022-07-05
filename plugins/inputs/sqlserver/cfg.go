@@ -80,6 +80,9 @@ type Input struct {
 	start   time.Time
 	db      *sql.DB
 
+	pauseCh chan bool
+	pause   bool
+
 	semStop *cliutils.Sem // start stop signal
 }
 

@@ -21,6 +21,30 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ElectionInput = (*Input)(nil)
+
+func (n *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case n.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (n *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case n.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
 func (*Input) SampleConfig() string {
 	return sample
 }
@@ -111,7 +135,9 @@ func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("sqlserver start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
-
+	if namespace := config.GetElectionNamespace(); namespace != "" {
+		n.Tags["election_namespace"] = namespace
+	}
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
 
@@ -129,6 +155,8 @@ func (n *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Info("sqlserver exit")
 			return
+		case n.pause = <-n.pauseCh:
+			// nil
 		}
 	}
 
@@ -143,32 +171,36 @@ func (n *Input) Run() {
 	}()
 
 	for {
-		n.getMetric()
-		if len(collectCache) > 0 {
-			err := io.Feed(inputName, datakit.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
-			collectCache = collectCache[:0]
-			if err != nil {
-				n.lastErr = err
-				l.Errorf(err.Error())
-				continue
+		if n.pause {
+			l.Debugf("not leader, skipped")
+		} else {
+			n.getMetric()
+			if len(collectCache) > 0 {
+				err := io.Feed(inputName, datakit.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
+				collectCache = collectCache[:0]
+				if err != nil {
+					n.lastErr = err
+					l.Errorf(err.Error())
+					continue
+				}
 			}
-		}
 
-		if n.lastErr != nil {
-			io.FeedLastError(inputName, n.lastErr.Error())
-			n.lastErr = nil
-		}
+			if n.lastErr != nil {
+				io.FeedLastError(inputName, n.lastErr.Error())
+				n.lastErr = nil
+			}
 
-		select {
-		case <-tick.C:
-		case <-datakit.Exit.Wait():
-			l.Info("sqlserver exit")
-			return
+			select {
+			case <-tick.C:
+			case <-datakit.Exit.Wait():
+				l.Info("sqlserver exit")
+				return
 
-		case <-n.semStop.Wait():
-			n.exit()
-			l.Info("sqlserver return")
-			return
+			case <-n.semStop.Wait():
+				n.exit()
+				l.Info("sqlserver return")
+				return
+			}
 		}
 	}
 }
@@ -283,8 +315,8 @@ func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
-
-			semStop: cliutils.NewSem(),
+			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+			semStop:  cliutils.NewSem(),
 		}
 		return s
 	})
