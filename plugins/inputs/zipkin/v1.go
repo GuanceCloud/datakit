@@ -62,14 +62,15 @@ func thriftV1SpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 		}
 		service := getServiceFromZpkCoreV1Span(span)
 		dkspan := &itrace.DatakitSpan{
-			TraceID:   fmt.Sprintf("%x", uint64(span.TraceID)),
-			ParentID:  "0",
-			SpanID:    fmt.Sprintf("%x", uint64(span.ID)),
-			Service:   service,
-			Resource:  span.Name,
-			Operation: span.Name,
-			Source:    inputName,
-			SpanType:  itrace.FindSpanTypeInMultiServersIntSpanID(span.ID, *span.ParentID, service, spanIDs, parentIDs),
+			TraceID:    fmt.Sprintf("%x", uint64(span.TraceID)),
+			ParentID:   "0",
+			SpanID:     fmt.Sprintf("%x", uint64(span.ID)),
+			Service:    service,
+			Resource:   span.Name,
+			Operation:  span.Name,
+			Source:     inputName,
+			SpanType:   itrace.FindSpanTypeInMultiServersIntSpanID(span.ID, *span.ParentID, service, spanIDs, parentIDs),
+			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
 		}
 
 		if span.ParentID != nil {
@@ -331,16 +332,17 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 
 		service := getServiceFromZpkV1Span(span)
 		dkspan := &itrace.DatakitSpan{
-			TraceID:   span.TraceID,
-			ParentID:  span.ParentID,
-			SpanID:    span.ID,
-			Service:   service,
-			Resource:  span.Name,
-			Operation: span.Name,
-			Source:    inputName,
-			SpanType:  itrace.FindSpanTypeInMultiServersStrSpanID(span.ID, span.ParentID, service, spanIDs, parentIDs),
-			Start:     getFirstTimestamp(span),
-			Duration:  span.Duration * int64(time.Microsecond),
+			TraceID:    span.TraceID,
+			ParentID:   span.ParentID,
+			SpanID:     span.ID,
+			Service:    service,
+			Resource:   span.Name,
+			Operation:  span.Name,
+			Source:     inputName,
+			SpanType:   itrace.FindSpanTypeInMultiServersStrSpanID(span.ID, span.ParentID, service, spanIDs, parentIDs),
+			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
+			Start:      getFirstTimestamp(span),
+			Duration:   span.Duration * int64(time.Microsecond),
 		}
 
 		if isRootSpan(dkspan.ParentID) {

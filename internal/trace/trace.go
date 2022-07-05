@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
@@ -31,6 +32,7 @@ const (
 	// span status.
 	STATUS_OK       = "ok"
 	STATUS_INFO     = "info"
+	STATUS_DEBUG    = "debug"
 	STATUS_WARN     = "warning"
 	STATUS_ERR      = "error"
 	STATUS_CRITICAL = "critical"
@@ -41,13 +43,12 @@ const (
 	SPAN_TYPE_EXIT   = "exit"
 	SPAN_TYPE_UNKNOW = "unknow"
 
-	// service type.
-	SPAN_SERVICE_APP    = "app"
-	SPAN_SERVICE_CACHE  = "cache"
-	SPAN_SERVICE_CUSTOM = "custom"
-	SPAN_SERVICE_DB     = "db"
-	SPAN_SERVICE_WEB    = "web"
-	SPAN_SERVICE_UNKNOW = "unknow"
+	// span source type.
+	SPAN_SOURCE_APP      = "app"
+	SPAN_SOURCE_CACHE    = "cache"
+	SPAN_SOURCE_CUSTOMER = "custom"
+	SPAN_SOURCE_DB       = "db"
+	SPAN_SOURCE_WEB      = "web"
 
 	// line protocol tags.
 	TAG_CONTAINER_HOST = "container_host"
@@ -99,19 +100,61 @@ const (
 var (
 	packageName = "dktrace"
 	log         = logger.DefaultSLogger(packageName)
+	sourceTypes = map[string]string{
+		"consul":        SPAN_SOURCE_APP,
+		"cache":         SPAN_SOURCE_CACHE,
+		"memcached":     SPAN_SOURCE_CACHE,
+		"redis":         SPAN_SOURCE_CACHE,
+		"aerospike":     SPAN_SOURCE_DB,
+		"cassandra":     SPAN_SOURCE_DB,
+		"db":            SPAN_SOURCE_DB,
+		"elasticsearch": SPAN_SOURCE_DB,
+		"influxdb":      SPAN_SOURCE_DB,
+		"leveldb":       SPAN_SOURCE_DB,
+		"mongodb":       SPAN_SOURCE_DB,
+		"mysql":         SPAN_SOURCE_DB,
+		"pymysql":       SPAN_SOURCE_DB,
+		"sql":           SPAN_SOURCE_DB,
+		"dns":           SPAN_SOURCE_WEB,
+		"grpc":          SPAN_SOURCE_WEB,
+		"http":          SPAN_SOURCE_WEB,
+		"http2":         SPAN_SOURCE_WEB,
+		"rpc":           SPAN_SOURCE_WEB,
+		"web":           SPAN_SOURCE_WEB,
+		"":              SPAN_SOURCE_CUSTOMER,
+		"benchmark":     SPAN_SOURCE_CUSTOMER,
+		"build":         SPAN_SOURCE_CUSTOMER,
+		"custom":        SPAN_SOURCE_CUSTOMER,
+		"datanucleus":   SPAN_SOURCE_CUSTOMER,
+		"graphql":       SPAN_SOURCE_CUSTOMER,
+		"hibernate":     SPAN_SOURCE_CUSTOMER,
+		"queue":         SPAN_SOURCE_CUSTOMER,
+		"soap":          SPAN_SOURCE_CUSTOMER,
+		"template":      SPAN_SOURCE_CUSTOMER,
+		"test":          SPAN_SOURCE_CUSTOMER,
+		"worker":        SPAN_SOURCE_CUSTOMER,
+	}
 )
+
+func GetSpanSourceType(app string) string {
+	if s, ok := sourceTypes[strings.ToLower(app)]; ok {
+		return s
+	} else {
+		return SPAN_SOURCE_CUSTOMER
+	}
+}
 
 type DatakitSpan struct {
 	TraceID        string                 `json:"trace_id"`
 	ParentID       string                 `json:"parent_id"`
 	SpanID         string                 `json:"span_id"`
-	Service        string                 `json:"service"`     // process name
-	Resource       string                 `json:"resource"`    // a resource name in process
-	Operation      string                 `json:"operation"`   // a operation name behind resource
-	Source         string                 `json:"source"`      // tracer name
-	SpanType       string                 `json:"span_type"`   // span type of entry, local, exit or unknow
-	SourceType     string                 `json:"source_type"` // process role in service
-	Env            string                 `json:"env"`
+	Service        string                 `json:"service"`     // service name
+	Resource       string                 `json:"resource"`    // resource or api under service
+	Operation      string                 `json:"operation"`   // api name
+	Source         string                 `json:"source"`      // client tracer name
+	SpanType       string                 `json:"span_type"`   // relative span position in tracing: entry, local, exit or unknow
+	SourceType     string                 `json:"source_type"` // service type
+	Env            string                 `json:"env"`         // environment variables
 	Project        string                 `json:"project"`
 	Version        string                 `json:"version"`
 	Tags           map[string]string      `json:"tags"`
@@ -123,8 +166,8 @@ type DatakitSpan struct {
 	PID            string                 `json:"p_id"`     // process id
 	Start          int64                  `json:"start"`    // unit: nano sec
 	Duration       int64                  `json:"duration"` // unit: nano sec
-	Status         string                 `json:"status"`
-	Content        string                 `json:"content"` // raw tracing data in json
+	Status         string                 `json:"status"`   // span status like error, ok, info etc.
+	Content        string                 `json:"content"`  // raw tracing data in json
 }
 
 type DatakitTrace []*DatakitSpan
