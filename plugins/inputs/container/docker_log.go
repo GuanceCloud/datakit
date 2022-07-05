@@ -129,27 +129,21 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 		Type: "logging",
 		Desc: "日志来源设置，参见[这里](container#6de978c3)",
 		Tags: map[string]interface{}{
-			"container_name": inputs.NewTagInfo(`容器名称`),
-			"container_id":   inputs.NewTagInfo(`容器ID`),
-			"container_type": inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
-			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty（containerd 日志缺少此字段）`),
-			"pod_name":       inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"namespace":      inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
-			"deployment":     inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在，containerd 日志缺少此字段）`),
-			"service":        inputs.NewTagInfo(`服务名称`),
+			"container_name":         inputs.NewTagInfo(`k8s 命名的容器名（在 labels 中取 'io.kubernetes.container.name'），如果值为空则跟 container_runtime_name 相同`),
+			"container_runtime_name": inputs.NewTagInfo(`由 runtime 命名的容器名（例如 docker ps 查看），如果值为空则默认是 unknown`),
+			"container_id":           inputs.NewTagInfo(`容器ID`),
+			"container_type":         inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
+			// "stream":                 inputs.NewTagInfo(`数据流方式，stdout/stderr/tty（containerd 日志缺少此字段）`),
+			"pod_name":   inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
+			"namespace":  inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
+			"deployment": inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在，containerd 日志缺少此字段）`),
+			"service":    inputs.NewTagInfo(`服务名称`),
 		},
 		Fields: map[string]interface{}{
 			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK/unknown"},
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
 		},
 	}
-}
-
-func useDefaultUnknown(n string) string {
-	if n != "" {
-		return n
-	}
-	return "unknown"
 }
 
 func checkContainerIsOlder(createdTime string, limit time.Duration) bool {

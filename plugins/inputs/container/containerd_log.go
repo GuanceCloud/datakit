@@ -69,9 +69,13 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		labels:  status.GetLabels(),
 		tags:    make(map[string]string),
 	}
-	if n := status.GetMetadata(); n != nil {
-		info.name = n.Name
+
+	if status.GetMetadata() != nil && status.GetMetadata().Name != "" {
+		info.name = status.GetMetadata().Name
+	} else {
+		info.name = "unknown"
 	}
+
 	if n := status.GetImage(); n != nil {
 		info.image = n.Image
 	}
