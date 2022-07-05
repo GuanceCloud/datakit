@@ -127,23 +127,23 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 
 	switch category {
 	case datakit.MetricDeprecated:
-	case datakit.Network:
-	case datakit.KeyEvent:
-	case datakit.CustomObject:
 
 	case datakit.Logging,
 		datakit.Tracing,
 		datakit.Metric,
-		datakit.Object:
+		datakit.Object,
+		datakit.Network,
+		datakit.KeyEvent,
+		datakit.CustomObject,
+		datakit.RUM,
+		datakit.Security,
+		datakit.Profile:
 
 		// run filters
 		after = filterPts(category, pts)
 		filtered = len(pts) - len(after)
 		pts = after
 
-	case datakit.Security:
-	case datakit.RUM:
-	case datakit.Profile:
 	default:
 		return fmt.Errorf("invalid category `%s'", category)
 	}

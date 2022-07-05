@@ -171,6 +171,7 @@ func (f *filter) filterLogging(cond parser.WhereConditions, pts []*Point) []*Poi
 		}
 
 		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
+
 		if !filtered(cond, tags, fields) {
 			after = append(after, pt)
 		}
@@ -231,9 +232,158 @@ func (f *filter) filterObject(cond parser.WhereConditions, pts []*Point) []*Poin
 	return after
 }
 
+// using measurement name as tag `service'.
 func (f *filter) filterTracing(cond parser.WhereConditions, pts []*Point) []*Point {
 	if cond == nil {
 		l.Debugf("no condition filter for tracing")
+		return pts
+	}
+
+	var after []*Point
+
+	for _, pt := range pts {
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
+		if err != nil {
+			continue // filter it!
+		}
+
+		if !filtered(cond, tags, fields) {
+			after = append(after, pt)
+		}
+	}
+
+	return after
+}
+
+func (f *filter) filterNetwork(cond parser.WhereConditions, pts []*Point) []*Point {
+	if cond == nil {
+		l.Debugf("no condition filter for network")
+		return pts
+	}
+
+	var after []*Point
+
+	for _, pt := range pts {
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
+		if err != nil {
+			continue // filter it!
+		}
+
+		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
+
+		if !filtered(cond, tags, fields) {
+			after = append(after, pt)
+		}
+	}
+
+	return after
+}
+
+func (f *filter) filterKeyEvent(cond parser.WhereConditions, pts []*Point) []*Point {
+	if cond == nil {
+		l.Debugf("no condition filter for key event")
+		return pts
+	}
+
+	var after []*Point
+
+	for _, pt := range pts {
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
+		if err != nil {
+			continue // filter it!
+		}
+
+		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
+
+		if !filtered(cond, tags, fields) {
+			after = append(after, pt)
+		}
+	}
+
+	return after
+}
+
+func (f *filter) filterCustomObject(cond parser.WhereConditions, pts []*Point) []*Point {
+	if cond == nil {
+		l.Debugf("no condition filter for custom object")
+		return pts
+	}
+
+	var after []*Point
+
+	for _, pt := range pts {
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
+		if err != nil {
+			continue // filter it!
+		}
+
+		tags["class"] = pt.Point.Name() // set measurement name as tag `class'
+
+		if !filtered(cond, tags, fields) {
+			after = append(after, pt)
+		}
+	}
+
+	return after
+}
+
+func (f *filter) filterRUM(cond parser.WhereConditions, pts []*Point) []*Point {
+	if cond == nil {
+		l.Debugf("no condition filter for rum")
+		return pts
+	}
+
+	var after []*Point
+
+	for _, pt := range pts {
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
+		if err != nil {
+			continue // filter it!
+		}
+
+		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
+
+		if !filtered(cond, tags, fields) {
+			after = append(after, pt)
+		}
+	}
+
+	return after
+}
+
+// using measurement name as tag `service'.
+func (f *filter) filterSecurity(cond parser.WhereConditions, pts []*Point) []*Point {
+	if cond == nil {
+		l.Debugf("no condition filter for security")
+		return pts
+	}
+
+	var after []*Point
+
+	for _, pt := range pts {
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
+		if err != nil {
+			continue // filter it!
+		}
+
+		if !filtered(cond, tags, fields) {
+			after = append(after, pt)
+		}
+	}
+
+	return after
+}
+
+// using measurement name as tag `service'.
+func (f *filter) filterProfile(cond parser.WhereConditions, pts []*Point) []*Point {
+	if cond == nil {
+		l.Debugf("no condition filter for profile")
 		return pts
 	}
 
@@ -279,6 +429,36 @@ func (f *filter) doFilter(category string, pts []*Point) ([]*Point, int) {
 		f.RWMutex.RLock()
 		defer f.RWMutex.RUnlock()
 		return f.filterObject(f.conditions["object"], pts), len(f.conditions["object"])
+
+	case datakit.Network:
+		f.RWMutex.RLock()
+		defer f.RWMutex.RUnlock()
+		return f.filterNetwork(f.conditions["network"], pts), len(f.conditions["network"])
+
+	case datakit.KeyEvent:
+		f.RWMutex.RLock()
+		defer f.RWMutex.RUnlock()
+		return f.filterKeyEvent(f.conditions["keyevent"], pts), len(f.conditions["keyevent"])
+
+	case datakit.CustomObject:
+		f.RWMutex.RLock()
+		defer f.RWMutex.RUnlock()
+		return f.filterCustomObject(f.conditions["customobject"], pts), len(f.conditions["customobject"])
+
+	case datakit.RUM:
+		f.RWMutex.RLock()
+		defer f.RWMutex.RUnlock()
+		return f.filterRUM(f.conditions["rum"], pts), len(f.conditions["rum"])
+
+	case datakit.Security:
+		f.RWMutex.RLock()
+		defer f.RWMutex.RUnlock()
+		return f.filterSecurity(f.conditions["security"], pts), len(f.conditions["security"])
+
+	case datakit.Profile:
+		f.RWMutex.RLock()
+		defer f.RWMutex.RUnlock()
+		return f.filterProfile(f.conditions["profile"], pts), len(f.conditions["profile"])
 
 	default: // TODO: not implemented
 		l.Warn("unsupport category: %s", category)
