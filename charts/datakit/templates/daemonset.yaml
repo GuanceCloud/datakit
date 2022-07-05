@@ -51,20 +51,20 @@ spec:
               value: {{ .Values.datakit.http_listen }}
             {{- if .Values.git_repos.enable }}
             {{- if not (eq  "-" .Values.git_repos.git_url) }}
-            - name: DK_GIT_URL
+            - name: ENV_GIT_URL
               value: {{ .Values.git_repos.git_url }}
             {{- end }}
             {{- if not (eq "-" .Values.git_repos.git_key_path ) }}
-            - name: DK_GIT_KEY_PATH
+            - name: ENV_GIT_KEY_PATH
               value: "/usr/local/datakit/id_rsa"
             {{- end }}
             {{- if not (eq .Values.git_repos.git_key_pw "-") }}
-            - name: DK_GIT_KEY_PW
+            - name: ENV_GIT_KEY_PW
               value: {{ .Values.git_repos.git_key_pw | quote  }}
             {{- end }}
-            - name: DK_GIT_BRANCH
+            - name: ENV_GIT_BRANCH
               value: {{ .Values.git_repos.git_branch | quote }}
-            - name: DK_GIT_INTERVAL
+            - name: ENV_GIT_INTERVAL
               value: {{ .Values.git_repos.git_interval | quote  }}
           {{- end }}
 
