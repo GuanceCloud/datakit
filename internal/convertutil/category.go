@@ -36,6 +36,8 @@ func GetMapCategoryShortToFull(categoryShort string) (string, error) {
 		out = datakit.RUM
 	case datakit.CategorySecurity:
 		out = datakit.Security
+	case datakit.CategoryProfile:
+		out = datakit.Profile
 	default:
 		return "", fmt.Errorf("unrecognized category")
 	}

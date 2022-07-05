@@ -39,40 +39,67 @@ func TestSCriptName(t *testing.T) {
 	})
 	assert.Equal(t, nil, err)
 
-	name, ok := scriptName(datakit.Tracing, pt, nil)
+	f, err := pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	name, ok := scriptName(datakit.Tracing, pt.Name(), pt.Tags(), f, nil)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "svc_name.p", name)
 
-	name, ok = scriptName(datakit.Tracing, pt, map[string]string{"c": "d"})
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, ok = scriptName(datakit.Tracing, pt.Name(), pt.Tags(), f, map[string]string{"c": "d"})
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "svc_name.p", name)
 
-	_, ok = scriptName(datakit.Tracing, pt, map[string]string{"svc_name": "-"})
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, ok = scriptName(datakit.Tracing, pt.Name(), pt.Tags(), f, map[string]string{"svc_name": "-"})
 	assert.Equal(t, false, ok)
 
-	name, ok = scriptName(datakit.Tracing, pt, map[string]string{"svc_name": "def.p"})
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, ok = scriptName(datakit.Profile, pt.Name(), pt.Tags(), f, map[string]string{"svc_name": "def.p"})
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "def.p", name)
 
-	pt2, err := NewPoint("m_name", map[string]string{}, map[string]interface{}{"message@json": "a"}, &PointOption{
-		Category: datakit.Logging,
-	})
 	assert.Equal(t, nil, err)
-	_, ok = scriptName(datakit.Tracing, pt2, map[string]string{"m_name": "def.p"})
+	_, ok = scriptName(datakit.Tracing, "m_name", map[string]string{}, map[string]interface{}{"message@json": "a"},
+		map[string]string{"m_name": "def.p"})
 	assert.Equal(t, false, ok)
 
-	name, ok = scriptName(datakit.Metric, pt, map[string]string{"abc": "def.p"})
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, ok = scriptName(datakit.Metric, pt.Name(), pt.Tags(), f, map[string]string{"abc": "def.p"})
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "m_name.p", name)
 
-	name, ok = scriptName(datakit.Metric, pt, map[string]string{"m_name": "def.p"})
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, ok = scriptName(datakit.Metric, pt.Name(), pt.Tags(), f, map[string]string{"m_name": "def.p"})
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "def.p", name)
 
-	_, ok = scriptName(datakit.Metric, pt, map[string]string{"m_name": "-"})
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, ok = scriptName(datakit.Metric, pt.Name(), pt.Tags(), f, map[string]string{"m_name": "-"})
 	assert.Equal(t, false, ok)
 
-	_, ok = scriptName(datakit.Metric, nil, map[string]string{"m_name": "-"})
+	_, ok = scriptName(datakit.Metric, "", nil, nil, map[string]string{"m_name": "-"})
 	assert.Equal(t, false, ok)
 
 	pts, err := models.ParsePoints(scheckTestPointData)
@@ -83,7 +110,11 @@ func TestSCriptName(t *testing.T) {
 	pt = &Point{
 		influxdb.NewPointFrom(ptSc),
 	}
-	name, ok = scriptName(datakit.Security, pt, nil)
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, ok = scriptName(datakit.Security, pt.Name(), pt.Tags(), f, nil)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "system.p", name)
 
@@ -95,7 +126,11 @@ func TestSCriptName(t *testing.T) {
 	pt = &Point{
 		influxdb.NewPointFrom(ptSc),
 	}
-	_, ok = scriptName(datakit.Security, pt, nil)
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, ok = scriptName(datakit.Security, pt.Name(), pt.Tags(), f, nil)
 	assert.Equal(t, false, ok)
 
 	pts, err = models.ParsePoints(rumTestPointData)
@@ -106,7 +141,11 @@ func TestSCriptName(t *testing.T) {
 	pt = &Point{
 		influxdb.NewPointFrom(ptSc),
 	}
-	name, ok = scriptName(datakit.RUM, pt, nil)
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, ok = scriptName(datakit.RUM, pt.Name(), pt.Tags(), f, nil)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "appid01_error.p", name)
 
@@ -118,6 +157,6 @@ func TestSCriptName(t *testing.T) {
 	pt = &Point{
 		influxdb.NewPointFrom(ptSc),
 	}
-	_, ok = scriptName(datakit.RUM, pt, nil)
+	_, ok = scriptName(datakit.RUM, pt.Name(), pt.Tags(), f, nil)
 	assert.Equal(t, false, ok)
 }

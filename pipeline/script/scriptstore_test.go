@@ -130,8 +130,9 @@ func TestCmpCategory(t *testing.T) {
 		return ret1, ret2
 	}()
 
-	assert.Equal(t, c, c1)
 	assert.Equal(t, dc, dc1)
+
+	assert.Equal(t, c, c1)
 	assert.Equal(t, c1, func() map[string]struct{} {
 		ret := map[string]struct{}{}
 		for k := range datakit.CategoryDirName() {
@@ -259,6 +260,14 @@ func TestWhichStore(t *testing.T) {
 		t.Fatal("err")
 	}
 	if r != _tracingScriptStore {
+		t.Fatal("not equal")
+	}
+
+	r = whichStore(datakit.Profile)
+	if r == nil {
+		t.Fatal("err")
+	}
+	if r != _profilingScriptStore {
 		t.Fatal("not equal")
 	}
 

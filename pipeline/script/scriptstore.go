@@ -28,6 +28,7 @@ var (
 	_tracingScriptStore      = NewScriptStore(datakit.Tracing)
 	_rumScriptStore          = NewScriptStore(datakit.RUM)
 	_securityScriptStore     = NewScriptStore(datakit.Security)
+	_profilingScriptStore    = NewScriptStore(datakit.Profile)
 
 	// TODO: If you add a store, please add the relevant content in the whichStore function.
 
@@ -41,6 +42,7 @@ var (
 		datakit.Tracing:      _tracingScriptStore,
 		datakit.RUM:          _rumScriptStore,
 		datakit.Security:     _securityScriptStore,
+		datakit.Profile:      _profilingScriptStore,
 	}
 
 	_allDeprecatedCategory = map[string]*ScriptStore{
@@ -68,6 +70,8 @@ func whichStore(category string) *ScriptStore {
 		return _rumScriptStore
 	case datakit.Security:
 		return _securityScriptStore
+	case datakit.Profile:
+		return _profilingScriptStore
 	default:
 		l.Warn("unsuppored category: %s", category)
 		return _loggingScriptStore
