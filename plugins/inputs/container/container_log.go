@@ -25,7 +25,13 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 	if info.tags == nil {
 		info.tags = make(map[string]string)
 	}
-	info.tags["container_name"] = getContainerNameForLabels(info.labels)
+
+	info.tags["container_runtime_name"] = info.name
+	if getContainerNameForLabels(info.labels) != "" {
+		info.tags["container_name"] = getContainerNameForLabels(info.labels)
+	} else {
+		info.tags["container_name"] = info.tags["container_runtime_name"]
+	}
 	info.tags["container_id"] = info.id
 	info.tags["pod_name"] = getPodNameForLabels(info.labels)
 	info.tags["namespace"] = getPodNamespaceForLabels(info.labels)
@@ -38,15 +44,15 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 		info.tags["image_tag"] = imageTag
 	}
 
-	opt := &tailer.Option{
-		Source:     info.name,
-		GlobalTags: info.tags,
-	}
-	if n := info.tags["image_short_name"]; n != "" {
-		opt.Source = n
-	}
-	if n := getContainerNameForLabels(info.labels); n != "" {
-		opt.Source = n
+	opt := &tailer.Option{GlobalTags: info.tags}
+
+	switch {
+	case getContainerNameForLabels(info.labels) != "":
+		opt.Source = getContainerNameForLabels(info.labels)
+	case info.tags["image_short_name"] != "":
+		opt.Source = info.tags["image_short_name"]
+	default:
+		opt.Source = info.name
 	}
 
 	if !checkContainerIsOlder(info.created, time.Minute) {
