@@ -6,6 +6,7 @@
 package cmds
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -164,11 +165,14 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 			fmt.Println(l)
 		}
 	} else {
-		j, err := json.MarshalIndent(result, "", defaultJSONIndent)
-		if err != nil {
+		buf := bytes.NewBuffer([]byte{})
+		encoder := json.NewEncoder(buf)
+		encoder.SetEscapeHTML(false)
+		encoder.SetIndent("", defaultJSONIndent)
+		if err := encoder.Encode(result); err != nil {
 			return err
 		}
-		fmt.Printf("%s\n", string(j))
+		fmt.Printf("%s\n", buf.String())
 	}
 
 	infof("---------------\n")

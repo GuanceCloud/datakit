@@ -59,6 +59,11 @@ func TestGetMapCategoryShortToFull(t *testing.T) {
 			expect: datakit.Tracing,
 		},
 		{
+			name:   "Profiling",
+			in:     datakit.CategoryProfile,
+			expect: datakit.Profile,
+		},
+		{
 			name:   "RUM",
 			in:     datakit.CategoryRUM,
 			expect: datakit.RUM,

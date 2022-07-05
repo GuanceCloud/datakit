@@ -324,26 +324,26 @@ func getAPIDebugPipelineRequest(req *http.Request) (*pipelineDebugRequest, error
 
 func getPointCategory(category string) string {
 	switch category {
-	case datakit.Metric, datakit.MetricDeprecated, "metric", "metrics":
+	case datakit.Metric, datakit.MetricDeprecated, datakit.CategoryMetric, "metrics":
 		return datakit.Metric
-	case datakit.Network, "network":
+	case datakit.Network, datakit.CategoryNetwork:
 		return datakit.Network
-	case datakit.KeyEvent, "keyevent":
+	case datakit.KeyEvent, datakit.CategoryKeyEvent:
 		return datakit.KeyEvent
-	case datakit.Object, "object":
+	case datakit.Object, datakit.CategoryObject:
 		return datakit.Object
-	case datakit.CustomObject, "custom_object":
+	case datakit.CustomObject, datakit.CategoryCustomObject:
 		return datakit.CustomObject
-	case datakit.Tracing, "tracing":
+	case datakit.Tracing, datakit.CategoryTracing:
 		return datakit.Tracing
-	case datakit.RUM, "rum":
+	case datakit.RUM, datakit.CategoryRUM:
 		return datakit.RUM
-	case datakit.Security, "security":
+	case datakit.Security, datakit.CategorySecurity:
 		return datakit.Security
-	case datakit.HeartBeat, "heartbeat":
-		return datakit.HeartBeat
-	case datakit.Logging, "logging":
+	case datakit.Logging, datakit.CategoryLogging:
 		return datakit.Logging
+	case datakit.Profile, datakit.CategoryProfile:
+		return datakit.Profile
 	default:
 		return ""
 	}
