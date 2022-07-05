@@ -153,11 +153,10 @@ export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
 - wget
 - docker
 - curl
+- [llvm](https://apt.llvm.org/): 版本 >= 10.0
 - clang: 版本 >= 10.0
-- llvm： 版本 >= 10.0
 - linux 内核（>= 5.4.0-99-generic）头文件：`apt-get install -y linux-headers-$(uname -r)` 
 - go-bindata: `apt install go-bindata` `go get -u github.com/go-bindata/go-bindata/...`
-- [waque](https://github.com/yesmeck/waque){:target="_blank"}：版本 >= 1.13.1
 
 #### 安装第三方库
 
