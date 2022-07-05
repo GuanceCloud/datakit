@@ -91,6 +91,7 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 	}
 
 	opt := composeTailerOption(c.k8sClient, info)
+	opt.Mode = tailer.ContainerdMode
 
 	c.addToLogList(info.logPath)
 	l.Infof("add containerd log, containerId: %s, source: %s, logpath: %s", status.Id, opt.Source, info.logPath)

@@ -1,5 +1,5 @@
 ARCH ?= $(shell uname -m | sed -e s/x86_64/x86_64/ \
-				  -e s/aarch64.*/arm64/)
+				  -e s/aarch64.\*/arm64/)
 
 MACHINE_ARCH := $(ARCH)
 GO_ARCH := $(MACHINE_ARCH)
