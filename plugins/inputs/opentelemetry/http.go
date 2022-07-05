@@ -102,6 +102,7 @@ func (o *otlpHTTPCollector) apiOtlpMetric(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
 	writeReply(w, rawResponse, o.HTTPStatusOK, r.Header.Get("content-type"), nil) // 先将信息返回到客户端 然后再处理spans
 	orms := o.storage.ToDatakitMetric(request.ResourceMetrics)
 	o.storage.AddMetric(orms)

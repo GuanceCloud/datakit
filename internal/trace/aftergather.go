@@ -143,7 +143,7 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*dkio.Point, error) {
 		tags[TAG_SPAN_TYPE] = SPAN_TYPE_UNKNOW
 	}
 	if dkspan.SourceType == "" {
-		tags[TAG_SOURCE_TYPE] = SPAN_SERVICE_CUSTOM
+		tags[TAG_SOURCE_TYPE] = SPAN_SOURCE_CUSTOMER
 	}
 	for k, v := range dkspan.Tags {
 		if strings.Contains(k, ".") {

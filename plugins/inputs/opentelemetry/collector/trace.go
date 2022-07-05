@@ -234,14 +234,15 @@ func (dt *dkTags) getResourceType() string {
 		l.Debugf("tag = %s val =%s", key, val)
 		switch key {
 		case string(semconv.HTTPSchemeKey), string(semconv.HTTPMethodKey):
-			return itrace.SPAN_SERVICE_WEB
+			return itrace.SPAN_SOURCE_WEB
 		case string(semconv.DBSystemKey):
-			return itrace.SPAN_SERVICE_DB
+			return itrace.SPAN_SOURCE_DB
 		default:
 			continue
 		}
 	}
-	return itrace.SPAN_SERVICE_CUSTOM
+
+	return itrace.SPAN_SOURCE_CUSTOMER
 }
 
 func byteToString(bts []byte) string {
