@@ -21,6 +21,7 @@ import (
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
+	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const (
@@ -52,7 +53,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 
 	t := &Single{opt: opt}
 
-	if opt.DockerMode && !FileExists(filename) {
+	if opt.Mode != FileMode && !FileExists(filename) {
 		filename2 := filepath.Join("/rootfs", filename)
 		if !FileExists(filename2) {
 			return nil, fmt.Errorf("file %s does not exist", filename)
@@ -181,11 +182,16 @@ func (t *Single) forwardMessage() {
 
 		lines = b.split()
 
-		if t.opt.DockerMode {
+		switch t.opt.Mode {
+		case FileMode:
+			t.defaultHandler(lines)
+		case DockerMode:
 			t.dockerHandler(lines)
-			return
+		case ContainerdMode:
+			t.containerdHandler(lines)
+		default:
+			t.opt.log.Warn("unreachable, invalid tailer mode")
 		}
-		t.defaultHandler(lines)
 	}
 
 	for {
@@ -269,13 +275,14 @@ func (t *Single) dockerHandler(lines []string) {
 		}
 
 		if len(text) > 0 {
+			text = multiline.TrimRightSpace(text)
 			// deal with docker log size exceed 16 K
 			if text[len(text)-1] != '\n' {
 				textLen := len(text)
 				if t.expectMultiLine {
 					text = t.multilineWithFlag(text, true)
 				} else {
-					text = t.multiline(multiline.TrimRightSpace(text))
+					text = t.multiline(text)
 				}
 				t.expectMultiLine = textLen/1000 == 16 // almost to 16 K
 			} else {
@@ -283,7 +290,7 @@ func (t *Single) dockerHandler(lines []string) {
 					text = t.multilineWithFlag(text, true)
 					t.expectMultiLine = false
 				} else {
-					text = t.multiline(multiline.TrimRightSpace(text))
+					text = t.multiline(text)
 				}
 			}
 		}
@@ -300,6 +307,46 @@ func (t *Single) dockerHandler(lines []string) {
 	}
 
 	t.sendToPipeline(pending)
+}
+
+func (t *Single) containerdHandler(lines []string) {
+	logs := t.generateCRILogs(lines)
+	t.sendToPipeline(logs)
+}
+
+func (t *Single) generateCRILogs(lines []string) []string {
+	pending := []string{}
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
+		var criMsg logMessage
+		var text string
+
+		if err := parseCRILog([]byte(line), &criMsg); err != nil {
+			l.Warnf("parse cri-o log err: %s, data: %s", err, line)
+			continue
+		}
+
+		if t.expectMultiLine {
+			text = t.multilineWithFlag(criMsg.log, true)
+		} else {
+			log := multiline.TrimRightSpace(criMsg.log)
+			text = t.multiline(log)
+		}
+
+		t.expectMultiLine = criMsg.isPartial
+
+		if text == "" {
+			continue
+		}
+
+		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+		pending = append(pending, logstr)
+	}
+
+	return pending
 }
 
 func (t *Single) defaultHandler(lines []string) {
@@ -515,4 +562,70 @@ func removeAnsiEscapeCodes(oldtext string, run bool) string {
 	}
 
 	return string(newtext)
+}
+
+var (
+	// timeFormatIn is the format for parsing timestamps from other logs.
+	timeFormatIn = "2006-01-02T15:04:05.999999999Z07:00"
+
+	// delimiter is the delimiter for timestamp and stream type in log line.
+	delimiter = []byte{' '}
+	// tagDelimiter is the delimiter for log tags.
+	tagDelimiter = []byte(runtimeapi.LogTagDelimiter)
+)
+
+// logMessage is the CRI internal log type.
+type logMessage struct {
+	timestamp time.Time
+	stream    runtimeapi.LogStreamType
+	log       string
+	isPartial bool
+}
+
+// parseCRILog parses logs in CRI log format. CRI Log format example:
+//   2016-10-06T00:17:09.669794202Z stdout P log content 1
+//   2016-10-06T00:17:09.669794203Z stderr F log content 2
+// refer to https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/kuberuntime/logs/logs.go#L128
+func parseCRILog(log []byte, msg *logMessage) error {
+	var err error
+	// Parse timestamp
+	idx := bytes.Index(log, delimiter)
+	if idx < 0 {
+		return fmt.Errorf("timestamp is not found")
+	}
+	msg.timestamp, err = time.Parse(timeFormatIn, string(log[:idx]))
+	if err != nil {
+		return fmt.Errorf("unexpected timestamp format %q: %w", timeFormatIn, err)
+	}
+
+	// Parse stream type
+	log = log[idx+1:]
+	idx = bytes.Index(log, delimiter)
+	if idx < 0 {
+		return fmt.Errorf("stream type is not found")
+	}
+	msg.stream = runtimeapi.LogStreamType(log[:idx])
+	if msg.stream != runtimeapi.Stdout && msg.stream != runtimeapi.Stderr {
+		return fmt.Errorf("unexpected stream type %q", msg.stream)
+	}
+
+	// Parse log tag
+	log = log[idx+1:]
+	idx = bytes.Index(log, delimiter)
+	if idx < 0 {
+		return fmt.Errorf("log tag is not found")
+	}
+	// Keep this forward compatible.
+	tags := bytes.Split(log[:idx], tagDelimiter)
+	partial := runtimeapi.LogTag(tags[0]) == runtimeapi.LogTagPartial
+	// Trim the tailing new line if this is a partial line.
+	if partial && len(log) > 0 && log[len(log)-1] == '\n' {
+		log = log[:len(log)-1]
+	}
+	msg.isPartial = partial
+
+	// Get log content
+	msg.log = string(log[idx+1:])
+
+	return nil
 }
