@@ -93,15 +93,17 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 	opt := composeTailerOption(c.k8sClient, info)
 	opt.Mode = tailer.ContainerdMode
 
-	c.addToLogList(info.logPath)
 	l.Infof("add containerd log, containerId: %s, source: %s, logpath: %s", status.Id, opt.Source, info.logPath)
 
 	t, err := tailer.NewTailerSingle(info.logPath, opt)
 	if err != nil {
 		l.Warnf("failed to new containerd log, containerId: %s, source: %s, logpath: %s, err: %s", status.Id, opt.Source, info.logPath, err)
+		return err
 	}
-	defer c.removeFromLogList(info.logPath)
-	t.Run()
 
+	c.addToLogList(info.logPath)
+	defer c.removeFromLogList(info.logPath)
+
+	t.Run()
 	return nil
 }
