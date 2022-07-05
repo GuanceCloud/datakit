@@ -75,14 +75,12 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 
 	d.addToContainerList(container.ID, t.Close)
 	l.Infof("add docker log, containerId: %s, source: %s, logpath: %s", container.ID, opt.Source, info.logPath)
-
 	defer func() {
 		d.removeFromContainerList(container.ID)
 		l.Debugf("remove docker log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
 	}()
 
 	t.Run()
-
 	return nil
 }
 
