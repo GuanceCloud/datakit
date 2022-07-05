@@ -135,3 +135,19 @@ func complatePromConfig(config string, podObj *v1.Pod) string {
 
 	return config
 }
+
+func terminatingDiscoveryInput() {
+	l.Infof("terminating %d inputs", len(discoveryInputsMap))
+	for id, inputList := range discoveryInputsMap {
+		for _, ii := range inputList {
+			if ii == nil {
+				continue
+			}
+			if inp, ok := ii.(inputs.InputV2); ok {
+				inp.Terminate()
+			}
+		}
+		delete(discoveryInputsMap, id)
+		l.Debugf("terminating inputs, pod_id %s, len %d", id, len(inputList))
+	}
+}

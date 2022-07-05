@@ -168,6 +168,9 @@ func (i *Input) collectObject() {
 		return
 	}
 	if i.pause {
+		if len(discoveryInputsMap) != 0 {
+			terminatingDiscoveryInput()
+		}
 		l.Debug("not leader, skipped")
 		return
 	}
