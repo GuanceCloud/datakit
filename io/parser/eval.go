@@ -84,7 +84,7 @@ func toFloat64(f interface{}) float64 {
 	case float64:
 		return v
 	default:
-		log.Panic("should not been here")
+		log.Error("should not been here")
 		return 0.0
 	}
 }
@@ -110,7 +110,7 @@ func toInt64(i interface{}) int64 {
 	case uint32:
 		return int64(v)
 	default:
-		log.Panic("should not been here")
+		log.Error("should not been here")
 		return 0
 	}
 }
@@ -287,7 +287,8 @@ func (e *BinaryExpr) singleEval(tags map[string]string, fields map[string]interf
 		lit = rhs
 
 	default:
-		log.Panic("invalid RHS, got type `%s'", reflect.TypeOf(e.RHS).String())
+		log.Errorf("invalid RHS, got type `%s'", reflect.TypeOf(e.RHS).String())
+		return false
 	}
 
 	// first: fetch left-handle-symbol and OP on right-handle-symbol
