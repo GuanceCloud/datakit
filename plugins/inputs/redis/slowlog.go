@@ -5,14 +5,19 @@
 
 package redis
 
+// nolint
 import (
 	"context"
+	"crypto/md5"
 	"fmt"
 	"reflect"
+	"strconv"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 type slowlogMeasurement struct {
@@ -38,11 +43,11 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Fields: map[string]interface{}{
-			"command": &inputs.FieldInfo{
+			"slowlog_id": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "slow command",
+				Desc:     "slowlog unique id",
 			},
 			"slowlog_micros": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -50,34 +55,38 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.DurationUS,
 				Desc:     "cost time",
 			},
+			"command": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "slow command",
+			},
 		},
 	}
 }
 
 // 数据源获取数据.
-func (i *Input) getSlowData() ([]inputs.Measurement, error) {
-	var collectCache []inputs.Measurement
+func (i *Input) getSlowData() error {
 	maxSlowEntries := i.SlowlogMaxLen
-
 	ctx := context.Background()
 	slowlogs, err := i.client.Do(ctx, "SLOWLOG", "GET", maxSlowEntries).Result()
 	if err != nil {
 		l.Error("redis exec SLOWLOG `get`, happen error,", err)
-		return nil, err
+		return err
+	}
+
+	m := &slowlogMeasurement{
+		tags:              make(map[string]string),
+		fields:            make(map[string]interface{}),
+		lastTimestampSeen: make(map[string]int64),
+		slowlogMaxLen:     i.SlowlogMaxLen,
 	}
 
 	var maxTS int64
 	for _, slowlog := range slowlogs.([]interface{}) {
 		if entry, ok := slowlog.([]interface{}); ok {
 			if entry == nil || len(entry) != 6 {
-				return nil, fmt.Errorf("protocol error: slowlog expect 6 fields, got %+#v", entry)
-			}
-
-			m := &slowlogMeasurement{
-				tags:              make(map[string]string),
-				fields:            make(map[string]interface{}),
-				lastTimestampSeen: make(map[string]int64),
-				slowlogMaxLen:     i.SlowlogMaxLen,
+				return fmt.Errorf("protocol error: slowlog expect 6 fields, got %+#v", entry)
 			}
 
 			m.name = "redis_slowlog"
@@ -85,16 +94,22 @@ func (i *Input) getSlowData() ([]inputs.Measurement, error) {
 			for k, v := range i.Tags {
 				m.tags[k] = v
 			}
+			var id int64
+			if x, isint := entry[0].(int64); isint {
+				id = x
+			} else {
+				return fmt.Errorf("id expect int64, got %s", reflect.TypeOf(entry[1]).String())
+			}
 
 			var startTime int64
 			if x, isi64 := entry[1].(int64); isi64 {
 				startTime = x
 			} else {
-				return nil, fmt.Errorf("startTime expect int64, got %s", reflect.TypeOf(entry[1]).String())
+				return fmt.Errorf("startTime expect int64, got %s", reflect.TypeOf(entry[1]).String())
 			}
 
 			if !ok {
-				return nil, fmt.Errorf("%v expect to be int64", entry[1])
+				return fmt.Errorf("%v expect to be int64", entry[1])
 			}
 
 			if startTime <= m.lastTimestampSeen["server"] {
@@ -109,8 +124,11 @@ func (i *Input) getSlowData() ([]inputs.Measurement, error) {
 			if x, isi64 := entry[2].(int64); isi64 {
 				duration = x
 			} else {
-				return nil, fmt.Errorf("duration expect int64, got %s", reflect.TypeOf(entry[2]).String())
+				return fmt.Errorf("duration expect int64, got %s", reflect.TypeOf(entry[2]).String())
 			}
+			hashStr := strconv.FormatInt(startTime, 10) + string(rune(id))
+			// nolint
+			hashRes := md5.Sum([]byte(hashStr))
 
 			var command string
 			if obj, isok := entry[3].([]interface{}); isok {
@@ -121,14 +139,28 @@ func (i *Input) getSlowData() ([]inputs.Measurement, error) {
 
 			m.ts = time.Unix(startTime, 0)
 
-			m.fields["command"] = command
 			m.fields["slowlog_micros"] = duration
-
-			collectCache = append(collectCache, m)
-
+			m.fields["slowlog_id"] = id
+			m.fields["command"] = command
 			addr := m.tags["server"]
 			m.lastTimestampSeen[addr] = maxTS
+			if i.hashMap[int32(id%int64(i.SlowlogMaxLen))] != hashRes {
+				m.tags["message"] = command + " cost time " + strconv.FormatInt(duration, 10) + "us"
+				data, err := io.NewPoint("redis_slowlog", m.tags, m.fields, &io.PointOption{Time: m.ts, Category: datakit.Logging, Strict: true})
+				if err != nil {
+					l.Warnf("make metric failed: %s", err.Error)
+					return err
+				}
+
+				var pts []*io.Point
+				pts = append(pts, data)
+				err = io.Feed(m.name, datakit.Logging, pts, &io.Option{})
+				if err != nil {
+					return err
+				}
+				i.hashMap[int32(id%int64(i.SlowlogMaxLen))] = hashRes
+			}
 		}
 	}
-	return collectCache, nil
+	return nil
 }

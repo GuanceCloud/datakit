@@ -67,7 +67,6 @@ const sampleCfg = `
   # type = "bearer_token"
   # token = "xxxxxxxx"
   # token_file = "/tmp/token"
-
   # 自定义指标集名称
   # 可以将包含前缀 prefix 的指标归为一类指标集
   # 自定义指标集名称配置优先 measurement_name 配置项
