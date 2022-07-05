@@ -157,8 +157,19 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 				l.Debug("containerd-state is exited, id %s", container.ID())
 				continue
 			}
+
+			//nolint
+			obj.tags["container_runtime_name"] = "unknown"
 			if resp != nil && resp.GetStatus() != nil && resp.GetStatus().GetMetadata() != nil {
-				obj.tags["container_name"] = useDefaultUnknown(resp.GetStatus().GetMetadata().GetName())
+				if n := resp.GetStatus().GetMetadata().GetName(); n != "" {
+					obj.tags["container_runtime_name"] = n
+				}
+			}
+
+			if n := getContainerNameForLabels(info.Labels); n != "" {
+				obj.tags["container_name"] = n
+			} else {
+				obj.tags["container_name"] = obj.tags["container_runtime_name"]
 			}
 
 			metricsData, err := getContainerdMetricsData(ctx, container)
@@ -375,7 +386,6 @@ func newContainerdObject(info *containers.Container) *containerdObject {
 		"image_tag":        imageTag,
 		"runtime":          info.Runtime.Name,
 		"container_type":   "containerd",
-		"container_name":   getContainerNameForLabels(info.Labels),
 	}
 	obj.fields = map[string]interface{}{
 		// 毫秒除以1000得秒数，不使用Second()因为它返回浮点
