@@ -79,6 +79,7 @@ type Input struct {
 
 	pause   bool
 	pauseCh chan bool
+	hashMap [][16]byte
 
 	semStop *cliutils.Sem // start stop signal
 }
@@ -168,6 +169,10 @@ func (i *Input) Collect() error {
 			}
 		}
 	}
+	if err := i.getSlowData(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -237,10 +242,6 @@ func (i *Input) collectCommandMeasurement() ([]inputs.Measurement, error) {
 	return i.parseCommandData(list)
 }
 
-func (i *Input) collectSlowlogMeasurement() ([]inputs.Measurement, error) {
-	return i.getSlowData()
-}
-
 func (i *Input) RunPipeline() {
 	if i.Log == nil || len(i.Log.Files) == 0 {
 		return
@@ -274,6 +275,7 @@ func (i *Input) RunPipeline() {
 
 func (i *Input) Run() {
 	l = logger.SLogger("redis")
+	i.hashMap = make([][16]byte, i.SlowlogMaxLen)
 
 	if namespace := config.GetElectionNamespace(); namespace != "" {
 		if i.Tags == nil {
@@ -311,7 +313,6 @@ func (i *Input) Run() {
 		i.collectInfoMeasurement,
 		i.collectClientMeasurement,
 		i.collectCommandMeasurement,
-		i.collectSlowlogMeasurement,
 		i.collectDBMeasurement,
 		i.CollectLatencyMeasurement,
 		i.collectReplicaMeasurement,
