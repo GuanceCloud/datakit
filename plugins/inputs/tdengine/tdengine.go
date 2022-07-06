@@ -191,7 +191,6 @@ func (t *tdEngine) getDatabase() []*database {
 	var nameIndex int
 	var creatIndex int
 	for i := 0; i < len(res.ColumnMeta); i++ {
-		l.Debug(res.ColumnMeta[i][0])
 		if res.ColumnMeta[i][0].(string) == "name" {
 			nameIndex = i
 		}
@@ -282,7 +281,6 @@ func makeMeasurements(subMetricName string, res restResult, sql selectSQL) (meas
 					default:
 						l.Debugf("unknown")
 					}
-					l.Debugf("tag = %s  val = %s", name, msm.tags[name])
 				}
 			}
 			for _, field := range sql.fields {

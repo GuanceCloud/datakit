@@ -7,7 +7,11 @@
 
 package tdengine
 
-import "time"
+import (
+	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
 
 type selectSQL struct {
 	desc   string // 说明
@@ -44,7 +48,7 @@ var metrics = []metric{
 				tags:   []string{},
 			},
 			{
-				desc:   "企业版授权到期时间", // todo option: 注意 将秒转换成字符串，比如 61s -> 一分钟之前.
+				desc:   "企业版授权到期时间", // 非企业版没有该指标
 				title:  "",
 				sql:    "select last(expire_time) from log.grants_info",
 				unit:   "s",
@@ -52,9 +56,9 @@ var metrics = []metric{
 				tags:   []string{},
 			},
 			{
-				desc:   "企业版已使用的测点数",
+				desc:   "企业版已使用的测点数", // 非企业版没有该指标
 				title:  "",
-				sql:    "select max(timeseries_used) as used ,max(timeseries_total) as total from log.grants_info where ts >= now-10m and ts <= now ",
+				sql:    "select max(timeseries_used) as used ,max(timeseries_total) as total from log.grants_info where ts >= now-5m and ts <= now ",
 				unit:   "s",
 				fields: []string{"timeseries_used", "timeseries_total"},
 				tags:   []string{},
@@ -78,19 +82,11 @@ var metrics = []metric{
 				plugInFun: &tablesCount{},
 			},
 			{
-				desc:   "当前连接个数",
+				desc:   "dnode,mnode,vnode状态信息",
 				title:  "",
-				sql:    "select * from log.cluster_info where ts >= now-10m and ts <= now",
+				sql:    "select * from log.cluster_info where ts >= now-5m and ts <= now",
 				unit:   "",
-				fields: []string{"connections_total"},
-				tags:   []string{"first_ep", "version"},
-			},
-			{
-				desc:   "每种资源的总数和存活数",
-				title:  "",
-				sql:    "select last(dnodes_total),last(dnodes_alive) from log.cluster_info where ts >= now-5m and ts <= now",
-				unit:   "",
-				fields: []string{"dnodes_total", "dnodes_alive"},
+				fields: []string{"dnodes_total", "dnodes_alive", "mnodes_total", "mnodes_alive", "vgroups_total", "vgroups_alive", "vnodes_total", "vnodes_alive", "connections_total"},
 				tags:   []string{},
 			},
 		},
@@ -98,7 +94,7 @@ var metrics = []metric{
 	{
 		metricName: "td_node",
 		doc:        "dnode状态",
-		TimeSeries: time.Minute * 10,
+		TimeSeries: time.Minute * 5,
 		MetricList: []selectSQL{
 			{
 				desc:   "dnode状态",
@@ -106,7 +102,7 @@ var metrics = []metric{
 				sql:    "show dnodes",
 				unit:   "",
 				fields: []string{"id", "vnodes"},
-				tags:   []string{"end_point", "cores", "status", "create_time", "offline_reason"},
+				tags:   []string{"end_point", "status", "offline_reason"},
 			},
 		},
 	},
@@ -121,7 +117,7 @@ var metrics = []metric{
 				sql:    "show mnodes",
 				unit:   "",
 				fields: []string{"id"},
-				tags:   []string{"end_point", "role", "role_time", "create_time"},
+				tags:   []string{"end_point", "role", "role_time"},
 			},
 		},
 	},
@@ -146,14 +142,6 @@ var metrics = []metric{
 				fields: []string{"req_select", "req_select_rate"},
 				tags:   []string{"dnode_ep"},
 			},
-			{
-				desc:   "http请求次数",
-				title:  "",
-				sql:    "select ts,req_http,req_http_rate,dnode_ep from log.dnodes_info where ts >= now-1m and ts <= now",
-				unit:   "",
-				fields: []string{"req_http", "req_http_rate"},
-				tags:   []string{"dnode_ep"},
-			},
 		},
 	},
 	{
@@ -164,10 +152,10 @@ var metrics = []metric{
 			{
 				desc:   "VGroups 变化图",
 				title:  "",
-				sql:    "select last(ts),last(database_name),last(tables_num),last(status) from log.vgroups_info where ts > now-30s group by vgroup_id",
+				sql:    "select last(ts),last(tables_num) as tables_count,database_name from log.vgroups_info where ts > now-30s and tables_num>1 and status='ready' group by database_name",
 				unit:   "",
-				fields: []string{"tables_num"},
-				tags:   []string{"database_name", "vgroup_id", "status"},
+				fields: []string{"tables_count"},
+				tags:   []string{"database_name"},
 			},
 		},
 	},
@@ -187,17 +175,17 @@ var metrics = []metric{
 			{
 				desc:   "dnode 的 VNodes 数量",
 				title:  "",
-				sql:    "select last(ts),last(cpu_cores),last(vnodes_num),last(cpu_engine) from log.dnodes_info where ts >= now-1m and ts <= now group by dnode_ep",
+				sql:    "select last(ts),last(cpu_cores),last(vnodes_num) from log.dnodes_info where ts >= now-1m and ts <= now group by dnode_ep",
 				unit:   "",
-				fields: []string{"cpu_cores", "vnodes_num", "cpu_engine"},
+				fields: []string{"cpu_cores", "vnodes_num"},
 				tags:   []string{"dnode_ep"},
 			},
 			{
 				desc:   "磁盘使用率",
 				title:  "",
-				sql:    "select last(ts),last(disk_used),last(disk_total), last(disk_used) / last(disk_total) as dick_percent from log.dnodes_info where ts >= now-1m and ts <= now group by dnode_ep",
-				unit:   "",
-				fields: []string{"disk_used", "disk_total", "dick_percent"},
+				sql:    "select last(ts),last(disk_used),last(disk_total), last(disk_used)*100 / last(disk_total) as disk_percent from log.dnodes_info where ts >= now-1m and ts <= now group by dnode_ep",
+				unit:   inputs.Percent,
+				fields: []string{"disk_used", "disk_total", "disk_percent"},
 				tags:   []string{"dnode_ep"},
 			},
 			{
@@ -211,7 +199,7 @@ var metrics = []metric{
 			{
 				desc:   "RAM使用视图",
 				title:  "",
-				sql:    "select last(ts),last(mem_engine),last(mem_system),last(mem_total),last(mem_engine)/last(mem_total) as mem_engine_percent from log.dnodes_info where ts >= now-1m and ts <= now group by dnode_ep",
+				sql:    "select last(ts),last(mem_engine),last(mem_system),last(mem_total),last(mem_engine)*100/last(mem_total) as mem_engine_percent from log.dnodes_info where ts >= now-1m and ts <= now group by dnode_ep",
 				unit:   "",
 				fields: []string{"mem_engine", "mem_system", "mem_total", "mem_engine_percent"},
 				tags:   []string{"dnode_ep"},
@@ -242,31 +230,23 @@ var metrics = []metric{
 			{
 				desc:   "总请求数",
 				title:  "",
-				sql:    "select ts,count as total_req_count,endpoint,status_code,client_ip from log.taosadapter_restful_http_total where ts >= now-1m and ts <= now",
+				sql:    "select last(ts),sum(count) as total_req_count from log.taosadapter_restful_http_total where ts >= now-1m and ts <= now  group by endpoint,status_code",
 				unit:   "",
 				fields: []string{"total_req_count"},
-				tags:   []string{"endpoint", "status_code", "client_ip"},
+				tags:   []string{"endpoint", "status_code"},
 			},
 			{
-				desc:   "请求失败数",
+				desc:   "client ip 统计",
 				title:  "",
-				sql:    "select ts,count as req_fail,endpoint,status_code,client_ip from log.taosadapter_restful_http_fail where ts >= now-1m and ts <= now",
+				sql:    "select last(ts),count(ts) as client_ip_count from log.taosadapter_restful_http_total where ts >= now-1m and ts <= now  group by client_ip",
 				unit:   "",
-				fields: []string{"req_fail"},
-				tags:   []string{"endpoint", "status_code", "client_ip"},
-			},
-			{
-				desc:   "正在处理的请求数",
-				title:  "",
-				sql:    "select ts,count as request_in_flight,endpoint  from log.taosadapter_restful_http_request_in_flight where ts >= now-1m and ts <= now",
-				unit:   "",
-				fields: []string{"request_in_flight"},
-				tags:   []string{"endpoint", "status_code", "client_ip"},
+				fields: []string{"client_ip_count"},
+				tags:   []string{"client_ip"},
 			},
 			{
 				desc:   "CPU和内存使用情况",
 				title:  "",
-				sql:    "select * from log.taosadapter_system where ts >= now-1m and ts <= now",
+				sql:    "select ts,cpu_percent,mem_percent,endpoint from log.taosadapter_system where ts >= now-1m and ts <= now",
 				unit:   "",
 				fields: []string{"cpu_percent", "mem_percent"},
 				tags:   []string{"endpoint"},

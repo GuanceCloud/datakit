@@ -6,6 +6,8 @@
 package tdengine
 
 import (
+	"encoding/json"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -138,6 +140,54 @@ func Test_makeMeasurements(t *testing.T) {
 					t.Errorf("makeMeasurements()[%d] = %v, want %v", i, gotMeasurements[i], tt.wantMeasurements[i])
 				}
 			}
+		})
+	}
+}
+
+func Test_query(t *testing.T) {
+	tdURL := os.Getenv("TD_ADAPTER_URL")
+	user := os.Getenv("TD_USER")
+	pw := os.Getenv("TD_PW")
+	if tdURL == "" || user == "" || pw == "" {
+		t.Log("no env for TD")
+		return
+	}
+	t.Logf("TD_ADAPTER_URL=%s  TD_USER=%s  TD_PW=%s", tdURL, user, pw)
+	base := UserToBase64(user, pw)
+	type args struct {
+		url       string
+		basicAuth string
+		token     string
+		reqBody   []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "show_creat_table_sql", args: args{
+				url:       tdURL,
+				basicAuth: base,
+				token:     "",
+				reqBody:   []byte("show CREATE TABLE log.dnodes_info"),
+			}, want: []byte{}, wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := query(tt.args.url, tt.args.basicAuth, tt.args.token, tt.args.reqBody)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("query() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			var res restResult
+			if err := json.Unmarshal(got, &res); err != nil {
+				l.Error("parse json error: ", err)
+				return
+			}
+			t.Logf("query() got = %s, ", res.Data[0])
 		})
 	}
 }

@@ -33,7 +33,7 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 			"schema_size": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeMiB,
+				Unit:     inputs.SizeMB,
 				Desc:     "Size of schemas(MiB)",
 			},
 			"query_run_time_avg": &inputs.FieldInfo{
