@@ -163,9 +163,9 @@ func getPipelineFields(span *ddSpan) map[string]interface{} {
 	putFieldIfExist(fields, span, "git.commit.message", "commit_message")
 	putFieldIfExist(fields, span, "ci.pipeline.id", "message")
 	putFieldIfExist(fields, span, "ci.pipeline.id", "pipeline_id")
-	fields["created_at"] = nsToS(span.Start)
-	fields["duration"] = nsToS(span.Duration)
-	fields["finished_at"] = nsToS(span.Start + span.Duration)
+	fields["created_at"] = nano2Micro(span.Start)
+	fields["duration"] = nano2Micro(span.Duration)
+	fields["finished_at"] = nano2Micro(span.Start + span.Duration)
 	return fields
 }
 
@@ -197,9 +197,9 @@ func getJobFields(span *ddSpan) map[string]interface{} {
 	putFieldIfExist(fields, span, "ci.job.name", "message")
 	putFieldIfExist(fields, span, "ci.pipeline.id", "pipeline_id")
 	putFieldIfExist(fields, span, "ci.node.name", "runner_id")
-	fields["build_started_at"] = nsToS(span.Start)
-	fields["build_duration"] = nsToS(span.Duration)
-	fields["build_finished_at"] = nsToS(span.Start + span.Duration)
+	fields["build_started_at"] = nano2Micro(span.Start)
+	fields["build_duration"] = nano2Micro(span.Duration)
+	fields["build_finished_at"] = nano2Micro(span.Start + span.Duration)
 	return fields
 }
 
@@ -215,8 +215,9 @@ func putFieldIfExist(fields map[string]interface{}, span *ddSpan, want, tagKey s
 	}
 }
 
-func nsToS(ns int64) int64 {
-	return ns / 1000000000
+// nano2Micro converts nanosecond to microsecond.
+func nano2Micro(ns int64) int64 {
+	return ns / 1000
 }
 
 func extractProjectName(projectURL string) string {
