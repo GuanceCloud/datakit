@@ -82,7 +82,7 @@ type Option struct {
 	Disabel bool `toml:"disble"`
 }
 
-const defaultInterval = time.Second * 10
+const defaultInterval = 30 * time.Second
 
 func (opt *Option) IsDisable() bool {
 	return opt.Disabel
