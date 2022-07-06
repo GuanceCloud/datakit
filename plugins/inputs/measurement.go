@@ -39,10 +39,13 @@ const (
 const (
 	UnknownUnit = "-"
 
-	SizeByte = "B"
-	SizeMiB  = "MB"
-
-	NCount = "count"
+	SizeByte  = "B"
+	SizeKB    = "KB"
+	SizeKBits = "Kb"
+	SizeMB    = "MB"
+	SizeMBits = "Mb"
+	SizeGB    = "GB"
+	NCount    = "count"
 
 	// time units.
 	DurationNS     = "ns"

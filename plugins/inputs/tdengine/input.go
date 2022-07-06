@@ -37,6 +37,9 @@ const (
 
   ## add tag (optional)
   [inputs.tdengine.tags]
+	## Different clusters can be distinguished by tag. Such as testing,product,local ,default is 'testing'
+	## cluster_name = "testing"
+
     # some_tag = "some_value"
     # more_tag = "some_other_value"
 `

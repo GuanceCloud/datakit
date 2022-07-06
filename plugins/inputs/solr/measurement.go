@@ -178,7 +178,7 @@ func newFieldInfoMiB(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
-		Unit:     inputs.SizeMiB,
+		Unit:     inputs.SizeMB,
 		Desc:     desc,
 	}
 }
