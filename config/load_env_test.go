@@ -33,6 +33,7 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DISABLE_PROTECT_MODE":            "true",
 				"ENV_DEFAULT_ENABLED_INPUTS":          "cpu,mem,disk",
 				"ENV_ENABLE_ELECTION":                 "1",
+				"ENV_NAMESPACE":                       "some-default",
 				"ENV_DISABLE_404PAGE":                 "on",
 				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "123",
 				"ENV_REQUEST_RATE_LIMIT":              "1234",
@@ -62,7 +63,10 @@ func TestLoadEnv(t *testing.T) {
 				cfg.Hostname = "1024.coding"
 				cfg.ProtectMode = false
 				cfg.DefaultEnabledInputs = []string{"cpu", "mem", "disk"}
+
 				cfg.EnableElection = true
+				cfg.Namespace = "some-default"
+
 				cfg.GlobalTags = map[string]string{
 					"a": "b", "c": "d",
 				}

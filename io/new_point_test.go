@@ -71,142 +71,139 @@ func getRandStr(n int) string {
 
 func TestNewPoint(t *testing.T) {
 	cases := []struct {
-		tname, name, mtype, expect string
-		t                          map[string]string
-		globalTags                 map[string]string
-		f                          map[string]interface{}
-		ts                         time.Time
-		fail                       bool
-		withoutGlobalTags          bool
-		nilOpt                     bool
+		ptopt *PointOption
+
+		tname, name, expect string
+
+		t map[string]string
+		f map[string]interface{}
+
+		globalHostTags map[string]string
+		globalEnvTags  map[string]string
+
+		fail bool
 	}{
 		{
-			tname:  "base",
+			tname:  "basic",
+			ptopt:  &PointOption{Category: datakit.Metric, Time: time.Unix(0, 123)},
 			name:   "abc",
-			ts:     time.Unix(0, 123),
-			mtype:  datakit.Metric,
 			t:      map[string]string{"t1": "tval1"},
 			f:      map[string]interface{}{"f1": 12},
 			expect: "abc,t1=tval1 f1=12i 123",
 		},
 		{
-			tname:  "metric with point in field key",
+			tname:  "metric-with-point-in-field-key",
 			name:   "abc",
-			mtype:  datakit.Metric,
-			ts:     time.Unix(0, 123),
+			ptopt:  &PointOption{Category: datakit.Metric, Time: time.Unix(0, 123)},
 			t:      map[string]string{"t1": "tval1"},
 			f:      map[string]interface{}{"f.1": 12},
 			expect: "abc,t1=tval1 f.1=12i 123",
 		},
 		{
-			tname:  "metric with point in tag key",
+			tname:  "metric-with-point-in-tag-key",
 			name:   "abc",
-			mtype:  datakit.Metric,
-			ts:     time.Unix(0, 123),
+			ptopt:  &PointOption{Category: datakit.Metric, Time: time.Unix(0, 123)},
 			t:      map[string]string{"t.1": "tval1"},
 			f:      map[string]interface{}{"f1": 12},
 			expect: "abc,t.1=tval1 f1=12i 123",
 		},
 		{
-			tname: "with point in t/f key on non-metric type",
+			tname: "with-point-in-t/f-key-on-non-metric-type",
 			name:  "abc",
-			mtype: datakit.Object,
-			ts:    time.Unix(0, 123),
+			ptopt: &PointOption{Category: datakit.Object, Time: time.Unix(0, 123)},
 			t:     map[string]string{"t1": "tval1"},
 			f:     map[string]interface{}{"f.1": 12},
 			fail:  true,
 		},
+
 		{
-			tname:      "with global tags added",
-			name:       "abc",
-			mtype:      datakit.Metric,
-			ts:         time.Unix(0, 123),
-			t:          map[string]string{"t1": "tval1"},
-			globalTags: map[string]string{"gt1": "gtval1"},
-			f:          map[string]interface{}{"f1": 12},
-			expect:     "abc,gt1=gtval1,t1=tval1 f1=12i 123",
+			tname:          "with-global-tags-added",
+			name:           "abc",
+			ptopt:          &PointOption{Category: datakit.Metric, Time: time.Unix(0, 123)},
+			t:              map[string]string{"t1": "tval1"},
+			globalHostTags: map[string]string{"gt1": "gtval1"},
+			f:              map[string]interface{}{"f1": 12},
+			expect:         "abc,gt1=gtval1,t1=tval1 f1=12i 123",
 		},
+
 		{
-			tname:             "without global tags",
-			mtype:             datakit.Metric,
-			name:              "abc",
-			ts:                time.Unix(0, 123),
-			t:                 map[string]string{"t1": "tval1"},
-			globalTags:        map[string]string{"gt1": "gtval1"},
-			f:                 map[string]interface{}{"f1": 12},
-			expect:            "abc,t1=tval1 f1=12i 123",
-			withoutGlobalTags: true,
+			tname:          "without-global-tags",
+			name:           "abc",
+			t:              map[string]string{"t1": "tval1"},
+			f:              map[string]interface{}{"f1": 12},
+			ptopt:          &PointOption{DisableGlobalTags: true, Category: datakit.Metric, Time: time.Unix(0, 123)},
+			globalHostTags: map[string]string{"gt1": "gtval1"},
+			expect:         "abc,t1=tval1 f1=12i 123",
 		},
+
 		{
-			tname: "with point in tag-field key",
+			tname: "with-point-in-tag-field-key",
 			name:  "abc",
-			mtype: datakit.Logging,
+			ptopt: &PointOption{Category: datakit.Logging},
 			t:     map[string]string{"t1": "abc", "t.2": "xyz"},
 			f:     map[string]interface{}{"f1": 123, "f.2": "def"},
 			fail:  true,
 		},
+
 		{
-			tname: "both exceed max field/tag count",
-			mtype: datakit.Metric,
+			tname: "both-exceed-max-field/tag-count",
+			ptopt: &PointOption{Category: datakit.Metric},
 			name:  "abc",
 			t:     getNTags(MaxTags + 1),
 			f:     getNFields(MaxFields + 1),
-			fail:  true,
 		},
 		{
-			tname: "exceed max field count",
-			mtype: datakit.Metric,
+			tname: "exceed-max-field-count",
+			ptopt: &PointOption{Category: datakit.Metric},
 			name:  "abc",
 			t:     map[string]string{"t1": "abc", "t2": "xyz"},
 			f:     getNFields(MaxFields + 1),
-			fail:  true,
 		},
 
 		{
-			tname: "exceed max tag count",
-			mtype: datakit.Metric,
+			tname: "exceed-max-tag-count",
+			ptopt: &PointOption{Category: datakit.Metric},
 			name:  "abc",
 			t:     getNTags(MaxTags + 1),
 			f:     map[string]interface{}{"f1": 123},
-			fail:  true,
 		},
 
 		{
-			tname: "exceed max tag key len",
-			mtype: datakit.Metric,
+			tname: "exceed-max-tag-key-len",
+			ptopt: &PointOption{Category: datakit.Metric},
 			name:  "abc",
 			t:     map[string]string{getRandStr(MaxTagKeyLen + 1): "x"},
 			f:     map[string]interface{}{"f1": 123},
-			fail:  true,
 		},
 
 		{
-			tname: "exceed max tag value len",
-			mtype: datakit.Metric,
+			tname: "exceed-max-tag-value-len",
+			ptopt: &PointOption{Category: datakit.Metric},
 			name:  "abc",
 			t:     map[string]string{"x": getRandStr(MaxTagValueLen + 1)},
 			f:     map[string]interface{}{"f1": 123},
-			fail:  true,
 		},
 
 		{
-			tname: "exceed max field key len",
-			name:  "abc",
-			f:     map[string]interface{}{getRandStr(MaxFieldValueLen + 1): "x"},
-			t:     map[string]string{"t1": "v1"},
-			fail:  true,
+			tname:  "exceed-max-field-key-len",
+			name:   "abc",
+			ptopt:  &PointOption{Category: datakit.Metric, Time: time.Unix(0, 123)},
+			f:      map[string]interface{}{getRandStr(MaxFieldValueLen + 1): "x", "y": 1},
+			t:      map[string]string{"t1": "v1"},
+			expect: "abc,t1=v1 y=1i 123",
 		},
 		{
-			tname: "exceed max field val len",
-			name:  "abc",
-			f:     map[string]interface{}{"x": getRandStr(MaxFieldValueLen + 1)},
-			t:     map[string]string{"t1": "v1"},
-			fail:  true,
+			tname:  "exceed-max-field-val-len",
+			name:   "abc",
+			ptopt:  &PointOption{Category: datakit.Metric, Time: time.Unix(0, 123)},
+			f:      map[string]interface{}{"x": getRandStr(MaxFieldValueLen + 1), "y": 1},
+			t:      map[string]string{"t1": "v1"},
+			expect: "abc,t1=v1 y=1i 123",
 		},
 		{
-			tname: "with disabled tag key source",
+			tname: "with-disabled-tag-key-source",
 			name:  "abc",
-			mtype: datakit.Logging,
+			ptopt: &PointOption{Category: datakit.Logging},
 			t:     map[string]string{"source": "s1"},
 			f:     map[string]interface{}{"f1": 123},
 			fail:  true,
@@ -214,41 +211,45 @@ func TestNewPoint(t *testing.T) {
 		{
 			tname: "with disabled field key",
 			name:  "abc",
-			mtype: datakit.Object,
+			ptopt: &PointOption{Category: datakit.Object},
 			t:     map[string]string{},
 			f:     map[string]interface{}{"class": 123},
 			fail:  true,
 		},
 		{
 			tname:  "normal",
-			mtype:  datakit.Metric,
+			ptopt:  &PointOption{Category: datakit.Metric, Time: time.Unix(0, 123)},
 			name:   "abc",
 			t:      map[string]string{},
 			f:      map[string]interface{}{"f1": 123},
-			ts:     time.Unix(0, 123),
 			expect: "abc f1=123i 123",
 		},
 
 		{
-			tname:  "invalid-category",
-			mtype:  "invalid-category-for-testing",
-			name:   "abc",
-			t:      map[string]string{},
-			f:      map[string]interface{}{"f1": 123},
-			ts:     time.Unix(0, 123),
-			expect: "abc f1=123i 123",
-			fail:   true,
+			tname: "invalid-category",
+			ptopt: &PointOption{Category: "invalid-category-for-testing"},
+			name:  "abc",
+			t:     map[string]string{},
+			f:     map[string]interface{}{"f1": 123},
+			fail:  true,
 		},
 
 		{
-			tname:  "nil-opiton",
-			nilOpt: true,
-			mtype:  datakit.Metric,
-			name:   "abc",
-			t:      map[string]string{},
-			f:      map[string]interface{}{"f1": 123},
-			ts:     time.Unix(0, 123),
-			expect: "abc f1=123i 123",
+			tname: "nil-opiton",
+			ptopt: nil,
+			name:  "abc",
+			t:     map[string]string{},
+			f:     map[string]interface{}{"f1": 123},
+		},
+
+		{
+			tname:         "with-global-env-tags",
+			ptopt:         &PointOption{GlobalEnvTags: true, Category: datakit.Metric, Time: time.Unix(0, 123)},
+			globalEnvTags: map[string]string{"env": "env-tag-val"},
+			name:          "abc",
+			t:             map[string]string{"t1": "tval1"},
+			f:             map[string]interface{}{"f1": 12},
+			expect:        "abc,env=env-tag-val,t1=tval1 f1=12i 123",
 		},
 	}
 
@@ -257,31 +258,35 @@ func TestNewPoint(t *testing.T) {
 			var pt *Point
 			var err error
 
-			if tc.globalTags != nil {
-				extraTags = map[string]string{}
-				for k, v := range tc.globalTags {
-					SetExtraTags(k, v)
+			globalHostTags = map[string]string{}
+			globalEnvTags = map[string]string{}
+			if tc.globalHostTags != nil {
+				for k, v := range tc.globalHostTags {
+					SetGlobalHostTags(k, v)
 				}
-			} else {
-				extraTags = nil
 			}
 
-			pt, err = NewPoint(tc.name, tc.t, tc.f,
-				&PointOption{
-					Category:          tc.mtype,
-					Time:              tc.ts,
-					DisableGlobalTags: tc.withoutGlobalTags,
-				})
+			if tc.globalEnvTags != nil {
+				globalEnvTags = map[string]string{}
+				for k, v := range tc.globalEnvTags {
+					SetGlobalEnvTags(k, v)
+				}
+			}
+
+			pt, err = NewPoint(tc.name, tc.t, tc.f, tc.ptopt)
 
 			if tc.fail {
-				// tu.NotOk(t, err, "")
+				tu.NotOk(t, err, "")
 				t.Logf("[expected] %s", err)
 				return
 			}
 
 			tu.Ok(t, err)
 			x := pt.Point.String()
-			tu.Equals(t, tc.expect, x)
+			if tc.expect != "" {
+				tu.Equals(t, tc.expect, x)
+			}
+			t.Logf("point: %s", x)
 		})
 	}
 }
@@ -403,7 +408,7 @@ func BenchmarkMakePoint(b *testing.B) {
 	for _, tc := range benchCases {
 		b.Run(tc.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				_, err := MakePoint(tc.name, tc.t, tc.f)
+				_, err := makePoint(tc.name, tc.t, tc.f)
 				if err != nil {
 					b.Error(err)
 				}

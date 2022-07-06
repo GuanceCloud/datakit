@@ -20,7 +20,7 @@ type SSHMeasurement struct {
 }
 
 func (s *SSHMeasurement) LineProto() (*io.Point, error) {
-	data, err := io.MakePoint(s.name, s.tags, s.fields, s.ts)
+	data, err := io.NewPoint(s.name, s.tags, s.fields, inputs.OptMetric)
 	return data, err
 }
 

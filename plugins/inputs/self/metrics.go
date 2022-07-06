@@ -6,8 +6,6 @@
 package self
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -16,11 +14,12 @@ var _ inputs.InputV2 = &Input{}
 
 type datakitMeasurement struct {
 	inputs.CommonMeasurement
-	ts time.Time
 }
 
 func (m *datakitMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.CommonMeasurement.Name, m.CommonMeasurement.Tags, m.CommonMeasurement.Fields, m.ts)
+	return io.NewPoint(m.CommonMeasurement.Name,
+		m.CommonMeasurement.Tags,
+		m.CommonMeasurement.Fields, inputs.OptMetric)
 }
 
 func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {

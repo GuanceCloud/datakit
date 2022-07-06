@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 )
@@ -191,7 +192,7 @@ func Test_makePoints(t *testing.T) {
 	type args struct {
 		orms []*OtelResourceMetric
 	}
-	pt, err := dkio.MakePoint("service", map[string]string{"tagA": "a"}, map[string]interface{}{"a": 10}, time.Now())
+	pt, err := dkio.NewPoint("service", map[string]string{"tagA": "a"}, map[string]interface{}{"a": 10}, &dkio.PointOption{Time: time.Now(), Category: datakit.Tracing})
 	resourceMetric := &OtelResourceMetric{
 		Operation:   "sample-span1",
 		Attributes:  map[string]string{"tagA": "a"},

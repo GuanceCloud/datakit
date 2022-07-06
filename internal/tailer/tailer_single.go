@@ -306,12 +306,12 @@ func (t *Single) dockerHandler(lines []string) {
 		return
 	}
 
-	t.sendToPipeline(pending)
+	t.feed(pending)
 }
 
 func (t *Single) containerdHandler(lines []string) {
 	logs := t.generateCRILogs(lines)
-	t.sendToPipeline(logs)
+	t.feed(logs)
 }
 
 func (t *Single) generateCRILogs(lines []string) []string {
@@ -378,7 +378,7 @@ func (t *Single) defaultHandler(lines []string) {
 	if len(pending) == 0 {
 		return
 	}
-	t.sendToPipeline(pending)
+	t.feed(pending)
 }
 
 func (t *Single) send(text string) {
@@ -387,7 +387,7 @@ func (t *Single) send(text string) {
 		return
 	}
 
-	t.sendToPipeline([]string{text})
+	t.feed([]string{text})
 }
 
 func (t *Single) sendToForwardCallback(text string) {
@@ -397,18 +397,14 @@ func (t *Single) sendToForwardCallback(text string) {
 	}
 }
 
-func (t *Single) sendToPipeline(pending []string) {
+func (t *Single) feed(pending []string) {
 	res := []*iod.Point{}
 	// -1ns
 	timeNow := time.Now().Add(-time.Duration(len(pending)))
 	for i, cnt := range pending {
-		pt, err := iod.MakePoint(t.opt.Source, t.tags,
-			map[string]interface{}{
-				pipeline.FieldMessage: cnt,
-				pipeline.FieldStatus:  pipeline.DefaultStatus,
-			},
-			timeNow.Add(time.Duration(i)),
-		)
+		pt, err := iod.NewPoint(t.opt.Source, t.tags,
+			map[string]interface{}{pipeline.FieldMessage: cnt, pipeline.FieldStatus: pipeline.DefaultStatus},
+			&iod.PointOption{Time: timeNow.Add(time.Duration(i)), Category: datakit.Logging})
 		if err != nil {
 			l.Error(err)
 			continue

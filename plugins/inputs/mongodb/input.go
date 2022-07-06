@@ -18,7 +18,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -224,16 +223,6 @@ func (m *Input) Run() {
 	defTags = m.Tags
 
 	tick := time.NewTicker(m.Interval.Duration)
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		if m.Tags == nil {
-			m.Tags = map[string]string{
-				"election_namespace": namespace,
-			}
-		} else {
-			m.Tags["election_namespace"] = namespace
-		}
-	}
 
 	for {
 		if m.pause {

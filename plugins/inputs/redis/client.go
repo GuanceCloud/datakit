@@ -23,12 +23,13 @@ type clientMeasurement struct {
 }
 
 func (m *clientMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_client",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"id": &inputs.FieldInfo{
 				DataType: inputs.String,

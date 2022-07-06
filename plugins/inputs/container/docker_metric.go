@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -194,11 +193,10 @@ func containerIsFromKubernetes(containerName string) bool {
 type containerMetric struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
 func (c *containerMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint(dockerContainerName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Metric})
+	return io.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll

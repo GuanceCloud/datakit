@@ -42,7 +42,8 @@ func SetLog() {
 
 func DefaultConfig() *Config {
 	c := &Config{ //nolint:dupl
-		GlobalTags: map[string]string{
+		GlobalHostTags: map[string]string{},
+		GlobalEnvTags:  map[string]string{
 			// "project": "",
 			// "cluster": "",
 			// "site":    "",
@@ -119,6 +120,9 @@ func DefaultConfig() *Config {
 			Sink: []map[string]interface{}{{}},
 		},
 
+		EnableElection: false,
+		Namespace:      "default",
+
 		Ulimit: 64000,
 	}
 
@@ -167,9 +171,8 @@ type Config struct {
 	UUID    string `toml:"-"`
 	RunMode int    `toml:"-"`
 
-	Name      string `toml:"name,omitempty"`
-	Hostname  string `toml:"-"`
-	Namespace string `toml:"namespace"`
+	Name     string `toml:"name,omitempty"`
+	Hostname string `toml:"-"`
 
 	// http config: TODO: merge into APIConfig
 	HTTPBindDeprecated   string `toml:"http_server_addr,omitempty"`
@@ -206,14 +209,18 @@ type Config struct {
 	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
 	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
 
-	GlobalTags   map[string]string     `toml:"global_tags"`
+	GlobalTags     map[string]string `toml:"global_tags,omitempty"` // Deprecated
+	GlobalHostTags map[string]string `toml:"global_host_tags"`
+	GlobalEnvTags  map[string]string `toml:"global_env_tags"`
+
 	Environments map[string]string     `toml:"environments"`
 	Cgroup       *cgroup.CgroupOptions `toml:"cgroup"`
 
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
 	ProtectMode              bool `toml:"protect_mode"`
 
-	EnableElection bool `toml:"enable_election"`
+	EnableElection bool   `toml:"enable_election"`
+	Namespace      string `toml:"namespace"`
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
@@ -310,7 +317,7 @@ func (c *Config) InitCfg(p string) error {
 	return nil
 }
 
-func (c *Config) InitCfgSample(p string) error {
+func initCfgSample(p string) error {
 	if err := ioutil.WriteFile(p, []byte(DatakitConfSample), datakit.ConfPerm); err != nil {
 		l.Errorf("error creating %s: %s", p, err)
 		return err
@@ -352,17 +359,24 @@ func (c *Config) setupDataway() error {
 	return nil
 }
 
-func (c *Config) setupGlobalTags() error {
-	if c.GlobalTags == nil {
-		c.GlobalTags = map[string]string{}
+func (c *Config) parseGlobalHostTags() {
+	if len(c.GlobalTags) != 0 { // c.GlobalTags deprecated, move them to GlobalHostTags
+		for k, v := range c.GlobalTags {
+			c.GlobalHostTags[k] = v
+		}
+	}
+
+	// why?
+	if c.GlobalHostTags == nil {
+		c.GlobalHostTags = map[string]string{}
 	}
 
 	// Delete host tag if configured: you should not do this,
 	// use ENV_HOSTNAME in Config.Environments instead
-	delete(c.GlobalTags, "host")
+	delete(c.GlobalHostTags, "host")
 
 	// setup global tags
-	for k, v := range c.GlobalTags {
+	for k, v := range c.GlobalHostTags {
 		// NOTE: accept `__` and `$` as tag-key prefix, to keep compatible with old prefix `$`
 		// by using `__` as prefix, avoid escaping `$` in Powershell and shell
 
@@ -370,33 +384,31 @@ func (c *Config) setupGlobalTags() error {
 		case `__datakit_hostname`, `$datakit_hostname`:
 			if c.Hostname == "" {
 				if err := c.setHostname(); err != nil {
-					return err
+					l.Warnf("setHostname: %s, ignored", err)
 				}
 			}
 
-			c.GlobalTags[k] = c.Hostname
+			c.GlobalHostTags[k] = c.Hostname
 			l.Debugf("set global tag %s: %s", k, c.Hostname)
 
 		case `__datakit_ip`, `$datakit_ip`:
-			c.GlobalTags[k] = "unavailable"
+			c.GlobalHostTags[k] = "unavailable"
 
 			if ipaddr, err := datakit.LocalIP(); err != nil {
 				l.Errorf("get local ip failed: %s", err.Error())
 			} else {
 				l.Infof("set global tag %s: %s", k, ipaddr)
-				c.GlobalTags[k] = ipaddr
+				c.GlobalHostTags[k] = ipaddr
 			}
 
 		case `__datakit_uuid`, `__datakit_id`, `$datakit_uuid`, `$datakit_id`:
-			c.GlobalTags[k] = c.UUID
+			c.GlobalHostTags[k] = c.UUID
 			l.Debugf("set global tag %s: %s", k, c.UUID)
 
 		default:
 			// pass
 		}
 	}
-
-	return nil
 }
 
 func (c *Config) setLogging() {
@@ -433,6 +445,23 @@ func (c *Config) setLogging() {
 
 		l.Infof("set root logger to %s ok", c.Logging.Log)
 	}
+}
+
+// setup global host/env tags.
+func (c *Config) setupGlobalTags() {
+	c.parseGlobalHostTags()
+
+	for k, v := range c.GlobalHostTags {
+		dkio.SetGlobalHostTags(k, v)
+	}
+
+	for k, v := range c.GlobalEnvTags {
+		dkio.SetGlobalEnvTags(k, v)
+	}
+
+	// 此处不将 host 计入 c.GlobalTags，因为 c.GlobalTags 是读取的用户配置，而 host
+	// 是不允许修改的, 故单独添加这个 tag 到 io 模块
+	dkio.SetGlobalHostTags("host", c.Hostname)
 }
 
 func (c *Config) ApplyMainConfig() error {
@@ -485,17 +514,7 @@ func (c *Config) ApplyMainConfig() error {
 		dkio.SetDataway(c.DataWay)
 	}
 
-	if err := c.setupGlobalTags(); err != nil {
-		return err
-	}
-
-	for k, v := range c.GlobalTags {
-		dkio.SetExtraTags(k, v)
-	}
-
-	// 此处不将 host 计入 c.GlobalTags，因为 c.GlobalTags 是读取的用户配置，而 host
-	// 是不允许修改的, 故单独添加这个 tag 到 io 模块
-	dkio.SetExtraTags("host", c.Hostname)
+	c.setupGlobalTags()
 
 	// remove deprecated UUID field in main configure
 	if c.UUIDDeprecated != "" {
@@ -792,19 +811,4 @@ func ProtectedInterval(min, max, cur time.Duration) time.Duration {
 	}
 
 	return cur
-}
-
-// GetElectionNamespace returns the namespace of datakit election.
-// 	If election is not enabled, return empty string.
-//  If election is enabled, return the namespace of election or default when the namespace is empty.
-func GetElectionNamespace() string {
-	if Cfg.EnableElection {
-		if Cfg.Namespace == "" {
-			return "default"
-		} else {
-			return Cfg.Namespace
-		}
-	}
-
-	return ""
 }

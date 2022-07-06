@@ -58,66 +58,85 @@ func TestSetupGlobalTags(t *testing.T) {
 	}
 
 	cases := []struct {
-		tags   map[string]string
-		expect map[string]string
-		fail   bool
+		name     string
+		hosttags map[string]string
+		envtags  map[string]string
+
+		expectHostTags, expectEnvTags map[string]string
 	}{
 		{
-			tags: map[string]string{
-				"host": "__datakit_hostname", // ENV host dropped during setup
+			hosttags: map[string]string{
+				"host": "__datakit_hostname",
 				"ip":   "__datakit_ip",
 				"id":   "__datakit_id",
 				"uuid": "__datakit_uuid",
 			},
-			expect: map[string]string{
+			envtags: map[string]string{"cluster": "my-cluster"},
+			expectHostTags: map[string]string{
 				"ip": localIP,
+			},
+
+			expectEnvTags: map[string]string{
+				"cluster": "my-cluster",
 			},
 		},
 
 		{
-			tags: map[string]string{
-				"host": "$datakit_hostname", // ENV host dropped during setup
+			hosttags: map[string]string{
+				"host": "$datakit_hostname",
 				"ip":   "$datakit_ip",
 				"id":   "$datakit_id",
 				"uuid": "$datakit_uuid",
 			},
-			expect: map[string]string{
+
+			envtags: map[string]string{"election_namespace": "my-default"},
+
+			expectHostTags: map[string]string{
 				"ip": localIP,
+			},
+
+			expectEnvTags: map[string]string{
+				"election_namespace": "my-default",
 			},
 		},
 
 		{
-			tags: map[string]string{
+			hosttags: map[string]string{
 				"uuid": "some-uuid",
-				"host": "some-host", // ENV host dropped during setup
+				"host": "some-host",
 			},
 
-			expect: map[string]string{
+			expectHostTags: map[string]string{
 				"uuid": "some-uuid",
 			},
 		},
 	}
 
 	for idx, tc := range cases {
-		c := DefaultConfig()
-		for k, v := range tc.tags {
-			c.GlobalTags[k] = v
-		}
-
-		err := c.setupGlobalTags()
-		if tc.fail {
-			tu.NotOk(t, err, "")
-		} else {
-			tu.Ok(t, err)
-		}
-
-		for k, v := range c.GlobalTags {
-			if tc.expect == nil {
-				tu.Assert(t, v != tc.expect[k], "[case %d] `%s' != `%s', global tags: %+#v", idx, v, tc.expect[k], c.GlobalTags)
-			} else {
-				tu.Assert(t, v == tc.expect[k], "[case %d] `%s' != `%s', global tags: %+#v", idx, v, tc.expect[k], c.GlobalTags)
+		t.Run(tc.name, func(t *testing.T) {
+			c := DefaultConfig()
+			for k, v := range tc.hosttags {
+				c.GlobalHostTags[k] = v
 			}
-		}
+
+			c.setupGlobalTags()
+
+			for k, v := range c.GlobalHostTags {
+				if tc.expectHostTags == nil {
+					tu.Assert(t, v != tc.expectHostTags[k], "`%s' != `%s', global tags: %+#v", idx, v, tc.expectHostTags[k], c.GlobalTags)
+				} else {
+					tu.Assert(t, v == tc.expectHostTags[k], "`%s' != `%s', global tags: %+#v", idx, v, tc.expectHostTags[k], c.GlobalTags)
+				}
+			}
+
+			for k, v := range c.GlobalEnvTags {
+				if tc.expectEnvTags == nil {
+					tu.Assert(t, v != tc.expectEnvTags[k], "`%s' != `%s', global tags: %+#v", idx, v, tc.expectEnvTags[k], c.GlobalTags)
+				} else {
+					tu.Assert(t, v == tc.expectEnvTags[k], "`%s' != `%s', global tags: %+#v", idx, v, tc.expectEnvTags[k], c.GlobalTags)
+				}
+			}
+		})
 	}
 }
 
@@ -346,19 +365,6 @@ func TestWriteConfigFile(t *testing.T) {
 			fmt.Println(string(mcdata))
 		})
 	}
-}
-
-func TestGetElectionNamespace(t *testing.T) {
-	Cfg = DefaultConfig()
-	tu.Equals(t, GetElectionNamespace(), "")
-	Cfg.Namespace = "test"
-	tu.Equals(t, GetElectionNamespace(), "")
-
-	Cfg.EnableElection = true
-	tu.Equals(t, GetElectionNamespace(), "test")
-
-	Cfg.Namespace = ""
-	tu.Equals(t, GetElectionNamespace(), "default")
 }
 
 func TestSetupDataway(t *testing.T) {

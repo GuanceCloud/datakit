@@ -10,7 +10,6 @@ import (
 	"context"
 	"strconv"
 	"strings"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -20,17 +19,17 @@ type dbMeasurement struct {
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
-	ts      time.Time
 	resData map[string]interface{}
 }
 
 func (m *dbMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_db",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"db": &inputs.TagInfo{
 				Desc: "db name",

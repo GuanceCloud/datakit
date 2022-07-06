@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -95,11 +94,10 @@ func getContainerProcess(client dockerClientX, containerID string) ([]map[string
 type containerObject struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
 func (c *containerObject) LineProto() (*io.Point, error) {
-	return io.NewPoint(dockerContainerName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Object})
+	return io.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionObject)
 }
 
 //nolint:lll

@@ -145,11 +145,7 @@ func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) 
 				map[string]interface{}{
 					pipeline.FieldMessage: scanner.Text(),
 					pipeline.FieldStatus:  pipeline.DefaultStatus,
-				},
-				&io.PointOption{
-					Category: datakit.Logging,
-					Time:     time.Now(),
-				})
+				}, inputs.OptLogging)
 			if err != nil {
 				l.Error(err)
 			} else {

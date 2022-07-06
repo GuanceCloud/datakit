@@ -36,26 +36,34 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 
 ## 全局标签（Tag）修改 {#set-global-tag}
 
-DataKit 允许给其采集的所有数据配置全局标签，这些标签会默认添加到该 DataKit 采集的每一条数据上。这里是一个全局标签配置示例：
+[:octicons-beaker-24: Experimental](index.md#experimental)
+
+DataKit 允许给其采集的所有数据配置全局标签，全局标签分为两类：
+
+- 主机类全局变量：采集的数据跟当前主机息息相关，比如 CPU/内存等指标数据
+- 环境类全局变量：采集的数据来自某个公共实体，比如 MySQL/Redis 等，这些采集一般都参与选举，故这些数据上不会带上主机相关的全局 tag
 
 ```toml
-[global_tags]
+[global_host_tags]
 	ip         = "__datakit_ip"
 	datakit_id = "$datakit_id"
-	project    = "some_of_your_online_biz"
-	other_tags = "..."                    # 可追加其它更多标签
+	host       = "__datakit_hostname"
+
+[global_env_tags]
+	project = "my-project"
+	cluster = "my-cluster"
 ```
 
 加全局 Tag 时，有几个地方要注意：
 
 - 这些全局 Tag 的值可以用 DataKit 目前已经支持的几个变量（双下划线（`__`）前缀和 `$` 都是可以的）：
   - `__datakit_ip/$datakit_ip`：标签值会设置成 DataKit 获取到的第一个主网卡 IP
-  - `__datakit_id/$datakit_id`：标签值会设置成 DataKit 的 ID
+  - `__datakit_hostname/$datakit_hostname`：标签值会设置成 DataKit 的主机名
 
 - 由于 [DataKit 数据传输协议限制](apis.md#lineproto-limitation)，不要在全局标签（Tag）中出现任何指标（Field）字段，否则会因为违反协议导致数据处理失败。具体参见具体采集器的字段列表。当然，也不要加太多 Tag，而且每个 Tag 的 Key 以及 Value 长度都有限制。
 
 - 如果被采集上来的数据中，本来就带有同名的 Tag，那么 DataKit 不会再追加这里配置的全局 Tag。
-- 即使 `global_tags` 不配置任何全局 Tag，DataKit 仍然会==在所有数据上尝试添加==一个 `host=$HOSTNAME` 的全局 Tag。
+- 即使 `global_host_tags` 不配置任何全局 Tag，DataKit 仍然会在所有数据上尝试添加一个 `host=$HOSTNAME` 的全局 Tag。
 
 ### 全局 Tag 可能导致的问题 {#notice-global-tags}
 

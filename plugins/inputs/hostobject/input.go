@@ -23,13 +23,7 @@ import (
 
 var (
 	_ inputs.ReadEnv = (*Input)(nil)
-
-	l = logger.DefaultSLogger(InputName)
-
-	ptsOpt = &io.PointOption{
-		Category:         datakit.Object,
-		MaxFieldValueLen: 1024 * 1024,
-	}
+	l                = logger.DefaultSLogger(InputName)
 )
 
 type Input struct {
@@ -188,7 +182,7 @@ func (hm *hostMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 func (hm *hostMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(hm.name, hm.tags, hm.fields, ptsOpt)
+	return io.NewPoint(hm.name, hm.tags, hm.fields, inputs.OptObject)
 }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {

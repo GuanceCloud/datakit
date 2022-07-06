@@ -6,8 +6,6 @@
 package mysql
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -17,13 +15,12 @@ type baseMeasurement struct {
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
-	ts      time.Time
 	resData map[string]interface{}
 }
 
 // 生成行协议.
 func (m *baseMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 // 指定指标.

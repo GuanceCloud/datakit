@@ -340,6 +340,7 @@ func TestGetPoint(t *testing.T) {
 			map[string]interface{}{},
 		},
 	}
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			i := Input{}

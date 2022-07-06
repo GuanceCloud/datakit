@@ -548,16 +548,6 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		if i.Tags == nil {
-			i.Tags = map[string]string{
-				"election_namespace": namespace,
-			}
-		} else {
-			i.Tags["election_namespace"] = namespace
-		}
-	}
-
 	// Try until init OK.
 	for {
 		if err := i.initCfg(); err != nil {

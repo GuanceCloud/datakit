@@ -225,11 +225,10 @@ type loggingMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 func (ipt *loggingMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(ipt.name, ipt.tags, ipt.fields, ipt.ts)
+	return io.NewPoint(ipt.name, ipt.tags, ipt.fields, inputs.OptLogging)
 }
 
 //nolint:lll

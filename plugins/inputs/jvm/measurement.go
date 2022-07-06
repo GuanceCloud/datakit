@@ -6,8 +6,6 @@
 package jvm
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -16,7 +14,6 @@ type JvmMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 type JavaRuntimeMemt struct {
@@ -48,7 +45,7 @@ type JavaMemoryPoolMemt struct {
 }
 
 func (j *JvmMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
 }
 
 func (j *JvmMeasurement) Info() *inputs.MeasurementInfo {
@@ -56,7 +53,7 @@ func (j *JvmMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaRuntimeMemt) LineProto() (*io.Point, error) {
-	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
 }
 
 //nolint:lll
@@ -73,7 +70,7 @@ func (j *JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaMemoryMemt) LineProto() (*io.Point, error) {
-	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
 }
 
 //nolint:lll
@@ -101,7 +98,7 @@ func (j *JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaGcMemt) LineProto() (*io.Point, error) {
-	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
 }
 
 //nolint:lll
@@ -121,7 +118,7 @@ func (j *JavaGcMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaLastGcMemt) LineProto() (*io.Point, error) {
-	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
 }
 
 func (j *JavaLastGcMemt) Info() *inputs.MeasurementInfo {
@@ -129,7 +126,7 @@ func (j *JavaLastGcMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaThreadMemt) LineProto() (*io.Point, error) {
-	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
 }
 
 //nolint:lll
@@ -150,7 +147,7 @@ func (j *JavaThreadMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaClassLoadMemt) LineProto() (*io.Point, error) {
-	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
 }
 
 //nolint:lll
@@ -170,7 +167,7 @@ func (j *JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaMemoryPoolMemt) LineProto() (*io.Point, error) {
-	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
 }
 
 //nolint:lll

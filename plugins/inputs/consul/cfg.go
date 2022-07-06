@@ -6,8 +6,6 @@
 package consul
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -16,11 +14,10 @@ type HostMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 func (m *HostMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *HostMeasurement) Info() *inputs.MeasurementInfo {
@@ -42,11 +39,10 @@ type ServiceMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 func (m *ServiceMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *ServiceMeasurement) Info() *inputs.MeasurementInfo {
@@ -68,11 +64,10 @@ type HealthMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 func (m *HealthMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *HealthMeasurement) Info() *inputs.MeasurementInfo {
@@ -93,11 +88,10 @@ type MemberMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 func (m *MemberMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *MemberMeasurement) Info() *inputs.MeasurementInfo {

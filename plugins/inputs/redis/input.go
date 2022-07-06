@@ -22,17 +22,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
-
 const (
 	maxInterval = 30 * time.Minute
 	minInterval = 15 * time.Second
 )
 
 var (
-	inputName   = "redis"
-	catalogName = "db"
-	l           = logger.DefaultSLogger("redis")
+	inputName                        = "redis"
+	catalogName                      = "db"
+	l                                = logger.DefaultSLogger("redis")
+	_           inputs.ElectionInput = (*Input)(nil)
 )
 
 type redislog struct {
@@ -276,16 +275,6 @@ func (i *Input) RunPipeline() {
 func (i *Input) Run() {
 	l = logger.SLogger("redis")
 	i.hashMap = make([][16]byte, i.SlowlogMaxLen)
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		if i.Tags == nil {
-			i.Tags = map[string]string{
-				"election_namespace": namespace,
-			}
-		} else {
-			i.Tags["election_namespace"] = namespace
-		}
-	}
 
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 

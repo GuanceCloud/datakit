@@ -33,7 +33,7 @@ kubectl apply path/to/your.yaml
 - 在现有提供的 yaml 中，有如下几个环境变量设置：
 
 	- `ENV_DATAWAY`：设置 DataWay 地址，不要忘了填写对应的工作空间的 token
-	- `ENV_GLOBAL_TAGS`：设置 DataKit 全局 tag
+	- `ENV_GLOBAL_HOST_TAGS`：设置 DataKit 全局 tag
 	<!-- - `ENV_ENABLE_INPUTS`：设定默认开启的采集器，对 Windows 而言，只开启了 `kubernetes` 以及 `kube_state_metric` 两个采集器 -->
 	- `ENV_ENABLE_ELECTION`：开启选举。由于 Kubernetes 是一种中心采集，多节点均部署 DataKit 的情况下，需开启选举来避免重复采集
 	- `ENV_HTTP_LISTEN`：修改 DataKit 绑定的 HTTP 地址
@@ -188,7 +188,7 @@ spec:
               fieldPath: spec.nodeName
         - name: ENV_DATAWAY
           value: https://openway.guance.com?token=<your-token>
-        - name: ENV_GLOBAL_TAGS
+        - name: ENV_GLOBAL_HOST_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
         - name: ENV_ENABLE_INPUTS
           value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,kubernetes,container,kube_state_metric
@@ -545,7 +545,7 @@ spec:
               fieldPath: spec.nodeName
         - name: ENV_DATAWAY
           value: "https://openway.guance.com?token=<your-token>"
-        - name: ENV_GLOBAL_TAGS
+        - name: ENV_GLOBAL_HOST_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
         - name: ENV_ENABLE_INPUTS
           value: kubernetes,kube_state_metric

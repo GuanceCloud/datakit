@@ -55,12 +55,12 @@ var (
 )
 
 type Input struct {
-	external.ExernalInput
+	external.ExternalInput
 }
 
 func (i *Input) Run() {
 	l.Info("oracle started...")
-	i.ExernalInput.Run()
+	i.ExternalInput.Run()
 }
 
 func (i *Input) Catalog() string { return catalogName }
@@ -82,7 +82,7 @@ func (i *Input) AvailableArchs() []string {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			ExernalInput: *external.NewExternalInput(),
+			ExternalInput: *external.NewExternalInput(),
 		}
 	})
 }

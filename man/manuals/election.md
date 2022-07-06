@@ -36,7 +36,7 @@ namespace = "dk-namespace-example"
     - 关于工作空间，在 datakit.conf 中，通过 DataWay 地址串中的 `token` URL 参数来表示，每个工作空间，都有其对应 token
     - 关于命名空间，在 datakit.conf 中，通过 `namespace` 配置项来表示，命名空间是工作空间的下层，一个工作空间可以配置多个命名空间
 
-## 支持选举的采集列表
+## 支持选举的采集列表 {#inputs}
 
 目前支持选举的采集器列表如下：
 

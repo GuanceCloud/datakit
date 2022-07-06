@@ -8,7 +8,6 @@ package elasticsearch
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -21,7 +20,7 @@ type elasticsearchMeasurement struct {
 }
 
 func (m elasticsearchMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, &io.PointOption{Time: m.ts, Category: datakit.Metric})
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 func (m elasticsearchMeasurement) Info() *inputs.MeasurementInfo {

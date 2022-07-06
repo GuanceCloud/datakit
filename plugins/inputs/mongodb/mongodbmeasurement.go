@@ -20,7 +20,7 @@ type mongodbMeasurement struct {
 }
 
 func (m *mongodbMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -206,7 +206,7 @@ type mongodbDBMeasurement struct {
 }
 
 func (m *mongodbDBMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -239,7 +239,7 @@ type mongodbColMeasurement struct {
 }
 
 func (m *mongodbColMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -271,7 +271,7 @@ type mongodbShardMeasurement struct {
 }
 
 func (m *mongodbShardMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -298,7 +298,7 @@ type mongodbTopMeasurement struct {
 }
 
 func (m *mongodbTopMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll

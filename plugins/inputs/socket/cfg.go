@@ -34,7 +34,7 @@ var (
 
   ## @param interval - number - optional - default: 30
   interval = "30s"
-  ## @param interval - number - optional - default: 10	
+  ## @param interval - number - optional - default: 10
   udp_timeout = "10s"
   ## @param interval - number - optional - default: 10
   tcp_timeout = "10s"
@@ -71,11 +71,11 @@ type UDPMeasurement struct {
 }
 
 func (m *TCPMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 func (m *UDPMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 func (m *TCPMeasurement) Info() *inputs.MeasurementInfo {

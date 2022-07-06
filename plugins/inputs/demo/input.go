@@ -16,7 +16,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -24,6 +23,8 @@ import (
 var (
 	inputName = "demo"
 	l         = logger.DefaultSLogger("demo")
+
+	_ inputs.ElectionInput = (*Input)(nil)
 )
 
 type Input struct {
@@ -67,16 +68,6 @@ func (ipt *Input) Run() {
 
 	if ipt.EatCPU {
 		eatCPU(runtime.NumCPU())
-	}
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		if ipt.Tags == nil {
-			ipt.Tags = map[string]string{
-				"election_namespace": namespace,
-			}
-		} else {
-			ipt.Tags["election_namespace"] = namespace
-		}
 	}
 
 	for {

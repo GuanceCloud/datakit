@@ -21,7 +21,7 @@ type customerMeasurement struct {
 
 // 生成行协议.
 func (m *customerMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 // 指定指标.
