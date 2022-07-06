@@ -522,11 +522,17 @@ func (i *Input) RunPipeline() {
 		i.Log.Pipeline = "mysql.p" // use default
 	}
 
+	tags := make(map[string]string)
+
+	for k, v := range i.Tags {
+		tags[k] = v
+	}
+
 	opt := &tailer.Option{
 		Source:            "mysql",
 		Service:           "mysql",
 		Pipeline:          i.Log.Pipeline,
-		GlobalTags:        i.Tags,
+		GlobalTags:        tags,
 		CharacterEncoding: i.Log.CharacterEncoding,
 		MultilineMatch:    i.Log.MultilineMatch,
 	}
