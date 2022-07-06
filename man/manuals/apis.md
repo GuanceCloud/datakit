@@ -205,7 +205,7 @@ Content-Type: application/json
 ### 示例
 
 ```http
-GET /v1/worksapce HTTP/1.1
+GET /v1/workspace HTTP/1.1
 
 HTTP/1.1 200 OK
 
