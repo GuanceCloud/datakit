@@ -43,10 +43,16 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 			"server": &inputs.TagInfo{
 				Desc: "server",
 			},
+			"message": &inputs.TagInfo{
+				Desc: "log message",
+			},
+			"host": &inputs.TagInfo{
+				Desc: "host",
+			},
 		},
 		Fields: map[string]interface{}{
 			"slowlog_id": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "slowlog unique id",
@@ -92,6 +98,8 @@ func (i *Input) getSlowData() error {
 			}
 
 			m.name = "redis_slowlog"
+			m.tags["service"] = "redis"
+			m.tags["host"] = i.Host
 
 			for k, v := range i.Tags {
 				m.tags[k] = v
