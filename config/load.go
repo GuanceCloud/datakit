@@ -123,6 +123,10 @@ func LoadCfg(c *Config, mcp string) error {
 		return err
 	}
 
+	if err := initCfgSample(datakit.MainConfSamplePath); err != nil {
+		l.Warnf("failed to init datakit main sample config: %s, ignored", err.Error())
+	}
+
 	if err := initPluginPipeline(); err != nil {
 		l.Errorf("init plugin pipeline: %s", err.Error())
 		return err

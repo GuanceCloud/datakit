@@ -134,10 +134,9 @@ func (n *Input) RunPipeline() {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("sqlserver start")
+
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		n.Tags["election_namespace"] = namespace
-	}
+
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
 
@@ -291,7 +290,7 @@ func (n *Input) handRow(query string, ts time.Time) {
 			continue
 		}
 
-		point, err := io.MakePoint(measurement, tags, fields, ts)
+		point, err := io.NewPoint(measurement, tags, fields, inputs.OptElectionMetric)
 		if err != nil {
 			l.Errorf("make point err:%s", err.Error())
 			n.lastErr = err

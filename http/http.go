@@ -47,7 +47,6 @@ var (
 	uptime = time.Now()
 
 	dw        dataway.DataWay
-	extraTags = map[string]string{}
 	apiConfig = &APIConfig{}
 	dcaConfig *DCAConfig
 
@@ -63,15 +62,21 @@ var (
 
 //nolint:stylecheck
 const (
-	LOGGING_SROUCE     = "source"
-	PRECISION          = "precision"
-	INPUT              = "input"
-	IGNORE_GLOBAL_TAGS = "ignore_global_tags"
-	CATEGORY           = "category"
-	VERSION            = "version"
-	PIPELINE_SOURCE    = "source"
-	DEFAULT_PRECISION  = "n"
-	DEFAULT_INPUT      = "datakit" // 当 API 调用方未亮明自己身份时，默认使用 datakit 作为数据源名称
+	LOGGING_SROUCE = "source"
+	PRECISION      = "precision"
+	INPUT          = "input"
+
+	IGNORE_GLOBAL_TAGS      = "ignore_global_tags"      // deprecated, use IGNORE_GLOBAL_HOST_TAGS
+	IGNORE_GLOBAL_HOST_TAGS = "ignore_global_host_tags" // default enabled
+	GLOBAL_ENV_TAGS         = "global_env_tags"         // default disabled
+
+	ECHO_LINE_PROTO = "echo_line_proto"
+
+	CATEGORY          = "category"
+	VERSION           = "version"
+	PIPELINE_SOURCE   = "source"
+	DEFAULT_PRECISION = "n"
+	DEFAULT_INPUT     = "datakit" // 当 API 调用方未亮明自己身份时，默认使用 datakit 作为数据源名称
 )
 
 type Option struct {
@@ -164,10 +169,6 @@ type welcome struct {
 
 func SetAPIConfig(c *APIConfig) {
 	apiConfig = c
-}
-
-func SetGlobalTags(tags map[string]string) {
-	extraTags = tags
 }
 
 func page404(c *gin.Context) {

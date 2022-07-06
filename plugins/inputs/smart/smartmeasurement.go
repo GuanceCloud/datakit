@@ -20,7 +20,7 @@ type smartMeasurement struct {
 }
 
 func (s *smartMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(s.name, s.tags, s.fields, s.ts)
+	return io.NewPoint(s.name, s.tags, s.fields, inputs.OptMetric)
 }
 
 //nolint:lll

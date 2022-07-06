@@ -185,13 +185,11 @@ func makePts(source string, cnt []string, tags map[string]string) []*io.Point {
 	ret := []*io.Point{}
 
 	for _, cnt := range cnt {
-		pt, err := io.MakePoint(source, tags,
+		pt, err := io.NewPoint(source, tags,
 			map[string]interface{}{
 				pipeline.FieldMessage: cnt,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,
-			},
-			time.Now(),
-		)
+			}, inputs.OptLogging)
 		if err != nil {
 			l.Error(err)
 			continue

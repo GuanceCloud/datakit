@@ -45,7 +45,7 @@ type ProcessMetric struct {
 }
 
 func (m *ProcessMetric) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 //nolint:lll
@@ -79,7 +79,7 @@ type ProcessObject struct {
 }
 
 func (m *ProcessObject) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptObject)
 }
 
 //nolint:lll

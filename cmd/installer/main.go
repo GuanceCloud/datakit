@@ -66,7 +66,11 @@ var (
 	flagDCAEnable,
 	flagEnableInputs,
 	flagDatakitName,
+
 	flagGlobalTags,
+	flagGlobalHostTags,
+	flagGlobalEnvTags,
+
 	flagProxy,
 	flagDatakitHTTPListen,
 	flagNamespace,
@@ -124,8 +128,13 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagEnableInputs,
 		"enable-inputs", "", "default enable inputs(comma splited, example:cpu,mem,disk)")
 	flag.StringVar(&flagDatakitName, "name", "", "specify DataKit name, example: prod-env-datakit")
-	flag.StringVar(&flagGlobalTags, "global-tags", "",
-		"enable global tags, example: host= __datakit_hostname,ip= __datakit_ip")
+
+	flag.StringVar(&flagGlobalTags, "global-tags", "", "Deprecated. use global-host-tag")
+	flag.StringVar(&flagGlobalHostTags, "global-host-tags", "",
+		"enable global host tags, example: host= __datakit_hostname,ip= __datakit_ip")
+	flag.StringVar(&flagGlobalEnvTags, "global-env-tags", "",
+		"enable global environment tags, example: project=my-project,cluster=my-cluster")
+
 	flag.StringVar(&flagProxy, "proxy", "", "http proxy http://ip:port for datakit")
 	flag.StringVar(&flagDatakitHTTPListen, "listen", "localhost", "datakit HTTP listen")
 	flag.StringVar(&flagNamespace, "namespace", "", "datakit namespace")
@@ -462,11 +471,6 @@ func upgradeDatakit(svc service.Service) error {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
-	// build datakit sample config
-	if err := mc.InitCfgSample(datakit.MainConfSamplePath); err != nil {
-		l.Fatalf("failed to init datakit main sample config: %s", err.Error())
-	}
-
 	for _, dir := range []string{datakit.DataDir, datakit.ConfdDir} {
 		if err := os.MkdirAll(dir, datakit.ConfPerm); err != nil {
 			return err
@@ -609,12 +613,25 @@ func installNewDatakit(svc service.Service) {
 		mc.Environments["ENV_HOSTNAME"] = flagHostName
 	}
 
-	// accept any install options
-	if flagGlobalTags != "" {
-		l.Infof("set global tags...")
-		mc.GlobalTags = config.ParseGlobalTags(flagGlobalTags)
+	if flagGlobalTags != "" { // deprecated, use flagGlobalHostTags
+		l.Infof("set global host tags...")
+		mc.GlobalHostTags = config.ParseGlobalTags(flagGlobalTags)
 
-		l.Infof("set global tags %+#v", mc.GlobalTags)
+		l.Infof("set global host tags %+#v", mc.GlobalHostTags)
+	}
+
+	if flagGlobalHostTags != "" {
+		l.Infof("set global host tags...")
+		mc.GlobalHostTags = config.ParseGlobalTags(flagGlobalHostTags)
+
+		l.Infof("set global host tags %+#v", mc.GlobalHostTags)
+	}
+
+	if flagGlobalEnvTags != "" {
+		l.Infof("set global env tags...")
+		mc.GlobalEnvTags = config.ParseGlobalTags(flagGlobalEnvTags)
+
+		l.Infof("set global env tags %+#v", mc.GlobalEnvTags)
 	}
 
 	mc.Namespace = flagNamespace
@@ -677,11 +694,6 @@ func installNewDatakit(svc service.Service) {
 	// build datakit main config
 	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
-	}
-
-	// build datakit sample config
-	if err := mc.InitCfgSample(datakit.MainConfSamplePath); err != nil {
-		l.Fatalf("failed to init datakit main sample config: %s", err.Error())
 	}
 
 	installExternals := map[string]struct{}{}

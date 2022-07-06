@@ -9,10 +9,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type ciEventType byte
@@ -126,24 +126,14 @@ func (n *Input) getPipelinePoint(span *ddSpan) (*io.Point, error) {
 	measurementName := "jenkins_pipeline"
 	tags := getPipelineTags(span)
 	n.putExtraTags(tags)
-	return io.NewPoint(measurementName, tags, getPipelineFields(span),
-		&io.PointOption{
-			Time:     time.Now(),
-			Category: datakit.Logging,
-			Strict:   true,
-		})
+	return io.NewPoint(measurementName, tags, getPipelineFields(span), inputs.OptElectionLogging)
 }
 
 func (n *Input) getJobPoint(span *ddSpan) (*io.Point, error) {
 	measurementName := "jenkins_job"
 	tags := getJobTags(span)
 	n.putExtraTags(tags)
-	return io.NewPoint(measurementName, tags, getJobFields(span),
-		&io.PointOption{
-			Time:     time.Now(),
-			Category: datakit.Logging,
-			Strict:   true,
-		})
+	return io.NewPoint(measurementName, tags, getJobFields(span), inputs.OptElectionLogging)
 }
 
 func getPipelineTags(span *ddSpan) map[string]string {

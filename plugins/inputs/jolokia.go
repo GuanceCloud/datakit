@@ -162,8 +162,9 @@ func (j *JolokiaAgent) createMetrics() []Metric {
 	var metrics []Metric
 
 	for _, config := range j.Metrics {
-		metrics = append(metrics, NewMetric(config,
-			j.DefaultFieldPrefix, j.DefaultFieldSeparator, j.DefaultTagPrefix))
+		metrics = append(metrics,
+			NewMetric(config, j.DefaultFieldPrefix, j.DefaultFieldSeparator, j.DefaultTagPrefix),
+		)
 	}
 
 	return metrics
@@ -213,7 +214,7 @@ type JolokiaMeasurement struct {
 }
 
 func (j *JolokiaMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+	return io.NewPoint(j.name, j.tags, j.fields, OptMetric)
 }
 
 func (j *JolokiaMeasurement) Info() *MeasurementInfo {

@@ -12,14 +12,15 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 )
 
+//nolint:funlen
 func (c *Config) LoadEnvs() error {
 	if c.IOConf == nil {
-		c.IOConf = &dkio.IOConfig{}
+		c.IOConf = &io.IOConfig{}
 	}
 
 	for _, envkey := range []string{
@@ -70,16 +71,26 @@ func (c *Config) LoadEnvs() error {
 		datakit.DatakitHostName = c.Hostname
 	}
 
-	if v := datakit.GetEnv("ENV_NAMESPACE"); v != "" {
-		c.Namespace = v
-	}
-
 	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v != "" {
 		c.EnableElection = true
+		if v := datakit.GetEnv("ENV_NAMESPACE"); v != "" {
+			c.Namespace = v
+		}
+
+		// add to global-env-tags
+		io.SetGlobalEnvTags("election_namespace", v)
 	}
 
-	if v := datakit.GetEnv("ENV_GLOBAL_TAGS"); v != "" {
+	if v := datakit.GetEnv("ENV_GLOBAL_TAGS"); v != "" { // deprecated, use ENV_GLOBAL_HOST_TAGS
 		c.GlobalTags = ParseGlobalTags(v)
+	}
+
+	if v := datakit.GetEnv("ENV_GLOBAL_HOST_TAGS"); v != "" {
+		c.GlobalHostTags = ParseGlobalTags(v)
+	}
+
+	if v := datakit.GetEnv("ENV_GLOBAL_ENV_TAGS"); v != "" {
+		c.GlobalEnvTags = ParseGlobalTags(v)
 	}
 
 	// set logging

@@ -64,6 +64,7 @@ func (si *Input) Run() {
 		si.stat.Update()
 		cost := time.Since(start)
 		pt := si.stat.ToMetric()
+
 		_ = io.Feed(inputName, datakit.Metric, []*io.Point{pt}, &io.Option{
 			CollectCost: cost,
 		})

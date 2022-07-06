@@ -15,6 +15,7 @@ import (
 
 	dto "github.com/prometheus/client_model/go"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func (p *Prom) getMetricTypeName(familyType dto.MetricType) string {
@@ -212,8 +213,6 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 		return nil, err
 	}
 
-	startTime := time.Now()
-
 	filteredMetricFamilies := p.filterMetricFamilies(metricFamilies)
 
 	for name, value := range filteredMetricFamilies {
@@ -233,7 +232,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 				tags := p.getTags(m.GetLabel(), measurementName)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+					pt, err := iod.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -252,7 +251,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 				tags := p.getTags(m.GetLabel(), measurementName)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+					pt, err := iod.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -269,7 +268,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 					tags["quantile"] = fmt.Sprint(q.GetQuantile())
 
 					if !p.tagKVMatched(tags) {
-						pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+						pt, err := iod.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
 						if err != nil {
 							lastErr = err
 						} else {
@@ -289,7 +288,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 				tags := p.getTags(m.GetLabel(), measurementName)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+					pt, err := iod.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -306,7 +305,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 					tags["le"] = fmt.Sprint(b.GetUpperBound())
 
 					if !p.tagKVMatched(tags) {
-						pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+						pt, err := iod.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
 						if err != nil {
 							lastErr = err
 						} else {

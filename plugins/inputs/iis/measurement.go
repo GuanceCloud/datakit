@@ -6,8 +6,6 @@
 package iis
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -16,11 +14,10 @@ type measurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 func (m *measurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 func (m *measurement) Info() *inputs.MeasurementInfo {
@@ -30,7 +27,7 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 type IISAppPoolWas measurement
 
 func (m *IISAppPoolWas) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 //nolint:lll
@@ -53,7 +50,7 @@ func (m *IISAppPoolWas) Info() *inputs.MeasurementInfo {
 type IISWebService measurement
 
 func (m *IISWebService) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 //nolint:lll

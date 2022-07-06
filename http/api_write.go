@@ -15,6 +15,7 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
 type IApiWrite interface {
@@ -99,9 +100,28 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 		precision = x
 	}
 
-	extags := extraTags
-	if x := q.Get(IGNORE_GLOBAL_TAGS); x != "" {
-		extags = nil
+	// extraTags comes from global-host-tag or global-env-tags
+	extraTags := map[string]string{}
+	for _, arg := range []string{
+		IGNORE_GLOBAL_HOST_TAGS,
+		IGNORE_GLOBAL_TAGS, // deprecated
+	} {
+		if x := q.Get(arg); x != "" {
+			extraTags = map[string]string{}
+			break
+		} else {
+			for k, v := range io.GlobalHostTags() {
+				l.Debugf("arg=%s, add host tag %s: %s", arg, k, v)
+				extraTags[k] = v
+			}
+		}
+	}
+
+	if x := q.Get(GLOBAL_ENV_TAGS); x != "" {
+		for k, v := range io.GlobalEnvTags() {
+			l.Debugf("add env tag %s: %s", k, v)
+			extraTags[k] = v
+		}
 	}
 
 	var version string
@@ -130,7 +150,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 		return nil, ErrEmptyBody
 	}
 
-	isjson := req.Header.Get("Content-Type") == "application/json"
+	isjson := (req.Header.Get("Content-Type") == "application/json")
 
 	var pts []*io.Point
 
@@ -149,7 +169,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 		opt := lp.NewDefaultOption()
 		opt.Precision = precision
 		opt.Time = time.Now()
-		opt.ExtraTags = extags
+		opt.ExtraTags = extraTags
 		opt.Strict = true
 		pts, err = handleWriteBody(body, isjson, opt)
 		if err != nil {
@@ -192,6 +212,20 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 		return nil, err
 	}
 
+	if q.Get(ECHO_LINE_PROTO) != "" {
+		res := []*sinkcommon.JSONPoint{}
+		for _, pt := range pts {
+			x, err := pt.ToJSON()
+			if err != nil {
+				l.Warnf("ToJSON: %s, ignored", err)
+				continue
+			}
+			res = append(res, x)
+		}
+
+		return res, nil
+	}
+
 	return nil, nil
 }
 
@@ -224,6 +258,10 @@ func jsonPoints(body []byte, opt *lp.Option) ([]*io.Point, error) {
 
 	var pts []*io.Point
 	for _, jp := range jps {
+		if jp.Time != 0 { // use time from json point
+			opt.Time = time.Unix(0, jp.Time)
+		}
+
 		if p, err := jp.point(opt); err != nil {
 			l.Error(err)
 			return nil, uhttp.Error(ErrInvalidJSONPoint, err.Error())

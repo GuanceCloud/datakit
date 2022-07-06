@@ -81,7 +81,7 @@ type diskioMeasurement struct {
 }
 
 func (m *diskioMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 // https://www.kernel.org/doc/Documentation/ABI/testing/procfs-diskstats

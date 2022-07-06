@@ -20,7 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var moduleLogger *logger.Logger
+var l = logger.DefaultSLogger(inputName)
 
 func (*Instance) SampleConfig() string {
 	return sampleConfig
@@ -31,7 +31,7 @@ func (*Instance) Catalog() string {
 }
 
 func (ag *Instance) Run() {
-	moduleLogger = logger.SLogger(inputName)
+	l = logger.SLogger(inputName)
 
 	go func() {
 		select {
@@ -86,7 +86,7 @@ func (ag *Instance) run(ctx context.Context) error {
 
 			sql, err := query.ToSQL()
 			if err != nil {
-				moduleLogger.Warnf("%s", err)
+				l.Warnf("%s", err)
 				continue
 			}
 
@@ -98,7 +98,7 @@ func (ag *Instance) run(ctx context.Context) error {
 
 			fieldsArr, err := DefaultClient.QueryEx(sql, props)
 			if err != nil {
-				moduleLogger.Errorf("query failed, %s", err)
+				l.Errorf("query failed, %s", err)
 				continue
 			}
 
@@ -112,12 +112,22 @@ func (ag *Instance) run(ctx context.Context) error {
 				tags[k] = v
 			}
 
+			pts := []*io.Point{}
 			for _, fields := range fieldsArr {
 				if ag.isTest() {
 					// pass
 				} else {
-					_ = io.NamedFeedEx(inputName, datakit.Metric, ag.MetricName, tags, fields)
+					pt, err := io.NewPoint(inputName, tags, fields, inputs.OptMetric)
+					if err != nil {
+						l.Warnf("io.NewPoint: %s, ignored", err)
+						continue
+					}
+					pts = append(pts, pt)
 				}
+			}
+
+			if err := io.Feed(inputName, datakit.Metric, pts, nil); err != nil {
+				l.Warnf("io.NewPoint: %s, ignored", err)
 			}
 
 			query.lastTime = time.Now()

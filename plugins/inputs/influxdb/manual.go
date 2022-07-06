@@ -20,7 +20,7 @@ type measurement struct {
 }
 
 func (m *measurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *measurement) Info() *inputs.MeasurementInfo { return nil }
@@ -28,7 +28,7 @@ func (m *measurement) Info() *inputs.MeasurementInfo { return nil }
 type InfluxdbMemstatsM measurement
 
 func (m *InfluxdbMemstatsM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -74,7 +74,7 @@ func (m *InfluxdbMemstatsM) Info() *inputs.MeasurementInfo {
 type InfluxdbRuntimeM measurement
 
 func (m *InfluxdbRuntimeM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -107,7 +107,7 @@ func (m *InfluxdbRuntimeM) Info() *inputs.MeasurementInfo {
 type InfluxdbQueryExecutorM measurement
 
 func (m *InfluxdbQueryExecutorM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -130,7 +130,7 @@ func (m *InfluxdbQueryExecutorM) Info() *inputs.MeasurementInfo {
 type InfluxdbDatabaseM measurement
 
 func (m *InfluxdbDatabaseM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -151,7 +151,7 @@ func (m *InfluxdbDatabaseM) Info() *inputs.MeasurementInfo {
 type InfluxdbShardM measurement
 
 func (m *InfluxdbShardM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -187,7 +187,7 @@ func (m *InfluxdbShardM) Info() *inputs.MeasurementInfo {
 type InfluxdbTsm1EngineM measurement
 
 func (m *InfluxdbTsm1EngineM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -246,7 +246,7 @@ func (m *InfluxdbTsm1EngineM) Info() *inputs.MeasurementInfo {
 type InfluxdbTsm1CacheM measurement
 
 func (m *InfluxdbTsm1CacheM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -280,7 +280,7 @@ func (m *InfluxdbTsm1CacheM) Info() *inputs.MeasurementInfo {
 type InfluxdbTsm1FilestoreM measurement
 
 func (m *InfluxdbTsm1FilestoreM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -307,7 +307,7 @@ func (m *InfluxdbTsm1FilestoreM) Info() *inputs.MeasurementInfo {
 type InfluxdbTsm1WalM measurement
 
 func (m *InfluxdbTsm1WalM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -335,7 +335,7 @@ func (m *InfluxdbTsm1WalM) Info() *inputs.MeasurementInfo {
 type InfluxdbWriteM measurement
 
 func (m *InfluxdbWriteM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -362,7 +362,7 @@ func (m *InfluxdbWriteM) Info() *inputs.MeasurementInfo {
 type InfluxdbSubscriberM measurement
 
 func (m *InfluxdbSubscriberM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -383,7 +383,7 @@ func (m *InfluxdbSubscriberM) Info() *inputs.MeasurementInfo {
 type InfluxdbCqM measurement
 
 func (m *InfluxdbCqM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -403,7 +403,7 @@ func (m *InfluxdbCqM) Info() *inputs.MeasurementInfo {
 type InfluxdbHttpdM measurement
 
 func (m *InfluxdbHttpdM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll

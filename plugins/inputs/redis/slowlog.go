@@ -30,13 +30,15 @@ type slowlogMeasurement struct {
 }
 
 func (m *slowlogMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionLogging)
 }
 
 //nolint:lll
 func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
+		Desc: "Redis 慢查询命令历史，这里我们将其以日志的形式采集",
 		Name: "redis_slowlog",
+		Type: "logging",
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "server",

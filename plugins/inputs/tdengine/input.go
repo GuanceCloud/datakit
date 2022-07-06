@@ -13,7 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -108,10 +107,6 @@ func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	i.tdengine = newTDEngine(i.User, i.Password, i.AdapterEndpoint)
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		i.Tags["election_namespace"] = namespace
-	}
 
 	globalTags = i.Tags
 	// 1 checkHealth: show databases

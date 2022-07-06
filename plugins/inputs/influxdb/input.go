@@ -24,8 +24,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
-
 const (
 	minInterval      = time.Second * 5
 	maxInterval      = time.Minute * 10
@@ -33,7 +31,10 @@ const (
 	metricNamePrefix = "influxdb_"
 )
 
-var l = logger.DefaultSLogger("influxdb")
+var (
+	_ inputs.ElectionInput = (*Input)(nil)
+	l                      = logger.DefaultSLogger("influxdb")
+)
 
 type Input struct {
 	URLsDeprecated []string `toml:"urls,omitempty"`
@@ -177,16 +178,6 @@ func (i *Input) Run() {
 	}
 
 	tick := time.NewTicker(i.Interval.Duration)
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		if i.Tags == nil {
-			i.Tags = map[string]string{
-				"election_namespace": namespace,
-			}
-		} else {
-			i.Tags["election_namespace"] = namespace
-		}
-	}
 
 	defer tick.Stop()
 	for {

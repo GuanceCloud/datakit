@@ -16,7 +16,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -100,16 +99,6 @@ func (i *Input) SetTags(m map[string]string) {
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		if i.Tags == nil {
-			i.Tags = map[string]string{
-				"election_namespace": namespace,
-			}
-		} else {
-			i.Tags["election_namespace"] = namespace
-		}
-	}
-
 	if i.setup() {
 		return
 	}
@@ -126,24 +115,22 @@ func (i *Input) Run() {
 		} else {
 			start := time.Now()
 			pts := i.doCollect()
-			if pts != nil {
-				if i.AsLogging != nil && i.AsLogging.Enable {
-					// Feed measurement as logging.
-					for _, pt := range pts {
-						// We need to feed each point separately because
-						// each point might have different measurement name.
-						if err := io.Feed(pt.Name(), datakit.Logging, []*io.Point{pt},
-							&io.Option{CollectCost: time.Since(start)}); err != nil {
-							l.Errorf("Feed: %s", err)
-							io.FeedLastError(ioname, err.Error())
-						}
-					}
-				} else {
-					if err := io.Feed(ioname, datakit.Metric, pts,
+			if i.AsLogging != nil && i.AsLogging.Enable {
+				// Feed measurement as logging.
+				for _, pt := range pts {
+					// We need to feed each point separately because
+					// each point might have different measurement name.
+					if err := io.Feed(pt.Name(), datakit.Logging, []*io.Point{pt},
 						&io.Option{CollectCost: time.Since(start)}); err != nil {
 						l.Errorf("Feed: %s", err)
 						io.FeedLastError(ioname, err.Error())
 					}
+				}
+			} else {
+				if err := io.Feed(ioname, datakit.Metric, pts,
+					&io.Option{CollectCost: time.Since(start)}); err != nil {
+					l.Errorf("Feed: %s", err)
+					io.FeedLastError(ioname, err.Error())
 				}
 			}
 		}

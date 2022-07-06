@@ -6,8 +6,6 @@
 package ebpf
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -16,11 +14,10 @@ type measurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 func (m *measurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptNetwork)
 }
 
 //nolint:lll
@@ -31,7 +28,7 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 type ConnStatsM measurement
 
 func (m *ConnStatsM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptNetwork)
 }
 
 //nolint:lll
@@ -79,7 +76,7 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 type HTTPFlowM measurement
 
 func (m *HTTPFlowM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 //nolint:lll
@@ -124,7 +121,7 @@ func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
 type DNSStatsM measurement
 
 func (m *DNSStatsM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 func (m *DNSStatsM) Info() *inputs.MeasurementInfo {
@@ -152,7 +149,7 @@ func (m *DNSStatsM) Info() *inputs.MeasurementInfo {
 type BashM measurement
 
 func (m *BashM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 func (m *BashM) Info() *inputs.MeasurementInfo {

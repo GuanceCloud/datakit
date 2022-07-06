@@ -19,7 +19,6 @@ import (
 	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/typeurl"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -110,7 +109,6 @@ func (c *containerdInput) gatherMetric() ([]inputs.Measurement, error) {
 		res = append(res, &containerdMetric{
 			tags:   r.tags,
 			fields: r.fields,
-			time:   r.time,
 		})
 	}
 	return res, nil
@@ -363,11 +361,10 @@ func getContainerdMetricsData(ctx context.Context, container containerd.Containe
 type containerdObject struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
 func (c *containerdObject) LineProto() (*io.Point, error) {
-	return io.NewPoint(dockerContainerName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Object})
+	return io.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionObject)
 }
 
 func (c *containerdObject) Info() *inputs.MeasurementInfo {
@@ -376,7 +373,7 @@ func (c *containerdObject) Info() *inputs.MeasurementInfo {
 
 func newContainerdObject(info *containers.Container) *containerdObject {
 	imageName, imageShortName, imageTag := ParseImage(info.Image)
-	obj := &containerdObject{time: time.Now()}
+	obj := &containerdObject{}
 	obj.tags = map[string]string{
 		"name":             info.ID,
 		"container_id":     info.ID,
@@ -406,11 +403,10 @@ func isPauseContainerd(info *containers.Container) bool {
 type containerdMetric struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
 func (c *containerdMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint(dockerContainerName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Metric})
+	return io.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionMetric)
 }
 
 func (c *containerdMetric) Info() *inputs.MeasurementInfo {

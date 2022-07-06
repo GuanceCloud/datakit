@@ -53,30 +53,65 @@ ACL SETUSER username on +ping
   # ...
 ```
 
+### 指标 {#metric}
+
 {{ range $i, $m := .Measurements }}
 
-### `{{$m.Name}}`
+{{if eq $m.Type "metric"}}
 
--  标签
+#### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
+{{end}}
 
 {{ end }}
 
-## 日志采集
-需要采集redis日志，需要开启Redis `redis.config`中日志文件输出配置
+### 日志 {#logging}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+#### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 字段列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 日志采集 {#redis-logging}
+
+需要采集 Redis 日志，需要开启 Redis `redis.config`中日志文件输出配置：
 
 ```toml
 [inputs.redis.log]
     # 日志路径需要填入绝对路径
-    files = ["/var/log/redis/*.log"] # 在使用日志采集时，需要将datakit安装在redis服务同一台主机中，或使用其它方式将日志挂载到外部系统中
+    files = ["/var/log/redis/*.log"]
 ```
 
-## 日志 pipeline 功能切割字段说明
+???+ attention
+
+    在配置日志采集时，需要将 DataKit 安装在 Redis 服务同一台主机中，或使用其它方式将日志挂载到 DataKit 所在机器。
+
+    在 K8s 中，可以将 Redis 日志暴露到 stdout，DataKit 能自动找到其对应的日志。
+
+### Pipeline 日志切割 {#pipeline}
 
 原始日志为
 

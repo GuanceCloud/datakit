@@ -139,7 +139,6 @@ func (ipt *Input) parse(output string) ([]inputs.Measurement, error) {
 				name:   inputName,
 				tags:   tags,
 				fields: fields,
-				ts:     time.Now(),
 			})
 			tags = ipt.getCustomerTags()
 			fields = make(map[string]interface{})
@@ -159,7 +158,6 @@ func (ipt *Input) parse(output string) ([]inputs.Measurement, error) {
 					name:   inputName,
 					tags:   tags,
 					fields: fields,
-					ts:     time.Now(),
 				})
 
 				tmp := make(map[string]string)
@@ -184,7 +182,7 @@ func (ipt *Input) parse(output string) ([]inputs.Measurement, error) {
 	}
 
 	if len(fields) != 0 {
-		cache = append(cache, &sensorsMeasurement{name: inputName, tags: tags, fields: fields, ts: time.Now()})
+		cache = append(cache, &sensorsMeasurement{name: inputName, tags: tags, fields: fields})
 	}
 
 	return cache, nil
