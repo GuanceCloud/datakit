@@ -146,28 +146,6 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 
 在行协议中，所有字段都是大小写敏感的。
 
-## 故障排查
-
-### 查看同步下来的过滤器 {#debug-filter}
-
-对于从中心同步下来的过滤器，DataKit 记录了一份到 *<DataKit 安装目录>/data/.filters* 下，可直接查看
-
-```shell
-$ cat .filters  | jq
-{
-  "dataways": null,
-  "filters": {
-    "logging": [
-      "{ source = 'datakit'  and ( host in ['ubt-dev-01', 'tanb-ubt-dev-test'] )}"
-    ]
-  },
-  "pull_interval": 10000000000,
-  "remote_pipelines": null
-}
-```
-
-这里 JSON 中的 `filters` 字段就是拉取到的过滤器，目前里面只有针对日志的黑名单。
-
 ## 用法示例
 
 使用 `datakit monitor -V` 命令可以查看过滤情况。
@@ -351,3 +329,27 @@ curl --location --request POST 'http://localhost:9529/v1/write/custom_object' \
 ```
 
 可以在 datakit monitor 里面看到 `regionid` 为 `cn-qingdao` 的被过滤掉了。
+
+## 故障排查
+
+### 查看同步下来的过滤器 {#debug-filter}
+
+[:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
+
+对于从中心同步下来的过滤器，DataKit 记录了一份到 *<DataKit 安装目录>/data/.pull* 中，可直接查看
+
+```shell
+$ cat .filters  | jq
+{
+  "dataways": null,
+  "filters": {
+    "logging": [
+      "{ source = 'datakit'  and ( host in ['ubt-dev-01', 'tanb-ubt-dev-test'] )}"
+    ]
+  },
+  "pull_interval": 10000000000,
+  "remote_pipelines": null
+}
+```
+
+这里 JSON 中的 `filters` 字段就是拉取到的过滤器，目前里面只有针对日志的黑名单。
