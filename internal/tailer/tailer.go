@@ -148,6 +148,14 @@ func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (
 		return nil, fmt.Errorf("filePatterns cannot be empty")
 	}
 
+	// copy tags, avoid to change the source tags
+	sourceTags := opt.GlobalTags
+	tags := make(map[string]string)
+	for k, v := range sourceTags {
+		tags[k] = v
+	}
+	opt.GlobalTags = tags
+
 	t := Tailer{
 		opt:          opt,
 		filePatterns: filePatterns,

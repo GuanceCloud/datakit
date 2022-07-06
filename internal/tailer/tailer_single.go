@@ -190,7 +190,7 @@ func (t *Single) forwardMessage() {
 		case ContainerdMode:
 			t.containerdHandler(lines)
 		default:
-			t.opt.log.Warn("unreachable, invalid tailer mode")
+			t.defaultHandler(lines)
 		}
 	}
 
