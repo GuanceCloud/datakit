@@ -37,7 +37,7 @@ Istio 版本：v1.11.5.41-g10eacaaf-aliyun、v1.24.4.20-g4d72612f-aliyun
 
 #### 指标采集 (必选)
 
-1. 开通 Sidecar 注入
+1、 开通 Sidecar 注入
 
      为集群中的 namespace 设置 sidecar 自动注入，在该 namespace 下，新创建的 Pod 就会注入一个 Envoy容器用来接管流量。开通方式是为 namespace 添加标签，下面以 default 名称空间为例。
 
@@ -54,7 +54,7 @@ Istio 版本：v1.11.5.41-g10eacaaf-aliyun、v1.24.4.20-g4d72612f-aliyun
 
 ![image](imgs/input-aliyun-asm-7.png)
 
-2. 开启 Zipkin 采集器
+2、 开启 Zipkin 采集器
 
 登录 [观测云](https://console.guance.com/)，【集成】->【Datakit】-> 【Kubernetes】，请按照指引在 Kubernetes 集群中安装 DataKit ，其中部署使用的 datakit.yaml 文件，在接下来的操作中会使用到。<br />        在观测云的一个工作空间中，可能收到多个集群的采集数据，为了区分集群，使用全局 Tag 为这个集群增加 ** cluster_name 值为 k8s-ack** 的 Tag。Tag 请自定义，不同集群不能相同。
 
@@ -206,7 +206,7 @@ data:  # 下面是新增部分
 kubectl apply -f  datakit.yaml
 ```
 
-3. 开启 Annotations
+3、 开启 Annotations
 
 在业务Pod处添加如下annotations（具体路径deployment.spec.template.metadata下），这样即可采集 Envoy 的指标数据。
 

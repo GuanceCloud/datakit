@@ -24,13 +24,13 @@
 
 ### RAM 访问控制
 
-1. 登录 RAM 控制台  [https://ram.console.aliyun.com/users](https://ram.console.aliyun.com/users)
-1. 新建用户：人员管理 - 用户 - 创建用户
+- 登录 RAM 控制台  [https://ram.console.aliyun.com/users](https://ram.console.aliyun.com/users)
+- 新建用户：人员管理 - 用户 - 创建用户
 
 ![image](imgs/input-rds-mysql-4.png)
 
-1. 保存或下载 **AccessKey** **ID** 和 **AccessKey Secret** 的 CSV 文件 (配置文件会用到)
-1. 用户授权 (只读访问所有阿里云资源的权限)
+- 保存或下载 **AccessKey** **ID** 和 **AccessKey Secret** 的 CSV 文件 (配置文件会用到)
+- 用户授权 (只读访问所有阿里云资源的权限)
 
 ![image](imgs/input-rds-mysql-5.png)
 
