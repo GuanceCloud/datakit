@@ -1,7 +1,7 @@
 # DataKit 版本历史
 ---
 
-## 1.4.5(2022/07/05) {#cl-1.4.6}
+## 1.4.6(2022/07/05) {#cl-1.4.6}
 
 - 调整[全局 tag](datakit-conf.md#set-global-tag) 的行为，避免选举类采集的 tag 分裂(#870)
 - 调整 redis-slowlog 采集(#885)

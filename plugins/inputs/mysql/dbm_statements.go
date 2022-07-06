@@ -6,8 +6,6 @@
 package mysql
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -20,17 +18,17 @@ type dbmStateMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 func (m *dbmStateMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionLogging)
 }
 
 func (m *dbmStateMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "记录查询语句的执行次数、等待耗时、锁定时间和查询的记录行数等。",
 		Name: "mysql_dbm_metric",
+		Type: "logging",
 		Fields: map[string]interface{}{
 			"sum_timer_wait": &inputs.FieldInfo{
 				DataType: inputs.Int,

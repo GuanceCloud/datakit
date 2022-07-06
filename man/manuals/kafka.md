@@ -94,10 +94,10 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 如需采集 Kafka 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 kafka 日志文件的绝对路径。比如：
 
 ```toml
-    [[inputs.kafka]]
-      ...
-      [inputs.kafka.log]
-		files = ["/usr/local/var/log/kafka/error.log","/usr/local/var/log/kafka/kafka.log"]
+[[inputs.kafka]]
+  ...
+  [inputs.kafka.log]
+    files = ["/usr/local/var/log/kafka/error.log","/usr/local/var/log/kafka/kafka.log"]
 ```
 
 

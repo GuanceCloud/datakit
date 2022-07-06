@@ -481,6 +481,7 @@ func (i *Input) Collect() (map[string][]*io.Point, error) {
 				return nil
 			})
 		}
+
 		if i.DbmSample.Enabled {
 			g.Go(func(ctx context.Context) error {
 				// mysql_dbm_sample

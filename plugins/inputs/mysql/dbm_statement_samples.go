@@ -26,7 +26,6 @@ type dbmSampleMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 type eventStrategy struct {
@@ -103,13 +102,14 @@ type planObj struct {
 }
 
 func (m *dbmSampleMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionLogging)
 }
 
 func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "选取部分执行耗时较高的 SQL 语句，获取其执行计划，并采集实际执行过程中的各种性能指标。",
 		Name: "mysql_dbm_sample",
+		Type: "logging",
 		Fields: map[string]interface{}{
 			"timestamp": &inputs.FieldInfo{
 				DataType: inputs.Int,

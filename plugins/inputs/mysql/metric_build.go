@@ -240,7 +240,6 @@ func (i *Input) buildMysqlUserStatus() ([]*io.Point, error) {
 func (i *Input) buildMysqlDbmMetric() ([]*io.Point, error) {
 	ms := []inputs.Measurement{}
 
-	now := time.Now()
 	for _, row := range i.dbmMetricRows {
 		m := &dbmStateMeasurement{
 			name: dbmMetricName,
@@ -248,7 +247,6 @@ func (i *Input) buildMysqlDbmMetric() ([]*io.Point, error) {
 				"service": "mysql_dbm_metric",
 			},
 			fields: make(map[string]interface{}),
-			ts:     now,
 		}
 
 		if len(row.digestText) > 0 {
@@ -299,51 +297,53 @@ func (i *Input) buildMysqlDbmMetric() ([]*io.Point, error) {
 func (i *Input) buildMysqlDbmSample() ([]*io.Point, error) {
 	ms := []inputs.Measurement{}
 
-	now := time.Now()
 	for _, plan := range i.dbmSamplePlans {
-		tags := map[string]string{"service": "mysql_dbm_sample"}
-		fields := make(map[string]interface{})
-		tags["current_schema"] = plan.currentSchema
-		tags["plan_definition"] = plan.planDefinition
-		tags["plan_signature"] = plan.planSignature
-		tags["query_signature"] = plan.querySignature
-		tags["resource_hash"] = plan.resourceHash
-		tags["digest_text"] = plan.digestText
-		tags["query_truncated"] = plan.queryTruncated
-		tags["network_client_ip"] = plan.networkClientIP
-		tags["digest"] = plan.digest
-		tags["processlist_db"] = plan.processlistDB
-		tags["processlist_user"] = plan.processlistUser
+		tags := map[string]string{
+			"service":           "mysql_dbm_sample",
+			"current_schema":    plan.currentSchema,
+			"plan_definition":   plan.planDefinition,
+			"plan_signature":    plan.planSignature,
+			"query_signature":   plan.querySignature,
+			"resource_hash":     plan.resourceHash,
+			"digest_text":       plan.digestText,
+			"query_truncated":   plan.queryTruncated,
+			"network_client_ip": plan.networkClientIP,
+			"digest":            plan.digest,
+			"processlist_db":    plan.processlistDB,
+			"processlist_user":  plan.processlistUser,
+		}
 
-		fields["timestamp"] = plan.timestamp
-		fields["duration"] = plan.duration
-		fields["lock_time_ns"] = plan.lockTimeNs
-		fields["no_good_index_used"] = plan.noGoodIndexUsed
-		fields["no_index_used"] = plan.noIndexUsed
-		fields["rows_affected"] = plan.rowsAffected
-		fields["rows_examined"] = plan.rowsExamined
-		fields["rows_sent"] = plan.rowsSent
-		fields["select_full_join"] = plan.selectFullJoin
-		fields["select_full_range_join"] = plan.selectFullRangeJoin
-		fields["select_range"] = plan.selectRange
-		fields["select_range_check"] = plan.selectRangeCheck
-		fields["select_scan"] = plan.selectScan
-		fields["sort_merge_passes"] = plan.sortMergePasses
-		fields["sort_range"] = plan.sortRange
-		fields["sort_rows"] = plan.sortRows
-		fields["sort_scan"] = plan.sortScan
-		fields["timer_wait_ns"] = plan.duration
-		fields["message"] = plan.digestText
-
+		// append extra tags
 		for key, value := range i.Tags {
 			tags[key] = value
+		}
+
+		fields := map[string]interface{}{
+			"timestamp":              plan.timestamp,
+			"duration":               plan.duration,
+			"lock_time_ns":           plan.lockTimeNs,
+			"no_good_index_used":     plan.noGoodIndexUsed,
+			"no_index_used":          plan.noIndexUsed,
+			"rows_affected":          plan.rowsAffected,
+			"rows_examined":          plan.rowsExamined,
+			"rows_sent":              plan.rowsSent,
+			"select_full_join":       plan.selectFullJoin,
+			"select_full_range_join": plan.selectFullRangeJoin,
+			"select_range":           plan.selectRange,
+			"select_range_check":     plan.selectRangeCheck,
+			"select_scan":            plan.selectScan,
+			"sort_merge_passes":      plan.sortMergePasses,
+			"sort_range":             plan.sortRange,
+			"sort_rows":              plan.sortRows,
+			"sort_scan":              plan.sortScan,
+			"timer_wait_ns":          plan.duration,
+			"message":                plan.digestText,
 		}
 
 		m := &dbmSampleMeasurement{
 			name:   dbmMetricName,
 			tags:   tags,
 			fields: fields,
-			ts:     now,
 		}
 		ms = append(ms, m)
 	}
@@ -355,6 +355,7 @@ func (i *Input) buildMysqlDbmSample() ([]*io.Point, error) {
 		}
 		return pts, nil
 	}
+
 	return []*io.Point{}, nil
 }
 

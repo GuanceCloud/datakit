@@ -98,7 +98,7 @@ Jenkins CI Visibility 开启方法：
 
 通用日志文本示例:
 ```
-2021-05-18 03:08:58.053+0000 [id=32]	INFO	jenkins.InitReactorRunner$1#onAttained: Started all plugins
+2021-05-18 03:08:58.053+0000 [id=32] INFO jenkins.InitReactorRunner$1#onAttained: Started all plugins
 ```
 
 切割后的字段列表如下：

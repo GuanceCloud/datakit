@@ -25,6 +25,7 @@ func (m *innodbMeasurement) LineProto() (*io.Point, error) {
 func (m *innodbMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name: "mysql_innodb",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			// status
 			"lock_deadlocks": &inputs.FieldInfo{
