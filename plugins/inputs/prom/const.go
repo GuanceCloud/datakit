@@ -48,9 +48,6 @@ const sampleCfg = `
   # 最终的指标集名称会添加上measurement_prefix前缀
   # measurement_name = "prom"
 
-  # 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
-  interval = "10s"
-
   # TLS 配置
   tls_open = false
   # tls_ca = "/tmp/ca.crt"

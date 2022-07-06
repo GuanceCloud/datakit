@@ -384,6 +384,7 @@ func NewProm() *Input {
 		chPause:     make(chan bool, maxPauseCh),
 		MaxFileSize: defaultMaxFileSize,
 		Source:      "prom",
+		Interval:    "30s",
 
 		semStop: cliutils.NewSem(),
 	}
