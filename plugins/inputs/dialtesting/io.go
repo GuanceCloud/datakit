@@ -6,10 +6,9 @@
 package dialtesting
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func (d *dialer) pointsFeed(urlStr string) error {
@@ -23,7 +22,7 @@ func (d *dialer) pointsFeed(urlStr string) error {
 			l.Warnf("ignore dialer tag %s: %s", k, v)
 		}
 	}
-	data, err := io.MakePoint(d.task.MetricName(), tags, fields, time.Now())
+	data, err := io.NewPoint(d.task.MetricName(), tags, fields, inputs.OptLogging)
 	if err != nil {
 		l.Warnf("make metric failed: %s", err.Error)
 		return err

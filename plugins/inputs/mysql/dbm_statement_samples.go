@@ -103,7 +103,7 @@ type planObj struct {
 }
 
 func (m *dbmSampleMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {

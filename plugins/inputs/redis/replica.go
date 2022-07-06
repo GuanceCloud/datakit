@@ -13,7 +13,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/go-redis/redis/v8"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -25,18 +24,18 @@ type replicaMeasurement struct {
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
-	ts      time.Time
 	resData map[string]interface{}
 }
 
 func (m *replicaMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
 func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_replica",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"repl_delay": &inputs.FieldInfo{
 				DataType: inputs.Int,

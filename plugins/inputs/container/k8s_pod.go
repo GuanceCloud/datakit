@@ -11,7 +11,6 @@ import (
 	"os"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/core/v1"
@@ -80,7 +79,6 @@ func (p *pod) metric() (inputsMeas, error) {
 				// "volumes_persistentvolumeclaims_readonly": 0,
 				// "unschedulable": 0,
 			},
-			time: time.Now(),
 		}
 
 		containerReadyCount := 0
@@ -110,7 +108,6 @@ func (p *pod) metric() (inputsMeas, error) {
 		met := &podMetric{
 			tags:   map[string]string{"namespace": ns},
 			fields: map[string]interface{}{"count": c},
-			time:   time.Now(),
 		}
 		met.tags.append(p.extraTags)
 		res = append(res, met)
@@ -163,7 +160,6 @@ func (p *pod) object() (inputsMeas, error) {
 				"availale":    len(item.Status.ContainerStatuses),
 				"create_time": item.CreationTimestamp.Time.UnixNano() / int64(time.Millisecond),
 			},
-			time: time.Now(),
 		}
 
 		if n := getHostname(); n != "" {
@@ -287,11 +283,10 @@ func (item *podMeta) replicaSet() string {
 type podMetric struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
 func (p *podMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_pod", p.tags, p.fields, &io.PointOption{Time: p.time, Category: datakit.Metric})
+	return io.NewPoint("kube_pod", p.tags, p.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -317,11 +312,10 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 type podObject struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
 func (p *podObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubelet_pod", p.tags, p.fields, &io.PointOption{Time: p.time, Category: datakit.Object})
+	return io.NewPoint("kubelet_pod", p.tags, p.fields, inputs.OptElectionObject)
 }
 
 //nolint:lll

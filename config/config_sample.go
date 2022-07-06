@@ -5,7 +5,7 @@
 
 package config
 
-const DatakitConfSample = `
+var DatakitConfSample = `
 ## default_enabled_inputs: list<string>, 默认开启的采集器列表
 ## 开启的采集器会在相应的目录检查是否存在该采集器配置文件，如果没有则会生成其配置文件
 #
@@ -28,7 +28,7 @@ upgrade_date = 2022-04-19T02:33:22Z
 enable_election = false
 
 ## namespace: string, DataKit 命名空间，支持分区选举
-## 选举的范围是 工作空间+命名空间 级别的，单个 工作空间+命名空间 中，一次最多只能有一个 DataKit 被选上 
+## 选举的范围是 工作空间+命名空间 级别的，单个 工作空间+命名空间 中，一次最多只能有一个 DataKit 被选上
 #
 namespace = ""
 
@@ -50,7 +50,7 @@ enable_pprof = false
 protect_mode = true
 
 ## ulimit: number, 设定文件句柄数，包括软限制和硬限制，仅在 linux 下有效
-# 
+#
 ulimit = 64000
 
 ## dca: DCA 服务配置，为 DCA 提供 DataKit 的管理 API
@@ -70,8 +70,8 @@ ulimit = 64000
   #
   white_list = []
 
-## pipeline: pipeline 配置  
-# 
+## pipeline: pipeline 配置
+#
 [pipeline]
   ## ipdb_type: string, ipdb 类型
   ## 目前仅支持 iploc, geolite2
@@ -104,7 +104,7 @@ ulimit = 64000
   ## 当列表为空时，不校验 app_id
   #
   rum_app_id_white_list = []
-  
+
   ## public_apis: list<string>, 指定开放的 API 列表
   ## 如: public_apis = ["/v1/write/rum"]
   ## 如果列表为空，则 API 不做访问控制
@@ -119,7 +119,7 @@ ulimit = 64000
   feed_chan_size = 1024
 
   ## high_frequency_feed_chan_size: number, 高频IO管道缓存大小
-  # 
+  #
   high_frequency_feed_chan_size = 2048
 
   ## max_cache_count: number, 本地缓存最大值
@@ -190,7 +190,7 @@ ulimit = 64000
   ## urls: DataWay 地址列表, list
   #
   urls = ["https://openway.guance.com?token=tkn_xxxxxxxxxxx"]
-  
+
   ## timeout: DataWay 请求超时时间
   #
   timeout = "5s"
@@ -231,21 +231,32 @@ ulimit = 64000
   #
   rotate = 32
 
-## global_tags: 全局标签
+[global_tags] ## deprecated
+
+## global_host_tags: 主机相关全局标签
 ## 全局标签会默认添加到 DataKit 采集的每一条数据上，前提是采集的原始数据上不带有这里配置的标签
 ## 支持的变量：
 ##   __datakit_ip/$datakit_ip：标签值会设置成 DataKit 获取到的第一个主网卡 IP
 ##   __datakit_id/$datakit_id：标签值会设置成 DataKit 的 ID
 ##
 ## 示例：
-##   [global_tags]
-##	    ip         = "__datakit_ip"
-##	    datakit_id = "$datakit_id"
-##	    project    = "some_of_your_online_biz"
+##   [global_host_tags]
+##	    ip   = "__datakit_ip"
+##	    host = "$datakit_hostname"
 #
-[global_tags]
+[global_host_tags]
 
-## environments: 环境变量配置
+## global_env_tags: 环境相关全局标签
+## 全局环境标签会默认添加到选举采集收集的每一条数据上，前提是采集的原始数据上不带有这里配置的标签
+##
+## 示例：
+##   [global_env_tags]
+##	    project = "my-project"
+##	    cluster = "my-cluster"
+#
+[global_env_tags]
+
+## environments: 环境变量配置（目前只支持 ENV_HOSTNAME，用来修改主机名）
 #
 [environments]
   ENV_HOSTNAME = ""
@@ -287,7 +298,7 @@ ulimit = 64000
     ## enable: bool, 是否启用
     #
     enable = false
-    
+
     ## url: string, git 地址，支持三种协议，即 http, git, ssh
     ## 以下两种协议(git/ssh)，需配置 ssh_private_key_path 以及 ssh_private_key_password
     ##  url = "git@github.com:path/to/repository.git"
@@ -297,12 +308,12 @@ ulimit = 64000
 
     ## ssh_private_key_path: string, ssh 私钥路径
     #
-    ssh_private_key_path = "" 
-    
+    ssh_private_key_path = ""
+
     ## ssh_private_key_password: string, ssh 私钥密码
     #
     ssh_private_key_password = ""
-    
+
     ## branch: string, git 分支名称
     #
     branch = "master"

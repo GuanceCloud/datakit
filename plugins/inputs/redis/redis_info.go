@@ -21,13 +21,12 @@ type infoMeasurement struct {
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
-	ts      time.Time
 	resData map[string]interface{}
 }
 
 // 生成行协议.
 func (m *infoMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 // 指定指标.
@@ -35,6 +34,7 @@ func (m *infoMeasurement) LineProto() (*io.Point, error) {
 func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_info",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"info_latency_ms": &inputs.FieldInfo{
 				DataType: inputs.Float,

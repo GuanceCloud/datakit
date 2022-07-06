@@ -42,7 +42,7 @@ type K8sConf struct {
 }
 
 type Input struct {
-	external.ExernalInput
+	external.ExternalInput
 	K8sConf
 	EnabledPlugins []string      `toml:"enabled_plugins"`
 	semStop        *cliutils.Sem // start stop signal
@@ -77,13 +77,13 @@ loop:
 			io.FeedLastError(inputName, err.Error())
 		}
 
-		cmd := strings.Split(ipt.ExernalInput.Cmd, " ")
+		cmd := strings.Split(ipt.ExternalInput.Cmd, " ")
 		var execFile string
 		if len(cmd) > 0 {
 			execFile = cmd[0]
 		} else {
 			execFile = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")
-			ipt.ExernalInput.Cmd = execFile
+			ipt.ExternalInput.Cmd = execFile
 		}
 		if _, err := os.Stat(execFile); err == nil && ok {
 			break loop
@@ -105,32 +105,32 @@ loop:
 
 	matchHost := regexp.MustCompile("--hostname")
 	haveHostNameArg := false
-	if ipt.ExernalInput.Args == nil {
-		ipt.ExernalInput.Args = []string{}
+	if ipt.ExternalInput.Args == nil {
+		ipt.ExternalInput.Args = []string{}
 	}
-	if ipt.ExernalInput.Envs == nil {
-		ipt.ExernalInput.Envs = []string{}
+	if ipt.ExternalInput.Envs == nil {
+		ipt.ExternalInput.Envs = []string{}
 	}
-	for _, arg := range ipt.ExernalInput.Args {
+	for _, arg := range ipt.ExternalInput.Args {
 		haveHostNameArg = matchHost.MatchString(arg)
 		if haveHostNameArg {
 			break
 		}
 	}
 	if !haveHostNameArg {
-		ipt.ExernalInput.Args = append(ipt.ExernalInput.Args, "--hostname", config.Cfg.Hostname)
+		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args, "--hostname", config.Cfg.Hostname)
 	}
 
 	if ipt.K8sURL != "" {
-		ipt.ExernalInput.Envs = append(ipt.ExernalInput.Envs,
+		ipt.ExternalInput.Envs = append(ipt.ExternalInput.Envs,
 			fmt.Sprintf("K8S_URL=%s", ipt.K8sConf.K8sURL))
 	}
 	if ipt.K8sBearerToken != "" {
-		ipt.ExernalInput.Envs = append(ipt.ExernalInput.Envs,
+		ipt.ExternalInput.Envs = append(ipt.ExternalInput.Envs,
 			fmt.Sprintf("K8S_BEARER_TOKEN_PATH=%s", ipt.K8sConf.K8sBearerToken))
 	}
 	if ipt.K8sBearerTokenStr != "" {
-		ipt.ExernalInput.Envs = append(ipt.ExernalInput.Envs,
+		ipt.ExternalInput.Envs = append(ipt.ExternalInput.Envs,
 			fmt.Sprintf("K8S_BEARER_TOKEN_STRING=%s", ipt.K8sConf.K8sBearerTokenStr))
 	}
 
@@ -145,10 +145,10 @@ loop:
 		}
 	}
 	if len(enablePlugins) > 0 {
-		ipt.ExernalInput.Args = append(ipt.ExernalInput.Args,
+		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args,
 			"--enabled", strings.Join(enablePlugins, ","))
 		l.Infof("ebpf input started")
-		ipt.ExernalInput.Run()
+		ipt.ExternalInput.Run()
 	} else {
 		l.Warn("no ebpf plugins enabled")
 		io.FeedLastError(inputName, "no ebpf plugins enabled")
@@ -160,7 +160,7 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
-	ipt.ExernalInput.Terminate()
+	ipt.ExternalInput.Terminate()
 }
 
 func (*Input) Catalog() string { return catalogName }
@@ -185,7 +185,7 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			semStop:        cliutils.NewSem(),
 			EnabledPlugins: []string{},
-			ExernalInput:   *external.NewExternalInput(),
+			ExternalInput:  *external.NewExternalInput(),
 		}
 	})
 }

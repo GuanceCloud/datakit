@@ -56,11 +56,10 @@ type memMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 func (m *memMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 // https://man7.org/linux/man-pages/man5/proc.5.html

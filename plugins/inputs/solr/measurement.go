@@ -20,7 +20,7 @@ type measurement struct {
 }
 
 func (m *measurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *measurement) Info() *inputs.MeasurementInfo {
@@ -33,7 +33,7 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 type SolrRequestTimes measurement
 
 func (m *SolrRequestTimes) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -71,7 +71,7 @@ func (m *SolrRequestTimes) Info() *inputs.MeasurementInfo {
 type SolrCache measurement
 
 func (m *SolrCache) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -109,7 +109,7 @@ func (m *SolrCache) Info() *inputs.MeasurementInfo {
 type SolrSearcher measurement
 
 func (m *SolrSearcher) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *SolrSearcher) Info() *inputs.MeasurementInfo {

@@ -176,7 +176,6 @@ func (i *Input) Terminate() {
 
 func (i *Input) Collect() error {
 	for mName, metricCounterMap := range PerfObjMetricMap {
-		ts := time.Now()
 		for objName := range metricCounterMap {
 			// measurement name -> instance name -> metric name -> counter query handle list index
 			indexMap := map[string]map[string]map[string]int{mName: {}}
@@ -272,7 +271,6 @@ func (i *Input) Collect() error {
 					name:   mName,
 					tags:   tags,
 					fields: fields,
-					ts:     ts,
 				})
 			}
 		}

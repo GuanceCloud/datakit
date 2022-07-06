@@ -23,13 +23,14 @@ type commandMeasurement struct {
 }
 
 func (m *commandMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
 func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_command_stat",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"calls": &inputs.FieldInfo{
 				DataType: inputs.Int,

@@ -26,12 +26,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
-
 var (
-	inputName   = "postgresql"
-	catalogName = "db"
-	l           = logger.DefaultSLogger(inputName)
+	inputName                        = "postgresql"
+	catalogName                      = "db"
+	l                                = logger.DefaultSLogger(inputName)
+	_           inputs.ElectionInput = (*Input)(nil)
 )
 
 //nolint:lll
@@ -148,7 +147,7 @@ type inputMeasurement struct {
 }
 
 func (m inputMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -433,16 +432,6 @@ func (ipt *Input) Run() {
 	ipt.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
 	tick := time.NewTicker(ipt.duration)
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		if ipt.Tags == nil {
-			ipt.Tags = map[string]string{
-				"election_namespace": namespace,
-			}
-		} else {
-			ipt.Tags["election_namespace"] = namespace
-		}
-	}
 
 	for {
 		select {

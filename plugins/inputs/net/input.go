@@ -141,7 +141,7 @@ func (m *netMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 func (m *netMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 type Input struct {

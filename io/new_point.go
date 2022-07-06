@@ -48,36 +48,16 @@ var (
 	Precision string = "n"
 )
 
-func SetExtraTags(k, v string) {
-	extraTags[k] = v
-}
-
-func doMakePoint(name string,
-	tags map[string]string,
-	fields map[string]interface{},
-	opt *lp.Option,
-) (*Point, error) {
-	p, warnings, err := lp.MakeLineProtoPointWithWarnings(name, tags, fields, opt)
-
-	if err != nil {
-		return nil, err
-	} else if len(warnings) > 0 {
-		warningsStr := ""
-		for _, warn := range warnings {
-			warningsStr += warn.Message + ";"
-		}
-		l.Warnf("make metric(%s) point successfully but with warnings: %s", name, warningsStr)
-	}
-
-	return &Point{Point: p}, nil
-}
-
+// PointOption used to define line-protocol options.
 type PointOption struct {
-	Time              time.Time
-	Category          string
+	Time     time.Time
+	Category string
+
 	DisableGlobalTags bool
-	Strict            bool
-	MaxFieldValueLen  int
+	GlobalEnvTags     bool
+
+	Strict           bool
+	MaxFieldValueLen int
 }
 
 func defaultPointOption() *PointOption {
@@ -104,7 +84,7 @@ func NewPoint(name string,
 
 		MaxTags:   MaxTags,
 		MaxFields: MaxFields,
-		ExtraTags: extraTags,
+		ExtraTags: globalHostTags,
 
 		MaxTagKeyLen:     MaxTagKeyLen,
 		MaxFieldKeyLen:   MaxFieldKeyLen,
@@ -120,6 +100,11 @@ func NewPoint(name string,
 	if opt.DisableGlobalTags {
 		lpOpt.ExtraTags = nil
 	}
+
+	if opt.GlobalEnvTags {
+		lpOpt.ExtraTags = globalEnvTags
+	}
+
 	if opt.MaxFieldValueLen > 0 {
 		lpOpt.MaxFieldValueLen = opt.MaxFieldValueLen
 	}
@@ -146,8 +131,28 @@ func NewPoint(name string,
 	return doMakePoint(name, tags, fields, lpOpt)
 }
 
-// MakePoint Deprecated.
-func MakePoint(name string,
+func doMakePoint(name string,
+	tags map[string]string,
+	fields map[string]interface{},
+	opt *lp.Option,
+) (*Point, error) {
+	p, warnings, err := lp.MakeLineProtoPointWithWarnings(name, tags, fields, opt)
+
+	if err != nil {
+		return nil, err
+	} else if len(warnings) > 0 {
+		warningsStr := ""
+		for _, warn := range warnings {
+			warningsStr += warn.Message + ";"
+		}
+		l.Warnf("make metric(%s) point successfully but with warnings: %s", name, warningsStr)
+	}
+
+	return &Point{Point: p}, nil
+}
+
+// deprecated.
+func makePoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time,
@@ -158,7 +163,7 @@ func MakePoint(name string,
 
 		MaxTags:   MaxTags,
 		MaxFields: MaxFields,
-		ExtraTags: extraTags,
+		ExtraTags: globalHostTags,
 
 		MaxTagKeyLen:     MaxTagKeyLen,
 		MaxFieldKeyLen:   MaxFieldKeyLen,
@@ -178,18 +183,4 @@ func MakePoint(name string,
 	}
 
 	return doMakePoint(name, tags, fields, lpOpt)
-}
-
-// MakeMetric Deprecated.
-func MakeMetric(name string,
-	tags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time,
-) ([]byte, error) {
-	p, err := MakePoint(name, tags, fields, t...)
-	if err != nil {
-		return nil, err
-	}
-
-	return []byte(p.Point.String()), nil
 }

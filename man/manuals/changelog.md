@@ -1,6 +1,23 @@
 # DataKit 版本历史
 ---
 
+## 1.4.5(2022/07/05) {#cl-1.4.6}
+
+- 调整[全局 tag](datakit-conf.md#set-global-tag) 的行为，避免选举类采集的 tag 分裂(#870)
+- 调整 redis-slowlog 采集(#885)
+- 容器新增 container-name-runtime 字段(#891)
+- [SQLServer 采集器](../integrations/sqlserver.md)增加选举支持(#882)
+- 行协议过滤器支持所有数据类型(#855) 
+
+### bug 修复 {#cl-1.4.6-bugfix}
+
+- 修复日志采集器可能的奔溃问题(#893)
+- 修复 prom 采集器泄露问题(#880)
+
+
+<!-- :octicons-beaker-24: Experimental -->
+---
+
 ## 1.4.5(2022/06/29) {#cl-1.4.5}
 
 本次发布属于 Hotfix 发布，主要修复日志采集器因同名文件快速删除并新建而导致采集中断问题(#883)

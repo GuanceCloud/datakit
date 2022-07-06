@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type customTime struct {
@@ -555,11 +556,7 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*iod.Point, error) 
 		return nil, fmt.Errorf("unrecognized event payload: %v", eventType)
 	}
 	ipt.addExtraTags(tags)
-	pt, err := iod.NewPoint(measurementName, tags, fields, &iod.PointOption{
-		Time:     time.Now(),
-		Category: datakit.Logging,
-		Strict:   true,
-	})
+	pt, err := iod.NewPoint(measurementName, tags, fields, inputs.OptElectionLogging)
 	if err != nil {
 		return nil, err
 	}

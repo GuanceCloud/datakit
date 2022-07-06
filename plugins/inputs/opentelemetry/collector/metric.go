@@ -168,10 +168,9 @@ func makePoints(orms []*OtelResourceMetric) []*dkio.Point {
 		}
 		// 指标集名称定义：'instrumentationName'
 		pt, err := dkio.NewPoint(resourceMetric.Service, tags, fields, &dkio.PointOption{
-			Time:              UnitTime,
-			Category:          datakit.Metric,
-			DisableGlobalTags: false,
-			Strict:            true,
+			Time:     UnitTime,
+			Category: datakit.Metric,
+			Strict:   true,
 		})
 		if err != nil {
 			l.Errorf("make point err=%v", err)

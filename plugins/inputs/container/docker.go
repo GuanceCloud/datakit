@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
@@ -91,8 +90,6 @@ func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
 		res []inputs.Measurement
 		mu  sync.Mutex
 		wg  sync.WaitGroup
-
-		now = time.Now()
 	)
 
 	for idx := range cList {
@@ -109,7 +106,6 @@ func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
 				return
 			}
 			m.tags.append(d.cfg.extraTags)
-			m.time = now
 
 			mu.Lock()
 			res = append(res, m)
@@ -131,8 +127,6 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 		res []inputs.Measurement
 		mu  sync.Mutex
 		wg  sync.WaitGroup
-
-		now = time.Now()
 	)
 
 	for idx := range cList {
@@ -149,7 +143,6 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 				return
 			}
 			m.tags.append(d.cfg.extraTags)
-			m.time = now
 
 			mu.Lock()
 			res = append(res, m)

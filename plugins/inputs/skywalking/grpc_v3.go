@@ -177,7 +177,7 @@ type jvmMeasurement struct {
 }
 
 func (m *jvmMeasurement) LineProto() (*dkio.Point, error) {
-	return dkio.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return dkio.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 func (m *jvmMeasurement) Info() *inputs.MeasurementInfo {
@@ -371,11 +371,10 @@ type skywalkingMetricMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 func (m *skywalkingMetricMeasurement) LineProto() (*dkio.Point, error) {
-	return dkio.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return dkio.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 func (m *skywalkingMetricMeasurement) Info() *inputs.MeasurementInfo {
