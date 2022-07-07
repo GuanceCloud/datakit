@@ -139,7 +139,7 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 				continue
 			}
 
-			l.Debugf("containerd-info: %#v", info)
+			l.Debugf("containerd-info: id %s, image %s, labels %v", info.ID, info.Image, info.Labels)
 
 			if isPauseContainerd(&info) {
 				continue
