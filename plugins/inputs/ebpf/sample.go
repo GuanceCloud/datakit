@@ -33,6 +33,13 @@ const configSample = `
     "ebpf-net",
   ]
 
+  # 可选: httpflow, httpflow-tls
+  # 默认不开启 httpflow 中的 https 采集
+  l7net_disabled = [
+    # "httpflow",
+    "httpflow-tls"
+  ]
+
   [inputs.ebpf.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"

@@ -116,8 +116,9 @@ require (
 	k8s.io/metrics v0.20.5
 )
 
+require github.com/DataDog/gopsutil v1.1.0
+
 require (
-	github.com/DataDog/gopsutil v0.0.0-20210826200402-bbfc5b0ae6e9 // indirect
 	github.com/DataDog/sketches-go v1.4.1 // indirect
 	github.com/MichaelMure/go-term-text v0.2.7 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect

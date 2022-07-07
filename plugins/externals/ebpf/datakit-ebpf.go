@@ -36,8 +36,10 @@ const (
 )
 
 var (
-	enableEbpfBash = false
-	enableEbpfNet  = false
+	enableEbpfBash     = false
+	enableEbpfNet      = false
+	disableHTTPFlow    = false
+	disableHTTPFlowTLS = false
 )
 
 var pidFile = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf.pid")
@@ -54,10 +56,10 @@ type Option struct {
 	Log      string `long:"log" description:"log path"`
 	LogLevel string `long:"log-level" description:"log file" default:"info"`
 
-	Tags    string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
-	Enabled string `long:"enabled" description:"enabled plugins list in 'a,b,...' format"`
-
-	Service string `long:"service" description:"service" default:"ebpf"`
+	Tags          string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
+	Enabled       string `long:"enabled" description:"enabled plugins list in 'a,b,...' format"`
+	L7NetDisabled string `long:"l7net-disabled" description:"disabled sub plugins of epbf-net list in 'a,b,...' format"`
+	Service       string `long:"service" description:"service" default:"ebpf"`
 }
 
 //  Envs:
@@ -205,10 +207,22 @@ func main() {
 			return
 		}
 
-		tracer := dkhttpflow.NewHTTPFlowTracer(gTags, fmt.Sprintf("http://%s%s?input="+inputNameNetHTTP,
-			dkout.DataKitAPIServer, datakit.Network))
-		if err := tracer.Run(ctx); err != nil {
-			l.Error(err)
+		if !disableHTTPFlow {
+			bpfMapSockFD, ok, err := ebpfNetManger.GetMap("bpfmap_sockfd")
+			if err != nil {
+				feedLastErrorLoop(err, signaIterrrupt)
+				return
+			}
+			if !ok {
+				feedLastErrorLoop(fmt.Errorf("can not found bpfmap_sockfd"), signaIterrrupt)
+				return
+			}
+
+			tracer := dkhttpflow.NewHTTPFlowTracer(gTags, fmt.Sprintf("http://%s%s?input="+inputNameNetHTTP,
+				dkout.DataKitAPIServer, datakit.Network))
+			if err := tracer.Run(ctx, constEditor, bpfMapSockFD, disableHTTPFlowTLS); err != nil {
+				l.Error(err)
+			}
 		}
 	}
 
@@ -300,6 +314,16 @@ func parseFlags() (*Option, map[string]string, error) {
 			enableEbpfNet = true
 		case inputNameBash:
 			enableEbpfBash = true
+		}
+	}
+
+	optDisableL7 := strings.Split(opt.L7NetDisabled, ",")
+	for _, item := range optDisableL7 {
+		switch item {
+		case "httpflow":
+			disableHTTPFlow = true
+		case "httpflow-tls":
+			disableHTTPFlowTLS = true
 		}
 	}
 

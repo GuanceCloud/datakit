@@ -1,4 +1,6 @@
-// Package output feed data to datakit
+//go:build (linux && amd64 && ebpf) || (linux && arm64 && ebpf)
+// +build linux,amd64,ebpf linux,arm64,ebpf
+
 package output
 
 import (
@@ -85,7 +87,7 @@ func (sender *Sender) request(data *task) error {
 		}
 	}
 
-	if l%256 != 0 {
+	if l%maxPtSendCount != 0 {
 		if err := sender.doReq(data.url, data.data[l-l%maxPtSendCount:]); err != nil {
 			return fmt.Errorf("fail and stop: data[%d:]: %w", l-l%maxPtSendCount, err)
 		}
