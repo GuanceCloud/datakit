@@ -16,20 +16,17 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
-var (
-	extraTags = map[string]string{}
-	defaultIO = &IO{
-		conf: &IOConfig{
-			FeedChanSize:         1024,
-			HighFreqFeedChanSize: 2048,
+var defaultIO = &IO{
+	conf: &IOConfig{
+		FeedChanSize:         1024,
+		HighFreqFeedChanSize: 2048,
 
-			MaxCacheCount:        1024,
-			MaxDynamicCacheCount: 1024,
+		MaxCacheCount:        1024,
+		MaxDynamicCacheCount: 1024,
 
-			FlushInterval: "10s",
-		},
-	}
-)
+		FlushInterval: "10s",
+	},
+}
 
 func SetDataway(dw dataway.DataWay) {
 	defaultIO.dw = dw

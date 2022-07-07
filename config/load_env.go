@@ -13,7 +13,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 )
@@ -58,7 +57,7 @@ func (c *Config) loadIOEnvs() {
 
 func (c *Config) LoadEnvs() error {
 	if c.IOConf == nil {
-		c.IOConf = &dkio.IOConfig{}
+		c.IOConf = &io.IOConfig{}
 	}
 
 	c.loadIOEnvs()
