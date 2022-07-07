@@ -4,18 +4,27 @@
 ## 1.4.6(2022/07/05) {#cl-1.4.6}
 
 - 调整[全局 tag](datakit-conf.md#set-global-tag) 的行为，避免选举类采集的 tag 分裂(#870)
-- 调整 redis-slowlog 采集(#885)
-- 容器新增 container-name-runtime 字段(#891)
 - [SQLServer 采集器](../integrations/sqlserver.md)增加选举支持(#882)
 - 行协议过滤器支持所有数据类型(#855) 
-
-### bug 修复 {#cl-1.4.6-bugfix}
-
+- 9529 HTTP 服务增加超时机制(#900)
+- MySQL
+  - dbm 指标集名字调整(#898)
+  - `service` 字段冲突问题(#895) 
+- 容器对象增加字段 `container_runtime_name` 以区分不同层次的容器名(#891)
+- Redis 调整 slowlog 采集，将其数据改为日志存储(#885) 
+- 优化 TDEngine 采集(#877)
+- 完善 Containerd 日志采集(#869)
+- Pipeline 增加 Profile 类数据支持(#866)
+- 容器/Pod 日志采集支持在 Label/Annotation 上额外追加 tag(#861)
+- 修复 Jenkins CI 数据采集的时间精度问题(#860)
+- 修复 Tracing resource-type 值不统一的问题(#856)
+- eBPF 增加 HTTPS 支持(#782)
 - 修复日志采集器可能的奔溃问题(#893)
 - 修复 prom 采集器泄露问题(#880)
-
-
-<!-- :octicons-beaker-24: Experimental -->
+- 支持通过环境变量配置 io 磁盘缓存(#906)
+- 其它 bug 修复
+  - #901
+	- #899
 ---
 
 ## 1.4.5(2022/06/29) {#cl-1.4.5}
@@ -253,7 +262,7 @@ volumes:
     - 修复 namespace 字段命名问题(#724)
     - 容器日志采集中，如果 Pod Annotation 不指定日志 `source`，那么 DataKit 将按照[此优先级来推导日志来源](container#6de978c3)(#708/#723)
     - 对象上报不再受 32KB 字长限制（因 Annotation 内容超 32KB）(#709)
-	  - 所有 Kubernetes 对象均删除 `annotation` 这一 field
+    - 所有 Kubernetes 对象均删除 `annotation` 这一 field
     - 修复 prom 采集器不会随 Pod 退出而停止的问题(#716)
 - 其它问题修复(#721)
 
