@@ -76,6 +76,7 @@ var (
 		"election":                 "man/manuals/election.md",
 		"k8s-config-how-to":        "man/manuals/k8s-config-how-to.md",
 		"kubernetes-prom":          "man/manuals/kubernetes-prom.md",
+		"kubernetes-crd":           "man/manuals/kubernetes-crd.md",
 		"kubernetes-x":             "man/manuals/kubernetes-x.md",
 		"logfwd":                   "man/manuals/logfwd.md",
 		"logging-pipeline-bench":   "man/manuals/logging-pipeline-bench.md",

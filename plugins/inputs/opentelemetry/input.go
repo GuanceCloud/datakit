@@ -150,15 +150,16 @@ func (ipt *Input) Terminate() {
 func (ipt *Input) Run() {
 	l = logger.SLogger("otlp-log")
 	storage := collector.NewSpansStorage()
-	// add filters: the order append in AfterGather is important!!!
-	// add error status penetration
-	storage.AfterGather.AppendFilter(itrace.PenetrateErrorTracing)
+	// add filters: the order of appending filters into AfterGather is important!!!
+	// the order of appending represents the order of that filter executes.
 	// add close resource filter
 	if len(ipt.CloseResource) != 0 {
 		closeResource := &itrace.CloseResource{}
 		closeResource.UpdateIgnResList(ipt.CloseResource)
 		storage.AfterGather.AppendFilter(closeResource.Close)
 	}
+	// add error status penetration
+	storage.AfterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add omit certain error status list
 	if len(ipt.OmitErrStatus) != 0 {
 		storage.AfterGather.AppendFilter(itrace.OmitStatusCodeFilterWrapper(ipt.OmitErrStatus))

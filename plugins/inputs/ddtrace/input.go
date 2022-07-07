@@ -142,17 +142,18 @@ func (ipt *Input) Run() {
 	// add calculators
 	// afterGather.AppendCalculator(itrace.StatTracingInfo)
 
-	// add filters: the order append in AfterGather is important!!!
-	// add RespectUserRule filter to obey client priority rules.
-	afterGather.AppendFilter(itrace.RespectUserRule)
-	// add error status penetration
-	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
+	// add filters: the order of appending filters into AfterGather is important!!!
+	// the order of appending represents the order of that filter executes.
 	// add close resource filter
 	if len(ipt.CloseResource) != 0 {
 		closeResource = &itrace.CloseResource{}
 		closeResource.UpdateIgnResList(ipt.CloseResource)
 		afterGather.AppendFilter(closeResource.Close)
 	}
+	// add RespectUserRule filter to obey client priority rules.
+	afterGather.AppendFilter(itrace.RespectUserRule)
+	// add error status penetration
+	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add omit certain error status list
 	if len(ipt.OmitErrStatus) != 0 {
 		afterGather.AppendFilter(itrace.OmitStatusCodeFilterWrapper(ipt.OmitErrStatus))

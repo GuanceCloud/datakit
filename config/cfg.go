@@ -54,16 +54,14 @@ func DefaultConfig() *Config {
 		}, // default nothing
 
 		IOConf: &dkio.IOConfig{
-			FeedChanSize:              1024,
-			HighFreqFeedChanSize:      2048,
-			MaxCacheCount:             1024,
-			CacheDumpThreshold:        512,
-			MaxDynamicCacheCount:      1024,
-			DynamicCacheDumpThreshold: 512,
-			FlushInterval:             "10s",
-			OutputFileInputs:          []string{},
-			EnableCache:               false,
-			Filters:                   map[string][]string{},
+			FeedChanSize:         1024,
+			HighFreqFeedChanSize: 2048,
+			MaxCacheCount:        1024,
+			MaxDynamicCacheCount: 1024,
+			FlushInterval:        "10s",
+			OutputFileInputs:     []string{},
+			EnableCache:          false,
+			Filters:              map[string][]string{},
 		},
 
 		DataWayCfg: &dataway.DataWayCfg{

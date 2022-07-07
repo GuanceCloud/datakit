@@ -249,9 +249,13 @@ DataKit 支持的环境变量如下各表所示。
 
 ### IO 模块配置相关环境变量 {#env-io}
 
-| 环境变量名称 | 默认值 | 必须   | 说明                              |
-| ---------:   | ---:   | ------ | ----                              |
-| ENV_IO_FILTERS | 无   | 否   | 添加[行协议过滤器](datakit-filter)  |
+| 环境变量名称           | 默认值 | 必须   | 说明                               |
+| ---------:             | ---:   | ------ | ----                               |
+| ENV_IO_FILTERS         | 无     | 否     | 添加[行协议过滤器](datakit-filter) |
+| ENV_IO_MAX_CACHE_COUNT | 1024   | 否     | IO cache 大小                      |
+| ENV_IO_ENABLE_CACHE    | false  | 否     | 开启 IO 磁盘 cache                 |
+| ENV_IO_CACHE_SIZE_GB   | 1      | 否     | IO 磁盘 cache 大小                 |
+| ENV_IO_FLUSH_INTERVAL  | 10s    | 否     | IO 发送时间频率                    |
 
 `ENV_IO_FILTERS` 是一个 json 字符串，示例如下:
 

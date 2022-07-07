@@ -17,37 +17,50 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 )
 
-//nolint:funlen
+func (c *Config) loadIOEnvs() {
+	if v := datakit.GetEnv("ENV_IO_MAX_CACHE_COUNT"); v != "" {
+		val, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			l.Warnf("invalid env key ENV_IO_MAX_CACHE_COUNT, value %s, ignored", v)
+		} else {
+			l.Infof("set cache count to %d", val)
+			c.IOConf.MaxCacheCount = val
+			c.IOConf.MaxDynamicCacheCount = val
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_IO_ENABLE_CACHE"); v != "" {
+		l.Info("ENV_IO_ENABLE_CACHE enabled")
+		c.IOConf.EnableCache = true
+	}
+
+	if v := datakit.GetEnv("ENV_IO_CACHE_SIZE_GB"); v != "" {
+		val, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			l.Warnf("invalid env key ENV_IO_CACHE_SIZE_GB, value %s, err: %s ignored", v, err)
+		} else {
+			l.Infof("set ENV_IO_CACHE_SIZE_GB to %d", val)
+			c.IOConf.CacheSizeGB = int(val)
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_IO_FLUSH_INTERVAL"); v != "" {
+		du, err := time.ParseDuration(v)
+		if err != nil {
+			l.Warnf("invalid env key ENV_IO_FLUSH_INTERVAL, value %s, err: %s ignored", v, err)
+		} else {
+			l.Infof("set ENV_IO_FLUSH_INTERVAL to %s", du)
+			c.IOConf.FlushInterval = v
+		}
+	}
+}
+
 func (c *Config) LoadEnvs() error {
 	if c.IOConf == nil {
 		c.IOConf = &io.IOConfig{}
 	}
 
-	for _, envkey := range []string{
-		"ENV_MAX_CACHE_COUNT",
-		"ENV_CACHE_DUMP_THRESHOLD",
-		"ENV_MAX_DYNAMIC_CACHE_COUNT",
-		"ENV_DYNAMIC_CACHE_DUMP_THRESHOLD",
-	} {
-		if v := datakit.GetEnv(envkey); v != "" {
-			value, err := strconv.ParseInt(v, 10, 64)
-			if err != nil {
-				l.Errorf("invalid env key value pair [%s:%s], ignored", envkey, v)
-				continue
-			}
-
-			switch envkey {
-			case "ENV_MAX_CACHE_COUNT":
-				c.IOConf.MaxCacheCount = value
-			case "ENV_CACHE_DUMP_THRESHOLD":
-				c.IOConf.CacheDumpThreshold = value
-			case "ENV_MAX_DYNAMIC_CACHE_COUNT":
-				c.IOConf.MaxDynamicCacheCount = value
-			case "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD":
-				c.IOConf.DynamicCacheDumpThreshold = value
-			}
-		}
-	}
+	c.loadIOEnvs()
 
 	if v := datakit.GetEnv("ENV_IPDB"); v != "" {
 		switch v {

@@ -18,13 +18,13 @@ import (
 
 var defaultIO = &IO{
 	conf: &IOConfig{
-		FeedChanSize:              1024,
-		HighFreqFeedChanSize:      2048,
-		MaxCacheCount:             1024,
-		CacheDumpThreshold:        512,
-		MaxDynamicCacheCount:      1024,
-		DynamicCacheDumpThreshold: 512,
-		FlushInterval:             "10s",
+		FeedChanSize:         1024,
+		HighFreqFeedChanSize: 2048,
+
+		MaxCacheCount:        1024,
+		MaxDynamicCacheCount: 1024,
+
+		FlushInterval: "10s",
 	},
 }
 

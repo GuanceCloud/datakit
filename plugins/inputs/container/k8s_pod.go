@@ -243,6 +243,8 @@ func (p *pod) object() (inputsMeas, error) {
 				inp.Terminate()
 			}
 		}
+		delete(discoveryInputsMap, id)
+		l.Debugf("terminating inputs, pod_id %s, len %d", id, len(inputList))
 	}
 
 	return res, nil
