@@ -146,11 +146,198 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 
 在行协议中，所有字段都是大小写敏感的。
 
+## 用法示例
+
+使用 `datakit monitor -V` 命令可以查看过滤情况。
+
+### Network
+
+需要开启 ebpf。假设我们要过滤掉目标端口为 `443` 的网络通讯，配置文件可以这样写:
+
+```toml
+[io]
+  ...
+  [io.filters]
+    network = [ # 针对 Network 过滤
+      "{ source = 'netflow' and dst_port IN [ '443' ] }"
+    ]
+```
+
+用 `curl` 命令触发网络通讯 `curl https://www.baidu.com:443`，可以看到目标端口为 `443` 的网络通讯被过滤掉了。
+
+### Profile
+
+配置文件如下:
+
+```toml
+[io]
+  ...
+  [io.Filters]
+      profile = [ # 针对 Profile 过滤
+      "{ service = 'python-profiling-manual' }",
+    ]
+```
+
+开 2 个 Profile:
+
+```
+$ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=7.8.9 python3 profile_test.py
+$ DD_ENV=testing DD_SERVICE=2-profiling-python DD_VERSION=7.8.9 python3 profile_test.py
+```
+
+python 源码文件 `profile_test.py`:
+
+```python
+import time
+import ddtrace
+from ddtrace.profiling import Profiler
+
+ddtrace.tracer.configure(
+    https=False,
+    hostname="localhost",
+    port="9529",
+)
+
+prof = Profiler()
+prof.start(True, True)
+
+
+# your code here ...
+while True:
+    print("hello world")
+    time.sleep(1)
+```
+
+可以看到 `python-profiling-manual` 被过滤掉了。
+
+### Scheck 安全巡检
+
+假设我们要过滤掉 log level 为 `warn` 的，配置可以这样写:
+
+```toml
+[io]
+  ...
+  [io.filters]
+    security = [ # 针对 Security 过滤
+      "{ category = 'system' AND level='warn' }"
+    ]
+```
+
+过段时间可以在中心看到 log level 为 `warn` 的被过滤掉了。
+
+### RUM
+
+>温馨提示: 如果你安装了 AdBlock 类广告插件可能会对中心汇报拦截。你可以在测试的时候临时关闭 AdBlock 类插件。
+
+我们这里可以用三种浏览器 Chrome、Firefox、Safari 访问网站，假设我们要过滤掉 Chome 浏览器的访问，配置文件可以这样写:
+
+```toml
+[io]
+  ...
+  [io.filters]
+    rum = [ # 针对 RUM 过滤
+      "{ app_id = 'appid_JtcMjz7Kzg5n8eifTjyU6w' AND browser='Chrome' }"
+    ]
+```
+
+#### 配置本地 nginx
+
+配置本地测试域名 `/etc/hosts`: `127.0.0.1 www.mac.my`
+
+网页文件源码 `index.html`:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script src="https://static.guance.com/browser-sdk/v2/dataflux-rum.js" type="text/javascript"></script>
+<script>
+  window.DATAFLUX_RUM &&
+    window.DATAFLUX_RUM.init({
+      applicationId: 'appid_JtcMjz7Kzg5n8eifTjyU6w',
+      datakitOrigin: 'http://127.0.0.1:9529', // 协议（包括：//），域名（或IP地址）[和端口号]
+      env: 'production',
+      version: '1.0.0',
+      trackInteractions: true,
+      traceType: 'ddtrace', // 非必填，默认为ddtrace，目前支持 ddtrace、zipkin、skywalking_v3、jaeger、zipkin_single_header、w3c_traceparent 6种类型
+      allowedTracingOrigins: ['http://www.mac.my:8080', 'http://www.mac.my', 'http://mac.my:8080', 'http://127.0.0.1:9529/'],  // 非必填，允许注入trace采集器所需header头部的所有请求列表。可以是请求的origin，也可以是是正则
+    })
+</script>
+<body>
+    hello world!
+</body>
+</html>
+```
+
+随后，我们使用以上三种浏览器访问，可以看到 Chrome 的访问记录没有增加。
+
+### KeyEvent
+
+KeyEvent 通过 API 形式来进行测试。假设我们要过滤掉 `source` 为 `user`，`df_date_range` 为 `10`，配置文件如下：
+
+```toml
+[io]
+  ...
+  [io.filters]
+    keyevent = [ # 针对 KeyEvent 过滤
+      "{ source = 'user' AND df_date_range IN [ '10' ] }"
+    ]
+```
+
+然后使用 curl 进行 POST 请求:
+
+```shell
+curl --location --request POST 'http://localhost:9529/v1/write/keyevent' \
+--header 'Content-Type: text/plain' \
+--data-raw 'user create_time=1656383652424,df_date_range="10",df_event_id="event-21946fc19eaf4c5cb1a698f659bf74cd",df_message="【xxx】(xxx@xx.com)进入了工作空间",df_status="info",df_title="【xxx】(xxx@xx.com)进入了工作空间",df_user_id="acnt_a5d6130c19524a6b9fe91d421eaf8603",user_email="xxx@xx.com",user_name="xxx" 1658040035652416000'
+
+curl --location --request POST 'http://localhost:9529/v1/write/keyevent' \
+--header 'Content-Type: text/plain' \
+--data-raw 'user create_time=1656383652424,df_date_range="9",df_event_id="event-21946fc19eaf4c5cb1a698f659bf74ca",df_message="【xxx】(xxx@xx.com)进入了工作空间",df_status="info",df_title="【xxx】(xxx@xx.com)进入了工作空间",df_user_id="acnt_a5d6130c19524a6b9fe91d421eaf8603",user_email="xxx@xx.com",user_name="xxx" 1658040035652416000'
+```
+
+可以在 datakit monitor 里面看到 `df_date_range` 为 `10` 的被过滤掉了。
+
+### Custom Object
+
+Custom Object 通过 API 形式来进行测试。假设我们要过滤掉 `class` 为 `aliyun_ecs`，`regionid` 为 `cn-qingdao`，配置文件如下：
+
+```toml
+[io]
+  ...
+  [io.filters]
+    customobject = [ # 针对 CustomObject 过滤
+      "{ class='aliyun_ecs' AND regionid='cn-qingdao' }",
+    ]
+```
+
+然后使用 curl 进行 POST 请求:
+
+```shell
+curl --location --request POST 'http://localhost:9529/v1/write/custom_object' \
+--header 'Content-Type: text/plain' \
+--data-raw 'aliyun_ecs,name="ecs_name",host="ecs_host" instanceid="ecs_instanceid",os="ecs_os",status="ecs_status",creat_time="ecs_creat_time",publicip="1.1.1.1",regionid="cn-qingdao",privateip="192.168.1.12",cpu="ecs_cpu",memory=204800000000'
+
+curl --location --request POST 'http://localhost:9529/v1/write/custom_object' \
+--header 'Content-Type: text/plain' \
+--data-raw 'aliyun_ecs,name="ecs_name",host="ecs_host" instanceid="ecs_instanceid",os="ecs_os",status="ecs_status",creat_time="ecs_creat_time",publicip="1.1.1.1",regionid="cn-qinghai",privateip="192.168.1.12",cpu="ecs_cpu",memory=204800000000'
+```
+
+可以在 datakit monitor 里面看到 `regionid` 为 `cn-qingdao` 的被过滤掉了。
+
 ## 故障排查
 
 ### 查看同步下来的过滤器 {#debug-filter}
 
-对于从中心同步下来的过滤器，DataKit 记录了一份到 *<DataKit 安装目录>/data/.filters* 下，可直接查看
+[:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
+
+
+对于从中心同步下来的过滤器，DataKit 记录了一份到 *<DataKit 安装目录>/data/.pull* 下，可直接查看
 
 ```shell
 $ cat .filters  | jq

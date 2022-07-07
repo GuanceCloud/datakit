@@ -38,6 +38,7 @@
 ![image](imgs/input-aliyun-ecs-4.png)
 
 ## 安装配置
+
 说明：
 
 - 示例 Linux 版本为：CentOS Linux release 7.8.2003 (Core)

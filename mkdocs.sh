@@ -21,13 +21,17 @@ if [ -z $man_version ]; then
   man_version="${latest_tag}"
 fi
 
+arch=$(uname -m)
+if [[ "$arch" == "x86_64" ]]; then
+	arch=amd64
+fi
+
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  arch=$(uname -m)
   os="darwin"
+
   datakit=dist/datakit-${os}-${arch}/datakit
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
   os="linux"
-  arch=$(uname -m)
   datakit=dist/datakit-${os}-${arch}/datakit
 else              # if under windows(amd64):
   datakit=datakit # windows 下应该设置了对应的 $PATH
@@ -55,7 +59,7 @@ datakit_docs=(
 
   # 这些文档需发布在 Datakit 文档库中
   man/manuals/aliyun-access.md
-  man/manuals/integration-to-datakit-howto.md
+  man/manuals/integrations-to-dk-howto.md
 
   $tmp_doc_dir/apis.md
   $tmp_doc_dir/changelog.md
@@ -86,6 +90,7 @@ datakit_docs=(
   $tmp_doc_dir/election.md
   $tmp_doc_dir/git-config-how-to.md
   $tmp_doc_dir/pipeline.md
+  $tmp_doc_dir/logging-pipeline-bench.md
   $tmp_doc_dir/proxy.md
   $tmp_doc_dir/why-no-data.md
 )
@@ -139,6 +144,7 @@ integrations_files_from_datakit=(
   $tmp_doc_dir/kubernetes-prom.md
   $tmp_doc_dir/kubernetes-x.md
   $tmp_doc_dir/logfwd.md
+  $tmp_doc_dir/logfwdserver.md
   $tmp_doc_dir/logging.md
   $tmp_doc_dir/logging_socket.md
   $tmp_doc_dir/logstreaming.md
@@ -212,11 +218,28 @@ integrations_extra_files=(
 	man/manuals/kube-scheduler.md
 	man/manuals/kube-state-metrics.md
 	man/manuals/logstreaming-fluentd.md
+  man/manuals/netstat.md
+  man/manuals/dns-query.md
+  man/manuals/ethtool.md
+  man/manuals/ntpq.md
+  man/manuals/procstat.md
+	man/manuals/opentelemetry-collector.md
 	man/manuals/resin.md
+	man/manuals/redis-sentinel.md
+	man/manuals/nacos.md
 	man/manuals/rum-android.md
 	man/manuals/rum-ios.md
 	man/manuals/rum-miniapp.md
 	man/manuals/rum-web-h5.md
+
+	man/manuals/aerospike.md
+	man/manuals/chrony.md
+	man/manuals/conntrack.md
+	man/manuals/fluentd-metric.md
+	man/manuals/zookeeper.md
+	man/manuals/harbor.md
+	man/manuals/activemq.md
+	man/manuals/rocketmq.md
 )
 
 for f in "${integrations_extra_files[@]}"; do

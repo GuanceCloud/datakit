@@ -135,4 +135,4 @@ git 验证方式采用用户名和密码方式。
 | ENV_GIT_BRANCH   | `master`                                                     |
 | ENV_GIT_INTERVAL | `1m`                                                         |
 
-更多关于 Datakit 的 Kubernates 环境下面的配置可以参见[这个文档](k8s-config-how-to.md#via-env-config)。
+更多关于 Datakit 的 Kubernates 环境下面的配置可以参见[这个文档](../integrations/k8s-config-how-to.md#via-env-config)。

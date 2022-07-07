@@ -1,5 +1,5 @@
-{{.CSS}}
 # Resin
+
 ---
 
 - 操作系统支持：`Linux/Windows`

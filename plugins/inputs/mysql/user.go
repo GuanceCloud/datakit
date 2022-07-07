@@ -27,6 +27,7 @@ func (m *userMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "MySQL 用户指标",
 		Name: "mysql_user_status",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			// status
 			"bytes_received": &inputs.FieldInfo{

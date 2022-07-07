@@ -10,7 +10,7 @@
 ## 前置条件 {#requrements}
 
 - 目前 container 会默认连接 Docker 服务，需安装 Docker v17.04 及以上版本。
-- 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](datakit-daemonset-deploy.md)。
+- 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](../datakit/datakit-daemonset-deploy.md)。
 - 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation){:target="_blank"}。
 
 ## 配置 {#config}
@@ -40,7 +40,7 @@
   container_exclude_logging = ["image:*"]
 ```
 
-> [Daemonset 方式部署](datakit-daemonset-deploy.md)时，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to.md#via-configmap-conf) 来配置这些镜像的开关。
+> [Daemonset 方式部署](../datakit/datakit-daemonset-deploy.md)时，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to.md#via-configmap-conf) 来配置这些镜像的开关。
 
 假设有 3 个容器，image 分别是：
 
@@ -326,7 +326,7 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 ## 延伸阅读 {#more-reading}
 
 - [eBPF 采集器：支持容器环境下的流量采集](ebpf.md)
-- [Pipeline：文本数据处理](pipeline.md)
-- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex) 
+- [Pipeline：文本数据处理](../datakit/pipeline.md)
+- [正确使用正则表达式来配置](../datakit/datakit-input-conf.md#debug-regex) 
 - [Kubernetes 下 DataKit 的几种配置方式](k8s-config-how-to.md)
 - [DataKit 日志采集综述](datakit-logging.md)

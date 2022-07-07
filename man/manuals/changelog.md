@@ -68,7 +68,7 @@
 - 修复 stdout 多行日志采集问题(#859)
 ---
 
-## 1.4.2(2022/06/16)
+## 1.4.2(2022/06/16) {#cl-1.4.2}
 
 本次发布属于迭代发布，主要更新如下内容：
 
@@ -77,9 +77,9 @@
 - 支持接收 SkyWalking 指标数据(#780)
 - 优化日志黑名单调试功能：
     - 在 Monitor 中会展示被过滤掉的点数(#827)
-    - 在 datakit/data 目录下会增加一个 *.filter* 文件，用来记录拉取到的过滤器
+    - 在 datakit/data 目录下会增加一个 *.pull* 文件，用来记录拉取到的过滤器
 - Monitor 中增加 DataKit 打开文件数显示(#828)
-- DataKit 编译器升级到 golang 1.18.3(#674)
+- DataKit 编译器升级到 Golang 1.18.3(#674)
 
 ### Bug 修复
 
@@ -500,12 +500,12 @@ volumes:
 
 ### 采集器更新
 
-- 重构 Kubernetes 云原生采集器，将其整合进[容器采集器](container.md)。原有 Kubernetes 采集器不再生效(#492)
-- [Redis 采集器](redis.md)
-    - 支持配置 [Redis 用户名](redis.md)(#260)
+- 重构 Kubernetes 云原生采集器，将其整合进[容器采集器](../integrations/container.md)。原有 Kubernetes 采集器不再生效(#492)
+- [Redis 采集器](../integrations/redis.md)
+    - 支持配置 [Redis 用户名](../integrations/redis.md)(#260)
     - 增加 Latency 以及 Cluster 指标集(#396)
-- [Kafka 采集器](kafka)增强，支持 topic/broker/consumer/connnetion 等维度的指标(#397)
-- 新增 [ClickHouse](clickhousev1) 以及 [Flink](flinkv1) 采集器(#458/#459)
+- [Kafka 采集器](../integrations/kafka.md)增强，支持 topic/broker/consumer/connnetion 等维度的指标(#397)
+- 新增 [ClickHouse](../integrations/clickhousev1.md) 以及 [Flink](../integrations/flinkv1.md) 采集器(#458/#459)
 - [主机对象采集器](hostobject)
     - 支持从 [`ENV_CLOUD_PROVIDER`](hostobject#224e2ccd) 读取云同步配置(#501)
     - 优化磁盘采集，默认不会再采集无效磁盘（比如总大小为 0 的一些磁盘）(#505)
