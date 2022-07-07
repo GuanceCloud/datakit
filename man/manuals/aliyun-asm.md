@@ -704,7 +704,7 @@ DataKit 默认的配置，采集容器输出到 /dev/stdout 的日志。更多�
 
 ## 常见问题排查
 
-<[无数据上报排查](why-no-data.md)>
+<[无数据上报排查](../datakit/why-no-data.md)>
 
 ## 进一步阅读
 

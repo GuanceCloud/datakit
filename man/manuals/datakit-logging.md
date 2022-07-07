@@ -51,7 +51,7 @@
 这也是这种策略的一个缺陷，即要求应用将日志输出到 stdout，在一般的应用开发中，日志不太会直接写到 stdout（但主流的日志框架一般都支持输出到 stdout），需要开发者调整日志配置。但是，随着容器化部署方案不断普及，这种方案不失为一种可行的日志采集方式。
 
 > - 随着 k8s 逐渐摒弃 Docker，通过 Docker API 获取日志这一方案可能会不再适用新的 k8s 发布，届时社区可能会提供配套的类似实现
-> - 在 [1.2.20](changelog.md#cl-1.2.20) 中，容器日志已不再依赖 Docker 日志 API
+> - 在 [1.2.20](../datakit/changelog.md#cl-1.2.20) 中，容器日志已不再依赖 Docker 日志 API
 
 ## 远程推送日志给 DataKit
 
@@ -70,7 +70,7 @@
 
 - 对 TCP 形式的日志推送，其日志类型（`source/service`）如果多变，那么需要在 DataKit 上开多个 TCP 端口
 
-> 如果希望 DataKit 上只开启单个（或少数几个）TCP 端口，那么需要在后续 [Pipeline](pipeline.md) 处理中，对切割出来的字段，识别其特征，并通过函数 [`set_tag()`](pipeline.md#fn-set-tag) 来标记其 `service`（目前无法修改日志的 `source` 字段，且该功能只有 [1.2.8 以上的版本才支持](changelog.md#cl-1.2.8)）。
+> 如果希望 DataKit 上只开启单个（或少数几个）TCP 端口，那么需要在后续 [Pipeline](../datakit/pipeline.md) 处理中，对切割出来的字段，识别其特征，并通过函数 [`set_tag()`](../datakit/pipeline.md#fn-set-tag) 来标记其 `service`（目前无法修改日志的 `source` 字段，且该功能只有 [1.2.8 以上的版本才支持](../datakit/changelog.md#cl-1.2.8)）。
 
 - 对 HTTP 形式的日志推送，开发者需在 [HTTP 请求参数上标记好特征](logstreaming.md#args)，便于 DataKit 做后续处理
 

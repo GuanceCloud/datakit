@@ -172,7 +172,7 @@ datakit install --ipdb iploc
 
 ```
 [pipeline]
-	ipdb_type = "iploc"
+  ipdb_type = "iploc"
 ```
 
 ==重启 DataKit 生效==。
@@ -230,22 +230,22 @@ kubectl get pod -n datakit
 ```shell
    (k8s-note) $ kubectl exec --stdin --tty datakit -- /bin/bash
 (datakit-pod) $ datakit tool --ipinfo 1.2.3.4
-	      ip: 1.2.3.4
-	    city: Brisbane
-	province: Queensland
-	 country: AU
-	     isp: unknown
+        ip: 1.2.3.4
+      city: Brisbane
+  province: Queensland
+   country: AU
+       isp: unknown
 ```
 
 如果安装失败，其输出如下：
 
 ```shell
 (datakit-pod) $ datakit tool --ipinfo 1.2.3.4
-	     isp: unknown
-	      ip: 1.2.3.4
-	    city: 
-	province: 
-	 country: 
+       isp: unknown
+        ip: 1.2.3.4
+      city: 
+  province: 
+   country: 
 ```
 
 ## DataKit 安装第三方软件 {#extras}
@@ -268,7 +268,7 @@ cp telegraf.conf.sample telegraf.conf
 telegraf --config telegraf.conf
 ```
 
-关于 Telegraf 的使用事项，参见[这里](telegraf.md)。
+关于 Telegraf 的使用事项，参见[这里](../integrations/telegraf.md)。
 
 ### Security Checker 集成
 
@@ -278,7 +278,7 @@ telegraf --config telegraf.conf
 datakit install --scheck
 ```
 
-安装成功后会自动运行，Security Checker 具体使用，参见[这里](../scheck/install.md)
+安装成功后会自动运行，Security Checker 具体使用，参见[这里](../scheck/scheck-install.md)
 
 ### DataKit eBPF 集成
 

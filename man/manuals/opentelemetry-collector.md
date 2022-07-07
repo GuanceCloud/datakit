@@ -12,7 +12,7 @@ Opentelemetry Collector 性能指标展示：collector 在线时长、内存使�
 
 ## 前置条件
 
-- Opentelemetry Collector 服务器 <[安装 Datakit](datakit-install.md)>
+- Opentelemetry Collector 服务器 <[安装 Datakit](../datakit/datakit-install.md)>
 
 ## 安装配置
 
@@ -338,7 +338,7 @@ systemctl restart datakit
 | receiver_accepted_spans | reveiver  接收 span 记录数 |
 
 ## 常见问题排查
-- [无数据上报排查](why-no-data.md)
+- [无数据上报排查](../datakit/why-no-data.md)
 ## 进一步阅读
 - [**OpenTelemetry 链路数据接入最佳实践**](/best-practices/integrations/opentelemetry)
 
