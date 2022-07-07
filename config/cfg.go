@@ -77,6 +77,7 @@ func DefaultConfig() *Config {
 			Listen:            "localhost:9529",
 			RUMAppIDWhiteList: []string{},
 			PublicAPIs:        []string{},
+			Timeout:           "30s",
 		},
 
 		DCAConfig: &dkhttp.DCAConfig{

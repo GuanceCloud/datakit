@@ -110,6 +110,7 @@ ulimit = 64000
   ## 如果列表为空，则 API 不做访问控制
   #
   public_apis = []
+	timeout = "30s"
 
 ## io: io 配置
 #

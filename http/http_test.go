@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/influxdata/influxdb1-client/models"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
@@ -244,4 +245,72 @@ func TestCORS(t *testing.T) {
 	// See: https://stackoverflow.com/a/12179364/342348
 	got := resp.Header.Get("Access-Control-Allow-Origin")
 	tu.Assert(t, origin == got, "expect %s, got %s", got)
+}
+
+func TestTimeout(t *testing.T) {
+	apiConfig.timeoutDuration = 100 * time.Millisecond
+
+	router := gin.New()
+	router.Use(dkHTTPTimeout())
+
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	router.POST("/timeout", func(c *gin.Context) {
+		x := c.Query("x")
+		du, err := time.ParseDuration(x)
+		if err != nil {
+			du = 10 * time.Millisecond
+		}
+
+		time.Sleep(du)
+		c.Status(http.StatusOK)
+	})
+
+	cases := []struct {
+		name             string
+		timeout          time.Duration
+		expectStatusCode int
+	}{
+		{
+			name:             "timeout",
+			timeout:          101 * time.Millisecond,
+			expectStatusCode: http.StatusRequestTimeout,
+		},
+
+		{
+			name:             "ok",
+			timeout:          10 * time.Millisecond,
+			expectStatusCode: http.StatusOK,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req, err := http.NewRequest("POST", fmt.Sprintf("%s/timeout?x=%s", ts.URL, tc.timeout), nil)
+			if err != nil {
+				t.Errorf("http.NewRequest: %s", err)
+				return
+			}
+
+			cli := http.Client{}
+			resp, err := cli.Do(req)
+			if err != nil {
+				t.Errorf("cli.Do: %s", err)
+				return
+			}
+
+			tu.Equals(t, tc.expectStatusCode, resp.StatusCode)
+
+			defer resp.Body.Close()
+
+			respBody, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				t.Errorf("cli.Do: %s", err)
+				return
+			}
+
+			t.Logf("body: %s", string(respBody))
+		})
+	}
 }
