@@ -254,6 +254,29 @@ func TestLoadEnv(t *testing.T) {
 				return cfg
 			}(),
 		},
+
+		{
+			name: "test-io-envs",
+			envs: map[string]string{
+				"ENV_IO_MAX_CACHE_COUNT":   "8192",
+				"ENV_IO_ENABLE_CACHE":      "hahahah",
+				"ENV_IO_CACHE_MAX_SIZE_GB": "8",
+				"ENV_IO_FLUSH_INTERVAL":    "2s",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+
+				cfg.IOConf.MaxCacheCount = 8192
+				cfg.IOConf.MaxDynamicCacheCount = 8192
+
+				cfg.IOConf.EnableCache = true
+				cfg.IOConf.CacheSizeGB = 8
+				cfg.IOConf.FlushInterval = "2s"
+
+				return cfg
+			}(),
+		},
 	}
 
 	for _, tc := range cases {
