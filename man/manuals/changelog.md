@@ -21,7 +21,7 @@
 - eBPF 增加 HTTPS 支持(#782)
 - 修复日志采集器可能的奔溃问题(#893)
 - 修复 prom 采集器泄露问题(#880)
-- 支持通过环境变量配置 io 磁盘缓存(#906)
+- 支持通过[环境变量配置 io 磁盘缓存](datakit-conf.md#using-cache)(#906)
 - 增加 [Kubernetes CRD](kubernetes-crd.md) 支持(#726)
 - 其它 bug 修复(#901/#899)
 ---
