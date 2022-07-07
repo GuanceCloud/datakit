@@ -244,6 +244,11 @@ type dockerMessage struct {
 }
 
 func (t *Single) dockerHandler(lines []string) {
+	logs := t.generateJSONLogs(lines)
+	t.feed(logs)
+}
+
+func (t *Single) generateJSONLogs(lines []string) []string {
 	var err error
 	pending := []string{}
 
@@ -275,7 +280,6 @@ func (t *Single) dockerHandler(lines []string) {
 		}
 
 		if len(text) > 0 {
-			text = multiline.TrimRightSpace(text)
 			// deal with docker log size exceed 16 K
 			if text[len(text)-1] != '\n' {
 				textLen := len(text)
@@ -302,11 +306,8 @@ func (t *Single) dockerHandler(lines []string) {
 		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
 		pending = append(pending, logstr)
 	}
-	if len(pending) == 0 {
-		return
-	}
 
-	t.feed(pending)
+	return pending
 }
 
 func (t *Single) containerdHandler(lines []string) {
@@ -332,8 +333,7 @@ func (t *Single) generateCRILogs(lines []string) []string {
 		if t.expectMultiLine {
 			text = t.multilineWithFlag(criMsg.log, true)
 		} else {
-			log := multiline.TrimRightSpace(criMsg.log)
-			text = t.multiline(log)
+			text = t.multiline(criMsg.log)
 		}
 
 		t.expectMultiLine = criMsg.isPartial
