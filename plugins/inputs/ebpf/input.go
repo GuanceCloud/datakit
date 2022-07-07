@@ -136,7 +136,7 @@ loop:
 	}
 
 	if len(ipt.L7NetDisabled) > 0 {
-		ipt.ExernalInput.Args = append(ipt.ExernalInput.Args,
+		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args,
 			"--l7net-disabled", strings.Join(ipt.L7NetDisabled, ","))
 	}
 
