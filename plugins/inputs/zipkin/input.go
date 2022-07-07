@@ -110,15 +110,16 @@ func (ipt *Input) Run() {
 	// add calculators
 	// afterGather.AppendCalculator(itrace.StatTracingInfo)
 
-	// add filters: the order append in AfterGather is important!!!
-	// add error status penetration
-	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
+	// add filters: the order of appending filters into AfterGather is important!!!
+	// the order of appending represents the order of that filter executes.
 	// add close resource filter
 	if len(ipt.CloseResource) != 0 {
 		closeResource = &itrace.CloseResource{}
 		closeResource.UpdateIgnResList(ipt.CloseResource)
 		afterGather.AppendFilter(closeResource.Close)
 	}
+	// add error status penetration
+	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add rare resource keeper
 	if ipt.KeepRareResource {
 		keepRareResource = &itrace.KeepRareResource{}

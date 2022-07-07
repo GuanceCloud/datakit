@@ -3,7 +3,6 @@ module gitlab.jiagouyun.com/cloudcare-tools/datakit
 go 1.18
 
 require (
-	code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
 	github.com/BurntSushi/toml v0.3.1
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
@@ -25,7 +24,7 @@ require (
 	github.com/elastic/go-lumber v0.1.1
 	github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
 	github.com/fatih/color v1.12.0
-	github.com/fsnotify/fsnotify v1.5.1
+	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-git/go-git/v5 v5.4.2
@@ -38,7 +37,6 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gobwas/ws v1.1.0
 	github.com/godror/godror v0.17.0
-	github.com/gofrs/flock v0.8.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.4

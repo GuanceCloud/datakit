@@ -59,7 +59,9 @@ func (d *datakitCRD) forkInputs() error {
 			if _, ok := discoveryInputsMap[string(pod.UID)]; ok {
 				continue
 			}
+
 			l.Debugf("fork crd input: %s, %s", pod.Name, item.Spec.InputConf)
+
 			instance := discoveryInput{
 				id:     string(pod.UID),
 				source: pod.Name,
