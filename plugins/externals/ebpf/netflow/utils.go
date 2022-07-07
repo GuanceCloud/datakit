@@ -14,10 +14,11 @@ import (
 
 	"github.com/DataDog/ebpf/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/dnsflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/sys/unix"
 )
 
@@ -187,33 +188,39 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler f
 	return m, nil
 }
 
-func ConvertConn2Measurement(connR *ConnResult, name string) []inputs.Measurement {
-	collectCache := []inputs.Measurement{}
+func ConvertConn2Measurement(connR *ConnResult, name string, ptOpt *io.PointOption) []*io.Point {
+	collectCache := []*io.Point{}
 
+	if ptOpt == nil {
+		ptOpt = &io.PointOption{
+			Category: datakit.Network,
+		}
+	}
+	ptOpt.Time = connR.ts
 	for k, v := range connR.result {
 		if ConnNotNeedToFilter(k, v) {
-			m := ConvConn2M(k, v, name, connR.tags, connR.ts)
-			collectCache = append(collectCache, m)
+			if m, err := ConvConn2M(k, v, name, connR.tags, ptOpt); err != nil {
+				l.Error(err)
+			} else {
+				collectCache = append(collectCache, m)
+			}
 		}
 	}
 	return collectCache
 }
 
 func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
-	tags map[string]string, ts time.Time,
-) inputs.Measurement {
-	m := measurement{
-		name:   name,
-		tags:   map[string]string{},
-		fields: map[string]interface{}{},
-		ts:     ts,
-	}
-	for k, v := range tags {
-		m.tags[k] = v
+	gTags map[string]string, ptOpt *io.PointOption,
+) (*io.Point, error) {
+	mFields := map[string]interface{}{}
+	mTags := map[string]string{}
+
+	for k, v := range gTags {
+		mTags[k] = v
 	}
 
-	m.tags["status"] = "info"
-	m.tags["pid"] = fmt.Sprint(k.Pid)
+	mTags["status"] = "info"
+	mTags["pid"] = fmt.Sprint(k.Pid)
 
 	isV6 := !ConnAddrIsIPv4(k.Meta)
 	if k.Saddr[0] == 0 && k.Saddr[1] == 0 && k.Daddr[0] == 0 && k.Daddr[1] == 0 {
@@ -225,121 +232,126 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	}
 
 	if !isV6 {
-		m.tags["src_ip_type"] = ConnIPv4Type(k.Saddr[3])
-		m.tags["dst_ip_type"] = ConnIPv4Type(k.Daddr[3])
-		m.tags["family"] = "IPv4"
+		mTags["src_ip_type"] = ConnIPv4Type(k.Saddr[3])
+		mTags["dst_ip_type"] = ConnIPv4Type(k.Daddr[3])
+		mTags["family"] = "IPv4"
 	} else {
-		m.tags["src_ip_type"] = ConnIPv6Type(k.Saddr)
+		mTags["src_ip_type"] = ConnIPv6Type(k.Saddr)
 
-		m.tags["dst_ip_type"] = ConnIPv6Type(k.Daddr)
-		m.tags["family"] = "IPv6"
+		mTags["dst_ip_type"] = ConnIPv6Type(k.Daddr)
+		mTags["family"] = "IPv6"
 	}
 
-	m.tags["src_ip"] = U32BEToIP(k.Saddr, isV6).String()
+	srcIP := U32BEToIP(k.Saddr, isV6).String()
+	mTags["src_ip"] = srcIP
 
-	dstIP := U32BEToIP(k.Daddr, isV6)
-	m.tags["dst_ip"] = dstIP.String()
+	dstIP := U32BEToIP(k.Daddr, isV6).String()
+	mTags["dst_ip"] = dstIP
 
 	if dnsRecord != nil {
-		m.tags["dst_domain"] = dnsRecord.LookupAddr(dstIP)
+		mTags["dst_domain"] = dnsRecord.LookupAddr(dstIP)
 	}
 
 	if k.Sport == math.MaxUint32 {
-		m.tags["src_port"] = "*"
+		mTags["src_port"] = "*"
 	} else {
-		m.tags["src_port"] = fmt.Sprintf("%d", k.Sport)
+		mTags["src_port"] = fmt.Sprintf("%d", k.Sport)
 	}
 
 	if k.Dport == math.MaxUint32 {
-		m.tags["dst_port"] = "*"
+		mTags["dst_port"] = "*"
 	} else {
-		m.tags["dst_port"] = fmt.Sprintf("%d", k.Dport)
+		mTags["dst_port"] = fmt.Sprintf("%d", k.Dport)
 	}
 
-	m.fields["bytes_read"] = int64(v.Stats.RecvBytes)
-	m.fields["bytes_written"] = int64(v.Stats.SentBytes)
+	mFields["bytes_read"] = int64(v.Stats.RecvBytes)
+	mFields["bytes_written"] = int64(v.Stats.SentBytes)
 
+	var l4proto string
 	if ConnProtocolIsTCP(k.Meta) {
-		m.tags["transport"] = "tcp"
-		m.fields["retransmits"] = int64(v.TCPStats.Retransmits)
-		m.fields["rtt"] = int64(v.TCPStats.Rtt)
-		m.fields["rtt_var"] = int64(v.TCPStats.RttVar)
-		m.fields["tcp_closed"] = v.TotalClosed
-		m.fields["tcp_established"] = v.TotalEstablished
+		l4proto = "tcp"
+		mTags["transport"] = l4proto
+		mFields["retransmits"] = int64(v.TCPStats.Retransmits)
+		mFields["rtt"] = int64(v.TCPStats.Rtt)
+		mFields["rtt_var"] = int64(v.TCPStats.RttVar)
+		mFields["tcp_closed"] = v.TotalClosed
+		mFields["tcp_established"] = v.TotalEstablished
 	} else {
-		m.tags["transport"] = "udp"
+		l4proto = "udp"
+		mTags["transport"] = l4proto
 	}
-	m.tags["direction"] = connDirection2Str(v.Stats.Direction)
+	mTags["direction"] = connDirection2Str(v.Stats.Direction)
+
+	// add K8s tags
+	mTags = AddK8sTags2Map(k8sNetInfo, srcIP, dstIP, k.Sport, k.Dport, l4proto, mTags)
+
+	return io.NewPoint(name, mTags, mFields, ptOpt)
+}
+
+func AddK8sTags2Map(k8sNetInfo *k8sinfo.K8sNetInfo, srcIP, dstIP string,
+	srcPort, dstPort uint32, transport string, mTags map[string]string) map[string]string {
+
+	if mTags == nil {
+		mTags = map[string]string{}
+	}
 
 	if k8sNetInfo != nil {
 		srcK8sFlag := false
 		dstK8sFlag := false
-		if _, srcPoName, srcSvcName, ns, srcDeployment, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["src_ip"],
-			k.Sport, m.tags["transport"]); err == nil {
+		if _, srcPoName, srcSvcName, ns, srcDeployment, svcP, err := k8sNetInfo.QueryPodInfo(srcIP,
+			srcPort, transport); err == nil {
 			srcK8sFlag = true
-			m.tags["src_k8s_namespace"] = ns
-			m.tags["src_k8s_pod_name"] = srcPoName
-			m.tags["src_k8s_service_name"] = srcSvcName
-			m.tags["src_k8s_deployment_name"] = srcDeployment
-			if svcP == k.Sport {
-				m.tags["direction"] = DirectionIncoming
+			mTags["src_k8s_namespace"] = ns
+			mTags["src_k8s_pod_name"] = srcPoName
+			mTags["src_k8s_service_name"] = srcSvcName
+			mTags["src_k8s_deployment_name"] = srcDeployment
+			if svcP == srcPort {
+				mTags["direction"] = DirectionIncoming
 			}
 		}
 
-		if _, dstPodName, dstSvcName, ns, dstDeployment, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["dst_ip"],
-			k.Dport, m.tags["transport"]); err == nil {
+		if _, dstPodName, dstSvcName, ns, dstDeployment, svcP, err := k8sNetInfo.QueryPodInfo(dstIP,
+			dstPort, transport); err == nil {
+			// k.dport
 			dstK8sFlag = true
-			m.tags["dst_k8s_namespace"] = ns
-			m.tags["dst_k8s_pod_name"] = dstPodName
-			m.tags["dst_k8s_service_name"] = dstSvcName
-			m.tags["dst_k8s_deployment_name"] = dstDeployment
+			mTags["dst_k8s_namespace"] = ns
+			mTags["dst_k8s_pod_name"] = dstPodName
+			mTags["dst_k8s_service_name"] = dstSvcName
+			mTags["dst_k8s_deployment_name"] = dstDeployment
 
-			if svcP == k.Dport {
-				m.tags["direction"] = DirectionOutgoing
+			if svcP == dstPort {
+				// k.dport
+				mTags["direction"] = DirectionOutgoing
 			}
 		} else {
-			dstSvcName, ns, dp, err := k8sNetInfo.QuerySvcInfo(m.tags["dst_ip"])
+			dstSvcName, ns, dp, err := k8sNetInfo.QuerySvcInfo(dstIP)
 			if err == nil {
 				dstK8sFlag = true
-				m.tags["dst_k8s_namespace"] = ns
-				m.tags["dst_k8s_pod_name"] = NoValue
-				m.tags["dst_k8s_service_name"] = dstSvcName
-				m.tags["dst_k8s_deployment_name"] = dp
-				m.tags["direction"] = DirectionOutgoing
+				mTags["dst_k8s_namespace"] = ns
+				mTags["dst_k8s_pod_name"] = NoValue
+				mTags["dst_k8s_service_name"] = dstSvcName
+				mTags["dst_k8s_deployment_name"] = dp
+				mTags["direction"] = DirectionOutgoing
 			}
 		}
 
 		if srcK8sFlag || dstK8sFlag {
-			m.tags["sub_source"] = "K8s"
+			mTags["sub_source"] = "K8s"
 			if !srcK8sFlag {
-				m.tags["src_k8s_namespace"] = NoValue
-				m.tags["src_k8s_pod_name"] = NoValue
-				m.tags["src_k8s_service_name"] = NoValue
-				m.tags["src_k8s_deployment_name"] = NoValue
+				mTags["src_k8s_namespace"] = NoValue
+				mTags["src_k8s_pod_name"] = NoValue
+				mTags["src_k8s_service_name"] = NoValue
+				mTags["src_k8s_deployment_name"] = NoValue
 			}
 			if !dstK8sFlag {
-				m.tags["dst_k8s_namespace"] = NoValue
-				m.tags["dst_k8s_pod_name"] = NoValue
-				m.tags["dst_k8s_service_name"] = NoValue
-				m.tags["dst_k8s_deployment_name"] = NoValue
+				mTags["dst_k8s_namespace"] = NoValue
+				mTags["dst_k8s_pod_name"] = NoValue
+				mTags["dst_k8s_service_name"] = NoValue
+				mTags["dst_k8s_deployment_name"] = NoValue
 			}
 		}
 	}
-
-	if ConnProtocolIsTCP(k.Meta) {
-		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s(%s):%s r/w: %d/%d e/c: %d/%d "+
-			"re: %d rtt/rttvar: %.2fms/%.2fms (%s, %s)",
-			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_domain"],
-			m.tags["dst_port"], m.fields["bytes_read"], m.fields["bytes_written"],
-			m.fields["tcp_established"], m.fields["tcp_closed"], m.fields["retransmits"],
-			float64(v.TCPStats.Rtt)/1000., float64(v.TCPStats.RttVar)/1000, m.tags["transport"], m.tags["direction"]))
-	} else {
-		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s(%s):%s r/w: %d/%d (%s, %s)",
-			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"],
-			m.tags["dst_domain"], m.tags["dst_port"], m.fields["bytes_read"],
-			m.fields["bytes_written"], m.tags["transport"], m.tags["direction"]))
-	}
-	return &m
+	return mTags
 }
 
 func U32BEToIPv4Array(addr uint32) [4]uint8 {

@@ -15,11 +15,11 @@ import (
 
 	"github.com/DataDog/ebpf/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 	"golang.org/x/sys/unix"
 )
 
@@ -34,10 +34,6 @@ var l = logger.DefaultSLogger(srcNameM)
 
 func SetLogger(nl *logger.Logger) {
 	l = nl
-}
-
-type Inputs struct {
-	external.ExernalInput
 }
 
 func NewBashManger(bashReadlineEventHandler func(cpu int, data []byte,
@@ -77,14 +73,14 @@ func NewBashManger(bashReadlineEventHandler func(cpu int, data []byte,
 }
 
 type BashTracer struct {
-	ch     chan *measurement
+	ch     chan *io.Point
 	stopCh chan struct{}
 	gTags  map[string]string
 }
 
 func NewBashTracer() *BashTracer {
 	return &BashTracer{
-		ch:     make(chan *measurement, 32),
+		ch:     make(chan *io.Point, 32),
 		stopCh: make(chan struct{}),
 	}
 }
@@ -93,35 +89,44 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 	perfmap *manager.PerfMap, manager *manager.Manager) {
 	eventC := (*BashEventC)(unsafe.Pointer(&data[0])) //nolint:gosec
 
-	m := measurement{
-		ts:     time.Now(),
-		name:   srcNameM,
-		tags:   map[string]string{},
-		fields: map[string]interface{}{},
+	mTags := map[string]string{}
+
+	for k, v := range tracer.gTags {
+		if _, ok := mTags[k]; !ok {
+			mTags[k] = v
+		}
 	}
 
+	mFields := map[string]interface{}{}
+
 	lineChar := (*(*[128]byte)(unsafe.Pointer(&eventC.line)))
-	m.fields["cmd"] = unix.ByteSliceToString(lineChar[:])
+	mFields["cmd"] = unix.ByteSliceToString(lineChar[:])
 
 	u, err := user.LookupId(fmt.Sprintf("%d", int(eventC.uid_gid>>32)))
 	if err != nil {
 		l.Error(err)
 	} else {
-		m.fields["user"] = u.Name
+		mFields["user"] = u.Name
 	}
-	m.fields["pid"] = fmt.Sprintf("%d", int(eventC.pid_tgid>>32))
+	mFields["pid"] = fmt.Sprintf("%d", int(eventC.pid_tgid>>32))
 
-	m.fields["message"] = fmt.Sprintf("%s pid:`%s` user:`%s` cmd:`%s`",
-		m.ts.Format(time.RFC3339), m.fields["pid"], m.fields["user"], m.fields["cmd"])
+	mFields["message"] = fmt.Sprintf("%s pid:`%s` user:`%s` cmd:`%s`",
+		time.Now().Format(time.RFC3339), mFields["pid"], mFields["user"], mFields["cmd"])
+
+	pt, err := io.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
+	if err != nil {
+		l.Error(err)
+		return
+	}
 	select {
 	case <-tracer.stopCh:
-	case tracer.ch <- &m:
+	case tracer.ch <- pt:
 	}
 }
 
 func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string, interval time.Duration) {
 	ticker := time.NewTicker(interval)
-	cache := []inputs.Measurement{}
+	cache := []*io.Point{}
 	for {
 		select {
 		case <-ticker.C:
@@ -129,21 +134,15 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string
 				if err := dkout.FeedMeasurement(datakitPostURL, cache); err != nil {
 					l.Error(err)
 				}
-				cache = make([]inputs.Measurement, 0)
+				cache = make([]*io.Point, 0)
 			}
-		case m := <-tracer.ch:
-			for k, v := range tracer.gTags {
-				if _, ok := m.tags[k]; !ok {
-					m.tags[k] = v
-				}
-			}
-			l.Debug(m)
-			cache = append(cache, m)
+		case pt := <-tracer.ch:
+			cache = append(cache, pt)
 			if len(cache) > 128 {
 				if err := dkout.FeedMeasurement(datakitPostURL, cache); err != nil {
 					l.Error(err)
 				}
-				cache = make([]inputs.Measurement, 0)
+				cache = make([]*io.Point, 0)
 			}
 		case <-tracer.stopCh:
 			return
@@ -181,7 +180,7 @@ type measurement struct {
 }
 
 func (m *measurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, &io.PointOption{Category: datakit.Logging, Time: m.ts})
 }
 
 func (m *measurement) Info() *inputs.MeasurementInfo {

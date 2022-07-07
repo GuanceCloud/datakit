@@ -23,7 +23,6 @@ import (
 	"time"
 
 	_ "github.com/godror/godror"
-	ifxcli "github.com/influxdata/influxdb1-client/v2"
 	"github.com/jessevdk/go-flags"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -208,10 +207,6 @@ func (m *monitor) handle(ec *ExecCfg) {
 
 func handleResponse(m *monitor, metricName string, tagsKeys []string, response []map[string]interface{}) error {
 	lines := [][]byte{}
-	var (
-		pt  *ifxcli.Point
-		err error
-	)
 
 	if metricName == "oracle_system" {
 		return handleSystem(m, metricName, response)
