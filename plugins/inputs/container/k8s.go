@@ -101,6 +101,10 @@ func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 		res = append(res, count)
 	}
 
+	if err := newDatakitCRD(k.client).forkInputs(); err != nil {
+		l.Warnf("failed to new crd, err: %s", err)
+	}
+
 	return res, lastErr
 }
 
