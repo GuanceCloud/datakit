@@ -28,6 +28,7 @@ func (m *baseMeasurement) LineProto() (*io.Point, error) {
 func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name: "mysql",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			// status
 			"Slow_queries": &inputs.FieldInfo{

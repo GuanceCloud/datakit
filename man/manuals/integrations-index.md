@@ -11,7 +11,7 @@ icon: zy/integrations
 
 ## 前提条件
 
-在配置采集源之前，需要先 [安装DataKit](datakit-install.md) 。
+在配置采集源之前，需要先 [安装DataKit](../datakit/datakit-install.md) 。
 
 ## 配置
 

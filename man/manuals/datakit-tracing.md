@@ -128,4 +128,3 @@ Datakit backend 负责按照配置来操作链路数据，目前支持的操作�
 - 生产环境下(多服务，多 Datakit 部署)一条完整的 Trace 数据是被分批次上传到 Data Center 的并不是按照调用先后顺序上传到 Data Center。
 - parent_id = 0 为 root span。
 - span_type = entry 为 service 上的首个 resource 的调用者即当前 service 上的第一个 span。
-- 需要通过 Pipeline 脚本操作数据详细说明请参考 [Datakit Tracing With Pipeline](datakit-tracing-pl.md)

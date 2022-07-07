@@ -104,8 +104,8 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
 ```toml
 [logging]
-	level = "debug" # 将 info 改成 debug
-	rotate = 32     # 每个日志分片为 32MB
+  level = "debug" # 将 info 改成 debug
+  rotate = 32     # 每个日志分片为 32MB
 ```
 
 - `level`：置为 `debug` 后，即可看到更多日志（目前只支持 `debug/info` 两个级别）。
@@ -121,7 +121,7 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
 ```toml
 [cgroup]
-	path = "/datakit" # cgroup 限制目录，如 /sys/fs/cgroup/memory/datakit, /sys/fs/cgroup/cpu/datakit
+  path = "/datakit" # cgroup 限制目录，如 /sys/fs/cgroup/memory/datakit, /sys/fs/cgroup/cpu/datakit
 
   # 允许 CPU 最大使用率（百分制）
   cpu_max = 20.0
@@ -130,8 +130,8 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
   cpu_min = 5.0
 
   # 默认允许 4GB 内存(memory + swap)占用
-	# 如果置为 0 或负数，则不启用内存限制
-	mem_max_mb = 4096 
+  # 如果置为 0 或负数，则不启用内存限制
+  mem_max_mb = 4096 
 ```
 
 如果 DataKit 超出内存限制后，会被操作系统强制杀掉，通过命令可以看到如下结果，此时需要[手动启动服务](datakit-service-how-to.md#when-service-failed)：
@@ -162,7 +162,7 @@ $ systemctl status datakit
 
 ```toml
 [io]
-	enable_cache = true
+  enable_cache = true
 ```
 
 开启磁盘缓存后，最大能缓存 1GB 的数据（目前不可配置），超过该大小的数据，将被丢弃。
@@ -188,11 +188,11 @@ Datakit 支持使用 git 来管理采集器配置、Pipeline 以及 Python 脚�
     enable = false   # 不启用该 repo
 
     ###########################################
-		# Git 地址支持的三种协议：http/git/ssh
+    # Git 地址支持的三种协议：http/git/ssh
     ###########################################
     url = "http://username:password@github.com/path/to/repository.git"
 
-		# 以下两种协议(git/ssh)，需配置 key-path 以及 key-password
+    # 以下两种协议(git/ssh)，需配置 key-path 以及 key-password
     # url = "git@github.com:path/to/repository.git"
     # url = "ssh://git@github.com:9000/path/to/repository.git"
     # ssh_private_key_path = "/Users/username/.ssh/id_rsa"
@@ -205,7 +205,7 @@ Datakit 支持使用 git 来管理采集器配置、Pipeline 以及 Python 脚�
 
 #### 应用 Git 管理的 Pipeline 示例 {#gitrepo-example}
 
-我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，**DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用**。在 [Nginx 采集器](nginx.md)的配置中，一个 pipeline 的配置示例：
+我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，**DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用**。在 [Nginx 采集器](../integrations/nginx.md)的配置中，一个 pipeline 的配置示例：
 
 ```toml
 [[inputs.nginx]]
@@ -289,5 +289,5 @@ CPU 使用率是百分比制（==最大值 100.0==），以一个 8 核心的 CP
 ## 延伸阅读 {#more-reading}
 
 - [DataKit 宿主机安装](datakit-install.md)
-- [DataKit DaemonSet 安装](datakit-daemonset-install.md)
+- [DataKit DaemonSet 安装](datakit-daemonset-deploy.md)
 - [DataKit 行协议过滤器](datakit-filter.md)

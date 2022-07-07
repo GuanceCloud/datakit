@@ -1,6 +1,5 @@
 nav:
   - index.md
-  #- '集成文档合并（临时条目）': integration-to-datakit-howto.md
   - '主机':
     - 'DataKit 自身指标': self.md
     - hostobject.md
@@ -12,10 +11,15 @@ nav:
       - mem.md
       - swap.md
       - net.md
+      - netstat.md
       - socket.md
       - system.md
       - hostdir.md
       - ssh.md
+      - dns-query.md
+      - ethtool.md
+      - ntpq.md
+      - procstat.md
       - Windows 相关:
         - 'Windows 事件': windows_event.md
         - iis.md
@@ -54,6 +58,7 @@ nav:
       - 'OpenTelemetry 采集配置': opentelemetry.md
       - opentelemetry-go.md
       - opentelemetry-java.md
+      - opentelemetry-collector.md
 
     - 'Zipkin':
       - 'Zipkin 采集器配置': zipkin.md
@@ -79,21 +84,32 @@ nav:
 
   - 中间件:
     - 'ClickHouse': clickhousev1.md
-    - oracle.md
     - mysql.md
-    - nsq.md
+    - oracle.md
+    - sqlserver.md
+    - postgresql.md
     - redis.md
+    - redis-sentinel.md
     - memcached.md
     - mongodb.md
     - influxdb.md
     - tdengine.md
-    - sqlserver.md
-    - postgresql.md
     - elasticsearch.md
-    - kafka.md
-    - rabbitmq.md
     - solr.md
     - flinkv1.md
+    - nacos.md
+    - aerospike.md
+    - chrony.md
+    - conntrack.md
+    - fluentd-metric.md
+    - zookeeper.md
+    - harbor.md
+    - '消息队列':
+       - 'NSQ': nsq.md
+       - activemq.md
+       - rocketmq.md
+       - rabbitmq.md
+       - kafka.md
     - 'Web 服务器':
       - 'Nginx': nginx.md
       - apache.md

@@ -3,7 +3,7 @@
 ---
 
 - DataKit 版本：{{.Version}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：{{.AvailableArchs}}
 
 hostdir 采集器用于目录文件的采集，例如文件个数，所有文件大小等。
 
@@ -127,7 +127,7 @@ systemctl restart datakit
 
 ## 常见问题排查
 
-<[无数据上报排查](why-no-data.md)>
+<[无数据上报排查](../datakit/why-no-data.md)>
 
 Q：如果想监控多个目录，怎么配置？<br />A：需要填写多个 input 配置。
 ```
@@ -142,4 +142,4 @@ Q：如果想监控多个目录，怎么配置？<br />A：需要填写多个 in
 
 ## 进一步阅读
 
-<[主机可观测最佳实践](./best-practices/integrations/host.md)>
+<[主机可观测最佳实践](../best-practices/integrations/host.md)>
