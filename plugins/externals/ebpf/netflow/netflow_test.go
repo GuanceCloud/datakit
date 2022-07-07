@@ -12,6 +12,8 @@ import (
 	"unsafe"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 type caseConnT struct {
@@ -353,37 +355,43 @@ func TestConvConn2M(t *testing.T) {
 			},
 		},
 	}
+
+	ptOpt := &io.PointOption{Category: datakit.Network}
 	for _, v := range cases {
 		connR.result[v.conn] = v.connStats
-		m, ok := ConvConn2M(v.conn, v.connStats, v.name, v.tags, v.ts).(*measurement)
-		if !ok {
-			t.Error("conv failed")
+		ptOpt.Time = v.ts
+		pt, err := ConvConn2M(v.conn, v.connStats, v.name, v.tags,
+			ptOpt)
+		if err != nil {
+			t.Error(err)
 			continue
 		}
-		delete(m.fields, "message")
-		if len(m.fields) != len(v.result.fields) {
+		tags := pt.Tags()
+		fields, _ := pt.Fields()
+		delete(fields, "message")
+		if len(fields) != len(v.result.fields) {
 			t.Error("fields length not equal")
 		}
-		delete(m.tags, "dst_domain")
-		if len(m.tags) != len(v.result.tags) {
+		delete(tags, "dst_domain")
+		if len(tags) != len(v.result.tags) {
 			t.Error("tags length not equal")
 		}
 		for eK, eV := range v.result.fields {
-			if aV, ok := m.fields[eK]; ok {
+			if aV, ok := fields[eK]; ok {
 				assert.Equal(t, eV, aV, eK)
 			} else {
 				t.Errorf("cannot find key %s in result fields", eK)
 			}
 		}
 		for eK, eV := range v.result.tags {
-			if aV, ok := m.tags[eK]; ok {
+			if aV, ok := tags[eK]; ok {
 				assert.Equal(t, eV, aV, eK)
 			} else {
 				t.Errorf("cannot find key %s in result tags", eK)
 			}
 		}
 	}
-	assert.Equal(t, len(cases), len(ConvertConn2Measurement(&connR, testServiceName)))
+	assert.Equal(t, len(cases), len(ConvertConn2Measurement(&connR, testServiceName, ptOpt)))
 }
 
 type caseStatsOp struct {

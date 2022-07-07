@@ -7,7 +7,7 @@ import (
 )
 
 func TestParseLogConfig(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		in                     string
 		out                    *containerLogConfig
 		parseFail, contentFail bool

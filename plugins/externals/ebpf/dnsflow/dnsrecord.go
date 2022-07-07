@@ -4,7 +4,6 @@
 package dnsflow
 
 import (
-	"net"
 	"sync"
 	"time"
 
@@ -16,15 +15,11 @@ type DNSAnswerRecord struct {
 	record map[string][2]interface{}
 }
 
-func (c *DNSAnswerRecord) LookupAddr(ip net.IP) string {
+func (c *DNSAnswerRecord) LookupAddr(ip string) string {
 	c.RLock()
 	defer c.RUnlock()
 
-	if ip == nil {
-		return ""
-	}
-	ipStr := ip.String()
-	v, ok := c.record[ipStr]
+	v, ok := c.record[ip]
 	if !ok {
 		return ""
 	}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/gopacket/afpacket"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -114,8 +115,8 @@ func (tracer *DNSFlowTracer) readPacket(ctx context.Context, tp *afpacket.TPacke
 func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag map[string]string,
 	dnsRecord *DNSAnswerRecord, feedAddr string,
 ) {
-	mCh := make(chan []inputs.Measurement)
-	finishedStatsM := []inputs.Measurement{}
+	mCh := make(chan []*io.Point)
+	finishedStatsM := []*io.Point{}
 	go tracer.readPacket(ctx, tp)
 	go func() {
 		t := time.NewTicker(time.Second * 30)
@@ -124,10 +125,14 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 			case <-t.C:
 				stats := tracer.checkTimeoutDNSQuery()
 				for k, v := range stats {
-					finishedStatsM = append(finishedStatsM, conv2M(k, v, gTag))
+					if pt, err := conv2M(k, v, gTag); err != nil {
+						l.Error(err)
+					} else {
+						finishedStatsM = append(finishedStatsM, pt)
+					}
 				}
 				collectData := finishedStatsM
-				finishedStatsM = make([]inputs.Measurement, 0)
+				finishedStatsM = []*io.Point{}
 				select {
 				case mCh <- collectData:
 				default:
@@ -142,7 +147,11 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 				}
 
 				if stats := tracer.updateDNSStats(pinfo, dnsRecord); stats != nil {
-					finishedStatsM = append(finishedStatsM, conv2M(pinfo.Key, *stats, gTag))
+					if pt, err := conv2M(pinfo.Key, *stats, gTag); err != nil {
+						l.Error(err)
+					} else {
+						finishedStatsM = append(finishedStatsM, pt)
+					}
 				}
 			case <-ctx.Done():
 				return
@@ -163,32 +172,32 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 	}
 }
 
-func conv2M(key DNSQAKey, stats DNSStats, gTags map[string]string) *measurement {
-	m := measurement{
-		ts:     stats.TS,
-		name:   srcNameM,
-		tags:   map[string]string{},
-		fields: map[string]interface{}{},
-	}
+func conv2M(key DNSQAKey, stats DNSStats, gTags map[string]string) (*io.Point, error) {
+	mTags := map[string]string{}
+	// ts:     stats.TS,
+
 	for k, v := range gTags {
-		m.tags[k] = v
+		mTags[k] = v
 	}
-	m.tags["src_ip"] = key.ClientIP
-	m.tags["src_port"] = fmt.Sprintf("%d", key.ClientPort)
-	m.tags["dst_ip"] = key.ServerIP
-	m.tags["dst_port"] = fmt.Sprintf("%d", key.ServerPort)
+	mTags["src_ip"] = key.ClientIP
+	mTags["src_port"] = fmt.Sprintf("%d", key.ClientPort)
+	mTags["dst_ip"] = key.ServerIP
+	mTags["dst_port"] = fmt.Sprintf("%d", key.ServerPort)
 	if key.IsUDP {
-		m.tags["transport"] = "udp"
+		mTags["transport"] = "udp"
 	} else {
-		m.tags["transport"] = "tcp"
+		mTags["transport"] = "tcp"
 	}
 	if key.IsV4 {
-		m.tags["family"] = "IPv4"
+		mTags["family"] = "IPv4"
 	} else {
-		m.tags["family"] = "IPv6"
+		mTags["family"] = "IPv6"
 	}
-	m.fields["timeout"] = stats.Timeout
-	m.fields["rcode"] = int64(stats.RCODE)
-	m.fields["resp_time"] = stats.RespTime.Nanoseconds()
-	return &m
+	mFields := map[string]interface{}{
+		"timeout":   stats.Timeout,
+		"rcode":     int64(stats.RCODE),
+		"resp_time": stats.RespTime.Nanoseconds(),
+	}
+
+	return io.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
 }
