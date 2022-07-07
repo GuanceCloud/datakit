@@ -167,6 +167,14 @@ func (c *Config) LoadEnvs() error {
 		c.HTTPAPI.Listen = v
 	}
 
+	if v := datakit.GetEnv("ENV_HTTP_TIMEOUT"); v != "" {
+		c.HTTPAPI.Timeout = v
+	}
+
+	if v := datakit.GetEnv("ENV_HTTP_CLOSE_IDLE_CONNECTION"); v != "" {
+		c.HTTPAPI.CloseIdleConnection = true
+	}
+
 	if v := datakit.GetEnv("ENV_HTTP_PUBLIC_APIS"); v != "" {
 		c.HTTPAPI.PublicAPIs = strings.Split(v, ",")
 	}
