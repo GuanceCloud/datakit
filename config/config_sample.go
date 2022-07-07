@@ -150,8 +150,8 @@ ulimit = 64000
   ## 开启后，如果数据推送失败，则对失败的数据进行本地缓存，后续将继续重新推送
   #
   enable_cache = false
-  ## cache_size_gb: int, 磁盘 cache 大小(单位 GB)
-  cache_size_gb = 1
+  ## cache_max_size_gb: int, 磁盘 cache 大小(单位 GB)
+  cache_max_size_gb = 1
 
   ## 行协议数据过滤
   ## 一旦 datakit.conf 中配置了过滤器，那么则以该过滤器为准，观测云 Studio 配置的过滤器将不再生效。

@@ -161,7 +161,7 @@ $ systemctl status datakit
     ```toml
     [io]
       enable_cache = true
-      cache_size_gb = 1
+      cache_max_size_gb = 1
     ```
 
 === "Kubernetes"

@@ -50,7 +50,7 @@ type IOConfig struct {
 	OutputFileInputs []string `toml:"output_file_inputs"`
 
 	EnableCache bool `toml:"enable_cache"`
-	CacheSizeGB int  `toml:"enable_size_gb"`
+	CacheSizeGB int  `toml:"cache_max_size_gb"`
 
 	Filters map[string][]string `toml:"filters"`
 }

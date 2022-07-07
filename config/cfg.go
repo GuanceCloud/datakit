@@ -60,8 +60,11 @@ func DefaultConfig() *Config {
 			MaxDynamicCacheCount: 1024,
 			FlushInterval:        "10s",
 			OutputFileInputs:     []string{},
-			EnableCache:          false,
-			Filters:              map[string][]string{},
+
+			EnableCache: false,
+			CacheSizeGB: 1,
+
+			Filters: map[string][]string{},
 		},
 
 		DataWayCfg: &dataway.DataWayCfg{

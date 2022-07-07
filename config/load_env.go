@@ -34,12 +34,12 @@ func (c *Config) loadIOEnvs() {
 		c.IOConf.EnableCache = true
 	}
 
-	if v := datakit.GetEnv("ENV_IO_CACHE_SIZE_GB"); v != "" {
+	if v := datakit.GetEnv("ENV_IO_CACHE_MAX_SIZE_GB"); v != "" {
 		val, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
-			l.Warnf("invalid env key ENV_IO_CACHE_SIZE_GB, value %s, err: %s ignored", v, err)
+			l.Warnf("invalid env key ENV_IO_CACHE_MAX_SIZE_GB, value %s, err: %s ignored", v, err)
 		} else {
-			l.Infof("set ENV_IO_CACHE_SIZE_GB to %d", val)
+			l.Infof("set ENV_IO_CACHE_MAX_SIZE_GB to %d", val)
 			c.IOConf.CacheSizeGB = int(val)
 		}
 	}

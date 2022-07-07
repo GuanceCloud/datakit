@@ -309,7 +309,9 @@ func (s *Sender) init(opt *Option) error {
 
 // initCache init cache instance.
 func (s *Sender) initCache(cacheDir string) {
-	cache.DefaultCacheOptions.MaxDiskSize = int64(s.opt.CacheSizeGB * 1024 * 1024 * 1024)
+	if s.opt.CacheSizeGB > 0 {
+		cache.DefaultCacheOptions.MaxDiskSize = int64(s.opt.CacheSizeGB * 1024 * 1024 * 1024)
+	}
 
 	if err := cache.Initialize(cacheDir, nil); err != nil {
 		l.Warnf("initialized cache: %s, ignored", err.Error())
