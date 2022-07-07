@@ -7,6 +7,8 @@
 
 swap 采集器用于采集主机 swap 内存的使用情况
 
+![](imgs/input-swap-1.png)
+
 ## 前置条件
 
 暂无
@@ -27,6 +29,10 @@ swap 采集器用于采集主机 swap 内存的使用情况
 | :---                  | ---              | ---                                                          |
 | `ENV_INPUT_SWAP_TAGS` | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
 | `ENV_INPUT_SWAP_INTERVAL` | `interval` | `10s` |
+
+## 指标预览
+
+![](imgs/input-swap-2.png)
 
 ## 指标集
 
@@ -52,3 +58,11 @@ swap 采集器用于采集主机 swap 内存的使用情况
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## 场景视图
+
+<场景 - 新建仪表板 - 内置模板库 - SWAP>
+
+## 异常检测
+
+<监控 - 模板新建 - 主机检测库>

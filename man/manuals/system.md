@@ -7,6 +7,8 @@
 
 system 采集器收集系统负载、正常运行时间、CPU 核心数量以及登录的用户数。
 
+![](imgs/input-system-1.png)
+
 ## 前置条件
 
 无
@@ -27,6 +29,10 @@ system 采集器收集系统负载、正常运行时间、CPU 核心数量以及
 | :---                    | ---              | ---                                                          |
 | `ENV_INPUT_SYSTEM_TAGS` | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
 | `ENV_INPUT_SYSTEM_INTERVAL` | `interval` | `10s` |
+
+## 指标预览
+
+![](imgs/input-system-2.png)
 
 ## 指标集
 
@@ -54,3 +60,11 @@ system 采集器收集系统负载、正常运行时间、CPU 核心数量以及
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## 场景视图
+
+<场景 - 新建仪表板 - 内置模板库 - System>
+
+## 异常检测
+
+<监控 - 模板新建 - 主机检测库>

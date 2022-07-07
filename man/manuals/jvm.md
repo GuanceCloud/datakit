@@ -5,6 +5,8 @@ JVM
 - DataKit 版本：{{.Version}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
+![](imgs/input-jvm-1.png)
+
 这里我们提供俩类 JVM 指标采集方式，一种方案是 Jolokia，一种是 ddtrace。如何选择的方式，我们有如下建议：
 
 - 如果采集诸如 Kafka 等 java 开发的中间件 JVM 指标，我们推荐 Jolokia 方案。 ddtrace 偏重于链路追踪（APM），且有一定的运行开销，对于中间件而言，链路追踪意义不大。
@@ -178,6 +180,10 @@ java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar you
 ```
 
 配置好后，重启 DataKit 即可。
+
+## 指标预览
+
+![](imgs/input-jvm-2.png)
 
 ## 指标集
 

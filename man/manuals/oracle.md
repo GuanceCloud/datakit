@@ -12,6 +12,9 @@ Oracle 监控指标采集，具有以下数据收集功能
 - system 数据采集
 - 自定义查询数据采集
 
+![](imgs/input-oracle-1.png)
+![](imgs/input-oracle-2.png)
+
 ## 前置条件
 
 - 创建监控账号
@@ -66,6 +69,14 @@ apt-get install -y libaio-dev libaio1
 
 > 注意：Oracle 采集器的日志在 `/usr/local/datakit/external/oracle.log` 中
 
+## 指标预览
+
+![](imgs/input-oracle-4.png)
+
+## 日志预览
+
+![](imgs/input-oracle-3.png)
+
 ## 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
@@ -90,6 +101,10 @@ apt-get install -y libaio-dev libaio1
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## 异常检测
+
+<异常检测库 - 新建检测库 - Oracle 检测库>
 
 ## FAQ
 

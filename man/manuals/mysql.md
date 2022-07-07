@@ -13,6 +13,9 @@ MySQL 指标采集，收集以下数据：
 - InnoDB 相关指标
 - 支持自定义查询数据采集
 
+![](imgs/input-mysql-1.png)
+![](imgs/input-mysql-2.png)
+
 ## 前置条件
 
 - MySQL 版本 5.7+
@@ -84,16 +87,16 @@ binlog 开启，参见[这个问答](https://stackoverflow.com/questions/4068238
 ```toml
 [[inputs.mysql]]
 
-## 开启数据库性能指标采集
+#### 开启数据库性能指标采集
 dbm = true
 
 ...
 
-## 监控指标配置
+#### 监控指标配置
 [inputs.mysql.dbm_metric]
   enabled = true
 
-## 监控采样配置
+#### 监控采样配置
 [inputs.mysql.dbm_sample]
   enabled = true
 ...
@@ -185,6 +188,14 @@ GRANT EXECUTE ON PROCEDURE datakit.enable_events_statements_consumers TO datakit
 ```sql
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%';
 ```
+
+## 指标预览
+
+![](imgs/input-mysql-3.png)
+
+## 日志预览
+
+![](imgs/input-mysql-4.png)
 
 ### 指标 {#metric}
 
@@ -295,3 +306,11 @@ SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5
 | `rows_sent`         | `248832`                                                                                    | 查询返回的行数                 |
 | `thread_id`         | `55`                                                                                        | 线程 id                        |
 | `time`              | `1514520249954078000`                                                                       | 纳秒时间戳（作为行协议时间）   |
+
+## 场景视图
+
+<场景 - 新建场景 - MySQL 监控场景>
+
+## 异常检测
+
+<异常检测库 - 新建检测库 - MySQL 检测库>

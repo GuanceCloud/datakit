@@ -7,6 +7,8 @@
 
 SQL Server 采集器采集 SQL Server `waitstats`、`database_io` 等相关指标
 
+![](imgs/input-sqlserver-1.png)
+
 ## 前置条件
 
 - SQL Server 版本 >= 2019
@@ -45,6 +47,10 @@ GO
 ```
 
 配置好后，重启 DataKit 即可。
+
+## 指标预览
+
+![](imgs/input-sqlserver-2.png)
 
 ## 指标集
 

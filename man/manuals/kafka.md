@@ -7,6 +7,8 @@
 
 采集 Kafka 指标和日志上报到观测云，帮助你监控分析 Kafka 各种异常情况
 
+![](imgs/input-kafka-1.png)
+
 ## 前置条件
 
 安装或下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar){:target="_blank"}。DataKit 安装目录下的 `data` 目录中已经有下载好的 Jolokia jar 包。 
@@ -62,6 +64,14 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 ```toml
 {{.InputSample}}
 ```
+
+## 指标预览
+
+![](imgs/input-kafka-2.png)
+
+## 日志预览
+
+![](imgs/input-kafka-3.png)
 
 ## 指标集
 
@@ -119,3 +129,11 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 | name   | io.confluent.connect.s3.storage.S3OutputStream:286     |
 | status | DEBUG                                                  |
 | time   | 1594105469333000000                                    |
+
+## 场景视图
+
+<场景 - 新建场景 - kafka 监控场景>
+
+## 异常检测
+
+<异常检测库 - 新建检测库 - kafka 检测库>

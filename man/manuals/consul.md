@@ -7,6 +7,8 @@
 
 Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prometheus 格式的数据
 
+![](imgs/input-consul-1.png)
+
 ## 前置条件 {#requirements}
 
 - 安装 consul-exporter
@@ -35,6 +37,10 @@ Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prom
 ```
 
 配置好后，重启 DataKit 即可。
+
+## 指标预览
+
+![](imgs/input-consul-2.png)
 
 ## 指标集 {#measurements}
 
@@ -114,3 +120,7 @@ Sep 18 19:30:23 derrick-ThinkPad-X230 consul[11803]: 2021-09-18T19:30:23.522+080
 | `level`     | `INFO`                                                             | 日志级别 |
 | `character` | `agent.server.connect`                                             | 角色     |
 | `msg`       | `initialized primary datacenter CA with provider: provider=consul` | 日志内容 |
+
+# 场景视图
+
+<场景 - 新建仪表板 - 内置模板库 - Consul 监控视图>

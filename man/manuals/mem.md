@@ -7,6 +7,8 @@
 
 mem 采集器用于收集系统内存信息，一些通用的指标如主机总内存、用的内存、已使用的内存等  
 
+![](imgs/input-mem-1.png)
+
 ## 前置条件
 
 暂无
@@ -27,6 +29,10 @@ mem 采集器用于收集系统内存信息，一些通用的指标如主机总�
 | :---                     | ---              | ---                                                          |
 | `ENV_INPUT_MEM_TAGS`     | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
 | `ENV_INPUT_MEM_INTERVAL` | `interval`       | `10s`                                                        |
+
+## 指标预览
+
+![](imgs/input-mem-3.png)
 
 ## 指标集
 
@@ -52,3 +58,11 @@ mem 采集器用于收集系统内存信息，一些通用的指标如主机总�
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## 场景视图
+
+<场景 - 新建仪表板 - 内置模板库 - Memory>
+
+## 异常检测
+
+<监控 - 模板新建 - 主机检测库>

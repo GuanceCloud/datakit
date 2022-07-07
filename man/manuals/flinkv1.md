@@ -7,11 +7,7 @@
 
 Flink 采集器可以从 Flink 实例中采取很多指标，比如 Flink 服务器状态和网络的状态等多种指标，并将指标采集到 DataFlux ，帮助你监控分析 Flink 各种异常情况。
 
-## 视图预览
-
-Flink 观测场景主要展示了 Flink 的集群状态，任务 Checkpoint 情况、job Buffer、job JVM 资源利用等信息。
-
-![image](imgs/input-flink-1.png)
+![](imgs/input-flink-1.png)
 
 ## 安装部署
 
@@ -77,7 +73,7 @@ metrics.reporter.prom.port: 9250-9260
 - 重启 Flink 集群应用配置
 - curl http://{Flink iP}:9250-9260 返回结果正常即可开始采集
 
-![image](imgs/input-flink-2.png)
+![](imgs/input-flink-2.png)
 
 ### 配置实施
 
@@ -89,7 +85,7 @@ metrics.reporter.prom.port: 9250-9260
 
 配置好后，重启 DataKit 即可。
 
-#### 指标采集 (必选)
+#### 指标采集
 
 1、开启 Datakit flink 插件，复制 sample 文件
 
@@ -346,7 +342,7 @@ systemctl restart datakit
 
 4、Flink 指标采集验证 `/usr/local/datakit/datakit -M |egrep "最近采集|9251"`
 
-![image](imgs/input-flink-3.png)
+![](imgs/input-flink-3.png)
 
 5、DQL 验证
 
@@ -397,7 +393,7 @@ Status_JVM_GarbageCollector_G1_Young_Generation_Count <nil>
 
 6、指标预览
 
-![image](imgs/input-flink-4.png)
+![](imgs/input-flink-4.png)
 
 #### 插件标签 (非必选)
 

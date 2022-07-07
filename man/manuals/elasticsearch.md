@@ -7,6 +7,8 @@
 
 ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性能状况、索引性能、检索性能等。
 
+![](imgs/input-elasticsearch-1.png)
+
 ## 前置条件
 
 - ElasticSearch 版本 >= 6.0.0
@@ -128,6 +130,10 @@ PUT _plugins/_security/api/roles/monitor
 
 配置好后，重启 DataKit 即可。
 
+## 指标预览
+
+![](imgs/input-elasticsearch-2.png)
+
 ## 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
@@ -227,3 +233,7 @@ files = ["/path/to/your/file.log"]
 **注意**
 
 - 日志采集仅支持采集已安装 DataKit 主机上的日志
+
+## 更多阅读
+
+- [ElasticSearch 最佳实践](../best-practices/integrations/elasticsearch.md)

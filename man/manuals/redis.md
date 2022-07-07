@@ -13,6 +13,7 @@ Redis 指标采集器，采集以下数据：
 - bigkey scan 监控
 - 主从replication
 
+![](imgs/input-redis-1.png)
 
 ## 前置条件
 
@@ -41,6 +42,15 @@ ACL SETUSER username on +ping
 ```
 
 配置好后，重启 DataKit 即可。
+
+## 指标预览
+
+![](imgs/input-redis-2.png)
+
+
+## 日志预览
+
+![](imgs/input-redis-3.png)
 
 ## 指标集
 
@@ -129,3 +139,15 @@ ACL SETUSER username on +ping
 | `statu`     | `notice`                                    | 日志级别                     |
 | `msg`       | `Background saving terminated with success` | 日志内容                     |
 | `time`      | `1557861100164000000`                       | 纳秒时间戳（作为行协议时间） |
+
+## 场景视图
+
+<场景 - 新建场景 - Redis 监控场景>
+
+## 异常检测
+
+<异常检测库 - 新建检测库 - Redis 检测库>
+
+## 更多阅读
+
+- [Redis 可观测最佳实践](../best-practices/integrations/redis.md)
