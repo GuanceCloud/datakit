@@ -111,6 +111,7 @@ ulimit = 64000
   #
   public_apis = []
   timeout = "30s"
+  close_idle_connection = false
 
 ## io: io 配置
 #

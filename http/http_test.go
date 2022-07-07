@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,8 +18,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/influxdb1-client/models"
-
-	//"github.com/reiver/go-telnet"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
@@ -317,32 +316,53 @@ func TestTimeout(t *testing.T) {
 	}
 }
 
-func TestTelnetTimeout(t *testing.T) {
-	apiConfig.timeoutDuration = 100 * time.Millisecond
-	apiConfig.CloseTimeoutConnection = false
-
+//nolint:durationcheck
+func TestTimeoutOnIdleTCPConnection(t *testing.T) {
 	router := gin.New()
-	router.Use(dkHTTPTimeout())
 
-	ts := httptest.NewServer(router)
+	idleSec := time.Duration(3)
+
+	ts := httptest.NewUnstartedServer(router)
+	ts.Config.ReadTimeout = idleSec * time.Second
+	ts.Start()
 	defer ts.Close()
 
-	router.POST("/timeout", func(c *gin.Context) {
-		x := c.Query("x")
-		du, err := time.ParseDuration(x)
-		if err != nil {
-			du = 10 * time.Millisecond
-		}
-
-		time.Sleep(du)
+	router.POST("/", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
 
-	fmt.Printf("server: %s\n", ts.Listener.Addr().String())
-	time.Sleep(time.Hour)
+	tcpserver := ts.Listener.Addr().String()
+	tcpAddr, err := net.ResolveTCPAddr("tcp", tcpserver)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("server: %s", tcpserver)
 
-	//var caller telnet.Caller = telnet.StandardCaller
+	// start tcp client connect to HTTP server
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		t.Errorf("Dial %s failed: %s", tcpserver, err.Error())
+	}
 
-	//@TOOD: replace "example.net:5555" with address you want to connect to.
-	//telnet.DialToAndCall(ts.Listener.Addr().String(), caller)
+	time.Sleep((idleSec + 1) * time.Second) // idle and timeout
+
+	closed := false
+
+	for {
+		n, err := conn.Write([]byte(`POST /timeout?x=101ms HTTP/1.1
+Host: stackoverflow.com
+
+nothing`))
+
+		if err != nil {
+			t.Logf("send %d bytes failed: %s", n, err)
+			closed = true
+			break
+		} else {
+			t.Logf("send %d bytes ok", n)
+		}
+		time.Sleep(time.Second)
+	}
+
+	tu.Assert(t, closed, "expect closed, but not")
 }

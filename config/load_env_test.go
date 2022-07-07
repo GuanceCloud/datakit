@@ -39,6 +39,8 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_REQUEST_RATE_LIMIT":              "1234",
 				"ENV_DATAWAY_ENABLE_HTTPTRACE":        "any",
 				"ENV_DATAWAY_HTTP_PROXY":              "http://1.2.3.4:1234",
+				"ENV_HTTP_CLOSE_IDLE_CONNECTION":      "on",
+				"ENV_HTTP_TIMEOUT":                    "10s",
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
@@ -56,6 +58,8 @@ func TestLoadEnv(t *testing.T) {
 				cfg.HTTPAPI.Listen = "localhost:9559"
 				cfg.HTTPAPI.Disable404Page = true
 				cfg.HTTPAPI.RequestRateLimit = 1234.0
+				cfg.HTTPAPI.Timeout = "10s"
+				cfg.HTTPAPI.CloseIdleConnection = true
 
 				cfg.Logging.Level = "debug"
 

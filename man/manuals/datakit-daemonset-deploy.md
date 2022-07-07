@@ -198,10 +198,10 @@ DataKit 支持的环境变量如下各表所示。
 
 ###  DataKit pprof 相关 {#env-pprof}
 
-| 环境变量名称  | 默认值                     | 必须   | 说明                                            |
-| ---------:    | ---:                       | ------ | ----                                            |
-| ENV_ENABLE_PPROF   | false | 否     | 是否开启 `pprof` |
-| ENV_PPROF_LISTEN       | 无     | 否     | `pprof`服务监听地址 |
+| 环境变量名称              | 默认值 | 必须   | 说明                                                                                  |
+| ---------:                | ---:   | ------ | ----                                                                                  |
+| ENV_ENABLE_PPROF          | false  | 否     | 是否开启 `pprof`                                                                      |
+| ENV_PPROF_LISTEN          | 无     | 否     | `pprof`服务监听地址                                                                   |
 
 ### 选举相关环境变量 {#env-elect}
 
@@ -212,14 +212,16 @@ DataKit 支持的环境变量如下各表所示。
 
 ### HTTP/API 相关环境变量 {#env-http-api}
 
-| 环境变量名称             | 默认值            | 必须   | 说明                                                 |
-| ---------:               | ---:              | ------ | ----                                                 |
-| ENV_DISABLE_404PAGE      | 无                | 否     | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用） |
-| ENV_HTTP_LISTEN          | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [DataKit 接口](apis)    |
-| ENV_REQUEST_RATE_LIMIT   | 无(float)         | 否     | 限制 9529 [API 每秒请求数](datakit-conf.md#set-http-api-limit) |
-| ENV_RUM_ORIGIN_IP_HEADER | `X-Forwarded-For` | 否     | RUM 专用                                             |
-| ENV_RUM_APP_ID_WHITE_LIST | 无 | 否     | RUM app-id 白名单列表，以 `,` 分割，如 `appid-1,appid-2`|
-| ENV_HTTP_PUBLIC_APIS | 无 | 否     | 允许外部访问的 DataKit [API 列表](apis)，当 DataKit 部署在公网时，可以禁用部分 API|
+| 环境变量名称                   | 默认值            | 必须   | 说明                                                                                  |
+| ---------:                     | ---:              | ------ | ----                                                                                  |
+| ENV_DISABLE_404PAGE            | 无                | 否     | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用）                                  |
+| ENV_HTTP_LISTEN                | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [DataKit 接口](apis)                                     |
+| ENV_HTTP_PUBLIC_APIS           | 无                | 否     | 允许外部访问的 DataKit [API 列表](apis)，当 DataKit 部署在公网时，可以禁用部分 API    |
+| ENV_HTTP_TIMEOUT               | 30s               | 否     | 设置 9529 HTTP API 服务端超时时间  [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)                                                    |
+| ENV_HTTP_CLOSE_IDLE_CONNECTION | false             | 否     | 如果开启，则 9529 HTTP server 会主动关闭闲置连接（闲置时间等同于 `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental) |
+| ENV_REQUEST_RATE_LIMIT         | 无(float)         | 否     | 限制 9529 [API 每秒请求数](datakit-conf.md#set-http-api-limit)                        |
+| ENV_RUM_ORIGIN_IP_HEADER       | `X-Forwarded-For` | 否     | RUM 专用                                                                              |
+| ENV_RUM_APP_ID_WHITE_LIST      | 无                | 否     | RUM app-id 白名单列表，以 `,` 分割，如 `appid-1,appid-2`                              |
 
 ### Git 配置相关环境变量 {#env-git}
 
