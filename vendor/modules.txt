@@ -895,6 +895,10 @@ github.com/prometheus/procfs/internal/util
 ## explicit
 github.com/prometheus/prometheus/prompb
 github.com/prometheus/prometheus/util/strutil
+# github.com/reiver/go-oi v1.0.0
+## explicit
+# github.com/reiver/go-telnet v0.0.0-20180421082511-9ff0b2ab096e
+## explicit
 # github.com/rivo/tview v0.0.0-20220129131435-1f7581b67bd1
 ## explicit; go 1.12
 github.com/rivo/tview

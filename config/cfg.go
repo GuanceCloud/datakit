@@ -73,11 +73,12 @@ func DefaultConfig() *Config {
 		ProtectMode: true,
 
 		HTTPAPI: &dkhttp.APIConfig{
-			RUMOriginIPHeader: "X-Forwarded-For",
-			Listen:            "localhost:9529",
-			RUMAppIDWhiteList: []string{},
-			PublicAPIs:        []string{},
-			Timeout:           "30s",
+			RUMOriginIPHeader:      "X-Forwarded-For",
+			Listen:                 "localhost:9529",
+			RUMAppIDWhiteList:      []string{},
+			PublicAPIs:             []string{},
+			Timeout:                "30s",
+			CloseTimeoutConnection: false,
 		},
 
 		DCAConfig: &dkhttp.DCAConfig{

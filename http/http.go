@@ -101,8 +101,9 @@ type APIConfig struct {
 	PublicAPIs        []string `toml:"public_apis"`
 	RequestRateLimit  float64  `toml:"request_rate_limit,omitzero"`
 
-	Timeout         string `toml:"timeout"`
-	timeoutDuration time.Duration
+	Timeout                string `toml:"timeout"`
+	CloseTimeoutConnection bool   `toml:"close_timeout_connection"`
+	timeoutDuration        time.Duration
 }
 
 func Start(o *Option) {
@@ -242,7 +243,17 @@ func setVersionInfo(c *gin.Context) {
 
 func timeoutResponse(c *gin.Context) {
 	c.String(http.StatusRequestTimeout, fmt.Sprintf("timeout(%s)", apiConfig.timeoutDuration))
-	// TODO: should we close the underlying TCP connection?
+
+	if apiConfig.CloseTimeoutConnection {
+		conn, _, err := c.Writer.Hijack()
+		if err != nil {
+			return
+		}
+
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}
 }
 
 func dkHTTPTimeout() gin.HandlerFunc {

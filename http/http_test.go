@@ -17,6 +17,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/influxdb1-client/models"
+
+	//"github.com/reiver/go-telnet"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
@@ -313,4 +315,34 @@ func TestTimeout(t *testing.T) {
 			t.Logf("body: %s", string(respBody))
 		})
 	}
+}
+
+func TestTelnetTimeout(t *testing.T) {
+	apiConfig.timeoutDuration = 100 * time.Millisecond
+	apiConfig.CloseTimeoutConnection = false
+
+	router := gin.New()
+	router.Use(dkHTTPTimeout())
+
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	router.POST("/timeout", func(c *gin.Context) {
+		x := c.Query("x")
+		du, err := time.ParseDuration(x)
+		if err != nil {
+			du = 10 * time.Millisecond
+		}
+
+		time.Sleep(du)
+		c.Status(http.StatusOK)
+	})
+
+	fmt.Printf("server: %s\n", ts.Listener.Addr().String())
+	time.Sleep(time.Hour)
+
+	//var caller telnet.Caller = telnet.StandardCaller
+
+	//@TOOD: replace "example.net:5555" with address you want to connect to.
+	//telnet.DialToAndCall(ts.Listener.Addr().String(), caller)
 }
