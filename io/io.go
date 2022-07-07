@@ -38,17 +38,21 @@ var (
 )
 
 type IOConfig struct {
-	FeedChanSize              int                 `toml:"feed_chan_size"`
-	HighFreqFeedChanSize      int                 `toml:"high_frequency_feed_chan_size"`
-	MaxCacheCount             int64               `toml:"max_cache_count"`
-	CacheDumpThreshold        int64               `toml:"cache_dump_threshold"`
-	MaxDynamicCacheCount      int64               `toml:"max_dynamic_cache_count"`
-	DynamicCacheDumpThreshold int64               `toml:"dynamic_cache_dump_threshold"`
-	FlushInterval             string              `toml:"flush_interval"`
-	OutputFile                string              `toml:"output_file"`
-	OutputFileInputs          []string            `toml:"output_file_inputs"`
-	EnableCache               bool                `toml:"enable_cache"`
-	Filters                   map[string][]string `toml:"filters"`
+	FeedChanSize         int `toml:"feed_chan_size"`
+	HighFreqFeedChanSize int `toml:"high_frequency_feed_chan_size"`
+
+	MaxCacheCount        int64 `toml:"max_cache_count"`
+	MaxDynamicCacheCount int64 `toml:"max_dynamic_cache_count"`
+
+	FlushInterval string `toml:"flush_interval"`
+
+	OutputFile       string   `toml:"output_file"`
+	OutputFileInputs []string `toml:"output_file_inputs"`
+
+	EnableCache bool `toml:"enable_cache"`
+	CacheSizeGB int  `toml:"enable_size_gb"`
+
+	Filters map[string][]string `toml:"filters"`
 }
 
 type Option struct {
@@ -84,9 +88,11 @@ type IO struct {
 
 	cacheCnt        int64
 	dynamicCacheCnt int64
-	droppedTotal    int64
-	outputFileSize  int64
-	sender          *sender.Sender
+
+	droppedTotal int64
+
+	outputFileSize int64
+	sender         *sender.Sender
 }
 
 type IoStat struct {
@@ -310,6 +316,7 @@ func (x *IO) StartIO(recoverable bool) {
 	if sender, err := sender.NewSender(
 		&sender.Option{
 			Cache:              x.conf.EnableCache,
+			CacheSizeGB:        x.conf.CacheSizeGB,
 			FlushCacheInterval: du,
 			ErrorCallback: func(err error) {
 				FeedEventLog(&DKEvent{Message: err.Error(), Status: "error", Category: "dataway"})
@@ -419,29 +426,6 @@ func (x *IO) updateLastErr(e *lastError) {
 
 func (x *IO) flushAll() {
 	x.flush()
-
-	if x.cacheCnt > 0 {
-		log.Warnf("post failed cache count: %d", x.cacheCnt)
-	}
-
-	// dump cache pts
-	if x.conf.CacheDumpThreshold > 0 && x.cacheCnt > x.conf.CacheDumpThreshold {
-		log.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.conf.MaxCacheCount)
-		for k := range x.cache {
-			x.cache[k] = nil
-		}
-		x.droppedTotal += x.cacheCnt
-		x.cacheCnt = 0
-	}
-	// dump dynamic cache pts
-	if x.conf.DynamicCacheDumpThreshold > 0 && x.dynamicCacheCnt > x.conf.DynamicCacheDumpThreshold {
-		log.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.conf.MaxDynamicCacheCount)
-		for k := range x.dynamicCache {
-			x.dynamicCache[k] = nil
-		}
-		x.droppedTotal += x.dynamicCacheCnt
-		x.dynamicCacheCnt = 0
-	}
 }
 
 func (x *IO) flush() {

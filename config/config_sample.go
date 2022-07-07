@@ -134,16 +134,6 @@ ulimit = 64000
   #
   max_dynamic_cache_count = 1024
 
-  ## cache_dump_threshold: number, 本地缓存推送后清理剩余缓存阈值
-  ## 此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用
-  #
-  cache_dump_threshold = 512
-
-  ## dynamic_cache_dump_threshold: number, HTTP 缓存推送后清理剩余缓存阈值
-  ## 此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用
-  #
-  dynamic_cache_dump_threshold = 512
-
   ## flush_interval: string, 推送时间间隔
   #
   flush_interval = "10s"
@@ -160,6 +150,8 @@ ulimit = 64000
   ## 开启后，如果数据推送失败，则对失败的数据进行本地缓存，后续将继续重新推送
   #
   enable_cache = false
+  ## cache_size_gb: int, 磁盘 cache 大小(单位 GB)
+  cache_size_gb = 1
 
   ## 行协议数据过滤
   ## 一旦 datakit.conf 中配置了过滤器，那么则以该过滤器为准，观测云 Studio 配置的过滤器将不再生效。
