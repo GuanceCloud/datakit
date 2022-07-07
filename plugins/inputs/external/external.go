@@ -140,9 +140,6 @@ func (ex *ExternalInput) Run() {
 		ex.Args = append(ex.Args, []string{"--tags", tagsStr}...)
 	}
 
-	tick := time.NewTicker(ex.duration)
-	defer tick.Stop()
-
 	for {
 		if err := ex.precheck(); err != nil {
 			time.Sleep(time.Second)
@@ -150,6 +147,9 @@ func (ex *ExternalInput) Run() {
 		}
 		break
 	}
+
+	tick := time.NewTicker(ex.duration)
+	defer tick.Stop()
 
 	for {
 		if ex.Election && ex.pause {
