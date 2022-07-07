@@ -39,7 +39,7 @@ func FileIsActive(fn string, timeout time.Duration) bool {
 	if err != nil {
 		return false
 	}
-	if time.Since(info.ModTime()) > timeout {
+	if 0 < timeout && timeout < time.Since(info.ModTime()) {
 		return false
 	}
 	return true
