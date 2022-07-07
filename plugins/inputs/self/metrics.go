@@ -33,9 +33,7 @@ func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {
 			"host":              &inputs.TagInfo{Desc: "Hostname of the DataKit"},
 			"uuid":              &inputs.TagInfo{Desc: "**Deprecated**, currently use `hostname` as DataKit's UUID"},
 			"namespace":         &inputs.TagInfo{Desc: "Election namespace(datakit.conf/namespace) of DataKit, may be not set"},
-
-			"version": &inputs.TagInfo{Desc: "DataKit version"},
-			"vserion": &inputs.TagInfo{Desc: "**Deprecated**, same as `version`"},
+			"version":           &inputs.TagInfo{Desc: "DataKit version"},
 		},
 
 		Fields: map[string]interface{}{

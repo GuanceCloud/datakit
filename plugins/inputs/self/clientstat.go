@@ -119,7 +119,6 @@ func (s *ClientStat) ToMetric() *io.Point {
 
 	tags := map[string]string{
 		"uuid":              config.Cfg.UUID,
-		"vserion":           datakit.Version,
 		"version":           datakit.Version,
 		"os":                s.OS,
 		"os_version_detail": s.OSDetail,
