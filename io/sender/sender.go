@@ -97,6 +97,7 @@ type WriteFunc func(string, []sinkcommon.ISinkPoint) error
 
 type Option struct {
 	Cache              bool
+	CacheSizeGB        int
 	CacheDir           string
 	ErrorCallback      func(error)
 	FlushCacheInterval time.Duration
@@ -201,10 +202,15 @@ func (s *Sender) worker(category string, pts []sinkcommon.ISinkPoint) error {
 			}
 
 			if s.opt.Cache {
-				err := s.cache(category, pts)
-				if err == nil {
-					l.Debugf("sink write cached: %s(%d)", category, len(pts))
-					s.updateStat(category, &writeInfo{isCache: true, ptsLen: int64(len(pts))}, false)
+				switch category {
+				case datakit.Metric, datakit.MetricDeprecated:
+					// pass: do not cache metric
+				default:
+					err := s.cache(category, pts)
+					if err == nil {
+						l.Debugf("sink write cached: %s(%d)", category, len(pts))
+						s.updateStat(category, &writeInfo{isCache: true, ptsLen: int64(len(pts))}, false)
+					}
 				}
 			}
 		} else {
@@ -290,6 +296,7 @@ func (s *Sender) init(opt *Option) error {
 		if len(s.opt.CacheDir) != 0 {
 			cacheDir = s.opt.CacheDir
 		}
+
 		s.initCache(cacheDir)
 		s.group.Go(func(ctx context.Context) error {
 			s.startFlushCache()
@@ -302,6 +309,8 @@ func (s *Sender) init(opt *Option) error {
 
 // initCache init cache instance.
 func (s *Sender) initCache(cacheDir string) {
+	cache.DefaultCacheOptions.MaxDiskSize = int64(s.opt.CacheSizeGB * 1024 * 1024 * 1024)
+
 	if err := cache.Initialize(cacheDir, nil); err != nil {
 		l.Warnf("initialized cache: %s, ignored", err.Error())
 	} else { //nolint
@@ -319,6 +328,7 @@ func (s *Sender) startFlushCache() {
 	}
 
 	tick := time.NewTicker(interval)
+	defer tick.Stop()
 
 	for {
 		select {

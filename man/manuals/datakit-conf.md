@@ -149,23 +149,30 @@ $ systemctl status datakit
 > - 目前 cgroup 限制只在[宿主机安装](datakit-install.md)的时候会默认开启
 > - 目前 cgourp 只支持 CPU 使用率和内存使用量（mem+swap）控制，且支持 Linux 操作系统。
 
-### 启用磁盘缓存（Alpha） {#using-cache}
+### 启用磁盘缓存 {#using-cache}
 
-在 DataKit 日常运行中，有简单的缓存机制，如果发送 DataWay 失败，会缓存大概 1000 个数据点。一旦超出这个点数，就会丢弃掉。
+[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ·
+[:octicons-beaker-24: Experimental](index.md##experimental)
 
-可设置磁盘缓存来保证尽可能不丢弃：
+在 DataKit 日常运行中，如果发送 DataWay 失败，为了缓解数据丢失，可设置一下磁盘缓存，修改 *datakit.conf* 如下配置，即可开启磁盘缓存：
 
-- DataKit 重启
-- 因大量数据发送失败而导致的数据清空
+=== "datakit.conf"
 
-修改 *datakit.conf* 如下配置，即可开启磁盘缓存：
+    修改 datakit.conf：
 
-```toml
-[io]
-  enable_cache = true
-```
+    ```toml
+    [io]
+      enable_cache = true
+      cache_size_gb = 1
+    ```
 
-开启磁盘缓存后，最大能缓存 1GB 的数据（目前不可配置），超过该大小的数据，将被丢弃。
+=== "Kubernetes"
+
+    参见[这里](datakit-daemonset-deploy.md#env-io)
+
+???+ attention
+
+    目前不支持时序数据的缓存，除此之外的数据，都支持发送失败的磁盘缓存。另外，虽然号称限制磁盘大小，但在极端情况下（比如发送一直失败），仍然有可能会超过标定的限制。
 
 ### 使用 Git 管理 DataKit 配置 {#using-gitrepo}
 
