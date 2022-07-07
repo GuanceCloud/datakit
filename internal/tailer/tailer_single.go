@@ -40,7 +40,8 @@ type Single struct {
 	decoder *encoding.Decoder
 	mult    *multiline.Multiline
 
-	readBuff []byte
+	readBuff  []byte
+	readLines int64
 
 	tags            map[string]string
 	expectMultiLine bool // only for docker log, relation to log size (16K)
@@ -402,8 +403,13 @@ func (t *Single) feed(pending []string) {
 	// -1ns
 	timeNow := time.Now().Add(-time.Duration(len(pending)))
 	for i, cnt := range pending {
+		t.readLines++
 		pt, err := iod.NewPoint(t.opt.Source, t.tags,
-			map[string]interface{}{pipeline.FieldMessage: cnt, pipeline.FieldStatus: pipeline.DefaultStatus},
+			map[string]interface{}{
+				"log_read_lines":      t.readLines,
+				pipeline.FieldMessage: cnt,
+				pipeline.FieldStatus:  pipeline.DefaultStatus,
+			},
 			&iod.PointOption{Time: timeNow.Add(time.Duration(i)), Category: datakit.Logging})
 		if err != nil {
 			l.Error(err)
@@ -431,6 +437,7 @@ func (t *Single) currentOffset() int64 {
 	}
 	offset, err := t.file.Seek(0, io.SeekCurrent)
 	if err != nil {
+		t.opt.log.Warnf("faild to get offset: %s", err)
 		return -1
 	}
 	return offset
@@ -443,6 +450,7 @@ func (t *Single) read() ([]byte, int, error) {
 		t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
 		return nil, 0, err
 	}
+
 	return t.readBuff[:n], n, nil
 }
 
