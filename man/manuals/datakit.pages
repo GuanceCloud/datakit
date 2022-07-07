@@ -6,6 +6,7 @@ nav:
       - 'DataKit 配置': datakit-conf.md
       - datakit-input-conf.md
       - git-config-how-to.md
+      - kubernetes-crd.md
     - 'DataKit 日常使用':
       - '通过 DQL 查询数据': datakit-dql-how-to.md
       - datakit-monitor.md

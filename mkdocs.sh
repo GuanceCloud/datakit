@@ -89,8 +89,9 @@ datakit_docs=(
   $tmp_doc_dir/development.md
   $tmp_doc_dir/election.md
   $tmp_doc_dir/git-config-how-to.md
-  $tmp_doc_dir/pipeline.md
+  $tmp_doc_dir/kubernetes-crd.md
   $tmp_doc_dir/logging-pipeline-bench.md
+  $tmp_doc_dir/pipeline.md
   $tmp_doc_dir/proxy.md
   $tmp_doc_dir/why-no-data.md
 )

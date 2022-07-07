@@ -1,7 +1,7 @@
 # Kubernetes DataKit CRD 扩展采集
 ---
 
-- DataKit 版本：{{.Version}}
+[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental) 
 
 ## 介绍
 
