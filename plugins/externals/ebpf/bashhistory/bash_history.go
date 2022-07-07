@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"os/user"
+	"regexp"
 	"time"
 	"unsafe"
 
@@ -19,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/sysmonitor"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/sys/unix"
 )
@@ -30,7 +32,12 @@ type BashEventC C.struct_bash_event
 
 const srcNameM = "bash"
 
-var l = logger.DefaultSLogger(srcNameM)
+var (
+	l = logger.DefaultSLogger(srcNameM)
+
+	regexpReadline  = regexp.MustCompile(`libreadline.so`)
+	sectionReadline = "uretprobe/readline"
+)
 
 func SetLogger(nl *logger.Logger) {
 	l = nl
@@ -165,6 +172,38 @@ func (tracer *BashTracer) Run(ctx context.Context, gTags map[string]string,
 		l.Error(err)
 		return err
 	}
+
+	rules := []sysmonitor.UprobeRegRule{
+		{
+			Re: regexpReadline,
+			Register: func(s string) error {
+				l.Info("AddHook: ", s)
+				if err := bpfManger.AddHook("", manager.Probe{
+					UID:        s,
+					Section:    sectionReadline,
+					BinaryPath: s,
+				}); err != nil {
+					l.Error(err)
+				}
+				return nil
+			},
+			UnRegister: func(s string) error {
+				l.Info("DetachHook: ", s)
+				if err := bpfManger.DetachHook(sectionReadline, s); err != nil {
+					l.Error(err)
+				}
+				return nil
+			},
+		},
+	}
+
+	r, err := sysmonitor.NewUprobeDyncLibRegister(rules)
+	if err != nil {
+		return err
+	}
+	r.ScanAndUpdate()
+	r.Monitor(ctx, time.Minute*1)
+
 	go func() {
 		<-ctx.Done()
 		close(tracer.stopCh)

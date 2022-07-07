@@ -10,9 +10,11 @@ import (
 	"math"
 	"os"
 	"reflect"
+	"regexp"
 	"time"
 	"unsafe"
 
+	"github.com/DataDog/ebpf"
 	"github.com/DataDog/ebpf/manager"
 	"github.com/google/gopacket/afpacket"
 	"github.com/sirupsen/logrus"
@@ -21,6 +23,7 @@ import (
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/netflow"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
+	sysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/sysmonitor"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/sys/unix"
 )
@@ -46,6 +49,14 @@ const (
 	ConnL4Mask uint32 = dknetflow.ConnL4Mask
 	ConnL4TCP  uint32 = dknetflow.ConnL4TCP
 	ConnL4UDP  uint32 = dknetflow.ConnL4UDP
+)
+
+var (
+	// libssl
+	regexpLibSSL    = regexp.MustCompile(`libssl.so`)
+	regexpLibCrypto = regexp.MustCompile(`libcrypto.so`)
+
+	// TODO: guntls
 )
 
 type (
@@ -75,8 +86,23 @@ func SetLogger(nl *logger.Logger) {
 	l = nl
 }
 
-func NewHTTPFlowManger(fd int, closedEventHandler func(cpu int, data []byte,
-	perfmap *manager.PerfMap, manager *manager.Manager)) (*manager.Manager, error) {
+var (
+	libSSLSection = []string{
+		"uprobe/SSL_read",
+		"uretprobe/SSL_read",
+		"uprobe/SSL_write",
+		"uprobe/SSL_shutdown",
+		"uprobe/SSL_set_fd",
+		"uprobe/SSL_set_bio",
+	}
+	libcryptoSection = []string{
+		"uprobe/BIO_new_socket",
+		"uretprobe/BIO_new_socket",
+	}
+)
+
+func NewHTTPFlowManger(fd int, constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.Map, closedEventHandler func(cpu int, data []byte,
+	perfmap *manager.PerfMap, manager *manager.Manager), disableTLS bool) (*manager.Manager, *sysmonitor.UprobeDynamicLibRegister, error) {
 	m := &manager.Manager{
 		Probes: []*manager.Probe{
 			{
@@ -100,19 +126,84 @@ func NewHTTPFlowManger(fd int, closedEventHandler func(cpu int, data []byte,
 			},
 		},
 	}
+
+	var r *sysmonitor.UprobeDynamicLibRegister
+	if !disableTLS {
+		opensslRules := []sysmonitor.UprobeRegRule{
+			{
+				Re: regexpLibSSL,
+				Register: func(s string) error {
+					l.Info("AddHook: ", s)
+					for _, sec := range libSSLSection {
+						if err := m.AddHook("", manager.Probe{
+							UID:        s,
+							Section:    sec,
+							BinaryPath: s,
+						}); err != nil {
+							l.Error(err)
+						}
+					}
+					return nil
+				},
+				UnRegister: func(s string) error {
+					l.Info("DetachHook: ", s)
+					for _, sec := range libSSLSection {
+						if err := m.DetachHook(sec, s); err != nil {
+							l.Error(err)
+						}
+					}
+					return nil
+				},
+			},
+			{
+				Re: regexpLibCrypto,
+				Register: func(s string) error {
+					for _, sec := range libcryptoSection {
+						if err := m.AddHook("", manager.Probe{
+							UID:        s,
+							Section:    sec,
+							BinaryPath: s,
+						}); err != nil {
+							l.Error(err)
+						}
+					}
+					return nil
+				},
+				UnRegister: func(s string) error {
+					for _, sec := range libcryptoSection {
+						if err := m.DetachHook(sec, s); err != nil {
+							l.Error(err)
+						}
+					}
+					return nil
+				},
+			},
+		}
+
+		var err error
+		r, err = sysmonitor.NewUprobeDyncLibRegister(opensslRules)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
 	mOpts := manager.Options{
 		RLimit: &unix.Rlimit{
 			Cur: math.MaxUint64,
 			Max: math.MaxUint64,
 		},
-		// ConstantEditors: constEditor,
+		ConstantEditors: constEditor,
+		MapEditors: map[string]*ebpf.Map{
+			"bpfmap_sockfd": bpfMapSockFD,
+		},
 	}
 	if buf, err := dkebpf.Asset("httpflow.o"); err != nil {
-		return nil, err
+		return nil, nil, err
 	} else if err := m.InitWithOptions((bytes.NewReader(buf)), mOpts); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return m, nil
+
+	return m, r, nil
 }
 
 type HTTPFlowTracer struct {
@@ -130,7 +221,7 @@ func NewHTTPFlowTracer(tags map[string]string, datakitPostURL string) *HTTPFlowT
 	}
 }
 
-func (tracer *HTTPFlowTracer) Run(ctx context.Context) error {
+func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.Map, disableTLS bool) error {
 	rawSocket, err := afpacket.NewTPacket()
 	if err != nil {
 		return fmt.Errorf("error creating raw socket: %w", err)
@@ -143,13 +234,19 @@ func (tracer *HTTPFlowTracer) Run(ctx context.Context) error {
 	logrus.Error(socketFD)
 	tracer.TPacket = rawSocket
 
-	bpfManger, err := NewHTTPFlowManger(socketFD, tracer.reqFinishedEventHandler)
+	bpfManger, r, err := NewHTTPFlowManger(socketFD, constEditor, bpfMapSockFD, tracer.reqFinishedEventHandler, disableTLS)
 	if err != nil {
 		return err
 	}
 	if err := bpfManger.Start(); err != nil {
 		l.Error(err)
 		return err
+	}
+
+	if !disableTLS && r != nil {
+		r.CleanAll()
+		r.ScanAndUpdate()
+		r.Monitor(ctx, time.Minute*5)
 	}
 
 	go func() {
@@ -201,7 +298,7 @@ func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context) {
 			cache = make([]*HTTPReqFinishedInfo, 0)
 		case finReq := <-tracer.finReqCh:
 			cache = append(cache, finReq)
-			if len(cache) > 512 {
+			if len(cache) > 256 {
 				if err := feed(tracer.datakitPostURL, cache, tracer.gTags); err != nil {
 					l.Error(err)
 				}
