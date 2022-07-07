@@ -242,9 +242,10 @@ func (i *Input) buildMysqlDbmMetric() ([]*io.Point, error) {
 
 	for _, row := range i.dbmMetricRows {
 		m := &dbmStateMeasurement{
-			name: dbmMetricName,
+			name: "mysql_dbm_metric",
 			tags: map[string]string{
-				"service": "mysql_dbm_metric",
+				"service": "mysql",
+				"host":    i.Host,
 			},
 			fields: make(map[string]interface{}),
 		}
@@ -299,7 +300,8 @@ func (i *Input) buildMysqlDbmSample() ([]*io.Point, error) {
 
 	for _, plan := range i.dbmSamplePlans {
 		tags := map[string]string{
-			"service":           "mysql_dbm_sample",
+			"service":           "mysql",
+			"host":              i.Host,
 			"current_schema":    plan.currentSchema,
 			"plan_definition":   plan.planDefinition,
 			"plan_signature":    plan.planSignature,
@@ -341,7 +343,7 @@ func (i *Input) buildMysqlDbmSample() ([]*io.Point, error) {
 		}
 
 		m := &dbmSampleMeasurement{
-			name:   dbmMetricName,
+			name:   "mysql_dbm_sample",
 			tags:   tags,
 			fields: fields,
 		}

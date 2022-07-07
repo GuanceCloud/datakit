@@ -10,9 +10,11 @@ import (
 	"math"
 	"os"
 	"reflect"
+	"regexp"
 	"time"
 	"unsafe"
 
+	"github.com/DataDog/ebpf"
 	"github.com/DataDog/ebpf/manager"
 	"github.com/google/gopacket/afpacket"
 	"github.com/sirupsen/logrus"
@@ -21,6 +23,7 @@ import (
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/netflow"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
+	sysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/sysmonitor"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/sys/unix"
 )
@@ -46,6 +49,14 @@ const (
 	ConnL4Mask uint32 = dknetflow.ConnL4Mask
 	ConnL4TCP  uint32 = dknetflow.ConnL4TCP
 	ConnL4UDP  uint32 = dknetflow.ConnL4UDP
+)
+
+var (
+	// libssl
+	regexpLibSSL    = regexp.MustCompile(`libssl.so`)
+	regexpLibCrypto = regexp.MustCompile(`libcrypto.so`)
+
+	// TODO: guntls
 )
 
 type (
@@ -75,8 +86,23 @@ func SetLogger(nl *logger.Logger) {
 	l = nl
 }
 
-func NewHTTPFlowManger(fd int, closedEventHandler func(cpu int, data []byte,
-	perfmap *manager.PerfMap, manager *manager.Manager)) (*manager.Manager, error) {
+var (
+	libSSLSection = []string{
+		"uprobe/SSL_read",
+		"uretprobe/SSL_read",
+		"uprobe/SSL_write",
+		"uprobe/SSL_shutdown",
+		"uprobe/SSL_set_fd",
+		"uprobe/SSL_set_bio",
+	}
+	libcryptoSection = []string{
+		"uprobe/BIO_new_socket",
+		"uretprobe/BIO_new_socket",
+	}
+)
+
+func NewHTTPFlowManger(fd int, constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.Map, closedEventHandler func(cpu int, data []byte,
+	perfmap *manager.PerfMap, manager *manager.Manager), disableTLS bool) (*manager.Manager, *sysmonitor.UprobeDynamicLibRegister, error) {
 	m := &manager.Manager{
 		Probes: []*manager.Probe{
 			{
@@ -100,19 +126,84 @@ func NewHTTPFlowManger(fd int, closedEventHandler func(cpu int, data []byte,
 			},
 		},
 	}
+
+	var r *sysmonitor.UprobeDynamicLibRegister
+	if !disableTLS {
+		opensslRules := []sysmonitor.UprobeRegRule{
+			{
+				Re: regexpLibSSL,
+				Register: func(s string) error {
+					l.Info("AddHook: ", s)
+					for _, sec := range libSSLSection {
+						if err := m.AddHook("", manager.Probe{
+							UID:        s,
+							Section:    sec,
+							BinaryPath: s,
+						}); err != nil {
+							l.Error(err)
+						}
+					}
+					return nil
+				},
+				UnRegister: func(s string) error {
+					l.Info("DetachHook: ", s)
+					for _, sec := range libSSLSection {
+						if err := m.DetachHook(sec, s); err != nil {
+							l.Error(err)
+						}
+					}
+					return nil
+				},
+			},
+			{
+				Re: regexpLibCrypto,
+				Register: func(s string) error {
+					for _, sec := range libcryptoSection {
+						if err := m.AddHook("", manager.Probe{
+							UID:        s,
+							Section:    sec,
+							BinaryPath: s,
+						}); err != nil {
+							l.Error(err)
+						}
+					}
+					return nil
+				},
+				UnRegister: func(s string) error {
+					for _, sec := range libcryptoSection {
+						if err := m.DetachHook(sec, s); err != nil {
+							l.Error(err)
+						}
+					}
+					return nil
+				},
+			},
+		}
+
+		var err error
+		r, err = sysmonitor.NewUprobeDyncLibRegister(opensslRules)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
 	mOpts := manager.Options{
 		RLimit: &unix.Rlimit{
 			Cur: math.MaxUint64,
 			Max: math.MaxUint64,
 		},
-		// ConstantEditors: constEditor,
+		ConstantEditors: constEditor,
+		MapEditors: map[string]*ebpf.Map{
+			"bpfmap_sockfd": bpfMapSockFD,
+		},
 	}
 	if buf, err := dkebpf.Asset("httpflow.o"); err != nil {
-		return nil, err
+		return nil, nil, err
 	} else if err := m.InitWithOptions((bytes.NewReader(buf)), mOpts); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return m, nil
+
+	return m, r, nil
 }
 
 type HTTPFlowTracer struct {
@@ -130,7 +221,7 @@ func NewHTTPFlowTracer(tags map[string]string, datakitPostURL string) *HTTPFlowT
 	}
 }
 
-func (tracer *HTTPFlowTracer) Run(ctx context.Context) error {
+func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.Map, disableTLS bool) error {
 	rawSocket, err := afpacket.NewTPacket()
 	if err != nil {
 		return fmt.Errorf("error creating raw socket: %w", err)
@@ -143,13 +234,19 @@ func (tracer *HTTPFlowTracer) Run(ctx context.Context) error {
 	logrus.Error(socketFD)
 	tracer.TPacket = rawSocket
 
-	bpfManger, err := NewHTTPFlowManger(socketFD, tracer.reqFinishedEventHandler)
+	bpfManger, r, err := NewHTTPFlowManger(socketFD, constEditor, bpfMapSockFD, tracer.reqFinishedEventHandler, disableTLS)
 	if err != nil {
 		return err
 	}
 	if err := bpfManger.Start(); err != nil {
 		l.Error(err)
 		return err
+	}
+
+	if !disableTLS && r != nil {
+		r.CleanAll()
+		r.ScanAndUpdate()
+		r.Monitor(ctx, time.Minute*5)
 	}
 
 	go func() {
@@ -201,7 +298,7 @@ func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context) {
 			cache = make([]*HTTPReqFinishedInfo, 0)
 		case finReq := <-tracer.finReqCh:
 			cache = append(cache, finReq)
-			if len(cache) > 512 {
+			if len(cache) > 256 {
 				if err := feed(tracer.datakitPostURL, cache, tracer.gTags); err != nil {
 					l.Error(err)
 				}
@@ -213,28 +310,10 @@ func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context) {
 	}
 }
 
-type measurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
+func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) (*io.Point, error) {
+	// name:   srcNameM,
+	mTags := map[string]string{}
 
-func (m *measurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
-}
-
-func (m *measurement) Info() *inputs.MeasurementInfo {
-	return nil
-}
-
-func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measurement {
-	m := measurement{
-		name:   srcNameM,
-		tags:   map[string]string{},
-		fields: map[string]interface{}{},
-		ts:     time.Now(),
-	}
 	direction := DirectionOutgoing
 	if _, err := dknetflow.SrcIPPortRecorder.Query(httpFinReq.ConnInfo.Daddr); err == nil {
 		httpFinReq.ConnInfo.Saddr, httpFinReq.ConnInfo.Daddr = httpFinReq.ConnInfo.Daddr, httpFinReq.ConnInfo.Saddr
@@ -243,12 +322,12 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measuremen
 	}
 	path := FindHTTPURI(httpFinReq.HTTPStats.Payload)
 	if path == "" {
-		return nil
+		return nil, fmt.Errorf("path == \"\"")
 	}
 	for k, v := range tags {
-		m.tags[k] = v
+		mTags[k] = v
 	}
-	m.tags["direction"] = direction
+	mTags["direction"] = direction
 
 	isV6 := !dknetflow.ConnAddrIsIPv4(httpFinReq.ConnInfo.Meta)
 
@@ -262,26 +341,30 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measuremen
 		}
 	}
 	if isV6 {
-		m.tags["src_ip_type"] = dknetflow.ConnIPv6Type(httpFinReq.ConnInfo.Saddr)
-		m.tags["dst_ip_type"] = dknetflow.ConnIPv6Type(httpFinReq.ConnInfo.Daddr)
-		m.tags["family"] = "IPv6"
+		mTags["src_ip_type"] = dknetflow.ConnIPv6Type(httpFinReq.ConnInfo.Saddr)
+		mTags["dst_ip_type"] = dknetflow.ConnIPv6Type(httpFinReq.ConnInfo.Daddr)
+		mTags["family"] = "IPv6"
 	} else {
-		m.tags["src_ip_type"] = dknetflow.ConnIPv4Type(httpFinReq.ConnInfo.Saddr[3])
-		m.tags["dst_ip_type"] = dknetflow.ConnIPv4Type(httpFinReq.ConnInfo.Daddr[3])
-		m.tags["family"] = "IPv4"
+		mTags["src_ip_type"] = dknetflow.ConnIPv4Type(httpFinReq.ConnInfo.Saddr[3])
+		mTags["dst_ip_type"] = dknetflow.ConnIPv4Type(httpFinReq.ConnInfo.Daddr[3])
+		mTags["family"] = "IPv4"
 	}
-	m.tags["src_ip"] = dknetflow.U32BEToIP(httpFinReq.ConnInfo.Saddr, isV6).String()
-	m.tags["src_port"] = fmt.Sprintf("%d", httpFinReq.ConnInfo.Sport)
-	m.tags["dst_ip"] = dknetflow.U32BEToIP(httpFinReq.ConnInfo.Daddr, isV6).String()
-	m.tags["dst_port"] = fmt.Sprintf("%d", httpFinReq.ConnInfo.Dport)
+	srcIP := dknetflow.U32BEToIP(httpFinReq.ConnInfo.Saddr, isV6).String()
+	dstIP := dknetflow.U32BEToIP(httpFinReq.ConnInfo.Daddr, isV6).String()
+	mTags["src_ip"] = srcIP
+	mTags["src_port"] = fmt.Sprintf("%d", httpFinReq.ConnInfo.Sport)
+	mTags["dst_ip"] = dstIP
+	mTags["dst_port"] = fmt.Sprintf("%d", httpFinReq.ConnInfo.Dport)
 
+	var l4proto string
 	if dknetflow.ConnProtocolIsTCP(httpFinReq.ConnInfo.Meta) {
-		m.tags["transport"] = "tcp"
+		l4proto = "tcp"
 	} else {
-		m.tags["transport"] = "udp"
+		l4proto = "udp"
 	}
+	mTags["transport"] = l4proto
 
-	m.fields = map[string]interface{}{
+	mFields := map[string]interface{}{
 		"path":         path,
 		"status_code":  int(httpFinReq.HTTPStats.RespCode),
 		"latency":      int64(httpFinReq.HTTPStats.RespTS - httpFinReq.HTTPStats.ReqTS),
@@ -289,77 +372,25 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measuremen
 		"http_version": ParseHTTPVersion(httpFinReq.HTTPStats.HTTPVersion),
 	}
 
-	if k8sNetInfo != nil {
-		srcK8sFlag := false
-		dstK8sFlag := false
-		if _, srcPodName, srcSvcName, ns, srcDeployment, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["src_ip"],
-			httpFinReq.ConnInfo.Sport, m.tags["transport"]); err == nil {
-			srcK8sFlag = true
-			m.tags["src_k8s_namespace"] = ns
-			m.tags["src_k8s_pod_name"] = srcPodName
-			m.tags["src_k8s_service_name"] = srcSvcName
-			m.tags["src_k8s_deployment_name"] = srcDeployment
-			if svcP == httpFinReq.ConnInfo.Sport {
-				m.tags["direction"] = DirectionIncoming
-			}
-		}
-
-		if _, dstPoName, dstSvcName, ns, dstDeployment, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["dst_ip"],
-			httpFinReq.ConnInfo.Dport, m.tags["transport"]); err == nil {
-			dstK8sFlag = true
-			m.tags["dst_k8s_namespace"] = ns
-			m.tags["dst_k8s_pod_name"] = dstPoName
-			m.tags["dst_k8s_service_name"] = dstSvcName
-			m.tags["dst_k8s_deployment_name"] = dstDeployment
-
-			if svcP == httpFinReq.ConnInfo.Dport {
-				m.tags["direction"] = DirectionOutgoing
-			}
-		} else {
-			dstSvcName, ns, dp, err := k8sNetInfo.QuerySvcInfo(m.tags["dst_ip"])
-			if err == nil {
-				dstK8sFlag = true
-				m.tags["dst_k8s_namespace"] = ns
-				m.tags["dst_k8s_pod_name"] = NoValue
-				m.tags["dst_k8s_service_name"] = dstSvcName
-				m.tags["dst_k8s_deployment_name"] = dp
-				m.tags["direction"] = DirectionOutgoing
-			}
-		}
-
-		if srcK8sFlag || dstK8sFlag {
-			m.tags["sub_source"] = "K8s"
-			if !srcK8sFlag {
-				m.tags["src_k8s_namespace"] = NoValue
-				m.tags["src_k8s_pod_name"] = NoValue
-				m.tags["src_k8s_service_name"] = NoValue
-				m.tags["src_k8s_deployment_name"] = NoValue
-			}
-			if !dstK8sFlag {
-				m.tags["dst_k8s_namespace"] = NoValue
-				m.tags["dst_k8s_pod_name"] = NoValue
-				m.tags["dst_k8s_service_name"] = NoValue
-				m.tags["dst_k8s_deployment_name"] = NoValue
-			}
-		}
-	}
-	return &m
+	mTags = dknetflow.AddK8sTags2Map(k8sNetInfo, srcIP, dstIP,
+		httpFinReq.ConnInfo.Sport, httpFinReq.ConnInfo.Dport, l4proto, mTags)
+	return io.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
 }
 
 func feed(url string, data []*HTTPReqFinishedInfo, tags map[string]string) error {
 	if len(data) == 0 {
 		return nil
 	}
-	ms := make([]inputs.Measurement, 0)
+	ms := make([]*io.Point, 0)
 	for _, httpFinReq := range data {
 		if !ConnNotNeedToFilter(httpFinReq.ConnInfo) {
 			continue
 		}
-		m := conv2M(httpFinReq, tags)
-		if m == nil {
-			continue
+		if m, err := conv2M(httpFinReq, tags); err != nil {
+			l.Error(err)
+		} else {
+			ms = append(ms, m)
 		}
-		ms = append(ms, m)
 	}
 	if len(ms) == 0 {
 		return nil

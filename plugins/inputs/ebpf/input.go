@@ -45,6 +45,7 @@ type Input struct {
 	external.ExternalInput
 	K8sConf
 	EnabledPlugins []string      `toml:"enabled_plugins"`
+	L7NetDisabled  []string      `toml:"l7net_disabled"`
 	semStop        *cliutils.Sem // start stop signal
 }
 
@@ -132,6 +133,11 @@ loop:
 	if ipt.K8sBearerTokenStr != "" {
 		ipt.ExternalInput.Envs = append(ipt.ExternalInput.Envs,
 			fmt.Sprintf("K8S_BEARER_TOKEN_STRING=%s", ipt.K8sConf.K8sBearerTokenStr))
+	}
+
+	if len(ipt.L7NetDisabled) > 0 {
+		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args,
+			"--l7net-disabled", strings.Join(ipt.L7NetDisabled, ","))
 	}
 
 	if len(ipt.EnabledPlugins) == 0 {

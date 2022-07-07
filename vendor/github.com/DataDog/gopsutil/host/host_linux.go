@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package host
@@ -179,17 +180,33 @@ func getOSRelease() (platform string, version string, err error) {
 		}
 		switch field[0] {
 		case "ID": // use ID for lowercase
-			platform = field[1]
+			platform = trimQuotes(field[1])
 		case "VERSION":
-			version = field[1]
+			version = trimQuotes(field[1])
 		}
 	}
+
+	// cleanup amazon ID
+	if platform == "amzn" {
+		platform = "amazon"
+	}
+
 	return platform, version, nil
+}
+
+// trimQuotes removes quotes in the source string.
+func trimQuotes(s string) string {
+	if len(s) >= 2 {
+		if s[0] == '"' && s[len(s)-1] == '"' {
+			return s[1 : len(s)-1]
+		}
+	}
+	return s
 }
 
 func getLSB() (*LSB, error) {
 	ret := &LSB{}
-	if common.PathExists(common.HostEtc("lsb-release")) {
+	if common.PathExistsWithContents(common.HostEtc("lsb-release")) {
 		contents, err := common.ReadLines(common.HostEtc("lsb-release"))
 		if err != nil {
 			return ret, err // return empty
@@ -210,7 +227,7 @@ func getLSB() (*LSB, error) {
 				ret.Description = field[1]
 			}
 		}
-	} else if common.PathExists("/usr/bin/lsb_release") {
+	} else if common.PathExistsWithContents("/usr/bin/lsb_release") {
 		lsb_release, err := exec.LookPath("/usr/bin/lsb_release")
 		if err != nil {
 			return ret, err
@@ -248,20 +265,26 @@ func PlatformInformation() (platform string, family string, version string, err 
 		lsb = &LSB{}
 	}
 
-	if common.PathExists(common.HostEtc("oracle-release")) {
+	if common.PathExistsWithContents(common.HostEtc("oracle-release")) {
 		platform = "oracle"
 		contents, err := common.ReadLines(common.HostEtc("oracle-release"))
 		if err == nil {
 			version = getRedhatishVersion(contents)
 		}
 
-	} else if common.PathExists(common.HostEtc("enterprise-release")) {
+	} else if common.PathExistsWithContents(common.HostEtc("enterprise-release")) {
 		platform = "oracle"
 		contents, err := common.ReadLines(common.HostEtc("enterprise-release"))
 		if err == nil {
 			version = getRedhatishVersion(contents)
 		}
-	} else if common.PathExists(common.HostEtc("debian_version")) {
+	} else if common.PathExistsWithContents(common.HostEtc("slackware-version")) {
+		platform = "slackware"
+		contents, err := common.ReadLines(common.HostEtc("slackware-version"))
+		if err == nil {
+			version = getSlackwareVersion(contents)
+		}
+	} else if common.PathExistsWithContents(common.HostEtc("debian_version")) {
 		if lsb.ID == "Ubuntu" {
 			platform = "ubuntu"
 			version = lsb.Release
@@ -269,7 +292,7 @@ func PlatformInformation() (platform string, family string, version string, err 
 			platform = "linuxmint"
 			version = lsb.Release
 		} else {
-			if common.PathExists("/usr/bin/raspi-config") {
+			if common.PathExistsWithContents("/usr/bin/raspi-config") {
 				platform = "raspbian"
 			} else {
 				platform = "debian"
@@ -279,41 +302,41 @@ func PlatformInformation() (platform string, family string, version string, err 
 				version = contents[0]
 			}
 		}
-	} else if common.PathExists(common.HostEtc("redhat-release")) {
+	} else if common.PathExistsWithContents(common.HostEtc("redhat-release")) {
 		contents, err := common.ReadLines(common.HostEtc("redhat-release"))
 		if err == nil {
 			version = getRedhatishVersion(contents)
 			platform = getRedhatishPlatform(contents)
 		}
-	} else if common.PathExists(common.HostEtc("system-release")) {
+	} else if common.PathExistsWithContents(common.HostEtc("system-release")) {
 		contents, err := common.ReadLines(common.HostEtc("system-release"))
 		if err == nil {
 			version = getRedhatishVersion(contents)
 			platform = getRedhatishPlatform(contents)
 		}
-	} else if common.PathExists(common.HostEtc("gentoo-release")) {
+	} else if common.PathExistsWithContents(common.HostEtc("gentoo-release")) {
 		platform = "gentoo"
 		contents, err := common.ReadLines(common.HostEtc("gentoo-release"))
 		if err == nil {
 			version = getRedhatishVersion(contents)
 		}
-	} else if common.PathExists(common.HostEtc("SuSE-release")) {
+	} else if common.PathExistsWithContents(common.HostEtc("SuSE-release")) {
 		contents, err := common.ReadLines(common.HostEtc("SuSE-release"))
 		if err == nil {
 			version = getSuseVersion(contents)
 			platform = getSusePlatform(contents)
 		}
 		// TODO: slackware detecion
-	} else if common.PathExists(common.HostEtc("arch-release")) {
+	} else if common.PathExistsWithContents(common.HostEtc("arch-release")) {
 		platform = "arch"
 		version = lsb.Release
-	} else if common.PathExists(common.HostEtc("alpine-release")) {
+	} else if common.PathExistsWithContents(common.HostEtc("alpine-release")) {
 		platform = "alpine"
 		contents, err := common.ReadLines(common.HostEtc("alpine-release"))
 		if err == nil && len(contents) > 0 {
 			version = contents[0]
 		}
-	} else if common.PathExists(common.HostEtc("os-release")) {
+	} else if common.PathExistsWithContents(common.HostEtc("os-release")) {
 		p, v, err := getOSRelease()
 		if err == nil {
 			platform = p
@@ -336,14 +359,16 @@ func PlatformInformation() (platform string, family string, version string, err 
 		version = lsb.Release
 	}
 
+	platform = strings.Trim(platform, "\"")
+
 	switch platform {
 	case "debian", "ubuntu", "linuxmint", "raspbian":
 		family = "debian"
 	case "fedora":
 		family = "fedora"
-	case "oracle", "centos", "redhat", "scientific", "enterpriseenterprise", "amazon", "xenserver", "cloudlinux", "ibm_powerkvm":
+	case "oracle", "centos", "redhat", "scientific", "enterpriseenterprise", "amazon", "xenserver", "cloudlinux", "ibm_powerkvm", "rocky":
 		family = "rhel"
-	case "suse", "opensuse":
+	case "suse", "opensuse", "opensuse-leap", "opensuse-tumbleweed", "opensuse-tumbleweed-kubic", "sles", "sled", "caasp":
 		family = "suse"
 	case "gentoo":
 		family = "gentoo"
@@ -357,6 +382,8 @@ func PlatformInformation() (platform string, family string, version string, err 
 		family = "alpine"
 	case "coreos":
 		family = "coreos"
+	case "solus":
+		family = "solus"
 	}
 
 	return platform, family, version, nil
@@ -377,6 +404,12 @@ func KernelVersion() (version string, err error) {
 	}
 
 	return version, nil
+}
+
+func getSlackwareVersion(contents []string) string {
+	c := strings.ToLower(strings.Join(contents, ""))
+	c = strings.Replace(c, "slackware ", "", 1)
+	return c
 }
 
 func getRedhatishVersion(contents []string) string {

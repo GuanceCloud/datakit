@@ -1,6 +1,5 @@
 # code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
 ## explicit
-code.cloudfoundry.org/bytefmt
 # github.com/BurntSushi/toml v0.3.1
 ## explicit
 github.com/BurntSushi/toml
@@ -16,7 +15,7 @@ github.com/DataDog/ebpf/internal/btf
 github.com/DataDog/ebpf/internal/unix
 github.com/DataDog/ebpf/manager
 github.com/DataDog/ebpf/perf
-# github.com/DataDog/gopsutil v0.0.0-20210826200402-bbfc5b0ae6e9
+# github.com/DataDog/gopsutil v1.1.0
 ## explicit
 github.com/DataDog/gopsutil/cpu
 github.com/DataDog/gopsutil/host
@@ -24,6 +23,8 @@ github.com/DataDog/gopsutil/internal/common
 github.com/DataDog/gopsutil/mem
 github.com/DataDog/gopsutil/net
 github.com/DataDog/gopsutil/process
+github.com/DataDog/gopsutil/process/filepath
+github.com/DataDog/gopsutil/process/so
 # github.com/DataDog/sketches-go v1.4.1
 ## explicit; go 1.15
 github.com/DataDog/sketches-go/ddsketch
@@ -409,7 +410,6 @@ github.com/florianl/go-tc/core
 github.com/florianl/go-tc/internal/unix
 # github.com/fsnotify/fsnotify v1.5.1
 ## explicit; go 1.13
-github.com/fsnotify/fsnotify
 # github.com/gdamore/encoding v1.0.0
 ## explicit; go 1.9
 github.com/gdamore/encoding
@@ -457,6 +457,9 @@ github.com/gdamore/tcell/v2/terminfo/x/xterm_termite
 # github.com/gin-contrib/sse v0.1.0
 ## explicit; go 1.12
 github.com/gin-contrib/sse
+# github.com/gin-contrib/timeout v0.0.3
+## explicit; go 1.15
+github.com/gin-contrib/timeout
 # github.com/gin-gonic/gin v1.7.4
 ## explicit; go 1.13
 github.com/gin-gonic/gin
@@ -615,7 +618,6 @@ github.com/godror/godror/odpi/include
 github.com/godror/godror/odpi/src
 # github.com/gofrs/flock v0.8.0
 ## explicit
-github.com/gofrs/flock
 # github.com/gogo/googleapis v1.4.0
 ## explicit; go 1.12
 github.com/gogo/googleapis/google/rpc
@@ -895,6 +897,10 @@ github.com/prometheus/procfs/internal/util
 ## explicit
 github.com/prometheus/prometheus/prompb
 github.com/prometheus/prometheus/util/strutil
+# github.com/reiver/go-oi v1.0.0
+## explicit
+# github.com/reiver/go-telnet v0.0.0-20180421082511-9ff0b2ab096e
+## explicit
 # github.com/rivo/tview v0.0.0-20220129131435-1f7581b67bd1
 ## explicit; go 1.12
 github.com/rivo/tview

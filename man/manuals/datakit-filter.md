@@ -336,7 +336,7 @@ curl --location --request POST 'http://localhost:9529/v1/write/custom_object' \
 
 [:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
 
-对于从中心同步下来的过滤器，DataKit 记录了一份到 *<DataKit 安装目录>/data/.pull* 下，可直接查看
+对于从中心同步下来的过滤器，DataKit 记录了一份到 *<DataKit 安装目录>/data/.pull* 中，可直接查看
 
 ```shell
 $ cat .filters  | jq

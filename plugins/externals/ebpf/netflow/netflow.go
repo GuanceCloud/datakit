@@ -10,6 +10,8 @@ import (
 	"github.com/DataDog/ebpf"
 	"github.com/DataDog/ebpf/manager"
 	"github.com/shirou/gopsutil/host"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
 	"golang.org/x/net/context"
 )
@@ -228,7 +230,8 @@ func (tracer *NetFlowTracer) feedHandler(ctx context.Context, datakitPostURL str
 		select {
 		case result := <-tracer.resultCh:
 			MergeConns(result)
-			collectCache := ConvertConn2Measurement(result, srcNameM)
+			ptOpt := &io.PointOption{Category: datakit.Network}
+			collectCache := ConvertConn2Measurement(result, srcNameM, ptOpt)
 			if len(collectCache) == 0 {
 				l.Warn("netflow: no data")
 			} else if err := dkout.FeedMeasurement(datakitPostURL, collectCache); err != nil {

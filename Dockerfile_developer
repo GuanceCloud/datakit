@@ -31,4 +31,5 @@ ENV KERNEL_SRC_VERSION=5.4.0-99-generic
 ENV DK_BPF_KERNEL_SRC_PATH=/usr/src/linux-headers-${KERNEL_SRC_VERSION}
 
 RUN mkdir -p /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/ \
+  && git config --global --add safe.directory /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit \
   && apt-get install -y linux-headers-${KERNEL_SRC_VERSION}

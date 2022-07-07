@@ -27,10 +27,9 @@ import (
 var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
-	maxInterval   = 15 * time.Minute
-	minInterval   = 10 * time.Second
-	dbmMetricName = "database_performance"
-	strMariaDB    = "MariaDB"
+	maxInterval = 15 * time.Minute
+	minInterval = 10 * time.Second
+	strMariaDB  = "MariaDB"
 )
 
 var (
@@ -585,7 +584,6 @@ func (i *Input) Run() {
 		if i.pause {
 			l.Debugf("not leader, skipped")
 		} else {
-			l.Debugf("mysql input gathering...")
 			l.Debugf("mysql input gathering...")
 
 			i.resetLastError()

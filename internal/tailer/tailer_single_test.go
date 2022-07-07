@@ -12,6 +12,63 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 )
 
+func TestGenerateJSONLogs(t *testing.T) {
+	str16k := func() string {
+		strBytes := []byte{}
+		for i := 0; i < 16*1024; i++ {
+			strBytes = append(strBytes, 96)
+		}
+
+		return string(strBytes)
+	}()
+	for c, test := range []struct {
+		lines    []string
+		expected []string
+	}{
+		{
+			lines: []string{
+				`{"log":"[WARNING] test json log\n","stream":"stdout","time":"2022-06-30T03:22:20.055429751Z"}`,
+				`{"log":"padding\n","stream":"stdout","time":"2022-06-30T03:22:20.055429751Z"}`,
+			},
+			expected: []string{
+				"[WARNING] test json log\n",
+			},
+		},
+		{
+			lines: []string{
+				`{"log":"` + str16k + `","stream":"stdout","time":"2022-06-30T03:22:20.055429751Z"}`,
+				`{"log":"test partial log2\n","stream":"stdout","time":"2022-06-30T03:22:20.055429751Z"}`,
+				`{"log":"padding\n","stream":"stdout","time":"2022-06-30T03:22:20.055429751Z"}`,
+			},
+			expected: []string{
+				str16k + "test partial log2\n",
+			},
+		},
+		{
+			lines: []string{
+				`{"log":"not 16k log log1","stream":"stdout","time":"2022-06-30T03:22:20.055429751Z"}`,
+				`{"log":"test partial log2\n","stream":"stdout","time":"2022-06-30T03:22:20.055429751Z"}`,
+				`{"log":"padding\n","stream":"stdout","time":"2022-06-30T03:22:20.055429751Z"}`,
+			},
+			expected: []string{
+				"not 16k log log1",
+				"test partial log2\n",
+			},
+		},
+	} {
+		mult, _ := multiline.New("", 10000)
+		tail := &Single{
+			mult: mult,
+			opt: &Option{
+				log: l,
+			},
+		}
+		t.Logf("TestCase #%d: %+v", c, test)
+		logs := tail.generateJSONLogs(test.lines)
+		assert.Equal(t, test.expected, logs)
+	}
+}
+
 func TestGenerateCRILogs(t *testing.T) {
 	for c, test := range []struct {
 		lines    []string

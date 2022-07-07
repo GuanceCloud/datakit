@@ -227,6 +227,8 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
+			"host":              &inputs.TagInfo{Desc: " The server host address"},
+			"service":           &inputs.TagInfo{Desc: "The service name and the value is 'mysql'"},
 			"current_schema":    &inputs.TagInfo{Desc: "The name of the current schema."},
 			"plan_definition":   &inputs.TagInfo{Desc: "The plan definition of JSON format."},
 			"plan_signature":    &inputs.TagInfo{Desc: "The hash value computed from plan definition."},

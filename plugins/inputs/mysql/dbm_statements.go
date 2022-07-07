@@ -104,10 +104,12 @@ func (m *dbmStateMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"digest":          &inputs.TagInfo{Desc: " The digest hash value computed from the original normalized statement. "},
-			"query_signature": &inputs.TagInfo{Desc: " The hash value computed from digest_text"},
+			"host":            &inputs.TagInfo{Desc: "The server host address"},
+			"service":         &inputs.TagInfo{Desc: "The service name and the value is 'mysql'"},
+			"digest":          &inputs.TagInfo{Desc: "The digest hash value computed from the original normalized statement. "},
+			"query_signature": &inputs.TagInfo{Desc: "The hash value computed from digest_text"},
 			"schema_name":     &inputs.TagInfo{Desc: "The schema name"},
-			"server":          &inputs.TagInfo{Desc: " The server address"},
+			"server":          &inputs.TagInfo{Desc: "The server address"},
 		},
 	}
 }

@@ -1,4 +1,6 @@
-// Package output feed data to datakit
+//go:build (linux && amd64 && ebpf) || (linux && arm64 && ebpf)
+// +build linux,amd64,ebpf linux,arm64,ebpf
+
 package output
 
 import (
@@ -12,7 +14,7 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 var DataKitAPIServer = "0.0.0.0:9529"
@@ -37,7 +39,7 @@ func Init(logger *logger.Logger) {
 
 type task struct {
 	url  string
-	data []inputs.Measurement // lineproto
+	data []*io.Point // lineproto
 }
 
 type Sender struct {
@@ -85,7 +87,7 @@ func (sender *Sender) request(data *task) error {
 		}
 	}
 
-	if l%256 != 0 {
+	if l%maxPtSendCount != 0 {
 		if err := sender.doReq(data.url, data.data[l-l%maxPtSendCount:]); err != nil {
 			return fmt.Errorf("fail and stop: data[%d:]: %w", l-l%maxPtSendCount, err)
 		}
@@ -93,7 +95,7 @@ func (sender *Sender) request(data *task) error {
 	return nil
 }
 
-func (sender *Sender) doReq(url string, data []inputs.Measurement) error {
+func (sender *Sender) doReq(url string, data []*io.Point) error {
 	if len(data) == 0 || url == "" {
 		return nil
 	}
@@ -101,10 +103,8 @@ func (sender *Sender) doReq(url string, data []inputs.Measurement) error {
 		return fmt.Errorf("no http client")
 	}
 	dataStr := []string{}
-	for _, v := range data {
-		if pt, err := v.LineProto(); err != nil {
-			return err
-		} else {
+	for _, pt := range data {
+		if pt != nil {
 			dataStr = append(dataStr, pt.String())
 		}
 	}
@@ -136,7 +136,7 @@ type ExternalLastErr struct {
 	ErrContent string `json:"err_content"`
 }
 
-func FeedMeasurement(url string, data []inputs.Measurement) error {
+func FeedMeasurement(url string, data []*io.Point) error {
 	if _sender == nil {
 		return fmt.Errorf("sender not init")
 	}

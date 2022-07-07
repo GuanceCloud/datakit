@@ -16,23 +16,37 @@ DataKit 主配置用来配置 DataKit 自己的运行行为，其目录一般位
 
 DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基础的数据服务。
 
-### 修改 HTTP 服务地址 {#update-http-server-host}
+=== "datakit.conf"
 
-默认的 HTTP 服务地址是 `localhost:9529`，如果 9529 端口被占用，或希望从外部访问 DataKit 的 HTTP 服务（比如希望接收 [RUM](../integrations/rum.md) 或 [Tracing](../integrations/datakit-tracing.md) 数据），可将其修改成：
+    ### 修改 HTTP 服务地址 {#update-http-server-host}
+    
+    默认的 HTTP 服务地址是 `localhost:9529`，如果 9529 端口被占用，或希望从外部访问 DataKit 的 HTTP 服务（比如希望接收 [RUM](rum.md) 或 [Tracing](datakit-tracing.md) 数据），可将其修改成：
+    
+    ```toml
+    [http_api]
+       listen = "0.0.0.0:<other-port>"
+    ```
+    
+    ### HTTP 请求频率控制 {#set-http-api-limit}
+    
+    由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，可修改如下 HTTP 配置（默认不开启）：
+    
+    ```toml
+    [http_api]
+    	request_rate_limit = 1000.0 # 限制每个 HTTP API 每秒只接收 1000 次请求
+    ```
 
-```toml
-[http_api]
-   listen = "0.0.0.0:<other-port>"
-```
+    ### 其它设置 {#http-other-settings}
 
-### HTTP 请求频率控制 {#set-http-api-limit}
+    ```toml
+    [http_api]
+    	close_idle_connection = true # 关闭闲置连接
+    	timeout = "30s"              # 设置服务端 HTTP 超时
+    ```
 
-由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，可修改如下 HTTP 配置（默认不开启）：
+=== "Kubernates"
 
-```toml
-[http_api]
-  request_rate_limit = 1000.0 # 限制每个 HTTP API 每秒只接收 1000 次请求
-```
+    参见[这里](datakit-daemonset-deploy.md#env-http-api)
 
 ## 全局标签（Tag）修改 {#set-global-tag}
 

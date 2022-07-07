@@ -198,10 +198,12 @@ func TestDefaultToml(t *testing.T) {
 
 func TestUnmarshalCfg(t *testing.T) {
 	cases := []struct {
+		name string
 		raw  string
 		fail bool
 	}{
 		{
+			name: "real-conf",
 			raw: `
 	name = "not-set"
 http_listen="0.0.0.0:9529"
@@ -237,11 +239,13 @@ install_date = 2021-03-25T11:00:19Z
 		},
 
 		{
-			raw:  `abc = def`, // invalid toml
+			name: "invalid-toml",
+			raw:  `abc = def`, // bad toml
 			fail: true,
 		},
 
 		{
+			name: "invalid-type",
 			raw: `
 name = "not-set"
 http_listen=123  # invalid type
@@ -250,6 +254,7 @@ log = "log"`,
 		},
 
 		{
+			name: "partial-ok",
 			raw: `
 name = "not-set"
 log = "log"`,
@@ -257,8 +262,13 @@ log = "log"`,
 		},
 
 		{
+			name: "partial-ok-2",
 			raw: `
 hostname = "should-not-set"`,
+		},
+		{
+			name: "dk-conf-sample",
+			raw:  DatakitConfSample,
 		},
 	}
 
@@ -269,25 +279,27 @@ hostname = "should-not-set"`,
 	}()
 
 	for _, tc := range cases {
-		c := DefaultConfig()
+		t.Run(tc.name, func(t *testing.T) {
+			c := DefaultConfig()
 
-		if err := ioutil.WriteFile(tomlfile, []byte(tc.raw), 0o600); err != nil {
-			t.Fatal(err)
-		}
+			if err := ioutil.WriteFile(tomlfile, []byte(tc.raw), 0o600); err != nil {
+				t.Fatal(err)
+			}
 
-		err := c.LoadMainTOML(tomlfile)
-		if tc.fail {
-			tu.NotOk(t, err, "")
-			continue
-		} else {
-			tu.Ok(t, err)
-		}
+			err := c.LoadMainTOML(tomlfile)
+			if tc.fail {
+				tu.NotOk(t, err, "")
+				return
+			} else {
+				tu.Ok(t, err)
+			}
 
-		t.Logf("hostname: %s", c.Hostname)
+			t.Logf("hostname: %s", c.Hostname)
 
-		if err := os.Remove(tomlfile); err != nil {
-			t.Error(err)
-		}
+			if err := os.Remove(tomlfile); err != nil {
+				t.Error(err)
+			}
+		})
 	}
 }
 

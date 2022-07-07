@@ -110,6 +110,8 @@ ulimit = 64000
   ## 如果列表为空，则 API 不做访问控制
   #
   public_apis = []
+  timeout = "30s"
+  close_idle_connection = false
 
 ## io: io 配置
 #
@@ -166,22 +168,22 @@ ulimit = 64000
   ## 配置示例：
   ##       [io.filters]
   ##         logging = [ # 针对日志数据的过滤
-  ##          	"{ source = 'datakit' or f1 IN [ 1, 2, 3] }"
+  ##           "{ source = 'datakit' or f1 IN [ 1, 2, 3] }"
   ##          ]
   ##          metric = [ # 针对指标的过滤
-  ##          	"{ measurement IN ['datakit', 'disk'] }",
-  ##          	"{ measurement CONTAIN ['host.*', 'swap'] }",
+  ##            "{ measurement IN ['datakit', 'disk'] }",
+  ##            "{ measurement CONTAIN ['host.*', 'swap'] }",
   ##          ]
   ##          object = [ # 针对对象过滤
-  ##          	"{ class CONTAIN ['host_.*'] }",
+  ##            { class CONTAIN ['host_.*'] }",
   ##          ]
   ##          tracing = [ # 针对 tracing 过滤
-  ##          	"{ service = re("abc.*") AND some_tag CONTAIN ['def_.*'] }",
+  ##            "{ service = re("abc.*") AND some_tag CONTAIN ['def_.*'] }",
   ##          ]
   #
   [io.filters]
     # logging = [ # 针对日志数据的过滤
-    #	"{ source = 'datakit' or f1 IN [ 1, 2, 3] }"
+    #   "{ source = 'datakit' or f1 IN [ 1, 2, 3] }"
     # ]
 
 ## dataway: DataWay 配置
@@ -241,8 +243,8 @@ ulimit = 64000
 ##
 ## 示例：
 ##   [global_host_tags]
-##	    ip   = "__datakit_ip"
-##	    host = "$datakit_hostname"
+##     ip   = "__datakit_ip"
+##     host = "$datakit_hostname"
 #
 [global_host_tags]
 
@@ -251,8 +253,8 @@ ulimit = 64000
 ##
 ## 示例：
 ##   [global_env_tags]
-##	    project = "my-project"
-##	    cluster = "my-cluster"
+##      project = "my-project"
+##      cluster = "my-cluster"
 #
 [global_env_tags]
 

@@ -78,7 +78,7 @@ binlog 开启，参见[这个问答](https://stackoverflow.com/questions/4068238
 
 ### 数据库性能指标采集
 
-数据库性能指标来源于 MySQL 的内置数据库 `performance_schema`, 该数据库提供了一个能够在运行时获取服务器内部执行情况的方法。通过该数据库，DataKit 能够采集历史查询语句的各种指标统计和查询语句的执行计划，以及其他相关性能指标。
+数据库性能指标来源于 MySQL 的内置数据库 `performance_schema`, 该数据库提供了一个能够在运行时获取服务器内部执行情况的方法。通过该数据库，DataKit 能够采集历史查询语句的各种指标统计和查询语句的执行计划，以及其他相关性能指标。采集的性能指标数据保存为日志，source 分别为 `mysql_dbm_metric` 和 `mysql_dbm_sample`。
 
 如需开启，需要执行以下步骤。
 
@@ -250,7 +250,7 @@ SET GLOBAL slow_query_log = 'ON';
 set global log_queries_not_using_indexes = 'ON';
 ```
 
-```python
+```toml
 [inputs.mysql.log]
     # 填入绝对路径
     files = ["/var/log/mysql/*.log"]
