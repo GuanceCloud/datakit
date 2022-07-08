@@ -116,6 +116,7 @@ integrations_files_from_datakit=(
   $tmp_doc_dir/datakit-tracing-struct.md
   $tmp_doc_dir/datakit-tracing.md
   $tmp_doc_dir/ddtrace-cpp.md
+  $tmp_doc_dir/ddtrace-csharp.md
   $tmp_doc_dir/ddtrace-golang.md
   $tmp_doc_dir/ddtrace-java.md
   $tmp_doc_dir/ddtrace-nodejs.md
