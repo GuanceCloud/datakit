@@ -5,7 +5,7 @@
 ---
 
 - DataKit 版本：{{.Version}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：{{.AvailableArchs}}
 
 TDEngine 是一款高性能、分布式、支持 SQL 的时序数据库 (Database)。在开通采集器之前请先阅读一些：[TDEngine-基本概念](https://docs.taosdata.com/concept/)
 

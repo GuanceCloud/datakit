@@ -3,7 +3,7 @@
 ---
 
 - DataKit 版本：{{.Version}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：{{.AvailableArchs}}
 
 Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prometheus 格式的数据
 

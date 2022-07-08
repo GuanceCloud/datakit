@@ -160,7 +160,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (ipt *Input) Collect() error {

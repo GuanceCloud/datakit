@@ -134,11 +134,10 @@ var (
 		OSArchDarwinAmd64: `/usr/local/datakit`,
 	}
 
-	AllOS   = []string{OSWindows, OSLinux, OSDarwin}
-	AllArch = []string{
-		OSArchWinAmd64, OSArchWin386, OSArchLinuxArm,
-		OSArchLinuxArm64, OSArchLinux386, OSArchLinuxAmd64, OSArchDarwinAmd64,
-	}
+	OSLabelLinux   = ":fontawesome-brands-linux:"
+	OSLabelWindows = ":fontawesome-brands-windows:"
+	OSLabelMac     = ":fontawesome-brands-apple:"
+	AllOS          = []string{OSLabelLinux, OSLabelWindows, OSLabelMac}
 
 	UnknownOS   = []string{"unknown"}
 	UnknownArch = []string{"unknown"}

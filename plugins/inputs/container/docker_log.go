@@ -95,7 +95,7 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 		Desc: "日志来源设置，参见[这里](container#6de978c3)",
 		Tags: map[string]interface{}{
 			"container_name":         inputs.NewTagInfo(`k8s 命名的容器名（在 labels 中取 'io.kubernetes.container.name'），如果值为空则跟 container_runtime_name 相同`),
-			"container_runtime_name": inputs.NewTagInfo(`由 runtime 命名的容器名（例如 docker ps 查看），如果值为空则默认是 unknown`),
+			"container_runtime_name": inputs.NewTagInfo(`由 runtime 命名的容器名（例如 docker ps 查看），如果值为空则默认是 unknown（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）`),
 			"container_id":           inputs.NewTagInfo(`容器ID`),
 			"container_type":         inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			// "stream":                 inputs.NewTagInfo(`数据流方式，stdout/stderr/tty（containerd 日志缺少此字段）`),
@@ -106,7 +106,7 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"status":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK/unknown"},
-			"log_read_lines": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "采集到的行数计数（多行数据算成一行）"},
+			"log_read_lines": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "采集到的行数计数，多行数据算成一行（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）"},
 			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
 		},
 	}

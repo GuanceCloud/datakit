@@ -152,7 +152,7 @@ func (n *Input) createHTTPClient() (*http.Client, error) {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (n *Input) SampleMeasurement() []inputs.Measurement {

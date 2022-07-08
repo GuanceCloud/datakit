@@ -173,7 +173,7 @@ func (m *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (m *Input) AvailableArchs() []string { return datakit.AllArch }
+func (m *Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (m *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{

@@ -243,8 +243,9 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 			"service":  inputs.NewTagInfo("service 名称，对应配置文件中的 `service` 字段值"),
 		},
 		Fields: map[string]interface{}{
-			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志正文，默认存在，可以使用 pipeline 删除此字段"},
-			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，默认为 `unknown`，采集器会该字段做支持映射，映射表见上述 pipelie 配置和使用"},
+			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志正文，默认存在，可以使用 pipeline 删除此字段"},
+			"status":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，默认为 `unknown`，采集器会该字段做支持映射，映射表见上述 pipelie 配置和使用"},
+			"log_read_lines": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Count, Desc: "当前日志所在文档的行数位置（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）"},
 		},
 	}
 }

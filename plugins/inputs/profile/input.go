@@ -459,7 +459,7 @@ func (in *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (in *Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (in *Input) Terminate() {

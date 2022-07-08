@@ -355,7 +355,7 @@ func (i *Input) extendSelfTag(tags map[string]string) {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {

@@ -169,7 +169,7 @@ func (i *Input) appendMeasurement(name string, tags map[string]string, fields ma
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (i *Input) Catalog() string {

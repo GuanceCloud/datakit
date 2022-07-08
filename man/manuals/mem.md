@@ -3,7 +3,7 @@
 ---
 
 - DataKit 版本：{{.Version}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：{{.AvailableArchs}}
 
 mem 采集器用于收集系统内存信息，一些通用的指标如主机总内存、用的内存、已使用的内存等  
 

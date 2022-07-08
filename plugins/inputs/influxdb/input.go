@@ -83,7 +83,7 @@ func (*Input) Catalog() string { return "influxdb" }
 
 func (*Input) SampleConfig() string { return sampleConfig }
 
-func (*Input) AvailableArchs() []string { return datakit.AllArch }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) PipelineConfig() map[string]string { return nil }
 

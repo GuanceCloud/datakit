@@ -23,7 +23,7 @@ func TestInput_AvailableArchs(t *testing.T) {
 	}{
 		{
 			name: "case all arch",
-			want: datakit.AllArch,
+			want: datakit.AllOS,
 		},
 	}
 	for _, tt := range tests {

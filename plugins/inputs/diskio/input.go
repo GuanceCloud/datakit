@@ -141,7 +141,7 @@ type Input struct {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (*Input) Catalog() string {

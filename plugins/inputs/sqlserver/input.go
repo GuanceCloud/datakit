@@ -54,7 +54,7 @@ func (*Input) Catalog() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (*Input) PipelineConfig() map[string]string {

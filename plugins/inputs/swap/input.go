@@ -105,7 +105,7 @@ func (ipt *Input) appendMeasurement(name string, tags map[string]string, fields 
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (*Input) Catalog() string {

@@ -192,7 +192,7 @@ func TestInput(t *testing.T) {
 
 	assert.Equal(t, input.Catalog(), catalogName)
 	assert.Equal(t, input.SampleConfig(), sampleConfig)
-	assert.Equal(t, input.AvailableArchs(), datakit.AllArch)
+	assert.Equal(t, input.AvailableArchs(), datakit.AllOS)
 
 	assert.Equal(t, input.PipelineConfig()["postgresql"], pipelineCfg)
 

@@ -175,7 +175,7 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 				Version:        ver,
 				ReleaseDate:    git.BuildAt,
 				CSS:            css,
-				AvailableArchs: strings.Join(i.AvailableArchs(), ","),
+				AvailableArchs: strings.Join(i.AvailableArchs(), " "),
 			}
 			for _, m := range sampleMeasurements {
 				p.Measurements = append(p.Measurements, m.Info())
