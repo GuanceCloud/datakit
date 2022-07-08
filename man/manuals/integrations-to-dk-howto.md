@@ -126,6 +126,30 @@ mkdocs serve
 
 点击该图例，就会跳转到实验性功能的说明。
 
+### 标记功能的版本信息 {#version}
+
+某些新功能的发布，是在特定版本中才有的，这种情况下，我们可以添加一些版本标识，其做法如下：
+
+```markdown
+## 这是一个新功能 {#ref-to-new-feature}
+
+[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
+```
+
+如果恰好这还是个实验性功能，可以将它们排列在一起，用 `·` 分割：
+
+```markdown
+## 这是一个新功能 {#ref-to-new-feature}
+
+[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ·
+[:octicons-beaker-24: Experimental](index.md#experimental)
+```
+
+此处，我们以 DataKit 1.4.6 的 changelog 为例，点击对应的图标，即可跳转到对应的版本发布历史：
+
+[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ·
+[:octicons-beaker-24: Experimental](index.md#experimental)
+
 ### 外链跳转 {#outer-linkers}
 
 部分文档中，我们需要增加一些外链说明，最好对外链做一些处理，使得其新开一个浏览器 tab，而不是直接跳出当前文档库：

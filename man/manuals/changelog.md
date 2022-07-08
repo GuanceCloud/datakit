@@ -5,25 +5,31 @@
 
 - 调整[全局 tag](datakit-conf.md#set-global-tag) 的行为，避免选举类采集的 tag 分裂(#870)
 - [SQLServer 采集器](../integrations/sqlserver.md)增加选举支持(#882)
-- 行协议过滤器支持所有数据类型(#855) 
-- 9529 HTTP 服务增加超时机制(#900)
+- [行协议过滤器](datakit-filter.md)支持所有数据类型(#855) 
+- 9529 HTTP 服务增加[超时机制](datakit-conf.md#http-other-settings)(#900)
 - MySQL
-    - dbm 指标集名字调整(#898)
+    - [dbm 指标集名字](../integrations/mysql.md#logging)调整(#898)
     - `service` 字段冲突问题(#895) 
-- 容器对象增加字段 `container_runtime_name` 以区分不同层次的容器名(#891)
-- Redis 调整 slowlog 采集，将其数据改为日志存储(#885) 
-- 优化 TDEngine 采集(#877)
-- 完善 Containerd 日志采集(#869)
-- Pipeline 增加 Profile 类数据支持(#866)
-- 容器/Pod 日志采集支持在 Label/Annotation 上额外追加 tag(#861)
-- 修复 Jenkins CI 数据采集的时间精度问题(#860)
+- [容器对象](../integrations/container.md#docker_containers)增加字段 `container_runtime_name` 以区分不同层次的容器名(#891)
+- Redis 调整 [slowlog 采集](../integrations/redis.md#redis_slowlog)，将其数据改为日志存储(#885) 
+- 优化 [TDEngine 采集](../integrations/tdengine.md)(#877)
+- 完善 Containerd 日志采集，支持默认格式的日志自动解析(#869)
+- [Pipeline](pipeline.md) 增加 [Profile 类数](../integrations/profile.md)据支持(#866)
+- 容器/Pod 日志采集支持在 Label/Annotation 上[额外追加 tag](../integrations/container.md#logging-with-annotation-or-label)(#861)
+- 修复 [Jenkins CI](../integrations/jenkins.md#jenkins_pipeline) 数据采集的时间精度问题(#860)
 - 修复 Tracing resource-type 值不统一的问题(#856)
-- eBPF 增加 HTTPS 支持(#782)
+- eBPF 增加 [HTTPS 支持](../integrations/ebpf.md#https)(#782)
 - 修复日志采集器可能的奔溃问题(#893)
 - 修复 prom 采集器泄露问题(#880)
 - 支持通过[环境变量配置 io 磁盘缓存](datakit-conf.md#using-cache)(#906)
 - 增加 [Kubernetes CRD](kubernetes-crd.md) 支持(#726)
 - 其它 bug 修复(#901/#899)
+
+<!--
+[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ·
+[:octicons-beaker-24: Experimental](index.md#experimental)
+-->
+
 ---
 
 ## 1.4.5(2022/06/29) {#cl-1.4.5}

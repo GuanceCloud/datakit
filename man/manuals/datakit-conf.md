@@ -50,7 +50,9 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 
 ## 全局标签（Tag）修改 {#set-global-tag}
 
-DataKit 允许给其采集的所有数据配置全局标签，全局标签分为两类：[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
+[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
+
+DataKit 允许给其采集的所有数据配置全局标签，全局标签分为两类：
 
 - 主机类全局变量：采集的数据跟当前主机息息相关，比如 CPU/内存等指标数据
 - 环境类全局变量：采集的数据来自某个公共实体，比如 MySQL/Redis 等，这些采集一般都参与选举，故这些数据上不会带上主机相关的全局 tag

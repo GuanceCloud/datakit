@@ -12,6 +12,7 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
     * 由 netflow、httpflow 和 dnsflow 构成，分别用于采集主机 TCP/UDP 连接统计信息和主机 DNS 解析信息；
 
 * `ebpf-bash`:
+
     * 数据类别: Logging
     * 采集 Bash 的执行日志，包含 Bash 进程号、用户名、执行的命令和时间等;
 
@@ -28,54 +29,57 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 
 在 Kubernetes 环境下部署时，必须挂载主机的 `/sys/kernel/debug` 目录到 pod 内,可参考最新的 datakit.yaml;
 
+### HTTPS 支持 {#https}
+
+[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ·
+[:octicons-beaker-24: Experimental](index.md#experimental)
+
 若需要 ebpf-net 开启对容器内的进程采集 https 请求数据采集支持，则需要挂载 overlay 目录到容器
 
 datakit.yaml 参考修改:
 
-**docker**:
+=== "Docker"
 
-```yaml
-...
-        volumeMounts:
-        - mountPath: /var/lib/docker/overlay2/
-          name: vol-docker-overlay
-          readOnly: true
-...
-      volumes:
-      - hostPath:
-          path: /var/lib/docker/overlay2/
-          type: ""
-        name: vol-docker-overlay
-```
+    ```yaml
+    ...
+            volumeMounts:
+            - mountPath: /var/lib/docker/overlay2/
+              name: vol-docker-overlay
+              readOnly: true
+    ...
+          volumes:
+          - hostPath:
+              path: /var/lib/docker/overlay2/
+              type: ""
+            name: vol-docker-overlay
+    ```
 
-**containerd**:
+=== "Containerd"
 
-```yaml
-        volumeMounts:
-        - mountPath: /run/containerd/io.containerd.runtime.v2.task/
-          name: vol-containerd-overlay
-          readOnly: true
-...
-      volumes:
-      - hostPath:
-          path: /run/containerd/io.containerd.runtime.v2.task/
-          type: ""
-        name: vol-containerd-overlay
-```
+    ```yaml
+            volumeMounts:
+            - mountPath: /run/containerd/io.containerd.runtime.v2.task/
+              name: vol-containerd-overlay
+              readOnly: true
+    ...
+          volumes:
+          - hostPath:
+              path: /run/containerd/io.containerd.runtime.v2.task/
+              type: ""
+            name: vol-containerd-overlay
+    ```
 
 可通过 `cat /proc/mounts` 查看 overlay 挂载点
 
 
 ### Linux 内核版本要求
 
-```txt
-* 目前 Linux 3.10 内核的项目生命周期已经结束，建议您升级至 Linux 4.9 及以上 LTS 版内核
-```
+目前 Linux 3.10 内核的项目生命周期已经结束，建议您升级至 Linux 4.9 及以上 LTS 版内核。
 
 除 CentOS 7.6+ 和 Ubuntu 16.04 以外，其他发行版本需要 Linux 内核版本高于 4.0.0, 可使用命令 `uname -r` 查看，如下：
 
 ```sh
-$ uname -r 
+uname -r 
 5.11.0-25-generic
 ```
 

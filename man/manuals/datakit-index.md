@@ -18,18 +18,18 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
 - 完整支持 Kubernetes 云原生生态
 - [Pipeline](pipeline.md)：简便的结构化数据提取
 - 支持接入其它第三方数据采集
-	- [Telegraf](../integrations/telegraf.md)
-	- [Prometheus](../integrations/prom.md)
-	- [Statsd](../integrations/statsd.md)
-	- [Fluentd](../integrations/logstreaming.md)
-	- [Filebeats](../integrations/beats_output.md)
-	- [Function](../dataflux-func/write-data-via-datakit.md)
-	- Tracing 相关
-    - [OpenTelemetry](../integrations/opentelemetry.md)
-		- [DDTrace](../integrations/ddtrace.md)
-		- [Zipkin](../integrations/zipkin.md)
-		- [Jaeger](../integrations/jaeger.md)
-		- [Skywalking](../integrations/skywalking.md)）
+    - [Telegraf](../integrations/telegraf.md)
+    - [Prometheus](../integrations/prom.md)
+    - [Statsd](../integrations/statsd.md)
+    - [Fluentd](../integrations/logstreaming.md)
+    - [Filebeats](../integrations/beats_output.md)
+    - [Function](../dataflux-func/write-data-via-datakit.md)
+    - Tracing 相关
+        - [OpenTelemetry](../integrations/opentelemetry.md)
+        - [DDTrace](../integrations/ddtrace.md)
+        - [Zipkin](../integrations/zipkin.md)
+        - [Jaeger](../integrations/jaeger.md)
+        - [Skywalking](../integrations/skywalking.md)）
 
 ## 说明
 
