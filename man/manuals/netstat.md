@@ -2,10 +2,15 @@
 ---
 
 ## 视图预览
+
 Netstat 指标展示，包括 tcp 连接数，等待连接，等待处理请求，udp socket 连接等
-![image.png](imgs/input-netstat-1.png)
+
+![](imgs/input-netstat-1.png)
+
 ## 版本支持
+
 操作系统支持：Linux / Windows 
+
 ## 前置条件
 
 - 服务器 <[安装 Datakit](/datakit/datakit-install/)>
