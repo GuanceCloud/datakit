@@ -3,7 +3,7 @@ Tomcat
 ---
 
 - DataKit 版本：{{.Version}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：{{.AvailableArchs}}
 
 采集 tomcat 指标
 

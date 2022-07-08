@@ -3,7 +3,7 @@
 ---
 
 - DataKit 版本：{{.Version}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：{{.AvailableArchs}}
 
 {{.InputName}} 是定时触发用户自定义 python 采集脚本的一整套方案。
 

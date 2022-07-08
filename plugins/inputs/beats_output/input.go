@@ -74,7 +74,7 @@ func (*Input) Catalog() string { return inputName }
 
 func (*Input) SampleConfig() string { return sampleCfg }
 
-func (*Input) AvailableArchs() []string { return datakit.AllArch }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 type DataStruct struct {
 	HostName    string

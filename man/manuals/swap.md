@@ -3,7 +3,7 @@
 ---
 
 - DataKit 版本：{{.Version}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：{{.AvailableArchs}}
 
 swap 采集器用于采集主机 swap 内存的使用情况
 

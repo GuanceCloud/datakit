@@ -3,7 +3,7 @@
 ---
 
 - DataKit 版本：{{.Version}}
-- 操作系统支持：Linux
+- 操作系统支持：:fontawesome-brands-linux: :material-kubernetes:
 
 为了便于在 Kubernetes Pod 中采集应用容器的日志，提供一个轻量的日志采集客户端，以 sidecar 方式挂载到 Pod 中，并将采集到的日志发送给 DataKit。
 
@@ -13,7 +13,7 @@
 
 ### DataKit 配置
 
-需要开启 logfwdserver，详见[文档](logfwdserver.md)。以下是抄录。
+需要开启 logfwdserver，详见[文档](logfwdserver.md)。
 
 进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
 

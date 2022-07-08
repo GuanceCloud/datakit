@@ -226,7 +226,7 @@ func (*Input) SampleConfig() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {

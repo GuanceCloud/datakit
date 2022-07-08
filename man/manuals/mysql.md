@@ -4,7 +4,7 @@
 ---
 
 - DataKit 版本：{{.Version}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：{{.AvailableArchs}}
 
 MySQL 指标采集，收集以下数据：
 

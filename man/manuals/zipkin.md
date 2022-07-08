@@ -3,7 +3,7 @@
 ---
 
 - DataKit 版本：{{.Version}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：{{.AvailableArchs}}
 
 Datakit 内嵌的 Zipkin Agent 用于接收，运算，分析 Zipkin Tracing 协议数据。
 

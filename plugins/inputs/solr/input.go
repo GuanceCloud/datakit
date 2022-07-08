@@ -183,7 +183,7 @@ func (i *Input) GetPipeline() []*tailer.Option {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (i *Input) Run() {

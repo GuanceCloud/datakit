@@ -41,7 +41,7 @@ func (*Input) RunPipeline() {
 }
 
 func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSWindows}
+	return []string{datakit.OSLabelWindows}
 }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {

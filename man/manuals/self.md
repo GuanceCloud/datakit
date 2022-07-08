@@ -3,11 +3,11 @@
 ---
 
 - DataKit 版本：{{.Version}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：{{.AvailableArchs}}
 
 self 采集器用于 DataKit 自身基本信息的采集，包括运行环境信息、CPU、内存占用情况等。
 
-![](imgs/input-self-1.png)
+![](imgs/input-self-01.png)
 
 ## 前置条件
 
@@ -40,7 +40,7 @@ self 采集器会自动运行，无需配置，且无法关闭。
 
 ## 指标预览
 
-![](imgs/input-self-2.png)
+![](imgs/input-self-02.png)
 
 ## 场景视图
 

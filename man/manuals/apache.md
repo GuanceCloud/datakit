@@ -3,7 +3,7 @@
 ---
 
 - DataKit 版本：{{.Version}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：{{.AvailableArchs}}
 
 Apache 采集器可以从 Apache 服务中采集请求数、连接数等，并将指标采集到观测云，帮助监控分析 Apache 各种异常情况。
 

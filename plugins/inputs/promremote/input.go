@@ -338,7 +338,7 @@ func (h *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (h *Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func NewInput() *Input {

@@ -73,7 +73,7 @@ func (i *Input) Terminate() {
 }
 
 func (*Input) AvailableArchs() []string {
-	return []string{"linux", "darwin"}
+	return []string{datakit.OSLabelLinux, datakit.OSLabelMac}
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {

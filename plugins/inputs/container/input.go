@@ -92,7 +92,9 @@ func (*Input) GetPipeline() []*tailer.Option { return nil }
 
 func (*Input) RunPipeline() { /*nil*/ }
 
-func (*Input) AvailableArchs() []string { return []string{datakit.OSLinux} }
+func (*Input) AvailableArchs() []string {
+	return []string{datakit.OSLabelLinux}
+}
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return measurements

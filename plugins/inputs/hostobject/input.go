@@ -192,7 +192,7 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (ipt *Input) doCollect() error {

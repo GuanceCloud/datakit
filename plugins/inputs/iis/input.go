@@ -118,10 +118,7 @@ func (i *Input) GetPipeline() []*tailer.Option {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return []string{
-		// datakit.OSArchWin386,
-		datakit.OSArchWinAmd64,
-	}
+	return []string{datakit.OSLabelWindows}
 }
 
 func (i *Input) Run() {

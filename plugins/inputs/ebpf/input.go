@@ -183,7 +183,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSArchLinuxAmd64, datakit.OSArchLinuxArm64}
+	return []string{datakit.OSLabelLinux}
 }
 
 func init() { //nolint:gochecknoinits

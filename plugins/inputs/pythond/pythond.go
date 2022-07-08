@@ -165,7 +165,7 @@ func (*PythonDInput) Catalog() string { return inputName }
 
 func (*PythonDInput) SampleConfig() string { return configSample }
 
-func (*PythonDInput) AvailableArchs() []string { return datakit.AllArch }
+func (*PythonDInput) AvailableArchs() []string { return datakit.AllOS }
 
 func (*PythonDInput) SampleMeasurement() []inputs.Measurement { return []inputs.Measurement{} }
 

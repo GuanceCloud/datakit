@@ -3,7 +3,7 @@
 ---
 
 - DataKit 版本：{{.Version}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：{{.AvailableArchs}}
 
 Memcached 采集器可以从 Memcached 实例中采集实例运行状态指标，并将指标采集到观测云，帮助监控分析 Memcached 各种异常情况
 
