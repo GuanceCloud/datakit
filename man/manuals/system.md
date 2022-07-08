@@ -7,7 +7,7 @@
 
 system 采集器收集系统负载、正常运行时间、CPU 核心数量以及登录的用户数。
 
-![](imgs/input-system-1.png)
+![](imgs/input-system-01.png)
 
 ## 前置条件
 
@@ -32,7 +32,7 @@ system 采集器收集系统负载、正常运行时间、CPU 核心数量以及
 
 ## 指标预览
 
-![](imgs/input-system-2.png)
+![](imgs/input-system-02.png)
 
 ## 指标集
 

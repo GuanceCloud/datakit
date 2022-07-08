@@ -7,7 +7,7 @@
 
 diskio 采集器用于磁盘流量和时间的指标的采集
 
-![](imgs/input-diskio-1.png)
+![](imgs/input-diskio-01.png)
 
 ## 前置条件
 
@@ -44,7 +44,7 @@ diskperf -Y
 
 ## 指标预览
 
-![](imgs/input-diskio-2.png)
+![](imgs/input-diskio-02.png)
 
 ## 指标集
 
