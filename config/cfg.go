@@ -48,6 +48,7 @@ func DefaultConfig() *Config {
 			// "cluster": "",
 			// "site":    "",
 		},
+		GlobalExtraSourceMap: map[string]string{},
 
 		Environments: map[string]string{
 			"ENV_HOSTNAME": "", // not set
@@ -211,9 +212,10 @@ type Config struct {
 	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
 	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
 
-	GlobalTags     map[string]string `toml:"global_tags,omitempty"` // Deprecated
-	GlobalHostTags map[string]string `toml:"global_host_tags"`
-	GlobalEnvTags  map[string]string `toml:"global_env_tags"`
+	GlobalTags           map[string]string `toml:"global_tags,omitempty"` // Deprecated
+	GlobalHostTags       map[string]string `toml:"global_host_tags"`
+	GlobalEnvTags        map[string]string `toml:"global_env_tags"`
+	GlobalExtraSourceMap map[string]string `toml:"global_extra_source_map"`
 
 	Environments map[string]string     `toml:"environments"`
 	Cgroup       *cgroup.CgroupOptions `toml:"cgroup"`
