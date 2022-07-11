@@ -156,18 +156,6 @@ var (
 ` + part1 + part2
 )
 
-var categoryMap = map[string]string{
-	datakit.MetricDeprecated: "M",
-	datakit.Metric:           "M",
-	datakit.Network:          "N",
-	datakit.KeyEvent:         "E",
-	datakit.Object:           "O",
-	datakit.Logging:          "L",
-	datakit.Tracing:          "T",
-	datakit.RUM:              "R",
-	datakit.Security:         "S",
-}
-
 func (x *DatakitStats) InputsConfTable() string {
 	const (
 		tblHeader = `
@@ -241,7 +229,7 @@ func (x *DatakitStats) InputsStatsTable() string {
 
 		category := "-"
 		if s.Category != "" {
-			category = categoryMap[s.Category]
+			category = datakit.CategoryMap[s.Category]
 		}
 
 		rows = append(rows,
