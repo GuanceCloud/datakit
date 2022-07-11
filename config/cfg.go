@@ -55,7 +55,6 @@ func DefaultConfig() *Config {
 
 		IOConf: &dkio.IOConfig{
 			FeedChanSize:         1024,
-			HighFreqFeedChanSize: 2048,
 			MaxCacheCount:        1024,
 			MaxDynamicCacheCount: 1024,
 			FlushInterval:        "10s",
@@ -637,6 +636,10 @@ func (c *Config) getSinkConfig() error {
 }
 
 func ParseGlobalTags(s string) map[string]string {
+	if s == "" {
+		return map[string]string{}
+	}
+
 	tags := map[string]string{}
 
 	parts := strings.Split(s, ",")
