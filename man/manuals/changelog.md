@@ -1,7 +1,12 @@
 # DataKit 版本历史
 ---
 
-## 1.4.7(2022/07/19) {#cl-1.4.7}
+<!--
+[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ·
+[:octicons-beaker-24: Experimental](index.md#experimental)
+-->
+
+## 1.4.7(2022/07/11) {#cl-1.4.7}
 
 本次发布属于 Hotfix 发布，主要修复如下问题
 
@@ -11,10 +16,10 @@
     - datakit.conf 中 `namespace` 字段将被弃用（仍然可用），改名为 `election_namespace`
 
 - 修复采集器堵塞问题(#916)
-    - 移除 DataKit 心跳接口
-    - 移除 Dataway 列表接口
+    - DataKit 移除调用中心的心跳接口
+    - DataKit 移除调用中心的 Dataway 列表接口
 
-- 支持通过额外的配置（`ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP`）来修改 sidecar 容器的日志来源（`source`） 字段(#903)
+- [容器采集器](../integrations/container.md)支持通过额外的配置（`ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP`）来修改 sidecar 容器的日志来源（`source`） 字段(#903)
 - 修复黑名单在 Monitor 上的展示问题(#904)
 
 ---
@@ -42,11 +47,6 @@
 - 支持通过[环境变量配置 io 磁盘缓存](datakit-conf.md#using-cache)(#906)
 - 增加 [Kubernetes CRD](kubernetes-crd.md) 支持(#726)
 - 其它 bug 修复(#901/#899)
-
-<!--
-[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ·
-[:octicons-beaker-24: Experimental](index.md#experimental)
--->
 
 ---
 
