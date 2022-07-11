@@ -18,8 +18,7 @@ import (
 
 var defaultIO = &IO{
 	conf: &IOConfig{
-		FeedChanSize:         1024,
-		HighFreqFeedChanSize: 2048,
+		FeedChanSize: 1024,
 
 		MaxCacheCount:        1024,
 		MaxDynamicCacheCount: 1024,
@@ -42,7 +41,6 @@ func Start(sincfg []map[string]interface{}) error {
 	log.Debugf("default io config: %v", defaultIO)
 
 	defaultIO.in = make(chan *iodata, defaultIO.conf.FeedChanSize)
-	defaultIO.in2 = make(chan *iodata, defaultIO.conf.HighFreqFeedChanSize)
 	defaultIO.inLastErr = make(chan *lastError, datakit.CommonChanCap)
 
 	defaultIO.inputstats = map[string]*InputsStat{}
@@ -88,10 +86,7 @@ func ChanStat() string {
 	l := len(defaultIO.in)
 	c := cap(defaultIO.in)
 
-	l2 := len(defaultIO.in2)
-	c2 := cap(defaultIO.in2)
-
-	return fmt.Sprintf(`inputCh: %d/%d, highFreqInputCh: %d/%d`, l, c, l2, c2)
+	return fmt.Sprintf(`inputCh: %d/%d`, l, c)
 }
 
 func DroppedTotal() int64 {

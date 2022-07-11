@@ -250,7 +250,8 @@ func getUser(ps *pr.Process) string {
 		}
 		u, err := luser.LookupId(fmt.Sprintf("%d", uid[0])) //nolint:stylecheck
 		if err != nil {
-			l.Warnf("process: pid:%d get username err:%s", ps.Pid, err.Error())
+			// 此处错误极多，故将其 disable 掉，一般的报错是：unknown userid xxx
+			l.Debugf("process: pid:%d get username err:%s", ps.Pid, err.Error())
 			return ""
 		}
 		return u.Username

@@ -1,5 +1,5 @@
 {{.CSS}}
-# 采集器配置
+# logstreaming
 ---
 
 - DataKit 版本：{{.Version}}

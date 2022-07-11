@@ -29,7 +29,6 @@ var (
 
 var (
 	testAssert                 = false
-	highFreqCleanInterval      = time.Millisecond * 500
 	datawayListIntervalDefault = 50
 	heartBeatIntervalDefault   = 40
 	log                        = logger.DefaultSLogger("io")
@@ -38,8 +37,7 @@ var (
 )
 
 type IOConfig struct {
-	FeedChanSize         int `toml:"feed_chan_size"`
-	HighFreqFeedChanSize int `toml:"high_frequency_feed_chan_size"`
+	FeedChanSize int `toml:"feed_chan_size"`
 
 	MaxCacheCount        int64 `toml:"max_cache_count"`
 	MaxDynamicCacheCount int64 `toml:"max_dynamic_cache_count"`
@@ -57,7 +55,15 @@ type IOConfig struct {
 
 type Option struct {
 	CollectCost time.Duration
-	HighFreq    bool
+
+	// HighFreq deprecated
+	// 之前的高频通道是避免部分不老实的采集器每次只 feed 少数几个点
+	// 容易导致 chan feed 效率低，所以选择惩罚性的定期才去消费该
+	// 高频通道。
+	// 目前基本不太会有这种采集器了，而且 io 本身也不会再有阻塞操作，
+	// 故移除了高频通道。
+	HighFreq bool
+
 	Version     string
 	HTTPHost    string
 	PostTimeout time.Duration
@@ -73,7 +79,6 @@ type IO struct {
 	dw dataway.DataWay
 
 	in        chan *iodata
-	in2       chan *iodata // high-freq chan
 	inLastErr chan *lastError
 
 	SentBytes int
@@ -124,9 +129,6 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	log.Debugf("io feed %s|%s", name, category)
 
 	ch := x.in
-	if opt != nil && opt.HighFreq {
-		ch = x.in2
-	}
 
 	filtered := 0
 	var after []*Point
@@ -162,20 +164,45 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 		pts = after
 	}
 
-	// Maybe all points been filtered, but we still send the feeding into io.
-	// We can still see some inputs/data are sending to io in monitor. Do not
-	// optimize the feeding, or we see nothing on monitor about these filtered
-	// points.
-	select {
-	case ch <- &iodata{
+	job := &iodata{
 		category: category,
 		pts:      pts,
 		filtered: filtered,
 		name:     name,
 		opt:      opt,
-	}:
-	case <-datakit.Exit.Wait():
-		log.Warnf("%s/%s feed skipped on global exit", category, name)
+	}
+
+	// 重试机制：这里做三次重试，主要考虑：
+	//  - 尽量不丢数据，io goroutine 在处理 job 的时候，不太会超过 100ms
+	//    还不能完成，而且重试三次
+	//  - 最大三次重试，在一定程度上，尽量不阻塞住采集端以及数据接收端。这里
+	//    的数据接收端可能是用户系统将数据打到 datakit（日志/Tracing 等），不能
+	//    阻塞这些用户系统的 HTTP 调用
+	retry := 0
+	for {
+		if retry >= 3 {
+			log.Warnf("feed retry %d, dropped %d point on %s", retry, len(pts), category)
+			return fmt.Errorf("io busy")
+		}
+
+		// Maybe all points been filtered, but we still send the feeding into io.
+		// We can still see some inputs/data are sending to io in monitor. Do not
+		// optimize the feeding, or we see nothing on monitor about these filtered
+		// points.
+		select {
+		case ch <- job:
+			if retry > 0 {
+				log.Warnf("feed retry %d ok", retry)
+			}
+			return nil
+
+		case <-datakit.Exit.Wait():
+			log.Warnf("%s/%s feed skipped on global exit", category, name)
+
+		default:
+			time.Sleep(time.Millisecond * 100)
+			retry++
+		}
 	}
 
 	return nil
@@ -277,21 +304,6 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 	}
 }
 
-func (x *IO) cleanHighFreqIOData() {
-	if len(x.in2) > 0 {
-		log.Debugf("clean %d cache on high-freq-chan", len(x.in2))
-	}
-
-	for {
-		select {
-		case d := <-x.in2: // eat all cached data
-			x.cacheData(d, false)
-		default:
-			return
-		}
-	}
-}
-
 func (x *IO) init() error {
 	if x.conf.OutputFile != "" {
 		f, err := os.OpenFile(x.conf.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644) //nolint:gosec
@@ -332,6 +344,7 @@ func (x *IO) StartIO(recoverable bool) {
 		return nil
 	})
 
+	log.Info("starting...")
 	g.Go(func(ctx context.Context) error {
 		if err := x.init(); err != nil {
 			log.Errorf("init io err %v", err)
@@ -343,56 +356,13 @@ func (x *IO) StartIO(recoverable bool) {
 		tick := time.NewTicker(du)
 		defer tick.Stop()
 
-		highFreqRecvTicker := time.NewTicker(highFreqCleanInterval)
-		defer highFreqRecvTicker.Stop()
-
-		heartBeatTick := time.NewTicker(time.Second * time.Duration(heartBeatIntervalDefault))
-		defer heartBeatTick.Stop()
-
-		datawaylistTick := time.NewTicker(time.Second * time.Duration(datawayListIntervalDefault))
-		defer datawaylistTick.Stop()
-
 		for {
-			if x.dw != nil {
-				select {
-				case <-heartBeatTick.C:
-					log.Debugf("### enter heartBeat")
-					heartBeatInterval, err := x.dw.HeartBeat()
-					if err != nil {
-						log.Warnf("dw.HeartBeat: %s, ignored", err.Error())
-					}
-					if heartBeatInterval != heartBeatIntervalDefault {
-						heartBeatTick.Reset(time.Second * time.Duration(heartBeatInterval))
-						heartBeatIntervalDefault = heartBeatInterval
-					}
-
-				case <-datawaylistTick.C:
-					log.Debugf("### enter dataway list")
-					var dws []string
-					var err error
-					var datawayListInterval int
-					dws, datawayListInterval, err = x.dw.DatawayList()
-					if err != nil {
-						log.Warnf("DatawayList(): %s, ignored", err)
-					}
-					dataway.AvailableDataways = dws
-					if datawayListInterval != datawayListIntervalDefault {
-						datawaylistTick.Reset(time.Second * time.Duration(datawayListInterval))
-						datawayListIntervalDefault = datawayListInterval
-					}
-				default:
-				}
-			}
-
 			select {
 			case d := <-x.in:
 				x.cacheData(d, true)
 
 			case e := <-x.inLastErr:
 				x.updateLastErr(e)
-
-			case <-highFreqRecvTicker.C:
-				x.cleanHighFreqIOData()
 
 			case <-tick.C:
 				x.flushAll()
@@ -403,8 +373,6 @@ func (x *IO) StartIO(recoverable bool) {
 			}
 		}
 	})
-
-	log.Info("starting...")
 }
 
 func (x *IO) updateLastErr(e *lastError) {
