@@ -52,6 +52,9 @@ const sampleCfg = `
   bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
   # bearer_token_string = "<your-token-string>"
 
+  [inputs.container.logging_extra_source_map]
+    # source_regexp = "new_source"
+
   [inputs.container.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"

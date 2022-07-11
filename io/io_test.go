@@ -9,17 +9,12 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
-	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
-	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
@@ -192,23 +187,4 @@ func TestSplitBody(t *testing.T) {
 	}
 
 	t.Logf("body avg ssize: %d", size/len(bodies))
-}
-
-func TestSlowDataway(t *testing.T) {
-	router := gin.New()
-
-	router.POST("/v1/write/:category", func(c *gin.Context) {
-		//time.Sleep(time.Second) // sleep as slow dataway API
-		_, _ = ioutil.ReadAll(c.Request.Body)
-		c.Request.Body.Close()
-
-		c.Status(http.StatusOK)
-	})
-
-	ts := httptest.NewServer(router)
-	defer ts.Close()
-
-	fmt.Printf("server: %s", ts.URL)
-
-	time.Sleep(time.Hour)
 }

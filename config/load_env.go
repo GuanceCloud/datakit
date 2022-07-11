@@ -123,10 +123,6 @@ func (c *Config) LoadEnvs() error {
 		}
 	}
 
-	if v := datakit.GetEnv("ENV_GLOBAL_EXTRA_SOURCE_MAP"); v != "" {
-		c.GlobalExtraSourceMap = ParseGlobalTags(v)
-	}
-
 	// set logging
 	if v := datakit.GetEnv("ENV_LOG_LEVEL"); v != "" {
 		c.Logging.Level = v
