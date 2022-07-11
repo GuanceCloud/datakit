@@ -171,8 +171,8 @@ spec:
 | `ENV_INPUT_CONTAINER_KUBERNETES_URL`                   | `kubernetes_url`                              | `"https://kubernetes.default:443"`                             |
 | `ENV_INPUT_CONTAINER_BEARER_TOKEN`                     | `bearer_token`                                | `"/run/secrets/kubernetes.io/serviceaccount/token"`            |
 | `ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING`              | `bearer_token_string`                         | `"<your-token-string>"`                                        |
+| `ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP`         | `logging_extra_source_map`                    | `"source_regex*=new_source,regex*=new_source2"` 以英文逗号隔开 |
 | `ENV_K8S_CLUSTER_NAME`                                 | k8s `cluster_name` 字段的缺省值               | `"kube"`                                                       |
-| `ENV_GLOBAL_EXTRA_SOURCE_MAP`                          | datakit.conf 配置项 `global_extra_source_map` | `"source_regex*=new_source,regex*=new_source2"` 以英文逗号隔开 |
 
 补充：
 
@@ -180,7 +180,7 @@ spec:
   1. k8s 集群返回的 ClusterName 值（不为空）
   2. 环境变量 `ENV_K8S_CLUSTER_NAME` 指定的值
   3. 默认值 `kubernetes`
-- `ENV_GLOBAL_EXTRA_SOURCE_MAP` 作用是指定替换 source，参数格式是 `正则表达式=new_source`，当某个 source 能够匹配正则表达式，则这个 source 会被 new_source 替换。如果能够替换成功，则不再使用 `annotations/labels` 配置的 source
+- `ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP` 作用是指定替换 source，参数格式是 `正则表达式=new_source`，当某个 source 能够匹配正则表达式，则这个 source 会被 new_source 替换。如果能够替换成功，则不再使用 `annotations/labels` 配置的 source
 
 ### 支持 Kubernetes 自定义 Export {#k8s-prom-exporter}
 
