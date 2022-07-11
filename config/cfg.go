@@ -48,7 +48,6 @@ func DefaultConfig() *Config {
 			// "cluster": "",
 			// "site":    "",
 		},
-		GlobalExtraSourceMap: map[string]string{},
 
 		Environments: map[string]string{
 			"ENV_HOSTNAME": "", // not set
