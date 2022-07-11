@@ -205,10 +205,11 @@ DataKit 支持的环境变量如下各表所示。
 
 ### 选举相关环境变量 {#env-elect}
 
-| 环境变量名称        | 默认值     | 必须   | 说明                                                                                                                                                |
-| ---------:          | ---:       | ------ | ----                                                                                                                                                |
-| ENV_ENABLE_ELECTION | 默认不开启 | 否     | 开启[选举](election.md)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                                                                 |
-| ENV_NAMESPACE       | 无         | 否     | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。 |
+| 环境变量名称                      | 默认值     | 必须   | 说明                                                                                                                                                |
+| ---------:                        | ---:       | ------ | ----                                                                                                                                                |
+| ENV_ENABLE_ELECTION               | 默认不开启 | 否     | 开启[选举](election.md)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                                                                 |
+| ENV_NAMESPACE                     | 无         | 否     | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。 |
+| ENV_ENABLE_ELECTION_NAMESPACE_TAG | 默认不开启 | 否     | 开启该选项后，所有选举类的采集均会带上 `election_namespace=<your-election-namespace>` 的额外 tag，这可能会导致一些时间线的增长（[:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)） |
 
 ### HTTP/API 相关环境变量 {#env-http-api}
 

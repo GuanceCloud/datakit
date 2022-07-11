@@ -634,7 +634,7 @@ func installNewDatakit(svc service.Service) {
 		l.Infof("set global env tags %+#v", mc.GlobalEnvTags)
 	}
 
-	mc.Namespace = flagNamespace
+	mc.ElectionNamespace = flagNamespace
 	mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", flagDatakitHTTPListen, flagDatakitHTTPPort)
 	mc.InstallDate = time.Now()
 	mc.InstallVer = DataKitVersion

@@ -17,6 +17,25 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 )
 
+func (c *Config) loadElectionEnvs() {
+	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v == "" {
+		return
+	}
+
+	c.EnableElection = true
+
+	// default election namespace is `default`
+	if v := datakit.GetEnv("ENV_NAMESPACE"); v != "" {
+		c.ElectionNamespace = v
+	}
+
+	if v := datakit.GetEnv("ENV_ENABLE_ELECTION_NAMESPACE_TAG"); v != "" {
+		// add to global-env-tags
+		c.EnableElectionTag = true
+		c.GlobalEnvTags["election_namespace"] = c.ElectionNamespace
+	}
+}
+
 func (c *Config) loadIOEnvs() {
 	if v := datakit.GetEnv("ENV_IO_MAX_CACHE_COUNT"); v != "" {
 		val, err := strconv.ParseInt(v, 10, 64)
@@ -84,26 +103,28 @@ func (c *Config) LoadEnvs() error {
 		datakit.DatakitHostName = c.Hostname
 	}
 
-	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v != "" {
-		c.EnableElection = true
-		if v := datakit.GetEnv("ENV_NAMESPACE"); v != "" {
-			c.Namespace = v
-		}
-
-		// add to global-env-tags
-		io.SetGlobalEnvTags("election_namespace", v)
-	}
+	c.loadElectionEnvs()
 
 	if v := datakit.GetEnv("ENV_GLOBAL_TAGS"); v != "" { // deprecated, use ENV_GLOBAL_HOST_TAGS
-		c.GlobalTags = ParseGlobalTags(v)
+		for k, v := range ParseGlobalTags(v) {
+			c.GlobalHostTags[k] = v
+		}
 	}
 
 	if v := datakit.GetEnv("ENV_GLOBAL_HOST_TAGS"); v != "" {
-		c.GlobalHostTags = ParseGlobalTags(v)
+		for k, v := range ParseGlobalTags(v) {
+			c.GlobalHostTags[k] = v
+		}
 	}
 
 	if v := datakit.GetEnv("ENV_GLOBAL_ENV_TAGS"); v != "" {
-		c.GlobalEnvTags = ParseGlobalTags(v)
+		for k, v := range ParseGlobalTags(v) {
+			c.GlobalEnvTags[k] = v
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_GLOBAL_EXTRA_SOURCE_MAP"); v != "" {
+		c.GlobalExtraSourceMap = ParseGlobalTags(v)
 	}
 
 	// set logging

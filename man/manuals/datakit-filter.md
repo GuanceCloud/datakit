@@ -173,7 +173,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 [io]
   ...
   [io.Filters]
-      profile = [ # 针对 Profile 过滤
+    profile = [ # 针对 Profile 过滤
       "{ service = 'python-profiling-manual' }",
     ]
 ```

@@ -48,6 +48,7 @@ func DefaultConfig() *Config {
 			// "cluster": "",
 			// "site":    "",
 		},
+		GlobalExtraSourceMap: map[string]string{},
 
 		Environments: map[string]string{
 			"ENV_HOSTNAME": "", // not set
@@ -55,7 +56,6 @@ func DefaultConfig() *Config {
 
 		IOConf: &dkio.IOConfig{
 			FeedChanSize:         1024,
-			HighFreqFeedChanSize: 2048,
 			MaxCacheCount:        1024,
 			MaxDynamicCacheCount: 1024,
 			FlushInterval:        "10s",
@@ -123,8 +123,9 @@ func DefaultConfig() *Config {
 			Sink: []map[string]interface{}{{}},
 		},
 
-		EnableElection: false,
-		Namespace:      "default",
+		EnableElection:    false,
+		EnableElectionTag: false,
+		ElectionNamespace: "default",
 
 		Ulimit: 64000,
 	}
@@ -212,7 +213,6 @@ type Config struct {
 	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
 	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
 
-	GlobalTags     map[string]string `toml:"global_tags,omitempty"` // Deprecated
 	GlobalHostTags map[string]string `toml:"global_host_tags"`
 	GlobalEnvTags  map[string]string `toml:"global_env_tags"`
 
@@ -222,8 +222,11 @@ type Config struct {
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
 	ProtectMode              bool `toml:"protect_mode"`
 
-	EnableElection bool   `toml:"enable_election"`
-	Namespace      string `toml:"namespace"`
+	// TODO: we should group election-related conf into specified field
+	EnableElection      bool   `toml:"enable_election"`
+	EnableElectionTag   bool   `toml:"enable_election_tag"`
+	ElectionNamespace   string `toml:"election_namespace"`
+	NamespaceDeprecated string `toml:"namespace,omitempty"`
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
@@ -363,20 +366,10 @@ func (c *Config) setupDataway() error {
 }
 
 func (c *Config) parseGlobalHostTags() {
-	if len(c.GlobalTags) != 0 { // c.GlobalTags deprecated, move them to GlobalHostTags
-		for k, v := range c.GlobalTags {
-			c.GlobalHostTags[k] = v
-		}
-	}
-
 	// why?
 	if c.GlobalHostTags == nil {
 		c.GlobalHostTags = map[string]string{}
 	}
-
-	// Delete host tag if configured: you should not do this,
-	// use ENV_HOSTNAME in Config.Environments instead
-	delete(c.GlobalHostTags, "host")
 
 	// setup global tags
 	for k, v := range c.GlobalHostTags {
@@ -458,11 +451,15 @@ func (c *Config) setupGlobalTags() {
 		dkio.SetGlobalHostTags(k, v)
 	}
 
+	// 开启选举且开启开关的情况下，将选举的命名空间塞到 global-env-tags 中
+	if c.EnableElection && c.EnableElectionTag {
+		c.GlobalEnvTags["election_namespace"] = c.ElectionNamespace
+	}
 	for k, v := range c.GlobalEnvTags {
 		dkio.SetGlobalEnvTags(k, v)
 	}
 
-	// 此处不将 host 计入 c.GlobalTags，因为 c.GlobalTags 是读取的用户配置，而 host
+	// 此处不将 host 计入 c.GlobalHostTags，因为 c.GlobalHostTags 是读取的用户配置，而 host
 	// 是不允许修改的, 故单独添加这个 tag 到 io 模块
 	dkio.SetGlobalHostTags("host", c.Hostname)
 }
@@ -484,6 +481,10 @@ func (c *Config) ApplyMainConfig() error {
 				l.Infof("ulimit set to softLimit = %d, hardLimit = %d", soft, hard)
 			}
 		}
+	}
+
+	if c.NamespaceDeprecated != "" && c.ElectionNamespace == "" {
+		c.ElectionNamespace = c.NamespaceDeprecated
 	}
 
 	if c.EnableUncheckedInputs {
@@ -637,6 +638,10 @@ func (c *Config) getSinkConfig() error {
 }
 
 func ParseGlobalTags(s string) map[string]string {
+	if s == "" {
+		return map[string]string{}
+	}
+
 	tags := map[string]string{}
 
 	parts := strings.Split(s, ",")

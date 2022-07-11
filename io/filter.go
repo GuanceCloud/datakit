@@ -484,7 +484,7 @@ func filterPts(category string, pts []*Point) []*Point {
 	select {
 	case defaultFilter.metricCh <- fm:
 	default: // unblocking
-		l.Warnf("feed filter metrics failed, ignored: %+#v", fm)
+		l.Debug("feed filter metrics failed, ignored: %+#v", fm)
 	}
 
 	return after
@@ -499,8 +499,6 @@ func GetFilterStats() *FilterStats {
 	q := &qstats{
 		ch: make(chan *FilterStats),
 	}
-
-	defer close(q.ch)
 
 	tick := time.NewTicker(time.Second * 3)
 	defer tick.Stop()
