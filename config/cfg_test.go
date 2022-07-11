@@ -57,84 +57,97 @@ func TestSetupGlobalTags(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cases := []struct {
-		name     string
-		hosttags map[string]string
-		envtags  map[string]string
+	hn, err := os.Hostname()
+	if err != nil {
+		t.Fatalf("get hostname failed: %s", err.Error())
+	}
 
-		expectHostTags, expectEnvTags map[string]string
+	cases := []struct {
+		name                  string
+		hosttags              map[string]string
+		envtags               map[string]string
+		election, electionTag bool
+
+		expectHostTags,
+		expectEnvTags map[string]string
 	}{
 		{
+			name: "mixed-host-and-evn-tags",
 			hosttags: map[string]string{
-				"host": "__datakit_hostname",
 				"ip":   "__datakit_ip",
-				"id":   "__datakit_id",
-				"uuid": "__datakit_uuid",
-			},
-			envtags: map[string]string{"cluster": "my-cluster"},
-			expectHostTags: map[string]string{
-				"ip": localIP,
+				"host": "__datakit_hostname",
+
+				// 此处 `__datakit_id` and `__datakit_uuid` 都被设置为 `host`
+				// 即不允许出现 xxx = "__datakit_id" 这种 tag
+				"some_id":   "__datakit_id",
+				"some_uuid": "__datakit_uuid",
+
+				// 但可以额外直接给一个 xxx = __datakit_hostname 这样的 tag
+				"xxx": "__datakit_hostname",
 			},
 
-			expectEnvTags: map[string]string{
-				"cluster": "my-cluster",
-			},
+			envtags:        map[string]string{"cluster": "my-cluster"},
+			expectHostTags: map[string]string{"ip": localIP, "host": hn, "xxx": hn},
+			expectEnvTags:  map[string]string{"cluster": "my-cluster"},
 		},
 
 		{
-			hosttags: map[string]string{
-				"host": "$datakit_hostname",
-				"ip":   "$datakit_ip",
-				"id":   "$datakit_id",
-				"uuid": "$datakit_uuid",
-			},
-
-			envtags: map[string]string{"election_namespace": "my-default"},
-
-			expectHostTags: map[string]string{
-				"ip": localIP,
-			},
-
-			expectEnvTags: map[string]string{
-				"election_namespace": "my-default",
-			},
+			name:           "only-host-tags",
+			hosttags:       map[string]string{"uuid": "some-uuid", "host": "some-host"},
+			expectHostTags: map[string]string{"uuid": "some-uuid", "host": "some-host"},
 		},
 
 		{
-			hosttags: map[string]string{
-				"uuid": "some-uuid",
-				"host": "some-host",
-			},
+			name:          "only-env-tags",
+			envtags:       map[string]string{"cluster": "my-cluster"},
+			expectEnvTags: map[string]string{"cluster": "my-cluster"},
+		},
 
-			expectHostTags: map[string]string{
-				"uuid": "some-uuid",
-			},
+		{
+			name:        "enable-only-election",
+			election:    true,
+			electionTag: false,
+
+			hosttags:       map[string]string{"uuid": "some-uuid", "host": "some-host"},
+			envtags:        map[string]string{"cluster": "my-cluster"},
+			expectEnvTags:  map[string]string{"cluster": "my-cluster"},
+			expectHostTags: map[string]string{"uuid": "some-uuid", "host": "some-host"},
+		},
+
+		{
+			name:        "enable-election-and-tags",
+			election:    true,
+			electionTag: true,
+
+			hosttags:       map[string]string{"uuid": "some-uuid", "host": "some-host"},
+			envtags:        map[string]string{"cluster": "my-cluster"},
+			expectEnvTags:  map[string]string{"election_namespace": "default", "cluster": "my-cluster"},
+			expectHostTags: map[string]string{"uuid": "some-uuid", "host": "some-host"},
 		},
 	}
 
-	for idx, tc := range cases {
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			c := DefaultConfig()
 			for k, v := range tc.hosttags {
 				c.GlobalHostTags[k] = v
 			}
 
-			c.setupGlobalTags()
-
-			for k, v := range c.GlobalHostTags {
-				if tc.expectHostTags == nil {
-					tu.Assert(t, v != tc.expectHostTags[k], "`%s' != `%s', global tags: %+#v", idx, v, tc.expectHostTags[k], c.GlobalTags)
-				} else {
-					tu.Assert(t, v == tc.expectHostTags[k], "`%s' != `%s', global tags: %+#v", idx, v, tc.expectHostTags[k], c.GlobalTags)
-				}
+			for k, v := range tc.envtags {
+				c.GlobalEnvTags[k] = v
 			}
 
-			for k, v := range c.GlobalEnvTags {
-				if tc.expectEnvTags == nil {
-					tu.Assert(t, v != tc.expectEnvTags[k], "`%s' != `%s', global tags: %+#v", idx, v, tc.expectEnvTags[k], c.GlobalTags)
-				} else {
-					tu.Assert(t, v == tc.expectEnvTags[k], "`%s' != `%s', global tags: %+#v", idx, v, tc.expectEnvTags[k], c.GlobalTags)
-				}
+			c.EnableElection = tc.election
+			c.EnableElectionTag = tc.electionTag
+			c.setupGlobalTags()
+
+			// 这些预期的 tags 在 config 中必须存在
+			for k, v := range tc.expectEnvTags {
+				tu.Assert(t, v == c.GlobalEnvTags[k], "[%s]`%s' != `%s'", k, v, c.GlobalEnvTags[k])
+			}
+
+			for k, v := range tc.expectHostTags {
+				tu.Assert(t, v == c.GlobalHostTags[k], "[%s]`%s' != `%s'", k, v, c.GlobalHostTags[k])
 			}
 		})
 	}
