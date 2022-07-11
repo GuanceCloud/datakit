@@ -177,10 +177,12 @@ spec:
 补充：
 
 - k8s 数据的 `cluster_name` 字段可能会为空，为此提供注入环境变量的方式，取值优先级依次为：
-  1. k8s 集群返回的 ClusterName 值（不为空）
-  2. 环境变量 `ENV_K8S_CLUSTER_NAME` 指定的值
-  3. 默认值 `kubernetes`
-- `ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP` 作用是指定替换 source，参数格式是 `正则表达式=new_source`，当某个 source 能够匹配正则表达式，则这个 source 会被 new_source 替换。如果能够替换成功，则不再使用 `annotations/labels` 配置的 source
+
+    1. k8s 集群返回的 ClusterName 值（不为空）
+    2. 环境变量 `ENV_K8S_CLUSTER_NAME` 指定的值
+    3. 默认值 `kubernetes`
+
+- `ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP` 作用是指定替换 source，参数格式是 `正则表达式=new_source`，当某个 source 能够匹配正则表达式，则这个 source 会被 new_source 替换。如果能够替换成功，则不再使用 `annotations/labels` 配置的 source（[:octicons-tag-24: Version-1.4.7](../datakit/changelog.md#cl-1.4.7)）
 
 ### 支持 Kubernetes 自定义 Export {#k8s-prom-exporter}
 
