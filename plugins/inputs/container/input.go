@@ -372,6 +372,7 @@ func (i *Input) setup() bool {
 			containerIncludeLog:    i.ContainerIncludeLog,
 			containerExcludeLog:    i.ContainerExcludeLog,
 			extraTags:              i.Tags,
+			extraSourceMap:         i.LoggingExtraSourceMap,
 		}); err != nil {
 			l.Warnf("create docker input err: %s", err)
 		} else {
@@ -382,6 +383,7 @@ func (i *Input) setup() bool {
 			if c, err := newContainerdInput(&containerdInputConfig{
 				endpoint:            i.ContainerdAddress,
 				extraTags:           i.Tags,
+				extraSourceMap:      i.LoggingExtraSourceMap,
 				containerIncludeLog: i.ContainerIncludeLog,
 				containerExcludeLog: i.ContainerExcludeLog,
 			}); err != nil {
