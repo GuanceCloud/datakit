@@ -15,13 +15,12 @@ import (
 )
 
 type containerLogBasisInfo struct {
-	name, id string
-	logPath  string
-	image    string
-	labels   map[string]string
-	tags     map[string]string
-	created  string
-
+	name, id       string
+	logPath        string
+	image          string
+	labels         map[string]string
+	tags           map[string]string
+	created        string
 	extraSourceMap map[string]string
 }
 
