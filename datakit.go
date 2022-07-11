@@ -165,6 +165,20 @@ var (
 	CacheDir           = filepath.Join(InstallDir, "cache")
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
+
+	CategoryMap = map[string]string{
+		MetricDeprecated: "M",
+		Metric:           "M",
+		Network:          "N",
+		KeyEvent:         "E",
+		Object:           "O",
+		Logging:          "L",
+		Tracing:          "T",
+		RUM:              "R",
+		Security:         "S",
+		CustomObject:     "CO",
+		Profile:          "P",
+	}
 )
 
 func CategoryList() (map[string]struct{}, map[string]struct{}) {

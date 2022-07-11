@@ -26,17 +26,6 @@ import (
 )
 
 var (
-	categoryMap = map[string]string{
-		datakit.MetricDeprecated: "M",
-		datakit.Metric:           "M",
-		datakit.Network:          "N",
-		datakit.KeyEvent:         "E",
-		datakit.Object:           "O",
-		datakit.Logging:          "L",
-		datakit.Tracing:          "T",
-		datakit.RUM:              "R",
-		datakit.Security:         "S",
-	}
 	MaxTableWidth = 128
 
 	inputsStatsCols = strings.Split(
@@ -307,7 +296,7 @@ func (m *monitorAPP) renderFilterRulesStatsTable(ds *dkhttp.DatakitStats, colArr
 	for _, x := range keys {
 		v := rs[x]
 		col := 0
-		table.SetCell(row, col, tview.NewTableCell(categoryMap[x]).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignCenter))
+		table.SetCell(row, col, tview.NewTableCell(datakit.CategoryMap[x]).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignCenter))
 		col++
 		table.SetCell(row, col, tview.NewTableCell(number(v.Total)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
@@ -494,7 +483,7 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 			tview.NewTableCell(name).
 				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 1, tview.NewTableCell(func() string {
-			if v, ok := categoryMap[v.Category]; ok {
+			if v, ok := datakit.CategoryMap[v.Category]; ok {
 				return v
 			} else {
 				return "-"
@@ -588,7 +577,7 @@ func (m *monitorAPP) renderPLStatTable(ds *dkhttp.DatakitStats, colArr []string)
 				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 
 		table.SetCell(row, 1, tview.NewTableCell(func() string {
-			if v, ok := categoryMap[plStats.Category]; ok {
+			if v, ok := datakit.CategoryMap[plStats.Category]; ok {
 				return fmt.Sprintf("%8s", v)
 			} else {
 				return "-"
