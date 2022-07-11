@@ -3,6 +3,9 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//go:build !windows
+// +build !windows
+
 package http
 
 import (
@@ -13,6 +16,8 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -314,6 +319,86 @@ func TestTimeout(t *testing.T) {
 			t.Logf("body: %s", string(respBody))
 		})
 	}
+}
+
+func setulimit() {
+	var rLimit syscall.Rlimit
+	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		fmt.Println("Error Getting Rlimit ", err)
+	}
+	fmt.Println(rLimit)
+	rLimit.Max = 999999
+	rLimit.Cur = 999999
+	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		fmt.Println("Error Setting Rlimit ", err)
+	}
+	err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		fmt.Println("Error Getting Rlimit ", err)
+	}
+}
+
+func TestTimeoutOnConcurrentIdleTCPConnection(t *testing.T) {
+	setulimit()
+	router := gin.New()
+
+	idleSec := time.Duration(1)
+
+	ts := httptest.NewUnstartedServer(router)
+	ts.Config.ReadTimeout = idleSec * time.Second //nolint:durationcheck
+	ts.Start()
+	defer ts.Close()
+
+	router.POST("/", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	tcpserver := ts.Listener.Addr().String()
+	tcpAddr, err := net.ResolveTCPAddr("tcp", tcpserver)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("server: %s", tcpserver)
+
+	n := 4096
+	wg := &sync.WaitGroup{}
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// start tcp client connect to HTTP server
+			conn, err := net.DialTCP("tcp", nil, tcpAddr)
+			if err != nil {
+				t.Logf("Dial %s failed: %s", tcpserver, err.Error())
+				return
+			}
+
+			defer conn.Close() //nolint:errcheck
+
+			// idle and timeout
+			time.Sleep((idleSec + 3) * time.Second) //nolint:durationcheck
+
+			closed := false
+
+			for {
+				_, err := conn.Write([]byte(`POST /timeout?x=101ms HTTP/1.1
+Host: stackoverflow.com
+
+nothing`))
+				if err != nil {
+					closed = true
+					break
+				}
+				time.Sleep(time.Second)
+			}
+
+			tu.Assert(t, closed, "expect closed, but not")
+		}()
+	}
+
+	wg.Wait()
 }
 
 //nolint:durationcheck
