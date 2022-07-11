@@ -198,7 +198,6 @@ func TestSlowDataway(t *testing.T) {
 	router := gin.New()
 
 	router.POST("/v1/write/:category", func(c *gin.Context) {
-		//time.Sleep(time.Second) // sleep as slow dataway API
 		_, _ = ioutil.ReadAll(c.Request.Body)
 		c.Request.Body.Close()
 

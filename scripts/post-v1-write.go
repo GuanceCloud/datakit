@@ -18,7 +18,7 @@ func startHTTP() {
 	router.POST("/v1/write/:category",
 		func(c *gin.Context) {
 			_, _ = ioutil.ReadAll(c.Request.Body)
-			c.Request.Body.Close()
+			c.Request.Body.Close() //nolint: errcheck,gosec
 			c.Status(http.StatusOK)
 		})
 
@@ -69,7 +69,7 @@ func main() {
 
 					_, _ = ioutil.ReadAll(resp.Body)
 
-					resp.Body.Close()
+					resp.Body.Close() //nolint:errcheck,gosec
 					n++
 
 					if n%100 == 0 {

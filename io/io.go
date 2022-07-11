@@ -28,10 +28,8 @@ var (
 )
 
 var (
-	testAssert                 = false
-	datawayListIntervalDefault = 50
-	heartBeatIntervalDefault   = 40
-	log                        = logger.DefaultSLogger("io")
+	testAssert = false
+	log        = logger.DefaultSLogger("io")
 
 	g = datakit.G("io")
 )
@@ -198,14 +196,13 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 
 		case <-datakit.Exit.Wait():
 			log.Warnf("%s/%s feed skipped on global exit", category, name)
+			return fmt.Errorf("feed on global exit")
 
 		default:
 			time.Sleep(time.Millisecond * 100)
 			retry++
 		}
 	}
-
-	return nil
 }
 
 func (x *IO) ioStop() {
