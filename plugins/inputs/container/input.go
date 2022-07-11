@@ -48,7 +48,8 @@ type Input struct {
 	K8sBearerTokenString string `toml:"bearer_token_string"`
 	DisableK8sEvents     bool   `toml:"disable_k8s_events"`
 
-	Tags map[string]string `toml:"tags"`
+	LoggingExtraSourceMap map[string]string `toml:"logging_extra_source_map"`
+	Tags                  map[string]string `toml:"tags"`
 
 	TLSCA              string `toml:"tls_ca"`
 	TLSCert            string `toml:"tls_cert"`
@@ -74,11 +75,12 @@ var (
 
 func newInput() *Input {
 	return &Input{
-		DockerEndpoint:    dockerEndpoint,
-		ContainerdAddress: containerdAddress,
-		Tags:              make(map[string]string),
-		chPause:           make(chan bool, maxPauseCh),
-		semStop:           cliutils.NewSem(),
+		DockerEndpoint:        dockerEndpoint,
+		ContainerdAddress:     containerdAddress,
+		Tags:                  make(map[string]string),
+		LoggingExtraSourceMap: make(map[string]string),
+		chPause:               make(chan bool, maxPauseCh),
+		semStop:               cliutils.NewSem(),
 	}
 }
 
@@ -458,6 +460,7 @@ func (i *Input) Resume() error {
 //   ENV_INPUT_CONTAINER_KUBERNETES_URL : string
 //   ENV_INPUT_CONTAINER_BEARER_TOKEN : string
 //   ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING : string
+//   ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP : string
 func (i *Input) ReadEnv(envs map[string]string) {
 	if endpoint, ok := envs["ENV_INPUT_CONTAINER_DOCKER_ENDPOINT"]; ok {
 		i.DockerEndpoint = endpoint
@@ -465,6 +468,10 @@ func (i *Input) ReadEnv(envs map[string]string) {
 
 	if address, ok := envs["ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS"]; ok {
 		i.ContainerdAddress = address
+	}
+
+	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP"]; ok {
+		i.LoggingExtraSourceMap = config.ParseGlobalTags(v)
 	}
 
 	if remove, ok := envs["ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES"]; ok {

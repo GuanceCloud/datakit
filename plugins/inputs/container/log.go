@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
@@ -22,6 +21,8 @@ type containerLogBasisInfo struct {
 	labels   map[string]string
 	tags     map[string]string
 	created  string
+
+	extraSourceMap map[string]string
 }
 
 func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tailer.Option {
@@ -60,7 +61,7 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 
 	// 如果 opt.Source 能够匹配到 extra source，就不再使用 logconf.Source 的值 (#903)
 	useExtraSource := false
-	for re, newSource := range config.Cfg.GlobalExtraSourceMap {
+	for re, newSource := range info.extraSourceMap {
 		match, err := regexp.MatchString(re, opt.Source)
 		if err != nil {
 			l.Warnf("invalid global_extra_source_map '%s', err %s, ignored", re, err)
