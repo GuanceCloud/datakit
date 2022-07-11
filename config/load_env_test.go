@@ -22,7 +22,8 @@ func TestLoadEnv(t *testing.T) {
 		{
 			name: "normal",
 			envs: map[string]string{
-				"ENV_GLOBAL_TAGS":                     "a=b,c=d",
+				"ENV_GLOBAL_HOST_TAGS":                "a=b,c=d",
+				"ENV_GLOBAL_TAGS":                     "x=y,m=n",
 				"ENV_LOG_LEVEL":                       "debug",
 				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
 				"ENV_HOSTNAME":                        "1024.coding",
@@ -41,6 +42,7 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DATAWAY_HTTP_PROXY":              "http://1.2.3.4:1234",
 				"ENV_HTTP_CLOSE_IDLE_CONNECTION":      "on",
 				"ENV_HTTP_TIMEOUT":                    "10s",
+				"ENV_ENABLE_ELECTION_NAMESPACE_TAG":   "ok",
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
@@ -69,11 +71,20 @@ func TestLoadEnv(t *testing.T) {
 				cfg.DefaultEnabledInputs = []string{"cpu", "mem", "disk"}
 
 				cfg.EnableElection = true
-				cfg.Namespace = "some-default"
+				cfg.EnableElectionTag = true
+				cfg.ElectionNamespace = "some-default"
 
-				cfg.GlobalTags = map[string]string{
-					"a": "b", "c": "d",
+				cfg.GlobalHostTags = map[string]string{
+					"a": "b",
+					"c": "d",
+					"x": "y",
+					"m": "n",
 				}
+
+				cfg.GlobalEnvTags = map[string]string{
+					"election_namespace": "some-default",
+				}
+
 				return cfg
 			}(),
 		},
@@ -231,7 +242,7 @@ func TestLoadEnv(t *testing.T) {
 
 			expect: func() *Config {
 				cfg := DefaultConfig()
-				cfg.GlobalTags = map[string]string{"disk": "sda"}
+				cfg.GlobalHostTags = map[string]string{"disk": "sda"}
 				return cfg
 			}(),
 		},
@@ -290,6 +301,7 @@ func TestLoadEnv(t *testing.T) {
 			}
 			if err := c.LoadEnvs(); err != nil {
 				t.Error(err)
+				return
 			}
 
 			a := tc.expect.String()

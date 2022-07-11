@@ -7,25 +7,27 @@
 
 当集群中只有一个被采集对象（如 Kubernetes），但是在批量部署情况下，多个 DataKit 的配置完全相同，都开启了对该中心对象的采集，为了避免重复采集，我们可以开启 DataKit 的选举功能。
 
-编辑 `conf.d/datakit.conf`，将如下开关开启：
+## 选举配置 {#config}
 
-```
-enable_election = true
-```
+=== "datakit.conf"
 
-如果要对多个 DataKit 区分选举，比如这 10 DataKit 和 另外 8 DataKit 分开选举，互相不干扰，可以配置 DataKit 命名空间。同一个命名空间下的 DataKit 参与同一起选举。当命名空间为空值时，会参与“空值”的选举。
+    编辑 `conf.d/datakit.conf`，选举有关的配置如下：
+    
+    ```toml
+    enable_election = true              # 开启选举
+    enable_election_tag = false         # 允许在数据上追加选举空间的 tag
+    election_namespace = "my-namespace" # 设置选举的命名空间(默认 default)
+    ```
+    
+    如果要对多个 DataKit 区分选举，比如这 10 DataKit 和 另外 8 DataKit 分开选举，互相不干扰，可以配置 DataKit 命名空间。同一个命名空间下的 DataKit 参与同一起选举。
+    
+    开启选举后，如果同时开启 `enable_election_tag = true`（[:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)），则在选举类采集的数据上，自动加上 tag: `election_namespace = <your-namespace-name>`。
 
-编辑 `conf.d/datakit.conf`，配置命名空间：
+=== "Kubernetes"
 
-```
-namespace = "dk-namespace-example"
-```
+    参见[这里](datakit-daemonset-deploy.md#env-elect)
 
-开启选举后，参与选举的采集数据，会自动加上 tag: `election_namespace:<namespace-name>`。如果未配置 namespace， `election_namespace` 会取默认值 `default`。
-
-> 注意：并不是参与选举的采集器的所有数据都会添加 `election_namespace`，而是参与选举的数据才会添加。比如容器采集器中，只有部分数据的采集是参与选举的（event/对象等），而日志采集则不参与选举。
-
-## 选举原理
+## 选举原理 {#how}
 
 以 Kubernetes 为例，在同一个集群中，假定有 10 DataKit 如果都开启了选举，且都开启了 Kubernetes 采集器：
 
@@ -60,13 +62,11 @@ namespace = "dk-namespace-example"
 
 ### `host` 字段问题 {#host}
 
-在选举模式下，对于某个具体的被采集对象而言，比如 MySQL，由于采集其数据的 DataKit 可能会变迁（发生了选举轮换），这会导致同一个 MySQL 实例出现多个不同的 `host` 字段。
-
-为避免这种情况，建议在 MySQL 采集器配置上，增加额外的 `tags` 字段：
+在选举模式下，对于某个具体的被采集对象而言，比如 MySQL，由于采集其数据的 DataKit 可能会变迁（发生了选举轮换），故默认情况下，这类采集器不会带上 `host` 这个 tag，以避免时间线增长。我们建议在 MySQL 采集器配置上，增加额外的 `tags` 字段：
 
 ```toml
 [inputs.{{.InputName}}.tags]
   host = "real-mysql-instance-name"
 ```
 
-这样，当 DataKit 发生选举轮换时，会继续沿用 tags 中配置的 `host` 字段，而不会因为选举轮换而出现 `host` 字段变迁问题。
+这样，当 DataKit 发生选举轮换时，会继续沿用 tags 中配置的 `host` 字段。

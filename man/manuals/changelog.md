@@ -1,6 +1,15 @@
 # DataKit 版本历史
 ---
 
+## 1.4.7(2022/07/19) {#cl-1.4.7}
+
+- 选举有关
+    - 修复 `election_namespace` 设置错误的问题(#915)
+    - `enable_election_namespace` 这个 tag 的设置默认关闭，可[手动开启](datakit-daemonset-deploy.md#env-elect)
+    - datakit.conf 中 `namespace` 字段将被弃用（仍然可用），改名为 `election_namespace`
+
+---
+
 ## 1.4.6(2022/07/07) {#cl-1.4.6}
 
 - 调整[全局 tag](datakit-conf.md#set-global-tag) 的行为，避免选举类采集的 tag 分裂(#870)
@@ -298,7 +307,7 @@ volumes:
 - 支持主机安装时通过 [cgroup 限制内存](datakit-conf#4e7ff8f3)使用(#641)
 - 完善日志黑名单功能，新增 contain/notcontain 判定规则(#665)
     - 支持在 datakit.conf 中[配置日志/对象/Tracing/时序指标这几类黑名单](datakit-filter#045b45e3)
-	- 注意：升级该版本，要求 DataWay 升级到 1.2.1+
+    - 注意：升级该版本，要求 DataWay 升级到 1.2.1+
 - 进一步完善 [containerd 下的容器采集](container)(#402)
 - 调整 monitor 布局，增加黑名单过滤情况展示(#634)
 - DaemonSet 安装增加 [Helm 支持](datakit-daemonset-deploy)(#653)

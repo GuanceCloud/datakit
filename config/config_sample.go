@@ -11,26 +11,19 @@ var DatakitConfSample = `
 #
 default_enabled_inputs = ["cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes"]
 
-## install_date: time, DataKit 安装时间, 安装阶段自动生成
-#
-install_date = 2022-04-14T07:01:14Z
-
-## install_version: string, DataKit 版本，安装或升级阶段自动生成
-#
-install_version = "1.2.14-13-gea59773c9e"
-
-## upgrade_date: time, DataKit 升级时间，升级阶段自动生成
-#
-upgrade_date = 2022-04-19T02:33:22Z
-
 ## enable_election: bool, 是否开启选举，默认 false
 #
 enable_election = false
 
-## namespace: string, DataKit 命名空间，支持分区选举
+## election_namespace: string, DataKit 命名空间，支持分区选举
 ## 选举的范围是 工作空间+命名空间 级别的，单个 工作空间+命名空间 中，一次最多只能有一个 DataKit 被选上
 #
-namespace = ""
+election_namespace = "default"
+
+## enable_election_tag: bool
+## 如果开启，则在选举类的采集数据上均带上额外的 tag：election_namespace = <your-election-namespace>
+#
+enable_election_tag = false
 
 ## enable_pprof: bool, 是否开启 pprof, 默认 false
 #
@@ -38,7 +31,7 @@ enable_pprof = false
 
 ## pprof_listen: string, pprof 监听地址和端口
 #
-# pprof_listen = "0.0.0.0:6060"
+pprof_listen = "0.0.0.0:6060"
 
 ## protect_mode: bool, 是否开启保护模式，默认 false
 ## 开启保护模式后，如果配置的采集器间隔超出默认区间，则会被设置为离区间最接近的一个值，即区间的最大或最小值
