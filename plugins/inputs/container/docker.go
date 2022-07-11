@@ -38,7 +38,8 @@ type dockerInputConfig struct {
 	containerIncludeLog []string
 	containerExcludeLog []string
 
-	extraTags map[string]string
+	extraTags      map[string]string
+	extraSourceMap map[string]string
 }
 
 func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
