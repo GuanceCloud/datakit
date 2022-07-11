@@ -7,9 +7,11 @@ package container
 
 import (
 	"encoding/json"
+	"regexp"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
@@ -56,6 +58,20 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 		opt.Source = info.name
 	}
 
+	// 如果 opt.Source 能够匹配到 extra source，就不再使用 logconf.Source 的值 (#903)
+	useExtraSource := false
+	for re, newSource := range config.Cfg.GlobalExtraSourceMap {
+		match, err := regexp.MatchString(re, opt.Source)
+		if err != nil {
+			l.Warnf("invalid global_extra_source_map '%s', err %s, ignored", re, err)
+		}
+		if match {
+			opt.Source = newSource
+			useExtraSource = true
+			break
+		}
+	}
+
 	if !checkContainerIsOlder(info.created, time.Minute) {
 		opt.FromBeginning = true
 	}
@@ -99,7 +115,7 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 	}
 
 	if logconf != nil {
-		if logconf.Source != "" {
+		if !useExtraSource && logconf.Source != "" {
 			opt.Source = logconf.Source
 		}
 		if logconf.Service != "" {
