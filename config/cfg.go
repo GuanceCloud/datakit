@@ -42,8 +42,9 @@ func SetLog() {
 
 func DefaultConfig() *Config {
 	c := &Config{ //nolint:dupl
-		GlobalHostTags: map[string]string{},
-		GlobalEnvTags:  map[string]string{
+		GlobalHostTags:       map[string]string{},
+		GlobalTagsDeprecated: map[string]string{},
+		GlobalEnvTags:        map[string]string{
 			// "project": "",
 			// "cluster": "",
 			// "site":    "",
@@ -212,8 +213,9 @@ type Config struct {
 	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
 	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
 
-	GlobalHostTags map[string]string `toml:"global_host_tags"`
-	GlobalEnvTags  map[string]string `toml:"global_env_tags"`
+	GlobalHostTags       map[string]string `toml:"global_host_tags"`
+	GlobalEnvTags        map[string]string `toml:"global_env_tags"`
+	GlobalTagsDeprecated map[string]string `toml:"global_tags,omitempty"`
 
 	Environments map[string]string     `toml:"environments"`
 	Cgroup       *cgroup.CgroupOptions `toml:"cgroup"`
@@ -445,6 +447,12 @@ func (c *Config) setLogging() {
 // setup global host/env tags.
 func (c *Config) setupGlobalTags() {
 	c.parseGlobalHostTags()
+
+	if len(c.GlobalTagsDeprecated) != 0 { // c.GlobalTags deprecated, move them to GlobalHostTags
+		for k, v := range c.GlobalTagsDeprecated {
+			c.GlobalHostTags[k] = v
+		}
+	}
 
 	for k, v := range c.GlobalHostTags {
 		dkio.SetGlobalHostTags(k, v)
