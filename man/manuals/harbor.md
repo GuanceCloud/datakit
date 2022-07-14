@@ -5,7 +5,7 @@
 
 harbor展示：包括项目数量、镜像仓库数、Components health、服务组件监控状态分布等。
 
-![image.png](../imgs/harbor-1.png)
+![image.png](imgs/harbor-1.png)
 
 ## 安装部署
 
@@ -31,7 +31,7 @@ harbor展示：包括项目数量、镜像仓库数、Components health、服务
 
 > cp harbor.yml harbor.yml.bk
 
-![image.png](../imgs/harbor-2.png)
+![image.png](imgs/harbor-2.png)
 
 修改harbor.yml 配置文件
 
@@ -64,7 +64,7 @@ harbor展示：包括项目数量、镜像仓库数、Components health、服务
 
 > docker-compose ps 
 
-![image.png](../imgs/harbor-3.png)
+![image.png](imgs/harbor-3.png)
 
 状态都是healthy,代表启动成功
 
@@ -72,7 +72,7 @@ harbor展示：包括项目数量、镜像仓库数、Components health、服务
 
 http://配置的ip:7180,默认登录账号： admin ,密码Harbor12345。
 
-![image.png](../imgs/harbor-4.png)
+![image.png](imgs/harbor-4.png)
 
 如要修改，可以在harbor.yml 文件修改
 
@@ -89,7 +89,7 @@ http://配置的ip:7180,默认登录账号： admin ,密码Harbor12345。
 
 源码有个bug，如果传入用户名参数，会覆盖密码。如果启动的用户名是非admin，则需要修改源码后再打镜像。
 
-![image.png](../imgs/harbor-5.png)
+![image.png](imgs/harbor-5.png)
 
 #### 打包docker image
 
@@ -101,11 +101,11 @@ http://配置的ip:7180,默认登录账号： admin ,密码Harbor12345。
 
 如果需要修改用户名，启动加上参数 -e HARBOR_USERNAME=admin
 
-![image.png](../imgs/harbor-6.png)
+![image.png](imgs/harbor-6.png)
 
 #### 查看metrics
 
-![image.png](../imgs/harbor-7.png)
+![image.png](imgs/harbor-7.png)
 
 ### Datakit 配置
 
