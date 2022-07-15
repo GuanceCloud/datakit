@@ -140,6 +140,8 @@ func (n *Input) Run() {
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
 
+	n.initDBFilterMap()
+
 	// Init DB until OK.
 	for {
 		if err := n.initDB(); err != nil {
@@ -289,6 +291,9 @@ func (n *Input) handRow(query string, ts time.Time) {
 		if len(fields) == 0 {
 			continue
 		}
+		if n.filterOutDBName(tags) {
+			continue
+		}
 
 		point, err := io.NewPoint(measurement, tags, fields, inputs.OptElectionMetric)
 		if err != nil {
@@ -297,6 +302,32 @@ func (n *Input) handRow(query string, ts time.Time) {
 			continue
 		}
 		collectCache = append(collectCache, point)
+	}
+}
+
+// filterOutDBName filters out metrics according to their database_name tag.
+// Metrics with database_name tag specified in db_filter are filtered out and not fed to IO.
+func (n *Input) filterOutDBName(tags map[string]string) bool {
+	if len(n.dbFilterMap) == 0 {
+		return false
+	}
+	db, has := tags["database_name"]
+	if !has {
+		return false
+	}
+	if _, filterOut := n.dbFilterMap[db]; filterOut {
+		l.Debugf("filter out metric from db: %s", db)
+		return true
+	}
+	return false
+}
+
+func (n *Input) initDBFilterMap() {
+	if n.dbFilterMap == nil {
+		n.dbFilterMap = make(map[string]struct{}, len(n.DBFilter))
+	}
+	for _, db := range n.DBFilter {
+		n.dbFilterMap[db] = struct{}{}
 	}
 }
 
@@ -313,9 +344,10 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
-			Interval: datakit.Duration{Duration: time.Second * 10},
-			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
-			semStop:  cliutils.NewSem(),
+			Interval:    datakit.Duration{Duration: time.Second * 10},
+			pauseCh:     make(chan bool, inputs.ElectionPauseChannelLength),
+			semStop:     cliutils.NewSem(),
+			dbFilterMap: make(map[string]struct{}, 0),
 		}
 		return s
 	})

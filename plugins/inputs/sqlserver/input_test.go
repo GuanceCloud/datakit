@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
@@ -26,5 +28,69 @@ func TestCon(t *testing.T) {
 	n.getMetric()
 	for _, v := range collectCache {
 		fmt.Println(v.String())
+	}
+}
+
+func TestFilterDBInstance(t *testing.T) {
+	testCases := []struct {
+		name              string
+		tags              map[string]string
+		dbFilter          []string
+		expectedFilterOut bool
+	}{
+		{
+			"filter out",
+			map[string]string{
+				"database_name": "db1",
+				"some_tag":      "some_tag_val",
+			},
+			[]string{"db1", "db2", "db3"},
+			true,
+		},
+		{
+			"not filter out",
+			map[string]string{
+				"database_name": "db4",
+				"hello":         "world",
+			},
+			[]string{"db1", "db2", "db3"},
+			false,
+		},
+		{
+			"database_name tag not present",
+			map[string]string{
+				"hello":       "world",
+				"object_name": "Rebecca",
+			},
+			[]string{"db1", "db2", "db3"},
+			false,
+		},
+		{
+			"empty filter",
+			map[string]string{
+				"database_name": "db-1",
+				"hello":         "world",
+				"object_name":   "Rebecca",
+			},
+			[]string{},
+			false,
+		},
+		{
+			"blank database_name tag",
+			map[string]string{
+				"database_name": "",
+			},
+			[]string{},
+			false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			n := Input{}
+			n.DBFilter = tc.dbFilter
+			n.initDBFilterMap()
+			assert.Equal(t, tc.expectedFilterOut, n.filterOutDBName(tc.tags))
+		})
 	}
 }
