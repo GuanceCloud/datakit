@@ -33,6 +33,10 @@ var (
   ## (optional) collection interval, default is 10s
   interval = "10s"
 
+  ## configure db_filter to filter out metrics from certain databases according to their database_name tag.
+  ## If leave blank, no metric from any database is filtered out.
+  # db_filter = ["some_db_instance_name", "other_db_instance_name"]
+
   # [inputs.sqlserver.log]
   # files = []
   # #grok pipeline script path
@@ -74,6 +78,9 @@ type Input struct {
 
 	QueryVersionDeprecated int      `toml:"query_version,omitempty"`
 	ExcludeQuery           []string `toml:"exclude_query,omitempty"`
+
+	DBFilter    []string `toml:"db_filter,omitempty"`
+	dbFilterMap map[string]struct{}
 
 	lastErr error
 	tail    *tailer.Tailer
