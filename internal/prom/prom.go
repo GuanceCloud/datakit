@@ -227,7 +227,7 @@ func (p *Prom) CollectFromHTTP(u string) ([]*io.Point, error) {
 		if p.opt.IgnoreReqErr {
 			return []*io.Point{}, nil
 		} else {
-			return nil, err
+			return nil, fmt.Errorf("collect from %s: %w", u, err)
 		}
 	}
 	defer resp.Body.Close() //nolint:errcheck
