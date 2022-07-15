@@ -7,12 +7,12 @@
 
 DataKit 支持手动更新和自动更新两种方式。
 
-## 前置条件
+## 前置条件 {#req}
 
 - 自动更新要求 DataKit 版本 >= 1.1.6-rc1
 - 手动更新暂无版本要求
 
-## 手动更新
+## 手动更新 {#manual}
 
 直接执行如下命令查看当前 DataKit 版本。如果线上有最新版本，则会提示对应的更新命令，如：
 
@@ -71,13 +71,13 @@ HTTPS_PROXY=http://10.100.64.198:9530 DK_UPGRADE=1 ...
 $env:HTTPS_PROXY="http://10.100.64.198:9530"; $env:DK_UPGRADE="1" ...
 ```
 
-## 自动更新
+## 自动更新 {#auto}
 
 在 Linux 中，为便于 DataKit 实现自动更新，可通过 crontab 方式添加任务，实现定期更新。
 
 > 注：目前自动更新只支持 Linux，且暂不支持代理模式。
 
-### 准备更新脚本
+### 准备更新脚本 {#prepare}
 
 将如下脚本内容复制到 DataKit 所在机器的安装目录下，保存 `datakit-update.sh`（名称随意）
 
@@ -97,7 +97,7 @@ if [[ $? == 42 ]]; then
 fi
 ```
 
-### 添加 crontab 任务
+### 添加 crontab 任务 {#add-crontab}
 
 执行如下命令，进入 crontab 规则添加界面：
 
@@ -154,7 +154,7 @@ service cron restart
 ...
 ``` 
 
-## DataKit 版本回退
+## DataKit 版本回退 {#downgrade}
 
 如果新版本有不尽人意的地方，急于回退老版本恢复功能，可以通过如下方式直接逆向升级：
 
