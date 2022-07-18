@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -58,6 +59,15 @@ const (
     # key1 = "value1"
     # key2 = "value2"
     # ...
+
+  ## Threads config controls how many goroutines an agent cloud start.
+  ## buffer is the size of worker channel jobs buffering size.
+  ## threads is the total number fo goroutines at running time.
+  ## timeout is the duration(ms) before a job can return a result.
+  # [inputs.zipkin.threads]
+    # buffer = 100
+    # threads = 8
+    # timeout = 1000
 `
 )
 
@@ -71,17 +81,20 @@ var (
 	sampler          *itrace.Sampler
 	customerKeys     []string
 	tags             map[string]string
+	wpool            workerpool.WorkerPool
+	jobTimeout       time.Duration
 )
 
 type Input struct {
-	Pipelines        map[string]string   `toml:"pipelines"` // deprecated
-	PathV1           string              `toml:"pathV1"`
-	PathV2           string              `toml:"pathV2"`
-	CustomerTags     []string            `toml:"customer_tags"`
-	KeepRareResource bool                `toml:"keep_rare_resource"`
-	CloseResource    map[string][]string `toml:"close_resource"`
-	Sampler          *itrace.Sampler     `toml:"sampler"`
-	Tags             map[string]string   `toml:"tags"`
+	Pipelines        map[string]string            `toml:"pipelines"` // deprecated
+	PathV1           string                       `toml:"pathV1"`
+	PathV2           string                       `toml:"pathV2"`
+	CustomerTags     []string                     `toml:"customer_tags"`
+	KeepRareResource bool                         `toml:"keep_rare_resource"`
+	CloseResource    map[string][]string          `toml:"close_resource"`
+	Sampler          *itrace.Sampler              `toml:"sampler"`
+	Tags             map[string]string            `toml:"tags"`
+	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
 }
 
 func (*Input) Catalog() string {
@@ -100,9 +113,8 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
 }
 
-func (ipt *Input) Run() {
+func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
-	log.Infof("%s input started...", inputName)
 
 	afterGather := itrace.NewAfterGather()
 	afterGatherRun = afterGather
@@ -127,29 +139,41 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
-	if ipt.Sampler != nil {
+	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
 		sampler = ipt.Sampler
 	} else {
 		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
 	}
 	afterGather.AppendFilter(sampler.Sample)
 
-	customerKeys = ipt.CustomerTags
-	tags = ipt.Tags
-}
-
-func (ipt *Input) RegHTTPHandler() {
-	// itrace.StartTracingStatistic()
+	if ipt.WPConfig != nil {
+		wpool = workerpool.NewWorkerPool(ipt.WPConfig.Buffer)
+		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
+			log.Errorf("### start workerpool failed: %s", err.Error())
+			wpool = nil
+		} else {
+			jobTimeout = time.Duration(ipt.WPConfig.Timeout) * time.Millisecond
+		}
+	}
 
 	if ipt.PathV1 == "" {
 		ipt.PathV1 = apiv1Path
 	}
+	log.Debugf("### register handler for %s of agent %s", ipt.PathV1, inputName)
 	http.RegHTTPHandler("POST", ipt.PathV1, handleZipkinTraceV1)
 
 	if ipt.PathV2 == "" {
 		ipt.PathV2 = apiv2Path
 	}
+	log.Debugf("### register handler for %s of agent %s", ipt.PathV2, inputName)
 	http.RegHTTPHandler("POST", ipt.PathV2, handleZipkinTraceV2)
+}
+
+func (ipt *Input) Run() {
+	customerKeys = ipt.CustomerTags
+	tags = ipt.Tags
+
+	log.Debugf("### %s agent is running...", inputName)
 }
 
 func (ipt *Input) Terminate() {

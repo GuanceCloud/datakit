@@ -8,6 +8,7 @@ package jaeger
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -15,10 +16,11 @@ import (
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 )
 
 func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("%s: listen on path: %s", inputName, req.URL.Path)
+	log.Debugf("### received tracing data from path: %s", req.URL.Path)
 
 	buf := thrift.NewTMemoryBuffer()
 	_, err := buf.ReadFrom(req.Body)
@@ -29,22 +31,64 @@ func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	log.Debugf("### path: %s, Content-Type: %s, body-size: %s", req.URL.Path, req.Header.Get("Content-Type"), buf.Len())
+
+	if wpool == nil {
+		if err = parseJaegerTrace(buf); err != nil {
+			log.Error(err.Error())
+			resp.WriteHeader(http.StatusBadRequest)
+
+			return
+		}
+	} else {
+		job, err := workerpool.NewJob(workerpool.WithInput(buf),
+			workerpool.WithProcess(parseJaegerTraceAdapter),
+			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration, isTimeout bool) {
+				log.Debugf("### job status: input: %v, output: %v, cost: %dms, timeout: %v", input, output, cost/time.Millisecond, isTimeout)
+			}),
+			workerpool.WithTimeout(jobTimeout),
+		)
+		if err != nil {
+			log.Error(err.Error())
+			resp.WriteHeader(http.StatusBadRequest)
+
+			return
+		}
+
+		if err = wpool.MoreJob(job); err != nil {
+			log.Error(err)
+			resp.WriteHeader(http.StatusTooManyRequests)
+
+			return
+		}
+	}
+
+	resp.WriteHeader(http.StatusOK)
+}
+
+func parseJaegerTraceAdapter(input interface{}) (output interface{}) {
+	buf, ok := input.(*thrift.TMemoryBuffer)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+
+	return parseJaegerTrace(buf)
+}
+
+func parseJaegerTrace(buf *thrift.TMemoryBuffer) error {
 	var (
 		transport = thrift.NewTBinaryProtocolConf(buf, &thrift.TConfiguration{})
 		batch     = &jaeger.Batch{}
 	)
-	if err = batch.Read(context.TODO(), transport); err != nil {
-		log.Error(err.Error())
-		resp.WriteHeader(http.StatusBadRequest)
-
-		return
+	if err := batch.Read(context.TODO(), transport); err != nil {
+		return err
 	}
 
-	if dktrace := batchToDkTrace(batch); len(dktrace) == 0 {
-		log.Warn("empty datakit trace")
-	} else {
-		afterGatherRun.Run(inputName, dktrace, false)
+	if dktrace := batchToDkTrace(batch); len(dktrace) != 0 && afterGatherRun != nil {
+		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
 	}
+
+	return nil
 }
 
 func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {

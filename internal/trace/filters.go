@@ -7,6 +7,7 @@ package trace
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"sync"
 	"time"
@@ -17,6 +18,57 @@ import (
 // NoneFilter always return current trace.
 func NoneFilter(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
+}
+
+type CloseResource struct {
+	sync.Mutex
+	IgnoreResources map[string][]*regexp.Regexp
+}
+
+func (cres *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
+	if len(cres.IgnoreResources) == 0 {
+		return dktrace, false
+	}
+	if len(dktrace) == 0 {
+		return nil, true
+	}
+
+	for i := range dktrace {
+		if dktrace[i].SpanType == SPAN_TYPE_ENTRY {
+			for service, resList := range cres.IgnoreResources {
+				if service == "*" || service == dktrace[i].Service {
+					for j := range resList {
+						if resList[j].MatchString(dktrace[i].Resource) {
+							log.Debugf("close trace tid: %s from service: %s resource: %s send by source: %s",
+								dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+
+							return nil, true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return dktrace, false
+}
+
+func (cres *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
+	cres.Lock()
+	defer cres.Unlock()
+
+	if len(ignResList) == 0 {
+		cres.IgnoreResources = nil
+	} else {
+		ignResRegs := make(map[string][]*regexp.Regexp)
+		for service, resList := range ignResList {
+			ignResRegs[service] = []*regexp.Regexp{}
+			for i := range resList {
+				ignResRegs[service] = append(ignResRegs[service], regexp.MustCompile(resList[i]))
+			}
+		}
+		cres.IgnoreResources = ignResRegs
+	}
 }
 
 func RespectUserRule(dktrace DatakitTrace) (DatakitTrace, bool) {
@@ -32,8 +84,8 @@ func RespectUserRule(dktrace DatakitTrace) (DatakitTrace, bool) {
 				continue
 			}
 			switch priority {
-			case PRIORITY_RULE_SAMPLER_REJECT, PRIORITY_USER_REJECT:
-				log.Debugf("drop tid: %s service: %s resource: %s according to PRIORITY_RULE_SAMPLER_REJECT or PRIORITY_USER_REJECT.",
+			case PRIORITY_USER_REJECT, PRIORITY_RULE_SAMPLER_REJECT:
+				log.Debugf("drop tid: %s service: %s resource: %s according to PRIORITY_USER_REJECT or PRIORITY_RULE_SAMPLER_REJECT.",
 					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
 
 				return nil, true
@@ -43,6 +95,9 @@ func RespectUserRule(dktrace DatakitTrace) (DatakitTrace, bool) {
 
 				return dktrace, true
 			case PRIORITY_AUTO_REJECT, PRIORITY_AUTO_KEEP:
+				log.Debugf("keep tid: %s service: %s resource: %s according to PRIORITY_AUTO_REJECT or PRIORITY_AUTO_KEEP.",
+					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+
 				return dktrace, false
 			default:
 				log.Infof("[note] no proper priority(%s) rules selected, this may be a potential bug, tid: %s service: %s resource: %s",
@@ -96,57 +151,6 @@ func PenetrateErrorTracing(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
 }
 
-type CloseResource struct {
-	sync.Mutex
-	IgnoreResources map[string][]*regexp.Regexp
-}
-
-func (cres *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
-	if len(dktrace) == 0 {
-		return nil, true
-	}
-	if len(cres.IgnoreResources) == 0 {
-		return dktrace, false
-	}
-
-	for i := range dktrace {
-		if dktrace[i].SpanType == SPAN_TYPE_ENTRY {
-			for service, resList := range cres.IgnoreResources {
-				if service == "*" || service == dktrace[i].Service {
-					for j := range resList {
-						if resList[j].MatchString(dktrace[i].Resource) {
-							log.Debugf("close trace tid: %s from service: %s resource: %s send by source: %s",
-								dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
-
-							return nil, true
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return dktrace, false
-}
-
-func (cres *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
-	cres.Lock()
-	defer cres.Unlock()
-
-	if len(ignResList) == 0 {
-		cres.IgnoreResources = nil
-	} else {
-		ignResRegs := make(map[string][]*regexp.Regexp)
-		for service, resList := range ignResList {
-			ignResRegs[service] = []*regexp.Regexp{}
-			for i := range resList {
-				ignResRegs[service] = append(ignResRegs[service], regexp.MustCompile(resList[i]))
-			}
-		}
-		cres.IgnoreResources = ignResRegs
-	}
-}
-
 type KeepRareResource struct {
 	Open       bool
 	Duration   time.Duration
@@ -190,18 +194,23 @@ func (kprres *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
 	}
 }
 
+// constants used for the Knuth hashing, same as agent.
+const knuthFactor = uint64(1111111111111111111)
+
+func multiplicativeHashFunc(n uint64, rate float64) bool {
+	if rate < 1 {
+		return n*knuthFactor < uint64(math.MaxUint64*rate)
+	}
+
+	return true
+}
+
 type Sampler struct {
 	Priority           int     `toml:"priority" json:"priority"` // deprecated
 	SamplingRateGlobal float64 `toml:"sampling_rate" json:"sampling_rate"`
-	ratio              int
-	once               sync.Once
 }
 
 func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
-	smp.once.Do(func() {
-		smp.ratio = int(smp.SamplingRateGlobal * 100)
-	})
-
 	if len(dktrace) == 0 {
 		return nil, true
 	}
@@ -215,11 +224,11 @@ func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
 			}
 			switch priority {
 			case PRIORITY_AUTO_KEEP:
-				if int(UnifyToInt64ID(dktrace[i].TraceID)%100) < smp.ratio {
+				if multiplicativeHashFunc(UnifyToUint64ID(dktrace[i].TraceID), smp.SamplingRateGlobal) {
 					return dktrace, false
 				} else {
 					log.Debugf("drop tid: %s service: %s resource: %s according to PRIORITY_AUTO_KEEP and sampling ratio: %d%%",
-						dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, smp.ratio)
+						dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, int(smp.SamplingRateGlobal*100))
 
 					return nil, true
 				}

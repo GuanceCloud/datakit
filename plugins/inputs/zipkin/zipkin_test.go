@@ -12,7 +12,7 @@ import (
 )
 
 func TestZipkinAgent(t *testing.T) {
-	afterGatherRun = itrace.AfterGatherFunc(func(inputName string, dktrace itrace.DatakitTrace, strikMod bool) {})
+	afterGatherRun = itrace.AfterGatherFunc(func(inputName string, dktraces itrace.DatakitTraces, strikMod bool) {})
 
 	testHTTPServerV1(t)
 	testHTTPServerV2(t)

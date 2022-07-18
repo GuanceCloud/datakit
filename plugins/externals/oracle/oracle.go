@@ -207,7 +207,6 @@ func (m *monitor) handle(ec *ExecCfg) {
 
 func handleResponse(m *monitor, metricName string, tagsKeys []string, response []map[string]interface{}) error {
 	lines := [][]byte{}
-
 	if metricName == "oracle_system" {
 		return handleSystem(m, metricName, response)
 	}
