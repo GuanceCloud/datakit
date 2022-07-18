@@ -145,7 +145,7 @@ func main() {
 	}
 
 	// disable global-host-tags and enable global-env-tags, oracle inputs is a election input
-	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle&ignore_global_host_tags=true&global_env_tags=true", opt.DatakitHTTPPort)
+	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle&ignore_global_host_tags=true&global_env_tags=true", opt.DatakitHTTPPort) //nolint:lll
 
 	if err := logger.InitRoot(&logger.Option{
 		Path:  opt.Log,
