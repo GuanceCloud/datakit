@@ -139,8 +139,6 @@ func (p *pod) object() (inputsMeas, error) {
 	}
 	var res inputsMeas
 
-	podIDs := make(map[string]interface{})
-
 	for _, item := range p.items {
 		obj := &podObject{
 			tags: map[string]string{
@@ -222,29 +220,6 @@ func (p *pod) object() (inputsMeas, error) {
 		}
 
 		res = append(res, obj)
-
-		podIDs[string(item.UID)] = nil
-
-		tempItem := item
-		if err := tryRunInput(&tempItem); err != nil {
-			l.Warnf("failed to run input(discovery), %s", err)
-		}
-	}
-
-	for id, inputList := range discoveryInputsMap {
-		if _, ok := podIDs[id]; ok {
-			continue
-		}
-		for _, ii := range inputList {
-			if ii == nil {
-				continue
-			}
-			if inp, ok := ii.(inputs.InputV2); ok {
-				inp.Terminate()
-			}
-		}
-		delete(discoveryInputsMap, id)
-		l.Debugf("terminating inputs, pod_id %s, len %d", id, len(inputList))
 	}
 
 	return res, nil

@@ -47,6 +47,7 @@ type Option struct {
 	Measurements     []Rule   `json:"measurements"`
 	Source           string   `toml:"source"`
 	Interval         string   `toml:"interval"`
+	Timeout          string   `toml:"timeout"`
 
 	URL  string   `toml:"url,omitempty"` // Deprecated
 	URLs []string `toml:"urls"`
@@ -113,7 +114,7 @@ func (opt *Option) GetIntervalDuration() time.Duration {
 }
 
 const (
-	httpTimeout               = time.Second * 10
+	httpTimeout               = time.Second * 1
 	defaultInsecureSkipVerify = false
 )
 
@@ -146,8 +147,13 @@ func NewProm(opt *Option) (*Prom, error) {
 		}
 	}
 
+	timeout, err := time.ParseDuration(opt.Timeout)
+	if err != nil || timeout < httpTimeout {
+		timeout = httpTimeout
+	}
+
 	p := Prom{opt: opt}
-	p.SetClient(&http.Client{Timeout: httpTimeout})
+	p.SetClient(&http.Client{Timeout: timeout})
 
 	if opt.TLSOpen {
 		caCerts := []string{}

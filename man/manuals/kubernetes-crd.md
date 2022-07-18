@@ -81,8 +81,15 @@ metadata:
   name: my-test-crd-object
   namespace: datakit-crd
 spec:
-  input-conf: "[inputs.prom]\nurl=\"http://prom\""
-  k8s-namespace: "testing-namespace"
-  k8s-deployment: "testing-deployment"
+  input-conf: |
+    [[inputs.prom]]
+      url = "http://$IP:8080/metrics"
+      source = "hello-prom-testing]"
+      metric_types = ["counter", "gauge"]
+      interval = "10s"
+      [inputs.prom.tags]
+      namespace = "$NAMESPACE"
+  k8s-namespace: "default"
+  k8s-deployment: "prom-testing"
   tags: "key1=value1"
 ```

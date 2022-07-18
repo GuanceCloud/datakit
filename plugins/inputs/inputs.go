@@ -111,8 +111,13 @@ type ReadEnv interface {
 	ReadEnv(map[string]string)
 }
 
-type InputOnceRunnable interface {
+type InputOnceRunnableCollect interface {
 	Collect() (map[string][]*io.Point, error)
+}
+
+type InputOnceRunnable interface {
+	RunningCollect() error
+	GetIntervalDuration() time.Duration
 }
 
 type LogExampler interface {
