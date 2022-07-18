@@ -48,7 +48,7 @@ func inputDebugger(configFile string) error {
 
 	for k, arr := range inputsInstance {
 		for _, x := range arr {
-			if i, ok := x.(inputs.InputOnceRunnable); !ok {
+			if i, ok := x.(inputs.InputOnceRunnableCollect); !ok {
 				warnf("[W] %s not implement for now.\n", k)
 				continue
 			} else {
