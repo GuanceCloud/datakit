@@ -121,11 +121,13 @@ func TestPenetrateError(t *testing.T) {
 
 func TestCloseResource(t *testing.T) {
 	testcases := DatakitTraces{
-		randDatakitTrace(t, 10, randResource("Allen123"), randSource("ddtrace")),
+		randDatakitTrace(t, 10, randResource("Allen.123"), randSource("ddtrace")),
 		randDatakitTrace(t, 10, randService("game"), randResource("Bravo333"), randSource("ddtrace")),
+		randDatakitTrace(t, 10, randService("hesi"), randResource("GET /nacos/v1/ns/instance/list"), randSource("ddtrace")),
 		randDatakitTrace(t, 10, randService("logout"), randResource("Clear666"), randSource("ddtrace")),
 	}
 	expected := []func(trace DatakitTrace) bool{
+		func(trace DatakitTrace) bool { return trace == nil },
 		func(trace DatakitTrace) bool { return trace == nil },
 		func(trace DatakitTrace) bool { return trace == nil },
 		func(trace DatakitTrace) bool { return trace != nil },
@@ -133,8 +135,7 @@ func TestCloseResource(t *testing.T) {
 
 	closer := &CloseResource{}
 	closer.UpdateIgnResList(map[string][]string{
-		"game": {".*333"},
-		"*":    {"Allen\\d*"},
+		"*": {"Allen.*", ".*333", "GET /nacos/v1/.*"},
 	})
 
 	wg := sync.WaitGroup{}

@@ -134,9 +134,9 @@ func TestGetTraceInt64ID(t *testing.T) {
 	}
 }
 
-func TestUnifyToInt64ID(t *testing.T) {
+func TestUnifyToUint64ID(t *testing.T) {
 	ri := testutils.RandInt64StrID(10)
-	testcases := map[string]int64{
+	testcases := map[string]uint64{
 		"345678987655678":                          345678987655678,
 		"45f6f7f4d67a4b56":                         parseInt("45f6f7f4d67a4b56", 16, 64),
 		"$%^&*&^%CGHGfxcghjsdkfh%^&6dr67d77855678": 3978710596982290232,
@@ -144,15 +144,15 @@ func TestUnifyToInt64ID(t *testing.T) {
 		ri:                                         parseInt(ri, 10, 64),
 	}
 	for k, v := range testcases {
-		if i := UnifyToInt64ID(k); i != v {
+		if i := UnifyToUint64ID(k); i != v {
 			t.Errorf("invalid transform origin: %s transform: %d expect: %d", k, i, v)
 			t.FailNow()
 		}
 	}
 }
 
-func parseInt(s string, base int, bitSize int) int64 {
-	i, _ := strconv.ParseInt(s, base, bitSize)
+func parseInt(s string, base int, bitSize int) uint64 {
+	i, _ := strconv.ParseUint(s, base, bitSize)
 
 	return i
 }

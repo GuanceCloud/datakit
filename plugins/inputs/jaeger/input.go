@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -62,6 +63,15 @@ const (
     # key1 = "value1"
     # key2 = "value2"
     # ...
+
+  ## Threads config controls how many goroutines an agent cloud start.
+  ## buffer is the size of worker channel jobs buffering size.
+  ## threads is the total number fo goroutines at running time.
+  ## timeout is the duration(ms) before a job can return a result.
+  # [inputs.jaeger.threads]
+    # buffer = 100
+    # threads = 8
+    # timeout = 1000
 `
 )
 
@@ -73,19 +83,22 @@ var (
 	sampler          *itrace.Sampler
 	customerKeys     []string
 	tags             map[string]string
+	wpool            workerpool.WorkerPool
+	jobTimeout       time.Duration
 )
 
 type Input struct {
-	Path             string              `toml:"path"`      // deprecated
-	UDPAgent         string              `toml:"udp_agent"` // deprecated
-	Pipelines        map[string]string   `toml:"pipelines"` // deprecated
-	Endpoint         string              `toml:"endpoint"`
-	Address          string              `toml:"address"`
-	CustomerTags     []string            `toml:"customer_tags"`
-	KeepRareResource bool                `toml:"keep_rare_resource"`
-	CloseResource    map[string][]string `toml:"close_resource"`
-	Sampler          *itrace.Sampler     `toml:"sampler"`
-	Tags             map[string]string   `toml:"tags"`
+	Path             string                       `toml:"path"`      // deprecated
+	UDPAgent         string                       `toml:"udp_agent"` // deprecated
+	Pipelines        map[string]string            `toml:"pipelines"` // deprecated
+	Endpoint         string                       `toml:"endpoint"`
+	Address          string                       `toml:"address"`
+	CustomerTags     []string                     `toml:"customer_tags"`
+	KeepRareResource bool                         `toml:"keep_rare_resource"`
+	CloseResource    map[string][]string          `toml:"close_resource"`
+	Sampler          *itrace.Sampler              `toml:"sampler"`
+	Tags             map[string]string            `toml:"tags"`
+	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
 }
 
 func (*Input) Catalog() string {
@@ -105,15 +118,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) RegHTTPHandler() {
-	if ipt.Endpoint != "" {
-		// itrace.StartTracingStatistic()
-		http.RegHTTPHandler("POST", ipt.Endpoint, handleJaegerTrace)
-	}
-}
-
-func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
-	log.Infof("%s input started...", inputName)
 
 	afterGather := itrace.NewAfterGather()
 	afterGatherRun = afterGather
@@ -138,27 +143,50 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
-	if ipt.Sampler != nil {
+	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
 		sampler = ipt.Sampler
 	} else {
 		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
 	}
 	afterGather.AppendFilter(sampler.Sample)
 
-	// start up UDP agent
+	if ipt.WPConfig != nil {
+		wpool = workerpool.NewWorkerPool(ipt.WPConfig.Buffer)
+		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
+			log.Errorf("### start workerpool failed: %s", err.Error())
+			wpool = nil
+		} else {
+			jobTimeout = time.Duration(ipt.WPConfig.Timeout) * time.Millisecond
+		}
+	}
+
+	log.Debugf("### register handler for %s of agent %s", ipt.Endpoint, inputName)
+	if ipt.Endpoint != "" {
+		// itrace.StartTracingStatistic()
+		http.RegHTTPHandler("POST", ipt.Endpoint, handleJaegerTrace)
+	}
+}
+
+func (ipt *Input) Run() {
 	if ipt.Address != "" {
+		log.Debugf("### %s UDP agent is starting...", inputName)
 		// itrace.StartTracingStatistic()
 		if err := StartUDPAgent(ipt.Address); err != nil {
-			log.Errorf("%s start UDP agent failed: %s", inputName, err.Error())
+			log.Errorf("### start %s UDP agent failed: %s", inputName, err.Error())
 		}
 	}
 
 	customerKeys = ipt.CustomerTags
 	tags = ipt.Tags
+
+	log.Debugf("### %s agent is running...", inputName)
 }
 
 func (ipt *Input) Terminate() {
-	// TODO: 必须写
+	if wpool != nil {
+		wpool.Shutdown()
+		log.Debugf("### workerpool in %s is shudown", inputName)
+	}
 }
 
 func init() { //nolint:gochecknoinits
