@@ -7,6 +7,7 @@
 package container
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -122,6 +123,17 @@ func (i *Input) Run() {
 		go i.watchingK8sEventLog()
 	}
 
+	g := datakit.G("kubernetes-autodiscovery")
+	g.Go(func(ctx context.Context) error {
+		if i.k8sInput == nil {
+			l.Errorf("unrechable, k8s input is empty pointer")
+			return nil
+		}
+		d := newDiscovery(i.k8sInput.client, i.Tags)
+		d.start()
+		return nil
+	})
+
 	i.collectObject()
 
 	for {
@@ -172,9 +184,6 @@ func (i *Input) collectObject() {
 		return
 	}
 	if i.pause {
-		if len(discoveryInputsMap) != 0 {
-			terminatingDiscoveryInput()
-		}
 		l.Debug("not leader, skipped")
 		return
 	}
