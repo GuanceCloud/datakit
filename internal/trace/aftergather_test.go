@@ -44,7 +44,7 @@ func TestAfterGather(t *testing.T) {
 			for i := 0; i < 100; i++ {
 				trace := randDatakitTrace(t, 10, randService(_services...), randResource(_resources...))
 				parentialize(trace)
-				afterGather.Run("test_after_gather", trace, false)
+				afterGather.Run("test_after_gather", DatakitTraces{trace}, false)
 			}
 		}()
 	}
@@ -64,6 +64,6 @@ func TestBuildPoint(t *testing.T) {
 
 func TestBuildPointsBatch(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		BuildPointsBatch(randDatakitTrace(t, 10), false)
+		BuildPointsBatch(DatakitTraces{randDatakitTrace(t, 10)}, false)
 	}
 }

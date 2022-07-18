@@ -250,7 +250,7 @@ func IsRootSpan(dkspan *DatakitSpan) bool {
 	return dkspan.ParentID == "0" || dkspan.ParentID == ""
 }
 
-func UnifyToInt64ID(id string) int64 {
+func UnifyToUint64ID(id string) uint64 {
 	if len(id) == 0 {
 		return 0
 	}
@@ -269,16 +269,16 @@ func UnifyToInt64ID(id string) int64 {
 		}
 	}
 	var (
-		i   int64
+		i   uint64
 		err error
 	)
 	if isInt {
-		if i, err = strconv.ParseInt(id, 10, 64); err == nil {
+		if i, err = strconv.ParseUint(id, 10, 64); err == nil {
 			return i
 		}
 	}
 	if isHex {
-		if i, err = strconv.ParseInt(id, 16, 64); err == nil {
+		if i, err = strconv.ParseUint(id, 16, 64); err == nil {
 			return i
 		}
 	}
@@ -287,7 +287,7 @@ func UnifyToInt64ID(id string) int64 {
 	if l := len(hexstr); l > 16 {
 		hexstr = hexstr[l-16:]
 	}
-	i, _ = strconv.ParseInt(hexstr, 16, 64)
+	i, _ = strconv.ParseUint(hexstr, 16, 64)
 
 	return i
 }
@@ -306,17 +306,31 @@ func MergeInToCustomerTags(customerKeys []string, datakitTags, sourceTags map[st
 	return merged
 }
 
-func ParseTracingRequest(req *http.Request) (contentType string, body io.ReadCloser, err error) {
+// ParseTracerRequest parse the given http request to Content-Type and body buffer if no error
+// occurred. If the given body in request is compressed by gzip, decompression work will
+// be done automatically.
+func ParseTracerRequest(req *http.Request) (contentType, encode string, buf []byte, err error) {
 	if req == nil {
-		return "", nil, errors.New("nil http.Request pointer")
+		err = errors.New("nil http.Request pointer")
+
+		return
 	}
 
-	contentType = ihttp.GetHeader(req, "Content-Type")
+	var body io.ReadCloser
 	if ihttp.GetHeader(req, "Content-Encoding") == "gzip" {
-		body, err = gzip.NewReader(req.Body)
+		encode = "gzip"
+		if body, err = gzip.NewReader(req.Body); err == nil {
+			defer body.Close() // nolint:errcheck
+		}
 	} else {
 		body = req.Body
 	}
+
+	if buf, err = io.ReadAll(body); err != nil {
+		return
+	}
+
+	contentType = ihttp.GetHeader(req, "Content-Type")
 
 	return
 }
