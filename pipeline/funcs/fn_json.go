@@ -85,12 +85,12 @@ func JSON(ng *parser.EngineData, node parser.Node) interface{} {
 
 	v, err := GsonGet(cont, old)
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 
 	if err := ng.SetContent(newkey, v); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 

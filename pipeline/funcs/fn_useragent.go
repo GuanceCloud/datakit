@@ -52,7 +52,7 @@ func UserAgent(ng *parser.EngineData, node parser.Node) interface{} {
 
 	for k, val := range dic {
 		if err := ng.SetContent(k, val); err != nil {
-			l.Warn(err)
+			l.Debug(err)
 			return nil
 		}
 	}

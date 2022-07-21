@@ -91,15 +91,6 @@ func Grok(ng *parser.EngineData, node parser.Node) interface{} {
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
-	// 由 check 函数检测
-	// switch v := funcExpr.Param[1].(type) {
-	// case *parser.StringLiteral:
-	// 	_ = v.Val
-	// default:
-	// 	return fmt.Errorf("expect StringLiteral, got %s",
-	// 		reflect.TypeOf(funcExpr.Param[1]).String())
-	// }
-
 	val, err := ng.GetContentStr(key)
 	if err != nil {
 		return nil
@@ -109,14 +100,10 @@ func Grok(ng *parser.EngineData, node parser.Node) interface{} {
 	if err != nil {
 		return nil
 	}
-	// for k, v := range mFailed {
-	// m[k+"@string"] = v
-	// l.Warnf("unable to cast %s(%#v) of type %T to bool", k, v, v)
-	// }
+
 	for k, v := range m {
-		err := ng.SetContent(k, v)
-		if err != nil {
-			l.Warn(err)
+		if err := ng.SetContent(k, v); err != nil {
+			l.Debug(err)
 			return nil
 		}
 	}

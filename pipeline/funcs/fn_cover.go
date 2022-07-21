@@ -78,24 +78,18 @@ func Cover(ng *parser.EngineData, node parser.Node) interface{} {
 	}
 
 	cont1, err := ng.GetContent(key)
-
-	var cont string
-
 	if err != nil {
 		l.Debugf("key `%v' not exist, ignored", key)
 		return nil //nolint:nilerr
 	}
+
+	var cont string
 
 	switch v := cont1.(type) {
 	case string:
 		cont = v
 	default:
 		return nil
-	}
-
-	if err != nil {
-		l.Debugf("key `%v' not exist, ignored", key)
-		return nil //nolint:nilerr
 	}
 
 	if end > utf8.RuneCountInString(cont) {
@@ -113,7 +107,6 @@ func Cover(ng *parser.EngineData, node parser.Node) interface{} {
 
 	// unreasonable subscript
 	if start > end {
-		l.Debugf("invalid cover range")
 		return fmt.Errorf("invalid cover range")
 	}
 
@@ -130,7 +123,7 @@ func Cover(ng *parser.EngineData, node parser.Node) interface{} {
 	}
 
 	if err := ng.SetContent(key, string(arrCont)); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 

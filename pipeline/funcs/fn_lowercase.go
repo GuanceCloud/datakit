@@ -51,7 +51,7 @@ func Lowercase(ng *parser.EngineData, node parser.Node) interface{} {
 
 	v := strings.ToLower(cont)
 	if err = ng.SetContent(key, v); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 

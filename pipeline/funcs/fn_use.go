@@ -43,7 +43,7 @@ func Use(ngData *parser.EngineData, node parser.Node) interface{} {
 		if ng, ok := ngData.GetCallRef(v.Val); ok {
 			refNg = ng
 		} else {
-			l.Warnf("script not found: %s", v.Val)
+			l.Debugf("script not found: %s", v.Val)
 			return nil
 		}
 	default:

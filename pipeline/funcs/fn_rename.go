@@ -65,7 +65,7 @@ func Rename(ng *parser.EngineData, node parser.Node) interface{} {
 	}
 
 	if err := ng.SetContent(to, v); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 	_ = ng.DeleteContent(from.String())

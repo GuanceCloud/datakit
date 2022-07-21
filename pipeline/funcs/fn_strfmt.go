@@ -80,7 +80,7 @@ func Strfmt(ng *parser.EngineData, node parser.Node) interface{} {
 
 	strfmt := fmt.Sprintf(fmts, outdata...)
 	if err := ng.SetContent(key, strfmt); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 
