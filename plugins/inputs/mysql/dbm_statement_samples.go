@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -676,8 +675,6 @@ func explainStatement(i *Input, statement string, schema string, obfuscatedState
 		return plan, err
 	}
 	defer conn.Close() //nolint:errcheck
-	startTime := time.Now()
-	strategyCacheKey := fmt.Sprintf("explain_strategy:%s", schema)
 
 	l.Debugf("explaining statement. schema=%s, statement='%s'", schema, statement)
 
