@@ -10,7 +10,6 @@ import (
 	"math"
 	"os"
 	"os/user"
-	"regexp"
 	"time"
 	"unsafe"
 
@@ -34,8 +33,8 @@ const srcNameM = "bash"
 var (
 	l = logger.DefaultSLogger(srcNameM)
 
-	regexpReadline  = regexp.MustCompile(`libreadline.so`)
-	sectionReadline = "uretprobe/readline"
+	// regexpReadline  = regexp.MustCompile(`libreadline.so`)
+	// sectionReadline = "uretprobe/readline"
 )
 
 func SetLogger(nl *logger.Logger) {
