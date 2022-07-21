@@ -9,7 +9,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func (d *dialer) pointsFeed(urlStr string) error {
@@ -23,7 +22,7 @@ func (d *dialer) pointsFeed(urlStr string) error {
 			l.Warnf("ignore dialer tag %s: %s", k, v)
 		}
 	}
-	data, err := point.NewPoint(d.task.MetricName(), tags, fields, inputs.OptLogging)
+	data, err := point.NewPoint(d.task.MetricName(), tags, fields, point.LOpt())
 	if err != nil {
 		l.Warnf("make metric failed: %s", err.Error)
 		return err

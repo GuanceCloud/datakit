@@ -148,7 +148,7 @@ func newEvent() *event {
 }
 
 func (e *event) LineProto() (*point.Point, error) {
-	return point.NewPoint(k8sEventName, e.tags, e.fields, inputs.OptElectionLogging)
+	return point.NewPoint(k8sEventName, e.tags, e.fields, point.LOptElection())
 }
 
 //nolint:lll

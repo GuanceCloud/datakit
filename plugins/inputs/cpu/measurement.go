@@ -96,5 +96,5 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 func (m *cpuMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }

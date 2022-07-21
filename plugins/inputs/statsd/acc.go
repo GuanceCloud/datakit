@@ -21,7 +21,7 @@ type point struct {
 }
 
 func (p *point) LineProto() (*dkpoint.Point, error) {
-	return dkpoint.NewPoint(p.name, p.tags, p.fields, inputs.OptMetric)
+	return dkpoint.NewPoint(p.name, p.tags, p.fields, dkpoint.MOpt())
 }
 
 func (p *point) Info() *inputs.MeasurementInfo {

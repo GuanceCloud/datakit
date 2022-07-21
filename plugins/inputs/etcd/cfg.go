@@ -23,11 +23,11 @@ type NetworkMeasurement struct {
 }
 
 func (m *ServerMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 func (m *NetworkMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 func (m *NetworkMeasurement) Info() *inputs.MeasurementInfo {

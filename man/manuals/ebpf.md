@@ -31,8 +31,8 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 
 ### HTTPS 支持 {#https}
 
-[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ·
-[:octicons-beaker-24: Experimental](index.md#experimental)
+[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6) ·
+[:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
 若需要 ebpf-net 开启对容器内的进程采集 https 请求数据采集支持，则需要挂载 overlay 目录到容器
 

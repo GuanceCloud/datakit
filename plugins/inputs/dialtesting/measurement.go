@@ -17,7 +17,7 @@ type httpMeasurement struct {
 }
 
 func (m *httpMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptLogging)
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOpt())
 }
 
 //nolint:lll
@@ -91,7 +91,7 @@ type tcpMeasurement struct {
 }
 
 func (m *tcpMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptLogging)
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOpt())
 }
 
 //nolint:lll
@@ -158,7 +158,7 @@ type icmpMeasurement struct {
 }
 
 func (m *icmpMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptLogging)
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOpt())
 }
 
 //nolint:lll
@@ -254,7 +254,7 @@ type websocketMeasurement struct {
 }
 
 func (m *websocketMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptLogging)
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOpt())
 }
 
 //nolint:lll

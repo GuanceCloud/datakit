@@ -17,7 +17,7 @@ type measurement struct {
 }
 
 func (m *measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptNetwork)
+	return point.NewPoint(m.name, m.tags, m.fields, point.OOpt())
 }
 
 //nolint:lll
@@ -28,7 +28,7 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 type ConnStatsM measurement
 
 func (m *ConnStatsM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptNetwork)
+	return point.NewPoint(m.name, m.tags, m.fields, point.OOpt())
 }
 
 //nolint:lll
@@ -76,7 +76,7 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 type HTTPFlowM measurement
 
 func (m *HTTPFlowM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 //nolint:lll
@@ -121,7 +121,7 @@ func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
 type DNSStatsM measurement
 
 func (m *DNSStatsM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *DNSStatsM) Info() *inputs.MeasurementInfo {
@@ -149,7 +149,7 @@ func (m *DNSStatsM) Info() *inputs.MeasurementInfo {
 type BashM measurement
 
 func (m *BashM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *BashM) Info() *inputs.MeasurementInfo {

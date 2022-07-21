@@ -17,7 +17,7 @@ type demoObj struct {
 }
 
 func (m *demoObj) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptObject)
+	return point.NewPoint(m.name, m.tags, m.fields, point.OOpt())
 }
 
 //nolint:lll

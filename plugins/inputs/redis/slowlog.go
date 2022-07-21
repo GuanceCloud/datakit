@@ -30,7 +30,7 @@ type slowlogMeasurement struct {
 }
 
 func (m *slowlogMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionLogging)
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
 }
 
 //nolint:lll

@@ -145,9 +145,10 @@ $ systemctl status datakit
    Main PID: 3474282 (code=killed, signal=KILL)
 ```
 
-> 注意：
-> - 目前 cgroup 限制只在[宿主机安装](datakit-install.md)的时候会默认开启
-> - 目前 cgourp 只支持 CPU 使用率和内存使用量（mem+swap）控制，且支持 Linux 操作系统。
+???+ attention
+
+    - cgroup 限制只在[宿主机安装](datakit-install.md)的时候会默认开启
+    - cgourp 只支持 CPU 使用率和内存使用量（mem+swap）控制，且只支持 Linux 操作系统。
 
 ### 启用磁盘缓存 {#using-cache}
 

@@ -111,7 +111,7 @@ type clusterRoleObject struct {
 }
 
 func (c *clusterRoleObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_cluster_roles", c.tags, c.fields, inputs.OptElectionObject)
+	return point.NewPoint("kubernetes_cluster_roles", c.tags, c.fields, point.MOptElection())
 }
 
 //nolint:lll

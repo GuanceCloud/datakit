@@ -180,7 +180,7 @@ type nodeMetric struct {
 }
 
 func (n *nodeMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_node", n.tags, n.fields, inputs.OptElectionMetric)
+	return point.NewPoint("kube_node", n.tags, n.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -213,7 +213,7 @@ type nodeObject struct {
 }
 
 func (n *nodeObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_nodes", n.tags, n.fields, inputs.OptElectionObject)
+	return point.NewPoint("kubernetes_nodes", n.tags, n.fields, point.OOptElection())
 }
 
 //nolint:lll

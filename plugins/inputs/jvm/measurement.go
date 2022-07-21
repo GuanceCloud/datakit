@@ -45,7 +45,7 @@ type JavaMemoryPoolMemt struct {
 }
 
 func (j *JvmMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 }
 
 func (j *JvmMeasurement) Info() *inputs.MeasurementInfo {
@@ -53,7 +53,7 @@ func (j *JvmMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaRuntimeMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 }
 
 //nolint:lll
@@ -70,7 +70,7 @@ func (j *JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaMemoryMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 }
 
 //nolint:lll
@@ -98,7 +98,7 @@ func (j *JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaGcMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 }
 
 //nolint:lll
@@ -118,7 +118,7 @@ func (j *JavaGcMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaLastGcMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 }
 
 func (j *JavaLastGcMemt) Info() *inputs.MeasurementInfo {
@@ -126,7 +126,7 @@ func (j *JavaLastGcMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaThreadMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 }
 
 //nolint:lll
@@ -147,7 +147,7 @@ func (j *JavaThreadMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaClassLoadMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 }
 
 //nolint:lll
@@ -167,7 +167,7 @@ func (j *JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaMemoryPoolMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, inputs.OptMetric)
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 }
 
 //nolint:lll

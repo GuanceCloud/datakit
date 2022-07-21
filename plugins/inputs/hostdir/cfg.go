@@ -59,7 +59,7 @@ type Measurement struct {
 }
 
 func (m *Measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *Measurement) Info() *inputs.MeasurementInfo {

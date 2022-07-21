@@ -183,7 +183,7 @@ func (hm *hostMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 func (hm *hostMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(hm.name, hm.tags, hm.fields, inputs.OptObject)
+	return point.NewPoint(hm.name, hm.tags, hm.fields, point.OOpt())
 }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {

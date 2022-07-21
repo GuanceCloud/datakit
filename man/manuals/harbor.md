@@ -5,7 +5,7 @@
 
 harbor展示：包括项目数量、镜像仓库数、Components health、服务组件监控状态分布等。
 
-![image.png](../imgs/harbor-1.png)
+![image.png](imgs/harbor-1.png)
 
 ## 安装部署
 
@@ -23,63 +23,77 @@ harbor展示：包括项目数量、镜像仓库数、Components health、服务
  
 #### 解压
 
-> tar -zxvf harbor-online-installer-v1.10.10.tgz
+```shell
+tar -zxvf harbor-online-installer-v1.10.10.tgz
+```
 
 #### 配置
 
-备份harbor.yml 
+备份 harbor.yml 
 
-> cp harbor.yml harbor.yml.bk
+```shell
+cp harbor.yml harbor.yml.bk
+```
 
-![image.png](../imgs/harbor-2.png)
+![image.png](imgs/harbor-2.png)
 
-修改harbor.yml 配置文件
+修改 harbor.yml 配置文件
 
-> hostname: 192.168.91.11
-> 
-> # http related config
-> http:
->   # port for http, default is 80. If https enabled, this port will redirect to https port
->   port: 7180
-> #https:
->   # https port for harbor, default is 443
-> 
-> #  port: 443
->   # The path of cert and key files for nginx
-> #  certificate: /your/certificate/path
-> 
-> #  private_key: /your/private/key/path
+```
+hostname: 192.168.91.11
+
+# http related config
+http:
+ # port for http, default is 80. If https enabled, this port will redirect to https port
+ port: 7180
+
+#https:
+ # https port for harbor, default is 443
+
+#  port: 443
+# The path of cert and key files for nginx
+#  certificate: /your/certificate/path
+
+#  private_key: /your/private/key/path
+```
 
 #### 执行prepare
 
 首次安装，需要执行prepare。后续如果修改了harbor.yml文件，需要执行prepare后再执行其他操作。
 
-> ./prepare
+```
+./prepare
+```
 
 #### 执行install
 
-> ./install.sh
+```
+./install.sh
+```
 
 #### 查看状态
 
-> docker-compose ps 
+```
+docker-compose ps 
+```
 
-![image.png](../imgs/harbor-3.png)
+![image.png](imgs/harbor-3.png)
 
-状态都是healthy,代表启动成功
+状态都是 healthy，代表启动成功
 
 #### 访问
 
-http://配置的ip:7180,默认登录账号： admin ,密码Harbor12345。
+http://ip:7180，默认登录账号：admin, 密码 Harbor12345：
 
-![image.png](../imgs/harbor-4.png)
+![image.png](imgs/harbor-4.png)
 
-如要修改，可以在harbor.yml 文件修改
+如要修改，可以在 harbor.yml 文件修改
 
-> harbor_admin_password: Harbor12345
+```
+harbor_admin_password: Harbor12345
+```
 
-
-### harbor-exporter安装
+### harbor-exporter 安装
 
 #### 下载地址
 
@@ -89,33 +103,39 @@ http://配置的ip:7180,默认登录账号： admin ,密码Harbor12345。
 
 源码有个bug，如果传入用户名参数，会覆盖密码。如果启动的用户名是非admin，则需要修改源码后再打镜像。
 
-![image.png](../imgs/harbor-5.png)
+![image.png](imgs/harbor-5.png)
 
 #### 打包docker image
 
->  docker build -t 192.168.91.11:7180/demo/harbor-exporter:v0.1 -f Dockerfile .
+```
+docker build -t 192.168.91.11:7180/demo/harbor-exporter:v0.1 -f Dockerfile .
+```
 
 #### 启动harbor-exporter
 
-> docker run -d -p 9107:9107 -e HARBOR_PASSWORD=Harbor12345 192.168.91.11:7180/demo/harbor-exporter:v0.1 --harbor-server=http://192.168.91.11:7180/api --insecure
+```
+docker run -d -p 9107:9107 -e HARBOR_PASSWORD=Harbor12345 192.168.91.11:7180/demo/harbor-exporter:v0.1 --harbor-server=http://192.168.91.11:7180/api --insecure
+```
 
 如果需要修改用户名，启动加上参数 -e HARBOR_USERNAME=admin
 
-![image.png](../imgs/harbor-6.png)
+![image.png](imgs/harbor-6.png)
 
 #### 查看metrics
 
-![image.png](../imgs/harbor-7.png)
+![image.png](imgs/harbor-7.png)
 
 ### Datakit 配置
 
 #### 配置prom采集器
 
-> cp prom.conf.sample prom-harbor.conf
+```
+cp prom.conf.sample prom-harbor.conf
+```
 
 prom-harbor.conf 全文如下：
 
-```typescript
+```toml
 # {"version": "1.1.9-rc7", "desc": "do NOT edit this line"}
 
 [[inputs.prom]]
@@ -184,39 +204,26 @@ prom-harbor.conf 全文如下：
   #  prefix = "cpu_"
   #  name = "cpu"
 
-#  [[inputs.prom.measurements]]
-#    prefix = "harbor_"
-#    name = "harbor"
+  #  [[inputs.prom.measurements]]
+  #    prefix = "harbor_"
+  #    name = "harbor"
 
   ## 自定义Tags
   [inputs.prom.tags]
     
   # some_tag = "some_value"
   # more_tag = "some_other_value"
-
 ```
 
 #### 重启datakit
 
-> datakit --restart
-
-
-## `{{$m.Name}}`
-
--  标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
-
-{{ end }}
+```shell
+datakit --restart
+```
 
 ## 场景视图
 
 场景 - 仪表盘 - 新建仪表板 - harbor
-
 
 ## 异常检测
 
@@ -229,4 +236,3 @@ prom-harbor.conf 全文如下：
 ## 故障排查
 
 - [无数据上报排查](../datakit/why-no-data.md)
-

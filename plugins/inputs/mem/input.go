@@ -60,7 +60,7 @@ type memMeasurement struct {
 }
 
 func (m *memMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 // https://man7.org/linux/man-pages/man5/proc.5.html

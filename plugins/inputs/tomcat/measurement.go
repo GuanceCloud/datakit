@@ -17,7 +17,7 @@ type measurement struct {
 }
 
 func (m *measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 type TomcatGlobalRequestProcessorM struct{ measurement }

@@ -61,8 +61,8 @@ func pointToTrace(pts []*point.Point) (roSpans []tracesdk.ReadOnlySpan) {
 		return nil
 	}
 	spans := tracetest.SpanStubs{}
-	for _, point := range pts {
-		pointJSON, err := point.ToJSON()
+	for _, pt := range pts {
+		pointJSON, err := pt.ToJSON()
 		if err != nil {
 			continue
 		}

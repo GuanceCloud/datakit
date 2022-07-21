@@ -242,7 +242,7 @@ func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
 			m.tags[k] = v
 		}
 
-		point, err := point.NewPoint(measurement, m.tags, m.fields, inputs.OptMetric)
+		point, err := point.NewPoint(measurement, m.tags, m.fields, point.MOpt())
 		if err != nil {
 			l.Warn(err)
 			continue

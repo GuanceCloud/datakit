@@ -116,7 +116,7 @@ type serviceObject struct {
 }
 
 func (s *serviceObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_services", s.tags, s.fields, inputs.OptElectionObject)
+	return point.NewPoint("kubernetes_services", s.tags, s.fields, point.OOptElection())
 }
 
 //nolint:lll

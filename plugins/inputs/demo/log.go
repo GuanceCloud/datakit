@@ -17,7 +17,7 @@ type demoLog struct {
 }
 
 func (m *demoLog) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptLogging)
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOpt())
 }
 
 //nolint:lll

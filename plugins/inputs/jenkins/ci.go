@@ -13,7 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type ciEventType byte
@@ -127,14 +126,14 @@ func (n *Input) getPipelinePoint(span *ddSpan) (*point.Point, error) {
 	measurementName := "jenkins_pipeline"
 	tags := getPipelineTags(span)
 	n.putExtraTags(tags)
-	return point.NewPoint(measurementName, tags, getPipelineFields(span), inputs.OptElectionLogging)
+	return point.NewPoint(measurementName, tags, getPipelineFields(span), point.LOptElection())
 }
 
 func (n *Input) getJobPoint(span *ddSpan) (*point.Point, error) {
 	measurementName := "jenkins_job"
 	tags := getJobTags(span)
 	n.putExtraTags(tags)
-	return point.NewPoint(measurementName, tags, getJobFields(span), inputs.OptElectionLogging)
+	return point.NewPoint(measurementName, tags, getJobFields(span), point.LOptElection())
 }
 
 func getPipelineTags(span *ddSpan) map[string]string {

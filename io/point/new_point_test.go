@@ -209,7 +209,7 @@ func TestNewPoint(t *testing.T) {
 			fail:  true,
 		},
 		{
-			tname: "with disabled field key",
+			tname: "with-disabled-field-key",
 			name:  "abc",
 			ptopt: &PointOption{Category: datakit.Object},
 			t:     map[string]string{},
