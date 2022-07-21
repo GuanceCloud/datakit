@@ -22,19 +22,22 @@ import (
 func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### received tracing data from path: %s", req.URL.Path)
 
-	buf := thrift.NewTMemoryBuffer()
-	_, err := buf.ReadFrom(req.Body)
-	if err != nil {
+	var (
+		readbodycost = time.Now()
+		buf          = thrift.NewTMemoryBuffer()
+	)
+	if _, err := buf.ReadFrom(req.Body); err != nil {
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	log.Debugf("### path: %s, Content-Type: %s, body-size: %s", req.URL.Path, req.Header.Get("Content-Type"), buf.Len())
+	log.Debugf("### path: %s, Content-Type: %s, body-size: %d, read-body-cost: %dms",
+		req.URL.Path, req.Header.Get("Content-Type"), buf.Len(), time.Since(readbodycost)/time.Millisecond)
 
 	if wpool == nil {
-		if err = parseJaegerTrace(buf); err != nil {
+		if err := parseJaegerTrace(buf); err != nil {
 			log.Error(err.Error())
 			resp.WriteHeader(http.StatusBadRequest)
 

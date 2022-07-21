@@ -26,6 +26,7 @@ type parameters struct {
 }
 
 func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
+	readbodycost := time.Now()
 	media, encode, buf, err := itrace.ParseTracerRequest(req)
 	if err != nil {
 		log.Error(err.Error())
@@ -39,7 +40,8 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 		body:  bytes.NewBuffer(buf),
 	}
 
-	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %s", req.URL.Path, media, encode, len(buf))
+	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %s, read-body-cost: %dms",
+		req.URL.Path, media, encode, len(buf), time.Since(readbodycost)/time.Millisecond)
 
 	if wpool == nil {
 		if err = parseZipkinTraceV1(param); err != nil {
@@ -127,7 +129,7 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 		body:  bytes.NewBuffer(buf),
 	}
 
-	log.Debugf("### path: %s, Content-Type: %s, body-size: %s", req.URL.Path, media, len(buf))
+	log.Debugf("### path: %s, Content-Type: %s, body-size: %d", req.URL.Path, media, len(buf))
 
 	if wpool == nil {
 		if err = parseZipkinTraceV2(param); err != nil {
