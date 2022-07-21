@@ -26,7 +26,7 @@ type infoMeasurement struct {
 
 // 生成行协议.
 func (m *infoMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 // 指定指标.

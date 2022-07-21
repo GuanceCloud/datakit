@@ -448,7 +448,7 @@ systemctl restart datakit
 
 ## 最佳实践
 
-[<Flink 观测最佳实践>](../best-practices/integrations/flink.md)
+[<Flink 观测最佳实践>](../best-practices/monitoring/flink.md)
 
 ## 故障排查
 

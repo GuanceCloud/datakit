@@ -162,7 +162,7 @@ type deploymentMetric struct {
 }
 
 func (d *deploymentMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_deployment", d.tags, d.fields, inputs.OptElectionMetric)
+	return point.NewPoint("kube_deployment", d.tags, d.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -196,7 +196,7 @@ type deploymentObject struct {
 }
 
 func (d *deploymentObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_deployments", d.tags, d.fields, inputs.OptElectionObject)
+	return point.NewPoint("kubernetes_deployments", d.tags, d.fields, point.OOptElection())
 }
 
 //nolint:lll

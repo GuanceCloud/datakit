@@ -149,7 +149,7 @@ type cronjobMetric struct {
 }
 
 func (c *cronjobMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kuber_cronjob", c.tags, c.fields, inputs.OptElectionMetric)
+	return point.NewPoint("kuber_cronjob", c.tags, c.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -176,7 +176,7 @@ type cronjobObject struct {
 }
 
 func (c *cronjobObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_cron_jobs", c.tags, c.fields, inputs.OptElectionObject)
+	return point.NewPoint("kubernetes_cron_jobs", c.tags, c.fields, point.MOptElection())
 }
 
 //nolint:lll

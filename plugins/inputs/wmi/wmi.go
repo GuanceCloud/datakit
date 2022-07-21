@@ -118,7 +118,7 @@ func (ag *Instance) run(ctx context.Context) error {
 				if ag.isTest() {
 					// pass
 				} else {
-					pt, err := point.NewPoint(inputName, tags, fields, inputs.OptMetric)
+					pt, err := point.NewPoint(inputName, tags, fields, point.MOpt())
 					if err != nil {
 						l.Warnf("point.NewPoint: %s, ignored", err)
 						continue

@@ -17,7 +17,7 @@ type HostMeasurement struct {
 }
 
 func (m *HostMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 func (m *HostMeasurement) Info() *inputs.MeasurementInfo {
@@ -42,7 +42,7 @@ type ServiceMeasurement struct {
 }
 
 func (m *ServiceMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 func (m *ServiceMeasurement) Info() *inputs.MeasurementInfo {
@@ -67,7 +67,7 @@ type HealthMeasurement struct {
 }
 
 func (m *HealthMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 func (m *HealthMeasurement) Info() *inputs.MeasurementInfo {
@@ -91,7 +91,7 @@ type MemberMeasurement struct {
 }
 
 func (m *MemberMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 func (m *MemberMeasurement) Info() *inputs.MeasurementInfo {

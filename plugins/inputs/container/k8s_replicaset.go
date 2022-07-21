@@ -158,7 +158,7 @@ type replicasetMetric struct {
 }
 
 func (r *replicasetMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_replicaset", r.tags, r.fields, inputs.OptElectionMetric)
+	return point.NewPoint("kube_replicaset", r.tags, r.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -188,7 +188,7 @@ type replicasetObject struct {
 }
 
 func (r *replicasetObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_replica_sets", r.tags, r.fields, inputs.OptElectionObject)
+	return point.NewPoint("kubernetes_replica_sets", r.tags, r.fields, point.OOptElection())
 }
 
 //nolint:lll

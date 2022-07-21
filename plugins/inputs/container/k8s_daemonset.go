@@ -107,7 +107,7 @@ type daemonsetMetric struct {
 }
 
 func (d *daemonsetMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_daemonset", d.tags, d.fields, inputs.OptElectionMetric)
+	return point.NewPoint("kube_daemonset", d.tags, d.fields, point.MOptElection())
 }
 
 //nolint:lll

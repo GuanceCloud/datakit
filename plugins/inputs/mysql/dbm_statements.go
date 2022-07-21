@@ -21,7 +21,7 @@ type dbmStateMeasurement struct {
 }
 
 func (m *dbmStateMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionLogging)
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
 }
 
 func (m *dbmStateMeasurement) Info() *inputs.MeasurementInfo {

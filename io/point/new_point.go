@@ -101,6 +101,7 @@ func NewPoint(name string,
 		lpOpt.ExtraTags = nil
 	}
 
+	// 如果要追加 global-env-tag，则默认不再追加 global-host-tag
 	if opt.GlobalEnvTags {
 		lpOpt.ExtraTags = globalEnvTags
 	}

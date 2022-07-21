@@ -481,6 +481,7 @@ func (c *Config) ApplyMainConfig() error {
 	}
 
 	datakit.AutoUpdate = c.AutoUpdate
+	point.EnableElection = c.EnableElection
 
 	// config default io
 	if c.IOConf != nil {

@@ -23,7 +23,7 @@ type clientMeasurement struct {
 }
 
 func (m *clientMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 func (m *clientMeasurement) Info() *inputs.MeasurementInfo {

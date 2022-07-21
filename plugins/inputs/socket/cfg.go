@@ -71,11 +71,11 @@ type UDPMeasurement struct {
 }
 
 func (m *TCPMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *UDPMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *TCPMeasurement) Info() *inputs.MeasurementInfo {

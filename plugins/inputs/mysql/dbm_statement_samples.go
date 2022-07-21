@@ -101,7 +101,7 @@ type planObj struct {
 }
 
 func (m *dbmSampleMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionLogging)
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
 }
 
 func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {

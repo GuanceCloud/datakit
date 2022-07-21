@@ -19,7 +19,7 @@ type datakitMeasurement struct {
 func (m *datakitMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.CommonMeasurement.Name,
 		m.CommonMeasurement.Tags,
-		m.CommonMeasurement.Fields, inputs.OptMetric)
+		m.CommonMeasurement.Fields, point.MOpt())
 }
 
 func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {

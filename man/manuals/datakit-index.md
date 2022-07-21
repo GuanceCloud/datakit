@@ -35,9 +35,15 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
 
 ### 实验性功能 {#experimental}
 
-DataKit 发布的时候，会带上一些实验性功能，这些功能往往是初次发布的新功能，这些功能的实现，可能会有一些欠缺考虑或不严谨的地方，甚至对于一些配置方面，我们也不保证其兼容性。对于这部分功能，请大家慎重使用。
+DataKit 发布的时候，会带上一些实验性功能，这些功能往往是初次发布的新功能，这些功能的实现，可能会有一些欠缺考虑或不严谨的地方，故使用实验性功能的时候，需考虑如下一些可能的情况：
 
-对于实验性功能，相关问题可以提交到 issue 中：
+- 功能不太稳定
+- 于一些功能配置，在后续的迭代过程中，不保证其兼容性
+- 由于其局限性，功能可能会被移除，但会有对应的其它措施来满足对应的需求
+
+对于这部分功能，请大家慎重使用。
+
+在使用实验性功能的过程中，相关问题可以提交到 issue 中：
 
 - [Gitlab](https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/new?issue%5Bmilestone_id%5D=){:target="_blank"} 
 - [Github](https://github.com/GuanceCloud/datakit/issues/new){:target="_blank"}

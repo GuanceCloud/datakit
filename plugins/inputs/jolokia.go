@@ -215,7 +215,7 @@ type JolokiaMeasurement struct {
 }
 
 func (j *JolokiaMeasurement) LineProto() (*dkpoint.Point, error) {
-	return dkpoint.NewPoint(j.name, j.tags, j.fields, OptMetric)
+	return dkpoint.NewPoint(j.name, j.tags, j.fields, dkpoint.MOpt())
 }
 
 func (j *JolokiaMeasurement) Info() *MeasurementInfo {

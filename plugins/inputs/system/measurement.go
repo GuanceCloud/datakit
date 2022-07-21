@@ -25,13 +25,13 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 }
 
 func (m *measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 type conntrackMeasurement measurement
 
 func (m *conntrackMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 //nolint:lll
@@ -60,7 +60,7 @@ func (m *conntrackMeasurement) Info() *inputs.MeasurementInfo {
 type filefdMeasurement measurement
 
 func (m *filefdMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 //nolint:lll
@@ -104,7 +104,7 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 func (m *systemMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func newFieldInfoCount(desc string) *inputs.FieldInfo {

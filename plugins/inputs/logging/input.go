@@ -228,7 +228,7 @@ type loggingMeasurement struct {
 }
 
 func (ipt *loggingMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(ipt.name, ipt.tags, ipt.fields, inputs.OptLogging)
+	return point.NewPoint(ipt.name, ipt.tags, ipt.fields, point.LOpt())
 }
 
 //nolint:lll

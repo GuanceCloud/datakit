@@ -23,11 +23,11 @@ type TaskmanagerMeasurement struct {
 }
 
 func (mm *JobmanagerMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(mm.name, mm.tags, mm.fields, inputs.OptElectionMetric)
+	return point.NewPoint(mm.name, mm.tags, mm.fields, point.MOptElection())
 }
 
 func (mm *TaskmanagerMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(mm.name, mm.tags, mm.fields, inputs.OptElectionMetric)
+	return point.NewPoint(mm.name, mm.tags, mm.fields, point.MOptElection())
 }
 
 //nolint:lll

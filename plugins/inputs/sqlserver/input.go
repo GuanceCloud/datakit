@@ -309,7 +309,7 @@ func (n *Input) handRow(query string, ts time.Time) {
 			continue
 		}
 
-		point, err := point.NewPoint(measurement, tags, fields, inputs.OptElectionMetric)
+		point, err := point.NewPoint(measurement, tags, fields, point.MOptElection())
 		if err != nil {
 			l.Errorf("make point err:%s", err.Error())
 			n.lastErr = err

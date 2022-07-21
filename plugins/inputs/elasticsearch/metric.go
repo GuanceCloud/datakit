@@ -20,7 +20,7 @@ type elasticsearchMeasurement struct {
 }
 
 func (m elasticsearchMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m elasticsearchMeasurement) Info() *inputs.MeasurementInfo {

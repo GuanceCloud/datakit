@@ -99,7 +99,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *loggingMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(ipt.name, ipt.tags, ipt.fields, inputs.OptLogging)
+	return point.NewPoint(ipt.name, ipt.tags, ipt.fields, point.LOpt())
 }
 
 //nolint:lll
@@ -233,7 +233,7 @@ func (ipt *Input) feed(pending []*DataStruct) {
 			map[string]interface{}{
 				pipeline.FieldMessage: v.Message,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,
-			}, inputs.OptLogging)
+			}, point.LOpt())
 		if err != nil {
 			l.Error(err)
 			continue
