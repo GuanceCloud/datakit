@@ -111,21 +111,21 @@ ulimit = 64000
 [io]
   ## feed_chan_size: number, IO管道缓存大小
   #
-  feed_chan_size = 8192
+  feed_chan_size = 4096
 
   ## max_cache_count: number, 本地缓存最大值
   ## 此数值与 max_dynamic_cache_count 同时小于等于零将无限使用内存
   #
-  max_cache_count = 8192
+  max_cache_count = 512
 
   ## max_dynamic_cache_count: number, HTTP 缓存最大值
   ## 此数值与 max_cache_count 同时小于等于零将无限使用内存
   #
-  max_dynamic_cache_count = 8192
+  max_dynamic_cache_count = 512
 
   ## flush_interval: string, 推送时间间隔
   #
-  flush_interval = "30s"
+  flush_interval = "10s"
 
   ## output_file: string, 输出 io 数据到本地文件，值为具体的文件路径
   #
@@ -138,9 +138,9 @@ ulimit = 64000
   ## enable_cache: bool, 是否开启缓存
   ## 开启后，如果数据推送失败，则对失败的数据进行本地缓存，后续将继续重新推送
   #
-  enable_cache = false
+	#enable_cache = false
   ## cache_max_size_gb: int, 磁盘 cache 大小(单位 GB)
-  cache_max_size_gb = 1
+	#cache_max_size_gb = 1
 
   ## 阻塞模式: 如果网络堵塞，为了不停止采集，将有部分数据会丢失。
 	## 如果不希望丢失数据，可开启阻塞模式。一旦阻塞，将导致数据采集暂停。
