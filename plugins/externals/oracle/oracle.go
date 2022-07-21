@@ -233,7 +233,7 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 			continue
 		}
 
-		pt, err := point.NewPoint(metricName, tags, item, inputs.OptElectionMetric)
+		pt, err := point.NewPoint(metricName, tags, item, point.MOptElection())
 		if err != nil {
 			l.Error("NewPoint(): %s", err.Error())
 			return err
@@ -284,7 +284,7 @@ func handleSystem(m *monitor, metricName string, response []map[string]interface
 		return nil
 	}
 
-	pt, err := point.NewPoint(metricName, tags, fields, inputs.OptElectionMetric)
+	pt, err := point.NewPoint(metricName, tags, fields, inputs.MOptElection())
 	if err != nil {
 		l.Error("NewPoint(): %s", err.Error())
 		return err
