@@ -36,38 +36,40 @@ const (
 type parameters struct {
 	urlPath string
 	media   string
-	body    io.ReadCloser
+	body    *bytes.Buffer
 }
-
-// var f, _ = os.OpenFile("./ddtrace-data", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0777)
 
 func handleDDTraceWithVersion(v string) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		log.Debugf("### received tracing data from path: %s", req.URL.Path)
 
-		param := &parameters{
-			urlPath: req.URL.Path,
-			media:   req.Header.Get("Content-Type"),
-		}
-		buf, err := io.ReadAll(req.Body)
+		var (
+			readbodycost = time.Now()
+			enterWPoolOK = false
+		)
+		pbuf := bufpool.GetBuffer()
+		defer func() {
+			if !enterWPoolOK {
+				bufpool.PutBuffer(pbuf)
+			}
+		}()
+
+		_, err := io.Copy(pbuf, req.Body)
 		if err != nil {
 			log.Error(err.Error())
 			resp.WriteHeader(http.StatusBadRequest)
 
 			return
 		}
-		param.body = io.NopCloser(bytes.NewBuffer(buf))
 
-		log.Debugf("### path: %s, Content-Type: %s, body-size: %s", param.urlPath, param.media, len(buf))
+		param := &parameters{
+			urlPath: req.URL.Path,
+			media:   req.Header.Get("Content-Type"),
+			body:    pbuf,
+		}
 
-		// if len(body) > 1 {
-		// 	l, err := f.Write(body)
-		// 	if err != nil {
-		// 		log.Error(err)
-		// 	} else {
-		// 		log.Infof("write size %d", l)
-		// 	}
-		// }
+		log.Debugf("### path: %s, Content-Type: %s, body-size: %d, read-body-cost: %dms",
+			param.urlPath, param.media, pbuf.Len(), time.Since(readbodycost)/time.Millisecond)
 
 		if wpool == nil {
 			if err = parseDDTraces(param); err != nil {
@@ -80,6 +82,9 @@ func handleDDTraceWithVersion(v string) http.HandlerFunc {
 			job, err := workerpool.NewJob(workerpool.WithInput(param),
 				workerpool.WithProcess(parseDDTracesAdapter),
 				workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration, isTimeout bool) {
+					if param, ok := input.(*parameters); ok {
+						bufpool.PutBuffer(param.body)
+					}
 					log.Debugf("### job status: input: %v, output: %v, cost: %dms, timeout: %v", input, output, cost/time.Millisecond, isTimeout)
 				}),
 				workerpool.WithTimeout(jobTimeout),
@@ -97,6 +102,7 @@ func handleDDTraceWithVersion(v string) http.HandlerFunc {
 
 				return
 			}
+			enterWPoolOK = true
 		}
 
 		switch v {
@@ -173,13 +179,7 @@ func decodeDDTraces(param *parameters) (DDTraces, error) {
 		}
 		traces = tracesFromSpans(spans)
 	case v5:
-		buf := bufpool.GetBuffer()
-		defer bufpool.PutBuffer(buf)
-
-		if _, err := io.Copy(buf, param.body); err != nil {
-			return nil, err
-		}
-		err = traces.UnmarshalMsgDictionary(buf.Bytes())
+		err = traces.UnmarshalMsgDictionary(param.body.Bytes())
 	default:
 		err = decodeRequest(param, &traces)
 	}
@@ -194,27 +194,13 @@ func decodeRequest(param *parameters, out *DDTraces) error {
 	}
 	switch mediaType {
 	case "application/msgpack":
-		buf := bufpool.GetBuffer()
-		defer bufpool.PutBuffer(buf)
-
-		if _, err = io.Copy(buf, param.body); err != nil {
-			return err
-		}
-		_, err = out.UnmarshalMsg(buf.Bytes())
+		_, err = out.UnmarshalMsg(param.body.Bytes())
 	case "application/json", "text/json", "":
 		return json.NewDecoder(param.body).Decode(out)
 	default:
 		// do our best
 		if err1 := json.NewDecoder(param.body).Decode(out); err1 != nil {
-			buf := bufpool.GetBuffer()
-			defer bufpool.PutBuffer(buf)
-
-			_, err2 := io.Copy(buf, param.body)
-			if err2 != nil {
-				err = fmt.Errorf("could not decode JSON (err:%s), nor Msgpack (err:%s)", err1.Error(), err2.Error()) // nolint:errorlint
-			}
-			_, err2 = out.UnmarshalMsg(buf.Bytes())
-			if err2 != nil {
+			if _, err2 := out.UnmarshalMsg(param.body.Bytes()); err2 != nil {
 				err = fmt.Errorf("could not decode JSON (err:%s), nor Msgpack (err:%s)", err1.Error(), err2.Error()) // nolint:errorlint
 			}
 		}

@@ -10,10 +10,11 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
-	mssql "github.com/denisenkom/go-mssqldb"
-	"github.com/denisenkom/go-mssqldb/msdsn"
 	"strings"
 	"time"
+
+	mssql "github.com/denisenkom/go-mssqldb"
+	"github.com/denisenkom/go-mssqldb/msdsn"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"

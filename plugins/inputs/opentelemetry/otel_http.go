@@ -66,6 +66,7 @@ func (o *otlpHTTPCollector) apiOtlpTrace(resp http.ResponseWriter, req *http.Req
 		return
 	}
 
+	readbodycost := time.Now()
 	media, encode, buf, err := itrace.ParseTracerRequest(req)
 	if err != nil {
 		log.Error(err.Error())
@@ -81,7 +82,8 @@ func (o *otlpHTTPCollector) apiOtlpTrace(resp http.ResponseWriter, req *http.Req
 		storage: o.storage,
 	}
 
-	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %s", req.URL.Path, media, encode, len(buf))
+	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %d, read-body-cost: %dms",
+		req.URL.Path, media, encode, len(buf), time.Since(readbodycost)/time.Millisecond)
 
 	if wpool == nil {
 		if err = parseOtelTrace(param); err != nil {
