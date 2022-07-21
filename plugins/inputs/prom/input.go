@@ -138,7 +138,7 @@ func (i *Input) Run() {
 	}
 }
 
-const defaultIntervalDuration = time.Second * 10
+const defaultIntervalDuration = time.Second * 30
 
 func (i *Input) GetIntervalDuration() time.Duration {
 	if !i.isInitialized {

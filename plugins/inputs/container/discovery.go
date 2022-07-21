@@ -39,13 +39,13 @@ func newDiscovery(client k8sClientX, extraTags map[string]string) *discovery {
 
 func (d *discovery) start() {
 	if d.client == nil {
-		l.Warn("invalid k8s client, cannot be start the autodiscovery")
+		l.Warn("invalid k8s client, input autodiscovery start failed")
 		return
 	}
 
 	localNodeName, err := getLocalNodeName()
 	if err != nil {
-		l.Warn(err)
+		l.Warnf("autodiscovery: %s", err)
 		return
 	}
 	d.localNodeName = localNodeName
@@ -124,6 +124,14 @@ func (d *discovery) fetchDatakitCRDInputs() []*discoveryRunner {
 
 	list, err := d.client.getDataKits().List(context.Background(), metaV1ListOption)
 	if err != nil {
+		// TODO:
+		// 对 error 内容进行子串判定，不再打印这个错误
+		// 避免因为 k8s 客户端没有 datakits resource 而获取失败，频繁报错
+		// “could not find the requested resource” 为 k8s api 实际返回的 error message，可能会因为版本不同而变更
+		if !strings.Contains(err.Error(), "could not find the requested resource") {
+			return nil
+		}
+
 		l.Warnf("autodiscovery: failed to get datakits, err: %s, retry in a minute", err)
 		return nil
 	}
@@ -167,7 +175,7 @@ type discoveryRunner struct {
 func newDiscoveryRunner(item *podMeta, inputConfig string, extraTags map[string]string) ([]*discoveryRunner, error) {
 	l.Debugf("autodiscovery: new runner, source: %s, config: %s", item.Name, inputConfig)
 
-	inputInstances, err := config.LoadSingleConf(complatePromConfig(inputConfig, item), inputs.Inputs)
+	inputInstances, err := config.LoadSingleConf(completePromConfig(inputConfig, item), inputs.Inputs)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +229,7 @@ func newDiscoveryRunner(item *podMeta, inputConfig string, extraTags map[string]
 	return res, nil
 }
 
-func complatePromConfig(config string, item *podMeta) string {
+func completePromConfig(config string, item *podMeta) string {
 	podIP := item.Status.PodIP
 
 	// 从 ip 列表中使用 index 获取 ip
@@ -250,9 +258,15 @@ func complatePromConfig(config string, item *podMeta) string {
 }
 
 func getLocalNodeName() (string, error) {
-	s := os.Getenv("ENV_K8S_NODE_NAME")
-	if s == "" {
-		return "", fmt.Errorf("invalid ENV_K8S_NODE_NAME environment, cannot be empty")
+	var e string
+	if os.Getenv("NODE_NAME") != "" {
+		e = os.Getenv("NODE_NAME")
 	}
-	return s, nil
+	if os.Getenv("ENV_K8S_NODE_NAME") != "" {
+		e = os.Getenv("ENV_K8S_NODE_NAME")
+	}
+	if e != "" {
+		return e, nil
+	}
+	return "", fmt.Errorf("invalid ENV_K8S_NODE_NAME environment, cannot be empty")
 }
