@@ -39,7 +39,6 @@ func newFilter(dw IDataway) *filter {
 		RWMutex: sync.RWMutex{},
 
 		metricCh: make(chan *filterMetric, 32),
-		qch:      make(chan *qstats),
 
 		tick:         time.NewTicker(pullInterval),
 		pullInterval: pullInterval,
@@ -73,10 +72,11 @@ type filter struct {
 	conditions map[string]parser.WhereConditions
 	dw         IDataway
 	md5        string
+
 	sync.RWMutex
+	sync.Mutex
 
 	metricCh     chan *filterMetric
-	qch          chan *qstats
 	pullInterval time.Duration
 	tick         *time.Ticker
 	stats        *FilterStats
@@ -497,20 +497,10 @@ func GetFilterStats() *FilterStats {
 		return nil
 	}
 
-	q := &qstats{
-		ch: make(chan *FilterStats),
-	}
+	defaultFilter.Mutex.Lock()
+	defer defaultFilter.Mutex.Unlock()
 
-	tick := time.NewTicker(time.Second * 3)
-	defer tick.Stop()
-
-	defaultFilter.qch <- q
-	select {
-	case s := <-q.ch:
-		return s
-	case <-tick.C:
-		return nil
-	}
+	return copyStats(defaultFilter.stats)
 }
 
 type ruleStat struct {
@@ -545,10 +535,6 @@ type filterMetric struct {
 	conditions       int
 }
 
-type qstats struct {
-	ch chan *FilterStats
-}
-
 func copyStats(x *FilterStats) *FilterStats {
 	y := &FilterStats{
 		RuleStats: map[string]*ruleStat{},
@@ -578,8 +564,26 @@ func copyStats(x *FilterStats) *FilterStats {
 	return y
 }
 
-func (f *filter) start() {
+func (f *filter) updateMetric(m *filterMetric) {
+	f.Mutex.Lock()
+	defer f.Mutex.Unlock()
+
 	ruleStats := defaultFilter.stats.RuleStats
+
+	v, ok := ruleStats[m.key]
+	if !ok {
+		v = &ruleStat{}
+		ruleStats[m.key] = v
+	}
+
+	v.Total += int64(m.points)
+	v.Filtered += int64(m.filtered)
+	v.Cost += m.cost
+	v.CostPerPoint = v.Cost / time.Duration(v.Total)
+	v.Conditions = m.conditions
+}
+
+func (f *filter) start() {
 	// first pull: get filter condition ASAP
 	defaultFilter.pull()
 	defer defaultFilter.tick.Stop()
@@ -590,23 +594,7 @@ func (f *filter) start() {
 			defaultFilter.pull()
 
 		case m := <-defaultFilter.metricCh:
-			v, ok := ruleStats[m.key]
-			if !ok {
-				v = &ruleStat{}
-				ruleStats[m.key] = v
-			}
-			v.Total += int64(m.points)
-			v.Filtered += int64(m.filtered)
-			v.Cost += m.cost
-			v.CostPerPoint = v.Cost / time.Duration(v.Total)
-			v.Conditions = m.conditions
-
-		case q := <-defaultFilter.qch:
-			select {
-			case <-q.ch:
-			case q.ch <- copyStats(defaultFilter.stats):
-			default: // unblocking
-			}
+			f.updateMetric(m)
 
 		case <-datakit.Exit.Wait():
 			log.Info("log filter exits")
