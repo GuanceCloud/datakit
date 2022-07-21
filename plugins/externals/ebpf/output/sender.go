@@ -33,8 +33,8 @@ func SetLogger(nl *logger.Logger) {
 var _sender *Sender
 
 func Init(logger *logger.Logger) {
-	_sender = NewSender(logger)
 	l = logger
+	_sender = NewSender(logger)
 }
 
 type task struct {
@@ -51,6 +51,7 @@ func NewSender(l *logger.Logger) *Sender {
 	retryCli := retryablehttp.NewClient()
 	retryCli.RetryWaitMin = time.Second
 	retryCli.RetryWaitMax = time.Second * 5
+	retryCli.Logger = &retrycliLogger{}
 	sender := &Sender{
 		ch:      make(chan *task, 16),
 		httpCli: retryCli,

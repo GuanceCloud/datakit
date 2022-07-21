@@ -26,6 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/netflow"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
+	dksysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/sysmonitor"
 
 	dkoffset "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/offset"
 )
@@ -36,10 +37,13 @@ const (
 )
 
 var (
-	enableEbpfBash     = false
-	enableEbpfNet      = false
-	disableHTTPFlow    = false
-	disableHTTPFlowTLS = false
+	enableEbpfBash = false
+	enableEbpfNet  = false
+
+	enableHTTPFlow    = false
+	enableHTTPFlowTLS = false
+
+	ipv6Disabled = false
 )
 
 var pidFile = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf.pid")
@@ -56,10 +60,15 @@ type Option struct {
 	Log      string `long:"log" description:"log path"`
 	LogLevel string `long:"log-level" description:"log file" default:"info"`
 
-	Tags          string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
-	Enabled       string `long:"enabled" description:"enabled plugins list in 'a,b,...' format"`
+	Tags    string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
+	Enabled string `long:"enabled" description:"enabled plugins list in 'a,b,...' format"`
+
 	L7NetDisabled string `long:"l7net-disabled" description:"disabled sub plugins of epbf-net list in 'a,b,...' format"`
-	Service       string `long:"service" description:"service" default:"ebpf"`
+	L7NetEnabled  string `long:"l7net-enabled" description:"enabled sub plugins of epbf-net list in 'a,b,...' format"`
+
+	IPv6Disabled string `long:"ipv6-disabled" description:"ipv6 is not enabled on the system"`
+
+	Service string `long:"service" description:"service" default:"ebpf"`
 }
 
 //  Envs:
@@ -124,6 +133,7 @@ func main() {
 	dkoffset.SetLogger(l)
 	dkbash.SetLogger(l)
 	dkhttpflow.SetLogger(l)
+	dksysmonitor.SetLogger(l)
 
 	// duration 介于 10s ～ 30min，若非，取边界数值.
 	if tmp, err := time.ParseDuration(opt.Interval); err == nil {
@@ -207,7 +217,7 @@ func main() {
 			return
 		}
 
-		if !disableHTTPFlow {
+		if enableHTTPFlow {
 			bpfMapSockFD, ok, err := ebpfNetManger.GetMap("bpfmap_sockfd")
 			if err != nil {
 				feedLastErrorLoop(err, signaIterrrupt)
@@ -220,7 +230,7 @@ func main() {
 
 			tracer := dkhttpflow.NewHTTPFlowTracer(gTags, fmt.Sprintf("http://%s%s?input="+inputNameNetHTTP,
 				dkout.DataKitAPIServer, datakit.Network))
-			if err := tracer.Run(ctx, constEditor, bpfMapSockFD, disableHTTPFlowTLS); err != nil {
+			if err := tracer.Run(ctx, constEditor, bpfMapSockFD, enableHTTPFlowTLS); err != nil {
 				l.Error(err)
 			}
 		}
@@ -261,7 +271,7 @@ func getOffset(saved *dkoffset.OffsetGuessC) (*dkoffset.OffsetGuessC, error) {
 		if err != nil {
 			return nil, err
 		}
-		status, err := dkoffset.GuessOffset(mapG, saved)
+		status, err := dkoffset.GuessOffset(mapG, saved, ipv6Disabled)
 		if err != nil {
 			if i == loopCount-1 {
 				return nil, err
@@ -317,14 +327,37 @@ func parseFlags() (*Option, map[string]string, error) {
 		}
 	}
 
-	optDisableL7 := strings.Split(opt.L7NetDisabled, ",")
-	for _, item := range optDisableL7 {
-		switch item {
-		case "httpflow":
-			disableHTTPFlow = true
-		case "httpflow-tls":
-			disableHTTPFlowTLS = true
+	if opt.L7NetEnabled != "" {
+		optEnableL7 := strings.Split(opt.L7NetEnabled, ",")
+		for _, v := range optEnableL7 {
+			switch v {
+			case "httpflow":
+				enableHTTPFlow = true
+			case "httpflow-tls":
+				enableHTTPFlowTLS = true
+			default:
+				l.Warnf("unsupported application layer protocol: %s", v)
+			}
 		}
+	} else if opt.L7NetDisabled != "" {
+		optDisableL7 := strings.Split(opt.L7NetDisabled, ",")
+		tmpMap := map[string]struct{}{}
+		for _, v := range optDisableL7 {
+			tmpMap[v] = struct{}{}
+		}
+		if _, ok := tmpMap["httpflow"]; !ok {
+			enableHTTPFlow = true
+		}
+
+		if _, ok := tmpMap["httpflow-tls"]; !ok {
+			enableHTTPFlowTLS = true
+		}
+	}
+
+	switch strings.ToLower(opt.IPv6Disabled) {
+	case "true", "t", "yes", "y", "1":
+		ipv6Disabled = true
+	default:
 	}
 
 	optTags := strings.Split(opt.Tags, ";")

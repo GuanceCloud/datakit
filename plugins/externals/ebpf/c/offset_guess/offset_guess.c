@@ -176,6 +176,23 @@ int kprobe__tcp_getsockopt(struct pt_regs *ctx)
     read_netns_inum(sk, &status);
     status.state++;
 
+    unsigned short family = AF_UNSPEC;
+    // read_netns_inum(sk, status);
+
+    bpf_probe_read(&family, sizeof(family), (__u8 *)sk + status.offset_sk_family);
+    if (family == AF_INET)
+    {
+        status.meta = CONN_L3_IPv4;
+    }
+    else if (family == AF_INET6)
+    {
+        status.meta = CONN_L3_IPv6;
+    }
+    else
+    {
+        status.meta = CONN_L3_MASK; // unknown
+    }
+
     // rtt
     bpf_probe_read(&status.rtt, sizeof(__u32), (__u8 *)sk + status.offset_tcp_sk_srtt_us);
     status.rtt >>= 3;

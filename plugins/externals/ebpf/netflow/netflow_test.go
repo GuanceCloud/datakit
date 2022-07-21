@@ -360,7 +360,7 @@ func TestConvConn2M(t *testing.T) {
 	for _, v := range cases {
 		connR.result[v.conn] = v.connStats
 		ptOpt.Time = v.ts
-		pt, err := ConvConn2M(v.conn, v.connStats, v.name, v.tags,
+		pt, err := ConvConn2M(v.conn, v.connStats, srcNameM, v.tags,
 			ptOpt)
 		if err != nil {
 			t.Error(err)
