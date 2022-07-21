@@ -52,6 +52,7 @@ func NewSender(l *logger.Logger) *Sender {
 	retryCli.RetryWaitMin = time.Second
 	retryCli.RetryWaitMax = time.Second * 5
 	retryCli.Logger = &retrycliLogger{}
+	retryCli.RequestLogHook = retryCallback
 	sender := &Sender{
 		ch:      make(chan *task, 16),
 		httpCli: retryCli,

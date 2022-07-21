@@ -5,7 +5,7 @@ package sysmonitor
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"regexp"
@@ -45,7 +45,7 @@ func diff(old, cur map[string]struct{}) (map[string]struct{}, map[string]struct{
 }
 
 func ShortID(binPath string) string {
-	sha1Val := sha1.Sum([]byte(binPath))
+	sha1Val := sha256.Sum256([]byte(binPath))
 	return strconv.FormatUint(
 		binary.BigEndian.Uint64(sha1Val[:]), 36)
 }

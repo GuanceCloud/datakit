@@ -289,8 +289,8 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 }
 
 func AddK8sTags2Map(k8sNetInfo *k8sinfo.K8sNetInfo, srcIP, dstIP string,
-	srcPort, dstPort uint32, transport string, mTags map[string]string) map[string]string {
-
+	srcPort, dstPort uint32, transport string, mTags map[string]string,
+) map[string]string {
 	if mTags == nil {
 		mTags = map[string]string{}
 	}
