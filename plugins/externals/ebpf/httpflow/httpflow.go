@@ -24,7 +24,6 @@ import (
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/netflow"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
 	sysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/sysmonitor"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/sys/unix"
 )
 
@@ -335,7 +334,7 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) (*point.Poi
 
 	mTags = dknetflow.AddK8sTags2Map(k8sNetInfo, srcIP, dstIP,
 		httpFinReq.ConnInfo.Sport, httpFinReq.ConnInfo.Dport, l4proto, mTags)
-	return point.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
+	return point.NewPoint(srcNameM, mTags, mFields, point.NOpt())
 }
 
 func feed(url string, data []*HTTPReqFinishedInfo, tags map[string]string) error {

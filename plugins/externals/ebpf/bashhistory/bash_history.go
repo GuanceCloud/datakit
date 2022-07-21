@@ -118,7 +118,7 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 	mFields["message"] = fmt.Sprintf("%s pid:`%s` user:`%s` cmd:`%s`",
 		time.Now().Format(time.RFC3339), mFields["pid"], mFields["user"], mFields["cmd"])
 
-	pt, err := point.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
+	pt, err := point.NewPoint(srcNameM, mTags, mFields, point.LOpt())
 	if err != nil {
 		l.Error(err)
 		return
