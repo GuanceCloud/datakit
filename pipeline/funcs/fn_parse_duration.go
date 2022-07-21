@@ -16,8 +16,6 @@ import (
 func ParseDurationChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
-		l.Warn("parse_duration(): invalid param")
-
 		return fmt.Errorf("func %s expects 1 arg", funcExpr.Name)
 	}
 	switch funcExpr.Param[0].(type) {
@@ -25,9 +23,6 @@ func ParseDurationChecking(ng *parser.EngineData, node parser.Node) error {
 	default:
 		err := fmt.Errorf("param expects Identifier, got `%+#v', type `%s'",
 			funcExpr.Param[0], reflect.TypeOf(funcExpr.Param[0]).String())
-
-		l.Warn("parse_duration(): %s", err)
-
 		return err
 	}
 	return nil
@@ -36,7 +31,7 @@ func ParseDurationChecking(ng *parser.EngineData, node parser.Node) error {
 func ParseDuration(ng *parser.EngineData, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
-		l.Warn("parse_duration(): invalid param")
+		l.Debugf("parse_duration(): invalid param")
 
 		return fmt.Errorf("func %s expects 1 arg", funcExpr.Name)
 	}
@@ -49,7 +44,7 @@ func ParseDuration(ng *parser.EngineData, node parser.Node) interface{} {
 		err := fmt.Errorf("param expects Identifier, got `%+#v', type `%s'",
 			funcExpr.Param[0], reflect.TypeOf(funcExpr.Param[0]).String())
 
-		l.Warn("parse_duration(): %s", err)
+		l.Debugf("parse_duration(): %s", err)
 
 		return err
 	}
@@ -73,7 +68,7 @@ func ParseDuration(ng *parser.EngineData, node parser.Node) interface{} {
 	}
 
 	if err := ng.SetContent(key, int64(du)); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 	return nil

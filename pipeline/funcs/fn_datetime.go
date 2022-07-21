@@ -81,7 +81,7 @@ func DateTime(ng *parser.EngineData, node parser.Node) interface{} {
 	if v, err := DateFormatHandle(cont, precision, fmts); err != nil {
 		return err
 	} else if err := ng.SetContent(key, v); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 

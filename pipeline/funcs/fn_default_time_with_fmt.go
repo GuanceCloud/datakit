@@ -104,7 +104,7 @@ func DefaultTimeWithFmt(ng *parser.EngineData, node parser.Node) interface{} {
 		return err
 	} else {
 		if err := ng.SetContent(key, t.UnixNano()); err != nil {
-			l.Warn(err)
+			l.Debug(err)
 			return nil
 		}
 

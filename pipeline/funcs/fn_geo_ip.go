@@ -71,7 +71,7 @@ func GeoIP(ng *parser.EngineData, node parser.Node) interface{} {
 	} else {
 		for k, v := range dic {
 			if err := ng.SetContent(k, v); err != nil {
-				l.Warn(err)
+				l.Debug(err)
 				return nil
 			}
 		}
