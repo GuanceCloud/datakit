@@ -377,6 +377,10 @@ func (m *monitorAPP) renderGoroutineTable(ds *dkhttp.DatakitStats, colArr []stri
 		return
 	}
 
+	if ds.GoroutineStats == nil {
+		return
+	}
+
 	// set table header
 	for idx := range colArr {
 		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).

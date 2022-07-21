@@ -317,7 +317,6 @@ func GetStats() (*DatakitStats, error) {
 		HTTPMetrics:    getMetrics(),
 		GolangRuntime:  getRuntimeInfo(),
 		FilterStats:    io.GetFilterStats(),
-		OpenFiles:      datakit.OpenFiles(),
 	}
 
 	var err error
