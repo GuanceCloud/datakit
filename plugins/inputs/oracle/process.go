@@ -18,7 +18,7 @@ type processMeasurement struct {
 
 // 生成行协议.
 func (m *processMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 // 指定指标.
@@ -74,7 +74,7 @@ type tablespaceMeasurement struct {
 
 // 生成行协议.
 func (m *tablespaceMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 // 指定指标.
@@ -130,7 +130,7 @@ type systemMeasurement struct {
 
 // 生成行协议.
 func (m *systemMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 // 指定指标.

@@ -16,7 +16,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var StartTime time.Time
@@ -160,7 +159,7 @@ func (s *ClientStat) ToMetric() *point.Point {
 		"elected":    s.Incumbency,
 	}
 
-	pt, err := point.NewPoint(measurementName, tags, fields, inputs.OptMetric)
+	pt, err := point.NewPoint(measurementName, tags, fields, point.MOpt())
 	if err != nil {
 		l.Error(err)
 	}

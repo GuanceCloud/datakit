@@ -146,7 +146,7 @@ func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) 
 				map[string]interface{}{
 					pipeline.FieldMessage: scanner.Text(),
 					pipeline.FieldStatus:  pipeline.DefaultStatus,
-				}, inputs.OptLogging)
+				}, point.LOpt())
 			if err != nil {
 				l.Error(err)
 			} else {

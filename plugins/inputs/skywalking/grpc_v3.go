@@ -178,7 +178,7 @@ type jvmMeasurement struct {
 }
 
 func (m *jvmMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *jvmMeasurement) Info() *inputs.MeasurementInfo {
@@ -375,7 +375,7 @@ type skywalkingMetricMeasurement struct {
 }
 
 func (m *skywalkingMetricMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *skywalkingMetricMeasurement) Info() *inputs.MeasurementInfo {

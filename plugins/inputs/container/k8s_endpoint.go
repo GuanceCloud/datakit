@@ -114,7 +114,7 @@ type endpointMetric struct {
 }
 
 func (e *endpointMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_endpoint", e.tags, e.fields, inputs.OptElectionMetric)
+	return point.NewPoint("kube_endpoint", e.tags, e.fields, point.MOptElection())
 }
 
 //nolint:lll

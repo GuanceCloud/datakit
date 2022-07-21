@@ -7,7 +7,7 @@
 
 ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性能状况、索引性能、检索性能等。
 
-![](imgs/input-elasticsearch-1.png)
+![](imgs/input-elasticsearch-01.png)
 
 ## 前置条件
 
@@ -132,7 +132,7 @@ PUT _plugins/_security/api/roles/monitor
 
 ## 指标预览
 
-![](imgs/input-elasticsearch-2.png)
+![](imgs/input-elasticsearch-02.png)
 
 ## 指标集
 
@@ -236,4 +236,4 @@ files = ["/path/to/your/file.log"]
 
 ## 更多阅读
 
-- [ElasticSearch 最佳实践](../best-practices/integrations/elasticsearch.md)
+- [ElasticSearch 最佳实践](../best-practices/monitoring/elasticsearch.md)

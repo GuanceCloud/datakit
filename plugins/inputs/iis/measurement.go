@@ -17,7 +17,7 @@ type measurement struct {
 }
 
 func (m *measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *measurement) Info() *inputs.MeasurementInfo {
@@ -27,7 +27,7 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 type IISAppPoolWas measurement
 
 func (m *IISAppPoolWas) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 //nolint:lll
@@ -50,7 +50,7 @@ func (m *IISAppPoolWas) Info() *inputs.MeasurementInfo {
 type IISWebService measurement
 
 func (m *IISWebService) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 //nolint:lll

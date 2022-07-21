@@ -181,7 +181,7 @@ type jobMetric struct {
 }
 
 func (j *jobMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_job", j.tags, j.fields, inputs.OptElectionMetric)
+	return point.NewPoint("kube_job", j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -211,7 +211,7 @@ type jobObject struct {
 }
 
 func (j *jobObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_jobs", j.tags, j.fields, inputs.OptElectionObject)
+	return point.NewPoint("kubernetes_jobs", j.tags, j.fields, point.OOptElection())
 }
 
 //nolint:lll

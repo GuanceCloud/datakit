@@ -143,7 +143,7 @@ type count struct {
 }
 
 func (c *count) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes", c.tags, c.fields, inputs.OptElectionMetric)
+	return point.NewPoint("kubernetes", c.tags, c.fields, point.MOptElection())
 }
 
 //nolint:lll

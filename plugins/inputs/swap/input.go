@@ -86,7 +86,7 @@ func (m *swapMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 func (m *swapMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 type Input struct {

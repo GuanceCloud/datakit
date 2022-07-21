@@ -195,7 +195,7 @@ func makePts(source string, cnt []string, tags map[string]string) []*point.Point
 				pipeline.FieldMessage: cnt,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,
 			},
-			inputs.OptLogging)
+			point.LOpt())
 		if err != nil {
 			l.Error(err)
 			continue

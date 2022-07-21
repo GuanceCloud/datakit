@@ -370,7 +370,7 @@ type containerdObject struct {
 }
 
 func (c *containerdObject) LineProto() (*point.Point, error) {
-	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptObject)
+	return point.NewPoint(dockerContainerName, c.tags, c.fields, point.OOpt())
 }
 
 func (c *containerdObject) Info() *inputs.MeasurementInfo {
@@ -412,7 +412,7 @@ type containerdMetric struct {
 }
 
 func (c *containerdMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptMetric)
+	return point.NewPoint(dockerContainerName, c.tags, c.fields, point.MOpt())
 }
 
 func (c *containerdMetric) Info() *inputs.MeasurementInfo {

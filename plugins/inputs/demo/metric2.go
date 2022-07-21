@@ -17,7 +17,7 @@ type demoMetric2 struct {
 }
 
 func (m *demoMetric2) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 func (m *demoMetric2) Info() *inputs.MeasurementInfo {

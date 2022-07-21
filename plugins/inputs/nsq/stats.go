@@ -10,7 +10,6 @@ import (
 	"fmt"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type topicChannels map[string]*ChannelStats
@@ -101,7 +100,7 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 			}
 			fields := channelStats.ToMap()
 
-			pt, err := point.NewPoint("nsq_topics", tags, fields, inputs.OptElectionMetric)
+			pt, err := point.NewPoint("nsq_topics", tags, fields, point.MOptElection())
 			if err != nil {
 				lastErr = err
 				continue
@@ -119,7 +118,7 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 		}
 		fields := n.ToMap()
 
-		pt, err := point.NewPoint("nsq_nodes", tags, fields, inputs.OptElectionMetric)
+		pt, err := point.NewPoint("nsq_nodes", tags, fields, point.MOptElection())
 		if err != nil {
 			lastErr = err
 			continue
