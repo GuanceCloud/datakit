@@ -7,8 +7,11 @@
 package sqlserver
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"fmt"
+	mssql "github.com/denisenkom/go-mssqldb"
+	"github.com/denisenkom/go-mssqldb/msdsn"
 	"strings"
 	"time"
 
@@ -90,10 +93,19 @@ func (n *Input) GetPipeline() []*tailer.Option {
 }
 
 func (n *Input) initDB() error {
-	db, err := sql.Open("sqlserver", fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", n.User, n.Password, n.Host))
+	connStr := fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", n.User, n.Password, n.Host)
+	cfg, _, err := msdsn.Parse(connStr)
 	if err != nil {
 		return err
 	}
+	if n.AllowTLS10 {
+		// Because go1.18 defaults client-sids's TLS minimum version to TLS 1.2,
+		// we need to configure MinVersion manually to enable TLS 1.0 and TLS 1.1.
+		cfg.TLSConfig.MinVersion = tls.VersionTLS10
+	}
+	conn := mssql.NewConnectorConfig(cfg)
+	db := sql.OpenDB(conn)
+
 	if err := db.Ping(); err != nil {
 		return err
 	}
