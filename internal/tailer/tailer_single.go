@@ -30,7 +30,7 @@ const (
 	readBuffSize         = 1024 * 4
 
 	flushInterval = time.Second * 3
-	checkInterval = time.Second * 3
+	checkInterval = time.Second * 1
 )
 
 type Single struct {
@@ -43,6 +43,8 @@ type Single struct {
 
 	readBuff  []byte
 	readLines int64
+
+	offset int64 // 必然只在同一个 goroutine 操作，不必使用 atomic
 
 	tags            map[string]string
 	expectMultiLine bool // only for docker log, relation to log size (16K)
@@ -82,24 +84,26 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 
 	// check if from begine
 	if !opt.FromBeginning {
-		if _, err := t.file.Seek(0, io.SeekEnd); err != nil {
+		ret, err := t.file.Seek(0, io.SeekEnd)
+		if err != nil {
 			return nil, err
 		}
+		t.offset = ret
 	}
 
 	checkpointData, err := getLogCheckpoint(getFileKey(filename))
-	if err != nil {
-		l.Infof("pos missing: %s, ignored", err)
-	} else {
+	if err == nil {
 		stat, err := t.file.Stat()
 		if err != nil {
 			return nil, err
 		}
 
 		if checkpointData.Offset <= stat.Size() {
-			if _, err := t.file.Seek(checkpointData.Offset, io.SeekStart); err != nil {
+			ret, err := t.file.Seek(checkpointData.Offset, io.SeekStart)
+			if err != nil {
 				return nil, err
 			}
+			t.offset = ret
 		}
 	}
 
@@ -117,10 +121,10 @@ func (t *Single) Run() {
 }
 
 func (t *Single) Close() {
-	if offset := t.currentOffset(); offset > 0 {
-		err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: offset})
+	if t.offset > 0 {
+		err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: t.offset})
 		if err != nil {
-			t.opt.log.Warnf("update checkpoint %s, offset %d, err: %s", t.filepath, offset, err)
+			t.opt.log.Warnf("update checkpoint %s, offset %d, err: %s", t.filepath, t.offset, err)
 		}
 	}
 	t.closeFile()
@@ -139,7 +143,6 @@ func (t *Single) closeFile() {
 
 func (t *Single) reopen() error {
 	t.closeFile()
-	t.opt.log.Debugf("reopen file %s", t.filepath)
 
 	var err error
 	t.file, err = os.Open(t.filepath)
@@ -147,6 +150,13 @@ func (t *Single) reopen() error {
 		return fmt.Errorf("unable to open file %s: %w", t.filepath, err)
 	}
 
+	ret, err := t.file.Seek(0, io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	t.offset = ret
+	t.opt.log.Infof("reopen file %s, offset %d", t.filepath, t.offset)
 	return nil
 }
 
@@ -172,7 +182,7 @@ func (t *Single) forwardMessage() {
 			return
 		}
 
-		t.opt.log.Debugf("read %d bytes from file %s", readNum, t.filepath)
+		t.opt.log.Debugf("read %d bytes from file %s, offset %d", readNum, t.filepath, t.offset)
 
 		if readNum == 0 {
 			t.wait()
@@ -211,17 +221,18 @@ func (t *Single) forwardMessage() {
 				t.opt.log.Infof("file %s is not active, larger than %s, exit", t.filepath, t.opt.IgnoreDeadLog)
 				return
 			}
-			offset := t.currentOffset()
-			if offset > 0 {
-				err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: offset})
+			if t.offset > 0 {
+				err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: t.offset})
 				if err != nil {
-					t.opt.log.Warnf("update checkpoint %s, offset %d, err: %s", t.filepath, offset, err)
+					t.opt.log.Warnf("update checkpoint %s, offset %d, err: %s", t.filepath, t.offset, err)
 				}
 			}
 
-			if did, err := DidRotate(t.file, offset); err != nil {
+			did, err := DidRotate(t.file, t.offset)
+			if err != nil {
 				t.opt.log.Warnf("didrotate err: %s", err)
-			} else if did {
+			}
+			if did {
 				t.opt.log.Infof("file %s has rotated, try to reopen file", t.filepath)
 
 				handle(t.readAll)
@@ -408,12 +419,13 @@ func (t *Single) feed(pending []string) {
 		pt, err := point.NewPoint(t.opt.Source, t.tags,
 			map[string]interface{}{
 				"log_read_lines":      t.readLines,
+				"log_read_offset":     t.offset,
 				pipeline.FieldMessage: cnt,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,
 			},
 			&point.PointOption{Time: timeNow.Add(time.Duration(i)), Category: datakit.Logging})
 		if err != nil {
-			l.Error(err)
+			t.opt.log.Error(err)
 			continue
 		}
 		res = append(res, pt)
@@ -427,21 +439,9 @@ func (t *Single) feed(pending []string) {
 				IgnoreStatus:          t.opt.IgnoreStatus,
 			},
 		}); err != nil {
-			l.Error(err)
+			t.opt.log.Error(err)
 		}
 	}
-}
-
-func (t *Single) currentOffset() int64 {
-	if t.file == nil {
-		return -1
-	}
-	offset, err := t.file.Seek(0, io.SeekCurrent)
-	if err != nil {
-		t.opt.log.Warnf("faild to get offset: %s", err)
-		return -1
-	}
-	return offset
 }
 
 func (t *Single) read() ([]byte, int, error) {
@@ -451,6 +451,7 @@ func (t *Single) read() ([]byte, int, error) {
 		t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
 		return nil, 0, err
 	}
+	t.offset += int64(n)
 
 	return t.readBuff[:n], n, nil
 }
@@ -459,7 +460,7 @@ func (t *Single) readAll() ([]byte, int, error) {
 	var res []byte
 	var num int
 
-	temp := make([]byte, 256)
+	temp := make([]byte, 1024)
 
 	for {
 		n, err := t.file.Read(temp)
@@ -468,16 +469,14 @@ func (t *Single) readAll() ([]byte, int, error) {
 			t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
 			return nil, 0, err
 		}
-
-		if n > 0 {
-			res = append(res, temp[:n]...)
-			num += n
-			temp = temp[:0]
-		} else {
+		if n == 0 {
 			break
 		}
+		res = append(res, temp[:n]...)
+		num += n
 	}
 
+	t.offset += int64(num)
 	return res, num, nil
 }
 
@@ -562,7 +561,7 @@ func removeAnsiEscapeCodes(oldtext string, run bool) string {
 
 	newtext, err := ansi.Strip([]byte(oldtext))
 	if err != nil {
-		l.Debugf("remove ansi code error: %w", err)
+		// l.Debugf("remove ansi code error: %w", err)
 		return oldtext
 	}
 

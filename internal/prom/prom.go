@@ -114,7 +114,7 @@ func (opt *Option) GetIntervalDuration() time.Duration {
 }
 
 const (
-	httpTimeout               = time.Second * 1
+	httpTimeout               = time.Second * 3
 	defaultInsecureSkipVerify = false
 )
 

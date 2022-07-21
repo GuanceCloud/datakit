@@ -8,13 +8,14 @@ package container
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/core/v1"
 )
+
+// "sigs.k8s.io/yaml"
 
 var (
 	_ k8sResourceMetricInterface = (*pod)(nil)
@@ -146,6 +147,7 @@ func (p *pod) object() (inputsMeas, error) {
 				"pod_name":     item.Name,
 				"pod_ip":       item.Status.PodIP,
 				"node_name":    item.Spec.NodeName,
+				"host":         item.Spec.NodeName, // 指向 pod 所在的 node，便于关联
 				"phase":        fmt.Sprintf("%v", item.Status.Phase),
 				"qos_class":    fmt.Sprintf("%v", item.Status.QOSClass),
 				"state":        fmt.Sprintf("%v", item.Status.Phase), // Depercated
@@ -158,10 +160,6 @@ func (p *pod) object() (inputsMeas, error) {
 				"availale":    len(item.Status.ContainerStatuses),
 				"create_time": item.CreationTimestamp.Time.UnixNano() / int64(time.Millisecond),
 			},
-		}
-
-		if n := getHostname(); n != "" {
-			obj.tags["host"] = n // 指定 pod 所在的 host
 		}
 
 		for _, ref := range item.OwnerReferences {
@@ -326,18 +324,6 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 		},
 	}
-}
-
-func getHostname() string {
-	// 保持兼容，优先使用 ENV_K8S_NODE_NAME
-	if e := os.Getenv("ENV_K8S_NODE_NAME"); e != "" {
-		return e
-	}
-	if e := os.Getenv("NODE_NAME"); e != "" {
-		return e
-	}
-	n, _ := os.Hostname()
-	return n
 }
 
 //nolint:gochecknoinits

@@ -47,8 +47,9 @@ type containerdInputConfig struct {
 	containerIncludeLog []string
 	containerExcludeLog []string
 
-	extraTags      map[string]string
-	extraSourceMap map[string]string
+	extraTags          map[string]string
+	extraSourceMap     map[string]string
+	sourceMultilineMap map[string]string
 }
 
 func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
@@ -288,6 +289,10 @@ func (c *containerdInput) ignoreImageForLogging(image string) (ignore bool) {
 }
 
 func (c *containerdInput) shouldPullContainerLog(container *cri.ContainerStatus) bool {
+	if container.GetState() != cri.ContainerState_CONTAINER_RUNNING {
+		return false
+	}
+
 	if c.inLogList(container.GetLogPath()) {
 		return false
 	}
@@ -365,7 +370,7 @@ type containerdObject struct {
 }
 
 func (c *containerdObject) LineProto() (*point.Point, error) {
-	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionObject)
+	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptObject)
 }
 
 func (c *containerdObject) Info() *inputs.MeasurementInfo {
@@ -407,7 +412,7 @@ type containerdMetric struct {
 }
 
 func (c *containerdMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionMetric)
+	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptMetric)
 }
 
 func (c *containerdMetric) Info() *inputs.MeasurementInfo {

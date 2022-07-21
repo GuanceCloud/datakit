@@ -134,6 +134,7 @@ func (c *Config) loadIOEnvs() {
 	}
 }
 
+//nolint:funlen
 func (c *Config) LoadEnvs() error {
 	if c.IOConf == nil {
 		c.IOConf = &io.IOConfig{}
@@ -156,6 +157,12 @@ func (c *Config) LoadEnvs() error {
 		} else {
 			c.HTTPAPI.RequestRateLimit = x
 		}
+	}
+
+	// deprecated
+	if v := datakit.GetEnv("NODE_NAME"); v != "" {
+		c.Hostname = v
+		datakit.DatakitHostName = c.Hostname
 	}
 
 	if v := datakit.GetEnv("ENV_K8S_NODE_NAME"); v != "" {
