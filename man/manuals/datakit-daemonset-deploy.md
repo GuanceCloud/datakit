@@ -261,14 +261,13 @@ spec:
 
 ### IO 模块配置相关环境变量 {#env-io}
 
-| 环境变量名称             | 类型     | 默认值 | 必须   | 说明                               |
-| ---------:               | ----:    | ---:   | ------ | ----                               |
-| ENV_IO_FILTERS           | string   | 无     | 否     | 添加[行协议过滤器](datakit-filter) |
-| ENV_IO_FLUSH_INTERVAL    | int      | 10s    | 否     | IO 发送时间频率                    |
-| ENV_IO_BLOCKING_MODE     | bool     | false  | 否     | 阻塞模式 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental)|
-| ENV_IO_MAX_CACHE_COUNT   | int      | 512    | 否     | 发送 buffer（点数）大小 |
-| ENV_IO_QUEUE_SIZE        | int      | 4096   | 否     | IO 模块数据处理队列长度 |
-| ENV_IO_FLUSH_INTERVAL    | duration | 10s    | 否     | IO 发送时间频率                       |
+| 环境变量名称             | 默认值 | 必须   | 说明                               |
+| ---------:               | ---:   | ------ | ----                               |
+| ENV_IO_FILTERS           | 无     | 否     | 添加[行协议过滤器](datakit-filter) |
+| ENV_IO_FLUSH_INTERVAL    | 10s    | 否     | IO 发送时间频率                    |
+| ENV_IO_BLOCKING_MODE     | false  | 否     | 阻塞模式 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental)|
+| ENV_IO_MAX_CACHE_COUNT   | 512    | 否     | 发送 buffer（点数）大小 |
+| ENV_IO_QUEUE_SIZE        | 4096   | 否     | IO 模块数据处理队列长度 |
 
 ???+ note "关于 buffer 和 queue 的说明"
 
