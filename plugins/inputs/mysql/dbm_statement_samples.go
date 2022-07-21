@@ -717,7 +717,6 @@ func explainStatement(i *Input, statement string, schema string, obfuscatedState
 			return plan, nil
 		}
 	}
-	fmt.Println(startTime, strategyCacheKey)
 	return plan, nil
 }
 
