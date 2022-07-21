@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -511,7 +512,7 @@ func getPipelineEventTags(pl PipelineEventPayload) map[string]string {
 	return tags
 }
 
-func (ipt *Input) getPoint(data []byte, eventType string) ([]*iod.Point, error) {
+func (ipt *Input) getPoint(data []byte, eventType string) ([]*point.Point, error) {
 	var tags map[string]string
 	var fields map[string]interface{}
 	var measurementName string
@@ -556,11 +557,11 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*iod.Point, error) 
 		return nil, fmt.Errorf("unrecognized event payload: %v", eventType)
 	}
 	ipt.addExtraTags(tags)
-	pt, err := iod.NewPoint(measurementName, tags, fields, inputs.OptElectionLogging)
+	pt, err := point.NewPoint(measurementName, tags, fields, inputs.OptElectionLogging)
 	if err != nil {
 		return nil, err
 	}
-	return []*iod.Point{pt}, nil
+	return []*point.Point{pt}, nil
 }
 
 func (ipt *Input) addExtraTags(tags map[string]string) {

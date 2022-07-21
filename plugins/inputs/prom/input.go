@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -165,7 +166,7 @@ func (i *Input) RunningCollect() error {
 		for _, pt := range pts {
 			// We need to feed each point separately because
 			// each point might have different measurement name.
-			if err := io.Feed(pt.Name(), datakit.Logging, []*io.Point{pt},
+			if err := io.Feed(pt.Name(), datakit.Logging, []*point.Point{pt},
 				&io.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("Feed: %s", err)
 				io.FeedLastError(ioname, err.Error())
@@ -181,7 +182,7 @@ func (i *Input) RunningCollect() error {
 	return nil
 }
 
-func (i *Input) doCollect() []*io.Point {
+func (i *Input) doCollect() []*point.Point {
 	l.Debugf("collect URLs %v", i.URLs)
 
 	// If Output is configured, data is written to local file specified by Output.
@@ -313,17 +314,17 @@ func (i *Input) Init() error {
 }
 
 // Collect collects metrics from all URLs.
-func (i *Input) Collect() ([]*io.Point, error) {
+func (i *Input) Collect() ([]*point.Point, error) {
 	if i.pm == nil {
 		return nil, nil
 	}
-	var points []*io.Point
+	var points []*point.Point
 	for _, u := range i.URLs {
 		uu, err := url.Parse(u)
 		if err != nil {
 			return nil, err
 		}
-		var pts []*io.Point
+		var pts []*point.Point
 		if uu.Scheme != "http" && uu.Scheme != "https" {
 			pts, err = i.CollectFromFile(u)
 		} else {
@@ -337,14 +338,14 @@ func (i *Input) Collect() ([]*io.Point, error) {
 	return points, nil
 }
 
-func (i *Input) CollectFromHTTP(u string) ([]*io.Point, error) {
+func (i *Input) CollectFromHTTP(u string) ([]*point.Point, error) {
 	if i.pm == nil {
 		return nil, nil
 	}
 	return i.pm.CollectFromHTTP(u)
 }
 
-func (i *Input) CollectFromFile(filepath string) ([]*io.Point, error) {
+func (i *Input) CollectFromFile(filepath string) ([]*point.Point, error) {
 	if i.pm == nil {
 		return nil, nil
 	}

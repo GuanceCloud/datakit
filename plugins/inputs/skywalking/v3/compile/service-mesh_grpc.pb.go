@@ -65,7 +65,7 @@ func (x *serviceMeshMetricServiceCollectClient) CloseAndRecv() (*MeshProbeDownst
 
 // ServiceMeshMetricServiceServer is the server API for ServiceMeshMetricService service.
 // All implementations must embed UnimplementedServiceMeshMetricServiceServer
-// for forward compatibility
+// for forward compatibility.
 type ServiceMeshMetricServiceServer interface {
 	Collect(ServiceMeshMetricService_CollectServer) error
 	mustEmbedUnimplementedServiceMeshMetricServiceServer()

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/rbac/v1"
 )
@@ -110,8 +110,8 @@ type clusterRoleObject struct {
 	fields fieldsType
 }
 
-func (c *clusterRoleObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_cluster_roles", c.tags, c.fields, inputs.OptElectionObject)
+func (c *clusterRoleObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_cluster_roles", c.tags, c.fields, inputs.OptElectionObject)
 }
 
 //nolint:lll

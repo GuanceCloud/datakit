@@ -6,7 +6,7 @@
 package consul
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -16,8 +16,8 @@ type HostMeasurement struct {
 	fields map[string]interface{}
 }
 
-func (m *HostMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *HostMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *HostMeasurement) Info() *inputs.MeasurementInfo {
@@ -41,8 +41,8 @@ type ServiceMeasurement struct {
 	fields map[string]interface{}
 }
 
-func (m *ServiceMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *ServiceMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *ServiceMeasurement) Info() *inputs.MeasurementInfo {
@@ -66,8 +66,8 @@ type HealthMeasurement struct {
 	fields map[string]interface{}
 }
 
-func (m *HealthMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *HealthMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *HealthMeasurement) Info() *inputs.MeasurementInfo {
@@ -90,8 +90,8 @@ type MemberMeasurement struct {
 	fields map[string]interface{}
 }
 
-func (m *MemberMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *MemberMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 func (m *MemberMeasurement) Info() *inputs.MeasurementInfo {

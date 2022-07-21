@@ -20,6 +20,7 @@ import (
 	dhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -129,7 +130,7 @@ func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) 
 			l.Debugf("len(points) is zero, skip")
 			break
 		}
-		pts1 := io.WrapPoint(pts)
+		pts1 := point.WrapPoint(pts)
 		scriptMap := map[string]string{}
 		for _, v := range pts1 {
 			if v != nil {
@@ -139,9 +140,9 @@ func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) 
 		err = io.Feed(inputName, datakit.Logging, pts1, &io.Option{PlScript: scriptMap})
 	default:
 		scanner := bufio.NewScanner(req.Body)
-		pts := []*io.Point{}
+		pts := []*point.Point{}
 		for scanner.Scan() {
-			pt, err := io.NewPoint(source, extraTags,
+			pt, err := point.NewPoint(source, extraTags,
 				map[string]interface{}{
 					pipeline.FieldMessage: scanner.Text(),
 					pipeline.FieldStatus:  pipeline.DefaultStatus,
@@ -204,7 +205,7 @@ func init() { //nolint:gochecknoinits
 
 type logstreamingMeasurement struct{}
 
-func (*logstreamingMeasurement) LineProto() (*io.Point, error) { return nil, nil }
+func (*logstreamingMeasurement) LineProto() (*point.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*logstreamingMeasurement) Info() *inputs.MeasurementInfo {

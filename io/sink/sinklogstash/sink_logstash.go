@@ -17,6 +17,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
@@ -112,12 +113,13 @@ func (s *SinkLogstash) LoadConfig(mConf map[string]interface{}) error {
 	return nil
 }
 
-func (s *SinkLogstash) Write(pts []sinkcommon.ISinkPoint) error {
+func (s *SinkLogstash) Write(pts []*point.Point) (*sinkcommon.Failed, error) {
 	if !initSucceeded {
-		return fmt.Errorf("not_init")
+		return nil, fmt.Errorf("not_init")
 	}
 
-	return s.writeLogstash(pts)
+	// NOTE: if failed data need to cache, we have to create the sinkcommon.Failed return
+	return nil, s.writeLogstash(pts)
 }
 
 func (s *SinkLogstash) GetInfo() *sinkcommon.SinkInfo {
@@ -128,13 +130,13 @@ func (s *SinkLogstash) GetInfo() *sinkcommon.SinkInfo {
 	}
 }
 
-func (s *SinkLogstash) writeLogstash(pts []sinkcommon.ISinkPoint) error {
+func (s *SinkLogstash) writeLogstash(pts []*point.Point) error {
 	var jsn []byte
 	var err error
 
 	switch s.writeType {
 	case writeTypeJSON:
-		var jps []*sinkcommon.JSONPoint
+		var jps []*point.JSONPoint
 		for _, v := range pts {
 			jp, err := v.ToJSON()
 			if err != nil {

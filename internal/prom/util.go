@@ -14,7 +14,7 @@ import (
 	"time"
 
 	dto "github.com/prometheus/client_model/go"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -207,7 +207,7 @@ func (p *Prom) filterMetricFamilies(metricFamilies map[string]*dto.MetricFamily)
 }
 
 // Text2Metrics converts raw prometheus metric text to line protocol point.
-func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
+func (p *Prom) Text2Metrics(in io.Reader) (pts []*point.Point, lastErr error) {
 	metricFamilies, err := p.parser.TextToMetricFamilies(in)
 	if err != nil {
 		return nil, err
@@ -232,7 +232,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 				tags := p.getTags(m.GetLabel(), measurementName)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := iod.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
+					pt, err := point.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -251,7 +251,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 				tags := p.getTags(m.GetLabel(), measurementName)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := iod.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
+					pt, err := point.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -268,7 +268,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 					tags["quantile"] = fmt.Sprint(q.GetQuantile())
 
 					if !p.tagKVMatched(tags) {
-						pt, err := iod.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
+						pt, err := point.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
 						if err != nil {
 							lastErr = err
 						} else {
@@ -288,7 +288,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 				tags := p.getTags(m.GetLabel(), measurementName)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := iod.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
+					pt, err := point.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -305,7 +305,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 					tags["le"] = fmt.Sprint(b.GetUpperBound())
 
 					if !p.tagKVMatched(tags) {
-						pt, err := iod.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
+						pt, err := point.NewPoint(measurementName, tags, fields, inputs.OptElectionMetric)
 						if err != nil {
 							lastErr = err
 						} else {

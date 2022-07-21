@@ -12,6 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -57,7 +58,7 @@ func (n *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		l.Errorf(err.Error())
 		return
 	}
-	var pts []*io.Point
+	var pts []*point.Point
 	for _, trace := range traces {
 		for _, span := range trace {
 			if !needStatus(span) {
@@ -93,7 +94,7 @@ func decodeTraces(req *http.Request) (ddTraces, error) {
 	return traces, nil
 }
 
-func (n *Input) getPoint(span *ddSpan) (*io.Point, error) {
+func (n *Input) getPoint(span *ddSpan) (*point.Point, error) {
 	switch typeOf(span) {
 	case pipeline:
 		return n.getPipelinePoint(span)
@@ -122,18 +123,18 @@ func typeOf(span *ddSpan) ciEventType {
 	}
 }
 
-func (n *Input) getPipelinePoint(span *ddSpan) (*io.Point, error) {
+func (n *Input) getPipelinePoint(span *ddSpan) (*point.Point, error) {
 	measurementName := "jenkins_pipeline"
 	tags := getPipelineTags(span)
 	n.putExtraTags(tags)
-	return io.NewPoint(measurementName, tags, getPipelineFields(span), inputs.OptElectionLogging)
+	return point.NewPoint(measurementName, tags, getPipelineFields(span), inputs.OptElectionLogging)
 }
 
-func (n *Input) getJobPoint(span *ddSpan) (*io.Point, error) {
+func (n *Input) getJobPoint(span *ddSpan) (*point.Point, error) {
 	measurementName := "jenkins_job"
 	tags := getJobTags(span)
 	n.putExtraTags(tags)
-	return io.NewPoint(measurementName, tags, getJobFields(span), inputs.OptElectionLogging)
+	return point.NewPoint(measurementName, tags, getJobFields(span), inputs.OptElectionLogging)
 }
 
 func getPipelineTags(span *ddSpan) map[string]string {

@@ -51,7 +51,7 @@ type ConfigurationSyncRequest struct {
 	// in default, and this id could be empty when doing the 1st round sync. The
 	// agent could/is recommended to cache the UUID from the last command, and put
 	// it as the next round UUID parameter, then the OAP only returns the empty
-	// Commands if no configuration change happenned.
+	// Commands if no configuration change happened.
 	Uuid string `protobuf:"bytes,2,opt,name=uuid,proto3" json:"uuid,omitempty"`
 }
 

@@ -20,7 +20,7 @@ import (
 	"github.com/prometheus/common/expfmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type Rule struct {
@@ -227,11 +227,11 @@ func (p *Prom) Request(url string) (*http.Response, error) {
 	return r, nil
 }
 
-func (p *Prom) CollectFromHTTP(u string) ([]*io.Point, error) {
+func (p *Prom) CollectFromHTTP(u string) ([]*point.Point, error) {
 	resp, err := p.Request(u)
 	if err != nil {
 		if p.opt.IgnoreReqErr {
-			return []*io.Point{}, nil
+			return []*point.Point{}, nil
 		} else {
 			return nil, err
 		}
@@ -244,7 +244,7 @@ func (p *Prom) CollectFromHTTP(u string) ([]*io.Point, error) {
 	return pts, nil
 }
 
-func (p *Prom) CollectFromFile(filepath string) ([]*io.Point, error) {
+func (p *Prom) CollectFromFile(filepath string) ([]*point.Point, error) {
 	f, err := os.OpenFile(filepath, os.O_RDONLY, 0o600) //nolint:gosec
 	if err != nil {
 		return nil, err

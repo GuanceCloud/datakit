@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -53,8 +53,8 @@ type Measurement struct {
 	ts     time.Time
 }
 
-func (m *Measurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, &io.PointOption{Category: datakit.Logging, Time: m.ts})
+func (m *Measurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, &point.PointOption{Category: datakit.Logging, Time: m.ts})
 }
 
 func (m *Measurement) Info() *inputs.MeasurementInfo {

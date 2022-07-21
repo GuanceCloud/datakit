@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	kubeapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -147,8 +147,8 @@ func newEvent() *event {
 	}
 }
 
-func (e *event) LineProto() (*io.Point, error) {
-	return io.NewPoint(k8sEventName, e.tags, e.fields, inputs.OptElectionLogging)
+func (e *event) LineProto() (*point.Point, error) {
+	return point.NewPoint(k8sEventName, e.tags, e.fields, inputs.OptElectionLogging)
 }
 
 //nolint:lll

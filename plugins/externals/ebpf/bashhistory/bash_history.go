@@ -80,14 +80,14 @@ func NewBashManger(bashReadlineEventHandler func(cpu int, data []byte,
 }
 
 type BashTracer struct {
-	ch     chan *io.Point
+	ch     chan *point.Point
 	stopCh chan struct{}
 	gTags  map[string]string
 }
 
 func NewBashTracer() *BashTracer {
 	return &BashTracer{
-		ch:     make(chan *io.Point, 32),
+		ch:     make(chan *point.Point, 32),
 		stopCh: make(chan struct{}),
 	}
 }
@@ -120,7 +120,7 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 	mFields["message"] = fmt.Sprintf("%s pid:`%s` user:`%s` cmd:`%s`",
 		time.Now().Format(time.RFC3339), mFields["pid"], mFields["user"], mFields["cmd"])
 
-	pt, err := io.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
+	pt, err := point.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
 	if err != nil {
 		l.Error(err)
 		return
@@ -133,7 +133,7 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 
 func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string, interval time.Duration) {
 	ticker := time.NewTicker(interval)
-	cache := []*io.Point{}
+	cache := []*point.Point{}
 	for {
 		select {
 		case <-ticker.C:
@@ -141,7 +141,7 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string
 				if err := dkout.FeedMeasurement(datakitPostURL, cache); err != nil {
 					l.Error(err)
 				}
-				cache = make([]*io.Point, 0)
+				cache = make([]*point.Point, 0)
 			}
 		case pt := <-tracer.ch:
 			cache = append(cache, pt)
@@ -149,7 +149,7 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string
 				if err := dkout.FeedMeasurement(datakitPostURL, cache); err != nil {
 					l.Error(err)
 				}
-				cache = make([]*io.Point, 0)
+				cache = make([]*point.Point, 0)
 			}
 		case <-tracer.stopCh:
 			return
@@ -218,8 +218,8 @@ type measurement struct {
 	ts     time.Time
 }
 
-func (m *measurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, &io.PointOption{Category: datakit.Logging, Time: m.ts})
+func (m *measurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, &point.PointOption{Category: datakit.Logging, Time: m.ts})
 }
 
 func (m *measurement) Info() *inputs.MeasurementInfo {

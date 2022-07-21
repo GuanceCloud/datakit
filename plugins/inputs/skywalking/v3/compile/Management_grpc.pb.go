@@ -54,7 +54,7 @@ func (c *managementServiceClient) KeepAlive(ctx context.Context, in *InstancePin
 
 // ManagementServiceServer is the server API for ManagementService service.
 // All implementations must embed UnimplementedManagementServiceServer
-// for forward compatibility
+// for forward compatibility.
 type ManagementServiceServer interface {
 	// Report custom properties of a service instance.
 	ReportInstanceProperties(context.Context, *InstanceProperties) (*Commands, error)

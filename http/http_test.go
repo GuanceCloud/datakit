@@ -219,20 +219,16 @@ func TestApiGetDatakitLastError(t *testing.T) {
 }
 
 func TestCORS(t *testing.T) {
-	srv := &http.Server{
-		Addr:    "localhost:12345",
-		Handler: setupRouter(),
-	}
+	router := setupRouter()
 
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			t.Log(err)
-		}
-	}()
+	router.POST("/timeout", func(c *gin.Context) {})
+
+	ts := httptest.NewServer(router)
+	defer ts.Close()
 
 	time.Sleep(time.Second)
 
-	req, err := http.NewRequest("POST", "http://localhost:12345/some-404-page", nil)
+	req, err := http.NewRequest("POST", ts.URL+"/some-404-page", nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -250,7 +246,7 @@ func TestCORS(t *testing.T) {
 
 	// See: https://stackoverflow.com/a/12179364/342348
 	got := resp.Header.Get("Access-Control-Allow-Origin")
-	tu.Assert(t, origin == got, "expect %s, got %s", got)
+	tu.Assert(t, origin == got, "expect %s, got '%s'", origin, got)
 }
 
 func TestTimeout(t *testing.T) {
@@ -280,7 +276,7 @@ func TestTimeout(t *testing.T) {
 	}{
 		{
 			name:             "timeout",
-			timeout:          101 * time.Millisecond,
+			timeout:          105 * time.Millisecond,
 			expectStatusCode: http.StatusRequestTimeout,
 		},
 

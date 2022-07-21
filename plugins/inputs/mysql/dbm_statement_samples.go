@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -101,8 +101,8 @@ type planObj struct {
 	sortScan            int64
 }
 
-func (m *dbmSampleMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionLogging)
+func (m *dbmSampleMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionLogging)
 }
 
 func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {

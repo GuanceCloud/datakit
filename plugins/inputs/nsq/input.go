@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -243,7 +244,7 @@ func (ipt *Input) isLookupd() bool {
 	return ipt.Lookupd != ""
 }
 
-func (ipt *Input) gather() ([]*io.Point, error) {
+func (ipt *Input) gather() ([]*point.Point, error) {
 	if len(ipt.nsqdEndpointList) == 0 {
 		l.Warn("endpoint list is empty")
 		return nil, nil

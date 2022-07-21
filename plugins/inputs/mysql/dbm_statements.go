@@ -6,7 +6,7 @@
 package mysql
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -20,8 +20,8 @@ type dbmStateMeasurement struct {
 	fields map[string]interface{}
 }
 
-func (m *dbmStateMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionLogging)
+func (m *dbmStateMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionLogging)
 }
 
 func (m *dbmStateMeasurement) Info() *inputs.MeasurementInfo {

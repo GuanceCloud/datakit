@@ -6,7 +6,7 @@
 package demo
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -16,8 +16,8 @@ type demoMetric2 struct {
 	fields map[string]interface{}
 }
 
-func (m *demoMetric2) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+func (m *demoMetric2) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 func (m *demoMetric2) Info() *inputs.MeasurementInfo {

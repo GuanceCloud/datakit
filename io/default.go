@@ -6,25 +6,27 @@
 package io
 
 import (
-	"fmt"
+	"os"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
-var defaultIO = &IO{
-	conf: &IOConfig{
-		FeedChanSize: 1024,
+var defaultIO = getDefault()
 
-		MaxCacheCount:        1024,
-		MaxDynamicCacheCount: 1024,
+func getDefault() *IO {
+	return &IO{
+		conf: &IOConfig{
+			FeedChanSize:         1024 * 8,
+			MaxCacheCount:        512,
+			MaxDynamicCacheCount: 512,
 
-		FlushInterval: "10s",
-	},
+			FlushInterval: "10s",
+		},
+	}
 }
 
 func SetDataway(dw dataway.DataWay) {
@@ -35,60 +37,71 @@ func ConfigDefaultIO(c *IOConfig) {
 	defaultIO.conf = c
 }
 
-func Start(sincfg []map[string]interface{}) error {
-	log = logger.SLogger("io")
+const dynamicDatawayCategory = "dynamicDatawayCategory"
 
-	log.Debugf("default io config: %v", defaultIO)
-
-	defaultIO.in = make(chan *iodata, defaultIO.conf.FeedChanSize)
-	defaultIO.inLastErr = make(chan *lastError, datakit.CommonChanCap)
-
-	defaultIO.inputstats = map[string]*InputsStat{}
-	defaultIO.cache = map[string][]*Point{}
-	defaultIO.dynamicCache = map[string][]*Point{}
-
-	var writeFunc func(string, []sinkcommon.ISinkPoint) error
-
-	if defaultIO.dw != nil {
-		if dw, ok := defaultIO.dw.(sender.Writer); ok {
-			writeFunc = dw.Write
+func (x *IO) init() error {
+	if x.conf.OutputFile != "" {
+		f, err := os.OpenFile(x.conf.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644) //nolint:gosec
+		if err != nil {
+			return err
 		}
+
+		x.fd = f
 	}
 
-	if err := sink.Init(sincfg, writeFunc); err != nil {
-		log.Error("InitSink failed: %v", err)
-		return err
+	x.inLastErr = make(chan *lastError, datakit.CommonChanCap)
+	x.inputstats = map[string]*InputsStat{}
+	x.chans = map[string]chan *iodata{}
+	for _, c := range []string{
+		datakit.Metric,
+		datakit.Network,
+		datakit.KeyEvent,
+		datakit.Object,
+		datakit.CustomObject,
+		datakit.Logging,
+		datakit.Tracing,
+		datakit.RUM,
+		datakit.Security,
+		datakit.Profile,
+		dynamicDatawayCategory,
+	} {
+		x.chans[c] = make(chan *iodata, x.conf.FeedChanSize)
 	}
 
-	defaultIO.StartIO(true)
-	log.Debugf("io: %+#v", defaultIO)
+	du, err := time.ParseDuration(x.conf.FlushInterval)
+	if err != nil {
+		l.Warnf("time.ParseDuration: %s, ignored", err)
+		du = time.Second * 10
+	}
 
-	log.Debug("sink.Init succeeded")
+	x.flushInterval = du
+
+	if sender, err := sender.NewSender(
+		&sender.Option{
+			Cache:              x.conf.EnableCache,
+			CacheSizeGB:        x.conf.CacheSizeGB,
+			FlushCacheInterval: du,
+			// if sender failed, we do not feed any event log
+			ErrorCallback: nil,
+		}); err != nil {
+		log.Errorf("init sender error: %s", err.Error())
+	} else {
+		x.sender = sender
+	}
 
 	return nil
 }
 
-func GetStats() (map[string]*InputsStat, error) {
-	defaultIO.lock.RLock()
-	defer defaultIO.lock.RUnlock()
+func Start(sincfg []map[string]interface{}) error {
+	log = logger.SLogger("io")
+	log.Debugf("default io config: %v", defaultIO)
 
-	return dumpStats(defaultIO.inputstats), nil
-}
-
-func GetIoStats() IoStat {
-	stats := IoStat{
-		SentBytes: defaultIO.SentBytes,
+	if err := defaultIO.init(); err != nil {
+		log.Errorf("io init failed: %s", err)
+		return err
 	}
-	return stats
-}
 
-func ChanStat() string {
-	l := len(defaultIO.in)
-	c := cap(defaultIO.in)
+	defaultIO.StartIO(true)
 
-	return fmt.Sprintf(`inputCh: %d/%d`, l, c)
-}
-
-func DroppedTotal() int64 {
-	return defaultIO.DroppedTotal()
+	return nil
 }

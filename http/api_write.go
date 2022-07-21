@@ -15,11 +15,11 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type IApiWrite interface {
-	sendToIO(string, string, []*io.Point, *io.Option) error
+	sendToIO(string, string, []*point.Point, *io.Option) error
 	geoInfo(string) map[string]string
 }
 
@@ -33,16 +33,16 @@ type jsonPoint struct {
 }
 
 // convert json point to lineproto point.
-func (jp *jsonPoint) point(opt *lp.Option) (*io.Point, error) {
+func (jp *jsonPoint) point(opt *lp.Option) (*point.Point, error) {
 	p, err := lp.MakeLineProtoPoint(jp.Measurement, jp.Tags, jp.Fields, opt)
 	if err != nil {
 		return nil, err
 	}
 
-	return &io.Point{Point: p}, nil
+	return &point.Point{Point: p}, nil
 }
 
-func (x *apiWriteImpl) sendToIO(input, category string, pts []*io.Point, opt *io.Option) error {
+func (x *apiWriteImpl) sendToIO(input, category string, pts []*point.Point, opt *io.Option) error {
 	return io.Feed(input, category, pts, opt)
 }
 
@@ -110,7 +110,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 			extraTags = map[string]string{}
 			break
 		} else {
-			for k, v := range io.GlobalHostTags() {
+			for k, v := range point.GlobalHostTags() {
 				l.Debugf("arg=%s, add host tag %s: %s", arg, k, v)
 				extraTags[k] = v
 			}
@@ -118,7 +118,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 	}
 
 	if x := q.Get(GLOBAL_ENV_TAGS); x != "" {
-		for k, v := range io.GlobalEnvTags() {
+		for k, v := range point.GlobalEnvTags() {
 			l.Debugf("add env tag %s: %s", k, v)
 			extraTags[k] = v
 		}
@@ -152,7 +152,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 
 	isjson := (req.Header.Get("Content-Type") == "application/json")
 
-	var pts []*io.Point
+	var pts []*point.Point
 
 	switch category {
 	case datakit.RUM:
@@ -213,7 +213,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 	}
 
 	if q.Get(ECHO_LINE_PROTO) != "" {
-		res := []*sinkcommon.JSONPoint{}
+		res := []*point.JSONPoint{}
 		for _, pt := range pts {
 			x, err := pt.ToJSON()
 			if err != nil {
@@ -229,7 +229,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 	return nil, nil
 }
 
-func handleWriteBody(body []byte, isJSON bool, opt *lp.Option) ([]*io.Point, error) {
+func handleWriteBody(body []byte, isJSON bool, opt *lp.Option) ([]*point.Point, error) {
 	switch isJSON {
 	case true:
 		return jsonPoints(body, opt)
@@ -240,11 +240,11 @@ func handleWriteBody(body []byte, isJSON bool, opt *lp.Option) ([]*io.Point, err
 			return nil, uhttp.Error(ErrInvalidLinePoint, err.Error())
 		}
 
-		return io.WrapPoint(pts), nil
+		return point.WrapPoint(pts), nil
 	}
 }
 
-func jsonPoints(body []byte, opt *lp.Option) ([]*io.Point, error) {
+func jsonPoints(body []byte, opt *lp.Option) ([]*point.Point, error) {
 	var jps []jsonPoint
 	err := json.Unmarshal(body, &jps)
 	if err != nil {
@@ -256,7 +256,7 @@ func jsonPoints(body []byte, opt *lp.Option) ([]*io.Point, error) {
 		opt = lp.DefaultOption
 	}
 
-	var pts []*io.Point
+	var pts []*point.Point
 	for _, jp := range jps {
 		if jp.Time != 0 { // use time from json point
 			opt.Time = time.Unix(0, jp.Time)
@@ -272,7 +272,7 @@ func jsonPoints(body []byte, opt *lp.Option) ([]*io.Point, error) {
 	return pts, nil
 }
 
-func checkObjectPoint(p *io.Point) error {
+func checkObjectPoint(p *point.Point) error {
 	tags := p.Point.Tags()
 	if _, ok := tags["name"]; !ok {
 		return ErrInvalidObjectPoint

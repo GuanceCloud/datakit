@@ -15,6 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -47,8 +48,8 @@ type ClientStat struct {
 
 	CPUUsage float64
 
-	DroppedPointsTotal int64
-	DroppedPoints      int64
+	DroppedPointsTotal uint64
+	DroppedPoints      uint64
 
 	// 选举
 	Incumbency       int64
@@ -114,7 +115,7 @@ func (s *ClientStat) Update() {
 
 var measurementName = "datakit"
 
-func (s *ClientStat) ToMetric() *io.Point {
+func (s *ClientStat) ToMetric() *point.Point {
 	s.Uptime = int64(time.Since(StartTime) / time.Second)
 
 	tags := map[string]string{
@@ -159,7 +160,7 @@ func (s *ClientStat) ToMetric() *io.Point {
 		"elected":    s.Incumbency,
 	}
 
-	pt, err := io.NewPoint(measurementName, tags, fields, inputs.OptMetric)
+	pt, err := point.NewPoint(measurementName, tags, fields, inputs.OptMetric)
 	if err != nil {
 		l.Error(err)
 	}

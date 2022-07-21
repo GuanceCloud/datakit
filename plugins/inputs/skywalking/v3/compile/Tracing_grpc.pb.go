@@ -83,7 +83,7 @@ func (c *traceSegmentReportServiceClient) CollectInSync(ctx context.Context, in 
 
 // TraceSegmentReportServiceServer is the server API for TraceSegmentReportService service.
 // All implementations must embed UnimplementedTraceSegmentReportServiceServer
-// for forward compatibility
+// for forward compatibility.
 type TraceSegmentReportServiceServer interface {
 	// Recommended trace segment report channel.
 	// gRPC streaming provides better performance.

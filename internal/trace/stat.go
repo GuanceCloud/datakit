@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 const (
@@ -146,8 +146,8 @@ func sendTracingInfo(tinfo *TracingInfo) {
 	}
 }
 
-func makeTracingInfoPoint(tinfos map[string]*TracingInfo) []*dkio.Point {
-	var pts []*dkio.Point
+func makeTracingInfoPoint(tinfos map[string]*TracingInfo) []*point.Point {
+	var pts []*point.Point
 	for _, tinfo := range tinfos {
 		var (
 			tags   = make(map[string]string)
@@ -167,7 +167,7 @@ func makeTracingInfoPoint(tinfos map[string]*TracingInfo) []*dkio.Point {
 			fields["duration_avg"] = tinfo.DurationAvg / int64(tinfo.RequestCount)
 		}
 
-		if pt, err := dkio.NewPoint(tracingStatName, tags, fields, &dkio.PointOption{
+		if pt, err := point.NewPoint(tracingStatName, tags, fields, &point.PointOption{
 			Time:     time.Now(),
 			Category: datakit.Tracing,
 			Strict:   false,

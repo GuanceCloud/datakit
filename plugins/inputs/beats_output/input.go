@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -97,8 +98,8 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (ipt *loggingMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(ipt.name, ipt.tags, ipt.fields, inputs.OptLogging)
+func (ipt *loggingMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(ipt.name, ipt.tags, ipt.fields, inputs.OptLogging)
 }
 
 //nolint:lll
@@ -219,7 +220,7 @@ func (ipt *Input) getNewTags(dataPiece *DataStruct) map[string]string {
 }
 
 func (ipt *Input) feed(pending []*DataStruct) {
-	pts := []*io.Point{}
+	pts := []*point.Point{}
 	for _, v := range pending {
 		if len(v.Message) == 0 {
 			continue
@@ -228,7 +229,7 @@ func (ipt *Input) feed(pending []*DataStruct) {
 		newTags := ipt.getNewTags(v)
 		l.Debugf("newTags = %#v", newTags)
 
-		pt, err := io.NewPoint(ipt.Source, newTags,
+		pt, err := point.NewPoint(ipt.Source, newTags,
 			map[string]interface{}{
 				pipeline.FieldMessage: v.Message,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,

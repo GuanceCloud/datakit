@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -142,8 +142,8 @@ type count struct {
 	fields fieldsType
 }
 
-func (c *count) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes", c.tags, c.fields, inputs.OptElectionMetric)
+func (c *count) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes", c.tags, c.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll

@@ -40,7 +40,7 @@ func (c *jVMMetricReportServiceClient) Collect(ctx context.Context, in *JVMMetri
 
 // JVMMetricReportServiceServer is the server API for JVMMetricReportService service.
 // All implementations must embed UnimplementedJVMMetricReportServiceServer
-// for forward compatibility
+// for forward compatibility.
 type JVMMetricReportServiceServer interface {
 	Collect(context.Context, *JVMMetricCollection) (*Commands, error)
 	mustEmbedUnimplementedJVMMetricReportServiceServer()
