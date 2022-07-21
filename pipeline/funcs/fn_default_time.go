@@ -71,7 +71,7 @@ func DefaultTime(ng *parser.EngineData, node parser.Node) interface{} {
 	if v, err := TimestampHandle(cont, tz); err != nil {
 		return fmt.Errorf("time convert fail error %w", err)
 	} else if err := ng.SetContent(key, v); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 

@@ -92,22 +92,23 @@ func XML(ng *parser.EngineData, node parser.Node) interface{} {
 
 	doc, err := xmlquery.Parse(strings.NewReader(cont))
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 	// xmlquery already caches the compiled expression for us.
 	dest, err := xmlquery.Query(doc, xpathExpr.Val)
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 	if dest == nil {
-		l.Warnf("can't find any XML Node that matches the XPath expr: %s", xpathExpr)
+		err = fmt.Errorf("can't find any XML Node that matches the XPath expr: %s", xpathExpr)
+		l.Debug(err)
 		return nil
 	}
 
 	if err := ng.SetContent(fieldName, dest.InnerText()); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 

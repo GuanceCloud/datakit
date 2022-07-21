@@ -64,7 +64,7 @@ func Cast(ng *parser.EngineData, node parser.Node) interface{} {
 
 	val := doCast(cont, castType)
 	if err = ng.SetContent(key, val); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 

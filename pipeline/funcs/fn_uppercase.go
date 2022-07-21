@@ -50,7 +50,7 @@ func Uppercase(ng *parser.EngineData, node parser.Node) interface{} {
 
 	v := strings.ToUpper(cont)
 	if err := ng.SetContent(key, v); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 
