@@ -15,8 +15,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func (d *dockerInput) addToContainerList(containerID string, cancel context.CancelFunc) {
-	d.containerLogList[containerID] = cancel
+func (d *dockerInput) addToContainerList(containerID string) {
+	d.containerLogList[containerID] = nil
 }
 
 func (d *dockerInput) removeFromContainerList(containerID string) {
@@ -28,27 +28,35 @@ func (d *dockerInput) containerInContainerList(containerID string) bool {
 	return ok
 }
 
-func (d *dockerInput) cancelTails() {
-	for _, cancel := range d.containerLogList {
-		cancel()
-	}
-}
-
 func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container) error {
 	inspect, err := d.client.ContainerInspect(ctx, container.ID)
 	if err != nil {
 		return err
 	}
 
+	image := container.Image
+
+	if d.k8sClient != nil {
+		podname := getPodNameForLabels(container.Labels)
+		podnamespace := getPodNamespaceForLabels(container.Labels)
+		podContainerName := getContainerNameForLabels(container.Labels)
+
+		meta, err := queryPodMetaData(d.k8sClient, podname, podnamespace)
+		if err == nil {
+			image = meta.containerImage(podContainerName)
+		}
+	}
+
 	info := &containerLogBasisInfo{
-		name:           getContainerName(container.Names),
-		id:             container.ID,
-		logPath:        inspect.LogPath,
-		labels:         container.Labels,
-		image:          container.Image,
-		tags:           make(map[string]string),
-		created:        inspect.Created,
-		extraSourceMap: d.cfg.extraSourceMap,
+		name:               getContainerName(container.Names),
+		id:                 container.ID,
+		logPath:            inspect.LogPath,
+		labels:             container.Labels,
+		image:              image,
+		tags:               make(map[string]string),
+		created:            inspect.Created,
+		extraSourceMap:     d.cfg.extraSourceMap,
+		sourceMultilineMap: d.cfg.sourceMultilineMap,
 	}
 
 	if containerIsFromKubernetes(getContainerName(container.Names)) {
@@ -73,7 +81,7 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 		return err
 	}
 
-	d.addToContainerList(container.ID, t.Close)
+	d.addToContainerList(container.ID)
 	l.Infof("add docker log, containerId: %s, source: %s, logpath: %s", container.ID, opt.Source, info.logPath)
 	defer func() {
 		d.removeFromContainerList(container.ID)
@@ -106,9 +114,10 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 			"service":    inputs.NewTagInfo(`服务名称`),
 		},
 		Fields: map[string]interface{}{
-			"status":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK/unknown"},
-			"log_read_lines": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "采集到的行数计数，多行数据算成一行（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）"},
-			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
+			"status":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK/unknown"},
+			"log_read_lines":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "采集到的行数计数，多行数据算成一行（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）"},
+			"log_read_offset": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "当前数据在文件中的偏移位置（beta）"},
+			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
 		},
 	}
 }

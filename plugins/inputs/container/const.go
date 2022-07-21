@@ -55,6 +55,9 @@ const sampleCfg = `
   [inputs.container.logging_extra_source_map]
     # source_regexp = "new_source"
 
+  [inputs.container.logging_source_multiline_map]
+    # source = '''^\d{4}'''
+
   [inputs.container.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"

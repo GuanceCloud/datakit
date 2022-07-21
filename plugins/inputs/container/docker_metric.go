@@ -196,7 +196,7 @@ type containerMetric struct {
 }
 
 func (c *containerMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionMetric)
+	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptMetric)
 }
 
 //nolint:lll

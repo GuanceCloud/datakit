@@ -97,7 +97,7 @@ type containerObject struct {
 }
 
 func (c *containerObject) LineProto() (*point.Point, error) {
-	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionObject)
+	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptObject)
 }
 
 //nolint:lll
