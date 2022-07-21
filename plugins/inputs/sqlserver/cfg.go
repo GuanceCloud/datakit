@@ -33,6 +33,10 @@ var (
   ## (optional) collection interval, default is 10s
   interval = "10s"
 
+  ## by default, support TLS 1.2 and above.
+  ## set to true if server side uses TLS 1.0 or TLS 1.1
+  allow_tls10 = false
+
   ## configure db_filter to filter out metrics from certain databases according to their database_name tag.
   ## If leave blank, no metric from any database is filtered out.
   # db_filter = ["some_db_instance_name", "other_db_instance_name"]
@@ -69,12 +73,13 @@ default_time(time)
 )
 
 type Input struct {
-	Host     string            `toml:"host"`
-	User     string            `toml:"user"`
-	Password string            `toml:"password"`
-	Interval datakit.Duration  `toml:"interval"`
-	Tags     map[string]string `toml:"tags"`
-	Log      *sqlserverlog     `toml:"log"`
+	Host       string            `toml:"host"`
+	User       string            `toml:"user"`
+	Password   string            `toml:"password"`
+	Interval   datakit.Duration  `toml:"interval"`
+	Tags       map[string]string `toml:"tags"`
+	Log        *sqlserverlog     `toml:"log"`
+	AllowTLS10 bool              `toml:"allow_tls10,omitempty"`
 
 	QueryVersionDeprecated int      `toml:"query_version,omitempty"`
 	ExcludeQuery           []string `toml:"exclude_query,omitempty"`
