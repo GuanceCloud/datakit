@@ -87,13 +87,8 @@ func TestPointOptions(t *testing.T) {
 			datakit.MetricDeprecated,
 			datakit.Metric,
 			datakit.Network,
-			//datakit.KeyEvent,
 			datakit.Object,
-			//datakit.CustomObject,
 			datakit.Logging,
-			//datakit.Tracing,
-			//datakit.RUM,
-			//datakit.Security,
 			datakit.Profile,
 		} {
 			t.Run(tc.name+cat, func(t *testing.T) {

@@ -408,7 +408,7 @@ func checkIsNewVersion(host, version string) error {
 		Content map[string]string `json:"content"`
 	}{}
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 10; i++ {
 		time.Sleep(time.Second)
 
 		resp, err := http.Get(host + "/v1/ping")
@@ -441,7 +441,7 @@ func checkIsNewVersion(host, version string) error {
 }
 
 func promptReferences() {
-	fmt.Println("\n\tVisit https://www.yuque.com/dataflux/datakit/changelog to see DataKit change logs.")
+	fmt.Println("\n\tVisit https://docs.guance.com/datakit/changelog/ to see DataKit change logs.")
 	if config.Cfg.HTTPAPI.Listen != "localhost:9529" {
 		fmt.Printf("\tUse `datakit monitor --to %s` to see DataKit running status.\n", config.Cfg.HTTPAPI.Listen)
 	} else {
