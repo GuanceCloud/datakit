@@ -259,13 +259,13 @@ func (i *Input) globalTag() {
 func (i *Input) q(s string) rows {
 	rows, err := i.db.Query(s)
 	if err != nil {
-		l.Errorf("query %s failed: %s, ignored", s, err.Error())
+		l.Errorf(`query failed, sql (%q), error: %s, ignored`, s, err.Error())
 		return nil
 	}
 
 	if err := rows.Err(); err != nil {
 		closeRows(rows)
-		l.Errorf("query %s failed: %s, ignored", s, err.Error())
+		l.Errorf(`query row failed, sql (%q), error: %s, ignored`, s, err.Error())
 		return nil
 	}
 
@@ -412,12 +412,6 @@ func (i *Input) handleLastError() {
 	}
 }
 
-func (i *Input) appendLastError(err error) {
-	if err != nil {
-		i.lastErrors = append(i.lastErrors, err.Error())
-	}
-}
-
 func (i *Input) Collect() (map[string][]*point.Point, error) {
 	if err := i.initDBConnect(); err != nil {
 		return map[string][]*point.Point{}, err
@@ -442,8 +436,7 @@ func (i *Input) Collect() (map[string][]*point.Point, error) {
 
 		pts, err := f()
 		if err != nil {
-			l.Errorf("collectors %v failed: %s", f, err.Error())
-			i.appendLastError(err)
+			l.Errorf("collect failed: %s", err.Error())
 		}
 
 		if len(pts) > 0 {
@@ -456,7 +449,6 @@ func (i *Input) Collect() (map[string][]*point.Point, error) {
 		pts, err := i.metricCollectMysqlInnodb()
 		if err != nil {
 			l.Errorf("metricCollectMysqlInnodb failed: %s", err.Error())
-			i.appendLastError(err)
 		}
 
 		if len(pts) > 0 {
@@ -472,7 +464,6 @@ func (i *Input) Collect() (map[string][]*point.Point, error) {
 				pts, err := i.metricCollectMysqlDbmMetric()
 				if err != nil {
 					l.Errorf("metricCollectMysqlDbmMetric failed: %s", err.Error())
-					i.appendLastError(err)
 				}
 
 				if len(pts) > 0 {
@@ -488,7 +479,6 @@ func (i *Input) Collect() (map[string][]*point.Point, error) {
 				pts, err := i.metricCollectMysqlDbmSample()
 				if err != nil {
 					l.Errorf("metricCollectMysqlDbmSample failed: %s", err.Error())
-					i.appendLastError(err)
 				}
 
 				if len(pts) > 0 {
