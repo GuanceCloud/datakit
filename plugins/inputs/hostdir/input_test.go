@@ -17,5 +17,5 @@ func TestInput_Collect(t *testing.T) {
 	if err := i.Collect(); err != nil {
 		t.Error(err)
 	}
-	t.Log(i.collectCache[0])
+	t.Log(i.collectCache)
 }

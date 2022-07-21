@@ -25,7 +25,7 @@ const configSample = `
   
   ## all supported plugins:
   ## - "ebpf-net"  :
-  ##     contains L4-network, dns collection
+  ##     contains L4-network(netflow), L7-network(httpflow, dnsflow) collection
   ## - "ebpf-bash" :
   ##     log bash
   ##
@@ -33,12 +33,18 @@ const configSample = `
     "ebpf-net",
   ]
 
-  # 可选: httpflow, httpflow-tls
-  # 默认不开启 httpflow 中的 https 采集
-  l7net_disabled = [
-    # "httpflow",
-    "httpflow-tls"
+  ## 若开启 ebpf-net 插件，需选配: 
+  ##  - "httpflow" (* 默认开启)
+  ##  - "httpflow-tls"
+  ##
+  l7net_enabled = [
+    "httpflow",
+    # "httpflow-tls"
   ]
+
+  ## if the system does not enable ipv6, it needs to be changed to true
+  ##
+  ipv6_disabled = false
 
   [inputs.ebpf.tags]
     # some_tag = "some_value"

@@ -25,6 +25,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 )
 
+var _ inputs.ReadEnv = (*Input)(nil)
+
 var (
 	inputName           = "ebpf"
 	catalogName         = "host"
@@ -46,6 +48,8 @@ type Input struct {
 	K8sConf
 	EnabledPlugins []string      `toml:"enabled_plugins"`
 	L7NetDisabled  []string      `toml:"l7net_disabled"`
+	L7NetEnabled   []string      `toml:"l7net_enabled"`
+	IPv6Disabled   bool          `toml:"ipv6_disabled"`
 	semStop        *cliutils.Sem // start stop signal
 }
 
@@ -135,9 +139,21 @@ loop:
 			fmt.Sprintf("K8S_BEARER_TOKEN_STRING=%s", ipt.K8sConf.K8sBearerTokenStr))
 	}
 
-	if len(ipt.L7NetDisabled) > 0 {
+	if ipt.L7NetDisabled == nil && ipt.L7NetEnabled == nil {
+		ipt.L7NetEnabled = []string{"httpflow"}
+	}
+
+	if len(ipt.L7NetEnabled) > 0 {
+		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args,
+			"--l7net-enabled", strings.Join(ipt.L7NetEnabled, ","))
+	} else if len(ipt.L7NetDisabled) > 0 {
 		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args,
 			"--l7net-disabled", strings.Join(ipt.L7NetDisabled, ","))
+	}
+
+	if ipt.IPv6Disabled {
+		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args,
+			"--ipv6-disabled", "true")
 	}
 
 	if len(ipt.EnabledPlugins) == 0 {
@@ -184,6 +200,31 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 func (*Input) AvailableArchs() []string {
 	return []string{datakit.OSLabelLinux}
+}
+
+// ReadEnv support envs：
+//   ENV_INPUT_EBPF_ENABLED_PLUGINS : []string
+//   ENV_INPUT_EBPF_L7NET_ENABLED  : []string
+//   ENV_INPUT_EBPF_IPV6_DISABLED   : bool
+func (ipt *Input) ReadEnv(envs map[string]string) {
+	if pluginList, ok := envs["ENV_INPUT_EBPF_ENABLED_PLUGINS"]; ok {
+		l.Debugf("add enabled_plugins from ENV: %v", pluginList)
+		ipt.EnabledPlugins = strings.Split(pluginList, ",")
+	}
+
+	if l7netEnabledList, ok := envs["ENV_INPUT_EBPF_L7NET_ENABLED"]; ok {
+		l.Debugf("add l7net_enabled from ENV: %v", l7netEnabledList)
+		ipt.L7NetEnabled = strings.Split(l7netEnabledList, ",")
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_IPV6_DISABLED"]; ok {
+		switch v {
+		case "", "f", "false", "FALSE", "False", "0":
+			ipt.IPv6Disabled = false
+		default:
+			ipt.IPv6Disabled = true
+		}
+	}
 }
 
 func init() { //nolint:gochecknoinits
