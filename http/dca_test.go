@@ -658,6 +658,64 @@ func TestDcaUploadSourcemap(t *testing.T) {
 	}
 }
 
+func TestDcaGetFilter(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("./", "__tmp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	pullFilePath := filepath.Join(tmpDir, ".pull")
+	pullContent := `{
+		"dataways": null,
+		"filters": {
+		  "logging": [
+			"{ source = 'datakit'  and ( host in ['ubt-dev-01', 'tanb-ubt-dev-test'] )}"
+		  ]
+		},
+		"pull_interval": 10000000000,
+		"remote_pipelines": null
+	  }`
+	err = ioutil.WriteFile(pullFilePath, []byte(pullContent), os.ModePerm)
+	if err != nil {
+		t.Fatal("create pull file error", err)
+	}
+
+	cases := []struct {
+		expected string
+		dataDir  string
+	}{
+		{
+			expected: pullContent,
+			dataDir:  tmpDir,
+		},
+		{
+			expected: "",
+			dataDir:  filepath.Join(tmpDir, "invalid_data_dir"),
+		},
+	}
+
+	for index, tc := range cases {
+		t.Logf("Test #%d: %+v", index, tc)
+		datakit.DataDir = tc.dataDir
+
+		req, _ := http.NewRequest("GET", "/v1/filter", nil)
+		req.Header.Add("X-Token", TOKEN)
+
+		w := getResponse(req, nil)
+		res, _ := getResponseBody(w)
+
+		assert.True(t, res.Success, res)
+		if resResult, ok := res.Content.(map[string]interface{}); ok {
+			content := resResult["content"]
+
+			assert.Equal(t, tc.expected, content)
+		} else {
+			t.Fatal("response is not correct", res.Content)
+		}
+	}
+}
+
 func TestDcaDeleteSourcemap(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("./", "data")
 	if err != nil {

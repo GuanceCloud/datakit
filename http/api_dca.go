@@ -401,6 +401,27 @@ func isValidCustomPipelineName(name string) bool {
 	return pipelineFileRegxp.Match([]byte(name))
 }
 
+// filter info.
+type filterInfo struct {
+	Content  string `json:"content"`  // file content string
+	FilePath string `json:"filePath"` // file path
+}
+
+// dcaGetFilter return filter file content, which is located at data/.pull
+// if the file not existed, return empty content.
+func dcaGetFilter(c *gin.Context) {
+	context := getContext(c)
+	dataDir := datakit.DataDir
+	pullFilePath := filepath.Join(dataDir, ".pull")
+	pullFileBytes, err := ioutil.ReadFile(pullFilePath) //nolint: gosec
+	if err != nil {
+		context.success(filterInfo{Content: "", FilePath: ""})
+		return
+	}
+
+	context.success(filterInfo{Content: string(pullFileBytes), FilePath: pullFilePath})
+}
+
 type pipelineInfo struct {
 	FileName string `json:"fileName"`
 	FileDir  string `json:"fileDir"`
@@ -424,6 +445,20 @@ func dcaGetPipelines(c *gin.Context) {
 			name := file.Name()
 			if isValidPipelineFileName(name) {
 				pipelines = append(pipelines, pipelineInfo{FileName: name, FileDir: datakit.PipelineDir})
+			}
+		} else if file.Name() == "logging" {
+			allFiles, err := ioutil.ReadDir(filepath.Join(datakit.PipelineDir, "logging"))
+			if err != nil {
+				context.fail()
+				return
+			}
+			for _, file := range allFiles {
+				if !file.IsDir() {
+					name := file.Name()
+					if isValidPipelineFileName(name) {
+						pipelines = append(pipelines, pipelineInfo{FileName: "logging/" + name, FileDir: datakit.PipelineDir})
+					}
+				}
 			}
 		}
 	}
