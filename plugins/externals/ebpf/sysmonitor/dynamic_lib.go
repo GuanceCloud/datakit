@@ -5,13 +5,17 @@ package sysmonitor
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/binary"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/DataDog/ebpf/manager"
 	"github.com/DataDog/gopsutil/process/so"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
@@ -38,6 +42,12 @@ func diff(old, cur map[string]struct{}) (map[string]struct{}, map[string]struct{
 	}
 
 	return del, add
+}
+
+func ShortID(binPath string) string {
+	sha1Val := sha1.Sum([]byte(binPath))
+	return strconv.FormatUint(
+		binary.BigEndian.Uint64(sha1Val[:]), 36)
 }
 
 type UprobeRegRule struct {
@@ -155,4 +165,56 @@ func (register *UprobeDynamicLibRegister) Monitor(ctx context.Context, scanInter
 			}
 		}
 	}()
+}
+
+type (
+	registerFunc   func(string) error
+	unregisterFunc func(string) error
+)
+
+func NewRegisterFunc(m *manager.Manager, sections []string) registerFunc {
+	secs := []string{}
+	secs = append(secs, sections...)
+	return func(binPath string) error {
+		uid := ShortID(binPath)
+		l.Info("AddHook: ", binPath, " ShortID: ", uid)
+		for _, sec := range secs {
+			if err := m.AddHook("", manager.Probe{
+				UID:        uid,
+				Section:    sec,
+				BinaryPath: binPath,
+			}); err != nil {
+				l.Warn(err)
+			}
+		}
+		return nil
+	}
+}
+
+func NewUnRegisterFunc(m *manager.Manager, sections []string) unregisterFunc {
+	secs := []string{}
+	secs = append(secs, sections...)
+	return func(binPath string) error {
+		uid := ShortID(binPath)
+		l.Info("DetachHook: ", binPath, " ShortID: ", uid)
+		for _, sec := range secs {
+			p, ok := m.GetProbe(manager.ProbeIdentificationPair{
+				UID:     uid,
+				Section: sec,
+			})
+			if !ok {
+				continue
+			}
+			pp := p.Program()
+			if err := m.DetachHook(sec, uid); err != nil {
+				l.Error(err)
+			}
+			if pp != nil {
+				if err := pp.Close(); err != nil {
+					l.Warn(err)
+				}
+			}
+		}
+		return nil
+	}
 }
