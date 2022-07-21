@@ -6,7 +6,7 @@
 package oracle
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -17,8 +17,8 @@ type processMeasurement struct {
 }
 
 // 生成行协议.
-func (m *processMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *processMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 // 指定指标.
@@ -73,8 +73,8 @@ type tablespaceMeasurement struct {
 }
 
 // 生成行协议.
-func (m *tablespaceMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *tablespaceMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 // 指定指标.
@@ -129,8 +129,8 @@ type systemMeasurement struct {
 }
 
 // 生成行协议.
-func (m *systemMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+func (m *systemMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 // 指定指标.

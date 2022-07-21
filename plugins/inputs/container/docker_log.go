@@ -11,7 +11,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -86,7 +86,7 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 
 type containerLog struct{}
 
-func (c *containerLog) LineProto() (*iod.Point, error) { return nil, nil }
+func (c *containerLog) LineProto() (*point.Point, error) { return nil, nil }
 
 //nolint:lll
 func (c *containerLog) Info() *inputs.MeasurementInfo {

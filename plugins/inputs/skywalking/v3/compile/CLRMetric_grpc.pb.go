@@ -40,7 +40,7 @@ func (c *cLRMetricReportServiceClient) Collect(ctx context.Context, in *CLRMetri
 
 // CLRMetricReportServiceServer is the server API for CLRMetricReportService service.
 // All implementations must embed UnimplementedCLRMetricReportServiceServer
-// for forward compatibility
+// for forward compatibility.
 type CLRMetricReportServiceServer interface {
 	Collect(context.Context, *CLRMetricCollection) (*Commands, error)
 	mustEmbedUnimplementedCLRMetricReportServiceServer()

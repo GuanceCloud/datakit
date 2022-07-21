@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/apps/v1"
 )
@@ -161,8 +161,8 @@ type deploymentMetric struct {
 	fields fieldsType
 }
 
-func (d *deploymentMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_deployment", d.tags, d.fields, inputs.OptElectionMetric)
+func (d *deploymentMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_deployment", d.tags, d.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -195,8 +195,8 @@ type deploymentObject struct {
 	fields fieldsType
 }
 
-func (d *deploymentObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_deployments", d.tags, d.fields, inputs.OptElectionObject)
+func (d *deploymentObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_deployments", d.tags, d.fields, inputs.OptElectionObject)
 }
 
 //nolint:lll

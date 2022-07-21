@@ -8,7 +8,7 @@ package system
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -24,14 +24,14 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{}
 }
 
-func (m *measurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+func (m *measurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 type conntrackMeasurement measurement
 
-func (m *conntrackMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+func (m *conntrackMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 //nolint:lll
@@ -59,8 +59,8 @@ func (m *conntrackMeasurement) Info() *inputs.MeasurementInfo {
 
 type filefdMeasurement measurement
 
-func (m *filefdMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+func (m *filefdMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 //nolint:lll
@@ -103,8 +103,8 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (m *systemMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+func (m *systemMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 func newFieldInfoCount(desc string) *inputs.FieldInfo {

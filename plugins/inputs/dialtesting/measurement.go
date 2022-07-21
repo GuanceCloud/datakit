@@ -6,7 +6,7 @@
 package dialtesting
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -16,8 +16,8 @@ type httpMeasurement struct {
 	fields map[string]interface{}
 }
 
-func (m *httpMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptLogging)
+func (m *httpMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptLogging)
 }
 
 //nolint:lll
@@ -90,8 +90,8 @@ type tcpMeasurement struct {
 	fields map[string]interface{}
 }
 
-func (m *tcpMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptLogging)
+func (m *tcpMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptLogging)
 }
 
 //nolint:lll
@@ -157,8 +157,8 @@ type icmpMeasurement struct {
 	fields map[string]interface{}
 }
 
-func (m *icmpMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptLogging)
+func (m *icmpMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptLogging)
 }
 
 //nolint:lll
@@ -253,8 +253,8 @@ type websocketMeasurement struct {
 	fields map[string]interface{}
 }
 
-func (m *websocketMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptLogging)
+func (m *websocketMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptLogging)
 }
 
 //nolint:lll

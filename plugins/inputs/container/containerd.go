@@ -20,7 +20,7 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/typeurl"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	cri "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -364,8 +364,8 @@ type containerdObject struct {
 	fields fieldsType
 }
 
-func (c *containerdObject) LineProto() (*io.Point, error) {
-	return io.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionObject)
+func (c *containerdObject) LineProto() (*point.Point, error) {
+	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionObject)
 }
 
 func (c *containerdObject) Info() *inputs.MeasurementInfo {
@@ -406,8 +406,8 @@ type containerdMetric struct {
 	fields fieldsType
 }
 
-func (c *containerdMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionMetric)
+func (c *containerdMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionMetric)
 }
 
 func (c *containerdMetric) Info() *inputs.MeasurementInfo {

@@ -14,10 +14,10 @@ import (
 	"strconv"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type slowlogMeasurement struct {
@@ -29,8 +29,8 @@ type slowlogMeasurement struct {
 	lastTimestampSeen map[string]int64
 }
 
-func (m *slowlogMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionLogging)
+func (m *slowlogMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionLogging)
 }
 
 //nolint:lll
@@ -156,13 +156,14 @@ func (i *Input) getSlowData() error {
 			m.lastTimestampSeen[addr] = maxTS
 			if i.hashMap[int32(id%int64(i.SlowlogMaxLen))] != hashRes {
 				m.tags["message"] = command + " cost time " + strconv.FormatInt(duration, 10) + "us"
-				data, err := io.NewPoint("redis_slowlog", m.tags, m.fields, &io.PointOption{Time: m.ts, Category: datakit.Logging, Strict: true})
+				data, err := point.NewPoint("redis_slowlog", m.tags, m.fields,
+					&point.PointOption{Time: m.ts, Category: datakit.Logging, Strict: true})
 				if err != nil {
 					l.Warnf("make metric failed: %s", err.Error)
 					return err
 				}
 
-				var pts []*io.Point
+				var pts []*point.Point
 				pts = append(pts, data)
 				err = io.Feed(m.name, datakit.Logging, pts, &io.Option{})
 				if err != nil {

@@ -13,11 +13,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 var (
-	once                                                                            = sync.Once{}
-	dkioFeed func(name, category string, pts []*dkio.Point, opt *dkio.Option) error = dkio.Feed
+	once                                                                             = sync.Once{}
+	dkioFeed func(name, category string, pts []*point.Point, opt *dkio.Option) error = dkio.Feed
 )
 
 type AfterGatherHandler interface {
@@ -116,8 +117,8 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod
 }
 
 // BuildPointsBatch builds points from whole trace.
-func BuildPointsBatch(dktraces DatakitTraces, strict bool) []*dkio.Point {
-	var pts []*dkio.Point
+func BuildPointsBatch(dktraces DatakitTraces, strict bool) []*point.Point {
+	var pts []*point.Point
 	for i := range dktraces {
 		for j := range dktraces[i] {
 			if pt, err := BuildPoint(dktraces[i][j], strict); err != nil {
@@ -132,7 +133,7 @@ func BuildPointsBatch(dktraces DatakitTraces, strict bool) []*dkio.Point {
 }
 
 // BuildPoint builds point from DatakitSpan.
-func BuildPoint(dkspan *DatakitSpan, strict bool) (*dkio.Point, error) {
+func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 	if dkspan.Service == "" {
 		dkspan.Service = UnknowServiceName(dkspan)
 	}
@@ -182,7 +183,7 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*dkio.Point, error) {
 		fields[k] = v
 	}
 
-	return dkio.NewPoint(dkspan.Source, tags, fields, &dkio.PointOption{
+	return point.NewPoint(dkspan.Source, tags, fields, &point.PointOption{
 		Time:     time.Unix(0, dkspan.Start),
 		Category: datakit.Tracing,
 		Strict:   strict,

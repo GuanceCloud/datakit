@@ -9,10 +9,11 @@ import (
 	"testing"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 func TestStatTracingInfo(t *testing.T) {
-	dkioFeed = func(name, category string, pts []*dkio.Point, opt *dkio.Option) error { return nil }
+	dkioFeed = func(name, category string, pts []*point.Point, opt *dkio.Option) error { return nil }
 
 	var traces DatakitTraces
 	for i := 0; i < 100; i++ {

@@ -8,7 +8,7 @@ package demo
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -19,8 +19,8 @@ type demoMetric struct {
 	ts     time.Time
 }
 
-func (m *demoMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+func (m *demoMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 func (m *demoMetric) Info() *inputs.MeasurementInfo {

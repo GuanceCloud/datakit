@@ -356,7 +356,7 @@ func TestConvConn2M(t *testing.T) {
 		},
 	}
 
-	ptOpt := &io.PointOption{Category: datakit.Network}
+	ptOpt := &point.PointOption{Category: datakit.Network}
 	for _, v := range cases {
 		connR.result[v.conn] = v.connStats
 		ptOpt.Time = v.ts

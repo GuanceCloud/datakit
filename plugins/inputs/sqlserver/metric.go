@@ -6,7 +6,7 @@
 package sqlserver
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -16,8 +16,8 @@ type Performance struct {
 	fields map[string]interface{}
 }
 
-func (m *Performance) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *Performance) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -42,8 +42,8 @@ type WaitStatsCategorized struct {
 	fields map[string]interface{}
 }
 
-func (m *WaitStatsCategorized) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *WaitStatsCategorized) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -72,8 +72,8 @@ type DatabaseIO struct {
 	fields map[string]interface{}
 }
 
-func (m *DatabaseIO) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *DatabaseIO) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -107,8 +107,8 @@ type ServerProperties struct {
 	fields map[string]interface{}
 }
 
-func (m *ServerProperties) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *ServerProperties) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -137,8 +137,8 @@ type Schedulers struct {
 	fields map[string]interface{}
 }
 
-func (m *Schedulers) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *Schedulers) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -176,8 +176,8 @@ type VolumeSpace struct {
 	fields map[string]interface{}
 }
 
-func (m *VolumeSpace) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *VolumeSpace) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll

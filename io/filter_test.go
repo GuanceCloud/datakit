@@ -13,6 +13,7 @@ import (
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type dwMock struct {
@@ -84,7 +85,7 @@ test1,service=test1 f1="1",f2=2i,f3=3 125`,
 				return
 			}
 
-			after, _ := f.doFilter(tc.category, WrapPoint(pts))
+			after, _ := f.doFilter(tc.category, point.WrapPoint(pts))
 			tu.Assert(t, len(after) == tc.expectPts, "expect %d pts, got %d", tc.expectPts, len(after))
 		})
 	}

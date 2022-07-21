@@ -8,6 +8,7 @@ package dialtesting
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -22,13 +23,13 @@ func (d *dialer) pointsFeed(urlStr string) error {
 			l.Warnf("ignore dialer tag %s: %s", k, v)
 		}
 	}
-	data, err := io.NewPoint(d.task.MetricName(), tags, fields, inputs.OptLogging)
+	data, err := point.NewPoint(d.task.MetricName(), tags, fields, inputs.OptLogging)
 	if err != nil {
 		l.Warnf("make metric failed: %s", err.Error)
 		return err
 	}
 
-	pts := []*io.Point{}
+	pts := []*point.Point{}
 	pts = append(pts, data)
 
 	err = Feed(inputName, datakit.Logging, pts, &io.Option{
@@ -40,6 +41,6 @@ func (d *dialer) pointsFeed(urlStr string) error {
 	return err
 }
 
-func Feed(name, category string, pts []*io.Point, opt *io.Option) error {
+func Feed(name, category string, pts []*point.Point, opt *io.Option) error {
 	return io.Feed(name, category, pts, opt)
 }

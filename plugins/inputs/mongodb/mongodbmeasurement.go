@@ -8,7 +8,7 @@ package mongodb
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -19,8 +19,8 @@ type mongodbMeasurement struct {
 	ts     time.Time
 }
 
-func (m *mongodbMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *mongodbMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -205,8 +205,8 @@ type mongodbDBMeasurement struct {
 	ts     time.Time
 }
 
-func (m *mongodbDBMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *mongodbDBMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -238,8 +238,8 @@ type mongodbColMeasurement struct {
 	ts     time.Time
 }
 
-func (m *mongodbColMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *mongodbColMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -270,8 +270,8 @@ type mongodbShardMeasurement struct {
 	ts     time.Time
 }
 
-func (m *mongodbShardMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *mongodbShardMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -297,8 +297,8 @@ type mongodbTopMeasurement struct {
 	ts     time.Time
 }
 
-func (m *mongodbTopMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *mongodbTopMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll

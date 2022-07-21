@@ -50,7 +50,7 @@ type LogData struct {
 	// or relies on the OAP server analyzer.
 	Timestamp int64 `protobuf:"varint,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// [Required] **Service**. Represents a set/group of workloads which provide
-	// the same behaviours for incoming requests.
+	// the same behaviors for incoming requests.
 	//
 	// The logic name represents the service. This would show as a separate node
 	// in the topology. The metrics analyzed from the spans, would be aggregated
@@ -163,7 +163,7 @@ func (x *LogData) GetTags() *LogTags {
 	return nil
 }
 
-// The content of the log data
+// The content of the log data.
 type LogDataBody struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

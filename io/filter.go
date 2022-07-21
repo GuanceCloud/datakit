@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 var (
@@ -156,13 +157,13 @@ func (f *filter) pull() {
 	}
 }
 
-func (f *filter) filterLogging(cond parser.WhereConditions, pts []*Point) []*Point {
+func (f *filter) filterLogging(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
 		fields, err := pt.Point.Fields()
@@ -180,13 +181,13 @@ func (f *filter) filterLogging(cond parser.WhereConditions, pts []*Point) []*Poi
 	return after
 }
 
-func (f *filter) filterMetric(cond parser.WhereConditions, pts []*Point) []*Point {
+func (f *filter) filterMetric(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter for metric")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
 
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
@@ -206,13 +207,13 @@ func (f *filter) filterMetric(cond parser.WhereConditions, pts []*Point) []*Poin
 	return after
 }
 
-func (f *filter) filterObject(cond parser.WhereConditions, pts []*Point) []*Point {
+func (f *filter) filterObject(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter for object")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
 
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
@@ -233,13 +234,13 @@ func (f *filter) filterObject(cond parser.WhereConditions, pts []*Point) []*Poin
 }
 
 // using measurement name as tag `service'.
-func (f *filter) filterTracing(cond parser.WhereConditions, pts []*Point) []*Point {
+func (f *filter) filterTracing(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter for tracing")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
 
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
@@ -256,13 +257,13 @@ func (f *filter) filterTracing(cond parser.WhereConditions, pts []*Point) []*Poi
 	return after
 }
 
-func (f *filter) filterNetwork(cond parser.WhereConditions, pts []*Point) []*Point {
+func (f *filter) filterNetwork(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter for network")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
 
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
@@ -281,13 +282,13 @@ func (f *filter) filterNetwork(cond parser.WhereConditions, pts []*Point) []*Poi
 	return after
 }
 
-func (f *filter) filterKeyEvent(cond parser.WhereConditions, pts []*Point) []*Point {
+func (f *filter) filterKeyEvent(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter for key event")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
 
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
@@ -306,13 +307,13 @@ func (f *filter) filterKeyEvent(cond parser.WhereConditions, pts []*Point) []*Po
 	return after
 }
 
-func (f *filter) filterCustomObject(cond parser.WhereConditions, pts []*Point) []*Point {
+func (f *filter) filterCustomObject(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter for custom object")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
 
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
@@ -331,13 +332,13 @@ func (f *filter) filterCustomObject(cond parser.WhereConditions, pts []*Point) [
 	return after
 }
 
-func (f *filter) filterRUM(cond parser.WhereConditions, pts []*Point) []*Point {
+func (f *filter) filterRUM(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter for rum")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
 
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
@@ -357,13 +358,13 @@ func (f *filter) filterRUM(cond parser.WhereConditions, pts []*Point) []*Point {
 }
 
 // using measurement name as tag `service'.
-func (f *filter) filterSecurity(cond parser.WhereConditions, pts []*Point) []*Point {
+func (f *filter) filterSecurity(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter for security")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
 
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
@@ -381,13 +382,13 @@ func (f *filter) filterSecurity(cond parser.WhereConditions, pts []*Point) []*Po
 }
 
 // using measurement name as tag `service'.
-func (f *filter) filterProfile(cond parser.WhereConditions, pts []*Point) []*Point {
+func (f *filter) filterProfile(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter for profile")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
 
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
@@ -408,7 +409,7 @@ func filtered(conds parser.WhereConditions, tags map[string]string, fields map[s
 	return conds.Eval(tags, fields)
 }
 
-func (f *filter) doFilter(category string, pts []*Point) ([]*Point, int) {
+func (f *filter) doFilter(category string, pts []*point.Point) ([]*point.Point, int) {
 	switch category {
 	case datakit.Logging:
 		f.RWMutex.RLock()
@@ -466,7 +467,7 @@ func (f *filter) doFilter(category string, pts []*Point) ([]*Point, int) {
 	}
 }
 
-func filterPts(category string, pts []*Point) []*Point {
+func filterPts(category string, pts []*point.Point) []*point.Point {
 	start := time.Now()
 	after, condCount := defaultFilter.doFilter(category, pts)
 	cost := time.Since(start)

@@ -9,7 +9,7 @@ package trace
 import (
 	"time"
 
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -20,8 +20,8 @@ type TraceMeasurement struct {
 	TS     time.Time
 }
 
-func (tm *TraceMeasurement) LineProto() (*dkio.Point, error) {
-	return dkio.NewPoint(tm.Name, tm.Tags, tm.Fields, &dkio.PointOption{
+func (tm *TraceMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(tm.Name, tm.Tags, tm.Fields, &point.PointOption{
 		Time:   tm.TS,
 		Strict: false,
 	})

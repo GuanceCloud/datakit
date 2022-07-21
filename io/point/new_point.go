@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package io
+package point
 
 import (
 	"fmt"
@@ -145,7 +145,6 @@ func doMakePoint(name string,
 		for _, warn := range warnings {
 			warningsStr += warn.Message + ";"
 		}
-		l.Warnf("make metric(%s) point successfully but with warnings: %s", name, warningsStr)
 	}
 
 	return &Point{Point: p}, nil

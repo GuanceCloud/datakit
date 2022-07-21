@@ -21,7 +21,7 @@ import (
 
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/tracer"
@@ -29,7 +29,6 @@ import (
 
 var (
 	sendFailStats = map[string]int32{}
-	startTime     = time.Now()
 	lock          sync.RWMutex
 )
 
@@ -153,8 +152,7 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 	case 2:
 		isSendOk = true
 		dc.fails = 0
-		log.Debugf("post %d to %s ok(gz: %v), cost %v, response: %s",
-			len(data), requrl, gz, time.Since(postbeg), string(body))
+		log.Debugf("post %d to %s ok(gz: %v), cost %v", len(data), requrl, gz, time.Since(postbeg))
 	case 4:
 		dc.fails = 0
 		log.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
@@ -288,49 +286,34 @@ func (dw *DataWayDefault) Send(category string, data []byte, gz bool) (statusCod
 	return
 }
 
-func (dw *DataWayDefault) Write(category string, pts []sinkcommon.ISinkPoint) error {
+func (dw *DataWayDefault) Write(category string, pts []*point.Point) (*sinkcommon.Failed, error) {
 	if len(pts) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	var statusCode int
-
-	bodies, err := dw.buildBody(pts, true)
+	bodies, err := buildBody(pts, true)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	rawBytes := 0
-	gzBytes := 0
+	var failed *sinkcommon.Failed
 
-	for _, body := range bodies {
-		if code, err := dw.Send(category, body.buf, body.gzon); err != nil {
-			log.Error(err)
-			sender.FeedMetric(&sender.SinkMetric{
-				Name:       "dataway",
-				StartTime:  startTime,
-				IsSuccess:  false,
-				StatusCode: code,
-			})
-			return err
-		} else {
-			rawBytes += int(body.rawBufBytes)
-			gzBytes += len(body.buf)
-			statusCode = code
+	log.Debugf("write %d pts (%d parts) to %s", len(pts), len(bodies), category)
+
+	for idx, body := range bodies {
+		log.Debugf("write %dth part(%d bytes, gz: %v, raw: %d) to %s",
+			idx, len(body.buf), body.gzon, body.rawBufBytes, category)
+		if _, err := dw.Send(category, body.buf, body.gzon); err != nil {
+			if failed == nil {
+				failed = &sinkcommon.Failed{}
+			}
+			failed.Ranges = append(failed.Ranges, body.idxRange)
+
+			continue
 		}
 	}
 
-	sender.FeedMetric(&sender.SinkMetric{
-		Name:       "dataway",
-		IsSuccess:  true,
-		StartTime:  startTime,
-		Pts:        uint64(len(pts)),
-		Bytes:      uint64(gzBytes),
-		RawBytes:   uint64(rawBytes),
-		StatusCode: statusCode,
-	})
-
-	return nil
+	return failed, nil
 }
 
 const (
@@ -342,17 +325,23 @@ type body struct {
 	buf         []byte
 	gzon        bool
 	rawBufBytes int64
+	idxRange    [2]int
 }
 
-func (dw *DataWayDefault) buildBody(pts []sinkcommon.ISinkPoint, isGzip bool) ([]*body, error) {
+func buildBody(pts []*point.Point, isGzip bool) ([]*body, error) {
 	lines := bytes.Buffer{}
+
 	var (
-		gz = func(lines []byte) (*body, error) {
+		getBody = func(lines []byte, idxBegin, idxEnd int) (*body, error) {
 			var (
-				body = &body{buf: lines, rawBufBytes: int64(len(lines))}
-				err  error
+				body = &body{
+					buf:         lines,
+					rawBufBytes: int64(len(lines)),
+					idxRange:    [2]int{idxBegin, idxEnd},
+				}
+				err error
 			)
-			log.Debugf("### io body size before GZ: %dM %dK", len(body.buf)/1000/1000, len(body.buf)/1000)
+
 			if len(lines) > minGZSize && isGzip {
 				if body.buf, err = datakit.GZip(body.buf); err != nil {
 					log.Errorf("gz: %s", err.Error())
@@ -364,16 +353,21 @@ func (dw *DataWayDefault) buildBody(pts []sinkcommon.ISinkPoint, isGzip bool) ([
 
 			return body, nil
 		}
+
 		// lines  bytes.Buffer
 		bodies []*body
 	)
+
 	lines.Reset()
-	for _, pt := range pts {
+
+	bodyIdx := 0
+	for idx, pt := range pts {
 		ptstr := pt.String()
 		if lines.Len()+len(ptstr)+1 >= maxKodoPack {
-			if body, err := gz(lines.Bytes()); err != nil {
+			if body, err := getBody(lines.Bytes(), bodyIdx, idx); err != nil {
 				return nil, err
 			} else {
+				bodyIdx = idx
 				bodies = append(bodies, body)
 			}
 			lines.Reset()
@@ -381,7 +375,8 @@ func (dw *DataWayDefault) buildBody(pts []sinkcommon.ISinkPoint, isGzip bool) ([
 		lines.WriteString(ptstr)
 		lines.WriteString("\n")
 	}
-	if body, err := gz(lines.Bytes()); err != nil {
+
+	if body, err := getBody(lines.Bytes(), bodyIdx, len(pts)); err != nil {
 		return nil, err
 	} else {
 		return append(bodies, body), nil

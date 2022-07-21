@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -96,8 +96,8 @@ type containerObject struct {
 	fields fieldsType
 }
 
-func (c *containerObject) LineProto() (*io.Point, error) {
-	return io.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionObject)
+func (c *containerObject) LineProto() (*point.Point, error) {
+	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionObject)
 }
 
 //nolint:lll

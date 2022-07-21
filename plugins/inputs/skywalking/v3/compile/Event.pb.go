@@ -213,7 +213,7 @@ func (x *Event) GetEndTime() int64 {
 // serviceInstance field and endpoint field are optional; If the event occurs on
 // a service instance, the `service` and `serviceInstance` are mandatory and
 // endpoint is optional; If the event occurs on an endpoint, `service` and
-// `endpoint` are mandatory, `serviceInstance` is optional;
+// `endpoint` are mandatory, `serviceInstance` is optional;.
 type Source struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

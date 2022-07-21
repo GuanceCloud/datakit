@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -399,18 +400,18 @@ func (t *Single) sendToForwardCallback(text string) {
 }
 
 func (t *Single) feed(pending []string) {
-	res := []*iod.Point{}
+	res := []*point.Point{}
 	// -1ns
 	timeNow := time.Now().Add(-time.Duration(len(pending)))
 	for i, cnt := range pending {
 		t.readLines++
-		pt, err := iod.NewPoint(t.opt.Source, t.tags,
+		pt, err := point.NewPoint(t.opt.Source, t.tags,
 			map[string]interface{}{
 				"log_read_lines":      t.readLines,
 				pipeline.FieldMessage: cnt,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,
 			},
-			&iod.PointOption{Time: timeNow.Add(time.Duration(i)), Category: datakit.Logging})
+			&point.PointOption{Time: timeNow.Add(time.Duration(i)), Category: datakit.Logging})
 		if err != nil {
 			l.Error(err)
 			continue

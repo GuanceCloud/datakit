@@ -18,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -144,7 +145,7 @@ func (n *Input) Run() {
 	for {
 		if err := n.initDB(); err != nil {
 			l.Errorf("initDB: %s", err.Error())
-			io.ReportLastError(inputName, err.Error())
+			io.FeedLastError(inputName, err.Error())
 		} else {
 			break
 		}
@@ -290,7 +291,7 @@ func (n *Input) handRow(query string, ts time.Time) {
 			continue
 		}
 
-		point, err := io.NewPoint(measurement, tags, fields, inputs.OptElectionMetric)
+		point, err := point.NewPoint(measurement, tags, fields, inputs.OptElectionMetric)
 		if err != nil {
 			l.Errorf("make point err:%s", err.Error())
 			n.lastErr = err

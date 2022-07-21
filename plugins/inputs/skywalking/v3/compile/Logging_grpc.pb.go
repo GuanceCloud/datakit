@@ -69,7 +69,7 @@ func (x *logReportServiceCollectClient) CloseAndRecv() (*Commands, error) {
 
 // LogReportServiceServer is the server API for LogReportService service.
 // All implementations must embed UnimplementedLogReportServiceServer
-// for forward compatibility
+// for forward compatibility.
 type LogReportServiceServer interface {
 	// Recommend to report log data in a stream mode.
 	// The service/instance/endpoint of the log could share the previous value if

@@ -949,6 +949,12 @@ github.com/tidwall/match
 # github.com/tidwall/pretty v1.2.0
 ## explicit; go 1.16
 github.com/tidwall/pretty
+# github.com/tidwall/tinylru v1.1.0
+## explicit; go 1.14
+github.com/tidwall/tinylru
+# github.com/tidwall/wal v1.1.7
+## explicit; go 1.13
+github.com/tidwall/wal
 # github.com/tinylib/msgp v1.1.6
 ## explicit; go 1.14
 github.com/tinylib/msgp/msgp

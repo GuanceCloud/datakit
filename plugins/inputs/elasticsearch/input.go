@@ -539,7 +539,7 @@ func (i *Input) Run() {
 	client, err := i.createHTTPClient()
 	if err != nil {
 		l.Error(err)
-		io.ReportLastError(inputName, err.Error())
+		io.FeedLastError(inputName, err.Error())
 		return
 	}
 	i.client = client

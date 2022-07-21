@@ -15,7 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -227,8 +227,8 @@ type loggingMeasurement struct {
 	fields map[string]interface{}
 }
 
-func (ipt *loggingMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(ipt.name, ipt.tags, ipt.fields, inputs.OptLogging)
+func (ipt *loggingMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(ipt.name, ipt.tags, ipt.fields, inputs.OptLogging)
 }
 
 //nolint:lll

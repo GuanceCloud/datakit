@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 	"go.opentelemetry.io/otel/exporters/jaeger"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
@@ -122,13 +123,13 @@ func (s *sinkJaeger) LoadConfig(mConf map[string]interface{}) error {
 	return nil
 }
 
-func (s *sinkJaeger) Write(pts []sinkcommon.ISinkPoint) error {
+func (s *sinkJaeger) Write(pts []*point.Point) (*sinkcommon.Failed, error) {
 	spans := pointToTrace(pts)
 	err := s.exp.ExportSpans(context.Background(), spans)
 	if err != nil {
 		l.Errorf("export span to remote error :%v", err)
 	}
-	return err
+	return nil, err
 }
 
 func (s *sinkJaeger) GetInfo() *sinkcommon.SinkInfo {

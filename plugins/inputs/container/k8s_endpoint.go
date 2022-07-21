@@ -9,7 +9,7 @@ import (
 	"context"
 	"fmt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/core/v1"
 )
@@ -113,8 +113,8 @@ type endpointMetric struct {
 	fields fieldsType
 }
 
-func (e *endpointMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_endpoint", e.tags, e.fields, inputs.OptElectionMetric)
+func (e *endpointMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_endpoint", e.tags, e.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll

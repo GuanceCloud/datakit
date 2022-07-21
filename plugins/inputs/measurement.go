@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 var (
@@ -71,7 +72,7 @@ const (
 )
 
 type Measurement interface {
-	LineProto() (*io.Point, error)
+	LineProto() (*point.Point, error)
 	Info() *MeasurementInfo
 }
 
@@ -174,8 +175,8 @@ func FeedMeasurement(name, category string, measurements []Measurement, opt *io.
 	return io.Feed(name, category, pts, opt)
 }
 
-func GetPointsFromMeasurement(measurements []Measurement) ([]*io.Point, error) {
-	var pts []*io.Point
+func GetPointsFromMeasurement(measurements []Measurement) ([]*point.Point, error) {
+	var pts []*point.Point
 	for _, m := range measurements {
 		if pt, err := m.LineProto(); err != nil {
 			l.Warnf("make point failed: %v, ignore", err)

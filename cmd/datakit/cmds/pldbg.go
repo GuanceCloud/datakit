@@ -20,7 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/convertutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	plremote "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
@@ -82,19 +82,19 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 
 	start := time.Now()
 
-	opt := &io.PointOption{
+	opt := &point.PointOption{
 		Category: category,
 		Time:     time.Now(),
 	}
 
 	measurementName := "default"
 
-	var pt *io.Point
+	var pt *point.Point
 
 	switch category {
 	case datakit.Logging:
 		fieldsSrc := map[string]interface{}{pipeline.FieldMessage: txt}
-		newPt, err := io.NewPoint(measurementName, nil, fieldsSrc, opt)
+		newPt, err := point.NewPoint(measurementName, nil, fieldsSrc, opt)
 		if err != nil {
 			return err
 		}
@@ -104,13 +104,13 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 		if err != nil {
 			return err
 		}
-		ptsW := io.WrapPoint(pts)
+		ptsW := point.WrapPoint(pts)
 		pt = ptsW[0]
 	}
 
 	res, dropFlag, err := (&pipeline.Pipeline{
 		Script: plScript,
-	}).Run(pt, nil, *opt)
+	}).Run(pt, nil, opt)
 	if err != nil {
 		return fmt.Errorf("run pipeline failed: %w", err)
 	}

@@ -36,8 +36,8 @@ var (
 	enabledInputCols = strings.Split(`Input,Instaces,Crashed`, ",")
 	goroutineCols    = strings.Split(`Name,Done,Running,Total Cost,Min Cost,Max Cost,Failed`, ",")
 	httpAPIStatCols  = strings.Split(`API,Total,Limited(%),Max Latency,Avg Latency,2xx,3xx,4xx,5xx`, ",")
-	senderStatCols   = strings.Split(`Sink,Uptime,Count,Failed,Pts,Raw Bytes,Bytes,2xx,4xx,5xx,Timeout`, ",")
-	filterRuleCols   = strings.Split("Category,Total,Filtered(%),Cost,Cost/Pts,Rules", ",")
+	ioStatCols       = strings.Split(`Cat,ChanUsage,Send/Failed`, ",")
+	filterRuleCols   = strings.Split("Cat,Total,Filtered(%),Cost,Cost/Pts,Rules", ",")
 )
 
 func number(i interface{}) string {
@@ -212,10 +212,6 @@ func (m *monitorAPP) renderBasicInfoTable(ds *dkhttp.DatakitStats) {
 	row++
 	table.SetCell(row, 0, tview.NewTableCell("OS/Arch").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(ds.OSArch).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
-
-	row++
-	table.SetCell(row, 0, tview.NewTableCell("IO").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
-	table.SetCell(row, 1, tview.NewTableCell(ds.IOChanStat).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
 
 	row++
 	table.SetCell(row, 0, tview.NewTableCell("Elected").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
@@ -670,18 +666,18 @@ func (m *monitorAPP) renderPLStatTable(ds *dkhttp.DatakitStats, colArr []string)
 	}
 }
 
-func (m *monitorAPP) renderSenderTable(ds *dkhttp.DatakitStats, colArr []string) {
-	table := m.senderStatTable
+func (m *monitorAPP) renderIOTable(ds *dkhttp.DatakitStats, colArr []string) {
+	table := m.ioStatTable
 
 	if m.anyError != nil {
 		return
 	}
 
-	if ds.SenderStat == nil {
-		m.senderStatTable.SetTitle("Sender Info(no data collected)")
+	if ds.IOStats == nil {
+		m.ioStatTable.SetTitle("IO Info(no data collected)")
 		return
 	} else {
-		m.senderStatTable.SetTitle("Sender Info")
+		m.ioStatTable.SetTitle(fmt.Sprintf("IO Info(dropped: %d)", ds.IOStats.FeedDropPts))
 	}
 
 	// set table header
@@ -691,49 +687,68 @@ func (m *monitorAPP) renderSenderTable(ds *dkhttp.DatakitStats, colArr []string)
 			SetTextColor(tcell.ColorGreen).SetAlign(tview.AlignRight))
 	}
 
-	sinkNames := []string{}
-	for category := range ds.SenderStat {
-		sinkNames = append(sinkNames, category)
+	names := []string{}
+	for x := range ds.IOStats.ChanUsage {
+		names = append(names, x)
 	}
-	sort.Strings(sinkNames)
+	sort.Strings(names)
 
 	row := 1
 
-	for _, name := range sinkNames {
-		stat := ds.SenderStat[name]
-		table.SetCell(row, 0, tview.NewTableCell(func() string {
-			return name
-		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
-		table.SetCell(row, 1, tview.NewTableCell(func() string {
-			return stat.Uptime.String()
-		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
-		table.SetCell(row, 2, tview.NewTableCell(func() string {
-			return humanize.SI(float64(stat.Count), "")
-		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
-		table.SetCell(row, 3, tview.NewTableCell(func() string {
-			return humanize.SI(float64(stat.Failed), "")
-		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
-		table.SetCell(row, 4, tview.NewTableCell(func() string {
-			return humanize.SI(float64(stat.Pts), "")
-		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
-		table.SetCell(row, 5, tview.NewTableCell(func() string {
-			return humanize.SI(float64(stat.RawBytes), "")
-		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
-		table.SetCell(row, 6, tview.NewTableCell(func() string {
-			return humanize.SI(float64(stat.Bytes), "")
-		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
-		table.SetCell(row, 7, tview.NewTableCell(func() string {
-			return humanize.SI(float64(stat.Status2XX), "")
-		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
-		table.SetCell(row, 8, tview.NewTableCell(func() string {
-			return humanize.SI(float64(stat.Status4XX), "")
-		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
-		table.SetCell(row, 9, tview.NewTableCell(func() string {
-			return humanize.SI(float64(stat.Status5XX), "")
-		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
-		table.SetCell(row, 10, tview.NewTableCell(func() string {
-			return humanize.SI(float64(stat.TimeoutCount), "")
-		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
+	for _, name := range names {
+		col := 0
+
+		table.SetCell(row, col, tview.NewTableCell(
+			func() string {
+				if v, ok := datakit.CategoryMap[name]; ok {
+					return v
+				} else {
+					return "-"
+				}
+			}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		col++
+
+		table.SetCell(row, col, tview.NewTableCell(number(ds.IOStats.ChanUsage[name][0])+"/"+number(ds.IOStats.ChanUsage[name][1])).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		col++
+
+		var send, failed uint64
+
+		switch name {
+		case datakit.Metric:
+			send = ds.IOStats.MSendPts
+			failed = ds.IOStats.MFailPts
+		case datakit.Network:
+			send = ds.IOStats.NSendPts
+			failed = ds.IOStats.NFailPts
+		case datakit.KeyEvent:
+			send = ds.IOStats.ESendPts
+			failed = ds.IOStats.EFailPts
+		case datakit.Object:
+			send = ds.IOStats.OSendPts
+			failed = ds.IOStats.OFailPts
+		case datakit.CustomObject:
+			send = ds.IOStats.COSendPts
+			failed = ds.IOStats.COFailPts
+		case datakit.Logging:
+			send = ds.IOStats.LSendPts
+			failed = ds.IOStats.LFailPts
+		case datakit.Tracing:
+			send = ds.IOStats.TSendPts
+			failed = ds.IOStats.TFailPts
+		case datakit.RUM:
+			send = ds.IOStats.RSendPts
+			failed = ds.IOStats.RFailPts
+		case datakit.Security:
+			send = ds.IOStats.SSendPts
+			failed = ds.IOStats.SFailPts
+		case datakit.Profile:
+			send = ds.IOStats.PSendPts
+			failed = ds.IOStats.PFailPts
+		}
+
+		table.SetCell(row, col, tview.NewTableCell(number(send)+"/"+number(failed)).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 
 		row++
 	}
@@ -750,7 +765,7 @@ type monitorAPP struct {
 	enabledInputTable   *tview.Table
 	goroutineStatTable  *tview.Table
 	httpServerStatTable *tview.Table
-	senderStatTable     *tview.Table
+	ioStatTable         *tview.Table
 
 	filterStatsTable      *tview.Table
 	filterRulesStatsTable *tview.Table
@@ -811,7 +826,7 @@ func (m *monitorAPP) setupFlex() {
 										AddItem(m.filterRulesStatsTable, 0, 8, false), // filter rules stats
 				0, 10, false).
 			AddItem(m.plStatTable, 0, 15, false).
-			AddItem(m.senderStatTable, 0, 14, false).
+			AddItem(m.ioStatTable, 0, 14, false).
 			AddItem(m.anyErrorPrompt, 0, 1, false).
 			AddItem(m.exitPrompt, 0, 1, false)
 	} else {
@@ -829,39 +844,41 @@ func (m *monitorAPP) setupFlex() {
 
 func (m *monitorAPP) setup() {
 	// basic info
-	m.basicInfoTable = tview.NewTable().SetSelectable(true, false).SetBorders(false)
+	m.basicInfoTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
 	m.basicInfoTable.SetBorder(true).SetTitle("Basic Info").SetTitleAlign(tview.AlignLeft)
 
-	m.golangRuntime = tview.NewTable().SetSelectable(true, false).SetBorders(false)
+	m.golangRuntime = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
 	m.golangRuntime.SetBorder(true).SetTitle("Runtime Info").SetTitleAlign(tview.AlignLeft)
 
 	// inputs running stats
-	m.inputsStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
+	m.inputsStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
 	m.inputsStatTable.SetBorder(true).SetTitle("Inputs Info").SetTitleAlign(tview.AlignLeft)
 
 	// pipeline running stats
-	m.plStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
+	m.plStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
 	m.plStatTable.SetBorder(true).SetTitle("Pipeline Info").SetTitleAlign(tview.AlignLeft)
 
 	// enabled inputs
-	m.enabledInputTable = tview.NewTable().SetSelectable(true, false).SetBorders(false)
+	m.enabledInputTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
 	m.enabledInputTable.SetBorder(true).SetTitle("Enabled Inputs").SetTitleAlign(tview.AlignLeft)
 
 	// goroutine stats
-	m.goroutineStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
+	m.goroutineStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
 	m.goroutineStatTable.SetBorder(true).SetTitle("Goroutine Groups").SetTitleAlign(tview.AlignLeft)
 
 	// 9592 http stats
-	m.httpServerStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
+	m.httpServerStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
 	m.httpServerStatTable.SetBorder(true).SetTitle("HTTP APIs").SetTitleAlign(tview.AlignLeft)
 
 	// sender stats
-	m.senderStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.senderStatTable.SetBorder(true).SetTitle("Sender Info").SetTitleAlign(tview.AlignLeft)
+	m.ioStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
+	m.ioStatTable.SetBorder(true).SetTitle("Sender Info").SetTitleAlign(tview.AlignLeft)
+
 	// filter stats
-	m.filterStatsTable = tview.NewTable().SetSelectable(true, false).SetBorders(false)
+	m.filterStatsTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
 	m.filterStatsTable.SetBorder(true).SetTitle("Filter").SetTitleAlign(tview.AlignLeft)
-	m.filterRulesStatsTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
+
+	m.filterRulesStatsTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
 	m.filterRulesStatsTable.SetBorder(true).SetTitle("Filter Rules").SetTitleAlign(tview.AlignLeft)
 
 	// bottom prompt
@@ -924,7 +941,7 @@ func (m *monitorAPP) render() {
 			m.httpServerStatTable.Clear()
 		}
 
-		m.senderStatTable.Clear()
+		m.ioStatTable.Clear()
 		m.filterStatsTable.Clear()
 		m.filterRulesStatsTable.Clear()
 	}
@@ -941,7 +958,7 @@ func (m *monitorAPP) render() {
 			m.renderHTTPStatTable(m.ds, httpAPIStatCols)
 		}
 
-		m.renderSenderTable(m.ds, senderStatCols)
+		m.renderIOTable(m.ds, ioStatCols)
 		if m.ds.FilterStats != nil {
 			m.renderFilterStatsTable(m.ds)
 			m.renderFilterRulesStatsTable(m.ds, filterRuleCols)

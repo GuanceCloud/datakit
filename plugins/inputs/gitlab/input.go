@@ -17,6 +17,7 @@ import (
 	dhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -85,7 +86,7 @@ type Input struct {
 	reqMemo requestMemo
 
 	// For testing purpose.
-	feed func(name, category string, pts []*iod.Point, opt *iod.Option) error
+	feed func(name, category string, pts []*point.Point, opt *iod.Option) error
 
 	feedLastError func(inputName string, err string)
 }
@@ -212,7 +213,7 @@ func (ipt *Input) gather() {
 	}
 }
 
-func (ipt *Input) gatherMetrics() ([]*iod.Point, error) {
+func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
 	resp, err := ipt.httpClient.Get(ipt.URL)
 	if err != nil {
 		return nil, err
@@ -224,7 +225,7 @@ func (ipt *Input) gatherMetrics() ([]*iod.Point, error) {
 		return nil, err
 	}
 
-	var points []*iod.Point
+	var points []*point.Point
 
 	for _, m := range metrics {
 		measurement := inputName
@@ -241,7 +242,7 @@ func (ipt *Input) gatherMetrics() ([]*iod.Point, error) {
 			m.tags[k] = v
 		}
 
-		point, err := iod.NewPoint(measurement, m.tags, m.fields, inputs.OptMetric)
+		point, err := point.NewPoint(measurement, m.tags, m.fields, inputs.OptMetric)
 		if err != nil {
 			l.Warn(err)
 			continue

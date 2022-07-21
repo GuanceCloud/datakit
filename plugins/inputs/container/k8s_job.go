@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/batch/v1"
 )
@@ -180,8 +180,8 @@ type jobMetric struct {
 	fields fieldsType
 }
 
-func (j *jobMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_job", j.tags, j.fields, inputs.OptElectionMetric)
+func (j *jobMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_job", j.tags, j.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -210,8 +210,8 @@ type jobObject struct {
 	fields fieldsType
 }
 
-func (j *jobObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_jobs", j.tags, j.fields, inputs.OptElectionObject)
+func (j *jobObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_jobs", j.tags, j.fields, inputs.OptElectionObject)
 }
 
 //nolint:lll

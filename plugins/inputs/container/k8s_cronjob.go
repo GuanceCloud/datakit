@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1beta1 "k8s.io/api/batch/v1beta1"
 )
@@ -148,8 +148,8 @@ type cronjobMetric struct {
 	fields fieldsType
 }
 
-func (c *cronjobMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kuber_cronjob", c.tags, c.fields, inputs.OptElectionMetric)
+func (c *cronjobMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kuber_cronjob", c.tags, c.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -175,8 +175,8 @@ type cronjobObject struct {
 	fields fieldsType
 }
 
-func (c *cronjobObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_cron_jobs", c.tags, c.fields, inputs.OptElectionObject)
+func (c *cronjobObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_cron_jobs", c.tags, c.fields, inputs.OptElectionObject)
 }
 
 //nolint:lll

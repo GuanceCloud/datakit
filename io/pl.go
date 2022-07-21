@@ -11,13 +11,14 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 )
 
 var plLogger = logger.DefaultSLogger("pipeline")
 
-func runPl(category string, pts []*Point, opt *Option) (ret []*Point, retErr error) {
+func runPl(category string, pts []*point.Point, opt *Option) (ret []*point.Point, retErr error) {
 	defer func() {
 		if err := recover(); err != nil {
 			retErr = fmt.Errorf("run pl: %s", err)
@@ -30,7 +31,7 @@ func runPl(category string, pts []*Point, opt *Option) (ret []*Point, retErr err
 		scriptMap = opt.PlScript
 		plOpt = opt.PlOption
 	}
-	ret = []*Point{}
+	ret = []*point.Point{}
 	for _, pt := range pts {
 		tags := pt.Tags()
 		fields, err := pt.Fields()
@@ -62,7 +63,7 @@ func runPl(category string, pts []*Point, opt *Option) (ret []*Point, retErr err
 			continue
 		}
 
-		ptOpt := &PointOption{
+		ptOpt := &point.PointOption{
 			DisableGlobalTags: true,
 			Category:          category,
 			Time:              out.Time,
@@ -71,7 +72,7 @@ func runPl(category string, pts []*Point, opt *Option) (ret []*Point, retErr err
 		if plOpt != nil {
 			ptOpt.MaxFieldValueLen = plOpt.MaxFieldValLen
 		}
-		if p, err := NewPoint(out.Measurement, out.Tags, out.Fields, ptOpt); err != nil {
+		if p, err := point.NewPoint(out.Measurement, out.Tags, out.Fields, ptOpt); err != nil {
 			plLogger.Error(err)
 			stats.WriteScriptStats(script.Category(), script.NS(), script.Name(), 0, 0, 1, 0, err)
 		} else {

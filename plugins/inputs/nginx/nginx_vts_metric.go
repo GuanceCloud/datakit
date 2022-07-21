@@ -8,7 +8,7 @@ package nginx
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -18,8 +18,8 @@ type ServerZoneMeasurement struct {
 	fields map[string]interface{}
 }
 
-func (m *ServerZoneMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *ServerZoneMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -53,8 +53,8 @@ type UpstreamZoneMeasurement struct {
 	ts     time.Time
 }
 
-func (m *UpstreamZoneMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *UpstreamZoneMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -89,8 +89,8 @@ type CacheZoneMeasurement struct {
 	ts     time.Time
 }
 
-func (m *CacheZoneMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
+func (m *CacheZoneMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
