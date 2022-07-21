@@ -7,6 +7,8 @@
 package container
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -48,8 +50,9 @@ type Input struct {
 	K8sBearerTokenString string `toml:"bearer_token_string"`
 	DisableK8sEvents     bool   `toml:"disable_k8s_events"`
 
-	LoggingExtraSourceMap map[string]string `toml:"logging_extra_source_map"`
-	Tags                  map[string]string `toml:"tags"`
+	LoggingExtraSourceMap     map[string]string `toml:"logging_extra_source_map"`
+	LoggingSourceMultilineMap map[string]string `toml:"logging_source_multiline_map"`
+	Tags                      map[string]string `toml:"tags"`
 
 	TLSCA              string `toml:"tls_ca"`
 	TLSCert            string `toml:"tls_cert"`
@@ -75,12 +78,13 @@ var (
 
 func newInput() *Input {
 	return &Input{
-		DockerEndpoint:        dockerEndpoint,
-		ContainerdAddress:     containerdAddress,
-		Tags:                  make(map[string]string),
-		LoggingExtraSourceMap: make(map[string]string),
-		chPause:               make(chan bool, maxPauseCh),
-		semStop:               cliutils.NewSem(),
+		DockerEndpoint:            dockerEndpoint,
+		ContainerdAddress:         containerdAddress,
+		Tags:                      make(map[string]string),
+		LoggingExtraSourceMap:     make(map[string]string),
+		LoggingSourceMultilineMap: make(map[string]string),
+		chPause:                   make(chan bool, maxPauseCh),
+		semStop:                   cliutils.NewSem(),
 	}
 }
 
@@ -121,6 +125,17 @@ func (i *Input) Run() {
 	if datakit.Docker && !i.DisableK8sEvents {
 		go i.watchingK8sEventLog()
 	}
+
+	g := datakit.G("kubernetes-autodiscovery")
+	g.Go(func(ctx context.Context) error {
+		if i.k8sInput == nil {
+			l.Errorf("unrechable, not found k8s-client")
+			return nil
+		}
+		d := newDiscovery(i.k8sInput.client, i.Tags)
+		d.start()
+		return nil
+	})
 
 	i.collectObject()
 
@@ -172,9 +187,6 @@ func (i *Input) collectObject() {
 		return
 	}
 	if i.pause {
-		if len(discoveryInputsMap) != 0 {
-			terminatingDiscoveryInput()
-		}
 		l.Debug("not leader, skipped")
 		return
 	}
@@ -374,6 +386,8 @@ func (i *Input) setup() bool {
 			containerIncludeLog:    i.ContainerIncludeLog,
 			containerExcludeLog:    i.ContainerExcludeLog,
 			extraTags:              i.Tags,
+			extraSourceMap:         i.LoggingExtraSourceMap,
+			sourceMultilineMap:     i.LoggingSourceMultilineMap,
 		}); err != nil {
 			l.Warnf("create docker input err: %s", err)
 		} else {
@@ -384,6 +398,8 @@ func (i *Input) setup() bool {
 			if c, err := newContainerdInput(&containerdInputConfig{
 				endpoint:            i.ContainerdAddress,
 				extraTags:           i.Tags,
+				extraSourceMap:      i.LoggingExtraSourceMap,
+				sourceMultilineMap:  i.LoggingSourceMultilineMap,
 				containerIncludeLog: i.ContainerIncludeLog,
 				containerExcludeLog: i.ContainerExcludeLog,
 			}); err != nil {
@@ -463,6 +479,7 @@ func (i *Input) Resume() error {
 //   ENV_INPUT_CONTAINER_BEARER_TOKEN : string
 //   ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING : string
 //   ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP : string
+//   ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON : string (JSON map)
 func (i *Input) ReadEnv(envs map[string]string) {
 	if endpoint, ok := envs["ENV_INPUT_CONTAINER_DOCKER_ENDPOINT"]; ok {
 		i.DockerEndpoint = endpoint
@@ -474,6 +491,12 @@ func (i *Input) ReadEnv(envs map[string]string) {
 
 	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP"]; ok {
 		i.LoggingExtraSourceMap = config.ParseGlobalTags(v)
+	}
+
+	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON"]; ok {
+		if err := json.Unmarshal([]byte(v), &i.LoggingSourceMultilineMap); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON to map: %s, ignore", err)
+		}
 	}
 
 	if remove, ok := envs["ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES"]; ok {

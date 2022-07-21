@@ -20,7 +20,7 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/typeurl"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	cri "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -47,7 +47,9 @@ type containerdInputConfig struct {
 	containerIncludeLog []string
 	containerExcludeLog []string
 
-	extraTags map[string]string
+	extraTags          map[string]string
+	extraSourceMap     map[string]string
+	sourceMultilineMap map[string]string
 }
 
 func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
@@ -287,6 +289,10 @@ func (c *containerdInput) ignoreImageForLogging(image string) (ignore bool) {
 }
 
 func (c *containerdInput) shouldPullContainerLog(container *cri.ContainerStatus) bool {
+	if container.GetState() != cri.ContainerState_CONTAINER_RUNNING {
+		return false
+	}
+
 	if c.inLogList(container.GetLogPath()) {
 		return false
 	}
@@ -363,8 +369,8 @@ type containerdObject struct {
 	fields fieldsType
 }
 
-func (c *containerdObject) LineProto() (*io.Point, error) {
-	return io.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionObject)
+func (c *containerdObject) LineProto() (*point.Point, error) {
+	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptObject)
 }
 
 func (c *containerdObject) Info() *inputs.MeasurementInfo {
@@ -405,8 +411,8 @@ type containerdMetric struct {
 	fields fieldsType
 }
 
-func (c *containerdMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptElectionMetric)
+func (c *containerdMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint(dockerContainerName, c.tags, c.fields, inputs.OptMetric)
 }
 
 func (c *containerdMetric) Info() *inputs.MeasurementInfo {

@@ -97,7 +97,7 @@ func Test_mkDKTrace(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want []DKtrace.DatakitTrace
+		want DKtrace.DatakitTraces
 	}{
 		{name: "case1", args: args{rss: rss}, want: want},
 	}

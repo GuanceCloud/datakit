@@ -90,7 +90,7 @@ func Replace(ng *parser.EngineData, node parser.Node) interface{} {
 
 	newCont := reg.ReplaceAllString(cont, dz)
 	if err := ng.SetContent(key, newCont); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 

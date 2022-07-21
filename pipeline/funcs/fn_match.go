@@ -47,7 +47,7 @@ func Match(ng *parser.EngineData, node parser.Node) interface{} {
 	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		words = v
 	default:
-		l.Debug("expect AttrExpr or Identifier or StringLiteral, got %s",
+		l.Debugf("expect AttrExpr or Identifier or StringLiteral, got %s",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 		return false
 	}
@@ -56,7 +56,7 @@ func Match(ng *parser.EngineData, node parser.Node) interface{} {
 	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		pattern = v
 	default:
-		l.Debug("expect AttrExpr or Identifier, got %s",
+		l.Debugf("expect AttrExpr or Identifier, got %s",
 			reflect.TypeOf(funcExpr.Param[1]).String())
 		return false
 	}
@@ -73,7 +73,7 @@ func Match(ng *parser.EngineData, node parser.Node) interface{} {
 
 	res, err = isMatch(cont, pattern.String())
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return false
 	}
 	if res {
@@ -86,7 +86,6 @@ func Match(ng *parser.EngineData, node parser.Node) interface{} {
 func isMatch(words string, pattern string) (bool, error) {
 	isMatch, err := regexp.MatchString(pattern, "'"+words+"'")
 	if err != nil {
-		l.Warn(err)
 		return false, err
 	}
 	return isMatch, err

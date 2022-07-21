@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -112,14 +113,14 @@ func (ag *Instance) run(ctx context.Context) error {
 				tags[k] = v
 			}
 
-			pts := []*io.Point{}
+			pts := []*point.Point{}
 			for _, fields := range fieldsArr {
 				if ag.isTest() {
 					// pass
 				} else {
-					pt, err := io.NewPoint(inputName, tags, fields, inputs.OptMetric)
+					pt, err := point.NewPoint(inputName, tags, fields, inputs.OptMetric)
 					if err != nil {
-						l.Warnf("io.NewPoint: %s, ignored", err)
+						l.Warnf("point.NewPoint: %s, ignored", err)
 						continue
 					}
 					pts = append(pts, pt)
@@ -127,7 +128,7 @@ func (ag *Instance) run(ctx context.Context) error {
 			}
 
 			if err := io.Feed(inputName, datakit.Metric, pts, nil); err != nil {
-				l.Warnf("io.NewPoint: %s, ignored", err)
+				l.Warnf("point.NewPoint: %s, ignored", err)
 			}
 
 			query.lastTime = time.Now()

@@ -150,6 +150,7 @@ $ systemctl status datakit
     - cgroup 限制只在[宿主机安装](datakit-install.md)的时候会默认开启
     - cgourp 只支持 CPU 使用率和内存使用量（mem+swap）控制，且只支持 Linux 操作系统。
 
+<!--
 ### 启用磁盘缓存 {#using-cache}
 
 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ·
@@ -174,6 +175,7 @@ $ systemctl status datakit
 ???+ attention
 
     目前不支持时序数据的缓存，除此之外的数据，都支持发送失败的磁盘缓存。另外，虽然号称限制磁盘大小，但在极端情况下（比如发送一直失败），仍然有可能会超过标定的限制。
+-->
 
 ### 使用 Git 管理 DataKit 配置 {#using-gitrepo}
 

@@ -14,7 +14,7 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 var DataKitAPIServer = "0.0.0.0:9529"
@@ -33,13 +33,13 @@ func SetLogger(nl *logger.Logger) {
 var _sender *Sender
 
 func Init(logger *logger.Logger) {
-	_sender = NewSender(logger)
 	l = logger
+	_sender = NewSender(logger)
 }
 
 type task struct {
 	url  string
-	data []*io.Point // lineproto
+	data []*point.Point // lineproto
 }
 
 type Sender struct {
@@ -51,6 +51,8 @@ func NewSender(l *logger.Logger) *Sender {
 	retryCli := retryablehttp.NewClient()
 	retryCli.RetryWaitMin = time.Second
 	retryCli.RetryWaitMax = time.Second * 5
+	retryCli.Logger = &retrycliLogger{}
+	retryCli.RequestLogHook = retryCallback
 	sender := &Sender{
 		ch:      make(chan *task, 16),
 		httpCli: retryCli,
@@ -95,7 +97,7 @@ func (sender *Sender) request(data *task) error {
 	return nil
 }
 
-func (sender *Sender) doReq(url string, data []*io.Point) error {
+func (sender *Sender) doReq(url string, data []*point.Point) error {
 	if len(data) == 0 || url == "" {
 		return nil
 	}
@@ -136,7 +138,7 @@ type ExternalLastErr struct {
 	ErrContent string `json:"err_content"`
 }
 
-func FeedMeasurement(url string, data []*io.Point) error {
+func FeedMeasurement(url string, data []*point.Point) error {
 	if _sender == nil {
 		return fmt.Errorf("sender not init")
 	}

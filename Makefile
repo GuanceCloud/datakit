@@ -327,7 +327,7 @@ all_test: deps
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
 lint: deps
-	if [ $(UNAME_S) != Darwin and $(UNAME_M) != arm64 ]; then \
+	if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
 		echo '============== lint under amd64/linux ==================='; \
 		$(GOLINT_BINARY) --version; \
 		GOARCH=amd64 GOOS=linux $(GOLINT_BINARY) run --fix --allow-parallel-runners ; \

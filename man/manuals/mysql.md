@@ -124,7 +124,13 @@ performance-schema-consumer-events-statements-history = on
 账号授权
 
 ```sql
+-- 	MySQL 5.6 & 5.7
 GRANT REPLICATION CLIENT ON *.* TO datakit@'%' WITH MAX_USER_CONNECTIONS 5;
+GRANT PROCESS ON *.* TO datakit@'%';
+
+-- MySQL >= 8.0
+ALTER USER datakit@'%' WITH MAX_USER_CONNECTIONS 5;
+GRANT REPLICATION CLIENT ON *.* TO datakit@'%';
 GRANT PROCESS ON *.* TO datakit@'%';
 ```
 

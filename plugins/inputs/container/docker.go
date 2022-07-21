@@ -22,7 +22,7 @@ type dockerInput struct {
 	// container log 需要添加 pod 信息，所以存一份 k8sclient
 	k8sClient k8sClientX
 
-	containerLogList map[string]context.CancelFunc
+	containerLogList map[string]interface{}
 
 	loggingFilter filter.Filter
 
@@ -38,12 +38,14 @@ type dockerInputConfig struct {
 	containerIncludeLog []string
 	containerExcludeLog []string
 
-	extraTags map[string]string
+	extraTags          map[string]string
+	extraSourceMap     map[string]string
+	sourceMultilineMap map[string]string
 }
 
 func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
 	d := &dockerInput{
-		containerLogList: make(map[string]context.CancelFunc),
+		containerLogList: make(map[string]interface{}),
 		cfg:              cfg,
 	}
 
@@ -65,7 +67,7 @@ func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
 }
 
 func (d *dockerInput) stop() {
-	d.cancelTails()
+	// empty interface
 }
 
 func (d *dockerInput) pingOK() bool {

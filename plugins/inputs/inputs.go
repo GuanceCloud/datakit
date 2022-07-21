@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 const (
@@ -111,8 +112,13 @@ type ReadEnv interface {
 	ReadEnv(map[string]string)
 }
 
+type InputOnceRunnableCollect interface {
+	Collect() (map[string][]*point.Point, error)
+}
+
 type InputOnceRunnable interface {
-	Collect() (map[string][]*io.Point, error)
+	RunningCollect() error
+	GetIntervalDuration() time.Duration
 }
 
 type LogExampler interface {

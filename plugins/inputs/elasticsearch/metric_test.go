@@ -8,7 +8,7 @@ package elasticsearch
 import (
 	"testing"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -85,11 +85,11 @@ func TestMeasurement(t *testing.T) {
 				}
 				ts := pt.Tags()
 
-				if len(fs) > io.MaxFields {
-					t.Errorf("exceed max fields(%d > %d)", len(fs), io.MaxFields)
+				if len(fs) > point.MaxFields {
+					t.Errorf("exceed max fields(%d > %d)", len(fs), point.MaxFields)
 				}
-				if len(ts) > io.MaxTags {
-					t.Errorf("exceed max tags(%d > %d)", len(ts), io.MaxTags)
+				if len(ts) > point.MaxTags {
+					t.Errorf("exceed max tags(%d > %d)", len(ts), point.MaxTags)
 				}
 
 				t.Log(pt.String())

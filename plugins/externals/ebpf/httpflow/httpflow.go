@@ -19,7 +19,7 @@ import (
 	"github.com/google/gopacket/afpacket"
 	"github.com/sirupsen/logrus"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/netflow"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
@@ -102,7 +102,7 @@ var (
 )
 
 func NewHTTPFlowManger(fd int, constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.Map, closedEventHandler func(cpu int, data []byte,
-	perfmap *manager.PerfMap, manager *manager.Manager), disableTLS bool) (*manager.Manager, *sysmonitor.UprobeDynamicLibRegister, error) {
+	perfmap *manager.PerfMap, manager *manager.Manager), enableTLS bool) (*manager.Manager, *sysmonitor.UprobeDynamicLibRegister, error) {
 	m := &manager.Manager{
 		Probes: []*manager.Probe{
 			{
@@ -128,55 +128,17 @@ func NewHTTPFlowManger(fd int, constEditor []manager.ConstantEditor, bpfMapSockF
 	}
 
 	var r *sysmonitor.UprobeDynamicLibRegister
-	if !disableTLS {
+	if enableTLS {
 		opensslRules := []sysmonitor.UprobeRegRule{
 			{
-				Re: regexpLibSSL,
-				Register: func(s string) error {
-					l.Info("AddHook: ", s)
-					for _, sec := range libSSLSection {
-						if err := m.AddHook("", manager.Probe{
-							UID:        s,
-							Section:    sec,
-							BinaryPath: s,
-						}); err != nil {
-							l.Error(err)
-						}
-					}
-					return nil
-				},
-				UnRegister: func(s string) error {
-					l.Info("DetachHook: ", s)
-					for _, sec := range libSSLSection {
-						if err := m.DetachHook(sec, s); err != nil {
-							l.Error(err)
-						}
-					}
-					return nil
-				},
+				Re:         regexpLibSSL,
+				Register:   sysmonitor.NewRegisterFunc(m, libSSLSection),
+				UnRegister: sysmonitor.NewUnRegisterFunc(m, libSSLSection),
 			},
 			{
-				Re: regexpLibCrypto,
-				Register: func(s string) error {
-					for _, sec := range libcryptoSection {
-						if err := m.AddHook("", manager.Probe{
-							UID:        s,
-							Section:    sec,
-							BinaryPath: s,
-						}); err != nil {
-							l.Error(err)
-						}
-					}
-					return nil
-				},
-				UnRegister: func(s string) error {
-					for _, sec := range libcryptoSection {
-						if err := m.DetachHook(sec, s); err != nil {
-							l.Error(err)
-						}
-					}
-					return nil
-				},
+				Re:         regexpLibCrypto,
+				Register:   sysmonitor.NewRegisterFunc(m, libcryptoSection),
+				UnRegister: sysmonitor.NewUnRegisterFunc(m, libcryptoSection),
 			},
 		}
 
@@ -221,7 +183,7 @@ func NewHTTPFlowTracer(tags map[string]string, datakitPostURL string) *HTTPFlowT
 	}
 }
 
-func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.Map, disableTLS bool) error {
+func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.Map, enableTLS bool) error {
 	rawSocket, err := afpacket.NewTPacket()
 	if err != nil {
 		return fmt.Errorf("error creating raw socket: %w", err)
@@ -234,7 +196,7 @@ func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.Con
 	logrus.Error(socketFD)
 	tracer.TPacket = rawSocket
 
-	bpfManger, r, err := NewHTTPFlowManger(socketFD, constEditor, bpfMapSockFD, tracer.reqFinishedEventHandler, disableTLS)
+	bpfManger, r, err := NewHTTPFlowManger(socketFD, constEditor, bpfMapSockFD, tracer.reqFinishedEventHandler, enableTLS)
 	if err != nil {
 		return err
 	}
@@ -243,8 +205,7 @@ func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.Con
 		return err
 	}
 
-	if !disableTLS && r != nil {
-		r.CleanAll()
+	if enableTLS && r != nil {
 		r.ScanAndUpdate()
 		r.Monitor(ctx, time.Minute*5)
 	}
@@ -310,7 +271,7 @@ func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context) {
 	}
 }
 
-func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) (*io.Point, error) {
+func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) (*point.Point, error) {
 	// name:   srcNameM,
 	mTags := map[string]string{}
 
@@ -374,14 +335,14 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) (*io.Point,
 
 	mTags = dknetflow.AddK8sTags2Map(k8sNetInfo, srcIP, dstIP,
 		httpFinReq.ConnInfo.Sport, httpFinReq.ConnInfo.Dport, l4proto, mTags)
-	return io.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
+	return point.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
 }
 
 func feed(url string, data []*HTTPReqFinishedInfo, tags map[string]string) error {
 	if len(data) == 0 {
 		return nil
 	}
-	ms := make([]*io.Point, 0)
+	ms := make([]*point.Point, 0)
 	for _, httpFinReq := range data {
 		if !ConnNotNeedToFilter(httpFinReq.ConnInfo) {
 			continue

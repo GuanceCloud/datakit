@@ -14,15 +14,17 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
-type containerLogBasisInfo struct {
-	name, id string
-	logPath  string
-	image    string
-	labels   map[string]string
-	tags     map[string]string
-	created  string
+const ignoreDeadLogDuration = time.Hour * 12
 
-	extraSourceMap map[string]string
+type containerLogBasisInfo struct {
+	name, id           string
+	logPath            string
+	image              string
+	labels             map[string]string
+	tags               map[string]string
+	created            string
+	extraSourceMap     map[string]string
+	sourceMultilineMap map[string]string
 }
 
 func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tailer.Option {
@@ -48,7 +50,10 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 		info.tags["image_tag"] = imageTag
 	}
 
-	opt := &tailer.Option{GlobalTags: info.tags}
+	opt := &tailer.Option{
+		GlobalTags:    info.tags,
+		IgnoreDeadLog: ignoreDeadLogDuration,
+	}
 
 	switch {
 	case getContainerNameForLabels(info.labels) != "":
@@ -116,20 +121,30 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 	}
 
 	if logconf != nil {
-		if !useExtraSource && logconf.Source != "" {
-			opt.Source = logconf.Source
+		if !useExtraSource {
+			if logconf.Source != "" {
+				opt.Source = logconf.Source
+			}
+			opt.Pipeline = logconf.Pipeline
+			opt.MultilineMatch = logconf.Multiline
 		}
 		if logconf.Service != "" {
 			opt.Service = logconf.Service
 		}
-		opt.Pipeline = logconf.Pipeline
-		opt.MultilineMatch = logconf.Multiline
 
 		for k, v := range logconf.Tags {
 			opt.GlobalTags[k] = v
 		}
 
 		l.Debugf("use container logconfig:%#v, containerId: %s, source: %s, logpath: %s", logconf, info.id, opt.Source, info.logPath)
+	}
+
+	if opt.MultilineMatch == "" && info.sourceMultilineMap != nil {
+		mult := info.sourceMultilineMap[opt.Source]
+		if mult != "" {
+			opt.MultilineMatch = mult
+			l.Debugf("use multiline_match '%s' to source %s", opt.MultilineMatch, opt.Source)
+		}
 	}
 
 	_ = opt.Init()

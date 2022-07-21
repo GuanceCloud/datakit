@@ -64,10 +64,12 @@ func (c *containerdInput) inLogList(logpath string) bool {
 
 func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 	info := &containerLogBasisInfo{
-		id:      status.GetId(),
-		logPath: status.GetLogPath(),
-		labels:  status.GetLabels(),
-		tags:    make(map[string]string),
+		id:                 status.GetId(),
+		logPath:            status.GetLogPath(),
+		labels:             status.GetLabels(),
+		tags:               make(map[string]string),
+		extraSourceMap:     c.cfg.extraSourceMap,
+		sourceMultilineMap: c.cfg.sourceMultilineMap,
 	}
 
 	if status.GetMetadata() != nil && status.GetMetadata().Name != "" {

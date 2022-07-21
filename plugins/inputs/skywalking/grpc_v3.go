@@ -18,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	skyimpl "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile"
 	"google.golang.org/grpc"
@@ -66,7 +67,7 @@ func (trsvr *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_
 		if dktrace := segobjToDkTrace(segobj); len(dktrace) == 0 {
 			log.Warn("empty datakit trace")
 		} else {
-			afterGatherRun.Run(inputName, dktrace, false)
+			afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
 		}
 	}
 }
@@ -176,8 +177,8 @@ type jvmMeasurement struct {
 	ts     time.Time
 }
 
-func (m *jvmMeasurement) LineProto() (*dkio.Point, error) {
-	return dkio.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+func (m *jvmMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 func (m *jvmMeasurement) Info() *inputs.MeasurementInfo {
@@ -373,8 +374,8 @@ type skywalkingMetricMeasurement struct {
 	fields map[string]interface{}
 }
 
-func (m *skywalkingMetricMeasurement) LineProto() (*dkio.Point, error) {
-	return dkio.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+func (m *skywalkingMetricMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 func (m *skywalkingMetricMeasurement) Info() *inputs.MeasurementInfo {

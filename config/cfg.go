@@ -15,7 +15,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -25,9 +24,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
@@ -42,8 +41,9 @@ func SetLog() {
 
 func DefaultConfig() *Config {
 	c := &Config{ //nolint:dupl
-		GlobalHostTags: map[string]string{},
-		GlobalEnvTags:  map[string]string{
+		GlobalHostTags:       map[string]string{},
+		GlobalTagsDeprecated: map[string]string{},
+		GlobalEnvTags:        map[string]string{
 			// "project": "",
 			// "cluster": "",
 			// "site":    "",
@@ -62,6 +62,8 @@ func DefaultConfig() *Config {
 
 			EnableCache: false,
 			CacheSizeGB: 1,
+
+			BlockingMode: false,
 
 			Filters: map[string][]string{},
 		},
@@ -202,18 +204,21 @@ type Config struct {
 
 	InstallVer string `toml:"install_version,omitempty"`
 
-	HTTPAPI    *dkhttp.APIConfig   `toml:"http_api"`
-	IOConf     *dkio.IOConfig      `toml:"io"`
+	HTTPAPI *dkhttp.APIConfig `toml:"http_api"`
+	IOConf  *dkio.IOConfig    `toml:"io"`
+
 	DataWayCfg *dataway.DataWayCfg `toml:"dataway,omitempty"`
 	DataWay    dataway.DataWay     `toml:"-"`
-	Sinks      *Sinker             `toml:"sinks"`
-	Logging    *LoggerCfg          `toml:"logging"`
 
-	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
-	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
+	Sinks   *Sinker    `toml:"sinks"`
+	Logging *LoggerCfg `toml:"logging"`
 
-	GlobalHostTags map[string]string `toml:"global_host_tags"`
-	GlobalEnvTags  map[string]string `toml:"global_env_tags"`
+	LogRotateDeprecated    int `toml:"log_rotate,omitzero"`
+	IOCacheCountDeprecated int `toml:"io_cache_count,omitzero"`
+
+	GlobalHostTags       map[string]string `toml:"global_host_tags"`
+	GlobalEnvTags        map[string]string `toml:"global_env_tags"`
+	GlobalTagsDeprecated map[string]string `toml:"global_tags,omitempty"`
 
 	Environments map[string]string     `toml:"environments"`
 	Cgroup       *cgroup.CgroupOptions `toml:"cgroup"`
@@ -331,39 +336,6 @@ func initCfgSample(p string) error {
 	return nil
 }
 
-func (c *Config) setupDataway() error {
-	if c.DataWayCfg == nil {
-		return fmt.Errorf("dataway config is empty")
-	}
-
-	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
-	// 避免俩边配置了同样的 dataway, 造成数据混乱
-	if c.DataWayCfg.DeprecatedURL != "" && len(c.DataWayCfg.URLs) == 0 {
-		c.DataWayCfg.URLs = []string{c.DataWayCfg.DeprecatedURL}
-	}
-
-	if len(c.DataWayCfg.URLs) > 0 && c.DataWayCfg.URLs[0] == datakit.DatawayDisableURL {
-		c.RunMode = datakit.ModeDev
-		return nil
-	} else {
-		c.RunMode = datakit.ModeNormal
-	}
-
-	dataway.ExtraHeaders = map[string]string{
-		"X-Datakit-Info": fmt.Sprintf("%s; %s", c.Hostname, datakit.Version),
-	}
-
-	c.DataWay = &dataway.DataWayDefault{}
-
-	c.DataWayCfg.Hostname = c.Hostname
-	if err := c.DataWay.Init(c.DataWayCfg); err != nil {
-		c.DataWay = nil
-		return err
-	}
-
-	return nil
-}
-
 func (c *Config) parseGlobalHostTags() {
 	// why?
 	if c.GlobalHostTags == nil {
@@ -446,8 +418,14 @@ func (c *Config) setLogging() {
 func (c *Config) setupGlobalTags() {
 	c.parseGlobalHostTags()
 
+	if len(c.GlobalTagsDeprecated) != 0 { // c.GlobalTags deprecated, move them to GlobalHostTags
+		for k, v := range c.GlobalTagsDeprecated {
+			c.GlobalHostTags[k] = v
+		}
+	}
+
 	for k, v := range c.GlobalHostTags {
-		dkio.SetGlobalHostTags(k, v)
+		point.SetGlobalHostTags(k, v)
 	}
 
 	// 开启选举且开启开关的情况下，将选举的命名空间塞到 global-env-tags 中
@@ -455,12 +433,12 @@ func (c *Config) setupGlobalTags() {
 		c.GlobalEnvTags["election_namespace"] = c.ElectionNamespace
 	}
 	for k, v := range c.GlobalEnvTags {
-		dkio.SetGlobalEnvTags(k, v)
+		point.SetGlobalEnvTags(k, v)
 	}
 
 	// 此处不将 host 计入 c.GlobalHostTags，因为 c.GlobalHostTags 是读取的用户配置，而 host
 	// 是不允许修改的, 故单独添加这个 tag 到 io 模块
-	dkio.SetGlobalHostTags("host", c.Hostname)
+	point.SetGlobalHostTags("host", c.Hostname)
 }
 
 func (c *Config) ApplyMainConfig() error {
@@ -515,6 +493,11 @@ func (c *Config) ApplyMainConfig() error {
 
 		dkio.ConfigDefaultIO(c.IOConf)
 		dkio.SetDataway(c.DataWay)
+	}
+
+	if err := c.setupSinks(); err != nil {
+		l.Errorf("setup sinks failed: %s", err)
+		return err
 	}
 
 	c.setupGlobalTags()
@@ -581,59 +564,6 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 	}
 
 	c.DefaultEnabledInputs = inputs
-}
-
-func (c *Config) getSinkConfig() error {
-	sinkMetric := datakit.GetEnv("ENV_SINK_M")
-	sinkNetwork := datakit.GetEnv("ENV_SINK_N")
-	sinkKeyEvent := datakit.GetEnv("ENV_SINK_K")
-	sinkObject := datakit.GetEnv("ENV_SINK_O")
-	sinkCustomObject := datakit.GetEnv("ENV_SINK_CO")
-	sinkLogging := datakit.GetEnv("ENV_SINK_L")
-	sinkTracing := datakit.GetEnv("ENV_SINK_T")
-	sinkRUM := datakit.GetEnv("ENV_SINK_R")
-	sinkSecurity := datakit.GetEnv("ENV_SINK_S")
-
-	categoryShorts := []string{
-		datakit.SinkCategoryMetric,
-		datakit.SinkCategoryNetwork,
-		datakit.SinkCategoryKeyEvent,
-		datakit.SinkCategoryObject,
-		datakit.SinkCategoryCustomObject,
-		datakit.SinkCategoryLogging,
-		datakit.SinkCategoryTracing,
-		datakit.SinkCategoryRUM,
-		datakit.SinkCategorySecurity,
-	}
-
-	args := []string{
-		sinkMetric,
-		sinkNetwork,
-		sinkKeyEvent,
-		sinkObject,
-		sinkCustomObject,
-		sinkLogging,
-		sinkTracing,
-		sinkRUM,
-		sinkSecurity,
-	}
-
-	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
-	if err != nil {
-		return err
-	}
-	c.Sinks.Sink = sinks
-
-	if v := datakit.GetEnv("ENV_ULIMIT"); v != "" {
-		u, err := strconv.ParseUint(v, 10, 64)
-		if err != nil {
-			l.Warnf("invalid ulimit input through ENV_ULIMIT: %v", err)
-		} else {
-			c.Ulimit = u
-		}
-	}
-
-	return nil
 }
 
 func ParseGlobalTags(s string) map[string]string {

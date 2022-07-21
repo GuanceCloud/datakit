@@ -1,5 +1,3 @@
-# code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
-## explicit
 # github.com/BurntSushi/toml v0.3.1
 ## explicit
 github.com/BurntSushi/toml
@@ -313,12 +311,13 @@ github.com/danwakefield/fnmatch
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.10.0
-## explicit; go 1.11
+# github.com/denisenkom/go-mssqldb v0.12.2
+## explicit; go 1.13
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
 github.com/denisenkom/go-mssqldb/internal/decimal
 github.com/denisenkom/go-mssqldb/internal/querytext
+github.com/denisenkom/go-mssqldb/msdsn
 # github.com/dgraph-io/ristretto v0.1.0
 ## explicit; go 1.12
 github.com/dgraph-io/ristretto
@@ -616,8 +615,6 @@ github.com/godror/godror
 github.com/godror/godror/odpi/embed
 github.com/godror/godror/odpi/include
 github.com/godror/godror/odpi/src
-# github.com/gofrs/flock v0.8.0
-## explicit
 # github.com/gogo/googleapis v1.4.0
 ## explicit; go 1.12
 github.com/gogo/googleapis/google/rpc
@@ -631,6 +628,9 @@ github.com/gogo/protobuf/types
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
 ## explicit
 github.com/golang-sql/civil
+# github.com/golang-sql/sqlexp v0.1.0
+## explicit; go 1.16
+github.com/golang-sql/sqlexp
 # github.com/golang/glog v1.0.0
 ## explicit; go 1.11
 github.com/golang/glog
@@ -897,10 +897,6 @@ github.com/prometheus/procfs/internal/util
 ## explicit
 github.com/prometheus/prometheus/prompb
 github.com/prometheus/prometheus/util/strutil
-# github.com/reiver/go-oi v1.0.0
-## explicit
-# github.com/reiver/go-telnet v0.0.0-20180421082511-9ff0b2ab096e
-## explicit
 # github.com/rivo/tview v0.0.0-20220129131435-1f7581b67bd1
 ## explicit; go 1.12
 github.com/rivo/tview
@@ -957,6 +953,12 @@ github.com/tidwall/match
 # github.com/tidwall/pretty v1.2.0
 ## explicit; go 1.16
 github.com/tidwall/pretty
+# github.com/tidwall/tinylru v1.1.0
+## explicit; go 1.14
+github.com/tidwall/tinylru
+# github.com/tidwall/wal v1.1.7
+## explicit; go 1.13
+github.com/tidwall/wal
 # github.com/tinylib/msgp v1.1.6
 ## explicit; go 1.14
 github.com/tinylib/msgp/msgp

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 )
 
@@ -149,8 +149,8 @@ func (s *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*OtelR
 	return orms
 }
 
-func makePoints(orms []*OtelResourceMetric) []*dkio.Point {
-	pts := make([]*dkio.Point, 0)
+func makePoints(orms []*OtelResourceMetric) []*point.Point {
+	pts := make([]*point.Point, 0)
 	for _, resourceMetric := range orms {
 		tags := map[string]string{
 			"description":          resourceMetric.Description,
@@ -167,7 +167,7 @@ func makePoints(orms []*OtelResourceMetric) []*dkio.Point {
 			UnitTime = time.Now()
 		}
 		// 指标集名称定义：'instrumentationName'
-		pt, err := dkio.NewPoint(resourceMetric.Service, tags, fields, &dkio.PointOption{
+		pt, err := point.NewPoint(resourceMetric.Service, tags, fields, &point.PointOption{
 			Time:     UnitTime,
 			Category: datakit.Metric,
 			Strict:   true,

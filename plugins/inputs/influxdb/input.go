@@ -161,8 +161,8 @@ func (i *Input) Run() {
 		var err error
 		tlsCfg, err = i.TLSConf.TLSConfig()
 		if err != nil {
-			l.Error(err)
-			io.ReportLastError(inputName, err.Error())
+			l.Errorf("TLSConfig: %s", err)
+			io.FeedLastError(inputName, err.Error())
 			return
 		}
 	} else {

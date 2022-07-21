@@ -67,7 +67,7 @@ func (x *meterReportServiceCollectClient) CloseAndRecv() (*Commands, error) {
 
 // MeterReportServiceServer is the server API for MeterReportService service.
 // All implementations must embed UnimplementedMeterReportServiceServer
-// for forward compatibility
+// for forward compatibility.
 type MeterReportServiceServer interface {
 	// Meter data is reported in a certain period. The agent/SDK should report all
 	// collected metrics in this period through one stream.

@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/gopacket/afpacket"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -115,8 +115,8 @@ func (tracer *DNSFlowTracer) readPacket(ctx context.Context, tp *afpacket.TPacke
 func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag map[string]string,
 	dnsRecord *DNSAnswerRecord, feedAddr string,
 ) {
-	mCh := make(chan []*io.Point)
-	finishedStatsM := []*io.Point{}
+	mCh := make(chan []*point.Point)
+	finishedStatsM := []*point.Point{}
 	go tracer.readPacket(ctx, tp)
 	go func() {
 		t := time.NewTicker(time.Second * 30)
@@ -132,7 +132,7 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 					}
 				}
 				collectData := finishedStatsM
-				finishedStatsM = []*io.Point{}
+				finishedStatsM = []*point.Point{}
 				select {
 				case mCh <- collectData:
 				default:
@@ -172,7 +172,7 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 	}
 }
 
-func conv2M(key DNSQAKey, stats DNSStats, gTags map[string]string) (*io.Point, error) {
+func conv2M(key DNSQAKey, stats DNSStats, gTags map[string]string) (*point.Point, error) {
 	mTags := map[string]string{}
 	// ts:     stats.TS,
 
@@ -199,5 +199,5 @@ func conv2M(key DNSQAKey, stats DNSStats, gTags map[string]string) (*io.Point, e
 		"resp_time": stats.RespTime.Nanoseconds(),
 	}
 
-	return io.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
+	return point.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
 }

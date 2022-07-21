@@ -12,6 +12,7 @@ import (
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 var scheckTestPointData = []byte(`0144-crontab,category=system,host=localhost.localdomain,level=warn,` +
@@ -34,9 +35,12 @@ func TestRunPl(t *testing.T) {
 }
 
 func TestSCriptName(t *testing.T) {
-	pt, err := NewPoint("m_name", map[string]string{"service": "svc_name"}, map[string]interface{}{"message@json": "a"}, &PointOption{
-		Category: datakit.Logging,
-	})
+	pt, err := point.NewPoint("m_name",
+		map[string]string{"service": "svc_name"},
+		map[string]interface{}{"message@json": "a"},
+		&point.PointOption{
+			Category: datakit.Logging,
+		})
 	assert.Equal(t, nil, err)
 
 	f, err := pt.Fields()
@@ -107,8 +111,8 @@ func TestSCriptName(t *testing.T) {
 		t.Fatal(err)
 	}
 	ptSc := pts[0]
-	pt = &Point{
-		influxdb.NewPointFrom(ptSc),
+	pt = &point.Point{
+		Point: influxdb.NewPointFrom(ptSc),
 	}
 	f, err = pt.Fields()
 	if err != nil {
@@ -123,8 +127,8 @@ func TestSCriptName(t *testing.T) {
 		t.Fatal(err)
 	}
 	ptSc = pts[0]
-	pt = &Point{
-		influxdb.NewPointFrom(ptSc),
+	pt = &point.Point{
+		Point: influxdb.NewPointFrom(ptSc),
 	}
 	f, err = pt.Fields()
 	if err != nil {
@@ -138,8 +142,8 @@ func TestSCriptName(t *testing.T) {
 		t.Fatal(err)
 	}
 	ptSc = pts[0]
-	pt = &Point{
-		influxdb.NewPointFrom(ptSc),
+	pt = &point.Point{
+		Point: influxdb.NewPointFrom(ptSc),
 	}
 	f, err = pt.Fields()
 	if err != nil {
@@ -154,8 +158,8 @@ func TestSCriptName(t *testing.T) {
 		t.Fatal(err)
 	}
 	ptSc = pts[0]
-	pt = &Point{
-		influxdb.NewPointFrom(ptSc),
+	pt = &point.Point{
+		Point: influxdb.NewPointFrom(ptSc),
 	}
 	_, ok = scriptName(datakit.RUM, pt.Name(), pt.Tags(), f, nil)
 	assert.Equal(t, false, ok)

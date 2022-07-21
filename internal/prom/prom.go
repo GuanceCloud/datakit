@@ -20,7 +20,7 @@ import (
 	"github.com/prometheus/common/expfmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type Rule struct {
@@ -47,6 +47,7 @@ type Option struct {
 	Measurements     []Rule   `json:"measurements"`
 	Source           string   `toml:"source"`
 	Interval         string   `toml:"interval"`
+	Timeout          string   `toml:"timeout"`
 
 	URL  string   `toml:"url,omitempty"` // Deprecated
 	URLs []string `toml:"urls"`
@@ -113,7 +114,7 @@ func (opt *Option) GetIntervalDuration() time.Duration {
 }
 
 const (
-	httpTimeout               = time.Second * 10
+	httpTimeout               = time.Second * 3
 	defaultInsecureSkipVerify = false
 )
 
@@ -146,8 +147,13 @@ func NewProm(opt *Option) (*Prom, error) {
 		}
 	}
 
+	timeout, err := time.ParseDuration(opt.Timeout)
+	if err != nil || timeout < httpTimeout {
+		timeout = httpTimeout
+	}
+
 	p := Prom{opt: opt}
-	p.SetClient(&http.Client{Timeout: httpTimeout})
+	p.SetClient(&http.Client{Timeout: timeout})
 
 	if opt.TLSOpen {
 		caCerts := []string{}
@@ -221,11 +227,11 @@ func (p *Prom) Request(url string) (*http.Response, error) {
 	return r, nil
 }
 
-func (p *Prom) CollectFromHTTP(u string) ([]*io.Point, error) {
+func (p *Prom) CollectFromHTTP(u string) ([]*point.Point, error) {
 	resp, err := p.Request(u)
 	if err != nil {
 		if p.opt.IgnoreReqErr {
-			return []*io.Point{}, nil
+			return []*point.Point{}, nil
 		} else {
 			return nil, err
 		}
@@ -238,7 +244,7 @@ func (p *Prom) CollectFromHTTP(u string) ([]*io.Point, error) {
 	return pts, nil
 }
 
-func (p *Prom) CollectFromFile(filepath string) ([]*io.Point, error) {
+func (p *Prom) CollectFromFile(filepath string) ([]*point.Point, error) {
 	f, err := os.OpenFile(filepath, os.O_RDONLY, 0o600) //nolint:gosec
 	if err != nil {
 		return nil, err

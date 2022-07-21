@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type caseConnT struct {
@@ -356,11 +356,11 @@ func TestConvConn2M(t *testing.T) {
 		},
 	}
 
-	ptOpt := &io.PointOption{Category: datakit.Network}
+	ptOpt := &point.PointOption{Category: datakit.Network}
 	for _, v := range cases {
 		connR.result[v.conn] = v.connStats
 		ptOpt.Time = v.ts
-		pt, err := ConvConn2M(v.conn, v.connStats, v.name, v.tags,
+		pt, err := ConvConn2M(v.conn, v.connStats, srcNameM, v.tags,
 			ptOpt)
 		if err != nil {
 			t.Error(err)

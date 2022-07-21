@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -296,23 +297,23 @@ func (n *Input) setup() error {
 	return nil
 }
 
-func (n *Input) Collect() (map[string][]*io.Point, error) {
+func (n *Input) Collect() (map[string][]*point.Point, error) {
 	if err := n.setup(); err != nil {
-		return map[string][]*io.Point{}, err
+		return map[string][]*point.Point{}, err
 	}
 
 	n.getMetric()
 
 	if len(n.collectCache) == 0 {
-		return map[string][]*io.Point{}, fmt.Errorf("no points")
+		return map[string][]*point.Point{}, fmt.Errorf("no points")
 	}
 
 	pts, err := inputs.GetPointsFromMeasurement(n.collectCache)
 	if err != nil {
-		return map[string][]*io.Point{}, err
+		return map[string][]*point.Point{}, err
 	}
 
-	mpts := make(map[string][]*io.Point)
+	mpts := make(map[string][]*point.Point)
 	mpts[datakit.Metric] = pts
 
 	return mpts, nil

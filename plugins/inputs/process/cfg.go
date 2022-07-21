@@ -8,7 +8,7 @@ package process
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -44,8 +44,8 @@ type ProcessMetric struct {
 	ts     time.Time
 }
 
-func (m *ProcessMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
+func (m *ProcessMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptMetric)
 }
 
 //nolint:lll
@@ -78,8 +78,8 @@ type ProcessObject struct {
 	ts     time.Time
 }
 
-func (m *ProcessObject) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, inputs.OptObject)
+func (m *ProcessObject) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, inputs.OptObject)
 }
 
 //nolint:lll

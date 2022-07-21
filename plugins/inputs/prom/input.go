@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -40,6 +41,7 @@ var l = logger.DefaultSLogger(inputName)
 type Input struct {
 	Source   string `toml:"source"`
 	Interval string `toml:"interval"`
+	Timeout  string `toml:"timeout"`
 
 	URL               string       `toml:"url,omitempty"` // Deprecated
 	URLs              []string     `toml:"urls"`
@@ -75,6 +77,8 @@ type Input struct {
 	urls []*url.URL
 
 	semStop *cliutils.Sem // start stop signal
+
+	isInitialized bool
 }
 
 func (*Input) SampleConfig() string { return sampleCfg }
@@ -108,30 +112,12 @@ func (i *Input) Run() {
 
 	l.Info("prom start")
 
-	ioname := inputName + "/" + i.Source
 	for {
 		if i.pause {
 			l.Debug("prom paused")
 		} else {
-			start := time.Now()
-			pts := i.doCollect()
-			if i.AsLogging != nil && i.AsLogging.Enable {
-				// Feed measurement as logging.
-				for _, pt := range pts {
-					// We need to feed each point separately because
-					// each point might have different measurement name.
-					if err := io.Feed(pt.Name(), datakit.Logging, []*io.Point{pt},
-						&io.Option{CollectCost: time.Since(start)}); err != nil {
-						l.Errorf("Feed: %s", err)
-						io.FeedLastError(ioname, err.Error())
-					}
-				}
-			} else {
-				if err := io.Feed(ioname, datakit.Metric, pts,
-					&io.Option{CollectCost: time.Since(start)}); err != nil {
-					l.Errorf("Feed: %s", err)
-					io.FeedLastError(ioname, err.Error())
-				}
+			if err := i.RunningCollect(); err != nil {
+				l.Warn(err)
 			}
 		}
 
@@ -152,7 +138,51 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) doCollect() []*io.Point {
+const defaultIntervalDuration = time.Second * 30
+
+func (i *Input) GetIntervalDuration() time.Duration {
+	if !i.isInitialized {
+		if err := i.Init(); err != nil {
+			l.Infof("prom init error: %s", err)
+			return defaultIntervalDuration
+		}
+	}
+	return i.pm.Option().GetIntervalDuration()
+}
+
+func (i *Input) RunningCollect() error {
+	if !i.isInitialized {
+		if err := i.Init(); err != nil {
+			return err
+		}
+	}
+
+	ioname := inputName + "/" + i.Source
+
+	start := time.Now()
+	pts := i.doCollect()
+	if i.AsLogging != nil && i.AsLogging.Enable {
+		// Feed measurement as logging.
+		for _, pt := range pts {
+			// We need to feed each point separately because
+			// each point might have different measurement name.
+			if err := io.Feed(pt.Name(), datakit.Logging, []*point.Point{pt},
+				&io.Option{CollectCost: time.Since(start)}); err != nil {
+				l.Errorf("Feed: %s", err)
+				io.FeedLastError(ioname, err.Error())
+			}
+		}
+	} else {
+		if err := io.Feed(ioname, datakit.Metric, pts,
+			&io.Option{CollectCost: time.Since(start)}); err != nil {
+			l.Errorf("Feed: %s", err)
+			io.FeedLastError(ioname, err.Error())
+		}
+	}
+	return nil
+}
+
+func (i *Input) doCollect() []*point.Point {
 	l.Debugf("collect URLs %v", i.URLs)
 
 	// If Output is configured, data is written to local file specified by Output.
@@ -241,6 +271,7 @@ func (i *Input) Init() error {
 	opt := &iprom.Option{
 		Source:   i.Source,
 		Interval: i.Interval,
+		Timeout:  i.Timeout,
 
 		URL:  i.URL,
 		URLs: i.URLs,
@@ -277,22 +308,23 @@ func (i *Input) Init() error {
 		return err
 	}
 	i.pm = pm
+	i.isInitialized = true
 
 	return nil
 }
 
 // Collect collects metrics from all URLs.
-func (i *Input) Collect() ([]*io.Point, error) {
+func (i *Input) Collect() ([]*point.Point, error) {
 	if i.pm == nil {
 		return nil, nil
 	}
-	var points []*io.Point
+	var points []*point.Point
 	for _, u := range i.URLs {
 		uu, err := url.Parse(u)
 		if err != nil {
 			return nil, err
 		}
-		var pts []*io.Point
+		var pts []*point.Point
 		if uu.Scheme != "http" && uu.Scheme != "https" {
 			pts, err = i.CollectFromFile(u)
 		} else {
@@ -306,14 +338,14 @@ func (i *Input) Collect() ([]*io.Point, error) {
 	return points, nil
 }
 
-func (i *Input) CollectFromHTTP(u string) ([]*io.Point, error) {
+func (i *Input) CollectFromHTTP(u string) ([]*point.Point, error) {
 	if i.pm == nil {
 		return nil, nil
 	}
 	return i.pm.CollectFromHTTP(u)
 }
 
-func (i *Input) CollectFromFile(filepath string) ([]*io.Point, error) {
+func (i *Input) CollectFromFile(filepath string) ([]*point.Point, error) {
 	if i.pm == nil {
 		return nil, nil
 	}

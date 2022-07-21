@@ -6,13 +6,13 @@
 package nsq
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type nsqTopicMeasurement struct{}
 
-func (*nsqTopicMeasurement) LineProto() (*io.Point, error) { return nil, nil }
+func (*nsqTopicMeasurement) LineProto() (*point.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*nsqTopicMeasurement) Info() *inputs.MeasurementInfo {
@@ -37,7 +37,7 @@ func (*nsqTopicMeasurement) Info() *inputs.MeasurementInfo {
 
 type nsqNodesMeasurement struct{}
 
-func (*nsqNodesMeasurement) LineProto() (*io.Point, error) { return nil, nil }
+func (*nsqNodesMeasurement) LineProto() (*point.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*nsqNodesMeasurement) Info() *inputs.MeasurementInfo {

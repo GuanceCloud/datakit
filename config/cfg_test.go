@@ -63,9 +63,12 @@ func TestSetupGlobalTags(t *testing.T) {
 	}
 
 	cases := []struct {
-		name                  string
-		hosttags              map[string]string
-		envtags               map[string]string
+		name string
+
+		hosttags             map[string]string
+		envtags              map[string]string
+		deprecatedGlobalTags map[string]string
+
 		election, electionTag bool
 
 		expectHostTags,
@@ -95,6 +98,19 @@ func TestSetupGlobalTags(t *testing.T) {
 			name:           "only-host-tags",
 			hosttags:       map[string]string{"uuid": "some-uuid", "host": "some-host"},
 			expectHostTags: map[string]string{"uuid": "some-uuid", "host": "some-host"},
+		},
+
+		{
+			name:                 "host-tags-deprecated",
+			hosttags:             map[string]string{"uuid": "some-uuid", "host": "some-host"},
+			deprecatedGlobalTags: map[string]string{"tag1": "val1", "tag2": "val2"},
+
+			expectHostTags: map[string]string{
+				"uuid": "some-uuid",
+				"host": "some-host",
+				"tag1": "val1",
+				"tag2": "val2",
+			},
 		},
 
 		{
@@ -135,6 +151,10 @@ func TestSetupGlobalTags(t *testing.T) {
 
 			for k, v := range tc.envtags {
 				c.GlobalEnvTags[k] = v
+			}
+
+			for k, v := range tc.deprecatedGlobalTags {
+				c.GlobalTagsDeprecated[k] = v
 			}
 
 			c.EnableElection = tc.election

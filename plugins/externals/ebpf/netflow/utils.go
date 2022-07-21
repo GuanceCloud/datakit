@@ -15,7 +15,7 @@ import (
 	"github.com/DataDog/ebpf/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/dnsflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
@@ -188,11 +188,11 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler f
 	return m, nil
 }
 
-func ConvertConn2Measurement(connR *ConnResult, name string, ptOpt *io.PointOption) []*io.Point {
-	collectCache := []*io.Point{}
+func ConvertConn2Measurement(connR *ConnResult, name string, ptOpt *point.PointOption) []*point.Point {
+	collectCache := []*point.Point{}
 
 	if ptOpt == nil {
-		ptOpt = &io.PointOption{
+		ptOpt = &point.PointOption{
 			Category: datakit.Network,
 		}
 	}
@@ -210,8 +210,8 @@ func ConvertConn2Measurement(connR *ConnResult, name string, ptOpt *io.PointOpti
 }
 
 func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
-	gTags map[string]string, ptOpt *io.PointOption,
-) (*io.Point, error) {
+	gTags map[string]string, ptOpt *point.PointOption,
+) (*point.Point, error) {
 	mFields := map[string]interface{}{}
 	mTags := map[string]string{}
 
@@ -285,12 +285,12 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	// add K8s tags
 	mTags = AddK8sTags2Map(k8sNetInfo, srcIP, dstIP, k.Sport, k.Dport, l4proto, mTags)
 
-	return io.NewPoint(name, mTags, mFields, ptOpt)
+	return point.NewPoint(name, mTags, mFields, ptOpt)
 }
 
 func AddK8sTags2Map(k8sNetInfo *k8sinfo.K8sNetInfo, srcIP, dstIP string,
-	srcPort, dstPort uint32, transport string, mTags map[string]string) map[string]string {
-
+	srcPort, dstPort uint32, transport string, mTags map[string]string,
+) map[string]string {
 	if mTags == nil {
 		mTags = map[string]string{}
 	}

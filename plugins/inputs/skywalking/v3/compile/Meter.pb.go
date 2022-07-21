@@ -38,7 +38,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Label of the meter
+// Label of the meter.
 type Label struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -155,7 +155,7 @@ func (x *MeterBucketValue) GetCount() int64 {
 	return 0
 }
 
-// Meter single value
+// Meter single value.
 type MeterSingleValue struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -222,7 +222,7 @@ func (x *MeterSingleValue) GetValue() float64 {
 	return 0
 }
 
-// Histogram
+// Histogram.
 type MeterHistogram struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

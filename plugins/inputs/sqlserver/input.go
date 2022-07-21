@@ -7,10 +7,14 @@
 package sqlserver
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"strings"
 	"time"
+
+	mssql "github.com/denisenkom/go-mssqldb"
+	"github.com/denisenkom/go-mssqldb/msdsn"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -18,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -89,10 +94,19 @@ func (n *Input) GetPipeline() []*tailer.Option {
 }
 
 func (n *Input) initDB() error {
-	db, err := sql.Open("sqlserver", fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", n.User, n.Password, n.Host))
+	connStr := fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", n.User, n.Password, n.Host)
+	cfg, _, err := msdsn.Parse(connStr)
 	if err != nil {
 		return err
 	}
+	if n.AllowTLS10 {
+		// Because go1.18 defaults client-sids's TLS minimum version to TLS 1.2,
+		// we need to configure MinVersion manually to enable TLS 1.0 and TLS 1.1.
+		cfg.TLSConfig.MinVersion = tls.VersionTLS10
+	}
+	conn := mssql.NewConnectorConfig(cfg)
+	db := sql.OpenDB(conn)
+
 	if err := db.Ping(); err != nil {
 		return err
 	}
@@ -140,11 +154,13 @@ func (n *Input) Run() {
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
 
+	n.initDBFilterMap()
+
 	// Init DB until OK.
 	for {
 		if err := n.initDB(); err != nil {
 			l.Errorf("initDB: %s", err.Error())
-			io.ReportLastError(inputName, err.Error())
+			io.FeedLastError(inputName, err.Error())
 		} else {
 			break
 		}
@@ -289,14 +305,43 @@ func (n *Input) handRow(query string, ts time.Time) {
 		if len(fields) == 0 {
 			continue
 		}
+		if n.filterOutDBName(tags) {
+			continue
+		}
 
-		point, err := io.NewPoint(measurement, tags, fields, inputs.OptElectionMetric)
+		point, err := point.NewPoint(measurement, tags, fields, inputs.OptElectionMetric)
 		if err != nil {
 			l.Errorf("make point err:%s", err.Error())
 			n.lastErr = err
 			continue
 		}
 		collectCache = append(collectCache, point)
+	}
+}
+
+// filterOutDBName filters out metrics according to their database_name tag.
+// Metrics with database_name tag specified in db_filter are filtered out and not fed to IO.
+func (n *Input) filterOutDBName(tags map[string]string) bool {
+	if len(n.dbFilterMap) == 0 {
+		return false
+	}
+	db, has := tags["database_name"]
+	if !has {
+		return false
+	}
+	if _, filterOut := n.dbFilterMap[db]; filterOut {
+		l.Debugf("filter out metric from db: %s", db)
+		return true
+	}
+	return false
+}
+
+func (n *Input) initDBFilterMap() {
+	if n.dbFilterMap == nil {
+		n.dbFilterMap = make(map[string]struct{}, len(n.DBFilter))
+	}
+	for _, db := range n.DBFilter {
+		n.dbFilterMap[db] = struct{}{}
 	}
 }
 
@@ -313,9 +358,10 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
-			Interval: datakit.Duration{Duration: time.Second * 10},
-			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
-			semStop:  cliutils.NewSem(),
+			Interval:    datakit.Duration{Duration: time.Second * 10},
+			pauseCh:     make(chan bool, inputs.ElectionPauseChannelLength),
+			semStop:     cliutils.NewSem(),
+			dbFilterMap: make(map[string]struct{}, 0),
 		}
 		return s
 	})

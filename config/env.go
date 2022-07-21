@@ -12,10 +12,55 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 )
+
+func (c *Config) loadSinkEnvs() error {
+	sinkMetric := datakit.GetEnv("ENV_SINK_M")
+	sinkNetwork := datakit.GetEnv("ENV_SINK_N")
+	sinkKeyEvent := datakit.GetEnv("ENV_SINK_K")
+	sinkObject := datakit.GetEnv("ENV_SINK_O")
+	sinkCustomObject := datakit.GetEnv("ENV_SINK_CO")
+	sinkLogging := datakit.GetEnv("ENV_SINK_L")
+	sinkTracing := datakit.GetEnv("ENV_SINK_T")
+	sinkRUM := datakit.GetEnv("ENV_SINK_R")
+	sinkSecurity := datakit.GetEnv("ENV_SINK_S")
+
+	categoryShorts := []string{
+		datakit.SinkCategoryMetric,
+		datakit.SinkCategoryNetwork,
+		datakit.SinkCategoryKeyEvent,
+		datakit.SinkCategoryObject,
+		datakit.SinkCategoryCustomObject,
+		datakit.SinkCategoryLogging,
+		datakit.SinkCategoryTracing,
+		datakit.SinkCategoryRUM,
+		datakit.SinkCategorySecurity,
+	}
+
+	args := []string{
+		sinkMetric,
+		sinkNetwork,
+		sinkKeyEvent,
+		sinkObject,
+		sinkCustomObject,
+		sinkLogging,
+		sinkTracing,
+		sinkRUM,
+		sinkSecurity,
+	}
+
+	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
+	if err != nil {
+		return err
+	}
+	c.Sinks.Sink = sinks
+
+	return nil
+}
 
 func (c *Config) loadElectionEnvs() {
 	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v == "" {
@@ -43,8 +88,18 @@ func (c *Config) loadIOEnvs() {
 			l.Warnf("invalid env key ENV_IO_MAX_CACHE_COUNT, value %s, ignored", v)
 		} else {
 			l.Infof("set cache count to %d", val)
-			c.IOConf.MaxCacheCount = val
-			c.IOConf.MaxDynamicCacheCount = val
+			c.IOConf.MaxCacheCount = int(val)
+			c.IOConf.MaxDynamicCacheCount = int(val)
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_IO_QUEUE_SIZE"); v != "" {
+		val, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			l.Warnf("invalid env key ENV_IO_QUEUE_SIZE, value %s, ignored", v)
+		} else {
+			l.Infof("set io queue size to %d", val)
+			c.IOConf.FeedChanSize = int(val)
 		}
 	}
 
@@ -72,8 +127,14 @@ func (c *Config) loadIOEnvs() {
 			c.IOConf.FlushInterval = v
 		}
 	}
+
+	if v := datakit.GetEnv("ENV_IO_BLOCKING_MODE"); v != "" {
+		l.Info("ENV_IO_BLOCKING_MODE enabled")
+		c.IOConf.BlockingMode = true
+	}
 }
 
+//nolint:funlen
 func (c *Config) LoadEnvs() error {
 	if c.IOConf == nil {
 		c.IOConf = &io.IOConfig{}
@@ -96,6 +157,12 @@ func (c *Config) LoadEnvs() error {
 		} else {
 			c.HTTPAPI.RequestRateLimit = x
 		}
+	}
+
+	// deprecated
+	if v := datakit.GetEnv("NODE_NAME"); v != "" {
+		c.Hostname = v
+		datakit.DatakitHostName = c.Hostname
 	}
 
 	if v := datakit.GetEnv("ENV_K8S_NODE_NAME"); v != "" {
@@ -290,9 +357,18 @@ func (c *Config) LoadEnvs() error {
 		} // GitRepost
 	}
 
-	if err := c.getSinkConfig(); err != nil {
-		l.Fatalf("getSinkConfig failed: %v", err)
+	if err := c.loadSinkEnvs(); err != nil {
+		l.Fatalf("loadSinkEnvs failed: %v", err)
 		return err
+	}
+
+	if v := datakit.GetEnv("ENV_ULIMIT"); v != "" {
+		u, err := strconv.ParseUint(v, 10, 64)
+		if err != nil {
+			l.Warnf("invalid ulimit input through ENV_ULIMIT: %v", err)
+		} else {
+			c.Ulimit = u
+		}
 	}
 
 	return nil

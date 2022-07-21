@@ -12,9 +12,8 @@ import (
 	"testing"
 	"time"
 
-	client "github.com/influxdata/influxdb1-client/v2"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 // 检查是不是开发机，如果不是开发机，则直接退出。开发机上需要定义 LOCAL_UNIT_TEST 环境变量。
@@ -66,12 +65,8 @@ func TestAll(t *testing.T) {
 			assert.Equal(t, tc.expectLoadConfigError, err)
 
 			pts := getTestPoints(t, 41)
-			var newPts []sinkcommon.ISinkPoint
-			for _, v := range pts {
-				newPts = append(newPts, sinkcommon.ISinkPoint(v))
-			}
 
-			err = si.Write(newPts)
+			_, err = si.Write(pts)
 			assert.Equal(t, tc.expectWriteError, err)
 		})
 	}
@@ -79,39 +74,13 @@ func TestAll(t *testing.T) {
 
 //------------------------------------------------------------------------------
 
-type testPoint struct {
-	measurement string
-	tags        map[string]string
-	fields      map[string]interface{}
-	time        time.Time
-}
-
-var _ sinkcommon.ISinkPoint = new(testPoint)
-
-func (p *testPoint) ToPoint() *client.Point {
-	return nil
-}
-
-func (p *testPoint) String() string {
-	return ""
-}
-
-func (p *testPoint) ToJSON() (*sinkcommon.JSONPoint, error) {
-	return &sinkcommon.JSONPoint{
-		Measurement: p.measurement,
-		Tags:        p.tags,
-		Fields:      p.fields,
-		Time:        p.time,
-	}, nil
-}
-
-func getTestPoints(t *testing.T, seed int64) []*testPoint {
+func getTestPoints(t *testing.T, seed int64) []*point.Point {
 	t.Helper()
 
 	rand.Seed(seed)
 
 	mms := []string{"mm1", "mm2", "mm3", "mm4"}
-	var pts []*testPoint
+	var pts []*point.Point
 	for i := 0; i < 4; i++ {
 		regions := []string{"us-west1", "us-west2", "us-west3", "us-east1"}
 		tags := map[string]string{
@@ -125,12 +94,12 @@ func getTestPoints(t *testing.T, seed int64) []*testPoint {
 			"idle": idle,
 			"busy": 100.0 - idle,
 		}
-		pts = append(pts, &testPoint{
-			measurement: mms[i],
-			tags:        tags,
-			fields:      fields,
-			time:        time.Now(),
-		})
+		pt, err := point.NewPoint(mms[i], tags, fields, nil)
+		if err != nil {
+			return nil
+		}
+
+		pts = append(pts, pt)
 	}
 
 	return pts

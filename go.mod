@@ -16,7 +16,7 @@ require (
 	github.com/containerd/cgroups v1.0.1
 	github.com/containerd/containerd v1.5.5
 	github.com/containerd/typeurl v1.0.2
-	github.com/denisenkom/go-mssqldb v0.10.0
+	github.com/denisenkom/go-mssqldb v0.12.2
 	github.com/dgraph-io/ristretto v0.1.0
 	github.com/didip/tollbooth/v6 v6.1.2
 	github.com/docker/docker v20.10.8+incompatible
@@ -114,7 +114,10 @@ require (
 	k8s.io/metrics v0.20.5
 )
 
-require github.com/DataDog/gopsutil v1.1.0
+require (
+	github.com/DataDog/gopsutil v1.1.0
+	github.com/gin-contrib/timeout v0.0.3
+)
 
 require (
 	github.com/DataDog/sketches-go v1.4.1 // indirect
@@ -152,7 +155,6 @@ require (
 	github.com/florianl/go-tc v0.2.0 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/gin-contrib/timeout v0.0.3 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-logr/logr v1.2.2 // indirect
@@ -168,6 +170,7 @@ require (
 	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe // indirect
+	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/google/go-cmp v0.5.7 // indirect
@@ -214,8 +217,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/term v1.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/reiver/go-oi v1.0.0 // indirect
-	github.com/reiver/go-telnet v0.0.0-20180421082511-9ff0b2ab096e // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/rs/xid v1.4.0 // indirect
@@ -223,6 +224,8 @@ require (
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
+	github.com/tidwall/tinylru v1.1.0 // indirect
+	github.com/tidwall/wal v1.1.7 // indirect
 	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	github.com/tklauser/numcpus v0.3.0 // indirect
 	github.com/vishvananda/netlink v1.1.1-0.20210508154835-66ddd91f7ddd // indirect

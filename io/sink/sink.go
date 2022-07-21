@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkinfluxdb"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinklogstash"
@@ -23,27 +24,27 @@ import (
 
 //----------------------------------------------------------------------
 
-func Write(category string, pts []sinkcommon.ISinkPoint) error {
+func Write(category string, pts []*point.Point) (*sinkcommon.Failed, error) {
 	if !isInitSucceeded {
-		return fmt.Errorf("not inited")
+		return nil, fmt.Errorf("not inited")
 	}
 
 	if impls, ok := sinkcommon.SinkCategoryMap[category]; ok {
 		var errKeep error
 		for _, v := range impls {
-			if err := v.Write(pts); err != nil {
+			if _, err := v.Write(pts); err != nil { // NOTE: sinker send fail not cached
 				errKeep = err
 			}
 		}
-		return errKeep
+		return nil, errKeep
 	} else if defaultCallPtr != nil {
 		return defaultCallPtr(category, pts)
 	}
 
-	return &sinkcommon.SinkUnsupportError{}
+	return nil, &sinkcommon.SinkUnsupportError{}
 }
 
-func Init(sincfg []map[string]interface{}, defCall func(string, []sinkcommon.ISinkPoint) error) error {
+func Init(sincfg []map[string]interface{}, defCall func(string, []*point.Point) (*sinkcommon.Failed, error)) error {
 	var err error
 	onceInit.Do(func() {
 		l = logger.SLogger(packageName)
@@ -89,7 +90,7 @@ var (
 	l               = logger.DefaultSLogger(packageName)
 	onceInit        sync.Once
 	isInitSucceeded bool
-	defaultCallPtr  func(string, []sinkcommon.ISinkPoint) error
+	defaultCallPtr  func(string, []*point.Point) (*sinkcommon.Failed, error)
 )
 
 func polymerizeCategorys(sincfg []map[string]interface{}) error {

@@ -26,7 +26,7 @@ import (
 	"github.com/jessevdk/go-flags"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/net/context/ctxhttp"
 )
@@ -145,7 +145,7 @@ func main() {
 	}
 
 	// disable global-host-tags and enable global-env-tags, oracle inputs is a election input
-	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle&ignore_global_host_tags=true&global_env_tags=true", opt.DatakitHTTPPort)
+	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle&ignore_global_host_tags=true&global_env_tags=true", opt.DatakitHTTPPort) //nolint:lll
 
 	if err := logger.InitRoot(&logger.Option{
 		Path:  opt.Log,
@@ -207,7 +207,6 @@ func (m *monitor) handle(ec *ExecCfg) {
 
 func handleResponse(m *monitor, metricName string, tagsKeys []string, response []map[string]interface{}) error {
 	lines := [][]byte{}
-
 	if metricName == "oracle_system" {
 		return handleSystem(m, metricName, response)
 	}
@@ -234,7 +233,7 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 			continue
 		}
 
-		pt, err := io.NewPoint(metricName, tags, item, inputs.OptElectionMetric)
+		pt, err := point.NewPoint(metricName, tags, item, inputs.OptElectionMetric)
 		if err != nil {
 			l.Error("NewPoint(): %s", err.Error())
 			return err
@@ -285,7 +284,7 @@ func handleSystem(m *monitor, metricName string, response []map[string]interface
 		return nil
 	}
 
-	pt, err := io.NewPoint(metricName, tags, fields, inputs.OptElectionMetric)
+	pt, err := point.NewPoint(metricName, tags, fields, inputs.OptElectionMetric)
 	if err != nil {
 		l.Error("NewPoint(): %s", err.Error())
 		return err

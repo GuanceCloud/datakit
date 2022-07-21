@@ -30,7 +30,7 @@ type SpansStorage struct {
 	CustomerTags []string
 	GlobalTags   map[string]string
 	traceMu      sync.Mutex
-	rsm          []DKtrace.DatakitTrace
+	rsm          DKtrace.DatakitTraces
 	metricMu     sync.Mutex
 	otelMetrics  []*OtelResourceMetric
 	Count        int
@@ -43,7 +43,7 @@ func NewSpansStorage() *SpansStorage {
 	l = logger.SLogger(inputName)
 	return &SpansStorage{
 		AfterGather: DKtrace.NewAfterGather(),
-		rsm:         make([]DKtrace.DatakitTrace, 0),
+		rsm:         make(DKtrace.DatakitTraces, 0),
 		otelMetrics: make([]*OtelResourceMetric, 0),
 		max:         make(chan int, 1),
 		stop:        make(chan struct{}, 1),
@@ -75,12 +75,13 @@ func (s *SpansStorage) AddMetric(rss []*OtelResourceMetric) {
 }
 
 // GetDKTrace  returns the stored resource spans.
-func (s *SpansStorage) GetDKTrace() []DKtrace.DatakitTrace {
+func (s *SpansStorage) GetDKTrace() DKtrace.DatakitTraces {
 	s.traceMu.Lock()
 	defer s.traceMu.Unlock()
-	rss := make([]DKtrace.DatakitTrace, 0, len(s.rsm))
+	rss := make(DKtrace.DatakitTraces, 0, len(s.rsm))
 	rss = append(rss, s.rsm...)
 	s.rsm = s.rsm[:0]
+
 	return rss
 }
 
@@ -117,10 +118,9 @@ func (s *SpansStorage) Run() {
 // feedAll : trace -> io.trace  |  metric -> io.
 func (s *SpansStorage) feedAll() {
 	traces := s.GetDKTrace()
-	for _, trace := range traces {
-		s.AfterGather.Run(inputName, trace, false)
-	}
+	s.AfterGather.Run(inputName, traces, false)
 	l.Debugf("send %d trace to io.trace", len(traces))
+
 	if metrics := s.GetDKMetric(); len(metrics) > 0 {
 		pts := makePoints(metrics)
 		err := dkio.Feed(inputName, datakit.Metric, pts, &dkio.Option{HighFreq: true})

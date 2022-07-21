@@ -13,21 +13,22 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 var (
-	once                                                                            = sync.Once{}
-	dkioFeed func(name, category string, pts []*dkio.Point, opt *dkio.Option) error = dkio.Feed
+	once                                                                             = sync.Once{}
+	dkioFeed func(name, category string, pts []*point.Point, opt *dkio.Option) error = dkio.Feed
 )
 
 type AfterGatherHandler interface {
-	Run(inputName string, dktrace DatakitTrace, strikMod bool)
+	Run(inputName string, dktraces DatakitTraces, strikMod bool)
 }
 
-type AfterGatherFunc func(inputName string, dktrace DatakitTrace, strikMod bool)
+type AfterGatherFunc func(inputName string, dktraces DatakitTraces, strikMod bool)
 
-func (ag AfterGatherFunc) Run(inputName string, dktrace DatakitTrace, strikMod bool) {
-	ag(inputName, dktrace, strikMod)
+func (ag AfterGatherFunc) Run(inputName string, dktraces DatakitTraces, strikMod bool) {
+	ag(inputName, dktraces, strikMod)
 }
 
 // CalculatorFunc is func type for calculation, statistics, etc
@@ -68,32 +69,45 @@ func (aga *AfterGather) AppendFilter(filter ...FilterFunc) {
 	aga.filters = append(aga.filters, filter...)
 }
 
-func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod bool) {
+func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod bool) {
 	once.Do(func() {
 		log = logger.SLogger(packageName)
 	})
 
-	if len(dktrace) == 0 {
-		log.Warnf("wrong parameters for AfterGather.Run(dktrace:%v)", dktrace)
+	if len(dktraces) == 0 {
+		log.Warnf("wrong parameters for AfterGather.Run(dktrace:%v)", dktraces)
 
 		return
 	}
 
-	for i := range aga.calculators {
-		aga.calculators[i](dktrace)
-	}
+	// for i := range aga.calculators {
+	// 	for k := range dktraces {
+	// 		aga.calculators[i](dktraces[k])
+	// 	}
+	// }
 
-	var skip bool
-	for i := range aga.filters {
-		if dktrace, skip = aga.filters[i](dktrace); skip {
-			break
+	var afterFilters DatakitTraces
+	if len(aga.filters) == 0 {
+		afterFilters = dktraces
+	} else {
+		for k := range dktraces {
+			var temp DatakitTrace
+			for i := range aga.filters {
+				var skip bool
+				if temp, skip = aga.filters[i](dktraces[k]); skip {
+					break
+				}
+			}
+			if temp != nil {
+				afterFilters = append(afterFilters, temp)
+			}
 		}
 	}
-	if len(dktrace) == 0 {
+	if len(afterFilters) == 0 {
 		return
 	}
 
-	if pts := BuildPointsBatch(dktrace, stricktMod); len(pts) != 0 {
+	if pts := BuildPointsBatch(afterFilters, stricktMod); len(pts) != 0 {
 		if err := dkioFeed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
 			log.Errorf("io feed points error: %s", err.Error())
 		}
@@ -103,13 +117,15 @@ func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod b
 }
 
 // BuildPointsBatch builds points from whole trace.
-func BuildPointsBatch(dktrace DatakitTrace, strict bool) []*dkio.Point {
-	var pts []*dkio.Point
-	for i := range dktrace {
-		if pt, err := BuildPoint(dktrace[i], strict); err != nil {
-			log.Errorf("build point error: %s", err.Error())
-		} else {
-			pts = append(pts, pt)
+func BuildPointsBatch(dktraces DatakitTraces, strict bool) []*point.Point {
+	var pts []*point.Point
+	for i := range dktraces {
+		for j := range dktraces[i] {
+			if pt, err := BuildPoint(dktraces[i][j], strict); err != nil {
+				log.Errorf("build point error: %s", err.Error())
+			} else {
+				pts = append(pts, pt)
+			}
 		}
 	}
 
@@ -117,7 +133,7 @@ func BuildPointsBatch(dktrace DatakitTrace, strict bool) []*dkio.Point {
 }
 
 // BuildPoint builds point from DatakitSpan.
-func BuildPoint(dkspan *DatakitSpan, strict bool) (*dkio.Point, error) {
+func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 	if dkspan.Service == "" {
 		dkspan.Service = UnknowServiceName(dkspan)
 	}
@@ -167,7 +183,7 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*dkio.Point, error) {
 		fields[k] = v
 	}
 
-	return dkio.NewPoint(dkspan.Source, tags, fields, &dkio.PointOption{
+	return point.NewPoint(dkspan.Source, tags, fields, &point.PointOption{
 		Time:     time.Unix(0, dkspan.Start),
 		Category: datakit.Tracing,
 		Strict:   strict,

@@ -12,10 +12,11 @@ import (
 	"time"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 func TestAfterGather(t *testing.T) {
-	dkioFeed = func(name, category string, pts []*dkio.Point, opt *dkio.Option) error { return nil }
+	dkioFeed = func(name, category string, pts []*point.Point, opt *dkio.Option) error { return nil }
 
 	StartTracingStatistic()
 
@@ -44,7 +45,7 @@ func TestAfterGather(t *testing.T) {
 			for i := 0; i < 100; i++ {
 				trace := randDatakitTrace(t, 10, randService(_services...), randResource(_resources...))
 				parentialize(trace)
-				afterGather.Run("test_after_gather", trace, false)
+				afterGather.Run("test_after_gather", DatakitTraces{trace}, false)
 			}
 		}()
 	}
@@ -64,6 +65,6 @@ func TestBuildPoint(t *testing.T) {
 
 func TestBuildPointsBatch(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		BuildPointsBatch(randDatakitTrace(t, 10), false)
+		BuildPointsBatch(DatakitTraces{randDatakitTrace(t, 10)}, false)
 	}
 }

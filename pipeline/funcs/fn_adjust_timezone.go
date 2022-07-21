@@ -13,25 +13,36 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
+const defaultMinuteDelta = int64(2)
+
 func AdjustTimezoneChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
-	if len(funcExpr.Param) != 1 {
-		return fmt.Errorf("func `%s' expected 2 args", funcExpr.Name)
+
+	if len(funcExpr.Param) < 1 {
+		return fmt.Errorf("func `%s' expected 1 or 2 args", funcExpr.Name)
 	}
+
 	switch funcExpr.Param[0].(type) {
 	case *parser.Identifier, *parser.AttrExpr:
 	default:
 		return fmt.Errorf("param key expect Identifier or AttrExpr, got `%s'",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
+
+	if len(funcExpr.Param) == 2 {
+		switch funcExpr.Param[1].(type) {
+		case *parser.NumberLiteral:
+		default:
+			return fmt.Errorf("param key expect NumberLiteral, got '%s' ",
+				reflect.TypeOf(funcExpr.Param[1].String()))
+		}
+	}
 	return nil
 }
 
 func AdjustTimezone(ng *parser.EngineData, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
-	if len(funcExpr.Param) != 1 {
-		return fmt.Errorf("func `%s' expected 2 args", funcExpr.Name)
-	}
+
 	var key parser.Node
 	switch v := funcExpr.Param[0].(type) {
 	case *parser.Identifier, *parser.AttrExpr:
@@ -40,46 +51,57 @@ func AdjustTimezone(ng *parser.EngineData, node parser.Node) interface{} {
 		return fmt.Errorf("param key expect Identifier or AttrExpr, got `%s'",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
-	cont, err := ng.GetContent(key)
+
+	// 默认允许 +2 分钟误差
+	minuteAllow := defaultMinuteDelta
+	if len(funcExpr.Param) == 2 {
+		switch v := funcExpr.Param[1].(type) {
+		case *parser.NumberLiteral:
+			if v.IsInt {
+				minuteAllow = v.Int
+			} else {
+				minuteAllow = int64(v.Float)
+			}
+		default:
+		}
+	}
+
+	if minuteAllow > 15 {
+		minuteAllow = 15
+	} else if minuteAllow < 0 {
+		minuteAllow = 0
+	}
+
+	minuteAllow *= int64(time.Minute)
+
+	logTS, err := ng.GetContent(key)
 	if err != nil {
 		l.Debug(err)
 		return nil
 	}
-	tn, err := detactTimezone(cont)
-	if err != nil {
-		return err
+
+	switch cont := logTS.(type) {
+	case int64:
+		cont = detectTimezone(cont, time.Now().UnixNano(), minuteAllow)
+		if err := ng.SetContent(key, cont); err != nil {
+			l.Debug(err)
+			return nil
+		}
+	default:
+		return fmt.Errorf("param value expect int64, got `%s`", reflect.TypeOf(cont))
 	}
-	if err := ng.SetContent(key, tn); err != nil {
-		l.Warn(err)
-		return nil
-	}
+
 	return nil
 }
 
-const (
-	timeHourNanosec  = int64(time.Hour)
-	time45MinNanosec = int64(time.Minute * 45)
-)
+func detectTimezone(logTS, nowTS, minuteDuration int64) int64 {
+	logTS -= (logTS/int64(time.Hour) - nowTS/int64(time.Hour)) * int64(time.Hour)
 
-func detactTimezone(cont interface{}) (int64, error) {
-	switch cont := cont.(type) {
-	case int64:
-		tn := time.Now().UnixNano()
-		deltaTZ := (tn - cont - (tn%timeHourNanosec - cont%timeHourNanosec)) / timeHourNanosec
-		if (deltaTZ > 24) || (deltaTZ < -24) {
-			return 0, fmt.Errorf("delta time > 24h")
-		}
-
-		// 分钟进位
-		deltaMin := tn%timeHourNanosec - cont%timeHourNanosec
-		if deltaMin >= time45MinNanosec {
-			deltaTZ += 1
-		} else if deltaMin <= -time45MinNanosec {
-			deltaTZ -= 1
-		}
-
-		return cont + deltaTZ*timeHourNanosec, nil
-	default:
-		return 0, fmt.Errorf("param value expect int64, got `%s`", reflect.TypeOf(cont))
+	if logTS-nowTS > minuteDuration {
+		logTS -= int64(time.Hour)
+	} else if logTS-nowTS <= -int64(time.Hour)+minuteDuration {
+		logTS += int64(time.Hour)
 	}
+
+	return logTS
 }

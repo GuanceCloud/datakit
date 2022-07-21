@@ -27,7 +27,8 @@ func TestNewClient(t *testing.T) {
 	}
 
 	// metav1.ListOptions{LabelSelector: "app=nginx"}
-	list, err := cli.getDataKits().List(context.Background(), metav1.ListOptions{})
+	// list, err := cli.getDataKits().List(context.Background(), metav1.ListOptions{})
+	list, err := cli.getPods().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		t.Error(err)
 	}

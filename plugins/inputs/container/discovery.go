@@ -7,13 +7,16 @@ package container
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -21,52 +24,165 @@ const (
 	annotationPromIPIndex = "datakit/prom.instances.ip_index"
 )
 
-func tryRunInput(item *v1.Pod) error {
-	config, ok := item.Annotations[annotationPromExport]
-	if !ok {
-		return nil
-	}
-
-	l.Debugf("k8s export, find prom export, config: %s", config)
-
-	if _, ok := discoveryInputsMap[string(item.UID)]; ok {
-		return nil
-	}
-
-	instance := discoveryInput{
-		id:     string(item.UID),
-		source: item.Name,
-		name:   "prom",
-		config: complatePromConfig(config, item),
-		extraTags: map[string]string{
-			"pod_name":  item.Name,
-			"node_name": item.Spec.NodeName,
-			"namespace": defaultNamespace(item.Namespace),
-		},
-	}
-
-	return instance.run()
+type discovery struct {
+	client        k8sClientX
+	extraTags     map[string]string
+	localNodeName string
 }
 
-var discoveryInputsMap = make(map[string][]inputs.Input)
-
-type discoveryInput struct {
-	id        string
-	source    string
-	name      string
-	config    string
-	extraTags map[string]string
+func newDiscovery(client k8sClientX, extraTags map[string]string) *discovery {
+	return &discovery{
+		client:    client,
+		extraTags: extraTags,
+	}
 }
 
-func (d *discoveryInput) run() error {
-	inputInstances, err := config.LoadSingleConf(d.config, inputs.Inputs)
+func (d *discovery) start() {
+	if d.client == nil {
+		l.Warn("invalid k8s client, input autodiscovery start failed")
+		return
+	}
+
+	localNodeName, err := getLocalNodeName()
 	if err != nil {
-		return err
+		l.Warnf("autodiscovery: %s", err)
+		return
+	}
+	d.localNodeName = localNodeName
+
+	var runners []*discoveryRunner
+
+	updateTicker := time.NewTicker(time.Minute * 3)
+	defer updateTicker.Stop()
+
+	collectTicker := time.NewTicker(time.Second * 1)
+	defer collectTicker.Stop()
+
+	l.Infof("start k8s autodiscovery, node_name is %s", localNodeName)
+
+	for {
+		for _, r := range runners {
+			if time.Since(r.lastTime) < r.runner.GetIntervalDuration() {
+				continue
+			}
+			l.Debugf("autodiscovery: running collect from source %s", r.source)
+			if err := r.runner.RunningCollect(); err != nil {
+				l.Warnf("autodiscovery, source %s collect err %s", r.source, err)
+			}
+			r.lastTime = time.Now()
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("stop k8s autodiscovery")
+			return
+
+		case <-updateTicker.C:
+			// reset runners
+			runners = []*discoveryRunner{}
+			runners = append(runners, d.fetchPromInputs()...)
+			runners = append(runners, d.fetchDatakitCRDInputs()...)
+
+			l.Infof("autodiscovery: update input list, len %d", len(runners))
+
+		case <-collectTicker.C:
+			// nil
+		}
+	}
+}
+
+func (d *discovery) fetchPromInputs() []*discoveryRunner {
+	var res []*discoveryRunner
+
+	opt := metav1.ListOptions{FieldSelector: "spec.nodeName=" + d.localNodeName}
+	list, err := d.client.getPods().List(context.Background(), opt)
+	if err != nil {
+		l.Warnf("autodiscovery: failed to get pods from node_name %s, err: %s, retry in a minute", d.localNodeName, err)
+		return nil
+	}
+
+	for idx := range list.Items {
+		cfg, ok := list.Items[idx].Annotations[annotationPromExport]
+		if !ok {
+			continue
+		}
+
+		runner, err := newDiscoveryRunner(&podMeta{Pod: &list.Items[idx]}, cfg, d.extraTags)
+		if err != nil {
+			l.Warnf("autodiscovery: new runner err %s", err)
+			continue
+		}
+
+		res = append(res, runner...)
+	}
+
+	return res
+}
+
+func (d *discovery) fetchDatakitCRDInputs() []*discoveryRunner {
+	var res []*discoveryRunner
+
+	list, err := d.client.getDataKits().List(context.Background(), metaV1ListOption)
+	if err != nil {
+		// TODO:
+		// 对 error 内容进行子串判定，不再打印这个错误
+		// 避免因为 k8s 客户端没有 datakits resource 而获取失败，频繁报错
+		// “could not find the requested resource” 为 k8s api 实际返回的 error message，可能会因为版本不同而变更
+		if !strings.Contains(err.Error(), "could not find the requested resource") {
+			return nil
+		}
+
+		l.Warnf("autodiscovery: failed to get datakits, err: %s, retry in a minute", err)
+		return nil
+	}
+
+	for _, item := range list.Items {
+		opt := metav1.ListOptions{
+			LabelSelector: "app=" + item.Spec.K8sDeployment,
+			FieldSelector: "spec.nodeName=" + d.localNodeName,
+		}
+
+		pods, err := d.client.getPodsForNamespace(item.Spec.K8sNamespace).List(context.Background(), opt)
+		if err != nil {
+			l.Warnf("autodiscovery: failed to get pods from node_name %s, namespace %s, app %s, err: %s, retry in a minute",
+				d.localNodeName,
+				item.Spec.K8sNamespace,
+				item.Spec.K8sDeployment,
+				err)
+			continue
+		}
+
+		for idx := range pods.Items {
+			runner, err := newDiscoveryRunner(&podMeta{Pod: &pods.Items[idx]}, item.Spec.InputConf, d.extraTags)
+			if err != nil {
+				l.Warnf("autodiscovery: new runner from crd, err: %s", err)
+				continue
+			}
+
+			res = append(res, runner...)
+		}
+	}
+
+	return res
+}
+
+type discoveryRunner struct {
+	source   string
+	runner   inputs.InputOnceRunnable
+	lastTime time.Time
+}
+
+func newDiscoveryRunner(item *podMeta, inputConfig string, extraTags map[string]string) ([]*discoveryRunner, error) {
+	l.Debugf("autodiscovery: new runner, source: %s, config: %s", item.Name, inputConfig)
+
+	inputInstances, err := config.LoadSingleConf(completePromConfig(inputConfig, item), inputs.Inputs)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(inputInstances) != 1 {
-		l.Warnf("discover invalid input conf, only 1 type of input allowed in annotation, but got %d, ignored", len(inputInstances))
-		return nil
+		l.Warnf("autodiscovery: discover invalid input conf, only 1 type of input allowed in annotation, but got %d, ignored", len(inputInstances))
+		return nil, nil
 	}
 
 	var inputList []inputs.Input
@@ -74,80 +190,83 @@ func (d *discoveryInput) run() error {
 		inputList = arr
 		break // get the first iterate elem in the map
 	}
-	// add to inputsMap
-	discoveryInputsMap[d.id] = inputList
 
-	l.Infof("discovery: add %s inputs, source %s, len %d", d.name, d.source, len(inputList))
+	tags := map[string]string{
+		"pod_name":  item.Name,
+		"node_name": item.Spec.NodeName,
+		"namespace": defaultNamespace(item.Namespace),
+	}
+	for k, v := range extraTags {
+		if _, ok := tags[k]; !ok {
+			tags[k] = v
+		}
+	}
 
-	// input run() 不受全局 election 影响
-	// election 模块运行在此之前，且其列表是固定的
-	g := datakit.G("kubernetes-autodiscovery")
+	var res []*discoveryRunner
+
 	for _, ii := range inputList {
 		if ii == nil {
-			l.Debugf("skip non-datakit-input %s", d.name)
+			l.Debugf("skip non-datakit-input %s", item.Name)
+			continue
+		}
+
+		if _, ok := ii.(inputs.InputOnceRunnable); !ok {
+			l.Debugf("unknown input type, unreachable")
 			continue
 		}
 
 		if inp, ok := ii.(inputs.OptionalInput); ok {
-			inp.SetTags(d.extraTags)
+			inp.SetTags(tags)
 		}
 
-		func(source, name string, ii inputs.Input) {
-			g.Go(func(ctx context.Context) error {
-				inputs.AddInput(name+"/"+source, ii)
-				defer inputs.RemoveInput(name+"/"+source, ii)
-
-				l.Infof("discovery: starting input %s (source: %s) ...", name, source)
-				// main
-				ii.Run()
-				l.Infof("discovery: input %s (source: %s) exited", name, source)
-				return nil
-			})
-		}(d.source, d.name, ii)
+		res = append(res, &discoveryRunner{
+			runner:   ii.(inputs.InputOnceRunnable), // 前面有断言判断
+			source:   item.Name,
+			lastTime: time.Now(),
+		})
 	}
 
-	return nil
+	return res, nil
 }
 
-func complatePromConfig(config string, podObj *v1.Pod) string {
-	podIP := podObj.Status.PodIP
+func completePromConfig(config string, item *podMeta) string {
+	podIP := item.Status.PodIP
 
+	// 从 ip 列表中使用 index 获取 ip
 	func() {
-		indexStr, ok := podObj.Annotations[annotationPromIPIndex]
+		indexStr, ok := item.Annotations[annotationPromIPIndex]
 		if !ok {
 			return
 		}
 		idx, err := strconv.Atoi(indexStr)
 		if err != nil {
-			l.Warnf("annotation prom.ip_index parse err: %s", err)
+			l.Warnf("autodiscovery: source %s annotation prom.ip_index parse err: %s", item.Name, err)
 			return
 		}
-		if !(0 <= idx && idx < len(podObj.Status.PodIPs)) {
-			l.Warnf("annotation prom.ip_index %d outrange, len(PodIPs) %d", idx, len(podObj.Status.PodIPs))
+		if !(0 <= idx && idx < len(item.Status.PodIPs)) {
+			l.Warnf("autodiscovery: source %s annotation prom.ip_index %d outrange, len(PodIPs) %d", item.Name, idx, len(item.Status.PodIPs))
 			return
 		}
-		podIP = podObj.Status.PodIPs[idx].IP
+		podIP = item.Status.PodIPs[idx].IP
 	}()
 
 	config = strings.ReplaceAll(config, "$IP", podIP)
-	config = strings.ReplaceAll(config, "$NAMESPACE", podObj.Namespace)
-	config = strings.ReplaceAll(config, "$PODNAME", podObj.Name)
+	config = strings.ReplaceAll(config, "$NAMESPACE", item.Namespace)
+	config = strings.ReplaceAll(config, "$PODNAME", item.Name)
 
 	return config
 }
 
-func terminatingDiscoveryInput() {
-	l.Infof("terminating %d inputs", len(discoveryInputsMap))
-	for id, inputList := range discoveryInputsMap {
-		for _, ii := range inputList {
-			if ii == nil {
-				continue
-			}
-			if inp, ok := ii.(inputs.InputV2); ok {
-				inp.Terminate()
-			}
-		}
-		delete(discoveryInputsMap, id)
-		l.Debugf("terminating inputs, pod_id %s, len %d", id, len(inputList))
+func getLocalNodeName() (string, error) {
+	var e string
+	if os.Getenv("NODE_NAME") != "" {
+		e = os.Getenv("NODE_NAME")
 	}
+	if os.Getenv("ENV_K8S_NODE_NAME") != "" {
+		e = os.Getenv("ENV_K8S_NODE_NAME")
+	}
+	if e != "" {
+		return e, nil
+	}
+	return "", fmt.Errorf("invalid ENV_K8S_NODE_NAME environment, cannot be empty")
 }

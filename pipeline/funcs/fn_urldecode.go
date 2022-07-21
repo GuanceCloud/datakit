@@ -50,7 +50,7 @@ func URLDecode(ng *parser.EngineData, node parser.Node) interface{} {
 	if v, err := UrldecodeHandle(cont); err != nil {
 		return err
 	} else if err := ng.SetContent(key, v); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 

@@ -101,21 +101,21 @@ func GroupIn(ng *parser.EngineData, node parser.Node) interface{} {
 		case *parser.NumberLiteral:
 			if v.IsInt {
 				if err := ng.SetContent(key, v.Int); err != nil {
-					l.Warn(err)
+					l.Debug(err)
 					return nil
 				}
 			} else if err := ng.SetContent(key, v.Float); err != nil {
-				l.Warn(err)
+				l.Debug(err)
 				return nil
 			}
 		case *parser.StringLiteral:
 			if err := ng.SetContent(key, v.Val); err != nil {
-				l.Warn(err)
+				l.Debug(err)
 				return nil
 			}
 		case *parser.BoolLiteral:
 			if err := ng.SetContent(key, v.Val); err != nil {
-				l.Warn(err)
+				l.Debug(err)
 				return nil
 			}
 		}
@@ -126,21 +126,21 @@ func GroupIn(ng *parser.EngineData, node parser.Node) interface{} {
 		case *parser.NumberLiteral:
 			if v.IsInt {
 				if err := ng.SetContent(newkey, v.Int); err != nil {
-					l.Warn(err)
+					l.Debug(err)
 					return nil
 				}
 			} else if err := ng.SetContent(newkey, v.Float); err != nil {
-				l.Warn(err)
+				l.Debug(err)
 				return nil
 			}
 		case *parser.StringLiteral:
 			if err := ng.SetContent(newkey, v.Val); err != nil {
-				l.Warn(err)
+				l.Debug(err)
 				return nil
 			}
 		case *parser.BoolLiteral:
 			if err := ng.SetContent(newkey, v.Val); err != nil {
-				l.Warn(err)
+				l.Debug(err)
 				return nil
 			}
 		}

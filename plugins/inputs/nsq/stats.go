@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -86,8 +86,8 @@ func (s *stats) feedCache(host string, data *DataStats) {
 	}
 }
 
-func (s *stats) makePoint(addTags map[string]string) ([]*io.Point, error) {
-	var pts []*io.Point
+func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
+	var pts []*point.Point
 	var lastErr error
 
 	for topic, c := range s.topicCache {
@@ -101,7 +101,7 @@ func (s *stats) makePoint(addTags map[string]string) ([]*io.Point, error) {
 			}
 			fields := channelStats.ToMap()
 
-			pt, err := io.NewPoint("nsq_topics", tags, fields, inputs.OptElectionMetric)
+			pt, err := point.NewPoint("nsq_topics", tags, fields, inputs.OptElectionMetric)
 			if err != nil {
 				lastErr = err
 				continue
@@ -119,7 +119,7 @@ func (s *stats) makePoint(addTags map[string]string) ([]*io.Point, error) {
 		}
 		fields := n.ToMap()
 
-		pt, err := io.NewPoint("nsq_nodes", tags, fields, inputs.OptElectionMetric)
+		pt, err := point.NewPoint("nsq_nodes", tags, fields, inputs.OptElectionMetric)
 		if err != nil {
 			lastErr = err
 			continue

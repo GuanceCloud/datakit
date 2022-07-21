@@ -24,7 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -192,7 +192,7 @@ func (mh *minHeap) getTop() *profileBase {
 type profileBase struct {
 	profileID string
 	birth     time.Time
-	point     *dkio.Point
+	point     *point.Point
 }
 
 func newProfileCache(initCap int, maxCap int) *profileCache {
@@ -216,7 +216,7 @@ func newProfileCache(initCap int, maxCap int) *profileCache {
 	}
 }
 
-func (pc *profileCache) push(profileID string, birth time.Time, point *dkio.Point) {
+func (pc *profileCache) push(profileID string, birth time.Time, point *point.Point) {
 	pc.lock.Lock()
 	defer pc.lock.Unlock()
 
@@ -240,7 +240,7 @@ func (pc *profileCache) push(profileID string, birth time.Time, point *dkio.Poin
 	pc.heap.push(newPB)
 }
 
-func (pc *profileCache) drop(profileID string) *dkio.Point {
+func (pc *profileCache) drop(profileID string) *point.Point {
 	pc.lock.Lock()
 	defer pc.lock.Unlock()
 

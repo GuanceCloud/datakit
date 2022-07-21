@@ -153,7 +153,7 @@ func NewConstEditor(offsetGuess *OffsetGuessC) []manager.ConstantEditor {
 }
 
 // GuessOffset guess the offset of the structure field, such as tcp_sock.srtt_us.
-func GuessOffset(ebpfMapGuess *ebpf.Map, guessed *OffsetGuessC) (*OffsetGuessC, error) {
+func GuessOffset(ebpfMapGuess *ebpf.Map, guessed *OffsetGuessC, ipv6Disabled bool) (*OffsetGuessC, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	ctx, cancel := context.WithCancel(context.Background())
@@ -219,18 +219,28 @@ func GuessOffset(ebpfMapGuess *ebpf.Map, guessed *OffsetGuessC) (*OffsetGuessC, 
 		if err != nil {
 			return nil, err
 		}
-		err = guessTCP6(serverAddr6, conninfo6, ebpfMapGuess, &offsetCheck, &status)
-		if err != nil {
-			return nil, err
+
+		if !ipv6Disabled {
+			err = guessTCP6(serverAddr6, conninfo6, ebpfMapGuess, &offsetCheck, &status)
+			if err != nil {
+				return nil, err
+			}
 		}
+
 		err = guessUDP4(serverAddrUDP, conninfoUDP, ebpfMapGuess, &offsetCheck, &status)
 		if err != nil {
 			return nil, err
 		}
 
+		if !ipv6Disabled {
+			if offsetCheck.skV6DaddrOk <= MINSUCCESS {
+				continue
+			}
+		}
+
 		if offsetCheck.tcpSkSrttUsOk > MINSUCCESS && offsetCheck.tcpSkMdevUsOk > MINSUCCESS &&
 			offsetCheck.inetSportOk > MINSUCCESS && offsetCheck.skDportOk > MINSUCCESS &&
-			offsetCheck.skDaddrOk > MINSUCCESS && offsetCheck.skV6DaddrOk > MINSUCCESS &&
+			offsetCheck.skDaddrOk > MINSUCCESS &&
 			offsetCheck.skFamilyOk > MINSUCCESS && offsetCheck.flowi4DaddrOk > MINSUCCESS &&
 			offsetCheck.flowi4DportOk > MINSUCCESS && offsetCheck.flowi4SaddrOk > MINSUCCESS &&
 			offsetCheck.netnsInumOk > MINSUCCESS && offsetCheck.sknetOk > MINSUCCESS &&
@@ -312,6 +322,7 @@ func guessTCP4(serverAddr string, conninfo Conninfo, ebpfMapGuess *ebpf.Map,
 	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_SK_DADDR)
 	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_NS_COMMON_INUM)
 	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_SOCKET_SK)
+	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_SK_FAMILY)
 
 	copyOffset(statusAct, status)
 	if status.offset_tcp_sk_srtt_us > MAXOFFSET ||
@@ -321,7 +332,8 @@ func guessTCP4(serverAddr string, conninfo Conninfo, ebpfMapGuess *ebpf.Map,
 		status.offset_socket_sk > MAXOFFSET ||
 		status.offset_sk_daddr > MAXOFFSET ||
 		status.offset_sk_net > MAXOFFSET ||
-		status.offset_ns_common_inum > MAXOFFSET {
+		status.offset_ns_common_inum > MAXOFFSET ||
+		status.offset_sk_family > MAXOFFSET {
 		l.Error(status)
 		return fmt.Errorf("guess tcp4: offset > MAXOFFSET")
 	}

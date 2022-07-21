@@ -124,14 +124,14 @@ func (dw *DataWayDefault) GetTokens() []string {
 	return resToken
 }
 
+var tokenFormatMap = map[string]int{
+	"token_": 32,
+	"tkn_":   32,
+	"tokn_":  24,
+}
+
 func (dw *DataWayDefault) CheckToken(token string) (err error) {
 	err = fmt.Errorf("token invalid format")
-
-	tokenFormatMap := map[string]int{
-		"token_": 32,
-		"tkn_":   32,
-		"tokn_":  24,
-	}
 
 	parts := strings.Split(token, "_")
 

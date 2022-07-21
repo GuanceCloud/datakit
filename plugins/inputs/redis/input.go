@@ -274,7 +274,6 @@ func (i *Input) RunPipeline() {
 
 func (i *Input) Run() {
 	l = logger.SLogger("redis")
-	i.hashMap = make([][16]byte, i.SlowlogMaxLen)
 
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
@@ -297,6 +296,7 @@ func (i *Input) Run() {
 			break
 		}
 	}
+	i.hashMap = make([][16]byte, i.SlowlogMaxLen)
 
 	i.collectors = []func() ([]inputs.Measurement, error){
 		i.collectInfoMeasurement,

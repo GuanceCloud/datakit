@@ -19,8 +19,8 @@ import (
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
-func (s *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) []itrace.DatakitTrace {
-	dkTraces := make([]itrace.DatakitTrace, 0)
+func (s *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) itrace.DatakitTraces {
+	dktraces := make(itrace.DatakitTraces, 0)
 	spanIDs, parentIDs := getSpanIDsAndParentIDs(rss)
 	for _, spans := range rss {
 		ls := spans.GetInstrumentationLibrarySpans()
@@ -65,10 +65,11 @@ func (s *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) []itrace.DatakitT
 					dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
 				}
 			}
-			dkTraces = append(dkTraces, dktrace)
+			dktraces = append(dktraces, dktrace)
 		}
 	}
-	return dkTraces
+
+	return dktraces
 }
 
 func getSpanIDsAndParentIDs(rss []*tracepb.ResourceSpans) (map[string]bool, map[string]bool) {
@@ -225,6 +226,7 @@ func (dt *dkTags) getAttributeVal(keyName string) string {
 	if keyName == otelResourceServiceKey {
 		return defaultServiceVal // set default to 'service.name'
 	}
+
 	return ""
 }
 

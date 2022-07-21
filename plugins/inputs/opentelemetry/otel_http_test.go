@@ -255,40 +255,40 @@ func GZipBytes(data []byte) []byte {
 	return input.Bytes()
 }
 
-func Test_readGzipBody(t *testing.T) {
-	type args struct {
-		body io.Reader
-	}
-	var in bytes.Buffer
-	bts := GZipBytes([]byte{'a', 'b', 'c', 'd'})
-	in.Write(bts)
+// func Test_readGzipBody(t *testing.T) {
+// 	type args struct {
+// 		body io.Reader
+// 	}
+// 	var in bytes.Buffer
+// 	bts := GZipBytes([]byte{'a', 'b', 'c', 'd'})
+// 	in.Write(bts)
 
-	tests := []struct {
-		name    string
-		args    args
-		want    []byte
-		wantErr bool
-	}{
-		{
-			name:    "case",
-			args:    args{body: &in},
-			want:    []byte{'a', 'b', 'c', 'd'},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := readGzipBody(tt.args.body)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("readGzipBody() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("readGzipBody() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+// 	tests := []struct {
+// 		name    string
+// 		args    args
+// 		want    []byte
+// 		wantErr bool
+// 	}{
+// 		{
+// 			name:    "case",
+// 			args:    args{body: &in},
+// 			want:    []byte{'a', 'b', 'c', 'd'},
+// 			wantErr: false,
+// 		},
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			got, err := readGzipBody(tt.args.body)
+// 			if (err != nil) != tt.wantErr {
+// 				t.Errorf("readGzipBody() error = %v, wantErr %v", err, tt.wantErr)
+// 				return
+// 			}
+// 			if !reflect.DeepEqual(got, tt.want) {
+// 				t.Errorf("readGzipBody() got = %v, want %v", got, tt.want)
+// 			}
+// 		})
+// 	}
+// }
 
 func Test_unmarshalMetricsRequest(t *testing.T) {
 	type args struct {

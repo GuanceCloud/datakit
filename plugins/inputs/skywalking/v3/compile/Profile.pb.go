@@ -103,7 +103,7 @@ func (x *ProfileTaskCommandQuery) GetLastCommandTime() int64 {
 	return 0
 }
 
-// dumped thread snapshot
+// dumped thread snapshot.
 type ThreadSnapshot struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -236,7 +236,7 @@ func (x *ThreadStack) GetCodeSignatures() []string {
 	return nil
 }
 
-// profile task finished report
+// profile task finished report.
 type ProfileTaskFinishReport struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

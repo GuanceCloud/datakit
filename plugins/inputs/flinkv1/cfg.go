@@ -6,7 +6,7 @@
 package flinkv1
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -22,12 +22,12 @@ type TaskmanagerMeasurement struct {
 	fields map[string]interface{}
 }
 
-func (mm *JobmanagerMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(mm.name, mm.tags, mm.fields, inputs.OptElectionMetric)
+func (mm *JobmanagerMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(mm.name, mm.tags, mm.fields, inputs.OptElectionMetric)
 }
 
-func (mm *TaskmanagerMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(mm.name, mm.tags, mm.fields, inputs.OptElectionMetric)
+func (mm *TaskmanagerMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(mm.name, mm.tags, mm.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll

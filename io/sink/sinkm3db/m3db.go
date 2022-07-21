@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
@@ -105,7 +106,7 @@ func (s *SinkM3db) LoadConfig(mConf map[string]interface{}) error {
 	return nil
 }
 
-func (s *SinkM3db) Write(pts []sinkcommon.ISinkPoint) error {
+func (s *SinkM3db) Write(pts []*point.Point) (*sinkcommon.Failed, error) {
 	ctx := context.Background()
 	var writeOpts WriteOptions
 	ts := pointToPromData(pts)
@@ -114,13 +115,14 @@ func (s *SinkM3db) Write(pts []sinkcommon.ISinkPoint) error {
 		result, err := s.client.WriteProto(ctx, prompbReq, writeOpts)
 		if err != nil {
 			l.Errorf("write err=%v", err)
-			return err
+			return nil, err
 		}
 		l.Debugf("Status code: %d", result.StatusCode) // 此处使用 debug 级别日志，方便查询问题
 	} else {
 		l.Debugf("from points to make PromWriteRequest data, len is 0")
 	}
-	return nil
+
+	return nil, nil
 }
 
 func (s *SinkM3db) GetInfo() *sinkcommon.SinkInfo {
@@ -131,7 +133,7 @@ func (s *SinkM3db) GetInfo() *sinkcommon.SinkInfo {
 	}
 }
 
-func pointToPromData(pts []sinkcommon.ISinkPoint) []*TimeSeries {
+func pointToPromData(pts []*point.Point) []*TimeSeries {
 	tslist := make([]*TimeSeries, 0)
 	for _, pt := range pts {
 		jsonPrint, err := pt.ToJSON()

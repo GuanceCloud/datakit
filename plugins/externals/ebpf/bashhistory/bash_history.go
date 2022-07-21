@@ -10,17 +10,15 @@ import (
 	"math"
 	"os"
 	"os/user"
-	"regexp"
 	"time"
 	"unsafe"
 
 	"github.com/DataDog/ebpf/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/sysmonitor"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/sys/unix"
 )
@@ -35,8 +33,8 @@ const srcNameM = "bash"
 var (
 	l = logger.DefaultSLogger(srcNameM)
 
-	regexpReadline  = regexp.MustCompile(`libreadline.so`)
-	sectionReadline = "uretprobe/readline"
+	// regexpReadline  = regexp.MustCompile(`libreadline.so`)
+	// sectionReadline = "uretprobe/readline"
 )
 
 func SetLogger(nl *logger.Logger) {
@@ -80,14 +78,14 @@ func NewBashManger(bashReadlineEventHandler func(cpu int, data []byte,
 }
 
 type BashTracer struct {
-	ch     chan *io.Point
+	ch     chan *point.Point
 	stopCh chan struct{}
 	gTags  map[string]string
 }
 
 func NewBashTracer() *BashTracer {
 	return &BashTracer{
-		ch:     make(chan *io.Point, 32),
+		ch:     make(chan *point.Point, 32),
 		stopCh: make(chan struct{}),
 	}
 }
@@ -120,7 +118,7 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 	mFields["message"] = fmt.Sprintf("%s pid:`%s` user:`%s` cmd:`%s`",
 		time.Now().Format(time.RFC3339), mFields["pid"], mFields["user"], mFields["cmd"])
 
-	pt, err := io.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
+	pt, err := point.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
 	if err != nil {
 		l.Error(err)
 		return
@@ -133,7 +131,7 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 
 func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string, interval time.Duration) {
 	ticker := time.NewTicker(interval)
-	cache := []*io.Point{}
+	cache := []*point.Point{}
 	for {
 		select {
 		case <-ticker.C:
@@ -141,7 +139,7 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string
 				if err := dkout.FeedMeasurement(datakitPostURL, cache); err != nil {
 					l.Error(err)
 				}
-				cache = make([]*io.Point, 0)
+				cache = make([]*point.Point, 0)
 			}
 		case pt := <-tracer.ch:
 			cache = append(cache, pt)
@@ -149,7 +147,7 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string
 				if err := dkout.FeedMeasurement(datakitPostURL, cache); err != nil {
 					l.Error(err)
 				}
-				cache = make([]*io.Point, 0)
+				cache = make([]*point.Point, 0)
 			}
 		case <-tracer.stopCh:
 			return
@@ -173,36 +171,36 @@ func (tracer *BashTracer) Run(ctx context.Context, gTags map[string]string,
 		return err
 	}
 
-	rules := []sysmonitor.UprobeRegRule{
-		{
-			Re: regexpReadline,
-			Register: func(s string) error {
-				l.Info("AddHook: ", s)
-				if err := bpfManger.AddHook("", manager.Probe{
-					UID:        s,
-					Section:    sectionReadline,
-					BinaryPath: s,
-				}); err != nil {
-					l.Error(err)
-				}
-				return nil
-			},
-			UnRegister: func(s string) error {
-				l.Info("DetachHook: ", s)
-				if err := bpfManger.DetachHook(sectionReadline, s); err != nil {
-					l.Error(err)
-				}
-				return nil
-			},
-		},
-	}
+	// rules := []sysmonitor.UprobeRegRule{
+	// 	{
+	// 		Re: regexpReadline,
+	// 		Register: func(s string) error {
+	// 			l.Info("AddHook: ", s)
+	// 			if err := bpfManger.AddHook("", manager.Probe{
+	// 				UID:        s,
+	// 				Section:    sectionReadline,
+	// 				BinaryPath: s,
+	// 			}); err != nil {
+	// 				l.Error(err)
+	// 			}
+	// 			return nil
+	// 		},
+	// 		UnRegister: func(s string) error {
+	// 			l.Info("DetachHook: ", s)
+	// 			if err := bpfManger.DetachHook(sectionReadline, s); err != nil {
+	// 				l.Error(err)
+	// 			}
+	// 			return nil
+	// 		},
+	// 	},
+	// }
 
-	r, err := sysmonitor.NewUprobeDyncLibRegister(rules)
-	if err != nil {
-		return err
-	}
-	r.ScanAndUpdate()
-	r.Monitor(ctx, time.Minute*1)
+	// r, err := sysmonitor.NewUprobeDyncLibRegister(rules)
+	// if err != nil {
+	// 	return err
+	// }
+	// r.ScanAndUpdate()
+	// r.Monitor(ctx, time.Minute*1)
 
 	go func() {
 		<-ctx.Done()
@@ -218,8 +216,8 @@ type measurement struct {
 	ts     time.Time
 }
 
-func (m *measurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, &io.PointOption{Category: datakit.Logging, Time: m.ts})
+func (m *measurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, &point.PointOption{Category: datakit.Logging, Time: m.ts})
 }
 
 func (m *measurement) Info() *inputs.MeasurementInfo {

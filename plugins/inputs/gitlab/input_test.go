@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 const (
@@ -716,7 +717,7 @@ func TestRemove(t *testing.T) {
 
 func TestFailToFeed(t *testing.T) {
 	ipt := getInput(30 * time.Second)
-	ipt.feed = func(name, category string, pts []*io.Point, opt *io.Option) error {
+	ipt.feed = func(name, category string, pts []*point.Point, opt *io.Option) error {
 		return fmt.Errorf("mock error")
 	}
 	r := getPipelineRequest(pipelineJson1)
@@ -770,7 +771,7 @@ func TestAddExtraTags(t *testing.T) {
 
 func getInput(expired time.Duration) *Input {
 	ipt := newInput()
-	ipt.feed = func(name, category string, pts []*io.Point, opt *io.Option) error {
+	ipt.feed = func(name, category string, pts []*point.Point, opt *io.Option) error {
 		return nil
 	}
 	ipt.feedLastError = func(inputName string, err string) {}
