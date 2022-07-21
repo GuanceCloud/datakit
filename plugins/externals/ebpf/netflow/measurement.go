@@ -18,8 +18,8 @@ type measurement struct {
 	ts     time.Time
 }
 
-func (m *measurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.name, m.tags, m.fields, &io.PointOption{Category: datakit.Network, Time: m.ts})
+func (m *measurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, &point.PointOption{Category: datakit.Network, Time: m.ts})
 }
 
 func (m *measurement) Info() *inputs.MeasurementInfo {

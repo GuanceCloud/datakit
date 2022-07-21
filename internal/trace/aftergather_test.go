@@ -12,10 +12,11 @@ import (
 	"time"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 func TestAfterGather(t *testing.T) {
-	dkioFeed = func(name, category string, pts []*dkio.Point, opt *dkio.Option) error { return nil }
+	dkioFeed = func(name, category string, pts []*point.Point, opt *dkio.Option) error { return nil }
 
 	StartTracingStatistic()
 

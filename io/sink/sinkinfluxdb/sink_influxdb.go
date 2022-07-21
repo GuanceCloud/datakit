@@ -15,6 +15,7 @@ import (
 	client "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
@@ -55,12 +56,12 @@ type SinkInfluxDB struct {
 	cliType int
 }
 
-func (s *SinkInfluxDB) Write(pts []sinkcommon.ISinkPoint) error {
+func (s *SinkInfluxDB) Write(pts []*point.Point) (*sinkcommon.Failed, error) {
 	if !initSucceeded {
-		return fmt.Errorf("not_init")
+		return nil, fmt.Errorf("not_init")
 	}
 
-	return s.writeInfluxDB(pts)
+	return nil, s.writeInfluxDB(pts)
 }
 
 func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
@@ -185,7 +186,7 @@ func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
 	return nil
 }
 
-func (s *SinkInfluxDB) writeInfluxDB(pts []sinkcommon.ISinkPoint) error {
+func (s *SinkInfluxDB) writeInfluxDB(pts []*point.Point) error {
 	var c client.Client
 	var err error
 

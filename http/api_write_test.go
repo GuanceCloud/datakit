@@ -22,6 +22,7 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
@@ -232,7 +233,7 @@ type apiWriteMock struct {
 	t *testing.T
 }
 
-func (x *apiWriteMock) sendToIO(string, string, []*io.Point, *io.Option) error {
+func (x *apiWriteMock) sendToIO(string, string, []*point.Point, *io.Option) error {
 	x.t.Helper()
 	x.t.Log("under mock impl: sendToIO")
 	return nil // do nothing
@@ -429,17 +430,17 @@ func TestAPIWrite(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			io.ClearGlobalTags()
+			point.ClearGlobalTags()
 
 			if tc.globalHostTags != nil {
 				for k, v := range tc.globalHostTags {
-					io.SetGlobalHostTags(k, v)
+					point.SetGlobalHostTags(k, v)
 				}
 			}
 
 			if tc.globalEnvTags != nil {
 				for k, v := range tc.globalEnvTags {
-					io.SetGlobalEnvTags(k, v)
+					point.SetGlobalEnvTags(k, v)
 				}
 			}
 

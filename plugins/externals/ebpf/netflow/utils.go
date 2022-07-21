@@ -188,11 +188,11 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler f
 	return m, nil
 }
 
-func ConvertConn2Measurement(connR *ConnResult, name string, ptOpt *io.PointOption) []*io.Point {
-	collectCache := []*io.Point{}
+func ConvertConn2Measurement(connR *ConnResult, name string, ptOpt *point.PointOption) []*point.Point {
+	collectCache := []*point.Point{}
 
 	if ptOpt == nil {
-		ptOpt = &io.PointOption{
+		ptOpt = &point.PointOption{
 			Category: datakit.Network,
 		}
 	}
@@ -210,8 +210,8 @@ func ConvertConn2Measurement(connR *ConnResult, name string, ptOpt *io.PointOpti
 }
 
 func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
-	gTags map[string]string, ptOpt *io.PointOption,
-) (*io.Point, error) {
+	gTags map[string]string, ptOpt *point.PointOption,
+) (*point.Point, error) {
 	mFields := map[string]interface{}{}
 	mTags := map[string]string{}
 
@@ -285,7 +285,7 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	// add K8s tags
 	mTags = AddK8sTags2Map(k8sNetInfo, srcIP, dstIP, k.Sport, k.Dport, l4proto, mTags)
 
-	return io.NewPoint(name, mTags, mFields, ptOpt)
+	return point.NewPoint(name, mTags, mFields, ptOpt)
 }
 
 func AddK8sTags2Map(k8sNetInfo *k8sinfo.K8sNetInfo, srcIP, dstIP string,

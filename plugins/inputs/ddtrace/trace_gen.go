@@ -11,7 +11,7 @@ import (
 	"github.com/tinylib/msgp/msgp"
 )
 
-// MarshalMsg implements msgp.Marshaler
+// MarshalMsg implements msgp.Marshaler.
 func (z DDTrace) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	o = msgp.AppendArrayHeader(o, uint32(len(z)))
@@ -29,7 +29,7 @@ func (z DDTrace) MarshalMsg(b []byte) (o []byte, err error) {
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// UnmarshalMsg implements msgp.Unmarshaler.
 func (z *DDTrace) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0002 uint32
 	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
@@ -64,7 +64,7 @@ func (z *DDTrace) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message.
 func (z DDTrace) Msgsize() (s int) {
 	s = msgp.ArrayHeaderSize
 	for zb0003 := range z {
@@ -77,7 +77,7 @@ func (z DDTrace) Msgsize() (s int) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
+// MarshalMsg implements msgp.Marshaler.
 func (z DDTraces) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	o = msgp.AppendArrayHeader(o, uint32(len(z)))
@@ -98,7 +98,7 @@ func (z DDTraces) MarshalMsg(b []byte) (o []byte, err error) {
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// UnmarshalMsg implements msgp.Unmarshaler.
 func (z *DDTraces) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0003 uint32
 	zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
@@ -146,7 +146,7 @@ func (z *DDTraces) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message.
 func (z DDTraces) Msgsize() (s int) {
 	s = msgp.ArrayHeaderSize
 	for zb0005 := range z {

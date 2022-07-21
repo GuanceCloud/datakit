@@ -3,11 +3,13 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package io
+// Package point implements datakits basic data structure.
+package point
 
 import (
+	"time"
+
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
 type Point struct {
@@ -21,18 +23,24 @@ func WrapPoint(pts []*influxdb.Point) (x []*Point) {
 	return
 }
 
-var _ sinkcommon.ISinkPoint = new(Point)
-
 func (p *Point) ToPoint() *influxdb.Point {
 	return p.Point
 }
 
-func (p *Point) ToJSON() (*sinkcommon.JSONPoint, error) {
+type JSONPoint struct {
+	Measurement string                 `json:"measurement"`    // measurement name of the point.
+	Tags        map[string]string      `json:"tags,omitempty"` // tags associated with the point.
+	Fields      map[string]interface{} `json:"fields"`         // the fields for the point.
+	Time        time.Time              `json:"time,omitempty"` // timestamp for the point.
+}
+
+func (p *Point) ToJSON() (*JSONPoint, error) {
 	fields, err := p.Point.Fields()
 	if err != nil {
 		return nil, err
 	}
-	return &sinkcommon.JSONPoint{
+
+	return &JSONPoint{
 		Measurement: p.ToPoint().Name(),
 		Tags:        p.Point.Tags(),
 		Fields:      fields,

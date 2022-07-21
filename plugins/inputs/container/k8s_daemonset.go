@@ -9,7 +9,7 @@ import (
 	"context"
 	"fmt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/apps/v1"
 )
@@ -106,8 +106,8 @@ type daemonsetMetric struct {
 	fields fieldsType
 }
 
-func (d *daemonsetMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_daemonset", d.tags, d.fields, inputs.OptElectionMetric)
+func (d *daemonsetMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_daemonset", d.tags, d.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll

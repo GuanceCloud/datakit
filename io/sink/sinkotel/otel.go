@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -106,13 +107,13 @@ func (s *otelSink) LoadConfig(mConf map[string]interface{}) error {
 	return nil
 }
 
-func (s *otelSink) Write(pts []sinkcommon.ISinkPoint) error {
+func (s *otelSink) Write(pts []*point.Point) (*sinkcommon.Failed, error) {
 	spans := pointToTrace(pts)
 	err := s.exp.ExportSpans(context.Background(), spans)
 	if err != nil {
 		l.Errorf("export span to remote error :%v", err)
 	}
-	return err
+	return nil, err
 }
 
 func (s *otelSink) GetInfo() *sinkcommon.SinkInfo {

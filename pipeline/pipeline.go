@@ -18,7 +18,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
@@ -100,7 +100,7 @@ type Pipeline struct {
 	Script *plscript.PlScript
 }
 
-func (p *Pipeline) Run(pt *io.Point, plOpt *plscript.Option, ioPtOpt io.PointOption) (*io.Point, bool, error) {
+func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.PointOption) (*point.Point, bool, error) {
 	if p.Script == nil || p.Script.Engine() == nil {
 		return nil, false, fmt.Errorf("pipeline engine not initialized")
 	}
@@ -129,7 +129,7 @@ func (p *Pipeline) Run(pt *io.Point, plOpt *plscript.Option, ioPtOpt io.PointOpt
 		if !out.Time.IsZero() {
 			ioPtOpt.Time = out.Time
 		}
-		if pt, err := io.NewPoint(out.Measurement, out.Tags, out.Fields, &ioPtOpt); err != nil {
+		if pt, err := point.NewPoint(out.Measurement, out.Tags, out.Fields, ioPtOpt); err != nil {
 			// TODO
 			// stats.WriteScriptStats(p.script.Category(), p.script.NS(), p.script.Name(), 0, 0, 1, err)
 			return nil, false, err

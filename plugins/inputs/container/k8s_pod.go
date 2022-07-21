@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/core/v1"
 )
@@ -262,8 +262,8 @@ type podMetric struct {
 	fields fieldsType
 }
 
-func (p *podMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_pod", p.tags, p.fields, inputs.OptElectionMetric)
+func (p *podMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_pod", p.tags, p.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -291,8 +291,8 @@ type podObject struct {
 	fields fieldsType
 }
 
-func (p *podObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubelet_pod", p.tags, p.fields, inputs.OptElectionObject)
+func (p *podObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubelet_pod", p.tags, p.fields, inputs.OptElectionObject)
 }
 
 //nolint:lll

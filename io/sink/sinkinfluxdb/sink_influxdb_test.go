@@ -10,13 +10,9 @@ import (
 	"math/rand"
 	"os"
 	"testing"
-	"time"
 
-	// this is important because of the bug in go mod
-	_ "github.com/influxdata/influxdb1-client"
-	client "github.com/influxdata/influxdb1-client/v2"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 // 检查是不是开发机，如果不是开发机，则直接退出。开发机上需要定义 LOCAL_UNIT_TEST 环境变量。
@@ -62,11 +58,7 @@ func TestAll(t *testing.T) {
 			assert.Equal(t, tc.expectLoadConfigError, err)
 
 			pts := getTestPoints(t, 1000, 42)
-			var newPts []sinkcommon.ISinkPoint
-			for _, v := range pts {
-				newPts = append(newPts, sinkcommon.ISinkPoint(v))
-			}
-			err = si.Write(newPts)
+			_, err = si.Write(pts)
 			assert.Equal(t, tc.expectWriteError, err)
 		})
 	}
@@ -74,30 +66,12 @@ func TestAll(t *testing.T) {
 
 //------------------------------------------------------------------------------
 
-type testPoint struct {
-	*client.Point
-}
-
-var _ sinkcommon.ISinkPoint = new(testPoint)
-
-func (p *testPoint) ToPoint() *client.Point {
-	return p.Point
-}
-
-func (p *testPoint) String() string {
-	return ""
-}
-
-func (p *testPoint) ToJSON() (*sinkcommon.JSONPoint, error) {
-	return nil, nil
-}
-
-func getTestPoints(t *testing.T, sampleSize int, seed int64) []*testPoint {
+func getTestPoints(t *testing.T, sampleSize int, seed int64) []*point.Point {
 	t.Helper()
 
 	rand.Seed(seed)
 
-	var pts []*testPoint
+	var pts []*point.Point
 	for i := 0; i < sampleSize; i++ {
 		regions := []string{"us-west1", "us-west2", "us-west3", "us-east1"}
 		tags := map[string]string{
@@ -112,14 +86,13 @@ func getTestPoints(t *testing.T, sampleSize int, seed int64) []*testPoint {
 			"busy": 100.0 - idle,
 		}
 
-		pt, err := client.NewPoint(
+		pt, err := point.NewPoint(
 			"cpu_usage",
 			tags,
 			fields,
-			time.Now(),
-		)
-		assert.NoError(t, err, fmt.Sprintf("client.NewPoint failed: %v", err))
-		pts = append(pts, &testPoint{pt})
+			nil)
+		assert.NoError(t, err, fmt.Sprintf("NewPoint failed: %v", err))
+		pts = append(pts, pt)
 	}
 	return pts
 }

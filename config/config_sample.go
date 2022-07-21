@@ -111,25 +111,21 @@ ulimit = 64000
 [io]
   ## feed_chan_size: number, IO管道缓存大小
   #
-  feed_chan_size = 1024
-
-  ## high_frequency_feed_chan_size: number, 高频IO管道缓存大小
-  #
-  high_frequency_feed_chan_size = 2048
+  feed_chan_size = 8192
 
   ## max_cache_count: number, 本地缓存最大值
   ## 此数值与 max_dynamic_cache_count 同时小于等于零将无限使用内存
   #
-  max_cache_count = 1024
+  max_cache_count = 8192
 
   ## max_dynamic_cache_count: number, HTTP 缓存最大值
   ## 此数值与 max_cache_count 同时小于等于零将无限使用内存
   #
-  max_dynamic_cache_count = 1024
+  max_dynamic_cache_count = 8192
 
   ## flush_interval: string, 推送时间间隔
   #
-  flush_interval = "10s"
+  flush_interval = "30s"
 
   ## output_file: string, 输出 io 数据到本地文件，值为具体的文件路径
   #
@@ -145,6 +141,10 @@ ulimit = 64000
   enable_cache = false
   ## cache_max_size_gb: int, 磁盘 cache 大小(单位 GB)
   cache_max_size_gb = 1
+
+  ## 阻塞模式: 如果网络堵塞，为了不停止采集，将有部分数据会丢失。
+	## 如果不希望丢失数据，可开启阻塞模式。一旦阻塞，将导致数据采集暂停。
+	blocking_mode = false
 
   ## 行协议数据过滤
   ## 一旦 datakit.conf 中配置了过滤器，那么则以该过滤器为准，观测云 Studio 配置的过滤器将不再生效。

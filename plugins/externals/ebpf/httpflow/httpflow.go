@@ -310,7 +310,7 @@ func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context) {
 	}
 }
 
-func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) (*io.Point, error) {
+func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) (*point.Point, error) {
 	// name:   srcNameM,
 	mTags := map[string]string{}
 
@@ -374,14 +374,14 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) (*io.Point,
 
 	mTags = dknetflow.AddK8sTags2Map(k8sNetInfo, srcIP, dstIP,
 		httpFinReq.ConnInfo.Sport, httpFinReq.ConnInfo.Dport, l4proto, mTags)
-	return io.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
+	return point.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
 }
 
 func feed(url string, data []*HTTPReqFinishedInfo, tags map[string]string) error {
 	if len(data) == 0 {
 		return nil
 	}
-	ms := make([]*io.Point, 0)
+	ms := make([]*point.Point, 0)
 	for _, httpFinReq := range data {
 		if !ConnNotNeedToFilter(httpFinReq.ConnInfo) {
 			continue

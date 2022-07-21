@@ -13,7 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -51,7 +51,7 @@ default_time(time)
 	inputName    = `sqlserver`
 	catalogName  = "db"
 	l            = logger.DefaultSLogger(inputName)
-	collectCache []*io.Point
+	collectCache []*point.Point
 	minInterval  = time.Second * 5
 	maxInterval  = time.Second * 30
 	query        = []string{

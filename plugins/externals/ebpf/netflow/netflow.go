@@ -230,7 +230,7 @@ func (tracer *NetFlowTracer) feedHandler(ctx context.Context, datakitPostURL str
 		select {
 		case result := <-tracer.resultCh:
 			MergeConns(result)
-			ptOpt := &io.PointOption{Category: datakit.Network}
+			ptOpt := &point.PointOption{Category: datakit.Network}
 			collectCache := ConvertConn2Measurement(result, srcNameM, ptOpt)
 			if len(collectCache) == 0 {
 				l.Warn("netflow: no data")

@@ -52,7 +52,7 @@ func (c *configurationDiscoveryServiceClient) FetchConfigurations(ctx context.Co
 
 // ConfigurationDiscoveryServiceServer is the server API for ConfigurationDiscoveryService service.
 // All implementations must embed UnimplementedConfigurationDiscoveryServiceServer
-// for forward compatibility
+// for forward compatibility.
 type ConfigurationDiscoveryServiceServer interface {
 	// fetchConfigurations service requests the latest configuration.
 	// Expect command of Commands is:

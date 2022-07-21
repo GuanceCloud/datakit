@@ -22,7 +22,7 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"golang.org/x/text/encoding/simplifiedchinese"
@@ -118,7 +118,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 		return nil, uhttp.Error(ErrInvalidData, err.Error())
 	}
 
-	opt := io.PointOption{
+	opt := &point.PointOption{
 		Category: category,
 		Time:     time.Now(),
 	}
@@ -129,7 +129,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 	for _, line := range dataLines {
 		switch category {
 		case datakit.Logging:
-			pt, err := io.NewPoint(reqDebug.ScriptName, nil, map[string]interface{}{pipeline.FieldMessage: line}, &opt)
+			pt, err := point.NewPoint(reqDebug.ScriptName, nil, map[string]interface{}{pipeline.FieldMessage: line}, opt)
 			if err != nil {
 				l.Errorf("[%s] %s", tid, err.Error())
 				return nil, uhttp.Error(ErrInvalidData, err.Error())
@@ -143,7 +143,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 				l.Errorf("[%s] %s", tid, err.Error())
 				return nil, uhttp.Error(ErrInvalidData, err.Error())
 			}
-			newPts := io.WrapPoint(pts)
+			newPts := point.WrapPoint(pts)
 			for _, pt := range newPts {
 				if single := getSinglePointResult(scriptInfo, pt, opt); single != nil {
 					res = append(res, single)
@@ -159,9 +159,9 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 			b.Helper()
 			for n := 0; n < b.N; n++ {
 				for _, line := range dataLines {
-					pt, _ := io.NewPoint(defaultNotSetMakePoint,
+					pt, _ := point.NewPoint(defaultNotSetMakePoint,
 						nil,
-						map[string]interface{}{pipeline.FieldMessage: line}, &opt)
+						map[string]interface{}{pipeline.FieldMessage: line}, opt)
 					_, _, _ = scriptInfo.Run(pt, nil, opt)
 				}
 			}
@@ -174,7 +174,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 	return getReturnResult(start, res, reqDebug, &benchmarkResult), nil
 }
 
-func getSinglePointResult(scriptInfo *pipeline.Pipeline, pt *io.Point, opt io.PointOption) *pipeline.Result {
+func getSinglePointResult(scriptInfo *pipeline.Pipeline, pt *point.Point, opt *point.PointOption) *pipeline.Result {
 	pt, drop, err := scriptInfo.Run(pt, nil, opt)
 	if err != nil || pt == nil {
 		return nil

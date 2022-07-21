@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/apps/v1"
 )
@@ -157,8 +157,8 @@ type replicasetMetric struct {
 	fields fieldsType
 }
 
-func (r *replicasetMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_replicaset", r.tags, r.fields, inputs.OptElectionMetric)
+func (r *replicasetMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_replicaset", r.tags, r.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -187,8 +187,8 @@ type replicasetObject struct {
 	fields fieldsType
 }
 
-func (r *replicasetObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_replica_sets", r.tags, r.fields, inputs.OptElectionObject)
+func (r *replicasetObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_replica_sets", r.tags, r.fields, inputs.OptElectionObject)
 }
 
 //nolint:lll

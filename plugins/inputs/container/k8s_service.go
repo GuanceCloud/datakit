@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/core/v1"
 )
@@ -115,8 +115,8 @@ type serviceObject struct {
 	fields fieldsType
 }
 
-func (s *serviceObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_services", s.tags, s.fields, inputs.OptElectionObject)
+func (s *serviceObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_services", s.tags, s.fields, inputs.OptElectionObject)
 }
 
 //nolint:lll

@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 const promURL = "http://127.0.0.1:9100/metrics"
@@ -855,7 +855,7 @@ up 1
 				t.Errorf("[%d] failed to init prom: %s", idx, err)
 			}
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			var points []*iod.Point
+			var points []*point.Point
 			for _, u := range p.opt.URLs {
 				pts, err := p.CollectFromHTTP(u)
 				if err != nil {
@@ -966,7 +966,7 @@ func TestRenameTag(t *testing.T) {
 		name     string
 		opt      *Option
 		promdata string
-		expect   []*iod.Point
+		expect   []*point.Point
 	}{
 		{
 			name: "rename-tags",
@@ -980,12 +980,12 @@ func TestRenameTag(t *testing.T) {
 					},
 				},
 			},
-			expect: []*iod.Point{
-				func() *iod.Point {
-					pt, err := iod.NewPoint("http",
+			expect: []*point.Point{
+				func() *point.Point {
+					pt, err := point.NewPoint("http",
 						map[string]string{"le": "0.003", "StatusCode": "404", "method": "GET"},
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0},
-						&iod.PointOption{Category: datakit.Metric})
+						&point.PointOption{Category: datakit.Metric})
 					if err != nil {
 						t.Errorf("NewPoint: %s", err)
 						return nil
@@ -1010,13 +1010,13 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 
 					},
 				},
 			},
-			expect: []*iod.Point{
-				func() *iod.Point {
-					pt, err := iod.NewPoint("http",
+			expect: []*point.Point{
+				func() *point.Point {
+					pt, err := point.NewPoint("http",
 						// method key removed, it's value overwrite tag_exists's value
 						map[string]string{"le": "0.003", "StatusCode": "404", "tag_exists": "GET"},
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0},
-						&iod.PointOption{Category: datakit.Metric})
+						&point.PointOption{Category: datakit.Metric})
 					if err != nil {
 						t.Errorf("NewPoint: %s", err)
 						return nil
@@ -1041,12 +1041,12 @@ http_request_duration_seconds_bucket{le="0.003",tag_exists="yes",status_code="40
 					},
 				},
 			},
-			expect: []*iod.Point{
-				func() *iod.Point {
-					pt, err := iod.NewPoint("http",
+			expect: []*point.Point{
+				func() *point.Point {
+					pt, err := point.NewPoint("http",
 						map[string]string{"le": "0.003", "tag_exists": "yes", "StatusCode": "404", "method": "GET"}, // overwrite not work on method
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0},
-						&iod.PointOption{Category: datakit.Metric})
+						&point.PointOption{Category: datakit.Metric})
 					if err != nil {
 						t.Errorf("NewPoint: %s", err)
 						return nil
@@ -1071,12 +1071,12 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="ye
 					},
 				},
 			},
-			expect: []*iod.Point{
-				func() *iod.Point {
-					pt, err := iod.NewPoint("http",
+			expect: []*point.Point{
+				func() *point.Point {
+					pt, err := point.NewPoint("http",
 						nil,
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0},
-						&iod.PointOption{Category: datakit.Metric})
+						&point.PointOption{Category: datakit.Metric})
 					if err != nil {
 						t.Errorf("NewPoint: %s", err)
 						return nil

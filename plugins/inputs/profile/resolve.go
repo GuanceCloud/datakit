@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 const (
@@ -373,7 +374,7 @@ func cache(req *http.Request) (string, int64, error) {
 	// 删除中划线 "runtime-id"
 	delete(pointFields, "runtime-id")
 
-	point, err := dkio.NewPoint(inputName, pointTags, pointFields, &dkio.PointOption{
+	point, err := point.NewPoint(inputName, pointTags, pointFields, &point.PointOption{
 		Time:     time.Unix(0, startNS),
 		Category: datakit.Profile,
 		Strict:   false,
@@ -393,7 +394,7 @@ func sendToIO(profileID string) error {
 	if pt != nil {
 		if err := dkio.Feed(inputName,
 			datakit.Profile,
-			[]*dkio.Point{pt},
+			[]*point.Point{pt},
 			&dkio.Option{CollectCost: time.Since(pt.Time())}); err != nil {
 			return err
 		}

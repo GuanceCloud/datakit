@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/spf13/cast"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 // metric build line proto
 
-func (i *Input) buildMysql() ([]*io.Point, error) {
+func (i *Input) buildMysql() ([]*point.Point, error) {
 	m := &baseMeasurement{
 		i:       i,
 		resData: make(map[string]interface{}),
@@ -44,7 +44,7 @@ func (i *Input) buildMysql() ([]*io.Point, error) {
 			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
 				l.Errorf("buildMysql metric %v value %v parse error %v", key, value, err)
-				return []*io.Point{}, err
+				return []*point.Point{}, err
 			} else {
 				m.fields[key] = val
 			}
@@ -54,15 +54,15 @@ func (i *Input) buildMysql() ([]*io.Point, error) {
 	if len(m.fields) > 0 {
 		pts, err := inputs.GetPointsFromMeasurement([]inputs.Measurement{m})
 		if err != nil {
-			return []*io.Point{}, err
+			return []*point.Point{}, err
 		}
 		return pts, nil
 	}
 
-	return []*io.Point{}, nil
+	return []*point.Point{}, nil
 }
 
-func (i *Input) buildMysqlSchema() ([]*io.Point, error) {
+func (i *Input) buildMysqlSchema() ([]*point.Point, error) {
 	ms := []inputs.Measurement{}
 
 	// SchemaSize
@@ -113,15 +113,15 @@ func (i *Input) buildMysqlSchema() ([]*io.Point, error) {
 	if len(ms) > 0 {
 		pts, err := inputs.GetPointsFromMeasurement(ms)
 		if err != nil {
-			return []*io.Point{}, err
+			return []*point.Point{}, err
 		}
 		return pts, nil
 	}
 
-	return []*io.Point{}, nil
+	return []*point.Point{}, nil
 }
 
-func (i *Input) buildMysqlInnodb() ([]*io.Point, error) {
+func (i *Input) buildMysqlInnodb() ([]*point.Point, error) {
 	ms := []inputs.Measurement{}
 
 	m := &innodbMeasurement{
@@ -144,14 +144,14 @@ func (i *Input) buildMysqlInnodb() ([]*io.Point, error) {
 	if len(ms) > 0 {
 		pts, err := inputs.GetPointsFromMeasurement(ms)
 		if err != nil {
-			return []*io.Point{}, err
+			return []*point.Point{}, err
 		}
 		return pts, nil
 	}
-	return []*io.Point{}, nil
+	return []*point.Point{}, nil
 }
 
-func (i *Input) buildMysqlTableSchema() ([]*io.Point, error) {
+func (i *Input) buildMysqlTableSchema() ([]*point.Point, error) {
 	ms := []inputs.Measurement{}
 
 	for _, v := range i.mTableSchema {
@@ -183,15 +183,15 @@ func (i *Input) buildMysqlTableSchema() ([]*io.Point, error) {
 	if len(ms) > 0 {
 		pts, err := inputs.GetPointsFromMeasurement(ms)
 		if err != nil {
-			return []*io.Point{}, err
+			return []*point.Point{}, err
 		}
 		return pts, nil
 	}
 
-	return []*io.Point{}, nil
+	return []*point.Point{}, nil
 }
 
-func (i *Input) buildMysqlUserStatus() ([]*io.Point, error) {
+func (i *Input) buildMysqlUserStatus() ([]*point.Point, error) {
 	ms := []inputs.Measurement{}
 
 	for user := range i.mUserStatusName {
@@ -230,14 +230,14 @@ func (i *Input) buildMysqlUserStatus() ([]*io.Point, error) {
 	if len(ms) > 0 {
 		pts, err := inputs.GetPointsFromMeasurement(ms)
 		if err != nil {
-			return []*io.Point{}, err
+			return []*point.Point{}, err
 		}
 		return pts, nil
 	}
-	return []*io.Point{}, nil
+	return []*point.Point{}, nil
 }
 
-func (i *Input) buildMysqlDbmMetric() ([]*io.Point, error) {
+func (i *Input) buildMysqlDbmMetric() ([]*point.Point, error) {
 	ms := []inputs.Measurement{}
 
 	for _, row := range i.dbmMetricRows {
@@ -288,14 +288,14 @@ func (i *Input) buildMysqlDbmMetric() ([]*io.Point, error) {
 	if len(ms) > 0 {
 		pts, err := inputs.GetPointsFromMeasurement(ms)
 		if err != nil {
-			return []*io.Point{}, err
+			return []*point.Point{}, err
 		}
 		return pts, nil
 	}
-	return []*io.Point{}, nil
+	return []*point.Point{}, nil
 }
 
-func (i *Input) buildMysqlDbmSample() ([]*io.Point, error) {
+func (i *Input) buildMysqlDbmSample() ([]*point.Point, error) {
 	ms := []inputs.Measurement{}
 
 	for _, plan := range i.dbmSamplePlans {
@@ -353,15 +353,15 @@ func (i *Input) buildMysqlDbmSample() ([]*io.Point, error) {
 	if len(ms) > 0 {
 		pts, err := inputs.GetPointsFromMeasurement(ms)
 		if err != nil {
-			return []*io.Point{}, err
+			return []*point.Point{}, err
 		}
 		return pts, nil
 	}
 
-	return []*io.Point{}, nil
+	return []*point.Point{}, nil
 }
 
-func (i *Input) buildMysqlCustomQueries() ([]*io.Point, error) {
+func (i *Input) buildMysqlCustomQueries() ([]*point.Point, error) {
 	ms := []inputs.Measurement{}
 
 	for hs, items := range i.mCustomQueries {
@@ -426,9 +426,9 @@ func (i *Input) buildMysqlCustomQueries() ([]*io.Point, error) {
 	if len(ms) > 0 {
 		pts, err := inputs.GetPointsFromMeasurement(ms)
 		if err != nil {
-			return []*io.Point{}, err
+			return []*point.Point{}, err
 		}
 		return pts, nil
 	}
-	return []*io.Point{}, nil
+	return []*point.Point{}, nil
 }

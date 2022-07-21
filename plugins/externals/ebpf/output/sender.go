@@ -39,7 +39,7 @@ func Init(logger *logger.Logger) {
 
 type task struct {
 	url  string
-	data []*io.Point // lineproto
+	data []*point.Point // lineproto
 }
 
 type Sender struct {
@@ -95,7 +95,7 @@ func (sender *Sender) request(data *task) error {
 	return nil
 }
 
-func (sender *Sender) doReq(url string, data []*io.Point) error {
+func (sender *Sender) doReq(url string, data []*point.Point) error {
 	if len(data) == 0 || url == "" {
 		return nil
 	}
@@ -136,7 +136,7 @@ type ExternalLastErr struct {
 	ErrContent string `json:"err_content"`
 }
 
-func FeedMeasurement(url string, data []*io.Point) error {
+func FeedMeasurement(url string, data []*point.Point) error {
 	if _sender == nil {
 		return fmt.Errorf("sender not init")
 	}

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/core/v1"
 )
@@ -179,8 +179,8 @@ type nodeMetric struct {
 	fields fieldsType
 }
 
-func (n *nodeMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_node", n.tags, n.fields, inputs.OptElectionMetric)
+func (n *nodeMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_node", n.tags, n.fields, inputs.OptElectionMetric)
 }
 
 //nolint:lll
@@ -212,8 +212,8 @@ type nodeObject struct {
 	fields fieldsType
 }
 
-func (n *nodeObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_nodes", n.tags, n.fields, inputs.OptElectionObject)
+func (n *nodeObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_nodes", n.tags, n.fields, inputs.OptElectionObject)
 }
 
 //nolint:lll

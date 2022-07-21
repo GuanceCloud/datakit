@@ -23,7 +23,7 @@ import (
 	"github.com/influxdata/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -532,16 +532,16 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	opt := &io.PointOption{
+	opt := &point.PointOption{
 		Category: datakit.Logging,
 		Time:     time.Now(),
 	}
-	pt, err := io.NewPoint("default", nil, map[string]interface{}{pipeline.FieldMessage: text}, opt)
+	pt, err := point.NewPoint("default", nil, map[string]interface{}{pipeline.FieldMessage: text}, opt)
 	if err != nil {
 		return "", err
 	}
 
-	pt, dropFlag, err := pl.Run(pt, nil, *opt)
+	pt, dropFlag, err := pl.Run(pt, nil, opt)
 	if err != nil {
 		return "", err
 	}

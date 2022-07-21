@@ -6,11 +6,11 @@
 package io
 
 import (
-	"context"
 	"regexp"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type DKEvent struct {
@@ -67,7 +67,7 @@ func FeedEventLog(e *DKEvent) {
 }
 
 func (e *DKEvent) feedLog() {
-	pt, err := NewPoint("datakit", e.Tags(), e.Fields(), &PointOption{
+	pt, err := point.NewPoint("datakit", e.Tags(), e.Fields(), &point.PointOption{
 		Time:     time.Now(),
 		Category: datakit.Logging,
 	})
@@ -76,12 +76,7 @@ func (e *DKEvent) feedLog() {
 		return
 	}
 
-	g := datakit.G("io")
-	g.Go(func(ctx context.Context) error {
-		if err := Feed("dkevent", datakit.Logging, []*Point{pt}, nil); err != nil {
-			log.Errorf("Feed: %s", err.Error())
-			return err
-		}
-		return nil
-	})
+	if err := Feed("dkevent", datakit.Logging, []*point.Point{pt}, nil); err != nil {
+		log.Errorf("Feed: %s", err.Error())
+	}
 }

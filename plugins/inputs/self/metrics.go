@@ -6,7 +6,7 @@
 package self
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -16,8 +16,8 @@ type datakitMeasurement struct {
 	inputs.CommonMeasurement
 }
 
-func (m *datakitMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.CommonMeasurement.Name,
+func (m *datakitMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.CommonMeasurement.Name,
 		m.CommonMeasurement.Tags,
 		m.CommonMeasurement.Fields, inputs.OptMetric)
 }

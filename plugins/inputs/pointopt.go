@@ -7,7 +7,7 @@ package inputs
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 var (
@@ -20,14 +20,14 @@ var (
 	// 使用这些全局 point-option.
 
 	// 选举类 point-option，它们只会带上 global-env-tag(config.GlobalEnvTags).
-	OptElectionMetric  = &io.PointOption{GlobalEnvTags: true, Category: datakit.Metric}
-	OptElectionLogging = &io.PointOption{GlobalEnvTags: true, Category: datakit.Logging}
-	OptElectionObject  = &io.PointOption{GlobalEnvTags: true, Category: datakit.Object}
+	OptElectionMetric  = &point.PointOption{GlobalEnvTags: true, Category: datakit.Metric}
+	OptElectionLogging = &point.PointOption{GlobalEnvTags: true, Category: datakit.Logging}
+	OptElectionObject  = &point.PointOption{GlobalEnvTags: true, Category: datakit.Object}
 
 	// 非选举类 point-option，它们只会带上 global-host-tag(config.GlobalHostTags).
-	OptMetric  = &io.PointOption{Category: datakit.Metric}
-	OptLogging = &io.PointOption{Category: datakit.Logging}
-	OptObject  = &io.PointOption{Category: datakit.Object}
-	OptNetwork = &io.PointOption{Category: datakit.Network}
-	OptProfile = &io.PointOption{Category: datakit.Profile}
+	OptMetric  = &point.PointOption{Category: datakit.Metric}
+	OptLogging = &point.PointOption{Category: datakit.Logging}
+	OptObject  = &point.PointOption{Category: datakit.Object}
+	OptNetwork = &point.PointOption{Category: datakit.Network}
+	OptProfile = &point.PointOption{Category: datakit.Profile}
 )

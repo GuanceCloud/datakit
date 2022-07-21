@@ -38,7 +38,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Map to the type of span
+// Map to the type of span.
 type SpanType int32
 
 const (
@@ -91,7 +91,7 @@ func (SpanType) EnumDescriptor() ([]byte, []int) {
 	return file_plugins_inputs_skywalking_v3_proto_language_agent_Tracing_proto_rawDescGZIP(), []int{0}
 }
 
-// Type of the reference
+// Type of the reference.
 type RefType int32
 
 const (
@@ -142,7 +142,7 @@ func (RefType) EnumDescriptor() ([]byte, []int) {
 	return file_plugins_inputs_skywalking_v3_proto_language_agent_Tracing_proto_rawDescGZIP(), []int{1}
 }
 
-// Map to the layer of span
+// Map to the layer of span.
 type SpanLayer int32
 
 const (
@@ -228,7 +228,7 @@ type SegmentObject struct {
 	// Span collections included in this segment.
 	Spans []*SpanObject `protobuf:"bytes,3,rep,name=spans,proto3" json:"spans,omitempty"`
 	// **Service**. Represents a set/group of workloads which provide the same
-	// behaviours for incoming requests.
+	// behaviors for incoming requests.
 	//
 	// The logic name represents the service. This would show as a separate node
 	// in the topology. The metrics analyzed from the spans, would be aggregated

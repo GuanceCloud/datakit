@@ -11,18 +11,18 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type MockMeasurement struct {
 	Name   string
 	Tags   map[string]string
 	Fields map[string]interface{}
-	Opt    *io.PointOption
+	Opt    *point.PointOption
 }
 
-func (m *MockMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(m.Name, m.Tags, m.Fields, m.Opt)
+func (m *MockMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.Name, m.Tags, m.Fields, m.Opt)
 }
 
 func (m *MockMeasurement) Info() *MeasurementInfo {
@@ -45,7 +45,7 @@ func TestGetPointsFromMeasurement(t *testing.T) {
 					Fields: map[string]interface{}{ // empty field
 						"f1": map[string]string{},
 					},
-					Opt: &io.PointOption{
+					Opt: &point.PointOption{
 						Time:     time.Unix(0, 123),
 						Category: datakit.Metric,
 					},
@@ -56,7 +56,7 @@ func TestGetPointsFromMeasurement(t *testing.T) {
 					Fields: map[string]interface{}{
 						"f1": 1,
 					},
-					Opt: &io.PointOption{
+					Opt: &point.PointOption{
 						Time:     time.Unix(0, 123),
 						Category: datakit.Metric,
 					},
@@ -75,7 +75,7 @@ func TestGetPointsFromMeasurement(t *testing.T) {
 						"f2": 1.0,
 						"f3": "abc", // dropped
 					},
-					Opt: &io.PointOption{
+					Opt: &point.PointOption{
 						Time:             time.Unix(0, 123),
 						MaxFieldValueLen: 2,
 						Category:         datakit.Metric,
