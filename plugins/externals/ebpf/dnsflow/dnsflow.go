@@ -13,7 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -199,5 +198,5 @@ func conv2M(key DNSQAKey, stats DNSStats, gTags map[string]string) (*point.Point
 		"resp_time": stats.RespTime.Nanoseconds(),
 	}
 
-	return point.NewPoint(srcNameM, mTags, mFields, inputs.OptNetwork)
+	return point.NewPoint(srcNameM, mTags, mFields, point.NOpt())
 }
