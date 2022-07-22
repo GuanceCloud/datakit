@@ -15,8 +15,8 @@
     
     ```toml
     enable_election = true              # 开启选举
-    enable_election_tag = false         # 允许在数据上追加选举空间的 tag
     election_namespace = "my-namespace" # 设置选举的命名空间(默认 default)
+    enable_election_tag = false         # 允许在数据上追加选举空间的 tag
     ```
     
     如果要对多个 DataKit 区分选举，比如这 10 DataKit 和 另外 8 DataKit 分开选举，互相不干扰，可以配置 DataKit 命名空间。同一个命名空间下的 DataKit 参与同一起选举。
@@ -29,14 +29,42 @@
 
 ## 选举原理 {#how}
 
-以 Kubernetes 为例，在同一个集群中，假定有 10 DataKit 如果都开启了选举，且都开启了 Kubernetes 采集器：
+以 MySQL 为例，在同一个集群（如 k8s cluster）中，假定有 10 DataKit、2 个 MySQL 实例，且 DataKit 都开启了选举（Daemonset 模式下，每个 DataKit 的配置都是一样的）以及 MySQL 采集器：
 
-- 一旦某个 DataKit 被选举上，那么所有 Kubernetes（其它选举类的采集也一样）的数据采集，都将由该 DataKit 来采集，不管被采集对象是一个还是多个，赢者通吃
+- 一旦某个 DataKit 被选举上，那么所有 MySQL （其它选举类的采集也一样）的数据采集，都将由该 DataKit 来采集，不管被采集对象是一个还是多个，赢者通吃。其它未选上的 DataKit 出于待命状态。
 - 观测云中心会判断当前选上的 DataKit 是否正常，如果异常，则强行踢掉该 DataKit，其它待命状态的 DataKit 将替代它
-- 未开启选举的 DataKit，如果也配置了 Kubernetes 采集，不受选举约束，故不应出现这种情况，否则会出现 Kubernetes 被多次采集，一来造成数据浪费，二来也给 Kubernetes 造成无意义的 IO 开销
+- 未开启选举的 DataKit（可能它不在当前集群中），如果也配置了 MySQL 采集，不受选举约束，它仍然会去采集 MySQL 的数据
 - 选举的范围是 `工作空间+命名空间` 级别的，单个 `工作空间+命名空间` 中，一次最多只能有一个 DataKit 被选上
     - 关于工作空间，在 datakit.conf 中，通过 DataWay 地址串中的 `token` URL 参数来表示，每个工作空间，都有其对应 token
-    - 关于命名空间，在 datakit.conf 中，通过 `namespace` 配置项来表示，命名空间是工作空间的下层，一个工作空间可以配置多个命名空间
+    - 关于选举的命名空间，在 datakit.conf 中，通过 `namespace` 配置项来表示。一个工作空间可以配置多个命名空间
+
+## 选举类采集器的全局 tag 设置 {#global-tags}
+
+=== "datakit.conf"
+
+    如果开启了选举，那么这些采集到的数据，均会尝试追加 datakit.conf 中的 global-env-tag：
+    
+    ```toml
+    [global_env_tags]
+      # project = "my-project"
+      # cluster = "my-cluster"
+    ```
+
+		如果原始数据上就带有了 `global_env_tags` 中的相应 tag，则以原始数据中带有的 tag 为准，此处不会覆盖。
+
+		如果没有开启选举，则选举采集器采集到的数据中，均会带上 datakit.conf 中配置的 global-host-tag（跟非选举类采集器一样）：
+[:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·
+
+
+    ```toml
+    [global_host_tags]
+      ip         = "__datakit_ip"
+      host       = "__datakit_hostname"
+    ```
+
+==== "Kubernetes"
+
+    Kubernetes 中选举的配置参见[这里](datakit-daemonset-deploy.md/#env-elect)，全局 tag 的设置参见[这里](datakit-daemonset-deploy.md/#env-common)。
 
 ## 支持选举的采集列表 {#inputs}
 

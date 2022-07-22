@@ -230,7 +230,7 @@ type Config struct {
 	EnableElection      bool   `toml:"enable_election"`
 	EnableElectionTag   bool   `toml:"enable_election_tag"`
 	ElectionNamespace   string `toml:"election_namespace"`
-	NamespaceDeprecated string `toml:"namespace,omitempty"`
+	NamespaceDeprecated string `toml:"namespace,omitempty"` // 避免跟 k8s 的 namespace 概念混淆
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`

@@ -10,16 +10,16 @@
 
 本次发布属于迭代发布，主要有如下更新：
 
-- prom 采集器的内置超时时长为 3 秒(#958)
+- prom 采集器的内置超时改为 3 秒(#958)
 
 - 日志相关问题修复：
     - 添加日志采集的 `log_read_offset` 字段(#905)
-    - 修复日志文件在 rotate 后没有正确 readAll 的 bug(#936)
+    - 修复日志文件在 rotate 后没有正确读取尾部遗留内容的问题(#936)
 
 - 容器采集相关问题修复：
     - 修复对环境变量 `NODE_NAME` 的不兼容问题(#957)
-    - k8s 自动发现的 prom 采集器改为串行式的、node 分散采集(#811/#957)
-    - 添加日志 source 和多行的的映射配置(#937)
+    - k8s 自动发现的 prom 采集器改为串行式的分散采集，每个 k8s node 只采集自己机器上的 prom 指标(#811/#957)
+    - 添加日志 source 和多行的的[映射配置](../integrations/container.md#env-config)(#937)
     - 修复容器日志替换 source 后还使用之前的 multiline 和 pipeline 的 bug(#934/#923)
     - 修正容器日志，设置文件活跃时长是 12 小时(#930)
     - 优化 docker 容器日志的 image 字段(#929)
@@ -37,7 +37,7 @@
     - 支持通过 instance 采集过滤，以减少时间线消耗(#931)
 
 - Pipeline 函数 `adjust_timezone()` 有所调整(#917)
-- IO 模块优化，提高整体数据处理能力，保持内存消耗的相对可控(#912)
+- [IO 模块优化](datakit-conf.md#io-tuning)，提高整体数据处理能力，保持内存消耗的相对可控(#912)
 - Monitor 更新：
     - 修复繁忙时 Monitor 可能导致的长时间卡顿(#933)
     - 优化 Monitor 展示，增加 IO 模块的信息展示，便于用于调整 IO 模块参数
@@ -53,7 +53,7 @@
 
 - 选举有关
     - 修复 `election_namespace` 设置错误的问题(#915)
-    - `enable_election_namespace` 这个 tag 的设置默认关闭，可[手动开启](datakit-daemonset-deploy.md#env-elect)
+    - `enable_election_namespace` 这个 tag 的设置默认关闭，需[手动开启](election.md#config)
     - datakit.conf 中 `namespace` 字段将被弃用（仍然可用），改名为 `election_namespace`
 
 - 修复采集器堵塞问题(#916)
