@@ -42,6 +42,7 @@ UPLOADER:=$(shell hostname)/${USER}/${COMMITER}
 DOCKER_IMAGE_ARCHS:="linux/arm64,linux/amd64"
 DATAKIT_EBPF_ARCHS?="linux/arm64,linux/amd64"
 IGN_EBPF_INSTALL_ERR?=0
+RACE_DETECTION?="off"
 
 GO_MAJOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
 GO_MINOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
@@ -110,7 +111,7 @@ define build
 	@echo "===== $(BIN) $(1) ===="
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go \
 		-main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
-		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
+		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3) -race $(RACE_DETECTION)
 	@tree -Csh -L 3 $(BUILD_DIR)
 endef
 
@@ -119,7 +120,7 @@ define pub
 	@GO111MODULE=off go run cmd/make/make.go \
 		-pub -release $(1) -pub-dir $(PUB_DIR) \
 		-name $(NAME) -download-addr $(2) \
-		-build-dir $(BUILD_DIR) -archs $(3)
+		-build-dir $(BUILD_DIR) -archs $(3) -race $(RACE_DETECTION)
 endef
 
 define pub_ebpf

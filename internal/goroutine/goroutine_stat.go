@@ -119,6 +119,9 @@ func GetStat() *Summary {
 		Items: make(map[string]RunningStatInfo),
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	costTime := time.Duration(0)
 
 	for k, v := range stat {
