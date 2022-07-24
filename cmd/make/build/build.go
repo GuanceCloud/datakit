@@ -234,6 +234,7 @@ func compileArch(bin, goos, goarch, dir string) error {
 
 	// race-detection need cgo
 	if RaceDetection && runtime.GOOS == goos && runtime.GOARCH == goarch {
+		l.Infof("race deteciton enabled")
 		cmdArgs = []string{
 			"go", "build", "-race",
 		}
@@ -286,6 +287,7 @@ func buildInstaller(outdir, goos, goarch string) error {
 
 	var cmdArgs []string
 	if RaceDetection && runtime.GOOS == goos && runtime.GOARCH == goarch {
+		l.Infof("race deteciton enabled")
 		cmdArgs = []string{
 			"go", "build", "-race",
 		}
