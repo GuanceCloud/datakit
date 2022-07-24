@@ -120,7 +120,7 @@ define pub
 	@GO111MODULE=off go run cmd/make/make.go \
 		-pub -release $(1) -pub-dir $(PUB_DIR) \
 		-name $(NAME) -download-addr $(2) \
-		-build-dir $(BUILD_DIR) -archs $(3) -race $(RACE_DETECTION)
+		-build-dir $(BUILD_DIR) -archs $(3)
 endef
 
 define pub_ebpf
