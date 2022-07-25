@@ -27,6 +27,7 @@ import (
 
 type containerdInput struct {
 	client *containerd.Client
+	cfg    *containerdInputConfig
 
 	// container log 需要添加 pod 信息，所以存一份 k8sclient
 	k8sClient k8sClientX
@@ -34,11 +35,9 @@ type containerdInput struct {
 	criClient         cri.RuntimeServiceClient
 	criRuntimeVersion *cri.VersionResponse
 
-	logpathList   map[string]interface{}
 	loggingFilter filter.Filter
-
-	cfg *containerdInputConfig
-	mu  sync.Mutex
+	logpathList   map[string]interface{}
+	mu            sync.Mutex
 }
 
 type containerdInputConfig struct {
