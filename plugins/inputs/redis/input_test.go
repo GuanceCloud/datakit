@@ -410,6 +410,7 @@ func TestInput_ParseInfoData(t *testing.T) {
 	}
 }
 
+
 func TestCollect(t *testing.T) {
 	t.Run("true", func(t *testing.T) {
 		input := &Input{
