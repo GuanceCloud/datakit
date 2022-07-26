@@ -245,6 +245,8 @@ func (i *Input) setup() bool {
 }
 
 func (i *Input) Init() error {
+	l = logger.SLogger(inputName + "/" + i.Source)
+
 	if i.URL != "" {
 		i.URLs = append(i.URLs, i.URL)
 	}

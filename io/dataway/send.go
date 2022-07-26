@@ -7,12 +7,10 @@ package dataway
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
@@ -23,8 +21,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
-	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext"
-	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/tracer"
 )
 
 var (
@@ -69,15 +65,6 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 		statusCode int
 	)
 
-	span, _ := tracer.StartSpanFromContext(context.Background(), "io.dataway.send", tracer.SpanType(ext.SpanTypeHTTP))
-	defer func() {
-		span.SetTag("fails", dc.fails)
-		span.Finish(tracer.WithError(err))
-	}()
-	span.SetTag("category", category)
-	span.SetTag("data_size", len(data))
-	span.SetTag("is_gz", gz)
-
 	requrl, ok := dc.categoryURL[category]
 	if !ok {
 		// update send stats
@@ -100,8 +87,6 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 
 		return statusCode, err
 	}
-	span.SetTag("method", req.Method)
-	span.SetTag("url", requrl)
 
 	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
@@ -115,8 +100,6 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 
 		return statusCode, nil
 	}
-
-	tracer.Inject(span.Context(), tracer.HTTPHeadersCarrier(req.Header)) //nolint:errcheck,gosec
 
 	var (
 		resp    *http.Response
@@ -136,7 +119,6 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 
 		return statusCode, err
 	}
-	span.SetTag("status", resp.Status)
 
 	defer resp.Body.Close() //nolint:errcheck
 	var body []byte
@@ -151,10 +133,8 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 	switch resp.StatusCode / 100 {
 	case 2:
 		isSendOk = true
-		dc.fails = 0
 		log.Debugf("post %d to %s ok(gz: %v), cost %v", len(data), requrl, gz, time.Since(postbeg))
 	case 4:
-		dc.fails = 0
 		log.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
 			len(data),
 			requrl,
@@ -162,8 +142,7 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 			string(body),
 			time.Since(postbeg))
 	case 5:
-		dc.fails++
-		log.Errorf("fails count [%d] post %d to %s failed(HTTP: %s): %s, cost %v", dc.fails,
+		log.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v",
 			len(data),
 			requrl,
 			resp.Status,
@@ -261,22 +240,7 @@ func (dw *DataWayDefault) sendReq(req *http.Request) (*http.Response, error) {
 }
 
 func (dw *DataWayDefault) Send(category string, data []byte, gz bool) (statusCode int, err error) {
-	for i, ep := range dw.endPoints {
-		log.Debugf("send to %dth dataway, fails: %d/%d", i, ep.fails, dw.MaxFails)
-		// 判断 fails
-		if ep.fails > dw.MaxFails && len(AvailableDataways) > 0 {
-			index := rand.Intn(len(AvailableDataways)) //nolint:gosec
-
-			url := fmt.Sprintf(`%s?%s`, AvailableDataways[index], ep.urlValues.Encode())
-			ep, err = dw.initEndpoint(url)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			dw.endPoints[i] = ep
-		}
-
+	for _, ep := range dw.endPoints {
 		statusCode, err = ep.send(category, data, gz)
 		if err != nil {
 			return

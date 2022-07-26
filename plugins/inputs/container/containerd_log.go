@@ -48,6 +48,8 @@ func dial(addr string, timeout time.Duration) (net.Conn, error) {
 }
 
 func (c *containerdInput) addToLogList(logpath string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.logpathList[logpath] = nil
 }
 
@@ -58,6 +60,8 @@ func (c *containerdInput) removeFromLogList(logpath string) {
 }
 
 func (c *containerdInput) inLogList(logpath string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	_, ok := c.logpathList[logpath]
 	return ok
 }

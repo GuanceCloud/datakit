@@ -159,7 +159,7 @@ func (x *IO) runConsumer(category string) {
 
 	ch, ok := x.chans[category]
 	if !ok {
-		l.Panicf("invalid category %s, should not been here", category)
+		log.Panicf("invalid category %s, should not been here", category)
 	}
 
 	c := &consumer{
@@ -208,21 +208,21 @@ func (x *IO) runConsumer(category string) {
 		c.category = datakit.Logging
 	}
 
-	l.Infof("run consumer on %s", category)
+	log.Infof("run consumer on %s", category)
 	for {
 		select {
 		case d := <-ch:
 			x.cacheData(c, d, true)
 
 		case <-tick.C:
-			l.Debugf("try flush pts on %s", c.category)
+			log.Debugf("try flush pts on %s", c.category)
 			x.flush(c)
 
 		case e := <-x.inLastErr:
 			x.updateLastErr(e)
 
 		case <-datakit.Exit.Wait():
-			l.Infof("io consumer on %s exit on exit", c.category)
+			log.Infof("io consumer on %s exit on exit", c.category)
 			return
 		}
 	}
