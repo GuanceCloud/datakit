@@ -270,7 +270,9 @@ static __always_inline void send_httpreq_fin_event(struct pt_regs *ctx)
         http_fin = bpf_map_lookup_elem(&bpfmap_httpreq_finished, &map_index);
         if (http_fin != NULL)
         {
-            bpf_perf_event_output(ctx, &bpfmap_httpreq_fin_event, cpuid, http_fin, sizeof(struct http_req_finished_info));
+            struct http_req_finished_info fin = {0};
+            bpf_probe_read(&fin, sizeof(struct http_req_finished_info), http_fin);
+            bpf_perf_event_output(ctx, &bpfmap_httpreq_fin_event, cpuid, &fin, sizeof(struct http_req_finished_info));
             bpf_map_delete_elem(&bpfmap_httpreq_finished, &map_index);
         }
         map_index += MAPCANSAVEREQNUM;
@@ -284,12 +286,12 @@ static __always_inline void init_ssl_sockfd(void *ssl_ctx, __u32 fd)
     bpf_map_update_elem(&bpfmap_ssl_ctx_sockfd, &ssl_ctx, &sockfd, BPF_ANY);
 }
 
-static __always_inline struct connection_info *read_conn_ssl(void *ssl_ctx, __u64 pid_tgid)
+static __always_inline int read_conn_ssl(void *ssl_ctx, __u64 pid_tgid, struct connection_info *conn)
 {
     struct ssl_sockfd *sockfd = (struct ssl_sockfd *)bpf_map_lookup_elem(&bpfmap_ssl_ctx_sockfd, &ssl_ctx);
     if (sockfd == NULL)
     {
-        return NULL;
+        return -1;
     }
     struct pid_fd pidfd = {
         .pid = pid_tgid >> 32,
@@ -298,17 +300,16 @@ static __always_inline struct connection_info *read_conn_ssl(void *ssl_ctx, __u6
     struct sock **skp = (struct sock **)bpf_map_lookup_elem(&bpfmap_sockfd, &pidfd);
     if (skp == NULL)
     {
-        return NULL;
+        return -1;
     }
-    struct connection_info conn = {0};
-    if (read_connection_info(*skp, &conn, pid_tgid, CONN_L4_TCP) != 0)
+    if (read_connection_info(*skp, conn, pid_tgid, CONN_L4_TCP) != 0)
     {
-        return NULL;
+        return -1;
     }
-    conn.pid = 0;
-    conn.netns = 0;
-    __builtin_memcpy(&sockfd->conn, &conn, sizeof(struct connection_info));
-    return &sockfd->conn;
+    conn->pid = 0;
+    conn->netns = 0;
+    __builtin_memcpy(&sockfd->conn, conn, sizeof(struct connection_info));
+    return 0;
 }
 
 static __always_inline int record_http_req(struct connection_info *conn,

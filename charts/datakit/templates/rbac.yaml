@@ -48,6 +48,13 @@ rules:
   - list
   - watch
 - apiGroups:
+  - guance.com
+  resources:
+  - datakits
+  verbs:
+  - get
+  - list
+- apiGroups:
   - metrics.k8s.io
   resources:
   - pods

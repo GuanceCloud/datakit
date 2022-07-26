@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -21,12 +22,11 @@ import (
 )
 
 type slowlogMeasurement struct {
-	name              string
-	tags              map[string]string
-	fields            map[string]interface{}
-	ts                time.Time
-	slowlogMaxLen     int
-	lastTimestampSeen map[string]int64
+	name          string
+	tags          map[string]string
+	fields        map[string]interface{}
+	ts            time.Time
+	slowlogMaxLen int
 }
 
 func (m *slowlogMeasurement) LineProto() (*point.Point, error) {
@@ -83,95 +83,104 @@ func (i *Input) getSlowData() error {
 		return err
 	}
 
-	m := &slowlogMeasurement{
-		tags:              make(map[string]string),
-		fields:            make(map[string]interface{}),
-		lastTimestampSeen: make(map[string]int64),
-		slowlogMaxLen:     i.SlowlogMaxLen,
+	if _, ok := slowlogs.([]interface{}); !ok {
+		return fmt.Errorf("unexpected slowlogs, expect []inerface{}, got type %s", reflect.TypeOf(slowlogs).String())
 	}
 
-	var maxTS int64
-	for _, slowlog := range slowlogs.([]interface{}) {
-		if entry, ok := slowlog.([]interface{}); ok {
-			if entry == nil || len(entry) != 6 {
-				return fmt.Errorf("protocol error: slowlog expect 6 fields, got %+#v", entry)
+	m := &slowlogMeasurement{
+		name: "redis_slowlog",
+		tags: func() map[string]string {
+			x := map[string]string{
+				"service": "redis",
+				"host":    i.Host,
 			}
-
-			m.name = "redis_slowlog"
-			m.tags["service"] = "redis"
-			m.tags["host"] = i.Host
 
 			for k, v := range i.Tags {
-				m.tags[k] = v
+				x[k] = v
 			}
-			var id int64
-			if x, isint := entry[0].(int64); isint {
-				id = x
-			} else {
-				return fmt.Errorf("id expect int64, got %s", reflect.TypeOf(entry[1]).String())
-			}
+			return x
+		}(),
 
-			var startTime int64
-			if x, isi64 := entry[1].(int64); isi64 {
-				startTime = x
-			} else {
-				return fmt.Errorf("startTime expect int64, got %s", reflect.TypeOf(entry[1]).String())
-			}
+		fields: make(map[string]interface{}),
 
-			if !ok {
-				return fmt.Errorf("%v expect to be int64", entry[1])
-			}
+		slowlogMaxLen: i.SlowlogMaxLen,
+	}
 
-			if startTime <= m.lastTimestampSeen["server"] {
-				continue
-			}
+	var pts []*point.Point
 
-			if startTime > maxTS {
-				maxTS = startTime
-			}
-
-			var duration int64
-			if x, isi64 := entry[2].(int64); isi64 {
-				duration = x
-			} else {
-				return fmt.Errorf("duration expect int64, got %s", reflect.TypeOf(entry[2]).String())
-			}
-			hashStr := strconv.FormatInt(startTime, 10) + string(rune(id))
-			// nolint
-			hashRes := md5.Sum([]byte(hashStr))
-
-			var command string
-			if obj, isok := entry[3].([]interface{}); isok {
-				for _, arg := range obj {
-					command += arg.(string) + " "
-				}
-			}
-
-			m.ts = time.Unix(startTime, 0)
-
-			m.fields["slowlog_micros"] = duration
-			m.fields["slowlog_id"] = id
-			m.fields["command"] = command
-			addr := m.tags["server"]
-			m.lastTimestampSeen[addr] = maxTS
-			if i.hashMap[int32(id%int64(i.SlowlogMaxLen))] != hashRes {
-				m.tags["message"] = command + " cost time " + strconv.FormatInt(duration, 10) + "us"
-				data, err := point.NewPoint("redis_slowlog", m.tags, m.fields,
-					&point.PointOption{Time: m.ts, Category: datakit.Logging, Strict: true})
-				if err != nil {
-					l.Warnf("make metric failed: %s", err.Error)
-					return err
-				}
-
-				var pts []*point.Point
-				pts = append(pts, data)
-				err = io.Feed(m.name, datakit.Logging, pts, &io.Option{})
-				if err != nil {
-					return err
-				}
-				i.hashMap[int32(id%int64(i.SlowlogMaxLen))] = hashRes
-			}
+	for _, slowlog := range slowlogs.([]interface{}) {
+		entry, ok := slowlog.([]interface{})
+		if !ok {
+			l.Warnf("unexpected slowlog, expect []inerface{}, got type %s, ignored", reflect.TypeOf(slowlog).String())
+			continue
 		}
+
+		if entry == nil || len(entry) != 6 {
+			return fmt.Errorf("protocol error: slowlog expect 6 fields, got %+#v", entry)
+		}
+
+		var id int64
+		if x, ok := entry[0].(int64); ok {
+			id = x
+		} else {
+			return fmt.Errorf("id expect int64, got %s", reflect.TypeOf(entry[0]).String())
+		}
+
+		var startTime int64
+		if x, ok := entry[1].(int64); ok {
+			startTime = x
+		} else {
+			return fmt.Errorf("startTime expect int64, got %s", reflect.TypeOf(entry[1]).String())
+		}
+
+		m.ts = time.Unix(startTime, 0)
+
+		var duration int64
+		if x, ok := entry[2].(int64); ok {
+			duration = x
+		} else {
+			return fmt.Errorf("duration expect int64, got %s", reflect.TypeOf(entry[2]).String())
+		}
+
+		hashRes := md5.Sum([]byte(strconv.FormatInt(startTime, 10) + string(rune(id)))) //nolint:gosec
+		if i.hashMap[int32(id%int64(i.SlowlogMaxLen))] == hashRes {
+			continue // ignore old slow-logs
+		}
+
+		i.hashMap[int32(id%int64(i.SlowlogMaxLen))] = hashRes
+
+		var command string
+		if obj, ok := entry[3].([]interface{}); ok {
+			arr := []string{}
+			for _, arg := range obj {
+				if x, ok := arg.(string); ok {
+					arr = append(arr, x)
+				}
+			}
+
+			command = strings.Join(arr, " ")
+		}
+
+		m.fields = map[string]interface{}{
+			"slowlog_micros": duration,
+			"slowlog_id":     id,
+			"command":        command,
+			"message":        command + " cost time " + strconv.FormatInt(duration, 10) + "us",
+		}
+
+		pt, err := point.NewPoint("redis_slowlog", m.tags, m.fields,
+			&point.PointOption{Time: m.ts, Category: datakit.Logging, Strict: true})
+		if err != nil {
+			l.Warnf("make metric failed: %s", err.Error)
+			return err
+		}
+
+		pts = append(pts, pt)
+	}
+
+	err = io.Feed(m.name, datakit.Logging, pts, &io.Option{})
+	if err != nil {
+		return err
 	}
 	return nil
 }

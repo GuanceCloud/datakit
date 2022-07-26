@@ -70,7 +70,7 @@ func (x *IO) init() error {
 
 	du, err := time.ParseDuration(x.conf.FlushInterval)
 	if err != nil {
-		l.Warnf("time.ParseDuration: %s, ignored", err)
+		log.Warnf("time.ParseDuration: %s, ignored", err)
 		du = time.Second * 10
 	}
 

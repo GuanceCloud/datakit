@@ -19,14 +19,13 @@ import (
 
 type dockerInput struct {
 	client dockerClientX
+	cfg    *dockerInputConfig
 	// container log 需要添加 pod 信息，所以存一份 k8sclient
 	k8sClient k8sClientX
 
+	loggingFilter    filter.Filter
 	containerLogList map[string]interface{}
-
-	loggingFilter filter.Filter
-
-	cfg *dockerInputConfig
+	mu               sync.Mutex
 }
 
 type dockerInputConfig struct {

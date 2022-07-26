@@ -62,6 +62,9 @@ var (
 	// ...
 	Archs string
 
+	// build race-deteciton-enabled binary.
+	RaceDetection bool
+
 	// File pathh of main.go.
 	MainEntry string
 
@@ -227,26 +230,49 @@ func compileArch(bin, goos, goarch, dir string) error {
 		cgoEnabled = "1"
 	}
 
-	args := []string{
-		"go", "build",
+	var cmdArgs []string
+
+	// race-detection need cgo
+	if RaceDetection && runtime.GOOS == goos && runtime.GOARCH == goarch {
+		l.Infof("race deteciton enabled")
+		cmdArgs = []string{
+			"go", "build", "-race",
+		}
+	} else {
+		cmdArgs = []string{
+			"go", "build",
+		}
+	}
+
+	cmdArgs = append(cmdArgs, []string{
 		"-o", output,
 		"-ldflags",
 		fmt.Sprintf("-w -s -X main.InputsReleaseType=%s -X main.ReleaseVersion=%s -X main.DownloadAddr=%s",
 			InputsReleaseType, ReleaseVersion, DownloadAddr),
 		MainEntry,
-	}
+	}...)
 
-	env := []string{
-		"GOOS=" + goos,
-		"GOARCH=" + goarch,
-		`GO111MODULE=off`,
-		"CGO_ENABLED=" + cgoEnabled,
+	var envs []string
+	if RaceDetection && runtime.GOOS == goos && runtime.GOARCH == goarch {
+		envs = []string{
+			"GOOS=" + goos,
+			"GOARCH=" + goarch,
+			`GO111MODULE=off`,
+			"CGO_ENABLED=on",
+		}
+	} else {
+		envs = []string{
+			"GOOS=" + goos,
+			"GOARCH=" + goarch,
+			`GO111MODULE=off`,
+			"CGO_ENABLED=" + cgoEnabled,
+		}
 	}
 
 	l.Debugf("building %s", fmt.Sprintf("%s-%s/%s", goos, goarch, bin))
-	msg, err := runEnv(args, env)
+	msg, err := runEnv(cmdArgs, envs)
 	if err != nil {
-		return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s", args, env, err, string(msg))
+		return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s", cmdArgs, envs, err, string(msg))
 	}
 	return nil
 }
@@ -259,22 +285,43 @@ func buildInstaller(outdir, goos, goarch string) error {
 		installerExe += winBinSuffix
 	}
 
-	args := []string{
-		"go", "build",
+	var cmdArgs []string
+	if RaceDetection && runtime.GOOS == goos && runtime.GOARCH == goarch {
+		l.Infof("race deteciton enabled")
+		cmdArgs = []string{
+			"go", "build", "-race",
+		}
+	} else {
+		cmdArgs = []string{
+			"go", "build",
+		}
+	}
+
+	cmdArgs = append(cmdArgs, []string{
 		"-o", filepath.Join(outdir, installerExe),
 		"-ldflags",
 		fmt.Sprintf("-w -s -X main.DataKitBaseURL=%s -X main.DataKitVersion=%s", DownloadAddr, ReleaseVersion),
 		"cmd/installer/main.go",
+	}...)
+
+	var envs []string
+	if RaceDetection && runtime.GOOS == goos && runtime.GOARCH == goarch {
+		envs = []string{
+			"GOOS=" + goos,
+			"GOARCH=" + goarch,
+			"CGO_ENABLED=on",
+		}
+	} else {
+		envs = []string{
+			"GOOS=" + goos,
+			"GOARCH=" + goarch,
+			"CGO_ENABLED=off",
+		}
 	}
 
-	env := []string{
-		"GOOS=" + goos,
-		"GOARCH=" + goarch,
-	}
-
-	msg, err := runEnv(args, env)
+	msg, err := runEnv(cmdArgs, envs)
 	if err != nil {
-		return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s", args, env, err, string(msg))
+		return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s", cmdArgs, envs, err, string(msg))
 	}
 	return nil
 }

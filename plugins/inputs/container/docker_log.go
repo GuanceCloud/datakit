@@ -16,14 +16,20 @@ import (
 )
 
 func (d *dockerInput) addToContainerList(containerID string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	d.containerLogList[containerID] = nil
 }
 
 func (d *dockerInput) removeFromContainerList(containerID string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	delete(d.containerLogList, containerID)
 }
 
 func (d *dockerInput) containerInContainerList(containerID string) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	_, ok := d.containerLogList[containerID]
 	return ok
 }

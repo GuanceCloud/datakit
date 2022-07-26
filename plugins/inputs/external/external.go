@@ -176,7 +176,7 @@ func (ex *ExternalInput) Run() {
 			return
 
 		case ex.pause = <-ex.pauseCh:
-			if ex.pause {
+			if ex.pause && ex.Election {
 				l.Infof("%s paused", ex.Name)
 				if ex.Daemon && ex.daemonStarted { // stop the daemon running process
 					ex.semStopProcess.Close() // trigger the daemon process exit

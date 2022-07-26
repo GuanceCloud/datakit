@@ -909,7 +909,8 @@ func (m *monitorAPP) setup() {
 			}
 
 			m.render()
-			m.app = m.app.Draw()
+			m.app = m.app.Draw() // NOTE: cause DATA RACE
+
 			<-tick.C // wait
 		}
 	}()
@@ -920,7 +921,7 @@ func (m *monitorAPP) setup() {
 }
 
 func (m *monitorAPP) run() error {
-	return m.app.Run()
+	return m.app.Run() // NOTE: cause DATA RACE
 }
 
 func (m *monitorAPP) render() {
