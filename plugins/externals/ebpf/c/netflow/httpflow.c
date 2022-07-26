@@ -29,11 +29,11 @@ int socket__http_filter(struct __sk_buff *skb)
         return DROPPACKET;
     }
 
-#pragma unroll
     // 使用 load_byte 时当 HTTP_PAYLOAD_MAXSIZE 值超出一定长度后分片读取异常，
     // 可出现在使用代理程序时 TCP 分片需重组的情况下读取 response 数据异常；
     // 使用 bpf_skb_load_bytes 能获取一部分数据
     // TODO
+#pragma unroll
     for (int i = 0; i < HTTP_PAYLOAD_MAXSIZE - 1; i++) // arr[HTTP_PAYLOAD_MAXSIZE - 1] == EOF
     {
         // stats.payload[i] = load_byte(skb, skbl4_info.hdr_len + i);
@@ -155,8 +155,9 @@ int uretprobe__SSL_read(struct pt_regs *ctx)
 
     bpf_probe_read(stats.payload, sizeof(__u8) * HTTP_PAYLOAD_MAXSIZE, args->buf);
 
-    struct connection_info *conn = (struct connection_info *)read_conn_ssl(args->ctx, pid_tgid);
-    if (conn == NULL)
+    struct connection_info conn = {0};
+
+    if (read_conn_ssl(args->ctx, pid_tgid, &conn) != 0)
     {
         return 0;
     }
@@ -172,14 +173,14 @@ int uretprobe__SSL_read(struct pt_regs *ctx)
     {
     case HTTP_REQ_REQ:
         // read is server
-        swap_conn_src_dst(conn); // src -> client; dst -> server
+        swap_conn_src_dst(&conn); // src -> client; dst -> server
 
-        record_http_req(conn, &stats, l7http.method);
+        record_http_req(&conn, &stats, l7http.method);
         // bpf_printk("ssl read: req: src_ip_port:%x:%d", conn->saddr[3], conn->sport);
         // bpf_printk("dst_ip_port:%x:%d", conn->daddr[3], conn->dport);
         break;
     case HTTP_REQ_RESP:
-        record_http_resp(conn, &stats, &l7http);
+        record_http_resp(&conn, &stats, &l7http);
         // bpf_printk("ssl read: resp: src_ip_port:%x:%d", conn->saddr[3], conn->sport);
         // bpf_printk("dst_ip_port:%x:%d", conn->daddr[3], conn->dport);
         break;
@@ -203,8 +204,9 @@ int uprobe__SSL_write(struct pt_regs *ctx)
     struct http_stats stats = {0};
     bpf_probe_read(stats.payload, sizeof(__u8) * HTTP_PAYLOAD_MAXSIZE, write_buf);
 
-    struct connection_info *conn = read_conn_ssl(ssl_ctx, pid_tgid);
-    if (conn == NULL)
+    struct connection_info conn = {0};
+
+    if (read_conn_ssl(ssl_ctx, pid_tgid, &conn) != 0)
     {
         return 0;
     }
@@ -218,14 +220,14 @@ int uprobe__SSL_write(struct pt_regs *ctx)
     switch (l7http.req_status)
     {
     case HTTP_REQ_REQ:
-        record_http_req(conn, &stats, l7http.method);
+        record_http_req(&conn, &stats, l7http.method);
         // bpf_printk("ssl write: req: src_ip_port:%x:%d", conn->saddr[3], conn->sport);
         // bpf_printk("dst_ip_port:%x:%d", conn->daddr[3], conn->dport);
         break;
     case HTTP_REQ_RESP:
-        swap_conn_src_dst(conn); // src -> client; dst -> server
+        swap_conn_src_dst(&conn); // src -> client; dst -> server
 
-        record_http_resp(conn, &stats, &l7http);
+        record_http_resp(&conn, &stats, &l7http);
         // bpf_printk("ssl write: resp: src_ip_port:%x:%d", conn->saddr[3], conn->sport);
         // bpf_printk("dst_ip_port:%x:%d", conn->daddr[3], conn->dport);
         break;
