@@ -33,15 +33,15 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
     
     ```toml
     [http_api]
-    	request_rate_limit = 1000.0 # 限制每个 HTTP API 每秒只接收 1000 次请求
+      request_rate_limit = 1000.0 # 限制每个 HTTP API 每秒只接收 1000 次请求
     ```
 
     ### 其它设置 {#http-other-settings}
 
     ```toml
     [http_api]
-    	close_idle_connection = true # 关闭闲置连接
-    	timeout = "30s"              # 设置服务端 HTTP 超时
+        close_idle_connection = true # 关闭闲置连接
+        timeout = "30s"              # 设置服务端 HTTP 超时
     ```
 
 === "Kubernates"
@@ -60,7 +60,6 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
 ```toml
 [global_host_tags]
   ip         = "__datakit_ip"
-  datakit_id = "$datakit_id"
   host       = "__datakit_hostname"
 
 [global_env_tags]
@@ -79,13 +78,13 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
 - 如果被采集上来的数据中，本来就带有同名的 Tag，那么 DataKit 不会再追加这里配置的全局 Tag。
 - 即使 `global_host_tags` 不配置任何全局 Tag，DataKit 仍然会在所有数据上尝试添加一个 `host=$HOSTNAME` 的全局 Tag。
 
-### 全局 Tag 可能导致的问题 {#notice-global-tags}
+### 全局 Tag 在远程采集时的设置 {#notice-global-tags}
 
 因为 DataKit 会默认给采集到的所有数据追加标签 `host=<DataKit所在主机名>`，但某些情况这个默认追加的 `host` 会带来困扰。
 
-以 MySQL 为例，如果 MySQL 不在 DataKit 所在机器，肯定希望这个 `host` 标签是被采集的 MySQL 的真实主机名（或云数据库的其它标识字段），而非 DataKit 所在的主机名。
+以 MySQL 为例，如果 MySQL 不在 DataKit 所在机器，但又希望这个 `host` 标签是被采集的 MySQL 的真实主机名（或云数据库的其它标识字段），而非 DataKit 所在的主机名。
 
-对这种情况，我们有两种方式可以屏蔽掉这些全局 Tag：
+对这种情况，我们有两种方式可以绕过 DataKit 上的全局 tag：
 
 - 在具体采集器中，一般都有一个如下配置，我们可以在这里面新增 Tag，比如，如果不希望 DataKit 默认添加 `host=xxx` 这个 Tag，可以在这里覆盖这个 Tag，以 MySQL 为例：
 
@@ -114,6 +113,30 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 ## 高级配置 {#advance-config}
 
 下面涉及的内容涉及一些高级配置，如果对配置不是很有把握，建议咨询我们的技术专家。
+
+### IO 模块性能调优 {#io-tuning}
+
+[:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·
+[:octicons-beaker-24: Experimental](index.md#experimental)
+
+=== "datakit.conf"
+
+    某些情况下，DataKit 的单机数据采集量非常大，如果网络带宽有限，可能导致部分数据的采集中断或丢弃。可以通过配置 io 模块的一些参数来缓解这一问题：
+
+    ```toml
+    [io]
+      feed_chan_size = 4096   # 数据处理队列（一个 job 一般都有多个 point）长度
+      max_cache_count = 512   # 数据批量发送点数的阈值，缓存中超过该值即触发发送
+      flush_interval = "10s"  # 数据发送的间隔阈值，每隔 10s 至少发送一次
+
+      blocking_mode = false   # 阻塞模式
+    ```
+
+    阻塞模式参见 [k8s 中的对应说明](datakit-daemonset-deploy.md#env-io)
+
+=== "Kubernetes"
+
+    参见[这里](datakit-daemonset-deploy.md#env-io)
 
 ### cgroup 限制  {#enable-cgroup}
 

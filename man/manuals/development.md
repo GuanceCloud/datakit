@@ -92,90 +92,90 @@ datakit -M --vvv            # 检查所有采集器的运行情况
   - 如果某个指标集需满足特定的条件，那么应该在指标集的 `MeasurementInfo.Desc` 中做说明
   - 如果是指标集的某个指标有特定前置条件，应该在 `FieldInfo.Desc` 上做说明。
 
-## Windows/Mac/Liux 平台编译环境搭建
+## 编译环境搭建
 
-### Linux
+=== "Linux"
 
-#### 安装 Golang
+    #### 安装 Golang
+    
+    当前 Go 版本 [1.18.3](https://golang.org/dl/go1.18.3.linux-amd64.tar.gz)
+    
+    #### CI 设置
+    
+    > 假定 go 安装在 /root/golang 目录下
+    
+    - 设置目录
+    
+    ```
+    # 创建 Go 项目路径
+    mkdir /root/go
+    ```
+    
+    - 设置如下环境变量
+    
+    ```
+    export GO111MODULE=on
+    # Set the GOPROXY environment variable
+    export GOPRIVATE=gitlab.jiagouyun.com/*
+    
+    export GOPROXY=https://goproxy.io
+    
+    # 假定 golang 安装在 /root 目录下
+    export GOROOT=/root/golang-1.18.3
+    # 将 go 代码 clone 到 GOPATH 里面
+    export GOPATH=/root/go
+    export PATH=$GOROOT/bin:~/go/bin:$PATH
+    ```
+    
+    在 `~/.ossenv` 下创建一组环境变量，填写 OSS Access Key 以及 Secret Key，用于版本发布：
+    
+    ```shell
+    export RELEASE_OSS_ACCESS_KEY='LT**********************'
+    export RELEASE_OSS_SECRET_KEY='Cz****************************'
+    export RELEASE_OSS_BUCKET='zhuyun-static-files-production'
+    export RELEASE_OSS_PATH=''
+    export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
+    ```
+    
+    #### 安装 packr2
+    
+    安装 [packr2](https://github.com/gobuffalo/packr/tree/master/v2){:target="_blank"}（可能需要翻墙）
+    
+    `go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
+    
+    #### 安装常见工具
+    
+    - tree
+    - make
+    - [goyacc](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go install golang.org/x/tools/cmd/goyacc@master`
+    - [golangci-lint](https://golangci-lint.run/usage/install/#local-installation): `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`
+    - gofumpt: `go install mvdan.cc/gofumpt@v0.1.1`
+    - wget
+    - docker
+    - curl
+    - [llvm](https://apt.llvm.org/): 版本 >= 10.0
+    - clang: 版本 >= 10.0
+    - linux 内核（>= 5.4.0-99-generic）头文件：`apt-get install -y linux-headers-$(uname -r)` 
+    - go-bindata: `apt install go-bindata` `go get -u github.com/go-bindata/go-bindata/...`
+    
+    #### 安装第三方库
+    
+    - `gcc-multilib`
+    
+    ```shell
+    # Debian/Ubuntu
+    sudo apt-get install -y gcc-multilib
+    sudo apt-get install -y linux-headers-$(uname -r)
+    # Centos: TODO
+    ```
 
-当前 Go 版本 [1.18.3](https://golang.org/dl/go1.18.3.linux-amd64.tar.gz)
+=== "Mac"
 
-#### CI 设置
+    暂不支持
 
-> 假定 go 安装在 /root/golang 目录下
+=== "Windows"
 
-- 设置目录
-
-```
-# 创建 Go 项目路径
-mkdir /root/go
-```
-
-- 设置如下环境变量
-
-```
-export GO111MODULE=on
-# Set the GOPROXY environment variable
-export GOPRIVATE=gitlab.jiagouyun.com/*
-
-export GOPROXY=https://goproxy.io
-
-# 假定 golang 安装在 /root 目录下
-export GOROOT=/root/golang-1.18.3
-# 将 go 代码 clone 到 GOPATH 里面
-export GOPATH=/root/go
-export PATH=$GOROOT/bin:~/go/bin:$PATH
-```
-
-在 `~/.ossenv` 下创建一组环境变量，填写 OSS Access Key 以及 Secret Key，用于版本发布：
-
-```shell
-export RELEASE_OSS_ACCESS_KEY='LT**********************'
-export RELEASE_OSS_SECRET_KEY='Cz****************************'
-export RELEASE_OSS_BUCKET='zhuyun-static-files-production'
-export RELEASE_OSS_PATH=''
-export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
-```
-
-#### 安装 packr2
-
-安装 [packr2](https://github.com/gobuffalo/packr/tree/master/v2){:target="_blank"}（可能需要翻墙）
-
-`go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
-
-#### 安装常见工具
-
-- tree
-- make
-- [goyacc](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go get -u golang.org/x/tools/cmd/goyacc`
-- [golangci-lint](https://golangci-lint.run/usage/install/#local-installation): `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`
-- gofumpt: `go install mvdan.cc/gofumpt@v0.1.1`
-- wget
-- docker
-- curl
-- [llvm](https://apt.llvm.org/): 版本 >= 10.0
-- clang: 版本 >= 10.0
-- linux 内核（>= 5.4.0-99-generic）头文件：`apt-get install -y linux-headers-$(uname -r)` 
-- go-bindata: `apt install go-bindata` `go get -u github.com/go-bindata/go-bindata/...`
-
-#### 安装第三方库
-
-- `gcc-multilib`
-
-```shell
-# Debian/Ubuntu
-sudo apt-get install -y gcc-multilib
-sudo apt-get install -y linux-headers-$(uname -r)
-# Centos: TODO
-```
-
-### Mac
-
-TODO
-
-### Windows
-
-TODO
+    暂不支持
 
 ## 安装、升级测试 
 

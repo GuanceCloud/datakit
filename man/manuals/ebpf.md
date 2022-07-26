@@ -105,6 +105,16 @@ setenforce 0
 
 配置好后，重启 DataKit 即可。
 
+### 通过环境变量修改配置参数 {#envs}
+
+支持以环境变量的方式修改配置参数（只在 Daemonset 方式运行时生效）：
+
+| 环境变量名                                  | 对应的配置参数项              | 参数示例                                                                              |
+| :---                                        | ---                           | ---                                                                                   |
+| `ENV_INPUT_EBPF_ENABLED_PLUGINS`            | `enabled_plugins`             | `ebpf-net,ebpf-bash`                                                                          |
+| `ENV_INPUT_EBPF_L7NET_ENABLED`              | `l7net_enabled`               | `httpflow,httpflow-tls`                                                                       |
+| `ENV_INPUT_EBPF_IPV6_DISABLED`              | `ipv6_disabled`               | `false/true`                                                |
+
 ### Kubernetes 安装
 
 1. 参照通用的 [ConfigMap 安装示例](../datakit/datakit-daemonset-deploy.md#configmap-setting)。
