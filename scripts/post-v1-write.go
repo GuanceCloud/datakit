@@ -104,12 +104,14 @@ func main() {
 					req, err := http.NewRequest("POST", k, bytes.NewBuffer(v))
 					if err != nil {
 						log.Printf("http.NewRequest: %s", err)
+						time.Sleep(time.Second)
 						continue
 					}
 
 					resp, err := cli.Do(req)
 					if err != nil {
 						log.Printf("cli.Do: %s", err)
+						time.Sleep(time.Second)
 						continue
 					}
 

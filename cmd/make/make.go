@@ -43,6 +43,7 @@ var (
 	flagDownloadSamples = flag.Bool("download-samples", false, "download samples from OSS to samples/")
 	flagDumpSamples     = flag.Bool("dump-samples", false, "download and dump local samples to OSS")
 	flagUnitTest        = flag.Bool("ut", false, "test all DataKit code")
+	flagRaceDetection   = flag.String("race", "off", "enable race deteciton")
 
 	l = logger.DefaultSLogger("make")
 )
@@ -96,6 +97,7 @@ func applyFlags() {
 	build.PubDir = *flagPubDir
 	build.AppName = *flagName
 	build.Archs = *flagArchs
+	build.RaceDetection = (*flagRaceDetection == "on")
 
 	build.MainEntry = *flagMain
 

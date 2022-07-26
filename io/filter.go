@@ -39,6 +39,7 @@ func newFilter(dw IDataway) *filter {
 		RWMutex: sync.RWMutex{},
 
 		metricCh: make(chan *filterMetric, 32),
+		qch:      make(chan *qstats),
 
 		tick:         time.NewTicker(pullInterval),
 		pullInterval: pullInterval,
@@ -73,10 +74,13 @@ type filter struct {
 	dw         IDataway
 	md5        string
 
+	// Mutex to R/W on rules: rules are updated(Write) from remote center, or
+	// applied to(Read) filter points
 	sync.RWMutex
-	sync.Mutex
 
-	metricCh     chan *filterMetric
+	metricCh chan *filterMetric
+	qch      chan *qstats
+
 	pullInterval time.Duration
 	tick         *time.Ticker
 	stats        *FilterStats
@@ -95,17 +99,13 @@ func dump(rules []byte, dir string) error {
 func (f *filter) pull() {
 	start := time.Now()
 
-	f.stats.PullCount++
-
-	if len(defaultIO.conf.Filters) != 0 {
-		f.stats.RuleSource = "datakit.conf"
-	} else {
-		f.stats.RuleSource = "remote"
-	}
-
 	body, err := f.dw.Pull()
 	if err != nil {
 		l.Errorf("dataway Pull: %s", err)
+
+		// keep mutex away from HTTP request
+		f.RWMutex.Lock()
+		defer f.RWMutex.Unlock()
 		f.stats.PullFailed++
 		f.stats.LastErr = err.Error()
 		f.stats.LastErrTime = time.Now()
@@ -113,8 +113,11 @@ func (f *filter) pull() {
 	}
 
 	l.Debugf("filter condition body: %s", string(body))
-
 	cost := time.Since(start)
+
+	f.RWMutex.Lock()
+	defer f.RWMutex.Unlock()
+	f.stats.PullCount++
 	f.stats.PullCost += cost
 	f.stats.PullCostAvg = f.stats.PullCost / time.Duration(f.stats.PullCount)
 	if cost > f.stats.PullCostMax {
@@ -132,8 +135,6 @@ func (f *filter) pull() {
 		}
 
 		f.stats.LastUpdate = start
-		f.RWMutex.Lock()
-		defer f.RWMutex.Unlock()
 
 		if fp.PullInterval > 0 && f.pullInterval != fp.PullInterval {
 			f.pullInterval = fp.PullInterval
@@ -410,55 +411,38 @@ func filtered(conds parser.WhereConditions, tags map[string]string, fields map[s
 }
 
 func (f *filter) doFilter(category string, pts []*point.Point) ([]*point.Point, int) {
+	f.RWMutex.RLock()
+	defer f.RWMutex.RUnlock()
+
 	switch category {
 	case datakit.Logging:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterLogging(f.conditions["logging"], pts), len(f.conditions["logging"])
 
 	case datakit.Tracing:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterTracing(f.conditions["tracing"], pts), len(f.conditions["tracing"])
 
 	case datakit.Metric:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterMetric(f.conditions["metric"], pts), len(f.conditions["metric"])
 
 	case datakit.Object:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterObject(f.conditions["object"], pts), len(f.conditions["object"])
 
 	case datakit.Network:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterNetwork(f.conditions["network"], pts), len(f.conditions["network"])
 
 	case datakit.KeyEvent:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterKeyEvent(f.conditions["keyevent"], pts), len(f.conditions["keyevent"])
 
 	case datakit.CustomObject:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterCustomObject(f.conditions["customobject"], pts), len(f.conditions["customobject"])
 
 	case datakit.RUM:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterRUM(f.conditions["rum"], pts), len(f.conditions["rum"])
 
 	case datakit.Security:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterSecurity(f.conditions["security"], pts), len(f.conditions["security"])
 
 	case datakit.Profile:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterProfile(f.conditions["profile"], pts), len(f.conditions["profile"])
 
 	default: // TODO: not implemented
@@ -491,16 +475,28 @@ func filterPts(category string, pts []*point.Point) []*point.Point {
 	return after
 }
 
+type qstats struct {
+	ch chan *FilterStats
+}
+
 func GetFilterStats() *FilterStats {
 	// return nil when not started
 	if !isStarted {
 		return nil
 	}
 
-	defaultFilter.Mutex.Lock()
-	defer defaultFilter.Mutex.Unlock()
+	q := &qstats{
+		ch: make(chan *FilterStats),
+	}
+	tick := time.NewTicker(time.Second)
+	defaultFilter.qch <- q
 
-	return copyStats(defaultFilter.stats)
+	select {
+	case s := <-q.ch:
+		return s
+	case <-tick.C:
+		return nil
+	}
 }
 
 type ruleStat struct {
@@ -565,9 +561,6 @@ func copyStats(x *FilterStats) *FilterStats {
 }
 
 func (f *filter) updateMetric(m *filterMetric) {
-	f.Mutex.Lock()
-	defer f.Mutex.Unlock()
-
 	ruleStats := defaultFilter.stats.RuleStats
 
 	v, ok := ruleStats[m.key]
@@ -584,9 +577,13 @@ func (f *filter) updateMetric(m *filterMetric) {
 }
 
 func (f *filter) start() {
-	// first pull: get filter condition ASAP
-	defaultFilter.pull()
 	defer defaultFilter.tick.Stop()
+
+	if len(defaultIO.conf.Filters) != 0 {
+		f.stats.RuleSource = "datakit.conf"
+	} else {
+		f.stats.RuleSource = "remote"
+	}
 
 	for {
 		select {
@@ -595,6 +592,13 @@ func (f *filter) start() {
 
 		case m := <-defaultFilter.metricCh:
 			f.updateMetric(m)
+
+		case q := <-defaultFilter.qch:
+			select {
+			case <-q.ch:
+			case q.ch <- copyStats(defaultFilter.stats):
+			default: // pass
+			}
 
 		case <-datakit.Exit.Wait():
 			log.Info("log filter exits")
