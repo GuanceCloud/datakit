@@ -1,4 +1,4 @@
-.PHONY: default testing local deps prepare man plparser_disable_line
+.PHONY: default testing local deps prepare plparser_disable_line
 
 default: local
 
@@ -283,11 +283,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser_disable_line plparser_disable_line
-
-man:
-	@packr2 clean
-	@packr2
+deps: prepare gofmt lfparser_disable_line plparser_disable_line
 
 # ignore files under vendor/.git/git
 gofmt:
@@ -325,7 +321,7 @@ all_test: deps
 		printf "\033[32m all testinig passed.\n\033[0m"; \
 	fi
 
-test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
+test_deps: prepare gofmt lfparser_disable_line plparser_disable_line vet
 
 lint: deps
 	if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
