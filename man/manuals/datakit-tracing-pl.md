@@ -1,8 +1,7 @@
 {{.CSS}}
 # Apply Pipeline Onto Datakit Tracing
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 ## Prerequisit
 

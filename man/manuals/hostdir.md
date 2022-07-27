@@ -2,7 +2,6 @@
 # 主机目录
 ---
 
-- DataKit 版本：{{.Version}}
 - 操作系统支持：{{.AvailableArchs}}
 
 hostdir 采集器用于目录文件的采集，例如文件个数，所有文件大小等。

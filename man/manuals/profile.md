@@ -2,7 +2,6 @@
 # Profile 采集配置
 ---
 
-- DataKit 版本：{{.Version}}
 - 操作系统支持：{{.AvailableArchs}}
 
 Profile 支持采集使用 Java / Python 等不同语言环境下应用程序运行过程中的动态性能数据，帮助用户查看 CPU、内存、IO 的性能问题。

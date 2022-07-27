@@ -2,8 +2,7 @@
 # 采集器配置
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes:
 
 RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用户访问监测数据。
 

@@ -2,8 +2,7 @@
 # 查看 DataKit 的 Monitor
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 DataKit 提供了相对完善的基本可观测信息输出，通过查看 DataKit 的 monitor 输出，我们能清晰的知道当前 DataKit 的运行情况。
 

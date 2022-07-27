@@ -2,8 +2,7 @@
 # NodeJS 示例
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 # Tracing NodeJS Application
 

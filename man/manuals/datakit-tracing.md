@@ -2,8 +2,7 @@
 
 # Datakit Tracing 综述
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 目前 Datakit 支持的第三方 Tracing 数据包括：
 

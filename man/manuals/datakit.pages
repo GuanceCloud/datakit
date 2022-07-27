@@ -43,4 +43,6 @@ nav:
     - datakit-filter.md
     - apis.md
     - datakit-sink-dev.md
-    - integrations-to-dk-howto.md
+    - '文档撰写':
+      - '集成文档合并': integrations-to-dk-howto.md
+      - mkdocs-howto.md

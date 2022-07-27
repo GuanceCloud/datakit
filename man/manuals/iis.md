@@ -2,7 +2,6 @@
 # IIS
 ---
 
-- DataKit 版本：{{.Version}}
 - 操作系统支持：{{.AvailableArchs}}
 
 Microsoft IIS 采集器

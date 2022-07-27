@@ -2,8 +2,7 @@
 # DataKit API
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 本文档主要描述 DataKit 开放出来 HTTP API 接口。
 

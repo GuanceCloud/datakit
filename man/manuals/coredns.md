@@ -2,7 +2,6 @@
 # CoreDNS
 ---
 
-- DataKit 版本：{{.Version}}
 - 操作系统支持：{{.AvailableArchs}}
 
 CoreDNS 采集器用于采集 CoreDNS 相关的指标数据。

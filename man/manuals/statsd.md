@@ -2,7 +2,6 @@
 # Statsd 数据接入
 ---
 
-- DataKit 版本：{{.Version}}
 - 操作系统支持：{{.AvailableArchs}}
 
 statsd 采集器用于接收网络上发送过来的 statsd 数据。

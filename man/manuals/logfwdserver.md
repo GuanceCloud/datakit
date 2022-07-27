@@ -2,7 +2,6 @@
 # {{.InputName}}
 ---
 
-- DataKit 版本：{{.Version}}
 - 操作系统支持：{{.AvailableArchs}}
 
 ## 介绍

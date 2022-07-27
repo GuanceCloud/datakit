@@ -1,7 +1,6 @@
 {{.CSS}}
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：`linux/amd64`
+- 操作系统支持：:fontawesome-brands-linux:
 
 # 简介
 
