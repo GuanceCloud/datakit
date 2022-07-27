@@ -21,9 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	l = logger.DefaultSLogger("man")
-)
+var l = logger.DefaultSLogger("man")
 
 type Params struct {
 	InputName      string
@@ -64,9 +62,12 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 
 	// check if doc's name is a input name
 	if creator, ok := inputs.Inputs[name]; ok {
+		l.Debugf("build doc for input %s...", name)
+
 		ipt := creator()
 		switch i := ipt.(type) {
 		case inputs.InputV2:
+
 			sampleMeasurements := i.SampleMeasurement()
 			p = &Params{
 				InputName:      name,
@@ -91,6 +92,8 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 			ReleaseDate: git.BuildAt,
 			CSS:         css,
 		}
+
+		l.Debugf("build doc for %s...", name)
 
 		// NOTE: pipeline.md is not input's doc, we have to put all pipeline functions documents
 		// to pipeline.md

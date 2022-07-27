@@ -44,6 +44,7 @@ make || exit -1
 echo 'export to all docs...'
 $datakit doc \
 	--export-docs $tmp_doc_dir \
+	--log stdout \
 	--ignore demo \
 	--version "${man_version}" \
 	--TODO "-"
@@ -117,7 +118,6 @@ integrations_files_from_datakit=(
   $tmp_doc_dir/datakit-tracing-struct.md
   $tmp_doc_dir/datakit-tracing.md
   $tmp_doc_dir/ddtrace-cpp.md
-  $tmp_doc_dir/ddtrace-csharp.md
   $tmp_doc_dir/ddtrace-golang.md
   $tmp_doc_dir/ddtrace-java.md
   $tmp_doc_dir/ddtrace-nodejs.md

@@ -10,7 +10,11 @@ func TestBuildMarkdownManual(t *testing.T) {
 		doc  string
 	}{
 		{
-			name: "input-doc",
+			name: "input-doc-logfwdserver",
+			doc:  "logfwdserver",
+		},
+		{
+			name: "input-doc-cpu",
 			doc:  "cpu",
 		},
 

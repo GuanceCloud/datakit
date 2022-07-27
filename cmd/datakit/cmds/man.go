@@ -71,6 +71,7 @@ func exportMan(to, skipList, ver string, disableMono bool) error {
 			continue
 		}
 
+		l.Debugf("build doc %s.md...", k)
 		data, err := man.BuildMarkdownManual(k,
 			&man.Option{
 				ManVersion:                    ver,
