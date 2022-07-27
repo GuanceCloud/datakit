@@ -2,8 +2,7 @@
 # 行协议过滤器
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 本文档主要描述 DataKit Filter 基本使用以及注意事项。
 

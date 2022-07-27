@@ -2,8 +2,7 @@
 # 主机安装
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 本文介绍 DataKit 的基本安装。
 

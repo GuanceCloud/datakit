@@ -2,7 +2,6 @@
 # 网络拨测
 ---
 
-- DataKit 版本：{{.Version}}
 - 操作系统支持：{{.AvailableArchs}}
 
 # {{.InputName}}

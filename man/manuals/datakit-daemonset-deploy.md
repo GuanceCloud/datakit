@@ -2,8 +2,7 @@
 # DaemonSet 安装 DataKit 
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：Linux
+- 操作系统支持：:fontawesome-brands-linux:
 
 本文档介绍如何在 K8s 中通过 DaemonSet 方式安装 DataKit。
 

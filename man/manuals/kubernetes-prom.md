@@ -2,8 +2,7 @@
 # Prometheus Exportor 指标采集
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：:fontawesome-brands-linux:
+- 操作系统支持：:fontawesome-brands-linux: :material-kubernetes:
 
 ## 介绍
 

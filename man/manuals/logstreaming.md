@@ -2,8 +2,7 @@
 # logstreaming
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes:
 
 启动一个 HTTP Server，接收日志文本数据，上报到观测云。
 

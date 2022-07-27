@@ -2,8 +2,7 @@
 # 文件日志
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
 
 本文档主要介绍本地磁盘日志采集和 Socket 日志采集：
 

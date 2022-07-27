@@ -2,8 +2,7 @@
 # DataKit 主配置
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 DataKit 主配置用来配置 DataKit 自己的运行行为，其目录一般位于：
 
