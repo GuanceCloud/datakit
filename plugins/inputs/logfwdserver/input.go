@@ -3,9 +3,10 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-//go:build linux
-// +build linux
+//go:build !windows
+// +build !windows
 
+// Package logfwdserver implement logfwd websocket server
 package logfwdserver
 
 import (
@@ -47,7 +48,36 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	_ inputs.InputV2 = (*Input)(nil)
+	l                = logger.DefaultSLogger(inputName)
+)
+
+func (ipt *Input) Stop() {
+	if ipt.srv != nil {
+		ipt.srv.Stop()
+	}
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
+func (*Input) Catalog() string {
+	return "log"
+}
+
+func (*Input) SampleConfig() string {
+	return sampleCfg
+}
+
+func (*Input) AvailableArchs() []string {
+	return []string{datakit.OSLabelLinux}
+}
+
+func (*Input) SampleMeasurement() []inputs.Measurement { return nil }
 
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
@@ -71,6 +101,13 @@ func (ipt *Input) Run() {
 			return
 		}
 	}
+}
+
+type message struct {
+	Source   string            `json:"source"`
+	Pipeline string            `json:"pipeline"`
+	Tags     map[string]string `json:"tags"`
+	Log      string            `json:"log"`
 }
 
 func (ipt *Input) setup() bool {
@@ -143,48 +180,6 @@ func (ipt *Input) setup() bool {
 	return false
 }
 
-func (ipt *Input) Stop() {
-	if ipt.srv != nil {
-		ipt.srv.Stop()
-	}
-}
-
-func (ipt *Input) Terminate() {
-	if ipt.semStop != nil {
-		ipt.semStop.Close()
-	}
-}
-
-func (*Input) Catalog() string {
-	return "log"
-}
-
-func (*Input) SampleConfig() string {
-	return sampleCfg
-}
-
-func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
-
-type message struct {
-	Source   string            `json:"source"`
-	Pipeline string            `json:"pipeline"`
-	Tags     map[string]string `json:"tags"`
-	Log      string            `json:"log"`
-}
-
-func (*Input) SampleMeasurement() []inputs.Measurement { return nil }
-
-func init() { //nolint:gochecknoinits
-	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			Tags:    make(map[string]string),
-			semStop: cliutils.NewSem(),
-		}
-	})
-}
-
 func makePts(source string, cnt []string, tags map[string]string) []*point.Point {
 	ret := []*point.Point{}
 
@@ -203,4 +198,13 @@ func makePts(source string, cnt []string, tags map[string]string) []*point.Point
 		ret = append(ret, pt)
 	}
 	return ret
+}
+
+func init() { //nolint:gochecknoinits
+	inputs.Add(inputName, func() inputs.Input {
+		return &Input{
+			Tags:    make(map[string]string),
+			semStop: cliutils.NewSem(),
+		}
+	})
 }
