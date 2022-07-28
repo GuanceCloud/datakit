@@ -8,7 +8,7 @@ package smart
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -19,8 +19,8 @@ type smartMeasurement struct {
 	ts     time.Time
 }
 
-func (s *smartMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(s.name, s.tags, s.fields, s.ts)
+func (s *smartMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(s.name, s.tags, s.fields, point.MOpt())
 }
 
 //nolint:lll

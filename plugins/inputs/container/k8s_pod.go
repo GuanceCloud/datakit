@@ -8,14 +8,14 @@ package container
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/core/v1"
 )
+
+// "sigs.k8s.io/yaml"
 
 var (
 	_ k8sResourceMetricInterface = (*pod)(nil)
@@ -80,7 +80,6 @@ func (p *pod) metric() (inputsMeas, error) {
 				// "volumes_persistentvolumeclaims_readonly": 0,
 				// "unschedulable": 0,
 			},
-			time: time.Now(),
 		}
 
 		containerReadyCount := 0
@@ -110,7 +109,6 @@ func (p *pod) metric() (inputsMeas, error) {
 		met := &podMetric{
 			tags:   map[string]string{"namespace": ns},
 			fields: map[string]interface{}{"count": c},
-			time:   time.Now(),
 		}
 		met.tags.append(p.extraTags)
 		res = append(res, met)
@@ -142,14 +140,14 @@ func (p *pod) object() (inputsMeas, error) {
 	}
 	var res inputsMeas
 
-	podIDs := make(map[string]interface{})
-
 	for _, item := range p.items {
 		obj := &podObject{
 			tags: map[string]string{
 				"name":         fmt.Sprintf("%v", item.UID),
 				"pod_name":     item.Name,
+				"pod_ip":       item.Status.PodIP,
 				"node_name":    item.Spec.NodeName,
+				"host":         item.Spec.NodeName, // 指向 pod 所在的 node，便于关联
 				"phase":        fmt.Sprintf("%v", item.Status.Phase),
 				"qos_class":    fmt.Sprintf("%v", item.Status.QOSClass),
 				"state":        fmt.Sprintf("%v", item.Status.Phase), // Depercated
@@ -162,11 +160,6 @@ func (p *pod) object() (inputsMeas, error) {
 				"availale":    len(item.Status.ContainerStatuses),
 				"create_time": item.CreationTimestamp.Time.UnixNano() / int64(time.Millisecond),
 			},
-			time: time.Now(),
-		}
-
-		if n := getHostname(); n != "" {
-			obj.tags["host"] = n // 指定 pod 所在的 host
 		}
 
 		for _, ref := range item.OwnerReferences {
@@ -225,47 +218,9 @@ func (p *pod) object() (inputsMeas, error) {
 		}
 
 		res = append(res, obj)
-
-		podIDs[string(item.UID)] = nil
-
-		tempItem := item
-		if err := tryRunInput(&tempItem); err != nil {
-			l.Warnf("failed to run input(discovery), %s", err)
-		}
-	}
-
-	for id, inputList := range discoveryInputsMap {
-		if _, ok := podIDs[id]; ok {
-			continue
-		}
-		for _, ii := range inputList {
-			if ii == nil {
-				continue
-			}
-			if inp, ok := ii.(inputs.InputV2); ok {
-				inp.Terminate()
-			}
-		}
 	}
 
 	return res, nil
-}
-
-//nolint:deadcode,unused
-func getPodLables(k8sClient k8sClientX, podname, podnamespace string) (map[string]string, error) {
-	pod, err := queryPodMetaData(k8sClient, podname, podnamespace)
-	if err != nil {
-		return nil, err
-	}
-	return pod.labels(), nil
-}
-
-func getPodAnnotations(k8sClient k8sClientX, podname, podnamespace string) (map[string]string, error) {
-	pod, err := queryPodMetaData(k8sClient, podname, podnamespace)
-	if err != nil {
-		return nil, err
-	}
-	return pod.annotations(), nil
 }
 
 type podMeta struct{ *v1.Pod }
@@ -303,11 +258,10 @@ func (item *podMeta) replicaSet() string {
 type podMetric struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (p *podMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_pod", p.tags, p.fields, &io.PointOption{Time: p.time, Category: datakit.Metric})
+func (p *podMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_pod", p.tags, p.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -333,11 +287,10 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 type podObject struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (p *podObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubelet_pod", p.tags, p.fields, &io.PointOption{Time: p.time, Category: datakit.Object})
+func (p *podObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubelet_pod", p.tags, p.fields, point.OOptElection())
 }
 
 //nolint:lll
@@ -371,18 +324,6 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 		},
 	}
-}
-
-func getHostname() string {
-	// 保持兼容，优先使用 ENV_K8S_NODE_NAME
-	if e := os.Getenv("ENV_K8S_NODE_NAME"); e != "" {
-		return e
-	}
-	if e := os.Getenv("NODE_NAME"); e != "" {
-		return e
-	}
-	n, _ := os.Hostname()
-	return n
 }
 
 //nolint:gochecknoinits

@@ -12,8 +12,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	kubeapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -124,10 +123,6 @@ func buildEventData(item *kubeapi.Event, extraTags tagsType) inputs.Measurement 
 	obj.tags["status"] = "info"
 	obj.tags.append(extraTags)
 
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		obj.tags["election_namespace"] = namespace
-	}
-
 	obj.tags["message"] = item.Message
 	msg, err := json.Marshal(obj.tags)
 	if err != nil {
@@ -143,7 +138,6 @@ func buildEventData(item *kubeapi.Event, extraTags tagsType) inputs.Measurement 
 type event struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
 func newEvent() *event {
@@ -153,8 +147,8 @@ func newEvent() *event {
 	}
 }
 
-func (e *event) LineProto() (*io.Point, error) {
-	return io.NewPoint(k8sEventName, e.tags, e.fields, &io.PointOption{Time: e.time, Category: datakit.Logging})
+func (e *event) LineProto() (*point.Point, error) {
+	return point.NewPoint(k8sEventName, e.tags, e.fields, point.LOptElection())
 }
 
 //nolint:lll

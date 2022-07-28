@@ -25,7 +25,7 @@ import (
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
@@ -68,6 +68,11 @@ func geoTags(srcip string) (tags map[string]string) {
 		return
 	}
 
+	// avoid nil pointer error
+	if ipInfo == nil {
+		return tags
+	}
+
 	switch ipInfo.Country { // #issue 354
 	case "TW":
 		ipInfo.Country = "CN"
@@ -108,7 +113,7 @@ func doHandleRUMBody(body []byte,
 	isjson bool,
 	extraTags map[string]string,
 	appIDWhiteList []string,
-) ([]*io.Point, error) {
+) ([]*point.Point, error) {
 	if isjson {
 		opt := lp.NewDefaultOption()
 		opt.Precision = precision
@@ -165,7 +170,7 @@ func doHandleRUMBody(body []byte,
 		return nil, err
 	}
 
-	return io.WrapPoint(rumpts), nil
+	return point.WrapPoint(rumpts), nil
 }
 
 func contains(str string, list []string) bool {
@@ -219,7 +224,7 @@ func handleRUMBody(body []byte,
 	isjson bool,
 	geoInfo map[string]string,
 	list []string,
-) ([]*io.Point, error) {
+) ([]*point.Point, error) {
 	return doHandleRUMBody(body, precision, isjson, geoInfo, list)
 }
 

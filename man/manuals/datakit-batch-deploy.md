@@ -1,20 +1,19 @@
 {{.CSS}}
+# 批量部署
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# 简介
 
 我们可以通过 Ansible 等方式来批量安装 DataKit。
 
-## 前置条件
+## 前置条件 {#requirements}
 
 - 管理机安装 Ansible
 - 在 Ansible 默认配置路径 `/etc/ansible/` 下配置好 `host` 文件跟 `install.yaml` 文件
-- 如果通过 Ansible 管理 Windows 机器，参考 [Ansible 文档](https://ansible-tran.readthedocs.io/en/latest/docs/intro_windows.html#windows-installing) 做相应前置准备
+- 如果通过 Ansible 管理 Windows 机器，参考 [Ansible 文档](https://ansible-tran.readthedocs.io/en/latest/docs/intro_windows.html#windows-installing){:target="_blank"} 做相应前置准备
 
-## 配置
+## 配置 {#config}
 
 Ansible `host` 文件配置示例：
 
@@ -45,12 +44,12 @@ Ansible `install.yaml` 文件配置示例
   gather_facts: no
   tasks:
   - name: install
-		win_shell: $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+    win_shell: $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
     async: 120
     poll: 10
 ```
 
-## 部署
+## 部署 {#deploy}
 
 在管理机上运行如下命令即可实现批量部署：
 

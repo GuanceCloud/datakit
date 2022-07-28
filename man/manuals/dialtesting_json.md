@@ -1,9 +1,8 @@
 {{.CSS}}
+# 通过本地 JSON 定义拨测任务
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-
-# 非中心化的网络拨测部署
 
 某些情况下，可能不能连接 SAAS 的拨测任务服务，此时，我们可以通过本地的 json 文件来定义拨测任务。
 
@@ -31,7 +30,7 @@
 
 具体的国家/地域以及 ISP 选择，可按照下图所示方式来选择（注意，不要真的新建「自建节点」，此处只是提供一个可供选择的来源）：
 
-![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-select-country-city-isp.png)
+![](imgs/dialtesting-select-country-city-isp.png)
 
 ### 配置拨测任务
 
@@ -107,7 +106,7 @@
 }
 ```
 
->  编辑完这个 JSON 后，建议找一些在线工具（[这个](https://www.json.cn/)或[这个](https://jsonformatter.curiousconcept.com/#)）验证下 JSON 格式是不是正确。如果 JSON 格式不对，那么会导致拨测不生效。
+>  编辑完这个 JSON 后，建议找一些在线工具（[这个](https://www.json.cn/){:target="_blank"}或[这个](https://jsonformatter.curiousconcept.com/#){:target="_blank"}）验证下 JSON 格式是不是正确。如果 JSON 格式不对，那么会导致拨测不生效。
 
 配置好后，重启 DataKit 即可。
 
@@ -119,15 +118,15 @@
 
 拨测任务公共字段定义如下：
 
-| 字段              | 类型   | 是否必须 | 说明                                    |
-| :---              | ---    | ---      | ---                                     |
-| `name`            | string | Y        | 拨测服务名称                            |
-| `status`          | string | Y        | 拨测服务状态，如 "OK"/"stop"            |
-| `frequency`       | string | Y        | 拨测频率                                |
-| `success_when_logic`    | string | N        | success_when条件之间的逻辑关系，如"and"/"or",默认为"and"  |
-| `success_when`    | object | Y        | 详见下文                                |
-| `advance_options` | object | N        | 详见下文                                |
-| `post_url`        | string | N        | 将拨测结果发往该 Token 所指向的工作空间，如果不填写，则发给当前 DataKit 所在工作空间 |
+| 字段                 | 类型   | 是否必须 | 说明                                                                                 |
+| :---                 | ---    | ---      | ---                                                                                  |
+| `name`               | string | Y        | 拨测服务名称                                                                         |
+| `status`             | string | Y        | 拨测服务状态，如 "OK"/"stop"                                                         |
+| `frequency`          | string | Y        | 拨测频率                                                                             |
+| `success_when_logic` | string | N        | success_when条件之间的逻辑关系，如"and"/"or",默认为"and"                             |
+| `success_when`       | object | Y        | 详见下文                                                                             |
+| `advance_options`    | object | N        | 详见下文                                                                             |
+| `post_url`           | string | N        | 将拨测结果发往该 Token 所指向的工作空间，如果不填写，则发给当前 DataKit 所在工作空间 |
 
 #### HTTP 拨测
 
@@ -143,8 +142,8 @@
 
 ```
 {
-	"HTTP": [
-		{
+  "HTTP": [
+    {
       "name": "baidu-json-test",
       "method": "GET",
       "url": "http://baidu.com",
@@ -154,11 +153,11 @@
       "success_when_logic": "and",
       "success_when": ...,
       "advance_options": ...
-		},
-		{
-			... another HTTP dialtesting
-		}
-	]
+    },
+    {
+      ... another HTTP dialtesting
+    }
+  ]
 }
 ```
 
@@ -264,8 +263,8 @@
       {
         "is": "200"
       }
-	  ]
-	}
+    ]
+  }
 ]
 ```
 
@@ -368,9 +367,9 @@
 ```json
 "advance_options": {
   "certificate": {
-		"ignore_server_certificate_error": false,
-		"private_key": "<your-private-key>",
-		"certificate": "<your-certificate-key>"
+    "ignore_server_certificate_error": false,
+    "private_key": "<your-private-key>",
+    "certificate": "<your-certificate-key>"
   },
 }
 ```
@@ -478,31 +477,31 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 {
 	"TCP": [
 		{
-      "name": "tcp-test",
-      "host": "www.baidu.com",
-      "port": "80",
-      "timeout": "10ms",
-      "enable_traceroute": true,
-      "post_url": "https://<your-dataway-host>?token=<your-token>",
-      "status": "OK",
-      "frequency": "10s",
-      "success_when_logic": "and",
-      "success_when": [
-        {
-          "response_time":[ 
-            {
-              "is_contain_dns": true,
-              "target": "10ms"
-            }
-          ],
-          "hops": [
-            {
-              "op": "eq",
-              "target": 20
-            }
-          ]
-        }
-      ]
+			"name": "tcp-test",
+			"host": "www.baidu.com",
+			"port": "80",
+			"timeout": "10ms",
+			"enable_traceroute": true,
+			"post_url": "https://<your-dataway-host>?token=<your-token>",
+			"status": "OK",
+			"frequency": "10s",
+			"success_when_logic": "and",
+			"success_when": [
+				{
+					"response_time":[ 
+						{
+							"is_contain_dns": true,
+							"target": "10ms"
+						}
+					],
+					"hops": [
+						{
+							"op": "eq",
+							"target": 20
+						}
+					]
+				}
+			]
 		}
 	]
 }
@@ -569,48 +568,48 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 
 完整 JSON 结构如下:
 
-```
+``` json
 {
 	"ICMP": [
 		{
-      "name": "icmp-test",
-      "host": "www.baidu.com",
-      "timeout": "10ms",
-      "packet_count": 3,
-      "enable_traceroute": true,
-      "post_url": "https://<your-dataway-host>?token=<your-token>",
-      "status": "OK",
-      "frequency": "10s",
-      "success_when_logic": "and",
-      "success_when": [
-        {
-          "response_time": [
-            {
-              "func": "avg",
-              "op": "leq",
-              "target": "50ms"
-            }
-          ],
-          "packet_loss_percent": [
-            {
-              "op": "leq",
-              "target": 20
-            }
-          ],
-          "hops": [
-            {
-              "op": "eq",
-              "target": 20
-            }
-          ],
-          "packets": [
-            {
-              "op": "geq",
-              "target": 1
-            }
-          ]
-        }
-      ]
+			"name": "icmp-test",
+			"host": "www.baidu.com",
+			"timeout": "10ms",
+			"packet_count": 3,
+			"enable_traceroute": true,
+			"post_url": "https://<your-dataway-host>?token=<your-token>",
+			"status": "OK",
+			"frequency": "10s",
+			"success_when_logic": "and",
+			"success_when": [
+				{
+					"response_time": [
+						{
+							"func": "avg",
+							"op": "leq",
+							"target": "50ms"
+						}
+					],
+					"packet_loss_percent": [
+						{
+							"op": "leq",
+							"target": 20
+						}
+					],
+					"hops": [
+						{
+							"op": "eq",
+							"target": 20
+						}
+					],
+					"packets": [
+						{
+							"op": "geq",
+							"target": 1
+						}
+					]
+				}
+			]
 		}
 	]
 }
@@ -721,52 +720,52 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 
 完整 JSON 结构如下:
 
-```
+```json
 {
 	"WEBSOCKET": [
 		{
-      "name": "websocket-test",
-      "url": "ws://localhost:8080",
-      "message": "hello",
-      "post_url": "https://<your-dataway-host>?token=<your-token>",
-      "status": "OK",
-      "frequency": "10s",
-      "success_when_logic": "and",
-      "success_when": [
-        {
-          "response_time": [
-            {
-              "is_contain_dns": true,
-              "target": "10ms"
-            }
-          ],
-          "response_message": [
-            {
-              "is": "hello1"
-            }
-          ],
-          "header": {
-            "status": [
-              {
-                "is": "ok"
-              }
-            ]
-          }
-        }
-      ],
-      "advance_options": {
-        "request_options": {
-          "timeout": "10s",
-          "headers": {
-            "x-token": "aaaaaaa",
-            "x-header": "111111"
-          }
-        },
-        "auth": {
-          "username": "admin",
-          "password": "123456"
-        }
-      }
+			"name": "websocket-test",
+			"url": "ws://localhost:8080",
+			"message": "hello",
+			"post_url": "https://<your-dataway-host>?token=<your-token>",
+			"status": "OK",
+			"frequency": "10s",
+			"success_when_logic": "and",
+			"success_when": [
+				{
+					"response_time": [
+						{
+							"is_contain_dns": true,
+							"target": "10ms"
+						}
+					],
+					"response_message": [
+						{
+							"is": "hello1"
+						}
+					],
+					"header": {
+						"status": [
+							{
+								"is": "ok"
+							}
+						]
+					}
+				}
+			],
+			"advance_options": {
+				"request_options": {
+					"timeout": "10s",
+					"headers": {
+						"x-token": "aaaaaaa",
+						"x-header": "111111"
+					}
+				},
+				"auth": {
+					"username": "admin",
+					"password": "123456"
+				}
+			}
 		}
 	]
 }
@@ -778,10 +777,10 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 
 `response_time` 为一个数组对象，每个对象参数如下：
 
-| 字段              | 类型   | 是否必须 | 说明                                                       |
-| :---              | ---    | ---      | ---                                                        |
-| `target`          | string | Y        | 判定响应时间是否小于该值                     |
-| `is_contain_dns`  | bool | N        | 指明响应时间是否包含 DNS 解析时间               |
+| 字段             | 类型   | 是否必须 | 说明                              |
+| :---             | ---    | ---      | ---                               |
+| `target`         | string | Y        | 判定响应时间是否小于该值          |
+| `is_contain_dns` | bool   | N        | 指明响应时间是否包含 DNS 解析时间 |
 
 
 ```json
@@ -801,8 +800,8 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 
 `response_message` 为一个数组对象，每个对象参数如下：
 
-| 字段              | 类型   | 是否必须 | 说明                                      |
-| :---              | ---    | ---      | ---                                       |
+| 字段              | 类型   | 是否必须 | 说明                                                |
+| :---              | ---    | ---      | ---                                                 |
 | `is`              | string | N        | 返回的 message 是否等于该指定字段                   |
 | `is_not`          | string | N        | 返回的 message 是否不等于该指定字段                 |
 | `match_regex`     | string | N        | 返回的 message 是否含有该匹配正则表达式的子字符串   |

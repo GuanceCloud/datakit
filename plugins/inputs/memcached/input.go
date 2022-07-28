@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -54,8 +55,8 @@ type inputMeasurement struct {
 	ts     time.Time
 }
 
-func (m inputMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m inputMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -88,7 +89,7 @@ func (*Input) SampleConfig() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
@@ -128,7 +129,7 @@ func (i *Input) gatherServer(address string, unix bool) error {
 	if unix {
 		conn, err = net.DialTimeout("unix", address, defaultTimeout)
 		if err != nil {
-			io.ReportLastError(inputName, err.Error())
+			io.FeedLastError(inputName, err.Error())
 			return err
 		}
 		defer conn.Close() //nolint:errcheck
@@ -140,7 +141,7 @@ func (i *Input) gatherServer(address string, unix bool) error {
 
 		conn, err = net.DialTimeout("tcp", address, defaultTimeout)
 		if err != nil {
-			io.ReportLastError(inputName, err.Error())
+			io.FeedLastError(inputName, err.Error())
 			return err
 		}
 		defer conn.Close() //nolint:errcheck

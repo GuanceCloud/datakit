@@ -77,6 +77,12 @@ const (
 
 type Input struct{}
 
+var _ inputs.InputV2 = (*Input)(nil)
+
+func (i *Input) Terminate() {
+	// do nothing
+}
+
 func (*Input) Catalog() string {
 	return inputName
 }
@@ -89,7 +95,7 @@ func (*Input) Run() {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {

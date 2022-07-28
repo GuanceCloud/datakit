@@ -74,18 +74,18 @@ func Decode(ng *parser.EngineData, node parser.Node) interface{} {
 
 	encode, err := NewDecoder(codeTypeMode)
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 
 	newcont, err := encode.decoder.String(cont)
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 
 	if err := ng.SetContent(text, newcont); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 

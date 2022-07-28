@@ -14,35 +14,40 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/pborman/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
+	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const (
 	defaultSleepDuration = time.Second
 	readBuffSize         = 1024 * 4
-	timeoutDuration      = time.Second * 3
+
+	flushInterval = time.Second * 3
+	checkInterval = time.Second * 1
 )
 
 type Single struct {
 	opt                *Option
 	file               *os.File
-	watcher            *fsnotify.Watcher
 	filepath, filename string
 
 	decoder *encoding.Decoder
 	mult    *multiline.Multiline
 
-	readBuff []byte
+	readBuff  []byte
+	readLines int64
 
-	tags   map[string]string
-	stopCh chan struct{}
+	offset int64 // 必然只在同一个 goroutine 操作，不必使用 atomic
+
+	tags            map[string]string
+	expectMultiLine bool // only for docker log, relation to log size (16K)
 }
 
 func NewTailerSingle(filename string, opt *Option) (*Single, error) {
@@ -50,14 +55,11 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		return nil, fmt.Errorf("option cannot be null pointer")
 	}
 
-	t := &Single{
-		stopCh: make(chan struct{}, 1),
-		opt:    opt,
-	}
+	t := &Single{opt: opt}
 
-	if opt.DockerMode && !fileExists(filename) {
+	if opt.Mode != FileMode && !FileExists(filename) {
 		filename2 := filepath.Join("/rootfs", filename)
-		if !fileExists(filename2) {
+		if !FileExists(filename2) {
 			return nil, fmt.Errorf("file %s does not exist", filename)
 		}
 		filename = filename2
@@ -80,26 +82,29 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		return nil, err
 	}
 
-	checkpointData, err := getLogCheckpoint(getFileKey(filename))
-	if err != nil {
-		if !opt.FromBeginning {
-			if _, err := t.file.Seek(0, io.SeekEnd); err != nil {
-				return nil, err
-			}
-		}
-	} else if checkpointData != nil && checkpointData.Offset > 0 {
-		if _, err := t.file.Seek(checkpointData.Offset, io.SeekStart); err != nil {
+	// check if from begine
+	if !opt.FromBeginning {
+		ret, err := t.file.Seek(0, io.SeekEnd)
+		if err != nil {
 			return nil, err
 		}
+		t.offset = ret
 	}
 
-	t.watcher, err = fsnotify.NewWatcher()
-	if err != nil {
-		return nil, err
-	}
-	err = t.watcher.Add(filename)
-	if err != nil {
-		return nil, err
+	checkpointData, err := getLogCheckpoint(getFileKey(filename))
+	if err == nil {
+		stat, err := t.file.Stat()
+		if err != nil {
+			return nil, err
+		}
+
+		if checkpointData.Offset <= stat.Size() {
+			ret, err := t.file.Seek(checkpointData.Offset, io.SeekStart)
+			if err != nil {
+				return nil, err
+			}
+			t.offset = ret
+		}
 	}
 
 	t.readBuff = make([]byte, readBuffSize)
@@ -115,39 +120,15 @@ func (t *Single) Run() {
 	t.Close()
 }
 
-func (t *Single) Stop() {
-	t.stopCh <- struct{}{}
-}
-
 func (t *Single) Close() {
-	t.removeWatcher(t.filepath)
-	t.closeWatcher()
-	if offset := t.currentOffset(); offset > 0 {
-		err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: offset})
+	if t.offset > 0 {
+		err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: t.offset})
 		if err != nil {
-			t.opt.log.Warnf("update checkpoint %s, offset %d, err: %s", t.filepath, offset, err)
+			t.opt.log.Warnf("update checkpoint %s, offset %d, err: %s", t.filepath, t.offset, err)
 		}
 	}
 	t.closeFile()
 	t.opt.log.Infof("closing %s", t.filepath)
-}
-
-func (t *Single) removeWatcher(fn string) {
-	if t.watcher == nil {
-		return
-	}
-	if err := t.watcher.Remove(fn); err != nil {
-		t.opt.log.Warnf("remove watcher err: %s, ignored", err)
-	}
-}
-
-func (t *Single) closeWatcher() {
-	if t.watcher == nil {
-		return
-	}
-	if err := t.watcher.Close(); err != nil {
-		t.opt.log.Warnf("close watcher err: %s, ignored", err)
-	}
 }
 
 func (t *Single) closeFile() {
@@ -162,22 +143,20 @@ func (t *Single) closeFile() {
 
 func (t *Single) reopen() error {
 	t.closeFile()
-	t.opt.log.Debugf("reopen file %s", t.filepath)
 
-	for {
-		var err error
-		t.file, err = os.Open(t.filepath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				t.opt.log.Debugf("waiting for %s to appear..", t.filepath)
-				time.Sleep(time.Second)
-				continue
-			}
-			return fmt.Errorf("unable to open file %s: %w", t.filepath, err)
-		}
-		break
+	var err error
+	t.file, err = os.Open(t.filepath)
+	if err != nil {
+		return fmt.Errorf("unable to open file %s: %w", t.filepath, err)
 	}
 
+	ret, err := t.file.Seek(0, io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	t.offset = ret
+	t.opt.log.Infof("reopen file %s, offset %d", t.filepath, t.offset)
 	return nil
 }
 
@@ -185,75 +164,89 @@ func (t *Single) reopen() error {
 func (t *Single) forwardMessage() {
 	var (
 		b       = &buffer{}
-		timeout = time.NewTicker(timeoutDuration)
 		lines   []string
 		readNum int
 		err     error
+
+		flushTicker = time.NewTicker(flushInterval) // 如果接收到数据，则重置 flush ticker
+		checkTicker = time.NewTicker(checkInterval)
 	)
-	defer timeout.Stop()
 
-	for {
-		select {
-		case event, ok := <-t.watcher.Events:
-			if !ok {
-				return
-			}
-			if event.Op&fsnotify.Rename == fsnotify.Rename {
-				t.opt.log.Debugf("receive rename event from file %s", t.filepath)
-				if err = t.reopen(); err != nil {
-					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
-				}
-			}
+	defer flushTicker.Stop()
+	defer checkTicker.Stop()
 
-		case err, ok := <-t.watcher.Errors:
-			if !ok {
-				return
-			}
-			t.opt.log.Warnf("receive error event from file %s, err: %s", t.filepath, err)
-
-		case <-t.stopCh:
-			return
-
-		case <-timeout.C:
-			if str := t.mult.FlushString(); str != "" {
-				t.send(str)
-			}
-			if !fileIsHealthy(t.filepath, t.opt.IgnoreDeadLog) {
-				t.opt.log.Debugf("file %s does not exist, exit", t.filepath)
-				return
-			}
-			if offset := t.currentOffset(); offset > 0 {
-				err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: offset})
-				if err != nil {
-					t.opt.log.Warnf("update checkpoint %s, offset %d, err: %s", t.filepath, offset, err)
-				}
-			}
-
-		default:
-			// nil
-		}
-
-		b.buf, readNum, err = t.read()
+	handle := func(read func() ([]byte, int, error)) {
+		b.buf, readNum, err = read()
 		if err != nil {
 			t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
 			return
 		}
 
+		t.opt.log.Debugf("read %d bytes from file %s, offset %d", readNum, t.filepath, t.offset)
+
 		if readNum == 0 {
 			t.wait()
-			continue
+			return
 		}
 
-		// 如果接收到数据，则重置 ticker
-		timeout.Reset(timeoutDuration)
+		// 如果接收到数据，则重置 flush ticker
+		flushTicker.Reset(flushInterval)
 
 		lines = b.split()
 
-		if t.opt.DockerMode {
+		switch t.opt.Mode {
+		case FileMode:
+			t.defaultHandler(lines)
+		case DockerMode:
 			t.dockerHandler(lines)
-			continue
+		case ContainerdMode:
+			t.containerdHandler(lines)
+		default:
+			t.defaultHandler(lines)
 		}
-		t.defaultHandler(lines)
+	}
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
+
+		case <-flushTicker.C:
+			if str := t.mult.FlushString(); str != "" {
+				t.send(str)
+			}
+
+		case <-checkTicker.C:
+			if !FileIsActive(t.filepath, t.opt.IgnoreDeadLog) {
+				t.opt.log.Infof("file %s is not active, larger than %s, exit", t.filepath, t.opt.IgnoreDeadLog)
+				return
+			}
+			if t.offset > 0 {
+				err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: t.offset})
+				if err != nil {
+					t.opt.log.Warnf("update checkpoint %s, offset %d, err: %s", t.filepath, t.offset, err)
+				}
+			}
+
+			did, err := DidRotate(t.file, t.offset)
+			if err != nil {
+				t.opt.log.Warnf("didrotate err: %s", err)
+			}
+			if did {
+				t.opt.log.Infof("file %s has rotated, try to reopen file", t.filepath)
+
+				handle(t.readAll)
+
+				if err = t.reopen(); err != nil {
+					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
+					return
+				}
+			}
+
+		default: // nil
+		}
+
+		handle(t.read)
 	}
 }
 
@@ -264,6 +257,11 @@ type dockerMessage struct {
 }
 
 func (t *Single) dockerHandler(lines []string) {
+	logs := t.generateJSONLogs(lines)
+	t.feed(logs)
+}
+
+func (t *Single) generateJSONLogs(lines []string) []string {
 	var err error
 	pending := []string{}
 
@@ -271,6 +269,7 @@ func (t *Single) dockerHandler(lines []string) {
 	for k, v := range t.tags {
 		tags[k] = v
 	}
+
 	for _, line := range lines {
 		if line == "" {
 			continue
@@ -293,11 +292,26 @@ func (t *Single) dockerHandler(lines []string) {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
 
-		if len(text) > 0 && text[len(text)-1] == '\n' {
-			text = text[:len(text)-1]
+		if len(text) > 0 {
+			// deal with docker log size exceed 16 K
+			if text[len(text)-1] != '\n' {
+				textLen := len(text)
+				if t.expectMultiLine {
+					text = t.multilineWithFlag(text, true)
+				} else {
+					text = t.multiline(text)
+				}
+				t.expectMultiLine = textLen/1000 == 16 // almost to 16 K
+			} else {
+				if t.expectMultiLine {
+					text = t.multilineWithFlag(text, true)
+					t.expectMultiLine = false
+				} else {
+					text = t.multiline(text)
+				}
+			}
 		}
 
-		text = t.multiline(text)
 		if text == "" {
 			continue
 		}
@@ -305,11 +319,47 @@ func (t *Single) dockerHandler(lines []string) {
 		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
 		pending = append(pending, logstr)
 	}
-	if len(pending) == 0 {
-		return
+
+	return pending
+}
+
+func (t *Single) containerdHandler(lines []string) {
+	logs := t.generateCRILogs(lines)
+	t.feed(logs)
+}
+
+func (t *Single) generateCRILogs(lines []string) []string {
+	pending := []string{}
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
+		var criMsg logMessage
+		var text string
+
+		if err := parseCRILog([]byte(line), &criMsg); err != nil {
+			l.Warnf("parse cri-o log err: %s, data: %s", err, line)
+			continue
+		}
+
+		if t.expectMultiLine {
+			text = t.multilineWithFlag(criMsg.log, true)
+		} else {
+			text = t.multiline(criMsg.log)
+		}
+
+		t.expectMultiLine = criMsg.isPartial
+
+		if text == "" {
+			continue
+		}
+
+		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+		pending = append(pending, logstr)
 	}
 
-	t.sendToPipeline(pending)
+	return pending
 }
 
 func (t *Single) defaultHandler(lines []string) {
@@ -326,7 +376,7 @@ func (t *Single) defaultHandler(lines []string) {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
 
-		text = t.multiline(text)
+		text = t.multiline(multiline.TrimRightSpace(text))
 		if text == "" {
 			continue
 		}
@@ -341,7 +391,7 @@ func (t *Single) defaultHandler(lines []string) {
 	if len(pending) == 0 {
 		return
 	}
-	t.sendToPipeline(pending)
+	t.feed(pending)
 }
 
 func (t *Single) send(text string) {
@@ -350,7 +400,7 @@ func (t *Single) send(text string) {
 		return
 	}
 
-	t.sendToPipeline([]string{text})
+	t.feed([]string{text})
 }
 
 func (t *Single) sendToForwardCallback(text string) {
@@ -360,20 +410,22 @@ func (t *Single) sendToForwardCallback(text string) {
 	}
 }
 
-func (t *Single) sendToPipeline(pending []string) {
-	res := []*iod.Point{}
+func (t *Single) feed(pending []string) {
+	res := []*point.Point{}
 	// -1ns
 	timeNow := time.Now().Add(-time.Duration(len(pending)))
 	for i, cnt := range pending {
-		pt, err := iod.MakePoint(t.opt.Source, t.tags,
+		t.readLines++
+		pt, err := point.NewPoint(t.opt.Source, t.tags,
 			map[string]interface{}{
+				"log_read_lines":      t.readLines,
+				"log_read_offset":     t.offset,
 				pipeline.FieldMessage: cnt,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,
 			},
-			timeNow.Add(time.Duration(i)),
-		)
+			&point.PointOption{Time: timeNow.Add(time.Duration(i)), Category: datakit.Logging})
 		if err != nil {
-			l.Error(err)
+			t.opt.log.Error(err)
 			continue
 		}
 		res = append(res, pt)
@@ -387,20 +439,9 @@ func (t *Single) sendToPipeline(pending []string) {
 				IgnoreStatus:          t.opt.IgnoreStatus,
 			},
 		}); err != nil {
-			l.Error(err)
+			t.opt.log.Error(err)
 		}
 	}
-}
-
-func (t *Single) currentOffset() int64 {
-	if t.file == nil {
-		return -1
-	}
-	offset, err := t.file.Seek(0, io.SeekCurrent)
-	if err != nil {
-		return -1
-	}
-	return offset
 }
 
 func (t *Single) read() ([]byte, int, error) {
@@ -410,7 +451,33 @@ func (t *Single) read() ([]byte, int, error) {
 		t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
 		return nil, 0, err
 	}
+	t.offset += int64(n)
+
 	return t.readBuff[:n], n, nil
+}
+
+func (t *Single) readAll() ([]byte, int, error) {
+	var res []byte
+	var num int
+
+	temp := make([]byte, 1024)
+
+	for {
+		n, err := t.file.Read(temp)
+		if err != nil && err != io.EOF {
+			// an unexpected error occurred, stop the tailor
+			t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
+			return nil, 0, err
+		}
+		if n == 0 {
+			break
+		}
+		res = append(res, temp[:n]...)
+		num += n
+	}
+
+	t.offset += int64(num)
+	return res, num, nil
 }
 
 func (t *Single) wait() {
@@ -443,6 +510,13 @@ func (t *Single) multiline(text string) string {
 		return text
 	}
 	return t.mult.ProcessLineString(text)
+}
+
+func (t *Single) multilineWithFlag(text string, flag bool) string {
+	if t.mult == nil {
+		return text
+	}
+	return t.mult.ProcessLineStringWithFlag(text, flag)
 }
 
 type buffer struct {
@@ -487,34 +561,75 @@ func removeAnsiEscapeCodes(oldtext string, run bool) string {
 
 	newtext, err := ansi.Strip([]byte(oldtext))
 	if err != nil {
-		l.Debugf("remove ansi code error: %w", err)
+		// l.Debugf("remove ansi code error: %w", err)
 		return oldtext
 	}
 
 	return string(newtext)
 }
 
-func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
+var (
+	// timeFormatIn is the format for parsing timestamps from other logs.
+	timeFormatIn = "2006-01-02T15:04:05.999999999Z07:00"
+
+	// delimiter is the delimiter for timestamp and stream type in log line.
+	delimiter = []byte{' '}
+	// tagDelimiter is the delimiter for log tags.
+	tagDelimiter = []byte(runtimeapi.LogTagDelimiter)
+)
+
+// logMessage is the CRI internal log type.
+type logMessage struct {
+	timestamp time.Time
+	stream    runtimeapi.LogStreamType
+	log       string
+	isPartial bool
 }
 
-func fileIsHealthy(fn string, timeout time.Duration) bool {
-	info, err := os.Stat(fn)
+// parseCRILog parses logs in CRI log format. CRI Log format example:
+//   2016-10-06T00:17:09.669794202Z stdout P log content 1
+//   2016-10-06T00:17:09.669794203Z stderr F log content 2
+// refer to https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/kuberuntime/logs/logs.go#L128
+func parseCRILog(log []byte, msg *logMessage) error {
+	var err error
+	// Parse timestamp
+	idx := bytes.Index(log, delimiter)
+	if idx < 0 {
+		return fmt.Errorf("timestamp is not found")
+	}
+	msg.timestamp, err = time.Parse(timeFormatIn, string(log[:idx]))
 	if err != nil {
-		if os.IsExist(err) {
-			return true
-		}
-		if os.IsNotExist(err) {
-			return false
-		}
-		return false
+		return fmt.Errorf("unexpected timestamp format %q: %w", timeFormatIn, err)
 	}
-	if timeout > 0 && time.Since(info.ModTime()) > timeout {
-		return false
+
+	// Parse stream type
+	log = log[idx+1:]
+	idx = bytes.Index(log, delimiter)
+	if idx < 0 {
+		return fmt.Errorf("stream type is not found")
 	}
-	return true
+	msg.stream = runtimeapi.LogStreamType(log[:idx])
+	if msg.stream != runtimeapi.Stdout && msg.stream != runtimeapi.Stderr {
+		return fmt.Errorf("unexpected stream type %q", msg.stream)
+	}
+
+	// Parse log tag
+	log = log[idx+1:]
+	idx = bytes.Index(log, delimiter)
+	if idx < 0 {
+		return fmt.Errorf("log tag is not found")
+	}
+	// Keep this forward compatible.
+	tags := bytes.Split(log[:idx], tagDelimiter)
+	partial := runtimeapi.LogTag(tags[0]) == runtimeapi.LogTagPartial
+	// Trim the tailing new line if this is a partial line.
+	if partial && len(log) > 0 && log[len(log)-1] == '\n' {
+		log = log[:len(log)-1]
+	}
+	msg.isPartial = partial
+
+	// Get log content
+	msg.log = string(log[idx+1:])
+
+	return nil
 }

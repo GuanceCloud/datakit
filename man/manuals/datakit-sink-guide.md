@@ -1,4 +1,5 @@
-# DataKit Sink 使用文档
+# DataKit Sink 使用
+---
 
 ## DataKit Sinker
 
@@ -6,27 +7,27 @@
 
 ## 什么是 Sinker
 
-Sinker 是 DataKit 中数据存储定义模块。默认情况下，DataKit 采集到的数据是上报给[观测云](https://console.guance.com/)，但通过配置不同的 Sinker 配置，我们可以将数据发送给不同的自定义存储。
+Sinker 是 DataKit 中数据存储定义模块。默认情况下，DataKit 采集到的数据是上报给[观测云](https://console.guance.com/){:target="_blank"}，但通过配置不同的 Sinker 配置，我们可以将数据发送给不同的自定义存储。
 
 ### 目前支持的 Sinker 实例
 
-- [InfluxDB](datakit-sink-influxdb)：目前支持将 DataKit 采集的时序数据（M）发送到本地的 InfluxDB 存储
-- [M3DB](datakit-sink-m3db)：目前支持将 DataKit 采集的时序数据（M）发送到本地的 InfluxDB 存储（同 InfluxDB）
-- [Logstash](datakit-sink-logstash)：目前支持将 DataKit 采集的日志数据（L）发送到本地 Logstash 服务
+- [InfluxDB](datakit-sink-influxdb.md)：目前支持将 DataKit 采集的时序数据（M）发送到本地的 InfluxDB 存储
+- [M3DB](datakit-sink-m3db.md)：目前支持将 DataKit 采集的时序数据（M）发送到本地的 InfluxDB 存储（同 InfluxDB）
+- [Logstash](datakit-sink-logstash.md)：目前支持将 DataKit 采集的日志数据（L）发送到本地 Logstash 服务
 
-当让，同一定的开发，也能将现有 DataKit 采集到的各种其它数据发送到任何其它存储，参见[Sinker 开发文档](datakit-sink-dev)。
+当让，同一定的开发，也能将现有 DataKit 采集到的各种其它数据发送到任何其它存储，参见[Sinker 开发文档](datakit-sink-dev.md)。
 
 ## Sinker 的配置
 
 只需要以下简单三步:
 
-- 搭建后端存储，目前支持 [InfluxDB](datakit-sink-influxdb)、[Logstash](datakit-sink-logstash) 以及 [M3DB](datakit-sink-m3db)
+- 搭建后端存储，目前支持 [InfluxDB](datakit-sink-influxdb.md)、[Logstash](datakit-sink-logstash.md) 以及 [M3DB](datakit-sink-m3db.md)
 
 - 增加 Sinker 配置：在 `datakit.conf` 配置中增加 Sinker 实例的相关参数，也能在 DataKit 安装阶段即指定 Sinker 配置。具体参见各个已有 Sinker 的安装文档。
 
-  - [InfluxDB 安装](datakit-sink-influxdb#dc8b9023)
-  - [M3DB 安装](datakit-sink-m3db#3ab48619)
-  - [Logstash 安装](datakit-sink-logstash#dc8b9023)
+  - [InfluxDB 安装](datakit-sink-influxdb.md)
+  - [M3DB 安装](datakit-sink-m3db.md)
+  - [Logstash 安装](datakit-sink-logstash.md)
 
 - 重启 DataKit
 
@@ -59,6 +60,6 @@ $ sudo datakit --restart
 
 ## 扩展阅读
 
-- [Sinker 之 InfluxDB](datakit-sink-influxdb)
-- [Sinker 之 M3DB](datakit-sink-m3db)
-- [Sinker 之 Logstash](datakit-sink-logstash)
+- [Sinker 之 InfluxDB](datakit-sink-influxdb.md)
+- [Sinker 之 M3DB](datakit-sink-m3db.md)
+- [Sinker 之 Logstash](datakit-sink-logstash.md)

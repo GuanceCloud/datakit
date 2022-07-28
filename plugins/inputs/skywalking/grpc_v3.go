@@ -18,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	skyimpl "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile"
 	"google.golang.org/grpc"
@@ -66,7 +67,7 @@ func (trsvr *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_
 		if dktrace := segobjToDkTrace(segobj); len(dktrace) == 0 {
 			log.Warn("empty datakit trace")
 		} else {
-			afterGatherRun.Run(inputName, dktrace, false)
+			afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
 		}
 	}
 }
@@ -85,15 +86,16 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			TraceID:   segment.TraceId,
-			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
-			Service:   segment.Service,
-			Resource:  span.OperationName,
-			Operation: span.OperationName,
-			Source:    inputName,
-			EndPoint:  span.Peer,
-			Start:     span.StartTime * int64(time.Millisecond),
-			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
+			TraceID:    segment.TraceId,
+			SpanID:     fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
+			Service:    segment.Service,
+			Resource:   span.OperationName,
+			Operation:  span.OperationName,
+			Source:     inputName,
+			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
+			EndPoint:   span.Peer,
+			Start:      span.StartTime * int64(time.Millisecond),
+			Duration:   (span.EndTime - span.StartTime) * int64(time.Millisecond),
 		}
 
 		if span.ParentSpanId < 0 {
@@ -118,10 +120,12 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		switch span.SpanType {
 		case skyimpl.SpanType_Entry:
 			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
-		case skyimpl.SpanType_Exit:
-			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
 		case skyimpl.SpanType_Local:
 			dkspan.SpanType = itrace.SPAN_TYPE_LOCAL
+		case skyimpl.SpanType_Exit:
+			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
+		default:
+			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
 		}
 
 		sourceTags := make(map[string]string)
@@ -130,11 +134,6 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if dkspan.ParentID == "0" && sampler != nil {
-			dkspan.Priority = sampler.Priority
-			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
-		}
-
 		if buf, err := json.Marshal(span); err != nil {
 			log.Warn(err.Error())
 		} else {
@@ -142,6 +141,10 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		}
 
 		dktrace = append(dktrace, dkspan)
+	}
+	if len(dktrace) != 0 {
+		dktrace[0].Metrics = make(map[string]interface{})
+		dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
 	}
 
 	return dktrace
@@ -174,8 +177,8 @@ type jvmMeasurement struct {
 	ts     time.Time
 }
 
-func (m *jvmMeasurement) LineProto() (*dkio.Point, error) {
-	return dkio.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *jvmMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *jvmMeasurement) Info() *inputs.MeasurementInfo {
@@ -272,7 +275,7 @@ func extractJVMThread(service string, start time.Time, thread *skyimpl.Thread) i
 			"thread_peak_count":               thread.PeakCount,
 			"thread_runnable_state_count":     thread.RunnableStateThreadCount,
 			"thread_blocked_state_count":      thread.BlockedStateThreadCount,
-			"thread_waiting_state_tcount":     thread.WaitingStateThreadCount,
+			"thread_waiting_state_count":      thread.WaitingStateThreadCount,
 			"thread_time_waiting_state_count": thread.TimedWaitingStateThreadCount,
 		},
 		ts: start,
@@ -369,11 +372,10 @@ type skywalkingMetricMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
-func (m *skywalkingMetricMeasurement) LineProto() (*dkio.Point, error) {
-	return dkio.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *skywalkingMetricMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *skywalkingMetricMeasurement) Info() *inputs.MeasurementInfo {

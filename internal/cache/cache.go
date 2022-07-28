@@ -155,7 +155,7 @@ func NewCache(cachePath string, opt *Options) (*Cache, error) {
 func (c *Cache) String() string {
 	buckets := c.Buckets()
 	return fmt.Sprintf(
-		`Dir: %s, CacheFile: %s, buckets: %v, cache count: %d, flushed: %d, 
+		`Dir: %s, CacheFile: %s, buckets: %v, cache count: %d, flushed: %d,
 		dropped: %d, total cache size: %s, disk: %s, swapped: %d, opt:(%s)`,
 		c.Directory,
 		c.dbfile,
@@ -253,8 +253,6 @@ type ProcessHandle func(key []byte, value []byte) error
 
 func (c *Cache) ForEach(bucket string, handle ProcessHandle, clean bool) error {
 	keys := [][]byte{}
-	// start = time.Now()
-	// failed = 0
 
 	fn := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(bucket))
@@ -289,14 +287,6 @@ func (c *Cache) ForEach(bucket string, handle ProcessHandle, clean bool) error {
 	if err := c.db.View(fn); err != nil {
 		l.Error(err)
 	}
-
-	// l.Debugf("clean %d ok", len(cleanedOKIds))
-
-	// clean cleaned-ok keys
-	// if len(cleanedOKIds) > 0 {
-	// 	l.Debugf("post %d local cache cost %v, %d failed, try clean %d local cache...",
-	// 		len(cleanedOKIds), time.Since(start), failed, len(cleanedOKIds))
-	// }
 
 	l.Debugf("clean keys length %d", len(keys))
 

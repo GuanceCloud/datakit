@@ -88,9 +88,9 @@ func getTrueData(mockFields map[string]interface{}) map[string]interface{} {
 	trueData := make(map[string]interface{})
 	for k, v := range mockFields {
 		if _, ok := postgreFields[k]; ok {
-			switch trueV := v.(type) {
+			switch v.(type) {
 			case []uint8:
-				trueData[k] = string(trueV)
+				// PASS: ignore string field
 			default:
 				trueData[k] = v
 			}
@@ -119,16 +119,21 @@ func TestCollect(t *testing.T) {
 	input.service = &MockCollectService{
 		mockData: getMockData(mockFields),
 	}
+
 	input.Tags = map[string]string{datakit.DatakitInputName: datakit.DatakitInputName}
 	err = input.Collect()
 	assert.NoError(t, err)
 	assert.Greater(t, len(input.collectCache), 0, "input collectCache should has at least one measurement")
+
 	points, err := input.collectCache[0].LineProto()
 	assert.NoError(t, err)
+
 	fields, err := points.Fields()
 	assert.NoError(t, err)
+
 	trueFields := getTrueData(mockFields)
-	assert.True(t, reflect.DeepEqual(trueFields, fields))
+	assert.True(t, reflect.DeepEqual(trueFields, fields), "not equal: %v <> %v", trueFields, fields)
+
 	tags := points.Tags()
 	assert.Equal(t, tags[datakit.DatakitInputName], datakit.DatakitInputName)
 	assert.Equal(t, tags["db"], "datname")
@@ -187,7 +192,7 @@ func TestInput(t *testing.T) {
 
 	assert.Equal(t, input.Catalog(), catalogName)
 	assert.Equal(t, input.SampleConfig(), sampleConfig)
-	assert.Equal(t, input.AvailableArchs(), datakit.AllArch)
+	assert.Equal(t, input.AvailableArchs(), datakit.AllOS)
 
 	assert.Equal(t, input.PipelineConfig()["postgresql"], pipelineCfg)
 

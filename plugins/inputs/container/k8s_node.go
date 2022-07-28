@@ -10,8 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/core/v1"
 )
@@ -67,7 +66,6 @@ func (n *node) metric() (inputsMeas, error) {
 				// "unit"
 			},
 			fields: map[string]interface{}{},
-			time:   time.Now(),
 		}
 		// t := item.Status.LastScheduleTime
 		// met.fields["node.age"] = int64(time.Since(*t).Seconds())
@@ -104,7 +102,6 @@ func (n *node) metric() (inputsMeas, error) {
 		met := &nodeMetric{
 			tags:   map[string]string{"namespace": ns},
 			fields: map[string]interface{}{"count": c},
-			time:   time.Now(),
 		}
 		met.tags.append(n.extraTags)
 		res = append(res, met)
@@ -132,7 +129,6 @@ func (n *node) object() (inputsMeas, error) {
 				"age":             int64(time.Since(item.CreationTimestamp.Time).Seconds()),
 				"kubelet_version": item.Status.NodeInfo.KubeletVersion,
 			},
-			time: time.Now(),
 		}
 
 		if _, ok := item.Labels["node-role.kubernetes.io/master"]; ok {
@@ -181,11 +177,10 @@ func (n *node) count() (map[string]int, error) {
 type nodeMetric struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (n *nodeMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_node", n.tags, n.fields, &io.PointOption{Time: n.time, Category: datakit.Metric})
+func (n *nodeMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_node", n.tags, n.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -215,11 +210,10 @@ func (*nodeMetric) Info() *inputs.MeasurementInfo {
 type nodeObject struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (n *nodeObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_nodes", n.tags, n.fields, &io.PointOption{Time: n.time, Category: datakit.Object})
+func (n *nodeObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_nodes", n.tags, n.fields, point.OOptElection())
 }
 
 //nolint:lll

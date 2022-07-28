@@ -23,10 +23,10 @@ import (
 	"time"
 
 	_ "github.com/godror/godror"
-	ifxcli "github.com/influxdata/influxdb1-client/v2"
 	"github.com/jessevdk/go-flags"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"golang.org/x/net/context/ctxhttp"
 )
 
@@ -143,7 +143,8 @@ func main() {
 		opt.Log = filepath.Join(datakit.InstallDir, "externals", "oracle.log")
 	}
 
-	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle", opt.DatakitHTTPPort)
+	// disable global-host-tags and enable global-env-tags, oracle inputs is a election input
+	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle&ignore_global_host_tags=true&global_env_tags=true", opt.DatakitHTTPPort) //nolint:lll
 
 	if err := logger.InitRoot(&logger.Option{
 		Path:  opt.Log,
@@ -205,11 +206,6 @@ func (m *monitor) handle(ec *ExecCfg) {
 
 func handleResponse(m *monitor, metricName string, tagsKeys []string, response []map[string]interface{}) error {
 	lines := [][]byte{}
-	var (
-		pt  *ifxcli.Point
-		err error
-	)
-
 	if metricName == "oracle_system" {
 		return handleSystem(m, metricName, response)
 	}
@@ -236,13 +232,11 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 			continue
 		}
 
-		pt, err = ifxcli.NewPoint(metricName, tags, item, time.Now())
+		pt, err := point.NewPoint(metricName, tags, item, point.MOptElection())
 		if err != nil {
 			l.Error("NewPoint(): %s", err.Error())
 			return err
 		}
-
-		fmt.Println("point ======>", pt.String())
 
 		lines = append(lines, []byte(pt.String()))
 	}
@@ -289,7 +283,7 @@ func handleSystem(m *monitor, metricName string, response []map[string]interface
 		return nil
 	}
 
-	pt, err := ifxcli.NewPoint(metricName, tags, fields, time.Now())
+	pt, err := point.NewPoint(metricName, tags, fields, point.MOptElection())
 	if err != nil {
 		l.Error("NewPoint(): %s", err.Error())
 		return err

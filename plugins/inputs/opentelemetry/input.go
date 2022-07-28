@@ -9,12 +9,14 @@ package opentelemetry
 
 import (
 	"strings"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkHTTP "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 )
@@ -57,29 +59,23 @@ const (
     # ...
 
   ## Sampler config uses to set global sampling strategy.
-  ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
-  ##  -1: always reject any tracing data send to datakit
-  ##   0: accept tracing data and calculate with sampling_rate
-  ##   1: always send to data center and do not consider sampling_rate
-  ## sampling_rate used to set global sampling rate
+  ## sampling_rate used to set global sampling rate.
   # [inputs.opentelemetry.sampler]
-    # priority = 0
     # sampling_rate = 1.0
-
-  ## Piplines use to manipulate message and meta data. If this item configured right then
-  ## the current input procedure will run the scripts wrote in pipline config file against the data
-  ## present in span message.
-  ## The string on the left side of the equal sign must be identical to the service name that
-  ## you try to handle.
-  # [inputs.opentelemetry.pipelines]
-    # service1 = "service1.p"
-    # service2 = "service2.p"
-    # ...
 
   # [inputs.opentelemetry.tags]
     # key1 = "value1"
     # key2 = "value2"
     # ...
+
+  ## Threads config controls how many goroutines an agent cloud start.
+  ## buffer is the size of jobs' buffering of worker channel.
+  ## threads is the total number fo goroutines at running time.
+  ## timeout is the duration(ms) before a job can return a result.
+  # [inputs.opentelemetry.threads]
+    # buffer = 100
+    # threads = 8
+    # timeout = 1000
 
   [inputs.opentelemetry.expectedHeaders]
     ## 如有header配置 则请求中必须要携带 否则返回状态码500
@@ -112,32 +108,37 @@ const (
 `
 )
 
-var l = logger.DefaultSLogger("otel-log")
+var (
+	log        = logger.DefaultSLogger(inputName)
+	sampler    *itrace.Sampler
+	wpool      workerpool.WorkerPool
+	jobTimeout time.Duration
+)
 
 type Input struct {
-	Ogrpc               *otlpGrpcCollector  `toml:"grpc"`
-	OHTTPc              *otlpHTTPCollector  `toml:"http"`
-	CloseResource       map[string][]string `toml:"close_resource"`
-	OmitErrStatus       []string            `toml:"omit_err_status"`
-	Sampler             *itrace.Sampler     `toml:"sampler"`
-	Pipelines           map[string]string   `toml:"pipelines"`
-	IgnoreAttributeKeys []string            `toml:"ignore_attribute_keys"`
-	Tags                map[string]string   `toml:"tags"`
-	ExpectedHeaders     map[string]string   `toml:"expectedHeaders"`
-
-	inputName string
-	semStop   *cliutils.Sem // start stop signal
+	Pipelines           map[string]string            `toml:"pipelines"` // deprecated
+	Ogrpc               *otlpGrpcCollector           `toml:"grpc"`
+	OHTTPc              *otlpHTTPCollector           `toml:"http"`
+	CloseResource       map[string][]string          `toml:"close_resource"`
+	OmitErrStatus       []string                     `toml:"omit_err_status"`
+	Sampler             *itrace.Sampler              `toml:"sampler"`
+	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"`
+	Tags                map[string]string            `toml:"tags"`
+	WPConfig            *workerpool.WorkerPoolConfig `toml:"threads"`
+	ExpectedHeaders     map[string]string            `toml:"expectedHeaders"`
+	inputName           string
+	semStop             *cliutils.Sem // start stop signal
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return inputName
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
@@ -145,83 +146,102 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
 }
 
-func (i *Input) RegHTTPHandler() {
-	dkHTTP.RegHTTPHandler("POST", "/otel/v1/trace", i.OHTTPc.apiOtlpTrace)
-	dkHTTP.RegHTTPHandler("POST", "/otel/v1/metric", i.OHTTPc.apiOtlpMetric)
-}
+func (ipt *Input) RegHTTPHandler() {
+	log = logger.SLogger(ipt.inputName)
 
-func (i *Input) exit() {
-	i.Ogrpc.stop()
-}
-
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+	if ipt.WPConfig != nil {
+		wpool = workerpool.NewWorkerPool(ipt.WPConfig.Buffer)
+		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
+			log.Errorf("### start workerpool failed: %s", err.Error())
+			wpool = nil
+		} else {
+			jobTimeout = time.Duration(ipt.WPConfig.Timeout) * time.Millisecond
+		}
 	}
+
+	log.Debugf("### register handler for /otel/v1/trace of agent %s", inputName)
+	log.Debugf("### register handler for /otel/v1/metric of agent %s", inputName)
+	dkHTTP.RegHTTPHandler("POST", "/otel/v1/trace", ipt.OHTTPc.apiOtlpTrace)
+	dkHTTP.RegHTTPHandler("POST", "/otel/v1/metric", ipt.OHTTPc.apiOtlpMetric)
 }
 
-func (i *Input) Run() {
-	l = logger.SLogger("otlp-log")
+func (ipt *Input) Run() {
 	storage := collector.NewSpansStorage()
-	// add filters: the order append in AfterGather is important!!!
-	// add error status penetration
-	storage.AfterGather.AppendFilter(itrace.PenetrateErrorTracing)
+	// add filters: the order of appending filters into AfterGather is important!!!
+	// the order of appending represents the order of that filter executes.
 	// add close resource filter
-	if len(i.CloseResource) != 0 {
+	if len(ipt.CloseResource) != 0 {
 		closeResource := &itrace.CloseResource{}
-		closeResource.UpdateIgnResList(i.CloseResource)
+		closeResource.UpdateIgnResList(ipt.CloseResource)
 		storage.AfterGather.AppendFilter(closeResource.Close)
 	}
+	// add error status penetration
+	storage.AfterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add omit certain error status list
-	if len(i.OmitErrStatus) != 0 {
-		storage.AfterGather.AppendFilter(itrace.OmitStatusCodeFilterWrapper(i.OmitErrStatus))
+	if len(ipt.OmitErrStatus) != 0 {
+		storage.AfterGather.AppendFilter(itrace.OmitStatusCodeFilterWrapper(ipt.OmitErrStatus))
 	}
 	// add sampler
-	if i.Sampler != nil {
-		defSampler := i.Sampler
-		storage.AfterGather.AppendFilter(defSampler.Sample)
+	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
+		sampler = ipt.Sampler
+	} else {
+		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
 	}
-	// add piplines
-	if len(i.Pipelines) != 0 {
-		storage.AfterGather.AppendFilter(itrace.PiplineFilterWrapper(inputName, i.Pipelines))
-	}
+	storage.AfterGather.AppendFilter(sampler.Sample)
 
-	storage.GlobalTags = i.Tags
+	storage.GlobalTags = ipt.Tags
 
-	if len(i.IgnoreAttributeKeys) > 0 {
-		storage.RegexpString = strings.Join(i.IgnoreAttributeKeys, "|")
+	if len(ipt.IgnoreAttributeKeys) > 0 {
+		storage.RegexpString = strings.Join(ipt.IgnoreAttributeKeys, "|")
 	}
 
 	open := false
 	// 从配置文件 开启
-	if i.OHTTPc.Enable {
+	if ipt.OHTTPc.Enable {
 		// add option
-		i.OHTTPc.storage = storage
-		i.OHTTPc.ExpectedHeaders = i.ExpectedHeaders
+		ipt.OHTTPc.storage = storage
+		ipt.OHTTPc.ExpectedHeaders = ipt.ExpectedHeaders
 		open = true
 	}
-	if i.Ogrpc.TraceEnable || i.Ogrpc.MetricEnable {
+	if ipt.Ogrpc.TraceEnable || ipt.Ogrpc.MetricEnable {
 		open = true
-		i.Ogrpc.ExpectedHeaders = i.ExpectedHeaders
-		go i.Ogrpc.run(storage)
+		ipt.Ogrpc.ExpectedHeaders = ipt.ExpectedHeaders
+		go ipt.Ogrpc.run(storage)
 	}
 	if open {
 		// add calculators
-		storage.AfterGather.AppendCalculator(itrace.StatTracingInfo)
+		// storage.AfterGather.AppendCalculator(itrace.StatTracingInfo)
 		go storage.Run()
 		for {
 			select {
 			case <-datakit.Exit.Wait():
-				i.exit()
-				l.Infof("%s exit", i.inputName)
-				return
+				ipt.exit()
+				log.Infof("### %s exit", ipt.inputName)
 
-			case <-i.semStop.Wait():
-				i.exit()
-				l.Infof("%s return", i.inputName)
+				return
+			case <-ipt.semStop.Wait():
+				ipt.exit()
+				log.Infof("### %s return", ipt.inputName)
+
 				return
 			}
 		}
+	}
+
+	log.Debugf("### %s agent is running...", inputName)
+}
+
+func (ipt *Input) exit() {
+	ipt.Ogrpc.stop()
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+	if wpool != nil {
+		wpool.Shutdown()
+		log.Debugf("### workerpool in %s is shudown", inputName)
 	}
 }
 

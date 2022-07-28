@@ -1,12 +1,13 @@
 {{.CSS}}
+# Swap
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
+- 操作系统支持：{{.AvailableArchs}}
 
 swap 采集器用于采集主机 swap 内存的使用情况
+
+![](imgs/input-swap-01.png)
 
 ## 前置条件
 
@@ -24,10 +25,14 @@ swap 采集器用于采集主机 swap 内存的使用情况
 
 支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
 
-| 环境变量名            | 对应的配置参数项 | 参数示例                                                     |
-| :---                  | ---              | ---                                                          |
-| `ENV_INPUT_SWAP_TAGS` | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-| `ENV_INPUT_SWAP_INTERVAL` | `interval` | `10s` |
+| 环境变量名                | 对应的配置参数项 | 参数示例                                                     |
+| :---                      | ---              | ---                                                          |
+| `ENV_INPUT_SWAP_TAGS`     | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+| `ENV_INPUT_SWAP_INTERVAL` | `interval`       | `10s`                                                        |
+
+## 指标预览
+
+![](imgs/input-swap-02.png)
 
 ## 指标集
 
@@ -53,3 +58,11 @@ swap 采集器用于采集主机 swap 内存的使用情况
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## 场景视图
+
+<场景 - 新建仪表板 - 内置模板库 - SWAP>
+
+## 异常检测
+
+<监控 - 模板新建 - 主机检测库>

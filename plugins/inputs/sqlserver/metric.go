@@ -6,9 +6,7 @@
 package sqlserver
 
 import (
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -16,11 +14,10 @@ type Performance struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
-func (m *Performance) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *Performance) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -43,11 +40,10 @@ type WaitStatsCategorized struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
-func (m *WaitStatsCategorized) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *WaitStatsCategorized) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -74,11 +70,10 @@ type DatabaseIO struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
-func (m *DatabaseIO) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *DatabaseIO) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -110,11 +105,10 @@ type ServerProperties struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
-func (m *ServerProperties) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *ServerProperties) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -141,11 +135,10 @@ type Schedulers struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
-func (m *Schedulers) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *Schedulers) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -181,11 +174,10 @@ type VolumeSpace struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
-func (m *VolumeSpace) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *VolumeSpace) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 //nolint:lll

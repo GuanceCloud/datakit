@@ -355,7 +355,7 @@ func (i *Input) extendSelfTag(tags map[string]string) {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
@@ -539,7 +539,7 @@ func (i *Input) Run() {
 	client, err := i.createHTTPClient()
 	if err != nil {
 		l.Error(err)
-		io.ReportLastError(inputName, err.Error())
+		io.FeedLastError(inputName, err.Error())
 		return
 	}
 	i.client = client
@@ -548,10 +548,6 @@ func (i *Input) Run() {
 
 	tick := time.NewTicker(i.duration)
 	defer tick.Stop()
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		i.Tags["election_namespace"] = namespace
-	}
 
 	for {
 		if i.pause {

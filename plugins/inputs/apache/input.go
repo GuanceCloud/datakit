@@ -81,7 +81,7 @@ func (*Input) SampleConfig() string { return sample }
 
 func (*Input) Catalog() string { return inputName }
 
-func (*Input) AvailableArchs() []string { return datakit.AllArch }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) SampleMeasurement() []inputs.Measurement { return []inputs.Measurement{&Measurement{}} }
 
@@ -143,10 +143,6 @@ func (n *Input) Run() {
 		return
 	}
 	n.client = client
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		n.Tags["election_namespace"] = namespace
-	}
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()

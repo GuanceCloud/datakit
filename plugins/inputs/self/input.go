@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -42,7 +43,7 @@ func (*Input) SampleConfig() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
@@ -64,7 +65,8 @@ func (si *Input) Run() {
 		si.stat.Update()
 		cost := time.Since(start)
 		pt := si.stat.ToMetric()
-		_ = io.Feed(inputName, datakit.Metric, []*io.Point{pt}, &io.Option{
+
+		_ = io.Feed(inputName, datakit.Metric, []*point.Point{pt}, &io.Option{
 			CollectCost: cost,
 		})
 

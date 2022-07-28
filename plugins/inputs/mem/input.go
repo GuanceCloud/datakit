@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -56,11 +57,10 @@ type memMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
-func (m *memMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *memMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 // https://man7.org/linux/man-pages/man5/proc.5.html
@@ -227,7 +227,7 @@ func (*Input) SampleConfig() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {

@@ -10,8 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/rbac/v1"
 )
@@ -91,7 +90,6 @@ func (c *clusterRole) object() (inputsMeas, error) {
 				"age":         int64(time.Since(item.CreationTimestamp.Time).Seconds()),
 				"create_time": item.CreationTimestamp.Time.Unix() / int64(time.Millisecond),
 			},
-			time: time.Now(),
 		}
 
 		obj.tags.append(c.extraTags)
@@ -110,11 +108,10 @@ func (c *clusterRole) object() (inputsMeas, error) {
 type clusterRoleObject struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (c *clusterRoleObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_cluster_roles", c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Object})
+func (c *clusterRoleObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_cluster_roles", c.tags, c.fields, point.MOptElection())
 }
 
 //nolint:lll

@@ -15,7 +15,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -25,9 +24,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
@@ -42,7 +41,9 @@ func SetLog() {
 
 func DefaultConfig() *Config {
 	c := &Config{ //nolint:dupl
-		GlobalTags: map[string]string{
+		GlobalHostTags:       map[string]string{},
+		GlobalTagsDeprecated: map[string]string{},
+		GlobalEnvTags:        map[string]string{
 			// "project": "",
 			// "cluster": "",
 			// "site":    "",
@@ -53,16 +54,18 @@ func DefaultConfig() *Config {
 		}, // default nothing
 
 		IOConf: &dkio.IOConfig{
-			FeedChanSize:              1024,
-			HighFreqFeedChanSize:      2048,
-			MaxCacheCount:             1024,
-			CacheDumpThreshold:        512,
-			MaxDynamicCacheCount:      1024,
-			DynamicCacheDumpThreshold: 512,
-			FlushInterval:             "10s",
-			OutputFileInputs:          []string{},
-			EnableCache:               false,
-			Filters:                   map[string][]string{},
+			FeedChanSize:         4096,
+			MaxCacheCount:        512,
+			MaxDynamicCacheCount: 512,
+			FlushInterval:        "10s",
+			OutputFileInputs:     []string{},
+
+			EnableCache: false,
+			CacheSizeGB: 1,
+
+			BlockingMode: false,
+
+			Filters: map[string][]string{},
 		},
 
 		DataWayCfg: &dataway.DataWayCfg{
@@ -72,10 +75,12 @@ func DefaultConfig() *Config {
 		ProtectMode: true,
 
 		HTTPAPI: &dkhttp.APIConfig{
-			RUMOriginIPHeader: "X-Forwarded-For",
-			Listen:            "localhost:9529",
-			RUMAppIDWhiteList: []string{},
-			PublicAPIs:        []string{},
+			RUMOriginIPHeader:   "X-Forwarded-For",
+			Listen:              "localhost:9529",
+			RUMAppIDWhiteList:   []string{},
+			PublicAPIs:          []string{},
+			Timeout:             "30s",
+			CloseIdleConnection: false,
 		},
 
 		DCAConfig: &dkhttp.DCAConfig{
@@ -118,6 +123,10 @@ func DefaultConfig() *Config {
 		Sinks: &Sinker{
 			Sink: []map[string]interface{}{{}},
 		},
+
+		EnableElection:    false,
+		EnableElectionTag: false,
+		ElectionNamespace: "default",
 
 		Ulimit: 64000,
 	}
@@ -167,9 +176,8 @@ type Config struct {
 	UUID    string `toml:"-"`
 	RunMode int    `toml:"-"`
 
-	Name      string `toml:"name,omitempty"`
-	Hostname  string `toml:"-"`
-	Namespace string `toml:"namespace"`
+	Name     string `toml:"name,omitempty"`
+	Hostname string `toml:"-"`
 
 	// http config: TODO: merge into APIConfig
 	HTTPBindDeprecated   string `toml:"http_server_addr,omitempty"`
@@ -196,24 +204,33 @@ type Config struct {
 
 	InstallVer string `toml:"install_version,omitempty"`
 
-	HTTPAPI    *dkhttp.APIConfig   `toml:"http_api"`
-	IOConf     *dkio.IOConfig      `toml:"io"`
+	HTTPAPI *dkhttp.APIConfig `toml:"http_api"`
+	IOConf  *dkio.IOConfig    `toml:"io"`
+
 	DataWayCfg *dataway.DataWayCfg `toml:"dataway,omitempty"`
 	DataWay    dataway.DataWay     `toml:"-"`
-	Sinks      *Sinker             `toml:"sinks"`
-	Logging    *LoggerCfg          `toml:"logging"`
 
-	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
-	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
+	Sinks   *Sinker    `toml:"sinks"`
+	Logging *LoggerCfg `toml:"logging"`
 
-	GlobalTags   map[string]string     `toml:"global_tags"`
+	LogRotateDeprecated    int `toml:"log_rotate,omitzero"`
+	IOCacheCountDeprecated int `toml:"io_cache_count,omitzero"`
+
+	GlobalHostTags       map[string]string `toml:"global_host_tags"`
+	GlobalEnvTags        map[string]string `toml:"global_env_tags"`
+	GlobalTagsDeprecated map[string]string `toml:"global_tags,omitempty"`
+
 	Environments map[string]string     `toml:"environments"`
 	Cgroup       *cgroup.CgroupOptions `toml:"cgroup"`
 
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
 	ProtectMode              bool `toml:"protect_mode"`
 
-	EnableElection bool `toml:"enable_election"`
+	// TODO: we should group election-related conf into specified field
+	EnableElection      bool   `toml:"enable_election"`
+	EnableElectionTag   bool   `toml:"enable_election_tag"`
+	ElectionNamespace   string `toml:"election_namespace"`
+	NamespaceDeprecated string `toml:"namespace,omitempty"` // 避免跟 k8s 的 namespace 概念混淆
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
@@ -310,7 +327,7 @@ func (c *Config) InitCfg(p string) error {
 	return nil
 }
 
-func (c *Config) InitCfgSample(p string) error {
+func initCfgSample(p string) error {
 	if err := ioutil.WriteFile(p, []byte(DatakitConfSample), datakit.ConfPerm); err != nil {
 		l.Errorf("error creating %s: %s", p, err)
 		return err
@@ -319,50 +336,14 @@ func (c *Config) InitCfgSample(p string) error {
 	return nil
 }
 
-func (c *Config) setupDataway() error {
-	if c.DataWayCfg == nil {
-		return fmt.Errorf("dataway config is empty")
+func (c *Config) parseGlobalHostTags() {
+	// why?
+	if c.GlobalHostTags == nil {
+		c.GlobalHostTags = map[string]string{}
 	}
-
-	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
-	// 避免俩边配置了同样的 dataway, 造成数据混乱
-	if c.DataWayCfg.DeprecatedURL != "" && len(c.DataWayCfg.URLs) == 0 {
-		c.DataWayCfg.URLs = []string{c.DataWayCfg.DeprecatedURL}
-	}
-
-	if len(c.DataWayCfg.URLs) > 0 && c.DataWayCfg.URLs[0] == datakit.DatawayDisableURL {
-		c.RunMode = datakit.ModeDev
-		return nil
-	} else {
-		c.RunMode = datakit.ModeNormal
-	}
-
-	dataway.ExtraHeaders = map[string]string{
-		"X-Datakit-Info": fmt.Sprintf("%s; %s", c.Hostname, datakit.Version),
-	}
-
-	c.DataWay = &dataway.DataWayDefault{}
-
-	c.DataWayCfg.Hostname = c.Hostname
-	if err := c.DataWay.Init(c.DataWayCfg); err != nil {
-		c.DataWay = nil
-		return err
-	}
-
-	return nil
-}
-
-func (c *Config) setupGlobalTags() error {
-	if c.GlobalTags == nil {
-		c.GlobalTags = map[string]string{}
-	}
-
-	// Delete host tag if configured: you should not do this,
-	// use ENV_HOSTNAME in Config.Environments instead
-	delete(c.GlobalTags, "host")
 
 	// setup global tags
-	for k, v := range c.GlobalTags {
+	for k, v := range c.GlobalHostTags {
 		// NOTE: accept `__` and `$` as tag-key prefix, to keep compatible with old prefix `$`
 		// by using `__` as prefix, avoid escaping `$` in Powershell and shell
 
@@ -370,33 +351,31 @@ func (c *Config) setupGlobalTags() error {
 		case `__datakit_hostname`, `$datakit_hostname`:
 			if c.Hostname == "" {
 				if err := c.setHostname(); err != nil {
-					return err
+					l.Warnf("setHostname: %s, ignored", err)
 				}
 			}
 
-			c.GlobalTags[k] = c.Hostname
+			c.GlobalHostTags[k] = c.Hostname
 			l.Debugf("set global tag %s: %s", k, c.Hostname)
 
 		case `__datakit_ip`, `$datakit_ip`:
-			c.GlobalTags[k] = "unavailable"
+			c.GlobalHostTags[k] = "unavailable"
 
 			if ipaddr, err := datakit.LocalIP(); err != nil {
 				l.Errorf("get local ip failed: %s", err.Error())
 			} else {
 				l.Infof("set global tag %s: %s", k, ipaddr)
-				c.GlobalTags[k] = ipaddr
+				c.GlobalHostTags[k] = ipaddr
 			}
 
 		case `__datakit_uuid`, `__datakit_id`, `$datakit_uuid`, `$datakit_id`:
-			c.GlobalTags[k] = c.UUID
+			c.GlobalHostTags[k] = c.UUID
 			l.Debugf("set global tag %s: %s", k, c.UUID)
 
 		default:
 			// pass
 		}
 	}
-
-	return nil
 }
 
 func (c *Config) setLogging() {
@@ -435,6 +414,33 @@ func (c *Config) setLogging() {
 	}
 }
 
+// setup global host/env tags.
+func (c *Config) setupGlobalTags() {
+	c.parseGlobalHostTags()
+
+	if len(c.GlobalTagsDeprecated) != 0 { // c.GlobalTags deprecated, move them to GlobalHostTags
+		for k, v := range c.GlobalTagsDeprecated {
+			c.GlobalHostTags[k] = v
+		}
+	}
+
+	for k, v := range c.GlobalHostTags {
+		point.SetGlobalHostTags(k, v)
+	}
+
+	// 开启选举且开启开关的情况下，将选举的命名空间塞到 global-env-tags 中
+	if c.EnableElection && c.EnableElectionTag {
+		c.GlobalEnvTags["election_namespace"] = c.ElectionNamespace
+	}
+	for k, v := range c.GlobalEnvTags {
+		point.SetGlobalEnvTags(k, v)
+	}
+
+	// 此处不将 host 计入 c.GlobalHostTags，因为 c.GlobalHostTags 是读取的用户配置，而 host
+	// 是不允许修改的, 故单独添加这个 tag 到 io 模块
+	point.SetGlobalHostTags("host", c.Hostname)
+}
+
 func (c *Config) ApplyMainConfig() error {
 	c.setLogging()
 
@@ -454,6 +460,10 @@ func (c *Config) ApplyMainConfig() error {
 		}
 	}
 
+	if c.NamespaceDeprecated != "" && c.ElectionNamespace == "" {
+		c.ElectionNamespace = c.NamespaceDeprecated
+	}
+
 	if c.EnableUncheckedInputs {
 		datakit.EnableUncheckInputs = true
 	}
@@ -471,6 +481,7 @@ func (c *Config) ApplyMainConfig() error {
 	}
 
 	datakit.AutoUpdate = c.AutoUpdate
+	point.EnableElection = c.EnableElection
 
 	// config default io
 	if c.IOConf != nil {
@@ -485,17 +496,12 @@ func (c *Config) ApplyMainConfig() error {
 		dkio.SetDataway(c.DataWay)
 	}
 
-	if err := c.setupGlobalTags(); err != nil {
+	if err := c.setupSinks(); err != nil {
+		l.Errorf("setup sinks failed: %s", err)
 		return err
 	}
 
-	for k, v := range c.GlobalTags {
-		dkio.SetExtraTags(k, v)
-	}
-
-	// 此处不将 host 计入 c.GlobalTags，因为 c.GlobalTags 是读取的用户配置，而 host
-	// 是不允许修改的, 故单独添加这个 tag 到 io 模块
-	dkio.SetExtraTags("host", c.Hostname)
+	c.setupGlobalTags()
 
 	// remove deprecated UUID field in main configure
 	if c.UUIDDeprecated != "" {
@@ -561,60 +567,11 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 	c.DefaultEnabledInputs = inputs
 }
 
-func (c *Config) getSinkConfig() error {
-	sinkMetric := datakit.GetEnv("ENV_SINK_M")
-	sinkNetwork := datakit.GetEnv("ENV_SINK_N")
-	sinkKeyEvent := datakit.GetEnv("ENV_SINK_K")
-	sinkObject := datakit.GetEnv("ENV_SINK_O")
-	sinkCustomObject := datakit.GetEnv("ENV_SINK_CO")
-	sinkLogging := datakit.GetEnv("ENV_SINK_L")
-	sinkTracing := datakit.GetEnv("ENV_SINK_T")
-	sinkRUM := datakit.GetEnv("ENV_SINK_R")
-	sinkSecurity := datakit.GetEnv("ENV_SINK_S")
-
-	categoryShorts := []string{
-		datakit.SinkCategoryMetric,
-		datakit.SinkCategoryNetwork,
-		datakit.SinkCategoryKeyEvent,
-		datakit.SinkCategoryObject,
-		datakit.SinkCategoryCustomObject,
-		datakit.SinkCategoryLogging,
-		datakit.SinkCategoryTracing,
-		datakit.SinkCategoryRUM,
-		datakit.SinkCategorySecurity,
-	}
-
-	args := []string{
-		sinkMetric,
-		sinkNetwork,
-		sinkKeyEvent,
-		sinkObject,
-		sinkCustomObject,
-		sinkLogging,
-		sinkTracing,
-		sinkRUM,
-		sinkSecurity,
-	}
-
-	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
-	if err != nil {
-		return err
-	}
-	c.Sinks.Sink = sinks
-
-	if v := datakit.GetEnv("ENV_ULIMIT"); v != "" {
-		u, err := strconv.ParseUint(v, 10, 64)
-		if err != nil {
-			l.Warnf("invalid ulimit input through ENV_ULIMIT: %v", err)
-		} else {
-			c.Ulimit = u
-		}
-	}
-
-	return nil
-}
-
 func ParseGlobalTags(s string) map[string]string {
+	if s == "" {
+		return map[string]string{}
+	}
+
 	tags := map[string]string{}
 
 	parts := strings.Split(s, ",")
@@ -792,19 +749,4 @@ func ProtectedInterval(min, max, cur time.Duration) time.Duration {
 	}
 
 	return cur
-}
-
-// GetElectionNamespace returns the namespace of datakit election.
-// 	If election is not enabled, return empty string.
-//  If election is enabled, return the namespace of election or default when the namespace is empty.
-func GetElectionNamespace() string {
-	if Cfg.EnableElection {
-		if Cfg.Namespace == "" {
-			return "default"
-		} else {
-			return Cfg.Namespace
-		}
-	}
-
-	return ""
 }

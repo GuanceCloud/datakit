@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 var (
@@ -72,10 +73,14 @@ type filter struct {
 	conditions map[string]parser.WhereConditions
 	dw         IDataway
 	md5        string
+
+	// Mutex to R/W on rules: rules are updated(Write) from remote center, or
+	// applied to(Read) filter points
 	sync.RWMutex
 
-	metricCh     chan *filterMetric
-	qch          chan *qstats
+	metricCh chan *filterMetric
+	qch      chan *qstats
+
 	pullInterval time.Duration
 	tick         *time.Ticker
 	stats        *FilterStats
@@ -94,17 +99,13 @@ func dump(rules []byte, dir string) error {
 func (f *filter) pull() {
 	start := time.Now()
 
-	f.stats.PullCount++
-
-	if len(defaultIO.conf.Filters) != 0 {
-		f.stats.RuleSource = "datakit.conf"
-	} else {
-		f.stats.RuleSource = "remote"
-	}
-
 	body, err := f.dw.Pull()
 	if err != nil {
 		l.Errorf("dataway Pull: %s", err)
+
+		// keep mutex away from HTTP request
+		f.RWMutex.Lock()
+		defer f.RWMutex.Unlock()
 		f.stats.PullFailed++
 		f.stats.LastErr = err.Error()
 		f.stats.LastErrTime = time.Now()
@@ -112,8 +113,11 @@ func (f *filter) pull() {
 	}
 
 	l.Debugf("filter condition body: %s", string(body))
-
 	cost := time.Since(start)
+
+	f.RWMutex.Lock()
+	defer f.RWMutex.Unlock()
+	f.stats.PullCount++
 	f.stats.PullCost += cost
 	f.stats.PullCostAvg = f.stats.PullCost / time.Duration(f.stats.PullCount)
 	if cost > f.stats.PullCostMax {
@@ -131,8 +135,6 @@ func (f *filter) pull() {
 		}
 
 		f.stats.LastUpdate = start
-		f.RWMutex.Lock()
-		defer f.RWMutex.Unlock()
 
 		if fp.PullInterval > 0 && f.pullInterval != fp.PullInterval {
 			f.pullInterval = fp.PullInterval
@@ -156,13 +158,13 @@ func (f *filter) pull() {
 	}
 }
 
-func (f *filter) filterLogging(cond parser.WhereConditions, pts []*Point) []*Point {
+func (f *filter) filterLogging(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
 		fields, err := pt.Point.Fields()
@@ -171,6 +173,7 @@ func (f *filter) filterLogging(cond parser.WhereConditions, pts []*Point) []*Poi
 		}
 
 		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
+
 		if !filtered(cond, tags, fields) {
 			after = append(after, pt)
 		}
@@ -179,13 +182,13 @@ func (f *filter) filterLogging(cond parser.WhereConditions, pts []*Point) []*Poi
 	return after
 }
 
-func (f *filter) filterMetric(cond parser.WhereConditions, pts []*Point) []*Point {
+func (f *filter) filterMetric(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter for metric")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
 
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
@@ -205,13 +208,13 @@ func (f *filter) filterMetric(cond parser.WhereConditions, pts []*Point) []*Poin
 	return after
 }
 
-func (f *filter) filterObject(cond parser.WhereConditions, pts []*Point) []*Point {
+func (f *filter) filterObject(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter for object")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
 
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
@@ -231,13 +234,162 @@ func (f *filter) filterObject(cond parser.WhereConditions, pts []*Point) []*Poin
 	return after
 }
 
-func (f *filter) filterTracing(cond parser.WhereConditions, pts []*Point) []*Point {
+// using measurement name as tag `service'.
+func (f *filter) filterTracing(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
 		l.Debugf("no condition filter for tracing")
 		return pts
 	}
 
-	var after []*Point
+	var after []*point.Point
+
+	for _, pt := range pts {
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
+		if err != nil {
+			continue // filter it!
+		}
+
+		if !filtered(cond, tags, fields) {
+			after = append(after, pt)
+		}
+	}
+
+	return after
+}
+
+func (f *filter) filterNetwork(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
+	if cond == nil {
+		l.Debugf("no condition filter for network")
+		return pts
+	}
+
+	var after []*point.Point
+
+	for _, pt := range pts {
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
+		if err != nil {
+			continue // filter it!
+		}
+
+		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
+
+		if !filtered(cond, tags, fields) {
+			after = append(after, pt)
+		}
+	}
+
+	return after
+}
+
+func (f *filter) filterKeyEvent(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
+	if cond == nil {
+		l.Debugf("no condition filter for key event")
+		return pts
+	}
+
+	var after []*point.Point
+
+	for _, pt := range pts {
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
+		if err != nil {
+			continue // filter it!
+		}
+
+		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
+
+		if !filtered(cond, tags, fields) {
+			after = append(after, pt)
+		}
+	}
+
+	return after
+}
+
+func (f *filter) filterCustomObject(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
+	if cond == nil {
+		l.Debugf("no condition filter for custom object")
+		return pts
+	}
+
+	var after []*point.Point
+
+	for _, pt := range pts {
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
+		if err != nil {
+			continue // filter it!
+		}
+
+		tags["class"] = pt.Point.Name() // set measurement name as tag `class'
+
+		if !filtered(cond, tags, fields) {
+			after = append(after, pt)
+		}
+	}
+
+	return after
+}
+
+func (f *filter) filterRUM(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
+	if cond == nil {
+		l.Debugf("no condition filter for rum")
+		return pts
+	}
+
+	var after []*point.Point
+
+	for _, pt := range pts {
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
+		if err != nil {
+			continue // filter it!
+		}
+
+		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
+
+		if !filtered(cond, tags, fields) {
+			after = append(after, pt)
+		}
+	}
+
+	return after
+}
+
+// using measurement name as tag `service'.
+func (f *filter) filterSecurity(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
+	if cond == nil {
+		l.Debugf("no condition filter for security")
+		return pts
+	}
+
+	var after []*point.Point
+
+	for _, pt := range pts {
+		tags := pt.Point.Tags()
+		fields, err := pt.Point.Fields()
+		if err != nil {
+			continue // filter it!
+		}
+
+		if !filtered(cond, tags, fields) {
+			after = append(after, pt)
+		}
+	}
+
+	return after
+}
+
+// using measurement name as tag `service'.
+func (f *filter) filterProfile(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
+	if cond == nil {
+		l.Debugf("no condition filter for profile")
+		return pts
+	}
+
+	var after []*point.Point
 
 	for _, pt := range pts {
 		tags := pt.Point.Tags()
@@ -258,27 +410,40 @@ func filtered(conds parser.WhereConditions, tags map[string]string, fields map[s
 	return conds.Eval(tags, fields)
 }
 
-func (f *filter) doFilter(category string, pts []*Point) ([]*Point, int) {
+func (f *filter) doFilter(category string, pts []*point.Point) ([]*point.Point, int) {
+	f.RWMutex.RLock()
+	defer f.RWMutex.RUnlock()
+
 	switch category {
 	case datakit.Logging:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterLogging(f.conditions["logging"], pts), len(f.conditions["logging"])
 
 	case datakit.Tracing:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterTracing(f.conditions["tracing"], pts), len(f.conditions["tracing"])
 
 	case datakit.Metric:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterMetric(f.conditions["metric"], pts), len(f.conditions["metric"])
 
 	case datakit.Object:
-		f.RWMutex.RLock()
-		defer f.RWMutex.RUnlock()
 		return f.filterObject(f.conditions["object"], pts), len(f.conditions["object"])
+
+	case datakit.Network:
+		return f.filterNetwork(f.conditions["network"], pts), len(f.conditions["network"])
+
+	case datakit.KeyEvent:
+		return f.filterKeyEvent(f.conditions["keyevent"], pts), len(f.conditions["keyevent"])
+
+	case datakit.CustomObject:
+		return f.filterCustomObject(f.conditions["customobject"], pts), len(f.conditions["customobject"])
+
+	case datakit.RUM:
+		return f.filterRUM(f.conditions["rum"], pts), len(f.conditions["rum"])
+
+	case datakit.Security:
+		return f.filterSecurity(f.conditions["security"], pts), len(f.conditions["security"])
+
+	case datakit.Profile:
+		return f.filterProfile(f.conditions["profile"], pts), len(f.conditions["profile"])
 
 	default: // TODO: not implemented
 		l.Warn("unsupport category: %s", category)
@@ -286,7 +451,7 @@ func (f *filter) doFilter(category string, pts []*Point) ([]*Point, int) {
 	}
 }
 
-func filterPts(category string, pts []*Point) []*Point {
+func filterPts(category string, pts []*point.Point) []*point.Point {
 	start := time.Now()
 	after, condCount := defaultFilter.doFilter(category, pts)
 	cost := time.Since(start)
@@ -304,10 +469,14 @@ func filterPts(category string, pts []*Point) []*Point {
 	select {
 	case defaultFilter.metricCh <- fm:
 	default: // unblocking
-		l.Warnf("feed filter metrics failed, ignored: %+#v", fm)
+		l.Debug("feed filter metrics failed, ignored: %+#v", fm)
 	}
 
 	return after
+}
+
+type qstats struct {
+	ch chan *FilterStats
 }
 
 func GetFilterStats() *FilterStats {
@@ -319,13 +488,9 @@ func GetFilterStats() *FilterStats {
 	q := &qstats{
 		ch: make(chan *FilterStats),
 	}
-
-	defer close(q.ch)
-
-	tick := time.NewTicker(time.Second * 3)
-	defer tick.Stop()
-
+	tick := time.NewTicker(time.Second)
 	defaultFilter.qch <- q
+
 	select {
 	case s := <-q.ch:
 		return s
@@ -366,10 +531,6 @@ type filterMetric struct {
 	conditions       int
 }
 
-type qstats struct {
-	ch chan *FilterStats
-}
-
 func copyStats(x *FilterStats) *FilterStats {
 	y := &FilterStats{
 		RuleStats: map[string]*ruleStat{},
@@ -399,11 +560,30 @@ func copyStats(x *FilterStats) *FilterStats {
 	return y
 }
 
-func (f *filter) start() {
+func (f *filter) updateMetric(m *filterMetric) {
 	ruleStats := defaultFilter.stats.RuleStats
-	// first pull: get filter condition ASAP
-	defaultFilter.pull()
+
+	v, ok := ruleStats[m.key]
+	if !ok {
+		v = &ruleStat{}
+		ruleStats[m.key] = v
+	}
+
+	v.Total += int64(m.points)
+	v.Filtered += int64(m.filtered)
+	v.Cost += m.cost
+	v.CostPerPoint = v.Cost / time.Duration(v.Total)
+	v.Conditions = m.conditions
+}
+
+func (f *filter) start() {
 	defer defaultFilter.tick.Stop()
+
+	if len(defaultIO.conf.Filters) != 0 {
+		f.stats.RuleSource = "datakit.conf"
+	} else {
+		f.stats.RuleSource = "remote"
+	}
 
 	for {
 		select {
@@ -411,22 +591,13 @@ func (f *filter) start() {
 			defaultFilter.pull()
 
 		case m := <-defaultFilter.metricCh:
-			v, ok := ruleStats[m.key]
-			if !ok {
-				v = &ruleStat{}
-				ruleStats[m.key] = v
-			}
-			v.Total += int64(m.points)
-			v.Filtered += int64(m.filtered)
-			v.Cost += m.cost
-			v.CostPerPoint = v.Cost / time.Duration(v.Total)
-			v.Conditions = m.conditions
+			f.updateMetric(m)
 
 		case q := <-defaultFilter.qch:
 			select {
 			case <-q.ch:
 			case q.ch <- copyStats(defaultFilter.stats):
-			default: // unblocking
+			default: // pass
 			}
 
 		case <-datakit.Exit.Wait():

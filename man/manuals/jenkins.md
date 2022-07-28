@@ -1,21 +1,21 @@
 {{.CSS}}
+# Jenkins
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
-
-
-# {{.InputName}}
+- 操作系统支持：{{.AvailableArchs}}
 
 Jenkins 采集器是通过插件 `Metrics` 采集数据监控 Jenkins，包括但不限于任务数，系统 cpu 使用，`jvm cpu`使用等
+
+![](imgs/input-jenkins-1.png)
 
 ## 前置条件
 
 - JenKins 版本 >= 2.277.4
 
-- 安装 JenKins [参见](https://www.jenkins.io/doc/book/installing/)
+- 安装 JenKins [参见](https://www.jenkins.io/doc/book/installing/){:target="_blank"}
       
-- 下载 `Metric` 插件，[管理插件页面](https://www.jenkins.io/doc/book/managing/plugins/),[Metric 插件页面](https://plugins.jenkins.io/metrics/)
+- 下载 `Metric` 插件，[管理插件页面](https://www.jenkins.io/doc/book/managing/plugins/){:target="_blank"},[Metric 插件页面](https://plugins.jenkins.io/metrics/){:target="_blank"}
 
 - 在 JenKins 管理页面 `your_manage_host/configure` 生成 `Metric Access keys`
 
@@ -36,12 +36,16 @@ Jenkins 采集器可以通过接收 Jenkins datadog plugin 发出的 CI Event �
 Jenkins CI Visibility 开启方法：
 
 - 确保在配置文件中开启了 Jenkins CI Visibility 功能，且配置了监听端口号（如 `:9539`），重启 Datakit；
-- 在 Jenkins 中安装 [Jenkins Datadog plugin](https://plugins.jenkins.io/datadog/) ；
+- 在 Jenkins 中安装 [Jenkins Datadog plugin](https://plugins.jenkins.io/datadog/){:target="_blank"} ；
 - 在 Manage Jenkins > Configure System > Datadog Plugin 中选择 `Use the Datadog Agent to report to Datadog (recommended)`，配置 `Agent Host` 为 Datakit IP 地址。`DogStatsD Port` 及 `Traces Collection Port` 两项均配置为上述 Jenkins 采集器配置文件中配置的端口号，如 `9539`（此处不加 `:`）；
 - 勾选 `Enable CI Visibility`；
 - 点击 `Save` 保存设置。
 
 配置完成后 Jenkins 能够通过 Datadog Plugin 将 CI 事件发送到 Datakit。
+
+## 指标预览
+
+![](imgs/input-jenkins-2.png)
 
 ## 指标集
 
@@ -100,13 +104,17 @@ Jenkins CI Visibility 开启方法：
 
 通用日志文本示例:
 ```
-2021-05-18 03:08:58.053+0000 [id=32]	INFO	jenkins.InitReactorRunner$1#onAttained: Started all plugins
+2021-05-18 03:08:58.053+0000 [id=32] INFO jenkins.InitReactorRunner$1#onAttained: Started all plugins
 ```
 
 切割后的字段列表如下：
 
-| 字段名  |  字段值  | 说明 |
-| ---    | ---     | --- |
-|  status   | info     | 日志等级 |
-|  id   | 32     | id |
-|  time   | 1621278538000000000     | 纳秒时间戳（作为行协议时间）|
+| 字段名 | 字段值              | 说明                         |
+| ---    | ---                 | ---                          |
+| status | info                | 日志等级                     |
+| id     | 32                  | id                           |
+| time   | 1621278538000000000 | 纳秒时间戳（作为行协议时间） |
+
+## 场景视图
+
+<场景 - 新建仪表板 - Jenkins 监控视图>

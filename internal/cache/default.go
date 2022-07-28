@@ -39,10 +39,6 @@ func Initialize(cachePath string, opt *Options) error {
 	return nil
 }
 
-// func Start(dir string) error {
-// 	return nil
-// }
-
 func Info() string {
 	if defaultCache == nil {
 		return ""

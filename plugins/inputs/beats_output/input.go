@@ -19,16 +19,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 //------------------------------------------------------------------------------
 
 const (
-	inputName            = "beats_output"
-	defaultMaximumLength = 262144
+	inputName = "beats_output"
 
 	sampleCfg = `
 [[inputs.beats_output]]
@@ -76,7 +75,7 @@ func (*Input) Catalog() string { return inputName }
 
 func (*Input) SampleConfig() string { return sampleCfg }
 
-func (*Input) AvailableArchs() []string { return datakit.AllArch }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 type DataStruct struct {
 	HostName    string
@@ -91,7 +90,6 @@ type loggingMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
@@ -100,8 +98,8 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (ipt *loggingMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(ipt.name, ipt.tags, ipt.fields, ipt.ts)
+func (ipt *loggingMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(ipt.name, ipt.tags, ipt.fields, point.LOpt())
 }
 
 //nolint:lll
@@ -132,9 +130,6 @@ func (ipt *Input) Run() {
 	}
 	if ipt.Service == "" {
 		ipt.Service = ipt.Source
-	}
-	if ipt.MaximumLength == 0 {
-		ipt.MaximumLength = defaultMaximumLength
 	}
 
 	opServer, err := NewOutputServerTCP(ipt.Listen)
@@ -169,7 +164,7 @@ func (ipt *Input) Run() {
 				dataPiece := getDataPieceFromEvent(v)
 				pending = append(pending, dataPiece)
 			}
-			ipt.sendToPipeline(pending)
+			ipt.feed(pending)
 
 			batch.ACK()
 		}
@@ -224,8 +219,8 @@ func (ipt *Input) getNewTags(dataPiece *DataStruct) map[string]string {
 	return newTags
 }
 
-func (ipt *Input) sendToPipeline(pending []*DataStruct) {
-	pts := []*io.Point{}
+func (ipt *Input) feed(pending []*DataStruct) {
+	pts := []*point.Point{}
 	for _, v := range pending {
 		if len(v.Message) == 0 {
 			continue
@@ -234,17 +229,11 @@ func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 		newTags := ipt.getNewTags(v)
 		l.Debugf("newTags = %#v", newTags)
 
-		pt, err := io.NewPoint(ipt.Source, newTags,
+		pt, err := point.NewPoint(ipt.Source, newTags,
 			map[string]interface{}{
 				pipeline.FieldMessage: v.Message,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,
-			},
-			&io.PointOption{
-				Time:             time.Now(),
-				Category:         datakit.Logging,
-				MaxFieldValueLen: ipt.MaximumLength,
-			},
-		)
+			}, point.LOpt())
 		if err != nil {
 			l.Error(err)
 			continue
@@ -255,9 +244,6 @@ func (ipt *Input) sendToPipeline(pending []*DataStruct) {
 		if err := io.Feed(inputName+"/"+ipt.Listen, datakit.Logging, pts, &io.Option{
 			PlScript: map[string]string{
 				ipt.Source: ipt.Pipeline,
-			},
-			PlOption: &script.Option{
-				MaxFieldValLen: ipt.MaximumLength,
 			},
 		}); err != nil {
 			l.Error(err)

@@ -1,12 +1,14 @@
 {{.CSS}}
+# MongoDB
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
+- 操作系统支持：{{.AvailableArchs}}
 
 MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采集。
+
+![](imgs/input-mongodb-1.png)
+![](imgs/input-mongodb-2.png)
 
 ## 前置条件
 
@@ -127,6 +129,10 @@ mongo --tls --host <mongod_url> --tlsCAFile /etc/ssl/certs/mongod.cert.pem --tls
 
 > 使用自签名证书时 mongodb.conf 中的配置项 `[inputs.mongodb.tlsconf]` 中 `insecure_skip_verify` 必须是 `true`
 
+## 指标预览
+
+![](imgs/input-mongodb-3.png)
+
 ## 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
@@ -174,3 +180,11 @@ mongo --tls --host <mongod_url> --tlsCAFile /etc/ssl/certs/mongod.cert.pem --tls
 | msg       | WiredTiger message            | The raw log output message as passed from the server or driver |
 | status    | I                             | The short severity code of the log message                     |
 | time      | 2021-06-03T09:12:19.977+00:00 | Timestamp                                                      |
+
+## 场景视图
+
+<场景 - 新建仪表板 - 内置模板库 - MongoDB 监控视图>
+
+## 异常检测
+
+<监控 - 模板新建 - MongoDB 检测库>

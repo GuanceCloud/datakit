@@ -277,9 +277,9 @@ func TestGetPoint(t *testing.T) {
 			map[string]interface{}{
 				"pipeline_id":    "jenkins-test-ci-master-5",
 				"commit_message": "modify\n",
-				"created_at":     int64(1652020909),
-				"duration":       int64(7),
-				"finished_at":    int64(1652020916),
+				"created_at":     int64(1652020909552000),
+				"duration":       int64(7319000),
+				"finished_at":    int64(1652020916871000),
 				"message":        "jenkins-test-ci-master-5",
 			},
 		},
@@ -300,10 +300,10 @@ func TestGetPoint(t *testing.T) {
 			map[string]interface{}{
 				"pipeline_id":       "jenkins-test-ci-master-5",
 				"runner_id":         "master",
-				"build_duration":    int64(0),
-				"build_finished_at": int64(1652020915),
+				"build_duration":    int64(821000),
+				"build_finished_at": int64(1652020915097000),
 				"build_id":          "33",
-				"build_started_at":  int64(1652020914),
+				"build_started_at":  int64(1652020914276000),
 				"message":           "Shell Script",
 			},
 		},
@@ -326,10 +326,10 @@ func TestGetPoint(t *testing.T) {
 				"message":           "Shell Script",
 				"pipeline_id":       "jenkins-test-ci-master-5",
 				"runner_id":         "master",
-				"build_duration":    int64(0),
-				"build_finished_at": int64(1652020915),
+				"build_duration":    int64(279000),
+				"build_finished_at": int64(1652020915376000),
 				"build_id":          "34",
-				"build_started_at":  int64(1652020915),
+				"build_started_at":  int64(1652020915097000),
 			},
 		},
 		{
@@ -340,6 +340,7 @@ func TestGetPoint(t *testing.T) {
 			map[string]interface{}{},
 		},
 	}
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			i := Input{}

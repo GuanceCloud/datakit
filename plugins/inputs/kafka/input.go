@@ -117,7 +117,7 @@ func (*Input) Catalog() string      { return "db" }
 func (*Input) SampleConfig() string { return kafkaConfSample }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {

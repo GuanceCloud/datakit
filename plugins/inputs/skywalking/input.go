@@ -48,24 +48,9 @@ const (
     # ...
 
   ## Sampler config uses to set global sampling strategy.
-  ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
-  ##  -1: always reject any tracing data send to datakit
-  ##   0: accept tracing data and calculate with sampling_rate
-  ##   1: always send to data center and do not consider sampling_rate
-  ## sampling_rate used to set global sampling rate
+  ## sampling_rate used to set global sampling rate.
   # [inputs.skywalking.sampler]
-    # priority = 0
     # sampling_rate = 1.0
-
-  ## Piplines use to manipulate message and meta data. If this item configured right then
-  ## the current input procedure will run the scripts wrote in pipline config file against the data
-  ## present in span message.
-  ## The string on the left side of the equal sign must be identical to the service name that
-  ## you try to handle.
-  # [inputs.skywalking.pipelines]
-    # service1 = "service1.p"
-    # service2 = "service2.p"
-    # ...
 
   # [inputs.skywalking.tags]
     # key1 = "value1"
@@ -87,14 +72,14 @@ var (
 )
 
 type Input struct {
-	V2               interface{}         `toml:"V2"` // deprecated *skywalkingConfig
-	V3               interface{}         `toml:"V3"` // deprecated *skywalkingConfig
+	V2               interface{}         `toml:"V2"`        // deprecated *skywalkingConfig
+	V3               interface{}         `toml:"V3"`        // deprecated *skywalkingConfig
+	Pipelines        map[string]string   `toml:"pipelines"` // deprecated
 	Address          string              `toml:"address"`
 	CustomerTags     []string            `toml:"customer_tags"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	Sampler          *itrace.Sampler     `toml:"sampler"`
-	Pipelines        map[string]string   `toml:"pipelines"`
 	Tags             map[string]string   `toml:"tags"`
 }
 
@@ -103,7 +88,7 @@ func (*Input) Catalog() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (*Input) SampleConfig() string {
@@ -124,15 +109,16 @@ func (ipt *Input) Run() {
 	// add calculators
 	// afterGather.AppendCalculator(itrace.StatTracingInfo)
 
-	// add filters: the order append in AfterGather is important!!!
-	// add error status penetration
-	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
+	// add filters: the order of appending filters into AfterGather is important!!!
+	// the order of appending represents the order of that filter executes.
 	// add close resource filter
 	if len(ipt.CloseResource) != 0 {
 		closeResource = &itrace.CloseResource{}
 		closeResource.UpdateIgnResList(ipt.CloseResource)
 		afterGather.AppendFilter(closeResource.Close)
 	}
+	// add error status penetration
+	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add rare resource keeper
 	if ipt.KeepRareResource {
 		keepRareResource = &itrace.KeepRareResource{}
@@ -140,14 +126,12 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
-	if ipt.Sampler != nil {
+	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
 		sampler = ipt.Sampler
-		afterGather.AppendFilter(sampler.Sample)
+	} else {
+		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
 	}
-	// add piplines
-	if len(ipt.Pipelines) != 0 {
-		afterGather.AppendFilter(itrace.PiplineFilterWrapper(inputName, ipt.Pipelines))
-	}
+	afterGather.AppendFilter(sampler.Sample)
 
 	customerKeys = ipt.CustomerTags
 	tags = ipt.Tags

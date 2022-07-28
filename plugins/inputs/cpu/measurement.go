@@ -8,7 +8,7 @@ package cpu
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -95,6 +95,6 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (m *cpuMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *cpuMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }

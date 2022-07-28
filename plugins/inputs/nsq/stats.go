@@ -8,9 +8,8 @@ package nsq
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type topicChannels map[string]*ChannelStats
@@ -86,14 +85,9 @@ func (s *stats) feedCache(host string, data *DataStats) {
 	}
 }
 
-func (s *stats) makePoint(addTags map[string]string, ts ...time.Time) ([]*io.Point, error) {
-	var pts []*io.Point
+func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
+	var pts []*point.Point
 	var lastErr error
-
-	tim := time.Now()
-	if len(ts) != 0 {
-		tim = ts[0]
-	}
 
 	for topic, c := range s.topicCache {
 		for channel, channelStats := range c {
@@ -106,7 +100,7 @@ func (s *stats) makePoint(addTags map[string]string, ts ...time.Time) ([]*io.Poi
 			}
 			fields := channelStats.ToMap()
 
-			pt, err := io.MakePoint("nsq_topics", tags, fields, tim)
+			pt, err := point.NewPoint("nsq_topics", tags, fields, point.MOptElection())
 			if err != nil {
 				lastErr = err
 				continue
@@ -124,7 +118,7 @@ func (s *stats) makePoint(addTags map[string]string, ts ...time.Time) ([]*io.Poi
 		}
 		fields := n.ToMap()
 
-		pt, err := io.MakePoint("nsq_nodes", tags, fields, tim)
+		pt, err := point.NewPoint("nsq_nodes", tags, fields, point.MOptElection())
 		if err != nil {
 			lastErr = err
 			continue

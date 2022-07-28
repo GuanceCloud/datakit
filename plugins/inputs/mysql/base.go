@@ -6,9 +6,7 @@
 package mysql
 
 import (
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -17,13 +15,12 @@ type baseMeasurement struct {
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
-	ts      time.Time
 	resData map[string]interface{}
 }
 
 // 生成行协议.
-func (m *baseMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *baseMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 // 指定指标.
@@ -31,6 +28,7 @@ func (m *baseMeasurement) LineProto() (*io.Point, error) {
 func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name: "mysql",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			// status
 			"Slow_queries": &inputs.FieldInfo{

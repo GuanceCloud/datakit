@@ -29,10 +29,11 @@ const (
 )
 
 var (
-	inputName            = "iis"
-	metricNameWebService = "iis_web_service"
-	metricNameAppPoolWas = "iis_app_pool_was"
-	l                    = logger.DefaultSLogger("iis")
+	inputName                           = "iis"
+	metricNameWebService                = "iis_web_service"
+	metricNameAppPoolWas                = "iis_app_pool_was"
+	l                                   = logger.DefaultSLogger("iis")
+	_                    inputs.InputV2 = (*Input)(nil)
 )
 
 type Input struct {
@@ -117,10 +118,7 @@ func (i *Input) GetPipeline() []*tailer.Option {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return []string{
-		// datakit.OSArchWin386,
-		datakit.OSArchWinAmd64,
-	}
+	return []string{datakit.OSLabelWindows}
 }
 
 func (i *Input) Run() {
@@ -175,7 +173,6 @@ func (i *Input) Terminate() {
 
 func (i *Input) Collect() error {
 	for mName, metricCounterMap := range PerfObjMetricMap {
-		ts := time.Now()
 		for objName := range metricCounterMap {
 			// measurement name -> instance name -> metric name -> counter query handle list index
 			indexMap := map[string]map[string]map[string]int{mName: {}}
@@ -271,7 +268,6 @@ func (i *Input) Collect() error {
 					name:   mName,
 					tags:   tags,
 					fields: fields,
-					ts:     ts,
 				})
 			}
 		}

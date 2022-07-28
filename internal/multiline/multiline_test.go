@@ -171,3 +171,52 @@ func TestMultilineString(t *testing.T) {
 		})
 	}
 }
+
+func TestTrimRightSpace(t *testing.T) {
+	cases := []struct {
+		in, out string
+	}{
+		{
+			in:  "",
+			out: "",
+		},
+		{
+			in:  "123",
+			out: "123",
+		},
+		{
+			in:  "\n",
+			out: "",
+		},
+		{
+			in:  "123\n",
+			out: "123",
+		},
+		{
+			in:  "123\r\n",
+			out: "123",
+		},
+		{
+			in:  "123\t\t",
+			out: "123",
+		},
+		{
+			in:  "123\t\r\n",
+			out: "123",
+		},
+		{
+			in:  "\t123\t\r\n",
+			out: "\t123",
+		},
+		{
+			in:  "\t123\t456\r\n",
+			out: "\t123\t456",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run("", func(t *testing.T) {
+			tu.Equals(t, TrimRightSpace(tc.in), tc.out)
+		})
+	}
+}

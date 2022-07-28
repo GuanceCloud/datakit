@@ -1,10 +1,9 @@
 {{.CSS}}
+# 如何编写 Pipeline 脚本
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# Pipeline 调试
 
 Pipeline 编写较为麻烦，为此，DataKit 中内置了简单的调试工具，用以辅助大家来编写 Pipeline 脚本。
 
@@ -116,12 +115,12 @@ $ datakit --pl test.p --txt "$(<multi-line.log)"
 }
 ```
 
-### Pipeline 字段命名注意事项
+### Pipeline 字段命名注意事项 {#naming}
 
-在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](apis#2fc2526a)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
+在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](apis.md#lineproto-limitation)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
 
-- DataKit 中的[全局 Tag](datakit-conf#53181faf)
-- 日志采集器中[自定义的 Tag](logging#6d5774b2)
+- DataKit 中的[全局 Tag](datakit-conf.md#set-global-tag)
+- 日志采集器中[自定义的 Tag](../integrations/logging.md#measurements)
 
 另外，所有采集上来的日志，均存在如下多个保留字段。==我们不应该去覆盖这些字段==，否则可能导致数据在查看器页面显示不正常。
 
@@ -129,11 +128,11 @@ $ datakit --pl test.p --txt "$(<multi-line.log)"
 | ---       | ----          | ----                                  |
 | `source`  | string(tag)   | 日志来源                              |
 | `service` | string(tag)   | 日志对应的服务，默认跟 `service` 一样 |
-| `status`  | string(tag)   | 日志对应的[等级](logging#fe2d3282)    |
+| `status`  | string(tag)   | 日志对应的[等级](../integrations/logging.md#status)   |
 | `message` | string(field) | 原始日志                              |
 | `time`    | int           | 日志对应的时间戳                      |
 
-> 当然我们可以通过[特定的 Pipeline 函数](pipeline#6e8c5285)覆盖上面这些 tag 的值。
+> 当然我们可以通过[特定的 Pipeline 函数](pipeline.md#fn-set-tag)覆盖上面这些 tag 的值。
 
 一旦 Pipeline 切割出来的字段跟已有 Tag 重名（大小写敏感），都会导致如下数据报错。故建议在 Pipeline 切割中，绕开这些字段命名。
 
@@ -225,7 +224,7 @@ A: 对于有特殊字符的变量，需将其用两个 `` ` `` 修饰一下：
 json(_, `@timestamp`, "time")
 ```
 
-参见 [Pipeline 的基本语法规则](pipeline#3ab24547)
+参见 [Pipeline 的基本语法规则](pipeline.md#basic-syntax)
 
 ### Pipeline 调试时，为什么找不到对应的 Pipeline 脚本？
 

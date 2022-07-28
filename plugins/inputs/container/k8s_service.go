@@ -10,8 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/core/v1"
 )
@@ -95,7 +94,6 @@ func (s *service) object() (inputsMeas, error) {
 				"external_traffic_policy": fmt.Sprintf("%v", item.Spec.ExternalTrafficPolicy),
 				"session_affinity":        fmt.Sprintf("%v", item.Spec.SessionAffinity),
 			},
-			time: time.Now(),
 		}
 
 		obj.tags.append(s.extraTags)
@@ -115,11 +113,10 @@ func (s *service) object() (inputsMeas, error) {
 type serviceObject struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (s *serviceObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_services", s.tags, s.fields, &io.PointOption{Time: s.time, Category: datakit.Object})
+func (s *serviceObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_services", s.tags, s.fields, point.OOptElection())
 }
 
 //nolint:lll

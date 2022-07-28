@@ -17,6 +17,8 @@ var (
 	inputName            = "iis"
 	metricNameWebService = "iis_web_service"
 	metricNameAppPoolWas = "iis_app_pool_was"
+
+	_ inputs.InputV2 = (*Input)(nil)
 )
 
 // Input redefine them here for conf-sample checking.
@@ -35,6 +37,10 @@ type iisLog struct {
 
 func (i *Input) SampleConfig() string {
 	return sampleConfig
+}
+
+func (*Input) Terminate() {
+	// Do nothing
 }
 
 func (i *Input) Catalog() string {

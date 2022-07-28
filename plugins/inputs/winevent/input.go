@@ -26,6 +26,8 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+var statusList = []string{"info", "critical", "error", "warning", "info"}
+
 func (*Input) SampleConfig() string {
 	return sample
 }
@@ -39,7 +41,7 @@ func (*Input) RunPipeline() {
 }
 
 func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSWindows}
+	return []string{datakit.OSLabelWindows}
 }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
@@ -143,8 +145,6 @@ func (ipt *Input) handleEvent(event Event) {
 	}
 	ipt.collectCache = append(ipt.collectCache, metric)
 }
-
-var statusList = []string{"info", "critical", "error", "warning", "info"}
 
 func (ipt *Input) getEventStatus(level int) string {
 	if level >= 0 && level < len(statusList) {

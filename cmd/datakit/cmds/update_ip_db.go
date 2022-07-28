@@ -13,22 +13,30 @@ import (
 )
 
 const (
-	dataURL = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/data.tar.gz"
+	baseURL = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/ipdb/"
 )
 
-func updateIPDB(addr string) error {
-	if addr == "" {
-		addr = dataURL
+var allDB = []string{
+	"iploc.tar.gz",
+	"geolite2.tar.gz",
+}
+
+var dbDir = []string{
+	"iploc",
+	"geolite2",
+}
+
+func updateIPDB() error {
+	installDir := datakit.DataDir + "/ipdb/"
+	for idx, c := range allDB {
+		fmt.Printf("Start downloading %s...\n", c)
+		c = baseURL + c
+		cli := getcli()
+
+		dl.CurDownloading = "ipdb"
+		if err := dl.Download(cli, c, installDir+dbDir[idx], true, false); err != nil {
+			return err
+		}
 	}
-
-	fmt.Printf("Start downloading data.tar.gz...\n")
-
-	cli := getcli()
-
-	dl.CurDownloading = "ipdb"
-	if err := dl.Download(cli, addr, datakit.InstallDir, true, false); err != nil {
-		return err
-	}
-
 	return nil
 }

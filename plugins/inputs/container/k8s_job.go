@@ -10,8 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/batch/v1"
 )
@@ -73,7 +72,6 @@ func (j *job) metric() (inputsMeas, error) {
 				"completion_failed":    0,
 				// "active":item.Status.Active,
 			},
-			time: time.Now(),
 		}
 
 		var succeeded, failed int
@@ -98,7 +96,6 @@ func (j *job) metric() (inputsMeas, error) {
 		met := &jobMetric{
 			tags:   map[string]string{"namespace": ns},
 			fields: map[string]interface{}{"count": c},
-			time:   time.Now(),
 		}
 		met.tags.append(j.extraTags)
 		res = append(res, met)
@@ -132,7 +129,6 @@ func (j *job) object() (inputsMeas, error) {
 				"active_deadline": 0,
 				"backoff_limit":   0,
 			},
-			time: time.Now(),
 		}
 
 		// 因为原数据类型（例如 item.Spec.Parallelism）就是 int32，所以此处也用 int32
@@ -182,11 +178,10 @@ func (j *job) count() (map[string]int, error) {
 type jobMetric struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (j *jobMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_job", j.tags, j.fields, &io.PointOption{Time: j.time, Category: datakit.Metric})
+func (j *jobMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_job", j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -213,11 +208,10 @@ func (*jobMetric) Info() *inputs.MeasurementInfo {
 type jobObject struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (j *jobObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_jobs", j.tags, j.fields, &io.PointOption{Time: j.time, Category: datakit.Object})
+func (j *jobObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_jobs", j.tags, j.fields, point.OOptElection())
 }
 
 //nolint:lll

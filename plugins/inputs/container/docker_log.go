@@ -7,178 +7,100 @@ package container
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/docker/docker/api/types"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func (d *dockerInput) addToContainerList(containerID string, cancel context.CancelFunc) {
-	d.containerLogList[containerID] = cancel
+func (d *dockerInput) addToContainerList(containerID string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.containerLogList[containerID] = nil
 }
 
 func (d *dockerInput) removeFromContainerList(containerID string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	delete(d.containerLogList, containerID)
 }
 
 func (d *dockerInput) containerInContainerList(containerID string) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	_, ok := d.containerLogList[containerID]
 	return ok
 }
 
-func (d *dockerInput) cancelTails() {
-	for _, cancel := range d.containerLogList {
-		cancel()
-	}
-}
-
-func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types.Container) error {
-	tags := getContainerInfo(container, d.k8sClient)
-
-	source := getContainerLogSource(tags["image_short_name"])
-	if n := getContainerNameForLabels(container.Labels); n != "" {
-		source = n
-	}
-
-	// add extra tags
-	for k, v := range d.cfg.extraTags {
-		if _, ok := tags[k]; !ok {
-			tags[k] = v
-		}
-	}
-
-	logconf := func() *containerLogConfig {
-		if datakit.Docker && tags["pod_name"] != "" {
-			return getContainerLogConfigForK8s(d.k8sClient, tags["pod_name"], tags["namespace"])
-		}
-		return getContainerLogConfigForDocker(container.Labels)
-	}()
-
-	if logconf == nil {
-		logconf = &containerLogConfig{}
-	}
-	if logconf.Source == "" {
-		logconf.Source = source
-	}
-	if logconf.Service == "" {
-		logconf.Service = logconf.Source
-	}
-
-	logconf.tags = tags
-	logconf.containerID = container.ID
-
-	l.Debugf("use container logconfig:%#v, containerName:%s", logconf, tags["container_name"])
-
+func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container) error {
 	inspect, err := d.client.ContainerInspect(ctx, container.ID)
 	if err != nil {
 		return err
 	}
-	logconf.logpath = inspect.LogPath
-	logconf.created = inspect.Created
 
-	return d.tailContainerLog(logconf)
-}
+	image := container.Image
 
-func (d *dockerInput) tailContainerLog(logconf *containerLogConfig) error {
-	opt := &tailer.Option{
-		Source:         logconf.Source,
-		Service:        logconf.Service,
-		Pipeline:       logconf.Pipeline,
-		MultilineMatch: logconf.Multiline,
-		GlobalTags:     logconf.tags,
-		DockerMode:     true,
-	}
-	if !checkContainerIsOlder(logconf.created, time.Minute) {
-		opt.FromBeginning = true
+	if d.k8sClient != nil {
+		podname := getPodNameForLabels(container.Labels)
+		podnamespace := getPodNamespaceForLabels(container.Labels)
+		podContainerName := getContainerNameForLabels(container.Labels)
+
+		meta, err := queryPodMetaData(d.k8sClient, podname, podnamespace)
+		if err == nil {
+			image = meta.containerImage(podContainerName)
+		}
 	}
 
-	l.Debugf("use container logconfig:%#v, containerID: %s, source: %s, logpath: %s", logconf, logconf.containerID, opt.Source, logconf.logpath)
+	info := &containerLogBasisInfo{
+		name:               getContainerName(container.Names),
+		id:                 container.ID,
+		logPath:            inspect.LogPath,
+		labels:             container.Labels,
+		image:              image,
+		tags:               make(map[string]string),
+		created:            inspect.Created,
+		extraSourceMap:     d.cfg.extraSourceMap,
+		sourceMultilineMap: d.cfg.sourceMultilineMap,
+	}
 
-	_ = opt.Init()
+	if containerIsFromKubernetes(getContainerName(container.Names)) {
+		info.tags["container_type"] = "kubernetes"
+	} else {
+		info.tags["container_type"] = "docker"
+	}
 
-	t, err := tailer.NewTailerSingle(logconf.logpath, opt)
+	// add extra tags
+	for k, v := range d.cfg.extraTags {
+		if _, ok := info.tags[k]; !ok {
+			info.tags[k] = v
+		}
+	}
+
+	opt := composeTailerOption(d.k8sClient, info)
+	opt.Mode = tailer.DockerMode
+
+	t, err := tailer.NewTailerSingle(info.logPath, opt)
 	if err != nil {
-		l.Warnf("failed to new containerd log, containerID: %s, source: %s, logpath: %s, err: %s", logconf.containerID, opt.Source, logconf.logpath, err)
+		l.Warnf("failed to new docker log, containerID: %s, source: %s, logpath: %s, err: %s", container.ID, opt.Source, info.logPath, err)
 		return err
 	}
 
-	d.addToContainerList(logconf.containerID, t.Close)
-
-	l.Infof("add containerd log, containerID: %s, source: %s, logpath: %s", logconf.containerID, opt.Source, logconf.logpath)
+	d.addToContainerList(container.ID)
+	l.Infof("add docker log, containerId: %s, source: %s, logpath: %s", container.ID, opt.Source, info.logPath)
+	defer func() {
+		d.removeFromContainerList(container.ID)
+		l.Debugf("remove docker log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
+	}()
 
 	t.Run()
 	return nil
 }
 
-type containerLogConfig struct {
-	Disable    bool     `json:"disable"`
-	Source     string   `json:"source"`
-	Pipeline   string   `json:"pipeline"`
-	Service    string   `json:"service"`
-	Multiline  string   `json:"multiline_match"`
-	OnlyImages []string `json:"only_images"`
-
-	containerID string
-	created     string
-	logpath     string
-	tags        map[string]string
-}
-
-const containerLogConfigKey = "datakit/logs"
-
-func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
-	configStr := m[containerLogConfigKey]
-	if configStr == "" {
-		return nil, nil
-	}
-
-	var configs []containerLogConfig
-	if err := json.Unmarshal([]byte(configStr), &configs); err != nil {
-		return nil, err
-	}
-
-	if len(configs) < 1 {
-		return nil, nil
-	}
-
-	temp := configs[0]
-	return &temp, nil
-}
-
-func getContainerLogConfigForK8s(k8sClient k8sClientX, podname, podnamespace string) *containerLogConfig {
-	if k8sClient == nil {
-		return nil
-	}
-	annotations, err := getPodAnnotations(k8sClient, podname, podnamespace)
-	if err != nil {
-		l.Warnf("failed to get pod annotations, %s", err)
-		return nil
-	}
-
-	c, err := getContainerLogConfig(annotations)
-	if err != nil {
-		l.Warnf("failed to get container logConfig: %s", err)
-		return nil
-	}
-	return c
-}
-
-func getContainerLogConfigForDocker(labels map[string]string) *containerLogConfig {
-	c, err := getContainerLogConfig(labels)
-	if err != nil {
-		l.Warnf("failed to get container logConfig: %s", err)
-		return nil
-	}
-	return c
-}
-
 type containerLog struct{}
 
-func (c *containerLog) LineProto() (*iod.Point, error) { return nil, nil }
+func (c *containerLog) LineProto() (*point.Point, error) { return nil, nil }
 
 //nolint:lll
 func (c *containerLog) Info() *inputs.MeasurementInfo {
@@ -187,33 +109,33 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 		Type: "logging",
 		Desc: "日志来源设置，参见[这里](container#6de978c3)",
 		Tags: map[string]interface{}{
-			"container_name": inputs.NewTagInfo(`容器名称`),
-			"container_id":   inputs.NewTagInfo(`容器ID`),
-			"container_type": inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
-			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty（containerd 日志缺少此字段）`),
-			"pod_name":       inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"namespace":      inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
-			"deployment":     inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在，containerd 日志缺少此字段）`),
-			"service":        inputs.NewTagInfo(`服务名称`),
+			"container_name":         inputs.NewTagInfo(`k8s 命名的容器名（在 labels 中取 'io.kubernetes.container.name'），如果值为空则跟 container_runtime_name 相同`),
+			"container_runtime_name": inputs.NewTagInfo(`由 runtime 命名的容器名（例如 docker ps 查看），如果值为空则默认是 unknown（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)）`),
+			"container_id":           inputs.NewTagInfo(`容器ID`),
+			"container_type":         inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
+			// "stream":                 inputs.NewTagInfo(`数据流方式，stdout/stderr/tty（containerd 日志缺少此字段）`),
+			"pod_name":   inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
+			"namespace":  inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
+			"deployment": inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在，containerd 日志缺少此字段）`),
+			"service":    inputs.NewTagInfo(`服务名称`),
 		},
 		Fields: map[string]interface{}{
-			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK/unknown"},
-			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
+			"status":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK/unknown"},
+			"log_read_lines":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "采集到的行数计数，多行数据算成一行（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)）"},
+			"log_read_offset": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "当前数据在文件中的偏移位置（[:octicons-tag-24: Version-1.4.8](../datakit/changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental)）"},
+			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
 		},
 	}
-}
-
-func getContainerLogSource(image string) string {
-	if image != "" {
-		return image
-	}
-	return "unknown"
 }
 
 func checkContainerIsOlder(createdTime string, limit time.Duration) bool {
+	// default older
+	if createdTime == "" {
+		return true
+	}
 	t, err := time.Parse(time.RFC3339, createdTime)
 	if err != nil {
-		return false
+		return true
 	}
 	return time.Since(t) > limit
 }

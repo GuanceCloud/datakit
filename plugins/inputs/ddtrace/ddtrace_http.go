@@ -6,14 +6,18 @@
 package ddtrace
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 )
 
 const (
@@ -26,38 +30,79 @@ const (
 	// KeySamplingPriority is the key of the sampling priority value in the metrics map of the root span.
 	keyPriority = "_sampling_priority_v1"
 	// keySamplingRateGlobal is a metric key holding the global sampling rate.
-	keySamplingRateGlobal = "_sample_rate"
+	keySamplingRate = "_sample_rate"
 )
+
+type parameters struct {
+	urlPath string
+	media   string
+	body    *bytes.Buffer
+}
 
 func handleDDTraceWithVersion(v string) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
-		log.Debugf("%s: received tracing data from path: %s", inputName, req.URL.Path)
+		log.Debugf("### received tracing data from path: %s", req.URL.Path)
 
-		traces, err := decodeDDTraces(req.URL.Path, req)
+		var (
+			readbodycost = time.Now()
+			enterWPoolOK = false
+		)
+		pbuf := bufpool.GetBuffer()
+		defer func() {
+			if !enterWPoolOK {
+				bufpool.PutBuffer(pbuf)
+			}
+		}()
+
+		_, err := io.Copy(pbuf, req.Body)
 		if err != nil {
-			log.Errorf(err.Error())
+			log.Error(err.Error())
 			resp.WriteHeader(http.StatusBadRequest)
 
 			return
 		}
-		if len(traces) == 0 {
-			log.Debug("empty ddtraces")
-			resp.WriteHeader(http.StatusOK)
 
-			return
+		param := &parameters{
+			urlPath: req.URL.Path,
+			media:   req.Header.Get("Content-Type"),
+			body:    pbuf,
 		}
 
-		for _, trace := range traces {
-			if len(trace) == 0 {
-				log.Debug("empty ddtrace")
-				continue
+		log.Debugf("### path: %s, Content-Type: %s, body-size: %d, read-body-cost: %dms",
+			param.urlPath, param.media, pbuf.Len(), time.Since(readbodycost)/time.Millisecond)
+
+		if wpool == nil {
+			if err = parseDDTraces(param); err != nil {
+				log.Error(err.Error())
+				resp.WriteHeader(http.StatusBadRequest)
+
+				return
+			}
+		} else {
+			job, err := workerpool.NewJob(workerpool.WithInput(param),
+				workerpool.WithProcess(parseDDTracesAdapter),
+				workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration, isTimeout bool) {
+					if param, ok := input.(*parameters); ok {
+						bufpool.PutBuffer(param.body)
+					}
+					log.Debugf("### job status: input: %v, output: %v, cost: %dms, timeout: %v", input, output, cost/time.Millisecond, isTimeout)
+				}),
+				workerpool.WithTimeout(jobTimeout),
+			)
+			if err != nil {
+				log.Error(err.Error())
+				resp.WriteHeader(http.StatusBadRequest)
+
+				return
 			}
 
-			if dktrace := ddtraceToDkTrace(trace); len(dktrace) == 0 {
-				log.Warn("empty datakit trace")
-			} else if afterGatherRun != nil {
-				afterGatherRun.Run(inputName, dktrace, false)
+			if err = wpool.MoreJob(job); err != nil {
+				log.Error(err)
+				resp.WriteHeader(http.StatusTooManyRequests)
+
+				return
 			}
+			enterWPoolOK = true
 		}
 
 		switch v {
@@ -73,71 +118,89 @@ func handleDDTraceWithVersion(v string) http.HandlerFunc {
 
 // TODO:.
 func handleDDInfo(resp http.ResponseWriter, req *http.Request) { // nolint: unused,deadcode
-	log.Errorf("%s unsupport yet", req.URL.Path)
+	log.Errorf("%s unsupported yet", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
 }
 
 // TODO:.
 func handleDDStats(resp http.ResponseWriter, req *http.Request) {
-	log.Errorf("%s  unsupport yet", req.URL.Path)
+	log.Errorf("%s unsupported yet", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
 }
 
-func decodeDDTraces(endpoint string, req *http.Request) (DDTraces, error) {
+func parseDDTracesAdapter(input interface{}) (output interface{}) {
+	param, ok := input.(*parameters)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+
+	return parseDDTraces(param)
+}
+
+func parseDDTraces(param *parameters) error {
+	traces, err := decodeDDTraces(param)
+	if err != nil {
+		return err
+	}
+	if len(traces) == 0 {
+		log.Debug("### get empty traces after decoding")
+
+		return nil
+	}
+
+	var dktraces itrace.DatakitTraces
+	for _, trace := range traces {
+		if len(trace) == 0 {
+			log.Debug("### empty trace in traces")
+			continue
+		}
+		if dktrace := ddtraceToDkTrace(trace); len(dktrace) != 0 {
+			dktraces = append(dktraces, dktrace)
+		}
+	}
+
+	if len(dktraces) != 0 && afterGatherRun != nil {
+		afterGatherRun.Run(inputName, dktraces, false)
+	}
+
+	return nil
+}
+
+func decodeDDTraces(param *parameters) (DDTraces, error) {
 	var (
 		traces DDTraces
 		err    error
 	)
-	switch endpoint {
+	switch param.urlPath {
 	case v1:
 		var spans DDTrace
-		if err := json.NewDecoder(req.Body).Decode(&spans); err != nil {
+		if err := json.NewDecoder(param.body).Decode(&spans); err != nil {
 			return nil, err
 		}
 		traces = tracesFromSpans(spans)
 	case v5:
-		buf := bufpool.GetBuffer()
-		defer bufpool.PutBuffer(buf)
-
-		if _, err := io.Copy(buf, req.Body); err != nil {
-			return nil, err
-		}
-		err = traces.UnmarshalMsgDictionary(buf.Bytes())
+		err = traces.UnmarshalMsgDictionary(param.body.Bytes())
 	default:
-		err = decodeRequest(req, &traces)
+		err = decodeRequest(param, &traces)
 	}
 
 	return traces, err
 }
 
-func decodeRequest(req *http.Request, out *DDTraces) error {
-	mediaType, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
+func decodeRequest(param *parameters, out *DDTraces) error {
+	mediaType, _, err := mime.ParseMediaType(param.media)
 	if err != nil {
 		log.Debug(err.Error())
 	}
 	switch mediaType {
 	case "application/msgpack":
-		buf := bufpool.GetBuffer()
-		defer bufpool.PutBuffer(buf)
-
-		if _, err = io.Copy(buf, req.Body); err != nil {
-			return err
-		}
-		_, err = out.UnmarshalMsg(buf.Bytes())
+		_, err = out.UnmarshalMsg(param.body.Bytes())
 	case "application/json", "text/json", "":
-		return json.NewDecoder(req.Body).Decode(out)
+		return json.NewDecoder(param.body).Decode(out)
 	default:
 		// do our best
-		if err1 := json.NewDecoder(req.Body).Decode(out); err1 != nil {
-			buf := bufpool.GetBuffer()
-			defer bufpool.PutBuffer(buf)
-
-			_, err2 := io.Copy(buf, req.Body)
-			if err2 != nil {
-				err = fmt.Errorf("could not decode JSON (err:%s), nor Msgpack (err:%s)", err1.Error(), err2.Error()) // nolint:errorlint
-			}
-			_, err2 = out.UnmarshalMsg(buf.Bytes())
-			if err2 != nil {
+		if err1 := json.NewDecoder(param.body).Decode(out); err1 != nil {
+			if _, err2 := out.UnmarshalMsg(param.body.Bytes()); err2 != nil {
 				err = fmt.Errorf("could not decode JSON (err:%s), nor Msgpack (err:%s)", err1.Error(), err2.Error()) // nolint:errorlint
 			}
 		}
@@ -170,23 +233,22 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			TraceID:            fmt.Sprintf("%d", span.TraceID),
-			ParentID:           fmt.Sprintf("%d", span.ParentID),
-			SpanID:             fmt.Sprintf("%d", span.SpanID),
-			Service:            span.Service,
-			Resource:           span.Resource,
-			Operation:          span.Name,
-			Source:             inputName,
-			SpanType:           itrace.FindSpanTypeInMultiServersIntSpanID(int64(span.SpanID), int64(span.ParentID), span.Service, spanIDs, parentIDs),
-			SourceType:         getDDTraceSourceType(span.Type),
-			Tags:               itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
-			ContainerHost:      span.Meta[itrace.CONTAINER_HOST],
-			PID:                fmt.Sprintf("%d", int64(span.Metrics["system.pid"])),
-			HTTPMethod:         span.Meta["http.method"],
-			HTTPStatusCode:     span.Meta["http.status_code"],
-			Start:              span.Start,
-			Duration:           span.Duration,
-			SamplingRateGlobal: span.Metrics[keySamplingRateGlobal],
+			TraceID:        fmt.Sprintf("%d", span.TraceID),
+			ParentID:       fmt.Sprintf("%d", span.ParentID),
+			SpanID:         fmt.Sprintf("%d", span.SpanID),
+			Service:        span.Service,
+			Resource:       span.Resource,
+			Operation:      span.Name,
+			Source:         inputName,
+			SpanType:       itrace.FindSpanTypeInMultiServersIntSpanID(int64(span.SpanID), int64(span.ParentID), span.Service, spanIDs, parentIDs),
+			SourceType:     itrace.GetSpanSourceType(span.Type),
+			Tags:           itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
+			ContainerHost:  span.Meta[itrace.CONTAINER_HOST],
+			PID:            fmt.Sprintf("%d", int64(span.Metrics["system.pid"])),
+			HTTPMethod:     span.Meta["http.method"],
+			HTTPStatusCode: span.Meta["http.status_code"],
+			Start:          span.Start,
+			Duration:       span.Duration,
 		}
 
 		if span.Meta[itrace.PROJECT] != "" {
@@ -216,13 +278,12 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			dkspan.Status = itrace.STATUS_ERR
 		}
 
-		if priority := int(span.Metrics[keyPriority]); priority <= 0 {
-			dkspan.Priority = itrace.PriorityReject
+		if priority, ok := span.Metrics[keyPriority]; ok {
+			dkspan.Metrics = make(map[string]interface{})
+			dkspan.Metrics[itrace.FIELD_PRIORITY] = int(priority)
 		}
-
-		if dkspan.ParentID == "0" && sampler != nil {
-			dkspan.Priority = sampler.Priority
-			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
+		if rate, ok := span.Metrics[keySamplingRate]; ok {
+			dkspan.Metrics[itrace.FIELD_SAMPLE_RATE] = rate
 		}
 
 		if buf, err := json.Marshal(span); err != nil {

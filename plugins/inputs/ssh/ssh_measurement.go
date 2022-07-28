@@ -8,7 +8,7 @@ package ssh
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -19,8 +19,8 @@ type SSHMeasurement struct {
 	ts     time.Time
 }
 
-func (s *SSHMeasurement) LineProto() (*io.Point, error) {
-	data, err := io.MakePoint(s.name, s.tags, s.fields, s.ts)
+func (s *SSHMeasurement) LineProto() (*point.Point, error) {
+	data, err := point.NewPoint(s.name, s.tags, s.fields, point.MOpt())
 	return data, err
 }
 

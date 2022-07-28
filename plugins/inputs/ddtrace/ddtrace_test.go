@@ -56,7 +56,7 @@ func msgpackEncoder(ddtraces DDTraces) ([]byte, error) {
 }
 
 func TestDDTraceAgent(t *testing.T) {
-	afterGatherRun = itrace.AfterGatherFunc(func(inputName string, dktrace itrace.DatakitTrace, strikMod bool) {})
+	afterGatherRun = itrace.AfterGatherFunc(func(inputName string, dktraces itrace.DatakitTraces, strikMod bool) {})
 
 	rand.Seed(time.Now().UnixNano())
 	// testJsonDDTraces(t)

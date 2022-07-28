@@ -6,10 +6,7 @@
 package kafka
 
 import (
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -17,7 +14,6 @@ type KafkaMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 type KafkaControllerMment struct {
@@ -166,8 +162,8 @@ func (j *KafkaConnectMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaConnectMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaConnectMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -246,8 +242,8 @@ func (j *KafkaProducerMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaProducerMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaProducerMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -335,8 +331,8 @@ func (j *KafkaConsumerMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaConsumerMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaConsumerMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -362,8 +358,8 @@ func (j *KafkaLogMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaLogMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaLogMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -388,8 +384,8 @@ func (j *KafkaNetworkMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaNetworkMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaNetworkMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -415,8 +411,8 @@ func (j *KafkaRequestHandlerMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaRequestHandlerMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaRequestHandlerMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -446,12 +442,12 @@ func (j *KafkaZooKeeperMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaZooKeeperMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaZooKeeperMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
-func (j *KafkaMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -817,8 +813,8 @@ var controllerTags = map[string]interface{}{
 	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
 }
 
-func (j *KafkaControllerMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaControllerMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 func (j *KafkaControllerMment) Info() *inputs.MeasurementInfo { //nolint:funlen
@@ -868,8 +864,8 @@ var replicationFields = map[string]interface{}{
 	"UnderReplicatedPartitions.Value": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 }
 
-func (j *KafkaReplicaMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaReplicaMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 func (j *KafkaReplicaMment) Info() *inputs.MeasurementInfo {
@@ -911,8 +907,8 @@ var purgatoryFields = map[string]interface{}{
 	"topic.PurgatorySize":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
 }
 
-func (j *KafkaPurgatoryMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaPurgatoryMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 func (j *KafkaPurgatoryMment) Info() *inputs.MeasurementInfo {
@@ -923,8 +919,8 @@ func (j *KafkaPurgatoryMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaRequestMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaRequestMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -1038,8 +1034,8 @@ func (j *KafkaRequestMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaTopicsMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaTopicsMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -1201,8 +1197,8 @@ func (j *KafkaTopicsMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaTopicMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaTopicMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -1261,8 +1257,8 @@ func (j *KafkaTopicMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaPartitionMment) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *KafkaPartitionMment) LineProto() (*point.Point, error) {
+	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll

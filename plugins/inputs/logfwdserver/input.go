@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -184,17 +185,17 @@ func init() { //nolint:gochecknoinits
 	})
 }
 
-func makePts(source string, cnt []string, tags map[string]string) []*io.Point {
-	ret := []*io.Point{}
+func makePts(source string, cnt []string, tags map[string]string) []*point.Point {
+	ret := []*point.Point{}
 
 	for _, cnt := range cnt {
-		pt, err := io.MakePoint(source, tags,
+		pt, err := point.NewPoint(source,
+			tags,
 			map[string]interface{}{
 				pipeline.FieldMessage: cnt,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,
 			},
-			time.Now(),
-		)
+			point.LOpt())
 		if err != nil {
 			l.Error(err)
 			continue

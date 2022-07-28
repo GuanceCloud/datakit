@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -22,13 +22,14 @@ type clientMeasurement struct {
 	resData map[string]interface{}
 }
 
-func (m *clientMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *clientMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_client",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"id": &inputs.FieldInfo{
 				DataType: inputs.String,

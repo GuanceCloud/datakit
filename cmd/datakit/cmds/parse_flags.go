@@ -79,6 +79,8 @@ var (
 	fsPLName          = "pipeline"
 	debugPipelineName = ""
 	fsPL              = pflag.NewFlagSet(fsPLName, pflag.ContinueOnError)
+	flagPLCategory    = fsPL.StringP("category", "C", "logging", "data category (logging, metric, ...)")
+	flagPLNS          = fsPL.StringP("namespace", "N", "default", "namespace (default, gitrepo, remote)")
 	flagPLLogPath     = fsPL.String("log", commonLogFlag(), "command line log path")
 	flagPLTxtData     = fsPL.StringP("txt", "T", "", "text string for the pipeline or grok(json or raw text)")
 	flagPLTxtFile     = fsPL.StringP("file", "F", "", "text file path for the pipeline or grok(json or raw text)")
@@ -127,7 +129,7 @@ var (
 	fsMonitorName              = "monitor"
 	fsMonitor                  = pflag.NewFlagSet(fsMonitorName, pflag.ContinueOnError)
 	flagMonitorTo              = fsMonitor.String("to", "localhost:9529", "specify the DataKit(IP:Port) to show its statistics")
-	flagMonitorMaxTableWidth   = fsMonitor.IntP("max-table-width", "W", 16, "set max table cell width")
+	flagMonitorMaxTableWidth   = fsMonitor.IntP("max-table-width", "W", 128, "set max table cell width")
 	flagMonitorOnlyInputs      = fsMonitor.StringSliceP("input", "I", nil, "show only specified inputs stats, seprated by ',', i.e., -I cpu,mem")
 	flagMonitorLogPath         = fsMonitor.String("log", commonLogFlag(), "command line log path")
 	flagMonitorRefreshInterval = fsMonitor.DurationP("refresh", "R", 5*time.Second, "refresh interval")
@@ -147,7 +149,7 @@ var (
 	flagInstallTelegraf = fsInstall.Bool("telegraf", false, "install Telegraf")
 	flagInstallScheck   = fsInstall.Bool("scheck", false, "install SCheck")
 	flagInstallEbpf     = fsInstall.Bool("ebpf", false, "install DataKit eBPF plugin")
-	flagInstallIPDB     = fsInstall.String("ipdb", "", "install IP database(currently only iploc available)")
+	flagInstallIPDB     = fsInstall.String("ipdb", "", "install IP database")
 	fsInstallUsage      = func() {
 		fmt.Printf("usage: datakit install [options]\n\n")
 		fmt.Printf("Install used to install DataKit related packages and plugins\n\n")

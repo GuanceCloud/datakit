@@ -23,7 +23,7 @@ import (
 	"github.com/influxdata/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -401,6 +401,27 @@ func isValidCustomPipelineName(name string) bool {
 	return pipelineFileRegxp.Match([]byte(name))
 }
 
+// filter info.
+type filterInfo struct {
+	Content  string `json:"content"`  // file content string
+	FilePath string `json:"filePath"` // file path
+}
+
+// dcaGetFilter return filter file content, which is located at data/.pull
+// if the file not existed, return empty content.
+func dcaGetFilter(c *gin.Context) {
+	context := getContext(c)
+	dataDir := datakit.DataDir
+	pullFilePath := filepath.Join(dataDir, ".pull")
+	pullFileBytes, err := ioutil.ReadFile(pullFilePath) //nolint: gosec
+	if err != nil {
+		context.success(filterInfo{Content: "", FilePath: ""})
+		return
+	}
+
+	context.success(filterInfo{Content: string(pullFileBytes), FilePath: pullFilePath})
+}
+
 type pipelineInfo struct {
 	FileName string `json:"fileName"`
 	FileDir  string `json:"fileDir"`
@@ -424,6 +445,20 @@ func dcaGetPipelines(c *gin.Context) {
 			name := file.Name()
 			if isValidPipelineFileName(name) {
 				pipelines = append(pipelines, pipelineInfo{FileName: name, FileDir: datakit.PipelineDir})
+			}
+		} else if file.Name() == "logging" {
+			allFiles, err := ioutil.ReadDir(filepath.Join(datakit.PipelineDir, "logging"))
+			if err != nil {
+				context.fail()
+				return
+			}
+			for _, file := range allFiles {
+				if !file.IsDir() {
+					name := file.Name()
+					if isValidPipelineFileName(name) {
+						pipelines = append(pipelines, pipelineInfo{FileName: "logging/" + name, FileDir: datakit.PipelineDir})
+					}
+				}
 			}
 		}
 	}
@@ -532,16 +567,16 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	opt := &io.PointOption{
+	opt := &point.PointOption{
 		Category: datakit.Logging,
 		Time:     time.Now(),
 	}
-	pt, err := io.NewPoint("default", nil, map[string]interface{}{pipeline.FieldMessage: text}, opt)
+	pt, err := point.NewPoint("default", nil, map[string]interface{}{pipeline.FieldMessage: text}, opt)
 	if err != nil {
 		return "", err
 	}
 
-	pt, dropFlag, err := pl.Run(pt, nil, *opt)
+	pt, dropFlag, err := pl.Run(pt, nil, opt)
 	if err != nil {
 		return "", err
 	}

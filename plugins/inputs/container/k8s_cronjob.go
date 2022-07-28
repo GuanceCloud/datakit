@@ -10,8 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1beta1 "k8s.io/api/batch/v1beta1"
 )
@@ -67,7 +66,6 @@ func (c *cronjob) metric() (inputsMeas, error) {
 			fields: map[string]interface{}{
 				"spec_suspend": *item.Spec.Suspend,
 			},
-			time: time.Now(),
 		}
 		// t := item.Status.LastScheduleTime
 		// met.fields["duration_since_last_schedule"] = int64(time.Since(t).Seconds())
@@ -81,7 +79,6 @@ func (c *cronjob) metric() (inputsMeas, error) {
 		met := &cronjobMetric{
 			tags:   map[string]string{"namespace": ns},
 			fields: map[string]interface{}{"count": ct},
-			time:   time.Now(),
 		}
 		met.tags.append(c.extraTags)
 		res = append(res, met)
@@ -111,7 +108,6 @@ func (c *cronjob) object() (inputsMeas, error) {
 				"active_jobs": len(item.Status.Active),
 				"suspend":     false,
 			},
-			time: time.Now(),
 		}
 		obj.tags.append(c.extraTags)
 
@@ -150,11 +146,10 @@ func (c *cronjob) count() (map[string]int, error) {
 type cronjobMetric struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (c *cronjobMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kuber_cronjob", c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Metric})
+func (c *cronjobMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kuber_cronjob", c.tags, c.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -178,11 +173,10 @@ func (*cronjobMetric) Info() *inputs.MeasurementInfo {
 type cronjobObject struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (c *cronjobObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_cron_jobs", c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Object})
+func (c *cronjobObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_cron_jobs", c.tags, c.fields, point.MOptElection())
 }
 
 //nolint:lll

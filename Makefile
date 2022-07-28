@@ -27,6 +27,7 @@ NAME_EBPF = datakit-ebpf
 ENTRY = cmd/datakit/main.go
 
 UNAME_S:=$(shell uname -s)
+UNAME_M:=$(shell uname -m | sed -e s/x86_64/x86_64/ -e s/aarch64.\*/arm64/)
 LOCAL_ARCHS:="local"
 DEFAULT_ARCHS:="all"
 MAC_ARCHS:="darwin/amd64"
@@ -41,6 +42,7 @@ UPLOADER:=$(shell hostname)/${USER}/${COMMITER}
 DOCKER_IMAGE_ARCHS:="linux/arm64,linux/amd64"
 DATAKIT_EBPF_ARCHS?="linux/arm64,linux/amd64"
 IGN_EBPF_INSTALL_ERR?=0
+RACE_DETECTION?="off"
 
 GO_MAJOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
 GO_MINOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
@@ -109,7 +111,7 @@ define build
 	@echo "===== $(BIN) $(1) ===="
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go \
 		-main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
-		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
+		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3) -race $(RACE_DETECTION)
 	@tree -Csh -L 3 $(BUILD_DIR)
 endef
 
@@ -326,7 +328,7 @@ all_test: deps
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
 lint: deps
-	if [ $(UNAME_S) != Darwin ]; then \
+	if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
 		echo '============== lint under amd64/linux ==================='; \
 		$(GOLINT_BINARY) --version; \
 		GOARCH=amd64 GOOS=linux $(GOLINT_BINARY) run --fix --allow-parallel-runners ; \

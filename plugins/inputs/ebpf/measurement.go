@@ -6,9 +6,7 @@
 package ebpf
 
 import (
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -16,11 +14,10 @@ type measurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
-func (m *measurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *measurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.OOpt())
 }
 
 //nolint:lll
@@ -30,8 +27,8 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 
 type ConnStatsM measurement
 
-func (m *ConnStatsM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *ConnStatsM) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.OOpt())
 }
 
 //nolint:lll
@@ -78,8 +75,8 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 
 type HTTPFlowM measurement
 
-func (m *HTTPFlowM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *HTTPFlowM) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 //nolint:lll
@@ -123,8 +120,8 @@ func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
 
 type DNSStatsM measurement
 
-func (m *DNSStatsM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *DNSStatsM) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *DNSStatsM) Info() *inputs.MeasurementInfo {
@@ -151,8 +148,8 @@ func (m *DNSStatsM) Info() *inputs.MeasurementInfo {
 
 type BashM measurement
 
-func (m *BashM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *BashM) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *BashM) Info() *inputs.MeasurementInfo {

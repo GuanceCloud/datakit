@@ -80,7 +80,7 @@ func NullIf(ng *parser.EngineData, node parser.Node) interface{} {
 		case *parser.StringLiteral:
 			k = t.Val
 		default:
-			l.Warnf("unsupported %v get", reflect.TypeOf(key).String())
+			l.Debugf("unsupported %v get", reflect.TypeOf(key).String())
 			return nil
 		}
 

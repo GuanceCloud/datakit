@@ -1,12 +1,13 @@
 {{.CSS}}
+# DiskIO
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
+- 操作系统支持：{{.AvailableArchs}}
 
 diskio 采集器用于磁盘流量和时间的指标的采集
+
+![](imgs/input-diskio-01.png)
 
 ## 前置条件
 
@@ -36,10 +37,10 @@ diskperf -Y
 | :---                                  | ---                  | ---                                                          |
 | `ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER` | `skip_serial_number` | `true`/`false`                                               |
 | `ENV_INPUT_DISKIO_TAGS`               | `tags`               | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-| `ENV_INPUT_DISKIO_INTERVAL` | `interval` | `10s`|
-| `ENV_INPUT_DISKIO_DEVICES` | `devices` | `'''^sdb\d*'''` |
-| `ENV_INPUT_DISKIO_DEVICE_TAGS` | `device_tags` | `"ID_FS_TYPE", "ID_FS_USAGE"` 以英文逗号隔开 |
-| `ENV_INPUT_DISKIO_NAME_TEMPLATES` | `name_templates` | `"$ID_FS_LABEL", "$DM_VG_NAME/$DM_LV_NAME"` 以英文逗号隔开 |
+| `ENV_INPUT_DISKIO_INTERVAL`           | `interval`           | `10s`                                                        |
+| `ENV_INPUT_DISKIO_DEVICES`            | `devices`            | `'''^sdb\d*'''`                                              |
+| `ENV_INPUT_DISKIO_DEVICE_TAGS`        | `device_tags`        | `"ID_FS_TYPE", "ID_FS_USAGE"` 以英文逗号隔开                 |
+| `ENV_INPUT_DISKIO_NAME_TEMPLATES`     | `name_templates`     | `"$ID_FS_LABEL", "$DM_VG_NAME/$DM_LV_NAME"` 以英文逗号隔开   |
 
 ## 指标集
 

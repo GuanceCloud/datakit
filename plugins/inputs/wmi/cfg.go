@@ -22,38 +22,39 @@ const (
 	inputName = `wmi`
 
 	sampleConfig = `
-#[[inputs.wmi]]
+[[inputs.wmi]]
 
-# ##(optional) custom measurement name
-# metric_name = 'WMI'
+  ##(optional) custom measurement name
+  metric_name = 'WMI'
 
-# ##(optional) global collect interval, default is 5min
-# interval = '5m'
+  ##(optional) global collect interval, default is 5min
+  interval = '5m'
 
-# ##(optional) custom tags
-#[inputs.wmi.tags]
-#key1 = "val1"
+  ##(optional) custom tags
 
-#[[inputs.wmi.query]]
-#	##(required) the name of the WMI class. 
-#	see: https://docs.microsoft.com/en-us/previous-versions//aa394084(v=vs.85)?redirectedfrom=MSDN
-#	class = 'Win32_LogicalDisk'
+[inputs.wmi.tags]
+  key1 = "val1"
 
-#	##(optional) collect interval of this class，use global interval if not set
-#	interval='1m'
+[[inputs.wmi.query]]
+	##(required) the name of the WMI class.
+	see: https://docs.microsoft.com/en-us/previous-versions//aa394084(v=vs.85)?redirectedfrom=MSDN
+	class = 'Win32_LogicalDisk'
 
-#	##(required) property names of wmi class, you can optimally specify alias as field name.
-#	metrics = [
-#		['DeviceID'],
-#		['FileSystem', 'disk_filesystem']
-#	]
+	##(optional) collect interval of this class，use global interval if not set
+	interval='1m'
 
-#[[inputs.wmi.query]]
-#	class = 'Win32_OperatingSystem'
-#	metrics = [
-#		['NumberOfProcesses', 'system_proc_count'],
-#		['NumberOfUsers']
-#	]
+	##(required) property names of wmi class, you can optimally specify alias as field name.
+	metrics = [
+		['DeviceID'],
+		['FileSystem', 'disk_filesystem']
+	]
+
+[[inputs.wmi.query]]
+	class = 'Win32_OperatingSystem'
+	metrics = [
+		['NumberOfProcesses', 'system_proc_count'],
+		['NumberOfUsers']
+	]
 `
 )
 

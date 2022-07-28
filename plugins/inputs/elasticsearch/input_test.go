@@ -266,7 +266,7 @@ func TestInput(t *testing.T) {
 	pipelineMap := es.PipelineConfig()
 	assert.Equal(t, pipelineMap["elasticsearch"], pipelineCfg)
 
-	assert.Equal(t, es.AvailableArchs(), datakit.AllArch)
+	assert.Equal(t, es.AvailableArchs(), datakit.AllOS)
 
 	samples := es.SampleMeasurement()
 	assert.Greater(t, len(samples), 0)

@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
@@ -31,6 +32,7 @@ const (
 	// span status.
 	STATUS_OK       = "ok"
 	STATUS_INFO     = "info"
+	STATUS_DEBUG    = "debug"
 	STATUS_WARN     = "warning"
 	STATUS_ERR      = "error"
 	STATUS_CRITICAL = "critical"
@@ -41,13 +43,12 @@ const (
 	SPAN_TYPE_EXIT   = "exit"
 	SPAN_TYPE_UNKNOW = "unknow"
 
-	// service type.
-	SPAN_SERVICE_APP    = "app"
-	SPAN_SERVICE_CACHE  = "cache"
-	SPAN_SERVICE_CUSTOM = "custom"
-	SPAN_SERVICE_DB     = "db"
-	SPAN_SERVICE_WEB    = "web"
-	SPAN_SERVICE_UNKNOW = "unknow"
+	// span source type.
+	SPAN_SOURCE_APP      = "app"
+	SPAN_SOURCE_CACHE    = "cache"
+	SPAN_SOURCE_CUSTOMER = "custom"
+	SPAN_SOURCE_DB       = "db"
+	SPAN_SOURCE_WEB      = "web"
 
 	// line protocol tags.
 	TAG_CONTAINER_HOST = "container_host"
@@ -64,49 +65,109 @@ const (
 	TAG_VERSION        = "version"
 
 	// line protocol fields.
-	FIELD_DURATION           = "duration"
-	FIELD_MSG                = "message"
-	FIELD_PARENTID           = "parent_id"
-	FIELD_PID                = "pid"
-	FIELD_PRIORITY           = "priority"
-	FIELD_RESOURCE           = "resource"
-	FIELD_SAMPLE_RATE_GLOBAL = "sample_rate_global"
-	FIELD_SPANID             = "span_id"
-	FIELD_START              = "start"
-	FIELD_TRACEID            = "trace_id"
+	FIELD_DURATION    = "duration"
+	FIELD_MSG         = "message"
+	FIELD_PARENTID    = "parent_id"
+	FIELD_PID         = "pid"
+	FIELD_PRIORITY    = "priority"
+	FIELD_RESOURCE    = "resource"
+	FIELD_SAMPLE_RATE = "sample_rate"
+	FIELD_SPANID      = "span_id"
+	FIELD_START       = "start"
+	FIELD_TRACEID     = "trace_id"
+)
+
+// nolint:stylecheck
+const (
+	// PriorityRuleSamplerReject specifies that the rule sampler has decided that this trace should be rejected.
+	PRIORITY_RULE_SAMPLER_REJECT = -3
+	// PriorityUserReject informs the backend that a trace should be rejected and not stored.
+	// This should be used by user code overriding default priority.
+	PRIORITY_USER_REJECT = -1
+	// PriorityAutoReject informs the backend that a trace should be rejected and not stored.
+	// This is used by the builtin sampler.
+	PRIORITY_AUTO_REJECT = 0
+	// PriorityAutoKeep informs the backend that a trace should be kept and not stored.
+	// This is used by the builtin sampler.
+	PRIORITY_AUTO_KEEP = 1
+	// PriorityUserKeep informs the backend that a trace should be kept and not stored.
+	// This should be used by user code overriding default priority.
+	PRIORITY_USER_KEEP = 2
+	// PriorityRuleSamplerKeep specifies that the rule sampler has decided that this trace should be kept.
+	PRIORITY_RULE_SAMPLER_KEEP = 3
 )
 
 var (
 	packageName = "dktrace"
 	log         = logger.DefaultSLogger(packageName)
+	sourceTypes = map[string]string{
+		"consul":        SPAN_SOURCE_APP,
+		"cache":         SPAN_SOURCE_CACHE,
+		"memcached":     SPAN_SOURCE_CACHE,
+		"redis":         SPAN_SOURCE_CACHE,
+		"aerospike":     SPAN_SOURCE_DB,
+		"cassandra":     SPAN_SOURCE_DB,
+		"db":            SPAN_SOURCE_DB,
+		"elasticsearch": SPAN_SOURCE_DB,
+		"influxdb":      SPAN_SOURCE_DB,
+		"leveldb":       SPAN_SOURCE_DB,
+		"mongodb":       SPAN_SOURCE_DB,
+		"mysql":         SPAN_SOURCE_DB,
+		"pymysql":       SPAN_SOURCE_DB,
+		"sql":           SPAN_SOURCE_DB,
+		"dns":           SPAN_SOURCE_WEB,
+		"grpc":          SPAN_SOURCE_WEB,
+		"http":          SPAN_SOURCE_WEB,
+		"http2":         SPAN_SOURCE_WEB,
+		"rpc":           SPAN_SOURCE_WEB,
+		"web":           SPAN_SOURCE_WEB,
+		"":              SPAN_SOURCE_CUSTOMER,
+		"benchmark":     SPAN_SOURCE_CUSTOMER,
+		"build":         SPAN_SOURCE_CUSTOMER,
+		"custom":        SPAN_SOURCE_CUSTOMER,
+		"datanucleus":   SPAN_SOURCE_CUSTOMER,
+		"graphql":       SPAN_SOURCE_CUSTOMER,
+		"hibernate":     SPAN_SOURCE_CUSTOMER,
+		"queue":         SPAN_SOURCE_CUSTOMER,
+		"soap":          SPAN_SOURCE_CUSTOMER,
+		"template":      SPAN_SOURCE_CUSTOMER,
+		"test":          SPAN_SOURCE_CUSTOMER,
+		"worker":        SPAN_SOURCE_CUSTOMER,
+	}
 )
 
+func GetSpanSourceType(app string) string {
+	if s, ok := sourceTypes[strings.ToLower(app)]; ok {
+		return s
+	} else {
+		return SPAN_SOURCE_CUSTOMER
+	}
+}
+
 type DatakitSpan struct {
-	TraceID            string                 `json:"trace_id"`
-	ParentID           string                 `json:"parent_id"`
-	SpanID             string                 `json:"span_id"`
-	Service            string                 `json:"service"`     // process name
-	Resource           string                 `json:"resource"`    // a resource name in process
-	Operation          string                 `json:"operation"`   // a operation name behind resource
-	Source             string                 `json:"source"`      // tracer name
-	SpanType           string                 `json:"span_type"`   // span type of entry, local, exit or unknow
-	SourceType         string                 `json:"source_type"` // process role in service
-	Env                string                 `json:"env"`
-	Project            string                 `json:"project"`
-	Version            string                 `json:"version"`
-	Tags               map[string]string      `json:"tags"`
-	Metrics            map[string]interface{} `json:"metrics"`
-	EndPoint           string                 `json:"end_point"`
-	HTTPMethod         string                 `json:"http_method"`
-	HTTPStatusCode     string                 `json:"http_status_code"`
-	ContainerHost      string                 `json:"container_host"`
-	PID                string                 `json:"p_id"`     // process id
-	Start              int64                  `json:"start"`    // unit: nano sec
-	Duration           int64                  `json:"duration"` // unit: nano sec
-	Status             string                 `json:"status"`
-	Content            string                 `json:"content"`              // raw tracing data in json
-	Priority           int                    `json:"priority"`             // smapling priority
-	SamplingRateGlobal float64                `json:"sampling_rate_global"` // global sampling ratio
+	TraceID        string                 `json:"trace_id"`
+	ParentID       string                 `json:"parent_id"`
+	SpanID         string                 `json:"span_id"`
+	Service        string                 `json:"service"`     // service name
+	Resource       string                 `json:"resource"`    // resource or api under service
+	Operation      string                 `json:"operation"`   // api name
+	Source         string                 `json:"source"`      // client tracer name
+	SpanType       string                 `json:"span_type"`   // relative span position in tracing: entry, local, exit or unknow
+	SourceType     string                 `json:"source_type"` // service type
+	Env            string                 `json:"env"`         // environment variables
+	Project        string                 `json:"project"`
+	Version        string                 `json:"version"`
+	Tags           map[string]string      `json:"tags"`
+	Metrics        map[string]interface{} `json:"metrics"`
+	EndPoint       string                 `json:"end_point"`
+	HTTPMethod     string                 `json:"http_method"`
+	HTTPStatusCode string                 `json:"http_status_code"`
+	ContainerHost  string                 `json:"container_host"`
+	PID            string                 `json:"p_id"`     // process id
+	Start          int64                  `json:"start"`    // unit: nano sec
+	Duration       int64                  `json:"duration"` // unit: nano sec
+	Status         string                 `json:"status"`   // span status like error, ok, info etc.
+	Content        string                 `json:"content"`  // raw tracing data in json
 }
 
 type DatakitTrace []*DatakitSpan
@@ -189,7 +250,7 @@ func IsRootSpan(dkspan *DatakitSpan) bool {
 	return dkspan.ParentID == "0" || dkspan.ParentID == ""
 }
 
-func UnifyToInt64ID(id string) int64 {
+func UnifyToUint64ID(id string) uint64 {
 	if len(id) == 0 {
 		return 0
 	}
@@ -208,16 +269,16 @@ func UnifyToInt64ID(id string) int64 {
 		}
 	}
 	var (
-		i   int64
+		i   uint64
 		err error
 	)
 	if isInt {
-		if i, err = strconv.ParseInt(id, 10, 64); err == nil {
+		if i, err = strconv.ParseUint(id, 10, 64); err == nil {
 			return i
 		}
 	}
 	if isHex {
-		if i, err = strconv.ParseInt(id, 16, 64); err == nil {
+		if i, err = strconv.ParseUint(id, 16, 64); err == nil {
 			return i
 		}
 	}
@@ -226,7 +287,7 @@ func UnifyToInt64ID(id string) int64 {
 	if l := len(hexstr); l > 16 {
 		hexstr = hexstr[l-16:]
 	}
-	i, _ = strconv.ParseInt(hexstr, 16, 64)
+	i, _ = strconv.ParseUint(hexstr, 16, 64)
 
 	return i
 }
@@ -245,17 +306,31 @@ func MergeInToCustomerTags(customerKeys []string, datakitTags, sourceTags map[st
 	return merged
 }
 
-func ParseTracingRequest(req *http.Request) (contentType string, body io.ReadCloser, err error) {
+// ParseTracerRequest parse the given http request to Content-Type and body buffer if no error
+// occurred. If the given body in request is compressed by gzip, decompression work will
+// be done automatically.
+func ParseTracerRequest(req *http.Request) (contentType, encode string, buf []byte, err error) {
 	if req == nil {
-		return "", nil, errors.New("nil http.Request pointer")
+		err = errors.New("nil http.Request pointer")
+
+		return
 	}
 
-	contentType = ihttp.GetHeader(req, "Content-Type")
+	var body io.ReadCloser
 	if ihttp.GetHeader(req, "Content-Encoding") == "gzip" {
-		body, err = gzip.NewReader(req.Body)
+		encode = "gzip"
+		if body, err = gzip.NewReader(req.Body); err == nil {
+			defer body.Close() // nolint:errcheck
+		}
 	} else {
 		body = req.Body
 	}
+
+	if buf, err = io.ReadAll(body); err != nil {
+		return
+	}
+
+	contentType = ihttp.GetHeader(req, "Content-Type")
 
 	return
 }

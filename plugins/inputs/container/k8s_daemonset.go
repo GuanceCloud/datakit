@@ -8,10 +8,8 @@ package container
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/apps/v1"
 )
@@ -69,7 +67,6 @@ func (d *daemonset) metric() (inputsMeas, error) {
 				"updated":             item.Status.UpdatedNumberScheduled,
 				"daemons_unavailable": item.Status.NumberUnavailable,
 			},
-			time: time.Now(),
 		}
 		met.tags.append(d.extraTags)
 		res = append(res, met)
@@ -80,7 +77,6 @@ func (d *daemonset) metric() (inputsMeas, error) {
 		met := &daemonsetMetric{
 			tags:   map[string]string{"namespace": ns},
 			fields: map[string]interface{}{"count": c},
-			time:   time.Now(),
 		}
 		met.tags.append(d.extraTags)
 		res = append(res, met)
@@ -108,11 +104,10 @@ func (d *daemonset) count() (map[string]int, error) {
 type daemonsetMetric struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (d *daemonsetMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_daemonset", d.tags, d.fields, &io.PointOption{Time: d.time, Category: datakit.Metric})
+func (d *daemonsetMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_daemonset", d.tags, d.fields, point.MOptElection())
 }
 
 //nolint:lll

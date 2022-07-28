@@ -20,6 +20,7 @@ import (
 	dhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -34,17 +35,22 @@ const (
 `
 )
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	l = logger.DefaultSLogger(inputName)
+
+	_ inputs.InputV2 = (*Input)(nil)
+)
 
 type Input struct {
 	IgnoreURLTags bool `yaml:"ignore_url_tags"`
 }
 
 func (*Input) Catalog() string { return "log" }
+func (*Input) Terminate()      {}
 
 func (*Input) SampleConfig() string { return sampleCfg }
 
-func (*Input) AvailableArchs() []string { return datakit.AllArch }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&logstreamingMeasurement{}}
@@ -124,7 +130,7 @@ func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) 
 			l.Debugf("len(points) is zero, skip")
 			break
 		}
-		pts1 := io.WrapPoint(pts)
+		pts1 := point.WrapPoint(pts)
 		scriptMap := map[string]string{}
 		for _, v := range pts1 {
 			if v != nil {
@@ -134,17 +140,13 @@ func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) 
 		err = io.Feed(inputName, datakit.Logging, pts1, &io.Option{PlScript: scriptMap})
 	default:
 		scanner := bufio.NewScanner(req.Body)
-		pts := []*io.Point{}
+		pts := []*point.Point{}
 		for scanner.Scan() {
-			pt, err := io.NewPoint(source, extraTags,
+			pt, err := point.NewPoint(source, extraTags,
 				map[string]interface{}{
 					pipeline.FieldMessage: scanner.Text(),
 					pipeline.FieldStatus:  pipeline.DefaultStatus,
-				},
-				&io.PointOption{
-					Category: datakit.Logging,
-					Time:     time.Now(),
-				})
+				}, point.LOpt())
 			if err != nil {
 				l.Error(err)
 			} else {
@@ -203,7 +205,7 @@ func init() { //nolint:gochecknoinits
 
 type logstreamingMeasurement struct{}
 
-func (*logstreamingMeasurement) LineProto() (*io.Point, error) { return nil, nil }
+func (*logstreamingMeasurement) LineProto() (*point.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*logstreamingMeasurement) Info() *inputs.MeasurementInfo {
@@ -220,56 +222,3 @@ func (*logstreamingMeasurement) Info() *inputs.MeasurementInfo {
 		},
 	}
 }
-
-// func plCallback(ret *pipeline.Result) (*pipeline.Result, error) {
-// 	return pipeline.ResultUtilsLoggingProcessor(ret, false, nil), nil
-// }
-
-// func plRunCnt(source, scriptName string, cnt []string, tags map[string]string) []*io.Point {
-// 	ret := []*io.Point{}
-
-// 	ts := time.Now().Add(-time.Duration(int(time.Nanosecond) * len(cnt)))
-// 	for i, cnt := range cnt {
-// 		pt, err := io.MakePoint(source, tags,
-// 			map[string]interface{}{pipeline.PipelineMessageField: cnt},
-// 			ts.Add(time.Duration(int(time.Nanosecond)*i)),
-// 		)
-// 		if err != nil {
-// 			l.Error(err)
-// 			continue
-// 		}
-// 		drop := false
-// 		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
-// 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plCallback); err != nil {
-// 				l.Error(err)
-// 			} else {
-// 				pt = ptRet
-// 				drop = dropRet
-// 			}
-// 		}
-// 		if !drop {
-// 			ret = append(ret, pt)
-// 		}
-// 	}
-// 	return ret
-// }
-
-// func plRunPt(pts []*io.Point) []*io.Point {
-// 	ret := []*io.Point{}
-// 	for _, pt := range pts {
-// 		scriptName := pt.Name() + ".p"
-// 		drop := false
-// 		if script, ok := scriptstore.QueryScript(datakit.Logging, scriptName); ok {
-// 			if ptRet, dropRet, err := pipeline.RunScript(pt, script, plCallback); err != nil {
-// 				l.Error(err)
-// 			} else {
-// 				pt = ptRet
-// 				drop = dropRet
-// 			}
-// 		}
-// 		if !drop {
-// 			ret = append(ret, pt)
-// 		}
-// 	}
-// 	return ret
-// }

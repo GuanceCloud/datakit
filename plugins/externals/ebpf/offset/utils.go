@@ -8,6 +8,7 @@ import "C"
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
@@ -389,4 +390,98 @@ func getLinuxKernelVesion() (uint64, error) {
 	}
 
 	return kVersion, nil
+}
+
+type OffsetTmp struct {
+	SKNUM           uint64 `json:"offset_sk_num"`
+	INETSPORT       uint64 `json:"offset_inet_sport"`
+	SKFAMILY        uint64 `json:"offset_sk_family"`
+	SKRCVSADDR      uint64 `json:"offset_sk_rcv_saddr"`
+	SKDADDR         uint64 `json:"offset_sk_daddr"`
+	SKV6RCVSADDR    uint64 `json:"offset_sk_v6_rcv_saddr"`
+	SKV6DADDR       uint64 `json:"offset_sk_v6_daddr"`
+	SKDPORT         uint64 `json:"offset_sk_dport"`
+	TCPSKSRTTUS     uint64 `json:"offset_tcp_sk_srtt_us"`
+	TCPSKMDEVUS     uint64 `json:"offset_tcp_sk_mdev_us"`
+	FLOWI4SADDR     uint64 `json:"offset_flowi4_saddr"`
+	FLOWI4DADDR     uint64 `json:"offset_flowi4_daddr"`
+	FLOWI4SPORT     uint64 `json:"offset_flowi4_sport"`
+	FLOWI4DPORT     uint64 `json:"offset_flowi4_dport"`
+	FLOWI6SADDR     uint64 `json:"offset_flowi6_saddr"`
+	FLOWI6DADDR     uint64 `json:"offset_flowi6_daddr"`
+	FLOWI6SPORT     uint64 `json:"offset_flowi6_sport"`
+	FLOWI6DPORT     uint64 `json:"offset_flowi6_dport"`
+	SKADDRSINPORT   uint64 `json:"offset_skaddr_sin_port"`
+	SKADDR6SIN6PORT uint64 `json:"offset_skaddr6_sin6_port"`
+	SKNET           uint64 `json:"offset_sk_net"`
+	NSCOMMONINUM    uint64 `json:"offset_ns_common_inum"`
+	SOCKETSK        uint64 `json:"offset_socket_sk"`
+}
+
+func DumpOffset(offsetC OffsetGuessC) (string, error) {
+	offset := OffsetTmp{
+		SKNUM:           uint64(offsetC.offset_sk_num),
+		INETSPORT:       uint64(offsetC.offset_inet_sport),
+		SKFAMILY:        uint64(offsetC.offset_sk_family),
+		SKRCVSADDR:      uint64(offsetC.offset_sk_rcv_saddr),
+		SKDADDR:         uint64(offsetC.offset_sk_daddr),
+		SKV6RCVSADDR:    uint64(offsetC.offset_sk_v6_rcv_saddr),
+		SKV6DADDR:       uint64(offsetC.offset_sk_v6_daddr),
+		SKDPORT:         uint64(offsetC.offset_sk_dport),
+		TCPSKSRTTUS:     uint64(offsetC.offset_tcp_sk_srtt_us),
+		TCPSKMDEVUS:     uint64(offsetC.offset_tcp_sk_mdev_us),
+		FLOWI4SADDR:     uint64(offsetC.offset_flowi4_saddr),
+		FLOWI4DADDR:     uint64(offsetC.offset_flowi4_daddr),
+		FLOWI4SPORT:     uint64(offsetC.offset_flowi4_sport),
+		FLOWI4DPORT:     uint64(offsetC.offset_flowi4_dport),
+		FLOWI6SADDR:     uint64(offsetC.offset_flowi6_saddr),
+		FLOWI6DADDR:     uint64(offsetC.offset_flowi6_daddr),
+		FLOWI6SPORT:     uint64(offsetC.offset_flowi6_sport),
+		FLOWI6DPORT:     uint64(offsetC.offset_flowi6_dport),
+		SKADDRSINPORT:   uint64(offsetC.offset_skaddr_sin_port),
+		SKADDR6SIN6PORT: uint64(offsetC.offset_skaddr6_sin6_port),
+		SKNET:           uint64(offsetC.offset_sk_net),
+		NSCOMMONINUM:    uint64(offsetC.offset_ns_common_inum),
+		SOCKETSK:        uint64(offsetC.offset_socket_sk),
+	}
+	buff := []byte{}
+	buf := bytes.NewBuffer(buff)
+	encoder := json.NewEncoder(buf)
+	if err := encoder.Encode(offset); err != nil {
+		return "", err
+	} else {
+		return buf.String(), nil
+	}
+}
+
+func LoadOffset(str string) (OffsetGuessC, error) {
+	offset := &OffsetTmp{}
+	if err := json.NewDecoder(strings.NewReader(str)).Decode(offset); err != nil {
+		return OffsetGuessC{}, err
+	}
+	return OffsetGuessC{
+		offset_sk_num:            C.__u64(offset.SKNUM),
+		offset_inet_sport:        C.__u64(offset.INETSPORT),
+		offset_sk_family:         C.__u64(offset.SKFAMILY),
+		offset_sk_rcv_saddr:      C.__u64(offset.SKRCVSADDR),
+		offset_sk_daddr:          C.__u64(offset.SKDADDR),
+		offset_sk_v6_rcv_saddr:   C.__u64(offset.SKV6RCVSADDR),
+		offset_sk_v6_daddr:       C.__u64(offset.SKV6DADDR),
+		offset_sk_dport:          C.__u64(offset.SKDPORT),
+		offset_tcp_sk_srtt_us:    C.__u64(offset.TCPSKSRTTUS),
+		offset_tcp_sk_mdev_us:    C.__u64(offset.TCPSKMDEVUS),
+		offset_flowi4_saddr:      C.__u64(offset.FLOWI4SADDR),
+		offset_flowi4_daddr:      C.__u64(offset.FLOWI4DADDR),
+		offset_flowi4_sport:      C.__u64(offset.FLOWI4SPORT),
+		offset_flowi4_dport:      C.__u64(offset.FLOWI4DPORT),
+		offset_flowi6_saddr:      C.__u64(offset.FLOWI6SADDR),
+		offset_flowi6_daddr:      C.__u64(offset.FLOWI6DADDR),
+		offset_flowi6_sport:      C.__u64(offset.FLOWI6SPORT),
+		offset_flowi6_dport:      C.__u64(offset.FLOWI6DPORT),
+		offset_skaddr_sin_port:   C.__u64(offset.SKADDRSINPORT),
+		offset_skaddr6_sin6_port: C.__u64(offset.SKADDR6SIN6PORT),
+		offset_sk_net:            C.__u64(offset.SKNET),
+		offset_ns_common_inum:    C.__u64(offset.NSCOMMONINUM),
+		offset_socket_sk:         C.__u64(offset.SOCKETSK),
+	}, nil
 }

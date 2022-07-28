@@ -16,7 +16,7 @@ import (
 
 	"github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -48,7 +48,7 @@ func inputDebugger(configFile string) error {
 
 	for k, arr := range inputsInstance {
 		for _, x := range arr {
-			if i, ok := x.(inputs.InputOnceRunnable); !ok {
+			if i, ok := x.(inputs.InputOnceRunnableCollect); !ok {
 				warnf("[W] %s not implement for now.\n", k)
 				continue
 			} else {
@@ -76,7 +76,7 @@ func inputDebugger(configFile string) error {
 	return nil
 }
 
-func printResultEx(mpts map[string][]*io.Point) error {
+func printResultEx(mpts map[string][]*point.Point) error {
 	fmt.Printf("\n================= Line Protocol Points ==================\n\n")
 	// measurements collected
 	measurements := make(map[string]string)

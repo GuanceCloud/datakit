@@ -20,7 +20,7 @@ import (
 	"github.com/prometheus/common/expfmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type Rule struct {
@@ -34,6 +34,11 @@ type RenameTags struct {
 	Mapping            map[string]string `toml:"mapping"`
 }
 
+type AsLogging struct {
+	Enable  bool   `toml:"enable"`
+	Service string `toml:"service"`
+}
+
 type IgnoreTagKeyValMatch map[string][]*regexp.Regexp
 
 type Option struct {
@@ -42,6 +47,7 @@ type Option struct {
 	Measurements     []Rule   `json:"measurements"`
 	Source           string   `toml:"source"`
 	Interval         string   `toml:"interval"`
+	Timeout          string   `toml:"timeout"`
 
 	URL  string   `toml:"url,omitempty"` // Deprecated
 	URLs []string `toml:"urls"`
@@ -59,11 +65,13 @@ type Option struct {
 	CertFile   string `toml:"tls_cert"`
 	KeyFile    string `toml:"tls_key"`
 
-	Auth     map[string]string `toml:"auth"`
-	interval time.Duration
+	Auth        map[string]string `toml:"auth"`
+	HTTPHeaders map[string]string `toml:"http_headers"`
+	interval    time.Duration
 
 	Tags       map[string]string `toml:"tags"`
 	RenameTags *RenameTags       `toml:"rename_tags"`
+	AsLogging  *AsLogging        `toml:"as_logging"`
 
 	// do not keep these tags in scraped prom data
 	TagsIgnore []string `toml:"tags_ignore"`
@@ -75,7 +83,7 @@ type Option struct {
 	Disabel bool `toml:"disble"`
 }
 
-const defaultInterval = time.Second * 10
+const defaultInterval = 30 * time.Second
 
 func (opt *Option) IsDisable() bool {
 	return opt.Disabel
@@ -106,7 +114,7 @@ func (opt *Option) GetIntervalDuration() time.Duration {
 }
 
 const (
-	httpTimeout               = time.Second * 10
+	httpTimeout               = time.Second * 3
 	defaultInsecureSkipVerify = false
 )
 
@@ -139,8 +147,13 @@ func NewProm(opt *Option) (*Prom, error) {
 		}
 	}
 
+	timeout, err := time.ParseDuration(opt.Timeout)
+	if err != nil || timeout < httpTimeout {
+		timeout = httpTimeout
+	}
+
 	p := Prom{opt: opt}
-	p.SetClient(&http.Client{Timeout: httpTimeout})
+	p.SetClient(&http.Client{Timeout: timeout})
 
 	if opt.TLSOpen {
 		caCerts := []string{}
@@ -194,6 +207,9 @@ func (p *Prom) GetReq(url string) (*http.Request, error) {
 	} else {
 		req, err = http.NewRequest("GET", url, nil)
 	}
+	for k, v := range p.opt.HTTPHeaders {
+		req.Header.Set(k, v)
+	}
 	return req, err
 }
 
@@ -211,11 +227,11 @@ func (p *Prom) Request(url string) (*http.Response, error) {
 	return r, nil
 }
 
-func (p *Prom) CollectFromHTTP(u string) ([]*io.Point, error) {
+func (p *Prom) CollectFromHTTP(u string) ([]*point.Point, error) {
 	resp, err := p.Request(u)
 	if err != nil {
 		if p.opt.IgnoreReqErr {
-			return []*io.Point{}, nil
+			return []*point.Point{}, nil
 		} else {
 			return nil, err
 		}
@@ -228,7 +244,7 @@ func (p *Prom) CollectFromHTTP(u string) ([]*io.Point, error) {
 	return pts, nil
 }
 
-func (p *Prom) CollectFromFile(filepath string) ([]*io.Point, error) {
+func (p *Prom) CollectFromFile(filepath string) ([]*point.Point, error) {
 	f, err := os.OpenFile(filepath, os.O_RDONLY, 0o600) //nolint:gosec
 	if err != nil {
 		return nil, err

@@ -42,11 +42,11 @@ func retryCallback(_ retryablehttp.Logger, r *http.Request, n int) {
 func backoffCallback(min, max time.Duration, n int, resp *http.Response) time.Duration {
 	switch n {
 	case 1:
-		return time.Second
+		return time.Millisecond * 100
 	case 2:
-		return time.Second * 2
+		return time.Millisecond * 100
 	case 3:
-		return time.Second * 3
+		return time.Millisecond * 100
 
 	default: // should not been here
 		return 0

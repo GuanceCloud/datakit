@@ -8,6 +8,7 @@ package jaeger
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -15,36 +16,82 @@ import (
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 )
 
 func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("%s: listen on path: %s", inputName, req.URL.Path)
+	log.Debugf("### received tracing data from path: %s", req.URL.Path)
 
-	buf := thrift.NewTMemoryBuffer()
-	_, err := buf.ReadFrom(req.Body)
-	if err != nil {
+	var (
+		readbodycost = time.Now()
+		buf          = thrift.NewTMemoryBuffer()
+	)
+	if _, err := buf.ReadFrom(req.Body); err != nil {
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
+	log.Debugf("### path: %s, Content-Type: %s, body-size: %d, read-body-cost: %dms",
+		req.URL.Path, req.Header.Get("Content-Type"), buf.Len(), time.Since(readbodycost)/time.Millisecond)
+
+	if wpool == nil {
+		if err := parseJaegerTrace(buf); err != nil {
+			log.Error(err.Error())
+			resp.WriteHeader(http.StatusBadRequest)
+
+			return
+		}
+	} else {
+		job, err := workerpool.NewJob(workerpool.WithInput(buf),
+			workerpool.WithProcess(parseJaegerTraceAdapter),
+			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration, isTimeout bool) {
+				log.Debugf("### job status: input: %v, output: %v, cost: %dms, timeout: %v", input, output, cost/time.Millisecond, isTimeout)
+			}),
+			workerpool.WithTimeout(jobTimeout),
+		)
+		if err != nil {
+			log.Error(err.Error())
+			resp.WriteHeader(http.StatusBadRequest)
+
+			return
+		}
+
+		if err = wpool.MoreJob(job); err != nil {
+			log.Error(err)
+			resp.WriteHeader(http.StatusTooManyRequests)
+
+			return
+		}
+	}
+
+	resp.WriteHeader(http.StatusOK)
+}
+
+func parseJaegerTraceAdapter(input interface{}) (output interface{}) {
+	buf, ok := input.(*thrift.TMemoryBuffer)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+
+	return parseJaegerTrace(buf)
+}
+
+func parseJaegerTrace(buf *thrift.TMemoryBuffer) error {
 	var (
 		transport = thrift.NewTBinaryProtocolConf(buf, &thrift.TConfiguration{})
 		batch     = &jaeger.Batch{}
 	)
-	if err = batch.Read(context.TODO(), transport); err != nil {
-		log.Error(err.Error())
-		resp.WriteHeader(http.StatusBadRequest)
-
-		return
+	if err := batch.Read(context.TODO(), transport); err != nil {
+		return err
 	}
 
-	if dktrace := batchToDkTrace(batch); len(dktrace) == 0 {
-		log.Warn("empty datakit trace")
-	} else {
-		afterGatherRun.Run(inputName, dktrace, false)
+	if dktrace := batchToDkTrace(batch); len(dktrace) != 0 && afterGatherRun != nil {
+		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
 	}
+
+	return nil
 }
 
 func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
@@ -59,18 +106,19 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			ParentID:  fmt.Sprintf("%x", uint64(span.ParentSpanId)),
-			SpanID:    fmt.Sprintf("%x", uint64(span.SpanId)),
-			Service:   batch.Process.ServiceName,
-			Resource:  span.OperationName,
-			Operation: span.OperationName,
-			Source:    inputName,
-			SpanType:  itrace.FindSpanTypeIntSpanID(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
-			Env:       env,
-			Project:   project,
-			Start:     span.StartTime * int64(time.Microsecond),
-			Duration:  span.Duration * int64(time.Microsecond),
-			Version:   version,
+			ParentID:   fmt.Sprintf("%x", uint64(span.ParentSpanId)),
+			SpanID:     fmt.Sprintf("%x", uint64(span.SpanId)),
+			Service:    batch.Process.ServiceName,
+			Resource:   span.OperationName,
+			Operation:  span.OperationName,
+			Source:     inputName,
+			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
+			SpanType:   itrace.FindSpanTypeIntSpanID(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
+			Env:        env,
+			Project:    project,
+			Start:      span.StartTime * int64(time.Microsecond),
+			Duration:   span.Duration * int64(time.Microsecond),
+			Version:    version,
 		}
 
 		if span.TraceIdHigh != 0 {
@@ -93,11 +141,6 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if dkspan.ParentID == "0" && sampler != nil {
-			dkspan.Priority = sampler.Priority
-			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
-		}
-
 		if buf, err := json.Marshal(span); err != nil {
 			log.Warn(err.Error())
 		} else {
@@ -105,6 +148,10 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		}
 
 		dktrace = append(dktrace, dkspan)
+	}
+	if len(dktrace) != 0 {
+		dktrace[0].Metrics = make(map[string]interface{})
+		dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
 	}
 
 	return dktrace

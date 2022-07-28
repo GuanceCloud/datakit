@@ -12,7 +12,7 @@ import (
 	"github.com/tinylib/msgp/msgp"
 )
 
-// MarshalMsg implements msgp.Marshaler
+// MarshalMsg implements msgp.Marshaler.
 func (z *DDSpan) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 15
@@ -73,7 +73,7 @@ func (z *DDSpan) MarshalMsg(b []byte) (o []byte, err error) {
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// UnmarshalMsg implements msgp.Unmarshaler.
 func (z *DDSpan) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
@@ -258,7 +258,7 @@ func (z *DDSpan) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message.
 func (z *DDSpan) Msgsize() (s int) {
 	s = 1 + 8 + msgp.StringPrefixSize + len(z.Service) + 5 + msgp.StringPrefixSize + len(z.Name) + 9 + msgp.StringPrefixSize + len(z.Resource) + 9 + msgp.Uint64Size + 8 + msgp.Uint64Size + 10 + msgp.Uint64Size + 6 + msgp.Int64Size + 9 + msgp.Int64Size + 6 + msgp.Int32Size + 5 + msgp.MapHeaderSize
 	if z.Meta != nil {

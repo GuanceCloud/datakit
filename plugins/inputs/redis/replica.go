@@ -13,10 +13,9 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/go-redis/redis/v8"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -25,18 +24,18 @@ type replicaMeasurement struct {
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
-	ts      time.Time
 	resData map[string]interface{}
 }
 
-func (m *replicaMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *replicaMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 //nolint:lll
 func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_replica",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"repl_delay": &inputs.FieldInfo{
 				DataType: inputs.Int,

@@ -12,9 +12,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -26,7 +25,6 @@ type dbmSampleMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 type eventStrategy struct {
@@ -102,14 +100,15 @@ type planObj struct {
 	sortScan            int64
 }
 
-func (m *dbmSampleMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *dbmSampleMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
 }
 
 func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "选取部分执行耗时较高的 SQL 语句，获取其执行计划，并采集实际执行过程中的各种性能指标。",
 		Name: "mysql_dbm_sample",
+		Type: "logging",
 		Fields: map[string]interface{}{
 			"timestamp": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -227,6 +226,8 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
+			"host":              &inputs.TagInfo{Desc: " The server host address"},
+			"service":           &inputs.TagInfo{Desc: "The service name and the value is 'mysql'"},
 			"current_schema":    &inputs.TagInfo{Desc: "The name of the current schema."},
 			"plan_definition":   &inputs.TagInfo{Desc: "The plan definition of JSON format."},
 			"plan_signature":    &inputs.TagInfo{Desc: "The hash value computed from plan definition."},
@@ -674,8 +675,6 @@ func explainStatement(i *Input, statement string, schema string, obfuscatedState
 		return plan, err
 	}
 	defer conn.Close() //nolint:errcheck
-	startTime := time.Now()
-	strategyCacheKey := fmt.Sprintf("explain_strategy:%s", schema)
 
 	l.Debugf("explaining statement. schema=%s, statement='%s'", schema, statement)
 
@@ -715,7 +714,6 @@ func explainStatement(i *Input, statement string, schema string, obfuscatedState
 			return plan, nil
 		}
 	}
-	fmt.Println(startTime, strategyCacheKey)
 	return plan, nil
 }
 

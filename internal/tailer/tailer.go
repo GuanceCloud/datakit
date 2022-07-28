@@ -82,8 +82,16 @@ type Option struct {
 	ForwardFunc   ForwardFunc
 	IgnoreDeadLog time.Duration
 
-	DockerMode bool
+	Mode Mode
 }
+
+type Mode uint8
+
+const (
+	FileMode Mode = iota + 1
+	DockerMode
+	ContainerdMode
+)
 
 func (opt *Option) Init() error {
 	if opt.Source == "" {
@@ -95,7 +103,7 @@ func (opt *Option) Init() error {
 	}
 
 	if opt.InputName == "" {
-		opt.InputName = opt.Source + "_log"
+		opt.InputName = "logging/" + opt.Source
 	}
 
 	if opt.GlobalTags == nil {
@@ -125,7 +133,7 @@ func (opt *Option) Init() error {
 type Tailer struct {
 	opt *Option
 
-	fileList map[string]*Single
+	fileList map[string]interface{}
 
 	filePatterns   []string
 	ignorePatterns []string
@@ -140,6 +148,14 @@ func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (
 		return nil, fmt.Errorf("filePatterns cannot be empty")
 	}
 
+	// copy tags, avoid to change the source tags
+	sourceTags := opt.GlobalTags
+	tags := make(map[string]string)
+	for k, v := range sourceTags {
+		tags[k] = v
+	}
+	opt.GlobalTags = tags
+
 	t := Tailer{
 		opt:          opt,
 		filePatterns: filePatterns,
@@ -149,7 +165,7 @@ func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (
 			}
 			return nil
 		}(),
-		fileList: make(map[string]*Single),
+		fileList: make(map[string]interface{}),
 		stop:     make(chan struct{}),
 	}
 
@@ -173,13 +189,9 @@ func (t *Tailer) Start() {
 	for {
 		select {
 		case <-t.stop:
-			t.closeAll()
-			t.removeAll()
-
 			t.opt.log.Infof("waiting for all tailers to exit")
 			t.wg.Wait()
-
-			t.opt.log.Info("exit")
+			t.opt.log.Info("all exit")
 			return
 
 		case <-ticker.C:
@@ -195,17 +207,15 @@ func (t *Tailer) scan() {
 		t.opt.log.Warn(err)
 	}
 
-	// t.cleanInvalidFile(filelist)
-
 	for _, filename := range filelist {
 		if t.opt.IgnoreDeadLog > 0 && !FileIsActive(filename, t.opt.IgnoreDeadLog) {
 			continue
-			// t.closeFromFileList(filename)
-			// t.removeFromFileList(filename)
 		}
-		if t.fileInFileList(filename) {
+
+		if t.inFileList(filename) {
 			continue
 		}
+
 		t.wg.Add(1)
 		go func(filename string) {
 			defer t.wg.Done()
@@ -217,45 +227,12 @@ func (t *Tailer) scan() {
 				return
 			}
 
-			t.addToFileList(filename, tl)
+			t.addToFileList(filename)
 
 			tl.Run()
 		}(filename)
 	}
 }
-
-// cleanInvalidFile 清除过期文件，过期的定义包括被 remove/rename/truncate 导致文件不可用，其中 truncate 必须小于文件当前的 offset
-// Tailer 已保存当前文件的列表（currentFileList），和函数参数 newFileList 比对，取 newFileList 对于 currentFileList 的差集，即为要被 clean 的对象.
-// func (t *Tailer) cleanInvalidFile(newFileList []string) {
-// 	for _, oldFilename := range t.getFileList() {
-// 		shouldClean := false
-//
-// 		tl := t.getTailerSingle(oldFilename)
-// 		if tl != nil {
-// 			didRotate, err := DidRotate(tl.file, tl.currentOffset())
-// 			if err != nil {
-// 				t.opt.log.Warnf("didRotate error: %s", err)
-// 			}
-// 			if didRotate {
-// 				shouldClean = true
-// 			}
-// 		}
-//
-// 		func() {
-// 			for _, newFilename := range newFileList {
-// 				if oldFilename == newFilename {
-// 					return
-// 				}
-// 			}
-// 			shouldClean = true
-// 		}()
-//
-// 		if shouldClean {
-// 			t.closeFromFileList(oldFilename)
-// 			t.opt.log.Debugf("maybe file %s already not exist or truncate, exit", oldFilename)
-// 		}
-// 	}
-// }
 
 func (t *Tailer) Close() {
 	select {
@@ -266,10 +243,10 @@ func (t *Tailer) Close() {
 	}
 }
 
-func (t *Tailer) addToFileList(filename string, tl *Single) {
+func (t *Tailer) addToFileList(filename string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.fileList[filename] = tl
+	t.fileList[filename] = nil
 }
 
 func (t *Tailer) removeFromFileList(filename string) {
@@ -278,29 +255,12 @@ func (t *Tailer) removeFromFileList(filename string) {
 	delete(t.fileList, filename)
 }
 
-// func (t *Tailer) closeFromFileList(filename string) {
-// 	t.mu.Lock()
-// 	defer t.mu.Unlock()
-// 	tl, ok := t.fileList[filename]
-// 	if !ok {
-// 		return
-// 	}
-// 	tl.Close()
-// }
-
-func (t *Tailer) fileInFileList(filename string) bool {
+func (t *Tailer) inFileList(filename string) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	_, ok := t.fileList[filename]
 	return ok
 }
-
-// func (t *Tailer) getTailerSingle(filename string) *Single {
-// 	t.mu.Lock()
-// 	defer t.mu.Unlock()
-// 	tl := t.fileList[filename]
-// 	return tl
-// }
 
 func (t *Tailer) getFileList() []string {
 	t.mu.Lock()
@@ -310,20 +270,4 @@ func (t *Tailer) getFileList() []string {
 		list = append(list, filename)
 	}
 	return list
-}
-
-func (t *Tailer) closeAll() {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	for _, tl := range t.fileList {
-		tl.Close()
-	}
-}
-
-func (t *Tailer) removeAll() {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	for filename := range t.fileList {
-		delete(t.fileList, filename)
-	}
 }

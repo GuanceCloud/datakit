@@ -25,6 +25,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 )
 
+var _ inputs.ReadEnv = (*Input)(nil)
+
 var (
 	inputName           = "ebpf"
 	catalogName         = "host"
@@ -42,9 +44,12 @@ type K8sConf struct {
 }
 
 type Input struct {
-	external.ExernalInput
+	external.ExternalInput
 	K8sConf
 	EnabledPlugins []string      `toml:"enabled_plugins"`
+	L7NetDisabled  []string      `toml:"l7net_disabled"`
+	L7NetEnabled   []string      `toml:"l7net_enabled"`
+	IPv6Disabled   bool          `toml:"ipv6_disabled"`
 	semStop        *cliutils.Sem // start stop signal
 }
 
@@ -77,13 +82,13 @@ loop:
 			io.FeedLastError(inputName, err.Error())
 		}
 
-		cmd := strings.Split(ipt.ExernalInput.Cmd, " ")
+		cmd := strings.Split(ipt.ExternalInput.Cmd, " ")
 		var execFile string
 		if len(cmd) > 0 {
 			execFile = cmd[0]
 		} else {
 			execFile = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")
-			ipt.ExernalInput.Cmd = execFile
+			ipt.ExternalInput.Cmd = execFile
 		}
 		if _, err := os.Stat(execFile); err == nil && ok {
 			break loop
@@ -105,35 +110,50 @@ loop:
 
 	matchHost := regexp.MustCompile("--hostname")
 	haveHostNameArg := false
-	if ipt.ExernalInput.Args == nil {
-		ipt.ExernalInput.Args = []string{}
+	if ipt.ExternalInput.Args == nil {
+		ipt.ExternalInput.Args = []string{}
 	}
-	if ipt.ExernalInput.Envs == nil {
-		ipt.ExernalInput.Envs = []string{}
+	if ipt.ExternalInput.Envs == nil {
+		ipt.ExternalInput.Envs = []string{}
 	}
-	for _, arg := range ipt.ExernalInput.Args {
+	for _, arg := range ipt.ExternalInput.Args {
 		haveHostNameArg = matchHost.MatchString(arg)
 		if haveHostNameArg {
 			break
 		}
 	}
 	if !haveHostNameArg {
-		if envHostname, ok := config.Cfg.Environments["ENV_HOSTNAME"]; ok && envHostname != "" {
-			ipt.ExernalInput.Args = append(ipt.ExernalInput.Args, "--hostname", envHostname)
-		}
+		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args, "--hostname", config.Cfg.Hostname)
 	}
 
 	if ipt.K8sURL != "" {
-		ipt.ExernalInput.Envs = append(ipt.ExernalInput.Envs,
+		ipt.ExternalInput.Envs = append(ipt.ExternalInput.Envs,
 			fmt.Sprintf("K8S_URL=%s", ipt.K8sConf.K8sURL))
 	}
 	if ipt.K8sBearerToken != "" {
-		ipt.ExernalInput.Envs = append(ipt.ExernalInput.Envs,
+		ipt.ExternalInput.Envs = append(ipt.ExternalInput.Envs,
 			fmt.Sprintf("K8S_BEARER_TOKEN_PATH=%s", ipt.K8sConf.K8sBearerToken))
 	}
 	if ipt.K8sBearerTokenStr != "" {
-		ipt.ExernalInput.Envs = append(ipt.ExernalInput.Envs,
+		ipt.ExternalInput.Envs = append(ipt.ExternalInput.Envs,
 			fmt.Sprintf("K8S_BEARER_TOKEN_STRING=%s", ipt.K8sConf.K8sBearerTokenStr))
+	}
+
+	if ipt.L7NetDisabled == nil && ipt.L7NetEnabled == nil {
+		ipt.L7NetEnabled = []string{"httpflow"}
+	}
+
+	if len(ipt.L7NetEnabled) > 0 {
+		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args,
+			"--l7net-enabled", strings.Join(ipt.L7NetEnabled, ","))
+	} else if len(ipt.L7NetDisabled) > 0 {
+		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args,
+			"--l7net-disabled", strings.Join(ipt.L7NetDisabled, ","))
+	}
+
+	if ipt.IPv6Disabled {
+		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args,
+			"--ipv6-disabled", "true")
 	}
 
 	if len(ipt.EnabledPlugins) == 0 {
@@ -147,10 +167,10 @@ loop:
 		}
 	}
 	if len(enablePlugins) > 0 {
-		ipt.ExernalInput.Args = append(ipt.ExernalInput.Args,
+		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args,
 			"--enabled", strings.Join(enablePlugins, ","))
 		l.Infof("ebpf input started")
-		ipt.ExernalInput.Run()
+		ipt.ExternalInput.Run()
 	} else {
 		l.Warn("no ebpf plugins enabled")
 		io.FeedLastError(inputName, "no ebpf plugins enabled")
@@ -162,7 +182,7 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
-	ipt.ExernalInput.Terminate()
+	ipt.ExternalInput.Terminate()
 }
 
 func (*Input) Catalog() string { return catalogName }
@@ -179,7 +199,32 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSArchLinuxAmd64, datakit.OSArchLinuxArm64}
+	return []string{datakit.OSLabelLinux}
+}
+
+// ReadEnv support envs：
+//   ENV_INPUT_EBPF_ENABLED_PLUGINS : []string
+//   ENV_INPUT_EBPF_L7NET_ENABLED  : []string
+//   ENV_INPUT_EBPF_IPV6_DISABLED   : bool
+func (ipt *Input) ReadEnv(envs map[string]string) {
+	if pluginList, ok := envs["ENV_INPUT_EBPF_ENABLED_PLUGINS"]; ok {
+		l.Debugf("add enabled_plugins from ENV: %v", pluginList)
+		ipt.EnabledPlugins = strings.Split(pluginList, ",")
+	}
+
+	if l7netEnabledList, ok := envs["ENV_INPUT_EBPF_L7NET_ENABLED"]; ok {
+		l.Debugf("add l7net_enabled from ENV: %v", l7netEnabledList)
+		ipt.L7NetEnabled = strings.Split(l7netEnabledList, ",")
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_IPV6_DISABLED"]; ok {
+		switch v {
+		case "", "f", "false", "FALSE", "False", "0":
+			ipt.IPv6Disabled = false
+		default:
+			ipt.IPv6Disabled = true
+		}
+	}
 }
 
 func init() { //nolint:gochecknoinits
@@ -187,7 +232,7 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			semStop:        cliutils.NewSem(),
 			EnabledPlugins: []string{},
-			ExernalInput:   *external.NewExternalInput(),
+			ExternalInput:  *external.NewExternalInput(),
 		}
 	})
 }

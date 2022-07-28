@@ -8,7 +8,7 @@ package solr
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -19,8 +19,8 @@ type measurement struct {
 	ts     time.Time
 }
 
-func (m *measurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *measurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 func (m *measurement) Info() *inputs.MeasurementInfo {
@@ -32,8 +32,8 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 
 type SolrRequestTimes measurement
 
-func (m *SolrRequestTimes) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *SolrRequestTimes) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -70,8 +70,8 @@ func (m *SolrRequestTimes) Info() *inputs.MeasurementInfo {
 
 type SolrCache measurement
 
-func (m *SolrCache) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *SolrCache) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -108,8 +108,8 @@ func (m *SolrCache) Info() *inputs.MeasurementInfo {
 
 type SolrSearcher measurement
 
-func (m *SolrSearcher) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *SolrSearcher) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 func (m *SolrSearcher) Info() *inputs.MeasurementInfo {
@@ -178,7 +178,7 @@ func newFieldInfoMiB(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
-		Unit:     inputs.SizeMiB,
+		Unit:     inputs.SizeMB,
 		Desc:     desc,
 	}
 }

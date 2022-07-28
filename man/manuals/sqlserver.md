@@ -1,13 +1,13 @@
 {{.CSS}}
+# SQLServer
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
-
-
-# {{.InputName}}
+- 操作系统支持：{{.AvailableArchs}}
 
 SQL Server 采集器采集 SQL Server `waitstats`、`database_io` 等相关指标
+
+![](imgs/input-sqlserver-1.png)
 
 ## 前置条件
 
@@ -48,6 +48,10 @@ GO
 
 配置好后，重启 DataKit 即可。
 
+## 指标预览
+
+![](imgs/input-sqlserver-2.png)
+
 ## 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
@@ -85,14 +89,14 @@ GO
         files = ["/var/opt/mssql/log/error.log"]
 ```
 
-  
+
 开启日志采集以后，默认会产生日志来源（`source`）为 `sqlserver` 的日志。
 
 >注意：必须将 DataKit 安装在 SQL Server 所在主机才能采集 SQL Server 日志
 
 ## 日志 pipeline 功能切割字段说明
 
-- SQL Server 通用日志切割 
+- SQL Server 通用日志切割
 
 通用日志文本示例：
 ```
@@ -107,4 +111,3 @@ GO
 | time   | 1622169967780000000 | 纳秒时间戳（作为行协议时间）                 |
 | origin | spid10s             | 源                                           |
 | status | info                | 由于日志没有明确字段说明日志等级，默认为info |
-

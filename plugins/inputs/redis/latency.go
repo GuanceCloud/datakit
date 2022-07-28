@@ -8,9 +8,8 @@ package redis
 import (
 	"context"
 	"strings"
-	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -18,17 +17,17 @@ type latencyMeasurement struct {
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
-	ts      time.Time
 	resData map[string]interface{}
 }
 
-func (m *latencyMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *latencyMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 func (m *latencyMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_latency",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"event_name": &inputs.FieldInfo{
 				DataType: inputs.Int,

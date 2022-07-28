@@ -71,7 +71,7 @@ func (x *eventServiceCollectClient) CloseAndRecv() (*Commands, error) {
 
 // EventServiceServer is the server API for EventService service.
 // All implementations must embed UnimplementedEventServiceServer
-// for forward compatibility
+// for forward compatibility.
 type EventServiceServer interface {
 	// When reporting an event, you typically call the collect function twice, one
 	// for starting of the event and the other one for ending of the event, with

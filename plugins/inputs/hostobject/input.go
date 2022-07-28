@@ -18,18 +18,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
 	_ inputs.ReadEnv = (*Input)(nil)
-
-	l = logger.DefaultSLogger(InputName)
-
-	ptsOpt = &io.PointOption{
-		Category:         datakit.Object,
-		MaxFieldValueLen: 1024 * 1024,
-	}
+	l                = logger.DefaultSLogger(InputName)
 )
 
 type Input struct {
@@ -187,8 +182,8 @@ func (hm *hostMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (hm *hostMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(hm.name, hm.tags, hm.fields, ptsOpt)
+func (hm *hostMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(hm.name, hm.tags, hm.fields, point.OOpt())
 }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
@@ -198,7 +193,7 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (ipt *Input) doCollect() error {
@@ -264,21 +259,21 @@ func (ipt *Input) doCollect() error {
 	return nil
 }
 
-func (ipt *Input) Collect() (map[string][]*io.Point, error) {
+func (ipt *Input) Collect() (map[string][]*point.Point, error) {
 	ipt.isTestMode = true
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	if err := ipt.doCollect(); err != nil {
 		return nil, err
 	}
 
-	var pts []*io.Point
+	var pts []*point.Point
 	if pt, err := ipt.collectData.LineProto(); err != nil {
 		return nil, err
 	} else {
 		pts = append(pts, pt)
 	}
 
-	mpts := make(map[string][]*io.Point)
+	mpts := make(map[string][]*point.Point)
 	mpts[datakit.Object] = pts
 
 	return mpts, nil

@@ -11,6 +11,7 @@ import (
 
 	client "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 //----------------------------------------------------------------------
@@ -37,7 +38,12 @@ type SinkInfo struct {
 type ISink interface {
 	GetInfo() *SinkInfo
 	LoadConfig(mConf map[string]interface{}) error
-	Write(pts []ISinkPoint) error
+	Write(pts []*point.Point) (*Failed, error)
+}
+
+type Failed struct {
+	Ranges  [][2]int // failed parts
+	Indexes []int    // failed index
 }
 
 type SinkUnsupportError struct {

@@ -10,7 +10,7 @@ import (
 	"context"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -56,13 +56,13 @@ const (
 	defaultTraceID = "00000000000000000000000000000000"
 )
 
-func pointToTrace(pts []sinkcommon.ISinkPoint) (roSpans []tracesdk.ReadOnlySpan) {
+func pointToTrace(pts []*point.Point) (roSpans []tracesdk.ReadOnlySpan) {
 	if len(pts) == 0 {
 		return nil
 	}
 	spans := tracetest.SpanStubs{}
-	for _, point := range pts {
-		pointJSON, err := point.ToJSON()
+	for _, pt := range pts {
+		pointJSON, err := pt.ToJSON()
 		if err != nil {
 			continue
 		}
