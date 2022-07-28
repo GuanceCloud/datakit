@@ -1,12 +1,13 @@
 {{.CSS}}
+# Net
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
+- 操作系统支持：{{.AvailableArchs}}
 
 net 采集器用于采集主机网络信息，如各网络接口的流量信息等。对于 Linux 将采集系统范围 TCP 和 UDP 统计信息。
+
+![](imgs/input-net-01.png)
 
 ## 前置条件
 
@@ -29,8 +30,12 @@ net 采集器用于采集主机网络信息，如各网络接口的流量信息�
 | `ENV_INPUT_NET_IGNORE_PROTOCOL_STATS`     | `ignore_protocol_stats`     | `true`/`false`                                               |
 | `ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES` | `enable_virtual_interfaces` | `true`/`false`                                               |
 | `ENV_INPUT_NET_TAGS`                      | `tags`                      | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-| `ENV_INPUT_NET_INTERVAL` | `interval` | `10s` |
-| `ENV_INPUT_NET_INTERFACES` | `interfaces` | `'''eth[\w-]+''', '''lo'''` 以英文逗号隔开 |
+| `ENV_INPUT_NET_INTERVAL`                  | `interval`                  | `10s`                                                        |
+| `ENV_INPUT_NET_INTERFACES`                | `interfaces`                | `'''eth[\w-]+''', '''lo'''` 以英文逗号隔开                   |
+
+## 指标预览
+
+![](imgs/input-net-02.png)
 
 ## 指标集
 
@@ -57,6 +62,14 @@ net 采集器用于采集主机网络信息，如各网络接口的流量信息�
 
 {{ end }}
 
+## 场景视图
+
+<场景 - 新建仪表板 - 内置模板库 - Net>
+
+## 异常检测
+
+<监控 - 模板新建 - 主机检测库>
+
 ## 延伸阅读
 
-- [eBPF 数据采集](ebpf)
+- [eBPF 数据采集](ebpf.md)

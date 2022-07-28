@@ -66,7 +66,7 @@ func Addkey(ng *parser.EngineData, node parser.Node) interface{} {
 	}
 
 	if err := ng.SetContent(key, val); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 

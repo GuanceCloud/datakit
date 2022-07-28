@@ -88,7 +88,7 @@ func (c *profileTaskClient) ReportTaskFinish(ctx context.Context, in *ProfileTas
 
 // ProfileTaskServer is the server API for ProfileTask service.
 // All implementations must embed UnimplementedProfileTaskServer
-// for forward compatibility
+// for forward compatibility.
 type ProfileTaskServer interface {
 	// query all sniffer need to execute profile task commands
 	GetProfileTaskCommands(context.Context, *ProfileTaskCommandQuery) (*Commands, error)

@@ -72,6 +72,12 @@ type Input struct { // keep compatible with old version's conf
 	DatacenterDeprecated string `toml:"datacenter,omitempty"`
 }
 
+var _ inputs.InputV2 = (*Input)(nil)
+
+func (*Input) Terminate() {
+	// do nothing
+}
+
 func (ipt *Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
 		inputName: {
@@ -92,7 +98,7 @@ func (*Input) Run() {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {

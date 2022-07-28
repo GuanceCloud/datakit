@@ -175,7 +175,7 @@ func tryLoadConfig() {
 
 	l = logger.SLogger("main")
 
-	l.Infof("datakit run ID: %s", cliutils.XID("dkrun_"))
+	l.Infof("datakit run ID: %s, version: %s", cliutils.XID("dkrun_"), datakit.Version)
 }
 
 func initPythonCore() error {
@@ -218,7 +218,7 @@ func doRun() error {
 
 	if config.Cfg.DataWay != nil {
 		if config.Cfg.EnableElection {
-			election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
+			election.Start(config.Cfg.ElectionNamespace, config.Cfg.Hostname, config.Cfg.DataWay)
 		}
 
 		if len(config.Cfg.DataWayCfg.URLs) == 1 {

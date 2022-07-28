@@ -10,8 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/apps/v1"
 )
@@ -70,7 +69,6 @@ func (r *replicaset) metric() (inputsMeas, error) {
 				"replicas_ready":         item.Status.ReadyReplicas,
 				"replicas":               item.Status.Replicas,
 			},
-			time: time.Now(),
 		}
 
 		for _, ref := range item.OwnerReferences {
@@ -89,7 +87,6 @@ func (r *replicaset) metric() (inputsMeas, error) {
 		met := &replicasetMetric{
 			tags:   map[string]string{"namespace": ns},
 			fields: map[string]interface{}{"count": c},
-			time:   time.Now(),
 		}
 		met.tags.append(r.extraTags)
 		res = append(res, met)
@@ -117,7 +114,6 @@ func (r *replicaset) object() (inputsMeas, error) {
 				"ready":     item.Status.ReadyReplicas,
 				"available": item.Status.AvailableReplicas,
 			},
-			time: time.Now(),
 		}
 
 		for _, ref := range item.OwnerReferences {
@@ -159,11 +155,10 @@ func (r *replicaset) count() (map[string]int, error) {
 type replicasetMetric struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (r *replicasetMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_replicaset", r.tags, r.fields, &io.PointOption{Time: r.time, Category: datakit.Metric})
+func (r *replicasetMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_replicaset", r.tags, r.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -190,11 +185,10 @@ func (*replicasetMetric) Info() *inputs.MeasurementInfo {
 type replicasetObject struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (r *replicasetObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_replica_sets", r.tags, r.fields, &io.PointOption{Time: r.time, Category: datakit.Object})
+func (r *replicasetObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_replica_sets", r.tags, r.fields, point.OOptElection())
 }
 
 //nolint:lll

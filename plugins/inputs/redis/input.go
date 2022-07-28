@@ -22,17 +22,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
-
 const (
 	maxInterval = 30 * time.Minute
 	minInterval = 15 * time.Second
 )
 
 var (
-	inputName   = "redis"
-	catalogName = "db"
-	l           = logger.DefaultSLogger("redis")
+	inputName                        = "redis"
+	catalogName                      = "db"
+	l                                = logger.DefaultSLogger("redis")
+	_           inputs.ElectionInput = (*Input)(nil)
 )
 
 type redislog struct {
@@ -79,6 +78,7 @@ type Input struct {
 
 	pause   bool
 	pauseCh chan bool
+	hashMap [][16]byte
 
 	semStop *cliutils.Sem // start stop signal
 }
@@ -168,6 +168,10 @@ func (i *Input) Collect() error {
 			}
 		}
 	}
+	if err := i.getSlowData(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -237,10 +241,6 @@ func (i *Input) collectCommandMeasurement() ([]inputs.Measurement, error) {
 	return i.parseCommandData(list)
 }
 
-func (i *Input) collectSlowlogMeasurement() ([]inputs.Measurement, error) {
-	return i.getSlowData()
-}
-
 func (i *Input) RunPipeline() {
 	if i.Log == nil || len(i.Log.Files) == 0 {
 		return
@@ -275,10 +275,6 @@ func (i *Input) RunPipeline() {
 func (i *Input) Run() {
 	l = logger.SLogger("redis")
 
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		i.Tags["election_namespace"] = namespace
-	}
-
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	tick := time.NewTicker(i.Interval.Duration)
@@ -300,12 +296,12 @@ func (i *Input) Run() {
 			break
 		}
 	}
+	i.hashMap = make([][16]byte, i.SlowlogMaxLen)
 
 	i.collectors = []func() ([]inputs.Measurement, error){
 		i.collectInfoMeasurement,
 		i.collectClientMeasurement,
 		i.collectCommandMeasurement,
-		i.collectSlowlogMeasurement,
 		i.collectDBMeasurement,
 		i.CollectLatencyMeasurement,
 		i.collectReplicaMeasurement,
@@ -371,7 +367,7 @@ func (*Input) Catalog() string { return catalogName }
 
 func (*Input) SampleConfig() string { return configSample }
 
-func (*Input) AvailableArchs() []string { return datakit.AllArch }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{

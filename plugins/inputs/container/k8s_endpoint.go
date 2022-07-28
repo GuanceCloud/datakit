@@ -8,10 +8,8 @@ package container
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/core/v1"
 )
@@ -65,7 +63,6 @@ func (e *endpoint) metric() (inputsMeas, error) {
 				"address_available": 0,
 				"address_not_ready": 0,
 			},
-			time: time.Now(),
 		}
 
 		var available, notReady int
@@ -86,7 +83,6 @@ func (e *endpoint) metric() (inputsMeas, error) {
 		met := &endpointMetric{
 			tags:   map[string]string{"namespace": ns},
 			fields: map[string]interface{}{"count": c},
-			time:   time.Now(),
 		}
 		met.tags.append(e.extraTags)
 		res = append(res, met)
@@ -115,11 +111,10 @@ func (e *endpoint) count() (map[string]int, error) {
 type endpointMetric struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (e *endpointMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_endpoint", e.tags, e.fields, &io.PointOption{Time: e.time, Category: datakit.Metric})
+func (e *endpointMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_endpoint", e.tags, e.fields, point.MOptElection())
 }
 
 //nolint:lll

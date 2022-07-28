@@ -54,12 +54,12 @@ func SQLCover(ng *parser.EngineData, node parser.Node) interface{} {
 
 	v, err := obfuscatedResource(o, Type, cont)
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 
 	if err := ng.SetContent(key, v); err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return nil
 	}
 
@@ -72,7 +72,7 @@ func obfuscatedResource(o *obfuscate.Obfuscator, typ, resource string) (string, 
 	}
 	oq, err := o.ObfuscateSQLString(resource)
 	if err != nil {
-		l.Errorf("Error obfuscating stats group resource %q: %w", resource, err)
+		err = fmt.Errorf("error obfuscating stats group resource %q: %w", resource, err)
 		return "", err
 	}
 	return oq.Query, nil

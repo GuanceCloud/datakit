@@ -1,10 +1,9 @@
 {{.CSS}}
+Nginx
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
+- 操作系统支持：{{.AvailableArchs}}
 
 NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数连接数、缓存等多种指标，并将指标采集到观测云 ，帮助监控分析 NGINX 各种异常情况。
 
@@ -12,9 +11,9 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
 - NGINX 版本 >= 1.19.6
 
-- NGINX 默认采集 `http_stub_status_module` 模块的数据，开启 `http_stub_status_module` 模块参见[这里](http://nginx.org/en/docs/http/ngx_http_stub_status_module.html)，开启了以后会上报 NGINX 指标集的数据
+- NGINX 默认采集 `http_stub_status_module` 模块的数据，开启 `http_stub_status_module` 模块参见[这里](http://nginx.org/en/docs/http/ngx_http_stub_status_module.html){:target="_blank"}，开启了以后会上报 NGINX 指标集的数据
 
-- 如果您正在使用 [VTS](https://github.com/vozlt/nginx-module-vts) 或者想监控更多数据，建议开启 VTS 相关数据采集，可在 `{{.InputName}}.conf` 中将选项 `use_vts` 设置为 `true`。如何开启 VTS 参见[这里](https://github.com/vozlt/nginx-module-vts#synopsis)。
+- 如果您正在使用 [VTS](https://github.com/vozlt/nginx-module-vts){:target="_blank"} 或者想监控更多数据，建议开启 VTS 相关数据采集，可在 `{{.InputName}}.conf` 中将选项 `use_vts` 设置为 `true`。如何开启 VTS 参见[这里](https://github.com/vozlt/nginx-module-vts#synopsis){:target="_blank"}。
 
 - 开启 VTS 功能后，能产生如下指标集：
 
@@ -77,7 +76,7 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} 
+{{ end }}
 
 
 ## 日志采集
@@ -108,17 +107,17 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
 切割后的字段列表如下：
 
-| 字段名  |  字段值  | 说明 |
-| ---    | ---     | --- |
-|  status   | error     | 日志等级(alert转成了error) |
-|  client_ip   | 120.204.196.129     | client ip地址 |
-|  server   | localhost     | server 地址 |
-|  http_method   | GET     | http 请求方式 |
-|  http_url   | /     | http 请求url |
-|  http_version   | 1.1     | http version |
-|  ip_or_host   | 47.98.103.73     | 请求方ip或者host |
-|  msg   | 7#7: *168 write()...host: \"47.98.103.73     | 日志内容 |
-|  time   | 1618968244000000000     | 纳秒时间戳（作为行协议时间）|
+| 字段名       | 字段值                                   | 说明                         |
+| ---          | ---                                      | ---                          |
+| status       | error                                    | 日志等级(alert转成了error)   |
+| client_ip    | 120.204.196.129                          | client ip地址                |
+| server       | localhost                                | server 地址                  |
+| http_method  | GET                                      | http 请求方式                |
+| http_url     | /                                        | http 请求url                 |
+| http_version | 1.1                                      | http version                 |
+| ip_or_host   | 47.98.103.73                             | 请求方ip或者host             |
+| msg          | 7#7: *168 write()...host: \"47.98.103.73 | 日志内容                     |
+| time         | 1618968244000000000                      | 纳秒时间戳（作为行协议时间） |
 
 错误日志文本示例：
 
@@ -128,11 +127,11 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
 切割后的字段列表如下：
 
-| 字段名  |  字段值  | 说明 |
-| ---    | ---     | --- |
-|  status   | error     | 日志等级(emerg转成了error) |
-|  msg   | 50102#0: unexpected \";\" in /usr/local/etc/nginx/nginx.conf:23    | 日志内容 |
-|  time   | 1619684678000000000     | 纳秒时间戳（作为行协议时间）|
+| 字段名 | 字段值                                                          | 说明                         |
+| ---    | ---                                                             | ---                          |
+| status | error                                                           | 日志等级(emerg转成了error)   |
+| msg    | 50102#0: unexpected \";\" in /usr/local/etc/nginx/nginx.conf:23 | 日志内容                     |
+| time   | 1619684678000000000                                             | 纳秒时间戳（作为行协议时间） |
 
 - NGINX 访问日志切割
 
@@ -143,19 +142,18 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
 切割后的字段列表如下：
 
-| 字段名  |  字段值  | 说明 |
-| ---    | ---     | --- |
-|  client_ip   | 127.0.0.1     | 日志等级(emerg转成了error) |
-|  status   | ok    | 日志等级 |
-|  status_code   | 200    | http code |
-|  http_method   | GET     | http 请求方式 |
-|  http_url   | /basic_status     | http 请求url |
-|  http_version   | 1.1     | http version |
-|  agent   | Mozilla/5.0... Safari/537.36     | User-Agent |
-|  browser   |   Chrome   | 浏览器 |
-|  browserVer   |   89.0.4389.72   | 浏览器版本 |
-|  isMobile   |   false   | 是否手机 |
-|  engine   |   AppleWebKit   | 引擎 |
-|  os   |   Intel Mac OS X 11_1_0   | 系统 |
-|  time   | 1619243659000000000     | 纳秒时间戳（作为行协议时间）|
-
+| 字段名       | 字段值                       | 说明                         |
+| ---          | ---                          | ---                          |
+| client_ip    | 127.0.0.1                    | 日志等级(emerg转成了error)   |
+| status       | ok                           | 日志等级                     |
+| status_code  | 200                          | http code                    |
+| http_method  | GET                          | http 请求方式                |
+| http_url     | /basic_status                | http 请求url                 |
+| http_version | 1.1                          | http version                 |
+| agent        | Mozilla/5.0... Safari/537.36 | User-Agent                   |
+| browser      | Chrome                       | 浏览器                       |
+| browserVer   | 89.0.4389.72                 | 浏览器版本                   |
+| isMobile     | false                        | 是否手机                     |
+| engine       | AppleWebKit                  | 引擎                         |
+| os           | Intel Mac OS X 11_1_0        | 系统                         |
+| time         | 1619243659000000000          | 纳秒时间戳（作为行协议时间） |

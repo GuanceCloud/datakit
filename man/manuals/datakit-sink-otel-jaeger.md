@@ -1,4 +1,5 @@
-# OpenTelemetry and Jaeger Sink
+# OpenTelemetry/Jaeger
+---
 
 OpenTelemetry(OTEL) 提供了多种 Export 将链路数据发送到多个采集终端中，例如：Jaeger、otlp、zipkin、prometheus。
 

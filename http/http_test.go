@@ -3,6 +3,9 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//go:build !windows
+// +build !windows
+
 package http
 
 import (
@@ -10,11 +13,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync"
+	"syscall"
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/influxdata/influxdb1-client/models"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
@@ -212,20 +219,16 @@ func TestApiGetDatakitLastError(t *testing.T) {
 }
 
 func TestCORS(t *testing.T) {
-	srv := &http.Server{
-		Addr:    "localhost:12345",
-		Handler: setupRouter(),
-	}
+	router := setupRouter()
 
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			t.Log(err)
-		}
-	}()
+	router.POST("/timeout", func(c *gin.Context) {})
+
+	ts := httptest.NewServer(router)
+	defer ts.Close()
 
 	time.Sleep(time.Second)
 
-	req, err := http.NewRequest("POST", "http://localhost:12345/some-404-page", nil)
+	req, err := http.NewRequest("POST", ts.URL+"/some-404-page", nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -243,5 +246,204 @@ func TestCORS(t *testing.T) {
 
 	// See: https://stackoverflow.com/a/12179364/342348
 	got := resp.Header.Get("Access-Control-Allow-Origin")
-	tu.Assert(t, origin == got, "expect %s, got %s", got)
+	tu.Assert(t, origin == got, "expect %s, got '%s'", origin, got)
+}
+
+func TestTimeout(t *testing.T) {
+	apiConfig.timeoutDuration = 100 * time.Millisecond
+
+	router := gin.New()
+	router.Use(dkHTTPTimeout())
+
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	router.POST("/timeout", func(c *gin.Context) {
+		x := c.Query("x")
+		du, err := time.ParseDuration(x)
+		if err != nil {
+			du = 10 * time.Millisecond
+		}
+
+		time.Sleep(du)
+		c.Status(http.StatusOK)
+	})
+
+	cases := []struct {
+		name             string
+		timeout          time.Duration
+		expectStatusCode int
+	}{
+		{
+			name:             "timeout",
+			timeout:          105 * time.Millisecond,
+			expectStatusCode: http.StatusRequestTimeout,
+		},
+
+		{
+			name:             "ok",
+			timeout:          10 * time.Millisecond,
+			expectStatusCode: http.StatusOK,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req, err := http.NewRequest("POST", fmt.Sprintf("%s/timeout?x=%s", ts.URL, tc.timeout), nil)
+			if err != nil {
+				t.Errorf("http.NewRequest: %s", err)
+				return
+			}
+
+			cli := http.Client{}
+			resp, err := cli.Do(req)
+			if err != nil {
+				t.Errorf("cli.Do: %s", err)
+				return
+			}
+
+			tu.Equals(t, tc.expectStatusCode, resp.StatusCode)
+
+			defer resp.Body.Close()
+
+			respBody, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				t.Errorf("cli.Do: %s", err)
+				return
+			}
+
+			t.Logf("body: %s", string(respBody))
+		})
+	}
+}
+
+func setulimit() {
+	var rLimit syscall.Rlimit
+	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		fmt.Println("Error Getting Rlimit ", err)
+	}
+	fmt.Println(rLimit)
+	rLimit.Max = 999999
+	rLimit.Cur = 999999
+	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		fmt.Println("Error Setting Rlimit ", err)
+	}
+	err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		fmt.Println("Error Getting Rlimit ", err)
+	}
+}
+
+func TestTimeoutOnConcurrentIdleTCPConnection(t *testing.T) {
+	setulimit()
+	router := gin.New()
+
+	idleSec := time.Duration(1)
+
+	ts := httptest.NewUnstartedServer(router)
+	ts.Config.ReadTimeout = idleSec * time.Second //nolint:durationcheck
+	ts.Start()
+	defer ts.Close()
+
+	router.POST("/", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	tcpserver := ts.Listener.Addr().String()
+	tcpAddr, err := net.ResolveTCPAddr("tcp", tcpserver)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("server: %s", tcpserver)
+
+	n := 4096
+	wg := &sync.WaitGroup{}
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// start tcp client connect to HTTP server
+			conn, err := net.DialTCP("tcp", nil, tcpAddr)
+			if err != nil {
+				t.Logf("Dial %s failed: %s", tcpserver, err.Error())
+				return
+			}
+
+			defer conn.Close() //nolint:errcheck
+
+			// idle and timeout
+			time.Sleep((idleSec + 3) * time.Second) //nolint:durationcheck
+
+			closed := false
+
+			for {
+				_, err := conn.Write([]byte(`POST /timeout?x=101ms HTTP/1.1
+Host: stackoverflow.com
+
+nothing`))
+				if err != nil {
+					closed = true
+					break
+				}
+				time.Sleep(time.Second)
+			}
+
+			tu.Assert(t, closed, "expect closed, but not")
+		}()
+	}
+
+	wg.Wait()
+}
+
+//nolint:durationcheck
+func TestTimeoutOnIdleTCPConnection(t *testing.T) {
+	router := gin.New()
+
+	idleSec := time.Duration(3)
+
+	ts := httptest.NewUnstartedServer(router)
+	ts.Config.ReadTimeout = idleSec * time.Second
+	ts.Start()
+	defer ts.Close()
+
+	router.POST("/", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	tcpserver := ts.Listener.Addr().String()
+	tcpAddr, err := net.ResolveTCPAddr("tcp", tcpserver)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("server: %s", tcpserver)
+
+	// start tcp client connect to HTTP server
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		t.Errorf("Dial %s failed: %s", tcpserver, err.Error())
+	}
+
+	time.Sleep((idleSec + 1) * time.Second) // idle and timeout
+
+	closed := false
+
+	for {
+		n, err := conn.Write([]byte(`POST /timeout?x=101ms HTTP/1.1
+Host: stackoverflow.com
+
+nothing`))
+
+		if err != nil {
+			t.Logf("send %d bytes failed: %s", n, err)
+			closed = true
+			break
+		} else {
+			t.Logf("send %d bytes ok", n)
+		}
+		time.Sleep(time.Second)
+	}
+
+	tu.Assert(t, closed, "expect closed, but not")
 }

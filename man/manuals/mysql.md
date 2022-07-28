@@ -1,10 +1,10 @@
 {{.CSS}}
+# MySQL
+
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
+- 操作系统支持：{{.AvailableArchs}}
 
 MySQL 指标采集，收集以下数据：
 
@@ -12,6 +12,9 @@ MySQL 指标采集，收集以下数据：
 - Scheam 相关数据
 - InnoDB 相关指标
 - 支持自定义查询数据采集
+
+![](imgs/input-mysql-1.png)
+![](imgs/input-mysql-2.png)
 
 ## 前置条件
 
@@ -71,13 +74,11 @@ Error 1045: Access denied for user 'datakit'@'::1' (using password: YES)
 SHOW VARIABLES LIKE 'log_bin';
 ```
 
-binlog 开启，参见[这个问答](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging)，或者[这个问答](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu)
+binlog 开启，参见[这个问答](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging){:target="_blank"}，或者[这个问答](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu){:target="_blank"}
 
 ### 数据库性能指标采集
 
-数据库性能指标来源于 MySQL 的内置数据库 `performance_schema`, 该数据库提供了一个能够在运行时获取服务器内部执行情况的方法。通过该数据库，DataKit 能够采集历史查询语句的各种指标统计和查询语句的执行计划，以及其他相关性能指标。
-
-**配置**
+数据库性能指标来源于 MySQL 的内置数据库 `performance_schema`, 该数据库提供了一个能够在运行时获取服务器内部执行情况的方法。通过该数据库，DataKit 能够采集历史查询语句的各种指标统计和查询语句的执行计划，以及其他相关性能指标。采集的性能指标数据保存为日志，source 分别为 `mysql_dbm_metric` 和 `mysql_dbm_sample`。
 
 如需开启，需要执行以下步骤。
 
@@ -86,18 +87,18 @@ binlog 开启，参见[这个问答](https://stackoverflow.com/questions/4068238
 ```toml
 [[inputs.mysql]]
 
-## 开启数据库性能指标采集
+#### 开启数据库性能指标采集
 dbm = true
 
 ...
 
-## 监控指标配置
+#### 监控指标配置
 [inputs.mysql.dbm_metric]
   enabled = true
-  
-## 监控采样配置
+
+#### 监控采样配置
 [inputs.mysql.dbm_sample]
-  enabled = true  
+  enabled = true
 ...
 
 ```
@@ -106,7 +107,7 @@ dbm = true
 
 修改配置文件(如`mysql.conf`)，开启 `MySQL Performance Schema`， 并配置相关参数：
 
-```
+```toml
 [mysqld]
 performance_schema = on
 max_digest_length = 4096
@@ -122,14 +123,20 @@ performance-schema-consumer-events-statements-history = on
 
 账号授权
 
-```
+```sql
+-- 	MySQL 5.6 & 5.7
 GRANT REPLICATION CLIENT ON *.* TO datakit@'%' WITH MAX_USER_CONNECTIONS 5;
+GRANT PROCESS ON *.* TO datakit@'%';
+
+-- MySQL >= 8.0
+ALTER USER datakit@'%' WITH MAX_USER_CONNECTIONS 5;
+GRANT REPLICATION CLIENT ON *.* TO datakit@'%';
 GRANT PROCESS ON *.* TO datakit@'%';
 ```
 
 创建数据库
 
-```
+```sql
 CREATE SCHEMA IF NOT EXISTS datakit;
 GRANT EXECUTE ON datakit.* to datakit@'%';
 GRANT CREATE TEMPORARY TABLES ON datakit.* TO datakit@'%';
@@ -137,7 +144,7 @@ GRANT CREATE TEMPORARY TABLES ON datakit.* TO datakit@'%';
 
 创建存储过程 `explain_statement`，用于获取 sql 执行计划
 
-```
+```sql
 DELIMITER $$
 CREATE PROCEDURE datakit.explain_statement(IN query TEXT)
     SQL SECURITY DEFINER
@@ -152,7 +159,7 @@ DELIMITER ;
 
 为需要采集执行计划的数据库单独创建存储过程（可选）
 
-```
+```sql
 DELIMITER $$
 CREATE PROCEDURE <数据库名称>.explain_statement(IN query TEXT)
     SQL SECURITY DEFINER
@@ -170,7 +177,7 @@ GRANT EXECUTE ON PROCEDURE <数据库名称>.explain_statement TO datakit@'%';
 
 方法一（推荐）：通过 `DataKit` 动态配置 `performance_schema.events_statements_*`，需要创建以下存储过程：
 
-```
+```sql
 DELIMITER $$
 CREATE PROCEDURE datakit.enable_events_statements_consumers()
     SQL SECURITY DEFINER
@@ -184,21 +191,25 @@ GRANT EXECUTE ON PROCEDURE datakit.enable_events_statements_consumers TO datakit
 
 方法二：手动配置 `consumers`
 
-```
+```sql
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%';
 ```
 
-**采集的指标**
+## 指标预览
 
-性能指标根据`service`划分为两类，即`mysql_dbm_metric`和`mysql_dbm_sample`，存储在【日志】中，具体介绍见后续指标列表部分。
+![](imgs/input-mysql-3.png)
 
-## 指标
+## 日志预览
+
+![](imgs/input-mysql-4.png)
+
+### 指标 {#metric}
 
 {{ range $i, $m := .Measurements }}
 
-{{if or (eq $m.Type "metric") (eq $m.Type "")}}
+{{if eq $m.Type "metric"}}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -206,14 +217,37 @@ UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'eve
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
 
 {{ end }}
 
-## 日志
+### 日志 {#logging}
+
+[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+#### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 字段列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## MySQL 运行日志 {#mysql-logging}
 
 如需采集 MySQL 的日志，将配置中 log 相关的配置打开，如需要开启 MySQL 慢查询日志，需要开启慢查询日志，在 MySQL 中执行以下语句
 
@@ -224,7 +258,7 @@ SET GLOBAL slow_query_log = 'ON';
 set global log_queries_not_using_indexes = 'ON';
 ```
 
-```python
+```toml
 [inputs.mysql.log]
     # 填入绝对路径
     files = ["/var/log/mysql/*.log"]
@@ -234,7 +268,7 @@ set global log_queries_not_using_indexes = 'ON';
 
 MySQL 日志分为普通日志和慢日志两种。
 
-### MySQL 普通日志
+### MySQL 普通日志 {#mysql-app-logging}
 
 日志原文：
 
@@ -250,7 +284,7 @@ MySQL 日志分为普通日志和慢日志两种。
 | `msg`    | `System table 'plugin' is expected to be transactional.` | 日志内容                     |
 | `time`   | `1514520249954078000`                                    | 纳秒时间戳（作为行协议时间） |
 
-### MySQL 慢查询日志
+### MySQL 慢查询日志 {#mysql-slow-logging}
 
 日志原文：
 
@@ -267,7 +301,7 @@ SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5
 切割后的字段列表如下：
 
 | 字段名              | 字段值                                                                                      | 说明                           |
-| ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------ |
+| ---                 | ---                                                                                         | ---                            |
 | `bytes_sent`        | `123456`                                                                                    | 发送字节数                     |
 | `db_host`           | `localhost`                                                                                 | hostname                       |
 | `db_ip`             | `1.2.3.4`                                                                                   | ip                             |
@@ -280,3 +314,11 @@ SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5
 | `rows_sent`         | `248832`                                                                                    | 查询返回的行数                 |
 | `thread_id`         | `55`                                                                                        | 线程 id                        |
 | `time`              | `1514520249954078000`                                                                       | 纳秒时间戳（作为行协议时间）   |
+
+## 场景视图
+
+<场景 - 新建场景 - MySQL 监控场景>
+
+## 异常检测
+
+<异常检测库 - 新建检测库 - MySQL 检测库>

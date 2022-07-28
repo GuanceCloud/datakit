@@ -1,10 +1,9 @@
 {{.CSS}}
+# 通过 DQL 查询数据
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# DataKit DQL 查询
 
 DataKit 支持以交互式方式执行 DQL 查询，在交互模式下，DataKit 自带语句补全功能：
 
@@ -14,7 +13,7 @@ DataKit 支持以交互式方式执行 DQL 查询，在交互模式下，DataKit
 datakit dql      # 或者 datakit -Q
 ```
 
-![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-dql-gif.gif) 
+![](imgs/dk-dql-gif.gif) 
 
 Tips：
 

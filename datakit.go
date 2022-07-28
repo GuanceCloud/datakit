@@ -52,6 +52,8 @@ const (
 	Tracing          = "/v1/write/tracing"
 	RUM              = "/v1/write/rum"
 	Security         = "/v1/write/security"
+	Profile          = "/v1/write/profiling"  // write profile metadata.
+	ProfileUpload    = "/v1/upload/profiling" // upload profile binary.
 
 	// data category pure name.
 	CategoryMetric       = "metric"
@@ -63,6 +65,7 @@ const (
 	CategoryTracing      = "tracing"
 	CategoryRUM          = "rum"
 	CategorySecurity     = "security"
+	CategoryProfile      = "profiling"
 
 	// other APIS.
 	HeartBeat         = "/v1/write/heartbeat"
@@ -131,11 +134,10 @@ var (
 		OSArchDarwinAmd64: `/usr/local/datakit`,
 	}
 
-	AllOS   = []string{OSWindows, OSLinux, OSDarwin}
-	AllArch = []string{
-		OSArchWinAmd64, OSArchWin386, OSArchLinuxArm,
-		OSArchLinuxArm64, OSArchLinux386, OSArchLinuxAmd64, OSArchDarwinAmd64,
-	}
+	OSLabelLinux   = ":fontawesome-brands-linux:"
+	OSLabelWindows = ":fontawesome-brands-windows:"
+	OSLabelMac     = ":fontawesome-brands-apple:"
+	AllOS          = []string{OSLabelLinux, OSLabelWindows, OSLabelMac}
 
 	UnknownOS   = []string{"unknown"}
 	UnknownArch = []string{"unknown"}
@@ -163,6 +165,20 @@ var (
 	CacheDir           = filepath.Join(InstallDir, "cache")
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
+
+	CategoryMap = map[string]string{
+		MetricDeprecated: "M",
+		Metric:           "M",
+		Network:          "N",
+		KeyEvent:         "E",
+		Object:           "O",
+		Logging:          "L",
+		Tracing:          "T",
+		RUM:              "R",
+		Security:         "S",
+		CustomObject:     "CO",
+		Profile:          "P",
+	}
 )
 
 func CategoryList() (map[string]struct{}, map[string]struct{}) {
@@ -176,6 +192,7 @@ func CategoryList() (map[string]struct{}, map[string]struct{}) {
 			Tracing:      {},
 			RUM:          {},
 			Security:     {},
+			Profile:      {},
 		}, map[string]struct{}{
 			MetricDeprecated: {},
 		}
@@ -192,6 +209,7 @@ func CategoryDirName() map[string]string {
 		Tracing:      "tracing",
 		RUM:          "rum",
 		Security:     "security",
+		Profile:      "profiling",
 	}
 }
 

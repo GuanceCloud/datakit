@@ -138,28 +138,28 @@ func Group(ng *parser.EngineData, node parser.Node) interface{} {
 		case *parser.NumberLiteral:
 			if v.IsInt {
 				if err := ng.SetContent(newkey, v.Int); err != nil {
-					l.Warn(err)
+					l.Debug(err)
 					return nil
 				}
 			} else {
 				if err := ng.SetContent(newkey, v.Float); err != nil {
-					l.Warn(err)
+					l.Debug(err)
 					return nil
 				}
 			}
 		case *parser.StringLiteral:
 			if err := ng.SetContent(newkey, v.Val); err != nil {
-				l.Warn(err)
+				l.Debug(err)
 				return nil
 			}
 		case *parser.BoolLiteral:
 			if err := ng.SetContent(newkey, v.Val); err != nil {
-				l.Warn(err)
+				l.Debug(err)
 				return nil
 			}
 
 		default:
-			l.Errorf("unknown group elements: %s", reflect.TypeOf(value).String())
+			l.Debugf("unknown group elements: %s", reflect.TypeOf(value).String())
 			return fmt.Errorf("unsupported group type")
 		}
 	}

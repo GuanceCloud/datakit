@@ -23,7 +23,10 @@ import (
 	"go.uber.org/atomic"
 )
 
-var _ inputs.ReadEnv = (*Input)(nil)
+var (
+	_ inputs.ReadEnv = (*Input)(nil)
+	l                = logger.DefaultSLogger(inputName)
+)
 
 const (
 	minInterval = time.Second
@@ -34,8 +37,6 @@ const (
 	inputName  = "cpu"
 	metricName = inputName
 )
-
-var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
 	TotalCPU                  bool `toml:"totalcpu"`                              // deprecated
@@ -82,7 +83,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (ipt *Input) Collect() error {

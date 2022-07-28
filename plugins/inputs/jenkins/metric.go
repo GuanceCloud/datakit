@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -43,7 +43,7 @@ type Metric struct {
 
 type jenkinsPipelineMeasurement struct{}
 
-func (j *jenkinsPipelineMeasurement) LineProto() (*io.Point, error) {
+func (j *jenkinsPipelineMeasurement) LineProto() (*point.Point, error) {
 	return nil, nil
 }
 
@@ -54,7 +54,7 @@ func (j *jenkinsPipelineMeasurement) Info() *inputs.MeasurementInfo {
 		Desc: "Jenkins Pipeline Event 相关指标",
 		Fields: map[string]interface{}{
 			"pipeline_id":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "pipeline id"},
-			"duration":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "pipeline 持续时长（秒）"},
+			"duration":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationUS, Desc: "pipeline 持续时长（us）"},
 			"commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "触发该 pipeline 的代码的最近一次提交附带的 message"},
 			"created_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "pipeline 创建的秒时间戳"},
 			"finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "pipeline 结束的秒时间戳"},
@@ -77,7 +77,7 @@ func (j *jenkinsPipelineMeasurement) Info() *inputs.MeasurementInfo {
 
 type jenkinsJobMeasurement struct{}
 
-func (j *jenkinsJobMeasurement) LineProto() (*io.Point, error) {
+func (j *jenkinsJobMeasurement) LineProto() (*point.Point, error) {
 	return nil, nil
 }
 
@@ -157,8 +157,8 @@ type Measurement struct {
 	ts     time.Time
 }
 
-func (m *Measurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *Measurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 //nolint:lll

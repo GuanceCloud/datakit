@@ -1,10 +1,9 @@
 {{.CSS}}
+# logstreaming
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
-
-# {{.InputName}}
 
 启动一个 HTTP Server，接收日志文本数据，上报到观测云。
 
@@ -22,7 +21,7 @@ HTTP URL 固定为：`/v1/write/logstreaming`，即 `http://Datakit_IP:PORT/v1/w
 
 配置好后，重启 DataKit 即可。
 
-### 支持参数
+### 支持参数 {#args}
 
 logstreaming 支持在 HTTP URL 中添加参数，对日志数据进行操作。参数列表如下：
 
@@ -40,10 +39,10 @@ logstreaming 支持在 HTTP URL 中添加参数，对日志数据进行操作。
 
 ### 使用方式
 
-- Fluentd 使用 Influxdb Output [文档](https://github.com/fangli/fluent-plugin-influxdb)
-- Fluentd 使用 HTTP Output [文档](https://docs.fluentd.org/output/http)
-- Logstash 使用 Influxdb Output [文档](https://www.elastic.co/guide/en/logstash/current/plugins-outputs-influxdb.html)
-- Logstash 使用 HTTP Output [文档](https://www.elastic.co/guide/en/logstash/current/plugins-outputs-http.html)
+- Fluentd 使用 Influxdb Output [文档](https://github.com/fangli/fluent-plugin-influxdb){:target="_blank"}
+- Fluentd 使用 HTTP Output [文档](https://docs.fluentd.org/output/http){:target="_blank"}
+- Logstash 使用 Influxdb Output [文档](https://www.elastic.co/guide/en/logstash/current/plugins-outputs-influxdb.html){:target="_blank"}
+- Logstash 使用 HTTP Output [文档](https://www.elastic.co/guide/en/logstash/current/plugins-outputs-http.html){:target="_blank"}
 
 只需要将 Output Host 配置为 logstreaming URL （`http://Datakit_IP:PORT/v1/write/logstreaming`）并添加对应参数即可。
 

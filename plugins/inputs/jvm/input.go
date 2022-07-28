@@ -147,7 +147,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func init() { //nolint:gochecknoinits

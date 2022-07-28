@@ -11,7 +11,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.4.2"
+  CI_VERSION: "1.4.9"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -21,6 +21,7 @@ stages:
 
 test-datakit-production:
   stage: test
+  resource_group: production
   only:
     - unstable
     - master
@@ -34,6 +35,7 @@ test-datakit-production:
 
 test-datakit-testing:
   stage: test
+  resource_group: production
   only:
     - testing
     - hotfix
@@ -48,6 +50,7 @@ test-datakit-testing:
 
 release-ebpf-testing:
   stage: deploy_ebpf
+  resource_group: production
   needs: [test-datakit-testing]
   image: vircoys/datakit-developer:1.4
   only:
@@ -62,6 +65,7 @@ release-ebpf-testing:
 
 release-ebpf-production:
   stage: deploy_ebpf
+  resource_group: production
   needs: [test-datakit-production]
   image: vircoys/datakit-developer:1.4
   only:
@@ -75,6 +79,7 @@ release-ebpf-production:
 
 release-testing:
   stage: deploy
+  resource_group: production
   needs: [test-datakit-testing, release-ebpf-testing]
   only:
     - testing
@@ -91,6 +96,7 @@ release-testing:
 
 release-stable:
   stage: deploy
+  resource_group: production
   needs: [test-datakit-production, release-ebpf-production]
   only:
     - master
@@ -106,6 +112,7 @@ release-stable:
 # for testing current issue, should delete after merge into master
 current-testing:
   stage: deploy
+  resource_group: production
   only:
     - /^xxx-.*$/
   script:

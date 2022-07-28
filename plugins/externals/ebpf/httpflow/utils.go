@@ -17,6 +17,7 @@ func SetK8sNetInfo(n *k8sinfo.K8sNetInfo) {
 	k8sNetInfo = n
 }
 
+//nolint:stylecheck
 const (
 	HTTP_METHOD_UNKNOWN = 0x00 + iota
 	HTTP_METHOD_GET
@@ -27,7 +28,7 @@ const (
 	HTTP_METHOD_OPTIONS
 	HTTP_METHOD_PATCH
 
-	// TODO 解析此类 HTTP 数据
+	// TODO 解析此类 HTTP 数据.
 	HTTP_METHOD_CONNECT
 	HTTP_METHOD_TRACE
 )
@@ -84,21 +85,24 @@ func FindHTTPURI(payload string) string {
 	}
 	uri := split[1]
 	startOffset := -1
-	if (len(uri) > 0) && (uri[:1] == "/") {
-		startOffset = 0
-	} else if len(uri) > 8 && (uri[:8] == "https://") {
+
+	switch {
+	case len(uri) > 8 && (uri[:8] == "https://"):
 		off := strings.Index(uri[8:], "/")
 		if off == -1 {
 			return "/"
 		}
 		startOffset = 8 + off
-	} else if len(uri) > 7 && (uri[:7] == "http://") {
+	case len(uri) > 7 && (uri[:7] == "http://"):
 		off := strings.Index(uri[7:], "/")
 		if off == -1 {
 			return "/"
 		}
 		startOffset = 7 + off
+	case (len(uri) > 0) && (uri[:1] == "/"):
+		startOffset = 0
 	}
+
 	if startOffset == -1 {
 		return ""
 	}

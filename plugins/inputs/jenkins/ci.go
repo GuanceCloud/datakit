@@ -9,10 +9,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type ciEventType byte
@@ -57,7 +57,7 @@ func (n *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		l.Errorf(err.Error())
 		return
 	}
-	var pts []*io.Point
+	var pts []*point.Point
 	for _, trace := range traces {
 		for _, span := range trace {
 			if !needStatus(span) {
@@ -93,7 +93,7 @@ func decodeTraces(req *http.Request) (ddTraces, error) {
 	return traces, nil
 }
 
-func (n *Input) getPoint(span *ddSpan) (*io.Point, error) {
+func (n *Input) getPoint(span *ddSpan) (*point.Point, error) {
 	switch typeOf(span) {
 	case pipeline:
 		return n.getPipelinePoint(span)
@@ -122,28 +122,18 @@ func typeOf(span *ddSpan) ciEventType {
 	}
 }
 
-func (n *Input) getPipelinePoint(span *ddSpan) (*io.Point, error) {
+func (n *Input) getPipelinePoint(span *ddSpan) (*point.Point, error) {
 	measurementName := "jenkins_pipeline"
 	tags := getPipelineTags(span)
 	n.putExtraTags(tags)
-	return io.NewPoint(measurementName, tags, getPipelineFields(span),
-		&io.PointOption{
-			Time:     time.Now(),
-			Category: datakit.Logging,
-			Strict:   true,
-		})
+	return point.NewPoint(measurementName, tags, getPipelineFields(span), point.LOptElection())
 }
 
-func (n *Input) getJobPoint(span *ddSpan) (*io.Point, error) {
+func (n *Input) getJobPoint(span *ddSpan) (*point.Point, error) {
 	measurementName := "jenkins_job"
 	tags := getJobTags(span)
 	n.putExtraTags(tags)
-	return io.NewPoint(measurementName, tags, getJobFields(span),
-		&io.PointOption{
-			Time:     time.Now(),
-			Category: datakit.Logging,
-			Strict:   true,
-		})
+	return point.NewPoint(measurementName, tags, getJobFields(span), point.LOptElection())
 }
 
 func getPipelineTags(span *ddSpan) map[string]string {
@@ -173,9 +163,9 @@ func getPipelineFields(span *ddSpan) map[string]interface{} {
 	putFieldIfExist(fields, span, "git.commit.message", "commit_message")
 	putFieldIfExist(fields, span, "ci.pipeline.id", "message")
 	putFieldIfExist(fields, span, "ci.pipeline.id", "pipeline_id")
-	fields["created_at"] = nsToS(span.Start)
-	fields["duration"] = nsToS(span.Duration)
-	fields["finished_at"] = nsToS(span.Start + span.Duration)
+	fields["created_at"] = nano2Micro(span.Start)
+	fields["duration"] = nano2Micro(span.Duration)
+	fields["finished_at"] = nano2Micro(span.Start + span.Duration)
 	return fields
 }
 
@@ -207,9 +197,9 @@ func getJobFields(span *ddSpan) map[string]interface{} {
 	putFieldIfExist(fields, span, "ci.job.name", "message")
 	putFieldIfExist(fields, span, "ci.pipeline.id", "pipeline_id")
 	putFieldIfExist(fields, span, "ci.node.name", "runner_id")
-	fields["build_started_at"] = nsToS(span.Start)
-	fields["build_duration"] = nsToS(span.Duration)
-	fields["build_finished_at"] = nsToS(span.Start + span.Duration)
+	fields["build_started_at"] = nano2Micro(span.Start)
+	fields["build_duration"] = nano2Micro(span.Duration)
+	fields["build_finished_at"] = nano2Micro(span.Start + span.Duration)
 	return fields
 }
 
@@ -225,8 +215,9 @@ func putFieldIfExist(fields map[string]interface{}, span *ddSpan, want, tagKey s
 	}
 }
 
-func nsToS(ns int64) int64 {
-	return ns / 1000000000
+// nano2Micro converts nanosecond to microsecond.
+func nano2Micro(ns int64) int64 {
+	return ns / 1000
 }
 
 func extractProjectName(projectURL string) string {

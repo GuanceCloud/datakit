@@ -21,16 +21,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
-	maxInterval   = 15 * time.Minute
-	minInterval   = 10 * time.Second
-	dbmMetricName = "database_performance"
-	strMariaDB    = "MariaDB"
+	maxInterval = 15 * time.Minute
+	minInterval = 10 * time.Second
+	strMariaDB  = "MariaDB"
 )
 
 var (
@@ -100,7 +100,7 @@ type Input struct {
 	// response   []map[string]interface{}
 	tail *tailer.Tailer
 	// collectors []func() ([]inputs.Measurement, error)
-	collectors []func() ([]*io.Point, error)
+	collectors []func() ([]*point.Point, error)
 
 	pause    bool
 	pauseCh  chan bool
@@ -259,13 +259,13 @@ func (i *Input) globalTag() {
 func (i *Input) q(s string) rows {
 	rows, err := i.db.Query(s)
 	if err != nil {
-		l.Errorf("query %s failed: %s, ignored", s, err.Error())
+		l.Errorf(`query failed, sql (%q), error: %s, ignored`, s, err.Error())
 		return nil
 	}
 
 	if err := rows.Err(); err != nil {
 		closeRows(rows)
-		l.Errorf("query %s failed: %s, ignored", s, err.Error())
+		l.Errorf(`query row failed, sql (%q), error: %s, ignored`, s, err.Error())
 		return nil
 	}
 
@@ -299,105 +299,105 @@ func (i *Input) initDBConnect() error {
 }
 
 // mysql.
-func (i *Input) metricCollectMysql() ([]*io.Point, error) {
+func (i *Input) metricCollectMysql() ([]*point.Point, error) {
 	if err := i.collectMysql(); err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := i.buildMysql()
 	if err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_schema.
-func (i *Input) metricCollectMysqlSchema() ([]*io.Point, error) {
+func (i *Input) metricCollectMysqlSchema() ([]*point.Point, error) {
 	if err := i.collectMysqlSchema(); err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := i.buildMysqlSchema()
 	if err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_table_schema.
-func (i *Input) metricCollectMysqlTableSschema() ([]*io.Point, error) {
+func (i *Input) metricCollectMysqlTableSschema() ([]*point.Point, error) {
 	if err := i.collectMysqlTableSchema(); err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := i.buildMysqlTableSchema()
 	if err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_user_status.
-func (i *Input) metricCollectMysqlUserStatus() ([]*io.Point, error) {
+func (i *Input) metricCollectMysqlUserStatus() ([]*point.Point, error) {
 	if err := i.collectMysqlUserStatus(); err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := i.buildMysqlUserStatus()
 	if err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_custom_queries.
-func (i *Input) metricCollectMysqlCustomQueries() ([]*io.Point, error) {
+func (i *Input) metricCollectMysqlCustomQueries() ([]*point.Point, error) {
 	if err := i.collectMysqlCustomQueries(); err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := i.buildMysqlCustomQueries()
 	if err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_innodb.
-func (i *Input) metricCollectMysqlInnodb() ([]*io.Point, error) {
+func (i *Input) metricCollectMysqlInnodb() ([]*point.Point, error) {
 	if err := i.collectMysqlInnodb(); err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := i.buildMysqlInnodb()
 	if err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_dbm_metric.
-func (i *Input) metricCollectMysqlDbmMetric() ([]*io.Point, error) {
+func (i *Input) metricCollectMysqlDbmMetric() ([]*point.Point, error) {
 	if err := i.collectMysqlDbmMetric(); err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := i.buildMysqlDbmMetric()
 	if err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_dbm_sample.
-func (i *Input) metricCollectMysqlDbmSample() ([]*io.Point, error) {
+func (i *Input) metricCollectMysqlDbmSample() ([]*point.Point, error) {
 	if err := i.collectMysqlDbmSample(); err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := i.buildMysqlDbmSample()
 	if err != nil {
-		return []*io.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
@@ -412,19 +412,13 @@ func (i *Input) handleLastError() {
 	}
 }
 
-func (i *Input) appendLastError(err error) {
-	if err != nil {
-		i.lastErrors = append(i.lastErrors, err.Error())
-	}
-}
-
-func (i *Input) Collect() (map[string][]*io.Point, error) {
+func (i *Input) Collect() (map[string][]*point.Point, error) {
 	if err := i.initDBConnect(); err != nil {
-		return map[string][]*io.Point{}, err
+		return map[string][]*point.Point{}, err
 	}
 
 	if len(i.collectors) == 0 {
-		i.collectors = []func() ([]*io.Point, error){
+		i.collectors = []func() ([]*point.Point, error){
 			i.metricCollectMysql,              // mysql
 			i.metricCollectMysqlSchema,        // mysql_schema
 			i.metricCollectMysqlTableSschema,  // mysql_table_schema
@@ -435,15 +429,14 @@ func (i *Input) Collect() (map[string][]*io.Point, error) {
 
 	i.start = time.Now()
 
-	var ptsMetric, ptsLoggingMetric, ptsLoggingSample []*io.Point
+	var ptsMetric, ptsLoggingMetric, ptsLoggingSample []*point.Point
 
 	for idx, f := range i.collectors {
 		l.Debugf("collecting %d(%v)...", idx, f)
 
 		pts, err := f()
 		if err != nil {
-			l.Errorf("collectors %v failed: %s", f, err.Error())
-			i.appendLastError(err)
+			l.Errorf("collect failed: %s", err.Error())
 		}
 
 		if len(pts) > 0 {
@@ -456,7 +449,6 @@ func (i *Input) Collect() (map[string][]*io.Point, error) {
 		pts, err := i.metricCollectMysqlInnodb()
 		if err != nil {
 			l.Errorf("metricCollectMysqlInnodb failed: %s", err.Error())
-			i.appendLastError(err)
 		}
 
 		if len(pts) > 0 {
@@ -472,7 +464,6 @@ func (i *Input) Collect() (map[string][]*io.Point, error) {
 				pts, err := i.metricCollectMysqlDbmMetric()
 				if err != nil {
 					l.Errorf("metricCollectMysqlDbmMetric failed: %s", err.Error())
-					i.appendLastError(err)
 				}
 
 				if len(pts) > 0 {
@@ -481,13 +472,13 @@ func (i *Input) Collect() (map[string][]*io.Point, error) {
 				return nil
 			})
 		}
+
 		if i.DbmSample.Enabled {
 			g.Go(func(ctx context.Context) error {
 				// mysql_dbm_sample
 				pts, err := i.metricCollectMysqlDbmSample()
 				if err != nil {
 					l.Errorf("metricCollectMysqlDbmSample failed: %s", err.Error())
-					i.appendLastError(err)
 				}
 
 				if len(pts) > 0 {
@@ -504,7 +495,7 @@ func (i *Input) Collect() (map[string][]*io.Point, error) {
 		}
 	} // if
 
-	mpts := make(map[string][]*io.Point)
+	mpts := make(map[string][]*point.Point)
 	mpts[datakit.Metric] = ptsMetric
 
 	ptsLoggingMetric = append(ptsLoggingMetric, ptsLoggingSample...) // two combine in one
@@ -522,11 +513,17 @@ func (i *Input) RunPipeline() {
 		i.Log.Pipeline = "mysql.p" // use default
 	}
 
+	tags := make(map[string]string)
+
+	for k, v := range i.Tags {
+		tags[k] = v
+	}
+
 	opt := &tailer.Option{
 		Source:            "mysql",
 		Service:           "mysql",
 		Pipeline:          i.Log.Pipeline,
-		GlobalTags:        i.Tags,
+		GlobalTags:        tags,
 		CharacterEncoding: i.Log.CharacterEncoding,
 		MultilineMatch:    i.Log.MultilineMatch,
 	}
@@ -548,14 +545,10 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		i.Tags["election_namespace"] = namespace
-	}
-
 	// Try until init OK.
 	for {
 		if err := i.initCfg(); err != nil {
-			io.ReportLastError(inputName, err.Error())
+			io.FeedLastError(inputName, err.Error())
 		} else {
 			break
 		}
@@ -582,7 +575,6 @@ func (i *Input) Run() {
 		if i.pause {
 			l.Debugf("not leader, skipped")
 		} else {
-			l.Debugf("mysql input gathering...")
 			l.Debugf("mysql input gathering...")
 
 			i.resetLastError()
@@ -642,7 +634,7 @@ func (*Input) Catalog() string { return catalogName }
 
 func (*Input) SampleConfig() string { return configSample }
 
-func (*Input) AvailableArchs() []string { return datakit.AllArch }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{

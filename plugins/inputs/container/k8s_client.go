@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	kubev1guancebeta1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/typed/guance/v1beta1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -22,6 +23,8 @@ import (
 	kubev1rbac "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
+
+	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 var (
@@ -30,6 +33,7 @@ var (
 )
 
 type k8sClientX interface {
+	getDataKits() kubev1guancebeta1.DataKitInterface
 	getDeployments() kubev1apps.DeploymentInterface
 	getDaemonSets() kubev1apps.DaemonSetInterface
 	getReplicaSets() kubev1apps.ReplicaSetInterface
@@ -48,11 +52,11 @@ type k8sClientX interface {
 }
 
 type k8sClient struct {
-	namespace string
-
+	namespace     string
 	metricsClient k8sMetricsClientX
 
 	*kubernetes.Clientset
+	guanceV1beta1 *kubev1guancebeta1.GuanceV1Client
 }
 
 func newK8sClientFromBearerToken(baseURL, path string) (*k8sClient, error) {
@@ -118,7 +122,18 @@ func newK8sClient(restConfig *rest.Config) (*k8sClient, error) {
 		return nil, err
 	}
 
-	k := &k8sClient{Clientset: config}
+	guanceClient, err := kubev1guancebeta1.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	if err := kubev1guancebeta1.AddToScheme(clientsetscheme.Scheme); err != nil {
+		return nil, err
+	}
+
+	k := &k8sClient{
+		Clientset:     config,
+		guanceV1beta1: guanceClient,
+	}
 
 	if c, err := newK8sMetricsClient(restConfig); err != nil {
 		l.Warnf("failed to connect k8s metrics-server, error: %s", err)
@@ -132,6 +147,10 @@ func newK8sClient(restConfig *rest.Config) (*k8sClient, error) {
 //nolint:deadcode,unused
 func (c *k8sClient) setNamespace(namespace string) {
 	c.namespace = namespace
+}
+
+func (c *k8sClient) getDataKits() kubev1guancebeta1.DataKitInterface {
+	return c.guanceV1beta1.DataKits(c.namespace)
 }
 
 func (c *k8sClient) getDeployments() kubev1apps.DeploymentInterface {

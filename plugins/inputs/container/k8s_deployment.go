@@ -10,8 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/apps/v1"
 )
@@ -75,7 +74,6 @@ func (d *deployment) metric() (inputsMeas, error) {
 				"rollingupdate_max_surge":       0,
 				// TODO:"replicas_desired"
 			},
-			time: time.Now(),
 		}
 
 		if item.Spec.Strategy.RollingUpdate != nil {
@@ -118,7 +116,6 @@ func (d *deployment) object() (inputsMeas, error) {
 				"max_surge":       0,
 				"max_unavailable": 0,
 			},
-			time: time.Now(),
 		}
 
 		if item.Spec.Strategy.RollingUpdate != nil {
@@ -162,11 +159,10 @@ func (d *deployment) count() (map[string]int, error) {
 type deploymentMetric struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (d *deploymentMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint("kube_deployment", d.tags, d.fields, &io.PointOption{Time: d.time, Category: datakit.Metric})
+func (d *deploymentMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_deployment", d.tags, d.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -197,11 +193,10 @@ func (*deploymentMetric) Info() *inputs.MeasurementInfo {
 type deploymentObject struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (d *deploymentObject) LineProto() (*io.Point, error) {
-	return io.NewPoint("kubernetes_deployments", d.tags, d.fields, &io.PointOption{Time: d.time, Category: datakit.Object})
+func (d *deploymentObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kubernetes_deployments", d.tags, d.fields, point.OOptElection())
 }
 
 //nolint:lll

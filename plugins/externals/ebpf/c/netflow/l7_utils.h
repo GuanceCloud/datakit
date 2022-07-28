@@ -1,7 +1,8 @@
 #ifndef __L7_UTILS_
 #define __L7_UTILS_
 
-#define HTTP_GET HTTP_GET
+#define KEEPPACKET -1
+#define DROPPACKET 0
 
 #include <uapi/linux/if_ether.h>
 #include <uapi/linux/in.h>
@@ -37,7 +38,6 @@ enum
     HTTP_REQ_REQ = 0b01,
     HTTP_REQ_RESP = 0b10
 };
-
 
 static __always_inline void read_ipv4_from_skb(struct __sk_buff *skb, struct connection_info *conn_info)
 {
@@ -270,11 +270,80 @@ static __always_inline void send_httpreq_fin_event(struct pt_regs *ctx)
         http_fin = bpf_map_lookup_elem(&bpfmap_httpreq_finished, &map_index);
         if (http_fin != NULL)
         {
-            bpf_perf_event_output(ctx, &bpfmap_httpreq_fin_event, cpuid, http_fin, sizeof(struct http_req_finished_info));
+            struct http_req_finished_info fin = {0};
+            bpf_probe_read(&fin, sizeof(struct http_req_finished_info), http_fin);
+            bpf_perf_event_output(ctx, &bpfmap_httpreq_fin_event, cpuid, &fin, sizeof(struct http_req_finished_info));
             bpf_map_delete_elem(&bpfmap_httpreq_finished, &map_index);
         }
         map_index += MAPCANSAVEREQNUM;
     }
+}
+
+static __always_inline void init_ssl_sockfd(void *ssl_ctx, __u32 fd)
+{
+    struct ssl_sockfd sockfd = {0};
+    sockfd.fd = fd;
+    bpf_map_update_elem(&bpfmap_ssl_ctx_sockfd, &ssl_ctx, &sockfd, BPF_ANY);
+}
+
+static __always_inline int read_conn_ssl(void *ssl_ctx, __u64 pid_tgid, struct connection_info *conn)
+{
+    struct ssl_sockfd *sockfd = (struct ssl_sockfd *)bpf_map_lookup_elem(&bpfmap_ssl_ctx_sockfd, &ssl_ctx);
+    if (sockfd == NULL)
+    {
+        return -1;
+    }
+    struct pid_fd pidfd = {
+        .pid = pid_tgid >> 32,
+        .fd = sockfd->fd,
+    };
+    struct sock **skp = (struct sock **)bpf_map_lookup_elem(&bpfmap_sockfd, &pidfd);
+    if (skp == NULL)
+    {
+        return -1;
+    }
+    if (read_connection_info(*skp, conn, pid_tgid, CONN_L4_TCP) != 0)
+    {
+        return -1;
+    }
+    conn->pid = 0;
+    conn->netns = 0;
+    __builtin_memcpy(&sockfd->conn, conn, sizeof(struct connection_info));
+    return 0;
+}
+
+static __always_inline int record_http_req(struct connection_info *conn,
+                                           struct http_stats *stats, __u8 method)
+{
+    stats->req_ts = bpf_ktime_get_ns();
+    stats->req_method = method;
+    bpf_map_update_elem(&bpfmap_http_stats, conn, stats, BPF_NOEXIST);
+    return 0;
+}
+
+static __always_inline int record_http_resp(struct connection_info *conn,
+                                            struct http_stats *stats, struct layer7_http *l7http)
+{
+
+    struct http_stats *stats_cached = bpf_map_lookup_elem(&bpfmap_http_stats, conn);
+    if (stats_cached == NULL)
+    {
+        return 0;
+    }
+
+    struct http_req_finished_info http_finished = {0};
+
+    __builtin_memcpy(&http_finished.conn_info, conn, sizeof(struct connection_info));
+    __builtin_memcpy(&http_finished.http_stats, stats_cached, sizeof(struct http_stats));
+
+    bpf_map_delete_elem(&bpfmap_http_stats, conn);
+
+    http_finished.http_stats.resp_code = l7http->status_code;
+    http_finished.http_stats.http_version = l7http->http_version;
+    http_finished.http_stats.resp_ts = bpf_ktime_get_ns();
+
+    map_cache_finished_http_req(&http_finished);
+    return 0;
 }
 
 #endif // !__L7_UTILS_

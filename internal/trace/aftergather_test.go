@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 func TestAfterGather(t *testing.T) {
-	dkioFeed = func(name, category string, pts []*dkio.Point, opt *dkio.Option) error { return nil }
+	dkioFeed = func(name, category string, pts []*point.Point, opt *dkio.Option) error { return nil }
 
 	StartTracingStatistic()
 
@@ -33,8 +33,7 @@ func TestAfterGather(t *testing.T) {
 	keeper.UpdateStatus(true, time.Second)
 	afterGather.AppendFilter(keeper.Keep)
 
-	sampler := &Sampler{}
-	sampler.UpdateArgs(PriorityAuto, 0.33)
+	sampler := &Sampler{SamplingRateGlobal: 0.33}
 	afterGather.AppendFilter(sampler.Sample)
 
 	wg := sync.WaitGroup{}
@@ -44,9 +43,9 @@ func TestAfterGather(t *testing.T) {
 			defer wg.Done()
 
 			for i := 0; i < 100; i++ {
-				trace := randDatakitTraceByService(t, 10, testutils.RandWithinStrings(_services), testutils.RandWithinStrings(_resources), "")
+				trace := randDatakitTrace(t, 10, randService(_services...), randResource(_resources...))
 				parentialize(trace)
-				afterGather.Run("test_after_gather", trace, false)
+				afterGather.Run("test_after_gather", DatakitTraces{trace}, false)
 			}
 		}()
 	}
@@ -66,6 +65,6 @@ func TestBuildPoint(t *testing.T) {
 
 func TestBuildPointsBatch(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		BuildPointsBatch(randDatakitTrace(t, 10), false)
+		BuildPointsBatch(DatakitTraces{randDatakitTrace(t, 10)}, false)
 	}
 }

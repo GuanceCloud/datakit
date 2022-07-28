@@ -14,6 +14,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/influxdb1-client/models"
@@ -21,6 +22,8 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
 func BenchmarkHandleWriteBody(b *testing.B) {
@@ -230,7 +233,7 @@ type apiWriteMock struct {
 	t *testing.T
 }
 
-func (x *apiWriteMock) sendToIO(string, string, []*io.Point, *io.Option) error {
+func (x *apiWriteMock) sendToIO(string, string, []*point.Point, *io.Option) error {
 	x.t.Helper()
 	x.t.Log("under mock impl: sendToIO")
 	return nil // do nothing
@@ -256,6 +259,8 @@ func TestAPIWrite(t *testing.T) {
 		expectBody        interface{}
 		expectStatusCode  int
 		contentType       string
+
+		globalHostTags, globalEnvTags map[string]string
 
 		fail bool
 	}{
@@ -357,6 +362,66 @@ func TestAPIWrite(t *testing.T) {
 			expectStatusCode: 400,
 			expectBody:       ErrInvalidObjectPoint,
 		},
+
+		// global-host-tag
+		{
+			name: `with-global-host-tags`,
+			globalHostTags: map[string]string{
+				"host": "my-testing",
+			},
+			method:           "POST",
+			url:              "/v1/write/object?echo_line_proto=1",
+			contentType:      "application/json",
+			body:             []byte(`[{"measurement":"object-class","tags":{"name": "1"}, "fields":{"f1":1, "message": "dump object message"}, "time": 123}]`),
+			expectStatusCode: 200,
+			expectBody: &uhttp.BodyResp{
+				Content: []*sinkcommon.JSONPoint{
+					{
+						Measurement: "object-class",
+						Tags: map[string]string{
+							"name": "1", "host": "my-testing",
+						},
+						Fields: map[string]interface{}{
+							"f1": 1, "message": "dump object message",
+						},
+						Time: time.Unix(0, 123),
+					},
+				},
+			},
+		},
+
+		// global-env-tag
+		{
+			name: `with-global-env-tags`,
+			globalHostTags: map[string]string{
+				"host": "my-testing",
+			},
+
+			globalEnvTags: map[string]string{
+				"cluster": "my-cluster",
+			},
+
+			method:           "POST",
+			url:              "/v1/write/object?echo_line_proto=1&ignore_global_host_tags=1&ignore_global_tags=1&global_env_tags=1", // global-host-tag ignored
+			contentType:      "application/json",
+			body:             []byte(`[{"measurement":"object-class","tags":{"name": "1"}, "fields":{"f1":1, "message": "dump object message"}, "time": 123}]`),
+			expectStatusCode: 200,
+			expectBody: &uhttp.BodyResp{
+				Content: []*sinkcommon.JSONPoint{
+					{
+						Measurement: "object-class",
+						Tags: map[string]string{
+							"name":    "1",
+							"cluster": "my-cluster",
+						},
+						Fields: map[string]interface{}{
+							"f1": 1, "message": "dump object message",
+						},
+						Time: time.Unix(0, 123),
+					},
+				},
+			},
+		},
 	}
 
 	errEq := func(e1, e2 *uhttp.HttpError) bool {
@@ -365,15 +430,23 @@ func TestAPIWrite(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			point.ClearGlobalTags()
+
+			if tc.globalHostTags != nil {
+				for k, v := range tc.globalHostTags {
+					point.SetGlobalHostTags(k, v)
+				}
+			}
+
+			if tc.globalEnvTags != nil {
+				for k, v := range tc.globalEnvTags {
+					point.SetGlobalEnvTags(k, v)
+				}
+			}
+
 			var resp *http.Response
 			var err error
 			switch tc.method {
-			case "GET":
-				resp, err = http.Get(fmt.Sprintf("%s%s", ts.URL, tc.url)) //nolint:bodyclose
-				if err != nil {
-					t.Logf("http.Get: %s", err)
-				}
-
 			case "POST":
 				resp, err = http.Post(fmt.Sprintf("%s%s", ts.URL, tc.url), tc.contentType, bytes.NewBuffer(tc.body)) //nolint:bodyclose
 				if err != nil {

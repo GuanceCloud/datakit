@@ -47,7 +47,6 @@ func getMetrics() map[string]*apiStat {
 		result: make(chan map[string]*apiStat),
 	}
 
-	defer close(q.result)
 	qch <- q
 
 	// Why timeout 1s?

@@ -8,11 +8,11 @@ package funcs
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 
 func ExprChecking(_ *parser.EngineData, _ parser.Node) error {
-	l.Warnf("warning: expr() is disabled")
+	l.Debugf("warning: expr() is disabled")
 	return nil
 }
 
 func Expr(_ *parser.EngineData, _ parser.Node) interface{} {
-	l.Warnf("warning: expr() is disabled")
+	l.Debugf("warning: expr() is disabled")
 	return nil
 }

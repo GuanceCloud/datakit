@@ -8,7 +8,7 @@ package mysql
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -20,14 +20,15 @@ type customerMeasurement struct {
 }
 
 // 生成行协议.
-func (m *customerMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *customerMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 // 指定指标.
 func (m *customerMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mysql_customer",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "Server addr",

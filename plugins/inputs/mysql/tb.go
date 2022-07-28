@@ -6,9 +6,7 @@
 package mysql
 
 import (
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -16,12 +14,11 @@ type tbMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 }
 
 // 生成行协议.
-func (m *tbMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *tbMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 // 指定指标.
@@ -29,6 +26,7 @@ func (m *tbMeasurement) LineProto() (*io.Point, error) {
 func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "MySQL 表指标",
+		Type: "metric",
 		Name: "mysql_table_schema",
 		Fields: map[string]interface{}{
 			// status

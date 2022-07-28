@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/gin-contrib/timeout"
 	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -47,7 +48,6 @@ var (
 	uptime = time.Now()
 
 	dw        dataway.DataWay
-	extraTags = map[string]string{}
 	apiConfig = &APIConfig{}
 	dcaConfig *DCAConfig
 
@@ -63,15 +63,21 @@ var (
 
 //nolint:stylecheck
 const (
-	LOGGING_SROUCE     = "source"
-	PRECISION          = "precision"
-	INPUT              = "input"
-	IGNORE_GLOBAL_TAGS = "ignore_global_tags"
-	CATEGORY           = "category"
-	VERSION            = "version"
-	PIPELINE_SOURCE    = "source"
-	DEFAULT_PRECISION  = "n"
-	DEFAULT_INPUT      = "datakit" // 当 API 调用方未亮明自己身份时，默认使用 datakit 作为数据源名称
+	LOGGING_SROUCE = "source"
+	PRECISION      = "precision"
+	INPUT          = "input"
+
+	IGNORE_GLOBAL_TAGS      = "ignore_global_tags"      // deprecated, use IGNORE_GLOBAL_HOST_TAGS
+	IGNORE_GLOBAL_HOST_TAGS = "ignore_global_host_tags" // default enabled
+	GLOBAL_ENV_TAGS         = "global_env_tags"         // default disabled
+
+	ECHO_LINE_PROTO = "echo_line_proto"
+
+	CATEGORY          = "category"
+	VERSION           = "version"
+	PIPELINE_SOURCE   = "source"
+	DEFAULT_PRECISION = "n"
+	DEFAULT_INPUT     = "datakit" // 当 API 调用方未亮明自己身份时，默认使用 datakit 作为数据源名称
 )
 
 type Option struct {
@@ -94,6 +100,10 @@ type APIConfig struct {
 	RUMAppIDWhiteList []string `toml:"rum_app_id_white_list"`
 	PublicAPIs        []string `toml:"public_apis"`
 	RequestRateLimit  float64  `toml:"request_rate_limit,omitzero"`
+
+	Timeout             string `toml:"timeout"`
+	CloseIdleConnection bool   `toml:"close_idle_connection"`
+	timeoutDuration     time.Duration
 }
 
 func Start(o *Option) {
@@ -115,6 +125,16 @@ func Start(o *Option) {
 		reqLimiter = setupLimiter(apiConfig.RequestRateLimit)
 	} else {
 		l.Infof("set request limit not set: %f", apiConfig.RequestRateLimit)
+	}
+
+	apiConfig.timeoutDuration = 30 * time.Second
+	switch apiConfig.Timeout {
+	case "":
+	default:
+		du, err := time.ParseDuration(apiConfig.Timeout)
+		if err == nil {
+			apiConfig.timeoutDuration = du
+		}
 	}
 
 	dw = o.DataWay
@@ -164,10 +184,6 @@ type welcome struct {
 
 func SetAPIConfig(c *APIConfig) {
 	apiConfig = c
-}
-
-func SetGlobalTags(tags map[string]string) {
-	extraTags = tags
 }
 
 func page404(c *gin.Context) {
@@ -223,12 +239,24 @@ func setupGinLogger() (gl io.Writer) {
 
 func setVersionInfo(c *gin.Context) {
 	c.Header("X-DataKit", fmt.Sprintf("%s/%s", datakit.Version, git.BuildAt))
-	c.Next()
+}
+
+func timeoutResponse(c *gin.Context) {
+	c.String(http.StatusRequestTimeout, fmt.Sprintf("timeout(%s)", apiConfig.timeoutDuration))
+}
+
+func dkHTTPTimeout() gin.HandlerFunc {
+	return timeout.New(
+		timeout.WithTimeout(apiConfig.timeoutDuration),
+		timeout.WithHandler(func(c *gin.Context) {
+			c.Next()
+		}),
+		timeout.WithResponse(timeoutResponse),
+	)
 }
 
 func setupRouter() *gin.Engine {
 	uhttp.Init()
-
 	router := gin.New()
 
 	// use whitelist config
@@ -245,6 +273,8 @@ func setupRouter() *gin.Engine {
 
 	router.Use(gin.Recovery())
 	router.Use(uhttp.CORSMiddleware)
+	router.Use(dkHTTPTimeout())
+
 	if !apiConfig.Disable404Page {
 		router.NoRoute(page404)
 	}
@@ -300,6 +330,10 @@ func HTTPStart() {
 	srv := &http.Server{
 		Addr:    apiConfig.Listen,
 		Handler: setupRouter(),
+	}
+
+	if apiConfig.CloseIdleConnection {
+		srv.ReadTimeout = apiConfig.timeoutDuration
 	}
 
 	g.Go(func(ctx context.Context) error {

@@ -117,11 +117,11 @@ type (
 
 var collectorStatHist []*CollectorStatus
 
-func getHostMeta() *HostMetaInfo {
+func getHostMeta() (*HostMetaInfo, error) {
 	info, err := hostutil.Info()
 	if err != nil {
 		l.Errorf("fail to get host info, %s", err)
-		return nil
+		return nil, err
 	}
 
 	return &HostMetaInfo{
@@ -136,7 +136,7 @@ func getHostMeta() *HostMetaInfo {
 		PlatformVersion: info.PlatformVersion,
 		Kernel:          info.KernelVersion,
 		Arch:            info.KernelArch,
-	}
+	}, nil
 }
 
 func getCPUPercent() float64 {
@@ -151,7 +151,7 @@ func getCPUPercent() float64 {
 func getCPUInfo() []*CPUInfo {
 	infos, err := cpuutil.Info()
 	if err != nil {
-		l.Errorf("fail to get cpu info, %s", err)
+		l.Warnf("fail to get cpu info, %s", err)
 		return nil
 	}
 
@@ -181,30 +181,31 @@ func getLoad5() float64 {
 	return avgstat.Load5
 }
 
-func getMemInfo() *MemInfo {
+func getMemInfo() (*MemInfo, error) {
 	minfo, err := memutil.VirtualMemory()
 	if err != nil {
 		l.Error("fail to get memory toal, %s", err)
-		return nil
+		return nil, err
 	}
 
 	vinfo, err := memutil.SwapMemory()
 	if err != nil {
 		l.Error("fail to get swap memory toal, %s", err)
+		return nil, err
 	}
 
 	return &MemInfo{
 		MemoryTotal: minfo.Total,
 		SwapTotal:   vinfo.Total,
 		usedPercent: minfo.UsedPercent,
-	}
+	}, nil
 }
 
-func getNetInfo(enableVIfaces bool) []*NetInfo {
+func getNetInfo(enableVIfaces bool) ([]*NetInfo, error) {
 	ifs, err := netutil.Interfaces()
 	if err != nil {
 		l.Errorf("fail to get interfaces, %s", err)
-		return nil
+		return nil, err
 	}
 	var infos []*NetInfo
 
@@ -239,15 +240,15 @@ func getNetInfo(enableVIfaces bool) []*NetInfo {
 		}
 		infos = append(infos, i)
 	}
-	return infos
+	return infos, nil
 }
 
-func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool) []*DiskInfo {
+func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool) ([]*DiskInfo, error) {
 	l.Debugf("get partitions(physical: %v)...", onlyPhysicalDevice)
 	ps, err := diskutil.Partitions(!onlyPhysicalDevice)
 	if err != nil {
 		l.Errorf("fail to get disk info, %s", err)
-		return nil
+		return nil, err
 	}
 	var infos []*DiskInfo
 
@@ -284,11 +285,11 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 		infos = append(infos, info)
 	}
 
-	return infos
+	return infos, nil
 }
 
 func (ipt *Input) getEnabledInputs() (res []*CollectorStatus) {
-	inputsStats, err := io.GetStats() // get all inputs stats
+	inputsStats, err := io.GetInputsStats() // get all inputs stats
 	if err != nil {
 		l.Warnf("fail to get inputs stats, %s", err)
 		return
@@ -355,7 +356,10 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	}
 
 	l.Debugf("get host meta...")
-	hostMeta := getHostMeta()
+	hostMeta, err := getHostMeta()
+	if err != nil {
+		return nil, err
+	}
 
 	l.Debugf("get CPU info...")
 	cpuInfo := getCPUInfo()
@@ -367,13 +371,22 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	load5 := getLoad5()
 
 	l.Debugf("get mem info...")
-	mem := getMemInfo()
+	mem, err := getMemInfo()
+	if err != nil {
+		return nil, err
+	}
 
 	l.Debugf("get net info...")
-	net := getNetInfo(ipt.EnableNetVirtualInterfaces)
+	net, err := getNetInfo(ipt.EnableNetVirtualInterfaces)
+	if err != nil {
+		return nil, err
+	}
 
 	l.Debugf("get disk info...")
-	disk := getDiskInfo(ipt.IgnoreFS, ipt.IgnoreZeroBytesDisk, ipt.OnlyPhysicalDevice)
+	disk, err := getDiskInfo(ipt.IgnoreFS, ipt.IgnoreZeroBytesDisk, ipt.OnlyPhysicalDevice)
+	if err != nil {
+		return nil, err
+	}
 
 	l.Debugf("get conntrack info...")
 	conntrack := conntrackutil.GetConntrackInfo()

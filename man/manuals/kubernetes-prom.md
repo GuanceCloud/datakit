@@ -1,10 +1,9 @@
 {{.CSS}}
+# Prometheus Exportor 指标采集
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：Linux
-
-# Kubernetes 集群中自定义 Exporter 指标采集
+- 操作系统支持：:fontawesome-brands-linux:
 
 ## 介绍
 
@@ -13,7 +12,7 @@
 需要在 Kubernetes deployment 上添加特定的 template annotations，来采集由其创建的 Pod 暴露出来的指标。Annotation 要求如下：
 
 - Key 为固定的 `datakit/prom.instances`
-- Value 为 [prom 采集器](prom)完整配置，例如：
+- Value 为 [prom 采集器](prom.md)完整配置，例如：
 
 ```toml
 [[inputs.prom]]
@@ -109,4 +108,4 @@ kubectl apply -f deployment.yaml
 
 ## 延伸阅读
 
-- [Prometheus Exportor 数据采集](prom)
+- [Prometheus Exportor 数据采集](prom.md)

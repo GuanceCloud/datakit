@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
@@ -187,7 +188,7 @@ func (sl *socketLogger) doSocket(conn net.Conn) {
 		pipDate, cacheM = sl.spiltBuffer(cacheLine, string(data[:n]), n == sl.socketBufferLen)
 		cacheLine = cacheM
 		if len(pipDate) != 0 {
-			sl.sendToPipeline(pipDate)
+			sl.feed(pipDate)
 		}
 	}
 }
@@ -209,7 +210,7 @@ func (sl *socketLogger) spiltBuffer(fromCache string, date string, full bool) (p
 	return pipdata, cacheDate
 }
 
-func (sl *socketLogger) sendToPipeline(pending []string) {
+func (sl *socketLogger) feed(pending []string) {
 	taskCnt := []string{}
 	for _, data := range pending {
 		if data != "" {
@@ -219,21 +220,18 @@ func (sl *socketLogger) sendToPipeline(pending []string) {
 
 	// -1ns
 	timeNow := time.Now().Add(-time.Duration(len(pending)))
-	res := []*iod.Point{}
+	res := []*point.Point{}
 	for i, cnt := range taskCnt {
-		pt, err := iod.MakePoint(sl.opt.Source, sl.tags,
-			map[string]interface{}{
-				pipeline.FieldMessage: cnt,
-				pipeline.FieldStatus:  pipeline.DefaultStatus,
-			},
-			timeNow.Add(time.Duration(i)),
-		)
+		pt, err := point.NewPoint(sl.opt.Source, sl.tags,
+			map[string]interface{}{pipeline.FieldMessage: cnt, pipeline.FieldStatus: pipeline.DefaultStatus},
+			&point.PointOption{Time: timeNow.Add(time.Duration(i)), Category: datakit.Logging})
 		if err != nil {
 			l.Error(err)
 			continue
 		}
 		res = append(res, pt)
 	}
+
 	var ioOpt *iod.Option
 	if sl.opt.Pipeline != "" {
 		ioOpt = &iod.Option{

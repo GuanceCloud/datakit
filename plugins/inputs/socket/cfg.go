@@ -6,13 +6,12 @@
 package socket
 
 import (
-	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -30,12 +29,12 @@ var (
 	maxInterval = time.Second * 60
 	sample      = `
 [[inputs.socket]]
-  ## support tcp, udp
+  ## support tcp, udp.If the quantity to be detected is too large, it is recommended to open more collectors
   dest_url = ["tcp://host:port", "udp://host:port"]
 
   ## @param interval - number - optional - default: 30
   interval = "30s"
-  ## @param interval - number - optional - default: 10	
+  ## @param interval - number - optional - default: 10
   udp_timeout = "10s"
   ## @param interval - number - optional - default: 10
   tcp_timeout = "10s"
@@ -50,9 +49,6 @@ type Input struct {
 	Interval   datakit.Duration `toml:"interval"` // 单位为秒
 	UDPTimeOut datakit.Duration `toml:"udp_timeout"`
 	TCPTimeOut datakit.Duration `toml:"tcp_timeout"`
-
-	curTasks map[string]*dialer
-	wg       sync.WaitGroup
 
 	collectCache []inputs.Measurement
 	Tags         map[string]string `toml:"tags"`
@@ -74,12 +70,12 @@ type UDPMeasurement struct {
 	ts     time.Time
 }
 
-func (m *TCPMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *TCPMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
-func (m *UDPMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *UDPMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *TCPMeasurement) Info() *inputs.MeasurementInfo {

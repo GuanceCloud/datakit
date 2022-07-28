@@ -9,7 +9,7 @@ package trace
 import (
 	"time"
 
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -20,8 +20,8 @@ type TraceMeasurement struct {
 	TS     time.Time
 }
 
-func (tm *TraceMeasurement) LineProto() (*dkio.Point, error) {
-	return dkio.NewPoint(tm.Name, tm.Tags, tm.Fields, &dkio.PointOption{
+func (tm *TraceMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(tm.Name, tm.Tags, tm.Fields, &point.PointOption{
 		Time:   tm.TS,
 		Strict: false,
 	})
@@ -46,16 +46,16 @@ func (tm *TraceMeasurement) Info() *inputs.MeasurementInfo {
 			TAG_VERSION:        &inputs.TagInfo{Desc: "application version info"},
 		},
 		Fields: map[string]interface{}{
-			FIELD_DURATION:           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "duration of span"},
-			FIELD_MSG:                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "origin content of span"},
-			FIELD_PARENTID:           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "parent span ID of current span"},
-			FIELD_PID:                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "application process id."},
-			FIELD_PRIORITY:           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
-			FIELD_RESOURCE:           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "resource name produce current span"},
-			FIELD_SAMPLE_RATE_GLOBAL: &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "global sample ratio"},
-			FIELD_SPANID:             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "span id"},
-			FIELD_START:              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampUS, Desc: "start time of span."},
-			FIELD_TRACEID:            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "trace id"},
+			FIELD_DURATION: &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "duration of span"},
+			FIELD_MSG:      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "origin content of span"},
+			FIELD_PARENTID: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "parent span ID of current span"},
+			FIELD_PID:      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "application process id."},
+			FIELD_PRIORITY: &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			FIELD_RESOURCE: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "resource name produce current span"},
+			// FIELD_SAMPLE_RATE_GLOBAL: &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "global sample ratio"},
+			FIELD_SPANID:  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "span id"},
+			FIELD_START:   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampUS, Desc: "start time of span."},
+			FIELD_TRACEID: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "trace id"},
 		},
 	}
 }

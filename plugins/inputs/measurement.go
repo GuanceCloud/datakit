@@ -10,9 +10,9 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 var (
@@ -40,10 +40,13 @@ const (
 const (
 	UnknownUnit = "-"
 
-	SizeByte = "B"
-	SizeMiB  = "MB"
-
-	NCount = "count"
+	SizeByte  = "B"
+	SizeKB    = "KB"
+	SizeKBits = "Kb"
+	SizeMB    = "MB"
+	SizeMBits = "Mb"
+	SizeGB    = "GB"
+	NCount    = "count"
 
 	// time units.
 	DurationNS     = "ns"
@@ -69,7 +72,7 @@ const (
 )
 
 type Measurement interface {
-	LineProto() (*io.Point, error)
+	LineProto() (*point.Point, error)
 	Info() *MeasurementInfo
 }
 
@@ -172,8 +175,8 @@ func FeedMeasurement(name, category string, measurements []Measurement, opt *io.
 	return io.Feed(name, category, pts, opt)
 }
 
-func GetPointsFromMeasurement(measurements []Measurement) ([]*io.Point, error) {
-	var pts []*io.Point
+func GetPointsFromMeasurement(measurements []Measurement) ([]*point.Point, error) {
+	var pts []*point.Point
 	for _, m := range measurements {
 		if pt, err := m.LineProto(); err != nil {
 			l.Warnf("make point failed: %v, ignore", err)
@@ -196,21 +199,6 @@ func sortMapKey(m map[string]interface{}) (res []string) {
 	}
 	sort.Strings(res)
 	return
-}
-
-type ReporterMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-func (e ReporterMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(e.name, e.tags, e.fields, e.ts)
-}
-
-func (e ReporterMeasurement) Info() *MeasurementInfo {
-	return &MeasurementInfo{}
 }
 
 // BuildTags used to test all measurements tags.

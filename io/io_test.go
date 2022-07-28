@@ -8,71 +8,18 @@ package io
 import (
 	"bytes"
 	"compress/gzip"
-	"encoding/base64"
 	"io"
 	"math/rand"
 	"strings"
 	"testing"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
-func randomPoints(out chan *Point, count int) {
-	if out == nil {
-		return
-	}
-
-	var (
-		buf = make([]byte, 30)
-		err error
-	)
-	if _, err = rand.Read(buf); err != nil {
-		log.Fatal(err.Error())
-	}
-
-	for i := 0; i < count; i++ {
-		opt := &lp.Option{
-			Strict:    true,
-			Precision: "n",
-			Time:      time.Now(),
-		}
-
-		if pt, err := doMakePoint("mock_random_point",
-			map[string]string{
-				base64.StdEncoding.EncodeToString(buf): base64.StdEncoding.EncodeToString(buf[1:]),
-			},
-			map[string]interface{}{
-				base64.StdEncoding.EncodeToString(buf[2:]): base64.StdEncoding.EncodeToString(buf[3:]),
-			},
-			opt); err != nil {
-			log.Fatal(err.Error())
-		} else {
-			out <- pt
-		}
-	}
-	close(out)
-}
-
-func assemblePoints(count int) []*Point {
-	var (
-		source = make(chan *Point)
-		pts    = make([]*Point, count)
-		i      = 0
-	)
-	go randomPoints(source, count)
-	for pt := range source {
-		pts[i] = pt
-		i++
-	}
-
-	return pts
-}
-
 func BenchmarkBuildBody(b *testing.B) {
-	pts := assemblePoints(10000)
+	pts := point.RandPoints(10000)
 	for i := 0; i < b.N; i++ {
 		if _, err := defaultIO.buildBody(pts); err != nil {
 			b.Fatal(err)
@@ -80,9 +27,9 @@ func BenchmarkBuildBody(b *testing.B) {
 	}
 }
 
-func randPt(t *testing.T) *Point {
+func randPt(t *testing.T) *point.Point {
 	t.Helper()
-	pt, err := NewPoint("test-point",
+	pt, err := point.NewPoint("test-point",
 		map[string]string{
 			"tag1": cliutils.CreateRandomString(8),
 			"tag2": cliutils.CreateRandomString(8),
@@ -122,7 +69,7 @@ func randPt(t *testing.T) *Point {
 }
 
 func TestBuildBody(t *testing.T) {
-	pts := []*Point{}
+	pts := []*point.Point{}
 	expect := []string{}
 	for i := 0; i < 100; i++ {
 		pt := randPt(t)
@@ -163,7 +110,7 @@ func TestBuildBody(t *testing.T) {
 
 func TestSplitBody(t *testing.T) {
 	n := 20000
-	pts := []*Point{}
+	pts := []*point.Point{}
 
 	for i := 0; i < n; i++ {
 		pts = append(pts, randPt(t))

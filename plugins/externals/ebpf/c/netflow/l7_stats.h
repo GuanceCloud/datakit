@@ -4,7 +4,7 @@
 enum
 {
     HTTP_PAYLOAD_MAXSIZE = 69 // ((8 * 8) + 5), no pad
-#define HTTP_PAYLOAD_MAXSIZE HTTP_PAYLOAD_MAXSIZE 
+#define HTTP_PAYLOAD_MAXSIZE HTTP_PAYLOAD_MAXSIZE
 };
 
 #include <linux/types.h>
@@ -28,13 +28,24 @@ struct http_req_finished_info
     struct http_stats http_stats;
 };
 
-
 struct layer7_http
 {
     __u32 method;
     __u32 http_version;
     __u32 status_code;
     __u32 req_status; // request | response
+};
+
+struct ssl_read_args
+{
+    void *ctx;
+    void *buf;
+};
+
+struct ssl_sockfd
+{
+    struct connection_info conn;
+    __u32 fd;
 };
 
 #endif // !__HTTP_STATS_H

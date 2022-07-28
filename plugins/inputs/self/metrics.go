@@ -6,9 +6,7 @@
 package self
 
 import (
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -16,11 +14,12 @@ var _ inputs.InputV2 = &Input{}
 
 type datakitMeasurement struct {
 	inputs.CommonMeasurement
-	ts time.Time
 }
 
-func (m *datakitMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.CommonMeasurement.Name, m.CommonMeasurement.Tags, m.CommonMeasurement.Fields, m.ts)
+func (m *datakitMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.CommonMeasurement.Name,
+		m.CommonMeasurement.Tags,
+		m.CommonMeasurement.Fields, point.MOpt())
 }
 
 func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {
@@ -34,9 +33,7 @@ func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {
 			"host":              &inputs.TagInfo{Desc: "Hostname of the DataKit"},
 			"uuid":              &inputs.TagInfo{Desc: "**Deprecated**, currently use `hostname` as DataKit's UUID"},
 			"namespace":         &inputs.TagInfo{Desc: "Election namespace(datakit.conf/namespace) of DataKit, may be not set"},
-
-			"version": &inputs.TagInfo{Desc: "DataKit version"},
-			"vserion": &inputs.TagInfo{Desc: "**Deprecated**, same as `version`"},
+			"version":           &inputs.TagInfo{Desc: "DataKit version"},
 		},
 
 		Fields: map[string]interface{}{

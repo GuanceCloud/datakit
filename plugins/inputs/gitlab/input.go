@@ -14,14 +14,17 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
+var (
+	_ inputs.ElectionInput = (*Input)(nil)
+	l                      = logger.DefaultSLogger(inputName)
+)
 
 const (
 	inputName = "gitlab"
@@ -58,8 +61,6 @@ const (
 `
 )
 
-var l = logger.DefaultSLogger(inputName)
-
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return newInput()
@@ -83,8 +84,10 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	reqMemo requestMemo
+
 	// For testing purpose.
-	feed          func(name, category string, pts []*iod.Point, opt *iod.Option) error
+	feed func(name, category string, pts []*point.Point, opt *iod.Option) error
+
 	feedLastError func(inputName string, err string)
 }
 
@@ -135,10 +138,6 @@ func (ipt *Input) Run() {
 
 	ticker := time.NewTicker(ipt.duration)
 	defer ticker.Stop()
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		ipt.Tags["election_namespace"] = namespace
-	}
 
 	for {
 		select {
@@ -214,7 +213,7 @@ func (ipt *Input) gather() {
 	}
 }
 
-func (ipt *Input) gatherMetrics() ([]*iod.Point, error) {
+func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
 	resp, err := ipt.httpClient.Get(ipt.URL)
 	if err != nil {
 		return nil, err
@@ -226,7 +225,7 @@ func (ipt *Input) gatherMetrics() ([]*iod.Point, error) {
 		return nil, err
 	}
 
-	var points []*iod.Point
+	var points []*point.Point
 
 	for _, m := range metrics {
 		measurement := inputName
@@ -243,7 +242,7 @@ func (ipt *Input) gatherMetrics() ([]*iod.Point, error) {
 			m.tags[k] = v
 		}
 
-		point, err := iod.MakePoint(measurement, m.tags, m.fields)
+		point, err := point.NewPoint(measurement, m.tags, m.fields, point.MOpt())
 		if err != nil {
 			l.Warn(err)
 			continue
@@ -258,7 +257,7 @@ func (*Input) SampleConfig() string { return sampleCfg }
 
 func (*Input) Catalog() string { return catalog }
 
-func (*Input) AvailableArchs() []string { return datakit.AllArch }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{

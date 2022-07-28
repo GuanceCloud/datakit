@@ -23,15 +23,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
-
 var (
-	inputName   = "postgresql"
-	catalogName = "db"
-	l           = logger.DefaultSLogger(inputName)
+	inputName                        = "postgresql"
+	catalogName                      = "db"
+	l                                = logger.DefaultSLogger(inputName)
+	_           inputs.ElectionInput = (*Input)(nil)
 )
 
 //nolint:lll
@@ -147,8 +147,8 @@ type inputMeasurement struct {
 	ts     time.Time
 }
 
-func (m inputMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m inputMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -172,7 +172,7 @@ func (*Input) SampleConfig() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
@@ -433,10 +433,6 @@ func (ipt *Input) Run() {
 	ipt.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
 	tick := time.NewTicker(ipt.duration)
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		ipt.Tags["election_namespace"] = namespace
-	}
 
 	for {
 		select {

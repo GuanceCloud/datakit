@@ -10,11 +10,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -37,15 +36,21 @@ func getContainerTags(container *types.Container) tagsType {
 	imageName, imageShortName, imageTag := ParseImage(container.Image)
 
 	tags := map[string]string{
-		"state":            container.State,
-		"docker_image":     container.Image,
-		"image":            container.Image,
-		"image_name":       imageName,
-		"image_short_name": imageShortName,
-		"image_tag":        imageTag,
-		"container_name":   getContainerName(container.Names),
-		"container_id":     container.ID,
-		"linux_namespace":  "moby",
+		"state":                  container.State,
+		"docker_image":           container.Image,
+		"image":                  container.Image,
+		"image_name":             imageName,
+		"image_short_name":       imageShortName,
+		"image_tag":              imageTag,
+		"container_runtime_name": getContainerName(container.Names),
+		"container_id":           container.ID,
+		"linux_namespace":        "moby",
+	}
+
+	if n := getContainerNameForLabels(container.Labels); n != "" {
+		tags["container_name"] = n
+	} else {
+		tags["container_name"] = tags["container_runtime_name"]
 	}
 
 	if !containerIsFromKubernetes(getContainerName(container.Names)) {
@@ -165,7 +170,7 @@ func getContainerName(names []string) string {
 	if len(names) > 0 {
 		return strings.TrimPrefix(names[0], "/")
 	}
-	return "invalidContainerName"
+	return "unknown"
 }
 
 func isRunningContainer(state string) bool {
@@ -188,32 +193,33 @@ func containerIsFromKubernetes(containerName string) bool {
 type containerMetric struct {
 	tags   tagsType
 	fields fieldsType
-	time   time.Time
 }
 
-func (c *containerMetric) LineProto() (*io.Point, error) {
-	return io.NewPoint(dockerContainerName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Metric})
+func (c *containerMetric) LineProto() (*point.Point, error) {
+	return point.NewPoint(dockerContainerName, c.tags, c.fields, point.MOpt())
 }
 
+//nolint:lll
 func (c *containerMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: dockerContainerName,
 		Type: "metric",
 		Desc: "容器指标数据，只采集正在运行的容器",
 		Tags: map[string]interface{}{
-			"container_id":     inputs.NewTagInfo(`容器 ID`),
-			"container_name":   inputs.NewTagInfo(`容器名称（containerd 容器会在 labels 中取 'io.kubernetes.container.name'，如果值为空则默认是 unknown`),
-			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
-			"linux_namespace":  inputs.NewTagInfo(`该容器所在的 [linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html)`),
-			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
-			"image_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
-			"image_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),
-			"image_tag":        inputs.NewTagInfo("镜像 tag，例如 `1.21.0`"),
-			"container_type":   inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker/containerd`),
-			"state":            inputs.NewTagInfo(`运行状态，running（containerd 缺少此字段）`),
-			"pod_name":         inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"namespace":        inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
-			"deployment":       inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在，containerd 缺少此字段）`),
+			"container_id":           inputs.NewTagInfo(`容器 ID`),
+			"container_name":         inputs.NewTagInfo(`k8s 命名的容器名（在 labels 中取 'io.kubernetes.container.name'），如果值为空则跟 container_runtime_name 相同`),
+			"container_runtime_name": inputs.NewTagInfo(`由 runtime 命名的容器名（例如 docker ps 查看），如果值为空则默认是 unknown（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)）`),
+			"docker_image":           inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
+			"linux_namespace":        inputs.NewTagInfo(`该容器所在的 [linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html)`),
+			"image":                  inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
+			"image_name":             inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
+			"image_short_name":       inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),
+			"image_tag":              inputs.NewTagInfo("镜像 tag，例如 `1.21.0`"),
+			"container_type":         inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker/containerd`),
+			"state":                  inputs.NewTagInfo(`运行状态，running（containerd 缺少此字段）`),
+			"pod_name":               inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
+			"namespace":              inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
+			"deployment":             inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在，containerd 缺少此字段）`),
 		},
 		Fields: map[string]interface{}{
 			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 占主机总量的使用率"},

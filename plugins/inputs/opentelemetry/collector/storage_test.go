@@ -104,7 +104,7 @@ func TestSpansStorage_getCount(t *testing.T) {
 
 func TestSpansStorage_getDKTrace(t *testing.T) {
 	type fields struct {
-		rsm         []DKtrace.DatakitTrace
+		rsm         DKtrace.DatakitTraces
 		otelMetrics []*OtelResourceMetric
 		Count       int
 		max         chan int
@@ -113,12 +113,12 @@ func TestSpansStorage_getDKTrace(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   []DKtrace.DatakitTrace
+		want   DKtrace.DatakitTraces
 	}{
 		{
 			name: "case",
 			fields: fields{
-				rsm: []DKtrace.DatakitTrace{
+				rsm: DKtrace.DatakitTraces{
 					{&DKtrace.DatakitSpan{TraceID: "000001"}},
 					{&DKtrace.DatakitSpan{TraceID: "000002"}},
 					{&DKtrace.DatakitSpan{TraceID: "000003"}},
@@ -128,7 +128,7 @@ func TestSpansStorage_getDKTrace(t *testing.T) {
 				max:         nil,
 				stop:        nil,
 			},
-			want: []DKtrace.DatakitTrace{
+			want: DKtrace.DatakitTraces{
 				{&DKtrace.DatakitSpan{TraceID: "000001"}},
 				{&DKtrace.DatakitSpan{TraceID: "000002"}},
 				{&DKtrace.DatakitSpan{TraceID: "000003"}},
@@ -154,7 +154,7 @@ func TestSpansStorage_getDKTrace(t *testing.T) {
 
 func TestSpansStorage_run(t *testing.T) {
 	type fields struct {
-		rsm         []DKtrace.DatakitTrace
+		rsm         DKtrace.DatakitTraces
 		otelMetrics []*OtelResourceMetric
 		Count       int
 		max         chan int
@@ -167,7 +167,7 @@ func TestSpansStorage_run(t *testing.T) {
 		{
 			name: "case1",
 			fields: fields{
-				rsm:         make([]DKtrace.DatakitTrace, 0),
+				rsm:         make(DKtrace.DatakitTraces, 0),
 				otelMetrics: make([]*OtelResourceMetric, 0),
 				max:         make(chan int, 1),
 				stop:        make(chan struct{}, 1),
@@ -203,7 +203,7 @@ func TestSpansStorage_GetDKTrace(t *testing.T) {
 		RegexpString string
 		CustomerTags []string
 		GlobalTags   map[string]string
-		rsm          []DKtrace.DatakitTrace
+		rsm          DKtrace.DatakitTraces
 		otelMetrics  []*OtelResourceMetric
 		Count        int
 		max          chan int
@@ -212,7 +212,7 @@ func TestSpansStorage_GetDKTrace(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   []DKtrace.DatakitTrace
+		want   DKtrace.DatakitTraces
 	}{
 		{
 			name: "case1", fields: fields{
@@ -220,7 +220,7 @@ func TestSpansStorage_GetDKTrace(t *testing.T) {
 				RegexpString: "",
 				CustomerTags: nil,
 				GlobalTags:   nil,
-				rsm: []DKtrace.DatakitTrace{
+				rsm: DKtrace.DatakitTraces{
 					{
 						&DKtrace.DatakitSpan{Operation: "name"},
 						&DKtrace.DatakitSpan{Operation: "name"},
@@ -231,7 +231,7 @@ func TestSpansStorage_GetDKTrace(t *testing.T) {
 				max:         nil,
 				stop:        nil,
 			},
-			want: []DKtrace.DatakitTrace{
+			want: DKtrace.DatakitTraces{
 				{
 					&DKtrace.DatakitSpan{Operation: "name"},
 					&DKtrace.DatakitSpan{Operation: "name"},

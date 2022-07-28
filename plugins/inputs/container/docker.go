@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
@@ -20,14 +19,13 @@ import (
 
 type dockerInput struct {
 	client dockerClientX
+	cfg    *dockerInputConfig
 	// container log 需要添加 pod 信息，所以存一份 k8sclient
 	k8sClient k8sClientX
 
-	containerLogList map[string]context.CancelFunc
-
-	loggingFilter filter.Filter
-
-	cfg *dockerInputConfig
+	loggingFilter    filter.Filter
+	containerLogList map[string]interface{}
+	mu               sync.Mutex
 }
 
 type dockerInputConfig struct {
@@ -39,12 +37,14 @@ type dockerInputConfig struct {
 	containerIncludeLog []string
 	containerExcludeLog []string
 
-	extraTags map[string]string
+	extraTags          map[string]string
+	extraSourceMap     map[string]string
+	sourceMultilineMap map[string]string
 }
 
 func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
 	d := &dockerInput{
-		containerLogList: make(map[string]context.CancelFunc),
+		containerLogList: make(map[string]interface{}),
 		cfg:              cfg,
 	}
 
@@ -55,7 +55,7 @@ func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
 	d.client = client
 
 	if !d.pingOK() {
-		return nil, fmt.Errorf("cannot connect to the Docker daemon at unix:///var/run/docker.sock")
+		return nil, fmt.Errorf("cannot connect to the Docker daemon at %s", cfg.endpoint)
 	}
 
 	if err := d.createLoggingFilters(cfg.containerIncludeLog, cfg.containerExcludeLog); err != nil {
@@ -66,7 +66,7 @@ func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
 }
 
 func (d *dockerInput) stop() {
-	d.cancelTails()
+	// empty interface
 }
 
 func (d *dockerInput) pingOK() bool {
@@ -91,8 +91,6 @@ func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
 		res []inputs.Measurement
 		mu  sync.Mutex
 		wg  sync.WaitGroup
-
-		now = time.Now()
 	)
 
 	for idx := range cList {
@@ -109,7 +107,6 @@ func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
 				return
 			}
 			m.tags.append(d.cfg.extraTags)
-			m.time = now
 
 			mu.Lock()
 			res = append(res, m)
@@ -131,8 +128,6 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 		res []inputs.Measurement
 		mu  sync.Mutex
 		wg  sync.WaitGroup
-
-		now = time.Now()
 	)
 
 	for idx := range cList {
@@ -149,7 +144,6 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 				return
 			}
 			m.tags.append(d.cfg.extraTags)
-			m.time = now
 
 			mu.Lock()
 			res = append(res, m)
@@ -161,7 +155,7 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 	return res, nil
 }
 
-func (d *dockerInput) watchNewContainerLogs() error {
+func (d *dockerInput) watchNewLogs() error {
 	cList, err := d.getRunningContainerList()
 	if err != nil {
 		return err
@@ -176,12 +170,7 @@ func (d *dockerInput) watchNewContainerLogs() error {
 
 		// Start a new goroutine for every new container that has logs to collect
 		go func(container *types.Container) {
-			defer func() {
-				d.removeFromContainerList(container.ID)
-				l.Debugf("remove container log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
-			}()
-
-			if err := d.watchingContainerLog(context.Background(), container); err != nil {
+			if err := d.tailingLog(context.Background(), container); err != nil {
 				if !errors.Is(err, context.Canceled) {
 					l.Warnf("tail containerLog: %s", err)
 				}
@@ -228,7 +217,7 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 		if containerImage := meta.containerImage(getContainerNameForLabels(container.Labels)); containerImage != "" {
 			image = containerImage
 		}
-		podAnnotationState = getPodAnnotationState(container, meta)
+		podAnnotationState = getPodAnnotationState(container.Labels, meta)
 	}()
 
 	switch podAnnotationState {
@@ -253,7 +242,7 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 	return true
 }
 
-func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotationStateType {
+func getPodAnnotationState(labels map[string]string, meta *podMeta) podAnnotationStateType {
 	if meta == nil {
 		return podAnnotationNil
 	}
@@ -265,7 +254,7 @@ func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotat
 
 	if logconf.Disable {
 		l.Debugf("ignore containerlog because of annotation disable, podName:%s, containerName:%s",
-			getPodNameForLabels(container.Labels), getContainerName(container.Names))
+			getPodNameForLabels(labels), getContainerNameForLabels(labels))
 		return podAnnotationDisable
 	}
 
@@ -279,7 +268,7 @@ func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotat
 		return podAnnotationEnable
 	}
 
-	podContainerName := getContainerNameForLabels(container.Labels)
+	podContainerName := getContainerNameForLabels(labels)
 	image := meta.containerImage(podContainerName)
 	if image != "" && f.Match(image) {
 		l.Debugf("match pod only_images, name:%s, image: %s", podContainerName, image)

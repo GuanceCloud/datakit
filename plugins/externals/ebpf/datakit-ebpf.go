@@ -22,10 +22,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkbash "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/bashhistory"
 	dkdns "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/dnsflow"
-	dkfeed "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/feed"
 	dkhttpflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/httpflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/netflow"
+	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
+	dksysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/sysmonitor"
 
 	dkoffset "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/offset"
 )
@@ -38,6 +39,11 @@ const (
 var (
 	enableEbpfBash = false
 	enableEbpfNet  = false
+
+	enableHTTPFlow    = false
+	enableHTTPFlowTLS = false
+
+	ipv6Disabled = false
 )
 
 var pidFile = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf.pid")
@@ -57,6 +63,11 @@ type Option struct {
 	Tags    string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
 	Enabled string `long:"enabled" description:"enabled plugins list in 'a,b,...' format"`
 
+	L7NetDisabled string `long:"l7net-disabled" description:"disabled sub plugins of epbf-net list in 'a,b,...' format"`
+	L7NetEnabled  string `long:"l7net-enabled" description:"enabled sub plugins of epbf-net list in 'a,b,...' format"`
+
+	IPv6Disabled string `long:"ipv6-disabled" description:"ipv6 is not enabled on the system"`
+
 	Service string `long:"service" description:"service" default:"ebpf"`
 }
 
@@ -66,8 +77,12 @@ type Option struct {
 // 		K8sBearerTokenString string
 
 const (
-	inputName     = "ebpf"
-	inputNameNet  = "ebpf-net"
+	inputName        = "ebpf"
+	inputNameNet     = "ebpf-net"
+	inputNameNetNet  = "ebpf-net(netflow)"
+	inputNameNetDNS  = "ebpf-net(dnsflow)"
+	inputNameNetHTTP = "ebpf-net(httpflow)"
+
 	inputNameBash = "ebpf-bash"
 )
 
@@ -96,10 +111,9 @@ func main() {
 
 	dumpStderr2File()
 
-	dkfeed.DataKitAPIServer = opt.DataKitAPIServer
+	dkout.DataKitAPIServer = opt.DataKitAPIServer
 
-	ebpfNetPostURL := fmt.Sprintf("http://%s%s?input="+inputNameNet, dkfeed.DataKitAPIServer, datakit.Network)
-	ebpfBashPostURL := fmt.Sprintf("http://%s%s?input="+inputNameBash, dkfeed.DataKitAPIServer, datakit.Logging)
+	ebpfBashPostURL := fmt.Sprintf("http://%s%s?input="+inputNameBash, dkout.DataKitAPIServer, datakit.Logging)
 
 	logOpt := logger.Option{
 		Path:  opt.Log,
@@ -108,21 +122,25 @@ func main() {
 	}
 
 	if err := logger.InitRoot(&logOpt); err != nil {
-		l.Errorf("set root log faile: %s", err.Error())
+		l.Errorf("set root log fail: %s", err.Error())
 	}
 
 	l = logger.SLogger(inputName)
 
+	dkout.Init(l)
 	dknetflow.SetLogger(l)
 	dkdns.SetLogger(l)
 	dkoffset.SetLogger(l)
 	dkbash.SetLogger(l)
 	dkhttpflow.SetLogger(l)
+	dksysmonitor.SetLogger(l)
 
-	// duration 介于 10s ～ 30min，若非，默认设为 30s.
+	// duration 介于 10s ～ 30min，若非，取边界数值.
 	if tmp, err := time.ParseDuration(opt.Interval); err == nil {
-		if tmp < maxInterval || tmp > maxInterval {
-			tmp = time.Second * 30
+		if tmp < minInterval {
+			tmp = minInterval
+		} else if tmp > maxInterval {
+			tmp = maxInterval
 		}
 		interval = tmp
 		l.Debug("interval: ", opt.Interval)
@@ -137,13 +155,22 @@ func main() {
 
 	// ebpf-net
 	if enableEbpfNet {
-		offset, err := getOffset()
+		offset, err := LoadOffset()
+		if err != nil {
+			offset = nil
+			l.Warn(err)
+		}
+		offset, err = getOffset(offset)
 		if err != nil {
 			feedLastErrorLoop(err, signaIterrrupt)
 			return
 		}
 		l.Debugf("%+v", offset)
 
+		err = DumpOffset(offset)
+		if err != nil {
+			l.Warn(err)
+		}
 		k8sinfo, err := newK8sInfoFromENV()
 		if err != nil {
 			l.Warn(err)
@@ -178,19 +205,34 @@ func main() {
 			l.Error(err)
 		} else {
 			dnsTracer := dkdns.NewDNSFlowTracer()
-			go dnsTracer.Run(ctx, tp, gTags, dnsRecord, ebpfNetPostURL)
+			go dnsTracer.Run(ctx, tp, gTags, dnsRecord, fmt.Sprintf("http://%s%s?input="+inputNameNetDNS,
+				dkout.DataKitAPIServer, datakit.Network))
 		}
 
 		// run netflow
-		err = netflowTracer.Run(ctx, ebpfNetManger, ebpfNetPostURL, gTags, interval)
+		err = netflowTracer.Run(ctx, ebpfNetManger, fmt.Sprintf("http://%s%s?input="+inputNameNetNet,
+			dkout.DataKitAPIServer, datakit.Network), gTags, interval)
 		if err != nil {
 			feedLastErrorLoop(err, signaIterrrupt)
 			return
 		}
 
-		tracer := dkhttpflow.NewHTTPFlowTracer(gTags, ebpfNetPostURL)
-		if err := tracer.Run(ctx); err != nil {
-			l.Error(err)
+		if enableHTTPFlow {
+			bpfMapSockFD, ok, err := ebpfNetManger.GetMap("bpfmap_sockfd")
+			if err != nil {
+				feedLastErrorLoop(err, signaIterrrupt)
+				return
+			}
+			if !ok {
+				feedLastErrorLoop(fmt.Errorf("can not found bpfmap_sockfd"), signaIterrrupt)
+				return
+			}
+
+			tracer := dkhttpflow.NewHTTPFlowTracer(gTags, fmt.Sprintf("http://%s%s?input="+inputNameNetHTTP,
+				dkout.DataKitAPIServer, datakit.Network))
+			if err := tracer.Run(ctx, constEditor, bpfMapSockFD, enableHTTPFlowTLS); err != nil {
+				l.Error(err)
+			}
 		}
 	}
 
@@ -213,7 +255,7 @@ func main() {
 	quit()
 }
 
-func getOffset() (*dkoffset.OffsetGuessC, error) {
+func getOffset(saved *dkoffset.OffsetGuessC) (*dkoffset.OffsetGuessC, error) {
 	bpfManger, err := dkoffset.NewGuessManger()
 	if err != nil {
 		return nil, err
@@ -229,7 +271,7 @@ func getOffset() (*dkoffset.OffsetGuessC, error) {
 		if err != nil {
 			return nil, err
 		}
-		status, err := dkoffset.GuessOffset(mapG, nil)
+		status, err := dkoffset.GuessOffset(mapG, saved, ipv6Disabled)
 		if err != nil {
 			if i == loopCount-1 {
 				return nil, err
@@ -246,11 +288,11 @@ func getOffset() (*dkoffset.OffsetGuessC, error) {
 func feedLastErrorLoop(err error, ch chan os.Signal) {
 	l.Error(err)
 
-	extLastErr := dkfeed.ExternalLastErr{
+	extLastErr := dkout.ExternalLastErr{
 		Input:      inputName,
 		ErrContent: err.Error(),
 	}
-	if err := dkfeed.FeedLastError(extLastErr); err != nil {
+	if err := dkout.FeedLastError(extLastErr); err != nil {
 		l.Error(err)
 	}
 
@@ -258,7 +300,7 @@ func feedLastErrorLoop(err error, ch chan os.Signal) {
 	for {
 		select {
 		case <-ticker.C:
-			if err := dkfeed.FeedLastError(extLastErr); err != nil {
+			if err := dkout.FeedLastError(extLastErr); err != nil {
 				l.Error(err)
 			}
 		case <-ch:
@@ -283,6 +325,39 @@ func parseFlags() (*Option, map[string]string, error) {
 		case inputNameBash:
 			enableEbpfBash = true
 		}
+	}
+
+	if opt.L7NetEnabled != "" {
+		optEnableL7 := strings.Split(opt.L7NetEnabled, ",")
+		for _, v := range optEnableL7 {
+			switch v {
+			case "httpflow":
+				enableHTTPFlow = true
+			case "httpflow-tls":
+				enableHTTPFlowTLS = true
+			default:
+				l.Warnf("unsupported application layer protocol: %s", v)
+			}
+		}
+	} else if opt.L7NetDisabled != "" {
+		optDisableL7 := strings.Split(opt.L7NetDisabled, ",")
+		tmpMap := map[string]struct{}{}
+		for _, v := range optDisableL7 {
+			tmpMap[v] = struct{}{}
+		}
+		if _, ok := tmpMap["httpflow"]; !ok {
+			enableHTTPFlow = true
+		}
+
+		if _, ok := tmpMap["httpflow-tls"]; !ok {
+			enableHTTPFlowTLS = true
+		}
+	}
+
+	switch strings.ToLower(opt.IPv6Disabled) {
+	case "true", "t", "yes", "y", "1":
+		ipv6Disabled = true
+	default:
 	}
 
 	optTags := strings.Split(opt.Tags, ";")
@@ -429,4 +504,38 @@ func dumpStderr2File() {
 	if err = f.Close(); err != nil {
 		l.Error(err)
 	}
+}
+
+func DumpOffset(offset *dkoffset.OffsetGuessC) error {
+	dirpath := filepath.Join(datakit.InstallDir, "externals")
+	filepath := filepath.Join(dirpath, "datakit-ebpf.offset")
+
+	offsetStr, err := dkoffset.DumpOffset(*offset)
+	if err != nil {
+		return err
+	}
+
+	fp, err := os.Create(filepath) //nolint:gosec
+	if err != nil {
+		return err
+	}
+
+	if _, err := fp.Write([]byte(offsetStr)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func LoadOffset() (*dkoffset.OffsetGuessC, error) {
+	dirpath := filepath.Join(datakit.InstallDir, "externals")
+	filepath := filepath.Join(dirpath, "datakit-ebpf.offset")
+	offsetByte, err := os.ReadFile(filepath) //nolint:gosec
+	if err != nil {
+		return nil, err
+	}
+	offset, err := dkoffset.LoadOffset(string(offsetByte))
+	if err != nil {
+		return nil, err
+	}
+	return &offset, err
 }

@@ -1,19 +1,18 @@
 {{.CSS}}
+# Jaeger
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
+- 操作系统支持：{{.AvailableArchs}}
 
 Datakit 内嵌的 Jaeger Agent 用于接收，运算，分析 Jaeger Tracing 协议数据。
 
 ## Jaeger 文档
 
-- [Quickstart](https://www.jaegertracing.io/docs/1.27/getting-started/)
-- [Docs](https://www.jaegertracing.io/docs/)
-- [Clients Download](https://www.jaegertracing.io/download/)
-- [Source Code](https://github.com/jaegertracing/jaeger)
+- [Quickstart](https://www.jaegertracing.io/docs/1.27/getting-started/){:target="_blank"}
+- [Docs](https://www.jaegertracing.io/docs/){:target="_blank"}
+- [Clients Download](https://www.jaegertracing.io/download/){:target="_blank"}
+- [Source Code](https://github.com/jaegertracing/jaeger){:target="_blank"}
 
 ## 配置 Jaeger Agent
 
@@ -49,9 +48,11 @@ endpoint 代表 Jaeger HTTP Agent 路由
 
 - 修改 Jaeger Client 的 Agent UDP Host:Port 为上面配置中指定的 address
 
-有关数据采样，数据过滤，关闭资源等配置请参考[Datakit Tracing](datakit-tracing)
+有关数据采样，数据过滤，关闭资源等配置请参考[Datakit Tracing](datakit-tracing.md)
 
-## Golang For Jaeger HTTP Agent Usage
+## Golang 示例 {#go-http}
+
+以下是一个 HTTP Agent 示例：
 
 ```golang
 package main
@@ -146,7 +147,9 @@ func send(urlstr string, i int) {
 }
 ```
 
-## Golang For Jaeger UDP Agent Usage
+## Golang UDP 示例 {#go-udp}
+
+以下是一个 UDP Agent 示例：
 
 ```golang
 package main
@@ -206,3 +209,24 @@ func foo() {
   span.SetTag("finish_ts", time.Now())
 }
 ```
+
+## Tracing 数据
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "tracing"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}

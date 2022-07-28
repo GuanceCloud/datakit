@@ -21,11 +21,6 @@ case $branch_name in
 		git push github github-mirror --tags
 		git push jihulab github-mirror
 		git push jihulab github-mirror --tags
-
-		if [[ "$OSTYPE" == "darwin"* ]]; then # Release darwin version first
-			make production_mac VERSION=$1 &&
-				echo "[I] darwin prod release ok"
-		fi
 		;;
 
 	*) echo "[E] unsupported branch '$branch_name' for release, exited"

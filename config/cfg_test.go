@@ -57,67 +57,119 @@ func TestSetupGlobalTags(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	hn, err := os.Hostname()
+	if err != nil {
+		t.Fatalf("get hostname failed: %s", err.Error())
+	}
+
 	cases := []struct {
-		tags   map[string]string
-		expect map[string]string
-		fail   bool
+		name string
+
+		hosttags             map[string]string
+		envtags              map[string]string
+		deprecatedGlobalTags map[string]string
+
+		election, electionTag bool
+
+		expectHostTags,
+		expectEnvTags map[string]string
 	}{
 		{
-			tags: map[string]string{
-				"host": "__datakit_hostname", // ENV host dropped during setup
+			name: "mixed-host-and-evn-tags",
+			hosttags: map[string]string{
 				"ip":   "__datakit_ip",
-				"id":   "__datakit_id",
-				"uuid": "__datakit_uuid",
+				"host": "__datakit_hostname",
+
+				// 此处 `__datakit_id` and `__datakit_uuid` 都被设置为 `host`
+				// 即不允许出现 xxx = "__datakit_id" 这种 tag
+				"some_id":   "__datakit_id",
+				"some_uuid": "__datakit_uuid",
+
+				// 但可以额外直接给一个 xxx = __datakit_hostname 这样的 tag
+				"xxx": "__datakit_hostname",
 			},
-			expect: map[string]string{
-				"ip": localIP,
+
+			envtags:        map[string]string{"cluster": "my-cluster"},
+			expectHostTags: map[string]string{"ip": localIP, "host": hn, "xxx": hn},
+			expectEnvTags:  map[string]string{"cluster": "my-cluster"},
+		},
+
+		{
+			name:           "only-host-tags",
+			hosttags:       map[string]string{"uuid": "some-uuid", "host": "some-host"},
+			expectHostTags: map[string]string{"uuid": "some-uuid", "host": "some-host"},
+		},
+
+		{
+			name:                 "host-tags-deprecated",
+			hosttags:             map[string]string{"uuid": "some-uuid", "host": "some-host"},
+			deprecatedGlobalTags: map[string]string{"tag1": "val1", "tag2": "val2"},
+
+			expectHostTags: map[string]string{
+				"uuid": "some-uuid",
+				"host": "some-host",
+				"tag1": "val1",
+				"tag2": "val2",
 			},
 		},
 
 		{
-			tags: map[string]string{
-				"host": "$datakit_hostname", // ENV host dropped during setup
-				"ip":   "$datakit_ip",
-				"id":   "$datakit_id",
-				"uuid": "$datakit_uuid",
-			},
-			expect: map[string]string{
-				"ip": localIP,
-			},
+			name:          "only-env-tags",
+			envtags:       map[string]string{"cluster": "my-cluster"},
+			expectEnvTags: map[string]string{"cluster": "my-cluster"},
 		},
 
 		{
-			tags: map[string]string{
-				"uuid": "some-uuid",
-				"host": "some-host", // ENV host dropped during setup
-			},
+			name:        "enable-only-election",
+			election:    true,
+			electionTag: false,
 
-			expect: map[string]string{
-				"uuid": "some-uuid",
-			},
+			hosttags:       map[string]string{"uuid": "some-uuid", "host": "some-host"},
+			envtags:        map[string]string{"cluster": "my-cluster"},
+			expectEnvTags:  map[string]string{"cluster": "my-cluster"},
+			expectHostTags: map[string]string{"uuid": "some-uuid", "host": "some-host"},
+		},
+
+		{
+			name:        "enable-election-and-tags",
+			election:    true,
+			electionTag: true,
+
+			hosttags:       map[string]string{"uuid": "some-uuid", "host": "some-host"},
+			envtags:        map[string]string{"cluster": "my-cluster"},
+			expectEnvTags:  map[string]string{"election_namespace": "default", "cluster": "my-cluster"},
+			expectHostTags: map[string]string{"uuid": "some-uuid", "host": "some-host"},
 		},
 	}
 
-	for idx, tc := range cases {
-		c := DefaultConfig()
-		for k, v := range tc.tags {
-			c.GlobalTags[k] = v
-		}
-
-		err := c.setupGlobalTags()
-		if tc.fail {
-			tu.NotOk(t, err, "")
-		} else {
-			tu.Ok(t, err)
-		}
-
-		for k, v := range c.GlobalTags {
-			if tc.expect == nil {
-				tu.Assert(t, v != tc.expect[k], "[case %d] `%s' != `%s', global tags: %+#v", idx, v, tc.expect[k], c.GlobalTags)
-			} else {
-				tu.Assert(t, v == tc.expect[k], "[case %d] `%s' != `%s', global tags: %+#v", idx, v, tc.expect[k], c.GlobalTags)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := DefaultConfig()
+			for k, v := range tc.hosttags {
+				c.GlobalHostTags[k] = v
 			}
-		}
+
+			for k, v := range tc.envtags {
+				c.GlobalEnvTags[k] = v
+			}
+
+			for k, v := range tc.deprecatedGlobalTags {
+				c.GlobalTagsDeprecated[k] = v
+			}
+
+			c.EnableElection = tc.election
+			c.EnableElectionTag = tc.electionTag
+			c.setupGlobalTags()
+
+			// 这些预期的 tags 在 config 中必须存在
+			for k, v := range tc.expectEnvTags {
+				tu.Assert(t, v == c.GlobalEnvTags[k], "[%s]`%s' != `%s'", k, v, c.GlobalEnvTags[k])
+			}
+
+			for k, v := range tc.expectHostTags {
+				tu.Assert(t, v == c.GlobalHostTags[k], "[%s]`%s' != `%s'", k, v, c.GlobalHostTags[k])
+			}
+		})
 	}
 }
 
@@ -179,10 +231,12 @@ func TestDefaultToml(t *testing.T) {
 
 func TestUnmarshalCfg(t *testing.T) {
 	cases := []struct {
+		name string
 		raw  string
 		fail bool
 	}{
 		{
+			name: "real-conf",
 			raw: `
 	name = "not-set"
 http_listen="0.0.0.0:9529"
@@ -218,11 +272,13 @@ install_date = 2021-03-25T11:00:19Z
 		},
 
 		{
-			raw:  `abc = def`, // invalid toml
+			name: "invalid-toml",
+			raw:  `abc = def`, // bad toml
 			fail: true,
 		},
 
 		{
+			name: "invalid-type",
 			raw: `
 name = "not-set"
 http_listen=123  # invalid type
@@ -231,6 +287,7 @@ log = "log"`,
 		},
 
 		{
+			name: "partial-ok",
 			raw: `
 name = "not-set"
 log = "log"`,
@@ -238,8 +295,13 @@ log = "log"`,
 		},
 
 		{
+			name: "partial-ok-2",
 			raw: `
 hostname = "should-not-set"`,
+		},
+		{
+			name: "dk-conf-sample",
+			raw:  DatakitConfSample,
 		},
 	}
 
@@ -250,25 +312,27 @@ hostname = "should-not-set"`,
 	}()
 
 	for _, tc := range cases {
-		c := DefaultConfig()
+		t.Run(tc.name, func(t *testing.T) {
+			c := DefaultConfig()
 
-		if err := ioutil.WriteFile(tomlfile, []byte(tc.raw), 0o600); err != nil {
-			t.Fatal(err)
-		}
+			if err := ioutil.WriteFile(tomlfile, []byte(tc.raw), 0o600); err != nil {
+				t.Fatal(err)
+			}
 
-		err := c.LoadMainTOML(tomlfile)
-		if tc.fail {
-			tu.NotOk(t, err, "")
-			continue
-		} else {
-			tu.Ok(t, err)
-		}
+			err := c.LoadMainTOML(tomlfile)
+			if tc.fail {
+				tu.NotOk(t, err, "")
+				return
+			} else {
+				tu.Ok(t, err)
+			}
 
-		t.Logf("hostname: %s", c.Hostname)
+			t.Logf("hostname: %s", c.Hostname)
 
-		if err := os.Remove(tomlfile); err != nil {
-			t.Error(err)
-		}
+			if err := os.Remove(tomlfile); err != nil {
+				t.Error(err)
+			}
+		})
 	}
 }
 
@@ -346,19 +410,6 @@ func TestWriteConfigFile(t *testing.T) {
 			fmt.Println(string(mcdata))
 		})
 	}
-}
-
-func TestGetElectionNamespace(t *testing.T) {
-	Cfg = DefaultConfig()
-	tu.Equals(t, GetElectionNamespace(), "")
-	Cfg.Namespace = "test"
-	tu.Equals(t, GetElectionNamespace(), "")
-
-	Cfg.EnableElection = true
-	tu.Equals(t, GetElectionNamespace(), "test")
-
-	Cfg.Namespace = ""
-	tu.Equals(t, GetElectionNamespace(), "default")
 }
 
 func TestSetupDataway(t *testing.T) {

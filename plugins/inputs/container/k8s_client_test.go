@@ -5,10 +5,19 @@
 
 package container
 
-/* failure of testing
+/*
+import (
+	"context"
+	"encoding/json"
+	"os"
+	"testing"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
 func TestNewClient(t *testing.T) {
 	var (
-		kubeURL     = "172.16.2.41:6443"
+		kubeURL     = "1.15.22.133:6443"
 		bearerToken = os.Getenv("K8S_TOKEN")
 	)
 
@@ -17,10 +26,13 @@ func TestNewClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	list, err := cli.getPods().List(context.Background(), metaV1ListOption)
+	// metav1.ListOptions{LabelSelector: "app=nginx"}
+	// list, err := cli.getDataKits().List(context.Background(), metav1.ListOptions{})
+	list, err := cli.getPods().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		t.Error(err)
 	}
+
 	for _, item := range list.Items {
 		s, _ := json.MarshalIndent(item, "", "    ")
 		t.Logf("%s\n\n", s)

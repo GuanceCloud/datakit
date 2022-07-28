@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -57,29 +58,23 @@ const (
     # ...
 
   ## Sampler config uses to set global sampling strategy.
-  ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
-  ##  -1: always reject any tracing data send to datakit
-  ##   0: accept tracing data and calculate with sampling_rate
-  ##   1: always send to data center and do not consider sampling_rate
-  ## sampling_rate used to set global sampling rate
+  ## sampling_rate used to set global sampling rate.
   # [inputs.ddtrace.sampler]
-    # priority = 0
     # sampling_rate = 1.0
-
-  ## Piplines use to manipulate message and meta data. If this item configured right then
-  ## the current input procedure will run the scripts wrote in pipline config file against the data
-  ## present in span message.
-  ## The string on the left side of the equal sign must be identical to the service name that
-  ## you try to handle.
-  # [inputs.ddtrace.pipelines]
-    # service1 = "service1.p"
-    # service2 = "service2.p"
-    # ...
 
   # [inputs.ddtrace.tags]
     # key1 = "value1"
     # key2 = "value2"
     # ...
+
+  ## Threads config controls how many goroutines an agent cloud start.
+  ## buffer is the size of jobs' buffering of worker channel.
+  ## threads is the total number fo goroutines at running time.
+  ## timeout is the duration(ms) before a job can return a result.
+  # [inputs.ddtrace.threads]
+    # buffer = 100
+    # threads = 8
+    # timeout = 1000
 `
 )
 
@@ -93,21 +88,24 @@ var (
 	sampler            *itrace.Sampler
 	customerKeys       []string
 	tags               map[string]string
+	wpool              workerpool.WorkerPool
+	jobTimeout         time.Duration
 )
 
 type Input struct {
-	Path             string              `toml:"path,omitempty"`           // deprecated
-	TraceSampleConfs interface{}         `toml:"sample_configs,omitempty"` // deprecated []*itrace.TraceSampleConfig
-	TraceSampleConf  interface{}         `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
-	IgnoreResources  []string            `toml:"ignore_resources"`         // deprecated []string
-	Endpoints        []string            `toml:"endpoints"`
-	CustomerTags     []string            `toml:"customer_tags"`
-	KeepRareResource bool                `toml:"keep_rare_resource"`
-	OmitErrStatus    []string            `toml:"omit_err_status"`
-	CloseResource    map[string][]string `toml:"close_resource"`
-	Sampler          *itrace.Sampler     `toml:"sampler"`
-	Pipelines        map[string]string   `toml:"pipelines"`
-	Tags             map[string]string   `toml:"tags"`
+	Path             string                       `toml:"path,omitempty"`           // deprecated
+	TraceSampleConfs interface{}                  `toml:"sample_configs,omitempty"` // deprecated []*itrace.TraceSampleConfig
+	TraceSampleConf  interface{}                  `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
+	IgnoreResources  []string                     `toml:"ignore_resources"`         // deprecated []string
+	Pipelines        map[string]string            `toml:"pipelines"`                // deprecated
+	Endpoints        []string                     `toml:"endpoints"`
+	CustomerTags     []string                     `toml:"customer_tags"`
+	KeepRareResource bool                         `toml:"keep_rare_resource"`
+	OmitErrStatus    []string                     `toml:"omit_err_status"`
+	CloseResource    map[string][]string          `toml:"close_resource"`
+	Sampler          *itrace.Sampler              `toml:"sampler"`
+	Tags             map[string]string            `toml:"tags"`
+	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
 }
 
 func (*Input) Catalog() string {
@@ -115,7 +113,7 @@ func (*Input) Catalog() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (*Input) SampleConfig() string {
@@ -127,29 +125,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) RegHTTPHandler() {
-	var isReg bool
-	for _, endpoint := range ipt.Endpoints {
-		switch endpoint {
-		case v1, v2, v3, v4, v5:
-			isReg = true
-			dkhttp.RegHTTPHandler(http.MethodPost, endpoint, handleDDTraceWithVersion(endpoint))
-			dkhttp.RegHTTPHandler(http.MethodPut, endpoint, handleDDTraceWithVersion(endpoint))
-			log.Infof("pattern %s registered", endpoint)
-		default:
-			log.Errorf("unrecognized ddtrace agent endpoint")
-		}
-	}
-	if isReg {
-		// itrace.StartTracingStatistic()
-		// unsupported api yet
-		dkhttp.RegHTTPHandler(http.MethodPost, info, handleDDInfo)
-		dkhttp.RegHTTPHandler(http.MethodPost, stats, handleDDStats)
-	}
-}
-
-func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
-	log.Infof("%s input started...", inputName)
 
 	afterGather := itrace.NewAfterGather()
 	afterGatherRun = afterGather
@@ -157,15 +133,18 @@ func (ipt *Input) Run() {
 	// add calculators
 	// afterGather.AppendCalculator(itrace.StatTracingInfo)
 
-	// add filters: the order append in AfterGather is important!!!
-	// add error status penetration
-	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
+	// add filters: the order of appending filters into AfterGather is important!!!
+	// the order of appending represents the order of that filter executes.
 	// add close resource filter
 	if len(ipt.CloseResource) != 0 {
 		closeResource = &itrace.CloseResource{}
 		closeResource.UpdateIgnResList(ipt.CloseResource)
 		afterGather.AppendFilter(closeResource.Close)
 	}
+	// add RespectUserRule filter to obey client priority rules.
+	afterGather.AppendFilter(itrace.RespectUserRule)
+	// add error status penetration
+	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add omit certain error status list
 	if len(ipt.OmitErrStatus) != 0 {
 		afterGather.AppendFilter(itrace.OmitStatusCodeFilterWrapper(ipt.OmitErrStatus))
@@ -177,24 +156,58 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
-	log.Debugf("Sampler = %v", ipt.Sampler)
-	if ipt.Sampler != nil {
+	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
 		sampler = ipt.Sampler
-		afterGather.AppendFilter(sampler.Sample)
+	} else {
+		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
 	}
-	// add piplines
-	if len(ipt.Pipelines) != 0 {
-		afterGather.AppendFilter(itrace.PiplineFilterWrapper(inputName, ipt.Pipelines))
+	afterGather.AppendFilter(sampler.Sample)
+
+	if ipt.WPConfig != nil {
+		wpool = workerpool.NewWorkerPool(ipt.WPConfig.Buffer)
+		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
+			log.Errorf("### start workerpool failed: %s", err.Error())
+			wpool = nil
+		} else {
+			jobTimeout = time.Duration(ipt.WPConfig.Timeout) * time.Millisecond
+		}
 	}
 
+	log.Debugf("### register handlers for %s agent", inputName)
+	var isReg bool
+	for _, endpoint := range ipt.Endpoints {
+		switch endpoint {
+		case v1, v2, v3, v4, v5:
+			dkhttp.RegHTTPHandler(http.MethodPost, endpoint, handleDDTraceWithVersion(endpoint))
+			dkhttp.RegHTTPHandler(http.MethodPut, endpoint, handleDDTraceWithVersion(endpoint))
+			isReg = true
+			log.Debugf("### pattern %s registered for %s agent", endpoint, inputName)
+		default:
+			log.Debugf("### unrecognized pattern %s for %s agent", endpoint, inputName)
+		}
+	}
+	if isReg {
+		// itrace.StartTracingStatistic()
+		// unsupported api yet
+		dkhttp.RegHTTPHandler(http.MethodPost, info, handleDDInfo)
+		dkhttp.RegHTTPHandler(http.MethodPost, stats, handleDDStats)
+	}
+}
+
+func (ipt *Input) Run() {
 	for i := range ipt.CustomerTags {
 		customerKeys = append(customerKeys, ipt.CustomerTags[i])
 	}
 	tags = ipt.Tags
+
+	log.Debugf("### %s agent is running...", inputName)
 }
 
 func (ipt *Input) Terminate() {
-	// TODO: 必须写
+	if wpool != nil {
+		wpool.Shutdown()
+		log.Debugf("### workerpool in %s is shudown", inputName)
+	}
 }
 
 func init() { //nolint:gochecknoinits

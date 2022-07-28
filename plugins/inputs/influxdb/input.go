@@ -24,8 +24,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
-
 const (
 	minInterval      = time.Second * 5
 	maxInterval      = time.Minute * 10
@@ -33,7 +31,10 @@ const (
 	metricNamePrefix = "influxdb_"
 )
 
-var l = logger.DefaultSLogger("influxdb")
+var (
+	_ inputs.ElectionInput = (*Input)(nil)
+	l                      = logger.DefaultSLogger("influxdb")
+)
 
 type Input struct {
 	URLsDeprecated []string `toml:"urls,omitempty"`
@@ -82,7 +83,7 @@ func (*Input) Catalog() string { return "influxdb" }
 
 func (*Input) SampleConfig() string { return sampleConfig }
 
-func (*Input) AvailableArchs() []string { return datakit.AllArch }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) PipelineConfig() map[string]string { return nil }
 
@@ -160,8 +161,8 @@ func (i *Input) Run() {
 		var err error
 		tlsCfg, err = i.TLSConf.TLSConfig()
 		if err != nil {
-			l.Error(err)
-			io.ReportLastError(inputName, err.Error())
+			l.Errorf("TLSConfig: %s", err)
+			io.FeedLastError(inputName, err.Error())
 			return
 		}
 	} else {
@@ -177,10 +178,6 @@ func (i *Input) Run() {
 	}
 
 	tick := time.NewTicker(i.Interval.Duration)
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		i.Tags["election_namespace"] = namespace
-	}
 
 	defer tick.Stop()
 	for {
@@ -273,6 +270,9 @@ func (i *Input) Collect() error {
 			}
 		}
 		if point != nil {
+			if point.Tags == nil {
+				point.Tags = make(map[string]string)
+			}
 			for k, v := range i.Tags {
 				point.Tags[k] = v
 			}

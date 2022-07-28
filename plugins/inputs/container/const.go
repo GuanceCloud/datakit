@@ -6,8 +6,6 @@
 package container
 
 import (
-	"reflect"
-
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -20,10 +18,10 @@ const (
 	containerdAddress = "/var/run/containerd/containerd.sock"
 )
 
-var measurements = make(map[reflect.Type]inputs.Measurement)
+var measurements = []inputs.Measurement{}
 
 func registerMeasurement(mea inputs.Measurement) {
-	measurements[reflect.TypeOf(mea)] = mea
+	measurements = append(measurements, mea)
 }
 
 const sampleCfg = `
@@ -53,6 +51,12 @@ const sampleCfg = `
   ## windows at: C:\var\run\secrets\kubernetes.io\serviceaccount\token
   bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
   # bearer_token_string = "<your-token-string>"
+
+  [inputs.container.logging_extra_source_map]
+    # source_regexp = "new_source"
+
+  [inputs.container.logging_source_multiline_map]
+    # source = '''^\d{4}'''
 
   [inputs.container.tags]
     # some_tag = "some_value"

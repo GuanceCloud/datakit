@@ -15,11 +15,11 @@ import (
 
 	"github.com/DataDog/ebpf/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/feed"
+	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 	"golang.org/x/sys/unix"
 )
 
@@ -30,14 +30,15 @@ type BashEventC C.struct_bash_event
 
 const srcNameM = "bash"
 
-var l = logger.DefaultSLogger(srcNameM)
+var (
+	l = logger.DefaultSLogger(srcNameM)
+
+	// regexpReadline  = regexp.MustCompile(`libreadline.so`)
+	// sectionReadline = "uretprobe/readline"
+)
 
 func SetLogger(nl *logger.Logger) {
 	l = nl
-}
-
-type Inputs struct {
-	external.ExernalInput
 }
 
 func NewBashManger(bashReadlineEventHandler func(cpu int, data []byte,
@@ -77,14 +78,14 @@ func NewBashManger(bashReadlineEventHandler func(cpu int, data []byte,
 }
 
 type BashTracer struct {
-	ch     chan *measurement
+	ch     chan *point.Point
 	stopCh chan struct{}
 	gTags  map[string]string
 }
 
 func NewBashTracer() *BashTracer {
 	return &BashTracer{
-		ch:     make(chan *measurement, 32),
+		ch:     make(chan *point.Point, 32),
 		stopCh: make(chan struct{}),
 	}
 }
@@ -93,57 +94,60 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 	perfmap *manager.PerfMap, manager *manager.Manager) {
 	eventC := (*BashEventC)(unsafe.Pointer(&data[0])) //nolint:gosec
 
-	m := measurement{
-		ts:     time.Now(),
-		name:   srcNameM,
-		tags:   map[string]string{},
-		fields: map[string]interface{}{},
+	mTags := map[string]string{}
+
+	for k, v := range tracer.gTags {
+		if _, ok := mTags[k]; !ok {
+			mTags[k] = v
+		}
 	}
 
+	mFields := map[string]interface{}{}
+
 	lineChar := (*(*[128]byte)(unsafe.Pointer(&eventC.line)))
-	m.fields["cmd"] = unix.ByteSliceToString(lineChar[:])
+	mFields["cmd"] = unix.ByteSliceToString(lineChar[:])
 
 	u, err := user.LookupId(fmt.Sprintf("%d", int(eventC.uid_gid>>32)))
 	if err != nil {
 		l.Error(err)
 	} else {
-		m.fields["user"] = u.Name
+		mFields["user"] = u.Name
 	}
-	m.fields["pid"] = fmt.Sprintf("%d", int(eventC.pid_tgid>>32))
+	mFields["pid"] = fmt.Sprintf("%d", int(eventC.pid_tgid>>32))
 
-	m.fields["message"] = fmt.Sprintf("%s pid:`%s` user:`%s` cmd:`%s`",
-		m.ts.Format(time.RFC3339), m.fields["pid"], m.fields["user"], m.fields["cmd"])
+	mFields["message"] = fmt.Sprintf("%s pid:`%s` user:`%s` cmd:`%s`",
+		time.Now().Format(time.RFC3339), mFields["pid"], mFields["user"], mFields["cmd"])
+
+	pt, err := point.NewPoint(srcNameM, mTags, mFields, point.LOpt())
+	if err != nil {
+		l.Error(err)
+		return
+	}
 	select {
 	case <-tracer.stopCh:
-	case tracer.ch <- &m:
+	case tracer.ch <- pt:
 	}
 }
 
 func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string, interval time.Duration) {
 	ticker := time.NewTicker(interval)
-	cache := []inputs.Measurement{}
+	cache := []*point.Point{}
 	for {
 		select {
 		case <-ticker.C:
 			if len(cache) > 0 {
-				if err := feed.FeedMeasurement(cache, datakitPostURL); err != nil {
+				if err := dkout.FeedMeasurement(datakitPostURL, cache); err != nil {
 					l.Error(err)
 				}
-				cache = make([]inputs.Measurement, 0)
+				cache = make([]*point.Point, 0)
 			}
-		case m := <-tracer.ch:
-			for k, v := range tracer.gTags {
-				if _, ok := m.tags[k]; !ok {
-					m.tags[k] = v
-				}
-			}
-			l.Debug(m)
-			cache = append(cache, m)
+		case pt := <-tracer.ch:
+			cache = append(cache, pt)
 			if len(cache) > 128 {
-				if err := feed.FeedMeasurement(cache, datakitPostURL); err != nil {
+				if err := dkout.FeedMeasurement(datakitPostURL, cache); err != nil {
 					l.Error(err)
 				}
-				cache = make([]inputs.Measurement, 0)
+				cache = make([]*point.Point, 0)
 			}
 		case <-tracer.stopCh:
 			return
@@ -166,6 +170,38 @@ func (tracer *BashTracer) Run(ctx context.Context, gTags map[string]string,
 		l.Error(err)
 		return err
 	}
+
+	// rules := []sysmonitor.UprobeRegRule{
+	// 	{
+	// 		Re: regexpReadline,
+	// 		Register: func(s string) error {
+	// 			l.Info("AddHook: ", s)
+	// 			if err := bpfManger.AddHook("", manager.Probe{
+	// 				UID:        s,
+	// 				Section:    sectionReadline,
+	// 				BinaryPath: s,
+	// 			}); err != nil {
+	// 				l.Error(err)
+	// 			}
+	// 			return nil
+	// 		},
+	// 		UnRegister: func(s string) error {
+	// 			l.Info("DetachHook: ", s)
+	// 			if err := bpfManger.DetachHook(sectionReadline, s); err != nil {
+	// 				l.Error(err)
+	// 			}
+	// 			return nil
+	// 		},
+	// 	},
+	// }
+
+	// r, err := sysmonitor.NewUprobeDyncLibRegister(rules)
+	// if err != nil {
+	// 	return err
+	// }
+	// r.ScanAndUpdate()
+	// r.Monitor(ctx, time.Minute*1)
+
 	go func() {
 		<-ctx.Done()
 		close(tracer.stopCh)
@@ -180,8 +216,8 @@ type measurement struct {
 	ts     time.Time
 }
 
-func (m *measurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+func (m *measurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, &point.PointOption{Category: datakit.Logging, Time: m.ts})
 }
 
 func (m *measurement) Info() *inputs.MeasurementInfo {

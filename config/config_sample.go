@@ -5,32 +5,25 @@
 
 package config
 
-const DatakitConfSample = `
+var DatakitConfSample = `
 ## default_enabled_inputs: list<string>, 默认开启的采集器列表
 ## 开启的采集器会在相应的目录检查是否存在该采集器配置文件，如果没有则会生成其配置文件
 #
 default_enabled_inputs = ["cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes"]
 
-## install_date: time, DataKit 安装时间, 安装阶段自动生成
-#
-install_date = 2022-04-14T07:01:14Z
-
-## install_version: string, DataKit 版本，安装或升级阶段自动生成
-#
-install_version = "1.2.14-13-gea59773c9e"
-
-## upgrade_date: time, DataKit 升级时间，升级阶段自动生成
-#
-upgrade_date = 2022-04-19T02:33:22Z
-
 ## enable_election: bool, 是否开启选举，默认 false
 #
 enable_election = false
 
-## namespace: string, DataKit 命名空间，支持分区选举
-## 选举的范围是 工作空间+命名空间 级别的，单个 工作空间+命名空间 中，一次最多只能有一个 DataKit 被选上 
+## election_namespace: string, DataKit 命名空间，支持分区选举
+## 选举的范围是 工作空间+命名空间 级别的，单个 工作空间+命名空间 中，一次最多只能有一个 DataKit 被选上
 #
-namespace = ""
+election_namespace = "default"
+
+## enable_election_tag: bool
+## 如果开启，则在选举类的采集数据上均带上额外的 tag：election_namespace = <your-election-namespace>
+#
+enable_election_tag = false
 
 ## enable_pprof: bool, 是否开启 pprof, 默认 false
 #
@@ -38,7 +31,7 @@ enable_pprof = false
 
 ## pprof_listen: string, pprof 监听地址和端口
 #
-# pprof_listen = "0.0.0.0:6060"
+pprof_listen = "0.0.0.0:6060"
 
 ## protect_mode: bool, 是否开启保护模式，默认 false
 ## 开启保护模式后，如果配置的采集器间隔超出默认区间，则会被设置为离区间最接近的一个值，即区间的最大或最小值
@@ -50,7 +43,7 @@ enable_pprof = false
 protect_mode = true
 
 ## ulimit: number, 设定文件句柄数，包括软限制和硬限制，仅在 linux 下有效
-# 
+#
 ulimit = 64000
 
 ## dca: DCA 服务配置，为 DCA 提供 DataKit 的管理 API
@@ -70,14 +63,14 @@ ulimit = 64000
   #
   white_list = []
 
-## pipeline: pipeline 配置  
-# 
+## pipeline: pipeline 配置
+#
 [pipeline]
   ## ipdb_type: string, ipdb 类型
-  ## 目前仅支持 iploc 
+  ## 目前仅支持 iploc, geolite2
   ## 注意：ipdb 库需要手动安装，可通过以下命令安装
-  ##   datakit install --ipdb iploc
-  #
+  ##   datakit install --ipdb iploc (if you want geolite2 you can use datakit install --ipdb geolite2 )
+  #ipdb_type can be iploc and geolite2
   ipdb_type = "iploc"
 
   ## remote_pull_interval: string, 远程拉取 pipeline 配置文件间隔时间
@@ -104,43 +97,31 @@ ulimit = 64000
   ## 当列表为空时，不校验 app_id
   #
   rum_app_id_white_list = []
-  
+
   ## public_apis: list<string>, 指定开放的 API 列表
   ## 如: public_apis = ["/v1/write/rum"]
   ## 如果列表为空，则 API 不做访问控制
   #
   public_apis = []
+  timeout = "30s"
+  close_idle_connection = false
 
 ## io: io 配置
 #
 [io]
   ## feed_chan_size: number, IO管道缓存大小
   #
-  feed_chan_size = 1024
-
-  ## high_frequency_feed_chan_size: number, 高频IO管道缓存大小
-  # 
-  high_frequency_feed_chan_size = 2048
+  feed_chan_size = 4096
 
   ## max_cache_count: number, 本地缓存最大值
   ## 此数值与 max_dynamic_cache_count 同时小于等于零将无限使用内存
   #
-  max_cache_count = 1024
+  max_cache_count = 512
 
   ## max_dynamic_cache_count: number, HTTP 缓存最大值
   ## 此数值与 max_cache_count 同时小于等于零将无限使用内存
   #
-  max_dynamic_cache_count = 1024
-
-  ## cache_dump_threshold: number, 本地缓存推送后清理剩余缓存阈值
-  ## 此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用
-  #
-  cache_dump_threshold = 512
-
-  ## dynamic_cache_dump_threshold: number, HTTP 缓存推送后清理剩余缓存阈值
-  ## 此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用
-  #
-  dynamic_cache_dump_threshold = 512
+  max_dynamic_cache_count = 512
 
   ## flush_interval: string, 推送时间间隔
   #
@@ -157,7 +138,13 @@ ulimit = 64000
   ## enable_cache: bool, 是否开启缓存
   ## 开启后，如果数据推送失败，则对失败的数据进行本地缓存，后续将继续重新推送
   #
-  enable_cache = false
+	#enable_cache = false
+  ## cache_max_size_gb: int, 磁盘 cache 大小(单位 GB)
+	#cache_max_size_gb = 1
+
+  ## 阻塞模式: 如果网络堵塞，为了不停止采集，将有部分数据会丢失。
+	## 如果不希望丢失数据，可开启阻塞模式。一旦阻塞，将导致数据采集暂停。
+	blocking_mode = false
 
   ## 行协议数据过滤
   ## 一旦 datakit.conf 中配置了过滤器，那么则以该过滤器为准，观测云 Studio 配置的过滤器将不再生效。
@@ -166,22 +153,22 @@ ulimit = 64000
   ## 配置示例：
   ##       [io.filters]
   ##         logging = [ # 针对日志数据的过滤
-  ##          	"{ source = 'datakit' or f1 IN [ 1, 2, 3] }"
+  ##           "{ source = 'datakit' or f1 IN [ 1, 2, 3] }"
   ##          ]
   ##          metric = [ # 针对指标的过滤
-  ##          	"{ measurement IN ['datakit', 'disk'] }",
-  ##          	"{ measurement CONTAIN ['host.*', 'swap'] }",
+  ##            "{ measurement IN ['datakit', 'disk'] }",
+  ##            "{ measurement CONTAIN ['host.*', 'swap'] }",
   ##          ]
   ##          object = [ # 针对对象过滤
-  ##          	"{ class CONTAIN ['host_.*'] }",
+  ##            { class CONTAIN ['host_.*'] }",
   ##          ]
   ##          tracing = [ # 针对 tracing 过滤
-  ##          	"{ service = re("abc.*") AND some_tag CONTAIN ['def_.*'] }",
+  ##            "{ service = re("abc.*") AND some_tag CONTAIN ['def_.*'] }",
   ##          ]
   #
   [io.filters]
     # logging = [ # 针对日志数据的过滤
-    #	"{ source = 'datakit' or f1 IN [ 1, 2, 3] }"
+    #   "{ source = 'datakit' or f1 IN [ 1, 2, 3] }"
     # ]
 
 ## dataway: DataWay 配置
@@ -190,7 +177,7 @@ ulimit = 64000
   ## urls: DataWay 地址列表, list
   #
   urls = ["https://openway.guance.com?token=tkn_xxxxxxxxxxx"]
-  
+
   ## timeout: DataWay 请求超时时间
   #
   timeout = "5s"
@@ -231,21 +218,32 @@ ulimit = 64000
   #
   rotate = 32
 
-## global_tags: 全局标签
+[global_tags] ## deprecated
+
+## global_host_tags: 主机相关全局标签
 ## 全局标签会默认添加到 DataKit 采集的每一条数据上，前提是采集的原始数据上不带有这里配置的标签
 ## 支持的变量：
 ##   __datakit_ip/$datakit_ip：标签值会设置成 DataKit 获取到的第一个主网卡 IP
 ##   __datakit_id/$datakit_id：标签值会设置成 DataKit 的 ID
 ##
 ## 示例：
-##   [global_tags]
-##	    ip         = "__datakit_ip"
-##	    datakit_id = "$datakit_id"
-##	    project    = "some_of_your_online_biz"
+##   [global_host_tags]
+##     ip   = "__datakit_ip"
+##     host = "$datakit_hostname"
 #
-[global_tags]
+[global_host_tags]
 
-## environments: 环境变量配置
+## global_env_tags: 环境相关全局标签
+## 全局环境标签会默认添加到选举采集收集的每一条数据上，前提是采集的原始数据上不带有这里配置的标签
+##
+## 示例：
+##   [global_env_tags]
+##      project = "my-project"
+##      cluster = "my-cluster"
+#
+[global_env_tags]
+
+## environments: 环境变量配置（目前只支持 ENV_HOSTNAME，用来修改主机名）
 #
 [environments]
   ENV_HOSTNAME = ""
@@ -287,7 +285,7 @@ ulimit = 64000
     ## enable: bool, 是否启用
     #
     enable = false
-    
+
     ## url: string, git 地址，支持三种协议，即 http, git, ssh
     ## 以下两种协议(git/ssh)，需配置 ssh_private_key_path 以及 ssh_private_key_password
     ##  url = "git@github.com:path/to/repository.git"
@@ -297,12 +295,12 @@ ulimit = 64000
 
     ## ssh_private_key_path: string, ssh 私钥路径
     #
-    ssh_private_key_path = "" 
-    
+    ssh_private_key_path = ""
+
     ## ssh_private_key_password: string, ssh 私钥密码
     #
     ssh_private_key_password = ""
-    
+
     ## branch: string, git 分支名称
     #
     branch = "master"

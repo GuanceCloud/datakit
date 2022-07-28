@@ -14,10 +14,15 @@ import (
 )
 
 func TestScript(t *testing.T) {
-	s, err := NewScript("abc.p", "if true {}", GitRepoScriptNS, datakit.Logging)
-	if err != nil {
-		t.Fatal(err)
+	ret, retErr := NewScripts(map[string]string{"abc.p": "if true {}"}, nil, GitRepoScriptNS, datakit.Logging)
+
+	if len(retErr) > 0 {
+		t.Fatal(retErr)
 	}
+
+	s := ret["abc.p"]
+	t.Log(s.FilePath())
+
 	if ng := s.Engine(); ng == nil {
 		t.Fatalf("no engine")
 	}
@@ -59,43 +64,43 @@ func TestScript(t *testing.T) {
 
 func TestNewScript(t *testing.T) {
 	for category := range datakit.CategoryDirName() {
-		if s, err := NewScript("abc", "if true{}", DefaultScriptNS, category); err != nil {
-			l.Error(err)
-		} else if _, _, err := s.Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
-			l.Error(err)
+		if ret, retErr := NewScripts(map[string]string{"abc": "if true{}"}, nil, DefaultScriptNS, category); len(retErr) > 0 {
+			t.Error(retErr)
+		} else if _, _, err := ret["abc"].Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
+			t.Error(err)
 		}
 	}
 	for category := range _allCategory {
-		if s, err := NewScript("abc", "if true{}", DefaultScriptNS, category); err != nil {
-			l.Error(err)
-		} else if _, _, err := s.Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
-			l.Error(err)
+		if ret, retErr := NewScripts(map[string]string{"abc": "if true{}"}, nil, DefaultScriptNS, category); len(retErr) > 0 {
+			t.Error(retErr)
+		} else if _, _, err := ret["abc"].Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
+			t.Error(err)
 		}
 	}
 	for category := range _allDeprecatedCategory {
-		if s, err := NewScript("abc", "if true{}", DefaultScriptNS, category); err != nil {
-			l.Error(err)
-		} else if _, _, err := s.Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
-			l.Error(err)
+		if ret, retErr := NewScripts(map[string]string{"abc": "if true{}"}, nil, DefaultScriptNS, category); len(retErr) > 0 {
+			t.Error(retErr)
+		} else if _, _, err := ret["abc"].Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
+			t.Error(err)
 		}
 	}
 	m1, m2 := datakit.CategoryList()
 	for category := range m1 {
-		if s, err := NewScript("abc", "if true{}", DefaultScriptNS, category); err != nil {
-			l.Error(err)
-		} else if _, _, err := s.Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
-			l.Error(err)
+		if ret, retErr := NewScripts(map[string]string{"abc": "if true{}"}, nil, DefaultScriptNS, category); len(retErr) > 0 {
+			t.Error(retErr)
+		} else if _, _, err := ret["abc"].Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
+			t.Error(err)
 		}
 	}
 	for category := range m2 {
-		if s, err := NewScript("abc", "if true{}", DefaultScriptNS, category); err != nil {
-			l.Error(err)
-		} else if _, _, err := s.Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
-			l.Error(err)
+		if ret, retErr := NewScripts(map[string]string{"abc": "if true{}"}, nil, DefaultScriptNS, category); len(retErr) > 0 {
+			t.Error(retErr)
+		} else if _, _, err := ret["abc"].Run("d", nil, nil, "m", time.Time{}, nil); err != nil {
+			t.Error(err)
 		}
 	}
 
-	if _, err := NewScript("abc", "if true{}", DefaultScriptNS, "-!-c-a-t-e-g-0-r-Y"); err == nil {
-		l.Error("error == nil")
+	if _, err := NewScripts(map[string]string{"abc": "if true{}"}, nil, DefaultScriptNS, "-!-c-a-t-e-g-0-r-Y"); err == nil {
+		t.Error("error == nil")
 	}
 }

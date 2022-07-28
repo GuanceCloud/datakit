@@ -1,10 +1,9 @@
 {{.CSS}}
+# TCP/UDP
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
+- 操作系统支持：{{.AvailableArchs}}
 
 socket 采集器用于采集 UDP/TCP 端口信息。
 

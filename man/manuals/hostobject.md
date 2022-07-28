@@ -1,10 +1,9 @@
 {{.CSS}}
+# 主机对象
+---
 
 - DataKit 版本：{{.Version}}
-- 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
-
-# {{.InputName}}
+- 操作系统支持：{{.AvailableArchs}}
 
 hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗等。
 

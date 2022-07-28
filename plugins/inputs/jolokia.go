@@ -25,6 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpoint "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 // --------------------------------------------------------------------
@@ -162,8 +163,9 @@ func (j *JolokiaAgent) createMetrics() []Metric {
 	var metrics []Metric
 
 	for _, config := range j.Metrics {
-		metrics = append(metrics, NewMetric(config,
-			j.DefaultFieldPrefix, j.DefaultFieldSeparator, j.DefaultTagPrefix))
+		metrics = append(metrics,
+			NewMetric(config, j.DefaultFieldPrefix, j.DefaultFieldSeparator, j.DefaultTagPrefix),
+		)
 	}
 
 	return metrics
@@ -212,8 +214,8 @@ type JolokiaMeasurement struct {
 	ts     time.Time
 }
 
-func (j *JolokiaMeasurement) LineProto() (*io.Point, error) {
-	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+func (j *JolokiaMeasurement) LineProto() (*dkpoint.Point, error) {
+	return dkpoint.NewPoint(j.name, j.tags, j.fields, dkpoint.MOpt())
 }
 
 func (j *JolokiaMeasurement) Info() *MeasurementInfo {
@@ -254,12 +256,12 @@ func (g *Gatherer) Gather(client *Client, j *JolokiaAgent) error {
 // gatherResponses adds points to an accumulator from the ReadResponse objects
 // returned by a Jolokia agent.
 func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]string, j *JolokiaAgent) error {
-	series := make(map[string][]point)
+	series := make(map[string][]jpoint)
 
 	for _, metric := range g.metrics {
 		points, ok := series[metric.Name]
 		if !ok {
-			points = make([]point, 0)
+			points = make([]jpoint, 0)
 		}
 
 		responsePoints, responseErrors := g.generatePoints(metric, responses)
@@ -307,8 +309,8 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 
 // generatePoints creates points for the supplied metric from the ReadResponse
 // objects returned by the Jolokia client.
-func (g *Gatherer) generatePoints(metric Metric, responses []ReadResponse) ([]point, []error) {
-	points := make([]point, 0)
+func (g *Gatherer) generatePoints(metric Metric, responses []ReadResponse) ([]jpoint, []error) {
+	points := make([]jpoint, 0)
 	errors := make([]error, 0)
 
 	for _, response := range responses {
@@ -376,8 +378,8 @@ func metricMatchesResponse(metric Metric, response ReadResponse) bool {
 // compactPoints attempts to remove points by compacting points
 // with matching tag sets. When a match is found, the fields from
 // one point are moved to another, and the empty point is removed.
-func compactPoints(points []point) []point {
-	compactedPoints := make([]point, 0)
+func compactPoints(points []jpoint) []jpoint {
+	compactedPoints := make([]jpoint, 0)
 
 	for _, sourcePoint := range points {
 		keepPoint := true
@@ -644,7 +646,7 @@ func parseMbeanObjectName(name string) (string, []string) {
 // ----------------------------------------------------------------------------------
 // ------------------------------------- point builder ------------------------------
 
-type point struct {
+type jpoint struct {
 	Tags   map[string]string
 	Fields map[string]interface{}
 }
@@ -666,7 +668,7 @@ func newPointBuilder(metric Metric, attributes []string, path string) *pointBuil
 }
 
 // Build generates a point for a given mbean name/pattern and value object.
-func (pb *pointBuilder) Build(mbean string, value interface{}) []point {
+func (pb *pointBuilder) Build(mbean string, value interface{}) []jpoint {
 	hasPattern := strings.Contains(mbean, "*")
 	if !hasPattern {
 		value = map[string]interface{}{mbean: value}
@@ -678,9 +680,9 @@ func (pb *pointBuilder) Build(mbean string, value interface{}) []point {
 		return nil
 	}
 
-	points := make([]point, 0)
+	points := make([]jpoint, 0)
 	for mbean, value := range valueMap {
-		points = append(points, point{
+		points = append(points, jpoint{
 			Tags:   pb.extractTags(mbean),
 			Fields: pb.extractFields(mbean, value),
 		})

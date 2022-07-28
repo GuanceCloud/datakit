@@ -32,7 +32,7 @@ func TestInput(t *testing.T) {
 
 	assert.Equal(t, memcached.Catalog(), catalogName)
 	assert.Equal(t, memcached.SampleConfig(), sampleConfig)
-	assert.Equal(t, memcached.AvailableArchs(), datakit.AllArch)
+	assert.Equal(t, memcached.AvailableArchs(), datakit.AllOS)
 }
 
 func TestParseMetrics(t *testing.T) {

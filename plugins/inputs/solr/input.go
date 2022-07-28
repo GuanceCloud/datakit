@@ -22,8 +22,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
-
 const (
 	minInterval = time.Second * 5
 	maxInterval = time.Minute * 10
@@ -34,8 +32,11 @@ var (
 	metricNameCache        = "solr_cache"
 	metricNameRequestTimes = "solr_request_times"
 	metricNameSearcher     = "solr_searcher"
+
 	l                      = logger.DefaultSLogger("solr")
-	sampleConfig           = `
+	_ inputs.ElectionInput = (*Input)(nil)
+
+	sampleConfig = `
 [[inputs.solr]]
   ##(optional) collect interval, default is 10 seconds
   interval = '10s'
@@ -182,17 +183,12 @@ func (i *Input) GetPipeline() []*tailer.Option {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return datakit.AllOS
 }
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("solr input started")
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		i.Tags["election_namespace"] = namespace
-	}
-
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	tick := time.NewTicker(i.Interval.Duration)

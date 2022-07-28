@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
@@ -24,7 +25,7 @@ func TestAdjustTimezone(t *testing.T) {
 	cases := []struct {
 		name, pl, in string
 		outkey       string
-		expect       interface{}
+		expect       time.Time
 		fail         bool
 	}{
 		{
@@ -47,168 +48,7 @@ func TestAdjustTimezone(t *testing.T) {
 			adjust_timezone(time)
 		`,
 			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())),
-			fail:   false,
-		},
-		{
-			name: "nginx log datetime, 02/Jan/2006:15:04:05 -0700",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("02/Jan/2006:15:04:05 -0700")),
-			pl: `
-			json(_, time)
-			default_time(time)
-		`,
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())),
-			fail:   false,
-		},
-		{
-			name: "[auto] nginx log datetime, 02/Jan/2006:15:04:05 -0700",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("02/Jan/2006:15:04:05 -0700")),
-			pl: `
-			json(_, time)
-			default_time(time)
-			adjust_timezone(time)
-		`,
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())),
-			fail:   false,
-		},
-		{
-			name: "redis log datetime, 02 Jan 2006 15:04:05.000",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("02 Jan 2006 15:04:05.000")),
-			pl: `
-			json(_, time)
-			default_time(time)
-		`,
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()/1000000*1000000-Hour8),
-			fail:   false,
-		},
-		{
-			name: "[auto] redis log datetime, 02 Jan 2006 15:04:05.000",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("02 Jan 2006 15:04:05.000")),
-			pl: `
-			json(_, time)
-			default_time(time)
-			adjust_timezone(time)
-		`,
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()/1000000*1000000),
-			fail:   false,
-		},
-		{
-			name: "mysql log datetime, 060102 15:04:05",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("060102 15:04:05")),
-			pl: `
-			json(_, time)
-			default_time(time)
-		`,
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())-Hour8),
-			fail:   false,
-		},
-		{
-			name: "[auto] mysql log datetime, 060102 15:04:05",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("060102 15:04:05")),
-			pl: `
-			json(_, time)
-			default_time(time)
-			adjust_timezone(time)
-		`,
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())),
-			fail:   false,
-		},
-		{
-			name: "gin log datetime, 2006/01/02 - 15:04:05",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("2006/01/02 - 15:04:05")),
-			pl: `
-			json(_, time)
-			default_time(time)
-		`,
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())-Hour8),
-			fail:   false,
-		},
-		{
-			name: "[auto] gin log datetime, 2006/01/02 - 15:04:05",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("2006/01/02 - 15:04:05")),
-			pl: `
-			json(_, time)
-			default_time(time)
-			adjust_timezone(time)
-		`,
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())),
-			fail:   false,
-		},
-		{
-			name: "apache log datetime, Mon Jan 2 15:04:05.000000 2006",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("Mon Jan 2 15:04:05.000000 2006")),
-			pl: `
-			json(_, time)
-			default_time(time)
-		`,
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()/1000*1000-Hour8),
-			fail:   false,
-		},
-		{
-			name: "[auto] apache log datetime, Mon Jan 2 15:04:05.000000 2006",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("Mon Jan 2 15:04:05.000000 2006")),
-			pl: `
-			json(_, time)
-			default_time(time)
-			adjust_timezone(time)
-		`,
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()/1000*1000),
-			fail:   false,
-		},
-		{
-			name: "1 postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("2006-01-02 15:04:05.000 UTC")),
-			pl: `
-			json(_, time)
-			default_time(time)
-		`,
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()/1000000*1000000-Hour8),
-			fail:   false,
-		},
-		{
-			name: "2 [auto] postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("2006-01-02 15:04:05.000 UTC")),
-			pl: `
-			json(_, time)
-			default_time(time)
-			adjust_timezone(time)
-		`,
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()/1000000*1000000),
-			fail:   false,
-		},
-		{
-			name: "4 postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Add(-time.Duration(Hour8)).Format("2006-01-02 15:04:05.000 UTC")),
-			pl: `
-			json(_, time)
-			default_time(time)
-		`, // utc -0800
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()/1000000*1000000-2*Hour8),
-			fail:   false,
-		},
-		{
-			name: "5 [auto] postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Add(-8*time.Hour).Format("2006-01-02 15:04:05.000 UTC")),
-			pl: `
-			json(_, time)
-			default_time(time)
-			adjust_timezone(time)
-		`,
-			outkey: "time",
-			expect: time.Unix(0, tn.UnixNano()/1000000*1000000),
+			expect: time.Unix(0, tn.UnixNano()-int64(tn.Nanosecond())-int64(time.Hour)),
 			fail:   false,
 		},
 	}
@@ -238,8 +78,67 @@ func TestAdjustTimezone(t *testing.T) {
 				v = ret.Time
 			}
 			tu.Equals(t, nil, err)
-			tu.Equals(t, tc.expect, v)
+			assert.Equal(t, tc.expect, v)
 			t.Logf("[%d] PASS", idx)
 		})
+	}
+}
+
+func TestDetectTimezone(t *testing.T) {
+	// logTS, nowTS, minuteAllow, expTS
+	tn := time.Date(2022, 6, 1, 10, 11, 12, int(time.Millisecond), time.Local)
+
+	cases := []struct {
+		name          string
+		logTS         int64
+		nowTS         int64
+		durationAllow int64
+		expTS         int64
+		neq           int64
+	}{
+		{
+			name: "id 1, hour -2, minute -2, sec -2, nanosec -15",
+			// log: 2022-6-1 10:11:12.001
+			// now: 2022-6-1 12:11:14.014
+			// exp: 2022-6-1 12:11:12.001
+			logTS:         time.Date(2022, 6, 1, 10, 11, 12, int(time.Millisecond), time.Local).UnixNano(),
+			nowTS:         time.Date(2022, 6, 1, 12, 11, 14, int(time.Millisecond)*15, time.Local).UnixNano(),
+			expTS:         time.Date(2022, 6, 1, 12, 11, 12, int(time.Millisecond), time.Local).UnixNano(),
+			durationAllow: defaultMinuteDelta * int64(time.Minute),
+		},
+		{
+			name: "id 2, hour -2, minute 0, sec 0, nanosec +5",
+			// log: 2022-6-1 10:11:14.02
+			// now: 2022-6-1 12:11:14.014
+			// exp: 2022-7-5 12:11:14.02
+			logTS:         time.Date(2022, 6, 1, 10, 11, 14, int(time.Millisecond)*20, time.Local).UnixNano(),
+			nowTS:         time.Date(2022, 6, 1, 12, 11, 14, int(time.Millisecond)*15, time.Local).UnixNano(),
+			expTS:         time.Date(2022, 6, 1, 12, 11, 14, int(time.Millisecond)*20, time.Local).UnixNano(),
+			durationAllow: defaultMinuteDelta * int64(time.Minute),
+		},
+		{
+			name:          "id 3, hour -2, minute +2, sec +1",
+			logTS:         tn.Add(time.Minute*2 + time.Second - 2*time.Hour).UnixNano(),
+			nowTS:         tn.UnixNano(),
+			expTS:         tn.Add(time.Minute*2 + time.Second - time.Hour).UnixNano(),
+			durationAllow: defaultMinuteDelta * int64(time.Minute),
+		},
+		{
+			name:          "id 3, hour -1, minute -58, sec 0",
+			logTS:         time.Date(2022, 6, 1, 11, 1, 1, 0, time.Local).UnixNano(),
+			nowTS:         time.Date(2022, 6, 1, 12, 59, 1, 0, time.Local).UnixNano(),
+			expTS:         time.Date(2022, 6, 1, 13, 1, 1, 0, time.Local).UnixNano(),
+			durationAllow: defaultMinuteDelta * int64(time.Minute),
+		},
+	}
+	for _, v := range cases {
+		tsAct := detectTimezone(v.logTS, v.nowTS, v.durationAllow)
+
+		if v.neq != 0 {
+			tsAct += v.neq
+		}
+		assert.Equal(t, time.Unix(0, v.expTS),
+			time.Unix(0, tsAct),
+			fmt.Sprintf(v.name))
 	}
 }

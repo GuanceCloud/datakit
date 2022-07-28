@@ -14,7 +14,7 @@ import (
 	"time"
 
 	dto "github.com/prometheus/client_model/go"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 func (p *Prom) getMetricTypeName(familyType dto.MetricType) string {
@@ -140,7 +140,7 @@ func (p *Prom) tagKVMatched(tags map[string]string) bool {
 	return false
 }
 
-func (p *Prom) getTags(labels []*dto.LabelPair) map[string]string {
+func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string) map[string]string {
 	tags := map[string]string{}
 
 	// Add custom tags.
@@ -155,6 +155,15 @@ func (p *Prom) getTags(labels []*dto.LabelPair) map[string]string {
 
 	p.removeIgnoredTags(tags)
 	p.renameTags(tags)
+
+	// Configure service tag if metrics are fed as logging.
+	if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+		if p.opt.AsLogging.Service != "" {
+			tags["service"] = p.opt.AsLogging.Service
+		} else {
+			tags["service"] = measurementName
+		}
+	}
 
 	return tags
 }
@@ -197,13 +206,11 @@ func (p *Prom) filterMetricFamilies(metricFamilies map[string]*dto.MetricFamily)
 }
 
 // Text2Metrics converts raw prometheus metric text to line protocol point.
-func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
+func (p *Prom) Text2Metrics(in io.Reader) (pts []*point.Point, lastErr error) {
 	metricFamilies, err := p.parser.TextToMetricFamilies(in)
 	if err != nil {
 		return nil, err
 	}
-
-	startTime := time.Now()
 
 	filteredMetricFamilies := p.filterMetricFamilies(metricFamilies)
 
@@ -221,10 +228,10 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 				fields := map[string]interface{}{
 					fieldName: v,
 				}
-				tags := p.getTags(m.GetLabel())
+				tags := p.getTags(m.GetLabel(), measurementName)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElection())
 					if err != nil {
 						lastErr = err
 					} else {
@@ -240,10 +247,10 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 					fieldName + "_sum":   m.GetSummary().GetSampleSum(),
 				}
 
-				tags := p.getTags(m.GetLabel())
+				tags := p.getTags(m.GetLabel(), measurementName)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElection())
 					if err != nil {
 						lastErr = err
 					} else {
@@ -256,11 +263,11 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 						fieldName: q.GetValue(),
 					}
 
-					tags := p.getTags(m.GetLabel())
+					tags := p.getTags(m.GetLabel(), measurementName)
 					tags["quantile"] = fmt.Sprint(q.GetQuantile())
 
 					if !p.tagKVMatched(tags) {
-						pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+						pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElection())
 						if err != nil {
 							lastErr = err
 						} else {
@@ -277,10 +284,10 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 					fieldName + "_sum":   m.GetHistogram().GetSampleSum(),
 				}
 
-				tags := p.getTags(m.GetLabel())
+				tags := p.getTags(m.GetLabel(), measurementName)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElection())
 					if err != nil {
 						lastErr = err
 					} else {
@@ -293,11 +300,11 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 						fieldName + "_bucket": b.GetCumulativeCount(),
 					}
 
-					tags := p.getTags(m.GetLabel())
+					tags := p.getTags(m.GetLabel(), measurementName)
 					tags["le"] = fmt.Sprint(b.GetUpperBound())
 
 					if !p.tagKVMatched(tags) {
-						pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
+						pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElection())
 						if err != nil {
 							lastErr = err
 						} else {

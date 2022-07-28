@@ -77,7 +77,7 @@ func (x *browserPerfServiceCollectErrorLogsClient) CloseAndRecv() (*Commands, er
 
 // BrowserPerfServiceServer is the server API for BrowserPerfService service.
 // All implementations must embed UnimplementedBrowserPerfServiceServer
-// for forward compatibility
+// for forward compatibility.
 type BrowserPerfServiceServer interface {
 	// report once per page
 	CollectPerfData(context.Context, *BrowserPerfData) (*Commands, error)

@@ -27,7 +27,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	plstats "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -96,8 +95,7 @@ type DatakitStats struct {
 	OpenFiles int `json:"open_files"`
 
 	InputsStats map[string]*io.InputsStat  `json:"inputs_status"`
-	SenderStat  map[string]*sender.Metric  `json:"sender_stat"`
-	IoStats     io.IoStat                  `json:"io_stats"`
+	IOStats     *io.Stats                  `json:"io_stats"`
 	PLStats     []plstats.ScriptStatsROnly `json:"pl_stats"`
 	HTTPMetrics map[string]*apiStat        `json:"http_metrics"`
 
@@ -155,18 +153,6 @@ var (
 # DataKit 运行展示
 ` + part1 + part2
 )
-
-var categoryMap = map[string]string{
-	datakit.MetricDeprecated: "M",
-	datakit.Metric:           "M",
-	datakit.Network:          "N",
-	datakit.KeyEvent:         "E",
-	datakit.Object:           "O",
-	datakit.Logging:          "L",
-	datakit.Tracing:          "T",
-	datakit.RUM:              "R",
-	datakit.Security:         "S",
-}
 
 func (x *DatakitStats) InputsConfTable() string {
 	const (
@@ -241,7 +227,7 @@ func (x *DatakitStats) InputsStatsTable() string {
 
 		category := "-"
 		if s.Category != "" {
-			category = categoryMap[s.Category]
+			category = datakit.CategoryMap[s.Category]
 		}
 
 		rows = append(rows,
@@ -320,14 +306,12 @@ func GetStats() (*DatakitStats, error) {
 		Uptime:         fmt.Sprintf("%v", now.Sub(uptime)),
 		OSArch:         fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		WithinDocker:   datakit.Docker,
-		IOChanStat:     io.ChanStat(),
-		IoStats:        io.GetIoStats(),
+		IOStats:        io.GetIOStats(),
 		PLStats:        plstats.ReadStats(),
 		Elected:        fmt.Sprintf("%s::%s|%s", ns, elected, who),
 		Cgroup:         cgroup.Info(),
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),
-		SenderStat:     sender.GetStat(),
 		HostName:       datakit.DatakitHostName,
 		EnabledInputs:  map[string]*enabledInput{},
 		HTTPMetrics:    getMetrics(),
@@ -339,7 +323,7 @@ func GetStats() (*DatakitStats, error) {
 	var err error
 
 	l.Debugf("io.GetStats()...")
-	stats.InputsStats, err = io.GetStats() // get all inputs stats
+	stats.InputsStats, err = io.GetInputsStats() // get all inputs stats
 	if err != nil {
 		return nil, err
 	}

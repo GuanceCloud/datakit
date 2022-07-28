@@ -25,7 +25,7 @@ func (*Input) SampleConfig() string { return sample }
 
 func (*Input) Catalog() string { return inputName }
 
-func (*Input) AvailableArchs() []string { return datakit.AllArch }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) PipelineConfig() map[string]string { return map[string]string{"rabbitmq": pipelineCfg} }
 
@@ -96,10 +96,6 @@ func (n *Input) Run() {
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
-
-	if namespace := config.GetElectionNamespace(); namespace != "" {
-		n.Tags["election_namespace"] = namespace
-	}
 
 	for {
 		if !n.pause {

@@ -136,8 +136,8 @@ func (d *dialer) feedIO() error {
 		return d.pointsFeed(urlStr)
 	case dt.ClassHeadless:
 		return fmt.Errorf("headless task deprecated")
-	// TODO other class
 	default:
+		// TODO other class
 	}
 
 	return nil
