@@ -123,7 +123,14 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 		}
 	}
 
-	temp, err := template.New(name).Parse(string(md))
+	temp, err := template.New(name).Funcs(map[string]interface{}{
+		"CodeBlock": func(code string, indent int) string {
+			arr := []string{}
+			for _, line := range strings.Split(code, "\n") {
+				arr = append(arr, strings.Repeat(" ", indent)+line)
+			}
+			return strings.Join(arr, "\n")
+		}}).Parse(string(md))
 	if err != nil {
 		return nil, err
 	}
