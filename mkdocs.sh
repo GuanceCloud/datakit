@@ -91,7 +91,6 @@ datakit_docs=(
   $tmp_doc_dir/development.md
   $tmp_doc_dir/election.md
   $tmp_doc_dir/git-config-how-to.md
-  $tmp_doc_dir/kubernetes-crd.md
   $tmp_doc_dir/logging-pipeline-bench.md
   $tmp_doc_dir/pipeline.md
   $tmp_doc_dir/proxy.md
@@ -144,6 +143,7 @@ integrations_files_from_datakit=(
   $tmp_doc_dir/jvm.md
   $tmp_doc_dir/k8s-config-how-to.md
   $tmp_doc_dir/kafka.md
+  $tmp_doc_dir/kubernetes-crd.md
   $tmp_doc_dir/kubernetes-prom.md
   $tmp_doc_dir/kubernetes-x.md
   $tmp_doc_dir/logfwd.md

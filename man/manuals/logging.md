@@ -289,6 +289,8 @@ Pipeline 的几个注意事项：
 
 {{ end }} 
 
+[^1]: 早期 Pipeline 实现的时候，只能切割出 field，而 status 大部分都是通过 Pipeline 切割出来的，故将其归类到 field 中。但语义上，它应该属于 tag 的范畴。
+
 ## FAQ
 
 ### 为什么在页面上看不到日志数据？
