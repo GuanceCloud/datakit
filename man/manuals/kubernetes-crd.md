@@ -1,4 +1,4 @@
-# Kubernetes DataKit CRD 扩展采集
+# Kubernetes CRD 扩展采集
 ---
 
 - 操作系统支持：:material-kubernetes:
