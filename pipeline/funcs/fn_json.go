@@ -9,14 +9,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
 func JSONChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
-	if len(funcExpr.Param) < 2 || len(funcExpr.Param) > 3 {
-		return fmt.Errorf("func %s expected 2 or 3 args", funcExpr.Name)
+	if len(funcExpr.Param) < 2 || len(funcExpr.Param) > 4 {
+		return fmt.Errorf("func %s expected 2 to 4 args", funcExpr.Name)
 	}
 
 	switch funcExpr.Param[0].(type) {
@@ -42,13 +43,22 @@ func JSONChecking(ng *parser.EngineData, node parser.Node) error {
 		}
 	}
 
+	if len(funcExpr.Param) == 4 {
+		switch funcExpr.Param[3].(type) {
+		case *parser.BoolLiteral:
+		default:
+			return fmt.Errorf("expect BoolLiteral, got %s",
+				reflect.TypeOf(funcExpr.Param[3]).String())
+		}
+	}
+
 	return nil
 }
 
 func JSON(ng *parser.EngineData, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 
-	var key, old parser.Node
+	var key, jpath, targetKey parser.Node
 
 	switch v := funcExpr.Param[0].(type) {
 	case *parser.AttrExpr, *parser.Identifier:
@@ -60,17 +70,18 @@ func JSON(ng *parser.EngineData, node parser.Node) interface{} {
 
 	switch v := funcExpr.Param[1].(type) {
 	case *parser.AttrExpr, *parser.Identifier:
-		old = v
+		jpath = v
+	// TODO StringLiteral
 	default:
 		return fmt.Errorf("expect AttrExpr or Identifier, got %s",
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
-	newkey := old
+	targetKey = jpath
 	if len(funcExpr.Param) == 3 {
 		switch v := funcExpr.Param[2].(type) {
 		case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
-			newkey = v
+			targetKey = v
 		default:
 			return fmt.Errorf("expect AttrExpr or Identifier, got %s",
 				reflect.TypeOf(funcExpr.Param[2]).String())
@@ -83,13 +94,30 @@ func JSON(ng *parser.EngineData, node parser.Node) interface{} {
 		return nil
 	}
 
-	v, err := GsonGet(cont, old)
+	v, err := GsonGet(cont, jpath)
 	if err != nil {
 		l.Debug(err)
 		return nil
 	}
 
-	if err := ng.SetContent(newkey, v); err != nil {
+	var trimSpace bool
+	if len(funcExpr.Param) == 4 {
+		switch v := funcExpr.Param[3].(type) {
+		case *parser.BoolLiteral:
+			trimSpace = v.Val
+		default:
+			return fmt.Errorf("expect BoolLiteral, got %s",
+				reflect.TypeOf(funcExpr.Param[3]).String())
+		}
+	} else {
+		trimSpace = true
+	}
+
+	if vStr, ok := v.(string); ok && trimSpace {
+		v = strings.TrimSpace(vStr)
+	}
+
+	if err := ng.SetContent(targetKey, v); err != nil {
 		l.Debug(err)
 		return nil
 	}

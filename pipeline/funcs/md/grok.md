@@ -1,6 +1,6 @@
 ### `grok()` {#fn-grok}
 
-函数原型：`grok(input=required, pattern=required)`
+函数原型：`grok(input=required, pattern=required, trim_space=optional)`
 
 函数说明：通过 `pattern` 提取文本串 `input` 中的内容。
 
@@ -8,6 +8,7 @@
 
 - `input`：待提取文本，可以是原始文本（`_`）或经过初次提取之后的某个 `key`
 - `pattern`: grok 表达式，表达式中支持指定 key 的数据类型：bool, float, int, string，默认为 string
+- `trim_space`: 删除提取出的字符中的空白首尾字符，默认值为 true
 
 ```python
 grok(_, pattern)    # 直接使用输入的文本作为原始数据

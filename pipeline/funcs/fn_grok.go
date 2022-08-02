@@ -21,8 +21,17 @@ func GrokChecking(ng *parser.EngineData, node parser.Node) error {
 	}
 
 	funcExpr := fexpr(node)
-	if len(funcExpr.Param) != 2 {
-		return fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	if len(funcExpr.Param) < 2 || len(funcExpr.Param) > 3 {
+		return fmt.Errorf("func %s expected 2 or 3 args", funcExpr.Name)
+	}
+
+	if len(funcExpr.Param) == 3 {
+		switch funcExpr.Param[2].(type) {
+		case *parser.BoolLiteral:
+		default:
+			return fmt.Errorf("param key expect BoolLiteral, got `%s'",
+				reflect.TypeOf(funcExpr.Param[2]).String())
+		}
 	}
 
 	switch funcExpr.Param[0].(type) {
@@ -78,10 +87,6 @@ func Grok(ng *parser.EngineData, node parser.Node) interface{} {
 	}
 	var err error
 
-	if len(funcExpr.Param) != 2 {
-		return fmt.Errorf("func %s expected 2 args", funcExpr.Name)
-	}
-
 	var key parser.Node
 	switch v := funcExpr.Param[0].(type) {
 	case *parser.Identifier, *parser.AttrExpr:
@@ -96,7 +101,18 @@ func Grok(ng *parser.EngineData, node parser.Node) interface{} {
 		return nil
 	}
 
-	m, _, err := grokRe.RunWithTypeInfo(val)
+	trimSpace := true
+	if len(funcExpr.Param) == 3 {
+		switch v := funcExpr.Param[2].(type) {
+		case *parser.BoolLiteral:
+			trimSpace = v.Val
+		default:
+			return fmt.Errorf("param key expect BoolLiteral, got `%s'",
+				reflect.TypeOf(funcExpr.Param[2]).String())
+		}
+	}
+
+	m, _, err := grokRe.RunWithTypeInfo(val, trimSpace)
 	if err != nil {
 		return nil
 	}
