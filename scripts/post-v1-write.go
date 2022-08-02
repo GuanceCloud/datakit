@@ -78,18 +78,23 @@ func main() {
 	setulimit()
 	flag.Parse()
 
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
 	go func() {
 		startHTTP()
 	}()
 
 	time.Sleep(time.Second)
 
-	wg := sync.WaitGroup{}
-
 	reqs := map[string][]byte{
 		"http://localhost:9529/v1/write/logstreaming?type=influxdb":          logstreamingData,
 		"http://localhost:9529/v1/write/logging?input=post-v1-write-logging": loggingData,
 		"http://localhost:9529/v1/write/metric?input=post-v1-write-metric":   metricData,
+	}
+
+	if *flagWorker <= 0 {
+		wg.Wait()
 	}
 
 	wg.Add(*flagWorker)
@@ -123,7 +128,7 @@ func main() {
 					n++
 
 					if n%100 == 0 {
-						time.Sleep(time.Millisecond * 10)
+						time.Sleep(time.Second * 10)
 					} else {
 						time.Sleep(*flagWrokerSleep)
 					}
