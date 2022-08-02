@@ -1,7 +1,7 @@
 
 ### `json()` {#fn-json}
 
-函数原型：`json(input=required, jsonPath=required, newkey=optional)`
+函数原型：`json(input=required, jsonPath=required, newkey=required, trim_space=optional)`
 
 函数说明：提取 json 中的指定字段，并可将其命名成新的字段。
 
@@ -10,6 +10,7 @@
 - `input`: 待提取 json，可以是原始文本（`_`）或经过初次提取之后的某个 `key`
 - `jsonPath`: json 路径信息
 - `newkey`：提取后数据写入新 key
+- `trim_space`: 删除提取出的字符中的空白首尾字符，默认值为 true
 
 ```python
 # 直接提取原始输入 json 中的x.y字段，并可将其命名成新字段abc

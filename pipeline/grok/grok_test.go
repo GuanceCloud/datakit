@@ -44,7 +44,7 @@ func TestParse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	ret, err := g.Run("Tue qds")
+	ret, err := g.Run("Tue qds", true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -66,7 +66,7 @@ func TestParseFromPathPattern(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	ret, err := g.Run("Tue qds")
+	ret, err := g.Run("Tue qds", true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -152,7 +152,7 @@ true 1.1`,
 		if err != nil {
 			t.Fatal(err)
 		}
-		v, vf, err := g.RunWithTypeInfo(item.data)
+		v, vf, err := g.RunWithTypeInfo(item.data, true)
 		if err != nil && !item.failed {
 			t.Fatal(err)
 		}

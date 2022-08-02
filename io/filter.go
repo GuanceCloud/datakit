@@ -8,7 +8,6 @@ package io
 import (
 
 	// nolint:gosec
-
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
@@ -32,7 +31,6 @@ var (
 )
 
 func newFilter(dw IDataway) *filter {
-
 	return &filter{
 		conditions: map[string]parser.WhereConditions{},
 		dw:         dw,

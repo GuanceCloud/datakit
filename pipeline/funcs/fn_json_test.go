@@ -40,6 +40,37 @@ func TestJSON(t *testing.T) {
 			expected: "tw",
 			key:      "[0].nets[-1]",
 		},
+		{
+			in: `[
+				    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
+				    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
+				    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
+				]`,
+			script:   `json(_, .[1].age)`,
+			expected: float64(68),
+			key:      "[1].age",
+		},
+		{
+			name:     "trim_space auto",
+			in:       `{"item": " not_space "}`,
+			script:   `json(_, item, item)`,
+			key:      "item",
+			expected: "not_space",
+		},
+		{
+			name:     "trim_space disable",
+			in:       `{"item": " not_space "}`,
+			script:   `json(_, item, item, false)`,
+			key:      "item",
+			expected: " not_space ",
+		},
+		{
+			name:     "trim_space enable",
+			in:       `{"item": " not_space "}`,
+			script:   `json(_, item, item, true)`,
+			key:      "item",
+			expected: "not_space",
+		},
 	}
 
 	for idx, tc := range testCase {
@@ -55,6 +86,9 @@ func TestJSON(t *testing.T) {
 
 			r, ok := ret.Fields[tc.key]
 			tu.Equals(t, true, ok)
+			if tc.key == "[2].age" {
+				t.Log(1)
+			}
 			tu.Equals(t, tc.expected, r)
 
 			t.Logf("[%d] PASS", idx)
