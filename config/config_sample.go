@@ -111,17 +111,17 @@ ulimit = 64000
 [io]
   ## feed_chan_size: number, IO管道缓存大小
   #
-  feed_chan_size = 4096
+  feed_chan_size = 128
 
   ## max_cache_count: number, 本地缓存最大值
   ## 此数值与 max_dynamic_cache_count 同时小于等于零将无限使用内存
   #
-  max_cache_count = 512
+  max_cache_count = 64
 
   ## max_dynamic_cache_count: number, HTTP 缓存最大值
   ## 此数值与 max_cache_count 同时小于等于零将无限使用内存
   #
-  max_dynamic_cache_count = 512
+  max_dynamic_cache_count = 64
 
   ## flush_interval: string, 推送时间间隔
   #
