@@ -191,17 +191,6 @@ func newDiscoveryRunner(item *podMeta, inputConfig string, extraTags map[string]
 		break // get the first iterate elem in the map
 	}
 
-	tags := map[string]string{
-		"pod_name":  item.Name,
-		"node_name": item.Spec.NodeName,
-		"namespace": defaultNamespace(item.Namespace),
-	}
-	for k, v := range extraTags {
-		if _, ok := tags[k]; !ok {
-			tags[k] = v
-		}
-	}
-
 	var res []*discoveryRunner
 
 	for _, ii := range inputList {
@@ -216,7 +205,7 @@ func newDiscoveryRunner(item *podMeta, inputConfig string, extraTags map[string]
 		}
 
 		if inp, ok := ii.(inputs.OptionalInput); ok {
-			inp.SetTags(tags)
+			inp.SetTags(extraTags)
 		}
 
 		res = append(res, &discoveryRunner{
@@ -253,6 +242,7 @@ func completePromConfig(config string, item *podMeta) string {
 	config = strings.ReplaceAll(config, "$IP", podIP)
 	config = strings.ReplaceAll(config, "$NAMESPACE", item.Namespace)
 	config = strings.ReplaceAll(config, "$PODNAME", item.Name)
+	config = strings.ReplaceAll(config, "$NODENAME", item.Spec.NodeName)
 
 	return config
 }

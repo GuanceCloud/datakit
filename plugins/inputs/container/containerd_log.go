@@ -102,6 +102,7 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 
 	opt := composeTailerOption(c.k8sClient, info)
 	opt.Mode = tailer.ContainerdMode
+	opt.BlockingMode = c.cfg.enableLoggingBlockingMode
 
 	t, err := tailer.NewTailerSingle(info.logPath, opt)
 	if err != nil {
