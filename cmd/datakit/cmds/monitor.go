@@ -746,7 +746,7 @@ func (m *monitorAPP) renderIOTable(ds *dkhttp.DatakitStats, colArr []string) {
 		case datakit.Security:
 			send = ds.IOStats.SSendPts
 			failed = ds.IOStats.SFailPts
-		case datakit.Profile:
+		case datakit.Profiling:
 			send = ds.IOStats.PSendPts
 			failed = ds.IOStats.PFailPts
 		}

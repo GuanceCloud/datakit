@@ -344,8 +344,8 @@ func getPointCategory(category string) string {
 		return datakit.Security
 	case datakit.Logging, datakit.CategoryLogging:
 		return datakit.Logging
-	case datakit.Profile, datakit.CategoryProfile:
-		return datakit.Profile
+	case datakit.Profiling, datakit.CategoryProfiling:
+		return datakit.Profiling
 	default:
 		return ""
 	}

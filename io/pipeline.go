@@ -152,7 +152,7 @@ func scriptName(category string, name string, tags map[string]string, fields map
 			default:
 			}
 		}
-	case datakit.Tracing, datakit.Profile:
+	case datakit.Tracing, datakit.Profiling:
 		if svc, ok := tags["service"]; ok {
 			scriptName = svc
 		} else if svc, ok := fields["service"]; ok {

@@ -393,9 +393,9 @@ func (f *filter) filterSecurity(cond parser.WhereConditions, pts []*point.Point)
 }
 
 // using measurement name as tag `service'.
-func (f *filter) filterProfile(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
+func (f *filter) filterProfiling(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
-		l.Debugf("no condition filter for profile")
+		l.Debugf("no condition filter for profiling")
 		return pts
 	}
 
@@ -444,7 +444,7 @@ func (f *filter) doFilter(category string, pts []*point.Point) ([]*point.Point, 
 		return f.filterKeyEvent(f.conditions["keyevent"], pts), len(f.conditions["keyevent"])
 
 	case datakit.CustomObject:
-		return f.filterCustomObject(f.conditions["customobject"], pts), len(f.conditions["customobject"])
+		return f.filterCustomObject(f.conditions["custom_object"], pts), len(f.conditions["custom_object"])
 
 	case datakit.RUM:
 		return f.filterRUM(f.conditions["rum"], pts), len(f.conditions["rum"])
@@ -452,8 +452,8 @@ func (f *filter) doFilter(category string, pts []*point.Point) ([]*point.Point, 
 	case datakit.Security:
 		return f.filterSecurity(f.conditions["security"], pts), len(f.conditions["security"])
 
-	case datakit.Profile:
-		return f.filterProfile(f.conditions["profile"], pts), len(f.conditions["profile"])
+	case datakit.Profiling:
+		return f.filterProfiling(f.conditions["profiling"], pts), len(f.conditions["profiling"])
 
 	default: // TODO: not implemented
 		l.Warn("unsupport category: %s", category)
