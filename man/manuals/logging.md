@@ -66,6 +66,9 @@
   ## 时间单位支持 "ms", "s", "m", "h"
   ignore_dead_log = "10m"
 
+  ## 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据
+  blocking_mode = true
+
   # 自定义 tags
   [inputs.logging.tags]
   # some_tag = "some_value"

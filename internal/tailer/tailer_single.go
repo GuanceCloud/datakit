@@ -29,7 +29,6 @@ const (
 	defaultSleepDuration = time.Second
 	readBuffSize         = 1024 * 4
 
-	flushInterval = time.Second * 3
 	checkInterval = time.Second * 1
 )
 
@@ -168,11 +167,8 @@ func (t *Single) forwardMessage() {
 		readNum int
 		err     error
 
-		flushTicker = time.NewTicker(flushInterval) // 如果接收到数据，则重置 flush ticker
 		checkTicker = time.NewTicker(checkInterval)
 	)
-
-	defer flushTicker.Stop()
 	defer checkTicker.Stop()
 
 	handle := func(read func() ([]byte, int, error)) {
@@ -188,9 +184,6 @@ func (t *Single) forwardMessage() {
 			t.wait()
 			return
 		}
-
-		// 如果接收到数据，则重置 flush ticker
-		flushTicker.Reset(flushInterval)
 
 		lines = b.split()
 
@@ -210,11 +203,6 @@ func (t *Single) forwardMessage() {
 		select {
 		case <-datakit.Exit.Wait():
 			return
-
-		case <-flushTicker.C:
-			if str := t.mult.FlushString(); str != "" {
-				t.send(str)
-			}
 
 		case <-checkTicker.C:
 			if !FileIsActive(t.filepath, t.opt.IgnoreDeadLog) {
@@ -316,6 +304,12 @@ func (t *Single) generateJSONLogs(lines []string) []string {
 			continue
 		}
 
+		// text 意外的不匹配多行规则
+		if !t.mult.MatchString(text) {
+			t.opt.log.Warnf("unexpected multiline text: %s, next: %s, file %s, multiline rule '%s'",
+				text, t.mult.BuffString(), t.filename, t.opt.MultilineMatch)
+		}
+
 		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
 		pending = append(pending, logstr)
 	}
@@ -355,6 +349,12 @@ func (t *Single) generateCRILogs(lines []string) []string {
 			continue
 		}
 
+		// text 意外的不匹配多行规则
+		if !t.mult.MatchString(text) {
+			t.opt.log.Warnf("unexpected multiline text: %s, next: %s, file %s, multiline rule '%s'",
+				text, t.mult.BuffString(), t.filename, t.opt.MultilineMatch)
+		}
+
 		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
 		pending = append(pending, logstr)
 	}
@@ -381,6 +381,13 @@ func (t *Single) defaultHandler(lines []string) {
 			continue
 		}
 
+		// TODO
+		// text 意外的不匹配多行规则
+		if !t.mult.MatchString(text) {
+			t.opt.log.Warnf("unexpected multiline text: %s, next: %s, file %s, multiline rule '%s'",
+				text, t.mult.BuffString(), t.filename, t.opt.MultilineMatch)
+		}
+
 		if t.opt.ForwardFunc != nil {
 			t.sendToForwardCallback(text)
 			continue
@@ -392,15 +399,6 @@ func (t *Single) defaultHandler(lines []string) {
 		return
 	}
 	t.feed(pending)
-}
-
-func (t *Single) send(text string) {
-	if t.opt.ForwardFunc != nil {
-		t.sendToForwardCallback(text)
-		return
-	}
-
-	t.feed([]string{text})
 }
 
 func (t *Single) sendToForwardCallback(text string) {
@@ -430,17 +428,28 @@ func (t *Single) feed(pending []string) {
 		}
 		res = append(res, pt)
 	}
+
 	if len(res) > 0 {
-		if err := iod.Feed("logging/"+t.opt.Source, datakit.Logging, res, &iod.Option{
+		return
+	}
+
+	for retry := 0; ; retry++ {
+		err := iod.Feed("logging/"+t.opt.Source, datakit.Logging, res, &iod.Option{
 			PlScript: map[string]string{t.opt.Source: t.opt.Pipeline},
 			PlOption: &script.Option{
 				MaxFieldValLen:        maxFieldsLength,
 				DisableAddStatusField: t.opt.DisableAddStatusField,
 				IgnoreStatus:          t.opt.IgnoreStatus,
 			},
-		}); err != nil {
-			t.opt.log.Error(err)
+		})
+		if err != nil {
+			t.opt.log.Errorf("feed error %s, len(points) %d, retry %d", err, len(res), retry)
+			if t.opt.BlockingMode {
+				time.Sleep(time.Millisecond * 300)
+				continue
+			}
 		}
+		break
 	}
 }
 
