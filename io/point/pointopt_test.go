@@ -89,7 +89,7 @@ func TestPointOptions(t *testing.T) {
 			datakit.Network,
 			datakit.Object,
 			datakit.Logging,
-			datakit.Profile,
+			datakit.Profiling,
 		} {
 			t.Run(tc.name+cat, func(t *testing.T) {
 				for k, v := range tc.envTags {
@@ -135,7 +135,7 @@ func TestPointOptions(t *testing.T) {
 					} else {
 						opt = LOpt()
 					}
-				case datakit.Profile:
+				case datakit.Profiling:
 					if tc.electionable {
 						opt = POptElection()
 					} else {

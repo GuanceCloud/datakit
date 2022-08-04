@@ -62,7 +62,7 @@ func (x *IO) init() error {
 		datakit.Tracing,
 		datakit.RUM,
 		datakit.Security,
-		datakit.Profile,
+		datakit.Profiling,
 		dynamicDatawayCategory,
 	} {
 		x.chans[c] = make(chan *iodata, x.conf.FeedChanSize)

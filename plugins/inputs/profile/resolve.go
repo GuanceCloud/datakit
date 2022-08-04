@@ -376,7 +376,7 @@ func cache(req *http.Request) (string, int64, error) {
 
 	point, err := point.NewPoint(inputName, pointTags, pointFields, &point.PointOption{
 		Time:     time.Unix(0, startNS),
-		Category: datakit.Profile,
+		Category: datakit.Profiling,
 		Strict:   false,
 	})
 	if err != nil {
@@ -393,7 +393,7 @@ func sendToIO(profileID string) error {
 
 	if pt != nil {
 		if err := dkio.Feed(inputName,
-			datakit.Profile,
+			datakit.Profiling,
 			[]*point.Point{pt},
 			&dkio.Option{CollectCost: time.Since(pt.Time())}); err != nil {
 			return err

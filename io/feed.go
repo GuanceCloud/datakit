@@ -101,7 +101,7 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 		datakit.CustomObject,
 		datakit.RUM,
 		datakit.Security,
-		datakit.Profile:
+		datakit.Profiling:
 
 		// run filters
 		after = filterPts(category, pts)
