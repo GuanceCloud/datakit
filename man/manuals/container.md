@@ -180,6 +180,7 @@ spec:
 | `ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING`               | `bearer_token_string`               | `"<your-token-string>"`                                                                        |
 | `ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP`          | `logging_extra_source_map`          | `"source_regex*=new_source,regex*=new_source2"` 以英文逗号隔开                                 |
 | `ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON` | `logging_source_multiline_map`      | `'{"source":"^\d{4}"}'` JSON 格式的 map，key 为 source 名，value 是对应的 multiline_match 配置 |
+| `ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE`             | `logging_blocking_mode`             | `"true"`/`"false"` 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据      |
 | `ENV_K8S_CLUSTER_NAME`                                  | k8s `cluster_name` 字段的缺省值     | `"kube"`                                                                                       |
 
 补充：

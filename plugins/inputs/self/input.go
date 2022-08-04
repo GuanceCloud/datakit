@@ -121,6 +121,7 @@ func OSDetail() string {
 func linuxVersion() string {
 	linux := `linux`
 	fp := "/etc/os-release"
+
 	_, err := os.Stat(fp)
 	if err != nil {
 		return linux
