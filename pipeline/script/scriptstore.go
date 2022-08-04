@@ -142,6 +142,15 @@ func (store *ScriptStore) Get(name string) (*PlScript, bool) {
 	return nil, false
 }
 
+func (store *ScriptStore) Count() int {
+	store.storage.RLock()
+	defer store.storage.RUnlock()
+
+	return len(store.storage.scripts[RemoteScriptNS]) +
+		len(store.storage.scripts[GitRepoScriptNS]) +
+		len(store.storage.scripts[DefaultScriptNS])
+}
+
 func (store *ScriptStore) GetWithNs(name, ns string) (*PlScript, bool) {
 	store.storage.RLock()
 	defer store.storage.RUnlock()
@@ -342,6 +351,10 @@ func (store *ScriptStore) LoadDotPScript2Store(ns string, dirPath string, filePa
 
 func QueryScript(category, name string) (*PlScript, bool) {
 	return whichStore(category).Get(name)
+}
+
+func ScriptCount(category string) int {
+	return whichStore(category).Count()
 }
 
 func ReadPlScriptFromFile(fp string) (string, string, error) {
