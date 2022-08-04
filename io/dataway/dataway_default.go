@@ -43,8 +43,8 @@ var (
 		datakit.ObjectLabel,
 		datakit.LogUpload,
 		datakit.PipelinePull,
-		datakit.Profile,
-		datakit.ProfileUpload,
+		datakit.Profiling,
+		datakit.ProfilingUpload,
 	}
 
 	ExtraHeaders               = map[string]string{}

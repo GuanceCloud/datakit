@@ -128,7 +128,7 @@ func (x *IO) StartIO(recoverable bool) {
 		datakit.Tracing,
 		datakit.RUM,
 		datakit.Security,
-		datakit.Profile,
+		datakit.Profiling,
 		dynamicDatawayCategory,
 	} {
 		log.Infof("starting consumer on %s...", c)
@@ -196,7 +196,7 @@ func (x *IO) runConsumer(category string) {
 	case datakit.Security:
 		c.sendPts = &SSendPts
 		c.failPts = &SFailPts
-	case datakit.Profile:
+	case datakit.Profiling:
 		c.sendPts = &PSendPts
 		c.failPts = &PFailPts
 	case dynamicDatawayCategory:

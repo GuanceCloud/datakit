@@ -2,7 +2,7 @@
 
 ## 简述
 
-本文介绍 datakit 中 profile相关数据结构定义
+本文介绍 Datakit 中 profiling 相关数据结构定义
 
 数据转换流：
 
@@ -32,32 +32,32 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 | Tag                                          | Runtime                                   |                                           | runtime [jvm, CPython, go, ....]                              |
 | Tag                                          | runtime_os                                |                                           | os                                                        |
 | Tag                                          | runtime_arch                              |                                           | cpu architecture                                                        |
-| Field                                        | profile_id                                |                                           | profile ID                                                                      |
+| Field                                        | profile_id                                |                                           | profiling ID                                                                      |
 | Field                                        | agent_ver                                 |                                           | 客户端agent版本                                                                       |
-| Field                                        | start                                     | 微秒                                      | profile start timestamp                                                          |
-| Field                                        | end                                       | 微秒                                      | profile end timestamp                                                          |
-| Field                                        | duration                                  | 微秒                                      | profile duration                                                                 |
+| Field                                        | start                                     | 微秒                                      | profiling start timestamp                                                          |
+| Field                                        | end                                       | 微秒                                      | profiling end timestamp                                                          |
+| Field                                        | duration                                  | 微秒                                      | profiling duration                                                                 |
 | Field                                        | pid                                       |                                           | process id                                                                    |
-| Field                                        | format                                    |                                           | binary profile file format                                                            |
+| Field                                        | format                                    |                                           | binary profiling file format                                                            |
 
 
 > 以下简称 dkproto
 
 ### Datakit Profiling Structure
 
-Datakit Profile 是 Datakit 使用的用于表示profile的结构。
+Datakit Profiling 是 Datakit 使用的用于表示 profiling 的结构。
 
 
 | <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green">**Unit**</span> | <span style="color:green">**Description**</span>                                        | <span style="color:green">**Correspond To**</span> |
 | ----------------------------------------------- | ---------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| ProfileId                                       | string                                         |                                           | profile 唯一id                                                                           | dkproto.fields.profile_id                            |
-| AgentVer                                        | string                                         |                                           | profile agent 库版本                                                                     | dkproto.fields.agent_ver                            |
+| ProfileId                                       | string                                         |                                           | profiling 唯一id                                                                           | dkproto.fields.profile_id                            |
+| AgentVer                                        | string                                         |                                           | profiling agent 库版本                                                                     | dkproto.fields.agent_ver                            |
 | Endpoint                                        | string                                         |                                           | 通信端                                                                                   | dkproto.fields.endpoint                           |
 | Service                                         | string                                         |                                           | Service Name                                                                            | dkproto.tags.service                               |
 | Env                                             | string                                         |                                           | Environment Variables                                                                   | dkproto.tags.env                                   |
 | Version                                         | string                                         |                                           | App 版本号                                                                               | dkproto.tags.version                               |
-| Start                                           | int64                                          | 纳秒                                       | profile 采样开始时间                                                                      | dkproto.fields.start                               |
-| End                                             | int64                                          | 纳秒                                       | profile 采样结束时间                                                                      | dkproto.fields.end                               |
+| Start                                           | int64                                          | 纳秒                                       | profiling 采样开始时间                                                                      | dkproto.fields.start                               |
+| End                                             | int64                                          | 纳秒                                       | profiling 采样结束时间                                                                      | dkproto.fields.end                               |
 | Duration                                        | int64                                          | 纳秒                                       | 本次采样持续时间，通常为1min                                                                | dkproto.fields.duration                            |
 | Host                                            | string                                         |                                            | 主机/容器 hostname                                                                       | dkproto.tags.host                        |
 | PID                                             | string                                         |                                           | Process ID                                                                               | dkproto.fields.pid                                           |
@@ -66,11 +66,11 @@ Datakit Profile 是 Datakit 使用的用于表示profile的结构。
 | Runtime                                         | string                                         |                                           | 运行时环境， jvm, cpython...                                                               | dkproto.fields.runtime                            |
 | RuntimeOs                                       | string                                         |                                           | 操作系统                                                                                  | dkproto.tags.runtime_os                            |
 | RuntimeArch                                     | string                                         |                                           | CPU架构：amd64, arm64...                                                                  | dkproto.tags.runtime_arch                            |
-| Format                                          | string                                         |                                           | profile二进制文件采用的格式，jfr, pprof...                                                  | dkproto.fields.format                            |
-| Tags                                            | map[string]string                              |                                           | profile Tags                                                                             | dkproto.tags                                       |
-| OssPath                                         | []string                                       |                                           | 原始profile二进制文件存储在oss的路径, 用于后续解析和供用户下载                                    | dkproto.fields.oss_path                            |
-| Metrics                                         | map[string]string                              |                                           | 从profile二进制文件中解析出的 相关指标                                                         | dkproto.fields.metrics                            |
-| Samples                                         | map[EventType]*Sample                           |                                          | profile相关采样性能指标                                                                     | dkproto.fields.samples                            |
+| Format                                          | string                                         |                                           | profiling 二进制文件采用的格式，jfr, pprof...                                                  | dkproto.fields.format                            |
+| Tags                                            | map[string]string                              |                                           | profiling Tags                                                                             | dkproto.tags                                       |
+| OssPath                                         | []string                                       |                                           | 原始 profiling 二进制文件存储在oss的路径, 用于后续解析和供用户下载                                    | dkproto.fields.oss_path                            |
+| Metrics                                         | map[string]string                              |                                           | 从 profiling 二进制文件中解析出的 相关指标                                                         | dkproto.fields.metrics                            |
+| Samples                                         | map[EventType]*Sample                           |                                          | profiling 相关采样性能指标                                                                     | dkproto.fields.samples                            |
 
 ---
 
@@ -108,7 +108,7 @@ Datakit Profile 是 Datakit 使用的用于表示profile的结构。
 
 ### FlameGraph structure
 
-> profile详情查看页火焰图数据结构
+> profiling 详情查看页火焰图数据结构
 
 | <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green">**Description**</span>                                        |
 | ----------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------- |

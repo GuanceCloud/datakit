@@ -265,7 +265,7 @@ func TestWhichStore(t *testing.T) {
 		t.Fatal("not equal")
 	}
 
-	r = whichStore(datakit.Profile)
+	r = whichStore(datakit.Profiling)
 	if r == nil {
 		t.Fatal("err")
 	}

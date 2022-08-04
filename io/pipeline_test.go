@@ -71,7 +71,7 @@ func TestSCriptName(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	name, ok = scriptName(datakit.Profile, pt.Name(), pt.Tags(), f, map[string]string{"svc_name": "def.p"})
+	name, ok = scriptName(datakit.Profiling, pt.Name(), pt.Tags(), f, map[string]string{"svc_name": "def.p"})
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "def.p", name)
 

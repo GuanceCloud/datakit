@@ -52,8 +52,8 @@ const (
 	Tracing          = "/v1/write/tracing"
 	RUM              = "/v1/write/rum"
 	Security         = "/v1/write/security"
-	Profile          = "/v1/write/profiling"  // write profile metadata.
-	ProfileUpload    = "/v1/upload/profiling" // upload profile binary.
+	Profiling        = "/v1/write/profiling"  // write profiling metadata.
+	ProfilingUpload  = "/v1/upload/profiling" // upload profiling binary.
 
 	// data category pure name.
 	CategoryMetric       = "metric"
@@ -65,7 +65,7 @@ const (
 	CategoryTracing      = "tracing"
 	CategoryRUM          = "rum"
 	CategorySecurity     = "security"
-	CategoryProfile      = "profiling"
+	CategoryProfiling    = "profiling"
 
 	// other APIS.
 	HeartBeat         = "/v1/write/heartbeat"
@@ -177,7 +177,7 @@ var (
 		RUM:              "R",
 		Security:         "S",
 		CustomObject:     "CO",
-		Profile:          "P",
+		Profiling:        "P",
 	}
 )
 
@@ -192,7 +192,7 @@ func CategoryList() (map[string]struct{}, map[string]struct{}) {
 			Tracing:      {},
 			RUM:          {},
 			Security:     {},
-			Profile:      {},
+			Profiling:    {},
 		}, map[string]struct{}{
 			MetricDeprecated: {},
 		}
@@ -209,7 +209,7 @@ func CategoryDirName() map[string]string {
 		Tracing:      "tracing",
 		RUM:          "rum",
 		Security:     "security",
-		Profile:      "profiling",
+		Profiling:    "profiling",
 	}
 }
 
