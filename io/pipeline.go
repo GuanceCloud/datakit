@@ -8,11 +8,12 @@ package io
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
+	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 )
 
@@ -25,34 +26,34 @@ func runPl(category string, pts []*point.Point, opt *Option) (ret []*point.Point
 		}
 	}()
 
+	if plscript.ScriptCount(category) < 1 {
+		return pts, nil
+	}
+
 	var scriptMap map[string]string
-	var plOpt *script.Option
+	var plOpt *plscript.Option
 	if opt != nil {
 		scriptMap = opt.PlScript
 		plOpt = opt.PlOption
 	}
 	ret = []*point.Point{}
+	ptOpt := &point.PointOption{
+		DisableGlobalTags: true,
+		Category:          category,
+	}
+	if plOpt != nil {
+		ptOpt.MaxFieldValueLen = plOpt.MaxFieldValLen
+	}
+
 	for _, pt := range pts {
-		tags := pt.Tags()
-		fields, err := pt.Fields()
-		if err != nil {
-			plLogger.Debug(err)
-			continue
-		}
+		script, ptName, tags, fields, ptTime := getScript(category, pt, scriptMap)
 
-		scriptName, ok := scriptName(category, pt.Name(), tags, fields, scriptMap)
-		if !ok {
+		if script == nil {
 			ret = append(ret, pt)
 			continue
 		}
 
-		script, ok := script.QueryScript(category, scriptName)
-		if !ok { // script not found
-			ret = append(ret, pt)
-			continue
-		}
-
-		out, drop, err := script.Run(pt.Point.Name(), tags, fields, "message", pt.Point.Time(), plOpt)
+		out, drop, err := script.Run(ptName, tags, fields, "message", *ptTime, plOpt)
 		if err != nil {
 			plLogger.Debug(err)
 			ret = append(ret, pt)
@@ -63,25 +64,65 @@ func runPl(category string, pts []*point.Point, opt *Option) (ret []*point.Point
 			continue
 		}
 
-		ptOpt := &point.PointOption{
-			DisableGlobalTags: true,
-			Category:          category,
-			Time:              out.Time,
-		}
+		ptOpt.Time = out.Time
 
-		if plOpt != nil {
-			ptOpt.MaxFieldValueLen = plOpt.MaxFieldValLen
-		}
 		if p, err := point.NewPoint(out.Measurement, out.Tags, out.Fields, ptOpt); err != nil {
 			plLogger.Error(err)
 			stats.WriteScriptStats(script.Category(), script.NS(), script.Name(), 0, 0, 1, 0, err)
 		} else {
 			pt = p
 		}
+
 		ret = append(ret, pt)
 	}
 
 	return ret, nil
+}
+
+func getScript(category string, pt *point.Point, scriptMap map[string]string) (*plscript.PlScript,
+	string, map[string]string, map[string]interface{}, *time.Time,
+) {
+	switch category {
+	case datakit.RUM, datakit.Security, datakit.Tracing, datakit.Profile:
+		fields, err := pt.Fields()
+		if err != nil {
+			plLogger.Debug(err)
+			break
+		}
+		ptTime := pt.Time()
+		name := pt.Name()
+		tags := pt.Tags()
+
+		scriptName, ok := scriptName(category, name, tags, fields, scriptMap)
+		if !ok {
+			break
+		}
+		if s, ok := plscript.QueryScript(category, scriptName); ok {
+			return s, name, tags, fields, &ptTime
+		}
+	default:
+		name := pt.Name()
+		scriptName, ok := scriptName(category, name, nil, nil, scriptMap)
+		if !ok {
+			break
+		}
+		// 未查询到脚本时条过解析 Point
+		s, ok := plscript.QueryScript(category, scriptName)
+		if !ok {
+			break
+		}
+
+		fields, err := pt.Fields()
+		if err != nil {
+			plLogger.Debug(err)
+			break
+		}
+		ptTime := pt.Time()
+		tags := pt.Tags()
+		return s, name, tags, fields, &ptTime
+	}
+
+	return nil, "", nil, nil, nil
 }
 
 func scriptName(category string, name string, tags map[string]string, fields map[string]interface{},

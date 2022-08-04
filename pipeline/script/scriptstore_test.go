@@ -172,6 +172,8 @@ func TestPlScriptStore(t *testing.T) {
 		t.Error(err)
 	}
 
+	assert.Equal(t, store.Count(), 2)
+
 	err = store.UpdateScriptsWithNS(RemoteScriptNS, map[string]string{"abc.p": "default_time(time)"}, nil)
 	if err != nil {
 		t.Error(err)
