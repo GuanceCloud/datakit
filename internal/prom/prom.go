@@ -237,7 +237,7 @@ func (p *Prom) CollectFromHTTP(u string) ([]*point.Point, error) {
 		}
 	}
 	defer resp.Body.Close() //nolint:errcheck
-	pts, err := p.Text2Metrics(resp.Body)
+	pts, err := p.text2Metrics(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +250,7 @@ func (p *Prom) CollectFromFile(filepath string) ([]*point.Point, error) {
 		return nil, err
 	}
 	defer f.Close() //nolint:errcheck,gosec
-	return p.Text2Metrics(f)
+	return p.text2Metrics(f)
 }
 
 // WriteMetricText2File scrapes raw prometheus metric text from u

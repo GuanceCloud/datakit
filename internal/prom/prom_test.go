@@ -1098,7 +1098,7 @@ http_request_duration_seconds_bucket 1
 		}
 
 		t.Run(tc.name, func(t *testing.T) {
-			pts, err := p.Text2Metrics(bytes.NewBufferString(tc.promdata))
+			pts, err := p.text2Metrics(bytes.NewBufferString(tc.promdata))
 			if err != nil {
 				t.Error(err)
 				return
@@ -1140,6 +1140,431 @@ func TestSetHeaders(t *testing.T) {
 			assert.NoError(t, err)
 			for k, v := range p.opt.HTTPHeaders {
 				assert.Equal(t, v, req.Header.Get(k))
+			}
+		})
+	}
+}
+
+func TestRepetitiveCommentsInText(t *testing.T) {
+	testcases := []struct {
+		in       *Option
+		name     string
+		repeated bool
+		expected []string
+		text     string
+		fail     bool
+	}{
+		{
+			name:     "non-repeated-comment",
+			in:       &Option{URL: promURL},
+			repeated: false,
+			expected: []string{
+				`go gc_duration_seconds_count=0,gc_duration_seconds_sum=0`,
+				`go,quantile=0 gc_duration_seconds=0`,
+				`go,quantile=0.25 gc_duration_seconds=0`,
+				`go,quantile=0.5 gc_duration_seconds=0`,
+				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1i",
+				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013`,
+				"http,method=GET,status_code=403 request_duration_seconds_count=0,request_duration_seconds_sum=0",
+				`promhttp metric_handler_requests_in_flight=1`,
+				`promhttp,cause=encoding metric_handler_errors_total=0`,
+				`promhttp,cause=gathering metric_handler_errors_total=0`,
+				`promhttp,code=200 metric_handler_requests_total=15143`,
+				`promhttp,code=500 metric_handler_requests_total=0`,
+				`promhttp,code=503 metric_handler_requests_total=0`,
+				`up up=1`,
+			},
+			text: `
+# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 0
+# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
+# TYPE promhttp_metric_handler_requests_in_flight gauge
+promhttp_metric_handler_requests_in_flight 1
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 15143
+promhttp_metric_handler_requests_total{code="500"} 0
+promhttp_metric_handler_requests_total{code="503"} 0
+# HELP go_gc_duration_seconds A summary of the GC invocation durations.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 0
+go_gc_duration_seconds{quantile="0.25"} 0
+go_gc_duration_seconds{quantile="0.5"} 0
+# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.03",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.1",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.3",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="1.5",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="10",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="1.2",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="+Inf",status_code="403",method="GET"} 1
+http_request_duration_seconds_sum{status_code="404",method="GET"} 0.002451013
+http_request_duration_seconds_count{status_code="404",method="GET"} 1
+# HELP up 1 = up, 0 = not up
+# TYPE up untyped
+up 1
+`,
+		},
+		{
+			name:     "missing-some-comment",
+			in:       &Option{URL: promURL},
+			repeated: false,
+			text: `
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 0
+promhttp_metric_handler_requests_in_flight 1
+promhttp_metric_handler_requests_total{code="200"} 15143
+go_gc_duration_seconds{quantile="0"} 0
+go_gc_duration_seconds{quantile="0.25"} 0
+go_gc_duration_seconds{quantile="0.5"} 0
+# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_sum{status_code="404",method="GET"} 0.002451013
+http_request_duration_seconds_count{status_code="404",method="GET"} 1
+# HELP up 1 = up, 0 = not up
+# TYPE up untyped
+up 1
+`,
+		},
+		{
+			name:     "ends-with-a-comment",
+			in:       &Option{URL: promURL},
+			repeated: false,
+			text: `
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 0
+promhttp_metric_handler_requests_in_flight 1
+promhttp_metric_handler_requests_total{code="200"} 15143
+go_gc_duration_seconds{quantile="0"} 0
+go_gc_duration_seconds{quantile="0.25"} 0
+go_gc_duration_seconds{quantile="0.5"} 0
+# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
+# TYPE http_request_duration_seconds histogram
+`,
+		},
+		{
+			name:     "repeated-comment",
+			in:       &Option{URL: promURL},
+			repeated: true,
+			expected: []string{
+				"node,address=00:00:00:00:00:00,broadcast=00:00:00:00:00:00,device=lo,operstate=unknown network_info=1",
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=br-lan,duplex=unknown,operstate=up network_info=1",
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=eth0,duplex=full,operstate=up network_info=1",
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=lan1,duplex=unknown,operstate=lowerlayerdown network_info=1",
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=lan2,duplex=full,operstate=up network_info=1",
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=lan3,duplex=full,operstate=up network_info=1",
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=wan,duplex=full,operstate=up network_info=1",
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=wlan0,operstate=up network_info=1",
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=wlan1,operstate=up network_info=1",
+			},
+			text: `# TYPE node_network_info gauge
+node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="lan1",operstate="lowerlayerdown"} 1
+# TYPE node_network_info gauge
+node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="br-lan",operstate="up"} 1
+# TYPE node_network_info gauge
+node_network_info{operstate="up",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="wlan1"} 1
+# TYPE node_network_info gauge
+node_network_info{operstate="unknown",broadcast="00:00:00:00:00:00",ifalias="",address="00:00:00:00:00:00",device="lo"} 1
+# TYPE node_network_info gauge
+node_network_info{operstate="up",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="wlan0"} 1
+# TYPE node_network_info gauge
+node_network_info{duplex="full",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="wan",operstate="up"} 1
+# TYPE node_network_info gauge
+node_network_info{duplex="full",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="lan3",operstate="up"} 1
+# TYPE node_network_info gauge
+node_network_info{duplex="full",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="eth0",operstate="up"} 1
+# TYPE node_network_info gauge
+node_network_info{duplex="full",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="lan2",operstate="up"} 1
+`,
+		},
+		{
+			name:     "#TYPE",
+			in:       &Option{URL: promURL},
+			repeated: true,
+			expected: []string{
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=lan1,duplex=unknown,operstate=lowerlayerdown network_info=1",
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=lan1,duplex=unknown,operstate=lowerlayerdown network_info=1",
+			},
+			text: `#TYPE node_network_info gauge
+node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="lan1",operstate="lowerlayerdown"} 1
+#TYPE node_network_info gauge
+node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="lan1",operstate="lowerlayerdown"} 1
+`,
+		},
+		{
+			name:     "not-enough-token-after-#TYPE",
+			in:       &Option{URL: promURL},
+			repeated: false,
+			expected: []string{
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=lan1,duplex=unknown,operstate=lowerlayerdown network_info=1",
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=lan1,duplex=unknown,operstate=lowerlayerdown network_info=1",
+			},
+			text: `#TYPE node_network_info gauge
+node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="lan1",operstate="lowerlayerdown"} 1
+#TYPE
+node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="lan1",operstate="lowerlayerdown"} 1
+`,
+		},
+		{
+			name:     "common-comments",
+			in:       &Option{URL: promURL},
+			repeated: false,
+			expected: []string{
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=lan1,duplex=unknown,operstate=lowerlayerdown network_info=1",
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=lan1,duplex=unknown,operstate=lowerlayerdown network_info=1",
+			},
+			text: `# This is a common comment
+node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="lan1",operstate="lowerlayerdown"} 1
+#This is another comment, which should be ignored
+node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="lan1",operstate="lowerlayerdown"} 1
+`,
+		},
+		{
+			name:     "#HELP-not-at-start-of-line",
+			in:       &Option{URL: promURL},
+			repeated: false,
+			expected: []string{
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=lan1,duplex=unknown,operstate=lowerlayerdown network_info=1",
+				"node,address=a1:b2:c3:d4:e5:f6,broadcast=ff:ff:ff:ff:ff:ff,device=lan1,duplex=unknown,operstate=lowerlayerdown network_info=1",
+			},
+			text: `# This is a comment. #TYPE node_network_info gauge
+#TYPE node_network_info gauge
+node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="lan1",operstate="lowerlayerdown"} 1
+node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="lan1",operstate="lowerlayerdown"} 1
+`,
+		},
+		{
+			name: "incomplete-comment-handled-by-prom-library",
+			in:   &Option{URL: promURL},
+			fail: true,
+			text: `# TYPE node_network_info gauge
+node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",address="a1:b2:c3:d4:e5:f6",device="lan1",operstate="lowerlayerdown"} 1
+# TYPE`,
+		},
+		{
+			name: "random text as input",
+			in:   &Option{URL: promURL},
+			fail: true,
+			text: `hello, world!`,
+		},
+		{
+			name: "html as input",
+			in:   &Option{URL: promURL},
+			fail: true,
+			text: `<html>
+<meta http-equiv="refresh" content="0;url=http://www.baidu.com/">
+</html>`,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			var arr []string
+			p, err := NewProm(tc.in)
+			assert.NoError(t, err)
+			p.SetClient(&http.Client{Transport: newTransportMock(tc.text)})
+			if tc.fail {
+				_, err := p.text2Metrics(bytes.NewReader([]byte(tc.text)))
+				assert.Error(t, err)
+				return
+			}
+			if !tc.repeated {
+				// If there is no repetitive comment like # TYPE or # HELP,
+				// doText2Metrics should produce exactly the same metrics as text2Metrics.
+				var arr1, arr2 []string
+
+				pts1, err := p.doText2Metrics(bytes.NewReader([]byte(tc.text)))
+				assert.NoError(t, err)
+				pts2, err := p.text2Metrics(bytes.NewReader([]byte(tc.text)))
+				assert.NoError(t, err)
+
+				assert.Equal(t, len(pts1), len(pts2))
+				for _, pt := range pts1 {
+					arr1 = append(arr1, trimTimeStamp(pt.String()))
+				}
+				for _, pt := range pts2 {
+					arr2 = append(arr2, trimTimeStamp(pt.String()))
+				}
+				sort.Strings(arr1)
+				sort.Strings(arr2)
+				for i := range arr1 {
+					assert.Equal(t, arr1[i], arr2[i])
+				}
+				if tc.expected == nil {
+					// Solely do comparison.
+					return
+				}
+				arr = arr1
+			} else {
+				// Repetitive comments should make doText2Metrics fail.
+				_, err := p.doText2Metrics(bytes.NewReader([]byte(tc.text)))
+				assert.Error(t, err)
+
+				pts, err := p.text2Metrics(bytes.NewReader([]byte(tc.text)))
+				assert.NoError(t, err)
+				for _, pt := range pts {
+					arr = append(arr, trimTimeStamp(pt.String()))
+				}
+				sort.Strings(arr)
+			}
+
+			sort.Strings(tc.expected)
+			assert.Equal(t, len(arr), len(tc.expected))
+			for i := range arr {
+				assert.Equal(t, arr[i], tc.expected[i])
+				t.Logf(">>>\n%s\n%s", arr[i], tc.expected[i])
+			}
+		})
+	}
+}
+
+func trimTimeStamp(metricString string) string {
+	return metricString[:strings.LastIndex(metricString, " ")]
+}
+
+func getProm() (*Prom, error) {
+	return NewProm(&Option{URL: "dummyURL"})
+}
+
+func Benchmark_text2Metrics(b *testing.B) {
+	tests := []struct {
+		name     string
+		filepath string
+		flag     bool
+		numPts   int
+	}{
+		{
+			name:     "text2Metrics-istio.text",
+			filepath: "./_test/istio.txt",
+			flag:     true,
+			numPts:   792,
+		},
+		{
+			name:     "doText2Metrics-istio.text",
+			filepath: "./_test/istio.txt",
+			flag:     false,
+			numPts:   792,
+		},
+		{
+			name:     "text2Metrics-istiod.txt",
+			filepath: "./_test/istiod.txt",
+			flag:     true,
+			numPts:   225,
+		},
+		{
+			name:     "doText2Metrics-istiod.txt",
+			filepath: "./_test/istiod.txt",
+			flag:     false,
+			numPts:   225,
+		},
+	}
+	for _, t := range tests {
+		b.Run(t.name, func(b *testing.B) {
+			p, err := getProm()
+			assert.NoError(b, err)
+
+			if t.flag {
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					f, err := os.Open(t.filepath)
+					assert.NoError(b, err)
+					pts, err := p.text2Metrics(f)
+					assert.NoError(b, err)
+					assert.Equal(b, t.numPts, len(pts))
+					err = f.Close()
+					assert.NoError(b, err)
+				}
+				b.StopTimer()
+			} else {
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					f, err := os.Open(t.filepath)
+					assert.NoError(b, err)
+					pts, err := p.doText2Metrics(f)
+					assert.NoError(b, err)
+					assert.Equal(b, t.numPts, len(pts))
+					err = f.Close()
+					assert.NoError(b, err)
+				}
+				b.StopTimer()
+			}
+		})
+	}
+}
+
+func TestTokenIterator(t *testing.T) {
+	testcases := []struct {
+		name           string
+		text           string
+		start          int
+		expectedTokens []string
+	}{
+		{
+			name:           "normal-token-iterating-1",
+			text:           "# TYPE http_request_duration_seconds histogram\n",
+			start:          1,
+			expectedTokens: []string{"TYPE", "http_request_duration_seconds", "histogram"},
+		},
+		{
+			name:           "normal-token-iterating-1",
+			text:           "# TYPE http_request_duration_seconds histogram\n",
+			start:          2,
+			expectedTokens: []string{"TYPE", "http_request_duration_seconds", "histogram"},
+		},
+		{
+			name:           "no-more-token",
+			text:           "# \n",
+			start:          1,
+			expectedTokens: []string{},
+		},
+		{
+			name:           "follow-by-extra-space",
+			text:           "#      TYPE       http_request_duration_seconds     histogram\n",
+			start:          2,
+			expectedTokens: []string{"TYPE", "http_request_duration_seconds", "histogram"},
+		},
+		{
+			name:           "start-at-the-end",
+			text:           "hello\n",
+			start:          5,
+			expectedTokens: []string{},
+		},
+		{
+			name:           "starting-index-out-of-bound",
+			text:           "# \n",
+			start:          100,
+			expectedTokens: []string{},
+		},
+		{
+			name:           "not-ends-with-newline",
+			text:           "# TYPE http_request_duration_seconds histogram",
+			start:          1,
+			expectedTokens: []string{"TYPE", "http_request_duration_seconds", "histogram"},
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			ti := newTokenIterator([]byte(tc.text), tc.start)
+			var actual []string
+			tkn := ti.readNextToken()
+			for tkn != "" {
+				actual = append(actual, tkn)
+				tkn = ti.readNextToken()
+			}
+			assert.Equal(t, len(tc.expectedTokens), len(actual))
+			for i := 0; i < len(actual); i++ {
+				assert.Equal(t, tc.expectedTokens[i], actual[i])
 			}
 		})
 	}
