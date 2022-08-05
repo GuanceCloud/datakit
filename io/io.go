@@ -266,7 +266,6 @@ func (x *IO) flush(c *consumer) {
 	log.Debugf("try flush %d pts on %s", len(c.pts), c.category)
 
 	failed := 0
-
 	if n, err := x.doFlush(c.pts, c.category, c.fc); err != nil {
 		log.Errorf("post %d to %s failed: %s", len(c.pts), c.category, err)
 		failed += n

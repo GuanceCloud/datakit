@@ -7,6 +7,7 @@ package ddtrace
 
 import (
 	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"net/http"
 	"time"
 
+	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
@@ -34,8 +36,9 @@ const (
 )
 
 type parameters struct {
-	urlPath string
-	media   string
+	URLPath string
+	Media   string
+	Buf     []byte
 	body    *bytes.Buffer
 }
 
@@ -63,31 +66,39 @@ func handleDDTraceWithVersion(v string) http.HandlerFunc {
 		}
 
 		param := &parameters{
-			urlPath: req.URL.Path,
-			media:   req.Header.Get("Content-Type"),
+			URLPath: req.URL.Path,
+			Media:   req.Header.Get("Content-Type"),
 			body:    pbuf,
 		}
 
-		log.Debugf("### path: %s, Content-Type: %s, body-size: %d, read-body-cost: %dms",
-			param.urlPath, param.media, pbuf.Len(), time.Since(readbodycost)/time.Millisecond)
+		log.Debugf("### path: %s, Content-Type: %s, body-size: %dkb, read-body-cost: %dms",
+			param.URLPath, param.Media, pbuf.Len()>>10, time.Since(readbodycost)/time.Millisecond)
 
 		if wpool == nil {
-			if err = parseDDTraces(param); err != nil {
-				log.Error(err.Error())
-				resp.WriteHeader(http.StatusBadRequest)
+			if storage == nil {
+				if err = parseDDTraces(param); err != nil {
+					log.Error(err.Error())
+					resp.WriteHeader(http.StatusBadRequest)
 
-				return
+					return
+				}
+			} else {
+				if err = sendToStorage(param); err != nil {
+					log.Error(err.Error())
+					resp.WriteHeader(http.StatusBadRequest)
+
+					return
+				}
 			}
 		} else {
 			job, err := workerpool.NewJob(workerpool.WithInput(param),
 				workerpool.WithProcess(parseDDTracesAdapter),
-				workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration, isTimeout bool) {
+				workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
 					if param, ok := input.(*parameters); ok {
 						bufpool.PutBuffer(param.body)
 					}
-					log.Debugf("### job status: input: %v, output: %v, cost: %dms, timeout: %v", input, output, cost/time.Millisecond, isTimeout)
+					log.Debugf("### job status: output: %v, cost: %dms", output, cost/time.Millisecond)
 				}),
-				workerpool.WithTimeout(jobTimeout),
 			)
 			if err != nil {
 				log.Error(err.Error())
@@ -128,13 +139,32 @@ func handleDDStats(resp http.ResponseWriter, req *http.Request) {
 	resp.WriteHeader(http.StatusNotFound)
 }
 
+func sendToStorage(param *parameters) error {
+	var err error
+	if param.Buf, err = io.ReadAll(param.body); err != nil {
+		return err
+	}
+
+	buffer := bytes.NewBuffer(nil)
+	encoder := gob.NewEncoder(buffer)
+	if err = encoder.Encode(param); err != nil {
+		return err
+	}
+
+	return storage.Put(buffer.Bytes())
+}
+
 func parseDDTracesAdapter(input interface{}) (output interface{}) {
 	param, ok := input.(*parameters)
 	if !ok {
 		return errors.New("type assertion failed")
 	}
 
-	return parseDDTraces(param)
+	if storage != nil {
+		return sendToStorage(param)
+	} else {
+		return parseDDTraces(param)
+	}
 }
 
 func parseDDTraces(param *parameters) error {
@@ -171,24 +201,28 @@ func decodeDDTraces(param *parameters) (DDTraces, error) {
 		traces DDTraces
 		err    error
 	)
-	switch param.urlPath {
+	switch param.URLPath {
 	case v1:
 		var spans DDTrace
 		if err := json.NewDecoder(param.body).Decode(&spans); err != nil {
 			return nil, err
 		}
-		traces = tracesFromSpans(spans)
+		traces = mergeSpans(spans)
 	case v5:
-		err = traces.UnmarshalMsgDictionary(param.body.Bytes())
+		if err = traces.UnmarshalMsgDictionary(param.body.Bytes()); err == nil {
+			traces = mergeTraces(traces)
+		}
 	default:
-		err = decodeRequest(param, &traces)
+		if err = decodeRequest(param, &traces); err == nil {
+			traces = mergeTraces(traces)
+		}
 	}
 
 	return traces, err
 }
 
 func decodeRequest(param *parameters, out *DDTraces) error {
-	mediaType, _, err := mime.ParseMediaType(param.media)
+	mediaType, _, err := mime.ParseMediaType(param.Media)
 	if err != nil {
 		log.Debug(err.Error())
 	}
@@ -201,7 +235,7 @@ func decodeRequest(param *parameters, out *DDTraces) error {
 		// do our best
 		if err1 := json.NewDecoder(param.body).Decode(out); err1 != nil {
 			if _, err2 := out.UnmarshalMsg(param.body.Bytes()); err2 != nil {
-				err = fmt.Errorf("could not decode JSON (err:%s), nor Msgpack (err:%s)", err1.Error(), err2.Error()) // nolint:errorlint
+				err = fmt.Errorf("### could not decode JSON (err:%s), nor Msgpack (err:%s)", err1.Error(), err2.Error()) // nolint:errorlint
 			}
 		}
 	}
@@ -209,9 +243,11 @@ func decodeRequest(param *parameters, out *DDTraces) error {
 	return err
 }
 
-func tracesFromSpans(trace DDTrace) DDTraces {
-	traces := DDTraces{}
-	byID := make(map[uint64]DDTrace)
+func mergeSpans(trace DDTrace) DDTraces {
+	var (
+		traces = DDTraces{}
+		byID   = make(map[uint64]DDTrace)
+	)
 	for _, span := range trace {
 		byID[span.TraceID] = append(byID[span.TraceID], span)
 	}
@@ -220,6 +256,23 @@ func tracesFromSpans(trace DDTrace) DDTraces {
 	}
 
 	return traces
+}
+
+func mergeTraces(traces DDTraces) DDTraces {
+	var (
+		merged DDTraces
+		byID   = make(map[uint64]DDTrace)
+	)
+	for i := range traces {
+		if len(traces[i]) != 0 {
+			byID[traces[i][0].TraceID] = append(byID[traces[i][0].TraceID], traces[i]...)
+		}
+	}
+	for _, trace := range byID {
+		merged = append(merged, trace)
+	}
+
+	return merged
 }
 
 func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
@@ -312,4 +365,29 @@ func gatherSpansInfo(trace DDTrace) (parentIDs map[int64]bool, spanIDs map[int64
 	}
 
 	return
+}
+
+func consumeStorageWorker() {
+	for {
+		start := time.Now()
+		if err := storage.Get(func(buf []byte) error {
+			param := &parameters{}
+			err := gob.NewDecoder(bytes.NewBuffer(buf)).Decode(param)
+			if err == nil {
+				param.body = bytes.NewBuffer(param.Buf)
+				err := parseDDTraces(param)
+
+				log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(param.Buf)>>10, time.Since(start)/time.Millisecond, err)
+			}
+
+			return err
+		}); err != nil {
+			if errors.Is(err, cache.ErrEOF) {
+				log.Debug(err.Error())
+				time.Sleep(time.Second)
+			} else {
+				log.Error(err.Error())
+			}
+		}
+	}
 }

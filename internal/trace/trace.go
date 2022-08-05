@@ -338,3 +338,9 @@ func ParseTracerRequest(req *http.Request) (contentType, encode string, buf []by
 func UnknowServiceName(dkspan *DatakitSpan) string {
 	return fmt.Sprintf("unknow-service-%s", dkspan.Source)
 }
+
+type Storage struct {
+	Path     string `json:"storage"`
+	Capacity int    `json:"capacity"`
+	Consumer int    `json:"consumer"`
+}
