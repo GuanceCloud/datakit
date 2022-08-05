@@ -607,7 +607,7 @@ func TestDcaUploadSourcemap(t *testing.T) {
 			env:         "test",
 			version:     "0.0.0",
 			fileContent: "xxxxxx",
-			isOk:        false,
+			isOk:        true,
 		},
 		{
 			title:       "param missing",
