@@ -168,7 +168,7 @@ func (x *IO) runConsumer(category string) {
 
 	fc, ok := x.fcs[category]
 	if !ok {
-		if category != datakit.DynamicDatawayCategory {
+		if x.conf.EnableCache && category != datakit.DynamicDatawayCategory {
 			l.Panicf("invalid category %s, should not been here", category)
 		}
 	}
