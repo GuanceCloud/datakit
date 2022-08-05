@@ -11,14 +11,14 @@ Dataway 支持所有种类的数据。
 
 在 `datakit.conf` 中增加以下片段:
 
-```conf
+```toml
 ...
 [sinks]
   [[sinks.sink]]
     categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S", "P"]
     target = "dataway"
     url = "https://openway.guance.com?token=<YOUR-TOKEN>"
-    ; proxy = "127.0.0.1:1080"
+    # proxy = "127.0.0.1:1080"
     filters = ["{ host = 'user-ubuntu' }"] # 这里是举例。这里填写的是过滤条件, 满足该条件的就会往上述 url 里面打数据。
 ...
 ```

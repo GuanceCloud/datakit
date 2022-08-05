@@ -14,6 +14,7 @@ var OtherDocs = map[string]bool{
 	"datakit-sink-logstash":    true,
 	"datakit-sink-m3db":        true,
 	"datakit-sink-otel-jaeger": true,
+	"datakit-sink-dataway":     true,
 	"apis":                     true,
 	"changelog":                true,
 	"datakit-arch":             true,
