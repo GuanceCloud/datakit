@@ -258,9 +258,7 @@ func TestReloadCore(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctxNew, cancel := context.WithTimeout(context.Background(), tc.timeout)
-			defer func() {
-				cancel()
-			}()
+			defer cancel()
 			round, err := reloadCore(ctxNew)
 			if err != nil && !tc.shouldBeError {
 				t.Error(err)
@@ -336,4 +334,25 @@ func TestGetAuthMethod(t *testing.T) {
 			tu.Equals(t, tc.expect, authM)
 		})
 	}
+}
+
+// go test -v -timeout 8s -run ^TestGitPull$ gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo
+func TestGitPull(t *testing.T) {
+	if !checkDevHost() {
+		return
+	}
+
+	as := &authOpt{Auth: 2}
+	c := &config.GitRepository{
+		SSHPrivateKeyPath:     "/Users/user/.ssh/id_rsa",
+		SSHPrivateKeyPassword: "",
+	}
+	authM, err := getAuthMethod(as, c)
+	assert.NoError(t, err)
+
+	const clonePath = "/usr/local/datakit/gitrepos/repository"
+	const branch = "empty"
+
+	_, err = gitPull(clonePath, branch, authM)
+	assert.NoError(t, err)
 }

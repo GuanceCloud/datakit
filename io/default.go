@@ -7,10 +7,12 @@ package io
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/convertutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 )
@@ -37,8 +39,6 @@ func ConfigDefaultIO(c *IOConfig) {
 	defaultIO.conf = c
 }
 
-const dynamicDatawayCategory = "dynamicDatawayCategory"
-
 func (x *IO) init() error {
 	if x.conf.OutputFile != "" {
 		f, err := os.OpenFile(x.conf.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644) //nolint:gosec
@@ -52,6 +52,7 @@ func (x *IO) init() error {
 	x.inLastErr = make(chan *lastError, datakit.CommonChanCap)
 	x.inputstats = map[string]*InputsStat{}
 	x.chans = map[string]chan *iodata{}
+	x.fcs = make(map[string]*failCache)
 	for _, c := range []string{
 		datakit.Metric,
 		datakit.Network,
@@ -63,9 +64,21 @@ func (x *IO) init() error {
 		datakit.RUM,
 		datakit.Security,
 		datakit.Profiling,
-		dynamicDatawayCategory,
+		datakit.DynamicDatawayCategory,
 	} {
 		x.chans[c] = make(chan *iodata, x.conf.FeedChanSize)
+
+		if x.conf.EnableCache && c != datakit.DynamicDatawayCategory {
+			cg, err := convertutil.GetMapCategoryFullToShort(c)
+			if err != nil {
+				return err
+			}
+			fc, err := initFailCache(filepath.Join(datakit.CacheDir, cg), int64(x.conf.CacheSizeGB*1024*1024*1024))
+			if err != nil {
+				return err
+			}
+			x.fcs[c] = fc
+		}
 	}
 
 	du, err := time.ParseDuration(x.conf.FlushInterval)
@@ -79,10 +92,8 @@ func (x *IO) init() error {
 	if sender, err := sender.NewSender(
 		&sender.Option{
 			Cache:              x.conf.EnableCache,
-			CacheSizeGB:        x.conf.CacheSizeGB,
 			FlushCacheInterval: du,
-			// if sender failed, we do not feed any event log
-			ErrorCallback: nil,
+			ErrorCallback:      nil,
 		}); err != nil {
 		log.Errorf("init sender error: %s", err.Error())
 	} else {

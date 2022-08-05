@@ -174,9 +174,7 @@ func doRun(c *config.GitRepository) error {
 		}
 
 		ctxNew, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-		defer func() {
-			cancel()
-		}()
+		defer cancel()
 		if _, err = reloadCore(ctxNew); err != nil {
 			return err
 		}
@@ -204,9 +202,7 @@ func gitPull(clonePath, branch string, authMethod transport.AuthMethod) (isUpdat
 	}
 
 	ctxNew, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer func() {
-		cancel()
-	}()
+	defer cancel()
 	// Pull the latest changes from the origin remote and merge into the current branch
 	err = w.PullContext(ctxNew, &git.PullOptions{
 		RemoteName:      "origin",
@@ -262,9 +258,7 @@ func gitPull(clonePath, branch string, authMethod transport.AuthMethod) (isUpdat
 
 func gitPlainClone(clonePath, gitURL string, authMethod transport.AuthMethod) error {
 	ctxNew, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer func() {
-		cancel()
-	}()
+	defer cancel()
 	if _, err := git.PlainCloneContext(ctxNew, clonePath, false, &git.CloneOptions{
 		// The intended use of a GitHub personal access token is in replace of your password
 		// because access tokens can easily be revoked.
