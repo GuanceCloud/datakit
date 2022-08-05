@@ -143,14 +143,16 @@ var (
 	//
 	// install related flags.
 	//
-	fsInstallName       = "install"
-	fsInstall           = pflag.NewFlagSet(fsInstallName, pflag.ContinueOnError)
-	flagInstallLogPath  = fsInstall.String("log", commonLogFlag(), "command line log path")
-	flagInstallTelegraf = fsInstall.Bool("telegraf", false, "install Telegraf")
-	flagInstallScheck   = fsInstall.Bool("scheck", false, "install SCheck")
-	flagInstallEbpf     = fsInstall.Bool("ebpf", false, "install DataKit eBPF plugin")
-	flagInstallIPDB     = fsInstall.String("ipdb", "", "install IP database")
-	fsInstallUsage      = func() {
+	fsInstallName         = "install"
+	fsInstall             = pflag.NewFlagSet(fsInstallName, pflag.ContinueOnError)
+	flagInstallLogPath    = fsInstall.String("log", commonLogFlag(), "command line log path")
+	flagInstallTelegraf   = fsInstall.Bool("telegraf", false, "install Telegraf")
+	flagInstallScheck     = fsInstall.Bool("scheck", false, "install SCheck")
+	flagInstallEbpf       = fsInstall.Bool("ebpf", false, "install DataKit eBPF plugin")
+	flagInstallIPDB       = fsInstall.String("ipdb", "", "install IP database")
+	flagInstallSymbolTool = fsInstall.Bool("symbol-tools", false,
+		"install tools for symbolizing crash backtrace address, including proguard, android-ndk and atosl")
+	fsInstallUsage = func() {
 		fmt.Printf("usage: datakit install [options]\n\n")
 		fmt.Printf("Install used to install DataKit related packages and plugins\n\n")
 		fmt.Println(fsInstall.FlagUsagesWrapped(0))

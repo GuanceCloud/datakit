@@ -607,7 +607,7 @@ func TestDcaUploadSourcemap(t *testing.T) {
 			env:         "test",
 			version:     "0.0.0",
 			fileContent: "xxxxxx",
-			isOk:        true,
+			isOk:        false,
 		},
 		{
 			title:       "param missing",
@@ -631,7 +631,7 @@ func TestDcaUploadSourcemap(t *testing.T) {
 			env := tc.env
 			version := tc.version
 
-			url := fmt.Sprintf("/v1/rum/sourcemap?app_id=%s&env=%s&version=%s", appId, env, version)
+			url := fmt.Sprintf("/v1/rum/sourcemap?app_id=%s&env=%s&version=%s&platform=web", appId, env, version)
 			var body io.Reader
 			data := ""
 			boundary := "file"
@@ -652,6 +652,7 @@ func TestDcaUploadSourcemap(t *testing.T) {
 
 			w := getResponse(req, nil)
 			res, _ := getResponseBody(w)
+			fmt.Printf("%+#v", res)
 
 			assert.Equal(t, tc.isOk, res.Success)
 		})
@@ -713,77 +714,5 @@ func TestDcaGetFilter(t *testing.T) {
 		} else {
 			t.Fatal("response is not correct", res.Content)
 		}
-	}
-}
-
-func TestDcaDeleteSourcemap(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("./", "data")
-	if err != nil {
-		t.Fatal(err)
-	}
-	datakit.DataDir = tmpDir
-	defer os.RemoveAll(tmpDir) //nolint: errcheck
-	appId := "app_1234"
-	env := "test"
-	version := "0.0.0"
-	GetSourcemapZipFileName(appId, env, version)
-	zipFilePath := filepath.Clean(filepath.Join(GetRumSourcemapDir(), GetSourcemapZipFileName(appId, env, version)))
-
-	if err := os.MkdirAll(filepath.Dir(zipFilePath), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
-
-	defer os.RemoveAll(filepath.Dir(zipFilePath)) //nolint: errcheck
-
-	err = ioutil.WriteFile(zipFilePath, []byte(""), os.ModePerm)
-	if err != nil {
-		t.Fatal("create temp zip file failed", err)
-	}
-
-	testCases := []struct {
-		title   string
-		appId   string
-		env     string
-		version string
-		isOk    bool
-	}{
-		{
-			title:   "delete ok",
-			appId:   appId,
-			env:     env,
-			version: version,
-			isOk:    true,
-		},
-		{
-			title:   "param missing",
-			env:     "test",
-			version: "0.0.0",
-			isOk:    false,
-		},
-		{
-			title:   "invalid file path",
-			appId:   "invalid_app",
-			env:     "test",
-			version: "0.0.0",
-			isOk:    false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.title, func(t *testing.T) {
-			appId := tc.appId
-			env := tc.env
-			version := tc.version
-
-			url := fmt.Sprintf("/v1/rum/sourcemap?app_id=%s&env=%s&version=%s", appId, env, version)
-
-			req, _ := http.NewRequest("DELETE", url, nil)
-			req.Header.Add("X-Token", TOKEN)
-
-			w := getResponse(req, nil)
-			res, _ := getResponseBody(w)
-
-			assert.Equal(t, tc.isOk, res.Success)
-		})
 	}
 }
