@@ -6,8 +6,7 @@
 package io
 
 import (
-	// nolint:gosec
-	"crypto/md5"
+	"crypto/md5" // nolint:gosec
 	"encoding/json"
 	"fmt"
 	"io/ioutil"

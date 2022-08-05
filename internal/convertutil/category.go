@@ -44,3 +44,36 @@ func GetMapCategoryShortToFull(categoryShort string) (string, error) {
 
 	return out, nil
 }
+
+// GetMapCategoryFullToShort ...
+// example "/v1/write/metrics" -> "metric".
+func GetMapCategoryFullToShort(categoryFull string) (string, error) {
+	var out string
+
+	switch categoryFull {
+	case datakit.Metric:
+		out = datakit.CategoryMetric
+	case datakit.Network:
+		out = datakit.CategoryNetwork
+	case datakit.KeyEvent:
+		out = datakit.CategoryKeyEvent
+	case datakit.Object:
+		out = datakit.CategoryObject
+	case datakit.CustomObject:
+		out = datakit.CategoryCustomObject
+	case datakit.Logging:
+		out = datakit.CategoryLogging
+	case datakit.Tracing:
+		out = datakit.CategoryTracing
+	case datakit.RUM:
+		out = datakit.CategoryRUM
+	case datakit.Security:
+		out = datakit.CategorySecurity
+	case datakit.Profiling:
+		out = datakit.CategoryProfiling
+	default:
+		return "", fmt.Errorf("unrecognized category")
+	}
+
+	return out, nil
+}

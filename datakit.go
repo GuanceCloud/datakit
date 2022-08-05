@@ -36,6 +36,7 @@ const (
 	OSArchLinux386    = "linux/386"
 	OSArchLinuxAmd64  = "linux/amd64"
 	OSArchDarwinAmd64 = "darwin/amd64"
+	OSArchDarwinArm64 = "darwin/arm64"
 
 	CommonChanCap = 32
 
@@ -54,6 +55,8 @@ const (
 	Security         = "/v1/write/security"
 	Profiling        = "/v1/write/profiling"  // write profiling metadata.
 	ProfilingUpload  = "/v1/upload/profiling" // upload profiling binary.
+
+	DynamicDatawayCategory = "dynamicDatawayCategory"
 
 	// data category pure name.
 	CategoryMetric       = "metric"
@@ -87,6 +90,7 @@ const (
 	StrConfD              = "conf.d"
 	StrPythonD            = "python.d"
 	StrPythonCore         = "core"
+	StrCache              = "cache"
 
 	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
 	GitRepoSubDirNameConfd    = StrConfD
@@ -132,6 +136,7 @@ var (
 		OSArchLinuxAmd64:  `/usr/local/datakit`,
 		OSArchLinux386:    `/usr/local/datakit`,
 		OSArchDarwinAmd64: `/usr/local/datakit`,
+		OSArchDarwinArm64: `/usr/local/datakit`,
 	}
 
 	OSLabelLinux   = ":fontawesome-brands-linux:"
@@ -162,7 +167,7 @@ var (
 
 	PipelineDir        = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
-	CacheDir           = filepath.Join(InstallDir, "cache")
+	CacheDir           = filepath.Join(InstallDir, StrCache)
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
 
@@ -224,7 +229,7 @@ func SetWorkDir(dir string) {
 
 	PipelineDir = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
-	CacheDir = filepath.Join(InstallDir, "cache")
+	CacheDir = filepath.Join(InstallDir, StrCache)
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 	pidFile = filepath.Join(InstallDir, ".pid")
 
@@ -244,6 +249,7 @@ func InitDirs() {
 		PipelinePatternDir,
 		GitReposDir,
 		PipelineRemoteDir,
+		CacheDir,
 	} {
 		if err := os.MkdirAll(dir, ConfPerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)
