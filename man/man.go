@@ -130,7 +130,8 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 				arr = append(arr, strings.Repeat(" ", indent)+line)
 			}
 			return strings.Join(arr, "\n")
-		}}).Parse(string(md))
+		},
+	}).Parse(string(md))
 	if err != nil {
 		return nil, err
 	}
