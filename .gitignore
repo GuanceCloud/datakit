@@ -76,6 +76,7 @@ run_mac.sh
 run.s
 run.sh
 samples/*
+scripts/scripts
 test.bin
 test.conf
 test.go

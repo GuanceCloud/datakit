@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -74,7 +75,13 @@ const (
   # [inputs.ddtrace.threads]
     # buffer = 100
     # threads = 8
-    # timeout = 1000
+
+  ## Storage config a local storage space in hard dirver to cache trace data.
+  ## path is the local file path used to cache data.
+  ## capacity is total space size(MB) used to store data.
+  # [inputs.ddtrace.storage]
+    # path = "./ddtrace_storage"
+    # capacity = 5120
 `
 )
 
@@ -89,7 +96,7 @@ var (
 	customerKeys       []string
 	tags               map[string]string
 	wpool              workerpool.WorkerPool
-	jobTimeout         time.Duration
+	storage            *cache.DiskCache
 )
 
 type Input struct {
@@ -106,6 +113,7 @@ type Input struct {
 	Sampler          *itrace.Sampler              `toml:"sampler"`
 	Tags             map[string]string            `toml:"tags"`
 	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
+	Storage          *itrace.Storage              `toml:"storage"`
 }
 
 func (*Input) Catalog() string {
@@ -168,9 +176,17 @@ func (ipt *Input) RegHTTPHandler() {
 		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
 			log.Errorf("### start workerpool failed: %s", err.Error())
 			wpool = nil
-		} else {
-			jobTimeout = time.Duration(ipt.WPConfig.Timeout) * time.Millisecond
 		}
+	}
+
+	var err error
+	if ipt.Storage != nil {
+		if storage, err = cache.Open(ipt.Storage.Path, &cache.Option{
+			Capacity: int64(ipt.Storage.Capacity) << 20,
+		}); err != nil {
+			log.Error(err.Error())
+		}
+		go consumeStorageWorker()
 	}
 
 	log.Debugf("### register handlers for %s agent", inputName)
@@ -208,6 +224,12 @@ func (ipt *Input) Terminate() {
 		wpool.Shutdown()
 		log.Debugf("### workerpool in %s is shudown", inputName)
 	}
+	// if storage != nil {
+	// 	if err := storage.Close(); err != nil {
+	// 		log.Error(err.Error())
+	// 	}
+	// 	log.Debugf("### storage closed")
+	// }
 }
 
 func init() { //nolint:gochecknoinits

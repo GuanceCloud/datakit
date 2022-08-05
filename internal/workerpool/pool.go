@@ -14,11 +14,11 @@ import (
 type WorkerPoolConfig struct {
 	Buffer  int `json:"buffer"`  // worker pool channel buffer size
 	Threads int `json:"threads"` // goroutines count in total
-	Timeout int `json:"timeout"` // job timeout
+	Timeout int `json:"timeout"` // deprecated
 }
 type Process func(input interface{}) (output interface{})
 
-type ProcessCallback func(input, output interface{}, cost time.Duration, isTimeout bool)
+type ProcessCallback func(input, output interface{}, cost time.Duration)
 
 type Job struct {
 	input   interface{}
@@ -117,35 +117,14 @@ func (wp WorkerPool) worker() {
 		if !ok {
 			break
 		}
-		if job == nil {
+		if job == nil || job.p == nil {
 			continue
 		}
 
 		start := time.Now()
-		if job.timeout < 1 {
-			r := job.p(job.input)
-			if job.cb != nil {
-				job.cb(job.input, r, time.Since(start), false)
-			}
-		} else {
-			result := make(chan interface{}, 1)
-			go func(job *Job, r chan interface{}) {
-				r <- job.p(job.input)
-				close(r)
-			}(job, result)
-
-			tick := time.NewTicker(job.timeout)
-			select {
-			case <-tick.C:
-				if job.cb != nil {
-					job.cb(job.input, nil, time.Since(start), true)
-				}
-			case r := <-result:
-				if job.cb != nil {
-					job.cb(job.input, r, time.Since(start), false)
-				}
-				tick.Stop()
-			}
+		rslt := job.p(job.input)
+		if job.cb != nil {
+			job.cb(job.input, rslt, time.Since(start))
 		}
 	}
 }

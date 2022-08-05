@@ -1,3 +1,4 @@
 a.out
 lint.err
 coverage.out
+.Test*
