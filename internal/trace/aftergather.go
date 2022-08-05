@@ -51,7 +51,7 @@ func NewAfterGather() *AfterGather {
 }
 
 // AppendCalculator will append new calculators into AfterGather structure,
-// and run them as the order they added.%
+// and run them as the order they added.%.
 func (aga *AfterGather) AppendCalculator(calc ...CalculatorFunc) {
 	aga.Lock()
 	defer aga.Unlock()
