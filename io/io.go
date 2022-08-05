@@ -15,11 +15,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
+	pb "google.golang.org/protobuf/proto"
 )
 
 var (
@@ -58,6 +60,7 @@ type IO struct {
 	dw dataway.DataWay
 
 	chans map[string]chan *iodata
+	fcs   map[string]*failCache
 
 	inLastErr chan *lastError
 
@@ -129,7 +132,7 @@ func (x *IO) StartIO(recoverable bool) {
 		datakit.RUM,
 		datakit.Security,
 		datakit.Profiling,
-		dynamicDatawayCategory,
+		datakit.DynamicDatawayCategory,
 	} {
 		log.Infof("starting consumer on %s...", c)
 		func(category string) {
@@ -143,6 +146,7 @@ func (x *IO) StartIO(recoverable bool) {
 
 type consumer struct {
 	ch chan *iodata
+	fc *failCache
 
 	sendPts *uint64
 	failPts *uint64
@@ -150,7 +154,7 @@ type consumer struct {
 	category string
 
 	pts               []*point.Point
-	dynamicDatawayPts map[string][]*point.Point
+	dynamicDatawayPts map[string][]*point.Point // 拨测数据
 }
 
 func (x *IO) runConsumer(category string) {
@@ -162,8 +166,16 @@ func (x *IO) runConsumer(category string) {
 		log.Panicf("invalid category %s, should not been here", category)
 	}
 
+	fc, ok := x.fcs[category]
+	if !ok {
+		if category != datakit.DynamicDatawayCategory {
+			l.Panicf("invalid category %s, should not been here", category)
+		}
+	}
+
 	c := &consumer{
 		ch:                ch,
+		fc:                fc,
 		category:          category,
 		dynamicDatawayPts: map[string][]*point.Point{},
 	}
@@ -199,7 +211,7 @@ func (x *IO) runConsumer(category string) {
 	case datakit.Profiling:
 		c.sendPts = &PSendPts
 		c.failPts = &PFailPts
-	case dynamicDatawayCategory:
+	case datakit.DynamicDatawayCategory:
 		c.sendPts = &LSendPts
 		c.failPts = &LFailPts
 
@@ -208,6 +220,9 @@ func (x *IO) runConsumer(category string) {
 		c.category = datakit.Logging
 	}
 
+	walTick := time.NewTicker(time.Second)
+	defer walTick.Stop()
+
 	log.Infof("run consumer on %s", category)
 	for {
 		select {
@@ -215,8 +230,10 @@ func (x *IO) runConsumer(category string) {
 			x.cacheData(c, d, true)
 
 		case <-tick.C:
-			log.Debugf("try flush pts on %s", c.category)
 			x.flush(c)
+
+		case <-walTick.C:
+			x.flushWal(c)
 
 		case e := <-x.inLastErr:
 			x.updateLastErr(e)
@@ -250,7 +267,7 @@ func (x *IO) flush(c *consumer) {
 
 	failed := 0
 
-	if n, err := x.doFlush(c.pts, c.category); err != nil {
+	if n, err := x.doFlush(c.pts, c.category, c.fc); err != nil {
 		log.Errorf("post %d to %s failed: %s", len(c.pts), c.category, err)
 		failed += n
 	} else {
@@ -259,7 +276,7 @@ func (x *IO) flush(c *consumer) {
 
 	for k, pts := range c.dynamicDatawayPts {
 		log.Debugf("try flush dynamic dataway %d pts on %s", len(pts), k)
-		if n, err := x.doFlush(pts, c.category); err != nil {
+		if n, err := x.doFlush(pts, c.category, c.fc); err != nil {
 			log.Errorf("post %d to %s failed", len(pts), k)
 			failed += n
 		} else {
@@ -273,6 +290,14 @@ func (x *IO) flush(c *consumer) {
 	// clear
 	c.pts = nil
 	c.dynamicDatawayPts = map[string][]*point.Point{}
+}
+
+func (x *IO) flushWal(c *consumer) {
+	if c.fc != nil {
+		if err := c.fc.get(getWrite, x.sender.Write); err != nil {
+			log.Warnf("flushWal send failed: %v", err)
+		}
+	}
 }
 
 type body struct {
@@ -330,7 +355,7 @@ func (x *IO) buildBody(pts []*point.Point) ([]*body, error) {
 	return doBuildBody(pts, x.conf.OutputFile)
 }
 
-func (x *IO) doFlush(pts []*point.Point, category string) (int, error) {
+func (x *IO) doFlush(pts []*point.Point, category string, fc *failCache) (int, error) {
 	if x.sender == nil {
 		return 0, fmt.Errorf("io sender is not initialized")
 	}
@@ -339,7 +364,75 @@ func (x *IO) doFlush(pts []*point.Point, category string) (int, error) {
 		return 0, nil
 	}
 
-	return x.sender.Write(category, pts)
+	failed, err := x.sender.Write(category, pts)
+	if err != nil {
+		return 0, nil
+	}
+
+	if x.conf.EnableCache && len(failed) > 0 {
+		switch category {
+		case datakit.Metric, datakit.MetricDeprecated, datakit.DynamicDatawayCategory:
+			// Metric and DynamicDatawayCategory data doesn't need cache.
+			l.Warnf("drop %d pts on %s, not cached", len(failed), category)
+
+		default:
+			l.Infof("caching %s(%d pts)...", category, len(failed))
+			if err := x.cache(category, failed, fc); err != nil {
+				l.Errorf("caching %s(%d pts) failed", category, len(pts))
+			}
+		} // switch category
+	} // if
+
+	return len(failed), nil
+}
+
+func (x *IO) cache(category string, pts []*point.Point, fc *failCache) error {
+	if len(pts) == 0 || fc == nil {
+		return nil
+	}
+
+	for _, pt := range pts {
+		buf, err := pb.Marshal(&PBData{
+			Category: category,
+			Lines:    []byte(pt.String()),
+		})
+		if err != nil {
+			l.Warnf("dump %s cache(%d) failed: %v", category, len(pts), err)
+			return err
+		}
+
+		if err := fc.put(buf); err != nil {
+			l.Warnf("dump %s cache(%d) failed: %v", category, len(pts), err)
+			return err
+		}
+	}
+
+	l.Debugf("put %s cache ok, %d pts", category, len(pts))
+	return nil
+}
+
+func getWrite(data []byte, fn funcSend) error {
+	pd := &PBData{}
+	if err := pb.Unmarshal(data, pd); err != nil {
+		return err
+	}
+	pts, err := lp.ParsePoints(pd.Lines, nil)
+	if err != nil {
+		return err
+	}
+
+	if len(pd.Category) == 0 || len(pts) == 0 {
+		return nil
+	}
+
+	failed, err := fn(pd.Category, point.WrapPoint(pts))
+	if err != nil {
+		return err
+	}
+	if len(failed) > 0 {
+		return fmt.Errorf("send failed")
+	}
+	return nil
 }
 
 func (x *IO) fileOutput(d *iodata) error {
@@ -377,11 +470,6 @@ func (x *IO) ChanUsage() map[string][2]int {
 		usage[k] = [2]int{len(v), cap(v)}
 	}
 	return usage
-}
-
-func (x *IO) CacheSize() string {
-	// TODO: return disk failed cache info
-	return "TODO"
 }
 
 func (x *IO) DroppedTotal() int64 {

@@ -83,7 +83,7 @@ func getScript(category string, pt *point.Point, scriptMap map[string]string) (*
 	string, map[string]string, map[string]interface{}, *time.Time,
 ) {
 	switch category {
-	case datakit.RUM, datakit.Security, datakit.Tracing, datakit.Profile:
+	case datakit.RUM, datakit.Security, datakit.Tracing, datakit.Profiling:
 		fields, err := pt.Fields()
 		if err != nil {
 			plLogger.Debug(err)

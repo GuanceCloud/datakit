@@ -120,7 +120,7 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 	pts = after
 
 	if opt != nil && opt.HTTPHost != "" {
-		ch = x.chans[dynamicDatawayCategory]
+		ch = x.chans[datakit.DynamicDatawayCategory]
 	} else {
 		ch = x.chans[category]
 	}
