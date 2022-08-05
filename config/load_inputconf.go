@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	bstoml "github.com/BurntSushi/toml"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -133,7 +134,7 @@ func LoadInputConf(root string) map[string][]inputs.Input {
 
 	l.Infof("find %d confs", len(confs))
 	for _, fp := range confs {
-		if filepath.Base(fp) == "datakit.conf" {
+		if filepath.Base(fp) == datakit.StrDefaultConfFile {
 			continue
 		}
 

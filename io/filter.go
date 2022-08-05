@@ -598,7 +598,7 @@ func (f *filter) start() {
 	defer defaultFilter.tick.Stop()
 
 	if len(defaultIO.conf.Filters) != 0 {
-		f.stats.RuleSource = "datakit.conf"
+		f.stats.RuleSource = datakit.StrDefaultConfFile
 	} else {
 		f.stats.RuleSource = "remote"
 	}

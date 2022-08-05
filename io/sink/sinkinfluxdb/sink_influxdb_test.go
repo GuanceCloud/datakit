@@ -58,7 +58,7 @@ func TestAll(t *testing.T) {
 			assert.Equal(t, tc.expectLoadConfigError, err)
 
 			pts := getTestPoints(t, 1000, 42)
-			_, err = si.Write(pts)
+			err = si.Write("", pts)
 			assert.Equal(t, tc.expectWriteError, err)
 		})
 	}

@@ -13,7 +13,7 @@
 
 	- `GetInfo() *SinkInfo`: 返回 sink 实例的相关信息。目前有 `ID`(实例内部标识, 程序内部根据配置生成, 供内部使用, 配置中唯一) 、`CreateID`(实例创建标识, 代码中唯一)和支持的类型的简写(比方说 `Metrics` 返回的是 `M`)。
 	- `LoadConfig(mConf map[string]interface{}) error`: 加载外部配置到内部。
-	- `Write(pts []ISinkPoint) error`: 写入数据。
+	- `Write(category string, pts []ISinkPoint) error`: 写入数据。
 
 大致代码如下:
 
@@ -35,7 +35,7 @@ func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
   ...
 }
 
-func (s *SinkInfluxDB) Write(pts []sinkcommon.ISinkPoint) error {
+func (s *SinkInfluxDB) Write(category string, pts []ISinkPoint) error {
   // 写入数据
   // 这里你可能要熟悉下 ISinkPoint 这个 interface, 里面有两个方法 ToPoint 和 ToJSON 供使用。
   //   ToPoint 返回的是 influxdb 的 point;

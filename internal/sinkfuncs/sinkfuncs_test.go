@@ -16,18 +16,38 @@ func TestParseSinkSingle(t *testing.T) {
 	cases := []struct {
 		name        string
 		in          string
-		out         map[string]string
+		out         map[string]interface{}
 		expectError error
 	}{
 		{
 			name: "normal",
 			in:   "influxdb://1.1.1.1:8086?protocol=http&database=db0&timeout=15s",
-			out: map[string]string{
+			out: map[string]interface{}{
 				"target":   "influxdb",
 				"protocol": "http",
 				"host":     "1.1.1.1:8086",
 				"database": "db0",
 				"timeout":  "15s",
+			},
+		},
+		{
+			name: "dataway",
+			in:   "dataway://?url=https://openway.guance.com&token=tkn_xxxxx&proxy=127.0.0.1:1080",
+			out: map[string]interface{}{
+				"target": "dataway",
+				"url":    "https://openway.guance.com",
+				"token":  "tkn_xxxxx",
+				"proxy":  "127.0.0.1:1080",
+			},
+		},
+		{
+			name: "dataway filters",
+			in:   "dataway://?url=https://openway.guance.com&token=tkn_xxxxx&filters={interface='en0'}&filters={abc='def'}",
+			out: map[string]interface{}{
+				"target":  "dataway",
+				"url":     "https://openway.guance.com",
+				"token":   "tkn_xxxxx",
+				"filters": []string{"{interface='en0'}", "{abc='def'}"},
 			},
 		},
 	}
@@ -41,7 +61,7 @@ func TestParseSinkSingle(t *testing.T) {
 	}
 }
 
-// go test -v -timeout 30s -run ^TestPolymerizeSinkCategory$ gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer
+// go test -v -timeout 30s -run ^TestPolymerizeSinkCategory$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs
 func TestPolymerizeSinkCategory(t *testing.T) {
 	cases := []struct {
 		name          string

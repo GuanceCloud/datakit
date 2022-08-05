@@ -9,11 +9,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
 func (c *Config) setupSinks() error {
-	var writeFunc func(string, []*point.Point) (*sinkcommon.Failed, error)
+	var writeFunc func(string, []*point.Point) (*point.Failed, error)
 
 	if c.DataWay != nil {
 		if dw, ok := c.DataWay.(sender.Writer); ok {

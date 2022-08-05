@@ -44,7 +44,7 @@ type SinkLogstash struct {
 }
 
 func (s *SinkLogstash) LoadConfig(mConf map[string]interface{}) error {
-	if id, err := dkstring.GetMapMD5String(mConf); err != nil {
+	if id, _, err := dkstring.GetMapMD5String(mConf, nil); err != nil {
 		return err
 	} else {
 		s.ID = id
@@ -113,13 +113,13 @@ func (s *SinkLogstash) LoadConfig(mConf map[string]interface{}) error {
 	return nil
 }
 
-func (s *SinkLogstash) Write(pts []*point.Point) (*sinkcommon.Failed, error) {
+func (s *SinkLogstash) Write(category string, pts []*point.Point) error {
 	if !initSucceeded {
-		return nil, fmt.Errorf("not_init")
+		return fmt.Errorf("not_init")
 	}
 
-	// NOTE: if failed data need to cache, we have to create the sinkcommon.Failed return
-	return nil, s.writeLogstash(pts)
+	// NOTE: if failed data need to cache, we have to create the point.Failed return
+	return s.writeLogstash(pts)
 }
 
 func (s *SinkLogstash) GetInfo() *sinkcommon.SinkInfo {

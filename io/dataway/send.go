@@ -20,7 +20,6 @@ import (
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
 var (
@@ -254,8 +253,7 @@ func (dw *DataWayDefault) Send(category string, data []byte, gz bool) (statusCod
 	return
 }
 
-func (dw *DataWayDefault) Write(category string, pts []*point.Point) (*sinkcommon.Failed, error) {
-
+func (dw *DataWayDefault) Write(category string, pts []*point.Point) (*point.Failed, error) {
 	start := time.Now()
 
 	if len(pts) == 0 {
@@ -267,9 +265,8 @@ func (dw *DataWayDefault) Write(category string, pts []*point.Point) (*sinkcommo
 		return nil, err
 	}
 
+	var failed *point.Failed
 	log.Debugf("building %d pts to %s, cost: %s", len(pts), category, time.Since(start))
-
-	var failed *sinkcommon.Failed
 
 	log.Debugf("write %d pts (%d parts) to %s", len(pts), len(bodies), category)
 
@@ -279,7 +276,7 @@ func (dw *DataWayDefault) Write(category string, pts []*point.Point) (*sinkcommo
 			idx, len(body.buf), body.gzon, body.rawBufBytes, category)
 		if _, err := dw.Send(category, body.buf, body.gzon); err != nil {
 			if failed == nil {
-				failed = &sinkcommon.Failed{}
+				failed = &point.Failed{}
 			}
 			failed.Ranges = append(failed.Ranges, body.idxRange)
 
@@ -359,6 +356,9 @@ func buildBody(pts []*point.Point, isGzip bool) ([]*body, error) {
 		lines = append(lines, ptbytes)
 		curPartSize += len(ptbytes)
 	}
+
+	// TODO: Huge, only for tester, if go to production, comment this.
+	// log.Debugf("lines to send: %s", lines.String())
 
 	if len(lines) > 0 { // 尾部 lines 单独打包一下
 		if body, err := getBody(lines, idxBegin, len(pts)); err != nil {

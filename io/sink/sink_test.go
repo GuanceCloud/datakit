@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
@@ -275,6 +276,7 @@ func TestGetMapCategory(t *testing.T) {
 				datakit.SinkCategoryTracing,
 				datakit.SinkCategoryRUM,
 				datakit.SinkCategorySecurity,
+				datakit.SinkCategoryProfiling,
 			},
 			out: []string{
 				datakit.Metric,
@@ -286,6 +288,7 @@ func TestGetMapCategory(t *testing.T) {
 				datakit.Tracing,
 				datakit.RUM,
 				datakit.Security,
+				datakit.Profiling,
 			},
 		},
 		{
@@ -306,3 +309,54 @@ func TestGetMapCategory(t *testing.T) {
 		})
 	}
 }
+
+//------------------------------------------------------------------------------
+
+// go test -v -timeout 30s -run ^TestSinkPoint$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink
+func TestSinkPoint(t *testing.T) {
+	ps := []*point.Point{
+		{},
+		{},
+		{},
+		{},
+	}
+
+	fmt.Println("before: ")
+	beforeWrittenStatus(t, ps)
+
+	changeWrittenStatus(t, ps)
+
+	fmt.Println("after: ")
+	afterWrittenStatus(t, ps)
+}
+
+func beforeWrittenStatus(t *testing.T, pts []*point.Point) {
+	t.Helper()
+	for _, v := range pts {
+		assert.Equal(t, false, v.GetWritten())
+	}
+}
+
+func changeWrittenStatus(t *testing.T, pts []*point.Point) {
+	t.Helper()
+	for k, v := range pts {
+		switch k {
+		case 0, 2:
+			v.SetWritten()
+		}
+	}
+}
+
+func afterWrittenStatus(t *testing.T, pts []*point.Point) {
+	t.Helper()
+	for k, v := range pts {
+		switch k {
+		case 0, 2:
+			assert.Equal(t, true, v.GetWritten())
+		default:
+			assert.Equal(t, false, v.GetWritten())
+		}
+	}
+}
+
+//------------------------------------------------------------------------------

@@ -18,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 var (
@@ -292,4 +293,31 @@ func (dw *DataWayDefault) DatakitPull(args string) ([]byte, error) {
 	}
 
 	return dw.endPoints[0].datakitPull(args)
+}
+
+type DatawayWriteOpt struct {
+	URLs     []string
+	Proxy    string
+	Category string
+	Points   []*point.Point
+}
+
+func WriteDataway(opt *DatawayWriteOpt) error {
+	if len(opt.Points) == 0 {
+		return nil
+	}
+
+	dwCfg := DataWayCfg{URLs: opt.URLs}
+
+	if len(opt.Proxy) > 0 {
+		dwCfg.HTTPProxy = opt.Proxy
+	}
+
+	dw := &DataWayDefault{}
+	if err := dw.Init(&dwCfg); err != nil {
+		return err
+	}
+
+	_, err := dw.Write(opt.Category, opt.Points)
+	return err
 }

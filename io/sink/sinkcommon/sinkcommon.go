@@ -9,18 +9,11 @@ package sinkcommon
 import (
 	"time"
 
-	client "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 //----------------------------------------------------------------------
-
-type ISinkPoint interface {
-	ToPoint() *client.Point
-	String() string
-	ToJSON() (*JSONPoint, error)
-}
 
 type JSONPoint struct {
 	Measurement string                 `json:"measurement"`    // measurement name of the point.
@@ -38,12 +31,7 @@ type SinkInfo struct {
 type ISink interface {
 	GetInfo() *SinkInfo
 	LoadConfig(mConf map[string]interface{}) error
-	Write(pts []*point.Point) (*Failed, error)
-}
-
-type Failed struct {
-	Ranges  [][2]int // failed parts
-	Indexes []int    // failed index
+	Write(category string, pts []*point.Point) error
 }
 
 type SinkUnsupportError struct {

@@ -13,18 +13,17 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
 type Writer interface {
-	Write(string, []*point.Point) (*sinkcommon.Failed, error)
+	Write(string, []*point.Point) (*point.Failed, error)
 }
 
 const GB = uint64(1024 * 1024 * 1024)
 
 var l = logger.DefaultSLogger("sender")
 
-type WriteFunc func(string, []*point.Point) (*sinkcommon.Failed, error)
+type WriteFunc func(string, []*point.Point) (*point.Failed, error)
 
 type Option struct {
 	Cache              bool
@@ -63,7 +62,7 @@ func (s *Sender) Write(category string, pts []*point.Point) ([]*point.Point, err
 	return failedPts, nil
 }
 
-func selectPts(pts []*point.Point, f *sinkcommon.Failed) []*point.Point {
+func selectPts(pts []*point.Point, f *point.Failed) []*point.Point {
 	size := len(pts)
 
 	var failed []*point.Point
