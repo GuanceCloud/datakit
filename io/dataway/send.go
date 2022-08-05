@@ -328,9 +328,7 @@ func buildBody(pts []*point.Point, isGzip bool) ([]*body, error) {
 		return body, nil
 	}
 
-	var (
-		bodies []*body
-	)
+	var bodies []*body
 
 	idxBegin := 0
 	for idx, pt := range pts {
