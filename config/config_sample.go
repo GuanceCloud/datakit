@@ -9,7 +9,7 @@ var DatakitConfSample = `
 ## default_enabled_inputs: list<string>, 默认开启的采集器列表
 ## 开启的采集器会在相应的目录检查是否存在该采集器配置文件，如果没有则会生成其配置文件
 #
-default_enabled_inputs = ["cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes"]
+default_enabled_inputs = ["cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes", "rum"]
 
 ## enable_election: bool, 是否开启选举，默认 false
 #

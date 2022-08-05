@@ -113,13 +113,13 @@ ReferenceError
 上传：
 
 ```
-curl -X POST '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>' -F "file=@<sourcemap_path>" -H "Content-Type: multipart/form-data"
+curl -X POST '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>' -F "file=@<sourcemap_path>" -H "Content-Type: multipart/form-data"
 ```
 
 删除：
 
 ```
-curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>'
+curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>'
 ```
 
 变量说明：
@@ -128,6 +128,7 @@ curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version
 - `<app_id>`: 对应 RUM 的 `applicationId`
 - `<env>`: 对应 RUM 的 `env`
 - `<version>`: 对应 RUM 的 `version`
+- `<platform>` 应用平台，当前支持 `web`/ `android` / `ios`
 - `<sourcemap_path>`: 待上传的`sourcemap` 压缩包文件路径
 
 **注意：**

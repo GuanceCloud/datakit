@@ -149,8 +149,9 @@ var (
 	UnknownOS   = []string{"unknown"}
 	UnknownArch = []string{"unknown"}
 
-	DataDir  = filepath.Join(InstallDir, "data")
-	ConfdDir = filepath.Join(InstallDir, StrConfD)
+	DataDir    = filepath.Join(InstallDir, "data")
+	DataRUMDir = filepath.Join(DataDir, "rum")
+	ConfdDir   = filepath.Join(InstallDir, StrConfD)
 
 	GitReposDir          = filepath.Join(InstallDir, StrGitRepos)
 	GitReposRepoName     string
@@ -246,6 +247,7 @@ func SetWorkDir(dir string) {
 func InitDirs() {
 	for _, dir := range []string{
 		DataDir,
+		DataRUMDir,
 		ConfdDir,
 		PipelineDir,
 		PipelinePatternDir,
