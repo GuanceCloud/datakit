@@ -85,6 +85,7 @@ datakit_docs=(
   $tmp_doc_dir/datakit-sink-logstash.md
   $tmp_doc_dir/datakit-sink-m3db.md
   $tmp_doc_dir/datakit-sink-otel-jaeger.md
+  $tmp_doc_dir/datakit-sink-dataway.md
   $tmp_doc_dir/datakit-tools-how-to.md
   $tmp_doc_dir/datakit-update.md
   $tmp_doc_dir/dca.md

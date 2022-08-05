@@ -90,6 +90,7 @@ const (
 	StrConfD              = "conf.d"
 	StrPythonD            = "python.d"
 	StrPythonCore         = "core"
+	StrDefaultConfFile    = "datakit.conf"
 	StrCache              = "cache"
 
 	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
@@ -111,6 +112,7 @@ const (
 	SinkCategoryTracing      = "T"
 	SinkCategoryRUM          = "R"
 	SinkCategorySecurity     = "S"
+	SinkCategoryProfiling    = "P"
 )
 
 var (
@@ -159,8 +161,8 @@ var (
 
 	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
 
-	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
-	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
+	MainConfPathDeprecated = filepath.Join(InstallDir, StrDefaultConfFile)
+	MainConfPath           = filepath.Join(ConfdDir, StrDefaultConfFile)
 	MainConfSamplePath     = filepath.Join(ConfdDir, "datakit.conf.sample")
 
 	pidFile = filepath.Join(InstallDir, ".pid")
@@ -224,8 +226,8 @@ func SetWorkDir(dir string) {
 	DataDir = filepath.Join(InstallDir, "data")
 	ConfdDir = filepath.Join(InstallDir, StrConfD)
 
-	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
-	MainConfPath = filepath.Join(ConfdDir, "datakit.conf")
+	MainConfPathDeprecated = filepath.Join(InstallDir, StrDefaultConfFile)
+	MainConfPath = filepath.Join(ConfdDir, StrDefaultConfFile)
 
 	PipelineDir = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
