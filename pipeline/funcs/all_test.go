@@ -16,10 +16,10 @@ func NewTestingRunner(script string) (*parser.Engine, error) {
 	ret1, ret2 := parser.NewEngine(map[string]string{
 		"default.p": script,
 	}, nil, FuncsMap, FuncsCheckMap)
-	if len(ret1) == 1 {
+	if len(ret1) > 0 {
 		return ret1[name], nil
 	}
-	if len(ret2) == 2 {
+	if len(ret2) > 0 {
 		return nil, ret2[name]
 	}
 	return nil, fmt.Errorf("parser func error")

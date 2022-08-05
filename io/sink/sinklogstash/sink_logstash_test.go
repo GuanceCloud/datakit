@@ -66,7 +66,7 @@ func TestAll(t *testing.T) {
 
 			pts := getTestPoints(t, 41)
 
-			_, err = si.Write(pts)
+			err = si.Write("", pts)
 			assert.Equal(t, tc.expectWriteError, err)
 		})
 	}

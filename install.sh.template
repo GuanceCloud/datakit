@@ -375,6 +375,11 @@ if [ -n "$DK_SINK_S" ]; then
   sink_security=$DK_SINK_S
 fi
 
+sink_profile=""
+if [ -n "$DK_SINK_P" ]; then
+  sink_profile=$DK_SINK_P
+fi
+
 ##################
 # Try install...
 ##################
@@ -441,6 +446,7 @@ else
 			--sink-tracing="${sink_tracing}"                 \
 			--sink-rum="${sink_rum}"                         \
 			--sink-security="${sink_security}"               \
+			--sink-profile="${sink_profile}"                 \
 			--ipdb-type="${ipdb_type}"                       \
 			--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
 fi

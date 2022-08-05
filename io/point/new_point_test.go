@@ -431,3 +431,38 @@ func BenchmarkNewPoint(b *testing.B) {
 		})
 	}
 }
+
+func BenchmarkUnpackPoint(b *testing.B) {
+	for _, tc := range benchCases {
+		pt, err := NewPoint(tc.name, tc.t, tc.f, &PointOption{
+			Category: tc.category,
+		})
+		if err != nil {
+			b.Error(err)
+		}
+
+		b.Run(tc.name+"/without-tags", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_ = pt.Name()
+				_, _ = pt.Fields()
+			}
+		})
+	}
+
+	for _, tc := range benchCases {
+		pt, err := NewPoint(tc.name, tc.t, tc.f, &PointOption{
+			Category: tc.category,
+		})
+		if err != nil {
+			b.Error(err)
+		}
+
+		b.Run(tc.name+"/with-tags", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_ = pt.Name()
+				_ = pt.Tags()
+				_, _ = pt.Fields()
+			}
+		})
+	}
+}

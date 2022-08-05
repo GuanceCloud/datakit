@@ -6,8 +6,10 @@
 package prom
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"regexp"
 	"strings"
@@ -205,8 +207,106 @@ func (p *Prom) filterMetricFamilies(metricFamilies map[string]*dto.MetricFamily)
 	return filteredMetricFamilies
 }
 
-// Text2Metrics converts raw prometheus metric text to line protocol point.
-func (p *Prom) Text2Metrics(in io.Reader) (pts []*point.Point, lastErr error) {
+// text2Metrics converts raw prometheus metric text to line protocol points.
+// It handles the case in which the same kind of comment for a metric name appears repeatedly.
+// E.g. multiple '# TYPE node_network_info gauge' appears in one piece of text.
+func (p *Prom) text2Metrics(in io.Reader) ([]*point.Point, error) {
+	var (
+		buf         []byte
+		index       int
+		points      []*point.Point
+		comment     = make(map[string]struct{})
+		split       bool
+		startOfLine = true
+	)
+	text, err := ioutil.ReadAll(in)
+	if err != nil {
+		return nil, err
+	}
+	for index < len(text) {
+		if text[index] == '#' && startOfLine {
+			// Lines with a # as the first non-whitespace character are comments.
+			ti := newTokenIterator(text, index+1)
+			tkn := ti.readNextToken()
+			if tkn == "HELP" || tkn == "TYPE" {
+				// If the token is HELP, at least one more token is expected, which is the metric name. If the token is
+				// TYPE, exactly two more tokens are expected. The first is the metric name, and the second is either
+				// counter, gauge, histogram, summary, or untyped, defining the type for the metric of that name. In
+				// both cases, # is followed by token HELP or TYPE, and followed by at least one more token which is the
+				// metric name. If it reaches end of line before reading out metric name, This line is treated as a
+				// common comment.
+				metricName := ti.readNextToken()
+				if metricName != "" {
+					if _, has := comment[tkn+metricName]; has {
+						split = true
+					} else {
+						comment[tkn+metricName] = struct{}{}
+					}
+				}
+			}
+			if split {
+				pts, err := p.doText2Metrics(bytes.NewReader(buf))
+				if err != nil {
+					return nil, err
+				}
+				points = append(points, pts...)
+				comment = map[string]struct{}{}
+				buf = make([]byte, 0)
+				split = false
+				continue
+			}
+		}
+		if text[index] == '\n' {
+			startOfLine = true
+		} else {
+			startOfLine = false
+		}
+		buf = append(buf, text[index])
+		index++
+	}
+
+	if len(buf) != 0 {
+		pts, err := p.doText2Metrics(bytes.NewReader(buf))
+		if err != nil {
+			return nil, err
+		}
+		points = append(points, pts...)
+	}
+	return points, nil
+}
+
+type tokenIterator struct {
+	text  []byte
+	index int
+}
+
+func (ti *tokenIterator) readNextToken() string {
+	if ti.index >= len(ti.text) {
+		return ""
+	}
+	var l, r int
+	cur := ti.index
+	for cur < len(ti.text) && ti.text[cur] == ' ' {
+		cur++
+	}
+	l = cur
+	for cur < len(ti.text) && ti.text[cur] != ' ' && ti.text[cur] != '\n' {
+		cur++
+	}
+	r = cur
+	ti.index = cur
+	return string(ti.text[l:r])
+}
+
+func newTokenIterator(text []byte, start int) tokenIterator {
+	return tokenIterator{
+		text:  text,
+		index: start,
+	}
+}
+
+// doText2Metrics converts raw prometheus metric text to line protocol point.
+func (p *Prom) doText2Metrics(in io.Reader) (pts []*point.Point, lastErr error) {
 	metricFamilies, err := p.parser.TextToMetricFamilies(in)
 	if err != nil {
 		return nil, err

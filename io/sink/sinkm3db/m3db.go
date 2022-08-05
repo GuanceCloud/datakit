@@ -46,7 +46,7 @@ func (s *SinkM3db) GetID() string {
 func (s *SinkM3db) LoadConfig(mConf map[string]interface{}) error {
 	l = logger.SLogger("m3db")
 
-	if id, err := dkstring.GetMapMD5String(mConf); err != nil {
+	if id, _, err := dkstring.GetMapMD5String(mConf, nil); err != nil {
 		return err
 	} else {
 		s.id = id
@@ -106,7 +106,7 @@ func (s *SinkM3db) LoadConfig(mConf map[string]interface{}) error {
 	return nil
 }
 
-func (s *SinkM3db) Write(pts []*point.Point) (*sinkcommon.Failed, error) {
+func (s *SinkM3db) Write(category string, pts []*point.Point) error {
 	ctx := context.Background()
 	var writeOpts WriteOptions
 	ts := pointToPromData(pts)
@@ -115,14 +115,14 @@ func (s *SinkM3db) Write(pts []*point.Point) (*sinkcommon.Failed, error) {
 		result, err := s.client.WriteProto(ctx, prompbReq, writeOpts)
 		if err != nil {
 			l.Errorf("write err=%v", err)
-			return nil, err
+			return err
 		}
 		l.Debugf("Status code: %d", result.StatusCode) // 此处使用 debug 级别日志，方便查询问题
 	} else {
 		l.Debugf("from points to make PromWriteRequest data, len is 0")
 	}
 
-	return nil, nil
+	return nil
 }
 
 func (s *SinkM3db) GetInfo() *sinkcommon.SinkInfo {

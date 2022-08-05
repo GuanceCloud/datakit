@@ -32,6 +32,7 @@ nav:
         - datakit-sink-logstash.md
         - datakit-sink-m3db.md
         - datakit-sink-otel-jaeger.md
+        - datakit-sink-dataway.md
   - '文本数据处理':
     - 'Pipeline 介绍': pipeline.md
     - datakit-pl-how-to.md

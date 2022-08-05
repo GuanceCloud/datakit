@@ -78,16 +78,16 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
     keyevent = [ # 针对 KeyEvent 过滤
       "{ source = 'datakit' or f1 IN [ 1, 2, 3] }"
     ]
-    customobject = [ # 针对 CustomObject 过滤
+    custom_object = [ # 针对 CustomObject 过滤
       "{ class MATCH ['host_.*'] }",
     ]
     rum = [ # 针对 RUM 过滤
-      "{ app_id = 'appid_xxx' or f1 IN [ 1, 2, 3] }"
+      "{ source = 'resource' or app_id = 'appid_xxx' or f1 IN [ 1, 2, 3] }"
     ]
     security = [ # 针对 Security 过滤
       "{ category = 'datakit' or f1 IN [ 1, 2, 3] }"
     ]
-    profile = [ # 针对 Profile 过滤
+    profiling = [ # 针对 Profiling 过滤
       "{ service = re("abc.*") AND some_tag MATCH ['def_.*'] }",
     ]
 ```
@@ -164,7 +164,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 
 用 `curl` 命令触发网络通讯 `curl https://www.baidu.com:443`，可以看到目标端口为 `443` 的网络通讯被过滤掉了。
 
-### Profile
+### Profiling
 
 配置文件如下:
 
@@ -172,19 +172,19 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 [io]
   ...
   [io.Filters]
-    profile = [ # 针对 Profile 过滤
+    profiling = [ # 针对 Profiling 过滤
       "{ service = 'python-profiling-manual' }",
     ]
 ```
 
-开 2 个 Profile:
+开 2 个 Profiling:
 
 ```
-$ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=7.8.9 python3 profile_test.py
-$ DD_ENV=testing DD_SERVICE=2-profiling-python DD_VERSION=7.8.9 python3 profile_test.py
+$ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=7.8.9 python3 profiling_test.py
+$ DD_ENV=testing DD_SERVICE=2-profiling-python DD_VERSION=7.8.9 python3 profiling_test.py
 ```
 
-python 源码文件 `profile_test.py`:
+python 源码文件 `profiling_test.py`:
 
 ```python
 import time
@@ -310,7 +310,7 @@ Custom Object 通过 API 形式来进行测试。假设我们要过滤掉 `class
 [io]
   ...
   [io.filters]
-    customobject = [ # 针对 CustomObject 过滤
+    custom_object = [ # 针对 CustomObject 过滤
       "{ class='aliyun_ecs' AND regionid='cn-qingdao' }",
     ]
 ```

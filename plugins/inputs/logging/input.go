@@ -62,6 +62,9 @@ const (
   ## removes ANSI escape codes from text strings
   remove_ansi_escape_codes = false
 
+  ## if the data sent failure, will retry forevery
+  blocking_mode = false
+
   ## if file is inactive, it is ignored
   ## time units are "ms", "s", "m", "h"
   ignore_dead_log = "1h"
@@ -86,7 +89,9 @@ type Input struct {
 	RemoveAnsiEscapeCodes bool              `toml:"remove_ansi_escape_codes"`
 	IgnoreDeadLog         string            `toml:"ignore_dead_log"`
 	Tags                  map[string]string `toml:"tags"`
+	BlockingMode          bool              `toml:"blocking_mode"`
 	FromBeginning         bool              `toml:"from_beginning,omitempty"`
+	DockerMode            bool              `toml:"docker_mode,omitempty"`
 
 	DeprecatedPipeline       string `toml:"pipeline_path"`
 	DeprecatedMultilineMatch string `toml:"match"`
@@ -137,7 +142,13 @@ func (ipt *Input) Run() {
 		RemoveAnsiEscapeCodes: ipt.RemoveAnsiEscapeCodes,
 		IgnoreDeadLog:         ignoreDuration,
 		GlobalTags:            ipt.Tags,
+		BlockingMode:          ipt.BlockingMode,
 	}
+
+	if ipt.DockerMode {
+		opt.Mode = tailer.DockerMode
+	}
+
 	ipt.process = make([]LogProcessor, 0)
 	if len(ipt.LogFiles) != 0 {
 		tailerL, err := tailer.NewTailer(ipt.LogFiles, opt, ipt.Ignore)

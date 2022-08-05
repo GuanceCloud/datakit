@@ -80,6 +80,7 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 
 	opt := composeTailerOption(d.k8sClient, info)
 	opt.Mode = tailer.DockerMode
+	opt.BlockingMode = d.cfg.enableLoggingBlockingMode
 
 	t, err := tailer.NewTailerSingle(info.logPath, opt)
 	if err != nil {

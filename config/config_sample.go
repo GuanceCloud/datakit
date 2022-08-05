@@ -9,7 +9,7 @@ var DatakitConfSample = `
 ## default_enabled_inputs: list<string>, 默认开启的采集器列表
 ## 开启的采集器会在相应的目录检查是否存在该采集器配置文件，如果没有则会生成其配置文件
 #
-default_enabled_inputs = ["cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes"]
+default_enabled_inputs = ["cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes", "rum"]
 
 ## enable_election: bool, 是否开启选举，默认 false
 #
@@ -111,17 +111,17 @@ ulimit = 64000
 [io]
   ## feed_chan_size: number, IO管道缓存大小
   #
-  feed_chan_size = 4096
+  feed_chan_size = 128
 
   ## max_cache_count: number, 本地缓存最大值
   ## 此数值与 max_dynamic_cache_count 同时小于等于零将无限使用内存
   #
-  max_cache_count = 512
+  max_cache_count = 64
 
   ## max_dynamic_cache_count: number, HTTP 缓存最大值
   ## 此数值与 max_cache_count 同时小于等于零将无限使用内存
   #
-  max_dynamic_cache_count = 512
+  max_dynamic_cache_count = 64
 
   ## flush_interval: string, 推送时间间隔
   #

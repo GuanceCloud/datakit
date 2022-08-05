@@ -47,7 +47,7 @@ type sinkJaeger struct {
 func (s *sinkJaeger) LoadConfig(mConf map[string]interface{}) error {
 	l = logger.SLogger("jarger")
 
-	if id, err := dkstring.GetMapMD5String(mConf); err != nil {
+	if id, _, err := dkstring.GetMapMD5String(mConf, nil); err != nil {
 		return err
 	} else {
 		s.id = id
@@ -123,13 +123,13 @@ func (s *sinkJaeger) LoadConfig(mConf map[string]interface{}) error {
 	return nil
 }
 
-func (s *sinkJaeger) Write(pts []*point.Point) (*sinkcommon.Failed, error) {
+func (s *sinkJaeger) Write(category string, pts []*point.Point) error {
 	spans := pointToTrace(pts)
 	err := s.exp.ExportSpans(context.Background(), spans)
 	if err != nil {
 		l.Errorf("export span to remote error :%v", err)
 	}
-	return nil, err
+	return err
 }
 
 func (s *sinkJaeger) GetInfo() *sinkcommon.SinkInfo {

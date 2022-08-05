@@ -56,16 +56,16 @@ type SinkInfluxDB struct {
 	cliType int
 }
 
-func (s *SinkInfluxDB) Write(pts []*point.Point) (*sinkcommon.Failed, error) {
+func (s *SinkInfluxDB) Write(category string, pts []*point.Point) error {
 	if !initSucceeded {
-		return nil, fmt.Errorf("not_init")
+		return fmt.Errorf("not_init")
 	}
 
-	return nil, s.writeInfluxDB(pts)
+	return s.writeInfluxDB(pts)
 }
 
 func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
-	if id, err := dkstring.GetMapMD5String(mConf); err != nil {
+	if id, _, err := dkstring.GetMapMD5String(mConf, nil); err != nil {
 		return err
 	} else {
 		s.ID = id

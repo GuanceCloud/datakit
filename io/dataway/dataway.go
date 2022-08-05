@@ -26,8 +26,8 @@ type DataWay interface {
 	DQLQuery([]byte) (*http.Response, error)
 	WorkspaceQuery([]byte) (*http.Response, error)
 	DatakitPull(string) ([]byte, error)
-	UploadProfile(string, map[string][]*multipart.FileHeader) (*http.Response, error)
-	ProfileProxyURL() (*url.URL, error)
+	UploadProfiling(string, map[string][]*multipart.FileHeader) (*http.Response, error)
+	ProfilingProxyURL() (*url.URL, error)
 }
 
 type DataWayCfg struct {

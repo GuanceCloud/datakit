@@ -20,12 +20,15 @@ import (
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
 var (
 	sendFailStats = map[string]int32{}
 	lock          sync.RWMutex
+	seprator      = []byte("\n")
+
+	maxKodoPack = uint64(10 * 1000 * 1000)
+	minGZSize   = 1024
 )
 
 // GetSendStat return the sent fail count of the specified category.
@@ -250,7 +253,9 @@ func (dw *DataWayDefault) Send(category string, data []byte, gz bool) (statusCod
 	return
 }
 
-func (dw *DataWayDefault) Write(category string, pts []*point.Point) (*sinkcommon.Failed, error) {
+func (dw *DataWayDefault) Write(category string, pts []*point.Point) (*point.Failed, error) {
+	start := time.Now()
+
 	if len(pts) == 0 {
 		return nil, nil
 	}
@@ -260,16 +265,18 @@ func (dw *DataWayDefault) Write(category string, pts []*point.Point) (*sinkcommo
 		return nil, err
 	}
 
-	var failed *sinkcommon.Failed
+	var failed *point.Failed
+	log.Debugf("building %d pts to %s, cost: %s", len(pts), category, time.Since(start))
 
 	log.Debugf("write %d pts (%d parts) to %s", len(pts), len(bodies), category)
 
+	start = time.Now()
 	for idx, body := range bodies {
 		log.Debugf("write %dth part(%d bytes, gz: %v, raw: %d) to %s",
 			idx, len(body.buf), body.gzon, body.rawBufBytes, category)
 		if _, err := dw.Send(category, body.buf, body.gzon); err != nil {
 			if failed == nil {
-				failed = &sinkcommon.Failed{}
+				failed = &point.Failed{}
 			}
 			failed.Ranges = append(failed.Ranges, body.idxRange)
 
@@ -277,13 +284,10 @@ func (dw *DataWayDefault) Write(category string, pts []*point.Point) (*sinkcommo
 		}
 	}
 
+	log.Debugf("sending %d pts to %s, cost: %s", len(pts), category, time.Since(start))
+
 	return failed, nil
 }
-
-const (
-	minGZSize   = 1024
-	maxKodoPack = 10 * 1000 * 1000
-)
 
 type body struct {
 	buf         []byte
@@ -292,57 +296,75 @@ type body struct {
 	idxRange    [2]int
 }
 
+func (b *body) String() string {
+	return fmt.Sprintf("gzon: %v, range: %v, raw bytes: %d, buf bytes: %d",
+		b.gzon, b.idxRange, b.rawBufBytes, len(b.buf))
+}
+
 func buildBody(pts []*point.Point, isGzip bool) ([]*body, error) {
-	lines := bytes.Buffer{}
+	lines := [][]byte{}
+	curPartSize := 0
 
-	var (
-		getBody = func(lines []byte, idxBegin, idxEnd int) (*body, error) {
-			var (
-				body = &body{
-					buf:         lines,
-					rawBufBytes: int64(len(lines)),
-					idxRange:    [2]int{idxBegin, idxEnd},
-				}
-				err error
-			)
-
-			if len(lines) > minGZSize && isGzip {
-				if body.buf, err = datakit.GZip(body.buf); err != nil {
-					log.Errorf("gz: %s", err.Error())
-
-					return nil, err
-				}
-				body.gzon = true
+	getBody := func(lines [][]byte, idxBegin, idxEnd int) (*body, error) {
+		var (
+			body = &body{
+				buf:      bytes.Join(lines, seprator),
+				idxRange: [2]int{idxBegin, idxEnd},
 			}
+			err error
+		)
 
-			return body, nil
-		}
+		body.rawBufBytes = int64(len(body.buf))
 
-		// lines  bytes.Buffer
-		bodies []*body
-	)
+		if curPartSize >= minGZSize && isGzip {
+			if body.buf, err = datakit.GZip(body.buf); err != nil {
+				log.Errorf("gz: %s", err.Error())
 
-	lines.Reset()
-
-	bodyIdx := 0
-	for idx, pt := range pts {
-		ptstr := pt.String()
-		if lines.Len()+len(ptstr)+1 >= maxKodoPack {
-			if body, err := getBody(lines.Bytes(), bodyIdx, idx); err != nil {
 				return nil, err
-			} else {
-				bodyIdx = idx
-				bodies = append(bodies, body)
 			}
-			lines.Reset()
+			body.gzon = true
 		}
-		lines.WriteString(ptstr)
-		lines.WriteString("\n")
+
+		return body, nil
 	}
 
-	if body, err := getBody(lines.Bytes(), bodyIdx, len(pts)); err != nil {
-		return nil, err
+	var bodies []*body
+
+	idxBegin := 0
+	for idx, pt := range pts {
+		ptbytes := []byte(pt.String())
+
+		// 此处必须提前预判包是否会大于上限值，当新进来的 ptbytes 可能
+		// 会超过上限时，就应该及时将已有数据（肯定没超限）打包一下。
+		if uint64(curPartSize+len(lines)+len(ptbytes)) >= maxKodoPack {
+			log.Debugf("merge %d points as body", len(lines))
+
+			if body, err := getBody(lines, idxBegin, idx); err != nil {
+				return nil, err
+			} else {
+				idxBegin = idx
+				bodies = append(bodies, body)
+				lines = lines[:0]
+				curPartSize = 0
+			}
+		}
+
+		// 如果上面有打包，这里将是一个新的包，否则 ptbytes 还是追加到
+		// 已有数据上。
+		lines = append(lines, ptbytes)
+		curPartSize += len(ptbytes)
+	}
+
+	// TODO: Huge, only for tester, if go to production, comment this.
+	// log.Debugf("lines to send: %s", lines.String())
+
+	if len(lines) > 0 { // 尾部 lines 单独打包一下
+		if body, err := getBody(lines, idxBegin, len(pts)); err != nil {
+			return nil, err
+		} else {
+			return append(bodies, body), nil
+		}
 	} else {
-		return append(bodies, body), nil
+		return bodies, nil
 	}
 }

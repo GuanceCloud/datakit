@@ -21,18 +21,18 @@ var (
 	// 使用这些全局 point-option.
 
 	// 选举类 point-option，它们只会带上 global-env-tag(config.GlobalEnvTags).
-	optMetricElection  = &PointOption{GlobalEnvTags: true, Category: datakit.Metric}
-	optLoggingElection = &PointOption{GlobalEnvTags: true, Category: datakit.Logging}
-	optObjectElection  = &PointOption{GlobalEnvTags: true, Category: datakit.Object}
-	optNetworkElection = &PointOption{GlobalEnvTags: true, Category: datakit.Network}
-	optProfileElection = &PointOption{GlobalEnvTags: true, Category: datakit.Profile}
+	optMetricElection    = &PointOption{GlobalEnvTags: true, Category: datakit.Metric}
+	optLoggingElection   = &PointOption{GlobalEnvTags: true, Category: datakit.Logging}
+	optObjectElection    = &PointOption{GlobalEnvTags: true, Category: datakit.Object}
+	optNetworkElection   = &PointOption{GlobalEnvTags: true, Category: datakit.Network}
+	optProfilingElection = &PointOption{GlobalEnvTags: true, Category: datakit.Profiling}
 
 	// 非选举类 point-option，它们只会带上 global-host-tag(config.GlobalHostTags).
-	optLogging = &PointOption{Category: datakit.Logging}
-	optMetric  = &PointOption{Category: datakit.Metric}
-	optNetwork = &PointOption{Category: datakit.Network}
-	optObject  = &PointOption{Category: datakit.Object}
-	optProfile = &PointOption{Category: datakit.Profile}
+	optLogging   = &PointOption{Category: datakit.Logging}
+	optMetric    = &PointOption{Category: datakit.Metric}
+	optNetwork   = &PointOption{Category: datakit.Network}
+	optObject    = &PointOption{Category: datakit.Object}
+	optProfiling = &PointOption{Category: datakit.Profiling}
 
 	// TODO: 其它类数据（CO/S/E/R/T）可在此追加...
 )
@@ -63,9 +63,9 @@ func OOptElection() *PointOption {
 
 func POptElection() *PointOption {
 	if EnableElection {
-		return optProfileElection
+		return optProfilingElection
 	} else {
-		return optProfile
+		return optProfiling
 	}
 }
 
@@ -81,4 +81,4 @@ func LOpt() *PointOption { return optLogging }
 func MOpt() *PointOption { return optMetric }
 func NOpt() *PointOption { return optNetwork }
 func OOpt() *PointOption { return optObject }
-func POpt() *PointOption { return optProfile }
+func POpt() *PointOption { return optProfiling }

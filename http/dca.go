@@ -60,7 +60,6 @@ func dcaHTTPStart() {
 	}
 
 	g.Go(func(ctx context.Context) error {
-		loadSourcemapFile()
 		tryStartServer(srv, false, nil, nil)
 		l.Info("DCA server exit")
 		return nil

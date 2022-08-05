@@ -46,6 +46,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"set_tag()":            &setTagMarkdown,
 	"sql_cover":            &sqlCoverMarkdown,
 	"strfmt()":             &strfmtMarkdown,
+	"trim()":               &trimMarkdown,
 	"uppercase()":          &uppercaseMarkdown,
 	"url_decode()":         &URLDecodeMarkdown,
 	"use()":                &useMarkdown,
@@ -108,6 +109,9 @@ var (
 
 	//go:embed md/drop_key.md
 	docDropKey string
+
+	//go:embed md/trim.md
+	docTrim string
 
 	//go:embed md/user_agent.md
 	docUserAgent string
@@ -185,6 +189,7 @@ var (
 	setTagMarkdown            = PLDoc{Doc: docSetTag, Deprecated: false}
 	sqlCoverMarkdown          = PLDoc{Doc: docSQLCover, Deprecated: false}
 	strfmtMarkdown            = PLDoc{Doc: docStrfmt, Deprecated: false}
+	trimMarkdown              = PLDoc{Doc: docTrim, Deprecated: false}
 	uppercaseMarkdown         = PLDoc{Doc: docUppercase, Deprecated: false}
 	userAgentMarkdown         = PLDoc{Doc: docUserAgent, Deprecated: false}
 	useMarkdown               = PLDoc{Doc: docUse, Deprecated: false}

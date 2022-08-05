@@ -29,6 +29,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	platformWeb     = "web"
+	platformAndroid = "android"
+	platformIOS     = "ios"
+)
+
 var dcaErrorMessage = map[string]string{
 	"server.error": "server error",
 }
@@ -646,9 +652,10 @@ func dcaTestPipelines(c *gin.Context) {
 }
 
 type rumQueryParam struct {
-	ApplicatinID string `form:"app_id"`
-	Env          string `form:"env"`
-	Version      string `form:"version"`
+	ApplicationID string `form:"app_id"`
+	Env           string `form:"env"`
+	Version       string `form:"version"`
+	Platform      string `form:"platform"`
 }
 
 // upload sourcemap
@@ -665,8 +672,21 @@ func dcaUploadSourcemap(c *gin.Context) {
 		return
 	}
 
-	if (len(param.ApplicatinID) == 0) || (len(param.Env) == 0) || (len(param.Version) == 0) {
+	if (len(param.ApplicationID) == 0) || (len(param.Env) == 0) || (len(param.Version) == 0) {
 		context.fail(dcaError{ErrorCode: "query.param.required", ErrorMsg: "app_id, env, version required"})
+		return
+	}
+
+	if param.Platform == "" {
+		param.Platform = platformWeb
+	}
+
+	if param.Platform != platformWeb && param.Platform != platformAndroid && param.Platform != platformIOS {
+		l.Errorf("platform [%s] not supported", param.Platform)
+		context.fail(dcaError{
+			ErrorCode: "param.invalid",
+			ErrorMsg:  fmt.Sprintf("platform [%s] not supported, please use web, android or ios", param.Platform),
+		})
 		return
 	}
 
@@ -677,8 +697,8 @@ func dcaUploadSourcemap(c *gin.Context) {
 		return
 	}
 
-	fileName := GetSourcemapZipFileName(param.ApplicatinID, param.Env, param.Version)
-	rumDir := GetRumSourcemapDir()
+	fileName := GetSourcemapZipFileName(param.ApplicationID, param.Env, param.Version)
+	rumDir := filepath.Join(GetRumSourcemapDir(), param.Platform)
 	if !path.IsDir(rumDir) {
 		if err := os.MkdirAll(rumDir, datakit.ConfPerm); err != nil {
 			context.fail(dcaError{
@@ -718,13 +738,26 @@ func dcaDeleteSourcemap(c *gin.Context) {
 		return
 	}
 
-	if (len(param.ApplicatinID) == 0) || (len(param.Env) == 0) || (len(param.Version) == 0) {
+	if (len(param.ApplicationID) == 0) || (len(param.Env) == 0) || (len(param.Version) == 0) {
 		context.fail(dcaError{ErrorCode: "query.param.required", ErrorMsg: "app_id, env, version required"})
 		return
 	}
 
-	fileName := GetSourcemapZipFileName(param.ApplicatinID, param.Env, param.Version)
-	rumDir := GetRumSourcemapDir()
+	if param.Platform == "" {
+		param.Platform = platformWeb
+	}
+
+	if param.Platform != platformWeb && param.Platform != platformAndroid && param.Platform != platformIOS {
+		l.Errorf("platform [%s] not supported", param.Platform)
+		context.fail(dcaError{
+			ErrorCode: "param.invalid",
+			ErrorMsg:  fmt.Sprintf("platform [%s] not supported, please use web, android or ios", param.Platform),
+		})
+		return
+	}
+
+	fileName := GetSourcemapZipFileName(param.ApplicationID, param.Env, param.Version)
+	rumDir := filepath.Join(GetRumSourcemapDir(), param.Platform)
 	zipFilePath := filepath.Clean(filepath.Join(rumDir, fileName))
 
 	// check filename

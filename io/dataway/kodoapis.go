@@ -387,8 +387,8 @@ func (dw *DataWayDefault) DeleteObjectLabels(tkn string, body []byte) (*http.Res
 	return dw.sendReq(req)
 }
 
-func (dw *DataWayDefault) ProfileProxyURL() (*url.URL, error) {
-	lastErr := fmt.Errorf("no dataway profile proxy endpoint available")
+func (dw *DataWayDefault) ProfilingProxyURL() (*url.URL, error) {
+	lastErr := fmt.Errorf("no dataway profiling proxy endpoint available")
 
 	if len(dw.endPoints) == 0 {
 		return nil, lastErr
@@ -411,15 +411,15 @@ func (dw *DataWayDefault) ProfileProxyURL() (*url.URL, error) {
 		// del the selected endpoint
 		endPoints = append(endPoints[:idx.Int64()], endPoints[idx.Int64()+1:]...)
 
-		rawURL := ep.categoryURL[datakit.ProfileUpload]
+		rawURL := ep.categoryURL[datakit.ProfilingUpload]
 		if rawURL == "" {
-			lastErr = fmt.Errorf("profile upload url empty")
+			lastErr = fmt.Errorf("profiling upload url empty")
 			continue
 		}
 
 		URL, err := url.Parse(rawURL)
 		if err != nil {
-			lastErr = fmt.Errorf("profile upload url [%s] parse err:%w", rawURL, err)
+			lastErr = fmt.Errorf("profiling upload url [%s] parse err:%w", rawURL, err)
 			continue
 		}
 		return URL, nil
@@ -427,7 +427,7 @@ func (dw *DataWayDefault) ProfileProxyURL() (*url.URL, error) {
 	return nil, lastErr
 }
 
-func (dw *DataWayDefault) UploadProfile(profileID string, formFiles map[string][]*multipart.FileHeader) (*http.Response, error) {
+func (dw *DataWayDefault) UploadProfiling(profileID string, formFiles map[string][]*multipart.FileHeader) (*http.Response, error) {
 	if profileID == "" {
 		return nil, fmt.Errorf("empty profileID not allowed")
 	}
@@ -441,9 +441,9 @@ func (dw *DataWayDefault) UploadProfile(profileID string, formFiles map[string][
 	}
 	dc := dw.endPoints[0]
 
-	reqURL, ok := dc.categoryURL[datakit.Profile]
+	reqURL, ok := dc.categoryURL[datakit.Profiling]
 	if !ok {
-		return nil, fmt.Errorf("no profile upload url available")
+		return nil, fmt.Errorf("no profiling upload url available")
 	}
 
 	body := &bytes.Buffer{}

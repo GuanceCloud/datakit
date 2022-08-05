@@ -109,6 +109,30 @@ grok(_, "%{WORD:date} %{time}")`,
 			expected: float64(14.123),
 			outkey:   "second",
 		},
+		{
+			name: "trim_space",
+			in:   " not_space ",
+			pl: `add_pattern("d", "[\\s\\S]*")
+			grok(_, "%{d:item}")`,
+			expected: "not_space",
+			outkey:   "item",
+		},
+		{
+			name: "trim_space, enable",
+			in:   " not_space ",
+			pl: `add_pattern("d", "[\\s\\S]*")
+			grok(_, "%{d:item}", true)`,
+			expected: "not_space",
+			outkey:   "item",
+		},
+		{
+			name: "trim_space, disable",
+			in:   " not_space ",
+			pl: `add_pattern("d", "[\\s\\S]*")
+			grok(_, "%{d:item}", false)`,
+			expected: " not_space ",
+			outkey:   "item",
+		},
 	}
 
 	for idx, tc := range cases {

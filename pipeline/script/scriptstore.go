@@ -28,7 +28,7 @@ var (
 	_tracingScriptStore      = NewScriptStore(datakit.Tracing)
 	_rumScriptStore          = NewScriptStore(datakit.RUM)
 	_securityScriptStore     = NewScriptStore(datakit.Security)
-	_profilingScriptStore    = NewScriptStore(datakit.Profile)
+	_profilingScriptStore    = NewScriptStore(datakit.Profiling)
 
 	// TODO: If you add a store, please add the relevant content in the whichStore function.
 
@@ -42,7 +42,7 @@ var (
 		datakit.Tracing:      _tracingScriptStore,
 		datakit.RUM:          _rumScriptStore,
 		datakit.Security:     _securityScriptStore,
-		datakit.Profile:      _profilingScriptStore,
+		datakit.Profiling:    _profilingScriptStore,
 	}
 
 	_allDeprecatedCategory = map[string]*ScriptStore{
@@ -70,7 +70,7 @@ func whichStore(category string) *ScriptStore {
 		return _rumScriptStore
 	case datakit.Security:
 		return _securityScriptStore
-	case datakit.Profile:
+	case datakit.Profiling:
 		return _profilingScriptStore
 	default:
 		l.Warn("unsuppored category: %s", category)
@@ -140,6 +140,15 @@ func (store *ScriptStore) Get(name string) (*PlScript, bool) {
 		}
 	}
 	return nil, false
+}
+
+func (store *ScriptStore) Count() int {
+	store.storage.RLock()
+	defer store.storage.RUnlock()
+
+	return len(store.storage.scripts[RemoteScriptNS]) +
+		len(store.storage.scripts[GitRepoScriptNS]) +
+		len(store.storage.scripts[DefaultScriptNS])
 }
 
 func (store *ScriptStore) GetWithNs(name, ns string) (*PlScript, bool) {
@@ -342,6 +351,10 @@ func (store *ScriptStore) LoadDotPScript2Store(ns string, dirPath string, filePa
 
 func QueryScript(category, name string) (*PlScript, bool) {
 	return whichStore(category).Get(name)
+}
+
+func ScriptCount(category string) int {
+	return whichStore(category).Count()
 }
 
 func ReadPlScriptFromFile(fp string) (string, string, error) {

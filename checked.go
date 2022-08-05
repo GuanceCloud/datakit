@@ -148,6 +148,7 @@ var (
 		"yarn":                   true,
 		"zabbix":                 true,
 		"zaplog":                 true,
+		"rum":                    true,
 		"zipkin":                 true,
 	}
 )

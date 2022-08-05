@@ -67,12 +67,11 @@ func polymerizeSinkCategory(categoryShort, arg string, sinks *[]map[string]inter
 				return fmt.Errorf("target not string")
 			}
 			if targetString == mSingle["target"] {
-				existID, err := dkstring.GetMapMD5String(existSink)
+				existID, _, err := dkstring.GetMapMD5String(existSink, []string{"categories"})
 				if err != nil {
 					return err
 				}
-
-				getID, err := dkstring.GetMapMD5StringX(mSingle)
+				getID, _, err := dkstring.GetMapMD5String(mSingle, []string{"categories"})
 				if err != nil {
 					return err
 				}
@@ -124,13 +123,13 @@ func polymerizeSinkCategory(categoryShort, arg string, sinks *[]map[string]inter
 	return nil
 }
 
-func parseSinkSingle(single string) (map[string]string, error) {
+func parseSinkSingle(single string) (map[string]interface{}, error) {
 	// single: influxdb://1.1.1.1:8086?database=db0&timeout=15s
 	if single == "" {
 		return nil, nil
 	}
 
-	mSingle := make(map[string]string)
+	mSingle := make(map[string]interface{})
 
 	uURL, err := url.Parse(single)
 	if err != nil {
@@ -142,7 +141,9 @@ func parseSinkSingle(single string) (map[string]string, error) {
 	}
 
 	mSingle["target"] = uURL.Scheme
-	mSingle["host"] = uURL.Host
+	if len(uURL.Host) > 0 {
+		mSingle["host"] = uURL.Host
+	}
 
 	mSub, err := url.ParseQuery(uURL.RawQuery)
 	if err != nil {
@@ -153,7 +154,11 @@ func parseSinkSingle(single string) (map[string]string, error) {
 		if len(v) == 0 {
 			continue
 		}
-		mSingle[k] = v[0]
+		if k == "filters" {
+			mSingle[k] = v
+		} else {
+			mSingle[k] = v[0]
+		}
 	}
 
 	return mSingle, nil

@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkdataway"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkinfluxdb"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinklogstash"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkm3db"
@@ -24,7 +25,7 @@ import (
 
 //----------------------------------------------------------------------
 
-func Write(category string, pts []*point.Point) (*sinkcommon.Failed, error) {
+func Write(category string, pts []*point.Point) (*point.Failed, error) {
 	if !isInitSucceeded {
 		return nil, fmt.Errorf("not inited")
 	}
@@ -32,19 +33,43 @@ func Write(category string, pts []*point.Point) (*sinkcommon.Failed, error) {
 	if impls, ok := sinkcommon.SinkCategoryMap[category]; ok {
 		var errKeep error
 		for _, v := range impls {
-			if _, err := v.Write(pts); err != nil { // NOTE: sinker send fail not cached
+			if err := v.Write(category, pts); err != nil { // NOTE: sinker send fail not cached
 				errKeep = err
 			}
 		}
-		return nil, errKeep
+
+		if errKeep != nil {
+			l.Errorf("before remain, errKeep = %v", errKeep)
+		}
+
+		var remainPoints []*point.Point
+		for _, v := range pts {
+			if !v.GetWritten() {
+				remainPoints = append(remainPoints, v)
+			}
+		}
+		if defaultCallPtr != nil {
+			_, errKeep = defaultCallPtr(category, remainPoints)
+		}
+
+		if errKeep != nil {
+			l.Errorf("after remain, errKeep = %v", errKeep)
+		}
+
+		// TODO: Huge, only for tester, if go to production, comment this.
+		// 	for _, v := range remainPoints {
+		// 		l.Debugf("remain point: %s", v.String())
+		// 	}
+
+		return nil, errKeep // Note: in sink package, point.Failed always nil
 	} else if defaultCallPtr != nil {
 		return defaultCallPtr(category, pts)
 	}
 
-	return nil, &sinkcommon.SinkUnsupportError{}
+	return nil, &sinkcommon.SinkUnsupportError{} // Note: in sink package, point.Failed always nil
 }
 
-func Init(sincfg []map[string]interface{}, defCall func(string, []*point.Point) (*sinkcommon.Failed, error)) error {
+func Init(sincfg []map[string]interface{}, defCall func(string, []*point.Point) (*point.Failed, error)) error {
 	var err error
 	onceInit.Do(func() {
 		l = logger.SLogger(packageName)
@@ -90,7 +115,7 @@ var (
 	l               = logger.DefaultSLogger(packageName)
 	onceInit        sync.Once
 	isInitSucceeded bool
-	defaultCallPtr  func(string, []*point.Point) (*sinkcommon.Failed, error)
+	defaultCallPtr  func(string, []*point.Point) (*point.Failed, error)
 )
 
 func polymerizeCategorys(sincfg []map[string]interface{}) error {
@@ -121,7 +146,7 @@ func polymerizeCategorys(sincfg []map[string]interface{}) error {
 
 		for category := range mCategory {
 			for _, impl := range sinkcommon.SinkImpls {
-				id, err := dkstring.GetMapMD5String(v)
+				id, _, err := dkstring.GetMapMD5String(v, []string{"categories"})
 				if err != nil {
 					return err
 				}
@@ -178,6 +203,8 @@ func getMapCategory(originCategory string) (string, error) {
 		newCategory = datakit.RUM
 	case datakit.SinkCategorySecurity:
 		newCategory = datakit.Security
+	case datakit.SinkCategoryProfiling:
+		newCategory = datakit.Profiling
 	default:
 		return "", fmt.Errorf("unrecognized category")
 	}
@@ -224,7 +251,7 @@ func checkSinkConfig(sincfg []map[string]interface{}) error {
 		if len(v) == 0 {
 			continue // empty
 		}
-		id, err := dkstring.GetMapMD5String(v)
+		id, _, err := dkstring.GetMapMD5String(v, []string{"categories"})
 		if err != nil {
 			return err
 		}

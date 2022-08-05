@@ -90,29 +90,17 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 	var after []*point.Point
 
 	switch category {
-	case datakit.MetricDeprecated:
-
 	case datakit.Logging,
 		datakit.Tracing,
 		datakit.Metric,
+		datakit.MetricDeprecated,
 		datakit.Object,
 		datakit.Network,
 		datakit.KeyEvent,
 		datakit.CustomObject,
 		datakit.RUM,
 		datakit.Security,
-		datakit.Profile:
-
-		// run filters
-		after = filterPts(category, pts)
-		filtered = len(pts) - len(after)
-		pts = after
-
-		if opt != nil && opt.HTTPHost != "" {
-			ch = x.chans[dynamicDatawayCategory]
-		} else {
-			ch = x.chans[category]
-		}
+		datakit.Profiling:
 
 	default:
 		return fmt.Errorf("invalid category `%s'", category)
@@ -124,6 +112,17 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 		l.Error(err)
 	} else {
 		pts = after
+	}
+
+	// run filters
+	after = filterPts(category, pts)
+	filtered = len(pts) - len(after)
+	pts = after
+
+	if opt != nil && opt.HTTPHost != "" {
+		ch = x.chans[datakit.DynamicDatawayCategory]
+	} else {
+		ch = x.chans[category]
 	}
 
 	job := &iodata{

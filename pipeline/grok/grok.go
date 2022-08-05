@@ -9,6 +9,7 @@ package grok
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/spf13/cast"
 )
@@ -31,7 +32,7 @@ type GrokRegexp struct {
 	re          *regexp.Regexp
 }
 
-func (g *GrokRegexp) Run(content interface{}) (map[string]string, error) {
+func (g *GrokRegexp) Run(content interface{}, trimSpace bool) (map[string]string, error) {
 	if g.re == nil {
 		return nil, fmt.Errorf("not complied")
 	}
@@ -45,7 +46,11 @@ func (g *GrokRegexp) Run(content interface{}) (map[string]string, error) {
 		}
 		for i, name := range g.re.SubexpNames() {
 			if name != "" {
-				result[name] = string(match[i])
+				if trimSpace {
+					result[name] = strings.TrimSpace(string(match[i]))
+				} else {
+					result[name] = string(match[i])
+				}
 			}
 		}
 	case string:
@@ -55,17 +60,21 @@ func (g *GrokRegexp) Run(content interface{}) (map[string]string, error) {
 		}
 		for i, name := range g.re.SubexpNames() {
 			if name != "" {
-				result[name] = match[i]
+				if trimSpace {
+					result[name] = strings.TrimSpace(match[i])
+				} else {
+					result[name] = match[i]
+				}
 			}
 		}
 	}
 	return result, nil
 }
 
-func (g *GrokRegexp) RunWithTypeInfo(content interface{}) (map[string]interface{}, map[string]string, error) {
+func (g *GrokRegexp) RunWithTypeInfo(content interface{}, trimSpace bool) (map[string]interface{}, map[string]string, error) {
 	castDst := map[string]interface{}{}
 	castFail := map[string]string{}
-	ret, err := g.Run(content)
+	ret, err := g.Run(content, trimSpace)
 	if err != nil {
 		return nil, nil, err
 	}

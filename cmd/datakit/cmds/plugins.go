@@ -52,6 +52,8 @@ func installPlugins() error {
 		}
 	case *flagInstallEbpf:
 		return InstallEbpf()
+	case *flagInstallSymbolTool:
+		return InstallSymbolTools()
 	default:
 		return fmt.Errorf("unknown package or plugin")
 	}

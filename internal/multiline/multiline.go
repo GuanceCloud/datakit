@@ -74,7 +74,7 @@ func (m *Multiline) ProcessLineString(text string) string {
 // when the multiFlag is true, it indicates the text is part of multiline and ignore the match pattern,
 // and will not insert '\n' before the text.
 func (m *Multiline) ProcessLineStringWithFlag(text string, multiFlag bool) string {
-	if multiFlag || !m.matchString(text) {
+	if multiFlag || !m.MatchString(text) {
 		if m.lines != 0 && !multiFlag {
 			m.buff.WriteString("\n")
 		}
@@ -136,18 +136,22 @@ func (m *Multiline) FlushString() string {
 	return text
 }
 
-func (m *Multiline) matchString(text string) bool {
+func (m *Multiline) MatchString(text string) bool {
 	if m.prefixSpace {
-		return m.matchStringOfPrefixSpace(text)
+		return m.MatchStringOfPrefixSpace(text)
 	}
 	return m.patternRegexp.MatchString(text)
 }
 
-func (m *Multiline) matchStringOfPrefixSpace(text string) bool {
+func (m *Multiline) MatchStringOfPrefixSpace(text string) bool {
 	if len(text) == 0 {
 		return true
 	}
 	return !unicode.IsSpace(rune(text[0]))
+}
+
+func (m *Multiline) BuffString() string {
+	return m.buff.String()
 }
 
 var asciiSpace = [256]uint8{'\t': 1, '\n': 1, '\v': 1, '\f': 1, '\r': 1, ' ': 1}
