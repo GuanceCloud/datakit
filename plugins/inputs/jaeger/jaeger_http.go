@@ -46,8 +46,8 @@ func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 	} else {
 		job, err := workerpool.NewJob(workerpool.WithInput(buf),
 			workerpool.WithProcess(parseJaegerTraceAdapter),
-			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration, isTimeout bool) {
-				log.Debugf("### job status: input: %v, output: %v, cost: %dms, timeout: %v", input, output, cost/time.Millisecond, isTimeout)
+			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
+				log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
 			}),
 			workerpool.WithTimeout(jobTimeout),
 		)
