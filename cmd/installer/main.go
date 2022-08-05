@@ -781,6 +781,7 @@ var (
 		"hostobject",
 		"net",
 		"host_processes",
+		"rum",
 	}
 
 	defaultHostInputsForLinux = []string{
@@ -794,6 +795,7 @@ var (
 		"net",
 		"host_processes",
 		"container",
+		"rum",
 	}
 
 	defaultHostInputsForMacOS = []string{
@@ -806,6 +808,7 @@ var (
 		"hostobject",
 		"net",
 		"container",
+		"rum",
 
 		// host_processes is costly, maybe we should disable default
 		"host_processes",

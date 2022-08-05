@@ -80,8 +80,6 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 	case datakit.CustomObject:
 		input = "custom_object"
 
-	case datakit.RUM:
-		input = "rum"
 	case datakit.Security:
 		input = "scheck"
 	default:
@@ -154,34 +152,21 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 
 	var pts []*point.Point
 
-	switch category {
-	case datakit.RUM:
-		pts, err = handleRUMBody(body,
-			precision, isjson,
-			h.geoInfo(getSrcIP(apiConfig, req)),
-			apiConfig.RUMAppIDWhiteList)
+	opt := lp.NewDefaultOption()
+	opt.Precision = precision
+	opt.Time = time.Now()
+	opt.ExtraTags = extraTags
+	opt.Strict = true
+	pts, err = handleWriteBody(body, isjson, opt)
+	if err != nil {
+		return nil, err
+	}
 
-		if err != nil {
-			return nil, err
-		}
-
-	default:
-		opt := lp.NewDefaultOption()
-		opt.Precision = precision
-		opt.Time = time.Now()
-		opt.ExtraTags = extraTags
-		opt.Strict = true
-		pts, err = handleWriteBody(body, isjson, opt)
-		if err != nil {
-			return nil, err
-		}
-
-		// check if object is ok
-		if category == datakit.Object {
-			for _, pt := range pts {
-				if err := checkObjectPoint(pt); err != nil {
-					return nil, err
-				}
+	// check if object is ok
+	if category == datakit.Object {
+		for _, pt := range pts {
+			if err := checkObjectPoint(pt); err != nil {
+				return nil, err
 			}
 		}
 	}
