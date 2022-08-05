@@ -347,16 +347,15 @@ hostname = "should-not-set"`,
     precision = "ns"
     protocol = "http"
     target = "influxdb"
-    timeout = "6s"
+    timeout = "5s"
 
   [[sinks.sink]]
-    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
-    database = "db1"
-    host = "1.1.1.1:8087"
-    precision = "ns"
+    categories = ["L"]
+    host = "1.1.1.1:8080"
     protocol = "http"
-    target = "influxdb"
-    timeout = "6s"
+    request_path = "/twitter/tweet/1"
+    target = "logstash"
+    timeout = "5s"
 
 [sinks]
 
@@ -388,6 +387,11 @@ func TestWriteConfigFile(t *testing.T) {
 					"protocol":     "http",
 					"request_path": "/twitter/tweet/1",
 					"timeout":      "5s",
+				},
+				{
+					"target":     "dataway",
+					"categories": []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S", "P"},
+					"url":        "https://openway.guance.com?token=tkn_xxxxx",
 				},
 			},
 		},

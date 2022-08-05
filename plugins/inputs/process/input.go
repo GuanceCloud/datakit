@@ -240,6 +240,8 @@ func (p *Input) getProcesses(match bool) (processList []*pr.Process) {
 	return processList
 }
 
+const ignoreError = "user: unknown userid"
+
 func getUser(ps *pr.Process) string {
 	username, err := ps.Username()
 	if err != nil {
@@ -251,7 +253,9 @@ func getUser(ps *pr.Process) string {
 		u, err := luser.LookupId(fmt.Sprintf("%d", uid[0])) //nolint:stylecheck
 		if err != nil {
 			// 此处错误极多，故将其 disable 掉，一般的报错是：unknown userid xxx
-			l.Debugf("process: pid:%d get username err:%s", ps.Pid, err.Error())
+			if !strings.Contains(err.Error(), ignoreError) {
+				l.Debugf("process: pid:%d get username err:%s", ps.Pid, err.Error())
+			}
 			return ""
 		}
 		return u.Username

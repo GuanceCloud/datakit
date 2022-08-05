@@ -247,8 +247,8 @@ spec:
 
 ### Sinker 配置相关环境变量 {#env-sinker}
 
-| 环境变量名称 | 类型   | 默认值 | 必须   | 说明                              |
-| ---------:   | ----:  | ---:   | ------ | ----                              |
+| 环境变量名称 | 类型   | 默认值 | 必须   | 说明                                |
+| ---------:   | ----:  | ---:   | ------ | ----                           |
 | ENV_SINK_M   | string | 无     | 否     | 安装时指定 Metric 的 sink。       |
 | ENV_SINK_N   | string | 无     | 否     | 安装时指定 Network 的 sink。      |
 | ENV_SINK_K   | string | 无     | 否     | 安装时指定 KeyEvent 的 sink。     |
@@ -258,6 +258,7 @@ spec:
 | ENV_SINK_T   | string | 无     | 否     | 安装时指定 Tracing 的 sink。      |
 | ENV_SINK_R   | string | 无     | 否     | 安装时指定 RUM 的 sink。          |
 | ENV_SINK_S   | string | 无     | 否     | 安装时指定 Security 的 sink。     |
+| ENV_SINK_P   | string | 无     | 否     | 安装时指定 Profile 的 sink。      |
 
 ### IO 模块配置相关环境变量 {#env-io}
 

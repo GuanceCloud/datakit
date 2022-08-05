@@ -11,9 +11,11 @@ Sinker 是 DataKit 中数据存储定义模块。默认情况下，DataKit 采�
 
 ### 目前支持的 Sinker 实例
 
-- [InfluxDB](datakit-sink-influxdb.md)：目前支持将 DataKit 采集的时序数据（M）发送到本地的 InfluxDB 存储
-- [M3DB](datakit-sink-m3db.md)：目前支持将 DataKit 采集的时序数据（M）发送到本地的 InfluxDB 存储（同 InfluxDB）
-- [Logstash](datakit-sink-logstash.md)：目前支持将 DataKit 采集的日志数据（L）发送到本地 Logstash 服务
+- [InfluxDB](datakit-sink-influxdb.md)：目前支持将 DataKit 采集的时序数据（M）发送到本地的 InfluxDB 存储。
+- [Logstash](datakit-sink-logstash.md)：目前支持将 DataKit 采集的日志数据（L）发送到本地 Logstash 服务。
+- [M3DB](datakit-sink-m3db.md)：目前支持将 DataKit 采集的时序数据（M）发送到本地的 InfluxDB 存储（同 InfluxDB）。
+- [OpenTelemetry and Jaeger](datakit-sink-otel-jaeger.md)：OpenTelemetry(OTEL) 提供了多种 Export 将链路数据（T）发送到多个采集终端中，例如：Jaeger、otlp、zipkin、prometheus。
+- [Dataway](datakit-sink-dataway.md)：目前支持将 DataKit 采集所有类型的数据发送到 Dataway 存储。
 
 当让，同一定的开发，也能将现有 DataKit 采集到的各种其它数据发送到任何其它存储，参见[Sinker 开发文档](datakit-sink-dev.md)。
 
@@ -21,13 +23,15 @@ Sinker 是 DataKit 中数据存储定义模块。默认情况下，DataKit 采�
 
 只需要以下简单三步:
 
-- 搭建后端存储，目前支持 [InfluxDB](datakit-sink-influxdb.md)、[Logstash](datakit-sink-logstash.md) 以及 [M3DB](datakit-sink-m3db.md)
+- 搭建后端存储，目前支持 [InfluxDB](datakit-sink-influxdb.md)、[Logstash](datakit-sink-logstash.md)、[M3DB](datakit-sink-m3db.md)、[OpenTelemetry and Jaeger](datakit-sink-otel-jaeger.md) 以及 [Dataway](datakit-sink-dataway.md)。
 
 - 增加 Sinker 配置：在 `datakit.conf` 配置中增加 Sinker 实例的相关参数，也能在 DataKit 安装阶段即指定 Sinker 配置。具体参见各个已有 Sinker 的安装文档。
 
   - [InfluxDB 安装](datakit-sink-influxdb.md)
-  - [M3DB 安装](datakit-sink-m3db.md)
   - [Logstash 安装](datakit-sink-logstash.md)
+  - [M3DB 安装](datakit-sink-m3db.md)
+  - [OpenTelemetry and Jaeger 安装](datakit-sink-otel-jaeger.md)
+  - [Dataway 安装](datakit-sink-dataway.md)
 
 - 重启 DataKit
 
@@ -61,5 +65,7 @@ $ sudo datakit --restart
 ## 扩展阅读
 
 - [Sinker 之 InfluxDB](datakit-sink-influxdb.md)
-- [Sinker 之 M3DB](datakit-sink-m3db.md)
 - [Sinker 之 Logstash](datakit-sink-logstash.md)
+- [Sinker 之 M3DB](datakit-sink-m3db.md)
+- [Sinker 之 OpenTelemetry and Jaeger](datakit-sink-otel-jaeger.md)
+- [Sinker 之 Dataway](datakit-sink-dataway.md)
