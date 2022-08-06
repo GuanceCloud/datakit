@@ -54,9 +54,9 @@ func DefaultConfig() *Config {
 		}, // default nothing
 
 		IOConf: &dkio.IOConfig{
-			FeedChanSize:         4096,
-			MaxCacheCount:        512,
-			MaxDynamicCacheCount: 512,
+			FeedChanSize:         128,
+			MaxCacheCount:        64,
+			MaxDynamicCacheCount: 64,
 			FlushInterval:        "10s",
 			OutputFileInputs:     []string{},
 
