@@ -429,7 +429,7 @@ func (t *Single) feed(pending []string) {
 		res = append(res, pt)
 	}
 
-	if len(res) > 0 {
+	if len(res) == 0 {
 		return
 	}
 
