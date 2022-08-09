@@ -15,7 +15,7 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
     * 数据类别: Logging
     * 采集 Bash 的执行日志，包含 Bash 进程号、用户名、执行的命令和时间等;
 
-## 前置条件
+## 前置条件 {#requirements}
 
 由于该采集器的可执行文件体积较大，自 v1.2.13 起不再打包在 DataKit 中，但 DataKit 容器镜像默认包含该采集器；对于新装 DataKit，需执行安装命令进行安装，有以下两种方法：
 
@@ -70,7 +70,7 @@ datakit.yaml 参考修改:
 
 可通过 `cat /proc/mounts` 查看 overlay 挂载点
 
-### Linux 内核版本要求
+### Linux 内核版本要求 {#kernel}
 
 目前 Linux 3.10 内核的项目生命周期已经结束，建议您升级至 Linux 4.9 及以上 LTS 版内核。
 
@@ -87,7 +87,7 @@ uname -r
 
     由于 BPF_FUNC_skb_load_bytes 不存在于 Linux Kernel <= 4.4，若需开启 httpflow，需要 Linux Kernel >= 4.5，此问题待后续优化；
 
-### 已启用 SELinux 的系统
+### 已启用 SELinux 的系统 {#selinux}
 
 对于启用了 SELinux 的系统，需要关闭其(待后续优化)，执行以下命令进行关闭:
 
@@ -95,39 +95,42 @@ uname -r
 setenforce 0
 ```
 
-## 配置
+## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+=== "datakit.conf"
 
-```toml
-{{.InputSample}}
-```
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
+    
+    默认配置不开启 ebpf-bash，若需开启在 `enabled_plugins` 配置项中添加 `ebpf-bash`；
+    
+    配置好后，重启 DataKit 即可。
 
-默认配置不开启 ebpf-bash，若需开启在 `enabled_plugins` 配置项中添加 `ebpf-bash`；
+=== "Kubernetes"
 
-配置好后，重启 DataKit 即可。
+    Kubernetes 中可以通过 ConfigMap 或者直接默认启用 ebpf 采集器两种方式来开启采集：
 
-### 通过环境变量修改配置参数 {#envs}
+    1. ConfigMap 方式参照通用的[安装示例](../datakit/datakit-daemonset-deploy.md#configmap-setting)。
+    2. 在 datakit.yaml 中的环境变量 `ENV_ENABLE_INPUTS` 中追加 `ebpf`，此时使用默认配置，即仅开启 ebpf-net 网络数据采集
+    
+    ```yaml
+    - name: ENV_ENABLE_INPUTS
+           value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,ebpf
+    ```
 
-支持以环境变量的方式修改配置参数（只在 Daemonset 方式运行时生效）：
+    通过以下环境变量可以调整 Kubernetes 中 ebpf 采集配置：
+    
+    | 环境变量名                                  | 对应的配置参数项              | 参数示例                                                                              |
+    | :---                                        | ---                           | ---                                                                                   |
+    | `ENV_INPUT_EBPF_ENABLED_PLUGINS`            | `enabled_plugins`             | `ebpf-net,ebpf-bash`                                                                          |
+    | `ENV_INPUT_EBPF_L7NET_ENABLED`              | `l7net_enabled`               | `httpflow,httpflow-tls`                                                                       |
+    | `ENV_INPUT_EBPF_IPV6_DISABLED`              | `ipv6_disabled`               | `false/true`                                                |
+    
 
-| 环境变量名                                  | 对应的配置参数项              | 参数示例                                                                              |
-| :---                                        | ---                           | ---                                                                                   |
-| `ENV_INPUT_EBPF_ENABLED_PLUGINS`            | `enabled_plugins`             | `ebpf-net,ebpf-bash`                                                                          |
-| `ENV_INPUT_EBPF_L7NET_ENABLED`              | `l7net_enabled`               | `httpflow,httpflow-tls`                                                                       |
-| `ENV_INPUT_EBPF_IPV6_DISABLED`              | `ipv6_disabled`               | `false/true`                                                |
-
-### Kubernetes 安装
-
-1. 参照通用的 [ConfigMap 安装示例](../datakit/datakit-daemonset-deploy.md#configmap-setting)。
-2. 在 datakit.yaml 中的环境变量 `ENV_ENABLE_INPUTS` 中追加 `ebpf`，此时使用默认配置，即仅开启 ebpf-net 网络数据采集
-
-```yaml
-   - name: ENV_ENABLE_INPUTS
-          value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,ebpf
-```
-
-## 指标集
+## 指标集 {measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
