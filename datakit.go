@@ -225,6 +225,7 @@ func SetWorkDir(dir string) {
 	InstallDir = dir
 
 	DataDir = filepath.Join(InstallDir, "data")
+	DataRUMDir = filepath.Join(DataDir, "rum")
 	ConfdDir = filepath.Join(InstallDir, StrConfD)
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, StrDefaultConfFile)

@@ -49,10 +49,9 @@
       # cluster = "my-cluster"
     ```
 
-		如果原始数据上就带有了 `global_env_tags` 中的相应 tag，则以原始数据中带有的 tag 为准，此处不会覆盖。
+    如果原始数据上就带有了 `global_env_tags` 中的相应 tag，则以原始数据中带有的 tag 为准，此处不会覆盖。
 
-		如果没有开启选举，则选举采集器采集到的数据中，均会带上 datakit.conf 中配置的 global-host-tag（跟非选举类采集器一样）：
-[:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·
+    如果没有开启选举，则选举采集器采集到的数据中，均会带上 datakit.conf 中配置的 global-host-tag（跟非选举类采集器一样）：[:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·
 
 
     ```toml
@@ -61,9 +60,9 @@
       host       = "__datakit_hostname"
     ```
 
-==== "Kubernetes"
+=== "Kubernetes"
 
-    Kubernetes 中选举的配置参见[这里](datakit-daemonset-deploy.md/#env-elect)，全局 tag 的设置参见[这里](datakit-daemonset-deploy.md/#env-common)。
+    Kubernetes 中选举的配置参见[这里](datakit-daemonset-deploy.md#env-elect)，全局 tag 的设置参见[这里](datakit-daemonset-deploy.md#env-common)。
 
 ## 支持选举的采集列表 {#inputs}
 
@@ -79,7 +78,7 @@
 - [NSQ](../integrations/nsq.md)
 - [Nginx](../integrations/nginx.md)
 - [PostgreSQL](../integrations/postgresql.md)
-- [Prometheus 指标采集](../integrations/prom.md)
+- [Prom](../integrations/prom.md)
 - [RabbitMQ](../integrations/rabbitmq.md)
 - [Redis](../integrations/redis.md)
 - [Solr](../integrations/solr.md)
