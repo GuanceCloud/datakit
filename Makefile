@@ -324,6 +324,7 @@ all_test: deps
 test_deps: prepare gofmt lfparser_disable_line plparser_disable_line vet
 
 lint: deps
+	$(call check_golint_version)
 	if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
 		echo '============== lint under amd64/linux ==================='; \
 		$(GOLINT_BINARY) --version; \
