@@ -173,6 +173,7 @@ spec:
 以下环境变量的取值分为如下几种数据类型：
 
 - string：字符串类型
+- json：一些较为复杂的配置，需要以 json 字符串形式来设置环境变量
 - bool：开关类型，给定**任何非空字符串**即表示开启该功能，建议均以 `"on"` 作为其开启时的取值。如果不开启，必须将其删除或注释掉。
 - string-list：以英文逗号分割的字符串，一般用于表示列表
 - duration：一种字符串形式的时间长度表示，比如 `10s` 表示 10 秒，这里的单位支持 h/m/s/ms/us/ns。==不要给负值==。
@@ -249,8 +250,8 @@ spec:
 
 ### Sinker 配置相关环境变量 {#env-sinker}
 
-| 环境变量名称 | 类型   | 默认值 | 必须   | 说明                                |
-| ---------:   | ----:  | ---:   | ------ | ----                           |
+| 环境变量名称 | 类型   | 默认值 | 必须   | 说明                              |
+| ---------:   | ----:  | ---:   | ------ | ----                              |
 | ENV_SINK_M   | string | 无     | 否     | 安装时指定 Metric 的 sink。       |
 | ENV_SINK_N   | string | 无     | 否     | 安装时指定 Network 的 sink。      |
 | ENV_SINK_K   | string | 无     | 否     | 安装时指定 KeyEvent 的 sink。     |
@@ -264,13 +265,15 @@ spec:
 
 ### IO 模块配置相关环境变量 {#env-io}
 
-| 环境变量名称             | 默认值 | 必须   | 说明                               |
-| ---------:               | ---:   | ------ | ----                               |
-| ENV_IO_FILTERS           | 无     | 否     | 添加[行协议过滤器](datakit-filter) |
-| ENV_IO_FLUSH_INTERVAL    | 10s    | 否     | IO 发送时间频率                    |
-| ENV_IO_BLOCKING_MODE     | false  | 否     | 阻塞模式 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental)|
-| ENV_IO_MAX_CACHE_COUNT   | 512    | 否     | 发送 buffer（点数）大小 |
-| ENV_IO_QUEUE_SIZE        | 4096   | 否     | IO 模块数据处理队列长度 |
+| 环境变量名称             | 类型     | 默认值 | 必须   | 说明                                                                                                                           |
+| ---------:               | ---:     | ---:   | ------ | ----                                                                                                                           |
+| ENV_IO_FILTERS           | json     | 无     | 否     | 添加[行协议过滤器](datakit-filter)                                                                                             |
+| ENV_IO_FLUSH_INTERVAL    | duration | 10s    | 否     | IO 发送时间频率                                                                                                                |
+| ENV_IO_BLOCKING_MODE     | bool     | -      | 否     | 阻塞模式 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental) |
+| ENV_IO_MAX_CACHE_COUNT   | int      | 64     | 否     | 发送 buffer（点数）大小                                                                                                        |
+| ENV_IO_QUEUE_SIZE        | int      | 128    | 否     | IO 模块数据处理队列长度                                                                                                        |
+| ENV_IO_ENABLE_CACHE      | bool     | -      | 否     | 是否开启发送失败的磁盘缓存                                                                                                     |
+| ENV_IO_CACHE_MAX_SIZE_GB | int      | 1      | 否     | 发送失败缓存的磁盘大小（单位 GB）                                                                                              |
 
 ???+ note "关于 buffer 和 queue 的说明"
 
@@ -279,12 +282,6 @@ spec:
 ???+ warning "阻塞和非阻塞模式"
 
     `ENV_IO_BLOCKING_MODE` 默认是关闭的，即非阻塞模式。在非阻塞模式下，如果处理队列（`ENV_IO_QUEUE_SIZE`）拥塞，将导致采集器上报的数据被丢弃，但不会影响新数据的采集。而在阻塞模式下，如果队列拥塞，那么数据采集也一并阻塞住，直到处理队列空闲，才会恢复新数据的采集。
-
-<!--
-| ENV_IO_ENABLE_CACHE      | false  | 否     | 开启 IO 磁盘 cache                 |
-| ENV_IO_CACHE_MAX_SIZE_GB | 1      | 否     | IO 磁盘 cache 大小                 |
-| ENV_IO_MAX_CACHE_COUNT   | 1024   | 否     | IO cache 大小                      |
--->
 
 `ENV_IO_FILTERS` 是一个 json 字符串，示例如下:
 

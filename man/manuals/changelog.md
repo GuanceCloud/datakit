@@ -65,7 +65,7 @@
 
 - eBPF 相关：
     - 修复 uprobe event name 命名冲突问题
-    - 增加更多[环境变量配置](../integrations/ebpf.md#envs)，便于 k8s 环境的部署 
+    - 增加更多[环境变量配置](../integrations/ebpf.md#config)，便于 k8s 环境的部署 
 
 - 优化 APM 数据接收接口的数据处理，缓解卡死客户端以及内存占用问题(#902)
 

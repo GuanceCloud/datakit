@@ -62,6 +62,7 @@ datakit_docs=(
   man/manuals/aliyun-access.md
   man/manuals/integrations-to-dk-howto.md
   man/manuals/mkdocs-howto.md
+  man/manuals/common-tags.md
 
   $tmp_doc_dir/apis.md
   $tmp_doc_dir/changelog.md
@@ -235,7 +236,6 @@ integrations_extra_files=(
 	man/manuals/rum-ios.md
 	man/manuals/rum-miniapp.md
 	man/manuals/rum-web-h5.md
-
 	man/manuals/aerospike.md
 	man/manuals/chrony.md
 	man/manuals/conntrack.md
