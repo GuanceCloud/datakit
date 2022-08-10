@@ -162,7 +162,7 @@ func unblockingFeed(job *iodata, ch chan *iodata) error {
 		select {
 		case ch <- job:
 			if retry > 0 {
-				log.Warnf("feed retry %d ok", retry)
+				log.Warnf("feed on %s/%s retry %d ok", job.from, job.category, retry)
 			}
 
 			return nil

@@ -433,24 +433,27 @@ func (t *Single) feed(pending []string) {
 		return
 	}
 
-	for retry := 0; ; retry++ {
-		err := iod.Feed("logging/"+t.opt.Source, datakit.Logging, res, &iod.Option{
-			PlScript: map[string]string{t.opt.Source: t.opt.Pipeline},
-			PlOption: &script.Option{
-				MaxFieldValLen:        maxFieldsLength,
-				DisableAddStatusField: t.opt.DisableAddStatusField,
-				IgnoreStatus:          t.opt.IgnoreStatus,
-			},
-		})
-		if err != nil {
-			t.opt.log.Errorf("feed error %s, len(points) %d, retry %d", err, len(res), retry)
-			if t.opt.BlockingMode {
-				time.Sleep(time.Millisecond * 300)
-				continue
-			}
+	retry := 0
+__retry:
+	if err := iod.Feed("logging/"+t.opt.Source, datakit.Logging, res, &iod.Option{
+		PlScript: map[string]string{t.opt.Source: t.opt.Pipeline},
+		PlOption: &script.Option{
+			MaxFieldValLen:        maxFieldsLength,
+			DisableAddStatusField: t.opt.DisableAddStatusField,
+			IgnoreStatus:          t.opt.IgnoreStatus,
+		},
+	}); err != nil {
+		if t.opt.BlockingMode {
+			t.opt.log.Warnf("feed %d pts failed: %s, logging block-mode on, retry/%d", len(res), err, retry)
+			time.Sleep(time.Millisecond * 300)
+			retry++
+			goto __retry
+		} else {
+			t.opt.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(res), err)
 		}
-		break
 	}
+
+	return
 }
 
 func (t *Single) read() ([]byte, int, error) {

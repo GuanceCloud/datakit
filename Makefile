@@ -166,6 +166,10 @@ define build_k8s_charts
 	@rm -f datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz
 endef
 
+define show_poor_logs
+  # 没有传参的日志，我们认为其日志信息是不够完整的，日志的意义也相对不大
+	@grep --color=always --exclude-dir=vendor --exclude-dir=.git --exclude=*.html -nr '\.Debugf(\|\.Debug(\|\.Infof(\|\.Info(\|\.Warnf(\|\.Warn(\|\.Errorf(\|\.Error(' . | grep -vE ","
+endef
 
 define check_golint_version
 	@case $(GOLINT_VERSION) in \
@@ -268,6 +272,9 @@ check_production_conf_compatible:
 	@go run cmd/make/make.go -download-samples -release production
 	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
 	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
+
+shame_logging:
+	$(call show_poor_logs)
 
 define build_ip2isp
 	rm -rf china-operator-ip
