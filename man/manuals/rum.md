@@ -70,45 +70,204 @@ RUM 采集器默认会采集如下几个指标集：
 
 ## Sourcemap 转换
 
-通常生产环境的 js 文件会经过各种转换和压缩，与开发时的源代码差异较大，不便于排错(`debug`)。如果需要定位错误至源码中，就得借助于`sourcemap`文件。
+通常生产环境的 js 文件或移动端App代码会经过混淆和压缩以减小应用的尺寸，发生错误时的调用堆栈与开发时的源代码差异较大，不便于排错(`troubleshoot`)。如果需要定位错误至源码中，就得借助于`sourcemap`文件。
 
-DataKit 支持这种源代码文件信息的映射，方法是将对应 js 的`sourcemap`文件进行 zip 压缩打包，命名格式为 `<app_id>-<env>-<version>.zip`，上传至`<DataKit安装目录>/data/rum/`，这样就可以对上报的`error`指标集数据自动进行转换，并追加 `error_stack_source` 字段至该指标集中。
+DataKit 支持这种源代码文件信息的映射，方法是将对应符号表文件进行 zip 压缩打包，命名格式为 `<app_id>-<env>-<version>.zip`，上传至`<DataKit安装目录>/data/rum/<platform>`，这样就可以对上报的`error`指标集数据自动进行转换，并追加 `error_stack_source` 字段至该指标集中。
 
 **打包说明** 
 
-将`sourcemap`文件进行 zip 压缩打包，必须要保证该压缩包解压后的文件路径与`error_stack`中 URL 的路径一致。
+=== "Web"
 
-假设如下 `error_stack`：
+    将js文件经 webpack 混淆和压缩后生成的 `.map` 文件进行 zip 压缩打包，再拷贝到 `<DataKit安装目录>/data/rum/web`目录下，必须要保证该压缩包解压后的文件路径与`error_stack`中 URL 的路径一致。
+	
+	假设如下 `error_stack`：
+	
+    ```
+	ReferenceError
+	  at a.hideDetail @ http://localhost:8080/static/js/app.7fb548e3d065d1f48f74.js:1:1037
+	  at a.showDetail @ http://localhost:8080/static/js/app.7fb548e3d065d1f48f74.js:1:986
+	  at <anonymous> @ http://localhost:8080/static/js/app.7fb548e3d065d1f48f74.js:1:1174
+	```
+	
+	需要转换的路径是`/static/js/app.7fb548e3d065d1f48f74.js`，与其对应的`sourcemap`路径为`/static/js/app.7fb548e3d065d1f48f74.js.map`，那么对应压缩包解压后的目录结构如下：
+	
+	```
+	static/
+	└── js
+		└── app.7fb548e3d065d1f48f74.js.map
+	
+	```
+	
+	转换后的`error_stack_source`：
+	
+	```
+	
+	ReferenceError
+	  at a.hideDetail @ webpack:///src/components/header/header.vue:94:0
+	  at a.showDetail @ webpack:///src/components/header/header.vue:91:0
+	  at <anonymous> @ webpack:///src/components/header/header.vue:101:0
+	```
 
-```
-ReferenceError
-  at a.hideDetail @ http://localhost:8080/static/js/app.7fb548e3d065d1f48f74.js:1:1037
-  at a.showDetail @ http://localhost:8080/static/js/app.7fb548e3d065d1f48f74.js:1:986
-  at <anonymous> @ http://localhost:8080/static/js/app.7fb548e3d065d1f48f74.js:1:1174
-```
+=== "Android"
+	
+	Android 目前存在两种 `sourcemap` 文件，一种是 Java 字节码经 `R8`/`Proguard` 压缩混淆后产生的 mapping 文件，另一种为 C/C++ 原生代码编译时未清除符号表和调试信息的（unstripped） `.so` 文件，如果你的安卓应用同时包含这两种 `sourcemap` 文件， 打包时需要把这两种文件都打包进 zip 包中，之后再把 zip 包拷贝到 `<DataKit安装目录>/data/rum/android` 目录下，zip 包解压后的目录结构类似：
+	
+	```
+	<app_id>-<env>-<version>/
+	├── mapping.txt
+	├── armeabi-v7a/
+	│   ├── libgameengine.so
+	│   ├── libothercode.so
+	│   └── libvideocodec.so
+	├── arm64-v8a/
+	│   ├── libgameengine.so
+	│   ├── libothercode.so
+	│   └── libvideocodec.so
+	├── x86/
+	│   ├── libgameengine.so
+	│   ├── libothercode.so
+	│   └── libvideocodec.so
+	└── x86_64/
+		├── libgameengine.so
+		├── libothercode.so
+		└── libvideocodec.so
+	```
 
-需要转换的路径是`/static/js/app.7fb548e3d065d1f48f74.js`，与其对应的`sourcemap`路径为`/static/js/app.7fb548e3d065d1f48f74.js.map`，那么对应压缩包解压后的目录结构如下：
+	默认情况下，`mapping` 文件将位于： `<项目文件夹>/<Module>/build/outputs/mapping/<build-type>/`，`.so` 文件在用CMake编译项目时位于： `<项目文件夹>/<Module>/build/intermediates/cmake/debug/obj/`，用NDK编译时位于：`<项目文件夹>/<Module>/build/intermediates/ndk/debug/obj/`（debug编译） 或 `<项目文件夹>/<Module>/build/intermediates/ndk/release/obj/`（release编译）。
 
-```
-static/
-└── js
-    └── app.7fb548e3d065d1f48f74.js.map
+	转换的效果如下：
 
-```
+	=== "Java/Kotlin"
 
-转换后的`error_stack_source`：
+		转换前 `error_stack` :
 
-```
+		```
+		java.lang.ArithmeticException: divide by zero
+			at prof.wang.activity.TeamInvitationActivity.o0(Unknown Source:1)
+			at prof.wang.activity.TeamInvitationActivity.k0(Unknown Source:0)
+			at j9.f7.run(Unknown Source:0)
+			at java.lang.Thread.run(Thread.java:1012)
+		```
+		
+		转换后 `error_stack_source` :
+	
+		```
+		java.lang.ArithmeticException: divide by zero
+		at prof.wang.activity.TeamInvitationActivity.onClick$lambda-0(TeamInvitationActivity.java:1)
+		at java.lang.Thread.run(Thread.java:1012)
+		```
 
-ReferenceError
-  at a.hideDetail @ webpack:///src/components/header/header.vue:94:0
-  at a.showDetail @ webpack:///src/components/header/header.vue:91:0
-  at <anonymous> @ webpack:///src/components/header/header.vue:101:0
-```
+	=== "C/C++ 原生代码"
+
+		转换前 `error_stack` :
+	
+		```
+		backtrace:
+		#00 pc 00000000000057fc  /data/app/~~Taci3mQyw7W7iWT7Jxo-ag==/com.ft-Q8m2flQFG1MbGImPiuAZmQ==/lib/arm64/libft_native_exp_lib.so (xc_test_call_4+12)
+		#01 pc 00000000000058a4  /data/app/~~Taci3mQyw7W7iWT7Jxo-ag==/com.ft-Q8m2flQFG1MbGImPiuAZmQ==/lib/arm64/libft_native_exp_lib.so (xc_test_call_3+8)
+		#02 pc 00000000000058b4  /data/app/~~Taci3mQyw7W7iWT7Jxo-ag==/com.ft-Q8m2flQFG1MbGImPiuAZmQ==/lib/arm64/libft_native_exp_lib.so (xc_test_call_2+12)
+		#03 pc 00000000000058c4  /data/app/~~Taci3mQyw7W7iWT7Jxo-ag==/com.ft-Q8m2flQFG1MbGImPiuAZmQ==/lib/arm64/libft_native_exp_lib.so (xc_test_call_1+12)
+		#04 pc 0000000000005938  /data/app/~~Taci3mQyw7W7iWT7Jxo-ag==/com.ft-Q8m2flQFG1MbGImPiuAZmQ==/lib/arm64/libft_native_exp_lib.so (xc_test_crash+112)
+		...
+		```
+		
+		转换后 `error_stack_source` :
+	
+		```
+		backtrace:
+		
+		Abort message: 'abort message for ftNative internal testing'
+		#00 0x00000000000057fc /data/app/~~Taci3mQyw7W7iWT7Jxo-ag==/com.ft-Q8m2flQFG1MbGImPiuAZmQ==/lib/arm64/libft_native_exp_lib.so (xc_test_call_4+12)
+		xc_test_call_4
+		/Users/Brandon/Documents/workplace/working/StudioPlace/xCrash/xcrash_lib/src/main/cpp/xcrash/xc_test.c:65:9
+		#01 0x00000000000058a4 /data/app/~~Taci3mQyw7W7iWT7Jxo-ag==/com.ft-Q8m2flQFG1MbGImPiuAZmQ==/lib/arm64/libft_native_exp_lib.so (xc_test_call_3+8)
+		xc_test_call_3
+		/Users/Brandon/Documents/workplace/working/StudioPlace/xCrash/xcrash_lib/src/main/cpp/xcrash/xc_test.c:73:13
+		#02 0x00000000000058b4 /data/app/~~Taci3mQyw7W7iWT7Jxo-ag==/com.ft-Q8m2flQFG1MbGImPiuAZmQ==/lib/arm64/libft_native_exp_lib.so (xc_test_call_2+12)
+		xc_test_call_2
+		/Users/Brandon/Documents/workplace/working/StudioPlace/xCrash/xcrash_lib/src/main/cpp/xcrash/xc_test.c:79:13
+		#03 0x00000000000058c4 /data/app/~~Taci3mQyw7W7iWT7Jxo-ag==/com.ft-Q8m2flQFG1MbGImPiuAZmQ==/lib/arm64/libft_native_exp_lib.so (xc_test_call_1+12)
+		xc_test_call_1
+		/Users/Brandon/Documents/workplace/working/StudioPlace/xCrash/xcrash_lib/src/main/cpp/xcrash/xc_test.c:85:13
+		#04 0x0000000000005938 /data/app/~~Taci3mQyw7W7iWT7Jxo-ag==/com.ft-Q8m2flQFG1MbGImPiuAZmQ==/lib/arm64/libft_native_exp_lib.so (xc_test_crash+112)
+		xc_test_crash
+		/Users/Brandon/Documents/workplace/working/StudioPlace/xCrash/xcrash_lib/src/main/cpp/xcrash/xc_test.c:126:9
+		...
+		```
+
+
+=== "iOS"
+
+	iOS平台上的 `sourcemap` 文件是以 `.dSYM` 为后缀的带有调试信息的符号表文件，一般情况下，项目编译完和 `.app` 文件在同一个目录下，如下所示：
+
+	```
+	$ ls -l Build/Products/Debug-iphonesimulator/
+	total 0
+	drwxr-xr-x   6 zy  staff  192  8  9 15:27 Fishing.app
+	drwxr-xr-x   3 zy  staff   96  8  9 14:02 Fishing.app.dSYM
+	drwxr-xr-x  15 zy  staff  480  8  9 15:27 Fishing.doccarchive
+	drwxr-xr-x   6 zy  staff  192  8  9 13:55 Fishing.swiftmodule
+	```
+
+	需要注意，XCode Release编译默认会生成 `.dSYM` 文件，而Debug编译默认不会生成，需要对 XCode 做如下相应的设置：
+
+	```
+	Build Settings -> Code Generation -> Generate Debug Symbols -> Yes
+	Build Settings -> Build Option -> Debug Information Format -> DWARF with dSYM File
+	```
+
+	进行 zip 打包时，把相应的 `.dSYM` 文件打包进 zip 包即可，如果你的项目涉及多个 `.dSYM` 文件，需要一起打包到 zip 包内，之后再把 zip 包拷贝到 `<DataKit安装目录>/data/rum/ios` 目录下，zip 包解压后的目录结构类似如下(`.dSYM` 文件本质上是一个目录，和macOS下的可执行程序 `.app` 文件类似)：
+
+
+	```
+	<app_id>-<env>-<version>/
+	├── AFNetworking.framework.dSYM
+	│   └── Contents
+	│       ├── Info.plist
+	│       └── Resources
+	│           └── DWARF
+	│               └── AFNetworking
+	└── App.app.dSYM
+		└── Contents
+			├── Info.plist
+			└── Resources
+				└── DWARF
+					└── App
+	
+	```
+
+	转换前 `error_stack` :
+
+	```
+	4   App                                         0x0000000104fd0728 0x104f30000 + 657192
+	5   App                                         0x0000000104fd00bc 0x104f30000 + 655548
+	6   App                                         0x0000000104f7e5d4 0x104f30000 + 320980
+	7   App                                         0x0000000104f7e218 0x104f30000 + 320024
+	8   App                                         0x0000000104f5b424 0x104f30000 + 177188
+	9   App                                         0x0000000104f7d870 0x104f30000 + 317552
+	10  App                                         0x0000000104f7d158 0x104f30000 + 315736
+	...
+	```
+	
+	转换后 `error_stack_source` :
+
+	```
+	4   App                                         0x0000000104fd0728 +[ZLChineseToPinyin returnSortObjectArrar:key:] (in App) (ZLChineseToPinyin.m:186)
+	5   App                                         0x0000000104fd00bc +[ZLChineseToPinyin indexWithArray:Key:] (in App) (ZLChineseToPinyin.m:128)
+	6   App                                         0x0000000104f7e5d4 -[ChooseAssignVC dealGroupDataWithIgnoreIndex:] (in App) (ChooseAssignVC.m:160)
+	7   App                                         0x0000000104f7e218 -[ChooseAssignVC dealMemberWithDatas:] (in App) (ChooseAssignVC.m:145)
+	8   App                                         0x0000000104f5b424 -[UserManager getTeamMember:] (in App) (UserManager.m:381)
+	9   App                                         0x0000000104f7d870 -[ChooseAssignVC createUI] (in App) (ChooseAssignVC.m:61)
+	10  App                                         0x0000000104f7d158 -[ChooseAssignVC viewDidLoad] (in App) (ChooseAssignVC.m:37)
+	...
+	```
+
+
+
 
 **文件上传和删除**
 
-打包完成后，除了手动上传至 DataKit 相关目录，还可通过 http 接口上传和删除该文件，前提是开启 DCA 服务。
+打包完成后，除了手动拷贝至 DataKit 相关目录，还可通过 http 接口上传和删除该文件，前提是 Datakit 开启了 DCA 服务。
 
 上传：
 
@@ -134,6 +293,6 @@ curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version
 **注意：**
 
 - 该转换过程，只针对 `error` 指标集。
-- 当前只支持 js 的 `sourcemap` 转换。
-- `sourcemap` 文件名称需要与原文件保持一致，如果未找到对应的`sourcemap`文件，将不进行转换。
-- 通过接口上传的`sourcemap`压缩包，不需要重启 DataKit即可生效，但如果是手动上传，需要重启 DataKit，方可生效。
+- 当前只支持 `Javascript`/`Android`/`iOS` 的 `sourcemap` 转换。
+- 如果未找到对应的 `sourcemap` 文件，将不进行转换。
+- 通过接口上传的 `sourcemap` 压缩包，不需要重启 DataKit 即可生效，但如果是手动上传，需要重启 DataKit，方可生效。
