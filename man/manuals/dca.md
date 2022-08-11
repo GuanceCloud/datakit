@@ -1,12 +1,12 @@
 {{.CSS}}
-# DCA 客户端(beta)
+# DCA 客户端 (beta)
 ---
 
 - 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
-DCA 是一款桌面客户端应用，旨在方便管理 DataKit，目前支持查看列表、配置文件管理、Pipeline 管理以及帮助文档的查看等功能。
+DCA 主要用于管理 DataKit，如 DataKit 列表查看、配置文件管理、Pipeline 管理以及帮助文档的查看等功能。目前支持两种使用方式，即桌面端和网页端。
 
-> 注意，要求 DataKit 版本 >= 1.1.8-rc2，当前为 beta 版本
+
 
 ## 开启 DCA 服务
 
@@ -50,7 +50,69 @@ white_list = ["0.0.0.0/0", "192.168.1.0/24"]
 
 重启 DataKit
 
-## 下载 DCA 客户端
+## DCA web 服务
+
+> 注意：不同版本的 DataKit 接口可能存在差异，为了更好地使用 DCA，建议升级 DataKit 为最新版本。
+
+### 安装
+
+DCA web 是 DCA 客户端的 web 版本，目前服务仅支持 docker 镜像安装。
+
+#### 下载镜像
+
+运行容器之前，首先通过 `docker pull` 下载 DCA 镜像。
+
+```shell
+$ docker pull pubrepo.guance.com/tools/dca
+```
+
+#### 运行容器
+
+通过 `docker run` 命令来创建和启动 DCA 容器，容器默认暴露访问端口是 80。
+
+```shell
+$ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
+```
+
+>-d # 表示后台运行
+>
+>--name # 创建的容器名称
+>
+>-p 8000:80 # 端口映射，即将本地 8000 端口映射到容器内部的 80 端口
+
+容器运行成功后，可以通过浏览器进行访问，http://localhost:8000。
+
+#### 环境变量
+
+默认情况下，DCA 会采用系统默认的配置，如果需要自定义配置，可以通过注入环境变量方式来进行修改。目前支持以下环境变量：
+
+- **`DCA_INNER_HOST`**
+
+  观测云的 auth API 地址，默认值为 `https://auth-api.guance.com`
+
+- **`DCA_FRONT_HOST`**
+
+  观测云 console API 地址，默认值为 `https://console-api.guance.com`
+
+- **`DCA_LOG_LEVEL`**
+
+  日志等级，取值为 `NONE | DEBUG | INFO | WARN | ERROR`，如果不需要记录日志，可设置为 `NONE`
+
+- **`DCA_LOG_ENABLE_STDOUT`**
+
+  默认为 `false`，日志会输出至文件中，位于 `/usr/src/dca/logs` 下。如果需要将日志写到 `stdout`，可以设置为 `true`。
+
+示例：
+
+```shell
+$ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_LEVEL=WARN pubrepo.guance.com/tools/dca
+```
+
+## DCA 桌面应用
+
+> 注意，要求 DataKit 版本 >= 1.1.8-rc2，当前为 beta 版本
+
+### 下载 DCA 客户端
 
 DCA 客户端支持远程连接 DataKit ，在线变更采集器，变更完成后保存更新即可生效。在观测云工作空间，依次点击「集成」-「DCA」，即可下载安装包。
 
@@ -63,7 +125,7 @@ DCA 客户端支持远程连接 DataKit ，在线变更采集器，变更完成�
 - [Mac](https://static.dataflux.cn/dca/dca-v0.0.2.dmg){:target="_blank"}
 - [Windows](https://static.dataflux.cn/dca/dca-v0.0.2-x86.exe){:target="_blank"}
 
-## 登录 DCA 客户端
+### 登录 DCA 客户端
 
 DataKit 安装并配置完成后，打开 DCA 客户端，登录账号，即可开始使用。若无账号，可先注册 [观测云账号](https://auth.guance.com/register?channel=帮助文档)。登录到 DCA 后，可在左上角选择工作空间管理其对应 DataKit 及采集器，支持通过搜索关键字快速筛选需要查看和管理的主机名称。
 
