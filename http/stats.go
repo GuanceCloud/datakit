@@ -32,6 +32,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	StatInfoType   = "info"
+	StatMetricType = "metric"
+)
+
 type enabledInput struct {
 	Input     string `json:"input"`
 	Instances int    `json:"instances"`
@@ -429,4 +434,133 @@ func apiGetDatakitStats(w http.ResponseWriter, r *http.Request, x ...interface{}
 	}
 
 	return body, nil
+}
+
+type ResponseJSON struct {
+	Code      int         `json:"code"`
+	Content   interface{} `json:"content"`
+	ErrorCode string      `json:"errorCode"`
+	ErrorMsg  string      `json:"errorMsg"`
+	Success   bool        `json:"success"`
+}
+
+func sendError(c *gin.Context, err error) {
+	res := ResponseJSON{
+		Code:      500,
+		ErrorCode: "server.error",
+		ErrorMsg:  err.Error(),
+		Success:   false,
+	}
+	body, err := json.Marshal(res)
+	if err != nil {
+		c.Data(http.StatusInternalServerError, "text/html; charset=UTF-8", []byte("server error"))
+		return
+	}
+
+	c.Data(http.StatusInternalServerError, "application/json", body)
+}
+
+// StatInfo contains datakit stat info which not changes over time.
+type StatInfo struct {
+	EnabledInputs   map[string]*enabledInput  `json:"enabled_input_list"`
+	AvailableInputs []string                  `json:"available_inputs"`
+	HostName        string                    `json:"hostname"`
+	Version         string                    `json:"version"`
+	BuildAt         string                    `json:"build_at"`
+	Branch          string                    `json:"branch"`
+	OSArch          string                    `json:"os_arch"`
+	WithinDocker    bool                      `json:"docker"`
+	AutoUpdate      bool                      `json:"auto_update"`
+	Cgroup          string                    `json:"cgroup"`
+	ConfigInfo      map[string]*inputs.Config `json:"config_info"`
+}
+
+// StatMetric contains datakit stat metric which changes over time.
+type StatMetric struct {
+	GoroutineStats *goroutine.Summary         `json:"goroutine_stats"`
+	GolangRuntime  *runtimeInfo               `json:"golang_runtime"`
+	Elected        string                     `json:"elected"`
+	OpenFiles      int                        `json:"open_files"`
+	InputsStats    map[string]*io.InputsStat  `json:"inputs_status"`
+	IOStats        *io.Stats                  `json:"io_stats"`
+	PLStats        []plstats.ScriptStatsROnly `json:"pl_stats"`
+	HTTPMetrics    map[string]*apiStat        `json:"http_metrics"`
+	FilterStats    *io.FilterStats            `json:"filter_stats"`
+}
+
+// getStatInfo return stat info.
+func getStatInfo() *StatInfo {
+	infoStat := &StatInfo{}
+	s, err := GetStats()
+	if err != nil {
+		l.Warnf("get stats error: %s", err.Error())
+	} else {
+		infoStat.EnabledInputs = s.EnabledInputs
+		infoStat.AvailableInputs = s.AvailableInputs
+		infoStat.HostName = s.HostName
+		infoStat.Version = s.Version
+		infoStat.BuildAt = s.BuildAt
+		infoStat.Branch = s.Branch
+		infoStat.OSArch = s.OSArch
+		infoStat.WithinDocker = s.WithinDocker
+		infoStat.AutoUpdate = s.AutoUpdate
+		infoStat.Cgroup = s.Cgroup
+		infoStat.ConfigInfo = inputs.ConfigInfo
+	}
+
+	return infoStat
+}
+
+// getStatMetric return stat metric.
+func getStatMetric() *StatMetric {
+	metricStat := &StatMetric{}
+	s, err := GetStats()
+	if err != nil {
+		l.Warnf("get stats error: %s", err.Error())
+	} else {
+		metricStat.GoroutineStats = s.GoroutineStats
+		metricStat.GolangRuntime = s.GolangRuntime
+		metricStat.Elected = s.Elected
+		metricStat.OpenFiles = s.OpenFiles
+		metricStat.InputsStats = s.InputsStats
+		metricStat.IOStats = s.IOStats
+		metricStat.PLStats = s.PLStats
+		metricStat.HTTPMetrics = s.HTTPMetrics
+		metricStat.FilterStats = s.FilterStats
+	}
+
+	return metricStat
+}
+
+func apiGetDatakitStatsByType(c *gin.Context) {
+	var stat interface{}
+
+	statType := c.Param("type")
+
+	if statType == "" {
+		statType = StatInfoType
+	}
+
+	if statType == StatInfoType {
+		stat = getStatInfo()
+	} else if statType == StatMetricType {
+		stat = getStatMetric()
+	}
+
+	if stat == nil {
+		stat = ResponseJSON{
+			Code:      400,
+			ErrorCode: "param.invalid",
+			ErrorMsg:  fmt.Sprintf("invalid type, which should be '%s' or '%s'", StatInfoType, StatMetricType),
+			Success:   false,
+		}
+	}
+
+	body, err := json.MarshalIndent(stat, "", "    ")
+	if err != nil {
+		sendError(c, err)
+		return
+	}
+
+	c.Data(http.StatusOK, "application/json", body)
 }

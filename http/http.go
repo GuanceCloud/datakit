@@ -287,6 +287,7 @@ func setupRouter() *gin.Engine {
 	applyHTTPRoute(router)
 
 	router.GET("/stats", rawHTTPWraper(reqLimiter, apiGetDatakitStats))
+	router.GET("/stats/:type", ginWraper(reqLimiter), apiGetDatakitStatsByType)
 	router.GET("/monitor", apiGetDatakitMonitor)
 	router.GET("/man", apiManualTOC)
 	router.GET("/man/:name", apiManual)
