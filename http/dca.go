@@ -204,6 +204,7 @@ func setupDcaRouter() *gin.Engine {
 	router.DELETE("/v1/rum/sourcemap", dcaDeleteSourcemap)
 
 	router.GET("/v1/filter", dcaGetFilter)
+	router.GET("/v1/stats/:type", dcaStatsByType)
 
 	return router
 }

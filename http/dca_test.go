@@ -592,6 +592,7 @@ func TestDcaUploadSourcemap(t *testing.T) {
 		t.Fatal("create tmp dir eror")
 	}
 	datakit.DataDir = dir
+	datakit.DataRUMDir = filepath.Join(dir, "rum")
 	defer os.RemoveAll(dir) //nolint: errcheck
 	testCases := []struct {
 		title       string
