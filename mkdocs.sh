@@ -1,6 +1,14 @@
 #!/bin/bash
 # author: tanbiao
 # date: Fri Jun 24 10:59:21 CST 2022
+#
+# This tool used to generate & publish datakit related docs to docs.guance.com.
+#
+
+RED="\033[31m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
+CLR="\033[0m"
 
 mkdocs_dir=~/git/dataflux-doc
 tmp_doc_dir=.docs
@@ -12,13 +20,14 @@ mkdir -p $datakit_docs_dir $integration_docs_dir $tmp_doc_dir
 rm -rf $datakit_docs_dir/*.md
 rm -rf $integration_docs_dir/*.md
 
-latest_tag=$(git tag --sort=-creatordate | head -n 1)
+#latest_version=$(git tag --sort=-creatordate | head -n 1)
+latest_version=$(curl https://static.guance.com/datakit/version | grep  '"version"' | awk -F'"' '{print $4}')
 
 man_version=$1
 
 if [ -z $man_version ]; then
-  printf "${YELLOW}[W] manual version missing, use current tag %s as version${CLR}\n" $latest_tag
-  man_version="${latest_tag}"
+  printf "${YELLOW}> Version missing, use latest version '%s'${CLR}\n" $latest_version
+  man_version="${latest_version}"
 fi
 
 arch=$(uname -m)
@@ -28,7 +37,6 @@ fi
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
   os="darwin"
-
   datakit=dist/datakit-${os}-${arch}/datakit
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
   os="linux"
@@ -38,13 +46,13 @@ else              # if under windows(amd64):
 fi
 
 # 如果无需编译 datakit，请注释一下此处的编译
+printf "${GREEN}> Building datakit...${CLR}\n"
 make || exit -1
 
 # 所有文档导出
-echo 'export to all docs...'
-$datakit doc \
+printf "${GREEN}> Export internal docs...${CLR}\n"
+LOGGER_PATH=nul $datakit doc \
 	--export-docs $tmp_doc_dir \
-	--log stdout \
 	--ignore demo \
 	--version "${man_version}" \
 	--TODO "-"
@@ -250,4 +258,5 @@ for f in "${integrations_extra_files[@]}"; do
 	cp $f $integration_docs_dir/
 done
 
+printf "${GREEN}> Start mkdocs...${CLR}\n"
 cd $mkdocs_dir && mkdocs serve 2>&1 | tee mkdocs.log
