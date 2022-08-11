@@ -103,3 +103,9 @@ pip install -r requirements.txt # 期间可能要求你更新 pip 版本
 
 - 访问本地 http://localhost:8000 即可看到
 - 调试完成后，提交 Merge Request 到 datakit 项目的 `mkdocs` 分支
+
+### 常见问题
+
+#### No module named 'materialx'
+
+解决方法: `pip install mkdocs-material`

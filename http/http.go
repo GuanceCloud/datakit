@@ -15,6 +15,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"path/filepath"
 
 	// nolint:gosec
 	_ "net/http/pprof"
@@ -437,16 +438,36 @@ func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadComple
 		time.Sleep(time.Second)
 	}
 
+	listener, err := parseListen(srv.Addr)
+	closeListener := func() {
+		if listener != nil {
+			err = listener.Close()
+			if err != nil {
+				l.Warnf("listener.Close failed: %v", err)
+			}
+		}
+	}
+	defer closeListener()
+	if err != nil {
+		l.Errorf("parseListen failed: %v", err)
+		return
+	}
+
 	for {
 		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
-		if err := srv.ListenAndServe(); err != nil {
-			if !errors.As(err, &http.ErrServerClosed) {
-				l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
-				retryCnt++
-			} else {
-				l.Debugf("server(%s) stopped on: %s", srv.Addr, err.Error())
-				break
-			}
+		if listener != nil {
+			err = srv.Serve(listener)
+		} else {
+			err = srv.ListenAndServe()
+		}
+
+		if !errors.Is(err, http.ErrServerClosed) {
+			l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
+			retryCnt++
+		} else {
+			l.Debugf("server(%s) stopped on: %s", srv.Addr, err.Error())
+			closeListener()
+			break
 		}
 		time.Sleep(time.Second)
 	}
@@ -478,4 +499,21 @@ func checkToken(r *http.Request) error {
 	}
 
 	return nil
+}
+
+func parseListen(lsn string) (net.Listener, error) {
+	var listener net.Listener
+
+	if filepath.IsAbs(lsn) {
+		err := os.RemoveAll(lsn)
+		if err != nil {
+			return nil, err
+		}
+		listener, err = net.Listen("unix", lsn)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return listener, nil
 }
