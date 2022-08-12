@@ -10,28 +10,26 @@ DCA 主要用于管理 DataKit，如 DataKit 列表查看、配置文件管理�
 
 ## 开启 DCA 服务 {#config}
 
-=== "安装即启用 DCA 功能"
+=== "主机安装时启用 DCA 功能"
 
     在安装命令前添加以下环境变量：
     
-    - `DK_DCA_ENABLE`: 是否开启，开启设置为 1
+    - `DK_DCA_ENABLE`: 是否开启，开启设置为 `on`
     - `DK_DCA_WHITE_LIST`: 访问服务白名单，支持 IP 地址或 CIDR 格式地址，多个地址请以逗号分割。
     
     示例：
     
     ```shell
-    DK_DCA_ENABLE=1 DK_DCA_WHITE_LIST="192.168.1.101,10.100.68.101/24" DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
-
+    DK_DCA_ENABLE=on DK_DCA_WHITE_LIST="192.168.1.101,10.100.68.101/24" DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
     ```
     
     安装成功后，DCA 服务将启动，默认端口是 9531。如需修改监听地址和端口，可设置环境变量 `DK_DCA_LISTEN`，如 `DK_DCA_LISTEN=192.168.1.101:9531`。
 
 === "datakit.conf"
 
-    请修改配置文件 `datakit.conf`:
+    修改配置文件 `datakit.conf`:
     
     ```toml
-    
     [dca]
         # 开启
         enable = true
@@ -39,11 +37,15 @@ DCA 主要用于管理 DataKit，如 DataKit 列表查看、配置文件管理�
         # 监听地址和端口
         listen = "0.0.0.0:9531"
 
-        # 白名单，支持指定IP地址或者CIDR格式网络地址
+        # 白名单，支持指定IP地址或者 CIDR 格式网络地址
         white_list = ["0.0.0.0/0", "192.168.1.0/24"]
     ```
 
     重启 DataKit
+
+=== "Kubernetes"
+
+    参见[这里](datakit-daemonset-deploy.md#env-dca)
 
 ---
 
