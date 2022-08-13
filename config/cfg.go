@@ -128,7 +128,16 @@ func DefaultConfig() *Config {
 		EnableElectionTag: false,
 		ElectionNamespace: "default",
 
-		Ulimit: 64000,
+		Ulimit: func() uint64 {
+			switch runtime.GOOS {
+			case "linux":
+				return uint64(64000)
+			case "darwin":
+				return uint64(10240)
+			default:
+				return uint64(0)
+			}
+		}(),
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起
