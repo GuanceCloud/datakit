@@ -6,11 +6,6 @@ import (
 	"testing"
 )
 
-func TestCheckJavaInstall(t *testing.T) {
-	path, ok := checkToolInstalled("java")
-	fmt.Println(path, ok)
-}
-
 func TestScanJDKBinPath(t *testing.T) {
 	if err := os.Chdir(os.TempDir()); err != nil {
 		t.Fatal(err)
@@ -30,16 +25,4 @@ func TestScanProguardBinPath(t *testing.T) {
 	}
 
 	fmt.Println(path)
-}
-
-func TestInstallProguard(t *testing.T) {
-	if err := installProguard(); err != nil {
-		fmt.Println(err)
-	}
-}
-
-func TestInstallDwarf(t *testing.T) {
-	if err := installDwarf(); err != nil {
-		fmt.Println(err)
-	}
 }
