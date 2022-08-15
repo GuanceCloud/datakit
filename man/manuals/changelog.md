@@ -30,6 +30,10 @@
     - 优化行协议构造(#1016)
     - 日志采集中，移除定期清理尾部数据功能，以缓解可能导致的日志截断问题(#1012)
 
+### Breaking Changes {cl-1.4.10-break-changes}
+
+由于 RUM 中新增了 Sourcemap 支持，有了更多的配置选项，故 RUM 采集器不再默认开启，需[手动开启](../integrations/rum.md#config)。
+
 ---
 
 ## 1.4.9(2022/07/26) {#cl-1.4.9}
@@ -267,7 +271,7 @@
 - OpenTelemetry gRPC 方式支持 gzip(#774)
 - 修复 [filebeat](beats_output) 采集器不能设置 service 的问题(#767)
 
-## Breaking changes
+### Breaking changes
 
 对于 Docker 类容器日志的采集，需要将宿主机（Node）的 */varl/lib* 路径挂载到 DataKit 里面（因为 Docker 日志默认落在宿主机的 */var/lib/* 下面），在 *datakit.yaml* 中，`volumeMounts` 和 `volumes` 中新增如下配置：
 
