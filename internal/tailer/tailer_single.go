@@ -452,6 +452,8 @@ __retry:
 			t.opt.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(res), err)
 		}
 	}
+
+	return
 }
 
 func (t *Single) read() ([]byte, int, error) {
