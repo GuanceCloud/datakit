@@ -3,7 +3,7 @@
 ## DataKit/操作系统版本信息
 
 <!--
-建议提供 datakit --version 的输出
+建议提供命令 datakit version 的输出
 -->
 
 ## 预期的行为是怎样的？
@@ -14,19 +14,49 @@
 ## 尽可能提供复现步骤
 
 <!--
+复现步骤：
+
+- xxxxx
+- yyyyy
+- zzzzz
+
+datakit.conf 配置：
+
+```toml
+这里贴上 datakit 配置
+```
+
+或者贴上 datakit.yaml：
+
+```yaml
+这里贴上 datakit k8s 中的 yaml 配置
+```
+
 文字、截屏、视屏等不限
+
+贴图片的推荐方式：
+
+<img src="/uploads/1d10e09cb7292de571axxxxxxxxxxxxx/image-1.png"  width="730">
+
+<img src="/uploads/1d10e09cb7292de571axxxxxxxxxxxxx/image-2.png"  width="730">
+
+这里建议用 730 作为图片宽度，连续的图片之间，用空行分割下。单个图片不要超过 250KB。
 -->
 
 ## 如果是采集器问题，请给出对应采集器的配置文件
 
 <!--
 如 MySQL 采集器问题，给出 .conf.d/db/mysql.conf 配置
+
+```toml
+这里贴上采集器配置
+```
 -->
 
 ## 请给出 Datakit 运行信息截图，便于排查问题
 
 <!--
-如果可以，请给出 http://datakit-ip:9529/monitor （或者命令行 datakit -M --vvv）截图，便于排查问题
+命令行执行 datakit monitor -V，贴图方式参照上面的说明。
 -->
 
 ## 尽可能给出 DataKit 的 ERROR/WARN 日志
