@@ -48,7 +48,8 @@
 !!! tip
 
     Prom 采集器不会自动添加诸如 `namespace` 和 `pod_name` 等 tags，可以在上面的 config 中使用通配符添加额外 tags，例如：
-    ```
+
+    ``` toml
       [inputs.prom.tags]
         namespace = "$NAMESPACE"
         pod_name = "$PODNAME"
@@ -64,10 +65,9 @@
 
 如果没有此 Annotation Key，则使用默认 Pod IP。
 
-## 操作过程
+## 操作步骤
 
 - 登录到 Kubernetes 所在主机
-
 - 打开 `deployment.yaml`，添加 template annotations 示例如下：
 
 ```yaml
@@ -102,10 +102,10 @@ spec:
             # prefix = "cpu_"
             # name = "cpu"
           
-            [inputs.prom.tags]
-            namespace = "$NAMESPACE"
-            pod_name = "$PODNAME"
-            node_name = "$NODENAME"
+            [inputs.prom.tags] # 视情况开启下面的 Tags
+            #namespace = "$NAMESPACE"
+            #pod_name = "$PODNAME"
+            #node_name = "$NODENAME"
 ```
 
 > 注意， `annotations` 一定添加在 `template` 字段下，这样 deployment.yaml 创建的 Pod 才会携带 `datakit/prom.instances`。
