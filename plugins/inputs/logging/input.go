@@ -63,7 +63,7 @@ const (
   remove_ansi_escape_codes = false
 
   ## if the data sent failure, will retry forevery
-  blocking_mode = false
+  blocking_mode = true
 
   ## if file is inactive, it is ignored
   ## time units are "ms", "s", "m", "h"

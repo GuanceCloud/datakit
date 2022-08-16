@@ -1,5 +1,5 @@
 {{.CSS}}
-# 容器
+# 容器数据采集
 ---
 
 - 操作系统支持：{{.AvailableArchs}}
@@ -14,118 +14,168 @@
 
 ## 配置 {#config}
 
-=== "datakit.conf"
+=== "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
-
+    如果是纯 Docker 或 Containerd 环境，那么 DataKit 只能安装在宿主机上。
+    
+    进入 DataKit 安装目录下的 *conf.d/{{.Catalog}}* 目录，复制 *{{.InputName}}.conf.sample* 并命名为 *{{.InputName}}.conf*。示例如下：
+    
     ``` toml
     {{ CodeBlock .InputSample 4 }}
     ```
     
 === "Kubernetes"
+
+    Kubernetes 中容器采集器一般默认自动开启，无需通过 *container.conf* 来配置。但可以通过如下环境变量来调整配置参数：
     
-    支持以环境变量的方式修改配置参数
+    | 环境变量名                                              | 对应 container.conf 配置项         | 参数示例（yaml 配置时需要用英文双引号括起来）       |
+    | ----:                                                   | ----:                              | ----                                                |
+    | `ENV_INPUT_CONTAINER_DOCKER_ENDPOINT`                   | `docker_endpoint`                  | `"unix:///var/run/docker.sock"`                     |
+    | `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`                | `containerd_address`               | `"/var/run/containerd/containerd.sock"`             |
+    | `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`           | `exclude_pause_container`          | `"true"`/`"false"`                                  |
+    | `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES`  | `logging_remove_ansi_escape_codes` | `"true"`/`"false"`                                  |
+    | `ENV_INPUT_CONTAINER_TAGS`                              | `tags`                             | `"tag1=value1,tag2=value2"`                         |
+    | `ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC`           | `enable_container_metric`          | `"true"`/`"false"`                                  |
+    | `ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC`                 | `enable_k8s_metric`                | `"true"`/`"false"`                                  |
+    | `ENV_INPUT_CONTAINER_ENABLE_POD_METRIC`                 | `enable_pod_metric`                | `"true"`/`"false"`                                  |
+    | `ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG`             | `container_include_log`            | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"`     |
+    | `ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG`             | `container_exclude_log`            | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"`     |
+    | `ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH`                | `max_logging_length`               | `"32766"`                                           |
+    | `ENV_INPUT_CONTAINER_KUBERNETES_URL`                    | `kubernetes_url`                   | `"https://kubernetes.default:443"`                  |
+    | `ENV_INPUT_CONTAINER_BEARER_TOKEN`                      | `bearer_token`                     | `"/run/secrets/kubernetes.io/serviceaccount/token"` |
+    | `ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING`               | `bearer_token_string`              | `"<your-token-string>"`                             |
+    | `ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP`          | `logging_extra_source_map`         | `"source_regex*=new_source,regex*=new_source2"`     |
+    | `ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON` | `logging_source_multiline_map`     | `'{"source":"^\d{4}"}'`                             |
+    | `ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE`             | `logging_blocking_mode`            | `"true"/"false"`                                    |
+    | `ENV_K8S_CLUSTER_NAME`                                  | k8s `cluster_name` 字段的缺省值    | `"my-cluster"`                                      |
     
-    | 环境变量名                                              | 对应的配置参数项                    | 参数示例（yaml 配置时需要用英文双引号括起来）                                                  |
-    | :----                                                   | ----                                | ----                                                                                           |
-    | `ENV_INPUT_CONTAINER_DOCKER_ENDPOINT`                   | `docker_endpoint`                   | `"unix:///var/run/docker.sock"`                                                                |
-    | `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`                | `containerd_address`                | `"/var/run/containerd/containerd.sock"`                                                        |
-    | `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`           | `exclude_pause_container`           | `"true"`/`"false"`                                                                             |
-    | `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES`  | `logging_remove_ansi_escape_codes ` | `"true"`/`"false"`                                                                             |
-    | `ENV_INPUT_CONTAINER_TAGS`                              | `tags`                              | `"tag1=value1,tag2=value2"` 如果配置文件中有同名 tag，会覆盖它                                 |
-    | `ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC`           | `enable_container_metric`           | `"true"`/`"false"`                                                                             |
-    | `ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC`                 | `enable_k8s_metric`                 | `"true"`/`"false"`                                                                             |
-    | `ENV_INPUT_CONTAINER_ENABLE_POD_METRIC`                 | `enable_pod_metric`                 | `"true"`/`"false"`                                                                             |
-    | `ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG`             | `container_include_log`             | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"` 以英文逗号隔开                                 |
-    | `ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG`             | `container_exclude_log`             | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"` 以英文逗号隔开                                 |
-    | `ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH`                | `max_logging_length`                | `"32766"`                                                                                      |
-    | `ENV_INPUT_CONTAINER_KUBERNETES_URL`                    | `kubernetes_url`                    | `"https://kubernetes.default:443"`                                                             |
-    | `ENV_INPUT_CONTAINER_BEARER_TOKEN`                      | `bearer_token`                      | `"/run/secrets/kubernetes.io/serviceaccount/token"`                                            |
-    | `ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING`               | `bearer_token_string`               | `"<your-token-string>"`                                                                        |
-    | `ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP`          | `logging_extra_source_map`          | `"source_regex*=new_source,regex*=new_source2"` 以英文逗号隔开                                 |
-    | `ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON` | `logging_source_multiline_map`      | `'{"source":"^\d{4}"}'` JSON 格式的 map，key 为 source 名，value 是对应的 multiline_match 配置 |
-    | `ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE`             | `logging_blocking_mode`             | `"true"/"false"`                                                                               |
-    | `ENV_K8S_CLUSTER_NAME`                                  | k8s `cluster_name` 字段的缺省值     | `"kube"`                                                                                       |
+    环境变量额外说明：
     
-    补充：
+    - ENV_INPUT_CONTAINER_TAGS：如果配置文件（*container.conf*）中有同名 tag，将会被这里的配置覆盖掉。
     
-    - k8s 数据的 `cluster_name` 字段可能会为空，为此提供注入环境变量的方式，取值优先级依次为：
+    - ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP：指定替换 source，参数格式是 `正则表达式=new_source`，当某个 source 能够匹配正则表达式，则这个 source 会被 new_source 替换。如果能够替换成功，则不再使用 `annotations/labels` 中配置的 source（[:octicons-tag-24: Version-1.4.7](../datakit/changelog.md#cl-1.4.7)）。如果要做到精确匹配，需要使用 `^` 和 `$` 将内容括起来。比如正则表达式写成 `datakit`，不仅可以匹配 `datakit` 字样，还能匹配到 `datakit123`；写成 `^datakit$` 则只能匹配到的 `datakit`。
     
-        1. k8s 集群返回的 ClusterName 值（不为空）
-        2. 环境变量 `ENV_K8S_CLUSTER_NAME` 指定的值
-        3. 默认值 `kubernetes`
+    - ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON：用来指定 source 到多行配置的映射，如果某个日志没有配置 `multiline_match`，就会根据它的 source 来此处查找和使用对应的 `multiline_match`。因为 `multiline_match` 值是正则表达式较为复杂，所以 value 格式是 JSON 字符串，可以使用 [json.cn](https://www.json.cn/){:target="_blank"} 辅助编写并压缩成一行
+    k8s 数据的 `cluster_name` 字段可能会为空，为此提供注入环境变量的方式，取值优先级依次为：
     
-    - `ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP` 作用是指定替换 source，参数格式是 `正则表达式=new_source`，当某个 source 能够匹配正则表达式，则这个 source 会被 new_source 替换。如果能够替换成功，则不再使用 `annotations/labels` 配置的 source（[:octicons-tag-24: Version-1.4.7](../datakit/changelog.md#cl-1.4.7)）
-    - 补充：如果要做到精确匹配，需要使用 `^` 和 `$` 将内容括起来。比如正则表达式写成 `datakit`，不仅可以匹配 `datakit` 字样，还能匹配到 `datakit123`；写成 `^datakit$` 则只能匹配到的 `datakit`
-    
-    - `ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON` 用来指定 source 到多行配置的映射，如果某个日志没有配置 `multiline_match`，就会根据它的 source 来此处查找和使用对应的 `multiline_match'。因为 `multiline_match` 值是正则表达式较为复杂，所以 value 格式是 JSON 字符串，可以使用 [json.cn](https://www.json.cn/){:target="_blank"} 辅助编写并压缩成一行
+        - k8s 集群返回的 ClusterName 值（不为空）
+        - 环境变量 `ENV_K8S_CLUSTER_NAME` 指定的值
+        - 默认值 `kubernetes`。
 
 ???+ attention
 
     - 对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂不支持配置
     - 采集到的日志, 单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃
 
-### 根据容器 image 配置日志采集 {#logging-with-image-config}
+#### Docker 和 Containerd sock 文件配置
 
-配置文件中的 `container_include_log / container_exclude_log` 是针对日志数据。
+如果 Docker 或 Containerd 的 sock 路径不是默认的，则需要指定一下 sock 文件路径，根据 DataKit 不同部署方式，其方式有所差别，以 Containerd 为例：
 
-- `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为 `"image:<glob规则>"`，表示 glob 规则是针对容器 image 生效
-- [Glob 规则](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元
+=== "主机部署"
 
-例如，配置如下：
+    修改 container.conf 的 `containerd_address` 配置项，将其设置为对应的 sock 路径。
 
-``` toml
-  ## 当容器的 image 能够匹配 `hello*` 时，会采集此容器的日志
-  container_include_logging = ["image:hello*"]
-  ## 忽略所有容器
-  container_exclude_logging = ["image:*"]
-```
+=== "Kubernetes"
 
-> [Daemonset 方式部署](../datakit/datakit-daemonset-deploy.md)时，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to.md#via-configmap-conf) 来配置这些镜像的开关。
+    更改 datakit.yaml 的 volumes `containerd-socket`，将新路径 mount 到 DataKit 中，同时配置环境变量 `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`：
 
-假设有 3 个容器，image 分别是：
+    ``` yaml hl_lines="3 4 7 14"
+    # 添加 env
+    - env:
+      - name: ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS
+        value: /path/to/new/containerd/containerd.sock
+    
+    # 修改 mountPath
+      - mountPath: /path/to/new/containerd/containerd.sock
+        name: containerd-socket
+        readOnly: true
+    
+    # 修改 volumes
+    volumes:
+    - hostPath:
+        path: /path/to/new/containerd/containerd.sock
+      name: containerd-socket
+    ```
+---
 
-```
-容器A：hello/hello-http:latest
-容器B：world/world-http:latest
-容器C：registry.jiagouyun.com/datakit/datakit:1.2.0
-```
+## 日志采集 {#logging-config}
 
-使用以上 `include / exclude` 配置，将会只采集 `容器A` 指标数据，因为它的 image 能够匹配 `hello*`。另外 2 个容器不会采集指标，因为它们的 image 匹配 `*`。
+容器/Pod 上的日志采集，相比主机上的日志采集，有很大的不同，其配置方式、采集机制都有差异。目前可以通过如下几个角度来控制容器环境下的日志采集：
 
-补充，如何查看容器 image。
+- 通过 Pod/容器 *镜像特征* 来配置日志采集
+- 通过 Annotation/Label 来标注特定 Pod/容器的日志采集
 
-- docker 模式（容器由 docker 启动和管理）：
+### 根据容器 image 来调整日志采集 {#logging-with-image-config}
 
-```
-docker inspect --format "{{`{{.Config.Image}}`}}" $CONTAINER_ID
-```
+默认情况下，DataKit 会收集所在机器/Node 上所有容器/Pod 的 stdout/stderr 日志，这可能不是大家的预期行为。某些时候，我们希望只采集（或不采集）部分容器/Pod 的日志，这里可以通过镜像名称来间接指代目标容器/Pod。
 
-- Kubernetes 模式（容器由 Kubernetes 创建，有自己的所属 Pod）：
+=== "主机安装"
 
-```
-echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
-```
+    ``` toml
+    ## 当容器的 image 能够匹配 `hello*` 时，会采集此容器的日志
+    container_include_logging = ["image:hello*"]
+    ## 忽略所有容器
+    container_exclude_logging = ["image:*"]
+    ```
+    
+    - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为一种[类正则的 Glob 通配](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}： `"image:<glob规则>"`
+    
+=== "Kubernetes"
+
+    可通过如下环境变量 
+
+    - ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG
+    - ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG
+
+    来配置容器的日志采集。假设有 3 个 Pod，其 image 分别是：
+
+    - A：`hello/hello-http:latest`
+    - B：`world/world-http:latest`
+    - C：`registry.jiagouyun.com/datakit/datakit:1.2.0`
+
+    如果只希望采集 Pod A 的日志，那么配置 ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG 即可：
+
+    ``` yaml
+    - env:
+      - name: ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG
+        value: image:hello*  # 指定镜像名或其通配
+    ```
+
+???+ tip "如何查看镜像"
+    
+    Docker：
+
+    ``` shell
+    docker inspect --format "{{`{{.Config.Image}}`}}" $CONTAINER_ID
+    ```
+
+    Kubernetes Pod：
+    
+    ``` shell
+    echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
+    ```
 
 ### 通过 Annotation/Label 调整容器日志采集 {#logging-with-annotation-or-label}
 
-可以通过配置容器的 Labels，或容器所属 Pod 的 Annotations，为容器指定日志配置。
+通过镜像只能大概配置日志采集（或不采集）的目标容器/Pod，更高级一些的配置则需要在容器/Pod 上追加对应的标注，通过这种定向的标注，可以用来配置诸如日志来源、多行配置、Pipeline 切割等功能。
 
-以 Kubernetes 为例，创建 Pod 添加 Annotations 如下：
+在容器 Label 或 Pod yaml 中，标注有特定的 Key（`datakit/logs`），其 Value 是一个 JSON 字符串，示例如下：
 
-- Key 为固定的 `datakit/logs`
-- Value 是一个 JSON 字符串，支持 `source` `service` 和 `pipeline` 等配置项
-
-```json
+``` json
 [
   {
-    "disable"        : false,
-    "source"         : "testing-source", 
-    "service"        : "testing-service",
-    "pipeline"       : "test.p",
-    "only_images"    : ["image:<your_image_regexp>"], # 用法和上文的 `根据 image 过滤容器` 完全相同，`image:` 后面填写正则表达式
-    "multiline_match": "^\d{4}-\d{2}",
-    "tags"           : {
+    "disable"  : false,
+    "source"   : "testing-source",
+    "service"  : "testing-service",
+    "pipeline" : "test.p",
+
+    # 用法和上文的 `根据 image 过滤容器` 完全相同，`image:` 后面填写正则表达式
+    "only_images"  : ["image:<your_image_regexp>"],
+
+    "multiline_match" : "^\d{4}-\d{2}",
+
+    # 可以给该容器/Pod 日志打上额外的标签
+    "tags" : {
       "some_tag" : "some_value",
       "more_tag" : "some_other_value"
     }
@@ -133,107 +183,97 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
 ]
 ```
 
-???+ warnning
+Value 字段说明：
 
-    如无必要，不要轻易在 Annotation/Label 中显式配置 pipeline，一般情况下，通过 `source` 字段自动推导即可。
+| 字段名            | 必填 | 取值             | 默认值 | 说明                                                                                                                                                             |
+| -----             | ---- | ----             | ----   | ----                                                                                                                                                             |
+| `disable`         | N    | true/false       | false  | 是否禁用该 pod/容器的日志采集                                                                                                                                    |
+| `source`          | N    | 字符串           | 无     | 日志来源，参见[容器日志采集的 source 设置](container.md#config-logging-source)                                                                                   |
+| `service`         | N    | 字符串           | 无     | 日志隶属的服务，默认值为日志来源（source）                                                                                                                       |
+| `pipeline`        | N    | 字符串           | 无     | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                       |
+| `only_images`     | N    | 字符串数组       | 无     | 针对 Pod 内部多容器情景，如果填写了任何 image 通配，则只采集能匹配这些 image 的容器的日志，类似白名单功能；如果字段为空，即认为采集该 Pod 中所有容器的日志       |
+| `multiline_match` | N    | 正则表达式字符串 | 无     | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是4个数字，在正则表达式规则中`\d` 是数字，前面的 `\` 是用来转义 |
+| `tags`            | N    | key/value 键值对 | 无     | 添加额外的 tags，如果已经存在同名的 key 将以此为准（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6) ）                                       |
 
-各个字段说明：
+#### 配置示例 {#logging-annotation-label-example}
 
-| 字段名            | 必填 | 取值             | 默认值 | 说明                                                                                                                                                       |
-| -----             | ---- | ----             | ----   | ----                                                                                                                                                       |
-| `disable`         | N    | true/false       | false  | 是否禁用该 pod/容器的日志采集                                                                                                                              |
-| `source`          | N    | 字符串           | 无     | 日志来源，参见[容器日志采集的 source 设置](container.md#config-logging-source)                                                                             |
-| `service`         | N    | 字符串           | 无     | 日志隶属的服务，默认值为日志来源（source）                                                                                                                 |
-| `pipeline`        | N    | 字符串           | 无     | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                 |
-| `only_images`     | N    | 字符串数组       | 无     | 针对 Pod 内部多容器情景，如果填写了任何 image 通配，则只采集能匹配这些 image 的容器的日志，类似白名单功能；如果字段为空，即认为采集该 Pod 中所有容器的日志 |
-| `multiline_match` | N    | 正则表达式字符串 | 无     | 用于多行日志匹配时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是4个数字，在正则表达式规则中`\d` 是数字，前面的 `\` 是用来转义                   |
-| `tags`            | N    | key/value 键值对 | 无     | 添加额外的 tags，如果已经存在同名的 key 将以此为准（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6) ）                                            |
+可以通过配置容器的 Label 或 Pod 的 Annotation 来指定日志采集配置。
 
-如果是在配置文件或终端命令行添加 Labels/Annotations，两边是英文状态双引号，需要添加转义字符。
+=== "Docker"
 
-???+ warnning
+    Docker 容器添加 Label 的方法，参见[这里](https://docs.docker.com/engine/reference/commandline/run/#set-metadata-on-container--l---label---label-file){:target="_blank"}。
 
-    `multiline_match` 的值是双重转义，4 根斜杠才能表示实际的 1 根，例如 `\"multiline_match\":\"^\\\\d{4}\"` 等价 `"multiline_match":"^\d{4}"`。
+=== "Kubernetes"
 
-```shell
-kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]"
-```
-
-???+ info
-
-    关于 Docker 容器添加 Label 的方法，参见[这里](https://docs.docker.com/engine/reference/commandline/run/#set-metadata-on-container--l---label---label-file){:target="_blank"}。
-
-在 Kubernetes 可以在创建 Deployment 时，以 `template` 模式添加 Pod Annotations，例如：
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: testing-log-deployment
-  labels:
-    app: testing-log
-spec:
-  template:
+    在 Kubernetes 可以在创建 Deployment 时，以 `template` 模式添加 Pod Annotation，例如：
+    
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
     metadata:
+      name: testing-log-deployment
       labels:
         app: testing-log
-      annotations:
-        datakit/logs: |
-          [
-            {
-              "disable": false,
-              "source": "testing-source",
-              "service": "testing-service",
-              "pipeline": "test.p",
-              "multiline_match": "^\d{4}-\d{2}",
-              "only_images": ["image:.*nginx.*", "image:.*my_app.*"],
-              "tags" : {
-                "some_tag" : "some_value"
-              }
-            }
-          ]
-```
+    spec:
+      template:
+        metadata:
+          labels:
+            app: testing-log
+          annotations:
+            datakit/logs: |
+              [
+                {
+                  "disable": false,
+                  "source": "testing-source",
+                  "service": "testing-service",
+                  "pipeline": "test.p",
+                  "multiline_match": "^\d{4}-\d{2}",
+                  "only_images": ["image:.*nginx.*", "image:.*my_app.*"],
+                  "tags" : {
+                    "some_tag" : "some_value"
+                  }
+                }
+              ]
+    ```
 
-### 通过 Sidecar 形式采集 Pod 内部日志 {#logging-with-sidecar-config}
+???+ attention
 
-参见 [logfwd](logfwd.md)
+    - 如无必要，不要轻易在 Annotation/Label 中配置 pipeline，一般情况下，通过 `source` 字段自动推导即可。
+    - 如果是在配置文件或终端命令行添加 Labels/Annotations，两边是英文状态双引号，需要添加转义字符。
 
-### 支持 Kubernetes 自定义 Export {#k8s-prom-exporter}
+    `multiline_match` 的值是双重转义，4 根斜杠才能表示实际的 1 根，例如 `\"multiline_match\":\"^\\\\d{4}\"` 等价 `"multiline_match":"^\d{4}"`，示例：
 
-详见[Kubernetes-prom](kubernetes-prom.md)
+    ```shell
+    kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]"
+    ``` 
 
-### 支持 containerd {#containerd-support}
+### 采集 Pod 内部日志 {#logging-with-sidecar-config}
 
-- 容器指标和对象：适配 docker container 指标集，详见下面文档
-- 容器/Pod 日志：推荐使用 [logfwd](logfwd.md) 进行采集。
-- Kubernetes 其它采集均不受影响
+如果 Pod 日志并未打到 stdout，则可以通过 Sidecar 形式可以采集 Pod 内部日志，参见[这里](logfwd.md)。
 
-如果 containerd.sock 路径不是默认的 `/var/run/containerd/containerd.sock`，需要指定新的 `containerd.sock` 路径：
+## 指标采集 {#metric-config}
 
-- 主机部署：修改 container.conf 的 `containerd_address` 配置项
-- 以 Kubernetes daemonset 运行 DataKit：更改 datakit.yaml 的 volumes `containerd-socket`，将新路径 mount 到 DataKit daemonset 中，同时配置环境变量 `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`，值为新路径。例如新的路径是 `/var/containerd/containerd.sock`，datakit.yaml 片段如下：
+由于指标数据量巨大，故指标采集默认是关闭的，可手动开启。
 
-```
-      # 添加 env
-      - env:
-        - name: ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS
-          value: /var/containerd/containerd.sock
-```
-```
-      # 修改 mountPath
-        - mountPath: /var/containerd/containerd.sock
-          name: containerd-socket
-          readOnly: true
-```
-```
-      # 修改 volumes
-      volumes:
-      - hostPath:
-          path: /var/containerd/containerd.sock
-        name: containerd-socket
-```
+=== "Docker"
+    
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，编辑 `{{.InputName}}.conf`。修改指标采集配置：
 
+    ```toml
+    enable_container_metric = true
+    ```
 
+=== "Kubernetes"
+
+    如果如下几个环境变量来配置 Kubernetes 中的指标采集，将它们设置为 "true" 即可开启对应的指标采集：
+
+    - ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC
+    - ENV_INPUT_CONTAINER_ENABLE_POD_METRIC
+    - ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC
+
+### Prometheuse Exporter 指标采集 {#k8s-prom-exporter}
+
+如果 Pod/容器有暴露 Prometheuse 指标，则可以通过 Annotation 方式将指标接口暴露给 DataKit，参见[这里](kubernetes-prom.md)。
 
 ## 指标集 {#measurements}
 

@@ -11,72 +11,84 @@
 
 ## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logging.conf.sample` 并命名为 `logging.conf`。示例如下：
+=== "主机日志"
 
-``` toml
-[[inputs.logging]]
-  # 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定
-  # 推荐使用绝对路径
-  logfiles = [
-    "/var/log/*",                          # 文件路径下所有文件
-    "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
-    "/var/log/syslog",                     # Unix 格式文件路径
-    "C:/path/space 空格中文路径/some.txt", # Windows 风格文件路径
-    "/var/log/*",                          # 文件路径下所有文件
-    "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
-  ]
+    进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logging.conf.sample` 并命名为 `logging.conf`。示例如下：
+    
+    ``` toml
+    [[inputs.logging]]
+      # 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定
+      # 推荐使用绝对路径
+      logfiles = [
+        "/var/log/*",                          # 文件路径下所有文件
+        "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
+        "/var/log/syslog",                     # Unix 格式文件路径
+        "C:/path/space 空格中文路径/some.txt", # Windows 风格文件路径
+        "/var/log/*",                          # 文件路径下所有文件
+        "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
+      ]
+    
+      ## socket 目前支持两种协议：tcp/udp。建议开启内网端口防止安全隐患
+      ## socket 和 log 目前只能选择其中之一，不能既通过文件采集，又通过 socket 采集
+      socket = [
+       "tcp://0.0.0.0:9540"
+       "udp://0.0.0.0:9541"
+      ]
+    
+      # 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
+      ignore = [""]
+      
+      # 数据来源，如果为空，则默认使用 'default'
+      source = ""
+      
+      # 新增标记tag，如果为空，则默认使用 $source
+      service = ""
+      
+      # pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline
+      pipeline = ""
+      
+      # 过滤对应 status:
+      #   `emerg`,`alert`,`critical`,`error`,`warning`,`info`,`debug`,`OK`
+      ignore_status = []
+      
+      # 选择编码，如果编码有误会导致数据无法查看。默认为空即可:
+      #    `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
+      character_encoding = ""
+      
+      ## 设置正则表达式，例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
+      ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
+      ## 使用3个单引号 '''this-regexp''' 避免转义
+      ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+      # multiline_match = '''^\S'''
+    
+      ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
+      remove_ansi_escape_codes = false
+      
+      ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
+      ## 时间单位支持 "ms", "s", "m", "h"
+      ignore_dead_log = "1h"
+    
+      ## 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据
+      blocking_mode = true
+    
+      # 自定义 tags
+      [inputs.logging.tags]
+      # some_tag = "some_value"
+      # more_tag = "some_other_value"
+      # ...
+    ```
 
-  ## socket 目前支持两种协议：tcp/udp。建议开启内网端口防止安全隐患
-  ## socket 和 log 目前只能选择其中之一，不能既通过文件采集，又通过 socket 采集
-  socket = [
-   "tcp://0.0.0.0:9540"
-   "udp://0.0.0.0:9541"
-  ]
+=== "Kubernetes/Docker/Containerd"
 
-  # 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
-  ignore = [""]
-  
-  # 数据来源，如果为空，则默认使用 'default'
-  source = ""
-  
-  # 新增标记tag，如果为空，则默认使用 $source
-  service = ""
-  
-  # pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline
-  pipeline = ""
-  
-  # 过滤对应 status:
-  #   `emerg`,`alert`,`critical`,`error`,`warning`,`info`,`debug`,`OK`
-  ignore_status = []
-  
-  # 选择编码，如果编码有误会导致数据无法查看。默认为空即可:
-  #    `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
-  character_encoding = ""
-  
-  ## 设置正则表达式，例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
-  ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
-  ## 使用3个单引号 '''this-regexp''' 避免转义
-  ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-  # multiline_match = '''^\S'''
+    在 Kubernetes 中，一旦[容器采集器](container.md)启动，则会默认去抓取各个容器（含 Pod 下的容器）的 stdout/stderr 日志，容器日志主要有以下几个配置方式：
 
-  ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
-  remove_ansi_escape_codes = false
-  
-  ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
-  ## 时间单位支持 "ms", "s", "m", "h"
-  ignore_dead_log = "10m"
+    - [通过 Annotation/Label 调整容器日志采集](container.md#logging-with-annotation-or-label)
+    - [根据容器 image 配置日志采集](container.md#logging-with-image-config)
+    - [通过 Sidecar 形式采集 Pod 内部日志](logfwd.md)
 
-  ## 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据
-  blocking_mode = true
+???+ Note "关于 `ignore_dead_log` 的说明"
 
-  # 自定义 tags
-  [inputs.logging.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
-```
-
-> 关于 `ignore_dead_log` 的说明：如果文件已经在采集，但 10min 内没有新日志写入的话，DataKit 会关闭该文件的采集。在这期间（10min），该文件**不能**被物理删除（如 `rm` 之后，该文件只是标记删除，DataKit 关闭该文件后，该文件才会真正被删除）。
+    如果文件已经在采集，但 1h 内没有新日志写入的话，DataKit 会关闭该文件的采集。在这期间（1h），该文件**不能**被物理删除（如 `rm` 之后，该文件只是标记删除，DataKit 关闭该文件后，该文件才会真正被删除）。
 
 ### socket 采集日志 {#socket}
 
@@ -95,7 +107,7 @@
 
 更多: Java Go Python 主流日志组件的配置及代码示例，请参阅：[socket client 配置](logging_socket.md)
 
-### 多行日志采集
+### 多行日志采集 {#multiline}
 
 通过识别多行日志的第一行特征，即可判定某行日志是不是一条新的日志。如果不符合这个特征，我们即认为当前行日志只是前一条多行日志的追加。
 
