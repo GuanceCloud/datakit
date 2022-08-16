@@ -298,13 +298,19 @@ spec:
 }
 ```
 
+### DCA {#env-dca}
+
+| 环境变量名称       | 类型   | 默认值         | 必须   | 说明                                                                                                 |
+| ---------:         | ----:  | ---:           | ------ | ----                                                                                                 |
+| ENV_DCA_LISTEN     | string | localhost:9531 | 否     | 可修改改地址，使得 [DCA](dca.md) 客户端能管理该 DataKit，一旦开启 ENV_DCA_LISTEN 即默认启用 DCA 功能 |
+| ENV_DCA_WHITE_LIST | string | 无             | 否     | 配置 DCA 白名单，以英文逗号分隔                                                                      |
+
+
 ### 其它杂项 {#env-others}
 
 | 环境变量名称                 | 类型     | 默认值         | 必须   | 说明                                                       |
 | ---------:                   | ----:    | ---:           | ------ | ----                                                       |
 | ENV_CLOUD_PROVIDER           | string   | 无             | 否     | 支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`) |
-| ENV_DCA_LISTEN               | string   | localhost:9531 | 否     | 可修改改地址，使得 [DCA](dca) 客户端能管理该 DataKit       |
-| ENV_DCA_WHITE_LIST           | string   | 无             | 否     | 配置 DCA 白名单，以英文逗号分隔                            |
 | ENV_HOSTNAME                 | string   | 无             | 否     | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`    |
 | ENV_IPDB                     | string   | 无             | 否     | 指定 IP 信息库类型，目前只支持 `iploc/geolite2` 两种       |
 | ENV_ULIMIT                   | int      | 无             | 否     | 指定 Datakit 最大的可打开文件数                            |
