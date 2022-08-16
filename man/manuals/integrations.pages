@@ -25,16 +25,14 @@ nav:
         - iis.md
 
   - '云原生':
-    - 'Kubernetes 环境下的 DataKit 配置综述': k8s-config-how-to.md
+    - '容器数据采集': container.md
+    - k8s-config-how-to.md
     - datakit-daemonset-bp.md
     - kubernetes-crd.md
-    - '数据采集':
-      - '容器': container.md
-      - logfwd.md
-      - kubernetes-prom.md
-      - kube-state-metrics.md
-      - kube-scheduler.md
-      - kube-state-metrics.md 
+    - logfwd.md
+    - kubernetes-prom.md
+    - kube-state-metrics.md
+    - kube-scheduler.md
 
   - 应用性能监测（APM）:
     - 'Datakit Tracing 综述': datakit-tracing.md
