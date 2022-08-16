@@ -236,6 +236,7 @@ func (i *Input) initCfg() error {
 
 	if err := i.db.PingContext(ctx); err != nil {
 		l.Errorf("init config connect error %v", err)
+		i.db.Close()
 		return err
 	}
 
