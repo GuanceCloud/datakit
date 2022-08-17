@@ -138,7 +138,7 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
       flush_interval = "10s"  # 数据发送的间隔阈值，每隔 10s 至少发送一次
 
       blocking_mode = false   # 阻塞模式
-      blocking_categories =   # 指定哪些 category 走 blocking 模式。
+      blocking_categories = ["M", "/v1/write/tracing"]  # 指定哪些 category 走 blocking 模式。
     ```
 
     阻塞模式参见 [k8s 中的对应说明](datakit-daemonset-deploy.md#env-io)
