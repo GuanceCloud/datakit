@@ -270,6 +270,7 @@ spec:
 | ENV_IO_FILTERS           | json     | 无     | 否     | 添加[行协议过滤器](datakit-filter)                                                                                             |
 | ENV_IO_FLUSH_INTERVAL    | duration | 10s    | 否     | IO 发送时间频率                                                                                                                |
 | ENV_IO_BLOCKING_MODE     | bool     | -      | 否     | 阻塞模式 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental) |
+| ENV_IO_BLOCKING_CATEGORIES | []string | 无 | 否 | 指定 category 的阻塞模式 [:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11) · [:octicons-beaker-24: Experimental](index.md#experimental) |
 | ENV_IO_MAX_CACHE_COUNT   | int      | 64     | 否     | 发送 buffer（点数）大小                                                                                                        |
 | ENV_IO_QUEUE_SIZE        | int      | 128    | 否     | IO 模块数据处理队列长度                                                                                                        |
 | ENV_IO_ENABLE_CACHE      | bool     | -      | 否     | 是否开启发送失败的磁盘缓存                                                                                                     |

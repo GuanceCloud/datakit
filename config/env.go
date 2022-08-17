@@ -132,6 +132,11 @@ func (c *Config) loadIOEnvs() {
 		l.Info("ENV_IO_BLOCKING_MODE enabled")
 		c.IOConf.BlockingMode = true
 	}
+
+	if v := datakit.GetEnv("ENV_IO_BLOCKING_CATEGORIES"); len(v) > 0 {
+		l.Info("ENV_IO_BLOCKING_CATEGORIES: %s", v)
+		c.IOConf.BlockingCategories = strings.Split(v, ",")
+	}
 }
 
 //nolint:funlen

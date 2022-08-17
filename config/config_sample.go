@@ -146,6 +146,10 @@ ulimit = 64000
 	## 如果不希望丢失数据，可开启阻塞模式。一旦阻塞，将导致数据采集暂停。
 	blocking_mode = false
 
+  ## blocking_categories 指定哪些 category 走 blocking 模式。
+  ## 如果没填则检查 blocking_mode 是否为 true, 如果为 true 则全局 block。
+  blocking_categories = []
+
   ## 行协议数据过滤
   ## 一旦 datakit.conf 中配置了过滤器，那么则以该过滤器为准，观测云 Studio 配置的过滤器将不再生效。
   ## 具体参考 https://www.yuque.com/dataflux/datakit/datakit-filter
