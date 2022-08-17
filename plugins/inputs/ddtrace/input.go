@@ -134,7 +134,24 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
 
-	afterGather := itrace.NewAfterGather()
+	var err error
+	if ipt.Storage != nil {
+		if storage, err = cache.Open(ipt.Storage.Path, &cache.Option{
+			Capacity: int64(ipt.Storage.Capacity) << 20,
+		}); err != nil {
+			log.Errorf("### open cache %s with cap %dGB failed, cache.Open: %s", ipt.Storage.Path, ipt.Storage.Capacity, err)
+		} else {
+			log.Infof("### open cache %s with cap %dGB OK", ipt.Storage.Path, ipt.Storage.Capacity)
+			go consumeStorageWorker()
+		}
+	}
+
+	var afterGather *itrace.AfterGather
+	if storage == nil {
+		afterGather = itrace.NewAfterGather()
+	} else {
+		afterGather = itrace.NewAfterGather(itrace.WithRetry(100 * time.Millisecond))
+	}
 	afterGatherRun = afterGather
 
 	// add calculators
@@ -188,16 +205,6 @@ func (ipt *Input) RegHTTPHandler() {
 			log.Errorf("### start workerpool failed: %s", err.Error())
 			wpool = nil
 		}
-	}
-
-	var err error
-	if ipt.Storage != nil {
-		if storage, err = cache.Open(ipt.Storage.Path, &cache.Option{
-			Capacity: int64(ipt.Storage.Capacity) << 20,
-		}); err != nil {
-			log.Error(err.Error())
-		}
-		go consumeStorageWorker()
 	}
 
 	log.Debugf("### register handlers for %s agent", inputName)
