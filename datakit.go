@@ -175,17 +175,30 @@ var (
 	GRPCSock           = ""
 
 	CategoryMap = map[string]string{
-		MetricDeprecated: "M",
-		Metric:           "M",
-		Network:          "N",
-		KeyEvent:         "E",
-		Object:           "O",
-		Logging:          "L",
-		Tracing:          "T",
-		RUM:              "R",
-		Security:         "S",
-		CustomObject:     "CO",
-		Profiling:        "P",
+		MetricDeprecated: SinkCategoryMetric,
+		Metric:           SinkCategoryMetric,
+		Network:          SinkCategoryNetwork,
+		KeyEvent:         SinkCategoryKeyEvent,
+		Object:           SinkCategoryObject,
+		CustomObject:     SinkCategoryCustomObject,
+		Logging:          SinkCategoryLogging,
+		Tracing:          SinkCategoryTracing,
+		RUM:              SinkCategoryRUM,
+		Security:         SinkCategorySecurity,
+		Profiling:        SinkCategoryProfiling,
+	}
+
+	CategoryMapReverse = map[string]string{
+		SinkCategoryMetric:       Metric,
+		SinkCategoryNetwork:      Network,
+		SinkCategoryKeyEvent:     KeyEvent,
+		SinkCategoryObject:       Object,
+		SinkCategoryCustomObject: CustomObject,
+		SinkCategoryLogging:      Logging,
+		SinkCategoryTracing:      Tracing,
+		SinkCategoryRUM:          RUM,
+		SinkCategorySecurity:     Security,
+		SinkCategoryProfiling:    Profiling,
 	}
 )
 

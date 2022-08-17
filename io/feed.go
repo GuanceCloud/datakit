@@ -7,6 +7,8 @@ package io
 
 import (
 	"fmt"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -133,11 +135,61 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 		opt:      opt,
 	}
 
-	if x.conf.BlockingMode {
+	// blocking_categories 填了则指定的 category 走 blocking 模式，
+	// 如果没填则检查 blocking_mode 是否为 true，如果是则全局 block。
+	if len(x.conf.BlockingCategories) > 0 && x.checkInsideCategories(job.category) {
 		return blockingFeed(job, ch)
-	} else {
-		return unblockingFeed(job, ch)
+	} else if x.conf.BlockingMode {
+		return blockingFeed(job, ch)
 	}
+
+	return unblockingFeed(job, ch)
+}
+
+var (
+	blockingCategoriesLock    sync.Mutex
+	mapBlockingCategories     map[string]struct{}
+	initMapBlockingCategories bool
+)
+
+// checkInsideCategories returns true if category inside categories.
+func (x *IO) checkInsideCategories(category string) bool {
+	if len(category) == 0 {
+		return false
+	}
+	if len(mapBlockingCategories) == 0 {
+		if len(x.conf.BlockingCategories) > 0 {
+			blockingCategoriesLock.Lock()
+			defer blockingCategoriesLock.Unlock()
+
+			if !initMapBlockingCategories {
+				initMapBlockingCategories = true
+
+				for _, v := range x.conf.BlockingCategories {
+					length := len(v)
+					switch length {
+					case 0:
+						continue
+					case 1:
+						upperV := strings.ToUpper(v)
+						newV := datakit.CategoryMapReverse[upperV]
+						if len(newV) == 0 {
+							continue
+						}
+						v = newV
+					default:
+					}
+
+					mapBlockingCategories[v] = struct{}{}
+				} // for
+			} // if !initMapBlockingCategories
+		} else {
+			return false
+		}
+	} // if len
+
+	_, ok := mapBlockingCategories[category]
+	return ok
 }
 
 // 重试机制：这里做三次重试，主要考虑：

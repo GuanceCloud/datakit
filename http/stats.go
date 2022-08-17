@@ -484,7 +484,7 @@ type StatMetric struct {
 	InputsStats    map[string]*io.InputsStat  `json:"inputs_status"`
 	IOStats        *io.Stats                  `json:"io_stats"`
 	PLStats        []plstats.ScriptStatsROnly `json:"pl_stats"`
-	HTTPMetrics    map[string]*apiStat        `json:"http_metrics"`
+	HTTPMetrics    map[string]*APIStat        `json:"http_metrics"`
 	FilterStats    *io.FilterStats            `json:"filter_stats"`
 }
 
