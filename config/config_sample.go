@@ -233,15 +233,15 @@ ulimit = 64000
 #
 [global_host_tags]
 
-## global_env_tags: 环境相关全局标签
-## 全局环境标签会默认添加到选举采集收集的每一条数据上，前提是采集的原始数据上不带有这里配置的标签
+## global_election_tags: 环境相关全局标签
+## 全局选举标签会默认添加到选举采集收集的每一条数据上，前提是采集的原始数据上不带有这里配置的标签，且开启了 enable_election
 ##
 ## 示例：
-##   [global_env_tags]
+##   [global_election_tags]
 ##      project = "my-project"
 ##      cluster = "my-cluster"
 #
-[global_env_tags]
+[global_election_tags]
 
 ## environments: 环境变量配置（目前只支持 ENV_HOSTNAME，用来修改主机名）
 #

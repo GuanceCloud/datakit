@@ -217,8 +217,8 @@ func doRun() error {
 	})
 
 	if config.Cfg.DataWay != nil {
-		if config.Cfg.EnableElection {
-			election.Start(config.Cfg.ElectionNamespace, config.Cfg.Hostname, config.Cfg.DataWay)
+		if config.Cfg.Election.Enable {
+			election.Start(config.Cfg.Election.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
 		}
 
 		if len(config.Cfg.DataWayCfg.URLs) == 1 {

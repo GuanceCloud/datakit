@@ -383,6 +383,9 @@ check_man:
 		rm -rf bad-doc.log; \
 	fi
 
+code_stat:
+	cloc --exclude-dir=vendor,tests --exclude-lang=JSON,HTML .
+
 clean:
 	@rm -rf build/*
 	@rm -rf io/parser/gram_y.go

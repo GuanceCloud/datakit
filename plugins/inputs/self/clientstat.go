@@ -168,7 +168,7 @@ func (s *ClientStat) ToMetric() *point.Point {
 }
 
 func (s *ClientStat) getElectedInfo() (int64, string) {
-	if !config.Cfg.EnableElection {
+	if !config.Cfg.Election.Enable {
 		return 0, ""
 	}
 

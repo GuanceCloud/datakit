@@ -7,6 +7,7 @@ package cmds
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -21,9 +22,9 @@ type ipdbInfo struct {
 	Time    int64  `json:"time"` // ms
 }
 
-func installIpdb(ipdbType string) error {
+func installIPDB(ipdbType string) error {
 	baseURL := "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit"
-	ipdb, err := InstallIpdb(baseURL, ipdbType)
+	ipdb, err := InstallIPDB(baseURL, ipdbType)
 	if err != nil {
 		return err
 	}
@@ -36,10 +37,11 @@ func installIpdb(ipdbType string) error {
 	return nil
 }
 
-func InstallIpdb(baseURL string, ipdbType string) (*ipdbInfo, error) {
+func InstallIPDB(baseURL string, ipdbType string) (*ipdbInfo, error) {
 	ipdbBaseURL := baseURL + "/ipdb/"
 	ipdbJSONURL := ipdbBaseURL + ipdbType + ".json"
 	installDir := datakit.DataDir + "/ipdb/" + ipdbType
+
 	// nolint:gosec
 	if resp, err := http.Get(ipdbJSONURL); err != nil {
 		return nil, err
@@ -48,20 +50,24 @@ func InstallIpdb(baseURL string, ipdbType string) (*ipdbInfo, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		// nolint:errcheck
 		defer resp.Body.Close()
 
 		ipdb := ipdbInfo{}
 
 		if err := json.Unmarshal(res, &ipdb); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("read IPDB json info '%s' failed: %w", ipdbJSONURL, err)
 		}
+
 		ipdbURL := ipdbBaseURL + ipdb.Name
+
 		infof("Start downloading ipdb ...\n")
+
 		dl.CurDownloading = "ipdb"
 		cli := getcli()
 		if err := dl.Download(cli, ipdbURL, installDir, true, false); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("download %s to %s failed: %w", ipdbURL, installDir, err)
 		}
 		return &ipdb, nil
 	}

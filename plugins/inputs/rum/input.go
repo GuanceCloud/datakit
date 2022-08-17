@@ -177,7 +177,7 @@ func (i *Input) handleRUM(req *http.Request) ([]*point.JSONPoint, error) {
 		}
 	}
 
-	if x := q.Get(dkhttp.GLOBAL_ENV_TAGS); x != "" {
+	if x := q.Get(dkhttp.GLOBAL_ELECTION_TAGS); x != "" {
 		for k, v := range point.GlobalEnvTags() {
 			log.Debugf("add env tag %s: %s", k, v)
 			extraTags[k] = v

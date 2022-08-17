@@ -402,7 +402,7 @@ func TestAPIWrite(t *testing.T) {
 			},
 
 			method:           "POST",
-			url:              "/v1/write/object?echo_line_proto=1&ignore_global_host_tags=1&ignore_global_tags=1&global_env_tags=1", // global-host-tag ignored
+			url:              "/v1/write/object?echo_line_proto=1&ignore_global_host_tags=1&ignore_global_tags=1&global_election_tags=1", // global-host-tag ignored
 			contentType:      "application/json",
 			body:             []byte(`[{"measurement":"object-class","tags":{"name": "1"}, "fields":{"f1":1, "message": "dump object message"}, "time": 123}]`),
 			expectStatusCode: 200,
@@ -440,7 +440,7 @@ func TestAPIWrite(t *testing.T) {
 
 			if tc.globalEnvTags != nil {
 				for k, v := range tc.globalEnvTags {
-					point.SetGlobalEnvTags(k, v)
+					point.SetGlobalElectionTags(k, v)
 				}
 			}
 
@@ -448,7 +448,7 @@ func TestAPIWrite(t *testing.T) {
 			var err error
 			switch tc.method {
 			case "POST":
-				resp, err = http.Post(fmt.Sprintf("%s%s", ts.URL, tc.url), tc.contentType, bytes.NewBuffer(tc.body)) //nolint:bodyclose
+				resp, err = http.Post(fmt.Sprintf("%s%s", ts.URL, tc.url), tc.contentType, bytes.NewBuffer(tc.body))
 				if err != nil {
 					t.Error(err)
 					return
