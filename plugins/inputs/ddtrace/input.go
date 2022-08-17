@@ -71,7 +71,6 @@ const (
   ## Threads config controls how many goroutines an agent cloud start.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
-  ## timeout is the duration(ms) before a job can return a result.
   # [inputs.ddtrace.threads]
     # buffer = 100
     # threads = 8

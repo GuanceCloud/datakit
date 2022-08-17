@@ -14,7 +14,7 @@ import (
 type WorkerPoolConfig struct {
 	Buffer  int `json:"buffer"`  // worker pool channel buffer size
 	Threads int `json:"threads"` // goroutines count in total
-	Timeout int `json:"timeout"` // deprecated
+	// Timeout int `json:"timeout"` // deprecated
 }
 type Process func(input interface{}) (output interface{})
 
