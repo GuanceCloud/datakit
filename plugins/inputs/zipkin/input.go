@@ -63,11 +63,9 @@ const (
   ## Threads config controls how many goroutines an agent cloud start.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
-  ## timeout is the duration(ms) before a job can return a result.
   # [inputs.zipkin.threads]
     # buffer = 100
     # threads = 8
-    # timeout = 1000
 `
 )
 
@@ -82,7 +80,6 @@ var (
 	customerKeys     []string
 	tags             map[string]string
 	wpool            workerpool.WorkerPool
-	jobTimeout       time.Duration
 )
 
 type Input struct {
@@ -151,8 +148,6 @@ func (ipt *Input) RegHTTPHandler() {
 		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
 			log.Errorf("### start workerpool failed: %s", err.Error())
 			wpool = nil
-		} else {
-			jobTimeout = time.Duration(ipt.WPConfig.Timeout) * time.Millisecond
 		}
 	}
 
@@ -177,7 +172,10 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) Terminate() {
-	// close resource
+	if wpool != nil {
+		wpool.Shutdown()
+		log.Debugf("### workerpool in %s is shudown", inputName)
+	}
 }
 
 func init() { //nolint:gochecknoinits

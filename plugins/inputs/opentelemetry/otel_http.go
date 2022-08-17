@@ -82,8 +82,8 @@ func (o *otlpHTTPCollector) apiOtlpTrace(resp http.ResponseWriter, req *http.Req
 		storage: o.storage,
 	}
 
-	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %d, read-body-cost: %dms",
-		req.URL.Path, media, encode, len(buf), time.Since(readbodycost)/time.Millisecond)
+	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %dkb, read-body-cost: %dms",
+		req.URL.Path, media, encode, len(buf)>>10, time.Since(readbodycost)/time.Millisecond)
 
 	if wpool == nil {
 		if err = parseOtelTrace(param); err != nil {
@@ -98,7 +98,6 @@ func (o *otlpHTTPCollector) apiOtlpTrace(resp http.ResponseWriter, req *http.Req
 			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
 				log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
 			}),
-			workerpool.WithTimeout(jobTimeout),
 		)
 		if err != nil {
 			log.Error(err.Error())
