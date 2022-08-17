@@ -27,8 +27,8 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 | `precision`               | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                              |
 | `input`                   | string | false    | `datakit` | 数据源名称                                                                                                                 |
 | `ignore_global_tags`      | string | false    | 无        | 已弃用，改用 `ignore_global_host_tags`                                                                                     |
-| `ignore_global_host_tags` | string | false    | 无        | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                                                                      |
-| `global_env_tags`         | string | false    | 无        | 给任意值（如 `true`）即认为追加全局环境类 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                                                                     |
+| `ignore_global_host_tags` | string | false    | 无        | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）           |
+| `global_election_tags`    | string | false    | 无        | 给任意值（如 `true`）即认为追加全局选举类 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                  |
 | `echo_line_proto`         | string | false    | 无        | 给任意值（如 `true`）即返回 json 行协议类容，默认不返回                                                                    |
 | `version`                 | string | false    | 无        | 当前采集器的版本号                                                                                                         |
 | `source`                  | string | false    | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割 |

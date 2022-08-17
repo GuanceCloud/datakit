@@ -67,17 +67,17 @@ func (c *Config) loadElectionEnvs() {
 		return
 	}
 
-	c.EnableElection = true
+	c.Election.Enable = true
 
 	// default election namespace is `default`
 	if v := datakit.GetEnv("ENV_NAMESPACE"); v != "" {
-		c.ElectionNamespace = v
+		c.Election.Namespace = v
 	}
 
 	if v := datakit.GetEnv("ENV_ENABLE_ELECTION_NAMESPACE_TAG"); v != "" {
 		// add to global-env-tags
-		c.EnableElectionTag = true
-		c.GlobalEnvTags["election_namespace"] = c.ElectionNamespace
+		c.Election.EnableNamespaceTag = true
+		c.Election.Tags["election_namespace"] = c.Election.Namespace
 	}
 }
 
@@ -184,9 +184,15 @@ func (c *Config) LoadEnvs() error {
 		}
 	}
 
-	if v := datakit.GetEnv("ENV_GLOBAL_ENV_TAGS"); v != "" {
-		for k, v := range ParseGlobalTags(v) {
-			c.GlobalEnvTags[k] = v
+	for _, x := range []string{
+		"ENV_GLOBAL_ELECTION_TAGS",
+		"ENV_GLOBAL_ENV_TAGS",
+	} {
+		if v := datakit.GetEnv(x); v != "" {
+			for k, v := range ParseGlobalTags(v) {
+				c.Election.Tags[k] = v
+			}
+			break
 		}
 	}
 

@@ -70,9 +70,9 @@ func TestLoadEnv(t *testing.T) {
 				cfg.ProtectMode = false
 				cfg.DefaultEnabledInputs = []string{"cpu", "mem", "disk"}
 
-				cfg.EnableElection = true
-				cfg.EnableElectionTag = true
-				cfg.ElectionNamespace = "some-default"
+				cfg.Election.Enable = true
+				cfg.Election.EnableNamespaceTag = true
+				cfg.Election.Namespace = "some-default"
 
 				cfg.GlobalHostTags = map[string]string{
 					"a": "b",
@@ -81,7 +81,7 @@ func TestLoadEnv(t *testing.T) {
 					"m": "n",
 				}
 
-				cfg.GlobalEnvTags = map[string]string{
+				cfg.Election.Tags = map[string]string{
 					"election_namespace": "some-default",
 				}
 

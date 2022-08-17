@@ -70,7 +70,7 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
   ip         = "__datakit_ip"
   host       = "__datakit_hostname"
 
-[global_env_tags]
+[global_election_tags]
   project = "my-project"
   cluster = "my-cluster"
 ```

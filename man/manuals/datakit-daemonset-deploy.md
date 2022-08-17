@@ -191,13 +191,13 @@ spec:
 | ENV_ENABLE_INPUTS          | string-list | 无     | 否     | ==将废弃==，改用 ENV_DEFAULT_ENABLED_INPUTS                                                           |
 | ENV_GLOBAL_TAGS            | string-list | 无     | 否     | ==将废弃==，改用 ENV_GLOBAL_HOST_TAGS                                                                 |
 | ENV_GLOBAL_HOST_TAGS       | string-list | 无     | 否     | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`                                        |
-| ENV_GLOBAL_ENV_TAGS        | string-list | 无     | 否     | 全局环境 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`                                    |
+| ENV_GLOBAL_ELECTION_TAGS   | string-list | 无     | 否     | 全局选举 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`。ENV_GLOBAL_ENV_TAGS 将被弃用      |
 
-???+ note "区分全局主机 tag 和 环境 tag"
+???+ note "区分全局主机 tag 和 全局选举 tag"
 
     `ENV_GLOBAL_HOST_TAGS` 用来指定主机类全局 tag，这些 tag 的值一般跟随主机变迁，比如主机名、主机 IP 等。当然，其它不跟随主机变迁的 tag 也能加进来。所有非选举类采集器，会默认带上 `ENV_GLOBAL_HOST_TAGS` 中指定的 tag。
 
-    而 `ENV_GLOBAL_ENV_TAGS` 建议只添加不随主机切换而变迁的 tags，如集群名、项目名等。对于[参与选举的采集器](election.md#inputs)，只会添加 `ENV_GLOBAL_ENV_TAGS` 中指定的 tag，不会增加 `ENV_GLOBAL_HOST_TAGS` 中指定的 tag。
+    而 `ENV_GLOBAL_ELECTION_TAGS` 建议只添加不随主机切换而变迁的 tags，如集群名、项目名等。对于[参与选举的采集器](election.md#inputs)，只会添加 `ENV_GLOBAL_ENV_TAGS` 中指定的 tag，不会增加 `ENV_GLOBAL_HOST_TAGS` 中指定的 tag。
 
     不管是主机类全局 tag 还是环境类全局 tag，如果原始数据中已经有对应 tag，则不会追加已存在的 tag，我们认为应该沿用原始数据中的 tag。
 

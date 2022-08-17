@@ -260,6 +260,7 @@ func scanJDKBinPath(homeDir string) (string, error) {
 	return "", fmt.Errorf("jdk bin dir not found in [%s]", homeDir)
 }
 
+//nolint:unused
 func scanProguardBinPath(homeDir string) (string, error) {
 	entries, err := os.ReadDir(homeDir)
 	if err != nil {

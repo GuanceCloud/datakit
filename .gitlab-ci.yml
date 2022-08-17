@@ -19,6 +19,19 @@ stages:
   - deploy_ebpf
   - deploy
 
+ci_lint_and_unit_test:
+  stage: deploy
+  resource_group: production
+  only:
+    - /^\d+-iss.*$/
+  script:
+    # only run lint and unit-testing
+    - make clean
+    - make lint
+    - make all_test
+  tags:
+    - cloudcare-ft
+
 test-datakit-production:
   stage: test
   resource_group: production
