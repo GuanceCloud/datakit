@@ -71,7 +71,6 @@ const (
   # [inputs.jaeger.threads]
     # buffer = 100
     # threads = 8
-    # timeout = 1000
 `
 )
 
@@ -84,7 +83,6 @@ var (
 	customerKeys     []string
 	tags             map[string]string
 	wpool            workerpool.WorkerPool
-	jobTimeout       time.Duration
 )
 
 type Input struct {
@@ -155,8 +153,6 @@ func (ipt *Input) RegHTTPHandler() {
 		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
 			log.Errorf("### start workerpool failed: %s", err.Error())
 			wpool = nil
-		} else {
-			jobTimeout = time.Duration(ipt.WPConfig.Timeout) * time.Millisecond
 		}
 	}
 

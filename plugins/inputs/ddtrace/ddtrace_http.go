@@ -97,7 +97,7 @@ func handleDDTraceWithVersion(v string) http.HandlerFunc {
 					if param, ok := input.(*parameters); ok {
 						bufpool.PutBuffer(param.body)
 					}
-					log.Debugf("### job status: output: %v, cost: %dms", output, cost/time.Millisecond)
+					log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
 				}),
 			)
 			if err != nil {
