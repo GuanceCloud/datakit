@@ -31,8 +31,6 @@ nav:
     - kubernetes-crd.md
     - logfwd.md
     - kubernetes-prom.md
-    - kube-state-metrics.md
-    - kube-scheduler.md
 
   - 应用性能监测（APM）:
     - 'Datakit Tracing 综述': datakit-tracing.md
@@ -64,6 +62,16 @@ nav:
 
     - 'Jaeger' :
       - 'Jaeger 采集器配置': jaeger.md
+
+  - '容器编排':
+    - 'Ingress 指标采集': ingress-nginx-prom.md
+    - istio.md
+    - kubernetes-api-server.md
+    - kubernetes-controller-manager.md
+    - kubernetes-kublet.md
+    - kube-scheduler.md
+    - kube-state-metrics.md
+    - kube-metric-server.md
 
   - '日志':
     - 'DataKit 日志采集综述': datakit-logging.md

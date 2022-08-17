@@ -206,6 +206,8 @@ done
 
 # 这些文件没有集成在 datakit 代码中（没法通过 export-docs 命令导出），故直接拷贝到文档库中。
 integrations_extra_files=(
+	man/manuals/activemq.md
+	man/manuals/aerospike.md
 	man/manuals/aliyun-asm.md
 	man/manuals/aliyun-cdn.md
 	man/manuals/aliyun-charges.md
@@ -224,35 +226,39 @@ integrations_extra_files=(
 	man/manuals/aliyun-redis.md
 	man/manuals/aliyun-slb.md
 	man/manuals/aliyun-sls.md
+	man/manuals/chrony.md
+	man/manuals/conntrack.md
 	man/manuals/ddtrace-csharp.md
 	man/manuals/ddtrace-dotnetcore.md
 	man/manuals/ddtrace-php-2.md
 	man/manuals/ddtrace-ruby-2.md
+	man/manuals/dns-query.md
+	man/manuals/ethtool.md
+	man/manuals/fluentd-metric.md
 	man/manuals/haproxy.md
+	man/manuals/harbor.md
+	man/manuals/ingress-nginx-prom.md
+	man/manuals/istio.md
+	man/manuals/kube-metric-server.md
 	man/manuals/kube-scheduler.md
 	man/manuals/kube-state-metrics.md
+	man/manuals/kubernetes-api-server.md
+	man/manuals/kubernetes-controller-manager.md
+	man/manuals/kubernetes-kublet.md
 	man/manuals/logstreaming-fluentd.md
-  man/manuals/netstat.md
-  man/manuals/dns-query.md
-  man/manuals/ethtool.md
-  man/manuals/ntpq.md
-  man/manuals/procstat.md
-	man/manuals/opentelemetry-collector.md
-	man/manuals/resin.md
-	man/manuals/redis-sentinel.md
 	man/manuals/nacos.md
+	man/manuals/netstat.md
+	man/manuals/ntpq.md
+	man/manuals/opentelemetry-collector.md
+	man/manuals/procstat.md
+	man/manuals/redis-sentinel.md
+	man/manuals/resin.md
+	man/manuals/rocketmq.md
 	man/manuals/rum-android.md
 	man/manuals/rum-ios.md
 	man/manuals/rum-miniapp.md
 	man/manuals/rum-web-h5.md
-	man/manuals/aerospike.md
-	man/manuals/chrony.md
-	man/manuals/conntrack.md
-	man/manuals/fluentd-metric.md
 	man/manuals/zookeeper.md
-	man/manuals/harbor.md
-	man/manuals/activemq.md
-	man/manuals/rocketmq.md
 )
 
 for f in "${integrations_extra_files[@]}"; do
