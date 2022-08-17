@@ -67,11 +67,12 @@ data:
           measurement_name = "prom_controller_manager"
 
           ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
-          interval = "30s"
+          interval = "60s"
 
           ## 过滤tags, 可配置多个tag
           # 匹配的tag将被忽略
           tags_ignore = ["action","build_date","clusterCIDR","code","compiler","completion_mode","git_commit","git_tree_state","git_version","go_version","major","method","minor","name","operation","platform","plugin_name","result","status","storage_class","username","version","volume_mode"]
+          metric_name_filter = ["service_controller_rate_limiter_use","deployment_controller_rate_limiter_use","daemon_controller_rate_limiter_use","replicaset_controller_rate_limiter_use","cronjob_controller_rate_limiter_use","job_controller_rate_limiter_use","serviceaccount_controller_rate_limiter_use","endpoint_controller_rate_limiter_use","replication_controller_rate_limiter_use","gc_controller_rate_limiter_use","serviceaccount_tokens_controller_rate_limiter_use","token_cleaner_rate_limiter_use","node_ipam_controller_rate_limiter_use","node_collector_unhealthy_nodes_in_zone","job_controller_job_finished_total","process_resident_memory_bytes","process_cpu_seconds_total","go_goroutines"]
 
           ## TLS 配置
           tls_open = true
@@ -107,6 +108,8 @@ data:
 - measurement_prefix：指标集名称前缀
 - measurement_name：指标集名称
 - interval：采集间隔
+- tags_ignore:  忽略的 tag
+- metric_name_filter:  保留的指标名
 - tls_open：是否忽略安全验证 (如果是 https，请设置为 true，并设置相应证书)，此处为 true
 - tls_ca：ca 证书路径
 - type：自定义认证方式，controller manager 使用 bearer_token 认证

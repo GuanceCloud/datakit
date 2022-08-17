@@ -68,13 +68,13 @@ data:
           measurement_name = "prom_api_server"
 
           ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
-          interval = "30s"
+          interval = "60s"
 
           ## 过滤tags, 可配置多个tag
           # 匹配的tag将被忽略
           tags_ignore = ["apiservice","bound","build_date","compiler","component","crd","dry_run","endpoint","error_type","flow_schema","git_commit","git_tree_state","git_version","go_version","group","grpc_code","grpc_method","grpc_service","grpc_type","kind","major","method","minor","operation","platform","priority_level","reason","rejection_code","removed_release","request_kind","resource","result","scope","source","status","subresource","type","usage","username","verb","version"]
-
-
+          metric_name_filter = ["workqueue_adds_total","workqueue_depth","apiserver_request_total","process_resident_memory_bytes","process_cpu_seconds_total","go_goroutines"]
+          
           ## TLS 配置
           tls_open = true
           tls_ca = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
@@ -108,6 +108,8 @@ data:
 - measurement_prefix：指标集名称前缀
 - measurement_name：指标集名称
 - interval：采集间隔
+- tags_ignore:  忽略的 tag
+- metric_name_filter:  保留的指标名
 - tls_open：是否忽略安全验证 (如果是 https，请设置为 true，并设置相应证书)，此处为 true
 - tls_ca：ca 证书路径
 - type：自定义认证方式，api-server 使用 bearer_token 认证
