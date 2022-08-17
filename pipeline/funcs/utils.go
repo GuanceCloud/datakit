@@ -161,3 +161,53 @@ func doCast(result interface{}, tInfo string) interface{} {
 
 	return nil
 }
+
+func reIndexFuncArgs(fnStmt *parser.FuncStmt, keyList []string, reqParm int) error {
+	// reqParm >= 1, if < 0, no optional args
+	args := fnStmt.Param
+
+	if reqParm < 0 || reqParm > len(keyList) {
+		reqParm = len(keyList)
+	}
+
+	if len(args) > len(keyList) {
+		return fmt.Errorf("the number of parameters does not match")
+	}
+
+	beforPosArg := true
+
+	kMap := map[string]int{}
+	for k, v := range keyList {
+		kMap[v] = k
+	}
+
+	ret := make([]parser.Node, len(keyList))
+
+	for idx, arg := range args {
+		if v, ok := arg.(*parser.AssignmentStmt); ok {
+			if beforPosArg {
+				beforPosArg = false
+			}
+			kname := v.LHS.String()
+			kIndex, ok := kMap[kname]
+			if !ok {
+				return fmt.Errorf("argument %s does not exist", kname)
+			}
+			ret[kIndex] = v.RHS
+		} else {
+			if !beforPosArg {
+				return fmt.Errorf("positional arguments cannot follow keyword arguments")
+			}
+			ret[idx] = arg
+		}
+	}
+
+	for i := 0; i < reqParm; i++ {
+		if v := ret[i]; v == nil {
+			return fmt.Errorf("parameter %s is required", keyList[i])
+		}
+	}
+
+	fnStmt.Param = ret
+	return nil
+}

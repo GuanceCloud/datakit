@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/refertable"
 	plremote "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
@@ -64,6 +65,16 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 
 	if err := pipeline.Init(config.Cfg.Pipeline); err != nil {
 		return err
+	}
+
+	if config.Cfg.Pipeline != nil &&
+		config.Cfg.Pipeline.ReferTableURL != "" {
+		ok := refertable.InitFinished(time.Second * 20)
+		if ok {
+			l.Info("Initialize Reference Table: Done")
+		} else {
+			l.Error("Initialize Reference Table: Timeout")
+		}
 	}
 
 	scriptTmpStore, errScripts := plScriptTmpStore(category)

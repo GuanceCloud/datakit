@@ -40,6 +40,8 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"nullif()":             &nullIfMarkdown,
 	"parse_date()":         &parseDateMarkdown,
 	"parse_duration()":     &parseDurationMarkdown,
+	"query_refer_table()":  &queryReferTableMarkdown,
+	"mquery_refer_table":   &mQueryReferTableMarkdown,
 	"rename()":             &renameMarkdown,
 	"replace()":            &replaceMarkdown,
 	"set_measurement":      &setMeasurementMarkdown,
@@ -64,6 +66,12 @@ var (
 
 	//go:embed md/json.md
 	docJSON string
+
+	//go:embed md/query_refer_table.md
+	docQueryReferTable string
+
+	//go:embed md/mquery_refer_table.md
+	docMQueryReferTable string
 
 	//go:embed md/rename.md
 	docRename string
@@ -183,6 +191,8 @@ var (
 	nullIfMarkdown            = PLDoc{Doc: docNullif, Deprecated: false}
 	parseDateMarkdown         = PLDoc{Doc: docParseDate, Deprecated: false}
 	parseDurationMarkdown     = PLDoc{Doc: docParseDuration, Deprecated: false}
+	queryReferTableMarkdown   = PLDoc{Doc: docQueryReferTable, Deprecated: false}
+	mQueryReferTableMarkdown  = PLDoc{Doc: docMQueryReferTable, Deprecated: false}
 	renameMarkdown            = PLDoc{Doc: docRename, Deprecated: false}
 	replaceMarkdown           = PLDoc{Doc: docReplace, Deprecated: false}
 	setMeasurementMarkdown    = PLDoc{Doc: docSetMeasurement, Deprecated: false}

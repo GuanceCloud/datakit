@@ -65,8 +65,10 @@ func DefaultConfig() *Config {
 			WhiteList: []string{},
 		},
 		Pipeline: &pipeline.PipelineCfg{
-			IPdbType:           "-",
-			RemotePullInterval: "1m",
+			IPdbType:               "-",
+			RemotePullInterval:     "1m",
+			ReferTableURL:          "",
+			ReferTablePullInterval: "5m",
 		},
 		Logging: &LoggerCfg{
 			Level:  "info",

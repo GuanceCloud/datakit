@@ -37,6 +37,7 @@ nav:
     - 'Pipeline 介绍': pipeline.md
     - datakit-pl-how-to.md
     - datakit-pl-global.md
+    - datakit-refer-table.md
   - 'DataKit 开发':
     - 'DataKit 开发手册': development.md
     - datakit-arch.md
