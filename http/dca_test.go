@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -41,6 +42,26 @@ func getResponse(req *http.Request, config *DCAConfig) *httptest.ResponseRecorde
 	return w
 }
 
+type TestResponseRecorder struct {
+	*httptest.ResponseRecorder
+	closeChannel chan bool
+}
+
+func (r *TestResponseRecorder) CloseNotify() <-chan bool {
+	return r.closeChannel
+}
+
+func (r *TestResponseRecorder) closeClient() {
+	r.closeChannel <- true
+}
+
+func CreateTestResponseRecorder() *TestResponseRecorder {
+	return &TestResponseRecorder{
+		httptest.NewRecorder(),
+		make(chan bool, 1),
+	}
+}
+
 func getResponseBody(w *httptest.ResponseRecorder) (*dcaResponse, error) {
 	res := &dcaResponse{}
 	err := json.Unmarshal(w.Body.Bytes(), res)
@@ -51,7 +72,7 @@ func getResponseBody(w *httptest.ResponseRecorder) (*dcaResponse, error) {
 }
 
 func TestCors(t *testing.T) {
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest("GET", "/v1/dca/stats", nil)
 
 	w := getResponse(req, nil)
 	assert.Equal(t, 200, w.Code)
@@ -716,4 +737,72 @@ func TestDcaGetFilter(t *testing.T) {
 			t.Fatal("response is not correct", res.Content)
 		}
 	}
+}
+
+func TestDcaGetLogTail(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("./", "__tmp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+	f, err := ioutil.TempFile(tmpDir, "log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.WriteString("test-log")
+	// mock log file
+	log = f.Name()
+	req, _ := http.NewRequest("GET", "/v1/log/tail", nil)
+	req.Header.Add("X-Token", TOKEN)
+
+	// set up dca
+	dcaConfig = &DCAConfig{}
+	dwCfg := &dataway.DataWayCfg{URLs: []string{"http://localhost:9529?token=123456"}}
+	dw = &dataway.DataWayDefault{}
+	dw.Init(dwCfg) //nolint: errcheck
+	router := setupDcaRouter()
+	w := CreateTestResponseRecorder()
+	go func() {
+		// wait the server
+		time.Sleep(1 * time.Second)
+
+		p := make([]byte, 10)
+		for {
+			n, err := w.Body.Read(p)
+			if err != nil && err != io.EOF {
+				t.Log("get log response error")
+				break
+			}
+			if n > 0 {
+				assert.Equal(t, "test-log", string(p[0:n]))
+				break
+			}
+		}
+		w.closeClient()
+	}()
+	router.ServeHTTP(w, req)
+}
+
+func TestDcaDownloadLog(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("./", "__tmp")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.RemoveAll(tmpDir)
+
+	f, err := ioutil.TempFile(tmpDir, "log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	logStr := "test-download-log"
+	f.WriteString(logStr)
+	log = f.Name()
+
+	req, _ := http.NewRequest("GET", "/v1/log/download?type=log", nil)
+	req.Header.Add("X-Token", TOKEN)
+
+	w := getResponse(req, nil)
+
+	assert.Equal(t, logStr, w.Body.String())
 }

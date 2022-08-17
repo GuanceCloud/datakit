@@ -206,6 +206,9 @@ func setupDcaRouter() *gin.Engine {
 	router.GET("/v1/filter", dcaGetFilter)
 	router.GET("/v1/stats/:type", dcaStatsByType)
 
+	router.GET("/v1/log/tail", dcaGetLogTail)
+	router.GET("/v1/log/download", dcaDownloadLog)
+
 	return router
 }
 
