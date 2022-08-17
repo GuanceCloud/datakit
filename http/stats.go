@@ -102,7 +102,7 @@ type DatakitStats struct {
 	InputsStats map[string]*io.InputsStat  `json:"inputs_status"`
 	IOStats     *io.Stats                  `json:"io_stats"`
 	PLStats     []plstats.ScriptStatsROnly `json:"pl_stats"`
-	HTTPMetrics map[string]*apiStat        `json:"http_metrics"`
+	HTTPMetrics map[string]*APIStat        `json:"http_metrics"`
 
 	WithinDocker bool            `json:"docker"`
 	AutoUpdate   bool            `json:"auto_update"`
@@ -330,7 +330,7 @@ func GetStats() (*DatakitStats, error) {
 	stats.GoroutineStats = goroutine.GetStat()
 
 	l.Debugf("http.getMetrics()...")
-	stats.HTTPMetrics = getMetrics()
+	stats.HTTPMetrics = GetMetrics()
 
 	l.Debugf("getRuntimeInfo()...")
 	stats.GolangRuntime = getRuntimeInfo()

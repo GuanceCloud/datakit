@@ -12,6 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
@@ -53,6 +54,9 @@ type ClientStat struct {
 	// 选举
 	Incumbency       int64
 	ElectedNamespace string
+
+	// HTTP
+	HTTPStats map[string]*dkhttp.APIStat
 }
 
 func setMax(prev, cur int64) int64 {
@@ -110,6 +114,8 @@ func (s *ClientStat) Update() {
 
 	s.DroppedPoints = io.DroppedTotal() - s.DroppedPointsTotal
 	s.DroppedPointsTotal = io.DroppedTotal()
+
+	s.HTTPStats = dkhttp.GetMetrics()
 }
 
 var measurementName = "datakit"
@@ -165,6 +171,35 @@ func (s *ClientStat) ToMetric() *point.Point {
 	}
 
 	return pt
+}
+
+func (s *ClientStat) ToHTTPMetric() []*point.Point {
+	var rtPts []*point.Point
+	for api, v := range s.HTTPStats {
+		tags := map[string]string{
+			"api": api,
+		}
+
+		fields := map[string]interface{}{
+			"total_request_count": v.TotalCount,
+			"max_latency":         int64(v.MaxLatency),
+			"avg_latency":         int64(v.AvgLatency),
+			"2XX":                 v.Status2xx,
+			"3XX":                 v.Status3xx,
+			"4XX":                 v.Status4xx,
+			"5XX":                 v.Status5xx,
+			"limited":             v.Limited,
+		}
+
+		pt, err := point.NewPoint(measurementHTTPName, tags, fields, point.MOpt())
+		if err != nil {
+			l.Error(err)
+			continue
+		}
+		rtPts = append(rtPts, pt)
+	}
+
+	return rtPts
 }
 
 func (s *ClientStat) getElectedInfo() (int64, string) {

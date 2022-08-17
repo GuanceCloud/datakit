@@ -39,7 +39,8 @@ self 采集器会自动运行，无需配置，且无法关闭。
 
 ## 指标预览
 
-![](imgs/input-self-02.png)
+![datakit](imgs/input-self-02.png)
+![datakit_http](imgs/input-self-03.jpg)
 
 ## 场景视图
 
