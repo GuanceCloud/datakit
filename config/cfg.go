@@ -26,6 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
@@ -37,116 +38,6 @@ var (
 
 func SetLog() {
 	l = logger.SLogger("config")
-}
-
-func DefaultConfig() *Config {
-	c := &Config{ //nolint:dupl
-		GlobalHostTags:       map[string]string{},
-		GlobalTagsDeprecated: map[string]string{},
-		GlobalEnvTags:        map[string]string{
-			// "project": "",
-			// "cluster": "",
-			// "site":    "",
-		},
-
-		Environments: map[string]string{
-			"ENV_HOSTNAME": "", // not set
-		}, // default nothing
-
-		IOConf: &dkio.IOConfig{
-			FeedChanSize:         128,
-			MaxCacheCount:        64,
-			MaxDynamicCacheCount: 64,
-			FlushInterval:        "10s",
-			OutputFileInputs:     []string{},
-
-			EnableCache: false,
-			CacheSizeGB: 1,
-
-			BlockingMode: false,
-
-			Filters: map[string][]string{},
-		},
-
-		DataWayCfg: &dataway.DataWayCfg{
-			URLs: []string{},
-		},
-
-		ProtectMode: true,
-
-		HTTPAPI: &dkhttp.APIConfig{
-			RUMOriginIPHeader:   "X-Forwarded-For",
-			Listen:              "localhost:9529",
-			RUMAppIDWhiteList:   []string{},
-			PublicAPIs:          []string{},
-			Timeout:             "30s",
-			CloseIdleConnection: false,
-		},
-
-		DCAConfig: &dkhttp.DCAConfig{
-			Enable:    false,
-			Listen:    "0.0.0.0:9531",
-			WhiteList: []string{},
-		},
-		Pipeline: &pipeline.PipelineCfg{
-			IPdbType:           "-",
-			RemotePullInterval: "1m",
-		},
-		Logging: &LoggerCfg{
-			Level:  "info",
-			Rotate: 32,
-			Log:    filepath.Join("/var/log/datakit", "log"),
-			GinLog: filepath.Join("/var/log/datakit", "gin.log"),
-		},
-
-		Cgroup: &cgroup.CgroupOptions{
-			Path:   "/datakit",
-			Enable: true,
-			CPUMax: 20.0,
-			CPUMin: 5.0,
-			MemMax: 4096, // MB
-		},
-
-		GitRepos: &GitRepost{
-			PullInterval: "1m",
-			Repos: []*GitRepository{
-				{
-					Enable:                false,
-					URL:                   "",
-					SSHPrivateKeyPath:     "",
-					SSHPrivateKeyPassword: "",
-					Branch:                "master",
-				},
-			},
-		},
-
-		Sinks: &Sinker{
-			Sink: []map[string]interface{}{{}},
-		},
-
-		EnableElection:    false,
-		EnableElectionTag: false,
-		ElectionNamespace: "default",
-
-		Ulimit: func() uint64 {
-			switch runtime.GOOS {
-			case "linux":
-				return uint64(64000)
-			case "darwin":
-				return uint64(10240)
-			default:
-				return uint64(0)
-			}
-		}(),
-	}
-
-	// windows 下，日志继续跟 datakit 放在一起
-	if runtime.GOOS == datakit.OSWindows {
-		c.Logging.Log = filepath.Join(datakit.InstallDir, "log")
-		c.Logging.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
-	}
-
-	return c
 }
 
 type LoggerCfg struct {
@@ -175,9 +66,7 @@ type Sinker struct {
 }
 
 type Config struct {
-	DefaultEnabledInputs []string  `toml:"default_enabled_inputs,omitempty"`
-	InstallDate          time.Time `toml:"install_date,omitempty"`
-	UpgradeDate          time.Time `toml:"upgrade_date,omitempty"`
+	DefaultEnabledInputs []string `toml:"default_enabled_inputs,omitempty"`
 
 	BlackList []*inputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
@@ -207,26 +96,25 @@ type Config struct {
 	Pipeline *pipeline.PipelineCfg `toml:"pipeline"`
 
 	// logging config
-	LogDeprecated      string `toml:"log,omitempty"`
-	LogLevelDeprecated string `toml:"log_level,omitempty"`
-	GinLogDeprecated   string `toml:"gin_log,omitempty"`
+	LogDeprecated       string     `toml:"log,omitempty"`
+	LogLevelDeprecated  string     `toml:"log_level,omitempty"`
+	GinLogDeprecated    string     `toml:"gin_log,omitempty"`
+	LogRotateDeprecated int        `toml:"log_rotate,omitzero"`
+	Logging             *LoggerCfg `toml:"logging"`
 
 	InstallVer string `toml:"install_version,omitempty"`
 
 	HTTPAPI *dkhttp.APIConfig `toml:"http_api"`
-	IOConf  *dkio.IOConfig    `toml:"io"`
+
+	IOConf                 *dkio.IOConfig `toml:"io"`
+	IOCacheCountDeprecated int            `toml:"io_cache_count,omitzero"`
 
 	DataWayCfg *dataway.DataWayCfg `toml:"dataway,omitempty"`
 	DataWay    dataway.DataWay     `toml:"-"`
 
-	Sinks   *Sinker    `toml:"sinks"`
-	Logging *LoggerCfg `toml:"logging"`
-
-	LogRotateDeprecated    int `toml:"log_rotate,omitzero"`
-	IOCacheCountDeprecated int `toml:"io_cache_count,omitzero"`
+	Sinks *Sinker `toml:"sinks"`
 
 	GlobalHostTags       map[string]string `toml:"global_host_tags"`
-	GlobalEnvTags        map[string]string `toml:"global_env_tags"`
 	GlobalTagsDeprecated map[string]string `toml:"global_tags,omitempty"`
 
 	Environments map[string]string     `toml:"environments"`
@@ -235,11 +123,12 @@ type Config struct {
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
 	ProtectMode              bool `toml:"protect_mode"`
 
-	// TODO: we should group election-related conf into specified field
-	EnableElection      bool   `toml:"enable_election"`
-	EnableElectionTag   bool   `toml:"enable_election_tag"`
-	ElectionNamespace   string `toml:"election_namespace"`
-	NamespaceDeprecated string `toml:"namespace,omitempty"` // 避免跟 k8s 的 namespace 概念混淆
+	EnableElectionDeprecated    bool              `toml:"enable_election,omitempty"`
+	EnableElectionTagDeprecated bool              `toml:"enable_election_tag,omitempty"`
+	ElectionNamespaceDeprecated string            `toml:"election_namespace,omitempty"`
+	NamespaceDeprecated         string            `toml:"namespace,omitempty"` // 避免跟 k8s 的 namespace 概念混淆
+	GlobalEnvTagsDeprecated     map[string]string `toml:"global_env_tags,omitempty"`
+	Election                    *election.Config  `toml:"election"`
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
@@ -437,12 +326,13 @@ func (c *Config) setupGlobalTags() {
 		point.SetGlobalHostTags(k, v)
 	}
 
-	// 开启选举且开启开关的情况下，将选举的命名空间塞到 global-env-tags 中
-	if c.EnableElection && c.EnableElectionTag {
-		c.GlobalEnvTags["election_namespace"] = c.ElectionNamespace
+	// 开启选举且开启开关的情况下，将选举的命名空间塞到 global-election-tags 中
+	if c.Election.Enable && c.Election.EnableNamespaceTag {
+		c.Election.Tags["election_namespace"] = c.Election.Namespace
 	}
-	for k, v := range c.GlobalEnvTags {
-		point.SetGlobalEnvTags(k, v)
+
+	for k, v := range c.Election.Tags {
+		point.SetGlobalElectionTags(k, v)
 	}
 
 	// 此处不将 host 计入 c.GlobalHostTags，因为 c.GlobalHostTags 是读取的用户配置，而 host
@@ -467,10 +357,6 @@ func (c *Config) ApplyMainConfig() error {
 		}
 	}
 
-	if c.NamespaceDeprecated != "" && c.ElectionNamespace == "" {
-		c.ElectionNamespace = c.NamespaceDeprecated
-	}
-
 	if c.EnableUncheckedInputs {
 		datakit.EnableUncheckInputs = true
 	}
@@ -488,7 +374,7 @@ func (c *Config) ApplyMainConfig() error {
 	}
 
 	datakit.AutoUpdate = c.AutoUpdate
-	point.EnableElection = c.EnableElection
+	point.EnableElection = c.Election.Enable
 
 	// config default io
 	if c.IOConf != nil {

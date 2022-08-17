@@ -150,20 +150,20 @@ func TestSetupGlobalTags(t *testing.T) {
 			}
 
 			for k, v := range tc.envtags {
-				c.GlobalEnvTags[k] = v
+				c.Election.Tags[k] = v
 			}
 
 			for k, v := range tc.deprecatedGlobalTags {
 				c.GlobalTagsDeprecated[k] = v
 			}
 
-			c.EnableElection = tc.election
-			c.EnableElectionTag = tc.electionTag
+			c.Election.Enable = tc.election
+			c.Election.EnableNamespaceTag = tc.electionTag
 			c.setupGlobalTags()
 
 			// 这些预期的 tags 在 config 中必须存在
 			for k, v := range tc.expectEnvTags {
-				tu.Assert(t, v == c.GlobalEnvTags[k], "[%s]`%s' != `%s'", k, v, c.GlobalEnvTags[k])
+				tu.Assert(t, v == c.Election.Tags[k], "[%s]`%s' != `%s'", k, v, c.Election.Tags[k])
 			}
 
 			for k, v := range tc.expectHostTags {

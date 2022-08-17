@@ -70,7 +70,7 @@ const (
 
 	IGNORE_GLOBAL_TAGS      = "ignore_global_tags"      // deprecated, use IGNORE_GLOBAL_HOST_TAGS
 	IGNORE_GLOBAL_HOST_TAGS = "ignore_global_host_tags" // default enabled
-	GLOBAL_ENV_TAGS         = "global_env_tags"         // default disabled
+	GLOBAL_ELECTION_TAGS    = "global_election_tags"    // default disabled
 
 	ECHO_LINE_PROTO = "echo_line_proto"
 

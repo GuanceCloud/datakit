@@ -150,18 +150,25 @@ if ($x -ne $null) {
     Write-COutput green "* set hostname to $x"
 }
 
-$env_enable_experimental="0"
+$enable_experimental="0"
 $x = [Environment]::GetEnvironmentVariable("DK_ENABLE_EXPEIMENTAL")
 if ($x -ne $null) {
-    $env_enable_experimental=$x
-    Write-COutput green "* set env_enable_experimental to $x"
+    $enable_experimental=$x
+    Write-COutput green "* set enable_experimental to $x"
 }
 
-$global_tags=""
-$x = [Environment]::GetEnvironmentVariable("DK_GLOBAL_TAGS") 
+$global_host_tags=""
+$x = [Environment]::GetEnvironmentVariable("DK_GLOBAL_HOST_TAGS") 
 if ($x -ne $null) {
-	$global_tags = $x
-	Write-COutput green "* set global tags $x" 
+	$global_host_tags = $x
+	Write-COutput green "* set global host tags $x" 
+}
+
+$global_election_tags=""
+$x = [Environment]::GetEnvironmentVariable("DK_GLOBAL_ELECTION_TAGS") 
+if ($x -ne $null) {
+	$global_election_tags = $x
+	Write-COutput green "* set global election tags $x" 
 }
 
 $install_only="0"
@@ -394,9 +401,9 @@ if ($proxy -ne "") {
 Invoke-Expression $dl_installer_action
 
 if ($upgrade -ne $null) { # upgrade
-	$action = "$installer -upgrade --proxy=${proxy} --env_enable_experimental=${env_enable_experimental}"
+	$action = "$installer -upgrade --proxy=${proxy} --enable-experimental=${enable_experimental}"
 } else { # install new datakit
-	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-tags='${global_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list --git-url='${git_url}' --git-key-path='${git_key_path}' --git-key-pw='${git_key_pw}' --git-branch='${git_branch}' --git-pull-interval='${git_pull_interval}' --install-only='${install_only}' --enable-election='${enable_election}' --rum-origin-ip-header='${rum_origin_ip_header}' --disable-404page='${disable_404page}' --log-level='${log_level}' --log='${log}' --gin-log='${gin_log}' --ipdb-type='${ipdb_type}' --enable-pprof='${enable_pprof}' --pprof-listen='${pprof_listen}' --sink-metric='${sink_metric}' --sink-network='${sink_network}' --sink-keyevent='${sink_keyevent}' --sink-object='${sink_object}' --sink-custom-object='${sink_custom_object}' --sink-logging='${sink_logging}' --sink-tracing='${sink_tracing}' --sink-rum='${sink_rum}' --sink-security='${sink_security}' --sink-profile='${sink_profile}'"
+	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-host-tags='${global_host_tags}' --global-election-tags='${global_election_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list --git-url='${git_url}' --git-key-path='${git_key_path}' --git-key-pw='${git_key_pw}' --git-branch='${git_branch}' --git-pull-interval='${git_pull_interval}' --install-only='${install_only}' --enable-election='${enable_election}' --rum-origin-ip-header='${rum_origin_ip_header}' --disable-404page='${disable_404page}' --log-level='${log_level}' --log='${log}' --gin-log='${gin_log}' --ipdb-type='${ipdb_type}' --enable-pprof='${enable_pprof}' --pprof-listen='${pprof_listen}' --sink-metric='${sink_metric}' --sink-network='${sink_network}' --sink-keyevent='${sink_keyevent}' --sink-object='${sink_object}' --sink-custom-object='${sink_custom_object}' --sink-logging='${sink_logging}' --sink-tracing='${sink_tracing}' --sink-rum='${sink_rum}' --sink-security='${sink_security}' --sink-profile='${sink_profile}'"
 }
 
 Write-COutput green "action: $action"

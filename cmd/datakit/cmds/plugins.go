@@ -44,9 +44,9 @@ func installPlugins() error {
 	case *flagInstallIPDB != "":
 		switch *flagInstallIPDB {
 		case "iploc":
-			return installIpdb("iploc")
+			return installIPDB("iploc")
 		case "geolite2":
-			return installIpdb("geolite2")
+			return installIPDB("geolite2")
 		default:
 			return fmt.Errorf("unknown ipdb `%s'", *flagInstallIPDB)
 		}

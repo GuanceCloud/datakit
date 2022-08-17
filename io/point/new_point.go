@@ -53,8 +53,8 @@ type PointOption struct {
 	Time     time.Time
 	Category string
 
-	DisableGlobalTags bool
-	GlobalEnvTags     bool
+	DisableGlobalTags  bool
+	GlobalElectionTags bool
 
 	Strict           bool
 	MaxFieldValueLen int
@@ -102,8 +102,8 @@ func NewPoint(name string,
 	}
 
 	// 如果要追加 global-env-tag，则默认不再追加 global-host-tag
-	if opt.GlobalEnvTags {
-		lpOpt.ExtraTags = globalEnvTags
+	if opt.GlobalElectionTags {
+		lpOpt.ExtraTags = globalElectionTags
 	}
 
 	if opt.MaxFieldValueLen > 0 {

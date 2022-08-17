@@ -20,12 +20,12 @@ var (
 	// 外部主动打上来的数据。当然，如果原始数据中的时间戳不太重要（比如 prom 类），也可以
 	// 使用这些全局 point-option.
 
-	// 选举类 point-option，它们只会带上 global-env-tag(config.GlobalEnvTags).
-	optMetricElection    = &PointOption{GlobalEnvTags: true, Category: datakit.Metric}
-	optLoggingElection   = &PointOption{GlobalEnvTags: true, Category: datakit.Logging}
-	optObjectElection    = &PointOption{GlobalEnvTags: true, Category: datakit.Object}
-	optNetworkElection   = &PointOption{GlobalEnvTags: true, Category: datakit.Network}
-	optProfilingElection = &PointOption{GlobalEnvTags: true, Category: datakit.Profiling}
+	// 选举类 point-option，它们只会带上 global-env-tag(config.GlobalElectionTags).
+	optMetricElection    = &PointOption{GlobalElectionTags: true, Category: datakit.Metric}
+	optLoggingElection   = &PointOption{GlobalElectionTags: true, Category: datakit.Logging}
+	optObjectElection    = &PointOption{GlobalElectionTags: true, Category: datakit.Object}
+	optNetworkElection   = &PointOption{GlobalElectionTags: true, Category: datakit.Network}
+	optProfilingElection = &PointOption{GlobalElectionTags: true, Category: datakit.Profiling}
 
 	// 非选举类 point-option，它们只会带上 global-host-tag(config.GlobalHostTags).
 	optLogging   = &PointOption{Category: datakit.Logging}
