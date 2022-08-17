@@ -87,6 +87,7 @@ datakit_docs=(
   $tmp_doc_dir/datakit-offline-install.md
   $tmp_doc_dir/datakit-pl-global.md
   $tmp_doc_dir/datakit-pl-how-to.md
+  $tmp_doc_dir/datakit-refer-table.md
   $tmp_doc_dir/datakit-service-how-to.md
   $tmp_doc_dir/datakit-sink-dev.md
   $tmp_doc_dir/datakit-sink-guide.md

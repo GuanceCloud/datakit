@@ -77,6 +77,12 @@ ulimit = 64000
   #
   remote_pull_interval = "1m"
 
+  ## refer_table_url: string, 当前支持的 scheme: http,https
+  ## refer_table_pull_interval: string, 数据拉取间隔
+  #
+  refer_table_url = ""
+  refer_table_pull_interval = "5m"
+
 ## http_api: HTTP 服务设置
 #
 [http_api]

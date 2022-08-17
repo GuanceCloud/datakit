@@ -34,6 +34,7 @@ var OtherDocs = map[string]bool{
 	"datakit-on-public":        true,
 	"datakit-pl-how-to":        true,
 	"datakit-pl-global":        true,
+	"datakit-refer-table":      true,
 	"datakit-service-how-to":   true,
 	"datakit-tools-how-to":     true,
 	"datakit-tracing":          true,
