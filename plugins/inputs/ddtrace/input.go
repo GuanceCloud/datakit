@@ -163,6 +163,18 @@ func (ipt *Input) RegHTTPHandler() {
 		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
+	// add penetration filter for rum
+	afterGather.AppendFilter(func(dktrace itrace.DatakitTrace) (itrace.DatakitTrace, bool) {
+		for i := range dktrace {
+			if dktrace[i].Tags["_dd.origin"] == "rum" {
+				log.Debugf("penetrate rum trace, tid: %s service: %s resource: %s.", dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+
+				return dktrace, true
+			}
+		}
+
+		return dktrace, false
+	})
 	// add sampler
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
 		sampler = ipt.Sampler
