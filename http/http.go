@@ -37,6 +37,7 @@ import (
 var (
 	l              = logger.DefaultSLogger("http")
 	ginLog         string
+	log            string
 	ginReleaseMode = true
 
 	enablePprof = false
@@ -82,6 +83,7 @@ const (
 )
 
 type Option struct {
+	Log       string
 	GinLog    string
 	GinRotate int
 	APIConfig *APIConfig
@@ -111,6 +113,7 @@ func Start(o *Option) {
 	l = logger.SLogger("http")
 
 	ginLog = o.GinLog
+	log = o.Log
 
 	enablePprof = o.PProf
 	if o.PProfListen != "" {
