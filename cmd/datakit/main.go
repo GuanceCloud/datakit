@@ -202,7 +202,7 @@ func initPythonCore() error {
 func doRun() error {
 	// check io start
 	checkutil.CheckConditionExit(func() bool {
-		if err := io.Start(config.Cfg.Sinks.Sink); err != nil {
+		if err := io.Start(); err != nil {
 			return false
 		}
 

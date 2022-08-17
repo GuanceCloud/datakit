@@ -314,7 +314,7 @@ func (x *IO) doFlush(pts []*point.Point, category string, fc *failCache) (int, e
 
 	failed, err := x.sender.Write(category, pts)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	if x.conf.EnableCache && len(failed) > 0 {
