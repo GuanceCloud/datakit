@@ -156,6 +156,14 @@ func (c *Config) LoadEnvs() error {
 		}
 	}
 
+	if v := datakit.GetEnv("ENV_REFER_TABLE_URL"); v != "" {
+		c.Pipeline.ReferTableURL = v
+	}
+
+	if v := datakit.GetEnv("ENV_REFER_TABLE_PULL_INTERVAL"); v != "" {
+		c.Pipeline.ReferTablePullInterval = v
+	}
+
 	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT"); v != "" {
 		if x, err := strconv.ParseFloat(v, 64); err != nil {
 			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT, expect int or float, got %s, ignored", v)

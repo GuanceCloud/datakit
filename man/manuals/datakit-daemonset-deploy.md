@@ -318,6 +318,8 @@ spec:
 | ENV_DATAWAY_TIMEOUT          | duration | 30s            | 否     | 设置 DataKit 请求 DataWay 的超时时间                       |
 | ENV_DATAWAY_ENABLE_HTTPTRACE | bool     | false          | 否     | 在 debug 日志中输出 dataway HTTP 请求的网络日志            |
 | ENV_DATAWAY_HTTP_PROXY       | string   | 无             | 否     | 设置 DataWay HTTP 代理                                     |
+| ENV_REFER_TABLE_URL          | string   | 无             | 否     | 设置数据源 URL                                            |
+| ENV_REFER_TABLE_PULL_INTERVAL  | string | 5m             | 否     | 设置数据源 URL 的请求时间间隔                             |
 
 ### 特殊环境变量 {#env-special}
 

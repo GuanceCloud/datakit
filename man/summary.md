@@ -37,6 +37,7 @@
 
   - [如何编写 Pipeline 脚本](datakit-pl-how-to)
   - [将 Pipeline 应用到所有数据类型](datakit-pl-global)
+  - [Reference Table](datakit-refer-table)
 
 - [DataKit 开发]()
 
