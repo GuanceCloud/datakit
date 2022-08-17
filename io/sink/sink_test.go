@@ -195,7 +195,7 @@ func TestAggregationCategorys(t *testing.T) {
 					"categories": "",
 				},
 			},
-			expectError: fmt.Errorf("invalid categories: not []interface{}: %#v", ""),
+			expectError: fmt.Errorf("invalid categories: string, string: %#v", ""),
 		},
 		{
 			name: "empty",
@@ -357,6 +357,138 @@ func afterWrittenStatus(t *testing.T, pts []*point.Point) {
 			assert.Equal(t, false, v.GetWritten())
 		}
 	}
+}
+
+//------------------------------------------------------------------------------
+
+// go test -v -timeout 30s -run ^TestGetCategories$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink
+func TestGetCategories(t *testing.T) {
+	cases := []struct {
+		name string
+		in   interface{}
+		out  map[string]struct{}
+		err  error
+	}{
+		{
+			name: "[]string",
+			in:   []string{"M", "N"},
+			out: map[string]struct{}{
+				"M": {},
+				"N": {},
+			},
+		},
+		{
+			name: "[]interface{}",
+			in:   []interface{}{"M", "N"},
+			out: map[string]struct{}{
+				"M": {},
+				"N": {},
+			},
+		},
+		{
+			name: "unexpected",
+			in:   []int{123, 456},
+			err:  fmt.Errorf("invalid categories: , []int: []int{123, 456}"),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out, err := getCategories(tc.in)
+			assert.Equal(t, tc.err, err)
+			assert.Equal(t, tc.out, out)
+		})
+	}
+}
+
+//------------------------------------------------------------------------------
+
+// go test -v -timeout 30s -run ^TestCheckCategoryMatchImpl$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink
+func TestCheckCategoryMatchImpl(t *testing.T) {
+	cases := []struct {
+		name       string
+		oneSinkCfg map[string]interface{}
+		category   string
+		impl       sinkcommon.ISink
+		isMatch    bool
+		err        error
+	}{
+		{
+			name: "match",
+			oneSinkCfg: map[string]interface{}{
+				"target":   "influxdb",
+				"host":     "1.1.1.1:8086",
+				"protocol": "http",
+			},
+			category: datakit.SinkCategoryMetric,
+			impl:     &implMatched{},
+			isMatch:  true,
+		},
+		{
+			name: "not match ID",
+			oneSinkCfg: map[string]interface{}{
+				"target": "influxdb",
+				"host":   "1.1.1.1:8086",
+			},
+			category: datakit.SinkCategoryMetric,
+			impl:     &implNotMatched{},
+			isMatch:  false,
+		},
+		{
+			name: "not match category",
+			oneSinkCfg: map[string]interface{}{
+				"target":   "influxdb",
+				"host":     "1.1.1.1:8086",
+				"protocol": "http",
+			},
+			category: datakit.SinkCategoryKeyEvent,
+			impl:     &implNotMatched{},
+			isMatch:  false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			isMatch, err := checkCategoryMatchImpl(tc.oneSinkCfg, tc.category, tc.impl)
+			assert.Equal(t, tc.err, err)
+			assert.Equal(t, tc.isMatch, isMatch)
+		})
+	}
+}
+
+type implMatched struct{}
+
+func (*implMatched) GetInfo() *sinkcommon.SinkInfo {
+	return &sinkcommon.SinkInfo{
+		ID:    "56ddf085fb6a6bbdbf28c1bfce3d914b",
+		IDStr: "1.1.1.1:8086httpinfluxdb",
+		Categories: []string{
+			datakit.SinkCategoryMetric,
+			datakit.SinkCategoryNetwork,
+		},
+	}
+}
+
+func (*implMatched) LoadConfig(mConf map[string]interface{}) error {
+	return nil
+}
+
+func (*implMatched) Write(category string, pts []*point.Point) error {
+	return nil
+}
+
+type implNotMatched struct{}
+
+func (*implNotMatched) GetInfo() *sinkcommon.SinkInfo {
+	return &sinkcommon.SinkInfo{}
+}
+
+func (*implNotMatched) LoadConfig(mConf map[string]interface{}) error {
+	return nil
+}
+
+func (*implNotMatched) Write(category string, pts []*point.Point) error {
+	return nil
 }
 
 //------------------------------------------------------------------------------

@@ -15,6 +15,7 @@ import (
 	client "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
@@ -34,7 +35,8 @@ var (
 )
 
 type SinkInfluxDB struct {
-	ID string // sink config identity, unique, automatically generated.
+	ID    string // sink config identity, unique, automatically generated.
+	IDStr string // MD5 origin string.
 
 	addr      string // required. eg. http://172.16.239.130:8086
 	precision string // required.
@@ -65,10 +67,11 @@ func (s *SinkInfluxDB) Write(category string, pts []*point.Point) error {
 }
 
 func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
-	if id, _, err := dkstring.GetMapMD5String(mConf, nil); err != nil {
+	if id, str, err := sinkfuncs.GetSinkCreatorID(mConf); err != nil {
 		return err
 	} else {
 		s.ID = id
+		s.IDStr = str
 	}
 
 	if host, err := dkstring.GetMapAssertString("host", mConf); err != nil {
@@ -238,6 +241,7 @@ func (s *SinkInfluxDB) writeInfluxDB(pts []*point.Point) error {
 func (s *SinkInfluxDB) GetInfo() *sinkcommon.SinkInfo {
 	return &sinkcommon.SinkInfo{
 		ID:         s.ID,
+		IDStr:      s.IDStr,
 		CreateID:   creatorID,
 		Categories: []string{datakit.SinkCategoryMetric},
 	}

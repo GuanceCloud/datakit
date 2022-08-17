@@ -13,6 +13,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -29,12 +30,14 @@ var (
 )
 
 type SinkDataway struct {
-	ID string // sink config identity, unique, automatically generated.
+	ID    string // sink config identity, unique, automatically generated.
+	IDStr string // MD5 origin string.
 
 	url string // required. eg. https://openway.guance.com?token=tkn_xxxxx
 
 	proxy      string // option. eg. http://127.0.0.1:1080
 	conditions parser.WhereConditions
+	dw         *dataway.DataWayDefault
 }
 
 func (s *SinkDataway) Write(category string, pts []*point.Point) error {
@@ -75,10 +78,11 @@ func filtered(conds parser.WhereConditions, tags map[string]string, fields map[s
 func (s *SinkDataway) LoadConfig(mConf map[string]interface{}) error {
 	s.conditions = make(parser.WhereConditions, 0) // clear
 
-	if id, _, err := dkstring.GetMapMD5String(mConf, nil); err != nil {
+	if id, str, err := sinkfuncs.GetSinkCreatorID(mConf); err != nil {
 		return err
 	} else {
 		s.ID = id
+		s.IDStr = str
 	}
 
 	if url, err := getURLFromMapConfig(mConf); err != nil {
@@ -94,18 +98,44 @@ func (s *SinkDataway) LoadConfig(mConf map[string]interface{}) error {
 	}
 
 	if filters, ok := mConf["filters"]; ok {
-		if filtersi, ok := filters.([]interface{}); ok {
-			for _, v := range filtersi {
+		// When comes from daemonset, the type is []string.
+		// When comes from datakit.conf, the type is []interface{}.
+		switch filterArr := filters.(type) {
+		case []string:
+			for _, v := range filterArr {
+				cond := parser.GetConds(v)
+				if cond == nil {
+					return fmt.Errorf("condition empty")
+				}
+				s.conditions = append(s.conditions, cond...)
+			}
+		case []interface{}:
+			for _, v := range filterArr {
 				if sv, ok := v.(string); ok {
-					s.conditions = append(s.conditions, parser.GetConds(sv)...)
+					cond := parser.GetConds(sv)
+					if cond == nil {
+						return fmt.Errorf("condition empty")
+					}
+					s.conditions = append(s.conditions, cond...)
 				} else {
 					return fmt.Errorf("%#v not string: %s, %s", v, reflect.TypeOf(v).Name(), reflect.TypeOf(v).String())
 				}
 			}
-		} else {
+		default:
 			return fmt.Errorf("filter illegal: %s, %s", reflect.TypeOf(filters).Name(), reflect.TypeOf(filters).String())
 		}
 	}
+
+	// init dataway
+	dwCfg := dataway.DataWayCfg{URLs: []string{s.url}}
+	if len(s.proxy) > 0 {
+		dwCfg.HTTPProxy = s.proxy
+	}
+	dw := &dataway.DataWayDefault{}
+	if err := dw.Init(&dwCfg); err != nil {
+		return err
+	}
+	s.dw = dw
 
 	initSucceeded = true
 	sinkcommon.AddImpl(s)
@@ -137,17 +167,14 @@ func getURLFromMapConfig(mConf map[string]interface{}) (string, error) {
 }
 
 func (s *SinkDataway) writeDataway(category string, pts []*point.Point) error {
-	return dataway.WriteDataway(&dataway.DatawayWriteOpt{
-		URLs:     []string{s.url},
-		Proxy:    s.proxy,
-		Category: category,
-		Points:   pts,
-	})
+	_, err := s.dw.Write(category, pts)
+	return err
 }
 
 func (s *SinkDataway) GetInfo() *sinkcommon.SinkInfo {
 	return &sinkcommon.SinkInfo{
 		ID:       s.ID,
+		IDStr:    s.IDStr,
 		CreateID: creatorID,
 		Categories: []string{
 			datakit.SinkCategoryMetric,

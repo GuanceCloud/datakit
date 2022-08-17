@@ -10,7 +10,6 @@ import (
 	// nolint:gosec
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"sort"
 )
 
@@ -67,15 +66,26 @@ func GetMapMD5String(mVal map[string]interface{}, ignoreKeys []string) (string, 
 
 		var str string
 		switch ty := v.Val.(type) {
-		case string:
+		case string: // This could stopped by interface{}, placed here for performance consideration.
 			if len(ty) == 0 {
 				continue
 			}
 			str = ty
-		case []string:
+		case []string: // This could stopped by interface{}, placed here for performance consideration.
 			for _, vStr := range ty {
 				str += vStr
 			}
+
+		case []interface{}:
+			for _, vI := range ty {
+				foo := getStringFromInterface(vI)
+				str += foo
+			} // for ty
+
+		case interface{}:
+			foo := getStringFromInterface(ty)
+			str += foo
+
 		default:
 			continue
 		}
@@ -83,8 +93,23 @@ func GetMapMD5String(mVal map[string]interface{}, ignoreKeys []string) (string, 
 		newStr += str
 	} // for
 
-	fmt.Printf("newStr = %s\n", newStr)
 	return MD5Sum(newStr), newStr, nil
+}
+
+func getStringFromInterface(val interface{}) string {
+	var str string
+
+	switch tyNew := val.(type) {
+	case string:
+		str += tyNew
+	case []string:
+		for _, vStr := range tyNew {
+			str += vStr
+		}
+	default: // Do nothing here.
+	} // switch tyNew
+
+	return str
 }
 
 //------------------------------------------------------------------------------
