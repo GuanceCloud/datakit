@@ -6,6 +6,7 @@
 package io
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -16,6 +17,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
+
+var ErrIOBusy = errors.New("io busy")
 
 type Option struct {
 	CollectCost time.Duration
@@ -204,7 +207,8 @@ func unblockingFeed(job *iodata, ch chan *iodata) error {
 		if retry >= 3 {
 			log.Warnf("feed retry %d, dropped %d point on %s", retry, len(job.pts), job.category)
 			atomic.AddUint64(&FeedDropPts, uint64(len(job.pts)))
-			return fmt.Errorf("io busy")
+
+			return ErrIOBusy
 		}
 
 		// Maybe all points been filtered, but we still send the feeding into io.
