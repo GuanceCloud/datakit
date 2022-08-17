@@ -322,8 +322,12 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			dkspan.Version = tags[itrace.VERSION]
 		}
 
-		if id, ok := span.Meta["runtime-id"]; ok {
-			dkspan.Tags["runtime_id"] = id
+		if span.Meta["runtime-id"] != "" {
+			dkspan.Tags["runtime_id"] = span.Meta["runtime-id"]
+		}
+
+		if span.Meta["_dd.origin"] != "" {
+			dkspan.Tags["_dd.origin"] = span.Meta["_dd.origin"]
 		}
 
 		dkspan.Status = itrace.STATUS_OK
