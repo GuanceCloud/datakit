@@ -23,7 +23,8 @@ type JSONPoint struct {
 }
 
 type SinkInfo struct {
-	ID         string
+	ID         string // MD5.
+	IDStr      string // MD5 origin string.
 	CreateID   string
 	Categories []string
 }
@@ -53,8 +54,16 @@ func AddCreator(creatorID string, creator SinkCreator) {
 	SinkImplCreator[creatorID] = creator
 }
 
-func AddImpl(sink ISink) {
-	SinkImpls = append(SinkImpls, sink)
+func AddImpl(sk ISink) {
+	// check errors
+	if len(sk.GetInfo().CreateID) == 0 ||
+		len(sk.GetInfo().ID) == 0 ||
+		len(sk.GetInfo().IDStr) == 0 ||
+		len(sk.GetInfo().Categories) == 0 {
+		l.Error("sink check failed: should not be empty.")
+	}
+
+	SinkImpls = append(SinkImpls, sk)
 }
 
 //----------------------------------------------------------------------

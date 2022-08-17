@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
@@ -33,6 +34,7 @@ var l = logger.DefaultSLogger("m3db")
 
 type SinkM3db struct {
 	id     string
+	IDStr  string // MD5 origin string.
 	scheme string
 	host   string
 	path   string
@@ -46,10 +48,11 @@ func (s *SinkM3db) GetID() string {
 func (s *SinkM3db) LoadConfig(mConf map[string]interface{}) error {
 	l = logger.SLogger("m3db")
 
-	if id, _, err := dkstring.GetMapMD5String(mConf, nil); err != nil {
+	if id, str, err := sinkfuncs.GetSinkCreatorID(mConf); err != nil {
 		return err
 	} else {
 		s.id = id
+		s.IDStr = str
 	}
 
 	if scheme, err := dkstring.GetMapAssertString("scheme", mConf); err != nil {
@@ -128,6 +131,7 @@ func (s *SinkM3db) Write(category string, pts []*point.Point) error {
 func (s *SinkM3db) GetInfo() *sinkcommon.SinkInfo {
 	return &sinkcommon.SinkInfo{
 		ID:         s.id,
+		IDStr:      s.IDStr,
 		CreateID:   creatorID,
 		Categories: []string{datakit.SinkCategoryMetric},
 	}

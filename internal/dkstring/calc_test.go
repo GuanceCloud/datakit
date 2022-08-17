@@ -64,3 +64,35 @@ func TestGetMapMD5String(t *testing.T) {
 		})
 	}
 }
+
+// go test -v -timeout 30s -run ^TestGetStringFromInterface$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring
+func TestGetStringFromInterface(t *testing.T) {
+	cases := []struct {
+		name string
+		in   interface{}
+		out  string
+	}{
+		{
+			name: "one",
+			in:   "abc",
+			out:  "abc",
+		},
+		{
+			name: "array",
+			in:   []string{"abc", "bcd"},
+			out:  "abcbcd",
+		},
+		{
+			name: "not string type",
+			in:   123,
+			out:  "",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := getStringFromInterface(tc.in)
+			assert.Equal(t, tc.out, out)
+		})
+	}
+}

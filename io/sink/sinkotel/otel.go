@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
@@ -34,6 +35,7 @@ var l = logger.DefaultSLogger("sink-otel")
 
 type otelSink struct {
 	id     string
+	IDStr  string // MD5 origin string.
 	scheme string
 	host   string // 包含 host
 	port   string
@@ -46,10 +48,11 @@ type otelSink struct {
 func (s *otelSink) LoadConfig(mConf map[string]interface{}) error {
 	l = logger.SLogger("sink-otel")
 
-	if id, _, err := dkstring.GetMapMD5String(mConf, nil); err != nil {
+	if id, str, err := sinkfuncs.GetSinkCreatorID(mConf); err != nil {
 		return err
 	} else {
 		s.id = id
+		s.IDStr = str
 	}
 	// DK_SINK_T="otel://localhost:7201?scheme=http"
 	if scheme, err := dkstring.GetMapAssertString("scheme", mConf); err != nil {
@@ -119,6 +122,7 @@ func (s *otelSink) Write(category string, pts []*point.Point) error {
 func (s *otelSink) GetInfo() *sinkcommon.SinkInfo {
 	return &sinkcommon.SinkInfo{
 		ID:         s.id,
+		IDStr:      s.IDStr,
 		CreateID:   creatorOtelID,
 		Categories: []string{datakit.SinkCategoryTracing},
 	}
