@@ -142,7 +142,7 @@ func (i *Input) RunPipeline() {
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		MultilineMatch:    i.Log.MultilineMatch,
+		MultilinePatterns: []string{i.Log.MultilineMatch},
 	}
 
 	var err error

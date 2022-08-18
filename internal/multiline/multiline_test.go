@@ -51,8 +51,8 @@ func TestMultiline(t *testing.T) {
 			},
 			out: [][]byte{
 				[]byte(
-					"# Time: 2021-05-31T11:15:26.043419Z\n# Line: 2 ========================\n# Line: 3 ========================\n# Line: 4 ========================\n# Line: 5 ========================\n# Line: 6 ========================\n# Line: 7 ========================\n# Line: 8 ========================\n# Line: 9 ========================\n# Line: 10 ======================="),
-				[]byte("# Line: 11 ======================="),
+					"# Time: 2021-05-31T11:15:26.043419Z\n# Line: 2 ========================\n# Line: 3 ========================\n# Line: 4 ========================\n# Line: 5 ========================\n# Line: 6 ========================\n# Line: 7 ========================\n# Line: 8 ========================\n# Line: 9 ========================\n# Line: 10 =======================\n# Line: 11 =======================",
+				),
 			},
 		},
 		{
@@ -74,21 +74,21 @@ func TestMultiline(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			m, err := New(tc.pattern, maxLines)
+			m, err := New([]string{tc.pattern})
 			tu.Equals(t, nil, err)
 
 			outIdx := 0
 			for _, line := range tc.in {
 				res := m.ProcessLine(line)
 				if len(res) != 0 {
-					tu.Equals(t, tc.out[outIdx], res)
+					tu.Equals(t, string(tc.out[outIdx]), string(res))
 					outIdx++
 				}
 			}
 
-			if m.CacheLines() != 0 {
-				tu.Equals(t, tc.out[outIdx], m.Flush())
-			}
+			tu.Equals(t, string(tc.out[outIdx]), string(m.Flush()))
+			// if m.buff.Len() > 0 {
+			//}
 		})
 	}
 }
@@ -129,8 +129,7 @@ func TestMultilineString(t *testing.T) {
 				"# Line: 11 =======================",
 			},
 			out: []string{
-				"# Time: 2021-05-31T11:15:26.043419Z\n# Line: 2 ========================\n# Line: 3 ========================\n# Line: 4 ========================\n# Line: 5 ========================\n# Line: 6 ========================\n# Line: 7 ========================\n# Line: 8 ========================\n# Line: 9 ========================\n# Line: 10 =======================",
-				"# Line: 11 =======================",
+				"# Time: 2021-05-31T11:15:26.043419Z\n# Line: 2 ========================\n# Line: 3 ========================\n# Line: 4 ========================\n# Line: 5 ========================\n# Line: 6 ========================\n# Line: 7 ========================\n# Line: 8 ========================\n# Line: 9 ========================\n# Line: 10 =======================\n# Line: 11 =======================",
 			},
 		},
 		{
@@ -153,7 +152,7 @@ func TestMultilineString(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			m, err := New(tc.pattern, maxLines)
+			m, err := New([]string{tc.pattern})
 			tu.Equals(t, nil, err)
 
 			outIdx := 0
@@ -165,9 +164,7 @@ func TestMultilineString(t *testing.T) {
 				}
 			}
 
-			if m.CacheLines() != 0 {
-				tu.Equals(t, tc.out[outIdx], m.FlushString())
-			}
+			tu.Equals(t, tc.out[outIdx], m.FlushString())
 		})
 	}
 }

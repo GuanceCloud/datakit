@@ -55,6 +55,9 @@ const sampleCfg = `
   bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
   # bearer_token_string = "<your-token-string>"
 
+  logging_auto_multiline_detection = false
+  logging_auto_multiline_extra_patterns = []
+
   ## Set true to enable election for k8s metric collection
   election = true
 

@@ -28,27 +28,29 @@
 
     Kubernetes 中容器采集器一般默认自动开启，无需通过 *container.conf* 来配置。但可以通过如下环境变量来调整配置参数：
     
-    | 环境变量名                                              | 对应 container.conf 配置项         | 参数示例（yaml 配置时需要用英文双引号括起来）       |
-    | ----:                                                   | ----:                              | ----                                                |
-    | `ENV_INPUT_CONTAINER_DOCKER_ENDPOINT`                   | `docker_endpoint`                  | `"unix:///var/run/docker.sock"`                     |
-    | `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`                | `containerd_address`               | `"/var/run/containerd/containerd.sock"`             |
-    | `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`           | `exclude_pause_container`          | `"true"`/`"false"`                                  |
-    | `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES`  | `logging_remove_ansi_escape_codes` | `"true"`/`"false"`                                  |
-    | `ENV_INPUT_CONTAINER_TAGS`                              | `tags`                             | `"tag1=value1,tag2=value2"`                         |
-    | `ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC`           | `enable_container_metric`          | `"true"`/`"false"`                                  |
-    | `ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC`                 | `enable_k8s_metric`                | `"true"`/`"false"`                                  |
-    | `ENV_INPUT_CONTAINER_ENABLE_POD_METRIC`                 | `enable_pod_metric`                | `"true"`/`"false"`                                  |
-    | `ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG`             | `container_include_log`            | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"`     |
-    | `ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG`             | `container_exclude_log`            | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"`     |
-    | `ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH`                | `max_logging_length`               | `"32766"`                                           |
-    | `ENV_INPUT_CONTAINER_KUBERNETES_URL`                    | `kubernetes_url`                   | `"https://kubernetes.default:443"`                  |
-    | `ENV_INPUT_CONTAINER_BEARER_TOKEN`                      | `bearer_token`                     | `"/run/secrets/kubernetes.io/serviceaccount/token"` |
-    | `ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING`               | `bearer_token_string`              | `"<your-token-string>"`                             |
-    | `ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP`          | `logging_extra_source_map`         | `"source_regex*=new_source,regex*=new_source2"`     |
-    | `ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON` | `logging_source_multiline_map`     | `'{"source":"^\d{4}"}'`                             |
-    | `ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE`             | `logging_blocking_mode`            | `"true"/"false"`                                    |
-    | `ENV_K8S_CLUSTER_NAME`                                  | k8s `cluster_name` 字段的缺省值    | `"my-cluster"`                                      |
-    
+    | 环境变量名                                                       | 对应 container.conf 配置项              | 参数示例（yaml 配置时需要用英文双引号括起来）                                                                                                            |
+    | ----:                                                            | ----:                                   | ----                                                                                                                                                     |
+    | `ENV_INPUT_CONTAINER_DOCKER_ENDPOINT`                            | `docker_endpoint`                       | `"unix:///var/run/docker.sock"`                                                                                                                          |
+    | `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`                         | `containerd_address`                    | `"/var/run/containerd/containerd.sock"`                                                                                                                  |
+    | `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`                    | `exclude_pause_container`               | `"true"`/`"false"`                                                                                                                                       |
+    | `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES`           | `logging_remove_ansi_escape_codes`      | `"true"`/`"false"`                                                                                                                                       |
+    | `ENV_INPUT_CONTAINER_TAGS`                                       | `tags`                                  | `"tag1=value1,tag2=value2"`                                                                                                                              |
+    | `ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC`                    | `enable_container_metric`               | `"true"`/`"false"`                                                                                                                                       |
+    | `ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC`                          | `enable_k8s_metric`                     | `"true"`/`"false"`                                                                                                                                       |
+    | `ENV_INPUT_CONTAINER_ENABLE_POD_METRIC`                          | `enable_pod_metric`                     | `"true"`/`"false"`                                                                                                                                       |
+    | `ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG`                      | `container_include_log`                 | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"`                                                                                                          |
+    | `ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG`                      | `container_exclude_log`                 | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"`                                                                                                          |
+    | `ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH`                         | `max_logging_length`                    | `"32766"`                                                                                                                                                |
+    | `ENV_INPUT_CONTAINER_KUBERNETES_URL`                             | `kubernetes_url`                        | `"https://kubernetes.default:443"`                                                                                                                       |
+    | `ENV_INPUT_CONTAINER_BEARER_TOKEN`                               | `bearer_token`                          | `"/run/secrets/kubernetes.io/serviceaccount/token"`                                                                                                      |
+    | `ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING`                        | `bearer_token_string`                   | `"<your-token-string>"`                                                                                                                                  |
+    | `ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP`                   | `logging_extra_source_map`              | `"source_regex*=new_source,regex*=new_source2"`                                                                                                          |
+    | `ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON`          | `logging_source_multiline_map`          | `'{"source":"^\d{4}"}'`                                                                                                                                  |
+    | `ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE`                      | `logging_blocking_mode`                 | `"true"/"false"`                                                                                                                                         |
+    | `ENV_K8S_CLUSTER_NAME`                                           | k8s `cluster_name` 字段的缺省值         | `"my-cluster"`                                                                                                                                           |
+    | `ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION`           | `logging_auto_multiline_detection`      | `"true"/"false"` 是否开启自动多行模式，开启后会在 patterns 列表中匹配适用的多行规则                                                                      |
+    | `ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON` | `logging_auto_multiline_extra_patterns` | `'["^\\d{4}-\\d{2}", "^[A-Za-z_]"]'` JSON 格式的字符串数组，值是多个 multiline_match 规则，如果为空会使用默认规则，详见[文档](logging.md#auto-multiline) |
+
     环境变量额外说明：
     
     - ENV_INPUT_CONTAINER_TAGS：如果配置文件（*container.conf*）中有同名 tag，将会被这里的配置覆盖掉。

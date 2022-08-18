@@ -147,7 +147,7 @@ func startTailing(lg *logging, fn tailer.ForwardFunc, stop <-chan struct{}) {
 		Source:                lg.Source,
 		Pipeline:              lg.Pipeline,
 		CharacterEncoding:     lg.CharacterEncoding,
-		MultilineMatch:        lg.MultilineMatch,
+		MultilinePatterns:     []string{lg.MultilineMatch},
 		RemoveAnsiEscapeCodes: lg.RemoveAnsiEscapeCodes,
 		ForwardFunc:           fn,
 		FromBeginning:         true,

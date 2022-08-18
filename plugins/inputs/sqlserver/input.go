@@ -135,7 +135,7 @@ func (n *Input) RunPipeline() {
 		GlobalTags:        n.Tags,
 		IgnoreStatus:      n.Log.IgnoreStatus,
 		CharacterEncoding: n.Log.CharacterEncoding,
-		MultilineMatch:    `^\d{4}-\d{2}-\d{2}`,
+		MultilinePatterns: []string{`^\d{4}-\d{2}-\d{2}`},
 	}
 
 	var err error
