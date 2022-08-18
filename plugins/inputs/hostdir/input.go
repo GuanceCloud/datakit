@@ -60,7 +60,8 @@ func (i *Input) Collect() error {
 		}
 		fileownership, err := GetFileOwnership(path, i.platform)
 		if err != nil {
-			return err
+			l.Warnf("failed to get file ownership: %v", err)
+			fileownership = "N/A"
 		}
 		tags = map[string]string{
 			"file_mode":      dirMode,
