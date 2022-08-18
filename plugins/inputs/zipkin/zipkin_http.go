@@ -56,7 +56,6 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
 				log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
 			}),
-			workerpool.WithTimeout(jobTimeout),
 		)
 		if err != nil {
 			log.Error(err.Error())
@@ -144,7 +143,6 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
 				log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
 			}),
-			workerpool.WithTimeout(jobTimeout),
 		)
 		if err != nil {
 			log.Error(err.Error())
