@@ -108,7 +108,7 @@ func handleDDTraceWithVersion(v string) http.HandlerFunc {
 			}
 
 			if err = wpool.MoreJob(job); err != nil {
-				log.Error(err)
+				log.Error(err.Error())
 				resp.WriteHeader(http.StatusTooManyRequests)
 
 				return
