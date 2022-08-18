@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/sysmonitor"
 	"golang.org/x/net/context"
 )
 
@@ -231,7 +232,8 @@ func (tracer *NetFlowTracer) feedHandler(ctx context.Context, datakitPostURL str
 		case result := <-tracer.resultCh:
 			MergeConns(result)
 			ptOpt := &point.PointOption{Category: datakit.Network}
-			collectCache := ConvertConn2Measurement(result, srcNameM, ptOpt)
+			pidMap, _ := sysmonitor.AllProcess()
+			collectCache := ConvertConn2Measurement(result, srcNameM, ptOpt, pidMap)
 			if len(collectCache) == 0 {
 				l.Warn("netflow: no data")
 			} else if err := dkout.FeedMeasurement(datakitPostURL, collectCache); err != nil {

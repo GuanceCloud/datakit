@@ -140,10 +140,10 @@ func TestConnFilter(t *testing.T) {
 type caseConvConn2M struct {
 	conn      ConnectionInfo
 	connStats ConnFullStats
-	name      string
-	tags      map[string]string
-	ts        time.Time
-	result    measurement
+	// name      string
+	tags   map[string]string
+	ts     time.Time
+	result measurement
 }
 
 const testServiceName = "netflow"
@@ -196,6 +196,8 @@ func TestConvConn2M(t *testing.T) {
 					"transport":   "tcp",
 					"direction":   "incoming",
 					"family":      "IPv4",
+
+					"process_name": "N/A",
 				},
 				fields: map[string]interface{}{
 					"bytes_written":   int64(1),
@@ -248,6 +250,8 @@ func TestConvConn2M(t *testing.T) {
 					"transport":   "udp",
 					"direction":   "incoming",
 					"family":      "IPv4",
+
+					"process_name": "N/A",
 				},
 				fields: map[string]interface{}{
 					"bytes_written": int64(1),
@@ -295,6 +299,8 @@ func TestConvConn2M(t *testing.T) {
 					"transport":   "udp",
 					"direction":   "incoming",
 					"family":      "IPv4",
+
+					"process_name": "N/A",
 				},
 				fields: map[string]interface{}{
 					"bytes_written": int64(1),
@@ -342,6 +348,8 @@ func TestConvConn2M(t *testing.T) {
 					"transport":   "tcp",
 					"direction":   "incoming",
 					"family":      "IPv4",
+
+					"process_name": "N/A",
 				},
 				fields: map[string]interface{}{
 					"bytes_written":   int64(1),
@@ -361,7 +369,7 @@ func TestConvConn2M(t *testing.T) {
 		connR.result[v.conn] = v.connStats
 		ptOpt.Time = v.ts
 		pt, err := ConvConn2M(v.conn, v.connStats, srcNameM, v.tags,
-			ptOpt)
+			ptOpt, nil)
 		if err != nil {
 			t.Error(err)
 			continue
@@ -391,7 +399,7 @@ func TestConvConn2M(t *testing.T) {
 			}
 		}
 	}
-	assert.Equal(t, len(cases), len(ConvertConn2Measurement(&connR, testServiceName, ptOpt)))
+	assert.Equal(t, len(cases), len(ConvertConn2Measurement(&connR, testServiceName, ptOpt, nil)))
 }
 
 type caseStatsOp struct {

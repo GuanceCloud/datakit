@@ -188,7 +188,7 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler f
 	return m, nil
 }
 
-func ConvertConn2Measurement(connR *ConnResult, name string, ptOpt *point.PointOption) []*point.Point {
+func ConvertConn2Measurement(connR *ConnResult, name string, ptOpt *point.PointOption, pidMap map[int][2]string) []*point.Point {
 	collectCache := []*point.Point{}
 
 	if ptOpt == nil {
@@ -199,7 +199,7 @@ func ConvertConn2Measurement(connR *ConnResult, name string, ptOpt *point.PointO
 	ptOpt.Time = connR.ts
 	for k, v := range connR.result {
 		if ConnNotNeedToFilter(k, v) {
-			if m, err := ConvConn2M(k, v, name, connR.tags, ptOpt); err != nil {
+			if m, err := ConvConn2M(k, v, name, connR.tags, ptOpt, pidMap); err != nil {
 				l.Error(err)
 			} else {
 				collectCache = append(collectCache, m)
@@ -210,7 +210,7 @@ func ConvertConn2Measurement(connR *ConnResult, name string, ptOpt *point.PointO
 }
 
 func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
-	gTags map[string]string, ptOpt *point.PointOption,
+	gTags map[string]string, ptOpt *point.PointOption, pidMap map[int][2]string,
 ) (*point.Point, error) {
 	mFields := map[string]interface{}{}
 	mTags := map[string]string{}
@@ -221,6 +221,11 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 
 	mTags["status"] = "info"
 	mTags["pid"] = fmt.Sprint(k.Pid)
+	if procName, ok := pidMap[int(k.Pid)]; ok {
+		mTags["process_name"] = procName[0]
+	} else {
+		mTags["process_name"] = NoValue
+	}
 
 	isV6 := !ConnAddrIsIPv4(k.Meta)
 	if k.Saddr[0] == 0 && k.Saddr[1] == 0 && k.Daddr[0] == 0 && k.Daddr[1] == 0 {
