@@ -21,18 +21,17 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 
 本 API 用于给 DataKit 上报各类数据（`category`），参数说明如下：
 
-| 参数名                    | 类型   | 是否必选 | 默认值    | 说明                                                                                                                       |
-| --------------------      | ------ | -------- | --------- | --------------------------------------------------                                                                         |
-| `category`                | string | Y        | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                                                         |
-| `precision`               | string | N        | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                              |
-| `input`                   | string | N        | `datakit` | 数据源名称                                                                                                                 |
-| `ignore_global_tags`      | string | N        | 无        | 已弃用，改用 `ignore_global_host_tags`                                                                                     |
-| `ignore_global_host_tags` | string | N        | 无        | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）           |
-| `global_election_tags`    | string | N        | 无        | 给任意值（如 `true`）即认为追加全局选举类 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                  |
-| `echo_line_proto`         | string | N        | 无        | 给任意值（如 `true`）即返回 json 行协议类容，默认不返回                                                                    |
-| `version`                 | string | N        | 无        | 当前采集器的版本号                                                                                                         |
-| `source`                  | string | N        | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割 |
-| `loose`                   | bool   | N        | false     | 宽松模式，对于一些不合规的行协议，DataKit 会尝试修复它们（[:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)） |
+| 参数名                    | 类型   | 是否必选 | 默认值    | 说明                                                                                                                                          |
+| --------------------      | ------ | -------- | --------- | --------------------------------------------------                                                                                            |
+| `category`                | string | Y        | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                                                                            |
+| `echo_line_proto`         | string | N        | 无        | 给任意值（如 `true`）即返回 json 行协议类容，默认不返回                                                                                       |
+| `global_election_tags`    | string | N        | 无        | 给任意值（如 `true`）即认为追加全局选举类 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                                     |
+| `ignore_global_host_tags` | string | false    | 无        | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）。`ignore_global_tags` 将弃用 |
+| `input`                   | string | N        | `datakit` | 数据源名称                                                                                                                                    |
+| `loose`                   | bool   | N        | false     | 宽松模式，对于一些不合规的行协议，DataKit 会尝试修复它们（[:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)）                        |
+| `precision`               | string | N        | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                                                 |
+| `source`                  | string | N        | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割                    |
+| `version`                 | string | N        | 无        | 当前采集器的版本号                                                                                                                            |
 
 HTTP body 支持行协议以及 JSON 俩种形式。关于数据结构（不管是行协议形式还是 JSON 形式）的约束，参见[这里](#lineproto-limitation)。
 
@@ -111,12 +110,6 @@ redis,tag1=a,tag2=b,filename=c.log f1=1i,f2=1.2,f3="abc",message="more-log-data"
 - 行协议中的指标集名称(此处的 `nginx/mysql/redis`) 会作为日志的 `source` 字段来存储。
 - 原式日志数据存放在 `message` 字段上
 
-!!! note
-
-	DataKit 版本自 1.2.0 之后，为优化处理速度, `/v1/write/logging` 处理数据时改为异步操作，所以当后台处理 Pipeline 时，这一条 HTTP 请求已经完成并返回状态码了。
-
-	如果返回状态码为 200 或者观测云上数据异常时，请先检查发送的数据是否符合文档中的要求。
-
 ### 时序数据(metric)示例 {#api-metric-example}
 
 ```http
@@ -137,11 +130,11 @@ rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 ```
 
-!!! warning
+???+ attention
 
-	对象数据必须有 `name` 这个 tag，否则协议报错。
-
-	对象数据最好有 `message` 字段，主要便于做全文搜索。
+    对象数据必须有 `name` 这个 tag，否则协议报错。
+    
+    对象数据最好有 `message` 字段，主要便于做全文搜索。
 
 ### 自定义对象数据(custom_object)示例 {#api-custom-object-example}
 
@@ -153,11 +146,11 @@ rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 ```
 
-!!! warning
+???+ attention
 
-	自定义对象数据必须有 `name` 这个 tag，否则协议报错
-
-	自定义对象数据最好有 `message` 字段，主要便于做全文搜索
+    自定义对象数据必须有 `name` 这个 tag，否则协议报错
+    
+    自定义对象数据最好有 `message` 字段，主要便于做全文搜索
 
 ### RUM {#api-rum}
 

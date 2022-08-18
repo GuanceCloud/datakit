@@ -6,7 +6,7 @@
 
 本文档主要描述 DataKit Filter 基本使用以及注意事项。
 
-## 简介
+## 简介 {#intro}
 
 DataKit Filter 用于对采集到的行协议数据进行筛选，用于过滤掉一些不想要的数据，它的功能跟 Pipeline 有一点类似，但有所区别：
 
@@ -17,7 +17,7 @@ DataKit Filter 用于对采集到的行协议数据进行筛选，用于过滤�
 
 从表中可以看出，相比 Pipeline，如果只是简单的过滤掉部分数据，那么 Filter 是一种更便捷的数据筛选工具。
 
-## Filter 具体使用方法
+## Filter 具体使用方法 {#howto}
 
 Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛选条件，对采集到的数据进行判定，符合筛选条件的数据，将被丢弃。
 
@@ -38,7 +38,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 { service = "app-1"  AND ( key1 = "abc" OR key2 = "def") }
 ```
 
-### 过滤器操作的数据范围
+### 过滤器操作的数据范围 {#spec}
 
 由于 DataKit 采集到的（绝大部分）数据均以行协议的方式上报，故所有过滤器均工作于行协议之上。过滤器支持在如下数据上做数据筛选：
 
@@ -47,12 +47,12 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
   - 对对象数据（O）而言，在过滤器运行的时候，会在其 tag 列表中注入一个 `class` 的 tag，故可以这样来写基于对象的过滤器：`{  class = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`
   - 对日志数据（L）而言，在过滤器运行的时候，会在其 tag 列表中注入一个 `source` 的 tag，故可以这样来写基于对象的过滤器：`{  trace = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`
 
-> 如果原来 tag 中就存在一个名为 `measurement/class/source` 的 tag，那么==在过滤器运行过程中，原来的 measurement/class/source 这些 tag 值将不存在==
+> 如果原来 tag 中就存在一个名为 `measurement/class/source` 的 tag，那么**在过滤器运行过程中，原来的 measurement/class/source 这些 tag 值将不存在**
 
 - Tag（标签）：对所有的数据类型，均可以在其 Tag 上执行过滤。
 - Field（指标）：对所有的数据类型，均可以在其 Field 上执行过滤。
 
-### DataKit 中手动配置 filter
+### DataKit 中手动配置 filter {#manual}
 
 在 `datakt.conf` 中，可手动配置黑名单过滤，示例如下：
 
@@ -92,22 +92,22 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
     ]
 ```
 
-一旦 *datakit.conf* 中配置了过滤器，那么则以该过滤器为准，==观测云 Studio 配置的过滤器将不再生效==。
+一旦 *datakit.conf* 中配置了过滤器，那么则以该过滤器为准，**观测云 Studio 配置的过滤器将不再生效**。
 
 这里的配置需遵循如下规则：
 
-- 具体的一组过滤器，==必须指定它所过滤的数据类型==
+- 具体的一组过滤器，**必须指定它所过滤的数据类型**
 - 同一个数据类型，不要配置多个入口（即配置了多组 logging 过滤器），否则 *datakit.conf* 会解析报错，导致 DataKit 无法启动
 - 单个数据类型下，能配置多个过滤器（如上例中的 metric）
 - 对于语法错误的过滤器，DataKit 默认忽略，它将不生效，但不影响 DataKit 其它功能
 
-## 过滤器基本语法规则
+## 过滤器基本语法规则 {#syntax}
 
-### 基本语法规则
+### 基本语法规则 {#basic}
 
 过滤器基本语法规则，跟 Pipeline 基本一致，参见[这里](pipeline.md#basic-syntax)。
 
-### 操作符
+### 操作符 {#operator}
 
 支持基本的数值比较操作：
 
@@ -123,7 +123,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 
 - 括号表达式：用于任意关系之间的逻辑组合，如
 
-```
+```python
 { service = re('.*') AND ( abc IN [1,2,'foo', 2.3] OR def MATCH ['foo.*', 'bar.*']) }
 ```
 
@@ -134,24 +134,32 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 | `IN`, `NOTIN`       | 数值列表列表   | 指定的字段是否在列表中，列表中支持多类型混杂           | `{ abc IN [1,2, "foo", 3.5]}`     |
 | `MATCH`, `NOTMATCH` | 正则表达式列表 | 指定的字段是否匹配列表中的正则，该列表只支持字符串类型 | `{ abc MATCH ["foo.*", "bar.*"]}` |
 
-> 列表中==只能出现普通的数据类型==，如字符串、整数、浮点，其它表达式均不支持。 
+???+ attention
 
-`IN/NOTIN/MATCH/NOTMATCH` 这些关键字==大小写不敏感==，即 `in` 和 `IN` 以及 `In` 效果是一样的。除此之外，其它操作数的大小写都是敏感的，比如如下两个过滤器表达的意思不同：
+    列表中**只能出现普通的数据类型**，如字符串、整数、浮点，其它表达式均不支持。 
 
-```
-{ abc IN [1,2, "foo", 3.5]} # 字段 abc（tag 或 field）是否在列表中
-{ ABC IN [1,2, "foo", 3.5]} # 字段 ABC（tag 或 field）是否在列表中
-```
+    `IN/NOTIN/MATCH/NOTMATCH` 这些关键字**大小写不敏感**，即 `in` 和 `IN` 以及 `In` 效果是一样的。除此之外，其它操作数的大小写都是敏感的，比如如下几个过滤器表达的意思不同：
 
-在行协议中，所有字段都是大小写敏感的。
+    ``` python
+    { abc IN [1,2, "foo", 3.5]} # 字段 abc（tag 或 field）是否在列表中
+    { abc IN [1,2, "FOO", 3.5]} # FOO 并不等价于 foo
+    { ABC IN [1,2, "foo", 3.5]} # ABC 和 abe 也不等价
+    ```
 
-## 用法示例
+    在行协议中，**所有字段以及其值都是大小写敏感的**。
 
-使用 `datakit monitor -V` 命令可以查看过滤情况。
+## 用法示例 {#usage}
 
-### Network
+使用 `datakit monitor -V` 命令可以查看过滤情况：
 
-需要开启 ebpf。假设我们要过滤掉目标端口为 `443` 的网络通讯，配置文件可以这样写:
+<figure markdown>
+  ![](imgs/filter-monitor.png){ width="800" }
+  <figcaption>查看 filter 过滤情况</figcaption>
+</figure>
+
+### Network {#n}
+
+需要开启 [eBPF 采集器](../integrations/ebpf.md)。假设我们要过滤掉目标端口为 `443` 的网络通讯，配置文件可以这样写:
 
 ```toml
 [io]
@@ -164,7 +172,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 
 用 `curl` 命令触发网络通讯 `curl https://www.baidu.com:443`，可以看到目标端口为 `443` 的网络通讯被过滤掉了。
 
-### Profiling
+### Profiling {#p}
 
 配置文件如下:
 
@@ -209,7 +217,7 @@ while True:
 
 可以看到 `python-profiling-manual` 被过滤掉了。
 
-### Scheck 安全巡检
+### Scheck 安全巡检 {#s}
 
 假设我们要过滤掉 log level 为 `warn` 的，配置可以这样写:
 
@@ -224,7 +232,7 @@ while True:
 
 过段时间可以在中心看到 log level 为 `warn` 的被过滤掉了。
 
-### RUM
+### RUM {#r}
 
 >温馨提示: 如果你安装了 AdBlock 类广告插件可能会对中心汇报拦截。你可以在测试的时候临时关闭 AdBlock 类插件。
 
@@ -239,7 +247,7 @@ while True:
     ]
 ```
 
-#### 配置本地 nginx
+#### 配置本地 nginx {#nginx}
 
 配置本地测试域名 `/etc/hosts`: `127.0.0.1 www.mac.my`
 
@@ -275,7 +283,7 @@ while True:
 
 随后，我们使用以上三种浏览器访问，可以看到 Chrome 的访问记录没有增加。
 
-### KeyEvent
+### KeyEvent {#e}
 
 KeyEvent 通过 API 形式来进行测试。假设我们要过滤掉 `source` 为 `user`，`df_date_range` 为 `10`，配置文件如下：
 
@@ -302,7 +310,7 @@ curl --location --request POST 'http://localhost:9529/v1/write/keyevent' \
 
 可以在 datakit monitor 里面看到 `df_date_range` 为 `10` 的被过滤掉了。
 
-### Custom Object
+### Custom Object {#co}
 
 Custom Object 通过 API 形式来进行测试。假设我们要过滤掉 `class` 为 `aliyun_ecs`，`regionid` 为 `cn-qingdao`，配置文件如下：
 
@@ -329,7 +337,7 @@ curl --location --request POST 'http://localhost:9529/v1/write/custom_object' \
 
 可以在 datakit monitor 里面看到 `regionid` 为 `cn-qingdao` 的被过滤掉了。
 
-## 故障排查
+## FAQ {#faq}
 
 ### 查看同步下来的过滤器 {#debug-filter}
 

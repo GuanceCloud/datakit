@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
@@ -22,8 +22,9 @@ func TestLoadEnv(t *testing.T) {
 		{
 			name: "normal",
 			envs: map[string]string{
-				"ENV_GLOBAL_HOST_TAGS":                "a=b,c=d",
-				"ENV_GLOBAL_TAGS":                     "x=y,m=n",
+				"ENV_GLOBAL_HOST_TAGS": "a=b,c=d",
+				"ENV_GLOBAL_TAGS":      "x=y,m=n", // deprecated, not used
+
 				"ENV_LOG_LEVEL":                       "debug",
 				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
 				"ENV_HOSTNAME":                        "1024.coding",
@@ -77,8 +78,6 @@ func TestLoadEnv(t *testing.T) {
 				cfg.GlobalHostTags = map[string]string{
 					"a": "b",
 					"c": "d",
-					"x": "y",
-					"m": "n",
 				}
 
 				cfg.Election.Tags = map[string]string{
@@ -314,7 +313,7 @@ func TestLoadEnv(t *testing.T) {
 
 			a := tc.expect.String()
 			b := c.String()
-			tu.Equals(t, a, b)
+			assert.Equal(t, a, b)
 		})
 	}
 }

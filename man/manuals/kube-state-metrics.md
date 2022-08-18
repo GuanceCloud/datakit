@@ -16,7 +16,7 @@ kube-state-metrics/ Kubernetes<br />![1649843207(1).png](imgs/input-kube-state-m
 
 ## 前置条件
 
-- Kubernetes 集群 <[安装 Datakit](https://www.yuque.com/dataflux/integrations/kubernetes)>
+- Kubernetes 集群 <[安装 Datakit](kube-metric-server.md)>
 - 下载 [kube-state-metrics-2.3.0.zip](https://github.com/kubernetes/kube-state-metrics/releases/tag/v2.3.0)
 
 ## 安装配置
@@ -44,7 +44,7 @@ spec:
             urls = ["http://$IP:8080/metrics"]
             source = "prom_state_metrics"
             metric_types = ["counter", "gauge"]
-            interval = "30s"
+            interval = "60s"
             tags_ignore = ["access_mode","branch","claim_namespace","cluster_ip","condition","configmap","container","container_id","container_runtime_version","created_by_kind","created_by_name","effect","endpoint","external_name","goversion","host_network","image","image_id","image_spec","ingress","ingressclass","internal_ip","job_name","kernel_version","key","kubelet_version","kubeproxy_version","lease","mutatingwebhookconfiguration","name","networkpolicy","node","node_name","os_image","owner_is_controller","owner_kind","owner_name","path","persistentvolume","persistentvolumeclaim","pod_cidr","pod_ip","poddisruptionbudget","port_name","port_number","port_protocol","priority_class","reason","resource","result","revision","role","secret","service","service_name","service_port","shard_ordinal","status","storageclass","system_uuid","type","uid","unit","version","volume","volumename"]
             metric_name_filter = ["kube_pod_status_phase","kube_pod_container_status_restarts_total","kube_daemonset_status_desired_number_scheduled","kube_daemonset_status_number_ready","kube_deployment_spec_replicas","kube_deployment_status_replicas_available","kube_deployment_status_replicas_unavailable","kube_replicaset_status_ready_replicas","kube_replicaset_spec_replicas","kube_pod_container_status_running","kube_pod_container_status_waiting","kube_pod_container_status_terminated","kube_pod_container_status_ready"]
             #measurement_prefix = ""
@@ -132,7 +132,7 @@ dist：
 
 
 ## 常见问题排查
-<[无数据上报排查](https://www.yuque.com/dataflux/datakit/why-no-data)>
+<[无数据上报排查](why-no-data.md)>
 
 ## 进一步阅读
 暂无
