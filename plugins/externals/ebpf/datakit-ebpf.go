@@ -273,6 +273,7 @@ func getOffset(saved *dkoffset.OffsetGuessC) (*dkoffset.OffsetGuessC, error) {
 		}
 		status, err := dkoffset.GuessOffset(mapG, saved, ipv6Disabled)
 		if err != nil {
+			saved = nil
 			if i == loopCount-1 {
 				return nil, err
 			}
