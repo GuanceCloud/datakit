@@ -8,6 +8,7 @@ package external
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -207,11 +208,15 @@ func (ex *ExternalInput) daemonRun() {
 		break
 	}
 
-	go func() {
-		if err := datakit.MonitProc(ex.cmd.Process, ex.Name, ex.semStopProcess); err != nil { // blocking here...
+	go func(process *os.Process, name string, semStopProcess *cliutils.Sem) {
+		if err := datakit.MonitProc(process, name, semStopProcess); err != nil { // blocking here...
 			l.Errorf("datakit.MonitProc: %s", err.Error())
 		}
-	}()
+	}(ex.cmd.Process, ex.Name, ex.semStopProcess)
+
+	// We must not modify ex.cmd.Process.Pid beyong this point,
+	// because pid is needed by MonitProc to kill the process when signaled.
+	// TODO: refactor to make cmd private to the goroutine above.
 }
 
 func (ex *ExternalInput) Pause() error {
