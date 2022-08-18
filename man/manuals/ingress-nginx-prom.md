@@ -45,7 +45,7 @@ vi deploy.yaml
             # metric_name_filter = ["cpu"]
             # measurement_prefix = ""
             measurement_name = "prom_ingress"
-            interval = "30s"
+            interval = "60s"
             tags_ignore = ["build","le","method","release","repository"]
             metric_name_filter = ["nginx_process_cpu_seconds_total","nginx_process_resident_memory_bytes","request_size_sum","response_size_sum","requests","success","config_last_reload_successful"]
             # tags_ignore = ["xxxx"]
@@ -66,7 +66,8 @@ vi deploy.yaml
 - measurement_name:  指标集名称
 - interval: 采集频率
 - inputs.prom.measurements: 指标集为prefix的前缀归为name的指标集
-- tags_ignore:  忽略的 tag。
+- tags_ignore:  忽略的 tag
+- metric_name_filter:  保留的指标名
 
 4、 部署Ingress
 

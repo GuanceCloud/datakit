@@ -13,9 +13,20 @@
     编辑 `conf.d/datakit.conf`，选举有关的配置如下：
     
     ```toml
-    enable_election = true              # 开启选举
-    election_namespace = "my-namespace" # 设置选举的命名空间(默认 default)
-    enable_election_tag = false         # 允许在数据上追加选举空间的 tag
+    [election]
+      # 开启选举
+      enable = false
+
+      # 设置选举的命名空间(默认 default)
+      namespace = "default"
+    
+      # 允许在数据上追加选举空间的 tag
+      enable_namespace_tag = false
+    
+      ## election.tags: 选举相关全局标签
+      [election.tags]
+        #  project = "my-project"
+        #  cluster = "my-cluster"
     ```
     
     如果要对多个 DataKit 区分选举，比如这 10 DataKit 和 另外 8 DataKit 分开选举，互相不干扰，可以配置 DataKit 命名空间。同一个命名空间下的 DataKit 参与同一起选举。

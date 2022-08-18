@@ -26,7 +26,7 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
        listen = "0.0.0.0:<other-port>"
     ```
 
-    #### 使用 Unix domain socket
+    #### 使用 Unix domain socket {#uds}
 
     Datakit 支持 UNIX domain sockets 访问。开启方式如下: `listen` 字段配置为<b>一个不存在文件的全路径</b>，这里以 `datakit.sock` 举例，可以为任意文件名。
     ```toml
@@ -208,6 +208,10 @@ $ systemctl status datakit
 
     目前不支持时序数据的缓存，除此之外的数据，都支持发送失败的磁盘缓存。另外，虽然号称限制磁盘大小，但在极端情况下（比如发送一直失败），仍然有可能会超过标定的限制。
 -->
+
+### 选举配置
+
+参见[这里](election.md#config)
 
 ### 使用 Git 管理 DataKit 配置 {#using-gitrepo}
 

@@ -11,20 +11,6 @@ var DatakitConfSample = `
 #
 default_enabled_inputs = ["cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes", "rum"]
 
-## enable_election: bool, 是否开启选举，默认 false
-#
-enable_election = false
-
-## election_namespace: string, DataKit 命名空间，支持分区选举
-## 选举的范围是 工作空间+命名空间 级别的，单个 工作空间+命名空间 中，一次最多只能有一个 DataKit 被选上
-#
-election_namespace = "default"
-
-## enable_election_tag: bool
-## 如果开启，则在选举类的采集数据上均带上额外的 tag：election_namespace = <your-election-namespace>
-#
-enable_election_tag = false
-
 ## enable_pprof: bool, 是否开启 pprof, 默认 false
 #
 enable_pprof = false
@@ -243,15 +229,31 @@ ulimit = 64000
 #
 [global_host_tags]
 
-## global_election_tags: 环境相关全局标签
-## 全局选举标签会默认添加到选举采集收集的每一条数据上，前提是采集的原始数据上不带有这里配置的标签，且开启了 enable_election
-##
-## 示例：
-##   [global_election_tags]
-##      project = "my-project"
-##      cluster = "my-cluster"
-#
-[global_election_tags]
+[election]
+  ## enable: bool, 是否开启选举，默认 false
+  enable = false
+
+  ## namespace: string, DataKit 命名空间，支持分区选举
+  ## 选举的范围是工作空间 + 命名空间级别的，单个工作空间+命名空间中，一次最多只能有一个 DataKit 被选上
+  #
+  namespace = "default"
+
+  ## enable_namespace_tag: bool
+  ## 如果开启，则在选举类的采集数据上均带上额外的 tag：election_namespace = <your-election-namespace>
+  #
+  enable_namespace_tag = false
+
+  ## election.tags: 选举相关全局标签
+  ## 全局选举标签会默认添加到选举采集收集的每一条数据上，前提是采集的原始数据上不带有这里配置的标签，且开启了选举
+  ##
+  ## 示例：
+  ##   [election.tags]
+  ##      project = "my-project"
+  ##      cluster = "my-cluster"
+  #
+  [election.tags]
+    #  project = "my-project"
+    #  cluster = "my-cluster"
 
 ## environments: 环境变量配置（目前只支持 ENV_HOSTNAME，用来修改主机名）
 #
