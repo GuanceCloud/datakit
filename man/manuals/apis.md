@@ -110,15 +110,9 @@ redis,tag1=a,tag2=b,filename=c.log f1=1i,f2=1.2,f3="abc",message="more-log-data"
 - 行协议中的指标集名称(此处的 `nginx/mysql/redis`) 会作为日志的 `source` 字段来存储。
 - 原式日志数据存放在 `message` 字段上
 
-!!! note
-
-	DataKit 版本自 1.2.0 之后，为优化处理速度, `/v1/write/logging` 处理数据时改为异步操作，所以当后台处理 Pipeline 时，这一条 HTTP 请求已经完成并返回状态码了。
-
-	如果返回状态码为 200 或者观测云上数据异常时，请先检查发送的数据是否符合文档中的要求。
-
 ### 时序数据(metric)示例 {#api-metric-example}
 
-```http
+``` http
 POST /v1/write/metric?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
 
 cpu,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
@@ -128,7 +122,7 @@ net,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 
 ### 对象数据(object)示例 {#api-object-example}
 
-```http
+``` http
 POST /v1/write/object?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
 
 redis,name=xxx,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
@@ -136,13 +130,15 @@ rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 ```
 
-!!! warning
+???+ attention
 
-	对象数据必须有 `name` 这个 tag，否则协议报错。
+    对象数据必须有 `name` 这个 tag，否则协议报错。
 
-	对象数据最好有 `message` 字段，主要便于做全文搜索。
+    对象数据最好有 `message` 字段，主要便于做全文搜索。
 
-### 自定义对象数据(custom_object)示例 {#api-custom-object-example}
+### 自定义对象数据示例 {#api-custom-object-example}
+
+自定义对象跟对象几乎一致，只是后者是 DataKit 自主采集的，前者是用户通过 datakit API 创建的对象。
 
 ```http
 POST /v1/write/custom_object?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
@@ -152,11 +148,11 @@ rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 ```
 
-!!! warning
+???+ attention
 
-	自定义对象数据必须有 `name` 这个 tag，否则协议报错
+    自定义对象数据必须有 `name` 这个 tag，否则协议报错
 
-	自定义对象数据最好有 `message` 字段，主要便于做全文搜索
+    自定义对象数据最好有 `message` 字段，主要便于做全文搜索
 
 ### RUM {#api-rum}
 
@@ -168,7 +164,7 @@ slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 
 ### 示例
 
-```http
+``` http
 GET /v1/ping HTTP/1.1
 
 HTTP/1.1 200 OK
@@ -176,7 +172,7 @@ HTTP/1.1 200 OK
 {
 	"content":{
 		"version":"1.1.6-rc0",
-		"uptime":"1.022205003s"
+			"uptime":"1.022205003s"
 	}
 }
 ```
@@ -187,7 +183,7 @@ HTTP/1.1 200 OK
 
 ### 示例
 
-```
+``` http
 POST /v1/lasterror HTTP/1.1
 Content-Type: application/json
 
@@ -203,7 +199,7 @@ Content-Type: application/json
 
 ### 示例
 
-```http
+``` http
 GET /v1/workspace HTTP/1.1
 
 HTTP/1.1 200 OK
@@ -243,7 +239,7 @@ HTTP/1.1 200 OK
 
 ### 示例
 
-```
+``` shell
 POST /v1/query/raw HTTP/1.1
 Content-Type: application/json
 
@@ -268,7 +264,7 @@ Content-Type: application/json
 
 !!! info
 
-	此处参数需更详细的说明以及举例，待补充。
+    此处参数需更详细的说明以及举例，待补充。
 
 | 名称                     | 说明                                                                                                                                                                                                                       |
 | :----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -288,9 +284,9 @@ Content-Type: application/json
 | `slimit`                 | 限制时间线个数，将覆盖 DQL 中存在的 slimit                                                                                                                                                                                 |
 | `time_range`             | 限制时间范围，采用时间戳格式，单位为毫秒，数组大小为 2 的 int，如果只有一个元素则认为是起始时间，会覆盖原查询语句中的查询时间区间                                                                                          |
 
-返回数据：
+返回数据示例：
 
-```
+``` http
 HTTP/1.1 200 OK
 Content-Type: application/json
 
@@ -335,7 +331,7 @@ Content-Type: application/json
 
 ### 示例
 
-```shell
+``` shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels" \
 	-H 'Content-Type: application/json'  \
 	-d'{
@@ -349,7 +345,7 @@ curl -XPOST "127.0.0.1:9529/v1/object/labels" \
 
 成功返回示例:
 
-```json
+``` json
 status_code: 200
 {
 	"content": {
@@ -360,10 +356,10 @@ status_code: 200
 
 失败返回示例:
 
-```json
+``` json
 status_code: 500
 {
-	"errorCode":""
+	"errorCode":"some-internal-error"
 }
 ```
 
@@ -382,7 +378,7 @@ status_code: 500
 
 ### 示例
 
-```shell
+``` shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
 	-H 'Content-Type: application/json'  \
 	-d'{
@@ -395,7 +391,7 @@ curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
 
 成功返回示例:
 
-```json
+``` json
 status_code: 200
 {
 	"content": {
@@ -406,10 +402,10 @@ status_code: 200
 
 失败返回示例:
 
-```json
+``` json
 status_code: 500
 {
-	"errorCode":""
+	"errorCode": "some-internal-error"
 }
 ```
 
@@ -419,7 +415,7 @@ status_code: 500
 
 ### 示例 
 
-```
+``` http
 POST /v1/pipeline/debug
 Content-Type: application/json
 
@@ -433,9 +429,9 @@ Content-Type: application/json
 }
 ```
 
-正常返回:
+正常返回示例:
 
-```
+``` http
 HTTP/1.1 200 OK
 
 {
@@ -459,10 +455,10 @@ HTTP/1.1 200 OK
 }
 ```
 
-错误返回:
+错误返回示例:
 
 ```
-HTTP Code: 40x
+HTTP Code: 400
 
 {
     "error_code": "datakit.invalidCategory",
@@ -476,7 +472,7 @@ HTTP Code: 40x
 
 ### 示例 
 
-```
+``` http
 POST /v1/dialtesting/debug
 Content-Type: application/json
 
@@ -499,9 +495,9 @@ Content-Type: application/json
 }
 ```
 
-正常返回:
+正常返回示例:
 
-```
+``` http
 HTTP/1.1 200 OK
 
 {
@@ -514,10 +510,10 @@ HTTP/1.1 200 OK
 }
 ```
 
-错误返回:
+错误返回示例:
 
-```
-HTTP Code: 40x
+``` http
+HTTP Code: 400
 
 {
     "error_code": "datakit.invalidClass",
