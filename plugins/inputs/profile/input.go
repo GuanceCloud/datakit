@@ -323,11 +323,11 @@ func queryWorkSpaceUUID() (string, error) {
 	return workSpaceUUID, nil
 }
 
-// RegHTTPHandler simply proxy profile request to dataway.
+// RegHTTPHandler simply proxy profiling request to dataway.
 func (in *Input) RegHTTPHandler() {
-	URL, err := config.Cfg.DataWay.ProfileProxyURL()
+	URL, err := config.Cfg.DataWay.ProfilingProxyURL()
 	if err != nil {
-		log.Errorf("no profile proxy url available: %s", err)
+		log.Errorf("no profiling proxy url available: %s", err)
 		return
 	}
 

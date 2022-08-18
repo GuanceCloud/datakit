@@ -2,8 +2,7 @@
 # DataKit 更新
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 DataKit 支持手动更新和自动更新两种方式。
 

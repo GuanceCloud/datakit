@@ -2,7 +2,7 @@
 # 通过本地 JSON 定义拨测任务
 ---
 
-- DataKit 版本：{{.Version}}
+- 操作系统支持：{{.AvailableArchs}}
 
 某些情况下，可能不能连接 SAAS 的拨测任务服务，此时，我们可以通过本地的 json 文件来定义拨测任务。
 

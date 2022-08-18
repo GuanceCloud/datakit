@@ -1,7 +1,6 @@
 {{.CSS}}
 # Demo 采集器
 
-- DataKit 版本：{{.Version}}
 - 操作系统支持：{{.AvailableArchs}}
 
 这只是个采集器开发示例。

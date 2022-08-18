@@ -2,8 +2,7 @@
 # 采集器配置
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_blank"}，所有采集器配置均位于 *conf.d* 目录下：
 
@@ -169,3 +168,7 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 | [host_processes](../integrations/host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
 | [hostobject](../integrations/hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
 | [container](../integrations/container.md)           | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
+
+## 更多阅读
+
+- [DataKit K8s 安装以及配置](datakit-daemonset-deploy.md)

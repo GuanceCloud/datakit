@@ -31,8 +31,9 @@ type dockerInput struct {
 type dockerInputConfig struct {
 	endpoint string
 
-	excludePauseContainer  bool
-	removeLoggingAnsiCodes bool
+	excludePauseContainer     bool
+	removeLoggingAnsiCodes    bool
+	enableLoggingBlockingMode bool
 
 	containerIncludeLog []string
 	containerExcludeLog []string

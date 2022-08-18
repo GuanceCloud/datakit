@@ -319,7 +319,7 @@ func TestAPIWrite(t *testing.T) {
 			url:              "/v1/write/rum",
 			body:             []byte(`unknown,t1=1 f1=1i`),
 			expectStatusCode: 400,
-			expectBody:       ErrUnknownRUMMeasurement,
+			expectBody:       ErrInvalidCategory,
 		},
 
 		{
@@ -329,7 +329,7 @@ func TestAPIWrite(t *testing.T) {
 			contentType:      "application/json",
 			body:             []byte(`view,t1=1 f1=1i`), // invalid json
 			expectStatusCode: 400,
-			expectBody:       ErrInvalidJSONPoint,
+			expectBody:       ErrInvalidCategory,
 		},
 
 		{
@@ -338,7 +338,7 @@ func TestAPIWrite(t *testing.T) {
 			url:              "/v1/write/rum?disable_pipeline=1",
 			contentType:      "application/json",
 			body:             []byte(`[{"measurement":"view","tags":{"t1": "1"}, "fields":{"f1":"1i"}}]`),
-			expectStatusCode: 200,
+			expectStatusCode: 400,
 		},
 
 		//--------------------------------------------

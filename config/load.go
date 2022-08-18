@@ -34,12 +34,12 @@ var (
 
 func isValidDataway(c *Config) bool {
 	if c.DataWayCfg == nil {
-		l.Debug("config.Cfg.DataWayCfg == nil")
+		l.Error("config.Cfg.DataWayCfg == nil")
 		return false
 	}
 
 	if len(c.DataWayCfg.URLs) == 0 {
-		l.Debug("len(config.Cfg.DataWayCfg.URLs) == 0")
+		l.Error("len(config.Cfg.DataWayCfg.URLs) == 0")
 		return false
 	}
 
@@ -48,12 +48,12 @@ func isValidDataway(c *Config) bool {
 
 func isValidSink(c *Config) bool {
 	if c.Sinks == nil {
-		l.Debug("config.Cfg.Sinks == nil")
+		l.Error("config.Cfg.Sinks == nil")
 		return false
 	}
 
 	if len(c.Sinks.Sink) == 0 {
-		l.Debug("len(config.Cfg.Sinks.Sink) == 0")
+		l.Error("len(config.Cfg.Sinks.Sink) == 0")
 		return false
 	}
 

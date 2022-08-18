@@ -1,0 +1,551 @@
+package cmds
+
+import (
+	"archive/tar"
+	"compress/gzip"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"time"
+
+	"github.com/schollz/progressbar/v3"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
+)
+
+const (
+	DefaultInstallDir = "/usr/local/datakit/data/rum/tools"
+	DefaultArch       = "default"
+	Java              = "java"
+	Proguard          = "proguard"
+	AndroidNDK        = "android-ndk"
+	LibDwarf          = "libdwarf"
+	LibIberty         = "libiberty"
+	Atosl             = "atosl"
+)
+
+var downloadClient = &http.Client{
+	Timeout: time.Minute * 30,
+}
+
+var downloadLink = map[string]map[string]string{
+	Java: {
+		"darwin/amd64": "https://static.guance.com/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_mac_hotspot_11.0.16_8.tar.gz",
+		"darwin/arm64": "https://static.guance.com/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_mac_hotspot_11.0.15_10.tar.gz",
+		"linux/amd64":  "https://static.guance.com/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_linux_hotspot_11.0.16_8.tar.gz",
+		"linux/arm64":  "https://static.guance.com/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.16_8.tar.gz",
+	},
+	Proguard: {
+		"default": "https://static.guance.com/datakit/sourcemap/proguard/proguard-7.2.2.tar.gz",
+	},
+	AndroidNDK: {
+		"darwin/amd64": "https://static.guance.com/datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz",
+		"darwin/arm64": "https://static.guance.com/datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz",
+		"linux/amd64":  "https://static.guance.com/datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz",
+		"linux/arm64":  "https://static.guance.com/datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz",
+	},
+	LibDwarf: {
+		"default": "https://static.guance.com/datakit/sourcemap/libs/libdwarf-code-20200114.tar.gz",
+	},
+	LibIberty: {
+		"default": "https://static.guance.com/datakit/sourcemap/libs/binutils-2.24.tar.gz",
+	},
+	Atosl: {
+		"default": "https://static.guance.com/datakit/sourcemap/atosl/atosl-20220804-x64-linux.tar.gz",
+	},
+}
+
+func IsDir(name string) (bool, error) {
+	fileInfo, err := os.Stat(name)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		// probably it is a permission error
+		return false, err
+	}
+	return fileInfo.IsDir(), nil
+}
+
+func InstallSymbolTools() error {
+	ok, err := IsDir(DefaultInstallDir)
+	if err != nil {
+		return fmt.Errorf("check the dir %s fail: %w", DefaultInstallDir, err)
+	}
+	if !ok {
+		if err := os.MkdirAll(DefaultInstallDir, 0o750); err != nil {
+			return fmt.Errorf("mkdir [%s] fail: %w", DefaultInstallDir, err)
+		}
+	}
+
+	if err := installProguard(); err != nil {
+		// nolint:lll
+		fmt.Printf(`install proguard fail: %s,you may need to install "https://github.com/Guardsquare/proguard" manually and modify the rum config item "proguard_home" correspondingly%s`, err, "\n")
+	} else {
+		fmt.Println("install proguard success")
+	}
+
+	if err := installAndroidNDK(); err != nil {
+		// nolint:lll
+		fmt.Printf(`install android-ndk fail: %s,you may need to install "https://developer.android.com/ndk/downloads" manually and modify the rum config item "proguard_home" correspondingly %s`, err, "\n")
+	} else {
+		fmt.Println("install android-ndk success")
+	}
+
+	if err := installAtosl(); err != nil {
+		// nolint:lll
+		fmt.Printf(`install tool atosl fail: %s,you may need to install "https://github.com/Br4ndonZhang/atosl" manually and move it into environment variable PATH%s`, err, "\n")
+	} else {
+		fmt.Println("install atosl success")
+	}
+
+	fmt.Println("install finished, you may need now to open one new shell and restart your datakit")
+
+	return nil
+}
+
+func checkToolInstalled(tool string) (string, bool) {
+	fmt.Printf("checking %s installation status \n", tool)
+	binPath, err := exec.LookPath(tool)
+	return binPath, err == nil
+}
+
+func CheckProguardInstalled() bool {
+	homeDir := filepath.Join(DefaultInstallDir, Proguard)
+	ok, err := IsDir(homeDir)
+	if err != nil {
+		fmt.Printf("check the dir [%s] fail: %s\n", homeDir, err)
+		return false
+	}
+	if !ok {
+		return false
+	}
+	if !path.IsFileExists(filepath.Join(homeDir, "bin/retrace.sh")) {
+		return false
+	}
+	return true
+}
+
+func readTgzRootDir(tgz string) (string, error) {
+	r, err := os.Open(tgz) // nolint:gosec
+	if err != nil {
+		return "", fmt.Errorf("open tar.gz file [%s] fail: %w", tgz, err)
+	}
+	unGzip, err := gzip.NewReader(r)
+	if err != nil {
+		return "", fmt.Errorf("read gzip file [%s] fail: %w", tgz, err)
+	}
+	unTar := tar.NewReader(unGzip)
+
+	for {
+		entry, err := unTar.Next()
+		if err != nil {
+			return "", fmt.Errorf("read tar file [%s] fail: %w", tgz, err)
+		}
+
+		if strings.ContainsRune(entry.Name, filepath.Separator) {
+			return rootDir(entry.Name), nil
+		}
+	}
+}
+
+func rootDir(path string) string {
+	path = filepath.Clean(path)
+	idx := strings.IndexByte(path, filepath.Separator)
+	if idx > -1 {
+		return path[:idx]
+	}
+	return path
+}
+
+func downloadFileToTmpDir(downloadLink string, filename ...string) (string, error) {
+	fmt.Printf("downloading software %s\n", downloadLink)
+
+	resp, err := downloadClient.Get(downloadLink)
+	if err != nil {
+		return "", fmt.Errorf("download file fail: %w", err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	tmpDir := os.TempDir()
+	baseName := filepath.Base(downloadLink)
+	if len(filename) > 0 {
+		baseName = filename[0]
+	}
+	fullPath := filepath.Join(tmpDir, baseName)
+	fp, err := os.Create(fullPath) // nolint:gosec
+	if err != nil {
+		return "", fmt.Errorf("save to local file [%s] fail:%w", fullPath, err)
+	}
+	defer func() {
+		_ = fp.Close()
+	}()
+
+	progressBar := progressbar.DefaultBytes(
+		resp.ContentLength,
+		"downloading",
+	)
+
+	buffer := make([]byte, 4096)
+
+	if _, err := io.CopyBuffer(io.MultiWriter(fp, progressBar), resp.Body, buffer); err != nil {
+		return "", fmt.Errorf("save to local file [%s] fail:%w", fullPath, err)
+	}
+	return fullPath, nil
+}
+
+func installJDK() error {
+	downloadLink, err := toolDownloadURL(Java)
+	if err != nil {
+		return fmt.Errorf("get jdk download link fail: %w, please install jdk manually", err)
+	}
+
+	tgzFile, err := downloadFileToTmpDir(downloadLink)
+	if err != nil {
+		return fmt.Errorf("download jdk from [%s] fail:%w", downloadLink, err)
+	}
+
+	if _, err := execCmd("tar", "-zxf", tgzFile, "-C", "/usr/local"); err != nil {
+		return fmt.Errorf("untar file [%s] fail: %w", tgzFile, err)
+	}
+
+	unTarDir, err := readTgzRootDir(tgzFile)
+	if err != nil {
+		return fmt.Errorf("read tar.gz file [%s] root dir fail:%w", tgzFile, err)
+	}
+
+	jdkHome := filepath.Join("/usr/local", unTarDir)
+
+	ok, err := IsDir(jdkHome)
+	if err != nil {
+		return fmt.Errorf("check the dir [%s] fail: %w", jdkHome, err)
+	}
+	if !ok {
+		return fmt.Errorf("untar jdk to /usr/local fail")
+	}
+
+	jdkBinDir, err := scanJDKBinPath(jdkHome)
+	if err != nil {
+		return fmt.Errorf("jdk bin path not found in [%s]: %w", jdkHome, err)
+	}
+
+	if _, err := execCmd("sudo", "ln", "-s", "-f", filepath.Join(jdkBinDir, "java"), "/usr/local/bin/java"); err != nil {
+		return fmt.Errorf("create symbol link fail: %w", err)
+	}
+	fmt.Printf("install jdk success to %s :)\n", jdkHome)
+	return nil
+}
+
+func scanJDKBinPath(homeDir string) (string, error) {
+	entries, err := os.ReadDir(homeDir)
+	if err != nil {
+		return "", fmt.Errorf("scan dir [%s] fail:%w", homeDir, err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			if entry.Name() == "bin" && path.IsFileExists(filepath.Join(homeDir, "bin/java")) {
+				return filepath.Abs(filepath.Join(homeDir, "bin"))
+			}
+			if dir, err := scanJDKBinPath(filepath.Join(homeDir, entry.Name())); err == nil {
+				return filepath.Abs(dir)
+			}
+		}
+	}
+	return "", fmt.Errorf("jdk bin dir not found in [%s]", homeDir)
+}
+
+func scanProguardBinPath(homeDir string) (string, error) {
+	entries, err := os.ReadDir(homeDir)
+	if err != nil {
+		return "", fmt.Errorf("open dir [%s] fail: %w", homeDir, err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			if entry.Name() == "bin" && path.IsFileExists(filepath.Join(homeDir, "/bin/retrace.sh")) {
+				return filepath.Abs(filepath.Join(homeDir, "bin"))
+			}
+			if dir, err := scanProguardBinPath(filepath.Join(homeDir, entry.Name())); err == nil {
+				return filepath.Abs(dir)
+			}
+		}
+	}
+	return "", fmt.Errorf("bin dir not found in [%s]", homeDir)
+}
+
+func execCmd(name string, args ...string) ([]byte, error) {
+	shellCmd := name + " " + strings.Join(args, " ")
+	fmt.Println(shellCmd)
+	cmd := exec.Command(name, args...)
+	out, err := cmd.Output()
+	if err != nil {
+		if ee, ok := err.(*exec.ExitError); ok { // nolint:errorlint
+			return nil, fmt.Errorf("exec cmd [%s] fail: %s", shellCmd, ee.Stderr)
+		}
+		return nil, fmt.Errorf("exec cmd [%s] fail: %w", shellCmd, err)
+	}
+	return out, nil
+}
+
+func toolDownloadURL(software string) (string, error) {
+	arch := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
+	jdkURL, ok := downloadLink[software][arch]
+	if !ok {
+		jdkURL, ok = downloadLink[software][DefaultArch]
+		if !ok {
+			return "", fmt.Errorf("current architeture [%s] not supported", arch)
+		}
+	}
+	return jdkURL, nil
+}
+
+// installProguard for detail of proguard see https://github.com/Guardsquare/proguard
+func installProguard() error {
+	if _, ok := checkToolInstalled(Java); !ok {
+		if err := installJDK(); err != nil {
+			return fmt.Errorf("install jdk fail: %w", err)
+		}
+	}
+
+	downloadLink, err := toolDownloadURL(Proguard)
+	if err != nil {
+		return fmt.Errorf("get proguard download link fail: %w, please install manually", err)
+	}
+
+	tgzFile, err := downloadFileToTmpDir(downloadLink)
+	if err != nil {
+		return fmt.Errorf("download proguard from [%s] fail: %w", downloadLink, err)
+	}
+
+	if _, err := execCmd("sudo", "tar", "-zxf", tgzFile, "-C", DefaultInstallDir); err != nil {
+		return fmt.Errorf("untar tgz file [%s] fail: %w", tgzFile, err)
+	}
+
+	unTarDir, err := readTgzRootDir(tgzFile)
+	if err != nil {
+		return fmt.Errorf("read tar.gz file [%s] root dir fail:%w", tgzFile, err)
+	}
+
+	homeDir := filepath.Join(DefaultInstallDir, unTarDir)
+	ok, err := IsDir(homeDir)
+	if err != nil {
+		return fmt.Errorf("check the dir [%s] fail: %w", homeDir, err)
+	}
+	if !ok {
+		return fmt.Errorf("untar proguard to %s fail", DefaultInstallDir)
+	}
+
+	targetDir := filepath.Join(DefaultInstallDir, Proguard)
+
+	if targetDir != homeDir {
+		if err := os.RemoveAll(targetDir); err != nil {
+			return fmt.Errorf("remove dir [%s] fail: %w", targetDir, err)
+		}
+
+		if _, err := execCmd("sudo", "mv", homeDir, targetDir); err != nil {
+			return fmt.Errorf("rename [%s] to [%s] fail: %w", homeDir, targetDir, err)
+		}
+	}
+
+	return nil
+}
+
+func installAndroidNDK() error {
+	downloadLink, err := toolDownloadURL(AndroidNDK)
+	if err != nil {
+		return fmt.Errorf("get android-ndk download link fail: %w", err)
+	}
+
+	tgzFile, err := downloadFileToTmpDir(downloadLink)
+	if err != nil {
+		return fmt.Errorf("download android-ndk from [%s] fail: %w", downloadLink, err)
+	}
+
+	if _, err := execCmd("sudo", "tar", "-zxf", tgzFile, "-C", DefaultInstallDir); err != nil {
+		return fmt.Errorf("untar tgz file [%s] fail: %w", tgzFile, err)
+	}
+
+	unTarDir, err := readTgzRootDir(tgzFile)
+	if err != nil {
+		return fmt.Errorf("read tar.gz file [%s] root dir fail:%w", tgzFile, err)
+	}
+
+	homeDir := filepath.Join(DefaultInstallDir, unTarDir)
+	ok, err := IsDir(homeDir)
+	if err != nil {
+		return fmt.Errorf("check the dir [%s] fail: %w", homeDir, err)
+	}
+	if !ok {
+		return fmt.Errorf("untar android-ndk to %s fail", DefaultInstallDir)
+	}
+
+	targetDir := filepath.Join(DefaultInstallDir, AndroidNDK)
+
+	if targetDir != homeDir {
+		if err := os.RemoveAll(targetDir); err != nil {
+			return fmt.Errorf("remove dir [%s] fail: %w", targetDir, err)
+		}
+
+		if _, err := execCmd("sudo", "mv", homeDir, targetDir); err != nil {
+			return fmt.Errorf("rename [%s] to [%s] fail: %w", homeDir, targetDir, err)
+		}
+	}
+
+	return nil
+}
+
+func ScanToolAtosPath() (string, bool) {
+	if runtime.GOOS == "darwin" {
+		// macOS use builtin tool "atos"
+		if atosPath, err := exec.LookPath("atos"); err == nil && atosPath != "" {
+			return atosPath, true
+		}
+	}
+
+	return "", false
+}
+
+func installDwarf() error {
+	dwarfURL, err := toolDownloadURL(LibDwarf)
+	if err != nil {
+		return fmt.Errorf("libdwarf download url not found")
+	}
+
+	tgzFile, err := downloadFileToTmpDir(dwarfURL)
+	if err != nil {
+		return fmt.Errorf("download libdwarf tgz file fail: %w", err)
+	}
+
+	downloadDir := filepath.Dir(tgzFile)
+	if _, err := execCmd("tar", "-zxf", tgzFile, "-C", downloadDir); err != nil {
+		return fmt.Errorf("untar libdwarf.tar.gz [%s] fail:%w", tgzFile, err)
+	}
+
+	rootDir, err := readTgzRootDir(tgzFile)
+	if err != nil {
+		return fmt.Errorf("get [%s] root dir fail: %w", tgzFile, err)
+	}
+
+	dwarfDir := filepath.Join(downloadDir, rootDir)
+	if err := os.Chdir(dwarfDir); err != nil {
+		return fmt.Errorf("chdir to [%s] fail: %w", dwarfDir, err)
+	}
+
+	if output, err := execCmd("./configure"); err != nil {
+		return fmt.Errorf("run libdwarf ./configure fail: %w", err)
+	} else {
+		fmt.Println(string(output) + "\n")
+	}
+
+	if output, err := execCmd("sh", "-c", "make && sudo make install"); err != nil {
+		return fmt.Errorf("compile libdwarf fail: %w", err)
+	} else {
+		fmt.Println(string(output) + "\n")
+	}
+
+	return nil
+}
+
+func installLibiberty() error {
+	ibertyURL, err := toolDownloadURL(LibIberty)
+	if err != nil {
+		return fmt.Errorf("libdwarf download url not found")
+	}
+
+	tgzFile, err := downloadFileToTmpDir(ibertyURL)
+	if err != nil {
+		return fmt.Errorf("download libiberty tgz file fail: %w", err)
+	}
+
+	downloadDir := filepath.Dir(tgzFile)
+	if _, err := execCmd("tar", "-zxf", tgzFile, "-C", downloadDir); err != nil {
+		return fmt.Errorf("untar libiberty.tar.gz [%s] fail:%w", tgzFile, err)
+	}
+
+	rootDir, err := readTgzRootDir(tgzFile)
+	if err != nil {
+		return fmt.Errorf("get [%s] root dir fail: %w", tgzFile, err)
+	}
+
+	ibertyDir := filepath.Join(downloadDir, rootDir, "libiberty")
+	if err := os.Chdir(ibertyDir); err != nil {
+		return fmt.Errorf("chdir to [%s] fail: %w", ibertyDir, err)
+	}
+
+	if output, err := execCmd("./configure"); err != nil {
+		return fmt.Errorf("run libiberty ./configure fail: %w", err)
+	} else {
+		fmt.Println(string(output) + "\n")
+	}
+
+	if output, err := execCmd("sh", "-c", "make"); err != nil {
+		return fmt.Errorf("compile libiberty fail: %w", err)
+	} else {
+		fmt.Println(string(output) + "\n")
+	}
+
+	if _, err := execCmd("sudo", "cp", "./libiberty.a", "/usr/local/lib"); err != nil {
+		return fmt.Errorf("cp libiberty.a to /usr/local/lib fail: %w", err)
+	}
+
+	return nil
+}
+
+func installAtosl() error {
+	if _, ok := ScanToolAtosPath(); ok {
+		return nil
+	}
+
+	if err := installDwarf(); err != nil {
+		return fmt.Errorf("install libdwarf fail: %w", err)
+	}
+
+	if err := installLibiberty(); err != nil {
+		return fmt.Errorf("install libiberty fail: %w", err)
+	}
+
+	downloadLink, err := toolDownloadURL(Atosl)
+	if err != nil {
+		return fmt.Errorf("atosl download link not found: %w", err)
+	}
+
+	tgzFile, err := downloadFileToTmpDir(downloadLink)
+	if err != nil {
+		return fmt.Errorf("download atosl fail from [%s], err: %w", downloadLink, err)
+	}
+
+	downloadDir := filepath.Dir(tgzFile)
+
+	if _, err := execCmd("tar", "-zxf", tgzFile, "-C", downloadDir); err != nil {
+		return fmt.Errorf("untar tar.gz file [%s] fail: %w", tgzFile, err)
+	}
+
+	rootDir, err := readTgzRootDir(tgzFile)
+	if err != nil {
+		return fmt.Errorf("read tar.gz file [%s] root dir fail: %w", tgzFile, err)
+	}
+
+	homeDir := filepath.Join(downloadDir, rootDir)
+
+	if err := os.Chdir(homeDir); err != nil {
+		return fmt.Errorf("chdir to [%s] fail: %w", homeDir, err)
+	}
+
+	output, err := execCmd("sh", "-c", "make")
+	if err != nil {
+		return fmt.Errorf("compile atosl fail: %w", err)
+	}
+
+	if _, err := execCmd("sudo", "cp", "./atosl", DefaultInstallDir); err != nil {
+		return fmt.Errorf("cp bin atosl to dir [%s] fail:%w", DefaultInstallDir, err)
+	}
+
+	fmt.Println(string(output))
+
+	return nil
+}

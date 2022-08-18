@@ -62,6 +62,9 @@ const (
   ## removes ANSI escape codes from text strings
   remove_ansi_escape_codes = false
 
+  ## if the data sent failure, will retry forevery
+  blocking_mode = false
+
   ## if file is inactive, it is ignored
   ## time units are "ms", "s", "m", "h"
   ignore_dead_log = "1h"
@@ -86,7 +89,9 @@ type Input struct {
 	RemoveAnsiEscapeCodes bool              `toml:"remove_ansi_escape_codes"`
 	IgnoreDeadLog         string            `toml:"ignore_dead_log"`
 	Tags                  map[string]string `toml:"tags"`
+	BlockingMode          bool              `toml:"blocking_mode"`
 	FromBeginning         bool              `toml:"from_beginning,omitempty"`
+	DockerMode            bool              `toml:"docker_mode,omitempty"`
 
 	DeprecatedPipeline       string `toml:"pipeline_path"`
 	DeprecatedMultilineMatch string `toml:"match"`
@@ -137,7 +142,13 @@ func (ipt *Input) Run() {
 		RemoveAnsiEscapeCodes: ipt.RemoveAnsiEscapeCodes,
 		IgnoreDeadLog:         ignoreDuration,
 		GlobalTags:            ipt.Tags,
+		BlockingMode:          ipt.BlockingMode,
 	}
+
+	if ipt.DockerMode {
+		opt.Mode = tailer.DockerMode
+	}
+
 	ipt.process = make([]LogProcessor, 0)
 	if len(ipt.LogFiles) != 0 {
 		tailerL, err := tailer.NewTailer(ipt.LogFiles, opt, ipt.Ignore)
@@ -244,7 +255,7 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志正文，默认存在，可以使用 pipeline 删除此字段"},
-			"status":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，默认为 `unknown`，采集器会该字段做支持映射，映射表见上述 pipelie 配置和使用"},
+			"status":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，默认为 `unknown`，采集器会该字段做支持映射，映射表见上述 pipelie 配置和使用[^1]"},
 			"log_read_lines":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "采集到的行数计数，多行数据算成一行（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)）"},
 			"log_read_offset": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "当前数据在文件中的偏移位置（[:octicons-tag-24: Version-1.4.8](../datakit/changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental)）"},
 		},

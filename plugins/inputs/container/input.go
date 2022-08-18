@@ -40,6 +40,7 @@ type Input struct {
 	EnablePodMetric       bool `toml:"enable_pod_metric"`
 
 	LoggingRemoveAnsiEscapeCodes bool `toml:"logging_remove_ansi_escape_codes"`
+	LoggingBlockingMode          bool `toml:"logging_blocking_mode"`
 	ExcludePauseContainer        bool `toml:"exclude_pause_container"`
 
 	ContainerIncludeLog []string `toml:"container_include_log"`
@@ -380,14 +381,15 @@ func (i *Input) setup() bool {
 		time.Sleep(time.Second)
 
 		if d, err := newDockerInput(&dockerInputConfig{
-			endpoint:               i.DockerEndpoint,
-			excludePauseContainer:  i.ExcludePauseContainer,
-			removeLoggingAnsiCodes: i.LoggingRemoveAnsiEscapeCodes,
-			containerIncludeLog:    i.ContainerIncludeLog,
-			containerExcludeLog:    i.ContainerExcludeLog,
-			extraTags:              i.Tags,
-			extraSourceMap:         i.LoggingExtraSourceMap,
-			sourceMultilineMap:     i.LoggingSourceMultilineMap,
+			endpoint:                  i.DockerEndpoint,
+			excludePauseContainer:     i.ExcludePauseContainer,
+			removeLoggingAnsiCodes:    i.LoggingRemoveAnsiEscapeCodes,
+			enableLoggingBlockingMode: i.LoggingBlockingMode,
+			containerIncludeLog:       i.ContainerIncludeLog,
+			containerExcludeLog:       i.ContainerExcludeLog,
+			extraTags:                 i.Tags,
+			extraSourceMap:            i.LoggingExtraSourceMap,
+			sourceMultilineMap:        i.LoggingSourceMultilineMap,
 		}); err != nil {
 			l.Warnf("create docker input err: %s", err)
 		} else {
@@ -396,12 +398,14 @@ func (i *Input) setup() bool {
 
 		if i.dockerInput == nil {
 			if c, err := newContainerdInput(&containerdInputConfig{
-				endpoint:            i.ContainerdAddress,
-				extraTags:           i.Tags,
-				extraSourceMap:      i.LoggingExtraSourceMap,
-				sourceMultilineMap:  i.LoggingSourceMultilineMap,
-				containerIncludeLog: i.ContainerIncludeLog,
-				containerExcludeLog: i.ContainerExcludeLog,
+				endpoint:                  i.ContainerdAddress,
+				removeLoggingAnsiCodes:    i.LoggingRemoveAnsiEscapeCodes,
+				enableLoggingBlockingMode: i.LoggingBlockingMode,
+				extraTags:                 i.Tags,
+				extraSourceMap:            i.LoggingExtraSourceMap,
+				sourceMultilineMap:        i.LoggingSourceMultilineMap,
+				containerIncludeLog:       i.ContainerIncludeLog,
+				containerExcludeLog:       i.ContainerExcludeLog,
 			}); err != nil {
 				l.Warnf("create containerd input err: %s", err)
 			} else {
@@ -480,6 +484,7 @@ func (i *Input) Resume() error {
 //   ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING : string
 //   ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP : string
 //   ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON : string (JSON map)
+//   ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE : booler
 func (i *Input) ReadEnv(envs map[string]string) {
 	if endpoint, ok := envs["ENV_INPUT_CONTAINER_DOCKER_ENDPOINT"]; ok {
 		i.DockerEndpoint = endpoint
@@ -505,6 +510,15 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES to bool: %s, ignore", err)
 		} else {
 			i.LoggingRemoveAnsiEscapeCodes = b
+		}
+	}
+
+	if disable, ok := envs["ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE"]; ok {
+		b, err := strconv.ParseBool(disable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE to bool: %s, ignore", err)
+		} else {
+			i.LoggingBlockingMode = b
 		}
 	}
 

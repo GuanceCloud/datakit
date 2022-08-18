@@ -2,8 +2,7 @@
 # 如何编写 Pipeline 脚本
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 Pipeline 编写较为麻烦，为此，DataKit 中内置了简单的调试工具，用以辅助大家来编写 Pipeline 脚本。
 

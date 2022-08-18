@@ -43,6 +43,9 @@ type containerdInput struct {
 type containerdInputConfig struct {
 	endpoint string
 
+	removeLoggingAnsiCodes    bool
+	enableLoggingBlockingMode bool
+
 	containerIncludeLog []string
 	containerExcludeLog []string
 

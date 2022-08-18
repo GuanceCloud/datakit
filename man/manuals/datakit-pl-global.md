@@ -4,8 +4,7 @@
 
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 自 DataKit v1.4.0 起，可通过内置的 Pipeline 功能直接操作 DataKit 采集数据，支持的类别如下:
 
@@ -77,7 +76,7 @@ Pipeline 可以对 DataKit 采集的数据执行如下操作：
 上面的目录设定中，我们将应用于不同数据分类的 Pipeline 分别存放在对应的目录下，对 DataKit 而言，一旦采集到某类数据，会自动应用对应的 Pipeline 脚本进行处理。对不同类数据而言，其应用规则也有差异。主要分为几类：
 
 1. 以特定的行协议标签名（tag）来匹配对应的 Pipeline：
-   1. 对 Tracing 与 Profile 类别数据而言，以标签 `service` 的值来自动匹配 Pipeline。例如，DataKit 采集到一条数据，如果行协议上其 `service` 值为 `service-a`，则会将该数据送给 _tracing/service-a.p_ | _profiling/service-a.p_ 处理。
+   1. 对 Tracing 与 Profiling 类别数据而言，以标签 `service` 的值来自动匹配 Pipeline。例如，DataKit 采集到一条数据，如果行协议上其 `service` 值为 `service-a`，则会将该数据送给 _tracing/service-a.p_ | _profiling/service-a.p_ 处理。
    1. 对于 SECURITY (scheck) 类数据而言，以标签 `category` 的值来自动匹配 Pipeline。例如，DataKit 接收到一条 SECURITY 数据，如果行协议上其 `category` 值为 `system`，则会将该数据送给 _security/system.p_ 处理。
 1. 以特定的行协议标签名 (tag) 和指标集名来匹配对应的 Pipeline: 对 RUM 类数据而言，以标签名 `app_id` 的值和指标集 `action` 为例，会自动应用 `rum/<app_id>_action.p`;
 1. 以行协议指标集名称来匹配对应的 Pipeline：其它类数据，均以行协议的指标集来匹配 Pipeline。以时序指标集 `cpu` 为例，会自动应用 _metric/cpu.p_；而对主机对象而言，会自动应用 _object/HOST.p_。

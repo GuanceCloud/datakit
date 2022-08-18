@@ -57,6 +57,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/rabbitmq"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/redis"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/rum"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/sensors"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking"

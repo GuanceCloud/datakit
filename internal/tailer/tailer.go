@@ -82,6 +82,9 @@ type Option struct {
 	ForwardFunc   ForwardFunc
 	IgnoreDeadLog time.Duration
 
+	// 是否开启阻塞发送模式
+	BlockingMode bool
+
 	Mode Mode
 }
 

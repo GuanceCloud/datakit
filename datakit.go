@@ -36,6 +36,7 @@ const (
 	OSArchLinux386    = "linux/386"
 	OSArchLinuxAmd64  = "linux/amd64"
 	OSArchDarwinAmd64 = "darwin/amd64"
+	OSArchDarwinArm64 = "darwin/arm64"
 
 	CommonChanCap = 32
 
@@ -52,8 +53,10 @@ const (
 	Tracing          = "/v1/write/tracing"
 	RUM              = "/v1/write/rum"
 	Security         = "/v1/write/security"
-	Profile          = "/v1/write/profiling"  // write profile metadata.
-	ProfileUpload    = "/v1/upload/profiling" // upload profile binary.
+	Profiling        = "/v1/write/profiling"  // write profiling metadata.
+	ProfilingUpload  = "/v1/upload/profiling" // upload profiling binary.
+
+	DynamicDatawayCategory = "dynamicDatawayCategory"
 
 	// data category pure name.
 	CategoryMetric       = "metric"
@@ -65,7 +68,7 @@ const (
 	CategoryTracing      = "tracing"
 	CategoryRUM          = "rum"
 	CategorySecurity     = "security"
-	CategoryProfile      = "profiling"
+	CategoryProfiling    = "profiling"
 
 	// other APIS.
 	HeartBeat         = "/v1/write/heartbeat"
@@ -87,6 +90,8 @@ const (
 	StrConfD              = "conf.d"
 	StrPythonD            = "python.d"
 	StrPythonCore         = "core"
+	StrDefaultConfFile    = "datakit.conf"
+	StrCache              = "cache"
 
 	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
 	GitRepoSubDirNameConfd    = StrConfD
@@ -107,6 +112,7 @@ const (
 	SinkCategoryTracing      = "T"
 	SinkCategoryRUM          = "R"
 	SinkCategorySecurity     = "S"
+	SinkCategoryProfiling    = "P"
 )
 
 var (
@@ -132,6 +138,7 @@ var (
 		OSArchLinuxAmd64:  `/usr/local/datakit`,
 		OSArchLinux386:    `/usr/local/datakit`,
 		OSArchDarwinAmd64: `/usr/local/datakit`,
+		OSArchDarwinArm64: `/usr/local/datakit`,
 	}
 
 	OSLabelLinux   = ":fontawesome-brands-linux:"
@@ -142,8 +149,9 @@ var (
 	UnknownOS   = []string{"unknown"}
 	UnknownArch = []string{"unknown"}
 
-	DataDir  = filepath.Join(InstallDir, "data")
-	ConfdDir = filepath.Join(InstallDir, StrConfD)
+	DataDir    = filepath.Join(InstallDir, "data")
+	DataRUMDir = filepath.Join(DataDir, "rum")
+	ConfdDir   = filepath.Join(InstallDir, StrConfD)
 
 	GitReposDir          = filepath.Join(InstallDir, StrGitRepos)
 	GitReposRepoName     string
@@ -154,15 +162,15 @@ var (
 
 	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
 
-	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
-	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
+	MainConfPathDeprecated = filepath.Join(InstallDir, StrDefaultConfFile)
+	MainConfPath           = filepath.Join(ConfdDir, StrDefaultConfFile)
 	MainConfSamplePath     = filepath.Join(ConfdDir, "datakit.conf.sample")
 
 	pidFile = filepath.Join(InstallDir, ".pid")
 
 	PipelineDir        = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
-	CacheDir           = filepath.Join(InstallDir, "cache")
+	CacheDir           = filepath.Join(InstallDir, StrCache)
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
 
@@ -177,7 +185,7 @@ var (
 		RUM:              "R",
 		Security:         "S",
 		CustomObject:     "CO",
-		Profile:          "P",
+		Profiling:        "P",
 	}
 )
 
@@ -192,7 +200,7 @@ func CategoryList() (map[string]struct{}, map[string]struct{}) {
 			Tracing:      {},
 			RUM:          {},
 			Security:     {},
-			Profile:      {},
+			Profiling:    {},
 		}, map[string]struct{}{
 			MetricDeprecated: {},
 		}
@@ -209,7 +217,7 @@ func CategoryDirName() map[string]string {
 		Tracing:      "tracing",
 		RUM:          "rum",
 		Security:     "security",
-		Profile:      "profiling",
+		Profiling:    "profiling",
 	}
 }
 
@@ -219,12 +227,12 @@ func SetWorkDir(dir string) {
 	DataDir = filepath.Join(InstallDir, "data")
 	ConfdDir = filepath.Join(InstallDir, StrConfD)
 
-	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
-	MainConfPath = filepath.Join(ConfdDir, "datakit.conf")
+	MainConfPathDeprecated = filepath.Join(InstallDir, StrDefaultConfFile)
+	MainConfPath = filepath.Join(ConfdDir, StrDefaultConfFile)
 
 	PipelineDir = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
-	CacheDir = filepath.Join(InstallDir, "cache")
+	CacheDir = filepath.Join(InstallDir, StrCache)
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 	pidFile = filepath.Join(InstallDir, ".pid")
 
@@ -239,11 +247,13 @@ func SetWorkDir(dir string) {
 func InitDirs() {
 	for _, dir := range []string{
 		DataDir,
+		DataRUMDir,
 		ConfdDir,
 		PipelineDir,
 		PipelinePatternDir,
 		GitReposDir,
 		PipelineRemoteDir,
+		CacheDir,
 	} {
 		if err := os.MkdirAll(dir, ConfPerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)

@@ -27,6 +27,7 @@ nav:
   - '云原生':
     - 'Kubernetes 环境下的 DataKit 配置综述': k8s-config-how-to.md
     - datakit-daemonset-bp.md
+    - kubernetes-crd.md
     - '数据采集':
       - '容器': container.md
       - logfwd.md

@@ -169,15 +169,10 @@ spec:
           name: lib
         - mountPath: /var/log
           name: log
-        - mountPath: /host/proc
-          name: proc
-          readOnly: true
-        - mountPath: /host/dev
-          name: dev
-          readOnly: true
-        - mountPath: /host/sys
-          name: sys
-          readOnly: true
+        - mountPath: /usr/lib
+          name: usrlib
+        - mountPath: /etc
+          name: etc
         - mountPath: /rootfs
           name: rootfs
         - mountPath: /sys/kernel/debug
@@ -212,24 +207,16 @@ spec:
           path: /var/log
         name: log
       - hostPath:
-          path: /proc
-          type: ""
-        name: proc
+          path: /usr/lib
+        name: usrlib
       - hostPath:
-          path: /dev
-          type: ""
-        name: dev
-      - hostPath:
-          path: /sys
-          type: ""
-        name: sys
+          path: /etc
+        name: etc
       - hostPath:
           path: /
-          type: ""
         name: rootfs
       - hostPath:
           path: /sys/kernel/debug
-          type: ""
         name: debugfs
   updateStrategy:
     rollingUpdate:

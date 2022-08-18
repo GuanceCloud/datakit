@@ -2,8 +2,7 @@
 # DaemonSet 安装 DataKit 
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：Linux
+- 操作系统支持：:fontawesome-brands-linux:
 
 本文档介绍如何在 K8s 中通过 DaemonSet 方式安装 DataKit。
 
@@ -63,7 +62,9 @@ $ helm uninstall datakit -n datakit
 
 先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml){:target="_blank"}，其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。
 
-> 如果要修改这些采集器的默认配置，可通过 [Configmap 方式挂载单独的 conf](../integrations/k8s-config-how-to.md#via-configmap-conf) 来配置。部分采集器可以直接通过环境变量的方式来调整，具体参见具体采集器的文档（[容器采集器示例](../integrations/container.md#env-config)）。总而言之，不管是默认开启的采集器，还是其它采集器，在 DaemonSet 方式部署 DataKit 时，通过 [Configmap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/){:target="_blank"} 来配置采集器总是生效的。
+???+ attention
+
+    如果要修改这些采集器的默认配置，可通过 [Configmap 方式挂载单独的 conf](../integrations/k8s-config-how-to.md#via-configmap-conf) 来配置。部分采集器可以直接通过环境变量的方式来调整，具体参见具体采集器的文档。总而言之，不管是默认开启的采集器，还是其它采集器，在 DaemonSet 方式部署 DataKit 时，通过 [Configmap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/){:target="_blank"} 来配置采集器总是生效的。
 
 #### 修改配置
 
@@ -248,8 +249,8 @@ spec:
 
 ### Sinker 配置相关环境变量 {#env-sinker}
 
-| 环境变量名称 | 类型   | 默认值 | 必须   | 说明                              |
-| ---------:   | ----:  | ---:   | ------ | ----                              |
+| 环境变量名称 | 类型   | 默认值 | 必须   | 说明                                |
+| ---------:   | ----:  | ---:   | ------ | ----                           |
 | ENV_SINK_M   | string | 无     | 否     | 安装时指定 Metric 的 sink。       |
 | ENV_SINK_N   | string | 无     | 否     | 安装时指定 Network 的 sink。      |
 | ENV_SINK_K   | string | 无     | 否     | 安装时指定 KeyEvent 的 sink。     |
@@ -259,6 +260,7 @@ spec:
 | ENV_SINK_T   | string | 无     | 否     | 安装时指定 Tracing 的 sink。      |
 | ENV_SINK_R   | string | 无     | 否     | 安装时指定 RUM 的 sink。          |
 | ENV_SINK_S   | string | 无     | 否     | 安装时指定 Security 的 sink。     |
+| ENV_SINK_P   | string | 无     | 否     | 安装时指定 Profile 的 sink。      |
 
 ### IO 模块配置相关环境变量 {#env-io}
 

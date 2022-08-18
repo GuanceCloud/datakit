@@ -13,9 +13,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/yaml"
 )
-
-// "sigs.k8s.io/yaml"
 
 var (
 	_ k8sResourceMetricInterface = (*pod)(nil)
@@ -162,6 +161,12 @@ func (p *pod) object() (inputsMeas, error) {
 			},
 		}
 
+		if y, err := yaml.Marshal(item); err != nil {
+			l.Debugf("failed to get pod yaml %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
+		} else {
+			obj.fields["yaml"] = string(y)
+		}
+
 		for _, ref := range item.OwnerReferences {
 			if ref.Kind == "ReplicaSet" {
 				obj.tags["replica_set"] = ref.Name
@@ -206,6 +211,7 @@ func (p *pod) object() (inputsMeas, error) {
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
 		obj.fields.delete("annotations")
+		obj.fields.delete("yaml")
 
 		if cli, ok := p.client.(*k8sClient); ok && cli.metricsClient != nil {
 			podMet, err := gatherPodMetrics(cli.metricsClient, item.Namespace, item.Name)

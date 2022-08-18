@@ -2,7 +2,6 @@
 # SQLServer
 ---
 
-- DataKit 版本：{{.Version}}
 - 操作系统支持：{{.AvailableArchs}}
 
 SQL Server 采集器采集 SQL Server `waitstats`、`database_io` 等相关指标

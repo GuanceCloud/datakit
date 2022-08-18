@@ -2,8 +2,7 @@
 # 通过 DQL 查询数据
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 DataKit 支持以交互式方式执行 DQL 查询，在交互模式下，DataKit 自带语句补全功能：
 

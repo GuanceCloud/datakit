@@ -2,8 +2,7 @@
 # DCA 客户端(beta)
 ---
 
-- DataKit 版本：0.0.2 (beta)
-- 操作系统支持：`windows/amd64,windows/386,darwin/amd64`
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 DCA 是一款桌面客户端应用，旨在方便管理 DataKit，目前支持查看列表、配置文件管理、Pipeline 管理以及帮助文档的查看等功能。
 

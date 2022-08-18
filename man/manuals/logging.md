@@ -2,8 +2,7 @@
 # 文件日志
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
 
 本文档主要介绍本地磁盘日志采集和 Socket 日志采集：
 
@@ -66,6 +65,9 @@
   ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
   ## 时间单位支持 "ms", "s", "m", "h"
   ignore_dead_log = "10m"
+
+  ## 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据
+  blocking_mode = true
 
   # 自定义 tags
   [inputs.logging.tags]
@@ -289,6 +291,8 @@ Pipeline 的几个注意事项：
 {{$m.FieldsMarkdownTable}}
 
 {{ end }} 
+
+[^1]: 早期 Pipeline 实现的时候，只能切割出 field，而 status 大部分都是通过 Pipeline 切割出来的，故将其归类到 field 中。但语义上，它应该属于 tag 的范畴。
 
 ## FAQ
 

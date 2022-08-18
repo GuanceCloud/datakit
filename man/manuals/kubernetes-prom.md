@@ -2,8 +2,7 @@
 # Prometheus Exportor 指标采集
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：:fontawesome-brands-linux:
+- 操作系统支持：:fontawesome-brands-linux: :material-kubernetes:
 
 ## 介绍
 
@@ -34,8 +33,9 @@
   # name = "cpu"
 
   [inputs.prom.tags]
-  namespace = "$NAMESPACE"
-  pod_name = "$PODNAME"
+    # namespace = "$NAMESPACE"
+    # pod_name = "$PODNAME"
+    # node_name = "$NODENAME"
 ```
 
 其中支持如下几个通配符：
@@ -43,6 +43,17 @@
 - `$IP`：通配 Pod 的内网 IP
 - `$NAMESPACE`：Pod Namespace
 - `$PODNAME`：Pod Name
+- `$NODENAME`：Pod 所在的 Node 名称
+
+!!! tip
+
+    Prom 采集器不会自动添加诸如 `namespace` 和 `pod_name` 等 tags，可以在上面的 config 中使用通配符添加额外 tags，例如：
+    ```
+      [inputs.prom.tags]
+        namespace = "$NAMESPACE"
+        pod_name = "$PODNAME"
+        node_name = "$NODENAME"
+    ```
 
 ### 选择指定Pod IP
 
@@ -94,6 +105,7 @@ spec:
             [inputs.prom.tags]
             namespace = "$NAMESPACE"
             pod_name = "$PODNAME"
+            node_name = "$NODENAME"
 ```
 
 > 注意， `annotations` 一定添加在 `template` 字段下，这样 deployment.yaml 创建的 Pod 才会携带 `datakit/prom.instances`。

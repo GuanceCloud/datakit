@@ -2,8 +2,7 @@
 # 采集器配置
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes:
 
 RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用户访问监测数据。
 
@@ -114,13 +113,13 @@ ReferenceError
 上传：
 
 ```
-curl -X POST '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>' -F "file=@<sourcemap_path>" -H "Content-Type: multipart/form-data"
+curl -X POST '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>' -F "file=@<sourcemap_path>" -H "Content-Type: multipart/form-data"
 ```
 
 删除：
 
 ```
-curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>'
+curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>'
 ```
 
 变量说明：
@@ -129,6 +128,7 @@ curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version
 - `<app_id>`: 对应 RUM 的 `applicationId`
 - `<env>`: 对应 RUM 的 `env`
 - `<version>`: 对应 RUM 的 `version`
+- `<platform>` 应用平台，当前支持 `web`/ `android` / `ios`
 - `<sourcemap_path>`: 待上传的`sourcemap` 压缩包文件路径
 
 **注意：**

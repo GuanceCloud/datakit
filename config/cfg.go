@@ -54,9 +54,9 @@ func DefaultConfig() *Config {
 		}, // default nothing
 
 		IOConf: &dkio.IOConfig{
-			FeedChanSize:         4096,
-			MaxCacheCount:        512,
-			MaxDynamicCacheCount: 512,
+			FeedChanSize:         128,
+			MaxCacheCount:        64,
+			MaxDynamicCacheCount: 64,
 			FlushInterval:        "10s",
 			OutputFileInputs:     []string{},
 
@@ -447,16 +447,14 @@ func (c *Config) ApplyMainConfig() error {
 	l = logger.SLogger("config")
 
 	// Set up ulimit.
-	if runtime.GOOS == `linux` {
-		if err := setUlimit(c.Ulimit); err != nil {
-			return fmt.Errorf("fail to set ulimit to %d: %w", c.Ulimit, err)
+	if err := setUlimit(c.Ulimit); err != nil {
+		return fmt.Errorf("fail to set ulimit to %d: %w", c.Ulimit, err)
+	} else {
+		soft, hard, err := getUlimit()
+		if err != nil {
+			l.Warnf("fail to get ulimit: %v", err)
 		} else {
-			soft, hard, err := getUlimit()
-			if err != nil {
-				l.Warnf("fail to get ulimit: %v", err)
-			} else {
-				l.Infof("ulimit set to softLimit = %d, hardLimit = %d", soft, hard)
-			}
+			l.Infof("ulimit set to softLimit = %d, hardLimit = %d", soft, hard)
 		}
 	}
 

@@ -6,7 +6,6 @@ nav:
       - 'DataKit 配置': datakit-conf.md
       - datakit-input-conf.md
       - git-config-how-to.md
-      - kubernetes-crd.md
     - 'DataKit 日常使用':
       - '通过 DQL 查询数据': datakit-dql-how-to.md
       - datakit-monitor.md
@@ -33,6 +32,7 @@ nav:
         - datakit-sink-logstash.md
         - datakit-sink-m3db.md
         - datakit-sink-otel-jaeger.md
+        - datakit-sink-dataway.md
   - '文本数据处理':
     - 'Pipeline 介绍': pipeline.md
     - datakit-pl-how-to.md
@@ -43,4 +43,6 @@ nav:
     - datakit-filter.md
     - apis.md
     - datakit-sink-dev.md
-    - integrations-to-dk-howto.md
+    - '文档撰写':
+      - '集成文档合并': integrations-to-dk-howto.md
+      - mkdocs-howto.md

@@ -2,7 +2,6 @@
 # Disk
 ---
 
-- DataKit 版本：{{.Version}}
 - 操作系统支持：{{.AvailableArchs}}
 
 disk 采集器用于主机磁盘信息采集，如磁盘存储空间、inodes 使用情况等。

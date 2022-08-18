@@ -2,8 +2,7 @@
 # 离线部署
 ---
 
-- DataKit 版本：{{.Version}}
-- 操作系统支持：全平台
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 某些时候，目标机器没有公网访问出口，按照如下方式可离线安装 DataKit。
 

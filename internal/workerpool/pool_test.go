@@ -26,14 +26,13 @@ func TestWorkerPool(t *testing.T) {
 			for j := 0; j < m; j++ {
 				job, err := NewJob(
 					WithInput(fmt.Sprintf("goroutine %d, job %d\n", i, j)),
-					WithTimeout(time.Second),
 					WithProcess(func(input interface{}) (output interface{}) {
 						log.Printf("start process input %d:%d\n", i, j)
 
 						return fmt.Sprintf("finish process %d:%d\n", i, j)
 					}),
-					WithProcessCallback(func(input, output interface{}, cost time.Duration, isTimeout bool) {
-						log.Printf("finish process and callback, input: %v output: %v cost: %dms isTimeout: %v\n", input, output, cost/time.Millisecond, isTimeout)
+					WithProcessCallback(func(input, output interface{}, cost time.Duration) {
+						log.Printf("finish process and callback, input: %v output: %v cost: %dms\n", input, output, cost/time.Millisecond)
 					}),
 				)
 				if err != nil {

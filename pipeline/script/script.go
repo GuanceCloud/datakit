@@ -48,7 +48,7 @@ func NewScripts(scripts map[string]string, scriptPath map[string]string, ns, cat
 	case datakit.RUM:
 	case datakit.Security:
 	case datakit.Logging:
-	case datakit.Profile:
+	case datakit.Profiling:
 	default:
 		retErr := map[string]error{}
 		for k := range scripts {
@@ -101,7 +101,7 @@ func (script *PlScript) Run(measurement string, tags map[string]string, fields m
 	case datakit.Tracing:
 	case datakit.RUM:
 	case datakit.Security:
-	case datakit.Profile:
+	case datakit.Profiling:
 
 	case datakit.Logging:
 		var disable bool

@@ -10,6 +10,7 @@ import (
 	// nolint:gosec
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"sort"
 )
 
@@ -45,73 +46,45 @@ func (ms MapSorter) Swap(i, j int) {
 
 //------------------------------------------------------------------------------
 
-func GetMapMD5String(mVal map[string]interface{}) (string, error) {
+// GetMapMD5String returns md5, origin, error.
+func GetMapMD5String(mVal map[string]interface{}, ignoreKeys []string) (string, string, error) {
 	ms := NewMapSorter(mVal)
 	sort.Sort(ms)
 
 	var newStr string
 	for _, v := range ms {
-		str, ok := v.Val.(string)
-		if !ok {
+		var isContinue bool
+		for _, ik := range ignoreKeys {
+			if v.Key == ik {
+				isContinue = true
+				break
+			}
+		}
+		if isContinue {
+			isContinue = false
 			continue
 		}
 
-		if len(str) == 0 {
+		var str string
+		switch ty := v.Val.(type) {
+		case string:
+			if len(ty) == 0 {
+				continue
+			}
+			str = ty
+		case []string:
+			for _, vStr := range ty {
+				str += vStr
+			}
+		default:
 			continue
 		}
 
 		newStr += str
-	}
+	} // for
 
-	return MD5Sum(newStr), nil
-}
-
-//------------------------------------------------------------------------------
-
-type MapSorterX []ItemX
-
-type ItemX struct {
-	Key string
-	Val string
-}
-
-func NewMapSorterX(m map[string]string) MapSorterX {
-	ms := make(MapSorterX, 0, len(m))
-	for k, v := range m {
-		ms = append(ms, ItemX{k, v})
-	}
-
-	return ms
-}
-
-func (ms MapSorterX) Len() int {
-	return len(ms)
-}
-
-func (ms MapSorterX) Less(i, j int) bool {
-	return ms[i].Key < ms[j].Key // 按键排序
-}
-
-func (ms MapSorterX) Swap(i, j int) {
-	ms[i], ms[j] = ms[j], ms[i]
-}
-
-//------------------------------------------------------------------------------
-
-func GetMapMD5StringX(mVal map[string]string) (string, error) {
-	ms := NewMapSorterX(mVal)
-	sort.Sort(ms)
-
-	var newStr string
-	for _, v := range ms {
-		if len(v.Val) == 0 {
-			continue
-		}
-
-		newStr += v.Val
-	}
-
-	return MD5Sum(newStr), nil
+	fmt.Printf("newStr = %s\n", newStr)
+	return MD5Sum(newStr), newStr, nil
 }
 
 //------------------------------------------------------------------------------

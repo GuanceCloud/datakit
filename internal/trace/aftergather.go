@@ -51,7 +51,7 @@ func NewAfterGather() *AfterGather {
 }
 
 // AppendCalculator will append new calculators into AfterGather structure,
-// and run them as the order they added.
+// and run them as the order they added.%.
 func (aga *AfterGather) AppendCalculator(calc ...CalculatorFunc) {
 	aga.Lock()
 	defer aga.Unlock()
@@ -108,11 +108,17 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod
 	}
 
 	if pts := BuildPointsBatch(afterFilters, stricktMod); len(pts) != 0 {
-		if err := dkioFeed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
-			log.Errorf("io feed points error: %s", err.Error())
+		var (
+			start = time.Now()
+			err   error
+		)
+		if err = dkioFeed(inputName, datakit.Tracing, pts, nil); err != nil {
+			log.Errorf("### io feed points error: %s", err.Error())
+		} else {
+			log.Debugf("### send %d points cost %dms with error: %v", len(pts), time.Since(start)/time.Millisecond, err)
 		}
 	} else {
-		log.Warn("BuildPointsBatch return empty points array")
+		log.Debug("### BuildPointsBatch return empty points array")
 	}
 }
 

@@ -102,7 +102,8 @@ var (
 	flagSinkLogging,
 	flagSinkTracing,
 	flagSinkRUM,
-	flagSinkSecurity string
+	flagSinkSecurity,
+	flagSinkProfiling string
 
 	flagInstallOnly,
 	flagCgroupDisabled,
@@ -172,6 +173,7 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagSinkTracing, "sink-tracing", "", "sink for Tracing")
 	flag.StringVar(&flagSinkRUM, "sink-rum", "", "sink for RUM")
 	flag.StringVar(&flagSinkSecurity, "sink-security", "", "sink for Security")
+	flag.StringVar(&flagSinkProfiling, "sink-profile", "", "sink for Profile")
 
 	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Cgroup CPU max usage")
 	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Cgroup CPU min usage")
@@ -743,6 +745,7 @@ func parseSinkArgs(mc *config.Config) error {
 		datakit.SinkCategoryTracing,
 		datakit.SinkCategoryRUM,
 		datakit.SinkCategorySecurity,
+		datakit.SinkCategoryProfiling,
 	}
 
 	args := []string{
@@ -755,6 +758,7 @@ func parseSinkArgs(mc *config.Config) error {
 		flagSinkTracing,
 		flagSinkRUM,
 		flagSinkSecurity,
+		flagSinkProfiling,
 	}
 
 	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
@@ -777,6 +781,7 @@ var (
 		"hostobject",
 		"net",
 		"host_processes",
+		"rum",
 	}
 
 	defaultHostInputsForLinux = []string{
@@ -790,6 +795,7 @@ var (
 		"net",
 		"host_processes",
 		"container",
+		"rum",
 	}
 
 	defaultHostInputsForMacOS = []string{
@@ -802,6 +808,7 @@ var (
 		"hostobject",
 		"net",
 		"container",
+		"rum",
 
 		// host_processes is costly, maybe we should disable default
 		"host_processes",

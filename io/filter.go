@@ -6,9 +6,7 @@
 package io
 
 import (
-
-	// nolint:gosec
-	"crypto/md5"
+	"crypto/md5" // nolint:gosec
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -25,13 +23,12 @@ import (
 )
 
 var (
-	l         = logger.DefaultSLogger("filter")
-	isStarted = false
+	l            = logger.DefaultSLogger("filter")
+	isStarted    = false
+	pullInterval = time.Second * 30
 )
 
 func newFilter(dw IDataway) *filter {
-	pullInterval := time.Second * 10
-
 	return &filter{
 		conditions: map[string]parser.WhereConditions{},
 		dw:         dw,
@@ -62,7 +59,7 @@ type datawayImpl struct{}
 func (dw *datawayImpl) Pull() ([]byte, error) {
 	if len(defaultIO.conf.Filters) != 0 {
 		// read local filters
-		return json.Marshal(&filterPull{Filters: defaultIO.conf.Filters, PullInterval: time.Second * 10})
+		return json.Marshal(&filterPull{Filters: defaultIO.conf.Filters, PullInterval: pullInterval})
 	} else {
 		// pull filters remotely
 		return defaultIO.dw.DatakitPull("filters=true")
@@ -96,6 +93,44 @@ func dump(rules []byte, dir string) error {
 	return ioutil.WriteFile(filepath.Join(dir, ".pull"), rules, os.ModePerm)
 }
 
+func (f *filter) update(body []byte, dumpdir string) error {
+	bodymd5 := fmt.Sprintf("%x", md5.Sum(body)) //nolint:gosec
+	if bodymd5 == f.md5 {
+		return nil
+	}
+
+	// try update conditions
+	var fp filterPull
+	if err := json.Unmarshal(body, &fp); err != nil {
+		l.Error("json.Unmarshal: %s", err)
+		f.stats.LastErr = err.Error()
+		f.stats.LastErrTime = time.Now()
+		return err
+	}
+
+	if fp.PullInterval > 0 && f.pullInterval != fp.PullInterval {
+		l.Infof("set pull interval from %s to %s", f.pullInterval, fp.PullInterval)
+		f.pullInterval = fp.PullInterval
+		f.stats.PullInterval = fp.PullInterval
+		f.tick.Reset(f.pullInterval)
+	}
+
+	f.md5 = bodymd5
+	// Clear old conditions: we update all conditions if any changed(new/delete
+	// conditons or update old conditions)
+	f.conditions = map[string]parser.WhereConditions{}
+	for k, v := range fp.Filters {
+		for _, condition := range v {
+			f.conditions[k] = append(f.conditions[k], parser.GetConds(condition)...)
+		}
+	}
+
+	if err := dump(body, dumpdir); err != nil {
+		l.Warnf("dump: %s, ignored", err)
+	}
+	return nil
+}
+
 func (f *filter) pull() {
 	start := time.Now()
 
@@ -107,6 +142,7 @@ func (f *filter) pull() {
 		f.RWMutex.Lock()
 		defer f.RWMutex.Unlock()
 		f.stats.PullFailed++
+		f.stats.LastUpdate = start
 		f.stats.LastErr = err.Error()
 		f.stats.LastErrTime = time.Now()
 		return
@@ -117,44 +153,17 @@ func (f *filter) pull() {
 
 	f.RWMutex.Lock()
 	defer f.RWMutex.Unlock()
+
 	f.stats.PullCount++
+	f.stats.LastUpdate = start
 	f.stats.PullCost += cost
 	f.stats.PullCostAvg = f.stats.PullCost / time.Duration(f.stats.PullCount)
 	if cost > f.stats.PullCostMax {
 		f.stats.PullCostMax = cost
 	}
 
-	bodymd5 := fmt.Sprintf("%x", md5.Sum(body)) //nolint:gosec
-	if bodymd5 != f.md5 {                       // try update conditions
-		var fp filterPull
-		if err := json.Unmarshal(body, &fp); err != nil {
-			l.Error("json.Unmarshal: %s", err)
-			f.stats.LastErr = err.Error()
-			f.stats.LastErrTime = time.Now()
-			return
-		}
-
-		f.stats.LastUpdate = start
-
-		if fp.PullInterval > 0 && f.pullInterval != fp.PullInterval {
-			f.pullInterval = fp.PullInterval
-			f.stats.PullInterval = fp.PullInterval
-			f.tick.Reset(f.pullInterval)
-		}
-
-		f.md5 = bodymd5
-		// clear old conditions: we update all conditions if any changed(new/delete
-		// conditons or update old conditions)
-		f.conditions = map[string]parser.WhereConditions{}
-		for k, v := range fp.Filters {
-			for _, condition := range v {
-				f.conditions[k] = append(f.conditions[k], parser.GetConds(condition)...)
-			}
-		}
-
-		if err := dump(body, datakit.DataDir); err != nil {
-			l.Warnf("dump: %s, ignored", err)
-		}
+	if err := f.update(body, datakit.DataDir); err != nil {
+		l.Warnf("update filters failed: %s, ignored", err)
 	}
 }
 
@@ -383,9 +392,9 @@ func (f *filter) filterSecurity(cond parser.WhereConditions, pts []*point.Point)
 }
 
 // using measurement name as tag `service'.
-func (f *filter) filterProfile(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
+func (f *filter) filterProfiling(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
 	if cond == nil {
-		l.Debugf("no condition filter for profile")
+		l.Debugf("no condition filter for profiling")
 		return pts
 	}
 
@@ -434,7 +443,7 @@ func (f *filter) doFilter(category string, pts []*point.Point) ([]*point.Point, 
 		return f.filterKeyEvent(f.conditions["keyevent"], pts), len(f.conditions["keyevent"])
 
 	case datakit.CustomObject:
-		return f.filterCustomObject(f.conditions["customobject"], pts), len(f.conditions["customobject"])
+		return f.filterCustomObject(f.conditions["custom_object"], pts), len(f.conditions["custom_object"])
 
 	case datakit.RUM:
 		return f.filterRUM(f.conditions["rum"], pts), len(f.conditions["rum"])
@@ -442,8 +451,8 @@ func (f *filter) doFilter(category string, pts []*point.Point) ([]*point.Point, 
 	case datakit.Security:
 		return f.filterSecurity(f.conditions["security"], pts), len(f.conditions["security"])
 
-	case datakit.Profile:
-		return f.filterProfile(f.conditions["profile"], pts), len(f.conditions["profile"])
+	case datakit.Profiling:
+		return f.filterProfiling(f.conditions["profiling"], pts), len(f.conditions["profiling"])
 
 	default: // TODO: not implemented
 		l.Warn("unsupport category: %s", category)
@@ -488,13 +497,22 @@ func GetFilterStats() *FilterStats {
 	q := &qstats{
 		ch: make(chan *FilterStats),
 	}
+
 	tick := time.NewTicker(time.Second)
-	defaultFilter.qch <- q
+	defer tick.Stop()
+
+	select {
+	case defaultFilter.qch <- q:
+	case <-tick.C:
+		l.Warnf("query failed, filter busy")
+		return nil
+	}
 
 	select {
 	case s := <-q.ch:
 		return s
 	case <-tick.C:
+		l.Warnf("filter timeout")
 		return nil
 	}
 }
@@ -580,7 +598,7 @@ func (f *filter) start() {
 	defer defaultFilter.tick.Stop()
 
 	if len(defaultIO.conf.Filters) != 0 {
-		f.stats.RuleSource = "datakit.conf"
+		f.stats.RuleSource = datakit.StrDefaultConfFile
 	} else {
 		f.stats.RuleSource = "remote"
 	}
@@ -588,12 +606,16 @@ func (f *filter) start() {
 	for {
 		select {
 		case <-defaultFilter.tick.C:
+			l.Debugf("try pull remote filters...")
 			defaultFilter.pull()
 
 		case m := <-defaultFilter.metricCh:
+			l.Debugf("update metrics...")
 			f.updateMetric(m)
 
 		case q := <-defaultFilter.qch:
+			l.Debugf("accept stats query...")
+
 			select {
 			case <-q.ch:
 			case q.ch <- copyStats(defaultFilter.stats):

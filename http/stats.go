@@ -300,25 +300,41 @@ func GetStats() (*DatakitStats, error) {
 	}
 
 	stats := &DatakitStats{
-		Version:        datakit.Version,
-		BuildAt:        git.BuildAt,
-		Branch:         git.Branch,
-		Uptime:         fmt.Sprintf("%v", now.Sub(uptime)),
-		OSArch:         fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		WithinDocker:   datakit.Docker,
-		IOStats:        io.GetIOStats(),
-		PLStats:        plstats.ReadStats(),
-		Elected:        fmt.Sprintf("%s::%s|%s", ns, elected, who),
-		Cgroup:         cgroup.Info(),
-		AutoUpdate:     datakit.AutoUpdate,
-		GoroutineStats: goroutine.GetStat(),
-		HostName:       datakit.DatakitHostName,
-		EnabledInputs:  map[string]*enabledInput{},
-		HTTPMetrics:    getMetrics(),
-		GolangRuntime:  getRuntimeInfo(),
-		FilterStats:    io.GetFilterStats(),
-		OpenFiles:      datakit.OpenFiles(),
+		Version:       datakit.Version,
+		BuildAt:       git.BuildAt,
+		Branch:        git.Branch,
+		Uptime:        fmt.Sprintf("%v", now.Sub(uptime)),
+		OSArch:        fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		WithinDocker:  datakit.Docker,
+		Elected:       fmt.Sprintf("%s::%s|%s", ns, elected, who),
+		AutoUpdate:    datakit.AutoUpdate,
+		HostName:      datakit.DatakitHostName,
+		EnabledInputs: map[string]*enabledInput{},
 	}
+
+	l.Debugf("io.GetStats()...")
+	stats.IOStats = io.GetIOStats()
+
+	l.Debugf("plstats.ReadStats()...")
+	stats.PLStats = plstats.ReadStats()
+
+	l.Debugf("cgroup.Info()...")
+	stats.Cgroup = cgroup.Info()
+
+	l.Debugf("goroutine.GetStat()...")
+	stats.GoroutineStats = goroutine.GetStat()
+
+	l.Debugf("http.getMetrics()...")
+	stats.HTTPMetrics = getMetrics()
+
+	l.Debugf("getRuntimeInfo()...")
+	stats.GolangRuntime = getRuntimeInfo()
+
+	l.Debugf("io.GetFilterStats()...")
+	stats.FilterStats = io.GetFilterStats()
+
+	l.Debugf("OpenFiles()...")
+	stats.OpenFiles = datakit.OpenFiles()
 
 	var err error
 

@@ -44,6 +44,7 @@ make || exit -1
 echo 'export to all docs...'
 $datakit doc \
 	--export-docs $tmp_doc_dir \
+	--log stdout \
 	--ignore demo \
 	--version "${man_version}" \
 	--TODO "-"
@@ -60,6 +61,7 @@ datakit_docs=(
   # 这些文档需发布在 Datakit 文档库中
   man/manuals/aliyun-access.md
   man/manuals/integrations-to-dk-howto.md
+  man/manuals/mkdocs-howto.md
 
   $tmp_doc_dir/apis.md
   $tmp_doc_dir/changelog.md
@@ -83,13 +85,13 @@ datakit_docs=(
   $tmp_doc_dir/datakit-sink-logstash.md
   $tmp_doc_dir/datakit-sink-m3db.md
   $tmp_doc_dir/datakit-sink-otel-jaeger.md
+  $tmp_doc_dir/datakit-sink-dataway.md
   $tmp_doc_dir/datakit-tools-how-to.md
   $tmp_doc_dir/datakit-update.md
   $tmp_doc_dir/dca.md
   $tmp_doc_dir/development.md
   $tmp_doc_dir/election.md
   $tmp_doc_dir/git-config-how-to.md
-  $tmp_doc_dir/kubernetes-crd.md
   $tmp_doc_dir/logging-pipeline-bench.md
   $tmp_doc_dir/pipeline.md
   $tmp_doc_dir/proxy.md
@@ -116,7 +118,6 @@ integrations_files_from_datakit=(
   $tmp_doc_dir/datakit-tracing-struct.md
   $tmp_doc_dir/datakit-tracing.md
   $tmp_doc_dir/ddtrace-cpp.md
-  $tmp_doc_dir/ddtrace-csharp.md
   $tmp_doc_dir/ddtrace-golang.md
   $tmp_doc_dir/ddtrace-java.md
   $tmp_doc_dir/ddtrace-nodejs.md
@@ -143,6 +144,7 @@ integrations_files_from_datakit=(
   $tmp_doc_dir/jvm.md
   $tmp_doc_dir/k8s-config-how-to.md
   $tmp_doc_dir/kafka.md
+  $tmp_doc_dir/kubernetes-crd.md
   $tmp_doc_dir/kubernetes-prom.md
   $tmp_doc_dir/kubernetes-x.md
   $tmp_doc_dir/logfwd.md

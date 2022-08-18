@@ -2,10 +2,6 @@
 # DataKit DaemonSet 部署最佳实践
 ---
 
-- DataKit 版本：{{.Version}}
-
-## 背景介绍
-
 由于 [Datakit DaemonSet](../datakit/datakit-daemonset-deploy.md) 配置管理非常复杂，此篇文章将介绍配置管理最佳实践。本篇将以配置 MySQL 和 Java Pipeline 为演示案例。
 
 本篇将描述以下2种不同的管理方法:
