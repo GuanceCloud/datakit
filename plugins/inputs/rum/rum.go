@@ -438,22 +438,17 @@ func handleSourcemap(p influxm.Point, sdkName string, input *Input) error {
 						}
 					}
 				}
-
 				if ok {
 					errorStackSource := getSourcemap(errStackStr, sourcemapCache[zipFile])
 					errorStackSourceBase64 := base64.StdEncoding.EncodeToString([]byte(errorStackSource)) // tag cannot have '\n'
 					p.AddTag("error_stack_source_base64", errorStackSourceBase64)
 				}
-
 			case SdkAndroid:
-
 				errorType := p.Tags().GetString("error_type")
-
 				if errorType == JavaCrash {
 					if err := uncompressZipFile(zipFileAbsPath); err != nil {
 						return fmt.Errorf("uncompress zip file fail: %w", err)
 					}
-
 					mappingFile := filepath.Join(zipFileAbsDir, "mapping.txt")
 					if !path.IsFileExists(mappingFile) {
 						return fmt.Errorf("java source mapping file not exists")
@@ -492,6 +487,10 @@ func handleSourcemap(p influxm.Point, sdkName string, input *Input) error {
 						}
 						return fmt.Errorf("run proguard retrace fail: %w", err)
 					}
+					originStack = bytes.TrimLeft(originStack, "Waiting for stack-trace input...")
+					originStack = bytes.TrimLeftFunc(originStack, func(r rune) bool {
+						return r == '\r' || r == '\n'
+					})
 					originStackB64 := base64.StdEncoding.EncodeToString(originStack)
 					p.AddTag("error_stack_source_base64", originStackB64)
 				} else if errorType == NativeCrash {
