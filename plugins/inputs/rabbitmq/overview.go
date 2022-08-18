@@ -65,23 +65,25 @@ func getOverview(n *Input) {
 		"queue_totals_messages_unacknowledged_rate":  overview.QueueTotals.MessagesUnacknowledgedDetail.Rate,
 	}
 	metric := &OverviewMeasurement{
-		name:   OverviewMetric,
-		tags:   tags,
-		fields: fields,
-		ts:     ts,
+		name:     OverviewMetric,
+		tags:     tags,
+		fields:   fields,
+		ts:       ts,
+		election: n.Election,
 	}
 	metricAppend(metric)
 }
 
 type OverviewMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	election bool
 }
 
 func (m *OverviewMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll

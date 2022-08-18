@@ -52,7 +52,7 @@ func (p *pod) pullItems() error {
 	return nil
 }
 
-func (p *pod) metric() (inputsMeas, error) {
+func (p *pod) metric(election bool) (inputsMeas, error) {
 	if err := p.pullItems(); err != nil {
 		return nil, err
 	}
@@ -79,6 +79,7 @@ func (p *pod) metric() (inputsMeas, error) {
 				// "volumes_persistentvolumeclaims_readonly": 0,
 				// "unschedulable": 0,
 			},
+			election: election,
 		}
 
 		containerReadyCount := 0
@@ -106,8 +107,9 @@ func (p *pod) metric() (inputsMeas, error) {
 	count, _ := p.count()
 	for ns, c := range count {
 		met := &podMetric{
-			tags:   map[string]string{"namespace": ns},
-			fields: map[string]interface{}{"count": c},
+			tags:     map[string]string{"namespace": ns},
+			fields:   map[string]interface{}{"count": c},
+			election: election,
 		}
 		met.tags.append(p.extraTags)
 		res = append(res, met)
@@ -133,7 +135,7 @@ func (p *pod) count() (map[string]int, error) {
 	return m, nil
 }
 
-func (p *pod) object() (inputsMeas, error) {
+func (p *pod) object(election bool) (inputsMeas, error) {
 	if err := p.pullItems(); err != nil {
 		return nil, err
 	}
@@ -159,6 +161,7 @@ func (p *pod) object() (inputsMeas, error) {
 				"availale":    len(item.Status.ContainerStatuses),
 				"create_time": item.CreationTimestamp.Time.UnixNano() / int64(time.Millisecond),
 			},
+			election: election,
 		}
 
 		if y, err := yaml.Marshal(item); err != nil {
@@ -262,12 +265,13 @@ func (item *podMeta) replicaSet() string {
 }
 
 type podMetric struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (p *podMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_pod", p.tags, p.fields, point.MOptElection())
+	return point.NewPoint("kube_pod", p.tags, p.fields, point.MOptElectionV2(p.election))
 }
 
 //nolint:lll
@@ -291,12 +295,13 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 }
 
 type podObject struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (p *podObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubelet_pod", p.tags, p.fields, point.OOptElection())
+	return point.NewPoint("kubelet_pod", p.tags, p.fields, point.OOptElectionV2(p.election))
 }
 
 //nolint:lll

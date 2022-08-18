@@ -29,6 +29,7 @@ type kubernetesInputConfig struct {
 
 	enablePodMetric bool
 	enableK8sMetric bool
+	election        bool
 }
 
 func newKubernetesInput(cfg *kubernetesInputConfig) (*kubernetesInput, error) {
@@ -61,7 +62,7 @@ func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 	for _, fn := range k8sResourceMetricList {
 		x := fn(k.client, k.cfg.extraTags)
 
-		if m, err := x.metric(); err != nil {
+		if m, err := x.metric(k.cfg.election); err != nil {
 			lastErr = err
 		} else {
 			switch x.name() {
@@ -91,8 +92,9 @@ func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 
 	for ns, ct := range counts {
 		count := &count{
-			tags:   map[string]string{"namespace": ns},
-			fields: map[string]interface{}{},
+			tags:     map[string]string{"namespace": ns},
+			fields:   map[string]interface{}{},
+			election: k.cfg.election,
 		}
 
 		for name, n := range ct {
@@ -112,7 +114,7 @@ func (k *kubernetesInput) gatherResourceObject() (inputsMeas, error) {
 
 	for _, fn := range k8sResourceObjectList {
 		x := fn(k.client, k.cfg.extraTags)
-		if m, err := x.object(); err == nil {
+		if m, err := x.object(k.cfg.election); err == nil {
 			res = append(res, m...)
 		} else {
 			lastErr = err
@@ -123,27 +125,28 @@ func (k *kubernetesInput) gatherResourceObject() (inputsMeas, error) {
 }
 
 func (k *kubernetesInput) watchingEventLog(stop <-chan interface{}) {
-	watchingEvent(k.client, k.cfg.extraTags, stop)
+	watchingEvent(k.client, k.cfg.extraTags, stop, k.cfg.election)
 }
 
 type k8sResourceMetricInterface interface {
 	name() string
-	metric() (inputsMeas, error)
+	metric(election bool) (inputsMeas, error)
 	count() (map[string]int, error)
 }
 
 type k8sResourceObjectInterface interface {
 	name() string
-	object() (inputsMeas, error)
+	object(election bool) (inputsMeas, error)
 }
 
 type count struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (c *count) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes", c.tags, c.fields, point.MOptElection())
+	return point.NewPoint("kubernetes", c.tags, c.fields, point.MOptElectionV2(c.election))
 }
 
 //nolint:lll

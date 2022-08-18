@@ -48,6 +48,9 @@ const (
     ## datakit can listen to gitlab ci data at /v1/gitlab when enabled
     enable_ci_visibility = true
 
+    ## Set true to enable election
+    election = true
+
     ## extra tags for gitlab-ci data.
     ## these tags will not overwrite existing tags.
     [inputs.gitlab.ci_extra_tags]
@@ -61,12 +64,6 @@ const (
 `
 )
 
-func init() { //nolint:gochecknoinits
-	inputs.Add(inputName, func() inputs.Input {
-		return newInput()
-	})
-}
-
 type Input struct {
 	EnableCollect bool              `toml:"enable_collect"`
 	URL           string            `toml:"prometheus_url"`
@@ -79,8 +76,9 @@ type Input struct {
 	httpClient *http.Client
 	duration   time.Duration
 
-	pause   bool
-	pauseCh chan bool
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
 
 	semStop *cliutils.Sem // start stop signal
 	reqMemo requestMemo
@@ -89,6 +87,10 @@ type Input struct {
 	feed func(name, category string, pts []*point.Point, opt *iod.Option) error
 
 	feedLastError func(inputName string, err string)
+}
+
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
 func (ipt *Input) RegHTTPHandler() {
@@ -107,6 +109,7 @@ func newInput() *Input {
 		EnableCollect: true,
 		Tags:          make(map[string]string),
 		pauseCh:       make(chan bool, maxPauseCh),
+		Election:      true,
 		duration:      time.Second * 10,
 		httpClient:    &http.Client{Timeout: 5 * time.Second},
 
@@ -242,7 +245,7 @@ func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
 			m.tags[k] = v
 		}
 
-		point, err := point.NewPoint(measurement, m.tags, m.fields, point.MOpt())
+		point, err := point.NewPoint(measurement, m.tags, m.fields, point.MOptElectionV2(ipt.Election))
 		if err != nil {
 			l.Warn(err)
 			continue
@@ -267,4 +270,10 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&gitlabPipelineMeasurement{},
 		&gitlabJobMeasurement{},
 	}
+}
+
+func init() { //nolint:gochecknoinits
+	inputs.Add(inputName, func() inputs.Input {
+		return newInput()
+	})
 }

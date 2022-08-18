@@ -59,24 +59,26 @@ func getExchange(n *Input) {
 			"message_return_unroutable_count_rate": exchange.MessageStats.ReturnUnroutableDetails.Rate,
 		}
 		metric := &ExchangeMeasurement{
-			name:   ExchangeMetric,
-			tags:   tags,
-			fields: fields,
-			ts:     ts,
+			name:     ExchangeMetric,
+			tags:     tags,
+			fields:   fields,
+			ts:       ts,
+			election: n.Election,
 		}
 		metricAppend(metric)
 	}
 }
 
 type ExchangeMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	election bool
 }
 
 func (m *ExchangeMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll

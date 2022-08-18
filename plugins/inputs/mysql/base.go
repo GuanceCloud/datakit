@@ -11,16 +11,17 @@ import (
 )
 
 type baseMeasurement struct {
-	i       *Input
-	name    string
-	tags    map[string]string
-	fields  map[string]interface{}
-	resData map[string]interface{}
+	i        *Input
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	resData  map[string]interface{}
+	election bool
 }
 
 // 生成行协议.
 func (m *baseMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 // 指定指标.

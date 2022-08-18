@@ -15,13 +15,14 @@ type dbmMetric struct {
 }
 
 type dbmStateMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
 }
 
 func (m *dbmStateMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
 }
 
 func (m *dbmStateMeasurement) Info() *inputs.MeasurementInfo {

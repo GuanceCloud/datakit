@@ -31,6 +31,9 @@ const (
   ## Use TLS but skip chain & host verification
   insecure_skip_verify = false
 
+  ## Set true to enable election
+  election = true
+
   # [inputs.apache.log]
   # files = []
   # #grok pipeline script path

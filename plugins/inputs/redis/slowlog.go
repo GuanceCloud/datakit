@@ -27,10 +27,11 @@ type slowlogMeasurement struct {
 	fields        map[string]interface{}
 	ts            time.Time
 	slowlogMaxLen int
+	election      bool
 }
 
 func (m *slowlogMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -104,6 +105,8 @@ func (i *Input) getSlowData() error {
 		fields: make(map[string]interface{}),
 
 		slowlogMaxLen: i.SlowlogMaxLen,
+
+		election: i.Election,
 	}
 
 	var pts []*point.Point

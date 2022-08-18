@@ -15,15 +15,16 @@ import (
 )
 
 type commandMeasurement struct {
-	name    string
-	tags    map[string]string
-	fields  map[string]interface{}
-	ts      time.Time
-	resData map[string]interface{}
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	resData  map[string]interface{}
+	election bool
 }
 
 func (m *commandMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -80,10 +81,11 @@ func (i *Input) parseCommandData(list string) ([]inputs.Measurement, error) {
 		}
 
 		m := &commandMeasurement{
-			name:    "redis_command_stat",
-			tags:    make(map[string]string),
-			fields:  make(map[string]interface{}),
-			resData: make(map[string]interface{}),
+			name:     "redis_command_stat",
+			tags:     make(map[string]string),
+			fields:   make(map[string]interface{}),
+			resData:  make(map[string]interface{}),
+			election: i.Election,
 		}
 
 		for key, value := range i.Tags {

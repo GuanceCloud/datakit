@@ -29,7 +29,7 @@ func TestStatsPoint(t *testing.T) {
 		`nsq_topics,channel=chan-E,t_key=t_value,topic=topic-D backend_depth=0i,deferred_count=0i,depth=51i,in_flight_count=0i,message_count=0i,requeue_count=0i,timeout_count=0i`,
 	}
 
-	st := newStats()
+	st := newStats(false)
 	for _, body := range bodyCases {
 		err := st.add("testhost", []byte(body))
 		assert.NoError(t, err)

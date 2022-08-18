@@ -54,6 +54,9 @@ const sampleCfg = `
   # tls_cert = "/tmp/peer.crt"
   # tls_key = "/tmp/peer.key"
 
+  ## 设置为 true 以开启选举功能
+  election = true
+
   # 过滤 tags, 可配置多个tag
   # 匹配的 tag 将被忽略，但对应的数据仍然会上报上来
   # tags_ignore = ["xxxx"]

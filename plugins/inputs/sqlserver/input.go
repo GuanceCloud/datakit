@@ -28,6 +28,10 @@ import (
 
 var _ inputs.ElectionInput = (*Input)(nil)
 
+func (n *Input) ElectionEnabled() bool {
+	return n.Election
+}
+
 func (n *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
@@ -309,7 +313,7 @@ func (n *Input) handRow(query string, ts time.Time) {
 			continue
 		}
 
-		point, err := point.NewPoint(measurement, tags, fields, point.MOptElection())
+		point, err := point.NewPoint(measurement, tags, fields, point.MOptElectionV2(n.Election))
 		if err != nil {
 			l.Errorf("make point err:%s", err.Error())
 			n.lastErr = err
@@ -359,6 +363,7 @@ func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval:    datakit.Duration{Duration: time.Second * 10},
+			Election:    true,
 			pauseCh:     make(chan bool, inputs.ElectionPauseChannelLength),
 			semStop:     cliutils.NewSem(),
 			dbFilterMap: make(map[string]struct{}, 0),

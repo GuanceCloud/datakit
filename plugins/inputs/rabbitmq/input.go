@@ -29,6 +29,10 @@ func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) PipelineConfig() map[string]string { return map[string]string{"rabbitmq": pipelineCfg} }
 
+func (n *Input) ElectionEnabled() bool {
+	return n.Election
+}
+
 //nolint:lll
 func (n *Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
@@ -203,6 +207,7 @@ func init() { //nolint:gochecknoinits
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
 			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+			Election: true,
 
 			semStop: cliutils.NewSem(),
 		}
