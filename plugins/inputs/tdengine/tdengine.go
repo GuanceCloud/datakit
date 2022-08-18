@@ -48,9 +48,10 @@ type tdEngine struct {
 	basic    string
 	stop     chan struct{}
 	upstream bool
+	election bool
 }
 
-func newTDEngine(user, pw, adapter string) *tdEngine {
+func newTDEngine(user, pw, adapter string, election bool) *tdEngine {
 	if !strings.HasPrefix(adapter, "http://") && !strings.HasPrefix(adapter, "https://") {
 		adapter = "http://" + adapter
 	}
@@ -61,6 +62,7 @@ func newTDEngine(user, pw, adapter string) *tdEngine {
 		basic:    UserToBase64(user, pw),
 		stop:     make(chan struct{}, 1),
 		upstream: true,
+		election: election,
 	}
 }
 
@@ -86,8 +88,9 @@ func (t *tdEngine) getSTablesNum() []inputs.Measurement {
 				"database_name": databases[i].name,
 				"created_time":  databases[i].creatTime,
 			},
-			fields: map[string]interface{}{},
-			ts:     time.Now(),
+			fields:   map[string]interface{}{},
+			ts:       time.Now(),
+			election: t.election,
 		}
 		sql := "show " + databases[i].name + ".stables"
 		body, err := query(t.adapter, t.basic, "", []byte(sql))
@@ -131,9 +134,9 @@ func (t *tdEngine) run() {
 						continue
 					}
 					if sql.plugInFun != nil {
-						msmC <- sql.plugInFun.resToMeasurement(metric.metricName, res, sql)
+						msmC <- sql.plugInFun.resToMeasurement(metric.metricName, res, sql, t.election)
 					} else {
-						msmC <- makeMeasurements(metric.metricName, res, sql)
+						msmC <- makeMeasurements(metric.metricName, res, sql, t.election)
 					}
 				}
 			}
@@ -247,7 +250,7 @@ func query(url string, basicAuth, token string, reqBody []byte) ([]byte, error) 
 	return body, nil
 }
 
-func makeMeasurements(subMetricName string, res restResult, sql selectSQL) (measurements []inputs.Measurement) {
+func makeMeasurements(subMetricName string, res restResult, sql selectSQL, election bool) (measurements []inputs.Measurement) {
 	measurements = make([]inputs.Measurement, 0, res.Rows)
 	if len(res.Data) == 0 {
 		return
@@ -255,9 +258,10 @@ func makeMeasurements(subMetricName string, res restResult, sql selectSQL) (meas
 
 	for i := 0; i < len(res.Data); i++ {
 		msm := &Measurement{
-			tags:   make(map[string]string),
-			fields: make(map[string]interface{}),
-			ts:     time.Time{},
+			tags:     make(map[string]string),
+			fields:   make(map[string]interface{}),
+			ts:       time.Time{},
+			election: election,
 		}
 		for j := 0; j < len(res.Data[i]); j++ {
 			name := res.ColumnMeta[j][0].(string)

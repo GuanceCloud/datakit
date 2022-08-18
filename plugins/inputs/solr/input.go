@@ -48,6 +48,9 @@ var (
   # username = "username"
   # password = "pa$$word"
 
+  ## Set true to enable election
+  election = true
+
   # [inputs.solr.log]
   # files = []
   # #grok pipeline script path
@@ -94,10 +97,15 @@ type Input struct {
 	gatherData   GatherData
 	m            sync.Mutex
 
-	pause   bool
-	pauseCh chan bool
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
 }
 
 func (i *Input) appendM(m inputs.Measurement) {
@@ -293,10 +301,11 @@ func (i *Input) Collect() error {
 				// append searcher stats
 				if len(fieldSearcher) > 0 {
 					i.appendM(&SolrSearcher{
-						fields: fieldSearcher,
-						tags:   tagsSearcher,
-						name:   metricNameSearcher,
-						ts:     ts,
+						fields:   fieldSearcher,
+						tags:     tagsSearcher,
+						name:     metricNameSearcher,
+						ts:       ts,
+						election: i.Election,
 					})
 				}
 			}
@@ -335,6 +344,7 @@ func init() { //nolint:gochecknoinits
 			Interval:    datakit.Duration{Duration: time.Second * 10},
 			gatherData:  gatherDataFunc,
 			pauseCh:     make(chan bool, inputs.ElectionPauseChannelLength),
+			Election:    true,
 
 			semStop: cliutils.NewSem(),
 		}

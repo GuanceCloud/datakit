@@ -51,7 +51,7 @@ func (c *clusterRole) pullItems() error {
 	return nil
 }
 
-func (c *clusterRole) metric() (inputsMeas, error) {
+func (c *clusterRole) metric(election bool) (inputsMeas, error) {
 	return nil, nil
 }
 
@@ -72,7 +72,7 @@ func (c *clusterRole) count() (map[string]int, error) {
 	return m, nil
 }
 
-func (c *clusterRole) object() (inputsMeas, error) {
+func (c *clusterRole) object(election bool) (inputsMeas, error) {
 	if err := c.pullItems(); err != nil {
 		return nil, err
 	}
@@ -90,6 +90,7 @@ func (c *clusterRole) object() (inputsMeas, error) {
 				"age":         int64(time.Since(item.CreationTimestamp.Time).Seconds()),
 				"create_time": item.CreationTimestamp.Time.Unix() / int64(time.Millisecond),
 			},
+			election: election,
 		}
 
 		obj.tags.append(c.extraTags)
@@ -106,12 +107,13 @@ func (c *clusterRole) object() (inputsMeas, error) {
 }
 
 type clusterRoleObject struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (c *clusterRoleObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_cluster_roles", c.tags, c.fields, point.MOptElection())
+	return point.NewPoint("kubernetes_cluster_roles", c.tags, c.fields, point.MOptElectionV2(c.election))
 }
 
 //nolint:lll

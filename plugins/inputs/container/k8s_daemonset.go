@@ -47,7 +47,7 @@ func (d *daemonset) pullItems() error {
 	return nil
 }
 
-func (d *daemonset) metric() (inputsMeas, error) {
+func (d *daemonset) metric(election bool) (inputsMeas, error) {
 	if err := d.pullItems(); err != nil {
 		return nil, err
 	}
@@ -67,6 +67,7 @@ func (d *daemonset) metric() (inputsMeas, error) {
 				"updated":             item.Status.UpdatedNumberScheduled,
 				"daemons_unavailable": item.Status.NumberUnavailable,
 			},
+			election: election,
 		}
 		met.tags.append(d.extraTags)
 		res = append(res, met)
@@ -75,8 +76,9 @@ func (d *daemonset) metric() (inputsMeas, error) {
 	count, _ := d.count()
 	for ns, c := range count {
 		met := &daemonsetMetric{
-			tags:   map[string]string{"namespace": ns},
-			fields: map[string]interface{}{"count": c},
+			tags:     map[string]string{"namespace": ns},
+			fields:   map[string]interface{}{"count": c},
+			election: election,
 		}
 		met.tags.append(d.extraTags)
 		res = append(res, met)
@@ -102,12 +104,13 @@ func (d *daemonset) count() (map[string]int, error) {
 }
 
 type daemonsetMetric struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (d *daemonsetMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_daemonset", d.tags, d.fields, point.MOptElection())
+	return point.NewPoint("kube_daemonset", d.tags, d.fields, point.MOptElectionV2(d.election))
 }
 
 //nolint:lll

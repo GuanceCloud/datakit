@@ -22,6 +22,7 @@ type Server struct {
 	URL        *url.URL
 	Session    *mgo.Session
 	lastResult *MongoStatus
+	election   bool
 }
 
 func (s *Server) getDefaultTags() map[string]string {
@@ -311,7 +312,7 @@ func (s *Server) gatherData(gatherReplicaSetStats bool,
 			durationInSeconds = 1
 		}
 
-		data := NewMongodbData(NewStatLine(*s.lastResult, *result, s.URL.Host, true, durationInSeconds), s.getDefaultTags())
+		data := NewMongodbData(NewStatLine(*s.lastResult, *result, s.URL.Host, true, durationInSeconds), s.getDefaultTags(), s.election)
 		data.AddDefaultStats()
 		data.AddShardHostStats()
 		data.AddDBStats()

@@ -77,6 +77,41 @@ func NOptElection() *PointOption {
 	}
 }
 
+func MOptElectionV2(inputElectionEnabled bool) *PointOption {
+	if EnableElection && inputElectionEnabled {
+		return optMetricElection
+	}
+	return optMetric
+}
+
+func LOptElectionV2(inputElectionEnabled bool) *PointOption {
+	if EnableElection && inputElectionEnabled {
+		return optLoggingElection
+	}
+	return optLogging
+}
+
+func OOptElectionV2(inputElectionEnabled bool) *PointOption {
+	if EnableElection && inputElectionEnabled {
+		return optObjectElection
+	}
+	return optObject
+}
+
+func POptElectionV2(inputElectionEnabled bool) *PointOption {
+	if EnableElection && inputElectionEnabled {
+		return optProfilingElection
+	}
+	return optProfiling
+}
+
+func NOptElectionV2(inputElectionEnabled bool) *PointOption {
+	if EnableElection && inputElectionEnabled {
+		return optNetworkElection
+	}
+	return optNetwork
+}
+
 func LOpt() *PointOption { return optLogging }
 func MOpt() *PointOption { return optMetric }
 func NOpt() *PointOption { return optNetwork }

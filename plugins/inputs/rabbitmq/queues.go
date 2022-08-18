@@ -61,10 +61,11 @@ func getQueues(n *Input) {
 		}
 		fields["bindings_count"] = bindings
 		metric := &QueueMeasurement{
-			name:   QueueMetric,
-			tags:   tags,
-			fields: fields,
-			ts:     ts,
+			name:     QueueMetric,
+			tags:     tags,
+			fields:   fields,
+			ts:       ts,
+			election: n.Election,
 		}
 		metricAppend(metric)
 	}
@@ -81,14 +82,15 @@ func (n *Input) getBindingCount(vHost, queueName string) (int, error) {
 }
 
 type QueueMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	election bool
 }
 
 func (m *QueueMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll

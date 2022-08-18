@@ -43,24 +43,26 @@ func getNode(n *Input) {
 			"io_read_avg_time":  node.IoReadAvgTime,
 		}
 		metric := &NodeMeasurement{
-			name:   NodeMetric,
-			tags:   tags,
-			fields: fields,
-			ts:     ts,
+			name:     NodeMetric,
+			tags:     tags,
+			fields:   fields,
+			ts:       ts,
+			election: n.Election,
 		}
 		metricAppend(metric)
 	}
 }
 
 type NodeMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	election bool
 }
 
 func (m *NodeMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll

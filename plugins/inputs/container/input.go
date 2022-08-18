@@ -67,8 +67,9 @@ type Input struct {
 	containerdInput *containerdInput
 	k8sInput        *kubernetesInput
 
-	chPause chan bool
-	pause   bool
+	Election bool `toml:"election"`
+	chPause  chan bool
+	pause    bool
 }
 
 var (
@@ -84,6 +85,7 @@ func newInput() *Input {
 		Tags:                      make(map[string]string),
 		LoggingExtraSourceMap:     make(map[string]string),
 		LoggingSourceMultilineMap: make(map[string]string),
+		Election:                  true,
 		chPause:                   make(chan bool, maxPauseCh),
 		semStop:                   cliutils.NewSem(),
 	}
@@ -105,6 +107,10 @@ func (*Input) AvailableArchs() []string {
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return measurements
+}
+
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
 }
 
 func (i *Input) Run() {
@@ -421,6 +427,7 @@ func (i *Input) setup() bool {
 				extraTags:         i.Tags,
 				enablePodMetric:   i.EnablePodMetric,
 				enableK8sMetric:   i.EnableK8sMetric,
+				election:          i.Election,
 			}); err != nil {
 				l.Errorf("create k8s input err: %s", err)
 				continue

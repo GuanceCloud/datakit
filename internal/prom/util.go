@@ -331,7 +331,7 @@ func (p *Prom) doText2Metrics(in io.Reader) (pts []*point.Point, lastErr error) 
 				tags := p.getTags(m.GetLabel(), measurementName)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElection())
+					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
 					if err != nil {
 						lastErr = err
 					} else {
@@ -350,7 +350,7 @@ func (p *Prom) doText2Metrics(in io.Reader) (pts []*point.Point, lastErr error) 
 				tags := p.getTags(m.GetLabel(), measurementName)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElection())
+					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
 					if err != nil {
 						lastErr = err
 					} else {
@@ -367,7 +367,7 @@ func (p *Prom) doText2Metrics(in io.Reader) (pts []*point.Point, lastErr error) 
 					tags["quantile"] = fmt.Sprint(q.GetQuantile())
 
 					if !p.tagKVMatched(tags) {
-						pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElection())
+						pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
 						if err != nil {
 							lastErr = err
 						} else {
@@ -387,7 +387,7 @@ func (p *Prom) doText2Metrics(in io.Reader) (pts []*point.Point, lastErr error) 
 				tags := p.getTags(m.GetLabel(), measurementName)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElection())
+					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
 					if err != nil {
 						lastErr = err
 					} else {
@@ -404,7 +404,7 @@ func (p *Prom) doText2Metrics(in io.Reader) (pts []*point.Point, lastErr error) 
 					tags["le"] = fmt.Sprint(b.GetUpperBound())
 
 					if !p.tagKVMatched(tags) {
-						pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElection())
+						pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
 						if err != nil {
 							lastErr = err
 						} else {

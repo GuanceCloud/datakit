@@ -71,8 +71,9 @@ type Input struct {
 
 	pm *iprom.Prom
 
-	chPause chan bool
-	pause   bool
+	Election bool `toml:"election"`
+	chPause  chan bool
+	pause    bool
 
 	urls []*url.URL
 
@@ -98,6 +99,10 @@ func (i *Input) SetTags(m map[string]string) {
 			i.Tags[k] = v
 		}
 	}
+}
+
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
 }
 
 func (i *Input) Run() {
@@ -302,6 +307,8 @@ func (i *Input) Init() error {
 		Output:      i.Output,
 		MaxFileSize: i.MaxFileSize,
 		Auth:        i.Auth,
+
+		Election: i.Election,
 	}
 
 	pm, err := iprom.NewProm(opt)
@@ -406,6 +413,7 @@ func NewProm() *Input {
 		MaxFileSize: defaultMaxFileSize,
 		Source:      "prom",
 		Interval:    "30s",
+		Election:    true,
 
 		semStop: cliutils.NewSem(),
 	}

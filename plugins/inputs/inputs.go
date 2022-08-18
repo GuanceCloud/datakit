@@ -44,6 +44,12 @@ func GetElectionInputs() []ElectionInput {
 	for k, arr := range InputsInfo {
 		for _, x := range arr {
 			if y, ok := x.input.(ElectionInput); ok {
+				if z, ok := x.input.(ElectionEnabler); ok {
+					if !z.ElectionEnabled() {
+						l.Debugf("skip election disabled input: %s", k)
+						continue
+					}
+				}
 				l.Debugf("find election inputs %s", k)
 				res = append(res, y)
 			}
@@ -106,6 +112,10 @@ type InputV2 interface {
 type ElectionInput interface {
 	Pause() error
 	Resume() error
+}
+
+type ElectionEnabler interface {
+	ElectionEnabled() bool
 }
 
 type ReadEnv interface {

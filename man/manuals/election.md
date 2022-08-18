@@ -22,6 +22,10 @@
     
     开启选举后，如果同时开启 `enable_election_tag = true`（[:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)），则在选举类采集的数据上，自动加上 tag: `election_namespace = <your-namespace-name>`。
 
+    `conf.d/datakit.conf` 中开启选举后，在需要参加选举的采集器中配置 `election = true`（目前支持选举的采集器的配置文件中都带有 `election` 项）
+
+    注意：支持选举但配置为 `election = false` 的采集器不参与选举，其采集行为、tag 设置均不受选举影响；如果 datakit.conf 关闭选举，但采集器开启选举，其采集行为、tag 设置均与关闭选举相同。
+
 === "Kubernetes"
 
     参见[这里](datakit-daemonset-deploy.md#env-elect)
@@ -41,7 +45,7 @@
 
 === "datakit.conf"
 
-    如果开启了选举，那么这些采集到的数据，均会尝试追加 datakit.conf 中的 global-env-tag：
+    在 `conf.d/datakit.conf` 开启选举的条件下，开启了选举的采集器采集到的数据，均会尝试追加 datakit.conf 中的 global-env-tag：
     
     ```toml
     [global_election_tags]
@@ -88,7 +92,7 @@
 
 ### `host` 字段问题 {#host}
 
-在选举模式下，对于某个具体的被采集对象而言，比如 MySQL，由于采集其数据的 DataKit 可能会变迁（发生了选举轮换），故默认情况下，这类采集器不会带上 `host` 这个 tag，以避免时间线增长。我们建议在 MySQL 采集器配置上，增加额外的 `tags` 字段：
+对于由参与选举的采集器采集的对象，比如 MySQL，由于采集其数据的 DataKit 可能会变迁（发生了选举轮换），故默认情况下，这类采集器采集的数据不会带上 `host` 这个 tag，以避免时间线增长。我们建议在 MySQL 采集器配置上，增加额外的 `tags` 字段：
 
 ```toml
 [inputs.{{.InputName}}.tags]

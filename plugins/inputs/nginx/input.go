@@ -43,6 +43,9 @@ var (
 	# HTTP response timeout (default: 5s)
 	response_timeout = "20s"
 
+    ## Set true to enable election
+	election = true
+
 	[inputs.nginx.log]
 	#	files = ["/var/log/nginx/access.log","/var/log/nginx/error.log"]
 	#	# grok pipeline script path
@@ -87,6 +90,10 @@ nullif(upstream, "")
 default_time(time)
 `
 )
+
+func (n *Input) ElectionEnabled() bool {
+	return n.Election
+}
 
 func (*Input) SampleConfig() string {
 	return sample
@@ -323,6 +330,7 @@ func NewNginx() *Input {
 	return &Input{
 		Interval: datakit.Duration{Duration: time.Second * 10},
 		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		Election: true,
 
 		semStop: cliutils.NewSem(),
 	}

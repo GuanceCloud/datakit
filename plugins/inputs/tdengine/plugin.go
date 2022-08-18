@@ -18,7 +18,7 @@ tdPlugIn:
 最终返回 []inputs.Measurement.
 */
 type tdPlugIn interface {
-	resToMeasurement(subMetricName string, res restResult, sql selectSQL) []inputs.Measurement
+	resToMeasurement(subMetricName string, res restResult, sql selectSQL, election bool) []inputs.Measurement
 }
 
 func metricName(subMetricName, sqlTitle string) string {
@@ -31,7 +31,7 @@ func metricName(subMetricName, sqlTitle string) string {
 
 type tablesCount struct{}
 
-func (*tablesCount) resToMeasurement(subMetricName string, res restResult, sql selectSQL) []inputs.Measurement {
+func (*tablesCount) resToMeasurement(subMetricName string, res restResult, sql selectSQL, election bool) []inputs.Measurement {
 	// 获取 ntables index
 	var nodeIndex int
 	for i := 0; i < len(res.ColumnMeta); i++ {
@@ -64,7 +64,8 @@ func (*tablesCount) resToMeasurement(subMetricName string, res restResult, sql s
 		fields: map[string]interface{}{
 			"table_count": counts,
 		},
-		ts: time.Now(),
+		ts:       time.Now(),
+		election: election,
 	}
 	setGlobalTags(msm)
 	return []inputs.Measurement{msm}
@@ -72,7 +73,7 @@ func (*tablesCount) resToMeasurement(subMetricName string, res restResult, sql s
 
 type databaseCount struct{}
 
-func (*databaseCount) resToMeasurement(subMetricName string, res restResult, sql selectSQL) []inputs.Measurement {
+func (d *databaseCount) resToMeasurement(subMetricName string, res restResult, sql selectSQL, election bool) []inputs.Measurement {
 	counts := res.Rows
 	name := metricName(subMetricName, sql.title)
 	msm := &Measurement{
@@ -81,7 +82,8 @@ func (*databaseCount) resToMeasurement(subMetricName string, res restResult, sql
 		fields: map[string]interface{}{
 			"database_count": counts,
 		},
-		ts: time.Now(),
+		ts:       time.Now(),
+		election: election,
 	}
 	setGlobalTags(msm)
 	return []inputs.Measurement{msm}

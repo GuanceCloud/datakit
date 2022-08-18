@@ -51,7 +51,7 @@ func (j *job) pullItems() error {
 	return nil
 }
 
-func (j *job) metric() (inputsMeas, error) {
+func (j *job) metric(election bool) (inputsMeas, error) {
 	if err := j.pullItems(); err != nil {
 		return nil, err
 	}
@@ -72,6 +72,7 @@ func (j *job) metric() (inputsMeas, error) {
 				"completion_failed":    0,
 				// "active":item.Status.Active,
 			},
+			election: election,
 		}
 
 		var succeeded, failed int
@@ -94,8 +95,9 @@ func (j *job) metric() (inputsMeas, error) {
 	count, _ := j.count()
 	for ns, c := range count {
 		met := &jobMetric{
-			tags:   map[string]string{"namespace": ns},
-			fields: map[string]interface{}{"count": c},
+			tags:     map[string]string{"namespace": ns},
+			fields:   map[string]interface{}{"count": c},
+			election: election,
 		}
 		met.tags.append(j.extraTags)
 		res = append(res, met)
@@ -104,7 +106,7 @@ func (j *job) metric() (inputsMeas, error) {
 	return res, nil
 }
 
-func (j *job) object() (inputsMeas, error) {
+func (j *job) object(election bool) (inputsMeas, error) {
 	if err := j.pullItems(); err != nil {
 		return nil, err
 	}
@@ -129,6 +131,7 @@ func (j *job) object() (inputsMeas, error) {
 				"active_deadline": 0,
 				"backoff_limit":   0,
 			},
+			election: election,
 		}
 
 		// 因为原数据类型（例如 item.Spec.Parallelism）就是 int32，所以此处也用 int32
@@ -176,12 +179,13 @@ func (j *job) count() (map[string]int, error) {
 }
 
 type jobMetric struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (j *jobMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_job", j.tags, j.fields, point.MOptElection())
+	return point.NewPoint("kube_job", j.tags, j.fields, point.MOptElectionV2(j.election))
 }
 
 //nolint:lll
@@ -206,12 +210,13 @@ func (*jobMetric) Info() *inputs.MeasurementInfo {
 }
 
 type jobObject struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (j *jobObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_jobs", j.tags, j.fields, point.OOptElection())
+	return point.NewPoint("kubernetes_jobs", j.tags, j.fields, point.OOptElectionV2(j.election))
 }
 
 //nolint:lll

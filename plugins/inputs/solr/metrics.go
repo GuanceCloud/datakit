@@ -203,10 +203,11 @@ func (i *Input) gatherSolrCache(k string, v json.RawMessage, commTags map[string
 		"ram_bytes_used":       cacheStat.RAMBytesUsed,
 	}
 	i.appendM(&SolrCache{
-		name:   metricNameCache,
-		fields: fields,
-		tags:   tags,
-		ts:     ts,
+		name:     metricNameCache,
+		fields:   fields,
+		tags:     tags,
+		ts:       ts,
+		election: i.Election,
 	})
 
 	return err
@@ -250,10 +251,11 @@ func (i *Input) gatherSolrRequestTimes(k string, v json.RawMessage, commTags map
 		"p999":       rqtimes.P999,
 	}
 	i.appendM(&SolrRequestTimes{
-		name:   metricNameRequestTimes,
-		fields: fields,
-		tags:   tags,
-		ts:     ts,
+		name:     metricNameRequestTimes,
+		fields:   fields,
+		tags:     tags,
+		ts:       ts,
+		election: i.Election,
 	})
 
 	return nil

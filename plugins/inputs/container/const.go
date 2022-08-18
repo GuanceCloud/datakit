@@ -55,6 +55,9 @@ const sampleCfg = `
   bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
   # bearer_token_string = "<your-token-string>"
 
+  ## Set true to enable election for k8s metric collection
+  election = true
+
   [inputs.container.logging_extra_source_map]
     # source_regexp = "new_source"
 

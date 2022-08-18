@@ -14,14 +14,15 @@ import (
 )
 
 type latencyMeasurement struct {
-	name    string
-	tags    map[string]string
-	fields  map[string]interface{}
-	resData map[string]interface{}
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	resData  map[string]interface{}
+	election bool
 }
 
 func (m *latencyMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 func (m *latencyMeasurement) Info() *inputs.MeasurementInfo {
@@ -99,10 +100,11 @@ func (i *Input) ParseLatencyData(list string) ([]inputs.Measurement, error) {
 
 	for index, info := range fieldName {
 		m := &latencyMeasurement{
-			name:    "redis_latency",
-			tags:    make(map[string]string),
-			fields:  make(map[string]interface{}),
-			resData: make(map[string]interface{}),
+			name:     "redis_latency",
+			tags:     make(map[string]string),
+			fields:   make(map[string]interface{}),
+			resData:  make(map[string]interface{}),
+			election: i.Election,
 		}
 		m.fields[info] = finalPart[index]
 		m.tags["server_addr"] = i.Addr

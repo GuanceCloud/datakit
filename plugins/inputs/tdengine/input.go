@@ -35,6 +35,9 @@ const (
   user = "<userName>"
   password = "<pw>"
 
+  ## Set true to enable election
+  election = true
+
   ## add tag (optional)
   [inputs.tdengine.tags]
 	## Different clusters can be distinguished by tag. Such as testing,product,local ,default is 'testing'
@@ -54,8 +57,13 @@ type Input struct {
 	tdengine  *tdEngine
 	inputName string
 
-	pauseCh chan bool
-	semStop *cliutils.Sem // start stop signal
+	Election bool `toml:"election"`
+	pauseCh  chan bool
+	semStop  *cliutils.Sem // start stop signal
+}
+
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
 }
 
 func (i *Input) Catalog() string {
@@ -109,7 +117,7 @@ func (i *Input) Resume() error {
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	i.tdengine = newTDEngine(i.User, i.Password, i.AdapterEndpoint)
+	i.tdengine = newTDEngine(i.User, i.Password, i.AdapterEndpoint, i.Election)
 
 	globalTags = i.Tags
 	// 1 checkHealth: show databases
@@ -141,6 +149,7 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			Tags:      map[string]string{},
 			inputName: inputName,
+			Election:  true,
 			pauseCh:   make(chan bool, inputs.ElectionPauseChannelLength),
 			semStop:   cliutils.NewSem(),
 		}

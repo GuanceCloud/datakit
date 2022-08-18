@@ -102,6 +102,7 @@ type Input struct {
 	// collectors []func() ([]inputs.Measurement, error)
 	collectors []func() ([]*point.Point, error)
 
+	Election bool `toml:"election"`
 	pause    bool
 	pauseCh  chan bool
 	binLogOn bool
@@ -141,6 +142,10 @@ type Input struct {
 	mCustomQueries map[string][]map[string]interface{}
 
 	lastErrors []string
+}
+
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
 }
 
 func (i *Input) getDsnString() string {
@@ -674,9 +679,10 @@ func (i *Input) Resume() error {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			Tags:    make(map[string]string),
-			Timeout: "10s",
-			pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
+			Tags:     make(map[string]string),
+			Timeout:  "10s",
+			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+			Election: true,
 
 			semStop: cliutils.NewSem(),
 		}
