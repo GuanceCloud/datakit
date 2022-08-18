@@ -277,6 +277,22 @@ func TestAPIWrite(t *testing.T) {
 		},
 
 		{
+			name:             `write-logging-with-point-in-key`,
+			method:           "POST",
+			url:              "/v1/write/logging",
+			body:             []byte(`some-source,tag1=1,tag2=2,tag.3=3 f1=1`),
+			expectStatusCode: 400,
+		},
+
+		{
+			name:             `unstrict-write-logging-with-point-in-key`,
+			method:           "POST",
+			url:              "/v1/write/logging",
+			body:             []byte(`some-source,tag1=1,tag2=2,tag.3=3 f1=1`),
+			expectStatusCode: 400,
+		},
+
+		{
 			name:             `[ok]write-logging(json)`,
 			method:           "POST",
 			url:              "/v1/write/logging",
@@ -339,6 +355,25 @@ func TestAPIWrite(t *testing.T) {
 			contentType:      "application/json",
 			body:             []byte(`[{"measurement":"view","tags":{"t1": "1"}, "fields":{"f1":"1i"}}]`),
 			expectStatusCode: 400,
+		},
+
+		//--------------------------------------------
+		// metric cases
+		//--------------------------------------------
+		{
+			name:             `metric-json-point-key-with-point`,
+			method:           "POST",
+			url:              "/v1/write/metric",
+			contentType:      "application/json",
+			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}}]`),
+			expectStatusCode: 200,
+		},
+		{
+			name:             `metric-point-key-with-point`,
+			method:           "POST",
+			url:              "/v1/write/metric",
+			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=3,f3.14=3.14`),
+			expectStatusCode: 200,
 		},
 
 		//--------------------------------------------
