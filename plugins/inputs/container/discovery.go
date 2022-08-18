@@ -11,12 +11,15 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	kubev1guancebeta1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/typed/guance/v1beta1"
 )
 
 const (
@@ -28,6 +31,14 @@ type discovery struct {
 	client        k8sClientX
 	extraTags     map[string]string
 	localNodeName string
+}
+
+var globalCRDLogsConfList = struct {
+	list map[string]string
+	mu   sync.Mutex
+}{
+	make(map[string]string),
+	sync.Mutex{},
 }
 
 func newDiscovery(client k8sClientX, extraTags map[string]string) *discovery {
@@ -50,7 +61,8 @@ func (d *discovery) start() {
 	}
 	d.localNodeName = localNodeName
 
-	var runners []*discoveryRunner
+	runners := d.updateRunners()
+	l.Infof("autodiscovery: update input list, len %d", len(runners))
 
 	updateTicker := time.NewTicker(time.Minute * 3)
 	defer updateTicker.Stop()
@@ -78,17 +90,20 @@ func (d *discovery) start() {
 			return
 
 		case <-updateTicker.C:
-			// reset runners
-			runners = []*discoveryRunner{}
-			runners = append(runners, d.fetchPromInputs()...)
-			runners = append(runners, d.fetchDatakitCRDInputs()...)
-
+			runners = d.updateRunners()
 			l.Infof("autodiscovery: update input list, len %d", len(runners))
 
 		case <-collectTicker.C:
 			// nil
 		}
 	}
+}
+
+func (d *discovery) updateRunners() []*discoveryRunner {
+	runners := []*discoveryRunner{}
+	runners = append(runners, d.fetchPromInputs()...)
+	runners = append(runners, d.fetchDatakitCRDInputs()...)
+	return runners
 }
 
 func (d *discovery) fetchPromInputs() []*discoveryRunner {
@@ -122,7 +137,17 @@ func (d *discovery) fetchPromInputs() []*discoveryRunner {
 func (d *discovery) fetchDatakitCRDInputs() []*discoveryRunner {
 	var res []*discoveryRunner
 
-	list, err := d.client.getDataKits().List(context.Background(), metaV1ListOption)
+	fn := func(ins kubev1guancebeta1.DatakitInstance, pod *podMeta) {
+		l.Debugf("autodiscovery: find CRD inputConf, pod_name: %s, pod_namespace: %s, conf: %s", pod.Name, pod.Namespace, ins.InputConf)
+		runner, err := newDiscoveryRunner(pod, ins.InputConf, d.extraTags)
+		if err != nil {
+			l.Warnf("autodiscovery: new runner from crd, err: %s", err)
+			return
+		}
+		res = append(res, runner...)
+	}
+
+	err := d.processCRDWithPod(fn)
 	if err != nil {
 		// TODO:
 		// 对 error 内容进行子串判定，不再打印这个错误
@@ -131,39 +156,86 @@ func (d *discovery) fetchDatakitCRDInputs() []*discoveryRunner {
 		if !strings.Contains(err.Error(), "could not find the requested resource") {
 			return nil
 		}
-
 		l.Warnf("autodiscovery: failed to get datakits, err: %s, retry in a minute", err)
 		return nil
 	}
 
-	for _, item := range list.Items {
-		opt := metav1.ListOptions{
-			LabelSelector: "app=" + item.Spec.K8sDeployment,
-			FieldSelector: "spec.nodeName=" + d.localNodeName,
-		}
+	return res
+}
 
-		pods, err := d.client.getPodsForNamespace(item.Spec.K8sNamespace).List(context.Background(), opt)
-		if err != nil {
-			l.Warnf("autodiscovery: failed to get pods from node_name %s, namespace %s, app %s, err: %s, retry in a minute",
-				d.localNodeName,
-				item.Spec.K8sNamespace,
-				item.Spec.K8sDeployment,
-				err)
-			continue
-		}
-
-		for idx := range pods.Items {
-			runner, err := newDiscoveryRunner(&podMeta{Pod: &pods.Items[idx]}, item.Spec.InputConf, d.extraTags)
-			if err != nil {
-				l.Warnf("autodiscovery: new runner from crd, err: %s", err)
-				continue
-			}
-
-			res = append(res, runner...)
+func (d *discovery) updateGlobalCRDLogsConfList() {
+	fn := func(ins kubev1guancebeta1.DatakitInstance, pod *podMeta) {
+		// 添加到全局 list
+		if ins.LogsConf != "" {
+			id := string(pod.UID)
+			globalCRDLogsConfList.list[id] = ins.LogsConf
 		}
 	}
 
-	return res
+	globalCRDLogsConfList.mu.Lock()
+	// reset list
+	globalCRDLogsConfList.list = make(map[string]string)
+	defer globalCRDLogsConfList.mu.Unlock()
+
+	err := d.processCRDWithPod(fn)
+	if err != nil {
+		if !strings.Contains(err.Error(), "could not find the requested resource") {
+			return
+		}
+		l.Warnf("autodiscovery: failed to get datakits, err: %s, retry in a minute", err)
+	}
+
+	l.Debugf("autodiscovery: find CRD datakit/logs len %d, map<uid:conf>: %v", len(globalCRDLogsConfList.list), globalCRDLogsConfList.list)
+}
+
+type datakitCRDHandler func(kubev1guancebeta1.DatakitInstance, *podMeta)
+
+func (d *discovery) processCRDWithPod(fn datakitCRDHandler) error {
+	list, err := d.client.getDatakits().List(context.Background(), metaV1ListOption)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range list.Items {
+		for _, ins := range item.Spec.Instances {
+			lableSelector, err := d.getDeploymentLabelSelector(ins.K8sNamespace, ins.K8sDeployment)
+			if err != nil {
+				l.Debugf("autodiscovery: not found deployment %s labelSelector, error %s, namespace %s", ins.K8sDeployment, err, ins.K8sNamespace)
+				continue
+			}
+			opt := metav1.ListOptions{
+				LabelSelector: joinLabelSelector(lableSelector),
+				FieldSelector: "spec.nodeName=" + d.localNodeName,
+			}
+
+			pods, err := d.client.getPodsForNamespace(ins.K8sNamespace).List(context.Background(), opt)
+			if err != nil {
+				l.Warnf("autodiscovery: failed to get pods from node_name %s, namespace %s, app %s, err: %s, retry in a minute",
+					d.localNodeName,
+					ins.K8sNamespace,
+					ins.K8sDeployment,
+					err)
+				continue
+			}
+
+			for idx := range pods.Items {
+				fn(ins, &podMeta{Pod: &pods.Items[idx]})
+			}
+		}
+	}
+
+	return nil
+}
+
+func (d *discovery) getDeploymentLabelSelector(namespace, deployment string) (map[string]string, error) {
+	deploymentObj, err := d.client.getDeploymentsForNamespace(namespace).Get(context.Background(), deployment, metaV1GetOption)
+	if err != nil {
+		return nil, err
+	}
+	if deploymentObj.Spec.Selector == nil {
+		return nil, fmt.Errorf("invalid lableSelector")
+	}
+	return deploymentObj.Spec.Selector.MatchLabels, nil
 }
 
 type discoveryRunner struct {
@@ -259,4 +331,12 @@ func getLocalNodeName() (string, error) {
 		return e, nil
 	}
 	return "", fmt.Errorf("invalid ENV_K8S_NODE_NAME environment, cannot be empty")
+}
+
+func joinLabelSelector(m map[string]string) string {
+	var res []string
+	for k, v := range m {
+		res = append(res, k+"="+v)
+	}
+	return strings.Join(res, ",")
 }

@@ -52,6 +52,8 @@ type containerdInputConfig struct {
 	extraTags          map[string]string
 	extraSourceMap     map[string]string
 	sourceMultilineMap map[string]string
+
+	autoMultilinePatterns []string
 }
 
 func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {

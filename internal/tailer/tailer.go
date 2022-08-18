@@ -22,7 +22,6 @@ const (
 	scanNewFileInterval = time.Second * 10
 
 	defaultSource   = "default"
-	defaultMaxLines = 1000
 	maxFieldsLength = 32 * 1024 * 1024
 )
 
@@ -59,11 +58,9 @@ type Option struct {
 	// 匹配正则表达式
 	// 符合此正则匹配的数据，将被认定为有效数据。否则会累积追加到上一条有效数据的末尾
 	// 例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
-	//
 	// 如果为空，则默认使用 ^\S 即匹配每行开始处非空白字符
-	MultilineMatch string
-	//  多行匹配的最大行数，避免出现某一行过长导致程序爆栈。默认 1000
-	MultilineMaxLines int
+	// 这是一个列表
+	MultilinePatterns []string
 
 	log *logger.Logger
 
@@ -113,10 +110,6 @@ func (opt *Option) Init() error {
 		opt.GlobalTags = make(map[string]string)
 	}
 
-	if opt.MultilineMaxLines == 0 {
-		opt.MultilineMaxLines = defaultMaxLines
-	}
-
 	opt.GlobalTags["service"] = opt.Service
 	opt.log = logger.SLogger(opt.InputName)
 
@@ -124,7 +117,7 @@ func (opt *Option) Init() error {
 		return err
 	}
 
-	if _, err := multiline.New(opt.MultilineMatch, opt.MultilineMaxLines); err != nil {
+	if _, err := multiline.New(opt.MultilinePatterns); err != nil {
 		return err
 	}
 	if opt.Pipeline != "" && filepath.Base(opt.Pipeline) != opt.Pipeline {

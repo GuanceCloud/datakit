@@ -531,7 +531,7 @@ func (i *Input) RunPipeline() {
 		Pipeline:          i.Log.Pipeline,
 		GlobalTags:        tags,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		MultilineMatch:    i.Log.MultilineMatch,
+		MultilinePatterns: []string{i.Log.MultilineMatch},
 	}
 	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt, i.Log.IgnoreStatus)

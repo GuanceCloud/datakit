@@ -45,8 +45,7 @@ type Single struct {
 
 	offset int64 // 必然只在同一个 goroutine 操作，不必使用 atomic
 
-	tags            map[string]string
-	expectMultiLine bool // only for docker log, relation to log size (16K)
+	tags map[string]string
 }
 
 func NewTailerSingle(filename string, opt *Option) (*Single, error) {
@@ -71,7 +70,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 			return nil, err
 		}
 	}
-	t.mult, err = multiline.New(opt.MultilineMatch, opt.MultilineMaxLines)
+	t.mult, err = multiline.New(opt.MultilinePatterns)
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +102,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 				return nil, err
 			}
 			t.offset = ret
+			t.opt.log.Debugf("filename %s primary offset %d", t.filepath, t.offset)
 		}
 	}
 
@@ -280,34 +280,9 @@ func (t *Single) generateJSONLogs(lines []string) []string {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
 
-		if len(text) > 0 {
-			// deal with docker log size exceed 16 K
-			if text[len(text)-1] != '\n' {
-				textLen := len(text)
-				if t.expectMultiLine {
-					text = t.multilineWithFlag(text, true)
-				} else {
-					text = t.multiline(text)
-				}
-				t.expectMultiLine = textLen/1000 == 16 // almost to 16 K
-			} else {
-				if t.expectMultiLine {
-					text = t.multilineWithFlag(text, true)
-					t.expectMultiLine = false
-				} else {
-					text = t.multiline(text)
-				}
-			}
-		}
-
+		text = t.multiline(multiline.TrimRightSpace(text))
 		if text == "" {
 			continue
-		}
-
-		// text 意外的不匹配多行规则
-		if !t.mult.MatchString(text) {
-			t.opt.log.Warnf("unexpected multiline text: %s, next: %s, file %s, multiline rule '%s'",
-				text, t.mult.BuffString(), t.filename, t.opt.MultilineMatch)
 		}
 
 		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
@@ -336,23 +311,10 @@ func (t *Single) generateCRILogs(lines []string) []string {
 			l.Warnf("parse cri-o log err: %s, data: %s", err, line)
 			continue
 		}
-
-		if t.expectMultiLine {
-			text = t.multilineWithFlag(criMsg.log, true)
-		} else {
-			text = t.multiline(criMsg.log)
-		}
-
-		t.expectMultiLine = criMsg.isPartial
+		text = t.multiline(criMsg.log)
 
 		if text == "" {
 			continue
-		}
-
-		// text 意外的不匹配多行规则
-		if !t.mult.MatchString(text) {
-			t.opt.log.Warnf("unexpected multiline text: %s, next: %s, file %s, multiline rule '%s'",
-				text, t.mult.BuffString(), t.filename, t.opt.MultilineMatch)
 		}
 
 		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
@@ -379,13 +341,6 @@ func (t *Single) defaultHandler(lines []string) {
 		text = t.multiline(multiline.TrimRightSpace(text))
 		if text == "" {
 			continue
-		}
-
-		// TODO
-		// text 意外的不匹配多行规则
-		if !t.mult.MatchString(text) {
-			t.opt.log.Warnf("unexpected multiline text: %s, next: %s, file %s, multiline rule '%s'",
-				text, t.mult.BuffString(), t.filename, t.opt.MultilineMatch)
 		}
 
 		if t.opt.ForwardFunc != nil {
@@ -520,13 +475,6 @@ func (t *Single) multiline(text string) string {
 		return text
 	}
 	return t.mult.ProcessLineString(text)
-}
-
-func (t *Single) multilineWithFlag(text string, flag bool) string {
-	if t.mult == nil {
-		return text
-	}
-	return t.mult.ProcessLineStringWithFlag(text, flag)
 }
 
 type buffer struct {

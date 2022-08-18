@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package v1beta1 wraps DataKit resource by kubernetes client-gen.
+// Package v1beta1 wraps Datakit resource by kubernetes client-gen.
 package v1beta1
 
 import (
@@ -15,27 +15,27 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// DataKitsGetter has a method to return a DataKitInterface.
+// DatakitsGetter has a method to return a DatakitInterface.
 // A group's client should implement this interface.
-type DataKitsGetter interface {
-	DataKits(namespace string) DataKitInterface
+type DatakitsGetter interface {
+	Datakits(namespace string) DatakitInterface
 }
 
-// DataKitInterface has methods to work with DataKit resources.
-type DataKitInterface interface {
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*DataKit, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*DataKitList, error)
+// DatakitInterface has methods to work with Datakit resources.
+type DatakitInterface interface {
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*Datakit, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*DatakitList, error)
 	// ...
 }
 
-// datakits implements DataKitInterface.
+// datakits implements DatakitInterface.
 type datakits struct {
 	client rest.Interface
 	ns     string
 }
 
-// newDataKits return a DataKits.
-func newDataKits(c *GuanceV1Client, namespace string) *datakits {
+// newDatakits return a Datakits.
+func newDatakits(c *GuanceV1Client, namespace string) *datakits {
 	return &datakits{
 		client: c.RESTClient(),
 		ns:     namespace,
@@ -43,8 +43,8 @@ func newDataKits(c *GuanceV1Client, namespace string) *datakits {
 }
 
 // Get takes name of the datakit, and returns the corresponding datakit object, and an error if there is any.
-func (c *datakits) Get(ctx context.Context, name string, opts metav1.GetOptions) (*DataKit, error) {
-	result := DataKit{}
+func (c *datakits) Get(ctx context.Context, name string, opts metav1.GetOptions) (*Datakit, error) {
+	result := Datakit{}
 	err := c.client.Get().
 		Namespace(c.ns).
 		Resource("datakits").
@@ -56,13 +56,13 @@ func (c *datakits) Get(ctx context.Context, name string, opts metav1.GetOptions)
 	return &result, err
 }
 
-// List takes label and field selectors, and returns the list of DataKits that match those selectors.
-func (c *datakits) List(ctx context.Context, opts metav1.ListOptions) (*DataKitList, error) {
+// List takes label and field selectors, and returns the list of Datakits that match those selectors.
+func (c *datakits) List(ctx context.Context, opts metav1.ListOptions) (*DatakitList, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
 	}
-	result := DataKitList{}
+	result := DatakitList{}
 	err := c.client.Get().
 		Namespace(c.ns).
 		Resource("datakits").

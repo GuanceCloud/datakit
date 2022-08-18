@@ -411,7 +411,7 @@ func (ipt *Input) RunPipeline() {
 		GlobalTags:        ipt.Tags,
 		IgnoreStatus:      ipt.Log.IgnoreStatus,
 		CharacterEncoding: ipt.Log.CharacterEncoding,
-		MultilineMatch:    ipt.Log.MultilineMatch,
+		MultilinePatterns: []string{ipt.Log.MultilineMatch},
 	}
 
 	var err error

@@ -18,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -53,7 +54,11 @@ type Input struct {
 
 	LoggingExtraSourceMap     map[string]string `toml:"logging_extra_source_map"`
 	LoggingSourceMultilineMap map[string]string `toml:"logging_source_multiline_map"`
-	Tags                      map[string]string `toml:"tags"`
+
+	LoggingAutoMultilineDetection     bool     `toml:"logging_auto_multiline_detection"`
+	LoggingAutoMultilineExtraPatterns []string `toml:"logging_auto_multiline_extra_patterns"`
+
+	Tags map[string]string `toml:"tags"`
 
 	TLSCA              string `toml:"tls_ca"`
 	TLSCert            string `toml:"tls_cert"`
@@ -70,6 +75,8 @@ type Input struct {
 	Election bool `toml:"election"`
 	chPause  chan bool
 	pause    bool
+
+	discovery *discovery
 }
 
 var (
@@ -133,18 +140,20 @@ func (i *Input) Run() {
 		go i.watchingK8sEventLog()
 	}
 
-	g := datakit.G("kubernetes-autodiscovery")
-	g.Go(func(ctx context.Context) error {
-		if i.k8sInput == nil {
-			l.Errorf("unrechable, not found k8s-client")
+	if datakit.Docker {
+		g := datakit.G("kubernetes-autodiscovery")
+		g.Go(func(ctx context.Context) error {
+			if i.discovery == nil {
+				l.Warnf("unrechable, discovery not initialized")
+				return nil
+			}
+			i.discovery.start()
 			return nil
-		}
-		d := newDiscovery(i.k8sInput.client, i.Tags)
-		d.start()
-		return nil
-	})
+		})
+	}
 
 	i.collectObject()
+	i.collectMetric()
 
 	for {
 		select {
@@ -181,7 +190,11 @@ func (i *Input) stop() {
 }
 
 func (i *Input) collectObject() {
-	l.Debug("collect object in func")
+	timeNow := time.Now()
+	defer func() {
+		l.Debug("collect object, cost %s", time.Since(timeNow))
+	}()
+
 	if err := i.gatherDockerContainerObject(); err != nil {
 		l.Errorf("failed to collect docker container object: %s", err)
 	}
@@ -211,7 +224,10 @@ func (i *Input) collectObject() {
 }
 
 func (i *Input) collectMetric() {
-	l.Debug("collect mertric in func")
+	timeNow := time.Now()
+	defer func() {
+		l.Debug("collect metric and logging, cost %s", time.Since(timeNow))
+	}()
 
 	if i.EnableContainerMetric {
 		if err := i.gatherDockerContainerMetric(); err != nil {
@@ -221,6 +237,10 @@ func (i *Input) collectMetric() {
 		if err := i.gatherContainerdMetric(); err != nil {
 			l.Errorf("failed to collect containerd metric: %s", err)
 		}
+	}
+
+	if i.discovery != nil {
+		i.discovery.updateGlobalCRDLogsConfList()
 	}
 
 	if err := i.watchNewDockerContainerLogs(); err != nil {
@@ -396,6 +416,7 @@ func (i *Input) setup() bool {
 			extraTags:                 i.Tags,
 			extraSourceMap:            i.LoggingExtraSourceMap,
 			sourceMultilineMap:        i.LoggingSourceMultilineMap,
+			autoMultilinePatterns:     i.getAutoMultilinePatterns(),
 		}); err != nil {
 			l.Warnf("create docker input err: %s", err)
 		} else {
@@ -412,6 +433,7 @@ func (i *Input) setup() bool {
 				sourceMultilineMap:        i.LoggingSourceMultilineMap,
 				containerIncludeLog:       i.ContainerIncludeLog,
 				containerExcludeLog:       i.ContainerExcludeLog,
+				autoMultilinePatterns:     i.getAutoMultilinePatterns(),
 			}); err != nil {
 				l.Warnf("create containerd input err: %s", err)
 			} else {
@@ -433,6 +455,8 @@ func (i *Input) setup() bool {
 				continue
 			} else {
 				i.k8sInput = k
+				i.discovery = newDiscovery(i.k8sInput.client, i.Tags)
+
 				if i.dockerInput != nil {
 					i.dockerInput.k8sClient = i.k8sInput.client
 				}
@@ -492,6 +516,8 @@ func (i *Input) Resume() error {
 //   ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP : string
 //   ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON : string (JSON map)
 //   ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE : booler
+//   ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION: booler
+//   ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON : string (JSON string array)
 func (i *Input) ReadEnv(envs map[string]string) {
 	if endpoint, ok := envs["ENV_INPUT_CONTAINER_DOCKER_ENDPOINT"]; ok {
 		i.DockerEndpoint = endpoint
@@ -563,6 +589,21 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
+	if open, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION"]; ok {
+		b, err := strconv.ParseBool(open)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION to bool: %s, ignore", err)
+		} else {
+			i.LoggingAutoMultilineDetection = b
+		}
+	}
+
+	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON"]; ok {
+		if err := json.Unmarshal([]byte(v), &i.LoggingAutoMultilineExtraPatterns); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON to map: %s, ignore", err)
+		}
+	}
+
 	if tagsStr, ok := envs["ENV_INPUT_CONTAINER_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
@@ -610,6 +651,16 @@ func (i *Input) ReadEnv(envs map[string]string) {
 	if str, ok := envs["ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING"]; ok {
 		i.K8sBearerTokenString = str
 	}
+}
+
+func (i *Input) getAutoMultilinePatterns() []string {
+	if !i.LoggingAutoMultilineDetection {
+		return nil
+	}
+	if len(i.LoggingAutoMultilineExtraPatterns) != 0 {
+		return i.LoggingAutoMultilineExtraPatterns
+	}
+	return multiline.GlobalPatterns
 }
 
 //nolint:gochecknoinits

@@ -7,6 +7,7 @@ package container
 
 import (
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"time"
 
@@ -17,14 +18,15 @@ import (
 const ignoreDeadLogDuration = time.Hour * 12
 
 type containerLogBasisInfo struct {
-	name, id           string
-	logPath            string
-	image              string
-	labels             map[string]string
-	tags               map[string]string
-	created            string
-	extraSourceMap     map[string]string
-	sourceMultilineMap map[string]string
+	name, id              string
+	logPath               string
+	image                 string
+	labels                map[string]string
+	tags                  map[string]string
+	created               string
+	extraSourceMap        map[string]string
+	sourceMultilineMap    map[string]string
+	autoMultilinePatterns []string
 }
 
 func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tailer.Option {
@@ -78,7 +80,8 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 		}
 	}
 
-	if !checkContainerIsOlder(info.created, time.Minute) {
+	// 创建时间小于等于 5 分钟的新容器，日志从首部开始采集
+	if !checkContainerIsOlder(info.created, time.Minute*10) {
 		opt.FromBeginning = true
 	}
 
@@ -95,14 +98,31 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 		}
 
 		info.tags["pod_ip"] = meta.Status.PodIP
-		// if replicaSet := meta.replicaSet(); replicaSet != "" {
-		// 	info.tags["replicaSet"] = replicaSet
-		// }
 		if deployment := getDeployment(meta.labels()["app"], info.tags["namespace"]); deployment != "" {
 			info.tags["deployment"] = deployment
 		}
 
-		c, err := getContainerLogConfig(meta.annotations())
+		var conf string
+		if meta.annotations() != nil && meta.annotations()[containerLogConfigKey] != "" {
+			conf = meta.annotations()[containerLogConfigKey]
+			l.Infof("use annotation datakit/logs, conf: %s, pod_name %s", conf, info.tags["pod_name"])
+		} else {
+			globalCRDLogsConfList.mu.Lock()
+			crdLogsConf := globalCRDLogsConfList.list[string(meta.UID)]
+			globalCRDLogsConfList.mu.Unlock()
+
+			if crdLogsConf != "" {
+				conf = crdLogsConf
+				l.Infof("use crd datakit/logs, conf: %s, pod_name %s", conf, info.tags["pod_name"])
+			}
+		}
+
+		if conf == "" {
+			l.Debugf("not found datakit/logs conf")
+			return
+		}
+
+		c, err := parseContainerLogConfig(conf)
 		if err != nil {
 			l.Warnf("failed of parse logconfig from annotations, err: %s", err)
 			return
@@ -120,13 +140,15 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 		}
 	}
 
+	multilineMatch := ""
+
 	if logconf != nil {
 		if !useExtraSource {
 			if logconf.Source != "" {
 				opt.Source = logconf.Source
 			}
 			opt.Pipeline = logconf.Pipeline
-			opt.MultilineMatch = logconf.Multiline
+			multilineMatch = logconf.Multiline
 		}
 		if logconf.Service != "" {
 			opt.Service = logconf.Service
@@ -139,17 +161,24 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 		l.Debugf("use container logconfig:%#v, containerId: %s, source: %s, logpath: %s", logconf, info.id, opt.Source, info.logPath)
 	}
 
-	if opt.MultilineMatch == "" && info.sourceMultilineMap != nil {
+	if multilineMatch == "" && info.sourceMultilineMap != nil {
 		mult := info.sourceMultilineMap[opt.Source]
 		if mult != "" {
-			opt.MultilineMatch = mult
-			l.Debugf("use multiline_match '%s' to source %s", opt.MultilineMatch, opt.Source)
+			multilineMatch = mult
+			l.Debugf("use multiline_match '%s' to source %s", multilineMatch, opt.Source)
 		}
+	}
+
+	if multilineMatch != "" {
+		opt.MultilinePatterns = []string{multilineMatch}
+	} else if len(info.autoMultilinePatterns) != 0 {
+		opt.MultilinePatterns = info.autoMultilinePatterns
+		l.Infof("source %s, filename %s, automatic-multiline on, patterns %v", opt.Source, info.logPath, info.autoMultilinePatterns)
 	}
 
 	_ = opt.Init()
 
-	l.Debugf("use container-log opt:%#v, containerId: %s", logconf, opt)
+	l.Debugf("use container-log opt:%#v, containerId: %s", opt, info.id)
 
 	return opt
 }
@@ -174,13 +203,17 @@ func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
 }
 
 func parseContainerLogConfig(cfg string) (*containerLogConfig, error) {
+	if cfg == "" {
+		return nil, fmt.Errorf("logsconf is empty")
+	}
+
 	var configs []containerLogConfig
 	if err := json.Unmarshal([]byte(cfg), &configs); err != nil {
 		return nil, err
 	}
 
 	if len(configs) < 1 {
-		return nil, nil
+		return nil, fmt.Errorf("invalid logsconf")
 	}
 
 	temp := configs[0]

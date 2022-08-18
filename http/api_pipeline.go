@@ -36,7 +36,6 @@ const (
 	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/608
 	maxLenPipelineBefore = 3 * 4096
 	maxLenDataBefore     = 3 * 8192
-	maxLenDataAfter      = 8192
 )
 
 type pipelineDebugRequest struct {
@@ -247,7 +246,7 @@ func getReturnResult(start time.Time, res []*pipeline.Result,
 func getDataLines(originBytes []byte, pattern string) ([]string, error) {
 	var outArr []string
 
-	multi, err := multiline.New(pattern, maxLenDataAfter)
+	multi, err := multiline.New([]string{pattern})
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +263,7 @@ func getDataLines(originBytes []byte, pattern string) ([]string, error) {
 		}
 	}
 
-	if multi.CacheLines() != 0 {
+	if multi.BuffLength() > 0 {
 		outArr = append(outArr, multi.FlushString())
 	}
 

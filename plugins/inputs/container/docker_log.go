@@ -54,15 +54,16 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 	}
 
 	info := &containerLogBasisInfo{
-		name:               getContainerName(container.Names),
-		id:                 container.ID,
-		logPath:            inspect.LogPath,
-		labels:             container.Labels,
-		image:              image,
-		tags:               make(map[string]string),
-		created:            inspect.Created,
-		extraSourceMap:     d.cfg.extraSourceMap,
-		sourceMultilineMap: d.cfg.sourceMultilineMap,
+		name:                  getContainerName(container.Names),
+		id:                    container.ID,
+		logPath:               inspect.LogPath,
+		labels:                container.Labels,
+		image:                 image,
+		tags:                  make(map[string]string),
+		created:               inspect.Created,
+		extraSourceMap:        d.cfg.extraSourceMap,
+		sourceMultilineMap:    d.cfg.sourceMultilineMap,
+		autoMultilinePatterns: d.cfg.autoMultilinePatterns,
 	}
 
 	if containerIsFromKubernetes(getContainerName(container.Names)) {

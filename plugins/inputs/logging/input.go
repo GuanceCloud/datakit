@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -59,6 +60,9 @@ const (
   ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
   # multiline_match = '''^\S'''
 
+  auto_multiline_detection = false
+  auto_multiline_extra_patterns = []
+
   ## removes ANSI escape codes from text strings
   remove_ansi_escape_codes = false
 
@@ -69,6 +73,7 @@ const (
   ## time units are "ms", "s", "m", "h"
   ignore_dead_log = "1h"
 
+
   [inputs.logging.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -76,22 +81,23 @@ const (
 )
 
 type Input struct {
-	LogFiles              []string          `toml:"logfiles"`
-	Sockets               []string          `toml:"sockets,omitempty"`
-	Ignore                []string          `toml:"ignore"`
-	Source                string            `toml:"source"`
-	Service               string            `toml:"service"`
-	Pipeline              string            `toml:"pipeline"`
-	IgnoreStatus          []string          `toml:"ignore_status"`
-	CharacterEncoding     string            `toml:"character_encoding"`
-	MultilineMatch        string            `toml:"multiline_match"`
-	MultilineMaxLines     int               `toml:"multiline_maxlines"`
-	RemoveAnsiEscapeCodes bool              `toml:"remove_ansi_escape_codes"`
-	IgnoreDeadLog         string            `toml:"ignore_dead_log"`
-	Tags                  map[string]string `toml:"tags"`
-	BlockingMode          bool              `toml:"blocking_mode"`
-	FromBeginning         bool              `toml:"from_beginning,omitempty"`
-	DockerMode            bool              `toml:"docker_mode,omitempty"`
+	LogFiles                   []string          `toml:"logfiles"`
+	Sockets                    []string          `toml:"sockets,omitempty"`
+	Ignore                     []string          `toml:"ignore"`
+	Source                     string            `toml:"source"`
+	Service                    string            `toml:"service"`
+	Pipeline                   string            `toml:"pipeline"`
+	IgnoreStatus               []string          `toml:"ignore_status"`
+	CharacterEncoding          string            `toml:"character_encoding"`
+	MultilineMatch             string            `toml:"multiline_match"`
+	AutoMultilineDetection     bool              `toml:"auto_multiline_detection"`
+	AutoMultilineExtraPatterns []string          `toml:"auto_multiline_extra_patterns"`
+	RemoveAnsiEscapeCodes      bool              `toml:"remove_ansi_escape_codes"`
+	IgnoreDeadLog              string            `toml:"ignore_dead_log"`
+	Tags                       map[string]string `toml:"tags"`
+	BlockingMode               bool              `toml:"blocking_mode"`
+	FromBeginning              bool              `toml:"from_beginning,omitempty"`
+	DockerMode                 bool              `toml:"docker_mode,omitempty"`
 
 	DeprecatedPipeline       string `toml:"pipeline_path"`
 	DeprecatedMultilineMatch string `toml:"match"`
@@ -137,8 +143,6 @@ func (ipt *Input) Run() {
 		IgnoreStatus:          ipt.IgnoreStatus,
 		FromBeginning:         ipt.FromBeginning,
 		CharacterEncoding:     ipt.CharacterEncoding,
-		MultilineMatch:        ipt.MultilineMatch,
-		MultilineMaxLines:     ipt.MultilineMaxLines,
 		RemoveAnsiEscapeCodes: ipt.RemoveAnsiEscapeCodes,
 		IgnoreDeadLog:         ignoreDuration,
 		GlobalTags:            ipt.Tags,
@@ -147,6 +151,18 @@ func (ipt *Input) Run() {
 
 	if ipt.DockerMode {
 		opt.Mode = tailer.DockerMode
+	}
+
+	if ipt.MultilineMatch != "" {
+		opt.MultilinePatterns = []string{ipt.MultilineMatch}
+	} else if ipt.AutoMultilineDetection {
+		if len(ipt.AutoMultilineExtraPatterns) != 0 {
+			opt.MultilinePatterns = ipt.AutoMultilineExtraPatterns
+			l.Infof("source %s automatic-multiline on, patterns %v", ipt.Source, ipt.AutoMultilineExtraPatterns)
+		} else {
+			opt.MultilinePatterns = multiline.GlobalPatterns
+			l.Info("source %s automatic-multiline on, use default patterns", ipt.Source)
+		}
 	}
 
 	ipt.process = make([]LogProcessor, 0)

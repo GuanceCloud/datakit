@@ -60,6 +60,11 @@
       ## 使用3个单引号 '''this-regexp''' 避免转义
       ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-Syntax
       # multiline_match = '''^\S'''
+
+      ## 是否开启自动多行模式，开启后会在 patterns 列表中匹配适用的多行规则
+      auto_multiline_detection = false
+      ## 配置自动多行的 patterns 列表，内容是多行规则的数组，即多个 multiline_match，如果为空则使用默认规则详见文档
+      auto_multiline_extra_patterns = []
     
       ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
       remove_ansi_escape_codes = false
@@ -150,16 +155,70 @@ ZeroDivisionError: division by zero
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.0" 1611746443938917265
 ```
 
+#### 自动多行模式 {#auto-multiline}
+
+开启此功能后，每一行日志数据都会在多行列表中匹配。如果匹配成功，就将当前的多行规则权重加一，以便后面能更快速的匹配到，然后退出匹配循环；如果整个列表结束依然没有匹配到，则认为匹配失败。
+
+匹配成功与失败，后续操作和正常的多行日志采集是一样的：匹配成功，会将现存的多行数据发送出去，并将本条数据填入；匹配失败，会追加到现存数据的尾端。
+
+因为日志存在多个多行配置，它们的优先级如下：
+
+1. `multiline_match` 不为空，只使用当前规则
+2. 使用 source 到 `multiline_match` 的映射配置（只在容器日志中存在 `logging_source_multiline_map`），如果使用 source 能找到对应的多行规则，只使用此规则
+3. 开启 `auto_multiline_detection`，如果 `auto_multiline_extra_patterns` 不为空，会在这些多行规则中匹配
+3. 开启 `auto_multiline_detection`，如果 `auto_multiline_extra_patterns` 为空，使用默认的自动多行匹配规则列表，即：
+
+```
+// time.RFC3339, "2006-01-02T15:04:05Z07:00"
+`^\d+-\d+-\d+T\d+:\d+:\d+(\.\d+)?(Z\d*:?\d*)?`,
+
+// time.ANSIC, "Mon Jan _2 15:04:05 2006"
+`^[A-Za-z_]+ [A-Za-z_]+ +\d+ \d+:\d+:\d+ \d+`,
+
+// time.RubyDate, "Mon Jan 02 15:04:05 -0700 2006"
+`^[A-Za-z_]+ [A-Za-z_]+ \d+ \d+:\d+:\d+ [\-\+]\d+ \d+`,
+
+// time.UnixDate, "Mon Jan _2 15:04:05 MST 2006"
+`^[A-Za-z_]+ [A-Za-z_]+ +\d+ \d+:\d+:\d+( [A-Za-z_]+ \d+)?`,
+
+// time.RFC822, "02 Jan 06 15:04 MST"
+`^\d+ [A-Za-z_]+ \d+ \d+:\d+ [A-Za-z_]+`,
+
+// time.RFC822Z, "02 Jan 06 15:04 -0700" // RFC822 with numeric zone
+`^\d+ [A-Za-z_]+ \d+ \d+:\d+ -\d+`,
+
+// time.RFC850, "Monday, 02-Jan-06 15:04:05 MST"
+`^[A-Za-z_]+, \d+-[A-Za-z_]+-\d+ \d+:\d+:\d+ [A-Za-z_]+`,
+
+// time.RFC1123, "Mon, 02 Jan 2006 15:04:05 MST"
+`^[A-Za-z_]+, \d+ [A-Za-z_]+ \d+ \d+:\d+:\d+ [A-Za-z_]+`,
+
+// time.RFC1123Z, "Mon, 02 Jan 2006 15:04:05 -0700" // RFC1123 with numeric zone
+`^[A-Za-z_]+, \d+ [A-Za-z_]+ \d+ \d+:\d+:\d+ -\d+`,
+
+// time.RFC3339Nano, "2006-01-02T15:04:05.999999999Z07:00"
+`^\d+-\d+-\d+[A-Za-z_]+\d+:\d+:\d+\.\d+[A-Za-z_]+\d+:\d+`,
+
+// 2021-07-08 05:08:19,214
+`^\d+-\d+-\d+ \d+:\d+:\d+(,\d+)?`,
+
+// Default java logging SimpleFormatter date format
+`^[A-Za-z_]+ \d+, \d+ \d+:\d+:\d+ (AM|PM)`,
+
+// 2021-01-31 - with stricter matching around the months/days
+`^\d{4}-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])`,
+```
+
 #### 超长多行日志处理的限制
 
-目前最多能处理不超过 1000 行的单条多行日志，如果实际多行日志超过 1000 行，DataKit 会将其识别成多条。举例如下，假定有如下多行日志，我们要将其识别成单条日志：
+目前最多能处理不超过 32MiB 的单条多行日志，如果实际多行日志超过 32MiB，DataKit 会将其识别成多条。举例如下，假定有如下多行日志，我们要将其识别成单条日志：
 
 ```log
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
 Traceback (most recent call last):
   File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
     response = self.full_dispatch_request()
-      ...                                 <---- 此处省略 996 行，加上上面的 4 行，刚好 1000 行
+      ...                                 <---- 此处省略 32MiB - 800 字节，加上上面的 4 行，刚好超过 32MiB
         File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
           response = self.full_dispatch_request()
              ZeroDivisionError: division by zero
@@ -168,19 +227,19 @@ Traceback (most recent call last):
  ...
 ```
 
-此处，由于有超长的多行日志，第一条日志总共有 1003 行，但 DataKit 这里会做一个截取动作，具体而言，这里会切割出三条日志：
+此处，由于有超长的多行日志，第一条日志超过 32MiB，DataKit 提前结束这条多行，最终得到三条日志：
 
-第一条：即头部的 1000 行
+第一条：即头部的 32MiB
 
 ```log
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
 Traceback (most recent call last):
   File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
     response = self.full_dispatch_request()
-      ...                                 <---- 此处省略 996 行，加上上面的 4 行，刚好 1000 行
+      ...                                 <---- 此处省略 32MiB - 800 字节，加上上面的 4 行，刚好超过 32MiB
 ```
 
-第二条：除去头部的 1000 条，剩余的部分独立成为一条日志
+第二条：除去头部的 32MiB，剩余的部分独立成为一条日志
 
 ```log
         File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
