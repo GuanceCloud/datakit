@@ -15,6 +15,7 @@
     - 对应的 [eBPF 采集](../integrations/ebpf.md) 和 [Oracle 采集](../integrations/oracle.md)，其配置方式也需做对应变更。
 - RUM sourcemap 增加 Android R8 支持(#1040)
 - CRD 增加日志配置支持(#1000)
+    - [完整示例](kubernetes-crd.md#example)
 
 ### 优化 {#cl-1.4.11-optimize}
 

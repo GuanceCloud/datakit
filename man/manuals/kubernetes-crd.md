@@ -34,13 +34,20 @@
   - `$NAMESPACE`：Pod Namespace
   - `$PODNAME`：Pod Name
   - `$NODENAME`：当前所在 node 的 name
-- `datakits/logs`：日志配置，用以指定 Pod 日志的相关配置，和容器的 Annotations 用法相同，[详见](container.md#logging-with-annotation-or-label)。优先级低于 Pod Annotations datakit/logs 配置
+- `datakit/logs`：日志配置，用以指定 Pod 日志的相关配置，和容器的 Annotations 用法相同，[详见](container.md#logging-with-annotation-or-label)。优先级低于 Pod Annotations datakit/logs 配置
 
 **注意，Datakit 只采集和它处于同一个 node 的 Pod，属于就近采集，不会跨 node 采集。**
 
 执行 `kubectl apply -f datakit-crd.yaml` 命令。
 
-完整示例如下，包括创建 CRD Datakit、测试所用的 namespace 和 Datakit 实例对象：
+## 示例 {#example}
+
+完整示例如下，包括：
+
+- 创建 CRD Datakit
+- 测试所用的 namespace 和 Datakit 实例对象
+- 配置日志采集（`datakit/logs`）
+- 配置 Prom 采集器（`inputConf`）
 
 ```yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -107,15 +114,16 @@ spec:
         }]
 ```
 
-## Ngxin Ingress 配置示例
+### Ngxin Ingress 配置示例
 
-### 使用 DataKit CRD 扩展采集 Nginx Ingress 指标
+这里使用 DataKit CRD 扩展采集 Ingress 指标，即通过 prom 采集器来收集 Ingress 的指标。
 
 #### 前提条件
 
 - 已部署 [DaemonSet DataKit](datakit-daemonset-deploy.md)
 - 如果 `Deployment` 名称为 `ingress-nginx-controller`，那边 yaml 配置如下：
-  ```
+
+  ``` yaml
   ...
   spec:
     selector:
@@ -125,23 +133,13 @@ spec:
       metadata:
         creationTimestamp: null
         labels:
-          app: ingress-nginx-controller
+          app: ingress-nginx-controller  # 这里只是一个示例名称
   ...
   ```
-  > !!! `ingress-nginx-controller` 只是一个示例名称
-
-#### 采集基础信息
-
-| 资源         | 名称                     |
-| ----         | ----                     |
-| Namespace    | ingress-nginx            |
-| Deployment   | ingress-nginx-controller |
-| Metrics Port | 10254                    |
-| source       | prom-ingress             |
 
 #### 配置步骤
 
-##### 创建 Datakit CustomResourceDefinition
+- 先创建 Datakit CustomResourceDefinition
 
 执行如下创建命令：
 
@@ -194,7 +192,7 @@ $ kubectl get crds | grep guance.com
 datakits.guance.com   2022-08-18T10:44:09Z
 ```
 
-##### 创建 Datakit 资源
+- 创建 Datakit 资源
 
 Prometheus 详细配置可参考[链接](../integrations/kubernetes-prom.md)
 
@@ -235,7 +233,7 @@ NAME           AGE
 prom-ingress   18m
 ```
 
-##### 查看指标采集情况
+- 查看指标采集情况
 
 登录 `Datakit pod` ，执行以下命令：
 
@@ -247,7 +245,9 @@ $ datakit monitor
 
 也可以登录 [观测云平台](https://www.guance.com/){:target="_blank"} ,【指标】-【查看器】查看指标数据
 
-#### 目前存在的问题 {#crd-issue}
+## FAQ {#faq}
+
+### 目前存在的问题 {#issue}
 
 无法将 `datakit/logs` 的配置，动态应用到正在采集的日志。举例如下：
 
