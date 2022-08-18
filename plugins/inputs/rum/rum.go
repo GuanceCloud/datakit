@@ -7,6 +7,7 @@ package rum
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"encoding/base64"
 	"fmt"
@@ -376,6 +377,29 @@ func scanABI(crashReport string) string {
 	return ""
 }
 
+func checkJavaShrinkTool(mappingFile string) (string, error) {
+	fp, err := os.Open(mappingFile) // nolint:gosec
+	if err != nil {
+		return "", fmt.Errorf("open mapping file [%s] fail: %w", mappingFile, err)
+	}
+	defer func() {
+		_ = fp.Close()
+	}()
+
+	scanner := bufio.NewScanner(fp)
+
+	rows := 0
+	for scanner.Scan() && rows < 10 {
+		rows++
+		line := scanner.Text()
+		if strings.HasPrefix(line, "#") &&
+			(strings.Contains(line, "compiler: R8") || strings.Contains(line, "com.android.tools.r8.mapping")) {
+			return cmds.AndroidCommandLineTools, nil
+		}
+	}
+	return cmds.Proguard, nil
+}
+
 func handleSourcemap(p influxm.Point, sdkName string, input *Input) error {
 	fields, err := p.Fields()
 	if err != nil {
@@ -426,14 +450,6 @@ func handleSourcemap(p influxm.Point, sdkName string, input *Input) error {
 				errorType := p.Tags().GetString("error_type")
 
 				if errorType == JavaCrash {
-					if input.ProguardHome == "" {
-						return fmt.Errorf("proguard home not set")
-					}
-					retrace := filepath.Join(input.ProguardHome, "bin", "retrace.sh")
-					if !path.IsFileExists(retrace) {
-						return fmt.Errorf("the script retrace.sh not found in the proguardHome [%s]", retrace)
-					}
-
 					if err := uncompressZipFile(zipFileAbsPath); err != nil {
 						return fmt.Errorf("uncompress zip file fail: %w", err)
 					}
@@ -442,10 +458,32 @@ func handleSourcemap(p influxm.Point, sdkName string, input *Input) error {
 					if !path.IsFileExists(mappingFile) {
 						return fmt.Errorf("java source mapping file not exists")
 					}
+					toolName, err := checkJavaShrinkTool(mappingFile)
+					if err != nil {
+						return fmt.Errorf("verify java shrink tool fail: %w", err)
+					}
+					retraceCmd := ""
+					if toolName == cmds.Proguard {
+						if input.ProguardHome == "" {
+							return fmt.Errorf("proguard home not set")
+						}
+						retraceCmd = filepath.Join(input.ProguardHome, "bin", "retrace.sh")
+						if !path.IsFileExists(retraceCmd) {
+							return fmt.Errorf("the script retrace.sh not found in the proguardHome [%s]", retraceCmd)
+						}
+					} else {
+						if input.AndroidCmdLineHome == "" {
+							return fmt.Errorf("android commandline tool home not set")
+						}
+						retraceCmd = filepath.Join(input.AndroidCmdLineHome, "bin/retrace")
+						if !path.IsFileExists(retraceCmd) {
+							return fmt.Errorf("the cmdline tools [retrace] not found in the androidCmdLineHome [%s]", retraceCmd)
+						}
+					}
 
 					token := sourceMapTokenBuckets.getToken()
 					defer sourceMapTokenBuckets.sendBackToken(token)
-					cmd := exec.Command("sh", retrace, mappingFile) //nolint:gosec
+					cmd := exec.Command("sh", retraceCmd, mappingFile) //nolint:gosec
 					cmd.Stdin = strings.NewReader(errStackStr)
 					originStack, err := cmd.Output()
 					if err != nil {
@@ -532,22 +570,18 @@ func handleSourcemap(p influxm.Point, sdkName string, input *Input) error {
 						return fmt.Errorf("the atos tool/atosl not found")
 					}
 				}
-
 				if err := uncompressZipFile(zipFileAbsPath); err != nil {
 					return fmt.Errorf("uncompress zip file fail: %w", err)
 				}
-
 				crashAddress, err := scanIOSCrashAddress(errStackStr)
 				if err != nil {
 					return fmt.Errorf("scan crash address err: %w", err)
 				}
-
 				if len(crashAddress) == 0 {
 					log.Infof("crashAddress length is 0")
 					// do nothing
 					return nil
 				}
-
 				originStackTrace := errStackStr
 				token := sourceMapTokenBuckets.getToken()
 				defer sourceMapTokenBuckets.sendBackToken(token)
@@ -558,7 +592,6 @@ func handleSourcemap(p influxm.Point, sdkName string, input *Input) error {
 						log.Errorf("scan symbol file fail: %s", err)
 						continue
 					}
-
 					for startAddr, addresses := range moduleCrashes {
 						for _, addr := range addresses {
 							args := []string{
@@ -586,7 +619,6 @@ func handleSourcemap(p influxm.Point, sdkName string, input *Input) error {
 							stdoutStr = strings.ReplaceAll(stdoutStr, "\r", "\n")
 							stdoutStr = strings.Trim(stdoutStr, "\n")
 							// symbols := strings.Split(stdoutStr, "\n")
-
 							originStackTrace = strings.ReplaceAll(originStackTrace, addr.originStr, stdoutStr)
 						}
 					}

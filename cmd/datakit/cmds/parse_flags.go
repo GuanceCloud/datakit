@@ -151,7 +151,7 @@ var (
 	flagInstallEbpf       = fsInstall.Bool("ebpf", false, "install DataKit eBPF plugin")
 	flagInstallIPDB       = fsInstall.String("ipdb", "", "install IP database")
 	flagInstallSymbolTool = fsInstall.Bool("symbol-tools", false,
-		"install tools for symbolizing crash backtrace address, including proguard, android-ndk and atosl")
+		"install tools for symbolizing crash backtrace address, including Android command line tools, ProGuard, Android-NDK, atosl, etc ...")
 	fsInstallUsage = func() {
 		fmt.Printf("usage: datakit install [options]\n\n")
 		fmt.Printf("Install used to install DataKit related packages and plugins\n\n")

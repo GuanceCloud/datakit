@@ -30,6 +30,9 @@ const (
 ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
 endpoints = ["/v1/write/rum"]
 
+# Android command-line-tools HOME
+android_cmdline_home = "/usr/local/datakit/data/rum/tools/cmdline-tools"
+
 # proguard HOME
 proguard_home = "/usr/local/datakit/data/rum/tools/proguard"
 
@@ -84,10 +87,12 @@ func (e *execCmdTokenBuckets) sendBackToken(token struct{}) {
 }
 
 type Input struct {
-	Endpoints    []string `toml:"endpoints"`
-	ProguardHome string   `toml:"proguard_home"`
-	NDKHome      string   `toml:"ndk_home"`
-	AtosBinPath  string   `toml:"atos_bin_path"`
+	Endpoints          []string `toml:"endpoints"`
+	JavaHome           string   `toml:"java_home"`
+	AndroidCmdLineHome string   `toml:"android_cmdline_home"`
+	ProguardHome       string   `toml:"proguard_home"`
+	NDKHome            string   `toml:"ndk_home"`
+	AtosBinPath        string   `toml:"atos_bin_path"`
 }
 
 type jsonPoint struct {
