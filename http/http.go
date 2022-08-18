@@ -63,25 +63,6 @@ var (
 	semReloadCompleted *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload completed signal
 )
 
-//nolint:stylecheck
-const (
-	LOGGING_SROUCE = "source"
-	PRECISION      = "precision"
-	INPUT          = "input"
-
-	IGNORE_GLOBAL_TAGS      = "ignore_global_tags"      // deprecated, use IGNORE_GLOBAL_HOST_TAGS
-	IGNORE_GLOBAL_HOST_TAGS = "ignore_global_host_tags" // default enabled
-	GLOBAL_ELECTION_TAGS    = "global_election_tags"    // default disabled
-
-	ECHO_LINE_PROTO = "echo_line_proto"
-
-	CATEGORY          = "category"
-	VERSION           = "version"
-	PIPELINE_SOURCE   = "source"
-	DEFAULT_PRECISION = "n"
-	DEFAULT_INPUT     = "datakit" // 当 API 调用方未亮明自己身份时，默认使用 datakit 作为数据源名称
-)
-
 type Option struct {
 	Log       string
 	GinLog    string

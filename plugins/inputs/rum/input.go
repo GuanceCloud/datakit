@@ -155,16 +155,16 @@ func (i *Input) handleRUM(req *http.Request) ([]*point.JSONPoint, error) {
 
 	q := req.URL.Query()
 
-	precision := dkhttp.DEFAULT_PRECISION
-	if x := q.Get(dkhttp.PRECISION); x != "" {
+	precision := dkhttp.DefaultPrecision
+	if x := q.Get(dkhttp.ArgPrecision); x != "" {
 		precision = x
 	}
 
 	// extraTags comes from global-host-tag or global-env-tags
 	extraTags := map[string]string{}
 	for _, arg := range []string{
-		dkhttp.IGNORE_GLOBAL_HOST_TAGS,
-		dkhttp.IGNORE_GLOBAL_TAGS, // deprecated
+		dkhttp.ArgIgnoreGlobalHostTags,
+		dkhttp.ArgIgnoreGlobalTags, // deprecated
 	} {
 		if x := q.Get(arg); x != "" {
 			extraTags = map[string]string{}
@@ -177,7 +177,7 @@ func (i *Input) handleRUM(req *http.Request) ([]*point.JSONPoint, error) {
 		}
 	}
 
-	if x := q.Get(dkhttp.GLOBAL_ELECTION_TAGS); x != "" {
+	if x := q.Get(dkhttp.ArgGlobalElectionTags); x != "" {
 		for k, v := range point.GlobalEnvTags() {
 			log.Debugf("add env tag %s: %s", k, v)
 			extraTags[k] = v
@@ -185,12 +185,12 @@ func (i *Input) handleRUM(req *http.Request) ([]*point.JSONPoint, error) {
 	}
 
 	var version string
-	if x := q.Get(dkhttp.VERSION); x != "" {
+	if x := q.Get(dkhttp.ArgVersion); x != "" {
 		version = x
 	}
 
 	var pipelineSource string
-	if x := q.Get(dkhttp.PIPELINE_SOURCE); x != "" {
+	if x := q.Get(dkhttp.ArgPipelineSource); x != "" {
 		pipelineSource = x
 	}
 
@@ -237,7 +237,7 @@ func (i *Input) handleRUM(req *http.Request) ([]*point.JSONPoint, error) {
 		return nil, err
 	}
 
-	if q.Get(dkhttp.ECHO_LINE_PROTO) != "" {
+	if q.Get(dkhttp.ArgEchoLineProto) != "" {
 		var res []*point.JSONPoint
 		for _, pt := range pts {
 			x, err := pt.ToJSON()

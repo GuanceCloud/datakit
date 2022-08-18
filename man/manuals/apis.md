@@ -23,15 +23,16 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 
 | 参数名                    | 类型   | 是否必选 | 默认值    | 说明                                                                                                                       |
 | --------------------      | ------ | -------- | --------- | --------------------------------------------------                                                                         |
-| `category`                | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                                                         |
-| `precision`               | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                              |
-| `input`                   | string | false    | `datakit` | 数据源名称                                                                                                                 |
-| `ignore_global_tags`      | string | false    | 无        | 已弃用，改用 `ignore_global_host_tags`                                                                                     |
-| `ignore_global_host_tags` | string | false    | 无        | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）           |
-| `global_election_tags`    | string | false    | 无        | 给任意值（如 `true`）即认为追加全局选举类 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                  |
-| `echo_line_proto`         | string | false    | 无        | 给任意值（如 `true`）即返回 json 行协议类容，默认不返回                                                                    |
-| `version`                 | string | false    | 无        | 当前采集器的版本号                                                                                                         |
-| `source`                  | string | false    | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割 |
+| `category`                | string | Y        | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                                                         |
+| `precision`               | string | N        | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                              |
+| `input`                   | string | N        | `datakit` | 数据源名称                                                                                                                 |
+| `ignore_global_tags`      | string | N        | 无        | 已弃用，改用 `ignore_global_host_tags`                                                                                     |
+| `ignore_global_host_tags` | string | N        | 无        | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）           |
+| `global_election_tags`    | string | N        | 无        | 给任意值（如 `true`）即认为追加全局选举类 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                  |
+| `echo_line_proto`         | string | N        | 无        | 给任意值（如 `true`）即返回 json 行协议类容，默认不返回                                                                    |
+| `version`                 | string | N        | 无        | 当前采集器的版本号                                                                                                         |
+| `source`                  | string | N        | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割 |
+| `loose`                   | bool   | N        | false     | 宽松模式，对于一些不合规的行协议，DataKit 会尝试修复它们（[:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)） |
 
 HTTP body 支持行协议以及 JSON 俩种形式。关于数据结构（不管是行协议形式还是 JSON 形式）的约束，参见[这里](#lineproto-limitation)。
 
@@ -536,8 +537,7 @@ HTTP Code: 40x
 1. Tag/Field Key 长度不超过 256 字节，超过长度时，将进行截断处理
 1. Tag Value 长度不超过 1024 字节，超过长度时，将进行截断处理
 1. Field Value 不超过 32M(32x1024x1024) 字节，超过长度时，将进行截断处理
-
-关于特殊标记，目前通过 HTTP 接口打进来的数据，均无法标记（比如允许 Tag 个数大于 256 个），而 DataKit 自身的采集器，在某些特殊情况下，可能需要绕过这些限制（比如日志采集中，field 的长度可以放开）。
+1. 除时序数据外，其它类数据中，均不允许在 Tag/Field key 中出现 `.` 字符
 
 ## 延伸阅读 {#more-reading}
 
