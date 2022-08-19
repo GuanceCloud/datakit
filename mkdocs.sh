@@ -66,7 +66,6 @@ cp man/manuals/integrations-index.md $integration_docs_dir/index.md
 datakit_docs=(
 
   # 这些文档需发布在 Datakit 文档库中
-  man/manuals/aliyun-access.md
   man/manuals/integrations-to-dk-howto.md
   man/manuals/mkdocs-howto.md
   man/manuals/common-tags.md
