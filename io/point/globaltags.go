@@ -6,16 +6,16 @@
 package point
 
 var (
-	globalHostTags = map[string]string{}
-	globalEnvTags  = map[string]string{}
+	globalHostTags     = map[string]string{}
+	globalElectionTags = map[string]string{}
 )
 
 func SetGlobalHostTags(k, v string) {
 	globalHostTags[k] = v
 }
 
-func SetGlobalEnvTags(k, v string) {
-	globalEnvTags[k] = v
+func SetGlobalElectionTags(k, v string) {
+	globalElectionTags[k] = v
 }
 
 func GlobalHostTags() map[string]string {
@@ -23,10 +23,10 @@ func GlobalHostTags() map[string]string {
 }
 
 func GlobalEnvTags() map[string]string {
-	return globalEnvTags
+	return globalElectionTags
 }
 
 func ClearGlobalTags() {
 	globalHostTags = map[string]string{}
-	globalEnvTags = map[string]string{}
+	globalElectionTags = map[string]string{}
 }

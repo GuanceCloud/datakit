@@ -1,10 +1,12 @@
 __debug_bin
 .cl.md
 .docs/
+.suite.json
 .DS_Store
 .idea/
 .orig
 .pid
+.suite.json
 .vscode/
 *-packr.go
 *.ak

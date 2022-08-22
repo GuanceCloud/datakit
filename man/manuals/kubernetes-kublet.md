@@ -67,12 +67,13 @@ data:
           measurement_name = "prom_kubelet"
 
           ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
-          interval = "30s"
+          interval = "60s"
 
           ## 过滤tags, 可配置多个tag
           # 匹配的tag将被忽略
           tags_ignore = ["build_date","compiler","container_state","container_type","git_commit","git_tree_state","git_version","go_version","long_running","major","method","minor","name","node","path","platform","plugin_name","pod","server_type","status","uid","version"] 
-
+          metric_name_filter = ["kubelet_node_name","kubelet_running_pods","kubelet_running_containers","volume_manager_total_volumes","kubelet_runtime_operations_total","kubelet_runtime_operations_errors_total","storage_operation_errors_total","rest_client_requests_total","process_resident_memory_bytes","process_cpu_seconds_total","go_goroutines"]
+          
           ## TLS 配置
           tls_open = true
           #tls_ca = ""
@@ -107,6 +108,8 @@ data:
 - measurement_prefix：指标集名称前缀
 - measurement_name：指标集名称
 - interval：采集间隔
+- tags_ignore:  忽略的 tag
+- metric_name_filter:  保留的指标名
 - tls_open：是否忽略安全验证 (如果是 https，请设置为 true，并设置相应证书)，此处为 true
 - tls_ca：ca 证书路径
 - type：自定义认证方式，kubelet 使用 bearer_token 认证

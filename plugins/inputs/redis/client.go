@@ -15,15 +15,16 @@ import (
 )
 
 type clientMeasurement struct {
-	name    string
-	tags    map[string]string
-	fields  map[string]interface{}
-	ts      time.Time
-	resData map[string]interface{}
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	resData  map[string]interface{}
+	election bool
 }
 
 func (m *clientMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
@@ -104,10 +105,11 @@ func (i *Input) parseClientData(list string) ([]inputs.Measurement, error) {
 		}
 
 		m := &clientMeasurement{
-			name:    "redis_client",
-			tags:    make(map[string]string),
-			fields:  make(map[string]interface{}),
-			resData: make(map[string]interface{}),
+			name:     "redis_client",
+			tags:     make(map[string]string),
+			fields:   make(map[string]interface{}),
+			resData:  make(map[string]interface{}),
+			election: i.Election,
 		}
 
 		for key, value := range i.Tags {

@@ -17,6 +17,7 @@ type topicChannels map[string]*ChannelStats
 type stats struct {
 	topicCache map[string]topicChannels
 	nodeCache  map[string]*nodeStats
+	election   bool
 }
 
 type nodeStats struct {
@@ -33,10 +34,11 @@ func (n *nodeStats) ToMap() map[string]interface{} {
 	}
 }
 
-func newStats() *stats {
+func newStats(election bool) *stats {
 	return &stats{
 		topicCache: make(map[string]topicChannels),
 		nodeCache:  make(map[string]*nodeStats),
+		election:   election,
 	}
 }
 
@@ -100,7 +102,7 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 			}
 			fields := channelStats.ToMap()
 
-			pt, err := point.NewPoint("nsq_topics", tags, fields, point.MOptElection())
+			pt, err := point.NewPoint("nsq_topics", tags, fields, point.MOptElectionV2(s.election))
 			if err != nil {
 				lastErr = err
 				continue
@@ -118,7 +120,7 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 		}
 		fields := n.ToMap()
 
-		pt, err := point.NewPoint("nsq_nodes", tags, fields, point.MOptElection())
+		pt, err := point.NewPoint("nsq_nodes", tags, fields, point.MOptElectionV2(s.election))
 		if err != nil {
 			lastErr = err
 			continue

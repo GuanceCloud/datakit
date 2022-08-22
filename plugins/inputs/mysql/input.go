@@ -102,6 +102,7 @@ type Input struct {
 	// collectors []func() ([]inputs.Measurement, error)
 	collectors []func() ([]*point.Point, error)
 
+	Election bool `toml:"election"`
 	pause    bool
 	pauseCh  chan bool
 	binLogOn bool
@@ -141,6 +142,10 @@ type Input struct {
 	mCustomQueries map[string][]map[string]interface{}
 
 	lastErrors []string
+}
+
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
 }
 
 func (i *Input) getDsnString() string {
@@ -236,6 +241,7 @@ func (i *Input) initCfg() error {
 
 	if err := i.db.PingContext(ctx); err != nil {
 		l.Errorf("init config connect error %v", err)
+		i.db.Close() //nolint:errcheck,gosec
 		return err
 	}
 
@@ -525,7 +531,7 @@ func (i *Input) RunPipeline() {
 		Pipeline:          i.Log.Pipeline,
 		GlobalTags:        tags,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		MultilineMatch:    i.Log.MultilineMatch,
+		MultilinePatterns: []string{i.Log.MultilineMatch},
 	}
 	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt, i.Log.IgnoreStatus)
@@ -673,9 +679,10 @@ func (i *Input) Resume() error {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			Tags:    make(map[string]string),
-			Timeout: "10s",
-			pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
+			Tags:     make(map[string]string),
+			Timeout:  "10s",
+			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+			Election: true,
 
 			semStop: cliutils.NewSem(),
 		}

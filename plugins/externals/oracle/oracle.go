@@ -41,6 +41,7 @@ type Option struct {
 	ServiceName     string `long:"service-name" description:"oracle service name"`
 	Tags            string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
 	DatakitHTTPPort int    `long:"datakit-http-port" description:"DataKit HTTP server port" default:"9529"`
+	Election        bool   `long:"election" description:"whether election of this input is enabled"`
 
 	Log      string   `long:"log" description:"log path"`
 	LogLevel string   `long:"log-level" description:"log file" default:"info"`
@@ -63,6 +64,7 @@ type monitor struct {
 	port        string
 	serviceName string
 	tags        map[string]string
+	election    bool
 
 	db               *sql.DB
 	intervalDuration time.Duration
@@ -79,6 +81,7 @@ func buildMonitor() *monitor {
 		port:        opt.Port,
 		serviceName: opt.ServiceName,
 		tags:        make(map[string]string),
+		election:    opt.Election,
 	}
 
 	items := strings.Split(opt.Tags, ";")
@@ -143,9 +146,6 @@ func main() {
 		opt.Log = filepath.Join(datakit.InstallDir, "externals", "oracle.log")
 	}
 
-	// disable global-host-tags and enable global-env-tags, oracle inputs is a election input
-	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle&ignore_global_host_tags=true&global_env_tags=true", opt.DatakitHTTPPort) //nolint:lll
-
 	if err := logger.InitRoot(&logger.Option{
 		Path:  opt.Log,
 		Level: opt.LogLevel,
@@ -159,6 +159,19 @@ func main() {
 	} else {
 		l = logger.SLogger("oracle")
 	}
+
+	l.Debugf("election: %t", opt.Election)
+
+	var (
+		ignoreGlobalHostTags = "ignore_global_host_tags=true"
+		globalEnvTags        = "global_env_tags=true"
+	)
+	if opt.Election {
+		datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle&%s&%s", opt.DatakitHTTPPort, ignoreGlobalHostTags, globalEnvTags) //nolint:lll
+	} else {
+		datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle", opt.DatakitHTTPPort) //nolint:lll
+	}
+	l.Debugf("post to datakit URL: %s", datakitPostURL)
 
 	m := buildMonitor()
 	m.run()
@@ -232,7 +245,7 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 			continue
 		}
 
-		pt, err := point.NewPoint(metricName, tags, item, point.MOptElection())
+		pt, err := point.NewPoint(metricName, tags, item, getPointOption(m))
 		if err != nil {
 			l.Error("NewPoint(): %s", err.Error())
 			return err
@@ -283,7 +296,7 @@ func handleSystem(m *monitor, metricName string, response []map[string]interface
 		return nil
 	}
 
-	pt, err := point.NewPoint(metricName, tags, fields, point.MOptElection())
+	pt, err := point.NewPoint(metricName, tags, fields, getPointOption(m))
 	if err != nil {
 		l.Error("NewPoint(): %s", err.Error())
 		return err
@@ -368,6 +381,17 @@ func (m *monitor) query(obj *ExecCfg) ([]map[string]interface{}, error) {
 		list = append(list, item)
 	}
 	return list, nil
+}
+
+func getPointOption(m *monitor) *point.PointOption {
+	pointOpt := &point.PointOption{Category: datakit.Metric}
+	// Flag election is passed only when both datakit and oracle have enabled election.
+	if m.election {
+		// There is no use setting this field, since global tags are not configure inside this external input.
+		// But for consistency across the whole system, we still configure this field here.
+		pointOpt.GlobalElectionTags = true
+	}
+	return pointOpt
 }
 
 // String converts <i> to string.

@@ -11,20 +11,6 @@ var DatakitConfSample = `
 #
 default_enabled_inputs = ["cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes", "rum"]
 
-## enable_election: bool, 是否开启选举，默认 false
-#
-enable_election = false
-
-## election_namespace: string, DataKit 命名空间，支持分区选举
-## 选举的范围是 工作空间+命名空间 级别的，单个 工作空间+命名空间 中，一次最多只能有一个 DataKit 被选上
-#
-election_namespace = "default"
-
-## enable_election_tag: bool
-## 如果开启，则在选举类的采集数据上均带上额外的 tag：election_namespace = <your-election-namespace>
-#
-enable_election_tag = false
-
 ## enable_pprof: bool, 是否开启 pprof, 默认 false
 #
 enable_pprof = false
@@ -76,6 +62,12 @@ ulimit = 64000
   ## remote_pull_interval: string, 远程拉取 pipeline 配置文件间隔时间
   #
   remote_pull_interval = "1m"
+
+  ## refer_table_url: string, 当前支持的 scheme: http,https
+  ## refer_table_pull_interval: string, 数据拉取间隔
+  #
+  refer_table_url = ""
+  refer_table_pull_interval = "5m"
 
 ## http_api: HTTP 服务设置
 #
@@ -145,6 +137,10 @@ ulimit = 64000
   ## 阻塞模式: 如果网络堵塞，为了不停止采集，将有部分数据会丢失。
 	## 如果不希望丢失数据，可开启阻塞模式。一旦阻塞，将导致数据采集暂停。
 	blocking_mode = false
+
+  ## blocking_categories 指定哪些 category 走 blocking 模式。
+  ## 如果没填则检查 blocking_mode 是否为 true, 如果为 true 则全局 block。
+  blocking_categories = ["M", "/v1/write/tracing"]
 
   ## 行协议数据过滤
   ## 一旦 datakit.conf 中配置了过滤器，那么则以该过滤器为准，观测云 Studio 配置的过滤器将不再生效。
@@ -233,15 +229,31 @@ ulimit = 64000
 #
 [global_host_tags]
 
-## global_env_tags: 环境相关全局标签
-## 全局环境标签会默认添加到选举采集收集的每一条数据上，前提是采集的原始数据上不带有这里配置的标签
-##
-## 示例：
-##   [global_env_tags]
-##      project = "my-project"
-##      cluster = "my-cluster"
-#
-[global_env_tags]
+[election]
+  ## enable: bool, 是否开启选举，默认 false
+  enable = false
+
+  ## namespace: string, DataKit 命名空间，支持分区选举
+  ## 选举的范围是工作空间 + 命名空间级别的，单个工作空间+命名空间中，一次最多只能有一个 DataKit 被选上
+  #
+  namespace = "default"
+
+  ## enable_namespace_tag: bool
+  ## 如果开启，则在选举类的采集数据上均带上额外的 tag：election_namespace = <your-election-namespace>
+  #
+  enable_namespace_tag = false
+
+  ## election.tags: 选举相关全局标签
+  ## 全局选举标签会默认添加到选举采集收集的每一条数据上，前提是采集的原始数据上不带有这里配置的标签，且开启了选举
+  ##
+  ## 示例：
+  ##   [election.tags]
+  ##      project = "my-project"
+  ##      cluster = "my-cluster"
+  #
+  [election.tags]
+    #  project = "my-project"
+    #  cluster = "my-cluster"
 
 ## environments: 环境变量配置（目前只支持 ENV_HOSTNAME，用来修改主机名）
 #

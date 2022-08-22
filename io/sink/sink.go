@@ -8,12 +8,14 @@ package sink
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkdataway"
@@ -26,6 +28,11 @@ import (
 //----------------------------------------------------------------------
 
 func Write(category string, pts []*point.Point) (*point.Failed, error) {
+	if len(pts) == 0 {
+		l.Debug("sink entry empty")
+		return nil, nil
+	}
+
 	if !isInitSucceeded {
 		return nil, fmt.Errorf("not inited")
 	}
@@ -57,19 +64,25 @@ func Write(category string, pts []*point.Point) (*point.Failed, error) {
 		}
 
 		// TODO: Huge, only for tester, if go to production, comment this.
-		// 	for _, v := range remainPoints {
-		// 		l.Debugf("remain point: %s", v.String())
-		// 	}
+		// for _, v := range remainPoints {
+		// 	l.Infof("remain point: %s", v.Name())
+		// }
 
 		return nil, errKeep // Note: in sink package, point.Failed always nil
 	} else if defaultCallPtr != nil {
+		if len(sinkcommon.SinkCategoryMap) == 0 {
+			l.Debug("sink empty")
+		}
+
 		return defaultCallPtr(category, pts)
 	}
+
+	l.Error("should not been here: no default dataway AND no sink.")
 
 	return nil, &sinkcommon.SinkUnsupportError{} // Note: in sink package, point.Failed always nil
 }
 
-func Init(sincfg []map[string]interface{}, defCall func(string, []*point.Point) (*point.Failed, error)) error {
+func Init(sinkcfg []map[string]interface{}, defCall func(string, []*point.Point) (*point.Failed, error)) error {
 	var err error
 	onceInit.Do(func() {
 		l = logger.SLogger(packageName)
@@ -79,20 +92,22 @@ func Init(sincfg []map[string]interface{}, defCall func(string, []*point.Point) 
 				return fmt.Errorf("init twice")
 			}
 
+			l.Infof("sinkcfg = %#v", sinkcfg)
+
 			// check sink config
-			if err := checkSinkConfig(sincfg); err != nil {
+			if err := checkSinkConfig(sinkcfg); err != nil {
 				return err
 			}
 
 			l.Debugf("SinkImplCreator = %#v", sinkcommon.SinkImplCreator)
 
-			if err := buildSinkImpls(sincfg); err != nil {
+			if err := buildSinkImpls(sinkcfg); err != nil {
 				return err
 			}
 
 			l.Debugf("SinkImpls = %#v", sinkcommon.SinkImpls)
 
-			if err := polymerizeCategorys(sincfg); err != nil {
+			if err := polymerizeCategorys(sinkcfg); err != nil {
 				return err
 			}
 
@@ -118,8 +133,45 @@ var (
 	defaultCallPtr  func(string, []*point.Point) (*point.Failed, error)
 )
 
-func polymerizeCategorys(sincfg []map[string]interface{}) error {
-	for _, v := range sincfg {
+func getCategories(val interface{}) (map[string]struct{}, error) {
+	mCategory := make(map[string]struct{})
+
+	switch categoriesArray := val.(type) {
+	case []string:
+		if len(categoriesArray) == 0 {
+			return nil, fmt.Errorf("invalid categories: empty")
+		}
+
+		for _, categoryLine := range categoriesArray {
+			mCategory[categoryLine] = struct{}{}
+		}
+
+	case []interface{}:
+		if len(categoriesArray) == 0 {
+			return nil, fmt.Errorf("invalid categories: empty")
+		}
+
+		for _, categoryLine := range categoriesArray {
+			category, ok := categoryLine.(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid categories: not string")
+			}
+			mCategory[category] = struct{}{}
+		}
+
+	default:
+		return nil,
+			fmt.Errorf("invalid categories: %s, %s: %#v",
+				reflect.TypeOf(val).Name(),
+				reflect.TypeOf(val).String(),
+				val)
+	}
+
+	return mCategory, nil
+}
+
+func polymerizeCategorys(sinkcfg []map[string]interface{}) error {
+	for _, v := range sinkcfg {
 		if len(v) == 0 {
 			continue // empty
 		}
@@ -127,47 +179,27 @@ func polymerizeCategorys(sincfg []map[string]interface{}) error {
 		if !ok {
 			return fmt.Errorf("invalid categories: not found")
 		}
-		categoriesArray, ok := val.([]interface{})
-		if !ok {
-			return fmt.Errorf("invalid categories: not []interface{}: %#v", val)
+		mCategory, err := getCategories(val)
+		if err != nil {
+			return err
 		}
-		if len(categoriesArray) == 0 {
-			return fmt.Errorf("invalid categories: empty")
+		if len(mCategory) == 0 {
+			return fmt.Errorf("categories empty")
 		}
 
-		mCategory := make(map[string]struct{})
-		for _, categoryLine := range categoriesArray {
-			category, ok := categoryLine.(string)
-			if !ok {
-				return fmt.Errorf("invalid categories: not string")
-			}
-			mCategory[category] = struct{}{}
-		}
+		l.Infof("sink impls length = %d, impls = %#v", len(sinkcommon.SinkImpls), sinkcommon.SinkImpls)
 
 		for category := range mCategory {
 			for _, impl := range sinkcommon.SinkImpls {
-				id, _, err := dkstring.GetMapMD5String(v, []string{"categories"})
+				isMatch, err := checkCategoryMatchImpl(v, category, impl)
 				if err != nil {
+					l.Errorf("checkCategoryMatchImpl failed: %v", err)
 					return err
 				}
-
-				// check whether support the category
-				found := false
-				supportCategories := impl.GetInfo().Categories
-				for _, scs := range supportCategories {
-					if category == scs {
-						found = true
-						break
-					}
-				}
-				if !found {
-					l.Warnf("%s not support category: %s", impl.GetInfo().CreateID, category)
-					continue
-				}
-
-				if id == impl.GetInfo().ID {
+				if isMatch {
 					newCategory, err := getMapCategory(category)
 					if err != nil {
+						l.Errorf("getMapCategory failed: %v", err)
 						return err
 					}
 					sinkcommon.SinkCategoryMap[newCategory] = append(sinkcommon.SinkCategoryMap[newCategory], impl)
@@ -176,6 +208,42 @@ func polymerizeCategorys(sincfg []map[string]interface{}) error {
 		}
 	}
 	return nil
+}
+
+// checkCategoryMatchImpl returns whether [category, impl] matchable, AND error.
+// onesinkcfg, ie, the sink config, is just for MD5 calculation here.
+func checkCategoryMatchImpl(
+	oneSinkCfg map[string]interface{},
+	category string,
+	impl sinkcommon.ISink,
+) (bool, error) {
+	cfgID, cfgStr, err := sinkfuncs.GetSinkCreatorID(oneSinkCfg)
+	if err != nil {
+		return false, err
+	}
+
+	// check whether support the category
+	found := false
+	supportCategories := impl.GetInfo().Categories
+	for _, scs := range supportCategories {
+		if category == scs {
+			found = true
+			break
+		}
+	}
+	if !found {
+		l.Warnf("%s not support category: %s", impl.GetInfo().CreateID, category)
+		return false, nil
+	}
+
+	if cfgID != impl.GetInfo().ID {
+		l.Infof("sink cfg %s ID not matched, cfgID = %s, implID = %s, cfgOrigin = %s, implOrigin = %s",
+			impl.GetInfo().CreateID, cfgID, impl.GetInfo().ID, cfgStr, impl.GetInfo().IDStr)
+		return false, nil
+	}
+
+	l.Infof("sink cfg %s ID matches, ID = %s", impl.GetInfo().CreateID, cfgID)
+	return true, nil
 }
 
 func getMapCategory(originCategory string) (string, error) {
@@ -212,8 +280,8 @@ func getMapCategory(originCategory string) (string, error) {
 	return newCategory, nil
 }
 
-func buildSinkImpls(sincfg []map[string]interface{}) error {
-	for _, v := range sincfg {
+func buildSinkImpls(sinkcfg []map[string]interface{}) error {
+	for _, v := range sinkcfg {
 		if len(v) == 0 {
 			continue // empty
 		}
@@ -244,14 +312,14 @@ func getSinkInstanceFromTarget(target string) sinkcommon.ISink {
 	return nil
 }
 
-func checkSinkConfig(sincfg []map[string]interface{}) error {
+func checkSinkConfig(sinkcfg []map[string]interface{}) error {
 	// check id unique
 	mSinkID := make(map[string]struct{})
-	for _, v := range sincfg {
+	for _, v := range sinkcfg {
 		if len(v) == 0 {
 			continue // empty
 		}
-		id, _, err := dkstring.GetMapMD5String(v, []string{"categories"})
+		id, _, err := sinkfuncs.GetSinkCreatorID(v)
 		if err != nil {
 			return err
 		}

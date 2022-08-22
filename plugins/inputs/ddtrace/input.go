@@ -71,7 +71,6 @@ const (
   ## Threads config controls how many goroutines an agent cloud start.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
-  ## timeout is the duration(ms) before a job can return a result.
   # [inputs.ddtrace.threads]
     # buffer = 100
     # threads = 8
@@ -135,7 +134,24 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
 
-	afterGather := itrace.NewAfterGather()
+	var err error
+	if ipt.Storage != nil {
+		if storage, err = cache.Open(ipt.Storage.Path, &cache.Option{
+			Capacity: int64(ipt.Storage.Capacity) << 20,
+		}); err != nil {
+			log.Errorf("### open cache %s with cap %dGB failed, cache.Open: %s", ipt.Storage.Path, ipt.Storage.Capacity, err)
+		} else {
+			log.Infof("### open cache %s with cap %dGB OK", ipt.Storage.Path, ipt.Storage.Capacity)
+			go consumeStorageWorker()
+		}
+	}
+
+	var afterGather *itrace.AfterGather
+	if storage == nil {
+		afterGather = itrace.NewAfterGather()
+	} else {
+		afterGather = itrace.NewAfterGather(itrace.WithRetry(100 * time.Millisecond))
+	}
 	afterGatherRun = afterGather
 
 	// add calculators
@@ -163,6 +179,18 @@ func (ipt *Input) RegHTTPHandler() {
 		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
+	// add penetration filter for rum
+	afterGather.AppendFilter(func(dktrace itrace.DatakitTrace) (itrace.DatakitTrace, bool) {
+		for i := range dktrace {
+			if dktrace[i].Tags["_dd.origin"] == "rum" {
+				log.Debugf("penetrate rum trace, tid: %s service: %s resource: %s.", dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+
+				return dktrace, true
+			}
+		}
+
+		return dktrace, false
+	})
 	// add sampler
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
 		sampler = ipt.Sampler
@@ -177,16 +205,6 @@ func (ipt *Input) RegHTTPHandler() {
 			log.Errorf("### start workerpool failed: %s", err.Error())
 			wpool = nil
 		}
-	}
-
-	var err error
-	if ipt.Storage != nil {
-		if storage, err = cache.Open(ipt.Storage.Path, &cache.Option{
-			Capacity: int64(ipt.Storage.Capacity) << 20,
-		}); err != nil {
-			log.Error(err.Error())
-		}
-		go consumeStorageWorker()
 	}
 
 	log.Debugf("### register handlers for %s agent", inputName)

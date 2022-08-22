@@ -1,6 +1,14 @@
 #!/bin/bash
 # author: tanbiao
 # date: Fri Jun 24 10:59:21 CST 2022
+#
+# This tool used to generate & publish datakit related docs to docs.guance.com.
+#
+
+RED="\033[31m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
+CLR="\033[0m"
 
 mkdocs_dir=~/git/dataflux-doc
 tmp_doc_dir=.docs
@@ -8,17 +16,15 @@ datakit_docs_dir=${mkdocs_dir}/docs/datakit
 integration_docs_dir=${mkdocs_dir}/docs/integrations
 
 mkdir -p $datakit_docs_dir $integration_docs_dir $tmp_doc_dir
-# 清理已有文档
-rm -rf $datakit_docs_dir/*.md
-rm -rf $integration_docs_dir/*.md
 
-latest_tag=$(git tag --sort=-creatordate | head -n 1)
+#latest_version=$(git tag --sort=-creatordate | head -n 1)
+latest_version=$(curl https://static.guance.com/datakit/version | grep  '"version"' | awk -F'"' '{print $4}')
 
 man_version=$1
 
 if [ -z $man_version ]; then
-  printf "${YELLOW}[W] manual version missing, use current tag %s as version${CLR}\n" $latest_tag
-  man_version="${latest_tag}"
+  printf "${YELLOW}> Version missing, use latest version '%s'${CLR}\n" $latest_version
+  man_version="${latest_version}"
 fi
 
 arch=$(uname -m)
@@ -28,7 +34,6 @@ fi
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
   os="darwin"
-
   datakit=dist/datakit-${os}-${arch}/datakit
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
   os="linux"
@@ -38,13 +43,13 @@ else              # if under windows(amd64):
 fi
 
 # 如果无需编译 datakit，请注释一下此处的编译
+printf "${GREEN}> Building datakit...${CLR}\n"
 make || exit -1
 
 # 所有文档导出
-echo 'export to all docs...'
-$datakit doc \
+printf "${GREEN}> Export internal docs...${CLR}\n"
+LOGGER_PATH=nul $datakit doc \
 	--export-docs $tmp_doc_dir \
-	--log stdout \
 	--ignore demo \
 	--version "${man_version}" \
 	--TODO "-"
@@ -52,8 +57,10 @@ $datakit doc \
 # 导出 .pages/index.md
 cp man/manuals/datakit.pages $datakit_docs_dir/.pages
 cp man/manuals/datakit-index.md $datakit_docs_dir/index.md
-cp man/manuals/integrations.pages $integration_docs_dir/.pages
 cp man/manuals/integrations-index.md $integration_docs_dir/index.md
+
+# 这个文件就不拷贝过去了，我们还是手动去 dataflux-docs 项目修改 docs/integrations/.pages 即可
+#cp man/manuals/integrations.pages $integration_docs_dir/.pages
 
 # 只发布到 datakit 文档列表
 datakit_docs=(
@@ -62,6 +69,7 @@ datakit_docs=(
   man/manuals/aliyun-access.md
   man/manuals/integrations-to-dk-howto.md
   man/manuals/mkdocs-howto.md
+  man/manuals/common-tags.md
 
   $tmp_doc_dir/apis.md
   $tmp_doc_dir/changelog.md
@@ -78,6 +86,7 @@ datakit_docs=(
   $tmp_doc_dir/datakit-offline-install.md
   $tmp_doc_dir/datakit-pl-global.md
   $tmp_doc_dir/datakit-pl-how-to.md
+  $tmp_doc_dir/datakit-refer-table.md
   $tmp_doc_dir/datakit-service-how-to.md
   $tmp_doc_dir/datakit-sink-dev.md
   $tmp_doc_dir/datakit-sink-guide.md
@@ -194,60 +203,5 @@ for f in "${integrations_files_from_datakit[@]}"; do
   cp $f $integration_docs_dir/
 done
 
-# 这些文件没有集成在 datakit 代码中（没法通过 export-docs 命令导出），故直接拷贝到文档库中。
-integrations_extra_files=(
-	man/manuals/aliyun-asm.md
-	man/manuals/aliyun-cdn.md
-	man/manuals/aliyun-charges.md
-	man/manuals/aliyun-ecs.md
-	man/manuals/aliyun-edas.md
-	man/manuals/aliyun-eip.md
-	man/manuals/aliyun-es.md
-	man/manuals/aliyun-mongodb.md
-	man/manuals/aliyun-mysql.md
-	man/manuals/aliyun-nat.md
-	man/manuals/aliyun-oracle.md
-	man/manuals/aliyun-oss.md
-	man/manuals/aliyun-postgresql.md
-	man/manuals/aliyun-rds-mysql.md
-	man/manuals/aliyun-rds-sqlserver.md
-	man/manuals/aliyun-redis.md
-	man/manuals/aliyun-slb.md
-	man/manuals/aliyun-sls.md
-	man/manuals/ddtrace-csharp.md
-	man/manuals/ddtrace-dotnetcore.md
-	man/manuals/ddtrace-php-2.md
-	man/manuals/ddtrace-ruby-2.md
-	man/manuals/haproxy.md
-	man/manuals/kube-scheduler.md
-	man/manuals/kube-state-metrics.md
-	man/manuals/logstreaming-fluentd.md
-  man/manuals/netstat.md
-  man/manuals/dns-query.md
-  man/manuals/ethtool.md
-  man/manuals/ntpq.md
-  man/manuals/procstat.md
-	man/manuals/opentelemetry-collector.md
-	man/manuals/resin.md
-	man/manuals/redis-sentinel.md
-	man/manuals/nacos.md
-	man/manuals/rum-android.md
-	man/manuals/rum-ios.md
-	man/manuals/rum-miniapp.md
-	man/manuals/rum-web-h5.md
-
-	man/manuals/aerospike.md
-	man/manuals/chrony.md
-	man/manuals/conntrack.md
-	man/manuals/fluentd-metric.md
-	man/manuals/zookeeper.md
-	man/manuals/harbor.md
-	man/manuals/activemq.md
-	man/manuals/rocketmq.md
-)
-
-for f in "${integrations_extra_files[@]}"; do
-	cp $f $integration_docs_dir/
-done
-
+printf "${GREEN}> Start mkdocs...${CLR}\n"
 cd $mkdocs_dir && mkdocs serve 2>&1 | tee mkdocs.log

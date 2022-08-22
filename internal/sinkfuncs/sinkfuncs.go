@@ -31,7 +31,17 @@ func GetSinkFromEnvs(categoryShorts, args []string) ([]map[string]interface{}, e
 	return sinks, nil
 }
 
+func GetSinkCreatorID(mVal map[string]interface{}) (string, string, error) {
+	return dkstring.GetMapMD5String(mVal, excludeKeyName)
+}
+
+//------------------------------------------------------------------------------
+
 const sepSinks = "||"
+
+var excludeKeyName = []string{
+	"categories",
+}
 
 func polymerizeSinkCategory(categoryShort, arg string, sinks *[]map[string]interface{}) error {
 	if len(arg) == 0 {
@@ -67,11 +77,11 @@ func polymerizeSinkCategory(categoryShort, arg string, sinks *[]map[string]inter
 				return fmt.Errorf("target not string")
 			}
 			if targetString == mSingle["target"] {
-				existID, _, err := dkstring.GetMapMD5String(existSink, []string{"categories"})
+				existID, _, err := GetSinkCreatorID(existSink)
 				if err != nil {
 					return err
 				}
-				getID, _, err := dkstring.GetMapMD5String(mSingle, []string{"categories"})
+				getID, _, err := GetSinkCreatorID(mSingle)
 				if err != nil {
 					return err
 				}

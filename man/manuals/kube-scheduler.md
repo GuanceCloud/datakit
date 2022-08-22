@@ -11,7 +11,7 @@ Scheduler 性能指标展示：调度队列 pending pod 数、进入调度队列
 
 ## 前置条件
 
-- Kubernetes 集群 <[安装 Datakit](https://www.yuque.com/dataflux/integrations/kubernetes)>
+- Kubernetes 集群 <[安装 Datakit](kube-metric-server.md)>
 
 ## 安装配置
 说明：示例 Kubernetes 版本为 1.22.6，DataKit 版本为 1.2.17，各个不同版本指标可能存在差异。
@@ -63,12 +63,13 @@ data:
           measurement_name = "prom_scheduler"
 
           ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
-          interval = "30s"
+          interval = "60s"
 
           ## 过滤tags, 可配置多个tag
           # 匹配的tag将被忽略
           tags_ignore = ["build_date","compiler","event","git_commit","git_tree_state","git_version","go_version","major","method","minor","name","platform","profile","queue","result","status","type","username","version","work"]
-
+          metric_name_filter = ["scheduler_pending_pods","scheduler_queue_incoming_pods_total","rest_client_requests_total","process_resident_memory_bytes","process_cpu_seconds_total","go_goroutines"]
+          
           ## TLS 配置
           tls_open = true
           #tls_ca = ""
@@ -101,6 +102,8 @@ data:
 - measurement_prefix：指标集名称前缀
 - measurement_name：指标集名称
 - interval：采集间隔
+- tags_ignore:  忽略的 tag
+- metric_name_filter:  保留的指标名  
 - tls_open：是否忽略安全验证 (如果是 https，请设置为 true，并设置相应证书)，此处为 true
 - tls_ca：ca 证书路径
 - type：自定义认证方式，scheduler 使用 bearer_token 认证
@@ -132,7 +135,7 @@ kubectl apply -f datakit.yaml
 - 该配置为自定义标签，可以填写任意 key-value 值
 - 以下示例配置完成后，scheduler 指标都会带有 app = oa 的标签，可以进行快速查询
 - 采集 scheduler  指标，必填的 key 是 instance，值是 scheduler  metrics 的 ip + 端口
-- 相关文档 <[DataFlux Tag 应用最佳实践](https://www.yuque.com/dataflux/bp/tag)>
+- 相关文档 <[DataFlux Tag 应用最佳实践](/best-practices/guance-skill/tag.md)>
 
 ```
            ## 自定义Tags

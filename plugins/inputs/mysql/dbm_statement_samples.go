@@ -22,9 +22,10 @@ type dbmSample struct {
 }
 
 type dbmSampleMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
 }
 
 type eventStrategy struct {
@@ -101,7 +102,7 @@ type planObj struct {
 }
 
 func (m *dbmSampleMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
 }
 
 func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {

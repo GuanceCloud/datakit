@@ -97,7 +97,7 @@ func handleDDTraceWithVersion(v string) http.HandlerFunc {
 					if param, ok := input.(*parameters); ok {
 						bufpool.PutBuffer(param.body)
 					}
-					log.Debugf("### job status: output: %v, cost: %dms", output, cost/time.Millisecond)
+					log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
 				}),
 			)
 			if err != nil {
@@ -108,7 +108,7 @@ func handleDDTraceWithVersion(v string) http.HandlerFunc {
 			}
 
 			if err = wpool.MoreJob(job); err != nil {
-				log.Error(err)
+				log.Error(err.Error())
 				resp.WriteHeader(http.StatusTooManyRequests)
 
 				return
@@ -322,8 +322,12 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			dkspan.Version = tags[itrace.VERSION]
 		}
 
-		if id, ok := span.Meta["runtime-id"]; ok {
-			dkspan.Tags["runtime_id"] = id
+		if span.Meta["runtime-id"] != "" {
+			dkspan.Tags["runtime_id"] = span.Meta["runtime-id"]
+		}
+
+		if span.Meta["_dd.origin"] != "" {
+			dkspan.Tags["_dd.origin"] = span.Meta["_dd.origin"]
 		}
 
 		dkspan.Status = itrace.STATUS_OK

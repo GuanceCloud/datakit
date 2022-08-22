@@ -61,8 +61,9 @@ type Input struct {
 	httpClient *http.Client
 	duration   time.Duration
 
-	pauseCh chan bool
-	pause   bool
+	Election bool `toml:"election"`
+	pauseCh  chan bool
+	pause    bool
 
 	semStop *cliutils.Sem // start stop signal
 }
@@ -75,9 +76,14 @@ func newInput() *Input {
 		nsqdEndpointList: make(map[string]interface{}),
 		pauseCh:          make(chan bool, maxPauseCh),
 		httpClient:       &http.Client{Timeout: 5 * time.Second},
+		Election:         true,
 
 		semStop: cliutils.NewSem(),
 	}
+}
+
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
 func (*Input) SampleConfig() string { return sampleCfg }
@@ -250,7 +256,7 @@ func (ipt *Input) gather() ([]*point.Point, error) {
 		return nil, nil
 	}
 
-	st := newStats()
+	st := newStats(ipt.Election)
 
 	for endpoint := range ipt.nsqdEndpointList {
 		body, err := ipt.httpGet(endpoint)

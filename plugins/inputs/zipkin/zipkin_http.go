@@ -7,6 +7,7 @@ package zipkin
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,19 +16,33 @@ import (
 	"time"
 
 	zpkmodel "github.com/openzipkin/zipkin-go/model"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin/corev1"
 )
 
 type parameters struct {
-	media string
-	body  *bytes.Buffer
+	media  string
+	encode string
+	body   *bytes.Buffer
 }
 
 func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
-	readbodycost := time.Now()
-	media, encode, buf, err := itrace.ParseTracerRequest(req)
+	log.Debugf("### received tracing data from path: %s", req.URL.Path)
+
+	var (
+		readbodycost = time.Now()
+		enterWPoolOK = false
+	)
+	pbuf := bufpool.GetBuffer()
+	defer func() {
+		if !enterWPoolOK {
+			bufpool.PutBuffer(pbuf)
+		}
+	}()
+
+	_, err := io.Copy(pbuf, req.Body)
 	if err != nil {
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
@@ -36,12 +51,13 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	param := &parameters{
-		media: media,
-		body:  bytes.NewBuffer(buf),
+		media:  req.Header.Get("Content-Type"),
+		encode: req.Header.Get("Content-Encoding"),
+		body:   pbuf,
 	}
 
-	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %s, read-body-cost: %dms",
-		req.URL.Path, media, encode, len(buf), time.Since(readbodycost)/time.Millisecond)
+	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %dkb, read-body-cost: %dms",
+		req.URL.Path, param.media, param.encode, pbuf.Len()>>10, time.Since(readbodycost)/time.Millisecond)
 
 	if wpool == nil {
 		if err = parseZipkinTraceV1(param); err != nil {
@@ -54,9 +70,11 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 		job, err := workerpool.NewJob(workerpool.WithInput(param),
 			workerpool.WithProcess(parseZipkinTraceV1Adapter),
 			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
+				if param, ok := input.(*parameters); ok {
+					bufpool.PutBuffer(param.body)
+				}
 				log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
 			}),
-			workerpool.WithTimeout(jobTimeout),
 		)
 		if err != nil {
 			log.Error(err.Error())
@@ -66,11 +84,12 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 		}
 
 		if err = wpool.MoreJob(job); err != nil {
-			log.Error(err)
+			log.Error(err.Error())
 			resp.WriteHeader(http.StatusTooManyRequests)
 
 			return
 		}
+		enterWPoolOK = true
 	}
 
 	resp.WriteHeader(http.StatusOK)
@@ -87,18 +106,28 @@ func parseZipkinTraceV1Adapter(input interface{}) (output interface{}) {
 
 func parseZipkinTraceV1(param *parameters) error {
 	var (
-		dktrace itrace.DatakitTrace
-		err     error
+		body io.ReadCloser
+		err  error
 	)
+	if param.encode == "gzip" {
+		if body, err = gzip.NewReader(param.body); err != nil {
+			return err
+		}
+		defer body.Close() // nolint: errcheck
+	} else {
+		body = io.NopCloser(param.body)
+	}
+
+	var dktrace itrace.DatakitTrace
 	switch param.media {
 	case "application/x-thrift":
 		var zspans []*corev1.Span
-		if zspans, err = unmarshalZipkinThriftV1(io.NopCloser(param.body)); err == nil {
+		if zspans, err = unmarshalZipkinThriftV1(body); err == nil {
 			dktrace = thriftV1SpansToDkTrace(zspans)
 		}
 	case "application/json":
 		var zspans []*ZipkinSpanV1
-		if err = json.NewDecoder(param.body).Decode(&zspans); err == nil {
+		if err = json.NewDecoder(body).Decode(&zspans); err == nil {
 			dktrace = jsonV1SpansToDkTrace(zspans)
 		}
 	default:
@@ -116,7 +145,20 @@ func parseZipkinTraceV1(param *parameters) error {
 }
 
 func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
-	media, _, buf, err := itrace.ParseTracerRequest(req)
+	log.Debugf("### received tracing data from path: %s", req.URL.Path)
+
+	var (
+		readbodycost = time.Now()
+		enterWPoolOK = false
+	)
+	pbuf := bufpool.GetBuffer()
+	defer func() {
+		if !enterWPoolOK {
+			bufpool.PutBuffer(pbuf)
+		}
+	}()
+
+	_, err := io.Copy(pbuf, req.Body)
 	if err != nil {
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
@@ -125,11 +167,13 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	param := &parameters{
-		media: media,
-		body:  bytes.NewBuffer(buf),
+		media:  req.Header.Get("Content-Type"),
+		encode: req.Header.Get("Content-Encoding"),
+		body:   pbuf,
 	}
 
-	log.Debugf("### path: %s, Content-Type: %s, body-size: %d", req.URL.Path, media, len(buf))
+	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %dkb, read-body-cost: %dms",
+		req.URL.Path, param.media, param.encode, pbuf.Len()>>10, time.Since(readbodycost)/time.Millisecond)
 
 	if wpool == nil {
 		if err = parseZipkinTraceV2(param); err != nil {
@@ -142,9 +186,11 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 		job, err := workerpool.NewJob(workerpool.WithInput(param),
 			workerpool.WithProcess(parseZipkinTraceV2Adapter),
 			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
+				if param, ok := input.(*parameters); ok {
+					bufpool.PutBuffer(param.body)
+				}
 				log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
 			}),
-			workerpool.WithTimeout(jobTimeout),
 		)
 		if err != nil {
 			log.Error(err.Error())
@@ -159,6 +205,7 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 
 			return
 		}
+		enterWPoolOK = true
 	}
 
 	resp.WriteHeader(http.StatusOK)
@@ -175,15 +222,32 @@ func parseZipkinTraceV2Adapter(input interface{}) (output interface{}) {
 
 func parseZipkinTraceV2(param *parameters) error {
 	var (
+		buf []byte
+		err error
+	)
+	if param.encode == "gzip" {
+		var body io.ReadCloser
+		if body, err = gzip.NewReader(param.body); err != nil {
+			return err
+		}
+		defer body.Close() // nolint: errcheck
+
+		if buf, err = io.ReadAll(body); err != nil {
+			return err
+		}
+	} else {
+		buf = param.body.Bytes()
+	}
+
+	var (
 		zpkmodels []*zpkmodel.SpanModel
 		dktrace   itrace.DatakitTrace
-		err       error
 	)
 	switch param.media {
 	case "application/x-protobuf":
-		zpkmodels, err = parseZipkinProtobuf3(param.body.Bytes())
+		zpkmodels, err = parseZipkinProtobuf3(buf)
 	case "application/json":
-		err = json.Unmarshal(param.body.Bytes(), &zpkmodels)
+		err = json.Unmarshal(buf, &zpkmodels)
 	default:
 		err = fmt.Errorf("### zipkin V2 unsupported Content-Type: %s", param.media)
 	}

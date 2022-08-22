@@ -97,12 +97,15 @@ pip install -r requirements.txt # 期间可能要求你更新 pip 版本
     ``` shell
     PATH="/System/Volumes/Data/Users/<user-name>/Library/Python/3.8/bin:$PATH"
     ```
+- 熟悉 *mkdocs.sh*
 
-- 启动本地文档库
-
-```
-mkdocs serve
-```
+在 datakit 根目录下有一个 mkdocs.sh 脚本，它负责导出 DataKit 所有文档，并拷贝到文档库的不同目录，最后启动本地文档服务。
 
 - 访问本地 http://localhost:8000 即可看到
 - 调试完成后，提交 Merge Request 到 datakit 项目的 `mkdocs` 分支
+
+### 常见问题
+
+#### No module named 'materialx'
+
+解决方法: `pip install mkdocs-material`

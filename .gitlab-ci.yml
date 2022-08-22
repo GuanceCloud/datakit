@@ -11,13 +11,26 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.4.10"
+  CI_VERSION: "1.4.11"
   TEST_VERSION: "1.999.0"
 
 stages:
   - test
   - deploy_ebpf
   - deploy
+
+ci_lint_and_unit_test:
+  stage: deploy
+  resource_group: production
+  only:
+    - /^\d+-iss.*$/
+  script:
+    # only run lint and unit-testing
+    - make clean
+    - make lint
+    - make all_test
+  tags:
+    - cloudcare-ft
 
 test-datakit-production:
   stage: test

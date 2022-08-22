@@ -76,11 +76,16 @@ type Input struct {
 
 	client *redis.Client
 
-	pause   bool
-	pauseCh chan bool
-	hashMap [][16]byte
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
+	hashMap  [][16]byte
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
 }
 
 func (i *Input) initCfg() error {
@@ -179,10 +184,11 @@ func (i *Input) collectInfoMeasurement() ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 
 	m := &infoMeasurement{
-		cli:     i.client,
-		resData: make(map[string]interface{}),
-		tags:    make(map[string]string),
-		fields:  make(map[string]interface{}),
+		cli:      i.client,
+		resData:  make(map[string]interface{}),
+		tags:     make(map[string]string),
+		fields:   make(map[string]interface{}),
+		election: i.Election,
 	}
 
 	m.name = "redis_info"
@@ -257,7 +263,7 @@ func (i *Input) RunPipeline() {
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		MultilineMatch:    i.Log.MultilineMatch,
+		MultilinePatterns: []string{i.Log.MultilineMatch},
 	}
 
 	var err error
@@ -407,11 +413,12 @@ func (i *Input) Resume() error {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			Timeout: "10s",
-			pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
-			DB:      -1,
-			Tags:    make(map[string]string),
-			semStop: cliutils.NewSem(),
+			Timeout:  "10s",
+			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+			DB:       -1,
+			Tags:     make(map[string]string),
+			semStop:  cliutils.NewSem(),
+			Election: true,
 		}
 	})
 }

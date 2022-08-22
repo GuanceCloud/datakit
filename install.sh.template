@@ -5,46 +5,46 @@
 # https://stackoverflow.com/questions/19339248/append-line-to-etc-hosts-file-with-shell-script/37824076
 # usage: updateHosts ip domain1 domain2 domain3 ...
 function updateHosts() {
-    for n in $@
-    do
-        if [ "$n" != "$1" ]; then
-            # echo $n
-            ip_address=$1
-            host_name=$n
-            # find existing instances in the host file and save the line numbers
-            matches_in_hosts="$(grep -n $host_name /etc/hosts | cut -f1 -d:)"
-            host_entry="${ip_address} ${host_name}"
+	for n in $@
+	do
+		if [ "$n" != "$1" ]; then
+			# echo $n
+			ip_address=$1
+			host_name=$n
+			# find existing instances in the host file and save the line numbers
+			matches_in_hosts="$(grep -n $host_name /etc/hosts | cut -f1 -d:)"
+			host_entry="${ip_address} ${host_name}"
 
-            if [ ! -z "$matches_in_hosts" ]
-            then
-                # iterate over the line numbers on which matches were found
-                while read -r line_number; do
-                    # replace the text of each line with the desired host entry
-                    if [[ "$OSTYPE" == "darwin"* ]]; then
-                        sudo_cmd sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
-                    else
-                        sudo_cmd sed -i "${line_number}s/.*/${host_entry} /" /etc/hosts
-                    fi
-                done <<< "$matches_in_hosts"
-            else
-                echo "$host_entry" | sudo_cmd tee -a /etc/hosts > /dev/null
-            fi
-        fi
-    done
+			if [ ! -z "$matches_in_hosts" ]
+			then
+				# iterate over the line numbers on which matches were found
+				while read -r line_number; do
+					# replace the text of each line with the desired host entry
+					if [[ "$OSTYPE" == "darwin"* ]]; then
+						sudo_cmd sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
+					else
+						sudo_cmd sed -i "${line_number}s/.*/${host_entry} /" /etc/hosts
+					fi
+				done <<< "$matches_in_hosts"
+			else
+				echo "$host_entry" | sudo_cmd tee -a /etc/hosts > /dev/null
+			fi
+		fi
+	done
 }
 
 set -e
 
 domain=(
-    "static.guance.com"
-    "openway.guance.com"
-    "dflux-dial.guance.com"
+	"static.guance.com"
+	"openway.guance.com"
+	"dflux-dial.guance.com"
 
-    "static.dataflux.cn"
-    "openway.dataflux.cn"
-    "dflux-dial.dataflux.cn"
+	"static.dataflux.cn"
+	"openway.dataflux.cn"
+	"dflux-dial.dataflux.cn"
 
-    "zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com"
+	"zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com"
 )
 
 # detect root user
@@ -139,9 +139,14 @@ if [ -n "$DK_DEF_INPUTS" ]; then
 	def_inputs=$DK_DEF_INPUTS
 fi
 
-global_tags=
-if [ -n "$DK_GLOBAL_TAGS" ]; then
-	global_tags=$DK_GLOBAL_TAGS
+global_host_tags=
+if [ -n "$DK_GLOBAL_HOST_TAGS" ]; then
+	global_host_tags=$DK_GLOBAL_HOST_TAGS
+fi
+
+global_election_tags=
+if [ -n "$DK_GLOBAL_ELECTION_TAGS" ]; then
+	global_election_tags=$DK_GLOBAL_ELECTION_TAGS
 fi
 
 cloud_provider=
@@ -226,47 +231,47 @@ if [ -n "$DK_PROXY_TYPE" ]; then
 	if [ "$proxy_type" == "nginx" ]; then
 		# env DK_NGINX_IP has highest priority on proxy level
 		if [ -n "$DK_NGINX_IP" ]; then
-		    proxy=$DK_NGINX_IP
-		    if [ "$proxy" != "" ]; then
-			    printf "${BLU}\n* got nginx Proxy: $proxy${CLR}\n"
+			proxy=$DK_NGINX_IP
+			if [ "$proxy" != "" ]; then
+				printf "${BLU}\n* got nginx Proxy: $proxy${CLR}\n"
 
 				for i in ${domain[@]}; do
-				    updateHosts "$proxy" "$i"
-                done
+					updateHosts "$proxy" "$i"
+				done
 			fi
 			proxy=""
 		fi
 	fi
 fi
 
-env_enable_experimental=0
+enable_experimental=0
 if [ -n "$DK_ENABLE_EXPEIMENTAL" ]; then
-  env_enable_experimental=$DK_ENABLE_EXPEIMENTAL
+	enable_experimental=$DK_ENABLE_EXPEIMENTAL
 fi
 
 env_hostname=
 if [ -n "$DK_HOSTNAME" ]; then
-  env_hostname=$DK_HOSTNAME
+	env_hostname=$DK_HOSTNAME
 fi
 
 limit_cpumax=30
 if [ -n "$DK_LIMIT_CPUMAX" ]; then
-  limit_cpumax=$DK_LIMIT_CPUMAX
+	limit_cpumax=$DK_LIMIT_CPUMAX
 fi
 
 limit_cpumin=5
 if [ -n "$DK_LIMIT_CPUMIN" ]; then
-  limit_cpumin=$DK_LIMIT_CPUMIN
+	limit_cpumin=$DK_LIMIT_CPUMIN
 fi
 
 limit_memmax=4096
 if [ -n "$DK_LIMIT_MEMMAX" ]; then
-  limit_memmax=$DK_LIMIT_MEMMAX
+	limit_memmax=$DK_LIMIT_MEMMAX
 fi
 
 cgroup_disabled=0
 if [ -n "$DK_CGROUP_DISABLED" ]; then
-  cgroup_disabled=1
+	cgroup_disabled=1
 fi
 
 install_log=/var/log/datakit/install.log
@@ -301,83 +306,83 @@ fi
 
 enable_election=""
 if [ -n "$DK_ENABLE_ELECTION" ]; then
-  enable_election=$DK_ENABLE_ELECTION
+	enable_election=$DK_ENABLE_ELECTION
 fi
 
 rum_origin_ip_header=""
 if [ -n "$DK_RUM_ORIGIN_IP_HEADER" ]; then
-  rum_origin_ip_header=$DK_RUM_ORIGIN_IP_HEADER
+	rum_origin_ip_header=$DK_RUM_ORIGIN_IP_HEADER
 fi
 
 disable_404page=""
 if [ -n "$DK_DISABLE_404PAGE" ]; then
-  disable_404page=$DK_DISABLE_404PAGE
+	disable_404page=$DK_DISABLE_404PAGE
 fi
 
 log_level=""
 if [ -n "$DK_LOG_LEVEL" ]; then
-  log_level=$DK_LOG_LEVEL
+	log_level=$DK_LOG_LEVEL
 fi
 
 log=""
 if [ -n "$DK_LOG" ]; then
-  log=$DK_LOG
+	log=$DK_LOG
 fi
 
 gin_log=""
 if [ -n "$DK_GIN_LOG" ]; then
-  gin_log=$DK_GIN_LOG
+	gin_log=$DK_GIN_LOG
 fi
 
 
 sink_metric=""
 if [ -n "$DK_SINK_M" ]; then
-  sink_metric=$DK_SINK_M
+	sink_metric=$DK_SINK_M
 fi
 
 sink_network=""
 if [ -n "$DK_SINK_N" ]; then
-  sink_network=$DK_SINK_N
+	sink_network=$DK_SINK_N
 fi
 
 sink_keyevent=""
 if [ -n "$DK_SINK_K" ]; then
-  sink_keyevent=$DK_SINK_K
+	sink_keyevent=$DK_SINK_K
 fi
 
 sink_object=""
 if [ -n "$DK_SINK_O" ]; then
-  sink_object=$DK_SINK_O
+	sink_object=$DK_SINK_O
 fi
 
 sink_custom_object=""
 if [ -n "$DK_SINK_CO" ]; then
-  sink_custom_object=$DK_SINK_CO
+	sink_custom_object=$DK_SINK_CO
 fi
 
 sink_logging=""
 if [ -n "$DK_SINK_L" ]; then
-  sink_logging=$DK_SINK_L
+	sink_logging=$DK_SINK_L
 fi
 
 sink_tracing=""
 if [ -n "$DK_SINK_T" ]; then
-  sink_tracing=$DK_SINK_T
+	sink_tracing=$DK_SINK_T
 fi
 
 sink_rum=""
 if [ -n "$DK_SINK_R" ]; then
-  sink_rum=$DK_SINK_R
+	sink_rum=$DK_SINK_R
 fi
 
 sink_security=""
 if [ -n "$DK_SINK_S" ]; then
-  sink_security=$DK_SINK_S
+	sink_security=$DK_SINK_S
 fi
 
 sink_profile=""
 if [ -n "$DK_SINK_P" ]; then
-  sink_profile=$DK_SINK_P
+	sink_profile=$DK_SINK_P
 fi
 
 ##################
@@ -402,53 +407,54 @@ chmod +x $installer
 if [ "$upgrade" ]; then
 	# shellcheck disable=SC2059
 	printf "${BLU}\n* Upgrading DataKit...${CLR}\n"
-    $sudo_cmd $installer  \
-		--upgrade --proxy="${proxy}" --env_enable_experimental=${env_enable_experimental} | $sudo_cmd tee ${install_log}
+	$sudo_cmd $installer \
+		--upgrade --proxy="${proxy}" --enable-experimental=${enable_experimental} | $sudo_cmd tee ${install_log}
 else
 	printf "${BLU}\n* Installing DataKit...${CLR}\n"
-		$sudo_cmd $installer                           \
-		  --install-only="$install_only"               \
-			--dataway="${dataway}"                     \
-			--global-tags="${global_tags}"             \
-			--cloud-provider="${cloud_provider}"       \
-			--namespace="${namespace}"                 \
-			--listen="${http_listen}"                  \
-			--port="${http_port}"                      \
-			--proxy="${proxy}"                         \
-			--env_hostname="${env_hostname}"           \
-			--dca-enable="${dca_enable}"               \
-			--dca-listen="${dca_listen}"               \
-			--dca-white-list="${dca_white_list}"       \
-			--enable-pprof="${enable_pprof}"           \
-			--pprof-listen="${pprof_listen}"           \
-			--install-externals="${install_externals}" \
-			--git-url="${git_url}"                     \
-			--git-key-path="${git_key_path}"           \
-			--git-key-pw="${git_key_pw}"               \
-			--git-branch="${git_branch}"               \
-			--git-pull-interval="${git_pull_interval}" \
-			--limit-cpumax="${limit_cpumax}"           \
-			--limit-cpumin="${limit_cpumin}"           \
-			--limit-mem="${limit_memmax}"              \
-			--cgroup-disabled="${cgroup_disabled}"     \
-			--enable-election="${enable_election}"     \
-			--rum-origin-ip-header="${rum_origin_ip_header}" \
-			--disable-404page="${disable_404page}"           \
-			--log-level="${log_level}"                       \
-			--log="${log}"                                   \
-			--ipdb-type="${ipdb_type}"                       \
-			--sink-metric="${sink_metric}"                   \
-			--sink-network="${sink_network}"                 \
-			--sink-keyevent="${sink_keyevent}"               \
-			--sink-object="${sink_object}"                   \
-			--sink-custom-object="${sink_custom_object}"     \
-			--sink-logging="${sink_logging}"                 \
-			--sink-tracing="${sink_tracing}"                 \
-			--sink-rum="${sink_rum}"                         \
-			--sink-security="${sink_security}"               \
-			--sink-profile="${sink_profile}"                 \
-			--ipdb-type="${ipdb_type}"                       \
-			--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
+		$sudo_cmd $installer \
+		--install-only="$install_only" \
+		--dataway="${dataway}" \
+		--global-host-tags="${global_host_tags}" \
+		--global-election-tags="${global_election_tags}" \
+		--cloud-provider="${cloud_provider}" \
+		--namespace="${namespace}" \
+		--listen="${http_listen}" \
+		--port="${http_port}" \
+		--proxy="${proxy}" \
+		--env_hostname="${env_hostname}" \
+		--dca-enable="${dca_enable}" \
+		--dca-listen="${dca_listen}" \
+		--dca-white-list="${dca_white_list}" \
+		--enable-pprof="${enable_pprof}" \
+		--pprof-listen="${pprof_listen}" \
+		--install-externals="${install_externals}" \
+		--git-url="${git_url}" \
+		--git-key-path="${git_key_path}" \
+		--git-key-pw="${git_key_pw}" \
+		--git-branch="${git_branch}" \
+		--git-pull-interval="${git_pull_interval}" \
+		--limit-cpumax="${limit_cpumax}" \
+		--limit-cpumin="${limit_cpumin}" \
+		--limit-mem="${limit_memmax}" \
+		--cgroup-disabled="${cgroup_disabled}" \
+		--enable-election="${enable_election}" \
+		--rum-origin-ip-header="${rum_origin_ip_header}" \
+		--disable-404page="${disable_404page}" \
+		--log-level="${log_level}" \
+		--log="${log}" \
+		--ipdb-type="${ipdb_type}" \
+		--sink-metric="${sink_metric}" \
+		--sink-network="${sink_network}" \
+		--sink-keyevent="${sink_keyevent}" \
+		--sink-object="${sink_object}" \
+		--sink-custom-object="${sink_custom_object}" \
+		--sink-logging="${sink_logging}" \
+		--sink-tracing="${sink_tracing}" \
+		--sink-rum="${sink_rum}" \
+		--sink-security="${sink_security}" \
+		--sink-profile="${sink_profile}" \
+		--ipdb-type="${ipdb_type}" \
+		--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
 fi
 rm -rf $installer
 

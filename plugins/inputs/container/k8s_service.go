@@ -68,11 +68,11 @@ func (s *service) pullItems() error {
 	return nil
 }
 
-func (s *service) metric() (inputsMeas, error) {
+func (s *service) metric(election bool) (inputsMeas, error) {
 	return nil, nil
 }
 
-func (s *service) object() (inputsMeas, error) {
+func (s *service) object(election bool) (inputsMeas, error) {
 	if err := s.pullItems(); err != nil {
 		return nil, err
 	}
@@ -94,6 +94,7 @@ func (s *service) object() (inputsMeas, error) {
 				"external_traffic_policy": fmt.Sprintf("%v", item.Spec.ExternalTrafficPolicy),
 				"session_affinity":        fmt.Sprintf("%v", item.Spec.SessionAffinity),
 			},
+			election: election,
 		}
 
 		obj.tags.append(s.extraTags)
@@ -111,12 +112,13 @@ func (s *service) object() (inputsMeas, error) {
 }
 
 type serviceObject struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (s *serviceObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_services", s.tags, s.fields, point.OOptElection())
+	return point.NewPoint("kubernetes_services", s.tags, s.fields, point.OOptElectionV2(s.election))
 }
 
 //nolint:lll

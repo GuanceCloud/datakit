@@ -24,7 +24,8 @@ func TestBuildBody(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			bodies, err := buildBody(tc.pts, true)
+			dw := &DataWayDefault{}
+			bodies, err := dw.buildBody(tc.pts, true)
 			if err != nil {
 				t.Error(err)
 			}
@@ -39,7 +40,8 @@ func TestBuildBody(t *testing.T) {
 	// test body === pts
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			bodies, err := buildBody(tc.pts, false)
+			dw := &DataWayDefault{}
+			bodies, err := dw.buildBody(tc.pts, false)
 			if err != nil {
 				t.Error(err)
 			}
@@ -79,7 +81,8 @@ func BenchmarkBuildBody(b *testing.B) {
 	for _, tc := range cases {
 		b.Run(tc.name, func(t *testing.B) {
 			for i := 0; i < b.N; i++ {
-				_, err := buildBody(tc.pts, true)
+				dw := &DataWayDefault{}
+				_, err := dw.buildBody(tc.pts, true)
 				if err != nil {
 					t.Error(err)
 				}

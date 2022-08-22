@@ -25,6 +25,15 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
     [http_api]
        listen = "0.0.0.0:<other-port>"
     ```
+
+    #### 使用 Unix domain socket {#uds}
+
+    Datakit 支持 UNIX domain sockets 访问。开启方式如下: `listen` 字段配置为<b>一个不存在文件的全路径</b>，这里以 `datakit.sock` 举例，可以为任意文件名。
+    ```toml
+    [http_api]
+       listen = "/tmp/datakit.sock"
+    ```
+    配置完成后可以使用 `curl` 命令测试是否配置成功: `sudo curl --no-buffer -XGET --unix-socket /tmp/datakit.sock http:/localhost/v1/ping`。更多关于 `curl` 的测试命令的信息可以参阅[这里](https://superuser.com/a/925610)。
     
     ### HTTP 请求频率控制 {#set-http-api-limit}
     
@@ -61,7 +70,7 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
   ip         = "__datakit_ip"
   host       = "__datakit_hostname"
 
-[global_env_tags]
+[global_election_tags]
   project = "my-project"
   cluster = "my-cluster"
 ```
@@ -129,6 +138,7 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
       flush_interval = "10s"  # 数据发送的间隔阈值，每隔 10s 至少发送一次
 
       blocking_mode = false   # 阻塞模式
+      blocking_categories = ["M", "/v1/write/tracing"]  # 指定哪些 category 走 blocking 模式。
     ```
 
     阻塞模式参见 [k8s 中的对应说明](datakit-daemonset-deploy.md#env-io)
@@ -198,6 +208,10 @@ $ systemctl status datakit
 
     目前不支持时序数据的缓存，除此之外的数据，都支持发送失败的磁盘缓存。另外，虽然号称限制磁盘大小，但在极端情况下（比如发送一直失败），仍然有可能会超过标定的限制。
 -->
+
+### 选举配置
+
+参见[这里](election.md#config)
 
 ### 使用 Git 管理 DataKit 配置 {#using-gitrepo}
 

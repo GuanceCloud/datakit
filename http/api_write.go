@@ -51,6 +51,22 @@ func (x *apiWriteImpl) geoInfo(ip string) map[string]string {
 	return geoTags(ip)
 }
 
+//nolint:stylecheck
+const (
+	ArgPrecision            = "precision"
+	ArgInput                = "input"
+	ArgIgnoreGlobalTags     = "ignore_global_tags"      // deprecated, use IGNORE_GLOBAL_HOST_TAGS
+	ArgIgnoreGlobalHostTags = "ignore_global_host_tags" // default enabled
+	ArgGlobalElectionTags   = "global_election_tags"    // default disabled
+	ArgEchoLineProto        = "echo_line_proto"
+	ArgVersion              = "version"
+	ArgPipelineSource       = "source"
+	ArgLoose                = "loose"
+
+	defaultInput     = "datakit-http" // 当 API 调用方未亮明自己身份时，默认它作为数据源名称
+	DefaultPrecision = "n"
+)
+
 func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (interface{}, error) {
 	var body []byte
 	var err error
@@ -66,9 +82,14 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 		return nil, ErrInvalidAPIHandler
 	}
 
-	input := DEFAULT_INPUT
-
+	input := defaultInput
 	category := req.URL.Path
+	opt := lp.NewDefaultOption()
+
+	// extra tags comes from global-host-tag or global-env-tags
+	opt.ExtraTags = map[string]string{}
+	opt.Precision = DefaultPrecision
+	opt.Time = time.Now()
 
 	switch category {
 	case datakit.Metric,
@@ -77,6 +98,16 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 		datakit.Object,
 		datakit.Tracing,
 		datakit.KeyEvent:
+
+		opt.MaxFieldValueLen = point.MaxFieldValueLen
+		opt.MaxTagKeyLen = point.MaxTagKeyLen
+		opt.MaxFieldKeyLen = point.MaxFieldKeyLen
+		opt.MaxTagValueLen = point.MaxTagValueLen
+
+		if category == datakit.Metric {
+			opt.EnablePointInKey = true
+			opt.DisableStringField = true
+		}
 
 	case datakit.CustomObject:
 		input = "custom_object"
@@ -90,53 +121,52 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 
 	q := req.URL.Query()
 
-	if x := q.Get(INPUT); x != "" {
+	opt.Strict = (q.Get(ArgLoose) == "")
+
+	if x := q.Get(ArgInput); x != "" {
 		input = x
 	}
 
-	precision := DEFAULT_PRECISION
-	if x := q.Get(PRECISION); x != "" {
-		precision = x
+	if x := q.Get(ArgPrecision); x != "" {
+		opt.Precision = x
 	}
 
-	// extraTags comes from global-host-tag or global-env-tags
-	extraTags := map[string]string{}
 	for _, arg := range []string{
-		IGNORE_GLOBAL_HOST_TAGS,
-		IGNORE_GLOBAL_TAGS, // deprecated
+		ArgIgnoreGlobalHostTags,
+		ArgIgnoreGlobalTags, // deprecated
 	} {
 		if x := q.Get(arg); x != "" {
-			extraTags = map[string]string{}
+			opt.ExtraTags = map[string]string{}
 			break
 		} else {
 			for k, v := range point.GlobalHostTags() {
 				l.Debugf("arg=%s, add host tag %s: %s", arg, k, v)
-				extraTags[k] = v
+				opt.ExtraTags[k] = v
 			}
 		}
 	}
 
-	if x := q.Get(GLOBAL_ENV_TAGS); x != "" {
+	if x := q.Get(ArgGlobalElectionTags); x != "" {
 		for k, v := range point.GlobalEnvTags() {
 			l.Debugf("add env tag %s: %s", k, v)
-			extraTags[k] = v
+			opt.ExtraTags[k] = v
 		}
 	}
 
 	var version string
-	if x := q.Get(VERSION); x != "" {
+	if x := q.Get(ArgVersion); x != "" {
 		version = x
 	}
 
 	var pipelineSource string
-	if x := q.Get(PIPELINE_SOURCE); x != "" {
+	if x := q.Get(ArgPipelineSource); x != "" {
 		pipelineSource = x
 	}
 
-	switch precision {
+	switch opt.Precision {
 	case "h", "m", "s", "ms", "u", "n":
 	default:
-		l.Warnf("invalid precision %s", precision)
+		l.Warnf("invalid precision %s", opt.Precision)
 		return nil, ErrInvalidPrecision
 	}
 
@@ -153,11 +183,6 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 
 	var pts []*point.Point
 
-	opt := lp.NewDefaultOption()
-	opt.Precision = precision
-	opt.Time = time.Now()
-	opt.ExtraTags = extraTags
-	opt.Strict = true
 	pts, err = handleWriteBody(body, isjson, opt)
 	if err != nil {
 		return nil, err
@@ -178,27 +203,16 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 
 	l.Debugf("received %d(%s) points from %s, pipeline source: %v", len(pts), category, input, pipelineSource)
 
-	if category == datakit.Logging && pipelineSource != "" {
-		// Currently on logging support pipeline.
-		// We try to find some @input.p to split logging, for example, if @input is nginx
-		// the default pipeline is nginx.p.
-		// If nginx.p missing, pipeline do nothing on incomming logging data.
-
-		// for logging upload, we redirect them to pipeline
-		l.Debugf("send pts to pipeline")
-		err = h.sendToIO(input, category, pts, &io.Option{
-			HighFreq: true, Version: version,
-			PlScript: map[string]string{pipelineSource: pipelineSource + ".p"},
-		})
-	} else {
-		err = h.sendToIO(input, category, pts, &io.Option{HighFreq: true, Version: version})
+	feedOpt := &io.Option{Version: version}
+	if pipelineSource != "" {
+		feedOpt.PlScript = map[string]string{pipelineSource: pipelineSource + ".p"}
 	}
 
-	if err != nil {
+	if err := h.sendToIO(input, category, pts, feedOpt); err != nil {
 		return nil, err
 	}
 
-	if q.Get(ECHO_LINE_PROTO) != "" {
+	if q.Get(ArgEchoLineProto) != "" {
 		res := []*point.JSONPoint{}
 		for _, pt := range pts {
 			x, err := pt.ToJSON()

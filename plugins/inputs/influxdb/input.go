@@ -61,8 +61,9 @@ type Input struct {
 	client       *http.Client
 	collectCache []inputs.Measurement
 
-	pause   bool
-	pauseCh chan bool
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
 
 	semStop *cliutils.Sem // start stop signal
 }
@@ -74,9 +75,14 @@ func newInput() *Input {
 		Interval: datakit.Duration{Duration: time.Second * 15},
 		Timeout:  datakit.Duration{Duration: time.Second * 5},
 		pauseCh:  make(chan bool, maxPauseCh),
+		Election: true,
 
 		semStop: cliutils.NewSem(),
 	}
+}
+
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
 }
 
 func (*Input) Catalog() string { return "influxdb" }
@@ -136,7 +142,7 @@ func (i *Input) RunPipeline() {
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		MultilineMatch:    i.Log.MultilineMatch,
+		MultilinePatterns: []string{i.Log.MultilineMatch},
 	}
 
 	var err error
@@ -277,10 +283,11 @@ func (i *Input) Collect() error {
 				point.Tags[k] = v
 			}
 			i.collectCache = append(i.collectCache, &measurement{
-				name:   metricNamePrefix + point.Name,
-				tags:   point.Tags,
-				fields: point.Values,
-				ts:     ts,
+				name:     metricNamePrefix + point.Name,
+				tags:     point.Tags,
+				fields:   point.Values,
+				ts:       ts,
+				election: i.Election,
 			})
 		}
 	}

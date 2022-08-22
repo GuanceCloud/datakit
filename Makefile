@@ -166,6 +166,10 @@ define build_k8s_charts
 	@rm -f datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz
 endef
 
+define show_poor_logs
+  # 没有传参的日志，我们认为其日志信息是不够完整的，日志的意义也相对不大
+	@grep --color=always --exclude-dir=vendor --exclude-dir=.git --exclude=*.html -nr '\.Debugf(\|\.Debug(\|\.Infof(\|\.Info(\|\.Warnf(\|\.Warn(\|\.Errorf(\|\.Error(' . | grep -vE ","
+endef
 
 define check_golint_version
 	@case $(GOLINT_VERSION) in \
@@ -269,6 +273,9 @@ check_production_conf_compatible:
 	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
 	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
 
+shame_logging:
+	$(call show_poor_logs)
+
 define build_ip2isp
 	rm -rf china-operator-ip
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
@@ -324,6 +331,7 @@ all_test: deps
 test_deps: prepare gofmt lfparser_disable_line plparser_disable_line vet
 
 lint: deps
+	$(call check_golint_version)
 	if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
 		echo '============== lint under amd64/linux ==================='; \
 		$(GOLINT_BINARY) --version; \
@@ -374,6 +382,9 @@ check_man:
 		cat bad-doc.log; \
 		rm -rf bad-doc.log; \
 	fi
+
+code_stat:
+	cloc --exclude-dir=vendor,tests --exclude-lang=JSON,HTML .
 
 clean:
 	@rm -rf build/*

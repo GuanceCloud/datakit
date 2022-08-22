@@ -33,8 +33,9 @@ var (
 )
 
 type k8sClientX interface {
-	getDataKits() kubev1guancebeta1.DataKitInterface
+	getDatakits() kubev1guancebeta1.DatakitInterface
 	getDeployments() kubev1apps.DeploymentInterface
+	getDeploymentsForNamespace(string) kubev1apps.DeploymentInterface
 	getDaemonSets() kubev1apps.DaemonSetInterface
 	getReplicaSets() kubev1apps.ReplicaSetInterface
 	getStatefulSets() kubev1apps.StatefulSetInterface
@@ -45,7 +46,7 @@ type k8sClientX interface {
 	getNodes() kubev1core.NodeInterface
 	getNamespaces() kubev1core.NamespaceInterface
 	getPods() kubev1core.PodInterface
-	getPodsForNamespace(namespace string) kubev1core.PodInterface
+	getPodsForNamespace(string) kubev1core.PodInterface
 	getClusterRoles() kubev1rbac.ClusterRoleInterface
 	getIngress() kubev1extensionsbeta1.IngressInterface
 	getEvents() kubev1core.EventInterface
@@ -149,12 +150,16 @@ func (c *k8sClient) setNamespace(namespace string) {
 	c.namespace = namespace
 }
 
-func (c *k8sClient) getDataKits() kubev1guancebeta1.DataKitInterface {
-	return c.guanceV1beta1.DataKits(c.namespace)
+func (c *k8sClient) getDatakits() kubev1guancebeta1.DatakitInterface {
+	return c.guanceV1beta1.Datakits(c.namespace)
 }
 
 func (c *k8sClient) getDeployments() kubev1apps.DeploymentInterface {
 	return c.AppsV1().Deployments(c.namespace)
+}
+
+func (c *k8sClient) getDeploymentsForNamespace(namespace string) kubev1apps.DeploymentInterface {
+	return c.AppsV1().Deployments(namespace)
 }
 
 func (c *k8sClient) getDaemonSets() kubev1apps.DaemonSetInterface {

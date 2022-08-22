@@ -93,7 +93,7 @@ func TestPointOptions(t *testing.T) {
 		} {
 			t.Run(tc.name+cat, func(t *testing.T) {
 				for k, v := range tc.envTags {
-					SetGlobalEnvTags(k, v)
+					SetGlobalElectionTags(k, v)
 				}
 
 				for k, v := range tc.hostTags {

@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 	"go.opentelemetry.io/otel/exporters/jaeger"
@@ -35,6 +36,7 @@ var (
 // sinkJaeger: use otel jaeger.exporter.
 type sinkJaeger struct {
 	id     string
+	IDStr  string // MD5 origin string.
 	scheme string
 	host   string
 	port   string
@@ -47,10 +49,11 @@ type sinkJaeger struct {
 func (s *sinkJaeger) LoadConfig(mConf map[string]interface{}) error {
 	l = logger.SLogger("jarger")
 
-	if id, _, err := dkstring.GetMapMD5String(mConf, nil); err != nil {
+	if id, str, err := sinkfuncs.GetSinkCreatorID(mConf); err != nil {
 		return err
 	} else {
 		s.id = id
+		s.IDStr = str
 	}
 
 	if scheme, err := dkstring.GetMapAssertString("scheme", mConf); err != nil {
@@ -135,6 +138,7 @@ func (s *sinkJaeger) Write(category string, pts []*point.Point) error {
 func (s *sinkJaeger) GetInfo() *sinkcommon.SinkInfo {
 	return &sinkcommon.SinkInfo{
 		ID:         s.id,
+		IDStr:      s.IDStr,
 		CreateID:   jaegerID,
 		Categories: []string{datakit.SinkCategoryTracing},
 	}

@@ -34,16 +34,14 @@ func (cres *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
 	}
 
 	for i := range dktrace {
-		if dktrace[i].SpanType == SPAN_TYPE_ENTRY {
-			for service, resList := range cres.IgnoreResources {
-				if service == "*" || service == dktrace[i].Service {
-					for j := range resList {
-						if resList[j].MatchString(dktrace[i].Resource) {
-							log.Debugf("close trace tid: %s from service: %s resource: %s send by source: %s",
-								dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+		for service, resList := range cres.IgnoreResources {
+			if service == "*" || service == dktrace[i].Service {
+				for j := range resList {
+					if resList[j].MatchString(dktrace[i].Resource) {
+						log.Debugf("close trace tid: %s from service: %s resource: %s send by source: %s",
+							dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
 
-							return nil, true
-						}
+						return nil, true
 					}
 				}
 			}
@@ -85,22 +83,22 @@ func RespectUserRule(dktrace DatakitTrace) (DatakitTrace, bool) {
 			}
 			switch priority {
 			case PRIORITY_USER_REJECT, PRIORITY_RULE_SAMPLER_REJECT:
-				log.Debugf("drop tid: %s service: %s resource: %s according to PRIORITY_USER_REJECT or PRIORITY_RULE_SAMPLER_REJECT.",
-					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+				log.Debugf("drop tid: %s service: %s resource: %s according to %s.",
+					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, priorityRules[priority])
 
 				return nil, true
 			case PRIORITY_USER_KEEP, PRIORITY_RULE_SAMPLER_KEEP:
-				log.Debugf("send tid: %s service: %s resource: %s according to PRIORITY_USER_KEEP or PRIORITY_RULE_SAMPLER_KEEP.",
-					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+				log.Debugf("send tid: %s service: %s resource: %s according to %s.",
+					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, priorityRules[priority])
 
 				return dktrace, true
 			case PRIORITY_AUTO_REJECT, PRIORITY_AUTO_KEEP:
-				log.Debugf("keep tid: %s service: %s resource: %s according to PRIORITY_AUTO_REJECT or PRIORITY_AUTO_KEEP.",
-					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+				log.Debugf("keep tid: %s service: %s resource: %s according to %s.",
+					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, priorityRules[priority])
 
 				return dktrace, false
 			default:
-				log.Infof("[note] no proper priority(%s) rules selected, this may be a potential bug, tid: %s service: %s resource: %s",
+				log.Infof("[note:] no proper priority number(%s) found, this may be a potential bug, tid: %s service: %s resource: %s",
 					priority, dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
 
 				return dktrace, false
@@ -142,7 +140,7 @@ func PenetrateErrorTracing(dktrace DatakitTrace) (DatakitTrace, bool) {
 	for i := range dktrace {
 		switch dktrace[i].Status {
 		case STATUS_ERR, STATUS_CRITICAL:
-			log.Debugf("penetrate tracing %s:%s with status %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Status)
+			log.Debugf("penetrate error trace tid: %s service: %s resource: %s", dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
 
 			return dktrace, true
 		}
@@ -194,7 +192,7 @@ func (kprres *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
 	}
 }
 
-// constants used for the Knuth hashing, same as agent.
+// constants used for the Knuth hashing, same as dd-agent.
 const knuthFactor = uint64(1111111111111111111)
 
 func multiplicativeHashFunc(n uint64, rate float64) bool {
@@ -225,6 +223,9 @@ func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
 			switch priority {
 			case PRIORITY_AUTO_KEEP:
 				if multiplicativeHashFunc(UnifyToUint64ID(dktrace[i].TraceID), smp.SamplingRateGlobal) {
+					log.Debugf("keep tid: %s service: %s resource: %s according to PRIORITY_AUTO_KEEP and sampling ratio: %d%%",
+						dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, int(smp.SamplingRateGlobal*100))
+
 					return dktrace, false
 				} else {
 					log.Debugf("drop tid: %s service: %s resource: %s according to PRIORITY_AUTO_KEEP and sampling ratio: %d%%",

@@ -51,7 +51,7 @@ func (r *replicaset) pullItems() error {
 	return nil
 }
 
-func (r *replicaset) metric() (inputsMeas, error) {
+func (r *replicaset) metric(election bool) (inputsMeas, error) {
 	if err := r.pullItems(); err != nil {
 		return nil, err
 	}
@@ -69,6 +69,7 @@ func (r *replicaset) metric() (inputsMeas, error) {
 				"replicas_ready":         item.Status.ReadyReplicas,
 				"replicas":               item.Status.Replicas,
 			},
+			election: election,
 		}
 
 		for _, ref := range item.OwnerReferences {
@@ -85,8 +86,9 @@ func (r *replicaset) metric() (inputsMeas, error) {
 	count, _ := r.count()
 	for ns, c := range count {
 		met := &replicasetMetric{
-			tags:   map[string]string{"namespace": ns},
-			fields: map[string]interface{}{"count": c},
+			tags:     map[string]string{"namespace": ns},
+			fields:   map[string]interface{}{"count": c},
+			election: election,
 		}
 		met.tags.append(r.extraTags)
 		res = append(res, met)
@@ -95,7 +97,7 @@ func (r *replicaset) metric() (inputsMeas, error) {
 	return res, nil
 }
 
-func (r *replicaset) object() (inputsMeas, error) {
+func (r *replicaset) object(election bool) (inputsMeas, error) {
 	if err := r.pullItems(); err != nil {
 		return nil, err
 	}
@@ -114,6 +116,7 @@ func (r *replicaset) object() (inputsMeas, error) {
 				"ready":     item.Status.ReadyReplicas,
 				"available": item.Status.AvailableReplicas,
 			},
+			election: election,
 		}
 
 		for _, ref := range item.OwnerReferences {
@@ -153,12 +156,13 @@ func (r *replicaset) count() (map[string]int, error) {
 }
 
 type replicasetMetric struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (r *replicasetMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_replicaset", r.tags, r.fields, point.MOptElection())
+	return point.NewPoint("kube_replicaset", r.tags, r.fields, point.MOptElectionV2(r.election))
 }
 
 //nolint:lll
@@ -183,12 +187,13 @@ func (*replicasetMetric) Info() *inputs.MeasurementInfo {
 }
 
 type replicasetObject struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (r *replicasetObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_replica_sets", r.tags, r.fields, point.OOptElection())
+	return point.NewPoint("kubernetes_replica_sets", r.tags, r.fields, point.OOptElectionV2(r.election))
 }
 
 //nolint:lll

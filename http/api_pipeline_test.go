@@ -33,8 +33,7 @@ func TestGetPipelineLines(t *testing.T) {
 		{
 			name:    "normal",
 			pattern: "",
-			in: `
-127.0.0.1 - - [10/Feb/2022:18:45:09 +0800] "GET /server_status HTTP/1.1" 200 100 "-" "Go-http-client/1.1" "-"
+			in: `127.0.0.1 - - [10/Feb/2022:18:45:09 +0800] "GET /server_status HTTP/1.1" 200 100 "-" "Go-http-client/1.1" "-"
 127.0.0.1 - - [10/Feb/2022:18:45:19 +0800] "GET /server_status HTTP/1.1" 200 100 "-" "Go-http-client/1.1" "-"
 2021/11/10 16:59:53 [error] 16393#0: *17 open() "/usr/local/Cellar/nginx/1.21.3/html/server_status" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: "GET /server_status HTTP/1.1", host: "localhost:8080"
 2021/11/10 17:00:03 [error] 16393#0: *18 open() "/usr/local/Cellar/nginx/1.21.3/html/server_status" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: "GET /server_status HTTP/1.1", host: "localhost:8080"
@@ -45,8 +44,7 @@ func TestGetPipelineLines(t *testing.T) {
 2021/11/29 11:09:35 [error] 621#0: *2 open() "/usr/local/Cellar/nginx/1.21.3/html/favicon.ico" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: "GET /favicon.ico HTTP/1.1", host: "localhost:8080", referrer: "http://localhost:8080/server_status"
 2021/11/30 19:07:29 [error] 596#0: *20 open() "/usr/local/Cellar/nginx/1.21.3/html/favicon.ico" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: "GET /favicon.ico HTTP/1.1", host: "localhost:8080", referrer: "http://localhost:8080/"
 2021/12/01 11:28:09 [error] 601#0: *2 open() "/usr/local/Cellar/nginx/1.21.3/html/favicon.ico" failed (2: No such file or directory), client: 10.100.65.39, server: localhost, request: "GET /favicon.ico HTTP/1.1", host: "10.100.65.39:8080", referrer: "http://10.100.65.39:8080/"
-2022/02/10 18:17:44 [error] 616#0: *8 open() "/usr/local/Cellar/nginx/1.21.3/html/favicon.ico" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: "GET /favicon.ico HTTP/1.1", host: "127.0.0.1:8080", referrer: "http://127.0.0.1:8080/"
-			`,
+2022/02/10 18:17:44 [error] 616#0: *8 open() "/usr/local/Cellar/nginx/1.21.3/html/favicon.ico" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: "GET /favicon.ico HTTP/1.1", host: "127.0.0.1:8080", referrer: "http://127.0.0.1:8080/"`,
 			out: []string{
 				`127.0.0.1 - - [10/Feb/2022:18:45:09 +0800] "GET /server_status HTTP/1.1" 200 100 "-" "Go-http-client/1.1" "-"`,
 				`127.0.0.1 - - [10/Feb/2022:18:45:19 +0800] "GET /server_status HTTP/1.1" 200 100 "-" "Go-http-client/1.1" "-"`,

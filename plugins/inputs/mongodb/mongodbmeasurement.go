@@ -13,14 +13,15 @@ import (
 )
 
 type mongodbMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	election bool
 }
 
 func (m *mongodbMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -199,14 +200,15 @@ func (m *mongodbMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type mongodbDBMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	election bool
 }
 
 func (m *mongodbDBMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -232,14 +234,15 @@ func (m *mongodbDBMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type mongodbColMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	election bool
 }
 
 func (m *mongodbColMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -264,14 +267,15 @@ func (m *mongodbColMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type mongodbShardMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	election bool
 }
 
 func (m *mongodbShardMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -291,14 +295,15 @@ func (m *mongodbShardMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type mongodbTopMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	election bool
 }
 
 func (m *mongodbTopMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll

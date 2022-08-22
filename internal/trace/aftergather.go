@@ -6,6 +6,7 @@
 package trace
 
 import (
+	"errors"
 	"strings"
 	"sync"
 	"time"
@@ -42,12 +43,26 @@ type FilterFunc func(dktrace DatakitTrace) (DatakitTrace, bool)
 
 type AfterGather struct {
 	sync.Mutex
-	calculators []CalculatorFunc
-	filters     []FilterFunc
+	calculators    []CalculatorFunc
+	filters        []FilterFunc
+	ReFeedInterval time.Duration
 }
 
-func NewAfterGather() *AfterGather {
-	return &AfterGather{}
+type Option func(aga *AfterGather)
+
+func WithRetry(interval time.Duration) Option {
+	return func(aga *AfterGather) {
+		aga.ReFeedInterval = interval
+	}
+}
+
+func NewAfterGather(options ...Option) *AfterGather {
+	aga := &AfterGather{}
+	for i := range options {
+		options[i](aga)
+	}
+
+	return aga
 }
 
 // AppendCalculator will append new calculators into AfterGather structure,
@@ -112,8 +127,13 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod
 			start = time.Now()
 			err   error
 		)
+	IO_FEED_RETRY:
 		if err = dkioFeed(inputName, datakit.Tracing, pts, nil); err != nil {
 			log.Errorf("### io feed points error: %s", err.Error())
+			if aga.ReFeedInterval > 0 && errors.Is(err, dkio.ErrIOBusy) {
+				time.Sleep(aga.ReFeedInterval)
+				goto IO_FEED_RETRY
+			}
 		} else {
 			log.Debugf("### send %d points cost %dms with error: %v", len(pts), time.Since(start)/time.Millisecond, err)
 		}

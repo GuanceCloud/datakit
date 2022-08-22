@@ -17,6 +17,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
@@ -35,7 +36,8 @@ var (
 )
 
 type SinkLogstash struct {
-	ID string // sink config identity, unique, automatically generated.
+	ID    string // sink config identity, unique, automatically generated.
+	IDStr string // MD5 origin string.
 
 	addr      string // required. eg. http://172.16.239.130:8080
 	writeType int    // required. json or plain
@@ -44,10 +46,11 @@ type SinkLogstash struct {
 }
 
 func (s *SinkLogstash) LoadConfig(mConf map[string]interface{}) error {
-	if id, _, err := dkstring.GetMapMD5String(mConf, nil); err != nil {
+	if id, str, err := sinkfuncs.GetSinkCreatorID(mConf); err != nil {
 		return err
 	} else {
 		s.ID = id
+		s.IDStr = str
 	}
 
 	if host, err := dkstring.GetMapAssertString("host", mConf); err != nil {
@@ -125,6 +128,7 @@ func (s *SinkLogstash) Write(category string, pts []*point.Point) error {
 func (s *SinkLogstash) GetInfo() *sinkcommon.SinkInfo {
 	return &sinkcommon.SinkInfo{
 		ID:         s.ID,
+		IDStr:      s.IDStr,
 		CreateID:   creatorID,
 		Categories: []string{datakit.SinkCategoryLogging},
 	}

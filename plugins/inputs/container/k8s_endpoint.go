@@ -47,7 +47,7 @@ func (e *endpoint) pullItems() error {
 	return nil
 }
 
-func (e *endpoint) metric() (inputsMeas, error) {
+func (e *endpoint) metric(election bool) (inputsMeas, error) {
 	if err := e.pullItems(); err != nil {
 		return nil, err
 	}
@@ -63,6 +63,7 @@ func (e *endpoint) metric() (inputsMeas, error) {
 				"address_available": 0,
 				"address_not_ready": 0,
 			},
+			election: election,
 		}
 
 		var available, notReady int
@@ -81,8 +82,9 @@ func (e *endpoint) metric() (inputsMeas, error) {
 	count, _ := e.count()
 	for ns, c := range count {
 		met := &endpointMetric{
-			tags:   map[string]string{"namespace": ns},
-			fields: map[string]interface{}{"count": c},
+			tags:     map[string]string{"namespace": ns},
+			fields:   map[string]interface{}{"count": c},
+			election: election,
 		}
 		met.tags.append(e.extraTags)
 		res = append(res, met)
@@ -109,12 +111,13 @@ func (e *endpoint) count() (map[string]int, error) {
 }
 
 type endpointMetric struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (e *endpointMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_endpoint", e.tags, e.fields, point.MOptElection())
+	return point.NewPoint("kube_endpoint", e.tags, e.fields, point.MOptElectionV2(e.election))
 }
 
 //nolint:lll

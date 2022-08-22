@@ -49,8 +49,9 @@ type Input struct {
 
 	collectCache []inputs.Measurement
 
-	pause   bool
-	pauseCh chan bool
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
 
 	semStop *cliutils.Sem // start stop signal
 }

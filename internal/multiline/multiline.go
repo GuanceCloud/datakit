@@ -8,17 +8,16 @@ package multiline
 
 import (
 	"bytes"
-	"regexp"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 )
 
+const maxMutilineBytes = 32 * 1024 * 1024
+
 type Multiline struct {
-	patternRegexp *regexp.Regexp
-	buff          bytes.Buffer
-	lines         int
-	maxLines      int
+	automult *AutoMultiline
+	buff     bytes.Buffer
 
 	// prefixSpace 用以标记 pattern 为空的情况，属于默认行为，
 	// 如果一行数据，它的首字符是 WhiteSpace，那它就是多行
@@ -26,62 +25,28 @@ type Multiline struct {
 	prefixSpace bool
 }
 
-func New(pattern string, maxLines int) (*Multiline, error) {
-	var r *regexp.Regexp
+func New(patterns []string) (*Multiline, error) {
+	m := &Multiline{}
 	var err error
 
-	if pattern == "" {
-		return &Multiline{maxLines: maxLines, prefixSpace: true}, nil
+	if len(patterns) == 0 {
+		m.prefixSpace = true
+	} else {
+		m.automult, err = NewAutoMultiline(patterns)
 	}
 
-	if r, err = regexp.Compile(pattern); err != nil {
-		return nil, err
-	}
-	return &Multiline{
-		patternRegexp: r,
-		maxLines:      maxLines,
-	}, nil
+	return m, err
 }
 
 var newline = []byte{'\n'}
 
-func (m *Multiline) ProcessLine(text []byte) []byte {
-	if !m.match(text) {
-		if m.lines != 0 {
-			m.buff.Write(newline)
-		}
-		m.buff.Write(text)
-		m.lines++
-
-		if m.lines >= m.maxLines {
-			return m.Flush()
-		}
-		return nil
-	}
-
-	previousText := m.Flush()
-	m.buff.Write(text)
-	m.lines = 1 // always 1th line
-
-	return previousText
-}
-
 func (m *Multiline) ProcessLineString(text string) string {
-	return m.ProcessLineStringWithFlag(text, false)
-}
-
-// ProcessLineStringWithFlag process line string with multiFlag
-// when the multiFlag is true, it indicates the text is part of multiline and ignore the match pattern,
-// and will not insert '\n' before the text.
-func (m *Multiline) ProcessLineStringWithFlag(text string, multiFlag bool) string {
-	if multiFlag || !m.MatchString(text) {
-		if m.lines != 0 && !multiFlag {
+	if !m.matchString(text) {
+		if m.buff.Len() > 0 {
 			m.buff.WriteString("\n")
 		}
 		m.buff.WriteString(text)
-		m.lines++
-
-		if m.lines >= m.maxLines {
+		if m.buff.Len() >= maxMutilineBytes {
 			return m.FlushString()
 		}
 		return ""
@@ -89,13 +54,30 @@ func (m *Multiline) ProcessLineStringWithFlag(text string, multiFlag bool) strin
 
 	previousText := m.FlushString()
 	m.buff.WriteString(text)
-	m.lines = 1 // always 1th line
 
 	return previousText
 }
 
-func (m *Multiline) CacheLines() int {
-	return m.lines
+func (m *Multiline) ProcessLine(text []byte) []byte {
+	if !m.match(text) {
+		if m.buff.Len() > 0 {
+			m.buff.Write(newline)
+		}
+		m.buff.Write(text)
+		if m.buff.Len() >= maxMutilineBytes {
+			return m.Flush()
+		}
+		return nil
+	}
+
+	previousText := m.Flush()
+	m.buff.Write(text)
+
+	return previousText
+}
+
+func (m *Multiline) BuffLength() int {
+	return m.buff.Len()
 }
 
 func (m *Multiline) Flush() []byte {
@@ -107,8 +89,6 @@ func (m *Multiline) Flush() []byte {
 	copy(text, m.buff.Bytes())
 
 	m.buff.Reset()
-	m.lines = 0
-
 	return text
 }
 
@@ -116,7 +96,11 @@ func (m *Multiline) match(text []byte) bool {
 	if m.prefixSpace {
 		return m.matchOfPrefixSpace(text)
 	}
-	return m.patternRegexp.Match(text)
+	return m.automult.Match(text)
+}
+
+func (m *Multiline) matchString(text string) bool {
+	return m.match([]byte(text))
 }
 
 func (m *Multiline) matchOfPrefixSpace(text []byte) bool {
@@ -132,22 +116,7 @@ func (m *Multiline) FlushString() string {
 	}
 	text := m.buff.String()
 	m.buff.Reset()
-	m.lines = 0
 	return text
-}
-
-func (m *Multiline) MatchString(text string) bool {
-	if m.prefixSpace {
-		return m.MatchStringOfPrefixSpace(text)
-	}
-	return m.patternRegexp.MatchString(text)
-}
-
-func (m *Multiline) MatchStringOfPrefixSpace(text string) bool {
-	if len(text) == 0 {
-		return true
-	}
-	return !unicode.IsSpace(rune(text[0]))
 }
 
 func (m *Multiline) BuffString() string {

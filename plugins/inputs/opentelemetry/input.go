@@ -9,7 +9,6 @@ package opentelemetry
 
 import (
 	"strings"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -71,11 +70,9 @@ const (
   ## Threads config controls how many goroutines an agent cloud start.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
-  ## timeout is the duration(ms) before a job can return a result.
   # [inputs.opentelemetry.threads]
     # buffer = 100
     # threads = 8
-    # timeout = 1000
 
   [inputs.opentelemetry.expectedHeaders]
     ## 如有header配置 则请求中必须要携带 否则返回状态码500
@@ -109,10 +106,9 @@ const (
 )
 
 var (
-	log        = logger.DefaultSLogger(inputName)
-	sampler    *itrace.Sampler
-	wpool      workerpool.WorkerPool
-	jobTimeout time.Duration
+	log     = logger.DefaultSLogger(inputName)
+	sampler *itrace.Sampler
+	wpool   workerpool.WorkerPool
 )
 
 type Input struct {
@@ -154,8 +150,6 @@ func (ipt *Input) RegHTTPHandler() {
 		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
 			log.Errorf("### start workerpool failed: %s", err.Error())
 			wpool = nil
-		} else {
-			jobTimeout = time.Duration(ipt.WPConfig.Timeout) * time.Millisecond
 		}
 	}
 

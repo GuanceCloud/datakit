@@ -37,6 +37,9 @@ var (
   ## set to true if server side uses TLS 1.0 or TLS 1.1
   allow_tls10 = false
 
+  ## Set true to enable election
+  election = true
+
   ## configure db_filter to filter out metrics from certain databases according to their database_name tag.
   ## If leave blank, no metric from any database is filtered out.
   # db_filter = ["some_db_instance_name", "other_db_instance_name"]
@@ -92,8 +95,9 @@ type Input struct {
 	start   time.Time
 	db      *sql.DB
 
-	pauseCh chan bool
-	pause   bool
+	Election bool `toml:"election"`
+	pauseCh  chan bool
+	pause    bool
 
 	semStop *cliutils.Sem // start stop signal
 }

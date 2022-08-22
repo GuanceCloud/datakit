@@ -25,18 +25,29 @@
 
 ### 创建 v1beta1 DataKit 实例，创建 DataKit 实例对象
 
-将以下内容写入 yaml 配置，例如 `datakit-crd.yaml`，修改配置项 `input-conf` `k8s-namespace` 和 `k8s-deployment`，并执行 apply 命令。
+将以下内容写入 yaml 配置，例如 `datakit-crd.yaml`，其中各个字段的含义如下：
 
-Datakit 会发现 DataKit 实例并按照 namespace 和 deployment 找寻对应的 pod，根据 input-conf 启动采集器。
-
-配置项字段含义如下：
-
-- `input-conf`：主配置，内容和 Datakit 采集器相同，其中支持如下几个通配符：
-  - `$IP`：通配 Pod 的内网 IP
+- `k8sNamespace`：指定 namespace，配合 deployment 定位一个集合的 Pod，必填项
+- `k8sDeployment`：指定 deployment 名称，配合 namespace 定位一个集合的 Pod，必填项
+- `inputConf`：采集器配置文件，依据 namespace 和 deployment 找到对应的 Pod，替换 Pod 的通配符信息，再根据 inputConf 内容运行采集器。支持以下通配符
+  - `$IP`：Pod 的内网 IP
   - `$NAMESPACE`：Pod Namespace
   - `$PODNAME`：Pod Name
-- `k8s-namespace`：指定 namespace
-- `k8s-deployment`：指定 deployment，配合 namespace 定位 pod 组
+  - `$NODENAME`：当前所在 node 的 name
+- `datakit/logs`：日志配置，用以指定 Pod 日志的相关配置，和容器的 Annotations 用法相同，[详见](container.md#logging-with-annotation-or-label)。优先级低于 Pod Annotations datakit/logs 配置
+
+**注意，Datakit 只采集和它处于同一个 node 的 Pod，属于就近采集，不会跨 node 采集。**
+
+执行 `kubectl apply -f datakit-crd.yaml` 命令。
+
+## 示例 {#example}
+
+完整示例如下，包括：
+
+- 创建 CRD Datakit
+- 测试所用的 namespace 和 Datakit 实例对象
+- 配置日志采集（`datakit/logs`）
+- 配置 Prom 采集器（`inputConf`）
 
 ```yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -56,19 +67,24 @@ spec:
             spec:
               type: object
               properties:
-                input-conf:
-                  type: string
-                k8s-namespace:
-                  type: string
-                k8s-deployment:
-                  type: string
-                tags:
-                  type: string
+                instances:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      k8sNamespace:
+                        type: string
+                      k8sDeployment:
+                        type: string
+                      datakit/logs:
+                        type: string
+                      inputConf:
+                        type: string
   scope: Namespaced
   names:
     plural: datakits
     singular: datakit
-    kind: DataKit
+    kind: Datakit
     shortNames:
     - dk
 ---
@@ -78,35 +94,36 @@ metadata:
   name: datakit-crd
 ---
 apiVersion: "guance.com/v1beta1"
-kind: DataKit
+kind: Datakit
 metadata:
   name: my-test-crd-object
   namespace: datakit-crd
 spec:
-  input-conf: |
-    [[inputs.prom]]
-      url = "http://$IP:8080/metrics"
-      source = "hello-prom-testing]"
-      metric_types = ["counter", "gauge"]
-      interval = "10s"
-      [inputs.prom.tags]
-      namespace = "$NAMESPACE"
-  k8s-namespace: "default"
-  k8s-deployment: "prom-testing"
-  tags: "key1=value1"
+  instances:
+    - k8sNamespace: "testing-namespace"
+      k8sDeployment: "testing-deployment"
+      inputConf: |
+        [inputs.prom]
+          url="http://prom"
+    - k8sNamespace: "testing-namespace"
+      k8sDeployment: "testing-deployment"
+      datakit/logs: |
+        [{
+          "source" : "nginx",
+          "service": "nginx-x"
+        }]
 ```
 
-## Ngxin Ingress 配置示例
+### Ngxin Ingress 配置示例
 
-### 使用 DataKit CRD 扩展采集 Nginx Ingress 指标
+这里使用 DataKit CRD 扩展采集 Ingress 指标，即通过 prom 采集器来收集 Ingress 的指标。
 
 #### 前提条件
 
 - 已部署 [DaemonSet DataKit](datakit-daemonset-deploy.md)
-- Deployment 的 *`Pod labels`* 必须存在 `app=你的deploy名称`
-  
-  如果 `Deployment` 名称为 `ingress-nginx-controller`，那边 yaml 配置如下：
-  ```
+- 如果 `Deployment` 名称为 `ingress-nginx-controller`，那边 yaml 配置如下：
+
+  ``` yaml
   ...
   spec:
     selector:
@@ -116,23 +133,13 @@ spec:
       metadata:
         creationTimestamp: null
         labels:
-          app: ingress-nginx-controller
+          app: ingress-nginx-controller  # 这里只是一个示例名称
   ...
   ```
-  > !!! `ingress-nginx-controller` 只是一个示例名称
-
-#### 采集基础信息
-
-|  资源   | 名称  |
-|  ----  | ----  |
-| Namespace  | ingress-nginx |
-| Deployment  | ingress-nginx-controller |
-| Metrics Port | 10254 |
-| source | prom-ingress |
 
 #### 配置步骤
 
-##### 创建 Datakit CustomResourceDefinition
+- 先创建 Datakit CustomResourceDefinition
 
 执行如下创建命令：
 
@@ -155,19 +162,24 @@ spec:
             spec:
               type: object
               properties:
-                input-conf:
-                  type: string
-                k8s-namespace:
-                  type: string
-                k8s-deployment:
-                  type: string
-                tags:
-                  type: string
+                instances:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      k8sNamespace:
+                        type: string
+                      k8sDeployment:
+                        type: string
+                      datakit/logs:
+                        type: string
+                      inputConf:
+                        type: string
   scope: Namespaced
   names:
     plural: datakits
     singular: datakit
-    kind: DataKit
+    kind: Datakit
     shortNames:
     - dk
 EOF
@@ -176,11 +188,11 @@ EOF
 查看部署情况：
 
 ```bash
-$ kubectl  get crd | grep datakit
-datakits.guance.com
+$ kubectl get crds | grep guance.com
+datakits.guance.com   2022-08-18T10:44:09Z
 ```
 
-##### 创建 Datakit 资源
+- 创建 Datakit 资源
 
 Prometheus 详细配置可参考[链接](../integrations/kubernetes-prom.md)
 
@@ -193,7 +205,9 @@ metadata:
   name: prom-ingress
   namespace: datakit
 spec:
-  input-conf: |-
+  k8sDeployment: ingress-nginx-controller
+  k8sNamespace: ingress-nginx
+  inputConf: |-
     [[inputs.prom]]
       url = "http://$IP:10254/metrics"
       source = "prom-ingress"
@@ -207,12 +221,9 @@ spec:
       name = "prom_ingress"
     [inputs.prom.tags]
       namespace = "$NAMESPACE"
-  k8s-deployment: ingress-nginx-controller
-  k8s-namespace: ingress-nginx
-  tags: key1=value1
 ```
 
-> !!! 注意`namespace` 可自定义，`k8s-deployment` 和 `k8s-namespace` 则必须准确
+> !!! 注意`namespace` 可自定义，`k8sDeployment` 和 `k8sNamespace` 则必须准确
 
 查看部署情况：
 
@@ -222,7 +233,7 @@ NAME           AGE
 prom-ingress   18m
 ```
 
-##### 查看指标采集情况
+- 查看指标采集情况
 
 登录 `Datakit pod` ，执行以下命令：
 
@@ -234,4 +245,19 @@ $ datakit monitor
 
 也可以登录 [观测云平台](https://www.guance.com/){:target="_blank"} ,【指标】-【查看器】查看指标数据
 
+## FAQ {#faq}
+
+### 目前存在的问题 {#issue}
+
+无法将 `datakit/logs` 的配置，动态应用到正在采集的日志。举例如下：
+
+1. Datakit 正在采集 Pod stdout 日志，现在再添加 CRD `datakit/logs` 是不生效的，因为日志采集已经在进行中
+2. Datakit 使用 CRD `datakit/logs` 配置进行日志采集，CRD 的配置 namespace 和 deployment 不变，只改变 `datakit/logs` ，这次更新改动是不生效的，因为日志已经用旧的配置在采集中，无法被干预
+3. 如果配置了 Datakit CRD，并且要确保生效，需要重启 Datakit
+
+所以现在正常的顺序是：
+
+1. 使用 Deployment 创建 Pod
+2. 修改和创建 Datakit crd
+3. 启动 Datakit
 

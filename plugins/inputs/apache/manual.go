@@ -13,14 +13,15 @@ import (
 )
 
 type Measurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	election bool
 }
 
 func (m *Measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll
