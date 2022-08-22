@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"reflect"
+	"strings"
 	"time"
 
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
@@ -178,7 +179,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 		return nil, ErrEmptyBody
 	}
 
-	isjson := (req.Header.Get("Content-Type") == "application/json")
+	isjson := (strings.Contains(req.Header.Get("Content-Type"), "application/json"))
 
 	var pts []*point.Point
 
