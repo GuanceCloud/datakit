@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin/binding"
@@ -210,7 +211,7 @@ func (i *Input) handleRUM(req *http.Request) ([]*point.JSONPoint, error) {
 		return nil, dkhttp.ErrEmptyBody
 	}
 
-	isjson := req.Header.Get("Content-Type") == binding.MIMEJSON
+	isjson := (strings.Contains(req.Header.Get("Content-Type"), "application/json"))
 
 	var pts []*point.Point
 
