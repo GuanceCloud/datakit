@@ -179,8 +179,8 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler f
 		},
 		ConstantEditors: constEditor,
 	}
-	if buf, err := dkebpf.Asset("netflow.o"); err != nil {
-		return nil, err
+	if buf, err := dkebpf.NetFlowBin(); err != nil {
+		return nil, fmt.Errorf("netflow.o: %w", err)
 	} else if err := m.InitWithOptions((bytes.NewReader(buf)), mOpts); err != nil {
 		return nil, err
 	}
