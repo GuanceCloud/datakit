@@ -85,7 +85,7 @@ binlog 开启，参见[这个问答](https://stackoverflow.com/questions/4068238
 
 ### 数据库性能指标采集 {#performance-schema}
 
-数据库性能指标来源于 MySQL 的内置数据库 `performance_schema`, 该数据库提供了一个能够在运行时获取服务器内部执行情况的方法。通过该数据库，DataKit 能够采集历史查询语句的各种指标统计和查询语句的执行计划，以及其他相关性能指标。采集的性能指标数据保存为日志，source 分别为 `mysql_dbm_metric` 和 `mysql_dbm_sample`。
+数据库性能指标主要来源于 MySQL 的内置数据库 `performance_schema`, 该数据库提供了一个能够在运行时获取服务器内部执行情况的方法。通过该数据库，DataKit 能够采集历史查询语句的各种指标统计和查询语句的执行计划，以及其他相关性能指标。采集的性能指标数据保存为日志，source 分别为 `mysql_dbm_metric`, `mysql_dbm_sample` 和 `mysql_dbm_activity`。
 
 如需开启，需要执行以下步骤。
 
@@ -94,18 +94,22 @@ binlog 开启，参见[这个问答](https://stackoverflow.com/questions/4068238
 ```toml
 [[inputs.mysql]]
 
-# 开启数据库性能指标采集
+## 开启数据库性能指标采集
 dbm = true
 
 ...
 
-# 监控指标配置
+## 监控指标配置
 [inputs.mysql.dbm_metric]
   enabled = true
 
-# 监控采样配置
+## 监控采样配置
 [inputs.mysql.dbm_sample]
   enabled = true
+
+## 等待事件采集
+[inputs.mysql.dbm_activity]
+  enabled = true   
 ...
 
 ```
@@ -121,6 +125,7 @@ max_digest_length = 4096
 performance_schema_max_digest_length = 4096
 performance_schema_max_sql_text_length = 4096
 performance-schema-consumer-events-statements-current = on
+performance-schema-consumer-events-waits-current = on
 performance-schema-consumer-events-statements-history-long = on
 performance-schema-consumer-events-statements-history = on
 
@@ -182,7 +187,7 @@ GRANT EXECUTE ON PROCEDURE <数据库名称>.explain_statement TO datakit@'%';
 
 - `consumers`配置
 
-方法一（推荐）：通过 `DataKit` 动态配置 `performance_schema.events_statements_*`，需要创建以下存储过程：
+方法一（推荐）：通过 `DataKit` 动态配置 `performance_schema.events_*`，需要创建以下存储过程：
 
 ```sql
 DELIMITER $$
@@ -190,6 +195,7 @@ CREATE PROCEDURE datakit.enable_events_statements_consumers()
     SQL SECURITY DEFINER
 BEGIN
     UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%';
+    UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events_waits_current';
 END $$
 DELIMITER ;
 
@@ -200,6 +206,7 @@ GRANT EXECUTE ON PROCEDURE datakit.enable_events_statements_consumers TO datakit
 
 ```sql
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%';
+UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events_waits_current';
 ```
 
 ### 指标 {#measurement}
