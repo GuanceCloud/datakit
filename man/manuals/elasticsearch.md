@@ -2,13 +2,13 @@
 # ElasticSearch
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性能状况、索引性能、检索性能等。
 
-![](imgs/input-elasticsearch-01.png)
-
-## 前置条件
+## 前置条件 {#requirements}
 
 - ElasticSearch 版本 >= 6.0.0
 - ElasticSearch 默认采集 `Node Stats` 指标，如果需要采集 `Cluster-Health` 相关指标，需要设置 `cluster_health = true`
@@ -18,11 +18,11 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 - 设置 `cluster_stats = true` 可产生如下指标集
   - `elasticsearch_cluster_stats`
 
-## 用户权限配置
+## 用户权限配置 {#user-permission}
 
 如果开启账号密码访问，需要配置相应的权限，否则会导致监控信息获取失败错误。目前支持 Elasticsearch , Open Distro for Elasticsearch 和 OpenSearch。
 
-### Elasticsearch
+### Elasticsearch {#perm-es}
 
 - 创建角色`monitor`，设置如下权限
 
@@ -53,7 +53,7 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 - 创建自定义用户，并赋予新创建的`monitor`角色。
 - 其他信息请参考配置文件说明
 
-### Open Distro for Elasticsearch
+### Open Distro for Elasticsearch {#perm-open-es}
 
 - 创建用户
 - 创建角色 `monitor`, 设置如下权限：
@@ -86,7 +86,7 @@ PUT _opendistro/_security/api/roles/monitor
 
 - 设置角色与用户之间的映射关系
 
-### OpenSearch
+### OpenSearch {#perm-opensearch}
 
 - 创建用户
 - 创建角色 `monitor`, 设置如下权限：
@@ -119,21 +119,21 @@ PUT _plugins/_security/api/roles/monitor
 
 - 设置角色与用户之间的映射关系
 
-## 配置
+=== "主机安装"
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-```toml
-{{.InputSample}}
-```
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-配置好后，重启 DataKit 即可。
+=== "Kubernetes"
 
-## 指标预览
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-![](imgs/input-elasticsearch-02.png)
-
-## 指标集
+## 指标集 {#requirements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -159,7 +159,11 @@ PUT _plugins/_security/api/roles/monitor
 {{ end }} 
 
 
-## 日志采集
+## 日志采集 {#logging}
+
+???+ attention
+
+    日志采集仅支持采集已安装 DataKit 主机上的日志
 
 如需采集 ElasticSearch 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 ElasticSearch 日志文件的绝对路径。比如：
 
@@ -172,7 +176,7 @@ files = ["/path/to/your/file.log"]
 
 开启日志采集以后，默认会产生日志来源（`source`）为 `elasticsearch` 的日志。
 
-## 日志 pipeline 功能切割字段说明
+## 日志 pipeline 功能切割字段说明 {#pipeline}
 
 - ElasticSearch 通用日志切割
   
@@ -229,10 +233,6 @@ files = ["/path/to/your/file.log"]
 | index    | shopping            | 索引名称         |
 | duration | 34000000            | 请求耗时，单位ns |
 
-**注意**
-
-- 日志采集仅支持采集已安装 DataKit 主机上的日志
-
-## 更多阅读
+## 更多阅读 {#more-reading}
 
 - [ElasticSearch 最佳实践](../best-practices/monitoring/elasticsearch.md)

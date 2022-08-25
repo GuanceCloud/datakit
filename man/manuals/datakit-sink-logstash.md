@@ -3,11 +3,11 @@
 
 Logstash 仅支持写入 Logging 种类的数据。
 
-## 第一步: 搭建后端存储
+## 第一步: 搭建后端存储 {#backend-storage}
 
 自己搭建一个 Logstash 的环境, 需要开启 [HTTP 模块](https://www.elastic.co/cn/blog/introducing-logstash-input-http-plugin){:target="_blank"}, 开启的方法也非常简单, 直接在 Logstash 的 pipeline 文件中配置即可。
 
-### 新建 Logstash 的 pipeline 文件
+### 新建 Logstash 的 pipeline 文件 {#new-pipeline}
 
 新建一个 Logstash 的 pipeline 文件 `pipeline-http.conf`, 如下所示:
 
@@ -28,11 +28,11 @@ output {
 
 这个文件可以任意放, 我这里放在 `/opt/elastic/logstash` 下, 即全路径是 `/opt/elastic/logstash/pipeline-http.conf`。
 
-### 配置 Logstash 使用上面的 pipeline 文件
+### 配置 Logstash 使用上面的 pipeline 文件 {#setup-pipeline}
 
 有两种方式: 配置文件方式和命令行方式。选其一即可。
 
-#### 配置文件方式
+- 配置文件方式
 
 在配置文件 `logstash/config/logstash.yml` 中增加一行:
 
@@ -40,7 +40,7 @@ output {
 path.config: /opt/elastic/logstash/pipeline-http.conf
 ```
 
-#### 命令行方式
+- 命令行方式
 
 在命令行中指定 pipeline 文件:
 
@@ -48,7 +48,7 @@ path.config: /opt/elastic/logstash/pipeline-http.conf
 $ logstash/bin/logstash -f /opt/elastic/logstash/pipeline-http.conf
 ```
 
-## 第二步: 增加配置
+## 第二步: 增加配置 {#config-sink}
 
 在 `datakit.conf` 中增加以下片段:
 
@@ -75,11 +75,11 @@ $ logstash/bin/logstash -f /opt/elastic/logstash/pipeline-http.conf
 - `request_path`: 请求 URL 的路径.
 - `timeout`: Timeout for influxdb writes, defaults to 10 seconds.
 
-## 第三步: 重启 DataKit
+## 第三步: 重启 DataKit {#restart-dk}
 
 `$ sudo datakit --restart`
 
-## 安装阶段指定 LogStash Sink 设置
+## 安装阶段指定 LogStash Sink 设置 {#logstash-on-installer}
 
 LogStash 支持安装时环境变量开启的方式。
 

@@ -67,11 +67,11 @@ func (i *Input) ElectionEnabled() bool {
 }
 
 func (i *Input) Catalog() string {
-	return inputName
+	return "db"
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
+	return datakit.AllOSWithElection
 }
 
 func (i *Input) SampleConfig() string {

@@ -1,15 +1,17 @@
 # Kubernetes CRD 扩展采集
 ---
 
-- 操作系统支持：:material-kubernetes:
+:material-kubernetes:
+
+---
 
 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental) 
 
-## 介绍
+## 介绍 {#intro}
 
 本文档介绍如何在 Kubernetes 集群中创建 DataKit resouce 并配置扩展采集器。
 
-### 添加鉴权
+### 添加鉴权 {#authorization}
 
 如果是升级版 DataKit 需要在 `datakit.yaml` 的 `apiVersion: rbac.authorization.k8s.io/v1` 项添加鉴权，即复制以下几行添加到末尾：
 
@@ -23,7 +25,7 @@
   - list
 ```
 
-### 创建 v1beta1 DataKit 实例，创建 DataKit 实例对象
+### 创建 v1beta1 DataKit 实例，创建 DataKit 实例对象 {#create}
 
 将以下内容写入 yaml 配置，例如 `datakit-crd.yaml`，其中各个字段的含义如下：
 
@@ -114,11 +116,11 @@ spec:
         }]
 ```
 
-### Ngxin Ingress 配置示例
+### Ngxin Ingress 配置示例 {#example-nginx}
 
 这里使用 DataKit CRD 扩展采集 Ingress 指标，即通过 prom 采集器来收集 Ingress 的指标。
 
-#### 前提条件
+#### 前提条件 {#nginx-requirements}
 
 - 已部署 [DaemonSet DataKit](datakit-daemonset-deploy.md)
 - 如果 `Deployment` 名称为 `ingress-nginx-controller`，那边 yaml 配置如下：
@@ -137,7 +139,7 @@ spec:
   ...
   ```
 
-#### 配置步骤
+#### 配置步骤 {#nginx-steps}
 
 - 先创建 Datakit CustomResourceDefinition
 
@@ -194,7 +196,7 @@ datakits.guance.com   2022-08-18T10:44:09Z
 
 - 创建 Datakit 资源
 
-Prometheus 详细配置可参考[链接](../integrations/kubernetes-prom.md)
+Prometheus 详细配置可参考[链接](kubernetes-prom.md)
 
 执行如下 `yaml` ：
 
@@ -241,7 +243,10 @@ prom-ingress   18m
 $ datakit monitor
 ```
 
-![](imgs/datakit-crd-ingress.png)
+<figure markdown>
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-crd-ingress.png){ width="800" }
+  <figcaption> Ingress 数据采集 </figcaption>
+</figure>
 
 也可以登录 [观测云平台](https://www.guance.com/){:target="_blank"} ,【指标】-【查看器】查看指标数据
 
@@ -259,5 +264,4 @@ $ datakit monitor
 
 1. 使用 Deployment 创建 Pod
 2. 修改和创建 Datakit crd
-3. 启动 Datakit
-
+3. 启动 Datakit 

@@ -3,11 +3,11 @@
 
 Dataway 支持所有种类的数据。
 
-## 第一步: 搭建后端存储
+## 第一步: 搭建后端存储 {#backend-storage}
 
 使用[观测云](https://console.guance.com/)的 Dataway, 或者自己搭建一个 Dataway 的 server 环境。
 
-## 第二步: 增加配置
+## 第二步: 增加配置 {#config}
 
 在 `datakit.conf` 中增加以下片段:
 
@@ -30,11 +30,11 @@ Dataway 支持所有种类的数据。
 - `filters`(可选): 过滤规则。类似于 io 的 `filters`, 但功能是截然相反的。sink 里面的 filters 匹配满足了才写数据; io 里面的 filters 匹配满足了则丢弃数据。前者是 `include` 后者是 `exclude`。
 - `proxy`(可选): 代理地址, 如 `127.0.0.1:1080`。
 
-## 第三步: 重启 DataKit
+## 第三步: 重启 DataKit {#restart-dk}
 
 `$ sudo datakit --restart`
 
-## 安装阶段指定 Dataway Sink 设置
+## 安装阶段指定 Dataway Sink 设置 {#dw-setup}
 
 Dataway 支持安装时环境变量开启的方式。
 

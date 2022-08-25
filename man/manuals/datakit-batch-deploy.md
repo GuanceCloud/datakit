@@ -2,8 +2,6 @@
 # 批量部署
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
 我们可以通过 Ansible 等方式来批量安装 DataKit。
 
 ## 前置条件 {#requirements}

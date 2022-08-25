@@ -5,10 +5,9 @@ OpenTelemetry(OTEL) 提供了多种 Export 将链路数据发送到多个采集�
 
 本篇介绍如何使用 sink 将链路数据发送到 otel-collector 和 Jaeger 中。
 
-## 1.通过配置文件指定 sink 类型
+## 通过配置文件指定 sink 类型 {#config}
 
-
-### 将链路数据发送到 otel-collector 中
+### 将链路数据发送到 otel-collector 中 {#apm-otel}
 
 1. 修改配置 datakit 配置文件
 
@@ -49,7 +48,7 @@ grpc 配置：
     target = "otel"
 ```
 
-### 将链路数据发送到 Jaeger
+### 将链路数据发送到 Jaeger {#apm-jaeger}
 
 Sink Jaeger 支持将链路数据发送到 `jaeger.colletcor` 和 `jaeger.agent`.支持使用 `HTTP` 和 `gRPC` 两种协议。
 
@@ -108,10 +107,10 @@ grpc 配置：
 
 ---
 
-## 2.安装阶段通过环境变量形式指定 Sink 
+## 安装阶段通过环境变量形式指定 Sink {#install}
 
 ```shell
-## jaeger-collector
+# jaeger-collector
 DK_SINK_T="jaeger://localhost?scheme=http&port=14268" \
 DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" \
 bash -c "$(curl -L https://static.guance.com/datakit/community/install.sh)"

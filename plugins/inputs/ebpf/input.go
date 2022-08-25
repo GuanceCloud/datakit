@@ -199,7 +199,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSLabelLinux}
+	return []string{datakit.OSLabelLinux, datakit.LabelK8s}
 }
 
 // ReadEnv support envs：

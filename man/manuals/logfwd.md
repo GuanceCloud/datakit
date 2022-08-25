@@ -2,33 +2,38 @@
 # 通过 Sidecar 方式采集 Pod 日志
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :material-kubernetes:
+":material-kubernetes:"
+
+---
 
 为了便于在 Kubernetes Pod 中采集应用容器的日志，提供一个轻量的日志采集客户端，以 sidecar 方式挂载到 Pod 中，并将采集到的日志发送给 DataKit。
 
-## 使用
+## 使用 {#using}
 
 分成两部分，一是配置 DataKit 开启相应的日志接收功能，二是配置和启动 logfwd 采集。
 
-### DataKit 配置
+### DataKit 配置 {#datakit-conf}
 
-需要开启 logfwdserver，详见[文档](logfwdserver.md)。
 
-进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
+=== "主机安装"
 
-``` toml
-[inputs.logfwdserver]
-  ## logfwd 接收端监听地址和端口
-  address = "0.0.0.0:9533"
+    需要先开启 [logfwdserver](logfwdserver.md)，进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
+    
+    ``` toml hl_lines="1"
+    [inputs.logfwdserver] # 注意这里是 logfwdserver 的配置
+      ## logfwd 接收端监听地址和端口
+      address = "0.0.0.0:9533"
+    
+      [inputs.logfwdserver.tags]
+      # some_tag = "some_value"
+      # more_tag = "some_other_value"
+    ```
 
-  [inputs.logfwdserver.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-```
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-配置好后，重启 DataKit 即可。
+=== "Kubernetes"
 
-> 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](../datakit/datakit-daemonset-deploy.md)。
+    目前可以通过 [ConfigMap 方式注入 logfwdserver 采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
 ### logfwd 使用和配置 {#config}
 
@@ -74,7 +79,7 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
     - `remove_ansi_escape_codes` 是否删除 ANSI 转义码，例如标准输出的文本颜色等，值为 `true` 或 `false`
     - `tags` 添加额外 `tag`，书写格式是 JSON map，例如 `{ "key1":"value1", "key2":"value2" }`
 
-#### 安装和运行
+#### 安装和运行 {#install-run}
 
 logfwd 在 Kubernetes 的部署配置分为两部分，一是 Kubernetes Pod 创建 `spec.containers` 的配置，包括注入环境变量和挂载目录。配置如下：
 
@@ -242,7 +247,7 @@ data:
     ]
 ```
 
-### 性能测试
+### 性能测试 {#bench}
 
 - 环境：
 
@@ -275,7 +280,7 @@ MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
 1850829 root      20   0  715416  17500   8964 R  42.1   0.1   0:10.44 logfwd
 ```
 
-## 延伸阅读
+## 延伸阅读 {#more-reading}
 
 - [DataKit 日志采集综述](datakit-logging.md)
 - [Socket 日志接入最佳实践](logging_socket.md)

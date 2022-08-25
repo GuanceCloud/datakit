@@ -2,7 +2,9 @@
 # 采集器配置
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes:
+{{.AvailableArchs}}
+
+---
 
 RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用户访问监测数据。
 
@@ -39,7 +41,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
     default_enabled_inputs = [ "rum", "cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes" ]
     ```
 
-    配置好后，重启 DataKit 即可。
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
 === "Kubernetes"
 
@@ -72,7 +74,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 其它接口依然可用，但只能通过 DataKit 本机访问，比如[查询 DQL](../datakit/datakit-dql-how-to.md) 或者查看 [DataKit 运行状态](../datakit/datakit-tools-how-to.md#using-monitor)。
 
-### 禁用 DataKit 404 页面
+### 禁用 DataKit 404 页面 {#disable-404}
 
 可通过如下配置，禁用公网访问 DataKit 404 页面：
 
