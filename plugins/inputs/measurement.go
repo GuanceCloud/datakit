@@ -49,6 +49,7 @@ const (
 	NCount    = "count"
 
 	// time units.
+	DurationPS     = "ps"
 	DurationNS     = "ns"
 	DurationUS     = "μs"
 	DurationMS     = "ms"
