@@ -2,7 +2,9 @@
 # 容器数据采集
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 采集 container 和 Kubernetes 的指标、对象和日志数据，上报到观测云。
 
@@ -69,7 +71,7 @@
     - 对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂不支持配置
     - 采集到的日志, 单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃
 
-#### Docker 和 Containerd sock 文件配置
+#### Docker 和 Containerd sock 文件配置 {#docker-containerd-sock}
 
 如果 Docker 或 Containerd 的 sock 路径不是默认的，则需要指定一下 sock 文件路径，根据 DataKit 不同部署方式，其方式有所差别，以 Containerd 为例：
 

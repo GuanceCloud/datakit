@@ -640,7 +640,7 @@ func (*Input) Catalog() string { return catalogName }
 
 func (*Input) SampleConfig() string { return configSample }
 
-func (*Input) AvailableArchs() []string { return datakit.AllOS }
+func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{

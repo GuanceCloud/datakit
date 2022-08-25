@@ -2,46 +2,104 @@
 # DDTrace
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing 协议数据。
 
-## DDTrace SDK {#sdk}
+## DDTrace 文档和示例 {#doc-example}
 
-### 文档 {#docs}
+<div class="grid cards" markdown>
+-   :fontawesome-brands-python: __Python__
 
-- [Java](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} 
-- [Python](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers){:target="_blank"}
-- [Ruby](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby){:target="_blank"}
-- [Golang](https://docs.datadoghq.com/tracing/setup_overview/setup/go?tab=containers){:target="_blank"}
-- [NodeJS](https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs?tab=containers){:target="_blank"}
-- [PHP](https://docs.datadoghq.com/tracing/setup_overview/setup/php?tab=containers){:target="_blank"}
-- [C++](https://docs.datadoghq.com/tracing/setup_overview/setup/cpp?tab=containers){:target="_blank"}
-- [.Net Core](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-core?tab=windows){:target="_blank"}
-- [.Net Framework](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"}
+    ---
 
-### 源码 {#source-code}
+    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-py){:target="_blank"} ·
+		[:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: 示例](ddtrace-python.md)
 
-- [Java](https://github.com/DataDog/dd-trace-java){:target="_blank"}
-- [Python](https://github.com/DataDog/dd-trace-py){:target="_blank"}
-- [Ruby](https://github.com/DataDog/dd-trace-rb){:target="_blank"}
-- [Golang](https://github.com/DataDog/dd-trace-go){:target="_blank"}
-- [NodeJS](https://github.com/DataDog/dd-trace-js){:target="_blank"}
-- [PHP](https://github.com/DataDog/dd-trace-php){:target="_blank"}
-- [C++](https://github.com/opentracing/opentracing-cpp){:target="_blank"}
-- [.Net](https://github.com/DataDog/dd-trace-dotnet){:target="_blank"}
+-   :material-language-java: __Java__
 
-> Java： DataKit 安装目录 `data` 目录下，有预先准备好的 `dd-java-agent.jar`（推荐使用）。也可以直接去 [Maven 下载](https://mvnrepository.com/artifact/com.datadoghq/dd-java-agent){:target="_blank"}
+    ---
+
+    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-java){:target="_blank"} ·
+		[:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: 示例](ddtrace-java.md)
+
+-   :material-language-ruby: __Ruby__
+
+    ---
+
+    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-rb){:target="_blank"} ·
+    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby){:target="_blank"} ·
+    [:octicons-arrow-right-24: 示例](ddtrace-java.md)
+
+-   :fontawesome-brands-golang: __Golang__
+
+    ---
+
+    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-go){:target="_blank"} ·
+    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/go?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: 示例](ddtrace-golang.md)
+
+-   :material-language-php: __PHP__
+
+    ---
+
+    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-php){:target="_blank"} ·
+    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/php?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: 示例](ddtrace-php.md)
+
+-   :fontawesome-brands-node-js: __NodeJS__
+
+    ---
+
+    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-js){:target="_blank"} ·
+    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: 示例](ddtrace-nodejs.md)
+
+-   :material-language-cpp:
+
+    ---
+
+    [:octicons-code-16: SDK](https://github.com/opentracing/opentracing-cpp){:target="_blank"} ·
+    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/cpp?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: 示例](ddtrace-cpp.md)
+
+-   :material-dot-net:
+
+    ---
+
+    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-dotnet){:target="_blank"} ·
+    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"} ·
+    [:octicons-book-16: .Net Core 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"}
+</div>
+
+???+ tip
+
+    Java： DataKit 安装目录 `data` 目录下，有预先准备好的 `dd-java-agent.jar`（推荐使用）。也可以直接去 [Maven 下载](https://mvnrepository.com/artifact/com.datadoghq/dd-java-agent){:target="_blank"}
+
 
 > 观测云也在源码的基础上二次开发，增加更多功能及探针，更多版本详细信息请查看：[Ddtrace二次开发版本说明](../best-practices/monitoring/ddtrace-guance.md)
 
 ## 采集器配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+=== "主机安装"
 
-```toml
-{{.InputSample}}
-```
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
+
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+
+=== "Kubernetes"
+
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+---
 
 ???+ attention
 
@@ -55,10 +113,10 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
 如果 Trace 数据是跨机器发送过来的，那么需要设置 [DataKit 的 HTTP 设置](../datakit/datakit-conf.md#config-http-server)。
 
-如果有 ddtrace 数据发送给 DataKit，那么在 [DataKit 的 monitor](../datakit/datakit-tools-how-to.md#monitor) 上能看到：
+如果有 ddtrace 数据发送给 DataKit，那么在 [DataKit 的 monitor](../datakit/datakit-monitor.md) 上能看到：
 
 <figure markdown>
-  ![](imgs/input-ddtrace-monitor.png){ width="800" }
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
   <figcaption> DDtrace 将数据发送给了 /v0.4/traces 接口</figcaption>
 </figure>
 
@@ -72,7 +130,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
   capacity = 5120
 ```
 
-## DDtrace SDK 配置
+## DDtrace SDK 配置 {#sdk}
 
 配置完采集器之后，还可以对 DDtrace SDK 端做一些配置。
 
@@ -100,7 +158,7 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 - 在 ddtrace.conf 中直接配置自定义标签。这种方式会影响**所有**发送给 DataKit tracing 服务的数据，需慎重考虑：
 
 ```toml
-## tags is ddtrace configed key value pairs
+# tags is ddtrace configed key value pairs
 [inputs.ddtrace.tags]
   some_tag = "some_value"
   more_tag = "some_other_value"

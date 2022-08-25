@@ -191,7 +191,7 @@ func (i *Input) GetPipeline() []*tailer.Option {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.AllOS
+	return datakit.AllOSWithElection
 }
 
 func (i *Input) Run() {

@@ -2,8 +2,6 @@
 # 采集器配置
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
 DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_blank"}，所有采集器配置均位于 *conf.d* 目录下：
 
 - Linux/Mac：`/usr/local/datakit/conf.d/`
@@ -25,11 +23,11 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
 
 > 由于 DataKit 只会搜索 `conf.d/` 目录下以 `.conf` 为扩展的文件，故所有采集器配置==必须放在 *conf.d* 目录下（或其下层子目录下），且必须以 *.conf* 作为文件后缀==，不然 DataKit 会忽略该配置文件的处理。
 
-## 如何修改采集器配置
+## 如何修改采集器配置 {#modify-input-conf}
 
 目前部分采集器可以无需配置就能开启，有些则需要手动编辑配置。
 
-### 同一个采集器开启多份采集
+### 同一个采集器开启多份采集 {#input-multi-inst}
 
 以 MySQL 为例，如果要配置多个不同 MySQL 采集，有两种方式：
 
@@ -55,9 +53,9 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
   
     # 省略其它配置项...
 
-##########################################
+#-----------------------------------------
 # 再来一个 MySQL 采集
-##########################################
+#-----------------------------------------
 [[inputs.mysql]]
   host = "localhost"
   user = "datakit"
@@ -73,9 +71,9 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
   
     # 省略其它配置项...
 
-##########################################
+#-----------------------------------------
 # 下面继续再加一个
-##########################################
+#-----------------------------------------
 [[inputs.mysql]]
 	...
 ```
@@ -95,7 +93,7 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
 
 这实际上是一个 Toml 的数组结构，==这种结构适用于所有采集器的多配置情况==。
 
-### 关闭具体采集器
+### 关闭具体采集器 {#disable-inputs}
 
 有时候，我们希望临时关闭某个采集器，也有两种方式：
 
@@ -148,7 +146,9 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
 
 这里推荐一个[在线工具来调试我们的正则通配](https://regex101.com/){:target="_blank"}。如下图所示：
 
-![](imgs/debug-golang-regexp.png)
+<figure markdown>
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/debug-golang-regexp.png){ width="800" }
+</figure>
 
 另外，由于 DataKit 中的配置均使用 Toml，故建议大家使用 `'''这里是一个具体的正则表达式'''` 的方式来填写正则（即正则俩边分别用三个英文单引号），这样可以避免一些复杂的转义。
 
@@ -156,19 +156,20 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
 
 DataKit 安装完成后，默认会开启一批采集器，无需手动开启。这些采集器一般跟主机相关，列表如下：
 
-| 采集器名称                                          | 说明                                                                           |
-| ---------                                           | ---                                                                            |
-| [cpu](../integrations/cpu.md)                       | 采集主机的 CPU 使用情况                                                        |
-| [disk](../integrations/disk.md)                     | 采集磁盘占用情况                                                               |
-| [diskio](../integrations/diskio.md)                 | 采集主机的磁盘 IO 情况                                                         |
-| [mem](../integrations/mem.md)                       | 采集主机的内存使用情况                                                         |
-| [swap](../integrations/swap.md)                     | 采集 Swap 内存使用情况                                                         |
-| [system](../integrations/system.md)                 | 采集主机操作系统负载                                                           |
-| [net](../integrations/net.md)                       | 采集主机网络流量情况                                                           |
-| [host_processes](../integrations/host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
-| [hostobject](../integrations/hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
-| [container](../integrations/container.md)           | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
+| 采集器名称                          | 说明                                                                           |
+| ---------                           | ---                                                                            |
+| [cpu](cpu.md)                       | 采集主机的 CPU 使用情况                                                        |
+| [disk](disk.md)                     | 采集磁盘占用情况                                                               |
+| [diskio](diskio.md)                 | 采集主机的磁盘 IO 情况                                                         |
+| [mem](mem.md)                       | 采集主机的内存使用情况                                                         |
+| [swap](swap.md)                     | 采集 Swap 内存使用情况                                                         |
+| [system](system.md)                 | 采集主机操作系统负载                                                           |
+| [net](net.md)                       | 采集主机网络流量情况                                                           |
+| [host_processes](host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
+| [hostobject](hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
+| [container](container.md)           | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
 
-## 更多阅读
+## 更多阅读 {#more}
 
 - [DataKit K8s 安装以及配置](datakit-daemonset-deploy.md)
+- [通过 Git 管理采集器配置](git-config-how-to.md)

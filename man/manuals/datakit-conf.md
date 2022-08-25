@@ -2,14 +2,18 @@
 # DataKit 主配置
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
+DataKit 主配置用来配置 DataKit 自己的运行行为。
 
-DataKit 主配置用来配置 DataKit 自己的运行行为，其目录一般位于：
+=== "主机部署"
 
-- Linux/Mac: `/usr/local/datakit/conf.d/datakit.conf`
-- Windows: `C:\Program Files\datakit\conf.d\datakit.conf`
+    其目录一般位于：
+    
+    - Linux/Mac: `/usr/local/datakit/conf.d/datakit.conf`
+    - Windows: `C:\Program Files\datakit\conf.d\datakit.conf`
 
-> DaemonSet 安装时，虽然在对应目录下也存在这个文件，==但实际上 DataKit 并不加载这里的配置==。这些配是通过在 datakit.yaml 中[注入环境变量](datakit-daemonset-deploy.md#using-k8-env)来生成的。
+=== "Kubernates"
+
+    DaemonSet 安装时，虽然在对应目录下也存在这个文件，**但实际上 DataKit 并不加载这里的配置**。这些配是通过在 datakit.yaml 中[注入环境变量](datakit-daemonset-deploy.md#using-k8-env)来生成的。下面所有的配置，都能在 Kubernates 部署文档中找到[对应的环境变量](datakit-daemonset-deploy.md#using-k8-env)配置。
 
 ## HTTP 服务的配置 {#config-http-server}
 
@@ -122,7 +126,7 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
 下面涉及的内容涉及一些高级配置，如果对配置不是很有把握，建议咨询我们的技术专家。
 
-### IO 模块性能调优 {#io-tuning}
+### IO 模块调参 {#io-tuning}
 
 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·
 [:octicons-beaker-24: Experimental](index.md#experimental)
@@ -146,6 +150,29 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 === "Kubernetes"
 
     参见[这里](datakit-daemonset-deploy.md#env-io)
+
+
+#### IO 磁盘缓存 {#io-disk-cache}
+
+当 DataKit 发送数据失败后，为了不丢失关键数据，可以开启磁盘缓存。磁盘缓存的目的在于将发送失败的数据暂时存入磁盘，待条件允许时，再将数据发送出去。
+
+=== "datakit.conf"
+
+    ```toml
+    [io]
+      enable_cache = true   # 开启磁盘缓存
+      cache_max_size_gb = 5 # 指定磁盘大小为 5GB
+    ```
+
+=== "Kubernetes"
+
+    参见[这里](datakit-daemonset-deploy.md#env-io)
+
+---
+
+???+ attention
+
+    目前不支持时序数据的缓存，除此之外的数据，都支持发送失败的磁盘缓存。另外，由于限制了磁盘大小，如果发送一直失败，导致磁盘超过上限，仍然会丢失数据（优先丢弃较老的数据）。
 
 ### cgroup 限制  {#enable-cgroup}
 
@@ -182,34 +209,7 @@ $ systemctl status datakit
     - cgroup 限制只在[宿主机安装](datakit-install.md)的时候会默认开启
     - cgourp 只支持 CPU 使用率和内存使用量（mem+swap）控制，且只支持 Linux 操作系统。
 
-<!--
-### 启用磁盘缓存 {#using-cache}
-
-[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ·
-[:octicons-beaker-24: Experimental](index.md##experimental)
-
-在 DataKit 日常运行中，如果发送 DataWay 失败，为了缓解数据丢失，可设置一下磁盘缓存，修改 *datakit.conf* 如下配置，即可开启磁盘缓存：
-
-=== "datakit.conf"
-
-    修改 datakit.conf：
-
-    ```toml
-    [io]
-      enable_cache = true
-      cache_max_size_gb = 1
-    ```
-
-=== "Kubernetes"
-
-    参见[这里](datakit-daemonset-deploy.md#env-io)
-
-???+ attention
-
-    目前不支持时序数据的缓存，除此之外的数据，都支持发送失败的磁盘缓存。另外，虽然号称限制磁盘大小，但在极端情况下（比如发送一直失败），仍然有可能会超过标定的限制。
--->
-
-### 选举配置
+### 选举配置 {#election}
 
 参见[这里](election.md#config)
 
@@ -251,7 +251,7 @@ Datakit 支持使用 git 来管理采集器配置、Pipeline 以及 Python 脚�
 
 #### 应用 Git 管理的 Pipeline 示例 {#gitrepo-example}
 
-我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，**DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用**。在 [Nginx 采集器](../integrations/nginx.md)的配置中，一个 pipeline 的配置示例：
+我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，**DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用**。在 [Nginx 采集器](nginx.md)的配置中，一个 pipeline 的配置示例：
 
 ```toml
 [[inputs.nginx]]

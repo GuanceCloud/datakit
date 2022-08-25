@@ -33,7 +33,7 @@ type IOConfig struct {
 	FeedChanSize int `toml:"feed_chan_size"`
 
 	MaxCacheCount        int `toml:"max_cache_count"`
-	MaxDynamicCacheCount int `toml:"max_dynamic_cache_count"`
+	MaxDynamicCacheCount int `toml:"max_dynamic_cache_count,omitzero"`
 
 	FlushInterval string `toml:"flush_interval"`
 

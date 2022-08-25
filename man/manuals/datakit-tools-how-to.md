@@ -2,8 +2,6 @@
 # 各种其它工具使用
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
 DataKit 内置很多不同的小工具，便于大家日常使用。可通过如下命令来查看 DataKit 的命令行帮助：
 
 ```shell
@@ -12,7 +10,7 @@ datakit help
 
 >注意：因不同平台的差异，具体帮助内容会有差别。
 
-## DataKit 自动命令补全
+## DataKit 自动命令补全 {#completion}
 
 > DataKit 1.2.12 才支持该补全，且只测试了 Ubuntu 和 CentOS 两个 Linux 发行版。其它 Windows 跟 Mac 均不支持。
 
@@ -41,7 +39,7 @@ $ datakit dql <tab> # 输入 \tab 即可提示如下选项
 
 以下提及的所有命令，均可使用这一方式来操作。
 
-### 获取自动补全脚本
+### 获取自动补全脚本 {#get-completion}
 
 如果大家的 Linux 系统不是 Ubuntu 和 CentOS，可通过如下命令获取补全脚本，然后再按照对应平台的 shell 补全方式，一一添加即可。
 
@@ -58,7 +56,7 @@ datakit tool --completer-script > datakit-completer.sh
 
 DataKit 新的 monitor 用法[参见这里](datakit-monitor.md)。
 
-## 检查采集器配置是否正确
+## 检查采集器配置是否正确 {#check-conf}
 
 编辑完采集器的配置文件后，可能某些配置有误（如配置文件格式错误），通过如下命令可检查是否正确：
 
@@ -68,7 +66,7 @@ datakit tool --check-config
 checked 13 conf, all passing, cost 22.27455ms
 ```
 
-## 查看帮助文档
+## 查看帮助文档 {#man}
 
 为便于大家在服务端查看 DataKit 帮助文档，DataKit 提供如下交互式文档查看入口（Windows 不支持）：
 
@@ -81,7 +79,7 @@ man > mysql
 man > Q               # 输入 Q 或 exit 退出
 ```
 
-## 查看工作空间信息
+## 查看工作空间信息 {#workspace-info}
 
 为便于大家在服务端查看工作空间信息，DataKit 提供如下命令查看：
 
@@ -111,7 +109,7 @@ datakit tool --workspace-info
 }
 ```
 
-## 查看 DataKit 相关事件
+## 查看 DataKit 相关事件 {#event}
 
 DataKit 运行过程中，一些关键事件会以日志的形式进行上报，比如 DataKit 的启动、采集器的运行错误等。在命令行终端，可以通过 dql 进行查询。
 
@@ -176,7 +174,7 @@ datakit install --ipdb iploc
 
 ==重启 DataKit 生效==。
 
-### DaemonSet 模式安装 IP 信息库
+### DaemonSet 模式安装 IP 信息库 {#ipdb-daemonset}
 
 当 DataKit 是 DaemonSet 形式安装时，不能用上述形式安装 IP 信息库（重启后 IP 信息库还是丢弃了），只能在 [datakit.yaml 中指定 IP 信息库](datakit-tools-how-to.md#install-ipdb)，其步骤如下：
 
@@ -249,7 +247,7 @@ kubectl get pod -n datakit
 
 ## DataKit 安装第三方软件 {#extras}
 
-### Telegraf 集成
+### Telegraf 集成 {#telegraf}
 
 > 注意：建议在使用 Telegraf 之前，先确 DataKit 是否能满足期望的数据采集。如果 DataKit 已经支持，不建议用 Telegraf 来采集，这可能会导致数据冲突，从而造成使用上的困扰。
 
@@ -267,9 +265,9 @@ cp telegraf.conf.sample telegraf.conf
 telegraf --config telegraf.conf
 ```
 
-关于 Telegraf 的使用事项，参见[这里](../integrations/telegraf.md)。
+关于 Telegraf 的使用事项，参见[这里](telegraf.md)。
 
-### Security Checker 集成
+### Security Checker 集成 {#scheck}
 
 安装 Security Checker
 
@@ -279,9 +277,9 @@ datakit install --scheck
 
 安装成功后会自动运行，Security Checker 具体使用，参见[这里](../scheck/scheck-install.md)
 
-### DataKit eBPF 集成
+### DataKit eBPF 集成 {#ebpf}
 
-安装 DataKit eBPF 采集器, 当前只支持 `linux/amd64 | linux/arm64` 平台，采集器使用说明见 [DataKit eBPF 采集器](../integrations/ebpf.md)
+安装 DataKit eBPF 采集器, 当前只支持 `linux/amd64 | linux/arm64` 平台，采集器使用说明见 [DataKit eBPF 采集器](ebpf.md)
 
 ```shell
 datakit install --ebpf
@@ -289,7 +287,7 @@ datakit install --ebpf
 
 如若提示 `open /usr/local/datakit/externals/datakit-ebpf: text file busy`，停止 DataKit 服务后再执行该命令
 
-## 上传 DataKit 运行日志
+## 上传 DataKit 运行日志 {#upload-log}
 
 排查 DataKit 问题时，通常需要检查 DataKit 运行日志，为了简化日志搜集过程，DataKit 支持一键上传日志文件：
 
@@ -300,7 +298,7 @@ log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip 
 
 运行命令后，会将日志目录下的所有日志文件进行打包压缩，然后上传至指定的存储。我们的工程师会根据上传日志的主机名以及 Token 传找到对应文件，进而排查 DataKit 问题。
 
-## 查看云属性数据
+## 查看云属性数据 {#cloudinfo}
 
 如果安装 DataKit 所在的机器是一台云服务器（目前支持 `aliyun/tencent/aws/hwcloud/azure` 这几种），可通过如下命令查看部分云属性数据，如（标记为 `-` 表示该字段无效）：
 

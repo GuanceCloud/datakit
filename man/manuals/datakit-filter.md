@@ -2,8 +2,6 @@
 # 行协议过滤器
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
 本文档主要描述 DataKit Filter 基本使用以及注意事项。
 
 ## 简介 {#intro}
@@ -153,13 +151,13 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 使用 `datakit monitor -V` 命令可以查看过滤情况：
 
 <figure markdown>
-  ![](imgs/filter-monitor.png){ width="800" }
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/filter-monitor.png){ width="800" }
   <figcaption>查看 filter 过滤情况</figcaption>
 </figure>
 
 ### Network {#n}
 
-需要开启 [eBPF 采集器](../integrations/ebpf.md)。假设我们要过滤掉目标端口为 `443` 的网络通讯，配置文件可以这样写:
+需要开启 [eBPF 采集器](ebpf.md)。假设我们要过滤掉目标端口为 `443` 的网络通讯，配置文件可以这样写:
 
 ```toml
 [io]

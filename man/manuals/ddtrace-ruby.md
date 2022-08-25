@@ -2,9 +2,7 @@
 # Ruby 示例
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
-## Config DDTrace Libarary & Dependence For Ruby
+## 安装依赖 {#dependence}
 
 **RAILS APPLICATIONS**
 
@@ -105,7 +103,7 @@ c.tracing.instrument :integration_name, options
 end
 ```
 
-## Run Ruby Code With DDTrace
+## 运行 {#run}
 
 可以通过配置环境变量并启动 Ruby：
 

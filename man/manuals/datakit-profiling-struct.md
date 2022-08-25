@@ -1,6 +1,6 @@
 # Profiling Data Struct
 
-## 简述
+## 简述 {#intro}
 
 本文介绍 Datakit 中 profiling 相关数据结构定义
 
@@ -10,9 +10,9 @@
 
 ---
 
-## Datakit Point Protocol Structure for Profiling
+## Datakit Point Protocol Structure for Profiling {#point-struct}
 
-### Datakit Line Protocol
+### Datakit Line Protocol {#line-proto}
 
 - Line Protocol 为数据流最后落盘数据
 - Line Protocol 数据结构是由 Name, Tags, Fields, Timestamp 四部分和分隔符 (英文逗号，空格) 组成的字符串，形如：
@@ -43,7 +43,7 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 
 > 以下简称 dkproto
 
-### Datakit Profiling Structure
+### Datakit Profiling Structure {#profiling-struct}
 
 Datakit Profiling 是 Datakit 使用的用于表示 profiling 的结构。
 
@@ -74,7 +74,7 @@ Datakit Profiling 是 Datakit 使用的用于表示 profiling 的结构。
 
 ---
 
-### Sample structure
+### Sample structure {#sample-struct}
 
 | <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green">**Description**</span>                                        |
 | ----------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -87,7 +87,7 @@ Datakit Profiling 是 Datakit 使用的用于表示 profiling 的结构。
 
 ---
 
-### SampleValue structure
+### SampleValue structure {#sample-value-struct}
 
 | <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green">**Description**</span>                                        |
 | ----------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -95,7 +95,7 @@ Datakit Profiling 是 Datakit 使用的用于表示 profiling 的结构。
 | Value                                           | int64                                        | 具体数值                                                                                |
 | Unit                                            | string                                         | 值得单位                                                                                     |
 
-### TraceFunc structure
+### TraceFunc structure {#trace-func-struct}
 
 | <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green">**Description**</span>                                        |
 | ----------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -106,7 +106,7 @@ Datakit Profiling 是 Datakit 使用的用于表示 profiling 的结构。
 ---
 
 
-### FlameGraph structure
+### FlameGraph structure {#framegraph-struct}
 
 > profiling 详情查看页火焰图数据结构
 
@@ -119,7 +119,7 @@ Datakit Profiling 是 Datakit 使用的用于表示 profiling 的结构。
 
 ---
 
-### Frame structure
+### Frame structure {#frame-struct}
 
 > 根据语言不同，某些属性可能没有
 

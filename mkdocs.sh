@@ -13,11 +13,13 @@ CLR="\033[0m"
 mkdocs_dir=~/git/dataflux-doc
 tmp_doc_dir=.docs
 datakit_docs_dir=${mkdocs_dir}/docs/datakit
-integration_docs_dir=${mkdocs_dir}/docs/integrations
+pwd=$(pwd)
 
-mkdir -p $datakit_docs_dir $integration_docs_dir $tmp_doc_dir
+mkdir -p $datakit_docs_dir $tmp_doc_dir
 
-#latest_version=$(git tag --sort=-creatordate | head -n 1)
+rm -rf $datakit_docs_dir/*.md
+rm -rf $tmp_doc_dir/*.md
+
 latest_version=$(curl https://static.guance.com/datakit/version | grep  '"version"' | awk -F'"' '{print $4}')
 
 man_version=$1
@@ -48,36 +50,34 @@ make || exit -1
 
 # 所有文档导出
 printf "${GREEN}> Export internal docs...${CLR}\n"
-LOGGER_PATH=nul $datakit doc \
+LOGGER_PATH=.mkdocs.log $datakit doc \
 	--export-docs $tmp_doc_dir \
 	--ignore demo \
 	--version "${man_version}" \
 	--TODO "-"
 
+if [ $? -ne 0 ]; then
+	printf "${RED}[E] Export docs failed${CLR}\n"
+	exit -1
+fi
+
 # 导出 .pages/index.md
 cp man/manuals/datakit.pages $datakit_docs_dir/.pages
 cp man/manuals/datakit-index.md $datakit_docs_dir/index.md
-cp man/manuals/integrations-index.md $integration_docs_dir/index.md
-
-# 这个文件就不拷贝过去了，我们还是手动去 dataflux-docs 项目修改 docs/integrations/.pages 即可
-#cp man/manuals/integrations.pages $integration_docs_dir/.pages
 
 # 只发布到 datakit 文档列表
 datakit_docs=(
-
   # 这些文档需发布在 Datakit 文档库中
-  man/manuals/aliyun-access.md
   man/manuals/integrations-to-dk-howto.md
   man/manuals/mkdocs-howto.md
   man/manuals/common-tags.md
+  man/manuals/datakit-arch.md
 
   $tmp_doc_dir/apis.md
   $tmp_doc_dir/changelog.md
-  $tmp_doc_dir/datakit-arch.md
   $tmp_doc_dir/datakit-batch-deploy.md
   $tmp_doc_dir/datakit-conf.md
   $tmp_doc_dir/datakit-daemonset-deploy.md
-  $tmp_doc_dir/datakit-daemonset-update.md
   $tmp_doc_dir/datakit-dql-how-to.md
   $tmp_doc_dir/datakit-filter.md
   $tmp_doc_dir/datakit-input-conf.md
@@ -105,14 +105,8 @@ datakit_docs=(
   $tmp_doc_dir/pipeline.md
   $tmp_doc_dir/proxy.md
   $tmp_doc_dir/why-no-data.md
-)
 
-for f in "${datakit_docs[@]}"; do
-  cp $f $datakit_docs_dir/
-done
-
-# 需发布到集成库的 datakit 已有文档
-integrations_files_from_datakit=(
+	# inputs
   $tmp_doc_dir/apache.md
   $tmp_doc_dir/beats_output.md
   $tmp_doc_dir/clickhousev1.md
@@ -199,9 +193,10 @@ integrations_files_from_datakit=(
   $tmp_doc_dir/zipkin.md
 )
 
-for f in "${integrations_files_from_datakit[@]}"; do
-  cp $f $integration_docs_dir/
+printf "${GREEN}> Copy docs...${CLR}\n"
+for f in "${datakit_docs[@]}"; do
+  cp $f $datakit_docs_dir/
 done
 
 printf "${GREEN}> Start mkdocs...${CLR}\n"
-cd $mkdocs_dir && mkdocs serve 2>&1 | tee mkdocs.log
+cd $mkdocs_dir && mkdocs serve -a 0.0.0.0:8000 2>&1 | tee mkdocs.log

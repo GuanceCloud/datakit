@@ -3,7 +3,9 @@
 
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 MySQL 指标采集，收集以下数据：
 
@@ -12,10 +14,7 @@ MySQL 指标采集，收集以下数据：
 - InnoDB 相关指标
 - 支持自定义查询数据采集
 
-![](imgs/input-mysql-1.png)
-![](imgs/input-mysql-2.png)
-
-## 前置条件
+## 前置条件 {#requirements}
 
 - MySQL 版本 5.7+
 - 创建监控账号（一般情况，需用 MySQL `root` 账号登陆才能创建 MySQL 用户）
@@ -45,15 +44,24 @@ GRANT replication client on *.*  to 'datakit'@'localhost';
 Error 1045: Access denied for user 'datakit'@'::1' (using password: YES)
 ```
 
-## 配置
+## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+=== "主机安装"
 
-```toml
-{{.InputSample}}
-```
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-配置好后，重启 DataKit 即可。
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+
+=== "Kubernetes"
+
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+
+---
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -64,7 +72,7 @@ Error 1045: Access denied for user 'datakit'@'::1' (using password: YES)
   # ...
 ```
 
-### Binlog 开启
+### Binlog 开启 {#binlog}
 
 默认情况下，MySQL binlog 是不开启的。如果要统计 binlog 大小，需要开启 MySQL 对应 binlog 功能：
 
@@ -75,7 +83,7 @@ SHOW VARIABLES LIKE 'log_bin';
 
 binlog 开启，参见[这个问答](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging){:target="_blank"}，或者[这个问答](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu){:target="_blank"}
 
-### 数据库性能指标采集
+### 数据库性能指标采集 {#performance-schema}
 
 数据库性能指标来源于 MySQL 的内置数据库 `performance_schema`, 该数据库提供了一个能够在运行时获取服务器内部执行情况的方法。通过该数据库，DataKit 能够采集历史查询语句的各种指标统计和查询语句的执行计划，以及其他相关性能指标。采集的性能指标数据保存为日志，source 分别为 `mysql_dbm_metric` 和 `mysql_dbm_sample`。
 
@@ -86,16 +94,16 @@ binlog 开启，参见[这个问答](https://stackoverflow.com/questions/4068238
 ```toml
 [[inputs.mysql]]
 
-#### 开启数据库性能指标采集
+# 开启数据库性能指标采集
 dbm = true
 
 ...
 
-#### 监控指标配置
+# 监控指标配置
 [inputs.mysql.dbm_metric]
   enabled = true
 
-#### 监控采样配置
+# 监控采样配置
 [inputs.mysql.dbm_sample]
   enabled = true
 ...
@@ -194,15 +202,7 @@ GRANT EXECUTE ON PROCEDURE datakit.enable_events_statements_consumers TO datakit
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%';
 ```
 
-## 指标预览
-
-![](imgs/input-mysql-3.png)
-
-## 日志预览
-
-![](imgs/input-mysql-4.png)
-
-### 指标 {#metric}
+### 指标 {#measurement}
 
 {{ range $i, $m := .Measurements }}
 
@@ -313,11 +313,3 @@ SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5
 | `rows_sent`         | `248832`                                                                                    | 查询返回的行数                 |
 | `thread_id`         | `55`                                                                                        | 线程 id                        |
 | `time`              | `1514520249954078000`                                                                       | 纳秒时间戳（作为行协议时间）   |
-
-## 场景视图
-
-<场景 - 新建场景 - MySQL 监控场景>
-
-## 异常检测
-
-<异常检测库 - 新建检测库 - MySQL 检测库>

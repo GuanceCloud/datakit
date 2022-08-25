@@ -50,7 +50,7 @@ func (*Input) SampleConfig() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
+	return datakit.AllOSWithElection
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {

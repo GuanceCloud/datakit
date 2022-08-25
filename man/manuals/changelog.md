@@ -1,41 +1,77 @@
-# DataKit 版本历史
+# 更新日志
 ---
 
 <!--
-[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ·
-[:octicons-beaker-24: Experimental](index.md#experimental)
+[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)
+[:fontawesome-solid-flag-checkered:](index.md#legends "支持选举")
+
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 -->
 
-## 1.4.11(2022/08/17) {#cl-1.4.11}
+## 1.4.12(2022/08/30) {#cl-1.4.12}
+
+### 文档调整 {#cl-1.4.12-doc}
+
+- 采集器文档从原来「集成」挪到 「DataKit」文档库
+
+<figure markdown>
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.12-dk-docs.gif){ width="300"}
+</figure>
+
+- DataKit 文档目录结构调整，减少了目录层级
+
+<figure markdown>
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.12-dk-doc-dirs.gif){ width="300"}
+</figure>
+
+- 几乎每个采集器都增加了 k8s 配置入口
+
+<figure markdown>
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.12-install-selector.gif){ width="800" }
+</figure>
+
+- 调整文档头部显示，除了操作系统标识外，对支持选举的采集器，增加选举标识
+
+<figure markdown>
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.12-doc-header.gif){ width="800" }
+</figure>
+
+- 几乎每个章节都增加了跳转标签，便于其它文档永久性引用
+
+---
+
+## 1.4.11(2022/08/18) {#cl-1.4.11}
 
 ### 新功能 {#cl-1.4.11-newfeature}
 
 - Pipeline 中新增 [reftable 功能](datakit-refer-table.md)(#967)
 - DataKit 9529 HTTP [支持绑定到 domain socket](datakit-conf.md#uds)(#925)
-    - 对应的 [eBPF 采集](../integrations/ebpf.md) 和 [Oracle 采集](../integrations/oracle.md)，其配置方式也需做对应变更。
+    - 对应的 [eBPF 采集](ebpf.md) 和 [Oracle 采集](oracle.md)，其配置方式也需做对应变更。
 - RUM sourcemap 增加 Android R8 支持(#1040)
 - CRD 增加日志配置支持(#1000)
     - [完整示例](kubernetes-crd.md#example)
 
 ### 优化 {#cl-1.4.11-optimize}
 
-- 优化[容器采集器](../integrations/container.md)文档
+- 优化[容器采集器](container.md)文档
 - 新增 [常见 Tag](common-tags.md) 文档(#839)
 - 优化[选举的配置](election.md#config)和一些相关的命名(#1026)
 - 选举类采集器在 DataKit 开启选举的情况下，仍然支持在特定的采集器上关闭选举功能(#927)
 - 支持指定数据类型的 [io block 配置](datakit-daemonset-deploy.md#env-io)(#1021)
 - DDTrace 采集器的采样增加 meta 信息识别(#927)
-- DataKit 自身指标集增加 9529 [HTTP 请求相关指标](../integrations/self.md#datakit_http)(#944)
-- 优化 [Zipkin 采集](../integrations/zipkin.md)的内存使用(#1013)
-- DDTrace 采集器在[开启磁盘缓存](../integrations/ddtrace.md#disk-cache)后，默认变成阻塞式 IO feed(#1038)
-- [eBPF](../integrations/ebpf.md#measurements) 增加进程名（`process_name`）字段(#1045)
+- DataKit 自身指标集增加 9529 [HTTP 请求相关指标](self.md#datakit_http)(#944)
+- 优化 [Zipkin 采集](zipkin.md)的内存使用(#1013)
+- DDTrace 采集器在[开启磁盘缓存](ddtrace.md#disk-cache)后，默认变成阻塞式 IO feed(#1038)
+- [eBPF](ebpf.md#measurements) 增加进程名（`process_name`）字段(#1045)
 - [DCA](dca.md) 新版本发布
 - 日志类 HTTP 数据写入（logstreaming/Jaeger/OpenTelemetry/Zipkin）均增加队列支持(#971)
 - 日志采集增加自动多行支持(#1024)
 
 ### Bug 修复 {#cl-1.4.11-bugs}
 
-- 修复 [MySQL 采集器](../integrations/mysql.md) 连接泄露问题(#1041)
+- 修复 [MySQL 采集器](mysql.md) 连接泄露问题(#1041)
 - 修复 Pipeline Json 取值问题(#1036)
 - 修复 macOS 上 ulimit 设置无效问题(#1032)
 - 修复 sinker-Dataway 在 Kubernetes 中无效问题(#1031)
@@ -71,7 +107,7 @@
 
 ### Breaking Changes {cl-1.4.10-break-changes}
 
-由于 RUM 中新增了 Sourcemap 支持，有了更多的配置选项，故 RUM 采集器不再默认开启，需[手动开启](../integrations/rum.md#config)。
+由于 RUM 中新增了 Sourcemap 支持，有了更多的配置选项，故 RUM 采集器不再默认开启，需[手动开启](rum.md#config)。
 
 ---
 
@@ -99,7 +135,7 @@
 - 容器采集相关问题修复：
     - 修复对环境变量 `NODE_NAME` 的不兼容问题(#957)
     - k8s 自动发现的 prom 采集器改为串行式的分散采集，每个 k8s node 只采集自己机器上的 prom 指标(#811/#957)
-    - 添加日志 source 和多行的的[映射配置](../integrations/container.md#env-config)(#937)
+    - 添加日志 source 和多行的的[映射配置](container.md#env-config)(#937)
     - 修复容器日志替换 source 后还使用之前的 multiline 和 pipeline 的 bug(#934/#923)
     - 修正容器日志，设置文件活跃时长是 12 小时(#930)
     - 优化 docker 容器日志的 image 字段(#929)
@@ -108,7 +144,7 @@
 
 - eBPF 相关：
     - 修复 uprobe event name 命名冲突问题
-    - 增加更多[环境变量配置](../integrations/ebpf.md#config)，便于 k8s 环境的部署 
+    - 增加更多[环境变量配置](ebpf.md#config)，便于 k8s 环境的部署 
 
 - 优化 APM 数据接收接口的数据处理，缓解卡死客户端以及内存占用问题(#902)
 
@@ -140,7 +176,7 @@
     - DataKit 移除调用中心的心跳接口
     - DataKit 移除调用中心的 Dataway 列表接口
 
-- [容器采集器](../integrations/container.md)支持通过额外的配置（`ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP`）来修改 sidecar 容器的日志来源（`source`） 字段(#903)
+- [容器采集器](container.md)支持通过额外的配置（`ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP`）来修改 sidecar 容器的日志来源（`source`） 字段(#903)
 - 修复黑名单在 Monitor 上的展示问题(#904)
 
 ---
@@ -148,25 +184,25 @@
 ## 1.4.6(2022/07/07) {#cl-1.4.6}
 
 - 调整[全局 tag](datakit-conf.md#set-global-tag) 的行为，避免选举类采集的 tag 分裂(#870)
-- [SQLServer 采集器](../integrations/sqlserver.md)增加选举支持(#882)
+- [SQLServer 采集器](sqlserver.md)增加选举支持(#882)
 - [行协议过滤器](datakit-filter.md)支持所有数据类型(#855) 
 - 9529 HTTP 服务增加[超时机制](datakit-conf.md#http-other-settings)(#900)
 - MySQL
-    - [dbm 指标集名字](../integrations/mysql.md#logging)调整(#898)
+    - [dbm 指标集名字](mysql.md#logging)调整(#898)
     - `service` 字段冲突问题(#895) 
-- [容器对象](../integrations/container.md#docker_containers)增加字段 `container_runtime_name` 以区分不同层次的容器名(#891)
-- Redis 调整 [slowlog 采集](../integrations/redis.md#redis_slowlog)，将其数据改为日志存储(#885) 
-- 优化 [TDEngine 采集](../integrations/tdengine.md)(#877)
+- [容器对象](container.md#docker_containers)增加字段 `container_runtime_name` 以区分不同层次的容器名(#891)
+- Redis 调整 [slowlog 采集](redis.md#redis_slowlog)，将其数据改为日志存储(#885) 
+- 优化 [TDEngine 采集](tdengine.md)(#877)
 - 完善 Containerd 日志采集，支持默认格式的日志自动解析(#869)
-- [Pipeline](pipeline.md) 增加 [Profiling 类数据](../integrations/profile.md)支持(#866)
-- 容器/Pod 日志采集支持在 Label/Annotation 上[额外追加 tag](../integrations/container.md#logging-with-annotation-or-label)(#861)
-- 修复 [Jenkins CI](../integrations/jenkins.md#jenkins_pipeline) 数据采集的时间精度问题(#860)
+- [Pipeline](pipeline.md) 增加 [Profiling 类数据](profile.md)支持(#866)
+- 容器/Pod 日志采集支持在 Label/Annotation 上[额外追加 tag](container.md#logging-with-annotation-or-label)(#861)
+- 修复 [Jenkins CI](jenkins.md#jenkins_pipeline) 数据采集的时间精度问题(#860)
 - 修复 Tracing resource-type 值不统一的问题(#856)
-- eBPF 增加 [HTTPS 支持](../integrations/ebpf.md#https)(#782)
+- eBPF 增加 [HTTPS 支持](ebpf.md#https)(#782)
 - 修复日志采集器可能的奔溃问题(#893)
 - 修复 prom 采集器泄露问题(#880)
 - 支持通过[环境变量配置 io 磁盘缓存](datakit-conf.md#using-cache)(#906)
-- 增加 [Kubernetes CRD](../integrations/kubernetes-crd.md) 支持(#726)
+- 增加 [Kubernetes CRD](kubernetes-crd.md) 支持(#726)
 - 其它 bug 修复(#901/#899)
 
 ---
@@ -234,7 +270,7 @@
 - Monitor 中增加 DataKit 打开文件数显示(#828)
 - DataKit 编译器升级到 Golang 1.18.3(#674)
 
-### Bug 修复
+### Bug 修复 {#1.4.2-bugfix}
 
 - 修复 `ENV_K8S_NODE_NAME` 未全局生效的问题(#840)
 - 修复日志采集器中文件描述符泄露问题，**强烈推荐升级**(#838)
@@ -245,7 +281,7 @@
 
 ----
 
-## 1.4.1(2022/06/07)
+## 1.4.1(2022/06/07) {#cl-1.4.1}
 
 本次发布属于迭代发布，主要更新如下内容：
 
@@ -261,7 +297,7 @@
 - Kubernetes 相关的[指标](container#7e687515)采集，默认全部关闭，以避免时间线暴增问题(#807)
 - [DataKit Monitor](monitor)增加动态发现（比如 prom）的采集器列表刷新(#711)
 
-### Bug 修复
+### Bug 修复 {#cl-1.4.1-bugfix}
 - 修复默认 Pipeline 加载问题(#796)
 - 修复 Pipeline 中关于日志 status 的处理(#800)
 - 修复 [Filebeat](beats_output) 奔溃问题(#805)
@@ -269,7 +305,7 @@
 
 ----
 
-## 1.4.0(2022/05/26)
+## 1.4.0(2022/05/26) {#cl-1.4.0}
 
 本次发布属于迭代发布， 次版本号进入 1.4 序列。主要更新如下内容：
 
@@ -286,7 +322,7 @@
 - 在 DaemonSet 安装中，如果配置了[选举](election)的命名空间，对参与选举的采集器，其数据上均会新增特定的 tag（`election_namespace`）(#743)
 - CI 可观测，增加 [Jenkins](jenkins) 支持(#729)
 
-### Bug 修复
+### Bug 修复 {#cl-1.4.0-bugfix}
 
 - 修复 monitor 中 DataWay 统计错误(#785)
 - 修复日志采集器相关 bug(#783)
@@ -310,7 +346,7 @@
 - OpenTelemetry gRPC 方式支持 gzip(#774)
 - 修复 [filebeat](beats_output) 采集器不能设置 service 的问题(#767)
 
-### Breaking changes
+### Breaking changes {#cl.1.2.20-bc}
 
 对于 Docker 类容器日志的采集，需要将宿主机（Node）的 */varl/lib* 路径挂载到 DataKit 里面（因为 Docker 日志默认落在宿主机的 */var/lib/* 下面），在 *datakit.yaml* 中，`volumeMounts` 和 `volumes` 中新增如下配置：
 
@@ -348,7 +384,7 @@ volumes:
 
 ----
 
-## 1.2.18(2022/05/06)
+## 1.2.18(2022/05/06) {#cl-1.2.18}
 
 本次发布属于 hotfix 发布，主要修复如下问题：
 
@@ -360,7 +396,7 @@ volumes:
 
 ----
 
-## 1.2.17(2022/04/27)
+## 1.2.17(2022/04/27) {#cl-1.2.17}
 
 本次发布属于迭代发布，主要涉及如下几个方面：
 
@@ -374,7 +410,7 @@ volumes:
 
 ----
 
-## 1.2.16(2022/04/24)
+## 1.2.16(2022/04/24) {#cl-1.2.16}
 
 本次发布属于 hotfix 修复，主要涉及如下几个方面(#728)：
 
@@ -385,7 +421,7 @@ volumes:
 
 ----
 
-## 1.2.15(2022/04/21)
+## 1.2.15(2022/04/21) {#cl-1.2.15}
 
 本次发布属于迭代发布，含大量问题修复：
 
@@ -412,7 +448,7 @@ volumes:
 
 ---
 
-## 1.2.14(2022/04/12)
+## 1.2.14(2022/04/12) {#cl-1.2.14}
 
 本次发布属于 hotfix 发布，同时包含部分小的修改和调整：
 
@@ -426,7 +462,7 @@ volumes:
 
 ---
 
-## 1.2.13(2022/04/08)
+## 1.2.13(2022/04/08) {#cl-1.2.13}
 
 本次发布属于迭代发布，更新内容如下：
 
@@ -453,7 +489,7 @@ volumes:
 
 ---
 
-## 1.2.12(2022/03/24)
+## 1.2.12(2022/03/24) {#cl-1.2.12}
 
 本次发布属于迭代发布，更新内容如下：
 
@@ -476,7 +512,7 @@ volumes:
 
 ---
 
-## 1.2.11(2022/03/17)
+## 1.2.11(2022/03/17) {#cl-1.2.11}
 
 本次发布属于 hotfix 发布，同时包含部分小的修改和调整：
 
@@ -489,13 +525,13 @@ volumes:
 
 ---
 
-## 1.2.10(2022/03/11)
+## 1.2.10(2022/03/11) {#cl-1.2.10}
 
 修复 Tracing 相关采集器可能的奔溃问题
 
 ---
 
-## 1.2.9(2022/03/10)
+## 1.2.9(2022/03/10) {#cl-1.2.9}
 
 本次发布属于迭代发布，更新内容如下：
 
@@ -507,7 +543,7 @@ volumes:
 - 进程对象采集[增加监听端口列表](host_processes#a30fc2c1-1)(#562)
 - eBPF 采集器[支持 Kubernetes 字段关联](ebpf#35c97cc9)(#511)
 
-### Breaking Changes
+### Breaking Changes {#cl-1.2.9-bc}
 
 - 本次对 Tracing 数据采集做了较大的调整，涉及几个方面的不兼容：
 
@@ -653,12 +689,12 @@ volumes:
 
 ### 采集器更新
 
-- 重构 Kubernetes 云原生采集器，将其整合进[容器采集器](../integrations/container.md)。原有 Kubernetes 采集器不再生效(#492)
-- [Redis 采集器](../integrations/redis.md)
-    - 支持配置 [Redis 用户名](../integrations/redis.md)(#260)
+- 重构 Kubernetes 云原生采集器，将其整合进[容器采集器](container.md)。原有 Kubernetes 采集器不再生效(#492)
+- [Redis 采集器](redis.md)
+    - 支持配置 [Redis 用户名](redis.md)(#260)
     - 增加 Latency 以及 Cluster 指标集(#396)
-- [Kafka 采集器](../integrations/kafka.md)增强，支持 topic/broker/consumer/connnetion 等维度的指标(#397)
-- 新增 [ClickHouse](../integrations/clickhousev1.md) 以及 [Flink](../integrations/flinkv1.md) 采集器(#458/#459)
+- [Kafka 采集器](kafka.md)增强，支持 topic/broker/consumer/connnetion 等维度的指标(#397)
+- 新增 [ClickHouse](clickhousev1.md) 以及 [Flink](flinkv1.md) 采集器(#458/#459)
 - [主机对象采集器](hostobject)
     - 支持从 [`ENV_CLOUD_PROVIDER`](hostobject#224e2ccd) 读取云同步配置(#501)
     - 优化磁盘采集，默认不会再采集无效磁盘（比如总大小为 0 的一些磁盘）(#505)

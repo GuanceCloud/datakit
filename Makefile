@@ -290,7 +290,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare gofmt lfparser_disable_line plparser_disable_line
+deps: prepare gofmt lfparser_disable_line plparser_disable_line 
 
 # ignore files under vendor/.git/git
 gofmt:
@@ -328,9 +328,9 @@ all_test: deps
 		printf "\033[32m all testinig passed.\n\033[0m"; \
 	fi
 
-test_deps: prepare gofmt lfparser_disable_line plparser_disable_line vet
+test_deps: prepare gofmt lfparser_disable_line plparser_disable_line vet 
 
-lint: deps
+lint: deps check_man copyright_check
 	$(call check_golint_version)
 	if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
 		echo '============== lint under amd64/linux ==================='; \
@@ -370,17 +370,22 @@ prepare:
 
 copyright_check:
 	@python3 copyright.py --dry-run
+	@if [ $$? != 0 ]; then \
+		echo "copyright failed"; \
+		exit -1; \
+	fi
 
 copyright_check_auto_fix:
 	@python3 copyright.py --fix
 
 check_man:
-	grep --color=always -nrP "[a-zA-Z0-9][\p{Han}]|[\p{Han}][a-zA-Z0-9]" man > bad-doc.log
-	if [ $$? != 0 ]; then \
+	@# 要求所有文档的章节必须带上指定的标签（历史原因，先忽略 changelog.md）
+	@grep --color=always --exclude man/manuals/changelog.md -nr "^##" man/manuals/* | grep -vE ' {#' | grep -vE '{{' > bad-docs.log
+	@if [ $$? != 0 ]; then \
 		echo "check manuals ok"; \
 	else \
-		cat bad-doc.log; \
-		rm -rf bad-doc.log; \
+		cat bad-docs.log; \
+		exit -1; \
 	fi
 
 code_stat:

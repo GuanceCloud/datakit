@@ -3,11 +3,11 @@
 
 InfluxDB 仅支持写入 Metric 种类的数据。
 
-## 第一步: 搭建后端存储
+## 第一步: 搭建后端存储 {#backend-storage}
 
 自己搭建一个 InfluxDB 的 server 环境。
 
-## 第二步: 增加配置
+## 第二步: 增加配置 {#config}
 
 在 `datakit.conf` 中增加以下片段:
 
@@ -40,11 +40,11 @@ InfluxDB 仅支持写入 Metric 种类的数据。
 - `write_encoding`: WriteEncoding specifies the encoding of write request
 - `payload_size`(UDP 协议专用): PayloadSize is the maximum size of a UDP client message, optional. Tune this based on your network. Defaults to 512.
 
-## 第三步: 重启 DataKit
+## 第三步: 重启 DataKit {#restart-dk}
 
 `$ sudo datakit --restart`
 
-## 安装阶段指定 InfluxDB Sink 设置
+## 安装阶段指定 InfluxDB Sink 设置 {#setup-influxdb}
 
 InfluxDB 支持安装时环境变量开启的方式。
 

@@ -74,7 +74,7 @@ func (*Input) SampleConfig() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSLabelLinux}
+	return []string{datakit.LabelK8s}
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement { return nil }

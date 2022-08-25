@@ -6,7 +6,7 @@
 
 本文介绍如何在容器环境安装 DataKit。
 
-## Docker 安装
+## Docker 安装 {#install}
 
 
 容器启动命令如下：

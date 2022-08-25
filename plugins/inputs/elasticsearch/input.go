@@ -363,7 +363,7 @@ func (i *Input) extendSelfTag(tags map[string]string) {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.AllOS
+	return datakit.AllOSWithElection
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {

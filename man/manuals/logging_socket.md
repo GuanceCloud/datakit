@@ -11,7 +11,7 @@
 
 虽然文件名有区别，但是log4j查找配置文件时，都是去classpath目录下查找,按照规范:v1的配置在 resources/log4j.properties, v2配置在resources/log4j.xml。
 
-### log4j(v2)
+### log4j(v2) {#log4j-v2}
 
 在maven的配置中导入log4j 2.x 的jar包:
 ``` xml
@@ -84,7 +84,7 @@ public class logdemo {
 
 ```
  
-### log4j(v1)
+### log4j(v1) {#log4j-v1}
 
 在maven的配置中导入log4j 1.x 的jar包
 
@@ -107,12 +107,12 @@ log4j.appender.server.Port=<dk socket port>
 log4j.appender.server.RemoteHost=<dk socket ip>
 log4j.appender.server.ReconnectionDelay=10000
 
-## 可配置成json格式
+# 可配置成json格式
 # log4j.appender.server.layout=net.logstash.log4j.JSONEventLayout
 ...
 ```
 
-### logback
+### logback {#logback}
 
 logback 中的`SocketAppender` 无法将纯文本发送到 socket上  [官方文档说明](https://logback.qos.ch/manual/appenders.html#SocketAppender){:target="_blank"}
 
@@ -120,9 +120,9 @@ logback 中的`SocketAppender` 无法将纯文本发送到 socket上  [官方文
 
 datakit 同时支持从文件中采集日志 [从文本中采集日志](logging.md) ,可作为socket采集不可用时的最佳方案。 
 
-## Golang
+## Golang {#golang}
 
-### zap
+### zap {#zap}
 
 Golang 中最常用的是uber的zap开源日志框架，zap支持自定义output注入
 
@@ -172,7 +172,7 @@ func zapcal() {
 
 ## Python  {#python}
 
-### logging.handlers.SocketHandler
+### logging.handlers.SocketHandler {#socket-handler}
 
 原生的 socketHandler 通过socket发送的是日志对象，并不是纯文本形式，所以需要自定义 handler 并重写 socketHandler 中的`makePickle(slef,record)`方法。
 
