@@ -139,16 +139,6 @@ func (c *Config) loadIOEnvs() {
 			c.IOConf.FlushInterval = v
 		}
 	}
-
-	if v := datakit.GetEnv("ENV_IO_BLOCKING_MODE"); v != "" {
-		l.Info("ENV_IO_BLOCKING_MODE enabled")
-		c.IOConf.BlockingMode = true
-	}
-
-	if v := datakit.GetEnv("ENV_IO_BLOCKING_CATEGORIES"); len(v) > 0 {
-		l.Info("set ENV_IO_BLOCKING_CATEGORIES to %s", v)
-		c.IOConf.BlockingCategories = strings.Split(v, ",")
-	}
 }
 
 //nolint:funlen
