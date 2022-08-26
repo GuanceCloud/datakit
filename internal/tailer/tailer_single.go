@@ -43,7 +43,8 @@ type Single struct {
 	readBuff  []byte
 	readLines int64
 
-	offset int64 // 必然只在同一个 goroutine 操作，不必使用 atomic
+	offset   int64 // 必然只在同一个 goroutine 操作，不必使用 atomic
+	readTime time.Time
 
 	tags map[string]string
 }
@@ -171,34 +172,6 @@ func (t *Single) forwardMessage() {
 	)
 	defer checkTicker.Stop()
 
-	handle := func(read func() ([]byte, int, error)) {
-		b.buf, readNum, err = read()
-		if err != nil {
-			t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
-			return
-		}
-
-		t.opt.log.Debugf("read %d bytes from file %s, offset %d", readNum, t.filepath, t.offset)
-
-		if readNum == 0 {
-			t.wait()
-			return
-		}
-
-		lines = b.split()
-
-		switch t.opt.Mode {
-		case FileMode:
-			t.defaultHandler(lines)
-		case DockerMode:
-			t.dockerHandler(lines)
-		case ContainerdMode:
-			t.containerdHandler(lines)
-		default:
-			t.defaultHandler(lines)
-		}
-	}
-
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -221,10 +194,36 @@ func (t *Single) forwardMessage() {
 				t.opt.log.Warnf("didrotate err: %s", err)
 			}
 			if did {
+				t.opt.log.Infof("file %s has rotated, try to read EOF", t.filepath)
+				for {
+					b.buf, readNum, err = t.read()
+					if err != nil {
+						t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
+						break
+					}
+
+					t.opt.log.Debugf("read %d bytes from file %s, offset %d", readNum, t.filepath, t.offset)
+
+					if readNum == 0 {
+						t.opt.log.Infof("read EOF from rotate file %s, offset %d", t.filepath, t.offset)
+						break
+					}
+					t.readTime = time.Now()
+
+					lines = b.split()
+					switch t.opt.Mode {
+					case FileMode:
+						t.defaultHandler(lines)
+					case DockerMode:
+						t.dockerHandler(lines)
+					case ContainerdMode:
+						t.containerdHandler(lines)
+					default:
+						t.defaultHandler(lines)
+					}
+				}
+
 				t.opt.log.Infof("file %s has rotated, try to reopen file", t.filepath)
-
-				handle(t.readAll)
-
 				if err = t.reopen(); err != nil {
 					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
 					return
@@ -234,7 +233,32 @@ func (t *Single) forwardMessage() {
 		default: // nil
 		}
 
-		handle(t.read)
+		b.buf, readNum, err = t.read()
+		if err != nil {
+			t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
+			continue
+		}
+
+		t.opt.log.Debugf("read %d bytes from file %s, offset %d", readNum, t.filepath, t.offset)
+
+		if readNum == 0 {
+			t.wait()
+			continue
+		}
+		t.readTime = time.Now()
+
+		lines = b.split()
+
+		switch t.opt.Mode {
+		case FileMode:
+			t.defaultHandler(lines)
+		case DockerMode:
+			t.dockerHandler(lines)
+		case ContainerdMode:
+			t.containerdHandler(lines)
+		default:
+			t.defaultHandler(lines)
+		}
 	}
 }
 
@@ -373,6 +397,7 @@ func (t *Single) feed(pending []string) {
 			map[string]interface{}{
 				"log_read_lines":      t.readLines,
 				"log_read_offset":     t.offset,
+				"log_read_time":       t.readTime.Unix(),
 				pipeline.FieldMessage: cnt,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,
 			},
@@ -421,6 +446,7 @@ func (t *Single) read() ([]byte, int, error) {
 	return t.readBuff[:n], n, nil
 }
 
+/*
 func (t *Single) readAll() ([]byte, int, error) {
 	var res []byte
 	var num int
@@ -444,6 +470,7 @@ func (t *Single) readAll() ([]byte, int, error) {
 	t.offset += int64(num)
 	return res, num, nil
 }
+*/
 
 func (t *Single) wait() {
 	time.Sleep(defaultSleepDuration)
