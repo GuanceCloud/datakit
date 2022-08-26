@@ -7,13 +7,17 @@
 package self
 
 import (
+	"fmt"
+	"os"
 	"runtime"
+	"sync"
 	"time"
 
+	"github.com/shirou/gopsutil/host"
+	pr "github.com/shirou/gopsutil/v3/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -46,7 +50,8 @@ type ClientStat struct {
 	MaxHeapSys       int64
 	MaxHeapObjects   int64
 
-	CPUUsage float64
+	CPUUsage    float64
+	CPUUsageTop float64
 
 	DroppedPointsTotal uint64
 	DroppedPoints      uint64
@@ -101,11 +106,18 @@ func (s *ClientStat) Update() {
 	s.MaxHeapObjects = setMax(s.MaxHeapObjects, s.HeapObjects)
 	s.MinHeapObjects = setMin(s.MinHeapObjects, s.HeapObjects)
 
-	if u, err := cgroup.GetCPUPercent(0); err != nil {
+	if cpuUsage, cpuUsageTop, err := getSelfCPUsage(); err != nil {
 		l.Warnf("get CPU usage failed: %s, ignored", err.Error())
 		s.CPUUsage = 0.0
+		s.CPUUsageTop = 0.0
 	} else {
-		s.CPUUsage = u * 100
+		s.CPUUsage = cpuUsage
+		s.CPUUsageTop = cpuUsageTop
+
+		if runtime.GOOS == "windows" {
+			s.CPUUsage /= float64(runtime.NumCPU())
+			s.CPUUsageTop /= float64(runtime.NumCPU())
+		}
 	}
 
 	du, ns := s.getElectedInfo()
@@ -146,6 +158,7 @@ func (s *ClientStat) ToMetric() *point.Point {
 		"heap_sys":       s.HeapSys,
 		"heap_objects":   s.HeapObjects,
 		"cpu_usage":      s.CPUUsage,
+		"cpu_usage_top":  s.CPUUsageTop,
 
 		"min_num_goroutines": s.MinNumGoroutines,
 		"min_heap_alloc":     s.MinHeapAlloc,
@@ -214,3 +227,152 @@ func (s *ClientStat) getElectedInfo() (int64, string) {
 		return 0, ""
 	}
 }
+
+//------------------------------------------------------------------------------
+// CPU Usage: copied and modified from plugins/inputs/process
+
+var psRecorder = newProcRecorder()
+
+// getSelfCPUsage returns cpu_usage, cpu_usage_top, error.
+func getSelfCPUsage() (float64, float64, error) {
+	tn := time.Now().UTC()
+	selfProcess, err := getSelfProcess()
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return parseSingleProcess(selfProcess, psRecorder, tn)
+}
+
+func parseSingleProcess(ps *pr.Process, procRec *procRecorder, tn time.Time) (float64, float64, error) {
+	// you may get a null pointer here
+	cputime, err := ps.Times()
+	if err != nil {
+		return 0, 0, err
+	}
+
+	defer func() {
+		if cputime != nil {
+			procRec.recorder[ps.Pid] = procRecStat{
+				Pid:          ps.Pid,
+				RecorderTime: tn,
+				CPUUser:      cputime.User,
+				CPUSystem:    cputime.System,
+			}
+		}
+	}()
+
+	return calculatePercent(ps, tn), procRec.calculatePercentTop(ps, tn), nil
+}
+
+func calculatePercent(ps *pr.Process, tn time.Time) float64 {
+	if ps == nil {
+		l.Error("nil point: param pr *Process")
+		return 0.
+	}
+	cpuTime, err := ps.Times()
+	if err != nil {
+		l.Error("pid: %d, err: %w", ps.Pid, err)
+		return 0.
+	}
+	created := time.Unix(0, getCreateTime(ps)*int64(time.Millisecond))
+	totalTime := tn.Sub(created).Seconds()
+
+	return 100 * ((cpuTime.User + cpuTime.System) / totalTime)
+}
+
+func getCreateTime(ps *pr.Process) int64 {
+	start, err := ps.CreateTime()
+	if err != nil {
+		l.Warnf("get start time err:%s", err.Error())
+		if bootTime, err := host.BootTime(); err != nil {
+			return int64(bootTime) * 1000
+		}
+	}
+	return start
+}
+
+type procRecStat struct {
+	Pid int32
+
+	RecorderTime time.Time
+
+	CPUUser   float64
+	CPUSystem float64
+}
+
+func newProcRecorder() *procRecorder {
+	return &procRecorder{
+		recorder: map[int32]procRecStat{},
+	}
+}
+
+type procRecorder struct {
+	recorder map[int32]procRecStat
+	sync.RWMutex
+}
+
+// calculatePercentTop 计算一个周期内的 cpu 使用率，
+// 若无上一次的记录或启动时间不一致的则返回自启动来的使用率.
+func (p *procRecorder) calculatePercentTop(ps *pr.Process, pTime time.Time) float64 {
+	p.RLock()
+	defer p.RUnlock()
+
+	if ps == nil {
+		l.Error("nil point: param pr *Process")
+		return 0.
+	}
+
+	if rec, ok := p.recorder[ps.Pid]; ok {
+		return calculatePercentTop(ps, rec, pTime)
+	} else {
+		return calculatePercent(ps, pTime)
+	}
+}
+
+func calculatePercentTop(ps *pr.Process, rec procRecStat, tn time.Time) float64 {
+	if ps == nil {
+		l.Error("nil point: param pr *Process")
+		return 0.
+	}
+	cpuTime, err := ps.Times()
+	if err != nil {
+		l.Error("pid: %d, err: %w", ps.Pid, err)
+		return 0.
+	}
+	timeDiff := tn.Sub(rec.RecorderTime).Seconds()
+	if timeDiff == 0. || timeDiff == -0. ||
+		timeDiff == 0 || timeDiff == -0 {
+		l.Error("timeDiff == 0s")
+		return 0
+	}
+
+	// TODO
+	cpuDiff := cpuTime.User + cpuTime.System - rec.CPUUser - rec.CPUSystem
+	switch {
+	case cpuDiff <= 0.0 && cpuDiff >= -0.0000000001:
+		return 0.0
+	case cpuDiff < -0.0000000001:
+	default:
+		return 100 * (cpuDiff / timeDiff)
+	}
+	return calculatePercent(ps, tn)
+}
+
+func getSelfProcess() (*pr.Process, error) {
+	pses, err := pr.Processes()
+	if err != nil {
+		return nil, err
+	}
+
+	selfPID := os.Getpid()
+	for _, ps := range pses {
+		if int(ps.Pid) == selfPID {
+			return ps, nil
+		}
+	}
+
+	return nil, fmt.Errorf("should not be here: not found process of the caller self")
+}
+
+//------------------------------------------------------------------------------
