@@ -316,8 +316,17 @@ func (p *Input) Parse(ps *pr.Process, procRec *procRecorder, tn time.Time) (user
 		l.Warnf("process:%s,pid:%d get cpupercent err:%s", name, ps.Pid, err.Error())
 	} else {
 		message["cpu"] = cpuTime
-		fields["cpu_usage"] = calculatePercent(ps, tn)
-		fields["cpu_usage_top"] = procRec.calculatePercentTop(ps, tn)
+
+		cpuUsage := calculatePercent(ps, tn)
+		cpuUsageTop := procRec.calculatePercentTop(ps, tn)
+
+		if runtime.GOOS == "windows" {
+			cpuUsage /= float64(runtime.NumCPU())
+			cpuUsageTop /= float64(runtime.NumCPU())
+		}
+
+		fields["cpu_usage"] = cpuUsage
+		fields["cpu_usage_top"] = cpuUsageTop
 	}
 
 	Threads, err := ps.NumThreads()
