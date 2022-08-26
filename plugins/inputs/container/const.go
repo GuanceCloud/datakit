@@ -43,7 +43,7 @@ const sampleCfg = `
   logging_remove_ansi_escape_codes = false
 
   ## If the data sent failure, will retry forevery
-  logging_blocking_mode = false
+  logging_blocking_mode = true
 
   kubernetes_url = "https://kubernetes.default:443"
 
@@ -55,7 +55,7 @@ const sampleCfg = `
   bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
   # bearer_token_string = "<your-token-string>"
 
-  logging_auto_multiline_detection = false
+  logging_auto_multiline_detection = true
   logging_auto_multiline_extra_patterns = []
 
   ## Set true to enable election for k8s metric collection
