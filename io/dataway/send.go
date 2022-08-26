@@ -227,9 +227,9 @@ func (dw *DataWayDefault) sendReq(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
-	dw.locker.Lock()
+	dw.locker.RLock()
 	resp, err := dw.httpCli.Do(x)
-	dw.locker.Unlock()
+	dw.locker.RUnlock()
 	if ts != nil {
 		ts.cost = time.Since(reqStart)
 		log.Debugf("%s: %s", req.URL.Path, ts.String())
