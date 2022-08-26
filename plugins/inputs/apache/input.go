@@ -50,10 +50,15 @@ type Input struct {
 	tail   *tailer.Tailer
 	client *http.Client
 
-	pause   bool
-	pauseCh chan bool
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (n *Input) ElectionEnabled() bool {
+	return n.Election
 }
 
 //nolint:lll
@@ -72,6 +77,7 @@ func newInput() *Input {
 	return &Input{
 		Interval: datakit.Duration{Duration: time.Second * 30},
 		pauseCh:  make(chan bool, maxPauseCh),
+		Election: true,
 
 		semStop: cliutils.NewSem(),
 	}
@@ -118,7 +124,7 @@ func (n *Input) RunPipeline() {
 		GlobalTags:        n.Tags,
 		IgnoreStatus:      n.Log.IgnoreStatus,
 		CharacterEncoding: n.Log.CharacterEncoding,
-		MultilineMatch:    `^\[\w+ \w+ \d+`,
+		MultilinePatterns: []string{`^\[\w+ \w+ \d+`},
 	}
 
 	var err error
@@ -247,9 +253,10 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 		tags[k] = v
 	}
 	metric := &Measurement{
-		name:   inputName,
-		fields: map[string]interface{}{},
-		ts:     time.Now(),
+		name:     inputName,
+		fields:   map[string]interface{}{},
+		ts:       time.Now(),
+		election: n.Election,
 	}
 
 	for sc.Scan() {

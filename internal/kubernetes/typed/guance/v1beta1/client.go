@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package v1beta1 wraps DataKit resource by kubernetes client-gen.
+// Package v1beta1 wraps Datakit resource by kubernetes client-gen.
 package v1beta1
 
 import (
@@ -16,8 +16,8 @@ type GuanceV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *GuanceV1Client) DataKits(namespace string) DataKitInterface {
-	return newDataKits(c, namespace)
+func (c *GuanceV1Client) Datakits(namespace string) DatakitInterface {
+	return newDatakits(c, namespace)
 }
 
 // NewForConfig creates a new GuanceV1Client for the given config.

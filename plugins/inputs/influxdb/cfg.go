@@ -19,6 +19,9 @@ const sampleConfig = `
   ## http request & header timeout
   timeout = "5s"
 
+  ## Set true to enable election
+  election = true
+
   ## (Optional) TLS connection config
   # [inputs.influxdb.tlsconf]
   # ca_certs = ["/path/to/ca.pem"]

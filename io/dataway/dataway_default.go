@@ -301,23 +301,3 @@ type DatawayWriteOpt struct {
 	Category string
 	Points   []*point.Point
 }
-
-func WriteDataway(opt *DatawayWriteOpt) error {
-	if len(opt.Points) == 0 {
-		return nil
-	}
-
-	dwCfg := DataWayCfg{URLs: opt.URLs}
-
-	if len(opt.Proxy) > 0 {
-		dwCfg.HTTPProxy = opt.Proxy
-	}
-
-	dw := &DataWayDefault{}
-	if err := dw.Init(&dwCfg); err != nil {
-		return err
-	}
-
-	_, err := dw.Write(opt.Category, opt.Points)
-	return err
-}

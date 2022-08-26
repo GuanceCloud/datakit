@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
@@ -22,8 +22,9 @@ func TestLoadEnv(t *testing.T) {
 		{
 			name: "normal",
 			envs: map[string]string{
-				"ENV_GLOBAL_HOST_TAGS":                "a=b,c=d",
-				"ENV_GLOBAL_TAGS":                     "x=y,m=n",
+				"ENV_GLOBAL_HOST_TAGS": "a=b,c=d",
+				"ENV_GLOBAL_TAGS":      "x=y,m=n", // deprecated, not used
+
 				"ENV_LOG_LEVEL":                       "debug",
 				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
 				"ENV_HOSTNAME":                        "1024.coding",
@@ -70,18 +71,16 @@ func TestLoadEnv(t *testing.T) {
 				cfg.ProtectMode = false
 				cfg.DefaultEnabledInputs = []string{"cpu", "mem", "disk"}
 
-				cfg.EnableElection = true
-				cfg.EnableElectionTag = true
-				cfg.ElectionNamespace = "some-default"
+				cfg.Election.Enable = true
+				cfg.Election.EnableNamespaceTag = true
+				cfg.Election.Namespace = "some-default"
 
 				cfg.GlobalHostTags = map[string]string{
 					"a": "b",
 					"c": "d",
-					"x": "y",
-					"m": "n",
 				}
 
-				cfg.GlobalEnvTags = map[string]string{
+				cfg.Election.Tags = map[string]string{
 					"election_namespace": "some-default",
 				}
 
@@ -274,9 +273,10 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_IO_ENABLE_CACHE":      "hahahah",
 				"ENV_IO_CACHE_MAX_SIZE_GB": "8",
 
-				"ENV_IO_FLUSH_INTERVAL": "2s",
-				"ENV_IO_BLOCKING_MODE":  "on",
-				"ENV_IO_QUEUE_SIZE":     "123",
+				"ENV_IO_FLUSH_INTERVAL":      "2s",
+				"ENV_IO_BLOCKING_MODE":       "on",
+				"ENV_IO_BLOCKING_CATEGORIES": "M,N",
+				"ENV_IO_QUEUE_SIZE":          "123",
 			},
 
 			expect: func() *Config {
@@ -290,6 +290,7 @@ func TestLoadEnv(t *testing.T) {
 				cfg.IOConf.CacheSizeGB = 8
 				cfg.IOConf.FlushInterval = "2s"
 				cfg.IOConf.BlockingMode = true
+				cfg.IOConf.BlockingCategories = []string{"M", "N"}
 
 				return cfg
 			}(),
@@ -312,7 +313,7 @@ func TestLoadEnv(t *testing.T) {
 
 			a := tc.expect.String()
 			b := c.String()
-			tu.Equals(t, a, b)
+			assert.Equal(t, a, b)
 		})
 	}
 }

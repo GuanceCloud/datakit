@@ -15,14 +15,15 @@ import (
 )
 
 type clusterMeasurement struct {
-	name    string
-	tags    map[string]string
-	fields  map[string]interface{}
-	resData map[string]interface{}
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	resData  map[string]interface{}
+	election bool
 }
 
 func (m *clusterMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -130,10 +131,11 @@ func (i *Input) ParseClusterData(list string) ([]inputs.Measurement, error) {
 	// 遍历每一行数据
 	for scanner.Scan() {
 		m := &clusterMeasurement{
-			name:    "cluster",
-			tags:    make(map[string]string),
-			fields:  make(map[string]interface{}),
-			resData: make(map[string]interface{}),
+			name:     "cluster",
+			tags:     make(map[string]string),
+			fields:   make(map[string]interface{}),
+			resData:  make(map[string]interface{}),
+			election: i.Election,
 		}
 		line := scanner.Text()
 		// parts:[cluster_known_nodes 1]

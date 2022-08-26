@@ -161,6 +161,9 @@ const sampleConfig = `
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
 
+  ## Set true to enable election
+  election = true
+
   # [inputs.elasticsearch.log]
   # files = []
   # #grok pipeline script path
@@ -231,10 +234,15 @@ type Input struct {
 
 	collectCache []inputs.Measurement
 
-	pause   bool
-	pauseCh chan bool
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
 }
 
 //nolint:lll
@@ -277,8 +285,8 @@ func NewElasticsearch() *Input {
 		ClusterStatsOnlyFromMaster: true,
 		ClusterHealthLevel:         "indices",
 		pauseCh:                    make(chan bool, maxPauseCh),
-
-		semStop: cliutils.NewSem(),
+		Election:                   true,
+		semStop:                    cliutils.NewSem(),
 	}
 }
 
@@ -500,7 +508,7 @@ func (i *Input) RunPipeline() {
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		MultilineMatch:    i.Log.MultilineMatch,
+		MultilinePatterns: []string{i.Log.MultilineMatch},
 	}
 
 	var err error
@@ -636,10 +644,11 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 
 		metric := &indicesStatsMeasurement{
 			elasticsearchMeasurement: elasticsearchMeasurement{
-				name:   "elasticsearch_indices_stats",
-				tags:   tags,
-				fields: allFields,
-				ts:     now,
+				name:     "elasticsearch_indices_stats",
+				tags:     tags,
+				fields:   allFields,
+				ts:       now,
+				election: i.Election,
 			},
 		}
 
@@ -674,10 +683,11 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 			i.extendSelfTag(indexTag)
 			metric := &indicesStatsMeasurement{
 				elasticsearchMeasurement: elasticsearchMeasurement{
-					name:   "elasticsearch_indices_stats",
-					tags:   indexTag,
-					fields: allFields,
-					ts:     now,
+					name:     "elasticsearch_indices_stats",
+					tags:     indexTag,
+					fields:   allFields,
+					ts:       now,
+					election: i.Election,
 				},
 			}
 
@@ -765,10 +775,11 @@ func (i *Input) gatherNodeStats(url string) (string, error) {
 		i.extendSelfTag(tags)
 		metric := &nodeStatsMeasurement{
 			elasticsearchMeasurement: elasticsearchMeasurement{
-				name:   "elasticsearch_node_stats",
-				tags:   tags,
-				fields: allFields,
-				ts:     now,
+				name:     "elasticsearch_node_stats",
+				tags:     tags,
+				fields:   allFields,
+				ts:       now,
+				election: i.Election,
 			},
 		}
 		if len(metric.fields) > 0 {
@@ -815,10 +826,11 @@ func (i *Input) gatherClusterStats(url string) error {
 	i.extendSelfTag(tags)
 	metric := &clusterStatsMeasurement{
 		elasticsearchMeasurement: elasticsearchMeasurement{
-			name:   "elasticsearch_cluster_stats",
-			tags:   tags,
-			fields: allFields,
-			ts:     now,
+			name:     "elasticsearch_cluster_stats",
+			tags:     tags,
+			fields:   allFields,
+			ts:       now,
+			election: i.Election,
 		},
 	}
 
@@ -953,10 +965,11 @@ func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 	i.extendSelfTag(tags)
 	metric := &clusterHealthMeasurement{
 		elasticsearchMeasurement: elasticsearchMeasurement{
-			name:   "elasticsearch_cluster_health",
-			tags:   tags,
-			fields: allFields,
-			ts:     now,
+			name:     "elasticsearch_cluster_health",
+			tags:     tags,
+			fields:   allFields,
+			ts:       now,
+			election: i.Election,
 		},
 	}
 

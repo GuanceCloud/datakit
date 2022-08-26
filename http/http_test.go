@@ -23,6 +23,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/influxdb1-client/models"
+	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
@@ -446,4 +447,38 @@ nothing`))
 	}
 
 	tu.Assert(t, closed, "expect closed, but not")
+}
+
+// go test -v -timeout 30s -run ^TestParseListen$ gitlab.jiagouyun.com/cloudcare-tools/datakit/http
+func TestParseListen(t *testing.T) {
+	cases := []struct {
+		name           string
+		lsn            string
+		expectListener bool
+	}{
+		{
+			name: "normal HTTP localhost",
+			lsn:  "localhost:9529",
+		},
+		{
+			name: "normal HTTP IP",
+			lsn:  "0.0.0.0:9529",
+		},
+		{
+			name:           "unix file tmp",
+			lsn:            "/tmp/datakit.sock",
+			expectListener: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			listener, err := parseListen(tc.lsn)
+			assert.NoError(t, err)
+			if tc.expectListener {
+				assert.NotNil(t, listener)
+				listener.Close()
+			}
+		})
+	}
 }

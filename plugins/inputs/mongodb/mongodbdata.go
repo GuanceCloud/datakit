@@ -36,13 +36,15 @@ type MongodbData struct {
 	ColData       []ColData
 	TopStatsData  []DBData
 	collectCache  []inputs.Measurement
+	election      bool
 }
 
-func NewMongodbData(statLine *StatLine, tags map[string]string) *MongodbData {
+func NewMongodbData(statLine *StatLine, tags map[string]string, election bool) *MongodbData {
 	return &MongodbData{
 		StatLine: statLine,
 		Tags:     tags,
 		Fields:   make(map[string]interface{}),
+		election: election,
 	}
 }
 
@@ -169,20 +171,22 @@ func (d *MongodbData) add(key string, val interface{}) {
 func (d *MongodbData) append() {
 	now := time.Now()
 	d.collectCache = append(d.collectCache, &mongodbMeasurement{
-		name:   "mongodb",
-		tags:   copyTags(d.Tags),
-		fields: d.Fields,
-		ts:     now,
+		name:     "mongodb",
+		tags:     copyTags(d.Tags),
+		fields:   d.Fields,
+		ts:       now,
+		election: d.election,
 	})
 
 	for _, db := range d.DBData {
 		tmp := copyTags(d.Tags)
 		tmp["db_name"] = db.Name
 		d.collectCache = append(d.collectCache, &mongodbDBMeasurement{
-			name:   "mongodb_db_stats",
-			tags:   tmp,
-			fields: db.Fields,
-			ts:     now,
+			name:     "mongodb_db_stats",
+			tags:     tmp,
+			fields:   db.Fields,
+			ts:       now,
+			election: d.election,
 		})
 	}
 
@@ -191,10 +195,11 @@ func (d *MongodbData) append() {
 		tmp["collection"] = col.Name
 		tmp["db_name"] = col.DBName
 		d.collectCache = append(d.collectCache, &mongodbColMeasurement{
-			name:   "mongodb_col_stats",
-			tags:   tmp,
-			fields: col.Fields,
-			ts:     now,
+			name:     "mongodb_col_stats",
+			tags:     tmp,
+			fields:   col.Fields,
+			ts:       now,
+			election: d.election,
 		})
 	}
 
@@ -202,10 +207,11 @@ func (d *MongodbData) append() {
 		tmp := copyTags(d.Tags)
 		tmp["hostname"] = host.Name
 		d.collectCache = append(d.collectCache, &mongodbShardMeasurement{
-			name:   "mongodb_shard_stats",
-			tags:   tmp,
-			fields: host.Fields,
-			ts:     now,
+			name:     "mongodb_shard_stats",
+			tags:     tmp,
+			fields:   host.Fields,
+			ts:       now,
+			election: d.election,
 		})
 	}
 
@@ -213,10 +219,11 @@ func (d *MongodbData) append() {
 		tmp := copyTags(d.Tags)
 		tmp["collection"] = col.Name
 		d.collectCache = append(d.collectCache, &mongodbTopMeasurement{
-			name:   "mongodb_top_stats",
-			tags:   tmp,
-			fields: col.Fields,
-			ts:     now,
+			name:     "mongodb_top_stats",
+			tags:     tmp,
+			fields:   col.Fields,
+			ts:       now,
+			election: d.election,
 		})
 	}
 }

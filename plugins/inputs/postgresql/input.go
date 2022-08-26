@@ -56,6 +56,9 @@ const sampleConfig = `
   # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
 
+  ## Set true to enable election
+  election = true
+
   ## 日志采集
   # [inputs.postgresql.log]
   # files = []
@@ -126,8 +129,9 @@ type Input struct {
 	duration     time.Duration
 	collectCache []inputs.Measurement
 
-	pause   bool
-	pauseCh chan bool
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
 
 	semStop *cliutils.Sem // start stop signal
 }
@@ -141,10 +145,11 @@ type postgresqllog struct {
 }
 
 type inputMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	election bool
 }
 
 func (m inputMeasurement) LineProto() (*point.Point, error) {
@@ -194,6 +199,10 @@ func (ipt *Input) LogExamples() map[string]map[string]string {
 			"PostgreSQL log": `2021-05-31 15:23:45.110 CST [74305] test [pgAdmin 4 - DB:postgres] postgres [127.0.0.1] 60b48f01.12241 LOG: statement: 		SELECT psd.*, 2^31 - age(datfrozenxid) as wraparound, pg_database_size(psd.datname) as pg_database_size 		FROM pg_stat_database psd 		JOIN pg_database pd ON psd.datname = pd.datname 		WHERE psd.datname not ilike 'template%' AND psd.datname not ilike 'rdsadmin' 		AND psd.datname not ilike 'azure_maintenance' AND psd.datname not ilike 'postgres'`,
 		},
 	}
+}
+
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
 func (ipt *Input) GetPipeline() []*tailer.Option {
@@ -375,10 +384,11 @@ func (ipt *Input) accRow(columnMap map[string]*interface{}) error {
 	}
 	if len(fields) > 0 {
 		ipt.collectCache = append(ipt.collectCache, &inputMeasurement{
-			name:   inputName,
-			fields: fields,
-			tags:   tags,
-			ts:     time.Now(),
+			name:     inputName,
+			fields:   fields,
+			tags:     tags,
+			ts:       time.Now(),
+			election: ipt.Election,
 		})
 	}
 
@@ -401,7 +411,7 @@ func (ipt *Input) RunPipeline() {
 		GlobalTags:        ipt.Tags,
 		IgnoreStatus:      ipt.Log.IgnoreStatus,
 		CharacterEncoding: ipt.Log.CharacterEncoding,
-		MultilineMatch:    ipt.Log.MultilineMatch,
+		MultilinePatterns: []string{ipt.Log.MultilineMatch},
 	}
 
 	var err error
@@ -561,6 +571,7 @@ func NewInput(service Service) *Input {
 	input := &Input{
 		Interval: "10s",
 		pauseCh:  make(chan bool, maxPauseCh),
+		Election: true,
 
 		semStop: cliutils.NewSem(),
 	}

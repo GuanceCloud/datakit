@@ -8,6 +8,7 @@ package external
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -79,8 +81,13 @@ func NewExternalInput() *ExternalInput {
 	return &ExternalInput{
 		semStop:        cliutils.NewSem(),
 		semStopProcess: cliutils.NewSem(),
+		Election:       true,
 		pauseCh:        make(chan bool, inputs.ElectionPauseChannelLength),
 	}
+}
+
+func (ex *ExternalInput) ElectionEnabled() bool {
+	return ex.Election
 }
 
 func (*ExternalInput) Catalog() string {
@@ -122,6 +129,11 @@ func (ex *ExternalInput) start() error {
 	return nil
 }
 
+// needElectionFlag decides if an external input start-up needs flag 'election = T/F'.
+func needElectionFlag(name string) bool {
+	return name == "oracle"
+}
+
 func (ex *ExternalInput) Run() {
 	l = logger.SLogger(inputName)
 
@@ -140,6 +152,10 @@ func (ex *ExternalInput) Run() {
 		ex.Args = append(ex.Args, []string{"--tags", tagsStr}...)
 	}
 
+	if needElectionFlag(ex.Name) && point.EnableElection && ex.Election {
+		ex.Args = append(ex.Args, "--election")
+	}
+
 	for {
 		if err := ex.precheck(); err != nil {
 			time.Sleep(time.Second)
@@ -152,7 +168,7 @@ func (ex *ExternalInput) Run() {
 	defer tick.Stop()
 
 	for {
-		if ex.Election && ex.pause {
+		if ex.pause {
 			l.Debugf("%s not leader, skipped", ex.Name)
 		} else {
 			if ex.Daemon {
@@ -176,7 +192,7 @@ func (ex *ExternalInput) Run() {
 			return
 
 		case ex.pause = <-ex.pauseCh:
-			if ex.pause && ex.Election {
+			if ex.pause {
 				l.Infof("%s paused", ex.Name)
 				if ex.Daemon && ex.daemonStarted { // stop the daemon running process
 					ex.semStopProcess.Close() // trigger the daemon process exit
@@ -207,11 +223,15 @@ func (ex *ExternalInput) daemonRun() {
 		break
 	}
 
-	go func() {
-		if err := datakit.MonitProc(ex.cmd.Process, ex.Name, ex.semStopProcess); err != nil { // blocking here...
+	go func(process *os.Process, name string, semStopProcess *cliutils.Sem) {
+		if err := datakit.MonitProc(process, name, semStopProcess); err != nil { // blocking here...
 			l.Errorf("datakit.MonitProc: %s", err.Error())
 		}
-	}()
+	}(ex.cmd.Process, ex.Name, ex.semStopProcess)
+
+	// We must not modify ex.cmd.Process.Pid beyong this point,
+	// because pid is needed by MonitProc to kill the process when signaled.
+	// TODO: refactor to make cmd private to the goroutine above.
 }
 
 func (ex *ExternalInput) Pause() error {

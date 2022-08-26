@@ -23,7 +23,7 @@ const k8sEventName = "kubernetes_events"
 
 var globalPause = new(atomBool)
 
-func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{}) {
+func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{}, election bool) {
 	// Outer loop, for reconnections.
 	for {
 		select {
@@ -79,7 +79,7 @@ func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{
 				if event, ok := watchUpdate.Object.(*kubeapi.Event); ok {
 					switch watchUpdate.Type {
 					case kubewatch.Added, kubewatch.Modified:
-						if err := feedEvent(event, extraTags); err != nil {
+						if err := feedEvent(event, extraTags, election); err != nil {
 							l.Warnf("failed to parse event: %s", err)
 						}
 
@@ -104,15 +104,15 @@ func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{
 	}
 }
 
-func feedEvent(event *kubeapi.Event, extraTags tagsType) error {
+func feedEvent(event *kubeapi.Event, extraTags tagsType, election bool) error {
 	return inputs.FeedMeasurement("k8s-events",
 		datakit.Logging,
-		[]inputs.Measurement{buildEventData(event, extraTags)},
+		[]inputs.Measurement{buildEventData(event, extraTags, election)},
 		nil,
 	)
 }
 
-func buildEventData(item *kubeapi.Event, extraTags tagsType) inputs.Measurement {
+func buildEventData(item *kubeapi.Event, extraTags tagsType, election bool) inputs.Measurement {
 	obj := newEvent()
 	obj.tags["kind"] = item.InvolvedObject.Kind
 	obj.tags["name"] = item.Name
@@ -122,6 +122,7 @@ func buildEventData(item *kubeapi.Event, extraTags tagsType) inputs.Measurement 
 	obj.tags["reason"] = item.Reason
 	obj.tags["status"] = "info"
 	obj.tags.append(extraTags)
+	obj.election = election
 
 	obj.tags["message"] = item.Message
 	msg, err := json.Marshal(obj.tags)
@@ -136,8 +137,9 @@ func buildEventData(item *kubeapi.Event, extraTags tagsType) inputs.Measurement 
 }
 
 type event struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func newEvent() *event {
@@ -148,7 +150,7 @@ func newEvent() *event {
 }
 
 func (e *event) LineProto() (*point.Point, error) {
-	return point.NewPoint(k8sEventName, e.tags, e.fields, point.LOptElection())
+	return point.NewPoint(k8sEventName, e.tags, e.fields, point.LOptElectionV2(e.election))
 }
 
 //nolint:lll

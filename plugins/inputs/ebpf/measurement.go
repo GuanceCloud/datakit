@@ -55,6 +55,7 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 			},
 			"dst_k8s_namespace": inputs.TagInfo{Desc: "目标 IP 所在 k8s 的 namespace"},
 			"pid":               inputs.TagInfo{Desc: "进程号"},
+			"process_name":      inputs.TagInfo{Desc: "进程名"},
 			"transport":         inputs.TagInfo{Desc: "传输协议 (udp/tcp)"},
 			"family":            inputs.TagInfo{Desc: "TCP/IP 协议族 (IPv4/IPv6)"},
 			"direction":         inputs.TagInfo{Desc: "传输方向 (incoming/outgoing)"},

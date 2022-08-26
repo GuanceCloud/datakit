@@ -49,6 +49,7 @@ func (*Input) AvailableArchs() []string {
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&datakitMeasurement{},
+		&datakitHTTPMeasurement{},
 	}
 }
 
@@ -65,8 +66,12 @@ func (si *Input) Run() {
 		si.stat.Update()
 		cost := time.Since(start)
 		pt := si.stat.ToMetric()
+		pts := si.stat.ToHTTPMetric()
 
-		_ = io.Feed(inputName, datakit.Metric, []*point.Point{pt}, &io.Option{
+		newPts := []*point.Point{pt}
+		newPts = append(newPts, pts...)
+
+		_ = io.Feed(inputName, datakit.Metric, newPts, &io.Option{
 			CollectCost: cost,
 		})
 

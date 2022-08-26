@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package v1beta1 wraps DataKit resource by kubernetes client-gen.
+// Package v1beta1 wraps Datakit resource by kubernetes client-gen.
 package v1beta1
 
 import (
@@ -32,8 +32,8 @@ var (
 // Adds the list of known types to the given scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&DataKit{},
-		&DataKitList{},
+		&Datakit{},
+		&DatakitList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

@@ -7,7 +7,6 @@
 package io
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -22,11 +21,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	pb "google.golang.org/protobuf/proto"
-)
-
-var (
-	minGZSize   = 1024
-	maxKodoPack = 10 * 1024 * 1024
 )
 
 var (
@@ -49,7 +43,8 @@ type IOConfig struct {
 	EnableCache bool `toml:"enable_cache"`
 	CacheSizeGB int  `toml:"cache_max_size_gb"`
 
-	BlockingMode bool `toml:"blocking_mode"`
+	BlockingMode       bool     `toml:"blocking_mode"`
+	BlockingCategories []string `toml:"blocking_categories"`
 
 	Filters map[string][]string `toml:"filters"`
 }
@@ -78,7 +73,12 @@ type IO struct {
 	sender         *sender.Sender
 }
 
-func (x *IO) ifMatchOutputFileInput(feedName string) bool {
+func (x *IO) matchOutputFileInput(feedName string) bool {
+	// NOTE: if no inputs configure, all inputs matched
+	if len(x.conf.OutputFileInputs) == 0 {
+		return true
+	}
+
 	for _, v := range x.conf.OutputFileInputs {
 		if v == feedName {
 			return true
@@ -97,10 +97,15 @@ func (x *IO) cacheData(c *consumer, d *iodata, tryClean bool) {
 
 	x.updateStats(d)
 
-	if x.conf.OutputFile != "" {
+	if x.conf.OutputFile != "" && x.matchOutputFileInput(d.from) {
+		log.Debugf("write %d(%s) points to %s", len(d.pts), d.from, x.conf.OutputFile)
+
 		if err := x.fileOutput(d); err != nil {
 			log.Errorf("fileOutput: %s", err)
 		}
+
+		// do not send data to remote.
+		return
 	}
 
 	if d.opt != nil && d.opt.HTTPHost != "" {
@@ -299,61 +304,6 @@ func (x *IO) flushWal(c *consumer) {
 	}
 }
 
-type body struct {
-	buf  []byte
-	gzon bool
-}
-
-func doBuildBody(pts []*point.Point, outfile string) ([]*body, error) {
-	var (
-		gz = func(data []byte) (*body, error) {
-			body := &body{buf: data}
-
-			if len(data) > minGZSize && outfile == "" {
-				if gzbuf, err := datakit.GZip(body.buf); err != nil {
-					log.Errorf("Gzip: %s", err.Error())
-					return nil, err
-				} else {
-					log.Debugf("GZip: %d/%d=%f", len(gzbuf), len(body.buf), float64(len(gzbuf))/float64(len(body.buf)))
-					body.buf = gzbuf
-					body.gzon = true
-				}
-			}
-
-			return body, nil
-		}
-
-		bodies []*body
-		lines  = bytes.Buffer{}
-	)
-
-	for _, pt := range pts {
-		ptstr := pt.Point.String()
-		if lines.Len()+len(ptstr)+1 >= maxKodoPack {
-			if body, err := gz(lines.Bytes()); err != nil {
-				return nil, err
-			} else {
-				bodies = append(bodies, body)
-			}
-			lines.Reset()
-		}
-
-		if lines.Len() != 0 {
-			lines.WriteString("\n")
-		}
-		lines.WriteString(ptstr)
-	}
-	if body, err := gz(lines.Bytes()); err != nil {
-		return nil, err
-	} else {
-		return append(bodies, body), nil
-	}
-}
-
-func (x *IO) buildBody(pts []*point.Point) ([]*body, error) {
-	return doBuildBody(pts, x.conf.OutputFile)
-}
-
 func (x *IO) doFlush(pts []*point.Point, category string, fc *failCache) (int, error) {
 	if x.sender == nil {
 		return 0, fmt.Errorf("io sender is not initialized")
@@ -365,7 +315,7 @@ func (x *IO) doFlush(pts []*point.Point, category string, fc *failCache) (int, e
 
 	failed, err := x.sender.Write(category, pts)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	if x.conf.EnableCache && len(failed) > 0 {
@@ -439,19 +389,18 @@ func (x *IO) fileOutput(d *iodata) error {
 	x.lock.Lock()
 	defer x.lock.Unlock()
 
-	bodies, err := x.buildBody(d.pts)
-	if err != nil {
+	if n, err := x.fd.WriteString("# " + d.from + " > " + d.category + "\n"); err != nil {
 		return err
+	} else {
+		x.outputFileSize += int64(n)
 	}
 
-	for _, body := range bodies {
-		if len(x.conf.OutputFileInputs) == 0 || x.ifMatchOutputFileInput(d.from) {
-			if _, err := x.fd.Write(append(body.buf, '\n')); err != nil {
-				return err
-			}
-
-			x.outputFileSize += int64(len(body.buf))
-			if x.outputFileSize > 4*1024*1024 {
+	for _, pt := range d.pts {
+		if n, err := x.fd.WriteString(pt.String() + "\n"); err != nil {
+			return err
+		} else {
+			x.outputFileSize += int64(n)
+			if x.outputFileSize > 32*1024*1024 { // truncate file on 32MB
 				if err := x.fd.Truncate(0); err != nil {
 					return err
 				}

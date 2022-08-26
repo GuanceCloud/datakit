@@ -260,7 +260,7 @@ func (dw *DataWayDefault) Write(category string, pts []*point.Point) (*point.Fai
 		return nil, nil
 	}
 
-	bodies, err := buildBody(pts, true)
+	bodies, err := dw.buildBody(pts, true)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +301,7 @@ func (b *body) String() string {
 		b.gzon, b.idxRange, b.rawBufBytes, len(b.buf))
 }
 
-func buildBody(pts []*point.Point, isGzip bool) ([]*body, error) {
+func (dw *DataWayDefault) buildBody(pts []*point.Point, isGzip bool) ([]*body, error) {
 	lines := [][]byte{}
 	curPartSize := 0
 
@@ -315,6 +315,9 @@ func buildBody(pts []*point.Point, isGzip bool) ([]*body, error) {
 		)
 
 		body.rawBufBytes = int64(len(body.buf))
+
+		// TODO: Huge, only for tester, if go to production, comment this.
+		// log.Debugf("%v, lines to send: %s", dw.URLs, string(body.buf))
 
 		if curPartSize >= minGZSize && isGzip {
 			if body.buf, err = datakit.GZip(body.buf); err != nil {
@@ -354,9 +357,6 @@ func buildBody(pts []*point.Point, isGzip bool) ([]*body, error) {
 		lines = append(lines, ptbytes)
 		curPartSize += len(ptbytes)
 	}
-
-	// TODO: Huge, only for tester, if go to production, comment this.
-	// log.Debugf("lines to send: %s", lines.String())
 
 	if len(lines) > 0 { // 尾部 lines 单独打包一下
 		if body, err := getBody(lines, idxBegin, len(pts)); err != nil {

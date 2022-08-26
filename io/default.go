@@ -103,7 +103,7 @@ func (x *IO) init() error {
 	return nil
 }
 
-func Start(sincfg []map[string]interface{}) error {
+func Start() error {
 	log = logger.SLogger("io")
 	log.Debugf("default io config: %v", defaultIO)
 

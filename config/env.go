@@ -67,17 +67,29 @@ func (c *Config) loadElectionEnvs() {
 		return
 	}
 
-	c.EnableElection = true
+	c.Election.Enable = true
 
 	// default election namespace is `default`
 	if v := datakit.GetEnv("ENV_NAMESPACE"); v != "" {
-		c.ElectionNamespace = v
+		c.Election.Namespace = v
 	}
 
 	if v := datakit.GetEnv("ENV_ENABLE_ELECTION_NAMESPACE_TAG"); v != "" {
 		// add to global-env-tags
-		c.EnableElectionTag = true
-		c.GlobalEnvTags["election_namespace"] = c.ElectionNamespace
+		c.Election.EnableNamespaceTag = true
+		c.Election.Tags["election_namespace"] = c.Election.Namespace
+	}
+
+	for _, x := range []string{
+		"ENV_GLOBAL_ELECTION_TAGS",
+		"ENV_GLOBAL_ENV_TAGS", // Deprecated
+	} {
+		if v := datakit.GetEnv(x); v != "" {
+			for k, v := range ParseGlobalTags(v) {
+				c.Election.Tags[k] = v
+			}
+			break
+		}
 	}
 }
 
@@ -132,6 +144,11 @@ func (c *Config) loadIOEnvs() {
 		l.Info("ENV_IO_BLOCKING_MODE enabled")
 		c.IOConf.BlockingMode = true
 	}
+
+	if v := datakit.GetEnv("ENV_IO_BLOCKING_CATEGORIES"); len(v) > 0 {
+		l.Info("set ENV_IO_BLOCKING_CATEGORIES to %s", v)
+		c.IOConf.BlockingCategories = strings.Split(v, ",")
+	}
 }
 
 //nolint:funlen
@@ -151,6 +168,14 @@ func (c *Config) LoadEnvs() error {
 		}
 	}
 
+	if v := datakit.GetEnv("ENV_REFER_TABLE_URL"); v != "" {
+		c.Pipeline.ReferTableURL = v
+	}
+
+	if v := datakit.GetEnv("ENV_REFER_TABLE_PULL_INTERVAL"); v != "" {
+		c.Pipeline.ReferTablePullInterval = v
+	}
+
 	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT"); v != "" {
 		if x, err := strconv.ParseFloat(v, 64); err != nil {
 			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT, expect int or float, got %s, ignored", v)
@@ -159,34 +184,28 @@ func (c *Config) LoadEnvs() error {
 		}
 	}
 
-	// deprecated
-	if v := datakit.GetEnv("NODE_NAME"); v != "" {
-		c.Hostname = v
-		datakit.DatakitHostName = c.Hostname
-	}
-
-	if v := datakit.GetEnv("ENV_K8S_NODE_NAME"); v != "" {
-		c.Hostname = v
-		datakit.DatakitHostName = c.Hostname
+	for _, x := range []string{
+		"ENV_K8S_NODE_NAME",
+		"NODE_NAME", // Deprecated
+	} {
+		if v := datakit.GetEnv(x); v != "" {
+			c.Hostname = v
+			datakit.DatakitHostName = c.Hostname
+			break
+		}
 	}
 
 	c.loadElectionEnvs()
 
-	if v := datakit.GetEnv("ENV_GLOBAL_TAGS"); v != "" { // deprecated, use ENV_GLOBAL_HOST_TAGS
-		for k, v := range ParseGlobalTags(v) {
-			c.GlobalHostTags[k] = v
-		}
-	}
-
-	if v := datakit.GetEnv("ENV_GLOBAL_HOST_TAGS"); v != "" {
-		for k, v := range ParseGlobalTags(v) {
-			c.GlobalHostTags[k] = v
-		}
-	}
-
-	if v := datakit.GetEnv("ENV_GLOBAL_ENV_TAGS"); v != "" {
-		for k, v := range ParseGlobalTags(v) {
-			c.GlobalEnvTags[k] = v
+	for _, x := range []string{
+		"ENV_GLOBAL_HOST_TAGS",
+		"ENV_GLOBAL_TAGS", // Deprecated
+	} {
+		if v := datakit.GetEnv(x); v != "" {
+			for k, v := range ParseGlobalTags(v) {
+				c.GlobalHostTags[k] = v
+			}
+			break
 		}
 	}
 
@@ -331,10 +350,14 @@ func (c *Config) LoadEnvs() error {
 		c.ProtectMode = false
 	}
 
-	if v := datakit.GetEnv("ENV_DEFAULT_ENABLED_INPUTS"); v != "" {
-		c.DefaultEnabledInputs = strings.Split(v, ",")
-	} else if v := datakit.GetEnv("ENV_ENABLE_INPUTS"); v != "" { // deprecated
-		c.DefaultEnabledInputs = strings.Split(v, ",")
+	for _, x := range []string{
+		"ENV_DEFAULT_ENABLED_INPUTS",
+		"ENV_ENABLE_INPUTS", // Deprecated
+	} {
+		if v := datakit.GetEnv(x); v != "" {
+			c.DefaultEnabledInputs = strings.Split(v, ",")
+			break
+		}
 	}
 
 	if v := datakit.GetEnv("ENV_GIT_URL"); v != "" {

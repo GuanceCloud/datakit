@@ -51,7 +51,7 @@ func (d *deployment) pullItems() error {
 	return nil
 }
 
-func (d *deployment) metric() (inputsMeas, error) {
+func (d *deployment) metric(election bool) (inputsMeas, error) {
 	if err := d.pullItems(); err != nil {
 		return nil, err
 	}
@@ -74,6 +74,7 @@ func (d *deployment) metric() (inputsMeas, error) {
 				"rollingupdate_max_surge":       0,
 				// TODO:"replicas_desired"
 			},
+			election: election,
 		}
 
 		if item.Spec.Strategy.RollingUpdate != nil {
@@ -92,7 +93,7 @@ func (d *deployment) metric() (inputsMeas, error) {
 	return res, nil
 }
 
-func (d *deployment) object() (inputsMeas, error) {
+func (d *deployment) object(election bool) (inputsMeas, error) {
 	if err := d.pullItems(); err != nil {
 		return nil, err
 	}
@@ -116,6 +117,7 @@ func (d *deployment) object() (inputsMeas, error) {
 				"max_surge":       0,
 				"max_unavailable": 0,
 			},
+			election: election,
 		}
 
 		if item.Spec.Strategy.RollingUpdate != nil {
@@ -157,12 +159,13 @@ func (d *deployment) count() (map[string]int, error) {
 }
 
 type deploymentMetric struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (d *deploymentMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_deployment", d.tags, d.fields, point.MOptElection())
+	return point.NewPoint("kube_deployment", d.tags, d.fields, point.MOptElectionV2(d.election))
 }
 
 //nolint:lll
@@ -191,12 +194,13 @@ func (*deploymentMetric) Info() *inputs.MeasurementInfo {
 }
 
 type deploymentObject struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (d *deploymentObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_deployments", d.tags, d.fields, point.OOptElection())
+	return point.NewPoint("kubernetes_deployments", d.tags, d.fields, point.OOptElectionV2(d.election))
 }
 
 //nolint:lll

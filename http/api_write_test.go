@@ -277,6 +277,22 @@ func TestAPIWrite(t *testing.T) {
 		},
 
 		{
+			name:             `write-logging-with-point-in-key`,
+			method:           "POST",
+			url:              "/v1/write/logging",
+			body:             []byte(`some-source,tag1=1,tag2=2,tag.3=3 f1=1`),
+			expectStatusCode: 400,
+		},
+
+		{
+			name:             `unstrict-write-logging-with-point-in-key`,
+			method:           "POST",
+			url:              "/v1/write/logging",
+			body:             []byte(`some-source,tag1=1,tag2=2,tag.3=3 f1=1`),
+			expectStatusCode: 400,
+		},
+
+		{
 			name:             `[ok]write-logging(json)`,
 			method:           "POST",
 			url:              "/v1/write/logging",
@@ -342,6 +358,25 @@ func TestAPIWrite(t *testing.T) {
 		},
 
 		//--------------------------------------------
+		// metric cases
+		//--------------------------------------------
+		{
+			name:             `metric-json-point-key-with-point`,
+			method:           "POST",
+			url:              "/v1/write/metric",
+			contentType:      "application/json",
+			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}}]`),
+			expectStatusCode: 200,
+		},
+		{
+			name:             `metric-point-key-with-point`,
+			method:           "POST",
+			url:              "/v1/write/metric",
+			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=3,f3.14=3.14`),
+			expectStatusCode: 200,
+		},
+
+		//--------------------------------------------
 		// object cases
 		//--------------------------------------------
 		{
@@ -402,7 +437,7 @@ func TestAPIWrite(t *testing.T) {
 			},
 
 			method:           "POST",
-			url:              "/v1/write/object?echo_line_proto=1&ignore_global_host_tags=1&ignore_global_tags=1&global_env_tags=1", // global-host-tag ignored
+			url:              "/v1/write/object?echo_line_proto=1&ignore_global_host_tags=1&ignore_global_tags=1&global_election_tags=1", // global-host-tag ignored
 			contentType:      "application/json",
 			body:             []byte(`[{"measurement":"object-class","tags":{"name": "1"}, "fields":{"f1":1, "message": "dump object message"}, "time": 123}]`),
 			expectStatusCode: 200,
@@ -440,7 +475,7 @@ func TestAPIWrite(t *testing.T) {
 
 			if tc.globalEnvTags != nil {
 				for k, v := range tc.globalEnvTags {
-					point.SetGlobalEnvTags(k, v)
+					point.SetGlobalElectionTags(k, v)
 				}
 			}
 
@@ -448,7 +483,7 @@ func TestAPIWrite(t *testing.T) {
 			var err error
 			switch tc.method {
 			case "POST":
-				resp, err = http.Post(fmt.Sprintf("%s%s", ts.URL, tc.url), tc.contentType, bytes.NewBuffer(tc.body)) //nolint:bodyclose
+				resp, err = http.Post(fmt.Sprintf("%s%s", ts.URL, tc.url), tc.contentType, bytes.NewBuffer(tc.body))
 				if err != nil {
 					t.Error(err)
 					return

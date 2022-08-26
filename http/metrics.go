@@ -18,7 +18,7 @@ type apiMetric struct {
 	limited    bool
 }
 
-type apiStat struct {
+type APIStat struct {
 	TotalCount     int     `json:"total_count"`
 	Limited        int     `json:"limited"`
 	LimitedPercent float64 `json:"limited_percent"`
@@ -28,13 +28,13 @@ type apiStat struct {
 	Status4xx int `json:"4xx"`
 	Status5xx int `json:"5xx"`
 
-	MaxLatency   time.Duration `json:"max_letency"`
+	MaxLatency   time.Duration `json:"max_latency"`
 	AvgLatency   time.Duration `json:"avg_latency"`
 	totalLatency time.Duration
 }
 
 type metricQ struct {
-	result chan map[string]*apiStat
+	result chan map[string]*APIStat
 }
 
 var (
@@ -42,9 +42,9 @@ var (
 	qch     = make(chan *metricQ, 8)
 )
 
-func getMetrics() map[string]*apiStat {
+func GetMetrics() map[string]*APIStat {
 	q := &metricQ{
-		result: make(chan map[string]*apiStat),
+		result: make(chan map[string]*APIStat),
 	}
 
 	qch <- q
@@ -69,7 +69,7 @@ func feedMetric(m *apiMetric) {
 }
 
 func metrics() {
-	apiStats := map[string]*apiStat{}
+	apiStats := map[string]*APIStat{}
 
 	for {
 		select {
@@ -77,7 +77,7 @@ func metrics() {
 			if s != nil {
 				x, ok := apiStats[s.api]
 				if !ok {
-					x = &apiStat{}
+					x = &APIStat{}
 					apiStats[s.api] = x
 				}
 
@@ -119,10 +119,10 @@ func metrics() {
 	}
 }
 
-func copyStats(from map[string]*apiStat) map[string]*apiStat {
-	res := map[string]*apiStat{}
+func copyStats(from map[string]*APIStat) map[string]*APIStat {
+	res := map[string]*APIStat{}
 	for k, v := range from {
-		res[k] = &apiStat{
+		res[k] = &APIStat{
 			Limited:        v.Limited,
 			TotalCount:     v.TotalCount,
 			MaxLatency:     v.MaxLatency,

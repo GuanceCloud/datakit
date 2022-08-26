@@ -78,8 +78,8 @@ func TestNewPoint(t *testing.T) {
 		t map[string]string
 		f map[string]interface{}
 
-		globalHostTags map[string]string
-		globalEnvTags  map[string]string
+		globalHostTags     map[string]string
+		globalElectionTags map[string]string
 
 		fail bool
 	}{
@@ -243,13 +243,13 @@ func TestNewPoint(t *testing.T) {
 		},
 
 		{
-			tname:         "with-global-env-tags",
-			ptopt:         &PointOption{GlobalEnvTags: true, Category: datakit.Metric, Time: time.Unix(0, 123)},
-			globalEnvTags: map[string]string{"env": "env-tag-val"},
-			name:          "abc",
-			t:             map[string]string{"t1": "tval1"},
-			f:             map[string]interface{}{"f1": 12},
-			expect:        "abc,env=env-tag-val,t1=tval1 f1=12i 123",
+			tname:              "with-global-env-tags",
+			ptopt:              &PointOption{GlobalElectionTags: true, Category: datakit.Metric, Time: time.Unix(0, 123)},
+			globalElectionTags: map[string]string{"env": "env-tag-val"},
+			name:               "abc",
+			t:                  map[string]string{"t1": "tval1"},
+			f:                  map[string]interface{}{"f1": 12},
+			expect:             "abc,env=env-tag-val,t1=tval1 f1=12i 123",
 		},
 	}
 
@@ -259,17 +259,17 @@ func TestNewPoint(t *testing.T) {
 			var err error
 
 			globalHostTags = map[string]string{}
-			globalEnvTags = map[string]string{}
+			globalElectionTags = map[string]string{}
 			if tc.globalHostTags != nil {
 				for k, v := range tc.globalHostTags {
 					SetGlobalHostTags(k, v)
 				}
 			}
 
-			if tc.globalEnvTags != nil {
-				globalEnvTags = map[string]string{}
-				for k, v := range tc.globalEnvTags {
-					SetGlobalEnvTags(k, v)
+			if tc.globalElectionTags != nil {
+				globalElectionTags = map[string]string{}
+				for k, v := range tc.globalElectionTags {
+					SetGlobalElectionTags(k, v)
 				}
 			}
 

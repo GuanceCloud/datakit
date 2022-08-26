@@ -2,7 +2,7 @@
 # 离线部署
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
+- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows:
 
 某些时候，目标机器没有公网访问出口，按照如下方式可离线安装 DataKit。
 
@@ -67,41 +67,43 @@
 
 以下文件的地址，可通过 wget 等下载工具，也可以直接在浏览器中输入对应的 URL 下载。
 
-> Safari 浏览器下载时，后缀名可能不同（如将 `.tar.gz` 文件下载成 `.tar`），会导致安装失败。建议用 Chrome 浏览器下载。
+???+ Attention
 
-先下载数据包，每个平台都一样： https://static.dataflux.cn/datakit/data.tar.gz
+    Safari 浏览器下载时，后缀名可能不同（如将 `.tar.gz` 文件下载成 `.tar`），会导致安装失败。建议用 Chrome 浏览器下载。
 
-然后再下载俩个安装程序：
+- 先下载数据包 [data.tar.gz](https://static.guance.com/datakit/data.tar.gz)，每个平台都一样。
+
+- 然后再下载俩个安装程序：
 
 === "Windows 32 位"
 
-    - [Installer](https://static.guance.cn/datakit/installer-windows-386.exe){:target="_blank"}
-    - [DataKit](https://static.dataflux.cn/datakit/datakit-windows-386-{{.Version}}.tar.gz){:target="_blank"}
+    - [Installer](https://static.guance.com/datakit/installer-windows-386.exe){:target="_blank"}
+    - [DataKit](https://static.guance.com/datakit/datakit-windows-386-{{.Version}}.tar.gz){:target="_blank"}
 
 === "Windows 64 位"
 
-    - [Installer](https://static.guance.cn/datakit/installer-windows-amd64.exe){:target="_blank"}
-    - [DataKit](https://static.dataflux.cn/datakit/datakit-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
+    - [Installer](https://static.guance.com/datakit/installer-windows-amd64.exe){:target="_blank"}
+    - [DataKit](https://static.guance.com/datakit/datakit-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
 
 === "Linux X86 32 位"
 
-    - [Installer](https://static.guance.cn/datakit/installer-linux-386){:target="_blank"}
-    - [DataKit](https://static.dataflux.cn/datakit/datakit-linux-386-{{.Version}}.tar.gz){:target="_blank"}
+    - [Installer](https://static.guance.com/datakit/installer-linux-386){:target="_blank"}
+    - [DataKit](https://static.guance.com/datakit/datakit-linux-386-{{.Version}}.tar.gz){:target="_blank"}
 
 === "Linux X86 64 位"
 
-    - [Installer](https://static.guance.cn/datakit/installer-linux-amd64){:target="_blank"}
-    - [DataKit](https://static.dataflux.cn/datakit/datakit-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
+    - [Installer](https://static.guance.com/datakit/installer-linux-amd64){:target="_blank"}
+    - [DataKit](https://static.guance.com/datakit/datakit-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
 
 === "Linux Arm 32 位"
 
-    - [Installer](https://static.guance.cn/datakit/installer-linux-arm){:target="_blank"}
-    - [DataKit](https://static.dataflux.cn/datakit/datakit-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
+    - [Installer](https://static.guance.com/datakit/installer-linux-arm){:target="_blank"}
+    - [DataKit](https://static.guance.com/datakit/datakit-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
 
 === "Linux Arm 64 位"
 
-    - [Installer](https://static.guance.cn/datakit/installer-linux-arm64){:target="_blank"}
-    - [DataKit](https://static.dataflux.cn/datakit/datakit-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
+    - [Installer](https://static.guance.com/datakit/installer-linux-arm64){:target="_blank"}
+    - [DataKit](https://static.guance.com/datakit/datakit-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
 
 下载完后，应该有三个文件（此处 `<OS-ARCH>` 指特定平台的安装包）：
 
@@ -118,7 +120,7 @@
     需以 administrator 权限运行 Powershell 执行：
 
     ```powershell
-    .\installer-windows-amd64.exe --offline --dataway "https://openway.dataflux.cn?token=<YOUR-TOKEN>" --srcs .\datakit-windows-amd64-{{.Version}}.tar.gz,.\data.tar.gz
+    .\installer-windows-amd64.exe --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs .\datakit-windows-amd64-{{.Version}}.tar.gz,.\data.tar.gz
     ```
 
 === "Linux"
@@ -127,5 +129,5 @@
 
     ```shell
     chmod +x installer-linux-amd64
-    ./installer-linux-amd64 --offline --dataway "https://openway.dataflux.cn?token=<YOUR-TOKEN>" --srcs datakit-linux-amd64-{{.Version}}.tar.gz,data.tar.gz
+    ./installer-linux-amd64 --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs datakit-linux-amd64-{{.Version}}.tar.gz,data.tar.gz
     ```

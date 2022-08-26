@@ -51,7 +51,7 @@ func (c *cronjob) pullItems() error {
 	return nil
 }
 
-func (c *cronjob) metric() (inputsMeas, error) {
+func (c *cronjob) metric(election bool) (inputsMeas, error) {
 	if err := c.pullItems(); err != nil {
 		return nil, err
 	}
@@ -66,6 +66,7 @@ func (c *cronjob) metric() (inputsMeas, error) {
 			fields: map[string]interface{}{
 				"spec_suspend": *item.Spec.Suspend,
 			},
+			election: election,
 		}
 		// t := item.Status.LastScheduleTime
 		// met.fields["duration_since_last_schedule"] = int64(time.Since(t).Seconds())
@@ -77,8 +78,9 @@ func (c *cronjob) metric() (inputsMeas, error) {
 	count, _ := c.count()
 	for ns, ct := range count {
 		met := &cronjobMetric{
-			tags:   map[string]string{"namespace": ns},
-			fields: map[string]interface{}{"count": ct},
+			tags:     map[string]string{"namespace": ns},
+			fields:   map[string]interface{}{"count": ct},
+			election: election,
 		}
 		met.tags.append(c.extraTags)
 		res = append(res, met)
@@ -87,7 +89,7 @@ func (c *cronjob) metric() (inputsMeas, error) {
 	return res, nil
 }
 
-func (c *cronjob) object() (inputsMeas, error) {
+func (c *cronjob) object(election bool) (inputsMeas, error) {
 	if err := c.pullItems(); err != nil {
 		return nil, err
 	}
@@ -108,6 +110,7 @@ func (c *cronjob) object() (inputsMeas, error) {
 				"active_jobs": len(item.Status.Active),
 				"suspend":     false,
 			},
+			election: election,
 		}
 		obj.tags.append(c.extraTags)
 
@@ -144,12 +147,13 @@ func (c *cronjob) count() (map[string]int, error) {
 }
 
 type cronjobMetric struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (c *cronjobMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kuber_cronjob", c.tags, c.fields, point.MOptElection())
+	return point.NewPoint("kuber_cronjob", c.tags, c.fields, point.MOptElectionV2(c.election))
 }
 
 //nolint:lll
@@ -171,12 +175,13 @@ func (*cronjobMetric) Info() *inputs.MeasurementInfo {
 }
 
 type cronjobObject struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (c *cronjobObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_cron_jobs", c.tags, c.fields, point.MOptElection())
+	return point.NewPoint("kubernetes_cron_jobs", c.tags, c.fields, point.MOptElectionV2(c.election))
 }
 
 //nolint:lll

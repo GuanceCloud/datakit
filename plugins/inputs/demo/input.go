@@ -32,9 +32,14 @@ type Input struct {
 	Tags         map[string]string
 	chpause      chan bool
 	EatCPU       bool `toml:"eat_cpu"`
+	Election     bool `toml:"election"`
 	paused       bool
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
 func (ipt *Input) Collect() error {
@@ -49,7 +54,8 @@ func (ipt *Input) Collect() error {
 				"some_string": "hello world",
 				"ok":          true,
 			},
-			ts: time.Now(),
+			ts:       time.Now(),
+			election: ipt.Election,
 		},
 	}
 
@@ -130,6 +136,9 @@ func (*Input) SampleConfig() string {
   # 是否开启 CPU 爆满
   eat_cpu = false
 
+  ## Set true to enable election
+  election = true
+
 [inputs.demo.tags] # 所有采集器，都应该有 tags 配置项
 	# tag_a = "val1"
 	# tag_b = "val2"
@@ -175,7 +184,8 @@ func init() { //nolint:gochecknoinits
 			paused:  false,
 			chpause: make(chan bool, inputs.ElectionPauseChannelLength),
 
-			semStop: cliutils.NewSem(),
+			Election: true,
+			semStop:  cliutils.NewSem(),
 		}
 	})
 }

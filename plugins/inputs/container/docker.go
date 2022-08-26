@@ -41,6 +41,8 @@ type dockerInputConfig struct {
 	extraTags          map[string]string
 	extraSourceMap     map[string]string
 	sourceMultilineMap map[string]string
+
+	autoMultilinePatterns []string
 }
 
 func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
@@ -248,7 +250,19 @@ func getPodAnnotationState(labels map[string]string, meta *podMeta) podAnnotatio
 		return podAnnotationNil
 	}
 
-	logconf, err := getContainerLogConfig(meta.Annotations)
+	// 优先使用 Pod Annotations 的 datakit/logs 配置
+	// 其次使用全局 CRD 列表中 Pod UID 对应的 datakit/logs
+
+	var conf string
+	if meta.annotations() != nil && meta.annotations()[containerLogConfigKey] != "" {
+		conf = meta.annotations()[containerLogConfigKey]
+	} else {
+		globalCRDLogsConfList.mu.Lock()
+		conf = globalCRDLogsConfList.list[string(meta.UID)]
+		globalCRDLogsConfList.mu.Unlock()
+	}
+
+	logconf, err := parseContainerLogConfig(conf)
 	if err != nil || logconf == nil {
 		return podAnnotationNil
 	}

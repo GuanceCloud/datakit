@@ -51,7 +51,7 @@ func (n *node) pullItems() error {
 	return nil
 }
 
-func (n *node) metric() (inputsMeas, error) {
+func (n *node) metric(election bool) (inputsMeas, error) {
 	if err := n.pullItems(); err != nil {
 		return nil, err
 	}
@@ -65,7 +65,8 @@ func (n *node) metric() (inputsMeas, error) {
 				// "resource"
 				// "unit"
 			},
-			fields: map[string]interface{}{},
+			fields:   map[string]interface{}{},
+			election: election,
 		}
 		// t := item.Status.LastScheduleTime
 		// met.fields["node.age"] = int64(time.Since(*t).Seconds())
@@ -100,8 +101,9 @@ func (n *node) metric() (inputsMeas, error) {
 	count, _ := n.count()
 	for ns, c := range count {
 		met := &nodeMetric{
-			tags:   map[string]string{"namespace": ns},
-			fields: map[string]interface{}{"count": c},
+			tags:     map[string]string{"namespace": ns},
+			fields:   map[string]interface{}{"count": c},
+			election: election,
 		}
 		met.tags.append(n.extraTags)
 		res = append(res, met)
@@ -110,7 +112,7 @@ func (n *node) metric() (inputsMeas, error) {
 	return res, nil
 }
 
-func (n *node) object() (inputsMeas, error) {
+func (n *node) object(election bool) (inputsMeas, error) {
 	if err := n.pullItems(); err != nil {
 		return nil, err
 	}
@@ -129,6 +131,7 @@ func (n *node) object() (inputsMeas, error) {
 				"age":             int64(time.Since(item.CreationTimestamp.Time).Seconds()),
 				"kubelet_version": item.Status.NodeInfo.KubeletVersion,
 			},
+			election: election,
 		}
 
 		if _, ok := item.Labels["node-role.kubernetes.io/master"]; ok {
@@ -175,12 +178,13 @@ func (n *node) count() (map[string]int, error) {
 }
 
 type nodeMetric struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (n *nodeMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_node", n.tags, n.fields, point.MOptElection())
+	return point.NewPoint("kube_node", n.tags, n.fields, point.MOptElectionV2(n.election))
 }
 
 //nolint:lll
@@ -208,12 +212,13 @@ func (*nodeMetric) Info() *inputs.MeasurementInfo {
 }
 
 type nodeObject struct {
-	tags   tagsType
-	fields fieldsType
+	tags     tagsType
+	fields   fieldsType
+	election bool
 }
 
 func (n *nodeObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_nodes", n.tags, n.fields, point.OOptElection())
+	return point.NewPoint("kubernetes_nodes", n.tags, n.fields, point.OOptElectionV2(n.election))
 }
 
 //nolint:lll

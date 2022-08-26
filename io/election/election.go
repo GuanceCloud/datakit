@@ -47,6 +47,14 @@ const (
 	statusDisabled = "disabled"
 )
 
+type Config struct {
+	Enable             bool `toml:"enable"`
+	EnableNamespaceTag bool `toml:"enable_namespace_tag"`
+
+	Namespace string            `toml:"namespace"`
+	Tags      map[string]string `toml:"tags"`
+}
+
 type candidate struct {
 	status                         string
 	id, namespace                  string

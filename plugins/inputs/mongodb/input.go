@@ -72,6 +72,9 @@ var (
   ## When true, collect top command stats.
   # gather_top_stat = true
 
+  ## Set true to enable election
+  election = true
+
   ## TLS connection config
   # ca_certs = ["` + defTLSCaCert + `"]
   # cert = "` + defTLSCert + `"
@@ -133,12 +136,18 @@ type Input struct {
 	Log  *mongodblog       `toml:"log"`
 	Tags map[string]string `toml:"tags"`
 
-	mongos  map[string]*Server
-	tail    *tailer.Tailer
-	pause   bool
-	pauseCh chan bool
+	mongos map[string]*Server
+	tail   *tailer.Tailer
+
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (m *Input) ElectionEnabled() bool {
+	return m.Election
 }
 
 func (*Input) Catalog() string { return catalogName }
@@ -201,7 +210,7 @@ func (m *Input) RunPipeline() {
 		GlobalTags:        m.Tags,
 		IgnoreStatus:      m.Log.IgnoreStatus,
 		CharacterEncoding: m.Log.CharacterEncoding,
-		MultilineMatch:    m.Log.MultilineMatch,
+		MultilinePatterns: []string{m.Log.MultilineMatch},
 	}
 
 	var err error
@@ -265,7 +274,7 @@ func (m *Input) Terminate() {
 
 func (m *Input) getMongoServer(url *url.URL) *Server {
 	if _, ok := m.mongos[url.Host]; !ok {
-		m.mongos[url.Host] = &Server{URL: url}
+		m.mongos[url.Host] = &Server{URL: url, election: m.Election}
 	}
 
 	return m.mongos[url.Host]
@@ -392,6 +401,7 @@ func init() { //nolint:gochecknoinits
 			Log:                   &mongodblog{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
 			mongos:                make(map[string]*Server),
 			pauseCh:               make(chan bool, inputs.ElectionPauseChannelLength),
+			Election:              true,
 
 			semStop: cliutils.NewSem(),
 		}

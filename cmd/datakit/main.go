@@ -202,7 +202,7 @@ func initPythonCore() error {
 func doRun() error {
 	// check io start
 	checkutil.CheckConditionExit(func() bool {
-		if err := io.Start(config.Cfg.Sinks.Sink); err != nil {
+		if err := io.Start(); err != nil {
 			return false
 		}
 
@@ -217,8 +217,8 @@ func doRun() error {
 	})
 
 	if config.Cfg.DataWay != nil {
-		if config.Cfg.EnableElection {
-			election.Start(config.Cfg.ElectionNamespace, config.Cfg.Hostname, config.Cfg.DataWay)
+		if config.Cfg.Election.Enable {
+			election.Start(config.Cfg.Election.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
 		}
 
 		if len(config.Cfg.DataWayCfg.URLs) == 1 {
@@ -258,6 +258,7 @@ func startDKHttp() {
 	dkhttp.Start(&dkhttp.Option{
 		APIConfig:      config.Cfg.HTTPAPI,
 		DCAConfig:      config.Cfg.DCAConfig,
+		Log:            config.Cfg.Logging.Log,
 		GinLog:         config.Cfg.Logging.GinLog,
 		GinRotate:      config.Cfg.Logging.Rotate,
 		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",

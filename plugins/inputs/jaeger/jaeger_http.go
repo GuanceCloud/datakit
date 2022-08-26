@@ -33,8 +33,8 @@ func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Debugf("### path: %s, Content-Type: %s, body-size: %d, read-body-cost: %dms",
-		req.URL.Path, req.Header.Get("Content-Type"), buf.Len(), time.Since(readbodycost)/time.Millisecond)
+	log.Debugf("### path: %s, Content-Type: %s, body-size: %dkb, read-body-cost: %dms",
+		req.URL.Path, req.Header.Get("Content-Type"), buf.Len()>>10, time.Since(readbodycost)/time.Millisecond)
 
 	if wpool == nil {
 		if err := parseJaegerTrace(buf); err != nil {
@@ -49,7 +49,6 @@ func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
 				log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
 			}),
-			workerpool.WithTimeout(jobTimeout),
 		)
 		if err != nil {
 			log.Error(err.Error())
@@ -59,7 +58,7 @@ func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 		}
 
 		if err = wpool.MoreJob(job); err != nil {
-			log.Error(err)
+			log.Error(err.Error())
 			resp.WriteHeader(http.StatusTooManyRequests)
 
 			return

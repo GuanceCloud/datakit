@@ -14,13 +14,14 @@ import (
 )
 
 type bigKeyMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
 }
 
 func (m *bigKeyMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -87,9 +88,10 @@ func (i *Input) getData(resKeys []string) ([]inputs.Measurement, error) {
 		found := false
 
 		m := &commandMeasurement{
-			name:   "redis_bigkey",
-			tags:   make(map[string]string),
-			fields: make(map[string]interface{}),
+			name:     "redis_bigkey",
+			tags:     make(map[string]string),
+			fields:   make(map[string]interface{}),
+			election: i.Election,
 		}
 
 		for key, value := range i.Tags {

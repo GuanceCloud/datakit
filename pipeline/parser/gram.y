@@ -41,7 +41,6 @@ NIL NULL RE JP IF ELIF ELSE
 ////////////////////////////////////////////////////
 %type <item>
 	unary_op
-	function_name
 	identifier
 
 %type<nodes>
@@ -54,11 +53,12 @@ NIL NULL RE JP IF ELIF ELSE
 	assignment_stmt
 	ifelse_stmt
 	ifelse_block_stmt
-	function_stmt
+	func_call_expr
 
 %type <node>
 	function_arg
 	if_expr
+	binary_expr
 	conditional_expr
 	// computation_expr
 	paren_expr
@@ -67,6 +67,7 @@ NIL NULL RE JP IF ELIF ELSE
 	regex
 	expr
 	array_list
+	array_list_item
 	array_elem
 	bool_literal
 	string_literal
@@ -106,17 +107,15 @@ stmts	: stmt
 	;
 
 
-stmt	: function_stmt
-		{ $$ = Stmts{$1} }
-	| ifelse_stmt
-		{ $$ = Stmts{$1} }
+stmt	: ifelse_stmt
 	| assignment_stmt
-		{ $$ = Stmts{$1} }
+	| expr 
 	;
 
 
 /* expression */
-expr	: array_elem | regex | paren_expr | conditional_expr | attr_expr ; // computation_expr
+expr	: array_elem | regex | paren_expr | func_call_expr | binary_expr | attr_expr ; // computation_expr
+
 
 
 ifelse_stmt	: IF if_expr
@@ -155,8 +154,7 @@ ifelse_block_stmt	: LEFT_BRACE RIGHT_BRACE
 				{ $$ = $2 }
 			;
 
-
-function_stmt	: function_name LEFT_PAREN function_args RIGHT_PAREN
+func_call_expr	: identifier LEFT_PAREN function_args RIGHT_PAREN
 			{
 			f, err := yylex.(*parser).newFuncStmt($1.Val, $3)
 			if err != nil {
@@ -167,10 +165,6 @@ function_stmt	: function_name LEFT_PAREN function_args RIGHT_PAREN
 			}
 			}
 		;
-
-
-/* function names */
-function_name	: identifier { $$ = $1 } ;
 
 
 function_args	: function_args COMMA function_arg
@@ -195,15 +189,18 @@ function_arg	: assignment_stmt
 		// 	{ $$ = $1 }
 		| attr_expr
 			{ $$ = $1 }
-		| LEFT_BRACKET array_list RIGHT_BRACKET
-			{ $$ = getFuncArgList($2.(NodeList)) }
+		| array_list
+			{ $$ = $1 }
 		;
 
 
 assignment_stmt	: expr EQ expr
            		{ $$ = yylex.(*parser).newAssignmentStmt($1, $3) }
+			| expr EQ array_list
+				{ $$ = yylex.(*parser).newAssignmentStmt($1, $3) }
 		;
 
+binary_expr: conditional_expr ;
 
 conditional_expr	: expr GTE expr
 				{ $$ = yylex.(*parser).newConditionalExpr($1, $3, $2) }
@@ -274,7 +271,12 @@ regex	: RE LEFT_PAREN string_literal RIGHT_PAREN
 	;
 
 
-array_list	: array_list COMMA array_elem
+
+array_list : LEFT_BRACKET array_list_item RIGHT_BRACKET
+		{ $$ = getFuncArgList($2.(NodeList)) }
+	;
+
+array_list_item	: array_list_item COMMA array_elem
 			{
 			nl := $$.(NodeList)
 			nl = append(nl, $3)

@@ -577,6 +577,30 @@ func TestParser(t *testing.T) {
 		},
 
 		{
+			name: "func_call_in_assignement_right",
+			in:   `a = fn("a", true, a1=["b", 1.1])`,
+			expected: Stmts{
+				&AssignmentStmt{
+					LHS: &Identifier{Name: "a"},
+					RHS: &FuncStmt{
+						Name: "fn",
+						Param: []Node{
+							&StringLiteral{Val: "a"},
+							&BoolLiteral{Val: true},
+							&AssignmentStmt{
+								LHS: &Identifier{Name: "a1"},
+								RHS: FuncArgList{
+									&StringLiteral{Val: "b"},
+									&NumberLiteral{Float: 1.1},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
 			name: "naming args",
 			in:   `f(arg1=1, arg2=2)`,
 			expected: Stmts{

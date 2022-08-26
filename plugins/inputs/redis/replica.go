@@ -20,15 +20,16 @@ import (
 )
 
 type replicaMeasurement struct {
-	client  *redis.Client
-	name    string
-	tags    map[string]string
-	fields  map[string]interface{}
-	resData map[string]interface{}
+	client   *redis.Client
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	resData  map[string]interface{}
+	election bool
 }
 
 func (m *replicaMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -53,10 +54,11 @@ func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 
 func (i *Input) collectReplicaMeasurement() ([]inputs.Measurement, error) {
 	m := &replicaMeasurement{
-		client:  i.client,
-		resData: make(map[string]interface{}),
-		tags:    make(map[string]string),
-		fields:  make(map[string]interface{}),
+		client:   i.client,
+		resData:  make(map[string]interface{}),
+		tags:     make(map[string]string),
+		fields:   make(map[string]interface{}),
+		election: i.Election,
 	}
 
 	m.name = "redis_replica"

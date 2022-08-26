@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -88,7 +89,10 @@ func (d *dcaContext) send(response dcaResponse) {
 		d.fail(dcaError{})
 		return
 	}
-	d.c.Data(http.StatusOK, "application/json", body)
+
+	status := d.c.Writer.Status()
+
+	d.c.Data(status, "application/json", body)
 }
 
 func (d *dcaContext) success(datas ...interface{}) {
@@ -192,9 +196,37 @@ func dcaStats(c *gin.Context) {
 	context.success(stats)
 }
 
-func dcaDefault(c *gin.Context) {
+func dcaStatsByType(c *gin.Context) {
+	var stat interface{}
+
 	context := dcaContext{c: c}
 
+	statType := c.Param("type")
+	if statType == "" {
+		statType = StatInfoType
+	}
+
+	if statType == StatInfoType {
+		stat = getStatInfo()
+	} else if statType == StatMetricType {
+		stat = getStatMetric()
+	}
+
+	if stat == nil {
+		context.fail(dcaError{
+			Code:      400,
+			ErrorCode: "param.invalid",
+			ErrorMsg:  fmt.Sprintf("invalid type, which should be '%s' or '%s'", StatInfoType, StatMetricType),
+		})
+		return
+	}
+
+	context.success(stat)
+}
+
+func dcaDefault(c *gin.Context) {
+	context := dcaContext{c: c}
+	context.c.Status(404)
 	context.fail(dcaError{Code: 404, ErrorCode: "route.not.found", ErrorMsg: "route not found"})
 }
 
@@ -243,7 +275,7 @@ func dcaGetConfig(c *gin.Context) {
 
 	content, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
-		l.Error(err)
+		l.Errorf("Read config file %s error: %s", path, err.Error())
 		context.fail(dcaError{ErrorCode: "invalid.path", ErrorMsg: "invalid path"})
 		return
 	}
@@ -258,7 +290,7 @@ func dcaSaveConfig(c *gin.Context) {
 
 	context := &dcaContext{c: c}
 	if err != nil {
-		l.Error(err)
+		l.Errorf("Read request body error: %s", err.Error())
 		context.fail()
 		return
 	}
@@ -266,7 +298,7 @@ func dcaSaveConfig(c *gin.Context) {
 	param := saveConfigParam{}
 
 	if err := json.Unmarshal(body, &param); err != nil {
-		l.Error(err)
+		l.Errorf("Json unmarshal error: %s", err.Error())
 		context.fail()
 		return
 	}
@@ -285,7 +317,7 @@ func dcaSaveConfig(c *gin.Context) {
 			var err error
 
 			if content, err = ioutil.ReadFile(param.Path); err != nil {
-				l.Error(err)
+				l.Errorf("Read file %s error: %s", param.Path, err.Error())
 				context.fail()
 				return
 			}
@@ -304,7 +336,7 @@ func dcaSaveConfig(c *gin.Context) {
 	// create and save
 	err = ioutil.WriteFile(param.Path, configContent, datakit.ConfPerm)
 	if err != nil {
-		l.Error(err)
+		l.Errorf("Write file %s failed: %s", param.Path, err.Error())
 		context.fail()
 		return
 	}
@@ -428,6 +460,100 @@ func dcaGetFilter(c *gin.Context) {
 	context.success(filterInfo{Content: string(pullFileBytes), FilePath: pullFilePath})
 }
 
+func dcaDownloadLog(c *gin.Context) {
+	logType := "log"
+	context := getContext(c)
+	logFile := log
+	if c.Query("type") == "gin.log" {
+		logFile = ginLog
+		logType = "gin.log"
+	}
+
+	file, err := os.Open(logFile)
+	if err != nil {
+		l.Errorf("DCA open log file %s failed: %s", logFile, err.Error())
+		c.Status(400)
+		context.fail(dcaError{ErrorCode: "dca.log.file.invalid", ErrorMsg: "datakit log file is not valid"})
+		return
+	}
+	defer file.Close() //nolint: errcheck,gosec
+	var fileSize int64 = 0
+	if info, err := file.Stat(); err == nil {
+		fileSize = info.Size()
+	}
+
+	extraHeaders := map[string]string{
+		"Content-Disposition": fmt.Sprintf(`"attachment; filename="%s"`, logType),
+	}
+
+	c.DataFromReader(http.StatusOK, fileSize, "application/octet-stream", file, extraHeaders)
+}
+
+func dcaGetLogTail(c *gin.Context) {
+	l.Info("dcaGetLogTail start")
+	logFile := log
+	context := getContext(c)
+
+	if c.Query("type") == "gin.log" {
+		logFile = ginLog
+	}
+
+	file, err := os.Open(logFile)
+	if err != nil {
+		l.Errorf("DCA open log file %s failed: %s", logFile, err.Error())
+		c.Status(400)
+		context.fail(dcaError{ErrorCode: "dca.log.file.invalid", ErrorMsg: "datakit log file is not valid"})
+		return
+	}
+	defer file.Close() //nolint: errcheck,gosec
+
+	var fileSize int64 = 0
+	if info, err := file.Stat(); err == nil {
+		fileSize = info.Size()
+	}
+
+	var fileSeek int64
+	if fileSize >= 2000 {
+		fileSeek = -2000
+	} else {
+		fileSeek = -1 * fileSize
+	}
+
+	buffer := make([]byte, 1024)
+
+	_, err = file.Seek(fileSeek, io.SeekEnd)
+
+	if err != nil {
+		l.Errorf("Seek offset %v error: %s", fileSeek, err.Error())
+		c.Status(400)
+		context.fail(dcaError{ErrorCode: "dca.log.file.seek.error", ErrorMsg: "seek datakit log file error"})
+		return
+	}
+	c.Status(202)
+	c.Stream(func(w io.Writer) bool {
+		n, err := file.Read(buffer)
+		if errors.Is(err, io.EOF) {
+			time.Sleep(5 * time.Second)
+			return true
+		}
+		if err != nil {
+			return false
+		}
+		if n > 0 {
+			_, err = w.Write(buffer[0:n])
+			if err != nil {
+				return false
+			}
+		} else {
+			time.Sleep(5 * time.Second)
+		}
+
+		return true
+	})
+
+	l.Info("dcaGetLogTail end")
+}
+
 type pipelineInfo struct {
 	FileName string `json:"fileName"`
 	FileDir  string `json:"fileDir"`
@@ -489,7 +615,7 @@ func dcaGetPipelinesDetail(c *gin.Context) {
 
 	contentBytes, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
-		l.Error(err)
+		l.Errorf("Read pipeline file %s failed: %s", path, err.Error())
 		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: fmt.Sprintf("param %s is not valid", fileName)})
 		return
 	}
@@ -559,7 +685,7 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 	err = ioutil.WriteFile(filePath, []byte(pipeline.Content), datakit.ConfPerm)
 
 	if err != nil {
-		l.Error(err, filePath)
+		l.Errorf("Write pipeline file %s failed: %s", filePath, err.Error())
 		context.fail()
 		return
 	}
@@ -643,7 +769,7 @@ func dcaTestPipelines(c *gin.Context) {
 
 	parsedText, err := dcaAPI.TestPipeline(fileName, text)
 	if err != nil {
-		l.Error(err)
+		l.Errorf("Test pipeline error: %s", err.Error())
 		context.fail(dcaError{ErrorCode: "pipeline.parse.error", ErrorMsg: err.Error()})
 		return
 	}

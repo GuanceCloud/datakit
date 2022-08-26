@@ -298,3 +298,45 @@ func TestGetSinkFromEnvs(t *testing.T) {
 		})
 	}
 }
+
+// go test -v -timeout 30s -run ^TestGetSinkCreatorID$ gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer
+func TestGetSinkCreatorID(t *testing.T) {
+	cases := []struct {
+		name         string
+		in           map[string]interface{}
+		expectMD5    string
+		expectOrigin string
+		expectErr    error
+	}{
+		{
+			name: "normal",
+			in: map[string]interface{}{
+				"target": "abc",
+				"host":   "1.1.1.1",
+				"number": 123,
+			},
+			expectMD5:    "bdd04eee42dad446486fe889d5319364",
+			expectOrigin: "1.1.1.1abc",
+		},
+		{
+			name: "exclude",
+			in: map[string]interface{}{
+				"target":     "abc",
+				"host":       "1.1.1.1",
+				"number":     123,
+				"categories": "M, N",
+			},
+			expectMD5:    "bdd04eee42dad446486fe889d5319364",
+			expectOrigin: "1.1.1.1abc",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			md5, origin, err := GetSinkCreatorID(tc.in)
+			assert.Equal(t, tc.expectMD5, md5)
+			assert.Equal(t, tc.expectOrigin, origin)
+			assert.Equal(t, tc.expectErr, err)
+		})
+	}
+}

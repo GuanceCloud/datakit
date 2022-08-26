@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"regexp"
 	"strings"
+	"time"
 
 	// it will use this embedded information in time/tzdata.
 	_ "time/tzdata"
@@ -26,6 +27,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/geoip"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
+	plrefertable "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/refertable"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
@@ -53,9 +55,11 @@ func GetIPdb() ipdb.IPdb {
 }
 
 type PipelineCfg struct {
-	IPdbAttr           map[string]string `toml:"ipdb_attr"`
-	IPdbType           string            `toml:"ipdb_type"`
-	RemotePullInterval string            `toml:"remote_pull_interval"`
+	IPdbAttr               map[string]string `toml:"ipdb_attr"`
+	IPdbType               string            `toml:"ipdb_type"`
+	RemotePullInterval     string            `toml:"remote_pull_interval"`
+	ReferTableURL          string            `toml:"refer_table_url"`
+	ReferTablePullInterval string            `toml:"refer_table_pull_interval"`
 }
 
 func NewPipelineFromFile(category string, path string) (*Pipeline, error) {
@@ -144,9 +148,22 @@ func Init(pipelineCfg *PipelineCfg) error {
 	plscript.InitStore()
 	funcs.InitLog()
 	parser.InitLog()
+	plrefertable.InitLog()
 
 	if _, err := InitIPdb(pipelineCfg); err != nil {
 		l.Warnf("init ipdb error: %s", err.Error())
+	}
+
+	if pipelineCfg.ReferTableURL != "" {
+		dur, err := time.ParseDuration(pipelineCfg.ReferTablePullInterval)
+		if err != nil {
+			l.Warnf("refer table pull interval %s, err: %v", dur, err)
+			dur = time.Minute * 5
+		}
+		if err := plrefertable.InitReferTableRunner(
+			pipelineCfg.ReferTableURL, dur); err != nil {
+			l.Error("init refer table, error: %v", err)
+		}
 	}
 
 	if err := loadPatterns(); err != nil {

@@ -92,15 +92,7 @@ func showVersion(curverStr, releaseType string) {
 Golang Version: %s
       Uploader: %s
 ReleasedInputs: %s
-     InstallAt: %s
-     UpgradeAt: %s
-`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader,
-		releaseType, config.Cfg.InstallDate, func() string {
-			if config.Cfg.UpgradeDate.Unix() < 0 {
-				return "not upgraded"
-			}
-			return fmt.Sprintf("%v", config.Cfg.UpgradeDate)
-		}())
+`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, releaseType)
 }
 
 type newVersionInfo struct {

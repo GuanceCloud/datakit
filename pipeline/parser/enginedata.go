@@ -112,7 +112,7 @@ func (ngData *EngineData) GetContentStr(key interface{}) (string, error) {
 	}
 
 	switch v := reflect.ValueOf(c); v.Kind() { //nolint:exhaustive
-	case reflect.Map:
+	case reflect.Map, reflect.Array, reflect.Slice:
 		res, err := json.Marshal(v.Interface())
 		return string(res), err
 	default:

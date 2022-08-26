@@ -79,6 +79,8 @@ type Option struct {
 	// drop scraped prom data if tag key's value matched
 	IgnoreTagKV IgnoreTagKeyValMatch
 
+	Election bool
+
 	TLSOpen bool `toml:"tls_open"`
 	Disabel bool `toml:"disble"`
 }

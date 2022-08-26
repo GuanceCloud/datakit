@@ -6,6 +6,45 @@
 [:octicons-beaker-24: Experimental](index.md#experimental)
 -->
 
+## 1.4.11(2022/08/17) {#cl-1.4.11}
+
+### 新功能 {#cl-1.4.11-newfeature}
+
+- Pipeline 中新增 [reftable 功能](datakit-refer-table.md)(#967)
+- DataKit 9529 HTTP [支持绑定到 domain socket](datakit-conf.md#uds)(#925)
+    - 对应的 [eBPF 采集](../integrations/ebpf.md) 和 [Oracle 采集](../integrations/oracle.md)，其配置方式也需做对应变更。
+- RUM sourcemap 增加 Android R8 支持(#1040)
+- CRD 增加日志配置支持(#1000)
+    - [完整示例](kubernetes-crd.md#example)
+
+### 优化 {#cl-1.4.11-optimize}
+
+- 优化[容器采集器](../integrations/container.md)文档
+- 新增 [常见 Tag](common-tags.md) 文档(#839)
+- 优化[选举的配置](election.md#config)和一些相关的命名(#1026)
+- 选举类采集器在 DataKit 开启选举的情况下，仍然支持在特定的采集器上关闭选举功能(#927)
+- 支持指定数据类型的 [io block 配置](datakit-daemonset-deploy.md#env-io)(#1021)
+- DDTrace 采集器的采样增加 meta 信息识别(#927)
+- DataKit 自身指标集增加 9529 [HTTP 请求相关指标](../integrations/self.md#datakit_http)(#944)
+- 优化 [Zipkin 采集](../integrations/zipkin.md)的内存使用(#1013)
+- DDTrace 采集器在[开启磁盘缓存](../integrations/ddtrace.md#disk-cache)后，默认变成阻塞式 IO feed(#1038)
+- [eBPF](../integrations/ebpf.md#measurements) 增加进程名（`process_name`）字段(#1045)
+- [DCA](dca.md) 新版本发布
+- 日志类 HTTP 数据写入（logstreaming/Jaeger/OpenTelemetry/Zipkin）均增加队列支持(#971)
+- 日志采集增加自动多行支持(#1024)
+
+### Bug 修复 {#cl-1.4.11-bugs}
+
+- 修复 [MySQL 采集器](../integrations/mysql.md) 连接泄露问题(#1041)
+- 修复 Pipeline Json 取值问题(#1036)
+- 修复 macOS 上 ulimit 设置无效问题(#1032)
+- 修复 sinker-Dataway 在 Kubernetes 中无效问题(#1031)
+- 修复 [HTTP 数据写入类接口](apis.md#api-v1-write)数据校验问题(#1046)
+- 修复 eBPF 采集器因内核变更后结构体偏移计算失败问题(#1049)
+- 修复 DDTrace close-resource 问题(#1035)
+
+---
+
 ## 1.4.10(2022/08/05) {#cl-1.4.10}
 本次发布属于迭代发布，主要有如下更新：
 
@@ -29,6 +68,10 @@
 - 其它 Bug 修复：
     - 优化行协议构造(#1016)
     - 日志采集中，移除定期清理尾部数据功能，以缓解可能导致的日志截断问题(#1012)
+
+### Breaking Changes {cl-1.4.10-break-changes}
+
+由于 RUM 中新增了 Sourcemap 支持，有了更多的配置选项，故 RUM 采集器不再默认开启，需[手动开启](../integrations/rum.md#config)。
 
 ---
 
@@ -65,7 +108,7 @@
 
 - eBPF 相关：
     - 修复 uprobe event name 命名冲突问题
-    - 增加更多[环境变量配置](../integrations/ebpf.md#envs)，便于 k8s 环境的部署 
+    - 增加更多[环境变量配置](../integrations/ebpf.md#config)，便于 k8s 环境的部署 
 
 - 优化 APM 数据接收接口的数据处理，缓解卡死客户端以及内存占用问题(#902)
 
@@ -267,7 +310,7 @@
 - OpenTelemetry gRPC 方式支持 gzip(#774)
 - 修复 [filebeat](beats_output) 采集器不能设置 service 的问题(#767)
 
-## Breaking changes
+### Breaking changes
 
 对于 Docker 类容器日志的采集，需要将宿主机（Node）的 */varl/lib* 路径挂载到 DataKit 里面（因为 Docker 日志默认落在宿主机的 */var/lib/* 下面），在 *datakit.yaml* 中，`volumeMounts` 和 `volumes` 中新增如下配置：
 

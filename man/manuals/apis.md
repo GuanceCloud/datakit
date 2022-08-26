@@ -21,17 +21,17 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 
 本 API 用于给 DataKit 上报各类数据（`category`），参数说明如下：
 
-| 参数名                    | 类型   | 是否必选 | 默认值    | 说明                                                                                                                       |
-| --------------------      | ------ | -------- | --------- | --------------------------------------------------                                                                         |
-| `category`                | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                                                         |
-| `precision`               | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                              |
-| `input`                   | string | false    | `datakit` | 数据源名称                                                                                                                 |
-| `ignore_global_tags`      | string | false    | 无        | 已弃用，改用 `ignore_global_host_tags`                                                                                     |
-| `ignore_global_host_tags` | string | false    | 无        | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                                                                      |
-| `global_env_tags`         | string | false    | 无        | 给任意值（如 `true`）即认为追加全局环境类 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                                                                     |
-| `echo_line_proto`         | string | false    | 无        | 给任意值（如 `true`）即返回 json 行协议类容，默认不返回                                                                    |
-| `version`                 | string | false    | 无        | 当前采集器的版本号                                                                                                         |
-| `source`                  | string | false    | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割 |
+| 参数名                    | 类型   | 是否必选 | 默认值    | 说明                                                                                                                                          |
+| --------------------      | ------ | -------- | --------- | --------------------------------------------------                                                                                            |
+| `category`                | string | Y        | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                                                                            |
+| `echo_line_proto`         | string | N        | 无        | 给任意值（如 `true`）即返回 json 行协议类容，默认不返回                                                                                       |
+| `global_election_tags`    | string | N        | 无        | 给任意值（如 `true`）即认为追加全局选举类 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                                     |
+| `ignore_global_host_tags` | string | false    | 无        | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）。`ignore_global_tags` 将弃用 |
+| `input`                   | string | N        | `datakit` | 数据源名称                                                                                                                                    |
+| `loose`                   | bool   | N        | false     | 宽松模式，对于一些不合规的行协议，DataKit 会尝试修复它们（[:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)）                        |
+| `precision`               | string | N        | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                                                 |
+| `source`                  | string | N        | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割                    |
+| `version`                 | string | N        | 无        | 当前采集器的版本号                                                                                                                            |
 
 HTTP body 支持行协议以及 JSON 俩种形式。关于数据结构（不管是行协议形式还是 JSON 形式）的约束，参见[这里](#lineproto-limitation)。
 
@@ -110,15 +110,9 @@ redis,tag1=a,tag2=b,filename=c.log f1=1i,f2=1.2,f3="abc",message="more-log-data"
 - 行协议中的指标集名称(此处的 `nginx/mysql/redis`) 会作为日志的 `source` 字段来存储。
 - 原式日志数据存放在 `message` 字段上
 
-!!! note
-
-	DataKit 版本自 1.2.0 之后，为优化处理速度, `/v1/write/logging` 处理数据时改为异步操作，所以当后台处理 Pipeline 时，这一条 HTTP 请求已经完成并返回状态码了。
-
-	如果返回状态码为 200 或者观测云上数据异常时，请先检查发送的数据是否符合文档中的要求。
-
 ### 时序数据(metric)示例 {#api-metric-example}
 
-```http
+``` http
 POST /v1/write/metric?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
 
 cpu,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
@@ -128,7 +122,7 @@ net,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 
 ### 对象数据(object)示例 {#api-object-example}
 
-```http
+``` http
 POST /v1/write/object?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
 
 redis,name=xxx,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
@@ -136,13 +130,15 @@ rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 ```
 
-!!! warning
+???+ attention
 
-	对象数据必须有 `name` 这个 tag，否则协议报错。
+    对象数据必须有 `name` 这个 tag，否则协议报错。
 
-	对象数据最好有 `message` 字段，主要便于做全文搜索。
+    对象数据最好有 `message` 字段，主要便于做全文搜索。
 
-### 自定义对象数据(custom_object)示例 {#api-custom-object-example}
+### 自定义对象数据示例 {#api-custom-object-example}
+
+自定义对象跟对象几乎一致，只是后者是 DataKit 自主采集的，前者是用户通过 datakit API 创建的对象。
 
 ```http
 POST /v1/write/custom_object?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
@@ -152,11 +148,11 @@ rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 ```
 
-!!! warning
+???+ attention
 
-	自定义对象数据必须有 `name` 这个 tag，否则协议报错
-
-	自定义对象数据最好有 `message` 字段，主要便于做全文搜索
+    自定义对象数据必须有 `name` 这个 tag，否则协议报错
+    
+    自定义对象数据最好有 `message` 字段，主要便于做全文搜索
 
 ### RUM {#api-rum}
 
@@ -168,7 +164,7 @@ slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 
 ### 示例
 
-```http
+``` http
 GET /v1/ping HTTP/1.1
 
 HTTP/1.1 200 OK
@@ -176,7 +172,7 @@ HTTP/1.1 200 OK
 {
 	"content":{
 		"version":"1.1.6-rc0",
-		"uptime":"1.022205003s"
+			"uptime":"1.022205003s"
 	}
 }
 ```
@@ -187,7 +183,7 @@ HTTP/1.1 200 OK
 
 ### 示例
 
-```
+``` http
 POST /v1/lasterror HTTP/1.1
 Content-Type: application/json
 
@@ -203,7 +199,7 @@ Content-Type: application/json
 
 ### 示例
 
-```http
+``` http
 GET /v1/workspace HTTP/1.1
 
 HTTP/1.1 200 OK
@@ -243,7 +239,7 @@ HTTP/1.1 200 OK
 
 ### 示例
 
-```
+``` shell
 POST /v1/query/raw HTTP/1.1
 Content-Type: application/json
 
@@ -268,7 +264,7 @@ Content-Type: application/json
 
 !!! info
 
-	此处参数需更详细的说明以及举例，待补充。
+    此处参数需更详细的说明以及举例，待补充。
 
 | 名称                     | 说明                                                                                                                                                                                                                       |
 | :----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -288,9 +284,9 @@ Content-Type: application/json
 | `slimit`                 | 限制时间线个数，将覆盖 DQL 中存在的 slimit                                                                                                                                                                                 |
 | `time_range`             | 限制时间范围，采用时间戳格式，单位为毫秒，数组大小为 2 的 int，如果只有一个元素则认为是起始时间，会覆盖原查询语句中的查询时间区间                                                                                          |
 
-返回数据：
+返回数据示例：
 
-```
+``` http
 HTTP/1.1 200 OK
 Content-Type: application/json
 
@@ -335,7 +331,7 @@ Content-Type: application/json
 
 ### 示例
 
-```shell
+``` shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels" \
 	-H 'Content-Type: application/json'  \
 	-d'{
@@ -349,7 +345,7 @@ curl -XPOST "127.0.0.1:9529/v1/object/labels" \
 
 成功返回示例:
 
-```json
+``` json
 status_code: 200
 {
 	"content": {
@@ -360,10 +356,10 @@ status_code: 200
 
 失败返回示例:
 
-```json
+``` json
 status_code: 500
 {
-	"errorCode":""
+	"errorCode":"some-internal-error"
 }
 ```
 
@@ -382,7 +378,7 @@ status_code: 500
 
 ### 示例
 
-```shell
+``` shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
 	-H 'Content-Type: application/json'  \
 	-d'{
@@ -395,7 +391,7 @@ curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
 
 成功返回示例:
 
-```json
+``` json
 status_code: 200
 {
 	"content": {
@@ -406,10 +402,10 @@ status_code: 200
 
 失败返回示例:
 
-```json
+``` json
 status_code: 500
 {
-	"errorCode":""
+	"errorCode": "some-internal-error"
 }
 ```
 
@@ -419,7 +415,7 @@ status_code: 500
 
 ### 示例 
 
-```
+``` http
 POST /v1/pipeline/debug
 Content-Type: application/json
 
@@ -433,9 +429,9 @@ Content-Type: application/json
 }
 ```
 
-正常返回:
+正常返回示例:
 
-```
+``` http
 HTTP/1.1 200 OK
 
 {
@@ -459,10 +455,10 @@ HTTP/1.1 200 OK
 }
 ```
 
-错误返回:
+错误返回示例:
 
 ```
-HTTP Code: 40x
+HTTP Code: 400
 
 {
     "error_code": "datakit.invalidCategory",
@@ -476,7 +472,7 @@ HTTP Code: 40x
 
 ### 示例 
 
-```
+``` http
 POST /v1/dialtesting/debug
 Content-Type: application/json
 
@@ -499,9 +495,9 @@ Content-Type: application/json
 }
 ```
 
-正常返回:
+正常返回示例:
 
-```
+``` http
 HTTP/1.1 200 OK
 
 {
@@ -514,10 +510,10 @@ HTTP/1.1 200 OK
 }
 ```
 
-错误返回:
+错误返回示例:
 
-```
-HTTP Code: 40x
+``` http
+HTTP Code: 400
 
 {
     "error_code": "datakit.invalidClass",
@@ -536,8 +532,7 @@ HTTP Code: 40x
 1. Tag/Field Key 长度不超过 256 字节，超过长度时，将进行截断处理
 1. Tag Value 长度不超过 1024 字节，超过长度时，将进行截断处理
 1. Field Value 不超过 32M(32x1024x1024) 字节，超过长度时，将进行截断处理
-
-关于特殊标记，目前通过 HTTP 接口打进来的数据，均无法标记（比如允许 Tag 个数大于 256 个），而 DataKit 自身的采集器，在某些特殊情况下，可能需要绕过这些限制（比如日志采集中，field 的长度可以放开）。
+1. 除时序数据外，其它类数据中，均不允许在 Tag/Field key 中出现 `.` 字符
 
 ## 延伸阅读 {#more-reading}
 

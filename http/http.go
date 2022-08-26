@@ -15,6 +15,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"path/filepath"
 
 	// nolint:gosec
 	_ "net/http/pprof"
@@ -36,6 +37,7 @@ import (
 var (
 	l              = logger.DefaultSLogger("http")
 	ginLog         string
+	log            string
 	ginReleaseMode = true
 
 	enablePprof = false
@@ -61,26 +63,8 @@ var (
 	semReloadCompleted *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload completed signal
 )
 
-//nolint:stylecheck
-const (
-	LOGGING_SROUCE = "source"
-	PRECISION      = "precision"
-	INPUT          = "input"
-
-	IGNORE_GLOBAL_TAGS      = "ignore_global_tags"      // deprecated, use IGNORE_GLOBAL_HOST_TAGS
-	IGNORE_GLOBAL_HOST_TAGS = "ignore_global_host_tags" // default enabled
-	GLOBAL_ENV_TAGS         = "global_env_tags"         // default disabled
-
-	ECHO_LINE_PROTO = "echo_line_proto"
-
-	CATEGORY          = "category"
-	VERSION           = "version"
-	PIPELINE_SOURCE   = "source"
-	DEFAULT_PRECISION = "n"
-	DEFAULT_INPUT     = "datakit" // 当 API 调用方未亮明自己身份时，默认使用 datakit 作为数据源名称
-)
-
 type Option struct {
+	Log       string
 	GinLog    string
 	GinRotate int
 	APIConfig *APIConfig
@@ -110,6 +94,7 @@ func Start(o *Option) {
 	l = logger.SLogger("http")
 
 	ginLog = o.GinLog
+	log = o.Log
 
 	enablePprof = o.PProf
 	if o.PProfListen != "" {
@@ -286,6 +271,7 @@ func setupRouter() *gin.Engine {
 	applyHTTPRoute(router)
 
 	router.GET("/stats", rawHTTPWraper(reqLimiter, apiGetDatakitStats))
+	router.GET("/stats/:type", ginWraper(reqLimiter), apiGetDatakitStatsByType)
 	router.GET("/monitor", apiGetDatakitMonitor)
 	router.GET("/man", apiManualTOC)
 	router.GET("/man/:name", apiManual)
@@ -437,16 +423,36 @@ func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadComple
 		time.Sleep(time.Second)
 	}
 
+	listener, err := parseListen(srv.Addr)
+	closeListener := func() {
+		if listener != nil {
+			err = listener.Close()
+			if err != nil {
+				l.Warnf("listener.Close failed: %v", err)
+			}
+		}
+	}
+	defer closeListener()
+	if err != nil {
+		l.Errorf("parseListen failed: %v", err)
+		return
+	}
+
 	for {
 		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
-		if err := srv.ListenAndServe(); err != nil {
-			if !errors.As(err, &http.ErrServerClosed) {
-				l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
-				retryCnt++
-			} else {
-				l.Debugf("server(%s) stopped on: %s", srv.Addr, err.Error())
-				break
-			}
+		if listener != nil {
+			err = srv.Serve(listener)
+		} else {
+			err = srv.ListenAndServe()
+		}
+
+		if !errors.Is(err, http.ErrServerClosed) {
+			l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
+			retryCnt++
+		} else {
+			l.Debugf("server(%s) stopped on: %s", srv.Addr, err.Error())
+			closeListener()
+			break
 		}
 		time.Sleep(time.Second)
 	}
@@ -478,4 +484,21 @@ func checkToken(r *http.Request) error {
 	}
 
 	return nil
+}
+
+func parseListen(lsn string) (net.Listener, error) {
+	var listener net.Listener
+
+	if filepath.IsAbs(lsn) {
+		err := os.RemoveAll(lsn)
+		if err != nil {
+			return nil, err
+		}
+		listener, err = net.Listen("unix", lsn)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return listener, nil
 }

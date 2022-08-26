@@ -229,10 +229,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
+		ret := &Input{
 			semStop:        cliutils.NewSem(),
 			EnabledPlugins: []string{},
 			ExternalInput:  *external.NewExternalInput(),
 		}
+		ret.ExternalInput.Election = false
+		return ret
 	})
 }

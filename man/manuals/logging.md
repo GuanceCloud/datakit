@@ -11,72 +11,89 @@
 
 ## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logging.conf.sample` 并命名为 `logging.conf`。示例如下：
+=== "主机日志"
 
-``` toml
-[[inputs.logging]]
-  # 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定
-  # 推荐使用绝对路径
-  logfiles = [
-    "/var/log/*",                          # 文件路径下所有文件
-    "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
-    "/var/log/syslog",                     # Unix 格式文件路径
-    "C:/path/space 空格中文路径/some.txt", # Windows 风格文件路径
-    "/var/log/*",                          # 文件路径下所有文件
-    "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
-  ]
+    进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logging.conf.sample` 并命名为 `logging.conf`。示例如下：
+    
+    ``` toml
+    [[inputs.logging]]
+      # 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定
+      # 推荐使用绝对路径
+      logfiles = [
+        "/var/log/*",                          # 文件路径下所有文件
+        "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
+        "/var/log/syslog",                     # Unix 格式文件路径
+        "C:/path/space 空格中文路径/some.txt", # Windows 风格文件路径
+        "/var/log/*",                          # 文件路径下所有文件
+        "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
+      ]
+    
+      ## socket 目前支持两种协议：tcp/udp。建议开启内网端口防止安全隐患
+      ## socket 和 log 目前只能选择其中之一，不能既通过文件采集，又通过 socket 采集
+      socket = [
+       "tcp://0.0.0.0:9540"
+       "udp://0.0.0.0:9541"
+      ]
+    
+      # 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
+      ignore = [""]
+      
+      # 数据来源，如果为空，则默认使用 'default'
+      source = ""
+      
+      # 新增标记tag，如果为空，则默认使用 $source
+      service = ""
+      
+      # pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline
+      pipeline = ""
+      
+      # 过滤对应 status:
+      #   `emerg`,`alert`,`critical`,`error`,`warning`,`info`,`debug`,`OK`
+      ignore_status = []
+      
+      # 选择编码，如果编码有误会导致数据无法查看。默认为空即可:
+      #    `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
+      character_encoding = ""
+      
+      ## 设置正则表达式，例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
+      ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
+      ## 使用3个单引号 '''this-regexp''' 避免转义
+      ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+      # multiline_match = '''^\S'''
 
-  ## socket 目前支持两种协议：tcp/udp。建议开启内网端口防止安全隐患
-  ## socket 和 log 目前只能选择其中之一，不能既通过文件采集，又通过 socket 采集
-  socket = [
-   "tcp://0.0.0.0:9540"
-   "udp://0.0.0.0:9541"
-  ]
+      ## 是否开启自动多行模式，开启后会在 patterns 列表中匹配适用的多行规则
+      auto_multiline_detection = false
+      ## 配置自动多行的 patterns 列表，内容是多行规则的数组，即多个 multiline_match，如果为空则使用默认规则详见文档
+      auto_multiline_extra_patterns = []
+    
+      ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
+      remove_ansi_escape_codes = false
+      
+      ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
+      ## 时间单位支持 "ms", "s", "m", "h"
+      ignore_dead_log = "1h"
+    
+      ## 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据
+      blocking_mode = true
+    
+      # 自定义 tags
+      [inputs.logging.tags]
+      # some_tag = "some_value"
+      # more_tag = "some_other_value"
+      # ...
+    ```
 
-  # 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
-  ignore = [""]
-  
-  # 数据来源，如果为空，则默认使用 'default'
-  source = ""
-  
-  # 新增标记tag，如果为空，则默认使用 $source
-  service = ""
-  
-  # pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline
-  pipeline = ""
-  
-  # 过滤对应 status:
-  #   `emerg`,`alert`,`critical`,`error`,`warning`,`info`,`debug`,`OK`
-  ignore_status = []
-  
-  # 选择编码，如果编码有误会导致数据无法查看。默认为空即可:
-  #    `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
-  character_encoding = ""
-  
-  ## 设置正则表达式，例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
-  ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
-  ## 使用3个单引号 '''this-regexp''' 避免转义
-  ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-  # multiline_match = '''^\S'''
+=== "Kubernetes/Docker/Containerd"
 
-  ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
-  remove_ansi_escape_codes = false
-  
-  ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
-  ## 时间单位支持 "ms", "s", "m", "h"
-  ignore_dead_log = "10m"
+    在 Kubernetes 中，一旦[容器采集器](container.md)启动，则会默认去抓取各个容器（含 Pod 下的容器）的 stdout/stderr 日志，容器日志主要有以下几个配置方式：
 
-  ## 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据
-  blocking_mode = true
+    - [通过 Annotation/Label 调整容器日志采集](container.md#logging-with-annotation-or-label)
+    - [根据容器 image 配置日志采集](container.md#logging-with-image-config)
+    - [通过 Sidecar 形式采集 Pod 内部日志](logfwd.md)
 
-  # 自定义 tags
-  [inputs.logging.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
-```
+???+ Note "关于 `ignore_dead_log` 的说明"
 
-> 关于 `ignore_dead_log` 的说明：如果文件已经在采集，但 10min 内没有新日志写入的话，DataKit 会关闭该文件的采集。在这期间（10min），该文件**不能**被物理删除（如 `rm` 之后，该文件只是标记删除，DataKit 关闭该文件后，该文件才会真正被删除）。
+    如果文件已经在采集，但 1h 内没有新日志写入的话，DataKit 会关闭该文件的采集。在这期间（1h），该文件**不能**被物理删除（如 `rm` 之后，该文件只是标记删除，DataKit 关闭该文件后，该文件才会真正被删除）。
 
 ### socket 采集日志 {#socket}
 
@@ -95,7 +112,7 @@
 
 更多: Java Go Python 主流日志组件的配置及代码示例，请参阅：[socket client 配置](logging_socket.md)
 
-### 多行日志采集
+### 多行日志采集 {#multiline}
 
 通过识别多行日志的第一行特征，即可判定某行日志是不是一条新的日志。如果不符合这个特征，我们即认为当前行日志只是前一条多行日志的追加。
 
@@ -138,16 +155,70 @@ ZeroDivisionError: division by zero
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.0" 1611746443938917265
 ```
 
+#### 自动多行模式 {#auto-multiline}
+
+开启此功能后，每一行日志数据都会在多行列表中匹配。如果匹配成功，就将当前的多行规则权重加一，以便后面能更快速的匹配到，然后退出匹配循环；如果整个列表结束依然没有匹配到，则认为匹配失败。
+
+匹配成功与失败，后续操作和正常的多行日志采集是一样的：匹配成功，会将现存的多行数据发送出去，并将本条数据填入；匹配失败，会追加到现存数据的尾端。
+
+因为日志存在多个多行配置，它们的优先级如下：
+
+1. `multiline_match` 不为空，只使用当前规则
+2. 使用 source 到 `multiline_match` 的映射配置（只在容器日志中存在 `logging_source_multiline_map`），如果使用 source 能找到对应的多行规则，只使用此规则
+3. 开启 `auto_multiline_detection`，如果 `auto_multiline_extra_patterns` 不为空，会在这些多行规则中匹配
+3. 开启 `auto_multiline_detection`，如果 `auto_multiline_extra_patterns` 为空，使用默认的自动多行匹配规则列表，即：
+
+```
+// time.RFC3339, "2006-01-02T15:04:05Z07:00"
+`^\d+-\d+-\d+T\d+:\d+:\d+(\.\d+)?(Z\d*:?\d*)?`,
+
+// time.ANSIC, "Mon Jan _2 15:04:05 2006"
+`^[A-Za-z_]+ [A-Za-z_]+ +\d+ \d+:\d+:\d+ \d+`,
+
+// time.RubyDate, "Mon Jan 02 15:04:05 -0700 2006"
+`^[A-Za-z_]+ [A-Za-z_]+ \d+ \d+:\d+:\d+ [\-\+]\d+ \d+`,
+
+// time.UnixDate, "Mon Jan _2 15:04:05 MST 2006"
+`^[A-Za-z_]+ [A-Za-z_]+ +\d+ \d+:\d+:\d+( [A-Za-z_]+ \d+)?`,
+
+// time.RFC822, "02 Jan 06 15:04 MST"
+`^\d+ [A-Za-z_]+ \d+ \d+:\d+ [A-Za-z_]+`,
+
+// time.RFC822Z, "02 Jan 06 15:04 -0700" // RFC822 with numeric zone
+`^\d+ [A-Za-z_]+ \d+ \d+:\d+ -\d+`,
+
+// time.RFC850, "Monday, 02-Jan-06 15:04:05 MST"
+`^[A-Za-z_]+, \d+-[A-Za-z_]+-\d+ \d+:\d+:\d+ [A-Za-z_]+`,
+
+// time.RFC1123, "Mon, 02 Jan 2006 15:04:05 MST"
+`^[A-Za-z_]+, \d+ [A-Za-z_]+ \d+ \d+:\d+:\d+ [A-Za-z_]+`,
+
+// time.RFC1123Z, "Mon, 02 Jan 2006 15:04:05 -0700" // RFC1123 with numeric zone
+`^[A-Za-z_]+, \d+ [A-Za-z_]+ \d+ \d+:\d+:\d+ -\d+`,
+
+// time.RFC3339Nano, "2006-01-02T15:04:05.999999999Z07:00"
+`^\d+-\d+-\d+[A-Za-z_]+\d+:\d+:\d+\.\d+[A-Za-z_]+\d+:\d+`,
+
+// 2021-07-08 05:08:19,214
+`^\d+-\d+-\d+ \d+:\d+:\d+(,\d+)?`,
+
+// Default java logging SimpleFormatter date format
+`^[A-Za-z_]+ \d+, \d+ \d+:\d+:\d+ (AM|PM)`,
+
+// 2021-01-31 - with stricter matching around the months/days
+`^\d{4}-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])`,
+```
+
 #### 超长多行日志处理的限制
 
-目前最多能处理不超过 1000 行的单条多行日志，如果实际多行日志超过 1000 行，DataKit 会将其识别成多条。举例如下，假定有如下多行日志，我们要将其识别成单条日志：
+目前最多能处理不超过 32MiB 的单条多行日志，如果实际多行日志超过 32MiB，DataKit 会将其识别成多条。举例如下，假定有如下多行日志，我们要将其识别成单条日志：
 
 ```log
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
 Traceback (most recent call last):
   File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
     response = self.full_dispatch_request()
-      ...                                 <---- 此处省略 996 行，加上上面的 4 行，刚好 1000 行
+      ...                                 <---- 此处省略 32MiB - 800 字节，加上上面的 4 行，刚好超过 32MiB
         File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
           response = self.full_dispatch_request()
              ZeroDivisionError: division by zero
@@ -156,19 +227,19 @@ Traceback (most recent call last):
  ...
 ```
 
-此处，由于有超长的多行日志，第一条日志总共有 1003 行，但 DataKit 这里会做一个截取动作，具体而言，这里会切割出三条日志：
+此处，由于有超长的多行日志，第一条日志超过 32MiB，DataKit 提前结束这条多行，最终得到三条日志：
 
-第一条：即头部的 1000 行
+第一条：即头部的 32MiB
 
 ```log
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
 Traceback (most recent call last):
   File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
     response = self.full_dispatch_request()
-      ...                                 <---- 此处省略 996 行，加上上面的 4 行，刚好 1000 行
+      ...                                 <---- 此处省略 32MiB - 800 字节，加上上面的 4 行，刚好超过 32MiB
 ```
 
-第二条：除去头部的 1000 条，剩余的部分独立成为一条日志
+第二条：除去头部的 32MiB，剩余的部分独立成为一条日志
 
 ```log
         File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
