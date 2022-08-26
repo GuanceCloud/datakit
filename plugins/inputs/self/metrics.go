@@ -48,7 +48,7 @@ func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				DataType: inputs.Float,
 				Unit:     inputs.Percent,
-				Desc:     "Top CPU usage of the datakit",
+				Desc:     "CPU usage(command `top`) of the datakit",
 			},
 
 			"incumbency": &inputs.FieldInfo{
