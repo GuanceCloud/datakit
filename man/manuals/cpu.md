@@ -2,16 +2,13 @@
 # CPU
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 CPU 采集器用于系统 CPU 使用率的采集。
 
-<figure markdown>
-  ![](imgs/input-cpu-1.png){ width="800" }
-  <figcaption>CPU 视图预览</figcaption>
-</figure>
-
-## 前置条件
+## 前置条件 {#requirement}
 
 暂无
 
@@ -40,14 +37,7 @@ CPU 采集器用于系统 CPU 使用率的采集。
     | `ENV_INPUT_CPU_DISABLE_TEMPERATURE_COLLECT` | `disable_temperature_collect` | `false/true`。给任意字符串就认为是 `true`，没定义就是 `false`。                       |
     | `ENV_INPUT_CPU_ENABLE_LOAD5S`               | `enable_load5s`               | `false/true`。给任意字符串就认为是。给任意字符串就认为是 `true`，没定义就是 `false`。 |
 
-## 指标查看
-
-数据采集上来后，即可在页面上看到如下 CPU 指标数据：
-
-<figure markdown>
-  ![](imgs/input-cpu-2.png){ width="800" }
-  <figcaption>CPU 指标查看</figcaption>
-</figure>
+---
 
 ## 指标集 {#measurements}
 
@@ -75,11 +65,3 @@ CPU 采集器用于系统 CPU 使用率的采集。
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
-
-## 场景试图
-
-<场景 - 新建仪表板 - 内置模板库 - CPU>
-
-## 异常检测
-
-<监控 - 模板新建 - 主机检测库>

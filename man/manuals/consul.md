@@ -2,11 +2,11 @@
 # Consul
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prometheus 格式的数据
-
-![](imgs/input-consul-01.png)
 
 ## 前置条件 {#requirements}
 
@@ -29,17 +29,19 @@ Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prom
 
 ## 配置 {#input-config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。
-配置如下：
-```toml
-{{.InputSample}}
-```
+=== "主机安装"
 
-配置好后，重启 DataKit 即可。
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-## 指标预览
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-![](imgs/input-consul-02.png)
+=== "Kubernetes"
+
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
 ## 指标集 {#measurements}
 
@@ -119,7 +121,3 @@ Sep 18 19:30:23 derrick-ThinkPad-X230 consul[11803]: 2021-09-18T19:30:23.522+080
 | `level`     | `INFO`                                                             | 日志级别 |
 | `character` | `agent.server.connect`                                             | 角色     |
 | `msg`       | `initialized primary datacenter CA with provider: provider=consul` | 日志内容 |
-
-# 场景视图
-
-<场景 - 新建仪表板 - 内置模板库 - Consul 监控视图>

@@ -33,7 +33,7 @@ type IOConfig struct {
 	FeedChanSize int `toml:"feed_chan_size"`
 
 	MaxCacheCount        int `toml:"max_cache_count"`
-	MaxDynamicCacheCount int `toml:"max_dynamic_cache_count"`
+	MaxDynamicCacheCount int `toml:"max_dynamic_cache_count,omitzero"`
 
 	FlushInterval string `toml:"flush_interval"`
 
@@ -42,9 +42,6 @@ type IOConfig struct {
 
 	EnableCache bool `toml:"enable_cache"`
 	CacheSizeGB int  `toml:"cache_max_size_gb"`
-
-	BlockingMode       bool     `toml:"blocking_mode"`
-	BlockingCategories []string `toml:"blocking_categories"`
 
 	Filters map[string][]string `toml:"filters"`
 }

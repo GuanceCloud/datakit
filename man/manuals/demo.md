@@ -1,7 +1,10 @@
 {{.CSS}}
 # Demo 采集器
+---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 这只是个采集器开发示例。
 
@@ -12,14 +15,14 @@
 - 不要滥用代码字体，比如 DataFlux 不要写成 `DataFlux`
 - 这里统一用中文标点符号
 
-## 前置条件
+## 前置条件 {#requirements}
 
 注意：
 
 - 这里尽量说明下必要前置条件，比如 Redis 版本要求，需要额外安装的软件等等
 - 这里不用加 `安装 DataKit` 这个条件，实属废话
 
-## 配置
+## 配置 {#config}
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
@@ -47,7 +50,7 @@ Sample 注意事项：
   # ...
 ```
 
-## 指标
+## 指标 {#M}
 
 {{ range $i, $m := .Measurements }}
 
@@ -67,7 +70,7 @@ Sample 注意事项：
 
 {{ end }}
 
-## 对象
+## 对象 {#O}
 
 {{ range $i, $m := .Measurements }}
 
@@ -88,7 +91,7 @@ Sample 注意事项：
 
 {{ end }}
 
-## 日志
+## 日志 {#L}
 
 {{ range $i, $m := .Measurements }}
 

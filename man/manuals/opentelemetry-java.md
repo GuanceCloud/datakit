@@ -1,11 +1,9 @@
 # Java 示例
 ---
 
-在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经配置好了采集器。
+在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经[配置好了采集器](opentelemetry.md)。
 
-配置：[Datakit 配置 OTEL](opentelemetry.md)
-
-## 添加依赖
+## 添加依赖 {#dependencies}
 
 在 pom.xml 中添加依赖
 
@@ -122,7 +120,7 @@ public class otlpdemo {
 }
 ```
 
-## 观测
+## 查看效果 {#view}
 
 登录 [观测云](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} 后查看 `应用性能监测` -> `链路` -> 点击单条 `链路`
 
@@ -132,7 +130,7 @@ public class otlpdemo {
 
 --- 
 
-参考
+## 参考 {#more-readings}
 
 - 源码示例 [github-opentelemetry-java](https://github.com/open-telemetry/opentelemetry-java){:target="_blank"}
 - 文档 [官方文档](https://opentelemetry.io/docs/instrumentation/go/getting-started/){:target="_blank"}

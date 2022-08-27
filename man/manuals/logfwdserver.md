@@ -2,30 +2,28 @@
 # {{.InputName}}
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
 
-## 介绍
+---
+
+## 介绍 {#intro}
 
 logfwdserver 会开启 websocket 功能，和 logfwd 配套使用，负责接收和处理 logfwd 发送的数据。
 
 logfwd 的使用参见[这里](logfwd.md)。
 
-## DataKit 配置
+## 配置 {#datakit-conf}
 
-进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
+=== "主机安装"
 
-``` toml
-[inputs.logfwdserver]
-  ## logfwd 接收端监听地址和端口
-  address = "0.0.0.0:9533"
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-  [inputs.logfwdserver.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-```
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-配置好后，重启 DataKit 即可。
+=== "Kubernetes"
 
-???+ attention
-
-    如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](../datakit/datakit-daemonset-deploy.md)。
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。

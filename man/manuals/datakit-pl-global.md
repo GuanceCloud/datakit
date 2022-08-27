@@ -4,8 +4,6 @@
 
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
 自 DataKit v1.4.0 起，可通过内置的 Pipeline 功能直接操作 DataKit 采集数据，支持的类别如下:
 
 - CustomObject
@@ -34,7 +32,7 @@ Pipeline 可以对 DataKit 采集的数据执行如下操作：
 - 终止 Pipeline 脚本的运行（[exit()](pipeline.md#fn-exit)）
 - ...
 
-## Pipeline 脚本存储、加载与选择
+## Pipeline 脚本存储、加载与选择 {#loading}
 
 当前 DataKit 支持三类 Pipeline：
 
@@ -71,7 +69,7 @@ Pipeline 可以对 DataKit 采集的数据执行如下操作：
     └── service_a.p
 ```
 
-### 脚本的自动生效规则
+### 脚本的自动生效规则 {#auto-apply-rules}
 
 上面的目录设定中，我们将应用于不同数据分类的 Pipeline 分别存放在对应的目录下，对 DataKit 而言，一旦采集到某类数据，会自动应用对应的 Pipeline 脚本进行处理。对不同类数据而言，其应用规则也有差异。主要分为几类：
 
@@ -83,7 +81,7 @@ Pipeline 可以对 DataKit 采集的数据执行如下操作：
 
 所以，我们可以在对应的目录下，通过适当方式， 可添加对应的 Pipeline 脚本，实现对采集到的数据进行 Pipeline 处理。
 
-### Pipeline 选择策略
+### Pipeline 选择策略 {#apply-priority}
 
 目前 pl 脚本按来源划分为三个分类， 在 DataKit 安装目录下分别为：
 
@@ -99,7 +97,7 @@ DataKit 在选择对应的 Pipeline 时，这三类的加载优先级是递减�
 
 > 注：此处 `<repo-name>` 视大家 git 的仓库名而定。
 
-## Pipeline 运行情况查看
+## Pipeline 运行情况查看 {#monitor}
 
 大家可以通过 DataKit monitor 功能获取每个 Pipeline 的运行情况：
 
@@ -107,11 +105,11 @@ DataKit 在选择对应的 Pipeline 时，这三类的加载优先级是递减�
 datakit monitor -V
 ```
 
-## Pipeline 处理示例
+## Pipeline 处理示例 {#examples}
 
 > 示例脚本仅供参考，具体使用请根据需求编写
 
-### 处理时序数据
+### 处理时序数据 {#M}
 
 以下示例用于展示如何通过 Pipeline 来修改 tag 和 field。通过 DQL，我们可以得知一个 CPU 指标集的字段如下：
 
@@ -171,7 +169,7 @@ usage_guest_nice 0
 ---------
 ```
 
-### 处理对象数据
+### 处理对象数据 {#O}
 
 以下 Pipeline 示例用于展示如何丢弃（过滤）数据。以 Nginx 进程为例，当前主机上的 Nginx 进程列表如下：
 

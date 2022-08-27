@@ -4,9 +4,7 @@
 
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
-## Install Libarary & Dependence
+## 安装依赖 {#dependence}
 
 安装 ddtrace golang library 在开发目录下运行
 
@@ -14,7 +12,7 @@
 go get -v github.com/DataDog/dd-trace-go
 ```
 
-## Golang Code Example
+## 示例 {#code-example}
 
 **Start Global Tracer**
 
@@ -57,13 +55,13 @@ func example_for_golang_tracing() {
 }
 ```
 
-## Run Golang Code With DDTrace
+## 运行 {#run}
 
 ```shell
 go run your-go-code.go
 ```
 
-## Start Options For Tracing Golang Code
+## 启动参数 {#start-options}
 
 - WithEnv: 为服务设置环境变量，对应环境变量 DD_ENV。
 - WithServiceVersion: APP 版本号，对应环境变量 DD_VERSION。

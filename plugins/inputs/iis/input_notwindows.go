@@ -52,9 +52,7 @@ func (*Input) RunPipeline() {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return []string{
-		datakit.OSArchWinAmd64,
-	}
+	return []string{datakit.OSLabelWindows}
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {

@@ -60,7 +60,7 @@ type DataWayDefault struct {
 	endPoints  []*endPoint
 	ontest     bool
 	httpCli    *retryablehttp.Client
-	locker     sync.Mutex
+	locker     sync.RWMutex
 	dnsCachers []*dnsCacher
 }
 

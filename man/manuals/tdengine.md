@@ -2,40 +2,29 @@
 # TDengine
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
 
-TDEngine 是一款高性能、分布式、支持 SQL 的时序数据库 (Database)。在开通采集器之前请先阅读一些：[TDEngine-基本概念](https://docs.taosdata.com/concept/)
+---
 
-tdengine 采集器需要的连接 `taos_adapter` 才可以正常工作，taosAdapter 从 TDengine v2.4.0.0 版本开始成为 TDengine 服务端软件 的一部分 **注意版本**
+TDEngine 是一款高性能、分布式、支持 SQL 的时序数据库 (Database)。在开通采集器之前请先熟悉 [TDEngine 基本概念](https://docs.taosdata.com/concept/){:target="_blank"}
 
-本文主要是指标集的详细介绍，tdengine 集群安装不在本篇之内。
+TDEngine 采集器需要的连接 `taos_adapter` 才可以正常工作，taosAdapter 从 TDengine v2.4.0.0 版本开始成为 TDengine 服务端软件 的一部分，本文主要是指标集的详细介绍。
 
-## 开启采集配置文件
+## 配置  {#config}
 
-```shell
-cd /usr/local/datakit
+=== "主机安装"
 
-cp conf.d/tdengine/tdengine.conf.sample conf.d/tdengine/tdengine.conf
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-vim conf.d/tdengine/tdengine.conf
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-### 配置文件具体配置
+=== "Kubernetes"
 
-[[inputs.tdengine]]
-  ## adapter config (Required)
-  adapter_endpoint = "http://taosadapter.test.com"
-  user = "<username>"
-  password = "<password>"
-
-  ## add tag (optional)
-  [inputs.cpu.tags]
-    # some_tag = "some_value"
-    # more_tag = "some_other_value"
-```
-
-正确配置 user、password 和 adapter_endpoint 并重启 datakit 之后,在观测云中指标集中可看到指标数据。
-
-也可以使用 [仪表板模版](https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/dashboard/TDEngine-dashboard.json)。并在观测云-场景-仪表板-导入仪表板 导入仪表板即可。也可以在导入的仪表板中调整和修改。
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
 ## 指标集汇总
 

@@ -2,7 +2,9 @@
 # DataKit 选举
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
+:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
+
+---
 
 当集群中只有一个被采集对象（如 Kubernetes），但是在批量部署情况下，多个 DataKit 的配置完全相同，都开启了对该中心对象的采集，为了避免重复采集，我们可以开启 DataKit 的选举功能。
 
@@ -83,23 +85,23 @@
 
 目前支持选举的采集器列表如下：
 
-- [Apache](../integrations/apache.md)
-- [ElasticSearch](../integrations/elasticsearch.md)
-- [Gitlab](../integrations/gitlab.md)
-- [InfluxDB](../integrations/influxdb.md)
-- [Container](../integrations/container.md)
-- [MongoDB](../integrations/mongodb.md)
-- [MySQL](../integrations/mysql.md)
-- [NSQ](../integrations/nsq.md)
-- [Nginx](../integrations/nginx.md)
-- [PostgreSQL](../integrations/postgresql.md)
-- [Prom](../integrations/prom.md)
-- [RabbitMQ](../integrations/rabbitmq.md)
-- [Redis](../integrations/redis.md)
-- [Solr](../integrations/solr.md)
-- [TDengine](../integrations/tdengine.md)
+- [Apache](apache.md)
+- [ElasticSearch](elasticsearch.md)
+- [Gitlab](gitlab.md)
+- [InfluxDB](influxdb.md)
+- [Container](container.md)
+- [MongoDB](mongodb.md)
+- [MySQL](mysql.md)
+- [NSQ](nsq.md)
+- [Nginx](nginx.md)
+- [PostgreSQL](postgresql.md)
+- [Prom](prom.md)
+- [RabbitMQ](rabbitmq.md)
+- [Redis](redis.md)
+- [Solr](solr.md)
+- [TDengine](tdengine.md)
 
-## FAQ
+## FAQ {#faq}
 
 ### `host` 字段问题 {#host}
 

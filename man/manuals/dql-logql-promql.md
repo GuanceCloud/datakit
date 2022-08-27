@@ -11,7 +11,7 @@ PromQL 是 [Prometheuse](https://prometheus.io/){:target="_blank"} 中用于查�
 - 支持的常用预定义函数
 - 常用查询写法对比
 
-## 基本语法结构
+## 基本语法结构 {#syntax}
 
 | 查询语言  | 基本结构 |
 | --------- | -------  |
@@ -21,7 +21,7 @@ PromQL 是 [Prometheuse](https://prometheus.io/){:target="_blank"} 中用于查�
 
 下面分别加以说明。
 
-### PromQL
+### PromQL {#p}
 
 在 Prometheuse 中，相关指标是离散形式组织的。在其查询中，可直接查找对应的指标，如：
 
@@ -33,7 +33,7 @@ http_requests_total{environment="prometheus", method!="GET"}
 
 > 注：PromeQL 称这里的 label 限制条件为 Label Matchers。
 
-### LogQL
+### LogQL {#l}
 
 顾名思义，LogQL 主要用于日志内容查询，如：
 
@@ -43,7 +43,7 @@ http_requests_total{environment="prometheus", method!="GET"}
 
 此处 `{...}` 里面的，LogQL 称之为 Stream Selector，其旨在于划定数据查询范围（类似于 SQL 中的 `FROM ...` 部分）；半部分则称之为 Log Pipeline，其主要处理日志信息的提取和过滤。
 
-### DQL
+### DQL {#d}
 
 DQL 覆盖面较为全面，相比于 PromQL 只能用于查找 Prometheuse 中的时序数据、LogQL 只能用于查找日志数据，DQL 作为全平台数据查询语言，其主要查询如下几种数据：
 
@@ -83,7 +83,7 @@ logging::my_service:(message) [1d]
 T::my_service { duration > 1000 } [10m] BY operation
 ```
 
-## 横向对比
+## 横向对比 {#compare}
 
 | 查询语言  | 主要领域                | 支持时序查询       | 支持日志查询 | 是否支持 HTTP API                                                  | 是否支持 Pipeline 切割              | 支持时间范围查找 | 支持 group by 聚合 |
 | --------- | -------                 | ---                | -----        | ---------                                                          | ----                                | -----            | ---                |
@@ -91,15 +91,15 @@ T::my_service { duration > 1000 } [10m] BY operation
 | LogQL     | 主要用于查询日志        | 支持从日志生成指标 | 支持         | [支持](https://grafana.com/docs/loki/latest/api/){:target="_blank"}                  | 支持                                | 支持             | [支持](https://grafana.com/docs/loki/latest/logql/#aggregation-operators){:target="_blank"}               |
 | DQL       | DataFlux 全平台数据查询 | 支持               | 支持         | [支持](../datakit/apis.md#api-raw-query){:target="_blank"}       | 不支持（在 DataKit 端已预先切割好） | 支持             | 支持               |
 
-### 数据处理函数支持情况
+### 数据处理函数支持情况 {#funcs}
 
 - [PromQL 支持的函数列表](https://prometheus.io/docs/prometheus/latest/querying/functions/#functions){:target="_blank"}
 - [LogQL 支持的函数列表](https://grafana.com/docs/loki/latest/logql/#metric-queries){:target="_blank"}
 - [DQL 支持的函数列表](../dql/funcs.md){:target="_blank"}
 
-## 常见查询语句写法对比
+## 常见查询语句写法对比 {#basic-query}
 
-### 普通数据查询及过滤
+### 普通数据查询及过滤 {#q-filter}
 
 ```
 # LogQL
@@ -112,7 +112,7 @@ L::dev {cluster='ops-tools1', job='query=frontend', message != match("out of ord
 http_requests_total{cluster='ops-tools1', job!='query=frontend', duration > 30s}
 ```
 
-### 带聚合的查询以及过滤
+### 带聚合的查询以及过滤 {#q-groupby}
 
 ```python
 # LogQL

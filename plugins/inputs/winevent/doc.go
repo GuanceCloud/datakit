@@ -41,7 +41,7 @@ func (*Input) Terminate() {
 }
 
 func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSWindows}
+	return []string{datakit.OSLabelWindows}
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {

@@ -90,7 +90,7 @@ func (*Input) SampleConfig() string { return sampleCfg }
 
 func (*Input) Catalog() string { return catalog }
 
-func (*Input) AvailableArchs() []string { return datakit.AllOS }
+func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{

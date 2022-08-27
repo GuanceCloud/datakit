@@ -3,12 +3,11 @@
 
 本文以常见 Web 端三层架构模式实现 OTEL 的链路追踪及可观测性。
 
-在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经[配置](opentelemetry.md){:target="_blank"}好了采集器。
+在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经[配置好了采集器](opentelemetry.md)。
 
-## 接下来使用伪代码实现
+## 接下来使用伪代码实现 {#code}
 
-模拟场景：一条用户的登录请求在服务端的各个模块流转并返回到客户端的过程。在每一个过程中都加上链路追踪并标记，
-最后登录观测云平台查看在这个过程中每个模块的处理时间和服务状态。
+模拟场景：一条用户的登录请求在服务端的各个模块流转并返回到客户端的过程。在每一个过程中都加上链路追踪并标记，最后登录观测云平台查看在这个过程中每个模块的处理时间和服务状态。
 
 流程介绍：用户请求到 web 层，解析后发送到 service 层，需要查询数据库的 dao 层，最终将结果返回到用户。
 
@@ -150,7 +149,7 @@ func main() {
 }
 ```
 
-## 观测
+## 效果查看 {#view}
 
 登录 [观测云](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} 后查看 `应用性能监测` -> `链路` -> 点击单条 `链路`
 
@@ -160,7 +159,7 @@ func main() {
 
 --- 
 
-参考
+## 参考 {#more-readings}
 
 - 源码示例 [github-opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go/tree/main/example/otel-collector){:target="_blank"}
 - 文档 [官方文档](https://opentelemetry.io/docs/instrumentation/go/getting-started/){:target="_blank"}

@@ -2,31 +2,33 @@
 # Memcached
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
 
-Memcached 采集器可以从 Memcached 实例中采集实例运行状态指标，并将指标采集到观测云，帮助监控分析 Memcached 各种异常情况
+---
 
-![](imgs/input-memcached-1.png)
+Memcached 采集器可以从 Memcached 实例中采集实例运行状态指标，并将指标采集到观测云，帮助监控分析 Memcached 各种异常情况。
 
-## 前置条件
+## 前置条件 {#requirements}
 
 - Memcached 版本 >= 1.5.0
 
-## 配置
+## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+=== "主机安装"
 
-```toml
-{{.InputSample}}
-```
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-配置好后，重启 DataKit 即可。
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-## 指标预览
+=== "Kubernetes"
 
-![](imgs/input-memcached-1.png)
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-## 指标集
+## 指标集 {#measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -50,11 +52,3 @@ Memcached 采集器可以从 Memcached 实例中采集实例运行状态指标�
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
-
-## 场景视图
-
-<场景 - 新建仪表板 - 内置模板库 - Memcached 监控视图>
-
-## 异常检测
-
-<监控 - 模板新建 - Memcached 检测库>

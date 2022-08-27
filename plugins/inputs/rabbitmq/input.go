@@ -25,7 +25,7 @@ func (*Input) SampleConfig() string { return sample }
 
 func (*Input) Catalog() string { return inputName }
 
-func (*Input) AvailableArchs() []string { return datakit.AllOS }
+func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) PipelineConfig() map[string]string { return map[string]string{"rabbitmq": pipelineCfg} }
 

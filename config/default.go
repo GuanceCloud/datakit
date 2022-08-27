@@ -32,14 +32,12 @@ func DefaultConfig() *Config {
 		IOConf: &dkio.IOConfig{
 			FeedChanSize:         128,
 			MaxCacheCount:        64,
-			MaxDynamicCacheCount: 64,
+			MaxDynamicCacheCount: 0,
 			FlushInterval:        "10s",
 			OutputFileInputs:     []string{},
 
 			EnableCache: false,
 			CacheSizeGB: 1,
-
-			BlockingMode: false,
 
 			Filters: map[string][]string{},
 		},

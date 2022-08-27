@@ -2,7 +2,9 @@
 # 文件日志
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
+{{.AvailableArchs}}
+
+---
 
 本文档主要介绍本地磁盘日志采集和 Socket 日志采集：
 
@@ -11,7 +13,7 @@
 
 ## 配置 {#config}
 
-=== "主机日志"
+=== "主机部署"
 
     进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logging.conf.sample` 并命名为 `logging.conf`。示例如下：
     
@@ -62,7 +64,7 @@
       # multiline_match = '''^\S'''
 
       ## 是否开启自动多行模式，开启后会在 patterns 列表中匹配适用的多行规则
-      auto_multiline_detection = false
+      auto_multiline_detection = true
       ## 配置自动多行的 patterns 列表，内容是多行规则的数组，即多个 multiline_match，如果为空则使用默认规则详见文档
       auto_multiline_extra_patterns = []
     
@@ -209,7 +211,7 @@ testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.
 `^\d{4}-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])`,
 ```
 
-#### 超长多行日志处理的限制
+#### 超长多行日志处理的限制 {#too-long-logs}
 
 目前最多能处理不超过 32MiB 的单条多行日志，如果实际多行日志超过 32MiB，DataKit 会将其识别成多条。举例如下，假定有如下多行日志，我们要将其识别成单条日志：
 
@@ -255,11 +257,11 @@ Traceback (most recent call last):
  ...
 ```
 
-#### 日志单行最大长度
+#### 日志单行最大长度 {#max-log}
 
 无论从文件还是从 socket 中读取的日志, 单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃。
 
-### Pipeline 配置和使用
+### Pipeline 配置和使用 {#pipeline}
 
 [Pipeline](../datakit/pipeline.md) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
 
@@ -321,7 +323,7 @@ Pipeline 的几个注意事项：
 - 所有 pipeline 脚本文件，统一存放在 DataKit 安装路径下的 pipeline 目录下
 - 如果日志文件配置的是通配目录，logging 采集器会自动发现新的日志文件，以确保符合规则的新日志文件能够尽快采集到
 
-### glob 规则简述（图表数据[来源](https://rgb-24bit.github.io/blog/2018/glob.html){:target="_blank"}）
+### glob 规则简述 {#grok-rules}
 
 使用 glob 规则更方便地指定日志文件，以及自动发现和文件过滤。
 
@@ -334,7 +336,7 @@ Pipeline 的几个注意事项：
 | `[!abc]` | 匹配括号中未给出的一个字符         | `[!C]at`       | Bat, bat, cat             | Cat                         |
 | `[!a-z]` | 匹配不在括号内给定范围内的一个字符 | `Letter[!3-5]` | Letter1…                  | Letter3 … Letter5, Letterxx |
 
-另需说明，除上述 glob 标准规则外，采集器也支持 `**` 进行递归地文件遍历，如示例配置所示。
+另需说明，除上述 glob 标准规则外，采集器也支持 `**` 进行递归地文件遍历，如示例配置所示。更多 Grok 介绍，参见[这里](https://rgb-24bit.github.io/blog/2018/glob.html){:target="_blank"}。
 
 ## 指标集 {#measurements}
 
@@ -365,9 +367,9 @@ Pipeline 的几个注意事项：
 
 [^1]: 早期 Pipeline 实现的时候，只能切割出 field，而 status 大部分都是通过 Pipeline 切割出来的，故将其归类到 field 中。但语义上，它应该属于 tag 的范畴。
 
-## FAQ
+## FAQ {#faq}
 
-### 为什么在页面上看不到日志数据？
+### 为什么在页面上看不到日志数据？ {#why-no-data}
 
 DataKit 启动后，`logfiles` 中配置的日志文件==有新的日志产生才会采集上来，老的日志数据是不会采集的==。
 
@@ -379,15 +381,15 @@ First Message. filename: /some/path/to/new/log ...
 
 如果看到这样的信息，证明指定的文件==已经开始采集，只是当前尚无新的日志数据产生==。另外，日志数据的上传、处理、入库也有一定的时延，即使有新的数据产生，也需要等待一定时间（< 1min）。
 
-### 磁盘日志采集和 Socket 日志采集的互斥性
+### 磁盘日志采集和 Socket 日志采集的互斥性 {#exclusion}
 
 两种采集方式目前互斥，当以 Socket 方式采集日志时，需将配置中的 `logfiles` 字段置空：`logfiles=[]`
 
-### 远程文件采集方案
+### 远程文件采集方案 {#remote-ntfs}
 
 在 linux 上，可通过 [NFS 方式](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/){:target="_blank"}，将日志所在主机的文件路径，挂载到 DataKit 主机下，logging 采集器配置对应日志路径即可。
 
-### 日志的特殊字节码过滤
+### 日志的特殊字节码过滤 {#ansi-decode}
 
 日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以将 `remove_ansi_escape_codes` 设置为 `true` 对其删除过滤。
 
@@ -406,18 +408,11 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 每一条文本的处理耗时增加 `1616 ns` 不等。如果不开启此功能将无额外损耗。
 
-### MacOS 日志采集器报错 `operation not permitted`
+### MacOS 日志采集器报错 `operation not permitted` {#mac-no-permission}
 
 在 MacOS 中，因为系统安全策略的原因，DataKit 日志采集器可能会无法打开文件，报错 `operation not permitted`，解决方法参考 [apple developer doc](https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection){:target="_blank"}。
 
-### 日志量太大可能会引发的问题
-
-自 datakit 版本1.2.0之后，无论是从磁盘读还是通过 socket 端口传输日志，为增加日志处理能力 采集器处理日志都改为异步操作，但同时也可能会在异步阻塞导致部分日志丢失
-
-这个问题并不会影响到正常的服务运行，因为 socket 处理如果不是异步并主动丢弃堆积日志的话，日志会在 client 端产生堆积，严重情况造成内存泄露从而影响主业务的运行。
-datakit 也会在处理不及造成日志堆积之后 缓存一定量日志到内存当中
-
-### 如何估算日志的总量
+### 如何估算日志的总量 {#log-size}
 
 由于日志的收费是按照条数来计费的，但一般情况下，大部分的日志都是程序写到磁盘的，只能看到磁盘占用大小（比如每天 100GB 日志）。
 
@@ -447,9 +442,11 @@ bytes * 2 * 8 /1024/1024 = xxx MBit
 1GB * 2 * 8 * 0.15/1024/1024 = xxx MBit
 ```
 
-> 此处 `*2` 考虑到了 [Pipeline 切割](../datakit/pipeline.md)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
+??? info
 
-## 延伸阅读
+    此处 `*2` 考虑到了 [Pipeline 切割](../datakit/pipeline.md)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
+
+## 延伸阅读 {#more-reading}
 
 - [DataKit 日志采集综述](datakit-logging.md)
 - [Pipeline: 文本数据处理](../datakit/pipeline.md)

@@ -2,11 +2,13 @@
 # Prometheus Remote Write 支持
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 监听 Prometheus Remote Write 数据，上报到观测云。
 
-## 前置条件
+## 前置条件 {#requirements}
 
 开启 Prometheus Remote Write 功能，在 prometheus.yml 添加如下配置：
 
@@ -15,15 +17,23 @@ remote_write:
  - url: "http://<datakit-ip>:9529/prom_remote_write"
 ```
 
-## 配置
+## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+=== "主机安装"
 
-```toml
-{{.InputSample}} 
-```
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-### tags 添加、忽略及重命名
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+
+=== "Kubernetes"
+
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+### tags 添加、忽略及重命名 {#tag-ops}
 
 可以通过配置 `tags` 为采集到的指标加上标签，如下：
 
@@ -53,15 +63,15 @@ remote_write:
 
 > 注意：对于 [DataKit 全局 tag key](../datakit/datakit-conf.md#update-global-tag)，此处不支持将它们重命名。
 
-## 指标集
+## 指标集 {#measurements}
 
 指标集以 Prometheus 发送过来的指标集为准。
 
-## 命令行调试指标集
+## 命令行调试指标集 {#debug}
 
 DataKit 提供一个简单的调试 `prom.conf` 的工具，如果不断调整 `prom.conf` 的配置，可以实现只采集符合一定名称规则的 Prometheus 指标的目的。
 
-Datakit 支持命令行直接调试 prom_remote_write 采集器的配置文件，配置 `conf.d/prom` 下 `prom_remote_write.conf` 的 `output` 项，将其配置为一个本地文件路径，之后`prom_remote_write.conf` 会将采集到的数据写到文件中，数据就不会上传到中心。
+Datakit 支持命令行直接调试本采集器的配置文件。在配置 `conf.d/prom` 下 `prom_remote_write.conf` 的 `output` 项，将其配置为一个本地文件路径，之后`prom_remote_write.conf` 会将采集到的数据写到文件中，数据就不会上传到中心。
 
 重启 Datakit，让配置文件生效：
 

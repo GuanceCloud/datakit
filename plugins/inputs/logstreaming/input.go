@@ -48,7 +48,9 @@ type Input struct {
 
 func (*Input) Catalog() string { return "log" }
 
-func (*Input) AvailableArchs() []string { return datakit.AllOS }
+func (*Input) AvailableArchs() []string {
+	return datakit.AllOS
+}
 
 func (*Input) SampleConfig() string { return sampleCfg }
 

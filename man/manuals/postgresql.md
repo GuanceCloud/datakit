@@ -2,17 +2,17 @@
 # PostgreSQL
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标，并将指标采集到观测云，帮助监控分析 Postgresql 各种异常情况
 
-![](imgs/input-postgresql-1.png)
-
-## 前置条件
+## 前置条件 {#reqirement}
 
 - Postgresql 版本 >= 9.0
 
-## 配置
+## 配置 {#config}
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
@@ -22,11 +22,7 @@ Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标
 
 配置好后，重启 DataKit 即可。
 
-## 指标预览
-
-![](imgs/input-postgresql-2.png)
-
-## 指标集
+## 指标集 {#measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。
 
@@ -44,7 +40,7 @@ Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标
 
 {{ end }}
 
-## 日志采集
+## 日志采集 {#logging}
 
 - Postgresql 日志默认是输出至`stderr`，如需开启文件日志，可在 Postgresql 的配置文件 `/etc/postgresql/<VERSION>/main/postgresql.conf` ， 进行如下配置:
 
@@ -59,7 +55,8 @@ log_statement = 'all'     # 记录所有查询
 #log_duration = on
 log_line_prefix= '%m [%p] %d [%a] %u [%h] %c ' # 日志行前缀
 log_file_mode = 0644
-## For Windows
+
+# For Windows
 #log_destination = 'eventlog'
 ```
 
@@ -82,7 +79,7 @@ log_file_mode = 0644
 
 - 日志采集仅支持已安装 DataKit 主机上的日志。
 
-## 日志 pipeline 切割
+## 日志 pipeline 切割 {#pipeline}
 
 原始日志为
 

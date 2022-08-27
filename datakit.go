@@ -144,7 +144,12 @@ var (
 	OSLabelLinux   = ":fontawesome-brands-linux:"
 	OSLabelWindows = ":fontawesome-brands-windows:"
 	OSLabelMac     = ":fontawesome-brands-apple:"
-	AllOS          = []string{OSLabelLinux, OSLabelWindows, OSLabelMac}
+	LabelK8s       = ":material-kubernetes:"
+	LabelDocker    = ":material-docker:"
+	LabelElection  = ` · [:fontawesome-solid-flag-checkered:](index.md#legends "支持选举")`
+
+	AllOS             = []string{OSLabelLinux, OSLabelWindows, OSLabelMac, LabelK8s, LabelDocker}
+	AllOSWithElection = append(AllOS, LabelElection)
 
 	UnknownOS   = []string{"unknown"}
 	UnknownArch = []string{"unknown"}

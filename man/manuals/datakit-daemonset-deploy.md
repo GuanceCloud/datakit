@@ -1,102 +1,85 @@
 {{.CSS}}
-# DaemonSet 安装 DataKit 
+# Kubernetes
 ---
-
-- 操作系统支持：:fontawesome-brands-linux:
 
 本文档介绍如何在 K8s 中通过 DaemonSet 方式安装 DataKit。
 
-## 安装步骤 
+## 安装 {#install}
 
-- Helm 安装
-- 普通 yaml 安装
+=== "Daemonset"
 
-### Helm 安装
+    先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml){:target="_blank"}，其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。
+    
+    ???+ attention
+    
+        如果要修改这些采集器的默认配置，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to.md#via-configmap-conf) 来配置。部分采集器可以直接通过环境变量的方式来调整，具体参见具体采集器的文档。总而言之，不管是默认开启的采集器，还是其它采集器，在 DaemonSet 方式部署 DataKit 时，通过 [Configmap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/){:target="_blank"} 来配置采集器总是生效的。
+    
+    修改 `datakit.yaml` 中的 dataway 配置
+    
+    ```yaml
+    	- name: ENV_DATAWAY
+    		value: https://openway.guance.com?token=<your-token> # 此处填上 DataWay 真实地址
+    ```
+    
+    如果选择的是其它节点，此处更改对应的 DataWay 地址即可，如 AWS 节点：
+    
+    ```yaml
+    	- name: ENV_DATAWAY
+    		value: https://aws-openway.guance.com?token=<your-token> 
+    ```
+    
+    安装 yaml
+    
+    ```shell
+    $ kubectl apply -f datakit.yaml
+    ```
+    
+    安装完后，会创建一个 datakit 的 DaemonSet 部署：
+    
+    ```shell
+    $ kubectl get pod -n datakit
+    ```
 
-#### 前提条件
+=== "Helm"
 
-* Kubernetes >= 1.14
-* Helm >= 3.0+
+    前提条件
+    
+    * Kubernetes >= 1.14
+    * Helm >= 3.0+
+    
+    添加 DataKit Helm 仓库：
+    
+    ```shell 
+    $ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
+    $ helm repo update 
+    ```
+    
+    Helm 安装 Datakit（注意修改 `datakit.dataway_url` 参数）
+    
+    ```shell
+    $ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+    ```
+    
+    查看部署状态：
+    
+    ```shell
+    $ helm -n datakit list
+    ```
+    
+    可以通过如下命令来升级：
+    
+    ```shell
+    $ helm repo update 
+    $ helm upgrade datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
+    ```
+    
+    可以通过如下命令来卸载：
+    
+    ```shell
+    $ helm uninstall datakit -n datakit
+    ```
 
-#### 添加 DataKit Helm 仓库
-
-```shell 
-$ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
-$ helm repo update 
-```
-
-#### Helm 安装 Datakit
-
-```shell
-$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
-```
-
-> 注意修改 `datakit.dataway_url` 参数。
-
-具体执行如下：
-
-```
-$ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=xxxxxxxxx" --create-namespace 
-```
-
-#### 查看部署状态
-
-```shell
-$ helm -n datakit list
-```
-
-#### 升级
-
-```shell
-$ helm repo update 
-$ helm upgrade datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
-```
-
-#### 卸载
-
-```shell
-$ helm uninstall datakit -n datakit
-```
-
-### 普通 yaml 安装
-
-先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml){:target="_blank"}，其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。
-
-???+ attention
-
-    如果要修改这些采集器的默认配置，可通过 [Configmap 方式挂载单独的 conf](../integrations/k8s-config-how-to.md#via-configmap-conf) 来配置。部分采集器可以直接通过环境变量的方式来调整，具体参见具体采集器的文档。总而言之，不管是默认开启的采集器，还是其它采集器，在 DaemonSet 方式部署 DataKit 时，通过 [Configmap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/){:target="_blank"} 来配置采集器总是生效的。
-
-#### 修改配置
-
-修改 `datakit.yaml` 中的 dataway 配置
-
-```yaml
-	- name: ENV_DATAWAY
-		value: https://openway.guance.com?token=<your-token> # 此处填上 DataWay 真实地址
-```
-
-如果选择的是其它节点，此处更改对应的 DataWay 地址即可，如 AWS 节点：
-
-```yaml
-	- name: ENV_DATAWAY
-		value: https://aws-openway.guance.com?token=<your-token> 
-```
-
-#### 安装 yaml
-
-```shell
-$ kubectl apply -f datakit.yaml
-```
-
-#### 查看运行状态
-
-安装完后，会创建一个 datakit 的 DaemonSet 部署：
-
-```shell
-$ kubectl get pod -n datakit
-```
-
-#### Kubernetes 污点容忍度配置 {#toleration}
+## Kubernetes 污点容忍度配置 {#toleration}
 
 DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有污点），如果 Kubernetes 中某些 node 节点添加了污点调度，且不希望在其上部署 DataKit，可修改 datakit.yaml，调整其中的污点容忍度：
 
@@ -107,7 +90,7 @@ DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有
 
 具体绕过策略，参见[官方文档](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration){:target="_blank"}。
 
-#### ConfigMap 设置 {#configmap-setting}
+## ConfigMap 设置 {#configmap-setting}
 
 部分采集器的开启，需通过 ConfigMap 来注入。以下是 MySQL 和 Redis 采集器的注入示例：
 
@@ -267,8 +250,6 @@ spec:
 | ---------:                   | ---:     | ---:   | ------ | ----                                                                                                                                             |
 | `ENV_IO_FILTERS`             | json     | 无     | 否     | 添加[行协议过滤器](datakit-filter)                                                                                                               |
 | `ENV_IO_FLUSH_INTERVAL`      | duration | 10s    | 否     | IO 发送时间频率                                                                                                                                  |
-| `ENV_IO_BLOCKING_MODE`       | bool     | -      | 否     | 阻塞模式 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental)                   |
-| `ENV_IO_BLOCKING_CATEGORIES` | []string | 无     | 否     | 指定 category 的阻塞模式，用法参见[这里](datakit-conf.md#io-tuning) [:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11) · [:octicons-beaker-24: Experimental](index.md#experimental) |
 | `ENV_IO_MAX_CACHE_COUNT`     | int      | 64     | 否     | 发送 buffer（点数）大小                                                                                                                          |
 | `ENV_IO_QUEUE_SIZE`          | int      | 128    | 否     | IO 模块数据处理队列长度                                                                                                                          |
 | `ENV_IO_ENABLE_CACHE`        | bool     | -      | 否     | 是否开启发送失败的磁盘缓存                                                                                                                       |
@@ -277,10 +258,6 @@ spec:
 ???+ note "关于 buffer 和 queue 的说明"
 
     `ENV_IO_MAX_CACHE_COUNT` 用来控制数据的发送策略，即当内存中 cache 的点数超过该数值的时候，就会尝试将内存中当前 cache 的点数发送到中心。如果该 cache 的阈值调的太大，数据就都堆积在内存，导致内存飙升。如果太小，可能影响发送吞吐率。`ENV_IO_QUEUE_SIZE` 为数据处理的队列长度，在数据量不大的情况下，即使将该值调大一点，不大会影响内存占用，但如果数据量足够大，而发送的效率又太低（网络原因或其它设置原因），会导致采集到的数据都堆积在队列中，同样导致内存飙升。
-
-???+ warning "阻塞和非阻塞模式"
-
-    `ENV_IO_BLOCKING_MODE` 默认是关闭的，即非阻塞模式。在非阻塞模式下，如果处理队列（`ENV_IO_QUEUE_SIZE`）拥塞，将导致采集器上报的数据被丢弃，但不会影响新数据的采集。而在阻塞模式下，如果队列拥塞，那么数据采集也一并阻塞住，直到处理队列空闲，才会恢复新数据的采集。
 
 `ENV_IO_FILTERS` 是一个 json 字符串，示例如下:
 
@@ -304,6 +281,13 @@ spec:
 | `ENV_DCA_LISTEN`     | string | localhost:9531 | 否     | 可修改改地址，使得 [DCA](dca.md) 客户端能管理该 DataKit，一旦开启 ENV_DCA_LISTEN 即默认启用 DCA 功能 |
 | `ENV_DCA_WHITE_LIST` | string | 无             | 否     | 配置 DCA 白名单，以英文逗号分隔                                                                      |
 
+### Refer Table 有关环境变量 {#env-reftab}
+
+| 环境变量名称                    | 类型   | 默认值 | 必须   | 说明                          |
+| ---------:                      | ----:  | ---:   | ------ | ----                          |
+| `ENV_REFER_TABLE_URL`           | string | 无     | 否     | 设置数据源 URL                |
+| `ENV_REFER_TABLE_PULL_INTERVAL` | string | 5m     | 否     | 设置数据源 URL 的请求时间间隔 |
+
 ### 其它杂项 {#env-others}
 
 | 环境变量名称                    | 类型     | 默认值 | 必须   | 说明                                                       |
@@ -315,12 +299,10 @@ spec:
 | `ENV_DATAWAY_TIMEOUT`           | duration | 30s    | 否     | 设置 DataKit 请求 DataWay 的超时时间                       |
 | `ENV_DATAWAY_ENABLE_HTTPTRACE`  | bool     | false  | 否     | 在 debug 日志中输出 dataway HTTP 请求的网络日志            |
 | `ENV_DATAWAY_HTTP_PROXY`        | string   | 无     | 否     | 设置 DataWay HTTP 代理                                     |
-| `ENV_REFER_TABLE_URL`           | string   | 无     | 否     | 设置数据源 URL                                             |
-| `ENV_REFER_TABLE_PULL_INTERVAL` | string   | 5m     | 否     | 设置数据源 URL 的请求时间间隔                              |
 
 ### 特殊环境变量 {#env-special}
 
-#### ENV_K8S_NODE_NAME
+#### ENV_K8S_NODE_NAME {#env_k8s_node_name}
 
 当 k8s node 名称跟其对应的主机名不同时，可将 k8s 的 node 名称顶替默认采集到的主机名，在 *datakit.yaml* 中增加环境变量：
 
@@ -335,12 +317,12 @@ spec:
 				fieldPath: spec.nodeName
 ```
 
-### 各个采集器专用环境变量
+### 各个采集器专用环境变量 {#inputs-envs}
 
 部分采集器支持外部注入环境变量，以调整采集器自身的默认配置。具体参见各个具体的采集器文档。
 
-## 延伸阅读
+## 延伸阅读 {#more-readings}
 
 - [DataKit 选举](election.md)
-- [DataKit 的几种配置方式](../integrations/k8s-config-how-to.md)
-- [DataKit DaemonSet 配置管理最佳实践](../integrations/datakit-daemonset-bp.md)
+- [DataKit 的几种配置方式](k8s-config-how-to.md)
+- [DataKit DaemonSet 配置管理最佳实践](datakit-daemonset-bp.md)

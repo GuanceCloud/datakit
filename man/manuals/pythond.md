@@ -2,13 +2,15 @@
 # 用 Python 开发自定义采集器
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 {{.InputName}} 是定时触发用户自定义 python 采集脚本的一整套方案。
 
-## 前置条件
+## 前置条件 {#reqirement}
 
-### Python 环境
+### Python 环境 {#req-python}
 
 目前处于 alpha 阶段，<strong>同时兼容 Python 2.7+ 和 Python 3+<strong>。
 
@@ -36,7 +38,7 @@ python -m ensurepip --upgrade
 py -m ensurepip --upgrade
 ```
 
-### 编写用户自定义脚本
+### 编写用户自定义脚本 {#add-script}
 
 需要用户继承 `DataKitFramework` 类，然后对 `run` 方法进行改写。DataKitFramework 类源代码文件路径是 `datakit_framework.py` 在 `datakit/python.d/core/datakit_framework.py`。
 
@@ -94,7 +96,7 @@ class Demo(DataKitFramework):
         return self.report(in_data) # you must call self.report here
 ```
 
-## 配置
+## 配置 {#config}
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
@@ -102,7 +104,7 @@ class Demo(DataKitFramework):
 {{.InputSample}}
 ```
 
-## 其它
+## Git 支持 {#git}
 
 支持使用 git repo，一旦开启 git repo 功能，则 conf 里面的 args 里面填写的路径是相对于 `gitrepos` 的路径。比如下面这种情况，args 就填写 `myconf/mytest.py`:
 
@@ -114,7 +116,7 @@ class Demo(DataKitFramework):
 │       └── pythond.conf
 ```
 
-## 完整示例
+## 完整示例 {#example}
 
 第一步：写一个类，继承 `DataKitFramework`:
 

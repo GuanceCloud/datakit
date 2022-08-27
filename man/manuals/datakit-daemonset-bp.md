@@ -9,7 +9,7 @@
 - ConfigMap 管理配置
 - 启用 Git 管理配置
 
-## ConfigMap 管理配置
+## ConfigMap 管理配置 {#configmap}
 
 Datakit 部分采集器的开启，可以通过 [ConfigMap](https://kubernetes.io/zh/docs/concepts/configuration/configmap/){:target="_blank"} 来注入。ConfigMap 注入灵活，但不易管理。
 
@@ -116,7 +116,7 @@ dkconfig:
 
 ```
 
-#### 安装或升级 DataKit
+#### 安装或升级 DataKit {#install-upgrade}
 
 安装
 
@@ -158,7 +158,7 @@ $ kubectl get pods -n datakit
 
 可参考 [DaemonSet ConfigMap 设置](../datakit/datakit-daemonset-deploy.md#configmap-setting)
 
-## 启用 Git 管理配置
+## 启用 Git 管理配置 {#enable-git}
 
 由于 ConfigMap 注入灵活，但不易管理特性，我们可以采用 Git 仓库来管理我们的配置。启用 [Git 管理](../datakit/datakit-conf.md#using-gitrepo) ，DataKit 会定时 pull 远程仓库的配置，既不需要频繁修改 ConfigMap，也不需要重启 DataKit，更重要的是有修改记录，可回滚配置。
 
@@ -166,7 +166,7 @@ $ kubectl get pods -n datakit
 > - 如果启用 Git 管理配置，则 ConfigMap 将失效
 > - 由于会[自动启动一些采集器](../datakit/datakit-input-conf.md#default-enabled-inputs)，故在 Git 仓库中，不要再放置这些自启动的采集器配置，不然会导致这些数据的多份采集
 
-### 前提条件
+### 前提条件 {#git-requirements}
 
 - 已经准备 Git 仓库
 - 写入配置并 push 远程仓库
@@ -186,11 +186,11 @@ path/to/local/git/repo
       ├── java.p
 ``` 
 
-### Helm 启用 Git 管理配置
+### Helm 启用 Git 管理配置 {#git-helm}
 
 使用 Helm 启用 Git 管理配置，一个命令就能完成安装和配置，简单高效。
 
-#### 使用密码管理 Git
+#### 使用密码管理 Git {#git-pwd}
 
 需要修改如下两个字段：
 
@@ -206,7 +206,7 @@ $ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="htt
 --create-namespace 
 ```
 
-#### 使用用户名密码访问 Git
+#### Helm 中使用用户名密码访问 Git {#helm-git-pwd} 
 
 需要修改 
 
@@ -224,7 +224,7 @@ $ helm install datakit datakit/datakit -n datakit \
   --create-namespace 
 ``` 
 
-### yaml 启用 Git 管理配置
+### yaml 启用 Git 管理配置 {#yaml-git-pwd}
 
 yaml 配置复杂，建议使用 [Helm 部署](#helm-install)。先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml){:target="_blank"}
 
@@ -322,7 +322,7 @@ $ kubectl exec -ti datakit-xxxx bash
 $ ls gitrepos
 ```
 
-## 更多阅读
+## 更多阅读 {#more-readings}
 
 - [DataKit 采集器配置](../datakit/datakit-input-conf.md)
 - [DataKit 主配置](../datakit/datakit-conf.md)
