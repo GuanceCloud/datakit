@@ -250,8 +250,6 @@ spec:
 | ---------:                   | ---:     | ---:   | ------ | ----                                                                                                                                             |
 | `ENV_IO_FILTERS`             | json     | 无     | 否     | 添加[行协议过滤器](datakit-filter)                                                                                                               |
 | `ENV_IO_FLUSH_INTERVAL`      | duration | 10s    | 否     | IO 发送时间频率                                                                                                                                  |
-| `ENV_IO_BLOCKING_MODE`       | bool     | -      | 否     | 阻塞模式 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental)                   |
-| `ENV_IO_BLOCKING_CATEGORIES` | []string | 无     | 否     | 指定 category 的阻塞模式，用法参见[这里](datakit-conf.md#io-tuning) [:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11) · [:octicons-beaker-24: Experimental](index.md#experimental) |
 | `ENV_IO_MAX_CACHE_COUNT`     | int      | 64     | 否     | 发送 buffer（点数）大小                                                                                                                          |
 | `ENV_IO_QUEUE_SIZE`          | int      | 128    | 否     | IO 模块数据处理队列长度                                                                                                                          |
 | `ENV_IO_ENABLE_CACHE`        | bool     | -      | 否     | 是否开启发送失败的磁盘缓存                                                                                                                       |
@@ -260,10 +258,6 @@ spec:
 ???+ note "关于 buffer 和 queue 的说明"
 
     `ENV_IO_MAX_CACHE_COUNT` 用来控制数据的发送策略，即当内存中 cache 的点数超过该数值的时候，就会尝试将内存中当前 cache 的点数发送到中心。如果该 cache 的阈值调的太大，数据就都堆积在内存，导致内存飙升。如果太小，可能影响发送吞吐率。`ENV_IO_QUEUE_SIZE` 为数据处理的队列长度，在数据量不大的情况下，即使将该值调大一点，不大会影响内存占用，但如果数据量足够大，而发送的效率又太低（网络原因或其它设置原因），会导致采集到的数据都堆积在队列中，同样导致内存飙升。
-
-???+ warning "阻塞和非阻塞模式"
-
-    `ENV_IO_BLOCKING_MODE` 默认是关闭的，即非阻塞模式。在非阻塞模式下，如果处理队列（`ENV_IO_QUEUE_SIZE`）拥塞，将导致采集器上报的数据被丢弃，但不会影响新数据的采集。而在阻塞模式下，如果队列拥塞，那么数据采集也一并阻塞住，直到处理队列空闲，才会恢复新数据的采集。
 
 `ENV_IO_FILTERS` 是一个 json 字符串，示例如下:
 

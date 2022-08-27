@@ -64,7 +64,7 @@
       # multiline_match = '''^\S'''
 
       ## 是否开启自动多行模式，开启后会在 patterns 列表中匹配适用的多行规则
-      auto_multiline_detection = false
+      auto_multiline_detection = true
       ## 配置自动多行的 patterns 列表，内容是多行规则的数组，即多个 multiline_match，如果为空则使用默认规则详见文档
       auto_multiline_extra_patterns = []
     

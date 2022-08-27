@@ -39,8 +39,6 @@ func DefaultConfig() *Config {
 			EnableCache: false,
 			CacheSizeGB: 1,
 
-			BlockingMode: false,
-
 			Filters: map[string][]string{},
 		},
 

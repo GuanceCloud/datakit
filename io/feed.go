@@ -8,9 +8,6 @@ package io
 import (
 	"errors"
 	"fmt"
-	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -138,109 +135,21 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 		opt:      opt,
 	}
 
-	// blocking_categories 填了则指定的 category 走 blocking 模式，
-	// 如果没填则检查 blocking_mode 是否为 true，如果是则全局 block。
-	if len(x.conf.BlockingCategories) > 0 && x.checkInsideCategories(job.category) {
-		return blockingFeed(job, ch)
-	} else if x.conf.BlockingMode {
-		return blockingFeed(job, ch)
-	}
-
 	return unblockingFeed(job, ch)
 }
 
-var (
-	blockingCategoriesLock    sync.Mutex
-	mapBlockingCategories     map[string]struct{}
-	initMapBlockingCategories bool
-)
-
-// checkInsideCategories returns true if category inside categories.
-func (x *IO) checkInsideCategories(category string) bool {
-	if len(category) == 0 {
-		return false
-	}
-	if len(mapBlockingCategories) == 0 {
-		if len(x.conf.BlockingCategories) > 0 {
-			blockingCategoriesLock.Lock()
-			defer blockingCategoriesLock.Unlock()
-
-			if !initMapBlockingCategories {
-				initMapBlockingCategories = true
-
-				for _, v := range x.conf.BlockingCategories {
-					length := len(v)
-					switch length {
-					case 0:
-						continue
-					case 1:
-						upperV := strings.ToUpper(v)
-						newV := datakit.CategoryMapReverse[upperV]
-						if len(newV) == 0 {
-							continue
-						}
-						v = newV
-					default:
-					}
-
-					mapBlockingCategories[v] = struct{}{}
-				} // for
-			} // if !initMapBlockingCategories
-		} else {
-			return false
-		}
-	} // if len
-
-	_, ok := mapBlockingCategories[category]
-	return ok
-}
-
-// 重试机制：这里做三次重试，主要考虑：
-//  - 尽量不丢数据，io goroutine 在处理 job 的时候，不太会超过 100ms
-//    还不能完成，而且重试三次
-//  - 最大三次重试，在一定程度上，尽量不阻塞住采集端以及数据接收端。这里
-//    的数据接收端可能是用户系统将数据打到 datakit（日志/Tracing 等），不能
-//    阻塞这些用户系统的 HTTP 调用
 func unblockingFeed(job *iodata, ch chan *iodata) error {
-	retry := 0
-	for {
-		if retry >= 3 {
-			log.Warnf("feed retry %d, dropped %d point on %s", retry, len(job.pts), job.category)
-			atomic.AddUint64(&FeedDropPts, uint64(len(job.pts)))
-
-			return ErrIOBusy
-		}
-
-		// Maybe all points been filtered, but we still send the feeding into io.
-		// We can still see some inputs/data are sending to io in monitor. Do not
-		// optimize the feeding, or we see nothing on monitor about these filtered
-		// points.
-		select {
-		case ch <- job:
-			if retry > 0 {
-				log.Warnf("feed on %s/%s retry %d ok", job.from, job.category, retry)
-			}
-
-			return nil
-
-		case <-datakit.Exit.Wait():
-			log.Warnf("%s/%s feed skipped on global exit", job.category, job.from)
-			return fmt.Errorf("feed on global exit")
-
-		default:
-			time.Sleep(time.Millisecond * 100)
-			retry++
-		}
-	}
-}
-
-func blockingFeed(job *iodata, ch chan *iodata) error {
+	// Maybe all points been filtered, but we still send the feeding into io.
+	// We can still see some inputs/data are sending to io in monitor. Do not
+	// optimize the feeding, or we see nothing on monitor about these filtered
+	// points.
 	select {
 	case ch <- job:
 		return nil
-
 	case <-datakit.Exit.Wait():
 		log.Warnf("%s/%s feed skipped on global exit", job.category, job.from)
 		return fmt.Errorf("feed on global exit")
+	default:
+		return ErrIOBusy
 	}
 }

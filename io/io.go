@@ -43,9 +43,6 @@ type IOConfig struct {
 	EnableCache bool `toml:"enable_cache"`
 	CacheSizeGB int  `toml:"cache_max_size_gb"`
 
-	BlockingMode       bool     `toml:"blocking_mode"`
-	BlockingCategories []string `toml:"blocking_categories"`
-
 	Filters map[string][]string `toml:"filters"`
 }
 
