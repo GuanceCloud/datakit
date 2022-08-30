@@ -369,24 +369,18 @@ prepare:
 	@echo "$$GIT_INFO" > git/git.go
 
 copyright_check:
-	@python3 copyright.py --dry-run
-	@if [ $$? != 0 ]; then \
-		echo "copyright failed"; \
-		exit -1; \
-	fi
+	@python3 copyright.py --dry-run && \
+		{ echo "copyright check ok"; exit 0; } || \
+		{ echo "copyright check failed"; exit -1; }
 
 copyright_check_auto_fix:
 	@python3 copyright.py --fix
 
+# 要求所有文档的章节必须带上指定的标签（历史原因，先忽略 changelog.md）
 check_man:
-	@# 要求所有文档的章节必须带上指定的标签（历史原因，先忽略 changelog.md）
-	@grep --color=always --exclude man/manuals/changelog.md -nr "^##" man/manuals/* | grep -vE ' {#' | grep -vE '{{' > bad-docs.log
-	@if [ $$? != 0 ]; then \
-		echo "check manuals ok"; \
-	else \
-		cat bad-docs.log; \
-		exit -1; \
-	fi
+	@grep --color=always --exclude man/manuals/changelog.md -nr '^##' man/manuals/* | grep -vE ' {#' | grep -vE '{{' && \
+		{ echo "[E] some bad docs"; exit -1; } || \
+		{ echo "all docs ok"; exit 0; }
 
 code_stat:
 	cloc --exclude-dir=vendor,tests --exclude-lang=JSON,HTML .
