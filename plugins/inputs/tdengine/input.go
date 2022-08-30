@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -20,6 +21,7 @@ var (
 	_ inputs.InputV2       = &Input{}
 	_ inputs.Input         = &Input{}
 	_ inputs.ElectionInput = &Input{}
+	_ inputs.PipelineInput = &Input{}
 )
 
 var (
@@ -30,14 +32,18 @@ var (
 const (
 	sampleConfig = `
 [[inputs.tdengine]]
-  ## adapter config (Required)
-  adapter_endpoint = "<http://taosadapter.test.com>"
+  ## adapter restApi Addr, example: http://taosadapter.test.com  (Required)
+  adapter_endpoint = "http://<FQND>:6041"
   user = "<userName>"
   password = "<pw>"
 
+  ##    ## log_files: TdEngine log file path or dirName (optional).
+  ## log_files = ["tdengine_log_path.log"]
+  ## pipeline = "tdengine.p"
+
   ## Set true to enable election
   election = true
-
+	
   ## add tag (optional)
   [inputs.tdengine.tags]
 	## Different clusters can be distinguished by tag. Such as testing,product,local ,default is 'testing'
@@ -46,6 +52,22 @@ const (
     # some_tag = "some_value"
     # more_tag = "some_other_value"
 `
+	//nolint:lll
+	pipelineCfg = `
+grok(_, '%{GREEDYDATA:temp}%{SPACE}TAOS_%{NOTSPACE:module}%{SPACE}%{NOTSPACE:level}%{SPACE}%{GREEDYDATA:http_url}')                   
+
+if level != 'error' {
+  grok(http_url,'"\\|%{SPACE}%{NOTSPACE:code}%{SPACE}\\|%{SPACE}%{NOTSPACE:cost_time}%{SPACE}\\|%{SPACE}%{NOTSPACE:client_ip}%{SPACE}\\|%{SPACE}%{NOTSPACE:method}%{SPACE}\\|%{SPACE}%{NOTSPACE:uri}%{SPACE}"')
+  parse_duration(cost_time)
+
+  duration_precision(cost_time, "ns", "ms")
+
+}
+group_in(level, ["error", "panic", "dpanic", "fatal","err","fat"], "error", status)
+group_in(level, ["info", "debug", "inf", "bug"], "info", status)
+group_in(level, ["warn", "war"], "warning", status)
+
+`
 )
 
 type Input struct {
@@ -53,9 +75,12 @@ type Input struct {
 	User            string            `toml:"user"`
 	Password        string            `toml:"password"`
 	Tags            map[string]string `toml:"tags"`
+	LogFiles        []string          `toml:"log_files"`
+	Pipeline        string            `toml:"pipeline"`
 
 	tdengine  *tdEngine
 	inputName string
+	tail      *tailer.Tailer
 
 	Election bool `toml:"election"`
 	pauseCh  chan bool
@@ -88,8 +113,70 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&Measurement{}}
 }
 
+// PipelineConfig : implement interface PipelineInput.
+func (i *Input) PipelineConfig() map[string]string {
+	pipelineMap := map[string]string{
+		inputName: pipelineCfg,
+	}
+
+	return pipelineMap
+}
+
+func (i *Input) RunPipeline() {
+	if len(i.LogFiles) == 0 {
+		return
+	}
+
+	if i.Pipeline == "" {
+		i.Pipeline = inputName
+	}
+
+	opt := &tailer.Option{
+		Source:     inputName,
+		Service:    inputName,
+		Pipeline:   i.Pipeline,
+		GlobalTags: i.Tags,
+	}
+
+	var err error
+	i.tail, err = tailer.NewTailer(i.LogFiles, opt)
+	if err != nil {
+		l.Errorf("new tailer error: %v", err)
+		return
+	}
+	l.Info("tailer start, logFile=%+v", i.LogFiles)
+	go i.tail.Start()
+}
+
+//nolint:lll
+func (i *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"tdengine log 204": `08/22 13:44:34.290731 01081508 TAOS_ADAPTER info "| 204 |    1.641678ms |     172.16.5.29 | POST | /influxdb/v1/write?db=biz_ufssescxoxnuyzeypouezr_7d " model=web sessionID=48847`,
+			"tdengine log 200": `08/22 13:44:41.108850 01081508 TAOS_ADAPTER info "| 200 |     2.45708ms |     172.16.5.29 | POST | /rest/sqlutc " model=web sessionID=48848`,
+		},
+	}
+}
+
+func (i *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				return i.Pipeline
+			}(),
+		},
+	}
+}
+
 func (i *Input) exit() {
 	i.tdengine.Stop()
+	if i.tail != nil {
+		// stop log 采集
+		l.Info("stop tailer")
+		i.tail.Close()
+	}
 }
 
 func (i *Input) Pause() error {
@@ -120,6 +207,7 @@ func (i *Input) Run() {
 	i.tdengine = newTDEngine(i.User, i.Password, i.AdapterEndpoint, i.Election)
 
 	globalTags = i.Tags
+
 	// 1 checkHealth: show databases
 	if !i.tdengine.CheckHealth(checkHealthSQL) {
 		return
