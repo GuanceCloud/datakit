@@ -217,7 +217,7 @@ func (t *tdEngine) getDatabase() []*database {
 func query(url string, basicAuth, token string, reqBody []byte) ([]byte, error) {
 	var reqBodyBuffer io.Reader = bytes.NewBuffer(reqBody)
 
-	sqlUtcURL := url + "/rest/sqlutc"
+	sqlUtcURL := url + "/rest/sql"
 	if token != "" {
 		sqlUtcURL = sqlUtcURL + "?token=" + token
 	}
@@ -232,19 +232,19 @@ func query(url string, basicAuth, token string, reqBody []byte) ([]byte, error) 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		l.Error("query "+url+"/rest/sqlutc error: %v", err)
+		l.Errorf("query "+url+"/rest/sql error: %v", err)
 		return []byte{}, err
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		l.Error("when writing to [] received status code: %d", resp.StatusCode)
+		l.Errorf("when writing to [%s] received status code: %d", string(reqBody), resp.StatusCode)
 		return []byte{}, fmt.Errorf("when writing to [] received status code: %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		l.Error("when writing to [] received error: %v", err)
+		l.Errorf("when writing to [] received error: %v", err)
 		return []byte{}, fmt.Errorf("when writing to [] received error: %w", err)
 	}
 	return body, nil
