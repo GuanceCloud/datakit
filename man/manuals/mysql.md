@@ -94,20 +94,20 @@ binlog 开启，参见[这个问答](https://stackoverflow.com/questions/4068238
 ```toml
 [[inputs.mysql]]
 
-## 开启数据库性能指标采集
+# 开启数据库性能指标采集
 dbm = true
 
 ...
 
-## 监控指标配置
+# 监控指标配置
 [inputs.mysql.dbm_metric]
   enabled = true
 
-## 监控采样配置
+# 监控采样配置
 [inputs.mysql.dbm_sample]
   enabled = true
 
-## 等待事件采集
+# 等待事件采集
 [inputs.mysql.dbm_activity]
   enabled = true   
 ...

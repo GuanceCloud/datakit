@@ -65,7 +65,6 @@ nav:
     - '云原生':
       - '容器数据采集': container.md
       - k8s-config-how-to.md
-      - datakit-daemonset-bp.md
       - kubernetes-crd.md
       - logfwd.md
       - kubernetes-prom.md

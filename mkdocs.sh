@@ -115,7 +115,6 @@ datakit_docs=(
   $tmp_doc_dir/container.md
   $tmp_doc_dir/coredns.md
   $tmp_doc_dir/cpu.md
-  $tmp_doc_dir/datakit-daemonset-bp.md
   $tmp_doc_dir/datakit-logging-how.md
   $tmp_doc_dir/datakit-logging.md
   $tmp_doc_dir/datakit-tracing-struct.md
