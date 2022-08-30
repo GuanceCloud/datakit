@@ -10,11 +10,14 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 ## 接入方式 {#supported-platforms}
 
-- [Web 端](../integrations/rum-web-h5.md)
-- [微信小程序](../integrations/rum-miniapp.md)
-- [Android](../integrations/rum-android.md)
-- [iOS](../integrations/rum-ios.md)
-- [Flutter](../real-user-monitoring/third-party-framework/flutter/app-access.md)
+<div class="grid cards" markdown>
+- :material-web: [__JavaScritp__](../real-user-monitoring/web/app-access.md)
+- :material-wechat: [__微信小程序__](../real-user-monitoring/miniapp/app-access/index.md)
+- :material-android: [__Android__](../real-user-monitoring/android/app-access.md)
+- :material-apple-ios: [__iOS__](../real-user-monitoring/ios/app-access.md)
+- [__Flutter__](../real-user-monitoring/third-party-framework/flutter/app-access.md)
+- :material-react:[__ReactNative__](../real-user-monitoring/third-party-framework/react-native/app-access.md)
+</div>
 
 ## 前置条件 {#requirements}
 
@@ -99,7 +102,7 @@ RUM 采集器默认会采集如下几个指标集：
 
 DataKit 支持这种源代码文件信息的映射，方法是将对应符号表文件进行 zip 压缩打包，命名格式为 `<app_id>-<env>-<version>.zip`，上传至`<DataKit安装目录>/data/rum/<platform>`，这样就可以对上报的`error`指标集数据自动进行转换，并追加 `error_stack_source` 字段至该指标集中。
 
-**安装sourcemap工具集**
+### 安装 sourcemap 工具集 {#install-tools}
 
 首先需要安装相应的符号还原工具，datakit 提供了一键安装命令来简化工具的安装：
 
@@ -110,7 +113,7 @@ sudo datakit install --symbol-tools
 如果安装过程中出现某个软件安装失败的情况，你可能需要根据错误提示手动安装对应的软件
 
 
-**zip包打包说明** 
+### Zip 包打包说明 {#zip}
 
 === "Web"
 
@@ -269,19 +272,19 @@ sudo datakit install --symbol-tools
     
     ```
 
-**文件上传和删除**
+### 文件上传和删除 {#upload-delete}
 
 打包完成后，除了手动拷贝至 DataKit 相关目录，还可通过 http 接口上传和删除该文件，前提是 Datakit 开启了 DCA 服务。
 
 上传：
 
-```
+```shell
 curl -X POST '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>' -F "file=@<sourcemap_path>" -H "Content-Type: multipart/form-data"
 ```
 
 删除：
 
-```
+```shell
 curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>'
 ```
 
@@ -294,9 +297,9 @@ curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version
 - `<platform>` 应用平台，当前支持 `web`/ `android` / `ios`
 - `<sourcemap_path>`: 待上传的`sourcemap` 压缩包文件路径
 
-**注意：**
+???+ attention
 
-- 该转换过程，只针对 `error` 指标集。
-- 当前只支持 `Javascript`/`Android`/`iOS` 的 `sourcemap` 转换。
-- 如果未找到对应的 `sourcemap` 文件，将不进行转换。
-- 通过接口上传的 `sourcemap` 压缩包，不需要重启 DataKit 即可生效，但如果是手动上传，需要重启 DataKit，方可生效。
+    - 该转换过程，只针对 `error` 指标集
+    - 当前只支持 Javascript/Android/iOS 的 sourcemap 转换
+    - 如果未找到对应的 sourcemap 文件，将不进行转换
+    - 通过接口上传的 sourcemap 压缩包，不需要重启 DataKit 即可生效。但如果是手动上传，需要重启 DataKit，方可生效

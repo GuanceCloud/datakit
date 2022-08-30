@@ -26,7 +26,6 @@ var OtherDocs = map[string]bool{
 	"datakit-conf":             true,
 	"datakit-input-conf":       true,
 	"datakit-daemonset-deploy": true,
-	"datakit-daemonset-bp":     true,
 	"datakit-dql-how-to":       true,
 	"datakit-filter":           true,
 	"datakit-logging-how":      true,
