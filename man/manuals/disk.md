@@ -12,17 +12,23 @@ disk 采集器用于主机磁盘信息采集，如磁盘存储空间、inodes �
 
 暂无
 
+
 ## 配置 {#config}
 
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
-    
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
 
     配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+
+---
+
+???+ attention
+
+    fs 和 mountpoint 是双重过滤，若想只通过 mountpoint 过滤数据，则需要关闭 fs 的两个配置。
 
 === "Kubernetes"
 
