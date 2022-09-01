@@ -70,6 +70,7 @@ type ExternalInput struct {
 
 	semStop        *cliutils.Sem // start stop signal
 	semStopProcess *cliutils.Sem
+	procExitReply  chan struct{}
 
 	daemonStarted bool
 
@@ -196,7 +197,7 @@ func (ex *ExternalInput) Run() {
 				l.Infof("%s paused", ex.Name)
 				if ex.Daemon && ex.daemonStarted { // stop the daemon running process
 					ex.semStopProcess.Close() // trigger the daemon process exit
-
+					<-ex.procExitReply        // sync with goroutine monitoring external input process
 					ex.daemonStarted = false
 					ex.semStopProcess = cliutils.NewSem() // reopen the sem
 				}
@@ -223,11 +224,14 @@ func (ex *ExternalInput) daemonRun() {
 		break
 	}
 
-	go func(process *os.Process, name string, semStopProcess *cliutils.Sem) {
+	ex.procExitReply = make(chan struct{})
+
+	go func(process *os.Process, name string, semStopProcess *cliutils.Sem, procExitReply chan struct{}) {
 		if err := datakit.MonitProc(process, name, semStopProcess); err != nil { // blocking here...
 			l.Errorf("datakit.MonitProc: %s", err.Error())
 		}
-	}(ex.cmd.Process, ex.Name, ex.semStopProcess)
+		close(procExitReply)
+	}(ex.cmd.Process, ex.Name, ex.semStopProcess, ex.procExitReply)
 
 	// We must not modify ex.cmd.Process.Pid beyong this point,
 	// because pid is needed by MonitProc to kill the process when signaled.
