@@ -149,7 +149,6 @@ datakit_docs=(
   $tmp_doc_dir/kafka.md
   $tmp_doc_dir/kubernetes-crd.md
   $tmp_doc_dir/kubernetes-prom.md
-  $tmp_doc_dir/kubernetes-x.md
   $tmp_doc_dir/logfwd.md
   $tmp_doc_dir/logfwdserver.md
   $tmp_doc_dir/logging.md
