@@ -8,9 +8,13 @@
 package opentelemetry
 
 import (
+	"errors"
+	"fmt"
 	"strings"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkHTTP "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -74,8 +78,15 @@ const (
     # buffer = 100
     # threads = 8
 
+  ## Storage config a local storage space in hard dirver to cache trace data.
+  ## path is the local file path used to cache data.
+  ## capacity is total space size(MB) used to store data.
+  # [inputs.opentelemetry.storage]
+    # path = "./opentelemetry_storage"
+    # capacity = 5120
+
   [inputs.opentelemetry.expectedHeaders]
-    ## 如有header配置 则请求中必须要携带 否则返回状态码500
+  # 如有header配置 则请求中必须要携带 否则返回状态码500
   ## 可作为安全检测使用,必须全部小写
   # ex_version = xxx
   # ex_name = xxx
@@ -84,13 +95,13 @@ const (
   ## grpc
   [inputs.opentelemetry.grpc]
   ## trace for grpc
-  trace_enable = false
+  trace_enable = true
 
   ## metric for grpc
-  metric_enable = false
+  metric_enable = true
 
   ## grpc listen addr
-  addr = "127.0.0.1:9550"
+  addr = "127.0.0.1:4317"
 
   ## http
   [inputs.opentelemetry.http]
@@ -106,21 +117,25 @@ const (
 )
 
 var (
-	log     = logger.DefaultSLogger(inputName)
-	sampler *itrace.Sampler
-	wpool   workerpool.WorkerPool
+	log         = logger.DefaultSLogger(inputName)
+	spanStorage *collector.SpansStorage
+	afterGather *itrace.AfterGather
+	wpool       workerpool.WorkerPool
+	storage     *itrace.Storage
 )
 
 type Input struct {
 	Pipelines           map[string]string            `toml:"pipelines"` // deprecated
-	Ogrpc               *otlpGrpcCollector           `toml:"grpc"`
-	OHTTPc              *otlpHTTPCollector           `toml:"http"`
+	GRPCCol             *otlpGrpcCollector           `toml:"grpc"`
+	HTTPCol             *otlpHTTPCollector           `toml:"http"`
+	KeepRareResource    bool                         `toml:"keep_rare_resource"`
 	CloseResource       map[string][]string          `toml:"close_resource"`
 	OmitErrStatus       []string                     `toml:"omit_err_status"`
 	Sampler             *itrace.Sampler              `toml:"sampler"`
 	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"`
 	Tags                map[string]string            `toml:"tags"`
 	WPConfig            *workerpool.WorkerPoolConfig `toml:"threads"`
+	Storage             *itrace.Storage              `toml:"storage"`
 	ExpectedHeaders     map[string]string            `toml:"expectedHeaders"`
 	inputName           string
 	semStop             *cliutils.Sem // start stop signal
@@ -145,6 +160,54 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(ipt.inputName)
 
+	if ipt.Storage != nil {
+		if cache, err := cache.Open(ipt.Storage.Path, &cache.Option{Capacity: int64(ipt.Storage.Capacity) << 20}); err != nil {
+			log.Errorf("### open cache %s with cap %dMB failed, cache.Open: %s", ipt.Storage.Path, ipt.Storage.Capacity, err)
+		} else {
+			ipt.Storage.SetCache(cache)
+			ipt.Storage.RunStorageConsumer(log, ipt.parseOtelTraceFanout)
+			storage = ipt.Storage
+			log.Infof("### open cache %s with cap %dMB OK", ipt.Storage.Path, ipt.Storage.Capacity)
+		}
+	}
+
+	if storage == nil {
+		afterGather = itrace.NewAfterGather()
+	} else {
+		afterGather = itrace.NewAfterGather(itrace.WithRetry(100 * time.Millisecond))
+	}
+
+	// add filters: the order of appending filters into AfterGather is important!!!
+	// the order of appending represents the order of that filter executes.
+	// add close resource filter
+	if len(ipt.CloseResource) != 0 {
+		closeResource := &itrace.CloseResource{}
+		closeResource.UpdateIgnResList(ipt.CloseResource)
+		afterGather.AppendFilter(closeResource.Close)
+	}
+	// add error status penetration
+	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
+	// add rare resource keeper
+	if ipt.KeepRareResource {
+		keepRareResource := &itrace.KeepRareResource{}
+		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
+		afterGather.AppendFilter(keepRareResource.Keep)
+	}
+	// add sampler
+	var sampler *itrace.Sampler
+	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
+		sampler = ipt.Sampler
+	} else {
+		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
+	}
+	afterGather.AppendFilter(sampler.Sample)
+
+	spanStorage = collector.NewSpansStorage(afterGather)
+	spanStorage.GlobalTags = ipt.Tags
+	if len(ipt.IgnoreAttributeKeys) > 0 {
+		spanStorage.RegexpString = strings.Join(ipt.IgnoreAttributeKeys, "|")
+	}
+
 	if ipt.WPConfig != nil {
 		wpool = workerpool.NewWorkerPool(ipt.WPConfig.Buffer)
 		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
@@ -155,57 +218,26 @@ func (ipt *Input) RegHTTPHandler() {
 
 	log.Debugf("### register handler for /otel/v1/trace of agent %s", inputName)
 	log.Debugf("### register handler for /otel/v1/metric of agent %s", inputName)
-	dkHTTP.RegHTTPHandler("POST", "/otel/v1/trace", ipt.OHTTPc.apiOtlpTrace)
-	dkHTTP.RegHTTPHandler("POST", "/otel/v1/metric", ipt.OHTTPc.apiOtlpMetric)
+	dkHTTP.RegHTTPHandler("POST", "/otel/v1/trace", ipt.HTTPCol.apiOtlpTrace)
+	dkHTTP.RegHTTPHandler("POST", "/otel/v1/metric", ipt.HTTPCol.apiOtlpMetric)
 }
 
 func (ipt *Input) Run() {
-	storage := collector.NewSpansStorage()
-	// add filters: the order of appending filters into AfterGather is important!!!
-	// the order of appending represents the order of that filter executes.
-	// add close resource filter
-	if len(ipt.CloseResource) != 0 {
-		closeResource := &itrace.CloseResource{}
-		closeResource.UpdateIgnResList(ipt.CloseResource)
-		storage.AfterGather.AppendFilter(closeResource.Close)
-	}
-	// add error status penetration
-	storage.AfterGather.AppendFilter(itrace.PenetrateErrorTracing)
-	// add omit certain error status list
-	if len(ipt.OmitErrStatus) != 0 {
-		storage.AfterGather.AppendFilter(itrace.OmitStatusCodeFilterWrapper(ipt.OmitErrStatus))
-	}
-	// add sampler
-	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
-		sampler = ipt.Sampler
-	} else {
-		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
-	}
-	storage.AfterGather.AppendFilter(sampler.Sample)
-
-	storage.GlobalTags = ipt.Tags
-
-	if len(ipt.IgnoreAttributeKeys) > 0 {
-		storage.RegexpString = strings.Join(ipt.IgnoreAttributeKeys, "|")
-	}
-
 	open := false
 	// 从配置文件 开启
-	if ipt.OHTTPc.Enable {
+	if ipt.HTTPCol.Enable {
 		// add option
-		ipt.OHTTPc.storage = storage
-		ipt.OHTTPc.ExpectedHeaders = ipt.ExpectedHeaders
+		ipt.HTTPCol.spanStorage = spanStorage
+		ipt.HTTPCol.ExpectedHeaders = ipt.ExpectedHeaders
 		open = true
 	}
-	if ipt.Ogrpc.TraceEnable || ipt.Ogrpc.MetricEnable {
+	if ipt.GRPCCol.TraceEnable || ipt.GRPCCol.MetricEnable {
 		open = true
-		ipt.Ogrpc.ExpectedHeaders = ipt.ExpectedHeaders
-		go ipt.Ogrpc.run(storage)
+		ipt.GRPCCol.ExpectedHeaders = ipt.ExpectedHeaders
+		go ipt.GRPCCol.run(spanStorage)
 	}
 	if open {
-		// add calculators
-		// storage.AfterGather.AppendCalculator(itrace.StatTracingInfo)
-		go storage.Run()
+		go spanStorage.Run()
 		for {
 			select {
 			case <-datakit.Exit.Wait():
@@ -226,7 +258,7 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) exit() {
-	ipt.Ogrpc.stop()
+	ipt.GRPCCol.stop()
 }
 
 func (ipt *Input) Terminate() {
@@ -235,7 +267,28 @@ func (ipt *Input) Terminate() {
 	}
 	if wpool != nil {
 		wpool.Shutdown()
-		log.Debugf("### workerpool in %s is shudown", inputName)
+		log.Debug("### workerpool closed")
+	}
+	if storage != nil {
+		if err := storage.Close(); err != nil {
+			log.Error(err.Error())
+		}
+		log.Debugf("### storage closed")
+	}
+}
+
+func (ipt *Input) parseOtelTraceFanout(param *itrace.TraceParameters) error {
+	if param == nil || param.Meta == nil {
+		return errors.New("invalid parameters")
+	}
+
+	switch param.Meta.Protocol {
+	case "http":
+		return ipt.HTTPCol.parseOtelTrace(param)
+	case "grpc":
+		return parseOtelTraceGRPC(spanStorage, param)
+	default:
+		return fmt.Errorf("invalid protocol: %s", param.Meta.Protocol)
 	}
 }
 

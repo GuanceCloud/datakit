@@ -29,22 +29,15 @@ const (
 
 // handler collector.
 type otlpHTTPCollector struct {
-	storage         *collector.SpansStorage
+	spanStorage     *collector.SpansStorage
 	Enable          bool              `toml:"enable"`
 	HTTPStatusOK    int               `toml:"http_status_ok"`
 	ExpectedHeaders map[string]string // 用于检测是否包含特定的 header
 }
 
-type parameters struct {
-	urlPath string
-	media   string
-	buf     []byte
-	storage *collector.SpansStorage
-}
-
 // apiOtlpCollector :trace.
 func (o *otlpHTTPCollector) apiOtlpTrace(resp http.ResponseWriter, req *http.Request) {
-	if o.storage == nil {
+	if o.spanStorage == nil {
 		log.Error("storage is nil")
 		resp.WriteHeader(http.StatusInternalServerError)
 
@@ -75,26 +68,37 @@ func (o *otlpHTTPCollector) apiOtlpTrace(resp http.ResponseWriter, req *http.Req
 		return
 	}
 
-	param := &parameters{
-		urlPath: req.URL.Path,
-		media:   media,
-		buf:     buf,
-		storage: o.storage,
+	param := &itrace.TraceParameters{
+		Meta: &itrace.TraceMeta{
+			Protocol: "http",
+			UrlPath:  req.URL.Path,
+			Media:    media,
+			Buf:      buf,
+		},
 	}
 
 	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %dkb, read-body-cost: %dms",
 		req.URL.Path, media, encode, len(buf)>>10, time.Since(readbodycost)/time.Millisecond)
 
 	if wpool == nil {
-		if err = parseOtelTrace(param); err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusBadRequest)
+		if storage == nil {
+			if err = o.parseOtelTrace(param); err != nil {
+				log.Error(err.Error())
+				resp.WriteHeader(http.StatusBadRequest)
 
-			return
+				return
+			}
+		} else {
+			if err := storage.Send(param); err != nil {
+				log.Error(err.Error())
+				resp.WriteHeader(http.StatusBadRequest)
+
+				return
+			}
 		}
 	} else {
 		job, err := workerpool.NewJob(workerpool.WithInput(param),
-			workerpool.WithProcess(parseOtelTraceAdapter),
+			workerpool.WithProcess(o.parseOtelTraceAdapter),
 			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
 				log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
 			}),
@@ -114,33 +118,37 @@ func (o *otlpHTTPCollector) apiOtlpTrace(resp http.ResponseWriter, req *http.Req
 		}
 	}
 
-	writeReply(resp, rawResponse, o.HTTPStatusOK, param.media, nil)
+	writeReply(resp, rawResponse, o.HTTPStatusOK, param.Meta.Media, nil)
 }
 
-func parseOtelTraceAdapter(input interface{}) (output interface{}) {
-	param, ok := input.(*parameters)
+func (o *otlpHTTPCollector) parseOtelTraceAdapter(input interface{}) (output interface{}) {
+	param, ok := input.(*itrace.TraceParameters)
 	if !ok {
 		return errors.New("type assertion failed")
 	}
 
-	return parseOtelTrace(param)
+	if storage == nil {
+		return o.parseOtelTrace(param)
+	} else {
+		return storage.Send(param)
+	}
 }
 
-func parseOtelTrace(param *parameters) error {
-	request, err := unmarshalTraceRequest(param.buf, param.media)
+func (o *otlpHTTPCollector) parseOtelTrace(param *itrace.TraceParameters) error {
+	request, err := unmarshalTraceRequest(param.Meta.Buf, param.Meta.Media)
 	if err != nil {
 		return err
 	}
 
-	if len(request.ResourceSpans) != 0 && param.storage != nil {
-		param.storage.AddSpans(request.ResourceSpans)
+	if len(request.ResourceSpans) != 0 {
+		o.spanStorage.AddSpans(request.ResourceSpans)
 	}
 
 	return nil
 }
 
 func (o *otlpHTTPCollector) apiOtlpMetric(resp http.ResponseWriter, req *http.Request) {
-	if o.storage == nil {
+	if o.spanStorage == nil {
 		log.Error("storage is nil")
 		resp.WriteHeader(http.StatusInternalServerError)
 
@@ -174,8 +182,8 @@ func (o *otlpHTTPCollector) apiOtlpMetric(resp http.ResponseWriter, req *http.Re
 
 	writeReply(resp, rawResponse, o.HTTPStatusOK, media, nil)
 
-	orms := o.storage.ToDatakitMetric(request.ResourceMetrics)
-	o.storage.AddMetric(orms)
+	orms := o.spanStorage.ToDatakitMetric(request.ResourceMetrics)
+	o.spanStorage.AddMetric(orms)
 }
 
 func (o *otlpHTTPCollector) checkHeaders(req *http.Request) bool {

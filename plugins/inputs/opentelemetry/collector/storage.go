@@ -11,7 +11,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
@@ -25,12 +25,12 @@ var (
 
 // SpansStorage stores the spans.
 type SpansStorage struct {
-	AfterGather  *DKtrace.AfterGather
+	AfterGather  *itrace.AfterGather
 	RegexpString string
 	CustomerTags []string
 	GlobalTags   map[string]string
 	traceMu      sync.Mutex
-	rsm          DKtrace.DatakitTraces
+	rsm          itrace.DatakitTraces
 	metricMu     sync.Mutex
 	otelMetrics  []*OtelResourceMetric
 	Count        int
@@ -39,11 +39,12 @@ type SpansStorage struct {
 }
 
 // NewSpansStorage creates a new spans storage.
-func NewSpansStorage() *SpansStorage {
+func NewSpansStorage(afaterGather *itrace.AfterGather) *SpansStorage {
 	l = logger.SLogger(inputName)
+
 	return &SpansStorage{
-		AfterGather: DKtrace.NewAfterGather(),
-		rsm:         make(DKtrace.DatakitTraces, 0),
+		AfterGather: afaterGather,
+		rsm:         make(itrace.DatakitTraces, 0),
 		otelMetrics: make([]*OtelResourceMetric, 0),
 		max:         make(chan int, 1),
 		stop:        make(chan struct{}, 1),
@@ -75,10 +76,10 @@ func (s *SpansStorage) AddMetric(rss []*OtelResourceMetric) {
 }
 
 // GetDKTrace  returns the stored resource spans.
-func (s *SpansStorage) GetDKTrace() DKtrace.DatakitTraces {
+func (s *SpansStorage) GetDKTrace() itrace.DatakitTraces {
 	s.traceMu.Lock()
 	defer s.traceMu.Unlock()
-	rss := make(DKtrace.DatakitTraces, 0, len(s.rsm))
+	rss := make(itrace.DatakitTraces, 0, len(s.rsm))
 	rss = append(rss, s.rsm...)
 	s.rsm = s.rsm[:0]
 
