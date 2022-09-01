@@ -140,7 +140,7 @@ func TestUpgradeMainConfig(t *testing.T) {
 
 			expect: func() *config.Config {
 				c := config.DefaultConfig()
-				c.IOConf.MaxCacheCount = 10
+				c.IOConf.MaxCacheCount = 1000 // auto reset to 10000
 				c.IOConf.OutputFile = "/some/messy/file"
 				c.IOConf.FlushInterval = "100s"
 
