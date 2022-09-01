@@ -18,9 +18,13 @@
 - 在各类 Trace 上加上的磁盘缓存功能(#1023)
 - DataKit 自身指标集增加 goroutine 使用有关的指标集（`datakit_goroutine`）(#1039)
 - MySQL 采集器增加 `mysql_dbm_activity` 指标集(#1047)
-- 增加 netstat 采集器(#1051)
+- 增加 [netstat 采集器](netstat.md)(#1051)
 - TDEngine 增加日志采集(#1057/#1076)
 - 优化磁盘采集器中的 fstype 过滤，默认只采集常见的文件系统（#1063/#1066）
+- 日志采集器中，针对每条日志，增加字段 `message_length` 表示当前日志长度，便于通过长度来过滤日志(#1086)
+- CRD 支持通过 Daemonset 来定位 Pod 范围(#1064)
+- eBPF 移除 go-bindata 依赖（#1062）
+- 容器采集器中默认会打开 [k8s 和容器相关的指标](container.md#metrics)，这在一定程度上会消耗额外的时间线（#1095）
 
 #### Buf 修复 {#cl-1.4.13-bugfix}
 
@@ -32,10 +36,12 @@
 
 ### Breaking changes {#cl-1.4.13-br}
 
-- Gitlab 以及 Jinkens 采集器部分时间有关字段做了调整，以统一前端页面的数据展示效果
+- Gitlab 以及 Jinkens 采集器中，CI/CD 数据有关的时间字段做了调整，以统一前端页面的数据展示效果(#1089)
 
-### 文档调整 {#cl-1.4.12-doc} {#cl-1.4.13-docs}
+### 文档调整 {#cl-1.4.13-docs}
 
+- 几乎每个章节都增加了跳转标签，便于其它文档永久性引用
+- pythond 文档已转移到开发者目录
 - 采集器文档从原来「集成」挪到 「DataKit」文档库(#1060)
 
 <figure markdown>
@@ -59,9 +65,6 @@
 <figure markdown>
   ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.12-doc-header.gif){ width="800" }
 </figure>
-
-- 几乎每个章节都增加了跳转标签，便于其它文档永久性引用
-- pythond 文档已转移到开发者目录
 
 ---
 
