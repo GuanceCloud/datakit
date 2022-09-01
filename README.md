@@ -97,7 +97,6 @@ export PATH=$GOROOT/bin:~/go/bin:$PATH
 - eBPF related:
 	- clang 10.0+: `apt-get install clang`
 	- llvm 10.0+: `apt-get install llvm`
-	- `apt install go-bindata`
 	- kernel headers
 		- apt: `apt-get install -y linux-headers-$(uname -r)`
 - Documentation exporting:
