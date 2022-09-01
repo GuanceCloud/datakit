@@ -30,7 +30,8 @@
 将以下内容写入 yaml 配置，例如 `datakit-crd.yaml`，其中各个字段的含义如下：
 
 - `k8sNamespace`：指定 namespace，配合 deployment 定位一个集合的 Pod，必填项
-- `k8sDeployment`：指定 deployment 名称，配合 namespace 定位一个集合的 Pod，必填项
+- `k8sDaemonSet`：指定 daemonset 名称，配合 namespace 定位一个集合的 Pod
+- `k8sDeployment`：指定 deployment 名称，配合 namespace 定位一个集合的 Pod
 - `inputConf`：采集器配置文件，依据 namespace 和 deployment 找到对应的 Pod，替换 Pod 的通配符信息，再根据 inputConf 内容运行采集器。支持以下通配符
   - `$IP`：Pod 的内网 IP
   - `$NAMESPACE`：Pod Namespace
@@ -39,6 +40,10 @@
 - `datakit/logs`：日志配置，用以指定 Pod 日志的相关配置，和容器的 Annotations 用法相同，[详见](container.md#logging-with-annotation-or-label)。优先级低于 Pod Annotations datakit/logs 配置
 
 **注意，Datakit 只采集和它处于同一个 node 的 Pod，属于就近采集，不会跨 node 采集。**
+
+!!! note inline
+
+  DaemonSet 和 Deployment 是两种不同的 Kubernetes resource，但在此处，`k8sDaemonSet` 和 `k8sDeployment` 是可以同时存在的。即在同一个 Namespace 下，DaemonSet 创建的 Pod 和 Deployment 创建的 Pod 共用同一份 CRD 配置。但是不推荐这样做，因为在具体配置中会有类似 `source` 这种字段用来标识数据源，混用会导致数据界线不够清晰。建议在同一份 CRD 配置中 `k8sDaemonSet` 和 `k8sDeployment` 只存在一个。
 
 执行 `kubectl apply -f datakit-crd.yaml` 命令。
 
@@ -76,6 +81,8 @@ spec:
                     properties:
                       k8sNamespace:
                         type: string
+                      k8sDaemonSet:
+                        type: string
                       k8sDeployment:
                         type: string
                       datakit/logs:
@@ -103,7 +110,7 @@ metadata:
 spec:
   instances:
     - k8sNamespace: "testing-namespace"
-      k8sDeployment: "testing-deployment"
+      k8sDaemonSet: "testing-daemonset"
       inputConf: |
         [inputs.prom]
           url="http://prom"
@@ -207,22 +214,23 @@ metadata:
   name: prom-ingress
   namespace: datakit
 spec:
-  k8sDeployment: ingress-nginx-controller
-  k8sNamespace: ingress-nginx
-  inputConf: |-
-    [[inputs.prom]]
-      url = "http://$IP:10254/metrics"
-      source = "prom-ingress"
-      metric_types = ["counter", "gauge", "histogram"]
-      measurement_name = "prom_ingress"
-      interval = "60s"
-      tags_ignore = ["build","le","method","release","repository"]
-      metric_name_filter = ["nginx_process_cpu_seconds_total","nginx_process_resident_memory_bytes","request_size_sum","response_size_sum","requests","success","config_last_reload_successful"]
-    [[inputs.prom.measurements]]
-      prefix = "nginx_ingress_controller_"
-      name = "prom_ingress"
-    [inputs.prom.tags]
-      namespace = "$NAMESPACE"
+  instances:
+    - k8sNamespace: ingress-nginx
+      k8sDeployment: ingress-nginx-controller
+      inputConf: |-
+        [[inputs.prom]]
+          url = "http://$IP:10254/metrics"
+          source = "prom-ingress"
+          metric_types = ["counter", "gauge", "histogram"]
+          measurement_name = "prom_ingress"
+          interval = "60s"
+          tags_ignore = ["build","le","method","release","repository"]
+          metric_name_filter = ["nginx_process_cpu_seconds_total","nginx_process_resident_memory_bytes","request_size_sum","response_size_sum","requests","success","config_last_reload_successful"]
+        [[inputs.prom.measurements]]
+          prefix = "nginx_ingress_controller_"
+          name = "prom_ingress"
+        [inputs.prom.tags]
+          namespace = "$NAMESPACE"
 ```
 
 > !!! 注意`namespace` 可自定义，`k8sDeployment` 和 `k8sNamespace` 则必须准确

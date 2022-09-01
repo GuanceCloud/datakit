@@ -29,6 +29,7 @@ type DatakitSpec struct {
 
 type DatakitInstance struct {
 	K8sNamespace  string `json:"k8sNamespace"`
+	K8sDaemonSet  string `json:"k8sDaemonSet"`
 	K8sDeployment string `json:"k8sDeployment"`
 	LogsConf      string `json:"datakit/logs"`
 	InputConf     string `json:"inputConf"`
