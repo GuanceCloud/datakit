@@ -376,6 +376,14 @@ copyright_check:
 copyright_check_auto_fix:
 	@python3 copyright.py --fix
 
+md_lint:
+	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
+	@markdownlint man/manuals 2>&1 > md.lint
+	@if [ $$? != 0 ]; then \
+		cat md.lint; \
+		exit -1; \
+	fi
+
 # 要求所有文档的章节必须带上指定的标签（历史原因，先忽略 changelog.md）
 check_man:
 	@grep --color=always --exclude man/manuals/changelog.md -nr '^##' man/manuals/* | grep -vE ' {#' | grep -vE '{{' && \

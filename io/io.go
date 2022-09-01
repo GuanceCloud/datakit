@@ -32,8 +32,8 @@ var (
 type IOConfig struct {
 	FeedChanSize int `toml:"feed_chan_size"`
 
-	MaxCacheCount        int `toml:"max_cache_count"`
-	MaxDynamicCacheCount int `toml:"max_dynamic_cache_count,omitzero"`
+	MaxCacheCount                  int `toml:"max_cache_count"`
+	MaxDynamicCacheCountDeprecated int `toml:"max_dynamic_cache_count,omitzero"`
 
 	FlushInterval string `toml:"flush_interval"`
 
@@ -111,9 +111,17 @@ func (x *IO) cacheData(c *consumer, d *iodata, tryClean bool) {
 		c.pts = append(c.pts, d.pts...)
 	}
 
-	if (tryClean && x.conf.MaxCacheCount > 0 && len(c.pts) > x.conf.MaxCacheCount) ||
-		(x.conf.MaxDynamicCacheCount > 0 && len(c.dynamicDatawayPts) > x.conf.MaxDynamicCacheCount) {
+	if (tryClean &&
+		x.conf.MaxCacheCount > 0 &&
+		len(c.pts) > x.conf.MaxCacheCount) ||
+		len(c.dynamicDatawayPts) > 0 {
+		log.Debugf("on cache full(%d pts, %d dynamicDatawayPts) to flush %s...",
+			len(c.pts), len(c.dynamicDatawayPts), d.category)
+
 		x.flush(c)
+
+		// reset consumer flush ticker to prevent send small packages
+		c.flushTiker.Reset(x.flushInterval)
 	}
 }
 
@@ -155,14 +163,14 @@ type consumer struct {
 
 	category string
 
+	flushTiker *time.Ticker
+
 	pts               []*point.Point
+	lastFlush         time.Time
 	dynamicDatawayPts map[string][]*point.Point // 拨测数据
 }
 
 func (x *IO) runConsumer(category string) {
-	tick := time.NewTicker(x.flushInterval)
-	defer tick.Stop()
-
 	ch, ok := x.chans[category]
 	if !ok {
 		log.Panicf("invalid category %s, should not been here", category)
@@ -177,10 +185,13 @@ func (x *IO) runConsumer(category string) {
 
 	c := &consumer{
 		ch:                ch,
+		flushTiker:        time.NewTicker(x.flushInterval),
 		fc:                fc,
 		category:          category,
 		dynamicDatawayPts: map[string][]*point.Point{},
 	}
+
+	defer c.flushTiker.Stop()
 
 	switch category {
 	case datakit.Metric:
@@ -231,7 +242,9 @@ func (x *IO) runConsumer(category string) {
 		case d := <-ch:
 			x.cacheData(c, d, true)
 
-		case <-tick.C:
+		case <-c.flushTiker.C:
+			log.Debugf("on tick(%s) to flush %s(%d pts), last flush %s ago...",
+				x.flushInterval, category, len(c.pts), time.Since(c.lastFlush))
 			x.flush(c)
 
 		case <-walTick.C:
@@ -265,8 +278,7 @@ func (x *IO) updateLastErr(e *lastError) {
 }
 
 func (x *IO) flush(c *consumer) {
-	log.Debugf("try flush %d pts on %s", len(c.pts), c.category)
-
+	c.lastFlush = time.Now()
 	failed := 0
 	if n, err := x.doFlush(c.pts, c.category, c.fc); err != nil {
 		log.Errorf("post %d to %s failed: %s", len(c.pts), c.category, err)

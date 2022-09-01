@@ -280,9 +280,8 @@ func TestLoadEnv(t *testing.T) {
 			expect: func() *Config {
 				cfg := DefaultConfig()
 
-				cfg.IOConf.FeedChanSize = 123
+				cfg.IOConf.FeedChanSize = 1 // force reset to 1
 				cfg.IOConf.MaxCacheCount = 8192
-				cfg.IOConf.MaxDynamicCacheCount = 8192
 
 				cfg.IOConf.EnableCache = true
 				cfg.IOConf.CacheSizeGB = 8

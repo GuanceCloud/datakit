@@ -260,7 +260,7 @@ func (dw *DataWayDefault) Write(category string, pts []*point.Point) (*point.Fai
 		return nil, nil
 	}
 
-	bodies, err := dw.buildBody(pts, true)
+	bodies, err := dw.buildBody(pts)
 	if err != nil {
 		return nil, err
 	}
@@ -301,35 +301,37 @@ func (b *body) String() string {
 		b.gzon, b.idxRange, b.rawBufBytes, len(b.buf))
 }
 
-func (dw *DataWayDefault) buildBody(pts []*point.Point, isGzip bool) ([]*body, error) {
-	lines := [][]byte{}
-	curPartSize := 0
+func getBody(lines [][]byte, idxBegin, idxEnd, curPartSize int) (*body, error) {
+	body := &body{
+		buf:      bytes.Join(lines, seprator),
+		idxRange: [2]int{idxBegin, idxEnd},
+	}
 
-	getBody := func(lines [][]byte, idxBegin, idxEnd int) (*body, error) {
-		var (
-			body = &body{
-				buf:      bytes.Join(lines, seprator),
-				idxRange: [2]int{idxBegin, idxEnd},
-			}
-			err error
-		)
+	body.rawBufBytes = int64(len(body.buf))
 
-		body.rawBufBytes = int64(len(body.buf))
+	// TODO: Huge, only for tester, if go to production, comment this.
+	// log.Debugf("%v, lines to send: %s", dw.URLs, string(body.buf))
 
-		// TODO: Huge, only for tester, if go to production, comment this.
-		// log.Debugf("%v, lines to send: %s", dw.URLs, string(body.buf))
+	if curPartSize >= minGZSize {
+		gzbuf, err := datakit.GZip(body.buf)
+		if err != nil {
+			log.Errorf("gz: %s", err.Error())
 
-		if curPartSize >= minGZSize && isGzip {
-			if body.buf, err = datakit.GZip(body.buf); err != nil {
-				log.Errorf("gz: %s", err.Error())
-
-				return nil, err
-			}
+			return nil, err
+		} else {
+			log.Debugf("gzip %d/%d(ratio: %f) bytes, %d lines ok",
+				len(gzbuf), len(body.buf), float64(len(gzbuf))/float64(len(body.buf)), len(lines))
+			body.buf = gzbuf
 			body.gzon = true
 		}
-
-		return body, nil
 	}
+
+	return body, nil
+}
+
+func (dw *DataWayDefault) buildBody(pts []*point.Point) ([]*body, error) {
+	lines := [][]byte{}
+	curPartSize := 0
 
 	var bodies []*body
 
@@ -342,7 +344,7 @@ func (dw *DataWayDefault) buildBody(pts []*point.Point, isGzip bool) ([]*body, e
 		if uint64(curPartSize+len(lines)+len(ptbytes)) >= maxKodoPack {
 			log.Debugf("merge %d points as body", len(lines))
 
-			if body, err := getBody(lines, idxBegin, idx); err != nil {
+			if body, err := getBody(lines, idxBegin, idx, curPartSize); err != nil {
 				return nil, err
 			} else {
 				idxBegin = idx
@@ -359,7 +361,7 @@ func (dw *DataWayDefault) buildBody(pts []*point.Point, isGzip bool) ([]*body, e
 	}
 
 	if len(lines) > 0 { // 尾部 lines 单独打包一下
-		if body, err := getBody(lines, idxBegin, len(pts)); err != nil {
+		if body, err := getBody(lines, idxBegin, len(pts), curPartSize); err != nil {
 			return nil, err
 		} else {
 			return append(bodies, body), nil

@@ -378,9 +378,11 @@ func (c *Config) ApplyMainConfig() error {
 
 	// config default io
 	if c.IOConf != nil {
-		if c.IOConf.MaxCacheCount == 0 && c.IOCacheCountDeprecated != 0 {
-			c.IOConf.MaxCacheCount = c.IOCacheCountDeprecated
+		if c.IOConf.MaxCacheCount < 1000 {
+			l.Infof("reset io max cache count from %d to %d", c.IOConf.MaxCacheCount, 1000)
+			c.IOConf.MaxCacheCount = 1000
 		}
+
 		if c.IOConf.OutputFile == "" && c.OutputFileDeprecated != "" {
 			c.IOConf.OutputFile = c.OutputFileDeprecated
 		}

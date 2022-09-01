@@ -444,22 +444,6 @@ type ResponseJSON struct {
 	Success   bool        `json:"success"`
 }
 
-func sendError(c *gin.Context, err error) {
-	res := ResponseJSON{
-		Code:      500,
-		ErrorCode: "server.error",
-		ErrorMsg:  err.Error(),
-		Success:   false,
-	}
-	body, err := json.Marshal(res)
-	if err != nil {
-		c.Data(http.StatusInternalServerError, "text/html; charset=UTF-8", []byte("server error"))
-		return
-	}
-
-	c.Data(http.StatusInternalServerError, "application/json", body)
-}
-
 // StatInfo contains datakit stat info which not changes over time.
 type StatInfo struct {
 	EnabledInputs   map[string]*enabledInput  `json:"enabled_input_list"`
@@ -532,19 +516,18 @@ func getStatMetric() *StatMetric {
 	return metricStat
 }
 
-func apiGetDatakitStatsByType(c *gin.Context) {
+func apiGetDatakitStatsByType(w http.ResponseWriter, r *http.Request, x ...interface{}) (interface{}, error) {
 	var stat interface{}
 
-	statType := c.Param("type")
+	statType := r.URL.Query().Get("type")
 
-	if statType == "" {
-		statType = StatInfoType
-	}
-
-	if statType == StatInfoType {
-		stat = getStatInfo()
-	} else if statType == StatMetricType {
+	switch statType {
+	case StatMetricType:
 		stat = getStatMetric()
+	case StatInfoType:
+		stat = getStatInfo()
+	default:
+		stat = getStatInfo()
 	}
 
 	if stat == nil {
@@ -558,9 +541,8 @@ func apiGetDatakitStatsByType(c *gin.Context) {
 
 	body, err := json.MarshalIndent(stat, "", "    ")
 	if err != nil {
-		sendError(c, err)
-		return
+		return nil, err
 	}
 
-	c.Data(http.StatusOK, "application/json", body)
+	return body, nil
 }

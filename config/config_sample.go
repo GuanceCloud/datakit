@@ -101,19 +101,10 @@ ulimit = 64000
 ## io: io 配置
 #
 [io]
-  ## feed_chan_size: number, IO管道缓存大小
-  #
-  feed_chan_size = 128
-
   ## max_cache_count: number, 本地缓存最大值
   ## 此数值与 max_dynamic_cache_count 同时小于等于零将无限使用内存
   #
-  max_cache_count = 64
-
-  ## max_dynamic_cache_count: number, HTTP 缓存最大值
-  ## 此数值与 max_cache_count 同时小于等于零将无限使用内存
-  #
-  max_dynamic_cache_count = 64
+  max_cache_count = 1000
 
   ## flush_interval: string, 推送时间间隔
   #
@@ -123,7 +114,7 @@ ulimit = 64000
   #
   output_file = ""
 
-  ## output_file_inputs: list<string>, 输出到本地文件的采集器列表，值为空时则不进行过滤
+  ## output_file_inputs: list<string>, 输出到本地文件的采集器列表，值为空时所有采集到的数据都写入文件
   #
   output_file_inputs = []
 

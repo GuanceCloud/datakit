@@ -202,10 +202,6 @@ func page404(c *gin.Context) {
 func setupGinLogger() (gl io.Writer) {
 	gin.DisableConsoleColor()
 
-	if ginReleaseMode {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
 	// set gin logger
 	l.Infof("set gin log to %s", ginLog)
 	if ginLog == "stdout" {
@@ -241,7 +237,11 @@ func dkHTTPTimeout() gin.HandlerFunc {
 }
 
 func setupRouter() *gin.Engine {
-	uhttp.Init()
+	if ginReleaseMode {
+		l.Info("set gin in release mode")
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	router := gin.New()
 
 	// use whitelist config
@@ -271,19 +271,19 @@ func setupRouter() *gin.Engine {
 	applyHTTPRoute(router)
 
 	router.GET("/stats", rawHTTPWraper(reqLimiter, apiGetDatakitStats))
-	router.GET("/stats/:type", ginWraper(reqLimiter), apiGetDatakitStatsByType)
+	router.GET("/stats/:type", rawHTTPWraper(reqLimiter, apiGetDatakitStatsByType))
 	router.GET("/monitor", apiGetDatakitMonitor)
 	router.GET("/man", apiManualTOC)
 	router.GET("/man/:name", apiManual)
 	router.GET("/restart", apiRestart)
 
 	router.GET("/v1/workspace", apiWorkspace)
-	router.GET("/v1/ping", ginWraper(reqLimiter), apiPing)
+	router.GET("/v1/ping", rawHTTPWraper(reqLimiter, apiPing))
 	router.POST("/v1/lasterror", apiGetDatakitLastError)
 
 	router.POST("/v1/write/:category", rawHTTPWraper(reqLimiter, apiWrite, &apiWriteImpl{}))
 
-	router.POST("/v1/query/raw", ginWraper(reqLimiter), apiQueryRaw)
+	router.POST("/v1/query/raw", rawHTTPWraper(reqLimiter, apiQueryRaw))
 	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
 	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
 
