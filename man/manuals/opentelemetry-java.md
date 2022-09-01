@@ -63,10 +63,10 @@ java -javaagent:opentelemetry-javaagent-1.13.1.jar \
 cd <本机 tomcat 安装目录>
 cd bin
 vim catalina.sh
-## 添加在第二行
+# 添加在第二行
 CATALINA_OPTS="$CATALINA_OPTS -javaagent:PATH/TO/opentelemetry-javaagent.jar -Dotel.traces.exporter=otlp"; export CATALINA_OPTS
 
-## 重启Tomcat
+# 重启Tomcat
 ```
 
 在配置字段 `exporter.otlp.endpoint` 时，可以不用配置并使用默认值(localhost:4317)，因为 Datakit 与 Java 程序在一台主机上，默认的端口也是4317.
