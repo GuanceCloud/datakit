@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
+	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
@@ -30,7 +31,7 @@ func TestBuildBody(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			dw := &DataWayDefault{}
-			bodies, err := dw.buildBody(tc.pts, true)
+			bodies, err := dw.buildBody(tc.pts)
 			if err != nil {
 				t.Error(err)
 			}
@@ -46,7 +47,7 @@ func TestBuildBody(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			dw := &DataWayDefault{}
-			bodies, err := dw.buildBody(tc.pts, false)
+			bodies, err := dw.buildBody(tc.pts)
 			if err != nil {
 				t.Error(err)
 			}
@@ -54,6 +55,14 @@ func TestBuildBody(t *testing.T) {
 			t.Logf("get %d bodies", len(bodies))
 			for _, b := range bodies {
 				t.Logf("body: %s", b)
+
+				if b.gzon {
+					x, err := uhttp.Unzip(b.buf)
+					if err != nil {
+						assert.NoError(t, err)
+					}
+					b.buf = x
+				}
 
 				if pts, err := lp.ParsePoints(b.buf, nil); err != nil {
 					t.Error(err)
@@ -87,7 +96,7 @@ func BenchmarkBuildBody(b *testing.B) {
 		b.Run(tc.name, func(t *testing.B) {
 			for i := 0; i < b.N; i++ {
 				dw := &DataWayDefault{}
-				_, err := dw.buildBody(tc.pts, true)
+				_, err := dw.buildBody(tc.pts)
 				if err != nil {
 					t.Error(err)
 				}

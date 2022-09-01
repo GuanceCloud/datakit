@@ -99,19 +99,12 @@ func (c *Config) loadIOEnvs() {
 		if err != nil {
 			l.Warnf("invalid env key ENV_IO_MAX_CACHE_COUNT, value %s, ignored", v)
 		} else {
-			l.Infof("set cache count to %d", val)
-			c.IOConf.MaxCacheCount = int(val)
-			c.IOConf.MaxDynamicCacheCount = int(val)
-		}
-	}
-
-	if v := datakit.GetEnv("ENV_IO_QUEUE_SIZE"); v != "" {
-		val, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			l.Warnf("invalid env key ENV_IO_QUEUE_SIZE, value %s, ignored", v)
-		} else {
-			l.Infof("set io queue size to %d", val)
-			c.IOConf.FeedChanSize = int(val)
+			if val < 1000 {
+				l.Warnf("reset cache count from %d to %d", val, 1000)
+			} else {
+				l.Infof("set cache count to %d", val)
+				c.IOConf.MaxCacheCount = int(val)
+			}
 		}
 	}
 

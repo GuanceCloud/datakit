@@ -192,7 +192,7 @@ func (i *Input) stop() {
 func (i *Input) collectObject() {
 	timeNow := time.Now()
 	defer func() {
-		l.Debug("collect object, cost %s", time.Since(timeNow))
+		l.Debugf("collect object, cost %s", time.Since(timeNow))
 	}()
 
 	if err := i.gatherDockerContainerObject(); err != nil {
@@ -212,7 +212,7 @@ func (i *Input) collectObject() {
 	}
 
 	if i.k8sInput == nil {
-		l.Errorf("unrechable, k8s input is empty pointer")
+		l.Error("unrechable, k8s input is empty pointer")
 		return
 	}
 
@@ -226,7 +226,7 @@ func (i *Input) collectObject() {
 func (i *Input) collectMetric() {
 	timeNow := time.Now()
 	defer func() {
-		l.Debug("collect metric and logging, cost %s", time.Since(timeNow))
+		l.Debugf("collect metric and logging, cost %s", time.Since(timeNow))
 	}()
 
 	if i.EnableContainerMetric {
@@ -283,7 +283,7 @@ func (i *Input) gatherDockerContainerMetric() error {
 		return err
 	}
 	if len(res) == 0 {
-		l.Debugf("container metric: no point")
+		l.Debug("container metric: no point")
 		return nil
 	}
 
