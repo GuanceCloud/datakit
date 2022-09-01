@@ -179,6 +179,7 @@ var (
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
 
+	// map["/v1/write/metric"] = "M".
 	CategoryMap = map[string]string{
 		MetricDeprecated: SinkCategoryMetric,
 		Metric:           SinkCategoryMetric,
@@ -193,6 +194,7 @@ var (
 		Profiling:        SinkCategoryProfiling,
 	}
 
+	// map["M"] = "/v1/write/metric".
 	CategoryMapReverse = map[string]string{
 		SinkCategoryMetric:       Metric,
 		SinkCategoryNetwork:      Network,
@@ -205,6 +207,23 @@ var (
 		SinkCategorySecurity:     Security,
 		SinkCategoryProfiling:    Profiling,
 	}
+
+	// map["/v1/write/metric"] = "metric".
+	CategoryPureMap = map[string]string{
+		MetricDeprecated: CategoryMetric,
+		Metric:           CategoryMetric,
+		Network:          CategoryNetwork,
+		KeyEvent:         CategoryKeyEvent,
+		Object:           CategoryObject,
+		CustomObject:     CategoryCustomObject,
+		Logging:          CategoryLogging,
+		Tracing:          CategoryTracing,
+		RUM:              CategoryRUM,
+		Security:         CategorySecurity,
+		Profiling:        CategoryProfiling,
+	}
+
+	LogSinkDetail bool
 )
 
 func CategoryList() (map[string]struct{}, map[string]struct{}) {

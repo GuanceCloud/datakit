@@ -150,6 +150,8 @@ NAME1="value1" NAME2="value2"
 - `DK_SINK_T`:  安装时指定 Tracing 的 sink。
 - `DK_SINK_R`:  安装时指定 RUM 的 sink。
 - `DK_SINK_S`:  安装时指定 Security 的 sink。
+- `DK_SINK_P`:  安装时指定 Profiling 的 sink。
+- `DK_LOG_SINK_DETAIL`:  安装时指定开启 sink 详细日志(开启后会产生大量日志, 仅供调试, 不建议在生产环境中使用)。例: "yes"。
 
 参见 [M3DB 示例](datakit-sink-m3db.md)
 

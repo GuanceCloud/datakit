@@ -27,6 +27,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	plstats "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -104,9 +105,9 @@ type DatakitStats struct {
 	PLStats     []plstats.ScriptStatsROnly `json:"pl_stats"`
 	HTTPMetrics map[string]*APIStat        `json:"http_metrics"`
 
-	WithinDocker bool            `json:"docker"`
-	AutoUpdate   bool            `json:"auto_update"`
-	FilterStats  *io.FilterStats `json:"filter_stats"`
+	WithinDocker bool                `json:"docker"`
+	AutoUpdate   bool                `json:"auto_update"`
+	FilterStats  *filter.FilterStats `json:"filter_stats"`
 
 	// markdown options
 	DisableMonofont bool `json:"-"`
@@ -336,7 +337,7 @@ func GetStats() (*DatakitStats, error) {
 	stats.GolangRuntime = getRuntimeInfo()
 
 	l.Debugf("io.GetFilterStats()...")
-	stats.FilterStats = io.GetFilterStats()
+	stats.FilterStats = filter.GetFilterStats()
 
 	l.Debugf("OpenFiles()...")
 	stats.OpenFiles = datakit.OpenFiles()
@@ -469,7 +470,7 @@ type StatMetric struct {
 	IOStats        *io.Stats                  `json:"io_stats"`
 	PLStats        []plstats.ScriptStatsROnly `json:"pl_stats"`
 	HTTPMetrics    map[string]*APIStat        `json:"http_metrics"`
-	FilterStats    *io.FilterStats            `json:"filter_stats"`
+	FilterStats    *filter.FilterStats        `json:"filter_stats"`
 }
 
 // getStatInfo return stat info.

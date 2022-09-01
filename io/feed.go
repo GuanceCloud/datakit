@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
@@ -74,7 +75,7 @@ func FeedLastError(inputName string, err string) {
 	// unblock feed here, to prevent inputs blocked when IO blocked(and
 	// the bug we have to fix)
 	default:
-		l.Warnf("FeedLastError(%s, %s) skipped, ignored", inputName, err)
+		log.Warnf("FeedLastError(%s, %s) skipped, ignored", inputName, err)
 	}
 }
 
@@ -111,13 +112,13 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 	// run pipeline
 	after, err := runPl(category, pts, opt)
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 	} else {
 		pts = after
 	}
 
 	// run filters
-	after = filterPts(category, pts)
+	after = filter.FilterPts(category, pts)
 	filtered = len(pts) - len(after)
 	pts = after
 

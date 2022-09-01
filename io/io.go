@@ -18,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	pb "google.golang.org/protobuf/proto"
@@ -127,7 +128,7 @@ func (x *IO) cacheData(c *consumer, d *iodata, tryClean bool) {
 
 func (x *IO) StartIO(recoverable bool) {
 	g.Go(func(_ context.Context) error {
-		StartFilter()
+		filter.StartFilter(defaultIO.conf.Filters, defaultIO.dw)
 		return nil
 	})
 
@@ -179,7 +180,7 @@ func (x *IO) runConsumer(category string) {
 	fc, ok := x.fcs[category]
 	if !ok {
 		if x.conf.EnableCache && category != datakit.DynamicDatawayCategory {
-			l.Panicf("invalid category %s, should not been here", category)
+			log.Panicf("invalid category %s, should not been here", category)
 		}
 	}
 
@@ -331,12 +332,12 @@ func (x *IO) doFlush(pts []*point.Point, category string, fc *failCache) (int, e
 		switch category {
 		case datakit.Metric, datakit.MetricDeprecated, datakit.DynamicDatawayCategory:
 			// Metric and DynamicDatawayCategory data doesn't need cache.
-			l.Warnf("drop %d pts on %s, not cached", len(failed), category)
+			log.Warnf("drop %d pts on %s, not cached", len(failed), category)
 
 		default:
-			l.Infof("caching %s(%d pts)...", category, len(failed))
+			log.Infof("caching %s(%d pts)...", category, len(failed))
 			if err := x.cache(category, failed, fc); err != nil {
-				l.Errorf("caching %s(%d pts) failed", category, len(pts))
+				log.Errorf("caching %s(%d pts) failed", category, len(pts))
 			}
 		} // switch category
 	} // if
@@ -355,17 +356,17 @@ func (x *IO) cache(category string, pts []*point.Point, fc *failCache) error {
 			Lines:    []byte(pt.String()),
 		})
 		if err != nil {
-			l.Warnf("dump %s cache(%d) failed: %v", category, len(pts), err)
+			log.Warnf("dump %s cache(%d) failed: %v", category, len(pts), err)
 			return err
 		}
 
 		if err := fc.put(buf); err != nil {
-			l.Warnf("dump %s cache(%d) failed: %v", category, len(pts), err)
+			log.Warnf("dump %s cache(%d) failed: %v", category, len(pts), err)
 			return err
 		}
 	}
 
-	l.Debugf("put %s cache ok, %d pts", category, len(pts))
+	log.Debugf("put %s cache ok, %d pts", category, len(pts))
 	return nil
 }
 

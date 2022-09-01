@@ -63,15 +63,22 @@ func Write(category string, pts []*point.Point) (*point.Failed, error) {
 			l.Errorf("after remain, errKeep = %v", errKeep)
 		}
 
-		// TODO: Huge, only for tester, if go to production, comment this.
-		// for _, v := range remainPoints {
-		// 	l.Infof("remain point: %s", v.Name())
-		// }
+		if datakit.LogSinkDetail {
+			for _, v := range remainPoints {
+				l.Infof("(sink_detail) remain point: (%s) (%s)", category, v.String())
+			}
+		}
 
 		return nil, errKeep // Note: in sink package, point.Failed always nil
 	} else if defaultCallPtr != nil {
 		if len(sinkcommon.SinkCategoryMap) == 0 {
 			l.Debug("sink empty")
+		}
+
+		if datakit.LogSinkDetail {
+			for _, v := range pts {
+				l.Infof("(sink_detail) default point: (%s) (%s)", category, v.String())
+			}
 		}
 
 		return defaultCallPtr(category, pts)
@@ -217,7 +224,7 @@ func checkCategoryMatchImpl(
 	category string,
 	impl sinkcommon.ISink,
 ) (bool, error) {
-	cfgID, cfgStr, err := sinkfuncs.GetSinkCreatorID(oneSinkCfg)
+	cfgID, cfgOrigin, err := sinkfuncs.GetSinkCreatorID(oneSinkCfg)
 	if err != nil {
 		return false, err
 	}
@@ -238,11 +245,11 @@ func checkCategoryMatchImpl(
 
 	if cfgID != impl.GetInfo().ID {
 		l.Infof("sink cfg %s ID not matched, cfgID = %s, implID = %s, cfgOrigin = %s, implOrigin = %s",
-			impl.GetInfo().CreateID, cfgID, impl.GetInfo().ID, cfgStr, impl.GetInfo().IDStr)
+			impl.GetInfo().CreateID, cfgID, impl.GetInfo().ID, cfgOrigin, impl.GetInfo().IDStr)
 		return false, nil
 	}
 
-	l.Infof("sink cfg %s ID matches, ID = %s", impl.GetInfo().CreateID, cfgID)
+	l.Infof("sink cfg %s ID matches, ID = %s, cfgOrigin = %s", impl.GetInfo().CreateID, cfgID, cfgOrigin)
 	return true, nil
 }
 

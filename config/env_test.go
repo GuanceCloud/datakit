@@ -44,6 +44,7 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_HTTP_CLOSE_IDLE_CONNECTION":      "on",
 				"ENV_HTTP_TIMEOUT":                    "10s",
 				"ENV_ENABLE_ELECTION_NAMESPACE_TAG":   "ok",
+				"ENV_LOG_SINK_DETAIL":                 "true",
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
@@ -83,6 +84,8 @@ func TestLoadEnv(t *testing.T) {
 				cfg.Election.Tags = map[string]string{
 					"election_namespace": "some-default",
 				}
+
+				cfg.LogSinkDetail = true
 
 				return cfg
 			}(),

@@ -3,16 +3,18 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package io
+package filter
 
 import (
 	"encoding/json"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
@@ -20,7 +22,7 @@ type dwMock struct {
 	pullCount int
 }
 
-func (dw *dwMock) Pull() ([]byte, error) {
+func (dw *dwMock) Pull(fts map[string][]string, inDW dataway.DataWay) ([]byte, error) {
 	filters := map[string][]string{
 		"logging": {
 			`{ source = "test1" and ( f1 in ["1", "2", "3"] )}`,
@@ -72,7 +74,7 @@ test1,service=test1 f1="1",f2=2i,f3=3 125`,
 		},
 	}
 
-	f.pull()
+	f.pull(nil, nil)
 	for k, v := range f.conditions {
 		t.Logf("%s: %s", k, v)
 	}
@@ -96,10 +98,38 @@ func TestPull(t *testing.T) {
 
 	round := 3
 	for i := 0; i < round; i++ {
-		f.pull()
+		f.pull(nil, nil)
 		// test if reset tick ok
 		<-f.tick.C
 	}
 
 	tu.Assert(t, f.pullInterval == time.Millisecond*time.Duration(round), "expect %ds, got %s", round, f.pullInterval)
+}
+
+// go test -v -timeout 30s -run ^TestGetConds$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter
+func TestGetConds(t *testing.T) {
+	cases := []struct {
+		name      string
+		inFilters []string
+		out       string
+	}{
+		{
+			name:      "cpu",
+			inFilters: []string{`{cpu='cpu-total'}`},
+			out:       `{cpu = 'cpu-total'}`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out, err := GetConds(tc.inFilters)
+			assert.NoError(t, err)
+
+			var str string
+			for _, v := range out {
+				str += v.String()
+			}
+			assert.Equal(t, tc.out, str)
+		})
+	}
 }

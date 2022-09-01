@@ -6,12 +6,15 @@
 package config
 
 import (
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink"
 )
 
 func (c *Config) setupSinks() error {
+	datakit.LogSinkDetail = c.LogSinkDetail
+
 	var writeFunc func(string, []*point.Point) (*point.Failed, error)
 
 	if c.DataWay != nil {

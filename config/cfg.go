@@ -112,7 +112,8 @@ type Config struct {
 	DataWayCfg *dataway.DataWayCfg `toml:"dataway,omitempty"`
 	DataWay    dataway.DataWay     `toml:"-"`
 
-	Sinks *Sinker `toml:"sinks"`
+	Sinks         *Sinker `toml:"sinks"`
+	LogSinkDetail bool    `toml:"log_sink_detail,omitempty"`
 
 	GlobalHostTags       map[string]string `toml:"global_host_tags"`
 	GlobalTagsDeprecated map[string]string `toml:"global_tags,omitempty"`
