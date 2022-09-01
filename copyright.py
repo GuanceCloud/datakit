@@ -31,6 +31,7 @@ COPYRIGHT_REGEX = [
 PATH_EXCLUSION_REGEX = [
     # These are auto-generated files but without headers to indicate it
     '/vendor',
+    'datakit/plugins/inputs/skywalking/compiled',
     '/plugins/externals/ebpf',
     '/plugins/inputs/skywalking/v3',
     '/internal/win_utils/pdh',
