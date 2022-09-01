@@ -15,7 +15,6 @@ import (
 
 func TestCollect(t *testing.T) {
 	i := newDefaultInput()
-	i.IgnoreMountPoints = []string{"/"}
 
 	for x := 0; x < 1; x++ {
 		if err := i.Collect(); err != nil {
