@@ -33,11 +33,10 @@ const (
 	profileMaxSize = (1 << 20) * 8
 	sampleConfig   = `
 [[inputs.profile]]
-## profile Agent endpoints register by version respectively.
-## Endpoints can be skipped listen by remove them from the list.
-## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
-endpoints = ["/profiling/v1/input"]
-
+  ## profile Agent endpoints register by version respectively.
+  ## Endpoints can be skipped listen by remove them from the list.
+  ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
+  endpoints = ["/profiling/v1/input"]
 `
 )
 

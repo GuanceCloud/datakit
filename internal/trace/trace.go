@@ -48,11 +48,13 @@ const (
 	SPAN_TYPE_UNKNOW = "unknow"
 
 	// span source type.
-	SPAN_SOURCE_APP      = "app"
-	SPAN_SOURCE_CACHE    = "cache"
-	SPAN_SOURCE_CUSTOMER = "custom"
-	SPAN_SOURCE_DB       = "db"
-	SPAN_SOURCE_WEB      = "web"
+	SPAN_SOURCE_APP       = "app"
+	SPAN_SOURCE_FRAMEWORK = "framework"
+	SPAN_SOURCE_CACHE     = "cache"
+	SPAN_SOURCE_MSGQUE    = "message_queue"
+	SPAN_SOURCE_CUSTOMER  = "custom"
+	SPAN_SOURCE_DB        = "db"
+	SPAN_SOURCE_WEB       = "web"
 
 	// line protocol tags.
 	TAG_CONTAINER_HOST = "container_host"
@@ -106,6 +108,13 @@ var (
 	log         = logger.DefaultSLogger(packageName)
 	sourceTypes = map[string]string{
 		"consul":        SPAN_SOURCE_APP,
+		"django":        SPAN_SOURCE_FRAMEWORK,
+		"express":       SPAN_SOURCE_FRAMEWORK,
+		"flask":         SPAN_SOURCE_FRAMEWORK,
+		"go-gin":        SPAN_SOURCE_FRAMEWORK,
+		"laravel":       SPAN_SOURCE_FRAMEWORK,
+		"spring":        SPAN_SOURCE_FRAMEWORK,
+		".net":          SPAN_SOURCE_FRAMEWORK,
 		"cache":         SPAN_SOURCE_CACHE,
 		"memcached":     SPAN_SOURCE_CACHE,
 		"redis":         SPAN_SOURCE_CACHE,
@@ -119,6 +128,10 @@ var (
 		"mysql":         SPAN_SOURCE_DB,
 		"pymysql":       SPAN_SOURCE_DB,
 		"sql":           SPAN_SOURCE_DB,
+		"go-nsq":        SPAN_SOURCE_MSGQUE,
+		"kafka":         SPAN_SOURCE_MSGQUE,
+		"mqtt":          SPAN_SOURCE_MSGQUE,
+		"rabbitmq":      SPAN_SOURCE_MSGQUE,
 		"dns":           SPAN_SOURCE_WEB,
 		"grpc":          SPAN_SOURCE_WEB,
 		"http":          SPAN_SOURCE_WEB,

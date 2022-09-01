@@ -20,7 +20,12 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	skyimpl "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile"
+	configv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/agent/configuration/v3"
+	commonv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/common/v3"
+	eventv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/event/v3"
+	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/language/agent/v3"
+	profilev3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/language/profile/v3"
+	mgmtv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/management/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )
@@ -32,31 +37,32 @@ func registerServerV3(addr string) {
 
 		return
 	}
-	log.Infof("skywalking grpc v3 listening on: %s", addr)
+	log.Debugf("### skywalking grpc v3 listening on: %s", addr)
 
 	skySvr = grpc.NewServer()
-	skyimpl.RegisterTraceSegmentReportServiceServer(skySvr, &TraceReportServerV3{})
-	skyimpl.RegisterEventServiceServer(skySvr, &EventServerV3{})
-	skyimpl.RegisterJVMMetricReportServiceServer(skySvr, &JVMMetricReportServerV3{})
-	skyimpl.RegisterManagementServiceServer(skySvr, &ManagementServerV3{})
-	skyimpl.RegisterConfigurationDiscoveryServiceServer(skySvr, &DiscoveryServerV3{})
+	agentv3.RegisterTraceSegmentReportServiceServer(skySvr, &TraceReportServerV3{})
+	eventv3.RegisterEventServiceServer(skySvr, &EventServerV3{})
+	agentv3.RegisterJVMMetricReportServiceServer(skySvr, &JVMMetricReportServerV3{})
+	// profilev3.RegisterProfileTaskServer(skySvr, &ProfileTaskServerV3{})
+	mgmtv3.RegisterManagementServiceServer(skySvr, &ManagementServerV3{})
+	configv3.RegisterConfigurationDiscoveryServiceServer(skySvr, &DiscoveryServerV3{})
 
 	if err = skySvr.Serve(listener); err != nil {
 		log.Error(err.Error())
 	}
-	log.Info("skywalking v3 exits")
+	log.Debug("### skywalking v3 exits")
 }
 
 type TraceReportServerV3 struct {
-	skyimpl.UnimplementedTraceSegmentReportServiceServer
+	agentv3.UnimplementedTraceSegmentReportServiceServer
 }
 
-func (trsvr *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_CollectServer) error {
+func (*TraceReportServerV3) Collect(tsc agentv3.TraceSegmentReportService_CollectServer) error {
 	for {
 		segobj, err := tsc.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				return tsc.SendAndClose(&skyimpl.Commands{})
+				return tsc.SendAndClose(&commonv3.Commands{})
 			}
 			log.Error(err.Error())
 
@@ -84,10 +90,45 @@ func (trsvr *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_
 	}
 }
 
-func (*TraceReportServerV3) CollectInSync(ctx context.Context, seg *skyimpl.SegmentCollection) (*skyimpl.Commands, error) {
-	log.Debugf("### reveived collect insync: %s", seg.String())
+func (*TraceReportServerV3) CollectInSync(ctx context.Context, seg *agentv3.SegmentCollection) (*commonv3.Commands, error) {
+	log.Debugf("### reveived collect sync: %s", seg.String())
 
-	return &skyimpl.Commands{}, nil
+	return &commonv3.Commands{}, nil
+}
+
+func getTagValue(tags []*commonv3.KeyStringValuePair, key string) (value string, ok bool) {
+	for i := range tags {
+		if key == tags[i].Key {
+			if len(tags[i].Value) == 0 {
+				return "", false
+			} else {
+				return tags[i].Value, true
+			}
+		}
+	}
+
+	return "", false
+}
+
+func mapToSpanSourceType(layer agentv3.SpanLayer) string {
+	switch layer {
+	case agentv3.SpanLayer_Database:
+		return itrace.SPAN_SOURCE_DB
+	case agentv3.SpanLayer_Cache:
+		return itrace.SPAN_SOURCE_CACHE
+	case agentv3.SpanLayer_RPCFramework:
+		return itrace.SPAN_SOURCE_FRAMEWORK
+	case agentv3.SpanLayer_Http:
+		return itrace.SPAN_SOURCE_WEB
+	case agentv3.SpanLayer_MQ:
+		return itrace.SPAN_SOURCE_MSGQUE
+	case agentv3.SpanLayer_FAAS:
+		return itrace.SPAN_SOURCE_APP
+	case agentv3.SpanLayer_Unknown:
+		return itrace.SPAN_SOURCE_CUSTOMER
+	default:
+		return itrace.SPAN_SOURCE_CUSTOMER
+	}
 }
 
 func parseSegmentObjectWrapper(param *itrace.TraceParameters) error {
@@ -95,7 +136,7 @@ func parseSegmentObjectWrapper(param *itrace.TraceParameters) error {
 		return errors.New("invalid parameters")
 	}
 
-	segobj := &skyimpl.SegmentObject{}
+	segobj := &agentv3.SegmentObject{}
 	if err := proto.Unmarshal(param.Meta.Buf, segobj); err != nil {
 		return err
 	}
@@ -105,7 +146,7 @@ func parseSegmentObjectWrapper(param *itrace.TraceParameters) error {
 	return nil
 }
 
-func parseSegmentObject(segment *skyimpl.SegmentObject) {
+func parseSegmentObject(segment *agentv3.SegmentObject) {
 	var dktrace itrace.DatakitTrace
 	for _, span := range segment.Spans {
 		if span == nil {
@@ -128,6 +169,23 @@ func parseSegmentObject(segment *skyimpl.SegmentObject) {
 		if span.ParentSpanId < 0 {
 			if len(span.Refs) > 0 {
 				dkspan.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId)
+				if span.Refs[0].RefType == agentv3.RefType_CrossProcess && strings.Contains(span.Refs[0].ParentService, "_rum_") {
+					dktrace = append(dktrace, &itrace.DatakitSpan{
+						TraceID:    segment.TraceId,
+						ParentID:   "0",
+						SpanID:     dkspan.ParentID,
+						Service:    span.Refs[0].ParentService,
+						Resource:   span.Refs[0].ParentEndpoint,
+						Operation:  span.Refs[0].ParentEndpoint,
+						Source:     inputName,
+						SpanType:   itrace.SPAN_TYPE_ENTRY,
+						SourceType: itrace.SPAN_SOURCE_WEB,
+						EndPoint:   span.Refs[0].NetworkAddressUsedAtPeer,
+						Start:      dkspan.Start - int64(time.Millisecond),
+						Duration:   int64(time.Millisecond),
+						Status:     itrace.STATUS_OK,
+					})
+				}
 			} else {
 				dkspan.ParentID = "0"
 			}
@@ -145,14 +203,33 @@ func parseSegmentObject(segment *skyimpl.SegmentObject) {
 		}
 
 		switch span.SpanType {
-		case skyimpl.SpanType_Entry:
+		case agentv3.SpanType_Entry:
 			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
-		case skyimpl.SpanType_Local:
+		case agentv3.SpanType_Local:
 			dkspan.SpanType = itrace.SPAN_TYPE_LOCAL
-		case skyimpl.SpanType_Exit:
+		case agentv3.SpanType_Exit:
 			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
 		default:
 			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
+		}
+
+		for i := range plugins {
+			if value, ok := getTagValue(span.Tags, plugins[i]); ok {
+				dkspan.Service = value
+				dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
+				dkspan.SourceType = mapToSpanSourceType(span.SpanLayer)
+				switch span.SpanLayer { // nolint: exhaustive
+				case agentv3.SpanLayer_Database, agentv3.SpanLayer_Cache:
+					if res, ok := getTagValue(span.Tags, "db.statement"); ok {
+						dkspan.Resource = res
+					}
+				case agentv3.SpanLayer_MQ:
+				case agentv3.SpanLayer_Http:
+				case agentv3.SpanLayer_RPCFramework:
+				case agentv3.SpanLayer_FAAS:
+				case agentv3.SpanLayer_Unknown:
+				}
+			}
 		}
 
 		sourceTags := make(map[string]string)
@@ -180,15 +257,15 @@ func parseSegmentObject(segment *skyimpl.SegmentObject) {
 }
 
 type EventServerV3 struct {
-	skyimpl.UnimplementedEventServiceServer
+	eventv3.UnimplementedEventServiceServer
 }
 
-func (*EventServerV3) Collect(esrv skyimpl.EventService_CollectServer) error {
+func (*EventServerV3) Collect(esrv eventv3.EventService_CollectServer) error {
 	for {
 		event, err := esrv.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				return esrv.SendAndClose(&skyimpl.Commands{})
+				return esrv.SendAndClose(&commonv3.Commands{})
 			}
 			log.Debug(err.Error())
 
@@ -210,11 +287,11 @@ func (m *jvmMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
-func (m *jvmMeasurement) Info() *inputs.MeasurementInfo {
+func (*jvmMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{}
 }
 
-func extraceJVMCpuMetric(service string, start time.Time, cpu *skyimpl.CPU) inputs.Measurement {
+func extractJVMCpuMetric(service string, start time.Time, cpu *commonv3.CPU) inputs.Measurement {
 	return &jvmMeasurement{
 		name:   jvmMetricName,
 		tags:   map[string]string{"service": service},
@@ -223,7 +300,7 @@ func extraceJVMCpuMetric(service string, start time.Time, cpu *skyimpl.CPU) inpu
 	}
 }
 
-func extractJVMMemoryMetrics(service string, start time.Time, memory []*skyimpl.Memory) []inputs.Measurement {
+func extractJVMMemoryMetrics(service string, start time.Time, memory []*agentv3.Memory) []inputs.Measurement {
 	isHeap := func(isHeap bool) string {
 		if isHeap {
 			return "heap"
@@ -253,7 +330,7 @@ func extractJVMMemoryMetrics(service string, start time.Time, memory []*skyimpl.
 	return m
 }
 
-func extractJVMMemoryPoolMetrics(service string, start time.Time, memoryPool []*skyimpl.MemoryPool) []inputs.Measurement {
+func extractJVMMemoryPoolMetrics(service string, start time.Time, memoryPool []*agentv3.MemoryPool) []inputs.Measurement {
 	var m []inputs.Measurement
 	for _, v := range memoryPool {
 		if v == nil {
@@ -263,10 +340,10 @@ func extractJVMMemoryPoolMetrics(service string, start time.Time, memoryPool []*
 			name: jvmMetricName,
 			tags: map[string]string{"service": service},
 			fields: map[string]interface{}{
-				"pool_" + strings.ToLower(skyimpl.PoolType_name[int32(v.Type)]) + "_init":      v.Init,
-				"pool_" + strings.ToLower(skyimpl.PoolType_name[int32(v.Type)]) + "_max":       v.Max,
-				"pool_" + strings.ToLower(skyimpl.PoolType_name[int32(v.Type)]) + "_used":      v.Used,
-				"pool_" + strings.ToLower(skyimpl.PoolType_name[int32(v.Type)]) + "_committed": v.Committed,
+				"pool_" + strings.ToLower(agentv3.PoolType_name[int32(v.Type)]) + "_init":      v.Init,
+				"pool_" + strings.ToLower(agentv3.PoolType_name[int32(v.Type)]) + "_max":       v.Max,
+				"pool_" + strings.ToLower(agentv3.PoolType_name[int32(v.Type)]) + "_used":      v.Used,
+				"pool_" + strings.ToLower(agentv3.PoolType_name[int32(v.Type)]) + "_committed": v.Committed,
 			},
 			ts: start,
 		})
@@ -275,7 +352,7 @@ func extractJVMMemoryPoolMetrics(service string, start time.Time, memoryPool []*
 	return m
 }
 
-func extractJVMGCMetrics(service string, start time.Time, gc []*skyimpl.GC) []inputs.Measurement {
+func extractJVMGCMetrics(service string, start time.Time, gc []*agentv3.GC) []inputs.Measurement {
 	var m []inputs.Measurement
 	for _, v := range gc {
 		if v == nil {
@@ -285,7 +362,7 @@ func extractJVMGCMetrics(service string, start time.Time, gc []*skyimpl.GC) []in
 			name: jvmMetricName,
 			tags: map[string]string{"service": service},
 			fields: map[string]interface{}{
-				"gc_" + strings.ToLower(skyimpl.GCPhrase_name[int32(v.Phrase)]) + "_count": v.Count,
+				"gc_" + strings.ToLower(agentv3.GCPhase_name[int32(v.Phase)]) + "_count": v.Count,
 			},
 			ts: start,
 		})
@@ -294,7 +371,7 @@ func extractJVMGCMetrics(service string, start time.Time, gc []*skyimpl.GC) []in
 	return m
 }
 
-func extractJVMThread(service string, start time.Time, thread *skyimpl.Thread) inputs.Measurement {
+func extractJVMThread(service string, start time.Time, thread *agentv3.Thread) inputs.Measurement {
 	return &jvmMeasurement{
 		name: jvmMetricName,
 		tags: map[string]string{"service": service},
@@ -311,7 +388,7 @@ func extractJVMThread(service string, start time.Time, thread *skyimpl.Thread) i
 	}
 }
 
-func extractJVMClass(service string, start time.Time, class *skyimpl.Class) inputs.Measurement {
+func extractJVMClass(service string, start time.Time, class *agentv3.Class) inputs.Measurement {
 	return &jvmMeasurement{
 		name: jvmMetricName,
 		tags: map[string]string{"service": service},
@@ -325,10 +402,10 @@ func extractJVMClass(service string, start time.Time, class *skyimpl.Class) inpu
 }
 
 type JVMMetricReportServerV3 struct {
-	skyimpl.UnimplementedJVMMetricReportServiceServer
+	agentv3.UnimplementedJVMMetricReportServiceServer
 }
 
-func (*JVMMetricReportServerV3) Collect(ctx context.Context, jvm *skyimpl.JVMMetricCollection) (*skyimpl.Commands, error) {
+func (*JVMMetricReportServerV3) Collect(ctx context.Context, jvm *agentv3.JVMMetricCollection) (*commonv3.Commands, error) {
 	log.Debugf("### JVMMetricReportService service:%v instance:%v", jvm.Service, jvm.ServiceInstance)
 
 	var (
@@ -337,7 +414,7 @@ func (*JVMMetricReportServerV3) Collect(ctx context.Context, jvm *skyimpl.JVMMet
 	)
 	for _, jm := range jvm.Metrics {
 		if jm.Cpu != nil {
-			m = append(m, extraceJVMCpuMetric(jvm.Service, start, jm.Cpu))
+			m = append(m, extractJVMCpuMetric(jvm.Service, start, jm.Cpu))
 		}
 		if len(jm.Memory) != 0 {
 			m = append(m, extractJVMMemoryMetrics(jvm.Service, start, jm.Memory)...)
@@ -362,37 +439,53 @@ func (*JVMMetricReportServerV3) Collect(ctx context.Context, jvm *skyimpl.JVMMet
 		}
 	}
 
-	return &skyimpl.Commands{}, nil
+	return &commonv3.Commands{}, nil
+}
+
+type ProfileTaskServerV3 struct {
+	profilev3.UnimplementedProfileTaskServer
+}
+
+func (*ProfileTaskServerV3) GetProfileTaskCommands(ctx context.Context, task *profilev3.ProfileTaskCommandQuery) (*commonv3.Commands, error) {
+	return nil, nil
+}
+
+func (*ProfileTaskServerV3) CollectSnapshot(psrv profilev3.ProfileTask_CollectSnapshotServer) error {
+	return nil
+}
+
+func (*ProfileTaskServerV3) ReportTaskFinish(ctx context.Context, reporter *profilev3.ProfileTaskFinishReport) (*commonv3.Commands, error) {
+	return nil, nil
 }
 
 type ManagementServerV3 struct {
-	skyimpl.UnimplementedManagementServiceServer
+	mgmtv3.UnimplementedManagementServiceServer
 }
 
-func (*ManagementServerV3) ReportInstanceProperties(ctx context.Context, mng *skyimpl.InstanceProperties) (*skyimpl.Commands, error) {
+func (*ManagementServerV3) ReportInstanceProperties(ctx context.Context, mgmt *mgmtv3.InstanceProperties) (*commonv3.Commands, error) {
 	var kvpStr string
-	for _, kvp := range mng.Properties {
+	for _, kvp := range mgmt.Properties {
 		kvpStr += fmt.Sprintf("[%v:%v]", kvp.Key, kvp.Value)
 	}
-	log.Debugf("### ReportInstanceProperties service:%v instance:%v properties:%v", mng.Service, mng.ServiceInstance, kvpStr)
+	log.Debugf("### ReportInstanceProperties service:%v instance:%v properties:%v", mgmt.Service, mgmt.ServiceInstance, kvpStr)
 
-	return &skyimpl.Commands{}, nil
+	return &commonv3.Commands{}, nil
 }
 
-func (*ManagementServerV3) KeepAlive(ctx context.Context, ping *skyimpl.InstancePingPkg) (*skyimpl.Commands, error) {
+func (*ManagementServerV3) KeepAlive(ctx context.Context, ping *mgmtv3.InstancePingPkg) (*commonv3.Commands, error) {
 	log.Debugf("### KeepAlive service:%v instance:%v", ping.Service, ping.ServiceInstance)
 
-	return &skyimpl.Commands{}, nil
+	return &commonv3.Commands{}, nil
 }
 
 type DiscoveryServerV3 struct {
-	skyimpl.UnimplementedConfigurationDiscoveryServiceServer
+	configv3.UnimplementedConfigurationDiscoveryServiceServer
 }
 
-func (*DiscoveryServerV3) FetchConfigurations(ctx context.Context, cfgReq *skyimpl.ConfigurationSyncRequest) (*skyimpl.Commands, error) {
+func (*DiscoveryServerV3) FetchConfigurations(ctx context.Context, cfgReq *configv3.ConfigurationSyncRequest) (*commonv3.Commands, error) {
 	log.Debugf("### DiscoveryServerV3 service: %s", cfgReq.String())
 
-	return &skyimpl.Commands{}, nil
+	return &commonv3.Commands{}, nil
 }
 
 var _ inputs.Measurement = &skywalkingMetricMeasurement{}
@@ -407,7 +500,7 @@ func (m *skywalkingMetricMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
-func (m *skywalkingMetricMeasurement) Info() *inputs.MeasurementInfo {
+func (*skywalkingMetricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: jvmMetricName,
 		Desc: "jvm metrics collected by skywalking language agent.",
