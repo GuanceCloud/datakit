@@ -29,9 +29,9 @@ const sampleCfg = `
   docker_endpoint = "unix:///var/run/docker.sock"
   containerd_address = "/var/run/containerd/containerd.sock"
 
-  enable_container_metric = false
-  enable_k8s_metric = false
-  enable_pod_metric = false
+  enable_container_metric = true
+  enable_k8s_metric = true
+  enable_pod_metric = true
 
   ## Containers logs to include and exclude, default collect all containers. Globs accepted.
   container_include_log = []
