@@ -94,6 +94,7 @@ var (
 		"mysqlog":                true,
 		"neo4j":                  true,
 		"net":                    true,
+		"netstat":                true,
 		"nfsstat":                true,
 		"nginx":                  true,
 		"nginx_plus":             true,
