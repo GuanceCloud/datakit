@@ -8,6 +8,7 @@ package io
 import (
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -147,10 +148,15 @@ func unblockingFeed(job *iodata, ch chan *iodata) error {
 	select {
 	case ch <- job:
 		return nil
+
 	case <-datakit.Exit.Wait():
 		log.Warnf("%s/%s feed skipped on global exit", job.category, job.from)
 		return fmt.Errorf("feed on global exit")
+
 	default:
+
+		atomic.AddUint64(&FeedDropPts, uint64(len(job.pts)))
+		log.Warnf("io busy, %d (%s/%s) points maybe dropped", len(job.pts), job.from, job.category)
 		return ErrIOBusy
 	}
 }

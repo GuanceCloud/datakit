@@ -151,6 +151,10 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 		c.IOCacheCountDeprecated = 0
 	}
 
+	if c.IOConf.MaxCacheCount < 1000 {
+		c.IOConf.MaxCacheCount = 1000
+	}
+
 	if c.OutputFileDeprecated != "" {
 		c.IOConf.OutputFile = c.OutputFileDeprecated
 		c.OutputFileDeprecated = ""
@@ -159,6 +163,14 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 	if c.IntervalDeprecated != "" {
 		c.IOConf.FlushInterval = c.IntervalDeprecated
 		c.IntervalDeprecated = ""
+	}
+
+	if c.IOConf.FeedChanSize > 1 {
+		c.IOConf.FeedChanSize = 1 // reset to 1
+	}
+
+	if c.IOConf.MaxDynamicCacheCountDeprecated > 0 {
+		c.IOConf.MaxDynamicCacheCountDeprecated = 0 // clear the config
 	}
 
 	// upgrade election settings

@@ -37,7 +37,7 @@ var (
 	enabledInputCols = strings.Split(`Input,Instaces,Crashed`, ",")
 	goroutineCols    = strings.Split(`Name,Done,Running,Total Cost,Min Cost,Max Cost,Failed`, ",")
 	httpAPIStatCols  = strings.Split(`API,Total,Limited(%),Max Latency,Avg Latency,2xx,3xx,4xx,5xx`, ",")
-	ioStatCols       = strings.Split(`Cat,ChanUsage,Send/Failed`, ",")
+	ioStatCols       = strings.Split(`Cat,ChanUsage,pts Send/Failed`, ",")
 	filterRuleCols   = strings.Split("Cat,Total,Filtered(%),Cost,Cost/Pts,Rules", ",")
 )
 
@@ -682,7 +682,7 @@ func (m *monitorAPP) renderIOTable(ds *dkhttp.DatakitStats, colArr []string) {
 		m.ioStatTable.SetTitle("IO Info(no data collected)")
 		return
 	} else {
-		m.ioStatTable.SetTitle(fmt.Sprintf("IO Info(dropped: %d)", ds.IOStats.FeedDropPts))
+		m.ioStatTable.SetTitle(fmt.Sprintf("IO Info(dropped: %s)", number(ds.IOStats.FeedDropPts)))
 	}
 
 	// set table header
