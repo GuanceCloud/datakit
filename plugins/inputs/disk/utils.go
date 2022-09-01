@@ -58,13 +58,20 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 
 	for i := range parts {
 		p := parts[i]
-
-		if excluded(p.Mountpoint, dk.ipt.MountPoints) {
+		if len(dk.ipt.Mountpoints) != 0 {
+			if !excluded(p.Mountpoint, dk.ipt.Mountpoints) {
+				continue
+			}
+		} else if excluded(p.Mountpoint, dk.ipt.IgnoreMountPoints) {
 			continue
 		}
 
 		// If the mount point is a member of the exclude set, don't gather info on it.
-		if excluded(p.Fstype, dk.ipt.IgnoreFS) {
+		if len(dk.ipt.Fs) != 0 {
+			if !excluded(p.Fstype, dk.ipt.Fs) {
+				continue
+			}
+		} else if excluded(p.Fstype, dk.ipt.IgnoreFS) {
 			continue
 		}
 
