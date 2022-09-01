@@ -26,7 +26,7 @@
 - eBPF 移除 go-bindata 依赖（#1062）
 - 容器采集器中默认会打开 [k8s 和容器相关的指标](container.md#metrics)，这在一定程度上会消耗额外的时间线（#1095）
 
-#### Buf 修复 {#cl-1.4.13-bugfix}
+### Bug 修复 {#cl-1.4.13-bugfix}
 
 - 修复 DataKit 自身 CPU 使用率计算错误(#983)
 - 修复 Skywaling 中间件识别问题(#1027)
