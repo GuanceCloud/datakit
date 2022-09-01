@@ -7,9 +7,14 @@
 package workerpool
 
 import (
+	"context"
 	"errors"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
+
+var g = goroutine.NewGroup(goroutine.Option{Name: "internal_workerpool"})
 
 type WorkerPoolConfig struct {
 	Buffer  int `json:"buffer"`  // worker pool channel buffer size
@@ -84,7 +89,10 @@ func (wp WorkerPool) Start(threads int) error {
 	}
 
 	for i := 0; i < threads; i++ {
-		go wp.worker()
+		g.Go(func(ctx context.Context) error {
+			wp.worker()
+			return nil
+		})
 	}
 
 	return nil

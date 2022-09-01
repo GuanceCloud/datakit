@@ -14,6 +14,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -93,31 +94,32 @@ func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
 	var (
 		res []inputs.Measurement
 		mu  sync.Mutex
-		wg  sync.WaitGroup
 	)
 
+	g := goroutine.NewGroup(goroutine.Option{Name: goroutineGroupName})
+
 	for idx := range cList {
-		wg.Add(1)
+		func(c *types.Container) {
+			g.Go(func(ctx context.Context) error {
+				if d.ignoreContainer(c) {
+					return nil
+				}
 
-		go func(c *types.Container) {
-			defer wg.Done()
-			if d.ignoreContainer(c) {
-				return
-			}
+				m, err := gatherDockerContainerMetric(d.client, d.k8sClient, c)
+				if err != nil {
+					return nil
+				}
+				m.tags.append(d.cfg.extraTags)
 
-			m, err := gatherDockerContainerMetric(d.client, d.k8sClient, c)
-			if err != nil {
-				return
-			}
-			m.tags.append(d.cfg.extraTags)
-
-			mu.Lock()
-			res = append(res, m)
-			mu.Unlock()
+				mu.Lock()
+				res = append(res, m)
+				mu.Unlock()
+				return nil
+			})
 		}(&cList[idx])
 	}
 
-	wg.Wait()
+	_ = g.Wait()
 	return res, nil
 }
 
@@ -130,31 +132,30 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 	var (
 		res []inputs.Measurement
 		mu  sync.Mutex
-		wg  sync.WaitGroup
 	)
 
+	g := goroutine.NewGroup(goroutine.Option{Name: goroutineGroupName})
 	for idx := range cList {
-		wg.Add(1)
+		func(c *types.Container) {
+			g.Go(func(ctx context.Context) error {
+				if d.ignoreContainer(c) {
+					return nil
+				}
+				m, err := gatherDockerContainerObject(d.client, d.k8sClient, c)
+				if err != nil {
+					return nil
+				}
+				m.tags.append(d.cfg.extraTags)
 
-		go func(c *types.Container) {
-			defer wg.Done()
-
-			if d.ignoreContainer(c) {
-				return
-			}
-			m, err := gatherDockerContainerObject(d.client, d.k8sClient, c)
-			if err != nil {
-				return
-			}
-			m.tags.append(d.cfg.extraTags)
-
-			mu.Lock()
-			res = append(res, m)
-			mu.Unlock()
+				mu.Lock()
+				res = append(res, m)
+				mu.Unlock()
+				return nil
+			})
 		}(&cList[idx])
 	}
 
-	wg.Wait()
+	_ = g.Wait()
 	return res, nil
 }
 
@@ -164,20 +165,25 @@ func (d *dockerInput) watchNewLogs() error {
 		return err
 	}
 
+	g := goroutine.NewGroup(goroutine.Option{Name: goroutineGroupName})
+
 	for idx, container := range cList {
 		if !d.shouldPullContainerLog(&cList[idx]) {
 			continue
 		}
 
 		l.Infof("add container log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
-
 		// Start a new goroutine for every new container that has logs to collect
-		go func(container *types.Container) {
-			if err := d.tailingLog(context.Background(), container); err != nil {
-				if !errors.Is(err, context.Canceled) {
-					l.Warnf("tail containerLog: %s", err)
+		func(container *types.Container) {
+			g.Go(func(ctx context.Context) error {
+				if err := d.tailingLog(context.Background(), container); err != nil {
+					if !errors.Is(err, context.Canceled) {
+						l.Warnf("tail containerLog: %s", err)
+					}
 				}
-			}
+
+				return nil
+			})
 		}(&cList[idx])
 	}
 

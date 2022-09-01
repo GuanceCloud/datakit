@@ -10,6 +10,7 @@
 package logfwdserver
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -21,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
@@ -86,7 +88,11 @@ func (ipt *Input) Run() {
 		return
 	}
 
-	go ipt.srv.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_logfwdserver"})
+	g.Go(func(ctx context.Context) error {
+		ipt.srv.Start()
+		return nil
+	})
 
 	for {
 		select {

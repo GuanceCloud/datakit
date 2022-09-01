@@ -7,12 +7,14 @@
 package logging
 
 import (
+	"context"
 	"path"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
@@ -187,11 +189,14 @@ func (ipt *Input) Run() {
 	} else {
 		l.Warn("socket len =0")
 	}
-
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_logging"})
 	if ipt.process != nil && len(ipt.process) > 0 {
 		// start all process
 		for _, proce := range ipt.process {
-			go proce.Start()
+			g.Go(func(ctx context.Context) error {
+				proce.Start()
+				return nil
+			})
 		}
 	} else {
 		l.Warnf("There are no logging processors here")

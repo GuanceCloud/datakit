@@ -422,7 +422,11 @@ func (ipt *Input) RunPipeline() {
 		return
 	}
 
-	go ipt.tail.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_postgresql"})
+	g.Go(func(ctx context.Context) error {
+		ipt.tail.Start()
+		return nil
+	})
 }
 
 const (

@@ -7,6 +7,7 @@
 package cmds
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -893,7 +894,7 @@ func (m *monitorAPP) setup() {
 	m.flex = tview.NewFlex()
 	m.setupFlex()
 
-	go func() {
+	g.Go(func(ctx context.Context) error {
 		tick := time.NewTicker(m.refresh)
 		defer tick.Stop()
 		var err error
@@ -913,7 +914,7 @@ func (m *monitorAPP) setup() {
 
 			<-tick.C // wait
 		}
-	}()
+	})
 
 	if err := m.app.SetRoot(m.flex, true).EnableMouse(true).Run(); err != nil {
 		panic(err)

@@ -8,19 +8,20 @@ package smart
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os/exec"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmd"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	ipath "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/strarr"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -266,58 +267,15 @@ func (ipt *Input) getCustomerTags() map[string]string {
 func (ipt *Input) getAttributes(devices []string) {
 	start := time.Now()
 
-	var wg sync.WaitGroup
-	wg.Add(len(devices))
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_smart"})
 	for _, device := range devices {
-		go func(device string) {
-			if sm, err := gatherDisk(ipt.getCustomerTags(),
-				ipt.Timeout.Duration, ipt.UseSudo, ipt.SmartCtlPath,
-				ipt.NoCheck, device); err != nil {
-				l.Errorf("gatherDisk: %s", err.Error())
+		func(device string) {
+			g.Go(func(ctx context.Context) error {
+				if sm, err := gatherDisk(ipt.getCustomerTags(),
+					ipt.Timeout.Duration, ipt.UseSudo, ipt.SmartCtlPath,
+					ipt.NoCheck, device); err != nil {
+					l.Errorf("gatherDisk: %s", err.Error())
 
-				io.FeedLastError(inputName, err.Error())
-			} else if err := inputs.FeedMeasurement(inputName,
-				datakit.Metric,
-				[]inputs.Measurement{sm},
-				&io.Option{CollectCost: time.Since(start)}); err != nil {
-				l.Errorf("FeedMeasurement: %s", err.Error())
-			}
-			wg.Done()
-		}(device)
-	}
-	wg.Wait()
-}
-
-func (ipt *Input) getVendorNVMeAttributes(devices []string) {
-	start := time.Now()
-	nvmeDevices := getDeviceInfoForNVMeDisks(devices, ipt.NvmePath, ipt.Timeout.Duration, ipt.UseSudo)
-
-	var wg sync.WaitGroup
-	for _, device := range nvmeDevices {
-		if strarr.Contains(ipt.EnableExtensions, "auto-on") {
-			if device.vendorID == intelVID {
-				wg.Add(1)
-				go func(device nvmeDevice) {
-					if sm, err := gatherIntelNVMeDisk(ipt.getCustomerTags(),
-						ipt.Timeout.Duration, ipt.UseSudo, ipt.NvmePath, device); err != nil {
-						l.Errorf("gatherIntelNVMeDisk: %s", err.Error())
-
-						io.FeedLastError(inputName, err.Error())
-					} else if err := inputs.FeedMeasurement(inputName,
-						datakit.Metric,
-						[]inputs.Measurement{sm},
-						&io.Option{CollectCost: time.Since(start)}); err != nil {
-						l.Errorf("FeedMeasurement: %s", err.Error())
-					}
-					wg.Done()
-				}(device)
-			}
-		} else if strarr.Contains(ipt.EnableExtensions, "Intel") && device.vendorID == intelVID {
-			wg.Add(1)
-			go func(device nvmeDevice) {
-				if sm, err := gatherIntelNVMeDisk(ipt.getCustomerTags(),
-					ipt.Timeout.Duration, ipt.UseSudo, ipt.NvmePath, device); err != nil {
-					l.Errorf("gatherIntelNVMeDisk: %s", err.Error())
 					io.FeedLastError(inputName, err.Error())
 				} else if err := inputs.FeedMeasurement(inputName,
 					datakit.Metric,
@@ -325,11 +283,57 @@ func (ipt *Input) getVendorNVMeAttributes(devices []string) {
 					&io.Option{CollectCost: time.Since(start)}); err != nil {
 					l.Errorf("FeedMeasurement: %s", err.Error())
 				}
-				wg.Done()
+				return nil
+			})
+		}(device)
+	}
+	_ = g.Wait()
+}
+
+func (ipt *Input) getVendorNVMeAttributes(devices []string) {
+	start := time.Now()
+	nvmeDevices := getDeviceInfoForNVMeDisks(devices, ipt.NvmePath, ipt.Timeout.Duration, ipt.UseSudo)
+
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_smart"})
+	for _, device := range nvmeDevices {
+		if strarr.Contains(ipt.EnableExtensions, "auto-on") {
+			if device.vendorID == intelVID {
+				func(device nvmeDevice) {
+					g.Go(func(ctx context.Context) error {
+						if sm, err := gatherIntelNVMeDisk(ipt.getCustomerTags(),
+							ipt.Timeout.Duration, ipt.UseSudo, ipt.NvmePath, device); err != nil {
+							l.Errorf("gatherIntelNVMeDisk: %s", err.Error())
+
+							io.FeedLastError(inputName, err.Error())
+						} else if err := inputs.FeedMeasurement(inputName,
+							datakit.Metric,
+							[]inputs.Measurement{sm},
+							&io.Option{CollectCost: time.Since(start)}); err != nil {
+							l.Errorf("FeedMeasurement: %s", err.Error())
+						}
+						return nil
+					})
+				}(device)
+			}
+		} else if strarr.Contains(ipt.EnableExtensions, "Intel") && device.vendorID == intelVID {
+			func(device nvmeDevice) {
+				g.Go(func(ctx context.Context) error {
+					if sm, err := gatherIntelNVMeDisk(ipt.getCustomerTags(),
+						ipt.Timeout.Duration, ipt.UseSudo, ipt.NvmePath, device); err != nil {
+						l.Errorf("gatherIntelNVMeDisk: %s", err.Error())
+						io.FeedLastError(inputName, err.Error())
+					} else if err := inputs.FeedMeasurement(inputName,
+						datakit.Metric,
+						[]inputs.Measurement{sm},
+						&io.Option{CollectCost: time.Since(start)}); err != nil {
+						l.Errorf("FeedMeasurement: %s", err.Error())
+					}
+					return nil
+				})
 			}(device)
 		}
 	}
-	wg.Wait()
+	_ = g.Wait()
 }
 
 func distinguishNVMeDevices(userDevices []string, availableNVMeDevices []string) []string {

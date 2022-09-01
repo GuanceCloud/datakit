@@ -7,12 +7,14 @@
 package tdengine
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -145,7 +147,11 @@ func (i *Input) RunPipeline() {
 		return
 	}
 	l.Info("tailer start, logFile=%+v", i.LogFiles)
-	go i.tail.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_tdengine"})
+	g.Go(func(ctx context.Context) error {
+		i.tail.Start()
+		return nil
+	})
 }
 
 //nolint:lll
@@ -213,7 +219,11 @@ func (i *Input) Run() {
 		return
 	}
 
-	go i.tdengine.run()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_tdengine"})
+	g.Go(func(ctx context.Context) error {
+		i.tdengine.run()
+		return nil
+	})
 	l.Infof("TDEngine input started")
 
 	for {

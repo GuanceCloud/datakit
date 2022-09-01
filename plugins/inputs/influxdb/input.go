@@ -7,6 +7,7 @@
 package influxdb
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
@@ -18,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -152,7 +154,11 @@ func (i *Input) RunPipeline() {
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
-	go i.tail.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_influxdb"})
+	g.Go(func(ctx context.Context) error {
+		i.tail.Start()
+		return nil
+	})
 }
 
 func (i *Input) Run() {

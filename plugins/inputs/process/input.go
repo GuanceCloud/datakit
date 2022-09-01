@@ -7,6 +7,7 @@
 package process
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"regexp"
@@ -83,7 +84,8 @@ func (p *Input) Run() {
 	tick := time.NewTicker(p.ObjectInterval.Duration)
 	defer tick.Stop()
 	if p.OpenMetric {
-		go func() {
+		g := datakit.G("inputs_process")
+		g.Go(func(ctx context.Context) error {
 			p.MetricInterval.Duration = config.ProtectedInterval(minMetricInterval,
 				maxMetricInterval,
 				p.MetricInterval.Duration)
@@ -100,14 +102,14 @@ func (p *Input) Run() {
 				case <-tick.C:
 				case <-datakit.Exit.Wait():
 					l.Info("process write metric exit")
-					return
+					return nil
 
 				case <-p.semStop.Wait():
 					l.Info("process write metric return")
-					return
+					return nil
 				}
 			}
-		}()
+		})
 	}
 
 	procRecorder := newProcRecorder()

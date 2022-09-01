@@ -386,7 +386,14 @@ func ReloadTheNormalServer() {
 
 			<-semReloadCompleted.Wait()
 			l.Info("[HttpServer] reload stopped")
-			go HTTPStart()
+
+			// start HTTP server
+			g.Go(func(ctx context.Context) error {
+				HTTPStart()
+				l.Info("http goroutine exit")
+				return nil
+			})
+
 			return
 		}
 	}

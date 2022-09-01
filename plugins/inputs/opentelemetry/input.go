@@ -8,6 +8,7 @@
 package opentelemetry
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkHTTP "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -224,6 +226,7 @@ func (ipt *Input) RegHTTPHandler() {
 
 func (ipt *Input) Run() {
 	open := false
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
 	// 从配置文件 开启
 	if ipt.HTTPCol.Enable {
 		// add option
@@ -234,10 +237,18 @@ func (ipt *Input) Run() {
 	if ipt.GRPCCol.TraceEnable || ipt.GRPCCol.MetricEnable {
 		open = true
 		ipt.GRPCCol.ExpectedHeaders = ipt.ExpectedHeaders
-		go ipt.GRPCCol.run(spanStorage)
+		func(spanStorage *collector.SpansStorage) {
+			g.Go(func(ctx context.Context) error {
+				ipt.GRPCCol.run(spanStorage)
+				return nil
+			})
+		}(spanStorage)
 	}
 	if open {
-		go spanStorage.Run()
+		g.Go(func(ctx context.Context) error {
+			spanStorage.Run()
+			return nil
+		})
 		for {
 			select {
 			case <-datakit.Exit.Wait():

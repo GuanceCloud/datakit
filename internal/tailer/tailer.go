@@ -7,12 +7,14 @@
 package tailer
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 )
@@ -23,6 +25,11 @@ const (
 
 	defaultSource   = "default"
 	maxFieldsLength = 32 * 1024 * 1024
+)
+
+var (
+	g = datakit.G("tailer")
+	l = logger.DefaultSLogger("socketLog")
 )
 
 type ForwardFunc func(filename, text string) error
@@ -213,20 +220,22 @@ func (t *Tailer) scan() {
 		}
 
 		t.wg.Add(1)
-		go func(filename string) {
+
+		g.Go(func(ctx context.Context) error {
 			defer t.wg.Done()
 			defer t.removeFromFileList(filename)
 
 			tl, err := NewTailerSingle(filename, t.opt)
 			if err != nil {
 				t.opt.log.Errorf("new tailer file %s error: %s", filename, err)
-				return
+				return nil
 			}
 
 			t.addToFileList(filename)
 
 			tl.Run()
-		}(filename)
+			return nil
+		})
 	}
 }
 

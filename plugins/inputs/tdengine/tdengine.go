@@ -8,6 +8,7 @@ package tdengine
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/araddon/dateparse"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -115,45 +117,54 @@ func (t *tdEngine) getSTablesNum() []inputs.Measurement {
 
 func (t *tdEngine) run() {
 	msmC := make(chan []inputs.Measurement, 100)
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_tdengine"})
 	for _, m := range metrics {
-		go func(metric metric) {
-			for range time.Tick(metric.TimeSeries) {
-				if !t.upstream {
-					l.Debugf("not leader, skipped")
-					continue
-				}
-				l.Debugf("start to run selectSQL,metricName = %s", metric.metricName)
-				for _, sql := range metric.MetricList {
-					body, err := query(t.adapter, t.basic, "", []byte(sql.sql))
-					if err != nil {
+		func(metric metric) {
+			g.Go(func(ctx context.Context) error {
+				ticker := time.NewTicker(metric.TimeSeries)
+				defer ticker.Stop()
+				for range ticker.C {
+					if !t.upstream {
+						l.Debugf("not leader, skipped")
 						continue
 					}
-					var res restResult
-					if err := json.Unmarshal(body, &res); err != nil {
-						l.Error("parse json error: ", err)
-						continue
-					}
-					if sql.plugInFun != nil {
-						msmC <- sql.plugInFun.resToMeasurement(metric.metricName, res, sql, t.election)
-					} else {
-						msmC <- makeMeasurements(metric.metricName, res, sql, t.election)
+					l.Debugf("start to run selectSQL,metricName = %s", metric.metricName)
+					for _, sql := range metric.MetricList {
+						body, err := query(t.adapter, t.basic, "", []byte(sql.sql))
+						if err != nil {
+							continue
+						}
+						var res restResult
+						if err := json.Unmarshal(body, &res); err != nil {
+							l.Error("parse json error: ", err)
+							continue
+						}
+						if sql.plugInFun != nil {
+							msmC <- sql.plugInFun.resToMeasurement(metric.metricName, res, sql, t.election)
+						} else {
+							msmC <- makeMeasurements(metric.metricName, res, sql, t.election)
+						}
 					}
 				}
-			}
+
+				return nil
+			})
 		}(m)
 		time.Sleep(time.Second / 5) // 交叉运行.
 	}
 
 	// show database.stables;
-	go func() {
-		for range time.Tick(time.Minute * 5) {
+	g.Go(func(ctx context.Context) error {
+		ticker := time.NewTicker(time.Minute * 5)
+		for range ticker.C {
 			if !t.upstream {
 				continue
 			}
 			l.Debugf("run getSTablesNum")
 			msmC <- t.getSTablesNum()
 		}
-	}()
+		return nil
+	})
 
 	for {
 		select {

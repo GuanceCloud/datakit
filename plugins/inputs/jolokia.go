@@ -7,6 +7,7 @@ package inputs
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -17,13 +18,13 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dkpoint "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
@@ -35,7 +36,10 @@ const (
 	MinGatherInterval = 1 * time.Second
 )
 
-var log = logger.DefaultSLogger("jolokia")
+var (
+	log = logger.DefaultSLogger("jolokia")
+	g   = goroutine.NewGroup(goroutine.Option{Name: "inputs_jolokia"})
+)
 
 type JolokiaAgent struct {
 	DefaultFieldPrefix    string
@@ -141,22 +145,19 @@ func (j *JolokiaAgent) Gather() error {
 		}
 	}
 
-	var wg sync.WaitGroup
 	for _, client := range j.clients {
-		wg.Add(1)
-		go func(client *Client) {
-			defer wg.Done()
-
-			err := j.gatherer.Gather(client, j)
-			if err != nil {
-				j.L.Errorf("unable to gather metrics for %s: %v", client.URL, err)
-			}
+		func(client *Client) {
+			g.Go(func(ctx context.Context) error {
+				err := j.gatherer.Gather(client, j)
+				if err != nil {
+					j.L.Errorf("unable to gather metrics for %s: %v", client.URL, err)
+				}
+				return nil
+			})
 		}(client)
 	}
 
-	wg.Wait()
-
-	return nil
+	return g.Wait()
 }
 
 func (j *JolokiaAgent) createMetrics() []Metric {

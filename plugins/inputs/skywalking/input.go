@@ -7,11 +7,13 @@
 package skywalking
 
 import (
+	"context"
 	"time"
 
 	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"google.golang.org/grpc"
@@ -171,7 +173,11 @@ func (ipt *Input) Run() {
 	if len(ipt.Address) == 0 {
 		ipt.Address = address
 	}
-	go registerServerV3(ipt.Address)
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_skywalking"})
+	g.Go(func(ctx context.Context) error {
+		registerServerV3(ipt.Address)
+		return nil
+	})
 }
 
 func (ipt *Input) Terminate() {

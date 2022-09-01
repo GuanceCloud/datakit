@@ -9,6 +9,7 @@ package trace
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 
 	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"google.golang.org/protobuf/proto"
 )
@@ -405,7 +407,8 @@ func (s *Storage) Send(param *TraceParameters) error {
 }
 
 func (s *Storage) RunStorageConsumer(log *logger.Logger, paramHandler func(param *TraceParameters) error) {
-	go func() {
+	g := goroutine.NewGroup(goroutine.Option{Name: "internal_trace"})
+	g.Go(func(ctx context.Context) error {
 		for {
 			start := time.Now()
 			if err := s.cache.Get(func(buf []byte) error {
@@ -429,7 +432,7 @@ func (s *Storage) RunStorageConsumer(log *logger.Logger, paramHandler func(param
 				}
 			}
 		}
-	}()
+	})
 }
 
 func (s *Storage) Close() error {
