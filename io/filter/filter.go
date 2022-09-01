@@ -3,7 +3,8 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package io
+// Package filter contains filter logic.
+package filter
 
 import (
 	"crypto/md5" // nolint:gosec
@@ -18,12 +19,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
+const packageName = "filter"
+
 var (
-	l            = logger.DefaultSLogger("filter")
+	l            = logger.DefaultSLogger(packageName)
 	isStarted    = false
 	pullInterval = time.Second * 30
 )
@@ -51,18 +55,18 @@ func newFilter(dw IDataway) *filter {
 var defaultFilter = newFilter(&datawayImpl{})
 
 type IDataway interface {
-	Pull() ([]byte, error)
+	Pull(map[string][]string, dataway.DataWay) ([]byte, error)
 }
 
 type datawayImpl struct{}
 
-func (dw *datawayImpl) Pull() ([]byte, error) {
-	if len(defaultIO.conf.Filters) != 0 {
+func (dw *datawayImpl) Pull(filters map[string][]string, inDW dataway.DataWay) ([]byte, error) {
+	if len(filters) != 0 {
 		// read local filters
-		return json.Marshal(&filterPull{Filters: defaultIO.conf.Filters, PullInterval: pullInterval})
+		return json.Marshal(&filterPull{Filters: filters, PullInterval: pullInterval})
 	} else {
 		// pull filters remotely
-		return defaultIO.dw.DatakitPull("filters=true")
+		return inDW.DatakitPull("filters=true")
 	}
 }
 
@@ -102,7 +106,7 @@ func (f *filter) update(body []byte, dumpdir string) error {
 	// try update conditions
 	var fp filterPull
 	if err := json.Unmarshal(body, &fp); err != nil {
-		l.Error("json.Unmarshal: %s", err)
+		l.Errorf("json.Unmarshal: %v", err)
 		f.stats.LastErr = err.Error()
 		f.stats.LastErrTime = time.Now()
 		return err
@@ -120,9 +124,12 @@ func (f *filter) update(body []byte, dumpdir string) error {
 	// conditons or update old conditions)
 	f.conditions = map[string]parser.WhereConditions{}
 	for k, v := range fp.Filters {
-		for _, condition := range v {
-			f.conditions[k] = append(f.conditions[k], parser.GetConds(condition)...)
+		conds, err := GetConds(v)
+		if err != nil {
+			l.Errorf("GetConds failed: %v", err)
+			return err
 		}
+		f.conditions[k] = conds
 	}
 
 	if err := dump(body, dumpdir); err != nil {
@@ -131,10 +138,10 @@ func (f *filter) update(body []byte, dumpdir string) error {
 	return nil
 }
 
-func (f *filter) pull() {
+func (f *filter) pull(filters map[string][]string, dw dataway.DataWay) {
 	start := time.Now()
 
-	body, err := f.dw.Pull()
+	body, err := f.dw.Pull(filters, dw)
 	if err != nil {
 		l.Errorf("dataway Pull: %s", err)
 
@@ -167,252 +174,45 @@ func (f *filter) pull() {
 	}
 }
 
-func (f *filter) filterLogging(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
-	if cond == nil {
-		l.Debugf("no condition filter")
-		return pts
-	}
-
-	var after []*point.Point
-	for _, pt := range pts {
-		tags := pt.Point.Tags()
-		fields, err := pt.Point.Fields()
-		if err != nil {
-			continue // filter it!
+// GetConds returns Filter's Parser Conditions and error.
+func GetConds(filterArr []string) (parser.WhereConditions, error) {
+	var conds parser.WhereConditions
+	for _, v := range filterArr {
+		cond := parser.GetConds(v)
+		if cond == nil {
+			return nil, fmt.Errorf("condition empty")
 		}
-
-		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
-
-		if !filtered(cond, tags, fields) {
-			after = append(after, pt)
-		}
+		conds = append(conds, cond...)
 	}
-
-	return after
+	return conds, nil
 }
 
-func (f *filter) filterMetric(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
-	if cond == nil {
-		l.Debugf("no condition filter for metric")
-		return pts
+// CheckPointFiltered returns whether the point matches the fitler rule.
+// If returns true means they are matched.
+func CheckPointFiltered(conds parser.WhereConditions, category string, pt *point.Point) (bool, error) {
+	tags := pt.Tags()
+	fields, err := pt.Fields()
+	if err != nil {
+		return false, err
 	}
 
-	var after []*point.Point
-
-	for _, pt := range pts {
-		tags := pt.Point.Tags()
-		fields, err := pt.Point.Fields()
-		if err != nil {
-			l.Errorf("pt.Fields: %s, ignored", err.Error())
-			continue // filter it!
-		}
-
+	// Before checks, should adjust tags under some conditions.
+	// Must stay the same 'switch' logic with kodo project function named 'getSourceValue' in source file apis/esFields.go.
+	switch category {
+	case datakit.Logging, datakit.Network, datakit.KeyEvent, datakit.RUM:
+		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
+	case datakit.Tracing, datakit.Security, datakit.Profiling:
+		// using measurement name as tag `service'.
+	case datakit.Metric:
 		tags["measurement"] = pt.Point.Name() // set measurement name as tag `measurement'
-
-		if !filtered(cond, tags, fields) {
-			after = append(after, pt)
-		}
-	}
-
-	return after
-}
-
-func (f *filter) filterObject(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
-	if cond == nil {
-		l.Debugf("no condition filter for object")
-		return pts
-	}
-
-	var after []*point.Point
-
-	for _, pt := range pts {
-		tags := pt.Point.Tags()
-		fields, err := pt.Point.Fields()
-		if err != nil {
-			l.Errorf("pt.Fields: %s, ignored", err.Error())
-			continue // filter it!
-		}
-
+	case datakit.Object, datakit.CustomObject:
 		tags["class"] = pt.Point.Name() // set measurement name as tag `class'
-
-		if !filtered(cond, tags, fields) {
-			after = append(after, pt)
-		}
+	default:
+		l.Warnf("unsupport category: %s", category)
+		return false, fmt.Errorf("unsupport category: %s", category)
 	}
 
-	return after
-}
-
-// using measurement name as tag `service'.
-func (f *filter) filterTracing(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
-	if cond == nil {
-		l.Debugf("no condition filter for tracing")
-		return pts
-	}
-
-	var after []*point.Point
-
-	for _, pt := range pts {
-		tags := pt.Point.Tags()
-		fields, err := pt.Point.Fields()
-		if err != nil {
-			continue // filter it!
-		}
-
-		if !filtered(cond, tags, fields) {
-			after = append(after, pt)
-		}
-	}
-
-	return after
-}
-
-func (f *filter) filterNetwork(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
-	if cond == nil {
-		l.Debugf("no condition filter for network")
-		return pts
-	}
-
-	var after []*point.Point
-
-	for _, pt := range pts {
-		tags := pt.Point.Tags()
-		fields, err := pt.Point.Fields()
-		if err != nil {
-			continue // filter it!
-		}
-
-		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
-
-		if !filtered(cond, tags, fields) {
-			after = append(after, pt)
-		}
-	}
-
-	return after
-}
-
-func (f *filter) filterKeyEvent(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
-	if cond == nil {
-		l.Debugf("no condition filter for key event")
-		return pts
-	}
-
-	var after []*point.Point
-
-	for _, pt := range pts {
-		tags := pt.Point.Tags()
-		fields, err := pt.Point.Fields()
-		if err != nil {
-			continue // filter it!
-		}
-
-		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
-
-		if !filtered(cond, tags, fields) {
-			after = append(after, pt)
-		}
-	}
-
-	return after
-}
-
-func (f *filter) filterCustomObject(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
-	if cond == nil {
-		l.Debugf("no condition filter for custom object")
-		return pts
-	}
-
-	var after []*point.Point
-
-	for _, pt := range pts {
-		tags := pt.Point.Tags()
-		fields, err := pt.Point.Fields()
-		if err != nil {
-			continue // filter it!
-		}
-
-		tags["class"] = pt.Point.Name() // set measurement name as tag `class'
-
-		if !filtered(cond, tags, fields) {
-			after = append(after, pt)
-		}
-	}
-
-	return after
-}
-
-func (f *filter) filterRUM(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
-	if cond == nil {
-		l.Debugf("no condition filter for rum")
-		return pts
-	}
-
-	var after []*point.Point
-
-	for _, pt := range pts {
-		tags := pt.Point.Tags()
-		fields, err := pt.Point.Fields()
-		if err != nil {
-			continue // filter it!
-		}
-
-		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
-
-		if !filtered(cond, tags, fields) {
-			after = append(after, pt)
-		}
-	}
-
-	return after
-}
-
-// using measurement name as tag `service'.
-func (f *filter) filterSecurity(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
-	if cond == nil {
-		l.Debugf("no condition filter for security")
-		return pts
-	}
-
-	var after []*point.Point
-
-	for _, pt := range pts {
-		tags := pt.Point.Tags()
-		fields, err := pt.Point.Fields()
-		if err != nil {
-			continue // filter it!
-		}
-
-		if !filtered(cond, tags, fields) {
-			after = append(after, pt)
-		}
-	}
-
-	return after
-}
-
-// using measurement name as tag `service'.
-func (f *filter) filterProfiling(cond parser.WhereConditions, pts []*point.Point) []*point.Point {
-	if cond == nil {
-		l.Debugf("no condition filter for profiling")
-		return pts
-	}
-
-	var after []*point.Point
-
-	for _, pt := range pts {
-		tags := pt.Point.Tags()
-		fields, err := pt.Point.Fields()
-		if err != nil {
-			continue // filter it!
-		}
-
-		if !filtered(cond, tags, fields) {
-			after = append(after, pt)
-		}
-	}
-
-	return after
+	return filtered(conds, tags, fields), nil
 }
 
 func filtered(conds parser.WhereConditions, tags map[string]string, fields map[string]interface{}) bool {
@@ -423,44 +223,38 @@ func (f *filter) doFilter(category string, pts []*point.Point) ([]*point.Point, 
 	f.RWMutex.RLock()
 	defer f.RWMutex.RUnlock()
 
-	switch category {
-	case datakit.Logging:
-		return f.filterLogging(f.conditions["logging"], pts), len(f.conditions["logging"])
-
-	case datakit.Tracing:
-		return f.filterTracing(f.conditions["tracing"], pts), len(f.conditions["tracing"])
-
-	case datakit.Metric:
-		return f.filterMetric(f.conditions["metric"], pts), len(f.conditions["metric"])
-
-	case datakit.Object:
-		return f.filterObject(f.conditions["object"], pts), len(f.conditions["object"])
-
-	case datakit.Network:
-		return f.filterNetwork(f.conditions["network"], pts), len(f.conditions["network"])
-
-	case datakit.KeyEvent:
-		return f.filterKeyEvent(f.conditions["keyevent"], pts), len(f.conditions["keyevent"])
-
-	case datakit.CustomObject:
-		return f.filterCustomObject(f.conditions["custom_object"], pts), len(f.conditions["custom_object"])
-
-	case datakit.RUM:
-		return f.filterRUM(f.conditions["rum"], pts), len(f.conditions["rum"])
-
-	case datakit.Security:
-		return f.filterSecurity(f.conditions["security"], pts), len(f.conditions["security"])
-
-	case datakit.Profiling:
-		return f.filterProfiling(f.conditions["profiling"], pts), len(f.conditions["profiling"])
-
-	default: // TODO: not implemented
-		l.Warn("unsupport category: %s", category)
+	// "/v1/write/metric" => "metric"
+	categoryPureStr, ok := datakit.CategoryPureMap[category]
+	if !ok {
+		l.Warnf("unsupport category: %s", category)
 		return pts, 0
 	}
+
+	conds, ok := f.conditions[categoryPureStr]
+	if !ok || conds == nil {
+		l.Debugf("no condition filter for %s", categoryPureStr)
+		return pts, 0
+	}
+
+	var after []*point.Point
+
+	for _, pt := range pts {
+		isFiltered, err := CheckPointFiltered(conds, category, pt)
+		if err != nil {
+			l.Errorf("pt.Fields: %s, ignored", err.Error())
+			continue // filter it!
+		}
+		if !isFiltered { // Pick those points that not matched filter rules.
+			after = append(after, pt)
+		} else if datakit.LogSinkDetail {
+			l.Infof("(sink_detail) defaultFilter filtered point: (%s) (%s)", category, pt.String())
+		}
+	}
+
+	return after, len(conds)
 }
 
-func filterPts(category string, pts []*point.Point) []*point.Point {
+func FilterPts(category string, pts []*point.Point) []*point.Point {
 	start := time.Now()
 	after, condCount := defaultFilter.doFilter(category, pts)
 	cost := time.Since(start)
@@ -594,20 +388,21 @@ func (f *filter) updateMetric(m *filterMetric) {
 	v.Conditions = m.conditions
 }
 
-func (f *filter) start() {
+func (f *filter) start(filters map[string][]string, dw dataway.DataWay) {
 	defer defaultFilter.tick.Stop()
 
-	if len(defaultIO.conf.Filters) != 0 {
+	if len(filters) != 0 {
 		f.stats.RuleSource = datakit.StrDefaultConfFile
 	} else {
 		f.stats.RuleSource = "remote"
 	}
 
 	for {
+		l.Debugf("try pull remote filters...")
+		defaultFilter.pull(filters, dw)
+
 		select {
 		case <-defaultFilter.tick.C:
-			l.Debugf("try pull remote filters...")
-			defaultFilter.pull()
 
 		case m := <-defaultFilter.metricCh:
 			l.Debugf("update metrics...")
@@ -623,15 +418,15 @@ func (f *filter) start() {
 			}
 
 		case <-datakit.Exit.Wait():
-			log.Info("log filter exits")
+			l.Info("log filter exits")
 			return
 		}
 	}
 }
 
-func StartFilter() {
-	l = logger.SLogger("filter")
-	if len(defaultIO.conf.Filters) == 0 && defaultIO.dw == nil {
+func StartFilter(filters map[string][]string, dw dataway.DataWay) {
+	l = logger.SLogger(packageName)
+	if len(filters) == 0 && dw == nil {
 		l.Warnf("filter not started: neither dataway nor filter conf set!")
 		return
 	}
@@ -646,7 +441,7 @@ func StartFilter() {
 			l.Warnf("filter panic: %s: %s", err, string(trace))
 		}
 
-		defaultFilter.start()
+		defaultFilter.start(filters, dw)
 	}
 
 	f(nil, nil)

@@ -28,6 +28,7 @@ func (c *Config) loadSinkEnvs() error {
 	sinkTracing := datakit.GetEnv("ENV_SINK_T")
 	sinkRUM := datakit.GetEnv("ENV_SINK_R")
 	sinkSecurity := datakit.GetEnv("ENV_SINK_S")
+	sinkProfiling := datakit.GetEnv("ENV_SINK_P")
 
 	categoryShorts := []string{
 		datakit.SinkCategoryMetric,
@@ -39,6 +40,7 @@ func (c *Config) loadSinkEnvs() error {
 		datakit.SinkCategoryTracing,
 		datakit.SinkCategoryRUM,
 		datakit.SinkCategorySecurity,
+		datakit.SinkCategoryProfiling,
 	}
 
 	args := []string{
@@ -51,6 +53,7 @@ func (c *Config) loadSinkEnvs() error {
 		sinkTracing,
 		sinkRUM,
 		sinkSecurity,
+		sinkProfiling,
 	}
 
 	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
@@ -373,6 +376,9 @@ func (c *Config) LoadEnvs() error {
 	if err := c.loadSinkEnvs(); err != nil {
 		l.Fatalf("loadSinkEnvs failed: %v", err)
 		return err
+	}
+	if v := datakit.GetEnv("ENV_LOG_SINK_DETAIL"); v != "" {
+		c.LogSinkDetail = true
 	}
 
 	if v := datakit.GetEnv("ENV_ULIMIT"); v != "" {
