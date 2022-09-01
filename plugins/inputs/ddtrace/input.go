@@ -89,13 +89,10 @@ var (
 	v1, v2, v3, v4, v5 = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
 	info, stats        = "/info", "/v0.6/stats"
 	afterGatherRun     itrace.AfterGatherHandler
-	keepRareResource   *itrace.KeepRareResource
-	closeResource      *itrace.CloseResource
-	sampler            *itrace.Sampler
 	customerKeys       []string
 	tags               map[string]string
 	wpool              workerpool.WorkerPool
-	storage            *cache.DiskCache
+	storage            *itrace.Storage
 )
 
 type Input struct {
@@ -134,15 +131,14 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
 
-	var err error
 	if ipt.Storage != nil {
-		if storage, err = cache.Open(ipt.Storage.Path, &cache.Option{
-			Capacity: int64(ipt.Storage.Capacity) << 20,
-		}); err != nil {
-			log.Errorf("### open cache %s with cap %dGB failed, cache.Open: %s", ipt.Storage.Path, ipt.Storage.Capacity, err)
+		if cache, err := cache.Open(ipt.Storage.Path, &cache.Option{Capacity: int64(ipt.Storage.Capacity) << 20}); err != nil {
+			log.Errorf("### open cache %s with cap %dMB failed, cache.Open: %s", ipt.Storage.Path, ipt.Storage.Capacity, err)
 		} else {
-			log.Infof("### open cache %s with cap %dGB OK", ipt.Storage.Path, ipt.Storage.Capacity)
-			go consumeStorageWorker()
+			ipt.Storage.SetCache(cache)
+			ipt.Storage.RunStorageConsumer(log, parseDDTraces)
+			storage = ipt.Storage
+			log.Infof("### open cache %s with cap %dMB OK", ipt.Storage.Path, ipt.Storage.Capacity)
 		}
 	}
 
@@ -154,14 +150,11 @@ func (ipt *Input) RegHTTPHandler() {
 	}
 	afterGatherRun = afterGather
 
-	// add calculators
-	// afterGather.AppendCalculator(itrace.StatTracingInfo)
-
 	// add filters: the order of appending filters into AfterGather is important!!!
 	// the order of appending represents the order of that filter executes.
 	// add close resource filter
 	if len(ipt.CloseResource) != 0 {
-		closeResource = &itrace.CloseResource{}
+		closeResource := &itrace.CloseResource{}
 		closeResource.UpdateIgnResList(ipt.CloseResource)
 		afterGather.AppendFilter(closeResource.Close)
 	}
@@ -175,7 +168,7 @@ func (ipt *Input) RegHTTPHandler() {
 	}
 	// add rare resource keeper
 	if ipt.KeepRareResource {
-		keepRareResource = &itrace.KeepRareResource{}
+		keepRareResource := &itrace.KeepRareResource{}
 		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
@@ -192,6 +185,7 @@ func (ipt *Input) RegHTTPHandler() {
 		return dktrace, false
 	})
 	// add sampler
+	var sampler *itrace.Sampler
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
 		sampler = ipt.Sampler
 	} else {
@@ -240,14 +234,14 @@ func (ipt *Input) Run() {
 func (ipt *Input) Terminate() {
 	if wpool != nil {
 		wpool.Shutdown()
-		log.Debugf("### workerpool in %s is shudown", inputName)
+		log.Debug("### workerpool closed")
 	}
-	// if storage != nil {
-	// 	if err := storage.Close(); err != nil {
-	// 		log.Error(err.Error())
-	// 	}
-	// 	log.Debugf("### storage closed")
-	// }
+	if storage != nil {
+		if err := storage.Close(); err != nil {
+			log.Error(err.Error())
+		}
+		log.Debug("### local storage closed")
+	}
 }
 
 func init() { //nolint:gochecknoinits

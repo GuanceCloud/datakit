@@ -7,8 +7,11 @@
 package zipkin
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
+	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -66,20 +69,25 @@ const (
   # [inputs.zipkin.threads]
     # buffer = 100
     # threads = 8
+
+  ## Storage config a local storage space in hard dirver to cache trace data.
+  ## path is the local file path used to cache data.
+  ## capacity is total space size(MB) used to store data.
+  # [inputs.zipkin.storage]
+    # path = "./zipkin_storage"
+    # capacity = 5120
 `
 )
 
 var (
-	log              = logger.DefaultSLogger(inputName)
-	apiv1Path        = "/api/v1/spans"
-	apiv2Path        = "/api/v2/spans"
-	afterGatherRun   itrace.AfterGatherHandler
-	keepRareResource *itrace.KeepRareResource
-	closeResource    *itrace.CloseResource
-	sampler          *itrace.Sampler
-	customerKeys     []string
-	tags             map[string]string
-	wpool            workerpool.WorkerPool
+	log            = logger.DefaultSLogger(inputName)
+	apiv1Path      = "/api/v1/spans"
+	apiv2Path      = "/api/v2/spans"
+	afterGatherRun itrace.AfterGatherHandler
+	customerKeys   []string
+	tags           map[string]string
+	wpool          workerpool.WorkerPool
+	storage        *itrace.Storage
 )
 
 type Input struct {
@@ -92,6 +100,7 @@ type Input struct {
 	Sampler          *itrace.Sampler              `toml:"sampler"`
 	Tags             map[string]string            `toml:"tags"`
 	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
+	Storage          *itrace.Storage              `toml:"storage"`
 }
 
 func (*Input) Catalog() string {
@@ -113,17 +122,30 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
 
-	afterGather := itrace.NewAfterGather()
-	afterGatherRun = afterGather
+	if ipt.Storage != nil {
+		if cache, err := cache.Open(ipt.Storage.Path, &cache.Option{Capacity: int64(ipt.Storage.Capacity) << 20}); err != nil {
+			log.Errorf("### open cache %s with cap %dMB failed, cache.Open: %s", ipt.Storage.Path, ipt.Storage.Capacity, err)
+		} else {
+			ipt.Storage.SetCache(cache)
+			ipt.Storage.RunStorageConsumer(log, parseZipkinTraceFanout)
+			storage = ipt.Storage
+			log.Infof("### open cache %s with cap %dMB OK", ipt.Storage.Path, ipt.Storage.Capacity)
+		}
+	}
 
-	// add calculators
-	// afterGather.AppendCalculator(itrace.StatTracingInfo)
+	var afterGather *itrace.AfterGather
+	if storage == nil {
+		afterGather = itrace.NewAfterGather()
+	} else {
+		afterGather = itrace.NewAfterGather(itrace.WithRetry(100 * time.Millisecond))
+	}
+	afterGatherRun = afterGather
 
 	// add filters: the order of appending filters into AfterGather is important!!!
 	// the order of appending represents the order of that filter executes.
 	// add close resource filter
 	if len(ipt.CloseResource) != 0 {
-		closeResource = &itrace.CloseResource{}
+		closeResource := &itrace.CloseResource{}
 		closeResource.UpdateIgnResList(ipt.CloseResource)
 		afterGather.AppendFilter(closeResource.Close)
 	}
@@ -131,11 +153,12 @@ func (ipt *Input) RegHTTPHandler() {
 	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add rare resource keeper
 	if ipt.KeepRareResource {
-		keepRareResource = &itrace.KeepRareResource{}
+		keepRareResource := &itrace.KeepRareResource{}
 		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
+	var sampler *itrace.Sampler
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
 		sampler = ipt.Sampler
 	} else {
@@ -174,7 +197,28 @@ func (ipt *Input) Run() {
 func (ipt *Input) Terminate() {
 	if wpool != nil {
 		wpool.Shutdown()
-		log.Debugf("### workerpool in %s is shudown", inputName)
+		log.Debug("### workerpool closed")
+	}
+	if storage != nil {
+		if err := storage.Close(); err != nil {
+			log.Error(err.Error())
+		}
+		log.Debug("### storage closed")
+	}
+}
+
+func parseZipkinTraceFanout(param *itrace.TraceParameters) error {
+	if param == nil || param.Meta == nil {
+		return errors.New("invalid parameters")
+	}
+
+	switch param.Meta.UrlPath {
+	case apiv1Path:
+		return parseZipkinTraceV1(param)
+	case apiv2Path:
+		return parseZipkinTraceV2(param)
+	default:
+		return fmt.Errorf("invalid url path: %s", param.Meta.UrlPath)
 	}
 }
 

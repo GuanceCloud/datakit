@@ -22,12 +22,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	skyimpl "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 func registerServerV3(addr string) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Errorf("skywalking grpc server v3 listening on %s failed: %v", addr, err)
+		log.Errorf("### skywalking grpc server v3 listening on %s failed: %v", addr, err)
 
 		return
 	}
@@ -61,24 +62,50 @@ func (trsvr *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_
 
 			return err
 		}
+		log.Debug("### v3 segment received")
 
-		log.Debug("v3 segment received")
-
-		if dktrace := segobjToDkTrace(segobj); len(dktrace) == 0 {
-			log.Warn("empty datakit trace")
+		if storage == nil {
+			parseSegmentObject(segobj)
 		} else {
-			afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+			buf, err := proto.Marshal(segobj)
+			if err != nil {
+				log.Error(err.Error())
+
+				return err
+			}
+
+			param := &itrace.TraceParameters{Meta: &itrace.TraceMeta{Buf: buf}}
+			if err = storage.Send(param); err != nil {
+				log.Error(err.Error())
+
+				return err
+			}
 		}
 	}
 }
 
 func (*TraceReportServerV3) CollectInSync(ctx context.Context, seg *skyimpl.SegmentCollection) (*skyimpl.Commands, error) {
-	log.Debugf("reveived collect insync: %s", seg.String())
+	log.Debugf("### reveived collect insync: %s", seg.String())
 
 	return &skyimpl.Commands{}, nil
 }
 
-func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
+func parseSegmentObjectWrapper(param *itrace.TraceParameters) error {
+	if param == nil || param.Meta == nil || len(param.Meta.Buf) == 0 {
+		return errors.New("invalid parameters")
+	}
+
+	segobj := &skyimpl.SegmentObject{}
+	if err := proto.Unmarshal(param.Meta.Buf, segobj); err != nil {
+		return err
+	}
+
+	parseSegmentObject(segobj)
+
+	return nil
+}
+
+func parseSegmentObject(segment *skyimpl.SegmentObject) {
 	var dktrace itrace.DatakitTrace
 	for _, span := range segment.Spans {
 		if span == nil {
@@ -147,7 +174,9 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
 	}
 
-	return dktrace
+	if len(dktrace) != 0 && afterGatherRun != nil {
+		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+	}
 }
 
 type EventServerV3 struct {
@@ -166,7 +195,7 @@ func (*EventServerV3) Collect(esrv skyimpl.EventService_CollectServer) error {
 			return err
 		}
 
-		log.Debugf("reveived service event: %s", event.String())
+		log.Debugf("### reveived service event: %s", event.String())
 	}
 }
 
@@ -300,7 +329,7 @@ type JVMMetricReportServerV3 struct {
 }
 
 func (*JVMMetricReportServerV3) Collect(ctx context.Context, jvm *skyimpl.JVMMetricCollection) (*skyimpl.Commands, error) {
-	log.Debugf("JVMMetricReportService service:%v instance:%v", jvm.Service, jvm.ServiceInstance)
+	log.Debugf("### JVMMetricReportService service:%v instance:%v", jvm.Service, jvm.ServiceInstance)
 
 	var (
 		m     []inputs.Measurement
@@ -345,13 +374,13 @@ func (*ManagementServerV3) ReportInstanceProperties(ctx context.Context, mng *sk
 	for _, kvp := range mng.Properties {
 		kvpStr += fmt.Sprintf("[%v:%v]", kvp.Key, kvp.Value)
 	}
-	log.Debugf("ReportInstanceProperties service:%v instance:%v properties:%v", mng.Service, mng.ServiceInstance, kvpStr)
+	log.Debugf("### ReportInstanceProperties service:%v instance:%v properties:%v", mng.Service, mng.ServiceInstance, kvpStr)
 
 	return &skyimpl.Commands{}, nil
 }
 
 func (*ManagementServerV3) KeepAlive(ctx context.Context, ping *skyimpl.InstancePingPkg) (*skyimpl.Commands, error) {
-	log.Debugf("KeepAlive service:%v instance:%v", ping.Service, ping.ServiceInstance)
+	log.Debugf("### KeepAlive service:%v instance:%v", ping.Service, ping.ServiceInstance)
 
 	return &skyimpl.Commands{}, nil
 }
@@ -361,7 +390,7 @@ type DiscoveryServerV3 struct {
 }
 
 func (*DiscoveryServerV3) FetchConfigurations(ctx context.Context, cfgReq *skyimpl.ConfigurationSyncRequest) (*skyimpl.Commands, error) {
-	log.Debugf("DiscoveryServerV3 service: %s", cfgReq.String())
+	log.Debugf("### DiscoveryServerV3 service: %s", cfgReq.String())
 
 	return &skyimpl.Commands{}, nil
 }

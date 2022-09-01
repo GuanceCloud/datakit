@@ -7,6 +7,7 @@
 package trace
 
 import (
+	"bytes"
 	"compress/gzip"
 	"encoding/hex"
 	"errors"
@@ -15,9 +16,12 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
+	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
+	"google.golang.org/protobuf/proto"
 )
 
 // tracing data constants
@@ -347,8 +351,78 @@ func UnknowServiceName(dkspan *DatakitSpan) string {
 	return fmt.Sprintf("unknow-service-%s", dkspan.Source)
 }
 
+type TraceParameters struct {
+	Meta *TraceMeta
+	Body *bytes.Buffer
+}
+
 type Storage struct {
 	Path     string `json:"storage"`
 	Capacity int    `json:"capacity"`
 	Consumer int    `json:"consumer"`
+	cache    *cache.DiskCache
+}
+
+func (s *Storage) SetCache(cache *cache.DiskCache) {
+	if cache == nil {
+		return
+	} else {
+		s.cache = cache
+	}
+}
+
+func (s *Storage) Send(param *TraceParameters) error {
+	if param == nil {
+		return errors.New("parameter invalid")
+	}
+
+	if param.Meta == nil {
+		param.Meta = &TraceMeta{}
+	}
+	if len(param.Meta.Buf) == 0 && param.Body != nil {
+		param.Meta.Buf = param.Body.Bytes()
+	}
+
+	buf, err := proto.Marshal(param.Meta)
+	if err != nil {
+		return err
+	}
+
+	return s.cache.Put(buf)
+}
+
+func (s *Storage) RunStorageConsumer(log *logger.Logger, paramHandler func(param *TraceParameters) error) {
+	go func() {
+		for {
+			start := time.Now()
+			if err := s.cache.Get(func(buf []byte) error {
+				meta := &TraceMeta{}
+				err := proto.Unmarshal(buf, meta)
+				if err == nil {
+					param := &TraceParameters{Meta: meta}
+					param.Body = bytes.NewBuffer(meta.Buf)
+					err = paramHandler(param)
+
+					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(param.Meta.Buf)>>10, time.Since(start)/time.Millisecond, err)
+				}
+
+				return err
+			}); err != nil {
+				if errors.Is(err, cache.ErrEOF) {
+					log.Debug(err.Error())
+					time.Sleep(time.Second)
+				} else {
+					log.Error(err.Error())
+				}
+			}
+		}
+	}()
+}
+
+func (s *Storage) Close() error {
+	if s.cache != nil {
+		return s.cache.Close()
+	}
+
+	return nil
 }
