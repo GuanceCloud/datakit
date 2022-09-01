@@ -10,7 +10,7 @@
 <h2>
   <a href="https://datakit.tools">官网</a>
   <span> • </span>
-  <a href="https://www.yuque.com/dataflux/datakit">文档</a>
+  <a href="https://docs.guance.com/datakit">文档</a>
 </h2>
 
 DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操作系统（Linux/Windows/macOS）支持，拥有全面数据采集能力，涵盖主机、容器、中间件、Tracing、日志以及安全巡检等各种场景。
@@ -19,15 +19,20 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
 
 - 支持主机、中间件、日志、APM 等领域的指标、日志以及 Tracing 几大类数据采集
 - 完整支持 Kubernetes 云原生生态
-- [Pipeline](https://www.yuque.com/dataflux/datakit/pipeline)：简便的结构化数据提取
+- [Pipeline](https://docs.guance.com/datakit/pipeline)：简便的结构化数据提取
 - 支持接入其它第三方数据采集
-	- [Telegraf](https://www.yuque.com/dataflux/datakit/telegraf)
-	- [Prometheus](https://www.yuque.com/dataflux/datakit/prom)
-	- [Statsd](https://www.yuque.com/dataflux/datakit/statsd)
-	- [Fluentd](https://www.yuque.com/dataflux/datakit/logstreaming#a653042e)
-	- [Filebeats](https://www.yuque.com/dataflux/datakit/beats_output)
-	- [Function](https://www.yuque.com/dataflux/func/write-data-via-datakit)
-	- Tracing 相关（[OpenTelemetry]()/[DDTrace]()/[Zipkin]()/[Jaeger]()/[Skywalking]()）
+    - [Telegraf](https://docs.guance.com/datakit/telegraf)
+    - [Prometheus](https://docs.guance.com/datakit/prom)
+    - [Statsd](https://docs.guance.com/datakit/statsd)
+    - [Fluentd](https://docs.guance.com/datakit/logstreaming-fluentd)
+    - [Filebeats](https://docs.guance.com/datakit/beats_output)
+    - [Function](https://docs.guance.com/dataflux-func/write-data-via-datakit)
+    - Tracing 相关
+        - [OpenTelemetry](https://docs.guance.com/datakit/opentelemetry)
+        - [DDTrace](https://docs.guance.com/datakit/ddtrace)
+        - [Zipkin](https://docs.guance.com/datakit/zipkin)
+        - [Jaeger](https://docs.guance.com/datakit/jaeger)
+        - [Skywalking](https://docs.guance.com/datakit/skywalking)
 
 ## 发布历史
 
@@ -161,4 +166,4 @@ datakit help
 
 ## 文档
 
-- [DataKit 文档库](https://www.yuque.com/dataflux/datakit)
+- [DataKit 文档库](https://docs.guance.com/datakit/)

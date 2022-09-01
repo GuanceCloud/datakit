@@ -8,7 +8,7 @@
 <h2>
   <a href="https://datakit.tools">Website</a>
   <span> • </span>
-  <a href="https://www.yuque.com/dataflux/datakit">Doc</a>
+  <a href="https://www.guance.com/dataflux/datakit">Doc</a>
 </h2>
 
 
@@ -21,19 +21,24 @@ DataKit is an open source, integrated data collection agent, which provides full
 
 - Support collection of metrics, logging and tracing
 - Fully support Kubernetes ecology
-- [Pipeline](https://www.yuque.com/dataflux/datakit/pipeline): Simple structured data extraction
+- [Pipeline](https://docs.guance.com/datakit/pipeline): Simple structured data extraction
 - Supports third-party data import:
-	- [Telegraf](https://www.yuque.com/dataflux/datakit/telegraf)
-	- [Prometheus](https://www.yuque.com/dataflux/datakit/prom)
-	- [Statsd](https://www.yuque.com/dataflux/datakit/statsd)
-	- [Fluentd](https://www.yuque.com/dataflux/datakit/logstreaming#a653042e)
-	- [Filebeats](https://www.yuque.com/dataflux/datakit/beats_output)
-	- [Function](https://www.yuque.com/dataflux/func/write-data-via-datakit)
-	- Tracing related(OpenTelemetry/[DDTrace](https://www.yuque.com/dataflux/datakit/ddtrace)/Zipkin/[Jaeger](https://www.yuque.com/dataflux/datakit/jaeger)/[Skywalking](https://www.yuque.com/dataflux/datakit/skywalking))
+    - [Telegraf](https://docs.guance.com/datakit/telegraf)
+    - [Prometheus](https://docs.guance.com/datakit/prom)
+    - [Statsd](https://docs.guance.com/datakit/statsd)
+    - [Fluentd](https://docs.guance.com/datakit/logstreaming-fluentd)
+    - [Filebeats](https://docs.guance.com/datakit/beats_output)
+    - [Function](https://docs.guance.com/dataflux-func/write-data-via-datakit)
+    - Tracing 
+        - [OpenTelemetry](https://docs.guance.com/datakit/opentelemetry)
+        - [DDTrace](https://docs.guance.com/datakit/ddtrace)
+        - [Zipkin](https://docs.guance.com/datakit/zipkin)
+        - [Jaeger](https://docs.guance.com/datakit/jaeger)
+        - [Skywalking](https://docs.guance.com/datakit/skywalking)
 
 ## Changelog
 
-All DataKit changelog refers to [here](https://www.yuque.com/dataflux/datakit/changelog).
+All DataKit changelog refers to [here](https://docs.guance.com/datakit/changelog).
 
 ## Minimal Requirements
 
@@ -59,9 +64,9 @@ DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" bash -c "$(curl -L ht
 $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
-- [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
+- [Kubernetes DaemonSet](https://docs.guance.com/datakit/datakit-daemonset-deploy)
 
-For more documentations about DataKit installation, see [here](https://www.yuque.com/dataflux/datakit/datakit-install).
+For more documentations about DataKit installation, see [here](https://docs.guance.com/datakit/datakit-install).
 
 ## Build From Source
 
@@ -161,11 +166,11 @@ datakit help
 
 Before contributing, check out some guideline of DataKit:
 
-- Read [architecure introduciton](https://www.yuque.com/dataflux/datakit/datakit-arch)
-- Read [development guideline](https://www.yuque.com/dataflux/datakit/development)
+- Read [architecure introduciton](https://docs.guance.com/datakit/datakit-arch)
+- Read [development guideline](https://docs.guance.com/datakit/development)
 
 ## Full Documentation
 
 For full documents of DataKit, see
 
-- [DataKit Doc](https://www.yuque.com/dataflux/datakit)
+- [DataKit Doc](https://docs.guance.com/datakit)

@@ -153,7 +153,7 @@ type cronjobMetric struct {
 }
 
 func (c *cronjobMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kuber_cronjob", c.tags, c.fields, point.MOptElectionV2(c.election))
+	return point.NewPoint("kube_cronjob", c.tags, c.fields, point.MOptElectionV2(c.election))
 }
 
 //nolint:lll
