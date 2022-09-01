@@ -54,6 +54,7 @@ nav:
         - mem.md
         - swap.md
         - net.md
+        - netstat.md
         - socket.md
         - system.md
         - hostdir.md

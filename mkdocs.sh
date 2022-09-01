@@ -160,6 +160,7 @@ datakit_docs=(
   $tmp_doc_dir/mongodb.md
   $tmp_doc_dir/mysql.md
   $tmp_doc_dir/net.md
+  $tmp_doc_dir/netstat.md
   $tmp_doc_dir/nginx.md
   $tmp_doc_dir/nsq.md
   $tmp_doc_dir/opentelemetry-go.md
