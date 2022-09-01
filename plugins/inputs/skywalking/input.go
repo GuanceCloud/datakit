@@ -24,8 +24,13 @@ const (
 	jvmMetricName = "skywalking_jvm"
 	sampleConfig  = `
 [[inputs.skywalking]]
-  ## skywalking grpc server listening on address.
+  ## Skywalking grpc server listening on address.
   address = "localhost:11800"
+
+  ## plugins is a list contains all the widgets used in program that want to be regarded as service.
+  ## every key words list in plugins represents a plugin defined as special tag by skywalking.
+  ## the value of the key word will be used to set the service name.
+  # plugins = ["db.type"]
 
   ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
   ## that want to send to data center. Those keys set by client code will take precedence over
@@ -69,7 +74,8 @@ const (
 
 var (
 	log            = logger.DefaultSLogger(inputName)
-	address        = "localhost:13800"
+	address        = "localhost:11800"
+	plugins        []string
 	afterGatherRun itrace.AfterGatherHandler
 	customerKeys   []string
 	tags           map[string]string
@@ -82,6 +88,7 @@ type Input struct {
 	V3               interface{}         `toml:"V3"`        // deprecated *skywalkingConfig
 	Pipelines        map[string]string   `toml:"pipelines"` // deprecated
 	Address          string              `toml:"address"`
+	Plugins          []string            `toml:"plugins"`
 	CustomerTags     []string            `toml:"customer_tags"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string `toml:"close_resource"`
@@ -108,6 +115,8 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
+
+	plugins = ipt.Plugins
 
 	if ipt.Storage != nil {
 		if cache, err := cache.Open(ipt.Storage.Path, &cache.Option{Capacity: int64(ipt.Storage.Capacity) << 20}); err != nil {
@@ -166,14 +175,14 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) Terminate() {
-	if skySvr != nil {
-		skySvr.Stop()
-	}
 	if storage != nil {
 		if err := storage.Close(); err != nil {
 			log.Error(err.Error())
 		}
 		log.Debug("### storage closed")
+	}
+	if skySvr != nil {
+		skySvr.Stop()
 	}
 }
 

@@ -116,6 +116,7 @@ require (
 require (
 	github.com/DataDog/gopsutil v1.1.0
 	github.com/gin-contrib/timeout v0.0.3
+	github.com/klauspost/compress v1.15.9
 	github.com/schollz/progressbar/v3 v3.9.0
 	github.com/tidwall/wal v1.1.7
 	sigs.k8s.io/yaml v1.3.0
@@ -185,7 +186,6 @@ require (
 	github.com/josharian/native v0.0.0-20200817173448-b6b71def0850 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect
-	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/kyokomi/emoji v2.1.0+incompatible // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
