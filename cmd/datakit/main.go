@@ -6,7 +6,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -117,13 +116,8 @@ func applyFlags() {
 	cmds.RunCmds()
 }
 
-var g = datakit.G("datakit")
-
 func serviceEntry() {
-	g.Go(func(ctx context.Context) error {
-		run()
-		return nil
-	})
+	go run()
 }
 
 func run() {

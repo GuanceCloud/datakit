@@ -350,6 +350,7 @@ func G(name string) *goroutine.Group {
 func GWait() {
 	for _, g := range goroutines {
 		// just ignore error
+		l.Infof("goroutine Group %s waiting", g.Name())
 		_ = g.Wait()
 		l.Infof("goroutine Group %s exit", g.Name())
 	}
