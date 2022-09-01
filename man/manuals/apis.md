@@ -1,12 +1,9 @@
-{{.CSS}}
 # DataKit API
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
 本文档主要描述 DataKit 开放出来 HTTP API 接口。
 
-## API 综述
+## API 综述 {#intro}
 
 DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 
@@ -156,13 +153,11 @@ slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 
 ### RUM {#api-rum}
 
-参见 [RUM 文档](../integrations/rum.md)
+参见 [RUM 文档](rum.md)
 
 ## `/v1/ping` {#api-ping}
 
-检测目标地址是否有 DataKit 运行，可获取 DataKit 启动时间以及版本信息。
-
-### 示例
+检测目标地址是否有 DataKit 运行，可获取 DataKit 启动时间以及版本信息。示例：
 
 ``` http
 GET /v1/ping HTTP/1.1
@@ -179,9 +174,7 @@ HTTP/1.1 200 OK
 
 ## `/v1/lasterror` {#api-lasterror}
 
-用于上报外部采集器的错误
-
-### 示例
+用于上报外部采集器的错误，示例：
 
 ``` http
 POST /v1/lasterror HTTP/1.1
@@ -195,9 +188,7 @@ Content-Type: application/json
 
 ## `/v1/workspace` {#api-workspace}
 
-查看工作空间信息及数据配额信息
-
-### 示例
+查看工作空间信息及数据配额信息，示例：
 
 ``` http
 GET /v1/workspace HTTP/1.1
@@ -235,9 +226,7 @@ HTTP/1.1 200 OK
 
 ## `/v1/query/raw` {#api-raw-query}
 
-使用 DQL 进行数据查询（只能查询该 DataKit 所在的工作空间的数据）
-
-### 示例
+使用 DQL 进行数据查询（只能查询该 DataKit 所在的工作空间的数据），示例：
 
 ``` shell
 POST /v1/query/raw HTTP/1.1
@@ -279,7 +268,7 @@ Content-Type: application/json
 | `offset`                 | 一般跟 limit 配置使用，用于结果分页                                                                                                                                                                                        |
 | `orderby`                | 指定`order by`参数，内容格式为 `map[string]string` 数组，`key` 为要排序的字段名，`value` 只能是排序方式即 `asc` 和 `desc`，例如 `[ { "column01" : "asc" }, { "column02" : "desc" } ]`。此条会替换原查询语句中的 `order by` |
 | `queries`                | 基础查询模块，包含查询语句和各项附加参数                                                                                                                                                                                   |
-| `query`                  | DQL 查询语句（DQL [文档](../dql/define.md)）                                                                                                                                                      |
+| `query`                  | DQL 查询语句（DQL [文档](../dql/define.md)）                                                                                                                                                                               |
 | `search_after`           | 深度分页，第一次调用分页的时候，传入空列表：`"search_after": []`，成功后服务端会返回一个列表，客户端直接复用这个列表的值再次通过 `search_after` 参数回传给后续的查询即可                                                   |
 | `slimit`                 | 限制时间线个数，将覆盖 DQL 中存在的 slimit                                                                                                                                                                                 |
 | `time_range`             | 限制时间范围，采用时间戳格式，单位为毫秒，数组大小为 2 的 int，如果只有一个元素则认为是起始时间，会覆盖原查询语句中的查询时间区间                                                                                          |
@@ -329,7 +318,7 @@ Content-Type: application/json
 |        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`     |
 |       `labels` | `labels` 列表，一个 `string` 数组                                             | `[]string` |
 
-### 示例
+请求示例：
 
 ``` shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels" \
@@ -376,7 +365,7 @@ status_code: 500
 |          `key` | 表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`     | `string` |
 |        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`   |
 
-### 示例
+请求示例：
 
 ``` shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
@@ -413,7 +402,7 @@ status_code: 500
 
 提供远程调试 PL 的功能。
 
-### 示例 
+请求示例：
 
 ``` http
 POST /v1/pipeline/debug
@@ -470,7 +459,7 @@ HTTP Code: 400
 
 提供远程调试 dialtesting 的功能。
 
-### 示例 
+请求示例 ：
 
 ``` http
 POST /v1/dialtesting/debug
@@ -538,4 +527,4 @@ HTTP Code: 400
 
 - [API 访问设置](datakit-conf.md#config-http-server)
 - [API 限流配置](datakit-conf.md#set-http-api-limit)
-- [API 安全控制](../integrations/rum.md#security-setting)
+- [API 安全控制](rum.md#security-setting)

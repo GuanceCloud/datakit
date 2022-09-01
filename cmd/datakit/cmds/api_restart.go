@@ -6,6 +6,7 @@
 package cmds
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -43,11 +44,14 @@ func apiRestart() {
 	if goos == "windows" {
 		stopProgram()
 		endCh := make(chan bool, 1)
-		go func() {
+
+		g.Go(func(ctx context.Context) error {
 			time.Sleep(1 * time.Second)
 			startDataKit()
 			endCh <- true
-		}()
+			return nil
+		})
+
 		for {
 			select {
 			case <-tick.C:

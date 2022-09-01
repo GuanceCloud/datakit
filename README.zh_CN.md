@@ -97,7 +97,6 @@ export PATH=$GOROOT/bin:~/go/bin:$PATH
 - eBPF 相关（eBPF 不是编译 DataKit 本身必须的，如果不安装它们，只会导致 eBPF 部分编译失败）
 	- clang 10.0+: `apt-get install clang`
 	- llvm 10.0+: `apt-get install llvm`
-	- go-bindata: `apt install go-bindata`
 	- kernel headers: `apt-get install -y linux-headers-$(uname -r)`
 - 文档相关: [waque 1.13.1+](https://github.com/yesmeck/waque)
   - 文档工具也不是必须的，可不安装

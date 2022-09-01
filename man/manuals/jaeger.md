@@ -2,28 +2,40 @@
 # Jaeger
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 Datakit 内嵌的 Jaeger Agent 用于接收，运算，分析 Jaeger Tracing 协议数据。
 
-## Jaeger 文档
+## Jaeger 文档 {#doc}
 
 - [Quickstart](https://www.jaegertracing.io/docs/1.27/getting-started/){:target="_blank"}
 - [Docs](https://www.jaegertracing.io/docs/){:target="_blank"}
 - [Clients Download](https://www.jaegertracing.io/download/){:target="_blank"}
 - [Source Code](https://github.com/jaegertracing/jaeger){:target="_blank"}
 
-## 配置 Jaeger Agent
+## 配置 Jaeger Agent {#config-agent}
 
-> 当前 Jaeger 版本支持 HTTP 和 UDP 通信协议和 Apache Thrift 编码规范
+???+ info
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    当前 Jaeger 版本支持 HTTP 和 UDP 通信协议和 Apache Thrift 编码规范
 
-```toml
-{{.InputSample}}
-```
+=== "主机安装"
 
-### 配置 Jaeger HTTP Agent
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
+
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+
+=== "Kubernetes"
+
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+### 配置 Jaeger HTTP Agent {#config-http-agent}
 
 endpoint 代表 Jaeger HTTP Agent 路由
 
@@ -37,15 +49,15 @@ endpoint 代表 Jaeger HTTP Agent 路由
 - 修改 Jaeger Client 的 Agent Host Port 为 Datakit Port（默认为 9529）
 - 修改 Jaeger Client 的 Agent endpoint 为上面配置中指定的 endpoint
 
-### 配置 Jaeger UDP Agent
+### 配置 Jaeger UDP Agent {#config-udp-agent}
+
+修改 Jaeger Client 的 Agent UDP Host:Port 为下面配置中指定的 address：
 
 ```toml
 [[inputs.jaeger]]
   # Jaeger agent host:port address for UDP transport.
   address = "127.0.0.1:6831"
 ```
-
-- 修改 Jaeger Client 的 Agent UDP Host:Port 为上面配置中指定的 address
 
 有关数据采样，数据过滤，关闭资源等配置请参考[Datakit Tracing](datakit-tracing.md)
 
@@ -209,7 +221,7 @@ func foo() {
 }
 ```
 
-## Tracing 数据
+## 指标集 {#measurements}
 
 {{ range $i, $m := .Measurements }}
 

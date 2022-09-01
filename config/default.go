@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package config
 
 import (
@@ -30,11 +35,10 @@ func DefaultConfig() *Config {
 		}, // default nothing
 
 		IOConf: &dkio.IOConfig{
-			FeedChanSize:         128,
-			MaxCacheCount:        64,
-			MaxDynamicCacheCount: 64,
-			FlushInterval:        "10s",
-			OutputFileInputs:     []string{},
+			FeedChanSize:     1,
+			MaxCacheCount:    1000,
+			FlushInterval:    "10s",
+			OutputFileInputs: []string{},
 
 			EnableCache: false,
 			CacheSizeGB: 1,

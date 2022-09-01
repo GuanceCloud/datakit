@@ -10,11 +10,14 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
@@ -22,11 +25,14 @@ import (
 
 const (
 	creatorID = "dataway"
+	logName   = "sink_dataway"
 )
 
 var (
 	_             sinkcommon.ISink = new(SinkDataway)
 	initSucceeded                  = false
+	l                              = logger.DefaultSLogger(logName)
+	onceInit      sync.Once
 )
 
 type SinkDataway struct {
@@ -46,36 +52,53 @@ func (s *SinkDataway) Write(category string, pts []*point.Point) error {
 	}
 
 	if len(s.conditions) > 0 {
+		var newPts []*point.Point
 		for _, pt := range pts {
-			tags := pt.ToPoint().Tags()
-			fields, err := pt.ToPoint().Fields()
+			isFiltered, err := filter.CheckPointFiltered(s.conditions, category, pt)
 			if err != nil {
-				continue // ignore it!
+				l.Errorf("pt.Fields: %s, ignored", err.Error())
+				continue // Exclude it!
 			}
-
-			if filtered(s.conditions, tags, fields) {
+			if isFiltered { // Pick those points that matched filter rules.
 				// meet the condition
+				newPts = append(newPts, pt)
 				pt.SetWritten()
 			}
 		}
 
-		var newPts []*point.Point
-		for _, pt := range pts {
-			if pt.GetWritten() {
-				newPts = append(newPts, pt)
+		if datakit.LogSinkDetail {
+			if s.dw != nil && s.dw.DataWayCfg != nil && s.dw.DataWayCfg.URLs != nil {
+				// Checked pointers okay, log ok to go.
+				var cond string
+				for _, v := range s.conditions {
+					cond += v.String()
+				}
+				for _, v := range newPts {
+					l.Infof("(sink_detail) (%v) (%s) writes: %s", s.dw.DataWayCfg.URLs, cond, v.String())
+				}
+			} else {
+				// Log errors.
+				if s.dw == nil { // nolint:gocritic
+					l.Error("(sink_detail) s.dw == nil")
+				} else if s.dw.DataWayCfg == nil {
+					l.Error("(sink_detail) s.dw.DataWayCfg == nil")
+				} else if s.dw.DataWayCfg.URLs == nil {
+					l.Error("(sink_detail) s.dw.DataWayCfg.URLs == nil")
+				}
 			}
 		}
+
 		return s.writeDataway(category, newPts)
 	} // if len(s.conditions) > 0
 
 	return s.writeDataway(category, pts)
 }
 
-func filtered(conds parser.WhereConditions, tags map[string]string, fields map[string]interface{}) bool {
-	return conds.Eval(tags, fields)
-}
-
 func (s *SinkDataway) LoadConfig(mConf map[string]interface{}) error {
+	onceInit.Do(func() {
+		l = logger.SLogger(logName)
+	})
+
 	s.conditions = make(parser.WhereConditions, 0) // clear
 
 	if id, str, err := sinkfuncs.GetSinkCreatorID(mConf); err != nil {
@@ -98,25 +121,17 @@ func (s *SinkDataway) LoadConfig(mConf map[string]interface{}) error {
 	}
 
 	if filters, ok := mConf["filters"]; ok {
+		var newArr []string
+
 		// When comes from daemonset, the type is []string.
 		// When comes from datakit.conf, the type is []interface{}.
 		switch filterArr := filters.(type) {
 		case []string:
-			for _, v := range filterArr {
-				cond := parser.GetConds(v)
-				if cond == nil {
-					return fmt.Errorf("condition empty")
-				}
-				s.conditions = append(s.conditions, cond...)
-			}
+			newArr = filterArr
 		case []interface{}:
 			for _, v := range filterArr {
 				if sv, ok := v.(string); ok {
-					cond := parser.GetConds(sv)
-					if cond == nil {
-						return fmt.Errorf("condition empty")
-					}
-					s.conditions = append(s.conditions, cond...)
+					newArr = append(newArr, sv)
 				} else {
 					return fmt.Errorf("%#v not string: %s, %s", v, reflect.TypeOf(v).Name(), reflect.TypeOf(v).String())
 				}
@@ -124,6 +139,12 @@ func (s *SinkDataway) LoadConfig(mConf map[string]interface{}) error {
 		default:
 			return fmt.Errorf("filter illegal: %s, %s", reflect.TypeOf(filters).Name(), reflect.TypeOf(filters).String())
 		}
+
+		conds, err := filter.GetConds(newArr)
+		if err != nil {
+			return err
+		}
+		s.conditions = conds
 	}
 
 	// init dataway

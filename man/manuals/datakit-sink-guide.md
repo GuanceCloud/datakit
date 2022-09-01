@@ -1,15 +1,15 @@
 # DataKit Sink 使用
 ---
 
-## DataKit Sinker
+## DataKit Sinker {#intro}
 
 本文将讲述什么是 DataKit 的 Sinker 模块(以下简称 Sinker 模块、Sinker)、以及如何使用 Sinker 模块。
 
-## 什么是 Sinker
+## 什么是 Sinker {#what}
 
 Sinker 是 DataKit 中数据存储定义模块。默认情况下，DataKit 采集到的数据是上报给[观测云](https://console.guance.com/){:target="_blank"}，但通过配置不同的 Sinker 配置，我们可以将数据发送给不同的自定义存储。
 
-### 目前支持的 Sinker 实例
+### 目前支持的 Sinker 实例 {#list}
 
 - [InfluxDB](datakit-sink-influxdb.md)：目前支持将 DataKit 采集的时序数据（M）发送到本地的 InfluxDB 存储。
 - [Logstash](datakit-sink-logstash.md)：目前支持将 DataKit 采集的日志数据（L）发送到本地 Logstash 服务。
@@ -19,7 +19,7 @@ Sinker 是 DataKit 中数据存储定义模块。默认情况下，DataKit 采�
 
 当让，同一定的开发，也能将现有 DataKit 采集到的各种其它数据发送到任何其它存储，参见[Sinker 开发文档](datakit-sink-dev.md)。
 
-## Sinker 的配置
+## Sinker 的配置 {#config}
 
 只需要以下简单三步:
 
@@ -39,7 +39,7 @@ Sinker 是 DataKit 中数据存储定义模块。默认情况下，DataKit 采�
 $ sudo datakit --restart
 ```
 
-## 通用参数的说明
+## 通用参数的说明 {#args}
 
 无论哪种 Sinker 实例, 都必须支持以下参数:
 
@@ -62,7 +62,7 @@ $ sudo datakit --restart
 
 > 注：对于未指定 Sinker 的 categories，默认仍然发送给观测云。
 
-## 扩展阅读
+## 扩展阅读 {#more-readings}
 
 - [Sinker 之 InfluxDB](datakit-sink-influxdb.md)
 - [Sinker 之 Logstash](datakit-sink-logstash.md)

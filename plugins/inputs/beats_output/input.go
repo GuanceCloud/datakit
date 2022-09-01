@@ -7,6 +7,7 @@
 package beats_output //nolint:stylecheck
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/url"
@@ -54,6 +55,8 @@ const (
   # more_tag = "some_other_value"
 `
 )
+
+var g = datakit.G("inputs_beats_output")
 
 type Input struct {
 	Listen        string            `toml:"listen"`
@@ -144,10 +147,10 @@ func (ipt *Input) Run() {
 	l.Debug("listening...")
 	ipt.stopped = false
 
-	go func() {
+	g.Go(func(ctx context.Context) error {
 		for {
 			if ipt.stopped {
-				return
+				return nil
 			}
 
 			// try to receive event from server
@@ -168,7 +171,7 @@ func (ipt *Input) Run() {
 
 			batch.ACK()
 		}
-	}()
+	})
 
 	for {
 		select {

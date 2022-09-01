@@ -7,17 +7,18 @@
 package mongodb
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -182,7 +183,7 @@ func (m *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (m *Input) AvailableArchs() []string { return datakit.AllOS }
+func (m *Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (m *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
@@ -222,7 +223,11 @@ func (m *Input) RunPipeline() {
 		return
 	}
 
-	go m.tail.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_mongodb"})
+	g.Go(func(ctx context.Context) error {
+		m.tail.Start()
+		return nil
+	})
 }
 
 func (m *Input) Run() {
@@ -287,7 +292,7 @@ func (m *Input) gather() error {
 		return m.gatherServer(m.getMongoServer(&url.URL{Host: defMongoURL}))
 	}
 
-	var wg sync.WaitGroup
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_mongodb"})
 	for i, serv := range m.Servers {
 		if !strings.HasPrefix(serv, "mongodb://") {
 			serv = "mongodb://" + serv
@@ -305,16 +310,16 @@ func (m *Input) gather() error {
 			continue
 		}
 
-		wg.Add(1)
-		go func(srv *Server) {
-			defer wg.Done()
-
-			if err := m.gatherServer(srv); err != nil {
-				l.Errorf("error in plugin: %s,%v", srv.URL.String(), err)
-			}
+		func(srv *Server) {
+			g.Go(func(ctx context.Context) error {
+				if err := m.gatherServer(srv); err != nil {
+					l.Errorf("error in plugin: %s,%v", srv.URL.String(), err)
+				}
+				return nil
+			})
 		}(m.getMongoServer(u))
 	}
-	wg.Wait()
+	_ = g.Wait()
 
 	return nil
 }

@@ -27,6 +27,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	plstats "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -104,9 +105,9 @@ type DatakitStats struct {
 	PLStats     []plstats.ScriptStatsROnly `json:"pl_stats"`
 	HTTPMetrics map[string]*APIStat        `json:"http_metrics"`
 
-	WithinDocker bool            `json:"docker"`
-	AutoUpdate   bool            `json:"auto_update"`
-	FilterStats  *io.FilterStats `json:"filter_stats"`
+	WithinDocker bool                `json:"docker"`
+	AutoUpdate   bool                `json:"auto_update"`
+	FilterStats  *filter.FilterStats `json:"filter_stats"`
 
 	// markdown options
 	DisableMonofont bool `json:"-"`
@@ -336,7 +337,7 @@ func GetStats() (*DatakitStats, error) {
 	stats.GolangRuntime = getRuntimeInfo()
 
 	l.Debugf("io.GetFilterStats()...")
-	stats.FilterStats = io.GetFilterStats()
+	stats.FilterStats = filter.GetFilterStats()
 
 	l.Debugf("OpenFiles()...")
 	stats.OpenFiles = datakit.OpenFiles()
@@ -444,22 +445,6 @@ type ResponseJSON struct {
 	Success   bool        `json:"success"`
 }
 
-func sendError(c *gin.Context, err error) {
-	res := ResponseJSON{
-		Code:      500,
-		ErrorCode: "server.error",
-		ErrorMsg:  err.Error(),
-		Success:   false,
-	}
-	body, err := json.Marshal(res)
-	if err != nil {
-		c.Data(http.StatusInternalServerError, "text/html; charset=UTF-8", []byte("server error"))
-		return
-	}
-
-	c.Data(http.StatusInternalServerError, "application/json", body)
-}
-
 // StatInfo contains datakit stat info which not changes over time.
 type StatInfo struct {
 	EnabledInputs   map[string]*enabledInput  `json:"enabled_input_list"`
@@ -485,7 +470,7 @@ type StatMetric struct {
 	IOStats        *io.Stats                  `json:"io_stats"`
 	PLStats        []plstats.ScriptStatsROnly `json:"pl_stats"`
 	HTTPMetrics    map[string]*APIStat        `json:"http_metrics"`
-	FilterStats    *io.FilterStats            `json:"filter_stats"`
+	FilterStats    *filter.FilterStats        `json:"filter_stats"`
 }
 
 // getStatInfo return stat info.
@@ -532,19 +517,18 @@ func getStatMetric() *StatMetric {
 	return metricStat
 }
 
-func apiGetDatakitStatsByType(c *gin.Context) {
+func apiGetDatakitStatsByType(w http.ResponseWriter, r *http.Request, x ...interface{}) (interface{}, error) {
 	var stat interface{}
 
-	statType := c.Param("type")
+	statType := r.URL.Query().Get("type")
 
-	if statType == "" {
-		statType = StatInfoType
-	}
-
-	if statType == StatInfoType {
-		stat = getStatInfo()
-	} else if statType == StatMetricType {
+	switch statType {
+	case StatMetricType:
 		stat = getStatMetric()
+	case StatInfoType:
+		stat = getStatInfo()
+	default:
+		stat = getStatInfo()
 	}
 
 	if stat == nil {
@@ -558,9 +542,8 @@ func apiGetDatakitStatsByType(c *gin.Context) {
 
 	body, err := json.MarshalIndent(stat, "", "    ")
 	if err != nil {
-		sendError(c, err)
-		return
+		return nil, err
 	}
 
-	c.Data(http.StatusOK, "application/json", body)
+	return body, nil
 }

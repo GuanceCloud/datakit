@@ -2,13 +2,13 @@
 # SQLServer
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 SQL Server 采集器采集 SQL Server `waitstats`、`database_io` 等相关指标
 
-![](imgs/input-sqlserver-1.png)
-
-## 前置条件
+## 前置条件 {#requrements}
 
 - SQL Server 版本 >= 2019
 
@@ -37,21 +37,23 @@ GO
 
 ```
 
-## 配置
+## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+=== "主机安装"
 
-```toml
-{{.InputSample}}
-```
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
+    
+    配置好后，重启 DataKit 即可。
 
-配置好后，重启 DataKit 即可。
+=== "Kubernetes"
 
-## 指标预览
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-![](imgs/input-sqlserver-2.png)
-
-## 指标集
+## 指标集 {#measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -77,7 +79,11 @@ GO
 {{ end }}
 
 
-## 日志采集
+## 日志采集 {#logging}
+
+???+ attention
+
+    必须将 DataKit 安装在 SQLServer 所在主机才能采集日志。
 
 如需采集 SQL Server 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 SQL Server 日志文件的绝对路径。比如：
 
@@ -93,7 +99,7 @@ GO
 
 >注意：必须将 DataKit 安装在 SQL Server 所在主机才能采集 SQL Server 日志
 
-## 日志 pipeline 功能切割字段说明
+### 日志 pipeline 功能切割字段说明 {#pipeline}
 
 - SQL Server 通用日志切割
 

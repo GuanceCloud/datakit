@@ -7,7 +7,9 @@
 package trace
 
 import (
+	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -15,9 +17,13 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
+	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
+	"google.golang.org/protobuf/proto"
 )
 
 // tracing data constants
@@ -44,11 +50,13 @@ const (
 	SPAN_TYPE_UNKNOW = "unknow"
 
 	// span source type.
-	SPAN_SOURCE_APP      = "app"
-	SPAN_SOURCE_CACHE    = "cache"
-	SPAN_SOURCE_CUSTOMER = "custom"
-	SPAN_SOURCE_DB       = "db"
-	SPAN_SOURCE_WEB      = "web"
+	SPAN_SOURCE_APP       = "app"
+	SPAN_SOURCE_FRAMEWORK = "framework"
+	SPAN_SOURCE_CACHE     = "cache"
+	SPAN_SOURCE_MSGQUE    = "message_queue"
+	SPAN_SOURCE_CUSTOMER  = "custom"
+	SPAN_SOURCE_DB        = "db"
+	SPAN_SOURCE_WEB       = "web"
 
 	// line protocol tags.
 	TAG_CONTAINER_HOST = "container_host"
@@ -102,6 +110,13 @@ var (
 	log         = logger.DefaultSLogger(packageName)
 	sourceTypes = map[string]string{
 		"consul":        SPAN_SOURCE_APP,
+		"django":        SPAN_SOURCE_FRAMEWORK,
+		"express":       SPAN_SOURCE_FRAMEWORK,
+		"flask":         SPAN_SOURCE_FRAMEWORK,
+		"go-gin":        SPAN_SOURCE_FRAMEWORK,
+		"laravel":       SPAN_SOURCE_FRAMEWORK,
+		"spring":        SPAN_SOURCE_FRAMEWORK,
+		".net":          SPAN_SOURCE_FRAMEWORK,
 		"cache":         SPAN_SOURCE_CACHE,
 		"memcached":     SPAN_SOURCE_CACHE,
 		"redis":         SPAN_SOURCE_CACHE,
@@ -115,6 +130,10 @@ var (
 		"mysql":         SPAN_SOURCE_DB,
 		"pymysql":       SPAN_SOURCE_DB,
 		"sql":           SPAN_SOURCE_DB,
+		"go-nsq":        SPAN_SOURCE_MSGQUE,
+		"kafka":         SPAN_SOURCE_MSGQUE,
+		"mqtt":          SPAN_SOURCE_MSGQUE,
+		"rabbitmq":      SPAN_SOURCE_MSGQUE,
 		"dns":           SPAN_SOURCE_WEB,
 		"grpc":          SPAN_SOURCE_WEB,
 		"http":          SPAN_SOURCE_WEB,
@@ -347,8 +366,79 @@ func UnknowServiceName(dkspan *DatakitSpan) string {
 	return fmt.Sprintf("unknow-service-%s", dkspan.Source)
 }
 
+type TraceParameters struct {
+	Meta *TraceMeta
+	Body *bytes.Buffer
+}
+
 type Storage struct {
 	Path     string `json:"storage"`
 	Capacity int    `json:"capacity"`
 	Consumer int    `json:"consumer"`
+	cache    *cache.DiskCache
+}
+
+func (s *Storage) SetCache(cache *cache.DiskCache) {
+	if cache == nil {
+		return
+	} else {
+		s.cache = cache
+	}
+}
+
+func (s *Storage) Send(param *TraceParameters) error {
+	if param == nil {
+		return errors.New("parameter invalid")
+	}
+
+	if param.Meta == nil {
+		param.Meta = &TraceMeta{}
+	}
+	if len(param.Meta.Buf) == 0 && param.Body != nil {
+		param.Meta.Buf = param.Body.Bytes()
+	}
+
+	buf, err := proto.Marshal(param.Meta)
+	if err != nil {
+		return err
+	}
+
+	return s.cache.Put(buf)
+}
+
+func (s *Storage) RunStorageConsumer(log *logger.Logger, paramHandler func(param *TraceParameters) error) {
+	g := goroutine.NewGroup(goroutine.Option{Name: "internal_trace"})
+	g.Go(func(ctx context.Context) error {
+		for {
+			start := time.Now()
+			if err := s.cache.Get(func(buf []byte) error {
+				meta := &TraceMeta{}
+				err := proto.Unmarshal(buf, meta)
+				if err == nil {
+					param := &TraceParameters{Meta: meta}
+					param.Body = bytes.NewBuffer(meta.Buf)
+					err = paramHandler(param)
+
+					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(param.Meta.Buf)>>10, time.Since(start)/time.Millisecond, err)
+				}
+
+				return err
+			}); err != nil {
+				if errors.Is(err, cache.ErrEOF) {
+					log.Debug(err.Error())
+					time.Sleep(time.Second)
+				} else {
+					log.Error(err.Error())
+				}
+			}
+		}
+	})
+}
+
+func (s *Storage) Close() error {
+	if s.cache != nil {
+		return s.cache.Close()
+	}
+
+	return nil
 }

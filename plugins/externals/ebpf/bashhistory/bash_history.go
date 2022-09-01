@@ -32,9 +32,6 @@ const srcNameM = "bash"
 
 var (
 	l = logger.DefaultSLogger(srcNameM)
-
-	// regexpReadline  = regexp.MustCompile(`libreadline.so`)
-	// sectionReadline = "uretprobe/readline"
 )
 
 func SetLogger(nl *logger.Logger) {
@@ -68,8 +65,8 @@ func NewBashManger(bashReadlineEventHandler func(cpu int, data []byte,
 			Max: math.MaxUint64,
 		},
 	}
-	if buf, err := dkebpf.Asset("bash_history.o"); err != nil {
-		return nil, err
+	if buf, err := dkebpf.BashHistoryBin(); err != nil {
+		return nil, fmt.Errorf("bash_history.o: %w", err)
 	} else if err := m.InitWithOptions((bytes.NewReader(buf)), mOpts); err != nil {
 		return nil, err
 	}
@@ -170,37 +167,6 @@ func (tracer *BashTracer) Run(ctx context.Context, gTags map[string]string,
 		l.Error(err)
 		return err
 	}
-
-	// rules := []sysmonitor.UprobeRegRule{
-	// 	{
-	// 		Re: regexpReadline,
-	// 		Register: func(s string) error {
-	// 			l.Info("AddHook: ", s)
-	// 			if err := bpfManger.AddHook("", manager.Probe{
-	// 				UID:        s,
-	// 				Section:    sectionReadline,
-	// 				BinaryPath: s,
-	// 			}); err != nil {
-	// 				l.Error(err)
-	// 			}
-	// 			return nil
-	// 		},
-	// 		UnRegister: func(s string) error {
-	// 			l.Info("DetachHook: ", s)
-	// 			if err := bpfManger.DetachHook(sectionReadline, s); err != nil {
-	// 				l.Error(err)
-	// 			}
-	// 			return nil
-	// 		},
-	// 	},
-	// }
-
-	// r, err := sysmonitor.NewUprobeDyncLibRegister(rules)
-	// if err != nil {
-	// 	return err
-	// }
-	// r.ScanAndUpdate()
-	// r.Monitor(ctx, time.Minute*1)
 
 	go func() {
 		<-ctx.Done()

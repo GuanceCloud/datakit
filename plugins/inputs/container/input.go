@@ -24,11 +24,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ReadEnv = (*Input)(nil)
-
 const (
-	objectInterval = time.Minute * 5
-	metricInterval = time.Second * 60
+	objectInterval     = time.Minute * 5
+	metricInterval     = time.Second * 60
+	goroutineGroupName = "inputs_container"
+)
+
+var (
+	_ inputs.ReadEnv = (*Input)(nil)
+	g                = datakit.G(goroutineGroupName)
 )
 
 type Input struct {
@@ -109,7 +113,7 @@ func (*Input) GetPipeline() []*tailer.Option { return nil }
 func (*Input) RunPipeline() { /*nil*/ }
 
 func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSLabelLinux}
+	return []string{datakit.OSLabelLinux, datakit.LabelK8s, datakit.LabelDocker}
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
@@ -137,7 +141,10 @@ func (i *Input) Run() {
 	defer metricTick.Stop()
 
 	if datakit.Docker && !i.DisableK8sEvents {
-		go i.watchingK8sEventLog()
+		g.Go(func(ctx context.Context) error {
+			i.watchingK8sEventLog()
+			return nil
+		})
 	}
 
 	if datakit.Docker {
@@ -192,7 +199,7 @@ func (i *Input) stop() {
 func (i *Input) collectObject() {
 	timeNow := time.Now()
 	defer func() {
-		l.Debug("collect object, cost %s", time.Since(timeNow))
+		l.Debugf("collect object, cost %s", time.Since(timeNow))
 	}()
 
 	if err := i.gatherDockerContainerObject(); err != nil {
@@ -212,7 +219,7 @@ func (i *Input) collectObject() {
 	}
 
 	if i.k8sInput == nil {
-		l.Errorf("unrechable, k8s input is empty pointer")
+		l.Error("unrechable, k8s input is empty pointer")
 		return
 	}
 
@@ -226,7 +233,7 @@ func (i *Input) collectObject() {
 func (i *Input) collectMetric() {
 	timeNow := time.Now()
 	defer func() {
-		l.Debug("collect metric and logging, cost %s", time.Since(timeNow))
+		l.Debugf("collect metric and logging, cost %s", time.Since(timeNow))
 	}()
 
 	if i.EnableContainerMetric {
@@ -283,7 +290,7 @@ func (i *Input) gatherDockerContainerMetric() error {
 		return err
 	}
 	if len(res) == 0 {
-		l.Debugf("container metric: no point")
+		l.Debug("container metric: no point")
 		return nil
 	}
 

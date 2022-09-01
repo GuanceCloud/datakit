@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -75,11 +76,15 @@ func (ipt *Input) Run() {
 		Handler: proxy,
 	}
 
-	go func(proxysrv *http.Server) {
-		log.Infof("http proxy server listening on %s", proxysrv.Addr)
-		if err := proxysrv.ListenAndServe(); err != nil {
-			log.Error(err)
-		}
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_proxy"})
+	func(proxysrv *http.Server) {
+		g.Go(func(ctx context.Context) error {
+			log.Infof("http proxy server listening on %s", proxysrv.Addr)
+			if err := proxysrv.ListenAndServe(); err != nil {
+				log.Error(err)
+			}
+			return nil
+		})
 	}(proxysrv)
 
 	stopFunc := func() {

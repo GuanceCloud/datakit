@@ -55,7 +55,7 @@ func Run(c *CgroupOptions) {
 		return
 	}
 
-	g := datakit.G("cgroup")
+	g := datakit.G("internal_cgroup")
 
 	g.Go(func(ctx context.Context) error {
 		cg.start()

@@ -2,11 +2,9 @@
 # 离线部署
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows:
-
 某些时候，目标机器没有公网访问出口，按照如下方式可离线安装 DataKit。
 
-## 前置条件
+## 前置条件 {#requrements}
 
 - 通过[正常安装方式](datakit-install.md)，在有公网出口的机器上安装一个 DataKit
 - 开通该 DataKit 上的 [proxy](proxy.md) 采集器，假定 proxy 采集器所在 Datakit IP 为 1.2.3.4，有如下配置：
@@ -19,7 +17,7 @@
   port = 9530
 ```
 
-## 通过代理安装
+## 通过代理安装 {#install-via-proxy}
 
 === "Linux/Mac"
 
@@ -59,11 +57,11 @@
     
     > 注意：其它安装参数设置，跟[正常安装](datakit-install.md) 无异。
 
-## 全离线安装
+## 全离线安装 {#offline}
 
 当环境完全没有外网的情况下，只能通过移动硬盘（U 盘）等方式。
 
-### 下载安装包
+### 下载安装包 {#download}
 
 以下文件的地址，可通过 wget 等下载工具，也可以直接在浏览器中输入对应的 URL 下载。
 
@@ -113,7 +111,7 @@
 
 将这些文件拷贝到对应机器上（通过 U 盘或 scp 等命令）。
 
-### 安装
+### 安装 {#install}
 
 === "Windows"
 

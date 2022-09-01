@@ -54,7 +54,7 @@ func TestSpansStorage_AddSpans(t *testing.T) {
 		fields *SpansStorage
 		args   args
 	}{
-		{name: "case1", fields: NewSpansStorage(), args: args{rss: []*tracepb.ResourceSpans{mockResourceSpan}}},
+		{name: "case1", fields: NewSpansStorage(nil), args: args{rss: []*tracepb.ResourceSpans{mockResourceSpan}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

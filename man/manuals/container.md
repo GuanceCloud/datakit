@@ -2,7 +2,9 @@
 # 容器数据采集
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 采集 container 和 Kubernetes 的指标、对象和日志数据，上报到观测云。
 
@@ -33,9 +35,9 @@
     | `ENV_INPUT_CONTAINER_DOCKER_ENDPOINT`                            | 指定 Docker Engine 的 enpoint                                              | "unix:///var/run/docker.sock"                     | `"unix:///var/run/docker.sock"`                                                  |
     | `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`                         | 指定 Containerd 的 endpoint                                                | "/var/run/containerd/containerd.sock"             | `"/var/run/containerd/containerd.sock"`                                          |
     | `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`                    | 是否忽略 k8s 的 pause 容器                                                 | true                                              | `"true"`/`"false"`                                                               |
-    | `ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC`                    | 开启容器指标采集                                                           | false                                             | `"true"`/`"false"`                                                               |
-    | `ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC`                          | 开启 k8s 指标采集                                                          | false                                             | `"true"`/`"false"`                                                               |
-    | `ENV_INPUT_CONTAINER_ENABLE_POD_METRIC`                          | 开启 Pod 指标采集                                                          | false                                             | `"true"`/`"false"`                                                               |
+    | `ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC`                    | 开启容器指标采集                                                           | true                                              | `"true"`/`"false"`                                                               |
+    | `ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC`                          | 开启 k8s 指标采集                                                          | true                                              | `"true"`/`"false"`                                                               |
+    | `ENV_INPUT_CONTAINER_ENABLE_POD_METRIC`                          | 开启 Pod 指标采集                                                          | true                                              | `"true"`/`"false"`                                                               |
     | `ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG`                      | 容器日志的 include 条件，使用 image 过滤                                   | 无                                                | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"`                                  |
     | `ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG`                      | 容器日志的 exclude 条件，使用 image 过滤                                   | 无                                                | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"`                                  |
     | `ENV_INPUT_CONTAINER_KUBERNETES_URL`                             | k8s api-server 访问地址                                                    | "https://kubernetes.default:443"                  | `"https://kubernetes.default:443"`                                               |
@@ -68,7 +70,7 @@
     - 对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂不支持配置
     - 采集到的日志, 单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃
 
-#### Docker 和 Containerd sock 文件配置
+#### Docker 和 Containerd sock 文件配置 {#docker-containerd-sock}
 
 如果 Docker 或 Containerd 的 sock 路径不是默认的，则需要指定一下 sock 文件路径，根据 DataKit 不同部署方式，其方式有所差别，以 Containerd 为例：
 

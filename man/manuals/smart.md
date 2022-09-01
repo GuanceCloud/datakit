@@ -2,11 +2,13 @@
 # 磁盘 S.M.A.R.T
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 计算机硬盘运行状态数据采集
 
-## 前置条件
+## 前置条件 {#requrements}
 
 安装 smartmontools
 
@@ -17,18 +19,23 @@
 - MacOS: `brew install smartmontools -y`
 - WinOS: 下载 [Windows 版本](https://www.smartmontools.org/wiki/Download#InstalltheWindowspackage){:target="_blank"}
 
+## 配置 {#config}
 
-## 配置
+=== "主机安装"
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
+    
+    配置好后，重启 DataKit 即可。
 
-```toml
-{{.InputSample}}
-```
+=== "Kubernetes"
 
-配置好后，重启 DataKit 即可。
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-## 指标集
+## 指标集 {#requrements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 

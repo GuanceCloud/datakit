@@ -44,6 +44,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mongodb"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysql"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/net"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/netstat"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nginx"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nsq"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry"

@@ -2,21 +2,21 @@
 # DataKit 自身指标
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 self 采集器用于 DataKit 自身基本信息的采集，包括运行环境信息、CPU、内存占用情况等。
 
-![](imgs/input-self-01.png)
-
-## 前置条件
+## 前置条件 {#reqirement}
 
 暂无
 
-## 配置
+## 配置 {#config}
 
 self 采集器会自动运行，无需配置，且无法关闭。
 
-## 指标
+## 指标 {#measurements}
 
 {{ range $i, $m := .Measurements }}
 
@@ -37,19 +37,6 @@ self 采集器会自动运行，无需配置，且无法关闭。
 
 {{ end }}
 
-## 指标预览
-
-![datakit](imgs/input-self-02.png)
-![datakit_http](imgs/input-self-03.jpg)
-
-## 场景视图
-
-<场景 - 新建仪表板 - 内置模板库 - Datakit>
-
-## 异常检测
-
-<监控 - 模板新建 - 主机检测库>
-
-## 延申阅读
+## 延申阅读 {#more-reading}
 
 - [主机采集器](hostobject.md)

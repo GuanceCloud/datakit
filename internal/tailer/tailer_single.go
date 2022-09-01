@@ -398,6 +398,7 @@ func (t *Single) feed(pending []string) {
 				"log_read_lines":      t.readLines,
 				"log_read_offset":     t.offset,
 				"log_read_time":       t.readTime.Unix(),
+				"message_length":      len(cnt),
 				pipeline.FieldMessage: cnt,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,
 			},

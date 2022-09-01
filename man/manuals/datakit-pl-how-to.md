@@ -2,11 +2,9 @@
 # 如何编写 Pipeline 脚本
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
 Pipeline 编写较为麻烦，为此，DataKit 中内置了简单的调试工具，用以辅助大家来编写 Pipeline 脚本。
 
-## 调试 grok 和 pipeline
+## 调试 grok 和 pipeline {#debug}
 
 指定 pipeline 脚本名称，输入一段文本即可判断提取是否成功
 
@@ -42,7 +40,7 @@ $ datakit pipeline your_pipeline.p -F sample.log
 
 更多 Pipeline 调试命令，参见 `datakit help pipeline`。
 
-### Grok 通配搜索
+### Grok 通配搜索 {#grokq}
 
 由于 Grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
 
@@ -64,9 +62,11 @@ grokq > Q                              # Q 或 exit 退出
 Bye!
 ```
 
-> 注：Windows 下，请在 Powershell 中执行调试。
+???+ info
 
-### 多行如何处理
+    Windows 下，请在 Powershell 中执行调试。
+
+### 多行如何处理 {#multiline}
 
 在处理一些调用栈相关的日志时，由于其日志行数不固定，直接用 `GREEDYDATA` 这个 pattern 无法处理如下情况的日志：
 
@@ -119,7 +119,7 @@ $ datakit --pl test.p --txt "$(<multi-line.log)"
 在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](apis.md#lineproto-limitation)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
 
 - DataKit 中的[全局 Tag](datakit-conf.md#set-global-tag)
-- 日志采集器中[自定义的 Tag](../integrations/logging.md#measurements)
+- 日志采集器中[自定义的 Tag](logging.md#measurements)
 
 另外，所有采集上来的日志，均存在如下多个保留字段。==我们不应该去覆盖这些字段==，否则可能导致数据在查看器页面显示不正常。
 
@@ -127,11 +127,14 @@ $ datakit --pl test.p --txt "$(<multi-line.log)"
 | ---       | ----          | ----                                  |
 | `source`  | string(tag)   | 日志来源                              |
 | `service` | string(tag)   | 日志对应的服务，默认跟 `service` 一样 |
-| `status`  | string(tag)   | 日志对应的[等级](../integrations/logging.md#status)   |
+| `status`  | string(tag)   | 日志对应的[等级](logging.md#status)   |
 | `message` | string(field) | 原始日志                              |
 | `time`    | int           | 日志对应的时间戳                      |
 
-> 当然我们可以通过[特定的 Pipeline 函数](pipeline.md#fn-set-tag)覆盖上面这些 tag 的值。
+
+???+ tip
+
+    当然我们可以通过[特定的 Pipeline 函数](pipeline.md#fn-set-tag)覆盖上面这些 tag 的值。
 
 一旦 Pipeline 切割出来的字段跟已有 Tag 重名（大小写敏感），都会导致如下数据报错。故建议在 Pipeline 切割中，绕开这些字段命名。
 
@@ -140,11 +143,7 @@ $ datakit --pl test.p --txt "$(<multi-line.log)"
 same key xxx in tag and field
 ```
 
-<!--
-#### 数据类型冲突
-TODO -->
-
-### 完整 Pipeline 示例
+### 完整 Pipeline 示例 {#example}
 
 这里以 DataKit 自身的日志切割为例。DataKit 自身的日志形式如下：
 
@@ -196,9 +195,9 @@ Extracted data(cost: 421.705µs):
 }
 ```
 
-## FAQ
+## FAQ {#faq}
 
-### Pipeline 调试时，为什么变量无法引用？
+### Pipeline 调试时，为什么变量无法引用？ {#ref-variables}
 
 Pipeline 为：
 
@@ -225,7 +224,7 @@ json(_, `@timestamp`, "time")
 
 参见 [Pipeline 的基本语法规则](pipeline.md#basic-syntax)
 
-### Pipeline 调试时，为什么找不到对应的 Pipeline 脚本？
+### Pipeline 调试时，为什么找不到对应的 Pipeline 脚本？ {#pl404}
 
 命令如下：
 
@@ -238,7 +237,7 @@ $ datakit pipeline test.p -T "..."
 
 A: 调试用的 Pipeline 脚本，需将其放置到 *<DataKit 安装目录>/pipeline* 目录下。
 
-### 如何在一个 Pipeline 中切割多种不同格式的日志？
+### 如何在一个 Pipeline 中切割多种不同格式的日志？ {#if-else}
 
 在日常的日志中，因为业务的不同，日志会呈现出多种形态，此时，需写多个 Grok 切割，为提高 Grok 的运行效率，==可根据日志出现的频率高低，优先匹配出现频率更高的那个 Grok==，这样，大概率日志在前面几个 Grok 中就匹配上了，避免了无效的匹配。
 
@@ -261,7 +260,7 @@ if client_ip != nil {
 }
 ```
 
-### 如何丢弃字段切割
+### 如何丢弃字段切割 {#drop-keys}
 
 在某些情况下，我们需要的只是日志==中间的几个字段==，但不好跳过前面的部分，比如 
 
@@ -275,7 +274,7 @@ if client_ip != nil {
 grok(_, "%{INT} %{INT} %{INT} %{INT:response_time} %{GREEDYDATA}")
 ```
 
-### `add_pattern()` 转义问题
+### `add_pattern()` 转义问题 {#escape}
 
 大家在使用 `add_pattern()` 添加局部模式时，容易陷入转义问题，比如如下这个 pattern（用来通配文件路径以及文件名）：
 

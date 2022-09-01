@@ -2,43 +2,36 @@
 # Filebeat
 ---
 
-- 操作系统支持: :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
+{{.AvailableArchs}}
 
-本文档主要介绍 [Elastic Beats](https://www.elastic.co/products/beats/){:target="_blank"} 接收器。目前支持:
+---
+
+本文档主要介绍 [Elastic Beats](https://www.elastic.co/products/beats/){:target="_blank"} 数据采集。目前支持:
 
 - [Filebeat](https://www.elastic.co/beats/filebeat/){:target="_blank"}
 - [下载地址](http://www.elastic.co/cn/downloads/past-releases/filebeat-7-17-3){:target="_blank"}
 
 ## 配置采集器 {#config-input}
 
-进入 DataKit 安装目录下的 `conf.d/beats_output/` 目录, 复制 `beats_output.conf.sample` 并命名为 `beats_output.conf`。示例如下: 
+=== "主机安装"
 
-```toml
-[[inputs.beats_output]]
-  # listen address, with protocol scheme and port
-  listen = "tcp://0.0.0.0:5044"
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-  ## source, if it's empty, use 'default'
-  source = ""
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-  ## add service tag, if it's empty, use $source.
-  service = ""
+=== "Kubernetes"
 
-  ## grok pipeline script name
-  pipeline = ""
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-  ## datakit read text from Files or Socket , default max_textline is 256k
-  ## If your log text line exceeds 256Kb, please configure the length of your text,
-  ## but the maximum length cannot exceed 256Mb
-  maximum_length = 262144
+---
+    
+???+ attention
 
-  ## would replaced by origin fields if repeated
-  [inputs.beats_output.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-```
-
-注意: 上面配置的 `inputs.beats_output.tags` 中如果与原始 fields 中的 key 同名重复，则会被原始数据覆盖。
+    上面配置的 `inputs.beats_output.tags` 中如果与原始 fields 中的 key 同名重复，则会被原始数据覆盖。
 
 ### 配置 Filebeat {#config-filebeat}
 
@@ -76,10 +69,10 @@ output.logstash:
 
 这样就实现 Filebeat 采集日志文件 `/Users/mac/Downloads/tmp/1.log` 上报到 Datakit 了。
 
-需要注意的是，需要将 elasticsearch 的配置 9200 端口给注释掉，完整的 `filebeat.yml` 文件如下:
+需要注意的是，**需要将 elasticsearch 的配置 9200 端口给注释掉**，完整的 *filebeat.yml* 文件如下:
 
 ```yml
-###################### Filebeat Configuration Example #########################
+#--------------------- Filebeat Configuration Example ------------------------#
 
 # This file is an example configuration file highlighting only the most common
 # options. The filebeat.reference.yml file from the same directory contains all the

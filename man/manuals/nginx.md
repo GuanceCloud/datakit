@@ -2,11 +2,13 @@
 Nginx
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数连接数、缓存等多种指标，并将指标采集到观测云 ，帮助监控分析 NGINX 各种异常情况。
 
-## 前置条件
+## 前置条件 {#requirements}
 
 - NGINX 版本 >= 1.19.6
 
@@ -42,7 +44,7 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
 - 已经开启了 VTS 功能以后，不必再去采集 `http_stub_status_module` 模块的数据，因为 VTS 模块的数据会包括 `http_stub_status_module` 模块的数据
 
-## 配置
+## 配置 {#config}
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
@@ -52,7 +54,7 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
 配置好后，重启 DataKit 即可。
 
-## 指标集
+## 指标集 {#measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -78,7 +80,7 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 {{ end }}
 
 
-## 日志采集
+## 日志采集 {#logging}
 
 如需采集 NGINX 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 NGINX 日志文件的绝对路径。比如：
 
@@ -95,7 +97,7 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 >注意：必须将 DataKit 安装在 NGINX 所在主机才能采集 NGINX 日志
 
 
-## 日志 pipeline 功能切割字段说明
+## 日志 pipeline 功能切割字段说明 {#pipeline}
 
 - NGINX 错误日志切割
 

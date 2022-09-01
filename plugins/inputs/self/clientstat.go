@@ -18,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -62,6 +63,9 @@ type ClientStat struct {
 
 	// HTTP
 	HTTPStats map[string]*dkhttp.APIStat
+
+	// goroutine
+	GoroutineStats *goroutine.Summary
 }
 
 func setMax(prev, cur int64) int64 {
@@ -128,6 +132,8 @@ func (s *ClientStat) Update() {
 	s.DroppedPointsTotal = io.DroppedTotal()
 
 	s.HTTPStats = dkhttp.GetMetrics()
+
+	s.GoroutineStats = goroutine.GetStat()
 }
 
 var measurementName = "datakit"
@@ -213,6 +219,59 @@ func (s *ClientStat) ToHTTPMetric() []*point.Point {
 	}
 
 	return rtPts
+}
+
+func (s *ClientStat) ToGoroutineMetric() []*point.Point {
+	var pts []*point.Point
+
+	if s.GoroutineStats != nil {
+		// groutine that belongs to no group
+		if s.NumGoroutines >= s.GoroutineStats.RunningTotal {
+			tags := map[string]string{
+				"host":      s.HostName,
+				"namespace": s.ElectedNamespace,
+				"group":     "unknown",
+			}
+
+			fields := map[string]interface{}{
+				"running_goroutine_num": s.NumGoroutines - s.GoroutineStats.RunningTotal,
+			}
+			if pt, err := point.NewPoint(measurementGoroutineName, tags, fields, point.MOpt()); err != nil {
+				l.Errorf("ToGoroutineMetric make point error: %s, ignore", err.Error())
+			} else {
+				pts = append(pts, pt)
+			}
+		} else {
+			l.Warnf("The total goroutine number is less than the number of the group goroutine. There may be some unexpected problem.")
+		}
+
+		// goroutine group stat
+		for groupName, info := range s.GoroutineStats.Items {
+			tags := map[string]string{
+				"host":      s.HostName,
+				"namespace": s.ElectedNamespace,
+				"group":     groupName,
+			}
+
+			fields := map[string]interface{}{
+				"running_goroutine_num":  info.RunningTotal,
+				"finished_goroutine_num": info.Total,
+				"failed_num":             info.ErrCount,
+				"total_cost_time":        info.CostTimeDuration.Nanoseconds(),
+				"min_cost_time":          info.MinCostTimeDuration.Nanoseconds(),
+				"max_cost_time":          info.MaxCostTimeDuration.Nanoseconds(),
+			}
+
+			if pt, err := point.NewPoint(measurementGoroutineName, tags, fields, point.MOpt()); err != nil {
+				l.Errorf("ToGoroutineMetric make point error: %s, ignore", err.Error())
+				continue
+			} else {
+				pts = append(pts, pt)
+			}
+		}
+	}
+
+	return pts
 }
 
 func (s *ClientStat) getElectedInfo() (int64, string) {

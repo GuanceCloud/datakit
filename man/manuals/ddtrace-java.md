@@ -4,9 +4,8 @@
 
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
-## Install Libarary & Dependence
+## 安装依赖 {#dependence}
 
 下载最新的 ddtrace agent dd-java-agent.jar。
 
@@ -14,7 +13,7 @@
 wget -O dd-java-agent.jar https://dtdg.co/latest-java-tracer
 ```
 
-## Run Java Code With DDTrace
+## 运行 {#run}
 
 可以通过多种途径运行你的 Java Code，如 IDE，Maven，Gradle 或直接通过 java -jar 命令，以下通过 java 命令启动应用：
 
@@ -29,7 +28,7 @@ java -javaagent:/path/to/dd-java-agent.jar \
 -jar path/to/your/app.jar
 ```
 
-## Start Parameters For Tracing Java Code
+## 启动参数 {#start-options}
 
 - dd.env: 为服务设置环境变量，对应环境变量 DD_ENV。
 - dd.version: APP 版本号，对应环境变量 DD_VERSION。
@@ -47,5 +46,3 @@ java -javaagent:/path/to/dd-java-agent.jar \
 - dd.jmxfetch.refresh-beans-period: 刷新 JMX beans 频率(s)，默认值 600，对应环境变量 DD_JMXFETCH_REFRESH_BEANS_PERIOD。
 - dd.jmxfetch.statsd.host: Statsd 主机地址用来接收 JMX metrics，如果使用 Unix Domain Socket 请使用形如 `unix://PATH_TO_UDS_SOCKET` 的主机地址。默认值同 agent.host ，对应环境变量 DD_JMXFETCH_STATSD_HOST
 - dd.jmxfetch.statsd.port: StatsD 端口号用来接收 JMX metrics ，如果使用 Unix Domain Socket 请使填写 0。默认值同 agent.port 对应环境变量 DD_JMXFETCH_STATSD_PORT
-
-## Connect OpenTelemetry Traces and Logs

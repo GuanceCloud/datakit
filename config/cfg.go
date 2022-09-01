@@ -112,7 +112,8 @@ type Config struct {
 	DataWayCfg *dataway.DataWayCfg `toml:"dataway,omitempty"`
 	DataWay    dataway.DataWay     `toml:"-"`
 
-	Sinks *Sinker `toml:"sinks"`
+	Sinks         *Sinker `toml:"sinks"`
+	LogSinkDetail bool    `toml:"log_sink_detail,omitempty"`
 
 	GlobalHostTags       map[string]string `toml:"global_host_tags"`
 	GlobalTagsDeprecated map[string]string `toml:"global_tags,omitempty"`
@@ -378,9 +379,11 @@ func (c *Config) ApplyMainConfig() error {
 
 	// config default io
 	if c.IOConf != nil {
-		if c.IOConf.MaxCacheCount == 0 && c.IOCacheCountDeprecated != 0 {
-			c.IOConf.MaxCacheCount = c.IOCacheCountDeprecated
+		if c.IOConf.MaxCacheCount < 1000 {
+			l.Infof("reset io max cache count from %d to %d", c.IOConf.MaxCacheCount, 1000)
+			c.IOConf.MaxCacheCount = 1000
 		}
+
 		if c.IOConf.OutputFile == "" && c.OutputFileDeprecated != "" {
 			c.IOConf.OutputFile = c.OutputFileDeprecated
 		}

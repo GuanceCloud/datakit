@@ -2,7 +2,9 @@
 # logstreaming
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes:
+{{.AvailableArchs}}
+
+---
 
 启动一个 HTTP Server，接收日志文本数据，上报到观测云。
 
@@ -10,15 +12,21 @@ HTTP URL 固定为：`/v1/write/logstreaming`，即 `http://Datakit_IP:PORT/v1/w
 
 注：如果 DataKit 以 daemonset 方式部署在 Kubernetes 中，可以使用 Service 方式访问，地址为 `http://datakit-service.datakit:9529`
 
-## 配置
+## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logstreaming.conf.sample` 并命名为 `logstreaming.conf`。示例如下：
+=== "主机安装"
 
-``` toml
-{{.InputSample}} 
-```
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-配置好后，重启 DataKit 即可。
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+
+=== "Kubernetes"
+
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
 ### 支持参数 {#args}
 
@@ -35,8 +43,7 @@ logstreaming 支持在 HTTP URL 中添加参数，对日志数据进行操作。
 - `pipeline`：指定数据需要使用的 pipeline 名称，例如 `nginx.p`（`/v1/write/logstreaming?pipeline=nginx.p`）
 - `tags`：添加自定义 tag，以英文逗号 `,` 分割，例如 `key1=value1` 和 `key2=value2`（`/v1/write/logstreaming?tags=key1=value1,key2=value2`）
 
-
-### 使用方式
+### 使用方式 {#usage}
 
 - Fluentd 使用 Influxdb Output [文档](https://github.com/fangli/fluent-plugin-influxdb){:target="_blank"}
 - Fluentd 使用 HTTP Output [文档](https://docs.fluentd.org/output/http){:target="_blank"}
@@ -45,7 +52,7 @@ logstreaming 支持在 HTTP URL 中添加参数，对日志数据进行操作。
 
 只需要将 Output Host 配置为 logstreaming URL （`http://Datakit_IP:PORT/v1/write/logstreaming`）并添加对应参数即可。
 
-## 指标集
+## 指标集 {#measurement}
 
 {{ range $i, $m := .Measurements }}
 

@@ -146,7 +146,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			},
 
 			"disk_total": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeGB,
 				Desc: "数据节点磁盘总量",
 			},
 

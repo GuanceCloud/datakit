@@ -28,6 +28,7 @@ func (c *Config) loadSinkEnvs() error {
 	sinkTracing := datakit.GetEnv("ENV_SINK_T")
 	sinkRUM := datakit.GetEnv("ENV_SINK_R")
 	sinkSecurity := datakit.GetEnv("ENV_SINK_S")
+	sinkProfiling := datakit.GetEnv("ENV_SINK_P")
 
 	categoryShorts := []string{
 		datakit.SinkCategoryMetric,
@@ -39,6 +40,7 @@ func (c *Config) loadSinkEnvs() error {
 		datakit.SinkCategoryTracing,
 		datakit.SinkCategoryRUM,
 		datakit.SinkCategorySecurity,
+		datakit.SinkCategoryProfiling,
 	}
 
 	args := []string{
@@ -51,6 +53,7 @@ func (c *Config) loadSinkEnvs() error {
 		sinkTracing,
 		sinkRUM,
 		sinkSecurity,
+		sinkProfiling,
 	}
 
 	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
@@ -99,19 +102,12 @@ func (c *Config) loadIOEnvs() {
 		if err != nil {
 			l.Warnf("invalid env key ENV_IO_MAX_CACHE_COUNT, value %s, ignored", v)
 		} else {
-			l.Infof("set cache count to %d", val)
-			c.IOConf.MaxCacheCount = int(val)
-			c.IOConf.MaxDynamicCacheCount = int(val)
-		}
-	}
-
-	if v := datakit.GetEnv("ENV_IO_QUEUE_SIZE"); v != "" {
-		val, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			l.Warnf("invalid env key ENV_IO_QUEUE_SIZE, value %s, ignored", v)
-		} else {
-			l.Infof("set io queue size to %d", val)
-			c.IOConf.FeedChanSize = int(val)
+			if val < 1000 {
+				l.Warnf("reset cache count from %d to %d", val, 1000)
+			} else {
+				l.Infof("set cache count to %d", val)
+				c.IOConf.MaxCacheCount = int(val)
+			}
 		}
 	}
 
@@ -373,6 +369,9 @@ func (c *Config) LoadEnvs() error {
 	if err := c.loadSinkEnvs(); err != nil {
 		l.Fatalf("loadSinkEnvs failed: %v", err)
 		return err
+	}
+	if v := datakit.GetEnv("ENV_LOG_SINK_DETAIL"); v != "" {
+		c.LogSinkDetail = true
 	}
 
 	if v := datakit.GetEnv("ENV_ULIMIT"); v != "" {

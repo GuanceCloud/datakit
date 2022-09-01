@@ -2,8 +2,6 @@
 
 # Datakit Tracing 综述
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
 目前 Datakit 支持的第三方 Tracing 数据包括：
 
 - DDTrace
@@ -80,11 +78,11 @@ Tracing Frontend 即接收各种不同类 Trace 数据的 API，它们一般通�
   - threads: 工作队列的最大线程数，配置越大启动的线程越多 CPU 占用越高，一般情况下配置成 CPU 的核心数。
   - timeout: 任务超时，配置越大占用 buffer 的时间越长。
 
-## Datakit Tracing Backend{#datakit-tracing-backend}
+## Datakit Tracing Backend {#datakit-tracing-backend}
 
 Datakit backend 负责按照配置来操作链路数据，目前支持的操作包括 Tracing Filters 和 Samplers。
 
-### Datakit Filters
+### Datakit Filters {#filters}
 
 - `user_rule_filter`: Datakit 默认 filter，用户行为触发。
 - `omit_status_code_filter`: 当配置了 `omit_err_status = ["404"]`，那么 HTTP 服务下的链路中如果包含状态码为 404 的错误将不会被上报到 Data Center。
@@ -99,24 +97,27 @@ Datakit backend 负责按照配置来操作链路数据，目前支持的操作�
 > error status penetration --> close resource filter --> omit certain http status code list --> rare resource keeper --> sampler <br>
 > 每个 Datakit Filter 都具备终止执行链路的能力，即符合终止条件的 Filter 将不会在执行后续的 Filter。
 
-### Datakit Samplers
+### Datakit Samplers {#samplers}
 
 目前 Datakit 尊重客户端的采样优先级配, [DDTrace Sampling Rules](https://docs.datadoghq.com/tracing/faq/trace_sampling_and_storage)。
 
-> 情况一:<br>
-> 以 DDTrace 为例如果 DDTrace lib sdk 或 client 中配置了 sampling priority tags 并通过环境变量(DD_TRACE_SAMPLE_RATE)或启动参数(dd.trace.sample.rate)配置了客户端采样率为 0.3 并没有指定 Datakit 采样率(inputs.tracer.sampler) 那么上报到 Data Center 中的数据量大概为总量的 30%。
+- 情况一
 
-> 情况二:<br>
-> 如果客户只配置了 Datakit 采样率(inputs.tracer.sampler)，例如: sampling_rate = 0.3，那么此 Datakit 上报到 Data Center 的数据量大概为总量的 30%。
->
-> **Note** 在多服务多 Datakit 分布式部署情况下配置 Datakit 采样率需要统一配置成同一个采样率才能达到采样效果。
+以 DDTrace 为例如果 DDTrace lib sdk 或 client 中配置了 sampling priority tags 并通过环境变量(DD_TRACE_SAMPLE_RATE)或启动参数(dd.trace.sample.rate)配置了客户端采样率为 0.3 并没有指定 Datakit 采样率(inputs.tracer.sampler) 那么上报到 Data Center 中的数据量大概为总量的 30%。
 
-> 情况三:<br>
-> 即配置了客户端采样率为 A 又配置了 Datakit 采样率为 B，这里 A，B 大于 0 且小于 1，这种情况下上报到 Data Center 的数据量大概为总量的 A\*B%。
->
-> **Note** 在多服务多 Datakit 分布式部署情况下配置 Datakit 采样率需要统一配置成同一个采样率才能达到采样效果。
+- 情况二
 
-## Span 结构说明{#about-span-structure}
+如果客户只配置了 Datakit 采样率(inputs.tracer.sampler)，例如: sampling_rate = 0.3，那么此 Datakit 上报到 Data Center 的数据量大概为总量的 30%。
+
+**Note** 在多服务多 Datakit 分布式部署情况下配置 Datakit 采样率需要统一配置成同一个采样率才能达到采样效果。
+
+- 情况三
+
+即配置了客户端采样率为 A 又配置了 Datakit 采样率为 B，这里 A，B 大于 0 且小于 1，这种情况下上报到 Data Center 的数据量大概为总量的 A\*B%。
+
+**Note** 在多服务多 Datakit 分布式部署情况下配置 Datakit 采样率需要统一配置成同一个采样率才能达到采样效果。
+
+## Span 结构说明 {#about-span-structure}
 
 关于 Datakit 如何使用[DatakitSpan](datakit-tracing-struct.md)数据结构的业务解释
 
@@ -124,5 +125,5 @@ Datakit backend 负责按照配置来操作链路数据，目前支持的操作�
 - 多个 Datakit Span 数据被放在 Datakit Trace 组成一条 Tracing 数据上传到 Data Center 并保证所有 Span 有且只有一个 TraceID。
 - 对于 DDTrace 来说同一个 TraceID 的 DDTrace 数据有可能被分批上报。
 - 生产环境下(多服务，多 Datakit 部署)一条完整的 Trace 数据是被分批次上传到 Data Center 的并不是按照调用先后顺序上传到 Data Center。
-- parent_id = 0 为 root span。
-- span_type = entry 为 service 上的首个 resource 的调用者即当前 service 上的第一个 span。
+- `parent_id = 0` 为 root span。
+- `span_type = entry` 为 service 上的首个 resource 的调用者即当前 service 上的第一个 span。

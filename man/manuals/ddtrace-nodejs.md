@@ -2,11 +2,7 @@
 # NodeJS 示例
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
-# Tracing NodeJS Application
-
-## Install Libarary & Dependence
+## 安装依赖 {#dependence}
 
 安装 ddtrace 的 NodeJS 扩展
 
@@ -24,7 +20,7 @@ npm install dd-trace@latest-node10
 
 **Note:** 你需要在任何 NodeJS 代码或载入任何 Module 前 import 并 initialize ddtracer lib，如果 ddtrace lib 没有被适当的初始化可能无法接收检测数据。
 
-## NodeJS Code Example
+## 示例 {#example}
 
 在只单纯运行 JavaScript 的环境下：
 
@@ -55,7 +51,7 @@ export default tracer;
 import "dd-trace/init";
 ```
 
-## Run NodeJS Code With DDTrace
+## 运行 {#run}
 
 运行 Node Code
 
@@ -63,7 +59,7 @@ import "dd-trace/init";
 DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 node server
 ```
 
-## Environment Variables For Tracing NodeJS Code
+## 环境变量支持 {#envs}
 
 - DD_ENV: 为服务设置环境变量。
 - DD_VERSION: APP 版本号。

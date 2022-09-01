@@ -8,6 +8,7 @@ package apache
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -27,7 +28,10 @@ import (
 
 var _ inputs.ElectionInput = (*Input)(nil)
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	l = logger.DefaultSLogger(inputName)
+	g = datakit.G("inputs_apache")
+)
 
 type Input struct {
 	URLsDeprecated []string `toml:"urls,omitempty"`
@@ -87,7 +91,7 @@ func (*Input) SampleConfig() string { return sample }
 
 func (*Input) Catalog() string { return inputName }
 
-func (*Input) AvailableArchs() []string { return datakit.AllOS }
+func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) SampleMeasurement() []inputs.Measurement { return []inputs.Measurement{&Measurement{}} }
 
@@ -135,7 +139,10 @@ func (n *Input) RunPipeline() {
 		return
 	}
 
-	go n.tail.Start()
+	g.Go(func(ctx context.Context) error {
+		n.tail.Start()
+		return nil
+	})
 }
 
 func (n *Input) Run() {
