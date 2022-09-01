@@ -145,9 +145,6 @@ nav:
     - 'eBPF':
       - 'eBPF 采集配置': ebpf.md
 
-    - '自定义采集器':
-      - '用 Python 开发自定义采集器': pythond.md
-
     - '第三方数据接入':
       - 'Prometheus Exportor 数据采集': prom.md
       - prom_remote_write.md

@@ -13,6 +13,7 @@ CLR="\033[0m"
 mkdocs_dir=~/git/dataflux-doc
 tmp_doc_dir=.docs
 datakit_docs_dir=${mkdocs_dir}/docs/datakit
+developers_docs_dir=${mkdocs_dir}/docs/developers
 pwd=$(pwd)
 
 mkdir -p $datakit_docs_dir $tmp_doc_dir
@@ -169,7 +170,6 @@ datakit_docs=(
   $tmp_doc_dir/profile.md
   $tmp_doc_dir/prom.md
   $tmp_doc_dir/prom_remote_write.md
-  $tmp_doc_dir/pythond.md
   $tmp_doc_dir/rabbitmq.md
   $tmp_doc_dir/redis.md
   $tmp_doc_dir/rum.md
@@ -195,6 +195,15 @@ datakit_docs=(
 printf "${GREEN}> Copy docs...${CLR}\n"
 for f in "${datakit_docs[@]}"; do
   cp $f $datakit_docs_dir/
+done
+
+developers_docs=(
+  $tmp_doc_dir/pythond.md
+)
+
+printf "${GREEN}> Copy docs to developers ...${CLR}\n"
+for f in "${developers_docs[@]}"; do
+  cp $f $developers_docs_dir/
 done
 
 printf "${GREEN}> Start mkdocs...${CLR}\n"

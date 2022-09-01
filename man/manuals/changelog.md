@@ -10,11 +10,33 @@
     ```
 -->
 
-## 1.4.13(2022/08/30) {#cl-1.4.13}
+## 1.4.13(2022/09/01) {#cl-1.4.13}
 
-### 文档调整 {#cl-1.4.12-doc}
+### 采集器功能调整 {#cl-1.4.13-features}
 
-- 采集器文档从原来「集成」挪到 「DataKit」文档库
+- 优化 IO 模块的数据处理，提升数据吞吐效率(#1078)
+- 在各类 Trace 上加上的磁盘缓存功能(#1023)
+- DataKit 自身指标集增加 goroutine 使用有关的指标集（`datakit_goroutine`）(#1039)
+- MySQL 采集器增加 `mysql_dbm_activity` 指标集(#1047)
+- 增加 netstat 采集器(#1051)
+- TDEngine 增加日志采集(#1057/#1076)
+- 优化磁盘采集器中的 fstype 过滤，默认只采集常见的文件系统（#1063/#1066）
+
+#### Buf 修复 {#cl-1.4.13-bugfix}
+
+- 修复 DataKit 自身 CPU 使用率计算错误(#983)
+- 修复 Skywaling 中间件识别问题(#1027)
+- 修复 Oracle 退出问题(#1042/#1048)
+- 修复 Sink Dataway 失效问题(#1056)
+- 修复 HTTP /v1/write/:category 接口 JSON 写入问题(#1059)
+
+### Breaking changes {#cl-1.4.13-br}
+
+- Gitlab 以及 Jinkens 采集器部分时间有关字段做了调整，以统一前端页面的数据展示效果
+
+### 文档调整 {#cl-1.4.12-doc} {#cl-1.4.13-docs}
+
+- 采集器文档从原来「集成」挪到 「DataKit」文档库(#1060)
 
 <figure markdown>
   ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.12-dk-docs.gif){ width="300"}
@@ -39,6 +61,7 @@
 </figure>
 
 - 几乎每个章节都增加了跳转标签，便于其它文档永久性引用
+- pythond 文档已转移到开发者目录
 
 ---
 
