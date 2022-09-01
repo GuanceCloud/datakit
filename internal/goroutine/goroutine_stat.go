@@ -95,12 +95,15 @@ func NewGroup(option Option) *Group {
 
 // RunningStatInfo represents each running group information.
 type RunningStatInfo struct {
-	Total        int64  `json:"finished_goroutines"`
-	RunningTotal int64  `json:"running_goroutines"`
-	CostTime     string `json:"total_cost_time"`
-	MinCostTime  string `json:"min_cost_time"`
-	MaxCostTime  string `json:"max_cost_time"`
-	ErrCount     int64  `json:"err_count"`
+	Total               int64         `json:"finished_goroutines"`
+	RunningTotal        int64         `json:"running_goroutines"`
+	CostTime            string        `json:"total_cost_time"`
+	MinCostTime         string        `json:"min_cost_time"`
+	MaxCostTime         string        `json:"max_cost_time"`
+	ErrCount            int64         `json:"err_count"`
+	CostTimeDuration    time.Duration `json:"cost_time_ns"`
+	MinCostTimeDuration time.Duration `json:"min_cost_time_ns"`
+	MaxCostTimeDuration time.Duration `json:"max_cost_time_ns"`
 }
 
 // Summary represents the total statistic information.
@@ -127,12 +130,15 @@ func GetStat() *Summary {
 	for k, v := range stat {
 		runningTotal := v.totalJobs - v.Total
 		summary.Items[k] = RunningStatInfo{
-			Total:        v.Total,
-			RunningTotal: runningTotal,
-			CostTime:     fmt.Sprint(v.CostTime),
-			MinCostTime:  fmt.Sprint(v.MinCostTime),
-			MaxCostTime:  fmt.Sprint(v.MaxCostTime),
-			ErrCount:     v.ErrCount,
+			Total:               v.Total,
+			RunningTotal:        runningTotal,
+			CostTime:            fmt.Sprint(v.CostTime),
+			MinCostTime:         fmt.Sprint(v.MinCostTime),
+			MaxCostTime:         fmt.Sprint(v.MaxCostTime),
+			ErrCount:            v.ErrCount,
+			CostTimeDuration:    v.CostTime,
+			MinCostTimeDuration: v.MinCostTime,
+			MaxCostTimeDuration: v.MaxCostTime,
 		}
 		summary.Total += v.Total
 		summary.RunningTotal += runningTotal

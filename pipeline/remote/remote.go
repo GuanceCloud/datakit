@@ -54,7 +54,7 @@ type pipelineRemoteConfig struct {
 func StartPipelineRemote(urls []string) {
 	runPipelineRemote.Do(func() {
 		l = logger.SLogger(pipelineRemoteName)
-		g := datakit.G(pipelineRemoteName)
+		g := datakit.G("pipeline_remote")
 
 		g.Go(func(ctx context.Context) error {
 			return pullMain(urls, &pipelineRemoteImpl{})

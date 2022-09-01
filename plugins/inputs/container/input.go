@@ -24,11 +24,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ReadEnv = (*Input)(nil)
-
 const (
-	objectInterval = time.Minute * 5
-	metricInterval = time.Second * 60
+	objectInterval     = time.Minute * 5
+	metricInterval     = time.Second * 60
+	goroutineGroupName = "inputs_container"
+)
+
+var (
+	_ inputs.ReadEnv = (*Input)(nil)
+	g                = datakit.G(goroutineGroupName)
 )
 
 type Input struct {
@@ -137,7 +141,10 @@ func (i *Input) Run() {
 	defer metricTick.Stop()
 
 	if datakit.Docker && !i.DisableK8sEvents {
-		go i.watchingK8sEventLog()
+		g.Go(func(ctx context.Context) error {
+			i.watchingK8sEventLog()
+			return nil
+		})
 	}
 
 	if datakit.Docker {

@@ -12,6 +12,7 @@ import (
 	prompt "github.com/c-bata/go-prompt"
 	"github.com/fatih/color"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
@@ -24,6 +25,7 @@ var (
 	}
 
 	l = logger.DefaultSLogger("cmds")
+	g = datakit.G("cmds")
 )
 
 type completer struct{}

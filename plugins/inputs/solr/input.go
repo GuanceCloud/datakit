@@ -7,6 +7,7 @@
 package solr
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -157,7 +159,11 @@ func (i *Input) RunPipeline() {
 		return
 	}
 
-	go i.tail.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_solr"})
+	g.Go(func(ctx context.Context) error {
+		i.tail.Start()
+		return nil
+	})
 }
 
 func (*Input) PipelineConfig() map[string]string {
@@ -253,65 +259,66 @@ func (i *Input) Collect() error {
 	if i.client == nil {
 		i.client = createHTTPClient(i.HTTPTimeout)
 	}
-	var wg sync.WaitGroup
-	wg.Add(len(i.Servers))
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_solr"})
 	for _, s := range i.Servers {
-		go func(s string) {
-			defer wg.Done()
-			ts := time.Now()
-			resp := Response{}
-			if err := i.gatherData(i, URLAll(s), &resp); err != nil {
-				logError(err)
-				return
-			}
-			for gKey, gValue := range resp.Metrics {
-				// common tags
-				commTag := map[string]string{}
-				for kTag, vTag := range i.Tags { // user-defined
-					commTag[kTag] = vTag
+		func(s string) {
+			g.Go(func(ctx context.Context) error {
+				ts := time.Now()
+				resp := Response{}
+				if err := i.gatherData(i, URLAll(s), &resp); err != nil {
+					logError(err)
+					return nil
 				}
-				keySplit := strings.Split(gKey, ".")
-				commTag["group"] = keySplit[1]
-				if commTag["group"] == "core" {
-					commTag["core"] = keySplit[2]
-				}
-				if instcName, err := instanceName(s); err == nil { // generated based on server address
-					commTag["instance"] = instcName
-				}
-				// searcher stats tags and fields
-				tagsSearcher := map[string]string{}
-				for kTag, vTag := range commTag {
-					tagsSearcher[kTag] = vTag
-				}
-				tagsSearcher["category"] = "SEARCHER" // searcher metric category
-				fieldSearcher := map[string]interface{}{}
-				// gather stats
-				for k, v := range gValue {
-					switch whichMesaurement(k) {
-					case "cache":
-						logError(i.gatherSolrCache(k, v, commTag, ts))
-					case "requesttimes":
-						logError(i.gatherSolrRequestTimes(k, v, commTag, ts))
-					case "searcher":
-						logError(i.gatherSolrSearcher(k, v, fieldSearcher))
-					default:
-						continue
+				for gKey, gValue := range resp.Metrics {
+					// common tags
+					commTag := map[string]string{}
+					for kTag, vTag := range i.Tags { // user-defined
+						commTag[kTag] = vTag
+					}
+					keySplit := strings.Split(gKey, ".")
+					commTag["group"] = keySplit[1]
+					if commTag["group"] == "core" {
+						commTag["core"] = keySplit[2]
+					}
+					if instcName, err := instanceName(s); err == nil { // generated based on server address
+						commTag["instance"] = instcName
+					}
+					// searcher stats tags and fields
+					tagsSearcher := map[string]string{}
+					for kTag, vTag := range commTag {
+						tagsSearcher[kTag] = vTag
+					}
+					tagsSearcher["category"] = "SEARCHER" // searcher metric category
+					fieldSearcher := map[string]interface{}{}
+					// gather stats
+					for k, v := range gValue {
+						switch whichMesaurement(k) {
+						case "cache":
+							logError(i.gatherSolrCache(k, v, commTag, ts))
+						case "requesttimes":
+							logError(i.gatherSolrRequestTimes(k, v, commTag, ts))
+						case "searcher":
+							logError(i.gatherSolrSearcher(k, v, fieldSearcher))
+						default:
+							continue
+						}
+					}
+					// append searcher stats
+					if len(fieldSearcher) > 0 {
+						i.appendM(&SolrSearcher{
+							fields:   fieldSearcher,
+							tags:     tagsSearcher,
+							name:     metricNameSearcher,
+							ts:       ts,
+							election: i.Election,
+						})
 					}
 				}
-				// append searcher stats
-				if len(fieldSearcher) > 0 {
-					i.appendM(&SolrSearcher{
-						fields:   fieldSearcher,
-						tags:     tagsSearcher,
-						name:     metricNameSearcher,
-						ts:       ts,
-						election: i.Election,
-					})
-				}
-			}
+				return nil
+			})
 		}(s)
 	}
-	wg.Wait()
+	_ = g.Wait()
 	return nil
 }
 

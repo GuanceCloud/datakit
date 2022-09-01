@@ -93,7 +93,7 @@ func (p *program) Start(s service.Service) error {
 		return fmt.Errorf("entry not set")
 	}
 
-	go Entry()
+	Entry()
 	return nil
 }
 

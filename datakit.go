@@ -333,9 +333,12 @@ func G(name string) *goroutine.Group {
 		}
 	}
 
-	gName := "datakit_" + name
-	opt := goroutine.Option{Name: gName, PanicTimes: 6, PanicCb: panicCb, PanicTimeout: 10 * time.Millisecond}
-	g := goroutine.NewGroup(opt)
+	g := goroutine.NewGroup(goroutine.Option{
+		Name:         name,
+		PanicTimes:   6,
+		PanicCb:      panicCb,
+		PanicTimeout: 10 * time.Millisecond,
+	})
 	var mu sync.Mutex
 	mu.Lock()
 	goroutines = append(goroutines, g)

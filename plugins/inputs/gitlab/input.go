@@ -7,6 +7,7 @@
 package gitlab
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -24,6 +25,7 @@ import (
 var (
 	_ inputs.ElectionInput = (*Input)(nil)
 	l                      = logger.DefaultSLogger(inputName)
+	g                      = datakit.G("inputs_gitlab")
 )
 
 const (
@@ -96,7 +98,10 @@ func (ipt *Input) ElectionEnabled() bool {
 func (ipt *Input) RegHTTPHandler() {
 	if ipt.EnableCIVisibility {
 		l.Infof("start listening to gitlab pipeline/job webhooks")
-		go ipt.reqMemo.memoMaintainer(time.Second * 30)
+		g.Go(func(ctx context.Context) error {
+			ipt.reqMemo.memoMaintainer(time.Second * 30)
+			return nil
+		})
 		dhttp.RegHTTPHandler("POST", "/v1/gitlab", ihttp.ProtectedHandlerFunc(ipt.ServeHTTP, l))
 	}
 }

@@ -7,8 +7,11 @@
 package kafka
 
 import (
+	"context"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -79,7 +82,11 @@ func (i *Input) RunPipeline() {
 		return
 	}
 
-	go i.tail.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_kafka"})
+	g.Go(func(ctx context.Context) error {
+		i.tail.Start()
+		return nil
+	})
 }
 
 func (*Input) PipelineConfig() map[string]string {

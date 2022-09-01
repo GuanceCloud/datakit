@@ -259,10 +259,13 @@ func (c *containerdInput) watchNewLogs() error {
 		}
 		l.Infof("add container log, containerName: %s image: %s", name, container.Image)
 
-		go func(status *cri.ContainerStatus) {
-			if err := c.tailingLog(status); err != nil {
-				l.Warnf("tail containerLog: %s", err)
-			}
+		func(status *cri.ContainerStatus) {
+			g.Go(func(ctx context.Context) error {
+				if err := c.tailingLog(status); err != nil {
+					l.Warnf("tail containerLog: %s", err)
+				}
+				return nil
+			})
 		}(status)
 	}
 

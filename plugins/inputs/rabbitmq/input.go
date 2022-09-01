@@ -7,6 +7,7 @@
 package rabbitmq
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -83,7 +85,11 @@ func (n *Input) RunPipeline() {
 		return
 	}
 
-	go n.tail.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_rabbitmq"})
+	g.Go(func(ctx context.Context) error {
+		n.tail.Start()
+		return nil
+	})
 }
 
 func (n *Input) Run() {
@@ -161,14 +167,16 @@ type MetricFunc func(n *Input)
 func (n *Input) getMetric() {
 	n.start = time.Now()
 	getFunc := []MetricFunc{getOverview, getNode, getQueues, getExchange}
-	n.wg.Add(len(getFunc))
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_rabbitmq"})
 	for _, v := range getFunc {
-		go func(gf MetricFunc) {
-			defer n.wg.Done()
-			gf(n)
+		func(gf MetricFunc) {
+			g.Go(func(ctx context.Context) error {
+				gf(n)
+				return nil
+			})
 		}(v)
 	}
-	n.wg.Wait()
+	_ = g.Wait()
 }
 
 func (n *Input) SampleMeasurement() []inputs.Measurement {

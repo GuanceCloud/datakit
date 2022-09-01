@@ -464,7 +464,7 @@ func (i *Input) Collect() (map[string][]*point.Point, error) {
 	}
 
 	if i.Dbm && (i.DbmMetric.Enabled || i.DbmSample.Enabled || i.DbmActivity.Enabled) {
-		g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName("mysql_dbm")})
+		g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName("mysql")})
 		if i.DbmMetric.Enabled {
 			g.Go(func(ctx context.Context) error {
 				// mysql_dbm_metric
@@ -554,7 +554,11 @@ func (i *Input) RunPipeline() {
 		return
 	}
 
-	go i.tail.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_mysql"})
+	g.Go(func(ctx context.Context) error {
+		i.tail.Start()
+		return nil
+	})
 }
 
 func (i *Input) Run() {

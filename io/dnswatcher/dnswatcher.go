@@ -44,7 +44,7 @@ type IDNSWatcher interface {
 func StartWatch() error {
 	runDNSWatcher.Do(func() {
 		l = logger.SLogger(packageName)
-		g := datakit.G(packageName)
+		g := datakit.G("io_dnswatcher")
 
 		// Uncomment this when you wanna get check interval from config file.
 		// For now we write it permanently in the code.

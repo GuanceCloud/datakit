@@ -7,6 +7,7 @@
 package external
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -223,14 +225,18 @@ func (ex *ExternalInput) daemonRun() {
 		ex.daemonStarted = true
 		break
 	}
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_external"})
 
 	ex.procExitReply = make(chan struct{})
 
-	go func(process *os.Process, name string, semStopProcess *cliutils.Sem, procExitReply chan struct{}) {
-		if err := datakit.MonitProc(process, name, semStopProcess); err != nil { // blocking here...
-			l.Errorf("datakit.MonitProc: %s", err.Error())
-		}
-		close(procExitReply)
+	func(process *os.Process, name string, semStopProcess *cliutils.Sem, procExitReply chan struct{}) {
+		g.Go(func(ctx context.Context) error {
+			if err := datakit.MonitProc(process, name, semStopProcess); err != nil { // blocking here...
+				l.Errorf("datakit.MonitProc: %s", err.Error())
+			}
+			close(procExitReply)
+			return nil
+		})
 	}(ex.cmd.Process, ex.Name, ex.semStopProcess, ex.procExitReply)
 
 	// We must not modify ex.cmd.Process.Pid beyong this point,

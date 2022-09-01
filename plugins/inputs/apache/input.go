@@ -8,6 +8,7 @@ package apache
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -27,7 +28,10 @@ import (
 
 var _ inputs.ElectionInput = (*Input)(nil)
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	l = logger.DefaultSLogger(inputName)
+	g = datakit.G("inputs_apache")
+)
 
 type Input struct {
 	URLsDeprecated []string `toml:"urls,omitempty"`
@@ -135,7 +139,10 @@ func (n *Input) RunPipeline() {
 		return
 	}
 
-	go n.tail.Start()
+	g.Go(func(ctx context.Context) error {
+		n.tail.Start()
+		return nil
+	})
 }
 
 func (n *Input) Run() {

@@ -7,6 +7,7 @@
 package cpu
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strconv"
@@ -26,6 +27,7 @@ import (
 var (
 	_ inputs.ReadEnv = (*Input)(nil)
 	l                = logger.DefaultSLogger(inputName)
+	g                = datakit.G("inputs_cpu")
 )
 
 const (
@@ -174,7 +176,10 @@ func (ipt *Input) Run() {
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 
 	if ipt.EnableLoad5s {
-		go ipt.calLoad5s()
+		g.Go(func(ctx context.Context) error {
+			ipt.calLoad5s()
+			return nil
+		})
 	}
 
 	if err := ipt.Collect(); err != nil { // gather lastSats
