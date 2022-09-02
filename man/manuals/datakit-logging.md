@@ -6,18 +6,18 @@
 总体而言，DataKit 有如下几种日志采集方案：
 
 - 从[磁盘文件获取日志](logging.md)
-- 通过调用环境 API 获取日志
+- 采集容器 stdout 日志 
 - 远程推送日志给 DataKit
 - [Sidecar 形式的日志采集](logfwd.md)
 
 以上各种采集方式，因具体环境不同，又会有一些变种，但总体上是这几种方式之间的组合。下面分门别类，一一加以介绍。
 
-## 从磁盘文件获取日志
+## 从磁盘文件获取日志 {#raw-disk-file}
 
 这是最原始的日志处理方式，不管是对开发者而言，还是传统的日志收集方案而言，日志最开始一般都是直接写到磁盘文件的，写到磁盘文件的日志有如下几个特点：
 
 <figure markdown>
-  ![](imgs/datakit-logging-from-disk.png){ width="300" }
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-from-disk.png){ width="300" }
   <figcaption>从磁盘文件提取日志</figcaption>
 </figure>
 
@@ -32,13 +32,13 @@
 
 正因为这个特性，如果日志文件持续在更新，中间停止 DataKit，==该空窗期的日志也不会被采集到==，后面可能会做一些策略来缓解这个问题。
 
-## 通过调用环境 API 获取日志
+## 容器 stdout 日志 {#container-stdout}
 
-这种采集方式目前主要针对[容器环境中的 stdout 日志](container.md)，这种日志要求运行在容器（或 Kubernetes Pod）中的应用将日志输出到 stdout，然后通过 Docker 的日志接口，将对应 stdout 上的日志同步到 DataKit。
+这种采集方式目前主要针对[容器环境中的 stdout 日志](container.md)，这种日志要求运行在容器（或 Kubernetes Pod）中的应用将日志输出到 stdout，这些 stdout 日志实际上会在 Node 上落盘，DataKit 通过对应的容器 ID 能找到对应的日志文件，然后按照普通磁盘文件的方式对其进行采集。
 
 <figure markdown>
-  ![](imgs/datakit-logging-stdout.png){ width="300" }
-  <figcaption>从 API 获取日志</figcaption>
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-stdout.png){ width="300" }
+  <figcaption>采集容器 stdout 日志</figcaption>
 </figure>
 
 在 DataKit 现有 stdout 采集方案中（主要针对 k8s 环境），日志的采集有如下几个特点：
@@ -50,10 +50,7 @@
 
 这也是这种策略的一个缺陷，即要求应用将日志输出到 stdout，在一般的应用开发中，日志不太会直接写到 stdout（但主流的日志框架一般都支持输出到 stdout），需要开发者调整日志配置。但是，随着容器化部署方案不断普及，这种方案不失为一种可行的日志采集方式。
 
-> - 随着 k8s 逐渐摒弃 Docker，通过 Docker API 获取日志这一方案可能会不再适用新的 k8s 发布，届时社区可能会提供配套的类似实现
-> - 在 [1.2.20](../datakit/changelog.md#cl-1.2.20) 中，容器日志已不再依赖 Docker 日志 API
-
-## 远程推送日志给 DataKit
+## 远程推送日志给 DataKit {#push}
 
 对远程日志推送而言，其主要是
 
@@ -62,7 +59,7 @@
 - [第三方平台日志接入](logstreaming.md)
 
 <figure markdown>
-  ![](imgs/datakit-logging-remote.png){ width="300" }
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-remote.png){ width="300" }
   <figcaption>第三方日志接入</figcaption>
 </figure>
 
@@ -74,12 +71,12 @@
 
 - 对 HTTP 形式的日志推送，开发者需在 [HTTP 请求参数上标记好特征](logstreaming.md#args)，便于 DataKit 做后续处理
 
-## Sidecar 形式的日志采集
+## Sidecar 形式的日志采集 {#logfwd-sidecar}
 
 这种方式的采集实际上是综合了磁盘日志采集和日志远程推送俩种方式，具体而言，就是在用户的 Pod 中添加一个跟 DataKit 配套（即 [logfwd](logfwd.md)）的 Sidecar 应用，其采集方式如下：
 
 <figure markdown>
-  ![](imgs/datakit-logging-sidecar.png){ width="300" }
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-sidecar.png){ width="300" }
   <figcaption>Sidecar 形式日志采集</figcaption>
 </figure>
 
@@ -91,7 +88,7 @@
 - 相比单纯的远程日志推送，它能自动追加一些 Pod 的 k8s 属性字段，如 Pod 名称以及 k8s namespace 信息
 - 开发者可以不用修改日志的配置，依然将日志输出到磁盘即可。在 k8s 环境中，甚至可以不用外挂存储，logfwd 直接从 pod 自身存储捞取日志推送出来（但日志需做好自动切割设置，避免将 pod 存储打满）
 
-## 日志的处理
+## 日志的处理 {#logging-process}
 
 以上的日志采集到之后，均支持后续 Pipeline 的切割，但配置形式稍有差异：
 
@@ -100,7 +97,7 @@
 - 远程日志采集：对 TCP/UDP 传输方式，可以也是在 logging.conf 中指定 Pipeline 配置。而对于 HTTP 传输方式，开发者需在 [HTTP 请求参数上来配置 Pipeline](logstreaming.md#args)
 - Sidecar 日志采集：在 [logfwd 的配置](logfwd.md#config)中，配置宿主 Pod 的 Pipeline，其本质上跟容器 stdout 相似，都是针对 Pod 的定点标记
 
-## 日志采集通用的额外选项
+## 日志采集通用的额外选项 {#other-options-common}
 
 所有的日志采集，不管其使用何种采集方式，除了上面提及的 Pipeline 切割外，均支持如下采集配置：
 
@@ -108,6 +105,6 @@
 - 编码：最终的日志都需要转换成 UTF8 存储，对于一些 Windows 日志，可能需要做编解码处理
 - 颜色字符：主要针对输出到 stdout 的日志，需要在采集的时候，过滤掉一些影响阅读的颜色修复字符
 
-## 总结
+## 总结 {#summary}
 
 上面整体介绍了 DataKit 目前的日志采集方案。总体上而言，目前这几种方案，基本能覆盖住主流的日志数据场景。随着软件技术的不断迭代，新的日志数据形式也将不断涌现出来，届时 DataKit 也会做出对应的调整，以适应新的场景。

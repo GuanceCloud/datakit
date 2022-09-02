@@ -7,12 +7,14 @@
 package logging
 
 import (
+	"context"
 	"path"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
@@ -187,11 +189,14 @@ func (ipt *Input) Run() {
 	} else {
 		l.Warn("socket len =0")
 	}
-
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_logging"})
 	if ipt.process != nil && len(ipt.process) > 0 {
 		// start all process
 		for _, proce := range ipt.process {
-			go proce.Start()
+			g.Go(func(ctx context.Context) error {
+				proce.Start()
+				return nil
+			})
 		}
 	} else {
 		l.Warnf("There are no logging processors here")
@@ -275,6 +280,7 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 			"log_read_lines":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "采集到的行数计数，多行数据算成一行（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)）"},
 			"log_read_offset": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "当前数据在文件中的偏移位置（[:octicons-tag-24: Version-1.4.8](../datakit/changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental)）"},
 			"log_read_time":   &inputs.FieldInfo{DataType: inputs.DurationSecond, Unit: inputs.UnknownUnit, Desc: "数据从文件中读取到的这一刻的时间戳，单位是秒"},
+			"message_length":  &inputs.FieldInfo{DataType: inputs.SizeByte, Unit: inputs.NCount, Desc: "message 字段的长度，单位字节"},
 		},
 	}
 }

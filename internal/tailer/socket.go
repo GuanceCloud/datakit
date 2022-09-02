@@ -3,9 +3,11 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+// Package tailer read socket logging
 package tailer
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -21,15 +23,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
-/*
-支持 socket 接收日志.
-*/
-
 const (
 	ReadBufferLen = 1024 * 4
 )
-
-var l = logger.DefaultSLogger("socketLog")
 
 type server struct {
 	addr string       // udpConns's or tcpListeners's  key
@@ -150,12 +146,19 @@ func (sl *socketLogger) toReceive() {
 		if s.lis != nil {
 			sl.tcpListeners[s.addr] = s.lis
 			l.Infof("TCP port:%s start to accept", s.addr)
-			go sl.accept(s.lis)
+
+			g.Go(func(ctx context.Context) error {
+				sl.accept(s.lis)
+				return nil
+			})
 		}
 		if s.conn != nil {
 			sl.udpConns[s.addr] = s.conn
 			l.Infof("UDP port:%s start to accept", s.addr)
-			go sl.doSocket(s.conn)
+			g.Go(func(ctx context.Context) error {
+				sl.doSocket(s.conn)
+				return nil
+			})
 		}
 	}
 }
@@ -170,7 +173,11 @@ func (sl *socketLogger) accept(listener net.Listener) {
 			sl.opt.log.Warnf("Error accepting:%s", err.Error())
 			continue
 		}
-		go sl.doSocket(conn)
+
+		g.Go(func(ctx context.Context) error {
+			sl.doSocket(conn)
+			return nil
+		})
 	}
 }
 

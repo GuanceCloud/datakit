@@ -363,7 +363,7 @@ func (i *Input) extendSelfTag(tags map[string]string) {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.AllOS
+	return datakit.AllOSWithElection
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
@@ -518,8 +518,11 @@ func (i *Input) RunPipeline() {
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
-
-	go i.tail.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_elasticsearch"})
+	g.Go(func(ctx context.Context) error {
+		i.tail.Start()
+		return nil
+	})
 }
 
 func (i *Input) Run() {

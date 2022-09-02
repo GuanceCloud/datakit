@@ -2,48 +2,48 @@
 # GitLab
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 采集 GitLab 运行数据并以指标的方式上报到观测云。
 
-![](imgs/input-gitlab-1.png)
-
-## 前置条件
+## 前置条件 {#requirements}
 
 - 已安装 GitLab（[GitLab 官方链接](https://about.gitlab.com/){:target="_blank"}）
 
-## 配置
+## 配置 {#config}
 
 首先需要打开 GitLab 服务的数据采集功能和设置白名单，具体操作见后续分段。
 
 GitLab 设置完成后，对 DataKit 进行配置。注意，根据 GitLab 版本和配置不同，采集到的数据可能存在差异。
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+=== "主机安装"
 
-```toml
-{{.InputSample}} 
-```
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-配置好后，重启 DataKit 即可。
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-此 input 支持选举功能，[关于选举](../datakit/election.md)。
+=== "Kubernetes"
 
-### GitLab 开启数据采集功能
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+### GitLab 开启数据采集功能 {#enable-prom}
 
 GitLab 需要开启 promtheus 数据采集功能，开启方式如下（以英文页面为例）：
 
 - 以管理员账号登陆己方 GitLab 页面
 - 转到 `Admin Area` > `Settings` > `Metrics and profiling`
 - 选择 `Metrics - Prometheus`，点击 `Enable Prometheus Metrics` 并且 `save change`
-
-
-![](imgs/input-gitlab-3.png)
-
 - 重启 GitLab 服务
 
 详情见[官方配置文档](https://docs.gitlab.com/ee/administration/monitoring/prometheus/gitlab_metrics.html#gitlab-prometheus-metrics){:target="_blank"}。
 
-### 配置数据访问端白名单
+### 配置数据访问端白名单 {#white-list}
 
 只开启数据采集功能还不够，GitLab 对于数据管理十分严格，需要再配置访问端的白名单。开启方式如下：
 
@@ -52,7 +52,7 @@ GitLab 需要开启 promtheus 数据采集功能，开启方式如下（以英�
 
 详情见[官方配置文档](https://docs.gitlab.com/ee/administration/monitoring/ip_whitelist.html){:target="_blank"}。
 
-### 开启 Gitlab CI 可视化
+### 开启 Gitlab CI 可视化 {#ci-visible}
 
 确保当前 Datakit 版本（1.2.13 及以后）支持 Gitlab CI 可视化功能。
 
@@ -68,11 +68,7 @@ Datakit 接收到 Webhook Event 后，是将数据作为 logging 打到数据中
 
 另外：Gitlab CI 功能不参与采集器选举，用户只需将 Gitlab Webhook 的 URL 配置为其中一个 Datakit 的 URL 即可；若只需要 Gitlab CI 可视化功能而不需要 Gitlab 指标采集，可通过配置 `enable_collect = false` 关闭指标采集功能。
 
-## 指标预览
-
-![](imgs/input-gitlab-3.png)
-
-## 指标集
+## 指标集 {#measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名）。
 
@@ -111,7 +107,3 @@ Datakit 接收到 Webhook Event 后，是将数据作为 logging 打到数据中
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
-
-## 场景视图
-
-<场景 - 新建仪表板 - Gitlab监控视图>

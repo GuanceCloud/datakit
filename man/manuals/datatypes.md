@@ -1,8 +1,6 @@
 {{.CSS}}
-
-- DataKit 版本：{{.Version}}
-
 # DataKit 支持的数据类型
+---
 
 本文档是 DataKit 以及观测云所采集到的各种数据类型的描述，主要涉及如下几类：
 
@@ -10,24 +8,24 @@
 - Object
 - Logging
 
-## 指标类型（metric）
+## 指标类型 {#M}
 
 TODO
 
-## 日志类型（logging）
+## 日志类型 {#L}
 
-### measurement
+### measurement {#l-measurement}
 
 使用采集器配置文件中的 `source` 字段，如果此字段为空，则使用默认值 `default`。
 
-### 标签（tag）
+### 标签（tag） {#l-tag}
 
 | 名称       | 描述                                                                          |
 | :--        | ---                                                                           |
 | `filename` | 日志文件名（不带绝对路径文件名）                                              |
 | `service`  | 使用采集器配置文件中的 `service` 字段，如果此字段为空，则默认跟 `source` 相同 |
 
-### 指标列表（field）
+### 指标列表（field） {#l-field}
 
 | 指标名称 | 描述                                    | 数据类型 |
 | :--      | ---                                     | ---      |
@@ -48,13 +46,13 @@ TODO
 | `d/debug/trace/verbose` | `debug`    |
 | `o/s/OK`                | `OK`       |
 
-### time
+### time {#time}
 
 默认使用此条日志采集到的时间。
 
 如果使用 pipeline 对日志文本进行切割，且切割后的 `time` 字段符合转换规则，会将 `time` 字段转换为标准时间应用在此。
 
 
-## 对象类型（object）
+## 对象类型（object） {#O}
 
 TODO

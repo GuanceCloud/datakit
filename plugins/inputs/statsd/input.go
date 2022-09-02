@@ -8,6 +8,7 @@ package statsd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -40,7 +42,10 @@ const (
 	catalog   = "statsd"
 )
 
-var l = logger.DefaultSLogger("statsd")
+var (
+	l = logger.DefaultSLogger("statsd")
+	g = goroutine.NewGroup(goroutine.Option{Name: "inputs_statsd"})
+)
 
 // Statsd allows the importing of statsd and dogstatsd data.
 type input struct {
@@ -98,7 +103,6 @@ type input struct {
 	sync.Mutex
 	// Lock for preventing a data race during resource cleanup
 	cleanup sync.Mutex
-	wg      sync.WaitGroup
 	// accept channel tracks how many active connections there are, if there
 	// is an available bool in accept, then we are below the maximum and can
 	// accept the connection
@@ -331,10 +335,11 @@ func (ipt *input) setup() error {
 	l.Infof("starting %d parser worker...", parserGoRoutines)
 	for i := 1; i <= parserGoRoutines; i++ {
 		// Start the line parser
-		ipt.wg.Add(1)
-		go func(idx int) {
-			defer ipt.wg.Done()
-			ipt.parser(idx)
+		func(idx int) {
+			g.Go(func(ctx context.Context) error {
+				ipt.parser(idx)
+				return nil
+			})
 		}(i)
 	}
 
@@ -551,7 +556,7 @@ func (ipt *input) stop() {
 
 	ipt.Unlock()
 
-	ipt.wg.Wait()
+	_ = g.Wait()
 
 	ipt.Lock()
 	close(ipt.in)

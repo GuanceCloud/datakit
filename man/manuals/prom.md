@@ -2,25 +2,33 @@
 # Prometheus Exportor 数据采集
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 Prom 采集器可以获取各种 Prometheus Exporters 暴露出来的指标数据，只要配置相应的 Exporter 地址，就可以将指标数据接入。
 
-## 前置条件
+## 前置条件 {#requirements}
 
 只能接入 Prometheus 形式的指标数据。
 
-## 配置
+## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+=== "主机安装"
 
-```toml
-{{.InputSample}}
-```
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
+    
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-配置好后，重启 DataKit 即可。
+=== "Kubernetes"
 
-### 配置额外的 header
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+### 配置额外的 header {#extra-header}
 
 Prom 采集器支持在数据拉取的 HTTP 请求中配置额外的请求头，如下：
 
@@ -30,7 +38,7 @@ Prom 采集器支持在数据拉取的 HTTP 请求中配置额外的请求头，
   Michael = "1234"
 ```
 
-### 关于 tag 重命名
+### 关于 tag 重命名 {#tag-rename}
 
 > 注意：对于 [DataKit 全局 tag key](datakit-conf#update-global-tag)，此处不支持将它们重命名。
 
@@ -46,8 +54,8 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="ye
 [inputs.prom.tags_rename]
   overwrite_exist_tags = true
   [inputs.prom.tags_rename.mapping]
-	  status_code = "StatusCode",
-	  method      = "tag_exists", // 将 `method` 这个 tag 重命名为一个已存在的 tag
+    status_code = "StatusCode",
+    method      = "tag_exists", // 将 `method` 这个 tag 重命名为一个已存在的 tag
 ```
 
 那么最终的行协议数据会变成（忽略时间戳）：
@@ -66,7 +74,7 @@ http,StatusCode=404,le=0.003,method=GET,tag_exists=yes request_duration_seconds_
 
 注意，这里的 tag 名称是大小写敏感的，可以用下面的调试工具测试一下数据情况，以决定 tag 名称如何替换。
 
-## 协议转换说明
+## 协议转换说明 {#proto-transfer}
 
 由于 Prometheus 的数据格式跟 Influxdb 的行协议格式存在一定的差别。 对 Prometheus 而言，以下为一个 K8s 集群中一段分暴露出来的数据：
 
@@ -115,7 +123,7 @@ node_filesystem,tag-list available_bytes=1.21585664e+08,device_error=0,files=9.2
     name = "node_filesystem"
 ```
 
-## 命令行调试指标集 
+## 命令行调试指标集 {#debug}
 
 由于 Prometheus 暴露出来的指标非常多，大家不一定需要所有的指标，故 DataKit 提供一个简单的调试 `prom.conf` 的工具，如果不断调整 `prom.conf` 的配置，以达到如下几个目的：
 

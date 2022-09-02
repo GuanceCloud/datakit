@@ -6,6 +6,7 @@
 package cmds
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -118,9 +119,12 @@ func stopDatakit() error {
 	l.Info("stoping datakit...")
 	// 不能一直等待阻塞的 chan 或者 waitgroup到超时时间被强制 kill 时才退出
 	errChan := make(chan error, 1)
-	go func() {
+
+	g.Go(func(ctx context.Context) error {
 		errChan <- service.Control(svc, "stop")
-	}()
+		return nil
+	})
+
 	select {
 	case err := <-errChan:
 		if err != nil {

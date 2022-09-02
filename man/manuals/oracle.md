@@ -2,7 +2,9 @@
 # Oracle
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 Oracle 监控指标采集，具有以下数据收集功能
 
@@ -11,10 +13,7 @@ Oracle 监控指标采集，具有以下数据收集功能
 - system 数据采集
 - 自定义查询数据采集
 
-![](imgs/input-oracle-1.png)
-![](imgs/input-oracle-2.png)
-
-## 前置条件
+## 前置条件 {#reqirement}
 
 - 创建监控账号
 
@@ -56,27 +55,23 @@ wget -q https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/otn_
 apt-get install -y libaio-dev libaio1
 ```
 
-## 配置
+## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+=== "主机安装"
 
-```toml
-{{.InputSample}}
-```
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
+    
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-配置好后，重启 DataKit 即可。
+=== "Kubernetes"
 
-> 注意：Oracle 采集器的日志在 `/usr/local/datakit/external/oracle.log` 中
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-## 指标预览
-
-![](imgs/input-oracle-4.png)
-
-## 日志预览
-
-![](imgs/input-oracle-3.png)
-
-## 指标集
+## 指标集 {#measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -101,17 +96,13 @@ apt-get install -y libaio-dev libaio1
 
 {{ end }}
 
-## 异常检测
+## FAQ {#faq}
 
-<异常检测库 - 新建检测库 - Oracle 检测库>
-
-## FAQ
-
-### 如何查看 Oracle 的采集日志？
+### 如何查看 Oracle 采集器的运行日志？ {#faq-logging}
 
 由于 Oracle 采集器是外部采集器，其日志是单独存放在 <DataKit 安装目录>/externals/oracle.log 中。
 
-### 配置好 Oracle 采集之后，为何 monitor 中无数据显示？
+### 配置好 Oracle 采集之后，为何 monitor 中无数据显示？ {#faq-no-data}
 
 大概原因有如下几种可能：
 

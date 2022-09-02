@@ -206,6 +206,10 @@ func Install(svc service.Service) {
 		mc.Sinks.Sink = []map[string]interface{}{{}} // clear
 		l.Fatalf("parseSinkArgs failed: %s", err.Error())
 	}
+	if LogSinkDetail != "" {
+		l.Info("set enable log sink detail.")
+		mc.LogSinkDetail = true
+	}
 
 	writeDefInputToMainCfg(mc)
 

@@ -2,13 +2,17 @@
 # Telegraf 数据接入
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
+:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
-> 注意：建议在使用 Telegraf 之前，先确 DataKit 是否能满足期望的数据采集。如果 DataKit 已经支持，不建议用 Telegraf 来采集，这可能会导致数据冲突，从而造成使用上的困扰。
+---
+
+???+ attention
+
+    建议在使用 Telegraf 之前，先确 DataKit 是否能满足期望的数据采集。如果 DataKit 已经支持，不建议用 Telegraf 来采集，这可能会导致数据冲突，从而造成使用上的困扰。
 
 Telegraf 是一个开源的数据采集工具。DataKit 通过简单的配置即可接入 Telegraf 采集的数据集。
 
-## Telegraf 安装
+## Telegraf 安装 {#install}
 
 以 Ubuntu 为例，其他系统 [参见](https://docs.influxdata.com/telegraf/v1.18/introduction/installation/){:target="_blank"}：
 
@@ -26,7 +30,7 @@ echo "deb https://repos.influxdata.com/${DISTRIB_ID,,} ${DISTRIB_CODENAME} stabl
 sudo apt-get update && sudo apt-get install telegraf
 ```
 
-### Telegraf 配置
+### Telegraf 配置 {#config}
 
 默认配置文件路径：
 
@@ -34,7 +38,7 @@ sudo apt-get update && sudo apt-get install telegraf
 - Linux: `/etc/telegraf/telegraf.conf`
 - Windows：配置文件就在 Telegraf 二进制同级目录（视具体安装情况而定）
 
-> 注意： Mac 下，如果通过 [`datakit --install telegraf` 安装](datakit-tools-how-to#extras)，则配置目录和 Linux 一样。
+> 注意： Mac 下，如果通过 [`datakit --install telegraf` 安装](datakit-tools-how-to#extras)，配置目录和 Linux 一样。
 
 修改配置文件如下：
 
@@ -52,7 +56,7 @@ sudo apt-get update && sudo apt-get install telegraf
     logfile                   = "your_path.log"
     logfile_rotation_interval = ""
 
-# 此处可配置 Telegraf 所采集数据的全局 tag
+# 此处可配置 Telegraf 所采集数据的全局 tag 
 [global_tags]
   name = "zhangsan"
 
@@ -84,7 +88,7 @@ Telegraf 的采集配置跟 DataKit 类似，也是 [Toml 格式](https://toml.i
   timeout = "5s"
 ```
 
-## 更多阅读
+## 更多阅读 {#more-reading}
 
 - [Telegraf 采集器的详细配置](https://docs.influxdata.com/telegraf){:target="_blank"}
 - [更多 Telegraf 插件](https://github.com/influxdata/telegraf#input-plugins){:target="_blank"}

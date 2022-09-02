@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/spf13/cast"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -104,10 +105,16 @@ func canExplain(obfuscatedStatement string) bool {
 	return false
 }
 
-// TODO: obfuscate.
 func obfuscateSQL(text string) string {
 	reg := regexp.MustCompile(`\n|\s+`)
-	return strings.TrimSpace(reg.ReplaceAllString(text, " "))
+	sql := strings.TrimSpace(reg.ReplaceAllString(text, " "))
+
+	if out, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", sql); err != nil {
+		l.Debugf("Failed to obfuscate, err: %s \n", err.Error())
+		return "ERROR: failed to obfuscate"
+	} else {
+		return out.Query
+	}
 }
 
 func computeSQLSignature(text string) (signature string) {

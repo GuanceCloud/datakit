@@ -135,7 +135,8 @@ func init() {
 	flag.StringVar(&installer.SinkTracing, "sink-tracing", "", "sink for Tracing")
 	flag.StringVar(&installer.SinkRUM, "sink-rum", "", "sink for RUM")
 	flag.StringVar(&installer.SinkSecurity, "sink-security", "", "sink for Security")
-	flag.StringVar(&installer.SinkProfiling, "sink-profile", "", "sink for Profile")
+	flag.StringVar(&installer.SinkProfiling, "sink-profile", "", "sink for Profiling")
+	flag.StringVar(&installer.LogSinkDetail, "log-sink-detail", "", "log sink detail")
 
 	// cgroup flags
 	flag.IntVar(&installer.CgroupDisabled, "cgroup-disabled", 0, "enable disable cgroup(Linux) limits for CPU and memory")

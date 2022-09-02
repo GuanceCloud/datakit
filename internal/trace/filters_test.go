@@ -12,6 +12,45 @@ import (
 	"time"
 )
 
+func TestCloseResource(t *testing.T) {
+	testcases := DatakitTraces{
+		randDatakitTrace(t, 10, randResource("Allen.123"), randSource("ddtrace")),
+		randDatakitTrace(t, 10, randService("game"), randResource("Bravo333"), randSource("ddtrace")),
+		randDatakitTrace(t, 10, randService("hesi"), randResource("GET /nacos/v1/ns/instance/list"), randSource("ddtrace")),
+		randDatakitTrace(t, 10, randService("logout"), randResource("Clear666"), randSource("ddtrace")),
+	}
+	expected := []func(trace DatakitTrace) bool{
+		func(trace DatakitTrace) bool { return trace == nil },
+		func(trace DatakitTrace) bool { return trace == nil },
+		func(trace DatakitTrace) bool { return trace == nil },
+		func(trace DatakitTrace) bool { return trace != nil },
+	}
+
+	closer := &CloseResource{}
+	closer.UpdateIgnResList(map[string][]string{
+		"*": {"Allen.*", ".*333", "GET /nacos/v1/.*"},
+	})
+
+	wg := sync.WaitGroup{}
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() { // nolint:govet,staticcheck
+			defer wg.Done()
+
+			for i := range testcases {
+				parentialize(testcases[i])
+
+				trace, _ := closer.Close(testcases[i])
+				if !expected[i](trace) {
+					t.Errorf("close resource %s failed trace:%v", testcases[i][0].Resource, trace)
+					t.FailNow() // nolint:govet,staticcheck
+				}
+			}
+		}()
+	}
+	wg.Wait()
+}
+
 func TestRespectUserRule(t *testing.T) {
 	testcases := make(DatakitTraces, 100)
 	for i := 0; i < 100; i++ {
@@ -117,45 +156,6 @@ func TestPenetrateError(t *testing.T) {
 			t.FailNow()
 		}
 	}
-}
-
-func TestCloseResource(t *testing.T) {
-	testcases := DatakitTraces{
-		randDatakitTrace(t, 10, randResource("Allen.123"), randSource("ddtrace")),
-		randDatakitTrace(t, 10, randService("game"), randResource("Bravo333"), randSource("ddtrace")),
-		randDatakitTrace(t, 10, randService("hesi"), randResource("GET /nacos/v1/ns/instance/list"), randSource("ddtrace")),
-		randDatakitTrace(t, 10, randService("logout"), randResource("Clear666"), randSource("ddtrace")),
-	}
-	expected := []func(trace DatakitTrace) bool{
-		func(trace DatakitTrace) bool { return trace == nil },
-		func(trace DatakitTrace) bool { return trace == nil },
-		func(trace DatakitTrace) bool { return trace == nil },
-		func(trace DatakitTrace) bool { return trace != nil },
-	}
-
-	closer := &CloseResource{}
-	closer.UpdateIgnResList(map[string][]string{
-		"*": {"Allen.*", ".*333", "GET /nacos/v1/.*"},
-	})
-
-	wg := sync.WaitGroup{}
-	wg.Add(10)
-	for i := 0; i < 10; i++ {
-		go func() { // nolint:govet,staticcheck
-			defer wg.Done()
-
-			for i := range testcases {
-				parentialize(testcases[i])
-
-				trace, _ := closer.Close(testcases[i])
-				if !expected[i](trace) {
-					t.Errorf("close resource %s failed trace:%v", testcases[i][0].Resource, trace)
-					t.FailNow() // nolint:govet,staticcheck
-				}
-			}
-		}()
-	}
-	wg.Wait()
 }
 
 func TestKeepRareResource(t *testing.T) {

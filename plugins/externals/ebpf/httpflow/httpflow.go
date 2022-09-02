@@ -158,8 +158,8 @@ func NewHTTPFlowManger(fd int, constEditor []manager.ConstantEditor, bpfMapSockF
 			"bpfmap_sockfd": bpfMapSockFD,
 		},
 	}
-	if buf, err := dkebpf.Asset("httpflow.o"); err != nil {
-		return nil, nil, err
+	if buf, err := dkebpf.HTTPFlowBin(); err != nil {
+		return nil, nil, fmt.Errorf("httpflow.o: %w", err)
 	} else if err := m.InitWithOptions((bytes.NewReader(buf)), mOpts); err != nil {
 		return nil, nil, err
 	}

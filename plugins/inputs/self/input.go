@@ -50,6 +50,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&datakitMeasurement{},
 		&datakitHTTPMeasurement{},
+		&datakitGoroutineMeasurement{},
 	}
 }
 
@@ -67,9 +68,11 @@ func (si *Input) Run() {
 		cost := time.Since(start)
 		pt := si.stat.ToMetric()
 		pts := si.stat.ToHTTPMetric()
+		goroutinePts := si.stat.ToGoroutineMetric()
 
 		newPts := []*point.Point{pt}
 		newPts = append(newPts, pts...)
+		newPts = append(newPts, goroutinePts...)
 
 		_ = io.Feed(inputName, datakit.Metric, newPts, &io.Option{
 			CollectCost: cost,

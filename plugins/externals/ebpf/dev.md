@@ -50,7 +50,6 @@ curl -Lo go1.16.12.linux-amd64.tar.gz https://go.dev/dl/go1.16.12.linux-amd64.ta
   && go install github.com/gobuffalo/packr/v2/packr2@v2.8.3 \
   && go install mvdan.cc/gofumpt@latest \
   && go get -u golang.org/x/tools/cmd/goyacc \
-  && go get -u github.com/kevinburke/go-bindata/... \
   && curl -L https://github.com/golangci/golangci-lint/releases/download/v1.42.1/golangci-lint-1.42.1-linux-amd64.deb -o golangci-lint-1.42.1-linux-amd64.deb \
   && dpkg -i golangci-lint-1.42.1-linux-amd64.deb \
   && rm golangci-lint-1.42.1-linux-amd64.deb \

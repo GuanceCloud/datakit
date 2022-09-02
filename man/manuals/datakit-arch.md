@@ -1,4 +1,3 @@
-{{.CSS}}
 # DataKit 整体架构简介
 ---
 
@@ -10,7 +9,10 @@ DataKit 是观测云中至关重要的一个数据采集组件，几乎所有观
 
 DataKit 网络模型主要分为三层，可以简单概括为用户环境、DataWay 以及观测云中心，如下图所示：
 
-![DataKit 基础网络模型](imgs/dk-network-arch.png)
+<figure markdown>
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-network-arch.png){ width="800" }
+  <figcaption> DataKit 基础网络模型 </figcaption>
+</figure>
 
 1. DataKit 主要通过定期采集的方式，采集各种不同的指标，然后定时、定量通过 HTTP(s) 将数据发送给 DataWay。每个 DataKit 都会配置对应的 token，用于标识不同的用户
 > 如果用户内网环境没有开通外网请求，可以通过 [Nginx 做一层代理](proxy.md#nginx-proxy)出来，也可以通过 DataKit 内置的 [Proxy 采集器](proxy.md) 来实现流量代理
@@ -28,7 +30,10 @@ DataKit 网络模型主要分为三层，可以简单概括为用户环境、Dat
 
 DataKit 内部架构相对比较简单，如下图所示：
 
-![DataKit 内部采集架构](imgs/dk-internal-arch.png)
+<figure markdown>
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-internal-arch.png){ width="800" }
+  <figcaption> DataKit 内部采集架构 </figcaption>
+</figure>
 
 自上往下，DataKit 内部主要分成三层：
 
@@ -41,12 +46,12 @@ DataKit 内部架构相对比较简单，如下图所示：
 	- 文档模块：DataKit 的文档通过自身代码生成，便于文档的自动发布
 	
 - 传输层：负责几乎所有数据的输入输出
-	- HTTP 服务模块：DataKit 支持第三方数据的接入，比如 [Telegraf](../integrations/telegraf.md)/[Prometheus](../integrations/prom.md)，后续还可以接入更多的数据源。目前这些数据都是通过 HTTP 接入
+	- HTTP 服务模块：DataKit 支持第三方数据的接入，比如 [Telegraf](telegraf.md)/[Prometheus](prom.md)，后续还可以接入更多的数据源。目前这些数据都是通过 HTTP 接入
 	- IO 模块：各个数据采集插件，每次采集完成后，都会将数据发送给 IO 模块。IO 模块封装了统一的数据构建、处理和发送接口，便于接入各个采集器插件采集的数据。另外，IO 模块会以一定的节奏（定期、定量），通过 HTTP(s) 将数据发送给 DataWay
 
 - 采集层：负责各种数据的采集。按照采集的类型，分成两类：
-	- 主动采集型：这类采集器按照配置的固定频率来采集，比如 [CPU](../integrations/cpu.md)、[网卡流量](../integrations/net.md)、[云拨测](../integrations/dialtesting.md)等
-	- 被动采集型：这类采集器通常是以外部数据输入来实现采集，比如 [RUM](../integrations/rum.md)、[Tracing](../integrations/ddtrace.md)等。它们一般运行在 DataKit 之外，可通过 DataKit 开放的[数据上传 API](apis.md)，对数据经过一定的标准化处理，然后再上传到观测云
+	- 主动采集型：这类采集器按照配置的固定频率来采集，比如 [CPU](cpu.md)、[网卡流量](net.md)、[云拨测](dialtesting.md)等
+	- 被动采集型：这类采集器通常是以外部数据输入来实现采集，比如 [RUM](rum.md)、[Tracing](ddtrace.md)等。它们一般运行在 DataKit 之外，可通过 DataKit 开放的[数据上传 API](apis.md)，对数据经过一定的标准化处理，然后再上传到观测云
 
 	每个不同的采集器，都单独运行在独立的 goroutine 中，且做了外层保护，即使单个采集器因为某些原因奔溃（每个采集器运行期最大允许崩溃 6 次），也不会影响 DataKit 整体的运行。
 

@@ -7,10 +7,13 @@
 package skywalking
 
 import (
+	"context"
 	"time"
 
+	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"google.golang.org/grpc"
@@ -23,8 +26,13 @@ const (
 	jvmMetricName = "skywalking_jvm"
 	sampleConfig  = `
 [[inputs.skywalking]]
-  ## skywalking grpc server listening on address.
-  address = "localhost:13800"
+  ## Skywalking grpc server listening on address.
+  address = "localhost:11800"
+
+  ## plugins is a list contains all the widgets used in program that want to be regarded as service.
+  ## every key words list in plugins represents a plugin defined as special tag by skywalking.
+  ## the value of the key word will be used to set the service name.
+  # plugins = ["db.type"]
 
   ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
   ## that want to send to data center. Those keys set by client code will take precedence over
@@ -56,19 +64,25 @@ const (
     # key1 = "value1"
     # key2 = "value2"
     # ...
+
+  ## Storage config a local storage space in hard dirver to cache trace data.
+  ## path is the local file path used to cache data.
+  ## capacity is total space size(MB) used to store data.
+  # [inputs.skywalking.storage]
+    # path = "./skywalking_storage"
+    # capacity = 5120
 `
 )
 
 var (
-	log              = logger.DefaultSLogger(inputName)
-	address          = "localhost:13800"
-	afterGatherRun   itrace.AfterGatherHandler
-	keepRareResource *itrace.KeepRareResource
-	closeResource    *itrace.CloseResource
-	sampler          *itrace.Sampler
-	customerKeys     []string
-	tags             map[string]string
-	skySvr           *grpc.Server
+	log            = logger.DefaultSLogger(inputName)
+	address        = "localhost:11800"
+	plugins        []string
+	afterGatherRun itrace.AfterGatherHandler
+	customerKeys   []string
+	tags           map[string]string
+	skySvr         *grpc.Server
+	storage        *itrace.Storage
 )
 
 type Input struct {
@@ -76,11 +90,13 @@ type Input struct {
 	V3               interface{}         `toml:"V3"`        // deprecated *skywalkingConfig
 	Pipelines        map[string]string   `toml:"pipelines"` // deprecated
 	Address          string              `toml:"address"`
+	Plugins          []string            `toml:"plugins"`
 	CustomerTags     []string            `toml:"customer_tags"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	Sampler          *itrace.Sampler     `toml:"sampler"`
 	Tags             map[string]string   `toml:"tags"`
+	Storage          *itrace.Storage     `toml:"storage"`
 }
 
 func (*Input) Catalog() string {
@@ -101,19 +117,33 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
-	log.Infof("%s input started...", inputName)
 
-	afterGather := itrace.NewAfterGather()
+	plugins = ipt.Plugins
+
+	if ipt.Storage != nil {
+		if cache, err := cache.Open(ipt.Storage.Path, &cache.Option{Capacity: int64(ipt.Storage.Capacity) << 20}); err != nil {
+			log.Errorf("### open cache %s with cap %dMB failed, cache.Open: %s", ipt.Storage.Path, ipt.Storage.Capacity, err)
+		} else {
+			ipt.Storage.SetCache(cache)
+			ipt.Storage.RunStorageConsumer(log, parseSegmentObjectWrapper)
+			storage = ipt.Storage
+			log.Infof("### open cache %s with cap %dMB OK", ipt.Storage.Path, ipt.Storage.Capacity)
+		}
+	}
+
+	var afterGather *itrace.AfterGather
+	if storage == nil {
+		afterGather = itrace.NewAfterGather()
+	} else {
+		afterGather = itrace.NewAfterGather(itrace.WithRetry(100 * time.Millisecond))
+	}
 	afterGatherRun = afterGather
-
-	// add calculators
-	// afterGather.AppendCalculator(itrace.StatTracingInfo)
 
 	// add filters: the order of appending filters into AfterGather is important!!!
 	// the order of appending represents the order of that filter executes.
 	// add close resource filter
 	if len(ipt.CloseResource) != 0 {
-		closeResource = &itrace.CloseResource{}
+		closeResource := &itrace.CloseResource{}
 		closeResource.UpdateIgnResList(ipt.CloseResource)
 		afterGather.AppendFilter(closeResource.Close)
 	}
@@ -121,11 +151,12 @@ func (ipt *Input) Run() {
 	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add rare resource keeper
 	if ipt.KeepRareResource {
-		keepRareResource = &itrace.KeepRareResource{}
+		keepRareResource := &itrace.KeepRareResource{}
 		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
+	var sampler *itrace.Sampler
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
 		sampler = ipt.Sampler
 	} else {
@@ -138,16 +169,24 @@ func (ipt *Input) Run() {
 
 	log.Debug("start skywalking grpc v3 server")
 
-	// itrace.StartTracingStatistic()
-
 	// start up grpc v3 routine
 	if len(ipt.Address) == 0 {
 		ipt.Address = address
 	}
-	go registerServerV3(ipt.Address)
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_skywalking"})
+	g.Go(func(ctx context.Context) error {
+		registerServerV3(ipt.Address)
+		return nil
+	})
 }
 
 func (ipt *Input) Terminate() {
+	if storage != nil {
+		if err := storage.Close(); err != nil {
+			log.Error(err.Error())
+		}
+		log.Debug("### storage closed")
+	}
 	if skySvr != nil {
 		skySvr.Stop()
 	}

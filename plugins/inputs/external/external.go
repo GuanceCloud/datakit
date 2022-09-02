@@ -7,6 +7,7 @@
 package external
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -70,6 +72,7 @@ type ExternalInput struct {
 
 	semStop        *cliutils.Sem // start stop signal
 	semStopProcess *cliutils.Sem
+	procExitReply  chan struct{}
 
 	daemonStarted bool
 
@@ -196,7 +199,7 @@ func (ex *ExternalInput) Run() {
 				l.Infof("%s paused", ex.Name)
 				if ex.Daemon && ex.daemonStarted { // stop the daemon running process
 					ex.semStopProcess.Close() // trigger the daemon process exit
-
+					<-ex.procExitReply        // sync with goroutine monitoring external input process
 					ex.daemonStarted = false
 					ex.semStopProcess = cliutils.NewSem() // reopen the sem
 				}
@@ -222,12 +225,19 @@ func (ex *ExternalInput) daemonRun() {
 		ex.daemonStarted = true
 		break
 	}
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_external"})
 
-	go func(process *os.Process, name string, semStopProcess *cliutils.Sem) {
-		if err := datakit.MonitProc(process, name, semStopProcess); err != nil { // blocking here...
-			l.Errorf("datakit.MonitProc: %s", err.Error())
-		}
-	}(ex.cmd.Process, ex.Name, ex.semStopProcess)
+	ex.procExitReply = make(chan struct{})
+
+	func(process *os.Process, name string, semStopProcess *cliutils.Sem, procExitReply chan struct{}) {
+		g.Go(func(ctx context.Context) error {
+			if err := datakit.MonitProc(process, name, semStopProcess); err != nil { // blocking here...
+				l.Errorf("datakit.MonitProc: %s", err.Error())
+			}
+			close(procExitReply)
+			return nil
+		})
+	}(ex.cmd.Process, ex.Name, ex.semStopProcess, ex.procExitReply)
 
 	// We must not modify ex.cmd.Process.Pid beyong this point,
 	// because pid is needed by MonitProc to kill the process when signaled.

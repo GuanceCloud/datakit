@@ -2,8 +2,6 @@
 # 文本数据处理（Pipeline）
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
 以下是文本处理器定义。随着不同语法的逐步支持，该文档会做不同程度的调整和增删。
 
 ## 基本规则 {#basic-syntax}

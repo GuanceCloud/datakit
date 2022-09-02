@@ -21,7 +21,7 @@ import (
 )
 
 func TestExportTrace_Export(t *testing.T) {
-	trace := &ExportTrace{storage: collector.NewSpansStorage()}
+	trace := &ExportTrace{storage: collector.NewSpansStorage(nil)}
 	endpoint := "localhost:20010"
 	m := mock.MockOtlpGrpcCollector{Trace: trace}
 	go m.StartServer(t, endpoint)
@@ -117,7 +117,7 @@ func TestExportTrace_Export(t *testing.T) {
 }
 
 func TestExportMetric_Export(t *testing.T) {
-	metric := &ExportMetric{storage: collector.NewSpansStorage()}
+	metric := &ExportMetric{storage: collector.NewSpansStorage(nil)}
 	endpoint := "localhost:20010"
 	m := mock.MockOtlpGrpcCollector{Metric: metric}
 	go m.StartServer(t, endpoint)

@@ -2,29 +2,27 @@
 # Profile 采集配置
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 Profile 支持采集使用 Java / Python 等不同语言环境下应用程序运行过程中的动态性能数据，帮助用户查看 CPU、内存、IO 的性能问题。
 
 ## 配置说明 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/profile` 目录，复制 `profile.conf.sample` 并命名为  `profile.conf` 。配置文件说明如下：
+=== "主机安装"
 
-```shell
-# {"version": "1.4.3", "desc": "do NOT edit this line"}
+    进入 DataKit 安装目录下的 `conf.d/profile` 目录，复制 `profile.conf.sample` 并命名为  `profile.conf` 。配置文件说明如下：
+    
+    ```shell
+    {{ CodeBlock .InputSample 4 }}
+    ```
+    
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-[[inputs.profile]]
-## profile Agent endpoints register by version respectively.
-## Endpoints can be skipped listen by remove them from the list.
-## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
-endpoints = ["/profiling/v1/input"]
-```
+=== "Kubernetes"
 
-配置完成后，重启 DataKit 。
-
-```shell
-sudo datakit service --restart
-```
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
 ## 指标集 {#measurements}
 
@@ -127,6 +125,6 @@ prof.start(True, True)
 DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=7.8.9 python3 app.py
 ```
 
-## 查看 Profile
+## 查看 Profile {#view}
 
 上述程序启动后，会定期（默认 1 分钟上报一次）收集 profiling 数据并上报给 DataKit，稍等片刻后就可以在观测云工作空间看到 profiling 数据。

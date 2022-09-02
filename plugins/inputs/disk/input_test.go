@@ -15,7 +15,8 @@ import (
 
 func TestCollect(t *testing.T) {
 	i := newDefaultInput()
-	for x := 0; x < 5; x++ {
+
+	for x := 0; x < 1; x++ {
 		if err := i.Collect(); err != nil {
 			t.Error(err)
 		}

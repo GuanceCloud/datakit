@@ -2,9 +2,7 @@
 # PHP 示例
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
-## Install Libarary & Dependence
+## 安装依赖 {#dependence}
 
 首先[下载](https://github.com/DataDog/dd-trace-php/releases){:target="_blank"} 需要的 PHP ddtrace 扩展，下载完成后安装扩展
 
@@ -36,7 +34,7 @@ export DD_TRACE_PHP_BIN=$(which version of php-fpm7)
 
 **Note:** 如果你的 PHP 应用没有使用 Composer 或使用 spl_autoload_register()注册了 autoloader，你需要设置环境变量 DD_TRACE_NO_AUTOLOADER=true, 用来开启自动检测。
 
-## PHP Configuration
+## 配置 {#config}
 
 PHP tracer 可以通过环境变量和 ini 配置文件进行配置。
 
@@ -83,7 +81,7 @@ env[DD_SERVICE] = my-app
 php_value datadog.service my-app
 ```
 
-## Run PHP Code With DDTrace
+## 运行 {#run}
 
 打开 shell 运行下面命令
 
@@ -94,7 +92,7 @@ DD_TRACE_DEBUG=true \
 php -d datadog.service=my-php-app -S localhost:8888
 ```
 
-## Environment Variables For Tracing PHP Code
+## 环境变量支持 {#envs}
 
 - DD_AGENT_HOST
   INI: datadog.agent_host

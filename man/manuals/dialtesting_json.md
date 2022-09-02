@@ -1,38 +1,45 @@
 {{.CSS}}
 # 通过本地 JSON 定义拨测任务
----
-
-- 操作系统支持：{{.AvailableArchs}}
 
 某些情况下，可能不能连接 SAAS 的拨测任务服务，此时，我们可以通过本地的 json 文件来定义拨测任务。
 
-## 配置
+## 配置 {#config}
 
-### 配置采集器
+### 配置采集器 {#config-inputs}
 
-进入 DataKit 安装目录下的 `conf.d/network` 目录，复制 `dialtesting.conf.sample` 并命名为 `dialtesting.conf`。示例如下：
+=== "主机安装"
 
-```toml
-[[inputs.dialtesting]]
-  server = "file://</path/to/your/local.json>"
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
-  # 注意：以 Linux 为例，假定你的 json 目录为 /some/path/my.json，那么此处的
-  # server 应该写成 file:///some/path/my.json
+    ```toml
+    [[inputs.dialtesting]]
+      server = "file://</path/to/your/local.json>"
+    
+      # 注意：以 Linux 为例，假定你的 json 目录为 /some/path/my.json，那么此处的
+      # server 应该写成 file:///some/path/my.json
+    
+      # 注意，以下 tag 建议都一一填写（不要修改这里的 tag key），便于在页面上展示完整的拨测结果
+      [inputs.dialtesting.tags] 
+        country  = "<specify-datakit-country>"  # DataKit 部署所在的国家
+        province = "<specify-datakit-province>" # DataKit 部署所在的省份
+        city     = "<specify-datakit-city>"     # DataKit 部署所在的城市
+        isp      = "<specify-datakit-ISP>"      # 指定 DataKit 所在的网络服务商
+        region   = "<your-region>"              # 可随意指定一个 region 名称
+    ```
 
-  # 注意，以下 tag 建议都一一填写（不要修改这里的 tag key），便于在页面上展示完整的拨测结果
-  [inputs.dialtesting.tags] 
-    country  = "<specify-datakit-country>"  # DataKit 部署所在的国家
-    province = "<specify-datakit-province>" # DataKit 部署所在的省份
-    city     = "<specify-datakit-city>"     # DataKit 部署所在的城市
-    isp      = "<specify-datakit-ISP>"      # 指定 DataKit 所在的网络服务商
-    region   = "<your-region>"              # 可随意指定一个 region 名称
-```
+=== "Kubernetes"
+
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+---
 
 具体的国家/地域以及 ISP 选择，可按照下图所示方式来选择（注意，不要真的新建「自建节点」，此处只是提供一个可供选择的来源）：
 
-![](imgs/dialtesting-select-country-city-isp.png)
-
-### 配置拨测任务
+<figure markdown>
+![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-select-country-city-isp.png){ width="300" }
+</figure>
+    
+### 配置拨测任务 {#config-task}
 
 目前拨测任务支持四种拨测类型，即 HTTP, TCP, ICMP, WEBSOCKET 服务，JSON 格式如下：
 
@@ -110,11 +117,11 @@
 
 配置好后，重启 DataKit 即可。
 
-### 拨测任务字段定义
+### 拨测任务字段定义 {#field-def}
 
 拨测任务字段包括「公共字段」和具体拨测任务的「额外字段」。
 
-#### 公共字段
+#### 公共字段 {#pub}
 
 拨测任务公共字段定义如下：
 
@@ -128,7 +135,7 @@
 | `advance_options`    | object | N        | 详见下文                                                                             |
 | `post_url`           | string | N        | 将拨测结果发往该 Token 所指向的工作空间，如果不填写，则发给当前 DataKit 所在工作空间 |
 
-#### HTTP 拨测
+#### HTTP 拨测 {#http}
 
 **额外字段**
 
@@ -161,7 +168,7 @@
 }
 ```
 
-##### `success_when` 定义
+##### `success_when` 定义 {#http-success-when}
 
 用来定义拨测成功与否的判定条件，主要有如下几个方面：
 
@@ -297,7 +304,7 @@
 ]
 ```
 
-##### `advance_options` 定义
+##### `advance_options` 定义 {#http-advance-options}
 
 高级选项主要用来调整具体的拨测行为，主要有如下几个方面：
 
@@ -461,9 +468,9 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 }
 ```
 
-#### TCP 拨测
+#### TCP 拨测 {#tcp}
 
-##### 额外字段
+##### 额外字段 {#tcp-extra}
 
 | 字段              | 类型   | 是否必须 | 说明                                    |
 | :---              | ---    | ---      | ---                                     |
@@ -507,7 +514,7 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 }
 ```
 
-##### `success_when` 定义
+##### `success_when` 定义 {#tcp-success-when}
 
 - TCP 响应时间判断 (`response_time`)
 
@@ -556,9 +563,9 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 ```
 
 
-#### ICMP 拨测
+#### ICMP 拨测 {#icmp}
 
-##### 额外字段
+##### 额外字段 {#icmp-extra}
 
 | 字段              | 类型   | 是否必须 | 说明                                    |
 | :---              | ---    | ---      | ---                                     |
@@ -615,7 +622,7 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 }
 ```
 
-##### `success_when` 定义
+##### `success_when` 定义 {#icmp-success-when}
 
 - ICMP 丢包率 (`packet_loss_percent`)
 
@@ -709,9 +716,9 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 ]
 ```
 
-#### WEBSOCKET 拨测
+#### WEBSOCKET 拨测 {#ws}
 
-##### 额外字段
+##### 额外字段 {#ws-extra}
 
 | 字段              | 类型   | 是否必须 | 说明                                    |
 | :---              | ---    | ---      | ---                                     |
@@ -771,7 +778,7 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 }
 ```
 
-##### `success_when` 定义
+##### `success_when` 定义 {#ws-success-when}
 
 - 响应时间判断 (`response_time`)
 
@@ -852,7 +859,7 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 ]
 ```
 
-##### `advance_options` 定义
+##### `advance_options` 定义 {#ws-advance-options}
 
 - 请求选项 (`request_options`)
 

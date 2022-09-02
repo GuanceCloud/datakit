@@ -39,7 +39,7 @@ func Test_otlpHTTPCollector_apiOtlpTrace(t *testing.T) {
 	}
 
 	o := otlpHTTPCollector{
-		storage:         collector.NewSpansStorage(),
+		spanStorage:     collector.NewSpansStorage(nil),
 		Enable:          true,
 		HTTPStatusOK:    200,
 		ExpectedHeaders: map[string]string{"header1": "1"},
@@ -100,7 +100,7 @@ func Test_otlpHTTPCollector_apiOtlpTrace(t *testing.T) {
 		"Bool":    "true",
 		"String":  "test",
 	}
-	dktraces := o.storage.GetDKTrace()
+	dktraces := o.spanStorage.GetDKTrace()
 
 	if len(dktraces) != 1 {
 		t.Errorf("dktraces.len != 1")
@@ -389,7 +389,7 @@ func Test_otlpHTTPCollector_apiOtlpTrace1(t *testing.T) {
 		{
 			name: "check_header",
 			fields: fields{
-				storage:         collector.NewSpansStorage(),
+				storage:         collector.NewSpansStorage(nil),
 				Enable:          true,
 				HTTPStatusOK:    200,
 				ExpectedHeaders: map[string]string{"header1": "1"},
@@ -403,7 +403,7 @@ func Test_otlpHTTPCollector_apiOtlpTrace1(t *testing.T) {
 		{
 			name: "request_body",
 			fields: fields{
-				storage:         collector.NewSpansStorage(),
+				storage:         collector.NewSpansStorage(nil),
 				Enable:          true,
 				HTTPStatusOK:    200,
 				ExpectedHeaders: map[string]string{},
@@ -417,7 +417,7 @@ func Test_otlpHTTPCollector_apiOtlpTrace1(t *testing.T) {
 		{
 			name: "bad_body",
 			fields: fields{
-				storage:         collector.NewSpansStorage(),
+				storage:         collector.NewSpansStorage(nil),
 				Enable:          true,
 				HTTPStatusOK:    200,
 				ExpectedHeaders: map[string]string{},
@@ -433,7 +433,7 @@ func Test_otlpHTTPCollector_apiOtlpTrace1(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// server 监听端口
 			o := &otlpHTTPCollector{
-				storage:         tt.fields.storage,
+				spanStorage:     tt.fields.storage,
 				Enable:          tt.fields.Enable,
 				HTTPStatusOK:    tt.fields.HTTPStatusOK,
 				ExpectedHeaders: tt.fields.ExpectedHeaders,
@@ -520,7 +520,7 @@ func Test_otlpHTTPCollector_apiOtlpMetric(t *testing.T) {
 		{
 			name: "check_header",
 			fields: fields{
-				storage:         collector.NewSpansStorage(),
+				storage:         collector.NewSpansStorage(nil),
 				Enable:          true,
 				HTTPStatusOK:    200,
 				ExpectedHeaders: map[string]string{"header1": "1"},
@@ -534,7 +534,7 @@ func Test_otlpHTTPCollector_apiOtlpMetric(t *testing.T) {
 		{
 			name: "request_body",
 			fields: fields{
-				storage:         collector.NewSpansStorage(),
+				storage:         collector.NewSpansStorage(nil),
 				Enable:          true,
 				HTTPStatusOK:    200,
 				ExpectedHeaders: map[string]string{},
@@ -548,7 +548,7 @@ func Test_otlpHTTPCollector_apiOtlpMetric(t *testing.T) {
 		{
 			name: "bad_body",
 			fields: fields{
-				storage:         collector.NewSpansStorage(),
+				storage:         collector.NewSpansStorage(nil),
 				Enable:          true,
 				HTTPStatusOK:    200,
 				ExpectedHeaders: map[string]string{},
@@ -564,7 +564,7 @@ func Test_otlpHTTPCollector_apiOtlpMetric(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// server 监听端口
 			o := &otlpHTTPCollector{
-				storage:         tt.fields.storage,
+				spanStorage:     tt.fields.storage,
 				Enable:          tt.fields.Enable,
 				HTTPStatusOK:    tt.fields.HTTPStatusOK,
 				ExpectedHeaders: tt.fields.ExpectedHeaders,

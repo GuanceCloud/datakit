@@ -9,6 +9,7 @@
 package demo
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -23,6 +25,7 @@ import (
 var (
 	inputName = "demo"
 	l         = logger.DefaultSLogger("demo")
+	g         = goroutine.NewGroup(goroutine.Option{Name: "inputs_demo"})
 
 	_ inputs.ElectionInput = (*Input)(nil)
 )
@@ -193,9 +196,9 @@ func init() { //nolint:gochecknoinits
 func eatCPU(n int) {
 	for i := 0; i < n; i++ {
 		l.Debugf("start eat_cpu: %d", i)
-		go func() {
+		g.Go(func(ctx context.Context) error {
 			for { //nolint:staticcheck
 			}
-		}()
+		})
 	}
 }

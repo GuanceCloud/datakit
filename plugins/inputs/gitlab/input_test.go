@@ -582,12 +582,12 @@ func TestGetPipelineTagsAndFields(t *testing.T) {
 				"ref":             "master",
 			},
 			map[string]interface{}{
-				"duration":       int64(63),
+				"duration":       int64(63000000),
 				"pipeline_id":    "31",
 				"commit_message": "test\n",
 				"message":        "test\n",
-				"created_at":     int64(1471015408),
-				"finished_at":    int64(1471015589),
+				"created_at":     int64(1471015408000),
+				"finished_at":    int64(1471015589000),
 			},
 		},
 	}
@@ -632,10 +632,10 @@ func TestGetJobTagsAndFields(t *testing.T) {
 				"build_id":             "1977",
 				"pipeline_id":          "2366",
 				"project_id":           "380",
-				"build_started_at":     int64(1614048097),
+				"build_started_at":     int64(1614048097886),
 				"build_commit_message": "test\n",
 				"message":              "test\n",
-				"build_duration":       0.0,
+				"build_duration":       int64(0),
 			},
 		},
 		{
@@ -658,11 +658,11 @@ func TestGetJobTagsAndFields(t *testing.T) {
 				"build_id":             "121672",
 				"pipeline_id":          "111536",
 				"project_id":           "806",
-				"build_started_at":     int64(1650161535),
+				"build_started_at":     int64(1650161535000),
 				"build_commit_message": "Update .gitlab-ci.yml",
 				"message":              "Update .gitlab-ci.yml",
-				"build_duration":       16.791868,
-				"build_finished_at":    int64(1650161552),
+				"build_duration":       int64(16791868),
+				"build_finished_at":    int64(1650161552000),
 			},
 		},
 	}
@@ -703,16 +703,6 @@ func TestServeHTTP(t *testing.T) {
 			assert.Equal(t, tc.expectedStatusCode, w.statusCode)
 		})
 	}
-}
-
-func TestRemove(t *testing.T) {
-	ipt := getInput(1 * time.Second)
-	r := getPipelineRequest(pipelineJson1)
-	ipt.ServeHTTP(newMockWriter(), r)
-	digest := md5.Sum([]byte(pipelineJson1))
-	assert.True(t, ipt.reqMemo.has(digest))
-	time.Sleep(2 * time.Second)
-	assert.False(t, ipt.reqMemo.has(md5.Sum([]byte(pipelineJson1))))
 }
 
 func TestFailToFeed(t *testing.T) {

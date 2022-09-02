@@ -53,7 +53,7 @@ BUILD_TAGS := -D__KERNEL__ -D__BPF_TRACING__ \
 		-Wno-unknown-warning-option \
 		-O2 -emit-llvm
 
-all: go_bindata buildexec
+all: buildexec
 
 httpflow.o: 
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
@@ -81,11 +81,7 @@ bash_history.o :
 bindata: offset_guess.o netflow.o bash_history.o
 	llvm-strip $(BIN_PATH)/*.o --no-strip-all -R .BTF
 
-go_bindata: bindata
-	go-bindata -pkg ebpf -prefix "$(BIN_PATH)/" -o "$(SRC_PATH)/c/bindata_linux_$(GO_ARCH).go" \
-		 "$(BIN_PATH)/offset_guess.o" "$(BIN_PATH)/netflow.o" "$(BIN_PATH)/httpflow.o" "$(BIN_PATH)/bash_history.o"
-
-buildexec:
+buildexec: bindata
 	go build -tags="ebpf" -ldflags "-w -s" -o $(OUT_PATH) $(SRC_PATH)/datakit-ebpf.go 
 
 clean:

@@ -19,7 +19,7 @@ const (
   daemon = true
   name = 'oracle'
   cmd  = "/usr/local/datakit/externals/oracle"
-  
+
   ## Set true to enable election
   election = true
 
@@ -80,7 +80,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return []string{datakit.OSLabelLinux}
+	return []string{datakit.OSLabelLinux, datakit.LabelElection}
 }
 
 func init() { //nolint:gochecknoinits

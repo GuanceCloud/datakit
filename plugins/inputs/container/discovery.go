@@ -153,6 +153,7 @@ func (d *discovery) fetchDatakitCRDInputs() []*discoveryRunner {
 		// 对 error 内容进行子串判定，不再打印这个错误
 		// 避免因为 k8s 客户端没有 datakits resource 而获取失败，频繁报错
 		// “could not find the requested resource” 为 k8s api 实际返回的 error message，可能会因为版本不同而变更
+		// errors.Is()
 		if !strings.Contains(err.Error(), "could not find the requested resource") {
 			return nil
 		}
@@ -198,33 +199,68 @@ func (d *discovery) processCRDWithPod(fn datakitCRDHandler) error {
 
 	for _, item := range list.Items {
 		for _, ins := range item.Spec.Instances {
-			lableSelector, err := d.getDeploymentLabelSelector(ins.K8sNamespace, ins.K8sDeployment)
-			if err != nil {
-				l.Debugf("autodiscovery: not found deployment %s labelSelector, error %s, namespace %s", ins.K8sDeployment, err, ins.K8sNamespace)
-				continue
-			}
-			opt := metav1.ListOptions{
-				LabelSelector: joinLabelSelector(lableSelector),
-				FieldSelector: "spec.nodeName=" + d.localNodeName,
-			}
-
-			pods, err := d.client.getPodsForNamespace(ins.K8sNamespace).List(context.Background(), opt)
-			if err != nil {
-				l.Warnf("autodiscovery: failed to get pods from node_name %s, namespace %s, app %s, err: %s, retry in a minute",
-					d.localNodeName,
-					ins.K8sNamespace,
-					ins.K8sDeployment,
-					err)
+			if ins.K8sNamespace == "" {
+				l.Warn("autodiscovery: invalid empty K8sNamespace")
 				continue
 			}
 
-			for idx := range pods.Items {
-				fn(ins, &podMeta{Pod: &pods.Items[idx]})
+			pods := []*podMeta{}
+
+			if ins.K8sDaemonSet != "" {
+				lableSelector, err := d.getDaemonSetLabelSelector(ins.K8sNamespace, ins.K8sDaemonSet)
+				if err != nil {
+					l.Debugf("autodiscovery: not found DaemonSet %s LabelSelector, error %s, namespace %s", ins.K8sDaemonSet, err, ins.K8sNamespace)
+				} else {
+					t := d.getPodsFromLabelSelector(ins.K8sNamespace, ins.K8sDaemonSet, lableSelector)
+					pods = append(pods, t...)
+				}
+			}
+
+			if ins.K8sDeployment != "" {
+				lableSelector, err := d.getDeploymentLabelSelector(ins.K8sNamespace, ins.K8sDeployment)
+				if err != nil {
+					l.Debugf("autodiscovery: not found Deployment %s LabelSelector, error %s, namespace %s", ins.K8sDeployment, err, ins.K8sNamespace)
+				} else {
+					t := d.getPodsFromLabelSelector(ins.K8sNamespace, ins.K8sDeployment, lableSelector)
+					pods = append(pods, t...)
+				}
+			}
+
+			for _, pod := range pods {
+				fn(ins, pod)
 			}
 		}
 	}
 
 	return nil
+}
+
+func (d *discovery) getPodsFromLabelSelector(namespace, appName string, lableSelector map[string]string) (res []*podMeta) {
+	opt := metav1.ListOptions{
+		LabelSelector: joinLabelSelector(lableSelector),
+		FieldSelector: "spec.nodeName=" + d.localNodeName,
+	}
+	pods, err := d.client.getPodsForNamespace(namespace).List(context.Background(), opt)
+	if err != nil {
+		l.Warnf("autodiscovery: failed to get pods from node_name %s, namespace %s, app %s, err: %s, retry in 3 minute",
+			d.localNodeName, namespace, appName, err)
+		return
+	}
+	for idx := range pods.Items {
+		res = append(res, &podMeta{Pod: &pods.Items[idx]})
+	}
+	return
+}
+
+func (d *discovery) getDaemonSetLabelSelector(namespace, daemonset string) (map[string]string, error) {
+	daemonsetObj, err := d.client.getDaemonSetsForNamespace(namespace).Get(context.Background(), daemonset, metaV1GetOption)
+	if err != nil {
+		return nil, err
+	}
+	if daemonsetObj.Spec.Selector == nil {
+		return nil, fmt.Errorf("invalid DaemonSet LableSelector")
+	}
+	return daemonsetObj.Spec.Selector.MatchLabels, nil
 }
 
 func (d *discovery) getDeploymentLabelSelector(namespace, deployment string) (map[string]string, error) {
@@ -233,7 +269,7 @@ func (d *discovery) getDeploymentLabelSelector(namespace, deployment string) (ma
 		return nil, err
 	}
 	if deploymentObj.Spec.Selector == nil {
-		return nil, fmt.Errorf("invalid lableSelector")
+		return nil, fmt.Errorf("invalid Deployment LableSelector")
 	}
 	return deploymentObj.Spec.Selector.MatchLabels, nil
 }

@@ -5,7 +5,7 @@
 
 下面将从全局 Tag 和特定数据类型专属 Tag 两个维度来进行罗列。
 
-## 全局类 Tag
+## 全局类 Tag {#global-tags}
 
 这些 Tag 跟具体数据类型无关，它可以追加到任意数据类型上。
 
@@ -17,7 +17,7 @@
 | election_namespace | 选举所在的命名空间，默认不追加，详见[文档](datakit-daemonset-deploy.md#env-elect)                   |
 | version            | 版本号，所有涉及版本信息的 tag 字段，都应该以该 tag 来表示                                          |
 
-### Kubernates/容器常见 Tag
+### Kubernates/容器常见 Tag {#k8s-tags}
 
 这些 tag 在采集到的数据中，一般都会有追加，但涉及时序采集的时候，默认会忽略一些多变的 tag（比如 `pod_name`），以节约时间线。
 
@@ -37,32 +37,32 @@
 | node_name      | k8s 中 Node 名称        |
 | node_ip        | k8s 中 Node IP          |
 
-## 按特定数据类型的 Tag 分类
+## 按特定数据类型的 Tag 分类 {#tag-classes}
 
-### 日志
+### 日志 {#L}
 
 | Tag                | 描述                                                                                                |
 | ---                | ---                                                                                                 |
 | source | 日志来源，在行协议上，它并不是以 tag 形式存在，而是作为指标集名称，但中心将其作为 tag 存为日志的 source 字段 |
 | service | 日志的 service 名称，如果不填写，其值等同于 source 字段 |
-| status | 日志等级，如果不填写，采集器会默认将其值置为 `unknown`，常见的 status 列表在[这里](../integrations/logging.md#status) |
+| status | 日志等级，如果不填写，采集器会默认将其值置为 `unknown`，常见的 status 列表在[这里](logging.md#status) |
 
-### 对象
+### 对象 {#O}
 
 | Tag                | 描述                                                                                                |
 | ---                | ---                                                                                                 |
 | class | 对象分类，在行协议上，它并不是以 tag 形式存在，而是作为指标集名称，但中心将其作为 tag 存为对象的 class 字段 |
 | name | 对象名称，中心会结合 hash(class + name) 来唯一确定某个工作空间中的对象 |
 
-### 指标
+### 指标 {#M}
 
 指标由于数据来源纷杂，除了全局类 tag 完，没有固定的 tag。
 
-### APM
+### APM {#T}
 
-Tracing 类数据的 tag 统一在[这里](../integrations/ddtrace.md#measurements)
+Tracing 类数据的 tag 统一在[这里](ddtrace.md#measurements)
 
-### RUM
+### RUM {#R}
 
 详见 RUM 文档：
 
@@ -73,18 +73,18 @@ Tracing 类数据的 tag 统一在[这里](../integrations/ddtrace.md#measuremen
 - [Flutter](../real-user-monitoring/third-party-framework/flutter/app-data-collection.md)
 - [React Native](../real-user-monitoring/third-party-framework/react-native/app-data-collection.md)
 
-### Scheck
+### Scheck {#S}
 
 参见 [Scheck 对应文档](../scheck/scheck-how-to.md)
 
-### Profile
+### Profile {#P}
 
-参见[采集器文档](../integrations/profile.md#measurements)
+参见[采集器文档](profile.md#measurements)
 
-### Network
+### Network {#N}
 
-参见[采集器文档](../integrations/ebpf.md#measurements)
+参见[采集器文档](ebpf.md#measurements)
 
-### Event
+### Event {#E}
 
 参见[设计文档](../events/generating.md)

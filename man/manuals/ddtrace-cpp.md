@@ -2,16 +2,14 @@
 # C++ 示例
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
-## Install Libarary & Dependence
+## 安装库和依赖 {#dependence}
 
 Datadog tracing 可以通过以下两种方式启动：
 
 - 通过编译 dd-opentracing-cpp，完成对 Datadog lib 的编译与配置。
 - 在运行时动态加载 Datadog OpenTracing library 并通过 JSON 进行配置。
 
-### Compile against dd-opentracing-cpp
+### 编译 {#compile}
 
 ```shell
 # Gets the latest release version number from GitHub.
@@ -65,7 +63,7 @@ g++ -std=c++14 -o tracer_example tracer_example.cpp -ldd_opentracing -lopentraci
 ./tracer_example
 ```
 
-### Dynamic loading
+### 动态加载 {#dynamic-loading}
 
 ```shell
 get_latest_release() {
@@ -142,7 +140,7 @@ g++ -std=c++11 -o tracer_example tracer_example.cpp -lopentracing
 ./tracer_example
 ```
 
-## Run Cpp Code With DDTrace
+## 运行 {#run}
 
 配置 dd agent 主机地址和端口号环境变量然后启动编译好的二进制。
 
@@ -152,7 +150,7 @@ DD_TRACE_AGENT_PORT=9529 \
 ./run_your_cpp_binary_with_parameters
 ```
 
-## Environment Variables For Tracing Cpp Code
+## 环境变量支持 {#envs}
 
 - DD_ENV: 为服务设置环境变量。
 - DD_VERSION: APP 版本号。

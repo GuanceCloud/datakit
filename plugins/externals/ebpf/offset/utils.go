@@ -121,10 +121,10 @@ func NewGuessManger() (*manager.Manager, error) {
 			Max: math.MaxUint64,
 		},
 	}
-	if buf, err := dkebpf.Asset("offset_guess.o"); err != nil {
-		return nil, err
+	if buf, err := dkebpf.OffsetGuessBin(); err != nil {
+		return nil, fmt.Errorf("offset_guess.o: %w", err)
 	} else if err := m.InitWithOptions((bytes.NewReader(buf)), mOpts); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("init offset guess: %w", err)
 	}
 	return m, nil
 }

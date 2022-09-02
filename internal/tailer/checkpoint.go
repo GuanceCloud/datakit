@@ -6,6 +6,7 @@
 package tailer
 
 import (
+	"context"
 	"encoding/json"
 	"path/filepath"
 	"sync"
@@ -39,11 +40,12 @@ func newLogCheckpoint(cachePath string) (*logCheckpoint, error) {
 		return nil, err
 	}
 
-	go func() {
+	g.Go(func(ctx context.Context) error {
 		<-datakit.Exit.Wait()
 		time.Sleep(time.Second * 2)
 		_ = stopLogCheckpint()
-	}()
+		return nil
+	})
 	return &logCheckpoint{cache: c}, nil
 }
 

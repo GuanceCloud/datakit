@@ -20,6 +20,7 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
+	"github.com/klauspost/compress/zstd"
 	pr "github.com/shirou/gopsutil/v3/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
@@ -259,6 +260,30 @@ func GZip(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	return z.Bytes(), nil
+}
+
+func Zstdzip2(data []byte) ([]byte, error) {
+	enc, _ := zstd.NewWriter(nil, zstd.WithEncoderConcurrency(runtime.NumCPU()), zstd.WithEncoderLevel(zstd.SpeedBestCompression))
+	return enc.EncodeAll(data, make([]byte, 0, len(data))), nil
+}
+
+func Zstdzip(data []byte) ([]byte, error) {
+	out := bytes.NewBuffer(nil)
+	in := bytes.NewBuffer(data)
+
+	enc, err := zstd.NewWriter(out, zstd.WithEncoderConcurrency(runtime.NumCPU()), zstd.WithEncoderLevel(zstd.SpeedBestCompression))
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = io.Copy(enc, in)
+	if err != nil {
+		enc.Close() //nolint: errcheck,gosec
+		return nil, err
+	}
+
+	enc.Close() //nolint: errcheck,gosec
+	return out.Bytes(), nil
 }
 
 var dnsdests = []string{

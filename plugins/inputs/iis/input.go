@@ -9,6 +9,7 @@
 package iis
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/win_utils/pdh"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -92,7 +94,12 @@ func (i *Input) RunPipeline() {
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
-	go i.tail.Start()
+
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_iis"})
+	g.Go(func(ctx context.Context) error {
+		i.tail.Start()
+		return nil
+	})
 }
 
 func (*Input) PipelineConfig() map[string]string {

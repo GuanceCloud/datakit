@@ -65,16 +65,17 @@ type mysqllog struct {
 }
 
 type Input struct {
-	Host      string    `toml:"host"`
-	Port      int       `toml:"port"`
-	User      string    `toml:"user"`
-	Pass      string    `toml:"pass"`
-	Sock      string    `toml:"sock"`
-	Tables    []string  `toml:"tables"`
-	Users     []string  `toml:"users"`
-	Dbm       bool      `toml:"dbm"`
-	DbmMetric dbmMetric `toml:"dbm_metric"`
-	DbmSample dbmSample `toml:"dbm_sample"`
+	Host        string      `toml:"host"`
+	Port        int         `toml:"port"`
+	User        string      `toml:"user"`
+	Pass        string      `toml:"pass"`
+	Sock        string      `toml:"sock"`
+	Tables      []string    `toml:"tables"`
+	Users       []string    `toml:"users"`
+	Dbm         bool        `toml:"dbm"`
+	DbmMetric   dbmMetric   `toml:"dbm_metric"`
+	DbmSample   dbmSample   `toml:"dbm_sample"`
+	DbmActivity dbmActivity `toml:"dbm_activity"`
 
 	Charset string `toml:"charset"`
 
@@ -462,8 +463,8 @@ func (i *Input) Collect() (map[string][]*point.Point, error) {
 		}
 	}
 
-	if i.Dbm && (i.DbmMetric.Enabled || i.DbmSample.Enabled) {
-		g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName("mysql_dbm")})
+	if i.Dbm && (i.DbmMetric.Enabled || i.DbmSample.Enabled || i.DbmActivity.Enabled) {
+		g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName("mysql")})
 		if i.DbmMetric.Enabled {
 			g.Go(func(ctx context.Context) error {
 				// mysql_dbm_metric
@@ -488,6 +489,18 @@ func (i *Input) Collect() (map[string][]*point.Point, error) {
 				}
 
 				if len(pts) > 0 {
+					ptsLoggingSample = append(ptsLoggingSample, pts...)
+				}
+				return nil
+			})
+		}
+
+		if i.DbmActivity.Enabled {
+			g.Go(func(ctx context.Context) error {
+				// mysql_dbm_activity
+				if pts, err := i.metricCollectMysqlDbmActivity(); err != nil {
+					l.Errorf("Collect mysql dbm activity failed: %s", err.Error())
+				} else if len(pts) > 0 {
 					ptsLoggingSample = append(ptsLoggingSample, pts...)
 				}
 				return nil
@@ -541,7 +554,11 @@ func (i *Input) RunPipeline() {
 		return
 	}
 
-	go i.tail.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_mysql"})
+	g.Go(func(ctx context.Context) error {
+		i.tail.Start()
+		return nil
+	})
 }
 
 func (i *Input) Run() {
@@ -640,7 +657,7 @@ func (*Input) Catalog() string { return catalogName }
 
 func (*Input) SampleConfig() string { return configSample }
 
-func (*Input) AvailableArchs() []string { return datakit.AllOS }
+func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
@@ -651,6 +668,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&userMeasurement{},
 		&dbmStateMeasurement{},
 		&dbmSampleMeasurement{},
+		&dbmActivityMeasurement{},
 	}
 }
 

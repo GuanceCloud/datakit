@@ -18,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -85,11 +86,13 @@ func (n *Input) setupServer() {
 		Handler:     router,
 		IdleTimeout: 120 * time.Second,
 	}
-	go func() {
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_jenkins"})
+	g.Go(func(ctx context.Context) error {
 		if err := n.srv.ListenAndServe(); err != nil {
 			l.Errorf("jenkins CI event server shutdown: %v", err)
 		}
-	}()
+		return nil
+	})
 }
 
 func (n *Input) Run() {
@@ -191,7 +194,11 @@ func (n *Input) RunPipeline() {
 		return
 	}
 
-	go n.tail.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_jenkins"})
+	g.Go(func(ctx context.Context) error {
+		n.tail.Start()
+		return nil
+	})
 }
 
 func (n *Input) requestJSON(u string, target interface{}) error {
@@ -238,7 +245,7 @@ func (n *Input) createHTTPClient() (*http.Client, error) {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
+	return datakit.AllOSWithElection
 }
 
 func (n *Input) SampleMeasurement() []inputs.Measurement {

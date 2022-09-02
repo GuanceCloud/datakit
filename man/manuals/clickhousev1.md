@@ -2,15 +2,15 @@
 # ClickHouse
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 ClickHouse 采集器可以采集 ClickHouse 服务器实例主动暴露的多种指标，比如语句执行数量和内存存储量，IO交互等多种指标，并将指标采集到观测云，帮助你监控分析 ClickHouse 各种异常情况。
 
-![](imgs/input-clickhouse-1.png)
-
 ## 前置条件 {#requirements}
 
-- ClickHouse 版本 >=v20.1.2.4
+ClickHouse 版本 >=v20.1.2.4
 
 在 clickhouse-server 的 config.xml 配置文件中找到如下的代码段，取消注释，并设置 metrics 暴露的端口号（具体哪个自己造择，唯一即可）。修改完成后重启（若为集群，则每台机器均需操作）。
 
@@ -28,6 +28,8 @@ vim /etc/clickhouse-server/config.xml
 </prometheus>
 ```
 
+字段说明：
+
 - `endpoint` Prometheus 服务器抓取指标的 HTTP 路由
 - `port` 端点的端口号
 - `metrics` 从 ClickHouse 的 `system.metrics` 表中抓取暴露的指标标志
@@ -36,21 +38,19 @@ vim /etc/clickhouse-server/config.xml
 
 详见[ClickHouse 官方文档](https://ClickHouse.com/docs/en/operations/server-configuration-parameters/settings/#server_configuration_parameters-prometheus){:target="_blank"}
 
-## 配置 {#input-config}
+=== "主机安装"
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-> 当前 ClickHouse 采集器版本为 v1 版本，更早的版本被废弃了，但因为兼容性考虑，此处将改进后的采集器版本重新命名一下。
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-```toml
-{{.InputSample}}
-```
+=== "Kubernetes"
 
-配置好后，重启 DataKit 即可。
-
-## 指标预览
-
-![](imgs/input-clickhouse-2.png)
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
 ## 指标集 {#measurements}
 
@@ -82,5 +82,3 @@ vim /etc/clickhouse-server/config.xml
 {{end}}
 
 {{ end }}
-
-

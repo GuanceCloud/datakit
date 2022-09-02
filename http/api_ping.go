@@ -7,9 +7,9 @@ package http
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -19,6 +19,6 @@ type ping struct {
 	Host    string `json:"host"`
 }
 
-func apiPing(c *gin.Context) {
-	OK.HttpBody(c, &ping{Version: datakit.Version, Uptime: fmt.Sprintf("%v", time.Since(uptime)), Host: datakit.DatakitHostName})
+func apiPing(w http.ResponseWriter, r *http.Request, x ...interface{}) (interface{}, error) {
+	return &ping{Version: datakit.Version, Uptime: fmt.Sprintf("%v", time.Since(uptime)), Host: datakit.DatakitHostName}, nil
 }
