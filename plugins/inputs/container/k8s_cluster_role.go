@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/rbac/v1"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -93,12 +94,19 @@ func (c *clusterRole) object(election bool) (inputsMeas, error) {
 			election: election,
 		}
 
+		if y, err := yaml.Marshal(item); err != nil {
+			l.Debugf("failed to get cluster-role yaml %s, namespace %s, name %s, ignored", err.Error(), item.Namespace, item.Name)
+		} else {
+			obj.fields["yaml"] = string(y)
+		}
+
 		obj.tags.append(c.extraTags)
 
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
 		obj.fields.delete("annotations")
+		obj.fields.delete("yaml")
 
 		res = append(res, obj)
 	}
