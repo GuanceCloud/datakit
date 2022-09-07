@@ -58,20 +58,32 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 
 	for i := range parts {
 		p := parts[i]
-		if len(dk.ipt.Mountpoints) != 0 {
-			if !excluded(p.Mountpoint, dk.ipt.Mountpoints) {
-				continue
-			}
-		} else if excluded(p.Mountpoint, dk.ipt.IgnoreMountPoints) {
-			continue
-		}
-
-		// If the mount point is a member of the exclude set, don't gather info on it.
 		if len(dk.ipt.Fs) != 0 {
 			if !excluded(p.Fstype, dk.ipt.Fs) {
 				continue
 			}
 		} else if excluded(p.Fstype, dk.ipt.IgnoreFS) {
+			continue
+		}
+		mergerFlag := false
+		// merger device
+		for index2, cont := range partitions {
+			if cont.Device == p.Device {
+				mergerFlag = true
+				du, err := dk.Usage(p.Mountpoint)
+				if err != nil {
+					break
+				}
+				usage[index2].Free += du.Free
+				usage[index2].Used += du.Used
+				usage[index2].InodesTotal += du.InodesTotal
+				usage[index2].InodesFree += du.InodesFree
+				usage[index2].InodesUsed += du.InodesUsed
+				usage[index2].Total += du.Total
+			}
+		}
+
+		if mergerFlag {
 			continue
 		}
 
@@ -82,6 +94,7 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 
 		du.Path = filepath.Join("/", strings.TrimPrefix(p.Mountpoint, hostMountPrefix))
 		du.Fstype = p.Fstype
+
 		usage = append(usage, du)
 		partitions = append(partitions, &p)
 	}

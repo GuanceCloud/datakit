@@ -190,6 +190,7 @@ func (i *Input) Collect() error {
 		var devLinks []string
 
 		tags["name"], devLinks = i.diskName(stat.Name)
+		tags["name"] = "/dev/" + tags["name"]
 
 		if !match {
 			for _, devLink := range devLinks {
