@@ -6,8 +6,9 @@
 package disk
 
 import (
-	"github.com/shirou/gopsutil/disk"
 	"os"
+	//nolint
+	"github.com/shirou/gopsutil/disk"
 )
 
 type PSDiskStats interface {
