@@ -6,11 +6,8 @@
 package disk
 
 import (
-	"os"
-	"path/filepath"
-	"strings"
-
 	"github.com/shirou/gopsutil/disk"
+	"os"
 )
 
 type PSDiskStats interface {
@@ -54,7 +51,6 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 
 	var usage []*disk.UsageStat
 	var partitions []*disk.PartitionStat
-	hostMountPrefix := dk.OSGetenv("HOST_MOUNT_PREFIX")
 
 	for i := range parts {
 		p := parts[i]
@@ -92,7 +88,6 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 			continue
 		}
 
-		du.Path = filepath.Join("/", strings.TrimPrefix(p.Mountpoint, hostMountPrefix))
 		du.Fstype = p.Fstype
 
 		usage = append(usage, du)
@@ -122,8 +117,4 @@ func (opts MountOptions) exists(opt string) bool {
 		}
 	}
 	return false
-}
-
-func parseOptions(opts string) MountOptions {
-	return strings.Split(opts, ",")
 }

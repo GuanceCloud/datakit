@@ -174,9 +174,9 @@ func (ipt *Input) Collect() error {
 			// Skip dummy filesystem (procfs, cgroupfs, ...)
 			continue
 		}
-		if !strings.HasPrefix(partitions[index].Device, "/dev/") {
+		/*if !strings.HasPrefix(partitions[index].Device, "/dev/") {
 			continue // 忽略该 partition
-		}
+		}*/
 
 		tags := map[string]string{
 			"device": partitions[index].Device,
@@ -204,8 +204,7 @@ func (ipt *Input) Collect() error {
 			"inodes_free":  wrapUint64(du.InodesFree),
 			"inodes_used":  wrapUint64(du.InodesUsed),
 		}
-		fmt.Println(tags)
-		fmt.Println(fields)
+
 		ipt.appendMeasurement(metricName, tags, fields, ts)
 	}
 
@@ -303,7 +302,6 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				da)
 		}
 	}
-
 }
 
 func unique(strSlice []string) []string {
@@ -321,18 +319,8 @@ func unique(strSlice []string) []string {
 func newDefaultInput() *Input {
 	ipt := &Input{
 		Interval: datakit.Duration{Duration: time.Second * 10},
-		IgnoreFS: []string{
-			"autofs",
-			"tmpfs",
-			"devtmpfs",
-			"devfs",
-			"iso9660",
-			"overlay",
-			"aufs",
-			"squashfs",
-		},
-		semStop: cliutils.NewSem(),
-		Tags:    make(map[string]string),
+		semStop:  cliutils.NewSem(),
+		Tags:     make(map[string]string),
 	}
 
 	x := &PSDisk{ipt: ipt}
