@@ -451,7 +451,7 @@ bytes * 2 * 8 /1024/1024 = xxx MBit
 - [DataKit 日志采集综述](datakit-logging.md)
 - [Pipeline: 文本数据处理](../developers/pipeline.md)
 - [Pipeline 调试](../developers/datakit-pl-how-to.md)
-- [Pipeline 性能测试和对比](../logging-pipeline-bench.md)
+- [Pipeline 性能测试和对比](logging-pipeline-bench.md)
 - [容器采日志采集](container#config)
 - [通过 Sidecar(logfwd) 采集容器内部日志](logfwd.md)
 - [正确使用正则表达式来配置](datakit-input-conf#debug-regex) 

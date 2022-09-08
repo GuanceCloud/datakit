@@ -14,7 +14,16 @@
 
 本次发布属于 Hotfix 发布，主要有如下更新：
 
-- 修复磁盘采集器时间线问题，屏蔽掉非物理设备的指标采集，同时，主机对象中的磁盘也做了对应调整。
+- 修正[磁盘采集器](disk.md)指标采集，自动忽略一些非物理磁盘；主机对象上的磁盘也做了对应的处理(#1106)
+- 修正磁盘采集器在 Windows 上采集不到指标的问题(#1114)
+- 修复 Git 管理配置的情况下，部分资源泄露导致的数据重复采集问题(#1107)
+- 调整 Pipeline 有关的文档，将其移到「自定义开发」目录下：
+
+<figure markdown>
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.14-dk-docs.gif){ width="300"}
+</figure>
+
+---
 
 ## 1.4.13(2022/09/01) {#cl-1.4.13}
 
@@ -52,25 +61,25 @@
 - 采集器文档从原来「集成」移到 「DataKit」文档库(#1060)
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.12-dk-docs.gif){ width="300"}
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.13-dk-docs.gif){ width="300"}
 </figure>
 
 - DataKit 文档目录结构调整，减少了目录层级
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.12-dk-doc-dirs.gif){ width="300"}
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.13-dk-doc-dirs.gif){ width="300"}
 </figure>
 
 - 几乎每个采集器都增加了 k8s 配置入口
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.12-install-selector.gif){ width="800" }
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.13-install-selector.gif){ width="800" }
 </figure>
 
 - 调整文档头部显示，除了操作系统标识外，对支持选举的采集器，增加选举标识
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.12-doc-header.gif){ width="800" }
+  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.13-doc-header.gif){ width="800" }
 </figure>
 
 ---

@@ -80,7 +80,7 @@ spec:
 
 - 通过 CRD 配置
 
-CRD 是 Kubernetes 一种广泛使用的配置方式，相比 Annotation，CRD 无需更改被采集对象的部署，相比而言，它的侵入性更小。详见 [DataKit CRD 使用文档](Kubernetes-crd.md)。
+CRD 是 Kubernetes 一种广泛使用的配置方式，相比 Annotation，CRD 无需更改被采集对象的部署，相比而言，它的侵入性更小。详见 [DataKit CRD 使用文档](kubernetes-crd.md)。
 
 ### Git 配置方式 {#git}
 
