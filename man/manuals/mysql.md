@@ -30,6 +30,7 @@ CREATE USER 'datakit'@'localhost' IDENTIFIED WITH mysql_native_password by '<UNI
 
 ```sql
 GRANT PROCESS ON *.* TO 'datakit'@'localhost';
+GRANT SELECT ON *.* TO 'datakit'@'localhost';
 show databases like 'performance_schema';
 GRANT SELECT ON performance_schema.* TO 'datakit'@'localhost';
 GRANT SELECT ON mysql.user TO 'datakit'@'localhost';
