@@ -190,7 +190,6 @@ func (i *Input) Collect() error {
 		var devLinks []string
 
 		tags["name"], devLinks = i.diskName(stat.Name)
-		tags["name"] = "/dev/" + tags["name"]
 
 		if !match {
 			for _, devLink := range devLinks {
@@ -353,12 +352,11 @@ func (i *Input) ReadEnv(envs map[string]string) {
 }
 
 func (i *Input) diskName(devName string) (string, []string) {
+	devName = "/dev/" + devName
+
 	di, err := i.diskInfo(devName)
 
 	devLinks := strings.Split(di["DEVLINKS"], " ")
-	for i, devLink := range devLinks {
-		devLinks[i] = strings.TrimPrefix(devLink, "/dev/")
-	}
 
 	if err != nil {
 		l.Warnf("Error gathering disk info: %s", err)

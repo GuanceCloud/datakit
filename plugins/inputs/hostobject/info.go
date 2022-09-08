@@ -271,6 +271,7 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 		}
 
 		// merge same device
+		mergeFlag := false
 		for index, cont := range infos {
 			if cont.Device == p.Device {
 				usage, err := diskutil.Usage(p.Mountpoint)
@@ -278,7 +279,12 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 					break
 				}
 				infos[index].Total += usage.Total
+				mergeFlag = true
 			}
+		}
+
+		if mergeFlag {
+			continue
 		}
 
 		info := &DiskInfo{

@@ -42,6 +42,13 @@ var (
   # and ignore all others (e.g. memory partitions such as /dev/shm)
   only_physical_device = false
 
+  ## Deprecated
+  # ignore_mount_points = ["/"]
+
+  ## Deprecated
+  # mount_points = ["/"]
+
+
   ## Ignore mount points by filesystem type.
   # ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
 
