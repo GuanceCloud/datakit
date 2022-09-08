@@ -2,9 +2,11 @@
 # NetStat
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
 
-Netstat 指标展示，包括 tcp 连接数，等待连接，等待处理请求，udp socket 连接等  
+---
+
+Netstat 指标采集，包括 TCP/UDP 连接数、等待连接、等待处理请求等。
 
 ## 前置条件 {#precondition}
 
@@ -12,20 +14,27 @@ Netstat 指标展示，包括 tcp 连接数，等待连接，等待处理请求�
 
 ## 配置 {#input-config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+=== "主机部署"
 
-```toml
-{{.InputSample}}
-```
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
-配置好后，重启 DataKit 即可。
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
+    配置好后，重启 DataKit 即可。
 
-| 环境变量名                        | 对应的配置参数项 | 参数示例                                                     |
-|:-----------------------------| ---              | ---                                                          |
-| `ENV_INPUT_NETSTAT_TAGS`     | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-| `ENV_INPUT_NETSTAT_INTERVAL` | `interval`       | `10s`                                                        |
+=== "Kubernetes"
+
+    Kubernetes 中支持以环境变量的方式修改配置参数：
+
+
+    | 环境变量名                   | 对应的配置参数项 | 参数示例                                                     |
+    |:-----------------------------| ---              | ---                                                          |
+    | `ENV_INPUT_NETSTAT_TAGS`     | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+    | `ENV_INPUT_NETSTAT_INTERVAL` | `interval`       | `10s`                                                        |
+
+---
 
 ## 指标集 {#measurements}
 

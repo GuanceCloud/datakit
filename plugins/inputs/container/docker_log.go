@@ -109,7 +109,6 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "容器日志",
 		Type: "logging",
-		Desc: "日志来源设置，参见[这里](container#6de978c3)",
 		Tags: map[string]interface{}{
 			"container_name":         inputs.NewTagInfo(`k8s 命名的容器名（在 labels 中取 'io.kubernetes.container.name'），如果值为空则跟 container_runtime_name 相同`),
 			"container_runtime_name": inputs.NewTagInfo(`由 runtime 命名的容器名（例如 docker ps 查看），如果值为空则默认是 unknown（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)）`),

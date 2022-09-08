@@ -10,7 +10,7 @@
 - 通过 [conf](datakit-daemonset-deploy.md#configmap-setting)  配置
 - 通过 [ENV](datakit-daemonset-deploy.md#using-k8-env) 配置
 - 通过 [Annotation](container.md#logging-with-annotation-or-label) 配置
-- 通过 [CRD](Kubernetes-crd.md)配置
+- 通过 [CRD](kubernetes-crd.md)配置
 - 通过 [Git](datakit-conf.md#using-gitrepo) 配置
 - 通过 [DCA](dca.md) 配置
 
