@@ -145,6 +145,7 @@ func (i *Input) RunPipeline() {
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
 		MultilinePatterns: []string{i.Log.MultilineMatch},
+		Done:              i.semStop.Wait(),
 	}
 
 	var err error

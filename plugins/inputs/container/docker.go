@@ -19,50 +19,32 @@ import (
 )
 
 type dockerInput struct {
-	client dockerClientX
-	cfg    *dockerInputConfig
-	// container log 需要添加 pod 信息，所以存一份 k8sclient
-	k8sClient k8sClientX
+	ipt       *Input
+	client    *dockerClient
+	k8sClient k8sClientX // container log 需要添加 pod 信息，所以存一份 k8sclient
 
 	loggingFilter    filter.Filter
 	containerLogList map[string]interface{}
 	mu               sync.Mutex
 }
 
-type dockerInputConfig struct {
-	endpoint string
-
-	excludePauseContainer     bool
-	removeLoggingAnsiCodes    bool
-	enableLoggingBlockingMode bool
-
-	containerIncludeLog []string
-	containerExcludeLog []string
-
-	extraTags          map[string]string
-	extraSourceMap     map[string]string
-	sourceMultilineMap map[string]string
-
-	autoMultilinePatterns []string
-}
-
-func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
+func newDockerInput(ipt *Input) (*dockerInput, error) {
 	d := &dockerInput{
 		containerLogList: make(map[string]interface{}),
-		cfg:              cfg,
+		ipt:              ipt,
 	}
 
-	client, err := newDockerClient(cfg.endpoint, nil)
+	client, err := newDockerClient(ipt.DockerEndpoint, nil)
 	if err != nil {
 		return nil, err
 	}
 	d.client = client
 
 	if !d.pingOK() {
-		return nil, fmt.Errorf("cannot connect to the Docker daemon at %s", cfg.endpoint)
+		return nil, fmt.Errorf("cannot connect to the Docker daemon at %s", ipt.DockerEndpoint)
 	}
 
-	if err := d.createLoggingFilters(cfg.containerIncludeLog, cfg.containerExcludeLog); err != nil {
+	if err := d.createLoggingFilters(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog); err != nil {
 		return nil, err
 	}
 
@@ -109,7 +91,7 @@ func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
 				if err != nil {
 					return nil
 				}
-				m.tags.append(d.cfg.extraTags)
+				m.tags.append(d.ipt.Tags)
 
 				mu.Lock()
 				res = append(res, m)
@@ -145,7 +127,7 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 				if err != nil {
 					return nil
 				}
-				m.tags.append(d.cfg.extraTags)
+				m.tags.append(d.ipt.Tags)
 
 				mu.Lock()
 				res = append(res, m)
@@ -181,7 +163,6 @@ func (d *dockerInput) watchNewLogs() error {
 						l.Warnf("tail containerLog: %s", err)
 					}
 				}
-
 				return nil
 			})
 		}(&cList[idx])
@@ -342,7 +323,7 @@ func (d *dockerInput) ignoreContainer(container *types.Container) bool {
 	if !isRunningContainer(container.State) {
 		return true
 	}
-	if d.cfg.excludePauseContainer && isPauseContainer(container.Command) {
+	if d.ipt.ExcludePauseContainer && isPauseContainer(container.Command) {
 		return true
 	}
 	return false

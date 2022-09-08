@@ -92,6 +92,8 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 
 	checkpointData, err := getLogCheckpoint(getFileKey(filename))
 	if err == nil {
+		t.opt.log.Debugf("fetch offset %d from filename %s", checkpointData.Offset, filename)
+
 		stat, err := t.file.Stat()
 		if err != nil {
 			return nil, err
@@ -103,7 +105,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 				return nil, err
 			}
 			t.offset = ret
-			t.opt.log.Debugf("filename %s primary offset %d", t.filepath, t.offset)
+			t.opt.log.Debugf("setting primary offset %d to filename %s", t.offset, filename)
 		}
 	}
 
@@ -124,11 +126,13 @@ func (t *Single) Close() {
 	if t.offset > 0 {
 		err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: t.offset})
 		if err != nil {
-			t.opt.log.Warnf("update checkpoint %s, offset %d, err: %s", t.filepath, t.offset, err)
+			t.opt.log.Warnf("recording file %s, offset %d, err: %s", t.filepath, t.offset, err)
+		} else {
+			t.opt.log.Infof("recording file %s, offset %d, success", t.filepath, t.offset)
 		}
 	}
 	t.closeFile()
-	t.opt.log.Infof("closing %s", t.filepath)
+	t.opt.log.Infof("closing: file %s", t.filepath)
 }
 
 func (t *Single) closeFile() {
@@ -175,6 +179,10 @@ func (t *Single) forwardMessage() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
+			t.opt.log.Infof("exiting: file %s", t.filepath)
+			return
+		case <-t.opt.Done:
+			t.opt.log.Infof("exiting: file %s", t.filepath)
 			return
 
 		case <-checkTicker.C:
@@ -185,7 +193,7 @@ func (t *Single) forwardMessage() {
 			if t.offset > 0 {
 				err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: t.offset})
 				if err != nil {
-					t.opt.log.Warnf("update checkpoint %s, offset %d, err: %s", t.filepath, t.offset, err)
+					t.opt.log.Warnf("recording file %s, offset %d, err: %s", t.filepath, t.offset, err)
 				}
 			}
 
@@ -221,6 +229,8 @@ func (t *Single) forwardMessage() {
 					default:
 						t.defaultHandler(lines)
 					}
+					// 数据处理完成，再记录 offset
+					t.offset += int64(readNum)
 				}
 
 				t.opt.log.Infof("file %s has rotated, try to reopen file", t.filepath)
@@ -259,6 +269,8 @@ func (t *Single) forwardMessage() {
 		default:
 			t.defaultHandler(lines)
 		}
+		// 数据处理完成，再记录 offset
+		t.offset += int64(readNum)
 	}
 }
 
@@ -442,8 +454,6 @@ func (t *Single) read() ([]byte, int, error) {
 		t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
 		return nil, 0, err
 	}
-	t.offset += int64(n)
-
 	return t.readBuff[:n], n, nil
 }
 

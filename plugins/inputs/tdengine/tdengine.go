@@ -62,14 +62,18 @@ func newTDEngine(user, pw, adapter string, election bool) *tdEngine {
 		pw:       pw,
 		adapter:  adapter,
 		basic:    UserToBase64(user, pw),
-		stop:     make(chan struct{}, 1),
+		stop:     make(chan struct{}),
 		upstream: true,
 		election: election,
 	}
 }
 
 func (t *tdEngine) Stop() {
-	t.stop <- struct{}{}
+	select {
+	case <-t.stop:
+	default:
+		close(t.stop)
+	}
 }
 
 func (t *tdEngine) CheckHealth(sql selectSQL) bool {
@@ -123,31 +127,36 @@ func (t *tdEngine) run() {
 			g.Go(func(ctx context.Context) error {
 				ticker := time.NewTicker(metric.TimeSeries)
 				defer ticker.Stop()
-				for range ticker.C {
-					if !t.upstream {
-						l.Debugf("not leader, skipped")
-						continue
-					}
-					l.Debugf("start to run selectSQL,metricName = %s", metric.metricName)
-					for _, sql := range metric.MetricList {
-						body, err := query(t.adapter, t.basic, "", []byte(sql.sql))
-						if err != nil {
+				for {
+					select {
+					case <-datakit.Exit.Wait():
+						return nil
+					case <-t.stop:
+						return nil
+					case <-ticker.C:
+						if !t.upstream {
+							l.Debugf("not leader, skipped")
 							continue
 						}
-						var res restResult
-						if err := json.Unmarshal(body, &res); err != nil {
-							l.Error("parse json error: ", err)
-							continue
-						}
-						if sql.plugInFun != nil {
-							msmC <- sql.plugInFun.resToMeasurement(metric.metricName, res, sql, t.election)
-						} else {
-							msmC <- makeMeasurements(metric.metricName, res, sql, t.election)
+						l.Debugf("start to run selectSQL,metricName = %s", metric.metricName)
+						for _, sql := range metric.MetricList {
+							body, err := query(t.adapter, t.basic, "", []byte(sql.sql))
+							if err != nil {
+								continue
+							}
+							var res restResult
+							if err := json.Unmarshal(body, &res); err != nil {
+								l.Error("parse json error: ", err)
+								continue
+							}
+							if sql.plugInFun != nil {
+								msmC <- sql.plugInFun.resToMeasurement(metric.metricName, res, sql, t.election)
+							} else {
+								msmC <- makeMeasurements(metric.metricName, res, sql, t.election)
+							}
 						}
 					}
 				}
-
-				return nil
 			})
 		}(m)
 		time.Sleep(time.Second / 5) // 交叉运行.
@@ -156,14 +165,21 @@ func (t *tdEngine) run() {
 	// show database.stables;
 	g.Go(func(ctx context.Context) error {
 		ticker := time.NewTicker(time.Minute * 5)
-		for range ticker.C {
-			if !t.upstream {
-				continue
+		defer ticker.Stop()
+		for {
+			select {
+			case <-datakit.Exit.Wait():
+				return nil
+			case <-t.stop:
+				return nil
+			case <-ticker.C:
+				if !t.upstream {
+					continue
+				}
+				l.Debugf("run getSTablesNum")
+				msmC <- t.getSTablesNum()
 			}
-			l.Debugf("run getSTablesNum")
-			msmC <- t.getSTablesNum()
 		}
-		return nil
 	})
 
 	for {

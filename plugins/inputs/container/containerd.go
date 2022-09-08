@@ -26,11 +26,9 @@ import (
 )
 
 type containerdInput struct {
-	client *containerd.Client
-	cfg    *containerdInputConfig
-
-	// container log 需要添加 pod 信息，所以存一份 k8sclient
-	k8sClient k8sClientX
+	ipt       *Input
+	client    *containerd.Client
+	k8sClient k8sClientX // container log 需要添加 pod 信息，所以存一份 k8sclient
 
 	criClient         cri.RuntimeServiceClient
 	criRuntimeVersion *cri.VersionResponse
@@ -40,24 +38,8 @@ type containerdInput struct {
 	mu            sync.Mutex
 }
 
-type containerdInputConfig struct {
-	endpoint string
-
-	removeLoggingAnsiCodes    bool
-	enableLoggingBlockingMode bool
-
-	containerIncludeLog []string
-	containerExcludeLog []string
-
-	extraTags          map[string]string
-	extraSourceMap     map[string]string
-	sourceMultilineMap map[string]string
-
-	autoMultilinePatterns []string
-}
-
-func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
-	criClient, err := newCRIClient(cfg.endpoint)
+func newContainerdInput(ipt *Input) (*containerdInput, error) {
+	criClient, err := newCRIClient(ipt.ContainerdAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to new CRI-Client: %w ", err)
 	}
@@ -67,7 +49,7 @@ func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
 		return nil, fmt.Errorf("failed to get CRI-RuntimeVersion: %w", err)
 	}
 
-	client, err := containerd.New(cfg.endpoint)
+	client, err := containerd.New(ipt.ContainerdAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to new containerd: %w ", err)
 	}
@@ -76,11 +58,11 @@ func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
 		client:            client,
 		criClient:         criClient,
 		criRuntimeVersion: runtimeVersion,
-		cfg:               cfg,
+		ipt:               ipt,
 		logpathList:       make(map[string]interface{}),
 	}
 
-	if err := c.createLoggingFilters(cfg.containerIncludeLog, cfg.containerExcludeLog); err != nil {
+	if err := c.createLoggingFilters(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog); err != nil {
 		return nil, err
 	}
 
@@ -153,7 +135,7 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 
 			obj := newContainerdObject(&info)
 			obj.tags["linux_namespace"] = ns
-			obj.tags.append(c.cfg.extraTags)
+			obj.tags.append(c.ipt.Tags)
 
 			// 使用更准确的 name
 			resp, _ := c.criClient.ContainerStatus(context.Background(), &cri.ContainerStatusRequest{ContainerId: container.ID()})
