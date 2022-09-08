@@ -9,7 +9,6 @@ package disk
 import (
 	"fmt"
 	"math"
-	"runtime"
 	"strings"
 	"time"
 
@@ -53,7 +52,7 @@ var (
   # ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
 
   ## just collect this,once fs is configured, ignore_fs will fail
-  fs = ["ext2", "ext3", "ext4", "ntfs"]
+  # fs = ["ext2", "ext3", "ext4", "NTFS"]
   [inputs.disk.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"`
@@ -181,10 +180,6 @@ func (ipt *Input) Collect() error {
 		if du.Total == 0 {
 			// Skip dummy filesystem (procfs, cgroupfs, ...)
 			continue
-		}
-		// nolint
-		if !strings.HasPrefix(partitions[index].Device, "/dev/") && runtime.GOOS != datakit.OSWindows {
-			continue // 忽略该 partition
 		}
 
 		tags := map[string]string{

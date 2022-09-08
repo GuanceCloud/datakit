@@ -6,7 +6,11 @@
 package disk
 
 import (
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"os"
+	"runtime"
+	"strings"
+
 	//nolint
 	"github.com/shirou/gopsutil/disk"
 )
@@ -42,9 +46,7 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 
 	excluded := func(x string, arr []string) bool {
 		for _, fs := range arr {
-			if x == fs {
-				return true
-			}
+			return strings.EqualFold(x, fs)
 		}
 
 		return false
@@ -55,6 +57,10 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 
 	for i := range parts {
 		p := parts[i]
+		// nolint
+		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows && !strings.HasPrefix(p.Device, "/dev/mapper") {
+			continue // 忽略该 partition
+		}
 		if len(dk.ipt.Fs) != 0 {
 			if !excluded(p.Fstype, dk.ipt.Fs) {
 				continue
