@@ -32,7 +32,7 @@ DataKit 运行在 K8s 环境中时，实际上跟运行在主机上并无太大�
 
 ### 通过 ENV 配置 {#via-env-config}
 
-在 K8s 中，我们启动 DataKit 时，是可以在其 yaml 中[注入很多环境变量的](../datakit/datakit-daemonset-deploy.md#using-k8-env)。除了 DataKit 的行为可以通过注入环境变量来干预，部分采集器也支持注入**专用的环境变量**，它们命名一般如下：
+在 K8s 中，我们启动 DataKit 时，是可以在其 yaml 中[注入很多环境变量的](datakit-daemonset-deploy.md#using-k8-env)。除了 DataKit 的行为可以通过注入环境变量来干预，部分采集器也支持注入**专用的环境变量**，它们命名一般如下：
 
 ```shell
 ENV_INPUT_XXX_YYY
@@ -40,7 +40,7 @@ ENV_INPUT_XXX_YYY
 
 此处 `XXX` 指采集器名字，`YYY` 即该采集器配置中的特定配置字段，比如 `ENV_INPUT_CPU_PERCPU` 用来调整 [CPU 采集器](cpu.md) _是否采集每个 CPU 核心的指标_（默认情况下，该选项是默认关闭的，即不采集每个核心的 CPU 指标）
 
-需要注意的是，目前并不是所有的采集器都支持 ENV 注入。支持 ENV 注入的采集器，一般都是[默认开启的采集器](../datakit/datakit-input-conf.md#default-enabled-inputs)。通过 ConfigMap 开启的采集器，也支持 ENV 注入的（具体看该采集器是否支持），而且**默认以 ENV 注入的为准**。
+需要注意的是，目前并不是所有的采集器都支持 ENV 注入。支持 ENV 注入的采集器，一般都是[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs)。通过 ConfigMap 开启的采集器，也支持 ENV 注入的（具体看该采集器是否支持），而且**默认以 ENV 注入的为准**。
 
 > 环境变量注入的方式，一般只应用在 K8s 模式下，主机安装方式目前无法注入环境变量。
 
@@ -90,7 +90,7 @@ Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf
 
 #### Git 模式下默认采集器的配置 {#def-inputs-under-git}
 
-在 Git 模式下，有一个非常重要的特征，即那些[默认开启的采集器](../datakit/datakit-input-conf.md#default-enabled-inputs) 的 **conf 文件是隐身的**，不管是 K8s 模式还是主机模式，故将这些默认开启的采集器配置文件用 Git 管理起来，需要做一些额外的工作，不然这会导致它们被**重复采集**。
+在 Git 模式下，有一个非常重要的特征，即那些[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs) 的 **conf 文件是隐身的**，不管是 K8s 模式还是主机模式，故将这些默认开启的采集器配置文件用 Git 管理起来，需要做一些额外的工作，不然这会导致它们被**重复采集**。
 
 在 Git 模式下，如果要调整默认采集器的配置（不想开启或要对其做对应的配置），有几种方式：
 
@@ -102,7 +102,7 @@ Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf
 
 ### DCA 配置方式 {#dca}
 
-[DCA](../datakit/dca.md) 配置方式实际上跟 Git 有点类似，它们都只能影响 DataKit 上的 conf/pipeline/pythond 文件配置。只是对 DCA 而言，它的功能没有 Git 强大，一般只用于小范围管理几台 DataKit 上的文件。
+[DCA](dca.md) 配置方式实际上跟 Git 有点类似，它们都只能影响 DataKit 上的 conf/pipeline/pythond 文件配置。只是对 DCA 而言，它的功能没有 Git 强大，一般只用于小范围管理几台 DataKit 上的文件。
 
 ## 总结 {#summary}
 
@@ -110,6 +110,6 @@ Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf
 
 ## 延伸阅读 {#more-readings}
 
-- [DataKit 配置](../datakit/datakit-conf.md) 
-- [DataKit 采集器配置](../datakit/datakit-input-conf.md) 
-- [Daemonset 安装 DataKit](../datakit/datakit-daemonset-deploy.md)
+- [DataKit 配置](datakit-conf.md) 
+- [DataKit 采集器配置](datakit-input-conf.md) 
+- [Daemonset 安装 DataKit](datakit-daemonset-deploy.md)

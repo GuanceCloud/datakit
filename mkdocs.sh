@@ -84,9 +84,6 @@ datakit_docs=(
   $tmp_doc_dir/datakit-install.md
   $tmp_doc_dir/datakit-monitor.md
   $tmp_doc_dir/datakit-offline-install.md
-  $tmp_doc_dir/datakit-pl-global.md
-  $tmp_doc_dir/datakit-pl-how-to.md
-  $tmp_doc_dir/datakit-refer-table.md
   $tmp_doc_dir/datakit-service-how-to.md
   $tmp_doc_dir/datakit-sink-dev.md
   $tmp_doc_dir/datakit-sink-guide.md
@@ -102,7 +99,6 @@ datakit_docs=(
   $tmp_doc_dir/election.md
   $tmp_doc_dir/git-config-how-to.md
   $tmp_doc_dir/logging-pipeline-bench.md
-  $tmp_doc_dir/pipeline.md
   $tmp_doc_dir/proxy.md
   $tmp_doc_dir/why-no-data.md
 
@@ -198,6 +194,10 @@ done
 
 developers_docs=(
   $tmp_doc_dir/pythond.md
+  $tmp_doc_dir/pipeline.md
+  $tmp_doc_dir/datakit-pl-global.md
+  $tmp_doc_dir/datakit-pl-how-to.md
+  $tmp_doc_dir/datakit-refer-table.md
 )
 
 printf "${GREEN}> Copy docs to developers ...${CLR}\n"

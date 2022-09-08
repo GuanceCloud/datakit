@@ -110,9 +110,9 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
 ### HTTP 设置 {#http}
 
-如果 Trace 数据是跨机器发送过来的，那么需要设置 [DataKit 的 HTTP 设置](../datakit/datakit-conf.md#config-http-server)。
+如果 Trace 数据是跨机器发送过来的，那么需要设置 [DataKit 的 HTTP 设置](datakit-conf.md#config-http-server)。
 
-如果有 ddtrace 数据发送给 DataKit，那么在 [DataKit 的 monitor](../datakit/datakit-monitor.md) 上能看到：
+如果有 ddtrace 数据发送给 DataKit，那么在 [DataKit 的 monitor](datakit-monitor.md) 上能看到：
 
 <figure markdown>
   ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
@@ -207,4 +207,4 @@ customer_tags = [
 
 - [DataKit Tracing 字段定义](datakit-tracing-struct.md)
 - [DataKit 通用 Tracing 数据采集说明](datakit-tracing.md)
-- [正确使用正则表达式来配置](../datakit/datakit-input-conf.md#debug-regex) 
+- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex) 

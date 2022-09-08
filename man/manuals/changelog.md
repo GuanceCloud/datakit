@@ -10,6 +10,12 @@
     ```
 -->
 
+## 1.4.14(2022/09/08) {#cl-1.4.14}
+
+本次发布属于 Hotfix 发布，主要有如下更新：
+
+- 修复磁盘采集器时间线问题，屏蔽掉非物理设备的指标采集，同时，主机对象中的磁盘也做了对应调整。
+
 ## 1.4.13(2022/09/01) {#cl-1.4.13}
 
 ### 采集器功能调整 {#cl-1.4.13-features}
@@ -92,7 +98,7 @@
 
 ### 新功能 {#cl-1.4.11-newfeature}
 
-- Pipeline 中新增 [reftable 功能](datakit-refer-table.md)(#967)
+- Pipeline 中新增 [reftable 功能](../developers/datakit-refer-table.md)(#967)
 - DataKit 9529 HTTP [支持绑定到 domain socket](datakit-conf.md#uds)(#925)
     - 对应的 [eBPF 采集](ebpf.md) 和 [Oracle 采集](oracle.md)，其配置方式也需做对应变更。
 - RUM sourcemap 增加 Android R8 支持(#1040)
@@ -141,7 +147,7 @@
 
 - Pipeline 相关更新：
     - 优化 Pipeline 执行步骤(#1007)
-    - [grok()](pipeline.md#fn-grok) 和 [json()](pipeline.md#fn-json) 函数默认执行 trim-space 操作(#1001)
+    - [grok()](../developers/pipeline.md#fn-grok) 和 [json()](../developers/pipeline.md#fn-json) 函数默认执行 trim-space 操作(#1001)
 
 - DDTrace 相关更新：
     - 修复潜在的 goroutine 泄露问题(#1008)
@@ -240,7 +246,7 @@
 - Redis 调整 [slowlog 采集](redis.md#redis_slowlog)，将其数据改为日志存储(#885) 
 - 优化 [TDEngine 采集](tdengine.md)(#877)
 - 完善 Containerd 日志采集，支持默认格式的日志自动解析(#869)
-- [Pipeline](pipeline.md) 增加 [Profiling 类数据](profile.md)支持(#866)
+- [Pipeline](../developers/pipeline.md) 增加 [Profiling 类数据](profile.md)支持(#866)
 - 容器/Pod 日志采集支持在 Label/Annotation 上[额外追加 tag](container.md#logging-with-annotation-or-label)(#861)
 - 修复 [Jenkins CI](jenkins.md#jenkins_pipeline) 数据采集的时间精度问题(#860)
 - 修复 Tracing resource-type 值不统一的问题(#856)
