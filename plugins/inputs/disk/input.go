@@ -9,6 +9,7 @@ package disk
 import (
 	"fmt"
 	"math"
+	"runtime"
 	"strings"
 	"time"
 
@@ -174,7 +175,8 @@ func (ipt *Input) Collect() error {
 			// Skip dummy filesystem (procfs, cgroupfs, ...)
 			continue
 		}
-		if !strings.HasPrefix(partitions[index].Device, "/dev/") {
+		// nolint
+		if !strings.HasPrefix(partitions[index].Device, "/dev/") && runtime.GOOS == datakit.OSLinux {
 			continue // 忽略该 partition
 		}
 

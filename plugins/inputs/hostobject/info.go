@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"runtime"
 	"strings"
 	"time"
 
@@ -68,11 +69,10 @@ type (
 	}
 
 	DiskInfo struct {
-		Device     string `json:"device"`
-		Total      uint64 `json:"total"`
-		Mountpoint string `json:"mountpoint"`
-		Fstype     string `json:"fstype"`
-		Opts       string `json:"-"`
+		Device string `json:"device"`
+		Total  uint64 `json:"total"`
+		Fstype string `json:"fstype"`
+		Opts   string `json:"-"`
 	}
 
 	HostInfo struct {
@@ -265,11 +265,25 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 		if excluded(p.Fstype) {
 			continue
 		}
+		// nolint
+		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS == datakit.OSLinux {
+			continue // 忽略该 partition
+		}
+
+		// merge same device
+		for index, cont := range infos {
+			if cont.Device == p.Device {
+				usage, err := diskutil.Usage(p.Mountpoint)
+				if err != nil {
+					break
+				}
+				infos[index].Total += usage.Total
+			}
+		}
 
 		info := &DiskInfo{
-			Device:     p.Device,
-			Mountpoint: p.Mountpoint,
-			Fstype:     p.Fstype,
+			Device: p.Device,
+			Fstype: p.Fstype,
 		}
 
 		usage, err := diskutil.Usage(p.Mountpoint)
