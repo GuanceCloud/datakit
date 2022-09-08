@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
@@ -69,10 +70,8 @@ type Input struct {
 	MaxSendFailCount int32             `toml:"max_send_fail_count,omitempty"` // max send fail count
 	Tags             map[string]string
 
-	chexit chan interface{}
-
-	cli *http.Client
-	// class string
+	semStop *cliutils.Sem // start stop signal
+	cli     *http.Client  // class string
 
 	curTasks map[string]*dialer
 	pos      int64 // current largest-task-update-time
@@ -126,11 +125,8 @@ func (*Input) AvailableArchs() []string {
 }
 
 func (d *Input) Terminate() {
-	select {
-	case <-d.chexit:
-		return
-	default:
-		close(d.chexit)
+	if d.semStop != nil {
+		d.semStop.Close()
 	}
 }
 
@@ -198,12 +194,16 @@ func (d *Input) doServerTask() {
 
 		for {
 			select {
-			case <-d.chexit:
-				l.Info("exit on chexit")
+			// TODO: 调接口发送每个任务的执行情况，便于中心对任务的管理
+			case <-datakit.Exit.Wait():
+				l.Info("exit")
+				return
+
+			case <-d.semStop.Wait():
+				l.Info("exit")
 				return
 
 			case <-tick.C:
-
 				l.Debug("try pull tasks...")
 				j, err := d.pullTask()
 				if err != nil {
@@ -214,12 +214,6 @@ func (d *Input) doServerTask() {
 						l.Warnf("dispatchTasks: %s, ignored", err.Error())
 					}
 				}
-
-			case <-datakit.Exit.Wait():
-				l.Info("exit")
-				return
-
-				// TODO: 调接口发送每个任务的执行情况，便于中心对任务的管理
 			}
 		}
 	}
@@ -279,6 +273,7 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 	l.Debugf("input tags: %+#v", d.Tags)
 
 	dialer := newDialer(t, d.Tags)
+	dialer.done = d.semStop.Wait()
 
 	func(id string) {
 		g.Go(func(ctx context.Context) error {
@@ -611,7 +606,6 @@ func newDefaultInput() *Input {
 	return &Input{
 		Tags:     map[string]string{},
 		curTasks: map[string]*dialer{},
-		chexit:   make(chan interface{}),
 		cli: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{

@@ -31,6 +31,7 @@ type discovery struct {
 	client        k8sClientX
 	extraTags     map[string]string
 	localNodeName string
+	done          <-chan interface{}
 }
 
 var globalCRDLogsConfList = struct {
@@ -41,10 +42,11 @@ var globalCRDLogsConfList = struct {
 	sync.Mutex{},
 }
 
-func newDiscovery(client k8sClientX, extraTags map[string]string) *discovery {
+func newDiscovery(client k8sClientX, extraTags map[string]string, done <-chan interface{}) *discovery {
 	return &discovery{
 		client:    client,
 		extraTags: extraTags,
+		done:      done,
 	}
 }
 
@@ -86,7 +88,11 @@ func (d *discovery) start() {
 
 		select {
 		case <-datakit.Exit.Wait():
-			l.Info("stop k8s autodiscovery")
+			l.Info("autodiscovery: exit")
+			return
+
+		case <-d.done:
+			l.Info("autodiscovery: terminate")
 			return
 
 		case <-updateTicker.C:

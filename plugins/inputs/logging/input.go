@@ -149,6 +149,7 @@ func (ipt *Input) Run() {
 		IgnoreDeadLog:         ignoreDuration,
 		GlobalTags:            ipt.Tags,
 		BlockingMode:          ipt.BlockingMode,
+		Done:                  ipt.semStop.Wait(),
 	}
 
 	if ipt.DockerMode {
@@ -187,7 +188,7 @@ func (ipt *Input) Run() {
 			ipt.process = append(ipt.process, socker)
 		}
 	} else {
-		l.Warn("socket len =0")
+		l.Warn("socket len=0")
 	}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_logging"})
 	if ipt.process != nil && len(ipt.process) > 0 {
@@ -211,7 +212,7 @@ func (ipt *Input) Run() {
 
 		case <-ipt.semStop.Wait():
 			ipt.exit()
-			l.Infof("%s return", ipt.inputName)
+			l.Infof("%s terminate", ipt.inputName)
 			return
 		}
 	}
