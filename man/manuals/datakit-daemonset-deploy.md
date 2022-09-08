@@ -325,4 +325,3 @@ spec:
 
 - [DataKit 选举](election.md)
 - [DataKit 的几种配置方式](k8s-config-how-to.md)
-- [DataKit DaemonSet 配置管理最佳实践](datakit-daemonset-bp.md)

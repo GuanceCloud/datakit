@@ -18,7 +18,6 @@ pwd=$(pwd)
 
 mkdir -p $datakit_docs_dir $tmp_doc_dir
 
-rm -rf $datakit_docs_dir/*.md
 rm -rf $tmp_doc_dir/*.md
 
 latest_version=$(curl https://static.guance.com/datakit/version | grep  '"version"' | awk -F'"' '{print $4}')
@@ -149,7 +148,6 @@ datakit_docs=(
   $tmp_doc_dir/kafka.md
   $tmp_doc_dir/kubernetes-crd.md
   $tmp_doc_dir/kubernetes-prom.md
-  $tmp_doc_dir/kubernetes-x.md
   $tmp_doc_dir/logfwd.md
   $tmp_doc_dir/logfwdserver.md
   $tmp_doc_dir/logging.md

@@ -31,7 +31,7 @@ var (
 )
 
 type IOConfig struct {
-	FeedChanSize int `toml:"feed_chan_size"`
+	FeedChanSize int `toml:"feed_chan_size,omitzero"`
 
 	MaxCacheCount                  int `toml:"max_cache_count"`
 	MaxDynamicCacheCountDeprecated int `toml:"max_dynamic_cache_count,omitzero"`

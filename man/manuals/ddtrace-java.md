@@ -7,11 +7,7 @@
 
 ## 安装依赖 {#dependence}
 
-下载最新的 ddtrace agent dd-java-agent.jar。
-
-```shell
-wget -O dd-java-agent.jar https://dtdg.co/latest-java-tracer
-```
+下载最新的 ddtrace agent dd-java-agent.jar，参见[下载说明](ddtrace.md#doc-example)
 
 ## 运行 {#run}
 

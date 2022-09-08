@@ -37,15 +37,16 @@
   - `$NAMESPACE`：Pod Namespace
   - `$PODNAME`：Pod Name
   - `$NODENAME`：当前所在 node 的 name
-- `datakit/logs`：日志配置，用以指定 Pod 日志的相关配置，和容器的 Annotations 用法相同，[详见](container.md#logging-with-annotation-or-label)。优先级低于 Pod Annotations datakit/logs 配置
-
-**注意，Datakit 只采集和它处于同一个 node 的 Pod，属于就近采集，不会跨 node 采集。**
-
-!!! note inline
-
-  DaemonSet 和 Deployment 是两种不同的 Kubernetes resource，但在此处，`k8sDaemonSet` 和 `k8sDeployment` 是可以同时存在的。即在同一个 Namespace 下，DaemonSet 创建的 Pod 和 Deployment 创建的 Pod 共用同一份 CRD 配置。但是不推荐这样做，因为在具体配置中会有类似 `source` 这种字段用来标识数据源，混用会导致数据界线不够清晰。建议在同一份 CRD 配置中 `k8sDaemonSet` 和 `k8sDeployment` 只存在一个。
+- `datakit/logs`：日志配置，用以指定 Pod 日志的相关配置，和容器的 Annotations 用法相同，[详见这里](container.md#logging-with-annotation-or-label)。优先级低于 Pod Annotations datakit/logs 配置
 
 执行 `kubectl apply -f datakit-crd.yaml` 命令。
+
+???+ attention
+
+    - DaemonSet 和 Deployment 是两种不同的 Kubernetes resource，但在此处，`k8sDaemonSet` 和 `k8sDeployment` 是可以同时存在的。即在同一个 Namespace 下，DaemonSet 创建的 Pod 和 Deployment 创建的 Pod 共用同一份 CRD 配置。但是不推荐这样做，因为在具体配置中会有类似 `source` 这种字段用来标识数据源，混用会导致数据界线不够清晰。建议在同一份 CRD 配置中 `k8sDaemonSet` 和 `k8sDeployment` 只存在一个。
+
+    - Datakit 只采集和它处于同一个 node 的 Pod，属于就近采集，不会跨 node 采集。
+
 
 ## 示例 {#example}
 
