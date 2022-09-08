@@ -322,7 +322,17 @@ func newDefaultInput() *Input {
 	ipt := &Input{
 		Interval: datakit.Duration{Duration: time.Second * 10},
 		semStop:  cliutils.NewSem(),
-		Tags:     make(map[string]string),
+		IgnoreFS: []string{
+			"autofs",
+			"tmpfs",
+			"devtmpfs",
+			"devfs",
+			"iso9660",
+			"overlay",
+			"aufs",
+			"squashfs",
+		},
+		Tags: make(map[string]string),
 	}
 
 	x := &PSDisk{ipt: ipt}
