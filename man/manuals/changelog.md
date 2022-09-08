@@ -10,6 +10,12 @@
     ```
 -->
 
+## 1.4.14(2022/09/08) {#cl-1.4.14}
+
+本次发布属于 Hotfix 发布，主要有如下更新：
+
+- 修复磁盘采集器时间线问题，屏蔽掉非物理设备的指标采集，同时，主机对象中的磁盘也做了对应调整。
+
 ## 1.4.13(2022/09/01) {#cl-1.4.13}
 
 ### 采集器功能调整 {#cl-1.4.13-features}
@@ -19,30 +25,31 @@
 - DataKit 自身指标集增加 goroutine 使用有关的指标集（`datakit_goroutine`）(#1039)
 - MySQL 采集器增加 `mysql_dbm_activity` 指标集(#1047)
 - 增加 [netstat 采集器](netstat.md)(#1051)
-- TDEngine 增加日志采集(#1057/#1076)
+- TDengine 增加日志采集(#1057/#1076)
 - 优化磁盘采集器中的 fstype 过滤，默认只采集常见的文件系统（#1063/#1066）
 - 日志采集器中，针对每条日志，增加字段 `message_length` 表示当前日志长度，便于通过长度来过滤日志(#1086)
-- CRD 支持通过 Daemonset 来定位 Pod 范围(#1064)
+- CRD 支持通过 DaemonSet 来定位 Pod 范围(#1064)
 - eBPF 移除 go-bindata 依赖（#1062）
 - 容器采集器中默认会打开 [k8s 和容器相关的指标](container.md#metrics)，这在一定程度上会消耗额外的时间线（#1095）
+- DataKit 自带 ddtrace-java SDK 已更新最新版本（*<DataKit 安装目录>/data/dd-java-agent-0.107.1.jar*）
 
 ### Bug 修复 {#cl-1.4.13-bugfix}
 
 - 修复 DataKit 自身 CPU 使用率计算错误(#983)
-- 修复 Skywaling 中间件识别问题(#1027)
-- 修复 Oracle 退出问题(#1042/#1048)
-- 修复 Sink Dataway 失效问题(#1056)
+- 修复 SkyWalking 中间件识别问题(#1027)
+- 修复 Oracle 采集器退出问题(#1042/#1048)
+- 修复 Sink DataWay 失效问题(#1056)
 - 修复 HTTP /v1/write/:category 接口 JSON 写入问题(#1059)
 
 ### Breaking changes {#cl-1.4.13-br}
 
-- Gitlab 以及 Jinkens 采集器中，CI/CD 数据有关的时间字段做了调整，以统一前端页面的数据展示效果(#1089)
+- GitLab 以及 Jenkins 采集器中，CI/CD 数据有关的时间字段做了调整，以统一前端页面的数据展示效果(#1089)
 
 ### 文档调整 {#cl-1.4.13-docs}
 
 - 几乎每个章节都增加了跳转标签，便于其它文档永久性引用
 - pythond 文档已转移到开发者目录
-- 采集器文档从原来「集成」挪到 「DataKit」文档库(#1060)
+- 采集器文档从原来「集成」移到 「DataKit」文档库(#1060)
 
 <figure markdown>
   ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.12-dk-docs.gif){ width="300"}
@@ -91,7 +98,7 @@
 
 ### 新功能 {#cl-1.4.11-newfeature}
 
-- Pipeline 中新增 [reftable 功能](datakit-refer-table.md)(#967)
+- Pipeline 中新增 [reftable 功能](../developers/datakit-refer-table.md)(#967)
 - DataKit 9529 HTTP [支持绑定到 domain socket](datakit-conf.md#uds)(#925)
     - 对应的 [eBPF 采集](ebpf.md) 和 [Oracle 采集](oracle.md)，其配置方式也需做对应变更。
 - RUM sourcemap 增加 Android R8 支持(#1040)
@@ -140,7 +147,7 @@
 
 - Pipeline 相关更新：
     - 优化 Pipeline 执行步骤(#1007)
-    - [grok()](pipeline.md#fn-grok) 和 [json()](pipeline.md#fn-json) 函数默认执行 trim-space 操作(#1001)
+    - [grok()](../developers/pipeline.md#fn-grok) 和 [json()](../developers/pipeline.md#fn-json) 函数默认执行 trim-space 操作(#1001)
 
 - DDTrace 相关更新：
     - 修复潜在的 goroutine 泄露问题(#1008)
@@ -239,7 +246,7 @@
 - Redis 调整 [slowlog 采集](redis.md#redis_slowlog)，将其数据改为日志存储(#885) 
 - 优化 [TDEngine 采集](tdengine.md)(#877)
 - 完善 Containerd 日志采集，支持默认格式的日志自动解析(#869)
-- [Pipeline](pipeline.md) 增加 [Profiling 类数据](profile.md)支持(#866)
+- [Pipeline](../developers/pipeline.md) 增加 [Profiling 类数据](profile.md)支持(#866)
 - 容器/Pod 日志采集支持在 Label/Annotation 上[额外追加 tag](container.md#logging-with-annotation-or-label)(#861)
 - 修复 [Jenkins CI](jenkins.md#jenkins_pipeline) 数据采集的时间精度问题(#860)
 - 修复 Tracing resource-type 值不统一的问题(#856)

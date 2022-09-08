@@ -1,5 +1,5 @@
-{{.CSS}}
 # 通过本地 JSON 定义拨测任务
+---
 
 某些情况下，可能不能连接 SAAS 的拨测任务服务，此时，我们可以通过本地的 json 文件来定义拨测任务。
 
@@ -9,7 +9,7 @@
 
 === "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/network` 目录，复制 `dialtesting.conf.sample` 并命名为 `dialtesting.conf`。示例如下：
 
     ```toml
     [[inputs.dialtesting]]
@@ -36,7 +36,7 @@
 具体的国家/地域以及 ISP 选择，可按照下图所示方式来选择（注意，不要真的新建「自建节点」，此处只是提供一个可供选择的来源）：
 
 <figure markdown>
-![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-select-country-city-isp.png){ width="300" }
+![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-select-country-city-isp.png){ width="800" }
 </figure>
     
 ### 配置拨测任务 {#config-task}
