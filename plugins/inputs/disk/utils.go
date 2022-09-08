@@ -56,9 +56,7 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 
 	for i := range parts {
 		p := parts[i]
-		if strings.HasPrefix(p.Device, "/dev/mapper") {
-			continue
-		}
+		l.Debugf("disk---fstype:%s ,device:%s ,mountpoint:%s ", p.Fstype, p.Device, p.Mountpoint)
 		// nolint
 		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows {
 			continue // 忽略该 partition
@@ -73,7 +71,7 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 		mergerFlag := false
 		// merger device
 		for index2, cont := range partitions {
-			if cont.Device == p.Device {
+			if cont.Device == p.Device && !strings.HasPrefix(p.Device, "/dev/mapper") {
 				mergerFlag = true
 				du, err := dk.Usage(p.Mountpoint)
 				if err != nil {

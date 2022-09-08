@@ -260,10 +260,8 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 	}
 
 	for _, p := range ps {
+		l.Debugf("hostobject---fstype:%s ,device:%s ,mountpoint:%s ", p.Fstype, p.Device, p.Mountpoint)
 		if excluded(p.Fstype) {
-			continue
-		}
-		if strings.HasPrefix(p.Device, "/dev/mapper") {
 			continue
 		}
 		// nolint
@@ -274,7 +272,7 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 		// merge same device
 		mergeFlag := false
 		for index, cont := range infos {
-			if cont.Device == p.Device {
+			if cont.Device == p.Device && !strings.HasPrefix(p.Device, "/dev/mapper") {
 				usage, err := diskutil.Usage(p.Mountpoint)
 				if err != nil {
 					break
