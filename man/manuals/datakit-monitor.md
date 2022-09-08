@@ -2,11 +2,9 @@
 # 查看 DataKit 的 Monitor
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
 DataKit 提供了相对完善的基本可观测信息输出，通过查看 DataKit 的 monitor 输出，我们能清晰的知道当前 DataKit 的运行情况。
 
-## 查看 Monitor
+## 查看 Monitor {#view}
 
 执行如下命令即可获取本机 DataKit 的运行情况。
 
@@ -18,7 +16,7 @@ datakit monitor
 
 DataKit 基本 Monitor 页面信息如下图所示：
 
-![基础Monitor信息展示](imgs/monitor-basic-v1.gif) 
+![基础Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-basic-v1.gif) 
 
 该图中的元素可以通过鼠标或键盘操作。被鼠标选中的块会以双边框突出显示（如上图左上角的 `Basic Info` 块所示），另外，还能通过鼠标滚轮或者键盘上下方向键（或者 vim 的 J/K）来浏览。
 
@@ -93,9 +91,9 @@ DataKit 基本 Monitor 页面信息如下图所示：
 	- `5XX`: HTTP 状态码 5XX 次数
 	- `Timeout`: HTTP 超时次数
 
-## FAQ
+## FAQ {#faq}
 
-### 如何只展示指定采集器的运行情况？
+### 如何只展示指定采集器的运行情况？ {#specify-inputs}
 
 ---
 
@@ -107,7 +105,7 @@ datakit monitor -I cpu,mem
 datakit monitor --input cpu,mem
 ```
 
-### 如何展示太长的文本？
+### 如何展示太长的文本？ {#too-long}
 
 当某些采集器产生报错时，其报错信息会很长，在表格展示不全。
 
@@ -121,7 +119,7 @@ datakit monitor -W 1024
 datakit monitor --max-table-width 1024
 ```
 
-### 如何更改 Monitor 刷新频率？
+### 如何更改 Monitor 刷新频率？ {#freq}
 
 ---
 
@@ -154,7 +152,7 @@ datakit monitor --to localhost:19528
 datakit monitor --to <remote-ip>:9528
 ```
 
-### 如何查看具体采集器的错误信息？
+### 如何查看具体采集器的错误信息？ {#view-errors}
 
 ---
 

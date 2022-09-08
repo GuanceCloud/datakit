@@ -70,6 +70,10 @@ const (
   [inputs.mysql.dbm_sample]
     enabled = true  
 
+  ## 等待事件采集
+  [inputs.mysql.dbm_activity]
+    enabled = true  
+
   [inputs.mysql.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"

@@ -97,7 +97,6 @@ type Input struct {
 	tail    *tailer.Tailer
 	lastErr error
 	start   time.Time
-	wg      sync.WaitGroup
 
 	Election bool `toml:"election"`
 	pause    bool

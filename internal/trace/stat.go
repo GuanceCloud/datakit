@@ -6,18 +6,22 @@
 package trace
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 const (
 	tracingStatName = "tracing_stat"
 )
+
+var g = goroutine.NewGroup(goroutine.Option{Name: "internal_trace"})
 
 type TracingInfo struct {
 	Service      string
@@ -56,16 +60,20 @@ func StartTracingStatistic() {
 func startTracingStatWorker(interval time.Duration) {
 	log.Info("tracing statistic worker started")
 
-	go func() {
+	g.Go(func(ctx context.Context) error {
 		tick := time.NewTicker(interval)
+		defer tick.Stop()
 		for range tick.C {
 			sendTracingInfo(&TracingInfo{
 				key:    "recalc",
 				reCalc: true,
 			})
 		}
-	}()
-	go func() {
+
+		return nil
+	})
+
+	g.Go(func(ctx context.Context) error {
 		for tinfo := range tracingInfoChan {
 			if tinfo.reCalc {
 				if len(statUnit) == 0 {
@@ -89,7 +97,8 @@ func startTracingStatWorker(interval time.Duration) {
 				}
 			}
 		}
-	}()
+		return nil
+	})
 }
 
 func StatTracingInfo(dktrace DatakitTrace) {

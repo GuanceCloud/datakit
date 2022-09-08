@@ -1,7 +1,7 @@
-# Git 来管理 DataKit 的配置
+# 使用 Git 管理配置
 ---
 
-## Git 的工作原理
+## Git 的工作原理 {#intro}
 
 Git 是用于版本控制的一项技术, 同 SVN。更多介绍详见[这里](https://www.runoob.com/git/git-tutorial.html){:target="_blank"}。
 
@@ -9,13 +9,13 @@ Git 组件分为 Git Server 和 Git Client。在远程服务器上运行的是 G
 
 Git 管理的内容分为本地副本和远程仓库两份。在执行 commit 操作的时候会把改动提交到本地作为副本, 只有当执行 push 操作时才会把改动提交到远程仓库。
 
-## 如何创建一个 Git 仓库?
+## 创建 Git 仓库 {#new-repo}
 
 一般可在 Github/Gitlab 中使用 `New Project` 中即可创建一个 Git 仓库。
 
 创建 Git 仓库后可以获得一个地址，类似 `http://github.com/path/to/repository.git` 这样的，Git Client 通过该地址 push 或 pull 内容。
 
-## Git 的操作流程
+## Git 的操作流程 {#steps}
 
 一般 Git 的操作流程大致如下:
 
@@ -37,15 +37,15 @@ git commit -m "修改了 Exporter 的 IP 地址"
 git push origin master
 ```
 
-## Git 仓库的目录要求
+## Git 仓库的目录要求 {#dir-naming}
 
 - `gitrepos/repo-name/conf.d` 用来放采集器配置文件，其下的子目录不做限制（`datakit.conf` 不在 `gitrepos` 管理）
 - `gitrepos/repo-name/pipeline` 用来放 pipeline 脚本，且只有该目录下第一层的 `.p` 才生效，其下的子目录均不生效
 - `gitrepos/repo-name/python.d` 用来放 python 脚本
 
-## 如何远程提交一个 conf 文件以及目录?
+## 远程提交一个 conf 文件和目录 {#commit-conf}
 
-下面以 [clickhouse](../integrations/clickhousev1.md) 采集器为例进行演示。
+下面以 [clickhouse](clickhousev1.md) 采集器为例进行演示。
 
 第 1 步: 切换到 `/root` 目录下，使用 `git clone http://github.com/path/to/repository.git` 命令拉取远程仓库到本地。
 
@@ -73,7 +73,7 @@ $ git push origin master                 # 提交改动到远程仓库
 
 至此，已经将编辑好的 `clickhousev1.conf` 文件成功推送到了远程仓库。
 
-## 如何在 dk 上配置该仓库? 
+## 在 DataKit 上配置仓库 {#config-git-repo}
 
 这里演示采用的是宿主机的方式，不适应于 Kubernates 环境。Kubernates 环境下的操作在下面单独介绍。
 
@@ -107,7 +107,7 @@ $ sudo datakit service -R
 $ sudo datakit monitor -V
 ```
 
-## 更新 Git 仓库, 演示一下 dk 拉取到了新的 conf 并生效
+## 更新和拉取仓库 {#git-pull}
 
 上面我们在 `/root/repository` 里面存有一份本地副本。我们在那里对 `clickhousev1.conf` 文件进行一下修改。
 
@@ -121,7 +121,7 @@ $ git push origin master                    # 提交改动到远程仓库
 
 提交完成后。datakit 根据配置里面 `pull_interval` 设定的拉取间隔，间隔时间到了即会自动拉取最新的 `clickhousev1.conf` 并使其生效。
 
-## 在 Kubernates 中, 又如何使用 Git?
+## Kubernates 中的 Git 使用 {#k8s}
 
 由于 Kubernates 环境的特殊性，采用环境变量传递的安装/配置方式最为简单。
 
@@ -135,4 +135,4 @@ git 验证方式采用用户名和密码方式。
 | ENV_GIT_BRANCH   | `master`                                                     |
 | ENV_GIT_INTERVAL | `1m`                                                         |
 
-更多关于 Datakit 的 Kubernates 环境下面的配置可以参见[这个文档](../integrations/k8s-config-how-to.md#via-env-config)。
+更多关于 Datakit 的 Kubernates 环境下面的配置可以参见[这个文档](k8s-config-how-to.md#via-env-config)。

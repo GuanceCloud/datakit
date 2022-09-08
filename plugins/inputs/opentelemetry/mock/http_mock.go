@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 )
@@ -68,10 +69,11 @@ func RunMockCollector(t *testing.T, cfg MockCollectorConfig, h http.HandlerFunc)
 	server := &http.Server{
 		Handler: mux,
 	}
-
-	go func() {
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry_mock"})
+	g.Go(func(ctx context.Context) error {
 		_ = server.Serve(ln)
-	}()
+		return nil
+	})
 	m.server = server
 	return m
 }

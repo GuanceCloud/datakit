@@ -8,9 +8,11 @@ package io
 import (
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
@@ -74,7 +76,7 @@ func FeedLastError(inputName string, err string) {
 	// unblock feed here, to prevent inputs blocked when IO blocked(and
 	// the bug we have to fix)
 	default:
-		l.Warnf("FeedLastError(%s, %s) skipped, ignored", inputName, err)
+		log.Warnf("FeedLastError(%s, %s) skipped, ignored", inputName, err)
 	}
 }
 
@@ -111,13 +113,13 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 	// run pipeline
 	after, err := runPl(category, pts, opt)
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 	} else {
 		pts = after
 	}
 
 	// run filters
-	after = filterPts(category, pts)
+	after = filter.FilterPts(category, pts)
 	filtered = len(pts) - len(after)
 	pts = after
 
@@ -149,7 +151,11 @@ func unblockingFeed(job *iodata, ch chan *iodata) error {
 	case <-datakit.Exit.Wait():
 		log.Warnf("%s/%s feed skipped on global exit", job.category, job.from)
 		return fmt.Errorf("feed on global exit")
+
 	default:
+
+		atomic.AddUint64(&FeedDropPts, uint64(len(job.pts)))
+		log.Warnf("io busy, %d (%s/%s) points maybe dropped", len(job.pts), job.from, job.category)
 		return ErrIOBusy
 	}
 }

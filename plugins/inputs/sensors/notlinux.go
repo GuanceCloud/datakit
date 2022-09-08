@@ -31,7 +31,7 @@ func (*Input) SampleConfig() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSLinux}
+	return []string{datakit.OSLabelLinux}
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {

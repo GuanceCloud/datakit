@@ -3,7 +3,7 @@
 
 本文将讲述如何开发 DataKit 的 Sinker 模块(以下简称 Sinker 模块、Sinker)的新实例。适合于想开发 Sinker 新实例、或者想深入了解 Sinker 模块原理的同学。
 
-## 如何开发 Sinker 实例
+## 如何开发 Sinker 实例 {#dev-sink}
 
 目前社区版只实现有限的几个 Sinker, 如果想要支持其它存储, 可以做对应开发(用 Go 语言), 大致分为以下几步(以 `influxdb` 举例):
 
@@ -11,9 +11,9 @@
 
 - 在上面的包下新建一个源文件 `sink_influxdb.go`, 新建一个常量 `creatorID`, 不能与其它包里面的 `creatorID` 重名; 实现 `ISink` 的 `interface`, 具体是实现以下几个函数:
 
-	- `GetInfo() *SinkInfo`: 返回 sink 实例的相关信息。目前有 `ID`(实例内部标识, 程序内部根据配置生成, 供内部使用, 配置中唯一) 、`CreateID`(实例创建标识, 代码中唯一)和支持的类型的简写(比方说 `Metrics` 返回的是 `M`)。
-	- `LoadConfig(mConf map[string]interface{}) error`: 加载外部配置到内部。
-	- `Write(category string, pts []ISinkPoint) error`: 写入数据。
+    - `GetInfo() *SinkInfo`: 返回 sink 实例的相关信息。目前有 `ID`(实例内部标识, 程序内部根据配置生成, 供内部使用, 配置中唯一) 、`CreateID`(实例创建标识, 代码中唯一)和支持的类型的简写(比方说 `Metrics` 返回的是 `M`)。
+    - `LoadConfig(mConf map[string]interface{}) error`: 加载外部配置到内部。
+    - `Write(category string, pts []ISinkPoint) error`: 写入数据。
 
 大致代码如下:
 
@@ -55,9 +55,9 @@ import (
 )
 ```
 
-> 大体上可以参照 `influxdb` 的代码实现, 还是非常简单的。一切以简单为首要设计原则, 写的复杂了你自己也不愿维护。欢迎大家向 github 社区提交代码, 大家一起来维护。
+> 大体上可以参照 `influxdb` 的代码实现，还是非常简单的。一切以简单为首要设计原则, 写的复杂了你自己也不愿维护。欢迎大家向 github 社区提交代码, 大家一起来维护。
 
-- 第三步: 在 `datakit.conf` 里面增加配置, `target` 写上自定义的实例名, 即 `creatorID`, 唯一。比如:
+- 第三步: 在 `datakit.conf` 里面增加配置，`target` 写上自定义的实例名, 即 `creatorID`, 唯一。比如:
 
 ```conf
 ...
@@ -74,6 +74,6 @@ import (
 ...
 ```
 
-## 注意事项
+## 注意事项 {#notice}
 
 1. 新实例需要自定义一个 `createID`，即这个实例的 "标识"，如 `influxdb`、`elasticsearch` 等，这个是不能和现有的 `createID` 重复的。在配置里面的 `target` 对应的就是这个 `createID`。

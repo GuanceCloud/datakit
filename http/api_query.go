@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 
-	"github.com/gin-gonic/gin"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 )
 
@@ -48,31 +48,28 @@ func (q *QueryRaw) JSON() ([]byte, error) {
 	return json.Marshal(q)
 }
 
-func apiQueryRaw(c *gin.Context) {
-	body, err := uhttp.GinRead(c)
+func apiQueryRaw(w http.ResponseWriter, r *http.Request, x ...interface{}) (interface{}, error) {
+	body, err := uhttp.ReadBody(r)
 	if err != nil {
-		l.Errorf("GinRead: %s", err.Error())
-		uhttp.HttpErr(c, err)
-		return
+		l.Errorf("uhttp.ReadBody: %s", err.Error())
+
+		return nil, err
 	}
 
 	var q QueryRaw
 	if err := json.Unmarshal(body, &q); err != nil {
 		l.Errorf("json.Unmarshal: %s", err)
-		uhttp.HttpErr(c, err)
-		return
+		return nil, uhttp.Errorf(ErrBadReq, "json parse error: %s", err)
 	}
 
 	if dw == nil {
-		uhttp.HttpErr(c, fmt.Errorf("dataway not set"))
-		return
+		return nil, fmt.Errorf("dataway not set")
 	}
 
 	if q.Token == "" {
 		tkns := dw.GetTokens()
 		if len(tkns) == 0 {
-			uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
-			return
+			return nil, fmt.Errorf("dataway token missing")
 		}
 
 		q.Token = tkns[0]
@@ -81,8 +78,7 @@ func apiQueryRaw(c *gin.Context) {
 	j, err := json.Marshal(q)
 	if err != nil {
 		l.Errorf("json.Marshal: %s", err.Error())
-		uhttp.HttpErr(c, err)
-		return
+		return nil, err
 	}
 
 	l.Debugf("query: %s", string(j))
@@ -90,8 +86,7 @@ func apiQueryRaw(c *gin.Context) {
 	resp, err := dw.DQLQuery(j)
 	if err != nil {
 		l.Errorf("DQLQuery: %s", err)
-		uhttp.HttpErr(c, err)
-		return
+		return nil, err
 	}
 
 	for k, v := range resp.Header {
@@ -101,10 +96,9 @@ func apiQueryRaw(c *gin.Context) {
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf("read response body %s", err)
-		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-		return
+		return err, nil
 	}
-	defer resp.Body.Close() //nolint:errcheck
 
-	c.Data(resp.StatusCode, "application/json", respBody)
+	defer resp.Body.Close() //nolint:errcheck
+	return respBody, nil
 }

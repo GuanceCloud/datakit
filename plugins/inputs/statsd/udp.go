@@ -7,6 +7,7 @@ package statsd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -29,13 +30,13 @@ func (ipt *input) setupUDPServer() error {
 	l.Infof("UDP listening on %q", conn.LocalAddr().String())
 	ipt.UDPlistener = conn
 
-	ipt.wg.Add(1)
-	go func() {
-		defer ipt.wg.Done()
+	g.Go(func(ctx context.Context) error {
 		if err := ipt.udpListen(conn); err != nil {
 			l.Warnf("udpListen: %s, ignored", err.Error())
 		}
-	}()
+		return nil
+	})
+
 	return nil
 }
 

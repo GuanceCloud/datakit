@@ -2,8 +2,6 @@
 # DataKit 更新
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
 DataKit 支持手动更新和自动更新两种方式。
 
 ## 前置条件 {#req}

@@ -98,6 +98,7 @@ func main() {
 
 	opt, gTags, err := parseFlags()
 	if err != nil {
+		err = fmt.Errorf("parse flag: %w", err)
 		feedLastErrorLoop(err, signaIterrrupt)
 		return
 	}
@@ -162,6 +163,7 @@ func main() {
 		}
 		offset, err = getOffset(offset)
 		if err != nil {
+			err = fmt.Errorf("get offset failed: %w", err)
 			feedLastErrorLoop(err, signaIterrrupt)
 			return
 		}
@@ -184,11 +186,13 @@ func main() {
 		netflowTracer := dknetflow.NewNetFlowTracer()
 		ebpfNetManger, err := dknetflow.NewNetFlowManger(constEditor, netflowTracer.ClosedEventHandler)
 		if err != nil {
+			err = fmt.Errorf("new netflow manager: %w", err)
 			feedLastErrorLoop(err, signaIterrrupt)
 			return
 		}
 		// Start the manager
 		if err := ebpfNetManger.Start(); err != nil {
+			err = fmt.Errorf("start netflow manager: %w", err)
 			feedLastErrorLoop(err, signaIterrrupt)
 			return
 		} else {
@@ -213,6 +217,7 @@ func main() {
 		err = netflowTracer.Run(ctx, ebpfNetManger, fmt.Sprintf("http://%s%s?input="+inputNameNetNet,
 			dkout.DataKitAPIServer, datakit.Network), gTags, interval)
 		if err != nil {
+			err = fmt.Errorf("run netflow: %w", err)
 			feedLastErrorLoop(err, signaIterrrupt)
 			return
 		}
@@ -220,6 +225,7 @@ func main() {
 		if enableHTTPFlow {
 			bpfMapSockFD, ok, err := ebpfNetManger.GetMap("bpfmap_sockfd")
 			if err != nil {
+				err = fmt.Errorf("get bpfmap sockfd: %w", err)
 				feedLastErrorLoop(err, signaIterrrupt)
 				return
 			}
@@ -242,6 +248,7 @@ func main() {
 		bashTracer := dkbash.NewBashTracer()
 		err := bashTracer.Run(ctx, gTags, ebpfBashPostURL, interval)
 		if err != nil {
+			err = fmt.Errorf("run bash tracer: %w", err)
 			feedLastErrorLoop(err, signaIterrrupt)
 			return
 		}
@@ -258,7 +265,7 @@ func main() {
 func getOffset(saved *dkoffset.OffsetGuessC) (*dkoffset.OffsetGuessC, error) {
 	bpfManger, err := dkoffset.NewGuessManger()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new offset manger: %w", err)
 	}
 	// Start the manager
 	if err := bpfManger.Start(); err != nil {

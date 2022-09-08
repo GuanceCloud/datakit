@@ -177,7 +177,7 @@ func (*Input) SampleConfig() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
+	return datakit.AllOSWithElection
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
@@ -422,7 +422,11 @@ func (ipt *Input) RunPipeline() {
 		return
 	}
 
-	go ipt.tail.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_postgresql"})
+	g.Go(func(ctx context.Context) error {
+		ipt.tail.Start()
+		return nil
+	})
 }
 
 const (

@@ -95,7 +95,7 @@ func main() {
 		if workdir != "" {
 			run()
 		} else { // running as System service
-			service.Entry = run
+			service.Entry = serviceEntry
 			if err := service.StartService(); err != nil {
 				l.Errorf("start service failed: %s", err.Error())
 				return
@@ -114,6 +114,10 @@ func applyFlags() {
 	}
 
 	cmds.RunCmds()
+}
+
+func serviceEntry() {
+	go run()
 }
 
 func run() {

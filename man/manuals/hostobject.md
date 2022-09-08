@@ -2,38 +2,44 @@
 # 主机对象
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗等。
 
-## 前置条件
+## 前置条件 {#requirements}
 
 暂无
 
-## 配置
+## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+=== "主机安装"
 
-```toml
-{{.InputSample}}
-```
+    一般情况下，主机对象是默认开启的，无需配置。
 
-配置好后，重启 DataKit 即可。
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
+    
+    配置好后，重启 DataKit 即可。
 
-### 环境变量配置
+=== "Kubernetes"
 
-支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
+    一般情况下，主机对象是默认开启的，无需配置。Kubernetes 中支持以环境变量的方式修改默认参数：
+    
+    | 环境变量名                                           | 对应的配置参数项                | 参数说明                                                           | 参数示例                                                                                                   |
+    | :---                                                 | ---                             | ---                                                                | ---                                                                                                        |
+    | `ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES` | `enable_net_virtual_interfaces` | 允许采集虚拟网卡                                                   | `true`/`false`                                                                                             |
+    | `ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK`        | `ignore_zero_bytes_disk`        | 忽略大小为 0 的磁盘                                                | `true`/`false`                                                                                             |
+    | `ENV_INPUT_HOSTOBJECT_TAGS`                          | `tags`                          | 增加额外标签                                                       | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它                                               |
+    | `ENV_INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE`          | `only_physical_device`          | 忽略非物理磁盘（如网盘、NFS 等，只采集本机硬盘/CD ROM/USB 磁盘等） | 任意给一个字符串值即可                                                                                     |
+    | `ENV_INPUT_HOSTOBJECT_IGNORE_FILE_SYSTEM`            | `ignore_fs`                     | 忽略的文件系统类型列表                                             | 英文逗号分隔的文件系统类型列表，当前默认列表为 `tmpfs,devtmpfs,devfs,iso9660,overlay,autofs,squashfs,aufs` |
+    | `ENV_CLOUD_PROVIDER`                                 | `tags`                          | 指定云服务商                                                       | `aliyun/aws/tencent/hwcloud/azure`                                                                         |
 
-| 环境变量名                                           | 对应的配置参数项                | 参数说明 | 参数示例                                                     |
-| :---                                                 | ---                             | ---| ---                                                          |
-| `ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES` | `enable_net_virtual_interfaces` | 允许采集虚拟网卡| `true`/`false`                                               |
-| `ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK`        | `ignore_zero_bytes_disk`        | 忽略大小为 0 的磁盘 | `true`/`false`                                               |
-| `ENV_INPUT_HOSTOBJECT_TAGS`                          | `tags`                          | 增加额外标签| `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-| `ENV_INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE`          | `only_physical_device`          | 忽略非物理磁盘（如网盘、NFS 等，只采集本机硬盘/CD ROM/USB 磁盘等） | 任意给一个字符串值即可 |
-| `ENV_INPUT_HOSTOBJECT_IGNORE_FILE_SYSTEM`            | `ignore_fs`                     | 忽略的文件系统类型列表 | 英文逗号分隔的文件系统类型列表，当前默认列表为 `tmpfs,devtmpfs,devfs,iso9660,overlay,autofs,squashfs,aufs`|
-| `ENV_CLOUD_PROVIDER`                                 | `tags`                          | 指定云服务商 | `aliyun/aws/tencent/hwcloud/azure`              |
-
-## 开启云同步
+## 开启云同步 {#cloudinfo}
 
 如果 DataKit 所在的主机是云主机（目前支持阿里云/腾讯云/AWS/华为云/微软云），那么可通过 `cloud_provider` 标签开启云同步：
 
@@ -43,7 +49,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
   cloud_provider = "aliyun"
 ```
 
-## 指标集
+## 指标集 {#measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -88,7 +94,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `region`                | 实例 Region ID | string |
 
 
-### `message` 指标字段结构
+### `message` 指标字段结构 {#message-struct}
 
 `message` 字段基本结构如下：
 
@@ -111,7 +117,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 }
 ```
 
-#### `host.meta`
+#### `host.meta` {#host-meta}
 
 | 字段名             | 描述                                           | 类型   |
 | ---                | ----                                           | :---:  |
@@ -125,7 +131,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `arch`             | CPU 硬件架构，如 `x86_64/arm64` 等             | string |
 | `extra_cloud_meta` | 开启云同步时，会带上一串云属性的 JSON 数据     | string |
 
-#### `host.cpu`
+#### `host.cpu` {#host-cpu}
 
 | 字段名        | 描述                                                    | 类型   |
 | ---           | ----                                                    |:---:   |
@@ -135,14 +141,14 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `mhz`         | 频率                                                    | int    |
 | `cache_size`  | L2 缓存大小（KB）                                       | int    |
 
-#### `host.mem`
+#### `host.mem` {#host-mem}
 
 | 字段名         | 描述       | 类型 |
 | ---            | ----       |:---: |
 | `memory_total` | 总内存大小 | int  |
 | `swap_total`:  | swap 大小  | int  |
 
-#### `host.net`
+#### `host.net` {#host-net}
 
 | 字段名  | 描述               | 类型     |
 | ---     | ----               |:---:     |
@@ -155,7 +161,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `ip4_all`| 所有 IPv4 地址     | []string |
 | `ip6_all`| 所有 IPv6 地址     | []string |
 
-#### `host.disk`
+#### `host.disk` {#host-disk}
 
 | 字段名       | 描述         | 类型   |
 | ---          | ----         |:---:   |
@@ -164,19 +170,21 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `mountpoint` | 挂载点       | string |
 | `fstype`     | 文件系统类型 | string |
 
-#### `host.election`
+#### `host.election` {#host-election}
 
 > 注意：当配置文件中 `enable_election`选项关闭时，该字段为null
 
-| 字段名       | 描述         | 类型   |
-| ---          | ----         |:---:   |
-| `elected`     | 选举状态      | string |
-| `namespace`     | 选举空间      | string |
+| 字段名      | 描述     | 类型   |
+| ---         | ----     | :---:  |
+| `elected`   | 选举状态 | string |
+| `namespace` | 选举空间 | string |
 
 
-#### `host.conntrack`
+#### `host.conntrack` {#host-conntrack}
 
-> 注意：仅 Linux 平台支持
+???+ attention
+
+    `conntrack` 仅 Linux 平台支持
 
 | 字段名                | 描述                                           | 类型  |
 | ---                   | ---                                            | :---: |
@@ -191,9 +199,11 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `stat_early_drop`     | 由于跟踪表满而导致部分已跟踪包条目被丢弃的数目 | int   |
 | `stat_search_restart` | 由于hash表大小修改而导致跟踪表查询重启的数目   | int   |
 
-#### `host.filefd`
+#### `host.filefd` {#host-filefd}
 
-> 注意：仅 Linux 平台支持
+???+ attention
+
+    `filefd` 仅 Linux 平台支持
 
 | 字段名         | 描述                                                 | 类型  |
 | ---            | ---                                                  | :---: |
@@ -201,7 +211,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `maximum`      | 文件句柄的最大数目（已弃用，用 `maximum_mega` 替代） | int   |
 | `maximum_mega` | 文件句柄的最大数目，单位 M(10^6)                     | float |
 
-#### 采集器运行情况字段列表
+#### 采集器运行情况字段列表 {#inputs-stats}
 
 `collectors` 字段是一个对象列表，每个对象的字段如下：
 

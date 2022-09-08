@@ -6,6 +6,7 @@
 package hostdir
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/shirou/gopsutil/disk"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
 // 并发用到的channel数据类型.
@@ -31,6 +33,8 @@ type dataChan struct {
 const (
 	FSTypeUnknown = "unknown"
 )
+
+var g = goroutine.NewGroup(goroutine.Option{Name: "inputs_hostdir"})
 
 func GetFileSystemType(path string) (string, error) {
 	ptr := 0
@@ -122,10 +126,11 @@ func Startcollect(dir string, reslice []string) (int, int, int) {
 	var dirNum int64
 	dirNum = 0
 
-	go func() {
-		walkDir(dir, mychan, reslice)
+	g.Go(func(ctx context.Context) error {
 		defer close(mychan)
-	}()
+		walkDir(dir, mychan, reslice)
+		return nil
+	})
 
 	for count := range mychan {
 		fileCount++

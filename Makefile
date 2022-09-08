@@ -290,7 +290,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare gofmt lfparser_disable_line plparser_disable_line
+deps: prepare gofmt lfparser_disable_line plparser_disable_line 
 
 # ignore files under vendor/.git/git
 gofmt:
@@ -328,9 +328,9 @@ all_test: deps
 		printf "\033[32m all testinig passed.\n\033[0m"; \
 	fi
 
-test_deps: prepare gofmt lfparser_disable_line plparser_disable_line vet
+test_deps: prepare gofmt lfparser_disable_line plparser_disable_line vet 
 
-lint: deps
+lint: deps check_man copyright_check
 	$(call check_golint_version)
 	if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
 		echo '============== lint under amd64/linux ==================='; \
@@ -369,19 +369,26 @@ prepare:
 	@echo "$$GIT_INFO" > git/git.go
 
 copyright_check:
-	@python3 copyright.py --dry-run
+	@python3 copyright.py --dry-run && \
+		{ echo "copyright check ok"; exit 0; } || \
+		{ echo "copyright check failed"; exit -1; }
 
 copyright_check_auto_fix:
 	@python3 copyright.py --fix
 
-check_man:
-	grep --color=always -nrP "[a-zA-Z0-9][\p{Han}]|[\p{Han}][a-zA-Z0-9]" man > bad-doc.log
-	if [ $$? != 0 ]; then \
-		echo "check manuals ok"; \
-	else \
-		cat bad-doc.log; \
-		rm -rf bad-doc.log; \
+md_lint:
+	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
+	@markdownlint man/manuals 2>&1 > md.lint
+	@if [ $$? != 0 ]; then \
+		cat md.lint; \
+		exit -1; \
 	fi
+
+# 要求所有文档的章节必须带上指定的标签（历史原因，先忽略 changelog.md）
+check_man:
+	@grep --color=always --exclude man/manuals/changelog.md -nr '^##' man/manuals/* | grep -vE ' {#' | grep -vE '{{' && \
+		{ echo "[E] some bad docs"; exit -1; } || \
+		{ echo "all docs ok"; exit 0; }
 
 code_stat:
 	cloc --exclude-dir=vendor,tests --exclude-lang=JSON,HTML .

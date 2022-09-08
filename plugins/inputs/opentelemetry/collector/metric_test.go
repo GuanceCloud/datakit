@@ -150,7 +150,7 @@ func Test_getData(t *testing.T) {
 			},
 		},
 	}
-	storage := NewSpansStorage()
+	storage := NewSpansStorage(nil)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := storage.getData(tt.args.metric)

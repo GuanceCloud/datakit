@@ -8,6 +8,7 @@ package tdengine
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/araddon/dateparse"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -115,45 +117,54 @@ func (t *tdEngine) getSTablesNum() []inputs.Measurement {
 
 func (t *tdEngine) run() {
 	msmC := make(chan []inputs.Measurement, 100)
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_tdengine"})
 	for _, m := range metrics {
-		go func(metric metric) {
-			for range time.Tick(metric.TimeSeries) {
-				if !t.upstream {
-					l.Debugf("not leader, skipped")
-					continue
-				}
-				l.Debugf("start to run selectSQL,metricName = %s", metric.metricName)
-				for _, sql := range metric.MetricList {
-					body, err := query(t.adapter, t.basic, "", []byte(sql.sql))
-					if err != nil {
+		func(metric metric) {
+			g.Go(func(ctx context.Context) error {
+				ticker := time.NewTicker(metric.TimeSeries)
+				defer ticker.Stop()
+				for range ticker.C {
+					if !t.upstream {
+						l.Debugf("not leader, skipped")
 						continue
 					}
-					var res restResult
-					if err := json.Unmarshal(body, &res); err != nil {
-						l.Error("parse json error: ", err)
-						continue
-					}
-					if sql.plugInFun != nil {
-						msmC <- sql.plugInFun.resToMeasurement(metric.metricName, res, sql, t.election)
-					} else {
-						msmC <- makeMeasurements(metric.metricName, res, sql, t.election)
+					l.Debugf("start to run selectSQL,metricName = %s", metric.metricName)
+					for _, sql := range metric.MetricList {
+						body, err := query(t.adapter, t.basic, "", []byte(sql.sql))
+						if err != nil {
+							continue
+						}
+						var res restResult
+						if err := json.Unmarshal(body, &res); err != nil {
+							l.Error("parse json error: ", err)
+							continue
+						}
+						if sql.plugInFun != nil {
+							msmC <- sql.plugInFun.resToMeasurement(metric.metricName, res, sql, t.election)
+						} else {
+							msmC <- makeMeasurements(metric.metricName, res, sql, t.election)
+						}
 					}
 				}
-			}
+
+				return nil
+			})
 		}(m)
 		time.Sleep(time.Second / 5) // 交叉运行.
 	}
 
 	// show database.stables;
-	go func() {
-		for range time.Tick(time.Minute * 5) {
+	g.Go(func(ctx context.Context) error {
+		ticker := time.NewTicker(time.Minute * 5)
+		for range ticker.C {
 			if !t.upstream {
 				continue
 			}
 			l.Debugf("run getSTablesNum")
 			msmC <- t.getSTablesNum()
 		}
-	}()
+		return nil
+	})
 
 	for {
 		select {
@@ -217,7 +228,7 @@ func (t *tdEngine) getDatabase() []*database {
 func query(url string, basicAuth, token string, reqBody []byte) ([]byte, error) {
 	var reqBodyBuffer io.Reader = bytes.NewBuffer(reqBody)
 
-	sqlUtcURL := url + "/rest/sqlutc"
+	sqlUtcURL := url + "/rest/sql"
 	if token != "" {
 		sqlUtcURL = sqlUtcURL + "?token=" + token
 	}
@@ -232,19 +243,19 @@ func query(url string, basicAuth, token string, reqBody []byte) ([]byte, error) 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		l.Error("query "+url+"/rest/sqlutc error: %v", err)
+		l.Errorf("query "+url+"/rest/sql error: %v", err)
 		return []byte{}, err
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		l.Error("when writing to [] received status code: %d", resp.StatusCode)
+		l.Errorf("when writing to [%s] received status code: %d", string(reqBody), resp.StatusCode)
 		return []byte{}, fmt.Errorf("when writing to [] received status code: %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		l.Error("when writing to [] received error: %v", err)
+		l.Errorf("when writing to [] received error: %v", err)
 		return []byte{}, fmt.Errorf("when writing to [] received error: %w", err)
 	}
 	return body, nil

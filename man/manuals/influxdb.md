@@ -2,15 +2,33 @@
 # InfluxDB
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 InfluxDB 采集器，用于采集 InfluxDB 的数据。
 
-## 前置条件
+## 前置条件 {#requirements}
 
 InfluxDB 采集器仅适用于 InfluxDB v1.x, 对于 InfluxDB v2.x 需要使用 prom 采集器进行采集
 
-## 适用于 InfluxDB v2.x 的 prom 采集器配置示例
+## InfluxDB 采集器配置 {#config}
+
+=== "主机安装"
+
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
+
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+
+=== "Kubernetes"
+
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+### 适用于 InfluxDB v2.x 的 prom 采集器配置示例 {#prom-config}
 
 ```toml
 [[inputs.prom]]
@@ -59,17 +77,7 @@ InfluxDB 采集器仅适用于 InfluxDB v1.x, 对于 InfluxDB v2.x 需要使用 
 
 ```
 
-## InfluxDB 采集器配置
-
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
-
-```toml
-{{.InputSample}}
-```
-
-配置好后，重启 DataKit 即可。
-
-## 指标集
+## 指标集 {#measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -94,7 +102,7 @@ InfluxDB 采集器仅适用于 InfluxDB v1.x, 对于 InfluxDB v2.x 需要使用 
 
 {{ end }}
 
-## 日志采集
+## 日志采集 {#logging}
 
 如需采集 InfluxDB 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 InfluxDB 日志文件的绝对路径。比如：
 

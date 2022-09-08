@@ -54,10 +54,10 @@ func (j *jenkinsPipelineMeasurement) Info() *inputs.MeasurementInfo {
 		Desc: "Jenkins Pipeline Event 相关指标",
 		Fields: map[string]interface{}{
 			"pipeline_id":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "pipeline id"},
-			"duration":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationUS, Desc: "pipeline 持续时长（us）"},
+			"duration":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationUS, Desc: "pipeline 持续时长（微秒）"},
 			"commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "触发该 pipeline 的代码的最近一次提交附带的 message"},
-			"created_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "pipeline 创建的秒时间戳"},
-			"finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "pipeline 结束的秒时间戳"},
+			"created_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "pipeline 创建的毫秒时间戳"},
+			"finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "pipeline 结束的毫秒时间戳"},
 			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "该 pipeline 的 id，与 pipeline_id 相同"},
 		},
 		Tags: map[string]interface{}{
@@ -88,9 +88,9 @@ func (j *jenkinsJobMeasurement) Info() *inputs.MeasurementInfo {
 		Desc: "Jenkins Job Event 相关指标",
 		Fields: map[string]interface{}{
 			"build_id":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build id"},
-			"build_started_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "build 开始的秒时间戳"},
-			"build_finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "build 结束的秒时间戳"},
-			"build_duration":       &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.DurationSecond, Desc: "build 持续时长（秒）"},
+			"build_started_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "build 开始的毫秒时间戳"},
+			"build_finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "build 结束的毫秒时间戳"},
+			"build_duration":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationUS, Desc: "build 持续时长（微秒）"},
 			"pipeline_id":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build 对应的 pipeline id"},
 			"runner_id":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build 对应的 runner id"},
 			"build_commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "触发该 build 的最近一次 commit 的 message"},

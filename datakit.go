@@ -144,7 +144,12 @@ var (
 	OSLabelLinux   = ":fontawesome-brands-linux:"
 	OSLabelWindows = ":fontawesome-brands-windows:"
 	OSLabelMac     = ":fontawesome-brands-apple:"
-	AllOS          = []string{OSLabelLinux, OSLabelWindows, OSLabelMac}
+	LabelK8s       = ":material-kubernetes:"
+	LabelDocker    = ":material-docker:"
+	LabelElection  = ` · [:fontawesome-solid-flag-checkered:](index.md#legends "支持选举")`
+
+	AllOS             = []string{OSLabelLinux, OSLabelWindows, OSLabelMac, LabelK8s, LabelDocker}
+	AllOSWithElection = append(AllOS, LabelElection)
 
 	UnknownOS   = []string{"unknown"}
 	UnknownArch = []string{"unknown"}
@@ -174,6 +179,7 @@ var (
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
 
+	// map["/v1/write/metric"] = "M".
 	CategoryMap = map[string]string{
 		MetricDeprecated: SinkCategoryMetric,
 		Metric:           SinkCategoryMetric,
@@ -188,6 +194,7 @@ var (
 		Profiling:        SinkCategoryProfiling,
 	}
 
+	// map["M"] = "/v1/write/metric".
 	CategoryMapReverse = map[string]string{
 		SinkCategoryMetric:       Metric,
 		SinkCategoryNetwork:      Network,
@@ -200,6 +207,23 @@ var (
 		SinkCategorySecurity:     Security,
 		SinkCategoryProfiling:    Profiling,
 	}
+
+	// map["/v1/write/metric"] = "metric".
+	CategoryPureMap = map[string]string{
+		MetricDeprecated: CategoryMetric,
+		Metric:           CategoryMetric,
+		Network:          CategoryNetwork,
+		KeyEvent:         CategoryKeyEvent,
+		Object:           CategoryObject,
+		CustomObject:     CategoryCustomObject,
+		Logging:          CategoryLogging,
+		Tracing:          CategoryTracing,
+		RUM:              CategoryRUM,
+		Security:         CategorySecurity,
+		Profiling:        CategoryProfiling,
+	}
+
+	LogSinkDetail bool
 )
 
 func CategoryList() (map[string]struct{}, map[string]struct{}) {
@@ -309,9 +333,12 @@ func G(name string) *goroutine.Group {
 		}
 	}
 
-	gName := "datakit_" + name
-	opt := goroutine.Option{Name: gName, PanicTimes: 6, PanicCb: panicCb, PanicTimeout: 10 * time.Millisecond}
-	g := goroutine.NewGroup(opt)
+	g := goroutine.NewGroup(goroutine.Option{
+		Name:         name,
+		PanicTimes:   6,
+		PanicCb:      panicCb,
+		PanicTimeout: 10 * time.Millisecond,
+	})
 	var mu sync.Mutex
 	mu.Lock()
 	goroutines = append(goroutines, g)
@@ -323,6 +350,7 @@ func G(name string) *goroutine.Group {
 func GWait() {
 	for _, g := range goroutines {
 		// just ignore error
+		l.Infof("goroutine Group %s waiting", g.Name())
 		_ = g.Wait()
 		l.Infof("goroutine Group %s exit", g.Name())
 	}

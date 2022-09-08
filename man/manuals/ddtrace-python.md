@@ -2,9 +2,7 @@
 # Python 示例
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
-## Install Libarary & Dependence
+## 安装依赖 {#dependence}
 
 安装 Python Flask
 
@@ -24,7 +22,7 @@ pip install ddtrace
 pip install --upgrade pip
 ```
 
-## Python Code Example
+## 代码示例 {#example}
 
 **service_a.py**
 
@@ -86,7 +84,7 @@ if __name__ == '__main__':
     app.run(host="0.0.0.0", port=54322, debug=True)
 ```
 
-## Run Python Code With DDTrace
+## 运行 {#run}
 
 这里以 Python 中常用的 Webserver Flask 应用为例。示例中 `SERVICE_A` 提供 HTTP 服务，并且调用 `SERVICE_B` HTTP 服务。
 
@@ -125,7 +123,7 @@ curl http://localhost:54321/stop
 curl http://localhost:54322/stop
 ```
 
-## Environment Variables For Tracing Python Code
+## 环境变量支持 {#envs} 
 
 - DD_ENV: 为服务设置环境变量。
 - DD_VERSION: APP 版本号。

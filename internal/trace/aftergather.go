@@ -90,7 +90,7 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod
 	})
 
 	if len(dktraces) == 0 {
-		log.Warnf("wrong parameters for AfterGather.Run(dktrace:%v)", dktraces)
+		log.Debug("empty dktraces")
 
 		return
 	}

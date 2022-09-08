@@ -35,7 +35,6 @@ var (
 type k8sClientX interface {
 	getDatakits() kubev1guancebeta1.DatakitInterface
 	getDeployments() kubev1apps.DeploymentInterface
-	getDeploymentsForNamespace(string) kubev1apps.DeploymentInterface
 	getDaemonSets() kubev1apps.DaemonSetInterface
 	getReplicaSets() kubev1apps.ReplicaSetInterface
 	getStatefulSets() kubev1apps.StatefulSetInterface
@@ -46,10 +45,13 @@ type k8sClientX interface {
 	getNodes() kubev1core.NodeInterface
 	getNamespaces() kubev1core.NamespaceInterface
 	getPods() kubev1core.PodInterface
-	getPodsForNamespace(string) kubev1core.PodInterface
 	getClusterRoles() kubev1rbac.ClusterRoleInterface
 	getIngress() kubev1extensionsbeta1.IngressInterface
 	getEvents() kubev1core.EventInterface
+
+	getDaemonSetsForNamespace(string) kubev1apps.DaemonSetInterface
+	getDeploymentsForNamespace(string) kubev1apps.DeploymentInterface
+	getPodsForNamespace(string) kubev1core.PodInterface
 }
 
 type k8sClient struct {
@@ -164,6 +166,10 @@ func (c *k8sClient) getDeploymentsForNamespace(namespace string) kubev1apps.Depl
 
 func (c *k8sClient) getDaemonSets() kubev1apps.DaemonSetInterface {
 	return c.AppsV1().DaemonSets(c.namespace)
+}
+
+func (c *k8sClient) getDaemonSetsForNamespace(namespace string) kubev1apps.DaemonSetInterface {
+	return c.AppsV1().DaemonSets(namespace)
 }
 
 func (c *k8sClient) getReplicaSets() kubev1apps.ReplicaSetInterface {

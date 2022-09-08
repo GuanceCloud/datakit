@@ -72,7 +72,7 @@ func TestInput_RegHTTPHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			i := &Input{
-				OHTTPc: tt.fields.OHTTPc,
+				HTTPCol: tt.fields.OHTTPc,
 			}
 			i.RegHTTPHandler()
 		})
@@ -117,8 +117,8 @@ func TestInput_Run(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			i := &Input{
-				Ogrpc:               tt.fields.Ogrpc,
-				OHTTPc:              tt.fields.OHTTPc,
+				GRPCCol:             tt.fields.Ogrpc,
+				HTTPCol:             tt.fields.OHTTPc,
 				CloseResource:       tt.fields.CloseResource,
 				Sampler:             tt.fields.Sampler,
 				IgnoreAttributeKeys: tt.fields.IgnoreAttributeKeys,
@@ -130,7 +130,7 @@ func TestInput_Run(t *testing.T) {
 			stop := make(chan int)
 			go func() {
 				time.Sleep(time.Second * 4)
-				if i.OHTTPc.storage == nil {
+				if i.HTTPCol.spanStorage == nil {
 					t.Errorf("storage == nil")
 				}
 				i.semStop.Close() // stop
@@ -212,7 +212,7 @@ func TestInput_exit(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			i := &Input{
-				Ogrpc: tt.fields.Ogrpc,
+				GRPCCol: tt.fields.Ogrpc,
 			}
 			i.exit()
 		})

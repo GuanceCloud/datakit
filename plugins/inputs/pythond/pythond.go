@@ -7,6 +7,7 @@
 package pythond
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -214,7 +215,9 @@ func (pe *PythonDInput) start() error {
 		return err
 	}
 
-	go func() {
+	g := datakit.G("inputs_pythond")
+
+	g.Go(func(ctx context.Context) error {
 		l.Debug("go entry")
 		tick := time.NewTicker(time.Second)
 		defer tick.Stop()
@@ -235,17 +238,17 @@ func (pe *PythonDInput) start() error {
 				l.Debug(string(tmp))
 				if err != nil {
 					l.Debugf("stdout.Read failed: %v", err)
-					return
+					return nil
 				}
 
 			case <-datakit.Exit.Wait():
-				return
+				return nil
 
 			case <-pe.semStop.Wait():
-				return
+				return nil
 			}
 		}
-	}()
+	})
 
 	return nil
 }

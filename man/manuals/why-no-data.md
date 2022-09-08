@@ -4,7 +4,7 @@
 
 大家在部署完数据采集之后（通过 DataKit 或 Function 采集），有时候在观测云的页面上看不到对应的数据更新，每次排查起来都心力憔悴，为了缓解这一状况，可按照如下的一些步骤，来逐步围歼「为啥没有数据」这一问题。
 
-## 检查 DataWay 连接是否正常
+## 检查 DataWay 连接是否正常 {#check-connection}
 
 ```shell
 curl http[s]://your-dataway-addr:port
@@ -28,7 +28,7 @@ curl: (6) Could not resolve host: openway.guance.com
 request url https://openway.guance.com/v1/write/xxx/token=tkn_xxx failed:  ... context deadline exceeded...
 ```
 
-## 检查机器时间
+## 检查机器时间 {#check-local-time}
 
 在 Linux/Mac 上，输入 `date` 即可查看当前系统时间：
 
@@ -49,17 +49,17 @@ Wed Jul 21 08:22:32 UTC 2021
 
 另外，如果时间滞后，你会看到一些老数据，不要以为发生了灵异事件，事实上，极有可能是 DataKit 所在机器的时间还停留在过去。
 
-## 查看数据是否被黑名单过滤或 Pipeline 丢弃
+## 查看数据是否被黑名单过滤或 Pipeline 丢弃 {#filter-pl}
 
 如果配置了[黑名单](datakit-filter)（如日志黑名单），新采集的数据可能会被黑名单过滤掉。
 
 同理，如果 Pipeline 中对数据进行了一些[丢弃操作](pipeline#fb024a10)，那么也可能导致中心看不到这些数据。
 
-## 查看 Monitor 页面
+## 查看 Monitor 页面 {#monitor}
 
 参见[这里](datakit-monitor.md)
 
-## 通过 DQL 查看是否有数据产生
+## 通过 DQL 查看是否有数据产生 {#dql}
 
 在 Windows/Linux/Mac 上，这一功能均支持，其中 Windows 需在 Powershell 中执行
 
@@ -101,7 +101,7 @@ show_tracing_service()
 
 以此类推，如果数据确实上报了，那么通过 DQL 总能找到，至于前端不显示，可能是其它过滤条件给挡掉了。通过 DQL，不管是 DataKit 采集的数据，还是其它手段（如 Function）采集的数据，都可以零距离查看原式数据，特别便于 Debug。
 
-## 查看 DataKit 程序日志是否有异常
+## 查看 DataKit 程序日志是否有异常 {#check-log}
 
 通过 Shell/Powershell 给出最近 10 个 ERROR, WARN 级别的日志
 
@@ -116,7 +116,7 @@ Select-String -Path 'C:\Program Files\datakit\log' -Pattern "ERROR", "WARN"  | S
 - 如果日志中发现诸如 `Beyond...` 这样的描述，一般情况下，是因为数据量超过了免费额度。
 - 如果出现一些 `ERROR/WARN` 等字样，一般情况下，都表明 DataKit 遇到了一些问题。
 
-### 查看单个采集器的运行日志
+### 查看单个采集器的运行日志 {#check-input-log}
 
 如果没有发现什么异常，可直接查看单个采集器的运行日志：
 
@@ -141,7 +141,7 @@ Get-Content -Path "C:\Program Files\datakit\log" -Wait | Select-String "<采集�
 log_level = "debug"
 ```
 
-### 查看 gin.log
+### 查看 gin.log {#check-gin-log}
 
 对于远程给 DataKit 打数据的采集，可查看 gin.log 来查看是否有远程数据发送过来：
 

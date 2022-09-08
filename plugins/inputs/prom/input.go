@@ -86,7 +86,7 @@ func (*Input) SampleConfig() string { return sampleCfg }
 
 func (*Input) SampleMeasurement() []inputs.Measurement { return nil }
 
-func (*Input) AvailableArchs() []string { return datakit.AllOS }
+func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) Catalog() string { return catalog }
 

@@ -25,6 +25,17 @@ func isBlocked(lmt *limiter.Limiter, w http.ResponseWriter, r *http.Request) boo
 	return tollbooth.LimitByRequest(lmt, w, r) != nil
 }
 
+func getStatusCode(err error) int {
+	switch e := err.(type) { //nolint:errorlint
+	case *uhttp.HttpError:
+		return e.HttpCode
+	case *uhttp.MsgError:
+		return e.HttpError.HttpCode
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
 func ginWraper(lmt *limiter.Limiter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
@@ -50,9 +61,9 @@ func ginWraper(lmt *limiter.Limiter) gin.HandlerFunc {
 	}
 }
 
-type apiHandler func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error)
+type APIHandler func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error)
 
-func rawHTTPWraper(lmt *limiter.Limiter, next apiHandler, other ...interface{}) gin.HandlerFunc {
+func rawHTTPWraper(lmt *limiter.Limiter, next APIHandler, other ...interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		m := &apiMetric{
@@ -70,11 +81,14 @@ func rawHTTPWraper(lmt *limiter.Limiter, next apiHandler, other ...interface{}) 
 
 		if res, err := next(c.Writer, c.Request, other...); err != nil {
 			uhttp.HttpErr(c, err)
+			l.Debugf("wrap next error: %s", err)
+
+			m.statusCode = getStatusCode(err)
 		} else {
+			m.statusCode = http.StatusOK
 			OK.HttpBody(c, res)
 		}
 
-		m.statusCode = c.Writer.Status()
 		m.latency = time.Since(start) // only un-limit request logged the latency
 
 	feed:

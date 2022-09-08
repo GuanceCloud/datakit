@@ -2,18 +2,20 @@
 # IIS
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 Microsoft IIS 采集器
 
-## 前置条件
+## 前置条件 {#requirements}
 
 操作系统要求:
 
 * Windows Vista 以上版本 (不包含 Windows Vista)
 * Windows Server 2008 R2 及以上版本
 
-## 配置
+## 配置 {#config}
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
@@ -32,7 +34,7 @@ Microsoft IIS 采集器
     # ...
 ```
 
-## 指标
+## 指标 {#measurements}
 
 {{ range $i, $m := .Measurements }}
 
@@ -52,7 +54,7 @@ Microsoft IIS 采集器
 
 {{ end }}
 
-## 日志
+## 日志 {#logging}
 
 如需采集 IIS 的日志，将配置中 log 相关的配置打开，如：
 

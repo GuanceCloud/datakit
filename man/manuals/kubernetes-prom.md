@@ -2,9 +2,11 @@
 # Prometheus Exportor 指标采集
 ---
 
-- 操作系统支持：:fontawesome-brands-linux: :material-kubernetes:
+:fontawesome-brands-linux: :material-kubernetes:
 
-## 介绍
+---
+
+## 介绍 {#intro}
 
 本文档介绍如何采集 Kubernetes 集群中自定义 Pod 暴露出来的 Prometheus 指标。
 
@@ -56,7 +58,7 @@
         node_name = "$NODENAME"
     ```
 
-### 选择指定Pod IP
+### 选择指定 Pod IP {#pod-ip}
 
 某些情况下， Pod 上会存在多个 IP，此时仅仅通过 `$IP` 来获取 Exporter 地址是不准确的。支持通过配置 Annotation 选择 Pod IP。
 
@@ -65,7 +67,7 @@
 
 如果没有此 Annotation Key，则使用默认 Pod IP。
 
-## 操作步骤
+## 操作步骤 {#steps}
 
 - 登录到 Kubernetes 所在主机
 - 打开 `deployment.yaml`，添加 template annotations 示例如下：
@@ -108,7 +110,10 @@ spec:
             #node_name = "$NODENAME"
 ```
 
-> 注意， `annotations` 一定添加在 `template` 字段下，这样 deployment.yaml 创建的 Pod 才会携带 `datakit/prom.instances`。
+???+ attention
+
+    `annotations` 一定添加在 `template` 字段下，这样 *deployment.yaml* 创建的 Pod 才会携带 `datakit/prom.instances`。
+
 
 - 使用新的 yaml 创建资源
 
@@ -118,6 +123,6 @@ kubectl apply -f deployment.yaml
 
 至此，Annotation 已经添加完成。DataKit 稍后会读取到 Pod 的 Annotation，并采集 `url` 上暴露出来的指标。
 
-## 延伸阅读
+## 延伸阅读 {#more-readings}
 
 - [Prometheus Exportor 数据采集](prom.md)

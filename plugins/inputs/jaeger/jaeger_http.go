@@ -10,11 +10,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 )
@@ -24,29 +26,54 @@ func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 
 	var (
 		readbodycost = time.Now()
-		buf          = thrift.NewTMemoryBuffer()
+		enterWPoolOK = false
 	)
-	if _, err := buf.ReadFrom(req.Body); err != nil {
+	pbuf := bufpool.GetBuffer()
+	defer func() {
+		if !enterWPoolOK {
+			bufpool.PutBuffer(pbuf)
+		}
+	}()
+
+	_, err := io.Copy(pbuf, req.Body)
+	if err != nil {
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
+	param := &itrace.TraceParameters{
+		Meta: &itrace.TraceMeta{Protocol: "http"},
+		Body: pbuf,
+	}
+
 	log.Debugf("### path: %s, Content-Type: %s, body-size: %dkb, read-body-cost: %dms",
-		req.URL.Path, req.Header.Get("Content-Type"), buf.Len()>>10, time.Since(readbodycost)/time.Millisecond)
+		req.URL.Path, req.Header.Get("Content-Type"), param.Body.Len()>>10, time.Since(readbodycost)/time.Millisecond)
 
 	if wpool == nil {
-		if err := parseJaegerTrace(buf); err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusBadRequest)
+		if storage == nil {
+			if err := parseJaegerTrace(param); err != nil {
+				log.Error(err.Error())
+				resp.WriteHeader(http.StatusBadRequest)
 
-			return
+				return
+			}
+		} else {
+			if err := storage.Send(param); err != nil {
+				log.Error(err.Error())
+				resp.WriteHeader(http.StatusBadRequest)
+
+				return
+			}
 		}
 	} else {
-		job, err := workerpool.NewJob(workerpool.WithInput(buf),
+		job, err := workerpool.NewJob(workerpool.WithInput(param),
 			workerpool.WithProcess(parseJaegerTraceAdapter),
 			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
+				if param, ok := input.(*itrace.TraceParameters); ok {
+					bufpool.PutBuffer(param.Body)
+				}
 				log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
 			}),
 		)
@@ -63,26 +90,37 @@ func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 
 			return
 		}
+		enterWPoolOK = true
 	}
 
 	resp.WriteHeader(http.StatusOK)
 }
 
 func parseJaegerTraceAdapter(input interface{}) (output interface{}) {
-	buf, ok := input.(*thrift.TMemoryBuffer)
+	param, ok := input.(*itrace.TraceParameters)
 	if !ok {
 		return errors.New("type assertion failed")
 	}
 
-	return parseJaegerTrace(buf)
+	if storage == nil {
+		return parseJaegerTrace(param)
+	} else {
+		return storage.Send(param)
+	}
 }
 
-func parseJaegerTrace(buf *thrift.TMemoryBuffer) error {
+func parseJaegerTrace(param *itrace.TraceParameters) error {
+	tmbuf := thrift.NewTMemoryBuffer()
+	_, err := tmbuf.ReadFrom(param.Body)
+	if err != nil {
+		return err
+	}
+
 	var (
-		transport = thrift.NewTBinaryProtocolConf(buf, &thrift.TConfiguration{})
+		transport = thrift.NewTBinaryProtocolConf(tmbuf, &thrift.TConfiguration{})
 		batch     = &jaeger.Batch{}
 	)
-	if err := batch.Read(context.TODO(), transport); err != nil {
+	if err = batch.Read(context.TODO(), transport); err != nil {
 		return err
 	}
 

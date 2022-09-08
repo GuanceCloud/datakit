@@ -9,6 +9,7 @@
 package wmi
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
 // SWbemServices is used to access wmi. See https://msdn.microsoft.com/en-us/library/aa393719(v=vs.85).aspx
@@ -47,7 +49,11 @@ func InitializeSWbemServices(c *Client, connectServerArgs ...interface{}) (*SWbe
 	s.cWMIClient = c
 	s.queries = make(chan *queryRequest)
 	initError := make(chan error)
-	go s.process(initError)
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_wmi"})
+	g.Go(func(ctx context.Context) error {
+		s.process(initError)
+		return nil
+	})
 
 	err, ok := <-initError
 	if ok {

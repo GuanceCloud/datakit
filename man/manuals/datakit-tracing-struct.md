@@ -2,9 +2,7 @@
 
 # Datakit Tracing 数据结构
 
-- 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
-
-## 简述
+## 简述 {#intro}
 
 此文用于解释主流 Telemetry 平台数据结构以及与 Datakit 平台数据结构的映射关系。
 目前支持数据结构：DataDog，Jaeger，OpenTelemetry，Skywalking，Zipkin
@@ -18,12 +16,9 @@
 
 ---
 
-## Datakit Point Protocol 数据结构
+## Datakit Point Protocol 数据结构 {#point-proto}
 
-### Datakit Line Protocol
-
-- Line Protocol 为数据流最后落盘数据
-- Line Protocol 数据结构是由 Name, Tags, Fields, Timestamp 四部分和分隔符 (英文逗号，空格) 组成的字符串，形如：
+Line Protocol 数据结构是由 Name, Tags, Fields, Timestamp 四部分和分隔符 (英文逗号，空格) 组成的字符串，形如：
 
 ```
 source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
@@ -56,31 +51,22 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 | Field                                        | sample_rate_global                        |                                           | global sampling ratio (0.1 means roughly 10 percent will send to data center)                       |
 | Field                                        | start                                     | 微秒                                      | span start timestamp                                                                                |
 
-<br>
 
-> **Span Type:** 当前 span 在 trace 中的相对位置
->
-> entry 当前 api 为入口即链路进入进入服务后的第一个调用
->
-> local 当前 api 为入口后出口前的 api
->
-> exit 当前 api 为链路在服务上最后一个调用
->
-> unknow 当前 api 的相对位置状态不明确
+Span Type 为当前 span 在 trace 中的相对位置，其取值说明如下：
 
-<br>
+    - entry：当前 api 为入口即链路进入进入服务后的第一个调用
+    - local: 当前 api 为入口后出口前的 api
+    - exit: 当前 api 为链路在服务上最后一个调用
+    - unknow: 当前 api 的相对位置状态不明确
 
-> **Priority Rules:** 客户端采样优先级规则
->
-> PRIORITY_USER_REJECT = -1 用户选择拒绝上报
->
-> PRIORITY_AUTO_REJECT = 0 客户端采样器选择拒绝上报
->
-> PRIORITY_AUTO_KEEP = 1 客户端采样器选择上报
->
-> PRIORITY_USER_KEEP = 2 用户选择上报
+Priority Rules 为客户端采样优先级规则
 
-### Datakit Tracing Span 数据结构
+    - `PRIORITY_USER_REJECT = -1` 用户选择拒绝上报
+    - `PRIORITY_AUTO_REJECT = 0` 客户端采样器选择拒绝上报
+    - `PRIORITY_AUTO_KEEP = 1` 客户端采样器选择上报
+    - `PRIORITY_USER_KEEP = 2` 用户选择上报
+
+### Datakit Tracing Span 数据结构 {#span-struct}
 
 Datakit Span 是 Datakit 内部使用的数据结构。第三方 Tracing Agent 数据结构会转换成 Datakit Span 结构后发送到数据中心。
 
@@ -115,9 +101,9 @@ Datakit Span 是 Datakit 内部使用的数据结构。第三方 Tracing Agent �
 
 ---
 
-## DDTrace Trace&Span 数据结构
+## DDTrace Trace&Span 数据结构 {#ddtrace-trace-span-struct}
 
-### DDTrace Trace 数据结构
+### DDTrace Trace 数据结构 {#ddtrace-trace-struct}
 
 DataDog Trace Struct
 
@@ -127,7 +113,7 @@ DataDog Traces Struct
 
 > Traces: []Trace
 
-### DDTrace Span 数据结构
+### DDTrace Span 数据结构 {#ddtrace-span-struct}
 
 | Field Name | Data Type            | Unit | Description                                        | Correspond To                                                                                              |
 | ---------- | -------------------- | ---- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -146,7 +132,7 @@ DataDog Traces Struct
 
 ---
 
-## OpenTelemetry Tracing 数据结构
+## OpenTelemetry Tracing 数据结构 {#otel-trace-struct}
 
 datakit 采集从 OpenTelemetry exporter:Otlp 中发送上来的数据时，简略的原始数据通过 json 序列化之后，如下所示：
 
@@ -202,9 +188,9 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 
 ---
 
-## Jaeger Tracing 数据结构
+## Jaeger Tracing 数据结构 {#jaeger-trace-struct}
 
-### Jaeger Thrift Protocol Batch 数据结构
+### Jaeger Thrift Protocol Batch 数据结构 {#jaeger-thrift-batch-struct}
 
 | Field Name | Data Type      | Unit | Description      | Correspond to       |
 | ---------- | -------------- | ---- | ---------------- | ------------------- |
@@ -213,7 +199,7 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 | Spans      | array          |      | Span 数组结构    | 见下表              |
 | Stats      | struct pointer |      | 客户端统计结构   | 不直接对应 dkspan   |
 
-### Jaeger Thrift Protocol Span 数据结构
+### Jaeger Thrift Protocol Span 数据结构 {#jaeger-thrift-span-struct}
 
 | Field Name    | Data Type | Unit | Description                               | Correspond To     |
 | ------------- | --------- | ---- | ----------------------------------------- | ----------------- |
@@ -231,9 +217,9 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 
 ---
 
-## Skywalking Tracing Data 数据结构
+## Skywalking Tracing Data 数据结构 {#sw-trace-struct}
 
-### Skywalking Segment Object Generated By Proto Buffer Protocol V3
+### Skywalking Segment Object Generated By Proto Buffer Protocol V3 {#sw-v3-pb-struct}
 
 | Field Name      | Data Type | Unit | Description                                     | Correspond To      |
 | --------------- | --------- | ---- | ----------------------------------------------- | ------------------ |
@@ -244,7 +230,7 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 | Spans           | array     |      | Tracing Span 数组                               | 见下表             |
 | IsSizeLimited   | bool      |      | 是否包含连路上所有 Span                         | 未使用字段         |
 
-### Skywalking Span Object 数据结构 in Segment Object
+### Skywalking Span Object 数据结构 in Segment Object {#sw-span-struct}
 
 | Field Name    | Data Type | Unit | Description                                                   | Correspond To        |
 | ------------- | --------- | ---- | ------------------------------------------------------------- | -------------------- |
@@ -265,9 +251,9 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 
 ---
 
-## Zipkin Tracing Data 数据结构
+## Zipkin Tracing Data 数据结构 {#zk-trace-struct}
 
-### Zipkin Thrift Protocol Span 数据结构 V1
+### Zipkin Thrift Protocol Span 数据结构 V1 {#zk-thrift-v1-span-struct}
 
 | Field Name        | Data Type | Unit | Description         | Correspond To    |
 | ----------------- | --------- | ---- | ------------------- | ---------------- |
@@ -282,7 +268,7 @@ otel 有些独有字段， 但 DKspan 没有字段与之对应，所以就放在
 | Duration          | uint64    | 微秒 | Span 耗时           | dkspan.Duration  |
 | Debug             | bool      |      | Debug 状态字段      | 未使用字段       |
 
-### Zipkin Span 数据结构 V2
+### Zipkin Span 数据结构 V2 {#zk-thrift-v2-span-struct}
 
 | Field Name     | Data Type | Unit | Description                      | Correspond To     |
 | -------------- | --------- | ---- | -------------------------------- | ----------------- |

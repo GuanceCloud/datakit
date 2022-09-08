@@ -7,6 +7,7 @@
 package sqlserver
 
 import (
+	"context"
 	"crypto/tls"
 	"database/sql"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -63,7 +65,7 @@ func (*Input) Catalog() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
+	return datakit.AllOSWithElection
 }
 
 func (*Input) PipelineConfig() map[string]string {
@@ -146,7 +148,11 @@ func (n *Input) RunPipeline() {
 		return
 	}
 
-	go n.tail.Start()
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_sqlserver"})
+	g.Go(func(ctx context.Context) error {
+		n.tail.Start()
+		return nil
+	})
 }
 
 func (n *Input) Run() {

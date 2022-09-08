@@ -2,33 +2,36 @@
 # Jenkins
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
+
+---
 
 Jenkins 采集器是通过插件 `Metrics` 采集数据监控 Jenkins，包括但不限于任务数，系统 cpu 使用，`jvm cpu`使用等
 
-![](imgs/input-jenkins-1.png)
-
-## 前置条件
+## 前置条件 {#requirements}
 
 - JenKins 版本 >= 2.277.4
-
 - 安装 JenKins [参见](https://www.jenkins.io/doc/book/installing/){:target="_blank"}
-      
 - 下载 `Metric` 插件，[管理插件页面](https://www.jenkins.io/doc/book/managing/plugins/){:target="_blank"},[Metric 插件页面](https://plugins.jenkins.io/metrics/){:target="_blank"}
-
 - 在 JenKins 管理页面 `your_manage_host/configure` 生成 `Metric Access keys`
 
-## 配置
+## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+=== "主机安装"
 
-```toml
-{{.InputSample}}
-```
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-配置好后，重启 DataKit 即可。
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-## Jenkins CI Visibility
+=== "Kubernetes"
+
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+## Jenkins CI Visibility {#ci-visibility}
 
 Jenkins 采集器可以通过接收 Jenkins datadog plugin 发出的 CI Event 实现 CI 可视化。
 
@@ -42,11 +45,7 @@ Jenkins CI Visibility 开启方法：
 
 配置完成后 Jenkins 能够通过 Datadog Plugin 将 CI 事件发送到 Datakit。
 
-## 指标预览
-
-![](imgs/input-jenkins-2.png)
-
-## 指标集
+## 指标集 {#measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名)。
 可以在配置中通过 `[inputs.{{.InputName}}.tags]` 为采集的指标指定其它标签：
@@ -81,7 +80,7 @@ Jenkins CI Visibility 开启方法：
 {{ end }}
 
 
-## 日志采集
+## 日志采集 {#logging}
 
 如需采集 JenKins 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 JenKins 日志文件的绝对路径。比如：
 
@@ -97,7 +96,7 @@ Jenkins CI Visibility 开启方法：
 
 >注意：必须将 DataKit 安装在 JenKins 所在主机才能采集 JenKins 日志
 
-## 日志 pipeline 功能切割字段说明
+## 日志 pipeline 功能切割字段说明 {#pipeline}
 
 - JenKins 通用日志切割
 
@@ -113,7 +112,3 @@ Jenkins CI Visibility 开启方法：
 | status | info                | 日志等级                     |
 | id     | 32                  | id                           |
 | time   | 1621278538000000000 | 纳秒时间戳（作为行协议时间） |
-
-## 场景视图
-
-<场景 - 新建仪表板 - Jenkins 监控视图>

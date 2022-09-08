@@ -6,7 +6,7 @@
 - DataKit 相关的文档编写步骤
 - 如何用 Mkdocs 写出更好的文档
 
-## DataKit 相关编写步骤
+## DataKit 相关编写步骤 {#steps}
 
 由于 DataKit 文档大部分都是用代码生成的，还有部分是纯手写的实践性文档，对不同的文档我们需要区别对待。目前 DataKit 相关的文档主要分为两类（即两大类集成），一类是 DataKit 文档，一个是集成文档：
 
@@ -111,7 +111,7 @@
 请参考集成库中的这个[新功能](../integrations/some-doc.md#new-feature)
 ```
 
-### 在文档中增加注意事项
+### 在文档中增加注意事项 {#note}
 
 部分文档的编写，需提供一些警告信息，比如某功能的使用，需额外满足某些条件，或者给出一些技巧性的说明。这种情况下，我们可以使用 Mkdocs
 的 markdown 扩展，比如 
@@ -136,7 +136,7 @@
 
 更多漂亮的警示用法，参见[这里](https://squidfunk.github.io/mkdocs-material/reference/admonitions/){:target="_blank"}
 
-### Tab 排版
+### Tab 排版 {#tab}
 
 某些具体的功能，在不同的场景下其使用方式可能不同，一般的做法是在文档中分别罗列，这样会开起来文档冗长，一种更好的方式是将不同场景的使用以 tag 排版的方式组织一下，这样文档页面会非常简洁：
 
@@ -150,6 +150,6 @@
 
 具体用法，参见[这里](https://squidfunk.github.io/mkdocs-material/reference/content-tabs/){:target="_blank"}
 
-## 更多阅读
+## 更多阅读 {#more-reading}
 
 - [Material for  Mkdocs](https://squidfunk.github.io/mkdocs-material/reference/admonitions/){:target="_blank"}

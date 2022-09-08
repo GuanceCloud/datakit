@@ -109,7 +109,8 @@ var (
 	SinkTracing,
 	SinkRUM,
 	SinkSecurity,
-	SinkProfiling string
+	SinkProfiling,
+	LogSinkDetail string
 
 	CgroupDisabled int
 	LimitCPUMax,

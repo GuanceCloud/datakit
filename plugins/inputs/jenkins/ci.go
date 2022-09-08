@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -163,9 +164,9 @@ func getPipelineFields(span *ddSpan) map[string]interface{} {
 	putFieldIfExist(fields, span, "git.commit.message", "commit_message")
 	putFieldIfExist(fields, span, "ci.pipeline.id", "message")
 	putFieldIfExist(fields, span, "ci.pipeline.id", "pipeline_id")
-	fields["created_at"] = nano2Micro(span.Start)
-	fields["duration"] = nano2Micro(span.Duration)
-	fields["finished_at"] = nano2Micro(span.Start + span.Duration)
+	fields["created_at"] = span.Start / int64(time.Millisecond/time.Nanosecond)
+	fields["duration"] = span.Duration / int64(time.Microsecond/time.Nanosecond)
+	fields["finished_at"] = (span.Start + span.Duration) / int64(time.Millisecond/time.Nanosecond)
 	return fields
 }
 
@@ -197,9 +198,9 @@ func getJobFields(span *ddSpan) map[string]interface{} {
 	putFieldIfExist(fields, span, "ci.job.name", "message")
 	putFieldIfExist(fields, span, "ci.pipeline.id", "pipeline_id")
 	putFieldIfExist(fields, span, "ci.node.name", "runner_id")
-	fields["build_started_at"] = nano2Micro(span.Start)
-	fields["build_duration"] = nano2Micro(span.Duration)
-	fields["build_finished_at"] = nano2Micro(span.Start + span.Duration)
+	fields["build_started_at"] = span.Start / int64(time.Millisecond/time.Nanosecond)
+	fields["build_duration"] = span.Duration / int64(time.Microsecond/time.Nanosecond)
+	fields["build_finished_at"] = (span.Start + span.Duration) / int64(time.Millisecond/time.Nanosecond)
 	return fields
 }
 
@@ -213,11 +214,6 @@ func putFieldIfExist(fields map[string]interface{}, span *ddSpan, want, tagKey s
 	if v, has := span.Meta[want]; has {
 		fields[tagKey] = v
 	}
-}
-
-// nano2Micro converts nanosecond to microsecond.
-func nano2Micro(ns int64) int64 {
-	return ns / 1000
 }
 
 func extractProjectName(projectURL string) string {

@@ -98,7 +98,7 @@ func (*Input) Run() {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
+	return datakit.AllOSWithElection
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {

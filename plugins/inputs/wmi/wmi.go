@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -33,15 +34,16 @@ func (*Instance) Catalog() string {
 
 func (ag *Instance) Run() {
 	l = logger.SLogger(inputName)
-
-	go func() {
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_wmi"})
+	g.Go(func(ctx context.Context) error {
 		select {
 		case <-datakit.Exit.Wait():
 		case <-ag.semStop.Wait():
 		}
 		ag.exit()
 		ag.cancelFun()
-	}()
+		return nil
+	})
 
 	if ag.MetricName == "" {
 		ag.MetricName = "WMI"

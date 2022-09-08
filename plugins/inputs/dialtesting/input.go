@@ -8,6 +8,7 @@
 package dialtesting
 
 import (
+	"context"
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/json"
@@ -18,7 +19,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -32,6 +32,7 @@ import (
 var ( // type assertions
 	_ inputs.ReadEnv = (*Input)(nil)
 	_ inputs.InputV2 = (*Input)(nil)
+	g                = datakit.G("inputs_dialtesting")
 )
 
 var (
@@ -74,7 +75,6 @@ type Input struct {
 	// class string
 
 	curTasks map[string]*dialer
-	wg       sync.WaitGroup
 	pos      int64 // current largest-task-update-time
 }
 
@@ -280,11 +280,12 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 
 	dialer := newDialer(t, d.Tags)
 
-	d.wg.Add(1)
-	go func(id string) {
-		defer d.wg.Done()
-		protectedRun(dialer)
-		l.Infof("input %s exited", id)
+	func(id string) {
+		g.Go(func(ctx context.Context) error {
+			protectedRun(dialer)
+			l.Infof("input %s exited", id)
+			return nil
+		})
 	}(t.ID())
 
 	return dialer, nil
@@ -610,7 +611,6 @@ func newDefaultInput() *Input {
 	return &Input{
 		Tags:     map[string]string{},
 		curTasks: map[string]*dialer{},
-		wg:       sync.WaitGroup{},
 		chexit:   make(chan interface{}),
 		cli: &http.Client{
 			Timeout: 30 * time.Second,

@@ -1,12 +1,16 @@
 package obfuscate
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/dgraph-io/ristretto"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
+
+var g = datakit.G("internal_obfuscate")
 
 // measuredCache is a wrapper on top of *ristretto.Cache which additionally
 // sends metrics (hits and misses) every 10 seconds.
@@ -76,6 +80,11 @@ func newMeasuredCache(statsClient statsd.ClientInterface) *measuredCache {
 		Cache:  cache,
 		Statsd: statsClient,
 	}
-	go c.statsLoop()
+
+	g.Go(func(ctx context.Context) error {
+		c.statsLoop()
+		return nil
+	})
+
 	return &c
 }

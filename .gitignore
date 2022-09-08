@@ -1,7 +1,6 @@
 __debug_bin
 .cl.md
 .docs/
-.suite.json
 .DS_Store
 .idea/
 .orig
@@ -75,7 +74,6 @@ proxy_config.yaml
 pub
 replace.sh
 run_mac.sh
-run.s
 run.sh
 samples/*
 scripts/scripts

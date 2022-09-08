@@ -4,4 +4,4 @@ ebpf/_obj/
 dist/
 c/bin/
 c/ebpf_bindata.go
-c/bindata_*
+

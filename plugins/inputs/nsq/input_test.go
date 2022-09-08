@@ -171,7 +171,7 @@ func TestOther(t *testing.T) {
 	it := newInput()
 	assert.Equal(t, sampleCfg, it.SampleConfig())
 	assert.Equal(t, catalog, it.Catalog())
-	assert.Equal(t, datakit.AllOS, it.AvailableArchs())
+	assert.Equal(t, datakit.AllOSWithElection, it.AvailableArchs())
 }
 
 func TestMan(t *testing.T) {

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package man
 
 import (
@@ -17,13 +22,10 @@ var OtherDocs = map[string]bool{
 	"datakit-sink-dataway":     true,
 	"apis":                     true,
 	"changelog":                true,
-	"datakit-arch":             true,
 	"datakit-batch-deploy":     true,
 	"datakit-conf":             true,
 	"datakit-input-conf":       true,
 	"datakit-daemonset-deploy": true,
-	"datakit-daemonset-update": true,
-	"datakit-daemonset-bp":     true,
 	"datakit-dql-how-to":       true,
 	"datakit-filter":           true,
 	"datakit-logging-how":      true,
@@ -56,7 +58,6 @@ var OtherDocs = map[string]bool{
 	"k8s-config-how-to":        true,
 	"kubernetes-prom":          true,
 	"kubernetes-crd":           true,
-	"kubernetes-x":             true,
 	"logfwd":                   true,
 	"logging-pipeline-bench":   true,
 	"logging_socket":           true,

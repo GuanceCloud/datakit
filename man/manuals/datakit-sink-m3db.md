@@ -10,7 +10,7 @@ M3DB更多介绍和文档 请参考：
 - [m3db-github-源码](https://github.com/m3db/m3){:target="_blank"}
 - [m3db-官方文档](https://m3db.io/docs){:target="_blank"}
 
-## 安装单机版 m3db
+## 安装单机版 m3db {#install-storage}
 
 ``` shell 
 # 下载并启动
@@ -35,9 +35,9 @@ systemctl status m3dbnode
 ss -tlnp|grep m3dbnode
 ```
 
-## 在 datakit 上开启 sink-m3db
+## 在 datakit 上开启 sink-m3db {#enable}
 
-### 通过配置文件指定 M3DB
+### 通过配置文件指定 M3DB {#dk-config}
 
 1. 修改配置 datakit 配置文件
 
@@ -63,7 +63,7 @@ vim /usr/local/datakit/conf/datakit.conf
 datakit --restart
 ```
 
-## 安装阶段指定 m3db 设置
+## 安装阶段指定 m3db 设置 {#install}
 
 ```shell
 DK_SINK_M="m3db://localhost:7201?scheme=http" \
@@ -73,6 +73,6 @@ bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 
 通过环境变量安装的 Datakit，会在自动在配置文件中生成相应的配置。
 
-## m3db 可视化
+## m3db 可视化 {#view}
 
 这里推荐您使用 [prometheus](https://prometheus.io/download/){:target="_blank"} 和 [grafana](https://grafana.com/){:target="_blank"} 去查询和展示数据。

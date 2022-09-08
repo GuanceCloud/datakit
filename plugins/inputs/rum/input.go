@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package rum real user monitoring
 package rum
 
@@ -5,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin/binding"
@@ -215,7 +221,7 @@ func (i *Input) handleRUM(req *http.Request) ([]*point.JSONPoint, error) {
 		return nil, dkhttp.ErrEmptyBody
 	}
 
-	isjson := req.Header.Get("Content-Type") == binding.MIMEJSON
+	isjson := (strings.Contains(req.Header.Get("Content-Type"), "application/json"))
 
 	var pts []*point.Point
 

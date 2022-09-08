@@ -22,10 +22,8 @@ var defaultIO = getDefault()
 func getDefault() *IO {
 	return &IO{
 		conf: &IOConfig{
-			FeedChanSize:         128,
-			MaxCacheCount:        64,
-			MaxDynamicCacheCount: 128,
-
+			FeedChanSize:  1,
+			MaxCacheCount: 1000,
 			FlushInterval: "10s",
 		},
 	}
