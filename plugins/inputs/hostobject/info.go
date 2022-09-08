@@ -271,14 +271,10 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 
 		// merge same device
 		mergeFlag := false
-		for index, cont := range infos {
-			if cont.Device == p.Device && !strings.HasPrefix(p.Device, "/dev/mapper") {
-				usage, err := diskutil.Usage(p.Mountpoint)
-				if err != nil {
-					break
-				}
-				infos[index].Total += usage.Total
+		for _, cont := range infos {
+			if cont.Device == p.Device {
 				mergeFlag = true
+				break
 			}
 		}
 

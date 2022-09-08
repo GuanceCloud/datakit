@@ -70,19 +70,10 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 		}
 		mergerFlag := false
 		// merger device
-		for index2, cont := range partitions {
-			if cont.Device == p.Device && !strings.HasPrefix(p.Device, "/dev/mapper") {
+		for _, cont := range partitions {
+			if cont.Device == p.Device {
 				mergerFlag = true
-				du, err := dk.Usage(p.Mountpoint)
-				if err != nil {
-					break
-				}
-				usage[index2].Free += du.Free
-				usage[index2].Used += du.Used
-				usage[index2].InodesTotal += du.InodesTotal
-				usage[index2].InodesFree += du.InodesFree
-				usage[index2].InodesUsed += du.InodesUsed
-				usage[index2].Total += du.Total
+				break
 			}
 		}
 
