@@ -412,6 +412,7 @@ func (ipt *Input) RunPipeline() {
 		IgnoreStatus:      ipt.Log.IgnoreStatus,
 		CharacterEncoding: ipt.Log.CharacterEncoding,
 		MultilinePatterns: []string{ipt.Log.MultilineMatch},
+		Done:              ipt.semStop.Wait(),
 	}
 
 	var err error

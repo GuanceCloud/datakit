@@ -40,27 +40,25 @@ type Input struct {
 	DockerEndpoint     string `toml:"docker_endpoint"`
 	ContainerdAddress  string `toml:"containerd_address"`
 
-	EnableContainerMetric bool `toml:"enable_container_metric"`
-	EnableK8sMetric       bool `toml:"enable_k8s_metric"`
-	EnablePodMetric       bool `toml:"enable_pod_metric"`
-
+	EnableContainerMetric        bool `toml:"enable_container_metric"`
+	EnableK8sMetric              bool `toml:"enable_k8s_metric"`
+	EnablePodMetric              bool `toml:"enable_pod_metric"`
 	LoggingRemoveAnsiEscapeCodes bool `toml:"logging_remove_ansi_escape_codes"`
 	LoggingBlockingMode          bool `toml:"logging_blocking_mode"`
 	ExcludePauseContainer        bool `toml:"exclude_pause_container"`
-
-	ContainerIncludeLog []string `toml:"container_include_log"`
-	ContainerExcludeLog []string `toml:"container_exclude_log"`
+	Election                     bool `toml:"election"`
 
 	K8sURL               string `toml:"kubernetes_url"`
 	K8sBearerToken       string `toml:"bearer_token"`
 	K8sBearerTokenString string `toml:"bearer_token_string"`
 	DisableK8sEvents     bool   `toml:"disable_k8s_events"`
 
-	LoggingExtraSourceMap     map[string]string `toml:"logging_extra_source_map"`
-	LoggingSourceMultilineMap map[string]string `toml:"logging_source_multiline_map"`
-
-	LoggingAutoMultilineDetection     bool     `toml:"logging_auto_multiline_detection"`
-	LoggingAutoMultilineExtraPatterns []string `toml:"logging_auto_multiline_extra_patterns"`
+	ContainerIncludeLog               []string          `toml:"container_include_log"`
+	ContainerExcludeLog               []string          `toml:"container_exclude_log"`
+	LoggingExtraSourceMap             map[string]string `toml:"logging_extra_source_map"`
+	LoggingSourceMultilineMap         map[string]string `toml:"logging_source_multiline_map"`
+	LoggingAutoMultilineDetection     bool              `toml:"logging_auto_multiline_detection"`
+	LoggingAutoMultilineExtraPatterns []string          `toml:"logging_auto_multiline_extra_patterns"`
 
 	Tags map[string]string `toml:"tags"`
 
@@ -76,9 +74,8 @@ type Input struct {
 	containerdInput *containerdInput
 	k8sInput        *kubernetesInput
 
-	Election bool `toml:"election"`
-	chPause  chan bool
-	pause    bool
+	chPause chan bool
+	pause   bool
 
 	discovery *discovery
 }
@@ -166,11 +163,12 @@ func (i *Input) Run() {
 		select {
 		case <-datakit.Exit.Wait():
 			i.stop()
-			l.Info("container exit success")
+			l.Info("container exit")
 			return
 
 		case <-i.semStop.Wait():
-			l.Info("container exit return")
+			i.stop()
+			l.Info("container terminate")
 			return
 
 		case <-metricTick.C:
@@ -394,7 +392,7 @@ func (i *Input) watchNewDockerContainerLogs() error {
 }
 
 func (i *Input) watchingK8sEventLog() {
-	i.k8sInput.watchingEventLog(datakit.Exit.Wait())
+	i.k8sInput.watchingEventLog(i.semStop.Wait())
 }
 
 func (i *Input) setup() bool {
@@ -413,35 +411,14 @@ func (i *Input) setup() bool {
 
 		time.Sleep(time.Second)
 
-		if d, err := newDockerInput(&dockerInputConfig{
-			endpoint:                  i.DockerEndpoint,
-			excludePauseContainer:     i.ExcludePauseContainer,
-			removeLoggingAnsiCodes:    i.LoggingRemoveAnsiEscapeCodes,
-			enableLoggingBlockingMode: i.LoggingBlockingMode,
-			containerIncludeLog:       i.ContainerIncludeLog,
-			containerExcludeLog:       i.ContainerExcludeLog,
-			extraTags:                 i.Tags,
-			extraSourceMap:            i.LoggingExtraSourceMap,
-			sourceMultilineMap:        i.LoggingSourceMultilineMap,
-			autoMultilinePatterns:     i.getAutoMultilinePatterns(),
-		}); err != nil {
+		if d, err := newDockerInput(i); err != nil {
 			l.Warnf("create docker input err: %s", err)
 		} else {
 			i.dockerInput = d
 		}
 
 		if i.dockerInput == nil {
-			if c, err := newContainerdInput(&containerdInputConfig{
-				endpoint:                  i.ContainerdAddress,
-				removeLoggingAnsiCodes:    i.LoggingRemoveAnsiEscapeCodes,
-				enableLoggingBlockingMode: i.LoggingBlockingMode,
-				extraTags:                 i.Tags,
-				extraSourceMap:            i.LoggingExtraSourceMap,
-				sourceMultilineMap:        i.LoggingSourceMultilineMap,
-				containerIncludeLog:       i.ContainerIncludeLog,
-				containerExcludeLog:       i.ContainerExcludeLog,
-				autoMultilinePatterns:     i.getAutoMultilinePatterns(),
-			}); err != nil {
+			if c, err := newContainerdInput(i); err != nil {
 				l.Warnf("create containerd input err: %s", err)
 			} else {
 				i.containerdInput = c
@@ -449,20 +426,12 @@ func (i *Input) setup() bool {
 		}
 
 		if datakit.Docker {
-			if k, err := newKubernetesInput(&kubernetesInputConfig{
-				url:               i.K8sURL,
-				bearerToken:       i.K8sBearerToken,
-				bearerTokenString: i.K8sBearerTokenString,
-				extraTags:         i.Tags,
-				enablePodMetric:   i.EnablePodMetric,
-				enableK8sMetric:   i.EnableK8sMetric,
-				election:          i.Election,
-			}); err != nil {
+			if k, err := newKubernetesInput(i); err != nil {
 				l.Errorf("create k8s input err: %s", err)
 				continue
 			} else {
 				i.k8sInput = k
-				i.discovery = newDiscovery(i.k8sInput.client, i.Tags)
+				i.discovery = newDiscovery(i.k8sInput.client, i.Tags, i.semStop.Wait())
 
 				if i.dockerInput != nil {
 					i.dockerInput.k8sClient = i.k8sInput.client

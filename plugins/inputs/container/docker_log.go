@@ -61,9 +61,9 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 		image:                 image,
 		tags:                  make(map[string]string),
 		created:               inspect.Created,
-		extraSourceMap:        d.cfg.extraSourceMap,
-		sourceMultilineMap:    d.cfg.sourceMultilineMap,
-		autoMultilinePatterns: d.cfg.autoMultilinePatterns,
+		extraSourceMap:        d.ipt.LoggingExtraSourceMap,
+		sourceMultilineMap:    d.ipt.LoggingSourceMultilineMap,
+		autoMultilinePatterns: d.ipt.getAutoMultilinePatterns(),
 	}
 
 	if containerIsFromKubernetes(getContainerName(container.Names)) {
@@ -73,7 +73,7 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 	}
 
 	// add extra tags
-	for k, v := range d.cfg.extraTags {
+	for k, v := range d.ipt.Tags {
 		if _, ok := info.tags[k]; !ok {
 			info.tags[k] = v
 		}
@@ -81,7 +81,8 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 
 	opt := composeTailerOption(d.k8sClient, info)
 	opt.Mode = tailer.DockerMode
-	opt.BlockingMode = d.cfg.enableLoggingBlockingMode
+	opt.BlockingMode = d.ipt.LoggingBlockingMode
+	opt.Done = d.ipt.semStop.Wait()
 
 	t, err := tailer.NewTailerSingle(info.logPath, opt)
 	if err != nil {

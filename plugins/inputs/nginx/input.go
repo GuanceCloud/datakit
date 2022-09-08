@@ -152,6 +152,7 @@ func (n *Input) RunPipeline() {
 		Service:    inputName,
 		Pipeline:   n.Log.Pipeline,
 		GlobalTags: n.Tags,
+		Done:       n.semStop.Wait(),
 	}
 
 	var err error
