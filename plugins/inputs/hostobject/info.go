@@ -254,9 +254,7 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 
 	excluded := func(x string) bool {
 		for _, fs := range ignoreFs {
-			if fs == x { // ignore the partition
-				return true
-			}
+			return strings.EqualFold(x, fs)
 		}
 		return false
 	}

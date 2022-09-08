@@ -10,7 +10,6 @@ import (
 	"os"
 	"runtime"
 	"strings"
-
 	//nolint
 	"github.com/shirou/gopsutil/disk"
 )
