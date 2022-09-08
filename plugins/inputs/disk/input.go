@@ -174,9 +174,9 @@ func (ipt *Input) Collect() error {
 			// Skip dummy filesystem (procfs, cgroupfs, ...)
 			continue
 		}
-		/*if !strings.HasPrefix(partitions[index].Device, "/dev/") {
+		if !strings.HasPrefix(partitions[index].Device, "/dev/") {
 			continue // 忽略该 partition
-		}*/
+		}
 
 		tags := map[string]string{
 			"device": partitions[index].Device,
