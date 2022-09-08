@@ -444,7 +444,6 @@ func (s *Storage) RunStorageConsumer(log *logger.Logger, paramHandler func(param
 				log.Infof("on datakit exit, stop on path '%s' exit", s.Path)
 				return nil
 			default:
-
 			}
 		}
 	})
