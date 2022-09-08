@@ -56,8 +56,11 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 
 	for i := range parts {
 		p := parts[i]
+		if strings.HasPrefix(p.Device, "/dev/mapper") {
+			continue
+		}
 		// nolint
-		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows && !strings.HasPrefix(p.Device, "/dev/mapper") {
+		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows {
 			continue // 忽略该 partition
 		}
 		if len(dk.ipt.Fs) != 0 {

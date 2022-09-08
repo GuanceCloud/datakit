@@ -263,8 +263,11 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 		if excluded(p.Fstype) {
 			continue
 		}
+		if strings.HasPrefix(p.Device, "/dev/mapper") {
+			continue
+		}
 		// nolint
-		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows && !strings.HasPrefix(p.Device, "/dev/mapper") {
+		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows {
 			continue // 忽略该 partition
 		}
 
