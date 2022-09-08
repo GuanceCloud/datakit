@@ -284,8 +284,18 @@ func DefaultHostObject() *Input {
 		Interval:                 &datakit.Duration{Duration: 5 * time.Minute},
 		IgnoreInputsErrorsBefore: &datakit.Duration{Duration: 30 * time.Second},
 		IgnoreZeroBytesDisk:      true,
-		semStop:                  cliutils.NewSem(),
-		Tags:                     make(map[string]string),
+		IgnoreFS: []string{
+			"autofs",
+			"tmpfs",
+			"devtmpfs",
+			"devfs",
+			"iso9660",
+			"overlay",
+			"aufs",
+			"squashfs",
+		},
+		semStop: cliutils.NewSem(),
+		Tags:    make(map[string]string),
 	}
 }
 

@@ -266,7 +266,7 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 			continue
 		}
 		// nolint
-		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS == datakit.OSLinux {
+		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows {
 			continue // 忽略该 partition
 		}
 

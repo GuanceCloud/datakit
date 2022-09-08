@@ -176,7 +176,7 @@ func (ipt *Input) Collect() error {
 			continue
 		}
 		// nolint
-		if !strings.HasPrefix(partitions[index].Device, "/dev/") && runtime.GOOS == datakit.OSLinux {
+		if !strings.HasPrefix(partitions[index].Device, "/dev/") && runtime.GOOS != datakit.OSWindows {
 			continue // 忽略该 partition
 		}
 
@@ -308,7 +308,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 func unique(strSlice []string) []string {
 	keys := make(map[string]interface{})
-	list := []string{}
+	var list []string
 	for _, entry := range strSlice {
 		if _, ok := keys[entry]; !ok {
 			keys[entry] = nil
