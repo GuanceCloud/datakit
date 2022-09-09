@@ -48,7 +48,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 === "Kubernetes"
 
-    在 datakit.yaml 中，环境变量增加环境变量
+    在 datakit.yaml 中，环境变量 `ENV_DEFAULT_ENABLED_INPUTS` 增加 rum 采集器名称（如下 `value` 中第一个所示）：
 
     ```yaml
     - name: ENV_DEFAULT_ENABLED_INPUTS
