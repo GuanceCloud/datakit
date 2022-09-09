@@ -175,9 +175,19 @@ func (d *Input) Run() {
 
 func (d *Input) doServerTask() {
 	var f rtpanic.RecoverCallback
+	crashTimes := 0
 
-	f = func(stack []byte, _ error) {
+	f = func(stack []byte, err error) {
 		defer rtpanic.Recover(f, nil)
+
+		if stack != nil {
+			crashTimes++
+			l.Warnf("[%dth]input paniced: %v", crashTimes, err)
+			l.Warnf("[%dth]paniced trace: \n%s", crashTimes, string(stack))
+			if crashTimes > 6 {
+				return
+			}
+		}
 
 		du, err := time.ParseDuration(d.PullInterval)
 		if err != nil {
@@ -606,6 +616,7 @@ func newDefaultInput() *Input {
 	return &Input{
 		Tags:     map[string]string{},
 		curTasks: map[string]*dialer{},
+		semStop:  cliutils.NewSem(),
 		cli: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
