@@ -43,7 +43,8 @@ type Input struct {
 	EnableNetVirtualInterfaces bool     `toml:"enable_net_virtual_interfaces"`
 	IgnoreZeroBytesDisk        bool     `toml:"ignore_zero_bytes_disk"`
 	OnlyPhysicalDevice         bool     `toml:"only_physical_device"`
-	IgnoreFS                   []string `toml:"ignore_fs"`
+	ExtraDevice                []string `toml:"extra_device"`
+	ExcludeDevice              []string `toml:"exclude_device"`
 
 	CloudInfo map[string]string `toml:"cloud_info,omitempty"`
 
@@ -122,12 +123,16 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		l.Info("setup OnlyPhysicalDevice...")
 		ipt.OnlyPhysicalDevice = true
 	}
-
-	if x, ok := envs["ENV_INPUT_HOSTOBJECT_IGNORE_FILE_SYSTEM"]; ok {
-		l.Infof("setup IgnoreFS to %s...", x)
-		ipt.IgnoreFS = strings.Split(x, ",")
+	if fsList, ok := envs["ENV_INPUT_DISK_EXTRA_DEVICE"]; ok {
+		list := strings.Split(fsList, ",")
+		l.Debugf("add extra_device from ENV: %v", fsList)
+		ipt.ExtraDevice = append(ipt.ExtraDevice, list...)
 	}
-
+	if fsList, ok := envs["ENV_INPUT_DISK_EXCLUDE_DEVICE"]; ok {
+		list := strings.Split(fsList, ",")
+		l.Debugf("add exlude_device from ENV: %v", fsList)
+		ipt.ExcludeDevice = append(ipt.ExcludeDevice, list...)
+	}
 	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/505
 	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK"]; ok {
 		b, err := strconv.ParseBool(enable)

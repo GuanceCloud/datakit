@@ -243,7 +243,7 @@ func getNetInfo(enableVIfaces bool) ([]*NetInfo, error) {
 	return infos, nil
 }
 
-func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool) ([]*DiskInfo, error) {
+func getDiskInfo(excludeDevice []string, extraDevice []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool) ([]*DiskInfo, error) {
 	l.Debugf("get partitions(physical: %v)...", onlyPhysicalDevice)
 	ps, err := diskutil.Partitions(!onlyPhysicalDevice)
 	if err != nil {
@@ -252,21 +252,25 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 	}
 	var infos []*DiskInfo
 
-	excluded := func(x string) bool {
-		for _, fs := range ignoreFs {
-			return strings.EqualFold(x, fs)
+	excluded := func(x string, arr []string) bool {
+		for _, fs := range arr {
+			if strings.EqualFold(x, fs) {
+				return true
+			}
 		}
 		return false
 	}
 
 	for _, p := range ps {
 		l.Debugf("hostobject---fstype:%s ,device:%s ,mountpoint:%s ", p.Fstype, p.Device, p.Mountpoint)
-		if excluded(p.Fstype) {
-			continue
-		}
+
 		// nolint
-		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows {
+		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows && !excluded(p.Device, extraDevice) {
 			continue // 忽略该 partition
+		}
+
+		if excluded(p.Device, excludeDevice) {
+			continue
 		}
 
 		// merge same device
@@ -398,7 +402,7 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	}
 
 	l.Debugf("get disk info...")
-	disk, err := getDiskInfo(ipt.IgnoreFS, ipt.IgnoreZeroBytesDisk, ipt.OnlyPhysicalDevice)
+	disk, err := getDiskInfo(ipt.ExcludeDevice, ipt.ExtraDevice, ipt.IgnoreZeroBytesDisk, ipt.OnlyPhysicalDevice)
 	if err != nil {
 		return nil, err
 	}

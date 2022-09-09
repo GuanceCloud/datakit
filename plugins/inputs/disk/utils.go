@@ -6,10 +6,12 @@
 package disk
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"os"
 	"runtime"
 	"strings"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+
 	//nolint
 	"github.com/shirou/gopsutil/disk"
 )
@@ -45,9 +47,10 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 
 	excluded := func(x string, arr []string) bool {
 		for _, fs := range arr {
-			return strings.EqualFold(x, fs)
+			if strings.EqualFold(x, fs) {
+				return true
+			}
 		}
-
 		return false
 	}
 
@@ -58,16 +61,14 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 		p := parts[i]
 		l.Debugf("disk---fstype:%s ,device:%s ,mountpoint:%s ", p.Fstype, p.Device, p.Mountpoint)
 		// nolint
-		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows {
+		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows && !excluded(p.Device, dk.ipt.ExtraDevice) {
 			continue // 忽略该 partition
 		}
-		if len(dk.ipt.Fs) != 0 {
-			if !excluded(p.Fstype, dk.ipt.Fs) {
-				continue
-			}
-		} else if excluded(p.Fstype, dk.ipt.IgnoreFS) {
+
+		if excluded(p.Device, dk.ipt.ExcludeDevice) {
 			continue
 		}
+
 		mergerFlag := false
 		// merger device
 		for _, cont := range partitions {
