@@ -75,6 +75,7 @@ func (n *Input) RunPipeline() {
 		GlobalTags:        n.Tags,
 		CharacterEncoding: n.Log.CharacterEncoding,
 		MultilinePatterns: []string{n.Log.MultilineMatch},
+		Done:              n.semStop.Wait(),
 	}
 
 	var err error

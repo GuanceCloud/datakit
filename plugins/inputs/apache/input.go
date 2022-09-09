@@ -129,6 +129,7 @@ func (n *Input) RunPipeline() {
 		IgnoreStatus:      n.Log.IgnoreStatus,
 		CharacterEncoding: n.Log.CharacterEncoding,
 		MultilinePatterns: []string{`^\[\w+ \w+ \d+`},
+		Done:              n.semStop.Wait(),
 	}
 
 	var err error

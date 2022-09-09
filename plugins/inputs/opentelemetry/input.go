@@ -218,8 +218,8 @@ func (ipt *Input) RegHTTPHandler() {
 		}
 	}
 
-	log.Debugf("### register handler for /otel/v1/trace of agent %s", inputName)
-	log.Debugf("### register handler for /otel/v1/metric of agent %s", inputName)
+	log.Infof("### register handler for /otel/v1/trace of agent %s", inputName)
+	log.Infof("### register handler for /otel/v1/metric of agent %s", inputName)
 	dkHTTP.RegHTTPHandler("POST", "/otel/v1/trace", ipt.HTTPCol.apiOtlpTrace)
 	dkHTTP.RegHTTPHandler("POST", "/otel/v1/metric", ipt.HTTPCol.apiOtlpMetric)
 }
@@ -265,26 +265,27 @@ func (ipt *Input) Run() {
 		}
 	}
 
-	log.Debugf("### %s agent is running...", inputName)
+	log.Infof("### %s agent is running...", inputName)
 }
 
 func (ipt *Input) exit() {
 	ipt.GRPCCol.stop()
+	if storage != nil {
+		_ = storage.Close()
+		log.Info("openTelemetry storage closed")
+	}
+	if wpool != nil {
+		wpool.Shutdown()
+		log.Info("openTelemetry workerpool closed")
+	}
+	if spanStorage != nil {
+		spanStorage.Stop()
+	}
 }
 
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-	}
-	if wpool != nil {
-		wpool.Shutdown()
-		log.Debug("### workerpool closed")
-	}
-	if storage != nil {
-		if err := storage.Close(); err != nil {
-			log.Error(err.Error())
-		}
-		log.Debugf("### storage closed")
 	}
 }
 

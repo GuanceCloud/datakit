@@ -15,11 +15,11 @@
 在日志的采集过程中，DataKit 有主动、被动两大类采集方式：
 
 - 主动采集
-	- 直接采集[磁盘文件日志](logging.md)
-	- 采集[容器](container.md)产生的日志
+    - 直接采集[磁盘文件日志](logging.md)
+    - 采集[容器](container.md)产生的日志
 
 - 被动采集
-  - 通过 [HTTP](logstreaming.md)、[TCP/UDP](logging.md#socket) 以及 [Websocket](logfwd.md) 给 DataKit 注入日志
+    - 通过 [HTTP](logstreaming.md)、[TCP/UDP](logging.md#socket) 以及 [Websocket](logfwd.md) 给 DataKit 注入日志
 
 在这些不同形式的日志采集方式中，它们都要解决同一个核心问题：**DataKit 接下来如何处理这些日志？**
 
@@ -103,17 +103,17 @@ spec:
 如果对应的日志有配置 Pipeline 切割，那么每一条日志（含单条多行日志）都会通过 Pipeline 切割，Pipeline 主要又分为两个步骤：
 
   1. Grok/Json 切割：通过 Grok/Json，将单条 Raw 日志切割成结构化数据
-	1. 对提取出来的字段，再精细处理：比如[补全 IP 信息](../datakit/pipeline.md#fn-geoip)，[日志脱敏](../datakit/pipeline.md#fn-cover)等
+	1. 对提取出来的字段，再精细处理：比如[补全 IP 信息](../developers/pipeline.md#fn-geoip)，[日志脱敏](../developers/pipeline.md#fn-cover)等
 
 - 黑名单（Filter）
 
-[Filter 是一组过滤器](../datakit/datakit-filter.md)，它接收一组结构化数据，通过一定的逻辑判断，决定数据是否丢弃。Filter 是中心下发（DataKit 主动拉取）的一组逻辑运算规则，其形式大概如下：
+[Filter 是一组过滤器](datakit-filter.md)，它接收一组结构化数据，通过一定的逻辑判断，决定数据是否丢弃。Filter 是中心下发（DataKit 主动拉取）的一组逻辑运算规则，其形式大概如下：
 
 ```
 { source = 'datakit' AND bar IN [ 1, 2, 3] }
 ```
 
-如果中心配置了日志黑名单，假定切割出来的 100 条日志中，有 10 条满足这里的条件（即 source 为 `datakit`，且字段 `bar` 字段的值出现在后面的列表中），那么这 10 条日志将不会上报到观测云，被默默丢弃。在 [DataKit Monitor](../datakit/datakit-monitor.md) 中能看到丢弃的统计情况。
+如果中心配置了日志黑名单，假定切割出来的 100 条日志中，有 10 条满足这里的条件（即 source 为 `datakit`，且字段 `bar` 字段的值出现在后面的列表中），那么这 10 条日志将不会上报到观测云，被默默丢弃。在 [DataKit Monitor](datakit-monitor.md) 中能看到丢弃的统计情况。
 
 - 上报观测云
 
@@ -124,5 +124,5 @@ spec:
 ## 延申阅读 {#more-readings}
 
 - [DataKit 日志采集综述](datakit-logging.md)
-- [如何调试 Pipeline](../datakit/datakit-pl-how-to.md)
-- [行协议黑名过滤器](../datakit/datakit-filter.md)
+- [如何调试 Pipeline](../developers/datakit-pl-how-to.md)
+- [行协议黑名过滤器](datakit-filter.md)

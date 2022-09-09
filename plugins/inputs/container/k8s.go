@@ -17,30 +17,19 @@ import (
 // const k8sBearerToken = "/run/secrets/k8s.io/serviceaccount/token"
 
 type kubernetesInput struct {
+	ipt    *Input
 	client *k8sClient
-	cfg    *kubernetesInputConfig
 }
 
-type kubernetesInputConfig struct {
-	url               string
-	bearerToken       string
-	bearerTokenString string
-	extraTags         map[string]string
-
-	enablePodMetric bool
-	enableK8sMetric bool
-	election        bool
-}
-
-func newKubernetesInput(cfg *kubernetesInputConfig) (*kubernetesInput, error) {
-	k := &kubernetesInput{cfg: cfg}
+func newKubernetesInput(ipt *Input) (*kubernetesInput, error) {
+	k := &kubernetesInput{ipt: ipt}
 	var err error
 
 	//nolint:gocritic
-	if cfg.bearerTokenString != "" {
-		k.client, err = newK8sClientFromBearerTokenString(cfg.url, cfg.bearerTokenString)
-	} else if cfg.bearerToken != "" {
-		k.client, err = newK8sClientFromBearerToken(cfg.url, cfg.bearerToken)
+	if ipt.K8sBearerTokenString != "" {
+		k.client, err = newK8sClientFromBearerTokenString(ipt.K8sURL, ipt.K8sBearerTokenString)
+	} else if ipt.K8sBearerToken != "" {
+		k.client, err = newK8sClientFromBearerToken(ipt.K8sURL, ipt.K8sBearerToken)
 	} else {
 		err = fmt.Errorf("invalid bearerToken or bearerTokenString, cannot be empty")
 	}
@@ -60,18 +49,18 @@ func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 	)
 
 	for _, fn := range k8sResourceMetricList {
-		x := fn(k.client, k.cfg.extraTags)
+		x := fn(k.client, k.ipt.Tags)
 
-		if m, err := x.metric(k.cfg.election); err != nil {
+		if m, err := x.metric(k.ipt.Election); err != nil {
 			lastErr = err
 		} else {
 			switch x.name() {
 			case "pod":
-				if k.cfg.enablePodMetric {
+				if k.ipt.EnablePodMetric {
 					res = append(res, m...)
 				}
 			default:
-				if k.cfg.enableK8sMetric {
+				if k.ipt.EnableK8sMetric {
 					res = append(res, m...)
 				}
 			}
@@ -94,7 +83,7 @@ func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 		count := &count{
 			tags:     map[string]string{"namespace": ns},
 			fields:   map[string]interface{}{},
-			election: k.cfg.election,
+			election: k.ipt.Election,
 		}
 
 		for name, n := range ct {
@@ -113,8 +102,8 @@ func (k *kubernetesInput) gatherResourceObject() (inputsMeas, error) {
 	)
 
 	for _, fn := range k8sResourceObjectList {
-		x := fn(k.client, k.cfg.extraTags)
-		if m, err := x.object(k.cfg.election); err == nil {
+		x := fn(k.client, k.ipt.Tags)
+		if m, err := x.object(k.ipt.Election); err == nil {
 			res = append(res, m...)
 		} else {
 			lastErr = err
@@ -124,8 +113,8 @@ func (k *kubernetesInput) gatherResourceObject() (inputsMeas, error) {
 	return res, lastErr
 }
 
-func (k *kubernetesInput) watchingEventLog(stop <-chan interface{}) {
-	watchingEvent(k.client, k.cfg.extraTags, stop, k.cfg.election)
+func (k *kubernetesInput) watchingEventLog(done <-chan interface{}) {
+	watchingEvent(k.client, k.ipt.Tags, done, k.ipt.Election)
 }
 
 type k8sResourceMetricInterface interface {
