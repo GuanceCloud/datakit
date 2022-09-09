@@ -89,7 +89,7 @@ T::my_service { duration > 1000 } [10m] BY operation
 | --------- | -------                 | ---                | -----        | ---------                                                          | ----                                | -----            | ---                |
 | PromQL    | Prometheuse 指标查询    | 支持               | 不支持       | [支持](https://prometheus.io/docs/prometheus/latest/querying/api/){:target="_blank"} | 不支持                              | 支持             | [支持](https://prometheus.io/docs/prometheus/latest/querying/operators/#aggregation-operators){:target="_blank"}               |
 | LogQL     | 主要用于查询日志        | 支持从日志生成指标 | 支持         | [支持](https://grafana.com/docs/loki/latest/api/){:target="_blank"}                  | 支持                                | 支持             | [支持](https://grafana.com/docs/loki/latest/logql/#aggregation-operators){:target="_blank"}               |
-| DQL       | DataFlux 全平台数据查询 | 支持               | 支持         | [支持](../datakit/apis.md#api-raw-query){:target="_blank"}       | 不支持（在 DataKit 端已预先切割好） | 支持             | 支持               |
+| DQL       | DataFlux 全平台数据查询 | 支持               | 支持         | [支持](apis.md#api-raw-query){:target="_blank"}       | 不支持（在 DataKit 端已预先切割好） | 支持             | 支持               |
 
 ### 数据处理函数支持情况 {#funcs}
 

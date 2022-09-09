@@ -116,10 +116,10 @@ $ datakit --pl test.p --txt "$(<multi-line.log)"
 
 ### Pipeline 字段命名注意事项 {#naming}
 
-在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](apis.md#lineproto-limitation)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
+在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](../datakit/apis.md#lineproto-limitation)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
 
-- DataKit 中的[全局 Tag](datakit-conf.md#set-global-tag)
-- 日志采集器中[自定义的 Tag](logging.md#measurements)
+- DataKit 中的[全局 Tag](../datakit/datakit-conf.md#set-global-tag)
+- 日志采集器中[自定义的 Tag](../datakit/logging.md#measurements)
 
 另外，所有采集上来的日志，均存在如下多个保留字段。==我们不应该去覆盖这些字段==，否则可能导致数据在查看器页面显示不正常。
 
@@ -127,7 +127,7 @@ $ datakit --pl test.p --txt "$(<multi-line.log)"
 | ---       | ----          | ----                                  |
 | `source`  | string(tag)   | 日志来源                              |
 | `service` | string(tag)   | 日志对应的服务，默认跟 `service` 一样 |
-| `status`  | string(tag)   | 日志对应的[等级](logging.md#status)   |
+| `status`  | string(tag)   | 日志对应的[等级](../datakit/logging.md#status)   |
 | `message` | string(field) | 原始日志                              |
 | `time`    | int           | 日志对应的时间戳                      |
 

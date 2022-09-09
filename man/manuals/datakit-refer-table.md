@@ -2,7 +2,7 @@
 
 # Reference Table
 
-[:octicons-tag-24: Version-1.4.11](../datakit/changelog.md#cl-1.4.6) ·
+[:octicons-tag-24: Version-1.4.11](../datakit/changelog.md#cl-1.4.11) ·
 [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
 ---

@@ -70,8 +70,8 @@ Tracing 类数据的 tag 统一在[这里](ddtrace.md#measurements)
 - [Android](../real-user-monitoring/android/app-data-collection.md)
 - [iOS](../real-user-monitoring/ios/app-data-collection.md)
 - [小程序](../real-user-monitoring/miniapp/app-data-collection.md)
-- [Flutter](../real-user-monitoring/third-party-framework/flutter/app-data-collection.md)
-- [React Native](../real-user-monitoring/third-party-framework/react-native/app-data-collection.md)
+- [Flutter](../real-user-monitoring/flutter/app-data-collection.md)
+- [React Native](../real-user-monitoring/react-native/app-data-collection.md)
 
 ### Scheck {#S}
 

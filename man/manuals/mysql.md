@@ -30,6 +30,7 @@ CREATE USER 'datakit'@'localhost' IDENTIFIED WITH mysql_native_password by '<UNI
 
 ```sql
 GRANT PROCESS ON *.* TO 'datakit'@'localhost';
+GRANT SELECT ON *.* TO 'datakit'@'localhost';
 show databases like 'performance_schema';
 GRANT SELECT ON performance_schema.* TO 'datakit'@'localhost';
 GRANT SELECT ON mysql.user TO 'datakit'@'localhost';
@@ -232,7 +233,7 @@ UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events
 
 ### 日志 {#logging}
 
-[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)
+[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
 
 {{ range $i, $m := .Measurements }}
 
