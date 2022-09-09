@@ -77,7 +77,6 @@
 | --- | ---- | ---- |
 | device | string | 分区名 |
 | total | int | 分区总字节数 |
-| mountpoint | string | 挂载点 |
 | fstype | string | 文件系统 |
 
 ---
@@ -132,7 +131,6 @@
             "disk": [{
                 "device": "/dev/vda1",
                 "total": 42139451392,
-                "mountpoint": "/",
                 "fstype": "ext4"
             }]
         },

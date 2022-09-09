@@ -36,7 +36,8 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
     | `ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK`        | `ignore_zero_bytes_disk`        | 忽略大小为 0 的磁盘                                                | `true`/`false`                                                                                             |
     | `ENV_INPUT_HOSTOBJECT_TAGS`                          | `tags`                          | 增加额外标签                                                       | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它                                               |
     | `ENV_INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE`          | `only_physical_device`          | 忽略非物理磁盘（如网盘、NFS 等，只采集本机硬盘/CD ROM/USB 磁盘等） | 任意给一个字符串值即可                                                                                     |
-    | `ENV_INPUT_HOSTOBJECT_IGNORE_FILE_SYSTEM`            | `ignore_fs`                     | 忽略的文件系统类型列表                                             | 英文逗号分隔的文件系统类型列表，当前默认列表为 `tmpfs,devtmpfs,devfs,iso9660,overlay,autofs,squashfs,aufs` |
+    | `ENV_INPUT_HOSTOBJECT_EXCLUDE_DEVICE`                      | `exclude_device`                | 忽略的device                                | `"/dev/loop0","/dev/loop1"` 以英文逗号隔开                      |
+    | `ENV_INPUT_HOSTOBJECT_EXTRA_DEVICE`                        | `extra_device`                  | 额外增加的device                            | `"/nfsdata"` 以英文逗号隔开                      |
     | `ENV_CLOUD_PROVIDER`                                 | `tags`                          | 指定云服务商                                                       | `aliyun/aws/tencent/hwcloud/azure`                                                                         |
 
 ## 开启云同步 {#cloudinfo}

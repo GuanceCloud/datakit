@@ -138,6 +138,7 @@ func (i *Input) RunPipeline() {
 		Service:    inputName,
 		Pipeline:   i.Pipeline,
 		GlobalTags: i.Tags,
+		Done:       i.semStop.Wait(),
 	}
 
 	var err error

@@ -19,8 +19,14 @@ const (
 ##############################
 # Disk related options
 ##############################
-## Ignore mount points by filesystem type. Default ignored following FS types
+## Deprecated
 # ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "autofs", "squashfs", "aufs"]
+
+## We collect all devices prefixed with dev by default,If you want to collect additional devices, it's in extra_device add
+# extra_device = []
+
+## exclude some with dev prefix (We collect all devices prefixed with dev by default)
+# exclude_device = ["/dev/loop0","/dev/loop1"]
 
 # Physical devices only (e.g. hard disks, cd-rom drives, USB keys)
 # and ignore all others (e.g. memory partitions such as /dev/shm)

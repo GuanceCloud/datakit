@@ -208,7 +208,7 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"container_id":           inputs.NewTagInfo(`容器 ID`),
 			"container_name":         inputs.NewTagInfo(`k8s 命名的容器名（在 labels 中取 'io.kubernetes.container.name'），如果值为空则跟 container_runtime_name 相同`),
-			"container_runtime_name": inputs.NewTagInfo(`由 runtime 命名的容器名（例如 docker ps 查看），如果值为空则默认是 unknown（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)）`),
+			"container_runtime_name": inputs.NewTagInfo(`由 runtime 命名的容器名（例如 docker ps 查看），如果值为空则默认是 unknown（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）`),
 			"docker_image":           inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
 			"linux_namespace":        inputs.NewTagInfo(`该容器所在的 [linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html)`),
 			"image":                  inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),

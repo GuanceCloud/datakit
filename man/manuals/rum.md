@@ -12,11 +12,11 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 <div class="grid cards" markdown>
 - :material-web: [__JavaScritp__](../real-user-monitoring/web/app-access.md)
-- :material-wechat: [__微信小程序__](../real-user-monitoring/miniapp/app-access/index.md)
+- :material-wechat: [__微信小程序__](../real-user-monitoring/miniapp/app-access.md)
 - :material-android: [__Android__](../real-user-monitoring/android/app-access.md)
 - :material-apple-ios: [__iOS__](../real-user-monitoring/ios/app-access.md)
-- [__Flutter__](../real-user-monitoring/third-party-framework/flutter/app-access.md)
-- :material-react:[__ReactNative__](../real-user-monitoring/third-party-framework/react-native/app-access.md)
+- [__Flutter__](../real-user-monitoring/flutter/app-access.md)
+- :material-react:[__ReactNative__](../real-user-monitoring/react-native/app-access.md)
 </div>
 
 ## 前置条件 {#requirements}
@@ -25,8 +25,8 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 建议将 RUM 以单独的方式部署在公网上，==不要跟已有的服务部署在一起==（如 Kubernetes 集群）。因为 RUM 这个接口上的流量可能很大，集群内部的流量会被它干扰到，而且一些可能的集群内部资源调度机制，可能影响 RUM 服务的运行。
 
-- 在 DataKit 上[安装 IP 地理信息库](../datakit/datakit-tools-how-to.md#install-ipdb)
-    - 自 [1.2.7](../datakit/changelog.md#cl-1.2.7) 之后，由于调整了 IP 地理信息库的安装方式，默认安装不再自带 IP 信息库，需手动安装
+- 在 DataKit 上[安装 IP 地理信息库](datakit-tools-how-to.md#install-ipdb)
+- 自 [1.2.7](changelog.md#cl-1.2.7) 之后，由于调整了 IP 地理信息库的安装方式，默认安装不再自带 IP 信息库，需手动安装
 
 ## 配置 {#config}
 
@@ -48,7 +48,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 === "Kubernetes"
 
-    在 datakit.yaml 中，环境变量增加环境变量
+    在 datakit.yaml 中，环境变量 `ENV_DEFAULT_ENABLED_INPUTS` 增加 rum 采集器名称（如下 `value` 中第一个所示）：
 
     ```yaml
     - name: ENV_DEFAULT_ENABLED_INPUTS
@@ -57,7 +57,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 ## 安全限制 {#security-setting}
 
-由于 RUM DataKit 一般部署在公网环境，但是只会使用其中特定的 [DataKit API](../datakit/apis.md) 接口，其它接口是不能开放的。通过如下方式可加强 API 访问控制，在 *datakit.conf* 中，修改如下 *public_apis* 字段配置：
+由于 RUM DataKit 一般部署在公网环境，但是只会使用其中特定的 [DataKit API](apis.md) 接口，其它接口是不能开放的。通过如下方式可加强 API 访问控制，在 *datakit.conf* 中，修改如下 *public_apis* 字段配置：
 
 ```toml
 [http_api]
@@ -75,7 +75,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
   ]
 ```
 
-其它接口依然可用，但只能通过 DataKit 本机访问，比如[查询 DQL](../datakit/datakit-dql-how-to.md) 或者查看 [DataKit 运行状态](../datakit/datakit-tools-how-to.md#using-monitor)。
+其它接口依然可用，但只能通过 DataKit 本机访问，比如[查询 DQL](datakit-dql-how-to.md) 或者查看 [DataKit 运行状态](datakit-tools-how-to.md#using-monitor)。
 
 ### 禁用 DataKit 404 页面 {#disable-404}
 

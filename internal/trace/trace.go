@@ -19,8 +19,10 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"google.golang.org/protobuf/proto"
@@ -376,9 +378,11 @@ type Storage struct {
 	Capacity int    `json:"capacity"`
 	Consumer int    `json:"consumer"`
 	cache    *cache.DiskCache
+	exit     *cliutils.Sem
 }
 
 func (s *Storage) SetCache(cache *cache.DiskCache) {
+	s.exit = cliutils.NewSem()
 	if cache == nil {
 		return
 	} else {
@@ -431,11 +435,22 @@ func (s *Storage) RunStorageConsumer(log *logger.Logger, paramHandler func(param
 					log.Error(err.Error())
 				}
 			}
+
+			select {
+			case <-s.exit.Wait():
+				log.Infof("on exit, storage stop on path '%s' exit", s.Path)
+				return nil
+			case <-datakit.Exit.Wait():
+				log.Infof("on datakit exit, stop on path '%s' exit", s.Path)
+				return nil
+			default:
+			}
 		}
 	})
 }
 
 func (s *Storage) Close() error {
+	s.exit.Close()
 	if s.cache != nil {
 		return s.cache.Close()
 	}

@@ -32,6 +32,7 @@ type dialer struct {
 	category string
 
 	failCnt int
+	done    <-chan interface{}
 }
 
 func (d *dialer) updateTask(t dt.Task) error {
@@ -80,6 +81,10 @@ func (d *dialer) run() error {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
+			l.Infof("dial testing %s exit", d.task.ID())
+			return nil
+
+		case <-d.done:
 			l.Infof("dial testing %s exit", d.task.ID())
 			return nil
 

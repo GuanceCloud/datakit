@@ -116,6 +116,10 @@ func (s *SpansStorage) Run() {
 	}
 }
 
+func (s *SpansStorage) Stop() {
+	s.stop <- struct{}{}
+}
+
 // feedAll : trace -> io.trace  |  metric -> io.
 func (s *SpansStorage) feedAll() {
 	traces := s.GetDKTrace()

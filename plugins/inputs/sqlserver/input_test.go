@@ -9,9 +9,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	_ "github.com/denisenkom/go-mssqldb"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCon(t *testing.T) {
