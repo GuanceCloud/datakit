@@ -100,5 +100,11 @@ func apiQueryRaw(w http.ResponseWriter, r *http.Request, x ...interface{}) (inte
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
-	return respBody, nil
+
+	var respObj interface{} // make sure always response with content-type application/json
+	if err := json.Unmarshal(respBody, &respObj); err != nil {
+		return nil, fmt.Errorf("invalid json body: %w", err)
+	} else {
+		return respObj, nil
+	}
 }

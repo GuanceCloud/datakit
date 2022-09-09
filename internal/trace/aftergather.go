@@ -129,7 +129,7 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod
 		)
 	IO_FEED_RETRY:
 		if err = dkioFeed(inputName, datakit.Tracing, pts, nil); err != nil {
-			log.Errorf("### io feed points error: %s", err.Error())
+			log.Warnf("### io feed points failed: %s, ignored", err.Error())
 			if aga.ReFeedInterval > 0 && errors.Is(err, dkio.ErrIOBusy) {
 				time.Sleep(aga.ReFeedInterval)
 				goto IO_FEED_RETRY

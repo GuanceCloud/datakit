@@ -114,6 +114,7 @@ func (i *Input) RunPipeline() {
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
 		MultilinePatterns: []string{i.Log.MultilineMatch},
+		Done:              i.SemStop.Wait(),
 	}
 
 	var err error
@@ -132,16 +133,6 @@ func (i *Input) RunPipeline() {
 }
 
 func (i *Input) Run() {
-	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_tomcat"})
-	g.Go(func(ctx context.Context) error {
-		for {
-			<-datakit.Exit.Wait()
-			if i.tail != nil {
-				i.tail.Close() //nolint:errcheck
-			}
-		}
-	})
-
 	if d, err := time.ParseDuration(i.JolokiaAgent.Interval); err != nil {
 		i.JolokiaAgent.Interval = (time.Second * 10).String()
 	} else {
@@ -151,6 +142,12 @@ func (i *Input) Run() {
 	i.JolokiaAgent.Tags = i.Tags
 	i.JolokiaAgent.Types = TomcatMetricType
 	i.JolokiaAgent.Collect()
+}
+
+func (i *Input) Terminate() {
+	if i.SemStop != nil {
+		i.SemStop.Close()
+	}
 }
 
 func init() { //nolint:gochecknoinits

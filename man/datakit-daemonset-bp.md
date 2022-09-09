@@ -2,7 +2,7 @@
 # DataKit DaemonSet 部署最佳实践
 ---
 
-由于 [Datakit DaemonSet](../datakit/datakit-daemonset-deploy.md) 配置管理非常复杂，此篇文章将介绍配置管理最佳实践。本篇将以配置 MySQL 和 Java Pipeline 为演示案例。
+由于 [Datakit DaemonSet](datakit-daemonset-deploy.md) 配置管理非常复杂，此篇文章将介绍配置管理最佳实践。本篇将以配置 MySQL 和 Java Pipeline 为演示案例。
 
 本篇将描述以下2种不同的管理方法:
 
@@ -156,15 +156,15 @@ $ kubectl get pods -n datakit
 
 ### yaml 安装注入 {#yaml-install}
 
-可参考 [DaemonSet ConfigMap 设置](../datakit/datakit-daemonset-deploy.md#configmap-setting)
+可参考 [DaemonSet ConfigMap 设置](datakit-daemonset-deploy.md#configmap-setting)
 
 ## 启用 Git 管理配置 {#enable-git}
 
-由于 ConfigMap 注入灵活，但不易管理特性，我们可以采用 Git 仓库来管理我们的配置。启用 [Git 管理](../datakit/datakit-conf.md#using-gitrepo) ，DataKit 会定时 pull 远程仓库的配置，既不需要频繁修改 ConfigMap，也不需要重启 DataKit，更重要的是有修改记录，可回滚配置。
+由于 ConfigMap 注入灵活，但不易管理特性，我们可以采用 Git 仓库来管理我们的配置。启用 [Git 管理](datakit-conf.md#using-gitrepo) ，DataKit 会定时 pull 远程仓库的配置，既不需要频繁修改 ConfigMap，也不需要重启 DataKit，更重要的是有修改记录，可回滚配置。
 
 > 注意：
 > - 如果启用 Git 管理配置，则 ConfigMap 将失效
-> - 由于会[自动启动一些采集器](../datakit/datakit-input-conf.md#default-enabled-inputs)，故在 Git 仓库中，不要再放置这些自启动的采集器配置，不然会导致这些数据的多份采集
+> - 由于会[自动启动一些采集器](datakit-input-conf.md#default-enabled-inputs)，故在 Git 仓库中，不要再放置这些自启动的采集器配置，不然会导致这些数据的多份采集
 
 ### 前提条件 {#git-requirements}
 
@@ -173,7 +173,7 @@ $ kubectl get pods -n datakit
 
 以 MySQL 采集器 mysql.conf 和 Java 日志的 Pipeline 脚本（java.p）为例
 
-> 参见 [Git 仓库中目录结构约束](../datakit/datakit-conf.md#gitrepo-limitation)
+> 参见 [Git 仓库中目录结构约束](datakit-conf.md#gitrepo-limitation)
 
 Git 仓库目录结构为：
 
@@ -324,6 +324,6 @@ $ ls gitrepos
 
 ## 更多阅读 {#more-readings}
 
-- [DataKit 采集器配置](../datakit/datakit-input-conf.md)
-- [DataKit 主配置](../datakit/datakit-conf.md)
-- [DataKit Daemonset 部署](../datakit/datakit-daemonset-deploy.md)
+- [DataKit 采集器配置](datakit-input-conf.md)
+- [DataKit 主配置](datakit-conf.md)
+- [DataKit Daemonset 部署](datakit-daemonset-deploy.md)

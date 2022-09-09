@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 )
 
 func TestInput_AvailableArchs(t *testing.T) {
@@ -186,8 +187,10 @@ func TestInput_exit(t *testing.T) {
 		Ogrpc *otlpGrpcCollector
 	}
 	tests := []struct {
-		name   string
-		fields fields
+		name     string
+		fields   fields
+		storage  *collector.SpansStorage
+		iStorage *itrace.Storage
 	}{
 		{
 			name: "case1_stopFunc_is_nil",
@@ -196,6 +199,8 @@ func TestInput_exit(t *testing.T) {
 				MetricEnable: false,
 				Addr:         "",
 			}},
+			storage:  collector.NewSpansStorage(nil),
+			iStorage: &itrace.Storage{},
 		},
 		{
 			name: "case2_not_fil",
@@ -207,10 +212,17 @@ func TestInput_exit(t *testing.T) {
 					t.Log("to stop")
 				},
 			}},
+			storage:  nil,
+			iStorage: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			spanStorage = tt.storage
+			if tt.iStorage != nil {
+				tt.iStorage.SetCache(nil)
+			}
+			storage = tt.iStorage
 			i := &Input{
 				GRPCCol: tt.fields.Ogrpc,
 			}

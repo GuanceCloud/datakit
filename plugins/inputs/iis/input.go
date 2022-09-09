@@ -86,6 +86,7 @@ func (i *Input) RunPipeline() {
 		Service:    "iis",
 		Pipeline:   i.Log.Pipeline,
 		GlobalTags: i.Tags,
+		Done:       i.semStop.Wait(),
 	}
 
 	var err error

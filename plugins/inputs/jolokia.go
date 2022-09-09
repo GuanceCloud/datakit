@@ -65,14 +65,14 @@ type JolokiaAgent struct {
 	Tags  map[string]string `toml:"-"`
 	Types map[string]string `toml:"-"`
 
-	semStop *cliutils.Sem // start stop signal
+	SemStop *cliutils.Sem `toml:"-"` // start stop signal
 }
 
 func (j *JolokiaAgent) Collect() {
 	log = logger.SLogger("jolokia")
 
-	if j.semStop == nil {
-		j.semStop = cliutils.NewSem()
+	if j.SemStop == nil {
+		j.SemStop = cliutils.NewSem()
 	}
 
 	if j.L == nil {
@@ -115,7 +115,7 @@ func (j *JolokiaAgent) Collect() {
 			j.L.Infof("input %s exit", j.PluginName)
 			return
 
-		case <-j.semStop.Wait():
+		case <-j.SemStop.Wait():
 			j.L.Infof("input %s return", j.PluginName)
 			return
 		}
@@ -123,8 +123,8 @@ func (j *JolokiaAgent) Collect() {
 }
 
 func (j *JolokiaAgent) Terminate() {
-	if j.semStop != nil {
-		j.semStop.Close()
+	if j.SemStop != nil {
+		j.SemStop.Close()
 	}
 }
 

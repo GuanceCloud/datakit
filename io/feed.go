@@ -148,7 +148,6 @@ func unblockingFeed(job *iodata, ch chan *iodata) error {
 	select {
 	case ch <- job:
 		return nil
-
 	case <-datakit.Exit.Wait():
 		log.Warnf("%s/%s feed skipped on global exit", job.category, job.from)
 		return fmt.Errorf("feed on global exit")

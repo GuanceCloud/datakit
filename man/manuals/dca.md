@@ -141,7 +141,7 @@ DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打�
 
 #### 查看日志 Pipeline {#view-pipeline}
 
-远程连接到 DataKit 以后，点击「Pipelines」，即可查看 DataKit 默认自带的 pipeline 文件。关于 pipeline 可参考文档 [文本数据处理](../datakit/pipeline.md) 。
+远程连接到 DataKit 以后，点击「Pipelines」，即可查看 DataKit 默认自带的 pipeline 文件。关于 pipeline 可参考文档 [文本数据处理](pipeline.md) 。
 
 <figure markdown>
   ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca_2_5.png){ width="800" }

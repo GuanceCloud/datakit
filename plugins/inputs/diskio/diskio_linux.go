@@ -22,7 +22,7 @@ func (i *Input) diskInfo(devName string) (map[string]string, error) {
 	var err error
 	var stat unix.Stat_t
 
-	path := "/dev/" + devName
+	path := devName
 	err = unix.Stat(path, &stat)
 	if err != nil {
 		return nil, err

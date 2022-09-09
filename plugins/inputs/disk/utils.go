@@ -7,9 +7,12 @@ package disk
 
 import (
 	"os"
-	"path/filepath"
+	"runtime"
 	"strings"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+
+	//nolint
 	"github.com/shirou/gopsutil/disk"
 )
 
@@ -44,34 +47,38 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 
 	excluded := func(x string, arr []string) bool {
 		for _, fs := range arr {
-			if x == fs {
+			if strings.EqualFold(x, fs) {
 				return true
 			}
 		}
-
 		return false
 	}
 
 	var usage []*disk.UsageStat
 	var partitions []*disk.PartitionStat
-	hostMountPrefix := dk.OSGetenv("HOST_MOUNT_PREFIX")
 
 	for i := range parts {
 		p := parts[i]
-		if len(dk.ipt.Mountpoints) != 0 {
-			if !excluded(p.Mountpoint, dk.ipt.Mountpoints) {
-				continue
-			}
-		} else if excluded(p.Mountpoint, dk.ipt.IgnoreMountPoints) {
+		l.Debugf("disk---fstype:%s ,device:%s ,mountpoint:%s ", p.Fstype, p.Device, p.Mountpoint)
+		// nolint
+		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows && !excluded(p.Device, dk.ipt.ExtraDevice) {
+			continue // 忽略该 partition
+		}
+
+		if excluded(p.Device, dk.ipt.ExcludeDevice) {
 			continue
 		}
 
-		// If the mount point is a member of the exclude set, don't gather info on it.
-		if len(dk.ipt.Fs) != 0 {
-			if !excluded(p.Fstype, dk.ipt.Fs) {
-				continue
+		mergerFlag := false
+		// merger device
+		for _, cont := range partitions {
+			if cont.Device == p.Device {
+				mergerFlag = true
+				break
 			}
-		} else if excluded(p.Fstype, dk.ipt.IgnoreFS) {
+		}
+
+		if mergerFlag {
 			continue
 		}
 
@@ -80,8 +87,8 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 			continue
 		}
 
-		du.Path = filepath.Join("/", strings.TrimPrefix(p.Mountpoint, hostMountPrefix))
 		du.Fstype = p.Fstype
+
 		usage = append(usage, du)
 		partitions = append(partitions, &p)
 	}
@@ -109,8 +116,4 @@ func (opts MountOptions) exists(opt string) bool {
 		}
 	}
 	return false
-}
-
-func parseOptions(opts string) MountOptions {
-	return strings.Split(opts, ",")
 }
