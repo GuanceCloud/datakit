@@ -55,7 +55,7 @@ var (
   # fs = ["ext2", "ext3", "ext4", "NTFS"]
   
   ## We collect all devices prefixed with dev by default,If you want to collect additional devices, it's in extra_device add
-  # extra_device = []
+  # extra_device = ["/nfsdata"]
 
   ## exclude some with dev prefix (We collect all devices prefixed with dev by default)
   # exclude_device = ["/dev/loop0","/dev/loop1"]
