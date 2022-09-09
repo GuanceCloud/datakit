@@ -12,11 +12,11 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 <div class="grid cards" markdown>
 - :material-web: [__JavaScritp__](../real-user-monitoring/web/app-access.md)
-- :material-wechat: [__微信小程序__](../real-user-monitoring/miniapp/app-access/index.md)
+- :material-wechat: [__微信小程序__](../real-user-monitoring/miniapp/app-access.md)
 - :material-android: [__Android__](../real-user-monitoring/android/app-access.md)
 - :material-apple-ios: [__iOS__](../real-user-monitoring/ios/app-access.md)
-- [__Flutter__](../real-user-monitoring/third-party-framework/flutter/app-access.md)
-- :material-react:[__ReactNative__](../real-user-monitoring/third-party-framework/react-native/app-access.md)
+- [__Flutter__](../real-user-monitoring/flutter/app-access.md)
+- :material-react:[__ReactNative__](../real-user-monitoring/react-native/app-access.md)
 </div>
 
 ## 前置条件 {#requirements}
@@ -26,7 +26,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 建议将 RUM 以单独的方式部署在公网上，==不要跟已有的服务部署在一起==（如 Kubernetes 集群）。因为 RUM 这个接口上的流量可能很大，集群内部的流量会被它干扰到，而且一些可能的集群内部资源调度机制，可能影响 RUM 服务的运行。
 
 - 在 DataKit 上[安装 IP 地理信息库](datakit-tools-how-to.md#install-ipdb)
-    - 自 [1.2.7](changelog.md#cl-1.2.7) 之后，由于调整了 IP 地理信息库的安装方式，默认安装不再自带 IP 信息库，需手动安装
+- 自 [1.2.7](changelog.md#cl-1.2.7) 之后，由于调整了 IP 地理信息库的安装方式，默认安装不再自带 IP 信息库，需手动安装
 
 ## 配置 {#config}
 
