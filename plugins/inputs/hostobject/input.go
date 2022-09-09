@@ -123,12 +123,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		l.Info("setup OnlyPhysicalDevice...")
 		ipt.OnlyPhysicalDevice = true
 	}
-	if fsList, ok := envs["ENV_INPUT_DISK_EXTRA_DEVICE"]; ok {
+	if fsList, ok := envs["ENV_INPUT_HOSTOBJECT_EXTRA_DEVICE"]; ok {
 		list := strings.Split(fsList, ",")
 		l.Debugf("add extra_device from ENV: %v", fsList)
 		ipt.ExtraDevice = append(ipt.ExtraDevice, list...)
 	}
-	if fsList, ok := envs["ENV_INPUT_DISK_EXCLUDE_DEVICE"]; ok {
+	if fsList, ok := envs["ENV_INPUT_HOSTOBJECT_EXCLUDE_DEVICE"]; ok {
 		list := strings.Split(fsList, ",")
 		l.Debugf("add exlude_device from ENV: %v", fsList)
 		ipt.ExcludeDevice = append(ipt.ExcludeDevice, list...)
