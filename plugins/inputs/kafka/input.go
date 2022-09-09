@@ -9,6 +9,7 @@ package kafka
 import (
 	"context"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -148,6 +149,10 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			JolokiaAgent: inputs.JolokiaAgent{
+				SemStop: cliutils.NewSem(),
+			},
+		}
 	})
 }

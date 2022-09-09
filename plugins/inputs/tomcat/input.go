@@ -10,6 +10,7 @@ import (
 	"context"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -152,7 +153,10 @@ func (i *Input) Terminate() {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		i := &Input{}
-		return i
+		return &Input{
+			JolokiaAgent: inputs.JolokiaAgent{
+				SemStop: cliutils.NewSem(),
+			},
+		}
 	})
 }
