@@ -37,7 +37,7 @@ var testData = map[string]IOCountersStat{
 		IopsInProgress:   0,
 		IoTime:           40,
 		WeightedIO:       36,
-		Name:             "loop0",
+		Name:             "/dev/loop0",
 		SerialNumber:     "",
 		Label:            "",
 	},
@@ -53,7 +53,7 @@ var testData = map[string]IOCountersStat{
 		IopsInProgress:   0,
 		IoTime:           20,
 		WeightedIO:       8,
-		Name:             "loop1",
+		Name:             "/dev/loop1",
 		SerialNumber:     "",
 		Label:            "",
 	},
@@ -69,7 +69,7 @@ var testData = map[string]IOCountersStat{
 		IopsInProgress:   0,
 		IoTime:           608,
 		WeightedIO:       465,
-		Name:             "sda",
+		Name:             "/dev/sda",
 		SerialNumber:     "",
 		Label:            "",
 	},
@@ -85,7 +85,7 @@ var testData = map[string]IOCountersStat{
 		IopsInProgress:   0,
 		IoTime:           36,
 		WeightedIO:       20,
-		Name:             "sda1",
+		Name:             "/dev/sda1",
 		SerialNumber:     "",
 		Label:            "",
 	},
@@ -101,11 +101,11 @@ var testData = map[string]IOCountersStat{
 		IopsInProgress:   0,
 		IoTime:           28,
 		WeightedIO:       26,
-		Name:             "sda2",
+		Name:             "/dev/sda2",
 		SerialNumber:     "",
 		Label:            "",
 	},
-	"sdb": {
+	"/dev/sdb": {
 		ReadCount:        1000749,
 		MergedReadCount:  392242,
 		WriteCount:       552776,
@@ -117,11 +117,11 @@ var testData = map[string]IOCountersStat{
 		IopsInProgress:   0,
 		IoTime:           643584,
 		WeightedIO:       904930,
-		Name:             "sdb",
+		Name:             "/dev/sdb",
 		SerialNumber:     "",
 		Label:            "",
 	},
-	"sdb1": {
+	"/dev/sdb1": {
 		ReadCount:        198,
 		MergedReadCount:  29,
 		WriteCount:       2,
@@ -133,11 +133,11 @@ var testData = map[string]IOCountersStat{
 		IopsInProgress:   0,
 		IoTime:           184,
 		WeightedIO:       206,
-		Name:             "sdb1",
+		Name:             "/dev/sdb1",
 		SerialNumber:     "",
 		Label:            "",
 	},
-	"sdb2": {
+	"/dev/sdb2": {
 		ReadCount:        58,
 		MergedReadCount:  0,
 		WriteCount:       0,
@@ -149,11 +149,11 @@ var testData = map[string]IOCountersStat{
 		IopsInProgress:   0,
 		IoTime:           36,
 		WeightedIO:       31,
-		Name:             "sdb2",
+		Name:             "/dev/sdb2",
 		SerialNumber:     "",
 		Label:            "",
 	},
-	"sdb3": {
+	"/dev/sdb3": {
 		ReadCount:        503575,
 		MergedReadCount:  253655,
 		WriteCount:       437354,
@@ -165,7 +165,7 @@ var testData = map[string]IOCountersStat{
 		IopsInProgress:   0,
 		IoTime:           500292,
 		WeightedIO:       632923,
-		Name:             "sdb3",
+		Name:             "/dev/sdb3",
 		SerialNumber:     "",
 		Label:            "",
 	},
@@ -258,7 +258,7 @@ func TestF(t *testing.T) {
 		tagindex[xM.tags["name"]] = index
 		tagname = append(tagname, xM.tags["name"])
 	}
-	collectCache := []inputs.Measurement{}
+	var collectCache []inputs.Measurement
 	sort.Strings(tagname)
 
 	for _, x := range tagname {

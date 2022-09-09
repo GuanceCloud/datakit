@@ -36,23 +36,29 @@ var (
 [[inputs.disk]]
   ##(optional) collect interval, default is 10 seconds
   interval = '10s'
-  
-  ## Note: FS and mountpoint are dual filtering. If you want to filter data only through mountpoint, you need to close the two configurations of FS.
-  ## Ignore mount points.
-  # ignore_mount_points = ["/"]
-
-  ## just collect this,once mount_points is configured, ignore_mount_points will fail
-  # mount_points = ["/"]
 
   # Physical devices only (e.g. hard disks, cd-rom drives, USB keys)
   # and ignore all others (e.g. memory partitions such as /dev/shm)
   only_physical_device = false
 
-  ## Ignore mount points by filesystem type.
+  ## Deprecated
+  # ignore_mount_points = ["/"]
+
+  ## Deprecated
+  # mount_points = ["/"]
+
+
+  ## Deprecated
   # ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
 
-  ## just collect this,once fs is configured, ignore_fs will fail
-  fs = ["ext2", "ext3", "ext4", "ntfs"]
+  ## Deprecated
+  # fs = ["ext2", "ext3", "ext4", "NTFS"]
+  
+  ## We collect all devices prefixed with dev by default,If you want to collect additional devices, it's in extra_device add
+  # extra_device = ["/nfsdata"]
+
+  ## exclude some with dev prefix (We collect all devices prefixed with dev by default)
+  # exclude_device = ["/dev/loop0","/dev/loop1"]
   [inputs.disk.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"`
@@ -128,11 +134,9 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 type Input struct {
 	Interval datakit.Duration
 
-	Tags              map[string]string `toml:"tags"`
-	IgnoreMountPoints []string          `toml:"ignore_mount_points"`
-	Mountpoints       []string          `toml:"mount_points"`
-	IgnoreFS          []string          `toml:"ignore_fs"`
-	Fs                []string          `toml:"fs"`
+	Tags          map[string]string `toml:"tags"`
+	ExtraDevice   []string          `toml:"extra_device"`
+	ExcludeDevice []string          `toml:"exclude_device"`
 
 	IgnoreZeroBytesDisk bool `toml:"ignore_zero_bytes_disk"`
 	OnlyPhysicalDevice  bool `toml:"only_physical_device"`
@@ -183,12 +187,10 @@ func (ipt *Input) Collect() error {
 			// Skip dummy filesystem (procfs, cgroupfs, ...)
 			continue
 		}
-		mountOpts := parseOptions(partitions[index].Opts)
+
 		tags := map[string]string{
-			"path":   du.Path,
-			"device": strings.ReplaceAll(partitions[index].Device, "/dev/", ""),
+			"device": partitions[index].Device,
 			"fstype": du.Fstype,
-			"mode":   mountOpts.Mode(),
 		}
 		for k, v := range ipt.Tags {
 			tags[k] = v
@@ -229,8 +231,8 @@ func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("disk input started")
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
-	ipt.IgnoreFS = unique(ipt.IgnoreFS)
-
+	ipt.ExtraDevice = unique(ipt.ExtraDevice)
+	ipt.ExcludeDevice = unique(ipt.ExcludeDevice)
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
@@ -269,23 +271,21 @@ func (ipt *Input) Terminate() {
 }
 
 // ReadEnv support envs：
-//   ENV_INPUT_DISK_IGNORE_FS : []string
-//   ENV_INPUT_DISK_FS : []string
+//   ENV_INPUT_DISK_EXCLUDE_DEVICE : []string
+//   ENV_INPUT_DISK_EXTRA_DEVICE : []string
 //   ENV_INPUT_DISK_TAGS : "a=b,c=d"
 //   ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE : bool
 //   ENV_INPUT_DISK_INTERVAL : datakit.Duration
-//   ENV_INPUT_DISK_MOUNT_POINTS : []string
-//   ENV_INPUT_DISK_IGNORE_MOUNT_POINTS : []string
 func (ipt *Input) ReadEnv(envs map[string]string) {
-	if fsList, ok := envs["ENV_INPUT_DISK_IGNORE_FS"]; ok {
+	if fsList, ok := envs["ENV_INPUT_DISK_EXTRA_DEVICE"]; ok {
 		list := strings.Split(fsList, ",")
-		l.Debugf("add ignore_fs from ENV: %v", fsList)
-		ipt.IgnoreFS = append(ipt.IgnoreFS, list...)
+		l.Debugf("add extra_device from ENV: %v", fsList)
+		ipt.ExtraDevice = append(ipt.ExtraDevice, list...)
 	}
-	if fsList, ok := envs["ENV_INPUT_DISK_FS"]; ok {
+	if fsList, ok := envs["ENV_INPUT_DISK_EXCLUDE_DEVICE"]; ok {
 		list := strings.Split(fsList, ",")
-		l.Debugf("add fs from ENV: %v", fsList)
-		ipt.Fs = append(ipt.Fs, list...)
+		l.Debugf("add exlude_device from ENV: %v", fsList)
+		ipt.ExcludeDevice = append(ipt.ExcludeDevice, list...)
 	}
 
 	if tagsStr, ok := envs["ENV_INPUT_DISK_TAGS"]; ok {
@@ -311,23 +311,11 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				da)
 		}
 	}
-
-	// ignore mount points
-	if str, ok := envs["ENV_INPUT_DISK_MOUNT_POINTS"]; ok {
-		arrays := strings.Split(str, ",")
-		l.Debugf("add ENV_INPUT_DISK_MOUNT_POINTS from ENV: %v", arrays)
-		ipt.Mountpoints = append(ipt.Mountpoints, arrays...)
-	}
-	if str, ok := envs["ENV_INPUT_DISK_IGNORE_MOUNT_POINTS"]; ok {
-		arrays := strings.Split(str, ",")
-		l.Debugf("add ENV_INPUT_DISK_IGNORE_MOUNT_POINTS from ENV: %v", arrays)
-		ipt.IgnoreMountPoints = append(ipt.IgnoreMountPoints, arrays...)
-	}
 }
 
 func unique(strSlice []string) []string {
 	keys := make(map[string]interface{})
-	list := []string{}
+	var list []string
 	for _, entry := range strSlice {
 		if _, ok := keys[entry]; !ok {
 			keys[entry] = nil
@@ -340,18 +328,8 @@ func unique(strSlice []string) []string {
 func newDefaultInput() *Input {
 	ipt := &Input{
 		Interval: datakit.Duration{Duration: time.Second * 10},
-		IgnoreFS: []string{
-			"autofs",
-			"tmpfs",
-			"devtmpfs",
-			"devfs",
-			"iso9660",
-			"overlay",
-			"aufs",
-			"squashfs",
-		},
-		semStop: cliutils.NewSem(),
-		Tags:    make(map[string]string),
+		semStop:  cliutils.NewSem(),
+		Tags:     make(map[string]string),
 	}
 
 	x := &PSDisk{ipt: ipt}
