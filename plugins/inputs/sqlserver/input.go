@@ -11,6 +11,7 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -100,7 +101,7 @@ func (n *Input) GetPipeline() []*tailer.Option {
 }
 
 func (n *Input) initDB() error {
-	connStr := fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", n.User, n.Password, n.Host)
+	connStr := fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", url.PathEscape(n.User), url.PathEscape(n.Password), url.PathEscape(n.Host))
 	cfg, _, err := msdsn.Parse(connStr)
 	if err != nil {
 		return err
@@ -363,18 +364,22 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 		&WaitStatsCategorized{},
 		&DatabaseIO{},
 		&Schedulers{},
+		&VolumeSpace{},
+	}
+}
+
+func defaultInput() *Input {
+	return &Input{
+		Interval:    datakit.Duration{Duration: time.Second * 10},
+		Election:    true,
+		pauseCh:     make(chan bool, inputs.ElectionPauseChannelLength),
+		semStop:     cliutils.NewSem(),
+		dbFilterMap: make(map[string]struct{}, 0),
 	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		s := &Input{
-			Interval:    datakit.Duration{Duration: time.Second * 10},
-			Election:    true,
-			pauseCh:     make(chan bool, inputs.ElectionPauseChannelLength),
-			semStop:     cliutils.NewSem(),
-			dbFilterMap: make(map[string]struct{}, 0),
-		}
-		return s
+		return defaultInput()
 	})
 }

@@ -24,9 +24,6 @@ var (
   host = ""
 
   ## your sqlserver user,password
-	## We recommend **use simple password** here, only use [a-zA-Z_0-9], do not
-	## use special characters, such as #, @, $, theses characters may cause
-	## error on parsing sqlserver connection string.
   user = ""
   password = ""
 

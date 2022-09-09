@@ -17,6 +17,8 @@
 - 修正[磁盘采集器](disk.md)指标采集，自动忽略一些非物理磁盘；主机对象上的磁盘也做了对应的处理(#1106)
 - 修正磁盘采集器在 Windows 上采集不到指标的问题(#1114)
 - 修复 Git 管理配置的情况下，部分资源泄露导致的数据重复采集问题(#1107)
+- 修复 [SQLServer 采集器](sqlserver.md) 复杂密码导致无法连接的问题(#1119)
+- 修复 [DQL API 请求](apis.md#api-raw-query)丢失 applicaiton/json Content-Encoding 问题(#1119)
 - 调整 Pipeline 有关的文档，将其移到「自定义开发」目录下：
 
 <figure markdown>
