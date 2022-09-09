@@ -72,9 +72,9 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		logPath:               status.GetLogPath(),
 		labels:                status.GetLabels(),
 		tags:                  make(map[string]string),
-		extraSourceMap:        c.cfg.extraSourceMap,
-		sourceMultilineMap:    c.cfg.sourceMultilineMap,
-		autoMultilinePatterns: c.cfg.autoMultilinePatterns,
+		extraSourceMap:        c.ipt.LoggingExtraSourceMap,
+		sourceMultilineMap:    c.ipt.LoggingSourceMultilineMap,
+		autoMultilinePatterns: c.ipt.getAutoMultilinePatterns(),
 	}
 
 	if status.GetMetadata() != nil && status.GetMetadata().Name != "" {
@@ -95,7 +95,7 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		info.tags["container_type"] = "containerd"
 	}
 	// add extra tags
-	for k, v := range c.cfg.extraTags {
+	for k, v := range c.ipt.Tags {
 		if _, ok := info.tags[k]; !ok {
 			info.tags[k] = v
 		}
@@ -103,7 +103,8 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 
 	opt := composeTailerOption(c.k8sClient, info)
 	opt.Mode = tailer.ContainerdMode
-	opt.BlockingMode = c.cfg.enableLoggingBlockingMode
+	opt.BlockingMode = c.ipt.LoggingBlockingMode
+	opt.Done = c.ipt.semStop.Wait()
 
 	t, err := tailer.NewTailerSingle(info.logPath, opt)
 	if err != nil {

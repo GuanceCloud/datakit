@@ -89,6 +89,8 @@ type Option struct {
 	// 是否开启阻塞发送模式
 	BlockingMode bool
 
+	Done <-chan interface{}
+
 	Mode Mode
 }
 
@@ -141,7 +143,7 @@ type Tailer struct {
 	filePatterns   []string
 	ignorePatterns []string
 
-	stop chan struct{}
+	stop chan interface{}
 	mu   sync.Mutex
 	wg   sync.WaitGroup
 }
@@ -169,16 +171,15 @@ func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (
 			return nil
 		}(),
 		fileList: make(map[string]interface{}),
-		stop:     make(chan struct{}),
 	}
 
 	if t.opt == nil {
 		t.opt = &Option{}
 	}
-
 	if err := t.opt.Init(); err != nil {
 		return nil, err
 	}
+
 	return &t, nil
 }
 

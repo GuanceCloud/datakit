@@ -11,7 +11,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.4.13"
+  CI_VERSION: "1.4.14"
   TEST_VERSION: "1.999.0"
 
 stages:

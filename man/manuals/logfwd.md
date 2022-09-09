@@ -287,6 +287,6 @@ MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
 - [Kubernetes 中指定 Pod 的日志采集配置](container.md#logging-with-annotation-or-label)
 - [第三方日志接入](logstreaming.md)
 - [Kubernetes 环境下 DataKit 配置方式介绍](k8s-config-how-to.md)
-- [以 DaemonSet 形式安装 DataKit](../datakit/datakit-daemonset-deploy.md)
+- [以 DaemonSet 形式安装 DataKit](datakit-daemonset-deploy.md)
 - [在 DataKit 上部署 `logfwdserver`](logfwdserver.md)
-- [正确使用正则表达式来配置](../datakit/datakit-input-conf.md#debug-regex) 
+- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex) 

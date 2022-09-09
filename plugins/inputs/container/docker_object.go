@@ -118,7 +118,7 @@ func (c *containerObject) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"container_id":           inputs.NewTagInfo(`容器 ID`),
 			"container_name":         inputs.NewTagInfo(`k8s 命名的容器名（在 labels 中取 'io.kubernetes.container.name'），如果值为空则跟 container_runtime_name 相同`),
-			"container_runtime_name": inputs.NewTagInfo(`由 runtime 命名的容器名（例如 docker ps 查看），如果值为空则默认是 unknown（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)）`),
+			"container_runtime_name": inputs.NewTagInfo(`由 runtime 命名的容器名（例如 docker ps 查看），如果值为空则默认是 unknown（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）`),
 			"name":                   inputs.NewTagInfo(`对象数据的指定 ID`),
 			"linux_namespace":        inputs.NewTagInfo(`该容器所在的 [linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html){:target="_blank"}`),
 			"status":                 inputs.NewTagInfo("容器状态，例如 `Up 5 hours`（containerd 缺少此字段）"),

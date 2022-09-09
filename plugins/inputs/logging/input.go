@@ -149,6 +149,7 @@ func (ipt *Input) Run() {
 		IgnoreDeadLog:         ignoreDuration,
 		GlobalTags:            ipt.Tags,
 		BlockingMode:          ipt.BlockingMode,
+		Done:                  ipt.semStop.Wait(),
 	}
 
 	if ipt.DockerMode {
@@ -187,7 +188,7 @@ func (ipt *Input) Run() {
 			ipt.process = append(ipt.process, socker)
 		}
 	} else {
-		l.Warn("socket len =0")
+		l.Warn("socket len=0")
 	}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_logging"})
 	if ipt.process != nil && len(ipt.process) > 0 {
@@ -211,7 +212,7 @@ func (ipt *Input) Run() {
 
 		case <-ipt.semStop.Wait():
 			ipt.exit()
-			l.Infof("%s return", ipt.inputName)
+			l.Infof("%s terminate", ipt.inputName)
 			return
 		}
 	}
@@ -277,8 +278,8 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志正文，默认存在，可以使用 pipeline 删除此字段"},
 			"status":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，默认为 `unknown`，采集器会该字段做支持映射，映射表见上述 pipelie 配置和使用[^1]"},
-			"log_read_lines":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "采集到的行数计数，多行数据算成一行（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)）"},
-			"log_read_offset": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "当前数据在文件中的偏移位置（[:octicons-tag-24: Version-1.4.8](../datakit/changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental)）"},
+			"log_read_lines":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "采集到的行数计数，多行数据算成一行（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）"},
+			"log_read_offset": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "当前数据在文件中的偏移位置（[:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental)）"},
 			"log_read_time":   &inputs.FieldInfo{DataType: inputs.DurationSecond, Unit: inputs.UnknownUnit, Desc: "数据从文件中读取到的这一刻的时间戳，单位是秒"},
 			"message_length":  &inputs.FieldInfo{DataType: inputs.SizeByte, Unit: inputs.NCount, Desc: "message 字段的长度，单位字节"},
 		},

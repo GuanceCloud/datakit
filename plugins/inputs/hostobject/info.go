@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"runtime"
 	"strings"
 	"time"
 
@@ -68,11 +69,10 @@ type (
 	}
 
 	DiskInfo struct {
-		Device     string `json:"device"`
-		Total      uint64 `json:"total"`
-		Mountpoint string `json:"mountpoint"`
-		Fstype     string `json:"fstype"`
-		Opts       string `json:"-"`
+		Device string `json:"device"`
+		Total  uint64 `json:"total"`
+		Fstype string `json:"fstype"`
+		Opts   string `json:"-"`
 	}
 
 	HostInfo struct {
@@ -243,7 +243,7 @@ func getNetInfo(enableVIfaces bool) ([]*NetInfo, error) {
 	return infos, nil
 }
 
-func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool) ([]*DiskInfo, error) {
+func getDiskInfo(excludeDevice []string, extraDevice []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool) ([]*DiskInfo, error) {
 	l.Debugf("get partitions(physical: %v)...", onlyPhysicalDevice)
 	ps, err := diskutil.Partitions(!onlyPhysicalDevice)
 	if err != nil {
@@ -252,9 +252,9 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 	}
 	var infos []*DiskInfo
 
-	excluded := func(x string) bool {
-		for _, fs := range ignoreFs {
-			if fs == x { // ignore the partition
+	excluded := func(x string, arr []string) bool {
+		for _, fs := range arr {
+			if strings.EqualFold(x, fs) {
 				return true
 			}
 		}
@@ -262,14 +262,33 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 	}
 
 	for _, p := range ps {
-		if excluded(p.Fstype) {
+		l.Debugf("hostobject---fstype:%s ,device:%s ,mountpoint:%s ", p.Fstype, p.Device, p.Mountpoint)
+
+		// nolint
+		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows && !excluded(p.Device, extraDevice) {
+			continue // 忽略该 partition
+		}
+
+		if excluded(p.Device, excludeDevice) {
+			continue
+		}
+
+		// merge same device
+		mergeFlag := false
+		for _, cont := range infos {
+			if cont.Device == p.Device {
+				mergeFlag = true
+				break
+			}
+		}
+
+		if mergeFlag {
 			continue
 		}
 
 		info := &DiskInfo{
-			Device:     p.Device,
-			Mountpoint: p.Mountpoint,
-			Fstype:     p.Fstype,
+			Device: p.Device,
+			Fstype: p.Fstype,
 		}
 
 		usage, err := diskutil.Usage(p.Mountpoint)
@@ -383,7 +402,7 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	}
 
 	l.Debugf("get disk info...")
-	disk, err := getDiskInfo(ipt.IgnoreFS, ipt.IgnoreZeroBytesDisk, ipt.OnlyPhysicalDevice)
+	disk, err := getDiskInfo(ipt.ExcludeDevice, ipt.ExtraDevice, ipt.IgnoreZeroBytesDisk, ipt.OnlyPhysicalDevice)
 	if err != nil {
 		return nil, err
 	}

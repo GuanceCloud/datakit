@@ -23,12 +23,15 @@ const k8sEventName = "kubernetes_events"
 
 var globalPause = new(atomBool)
 
-func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{}, election bool) {
+func watchingEvent(client k8sClientX, extraTags tagsType, done <-chan interface{}, election bool) {
 	// Outer loop, for reconnections.
 	for {
 		select {
-		case <-stop:
-			l.Infof("event watching stopped")
+		case <-datakit.Exit.Wait():
+			l.Infof("k8s event watching exit")
+			return
+		case <-done:
+			l.Infof("k8s event watching stopped")
 			return
 		default:
 			// nil
@@ -95,9 +98,14 @@ func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{
 					l.Warnf("wrong object received: %v", watchUpdate)
 				}
 
-			case <-stop:
+			case <-done:
 				watcher.Stop()
 				l.Infof("event watching stopped")
+				return
+
+			case <-datakit.Exit.Wait():
+				watcher.Stop()
+				l.Infof("k8s event watching exit")
 				return
 			}
 		}
