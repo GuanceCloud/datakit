@@ -30,7 +30,6 @@
 
 ## 从外部导入数据 {#import}
 
-
 === "主机安装"
 
     在配置文件 `datakit.conf` 中配置 reference table url 与拉取间隔(默认间隔为 5 分钟)
@@ -47,9 +46,11 @@
 
 ---
 
-支持的数据格式：
+???+ attention
 
-Content-Type: application/json ：
+    目前要求 refer_table_url 指定的地址，其 HTTP 返回的 Content-Type 必须为 `Content-Type: application/json`。
+
+---
 
 * 数据由多个 table 构成列表，每个表由一个 map 构成，map 中的字段为：
 
