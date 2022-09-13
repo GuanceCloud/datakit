@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -147,12 +148,20 @@ func (n *node) object(election bool) (inputsMeas, error) {
 				break
 			}
 		}
+
+		if y, err := yaml.Marshal(item); err != nil {
+			l.Debugf("failed to get node yaml %s, namespace %s, name %s, ignored", err.Error(), item.Namespace, item.Name)
+		} else {
+			obj.fields["yaml"] = string(y)
+		}
+
 		obj.tags.append(n.extraTags)
 
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
 		obj.fields.delete("annotations")
+		obj.fields.delete("yaml")
 
 		res = append(res, obj)
 	}
