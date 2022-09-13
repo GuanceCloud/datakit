@@ -426,8 +426,6 @@ func (t *Single) feed(pending []string) {
 		return
 	}
 
-	retry := 0
-__retry:
 	if err := iod.Feed("logging/"+t.opt.Source, datakit.Logging, res, &iod.Option{
 		PlScript: map[string]string{t.opt.Source: t.opt.Pipeline},
 		PlOption: &script.Option{
@@ -435,15 +433,9 @@ __retry:
 			DisableAddStatusField: t.opt.DisableAddStatusField,
 			IgnoreStatus:          t.opt.IgnoreStatus,
 		},
+		Blocking: t.opt.BlockingMode,
 	}); err != nil {
-		if t.opt.BlockingMode {
-			t.opt.log.Warnf("feed %d pts failed: %s, logging block-mode on, retry/%d", len(res), err, retry)
-			time.Sleep(time.Millisecond * 300)
-			retry++
-			goto __retry
-		} else {
-			t.opt.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(res), err)
-		}
+		t.opt.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(res), err)
 	}
 }
 

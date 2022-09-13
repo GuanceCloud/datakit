@@ -36,6 +36,8 @@ type Option struct {
 	PostTimeout time.Duration
 	Sample      func(points []*point.Point) []*point.Point
 
+	Blocking bool
+
 	PlScript map[string]string // <measurement>: <script name>
 	PlOption *plscript.Option
 }
@@ -137,6 +139,10 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 		opt:      opt,
 	}
 
+	if opt != nil && opt.Blocking {
+		return blockingFeed(job, ch)
+	}
+
 	return unblockingFeed(job, ch)
 }
 
@@ -153,9 +159,19 @@ func unblockingFeed(job *iodata, ch chan *iodata) error {
 		return fmt.Errorf("feed on global exit")
 
 	default:
-
 		atomic.AddUint64(&FeedDropPts, uint64(len(job.pts)))
 		log.Warnf("io busy, %d (%s/%s) points maybe dropped", len(job.pts), job.from, job.category)
 		return ErrIOBusy
+	}
+}
+
+func blockingFeed(job *iodata, ch chan *iodata) error {
+	select {
+	case ch <- job:
+		return nil
+
+	case <-datakit.Exit.Wait():
+		log.Warnf("%s/%s feed skipped on global exit", job.category, job.from)
+		return fmt.Errorf("feed on global exit")
 	}
 }
