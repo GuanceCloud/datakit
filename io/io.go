@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -132,6 +133,15 @@ func (x *IO) StartIO(recoverable bool) {
 		return nil
 	})
 
+	fn := func(category string, n int) {
+		for i := 0; i < n; i++ {
+			g.Go(func(_ context.Context) error {
+				x.runConsumer(category)
+				return nil
+			})
+		}
+	}
+
 	for _, c := range []string{
 		datakit.Metric,
 		datakit.Network,
@@ -146,12 +156,12 @@ func (x *IO) StartIO(recoverable bool) {
 		datakit.DynamicDatawayCategory,
 	} {
 		log.Infof("starting consumer on %s...", c)
-		func(category string) {
-			g.Go(func(_ context.Context) error {
-				x.runConsumer(category)
-				return nil
-			})
-		}(c)
+		switch c {
+		case datakit.Metric, datakit.Network, datakit.Logging, datakit.Tracing, datakit.RUM:
+			fn(c, runtime.NumCPU()*2+1)
+		default:
+			fn(c, 1)
+		}
 	}
 }
 
