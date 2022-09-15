@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
@@ -23,8 +22,21 @@ const (
 	DefaultStatus = script.DefaultStatus
 )
 
+//nolint:structcheck,unused
+type Output struct {
+	Error error
+
+	Drop bool
+
+	Measurement string
+	Time        time.Time
+
+	Tags   map[string]string
+	Fields map[string]interface{}
+}
+
 type Result struct {
-	Output *parser.Output
+	Output *Output
 }
 
 func (r *Result) String() string {
@@ -33,7 +45,7 @@ func (r *Result) String() string {
 
 func NewResult() *Result {
 	return &Result{
-		Output: &parser.Output{
+		Output: &Output{
 			Tags:   make(map[string]string),
 			Fields: make(map[string]interface{}),
 		},

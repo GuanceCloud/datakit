@@ -7,8 +7,6 @@ package script
 
 import (
 	"strings"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
 const (
@@ -46,39 +44,42 @@ var statusMap = map[string]string{
 	"ok":       "OK",
 }
 
-func ProcLoggingStatus(output *parser.Output, disable bool, ignore []string) *parser.Output {
+func ProcLoggingStatus(tags map[string]string, fileds map[string]any,
+	disable bool, ignore []string,
+) (map[string]string, map[string]any, bool) {
 	var status string
+	var drop bool
 
-	status, _ = getStatus(output)
+	status, _ = getStatus(tags, fileds)
 
 	if !disable {
 		status = strings.ToLower(status)
 		if s, ok := statusMap[status]; ok {
 			status = s
-			setStatus(output, status)
+			tags, fileds = setStatus(tags, fileds, status)
 		} else {
 			status = DefaultStatus
-			setStatus(output, status)
+			tags, fileds = setStatus(tags, fileds, status)
 		}
 	}
 
 	if len(ignore) > 0 {
 		for _, ign := range ignore {
 			if strings.ToLower(ign) == status {
-				output.Drop = true
+				drop = true
 				break
 			}
 		}
 	}
-	return output
+	return tags, fileds, drop
 }
 
-func getStatus(output *parser.Output) (string, bool) {
-	if v, ok := output.Tags[FieldStatus]; ok {
+func getStatus(tags map[string]string, fields map[string]any) (string, bool) {
+	if v, ok := tags[FieldStatus]; ok {
 		return v, ok
 	}
 
-	if v, ok := output.Fields[FieldStatus]; ok {
+	if v, ok := fields[FieldStatus]; ok {
 		if s, ok := v.(string); ok {
 			return s, ok
 		}
@@ -87,11 +88,13 @@ func getStatus(output *parser.Output) (string, bool) {
 	return "", false
 }
 
-func setStatus(output *parser.Output, status string) {
-	if _, ok := output.Tags[FieldStatus]; ok {
-		output.Tags[FieldStatus] = status
-		return
+func setStatus(tags map[string]string, fileds map[string]any, status string) (
+	map[string]string, map[string]any,
+) {
+	if _, ok := tags[FieldStatus]; ok {
+		tags[FieldStatus] = status
+	} else {
+		fileds[FieldStatus] = status
 	}
-
-	output.Fields[FieldStatus] = status
+	return tags, fileds
 }

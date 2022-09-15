@@ -53,7 +53,7 @@ func runPl(category string, pts []*point.Point, opt *Option) (ret []*point.Point
 			continue
 		}
 
-		out, drop, err := script.Run(ptName, tags, fields, "message", *ptTime, plOpt)
+		name, tags, fields, tn, drop, err := script.Run(ptName, tags, fields, *ptTime, plOpt)
 		if err != nil {
 			plLogger.Debug(err)
 			ret = append(ret, pt)
@@ -64,9 +64,9 @@ func runPl(category string, pts []*point.Point, opt *Option) (ret []*point.Point
 			continue
 		}
 
-		ptOpt.Time = out.Time
+		ptOpt.Time = tn
 
-		if p, err := point.NewPoint(out.Measurement, out.Tags, out.Fields, ptOpt); err != nil {
+		if p, err := point.NewPoint(name, tags, fields, ptOpt); err != nil {
 			plLogger.Error(err)
 			stats.WriteScriptStats(script.Category(), script.NS(), script.Name(), 0, 0, 1, 0, err)
 		} else {
