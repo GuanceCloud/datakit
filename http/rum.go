@@ -15,7 +15,7 @@ import (
 
 	"github.com/go-sourcemap/sourcemap"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 

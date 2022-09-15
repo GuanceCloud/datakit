@@ -6,28 +6,29 @@
 package mongodb
 
 import (
-	"net/url"
+	"context"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/strarr"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type oplogEntry struct {
-	Timestamp bson.MongoTimestamp `bson:"ts"`
+	Timestamp int64 `bson:"ts"`
 }
 
-type Server struct {
-	URL        *url.URL
-	Session    *mgo.Session
+type MongodbServer struct {
+	host       string
+	cli        *mongo.Client
 	lastResult *MongoStatus
 	election   bool
 }
 
-func (s *Server) getDefaultTags() map[string]string {
+func (svr *MongodbServer) getDefaultTags() map[string]string {
 	tags := make(map[string]string)
-	tags["mongod_host"] = s.URL.Host
+	tags["mongod_host"] = svr.host
 	for k, v := range defTags {
 		tags[k] = v
 	}
@@ -35,109 +36,107 @@ func (s *Server) getDefaultTags() map[string]string {
 	return tags
 }
 
-func (s *Server) gatherServerStats() (*ServerStatus, error) {
-	serverStatus := &ServerStatus{}
-	err := s.Session.DB("admin").Run(bson.D{
-		{
-			Name:  "serverStatus",
-			Value: 1,
-		},
-		{
-			Name:  "recordStats",
-			Value: 0,
-		},
-	}, serverStatus)
-	if err != nil {
+func (svr *MongodbServer) gatherServerStats() (*ServerStatus, error) {
+	rslt := svr.cli.Database("admin").RunCommand(context.TODO(), bson.M{"serverStatus": 1})
+	if err := rslt.Err(); err != nil {
 		return nil, err
 	}
 
-	return serverStatus, nil
-}
-
-func (s *Server) gatherReplSetStats() (*ReplSetStats, error) {
-	ReplSetStats := &ReplSetStats{}
-	err := s.Session.DB("admin").Run(bson.D{
-		{
-			Name:  "replSetGetStatus",
-			Value: 1,
-		},
-	}, ReplSetStats)
-	if err != nil {
+	svrStatus := &ServerStatus{}
+	if err := rslt.Decode(svrStatus); err != nil {
 		return nil, err
 	}
 
-	return ReplSetStats, nil
+	return svrStatus, nil
 }
 
-func (s *Server) getOplogReplLag(collection string) (*OplogStats, error) {
+func (svr *MongodbServer) gatherReplSetStats() (*ReplSetStats, error) {
+	rslt := svr.cli.Database("admin").RunCommand(context.TODO(), bson.M{"replSetGetStatus": 1})
+	if err := rslt.Err(); err != nil {
+		return nil, err
+	}
+
+	replSet := &ReplSetStats{}
+	if err := rslt.Decode(replSet); err != nil {
+		return nil, err
+	}
+
+	return replSet, nil
+}
+
+func (svr *MongodbServer) getOplogReplLag(col string) (*OplogStats, error) {
 	query := bson.M{"ts": bson.M{"$exists": true}}
-
-	var first oplogEntry
-	err := s.Session.DB("local").C(collection).Find(query).Sort("$natural").Limit(1).One(&first)
-	if err != nil {
+	rslt := svr.cli.Database("local").Collection(col).FindOne(context.TODO(), query, options.FindOne().SetSort(bson.M{"$natural": 1}))
+	if err := rslt.Err(); err != nil {
 		return nil, err
 	}
 
-	var last oplogEntry
-	if err = s.Session.DB("local").C(collection).Find(query).Sort("-$natural").Limit(1).One(&last); err != nil {
+	first := &oplogEntry{}
+	if err := rslt.Decode(first); err != nil {
 		return nil, err
 	}
 
-	firstTime := time.Unix(int64(first.Timestamp>>32), 0)
-	lastTime := time.Unix(int64(last.Timestamp>>32), 0)
+	rslt = svr.cli.Database("local").Collection(col).FindOne(context.TODO(), query, options.FindOne().SetSort(bson.M{"$natural": -1}))
+	if err := rslt.Err(); err != nil {
+		return nil, err
+	}
+
+	last := &oplogEntry{}
+	if err := rslt.Decode(last); err != nil {
+		return nil, err
+	}
+
+	firstTime := time.Unix(first.Timestamp>>32, 0)
+	lastTime := time.Unix(last.Timestamp>>32, 0)
 	stats := &OplogStats{TimeDiff: int64(lastTime.Sub(firstTime).Seconds())}
 
 	return stats, nil
 }
 
 // The "oplog.rs" collection is stored on all replica set members.
-//
 // The "oplog.$main" collection is created on the master node of a
 // master-slave replicated deployment.  As of MongoDB 3.2, master-slave
 // replication has been deprecated.
-func (s *Server) gatherOplogStats() (*OplogStats, error) {
-	stats, err := s.getOplogReplLag("oplog.rs")
+func (svr *MongodbServer) gatherOplogStats() (*OplogStats, error) {
+	stats, err := svr.getOplogReplLag("oplog.rs")
 	if err == nil {
 		return stats, nil
 	}
 
-	return s.getOplogReplLag("oplog.$main")
+	return svr.getOplogReplLag("oplog.$main")
 }
 
-func (s *Server) gatherClusterStats() (*ClusterStats, error) {
-	chunkCount, err := s.Session.DB("config").C("chunks").Find(bson.M{"jumbo": true}).Count()
+func (svr *MongodbServer) gatherClusterStats() (*ClusterStats, error) {
+	count, err := svr.cli.Database("config").Collection("chunks").CountDocuments(context.TODO(), bson.M{"jumbo": true})
 	if err != nil {
 		return nil, err
 	}
 
-	return &ClusterStats{JumboChunksCount: int64(chunkCount)}, nil
+	return &ClusterStats{JumboChunksCount: count}, nil
 }
 
-func (s *Server) gatherShardConnPoolStats() (*ShardStats, error) {
+func (svr *MongodbServer) gatherShardConnPoolStats() (*ShardStats, error) {
+	rslt := svr.cli.Database("admin").RunCommand(context.TODO(), bson.M{"connPoolStats": 1}) // connPoolStats
+	if err := rslt.Err(); err != nil {
+		return nil, err
+	}
+
 	shardStats := &ShardStats{}
-	err := s.Session.DB("admin").Run(bson.D{
-		{
-			Name: "shardConnPoolStats",
-			// Name:  "connPoolStats",
-			Value: 1,
-		},
-	}, &shardStats)
-	if err != nil {
+	if err := rslt.Decode(shardStats); err != nil {
 		return nil, err
 	}
 
 	return shardStats, nil
 }
 
-func (s *Server) gatherDBStats(name string) (*DB, error) {
+func (svr *MongodbServer) gatherDBStats(name string) (*DB, error) {
+	rslt := svr.cli.Database(name).RunCommand(context.TODO(), bson.M{"dbStats": 1})
+	if err := rslt.Err(); err != nil {
+		return nil, err
+	}
+
 	stats := &DBStatsData{}
-	err := s.Session.DB(name).Run(bson.D{
-		{
-			Name:  "dbStats",
-			Value: 1,
-		},
-	}, stats)
-	if err != nil {
+	if err := rslt.Decode(stats); err != nil {
 		return nil, err
 	}
 
@@ -147,8 +146,8 @@ func (s *Server) gatherDBStats(name string) (*DB, error) {
 	}, nil
 }
 
-func (s *Server) gatherCollectionStats(colStatsDBs []string) (*ColStats, error) {
-	dbNames, err := s.Session.DatabaseNames()
+func (svr *MongodbServer) gatherCollectionStats(colStatsDBs []string) (*ColStats, error) {
+	dbNames, err := svr.cli.ListDatabaseNames(context.TODO(), bson.M{})
 	if err != nil {
 		return nil, err
 	}
@@ -157,67 +156,56 @@ func (s *Server) gatherCollectionStats(colStatsDBs []string) (*ColStats, error) 
 	results := &ColStats{}
 	for _, dbName := range dbNames {
 		var colls []string
-		colls, err = s.Session.DB(dbName).CollectionNames()
+		colls, err = svr.cli.Database(dbName).ListCollectionNames(context.TODO(), bson.M{})
 		if err != nil {
-			l.Errorf("Error getting collection names: %s", err)
+			log.Errorf("Error getting collection names: %s", err)
 			continue
 		}
 
 		for _, colName := range colls {
-			colStatLine := &ColStatsData{}
-			err = s.Session.DB(dbName).Run(bson.D{
-				{
-					Name:  "collStats",
-					Value: colName,
-				},
-			}, colStatLine)
-			if err != nil {
-				l.Errorf("error getting col stats from %q: %w", colName, err)
+			rslt := svr.cli.Database(dbName).RunCommand(context.TODO(), bson.M{"collStats": colName})
+			if err := rslt.Err(); err != nil {
+				log.Error(err.Error())
 				continue
 			}
 
-			collection := &Collection{
+			colStatLine := &ColStatsData{}
+			if err := rslt.Decode(rslt); err != nil {
+				log.Errorf("error getting col stats from %q: error: %s", colName, err.Error())
+				continue
+			}
+
+			col := Collection{
 				Name:         colName,
 				DBName:       dbName,
 				ColStatsData: colStatLine,
 			}
-			results.Collections = append(results.Collections, *collection)
+			results.Collections = append(results.Collections, col)
 		}
 	}
 
 	return results, nil
 }
 
-func (s *Server) gatherTopStatData() (*TopStats, error) {
+func (svr *MongodbServer) gatherTopStatData() (*TopStats, error) {
+	rslt := svr.cli.Database("admin").RunCommand(context.TODO(), bson.M{"top": 1})
+	if err := rslt.Err(); err != nil {
+		return nil, err
+	}
+
 	topStats := &TopStats{}
-	err := s.Session.DB("admin").Run(bson.D{
-		{
-			Name:  "top",
-			Value: 1,
-		},
-	}, topStats)
-	if err != nil {
+	if err := rslt.Decode(topStats); err != nil {
 		return nil, err
 	}
 
 	return topStats, nil
 }
 
-func (s *Server) gatherData(gatherReplicaSetStats bool,
-	gatherClusterStats bool,
-	gatherPerDBStats bool,
-	gatherPerColStats bool,
-	colStatsDBs []string,
-	gatherTopStat bool,
-) error {
+func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool, gatherPerDBStats bool, gatherPerColStats bool, colStatsDBs []string, gatherTopStat bool) error { // nolint:lll
 	start := time.Now()
-
-	s.Session.SetMode(mgo.Eventual, true)
-	s.Session.SetSocketTimeout(0)
-
-	serverStatus, err := s.gatherServerStats()
+	serverStatus, err := svr.gatherServerStats()
 	if err != nil {
-		l.Debugf("Error gathering server status")
+		log.Debugf("gathering server failed: %s", err.Error())
 
 		return err
 	}
@@ -228,65 +216,65 @@ func (s *Server) gatherData(gatherReplicaSetStats bool,
 		oplogStats   *OplogStats
 	)
 	if gatherReplicaSetStats {
-		if ReplSetStats, err = s.gatherReplSetStats(); err != nil {
-			l.Debugf("Unable to gather replica set status: %w", err)
+		if ReplSetStats, err = svr.gatherReplSetStats(); err != nil {
+			log.Debugf("Unable to gather replica set status: %w", err)
 		}
 		// Gather the oplog if we are a member of a replica set. Non-replica set members do not have the oplog collections.
 		if ReplSetStats != nil {
-			if oplogStats, err = s.gatherOplogStats(); err != nil {
-				l.Errorf("Unable to get oplog stats: %w", err)
+			if oplogStats, err = svr.gatherOplogStats(); err != nil {
+				log.Errorf("Unable to get oplog stats: %w", err)
 			}
 		}
 	}
 
 	var clusterStats *ClusterStats
 	if gatherClusterStats {
-		status, err := s.gatherClusterStats()
+		status, err := svr.gatherClusterStats()
 		if err != nil {
-			l.Debugf("Unable to gather cluster status: %w", err)
+			log.Debugf("Unable to gather cluster status: %w", err)
 		}
 		clusterStats = status
 	}
 
-	shardStats, err := s.gatherShardConnPoolStats()
+	shardStats, err := svr.gatherShardConnPoolStats()
 	if err != nil {
-		l.Warnf("Unable to gather shard connection pool stats: %w", err)
+		log.Warnf("Unable to gather shard connection pool stats: %w", err)
 	}
 
 	dbStats := &DBStats{}
 	if gatherPerDBStats {
-		dbNames, err := s.Session.DatabaseNames()
+		dbNames, err := svr.cli.ListDatabaseNames(context.TODO(), bson.M{})
 		if err != nil {
-			l.Debugf("Unable to get database names: %w", err)
+			log.Debugf("Unable to get database names: %w", err)
 
 			return err
 		}
 
 		for _, dbName := range dbNames {
-			db, err := s.gatherDBStats(dbName)
+			db, err := svr.gatherDBStats(dbName)
 			if err != nil {
-				l.Debugf("Error getting db stats from %s: %w", dbName, err)
+				log.Debugf("Error getting db stats from %s: %w", dbName, err)
 			}
 			dbStats.DBs = append(dbStats.DBs, *db)
 		}
 	}
 
-	var collectionStats *ColStats
+	var colStats *ColStats
 	if gatherPerColStats {
-		stats, err := s.gatherCollectionStats(colStatsDBs)
+		stats, err := svr.gatherCollectionStats(colStatsDBs)
 		if err != nil {
-			l.Debugf("Unable to gather collection stats: %w", err)
+			log.Debugf("Unable to gather collection stats: %w", err)
 
 			return err
 		}
-		collectionStats = stats
+		colStats = stats
 	}
 
 	topStatData := &TopStats{}
 	if gatherTopStat {
-		topStats, err := s.gatherTopStatData()
+		topStats, err := svr.gatherTopStatData()
 		if err != nil {
-			l.Debugf("Unable to gather top stat data: %w", err)
+			log.Debugf("Unable to gather top stat data: %w", err)
 
 			return err
 		}
@@ -300,19 +288,20 @@ func (s *Server) gatherData(gatherReplicaSetStats bool,
 		ClusterStats: clusterStats,
 		ShardStats:   shardStats,
 		DBStats:      dbStats,
-		ColStats:     collectionStats,
+		ColStats:     colStats,
 		TopStats:     topStatData,
+		SampleTime:   time.Now(),
 	}
+	log.Debugf("collected results: %v", *result)
 
-	result.SampleTime = time.Now()
-	if s.lastResult != nil && result != nil {
-		duration := result.SampleTime.Sub(s.lastResult.SampleTime)
+	if svr.lastResult != nil {
+		duration := result.SampleTime.Sub(svr.lastResult.SampleTime)
 		durationInSeconds := int64(duration.Seconds())
 		if durationInSeconds == 0 {
 			durationInSeconds = 1
 		}
 
-		data := NewMongodbData(NewStatLine(*s.lastResult, *result, s.URL.Host, true, durationInSeconds), s.getDefaultTags(), s.election)
+		data := NewMongodbData(NewStatLine(svr.lastResult, result, svr.host, true, durationInSeconds), svr.getDefaultTags(), svr.election)
 		data.AddDefaultStats()
 		data.AddShardHostStats()
 		data.AddDBStats()
@@ -322,7 +311,7 @@ func (s *Server) gatherData(gatherReplicaSetStats bool,
 		data.flush(time.Since(start))
 	}
 
-	s.lastResult = result
+	svr.lastResult = result
 
 	return nil
 }

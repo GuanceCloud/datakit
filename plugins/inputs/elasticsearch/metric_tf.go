@@ -94,7 +94,7 @@ var clusterStatsFields = map[string]interface{}{
 
 // clusterHealth.
 var clusterHealthTags = map[string]interface{}{
-	"name":           inputs.NewTagInfo("Name of the cluster."),
+	"cluster_name":   inputs.NewTagInfo("Name of the cluster."),
 	"cluster_status": inputs.NewTagInfo("The cluster status: red, yellow, green."),
 }
 

@@ -9,34 +9,34 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/runtime"
 )
 
 func TestStatus(t *testing.T) {
 	for k, v := range statusMap {
-		outp := &parser.Output{
+		outp := &runtime.Point{
 			Fields: map[string]interface{}{
 				FieldStatus: k,
 			},
 		}
-		outp = ProcLoggingStatus(outp, false, nil)
-		assert.Equal(t, v, outp.Fields[FieldStatus])
+		_, f, _ := ProcLoggingStatus(nil, outp.Fields, false, nil)
+		assert.Equal(t, v, f[FieldStatus])
 	}
 
 	{
-		outp := &parser.Output{
+		outp := &runtime.Point{
 			Fields: map[string]interface{}{
 				FieldStatus:  "x",
 				FieldMessage: "1234567891011",
 			},
 		}
-		outp = ProcLoggingStatus(outp, false, nil)
-		assert.Equal(t, "unknown", outp.Fields[FieldStatus])
-		assert.Equal(t, "1234567891011", outp.Fields[FieldMessage])
+		_, f, _ := ProcLoggingStatus(nil, outp.Fields, false, nil)
+		assert.Equal(t, "unknown", f[FieldStatus])
+		assert.Equal(t, "1234567891011", f[FieldMessage])
 	}
 
 	{
-		outp := &parser.Output{
+		outp := &runtime.Point{
 			Fields: map[string]interface{}{
 				FieldStatus:  "x",
 				FieldMessage: "1234567891011",
@@ -45,18 +45,18 @@ func TestStatus(t *testing.T) {
 				"xxxqqqddd": "1234567891011",
 			},
 		}
-		outp = ProcLoggingStatus(outp, false, nil)
+		tags, f, _ := ProcLoggingStatus(outp.Tags, outp.Fields, false, nil)
 		assert.Equal(t, map[string]interface{}{
 			FieldStatus:  "unknown",
 			FieldMessage: "1234567891011",
-		}, outp.Fields)
+		}, f)
 		assert.Equal(t, map[string]string{
 			"xxxqqqddd": "1234567891011",
-		}, outp.Tags)
+		}, tags)
 	}
 
 	{
-		outp := &parser.Output{
+		outp := &runtime.Point{
 			Fields: map[string]interface{}{
 				FieldStatus:  "n",
 				FieldMessage: "1234567891011",
@@ -65,40 +65,40 @@ func TestStatus(t *testing.T) {
 				"xxxqqqddd": "1234567891011",
 			},
 		}
-		outp = ProcLoggingStatus(outp, false, nil)
+		tags, f, _ := ProcLoggingStatus(outp.Tags, outp.Fields, false, nil)
 		assert.Equal(t, map[string]interface{}{
 			FieldStatus:  "notice",
 			FieldMessage: "1234567891011",
-		}, outp.Fields)
+		}, f)
 		assert.Equal(t, map[string]string{
 			"xxxqqqddd": "1234567891011",
-		}, outp.Tags)
+		}, tags)
 	}
 }
 
 func TestGetSetStatus(t *testing.T) {
-	out := &parser.Output{
+	out := &runtime.Point{
 		Tags: map[string]string{
 			"status": "n",
 		},
 		Fields: make(map[string]interface{}),
 	}
 
-	out = ProcLoggingStatus(out, false, nil)
+	tags, f, _ := ProcLoggingStatus(out.Tags, out.Fields, false, nil)
 	assert.Equal(t, map[string]string{
 		"status": "notice",
-	}, out.Tags)
-	assert.Equal(t, make(map[string]interface{}), out.Fields)
+	}, tags)
+	assert.Equal(t, make(map[string]interface{}), f)
 
 	out.Fields = map[string]interface{}{
 		"status": "n",
 	}
 	out.Tags = make(map[string]string)
-	out = ProcLoggingStatus(out, false, nil)
+	tags, f, _ = ProcLoggingStatus(out.Tags, out.Fields, false, nil)
 	assert.Equal(t, map[string]interface{}{
 		"status": "notice",
-	}, out.Fields)
-	assert.Equal(t, make(map[string]string), out.Tags)
+	}, f)
+	assert.Equal(t, make(map[string]string), tags)
 
 	out.Fields = map[string]interface{}{
 		"status": "n",
@@ -106,11 +106,11 @@ func TestGetSetStatus(t *testing.T) {
 	out.Tags = map[string]string{
 		"status": "n",
 	}
-	out = ProcLoggingStatus(out, false, nil)
+	tags, f, _ = ProcLoggingStatus(out.Tags, out.Fields, false, nil)
 	assert.Equal(t, map[string]string{
 		"status": "notice",
-	}, out.Tags)
+	}, tags)
 	assert.Equal(t, map[string]interface{}{
 		"status": "n",
-	}, out.Fields)
+	}, f)
 }

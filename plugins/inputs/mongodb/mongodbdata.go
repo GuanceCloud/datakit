@@ -230,12 +230,8 @@ func (d *MongodbData) append() {
 
 func (d *MongodbData) flush(cost time.Duration) {
 	if len(d.collectCache) != 0 {
-		if err := inputs.FeedMeasurement(inputName,
-			datakit.Metric,
-			d.collectCache,
-			&io.Option{CollectCost: cost}); err != nil {
-			l.Errorf("FeedMeasurement: %s", err)
-
+		if err := inputs.FeedMeasurement(inputName, datakit.Metric, d.collectCache, &io.Option{CollectCost: cost}); err != nil {
+			log.Errorf("FeedMeasurement: %s", err)
 			io.FeedLastError(inputName, err.Error())
 		}
 	}

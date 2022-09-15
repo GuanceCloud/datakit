@@ -112,15 +112,18 @@ func RespectUserRule(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
 }
 
-func OmitStatusCodeFilterWrapper(statusCodeList []string) FilterFunc {
+func OmitHTTPStatusCodeFilterWrapper(statusCodeList []string) FilterFunc {
 	if len(statusCodeList) == 0 {
 		return NoneFilter
 	} else {
 		return func(dktrace DatakitTrace) (DatakitTrace, bool) {
 			for i := range dktrace {
+				if dktrace[i].SourceType != SPAN_SOURCE_WEB {
+					continue
+				}
 				for j := range statusCodeList {
-					if dktrace[i].HTTPStatusCode == statusCodeList[j] {
-						log.Debugf("omit trace with status code: %s", dktrace[i].HTTPStatusCode)
+					if statusCode, ok := dktrace[i].Tags[TAG_HTTP_STATUS_CODE]; ok && statusCode == statusCodeList[j] {
+						log.Debugf("omit trace with status code: %s", statusCode)
 
 						return nil, true
 					}

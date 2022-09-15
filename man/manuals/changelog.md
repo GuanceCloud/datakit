@@ -10,9 +10,39 @@
     ```
 -->
 
+## 1.4.16(2022/09/15) {#cl-1.4.16}
+
+本次发布属于迭代发布，主要有如下更新。
+
+### 新功能 {#cl-1.4.16-new-features}
+
+- 增加自动云同步功能，不再需要手动指定云厂商(#1074)
+- 支持将 k8s label 作为 tag 同步到 pod 的指标和日志中(#1101)
+- 支持将 k8s 中各类 yaml 信息采集到对应的[对象数据](container.md#objects)上(#1102)
+- Trace 采集支持自动提取一些关键 meta 信息(#1092)
+- 支持安装过程中指定安装源地址，以简化[离线安装](datakit-offline-install.md)流程(#1065)
+- [Pipeline](../developers/pipeline.md) 新增功能：
+    - 新增 for 循环/字典/数组支持(#1037/#1093)
+    - 新增算数表达式支持(#798)
+    - Pipeline 出错信息将在采集的数据上展示(#784/#1091)
+    - 如果时间字段切割出错，支持自动修正时间字段(`time`)，以避免控制台页面上时间无法展示(#1091)
+    - 新增 [len()](../developers/pipeline.md#fn-len) 函数
+
+### 问题修复 {#cl-1.4.16-fix} 
+
+- 修复 OOM 后 DataKit 服务不会自动启动的问题(#691)
+- 修复 prom 采集器过滤指标问题(#1084)
+- 修复 MySQL 采集器的指标单位、文档等问题(#1122)
+- 修复 MongoDB 采集器问题(#1096/#1098)
+- 修复 Trace 数据中采集了一些无效字段问题(#1083)
+
+---
+
 ## 1.4.15(2022/09/13) {#cl-1.4.15}
 
 本次发布属于 Hotfix 发布，大幅度提高日志类数据的采集和发送效率。
+
+---
 
 ## 1.4.14(2022/09/09) {#cl-1.4.14}
 
@@ -22,7 +52,7 @@
 - 修正磁盘采集器在 Windows 上采集不到指标的问题(#1114)
 - 修复 Git 管理配置的情况下，部分资源泄露导致的数据重复采集问题(#1107)
 - 修复 [SQLServer 采集器](sqlserver.md) 复杂密码导致无法连接的问题(#1119)
-- 修复 [DQL API 请求](apis.md#api-raw-query)丢失 applicaiton/json Content-Encoding 问题(#1119)
+- 修复 [DQL API 请求](apis.md#api-raw-query)丢失 applicaiton/json Content-Type 问题(#1119)
 - 调整 Pipeline 有关的文档，将其移到「自定义开发」目录下：
 
 <figure markdown>

@@ -1,8 +1,3 @@
-// Unless explicitly stated otherwise all files in this repository are licensed
-// under the MIT License.
-// This product includes software developed at Guance Cloud (https://www.guance.com/).
-// Copyright 2021-present Guance, Inc.
-
 package grok
 
 import (
@@ -40,7 +35,7 @@ func TestParse(t *testing.T) {
 	if len(errs) != 0 {
 		t.Error(errs)
 	}
-	g, err := CompilePattern("%{DAY:day}", denormalized)
+	g, err := CompilePattern("%{DAY:day}", PatternStorage{denormalized})
 	if err != nil {
 		t.Error(err)
 	}
@@ -62,7 +57,7 @@ func TestParseFromPathPattern(t *testing.T) {
 	if len(errs) != 0 {
 		t.Error(errs)
 	}
-	g, err := CompilePattern("%{DAY:day}", de)
+	g, err := CompilePattern("%{DAY:day}", PatternStorage{de})
 	if err != nil {
 		t.Error(err)
 	}
@@ -148,7 +143,7 @@ true 1.1`,
 	}
 
 	for _, item := range tCase {
-		g, err := CompilePattern(item.ptn, defalutDenormalizedPatterns)
+		g, err := CompilePattern(item.ptn, PatternStorage{defalutDenormalizedPatterns})
 		if err != nil {
 			t.Fatal(err)
 		}

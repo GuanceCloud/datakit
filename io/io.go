@@ -42,8 +42,9 @@ type IOConfig struct {
 	OutputFile       string   `toml:"output_file"`
 	OutputFileInputs []string `toml:"output_file_inputs"`
 
-	EnableCache bool `toml:"enable_cache"`
-	CacheSizeGB int  `toml:"cache_max_size_gb"`
+	EnableCache        bool   `toml:"enable_cache"`
+	CacheSizeGB        int    `toml:"cache_max_size_gb"`
+	CacheCleanInterval string `toml:"cache_clean_interval"`
 
 	Filters map[string][]string `toml:"filters"`
 }
@@ -244,7 +245,13 @@ func (x *IO) runConsumer(category string) {
 		c.category = datakit.Logging
 	}
 
-	walTick := time.NewTicker(time.Second)
+	du, err := time.ParseDuration(x.conf.CacheCleanInterval)
+	if err != nil {
+		log.Warnf("parse CacheCleanInterval failed: %s, use default 5s", err)
+		du = time.Second * 5
+	}
+
+	walTick := time.NewTicker(du)
 	defer walTick.Stop()
 
 	log.Infof("run consumer on %s", category)
@@ -259,6 +266,7 @@ func (x *IO) runConsumer(category string) {
 			x.flush(c)
 
 		case <-walTick.C:
+			log.Debugf("wal try flush failed data on %s", category)
 			x.flushWal(c)
 
 		case e := <-x.inLastErr:
@@ -320,6 +328,8 @@ func (x *IO) flushWal(c *consumer) {
 	if c.fc != nil {
 		if err := c.fc.get(getWrite, x.sender.Write); err != nil {
 			log.Warnf("flushWal send failed: %v", err)
+		} else {
+			log.Debug("flushWal send ok")
 		}
 	}
 }

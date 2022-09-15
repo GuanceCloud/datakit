@@ -13,6 +13,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"sigs.k8s.io/yaml"
 )
 
 func gatherDockerContainerObject(client dockerClientX, k8sClient k8sClientX, container *types.Container) (*containerObject, error) {
@@ -32,6 +33,12 @@ func gatherDockerContainerObject(client dockerClientX, k8sClient k8sClientX, con
 	}
 	m.fields = f
 
+	if y, err := yaml.Marshal(container); err != nil {
+		l.Debugf("failed to get container yaml %s, ID: %s, ignored", err.Error(), container.ID)
+	} else {
+		m.fields["yaml"] = string(y)
+	}
+
 	// 毫秒除以1000得秒数，不使用Second()因为它返回浮点
 	m.fields["age"] = time.Since(time.Unix(container.Created, 0)).Milliseconds() / 1e3
 	m.fields["from_kubernetes"] = containerIsFromKubernetes(getContainerName(container.Names))
@@ -40,6 +47,8 @@ func gatherDockerContainerObject(client dockerClientX, k8sClient k8sClientX, con
 	if process, err := getContainerProcessToJSON(client, container.ID); err == nil {
 		m.fields["process"] = process
 	}
+	m.fields.delete("yaml")
+
 	return m, nil
 }
 

@@ -14,22 +14,22 @@ import (
 )
 
 var (
-	ServiceName        = "datakit"
-	ServiceDisplayName = "datakit"
-	ServiceDescription = `Collects data and upload it to DataFlux.`
-	ServiceExecutable  string
-	ServiceArguments   []string
-
-	ServiceEnvs map[string]string // not used
+	Name        = "datakit"
+	description = `Collects data and upload it to DataFlux.`
+	Executable  string
+	Arguments   []string
 
 	Entry func()
 
-	// not used.
-	ServiceOption = map[string]interface{}{}
+	option = map[string]interface{}{
+		"RestartSec":         10, // 重启间隔.
+		"StartLimitInterval": 60, // 60秒内5次重启之后便不再启动.
+		"StartLimitBurst":    5,
+	}
 
 	StopCh     = make(chan interface{})
-	waitstopCh = make(chan interface{})
-	slogger    service.Logger
+	waitStopCh = make(chan interface{})
+	sLogger    service.Logger
 )
 
 type program struct{}
@@ -38,12 +38,12 @@ func NewService() (service.Service, error) {
 	prog := &program{}
 
 	scfg := &service.Config{
-		Name:        ServiceName,
-		DisplayName: ServiceName,
-		Description: ServiceDescription,
-		Executable:  ServiceExecutable,
-		Arguments:   ServiceArguments,
-		Option:      ServiceOption,
+		Name:        Name,
+		DisplayName: Name,
+		Description: description,
+		Executable:  Executable,
+		Arguments:   Arguments,
+		Option:      option,
 	}
 
 	if runtime.GOOS == "darwin" {
@@ -65,23 +65,23 @@ func StartService() error {
 	}
 
 	errch := make(chan error, 32) //nolint:gomnd
-	slogger, err = svc.Logger(errch)
+	sLogger, err = svc.Logger(errch)
 	if err != nil {
 		return err
 	}
 
-	if err := slogger.Info("datakit set service logger ok, starting..."); err != nil {
+	if err := sLogger.Info("datakit set service logger ok, starting..."); err != nil {
 		return err
 	}
 
 	if err := svc.Run(); err != nil {
-		if serr := slogger.Errorf("start service failed: %s", err.Error()); serr != nil {
+		if serr := sLogger.Errorf("start service failed: %s", err.Error()); serr != nil {
 			return serr
 		}
 		return err
 	}
 
-	if err := slogger.Info("datakit service exited"); err != nil {
+	if err := sLogger.Info("datakit service exited"); err != nil {
 		return err
 	}
 
@@ -104,10 +104,10 @@ func (p *program) Stop(s service.Service) error {
 	// On windows, we stop datakit in services.msc, if datakit process do not
 	// echo to here, services.msc will complain the datakit process has been
 	// exit unexpected
-	<-waitstopCh
+	<-waitStopCh
 	return nil
 }
 
 func Stop() {
-	close(waitstopCh)
+	close(waitStopCh)
 }

@@ -421,7 +421,7 @@ func Test_dkTags_getAttributeVal(t *testing.T) {
 				tags:        tt.fields.tags,
 				replaceTags: tt.fields.replaceTags,
 			}
-			if got := dt.getAttributeVal(tt.args.keyName); got != tt.want {
+			if got, ok := dt.getAttributeVal(tt.args.keyName); ok && got != tt.want {
 				t.Errorf("getAttributeVal() = %v, want %v", got, tt.want)
 			}
 		})

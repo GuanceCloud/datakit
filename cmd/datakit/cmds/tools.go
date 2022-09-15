@@ -47,9 +47,9 @@ func runToolFlags() error {
 		fmt.Println(defconf.String())
 		os.Exit(0)
 
-	case *flagToolCloudInfo != "":
+	case *flagToolCloudInfo:
 		tryLoadMainCfg()
-		info, err := showCloudInfo(*flagToolCloudInfo)
+		info, err := showCloudInfo()
 		if err != nil {
 			errorf("[E] Get cloud info failed: %s\n", err.Error())
 			os.Exit(-1)

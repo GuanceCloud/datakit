@@ -21,13 +21,13 @@ type date struct {
 	val       interface{}
 }
 
-func (s *SpansStorage) getData(metric *metricpb.Metric) []*date {
+func (ss *SpansStorage) getData(metric *metricpb.Metric) []*date {
 	ps := make([]*date, 0)
 	switch t := metric.GetData().(type) {
 	// case *metricpb.Metric_IntGauge: // 弃用
 	case *metricpb.Metric_Gauge:
 		for _, p := range t.Gauge.DataPoints {
-			point := &date{tags: newEmptyTags(s.RegexpString, s.GlobalTags)}
+			point := &date{tags: newEmptyTags(ss.RegexpString, ss.GlobalTags)}
 			if double, ok := p.Value.(*metricpb.NumberDataPoint_AsDouble); ok {
 				point.val = double.AsDouble
 				point.typeName = "double"
@@ -43,7 +43,7 @@ func (s *SpansStorage) getData(metric *metricpb.Metric) []*date {
 	// case *metricpb.Metric_IntSum: // 弃用
 	case *metricpb.Metric_Sum:
 		for _, p := range t.Sum.DataPoints {
-			point := &date{tags: newEmptyTags(s.RegexpString, s.GlobalTags)}
+			point := &date{tags: newEmptyTags(ss.RegexpString, ss.GlobalTags)}
 			if double, ok := p.Value.(*metricpb.NumberDataPoint_AsDouble); ok {
 				point.val = double.AsDouble
 				point.typeName = "double"
@@ -60,7 +60,7 @@ func (s *SpansStorage) getData(metric *metricpb.Metric) []*date {
 	// case *metricpb.Metric_IntHistogram: // 弃用
 	case *metricpb.Metric_Histogram:
 		for _, p := range t.Histogram.DataPoints {
-			point := &date{tags: newEmptyTags(s.RegexpString, s.GlobalTags)}
+			point := &date{tags: newEmptyTags(ss.RegexpString, ss.GlobalTags)}
 			point.val = p.Sum
 			point.typeName = "histogram"
 			point.tags.setAttributesToTags(p.Attributes)
@@ -73,7 +73,7 @@ func (s *SpansStorage) getData(metric *metricpb.Metric) []*date {
 		for _, p := range t.ExponentialHistogram.DataPoints {
 			point := &date{
 				typeName:  "ExponentialHistogram",
-				tags:      newEmptyTags(s.RegexpString, s.GlobalTags).setAttributesToTags(p.Attributes),
+				tags:      newEmptyTags(ss.RegexpString, ss.GlobalTags).setAttributesToTags(p.Attributes),
 				startTime: p.StartTimeUnixNano,
 				unitTime:  p.TimeUnixNano,
 				val:       p.Sum,
@@ -84,7 +84,7 @@ func (s *SpansStorage) getData(metric *metricpb.Metric) []*date {
 		for _, p := range t.Summary.DataPoints {
 			point := &date{
 				typeName:  "summary",
-				tags:      newEmptyTags(s.RegexpString, s.GlobalTags).setAttributesToTags(p.Attributes),
+				tags:      newEmptyTags(ss.RegexpString, ss.GlobalTags).setAttributesToTags(p.Attributes),
 				startTime: p.StartTimeUnixNano,
 				unitTime:  p.TimeUnixNano,
 				val:       p.Sum,
@@ -92,7 +92,7 @@ func (s *SpansStorage) getData(metric *metricpb.Metric) []*date {
 			ps = append(ps, point)
 		}
 	default:
-		l.Warnf("unknown metric.Data type or is deprecated Data type")
+		log.Warnf("unknown metric.Data type or is deprecated Data type")
 	}
 	for _, p := range ps {
 		// 统一处理 tag 问题
@@ -115,17 +115,17 @@ type OtelResourceMetric struct {
 	// Exemplar 可获取 spanid 等
 }
 
-func (s *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*OtelResourceMetric {
+func (ss *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*OtelResourceMetric {
 	orms := make([]*OtelResourceMetric, 0)
 	for _, resourceMetrics := range rss {
-		dt := newEmptyTags(s.RegexpString, s.GlobalTags)
+		dt := newEmptyTags(ss.RegexpString, ss.GlobalTags)
 		tags := dt.setAttributesToTags(resourceMetrics.Resource.Attributes).tags
 		LibraryMetrics := resourceMetrics.GetInstrumentationLibraryMetrics()
 		for _, libraryMetric := range LibraryMetrics {
 			resource := libraryMetric.InstrumentationLibrary.Name
 			metrics := libraryMetric.GetMetrics()
 			for _, metrice := range metrics {
-				ps := s.getData(metrice)
+				ps := ss.getData(metrice)
 				for _, p := range ps {
 					orm := &OtelResourceMetric{
 						Operation:   metrice.Name,
@@ -173,7 +173,7 @@ func makePoints(orms []*OtelResourceMetric) []*point.Point {
 			Strict:   true,
 		})
 		if err != nil {
-			l.Errorf("make point err=%v", err)
+			log.Errorf("make point err=%v", err)
 			continue
 		}
 

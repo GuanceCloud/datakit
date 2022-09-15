@@ -45,7 +45,8 @@ var (
 			runtime.GOOS,
 			runtime.GOARCH,
 			DataKitVersion))
-	l = logger.DefaultSLogger("installer")
+	InstallerBaseURL = ""
+	l                = logger.DefaultSLogger("installer")
 )
 
 // Installer flags.
@@ -74,6 +75,7 @@ func init() {
 	flag.BoolVar(&flagInfo, "info", false, "show installer info")
 	flag.BoolVar(&flagOffline, "offline", false, "-offline option removed")
 	flag.BoolVar(&flagDownloadOnly, "download-only", false, "only download install packages")
+	flag.StringVar(&InstallerBaseURL, "installer_base_url", "", "install datakit and data BaseUrl")
 
 	flag.StringVar(&installer.Dataway, "dataway", "", "DataWay host(https://guance.openway.com?token=xxx)")
 	flag.StringVar(&installer.Proxy, "proxy", "", "http proxy http://ip:port for datakit")
@@ -254,6 +256,24 @@ func applyFlags() {
 			l.Infof("set proxy to %s", installer.Proxy)
 		}
 	}
+
+	if InstallerBaseURL != "" {
+		_, err := url.Parse(InstallerBaseURL)
+		if err != nil {
+			l.Errorf("ENV:$DK_INSTALLER_BASE_URL can not parse to URL, err=%v", err)
+			os.Exit(0)
+		}
+		if !strings.HasSuffix(InstallerBaseURL, "/") {
+			InstallerBaseURL += "/"
+		}
+		l.Infof("InstallerBaseURL = %s", InstallerBaseURL)
+		dataURL = InstallerBaseURL + "data.tar.gz"
+
+		datakitURL = InstallerBaseURL + fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
+			runtime.GOOS,
+			runtime.GOARCH,
+			DataKitVersion)
+	}
 }
 
 func main() {
@@ -272,9 +292,9 @@ Data           : %s
 
 	var err error
 
-	dkservice.ServiceExecutable = filepath.Join(datakit.InstallDir, datakitBin)
+	dkservice.Executable = filepath.Join(datakit.InstallDir, datakitBin)
 	if runtime.GOOS == datakit.OSWindows {
-		dkservice.ServiceExecutable += ".exe"
+		dkservice.Executable += ".exe"
 	}
 
 	svc, err := dkservice.NewService()
@@ -338,9 +358,9 @@ Data           : %s
 	}
 
 	if flagInstallOnly != 0 {
-		l.Infof("only install service %s, NOT started", dkservice.ServiceName)
+		l.Infof("only install service %s, NOT started", dkservice.Name)
 	} else {
-		l.Infof("starting service %s...", dkservice.ServiceName)
+		l.Infof("starting service %s...", dkservice.Name)
 		if err = service.Control(svc, "start"); err != nil {
 			l.Warnf("start service failed: %s", err.Error())
 		}

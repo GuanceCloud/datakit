@@ -68,5 +68,5 @@ go run your-go-code.go
 - WithService: 用于设置应用程序的服务名称，对应环境变量 DD_SERVICE。
 - WithLogStartup: 开启启动配置和诊断日志，对应环境变量 DD_TRACE_STARTUP_LOGS。
 - WithDebugMode: 开启 debug 日志，对应环境变量 DD_TRACE_DEBUG。
-- WithAgentAddr: Datakit 监听的地址和端口号，默认 localhost:9529。
+- WithAgentAddr: Datakit 监听的地址和端口号，相关环境变量 DD_AGENT_HOST DD_TRACE_AGENT_PORT 默认 localhost:9529。
 - WithSampler: 设置采样率从 0.0(0%) ~ 1.0(100%)。

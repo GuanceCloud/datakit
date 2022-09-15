@@ -61,24 +61,27 @@ const (
 	SPAN_SOURCE_WEB       = "web"
 
 	// line protocol tags.
-	TAG_CONTAINER_HOST = "container_host"
-	TAG_ENDPOINT       = "endpoint"
-	TAG_ENV            = "env"
-	TAG_HTTP_CODE      = "http_status_code"
-	TAG_HTTP_METHOD    = "http_method"
-	TAG_OPERATION      = "operation"
-	TAG_PROJECT        = "project"
-	TAG_SERVICE        = "service"
-	TAG_SOURCE_TYPE    = "source_type"
-	TAG_SPAN_STATUS    = "status"
-	TAG_SPAN_TYPE      = "span_type"
-	TAG_VERSION        = "version"
+	TAG_CONTAINER_HOST   = "container_host"
+	TAG_ENDPOINT         = "endpoint"
+	TAG_ENV              = "env"
+	TAG_HTTP_HOST        = "http_host"
+	TAG_HTTP_METHOD      = "http_method"
+	TAG_HTTP_ROUTE       = "http_route"
+	TAG_HTTP_STATUS_CODE = "http_status_code"
+	TAG_HTTP_URL         = "http_url"
+	TAG_OPERATION        = "operation"
+	TAG_PID              = "pid"
+	TAG_PROJECT          = "project"
+	TAG_SERVICE          = "service"
+	TAG_SOURCE_TYPE      = "source_type"
+	TAG_SPAN_STATUS      = "status"
+	TAG_SPAN_TYPE        = "span_type"
+	TAG_VERSION          = "version"
 
 	// line protocol fields.
 	FIELD_DURATION    = "duration"
-	FIELD_MSG         = "message"
+	FIELD_MESSAGE     = "message"
 	FIELD_PARENTID    = "parent_id"
-	FIELD_PID         = "pid"
 	FIELD_PRIORITY    = "priority"
 	FIELD_RESOURCE    = "resource"
 	FIELD_SAMPLE_RATE = "sample_rate"
@@ -174,29 +177,21 @@ func GetSpanSourceType(app string) string {
 }
 
 type DatakitSpan struct {
-	TraceID        string                 `json:"trace_id"`
-	ParentID       string                 `json:"parent_id"`
-	SpanID         string                 `json:"span_id"`
-	Service        string                 `json:"service"`     // service name
-	Resource       string                 `json:"resource"`    // resource or api under service
-	Operation      string                 `json:"operation"`   // api name
-	Source         string                 `json:"source"`      // client tracer name
-	SpanType       string                 `json:"span_type"`   // relative span position in tracing: entry, local, exit or unknow
-	SourceType     string                 `json:"source_type"` // service type
-	Env            string                 `json:"env"`         // environment variables
-	Project        string                 `json:"project"`
-	Version        string                 `json:"version"`
-	Tags           map[string]string      `json:"tags"`
-	Metrics        map[string]interface{} `json:"metrics"`
-	EndPoint       string                 `json:"end_point"`
-	HTTPMethod     string                 `json:"http_method"`
-	HTTPStatusCode string                 `json:"http_status_code"`
-	ContainerHost  string                 `json:"container_host"`
-	PID            string                 `json:"p_id"`     // process id
-	Start          int64                  `json:"start"`    // unit: nano sec
-	Duration       int64                  `json:"duration"` // unit: nano sec
-	Status         string                 `json:"status"`   // span status like error, ok, info etc.
-	Content        string                 `json:"content"`  // raw tracing data in json
+	TraceID    string                 `json:"trace_id"`
+	ParentID   string                 `json:"parent_id"`
+	SpanID     string                 `json:"span_id"`
+	Service    string                 `json:"service"`     // service name
+	Resource   string                 `json:"resource"`    // resource or api under service
+	Operation  string                 `json:"operation"`   // api name
+	Source     string                 `json:"source"`      // client tracer name
+	SpanType   string                 `json:"span_type"`   // relative span position in tracing: entry, local, exit or unknow
+	SourceType string                 `json:"source_type"` // service type
+	Tags       map[string]string      `json:"tags"`
+	Metrics    map[string]interface{} `json:"metrics"`
+	Start      int64                  `json:"start"`    // unit: nano sec
+	Duration   int64                  `json:"duration"` // unit: nano sec
+	Status     string                 `json:"status"`   // span status like error, ok, info etc.
+	Content    string                 `json:"content"`  // raw tracing data in json
 }
 
 type DatakitTrace []*DatakitSpan

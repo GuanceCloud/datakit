@@ -2,11 +2,13 @@
 // Use of this source code is governed by a zlib-style
 // license that can be found in the LICENSE file.
 
-// +build linux darwin
+//go:build linux || darwin || solaris || aix || freebsd
+// +build linux darwin solaris aix freebsd
 
 package service
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,6 +16,8 @@ import (
 	"os/exec"
 	"syscall"
 )
+
+const defaultLogDirectory = "/var/log"
 
 func newSysLogger(name string, errs chan<- error) (Logger, error) {
 	w, err := syslog.New(syslog.LOG_INFO, name)
@@ -99,7 +103,7 @@ func runCommand(command string, readStdout bool, arguments ...string) (int, stri
 	// so check for emtpy stderr
 	if command == "launchctl" {
 		slurp, _ := ioutil.ReadAll(stderr)
-		if len(slurp) > 0 {
+		if len(slurp) > 0 && !bytes.HasSuffix(slurp, []byte("Operation now in progress\n")) {
 			return 0, "", fmt.Errorf("%q failed with stderr: %s", command, slurp)
 		}
 	}

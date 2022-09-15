@@ -24,7 +24,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 )
@@ -189,7 +188,7 @@ func getSinglePointResult(scriptInfo *pipeline.Pipeline, pt *point.Point, opt *p
 	}
 
 	return &pipeline.Result{
-		Output: &parser.Output{
+		Output: &pipeline.Output{
 			Drop:        drop,
 			Measurement: pt.Name(),
 			Time:        pt.Time(),

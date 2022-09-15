@@ -6,9 +6,9 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-green?style=plastic)](LICENSE)
 
 <h2>
-  <a href="https://datakit.tools">Website</a>
+  <a href="https://www.guance.com/">Website</a>
   <span> • </span>
-  <a href="https://www.guance.com/dataflux/datakit">Doc</a>
+  <a href="https://docs.guance.com/datakit/">Doc</a>
 </h2>
 
 

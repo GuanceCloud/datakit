@@ -13,7 +13,6 @@ import (
 	"strings"
 	"syscall"
 	"text/template"
-	"time"
 )
 
 func isUpstart() bool {
@@ -153,12 +152,14 @@ func (s *upstart) Install() error {
 		HasKillStanza   bool
 		HasSetUIDStanza bool
 		LogOutput       bool
+		LogDirectory    string
 	}{
 		s.Config,
 		path,
 		s.hasKillStanza(),
 		s.hasSetUIDStanza(),
 		s.Option.bool(optionLogOutput, optionLogOutputDefault),
+		s.Option.string(optionLogDirectory, defaultLogDirectory),
 	}
 
 	return s.template().Execute(f, to)
@@ -225,12 +226,7 @@ func (s *upstart) Stop() error {
 }
 
 func (s *upstart) Restart() error {
-	err := s.Stop()
-	if err != nil {
-		return err
-	}
-	time.Sleep(50 * time.Millisecond)
-	return s.Start()
+	return run("initctl", "restart", s.Name)
 }
 
 // The upstart script should stop with an INT or the Go runtime will terminate
@@ -260,8 +256,8 @@ end script
 # Start
 script
 	{{if .LogOutput}}
-	stdout_log="/var/log/{{.Name}}.out"
-	stderr_log="/var/log/{{.Name}}.err"
+	stdout_log="{{.LogDirectory}}/{{.Name}}.out"
+	stderr_log="{{.LogDirectory}}/{{.Name}}.err"
 	{{end}}
 	
 	if [ -f "/etc/sysconfig/{{.Name}}" ]; then

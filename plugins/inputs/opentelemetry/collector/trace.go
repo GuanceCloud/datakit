@@ -19,7 +19,7 @@ import (
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
-func (s *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) itrace.DatakitTraces {
+func (ss *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) itrace.DatakitTraces {
 	dktraces := make(itrace.DatakitTraces, 0)
 	spanIDs, parentIDs := getSpanIDsAndParentIDs(rss)
 	for _, spans := range rss {
@@ -27,44 +27,55 @@ func (s *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) itrace.DatakitTra
 		for _, librarySpans := range ls {
 			dktrace := make([]*itrace.DatakitSpan, 0)
 			for _, span := range librarySpans.Spans {
-				dt := newEmptyTags(s.RegexpString, s.GlobalTags)
+				dt := newEmptyTags(ss.RegexpString, ss.GlobalTags)
 				dt.makeAllTags(span, spans.Resource.Attributes)
 				spanID := byteToString(span.GetSpanId())
 				ParentID := byteToString(span.GetParentSpanId())
-				dkSpan := &itrace.DatakitSpan{
-					TraceID:        hex.EncodeToString(span.GetTraceId()),
-					ParentID:       ParentID,
-					SpanID:         spanID,
-					Service:        dt.getAttributeVal(otelResourceServiceKey),
-					Resource:       span.Name,
-					Operation:      span.Name,
-					Source:         inputName,
-					SpanType:       itrace.FindSpanTypeStrSpanID(spanID, ParentID, spanIDs, parentIDs),
-					SourceType:     dt.getResourceType(),
-					Env:            "",
-					Project:        "",
-					Version:        librarySpans.InstrumentationLibrary.Version,
-					Tags:           dt.resource(),
-					EndPoint:       "",
-					HTTPMethod:     dt.getAttributeVal(otelResourceHTTPMethodKey),
-					HTTPStatusCode: dt.getAttributeVal(otelResourceHTTPStatusCodeKey),
-					ContainerHost:  dt.getAttributeVal(otelResourceContainerNameKey),
-					PID:            dt.getAttributeVal(otelResourceProcessPidKey),
-					Start:          int64(span.StartTimeUnixNano),                        // 注意单位 nano
-					Duration:       int64(span.EndTimeUnixNano - span.StartTimeUnixNano), // 单位 nano
-					Status:         getDKSpanStatus(span.GetStatus()),                    // 使用 dk status
-					Content:        "",
+				dkspan := &itrace.DatakitSpan{
+					TraceID:    hex.EncodeToString(span.GetTraceId()),
+					ParentID:   ParentID,
+					SpanID:     spanID,
+					Resource:   span.Name,
+					Operation:  span.Name,
+					Source:     inputName,
+					SpanType:   itrace.FindSpanTypeStrSpanID(spanID, ParentID, spanIDs, parentIDs),
+					SourceType: dt.getResourceType(),
+					Tags:       dt.resource(),
+					Start:      int64(span.StartTimeUnixNano),                        // 注意单位 nano
+					Duration:   int64(span.EndTimeUnixNano - span.StartTimeUnixNano), // 单位 nano
+					Status:     getDKSpanStatus(span.GetStatus()),                    // 使用 dk status
 				}
+
+				if v, ok := dt.getAttributeVal(otelResourceServiceKey); ok {
+					dkspan.Service = v
+				}
+				if librarySpans.InstrumentationLibrary.Version != "" {
+					dkspan.Tags[itrace.TAG_VERSION] = librarySpans.InstrumentationLibrary.Version
+				}
+				if v, ok := dt.getAttributeVal(otelResourceHTTPMethodKey); ok {
+					dkspan.Tags[itrace.TAG_HTTP_METHOD] = v
+				}
+				if v, ok := dt.getAttributeVal(otelResourceHTTPStatusCodeKey); ok {
+					dkspan.Tags[itrace.TAG_HTTP_STATUS_CODE] = v
+				}
+				if v, ok := dt.getAttributeVal(otelResourceContainerNameKey); ok {
+					dkspan.Tags[itrace.TAG_CONTAINER_HOST] = v
+				}
+				if v, ok := dt.getAttributeVal(otelResourceProcessIDKey); ok {
+					dkspan.Tags[itrace.TAG_PID] = v
+				}
+
 				bts, err := json.Marshal(span)
 				if err == nil {
-					dkSpan.Content = string(bts)
+					dkspan.Content = string(bts)
 				}
-				dktrace = append(dktrace, dkSpan)
-				if len(dktrace) != 0 {
-					dktrace[0].Metrics = make(map[string]interface{})
-					dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
-				}
+				dktrace = append(dktrace, dkspan)
 			}
+			if len(dktrace) != 0 {
+				dktrace[0].Metrics = make(map[string]interface{})
+				dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
+			}
+
 			dktraces = append(dktraces, dktrace)
 		}
 	}
@@ -217,23 +228,23 @@ func (dt *dkTags) resource() map[string]string {
 	return dt.replaceTags
 }
 
-func (dt *dkTags) getAttributeVal(keyName string) string {
+func (dt *dkTags) getAttributeVal(keyName string) (string, bool) {
 	for k, v := range dt.tags {
 		if k == keyName {
-			return v
+			return v, true
 		}
 	}
 	if keyName == otelResourceServiceKey {
-		return defaultServiceVal // set default to 'service.name'
+		return defaultServiceVal, true // set default to 'service.name'
 	}
 
-	return ""
+	return "", false
 }
 
 func (dt *dkTags) getResourceType() string {
 	// 从 tag 中判断 span resource 类型，app、db、cache 等
 	for key, val := range dt.tags {
-		l.Debugf("tag = %s val =%s", key, val)
+		log.Debugf("tag = %s val =%s", key, val)
 		switch key {
 		case string(semconv.HTTPSchemeKey), string(semconv.HTTPMethodKey):
 			return itrace.SPAN_SOURCE_WEB
