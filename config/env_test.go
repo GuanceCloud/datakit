@@ -276,8 +276,9 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_IO_ENABLE_CACHE":      "hahahah",
 				"ENV_IO_CACHE_MAX_SIZE_GB": "8",
 
-				"ENV_IO_FLUSH_INTERVAL": "2s",
-				"ENV_IO_QUEUE_SIZE":     "123",
+				"ENV_IO_FLUSH_INTERVAL":       "2s",
+				"ENV_IO_QUEUE_SIZE":           "123",
+				"ENV_IO_CACHE_CLEAN_INTERVAL": "100s",
 			},
 
 			expect: func() *Config {
@@ -289,6 +290,7 @@ func TestLoadEnv(t *testing.T) {
 				cfg.IOConf.EnableCache = true
 				cfg.IOConf.CacheSizeGB = 8
 				cfg.IOConf.FlushInterval = "2s"
+				cfg.IOConf.CacheCleanInterval = "100s"
 
 				return cfg
 			}(),

@@ -279,38 +279,35 @@ func (c *Config) parseGlobalHostTags() {
 
 func (c *Config) setLogging() {
 	// set global log root
+	lopt := &logger.Option{
+		Level: c.Logging.Level,
+		Flags: logger.OPT_DEFAULT,
+	}
+
 	switch c.Logging.Log {
 	case "stdout", "":
 		l.Info("set log to stdout, rotate disabled")
+		lopt.Flags |= logger.OPT_STDOUT
 
-		optflags := (logger.OPT_DEFAULT | logger.OPT_STDOUT)
 		if !c.Logging.DisableColor {
-			optflags |= logger.OPT_COLOR
+			lopt.Flags |= logger.OPT_COLOR
 		}
 
-		if err := logger.InitRoot(
-			&logger.Option{
-				Level: c.Logging.Level,
-				Flags: optflags,
-			}); err != nil {
-			l.Errorf("set root log faile: %s", err.Error())
-		}
 	default:
 
 		if c.Logging.Rotate > 0 {
 			logger.MaxSize = c.Logging.Rotate
 		}
 
-		if err := logger.InitRoot(&logger.Option{
-			Path:  c.Logging.Log,
-			Level: c.Logging.Level,
-			Flags: logger.OPT_DEFAULT,
-		}); err != nil {
-			l.Panicf("set root log to %s faile: %s", c.Logging.Log, err.Error())
-		}
-
-		l.Infof("set root logger to %s ok", c.Logging.Log)
+		lopt.Path = c.Logging.Log
 	}
+
+	if err := logger.InitRoot(lopt); err != nil {
+		l.Errorf("set root log(options: %+#v) failed: %s", lopt, err.Error())
+		return
+	}
+
+	l.Infof("set root logger(options: %+#v)ok", lopt)
 }
 
 // setup global host/env tags.

@@ -40,8 +40,10 @@ func DefaultConfig() *Config {
 			FlushInterval:    "10s",
 			OutputFileInputs: []string{},
 
-			EnableCache: false,
-			CacheSizeGB: 1,
+			// Enable disk cache on datakit send fail.
+			EnableCache:        false,
+			CacheSizeGB:        10,
+			CacheCleanInterval: "5s",
 
 			Filters: map[string][]string{},
 		},
