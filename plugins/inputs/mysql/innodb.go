@@ -53,28 +53,28 @@ func (m *innodbMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 			"lock_row_lock_time": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
+				Unit:     inputs.DurationMS,
 				Desc:     "Time spent in acquiring row locks, in milliseconds (innodb_row_lock_time)",
 			},
 			// status
 			"lock_row_lock_time_max": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
+				Unit:     inputs.DurationMS,
 				Desc:     "The maximum time to acquire a row lock, in milliseconds (innodb_row_lock_time_max)",
 			},
 			// status
 			"lock_row_lock_waits": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.DurationMS,
+				Unit:     inputs.NCount,
 				Desc:     "Number of times a row lock had to be waited for (innodb_row_lock_waits)",
 			},
 			// status
 			"lock_row_lock_time_avg": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
+				Unit:     inputs.DurationMS,
 				Desc:     "The average time to acquire a row lock, in milliseconds (innodb_row_lock_time_avg)",
 			},
 			"buffer_pool_size": &inputs.FieldInfo{
