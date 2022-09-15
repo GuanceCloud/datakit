@@ -26,7 +26,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -730,7 +729,7 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 	}
 
 	res := pipeline.Result{
-		Output: &parser.Output{
+		Output: &pipeline.Output{
 			Drop:        dropFlag,
 			Measurement: pt.Name(),
 			Time:        pt.Time(),
