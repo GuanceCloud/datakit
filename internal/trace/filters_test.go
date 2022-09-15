@@ -112,16 +112,16 @@ func TestOmitStatusCode(t *testing.T) {
 
 	var afterOmitStatusCode DatakitTraces
 	for i := range testcases {
-		if trace, ok := OmitStatusCodeFilterWrapper([]string{"404", "500", "307"})(testcases[i]); !ok {
+		if trace, ok := OmitHTTPStatusCodeFilterWrapper([]string{"404", "500", "307"})(testcases[i]); !ok {
 			afterOmitStatusCode = append(afterOmitStatusCode, trace)
 		}
 	}
 
 	for i := range afterOmitStatusCode {
 		for j := range afterOmitStatusCode[i] {
-			switch afterOmitStatusCode[i][j].HTTPStatusCode {
+			switch afterOmitStatusCode[i][j].Tags[TAG_HTTP_STATUS_CODE] {
 			case "404", "500", "307":
-				t.Errorf("status code %s should be omitted", afterOmitStatusCode[i][j].HTTPStatusCode)
+				t.Errorf("status code %s should be omitted", afterOmitStatusCode[i][j].Tags[TAG_HTTP_STATUS_CODE])
 				t.FailNow()
 			}
 		}

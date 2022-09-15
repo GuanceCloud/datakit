@@ -31,26 +31,28 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 | Tag                                          | container_host                            |                                           | host name of container                                                                              |
 | Tag                                          | endpoint                                  |                                           | end point of resource                                                                               |
 | Tag                                          | env                                       |                                           | environment arguments                                                                               |
-| Tag                                          | http_code                                 |                                           | HTTP status code                                                                                    |
+| Tag                                          | http_host                                 |                                           | HTTP host                                                                                           |
 | Tag                                          | http_method                               |                                           | HTTP method                                                                                         |
+| Tag                                          | http_route                                |                                           | HTTP route                                                                                          |
+| Tag                                          | http_status_code                          |                                           | HTTP status code                                                                                    |
+| Tag                                          | http_url                                  |                                           | HTTP URL                                                                                            |
 | Tag                                          | operation                                 |                                           | operation of resource                                                                               |
+| Tag                                          | pid                                       |                                           | process id                                                                                          |
 | Tag                                          | project                                   |                                           | project name                                                                                        |
 | Tag                                          | service                                   |                                           | service name                                                                                        |
-| Tag                                          | source_type                               |                                           | source types [app, cache, custom, db, web]                                                          |
-| Tag                                          | span_status                               |                                           | span status [ok, info, warning, error, critical]                                                    |
+| Tag                                          | source_type                               |                                           | source types [app, framework, cache, message_queue, custom, db, web]                                |
+| Tag                                          | status                                    |                                           | span status [ok, info, warning, error, critical]                                                    |
 | Tag                                          | span_type                                 |                                           | span types [entry, local, exit, unknow]                                                             |
 | Tag                                          | version                                   |                                           | service version                                                                                     |
-| Field                                        | traceid                                   |                                           | trace ID                                                                                            |
-| Field                                        | spanid                                    |                                           | span ID                                                                                             |
-| Field                                        | parentid                                  |                                           | parent ID of span                                                                                   |
-| Field                                        | resource                                  |                                           | resource of service                                                                                 |
 | Field                                        | duration                                  | 微秒                                      | span duration                                                                                       |
-| Field                                        | msg                                       |                                           | raw data content                                                                                    |
-| Field                                        | pid                                       |                                           | process id                                                                                          |
+| Field                                        | message                                   |                                           | raw data content                                                                                    |
+| Field                                        | parent_id                                 |                                           | parent ID of span                                                                                   |
 | Field                                        | priority                                  |                                           | priority rules (PRIORITY_USER_REJECT, PRIORITY_AUTO_REJECT, PRIORITY_AUTO_KEEP, PRIORITY_USER_KEEP) |
-| Field                                        | sample_rate_global                        |                                           | global sampling ratio (0.1 means roughly 10 percent will send to data center)                       |
+| Field                                        | resource                                  |                                           | resource of service                                                                                 |
+| Field                                        | sample_rate                               |                                           | global sampling ratio (0.1 means roughly 10 percent will send to data center)                       |
+| Field                                        | span_id                                   |                                           | span ID                                                                                             |
 | Field                                        | start                                     | 微秒                                      | span start timestamp                                                                                |
-
+| Field                                        | trace_id                                  |                                           | trace ID                                                                                            |
 
 Span Type 为当前 span 在 trace 中的相对位置，其取值说明如下：
 
@@ -68,36 +70,43 @@ Priority Rules 为客户端采样优先级规则
 
 ### Datakit Tracing Span 数据结构 {#span-struct}
 
+    TraceID    string                 `json:"trace_id"`
+    ParentID   string                 `json:"parent_id"`
+    SpanID     string                 `json:"span_id"`
+    Service    string                 `json:"service"`     // service name
+    Resource   string                 `json:"resource"`    // resource or api under service
+    Operation  string                 `json:"operation"`   // api name
+    Source     string                 `json:"source"`      // client tracer name
+    SpanType   string                 `json:"span_type"`   // relative span position in tracing: entry, local, exit or unknow
+    SourceType string                 `json:"source_type"` // service type
+    Tags       map[string]string      `json:"tags"`
+    Metrics    map[string]interface{} `json:"metrics"`
+    Start      int64                  `json:"start"`    // unit: nano sec
+    Duration   int64                  `json:"duration"` // unit: nano sec
+    Status     string                 `json:"status"`   // span status like error, ok, info etc.
+    Content    string                 `json:"content"`  // raw tracing data in json
+
 Datakit Span 是 Datakit 内部使用的数据结构。第三方 Tracing Agent 数据结构会转换成 Datakit Span 结构后发送到数据中心。
 
 > 以下简称 dkspan
 
-| Field Name         | Data Type           | Unit | Description                                                                             | Correspond To                       |
-| ------------------ | ------------------- | ---- | --------------------------------------------------------------------------------------- | ----------------------------------- |
-| TraceID            | string              |      | Trace ID                                                                                | dkproto.fields.trace_id             |
-| ParentID           | string              |      | Parent Span ID                                                                          | dkproto.fields.parent_id            |
-| SpanID             | string              |      | Span ID                                                                                 | dkproto.fields.span_id              |
-| Service            | string              |      | Service Name                                                                            | dkproto.tags.service                |
-| Resource           | string              |      | Resource Name(.e.g /get/data/from/some/api)                                             | dkproto.fields.resource             |
-| Operation          | string              |      | 生产此条 Span 的方法名                                                                  | dkproto.tags.operation              |
-| Source             | string              |      | Span 接入源(.e.g ddtrace)                                                               | dkproto.name                        |
-| SpanType           | string              |      | Span Type(.e.g Entry)                                                                   | dkproto.tags.span_type              |
-| SourceType         | string              |      | Span Source Type(.e.g Web)                                                              | dkproto.tags.type                   |
-| Env                | string              |      | Environment Variables                                                                   | dkproto.tags.env                    |
-| Project            | string              |      | App 项目名                                                                              | dkproto.tags.project                |
-| Version            | string              |      | App 版本号                                                                              | dkproto.tags.version                |
-| Tags               | map[string, string] |      | Span Tags                                                                               | dkproto.tags                        |
-| EndPoint           | string              |      | 通讯对端                                                                                | dkproto.tags.endpoint               |
-| HTTPMethod         | string              |      | HTTP Method                                                                             | dkproto.tags.http_method            |
-| HTTPStatusCode     | string              |      | HTTP Response Status Code(.e.g 200)                                                     | dkproto.tags.http_status_code       |
-| ContainerHost      | string              |      | 容器主机名                                                                              | dkproto.tags.container_host         |
-| PID                | string              |      | Process ID                                                                              | dkproto.                            |
-| Start              | int64               | 纳秒 | Span 起始时间                                                                           | dkproto.fields.start                |
-| Duration           | int64               | 纳秒 | 耗时                                                                                    | dkproto.fields.duration             |
-| Status             | string              |      | Span 状态字段                                                                           | dkproto.tags.status                 |
-| Content            | string              |      | Span 原始数据                                                                           | dkproto.fields.message              |
-| Priority           | int                 |      | Span 上报优先级 -1:reject 0:auto consider with sample rate 1:always send to data center | dkproto.fields.priority             |
-| SamplingRateGlobal | float64             |      | Global Sampling Rate                                                                    | dkproto.fields.sampling_rate_global |
+| Field Name | Data Type                | Unit | Description                                 | Correspond To            |
+| ---------- | ------------------------ | ---- | ------------------------------------------- | ------------------------ |
+| TraceID    | string                   |      | Trace ID                                    | dkproto.fields.trace_id  |
+| ParentID   | string                   |      | Parent Span ID                              | dkproto.fields.parent_id |
+| SpanID     | string                   |      | Span ID                                     | dkproto.fields.span_id   |
+| Service    | string                   |      | Service Name                                | dkproto.tags.service     |
+| Resource   | string                   |      | Resource Name(.e.g /get/data/from/some/api) | dkproto.fields.resource  |
+| Operation  | string                   |      | 生产此条 Span 的方法名                      | dkproto.tags.operation   |
+| Source     | string                   |      | Span 接入源(.e.g ddtrace)                   | dkproto.name             |
+| SpanType   | string                   |      | Span Type(.e.g Entry)                       | dkproto.tags.span_type   |
+| SourceType | string                   |      | Span Source Type(.e.g Web)                  | dkproto.tags.type        |
+| Tags       | map[string, string]      |      | Span Tags                                   | dkproto.tags             |
+| Metrics    | map[string, interface{}] |      | Span Metrics(for caculation)                | dkproto.fields           |
+| Start      | int64                    | 纳秒 | Span 起始时间                               | dkproto.fields.start     |
+| Duration   | int64                    | 纳秒 | 耗时                                        | dkproto.fields.duration  |
+| Status     | string                   |      | Span 状态字段                               | dkproto.tags.status      |
+| Content    | string                   |      | Span 原始数据                               | dkproto.fields.message   |
 
 ---
 
