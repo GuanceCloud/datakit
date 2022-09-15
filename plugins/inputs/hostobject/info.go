@@ -408,19 +408,23 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	}
 
 	// sync cloud extra fields
-	if v, ok := ipt.Tags["cloud_provider"]; ok {
-		info, err := ipt.SyncCloudInfo(v)
-		if err != nil {
-			l.Warnf("sync cloud info failed: %v, ignored", err)
+	if !ipt.DisableCloudProviderSync {
+		if err := ipt.SetCloudProviderIfAbsent(); err != nil {
+			l.Warn(err)
 		} else {
-			j, err := json.Marshal(info)
+			info, err := ipt.SyncCloudInfo(ipt.Tags["cloud_provider"])
 			if err != nil {
-				l.Warn(err)
+				l.Warnf("sync cloud info failed: %v, ignored", err)
 			} else {
-				info["extra_cloud_meta"] = string(j)
+				j, err := json.Marshal(info)
+				if err != nil {
+					l.Warn(err)
+				} else {
+					info["extra_cloud_meta"] = string(j)
+				}
 			}
+			msg.Host.cloudInfo = info
 		}
-		msg.Host.cloudInfo = info
 	}
 
 	return &msg, nil

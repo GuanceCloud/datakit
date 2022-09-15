@@ -29,8 +29,11 @@ only_physical_device = false
 # Ignore the disk which space is zero
 ignore_zero_bytes_disk = true
 
+# Disable cloud provider information synchronization
+disable_cloud_provider_sync = false
+
 [inputs.hostobject.tags] # (optional) custom tags
-# cloud_provider = "aliyun" # aliyun/tencent/aws/hwcloud/azure
+# cloud_provider = "aliyun" # aliyun/tencent/aws/hwcloud/azure, probe automatically if not set
 # some_tag = "some_value"
 # more_tag = "some_other_value"
 # ...

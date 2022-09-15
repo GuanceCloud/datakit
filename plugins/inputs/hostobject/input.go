@@ -45,7 +45,8 @@ type Input struct {
 	OnlyPhysicalDevice         bool     `toml:"only_physical_device"`
 	IgnoreFS                   []string `toml:"ignore_fs"`
 
-	CloudInfo map[string]string `toml:"cloud_info,omitempty"`
+	DisableCloudProviderSync bool              `toml:"disable_cloud_provider_sync"`
+	CloudInfo                map[string]string `toml:"cloud_info,omitempty"`
 
 	collectData *hostMeasurement
 

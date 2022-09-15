@@ -41,13 +41,15 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 
 ## 开启云同步 {#cloudinfo}
 
-如果 DataKit 所在的主机是云主机（目前支持阿里云/腾讯云/AWS/华为云/微软云），那么可通过 `cloud_provider` 标签开启云同步：
+Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/微软云。可以通过设置 cloud_provider tag 显式指定云厂商，也可以由 Datakit 自动进行探测：
 
 ```toml
 [inputs.hostobject.tags]
-  # 此处目前支持 aliyun/tencent/aws/hwcloud/azure 几种
+  # 此处目前支持 aliyun/tencent/aws/hwcloud/azure 几种，若不设置，则由 Datakit 自动探测并设置此 tag
   cloud_provider = "aliyun"
 ```
+
+可以通过在 hostobject 配置文件中配置 `disable_cloud_provider_sync = true` 关闭云同步功能。
 
 ## 指标集 {#measurements}
 
