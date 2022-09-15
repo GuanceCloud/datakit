@@ -4,7 +4,11 @@
 
 某些时候，目标机器没有公网访问出口，按照如下方式可离线安装 DataKit。
 
-## 前置条件 {#requrements}
+## 代理安装 {#install-via-proxy}
+
+### 1. 通过 Datakit 代理安装 {#with-datakit}
+
+#### 前置条件 {#requrements}
 
 - 通过[正常安装方式](datakit-install.md)，在有公网出口的机器上安装一个 DataKit
 - 开通该 DataKit 上的 [proxy](proxy.md) 采集器，假定 proxy 采集器所在 Datakit IP 为 1.2.3.4，有如下配置：
@@ -16,8 +20,6 @@
   ## default bind port
   port = 9530
 ```
-
-## 通过代理安装 {#install-via-proxy}
 
 === "Linux/Mac"
 
@@ -56,6 +58,165 @@
     ```
     
     > 注意：其它安装参数设置，跟[正常安装](datakit-install.md) 无异。
+
+### 2. 通过 Nginx 代理安装 {#with-nginx}
+
+先准备一台可以访问外网的机器，所有内网机节点都可以通内网形式访问到这台上。
+
+在公网的机器上安装 nginx， 将 datakit 安装所需的文件下载到nginx服务器上，这样节点机从 nginx 服务器上下载安装文件既可完成安装。
+
+在安装完成后可以通过 nginx 的正向代理功能将所有的节点机器采集上的数据转发到观测云上（需要 ssl 证书）。
+
+也可以通过 Datakit 的代理功能将数据发送出来。
+
+接下来 就是操作步骤。
+
+> 注意：没有 nginx， 需要先自行安装 nginx。
+
+
+#### 在nginx机器中配置并下载全量 datakit 文件 {#nginx-config}
+
+在 nginx.conf 中添加配置，用来让节点机下载 dk 安装文件：
+```txt
+server {
+    listen 8080;
+    server_name _;
+    ## 映射到跟目录下
+    location / {
+        root /;
+        autoindex on;
+        autoindex_exact_size off;
+        autoindex_localtime on;
+        charset utf-8,gbk;
+    }
+}
+```
+
+加载新配置及测试
+
+```shell
+nginx -t        # 测试配置
+nginx -s reload # reload配置
+```
+
+
+下载文件到 nginx 服务器所在的 /datakit 目录下：
+
+这里准备了一个脚本，其中的 `sources` 是开启 sourcemap 功能使用的安装包，如果未开启此功能，可选择不下载。
+
+```shell
+#!/bin/bash
+
+mkdir -p /datakit
+
+# "download install.sh ...."
+wget -P /datakit https://static.guance.com/datakit/install.sh
+
+# "download vesion ...."
+wget -P /datakit https://static.guance.com/datakit/version
+
+# data
+wget -P /datakit https://static.guance.com/datakit/data.tar.gz
+
+# version
+version=`cat /datakit/version |grep \"version\" |awk -F "\"" '{print$4}'` && echo "version is: '${version}'"
+
+# "download installer"
+wget -P /datakit https://static.guance.com/datakit/installer-linux-amd64-${version}
+
+# "download datakit ...."
+wget -P /datakit https://static.guance.com/datakit/datakit-linux-amd64-${version}.tar.gz
+
+
+# download datakit tools
+sources=(
+  "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_mac_hotspot_11.0.16_8.tar.gz"
+  "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_mac_hotspot_11.0.15_10.tar.gz"
+  "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_linux_hotspot_11.0.16_8.tar.gz"
+  "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.16_8.tar.gz"
+  "/datakit/sourcemap/R8/commandlinetools-mac-8512546_simplified.tar.gz"
+  "/datakit/sourcemap/R8/commandlinetools-linux-8512546_simplified.tar.gz"
+  "/datakit/sourcemap/proguard/proguard-7.2.2.tar.gz"
+  "/datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz"
+  "/datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz"
+  "/datakit/sourcemap/libs/libdwarf-code-20200114.tar.gz"
+  "/datakit/sourcemap/libs/binutils-2.24.tar.gz"
+  "/datakit/sourcemap/atosl/atosl-20220804-x64-linux.tar.gz"
+)
+
+mkdir -p /datakit/sourcemap/jdk
+mkdir -p /datakit/sourcemap/R8
+mkdir -p /datakit/sourcemap/proguard
+mkdir -p /datakit/sourcemap/ndk
+mkdir -p /datakit/sourcemap/libs
+mkdir -p /datakit/sourcemap/atosl
+
+for((i=0;i<${#sources[@]};i++));
+  do
+    ## use datakit --symbol-tools 
+  wget https://static.guance.com${sources[$i]} -O ${sources[$i]}
+done
+
+```
+
+
+#### 在节点机上 通过 DK_INSTALLER_BASE_URL 下载并安装 {#node-install}
+
+注意修改命令行中的 `nginxServer` 和 `DK_DATAWAY`
+
+=== "Linux/Mac"
+    
+    ```shell
+    DK_INSTALLER_BASE_URL="http://<nginxServer>:8080/datakit" \
+    DK_DATAWAY="https://user/PAAS/dataway?token=<TOKEN>" \
+    bash -c "$(curl -L ${DK_INSTALLER_BASE_URL}/install.sh)"
+    ```
+
+=== "Windows"
+
+    ```powershel
+    $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; $env:DK_INSTALLER_BASE_URL="http://<nginxServer>:8080/datakit"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source ${DK_INSTALLER_BASE_URL}/install.ps1 -destination .install.ps1; powershell .install.ps1;
+    ```
+
+到此为止，离线安装完成。
+
+---
+
+#### 通过 nginx 升级节点中 Datakit 版本 {#node-upgrade}
+下载最新的 Datakit 版本。替换版本即可。
+
+=== "Linux/Mac"
+    
+    - 下载最新版本 datakit：
+
+    ```shell
+    # version 为最新版本的版本号
+    wget https://static.guance.com/datakit/datakit-linux-amd64-${version}.tar.gz
+    
+    # 解压
+    tar -zxvf datakit-linux-amd64-${version}.tar.gz
+    
+    # 通过 ssh 命令行形式下载并重启
+    # 注意：没有做免密登录，需要手动输入密码。
+    ssh root@<node_ip> "wget http://<nginxServer>:8080/datakit/datakit -O /usr/local/datakit/datakit && systemctl restart datakit"
+    
+    ```
+
+=== "Windows"
+
+    手动下载最新版的 Datakit 并覆盖之前版本。重启即可。
+
+#### symbol-tools {#symbol-tools}
+
+其它安装文件，如 ipdb/sourcemap 等那一堆文件，都应使用该地址来下载，也即支持在调用 datakit tool 命令时，指定 ENV：
+
+```shell
+DK_INSTALLER_BASE_URL=http://<nginxServer>:8080 datakit install --symbol-tools
+```
+
+
+----
+
 
 ## 全离线安装 {#offline}
 

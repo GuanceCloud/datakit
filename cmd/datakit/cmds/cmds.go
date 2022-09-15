@@ -24,6 +24,8 @@ var (
 		{Text: "flushall", Description: "k8s interactive command to generate deploy file"},
 	}
 
+	OnlineBaseURL = "https://static.guance.com"
+
 	l = logger.DefaultSLogger("cmds")
 	g = datakit.G("cmds")
 )
