@@ -148,7 +148,7 @@ func BuildPointsBatch(dktraces DatakitTraces, strict bool) []*point.Point {
 	for i := range dktraces {
 		for j := range dktraces[i] {
 			if pt, err := BuildPoint(dktraces[i][j], strict); err != nil {
-				log.Errorf("build point error: %s", err.Error())
+				log.Warnf("build point error: %s", err.Error())
 			} else {
 				pts = append(pts, pt)
 			}
