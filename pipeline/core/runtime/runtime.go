@@ -156,7 +156,6 @@ func RunForStmt(ctx *Context, stmt *ast.ForStmt) (any, ast.DType, error) {
 	}
 
 	for {
-		ctx.StackClear()
 		if stmt.Cond != nil {
 			val, dtype, err := RunStmt(ctx, stmt.Cond)
 			if err != nil {

@@ -16,6 +16,13 @@ key = "shanghai"
 add_key(key)
 key = "tokyo" 
 add_key(add_new_key, key)
+
+# 处理结果
+{
+  "add_new_key": "tokyo",
+  "key": "shanghai",
+}
+
 ```
 
 示例二:
@@ -26,4 +33,10 @@ key = "shanghai"
 add_key(key)
 key = "tokyo" 
 add_key(add_new_key, get_key(key))
+
+#处理结果
+{
+  "add_new_key": "shanghai",
+  "key": "shanghai",
+}
 ```
