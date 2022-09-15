@@ -258,7 +258,7 @@ replace github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 // added for ddtrace
 replace (
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
-	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.1-rc1
+	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.1-rc3
 	k8s.io/api => k8s.io/api v0.20.5
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.5
 	k8s.io/apimachinery => k8s.io/apimachinery v0.20.5
