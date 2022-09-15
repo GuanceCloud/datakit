@@ -272,9 +272,9 @@ Data           : %s
 
 	var err error
 
-	dkservice.ServiceExecutable = filepath.Join(datakit.InstallDir, datakitBin)
+	dkservice.Executable = filepath.Join(datakit.InstallDir, datakitBin)
 	if runtime.GOOS == datakit.OSWindows {
-		dkservice.ServiceExecutable += ".exe"
+		dkservice.Executable += ".exe"
 	}
 
 	svc, err := dkservice.NewService()
@@ -338,9 +338,9 @@ Data           : %s
 	}
 
 	if flagInstallOnly != 0 {
-		l.Infof("only install service %s, NOT started", dkservice.ServiceName)
+		l.Infof("only install service %s, NOT started", dkservice.Name)
 	} else {
-		l.Infof("starting service %s...", dkservice.ServiceName)
+		l.Infof("starting service %s...", dkservice.Name)
 		if err = service.Control(svc, "start"); err != nil {
 			l.Warnf("start service failed: %s", err.Error())
 		}
