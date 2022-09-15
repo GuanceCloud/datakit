@@ -50,7 +50,7 @@ require (
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/ip2location/ip2location-go v8.3.0+incompatible
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/kardianos/service v1.0.0
+	github.com/kardianos/service v1.2.1
 	github.com/lib/pq v1.10.2
 	github.com/mssola/user_agent v0.5.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
@@ -258,6 +258,7 @@ replace github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 // added for ddtrace
 replace (
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
+	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.1-rc1
 	k8s.io/api => k8s.io/api v0.20.5
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.5
 	k8s.io/apimachinery => k8s.io/apimachinery v0.20.5

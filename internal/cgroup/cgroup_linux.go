@@ -72,10 +72,14 @@ func (c *Cgroup) setup() error {
 		l.Infof("memory limit not set")
 	}
 
-	control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(c.opt.Path), r)
-	if err != nil {
-		l.Errorf("cgroups.New(%+#v): %s", r, err)
-		return err
+	var control cgroups.Cgroup
+	var err error
+	if control = c.load(); control == nil {
+		control, err = cgroups.New(cgroups.V1, cgroups.StaticPath(c.opt.Path), r)
+		if err != nil {
+			l.Errorf("cgroups.New(%+#v): %s", r, err)
+			return err
+		}
 	}
 
 	c.control = control
@@ -89,6 +93,40 @@ func (c *Cgroup) setup() error {
 	l.Infof("add PID %d to cgroup", pid)
 
 	return nil
+}
+
+func (c *Cgroup) load() cgroups.Cgroup {
+	control, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(c.opt.Path))
+	if err != nil {
+		l.Infof("can not load cgroup Systemd limit config. Use New()")
+	} else {
+		l.Infof("datakit cgroups load")
+		metrics, err := control.Stat()
+		if err == nil && metrics.Memory != nil {
+			l.Infof("cgroup: MEM =%s  cgroup Memory.Usage=%s  cgroup Memory.Swap=%s",
+				metrics.Memory.String(),
+				metrics.Memory.Usage.String(),
+				metrics.Memory.Swap.String())
+			/*
+			 如果和配置的不一样，使用Delete删除掉配置， 不可用 Update 修改.
+			 直接修改会报错：write /sys/fs/cgroup/memory/datakit/memory.limit_in_bytes: invalid argument
+			 原因是：修改值 不可低于现有配置的(limit 不可低于 Swap).
+			*/
+			// 如果不相同的话，与其修改，倒不如直接删除。
+			if c.opt.MemMax != int64(metrics.Memory.Usage.Usage) {
+				if err = control.Delete(); err == nil {
+					l.Infof("del cgroup config,use new()")
+				} else {
+					l.Errorf("del cgroup err=%v", err)
+				}
+				control = nil
+			}
+		} else {
+			l.Infof("control.Stat err =%v", err)
+		}
+	}
+
+	return control
 }
 
 func (c *Cgroup) stop() {
