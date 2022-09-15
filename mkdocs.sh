@@ -101,6 +101,7 @@ datakit_docs=(
   $tmp_doc_dir/logging-pipeline-bench.md
   $tmp_doc_dir/proxy.md
   $tmp_doc_dir/why-no-data.md
+  $tmp_doc_dir/doc-logging.md
 
 	# inputs
   $tmp_doc_dir/apache.md
