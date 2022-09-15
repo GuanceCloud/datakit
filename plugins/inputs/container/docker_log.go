@@ -64,6 +64,7 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 		extraSourceMap:        d.ipt.LoggingExtraSourceMap,
 		sourceMultilineMap:    d.ipt.LoggingSourceMultilineMap,
 		autoMultilinePatterns: d.ipt.getAutoMultilinePatterns(),
+		extractK8sLabelAsTags: d.ipt.ExtractK8sLabelAsTags,
 	}
 
 	if containerIsFromKubernetes(getContainerName(container.Names)) {
@@ -116,10 +117,11 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 			"container_id":           inputs.NewTagInfo(`容器ID`),
 			"container_type":         inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			// "stream":                 inputs.NewTagInfo(`数据流方式，stdout/stderr/tty（containerd 日志缺少此字段）`),
-			"pod_name":   inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"namespace":  inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
-			"deployment": inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在，containerd 日志缺少此字段）`),
-			"service":    inputs.NewTagInfo(`服务名称`),
+			"pod_name":    inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
+			"namespace":   inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
+			"deployment":  inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在，containerd 日志缺少此字段）`),
+			"service":     inputs.NewTagInfo(`服务名称`),
+			"[POD_LABEL]": inputs.NewTagInfo("如果该容器是由 k8s 创建，且配置参数 `extract_k8s_label_as_tags` 开启，则会将 pod 的 label 添加至标签中"),
 		},
 		Fields: map[string]interface{}{
 			"status":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK/unknown"},

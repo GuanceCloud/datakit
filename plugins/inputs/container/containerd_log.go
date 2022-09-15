@@ -75,6 +75,7 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		extraSourceMap:        c.ipt.LoggingExtraSourceMap,
 		sourceMultilineMap:    c.ipt.LoggingSourceMultilineMap,
 		autoMultilinePatterns: c.ipt.getAutoMultilinePatterns(),
+		extractK8sLabelAsTags: c.ipt.ExtractK8sLabelAsTags,
 	}
 
 	if status.GetMetadata() != nil && status.GetMetadata().Name != "" {
