@@ -216,10 +216,10 @@ func getVersion(addr string) (*version.VerInfo, error) {
 		return nil, err
 	}
 
-	ver.DownloadURL = fmt.Sprintf("%s/install.sh", urladdr)
+	ver.DownloadURL = fmt.Sprintf("%s/install.sh", addr)
 
 	if runtime.GOOS == datakit.OSWindows {
-		ver.DownloadURL = fmt.Sprintf("%s/install.ps1", urladdr)
+		ver.DownloadURL = fmt.Sprintf("%s/install.ps1", addr)
 	}
 	return &ver, nil
 }
