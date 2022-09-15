@@ -247,7 +247,7 @@ func getOnlineVersions(showTestingVer bool) (map[string]*version.VerInfo, error)
 			return nil, fmt.Errorf("get version from %s failed: %w", v, err)
 		}
 		res[k] = vi
-		infof("get %s version: %s", k, vi)
+		l.Debugf("get %s version: %s", k, vi)
 	}
 
 	return res, nil
