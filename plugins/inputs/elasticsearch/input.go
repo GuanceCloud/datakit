@@ -961,7 +961,8 @@ func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 	}
 
 	tags := map[string]string{
-		"name":           healthStats.ClusterName,
+		"name":           healthStats.ClusterName, // depreciated, may be discarded in future
+		"cluster_name":   healthStats.ClusterName,
 		"cluster_status": healthStats.Status,
 	}
 
