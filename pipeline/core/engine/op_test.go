@@ -76,6 +76,16 @@ for x in [1,2,3 ] {
 
 add_key(len1, len([12,2]))
 add_key(len2, len("123"))
+
+for a = 0; a < 12; a = a + 1 {
+	if a > 5 {
+	  add_key(ef, a)
+	  break
+	}
+	continue
+	a = a - 1
+  }
+
 `
 
 	scripts, errs := ParseScript(map[string]string{
@@ -98,6 +108,7 @@ add_key(len2, len("123"))
 		"aa dw.": `{"1":2,"a":[1,2,5],"d":null}`,
 		"abc":    `{"1":2,"a":[1,2,5],"d":null}`,
 		"e":      "dwdw3",
+		"ef":     int64(6),
 		"len1":   int64(2),
 		"len2":   int64(3),
 	}, f)
