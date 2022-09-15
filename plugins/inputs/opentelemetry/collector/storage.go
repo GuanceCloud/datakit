@@ -118,8 +118,8 @@ func (ss *SpansStorage) Run() {
 	}
 }
 
-func (s *SpansStorage) Stop() {
-	s.stop <- struct{}{}
+func (ss *SpansStorage) Stop() {
+	ss.stop <- struct{}{}
 }
 
 // feedAll : trace -> io.trace  |  metric -> io.

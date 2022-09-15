@@ -116,7 +116,7 @@ func (svr *MongodbServer) gatherClusterStats() (*ClusterStats, error) {
 }
 
 func (svr *MongodbServer) gatherShardConnPoolStats() (*ShardStats, error) {
-	rslt := svr.cli.Database("admin").RunCommand(context.TODO(), bson.M{"connPoolStats": 1}) //connPoolStats
+	rslt := svr.cli.Database("admin").RunCommand(context.TODO(), bson.M{"connPoolStats": 1}) // connPoolStats
 	if err := rslt.Err(); err != nil {
 		return nil, err
 	}
