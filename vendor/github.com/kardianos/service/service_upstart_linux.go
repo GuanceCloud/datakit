@@ -152,14 +152,12 @@ func (s *upstart) Install() error {
 		HasKillStanza   bool
 		HasSetUIDStanza bool
 		LogOutput       bool
-		LogDirectory    string
 	}{
 		s.Config,
 		path,
 		s.hasKillStanza(),
 		s.hasSetUIDStanza(),
 		s.Option.bool(optionLogOutput, optionLogOutputDefault),
-		s.Option.string(optionLogDirectory, defaultLogDirectory),
 	}
 
 	return s.template().Execute(f, to)
@@ -256,8 +254,8 @@ end script
 # Start
 script
 	{{if .LogOutput}}
-	stdout_log="{{.LogDirectory}}/{{.Name}}.out"
-	stderr_log="{{.LogDirectory}}/{{.Name}}.err"
+	stdout_log="/var/log/{{.Name}}.out"
+	stderr_log="/var/log/{{.Name}}.err"
 	{{end}}
 	
 	if [ -f "/etc/sysconfig/{{.Name}}" ]; then
