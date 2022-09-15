@@ -153,10 +153,10 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			Source:     inputName,
 			SpanType:   itrace.FindSpanTypeInMultiServersStrSpanID(span.ID.String(), span.ParentID.String(), service, spanIDs, parentIDs),
 			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
-			Status:     itrace.STATUS_OK,
+			Tags:       tags,
 			Start:      span.Timestamp.UnixNano(),
 			Duration:   int64(span.Duration),
-			Tags:       tags,
+			Status:     itrace.STATUS_OK,
 		}
 
 		if isRootSpan(dkspan.ParentID) {
@@ -176,16 +176,14 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			}
 		}
 
+		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, span.Tags)
 		if span.RemoteEndpoint != nil {
-			if len(span.RemoteEndpoint.IPv4) != 0 {
-				dkspan.EndPoint = span.RemoteEndpoint.IPv4.String()
-			}
-			if len(span.RemoteEndpoint.IPv6) != 0 {
-				dkspan.EndPoint = span.RemoteEndpoint.IPv6.String()
+			if endpoint := span.RemoteEndpoint.IPv4.String(); len(endpoint) != 0 {
+				dkspan.Tags[itrace.TAG_ENDPOINT] = endpoint
+			} else if endpoint = span.RemoteEndpoint.IPv6.String(); len(endpoint) != 0 {
+				dkspan.Tags[itrace.TAG_ENDPOINT] = endpoint
 			}
 		}
-
-		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, span.Tags)
 
 		if buf, err := json.Marshal(span); err != nil {
 			log.Warn(err.Error())

@@ -151,11 +151,8 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			Source:     inputName,
 			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
 			SpanType:   itrace.FindSpanTypeIntSpanID(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
-			Env:        env,
-			Project:    project,
 			Start:      span.StartTime * int64(time.Microsecond),
 			Duration:   span.Duration * int64(time.Microsecond),
-			Version:    version,
 		}
 
 		if span.TraceIdHigh != 0 {
@@ -177,6 +174,15 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			sourceTags[tag.Key] = tag.String()
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+		if project != "" {
+			dkspan.Tags[itrace.PROJECT] = project
+		}
+		if version != "" {
+			dkspan.Tags[itrace.TAG_VERSION] = version
+		}
+		if env != "" {
+			dkspan.Tags[itrace.TAG_ENV] = env
+		}
 
 		if buf, err := json.Marshal(span); err != nil {
 			log.Warn(err.Error())

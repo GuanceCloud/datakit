@@ -116,8 +116,8 @@ func StatTracingInfo(dktrace DatakitTrace) {
 		if tinfo, ok = tracingStatUnit[key]; !ok {
 			tinfo = &TracingInfo{
 				Source:   dktrace[i].Source,
-				Project:  dktrace[i].Project,
-				Version:  dktrace[i].Version,
+				Project:  dktrace[i].Tags[TAG_PROJECT],
+				Version:  dktrace[i].Tags[TAG_VERSION],
 				Service:  dktrace[i].Service,
 				Resource: dktrace[i].Resource,
 				key:      key,

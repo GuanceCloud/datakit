@@ -18,7 +18,7 @@ import (
 
 var (
 	inputName = "opentelemetry"
-	l         = logger.DefaultSLogger("otel-log")
+	log       = logger.DefaultSLogger("otel-log")
 	maxSend   = 100
 	interval  = 10
 )
@@ -40,7 +40,7 @@ type SpansStorage struct {
 
 // NewSpansStorage creates a new spans storage.
 func NewSpansStorage(afaterGather *itrace.AfterGather) *SpansStorage {
-	l = logger.SLogger(inputName)
+	log = logger.SLogger(inputName)
 
 	return &SpansStorage{
 		AfterGather: afaterGather,
@@ -52,82 +52,84 @@ func NewSpansStorage(afaterGather *itrace.AfterGather) *SpansStorage {
 }
 
 // AddSpans adds spans to the spans storage.
-func (s *SpansStorage) AddSpans(rss []*tracepb.ResourceSpans) {
-	traces := s.mkDKTrace(rss)
-	s.traceMu.Lock()
-	l.Debugf("mktrace %d otel span and add %d span to storage", len(rss), len(traces))
-	s.rsm = append(s.rsm, traces...)
-	s.traceMu.Unlock()
-	s.Count += len(traces)
-	if s.Count >= maxSend {
-		s.max <- 0
+func (ss *SpansStorage) AddSpans(rss []*tracepb.ResourceSpans) {
+	traces := ss.mkDKTrace(rss)
+	ss.traceMu.Lock()
+	log.Debugf("mktrace %d otel span and add %d span to storage", len(rss), len(traces))
+	ss.rsm = append(ss.rsm, traces...)
+	ss.traceMu.Unlock()
+	ss.Count += len(traces)
+	if ss.Count >= maxSend {
+		ss.max <- 0
 	}
 }
 
-func (s *SpansStorage) AddMetric(rss []*OtelResourceMetric) {
-	s.metricMu.Lock()
-	l.Debugf("AddMetric add %d metric to storage", len(rss))
-	s.otelMetrics = append(s.otelMetrics, rss...)
-	s.metricMu.Unlock()
-	s.Count += len(rss)
-	if s.Count >= maxSend {
-		s.max <- 0
+func (ss *SpansStorage) AddMetric(rss []*OtelResourceMetric) {
+	ss.metricMu.Lock()
+	log.Debugf("AddMetric add %d metric to storage", len(rss))
+	ss.otelMetrics = append(ss.otelMetrics, rss...)
+	ss.metricMu.Unlock()
+	ss.Count += len(rss)
+	if ss.Count >= maxSend {
+		ss.max <- 0
 	}
 }
 
 // GetDKTrace  returns the stored resource spans.
-func (s *SpansStorage) GetDKTrace() itrace.DatakitTraces {
-	s.traceMu.Lock()
-	defer s.traceMu.Unlock()
-	rss := make(itrace.DatakitTraces, 0, len(s.rsm))
-	rss = append(rss, s.rsm...)
-	s.rsm = s.rsm[:0]
+func (ss *SpansStorage) GetDKTrace() itrace.DatakitTraces {
+	ss.traceMu.Lock()
+	defer ss.traceMu.Unlock()
+	rss := make(itrace.DatakitTraces, 0, len(ss.rsm))
+	rss = append(rss, ss.rsm...)
+	ss.rsm = ss.rsm[:0]
 
 	return rss
 }
 
-func (s *SpansStorage) GetDKMetric() []*OtelResourceMetric {
-	s.metricMu.Lock()
-	defer s.metricMu.Unlock()
-	rss := make([]*OtelResourceMetric, 0, len(s.rsm))
-	rss = append(rss, s.otelMetrics...)
-	s.otelMetrics = s.otelMetrics[:0]
+func (ss *SpansStorage) GetDKMetric() []*OtelResourceMetric {
+	ss.metricMu.Lock()
+	defer ss.metricMu.Unlock()
+	rss := make([]*OtelResourceMetric, 0, len(ss.rsm))
+	rss = append(rss, ss.otelMetrics...)
+	ss.otelMetrics = ss.otelMetrics[:0]
+
 	return rss
 }
 
-func (s *SpansStorage) getCount() int {
-	return s.Count
+func (ss *SpansStorage) getCount() int {
+	return ss.Count
 }
 
-func (s *SpansStorage) Run() {
+func (ss *SpansStorage) Run() {
 	for {
 		select {
-		case <-s.max:
-			s.feedAll()
+		case <-ss.max:
+			ss.feedAll()
 		case <-time.After(time.Duration(interval) * time.Second):
-			if s.getCount() > 0 {
-				s.feedAll()
+			if ss.getCount() > 0 {
+				ss.feedAll()
 			}
-		case <-s.stop:
-			l.Infof("spanStorage stop")
-			close(s.stop)
+		case <-ss.stop:
+			log.Infof("spanStorage stop")
+			close(ss.stop)
+
 			return
 		}
 	}
 }
 
 // feedAll : trace -> io.trace  |  metric -> io.
-func (s *SpansStorage) feedAll() {
-	traces := s.GetDKTrace()
-	s.AfterGather.Run(inputName, traces, false)
-	l.Debugf("send %d trace to io.trace", len(traces))
+func (ss *SpansStorage) feedAll() {
+	traces := ss.GetDKTrace()
+	ss.AfterGather.Run(inputName, traces, false)
+	log.Debugf("send %d trace to io.trace", len(traces))
 
-	if metrics := s.GetDKMetric(); len(metrics) > 0 {
+	if metrics := ss.GetDKMetric(); len(metrics) > 0 {
 		pts := makePoints(metrics)
 		err := dkio.Feed(inputName, datakit.Metric, pts, &dkio.Option{HighFreq: true})
 		if err != nil {
-			l.Errorf("feed to io error=%v", err)
+			log.Errorf("feed to io error=%v", err)
 		}
 	}
-	s.Count = 0
+	ss.Count = 0
 }

@@ -161,7 +161,6 @@ func parseSegmentObject(segment *agentv3.SegmentObject) {
 			Operation:  span.OperationName,
 			Source:     inputName,
 			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
-			EndPoint:   span.Peer,
 			Start:      span.StartTime * int64(time.Millisecond),
 			Duration:   (span.EndTime - span.StartTime) * int64(time.Millisecond),
 		}
@@ -180,11 +179,13 @@ func parseSegmentObject(segment *agentv3.SegmentObject) {
 						Source:     inputName,
 						SpanType:   itrace.SPAN_TYPE_ENTRY,
 						SourceType: itrace.SPAN_SOURCE_WEB,
-						EndPoint:   span.Refs[0].NetworkAddressUsedAtPeer,
 						Start:      dkspan.Start - int64(time.Millisecond),
 						Duration:   int64(time.Millisecond),
 						Status:     itrace.STATUS_OK,
 					})
+					if endpoint := span.Refs[0].GetNetworkAddressUsedAtPeer(); endpoint != "" {
+						dkspan.Tags = map[string]string{itrace.TAG_ENDPOINT: endpoint}
+					}
 				}
 			} else {
 				dkspan.ParentID = "0"
@@ -237,6 +238,9 @@ func parseSegmentObject(segment *agentv3.SegmentObject) {
 			sourceTags[tag.Key] = tag.Value
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+		if span.Peer != "" {
+			dkspan.Tags[itrace.TAG_ENDPOINT] = span.Peer
+		}
 
 		if buf, err := json.Marshal(span); err != nil {
 			log.Warn(err.Error())
