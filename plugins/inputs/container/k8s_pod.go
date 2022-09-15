@@ -21,10 +21,15 @@ var (
 	_ k8sResourceObjectInterface = (*pod)(nil)
 )
 
+type podResourceInterface interface {
+	setExtractK8sLabelAsTags(bool)
+}
+
 type pod struct {
-	client    k8sClientX
-	extraTags map[string]string
-	items     []v1.Pod
+	client                k8sClientX
+	extraTags             map[string]string
+	items                 []v1.Pod
+	extractK8sLabelAsTags bool
 }
 
 func newPod(client k8sClientX, extraTags map[string]string) *pod {
@@ -36,6 +41,10 @@ func newPod(client k8sClientX, extraTags map[string]string) *pod {
 
 func (p *pod) name() string {
 	return "pod"
+}
+
+func (p *pod) setExtractK8sLabelAsTags(enabled bool) {
+	p.extractK8sLabelAsTags = enabled
 }
 
 func (p *pod) pullItems() error {
@@ -80,6 +89,15 @@ func (p *pod) metric(election bool) (inputsMeas, error) {
 				// "unschedulable": 0,
 			},
 			election: election,
+		}
+
+		// extract pod lables to tags, not overwrite the existed tags
+		if p.extractK8sLabelAsTags {
+			for k, v := range item.Labels {
+				if _, ok := met.tags[k]; !ok {
+					met.tags[k] = v
+				}
+			}
 		}
 
 		containerReadyCount := 0
@@ -281,9 +299,10 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 		Desc: "Kubernetes pod 指标数据",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"pod":       inputs.NewTagInfo("Name must be unique within a namespace."),
-			"pod_name":  inputs.NewTagInfo("Name must be unique within a namespace. (depercated)"),
-			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"pod":         inputs.NewTagInfo("Name must be unique within a namespace."),
+			"pod_name":    inputs.NewTagInfo("Name must be unique within a namespace. (depercated)"),
+			"namespace":   inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"[POD_LABEL]": inputs.NewTagInfo("The pod labels will be extracted as tags if `extract_k8s_label_as_tags` is enabled."),
 		},
 		Fields: map[string]interface{}{
 			"count":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of pods"},

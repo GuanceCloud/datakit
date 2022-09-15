@@ -32,6 +32,7 @@ const sampleCfg = `
   enable_container_metric = true
   enable_k8s_metric = true
   enable_pod_metric = true
+  extract_k8s_label_as_tags = false
 
   ## Containers logs to include and exclude, default collect all containers. Globs accepted.
   container_include_log = []
