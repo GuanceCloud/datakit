@@ -32,6 +32,8 @@ fi
 arch=$(uname -m)
 if [[ "$arch" == "x86_64" ]]; then
 	arch=amd64
+else
+	arch=arm64
 fi
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
