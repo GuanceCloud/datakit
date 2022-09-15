@@ -44,6 +44,7 @@ SELECT
     thread_a.processlist_info AS sql_text,
     statement.timer_start AS event_timer_start,
     statement.timer_end AS event_timer_end,
+	statement.timer_wait AS event_timer_wait,
     statement.lock_time,
     statement.current_schema,
     COALESCE(
@@ -166,21 +167,27 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "The statement the thread is executing",
 			},
 			"event_timer_start": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.String,
-				Unit:     inputs.DurationPS,
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationNS,
 				Desc:     "The time when event timing started",
 			},
 			"event_timer_end": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.String,
-				Unit:     inputs.DurationPS,
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationNS,
 				Desc:     "The time when event timing ended",
 			},
+			"event_timer_wait": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationNS,
+				Desc:     "The time the event has elapsed so far",
+			},
 			"lock_time": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.String,
-				Unit:     inputs.DurationPS,
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationNS,
 				Desc:     "The time spent waiting for table locks",
 			},
 			"current_schema": &inputs.FieldInfo{
@@ -214,15 +221,15 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "The name of the instrument that produced the event",
 			},
 			"wait_timer_start": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.String,
-				Unit:     inputs.DurationPS,
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationNS,
 				Desc:     "The time when the waiting event timing started",
 			},
 			"wait_timer_end": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.String,
-				Unit:     inputs.DurationPS,
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationNS,
 				Desc:     "The time when the waiting event timing ended",
 			},
 			"object_schema": &inputs.FieldInfo{
@@ -335,16 +342,17 @@ func (i *Input) metricCollectMysqlDbmActivity() ([]*point.Point, error) {
 			"processlist_command": activity.ProcesslistCommand.String,
 			"processlist_state":   activity.ProcesslistState.String,
 			"sql_text":            activity.SQLText.String,
-			"event_timer_start":   activity.EventTimerStart.Int64,
-			"event_timer_end":     activity.EventTimerEnd.Int64,
-			"lock_time":           activity.LockTime.String,
+			"event_timer_start":   activity.EventTimerStart.Int64 / 1000,
+			"event_timer_end":     activity.EventTimerEnd.Int64 / 1000,
+			"event_timer_wait":    activity.EventTimerWait.Int64 / 1000,
+			"lock_time":           activity.LockTime.Int64 / 1000,
 			"current_schema":      activity.CurrentSchema.String,
 			"wait_event":          activity.WaitEvent.String,
 			"event_id":            activity.EventID.String,
 			"end_event_id":        activity.EndEventID.String,
 			"event_name":          activity.EventName.String,
-			"wait_timer_start":    activity.WaitTimerStart.String,
-			"wait_timer_end":      activity.WaitTimerEnd.String,
+			"wait_timer_start":    activity.WaitTimerStart.Int64 / 1000,
+			"wait_timer_end":      activity.WaitTimerEnd.Int64 / 1000,
 			"object_schema":       activity.ObjectSchema.String,
 			"object_name":         activity.ObjectName.String,
 			"index_name":          activity.IndexName.String,
@@ -427,14 +435,15 @@ type activityRow struct {
 	SQLText            sql.NullString `json:"sql_text"`
 	EventTimerStart    sql.NullInt64  `json:"event_timer_start"`
 	EventTimerEnd      sql.NullInt64  `json:"event_timer_end"`
-	LockTime           sql.NullString `json:"lock_time"`
+	EventTimerWait     sql.NullInt64  `json:"event_timer_wait"`
+	LockTime           sql.NullInt64  `json:"lock_time"`
 	CurrentSchema      sql.NullString `json:"current_schema"`
 	WaitEvent          sql.NullString `json:"wait_event"`
 	EventID            sql.NullString `json:"event_id"`
 	EndEventID         sql.NullString `json:"end_event_id"`
 	EventName          sql.NullString `json:"event_name"`
-	WaitTimerStart     sql.NullString `json:"wait_timer_start"`
-	WaitTimerEnd       sql.NullString `json:"wait_timer_end"`
+	WaitTimerStart     sql.NullInt64  `json:"wait_timer_start"`
+	WaitTimerEnd       sql.NullInt64  `json:"wait_timer_end"`
 	ObjectSchema       sql.NullString `json:"object_schema"`
 	ObjectName         sql.NullString `json:"object_name"`
 	IndexName          sql.NullString `json:"index_name"`
@@ -486,6 +495,7 @@ func getActivityRows(i *Input) (activityRows []activityRow) {
 			&row.SQLText,
 			&row.EventTimerStart,
 			&row.EventTimerEnd,
+			&row.EventTimerWait,
 			&row.LockTime,
 			&row.CurrentSchema,
 			&row.WaitEvent,
