@@ -46,7 +46,8 @@ type Input struct {
 	ExtraDevice                []string `toml:"extra_device"`
 	ExcludeDevice              []string `toml:"exclude_device"`
 
-	CloudInfo map[string]string `toml:"cloud_info,omitempty"`
+	DisableCloudProviderSync bool              `toml:"disable_cloud_provider_sync"`
+	CloudInfo                map[string]string `toml:"cloud_info,omitempty"`
 
 	collectData *hostMeasurement
 

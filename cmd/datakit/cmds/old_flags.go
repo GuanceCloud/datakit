@@ -72,7 +72,7 @@ var (
 	FlagAddr       string
 	FlagInterval   time.Duration
 
-	FlagShowCloudInfo    string
+	FlagShowCloudInfo    bool
 	FlagIPInfo           string
 	FlagConfigDir        string
 	FlagMonitor          bool
@@ -141,7 +141,7 @@ func initOldStyleFlags() { //nolint:gochecknoinits
 	pflag.DurationVar(&FlagInterval, "interval", time.Second*5, "auxiliary option, time interval")
 
 	// utils
-	pflag.StringVar(&FlagShowCloudInfo, "show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
+	pflag.BoolVar(&FlagShowCloudInfo, "show-cloud-info", false, "show current host's cloud info(currently support aliyun/tencent/aws/hwcloud/azure)")
 	pflag.StringVar(&FlagIPInfo, "ipinfo", "", "show IP geo info")
 	pflag.BoolVar(&FlagWorkspaceInfo, "workspace-info", false, "show workspace info")
 
@@ -306,10 +306,10 @@ func runOldStyleCmds() {
 		outputWorkspaceInfo(body)
 		os.Exit(0)
 	}
-	if FlagShowCloudInfo != "" {
+	if FlagShowCloudInfo {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		info, err := showCloudInfo(FlagShowCloudInfo)
+		info, err := showCloudInfo()
 		if err != nil {
 			errorf("[E] Get cloud info failed: %s\n", err.Error())
 			os.Exit(-1)
