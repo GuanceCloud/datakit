@@ -32,6 +32,8 @@ fi
 arch=$(uname -m)
 if [[ "$arch" == "x86_64" ]]; then
 	arch=amd64
+else
+	arch=arm64
 fi
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -101,6 +103,7 @@ datakit_docs=(
   $tmp_doc_dir/logging-pipeline-bench.md
   $tmp_doc_dir/proxy.md
   $tmp_doc_dir/why-no-data.md
+  $tmp_doc_dir/doc-logging.md
 
 	# inputs
   $tmp_doc_dir/apache.md

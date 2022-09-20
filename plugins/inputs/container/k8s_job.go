@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/batch/v1"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -148,12 +149,19 @@ func (j *job) object(election bool) (inputsMeas, error) {
 			obj.fields["backoff_limit"] = *item.Spec.BackoffLimit
 		}
 
+		if y, err := yaml.Marshal(item); err != nil {
+			l.Debugf("failed to get job yaml %s, namespace %s, name %s, ignored", err.Error(), item.Namespace, item.Name)
+		} else {
+			obj.fields["yaml"] = string(y)
+		}
+
 		obj.tags.append(j.extraTags)
 
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
 		obj.fields.delete("annotations")
+		obj.fields.delete("yaml")
 
 		res = append(res, obj)
 	}

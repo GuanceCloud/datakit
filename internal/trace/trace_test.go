@@ -201,26 +201,25 @@ func randDatakitSpan(t *testing.T, opts ...randSpanOption) *DatakitSpan {
 
 	rand.Seed(time.Now().Local().UnixNano())
 	dkspan := &DatakitSpan{
-		TraceID:        testutils.RandStrID(30),
-		ParentID:       testutils.RandStrID(30),
-		SpanID:         testutils.RandStrID(30),
-		Service:        testutils.RandString(30),
-		Resource:       testutils.RandString(30),
-		Operation:      testutils.RandString(30),
-		Source:         testutils.RandString(30),
-		SpanType:       testutils.RandString(10),
-		SourceType:     testutils.RandString(10),
-		Env:            testutils.RandString(100),
-		Project:        testutils.RandString(10),
-		Version:        testutils.RandVersion(10),
-		EndPoint:       testutils.RandEndPoint(3),
-		HTTPMethod:     testutils.RandString(10),
-		HTTPStatusCode: testutils.RandString(10),
-		ContainerHost:  testutils.RandString(20),
-		PID:            testutils.RandInt64StrID(10),
-		Start:          testutils.RandTime().Unix(),
-		Duration:       testutils.RandInt64(5),
-		Status:         testutils.RandString(10),
+		TraceID:    testutils.RandStrID(30),
+		ParentID:   testutils.RandStrID(30),
+		SpanID:     testutils.RandStrID(30),
+		Service:    testutils.RandString(30),
+		Resource:   testutils.RandString(30),
+		Operation:  testutils.RandString(30),
+		Source:     testutils.RandString(30),
+		SpanType:   testutils.RandString(10),
+		SourceType: testutils.RandString(10),
+		Start:      testutils.RandTime().Unix(),
+		Duration:   testutils.RandInt64(5),
+		Status:     testutils.RandString(10),
+	}
+	dkspan.Tags = map[string]string{
+		TAG_PROJECT:        testutils.RandString(10),
+		TAG_VERSION:        testutils.RandVersion(10),
+		TAG_ENDPOINT:       testutils.RandEndPoint(3),
+		TAG_PID:            testutils.RandInt64StrID(10),
+		TAG_CONTAINER_HOST: testutils.RandString(20),
 	}
 	for i := range opts {
 		opts[i](dkspan)
@@ -272,7 +271,10 @@ func randSpanTypes(types ...string) randSpanOption {
 func randHTTPMethod(methods ...string) randSpanOption {
 	return func(dkspan *DatakitSpan) {
 		if dkspan != nil {
-			dkspan.HTTPMethod = testutils.RandWithinStrings(methods)
+			if dkspan.Tags == nil {
+				dkspan.Tags = make(map[string]string)
+			}
+			dkspan.Tags[TAG_HTTP_METHOD] = testutils.RandWithinStrings(methods)
 		}
 	}
 }
@@ -280,7 +282,10 @@ func randHTTPMethod(methods ...string) randSpanOption {
 func randHTTPStatusCode(codes ...string) randSpanOption {
 	return func(dkspan *DatakitSpan) {
 		if dkspan != nil {
-			dkspan.HTTPStatusCode = testutils.RandWithinStrings(codes)
+			if dkspan.Tags == nil {
+				dkspan.Tags = make(map[string]string)
+			}
+			dkspan.Tags[TAG_HTTP_STATUS_CODE] = testutils.RandWithinStrings(codes)
 		}
 	}
 }

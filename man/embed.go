@@ -20,6 +20,7 @@ var OtherDocs = map[string]bool{
 	"datakit-sink-m3db":        true,
 	"datakit-sink-otel-jaeger": true,
 	"datakit-sink-dataway":     true,
+	"doc-logging":              true,
 	"apis":                     true,
 	"changelog":                true,
 	"datakit-batch-deploy":     true,

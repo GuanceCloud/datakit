@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	nhttp "net/http"
-	"path"
 	"runtime"
 	"strings"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -36,7 +36,7 @@ func runVersionFlags() error {
 	if !*flagVersionDisableUpgradeInfo {
 		vis, err := checkNewVersion(ReleaseVersion, *flagVersionUpgradeTestingVersion)
 		if err != nil {
-			return fmt.Errorf("get online version info failed: %w", err)
+			return err
 		}
 
 		for _, vi := range vis {
@@ -145,12 +145,9 @@ func checkNewVersion(curverStr string, showTestingVer bool) (map[string]*newVers
 const (
 	versionTypeOnline  = "Online"
 	versionTypeTesting = "Testing"
-)
 
-var versionInfos = map[string]string{
-	versionTypeOnline:  "static.guance.com/datakit",
-	versionTypeTesting: "zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit",
-}
+	testingBaseURL = "https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com"
+)
 
 func getUpgradeCommand(dlurl string) string {
 	var upgradeCmd string
@@ -191,42 +188,55 @@ func getLocalVersion(ver string) (*version.VerInfo, error) {
 
 func getVersion(addr string) (*version.VerInfo, error) {
 	cli := getcli()
+	cli.Timeout = time.Second * 5
+	urladdr := addr + "/version"
 
-	req, err := nhttp.NewRequest("GET", "http://"+path.Join(addr, "version"), nil)
+	req, err := nhttp.NewRequest("GET", urladdr, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("http new request err=%w", err)
 	}
 
 	resp, err := cli.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("http Do request err=%w", err)
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
 	infobody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("http read body err=%w", err)
 	}
 
 	var ver version.VerInfo
 	if err = json.Unmarshal(infobody, &ver); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("json unmarshal err=%w", err)
 	}
 
 	if err := ver.Parse(); err != nil {
 		return nil, err
 	}
 
-	ver.DownloadURL = fmt.Sprintf("https://%s/install.sh", addr)
+	ver.DownloadURL = fmt.Sprintf("%s/install.sh", addr)
 
 	if runtime.GOOS == datakit.OSWindows {
-		ver.DownloadURL = fmt.Sprintf("https://%s/install.ps1", addr)
+		ver.DownloadURL = fmt.Sprintf("%s/install.ps1", addr)
 	}
 	return &ver, nil
 }
 
 func getOnlineVersions(showTestingVer bool) (map[string]*version.VerInfo, error) {
 	res := map[string]*version.VerInfo{}
+
+	if v := datakit.GetEnv("DK_INSTALLER_BASE_URL"); v != "" {
+		warnf("setup base URL to %s\n", v)
+		OnlineBaseURL = v
+	}
+
+	versionInfos := map[string]string{
+		versionTypeOnline:  (OnlineBaseURL + "/datakit"),
+		versionTypeTesting: (testingBaseURL + "/datakit"),
+	}
+
 	for k, v := range versionInfos {
 		if k == versionTypeTesting && !showTestingVer {
 			continue
@@ -234,9 +244,8 @@ func getOnlineVersions(showTestingVer bool) (map[string]*version.VerInfo, error)
 
 		vi, err := getVersion(v)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("get version from %s failed: %w", v, err)
 		}
-
 		res[k] = vi
 		l.Debugf("get %s version: %s", k, vi)
 	}

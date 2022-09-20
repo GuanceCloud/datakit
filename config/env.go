@@ -135,6 +135,16 @@ func (c *Config) loadIOEnvs() {
 			c.IOConf.FlushInterval = v
 		}
 	}
+
+	if v := datakit.GetEnv("ENV_IO_CACHE_CLEAN_INTERVAL"); v != "" {
+		du, err := time.ParseDuration(v)
+		if err != nil {
+			l.Warnf("invalid env key ENV_IO_CACHE_CLEAN_INTERVAL, value %s, err: %s ignored", v, err)
+		} else {
+			l.Infof("set ENV_IO_CACHE_CLEAN_INTERVAL to %s", du)
+			c.IOConf.CacheCleanInterval = v
+		}
+	}
 }
 
 //nolint:funlen

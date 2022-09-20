@@ -6,12 +6,17 @@
 package cmds
 
 import (
+	"fmt"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
 )
 
-func showCloudInfo(cloud string) (map[string]interface{}, error) {
+func showCloudInfo() (map[string]interface{}, error) {
 	hostobject.SetLog()
 
-	x := hostobject.Input{}
-	return x.SyncCloudInfo(cloud)
+	x := hostobject.Input{Tags: map[string]string{}}
+	if err := x.SetCloudProviderIfAbsent(); err != nil {
+		return nil, fmt.Errorf("fail to decide cloud provider: %w", err)
+	}
+	return x.SyncCloudInfo(x.Tags["cloud_provider"])
 }

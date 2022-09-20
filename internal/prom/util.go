@@ -170,6 +170,36 @@ func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string) map[stri
 	return tags
 }
 
+func (p *Prom) getTagsWithLE(labels []*dto.LabelPair, measurementName string, b *dto.Bucket) map[string]string {
+	tags := map[string]string{}
+
+	// Add custom tags.
+	for k, v := range p.opt.Tags {
+		tags[k] = v
+	}
+
+	// Add prometheus labels as tags.
+	for _, lab := range labels {
+		tags[lab.GetName()] = lab.GetValue()
+	}
+
+	tags["le"] = fmt.Sprint(b.GetUpperBound())
+
+	p.removeIgnoredTags(tags)
+	p.renameTags(tags)
+
+	// Configure service tag if metrics are fed as logging.
+	if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+		if p.opt.AsLogging.Service != "" {
+			tags["service"] = p.opt.AsLogging.Service
+		} else {
+			tags["service"] = measurementName
+		}
+	}
+
+	return tags
+}
+
 func (p *Prom) removeIgnoredTags(tags map[string]string) {
 	for t := range tags {
 		for _, ignoredTag := range p.opt.TagsIgnore {
@@ -400,8 +430,7 @@ func (p *Prom) doText2Metrics(in io.Reader) (pts []*point.Point, lastErr error) 
 						fieldName + "_bucket": b.GetCumulativeCount(),
 					}
 
-					tags := p.getTags(m.GetLabel(), measurementName)
-					tags["le"] = fmt.Sprint(b.GetUpperBound())
+					tags := p.getTagsWithLE(m.GetLabel(), measurementName, b)
 
 					if !p.tagKVMatched(tags) {
 						pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))

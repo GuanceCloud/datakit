@@ -164,7 +164,7 @@ var (
 	fsToolName                = "tool"
 	fsTool                    = pflag.NewFlagSet(fsToolName, pflag.ContinueOnError)
 	flagToolLogPath           = fsTool.String("log", commonLogFlag(), "command line log path")
-	flagToolCloudInfo         = fsTool.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
+	flagToolCloudInfo         = fsTool.Bool("show-cloud-info", false, "show current host's cloud info(currently support aliyun/tencent/aws/hwcloud/azure)") //nolint:lll
 	flagToolIPInfo            = fsTool.String("ipinfo", "", "show IP geo info")
 	flagToolWorkspaceInfo     = fsTool.Bool("workspace-info", false, "show workspace info")
 	flagToolCheckConfig       = fsTool.Bool("check-config", false, "check inputs configure and main configure")

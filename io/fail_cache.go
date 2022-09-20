@@ -9,6 +9,7 @@ package io
 import (
 	"os"
 	"path/filepath"
+	sync "sync"
 	"sync/atomic"
 
 	"github.com/tidwall/wal"
@@ -24,6 +25,7 @@ type failCache struct {
 	cap                      int64
 	bytesPut, bytesTruncated uint64
 	sentLastIdx              uint64
+	lock                     *sync.Mutex
 }
 
 func dirSize(path string) (int64, error) {
@@ -55,6 +57,7 @@ func initFailCache(path string, cap int64) (*failCache, error) {
 
 	return &failCache{
 		l:    log,
+		lock: &sync.Mutex{},
 		path: path,
 		cap:  cap,
 	}, nil
@@ -67,6 +70,10 @@ func (fc *failCache) get(
 	fnCall funcCall,
 	fnSend funcSend,
 ) error {
+
+	fc.lock.Lock()
+	defer fc.lock.Unlock()
+
 	firstIdx, err := fc.l.FirstIndex()
 	if err != nil {
 		return err
@@ -90,6 +97,8 @@ func (fc *failCache) get(
 			return err
 		}
 
+		log.Debugf("%s/wal read %d bytes from idx %d", fc.path, len(data), firstIdx)
+
 		// send callback
 		if err := fnCall(data, fnSend); err != nil {
 			// If exceeded the limit, we drop it, oldest first.
@@ -109,6 +118,8 @@ func (fc *failCache) get(
 		if err := fc.l.TruncateFront(firstIdx + 1); err != nil {
 			return err
 		}
+
+		log.Debugf("%s/wal truncate idx %d", fc.path, firstIdx)
 	} else {
 		// already sent, so we delete the file here.
 		if err := fc.l.Close(); err != nil {
@@ -130,10 +141,16 @@ func (fc *failCache) get(
 }
 
 func (fc *failCache) put(data []byte) error {
+
+	fc.lock.Lock()
+	defer fc.lock.Unlock()
+
 	lastIdx, err := fc.l.LastIndex()
 	if err != nil {
 		return err
 	}
+
+	log.Debugf("%s/wal put %d bytes at idx %d", fc.path, len(data), lastIdx+1)
 
 	if err := fc.l.Write(lastIdx+1, data); err != nil {
 		return err

@@ -20,13 +20,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine/funcs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/geoip"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	plrefertable "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/refertable"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"golang.org/x/text/encoding/simplifiedchinese"
@@ -115,26 +116,14 @@ func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.P
 	if err != nil {
 		return nil, false, err
 	}
-	cntKey := ""
-	switch ioPtOpt.Category {
-	case datakit.Logging:
-		if _, ok := fields["message"]; ok {
-			cntKey = "message"
-			break
-		}
-		if _, ok := fields["message@json"]; ok {
-			cntKey = "message@json"
-		}
-	}
 
-	if out, drop, err := p.Script.Run(pt.Name(), pt.Tags(), fields, cntKey, ioPtOpt.Time, plOpt); err != nil {
+	if measurement, tags, fileds, tn, drop, err := p.Script.Run(pt.Name(), pt.Tags(), fields, ioPtOpt.Time, plOpt); err != nil {
 		return nil, drop, err
 	} else {
-		if !out.Time.IsZero() {
-			ioPtOpt.Time = out.Time
+		if !tn.IsZero() {
+			ioPtOpt.Time = tn
 		}
-		if pt, err := point.NewPoint(out.Measurement, out.Tags, out.Fields, ioPtOpt); err != nil {
-			// TODO
+		if pt, err := point.NewPoint(measurement, tags, fileds, ioPtOpt); err != nil {
 			// stats.WriteScriptStats(p.script.Category(), p.script.NS(), p.script.Name(), 0, 0, 1, err)
 			return nil, false, err
 		} else {
@@ -218,7 +207,7 @@ func loadPatterns() error {
 		}
 	}
 
-	parser.DenormalizedGlobalPatterns = denormalizedGlobalPatterns
+	runtime.DenormalizedGlobalPatterns = denormalizedGlobalPatterns
 
 	return nil
 }

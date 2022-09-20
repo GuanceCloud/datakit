@@ -51,6 +51,9 @@ func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 	for _, fn := range k8sResourceMetricList {
 		x := fn(k.client, k.ipt.Tags)
 
+		if xPod, ok := x.(podResourceInterface); ok {
+			xPod.setExtractK8sLabelAsTags(k.ipt.ExtractK8sLabelAsTags)
+		}
 		if m, err := x.metric(k.ipt.Election); err != nil {
 			lastErr = err
 		} else {

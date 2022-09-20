@@ -28,10 +28,11 @@ const (
 )
 
 type discovery struct {
-	client        k8sClientX
-	extraTags     map[string]string
-	localNodeName string
-	done          <-chan interface{}
+	client                k8sClientX
+	extraTags             map[string]string
+	localNodeName         string
+	extractK8sLabelAsTags bool
+	done                  <-chan interface{}
 }
 
 var globalCRDLogsConfList = struct {
@@ -42,11 +43,12 @@ var globalCRDLogsConfList = struct {
 	sync.Mutex{},
 }
 
-func newDiscovery(client k8sClientX, extraTags map[string]string, done <-chan interface{}) *discovery {
+func newDiscovery(client k8sClientX, extraTags map[string]string, extractK8sLabelAsTags bool, done <-chan interface{}) *discovery {
 	return &discovery{
-		client:    client,
-		extraTags: extraTags,
-		done:      done,
+		client:                client,
+		extraTags:             extraTags,
+		extractK8sLabelAsTags: extractK8sLabelAsTags,
+		done:                  done,
 	}
 }
 
@@ -128,7 +130,7 @@ func (d *discovery) fetchPromInputs() []*discoveryRunner {
 			continue
 		}
 
-		runner, err := newDiscoveryRunner(&podMeta{Pod: &list.Items[idx]}, cfg, d.extraTags)
+		runner, err := newDiscoveryRunner(&podMeta{Pod: &list.Items[idx]}, cfg, d.extraTags, d.extractK8sLabelAsTags)
 		if err != nil {
 			l.Warnf("autodiscovery: new runner err %s", err)
 			continue
@@ -145,7 +147,7 @@ func (d *discovery) fetchDatakitCRDInputs() []*discoveryRunner {
 
 	fn := func(ins kubev1guancebeta1.DatakitInstance, pod *podMeta) {
 		l.Debugf("autodiscovery: find CRD inputConf, pod_name: %s, pod_namespace: %s, conf: %s", pod.Name, pod.Namespace, ins.InputConf)
-		runner, err := newDiscoveryRunner(pod, ins.InputConf, d.extraTags)
+		runner, err := newDiscoveryRunner(pod, ins.InputConf, d.extraTags, d.extractK8sLabelAsTags)
 		if err != nil {
 			l.Warnf("autodiscovery: new runner from crd, err: %s", err)
 			return
@@ -286,7 +288,7 @@ type discoveryRunner struct {
 	lastTime time.Time
 }
 
-func newDiscoveryRunner(item *podMeta, inputConfig string, extraTags map[string]string) ([]*discoveryRunner, error) {
+func newDiscoveryRunner(item *podMeta, inputConfig string, extraTags map[string]string, extractK8sLabelAsTags bool) ([]*discoveryRunner, error) {
 	l.Debugf("autodiscovery: new runner, source: %s, config: %s", item.Name, inputConfig)
 
 	inputInstances, err := config.LoadSingleConf(completePromConfig(inputConfig, item), inputs.Inputs)
@@ -319,7 +321,22 @@ func newDiscoveryRunner(item *podMeta, inputConfig string, extraTags map[string]
 		}
 
 		if inp, ok := ii.(inputs.OptionalInput); ok {
-			inp.SetTags(extraTags)
+			tags := map[string]string{}
+
+			// extract pod labels as tags
+			if extractK8sLabelAsTags {
+				for k, v := range item.Labels {
+					tags[k] = v
+				}
+
+				for k, v := range extraTags {
+					tags[k] = v
+				}
+			} else {
+				tags = extraTags
+			}
+
+			inp.SetTags(tags)
 		}
 
 		res = append(res, &discoveryRunner{

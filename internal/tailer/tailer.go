@@ -187,10 +187,10 @@ func (t *Tailer) Start() {
 	ticker := time.NewTicker(scanNewFileInterval)
 	defer ticker.Stop()
 
-	// 立即执行一次，而不是等到tick到达
-	t.scan()
-
 	for {
+		t.scan()
+		t.opt.log.Debugf("list of recivering: %v", t.getFileList())
+
 		select {
 		case <-t.stop:
 			t.opt.log.Infof("waiting for all tailers to exit")
@@ -199,8 +199,6 @@ func (t *Tailer) Start() {
 			return
 
 		case <-ticker.C:
-			t.scan()
-			t.opt.log.Debugf("list of recivering: %v", t.getFileList())
 		}
 	}
 }

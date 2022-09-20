@@ -27,6 +27,7 @@ type containerLogBasisInfo struct {
 	extraSourceMap        map[string]string
 	sourceMultilineMap    map[string]string
 	autoMultilinePatterns []string
+	extractK8sLabelAsTags bool
 }
 
 func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tailer.Option {
@@ -100,6 +101,15 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 		info.tags["pod_ip"] = meta.Status.PodIP
 		if deployment := getDeployment(meta.labels()["app"], info.tags["namespace"]); deployment != "" {
 			info.tags["deployment"] = deployment
+		}
+
+		// extract pod labels to tags
+		if info.extractK8sLabelAsTags {
+			for k, v := range meta.Labels {
+				if _, ok := opt.GlobalTags[k]; !ok {
+					opt.GlobalTags[k] = v
+				}
+			}
 		}
 
 		var conf string

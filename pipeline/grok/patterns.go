@@ -1,8 +1,3 @@
-// Unless explicitly stated otherwise all files in this repository are licensed
-// under the MIT License.
-// This product includes software developed at Guance Cloud (https://www.guance.com/).
-// Copyright 2021-present Guance, Inc.
-
 package grok
 
 import (
@@ -25,7 +20,29 @@ const (
 type GrokPattern struct {
 	pattern      string
 	denormalized string
-	varType      map[string]string
+	varbType     map[string]string
+}
+
+type PatternStorageIface interface {
+	GetPattern(string) (*GrokPattern, bool)
+	SetPattern(string, *GrokPattern)
+}
+
+type PatternStorage []map[string]*GrokPattern
+
+func (p PatternStorage) GetPattern(pattern string) (*GrokPattern, bool) {
+	for _, v := range p {
+		if gp, ok := v[pattern]; ok {
+			return gp, ok
+		}
+	}
+	return nil, false
+}
+
+func (p PatternStorage) SetPattern(patternAlias string, gp *GrokPattern) {
+	if len(p) > 0 {
+		p[len(p)-1][patternAlias] = gp
+	}
 }
 
 func (g *GrokPattern) Pattern() string {
@@ -38,51 +55,60 @@ func (g *GrokPattern) Denormalized() string {
 
 func (g *GrokPattern) TypedVar() map[string]string {
 	ret := map[string]string{}
-	for k, v := range g.varType {
+	for k, v := range g.varbType {
 		ret[k] = v
 	}
 	return ret
 }
 
-func DenormalizePattern(pattern string, denormalized ...map[string]*GrokPattern) (*GrokPattern, error) {
-	deP := &GrokPattern{
-		pattern: pattern,
-		varType: make(map[string]string),
+// DenormalizePattern denormalizes the pattern to the regular expression.
+func DenormalizePattern(input string, denormalized ...PatternStorageIface) (
+	*GrokPattern, error,
+) {
+	gPattern := &GrokPattern{
+		varbType: make(map[string]string),
+		pattern:  input,
 	}
 
-	patternCpy := pattern
-	depVarType := map[string]string{}
+	pattern := input
 
-	for _, values := range normal.FindAllStringSubmatch(patternCpy, -1) {
+	for _, values := range normal.FindAllStringSubmatch(pattern, -1) {
 		if !valid.MatchString(values[1]) {
-			return deP, fmt.Errorf("invalid pattern %%{%s}", values[1])
+			return nil, fmt.Errorf("invalid pattern `%%{%s}`", values[1])
 		}
-		names := strings.Split(values[1], ":")
 
+		names := strings.Split(values[1], ":")
 		syntax, alias := names[0], names[0]
+
+		// [a-zA-Z0-9_]
 		if len(names) > 1 {
 			alias = symbolic.ReplaceAllString(names[1], "_")
 		}
+
+		// get the data type of the variable, if any
 		if len(names) > 2 {
 			switch names[2] {
-			case GTypeInt, GTypeFloat, GTypeString, GTypeBool:
-				deP.varType[alias] = names[2]
+			case GTypeString, GTypeFloat, GTypeInt, GTypeBool:
+				gPattern.varbType[alias] = names[2]
+			default:
+				return nil, fmt.Errorf("pattern: `%%{%s}`: invalid varb data type: `%s`",
+					pattern, names[2])
 			}
 		}
 
-		ok := false
-		var storedPattern *GrokPattern
-		for _, denormalized := range denormalized {
-			storedPattern, ok = denormalized[syntax]
-			if ok {
-				for k, v := range storedPattern.varType {
-					depVarType[k] = v
-				}
-				break
-			}
+		if len(denormalized) == 0 {
+			return nil, fmt.Errorf("no pattern foud for %%{%s}", syntax)
 		}
+
+		gP, ok := denormalized[0].GetPattern(syntax)
 		if !ok {
-			return deP, fmt.Errorf("no pattern found for %%{%s}", syntax)
+			return nil, fmt.Errorf("no pattern foud for %%{%s}", syntax)
+		}
+
+		for key, dtype := range gP.varbType {
+			if _, ok := gPattern.varbType[key]; !ok {
+				gPattern.varbType[key] = dtype
+			}
 		}
 
 		var buffer bytes.Buffer
@@ -90,25 +116,34 @@ func DenormalizePattern(pattern string, denormalized ...map[string]*GrokPattern)
 			buffer.WriteString("(?P<")
 			buffer.WriteString(alias)
 			buffer.WriteString(">")
-			buffer.WriteString(storedPattern.denormalized)
+			buffer.WriteString(gP.denormalized)
 			buffer.WriteString(")")
 		} else {
 			buffer.WriteString("(")
-			buffer.WriteString(storedPattern.denormalized)
+			buffer.WriteString(gP.denormalized)
 			buffer.WriteString(")")
 		}
-
-		patternCpy = strings.ReplaceAll(patternCpy, values[0], buffer.String())
+		pattern = strings.ReplaceAll(pattern, values[0], buffer.String())
 	}
 
-	// 当前 pattern 的变量类型优先级别最高，覆盖子 pattern 中的最后一次出现的变量的类型
-	for k, v := range deP.varType {
-		depVarType[k] = v
-	}
-	deP.varType = depVarType
+	gPattern.denormalized = pattern
+	return gPattern, nil
+}
 
-	deP.denormalized = patternCpy
-	return deP, nil
+func CompilePattern(input string, denomalized PatternStorageIface) (*GrokRegexp, error) {
+	gP, err := DenormalizePattern(input, denomalized)
+	if err != nil {
+		return nil, err
+	}
+	re, err := regexp.Compile(gP.denormalized)
+	if err != nil {
+		return nil, err
+	}
+
+	return &GrokRegexp{
+		grokPattern: gP,
+		re:          re,
+	}, nil
 }
 
 func LoadPatternsFromPath(path string) (map[string]string, error) {
@@ -185,21 +220,6 @@ func DenormalizePatternsFromMap(m map[string]string, denormalized ...map[string]
 	}
 
 	return runTree(patternDeps)
-}
-
-func CompilePattern(pattern string, denormalized ...map[string]*GrokPattern) (*GrokRegexp, error) {
-	grokPattern, err := DenormalizePattern(pattern, denormalized...)
-	if err != nil {
-		return nil, err
-	}
-	re, err := regexp.Compile(grokPattern.denormalized)
-	if err != nil {
-		return nil, err
-	}
-	return &GrokRegexp{
-		grokPattern: grokPattern,
-		re:          re,
-	}, nil
 }
 
 func CopyDefalutPatterns() map[string]string {

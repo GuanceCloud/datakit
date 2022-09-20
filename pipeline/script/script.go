@@ -11,8 +11,9 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine/funcs"
+	plruntime "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 )
 
@@ -30,7 +31,7 @@ type PlScript struct {
 	ns       string // script 所属 namespace
 	category string
 
-	ng *parser.Engine
+	ng *plruntime.Script
 
 	updateTS int64
 }
@@ -56,7 +57,7 @@ func NewScripts(scripts map[string]string, scriptPath map[string]string, ns, cat
 		}
 		return nil, retErr
 	}
-	ret, retErr := parser.NewEngine(scripts, scriptPath, funcs.FuncsMap, funcs.FuncsCheckMap)
+	ret, retErr := engine.ParseScript(scripts, scriptPath, funcs.FuncsMap, funcs.FuncsCheckMap)
 
 	retScipt := map[string]*PlScript{}
 
@@ -75,21 +76,21 @@ func NewScripts(scripts map[string]string, scriptPath map[string]string, ns, cat
 	return retScipt, retErr
 }
 
-func (script *PlScript) Engine() *parser.Engine {
+func (script *PlScript) Engine() *plruntime.Script {
 	return script.ng
 }
 
-func (script *PlScript) Run(measurement string, tags map[string]string, fields map[string]interface{},
-	contentKey string, t time.Time, opt *Option,
-) (*parser.Output, bool, error) {
+func (script *PlScript) Run(measurement string, tags map[string]string, fields map[string]interface{}, t time.Time, opt *Option,
+) (string, map[string]string, map[string]interface{}, time.Time, bool, error) {
 	startTime := time.Now()
 	if script.ng == nil {
-		return nil, false, fmt.Errorf("no engine")
+		return "", nil, nil, t, false, fmt.Errorf("no script")
 	}
-	out, err := script.ng.Run(measurement, tags, fields, contentKey, t)
+
+	measurement, tags, fields, t, rDrop, err := engine.RunScript(script.ng, measurement, tags, fields, t)
 	if err != nil {
 		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 0, 1, int64(time.Since(startTime)), err)
-		return nil, false, err
+		return "", nil, nil, t, false, err
 	}
 
 	switch script.category {
@@ -105,6 +106,7 @@ func (script *PlScript) Run(measurement string, tags map[string]string, fields m
 
 	case datakit.Logging:
 		var disable bool
+		var statusDrop bool
 		var ignore []string
 
 		if opt != nil {
@@ -113,18 +115,21 @@ func (script *PlScript) Run(measurement string, tags map[string]string, fields m
 			// spiltLen = opt.MaxFieldValLen
 		}
 		// out = ProcLoggingStatus(out, disable, ignore, spiltLen)
-		out = ProcLoggingStatus(out, disable, ignore)
+		tags, fields, statusDrop = ProcLoggingStatus(tags, fields, disable, ignore)
+		if statusDrop {
+			rDrop = statusDrop
+		}
 	default:
-		return nil, false, fmt.Errorf("unsupported category: %s", script.category)
+		return "", nil, nil, t, false, fmt.Errorf("unsupported category: %s", script.category)
 	}
 
-	if out.Drop {
+	if rDrop {
 		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 1, 0, int64(time.Since(startTime)), nil)
 	} else {
 		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 0, 0, int64(time.Since(startTime)), nil)
 	}
 
-	return out, out.Drop, nil
+	return measurement, tags, fields, t, rDrop, nil
 }
 
 func (script *PlScript) Name() string {

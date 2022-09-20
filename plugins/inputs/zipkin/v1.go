@@ -98,19 +98,17 @@ func thriftV1SpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 			dkspan.Resource = resource
 		}
 
-		if project, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "project"); ok {
-			dkspan.Project = project
-		}
-
-		if version, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "version"); ok {
-			dkspan.Version = version
-		}
-
 		sourceTags := make(map[string]string)
 		for _, tag := range span.BinaryAnnotations {
 			sourceTags[tag.Key] = string(tag.Value)
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+		if project, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "project"); ok {
+			dkspan.Tags[itrace.TAG_PROJECT] = project
+		}
+		if version, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "version"); ok {
+			dkspan.Tags[itrace.TAG_VERSION] = version
+		}
 
 		if buf, err := json.Marshal(zipkinConvThriftToJSON(span)); err != nil {
 			log.Warn(err.Error())
@@ -362,19 +360,17 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 			dkspan.Resource = resource
 		}
 
-		if project, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "project"); ok {
-			dkspan.Project = project
-		}
-
-		if version, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "version"); ok {
-			dkspan.Version = version
-		}
-
 		sourceTags := make(map[string]string)
 		for _, tag := range span.BinaryAnnotations {
 			sourceTags[tag.Key] = tag.Value
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+		if project, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "project"); ok {
+			dkspan.Tags[itrace.TAG_PROJECT] = project
+		}
+		if version, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "version"); ok {
+			dkspan.Tags[itrace.TAG_VERSION] = version
+		}
 
 		if buf, err := json.Marshal(span); err != nil {
 			continue

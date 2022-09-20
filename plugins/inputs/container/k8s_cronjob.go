@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1beta1 "k8s.io/api/batch/v1beta1"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -112,6 +113,13 @@ func (c *cronjob) object(election bool) (inputsMeas, error) {
 			},
 			election: election,
 		}
+
+		if y, err := yaml.Marshal(item); err != nil {
+			l.Debugf("failed to get cron-job yaml %s, namespace %s, name %s, ignored", err.Error(), item.Namespace, item.Name)
+		} else {
+			obj.fields["yaml"] = string(y)
+		}
+
 		obj.tags.append(c.extraTags)
 
 		if item.Spec.Suspend != nil {
@@ -122,6 +130,7 @@ func (c *cronjob) object(election bool) (inputsMeas, error) {
 		obj.fields.addLabel(item.Labels)
 		obj.fields.mergeToMessage(obj.tags)
 		obj.fields.delete("annotations")
+		obj.fields.delete("yaml")
 
 		res = append(res, obj)
 	}

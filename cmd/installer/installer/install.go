@@ -240,7 +240,7 @@ func Install(svc service.Service) {
 		}
 	}
 
-	l.Infof("installing service %s...", dkservice.ServiceName)
+	l.Infof("installing service %s...", dkservice.Name)
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("uninstall service failed %s", err.Error()) //nolint:lll
 	}

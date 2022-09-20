@@ -1,8 +1,3 @@
-// Unless explicitly stated otherwise all files in this repository are licensed
-// under the MIT License.
-// This product includes software developed at Guance Cloud (https://www.guance.com/).
-// Copyright 2021-present Guance, Inc.
-
 package grok
 
 import (
@@ -58,7 +53,7 @@ func dfs(deP map[string]*GrokPattern, top map[string]*nodeP, startName string, s
 	if _, ok := deP[startName]; ok {
 		return nil
 	} else if len(start.cNode) == 0 {
-		if ptn, err := DenormalizePattern(start.cnt, deP); err != nil {
+		if ptn, err := DenormalizePattern(start.cnt, PatternStorage{deP}); err != nil {
 			return err
 		} else {
 			deP[startName] = ptn
@@ -78,7 +73,7 @@ func dfs(deP map[string]*GrokPattern, top map[string]*nodeP, startName string, s
 		}
 	}
 
-	if ptn, err := DenormalizePattern(start.cnt, deP); err != nil {
+	if ptn, err := DenormalizePattern(start.cnt, PatternStorage{deP}); err != nil {
 		return err
 	} else {
 		deP[startName] = ptn

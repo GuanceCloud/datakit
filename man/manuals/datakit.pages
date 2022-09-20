@@ -13,6 +13,7 @@ nav:
     - datakit-monitor.md
     - datakit-tools-how-to.md
     - proxy.md
+    - doc-logging.md
     - aliyun-access.md
     - dca.md
     - 'Sinker 设置':

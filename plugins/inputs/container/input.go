@@ -48,10 +48,11 @@ type Input struct {
 	ExcludePauseContainer        bool `toml:"exclude_pause_container"`
 	Election                     bool `toml:"election"`
 
-	K8sURL               string `toml:"kubernetes_url"`
-	K8sBearerToken       string `toml:"bearer_token"`
-	K8sBearerTokenString string `toml:"bearer_token_string"`
-	DisableK8sEvents     bool   `toml:"disable_k8s_events"`
+	K8sURL                string `toml:"kubernetes_url"`
+	K8sBearerToken        string `toml:"bearer_token"`
+	K8sBearerTokenString  string `toml:"bearer_token_string"`
+	DisableK8sEvents      bool   `toml:"disable_k8s_events"`
+	ExtractK8sLabelAsTags bool   `toml:"extract_k8s_label_as_tags"`
 
 	ContainerIncludeLog               []string          `toml:"container_include_log"`
 	ContainerExcludeLog               []string          `toml:"container_exclude_log"`
@@ -431,7 +432,8 @@ func (i *Input) setup() bool {
 				continue
 			} else {
 				i.k8sInput = k
-				i.discovery = newDiscovery(i.k8sInput.client, i.Tags, i.semStop.Wait())
+
+				i.discovery = newDiscovery(i.k8sInput.client, i.Tags, i.ExtractK8sLabelAsTags, i.semStop.Wait())
 
 				if i.dockerInput != nil {
 					i.dockerInput.k8sClient = i.k8sInput.client
@@ -481,6 +483,7 @@ func (i *Input) Resume() error {
 //   ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_POD_METRIC : booler
+//   ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS: booler
 //   ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
 //   ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER : booler
 //   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG : []string
@@ -539,6 +542,16 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			i.EnableContainerMetric = b
 		}
 	}
+
+	if enable, ok := envs["ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS to bool: %s, ignore", err)
+		} else {
+			i.ExtractK8sLabelAsTags = b
+		}
+	}
+
 	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC"]; ok {
 		b, err := strconv.ParseBool(enable)
 		if err != nil {

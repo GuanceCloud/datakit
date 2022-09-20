@@ -95,12 +95,6 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod
 		return
 	}
 
-	// for i := range aga.calculators {
-	// 	for k := range dktraces {
-	// 		aga.calculators[i](dktraces[k])
-	// 	}
-	// }
-
 	var afterFilters DatakitTraces
 	if len(aga.filters) == 0 {
 		afterFilters = dktraces
@@ -148,7 +142,7 @@ func BuildPointsBatch(dktraces DatakitTraces, strict bool) []*point.Point {
 	for i := range dktraces {
 		for j := range dktraces[i] {
 			if pt, err := BuildPoint(dktraces[i][j], strict); err != nil {
-				log.Errorf("build point error: %s", err.Error())
+				log.Warnf("build point error: %s", err.Error())
 			} else {
 				pts = append(pts, pt)
 			}
@@ -165,21 +159,11 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 	}
 
 	tags := map[string]string{
-		TAG_CONTAINER_HOST: dkspan.ContainerHost,
-		TAG_ENDPOINT:       dkspan.EndPoint,
-		TAG_ENV:            dkspan.Env,
-		TAG_HTTP_CODE:      dkspan.HTTPStatusCode,
-		TAG_HTTP_METHOD:    dkspan.HTTPMethod,
-		TAG_OPERATION:      dkspan.Operation,
-		TAG_PROJECT:        dkspan.Project,
-		TAG_SERVICE:        dkspan.Service,
-		TAG_SOURCE_TYPE:    dkspan.SourceType,
-		TAG_SPAN_STATUS:    dkspan.Status,
-		TAG_SPAN_TYPE:      dkspan.SpanType,
-		TAG_VERSION:        dkspan.Version,
-	}
-	if dkspan.EndPoint == "" {
-		tags[TAG_ENDPOINT] = "null"
+		TAG_SERVICE:     dkspan.Service,
+		TAG_OPERATION:   dkspan.Operation,
+		TAG_SOURCE_TYPE: dkspan.SourceType,
+		TAG_SPAN_STATUS: dkspan.Status,
+		TAG_SPAN_TYPE:   dkspan.SpanType,
 	}
 	if dkspan.SpanType == "" {
 		tags[TAG_SPAN_TYPE] = SPAN_TYPE_UNKNOW
@@ -196,14 +180,13 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 	}
 
 	fields := map[string]interface{}{
-		FIELD_DURATION: dkspan.Duration / int64(time.Microsecond),
-		FIELD_MSG:      dkspan.Content,
-		FIELD_PARENTID: dkspan.ParentID,
-		FIELD_PID:      dkspan.PID,
-		FIELD_RESOURCE: dkspan.Resource,
-		FIELD_SPANID:   dkspan.SpanID,
-		FIELD_START:    dkspan.Start / int64(time.Microsecond),
 		FIELD_TRACEID:  dkspan.TraceID,
+		FIELD_PARENTID: dkspan.ParentID,
+		FIELD_SPANID:   dkspan.SpanID,
+		FIELD_RESOURCE: dkspan.Resource,
+		FIELD_START:    dkspan.Start / int64(time.Microsecond),
+		FIELD_DURATION: dkspan.Duration / int64(time.Microsecond),
+		FIELD_MESSAGE:  dkspan.Content,
 	}
 	for k, v := range dkspan.Metrics {
 		fields[k] = v
