@@ -170,6 +170,7 @@ func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (
 			}
 			return nil
 		}(),
+		stop:     make(chan interface{}),
 		fileList: make(map[string]interface{}),
 	}
 
@@ -220,28 +221,30 @@ func (t *Tailer) scan() {
 
 		t.wg.Add(1)
 
-		g.Go(func(ctx context.Context) error {
-			defer t.wg.Done()
-			defer t.removeFromFileList(filename)
+		func(filename string) {
+			g.Go(func(ctx context.Context) error {
+				defer t.wg.Done()
+				defer t.removeFromFileList(filename)
 
-			tl, err := NewTailerSingle(filename, t.opt)
-			if err != nil {
-				t.opt.log.Errorf("new tailer file %s error: %s", filename, err)
+				tl, err := NewTailerSingle(filename, t.opt)
+				if err != nil {
+					t.opt.log.Errorf("new tailer file %s error: %s", filename, err)
+					return nil
+				}
+
+				t.addToFileList(filename)
+
+				tl.Run()
 				return nil
-			}
-
-			t.addToFileList(filename)
-
-			tl.Run()
-			return nil
-		})
+			})
+		}(filename)
 	}
 }
 
 func (t *Tailer) Close() {
 	select {
 	case <-t.stop:
-		// pass
+		return
 	default:
 		close(t.stop)
 	}
