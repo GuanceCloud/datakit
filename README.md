@@ -4,6 +4,7 @@
 
 [![Slack Status](https://img.shields.io/badge/slack-join_chat-orange?logo=slack&style=plastic)](https://app.slack.com/client/T032YB4B6TA/)
 [![MIT License](https://img.shields.io/badge/license-MIT-green?style=plastic)](LICENSE)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FGuanceCloud%2Fdatakit.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FGuanceCloud%2Fdatakit?ref=badge_shield)
 
 <h2>
   <a href="https://datakit.tools">Website</a>
@@ -170,3 +171,7 @@ Before contributing, check out some guideline of DataKit:
 For full documents of DataKit, see
 
 - [DataKit Doc](https://www.yuque.com/dataflux/datakit)
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FGuanceCloud%2Fdatakit.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FGuanceCloud%2Fdatakit?ref=badge_large)
