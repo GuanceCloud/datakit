@@ -557,7 +557,11 @@ github.com/franela/goblin v0.0.0-20200105215937-c9ffbefa60db/go.mod h1:7dvUGVsVB
 github.com/franela/goreq v0.0.0-20171204163338-bcd34c9993f8/go.mod h1:ZhphrRTfi2rbfLwlschooIH4+wKKDR4Pdxhh+TRoA20=
 github.com/frankban/quicktest v1.4.1/go.mod h1:36zfPVQyHxymz4cH7wlDmVwDrJuljRB60qkgn7rorfQ=
 github.com/frankban/quicktest v1.10.0/go.mod h1:ui7WezCLWMWxVWr1GETZY3smRy0G4KWq9vcPtJmFl7Y=
+github.com/frankban/quicktest v1.11.0/go.mod h1:K+q6oSqb0W0Ininfk863uOk1lMy69l/P6txr3mVT54s=
+github.com/frankban/quicktest v1.11.2/go.mod h1:K+q6oSqb0W0Ininfk863uOk1lMy69l/P6txr3mVT54s=
 github.com/frankban/quicktest v1.11.3/go.mod h1:wRf/ReqHper53s+kmmSZizM8NamnL3IM0I9ntUbOk+k=
+github.com/frankban/quicktest v1.13.0 h1:yNZif1OkDfNoDfb9zZa9aXIpejNR4F23Wely0c+Qdqk=
+github.com/frankban/quicktest v1.13.0/go.mod h1:qLE0fzW0VuyUAJgPU19zByoIr0HtCHN/r/VLSOOIySU=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4IgpuI1SZQ=
 github.com/fsnotify/fsnotify v1.5.1 h1:mZcQUHVQUQWoPXXtuf9yuEXKudkV2sx1E06UadKWpgI=
@@ -1004,6 +1008,13 @@ github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab/go.mod
 github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c h1:qSHzRbhzK8RdXOsAdfDgO49TtqC1oZ+acxPrkfTxcCs=
 github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c/go.mod h1:qj24IKcXYK6Iy9ceXlo3Tc+vtHo9lIhSX5JddghvEPo=
 github.com/influxdata/influxql v1.1.0/go.mod h1:KpVI7okXjK6PRi3Z5B+mtKZli+R1DnZgb3N+tzevNgo=
+github.com/influxdata/line-protocol-corpus v0.0.0-20210519164801-ca6fa5da0184/go.mod h1:03nmhxzZ7Xk2pdG+lmMd7mHDfeVOYFyhOgwO61qWU98=
+github.com/influxdata/line-protocol-corpus v0.0.0-20210922080147-aa28ccfb8937 h1:MHJNQ+p99hFATQm6ORoLmpUCF7ovjwEFshs/NHzAbig=
+github.com/influxdata/line-protocol-corpus v0.0.0-20210922080147-aa28ccfb8937/go.mod h1:BKR9c0uHSmRgM/se9JhFHtTT7JTO67X23MtKMHtZcpo=
+github.com/influxdata/line-protocol/v2 v2.0.0-20210312151457-c52fdecb625a/go.mod h1:6+9Xt5Sq1rWx+glMgxhcg2c0DUaehK+5TDcPZ76GypY=
+github.com/influxdata/line-protocol/v2 v2.1.0/go.mod h1:QKw43hdUBg3GTk2iC3iyCxksNj7PX9aUSeYOYE/ceHY=
+github.com/influxdata/line-protocol/v2 v2.2.1 h1:EAPkqJ9Km4uAxtMRgUubJyqAr6zgWM0dznKMLRauQRE=
+github.com/influxdata/line-protocol/v2 v2.2.1/go.mod h1:DmB3Cnh+3oxmG6LOBIxce4oaL4CPj3OmMPgvauXh+tM=
 github.com/influxdata/tail v1.0.1-0.20200707181643-03a791b270e4/go.mod h1:VeiWgI3qaGdJWust2fP27a6J+koITo/1c/UhxeOxgaM=
 github.com/influxdata/telegraf v1.15.2 h1:0wmJC/nnBnQUWi8klRldR13Oniw8T+a1BpEA+NsRa2k=
 github.com/influxdata/telegraf v1.15.2/go.mod h1:Y0AsoijyQvMYKooH+cRVoiOxQXQuKdWKAjHmpDVa8gA=
@@ -1749,8 +1760,8 @@ github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxt
 github.com/zenazn/goji v1.0.1/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20201227071819-a2039e61b54c/go.mod h1:DntU50wWXZudVwBGR5nxheD3olSVcelZBFyzrHRbugE=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220331024026-678324178a3c/go.mod h1:77exhafyG6wz+L+tveHFGgm7anbtRGpxCox4bLg+qzw=
-gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220804141546-b62da6325da5 h1:Y/r+DnNY/OHM83TpKeLMkYsYDP1A00ZMVQ0/VJKuVic=
-gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220804141546-b62da6325da5/go.mod h1:IVnlfjFkiv3rDzgjLmRMBnYX1ix3KtLw6ngYA0DGVqQ=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220921153502-d512e0214ce7 h1:P1DD9if0uHZZ2l5xOk8hl/8ZpcdVUtT/Nvp9Vptl0P4=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220921153502-d512e0214ce7/go.mod h1:du9iG6WJzVS8N4+mJVrMu725kT5EWWNVKtWLcnnRoPQ=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20220419092907-0563d6718f1a/go.mod h1:kWz7EvaZKkXxrNcK8QiL882G6B4xc24o8fxRccVw12I=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220614080230-f0513877f006 h1:WwG36hV3rILZqWqV2/LquWKhOWB9zSL32zP9BE2T1zA=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220614080230-f0513877f006/go.mod h1:i1IgHMEmRPgajaAGzGPxvFxIxJ8J68jC4Wp6cWoLb1A=

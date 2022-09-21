@@ -11,11 +11,15 @@ import (
 
 	"github.com/influxdata/influxdb1-client/models"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
+	lp "github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
 type Option struct {
-	Time      time.Time
-	Precision string
+	Time time.Time
+
+	Precision   string
+	PrecisionV2 lp.Precision
+
 	ExtraTags map[string]string
 
 	DisabledTagKeys   []string
