@@ -77,7 +77,7 @@ require (
 	github.com/ugorji/go/codec v1.2.6
 	github.com/vjeantet/grok v1.0.0
 	github.com/whilp/git-urls v1.0.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220804141546-b62da6325da5
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220921153502-d512e0214ce7
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220614080230-f0513877f006
 	go.etcd.io/bbolt v1.3.5
 	go.mercari.io/go-dnscache v0.0.0-20220124075326-2701c2ab5df5
@@ -122,6 +122,7 @@ require (
 )
 
 require (
+	github.com/influxdata/line-protocol/v2 v2.2.1 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.1 // indirect
