@@ -27,6 +27,8 @@ const (
 	ReadBufferLen = 1024 * 4
 )
 
+var g = datakit.G("tailer")
+
 type server struct {
 	addr string       // udpConns's or tcpListeners's  key
 	lis  net.Listener // tcp listener
@@ -147,18 +149,23 @@ func (sl *socketLogger) toReceive() {
 			sl.tcpListeners[s.addr] = s.lis
 			l.Infof("TCP port:%s start to accept", s.addr)
 
-			g.Go(func(ctx context.Context) error {
-				sl.accept(s.lis)
-				return nil
-			})
+			func(lis net.Listener) {
+				g.Go(func(ctx context.Context) error {
+					sl.accept(lis)
+					return nil
+				})
+			}(s.lis)
 		}
 		if s.conn != nil {
 			sl.udpConns[s.addr] = s.conn
 			l.Infof("UDP port:%s start to accept", s.addr)
-			g.Go(func(ctx context.Context) error {
-				sl.doSocket(s.conn)
-				return nil
-			})
+
+			func(conn net.Conn) {
+				g.Go(func(ctx context.Context) error {
+					sl.doSocket(conn)
+					return nil
+				})
+			}(s.conn)
 		}
 	}
 }

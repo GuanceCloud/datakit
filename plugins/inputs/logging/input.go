@@ -194,10 +194,12 @@ func (ipt *Input) Run() {
 	if ipt.process != nil && len(ipt.process) > 0 {
 		// start all process
 		for _, proce := range ipt.process {
-			g.Go(func(ctx context.Context) error {
-				proce.Start()
-				return nil
-			})
+			func(proce LogProcessor) {
+				g.Go(func(ctx context.Context) error {
+					proce.Start()
+					return nil
+				})
+			}(proce)
 		}
 	} else {
 		l.Warnf("There are no logging processors here")
