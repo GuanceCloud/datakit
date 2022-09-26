@@ -13,6 +13,7 @@ import (
 	"runtime"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 )
 
@@ -28,7 +29,7 @@ func installTelegraf(installDir string) error {
 		installDir = "/"
 	}
 
-	infof("Start downloading Telegraf...\n")
+	cp.Infof("Start downloading Telegraf...\n")
 	dl.CurDownloading = "telegraf"
 
 	cli := getcli()
@@ -42,16 +43,16 @@ func installTelegraf(installDir string) error {
 	}
 
 	//nolint:lll
-	infof("Install Telegraf successfully!\n")
+	cp.Infof("Install Telegraf successfully!\n")
 	if runtime.GOOS == datakit.OSWindows {
-		infof("Start telegraf by `cd %s`, `copy telegraf.conf.sample tg.conf`, and `telegraf.exe --config tg.conf`\n",
+		cp.Infof("Start telegraf by `cd %s`, `copy telegraf.conf.sample tg.conf`, and `telegraf.exe --config tg.conf`\n",
 			filepath.Join(installDir, dirName))
 	} else {
-		infof("Start telegraf by `cd %s`, `cp telegraf.conf.sample tg.conf`, and `telegraf --config tg.conf`\n",
+		cp.Infof("Start telegraf by `cd %s`, `cp telegraf.conf.sample tg.conf`, and `telegraf --config tg.conf`\n",
 			filepath.Join(installDir, dirName))
 	}
 
-	infof("Vist https://www.influxdata.com/time-series-platform/telegraf/ for more information.\n")
+	cp.Infof("Vist https://www.influxdata.com/time-series-platform/telegraf/ for more information.\n")
 
 	return nil
 }

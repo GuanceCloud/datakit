@@ -13,6 +13,7 @@ import (
 	"runtime"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
 const (
@@ -36,7 +37,7 @@ func installScheck() error {
 		return fmt.Errorf("security checker not support in %v", osArch)
 	}
 
-	infof("Start downloading install script...\n")
+	cp.Infof("Start downloading install script...\n")
 
 	verURL := BaseURL + "install.sh"
 	cli := getcli()
@@ -55,7 +56,7 @@ func installScheck() error {
 		return fmt.Errorf("status code %v", resp.StatusCode)
 	}
 
-	infof("Download install script successfully.\n")
+	cp.Infof("Download install script successfully.\n")
 
 	defer resp.Body.Close() //nolint:errcheck
 	body, err := ioutil.ReadAll(resp.Body)
@@ -69,7 +70,7 @@ func installScheck() error {
 		return err
 	}
 
-	infof("Install Security Checker successfully.\n")
+	cp.Infof("Install Security Checker successfully.\n")
 
 	return nil
 }

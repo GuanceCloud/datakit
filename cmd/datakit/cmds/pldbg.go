@@ -18,6 +18,7 @@ import (
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/convertutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -50,7 +51,7 @@ func runPLFlags() error {
 	}
 
 	if strings.HasSuffix(txt, "\n") {
-		warnf("[E] txt has suffix EOL\n")
+		cp.Warnf("[E] txt has suffix EOL\n")
 	}
 
 	// TODO
@@ -128,14 +129,14 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 	cost := time.Since(start)
 
 	if res == nil {
-		errorf("[E] No data extracted from pipeline\n")
+		cp.Errorf("[E] No data extracted from pipeline\n")
 		return nil
 	}
 
 	fields, _ := res.Fields()
 	tags := res.Tags()
 	if len(fields) == 0 && len(tags) == 0 {
-		errorf("[E] No data extracted from pipeline\n")
+		cp.Errorf("[E] No data extracted from pipeline\n")
 		return nil
 	}
 
@@ -186,8 +187,8 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 		fmt.Printf("%s\n", buf.String())
 	}
 
-	infof("---------------\n")
-	infof("Extracted %d fields, %d tags; measurement(M)<source(L),class(O)...>: %s, drop: %v, cost: %v\n",
+	cp.Infof("---------------\n")
+	cp.Infof("Extracted %d fields, %d tags; measurement(M)<source(L),class(O)...>: %s, drop: %v, cost: %v\n",
 		len(fields), len(tags), measurementName, dropFlag, cost)
 
 	return nil

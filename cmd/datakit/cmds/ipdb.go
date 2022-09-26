@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 )
 
@@ -29,10 +30,9 @@ func installIPDB(ipdbType string) error {
 		return err
 	}
 
-	infof("\n\nInstall ipdb successfully and its information is as follows.\n")
-
-	infof("ipdb_type: %s\nversion: %s\ntime: %s\n\n", ipdbType, ipdb.Version, time.Unix(ipdb.Time/1000, 0))
-	infof("To enable it, you should set `pipeline.ipdb_type` to \"%s\" in `conf.d/datakit.conf` and restart the datakit!\n", ipdbType)
+	cp.Infof("\n\nInstall ipdb successfully and its information is as follows.\n")
+	cp.Infof("ipdb_type: %s\nversion: %s\ntime: %s\n\n", ipdbType, ipdb.Version, time.Unix(ipdb.Time/1000, 0))
+	cp.Infof("To enable it, you should set `pipeline.ipdb_type` to \"%s\" in `conf.d/datakit.conf` and restart the datakit!\n", ipdbType)
 
 	return nil
 }
@@ -62,7 +62,7 @@ func InstallIPDB(baseURL string, ipdbType string) (*ipdbInfo, error) {
 
 		ipdbURL := ipdbBaseURL + ipdb.Name
 
-		infof("Start downloading ipdb ...\n")
+		cp.Infof("Start downloading ipdb ...\n")
 
 		dl.CurDownloading = "ipdb"
 		cli := getcli()

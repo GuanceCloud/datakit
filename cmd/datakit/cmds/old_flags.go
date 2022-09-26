@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -222,7 +223,7 @@ func runOldStyleCmds() {
 
 		// deprecated: after 1.2.x, RC version can't be upgraded, see issue #484
 		if FlagAcceptRCVersion {
-			warnf("[W] --accept-rc-version deprecated\n")
+			cp.Warnf("[W] --accept-rc-version deprecated\n")
 		}
 
 		ret := checkUpdate(ReleaseVersion, false)
@@ -236,14 +237,14 @@ func runOldStyleCmds() {
 
 		vis, err := checkNewVersion(ReleaseVersion, FlagShowTestingVersions)
 		if err != nil {
-			errorf("get online version info failed: %s\n", err)
+			cp.Errorf("get online version info failed: %s\n", err)
 			os.Exit(-1)
 		}
 
 		for _, vi := range vis {
-			infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
+			cp.Infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
 				vi.versionType, vi.newVersion.VersionString, vi.newVersion.Commit, vi.newVersion.ReleaseDate)
-			infof("%s\n", getUpgradeCommand(vi.newVersion.DownloadURL))
+			cp.Infof("%s\n", getUpgradeCommand(vi.newVersion.DownloadURL))
 		}
 
 		os.Exit(0)
@@ -286,11 +287,11 @@ func runOldStyleCmds() {
 		}
 
 		if err := dc.prepare(); err != nil {
-			errorf("dc.prepare: %s\n", err.Error())
+			cp.Errorf("dc.prepare: %s\n", err.Error())
 			os.Exit(1)
 		}
 
-		infof("dqlcmd: %+#v\n", dc)
+		cp.Infof("dqlcmd: %+#v\n", dc)
 		dc.run()
 		os.Exit(0)
 	}
@@ -301,7 +302,7 @@ func runOldStyleCmds() {
 		requrl := fmt.Sprintf("http://%s%s", config.Cfg.HTTPAPI.Listen, workspace)
 		body, err := doWorkspace(requrl)
 		if err != nil {
-			errorf("get worksapceInfo fail %s\n", err.Error())
+			cp.Errorf("get worksapceInfo fail %s\n", err.Error())
 		}
 		outputWorkspaceInfo(body)
 		os.Exit(0)
@@ -311,7 +312,7 @@ func runOldStyleCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 		info, err := showCloudInfo()
 		if err != nil {
-			errorf("[E] Get cloud info failed: %s\n", err.Error())
+			cp.Errorf("[E] Get cloud info failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -322,7 +323,7 @@ func runOldStyleCmds() {
 
 		sort.Strings(keys)
 		for _, k := range keys {
-			infof("\t% 24s: %v\n", k, info[k])
+			cp.Infof("\t% 24s: %v\n", k, info[k])
 		}
 
 		os.Exit(0)
@@ -341,10 +342,10 @@ func runOldStyleCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 		x, err := ipInfo(FlagIPInfo)
 		if err != nil {
-			errorf("[E] get IP info failed: %s\n", err.Error())
+			cp.Errorf("[E] get IP info failed: %s\n", err.Error())
 		} else {
 			for k, v := range x {
-				infof("\t% 8s: %s\n", k, v)
+				cp.Infof("\t% 8s: %s\n", k, v)
 			}
 		}
 
@@ -374,7 +375,7 @@ func runOldStyleCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 		// TODO
 		if err := pipelineDebugger(datakit.Logging, FlagPipeline, script.DefaultScriptNS, FlagText, false); err != nil {
-			errorf("[E] %s\n", err)
+			cp.Errorf("[E] %s\n", err)
 			os.Exit(-1)
 		}
 
@@ -385,7 +386,7 @@ func runOldStyleCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		if err := promDebugger(FlagProm); err != nil {
-			errorf("[E] %s\n", err)
+			cp.Errorf("[E] %s\n", err)
 			os.Exit(-1)
 		}
 
@@ -456,11 +457,11 @@ func runOldStyleCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := startDatakit(); err != nil {
-			errorf("[E] start DataKit failed: %s\n using command to stop : %s\n", err.Error(), errMsg[runtime.GOOS])
+			cp.Errorf("[E] start DataKit failed: %s\n using command to stop : %s\n", err.Error(), errMsg[runtime.GOOS])
 			os.Exit(-1)
 		}
 
-		infof("Start DataKit OK\n") // TODO: 需说明 PID 是多少
+		cp.Infof("Start DataKit OK\n") // TODO: 需说明 PID 是多少
 		os.Exit(0)
 	}
 
@@ -469,11 +470,11 @@ func runOldStyleCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := stopDatakit(); err != nil {
-			errorf("[E] stop DataKit failed: %s\n", err.Error())
+			cp.Errorf("[E] stop DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
-		infof("Stop DataKit OK\n")
+		cp.Infof("Stop DataKit OK\n")
 		os.Exit(0)
 	}
 
@@ -483,11 +484,11 @@ func runOldStyleCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := restartDatakit(); err != nil {
-			errorf("[E] restart DataKit failed:%s\n using command to restart: %s\n", err.Error(), errMsg[runtime.GOOS])
+			cp.Errorf("[E] restart DataKit failed:%s\n using command to restart: %s\n", err.Error(), errMsg[runtime.GOOS])
 			os.Exit(-1)
 		}
 
-		infof("Restart DataKit OK\n")
+		cp.Infof("Restart DataKit OK\n")
 		os.Exit(0)
 	}
 
@@ -496,10 +497,10 @@ func runOldStyleCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 		x, err := datakitStatus()
 		if err != nil {
-			errorf("[E] get DataKit status failed: %s\n", err.Error())
+			cp.Errorf("[E] get DataKit status failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
-		infof("%s\n", x)
+		cp.Infof("%s\n", x)
 		os.Exit(0)
 	}
 
@@ -507,11 +508,11 @@ func runOldStyleCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		if err := uninstallDatakit(); err != nil {
-			errorf("[E] uninstall DataKit failed: %s\n", err.Error())
+			cp.Errorf("[E] uninstall DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
-		infof("Uninstall DataKit OK\n")
+		cp.Infof("Uninstall DataKit OK\n")
 		os.Exit(0)
 	}
 
@@ -519,11 +520,11 @@ func runOldStyleCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		if err := reinstallDatakit(); err != nil {
-			errorf("[E] reinstall DataKit failed: %s\n", err.Error())
+			cp.Errorf("[E] reinstall DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
-		infof("Reinstall DataKit OK\n")
+		cp.Infof("Reinstall DataKit OK\n")
 		os.Exit(0)
 	}
 
@@ -532,11 +533,11 @@ func runOldStyleCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := updateIPDB(); err != nil {
-			errorf("[E] update IPDB failed: %s\n", err.Error())
+			cp.Errorf("[E] update IPDB failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
-		infof("Update IPdb OK, please restart datakit to load new IPDB\n")
+		cp.Infof("Update IPdb OK, please restart datakit to load new IPDB\n")
 		os.Exit(0)
 	}
 
@@ -552,16 +553,16 @@ func runOldStyleCmds() {
 		tryLoadMainCfg()
 
 		if config.Cfg.DataWayCfg == nil {
-			errorf("[E] upload log failed: dataway should be set\n")
+			cp.Errorf("[E] upload log failed: dataway should be set\n")
 			os.Exit(-1)
 		}
 
-		infof("Upload log start...\n")
+		cp.Infof("Upload log start...\n")
 		if err := uploadLog(config.Cfg.DataWayCfg.URLs); err != nil {
-			errorf("[E] upload log failed : %s\n", err.Error())
+			cp.Errorf("[E] upload log failed : %s\n", err.Error())
 			os.Exit(-1)
 		}
-		infof("Upload ok.\n")
+		cp.Infof("Upload ok.\n")
 		os.Exit(0)
 	}
 }
