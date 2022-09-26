@@ -9,10 +9,12 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
@@ -403,4 +405,47 @@ func OpenFiles() int {
 	} else {
 		return len(fs)
 	}
+}
+
+// WaitTimeout waits for the given command to finish with a timeout.
+// It assumes the command has already been started.
+// If the command times out, it attempts to kill the process.
+func WaitTimeout(c *exec.Cmd, timeout time.Duration) error {
+	var kill *time.Timer
+	term := time.AfterFunc(timeout, func() {
+		err := c.Process.Signal(syscall.SIGTERM)
+		if err != nil {
+			l.Infof("E! [agent] Error terminating process: %s", err)
+			return
+		}
+
+		kill = time.AfterFunc(timeout+1, func() { // 这个地方 原本是定死的5秒,应该比exec.Command()的timeout长一点
+			err := c.Process.Kill()
+			if err != nil {
+				l.Infof("E! [agent] Error killing process: %s", err)
+				return
+			}
+		})
+	})
+
+	err := c.Wait()
+
+	// Shutdown all timers
+	if kill != nil {
+		kill.Stop()
+	}
+
+	// If the process exited without error treat it as success.  This allows a
+	// process to do a clean shutdown on signal.
+	if err == nil {
+		return nil
+	}
+
+	// If SIGTERM was sent then treat any process error as a timeout.
+	if !term.Stop() {
+		return errors.New("command timed out")
+	}
+
+	// Otherwise there was an error unrelated to termination.
+	return err
 }
