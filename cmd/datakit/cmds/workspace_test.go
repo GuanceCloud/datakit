@@ -26,7 +26,7 @@ func TestWorkspaceQuery(t *testing.T) {
 	"data_usage":{"data_metric":97109,"data_logging":13009,"data_tracing":12427,
 	"data_rum":0,"is_over_usage":false}}]}`
 	if err := json.Unmarshal([]byte(expectBody), &expect); err != nil {
-		errorf("json.Unmarshal:%s\n", err)
+		t.Errorf("json.Unmarshal:%s\n", err)
 	}
 	cases := []struct {
 		body    Content
@@ -59,7 +59,7 @@ func TestWorkspaceQuery(t *testing.T) {
 		}
 		tu.Ok(t, err)
 		if err = json.Unmarshal(result, &tc.body); err != nil {
-			errorf("json.Unmarshal:%s\n", err)
+			t.Errorf("json.Unmarshal:%s\n", err)
 		}
 		if tc.flag {
 			tu.Equals(t, tc.expect, tc.body)

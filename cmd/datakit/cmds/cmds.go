@@ -7,10 +7,7 @@
 package cmds
 
 import (
-	"fmt"
-
 	prompt "github.com/c-bata/go-prompt"
-	"github.com/fatih/color"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -85,38 +82,4 @@ func setCmdRootLog(rl string) {
 	config.SetLog()
 
 	l = logger.SLogger("cmds")
-}
-
-func infof(fmtstr string, args ...interface{}) {
-	if FlagJSON { // under json mode, there should no color message(aka, error message)
-		return
-	}
-
-	color.Set(color.FgGreen)
-	output(fmtstr, args...)
-	color.Unset()
-}
-
-func warnf(fmtstr string, args ...interface{}) {
-	if FlagJSON { // under json mode, there should no color message(aka, error message)
-		return
-	}
-
-	color.Set(color.FgYellow)
-	output(fmtstr, args...)
-	color.Unset()
-}
-
-func errorf(fmtstr string, args ...interface{}) {
-	if FlagJSON { // under json mode, there should no color message(aka, error message)
-		return
-	}
-
-	color.Set(color.FgRed)
-	output(fmtstr, args...)
-	color.Unset()
-}
-
-func output(fmtstr string, args ...interface{}) {
-	fmt.Printf(fmtstr, args...)
 }

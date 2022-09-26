@@ -22,6 +22,7 @@ import (
 	"github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
 var (
@@ -190,7 +191,7 @@ func (dc *dqlCmd) runDQL(txt string) {
 	case "":
 		return
 	case "q", "exit":
-		output("Bye!\n")
+		cp.Infof("Bye!\n")
 		updateHistoryOnExit()
 		os.Exit(0)
 
@@ -229,7 +230,7 @@ func (dc *dqlCmd) runDQL(txt string) {
 func (dc *dqlCmd) runSingleDQL(s string) {
 	if dc.csv != "" {
 		if err := dc.prepareCsv(); err != nil {
-			errorf("prepareCsv: %s", err)
+			cp.Errorf("prepareCsv: %s", err)
 			return
 		}
 	}
@@ -241,12 +242,12 @@ func (dc *dqlCmd) runSingleDQL(s string) {
 
 	if dc.csv != "" {
 		if len(resp) > 1 {
-			errorf("CSV export only support single DQL.\n")
+			cp.Errorf("CSV export only support single DQL.\n")
 			return
 		}
 
 		if err := writeToCsv(resp[0].Series, dc.csv); err != nil {
-			errorf("writeToCsv:%s", err)
+			cp.Errorf("writeToCsv:%s", err)
 			return
 		}
 	}
@@ -291,7 +292,7 @@ func convertStrings(value []interface{}) []string {
 			res = append(res, fmt.Sprintf("%v", x))
 
 		default:
-			warnf("unknown key value, %d:%v", k, x)
+			cp.Warnf("unknown key value, %d:%v", k, x)
 		}
 	}
 	return res
@@ -331,7 +332,7 @@ func writeToCsv(series []*models.Row, csvPath string) error {
 
 	writer.Flush()
 	if err = writer.Error(); err != nil {
-		warnf("writer flush failed,error: %s", err)
+		cp.Warnf("writer flush failed,error: %s", err)
 	}
 	return nil
 }
@@ -357,7 +358,7 @@ func (dc *dqlCmd) doDQL(s string) ([]*queryResult, error) {
 
 	j, err := json.Marshal(q)
 	if err != nil {
-		errorf("%s\n", err.Error())
+		cp.Errorf("%s\n", err.Error())
 		return nil, err
 	}
 
@@ -371,19 +372,19 @@ func (dc *dqlCmd) doDQL(s string) ([]*queryResult, error) {
 	req, err := http.NewRequest("POST",
 		fmt.Sprintf("http://%s%s", dc.host, dqlraw), bytes.NewBuffer(j))
 	if err != nil {
-		errorf("http.NewRequest: %s\n", err.Error())
+		cp.Errorf("http.NewRequest: %s\n", err.Error())
 		return nil, err
 	}
 
 	resp, err := dc.dqlcli.Do(req)
 	if err != nil {
-		errorf("httpcli.Do: %s\n", err.Error())
+		cp.Errorf("httpcli.Do: %s\n", err.Error())
 		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		errorf("ioutil.ReadAll: %s\n", err.Error())
+		cp.Errorf("ioutil.ReadAll: %s\n", err.Error())
 		return nil, err
 	}
 
@@ -395,14 +396,14 @@ func (dc *dqlCmd) doDQL(s string) ([]*queryResult, error) {
 		}{}
 
 		if err := json.Unmarshal(body, &r); err != nil {
-			errorf("json.Unmarshal: %s\n", err.Error())
-			errorf("body: %s\n", string(body))
+			cp.Errorf("json.Unmarshal: %s\n", err.Error())
+			cp.Errorf("body: %s\n", string(body))
 			return nil, err
 		}
 
 		l.Warnf("body: %s", string(body))
 
-		errorf("[%s] %s\n", r.Err, r.Msg)
+		cp.Errorf("[%s] %s\n", r.Err, r.Msg)
 		return nil, fmt.Errorf("%s", r.Err)
 	}
 
@@ -412,7 +413,7 @@ func (dc *dqlCmd) doDQL(s string) ([]*queryResult, error) {
 	jd.UseNumber()
 
 	if err := jd.Decode(&r); err != nil {
-		errorf("%s\n", err.Error())
+		cp.Errorf("%s\n", err.Error())
 		return nil, err
 	}
 	content, _ := json.Marshal(r.Content)
@@ -432,7 +433,7 @@ type queryResult struct {
 
 func (dc *dqlCmd) show(content []*queryResult) {
 	if content == nil {
-		errorf("Empty result\n")
+		cp.Errorf("Empty result\n")
 		return
 	}
 	for _, c := range content {
@@ -448,7 +449,7 @@ func (dc *dqlCmd) doShow(c *queryResult) {
 	case dc.json:
 		j, err := json.MarshalIndent(c, "", defaultJSONIndent)
 		if err != nil {
-			errorf("%s\n", err.Error())
+			cp.Errorf("%s\n", err.Error())
 			return
 		}
 
@@ -456,7 +457,7 @@ func (dc *dqlCmd) doShow(c *queryResult) {
 			return
 		}
 
-		output("%s\n", j)
+		cp.Output("%s\n", j)
 	default:
 		rows = dc.prettyShow(c)
 	}
@@ -465,24 +466,24 @@ func (dc *dqlCmd) doShow(c *queryResult) {
 		if json.Valid([]byte(c.RawQuery)) {
 			var x map[string]interface{}
 			if err := json.Unmarshal([]byte(c.RawQuery), &x); err != nil {
-				errorf("%s\n", err)
+				cp.Errorf("%s\n", err)
 			} else {
 				j, err := json.MarshalIndent(x, "", "    ")
 				if err != nil {
-					errorf("%s\n", err)
+					cp.Errorf("%s\n", err)
 					return
 				}
 
-				infof("---------\n")
-				infof("explain:\n%s\n", string(j))
+				cp.Infof("---------\n")
+				cp.Infof("explain:\n%s\n", string(j))
 			}
 		} else {
-			infof("---------\n")
-			infof("explain:%s\n", c.RawQuery)
+			cp.Infof("---------\n")
+			cp.Infof("explain:%s\n", c.RawQuery)
 		}
 	}
 
-	infof("---------\n%d rows, %d series, cost %s\n", rows, len(c.Series), c.Cost)
+	cp.Infof("---------\n%d rows, %d series, cost %s\n", rows, len(c.Series), c.Cost)
 }
 
 // Not used.
@@ -515,24 +516,24 @@ func sortColumns(r *models.Row) {
 
 //nolint:deadcode,unused
 func showRow(r *models.Row) {
-	output("%d columns\n", len(r.Columns))
+	cp.Output("%d columns\n", len(r.Columns))
 
 	for i, col := range r.Columns {
 		if i < len(r.Columns)-1 {
-			output("%s, ", col)
+			cp.Output("%s, ", col)
 		} else {
-			output("%s\n", col)
+			cp.Output("%s\n", col)
 		}
 	}
 
-	output("%d values\n", len(r.Values))
+	cp.Output("%d values\n", len(r.Values))
 	for _, vals := range r.Values {
-		output("value width: %d\n", len(vals))
+		cp.Output("value width: %d\n", len(vals))
 		for i, v := range vals {
 			if i < len(vals)-1 {
-				output("%v, ", v)
+				cp.Output("%v, ", v)
 			} else {
-				output("%v\n", v)
+				cp.Output("%v\n", v)
 			}
 		}
 	}
@@ -544,7 +545,7 @@ func tableShow(resp *queryResult) int {
 	nrows := 0
 
 	if len(resp.Series) == 0 {
-		warnf("no data\n")
+		cp.Warnf("no data\n")
 		return 0
 	}
 
@@ -566,7 +567,7 @@ func (dc *dqlCmd) prettyShowRow(s *models.Row, val []interface{}, fmtStr string)
 		col := s.Columns[colIdx]
 
 		if v, ok := s.Tags[col]; ok {
-			output(fmtStr+" %s\n", col, "#", v) // decorate tag key with a `#'
+			cp.Output(fmtStr+" %s\n", col, "#", v) // decorate tag key with a `#'
 			addSug(col)
 			continue
 		}
@@ -622,7 +623,7 @@ func (dc *dqlCmd) prettyShowRow(s *models.Row, val []interface{}, fmtStr string)
 			// pass
 		}
 
-		output(fmtStr+valFmt, col, " ", val[colIdx])
+		cp.Output(fmtStr+valFmt, col, " ", val[colIdx])
 		addSug(s.Columns[colIdx])
 	}
 }
@@ -631,7 +632,7 @@ func (dc *dqlCmd) prettyShow(resp *queryResult) int {
 	nrows := 0
 
 	if len(resp.Series) == 0 {
-		warnf("no data\n")
+		cp.Warnf("no data\n")
 		return 0
 	}
 
@@ -640,12 +641,12 @@ func (dc *dqlCmd) prettyShow(resp *queryResult) int {
 		case 1:
 
 			if s.Name == "" {
-				output("<unknown>\n")
+				cp.Output("<unknown>\n")
 			} else {
-				output("%s\n", s.Name)
+				cp.Output("%s\n", s.Name)
 			}
 
-			output("%s\n", "-------------------")
+			cp.Output("%s\n", "-------------------")
 			for _, val := range s.Values {
 				if len(val) == 0 {
 					continue
@@ -655,7 +656,7 @@ func (dc *dqlCmd) prettyShow(resp *queryResult) int {
 					addSug(str)
 				}
 
-				output("%s\n", val[0])
+				cp.Output("%s\n", val[0])
 				nrows++
 			}
 
@@ -666,13 +667,13 @@ func (dc *dqlCmd) prettyShow(resp *queryResult) int {
 			fmtStr := fmt.Sprintf("%%%ds%%s", colWidth)
 
 			for _, val := range s.Values {
-				output("-----------------[ r%d.%s.s%d ]-----------------\n", nrows+1, s.Name, si+1)
+				cp.Output("-----------------[ r%d.%s.s%d ]-----------------\n", nrows+1, s.Name, si+1)
 				nrows++
 				dc.prettyShowRow(s, val, fmtStr)
 			}
 		}
 		if s.Name == "show_workspaces" {
-			infof("do dql to change workSpace 'use tkn_xxxxxxxxxx' \n")
+			cp.Infof("do dql to change workSpace 'use tkn_xxxxxxxxxx' \n")
 		}
 	}
 

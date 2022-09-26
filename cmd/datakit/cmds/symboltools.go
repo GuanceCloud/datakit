@@ -20,6 +20,7 @@ import (
 
 	"github.com/schollz/progressbar/v3"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 )
 
@@ -96,7 +97,7 @@ func IsDir(name string) (bool, error) {
 
 func InstallSymbolTools() error {
 	if installBaseURL := datakit.GetEnv("DK_INSTALLER_BASE_URL"); installBaseURL != "" {
-		warnf("setup base URL to %s \n", installBaseURL)
+		cp.Warnf("setup base URL to %s \n", installBaseURL)
 		downloadLink = setupLinks(installBaseURL)
 	}
 
@@ -112,39 +113,39 @@ func InstallSymbolTools() error {
 
 	if err := installAndroidCmdLineTool(); err != nil {
 		// nolint:lll
-		errorf(`install android commandline tool fail: %s, you may need to install "https://developer.android.com/studio#cmdline-tools" manually and modify the rum config item "android_cmdline_home" correspondingly%s`, err, "\n")
+		cp.Errorf(`install android commandline tool fail: %s, you may need to install "https://developer.android.com/studio#cmdline-tools" manually and modify the rum config item "android_cmdline_home" correspondingly%s`, err, "\n")
 	} else {
-		infof("install android commandline tool success\n\n")
+		cp.Infof("install android commandline tool success\n\n")
 	}
 
 	if err := installProguard(); err != nil {
 		// nolint:lll
-		errorf(`install proguard fail: %s,you may need to install "https://github.com/Guardsquare/proguard" manually and modify the rum config item "proguard_home" correspondingly%s`, err, "\n")
+		cp.Errorf(`install proguard fail: %s,you may need to install "https://github.com/Guardsquare/proguard" manually and modify the rum config item "proguard_home" correspondingly%s`, err, "\n")
 	} else {
-		infof("install proguard success\n\n")
+		cp.Infof("install proguard success\n\n")
 	}
 
 	if err := installAndroidNDK(); err != nil {
 		// nolint:lll
-		errorf(`install android-ndk fail: %s,you may need to install "https://developer.android.com/ndk/downloads" manually and modify the rum config item "proguard_home" correspondingly %s`, err, "\n")
+		cp.Errorf(`install android-ndk fail: %s,you may need to install "https://developer.android.com/ndk/downloads" manually and modify the rum config item "proguard_home" correspondingly %s`, err, "\n")
 	} else {
-		infof("install android-ndk success\n\n")
+		cp.Infof("install android-ndk success\n\n")
 	}
 
 	if err := installAtosl(); err != nil {
 		// nolint:lll
-		errorf(`install tool atosl fail: %s,you may need to install "https://github.com/Br4ndonZhang/atosl" manually and modify the rum config item "atos_bin_path" correspondingly %s`, err, "\n")
+		cp.Errorf(`install tool atosl fail: %s,you may need to install "https://github.com/Br4ndonZhang/atosl" manually and modify the rum config item "atos_bin_path" correspondingly %s`, err, "\n")
 	} else {
-		infof("install atosl success\n\n")
+		cp.Infof("install atosl success\n\n")
 	}
 
-	infof("installation complete, you may need to open a new shell and restart your datakit\n")
+	cp.Infof("installation complete, you may need to open a new shell and restart your datakit\n")
 
 	return nil
 }
 
 func checkToolInstalled(tool string) (string, bool) {
-	infof("checking %s installation status \n", tool)
+	cp.Infof("checking %s installation status \n", tool)
 	binPath, err := exec.LookPath(tool)
 	return binPath, err == nil
 }
@@ -184,7 +185,7 @@ func rootDir(path string) string {
 }
 
 func downloadFileToTmpDir(link string, filename ...string) (string, error) {
-	infof("downloading software %s\n", link)
+	cp.Infof("downloading software %s\n", link)
 
 	resp, err := downloadClient.Get(link)
 	if err != nil {
@@ -259,7 +260,7 @@ func installJDK() error {
 	if _, err := execCmd("sudo", "ln", "-s", "-f", filepath.Join(jdkBinDir, "java"), "/usr/local/bin/java"); err != nil {
 		return fmt.Errorf("create symbol link fail: %w", err)
 	}
-	infof("install jdk success to %s :)\n", jdkHome)
+	cp.Infof("install jdk success to %s :)\n", jdkHome)
 	return nil
 }
 
@@ -302,7 +303,7 @@ func scanProguardBinPath(homeDir string) (string, error) {
 
 func execCmd(name string, args ...string) ([]byte, error) {
 	shellCmd := name + " " + strings.Join(args, " ")
-	infof("%s%s", shellCmd, "\n")
+	cp.Infof("%s%s", shellCmd, "\n")
 	cmd := exec.Command(name, args...)
 	out, err := cmd.Output()
 	if err != nil {

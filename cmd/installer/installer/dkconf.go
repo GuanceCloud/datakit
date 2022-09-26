@@ -16,6 +16,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
@@ -137,15 +138,13 @@ func writeDefInputToMainCfg(mc *config.Config) {
 
 	if CloudProvider != "" {
 		if err := injectCloudProvider(CloudProvider); err != nil {
-			l.Fatalf("failed to inject cloud-provider: %s", err.Error())
+			cp.Warnf("Failed to inject cloud-provider: %s\n", err.Error())
 		} else {
-			l.Infof("set cloud provider to %s ok", CloudProvider)
+			cp.Infof("Set cloud provider to %s ok\n", CloudProvider)
 		}
 	} else {
-		l.Infof("cloud provider not set")
+		cp.Infof("Cloud provider not set\n")
 	}
-
-	l.Debugf("main config:\n%s", mc.String())
 }
 
 func injectCloudProvider(p string) error {
@@ -168,7 +167,7 @@ func injectCloudProvider(p string) error {
 	case "": // pass
 
 	default:
-		l.Warnf("unknown cloud provider %s, ignored", p)
+		cp.Warnf("Unknown cloud provider %s, ignored\n", p)
 	}
 
 	return nil
