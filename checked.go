@@ -103,6 +103,7 @@ var (
 		"nginx_vts":              true,
 		"nginxlog":               true,
 		"nsq":                    true,
+		"nvidia_smi":             true,
 		"opentelemetry":          true,
 		"oracle":                 true,
 		"oraclemonitor":          true,
