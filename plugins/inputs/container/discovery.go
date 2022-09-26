@@ -8,6 +8,7 @@ package container
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -17,6 +18,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kubev1guancebeta1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/typed/guance/v1beta1"
@@ -25,6 +28,11 @@ import (
 const (
 	annotationPromExport  = "datakit/prom.instances"
 	annotationPromIPIndex = "datakit/prom.instances.ip_index"
+
+	annotationPrometheusioScrape = "prometheus.io/scrape"
+	annotationPrometheusioPort   = "prometheus.io/port"
+	annotationPrometheusioPath   = "prometheus.io/path"
+	annotationPrometheusioScheme = "prometheus.io/scheme"
 )
 
 type discovery struct {
@@ -32,7 +40,10 @@ type discovery struct {
 	extraTags             map[string]string
 	localNodeName         string
 	extractK8sLabelAsTags bool
-	done                  <-chan interface{}
+
+	pause   bool
+	chPause chan bool
+	done    <-chan interface{}
 }
 
 var globalCRDLogsConfList = struct {
@@ -48,6 +59,7 @@ func newDiscovery(client k8sClientX, extraTags map[string]string, extractK8sLabe
 		client:                client,
 		extraTags:             extraTags,
 		extractK8sLabelAsTags: extractK8sLabelAsTags,
+		chPause:               make(chan bool, maxPauseCh),
 		done:                  done,
 	}
 }
@@ -68,6 +80,9 @@ func (d *discovery) start() {
 	runners := d.updateRunners()
 	l.Infof("autodiscovery: update input list, len %d", len(runners))
 
+	electionRunners := d.updateRunners()
+	l.Infof("autodiscovery: update input list, len %d", len(electionRunners))
+
 	updateTicker := time.NewTicker(time.Minute * 3)
 	defer updateTicker.Stop()
 
@@ -78,14 +93,15 @@ func (d *discovery) start() {
 
 	for {
 		for _, r := range runners {
-			if time.Since(r.lastTime) < r.runner.GetIntervalDuration() {
-				continue
+			r.collect()
+		}
+
+		if d.pause {
+			l.Debug("not leader, skipped")
+		} else {
+			for _, r := range electionRunners {
+				r.collect()
 			}
-			l.Debugf("autodiscovery: running collect from source %s", r.source)
-			if err := r.runner.RunningCollect(); err != nil {
-				l.Warnf("autodiscovery, source %s collect err %s", r.source, err)
-			}
-			r.lastTime = time.Now()
 		}
 
 		select {
@@ -103,18 +119,98 @@ func (d *discovery) start() {
 
 		case <-collectTicker.C:
 			// nil
+
+		case d.pause = <-d.chPause:
+			//nil
 		}
 	}
 }
 
 func (d *discovery) updateRunners() []*discoveryRunner {
 	runners := []*discoveryRunner{}
-	runners = append(runners, d.fetchPromInputs()...)
-	runners = append(runners, d.fetchDatakitCRDInputs()...)
+	runners = append(runners, d.fetchPromInputsFromPodAnnotations()...)
+	runners = append(runners, d.fetchInputsFromDatakitCRD()...)
 	return runners
 }
 
-func (d *discovery) fetchPromInputs() []*discoveryRunner {
+func (d *discovery) updateElectionRunners() []*discoveryRunner {
+	runners := []*discoveryRunner{}
+	runners = append(runners, d.fetchPromInputsFromService()...)
+	return runners
+}
+
+func (d *discovery) fetchPromInputsFromService() []*discoveryRunner {
+	var res []*discoveryRunner
+
+	list, err := d.client.getServices().List(context.Background(), metaV1ListOption)
+	if err != nil {
+		l.Warnf("autodiscovery: failed to get service, err: %s, retry in a minute", d.localNodeName, err)
+		return nil
+	}
+
+	for _, item := range list.Items {
+		scrape, ok := item.Annotations[annotationPrometheusioScrape]
+		if !ok {
+			continue
+		}
+		b, err := strconv.ParseBool(scrape)
+		if err != nil {
+			l.Warnf("autodiscovery: service %s parse %s err: %s, skip", item.Name, scrape, err)
+			continue
+		}
+		if !b {
+			continue
+		}
+
+		port, ok := item.Annotations[annotationPrometheusioPort]
+		if !ok {
+			l.Warnf("autodiscovery: not found port from service %s, skip", item.Name)
+			continue
+		}
+		if _, err := strconv.Atoi(port); err != nil {
+			l.Warnf("autodiscovery: invalid port %s from service %s, skip", port, item.Name)
+			continue
+		}
+
+		scheme := "http"
+		path := "/metrics"
+
+		if s, ok := item.Annotations[annotationPrometheusioScheme]; ok {
+			if s == "https" {
+				scheme = s
+			} else {
+				l.Warnf("autodiscovery: invalid scheme %s from service %s, use default 'http'", s, item.Name)
+			}
+		}
+
+		if p, ok := item.Annotations[annotationPrometheusioPath]; ok {
+			path = p
+		}
+
+		u := url.URL{
+			Scheme: scheme,
+			Host:   item.Name + ":" + port,
+			Path:   path,
+		}
+
+		l.Infof("autodiscovery: new promInput for service %s, url %s", item.Name, u.String())
+
+		promInput := prom.NewProm()
+		promInput.Source = "prom.k8s.service/" + item.Name
+		promInput.Election = false
+		promInput.URLs = []string{u.String()}
+		promInput.Tags = d.extraTags
+
+		res = append(res, &discoveryRunner{
+			runner:   promInput,
+			source:   item.Name,
+			lastTime: time.Now(),
+		})
+	}
+
+	return res
+}
+func (d *discovery) fetchPromInputsFromPodAnnotations() []*discoveryRunner {
 	var res []*discoveryRunner
 
 	opt := metav1.ListOptions{FieldSelector: "spec.nodeName=" + d.localNodeName}
@@ -130,7 +226,7 @@ func (d *discovery) fetchPromInputs() []*discoveryRunner {
 			continue
 		}
 
-		runner, err := newDiscoveryRunner(&podMeta{Pod: &list.Items[idx]}, cfg, d.extraTags, d.extractK8sLabelAsTags)
+		runner, err := newDiscoveryRunnersForPod(&podMeta{Pod: &list.Items[idx]}, cfg, d.extraTags, d.extractK8sLabelAsTags)
 		if err != nil {
 			l.Warnf("autodiscovery: new runner err %s", err)
 			continue
@@ -142,12 +238,12 @@ func (d *discovery) fetchPromInputs() []*discoveryRunner {
 	return res
 }
 
-func (d *discovery) fetchDatakitCRDInputs() []*discoveryRunner {
+func (d *discovery) fetchInputsFromDatakitCRD() []*discoveryRunner {
 	var res []*discoveryRunner
 
 	fn := func(ins kubev1guancebeta1.DatakitInstance, pod *podMeta) {
 		l.Debugf("autodiscovery: find CRD inputConf, pod_name: %s, pod_namespace: %s, conf: %s", pod.Name, pod.Namespace, ins.InputConf)
-		runner, err := newDiscoveryRunner(pod, ins.InputConf, d.extraTags, d.extractK8sLabelAsTags)
+		runner, err := newDiscoveryRunnersForPod(pod, ins.InputConf, d.extraTags, d.extractK8sLabelAsTags)
 		if err != nil {
 			l.Warnf("autodiscovery: new runner from crd, err: %s", err)
 			return
@@ -288,7 +384,19 @@ type discoveryRunner struct {
 	lastTime time.Time
 }
 
-func newDiscoveryRunner(item *podMeta, inputConfig string, extraTags map[string]string, extractK8sLabelAsTags bool) ([]*discoveryRunner, error) {
+func (r *discoveryRunner) collect() {
+	if time.Since(r.lastTime) < r.runner.GetIntervalDuration() {
+		return
+	}
+	l.Debugf("autodiscovery: running collect from source %s", r.source)
+	if err := r.runner.RunningCollect(); err != nil {
+		l.Warnf("autodiscovery, source %s collect err %s", r.source, err)
+	}
+	r.lastTime = time.Now()
+	return
+}
+
+func newDiscoveryRunnersForPod(item *podMeta, inputConfig string, extraTags map[string]string, extractK8sLabelAsTags bool) ([]*discoveryRunner, error) {
 	l.Debugf("autodiscovery: new runner, source: %s, config: %s", item.Name, inputConfig)
 
 	inputInstances, err := config.LoadSingleConf(completePromConfig(inputConfig, item), inputs.Inputs)

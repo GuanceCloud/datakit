@@ -181,6 +181,9 @@ func (i *Input) Run() {
 			i.collectObject()
 
 		case i.pause = <-i.chPause:
+			if i.discovery != nil {
+				i.discovery.chPause <- i.pause
+			}
 			globalPause.set(i.pause)
 		}
 	}
