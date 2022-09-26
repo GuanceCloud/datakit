@@ -19,7 +19,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kubev1guancebeta1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/typed/guance/v1beta1"
@@ -80,8 +79,8 @@ func (d *discovery) start() {
 	runners := d.updateRunners()
 	l.Infof("autodiscovery: update input list, len %d", len(runners))
 
-	electionRunners := d.updateRunners()
-	l.Infof("autodiscovery: update input list, len %d", len(electionRunners))
+	electionRunners := d.updateElectionRunners()
+	l.Infof("autodiscovery: update electionInput list, len %d", len(electionRunners))
 
 	updateTicker := time.NewTicker(time.Minute * 3)
 	defer updateTicker.Stop()
@@ -121,7 +120,6 @@ func (d *discovery) start() {
 			// nil
 
 		case d.pause = <-d.chPause:
-			//nil
 		}
 	}
 }
@@ -210,6 +208,7 @@ func (d *discovery) fetchPromInputsFromService() []*discoveryRunner {
 
 	return res
 }
+
 func (d *discovery) fetchPromInputsFromPodAnnotations() []*discoveryRunner {
 	var res []*discoveryRunner
 
@@ -393,10 +392,13 @@ func (r *discoveryRunner) collect() {
 		l.Warnf("autodiscovery, source %s collect err %s", r.source, err)
 	}
 	r.lastTime = time.Now()
-	return
 }
 
-func newDiscoveryRunnersForPod(item *podMeta, inputConfig string, extraTags map[string]string, extractK8sLabelAsTags bool) ([]*discoveryRunner, error) {
+func newDiscoveryRunnersForPod(item *podMeta,
+	inputConfig string,
+	extraTags map[string]string,
+	extractK8sLabelAsTags bool,
+) ([]*discoveryRunner, error) {
 	l.Debugf("autodiscovery: new runner, source: %s, config: %s", item.Name, inputConfig)
 
 	inputInstances, err := config.LoadSingleConf(completePromConfig(inputConfig, item), inputs.Inputs)
