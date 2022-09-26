@@ -228,7 +228,7 @@ HTTP/1.1 200 OK
 
 使用 DQL 进行数据查询（只能查询该 DataKit 所在的工作空间的数据），示例：
 
-``` shell
+``` http
 POST /v1/query/raw HTTP/1.1
 Content-Type: application/json
 
@@ -240,7 +240,7 @@ Content-Type: application/json
             "max_duration": "1d",                 # 最大时间范围
             "max_point": 0,                       # 最大点数
             "time_range": [],                     #
-            "orderby: [],                         #
+            "orderby": [],                        #
             "disable_slimit": true,               # 禁用默认SLimit，当为true时，将不添加默认SLimit值，否则会强制添加SLimit 20
             "disable_multiple_field": true        # 禁用多字段。当为true时，只能查询单个字段的数据（不包括time字段）
         }
