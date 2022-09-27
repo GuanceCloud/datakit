@@ -320,7 +320,6 @@ func getBody(lineBytes []byte, idxBegin, idxEnd int) (*body, error) {
 		}
 	}
 	return body, nil
-
 }
 
 func (dw *DataWayDefault) buildBody(pts []*point.Point) ([]*body, error) {
