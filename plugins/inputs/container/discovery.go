@@ -187,7 +187,7 @@ func (d *discovery) fetchPromInputsFromService() []*discoveryRunner {
 
 		u := url.URL{
 			Scheme: scheme,
-			Host:   item.Name + ":" + port,
+			Host:   fmt.Sprintf("%s.%s:%s", item.Name, item.Namespace, port), // service_name.service_namespace:port
 			Path:   path,
 		}
 
