@@ -71,6 +71,21 @@ git_repos:
   git_interval: "1m"
   is_use_key: false
 
+## If true, Datakit install ipdb.
+## ref: https://docs.guance.com/datakit/datakit-tools-how-to/#install-ipdb
+iploc:
+  enable: false
+  image:
+    ## @param repository - string - required
+    ## Define the repository to use:
+    #
+    repository: "pubrepo.jiagouyun.com/datakit/iploc"
+
+    ## @param tag - string - required
+    ## Define the Cluster-Agent version to use.
+    #
+    tag: "1.0"
+
 
 ## @param extraEnvs - array - optional
 ## extra env Add env for customization
@@ -138,3 +153,5 @@ kubeStateMetricsEnabled: true
 ## If true, deploys the metrics-server deployment.
 ## ref: https://github.com/kubernetes-sigs/metrics-server/tree/master/charts/metrics-server
 MetricsServerEnabled: true
+
+
