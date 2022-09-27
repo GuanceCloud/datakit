@@ -405,12 +405,12 @@ POST /v1/pipeline/debug
 Content-Type: application/json
 
 {
-  "pipeline": base64("pipeline-source-code"),
-  "category": "logging", # 暂时只支持日志的 PL 调试
-  "data": base64("raw-logging-data"), # 此处 raw data 可以是多行， API 会自动做分行处理
-  "multiline": "用于多行匹配的正则指定",  # 如果不传，则 API 以「非空白字符开头」为多行分割标识
-  "encode": "@data 的字符编码",         # 默认是 utf8 编码
-  "benchmark": true,                  # 是否开启 benchmark
+    "pipeline": base64("pipeline-source-code"),
+    "script_name": "<script_name>"
+    "category": "<logging[metric, tracing, ...]>", # 日志类别传入日志文本，其他类别需要传入行协议文本
+    "data": [ base64("raw-logging-data1"), ... ], # 可以是日志或者行协议
+    "encode": "@data 的字符编码",         # 默认是 utf8 编码
+    "benchmark": false,                  # 是否开启 benchmark
 }
 ```
 
@@ -429,12 +429,13 @@ HTTP/1.1 200 OK
                 "measurement" : "指标集名称，一般是日志 source",
                 "tags": { "key": "val", "other-key": "other-val"},
                 "fields": { "f1": 1, "f2": "abc", "f3": 1.2 },
-                "time": 1644380607 # Unix 时间戳（单位秒）, 前端可将其转成可读日期,
-                "time_ns": 421869748 # 余下的纳秒时间，便于精确转换成日期，完整的纳秒时间戳为 1644380607421869748,
-                "error":"",
+                "time": 1644380607, # Unix 时间戳（单位秒）, 前端可将其转成可读日期,
+                "time_ns": 421869748, # 余下的纳秒时间，便于精确转换成日期，完整的纳秒时间戳为 1644380607421869748,
+                "dropped": false, # 是否在执行 pipeline 中将结果标记为待丢弃
+                "error":""
             },
-           {  another-result},
-           ...
+            {  another-result },
+            ...
         ]
     }
 }

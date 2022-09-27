@@ -53,7 +53,8 @@ func runPl(category string, pts []*point.Point, opt *Option) (ret []*point.Point
 			continue
 		}
 
-		name, tags, fields, tn, drop, err := script.Run(ptName, tags, fields, *ptTime, plOpt)
+		name, tags, fields, tn, drop, err := script.Run(ptName,
+			tags, fields, *ptTime, nil, plOpt)
 		if err != nil {
 			plLogger.Debug(err)
 			ret = append(ret, pt)

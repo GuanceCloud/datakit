@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 )
 
 func TestGetkey(t *testing.T) {
@@ -56,7 +55,7 @@ func TestGetkey(t *testing.T) {
 				}
 				return
 			}
-			_, _, f, _, _, err := engine.RunScript(runner, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			_, _, f, _, _, err := runScript(runner, "test", nil, map[string]any{"message": tc.in}, time.Now())
 
 			if err == nil {
 				v := f["add_new_key"]

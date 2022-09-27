@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"fmt"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/runtime"
@@ -32,4 +33,11 @@ func NewTestingRunner(script string) (*runtime.Script, error) {
 
 func NewTestingRunner2(scripts map[string]string) (map[string]*runtime.Script, map[string]error) {
 	return engine.ParseScript(scripts, nil, FuncsMap, FuncsCheckMap)
+}
+
+func runScript(proc *runtime.Script, measurement string,
+	tags map[string]string, fields map[string]any, tn time.Time) (
+	string, map[string]string, map[string]any, time.Time, bool, error,
+) {
+	return engine.RunScript(proc, measurement, tags, fields, tn, nil)
 }

@@ -22,7 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/parser"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/runtime"
+	plruntime "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
@@ -105,22 +105,24 @@ type Pipeline struct {
 	Script *plscript.PlScript
 }
 
-func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.PointOption) (*point.Point, bool, error) {
+func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.PointOption,
+	signal plruntime.Signal,
+) (*point.Point, bool, error) {
 	if p.Script == nil || p.Script.Engine() == nil {
 		return nil, false, fmt.Errorf("pipeline engine not initialized")
 	}
 	if pt == nil {
 		return nil, false, fmt.Errorf("no data")
 	}
-	fields := pt.Fields
 
-	if measurement, tags, fileds, tn, drop, err := p.Script.Run(pt.Name, pt.Tags, fields, ioPtOpt.Time, plOpt); err != nil {
+	if measurement, tags, fields, tn, drop, err := p.Script.Run(pt.Name, pt.Tags, pt.Fields,
+		ioPtOpt.Time, signal, plOpt); err != nil {
 		return nil, drop, err
 	} else {
 		if !tn.IsZero() {
 			ioPtOpt.Time = tn
 		}
-		if pt, err := point.NewPoint(measurement, tags, fileds, ioPtOpt); err != nil {
+		if pt, err := point.NewPoint(measurement, tags, fields, ioPtOpt); err != nil {
 			// stats.WriteScriptStats(p.script.Category(), p.script.NS(), p.script.Name(), 0, 0, 1, err)
 			return nil, false, err
 		} else {
@@ -204,7 +206,7 @@ func loadPatterns() error {
 		}
 	}
 
-	runtime.DenormalizedGlobalPatterns = denormalizedGlobalPatterns
+	plruntime.DenormalizedGlobalPatterns = denormalizedGlobalPatterns
 
 	return nil
 }

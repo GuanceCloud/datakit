@@ -707,7 +707,7 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 		return "", err
 	}
 
-	pt, dropFlag, err := pl.Run(pt, nil, opt)
+	pt, dropFlag, err := pl.Run(pt, nil, opt, nil)
 	if err != nil {
 		return "", err
 	}

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 )
 
 func TestSetMeasurement(t *testing.T) {
@@ -65,7 +64,7 @@ func TestSetMeasurement(t *testing.T) {
 				return
 			}
 
-			m, tags, _, _, _, err := engine.RunScript(runner, "test", nil, map[string]interface{}{
+			m, tags, _, _, _, err := runScript(runner, "test", nil, map[string]interface{}{
 				"message": tc.in,
 			}, time.Now())
 			if err != nil {
