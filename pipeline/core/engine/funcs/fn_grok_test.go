@@ -10,7 +10,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 )
 
 func TestGrok(t *testing.T) {
@@ -148,7 +147,7 @@ grok(_, "%{WORD:date} %{time}")`,
 				return
 			}
 
-			_, _, f, _, _, err := engine.RunScript(runner, "test", nil, map[string]interface{}{
+			_, _, f, _, _, err := runScript(runner, "test", nil, map[string]interface{}{
 				"message": tc.in,
 			}, time.Now())
 

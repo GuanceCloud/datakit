@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/runtime"
 )
 
@@ -58,7 +57,7 @@ func TestUse(t *testing.T) {
 	}
 
 	for _, name := range ret[0] {
-		m, tags, f, _, drop, err := engine.RunScript(ret1[name], "default", map[string]string{
+		m, tags, f, _, drop, err := runScript(ret1[name], "default", map[string]string{
 			"ax": "1",
 		}, nil, timenow)
 		if err != nil {

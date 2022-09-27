@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 )
 
 func TestAddPattern(t *testing.T) {
@@ -163,7 +162,7 @@ func TestAddPattern(t *testing.T) {
 				}
 				return
 			}
-			_, _, f, _, _, err := engine.RunScript(runner, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			_, _, f, _, _, err := runScript(runner, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			if err != nil {
 				t.Fatal(err)
 			}

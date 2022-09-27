@@ -122,7 +122,7 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 
 	res, dropFlag, err := (&pipeline.Pipeline{
 		Script: plScript,
-	}).Run(pt, nil, opt)
+	}).Run(pt, nil, opt, nil)
 	if err != nil {
 		return fmt.Errorf("run pipeline failed: %w", err)
 	}

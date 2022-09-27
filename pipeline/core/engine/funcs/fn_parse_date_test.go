@@ -10,7 +10,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 )
 
 func TestParseDate(t *testing.T) {
@@ -251,7 +250,7 @@ parse_date(key="time", yy=year, MM=month, dd=day, hh=hour, mm=min, ss=sec, zone=
 				return
 			}
 
-			_, _, f, tn, _, err := engine.RunScript(runner, "test", nil, map[string]interface{}{
+			_, _, f, tn, _, err := runScript(runner, "test", nil, map[string]interface{}{
 				"message": tc.in,
 			}, collectTime)
 

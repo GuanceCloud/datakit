@@ -99,7 +99,7 @@ for a = 0; a < 12; a = a + 1 {
 
 	script := scripts["abc.p"]
 
-	m, tags, f, tn, drop, err := RunScript(script, "test", nil, nil, time.Now())
+	m, tags, f, tn, drop, err := RunScript(script, "test", nil, nil, time.Now(), nil)
 	t.Log(m, tags, tn, drop)
 	if err != nil {
 		t.Error(err)

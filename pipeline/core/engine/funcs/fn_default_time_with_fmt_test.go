@@ -10,7 +10,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 )
 
 func TestDefaultTimeWithFmt(t *testing.T) {
@@ -100,7 +99,7 @@ func TestDefaultTimeWithFmt(t *testing.T) {
 				return
 			}
 			for idxIn := 0; idxIn < len(tc.in); idxIn++ {
-				_, _, f, tn, _, err := engine.RunScript(runner, "test", nil, map[string]interface{}{
+				_, _, f, tn, _, err := runScript(runner, "test", nil, map[string]interface{}{
 					"message": tc.in[idxIn],
 				}, time.Now())
 				if err != nil {

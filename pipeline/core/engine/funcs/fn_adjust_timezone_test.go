@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 )
 
 const Hour8 = int64(8 * time.Hour)
@@ -65,7 +64,7 @@ func TestAdjustTimezone(t *testing.T) {
 				}
 				return
 			}
-			_, _, f, tn, _, err := engine.RunScript(runner, "test", nil, map[string]interface{}{
+			_, _, f, tn, _, err := runScript(runner, "test", nil, map[string]interface{}{
 				"message": tc.in,
 			}, time.Now())
 

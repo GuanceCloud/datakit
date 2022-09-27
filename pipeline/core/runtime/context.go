@@ -33,7 +33,8 @@ const (
 )
 
 const (
-	ploriginkey = "message"
+	ploriginkey    = "message"
+	PlRunInfoField = "pl_msg"
 )
 
 type Script struct {
@@ -47,6 +48,10 @@ type Script struct {
 	FilePath  string
 
 	Ast ast.Stmts
+}
+
+type Signal interface {
+	ExitSignal() bool
 }
 
 type Context struct {
@@ -64,6 +69,8 @@ type Context struct {
 	loopBreak    bool
 	loopContinue bool
 
+	signal Signal
+
 	procExit bool
 
 	callRCef map[string]*Script
@@ -73,7 +80,7 @@ type Context struct {
 }
 
 func InitCtx(ctx *Context, pt *Point, funcs map[string]FuncCall,
-	callRef map[string]*Script,
+	callRef map[string]*Script, signal Signal,
 ) *Context {
 	ctx.Regs.Reset()
 	ctx.pt = pt
@@ -84,6 +91,7 @@ func InitCtx(ctx *Context, pt *Point, funcs map[string]FuncCall,
 	ctx.loopBreak = false
 	ctx.loopContinue = false
 
+	ctx.signal = signal
 	ctx.procExit = false
 
 	return ctx
@@ -333,13 +341,18 @@ func (ctx *Context) SetPattern(patternAlias string, gPattern *grok.GrokPattern) 
 }
 
 func (ctx *Context) StmtRetrun() bool {
-	if ctx.procExit || ctx.loopBreak || ctx.loopContinue {
+	if ctx.ProcExit() || ctx.loopBreak || ctx.loopContinue {
 		return true
 	}
 	return false
 }
 
-func (ctx *Context) ProcExit(nodeType ast.NodeType) bool {
+func (ctx *Context) ProcExit() bool {
+	if !ctx.procExit && ctx.signal != nil {
+		if ctx.signal.ExitSignal() {
+			ctx.procExit = true
+		}
+	}
 	return ctx.procExit
 }
 
