@@ -32,13 +32,16 @@ const (
 	annotationPrometheusioPort   = "prometheus.io/port"
 	annotationPrometheusioPath   = "prometheus.io/path"
 	annotationPrometheusioScheme = "prometheus.io/scheme"
+
+	defaultPrometheusioInterval = "60s"
 )
 
 type discovery struct {
-	client                k8sClientX
-	extraTags             map[string]string
-	localNodeName         string
-	extractK8sLabelAsTags bool
+	client                              k8sClientX
+	extraTags                           map[string]string
+	localNodeName                       string
+	extractK8sLabelAsTags               bool
+	autoDiscoveryOfK8sServicePrometheus bool
 
 	pause   bool
 	chPause chan bool
@@ -53,13 +56,11 @@ var globalCRDLogsConfList = struct {
 	sync.Mutex{},
 }
 
-func newDiscovery(client k8sClientX, extraTags map[string]string, extractK8sLabelAsTags bool, done <-chan interface{}) *discovery {
+func newDiscovery(client k8sClientX, done <-chan interface{}) *discovery {
 	return &discovery{
-		client:                client,
-		extraTags:             extraTags,
-		extractK8sLabelAsTags: extractK8sLabelAsTags,
-		chPause:               make(chan bool, maxPauseCh),
-		done:                  done,
+		client:  client,
+		chPause: make(chan bool, maxPauseCh),
+		done:    done,
 	}
 }
 
@@ -76,11 +77,18 @@ func (d *discovery) start() {
 	}
 	d.localNodeName = localNodeName
 
-	runners := d.updateRunners()
+	var (
+		runners         []*discoveryRunner
+		electionRunners []*discoveryRunner
+	)
+
+	runners = d.updateRunners()
 	l.Infof("autodiscovery: update input list, len %d", len(runners))
 
-	electionRunners := d.updateElectionRunners()
-	l.Infof("autodiscovery: update electionInput list, len %d", len(electionRunners))
+	if d.autoDiscoveryOfK8sServicePrometheus {
+		electionRunners := d.updateElectionRunners()
+		l.Infof("autodiscovery: update electionInput list, len %d", len(electionRunners))
+	}
 
 	updateTicker := time.NewTicker(time.Minute * 3)
 	defer updateTicker.Stop()
@@ -97,7 +105,7 @@ func (d *discovery) start() {
 
 		if d.pause {
 			l.Debug("not leader, skipped")
-		} else {
+		} else if d.autoDiscoveryOfK8sServicePrometheus {
 			for _, r := range electionRunners {
 				r.collect()
 			}
@@ -115,6 +123,11 @@ func (d *discovery) start() {
 		case <-updateTicker.C:
 			runners = d.updateRunners()
 			l.Infof("autodiscovery: update input list, len %d", len(runners))
+
+			if d.autoDiscoveryOfK8sServicePrometheus {
+				electionRunners = d.updateElectionRunners()
+				l.Infof("autodiscovery: update electionInput list, len %d", len(electionRunners))
+			}
 
 		case <-collectTicker.C:
 			// nil
@@ -194,10 +207,16 @@ func (d *discovery) fetchPromInputsFromService() []*discoveryRunner {
 		l.Infof("autodiscovery: new promInput for service %s, url %s", item.Name, u.String())
 
 		promInput := prom.NewProm()
-		promInput.Source = "prom.k8s.service/" + item.Name
+		promInput.Source = "k8s.service/" + item.Name
+		promInput.Interval = defaultPrometheusioInterval
 		promInput.Election = false
+		promInput.MetricTypes = []string{"counter", "gauge"}
 		promInput.URLs = []string{u.String()}
-		promInput.Tags = d.extraTags
+		for k, v := range d.extraTags {
+			promInput.Tags[k] = v
+		}
+		promInput.Tags["kubernetes_namespace"] = item.Namespace
+		promInput.Tags["kubernetes_service"] = item.Name
 
 		res = append(res, &discoveryRunner{
 			runner:   promInput,
