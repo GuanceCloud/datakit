@@ -195,7 +195,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 
 以第一根下划线做区分，左边 `promhttp` 是指标集名称，右边 `metric_handler_errors_total` 是字段名。
 
-此外，Datakit 会添加 `kubernetes_service` 和 `namespace` 两个 tags，其值为 Service 名字和 Service 的 Namespace，用以在 Kubernetes 集群中定位这个 Service。
+此外，Datakit 会添加 `service` 和 `namespace` 两个 tags，其值为 Service 名字和 Service 的 Namespace，用以在 Kubernetes 集群中定位这个 Service。
 
 ## 延伸阅读 {#more-readings}
 

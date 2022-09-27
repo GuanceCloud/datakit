@@ -1,5 +1,5 @@
 {{.CSS}}
-# Promtail
+# Promtail 数据接入
 ---
 
 {{.AvailableArchs}}
@@ -19,8 +19,10 @@
 ### API 版本 {#API version}
 
 通过配置 `legacy = true`，可以用 legacy 版本 API 处理接收到的 promtail
-日志数据。详见 [POST /api/prom/push](https://grafana.com/docs/loki/latest/api/#post-apiprompush)
-及 [POST /loki/api/v1/push](https://grafana.com/docs/loki/latest/api/#post-lokiapiv1push) 。
+日志数据。详见
+
+- [POST /api/prom/push](https://grafana.com/docs/loki/latest/api/#post-apiprompush){:target="_blank"}
+- [POST /loki/api/v1/push](https://grafana.com/docs/loki/latest/api/#post-lokiapiv1push){:target="_blank"}
 
 ### 自定义标签 {#custom tags}
 
@@ -89,21 +91,3 @@ scrape_configs:
           job: varlogs
           __path__: /var/log/*log
 ```
-
-## 指标集 {#measurement}
-
-{{ range $i, $m := .Measurements }}
-
-### `{{$m.Name}}`
-
-{{$m.Desc}}
-
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
-
-{{ end }} 

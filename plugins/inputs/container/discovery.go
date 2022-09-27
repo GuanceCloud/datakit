@@ -216,7 +216,7 @@ func (d *discovery) fetchPromInputsFromService() []*discoveryRunner {
 			promInput.Tags[k] = v
 		}
 		promInput.Tags["namespace"] = item.Namespace
-		promInput.Tags["kubernetes_service"] = item.Name
+		promInput.Tags["service"] = item.Name
 
 		res = append(res, &discoveryRunner{
 			runner:   promInput,
