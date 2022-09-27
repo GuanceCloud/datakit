@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
@@ -253,6 +254,7 @@ func TestNewPoint(t *testing.T) {
 		},
 	}
 
+	encoder := lineproto.NewLineEncoder()
 	for _, tc := range cases {
 		t.Run(tc.tname, func(t *testing.T) {
 			var pt *Point
@@ -282,10 +284,20 @@ func TestNewPoint(t *testing.T) {
 			}
 
 			tu.Ok(t, err)
-			x := pt.Point.String()
+
+			encoder.Reset()
+			if err := encoder.AppendPoint(pt.Point); err != nil {
+				t.Fatal(err)
+			}
+			x, err := encoder.UnsafeStringWithoutLn()
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			if tc.expect != "" {
 				tu.Equals(t, tc.expect, x)
 			}
+			t.Logf("point: %s", tc.expect)
 			t.Logf("point: %s", x)
 		})
 	}
@@ -443,8 +455,8 @@ func BenchmarkUnpackPoint(b *testing.B) {
 
 		b.Run(tc.name+"/without-tags", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				_ = pt.Name()
-				_, _ = pt.Fields()
+				_ = pt.Name
+				_ = pt.Fields
 			}
 		})
 	}
@@ -459,9 +471,9 @@ func BenchmarkUnpackPoint(b *testing.B) {
 
 		b.Run(tc.name+"/with-tags", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				_ = pt.Name()
-				_ = pt.Tags()
-				_, _ = pt.Fields()
+				_ = pt.Name
+				_ = pt.Tags
+				_ = pt.Fields
 			}
 		})
 	}

@@ -11,14 +11,16 @@ import (
 
 	"github.com/influxdata/influxdb1-client/models"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-	lp "github.com/influxdata/line-protocol/v2/lineprotocol"
 )
+
+type Callback func(models.Point) (models.Point, error)
+type CallbackV2 func(point *Point) (*Point, error)
 
 type Option struct {
 	Time time.Time
 
 	Precision   string
-	PrecisionV2 lp.Precision
+	PrecisionV2 Precision
 
 	ExtraTags map[string]string
 
@@ -28,7 +30,8 @@ type Option struct {
 	Strict             bool
 	EnablePointInKey   bool
 	DisableStringField bool // disable string field value
-	Callback           func(models.Point) (models.Point, error)
+	Callback           Callback
+	CallbackV2         CallbackV2
 
 	MaxTags,
 	MaxFields,
@@ -36,6 +39,110 @@ type Option struct {
 	MaxFieldKeyLen,
 	MaxTagValueLen,
 	MaxFieldValueLen int
+}
+
+type OptionSetter func(opt *Option)
+
+func WithTime(time time.Time) OptionSetter {
+	return func(opt *Option) {
+		opt.Time = time
+	}
+}
+
+func WithPrecision(precision string) OptionSetter {
+	return func(opt *Option) {
+		opt.Precision = precision
+	}
+}
+
+func WithPrecisionV2(precision Precision) OptionSetter {
+	return func(opt *Option) {
+		opt.PrecisionV2 = precision
+	}
+}
+
+func WithExtraTags(extraTags map[string]string) OptionSetter {
+	return func(opt *Option) {
+		opt.ExtraTags = extraTags
+	}
+}
+
+func WithDisabledTagKeys(disabledTagKeys []string) OptionSetter {
+	return func(opt *Option) {
+		opt.DisabledTagKeys = disabledTagKeys
+	}
+}
+
+func WithDisabledFieldKeys(disabledFieldKeys []string) OptionSetter {
+	return func(opt *Option) {
+		opt.DisabledFieldKeys = disabledFieldKeys
+	}
+}
+
+func WithStrict(b bool) OptionSetter {
+	return func(opt *Option) {
+		opt.Strict = b
+	}
+}
+
+func WithEnablePointInKey(b bool) OptionSetter {
+	return func(opt *Option) {
+		opt.EnablePointInKey = b
+	}
+}
+
+func WithDisableStringField(disableStringField bool) OptionSetter {
+	return func(opt *Option) {
+		opt.DisableStringField = disableStringField
+	}
+}
+
+func WithCallback(callback Callback) OptionSetter {
+	return func(opt *Option) {
+		opt.Callback = callback
+	}
+}
+
+func WithCallbackV2(callback CallbackV2) OptionSetter {
+	return func(opt *Option) {
+		opt.CallbackV2 = callback
+	}
+}
+
+func WithMaxTags(maxTags int) OptionSetter {
+	return func(opt *Option) {
+		opt.MaxTags = maxTags
+	}
+}
+
+func WithMaxFields(maxFields int) OptionSetter {
+	return func(opt *Option) {
+		opt.MaxFields = maxFields
+	}
+}
+
+func WithMaxTagKeyLen(maxTagKeyLen int) OptionSetter {
+	return func(opt *Option) {
+		opt.MaxTagKeyLen = maxTagKeyLen
+	}
+}
+
+func WithMaxFieldKeyLen(maxFieldKeyLen int) OptionSetter {
+	return func(opt *Option) {
+		opt.MaxFieldKeyLen = maxFieldKeyLen
+	}
+}
+
+func WithMaxTagValueLen(maxTagValueLen int) OptionSetter {
+	return func(opt *Option) {
+		opt.MaxTagValueLen = maxTagValueLen
+	}
+}
+
+func WithMaxFieldValueLen(maxFieldValueLen int) OptionSetter {
+	return func(opt *Option) {
+		opt.MaxFieldValueLen = maxFieldValueLen
+	}
 }
 
 type PointWarning struct {
@@ -59,8 +166,9 @@ var DefaultOption = NewDefaultOption()
 
 func NewDefaultOption() *Option {
 	return &Option{
-		Strict:    true,
-		Precision: "n",
+		Strict:      true,
+		Precision:   "n",
+		PrecisionV2: Nanosecond,
 
 		MaxTags:   256,
 		MaxFields: 1024,
@@ -216,6 +324,72 @@ func MakeLineProtoPointWithWarnings(name string,
 	}
 }
 
+func MakeLineProtoPointV2(name string,
+	tags map[string]string,
+	fields map[string]interface{},
+	opt *Option) (*Point, error) {
+
+	pt, _, err := MakeLineProtoPointWithWarningsV2(name, tags, fields, opt)
+	return pt, err
+}
+
+func MakeLineProtoPointWithWarningsV2(name string,
+	tags map[string]string,
+	fields map[string]interface{},
+	opt *Option) (pt *Point, warnings []*PointWarning, err error) {
+
+	warnings = []*PointWarning{}
+
+	if name == "" {
+		err = fmt.Errorf("empty measurement name")
+		return
+	}
+
+	if opt == nil {
+		opt = DefaultOption
+	}
+
+	// add extra tags
+	if opt.ExtraTags != nil {
+		if tags == nil {
+			tags = opt.ExtraTags
+		} else {
+			for k, v := range opt.ExtraTags {
+				if _, ok := tags[k]; !ok { // NOTE: do-not-override exist tag
+					tags[k] = v
+				}
+			}
+		}
+	}
+
+	if opt.MaxTags <= 0 {
+		opt.MaxTags = 256
+	}
+	if opt.MaxFields <= 0 {
+		opt.MaxFields = 1024
+	}
+
+	if err = checkTags(tags, opt, &warnings); err != nil {
+		return
+	}
+
+	if err = checkFields(fields, opt, &warnings); err != nil {
+		return
+	}
+
+	if err = checkTagFieldSameKey(tags, fields, &warnings); err != nil {
+		return
+	}
+
+	if opt.Time.IsZero() {
+		pt, err = NewPoint(name, tags, fields, time.Now().UTC())
+		return
+	} else {
+		pt, err = NewPoint(name, tags, fields, opt.Time)
+		return
+	}
+}
+
 func checkPoint(p models.Point, opt *Option) error {
 	// check if same key in tags and fields
 	fs, err := p.Fields()
@@ -265,6 +439,48 @@ func checkPoint(p models.Point, opt *Option) error {
 		}
 
 		if err := opt.checkDisabledTag(string(t.Key)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func checkPointV2(p *Point, opt *Option) error {
+	// check if same key in tags and fields
+	fs := p.Fields
+
+	if len(fs) > opt.MaxFields {
+		return fmt.Errorf("exceed max field count(%d), got %d tags", opt.MaxFields, len(fs))
+	}
+
+	for k := range fs {
+		if _, ok := p.Tags[k]; ok {
+			return fmt.Errorf("same key `%s' in tag and field", k)
+		}
+
+		// enable `.' in time serial metric
+		if strings.Contains(k, ".") && !opt.EnablePointInKey {
+			return fmt.Errorf("invalid field key `%s': found `.'", k)
+		}
+
+		if err := opt.checkDisabledField(k); err != nil {
+			return err
+		}
+	}
+
+	// add more point checking here...
+	tags := p.Tags
+	if len(tags) > opt.MaxTags {
+		return fmt.Errorf("exceed max tag count(%d), got %d tags", opt.MaxTags, len(tags))
+	}
+
+	for key, _ := range tags {
+		if strings.IndexByte(key, '.') != -1 && !opt.EnablePointInKey {
+			return fmt.Errorf("invalid tag key `%s': found `.'", key)
+		}
+
+		if err := opt.checkDisabledTag(key); err != nil {
 			return err
 		}
 	}

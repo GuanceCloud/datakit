@@ -8,6 +8,7 @@ package proxy
 import (
 	"testing"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
@@ -18,7 +19,15 @@ func TestProxyServer(t *testing.T) {
 		pts = append(pts, &point.Point{Point: testutils.RandPoint("test_point", 10, 30)})
 	}
 
+	encoder := lineproto.NewLineEncoder()
 	for _, pt := range pts {
-		log.Info(pt.String())
+		if err := encoder.AppendPoint(pt.Point); err != nil {
+			t.Fatal(err)
+		}
 	}
+	lines, err := encoder.UnsafeStringWithoutLn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(lines)
 }

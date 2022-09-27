@@ -74,7 +74,8 @@ func (s *SinkDataway) Write(category string, pts []*point.Point) error {
 					cond += v.String()
 				}
 				for _, v := range newPts {
-					l.Infof("(sink_detail) (%v) (%s) writes: %s", s.dw.DataWayCfg.URLs, cond, v.String())
+					lineStr, _ := v.String()
+					l.Infof("(sink_detail) (%v) (%s) writes: %s", s.dw.DataWayCfg.URLs, cond, lineStr)
 				}
 			} else {
 				// Log errors.

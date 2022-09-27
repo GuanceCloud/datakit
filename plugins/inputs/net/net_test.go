@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	psNet "github.com/shirou/gopsutil/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
@@ -43,6 +44,7 @@ func TestCollect(t *testing.T) {
 		},
 	}
 
+	encoder := lineproto.NewLineEncoder()
 	for _, tc := range cases {
 		if runtime.GOOS != tc.os && tc.os != "" {
 			continue
@@ -56,7 +58,15 @@ func TestCollect(t *testing.T) {
 		for _, m := range tc.i.collectCache {
 			p, err := m.LineProto()
 			tu.Ok(t, err)
-			t.Logf(p.String())
+			encoder.Reset()
+			if err := encoder.AppendPoint(p.Point); err != nil {
+				t.Fatal(err)
+			}
+			line, err := encoder.UnsafeStringWithoutLn()
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Logf(line)
 		}
 	}
 }

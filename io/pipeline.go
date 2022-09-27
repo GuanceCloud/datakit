@@ -84,14 +84,10 @@ func getScript(category string, pt *point.Point, scriptMap map[string]string) (*
 ) {
 	switch category {
 	case datakit.RUM, datakit.Security, datakit.Tracing, datakit.Profiling:
-		fields, err := pt.Fields()
-		if err != nil {
-			plLogger.Debug(err)
-			break
-		}
-		ptTime := pt.Time()
-		name := pt.Name()
-		tags := pt.Tags()
+		fields := pt.Fields
+		ptTime := pt.Time
+		name := pt.Name
+		tags := pt.Tags
 
 		scriptName, ok := scriptName(category, name, tags, fields, scriptMap)
 		if !ok {
@@ -101,7 +97,7 @@ func getScript(category string, pt *point.Point, scriptMap map[string]string) (*
 			return s, name, tags, fields, &ptTime
 		}
 	default:
-		name := pt.Name()
+		name := pt.Name
 		scriptName, ok := scriptName(category, name, nil, nil, scriptMap)
 		if !ok {
 			break
@@ -112,13 +108,9 @@ func getScript(category string, pt *point.Point, scriptMap map[string]string) (*
 			break
 		}
 
-		fields, err := pt.Fields()
-		if err != nil {
-			plLogger.Debug(err)
-			break
-		}
-		ptTime := pt.Time()
-		tags := pt.Tags()
+		fields := pt.Fields
+		ptTime := pt.Time
+		tags := pt.Tags
 		return s, name, tags, fields, &ptTime
 	}
 

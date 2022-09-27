@@ -171,7 +171,7 @@ func (i *Input) RunningCollect() error {
 		for _, pt := range pts {
 			// We need to feed each point separately because
 			// each point might have different measurement name.
-			if err := io.Feed(pt.Name(), datakit.Logging, []*point.Point{pt},
+			if err := io.Feed(pt.Name, datakit.Logging, []*point.Point{pt},
 				&io.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("Feed: %s", err)
 				io.FeedLastError(ioname, err.Error())
