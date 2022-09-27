@@ -46,6 +46,7 @@ type TcpTask struct {
 	reqCost    time.Duration
 	reqDnsCost time.Duration
 	reqError   string
+	destIP     string
 	timeout    time.Duration
 	ticker     *time.Ticker
 	traceroute []*Route
@@ -175,6 +176,7 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 		"name":      t.Name,
 		"dest_host": t.Host,
 		"dest_port": t.Port,
+		"dest_ip":   t.destIP,
 		"status":    "FAIL",
 		"proto":     "tcp",
 	}
@@ -219,6 +221,7 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 		if succFlag && t.reqError == "" {
 			tags["status"] = "OK"
 			fields["success"] = int64(1)
+			message["response_time"] = responseTime
 		} else {
 			message[`fail_reason`] = strings.Join(reasons, `;`)
 			fields[`fail_reason`] = strings.Join(reasons, `;`)
@@ -228,7 +231,7 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 			message[`fail_reason`] = strings.Join(reasons, `;`)
 			fields[`fail_reason`] = strings.Join(reasons, `;`)
 		} else {
-			message["response_time_in_micros"] = responseTime
+			message["response_time"] = responseTime
 		}
 
 		if t.reqError == "" && len(reasons) == 0 {
@@ -287,6 +290,7 @@ func (t *TcpTask) Run() error {
 		}
 	}
 
+	t.destIP = hostIP.String()
 	tcpIPAddr := net.JoinHostPort(hostIP.String(), t.Port)
 
 	start := time.Now()

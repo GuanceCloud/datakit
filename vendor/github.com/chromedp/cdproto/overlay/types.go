@@ -173,6 +173,7 @@ func (t ColorFormat) String() string {
 const (
 	ColorFormatRgb ColorFormat = "rgb"
 	ColorFormatHsl ColorFormat = "hsl"
+	ColorFormatHwb ColorFormat = "hwb"
 	ColorFormatHex ColorFormat = "hex"
 )
 
@@ -193,6 +194,8 @@ func (t *ColorFormat) UnmarshalEasyJSON(in *jlexer.Lexer) {
 		*t = ColorFormatRgb
 	case ColorFormatHsl:
 		*t = ColorFormatHsl
+	case ColorFormatHwb:
+		*t = ColorFormatHwb
 	case ColorFormatHex:
 		*t = ColorFormatHex
 
@@ -263,6 +266,23 @@ type ContainerQueryHighlightConfig struct {
 type ContainerQueryContainerHighlightConfig struct {
 	ContainerBorder  *LineStyle `json:"containerBorder,omitempty"`  // The style of the container border.
 	DescendantBorder *LineStyle `json:"descendantBorder,omitempty"` // The style of the descendants' borders.
+}
+
+// IsolatedElementHighlightConfig [no description].
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Overlay#type-IsolatedElementHighlightConfig
+type IsolatedElementHighlightConfig struct {
+	IsolationModeHighlightConfig *IsolationModeHighlightConfig `json:"isolationModeHighlightConfig"` // A descriptor for the highlight appearance of an element in isolation mode.
+	NodeID                       cdp.NodeID                    `json:"nodeId"`                       // Identifier of the isolated element to highlight.
+}
+
+// IsolationModeHighlightConfig [no description].
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Overlay#type-IsolationModeHighlightConfig
+type IsolationModeHighlightConfig struct {
+	ResizerColor       *cdp.RGBA `json:"resizerColor,omitempty"`       // The fill color of the resizers (default: transparent).
+	ResizerHandleColor *cdp.RGBA `json:"resizerHandleColor,omitempty"` // The fill color for resizer handles (default: transparent).
+	MaskColor          *cdp.RGBA `json:"maskColor,omitempty"`          // The fill color for the mask covering non-isolated elements (default: transparent).
 }
 
 // InspectMode [no description].

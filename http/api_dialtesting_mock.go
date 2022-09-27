@@ -6,7 +6,7 @@
 package http
 
 import (
-	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
+	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
 )
 
 var defDialtestingMock dialtestingMock = &prodDialtestingMock{}

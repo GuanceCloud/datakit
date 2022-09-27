@@ -18,6 +18,12 @@ import (
 	"golang.org/x/net/ipv6"
 )
 
+type receivePacket struct {
+	from           *net.IPAddr
+	packetRecvTime time.Time
+	buf            []byte
+}
+
 // traceroute specified host with max hops and timeout
 type Traceroute struct {
 	Host    string
@@ -25,12 +31,12 @@ type Traceroute struct {
 	Retry   int
 	Timeout time.Duration
 
-	routes     []*Route
-	sentPacket *Packet
-	response   chan *Response
-	stopCh     chan interface{}
-	id         uint32
-	mu         sync.Mutex
+	routes           []*Route
+	response         chan *Response
+	stopCh           chan interface{}
+	packetCh         chan *Packet
+	receivePacketsCh chan *receivePacket
+	id               uint32
 }
 
 // init config: hops, retry, timeout should not be greater than the max value.
@@ -57,6 +63,8 @@ func (t *Traceroute) init() {
 
 	t.response = make(chan *Response)
 	t.stopCh = make(chan interface{})
+	t.packetCh = make(chan *Packet)
+	t.receivePacketsCh = make(chan *receivePacket, 5000)
 
 	t.id = t.getRandomID()
 }
@@ -68,6 +76,7 @@ func (t *Traceroute) getRandomID() uint32 {
 }
 
 func (t *Traceroute) Run() error {
+	var runError error
 	ips, err := net.LookupIP(t.Host)
 	if err != nil {
 		return err
@@ -85,22 +94,18 @@ func (t *Traceroute) Run() error {
 	go func() {
 		defer wg.Done()
 		if err := t.startTrace(ip); err != nil {
-			fmt.Println("start trace error: ", err)
-		} else {
-			fmt.Println("start trace end")
+			runError = fmt.Errorf("start trace error: %w", err)
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
 		if err := t.listenICMP(); err != nil {
-			fmt.Println("listen icmp error: ", err)
-		} else {
-			fmt.Println("listen icmp end")
+			runError = fmt.Errorf("listen icmp error: %w", err)
 		}
 	}()
 	wg.Wait()
-	return nil
+	return runError
 }
 
 func (t *Traceroute) startTrace(ip net.IP) error {
@@ -119,12 +124,9 @@ func (t *Traceroute) startTrace(ip net.IP) error {
 				return err
 			}
 			icmpResponse = <-t.response
-			t.mu.Lock()
-			t.sentPacket = nil
-			t.mu.Unlock()
 			routeItem := &RouteItem{
 				IP:           icmpResponse.From.String(),
-				ResponseTime: icmpResponse.ResponseTime,
+				ResponseTime: float64(icmpResponse.ResponseTime.Microseconds()),
 			}
 
 			if icmpResponse.fail {
@@ -144,7 +146,7 @@ func (t *Traceroute) startTrace(ip net.IP) error {
 						maxCost = icmpResponse.ResponseTime
 					}
 
-					responseTimes = append(responseTimes, float64(icmpResponse.ResponseTime))
+					responseTimes = append(responseTimes, float64(icmpResponse.ResponseTime.Microseconds()))
 				}
 
 			}
@@ -158,10 +160,10 @@ func (t *Traceroute) startTrace(ip net.IP) error {
 			Total:   t.Retry,
 			Failed:  failed,
 			Loss:    loss,
-			MinCost: minCost,
-			AvgCost: time.Duration(mean(responseTimes)),
-			MaxCost: maxCost,
-			StdCost: time.Duration(std(responseTimes)),
+			MinCost: float64(minCost.Microseconds()),
+			AvgCost: mean(responseTimes),
+			MaxCost: float64(maxCost.Microseconds()),
+			StdCost: std(responseTimes),
 			Items:   routeItems,
 		}
 		t.routes = append(t.routes, route)
@@ -175,75 +177,74 @@ func (t *Traceroute) startTrace(ip net.IP) error {
 	return nil
 }
 
-func (t *Traceroute) dealPacket(from *net.IPAddr, data []byte) {
-	packetRecvTime := time.Now()
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	packet := t.sentPacket
-
-	if packet == nil {
-		return
-	}
-
-	if packetRecvTime.Sub(packet.startTime) > t.Timeout {
-		t.response <- &Response{fail: true}
-		return
-	}
-
-	if len(data) == 0 {
-		return
-	}
-
-	if from.IP.To4() == nil {
-		return
-	}
-
-	msg, err := icmp.ParseMessage(1, data)
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	if msg.Type == ipv4.ICMPTypeEchoReply {
-		echo := msg.Body.(*icmp.Echo)
-
-		if echo.ID != packet.ID {
+func (t *Traceroute) dealPacket() {
+	for {
+		select {
+		case <-t.stopCh:
 			return
-		}
+		case packet, ok := <-t.packetCh:
+			if ok {
+				for {
+					p := <-t.receivePacketsCh
+					if p.packetRecvTime.Sub(packet.startTime) > t.Timeout {
+						t.response <- &Response{fail: true}
+						break
+					}
+					if p.from == nil || p.from.IP == nil || len(p.buf) == 0 {
+						continue
+					}
+					msg, err := icmp.ParseMessage(1, p.buf)
 
-	} else {
-		icmpData := t.getReplyData(msg)
-		if len(icmpData) < ipv4.HeaderLen {
-			return
-		}
+					if err != nil {
+						continue
+					}
 
-		var packetID int
+					if msg.Type == ipv4.ICMPTypeEchoReply {
+						echo := msg.Body.(*icmp.Echo)
 
-		func() {
-			switch icmpData[0] >> 4 {
-			case ipv4.Version:
-				header, err := ipv4.ParseHeader(icmpData)
-				if err != nil {
-					return
+						if echo.ID != packet.ID {
+							continue
+						}
+
+					} else {
+						icmpData := t.getReplyData(msg)
+						if len(icmpData) < ipv4.HeaderLen {
+							continue
+						}
+
+						var packetID int
+
+						func() {
+							switch icmpData[0] >> 4 {
+							case ipv4.Version:
+								header, err := ipv4.ParseHeader(icmpData)
+								if err != nil {
+									return
+								}
+								packetID = header.ID
+							case ipv6.Version:
+								header, err := ipv6.ParseHeader(icmpData)
+								if err != nil {
+									return
+								}
+
+								packetID = header.FlowLabel
+							}
+
+						}()
+						if packetID != packet.ID {
+							continue
+						}
+					}
+
+					t.response <- &Response{From: p.from.IP, ResponseTime: p.packetRecvTime.Sub(packet.startTime)}
+					break
 				}
-				packetID = header.ID
-			case ipv6.Version:
-				header, err := ipv6.ParseHeader(icmpData)
-				if err != nil {
-					return
-				}
-
-				packetID = header.FlowLabel
 			}
 
-		}()
-		if packetID != packet.ID {
-			return
 		}
 	}
 
-	t.response <- &Response{From: from.IP, ResponseTime: packetRecvTime.Sub(packet.startTime)}
 }
 
 func (t *Traceroute) listenICMP() error {
@@ -255,6 +256,8 @@ func (t *Traceroute) listenICMP() error {
 	}
 
 	defer conn.Close()
+
+	go t.dealPacket()
 
 	for {
 		select {
@@ -274,8 +277,11 @@ func (t *Traceroute) listenICMP() error {
 
 		n, from, _ := conn.ReadFromIP(buf)
 
-		go t.dealPacket(from, buf[:n])
-
+		t.receivePacketsCh <- &receivePacket{
+			from:           from,
+			packetRecvTime: time.Now(),
+			buf:            buf[:n],
+		}
 	}
 
 }
@@ -353,9 +359,7 @@ func (t *Traceroute) sendICMP(ip net.IP, ttl int) error {
 		return err
 	}
 
-	t.mu.Lock()
-	t.sentPacket = &Packet{ID: echoBody.ID, Dst: ipHeader.Dst, startTime: time.Now()}
-	t.mu.Unlock()
+	t.packetCh <- &Packet{ID: echoBody.ID, Dst: ipHeader.Dst, startTime: time.Now()}
 
 	_, err = conn.WriteToIP(buf, &net.IPAddr{IP: dst})
 

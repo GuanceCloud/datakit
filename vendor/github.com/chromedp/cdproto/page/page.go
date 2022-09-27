@@ -34,7 +34,8 @@ type AddScriptToEvaluateOnNewDocumentParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-addScriptToEvaluateOnNewDocument
 //
 // parameters:
-//   source
+//
+//	source
 func AddScriptToEvaluateOnNewDocument(source string) *AddScriptToEvaluateOnNewDocumentParams {
 	return &AddScriptToEvaluateOnNewDocumentParams{
 		Source: source,
@@ -64,7 +65,8 @@ type AddScriptToEvaluateOnNewDocumentReturns struct {
 // Do executes Page.addScriptToEvaluateOnNewDocument against the provided context.
 //
 // returns:
-//   identifier - Identifier of the added script.
+//
+//	identifier - Identifier of the added script.
 func (p *AddScriptToEvaluateOnNewDocumentParams) Do(ctx context.Context) (identifier ScriptIdentifier, err error) {
 	// execute
 	var res AddScriptToEvaluateOnNewDocumentReturns
@@ -149,7 +151,8 @@ type CaptureScreenshotReturns struct {
 // Do executes Page.captureScreenshot against the provided context.
 //
 // returns:
-//   data - Base64-encoded image data.
+//
+//	data - Base64-encoded image data.
 func (p *CaptureScreenshotParams) Do(ctx context.Context) (data []byte, err error) {
 	// execute
 	var res CaptureScreenshotReturns
@@ -199,7 +202,8 @@ type CaptureSnapshotReturns struct {
 // Do executes Page.captureSnapshot against the provided context.
 //
 // returns:
-//   data - Serialized page data.
+//
+//	data - Serialized page data.
 func (p *CaptureSnapshotParams) Do(ctx context.Context) (data string, err error) {
 	// execute
 	var res CaptureSnapshotReturns
@@ -223,7 +227,8 @@ type CreateIsolatedWorldParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-createIsolatedWorld
 //
 // parameters:
-//   frameID - Id of the frame in which the isolated world should be created.
+//
+//	frameID - Id of the frame in which the isolated world should be created.
 func CreateIsolatedWorld(frameID cdp.FrameID) *CreateIsolatedWorldParams {
 	return &CreateIsolatedWorldParams{
 		FrameID: frameID,
@@ -251,7 +256,8 @@ type CreateIsolatedWorldReturns struct {
 // Do executes Page.createIsolatedWorld against the provided context.
 //
 // returns:
-//   executionContextID - Execution context of the isolated world.
+//
+//	executionContextID - Execution context of the isolated world.
 func (p *CreateIsolatedWorldParams) Do(ctx context.Context) (executionContextID runtime.ExecutionContextID, err error) {
 	// execute
 	var res CreateIsolatedWorldReturns
@@ -314,10 +320,11 @@ type GetAppManifestReturns struct {
 // Do executes Page.getAppManifest against the provided context.
 //
 // returns:
-//   url - Manifest location.
-//   errors
-//   data - Manifest content.
-//   parsed - Parsed manifest properties
+//
+//	url - Manifest location.
+//	errors
+//	data - Manifest content.
+//	parsed - Parsed manifest properties
 func (p *GetAppManifestParams) Do(ctx context.Context) (url string, errors []*AppManifestError, data string, parsed *AppManifestParsedProperties, err error) {
 	// execute
 	var res GetAppManifestReturns
@@ -347,7 +354,8 @@ type GetInstallabilityErrorsReturns struct {
 // Do executes Page.getInstallabilityErrors against the provided context.
 //
 // returns:
-//   installabilityErrors
+//
+//	installabilityErrors
 func (p *GetInstallabilityErrorsParams) Do(ctx context.Context) (installabilityErrors []*InstallabilityError, err error) {
 	// execute
 	var res GetInstallabilityErrorsReturns
@@ -377,7 +385,8 @@ type GetManifestIconsReturns struct {
 // Do executes Page.getManifestIcons against the provided context.
 //
 // returns:
-//   primaryIcon
+//
+//	primaryIcon
 func (p *GetManifestIconsParams) Do(ctx context.Context) (primaryIcon []byte, err error) {
 	// execute
 	var res GetManifestIconsReturns
@@ -395,10 +404,12 @@ func (p *GetManifestIconsParams) Do(ctx context.Context) (primaryIcon []byte, er
 	return dec, nil
 }
 
-// GetAppIDParams returns the unique (PWA) app id.
+// GetAppIDParams returns the unique (PWA) app id. Only returns values if the
+// feature flag 'WebAppEnableManifestId' is enabled.
 type GetAppIDParams struct{}
 
-// GetAppID returns the unique (PWA) app id.
+// GetAppID returns the unique (PWA) app id. Only returns values if the
+// feature flag 'WebAppEnableManifestId' is enabled.
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-getAppId
 func GetAppID() *GetAppIDParams {
@@ -407,22 +418,25 @@ func GetAppID() *GetAppIDParams {
 
 // GetAppIDReturns return values.
 type GetAppIDReturns struct {
-	AppID string `json:"appId,omitempty"` // Only returns a value if the feature flag 'WebAppEnableManifestId' is enabled
+	AppID         string `json:"appId,omitempty"`         // App id, either from manifest's id attribute or computed from start_url
+	RecommendedID string `json:"recommendedId,omitempty"` // Recommendation for manifest's id attribute to match current id computed from start_url
 }
 
 // Do executes Page.getAppId against the provided context.
 //
 // returns:
-//   appID - Only returns a value if the feature flag 'WebAppEnableManifestId' is enabled
-func (p *GetAppIDParams) Do(ctx context.Context) (appID string, err error) {
+//
+//	appID - App id, either from manifest's id attribute or computed from start_url
+//	recommendedID - Recommendation for manifest's id attribute to match current id computed from start_url
+func (p *GetAppIDParams) Do(ctx context.Context) (appID string, recommendedID string, err error) {
 	// execute
 	var res GetAppIDReturns
 	err = cdp.Execute(ctx, CommandGetAppID, nil, &res)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return res.AppID, nil
+	return res.AppID, res.RecommendedID, nil
 }
 
 // GetFrameTreeParams returns present frame tree structure.
@@ -443,7 +457,8 @@ type GetFrameTreeReturns struct {
 // Do executes Page.getFrameTree against the provided context.
 //
 // returns:
-//   frameTree - Present frame tree structure.
+//
+//	frameTree - Present frame tree structure.
 func (p *GetFrameTreeParams) Do(ctx context.Context) (frameTree *FrameTree, err error) {
 	// execute
 	var res GetFrameTreeReturns
@@ -469,9 +484,9 @@ func GetLayoutMetrics() *GetLayoutMetricsParams {
 
 // GetLayoutMetricsReturns return values.
 type GetLayoutMetricsReturns struct {
-	LayoutViewport    *LayoutViewport `json:"layoutViewport"`    // Deprecated metrics relating to the layout viewport. Can be in DP or in CSS pixels depending on the enable-use-zoom-for-dsf flag. Use cssLayoutViewport instead.
-	VisualViewport    *VisualViewport `json:"visualViewport"`    // Deprecated metrics relating to the visual viewport. Can be in DP or in CSS pixels depending on the enable-use-zoom-for-dsf flag. Use cssVisualViewport instead.
-	ContentSize       *dom.Rect       `json:"contentSize"`       // Deprecated size of scrollable area. Can be in DP or in CSS pixels depending on the enable-use-zoom-for-dsf flag. Use cssContentSize instead.
+	LayoutViewport    *LayoutViewport `json:"layoutViewport"`    // Deprecated metrics relating to the layout viewport. Is in device pixels. Use cssLayoutViewport instead.
+	VisualViewport    *VisualViewport `json:"visualViewport"`    // Deprecated metrics relating to the visual viewport. Is in device pixels. Use cssVisualViewport instead.
+	ContentSize       *dom.Rect       `json:"contentSize"`       // Deprecated size of scrollable area. Is in DP. Use cssContentSize instead.
 	CSSLayoutViewport *LayoutViewport `json:"cssLayoutViewport"` // Metrics relating to the layout viewport in CSS pixels.
 	CSSVisualViewport *VisualViewport `json:"cssVisualViewport"` // Metrics relating to the visual viewport in CSS pixels.
 	CSSContentSize    *dom.Rect       `json:"cssContentSize"`    // Size of scrollable area in CSS pixels.
@@ -480,12 +495,13 @@ type GetLayoutMetricsReturns struct {
 // Do executes Page.getLayoutMetrics against the provided context.
 //
 // returns:
-//   layoutViewport - Deprecated metrics relating to the layout viewport. Can be in DP or in CSS pixels depending on the enable-use-zoom-for-dsf flag. Use cssLayoutViewport instead.
-//   visualViewport - Deprecated metrics relating to the visual viewport. Can be in DP or in CSS pixels depending on the enable-use-zoom-for-dsf flag. Use cssVisualViewport instead.
-//   contentSize - Deprecated size of scrollable area. Can be in DP or in CSS pixels depending on the enable-use-zoom-for-dsf flag. Use cssContentSize instead.
-//   cssLayoutViewport - Metrics relating to the layout viewport in CSS pixels.
-//   cssVisualViewport - Metrics relating to the visual viewport in CSS pixels.
-//   cssContentSize - Size of scrollable area in CSS pixels.
+//
+//	layoutViewport - Deprecated metrics relating to the layout viewport. Is in device pixels. Use cssLayoutViewport instead.
+//	visualViewport - Deprecated metrics relating to the visual viewport. Is in device pixels. Use cssVisualViewport instead.
+//	contentSize - Deprecated size of scrollable area. Is in DP. Use cssContentSize instead.
+//	cssLayoutViewport - Metrics relating to the layout viewport in CSS pixels.
+//	cssVisualViewport - Metrics relating to the visual viewport in CSS pixels.
+//	cssContentSize - Size of scrollable area in CSS pixels.
 func (p *GetLayoutMetricsParams) Do(ctx context.Context) (layoutViewport *LayoutViewport, visualViewport *VisualViewport, contentSize *dom.Rect, cssLayoutViewport *LayoutViewport, cssVisualViewport *VisualViewport, cssContentSize *dom.Rect, err error) {
 	// execute
 	var res GetLayoutMetricsReturns
@@ -517,8 +533,9 @@ type GetNavigationHistoryReturns struct {
 // Do executes Page.getNavigationHistory against the provided context.
 //
 // returns:
-//   currentIndex - Index of the current navigation history entry.
-//   entries - Array of navigation history entries.
+//
+//	currentIndex - Index of the current navigation history entry.
+//	entries - Array of navigation history entries.
 func (p *GetNavigationHistoryParams) Do(ctx context.Context) (currentIndex int64, entries []*NavigationEntry, err error) {
 	// execute
 	var res GetNavigationHistoryReturns
@@ -557,8 +574,9 @@ type GetResourceContentParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-getResourceContent
 //
 // parameters:
-//   frameID - Frame id to get resource for.
-//   url - URL of the resource to get content for.
+//
+//	frameID - Frame id to get resource for.
+//	url - URL of the resource to get content for.
 func GetResourceContent(frameID cdp.FrameID, url string) *GetResourceContentParams {
 	return &GetResourceContentParams{
 		FrameID: frameID,
@@ -575,7 +593,8 @@ type GetResourceContentReturns struct {
 // Do executes Page.getResourceContent against the provided context.
 //
 // returns:
-//   content - Resource content.
+//
+//	content - Resource content.
 func (p *GetResourceContentParams) Do(ctx context.Context) (content []byte, err error) {
 	// execute
 	var res GetResourceContentReturns
@@ -615,7 +634,8 @@ type GetResourceTreeReturns struct {
 // Do executes Page.getResourceTree against the provided context.
 //
 // returns:
-//   frameTree - Present frame / resource tree structure.
+//
+//	frameTree - Present frame / resource tree structure.
 func (p *GetResourceTreeParams) Do(ctx context.Context) (frameTree *FrameResourceTree, err error) {
 	// execute
 	var res GetResourceTreeReturns
@@ -640,7 +660,8 @@ type HandleJavaScriptDialogParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-handleJavaScriptDialog
 //
 // parameters:
-//   accept - Whether to accept or dismiss the dialog.
+//
+//	accept - Whether to accept or dismiss the dialog.
 func HandleJavaScriptDialog(accept bool) *HandleJavaScriptDialogParams {
 	return &HandleJavaScriptDialogParams{
 		Accept: accept,
@@ -673,7 +694,8 @@ type NavigateParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-navigate
 //
 // parameters:
-//   url - URL to navigate the page to.
+//
+//	url - URL to navigate the page to.
 func Navigate(url string) *NavigateParams {
 	return &NavigateParams{
 		URL: url,
@@ -708,16 +730,17 @@ func (p NavigateParams) WithReferrerPolicy(referrerPolicy ReferrerPolicy) *Navig
 // NavigateReturns return values.
 type NavigateReturns struct {
 	FrameID   cdp.FrameID  `json:"frameId,omitempty"`   // Frame id that has navigated (or failed to navigate)
-	LoaderID  cdp.LoaderID `json:"loaderId,omitempty"`  // Loader identifier.
+	LoaderID  cdp.LoaderID `json:"loaderId,omitempty"`  // Loader identifier. This is omitted in case of same-document navigation, as the previously committed loaderId would not change.
 	ErrorText string       `json:"errorText,omitempty"` // User friendly error message, present if and only if navigation has failed.
 }
 
 // Do executes Page.navigate against the provided context.
 //
 // returns:
-//   frameID - Frame id that has navigated (or failed to navigate)
-//   loaderID - Loader identifier.
-//   errorText - User friendly error message, present if and only if navigation has failed.
+//
+//	frameID - Frame id that has navigated (or failed to navigate)
+//	loaderID - Loader identifier. This is omitted in case of same-document navigation, as the previously committed loaderId would not change.
+//	errorText - User friendly error message, present if and only if navigation has failed.
 func (p *NavigateParams) Do(ctx context.Context) (frameID cdp.FrameID, loaderID cdp.LoaderID, errorText string, err error) {
 	// execute
 	var res NavigateReturns
@@ -740,7 +763,8 @@ type NavigateToHistoryEntryParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-navigateToHistoryEntry
 //
 // parameters:
-//   entryID - Unique id of the entry to navigate to.
+//
+//	entryID - Unique id of the entry to navigate to.
 func NavigateToHistoryEntry(entryID int64) *NavigateToHistoryEntryParams {
 	return &NavigateToHistoryEntryParams{
 		EntryID: entryID,
@@ -754,22 +778,21 @@ func (p *NavigateToHistoryEntryParams) Do(ctx context.Context) (err error) {
 
 // PrintToPDFParams print page as PDF.
 type PrintToPDFParams struct {
-	Landscape               bool                   `json:"landscape,omitempty"`               // Paper orientation. Defaults to false.
-	DisplayHeaderFooter     bool                   `json:"displayHeaderFooter,omitempty"`     // Display header and footer. Defaults to false.
-	PrintBackground         bool                   `json:"printBackground,omitempty"`         // Print background graphics. Defaults to false.
-	Scale                   float64                `json:"scale,omitempty"`                   // Scale of the webpage rendering. Defaults to 1.
-	PaperWidth              float64                `json:"paperWidth,omitempty"`              // Paper width in inches. Defaults to 8.5 inches.
-	PaperHeight             float64                `json:"paperHeight,omitempty"`             // Paper height in inches. Defaults to 11 inches.
-	MarginTop               float64                `json:"marginTop"`                         // Top margin in inches. Defaults to 1cm (~0.4 inches).
-	MarginBottom            float64                `json:"marginBottom"`                      // Bottom margin in inches. Defaults to 1cm (~0.4 inches).
-	MarginLeft              float64                `json:"marginLeft"`                        // Left margin in inches. Defaults to 1cm (~0.4 inches).
-	MarginRight             float64                `json:"marginRight"`                       // Right margin in inches. Defaults to 1cm (~0.4 inches).
-	PageRanges              string                 `json:"pageRanges,omitempty"`              // Paper ranges to print, e.g., '1-5, 8, 11-13'. Defaults to the empty string, which means print all pages.
-	IgnoreInvalidPageRanges bool                   `json:"ignoreInvalidPageRanges,omitempty"` // Whether to silently ignore invalid but successfully parsed page ranges, such as '3-2'. Defaults to false.
-	HeaderTemplate          string                 `json:"headerTemplate,omitempty"`          // HTML template for the print header. Should be valid HTML markup with following classes used to inject printing values into them: - date: formatted print date - title: document title - url: document location - pageNumber: current page number - totalPages: total pages in the document  For example, <span class=title></span> would generate span containing the title.
-	FooterTemplate          string                 `json:"footerTemplate,omitempty"`          // HTML template for the print footer. Should use the same format as the headerTemplate.
-	PreferCSSPageSize       bool                   `json:"preferCSSPageSize,omitempty"`       // Whether or not to prefer page size as defined by css. Defaults to false, in which case the content will be scaled to fit the paper size.
-	TransferMode            PrintToPDFTransferMode `json:"transferMode,omitempty"`            // return as stream
+	Landscape           bool                   `json:"landscape,omitempty"`           // Paper orientation. Defaults to false.
+	DisplayHeaderFooter bool                   `json:"displayHeaderFooter,omitempty"` // Display header and footer. Defaults to false.
+	PrintBackground     bool                   `json:"printBackground,omitempty"`     // Print background graphics. Defaults to false.
+	Scale               float64                `json:"scale,omitempty"`               // Scale of the webpage rendering. Defaults to 1.
+	PaperWidth          float64                `json:"paperWidth,omitempty"`          // Paper width in inches. Defaults to 8.5 inches.
+	PaperHeight         float64                `json:"paperHeight,omitempty"`         // Paper height in inches. Defaults to 11 inches.
+	MarginTop           float64                `json:"marginTop"`                     // Top margin in inches. Defaults to 1cm (~0.4 inches).
+	MarginBottom        float64                `json:"marginBottom"`                  // Bottom margin in inches. Defaults to 1cm (~0.4 inches).
+	MarginLeft          float64                `json:"marginLeft"`                    // Left margin in inches. Defaults to 1cm (~0.4 inches).
+	MarginRight         float64                `json:"marginRight"`                   // Right margin in inches. Defaults to 1cm (~0.4 inches).
+	PageRanges          string                 `json:"pageRanges,omitempty"`          // Paper ranges to print, one based, e.g., '1-5, 8, 11-13'. Pages are printed in the document order, not in the order specified, and no more than once. Defaults to empty string, which implies the entire document is printed. The page numbers are quietly capped to actual page count of the document, and ranges beyond the end of the document are ignored. If this results in no pages to print, an error is reported. It is an error to specify a range with start greater than end.
+	HeaderTemplate      string                 `json:"headerTemplate,omitempty"`      // HTML template for the print header. Should be valid HTML markup with following classes used to inject printing values into them: - date: formatted print date - title: document title - url: document location - pageNumber: current page number - totalPages: total pages in the document  For example, <span class=title></span> would generate span containing the title.
+	FooterTemplate      string                 `json:"footerTemplate,omitempty"`      // HTML template for the print footer. Should use the same format as the headerTemplate.
+	PreferCSSPageSize   bool                   `json:"preferCSSPageSize,omitempty"`   // Whether or not to prefer page size as defined by css. Defaults to false, in which case the content will be scaled to fit the paper size.
+	TransferMode        PrintToPDFTransferMode `json:"transferMode,omitempty"`        // return as stream
 }
 
 // PrintToPDF print page as PDF.
@@ -841,17 +864,15 @@ func (p PrintToPDFParams) WithMarginRight(marginRight float64) *PrintToPDFParams
 	return &p
 }
 
-// WithPageRanges paper ranges to print, e.g., '1-5, 8, 11-13'. Defaults to
-// the empty string, which means print all pages.
+// WithPageRanges paper ranges to print, one based, e.g., '1-5, 8, 11-13'.
+// Pages are printed in the document order, not in the order specified, and no
+// more than once. Defaults to empty string, which implies the entire document
+// is printed. The page numbers are quietly capped to actual page count of the
+// document, and ranges beyond the end of the document are ignored. If this
+// results in no pages to print, an error is reported. It is an error to specify
+// a range with start greater than end.
 func (p PrintToPDFParams) WithPageRanges(pageRanges string) *PrintToPDFParams {
 	p.PageRanges = pageRanges
-	return &p
-}
-
-// WithIgnoreInvalidPageRanges whether to silently ignore invalid but
-// successfully parsed page ranges, such as '3-2'. Defaults to false.
-func (p PrintToPDFParams) WithIgnoreInvalidPageRanges(ignoreInvalidPageRanges bool) *PrintToPDFParams {
-	p.IgnoreInvalidPageRanges = ignoreInvalidPageRanges
 	return &p
 }
 
@@ -896,8 +917,9 @@ type PrintToPDFReturns struct {
 // Do executes Page.printToPDF against the provided context.
 //
 // returns:
-//   data - Base64-encoded pdf data. Empty if |returnAsStream| is specified.
-//   stream - A handle of the stream that holds resulting PDF data.
+//
+//	data - Base64-encoded pdf data. Empty if |returnAsStream| is specified.
+//	stream - A handle of the stream that holds resulting PDF data.
 func (p *PrintToPDFParams) Do(ctx context.Context) (data []byte, stream io.StreamHandle, err error) {
 	// execute
 	var res PrintToPDFReturns
@@ -961,7 +983,8 @@ type RemoveScriptToEvaluateOnNewDocumentParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-removeScriptToEvaluateOnNewDocument
 //
 // parameters:
-//   identifier
+//
+//	identifier
 func RemoveScriptToEvaluateOnNewDocument(identifier ScriptIdentifier) *RemoveScriptToEvaluateOnNewDocumentParams {
 	return &RemoveScriptToEvaluateOnNewDocumentParams{
 		Identifier: identifier,
@@ -985,7 +1008,8 @@ type ScreencastFrameAckParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-screencastFrameAck
 //
 // parameters:
-//   sessionID - Frame number.
+//
+//	sessionID - Frame number.
 func ScreencastFrameAck(sessionID int64) *ScreencastFrameAckParams {
 	return &ScreencastFrameAckParams{
 		SessionID: sessionID,
@@ -1011,9 +1035,10 @@ type SearchInResourceParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-searchInResource
 //
 // parameters:
-//   frameID - Frame id for resource to search in.
-//   url - URL of the resource to search in.
-//   query - String to search for.
+//
+//	frameID - Frame id for resource to search in.
+//	url - URL of the resource to search in.
+//	query - String to search for.
 func SearchInResource(frameID cdp.FrameID, url string, query string) *SearchInResourceParams {
 	return &SearchInResourceParams{
 		FrameID: frameID,
@@ -1042,7 +1067,8 @@ type SearchInResourceReturns struct {
 // Do executes Page.searchInResource against the provided context.
 //
 // returns:
-//   result - List of search matches.
+//
+//	result - List of search matches.
 func (p *SearchInResourceParams) Do(ctx context.Context) (result []*debugger.SearchMatch, err error) {
 	// execute
 	var res SearchInResourceReturns
@@ -1065,7 +1091,8 @@ type SetAdBlockingEnabledParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-setAdBlockingEnabled
 //
 // parameters:
-//   enabled - Whether to block ads.
+//
+//	enabled - Whether to block ads.
 func SetAdBlockingEnabled(enabled bool) *SetAdBlockingEnabledParams {
 	return &SetAdBlockingEnabledParams{
 		Enabled: enabled,
@@ -1087,7 +1114,8 @@ type SetBypassCSPParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-setBypassCSP
 //
 // parameters:
-//   enabled - Whether to bypass page CSP.
+//
+//	enabled - Whether to bypass page CSP.
 func SetBypassCSP(enabled bool) *SetBypassCSPParams {
 	return &SetBypassCSPParams{
 		Enabled: enabled,
@@ -1110,7 +1138,8 @@ type GetPermissionsPolicyStateParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-getPermissionsPolicyState
 //
 // parameters:
-//   frameID
+//
+//	frameID
 func GetPermissionsPolicyState(frameID cdp.FrameID) *GetPermissionsPolicyStateParams {
 	return &GetPermissionsPolicyStateParams{
 		FrameID: frameID,
@@ -1125,7 +1154,8 @@ type GetPermissionsPolicyStateReturns struct {
 // Do executes Page.getPermissionsPolicyState against the provided context.
 //
 // returns:
-//   states
+//
+//	states
 func (p *GetPermissionsPolicyStateParams) Do(ctx context.Context) (states []*PermissionsPolicyFeatureState, err error) {
 	// execute
 	var res GetPermissionsPolicyStateReturns
@@ -1147,7 +1177,8 @@ type GetOriginTrialsParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-getOriginTrials
 //
 // parameters:
-//   frameID
+//
+//	frameID
 func GetOriginTrials(frameID cdp.FrameID) *GetOriginTrialsParams {
 	return &GetOriginTrialsParams{
 		FrameID: frameID,
@@ -1162,7 +1193,8 @@ type GetOriginTrialsReturns struct {
 // Do executes Page.getOriginTrials against the provided context.
 //
 // returns:
-//   originTrials
+//
+//	originTrials
 func (p *GetOriginTrialsParams) Do(ctx context.Context) (originTrials []*cdp.OriginTrial, err error) {
 	// execute
 	var res GetOriginTrialsReturns
@@ -1176,7 +1208,8 @@ func (p *GetOriginTrialsParams) Do(ctx context.Context) (originTrials []*cdp.Ori
 
 // SetFontFamiliesParams set generic font families.
 type SetFontFamiliesParams struct {
-	FontFamilies *FontFamilies `json:"fontFamilies"` // Specifies font families to set. If a font family is not specified, it won't be changed.
+	FontFamilies *FontFamilies         `json:"fontFamilies"`         // Specifies font families to set. If a font family is not specified, it won't be changed.
+	ForScripts   []*ScriptFontFamilies `json:"forScripts,omitempty"` // Specifies font families to set for individual scripts.
 }
 
 // SetFontFamilies set generic font families.
@@ -1184,11 +1217,18 @@ type SetFontFamiliesParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-setFontFamilies
 //
 // parameters:
-//   fontFamilies - Specifies font families to set. If a font family is not specified, it won't be changed.
+//
+//	fontFamilies - Specifies font families to set. If a font family is not specified, it won't be changed.
 func SetFontFamilies(fontFamilies *FontFamilies) *SetFontFamiliesParams {
 	return &SetFontFamiliesParams{
 		FontFamilies: fontFamilies,
 	}
+}
+
+// WithForScripts specifies font families to set for individual scripts.
+func (p SetFontFamiliesParams) WithForScripts(forScripts []*ScriptFontFamilies) *SetFontFamiliesParams {
+	p.ForScripts = forScripts
+	return &p
 }
 
 // Do executes Page.setFontFamilies against the provided context.
@@ -1206,7 +1246,8 @@ type SetFontSizesParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-setFontSizes
 //
 // parameters:
-//   fontSizes - Specifies font sizes to set. If a font size is not specified, it won't be changed.
+//
+//	fontSizes - Specifies font sizes to set. If a font size is not specified, it won't be changed.
 func SetFontSizes(fontSizes *FontSizes) *SetFontSizesParams {
 	return &SetFontSizesParams{
 		FontSizes: fontSizes,
@@ -1229,8 +1270,9 @@ type SetDocumentContentParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-setDocumentContent
 //
 // parameters:
-//   frameID - Frame id to set HTML for.
-//   html - HTML content to set.
+//
+//	frameID - Frame id to set HTML for.
+//	html - HTML content to set.
 func SetDocumentContent(frameID cdp.FrameID, html string) *SetDocumentContentParams {
 	return &SetDocumentContentParams{
 		FrameID: frameID,
@@ -1254,7 +1296,8 @@ type SetDownloadBehaviorParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-setDownloadBehavior
 //
 // parameters:
-//   behavior - Whether to allow all or deny all download requests, or use default Chrome behavior if available (otherwise deny).
+//
+//	behavior - Whether to allow all or deny all download requests, or use default Chrome behavior if available (otherwise deny).
 func SetDownloadBehavior(behavior SetDownloadBehaviorBehavior) *SetDownloadBehaviorParams {
 	return &SetDownloadBehaviorParams{
 		Behavior: behavior,
@@ -1285,7 +1328,8 @@ type SetLifecycleEventsEnabledParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-setLifecycleEventsEnabled
 //
 // parameters:
-//   enabled - If true, starts emitting lifecycle events.
+//
+//	enabled - If true, starts emitting lifecycle events.
 func SetLifecycleEventsEnabled(enabled bool) *SetLifecycleEventsEnabledParams {
 	return &SetLifecycleEventsEnabledParams{
 		Enabled: enabled,
@@ -1412,7 +1456,8 @@ type SetWebLifecycleStateParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-setWebLifecycleState
 //
 // parameters:
-//   state - Target lifecycle state
+//
+//	state - Target lifecycle state
 func SetWebLifecycleState(state SetWebLifecycleStateState) *SetWebLifecycleStateParams {
 	return &SetWebLifecycleStateParams{
 		State: state,
@@ -1439,57 +1484,28 @@ func (p *StopScreencastParams) Do(ctx context.Context) (err error) {
 	return cdp.Execute(ctx, CommandStopScreencast, nil, nil)
 }
 
-// SetProduceCompilationCacheParams forces compilation cache to be generated
-// for every subresource script. See also: Page.produceCompilationCache.
-type SetProduceCompilationCacheParams struct {
-	Enabled bool `json:"enabled"`
-}
-
-// SetProduceCompilationCache forces compilation cache to be generated for
-// every subresource script. See also: Page.produceCompilationCache.
-//
-// See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-setProduceCompilationCache
-//
-// parameters:
-//   enabled
-func SetProduceCompilationCache(enabled bool) *SetProduceCompilationCacheParams {
-	return &SetProduceCompilationCacheParams{
-		Enabled: enabled,
-	}
-}
-
-// Do executes Page.setProduceCompilationCache against the provided context.
-func (p *SetProduceCompilationCacheParams) Do(ctx context.Context) (err error) {
-	return cdp.Execute(ctx, CommandSetProduceCompilationCache, p, nil)
-}
-
 // ProduceCompilationCacheParams requests backend to produce compilation
-// cache for the specified scripts. Unlike setProduceCompilationCache, this
-// allows client to only produce cache for specific scripts. scripts are
-// appeneded to the list of scripts for which the cache for would produced.
-// Disabling compilation cache with setProduceCompilationCache would reset all
-// pending cache requests. The list may also be reset during page navigation.
-// When script with a matching URL is encountered, the cache is optionally
-// produced upon backend discretion, based on internal heuristics. See also:
-// Page.compilationCacheProduced.
+// cache for the specified scripts. scripts are appeneded to the list of scripts
+// for which the cache would be produced. The list may be reset during page
+// navigation. When script with a matching URL is encountered, the cache is
+// optionally produced upon backend discretion, based on internal heuristics.
+// See also: Page.compilationCacheProduced.
 type ProduceCompilationCacheParams struct {
 	Scripts []*CompilationCacheParams `json:"scripts"`
 }
 
 // ProduceCompilationCache requests backend to produce compilation cache for
-// the specified scripts. Unlike setProduceCompilationCache, this allows client
-// to only produce cache for specific scripts. scripts are appeneded to the list
-// of scripts for which the cache for would produced. Disabling compilation
-// cache with setProduceCompilationCache would reset all pending cache requests.
-// The list may also be reset during page navigation. When script with a
-// matching URL is encountered, the cache is optionally produced upon backend
-// discretion, based on internal heuristics. See also:
+// the specified scripts. scripts are appeneded to the list of scripts for which
+// the cache would be produced. The list may be reset during page navigation.
+// When script with a matching URL is encountered, the cache is optionally
+// produced upon backend discretion, based on internal heuristics. See also:
 // Page.compilationCacheProduced.
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-produceCompilationCache
 //
 // parameters:
-//   scripts
+//
+//	scripts
 func ProduceCompilationCache(scripts []*CompilationCacheParams) *ProduceCompilationCacheParams {
 	return &ProduceCompilationCacheParams{
 		Scripts: scripts,
@@ -1514,8 +1530,9 @@ type AddCompilationCacheParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-addCompilationCache
 //
 // parameters:
-//   url
-//   data - Base64-encoded data
+//
+//	url
+//	data - Base64-encoded data
 func AddCompilationCache(url string, data string) *AddCompilationCacheParams {
 	return &AddCompilationCacheParams{
 		URL:  url,
@@ -1543,6 +1560,33 @@ func (p *ClearCompilationCacheParams) Do(ctx context.Context) (err error) {
 	return cdp.Execute(ctx, CommandClearCompilationCache, nil, nil)
 }
 
+// SetSPCTransactionModeParams sets the Secure Payment Confirmation
+// transaction mode.
+// https://w3c.github.io/secure-payment-confirmation/#sctn-automation-set-spc-transaction-mode.
+type SetSPCTransactionModeParams struct {
+	Mode SetSPCTransactionModeMode `json:"mode"`
+}
+
+// SetSPCTransactionMode sets the Secure Payment Confirmation transaction
+// mode.
+// https://w3c.github.io/secure-payment-confirmation/#sctn-automation-set-spc-transaction-mode.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-setSPCTransactionMode
+//
+// parameters:
+//
+//	mode
+func SetSPCTransactionMode(mode SetSPCTransactionModeMode) *SetSPCTransactionModeParams {
+	return &SetSPCTransactionModeParams{
+		Mode: mode,
+	}
+}
+
+// Do executes Page.setSPCTransactionMode against the provided context.
+func (p *SetSPCTransactionModeParams) Do(ctx context.Context) (err error) {
+	return cdp.Execute(ctx, CommandSetSPCTransactionMode, p, nil)
+}
+
 // GenerateTestReportParams generates a report for testing.
 type GenerateTestReportParams struct {
 	Message string `json:"message"`         // Message to be displayed in the report.
@@ -1554,7 +1598,8 @@ type GenerateTestReportParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-generateTestReport
 //
 // parameters:
-//   message - Message to be displayed in the report.
+//
+//	message - Message to be displayed in the report.
 func GenerateTestReport(message string) *GenerateTestReportParams {
 	return &GenerateTestReportParams{
 		Message: message,
@@ -1605,7 +1650,8 @@ type SetInterceptFileChooserDialogParams struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-setInterceptFileChooserDialog
 //
 // parameters:
-//   enabled
+//
+//	enabled
 func SetInterceptFileChooserDialog(enabled bool) *SetInterceptFileChooserDialogParams {
 	return &SetInterceptFileChooserDialogParams{
 		Enabled: enabled,
@@ -1659,10 +1705,10 @@ const (
 	CommandClose                               = "Page.close"
 	CommandSetWebLifecycleState                = "Page.setWebLifecycleState"
 	CommandStopScreencast                      = "Page.stopScreencast"
-	CommandSetProduceCompilationCache          = "Page.setProduceCompilationCache"
 	CommandProduceCompilationCache             = "Page.produceCompilationCache"
 	CommandAddCompilationCache                 = "Page.addCompilationCache"
 	CommandClearCompilationCache               = "Page.clearCompilationCache"
+	CommandSetSPCTransactionMode               = "Page.setSPCTransactionMode"
 	CommandGenerateTestReport                  = "Page.generateTestReport"
 	CommandWaitForDebugger                     = "Page.waitForDebugger"
 	CommandSetInterceptFileChooserDialog       = "Page.setInterceptFileChooserDialog"

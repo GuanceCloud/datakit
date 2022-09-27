@@ -136,10 +136,10 @@ traceroute 是「路由跟踪」数据的 JSON 文本，整个数据是一个数
 | `total`    | number        | 总探测次数                  |
 | `failed`   | number        | 失败次数                    |
 | `loss`     | number        | 失败百分比                  |
-| `avg_cost` | number        | 平均耗时(ns)                |
-| `min_cost` | number        | 最小耗时(ns)                |
-| `max_cost` | number        | 最大耗时(ns)                |
-| `std_cost` | number        | 耗时标准差(ns)              |
+| `avg_cost` | number        | 平均耗时(μs)                |
+| `min_cost` | number        | 最小耗时(μs)                |
+| `max_cost` | number        | 最大耗时(μs)                |
+| `std_cost` | number        | 耗时标准差(μs)              |
 | `items`    | Item 的 Array | 每次探测信息([详见](#item)) |
 
 ### Item {#item}
@@ -147,5 +147,5 @@ traceroute 是「路由跟踪」数据的 JSON 文本，整个数据是一个数
 | 字段            | 类型   | 说明                      |
 | :---            | ---    | ---                       |
 | `ip`            | string | IP 地址，如果失败，值为 * |
-| `response_time` | number | 响应时间(ns)              |
+| `response_time` | number | 响应时间(μs)              |
 

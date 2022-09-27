@@ -102,12 +102,14 @@ type UserAgentBrandVersion struct {
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Emulation#type-UserAgentMetadata
 type UserAgentMetadata struct {
 	Brands          []*UserAgentBrandVersion `json:"brands,omitempty"`
-	FullVersion     string                   `json:"fullVersion,omitempty"`
+	FullVersionList []*UserAgentBrandVersion `json:"fullVersionList,omitempty"`
 	Platform        string                   `json:"platform"`
 	PlatformVersion string                   `json:"platformVersion"`
 	Architecture    string                   `json:"architecture"`
 	Model           string                   `json:"model"`
 	Mobile          bool                     `json:"mobile"`
+	Bitness         string                   `json:"bitness,omitempty"`
+	Wow64           bool                     `json:"wow64,omitempty"`
 }
 
 // DisabledImageType enum of image types that can be disabled.

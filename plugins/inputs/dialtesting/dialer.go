@@ -12,9 +12,9 @@ import (
 	"time"
 
 	_ "github.com/go-ping/ping"
+	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
-	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
 type dialer struct {
@@ -47,7 +47,6 @@ func (d *dialer) updateTask(t dt.Task) error {
 }
 
 func (d *dialer) stop() {
-	close(d.updateCh)
 	if err := d.task.Stop(); err != nil {
 		l.Warnf("stop task %s failed: %s", d.task.ID(), err.Error())
 	}

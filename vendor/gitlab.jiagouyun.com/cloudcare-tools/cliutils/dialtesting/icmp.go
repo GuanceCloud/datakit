@@ -58,10 +58,10 @@ type IcmpTask struct {
 	UpdateTime       int64             `json:"update_time,omitempty"`
 
 	packetLossPercent float64
-	avgRoundTripTime  float64 // ms
-	minRoundTripTime  float64
-	maxRoundTripTime  float64
-	stdRoundTripTime  float64
+	avgRoundTripTime  float64 // us
+	minRoundTripTime  float64 // us
+	maxRoundTripTime  float64 // us
+	stdRoundTripTime  float64 // us
 	originBytes       []byte
 	reqError          string
 	sentPackets       int
@@ -120,7 +120,7 @@ func (t *IcmpTask) init(debug bool) error {
 				if err != nil {
 					return err
 				}
-				resp.target = float64(du.Nanoseconds()) / 1e6 // ms
+				resp.target = float64(du.Microseconds()) // us
 			}
 		}
 
@@ -226,10 +226,14 @@ func (t *IcmpTask) GetResults() (tags map[string]string, fields map[string]inter
 	}
 
 	fields = map[string]interface{}{
-		"average_round_trip_time_in_millis": t.avgRoundTripTime,
-		"min_round_trip_time_in_millis":     t.minRoundTripTime,
-		"std_round_trip_time_in_millis":     t.stdRoundTripTime,
-		"max_round_trip_time_in_millis":     t.maxRoundTripTime,
+		"average_round_trip_time_in_millis": t.round(t.avgRoundTripTime/1000, 3),
+		"average_round_trip_time":           t.avgRoundTripTime,
+		"min_round_trip_time_in_millis":     t.round(t.minRoundTripTime/1000, 3),
+		"min_round_trip_time":               t.minRoundTripTime,
+		"std_round_trip_time_in_millis":     t.round(t.stdRoundTripTime/1000, 3),
+		"std_round_trip_time":               t.stdRoundTripTime,
+		"max_round_trip_time_in_millis":     t.round(t.maxRoundTripTime/1000, 3),
+		"max_round_trip_time":               t.maxRoundTripTime,
 		"packet_loss_percent":               t.packetLossPercent,
 		"packets_sent":                      t.sentPackets,
 		"packets_received":                  t.recvPackets,
@@ -267,6 +271,7 @@ func (t *IcmpTask) GetResults() (tags map[string]string, fields map[string]inter
 		if succFlag && t.reqError == "" {
 			tags["status"] = "OK"
 			fields["success"] = int64(1)
+			message["average_round_trip_time"] = t.avgRoundTripTime
 		} else {
 			message[`fail_reason`] = strings.Join(reasons, `;`)
 			fields[`fail_reason`] = strings.Join(reasons, `;`)
@@ -276,7 +281,7 @@ func (t *IcmpTask) GetResults() (tags map[string]string, fields map[string]inter
 			message[`fail_reason`] = strings.Join(reasons, `;`)
 			fields[`fail_reason`] = strings.Join(reasons, `;`)
 		} else {
-			message["average_round_trip_time_in_millis"] = t.avgRoundTripTime
+			message["average_round_trip_time"] = t.avgRoundTripTime
 		}
 
 		if t.reqError == "" && len(reasons) == 0 {
@@ -351,10 +356,10 @@ func (t *IcmpTask) Run() error {
 		t.packetLossPercent = stats.PacketLoss
 		t.sentPackets = stats.PacketsSent
 		t.recvPackets = stats.PacketsRecv
-		t.minRoundTripTime = t.round(float64(stats.MinRtt.Nanoseconds())/1e6, 3)
-		t.avgRoundTripTime = t.round(float64(stats.AvgRtt.Nanoseconds())/1e6, 3)
-		t.maxRoundTripTime = t.round(float64(stats.MaxRtt.Nanoseconds())/1e6, 3)
-		t.stdRoundTripTime = t.round(float64(stats.StdDevRtt.Nanoseconds())/1e6, 3)
+		t.minRoundTripTime = t.round(float64(stats.MinRtt.Nanoseconds())/1e3, 3)
+		t.avgRoundTripTime = t.round(float64(stats.AvgRtt.Nanoseconds())/1e3, 3)
+		t.maxRoundTripTime = t.round(float64(stats.MaxRtt.Nanoseconds())/1e3, 3)
+		t.stdRoundTripTime = t.round(float64(stats.StdDevRtt.Nanoseconds())/1e3, 3)
 	}
 
 	if t.EnableTraceroute {

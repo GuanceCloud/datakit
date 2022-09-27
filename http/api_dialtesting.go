@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
+	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
 type dialtestingDebugRequest struct {

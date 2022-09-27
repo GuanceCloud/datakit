@@ -38,13 +38,15 @@ func (p *pollTask) Do(ctx context.Context) error {
 		execCtx runtime.ExecutionContextID
 		ok      bool
 	)
-	for !ok {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(5 * time.Millisecond):
-		}
+
+	for {
 		_, _, execCtx, ok = t.ensureFrame()
+		if ok {
+			break
+		}
+		if err := sleepContext(ctx, 5*time.Millisecond); err != nil {
+			return err
+		}
 	}
 
 	if p.frame != nil {
@@ -62,21 +64,18 @@ func (p *pollTask) Do(ctx context.Context) error {
 		args = append(args, p.polling)
 	}
 	args = append(args, p.timeout.Milliseconds())
-	for _, arg := range p.args {
-		args = append(args, arg)
-	}
+	args = append(args, p.args...)
 
-	err := CallFunctionOn(waitForPredicatePageFunction, p.res,
+	undefined, err := callFunctionOn(ctx, waitForPredicatePageFunction, p.res,
 		func(p *runtime.CallFunctionOnParams) *runtime.CallFunctionOnParams {
 			return p.WithExecutionContextID(execCtx).
 				WithAwaitPromise(true).
 				WithUserGesture(true)
 		},
 		args...,
-	).Do(ctx)
+	)
 
-	// FIXME: sentinel error?
-	if err != nil && err.Error() == "encountered an undefined value" {
+	if undefined {
 		return ErrPollingTimeout
 	}
 
