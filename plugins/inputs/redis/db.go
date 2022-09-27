@@ -113,7 +113,7 @@ func (i *Input) ParseInfoData(list string) ([]inputs.Measurement, error) {
 			item := strings.Split(itemStr, "=")
 			key := item[0]
 			val := strings.TrimSpace(item[1])
-			m.fields[key] = val
+			m.resData[key] = val
 		}
 
 		if len(i.DBS) == 0 {
@@ -132,7 +132,6 @@ func (i *Input) ParseInfoData(list string) ([]inputs.Measurement, error) {
 				if err := m.submit(); err != nil {
 					return nil, err
 				}
-
 				collectCache = append(collectCache, m)
 			}
 		}
@@ -147,7 +146,7 @@ func (m *dbMeasurement) submit() error {
 		if value, ok := m.resData[key]; ok {
 			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
-				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
+				l.Errorf("dbMeasurement metric %v value %v parse error %v", key, value, err)
 				return err
 			} else {
 				m.fields[key] = val

@@ -77,10 +77,11 @@ type Input struct {
 
 	client *redis.Client
 
-	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
-	hashMap  [][16]byte
+	Election        bool `toml:"election"`
+	pause           bool
+	pauseCh         chan bool
+	hashMap         [][16]byte
+	latencyLastTime time.Time
 
 	semStop *cliutils.Sem // start stop signal
 }
@@ -175,6 +176,10 @@ func (i *Input) Collect() error {
 		}
 	}
 	if err := i.getSlowData(); err != nil {
+		return err
+	}
+
+	if err := i.GetLatencyData(); err != nil {
 		return err
 	}
 
@@ -315,7 +320,6 @@ func (i *Input) Run() {
 		i.collectClientMeasurement,
 		i.collectCommandMeasurement,
 		i.collectDBMeasurement,
-		i.CollectLatencyMeasurement,
 		i.collectReplicaMeasurement,
 	}
 
