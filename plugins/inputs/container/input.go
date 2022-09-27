@@ -31,8 +31,9 @@ const (
 )
 
 var (
-	_ inputs.ReadEnv = (*Input)(nil)
-	g                = datakit.G(goroutineGroupName)
+	_ inputs.ReadEnv   = (*Input)(nil)
+	_ inputs.Singleton = (*Input)(nil)
+	g                  = datakit.G(goroutineGroupName)
 )
 
 type Input struct {
@@ -79,6 +80,9 @@ type Input struct {
 	pause   bool
 
 	discovery *discovery
+}
+
+func (i *Input) Singleton() {
 }
 
 var (
