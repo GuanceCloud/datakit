@@ -39,182 +39,191 @@ type AffectedFrame struct {
 	FrameID cdp.FrameID `json:"frameId"`
 }
 
-// SameSiteCookieExclusionReason [no description].
+// CookieExclusionReason [no description].
 //
-// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-SameSiteCookieExclusionReason
-type SameSiteCookieExclusionReason string
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-CookieExclusionReason
+type CookieExclusionReason string
 
-// String returns the SameSiteCookieExclusionReason as string value.
-func (t SameSiteCookieExclusionReason) String() string {
+// String returns the CookieExclusionReason as string value.
+func (t CookieExclusionReason) String() string {
 	return string(t)
 }
 
-// SameSiteCookieExclusionReason values.
+// CookieExclusionReason values.
 const (
-	SameSiteCookieExclusionReasonExcludeSameSiteUnspecifiedTreatedAsLax SameSiteCookieExclusionReason = "ExcludeSameSiteUnspecifiedTreatedAsLax"
-	SameSiteCookieExclusionReasonExcludeSameSiteNoneInsecure            SameSiteCookieExclusionReason = "ExcludeSameSiteNoneInsecure"
-	SameSiteCookieExclusionReasonExcludeSameSiteLax                     SameSiteCookieExclusionReason = "ExcludeSameSiteLax"
-	SameSiteCookieExclusionReasonExcludeSameSiteStrict                  SameSiteCookieExclusionReason = "ExcludeSameSiteStrict"
-	SameSiteCookieExclusionReasonExcludeInvalidSameParty                SameSiteCookieExclusionReason = "ExcludeInvalidSameParty"
-	SameSiteCookieExclusionReasonExcludeSamePartyCrossPartyContext      SameSiteCookieExclusionReason = "ExcludeSamePartyCrossPartyContext"
+	CookieExclusionReasonExcludeSameSiteUnspecifiedTreatedAsLax CookieExclusionReason = "ExcludeSameSiteUnspecifiedTreatedAsLax"
+	CookieExclusionReasonExcludeSameSiteNoneInsecure            CookieExclusionReason = "ExcludeSameSiteNoneInsecure"
+	CookieExclusionReasonExcludeSameSiteLax                     CookieExclusionReason = "ExcludeSameSiteLax"
+	CookieExclusionReasonExcludeSameSiteStrict                  CookieExclusionReason = "ExcludeSameSiteStrict"
+	CookieExclusionReasonExcludeInvalidSameParty                CookieExclusionReason = "ExcludeInvalidSameParty"
+	CookieExclusionReasonExcludeSamePartyCrossPartyContext      CookieExclusionReason = "ExcludeSamePartyCrossPartyContext"
+	CookieExclusionReasonExcludeDomainNonASCII                  CookieExclusionReason = "ExcludeDomainNonASCII"
 )
 
 // MarshalEasyJSON satisfies easyjson.Marshaler.
-func (t SameSiteCookieExclusionReason) MarshalEasyJSON(out *jwriter.Writer) {
+func (t CookieExclusionReason) MarshalEasyJSON(out *jwriter.Writer) {
 	out.String(string(t))
 }
 
 // MarshalJSON satisfies json.Marshaler.
-func (t SameSiteCookieExclusionReason) MarshalJSON() ([]byte, error) {
+func (t CookieExclusionReason) MarshalJSON() ([]byte, error) {
 	return easyjson.Marshal(t)
 }
 
 // UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
-func (t *SameSiteCookieExclusionReason) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	switch SameSiteCookieExclusionReason(in.String()) {
-	case SameSiteCookieExclusionReasonExcludeSameSiteUnspecifiedTreatedAsLax:
-		*t = SameSiteCookieExclusionReasonExcludeSameSiteUnspecifiedTreatedAsLax
-	case SameSiteCookieExclusionReasonExcludeSameSiteNoneInsecure:
-		*t = SameSiteCookieExclusionReasonExcludeSameSiteNoneInsecure
-	case SameSiteCookieExclusionReasonExcludeSameSiteLax:
-		*t = SameSiteCookieExclusionReasonExcludeSameSiteLax
-	case SameSiteCookieExclusionReasonExcludeSameSiteStrict:
-		*t = SameSiteCookieExclusionReasonExcludeSameSiteStrict
-	case SameSiteCookieExclusionReasonExcludeInvalidSameParty:
-		*t = SameSiteCookieExclusionReasonExcludeInvalidSameParty
-	case SameSiteCookieExclusionReasonExcludeSamePartyCrossPartyContext:
-		*t = SameSiteCookieExclusionReasonExcludeSamePartyCrossPartyContext
+func (t *CookieExclusionReason) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	switch CookieExclusionReason(in.String()) {
+	case CookieExclusionReasonExcludeSameSiteUnspecifiedTreatedAsLax:
+		*t = CookieExclusionReasonExcludeSameSiteUnspecifiedTreatedAsLax
+	case CookieExclusionReasonExcludeSameSiteNoneInsecure:
+		*t = CookieExclusionReasonExcludeSameSiteNoneInsecure
+	case CookieExclusionReasonExcludeSameSiteLax:
+		*t = CookieExclusionReasonExcludeSameSiteLax
+	case CookieExclusionReasonExcludeSameSiteStrict:
+		*t = CookieExclusionReasonExcludeSameSiteStrict
+	case CookieExclusionReasonExcludeInvalidSameParty:
+		*t = CookieExclusionReasonExcludeInvalidSameParty
+	case CookieExclusionReasonExcludeSamePartyCrossPartyContext:
+		*t = CookieExclusionReasonExcludeSamePartyCrossPartyContext
+	case CookieExclusionReasonExcludeDomainNonASCII:
+		*t = CookieExclusionReasonExcludeDomainNonASCII
 
 	default:
-		in.AddError(errors.New("unknown SameSiteCookieExclusionReason value"))
+		in.AddError(errors.New("unknown CookieExclusionReason value"))
 	}
 }
 
 // UnmarshalJSON satisfies json.Unmarshaler.
-func (t *SameSiteCookieExclusionReason) UnmarshalJSON(buf []byte) error {
+func (t *CookieExclusionReason) UnmarshalJSON(buf []byte) error {
 	return easyjson.Unmarshal(buf, t)
 }
 
-// SameSiteCookieWarningReason [no description].
+// CookieWarningReason [no description].
 //
-// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-SameSiteCookieWarningReason
-type SameSiteCookieWarningReason string
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-CookieWarningReason
+type CookieWarningReason string
 
-// String returns the SameSiteCookieWarningReason as string value.
-func (t SameSiteCookieWarningReason) String() string {
+// String returns the CookieWarningReason as string value.
+func (t CookieWarningReason) String() string {
 	return string(t)
 }
 
-// SameSiteCookieWarningReason values.
+// CookieWarningReason values.
 const (
-	SameSiteCookieWarningReasonWarnSameSiteUnspecifiedCrossSiteContext SameSiteCookieWarningReason = "WarnSameSiteUnspecifiedCrossSiteContext"
-	SameSiteCookieWarningReasonWarnSameSiteNoneInsecure                SameSiteCookieWarningReason = "WarnSameSiteNoneInsecure"
-	SameSiteCookieWarningReasonWarnSameSiteUnspecifiedLaxAllowUnsafe   SameSiteCookieWarningReason = "WarnSameSiteUnspecifiedLaxAllowUnsafe"
-	SameSiteCookieWarningReasonWarnSameSiteStrictLaxDowngradeStrict    SameSiteCookieWarningReason = "WarnSameSiteStrictLaxDowngradeStrict"
-	SameSiteCookieWarningReasonWarnSameSiteStrictCrossDowngradeStrict  SameSiteCookieWarningReason = "WarnSameSiteStrictCrossDowngradeStrict"
-	SameSiteCookieWarningReasonWarnSameSiteStrictCrossDowngradeLax     SameSiteCookieWarningReason = "WarnSameSiteStrictCrossDowngradeLax"
-	SameSiteCookieWarningReasonWarnSameSiteLaxCrossDowngradeStrict     SameSiteCookieWarningReason = "WarnSameSiteLaxCrossDowngradeStrict"
-	SameSiteCookieWarningReasonWarnSameSiteLaxCrossDowngradeLax        SameSiteCookieWarningReason = "WarnSameSiteLaxCrossDowngradeLax"
+	CookieWarningReasonWarnSameSiteUnspecifiedCrossSiteContext CookieWarningReason = "WarnSameSiteUnspecifiedCrossSiteContext"
+	CookieWarningReasonWarnSameSiteNoneInsecure                CookieWarningReason = "WarnSameSiteNoneInsecure"
+	CookieWarningReasonWarnSameSiteUnspecifiedLaxAllowUnsafe   CookieWarningReason = "WarnSameSiteUnspecifiedLaxAllowUnsafe"
+	CookieWarningReasonWarnSameSiteStrictLaxDowngradeStrict    CookieWarningReason = "WarnSameSiteStrictLaxDowngradeStrict"
+	CookieWarningReasonWarnSameSiteStrictCrossDowngradeStrict  CookieWarningReason = "WarnSameSiteStrictCrossDowngradeStrict"
+	CookieWarningReasonWarnSameSiteStrictCrossDowngradeLax     CookieWarningReason = "WarnSameSiteStrictCrossDowngradeLax"
+	CookieWarningReasonWarnSameSiteLaxCrossDowngradeStrict     CookieWarningReason = "WarnSameSiteLaxCrossDowngradeStrict"
+	CookieWarningReasonWarnSameSiteLaxCrossDowngradeLax        CookieWarningReason = "WarnSameSiteLaxCrossDowngradeLax"
+	CookieWarningReasonWarnAttributeValueExceedsMaxSize        CookieWarningReason = "WarnAttributeValueExceedsMaxSize"
+	CookieWarningReasonWarnDomainNonASCII                      CookieWarningReason = "WarnDomainNonASCII"
 )
 
 // MarshalEasyJSON satisfies easyjson.Marshaler.
-func (t SameSiteCookieWarningReason) MarshalEasyJSON(out *jwriter.Writer) {
+func (t CookieWarningReason) MarshalEasyJSON(out *jwriter.Writer) {
 	out.String(string(t))
 }
 
 // MarshalJSON satisfies json.Marshaler.
-func (t SameSiteCookieWarningReason) MarshalJSON() ([]byte, error) {
+func (t CookieWarningReason) MarshalJSON() ([]byte, error) {
 	return easyjson.Marshal(t)
 }
 
 // UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
-func (t *SameSiteCookieWarningReason) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	switch SameSiteCookieWarningReason(in.String()) {
-	case SameSiteCookieWarningReasonWarnSameSiteUnspecifiedCrossSiteContext:
-		*t = SameSiteCookieWarningReasonWarnSameSiteUnspecifiedCrossSiteContext
-	case SameSiteCookieWarningReasonWarnSameSiteNoneInsecure:
-		*t = SameSiteCookieWarningReasonWarnSameSiteNoneInsecure
-	case SameSiteCookieWarningReasonWarnSameSiteUnspecifiedLaxAllowUnsafe:
-		*t = SameSiteCookieWarningReasonWarnSameSiteUnspecifiedLaxAllowUnsafe
-	case SameSiteCookieWarningReasonWarnSameSiteStrictLaxDowngradeStrict:
-		*t = SameSiteCookieWarningReasonWarnSameSiteStrictLaxDowngradeStrict
-	case SameSiteCookieWarningReasonWarnSameSiteStrictCrossDowngradeStrict:
-		*t = SameSiteCookieWarningReasonWarnSameSiteStrictCrossDowngradeStrict
-	case SameSiteCookieWarningReasonWarnSameSiteStrictCrossDowngradeLax:
-		*t = SameSiteCookieWarningReasonWarnSameSiteStrictCrossDowngradeLax
-	case SameSiteCookieWarningReasonWarnSameSiteLaxCrossDowngradeStrict:
-		*t = SameSiteCookieWarningReasonWarnSameSiteLaxCrossDowngradeStrict
-	case SameSiteCookieWarningReasonWarnSameSiteLaxCrossDowngradeLax:
-		*t = SameSiteCookieWarningReasonWarnSameSiteLaxCrossDowngradeLax
+func (t *CookieWarningReason) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	switch CookieWarningReason(in.String()) {
+	case CookieWarningReasonWarnSameSiteUnspecifiedCrossSiteContext:
+		*t = CookieWarningReasonWarnSameSiteUnspecifiedCrossSiteContext
+	case CookieWarningReasonWarnSameSiteNoneInsecure:
+		*t = CookieWarningReasonWarnSameSiteNoneInsecure
+	case CookieWarningReasonWarnSameSiteUnspecifiedLaxAllowUnsafe:
+		*t = CookieWarningReasonWarnSameSiteUnspecifiedLaxAllowUnsafe
+	case CookieWarningReasonWarnSameSiteStrictLaxDowngradeStrict:
+		*t = CookieWarningReasonWarnSameSiteStrictLaxDowngradeStrict
+	case CookieWarningReasonWarnSameSiteStrictCrossDowngradeStrict:
+		*t = CookieWarningReasonWarnSameSiteStrictCrossDowngradeStrict
+	case CookieWarningReasonWarnSameSiteStrictCrossDowngradeLax:
+		*t = CookieWarningReasonWarnSameSiteStrictCrossDowngradeLax
+	case CookieWarningReasonWarnSameSiteLaxCrossDowngradeStrict:
+		*t = CookieWarningReasonWarnSameSiteLaxCrossDowngradeStrict
+	case CookieWarningReasonWarnSameSiteLaxCrossDowngradeLax:
+		*t = CookieWarningReasonWarnSameSiteLaxCrossDowngradeLax
+	case CookieWarningReasonWarnAttributeValueExceedsMaxSize:
+		*t = CookieWarningReasonWarnAttributeValueExceedsMaxSize
+	case CookieWarningReasonWarnDomainNonASCII:
+		*t = CookieWarningReasonWarnDomainNonASCII
 
 	default:
-		in.AddError(errors.New("unknown SameSiteCookieWarningReason value"))
+		in.AddError(errors.New("unknown CookieWarningReason value"))
 	}
 }
 
 // UnmarshalJSON satisfies json.Unmarshaler.
-func (t *SameSiteCookieWarningReason) UnmarshalJSON(buf []byte) error {
+func (t *CookieWarningReason) UnmarshalJSON(buf []byte) error {
 	return easyjson.Unmarshal(buf, t)
 }
 
-// SameSiteCookieOperation [no description].
+// CookieOperation [no description].
 //
-// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-SameSiteCookieOperation
-type SameSiteCookieOperation string
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-CookieOperation
+type CookieOperation string
 
-// String returns the SameSiteCookieOperation as string value.
-func (t SameSiteCookieOperation) String() string {
+// String returns the CookieOperation as string value.
+func (t CookieOperation) String() string {
 	return string(t)
 }
 
-// SameSiteCookieOperation values.
+// CookieOperation values.
 const (
-	SameSiteCookieOperationSetCookie  SameSiteCookieOperation = "SetCookie"
-	SameSiteCookieOperationReadCookie SameSiteCookieOperation = "ReadCookie"
+	CookieOperationSetCookie  CookieOperation = "SetCookie"
+	CookieOperationReadCookie CookieOperation = "ReadCookie"
 )
 
 // MarshalEasyJSON satisfies easyjson.Marshaler.
-func (t SameSiteCookieOperation) MarshalEasyJSON(out *jwriter.Writer) {
+func (t CookieOperation) MarshalEasyJSON(out *jwriter.Writer) {
 	out.String(string(t))
 }
 
 // MarshalJSON satisfies json.Marshaler.
-func (t SameSiteCookieOperation) MarshalJSON() ([]byte, error) {
+func (t CookieOperation) MarshalJSON() ([]byte, error) {
 	return easyjson.Marshal(t)
 }
 
 // UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
-func (t *SameSiteCookieOperation) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	switch SameSiteCookieOperation(in.String()) {
-	case SameSiteCookieOperationSetCookie:
-		*t = SameSiteCookieOperationSetCookie
-	case SameSiteCookieOperationReadCookie:
-		*t = SameSiteCookieOperationReadCookie
+func (t *CookieOperation) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	switch CookieOperation(in.String()) {
+	case CookieOperationSetCookie:
+		*t = CookieOperationSetCookie
+	case CookieOperationReadCookie:
+		*t = CookieOperationReadCookie
 
 	default:
-		in.AddError(errors.New("unknown SameSiteCookieOperation value"))
+		in.AddError(errors.New("unknown CookieOperation value"))
 	}
 }
 
 // UnmarshalJSON satisfies json.Unmarshaler.
-func (t *SameSiteCookieOperation) UnmarshalJSON(buf []byte) error {
+func (t *CookieOperation) UnmarshalJSON(buf []byte) error {
 	return easyjson.Unmarshal(buf, t)
 }
 
-// SameSiteCookieIssueDetails this information is currently necessary, as the
+// CookieIssueDetails this information is currently necessary, as the
 // front-end has a difficult time finding a specific cookie. With this, we can
 // convey specific error information without the cookie.
 //
-// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-SameSiteCookieIssueDetails
-type SameSiteCookieIssueDetails struct {
-	Cookie                 *AffectedCookie                 `json:"cookie,omitempty"` // If AffectedCookie is not set then rawCookieLine contains the raw Set-Cookie header string. This hints at a problem where the cookie line is syntactically or semantically malformed in a way that no valid cookie could be created.
-	RawCookieLine          string                          `json:"rawCookieLine,omitempty"`
-	CookieWarningReasons   []SameSiteCookieWarningReason   `json:"cookieWarningReasons"`
-	CookieExclusionReasons []SameSiteCookieExclusionReason `json:"cookieExclusionReasons"`
-	Operation              SameSiteCookieOperation         `json:"operation"` // Optionally identifies the site-for-cookies and the cookie url, which may be used by the front-end as additional context.
-	SiteForCookies         string                          `json:"siteForCookies,omitempty"`
-	CookieURL              string                          `json:"cookieUrl,omitempty"`
-	Request                *AffectedRequest                `json:"request,omitempty"`
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-CookieIssueDetails
+type CookieIssueDetails struct {
+	Cookie                 *AffectedCookie         `json:"cookie,omitempty"` // If AffectedCookie is not set then rawCookieLine contains the raw Set-Cookie header string. This hints at a problem where the cookie line is syntactically or semantically malformed in a way that no valid cookie could be created.
+	RawCookieLine          string                  `json:"rawCookieLine,omitempty"`
+	CookieWarningReasons   []CookieWarningReason   `json:"cookieWarningReasons"`
+	CookieExclusionReasons []CookieExclusionReason `json:"cookieExclusionReasons"`
+	Operation              CookieOperation         `json:"operation"` // Optionally identifies the site-for-cookies and the cookie url, which may be used by the front-end as additional context.
+	SiteForCookies         string                  `json:"siteForCookies,omitempty"`
+	CookieURL              string                  `json:"cookieUrl,omitempty"`
+	Request                *AffectedRequest        `json:"request,omitempty"`
 }
 
 // MixedContentResolutionStatus [no description].
@@ -276,6 +285,7 @@ func (t MixedContentResourceType) String() string {
 
 // MixedContentResourceType values.
 const (
+	MixedContentResourceTypeAttributionSrc MixedContentResourceType = "AttributionSrc"
 	MixedContentResourceTypeAudio          MixedContentResourceType = "Audio"
 	MixedContentResourceTypeBeacon         MixedContentResourceType = "Beacon"
 	MixedContentResourceTypeCSPReport      MixedContentResourceType = "CSPReport"
@@ -317,6 +327,8 @@ func (t MixedContentResourceType) MarshalJSON() ([]byte, error) {
 // UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
 func (t *MixedContentResourceType) UnmarshalEasyJSON(in *jlexer.Lexer) {
 	switch MixedContentResourceType(in.String()) {
+	case MixedContentResourceTypeAttributionSrc:
+		*t = MixedContentResourceTypeAttributionSrc
 	case MixedContentResourceTypeAudio:
 		*t = MixedContentResourceTypeAudio
 	case MixedContentResourceTypeBeacon:
@@ -575,6 +587,7 @@ const (
 	ContentSecurityPolicyViolationTypeKURLViolation                ContentSecurityPolicyViolationType = "kURLViolation"
 	ContentSecurityPolicyViolationTypeKTrustedTypesSinkViolation   ContentSecurityPolicyViolationType = "kTrustedTypesSinkViolation"
 	ContentSecurityPolicyViolationTypeKTrustedTypesPolicyViolation ContentSecurityPolicyViolationType = "kTrustedTypesPolicyViolation"
+	ContentSecurityPolicyViolationTypeKWasmEvalViolation           ContentSecurityPolicyViolationType = "kWasmEvalViolation"
 )
 
 // MarshalEasyJSON satisfies easyjson.Marshaler.
@@ -600,6 +613,8 @@ func (t *ContentSecurityPolicyViolationType) UnmarshalEasyJSON(in *jlexer.Lexer)
 		*t = ContentSecurityPolicyViolationTypeKTrustedTypesSinkViolation
 	case ContentSecurityPolicyViolationTypeKTrustedTypesPolicyViolation:
 		*t = ContentSecurityPolicyViolationTypeKTrustedTypesPolicyViolation
+	case ContentSecurityPolicyViolationTypeKWasmEvalViolation:
+		*t = ContentSecurityPolicyViolationTypeKWasmEvalViolation
 
 	default:
 		in.AddError(errors.New("unknown ContentSecurityPolicyViolationType value"))
@@ -786,13 +801,17 @@ func (t AttributionReportingIssueType) String() string {
 
 // AttributionReportingIssueType values.
 const (
-	AttributionReportingIssueTypePermissionPolicyDisabled                  AttributionReportingIssueType = "PermissionPolicyDisabled"
-	AttributionReportingIssueTypeInvalidAttributionSourceEventID           AttributionReportingIssueType = "InvalidAttributionSourceEventId"
-	AttributionReportingIssueTypeInvalidAttributionData                    AttributionReportingIssueType = "InvalidAttributionData"
-	AttributionReportingIssueTypeAttributionSourceUntrustworthyOrigin      AttributionReportingIssueType = "AttributionSourceUntrustworthyOrigin"
-	AttributionReportingIssueTypeAttributionUntrustworthyOrigin            AttributionReportingIssueType = "AttributionUntrustworthyOrigin"
-	AttributionReportingIssueTypeAttributionTriggerDataTooLarge            AttributionReportingIssueType = "AttributionTriggerDataTooLarge"
-	AttributionReportingIssueTypeAttributionEventSourceTriggerDataTooLarge AttributionReportingIssueType = "AttributionEventSourceTriggerDataTooLarge"
+	AttributionReportingIssueTypePermissionPolicyDisabled     AttributionReportingIssueType = "PermissionPolicyDisabled"
+	AttributionReportingIssueTypePermissionPolicyNotDelegated AttributionReportingIssueType = "PermissionPolicyNotDelegated"
+	AttributionReportingIssueTypeUntrustworthyReportingOrigin AttributionReportingIssueType = "UntrustworthyReportingOrigin"
+	AttributionReportingIssueTypeInsecureContext              AttributionReportingIssueType = "InsecureContext"
+	AttributionReportingIssueTypeInvalidHeader                AttributionReportingIssueType = "InvalidHeader"
+	AttributionReportingIssueTypeInvalidRegisterTriggerHeader AttributionReportingIssueType = "InvalidRegisterTriggerHeader"
+	AttributionReportingIssueTypeInvalidEligibleHeader        AttributionReportingIssueType = "InvalidEligibleHeader"
+	AttributionReportingIssueTypeTooManyConcurrentRequests    AttributionReportingIssueType = "TooManyConcurrentRequests"
+	AttributionReportingIssueTypeSourceAndTriggerHeaders      AttributionReportingIssueType = "SourceAndTriggerHeaders"
+	AttributionReportingIssueTypeSourceIgnored                AttributionReportingIssueType = "SourceIgnored"
+	AttributionReportingIssueTypeTriggerIgnored               AttributionReportingIssueType = "TriggerIgnored"
 )
 
 // MarshalEasyJSON satisfies easyjson.Marshaler.
@@ -810,18 +829,26 @@ func (t *AttributionReportingIssueType) UnmarshalEasyJSON(in *jlexer.Lexer) {
 	switch AttributionReportingIssueType(in.String()) {
 	case AttributionReportingIssueTypePermissionPolicyDisabled:
 		*t = AttributionReportingIssueTypePermissionPolicyDisabled
-	case AttributionReportingIssueTypeInvalidAttributionSourceEventID:
-		*t = AttributionReportingIssueTypeInvalidAttributionSourceEventID
-	case AttributionReportingIssueTypeInvalidAttributionData:
-		*t = AttributionReportingIssueTypeInvalidAttributionData
-	case AttributionReportingIssueTypeAttributionSourceUntrustworthyOrigin:
-		*t = AttributionReportingIssueTypeAttributionSourceUntrustworthyOrigin
-	case AttributionReportingIssueTypeAttributionUntrustworthyOrigin:
-		*t = AttributionReportingIssueTypeAttributionUntrustworthyOrigin
-	case AttributionReportingIssueTypeAttributionTriggerDataTooLarge:
-		*t = AttributionReportingIssueTypeAttributionTriggerDataTooLarge
-	case AttributionReportingIssueTypeAttributionEventSourceTriggerDataTooLarge:
-		*t = AttributionReportingIssueTypeAttributionEventSourceTriggerDataTooLarge
+	case AttributionReportingIssueTypePermissionPolicyNotDelegated:
+		*t = AttributionReportingIssueTypePermissionPolicyNotDelegated
+	case AttributionReportingIssueTypeUntrustworthyReportingOrigin:
+		*t = AttributionReportingIssueTypeUntrustworthyReportingOrigin
+	case AttributionReportingIssueTypeInsecureContext:
+		*t = AttributionReportingIssueTypeInsecureContext
+	case AttributionReportingIssueTypeInvalidHeader:
+		*t = AttributionReportingIssueTypeInvalidHeader
+	case AttributionReportingIssueTypeInvalidRegisterTriggerHeader:
+		*t = AttributionReportingIssueTypeInvalidRegisterTriggerHeader
+	case AttributionReportingIssueTypeInvalidEligibleHeader:
+		*t = AttributionReportingIssueTypeInvalidEligibleHeader
+	case AttributionReportingIssueTypeTooManyConcurrentRequests:
+		*t = AttributionReportingIssueTypeTooManyConcurrentRequests
+	case AttributionReportingIssueTypeSourceAndTriggerHeaders:
+		*t = AttributionReportingIssueTypeSourceAndTriggerHeaders
+	case AttributionReportingIssueTypeSourceIgnored:
+		*t = AttributionReportingIssueTypeSourceIgnored
+	case AttributionReportingIssueTypeTriggerIgnored:
+		*t = AttributionReportingIssueTypeTriggerIgnored
 
 	default:
 		in.AddError(errors.New("unknown AttributionReportingIssueType value"))
@@ -835,12 +862,11 @@ func (t *AttributionReportingIssueType) UnmarshalJSON(buf []byte) error {
 
 // AttributionReportingIssueDetails details for issues around "Attribution
 // Reporting API" usage. Explainer:
-// https://github.com/WICG/conversion-measurement-api.
+// https://github.com/WICG/attribution-reporting-api.
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-AttributionReportingIssueDetails
 type AttributionReportingIssueDetails struct {
 	ViolationType    AttributionReportingIssueType `json:"violationType"`
-	Frame            *AffectedFrame                `json:"frame,omitempty"`
 	Request          *AffectedRequest              `json:"request,omitempty"`
 	ViolatingNodeID  cdp.BackendNodeID             `json:"violatingNodeId,omitempty"`
 	InvalidParameter string                        `json:"invalidParameter,omitempty"`
@@ -866,14 +892,452 @@ type NavigatorUserAgentIssueDetails struct {
 	Location *SourceCodeLocation `json:"location,omitempty"`
 }
 
-// WasmCrossOriginModuleSharingIssueDetails [no description].
+// GenericIssueErrorType [no description].
 //
-// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-WasmCrossOriginModuleSharingIssueDetails
-type WasmCrossOriginModuleSharingIssueDetails struct {
-	WasmModuleURL string `json:"wasmModuleUrl"`
-	SourceOrigin  string `json:"sourceOrigin"`
-	TargetOrigin  string `json:"targetOrigin"`
-	IsWarning     bool   `json:"isWarning"`
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-GenericIssueErrorType
+type GenericIssueErrorType string
+
+// String returns the GenericIssueErrorType as string value.
+func (t GenericIssueErrorType) String() string {
+	return string(t)
+}
+
+// GenericIssueErrorType values.
+const (
+	GenericIssueErrorTypeCrossOriginPortalPostMessageError GenericIssueErrorType = "CrossOriginPortalPostMessageError"
+)
+
+// MarshalEasyJSON satisfies easyjson.Marshaler.
+func (t GenericIssueErrorType) MarshalEasyJSON(out *jwriter.Writer) {
+	out.String(string(t))
+}
+
+// MarshalJSON satisfies json.Marshaler.
+func (t GenericIssueErrorType) MarshalJSON() ([]byte, error) {
+	return easyjson.Marshal(t)
+}
+
+// UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
+func (t *GenericIssueErrorType) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	switch GenericIssueErrorType(in.String()) {
+	case GenericIssueErrorTypeCrossOriginPortalPostMessageError:
+		*t = GenericIssueErrorTypeCrossOriginPortalPostMessageError
+
+	default:
+		in.AddError(errors.New("unknown GenericIssueErrorType value"))
+	}
+}
+
+// UnmarshalJSON satisfies json.Unmarshaler.
+func (t *GenericIssueErrorType) UnmarshalJSON(buf []byte) error {
+	return easyjson.Unmarshal(buf, t)
+}
+
+// GenericIssueDetails depending on the concrete errorType, different
+// properties are set.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-GenericIssueDetails
+type GenericIssueDetails struct {
+	ErrorType GenericIssueErrorType `json:"errorType"` // Issues with the same errorType are aggregated in the frontend.
+	FrameID   cdp.FrameID           `json:"frameId,omitempty"`
+}
+
+// DeprecationIssueType [no description].
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-DeprecationIssueType
+type DeprecationIssueType string
+
+// String returns the DeprecationIssueType as string value.
+func (t DeprecationIssueType) String() string {
+	return string(t)
+}
+
+// DeprecationIssueType values.
+const (
+	DeprecationIssueTypeAuthorizationCoveredByWildcard                            DeprecationIssueType = "AuthorizationCoveredByWildcard"
+	DeprecationIssueTypeCanRequestURLHTTPContainingNewline                        DeprecationIssueType = "CanRequestURLHTTPContainingNewline"
+	DeprecationIssueTypeChromeLoadTimesConnectionInfo                             DeprecationIssueType = "ChromeLoadTimesConnectionInfo"
+	DeprecationIssueTypeChromeLoadTimesFirstPaintAfterLoadTime                    DeprecationIssueType = "ChromeLoadTimesFirstPaintAfterLoadTime"
+	DeprecationIssueTypeChromeLoadTimesWasAlternateProtocolAvailable              DeprecationIssueType = "ChromeLoadTimesWasAlternateProtocolAvailable"
+	DeprecationIssueTypeCookieWithTruncatingChar                                  DeprecationIssueType = "CookieWithTruncatingChar"
+	DeprecationIssueTypeCrossOriginAccessBasedOnDocumentDomain                    DeprecationIssueType = "CrossOriginAccessBasedOnDocumentDomain"
+	DeprecationIssueTypeCrossOriginWindowAlert                                    DeprecationIssueType = "CrossOriginWindowAlert"
+	DeprecationIssueTypeCrossOriginWindowConfirm                                  DeprecationIssueType = "CrossOriginWindowConfirm"
+	DeprecationIssueTypeCSSSelectorInternalMediaControlsOverlayCastButton         DeprecationIssueType = "CSSSelectorInternalMediaControlsOverlayCastButton"
+	DeprecationIssueTypeDeprecationExample                                        DeprecationIssueType = "DeprecationExample"
+	DeprecationIssueTypeDocumentDomainSettingWithoutOriginAgentClusterHeader      DeprecationIssueType = "DocumentDomainSettingWithoutOriginAgentClusterHeader"
+	DeprecationIssueTypeEventPath                                                 DeprecationIssueType = "EventPath"
+	DeprecationIssueTypeExpectCTHeader                                            DeprecationIssueType = "ExpectCTHeader"
+	DeprecationIssueTypeGeolocationInsecureOrigin                                 DeprecationIssueType = "GeolocationInsecureOrigin"
+	DeprecationIssueTypeGeolocationInsecureOriginDeprecatedNotRemoved             DeprecationIssueType = "GeolocationInsecureOriginDeprecatedNotRemoved"
+	DeprecationIssueTypeGetUserMediaInsecureOrigin                                DeprecationIssueType = "GetUserMediaInsecureOrigin"
+	DeprecationIssueTypeHostCandidateAttributeGetter                              DeprecationIssueType = "HostCandidateAttributeGetter"
+	DeprecationIssueTypeIdentityInCanMakePaymentEvent                             DeprecationIssueType = "IdentityInCanMakePaymentEvent"
+	DeprecationIssueTypeInsecurePrivateNetworkSubresourceRequest                  DeprecationIssueType = "InsecurePrivateNetworkSubresourceRequest"
+	DeprecationIssueTypeLegacyConstraintGoogIPV6                                  DeprecationIssueType = "LegacyConstraintGoogIPv6"
+	DeprecationIssueTypeLocalCSSFileExtensionRejected                             DeprecationIssueType = "LocalCSSFileExtensionRejected"
+	DeprecationIssueTypeMediaSourceAbortRemove                                    DeprecationIssueType = "MediaSourceAbortRemove"
+	DeprecationIssueTypeMediaSourceDurationTruncatingBuffered                     DeprecationIssueType = "MediaSourceDurationTruncatingBuffered"
+	DeprecationIssueTypeNavigateEventRestoreScroll                                DeprecationIssueType = "NavigateEventRestoreScroll"
+	DeprecationIssueTypeNavigateEventTransitionWhile                              DeprecationIssueType = "NavigateEventTransitionWhile"
+	DeprecationIssueTypeNoSysexWebMIDIWithoutPermission                           DeprecationIssueType = "NoSysexWebMIDIWithoutPermission"
+	DeprecationIssueTypeNotificationInsecureOrigin                                DeprecationIssueType = "NotificationInsecureOrigin"
+	DeprecationIssueTypeNotificationPermissionRequestedIframe                     DeprecationIssueType = "NotificationPermissionRequestedIframe"
+	DeprecationIssueTypeObsoleteWebRtcCipherSuite                                 DeprecationIssueType = "ObsoleteWebRtcCipherSuite"
+	DeprecationIssueTypeOpenWebDatabaseInsecureContext                            DeprecationIssueType = "OpenWebDatabaseInsecureContext"
+	DeprecationIssueTypeOverflowVisibleOnReplacedElement                          DeprecationIssueType = "OverflowVisibleOnReplacedElement"
+	DeprecationIssueTypePersistentQuotaType                                       DeprecationIssueType = "PersistentQuotaType"
+	DeprecationIssueTypePictureSourceSrc                                          DeprecationIssueType = "PictureSourceSrc"
+	DeprecationIssueTypePrefixedCancelAnimationFrame                              DeprecationIssueType = "PrefixedCancelAnimationFrame"
+	DeprecationIssueTypePrefixedRequestAnimationFrame                             DeprecationIssueType = "PrefixedRequestAnimationFrame"
+	DeprecationIssueTypePrefixedStorageInfo                                       DeprecationIssueType = "PrefixedStorageInfo"
+	DeprecationIssueTypePrefixedVideoDisplayingFullscreen                         DeprecationIssueType = "PrefixedVideoDisplayingFullscreen"
+	DeprecationIssueTypePrefixedVideoEnterFullscreen                              DeprecationIssueType = "PrefixedVideoEnterFullscreen"
+	DeprecationIssueTypePrefixedVideoEnterFullScreen                              DeprecationIssueType = "PrefixedVideoEnterFullScreen"
+	DeprecationIssueTypePrefixedVideoExitFullscreen                               DeprecationIssueType = "PrefixedVideoExitFullscreen"
+	DeprecationIssueTypePrefixedVideoExitFullScreen                               DeprecationIssueType = "PrefixedVideoExitFullScreen"
+	DeprecationIssueTypePrefixedVideoSupportsFullscreen                           DeprecationIssueType = "PrefixedVideoSupportsFullscreen"
+	DeprecationIssueTypeRangeExpand                                               DeprecationIssueType = "RangeExpand"
+	DeprecationIssueTypeRequestedSubresourceWithEmbeddedCredentials               DeprecationIssueType = "RequestedSubresourceWithEmbeddedCredentials"
+	DeprecationIssueTypeRTCConstraintEnableDtlsSrtpFalse                          DeprecationIssueType = "RTCConstraintEnableDtlsSrtpFalse"
+	DeprecationIssueTypeRTCConstraintEnableDtlsSrtpTrue                           DeprecationIssueType = "RTCConstraintEnableDtlsSrtpTrue"
+	DeprecationIssueTypeRTCPeerConnectionComplexPlanBSdpUsingDefaultSdpSemantics  DeprecationIssueType = "RTCPeerConnectionComplexPlanBSdpUsingDefaultSdpSemantics"
+	DeprecationIssueTypeRTCPeerConnectionSdpSemanticsPlanB                        DeprecationIssueType = "RTCPeerConnectionSdpSemanticsPlanB"
+	DeprecationIssueTypeRtcpMuxPolicyNegotiate                                    DeprecationIssueType = "RtcpMuxPolicyNegotiate"
+	DeprecationIssueTypeSharedArrayBufferConstructedWithoutIsolation              DeprecationIssueType = "SharedArrayBufferConstructedWithoutIsolation"
+	DeprecationIssueTypeTextToSpeechDisallowedByAutoplay                          DeprecationIssueType = "TextToSpeech_DisallowedByAutoplay"
+	DeprecationIssueTypeV8sharedArrayBufferConstructedInExtensionWithoutIsolation DeprecationIssueType = "V8SharedArrayBufferConstructedInExtensionWithoutIsolation"
+	DeprecationIssueTypeXHRJSONEncodingDetection                                  DeprecationIssueType = "XHRJSONEncodingDetection"
+	DeprecationIssueTypeXMLHTTPRequestSynchronousInNonWorkerOutsideBeforeUnload   DeprecationIssueType = "XMLHttpRequestSynchronousInNonWorkerOutsideBeforeUnload"
+	DeprecationIssueTypeXRSupportsSession                                         DeprecationIssueType = "XRSupportsSession"
+)
+
+// MarshalEasyJSON satisfies easyjson.Marshaler.
+func (t DeprecationIssueType) MarshalEasyJSON(out *jwriter.Writer) {
+	out.String(string(t))
+}
+
+// MarshalJSON satisfies json.Marshaler.
+func (t DeprecationIssueType) MarshalJSON() ([]byte, error) {
+	return easyjson.Marshal(t)
+}
+
+// UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
+func (t *DeprecationIssueType) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	switch DeprecationIssueType(in.String()) {
+	case DeprecationIssueTypeAuthorizationCoveredByWildcard:
+		*t = DeprecationIssueTypeAuthorizationCoveredByWildcard
+	case DeprecationIssueTypeCanRequestURLHTTPContainingNewline:
+		*t = DeprecationIssueTypeCanRequestURLHTTPContainingNewline
+	case DeprecationIssueTypeChromeLoadTimesConnectionInfo:
+		*t = DeprecationIssueTypeChromeLoadTimesConnectionInfo
+	case DeprecationIssueTypeChromeLoadTimesFirstPaintAfterLoadTime:
+		*t = DeprecationIssueTypeChromeLoadTimesFirstPaintAfterLoadTime
+	case DeprecationIssueTypeChromeLoadTimesWasAlternateProtocolAvailable:
+		*t = DeprecationIssueTypeChromeLoadTimesWasAlternateProtocolAvailable
+	case DeprecationIssueTypeCookieWithTruncatingChar:
+		*t = DeprecationIssueTypeCookieWithTruncatingChar
+	case DeprecationIssueTypeCrossOriginAccessBasedOnDocumentDomain:
+		*t = DeprecationIssueTypeCrossOriginAccessBasedOnDocumentDomain
+	case DeprecationIssueTypeCrossOriginWindowAlert:
+		*t = DeprecationIssueTypeCrossOriginWindowAlert
+	case DeprecationIssueTypeCrossOriginWindowConfirm:
+		*t = DeprecationIssueTypeCrossOriginWindowConfirm
+	case DeprecationIssueTypeCSSSelectorInternalMediaControlsOverlayCastButton:
+		*t = DeprecationIssueTypeCSSSelectorInternalMediaControlsOverlayCastButton
+	case DeprecationIssueTypeDeprecationExample:
+		*t = DeprecationIssueTypeDeprecationExample
+	case DeprecationIssueTypeDocumentDomainSettingWithoutOriginAgentClusterHeader:
+		*t = DeprecationIssueTypeDocumentDomainSettingWithoutOriginAgentClusterHeader
+	case DeprecationIssueTypeEventPath:
+		*t = DeprecationIssueTypeEventPath
+	case DeprecationIssueTypeExpectCTHeader:
+		*t = DeprecationIssueTypeExpectCTHeader
+	case DeprecationIssueTypeGeolocationInsecureOrigin:
+		*t = DeprecationIssueTypeGeolocationInsecureOrigin
+	case DeprecationIssueTypeGeolocationInsecureOriginDeprecatedNotRemoved:
+		*t = DeprecationIssueTypeGeolocationInsecureOriginDeprecatedNotRemoved
+	case DeprecationIssueTypeGetUserMediaInsecureOrigin:
+		*t = DeprecationIssueTypeGetUserMediaInsecureOrigin
+	case DeprecationIssueTypeHostCandidateAttributeGetter:
+		*t = DeprecationIssueTypeHostCandidateAttributeGetter
+	case DeprecationIssueTypeIdentityInCanMakePaymentEvent:
+		*t = DeprecationIssueTypeIdentityInCanMakePaymentEvent
+	case DeprecationIssueTypeInsecurePrivateNetworkSubresourceRequest:
+		*t = DeprecationIssueTypeInsecurePrivateNetworkSubresourceRequest
+	case DeprecationIssueTypeLegacyConstraintGoogIPV6:
+		*t = DeprecationIssueTypeLegacyConstraintGoogIPV6
+	case DeprecationIssueTypeLocalCSSFileExtensionRejected:
+		*t = DeprecationIssueTypeLocalCSSFileExtensionRejected
+	case DeprecationIssueTypeMediaSourceAbortRemove:
+		*t = DeprecationIssueTypeMediaSourceAbortRemove
+	case DeprecationIssueTypeMediaSourceDurationTruncatingBuffered:
+		*t = DeprecationIssueTypeMediaSourceDurationTruncatingBuffered
+	case DeprecationIssueTypeNavigateEventRestoreScroll:
+		*t = DeprecationIssueTypeNavigateEventRestoreScroll
+	case DeprecationIssueTypeNavigateEventTransitionWhile:
+		*t = DeprecationIssueTypeNavigateEventTransitionWhile
+	case DeprecationIssueTypeNoSysexWebMIDIWithoutPermission:
+		*t = DeprecationIssueTypeNoSysexWebMIDIWithoutPermission
+	case DeprecationIssueTypeNotificationInsecureOrigin:
+		*t = DeprecationIssueTypeNotificationInsecureOrigin
+	case DeprecationIssueTypeNotificationPermissionRequestedIframe:
+		*t = DeprecationIssueTypeNotificationPermissionRequestedIframe
+	case DeprecationIssueTypeObsoleteWebRtcCipherSuite:
+		*t = DeprecationIssueTypeObsoleteWebRtcCipherSuite
+	case DeprecationIssueTypeOpenWebDatabaseInsecureContext:
+		*t = DeprecationIssueTypeOpenWebDatabaseInsecureContext
+	case DeprecationIssueTypeOverflowVisibleOnReplacedElement:
+		*t = DeprecationIssueTypeOverflowVisibleOnReplacedElement
+	case DeprecationIssueTypePersistentQuotaType:
+		*t = DeprecationIssueTypePersistentQuotaType
+	case DeprecationIssueTypePictureSourceSrc:
+		*t = DeprecationIssueTypePictureSourceSrc
+	case DeprecationIssueTypePrefixedCancelAnimationFrame:
+		*t = DeprecationIssueTypePrefixedCancelAnimationFrame
+	case DeprecationIssueTypePrefixedRequestAnimationFrame:
+		*t = DeprecationIssueTypePrefixedRequestAnimationFrame
+	case DeprecationIssueTypePrefixedStorageInfo:
+		*t = DeprecationIssueTypePrefixedStorageInfo
+	case DeprecationIssueTypePrefixedVideoDisplayingFullscreen:
+		*t = DeprecationIssueTypePrefixedVideoDisplayingFullscreen
+	case DeprecationIssueTypePrefixedVideoEnterFullscreen:
+		*t = DeprecationIssueTypePrefixedVideoEnterFullscreen
+	case DeprecationIssueTypePrefixedVideoEnterFullScreen:
+		*t = DeprecationIssueTypePrefixedVideoEnterFullScreen
+	case DeprecationIssueTypePrefixedVideoExitFullscreen:
+		*t = DeprecationIssueTypePrefixedVideoExitFullscreen
+	case DeprecationIssueTypePrefixedVideoExitFullScreen:
+		*t = DeprecationIssueTypePrefixedVideoExitFullScreen
+	case DeprecationIssueTypePrefixedVideoSupportsFullscreen:
+		*t = DeprecationIssueTypePrefixedVideoSupportsFullscreen
+	case DeprecationIssueTypeRangeExpand:
+		*t = DeprecationIssueTypeRangeExpand
+	case DeprecationIssueTypeRequestedSubresourceWithEmbeddedCredentials:
+		*t = DeprecationIssueTypeRequestedSubresourceWithEmbeddedCredentials
+	case DeprecationIssueTypeRTCConstraintEnableDtlsSrtpFalse:
+		*t = DeprecationIssueTypeRTCConstraintEnableDtlsSrtpFalse
+	case DeprecationIssueTypeRTCConstraintEnableDtlsSrtpTrue:
+		*t = DeprecationIssueTypeRTCConstraintEnableDtlsSrtpTrue
+	case DeprecationIssueTypeRTCPeerConnectionComplexPlanBSdpUsingDefaultSdpSemantics:
+		*t = DeprecationIssueTypeRTCPeerConnectionComplexPlanBSdpUsingDefaultSdpSemantics
+	case DeprecationIssueTypeRTCPeerConnectionSdpSemanticsPlanB:
+		*t = DeprecationIssueTypeRTCPeerConnectionSdpSemanticsPlanB
+	case DeprecationIssueTypeRtcpMuxPolicyNegotiate:
+		*t = DeprecationIssueTypeRtcpMuxPolicyNegotiate
+	case DeprecationIssueTypeSharedArrayBufferConstructedWithoutIsolation:
+		*t = DeprecationIssueTypeSharedArrayBufferConstructedWithoutIsolation
+	case DeprecationIssueTypeTextToSpeechDisallowedByAutoplay:
+		*t = DeprecationIssueTypeTextToSpeechDisallowedByAutoplay
+	case DeprecationIssueTypeV8sharedArrayBufferConstructedInExtensionWithoutIsolation:
+		*t = DeprecationIssueTypeV8sharedArrayBufferConstructedInExtensionWithoutIsolation
+	case DeprecationIssueTypeXHRJSONEncodingDetection:
+		*t = DeprecationIssueTypeXHRJSONEncodingDetection
+	case DeprecationIssueTypeXMLHTTPRequestSynchronousInNonWorkerOutsideBeforeUnload:
+		*t = DeprecationIssueTypeXMLHTTPRequestSynchronousInNonWorkerOutsideBeforeUnload
+	case DeprecationIssueTypeXRSupportsSession:
+		*t = DeprecationIssueTypeXRSupportsSession
+
+	default:
+		in.AddError(errors.New("unknown DeprecationIssueType value"))
+	}
+}
+
+// UnmarshalJSON satisfies json.Unmarshaler.
+func (t *DeprecationIssueType) UnmarshalJSON(buf []byte) error {
+	return easyjson.Unmarshal(buf, t)
+}
+
+// DeprecationIssueDetails this issue tracks information needed to print a
+// deprecation message.
+// https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/frame/third_party/blink/renderer/core/frame/deprecation/README.md.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-DeprecationIssueDetails
+type DeprecationIssueDetails struct {
+	AffectedFrame      *AffectedFrame       `json:"affectedFrame,omitempty"`
+	SourceCodeLocation *SourceCodeLocation  `json:"sourceCodeLocation"`
+	Type               DeprecationIssueType `json:"type"`
+}
+
+// ClientHintIssueReason [no description].
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-ClientHintIssueReason
+type ClientHintIssueReason string
+
+// String returns the ClientHintIssueReason as string value.
+func (t ClientHintIssueReason) String() string {
+	return string(t)
+}
+
+// ClientHintIssueReason values.
+const (
+	ClientHintIssueReasonMetaTagAllowListInvalidOrigin ClientHintIssueReason = "MetaTagAllowListInvalidOrigin"
+	ClientHintIssueReasonMetaTagModifiedHTML           ClientHintIssueReason = "MetaTagModifiedHTML"
+)
+
+// MarshalEasyJSON satisfies easyjson.Marshaler.
+func (t ClientHintIssueReason) MarshalEasyJSON(out *jwriter.Writer) {
+	out.String(string(t))
+}
+
+// MarshalJSON satisfies json.Marshaler.
+func (t ClientHintIssueReason) MarshalJSON() ([]byte, error) {
+	return easyjson.Marshal(t)
+}
+
+// UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
+func (t *ClientHintIssueReason) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	switch ClientHintIssueReason(in.String()) {
+	case ClientHintIssueReasonMetaTagAllowListInvalidOrigin:
+		*t = ClientHintIssueReasonMetaTagAllowListInvalidOrigin
+	case ClientHintIssueReasonMetaTagModifiedHTML:
+		*t = ClientHintIssueReasonMetaTagModifiedHTML
+
+	default:
+		in.AddError(errors.New("unknown ClientHintIssueReason value"))
+	}
+}
+
+// UnmarshalJSON satisfies json.Unmarshaler.
+func (t *ClientHintIssueReason) UnmarshalJSON(buf []byte) error {
+	return easyjson.Unmarshal(buf, t)
+}
+
+// FederatedAuthRequestIssueDetails [no description].
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-FederatedAuthRequestIssueDetails
+type FederatedAuthRequestIssueDetails struct {
+	FederatedAuthRequestIssueReason FederatedAuthRequestIssueReason `json:"federatedAuthRequestIssueReason"`
+}
+
+// FederatedAuthRequestIssueReason represents the failure reason when a
+// federated authentication reason fails. Should be updated alongside
+// RequestIdTokenStatus in
+// third_party/blink/public/mojom/devtools/inspector_issue.mojom to include all
+// cases except for success.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-FederatedAuthRequestIssueReason
+type FederatedAuthRequestIssueReason string
+
+// String returns the FederatedAuthRequestIssueReason as string value.
+func (t FederatedAuthRequestIssueReason) String() string {
+	return string(t)
+}
+
+// FederatedAuthRequestIssueReason values.
+const (
+	FederatedAuthRequestIssueReasonShouldEmbargo                 FederatedAuthRequestIssueReason = "ShouldEmbargo"
+	FederatedAuthRequestIssueReasonTooManyRequests               FederatedAuthRequestIssueReason = "TooManyRequests"
+	FederatedAuthRequestIssueReasonManifestListHTTPNotFound      FederatedAuthRequestIssueReason = "ManifestListHttpNotFound"
+	FederatedAuthRequestIssueReasonManifestListNoResponse        FederatedAuthRequestIssueReason = "ManifestListNoResponse"
+	FederatedAuthRequestIssueReasonManifestListInvalidResponse   FederatedAuthRequestIssueReason = "ManifestListInvalidResponse"
+	FederatedAuthRequestIssueReasonManifestNotInManifestList     FederatedAuthRequestIssueReason = "ManifestNotInManifestList"
+	FederatedAuthRequestIssueReasonManifestListTooBig            FederatedAuthRequestIssueReason = "ManifestListTooBig"
+	FederatedAuthRequestIssueReasonManifestHTTPNotFound          FederatedAuthRequestIssueReason = "ManifestHttpNotFound"
+	FederatedAuthRequestIssueReasonManifestNoResponse            FederatedAuthRequestIssueReason = "ManifestNoResponse"
+	FederatedAuthRequestIssueReasonManifestInvalidResponse       FederatedAuthRequestIssueReason = "ManifestInvalidResponse"
+	FederatedAuthRequestIssueReasonClientMetadataHTTPNotFound    FederatedAuthRequestIssueReason = "ClientMetadataHttpNotFound"
+	FederatedAuthRequestIssueReasonClientMetadataNoResponse      FederatedAuthRequestIssueReason = "ClientMetadataNoResponse"
+	FederatedAuthRequestIssueReasonClientMetadataInvalidResponse FederatedAuthRequestIssueReason = "ClientMetadataInvalidResponse"
+	FederatedAuthRequestIssueReasonDisabledInSettings            FederatedAuthRequestIssueReason = "DisabledInSettings"
+	FederatedAuthRequestIssueReasonErrorFetchingSignin           FederatedAuthRequestIssueReason = "ErrorFetchingSignin"
+	FederatedAuthRequestIssueReasonInvalidSigninResponse         FederatedAuthRequestIssueReason = "InvalidSigninResponse"
+	FederatedAuthRequestIssueReasonAccountsHTTPNotFound          FederatedAuthRequestIssueReason = "AccountsHttpNotFound"
+	FederatedAuthRequestIssueReasonAccountsNoResponse            FederatedAuthRequestIssueReason = "AccountsNoResponse"
+	FederatedAuthRequestIssueReasonAccountsInvalidResponse       FederatedAuthRequestIssueReason = "AccountsInvalidResponse"
+	FederatedAuthRequestIssueReasonIDTokenHTTPNotFound           FederatedAuthRequestIssueReason = "IdTokenHttpNotFound"
+	FederatedAuthRequestIssueReasonIDTokenNoResponse             FederatedAuthRequestIssueReason = "IdTokenNoResponse"
+	FederatedAuthRequestIssueReasonIDTokenInvalidResponse        FederatedAuthRequestIssueReason = "IdTokenInvalidResponse"
+	FederatedAuthRequestIssueReasonIDTokenInvalidRequest         FederatedAuthRequestIssueReason = "IdTokenInvalidRequest"
+	FederatedAuthRequestIssueReasonErrorIDToken                  FederatedAuthRequestIssueReason = "ErrorIdToken"
+	FederatedAuthRequestIssueReasonCanceled                      FederatedAuthRequestIssueReason = "Canceled"
+	FederatedAuthRequestIssueReasonRpPageNotVisible              FederatedAuthRequestIssueReason = "RpPageNotVisible"
+)
+
+// MarshalEasyJSON satisfies easyjson.Marshaler.
+func (t FederatedAuthRequestIssueReason) MarshalEasyJSON(out *jwriter.Writer) {
+	out.String(string(t))
+}
+
+// MarshalJSON satisfies json.Marshaler.
+func (t FederatedAuthRequestIssueReason) MarshalJSON() ([]byte, error) {
+	return easyjson.Marshal(t)
+}
+
+// UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
+func (t *FederatedAuthRequestIssueReason) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	switch FederatedAuthRequestIssueReason(in.String()) {
+	case FederatedAuthRequestIssueReasonShouldEmbargo:
+		*t = FederatedAuthRequestIssueReasonShouldEmbargo
+	case FederatedAuthRequestIssueReasonTooManyRequests:
+		*t = FederatedAuthRequestIssueReasonTooManyRequests
+	case FederatedAuthRequestIssueReasonManifestListHTTPNotFound:
+		*t = FederatedAuthRequestIssueReasonManifestListHTTPNotFound
+	case FederatedAuthRequestIssueReasonManifestListNoResponse:
+		*t = FederatedAuthRequestIssueReasonManifestListNoResponse
+	case FederatedAuthRequestIssueReasonManifestListInvalidResponse:
+		*t = FederatedAuthRequestIssueReasonManifestListInvalidResponse
+	case FederatedAuthRequestIssueReasonManifestNotInManifestList:
+		*t = FederatedAuthRequestIssueReasonManifestNotInManifestList
+	case FederatedAuthRequestIssueReasonManifestListTooBig:
+		*t = FederatedAuthRequestIssueReasonManifestListTooBig
+	case FederatedAuthRequestIssueReasonManifestHTTPNotFound:
+		*t = FederatedAuthRequestIssueReasonManifestHTTPNotFound
+	case FederatedAuthRequestIssueReasonManifestNoResponse:
+		*t = FederatedAuthRequestIssueReasonManifestNoResponse
+	case FederatedAuthRequestIssueReasonManifestInvalidResponse:
+		*t = FederatedAuthRequestIssueReasonManifestInvalidResponse
+	case FederatedAuthRequestIssueReasonClientMetadataHTTPNotFound:
+		*t = FederatedAuthRequestIssueReasonClientMetadataHTTPNotFound
+	case FederatedAuthRequestIssueReasonClientMetadataNoResponse:
+		*t = FederatedAuthRequestIssueReasonClientMetadataNoResponse
+	case FederatedAuthRequestIssueReasonClientMetadataInvalidResponse:
+		*t = FederatedAuthRequestIssueReasonClientMetadataInvalidResponse
+	case FederatedAuthRequestIssueReasonDisabledInSettings:
+		*t = FederatedAuthRequestIssueReasonDisabledInSettings
+	case FederatedAuthRequestIssueReasonErrorFetchingSignin:
+		*t = FederatedAuthRequestIssueReasonErrorFetchingSignin
+	case FederatedAuthRequestIssueReasonInvalidSigninResponse:
+		*t = FederatedAuthRequestIssueReasonInvalidSigninResponse
+	case FederatedAuthRequestIssueReasonAccountsHTTPNotFound:
+		*t = FederatedAuthRequestIssueReasonAccountsHTTPNotFound
+	case FederatedAuthRequestIssueReasonAccountsNoResponse:
+		*t = FederatedAuthRequestIssueReasonAccountsNoResponse
+	case FederatedAuthRequestIssueReasonAccountsInvalidResponse:
+		*t = FederatedAuthRequestIssueReasonAccountsInvalidResponse
+	case FederatedAuthRequestIssueReasonIDTokenHTTPNotFound:
+		*t = FederatedAuthRequestIssueReasonIDTokenHTTPNotFound
+	case FederatedAuthRequestIssueReasonIDTokenNoResponse:
+		*t = FederatedAuthRequestIssueReasonIDTokenNoResponse
+	case FederatedAuthRequestIssueReasonIDTokenInvalidResponse:
+		*t = FederatedAuthRequestIssueReasonIDTokenInvalidResponse
+	case FederatedAuthRequestIssueReasonIDTokenInvalidRequest:
+		*t = FederatedAuthRequestIssueReasonIDTokenInvalidRequest
+	case FederatedAuthRequestIssueReasonErrorIDToken:
+		*t = FederatedAuthRequestIssueReasonErrorIDToken
+	case FederatedAuthRequestIssueReasonCanceled:
+		*t = FederatedAuthRequestIssueReasonCanceled
+	case FederatedAuthRequestIssueReasonRpPageNotVisible:
+		*t = FederatedAuthRequestIssueReasonRpPageNotVisible
+
+	default:
+		in.AddError(errors.New("unknown FederatedAuthRequestIssueReason value"))
+	}
+}
+
+// UnmarshalJSON satisfies json.Unmarshaler.
+func (t *FederatedAuthRequestIssueReason) UnmarshalJSON(buf []byte) error {
+	return easyjson.Unmarshal(buf, t)
+}
+
+// ClientHintIssueDetails this issue tracks client hints related issues. It's
+// used to deprecate old features, encourage the use of new ones, and provide
+// general guidance.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-ClientHintIssueDetails
+type ClientHintIssueDetails struct {
+	SourceCodeLocation    *SourceCodeLocation   `json:"sourceCodeLocation"`
+	ClientHintIssueReason ClientHintIssueReason `json:"clientHintIssueReason"`
 }
 
 // InspectorIssueCode a unique identifier for the type of issue. Each type
@@ -890,19 +1354,22 @@ func (t InspectorIssueCode) String() string {
 
 // InspectorIssueCode values.
 const (
-	InspectorIssueCodeSameSiteCookieIssue               InspectorIssueCode = "SameSiteCookieIssue"
-	InspectorIssueCodeMixedContentIssue                 InspectorIssueCode = "MixedContentIssue"
-	InspectorIssueCodeBlockedByResponseIssue            InspectorIssueCode = "BlockedByResponseIssue"
-	InspectorIssueCodeHeavyAdIssue                      InspectorIssueCode = "HeavyAdIssue"
-	InspectorIssueCodeContentSecurityPolicyIssue        InspectorIssueCode = "ContentSecurityPolicyIssue"
-	InspectorIssueCodeSharedArrayBufferIssue            InspectorIssueCode = "SharedArrayBufferIssue"
-	InspectorIssueCodeTrustedWebActivityIssue           InspectorIssueCode = "TrustedWebActivityIssue"
-	InspectorIssueCodeLowTextContrastIssue              InspectorIssueCode = "LowTextContrastIssue"
-	InspectorIssueCodeCorsIssue                         InspectorIssueCode = "CorsIssue"
-	InspectorIssueCodeAttributionReportingIssue         InspectorIssueCode = "AttributionReportingIssue"
-	InspectorIssueCodeQuirksModeIssue                   InspectorIssueCode = "QuirksModeIssue"
-	InspectorIssueCodeNavigatorUserAgentIssue           InspectorIssueCode = "NavigatorUserAgentIssue"
-	InspectorIssueCodeWasmCrossOriginModuleSharingIssue InspectorIssueCode = "WasmCrossOriginModuleSharingIssue"
+	InspectorIssueCodeCookieIssue                InspectorIssueCode = "CookieIssue"
+	InspectorIssueCodeMixedContentIssue          InspectorIssueCode = "MixedContentIssue"
+	InspectorIssueCodeBlockedByResponseIssue     InspectorIssueCode = "BlockedByResponseIssue"
+	InspectorIssueCodeHeavyAdIssue               InspectorIssueCode = "HeavyAdIssue"
+	InspectorIssueCodeContentSecurityPolicyIssue InspectorIssueCode = "ContentSecurityPolicyIssue"
+	InspectorIssueCodeSharedArrayBufferIssue     InspectorIssueCode = "SharedArrayBufferIssue"
+	InspectorIssueCodeTrustedWebActivityIssue    InspectorIssueCode = "TrustedWebActivityIssue"
+	InspectorIssueCodeLowTextContrastIssue       InspectorIssueCode = "LowTextContrastIssue"
+	InspectorIssueCodeCorsIssue                  InspectorIssueCode = "CorsIssue"
+	InspectorIssueCodeAttributionReportingIssue  InspectorIssueCode = "AttributionReportingIssue"
+	InspectorIssueCodeQuirksModeIssue            InspectorIssueCode = "QuirksModeIssue"
+	InspectorIssueCodeNavigatorUserAgentIssue    InspectorIssueCode = "NavigatorUserAgentIssue"
+	InspectorIssueCodeGenericIssue               InspectorIssueCode = "GenericIssue"
+	InspectorIssueCodeDeprecationIssue           InspectorIssueCode = "DeprecationIssue"
+	InspectorIssueCodeClientHintIssue            InspectorIssueCode = "ClientHintIssue"
+	InspectorIssueCodeFederatedAuthRequestIssue  InspectorIssueCode = "FederatedAuthRequestIssue"
 )
 
 // MarshalEasyJSON satisfies easyjson.Marshaler.
@@ -918,8 +1385,8 @@ func (t InspectorIssueCode) MarshalJSON() ([]byte, error) {
 // UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
 func (t *InspectorIssueCode) UnmarshalEasyJSON(in *jlexer.Lexer) {
 	switch InspectorIssueCode(in.String()) {
-	case InspectorIssueCodeSameSiteCookieIssue:
-		*t = InspectorIssueCodeSameSiteCookieIssue
+	case InspectorIssueCodeCookieIssue:
+		*t = InspectorIssueCodeCookieIssue
 	case InspectorIssueCodeMixedContentIssue:
 		*t = InspectorIssueCodeMixedContentIssue
 	case InspectorIssueCodeBlockedByResponseIssue:
@@ -942,8 +1409,14 @@ func (t *InspectorIssueCode) UnmarshalEasyJSON(in *jlexer.Lexer) {
 		*t = InspectorIssueCodeQuirksModeIssue
 	case InspectorIssueCodeNavigatorUserAgentIssue:
 		*t = InspectorIssueCodeNavigatorUserAgentIssue
-	case InspectorIssueCodeWasmCrossOriginModuleSharingIssue:
-		*t = InspectorIssueCodeWasmCrossOriginModuleSharingIssue
+	case InspectorIssueCodeGenericIssue:
+		*t = InspectorIssueCodeGenericIssue
+	case InspectorIssueCodeDeprecationIssue:
+		*t = InspectorIssueCodeDeprecationIssue
+	case InspectorIssueCodeClientHintIssue:
+		*t = InspectorIssueCodeClientHintIssue
+	case InspectorIssueCodeFederatedAuthRequestIssue:
+		*t = InspectorIssueCodeFederatedAuthRequestIssue
 
 	default:
 		in.AddError(errors.New("unknown InspectorIssueCode value"))
@@ -961,19 +1434,22 @@ func (t *InspectorIssueCode) UnmarshalJSON(buf []byte) error {
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Audits#type-InspectorIssueDetails
 type InspectorIssueDetails struct {
-	SameSiteCookieIssueDetails        *SameSiteCookieIssueDetails               `json:"sameSiteCookieIssueDetails,omitempty"`
-	MixedContentIssueDetails          *MixedContentIssueDetails                 `json:"mixedContentIssueDetails,omitempty"`
-	BlockedByResponseIssueDetails     *BlockedByResponseIssueDetails            `json:"blockedByResponseIssueDetails,omitempty"`
-	HeavyAdIssueDetails               *HeavyAdIssueDetails                      `json:"heavyAdIssueDetails,omitempty"`
-	ContentSecurityPolicyIssueDetails *ContentSecurityPolicyIssueDetails        `json:"contentSecurityPolicyIssueDetails,omitempty"`
-	SharedArrayBufferIssueDetails     *SharedArrayBufferIssueDetails            `json:"sharedArrayBufferIssueDetails,omitempty"`
-	TwaQualityEnforcementDetails      *TrustedWebActivityIssueDetails           `json:"twaQualityEnforcementDetails,omitempty"`
-	LowTextContrastIssueDetails       *LowTextContrastIssueDetails              `json:"lowTextContrastIssueDetails,omitempty"`
-	CorsIssueDetails                  *CorsIssueDetails                         `json:"corsIssueDetails,omitempty"`
-	AttributionReportingIssueDetails  *AttributionReportingIssueDetails         `json:"attributionReportingIssueDetails,omitempty"`
-	QuirksModeIssueDetails            *QuirksModeIssueDetails                   `json:"quirksModeIssueDetails,omitempty"`
-	NavigatorUserAgentIssueDetails    *NavigatorUserAgentIssueDetails           `json:"navigatorUserAgentIssueDetails,omitempty"`
-	WasmCrossOriginModuleSharingIssue *WasmCrossOriginModuleSharingIssueDetails `json:"wasmCrossOriginModuleSharingIssue,omitempty"`
+	CookieIssueDetails                *CookieIssueDetails                `json:"cookieIssueDetails,omitempty"`
+	MixedContentIssueDetails          *MixedContentIssueDetails          `json:"mixedContentIssueDetails,omitempty"`
+	BlockedByResponseIssueDetails     *BlockedByResponseIssueDetails     `json:"blockedByResponseIssueDetails,omitempty"`
+	HeavyAdIssueDetails               *HeavyAdIssueDetails               `json:"heavyAdIssueDetails,omitempty"`
+	ContentSecurityPolicyIssueDetails *ContentSecurityPolicyIssueDetails `json:"contentSecurityPolicyIssueDetails,omitempty"`
+	SharedArrayBufferIssueDetails     *SharedArrayBufferIssueDetails     `json:"sharedArrayBufferIssueDetails,omitempty"`
+	TwaQualityEnforcementDetails      *TrustedWebActivityIssueDetails    `json:"twaQualityEnforcementDetails,omitempty"`
+	LowTextContrastIssueDetails       *LowTextContrastIssueDetails       `json:"lowTextContrastIssueDetails,omitempty"`
+	CorsIssueDetails                  *CorsIssueDetails                  `json:"corsIssueDetails,omitempty"`
+	AttributionReportingIssueDetails  *AttributionReportingIssueDetails  `json:"attributionReportingIssueDetails,omitempty"`
+	QuirksModeIssueDetails            *QuirksModeIssueDetails            `json:"quirksModeIssueDetails,omitempty"`
+	NavigatorUserAgentIssueDetails    *NavigatorUserAgentIssueDetails    `json:"navigatorUserAgentIssueDetails,omitempty"`
+	GenericIssueDetails               *GenericIssueDetails               `json:"genericIssueDetails,omitempty"`
+	DeprecationIssueDetails           *DeprecationIssueDetails           `json:"deprecationIssueDetails,omitempty"`
+	ClientHintIssueDetails            *ClientHintIssueDetails            `json:"clientHintIssueDetails,omitempty"`
+	FederatedAuthRequestIssueDetails  *FederatedAuthRequestIssueDetails  `json:"federatedAuthRequestIssueDetails,omitempty"`
 }
 
 // IssueID a unique id for a DevTools inspector issue. Allows other entities

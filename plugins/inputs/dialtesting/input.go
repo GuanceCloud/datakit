@@ -22,12 +22,12 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
 var ( // type assertions
@@ -334,7 +334,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 		return err
 	}
 
-	l.Debugf(`dispatching %d tasks...`, len(resp.Content))
+	l.Infof(`dispatching %d tasks...`, len(resp.Content))
 
 	for k, arr := range resp.Content {
 		switch k {
@@ -388,7 +388,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 
 			switch k {
 			case dt.ClassHTTP:
-				t = &dt.HTTPTask{}
+				t = &dt.HTTPTask{Option: map[string]string{"userAgent": fmt.Sprintf("DataKit/%s dialtesting", datakit.Version)}}
 			case dt.ClassDNS:
 				// TODO
 				l.Warnf("DNS task deprecated, ignored")
@@ -464,6 +464,8 @@ func (d *Input) dispatchTasks(j []byte) error {
 			}
 		}
 	}
+
+	l.Debugf("current tasks: %+#v", d.curTasks)
 	return nil
 }
 

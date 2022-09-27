@@ -168,12 +168,11 @@ github.com/cenkalti/backoff/v4
 # github.com/cespare/xxhash/v2 v2.1.2
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/chromedp/cdproto v0.0.0-20210910012206-68626162910d
-## explicit; go 1.14
+# github.com/chromedp/cdproto v0.0.0-20220914223734-4ab9dc957c3e
+## explicit; go 1.18
 github.com/chromedp/cdproto
 github.com/chromedp/cdproto/accessibility
 github.com/chromedp/cdproto/animation
-github.com/chromedp/cdproto/applicationcache
 github.com/chromedp/cdproto/audits
 github.com/chromedp/cdproto/backgroundservice
 github.com/chromedp/cdproto/browser
@@ -189,6 +188,7 @@ github.com/chromedp/cdproto/domdebugger
 github.com/chromedp/cdproto/domsnapshot
 github.com/chromedp/cdproto/domstorage
 github.com/chromedp/cdproto/emulation
+github.com/chromedp/cdproto/eventbreakpoints
 github.com/chromedp/cdproto/fetch
 github.com/chromedp/cdproto/headlessexperimental
 github.com/chromedp/cdproto/heapprofiler
@@ -216,8 +216,8 @@ github.com/chromedp/cdproto/tethering
 github.com/chromedp/cdproto/tracing
 github.com/chromedp/cdproto/webaudio
 github.com/chromedp/cdproto/webauthn
-# github.com/chromedp/chromedp v0.7.4
-## explicit; go 1.16
+# github.com/chromedp/chromedp v0.8.5
+## explicit; go 1.18
 github.com/chromedp/chromedp
 github.com/chromedp/chromedp/device
 github.com/chromedp/chromedp/kb
@@ -563,7 +563,7 @@ github.com/go-logr/stdr
 ## explicit; go 1.12
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
-# github.com/go-ping/ping v0.0.0-20211130115550-779d1e919534
+# github.com/go-ping/ping v1.1.0
 ## explicit; go 1.14
 github.com/go-ping/ping
 # github.com/go-pkgz/expirable-cache v0.0.3
@@ -1100,9 +1100,10 @@ github.com/xdg-go/stringprep
 # github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 ## explicit
 github.com/youmark/pkcs8
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220926102006-136e465883c3
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220927061526-43fe7e602d5d
 ## explicit; go 1.18
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
+gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
@@ -1111,9 +1112,6 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220614080230-f0513877f006
-## explicit; go 1.13
-gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 # go.etcd.io/bbolt v1.3.5
 ## explicit; go 1.12
 go.etcd.io/bbolt
@@ -1312,7 +1310,7 @@ golang.org/x/oauth2/internal
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20220731174439-a90be440212d
+# golang.org/x/sys v0.0.0-20220825204002-c680a09ffe64
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs

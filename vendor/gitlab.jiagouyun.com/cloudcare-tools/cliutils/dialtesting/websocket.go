@@ -257,6 +257,7 @@ func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]
 		if succFlag && t.reqError == "" {
 			tags["status"] = "OK"
 			fields["success"] = int64(1)
+			message["response_time"] = responseTime
 		} else {
 			message[`fail_reason`] = strings.Join(reasons, `;`)
 			fields[`fail_reason`] = strings.Join(reasons, `;`)
@@ -266,7 +267,7 @@ func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]
 			message[`fail_reason`] = strings.Join(reasons, `;`)
 			fields[`fail_reason`] = strings.Join(reasons, `;`)
 		} else {
-			message["response_time_in_micros"] = responseTime
+			message["response_time"] = responseTime
 		}
 
 		if t.reqError == "" && len(reasons) == 0 {

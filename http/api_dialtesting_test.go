@@ -11,9 +11,9 @@ import (
 	"net/http"
 	"testing"
 
+	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
 type debugDialtestingMock struct{}

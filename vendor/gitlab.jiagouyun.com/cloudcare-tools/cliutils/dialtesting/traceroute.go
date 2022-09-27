@@ -30,20 +30,20 @@ type Response struct {
 
 // each retry response
 type RouteItem struct {
-	IP           string        `json:"ip"`
-	ResponseTime time.Duration `json:"response_time"`
+	IP           string  `json:"ip"`
+	ResponseTime float64 `json:"response_time"`
 }
 
 // route summary for each hop
 type Route struct {
-	Total   int           `json:"total"`
-	Failed  int           `json:"failed"`
-	Loss    float64       `json:"loss"`
-	AvgCost time.Duration `json:"avg_cost"`
-	MinCost time.Duration `json:"min_cost"`
-	MaxCost time.Duration `json:"max_cost"`
-	StdCost time.Duration `json:"std_cost"`
-	Items   []*RouteItem  `json:"items"`
+	Total   int          `json:"total"`
+	Failed  int          `json:"failed"`
+	Loss    float64      `json:"loss"`
+	AvgCost float64      `json:"avg_cost"`
+	MinCost float64      `json:"min_cost"`
+	MaxCost float64      `json:"max_cost"`
+	StdCost float64      `json:"std_cost"`
+	Items   []*RouteItem `json:"items"`
 }
 
 // sent packet

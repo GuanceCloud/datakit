@@ -38,6 +38,7 @@ type HTTPTask struct {
 	Labels           []string           `json:"labels,omitempty"`
 	AdvanceOptions   *HTTPAdvanceOption `json:"advance_options,omitempty"`
 	UpdateTime       int64              `json:"update_time,omitempty"`
+	Option           map[string]string
 
 	ticker   *time.Ticker
 	cli      *http.Client
@@ -53,6 +54,8 @@ type HTTPTask struct {
 	sslTime        float64
 	ttfbTime       float64
 	downloadTime   float64
+
+	destIP string
 }
 
 const MaxMsgSize = 15 * 1024 * 1024
@@ -106,7 +109,9 @@ func (t *HTTPTask) SetUpdateTime(ts int64) {
 }
 
 func (t *HTTPTask) Stop() error {
-	t.cli.CloseIdleConnections()
+	if t.cli != nil {
+		t.cli.CloseIdleConnections()
+	}
 	return nil
 }
 
@@ -140,11 +145,12 @@ func (t *HTTPTask) GetLineData() string {
 
 func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
-		"name":   t.Name,
-		"url":    t.URL,
-		"proto":  t.req.Proto,
-		"status": "FAIL",
-		"method": t.Method,
+		"name":    t.Name,
+		"url":     t.URL,
+		"proto":   t.req.Proto,
+		"status":  "FAIL",
+		"method":  t.Method,
+		"dest_ip": t.destIP,
 	}
 
 	fields = map[string]interface{}{
@@ -314,6 +320,10 @@ func (t *HTTPTask) Run() error {
 		ConnectStart: func(network, addr string) { connect = time.Now() },
 		ConnectDone: func(network, addr string, err error) {
 			t.connectionTime = float64(time.Since(connect)) / float64(time.Microsecond)
+			addrParts := strings.Split(addr, ":")
+			if len(addrParts) > 0 {
+				t.destIP = addrParts[0]
+			}
 		},
 
 		GotFirstResponseByte: func() {
@@ -340,6 +350,10 @@ func (t *HTTPTask) Run() error {
 	t.req = t.req.WithContext(httptrace.WithClientTrace(t.req.Context(), trace))
 
 	t.req.Header.Add("Connection", "close")
+
+	if agentInfo, ok := t.Option["userAgent"]; ok {
+		t.req.Header.Add("User-Agent", agentInfo)
+	}
 
 	t.reqStart = time.Now()
 	t.resp, err = t.cli.Do(t.req)
@@ -485,6 +499,10 @@ func (t *HTTPTask) init(debug bool) error {
 			t.ticker.Stop()
 		}
 		t.ticker = time.NewTicker(du)
+	}
+
+	if t.Option == nil {
+		t.Option = map[string]string{}
 	}
 
 	if strings.ToLower(t.CurStatus) == StatusStop {

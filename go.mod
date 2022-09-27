@@ -29,7 +29,7 @@ require (
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-ole/go-ole v1.2.5
-	github.com/go-ping/ping v0.0.0-20211130115550-779d1e919534
+	github.com/go-ping/ping v1.1.0
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible
 	github.com/go-sql-driver/mysql v1.6.0
@@ -77,8 +77,7 @@ require (
 	github.com/ugorji/go/codec v1.2.6
 	github.com/vjeantet/grok v1.0.0
 	github.com/whilp/git-urls v1.0.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220926102006-136e465883c3
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220614080230-f0513877f006
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220927061526-43fe7e602d5d
 	go.etcd.io/bbolt v1.3.5
 	go.mercari.io/go-dnscache v0.0.0-20220124075326-2701c2ab5df5
 	go.opentelemetry.io/otel v1.4.1
@@ -97,7 +96,7 @@ require (
 	go.uber.org/zap v1.20.0
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4
-	golang.org/x/sys v0.0.0-20220731174439-a90be440212d
+	golang.org/x/sys v0.0.0-20220825204002-c680a09ffe64
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035
 	golang.org/x/text v0.3.7
 	google.golang.org/grpc v1.46.0
@@ -165,8 +164,8 @@ require (
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/chromedp/cdproto v0.0.0-20210910012206-68626162910d // indirect
-	github.com/chromedp/chromedp v0.7.4 // indirect
+	github.com/chromedp/cdproto v0.0.0-20220914223734-4ab9dc957c3e // indirect
+	github.com/chromedp/chromedp v0.8.5 // indirect
 	github.com/chromedp/sysutil v1.0.0 // indirect
 	github.com/containerd/continuity v0.1.0 // indirect
 	github.com/containerd/fifo v1.0.0 // indirect
