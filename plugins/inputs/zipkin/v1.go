@@ -8,7 +8,6 @@ package zipkin
 import (
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net"
 	"strconv"
@@ -62,9 +61,9 @@ func thriftV1SpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 		}
 		service := getServiceFromZpkCoreV1Span(span)
 		dkspan := &itrace.DatakitSpan{
-			TraceID:    fmt.Sprintf("%x", uint64(span.TraceID)),
+			TraceID:    strconv.FormatInt(span.TraceID, 16),
 			ParentID:   "0",
-			SpanID:     fmt.Sprintf("%x", uint64(span.ID)),
+			SpanID:     strconv.FormatInt(span.ID, 16),
 			Service:    service,
 			Resource:   span.Name,
 			Operation:  span.Name,
@@ -74,7 +73,7 @@ func thriftV1SpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 		}
 
 		if span.ParentID != nil {
-			dkspan.ParentID = fmt.Sprintf("%x", uint64(*span.ParentID))
+			dkspan.ParentID = strconv.FormatInt(*span.ParentID, 16)
 		}
 
 		if span.Timestamp != nil {
