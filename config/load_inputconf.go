@@ -7,6 +7,8 @@ package config
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -113,11 +115,27 @@ func SearchDir(dir string, suffix string) []string {
 	return fps
 }
 
+func CheckConfFileDupOrSet(data []byte) bool {
+	sum := sha256.Sum256(data)
+	hexSum := hex.EncodeToString(sum[:])
+	if _, ok := inputs.ConfigFileHash[hexSum]; ok {
+		return true
+	}
+	inputs.ConfigFileHash[hexSum] = struct{}{}
+	return false
+}
+
 func LoadSingleConfFile(fp string, creators map[string]inputs.Creator) (map[string][]inputs.Input, error) {
 	data, err := ioutil.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		l.Errorf("ioutil.ReadFile: %s", err.Error())
 		return nil, err
+	}
+
+	// ignore config file has the same check sum
+	if CheckConfFileDupOrSet(data) {
+		l.Warnf("the config file [%s] has same check sum with previouslly loaded file, ignore", fp)
+		return nil, nil
 	}
 
 	data = feedEnvs(data)
@@ -145,8 +163,24 @@ func LoadInputConf(root string) map[string][]inputs.Input {
 		}
 
 		for k, arr := range x {
-			ret[k] = append(ret[k], arr...)
-			inputs.AddConfigInfoPath(k, fp, 1)
+			loaded := false
+			for _, collector := range ret[k] {
+				if _, ok := collector.(inputs.Singleton); ok {
+					loaded = true
+					l.Warnf("the collector [%s] is singleton, allow only one instant running", k)
+					break
+				}
+			}
+			if !loaded {
+				if len(arr) > 1 {
+					if _, ok := arr[0].(inputs.Singleton); ok {
+						arr = arr[:1]
+						l.Warnf("the collector [%s] is singleton but finding multi instant config, reserve the first only", k)
+					}
+				}
+				ret[k] = append(ret[k], arr...)
+				inputs.AddConfigInfoPath(k, fp, 1)
+			}
 		}
 	}
 

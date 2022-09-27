@@ -31,12 +31,13 @@ const (
 )
 
 var (
-	Inputs      = map[string]Creator{}
-	InputsInfo  = map[string][]*inputInfo{}
-	ConfigInfo  = map[string]*Config{}
-	panicInputs = map[string]int{}
-	mtx         = sync.RWMutex{}
-	l           = logger.DefaultSLogger("inputs")
+	Inputs         = map[string]Creator{}
+	InputsInfo     = map[string][]*inputInfo{}
+	ConfigInfo     = map[string]*Config{}
+	ConfigFileHash = map[string]struct{}{}
+	panicInputs    = map[string]int{}
+	mtx            = sync.RWMutex{}
+	l              = logger.DefaultSLogger("inputs")
 )
 
 func GetElectionInputs() []ElectionInput {
@@ -81,6 +82,10 @@ type Input interface {
 type HTTPInput interface {
 	// Input
 	RegHTTPHandler()
+}
+
+type Singleton interface {
+	Singleton()
 }
 
 type PipelineInput interface {
@@ -237,6 +242,8 @@ func ResetInputs() {
 	mtx.Lock()
 	defer mtx.Unlock()
 	InputsInfo = map[string][]*inputInfo{}
+	ConfigInfo = map[string]*Config{}
+	ConfigFileHash = map[string]struct{}{}
 }
 
 func getEnvs() map[string]string {

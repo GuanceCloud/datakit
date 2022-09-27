@@ -23,7 +23,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ReadEnv = (*Input)(nil)
+var (
+	_ inputs.ReadEnv   = (*Input)(nil)
+	_ inputs.Singleton = (*Input)(nil)
+)
 
 const (
 	minInterval = time.Second
@@ -162,6 +165,9 @@ type Input struct {
 	netVirtualIfaces NetVirtualIfaces
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (i *Input) Singleton() {
 }
 
 func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {

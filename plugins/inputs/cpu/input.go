@@ -25,9 +25,10 @@ import (
 )
 
 var (
-	_ inputs.ReadEnv = (*Input)(nil)
-	l                = logger.DefaultSLogger(inputName)
-	g                = datakit.G("inputs_cpu")
+	_ inputs.ReadEnv   = (*Input)(nil)
+	_ inputs.Singleton = (*Input)(nil)
+	l                  = logger.DefaultSLogger(inputName)
+	g                  = datakit.G("inputs_cpu")
 )
 
 const (
@@ -62,6 +63,9 @@ type Input struct {
 	ps        CPUStatInfo
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (ipt *Input) Singleton() {
 }
 
 func (ipt *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
