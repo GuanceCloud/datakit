@@ -7,24 +7,37 @@
 package point
 
 import (
+	"fmt"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 )
 
 type Point struct {
-	*influxdb.Point
+	*lineproto.Point
 	bAlreadyWritten bool // indicate point written status
 }
 
-func WrapPoint(pts []*influxdb.Point) (x []*Point) {
+func ToLines(pts []*Point) ([]byte, error) {
+	encoder := lineproto.NewLineEncoder()
+
+	for _, pt := range pts {
+		err := encoder.AppendPoint(pt.Point)
+		if err != nil {
+			return nil, fmt.Errorf("encoder append point fail: %w", err)
+		}
+	}
+	return encoder.Bytes()
+}
+
+func WrapPoint(pts []*lineproto.Point) (x []*Point) {
 	for _, pt := range pts {
 		x = append(x, &Point{Point: pt})
 	}
 	return
 }
 
-func (p *Point) ToPoint() *influxdb.Point {
+func (p *Point) ToPoint() *lineproto.Point {
 	return p.Point
 }
 
@@ -48,16 +61,11 @@ type JSONPoint struct {
 }
 
 func (p *Point) ToJSON() (*JSONPoint, error) {
-	fields, err := p.Point.Fields()
-	if err != nil {
-		return nil, err
-	}
-
 	return &JSONPoint{
-		Measurement: p.ToPoint().Name(),
-		Tags:        p.Point.Tags(),
-		Fields:      fields,
-		Time:        p.Point.Time(),
+		Measurement: p.Point.Name,
+		Tags:        p.Point.Tags,
+		Fields:      p.Point.Fields,
+		Time:        p.Point.Time,
 	}, nil
 }
 

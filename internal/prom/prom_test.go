@@ -19,6 +19,7 @@ import (
 
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -211,10 +212,15 @@ up 1
 			} else {
 				assert.NoError(t, err)
 			}
-
-			arr := []string{}
+			var arr []string
+			encoder := lineproto.NewLineEncoder()
 			for _, pt := range pts {
-				arr = append(arr, pt.String())
+				encoder.Reset()
+				err := encoder.AppendPoint(pt.Point)
+				assert.Equal(t, nil, err)
+				s, err := encoder.Bytes()
+				assert.Equal(t, nil, err)
+				arr = append(arr, string(s))
 			}
 
 			sort.Strings(arr)
@@ -875,9 +881,27 @@ up 1
 			if tc.fail {
 				t.Errorf("[%d] expected to fail but it didn't", idx)
 			}
+			encoder := lineproto.NewLineEncoder()
 			var got []string
-			for _, p := range points {
-				s := p.String()
+			for idx, p := range points {
+				encoder.Reset()
+				err := encoder.AppendPoint(p.Point)
+				if err != nil {
+					if tc.fail {
+						t.Logf("[%d] returned an error as expected: %s", idx, err)
+					} else {
+						t.Errorf("[%d] failed: %s", idx, err)
+					}
+				}
+				lines, err := encoder.Bytes()
+				if err != nil {
+					if tc.fail {
+						t.Logf("[%d] returned an error as expected: %s", idx, err)
+					} else {
+						t.Errorf("[%d] failed: %s", idx, err)
+					}
+				}
+				s := string(lines)
 				// remove timestamp
 				s = s[:strings.LastIndex(s, " ")]
 				got = append(got, s)
@@ -962,6 +986,7 @@ func TestGetTimestampS(t *testing.T) {
 }
 
 func TestRenameTag(t *testing.T) {
+	tm := time.Now()
 	cases := []struct {
 		name     string
 		opt      *Option
@@ -985,7 +1010,7 @@ func TestRenameTag(t *testing.T) {
 					pt, err := point.NewPoint("http",
 						map[string]string{"le": "0.003", "StatusCode": "404", "method": "GET"},
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0},
-						&point.PointOption{Category: datakit.Metric})
+						&point.PointOption{Category: datakit.Metric, Time: tm})
 					if err != nil {
 						t.Errorf("NewPoint: %s", err)
 						return nil
@@ -1016,7 +1041,7 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 
 						// method key removed, it's value overwrite tag_exists's value
 						map[string]string{"le": "0.003", "StatusCode": "404", "tag_exists": "GET"},
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0},
-						&point.PointOption{Category: datakit.Metric})
+						&point.PointOption{Category: datakit.Metric, Time: tm})
 					if err != nil {
 						t.Errorf("NewPoint: %s", err)
 						return nil
@@ -1046,7 +1071,7 @@ http_request_duration_seconds_bucket{le="0.003",tag_exists="yes",status_code="40
 					pt, err := point.NewPoint("http",
 						map[string]string{"le": "0.003", "tag_exists": "yes", "StatusCode": "404", "method": "GET"}, // overwrite not work on method
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0},
-						&point.PointOption{Category: datakit.Metric})
+						&point.PointOption{Category: datakit.Metric, Time: tm})
 					if err != nil {
 						t.Errorf("NewPoint: %s", err)
 						return nil
@@ -1076,7 +1101,7 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="ye
 					pt, err := point.NewPoint("http",
 						nil,
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0},
-						&point.PointOption{Category: datakit.Metric})
+						&point.PointOption{Category: datakit.Metric, Time: tm})
 					if err != nil {
 						t.Errorf("NewPoint: %s", err)
 						return nil
@@ -1104,9 +1129,28 @@ http_request_duration_seconds_bucket 1
 				return
 			}
 
+			encoder1 := lineproto.NewLineEncoder()
+			encoder2 := lineproto.NewLineEncoder()
 			for idx, pt := range pts {
-				tu.Equals(t, tc.expect[idx].PrecisionString("m"), pt.PrecisionString("m"))
-				t.Log(tc.expect[idx].PrecisionString("m"))
+				encoder1.Reset()
+				encoder2.Reset()
+				pt.Time = tm
+				if err := encoder1.AppendPoint(pt.Point); err != nil {
+					t.Fatal(err)
+				}
+				l1, err := encoder1.UnsafeString()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := encoder2.AppendPoint(tc.expect[idx].Point); err != nil {
+					t.Fatal(err)
+				}
+				l2, err := encoder2.UnsafeString()
+				if err != nil {
+					t.Fatal(err)
+				}
+				tu.Equals(t, l1, l2)
+				t.Log(l1, l2)
 			}
 		})
 	}
@@ -1390,11 +1434,30 @@ node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",addr
 				assert.NoError(t, err)
 
 				assert.Equal(t, len(pts1), len(pts2))
+
+				encoder := lineproto.NewLineEncoder()
+
 				for _, pt := range pts1 {
-					arr1 = append(arr1, trimTimeStamp(pt.String()))
+					encoder.Reset()
+					if err := encoder.AppendPoint(pt.Point); err != nil {
+						t.Fatal(err)
+					}
+					lines, err := encoder.Bytes()
+					if err != nil {
+						t.Fatal(err)
+					}
+					arr1 = append(arr1, trimTimeStamp(string(lines)))
 				}
 				for _, pt := range pts2 {
-					arr2 = append(arr2, trimTimeStamp(pt.String()))
+					encoder.Reset()
+					if err := encoder.AppendPoint(pt.Point); err != nil {
+						t.Fatal(err)
+					}
+					lines, err := encoder.Bytes()
+					if err != nil {
+						t.Fatal(err)
+					}
+					arr2 = append(arr2, trimTimeStamp(string(lines)))
 				}
 				sort.Strings(arr1)
 				sort.Strings(arr2)
@@ -1413,8 +1476,17 @@ node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",addr
 
 				pts, err := p.text2Metrics(bytes.NewReader([]byte(tc.text)))
 				assert.NoError(t, err)
+				encoder := lineproto.NewLineEncoder()
 				for _, pt := range pts {
-					arr = append(arr, trimTimeStamp(pt.String()))
+					encoder.Reset()
+					if err := encoder.AppendPoint(pt.Point); err != nil {
+						t.Fatal(err)
+					}
+					lines, err := encoder.Bytes()
+					if err != nil {
+						t.Fatal(err)
+					}
+					arr = append(arr, trimTimeStamp(string(lines)))
 				}
 				sort.Strings(arr)
 			}

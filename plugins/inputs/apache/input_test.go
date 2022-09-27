@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
@@ -77,5 +78,13 @@ func TestGetMetric(t *testing.T) {
 
 	p, err := m.LineProto()
 	tu.Ok(t, err)
-	t.Logf(p.String())
+	encoder := lineproto.NewLineEncoder()
+	if err := encoder.AppendPoint(p.Point); err != nil {
+		t.Fatal(err)
+	}
+	line, err := encoder.UnsafeStringWithoutLn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(line)
 }

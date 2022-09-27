@@ -53,8 +53,7 @@ func TestFilter(t *testing.T) {
 		{
 			pts: `test1 f1="1",f2=2i,f3=3 124
 test1 f1="2",f2=2i,f3=3 124
-test1 f1="3",f2=2i,f3=3 125
-			`,
+test1 f1="3",f2=2i,f3=3 125`,
 			category:  datakit.Logging,
 			expectPts: 0,
 		},
@@ -81,7 +80,7 @@ test1,service=test1 f1="1",f2=2i,f3=3 125`,
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			pts, err := lp.ParsePoints([]byte(tc.pts), nil)
+			pts, err := lp.Parse([]byte(tc.pts), nil)
 			if err != nil {
 				t.Error(err)
 				return

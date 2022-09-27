@@ -26,7 +26,7 @@ func TestBuildBody(t *testing.T) {
 	}
 
 	maxKodoPack = uint64(8 * 1024)
-	minGZSize = 1024
+	minGZSize = 1024_000
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -38,7 +38,7 @@ func TestBuildBody(t *testing.T) {
 
 			t.Logf("get %d bodies", len(bodies))
 			for _, b := range bodies {
-				t.Logf("body: %s", b)
+				t.Logf("body: %s, compress ratio: %.3f", b, float64(len(b.buf))/float64(b.rawBufBytes))
 			}
 		})
 	}
@@ -53,6 +53,10 @@ func TestBuildBody(t *testing.T) {
 			}
 
 			t.Logf("get %d bodies", len(bodies))
+
+			encoder1 := lp.NewLineEncoder()
+			encoder2 := lp.NewLineEncoder()
+
 			for _, b := range bodies {
 				t.Logf("body: %s", b)
 
@@ -64,7 +68,7 @@ func TestBuildBody(t *testing.T) {
 					b.buf = x
 				}
 
-				if pts, err := lp.ParsePoints(b.buf, nil); err != nil {
+				if pts, err := lp.Parse(b.buf, nil); err != nil {
 					t.Error(err)
 				} else {
 					begin := b.idxRange[0]
@@ -72,8 +76,25 @@ func TestBuildBody(t *testing.T) {
 
 					assert.Equal(t, len(pts), end-begin)
 
-					for i := 0; i < len(b.idxRange); i++ {
-						assert.Equal(t, tc.pts[begin+i].String(), pts[i].String(), "index %d <> %d", begin+i, i)
+					for i := 0; i < len(pts); i++ {
+						encoder1.Reset()
+						encoder2.Reset()
+						if err := encoder1.AppendPoint(tc.pts[begin+i].Point); err != nil {
+							t.Error(err)
+						}
+						if err := encoder2.AppendPoint(pts[i]); err != nil {
+							t.Error(err)
+						}
+
+						line1, err := encoder1.UnsafeString()
+						if err != nil {
+							t.Error(err)
+						}
+						line2, err := encoder2.UnsafeString()
+						if err != nil {
+							t.Error(err)
+						}
+						assert.Equal(t, line1, line2, "index %d <> %d", begin+i, i)
 					}
 				}
 			}

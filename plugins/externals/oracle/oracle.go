@@ -24,6 +24,7 @@ import (
 
 	_ "github.com/godror/godror"
 	"github.com/jessevdk/go-flags"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -218,10 +219,11 @@ func (m *monitor) handle(ec *ExecCfg) {
 }
 
 func handleResponse(m *monitor, metricName string, tagsKeys []string, response []map[string]interface{}) error {
-	lines := [][]byte{}
 	if metricName == "oracle_system" {
 		return handleSystem(m, metricName, response)
 	}
+
+	encoder := lineproto.NewLineEncoder()
 
 	for _, item := range response {
 		tags := map[string]string{}
@@ -251,7 +253,15 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 			return err
 		}
 
-		lines = append(lines, []byte(pt.String()))
+		if err := encoder.AppendPoint(pt.Point); err != nil {
+			l.Error("append point err: %s", err)
+			return fmt.Errorf("append point err: %w", err)
+		}
+	}
+
+	lines, err := encoder.Bytes()
+	if err != nil {
+		return fmt.Errorf("encoder bytes err: %w", err)
 	}
 
 	if len(lines) == 0 {
@@ -260,7 +270,7 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 	}
 
 	// io 输出
-	if err := WriteData(bytes.Join(lines, []byte("\n")), datakitPostURL); err != nil {
+	if err := WriteData(lines, datakitPostURL); err != nil {
 		return err
 	}
 
@@ -268,7 +278,6 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 }
 
 func handleSystem(m *monitor, metricName string, response []map[string]interface{}) error {
-	lines := [][]byte{}
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 	for _, item := range response {
@@ -301,8 +310,14 @@ func handleSystem(m *monitor, metricName string, response []map[string]interface
 		l.Error("NewPoint(): %s", err.Error())
 		return err
 	}
-
-	lines = append(lines, []byte(pt.String()))
+	encoder := lineproto.NewLineEncoder()
+	if err := encoder.AppendPoint(pt.Point); err != nil {
+		return fmt.Errorf("encoder append point fail: %w", err)
+	}
+	lines, err := encoder.BytesWithoutLn()
+	if err != nil {
+		return fmt.Errorf("get encoder bytes err: %w", err)
+	}
 
 	if len(lines) == 0 {
 		l.Debugf("no metric collected on %s", metricName)
@@ -310,7 +325,7 @@ func handleSystem(m *monitor, metricName string, response []map[string]interface
 	}
 
 	// io 输出
-	if err := WriteData(bytes.Join(lines, []byte("\n")), datakitPostURL); err != nil {
+	if err := WriteData(lines, datakitPostURL); err != nil {
 		return err
 	}
 

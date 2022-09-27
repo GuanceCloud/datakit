@@ -112,12 +112,9 @@ func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.P
 	if pt == nil {
 		return nil, false, fmt.Errorf("no data")
 	}
-	fields, err := pt.Fields()
-	if err != nil {
-		return nil, false, err
-	}
+	fields := pt.Fields
 
-	if measurement, tags, fileds, tn, drop, err := p.Script.Run(pt.Name(), pt.Tags(), fields, ioPtOpt.Time, plOpt); err != nil {
+	if measurement, tags, fileds, tn, drop, err := p.Script.Run(pt.Name, pt.Tags, fields, ioPtOpt.Time, plOpt); err != nil {
 		return nil, drop, err
 	} else {
 		if !tn.IsZero() {

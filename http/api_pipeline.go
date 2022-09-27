@@ -136,7 +136,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 				res = append(res, single)
 			}
 		default:
-			pts, err := lp.ParsePoints([]byte(line), nil)
+			pts, err := lp.Parse([]byte(line), nil)
 			if err != nil {
 				l.Errorf("[%s] %s", tid, err.Error())
 				return nil, uhttp.Error(ErrInvalidData, err.Error())
@@ -177,11 +177,8 @@ func getSinglePointResult(scriptInfo *pipeline.Pipeline, pt *point.Point, opt *p
 	if err != nil || pt == nil {
 		return nil
 	}
-	fields, err := pt.Fields()
-	if err != nil {
-		return nil
-	}
-	tags := pt.Tags()
+	fields := pt.Fields
+	tags := pt.Tags
 
 	if _, ok := tags["service"]; !ok {
 		tags["service"] = defaultNotSetService
@@ -190,8 +187,8 @@ func getSinglePointResult(scriptInfo *pipeline.Pipeline, pt *point.Point, opt *p
 	return &pipeline.Result{
 		Output: &pipeline.Output{
 			Drop:        drop,
-			Measurement: pt.Name(),
-			Time:        pt.Time(),
+			Measurement: pt.Name,
+			Time:        pt.Time,
 			Tags:        tags,
 			Fields:      fields,
 		},

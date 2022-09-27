@@ -227,7 +227,12 @@ func (s *SinkInfluxDB) writeInfluxDB(pts []*point.Point) error {
 
 	var ps []*client.Point
 	for _, v := range pts {
-		ps = append(ps, v.ToPoint())
+		pt := v.ToPoint()
+		oldPt, err := client.NewPoint(pt.Name, pt.Tags, pt.Fields, pt.Time)
+		if err != nil {
+			return fmt.Errorf("new from lineproto point err: %w", err)
+		}
+		ps = append(ps, oldPt)
 	}
 	bp.AddPoints(ps)
 

@@ -115,7 +115,7 @@ func (i *Input) RunPipeline() {
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
 		MultilinePatterns: []string{i.Log.MultilineMatch},
-		Done:              i.SemStop.Wait(),
+		Done:              i.SemStop.Wait(), // nolint:typecheck
 	}
 
 	var err error
@@ -146,8 +146,8 @@ func (i *Input) Run() {
 }
 
 func (i *Input) Terminate() {
-	if i.SemStop != nil {
-		i.SemStop.Close()
+	if i.SemStop != nil { // nolint:typecheck
+		i.SemStop.Close() // nolint:typecheck
 	}
 }
 
