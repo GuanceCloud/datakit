@@ -44,9 +44,10 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/gorilla/websocket v1.5.0
+	github.com/grafana/loki v1.6.2-0.20210806161513-f5fd02966003
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
-	github.com/influxdata/telegraf v1.15.2
+	github.com/influxdata/telegraf v1.16.3
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/ip2location/ip2location-go v8.3.0+incompatible
 	github.com/jessevdk/go-flags v1.5.0
@@ -114,6 +115,7 @@ require (
 
 require (
 	github.com/DataDog/gopsutil v1.1.0
+	github.com/cortexproject/cortex v1.9.1-0.20210722081137-485474c9afb2
 	github.com/gin-contrib/timeout v0.0.3
 	github.com/klauspost/compress v1.15.9
 	github.com/schollz/progressbar/v3 v3.9.0
@@ -122,8 +124,26 @@ require (
 )
 
 require (
+	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
+	github.com/felixge/httpsnoop v1.0.1 // indirect
+	github.com/go-kit/kit v0.10.0 // indirect
+	github.com/go-kit/log v0.2.0 // indirect
+	github.com/go-logfmt/logfmt v0.5.1 // indirect
+	github.com/gogo/status v1.0.3 // indirect
+	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2 // indirect
 	github.com/influxdata/line-protocol/v2 v2.2.1 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
+	github.com/opentracing-contrib/go-grpc v0.0.0-20210225150812-73cb765af46e // indirect
+	github.com/opentracing-contrib/go-stdlib v1.0.0 // indirect
+	github.com/opentracing/opentracing-go v1.2.0 // indirect
+	github.com/prometheus/client_golang v1.12.1 // indirect
+	github.com/prometheus/node_exporter v1.0.0-rc.0.0.20200428091818-01054558c289 // indirect
+	github.com/sercand/kuberesolver v2.4.0+incompatible // indirect
+	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
+	github.com/weaveworks/common v0.0.0-20210419092856-009d1eebd624 // indirect
+	github.com/weaveworks/promrus v1.2.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.1 // indirect
 	github.com/xdg-go/stringprep v1.0.3 // indirect
@@ -255,6 +275,10 @@ require (
 )
 
 replace github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
+
+replace github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20210720084720-59d02b5ef003
+
+replace github.com/weaveworks/common => github.com/pyh4/common v0.0.0-20220923021349-874c8cc0db2c
 
 // added for ddtrace
 replace (

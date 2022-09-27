@@ -152,5 +152,6 @@ var (
 		"zaplog":                 true,
 		"rum":                    true,
 		"zipkin":                 true,
+		"promtail":               true,
 	}
 )

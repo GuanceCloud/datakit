@@ -146,9 +146,15 @@ github.com/araddon/dateparse
 # github.com/avast/retry-go v2.7.0+incompatible
 ## explicit
 github.com/avast/retry-go
+# github.com/beorn7/perks v1.0.1
+## explicit; go 1.11
+github.com/beorn7/perks/quantile
 # github.com/bits-and-blooms/bitset v1.2.0
 ## explicit; go 1.14
 github.com/bits-and-blooms/bitset
+# github.com/buger/jsonparser v1.1.1
+## explicit; go 1.13
+github.com/buger/jsonparser
 # github.com/c-bata/go-prompt v0.2.5 => github.com/coanor/go-prompt v0.2.6
 ## explicit; go 1.14
 github.com/c-bata/go-prompt
@@ -305,6 +311,14 @@ github.com/containerd/typeurl
 # github.com/coreos/go-systemd/v22 v22.3.2
 ## explicit; go 1.12
 github.com/coreos/go-systemd/v22/dbus
+# github.com/cortexproject/cortex v1.9.1-0.20210722081137-485474c9afb2
+## explicit; go 1.16
+github.com/cortexproject/cortex/pkg/prom1/storage/metric
+github.com/cortexproject/cortex/pkg/tenant
+github.com/cortexproject/cortex/pkg/util
+github.com/cortexproject/cortex/pkg/util/grpc/naming
+github.com/cortexproject/cortex/pkg/util/log
+github.com/cortexproject/cortex/pkg/util/services
 # github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
 ## explicit
 github.com/danwakefield/fnmatch
@@ -402,6 +416,9 @@ github.com/emirpasic/gods/utils
 # github.com/fatih/color v1.12.0
 ## explicit; go 1.13
 github.com/fatih/color
+# github.com/felixge/httpsnoop v1.0.1
+## explicit; go 1.13
+github.com/felixge/httpsnoop
 # github.com/florianl/go-tc v0.2.0
 ## explicit; go 1.12
 github.com/florianl/go-tc
@@ -524,6 +541,17 @@ github.com/go-git/go-git/v5/utils/merkletrie/filesystem
 github.com/go-git/go-git/v5/utils/merkletrie/index
 github.com/go-git/go-git/v5/utils/merkletrie/internal/frame
 github.com/go-git/go-git/v5/utils/merkletrie/noder
+# github.com/go-kit/kit v0.10.0
+## explicit; go 1.13
+github.com/go-kit/kit/log
+github.com/go-kit/kit/log/level
+# github.com/go-kit/log v0.2.0
+## explicit; go 1.17
+github.com/go-kit/log
+github.com/go-kit/log/level
+# github.com/go-logfmt/logfmt v0.5.1
+## explicit; go 1.17
+github.com/go-logfmt/logfmt
 # github.com/go-logr/logr v1.2.2
 ## explicit; go 1.16
 github.com/go-logr/logr
@@ -610,6 +638,9 @@ github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/types
+# github.com/gogo/status v1.0.3
+## explicit
+github.com/gogo/status
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
 ## explicit
 github.com/golang-sql/civil
@@ -631,6 +662,7 @@ github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
+github.com/golang/protobuf/ptypes/empty
 github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
 # github.com/golang/snappy v0.0.4
@@ -667,9 +699,22 @@ github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
 github.com/googleapis/gnostic/jsonschema
 github.com/googleapis/gnostic/openapiv2
+# github.com/gorilla/mux v1.8.0
+## explicit; go 1.12
+github.com/gorilla/mux
 # github.com/gorilla/websocket v1.5.0
 ## explicit; go 1.12
 github.com/gorilla/websocket
+# github.com/grafana/loki v1.6.2-0.20210806161513-f5fd02966003
+## explicit; go 1.15
+github.com/grafana/loki/pkg/loghttp
+github.com/grafana/loki/pkg/logproto
+github.com/grafana/loki/pkg/logqlmodel/stats
+github.com/grafana/loki/pkg/util/unmarshal
+github.com/grafana/loki/pkg/util/unmarshal/legacy
+# github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
+## explicit; go 1.14
+github.com/grpc-ecosystem/go-grpc-middleware
 # github.com/grpc-ecosystem/grpc-gateway v1.16.0
 ## explicit; go 1.14
 github.com/grpc-ecosystem/grpc-gateway/internal
@@ -698,8 +743,8 @@ github.com/influxdata/influxdb1-client/v2
 # github.com/influxdata/line-protocol/v2 v2.2.1
 ## explicit; go 1.15
 github.com/influxdata/line-protocol/v2/lineprotocol
-# github.com/influxdata/telegraf v1.15.2
-## explicit; go 1.13
+# github.com/influxdata/telegraf v1.16.3
+## explicit; go 1.15
 github.com/influxdata/telegraf
 github.com/influxdata/telegraf/internal/templating
 github.com/influxdata/telegraf/metric
@@ -835,6 +880,17 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
+# github.com/opentracing-contrib/go-grpc v0.0.0-20210225150812-73cb765af46e
+## explicit; go 1.11
+github.com/opentracing-contrib/go-grpc
+# github.com/opentracing-contrib/go-stdlib v1.0.0
+## explicit; go 1.14
+github.com/opentracing-contrib/go-stdlib/nethttp
+# github.com/opentracing/opentracing-go v1.2.0
+## explicit; go 1.14
+github.com/opentracing/opentracing-go
+github.com/opentracing/opentracing-go/ext
+github.com/opentracing/opentracing-go/log
 # github.com/openzipkin/zipkin-go v0.2.2
 ## explicit; go 1.12
 github.com/openzipkin/zipkin-go/model
@@ -863,6 +919,12 @@ github.com/pkg/term/termios
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
+# github.com/prometheus/client_golang v1.12.1
+## explicit; go 1.13
+github.com/prometheus/client_golang/prometheus
+github.com/prometheus/client_golang/prometheus/internal
+github.com/prometheus/client_golang/prometheus/promauto
+github.com/prometheus/client_golang/prometheus/promhttp
 # github.com/prometheus/client_model v0.2.0
 ## explicit; go 1.9
 github.com/prometheus/client_model/go
@@ -871,14 +933,28 @@ github.com/prometheus/client_model/go
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
+# github.com/prometheus/node_exporter v1.0.0-rc.0.0.20200428091818-01054558c289
+## explicit; go 1.13
+github.com/prometheus/node_exporter/https
 # github.com/prometheus/procfs v0.7.3
 ## explicit; go 1.13
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/prometheus/prometheus v2.5.0+incompatible
-## explicit
+# github.com/prometheus/prometheus v2.5.0+incompatible => github.com/prometheus/prometheus v1.8.2-0.20210720084720-59d02b5ef003
+## explicit; go 1.14
+github.com/prometheus/prometheus/pkg/exemplar
+github.com/prometheus/prometheus/pkg/labels
+github.com/prometheus/prometheus/pkg/timestamp
+github.com/prometheus/prometheus/pkg/value
 github.com/prometheus/prometheus/prompb
+github.com/prometheus/prometheus/promql/parser
+github.com/prometheus/prometheus/storage
+github.com/prometheus/prometheus/tsdb/chunkenc
+github.com/prometheus/prometheus/tsdb/chunks
+github.com/prometheus/prometheus/tsdb/errors
+github.com/prometheus/prometheus/tsdb/fileutil
+github.com/prometheus/prometheus/tsdb/tsdbutil
 github.com/prometheus/prometheus/util/strutil
 # github.com/rivo/tview v0.0.0-20220129131435-1f7581b67bd1
 ## explicit; go 1.12
@@ -892,6 +968,9 @@ github.com/rs/xid
 # github.com/schollz/progressbar/v3 v3.9.0
 ## explicit; go 1.13
 github.com/schollz/progressbar/v3
+# github.com/sercand/kuberesolver v2.4.0+incompatible
+## explicit
+github.com/sercand/kuberesolver
 # github.com/sergi/go-diff v1.1.0
 ## explicit; go 1.12
 github.com/sergi/go-diff/diffmatchpatch
@@ -957,10 +1036,21 @@ github.com/tklauser/numcpus
 github.com/tweekmonster/luser
 # github.com/uber/jaeger-client-go v2.29.1+incompatible
 ## explicit
+github.com/uber/jaeger-client-go
+github.com/uber/jaeger-client-go/internal/baggage
+github.com/uber/jaeger-client-go/internal/reporterstats
+github.com/uber/jaeger-client-go/internal/spanlog
+github.com/uber/jaeger-client-go/internal/throttler
+github.com/uber/jaeger-client-go/log
 github.com/uber/jaeger-client-go/thrift
 github.com/uber/jaeger-client-go/thrift-gen/agent
 github.com/uber/jaeger-client-go/thrift-gen/jaeger
+github.com/uber/jaeger-client-go/thrift-gen/sampling
 github.com/uber/jaeger-client-go/thrift-gen/zipkincore
+github.com/uber/jaeger-client-go/utils
+# github.com/uber/jaeger-lib v2.4.1+incompatible
+## explicit
+github.com/uber/jaeger-lib/metrics
 # github.com/ubwbu/grok v1.0.6
 ## explicit; go 1.15
 github.com/ubwbu/grok
@@ -977,6 +1067,21 @@ github.com/vishvananda/netns
 # github.com/vjeantet/grok v1.0.0
 ## explicit
 github.com/vjeantet/grok
+# github.com/weaveworks/common v0.0.0-20210419092856-009d1eebd624 => github.com/pyh4/common v0.0.0-20220923021349-874c8cc0db2c
+## explicit; go 1.13
+github.com/weaveworks/common/errors
+github.com/weaveworks/common/grpc
+github.com/weaveworks/common/httpgrpc
+github.com/weaveworks/common/httpgrpc/server
+github.com/weaveworks/common/instrument
+github.com/weaveworks/common/logging
+github.com/weaveworks/common/middleware
+github.com/weaveworks/common/server
+github.com/weaveworks/common/signals
+github.com/weaveworks/common/user
+# github.com/weaveworks/promrus v1.2.0
+## explicit
+github.com/weaveworks/promrus
 # github.com/whilp/git-urls v1.0.0
 ## explicit; go 1.13
 github.com/whilp/git-urls
@@ -1196,6 +1301,7 @@ golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
+golang.org/x/net/netutil
 golang.org/x/net/proxy
 golang.org/x/net/trace
 # golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b
@@ -1261,7 +1367,6 @@ google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
 # google.golang.org/genproto v0.0.0-20220505152158-f39f71e6c8f3
 ## explicit; go 1.15
-google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
@@ -1351,6 +1456,7 @@ google.golang.org/protobuf/runtime/protoimpl
 google.golang.org/protobuf/types/descriptorpb
 google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
+google.golang.org/protobuf/types/known/emptypb
 google.golang.org/protobuf/types/known/fieldmaskpb
 google.golang.org/protobuf/types/known/timestamppb
 google.golang.org/protobuf/types/known/wrapperspb
@@ -1549,6 +1655,8 @@ sigs.k8s.io/structured-merge-diff/v4/value
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 # github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
+# github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20210720084720-59d02b5ef003
+# github.com/weaveworks/common => github.com/pyh4/common v0.0.0-20220923021349-874c8cc0db2c
 # github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
 # github.com/kardianos/service => github.com/GuanceCloud/service v1.2.1-rc3
 # k8s.io/api => k8s.io/api v0.20.5
