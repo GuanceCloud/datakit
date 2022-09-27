@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/uber/jaeger-client-go/thrift"
@@ -143,8 +144,8 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			ParentID:   fmt.Sprintf("%x", uint64(span.ParentSpanId)),
-			SpanID:     fmt.Sprintf("%x", uint64(span.SpanId)),
+			ParentID:   strconv.FormatInt(span.ParentSpanId, 16),
+			SpanID:     strconv.FormatInt(span.SpanId, 16),
 			Service:    batch.Process.ServiceName,
 			Resource:   span.OperationName,
 			Operation:  span.OperationName,
@@ -156,9 +157,9 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		}
 
 		if span.TraceIdHigh != 0 {
-			dkspan.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
+			dkspan.TraceID = fmt.Sprintf("%x%x", span.TraceIdHigh, span.TraceIdLow)
 		} else {
-			dkspan.TraceID = fmt.Sprintf("%x", uint64(span.TraceIdLow))
+			dkspan.TraceID = strconv.FormatInt(span.TraceIdLow, 16)
 		}
 
 		dkspan.Status = itrace.STATUS_OK
