@@ -98,8 +98,6 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 	switch category {
 	case datakit.Logging,
 		datakit.Tracing,
-		datakit.Metric,
-		datakit.MetricDeprecated,
 		datakit.Object,
 		datakit.Network,
 		datakit.KeyEvent,
@@ -107,7 +105,12 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 		datakit.RUM,
 		datakit.Security,
 		datakit.Profiling:
-
+		if opt == nil {
+			opt = &Option{Blocking: true}
+		} else {
+			opt.Blocking = true
+		}
+	case datakit.Metric, datakit.MetricDeprecated:
 	default:
 		return fmt.Errorf("invalid category `%s'", category)
 	}
