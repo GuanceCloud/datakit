@@ -15,6 +15,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
 var (
@@ -254,7 +255,7 @@ func runHelpFlags() {
 			fsToolUsage()
 
 		default: // add more
-			errorf("[E] flag provided but not defined: `%s'\n\n", os.Args[2])
+			cp.Errorf("[E] flag provided but not defined: `%s'\n\n", os.Args[2])
 			printHelp()
 			os.Exit(-1)
 		}
@@ -275,20 +276,20 @@ func doParseAndRunFlags() {
 		case fsDocName:
 			setCmdRootLog(*flagDocLogPath)
 			if err := fsDoc.Parse(os.Args[2:]); err != nil {
-				errorf("Parse: %s\n", err)
+				cp.Errorf("Parse: %s\n", err)
 				fsDocUsage()
 				os.Exit(-1)
 			}
 
 			if err := runDocFlags(); err != nil {
-				errorf("%s\n", err)
+				cp.Errorf("%s\n", err)
 				os.Exit(-1)
 			}
 			os.Exit(0)
 
 		case fsDQLName:
 			if err := fsDQL.Parse(os.Args[2:]); err != nil {
-				errorf("Parse: %s\n", err)
+				cp.Errorf("Parse: %s\n", err)
 				fsDQLUsage()
 				os.Exit(-1)
 			}
@@ -298,7 +299,7 @@ func doParseAndRunFlags() {
 			tryLoadMainCfg()
 
 			if err := runDQLFlags(); err != nil {
-				errorf("%s\n", err)
+				cp.Errorf("%s\n", err)
 				os.Exit(-1)
 			}
 
@@ -310,7 +311,7 @@ func doParseAndRunFlags() {
 			tryLoadMainCfg()
 
 			if len(os.Args) <= 3 {
-				errorf("[E] missing pipeline name and/or testing text.\n")
+				cp.Errorf("[E] missing pipeline name and/or testing text.\n")
 				fsPLUsage()
 				os.Exit(-1)
 			}
@@ -319,13 +320,13 @@ func doParseAndRunFlags() {
 
 			// NOTE: args[2] must be the pipeline source name
 			if err := fsPL.Parse(os.Args[3:]); err != nil {
-				errorf("[E] Parse: %s\n", err)
+				cp.Errorf("[E] Parse: %s\n", err)
 				fsPLUsage()
 				os.Exit(-1)
 			}
 
 			if err := runPLFlags(); err != nil {
-				errorf("[E] %s\n", err)
+				cp.Errorf("[E] %s\n", err)
 				os.Exit(-1)
 			}
 
@@ -333,7 +334,7 @@ func doParseAndRunFlags() {
 
 		case fsVersionName:
 			if err := fsVersion.Parse(os.Args[2:]); err != nil {
-				errorf("[E] parse: %s\n", err)
+				cp.Errorf("[E] parse: %s\n", err)
 				fsVersionUsage()
 				os.Exit(-1)
 			}
@@ -342,7 +343,7 @@ func doParseAndRunFlags() {
 			tryLoadMainCfg()
 
 			if err := runVersionFlags(); err != nil {
-				errorf("[E] %s\n", err)
+				cp.Errorf("[E] %s\n", err)
 				os.Exit(-1)
 			}
 
@@ -350,14 +351,14 @@ func doParseAndRunFlags() {
 
 		case fsServiceName:
 			if err := fsService.Parse(os.Args[2:]); err != nil {
-				errorf("Parse: %s\n", err)
+				cp.Errorf("Parse: %s\n", err)
 				fsServiceUsage()
 				os.Exit(-1)
 			}
 
 			setCmdRootLog(*flagServiceLogPath)
 			if err := runServiceFlags(); err != nil {
-				errorf("%s\n", err)
+				cp.Errorf("%s\n", err)
 				os.Exit(-1)
 			}
 
@@ -365,14 +366,14 @@ func doParseAndRunFlags() {
 
 		case fsMonitorName:
 			if err := fsMonitor.Parse(os.Args[2:]); err != nil {
-				errorf("Parse: %s\n", err)
+				cp.Errorf("Parse: %s\n", err)
 				fsMonitorUsage()
 				os.Exit(-1)
 			}
 
 			setCmdRootLog(*flagMonitorLogPath)
 			if err := runMonitorFlags(); err != nil {
-				errorf("%s\n", err)
+				cp.Errorf("%s\n", err)
 				os.Exit(-1)
 			}
 
@@ -380,21 +381,21 @@ func doParseAndRunFlags() {
 
 		case fsInstallName:
 			if err := fsInstall.Parse(os.Args[2:]); err != nil {
-				errorf("Parse: %s\n", err)
+				cp.Errorf("Parse: %s\n", err)
 				fsInstallUsage()
 				os.Exit(-1)
 			}
 
 			setCmdRootLog(*flagInstallLogPath)
 			if err := installPlugins(); err != nil {
-				errorf("%s\n", err)
+				cp.Errorf("%s\n", err)
 				os.Exit(-1)
 			}
 			os.Exit(0)
 
 		case fsToolName:
 			if err := fsTool.Parse(os.Args[2:]); err != nil {
-				errorf("Parse: %s\n", err)
+				cp.Errorf("Parse: %s\n", err)
 				fsToolUsage()
 				os.Exit(-1)
 			}
@@ -407,14 +408,14 @@ func doParseAndRunFlags() {
 			setCmdRootLog(*flagToolLogPath)
 			err := runToolFlags()
 			if err != nil {
-				errorf("%s\n", err)
+				cp.Errorf("%s\n", err)
 				os.Exit(-1)
 			}
 
 			// NOTE: Do not exit here, you should exit in sub-tool's command if need
 
 		default:
-			errorf("unknown command `%s'\n", os.Args[1])
+			cp.Errorf("unknown command `%s'\n", os.Args[1])
 			printHelp()
 		}
 	}
@@ -431,7 +432,7 @@ func ParseFlags() {
 }
 
 func showDeprecatedInfo() {
-	infof("\nFlag %s deprecated, please use datakit help to use recommend flags.\n\n", os.Args[1])
+	cp.Infof("\nFlag %s deprecated, please use datakit help to use recommend flags.\n\n", os.Args[1])
 }
 
 func RunCmds() {

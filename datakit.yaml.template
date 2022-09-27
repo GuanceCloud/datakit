@@ -152,6 +152,10 @@ spec:
           value: stdout
         - name: ENV_HTTP_LISTEN
           value: 0.0.0.0:9529
+        # # ---iploc-start
+        #- name: ENV_IPDB
+        #  value: iploc
+        # # ---iploc-end
         image: pubrepo.jiagouyun.com/datakit/datakit:{{.Version}}
         imagePullPolicy: Always
         name: datakit
@@ -177,6 +181,10 @@ spec:
           name: rootfs
         - mountPath: /sys/kernel/debug
           name: debugfs
+        # # ---iploc-start
+        # - mountPath: /usr/local/datakit/data/ipdb/iploc/
+        #   name: datakit-ipdb
+        # # ---iploc-end
         #- mountPath: /usr/local/datakit/conf.d/db/mysql.conf
         #  name: datakit-conf
         #  subPath: mysql.conf
@@ -186,6 +194,21 @@ spec:
         #  subPath: redis.conf
         #  readOnly: true
         workingDir: /usr/local/datakit
+      # # ---iploc-start
+      # initContainers:
+      #   - args:
+      #       - tar -xf /opt/iploc.tar.gz -C /usr/local/datakit/data/ipdb/iploc/
+      #     command:
+      #       - bash
+      #       - -c
+      #     image: pubrepo.jiagouyun.com/datakit/iploc:1.0
+      #     imagePullPolicy: IfNotPresent
+      #     name: init-volume
+      #     resources: {}
+      #     volumeMounts:
+      #       - mountPath: /usr/local/datakit/data/ipdb/iploc/
+      #         name: datakit-ipdb
+      # # ---iploc-end
       hostIPC: true
       hostPID: true
       restartPolicy: Always
@@ -218,6 +241,10 @@ spec:
       - hostPath:
           path: /sys/kernel/debug
         name: debugfs
+      # # ---iploc-start
+      # - emptyDir: {}
+      #   name: datakit-ipdb
+      # # ---iploc-end
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1

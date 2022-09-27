@@ -74,7 +74,7 @@ func DefaultTime(ctx *runtime.Context, funcExpr *ast.CallExpr) runtime.PlPanic {
 }
 
 func usePointTime(ctx *runtime.Context, key string, err error) {
-	_ = ctx.AddKey2PtWithVal("pl_msg", fmt.Sprintf("time convert failed: %v", err),
+	_ = ctx.AddKey2PtWithVal(runtime.PlRunInfoField, fmt.Sprintf("time convert failed: %v", err),
 		ast.String, runtime.KindPtDefault)
 	_ = ctx.AddKey2PtWithVal(key, ctx.PointTime(), ast.Int, runtime.KindPtDefault)
 }

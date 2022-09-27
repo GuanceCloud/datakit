@@ -228,7 +228,7 @@ HTTP/1.1 200 OK
 
 使用 DQL 进行数据查询（只能查询该 DataKit 所在的工作空间的数据），示例：
 
-``` shell
+``` http
 POST /v1/query/raw HTTP/1.1
 Content-Type: application/json
 
@@ -240,7 +240,7 @@ Content-Type: application/json
             "max_duration": "1d",                 # 最大时间范围
             "max_point": 0,                       # 最大点数
             "time_range": [],                     #
-            "orderby: [],                         #
+            "orderby": [],                        #
             "disable_slimit": true,               # 禁用默认SLimit，当为true时，将不添加默认SLimit值，否则会强制添加SLimit 20
             "disable_multiple_field": true        # 禁用多字段。当为true时，只能查询单个字段的数据（不包括time字段）
         }
@@ -405,12 +405,12 @@ POST /v1/pipeline/debug
 Content-Type: application/json
 
 {
-  "pipeline": base64("pipeline-source-code"),
-  "category": "logging", # 暂时只支持日志的 PL 调试
-  "data": base64("raw-logging-data"), # 此处 raw data 可以是多行， API 会自动做分行处理
-  "multiline": "用于多行匹配的正则指定",  # 如果不传，则 API 以「非空白字符开头」为多行分割标识
-  "encode": "@data 的字符编码",         # 默认是 utf8 编码
-  "benchmark": true,                  # 是否开启 benchmark
+    "pipeline": base64("pipeline-source-code"),
+    "script_name": "<script_name>"
+    "category": "<logging[metric, tracing, ...]>", # 日志类别传入日志文本，其他类别需要传入行协议文本
+    "data": [ base64("raw-logging-data1"), ... ], # 可以是日志或者行协议
+    "encode": "@data 的字符编码",         # 默认是 utf8 编码
+    "benchmark": false,                  # 是否开启 benchmark
 }
 ```
 
@@ -429,12 +429,13 @@ HTTP/1.1 200 OK
                 "measurement" : "指标集名称，一般是日志 source",
                 "tags": { "key": "val", "other-key": "other-val"},
                 "fields": { "f1": 1, "f2": "abc", "f3": 1.2 },
-                "time": 1644380607 # Unix 时间戳（单位秒）, 前端可将其转成可读日期,
-                "time_ns": 421869748 # 余下的纳秒时间，便于精确转换成日期，完整的纳秒时间戳为 1644380607421869748,
-                "error":"",
+                "time": 1644380607, # Unix 时间戳（单位秒）, 前端可将其转成可读日期,
+                "time_ns": 421869748, # 余下的纳秒时间，便于精确转换成日期，完整的纳秒时间戳为 1644380607421869748,
+                "dropped": false, # 是否在执行 pipeline 中将结果标记为待丢弃
+                "error":""
             },
-           {  another-result},
-           ...
+            {  another-result },
+            ...
         ]
     }
 }

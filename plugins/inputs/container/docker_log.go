@@ -40,6 +40,11 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 		return err
 	}
 
+	if !tailer.FileIsActive(inspect.LogPath, ignoreDeadLogDuration) {
+		l.Infof("container %s file %s is not active, larger than %s, ignored", getContainerName(container.Names), inspect.LogPath, ignoreDeadLogDuration)
+		return nil
+	}
+
 	image := container.Image
 
 	if d.k8sClient != nil {

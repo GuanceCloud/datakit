@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/refertable"
 )
 
@@ -147,7 +146,7 @@ func TestQueryReferTable(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			_, _, f, _, _, err := engine.RunScript(runner, "test", nil, map[string]interface{}{
+			_, _, f, _, _, err := runScript(runner, "test", nil, map[string]interface{}{
 				"message": tc.in,
 			}, time.Now())
 

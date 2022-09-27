@@ -78,8 +78,9 @@ func (t *StyleSheetOrigin) UnmarshalJSON(buf []byte) error {
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/CSS#type-PseudoElementMatches
 type PseudoElementMatches struct {
-	PseudoType cdp.PseudoType `json:"pseudoType"` // Pseudo element type.
-	Matches    []*RuleMatch   `json:"matches"`    // Matches of CSS rules applicable to the pseudo style.
+	PseudoType       cdp.PseudoType `json:"pseudoType"`                 // Pseudo element type.
+	PseudoIdentifier string         `json:"pseudoIdentifier,omitempty"` // Pseudo element custom ident.
+	Matches          []*RuleMatch   `json:"matches"`                    // Matches of CSS rules applicable to the pseudo style.
 }
 
 // InheritedStyleEntry inherited CSS rule collection from ancestor node.
@@ -88,6 +89,14 @@ type PseudoElementMatches struct {
 type InheritedStyleEntry struct {
 	InlineStyle     *Style       `json:"inlineStyle,omitempty"` // The ancestor node's inline style, if any, in the style inheritance chain.
 	MatchedCSSRules []*RuleMatch `json:"matchedCSSRules"`       // Matches of CSS rules matching the ancestor node in the style inheritance chain.
+}
+
+// InheritedPseudoElementMatches inherited pseudo element matches from
+// pseudos of an ancestor node.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/CSS#type-InheritedPseudoElementMatches
+type InheritedPseudoElementMatches struct {
+	PseudoElements []*PseudoElementMatches `json:"pseudoElements"` // Matches of pseudo styles from the pseudos of an ancestor node.
 }
 
 // RuleMatch match data for a CSS rule.
@@ -148,6 +157,9 @@ type Rule struct {
 	Style            *Style            `json:"style"`                      // Associated style declaration.
 	Media            []*Media          `json:"media,omitempty"`            // Media list array (for rules involving media queries). The array enumerates media queries starting with the innermost one, going outwards.
 	ContainerQueries []*ContainerQuery `json:"containerQueries,omitempty"` // Container query list array (for rules involving container queries). The array enumerates container queries starting with the innermost one, going outwards.
+	Supports         []*Supports       `json:"supports,omitempty"`         // @supports CSS at-rule array. The array enumerates @supports at-rules starting with the innermost one, going outwards.
+	Layers           []*Layer          `json:"layers,omitempty"`           // Cascade layer array. Contains the layer hierarchy that this rule belongs to starting with the innermost layer and going outwards.
+	Scopes           []*Scope          `json:"scopes,omitempty"`           // @scope CSS at-rule array. The array enumerates @scope at-rules starting with the innermost one, going outwards.
 }
 
 // RuleUsage CSS coverage information.
@@ -202,14 +214,15 @@ type Style struct {
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/CSS#type-CSSProperty
 type Property struct {
-	Name      string       `json:"name"`                // The property name.
-	Value     string       `json:"value"`               // The property value.
-	Important bool         `json:"important,omitempty"` // Whether the property has "!important" annotation (implies false if absent).
-	Implicit  bool         `json:"implicit,omitempty"`  // Whether the property is implicit (implies false if absent).
-	Text      string       `json:"text,omitempty"`      // The full property text as specified in the style.
-	ParsedOk  bool         `json:"parsedOk,omitempty"`  // Whether the property is understood by the browser (implies true if absent).
-	Disabled  bool         `json:"disabled,omitempty"`  // Whether the property is disabled by the user (present for source-based properties only).
-	Range     *SourceRange `json:"range,omitempty"`     // The entire property range in the enclosing style declaration (if available).
+	Name               string       `json:"name"`                         // The property name.
+	Value              string       `json:"value"`                        // The property value.
+	Important          bool         `json:"important,omitempty"`          // Whether the property has "!important" annotation (implies false if absent).
+	Implicit           bool         `json:"implicit,omitempty"`           // Whether the property is implicit (implies false if absent).
+	Text               string       `json:"text,omitempty"`               // The full property text as specified in the style.
+	ParsedOk           bool         `json:"parsedOk,omitempty"`           // Whether the property is understood by the browser (implies true if absent).
+	Disabled           bool         `json:"disabled,omitempty"`           // Whether the property is disabled by the user (present for source-based properties only).
+	Range              *SourceRange `json:"range,omitempty"`              // The entire property range in the enclosing style declaration (if available).
+	LonghandProperties []*Property  `json:"longhandProperties,omitempty"` // Parsed longhand components of this property if it is a shorthand. This field will be empty if the given property is not a shorthand.
 }
 
 // Media CSS media rule descriptor.
@@ -253,6 +266,43 @@ type ContainerQuery struct {
 	Name         string       `json:"name,omitempty"`         // Optional name for the container.
 }
 
+// Supports CSS Supports at-rule descriptor.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/CSS#type-CSSSupports
+type Supports struct {
+	Text         string       `json:"text"`                   // Supports rule text.
+	Active       bool         `json:"active"`                 // Whether the supports condition is satisfied.
+	Range        *SourceRange `json:"range,omitempty"`        // The associated rule header range in the enclosing stylesheet (if available).
+	StyleSheetID StyleSheetID `json:"styleSheetId,omitempty"` // Identifier of the stylesheet containing this object (if exists).
+}
+
+// Scope CSS Scope at-rule descriptor.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/CSS#type-CSSScope
+type Scope struct {
+	Text         string       `json:"text"`                   // Scope rule text.
+	Range        *SourceRange `json:"range,omitempty"`        // The associated rule header range in the enclosing stylesheet (if available).
+	StyleSheetID StyleSheetID `json:"styleSheetId,omitempty"` // Identifier of the stylesheet containing this object (if exists).
+}
+
+// Layer CSS Layer at-rule descriptor.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/CSS#type-CSSLayer
+type Layer struct {
+	Text         string       `json:"text"`                   // Layer name.
+	Range        *SourceRange `json:"range,omitempty"`        // The associated rule header range in the enclosing stylesheet (if available).
+	StyleSheetID StyleSheetID `json:"styleSheetId,omitempty"` // Identifier of the stylesheet containing this object (if exists).
+}
+
+// LayerData CSS Layer data.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/CSS#type-CSSLayerData
+type LayerData struct {
+	Name      string       `json:"name"`                // Layer name.
+	SubLayers []*LayerData `json:"subLayers,omitempty"` // Direct sub-layers
+	Order     float64      `json:"order"`               // Layer order. The order determines the order of the layer in the cascade order. A higher number has higher priority in the cascade order.
+}
+
 // PlatformFontUsage information about amount of glyphs that were rendered
 // with given font.
 //
@@ -286,6 +336,7 @@ type FontFace struct {
 	FontVariant        string               `json:"fontVariant"`                 // The font-variant.
 	FontWeight         string               `json:"fontWeight"`                  // The font-weight.
 	FontStretch        string               `json:"fontStretch"`                 // The font-stretch.
+	FontDisplay        string               `json:"fontDisplay"`                 // The font-display.
 	UnicodeRange       string               `json:"unicodeRange"`                // The unicode-range.
 	Src                string               `json:"src"`                         // The src.
 	PlatformFontFamily string               `json:"platformFontFamily"`          // The resolved platform font family

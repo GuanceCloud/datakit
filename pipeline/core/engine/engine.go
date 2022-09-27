@@ -49,10 +49,10 @@ func ParseScript(scripts map[string]string, scriptPath map[string]string,
 }
 
 func RunScript(proc *runtime.Script, measurement string,
-	tags map[string]string, fields map[string]any, tn time.Time) (
+	tags map[string]string, fields map[string]any, tn time.Time, signal runtime.Signal) (
 	string, map[string]string, map[string]any, time.Time, bool, error,
 ) {
-	return runtime.RunScript(proc, measurement, tags, fields, tn)
+	return runtime.RunScript(proc, measurement, tags, fields, tn, signal)
 }
 
 func RunScriptWithCtx(ctx *runtime.Context, proc *runtime.Script) error {

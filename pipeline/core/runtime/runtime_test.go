@@ -152,7 +152,7 @@ add_key(len2, len("123"))
 		t.Fatal(err)
 	}
 
-	m, tags, f, tn, drop, err := RunScript(script, "s", nil, nil, time.Now())
+	m, tags, f, tn, drop, err := RunScript(script, "s", nil, nil, time.Now(), nil)
 	t.Log(m, tags, tn, drop)
 	if err != nil {
 		t.Error(err)

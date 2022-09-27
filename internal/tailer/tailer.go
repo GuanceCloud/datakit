@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 )
 
@@ -27,10 +27,7 @@ const (
 	maxFieldsLength = 32 * 1024 * 1024
 )
 
-var (
-	g = datakit.G("tailer")
-	l = logger.DefaultSLogger("socketLog")
-)
+var l = logger.DefaultSLogger("socketLog")
 
 type ForwardFunc func(filename, text string) error
 
@@ -145,7 +142,7 @@ type Tailer struct {
 
 	stop chan interface{}
 	mu   sync.Mutex
-	wg   sync.WaitGroup
+	g    *goroutine.Group
 }
 
 func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (*Tailer, error) {
@@ -172,6 +169,7 @@ func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (
 		}(),
 		stop:     make(chan interface{}),
 		fileList: make(map[string]interface{}),
+		g:        goroutine.NewGroup(goroutine.Option{Name: "tailer"}),
 	}
 
 	if t.opt == nil {
@@ -195,7 +193,7 @@ func (t *Tailer) Start() {
 		select {
 		case <-t.stop:
 			t.opt.log.Infof("waiting for all tailers to exit")
-			t.wg.Wait()
+			_ = t.g.Wait()
 			t.opt.log.Info("all exit")
 			return
 
@@ -219,11 +217,8 @@ func (t *Tailer) scan() {
 			continue
 		}
 
-		t.wg.Add(1)
-
 		func(filename string) {
 			g.Go(func(ctx context.Context) error {
-				defer t.wg.Done()
 				defer t.removeFromFileList(filename)
 
 				tl, err := NewTailerSingle(filename, t.opt)

@@ -62,10 +62,15 @@ func NewScripts(scripts map[string]string, scriptPath map[string]string, ns, cat
 	retScipt := map[string]*PlScript{}
 
 	for name, ng := range ret {
+		var sPath string
+		if len(scriptPath) > 0 {
+			sPath = scriptPath[name]
+		}
+
 		retScipt[name] = &PlScript{
 			script:   scripts[name],
 			name:     name,
-			filePath: scriptPath[name],
+			filePath: sPath,
 			ns:       ns,
 			category: category,
 			ng:       ng,
@@ -80,14 +85,15 @@ func (script *PlScript) Engine() *plruntime.Script {
 	return script.ng
 }
 
-func (script *PlScript) Run(measurement string, tags map[string]string, fields map[string]interface{}, t time.Time, opt *Option,
+func (script *PlScript) Run(measurement string, tags map[string]string, fields map[string]interface{},
+	t time.Time, signal plruntime.Signal, opt *Option,
 ) (string, map[string]string, map[string]interface{}, time.Time, bool, error) {
 	startTime := time.Now()
 	if script.ng == nil {
 		return "", nil, nil, t, false, fmt.Errorf("no script")
 	}
 
-	measurement, tags, fields, t, rDrop, err := engine.RunScript(script.ng, measurement, tags, fields, t)
+	measurement, tags, fields, t, rDrop, err := engine.RunScript(script.ng, measurement, tags, fields, t, signal)
 	if err != nil {
 		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 0, 1, int64(time.Since(startTime)), err)
 		return "", nil, nil, t, false, err

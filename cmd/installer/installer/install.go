@@ -19,6 +19,7 @@ import (
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 )
@@ -43,6 +44,9 @@ func Install(svc service.Service) {
 			}
 		case service.StatusRunning: // should not been here
 			l.Warnf("unexpected: datakit service should have stopped")
+			if err := service.Control(svc, "uninstall"); err != nil {
+				l.Warnf("uninstall service failed: %s", err.Error())
+			}
 		}
 	}
 
@@ -55,7 +59,7 @@ func Install(svc service.Service) {
 		if err != nil {
 			l.Fatal(err)
 		}
-		l.Infof("set dataway to %s OK", Dataway)
+		cp.Infof("Set dataway to %s\n", Dataway)
 	}
 
 	if OTA {
@@ -232,7 +236,7 @@ func Install(svc service.Service) {
 		}
 	}
 	if updateEBPF {
-		l.Info("install DataKit eBPF plugin...")
+		cp.Infof("Install DataKit eBPF plugin...")
 		// nolint:gosec
 		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--ebpf")
 		if msg, err := cmd.CombinedOutput(); err != nil {
@@ -240,7 +244,7 @@ func Install(svc service.Service) {
 		}
 	}
 
-	l.Infof("installing service %s...", dkservice.Name)
+	cp.Infof("Installing service %s...\n", dkservice.Name)
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("uninstall service failed %s", err.Error()) //nolint:lll
 	}

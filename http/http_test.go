@@ -22,64 +22,67 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/influxdata/influxdb1-client/models"
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 func TestParsePoint(t *testing.T) {
 	cases := []struct {
-		body []byte
-		prec string
-		npts int
-		fail bool
+		body   []byte
+		prec   string
+		precV2 lineproto.Precision
+		npts   int
+		fail   bool
 	}{
 		{
-			body: []byte(`m1,t1=abc f1=123 123`),
-			prec: "h",
-			npts: 1,
+			body:   []byte(`m1,t1=abc f1=123 123`),
+			prec:   "s",
+			precV2: lineproto.Second,
+			npts:   1,
 		},
 
 		{
-			body: []byte(`m1,t1=abc f1=123 123`),
-			prec: "m",
-			npts: 1,
+			body:   []byte(`m1,t1=abc f1=123 123`),
+			prec:   "ms",
+			precV2: lineproto.Millisecond,
+			npts:   1,
 		},
 
 		{
-			body: []byte(`m1,t1=abc f1=123 123`),
-			prec: "s",
-			npts: 1,
+			body:   []byte(`m1,t1=abc f1=123 123`),
+			prec:   "u",
+			precV2: lineproto.Microsecond,
+			npts:   1,
 		},
 
 		{
-			body: []byte(`m1,t1=abc f1=123 123`),
-			prec: "ms",
-			npts: 1,
-		},
-
-		{
-			body: []byte(`m1,t1=abc f1=123 123`),
-			prec: "u",
-			npts: 1,
-		},
-
-		{
-			body: []byte(`m1,t1=abc f1=123 123`),
-			prec: "n",
-			npts: 1,
+			body:   []byte(`m1,t1=abc f1=123 123`),
+			prec:   "n",
+			precV2: lineproto.Nanosecond,
+			npts:   1,
 		},
 	}
 
+	encoder := lineproto.NewLineEncoder()
 	for _, tc := range cases {
-		points, err := models.ParsePointsWithPrecision(tc.body, time.Now(), tc.prec)
+		tm := time.Now()
+		pts, err := lineproto.ParseWithOptionSetter(tc.body, lineproto.WithTime(tm), lineproto.WithPrecisionV2(tc.precV2))
 		if tc.fail {
 			tu.NotOk(t, err, "")
 		} else {
-			tu.Equals(t, tc.npts, len(points))
-			for _, pt := range points {
-				t.Log(pt.String())
+			tu.Equals(t, tc.npts, len(pts))
+			for _, pt := range pts {
+				encoder.Reset()
+				if err := encoder.AppendPoint(pt); err != nil {
+					t.Fatal(err)
+				}
+				line, err := encoder.UnsafeString()
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Log(line)
 			}
 		}
 	}

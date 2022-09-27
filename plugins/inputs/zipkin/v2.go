@@ -7,6 +7,7 @@ package zipkin
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -27,7 +28,7 @@ func parseZipkinProtobuf3(body []byte) (zss []*zpkmodel.SpanModel, err error) {
 	}
 
 	for _, zps := range listOfSpans.Spans {
-		traceID, err := zipkinTraceIDFromHex(fmt.Sprintf("%x", zps.TraceId))
+		traceID, err := zipkinTraceIDFromHex(hex.EncodeToString(zps.TraceId))
 		if err != nil {
 			return nil, fmt.Errorf("invalid TraceID: %w", err)
 		}
@@ -166,7 +167,7 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 		if span.TraceID.High != 0 {
 			dkspan.TraceID = fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low)
 		} else {
-			dkspan.TraceID = fmt.Sprintf("%x", span.TraceID.Low)
+			dkspan.TraceID = strconv.FormatUint(span.TraceID.Low, 16)
 		}
 
 		for tag := range span.Tags {

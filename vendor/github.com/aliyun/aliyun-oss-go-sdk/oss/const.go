@@ -206,6 +206,7 @@ const (
 	HTTPHeaderAllowSameActionOverLap         = "X-Oss-Allow-Same-Action-Overlap"
 	HttpHeaderOssDate                        = "X-Oss-Date"
 	HttpHeaderOssContentSha256               = "X-Oss-Content-Sha256"
+	HttpHeaderOssNotification                = "X-Oss-Notification"
 )
 
 // HTTP Param
@@ -239,7 +240,7 @@ const (
 
 	DefaultContentSha256 = "UNSIGNED-PAYLOAD" // for v4 signature
 
-	Version = "v2.2.4" // Go SDK version
+	Version = "v2.2.5" // Go SDK version
 )
 
 // FrameType

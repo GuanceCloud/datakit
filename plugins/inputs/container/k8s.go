@@ -7,7 +7,6 @@ package container
 
 import (
 	"fmt"
-	"os"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -173,9 +172,6 @@ func defaultNamespace(ns string) string {
 func defaultClusterName(name string) string {
 	if name != "" {
 		return name
-	}
-	if e := os.Getenv("ENV_K8S_CLUSTER_NAME"); e != "" {
-		return e
 	}
 	return "kubernetes"
 }

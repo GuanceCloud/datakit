@@ -42,11 +42,9 @@ func SetTag(ctx *runtime.Context, funcExpr *ast.CallExpr) runtime.PlPanic {
 	}
 
 	if len(funcExpr.Param) == 2 {
+		// 不限制值的数据类型，如果不是 string 类将在设置为 tag 时自动转换为 string
 		val, dtype, err := runtime.RunStmt(ctx, funcExpr.Param[1])
 		if err != nil {
-			return nil
-		}
-		if dtype != ast.String {
 			return nil
 		}
 		_ = ctx.AddKey2PtWithVal(key, val, dtype, runtime.KindPtTag)

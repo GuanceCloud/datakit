@@ -156,10 +156,7 @@ func (s *SinkLogstash) writeLogstash(pts []*point.Point) error {
 	case writeTypePlain:
 		var msgs []string
 		for _, v := range pts {
-			fields, err := v.ToPoint().Fields()
-			if err != nil {
-				return err
-			}
+			fields := v.ToPoint().Fields
 
 			msg, ok := fields["message"]
 			if !ok {

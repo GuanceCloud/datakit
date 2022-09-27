@@ -9,6 +9,7 @@ package io
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"sync"
@@ -370,10 +371,19 @@ func (x *IO) cache(category string, pts []*point.Point, fc *failCache) error {
 		return nil
 	}
 
+	encoder := lp.NewLineEncoder()
 	for _, pt := range pts {
+		encoder.Reset()
+		if err := encoder.AppendPoint(pt.Point); err != nil {
+			return fmt.Errorf("add point fail: %w", err)
+		}
+		line, err := encoder.BytesWithoutLn()
+		if err != nil {
+			return fmt.Errorf("encoder bytes fail: %w", err)
+		}
 		buf, err := pb.Marshal(&PBData{
 			Category: category,
-			Lines:    []byte(pt.String()),
+			Lines:    append([]byte(nil), line...),
 		})
 		if err != nil {
 			log.Warnf("dump %s cache(%d) failed: %v", category, len(pts), err)
@@ -395,7 +405,7 @@ func getWrite(data []byte, fn funcSend) error {
 	if err := pb.Unmarshal(data, pd); err != nil {
 		return err
 	}
-	pts, err := lp.ParsePoints(pd.Lines, nil)
+	pts, err := lp.Parse(pd.Lines, nil)
 	if err != nil {
 		return err
 	}
@@ -425,17 +435,31 @@ func (x *IO) fileOutput(d *iodata) error {
 		x.outputFileSize += int64(n)
 	}
 
+	encoder := lp.NewLineEncoder()
 	for _, pt := range d.pts {
-		if n, err := x.fd.WriteString(pt.String() + "\n"); err != nil {
-			return err
-		} else {
-			x.outputFileSize += int64(n)
-			if x.outputFileSize > 32*1024*1024 { // truncate file on 32MB
-				if err := x.fd.Truncate(0); err != nil {
-					return err
-				}
-				x.outputFileSize = 0
+		encoder.Reset()
+		if err := encoder.AppendPoint(pt.Point); err != nil {
+			return fmt.Errorf("append point fail: %w", err)
+		}
+		line, err := encoder.Bytes()
+		if err != nil {
+			return fmt.Errorf("line protocol encoding err: %w", err)
+		}
+
+		n, err := x.fd.Write(line)
+		if err != nil {
+			return fmt.Errorf("io write file fail: %w", err)
+		}
+
+		x.outputFileSize += int64(n)
+		if x.outputFileSize > 32*1024*1024 { // truncate file on 32MB
+			if err := x.fd.Truncate(0); err != nil {
+				return fmt.Errorf("truncate file err: %w", err)
 			}
+			if _, err := x.fd.Seek(0, io.SeekStart); err != nil {
+				return fmt.Errorf("file seek err: %w", err)
+			}
+			x.outputFileSize = 0
 		}
 	}
 

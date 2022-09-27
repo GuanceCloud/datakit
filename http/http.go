@@ -287,7 +287,7 @@ func setupRouter() *gin.Engine {
 	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
 	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
 
-	router.POST("/v1/pipeline/debug", rawHTTPWraper(reqLimiter, apiDebugPipelineHandler))
+	router.POST("/v1/pipeline/debug", rawHTTPWraper(reqLimiter, apiPipelineDebugHandler))
 	router.POST("/v1/dialtesting/debug", rawHTTPWraper(reqLimiter, apiDebugDialtestingHandler))
 	return router
 }

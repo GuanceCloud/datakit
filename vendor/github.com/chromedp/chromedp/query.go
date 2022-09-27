@@ -155,16 +155,10 @@ func (s *Selector) Do(ctx context.Context) error {
 	if t == nil {
 		return ErrInvalidTarget
 	}
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(5 * time.Millisecond):
-		}
-
+	return retryWithSleep(ctx, 5*time.Millisecond, func(ctx context.Context) (bool, error) {
 		frame, root, execCtx, ok := t.ensureFrame()
 		if !ok {
-			continue
+			return false, nil
 		}
 
 		fromNode := s.fromNode
@@ -194,20 +188,20 @@ func (s *Selector) Do(ctx context.Context) error {
 
 		ids, err := s.by(ctx, fromNode)
 		if err != nil || len(ids) < s.exp {
-			continue
+			return false, nil
 		}
 		nodes, err := s.wait(ctx, frame, execCtx, ids...)
 		// if nodes==nil, we're not yet ready
 		if nodes == nil || err != nil {
-			continue
+			return false, nil
 		}
 		if s.after != nil {
 			if err := s.after(ctx, execCtx, nodes...); err != nil {
-				return err
+				return true, err
 			}
 		}
-		return nil
-	}
+		return true, nil
+	})
 }
 
 // selAsString forces sel into a string.
@@ -1140,9 +1134,8 @@ func MatchedStyle(sel interface{}, style **css.GetMatchedStylesForNodeReturns, o
 
 		var err error
 		ret := &css.GetMatchedStylesForNodeReturns{}
-		ret.InlineStyle, ret.AttributesStyle, ret.MatchedCSSRules,
-			ret.PseudoElements, ret.Inherited, ret.CSSKeyframesRules,
-			err = css.GetMatchedStylesForNode(nodes[0].NodeID).Do(ctx)
+		p := css.GetMatchedStylesForNode(nodes[0].NodeID)
+		err = cdp.Execute(ctx, css.CommandGetMatchedStylesForNode, p, ret)
 		if err != nil {
 			return err
 		}

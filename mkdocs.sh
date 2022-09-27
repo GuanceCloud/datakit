@@ -158,6 +158,7 @@ datakit_docs=(
   $tmp_doc_dir/mysql.md
   $tmp_doc_dir/net.md
   $tmp_doc_dir/netstat.md
+  $tmp_doc_dir/nvidia_smi.md
   $tmp_doc_dir/nginx.md
   $tmp_doc_dir/nsq.md
   $tmp_doc_dir/opentelemetry-go.md
@@ -168,6 +169,7 @@ datakit_docs=(
   $tmp_doc_dir/profile.md
   $tmp_doc_dir/prom.md
   $tmp_doc_dir/prom_remote_write.md
+  $tmp_doc_dir/promtail.md
   $tmp_doc_dir/rabbitmq.md
   $tmp_doc_dir/redis.md
   $tmp_doc_dir/rum.md

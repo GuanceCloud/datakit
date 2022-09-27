@@ -12,6 +12,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"strconv"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
@@ -256,13 +257,15 @@ func pickupMeta(dkspan *itrace.DatakitSpan, ddspan *DDSpan, keys ...string) {
 	if dkspan.Tags == nil {
 		dkspan.Tags = make(map[string]string)
 	}
+
 	for i := range keys {
 		if v, ok := ddspan.Meta[keys[i]]; ok {
 			dkspan.Tags[keys[i]] = v
 		}
 	}
+
 	if pid, ok := ddspan.Metrics["system.pid"]; ok {
-		dkspan.Tags[itrace.TAG_PID] = fmt.Sprintf("%d", int64(pid))
+		dkspan.Tags[itrace.TAG_PID] = strconv.FormatInt(int64(pid), 10)
 	}
 	if runtimeid, ok := ddspan.Meta["runtime-id"]; ok {
 		dkspan.Tags["runtime_id"] = runtimeid
@@ -301,9 +304,9 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			TraceID:    fmt.Sprintf("%d", span.TraceID),
-			ParentID:   fmt.Sprintf("%d", span.ParentID),
-			SpanID:     fmt.Sprintf("%d", span.SpanID),
+			TraceID:    strconv.FormatInt(int64(span.TraceID), 10),
+			ParentID:   strconv.FormatInt(int64(span.ParentID), 10),
+			SpanID:     strconv.FormatInt(int64(span.SpanID), 10),
 			Service:    span.Service,
 			Resource:   span.Resource,
 			Operation:  span.Name,
@@ -315,6 +318,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			Start:      span.Start,
 			Duration:   span.Duration,
 		}
+
 		pickupMeta(dkspan, span, itrace.PROJECT, itrace.VERSION, itrace.ENV, itrace.CONTAINER_HOST)
 
 		dkspan.Status = itrace.STATUS_OK

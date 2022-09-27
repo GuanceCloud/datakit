@@ -18,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 )
 
@@ -40,9 +41,9 @@ func runVersionFlags() error {
 		}
 
 		for _, vi := range vis {
-			infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
+			cp.Infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
 				vi.versionType, vi.newVersion.VersionString, vi.newVersion.Commit, vi.newVersion.ReleaseDate)
-			infof("%s\n", getUpgradeCommand(vi.newVersion.DownloadURL))
+			cp.Infof("%s\n", getUpgradeCommand(vi.newVersion.DownloadURL))
 		}
 	}
 
@@ -228,7 +229,7 @@ func getOnlineVersions(showTestingVer bool) (map[string]*version.VerInfo, error)
 	res := map[string]*version.VerInfo{}
 
 	if v := datakit.GetEnv("DK_INSTALLER_BASE_URL"); v != "" {
-		warnf("setup base URL to %s\n", v)
+		cp.Warnf("setup base URL to %s\n", v)
 		OnlineBaseURL = v
 	}
 

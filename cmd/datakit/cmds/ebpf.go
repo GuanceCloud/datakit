@@ -11,6 +11,7 @@ import (
 	"runtime"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 )
 
@@ -22,13 +23,13 @@ func InstallEbpf() error {
 		return fmt.Errorf("DataKit eBPF plugin only supports linux/amd64 and linux/arm64")
 	}
 
-	infof("install DataKit eBPF plugin...\n")
+	cp.Infof("install DataKit eBPF plugin...\n")
 	dl.CurDownloading = "datakit-ebpf"
 	cli := getcli()
 
 	if err := dl.Download(cli, url, filepath.Join(datakit.InstallDir, "externals"), false, false); err != nil {
 		return err
 	}
-	infof("install success\n")
+	cp.Infof("install success\n")
 	return nil
 }

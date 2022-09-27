@@ -23,8 +23,9 @@ import (
 )
 
 var (
-	_ inputs.ReadEnv = (*Input)(nil)
-	l                = logger.DefaultSLogger(InputName)
+	_ inputs.ReadEnv   = (*Input)(nil)
+	_ inputs.Singleton = (*Input)(nil)
+	l                  = logger.DefaultSLogger(InputName)
 )
 
 type Input struct {
@@ -53,6 +54,9 @@ type Input struct {
 
 	semStop    *cliutils.Sem // start stop signal
 	isTestMode bool
+}
+
+func (ipt *Input) Singleton() {
 }
 
 func (ipt *Input) Catalog() string {
