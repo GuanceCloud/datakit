@@ -173,6 +173,7 @@ NAME1="value1" NAME2="value2"
 - `HTTPS_PROXY`：通过 Datakit 代理安装
 - `DK_PROXY_TYPE`：代理类型。选项有: "datakit" 或 "nginx"，均为小写
 - `DK_NGINX_IP`：代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者
+- `DK_INSTALL_LOG`：设置安装程序日志路径，默认为当前目录下的 *install.log*，如果设置为 `stdout` 则输出到命令行终端
 
 ## FAQ {#faq}
 
