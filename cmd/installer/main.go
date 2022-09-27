@@ -411,6 +411,7 @@ func checkIsNewVersion(host, version string) error {
 		resp, err := http.Get(host + "/v1/ping")
 		if err != nil {
 			l.Errorf("http.Get: %s", err)
+			continue
 		}
 
 		body, err := ioutil.ReadAll(resp.Body)
