@@ -427,27 +427,38 @@ func TestCollect(t *testing.T) {
 		if err := input.initCfg(); err != nil {
 			t.Error(err)
 		}
-		if err := input.Collect(); err != nil {
-			t.Error(err)
+		resData, _ := input.collectDBMeasurement()
+
+		for _, pt := range resData {
+			fmt.Println(pt.Info())
+			point, err := pt.LineProto()
+			if err != nil {
+				t.Log("error =======>", err)
+			} else {
+				t.Log("point line =====>", point.String())
+			}
 		}
 	})
 
 	t.Run("error", func(t *testing.T) {
-		input := &Input{
+		i := &Input{
 			Host: "127.0.0.1",
 			Port: 6379,
 			// Password: "test",
 			// Service:  "dev-test",
 			Tags: make(map[string]string),
-			Keys: []string{"myhash"},
-			DB:   1,
 		}
 
-		if err := input.initCfg(); err != nil {
+		i.collectors = []func() ([]inputs.Measurement, error){
+			i.collectDBMeasurement,
+			i.CollectLatencyMeasurement,
+		}
+
+		if err := i.initCfg(); err != nil {
 			t.Error(err)
 		}
-		if err := input.Collect(); err != nil {
+		if err := i.Collect(); err != nil {
 			t.Error(err)
 		}
 	})
-} */
+}*/
