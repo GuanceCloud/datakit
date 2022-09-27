@@ -79,6 +79,7 @@ var (
 		"jvm":                    true,
 		"k8sobject":              true,
 		"kafka":                  true,
+		"kafkamq":                true,
 		"kafkalog":               true,
 		"kong":                   true,
 		"kubernetes":             true,
