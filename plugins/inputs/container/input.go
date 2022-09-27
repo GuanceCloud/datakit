@@ -49,11 +49,12 @@ type Input struct {
 	ExcludePauseContainer        bool `toml:"exclude_pause_container"`
 	Election                     bool `toml:"election"`
 
-	K8sURL                string `toml:"kubernetes_url"`
-	K8sBearerToken        string `toml:"bearer_token"`
-	K8sBearerTokenString  string `toml:"bearer_token_string"`
-	DisableK8sEvents      bool   `toml:"disable_k8s_events"`
-	ExtractK8sLabelAsTags bool   `toml:"extract_k8s_label_as_tags"`
+	K8sURL                              string `toml:"kubernetes_url"`
+	K8sBearerToken                      string `toml:"bearer_token"`
+	K8sBearerTokenString                string `toml:"bearer_token_string"`
+	DisableK8sEvents                    bool   `toml:"disable_k8s_events"`
+	AutoDiscoveryOfK8sServicePrometheus bool   `toml:"auto_discovery_of_k8s_service_prometheus"`
+	ExtractK8sLabelAsTags               bool   `toml:"extract_k8s_label_as_tags"`
 
 	ContainerIncludeLog               []string          `toml:"container_include_log"`
 	ContainerExcludeLog               []string          `toml:"container_exclude_log"`
@@ -185,6 +186,9 @@ func (i *Input) Run() {
 			i.collectObject()
 
 		case i.pause = <-i.chPause:
+			if i.discovery != nil {
+				i.discovery.chPause <- i.pause
+			}
 			globalPause.set(i.pause)
 		}
 	}
@@ -437,7 +441,10 @@ func (i *Input) setup() bool {
 			} else {
 				i.k8sInput = k
 
-				i.discovery = newDiscovery(i.k8sInput.client, i.Tags, i.ExtractK8sLabelAsTags, i.semStop.Wait())
+				i.discovery = newDiscovery(i.k8sInput.client, i.semStop.Wait())
+				i.discovery.extraTags = i.Tags
+				i.discovery.extractK8sLabelAsTags = i.ExtractK8sLabelAsTags
+				i.discovery.autoDiscoveryOfK8sServicePrometheus = i.AutoDiscoveryOfK8sServicePrometheus
 
 				if i.dockerInput != nil {
 					i.dockerInput.k8sClient = i.k8sInput.client
@@ -487,6 +494,7 @@ func (i *Input) Resume() error {
 //   ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_POD_METRIC : booler
+//   ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_K8S_SERVICE_PROMETHEUS: booler
 //   ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS: booler
 //   ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
 //   ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER : booler
@@ -564,12 +572,22 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			i.EnableK8sMetric = b
 		}
 	}
+
 	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_POD_METRIC"]; ok {
 		b, err := strconv.ParseBool(enable)
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_POD_METRIC to bool: %s, ignore", err)
 		} else {
 			i.EnablePodMetric = b
+		}
+	}
+
+	if enable, ok := envs["ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_K8S_SERVICE_PROMETHEUS"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_K8S_SERVICE_PROMETHEUS to bool: %s, ignore", err)
+		} else {
+			i.AutoDiscoveryOfK8sServicePrometheus = b
 		}
 	}
 

@@ -414,6 +414,7 @@ func NewProm() *Input {
 		Source:      "prom",
 		Interval:    "30s",
 		Election:    true,
+		Tags:        make(map[string]string),
 
 		semStop: cliutils.NewSem(),
 	}
