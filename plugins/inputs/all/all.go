@@ -36,6 +36,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jenkins"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jvm"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafka"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafkamq"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/logfwdserver"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/logging"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/logstreaming"
