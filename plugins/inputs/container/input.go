@@ -490,6 +490,7 @@ func (i *Input) Resume() error {
 //   ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_POD_METRIC : booler
+//   ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_K8S_SERVICE_PROMETHEUS: booler
 //   ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS: booler
 //   ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
 //   ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER : booler
@@ -567,12 +568,22 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			i.EnableK8sMetric = b
 		}
 	}
+
 	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_POD_METRIC"]; ok {
 		b, err := strconv.ParseBool(enable)
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_POD_METRIC to bool: %s, ignore", err)
 		} else {
 			i.EnablePodMetric = b
+		}
+	}
+
+	if enable, ok := envs["ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_K8S_SERVICE_PROMETHEUS"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_K8S_SERVICE_PROMETHEUS to bool: %s, ignore", err)
+		} else {
+			i.AutoDiscoveryOfK8sServicePrometheus = b
 		}
 	}
 
