@@ -49,6 +49,10 @@ spec:
               value: {{ .Values.datakit.log_level }}
             - name: ENV_HTTP_LISTEN
               value: {{ .Values.datakit.http_listen }}
+            {{- if .Values.iploc.enable }}
+            - name: ENV_IPDB
+              value: iploc
+            {{- end }}
             {{- if .Values.git_repos.enable }}
             {{- if not (eq  "-" .Values.git_repos.git_url) }}
             - name: ENV_GIT_URL
@@ -66,10 +70,14 @@ spec:
               value: {{ .Values.git_repos.git_branch | quote }}
             - name: ENV_GIT_INTERVAL
               value: {{ .Values.git_repos.git_interval | quote  }}
+            {{- end }}
+            {{- if .Values.extraEnvs }}
+            {{- range .Values.extraEnvs }}
+            {{- with . }}
+            - name : {{ .name }}
+              value : {{ .value | quote }}
           {{- end }}
-
-          {{- if .Values.extraEnvs }}
-          {{ toYaml .Values.extraEnvs | indent 8 }}
+          {{- end }}
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -101,10 +109,15 @@ spec:
               name: rootfs
             - mountPath: /sys/kernel/debug
               name: debugfs
+            {{- if .Values.iploc.enable }}
+            - mountPath: /usr/local/datakit/data/ipdb/iploc/
+              name: datakit-ipdb
+            {{- end }}
             {{- if .Values.git_repos.enable }}
             {{- if not (eq .Values.git_repos.git_key_path "-") }}
             - mountPath: /usr/local/datakit/id_rsa
               name: id-rsa
+              subPath: id_rsa
             {{- end }}
             {{- end }}
             {{- if .Values.dkconfig }}
@@ -120,6 +133,21 @@ spec:
       hostIPC: true
       hostPID: true
       restartPolicy: Always
+      {{- if .Values.iploc.enable }}
+      initContainers:
+        - args:
+            - tar -xf /opt/iploc.tar.gz -C /usr/local/datakit/data/ipdb/iploc/
+          command:
+            - bash
+            - -c
+          image: {{ .Values.iploc.image.repository }}:{{ .Values.iploc.image.tag | default .Chart.AppVersion }}
+          imagePullPolicy: IfNotPresent
+          name: init-volume
+          resources: {}
+          volumeMounts:
+            - mountPath: /usr/local/datakit/data/ipdb/iploc/
+              name: datakit-ipdb
+      {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
       {{ toYaml . | indent 6 }}
@@ -127,9 +155,9 @@ spec:
       serviceAccount: {{ include "datakit.fullname" . }}
       serviceAccountName: {{ include "datakit.fullname" . }}
       volumes:
-{{/*        - configMap:*/}}
-{{/*            name: datakit-conf*/}}
-{{/*          name: datakit-conf*/}}
+        {{/*        - configMap:*/}}
+        {{/*            name: datakit-conf*/}}
+        {{/*          name: datakit-conf*/}}
         - hostPath:
             path: /var/run
           name: run
@@ -159,12 +187,16 @@ spec:
             path: /sys/kernel/debug
             type: ""
           name: debugfs
+        {{- if .Values.iploc.enable }}
+        - emptyDir: {}
+          name: datakit-ipdb
+        {{- end }}
         {{- if .Values.git_repos.enable }}
         {{- if not (eq .Values.git_repos.git_key_path "-") }}
         - configMap:
             name: id-rsa
           name: id-rsa
-      {{- end }}
+  {{- end }}
   {{- end }}
   updateStrategy:
     rollingUpdate:
