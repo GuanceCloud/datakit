@@ -46,6 +46,7 @@ type AfterGather struct {
 	calculators    []CalculatorFunc
 	filters        []FilterFunc
 	ReFeedInterval time.Duration
+	BlockIOModel   bool
 }
 
 type Option func(aga *AfterGather)
@@ -53,6 +54,12 @@ type Option func(aga *AfterGather)
 func WithRetry(interval time.Duration) Option {
 	return func(aga *AfterGather) {
 		aga.ReFeedInterval = interval
+	}
+}
+
+func WithBlockIOModel(block bool) Option {
+	return func(aga *AfterGather) {
+		aga.BlockIOModel = block
 	}
 }
 
@@ -119,10 +126,11 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod
 	if pts := BuildPointsBatch(afterFilters, stricktMod); len(pts) != 0 {
 		var (
 			start = time.Now()
+			opt   = &dkio.Option{Blocking: aga.BlockIOModel}
 			err   error
 		)
 	IO_FEED_RETRY:
-		if err = dkioFeed(inputName, datakit.Tracing, pts, nil); err != nil {
+		if err = dkioFeed(inputName, datakit.Tracing, pts, opt); err != nil {
 			log.Warnf("### io feed points failed: %s, ignored", err.Error())
 			if aga.ReFeedInterval > 0 && errors.Is(err, dkio.ErrIOBusy) {
 				time.Sleep(aga.ReFeedInterval)

@@ -142,7 +142,7 @@ func (ipt *Input) RegHTTPHandler() {
 	if storage == nil {
 		afterGather = itrace.NewAfterGather()
 	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithRetry(100 * time.Millisecond))
+		afterGather = itrace.NewAfterGather(itrace.WithRetry(100*time.Millisecond), itrace.WithBlockIOModel(true))
 	}
 	afterGatherRun = afterGather
 
