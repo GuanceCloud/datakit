@@ -238,6 +238,8 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"database_name": &inputs.TagInfo{Desc: "数据库名称"},
 			"vgroup_id":     &inputs.TagInfo{Desc: "虚拟组 ID"},
 			"client_ip":     &inputs.TagInfo{Desc: "请求端 IP"},
+			"version":       &inputs.TagInfo{Desc: "version"},
+			"first_ep":      &inputs.TagInfo{Desc: "first endpoint"},
 		},
 	}
 }
