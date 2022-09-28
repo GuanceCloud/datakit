@@ -12,6 +12,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"strconv"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
@@ -252,6 +253,46 @@ func mergeTraces(traces DDTraces) DDTraces {
 	return merged
 }
 
+func pickupMeta(dkspan *itrace.DatakitSpan, ddspan *DDSpan, keys ...string) {
+	if dkspan.Tags == nil {
+		dkspan.Tags = make(map[string]string)
+	}
+
+	for i := range keys {
+		if v, ok := ddspan.Meta[keys[i]]; ok {
+			dkspan.Tags[keys[i]] = v
+		}
+	}
+
+	if pid, ok := ddspan.Metrics["system.pid"]; ok {
+		dkspan.Tags[itrace.TAG_PID] = strconv.FormatInt(int64(pid), 10)
+	}
+	if runtimeid, ok := ddspan.Meta["runtime-id"]; ok {
+		dkspan.Tags["runtime_id"] = runtimeid
+	}
+	if origin, ok := ddspan.Meta["_dd.origin"]; ok {
+		dkspan.Tags["_dd_origin"] = origin
+	}
+
+	if dkspan.SourceType == itrace.SPAN_SOURCE_WEB {
+		if host, ok := ddspan.Meta["http.host"]; ok {
+			dkspan.Tags[itrace.TAG_HTTP_HOST] = host
+		}
+		if url, ok := ddspan.Meta["http.url"]; ok {
+			dkspan.Tags[itrace.TAG_HTTP_URL] = url
+		}
+		if route, ok := ddspan.Meta["http.route"]; ok {
+			dkspan.Tags[itrace.TAG_HTTP_ROUTE] = route
+		}
+		if method, ok := ddspan.Meta["http.method"]; ok {
+			dkspan.Tags[itrace.TAG_HTTP_METHOD] = method
+		}
+		if statusCode, ok := ddspan.Meta["http.status_code"]; ok {
+			dkspan.Tags[itrace.TAG_HTTP_STATUS_CODE] = statusCode
+		}
+	}
+}
+
 func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
@@ -263,49 +304,22 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			TraceID:        fmt.Sprintf("%d", span.TraceID),
-			ParentID:       fmt.Sprintf("%d", span.ParentID),
-			SpanID:         fmt.Sprintf("%d", span.SpanID),
-			Service:        span.Service,
-			Resource:       span.Resource,
-			Operation:      span.Name,
-			Source:         inputName,
-			SpanType:       itrace.FindSpanTypeInMultiServersIntSpanID(int64(span.SpanID), int64(span.ParentID), span.Service, spanIDs, parentIDs),
-			SourceType:     itrace.GetSpanSourceType(span.Type),
-			Tags:           itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
-			ContainerHost:  span.Meta[itrace.CONTAINER_HOST],
-			PID:            fmt.Sprintf("%d", int64(span.Metrics["system.pid"])),
-			HTTPMethod:     span.Meta["http.method"],
-			HTTPStatusCode: span.Meta["http.status_code"],
-			Start:          span.Start,
-			Duration:       span.Duration,
+			TraceID:    strconv.FormatInt(int64(span.TraceID), 10),
+			ParentID:   strconv.FormatInt(int64(span.ParentID), 10),
+			SpanID:     strconv.FormatInt(int64(span.SpanID), 10),
+			Service:    span.Service,
+			Resource:   span.Resource,
+			Operation:  span.Name,
+			Source:     inputName,
+			SpanType:   itrace.FindSpanTypeInMultiServersIntSpanID(int64(span.SpanID), int64(span.ParentID), span.Service, spanIDs, parentIDs),
+			SourceType: itrace.GetSpanSourceType(span.Type),
+			Tags:       itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
+			Metrics:    make(map[string]interface{}),
+			Start:      span.Start,
+			Duration:   span.Duration,
 		}
 
-		if span.Meta[itrace.PROJECT] != "" {
-			dkspan.Project = span.Meta[itrace.PROJECT]
-		} else {
-			dkspan.Project = tags[itrace.PROJECT]
-		}
-
-		if span.Meta[itrace.ENV] != "" {
-			dkspan.Env = span.Meta[itrace.ENV]
-		} else {
-			dkspan.Env = tags[itrace.ENV]
-		}
-
-		if span.Meta[itrace.VERSION] != "" {
-			dkspan.Version = span.Meta[itrace.VERSION]
-		} else {
-			dkspan.Version = tags[itrace.VERSION]
-		}
-
-		if span.Meta["runtime-id"] != "" {
-			dkspan.Tags["runtime_id"] = span.Meta["runtime-id"]
-		}
-
-		if span.Meta["_dd.origin"] != "" {
-			dkspan.Tags["_dd.origin"] = span.Meta["_dd.origin"]
-		}
+		pickupMeta(dkspan, span, itrace.PROJECT, itrace.VERSION, itrace.ENV, itrace.CONTAINER_HOST)
 
 		dkspan.Status = itrace.STATUS_OK
 		if span.Error != 0 {
@@ -313,7 +327,6 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		}
 
 		if priority, ok := span.Metrics[keyPriority]; ok {
-			dkspan.Metrics = make(map[string]interface{})
 			dkspan.Metrics[itrace.FIELD_PRIORITY] = int(priority)
 		}
 		if rate, ok := span.Metrics[keySamplingRate]; ok {

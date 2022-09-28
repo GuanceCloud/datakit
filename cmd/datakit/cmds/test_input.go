@@ -12,10 +12,10 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
-	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -33,33 +33,33 @@ func inputDebugger(configFile string) error {
 		currentDir, _ := os.Getwd()
 		configPath = filepath.Join(currentDir, configFile)
 		if _, err = os.Stat(configPath); err != nil {
-			warnf("[W] stat failed: %v\n", err)
+			cp.Warnf("[W] stat failed: %v\n", err)
 			return err
 		}
 	}
 
-	infof("[I] config path: %s\n", configPath)
+	cp.Infof("[I] config path: %s\n", configPath)
 
 	inputsInstance, err := config.LoadSingleConfFile(configPath, inputs.Inputs)
 	if err != nil {
-		errorf("[E] parse failed: %v\n", err)
+		cp.Errorf("[E] parse failed: %v\n", err)
 		return err
 	}
 
 	for k, arr := range inputsInstance {
 		for _, x := range arr {
 			if i, ok := x.(inputs.InputOnceRunnableCollect); !ok {
-				warnf("[W] %s not implement for now.\n", k)
+				cp.Warnf("[W] %s not implement for now.\n", k)
 				continue
 			} else {
 				mpts, e := i.Collect()
 				if e != nil {
 					err = e
-					warnf("[W] %s Collect failed: %s\n", k, e.Error())
+					cp.Warnf("[W] %s Collect failed: %s\n", k, e.Error())
 					return err
 				}
 				if err = printResultEx(mpts); err != nil {
-					warnf("[W] %s print failed: %s\n", k, e.Error())
+					cp.Warnf("[W] %s print failed: %s\n", k, e.Error())
 					return err
 				}
 
@@ -88,19 +88,20 @@ func printResultEx(mpts map[string][]*point.Point) error {
 		category = filepath.Base(category)
 		fmt.Printf("%s: ", category)
 		ptsLen += len(points)
-		for _, point := range points {
-			lp := point.String()
-			fmt.Printf(" %s\n", lp)
 
-			influxPoint, err := models.ParsePointsWithPrecision([]byte(lp), time.Now(), "n")
-			if len(influxPoint) != 1 {
-				return fmt.Errorf("parse point error")
-			}
+		lines, err := point.ToLines(points)
+		if err != nil {
+			return err
+		}
+		fmt.Printf(" %s\n", string(lines))
+
+		for _, pt := range points {
+			influxPoint, err := models.NewPoint(pt.Name, models.NewTags(pt.Tags), pt.Fields, pt.Time)
 			if err != nil {
 				return err
 			}
-			timeSeries[fmt.Sprint(influxPoint[0].HashID())] = trueString
-			name := point.Name()
+			timeSeries[fmt.Sprint(influxPoint.HashID())] = trueString
+			name := pt.Name
 			measurements[name] = trueString
 		}
 	}

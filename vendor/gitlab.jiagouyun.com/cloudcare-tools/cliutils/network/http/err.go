@@ -75,6 +75,7 @@ func (he *HttpError) HttpBodyPretty(c *gin.Context, body interface{}) {
 		return
 	}
 
+	c.Header("X-Content-Type-Options", "nosniff")
 	c.Data(he.HttpCode, `application/json`, j)
 }
 
@@ -101,6 +102,7 @@ func (he *HttpError) WriteBody(c *gin.Context, obj interface{}) {
 		}
 	}
 
+	c.Header("X-Content-Type-Options", "nosniff")
 	c.Data(he.HttpCode, contentType, bodyBytes)
 }
 
@@ -132,6 +134,7 @@ func (he *HttpError) HttpBody(c *gin.Context, body interface{}) {
 		}
 	}
 
+	c.Header("X-Content-Type-Options", "nosniff")
 	c.Data(he.HttpCode, contentType, bodyBytes)
 }
 
@@ -178,6 +181,7 @@ func (he *HttpError) httpResp(c *gin.Context, format string, args ...interface{}
 		return
 	}
 
+	c.Header("X-Content-Type-Options", "nosniff")
 	c.Data(he.HttpCode, `application/json`, j)
 }
 

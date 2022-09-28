@@ -146,7 +146,7 @@ func (ipt *Input) RegHTTPHandler() {
 	if storage == nil {
 		afterGather = itrace.NewAfterGather()
 	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithRetry(100 * time.Millisecond))
+		afterGather = itrace.NewAfterGather(itrace.WithRetry(100*time.Millisecond), itrace.WithBlockIOModel(true))
 	}
 	afterGatherRun = afterGather
 
@@ -164,7 +164,7 @@ func (ipt *Input) RegHTTPHandler() {
 	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add omit certain error status list
 	if len(ipt.OmitErrStatus) != 0 {
-		afterGather.AppendFilter(itrace.OmitStatusCodeFilterWrapper(ipt.OmitErrStatus))
+		afterGather.AppendFilter(itrace.OmitHTTPStatusCodeFilterWrapper(ipt.OmitErrStatus))
 	}
 	// add rare resource keeper
 	if ipt.KeepRareResource {

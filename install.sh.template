@@ -21,13 +21,13 @@ function updateHosts() {
 				while read -r line_number; do
 					# replace the text of each line with the desired host entry
 					if [[ "$OSTYPE" == "darwin"* ]]; then
-						sudo_cmd sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
+						$sudo_cmd sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
 					else
-						sudo_cmd sed -i "${line_number}s/.*/${host_entry} /" /etc/hosts
+						$sudo_cmd sed -i "${line_number}s/.*/${host_entry} /" /etc/hosts
 					fi
 				done <<< "$matches_in_hosts"
 			else
-				echo "$host_entry" | sudo_cmd tee -a /etc/hosts > /dev/null
+				echo "$host_entry" | $sudo_cmd tee -a /etc/hosts > /dev/null
 			fi
 		fi
 	done
@@ -59,7 +59,6 @@ fi
 ##################
 RED="\033[31m"
 CLR="\033[0m"
-BLU="\033[34m"
 
 ##################
 # Set Variables
@@ -115,10 +114,15 @@ fi
 # Select installer
 installer_base_url="https://{{.InstallBaseURL}}"
 
+if [ -n "$DK_INSTALLER_BASE_URL" ]; then
+	installer_base_url=$DK_INSTALLER_BASE_URL
+	printf "* base url = ${installer_base_url}\n"
+fi
+
 installer_file="installer-${os}-${arch}-{{.Version}}"
 
 # shellcheck disable=SC2059
-printf "${BLU} Detect installer ${installer_file}${CLR}\n"
+printf "Detect installer ${installer_file}\n"
 
 installer_url="${installer_base_url}/${installer_file}"
 installer=/tmp/dk-installer
@@ -226,14 +230,14 @@ proxy_type=""
 if [ -n "$DK_PROXY_TYPE" ]; then
 	proxy_type=$DK_PROXY_TYPE
 	proxy_type=$(echo $proxy_type | tr '[:upper:]' '[:lower:]') # to lowercase
-	printf "${BLU}\n* found Proxy Type: $proxy_type${CLR}\n"
+	printf "\n* found Proxy Type: $proxy_type\n"
 
 	if [ "$proxy_type" == "nginx" ]; then
 		# env DK_NGINX_IP has highest priority on proxy level
 		if [ -n "$DK_NGINX_IP" ]; then
 			proxy=$DK_NGINX_IP
 			if [ "$proxy" != "" ]; then
-				printf "${BLU}\n* got nginx Proxy: $proxy${CLR}\n"
+				printf "\n* got nginx Proxy: $proxy\n"
 
 				for i in ${domain[@]}; do
 					updateHosts "$proxy" "$i"
@@ -394,13 +398,13 @@ fi
 # Try install...
 ##################
 # shellcheck disable=SC2059
-printf "${BLU}\n* Downloading installer ${installer}\n${CLR}"
+printf "\n* Downloading installer ${installer}\n"
 
 rm -rf $installer
 
 if [ "$proxy" ]; then # add proxy for curl
 	# shellcheck disable=SC2086
-	curl -x "$proxy" --fail --progress-bar $installer_url > $installer
+	curl -s -x "$proxy" --fail --progress-bar $installer_url > $installer
 else
 	# shellcheck disable=SC2086
 	curl --fail --progress-bar $installer_url > $installer
@@ -411,13 +415,16 @@ chmod +x $installer
 
 if [ "$upgrade" ]; then
 	# shellcheck disable=SC2059
-	printf "${BLU}\n* Upgrading DataKit...${CLR}\n"
+	printf "\n* Upgrading DataKit...\n"
 	$sudo_cmd $installer \
-		--upgrade --proxy="${proxy}" --enable-experimental=${enable_experimental} | $sudo_cmd tee ${install_log}
+		--install-log=${install_log} \
+		--upgrade --proxy="${proxy}" --installer_base_url="$installer_base_url" --enable-experimental=${enable_experimental}
 else
-	printf "${BLU}\n* Installing DataKit...${CLR}\n"
+	printf "\n* Installing DataKit...\n"
 		$sudo_cmd $installer \
-		--install-only="$install_only" \
+		--install-log="${install_log}" \
+		--install-only="${install_only}" \
+		--installer_base_url="${installer_base_url}" \
 		--dataway="${dataway}" \
 		--global-host-tags="${global_host_tags}" \
 		--global-election-tags="${global_election_tags}" \
@@ -460,7 +467,7 @@ else
 		--sink-profile="${sink_profile}" \
 		--log-sink-detail="${log_sink_detail}" \
 		--ipdb-type="${ipdb_type}" \
-		--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
+		--gin-log="${gin_log}"
 fi
 rm -rf $installer
 

@@ -26,7 +26,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -708,7 +707,7 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 		return "", err
 	}
 
-	pt, dropFlag, err := pl.Run(pt, nil, opt)
+	pt, dropFlag, err := pl.Run(pt, nil, opt, nil)
 	if err != nil {
 		return "", err
 	}
@@ -718,11 +717,8 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 		return "", nil
 	}
 
-	fields, err := pt.Fields()
-	if err != nil {
-		return "", err
-	}
-	tags := pt.Tags()
+	fields := pt.Fields
+	tags := pt.Tags
 
 	if dropFlag {
 		l.Debug("the current log has been dropped by the pipeline script")
@@ -730,10 +726,10 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 	}
 
 	res := pipeline.Result{
-		Output: &parser.Output{
+		Output: &pipeline.Output{
 			Drop:        dropFlag,
-			Measurement: pt.Name(),
-			Time:        pt.Time(),
+			Measurement: pt.Name,
+			Time:        pt.Time,
 			Tags:        tags,
 			Fields:      fields,
 		},

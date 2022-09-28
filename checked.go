@@ -79,6 +79,7 @@ var (
 		"jvm":                    true,
 		"k8sobject":              true,
 		"kafka":                  true,
+		"kafkamq":                true,
 		"kafkalog":               true,
 		"kong":                   true,
 		"kubernetes":             true,
@@ -103,6 +104,7 @@ var (
 		"nginx_vts":              true,
 		"nginxlog":               true,
 		"nsq":                    true,
+		"nvidia_smi":             true,
 		"opentelemetry":          true,
 		"oracle":                 true,
 		"oraclemonitor":          true,
@@ -151,5 +153,6 @@ var (
 		"zaplog":                 true,
 		"rum":                    true,
 		"zipkin":                 true,
+		"promtail":               true,
 	}
 )

@@ -147,7 +147,7 @@ func TestPlScriptStore(t *testing.T) {
 
 	store.indexUpdate(nil)
 
-	err := store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time) set_tag(a, \"1\")"}, nil)
+	err := store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time) ;set_tag(a, \"1\")"}, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -157,7 +157,7 @@ func TestPlScriptStore(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time) set_tag(a, 1)"}, nil)
+	err = store.UpdateScriptsWithNS(DefaultScriptNS, map[string]string{"abc.p": "default_time(time); set_tag(a, 1)"}, nil)
 	if err == nil {
 		t.Error("should not be nil")
 	}

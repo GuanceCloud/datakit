@@ -19,6 +19,8 @@ import (
 	"time"
 
 	"github.com/schollz/progressbar/v3"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 )
 
@@ -38,38 +40,48 @@ var downloadClient = &http.Client{
 	Timeout: time.Minute * 30,
 }
 
-var downloadLink = map[string]map[string]string{
-	Java: {
-		"darwin/amd64": "https://static.guance.com/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_mac_hotspot_11.0.16_8.tar.gz",
-		"darwin/arm64": "https://static.guance.com/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_mac_hotspot_11.0.15_10.tar.gz",
-		"linux/amd64":  "https://static.guance.com/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_linux_hotspot_11.0.16_8.tar.gz",
-		"linux/arm64":  "https://static.guance.com/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.16_8.tar.gz",
-	},
-	AndroidCommandLineTools: {
-		"darwin/amd64": "http://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/download/R8/commandlinetools-mac-8512546_simplified.tar.gz",
-		"darwin/arm64": "http://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/download/R8/commandlinetools-mac-8512546_simplified.tar.gz",
-		"linux/amd64":  "http://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/download/R8/commandlinetools-linux-8512546_simplified.tar.gz",
-		"linux/arm64":  "http://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/download/R8/commandlinetools-linux-8512546_simplified.tar.gz",
-	},
-	Proguard: {
-		"default": "https://static.guance.com/datakit/sourcemap/proguard/proguard-7.2.2.tar.gz",
-	},
-	AndroidNDK: {
-		"darwin/amd64": "https://static.guance.com/datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz",
-		"darwin/arm64": "https://static.guance.com/datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz",
-		"linux/amd64":  "https://static.guance.com/datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz",
-		"linux/arm64":  "https://static.guance.com/datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz",
-	},
-	LibDwarf: {
-		"default": "https://static.guance.com/datakit/sourcemap/libs/libdwarf-code-20200114.tar.gz",
-	},
-	LibIberty: {
-		"default": "https://static.guance.com/datakit/sourcemap/libs/binutils-2.24.tar.gz",
-	},
-	Atosl: {
-		"default": "https://static.guance.com/datakit/sourcemap/atosl/atosl-20220804-x64-linux.tar.gz",
-	},
+func setupLinks(baseURL string) map[string]map[string]string {
+	if !strings.HasSuffix(baseURL, "/") {
+		baseURL += "/"
+	}
+	return map[string]map[string]string{
+		Java: {
+			"darwin/amd64": baseURL + "datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_mac_hotspot_11.0.16_8.tar.gz",
+			"darwin/arm64": baseURL + "datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_mac_hotspot_11.0.15_10.tar.gz",
+			"linux/amd64":  baseURL + "datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_linux_hotspot_11.0.16_8.tar.gz",
+			"linux/arm64":  baseURL + "datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.16_8.tar.gz",
+		},
+
+		AndroidCommandLineTools: {
+			"darwin/amd64": (baseURL + "datakit/sourcemap/R8/commandlinetools-mac-8512546_simplified.tar.gz"),
+			"darwin/arm64": (baseURL + "datakit/sourcemap/R8/commandlinetools-mac-8512546_simplified.tar.gz"),
+			"linux/amd64":  (baseURL + "datakit/sourcemap/R8/commandlinetools-linux-8512546_simplified.tar.gz"),
+			"linux/arm64":  (baseURL + "datakit/sourcemap/R8/commandlinetools-linux-8512546_simplified.tar.gz"),
+		},
+
+		Proguard: {
+			"default": (baseURL + "datakit/sourcemap/proguard/proguard-7.2.2.tar.gz"),
+		},
+
+		AndroidNDK: {
+			"darwin/amd64": (baseURL + "datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz"),
+			"darwin/arm64": (baseURL + "datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz"),
+			"linux/amd64":  (baseURL + "datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz"),
+			"linux/arm64":  (baseURL + "datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz"),
+		},
+		LibDwarf: {
+			"default": (baseURL + "datakit/sourcemap/libs/libdwarf-code-20200114.tar.gz"),
+		},
+		LibIberty: {
+			"default": (baseURL + "datakit/sourcemap/libs/binutils-2.24.tar.gz"),
+		},
+		Atosl: {
+			"default": (baseURL + "datakit/sourcemap/atosl/atosl-20220804-x64-linux.tar.gz"),
+		},
+	}
 }
+
+var downloadLink = setupLinks(OnlineBaseURL)
 
 func IsDir(name string) (bool, error) {
 	fileInfo, err := os.Stat(name)
@@ -84,6 +96,11 @@ func IsDir(name string) (bool, error) {
 }
 
 func InstallSymbolTools() error {
+	if installBaseURL := datakit.GetEnv("DK_INSTALLER_BASE_URL"); installBaseURL != "" {
+		cp.Warnf("setup base URL to %s \n", installBaseURL)
+		downloadLink = setupLinks(installBaseURL)
+	}
+
 	ok, err := IsDir(DefaultInstallDir)
 	if err != nil {
 		return fmt.Errorf("check the dir %s fail: %w", DefaultInstallDir, err)
@@ -96,39 +113,39 @@ func InstallSymbolTools() error {
 
 	if err := installAndroidCmdLineTool(); err != nil {
 		// nolint:lll
-		errorf(`install android commandline tool fail: %s, you may need to install "https://developer.android.com/studio#cmdline-tools" manually and modify the rum config item "android_cmdline_home" correspondingly%s`, err, "\n")
+		cp.Errorf(`install android commandline tool fail: %s, you may need to install "https://developer.android.com/studio#cmdline-tools" manually and modify the rum config item "android_cmdline_home" correspondingly%s`, err, "\n")
 	} else {
-		infof("install android commandline tool success\n\n")
+		cp.Infof("install android commandline tool success\n\n")
 	}
 
 	if err := installProguard(); err != nil {
 		// nolint:lll
-		errorf(`install proguard fail: %s,you may need to install "https://github.com/Guardsquare/proguard" manually and modify the rum config item "proguard_home" correspondingly%s`, err, "\n")
+		cp.Errorf(`install proguard fail: %s,you may need to install "https://github.com/Guardsquare/proguard" manually and modify the rum config item "proguard_home" correspondingly%s`, err, "\n")
 	} else {
-		infof("install proguard success\n\n")
+		cp.Infof("install proguard success\n\n")
 	}
 
 	if err := installAndroidNDK(); err != nil {
 		// nolint:lll
-		errorf(`install android-ndk fail: %s,you may need to install "https://developer.android.com/ndk/downloads" manually and modify the rum config item "proguard_home" correspondingly %s`, err, "\n")
+		cp.Errorf(`install android-ndk fail: %s,you may need to install "https://developer.android.com/ndk/downloads" manually and modify the rum config item "proguard_home" correspondingly %s`, err, "\n")
 	} else {
-		infof("install android-ndk success\n\n")
+		cp.Infof("install android-ndk success\n\n")
 	}
 
 	if err := installAtosl(); err != nil {
 		// nolint:lll
-		errorf(`install tool atosl fail: %s,you may need to install "https://github.com/Br4ndonZhang/atosl" manually and modify the rum config item "atos_bin_path" correspondingly %s`, err, "\n")
+		cp.Errorf(`install tool atosl fail: %s,you may need to install "https://github.com/Br4ndonZhang/atosl" manually and modify the rum config item "atos_bin_path" correspondingly %s`, err, "\n")
 	} else {
-		infof("install atosl success\n\n")
+		cp.Infof("install atosl success\n\n")
 	}
 
-	infof("installation complete, you may need to open a new shell and restart your datakit\n")
+	cp.Infof("installation complete, you may need to open a new shell and restart your datakit\n")
 
 	return nil
 }
 
 func checkToolInstalled(tool string) (string, bool) {
-	infof("checking %s installation status \n", tool)
+	cp.Infof("checking %s installation status \n", tool)
 	binPath, err := exec.LookPath(tool)
 	return binPath, err == nil
 }
@@ -167,10 +184,10 @@ func rootDir(path string) string {
 	return path
 }
 
-func downloadFileToTmpDir(downloadLink string, filename ...string) (string, error) {
-	infof("downloading software %s\n", downloadLink)
+func downloadFileToTmpDir(link string, filename ...string) (string, error) {
+	cp.Infof("downloading software %s\n", link)
 
-	resp, err := downloadClient.Get(downloadLink)
+	resp, err := downloadClient.Get(link)
 	if err != nil {
 		return "", fmt.Errorf("download file fail: %w", err)
 	}
@@ -179,7 +196,7 @@ func downloadFileToTmpDir(downloadLink string, filename ...string) (string, erro
 	}()
 
 	tmpDir := os.TempDir()
-	baseName := filepath.Base(downloadLink)
+	baseName := filepath.Base(link)
 	if len(filename) > 0 {
 		baseName = filename[0]
 	}
@@ -206,14 +223,14 @@ func downloadFileToTmpDir(downloadLink string, filename ...string) (string, erro
 }
 
 func installJDK() error {
-	downloadLink, err := toolDownloadURL(Java)
+	link, err := toolDownloadURL(Java)
 	if err != nil {
 		return fmt.Errorf("get jdk download link fail: %w, please install jdk manually", err)
 	}
 
-	tgzFile, err := downloadFileToTmpDir(downloadLink)
+	tgzFile, err := downloadFileToTmpDir(link)
 	if err != nil {
-		return fmt.Errorf("download jdk from [%s] fail:%w", downloadLink, err)
+		return fmt.Errorf("download jdk from [%s] fail:%w", link, err)
 	}
 
 	if _, err := execCmd("tar", "-zxf", tgzFile, "-C", "/usr/local"); err != nil {
@@ -243,7 +260,7 @@ func installJDK() error {
 	if _, err := execCmd("sudo", "ln", "-s", "-f", filepath.Join(jdkBinDir, "java"), "/usr/local/bin/java"); err != nil {
 		return fmt.Errorf("create symbol link fail: %w", err)
 	}
-	infof("install jdk success to %s :)\n", jdkHome)
+	cp.Infof("install jdk success to %s :)\n", jdkHome)
 	return nil
 }
 
@@ -286,7 +303,7 @@ func scanProguardBinPath(homeDir string) (string, error) {
 
 func execCmd(name string, args ...string) ([]byte, error) {
 	shellCmd := name + " " + strings.Join(args, " ")
-	infof("%s%s", shellCmd, "\n")
+	cp.Infof("%s%s", shellCmd, "\n")
 	cmd := exec.Command(name, args...)
 	out, err := cmd.Output()
 	if err != nil {
@@ -311,14 +328,14 @@ func toolDownloadURL(software string) (string, error) {
 }
 
 func installTool(software string) (string, error) {
-	downloadLink, err := toolDownloadURL(software)
+	link, err := toolDownloadURL(software)
 	if err != nil {
 		return "", fmt.Errorf("can not find the download link of tool %s: %w, you may should install it manually", software, err)
 	}
 
-	tgzFile, err := downloadFileToTmpDir(downloadLink)
+	tgzFile, err := downloadFileToTmpDir(link)
 	if err != nil {
-		return "", fmt.Errorf("download tool [%s] from link [%s] fail: %w", software, downloadLink, err)
+		return "", fmt.Errorf("download tool [%s] from link [%s] fail: %w", software, link, err)
 	}
 
 	if _, err := execCmd("sudo", "tar", "-zxf", tgzFile, "-C", DefaultInstallDir); err != nil {
@@ -470,14 +487,14 @@ func installAtosl() error {
 		return fmt.Errorf("install libiberty fail: %w", err)
 	}
 
-	downloadLink, err := toolDownloadURL(Atosl)
+	link, err := toolDownloadURL(Atosl)
 	if err != nil {
 		return fmt.Errorf("atosl download link not found: %w", err)
 	}
 
-	tgzFile, err := downloadFileToTmpDir(downloadLink)
+	tgzFile, err := downloadFileToTmpDir(link)
 	if err != nil {
-		return fmt.Errorf("download atosl fail from [%s], err: %w", downloadLink, err)
+		return fmt.Errorf("download atosl fail from [%s], err: %w", link, err)
 	}
 
 	downloadDir := filepath.Dir(tgzFile)

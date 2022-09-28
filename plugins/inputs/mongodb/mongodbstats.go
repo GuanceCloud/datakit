@@ -45,6 +45,19 @@ type MongoStatus struct {
 	SampleTime   time.Time
 }
 
+type StorageEngine struct {
+	Name                                    string    `bson:"name"`
+	SupportsCommittedReads                  bool      `bson:"supportsCommittedReads"`
+	OldestRequiredTimestampForCrashRecovery time.Time `bson:"oldestRequiredTimestampForCrashRecovery"`
+	SupportsPendingDrops                    bool      `bson:"supportsPendingDrops"`
+	DropPendingIdents                       int64     `bson:"dropPendingIdents"`
+	SupportsSnapshotReadConcern             bool      `bson:"supportsSnapshotReadConcern"`
+	ReadOnly                                bool      `bson:"readOnly"`
+	Persistent                              bool      `bson:"persistent"`
+	BackupCursorOpen                        bool      `bson:"backupCursorOpen"`
+	SupportsResumableIndexBuilds            bool      `bson:"supportsResumableIndexBuilds"`
+}
+
 type ServerStatus struct {
 	Host               string                 `bson:"host"`
 	Version            string                 `bson:"version"`
@@ -69,7 +82,7 @@ type ServerStatus struct {
 	Mem                *MemStats              `bson:"mem"`
 	Repl               *ReplStat              `bson:"repl"`
 	ShardCursorType    map[string]interface{} `bson:"shardCursorType"`
-	StorageEngine      map[string]string      `bson:"storageEngine"`
+	StorageEngine      *StorageEngine         `bson:"storageEngine"`
 	WiredTiger         *WiredTiger            `bson:"wiredTiger"`
 	Metrics            *MetricsStats          `bson:"metrics"`
 	TCMallocStats      *TCMallocStats         `bson:"tcmalloc"`
@@ -153,7 +166,7 @@ type WiredTiger struct {
 
 // ShardStats stores information from shardConnPoolStats.
 type ShardStats struct {
-	ShardStatsData `bson:",inline"`
+	ShardStatsData `bson:"inline"`
 	Hosts          map[string]ShardHostStatsData `bson:"hosts"`
 }
 
@@ -175,11 +188,12 @@ type ShardHostStatsData struct {
 }
 
 type TopStats struct {
-	Totals map[string]TopStatCollections `bson:"totals"`
+	Totals TopStatCollections `bson:"totals"`
 }
 
 type TopStatCollections struct {
-	TSCollection TopStatCollection `bson:",inline"`
+	Note    string                       `bson:"note"`
+	TopStat map[string]TopStatCollection `bson:"inline"`
 }
 
 type TopStatCollection struct {
@@ -264,7 +278,7 @@ type ReplStat struct {
 type DBRecordStats struct {
 	AccessesNotInMemory       int64                     `bson:"accessesNotInMemory"`
 	PageFaultExceptionsThrown int64                     `bson:"pageFaultExceptionsThrown"`
-	DBRecordAccesses          map[string]RecordAccesses `bson:",inline"`
+	DBRecordAccesses          map[string]RecordAccesses `bson:"inline"`
 }
 
 // RecordAccesses stores data related to memory operations scoped to a database.
@@ -870,7 +884,7 @@ type StatLine struct {
 	StorageFreelistSearchScanned         int64
 }
 
-func parseLocks(stat ServerStatus) map[string]LockUsage {
+func parseLocks(stat *ServerStatus) map[string]LockUsage {
 	returnVal := map[string]LockUsage{}
 	for namespace, lockInfo := range stat.Locks {
 		returnVal[namespace] = LockUsage{
@@ -917,9 +931,9 @@ func diff(newVal, oldVal, sampleTime int64) (int64, int64) {
 
 // NewStatLine constructs a StatLine object from two MongoStatus objects.
 // nolint:funlen
-func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSecs int64) *StatLine {
-	oldStat := *oldMongo.ServerStatus
-	newStat := *newMongo.ServerStatus
+func NewStatLine(oldMongo, newMongo *MongoStatus, key string, all bool, sampleSecs int64) *StatLine {
+	oldStat := oldMongo.ServerStatus
+	newStat := newMongo.ServerStatus
 
 	returnVal := &StatLine{
 		Key:       key,
@@ -940,8 +954,8 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 	returnVal.TotalCreatedC = newStat.Connections.TotalCreated
 
 	// set the storage engine appropriately
-	if newStat.StorageEngine != nil && newStat.StorageEngine["name"] != "" {
-		returnVal.StorageEngine = newStat.StorageEngine["name"]
+	if newStat.StorageEngine != nil {
+		returnVal.StorageEngine = newStat.StorageEngine.Name
 	} else {
 		returnVal.StorageEngine = "mmapv1"
 	}
@@ -1436,27 +1450,45 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 	}
 
 	if newMongo.TopStats != nil {
-		for collection, data := range newMongo.TopStats.Totals {
+		for collection, data := range newMongo.TopStats.Totals.TopStat {
 			topStatDataLine := &TopStatLine{
 				CollectionName: collection,
-				TotalTime:      data.TSCollection.Total.Time,
-				TotalCount:     data.TSCollection.Total.Count,
-				ReadLockTime:   data.TSCollection.ReadLock.Time,
-				ReadLockCount:  data.TSCollection.ReadLock.Count,
-				WriteLockTime:  data.TSCollection.WriteLock.Time,
-				WriteLockCount: data.TSCollection.WriteLock.Count,
-				QueriesTime:    data.TSCollection.Queries.Time,
-				QueriesCount:   data.TSCollection.Queries.Count,
-				GetMoreTime:    data.TSCollection.GetMore.Time,
-				GetMoreCount:   data.TSCollection.GetMore.Count,
-				InsertTime:     data.TSCollection.Insert.Time,
-				InsertCount:    data.TSCollection.Insert.Count,
-				UpdateTime:     data.TSCollection.Update.Time,
-				UpdateCount:    data.TSCollection.Update.Count,
-				RemoveTime:     data.TSCollection.Remove.Time,
-				RemoveCount:    data.TSCollection.Remove.Count,
-				CommandsTime:   data.TSCollection.Commands.Time,
-				CommandsCount:  data.TSCollection.Commands.Count,
+				TotalTime:      data.Total.Time,
+				TotalCount:     data.Total.Count,
+				ReadLockTime:   data.ReadLock.Time,
+				ReadLockCount:  data.ReadLock.Count,
+				WriteLockTime:  data.WriteLock.Time,
+				WriteLockCount: data.WriteLock.Count,
+				QueriesTime:    data.Queries.Time,
+				QueriesCount:   data.Queries.Count,
+				GetMoreTime:    data.GetMore.Time,
+				GetMoreCount:   data.GetMore.Count,
+				InsertTime:     data.Insert.Time,
+				InsertCount:    data.Insert.Count,
+				UpdateTime:     data.Update.Time,
+				UpdateCount:    data.Update.Count,
+				RemoveTime:     data.Remove.Time,
+				RemoveCount:    data.Remove.Count,
+				CommandsTime:   data.Commands.Time,
+				CommandsCount:  data.Commands.Count,
+				// TotalTime:      data.TSCollection.Total.Time,
+				// TotalCount:     data.TSCollection.Total.Count,
+				// ReadLockTime:   data.TSCollection.ReadLock.Time,
+				// ReadLockCount:  data.TSCollection.ReadLock.Count,
+				// WriteLockTime:  data.TSCollection.WriteLock.Time,
+				// WriteLockCount: data.TSCollection.WriteLock.Count,
+				// QueriesTime:    data.TSCollection.Queries.Time,
+				// QueriesCount:   data.TSCollection.Queries.Count,
+				// GetMoreTime:    data.TSCollection.GetMore.Time,
+				// GetMoreCount:   data.TSCollection.GetMore.Count,
+				// InsertTime:     data.TSCollection.Insert.Time,
+				// InsertCount:    data.TSCollection.Insert.Count,
+				// UpdateTime:     data.TSCollection.Update.Time,
+				// UpdateCount:    data.TSCollection.Update.Count,
+				// RemoveTime:     data.TSCollection.Remove.Time,
+				// RemoveCount:    data.TSCollection.Remove.Count,
+				// CommandsTime:   data.TSCollection.Commands.Time,
+				// CommandsCount:  data.TSCollection.Commands.Count,
 			}
 			returnVal.TopStatLines = append(returnVal.TopStatLines, *topStatDataLine)
 		}

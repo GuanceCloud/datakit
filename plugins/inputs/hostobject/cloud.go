@@ -61,6 +61,33 @@ func (*Input) SyncCloudInfo(provider string) (map[string]interface{}, error) {
 	}
 }
 
+func (ipt *Input) matchCloudProvider(cloudProvider string) bool {
+	fields, _ := ipt.SyncCloudInfo(cloudProvider)
+	for k, v := range fields {
+		if k == "cloud_provider" {
+			continue
+		}
+		if v != Unavailable {
+			return true
+		}
+	}
+	return false
+}
+
+func (ipt *Input) SetCloudProviderIfAbsent() error {
+	if _, has := ipt.Tags["cloud_provider"]; has {
+		return nil
+	}
+	cloudProviders := []string{"aliyun", "aws", "tencent", "azure", "hwcloud"}
+	for _, cp := range cloudProviders {
+		if ipt.matchCloudProvider(cp) {
+			ipt.Tags["cloud_provider"] = cp
+			return nil
+		}
+	}
+	return fmt.Errorf("did not match any cloud provider")
+}
+
 func metaGet(metaURL string) (res string) {
 	if x := metadataGet(metaURL); x != nil {
 		// 避免 meta 接口返回多行数据

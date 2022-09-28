@@ -151,7 +151,16 @@ func enableDefaultInputs(list []string) {
 	for _, name := range list {
 		if c, ok := inputs.Inputs[name]; ok {
 			i := c()
-			inputs.AddInput(name, i)
+			inputInstances, err := LoadSingleConf(i.SampleConfig(), inputs.Inputs)
+			if err != nil {
+				l.Errorf("LoadSingleConf failed: %v", err)
+				continue
+			}
+			for _, arr := range inputInstances {
+				for _, ipt := range arr {
+					inputs.AddInput(name, ipt)
+				}
+			}
 		}
 	}
 }

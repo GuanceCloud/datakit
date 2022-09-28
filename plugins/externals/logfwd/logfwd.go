@@ -9,7 +9,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -21,7 +20,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
@@ -39,7 +37,6 @@ var (
 	envAnnotationDataKitLogs = os.Getenv("LOGFWD_ANNOTATION_DATAKIT_LOGS")
 
 	l = logger.DefaultSLogger(name)
-	g = datakit.G("logfwd")
 )
 
 func main() {
@@ -106,35 +103,6 @@ func startLog(cfg *config, stop <-chan struct{}) {
 			wscli := newWsclient(&u)
 			wscli.tryConnectWebsocketSrv()
 			go wscli.start()
-
-			defer func() {
-				if err := wscli.close(); err != nil {
-					l.Errorf("failed to close websocket client, err: %w", err)
-				}
-			}()
-
-			startTailing(lg, forwardFunc(lg, wscli.writeMessage), stop)
-		}(c)
-	}
-
-	////////////////////////////
-
-	for _, c := range cfg.Loggings {
-		wg.Add(1)
-
-		wscli := newWsclient(&u)
-		wscli.tryConnectWebsocketSrv()
-		g.Go(func(ctx context.Context) error {
-			wscli.start()
-			return nil
-		})
-
-		g.Go(func(ctx context.Context) error {
-			return nil
-		})
-
-		go func(lg *logging) {
-			defer wg.Done()
 
 			defer func() {
 				if err := wscli.close(); err != nil {

@@ -21,7 +21,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ReadEnv = (*Input)(nil)
+var (
+	_ inputs.ReadEnv   = (*Input)(nil)
+	_ inputs.Singleton = (*Input)(nil)
+)
 
 const (
 	minInterval = time.Second
@@ -51,6 +54,9 @@ type Input struct {
 	platform       string
 	netConnections NetConnections // A function Type, the instance of Input calls the function that implements this function type through this property.
 	semStop        *cliutils.Sem  // start stop signal
+}
+
+func (ipt *Input) Singleton() {
 }
 
 // netStat Measurement structure.

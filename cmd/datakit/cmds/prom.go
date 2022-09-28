@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/influxdata/influxdb1-client/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -197,21 +197,25 @@ func printResult(points []*point.Point) error {
 	// measurements collected
 	measurements := make(map[string]string)
 	timeSeries := make(map[string]string)
-	for _, point := range points {
-		lp := point.String()
-		fmt.Printf(" %s\n", lp)
 
-		influxPoint, err := models.ParsePointsWithPrecision([]byte(lp), time.Now(), "n")
-		if len(influxPoint) != 1 {
-			return fmt.Errorf("parse point error")
+	encoder := lineproto.NewLineEncoder(lineproto.WithPrecisionV2(lineproto.Nanosecond))
+	for _, pt := range points {
+		if err := encoder.AppendPoint(pt.Point); err != nil {
+			return fmt.Errorf("apend point err: %w", err)
 		}
+
+		influxPoint, err := pt.ToInfluxdbPoint(time.Now())
 		if err != nil {
 			return err
 		}
-		timeSeries[fmt.Sprint(influxPoint[0].HashID())] = trueString
-		name := point.Name()
+		timeSeries[fmt.Sprint(influxPoint.HashID())] = trueString
+		name := pt.Name
 		measurements[name] = trueString
 	}
+
+	lines, _ := encoder.UnsafeString()
+	fmt.Println(lines)
+
 	mKeys := make([]string, len(measurements))
 	i := 0
 	for name := range measurements {

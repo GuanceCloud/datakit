@@ -14,6 +14,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -23,7 +24,7 @@ func runToolFlags() error {
 	switch {
 	case *flagPromConf != "":
 		if err := promDebugger(*flagPromConf); err != nil {
-			errorf("[E] %s\n", err)
+			cp.Errorf("[E] %s\n", err)
 			os.Exit(-1)
 		}
 
@@ -47,11 +48,11 @@ func runToolFlags() error {
 		fmt.Println(defconf.String())
 		os.Exit(0)
 
-	case *flagToolCloudInfo != "":
+	case *flagToolCloudInfo:
 		tryLoadMainCfg()
-		info, err := showCloudInfo(*flagToolCloudInfo)
+		info, err := showCloudInfo()
 		if err != nil {
-			errorf("[E] Get cloud info failed: %s\n", err.Error())
+			cp.Errorf("[E] Get cloud info failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -62,7 +63,7 @@ func runToolFlags() error {
 
 		sort.Strings(keys)
 		for _, k := range keys {
-			infof("\t% 24s: %v\n", k, info[k])
+			cp.Infof("\t% 24s: %v\n", k, info[k])
 		}
 
 		os.Exit(0)
@@ -71,10 +72,10 @@ func runToolFlags() error {
 		tryLoadMainCfg()
 		x, err := ipInfo(*flagToolIPInfo)
 		if err != nil {
-			errorf("[E] get IP info failed: %s\n", err.Error())
+			cp.Errorf("[E] get IP info failed: %s\n", err.Error())
 		} else {
 			for k, v := range x {
-				infof("\t% 8s: %s\n", k, v)
+				cp.Infof("\t% 8s: %s\n", k, v)
 			}
 		}
 
@@ -85,7 +86,7 @@ func runToolFlags() error {
 		requrl := fmt.Sprintf("http://%s%s", config.Cfg.HTTPAPI.Listen, workspace)
 		body, err := doWorkspace(requrl)
 		if err != nil {
-			errorf("get worksapceInfo fail %s\n", err.Error())
+			cp.Errorf("get worksapceInfo fail %s\n", err.Error())
 		}
 		outputWorkspaceInfo(body)
 		os.Exit(0)
@@ -121,12 +122,12 @@ func runToolFlags() error {
 
 	case *flagToolLoadLog:
 		tryLoadMainCfg()
-		infof("Upload log start...\n")
+		cp.Infof("Upload log start...\n")
 		if err := uploadLog(config.Cfg.DataWayCfg.URLs); err != nil {
-			errorf("[E] upload log failed : %s\n", err.Error())
+			cp.Errorf("[E] upload log failed : %s\n", err.Error())
 			os.Exit(-1)
 		}
-		infof("Upload ok.\n")
+		cp.Infof("Upload ok.\n")
 		os.Exit(0)
 
 	case *flagToolCheckSample:

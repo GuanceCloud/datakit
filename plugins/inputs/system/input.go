@@ -24,7 +24,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ReadEnv = (*Input)(nil)
+var (
+	_ inputs.ReadEnv   = (*Input)(nil)
+	_ inputs.Singleton = (*Input)(nil)
+)
 
 const (
 	minInterval = time.Second
@@ -57,6 +60,9 @@ type Input struct {
 	collectCache []inputs.Measurement
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (ipt *Input) Singleton() {
 }
 
 func (*Input) Catalog() string {

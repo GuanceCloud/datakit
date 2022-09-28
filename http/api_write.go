@@ -35,7 +35,7 @@ type jsonPoint struct {
 
 // convert json point to lineproto point.
 func (jp *jsonPoint) point(opt *lp.Option) (*point.Point, error) {
-	p, err := lp.MakeLineProtoPoint(jp.Measurement, jp.Tags, jp.Fields, opt)
+	p, err := lp.MakeLineProtoPointV2(jp.Measurement, jp.Tags, jp.Fields, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +235,7 @@ func handleWriteBody(body []byte, isJSON bool, opt *lp.Option) ([]*point.Point, 
 		return jsonPoints(body, opt)
 
 	default:
-		pts, err := lp.ParsePoints(body, opt)
+		pts, err := lp.Parse(body, opt)
 		if err != nil {
 			return nil, uhttp.Error(ErrInvalidLinePoint, err.Error())
 		}
@@ -273,7 +273,7 @@ func jsonPoints(body []byte, opt *lp.Option) ([]*point.Point, error) {
 }
 
 func checkObjectPoint(p *point.Point) error {
-	tags := p.Point.Tags()
+	tags := p.Point.Tags
 	if _, ok := tags["name"]; !ok {
 		return ErrInvalidObjectPoint
 	}

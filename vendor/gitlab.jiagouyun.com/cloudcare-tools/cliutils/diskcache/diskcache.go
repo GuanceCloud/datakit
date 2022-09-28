@@ -28,18 +28,19 @@ var (
 	ErrBadHeader                 = errors.New("bad header")
 
 	l = logger.DefaultSLogger("diskcache")
+)
 
-	defaultOpt = &Option{
+func defaultOpt() *Option {
+	return &Option{
 		NoSync: false,
 
 		BatchSize:   20 * 1024 * 1024,
-		MaxDataSize: 10 * 1024 * 1024,
-		Capacity:    5 * 1024 * 1024 * 1024,
+		MaxDataSize: 0, // not set
 
 		DirPerms:  0750,
 		FilePerms: 0640,
 	}
-)
+}
 
 type DiskCache struct {
 	path string
@@ -100,8 +101,10 @@ func Open(path string, opt *Option) (*DiskCache, error) {
 	}
 
 	if c.opt == nil {
-		c.opt = defaultOpt
+		c.opt = defaultOpt()
 	}
+
+	c.opt.syncEnv()
 
 	if c.opt.DirPerms == 0 {
 		opt.DirPerms = 0755
@@ -112,15 +115,14 @@ func Open(path string, opt *Option) (*DiskCache, error) {
 	}
 
 	if c.opt.BatchSize == 0 {
-		c.opt.BatchSize = defaultOpt.BatchSize
-	}
-
-	if c.opt.MaxDataSize == 0 {
-		c.opt.MaxDataSize = defaultOpt.MaxDataSize
+		c.opt.BatchSize = 20 * 1024 * 1024
 	}
 
 	if c.opt.MaxDataSize > c.opt.BatchSize {
-		l.Warnf("reset MaxDataSize from %d to %d", c.opt.MaxDataSize, c.opt.BatchSize/2)
+		l.Warnf("reset MaxDataSize from %d to %d",
+			c.opt.MaxDataSize, c.opt.BatchSize/2)
+
+		// reset max-data-size to half of batch size
 		c.opt.MaxDataSize = c.opt.BatchSize / 2
 	}
 
@@ -157,7 +159,7 @@ func Open(path string, opt *Option) (*DiskCache, error) {
 		c.dataFiles = arr[1:] // ignore first writing file, we do not read file `data` if data.000001/0000002/... exists
 	}
 
-	l.Infof("init datafiles: %+#v\n", c.dataFiles)
+	l.Infof("init %d datafiles", len(c.dataFiles))
 
 	return c, nil
 }
@@ -192,7 +194,7 @@ func (c *DiskCache) Put(data []byte) error {
 		}
 	}
 
-	if int64(len(data)) > c.opt.MaxDataSize {
+	if int64(len(data)) > c.opt.MaxDataSize && c.opt.MaxDataSize > 0 {
 		l.Warnf("too large data: %d > %d", len(data), c.opt.MaxDataSize)
 		return ErrTooLargeData
 	}
@@ -239,7 +241,8 @@ func (c *DiskCache) Get(fn Fn) error {
 
 	// wakeup sleeping write file, rotate it for successing reading!
 	if time.Since(c.wfdCreated) > time.Second*3 && c.curBatchSize > 0 {
-		l.Debugf("####################### wakeup %s(%d bytes), global size: %d\n", c.curWriteFile, c.curBatchSize, c.size)
+		l.Debugf("####################### wakeup %s(%d bytes), global size: %d",
+			c.curWriteFile, c.curBatchSize, c.size)
 		if err := func() error {
 			c.wlock.Lock()
 			defer c.wlock.Unlock()

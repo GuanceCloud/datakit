@@ -58,6 +58,25 @@ questions:
   label: Log Level
   group: "Datakit Configuration"
 
+#DataKit iploc
+- variable: iploc.enable
+  default: false
+  description: "Enable DataKit install ipdb"
+  label: Install ipdb
+  type: boolean
+  show_subquestion_if: true
+  group: "DataKit Iploc"
+  subquestions:
+    - variable: iploc.image.repository
+      default: ""
+      description: "DataKit Iploc image name"
+      type: string
+      label: DataKit Image Name
+    - variable: iploc.image.tag
+      default: ""
+      description: "DataKit Iploc Image Tag"
+      type: string
+      label: DataKit Image Tag
 
 #DataKit Use Git Management Configurations
 - variable: git_repos.enable
@@ -86,7 +105,7 @@ questions:
 - variable: git_repos.git_key_path
   default: ""
   description: "The Git Ssh Key Content, For details, -----BEGIN OPENSSH PRIVATE KEY-----xxxxx-----END OPENSSH PRIVATE KEY-----"
-  type: string
+  type: multiline
   label: The Git Ssh Key Content
   group: "Git Management Configurations"
   show_if: "git_repos.enable=true&&git_repos.is_use_key=true"

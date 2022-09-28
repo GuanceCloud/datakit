@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 )
 
@@ -27,10 +27,7 @@ const (
 	maxFieldsLength = 32 * 1024 * 1024
 )
 
-var (
-	g = datakit.G("tailer")
-	l = logger.DefaultSLogger("socketLog")
-)
+var l = logger.DefaultSLogger("socketLog")
 
 type ForwardFunc func(filename, text string) error
 
@@ -145,7 +142,7 @@ type Tailer struct {
 
 	stop chan interface{}
 	mu   sync.Mutex
-	wg   sync.WaitGroup
+	g    *goroutine.Group
 }
 
 func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (*Tailer, error) {
@@ -170,7 +167,9 @@ func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (
 			}
 			return nil
 		}(),
+		stop:     make(chan interface{}),
 		fileList: make(map[string]interface{}),
+		g:        goroutine.NewGroup(goroutine.Option{Name: "tailer"}),
 	}
 
 	if t.opt == nil {
@@ -187,20 +186,18 @@ func (t *Tailer) Start() {
 	ticker := time.NewTicker(scanNewFileInterval)
 	defer ticker.Stop()
 
-	// 立即执行一次，而不是等到tick到达
-	t.scan()
-
 	for {
+		t.scan()
+		t.opt.log.Debugf("list of recivering: %v", t.getFileList())
+
 		select {
 		case <-t.stop:
 			t.opt.log.Infof("waiting for all tailers to exit")
-			t.wg.Wait()
+			_ = t.g.Wait()
 			t.opt.log.Info("all exit")
 			return
 
 		case <-ticker.C:
-			t.scan()
-			t.opt.log.Debugf("list of recivering: %v", t.getFileList())
 		}
 	}
 }
@@ -220,30 +217,29 @@ func (t *Tailer) scan() {
 			continue
 		}
 
-		t.wg.Add(1)
+		func(filename string) {
+			g.Go(func(ctx context.Context) error {
+				defer t.removeFromFileList(filename)
 
-		g.Go(func(ctx context.Context) error {
-			defer t.wg.Done()
-			defer t.removeFromFileList(filename)
+				tl, err := NewTailerSingle(filename, t.opt)
+				if err != nil {
+					t.opt.log.Errorf("new tailer file %s error: %s", filename, err)
+					return nil
+				}
 
-			tl, err := NewTailerSingle(filename, t.opt)
-			if err != nil {
-				t.opt.log.Errorf("new tailer file %s error: %s", filename, err)
+				t.addToFileList(filename)
+
+				tl.Run()
 				return nil
-			}
-
-			t.addToFileList(filename)
-
-			tl.Run()
-			return nil
-		})
+			})
+		}(filename)
 	}
 }
 
 func (t *Tailer) Close() {
 	select {
 	case <-t.stop:
-		// pass
+		return
 	default:
 		close(t.stop)
 	}

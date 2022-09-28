@@ -67,7 +67,20 @@ func (c *containerdInput) inLogList(logpath string) bool {
 }
 
 func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
+	var name string
+	if status.GetMetadata() != nil && status.GetMetadata().Name != "" {
+		name = status.GetMetadata().Name
+	} else {
+		name = "unknown"
+	}
+
+	if !tailer.FileIsActive(status.GetLogPath(), ignoreDeadLogDuration) {
+		l.Infof("container %s file %s is not active, larger than %s, ignored", name, status.GetLogPath(), ignoreDeadLogDuration)
+		return nil
+	}
+
 	info := &containerLogBasisInfo{
+		name:                  name,
 		id:                    status.GetId(),
 		logPath:               status.GetLogPath(),
 		labels:                status.GetLabels(),
@@ -75,12 +88,7 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		extraSourceMap:        c.ipt.LoggingExtraSourceMap,
 		sourceMultilineMap:    c.ipt.LoggingSourceMultilineMap,
 		autoMultilinePatterns: c.ipt.getAutoMultilinePatterns(),
-	}
-
-	if status.GetMetadata() != nil && status.GetMetadata().Name != "" {
-		info.name = status.GetMetadata().Name
-	} else {
-		info.name = "unknown"
+		extractK8sLabelAsTags: c.ipt.ExtractK8sLabelAsTags,
 	}
 
 	if n := status.GetImage(); n != nil {

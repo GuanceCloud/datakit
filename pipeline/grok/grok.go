@@ -1,8 +1,3 @@
-// Unless explicitly stated otherwise all files in this repository are licensed
-// under the MIT License.
-// This product includes software developed at Guance Cloud (https://www.guance.com/).
-// Copyright 2021-present Guance, Inc.
-
 // Package grok used to parses grok patterns in Go
 package grok
 
@@ -24,8 +19,14 @@ type Grok struct {
 	GlobalDenormalizedPatterns map[string]*GrokPattern
 
 	DenormalizedPatterns map[string]*GrokPattern
-	CompliedGrokRe       map[string]map[string]*GrokRegexp
+
+	// key: pattern name ->
+	// key: unique index(such as call stack depth) of the same name pattern ->
+	// value: denormalized pattern and regexp obj
+	CompliedGrokRe map[string]map[string]*GrokRegexp
 }
+
+// Denormalized patterns as regular expressions.
 
 type GrokRegexp struct {
 	grokPattern *GrokPattern
@@ -82,7 +83,7 @@ func (g *GrokRegexp) RunWithTypeInfo(content interface{}, trimSpace bool) (map[s
 	for k, v := range ret {
 		var err error
 		dstV = v
-		if varType, ok := g.grokPattern.varType[k]; ok {
+		if varType, ok := g.grokPattern.varbType[k]; ok {
 			switch varType {
 			case GTypeInt:
 				dstV, err = cast.ToInt64E(v)
@@ -95,6 +96,7 @@ func (g *GrokRegexp) RunWithTypeInfo(content interface{}, trimSpace bool) (map[s
 				err = fmt.Errorf("unsupported data type: %s", varType)
 			}
 		}
+		// TODO: use the default value of the data type
 		// cast 操作失败赋予默认值
 		castDst[k] = dstV
 		if err != nil {

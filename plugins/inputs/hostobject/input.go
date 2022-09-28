@@ -23,8 +23,9 @@ import (
 )
 
 var (
-	_ inputs.ReadEnv = (*Input)(nil)
-	l                = logger.DefaultSLogger(InputName)
+	_ inputs.ReadEnv   = (*Input)(nil)
+	_ inputs.Singleton = (*Input)(nil)
+	l                  = logger.DefaultSLogger(InputName)
 )
 
 type Input struct {
@@ -46,12 +47,16 @@ type Input struct {
 	ExtraDevice                []string `toml:"extra_device"`
 	ExcludeDevice              []string `toml:"exclude_device"`
 
-	CloudInfo map[string]string `toml:"cloud_info,omitempty"`
+	DisableCloudProviderSync bool              `toml:"disable_cloud_provider_sync"`
+	CloudInfo                map[string]string `toml:"cloud_info,omitempty"`
 
 	collectData *hostMeasurement
 
 	semStop    *cliutils.Sem // start stop signal
 	isTestMode bool
+}
+
+func (ipt *Input) Singleton() {
 }
 
 func (ipt *Input) Catalog() string {

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
@@ -59,6 +60,8 @@ func TestGetMetric(t *testing.T) {
 	}
 
 	count := 0
+	encoder := lineproto.NewLineEncoder()
+	encoder.Encoder.SetLax(true)
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			client, err := tc.i.createHTTPClient()
@@ -79,10 +82,18 @@ func TestGetMetric(t *testing.T) {
 					}
 					for _, v := range points {
 						// t.Logf("count = %d, v = %s", count, v)
-
+						encoder.Reset()
+						t.Logf("%+#v\n", v.Point)
+						if err := encoder.AppendPoint(v.Point); err != nil {
+							t.Fatal(err)
+						}
+						line, err := encoder.UnsafeStringWithoutLn()
+						if err != nil {
+							t.Fatal(err)
+						}
 						// 为什么使用 HasPrefix？因为后面会跟时间戳，会不断变化。
-						if strings.HasPrefix(v.String(), metrics[count]) {
-							t.Errorf("not equal, left = %s, right = %s", v.String(), metrics[count])
+						if strings.HasPrefix(line, metrics[count]) {
+							t.Errorf("not equal, left = %s, right = %s", line, metrics[count])
 						}
 
 						count++

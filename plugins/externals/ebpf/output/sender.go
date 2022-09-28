@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
@@ -104,13 +105,20 @@ func (sender *Sender) doReq(url string, data []*point.Point) error {
 	if sender.httpCli == nil {
 		return fmt.Errorf("no http client")
 	}
-	dataStr := []string{}
+
+	encoder := lineproto.NewLineEncoder()
 	for _, pt := range data {
 		if pt != nil {
-			dataStr = append(dataStr, pt.String())
+			if err := encoder.AppendPoint(pt.Point); err != nil {
+				return fmt.Errorf("encoder append point fail: %w", err)
+			}
 		}
 	}
-	reader := strings.NewReader(strings.Join(dataStr, "\n"))
+	lines, err := encoder.UnsafeStringWithoutLn()
+	if err != nil {
+		return fmt.Errorf("encoder encode err: %w", err)
+	}
+	reader := strings.NewReader(lines)
 	req, err := http.NewRequest("POST", url, reader)
 	if err != nil {
 		return err

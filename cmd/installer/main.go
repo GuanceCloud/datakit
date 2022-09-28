@@ -27,6 +27,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/installer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
@@ -45,7 +46,8 @@ var (
 			runtime.GOOS,
 			runtime.GOARCH,
 			DataKitVersion))
-	l = logger.DefaultSLogger("installer")
+	InstallerBaseURL = ""
+	l                = logger.DefaultSLogger("installer")
 )
 
 // Installer flags.
@@ -68,12 +70,13 @@ const (
 //nolint:gochecknoinits,lll
 func init() {
 	flag.BoolVar(&flagDKUpgrade, "upgrade", false, "")
-	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
+	flag.StringVar(&flagInstallLog, "install-log", "install.log", "install log")
 	flag.StringVar(&flagSrc, "srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of install files`)
 	flag.IntVar(&flagInstallOnly, "install-only", 0, "install only, not start")
 	flag.BoolVar(&flagInfo, "info", false, "show installer info")
 	flag.BoolVar(&flagOffline, "offline", false, "-offline option removed")
 	flag.BoolVar(&flagDownloadOnly, "download-only", false, "only download install packages")
+	flag.StringVar(&InstallerBaseURL, "installer_base_url", "", "install datakit and data BaseUrl")
 
 	flag.StringVar(&installer.Dataway, "dataway", "", "DataWay host(https://guance.openway.com?token=xxx)")
 	flag.StringVar(&installer.Proxy, "proxy", "", "http proxy http://ip:port for datakit")
@@ -195,26 +198,29 @@ func applyFlags() {
 	var err error
 
 	// setup logging
-	if flagInstallLog == "" {
+	if flagInstallLog == "stdout" {
+		cp.Infof("Set log file to stdout")
+
 		if err = logger.InitRoot(
 			&logger.Option{
 				Level: logger.DEBUG,
 				Flags: logger.OPT_DEFAULT | logger.OPT_STDOUT,
 			}); err != nil {
-			l.Errorf("set root log faile: %s", err.Error())
+			cp.Errorf("Set root log faile: %s\n", err.Error())
 		}
 	} else {
-		l.Infof("set log file to %s", flagInstallLog)
-
+		cp.Infof("Set log file to %s\n", flagInstallLog)
 		if err = logger.InitRoot(&logger.Option{
 			Path:  flagInstallLog,
 			Level: logger.DEBUG,
 			Flags: logger.OPT_DEFAULT,
 		}); err != nil {
-			l.Errorf("set root log faile: %s", err.Error())
+			cp.Errorf("Set root log faile: %s", err.Error())
 		}
 	}
 
+	config.SetLog()
+	installer.SetLog()
 	l = logger.SLogger("installer")
 
 	installer.DataKitVersion = DataKitVersion
@@ -254,6 +260,25 @@ func applyFlags() {
 			l.Infof("set proxy to %s", installer.Proxy)
 		}
 	}
+
+	if InstallerBaseURL != "" {
+		_, err := url.Parse(InstallerBaseURL)
+		if err != nil {
+			l.Errorf("ENV:$DK_INSTALLER_BASE_URL can not parse to URL, err=%v", err)
+			os.Exit(0)
+		}
+		if !strings.HasSuffix(InstallerBaseURL, "/") {
+			InstallerBaseURL += "/"
+		}
+
+		cp.Infof("Set installer base URL to %s\n", InstallerBaseURL)
+		dataURL = InstallerBaseURL + "data.tar.gz"
+
+		datakitURL = InstallerBaseURL + fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
+			runtime.GOOS,
+			runtime.GOARCH,
+			DataKitVersion)
+	}
 }
 
 func main() {
@@ -272,9 +297,9 @@ Data           : %s
 
 	var err error
 
-	dkservice.ServiceExecutable = filepath.Join(datakit.InstallDir, datakitBin)
+	dkservice.Executable = filepath.Join(datakit.InstallDir, datakitBin)
 	if runtime.GOOS == datakit.OSWindows {
-		dkservice.ServiceExecutable += ".exe"
+		dkservice.Executable += ".exe"
 	}
 
 	svc, err := dkservice.NewService()
@@ -286,18 +311,18 @@ Data           : %s
 	svcStatus, err := svc.Status()
 	if err != nil {
 		if errors.Is(err, service.ErrNotInstalled) {
-			l.Infof("datakit service not installed before")
+			cp.Infof("datakit service not installed before\n")
 		} else {
 			l.Warnf("svc.Status: %s, ignored", err.Error())
 		}
 	} else {
 		switch svcStatus {
 		case service.StatusUnknown: // not installed
-			l.Info("datakit service maybe not installed")
+			cp.Infof("DataKit service maybe not installed\n")
 		case service.StatusStopped: // pass
-			l.Info("datakit service stopped")
+			cp.Infof("DataKit service stopped\n")
 		case service.StatusRunning:
-			l.Info("stoping datakit...")
+			cp.Infof("Stopping running DataKit...\n")
 			if err = service.Control(svc, "stop"); err != nil {
 				l.Warnf("stop service failed %s, ignored", err.Error())
 			}
@@ -310,16 +335,24 @@ Data           : %s
 	mvOldDatakit(svc)
 
 	if !flagOffline {
-		for i := 0; i < 5; i++ {
+		dlRetry := 5
+
+		cp.Infof("Download installer...")
+
+		for i := 0; i < dlRetry; i++ {
 			if err = downloadFiles(datakit.InstallDir); err != nil { // download 过程直接覆盖已有安装
-				l.Errorf("[%d] download failed: %s, retry...", i, err.Error())
+				cp.Warnf("[%d] download failed: %s, retry...", i, err.Error())
 				continue
 			}
-			l.Infof("[%d] download installer ok", i)
-			break
+
+			goto __downloadOK
 		}
+
+		cp.Errorf("Download failed, please check your network settings.\n")
+		return
 	}
 
+__downloadOK:
 	datakit.InitDirs()
 
 	if flagDKUpgrade { // upgrade new version
@@ -328,40 +361,42 @@ Data           : %s
 			return
 		}
 
-		l.Infof("Upgrading to version %s...", DataKitVersion)
-		if err = installer.Upgrade(svc); err != nil {
-			l.Warnf("upgrade datakit failed: %s", err.Error())
+		cp.Infof("Upgrading to version %s...\n", DataKitVersion)
+		if err = installer.Upgrade(); err != nil {
+			cp.Warnf("upgrade datakit failed: %s, ignored\n", err.Error())
 		}
 	} else { // install new datakit
-		l.Infof("Installing version %s...", DataKitVersion)
+		cp.Infof("Installing version %s...\n", DataKitVersion)
 		installer.Install(svc)
 	}
 
 	if flagInstallOnly != 0 {
-		l.Infof("only install service %s, NOT started", dkservice.ServiceName)
+		cp.Warnf("Only install service %s, NOT started\n", dkservice.Name)
 	} else {
-		l.Infof("starting service %s...", dkservice.ServiceName)
+		cp.Infof("Starting service %s...\n", dkservice.Name)
 		if err = service.Control(svc, "start"); err != nil {
-			l.Warnf("start service failed: %s", err.Error())
+			cp.Warnf("Start service failed: %s\n", err.Error())
 		}
 	}
 
+	cp.Infof("Create symlinks...\n")
 	if err := config.CreateSymlinks(); err != nil {
 		l.Errorf("CreateSymlinks: %s", err.Error())
 	}
 
 	if err := checkIsNewVersion("http://"+config.Cfg.HTTPAPI.Listen, DataKitVersion); err != nil {
-		l.Errorf("checkIsNewVersion: %s", err.Error())
-	} else {
-		l.Infof("current running datakit is version: %s", DataKitVersion)
-
-		if flagDKUpgrade {
-			l.Info(":) Upgrade Success!")
-		} else {
-			l.Info(":) Install Success!")
-		}
-		promptReferences()
+		promptFixVersionChecking()
+		return
 	}
+
+	cp.Infof("Current running datakit version: %s\n", DataKitVersion)
+
+	if flagDKUpgrade {
+		cp.Infof("Upgrade OK.\n")
+	} else {
+		cp.Infof("Install OK.\n")
+	}
+	promptReferences()
 }
 
 // test if installed/upgraded to expected version.
@@ -371,7 +406,7 @@ func checkIsNewVersion(host, version string) error {
 	}{}
 
 	for i := 0; i < 10; i++ {
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * time.Duration(i+1))
 
 		resp, err := http.Get(host + "/v1/ping")
 		if err != nil {
@@ -382,32 +417,34 @@ func checkIsNewVersion(host, version string) error {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			l.Errorf("ioutil.ReadAll: %s", err)
-			continue
 		}
 
-		defer resp.Body.Close() //nolint:errcheck
+		resp.Body.Close() //nolint:errcheck,gosec
 
 		if err := json.Unmarshal(body, &x); err != nil {
 			l.Errorf("json.Unmarshal: %s", err)
-			return err
 		}
 
 		if x.Content["version"] != version {
-			return fmt.Errorf("current version: %s, expect %s", x.Content["version"], version)
+			l.Warnf("current version: %s, expect %s", x.Content["version"], version)
 		} else {
 			return nil
 		}
 	}
 
-	return fmt.Errorf("check current version failed")
+	return fmt.Errorf("check version failed")
+}
+
+func promptFixVersionChecking() {
+	cp.Warnf("\n\tVisit https://docs.guance.com/datakit/datakit-update/#version-check-failed to fix the issue.\n")
 }
 
 func promptReferences() {
-	fmt.Println("\n\tVisit https://docs.guance.com/datakit/changelog/ to see DataKit change logs.")
+	cp.Infof("\nVisit https://docs.guance.com/datakit/changelog/ to see DataKit change logs.\n")
 	if config.Cfg.HTTPAPI.Listen != "localhost:9529" {
-		fmt.Printf("\tUse `datakit monitor --to %s` to see DataKit running status.\n", config.Cfg.HTTPAPI.Listen)
+		cp.Infof("Use `datakit monitor --to %s` to see DataKit running status.\n", config.Cfg.HTTPAPI.Listen)
 	} else {
-		fmt.Println("\tUse `datakit monitor` to see DataKit running status.")
+		cp.Infof("Use `datakit monitor` to see DataKit running status.\n")
 	}
 }
 
@@ -421,7 +458,7 @@ func mvOldDatakit(svc service.Service) {
 	}
 
 	if _, err := os.Stat(olddir); err != nil {
-		l.Infof("deprecated install path %s not found", olddir)
+		l.Infof("deprecated install path %s not found\n", olddir)
 		return
 	}
 

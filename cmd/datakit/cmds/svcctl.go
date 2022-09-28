@@ -17,57 +17,58 @@ import (
 
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
 func runServiceFlags() error {
 	if *flagServiceRestart {
 		if err := restartDatakit(); err != nil {
-			errorf("[E] restart DataKit failed:%s\n using command to restart: %s\n", err.Error(), errMsg[runtime.GOOS])
+			cp.Errorf("[E] restart DataKit failed:%s\n using command to restart: %s\n", err.Error(), errMsg[runtime.GOOS])
 			os.Exit(-1)
 		}
 
-		infof("Restart DataKit OK\n")
+		cp.Infof("Restart DataKit OK\n")
 		os.Exit(0)
 	}
 
 	if *flagServiceStop {
 		if err := stopDatakit(); err != nil {
-			errorf("[E] stop DataKit failed: %s\n", err.Error())
+			cp.Errorf("[E] stop DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
-		infof("Stop DataKit OK\n")
+		cp.Infof("Stop DataKit OK\n")
 		os.Exit(0)
 	}
 
 	if *flagServiceStart {
 		if err := startDatakit(); err != nil {
-			errorf("[E] start DataKit failed: %s\n using command to stop : %s\n", err.Error(), errMsg[runtime.GOOS])
+			cp.Errorf("[E] start DataKit failed: %s\n using command to stop : %s\n", err.Error(), errMsg[runtime.GOOS])
 			os.Exit(-1)
 		}
 
-		infof("Start DataKit OK\n") // TODO: 需说明 PID 是多少
+		cp.Infof("Start DataKit OK\n") // TODO: 需说明 PID 是多少
 		os.Exit(0)
 	}
 
 	if *flagServiceUninstall {
 		if err := uninstallDatakit(); err != nil {
-			errorf("[E] uninstall DataKit failed: %s\n", err.Error())
+			cp.Errorf("[E] uninstall DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
-		infof("Uninstall DataKit OK\n")
+		cp.Infof("Uninstall DataKit OK\n")
 		os.Exit(0)
 	}
 
 	if *flagServiceReinstall {
 		if err := reinstallDatakit(); err != nil {
-			errorf("[E] reinstall DataKit failed: %s\n", err.Error())
+			cp.Errorf("[E] reinstall DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
-		infof("Reinstall DataKit OK\n")
+		cp.Infof("Reinstall DataKit OK\n")
 		os.Exit(0)
 	}
 

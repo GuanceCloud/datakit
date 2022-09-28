@@ -20,8 +20,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
 var httpCases = []struct {

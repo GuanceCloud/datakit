@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
 var workspacecli *http.Client
@@ -49,19 +51,19 @@ func doWorkspace(requrl string) ([]byte, error) {
 	var body []byte
 	req, err := http.NewRequest("GET", requrl, nil)
 	if err != nil {
-		errorf("http.NewRequest: %s\n", err.Error())
+		cp.Errorf("http.NewRequest: %s\n", err.Error())
 		return body, err
 	}
 	workspacecli = &http.Client{}
 	resp, err := workspacecli.Do(req)
 	if err != nil {
-		errorf("httpcli.Do: %s\n", err.Error())
+		cp.Errorf("httpcli.Do: %s\n", err.Error())
 		return body, err
 	}
 
 	body, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		errorf("ioutil.ReadAll: %s\n", err.Error())
+		cp.Errorf("ioutil.ReadAll: %s\n", err.Error())
 		return body, err
 	}
 	defer resp.Body.Close() //nolint:errcheck
@@ -73,12 +75,12 @@ func doWorkspace(requrl string) ([]byte, error) {
 		}{}
 
 		if err := json.Unmarshal(body, &r); err != nil {
-			errorf("json.Unmarshal: %s\n", err.Error())
-			errorf("body: %s\n", string(body))
+			cp.Errorf("json.Unmarshal: %s\n", err.Error())
+			cp.Errorf("body: %s\n", string(body))
 			return body, err
 		}
 
-		errorf("[%s] %s\n", r.Err, r.Msg)
+		cp.Errorf("[%s] %s\n", r.Err, r.Msg)
 		return body, err
 	}
 	return body, nil
@@ -89,13 +91,13 @@ func outputWorkspaceInfo(body []byte) {
 		Content []Workspace `json:"content"`
 	}{}
 	if err := json.Unmarshal(body, &r); err != nil {
-		errorf("json.Unmarshal:%s\n", err)
+		cp.Errorf("json.Unmarshal:%s\n", err)
 	}
 	for _, content := range r.Content {
 		j, err := json.MarshalIndent(content, "", defaultJSONIndent)
 		if err != nil {
-			errorf("json.MarshalIndent %s\n", err.Error())
+			cp.Errorf("json.MarshalIndent %s\n", err.Error())
 		}
-		output("%s\n", j)
+		cp.Output("%s\n", j)
 	}
 }

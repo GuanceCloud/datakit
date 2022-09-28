@@ -7,7 +7,6 @@ package container
 
 import (
 	"fmt"
-	"os"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -51,6 +50,9 @@ func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 	for _, fn := range k8sResourceMetricList {
 		x := fn(k.client, k.ipt.Tags)
 
+		if xPod, ok := x.(podResourceInterface); ok {
+			xPod.setExtractK8sLabelAsTags(k.ipt.ExtractK8sLabelAsTags)
+		}
 		if m, err := x.metric(k.ipt.Election); err != nil {
 			lastErr = err
 		} else {
@@ -170,9 +172,6 @@ func defaultNamespace(ns string) string {
 func defaultClusterName(name string) string {
 	if name != "" {
 		return name
-	}
-	if e := os.Getenv("ENV_K8S_CLUSTER_NAME"); e != "" {
-		return e
 	}
 	return "kubernetes"
 }

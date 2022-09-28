@@ -23,7 +23,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ReadEnv = (*Input)(nil)
+var (
+	_ inputs.ReadEnv   = (*Input)(nil)
+	_ inputs.Singleton = (*Input)(nil)
+)
 
 const (
 	minInterval = time.Second
@@ -139,6 +142,9 @@ type Input struct {
 	deviceFilter *DevicesFilter
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (i *Input) Singleton() {
 }
 
 func (*Input) AvailableArchs() []string {

@@ -7,6 +7,7 @@ package zipkin
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -27,7 +28,7 @@ func parseZipkinProtobuf3(body []byte) (zss []*zpkmodel.SpanModel, err error) {
 	}
 
 	for _, zps := range listOfSpans.Spans {
-		traceID, err := zipkinTraceIDFromHex(fmt.Sprintf("%x", zps.TraceId))
+		traceID, err := zipkinTraceIDFromHex(hex.EncodeToString(zps.TraceId))
 		if err != nil {
 			return nil, fmt.Errorf("invalid TraceID: %w", err)
 		}
@@ -153,10 +154,10 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			Source:     inputName,
 			SpanType:   itrace.FindSpanTypeInMultiServersStrSpanID(span.ID.String(), span.ParentID.String(), service, spanIDs, parentIDs),
 			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
-			Status:     itrace.STATUS_OK,
+			Tags:       tags,
 			Start:      span.Timestamp.UnixNano(),
 			Duration:   int64(span.Duration),
-			Tags:       tags,
+			Status:     itrace.STATUS_OK,
 		}
 
 		if isRootSpan(dkspan.ParentID) {
@@ -166,7 +167,7 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 		if span.TraceID.High != 0 {
 			dkspan.TraceID = fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low)
 		} else {
-			dkspan.TraceID = fmt.Sprintf("%x", span.TraceID.Low)
+			dkspan.TraceID = strconv.FormatUint(span.TraceID.Low, 16)
 		}
 
 		for tag := range span.Tags {
@@ -176,16 +177,14 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			}
 		}
 
+		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, span.Tags)
 		if span.RemoteEndpoint != nil {
-			if len(span.RemoteEndpoint.IPv4) != 0 {
-				dkspan.EndPoint = span.RemoteEndpoint.IPv4.String()
-			}
-			if len(span.RemoteEndpoint.IPv6) != 0 {
-				dkspan.EndPoint = span.RemoteEndpoint.IPv6.String()
+			if endpoint := span.RemoteEndpoint.IPv4.String(); len(endpoint) != 0 {
+				dkspan.Tags[itrace.TAG_ENDPOINT] = endpoint
+			} else if endpoint = span.RemoteEndpoint.IPv6.String(); len(endpoint) != 0 {
+				dkspan.Tags[itrace.TAG_ENDPOINT] = endpoint
 			}
 		}
-
-		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, span.Tags)
 
 		if buf, err := json.Marshal(span); err != nil {
 			log.Warn(err.Error())

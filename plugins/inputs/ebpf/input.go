@@ -25,7 +25,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 )
 
-var _ inputs.ReadEnv = (*Input)(nil)
+var (
+	_ inputs.ReadEnv   = (*Input)(nil)
+	_ inputs.Singleton = (*Input)(nil)
+)
 
 var (
 	inputName           = "ebpf"
@@ -51,6 +54,9 @@ type Input struct {
 	L7NetEnabled   []string      `toml:"l7net_enabled"`
 	IPv6Disabled   bool          `toml:"ipv6_disabled"`
 	semStop        *cliutils.Sem // start stop signal
+}
+
+func (ipt *Input) Singleton() {
 }
 
 func (ipt *Input) Run() {

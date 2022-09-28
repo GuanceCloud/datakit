@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 
+	"github.com/gin-gonic/gin"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 )
 
@@ -48,28 +48,31 @@ func (q *QueryRaw) JSON() ([]byte, error) {
 	return json.Marshal(q)
 }
 
-func apiQueryRaw(w http.ResponseWriter, r *http.Request, x ...interface{}) (interface{}, error) {
-	body, err := uhttp.ReadBody(r)
+func apiQueryRaw(c *gin.Context) {
+	body, err := uhttp.GinRead(c)
 	if err != nil {
-		l.Errorf("uhttp.ReadBody: %s", err.Error())
-
-		return nil, err
+		l.Errorf("GinRead: %s", err.Error())
+		uhttp.HttpErr(c, err)
+		return
 	}
 
 	var q QueryRaw
 	if err := json.Unmarshal(body, &q); err != nil {
 		l.Errorf("json.Unmarshal: %s", err)
-		return nil, uhttp.Errorf(ErrBadReq, "json parse error: %s", err)
+		uhttp.HttpErr(c, err)
+		return
 	}
 
 	if dw == nil {
-		return nil, fmt.Errorf("dataway not set")
+		uhttp.HttpErr(c, fmt.Errorf("dataway not set"))
+		return
 	}
 
 	if q.Token == "" {
 		tkns := dw.GetTokens()
 		if len(tkns) == 0 {
-			return nil, fmt.Errorf("dataway token missing")
+			uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
+			return
 		}
 
 		q.Token = tkns[0]
@@ -78,7 +81,8 @@ func apiQueryRaw(w http.ResponseWriter, r *http.Request, x ...interface{}) (inte
 	j, err := json.Marshal(q)
 	if err != nil {
 		l.Errorf("json.Marshal: %s", err.Error())
-		return nil, err
+		uhttp.HttpErr(c, err)
+		return
 	}
 
 	l.Debugf("query: %s", string(j))
@@ -86,7 +90,8 @@ func apiQueryRaw(w http.ResponseWriter, r *http.Request, x ...interface{}) (inte
 	resp, err := dw.DQLQuery(j)
 	if err != nil {
 		l.Errorf("DQLQuery: %s", err)
-		return nil, err
+		uhttp.HttpErr(c, err)
+		return
 	}
 
 	for k, v := range resp.Header {
@@ -96,15 +101,10 @@ func apiQueryRaw(w http.ResponseWriter, r *http.Request, x ...interface{}) (inte
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf("read response body %s", err)
-		return err, nil
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+		return
 	}
-
 	defer resp.Body.Close() //nolint:errcheck
 
-	var respObj interface{} // make sure always response with content-type application/json
-	if err := json.Unmarshal(respBody, &respObj); err != nil {
-		return nil, fmt.Errorf("invalid json body: %w", err)
-	} else {
-		return respObj, nil
-	}
+	c.Data(resp.StatusCode, "application/json", respBody)
 }

@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"log"
 	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 )
 
 func TestRandInt64(t *testing.T) {
@@ -41,10 +43,26 @@ func TestRandTime(t *testing.T) {
 }
 
 func TestRandPoint(t *testing.T) {
+	encoder := lineproto.NewLineEncoder()
 	pnt := RandPoint("test_utils", 30, 90)
-	fmt.Println(pnt.String())
+	if err := encoder.AppendPoint(pnt); err != nil {
+		t.Fatal(err)
+	}
+	line, err := encoder.UnsafeString()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(line)
 	pnts := RandPoints(100, 10, 30)
 	for i := range pnts {
-		fmt.Println(pnts[i].String())
+		encoder.Reset()
+		if err := encoder.AppendPoint(pnts[i]); err != nil {
+			t.Fatal(err)
+		}
+		line, err := encoder.UnsafeStringWithoutLn()
+		if err != nil {
+			t.Fatal(err)
+		}
+		fmt.Println(line)
 	}
 }

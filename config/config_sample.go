@@ -118,12 +118,19 @@ ulimit = 64000
   #
   output_file_inputs = []
 
+  #######################################
+  # IO 发送失败磁盘缓存
+  #######################################
   ## enable_cache: bool, 是否开启缓存
   ## 开启后，如果数据推送失败，则对失败的数据进行本地缓存，后续将继续重新推送
   #
-	#enable_cache = false
+  enable_cache = false
+
   ## cache_max_size_gb: int, 磁盘 cache 大小(单位 GB)
-	#cache_max_size_gb = 1
+  cache_max_size_gb = 10
+
+  # cache 清理的间隔，每次清理一次 IO 发送失败的请求
+  cache_clean_interval = "5s"
 
   ## 行协议数据过滤
   ## 一旦 datakit.conf 中配置了过滤器，那么则以该过滤器为准，观测云 Studio 配置的过滤器将不再生效。

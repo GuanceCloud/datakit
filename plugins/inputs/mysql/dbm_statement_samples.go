@@ -686,7 +686,7 @@ func explainStatement(i *Input, statement string, schema string, obfuscatedState
 
 	// TODO cached strategy
 	if len(schema) > 0 {
-		if _, err := conn.ExecContext(ctx, fmt.Sprintf("USE %s", schema)); err != nil {
+		if _, err := conn.ExecContext(ctx, fmt.Sprintf("USE `%s`", schema)); err != nil {
 			return plan, err
 		}
 	}

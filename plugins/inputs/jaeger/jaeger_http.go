@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/uber/jaeger-client-go/thrift"
@@ -143,25 +144,22 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			ParentID:   fmt.Sprintf("%x", uint64(span.ParentSpanId)),
-			SpanID:     fmt.Sprintf("%x", uint64(span.SpanId)),
+			ParentID:   strconv.FormatInt(span.ParentSpanId, 16),
+			SpanID:     strconv.FormatInt(span.SpanId, 16),
 			Service:    batch.Process.ServiceName,
 			Resource:   span.OperationName,
 			Operation:  span.OperationName,
 			Source:     inputName,
 			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
 			SpanType:   itrace.FindSpanTypeIntSpanID(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
-			Env:        env,
-			Project:    project,
 			Start:      span.StartTime * int64(time.Microsecond),
 			Duration:   span.Duration * int64(time.Microsecond),
-			Version:    version,
 		}
 
 		if span.TraceIdHigh != 0 {
-			dkspan.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
+			dkspan.TraceID = fmt.Sprintf("%x%x", span.TraceIdHigh, span.TraceIdLow)
 		} else {
-			dkspan.TraceID = fmt.Sprintf("%x", uint64(span.TraceIdLow))
+			dkspan.TraceID = strconv.FormatInt(span.TraceIdLow, 16)
 		}
 
 		dkspan.Status = itrace.STATUS_OK
@@ -177,6 +175,15 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			sourceTags[tag.Key] = tag.String()
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+		if project != "" {
+			dkspan.Tags[itrace.PROJECT] = project
+		}
+		if version != "" {
+			dkspan.Tags[itrace.TAG_VERSION] = version
+		}
+		if env != "" {
+			dkspan.Tags[itrace.TAG_ENV] = env
+		}
 
 		if buf, err := json.Marshal(span); err != nil {
 			log.Warn(err.Error())

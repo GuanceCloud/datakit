@@ -13,7 +13,7 @@ import (
 	"math/rand"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 )
 
 func RandInt64(n int) int64 {
@@ -157,7 +157,7 @@ func RandMetrics(entries, maxKeyLen int) map[string]float64 {
 	return metrics
 }
 
-func RandPoint(name string, maxTags, maxFields int) *influxdb.Point {
+func RandPoint(name string, maxTags, maxFields int) *lineproto.Point {
 	if len(name) == 0 {
 		name = RandString(15)
 	}
@@ -171,7 +171,7 @@ func RandPoint(name string, maxTags, maxFields int) *influxdb.Point {
 	}
 
 	var (
-		pnt *influxdb.Point
+		pnt *lineproto.Point
 		err error
 	)
 
@@ -179,7 +179,7 @@ func RandPoint(name string, maxTags, maxFields int) *influxdb.Point {
 		tags := RandTags(maxTags, 15, 45)
 		fields := RandFields(maxFields, 15)
 
-		if pnt, err = influxdb.NewPoint(name, tags, fields); err == nil {
+		if pnt, err = lineproto.NewPoint(name, tags, fields); err == nil {
 			break
 		}
 	}
@@ -187,8 +187,8 @@ func RandPoint(name string, maxTags, maxFields int) *influxdb.Point {
 	return pnt
 }
 
-func RandPoints(count int, maxTags, maxFields int) []*influxdb.Point {
-	pnts := make([]*influxdb.Point, count)
+func RandPoints(count int, maxTags, maxFields int) []*lineproto.Point {
+	pnts := make([]*lineproto.Point, count)
 	for i := range pnts {
 		pnts[i] = RandPoint(RandString(15), maxTags, maxFields)
 	}

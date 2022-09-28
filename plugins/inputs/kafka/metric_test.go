@@ -8,6 +8,7 @@ package kafka
 import (
 	"testing"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -86,17 +87,23 @@ func TestMeasurement(t *testing.T) {
 		},
 	}
 
+	encoder := lineproto.NewLineEncoder()
 	for _, tc := range cases {
 		t.Run("", func(t *testing.T) {
 			if pt, err := tc.m.LineProto(); err != nil {
 				t.Fatal(err)
 			} else {
-				t.Log(pt.String())
-				fs, err := pt.Fields()
-				if err != nil {
-					t.Error(err)
+				encoder.Reset()
+				if err := encoder.AppendPoint(pt.Point); err != nil {
+					t.Fatal(err)
 				}
-				ts := pt.Tags()
+				line, err := encoder.UnsafeStringWithoutLn()
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Log(line)
+				fs := pt.Fields
+				ts := pt.Tags
 
 				if len(fs) > point.MaxFields {
 					t.Errorf("exceed max fields(%d > %d)", len(fs), point.MaxFields)

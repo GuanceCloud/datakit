@@ -9,6 +9,7 @@ package io
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"sync"
@@ -42,8 +43,9 @@ type IOConfig struct {
 	OutputFile       string   `toml:"output_file"`
 	OutputFileInputs []string `toml:"output_file_inputs"`
 
-	EnableCache bool `toml:"enable_cache"`
-	CacheSizeGB int  `toml:"cache_max_size_gb"`
+	EnableCache        bool   `toml:"enable_cache"`
+	CacheSizeGB        int    `toml:"cache_max_size_gb"`
+	CacheCleanInterval string `toml:"cache_clean_interval"`
 
 	Filters map[string][]string `toml:"filters"`
 }
@@ -244,7 +246,13 @@ func (x *IO) runConsumer(category string) {
 		c.category = datakit.Logging
 	}
 
-	walTick := time.NewTicker(time.Second)
+	du, err := time.ParseDuration(x.conf.CacheCleanInterval)
+	if err != nil {
+		log.Warnf("parse CacheCleanInterval failed: %s, use default 5s", err)
+		du = time.Second * 5
+	}
+
+	walTick := time.NewTicker(du)
 	defer walTick.Stop()
 
 	log.Infof("run consumer on %s", category)
@@ -259,6 +267,7 @@ func (x *IO) runConsumer(category string) {
 			x.flush(c)
 
 		case <-walTick.C:
+			log.Debugf("wal try flush failed data on %s", category)
 			x.flushWal(c)
 
 		case e := <-x.inLastErr:
@@ -320,6 +329,8 @@ func (x *IO) flushWal(c *consumer) {
 	if c.fc != nil {
 		if err := c.fc.get(getWrite, x.sender.Write); err != nil {
 			log.Warnf("flushWal send failed: %v", err)
+		} else {
+			log.Debug("flushWal send ok")
 		}
 	}
 }
@@ -360,10 +371,19 @@ func (x *IO) cache(category string, pts []*point.Point, fc *failCache) error {
 		return nil
 	}
 
+	encoder := lp.NewLineEncoder()
 	for _, pt := range pts {
+		encoder.Reset()
+		if err := encoder.AppendPoint(pt.Point); err != nil {
+			return fmt.Errorf("add point fail: %w", err)
+		}
+		line, err := encoder.BytesWithoutLn()
+		if err != nil {
+			return fmt.Errorf("encoder bytes fail: %w", err)
+		}
 		buf, err := pb.Marshal(&PBData{
 			Category: category,
-			Lines:    []byte(pt.String()),
+			Lines:    append([]byte(nil), line...),
 		})
 		if err != nil {
 			log.Warnf("dump %s cache(%d) failed: %v", category, len(pts), err)
@@ -385,7 +405,7 @@ func getWrite(data []byte, fn funcSend) error {
 	if err := pb.Unmarshal(data, pd); err != nil {
 		return err
 	}
-	pts, err := lp.ParsePoints(pd.Lines, nil)
+	pts, err := lp.Parse(pd.Lines, nil)
 	if err != nil {
 		return err
 	}
@@ -415,17 +435,31 @@ func (x *IO) fileOutput(d *iodata) error {
 		x.outputFileSize += int64(n)
 	}
 
+	encoder := lp.NewLineEncoder()
 	for _, pt := range d.pts {
-		if n, err := x.fd.WriteString(pt.String() + "\n"); err != nil {
-			return err
-		} else {
-			x.outputFileSize += int64(n)
-			if x.outputFileSize > 32*1024*1024 { // truncate file on 32MB
-				if err := x.fd.Truncate(0); err != nil {
-					return err
-				}
-				x.outputFileSize = 0
+		encoder.Reset()
+		if err := encoder.AppendPoint(pt.Point); err != nil {
+			return fmt.Errorf("append point fail: %w", err)
+		}
+		line, err := encoder.Bytes()
+		if err != nil {
+			return fmt.Errorf("line protocol encoding err: %w", err)
+		}
+
+		n, err := x.fd.Write(line)
+		if err != nil {
+			return fmt.Errorf("io write file fail: %w", err)
+		}
+
+		x.outputFileSize += int64(n)
+		if x.outputFileSize > 32*1024*1024 { // truncate file on 32MB
+			if err := x.fd.Truncate(0); err != nil {
+				return fmt.Errorf("truncate file err: %w", err)
 			}
+			if _, err := x.fd.Seek(0, io.SeekStart); err != nil {
+				return fmt.Errorf("file seek err: %w", err)
+			}
+			x.outputFileSize = 0
 		}
 	}
 

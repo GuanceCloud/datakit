@@ -28,12 +28,13 @@ import (
 )
 
 var (
-	l                                = logger.DefaultSLogger(inputName)
-	minObjectInterval                = time.Second * 30
-	maxObjectInterval                = time.Minute * 15
-	minMetricInterval                = time.Second * 10
-	maxMetricInterval                = time.Minute
-	_                 inputs.ReadEnv = (*Input)(nil)
+	l                                  = logger.DefaultSLogger(inputName)
+	minObjectInterval                  = time.Second * 30
+	maxObjectInterval                  = time.Minute * 15
+	minMetricInterval                  = time.Second * 10
+	maxMetricInterval                  = time.Minute
+	_                 inputs.ReadEnv   = (*Input)(nil)
+	_                 inputs.Singleton = (*Input)(nil)
 )
 
 type Input struct {
@@ -52,6 +53,9 @@ type Input struct {
 	isTest  bool
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (p *Input) Singleton() {
 }
 
 func (*Input) Catalog() string { return category }
