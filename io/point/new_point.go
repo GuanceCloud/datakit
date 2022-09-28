@@ -7,11 +7,11 @@ package point
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -27,6 +27,8 @@ var (
 		datakit.Object:  {"class"},
 		// others data type not set...
 	}
+
+	log = logger.DefaultSLogger("point")
 
 	DisabledFieldKeys = map[string][]string{
 		datakit.Logging: {"source"},
@@ -149,7 +151,7 @@ func doMakePoint(name string,
 		for _, warn := range warnings {
 			warningsStr += warn.Message + ";"
 		}
-		log.Println("WARNING::::", warningsStr)
+		log.Warnf("make point %s warnning: %s", name, warningsStr)
 	}
 
 	return &Point{Point: p}, nil
