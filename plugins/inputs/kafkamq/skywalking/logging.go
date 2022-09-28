@@ -65,8 +65,7 @@ func processLog(plog *loggingv3.LogData) {
 	pt, err := point.NewPoint(source, extraTags,
 		map[string]interface{}{
 			pipeline.FieldMessage: line,
-			pipeline.FieldStatus:  pipeline.DefaultStatus,
-		}, point.LOpt())
+		}, &point.PointOption{Category: datakit.Logging, DisableGlobalTags: true})
 	if err != nil {
 		log.Errorf("mew point err=%v", err)
 		return
