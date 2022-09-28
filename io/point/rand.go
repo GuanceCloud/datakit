@@ -9,7 +9,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"log"
 	mrand "math/rand"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -43,7 +42,7 @@ func doRandomPoints(count int) ([]*Point, error) {
 			},
 			option,
 		); err != nil {
-			log.Fatal(err.Error())
+			return nil, err
 		} else {
 			pts = append(pts, pt)
 		}

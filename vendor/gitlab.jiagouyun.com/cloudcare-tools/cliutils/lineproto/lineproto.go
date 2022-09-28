@@ -562,7 +562,7 @@ func checkField(k string, v interface{}, opt *Option, pointWarnings *[]*PointWar
 		if opt.DisableStringField {
 			*pointWarnings = append(*pointWarnings, &PointWarning{
 				WarningType: WarnInvalidFieldValueType,
-				Message:     fmt.Sprintf(" field(%s) dropped with string value, when [DisableStringField] enabled", k),
+				Message:     fmt.Sprintf("field(%s) dropped with string value, when [DisableStringField] enabled", k),
 			})
 			return nil, nil // drop the field
 
@@ -572,7 +572,7 @@ func checkField(k string, v interface{}, opt *Option, pointWarnings *[]*PointWar
 
 			*pointWarnings = append(*pointWarnings, &PointWarning{
 				WarningType: WarnMaxFieldValueLen,
-				Message:     fmt.Sprintf("exceed max field value length(%d), got %d, value truncated", opt.MaxFieldValueLen, len(x)),
+				Message:     fmt.Sprintf("field (%s) exceed max field value length(%d), got %d, value truncated", k, opt.MaxFieldValueLen, len(x)),
 			})
 
 			return x[:opt.MaxFieldValueLen], nil
@@ -585,7 +585,7 @@ func checkField(k string, v interface{}, opt *Option, pointWarnings *[]*PointWar
 
 				*pointWarnings = append(*pointWarnings, &PointWarning{
 					WarningType: WarnInvalidFieldValueType,
-					Message:     "invalid field value type: nil value, field dropped",
+					Message:     fmt.Sprintf("invalid field (%s) value type: nil value, field dropped", k),
 				})
 
 				return nil, fmt.Errorf("invalid field value type %s, value is nil", k)
@@ -593,10 +593,10 @@ func checkField(k string, v interface{}, opt *Option, pointWarnings *[]*PointWar
 
 				*pointWarnings = append(*pointWarnings, &PointWarning{
 					WarningType: WarnInvalidFieldValueType,
-					Message:     fmt.Sprintf("invalid field type: %s, field dropped", reflect.TypeOf(v).String()),
+					Message:     fmt.Sprintf("invalid field (%s) type: %s, field dropped", k, reflect.TypeOf(v).String()),
 				})
 
-				return nil, fmt.Errorf("invalid field type: %s", reflect.TypeOf(v).String())
+				return nil, fmt.Errorf("invalid field(%s) type: %s", k, reflect.TypeOf(v).String())
 			}
 		}
 
