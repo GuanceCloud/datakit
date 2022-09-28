@@ -211,4 +211,5 @@ for f in "${developers_docs[@]}"; do
 done
 
 printf "${GREEN}> Start mkdocs...${CLR}\n"
-cd $mkdocs_dir && mkdocs serve -a 0.0.0.0:8000 2>&1 | tee mkdocs.log
+cd $mkdocs_dir && \
+	mkdocs serve -a 0.0.0.0:8000 2>&1 | tee mkdocs.log
