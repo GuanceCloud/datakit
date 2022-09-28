@@ -1,5 +1,5 @@
 {{.CSS}}
-# kafkamq
+# 订阅 Kafka 中的数据
 ---
 
 {{.AvailableArchs}}
@@ -207,7 +207,10 @@ toolkit 依赖包添加到 maven 或者 gradle 中。
 
 至此 agent 会将日志发送到 kafka 中。
 
-更多日志如何配置： [log4j-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-log4j-1.x.md), [logback-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-logback-1.x.md)
+更多日志如何配置：
+
+- [log4j-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-log4j-1.x.md){:target="_blank"}
+- [logback-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-logback-1.x.md){:target="_blank"}
 
 从 kafka 中采集的日志不需要通过 pipeline 处理。已经全部切割好。
 

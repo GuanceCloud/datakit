@@ -125,7 +125,6 @@ nav:
       - nsq.md
       - rabbitmq.md
       - kafka.md
-      - '订阅kafka MQ': kafkamq.md
       - etcd.md
       - consul.md
       - coredns.md
@@ -148,6 +147,7 @@ nav:
     - '第三方数据接入':
       - 'Prometheus Exportor 数据采集': prom.md
       - prom_remote_write.md
+      - kafkamq.md
       - promtail.md
       - statsd.md
       - beats_output.md

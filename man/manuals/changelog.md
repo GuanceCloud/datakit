@@ -19,6 +19,7 @@
 - 新增 [promtail 采集器](promtail.md)(#644)
 - 新增 [NVIDIA GPU 指标采集器](nvidia_smi.md)(#1005)
 - 支持发现（需手动开启） Kubernetes 集群中带有 Prometheus Service 的服务，并对之实施 Prometheus 指标采集(#1123)
+- 支持从 Kafka 中订阅基于 SkyWalking 的指标、日志、Trace 类数据，并将其分别以对应的数据类型上传到观测云(#1127)
 
 ### 问题修复 {#cl-1.4.17-fix}
 

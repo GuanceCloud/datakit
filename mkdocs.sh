@@ -145,6 +145,7 @@ datakit_docs=(
   $tmp_doc_dir/jvm.md
   $tmp_doc_dir/k8s-config-how-to.md
   $tmp_doc_dir/kafka.md
+  $tmp_doc_dir/kafkamq.md
   $tmp_doc_dir/kubernetes-crd.md
   $tmp_doc_dir/kubernetes-prom.md
   $tmp_doc_dir/logfwd.md
