@@ -80,6 +80,15 @@ func NewPoint(name string,
 		opt = defaultPointOption()
 	}
 
+	newTags := make(map[string]string, len(tags))
+	for k, v := range tags {
+		newTags[k] = v
+	}
+	newFields := make(map[string]interface{}, len(fields))
+	for k, v := range fields {
+		newFields[k] = v
+	}
+
 	lpOpt := &lp.Option{
 		Time:        opt.Time,
 		Strict:      opt.Strict,
@@ -134,7 +143,7 @@ func NewPoint(name string,
 	default:
 		return nil, fmt.Errorf("invalid point category: %s", opt.Category)
 	}
-	return doMakePoint(name, tags, fields, lpOpt)
+	return doMakePoint(name, newTags, newFields, lpOpt)
 }
 
 func doMakePoint(name string,

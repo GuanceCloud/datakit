@@ -224,20 +224,15 @@ func doHandleRUMBody(body []byte,
 	}
 
 	// 把error_stack_source_base64从tags中移到fields中
-	for i, rumpt := range rumpts {
-		fields := rumpt.Fields
-		_, ok1 := fields["error_stack"]
-		_, ok2 := rumpt.Tags["error_stack_source_base64"]
+	for _, pt := range rumpts {
+		_, ok1 := pt.Fields["error_stack"]
+		_, ok2 := pt.Tags["error_stack_source_base64"]
 		if ok1 && ok2 {
-			tags := rumpt.Tags
-			fields["error_stack_source_base64"] = tags["error_stack_source_base64"]
-			delete(tags, "error_stack_source_base64")
-			newPoint, err := lp.NewPoint(rumpt.Name, tags, fields, rumpt.Time)
-			if err != nil {
-				log.Errorf("client.NewPoint() err: %s", err)
+			if err := pt.AddField("error_stack_source_base64", pt.Tags["error_stack_source_base64"]); err != nil {
+				log.Warnf("add feild error_stack_source_base64 err: %s", err)
 				continue
 			}
-			rumpts[i] = newPoint
+			delete(pt.Tags, "error_stack_source_base64")
 		}
 	}
 
