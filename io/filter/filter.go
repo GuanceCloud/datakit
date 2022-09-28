@@ -190,7 +190,10 @@ func GetConds(filterArr []string) (parser.WhereConditions, error) {
 // CheckPointFiltered returns whether the point matches the fitler rule.
 // If returns true means they are matched.
 func CheckPointFiltered(conds parser.WhereConditions, category string, pt *point.Point) (bool, error) {
-	tags := pt.Tags
+	tags := make(map[string]string, len(pt.Tags))
+	for k, v := range pt.Tags {
+		tags[k] = v
+	}
 	fields := pt.Fields
 
 	// Before checks, should adjust tags under some conditions.

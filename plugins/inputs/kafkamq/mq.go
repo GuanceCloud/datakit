@@ -97,7 +97,7 @@ func (*Input) Catalog() string      { return "kafkamq" }
 func (*Input) SampleConfig() string { return mqSampleConfig }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllOSWithElection
+	return datakit.AllOS
 }
 
 func (i *Input) Terminate() {

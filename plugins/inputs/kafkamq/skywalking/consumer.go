@@ -96,11 +96,12 @@ type SkyConsumer struct {
 	Namespace string   `toml:"namespace"`
 
 	handler *consumerGroupHandler
+	cancel  context.CancelFunc
+	stop    chan struct{}
 }
 
 type consumerGroupHandler struct {
 	topics map[string]string
-	stop   chan struct{}
 }
 
 func (c *consumerGroupHandler) Setup(sarama.ConsumerGroupSession) error {
@@ -111,88 +112,85 @@ func (c *consumerGroupHandler) Cleanup(sarama.ConsumerGroupSession) error { retu
 
 // ConsumeClaim must start a consumer loop of ConsumerGroupClaim's Messages().
 func (c *consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	for {
-		select {
-		case msg := <-claim.Messages():
-			log.Debugf("Message claimed: timestamp = %v, topic = %s", msg.Timestamp, msg.Topic)
-			session.MarkMessage(msg, "")
-			if t, ok := c.topics[msg.Topic]; ok {
-				switch t {
-				case metric:
-					metrics := &agentv3.JVMMetricCollection{}
-					err := proto.Unmarshal(msg.Value, metrics)
-					if err != nil {
-						log.Errorf("unmarshal err=%v", err)
-						break
-					}
-					log.Debugf("unmarshal metrics is %+v", metrics)
-					processMetrics(metrics)
-				case profilings:
-					profile := &profileV3.ThreadSnapshot{}
-					err := proto.Unmarshal(msg.Value, profile)
-					if err != nil {
-						log.Errorf("unmarshal err=%v", err)
-						break
-					}
-					processProfile(profile)
-				case segments:
-					segment := &agentv3.SegmentObject{}
-					err := proto.Unmarshal(msg.Value, segment)
-					if err != nil {
-						log.Errorf("unmarshal err=%v", err)
-						break
-					}
-
-					if storage == nil {
-						parseSegmentObject(segment)
-					} else {
-						buf, err := proto.Marshal(segment)
-						if err != nil {
-							log.Error(err.Error())
-							return err
-						}
-						param := &itrace.TraceParameters{Meta: &itrace.TraceMeta{Buf: buf}}
-						if err = storage.Send(param); err != nil {
-							log.Error(err.Error())
-
-							return err
-						}
-					}
-				case managements:
-					instance := &managementV3.InstanceProperties{}
-					err := proto.Unmarshal(msg.Value, instance)
-					if err != nil {
-						log.Errorf("unmarshal err=%v", err)
-						break
-					}
-					log.Debugf("unmarshal instance is= %+v", instance)
-				case meters:
-					meters := &agentv3.MeterData{}
-					err := proto.Unmarshal(msg.Value, meters)
-					if err != nil {
-						log.Errorf("unmarshal err=%v", err)
-						break
-					}
-					log.Debugf("unmarshal Metrer is= %+v", meters)
-				case logging:
-					log.Debugf("logging")
-					pLog := &loggingv3.LogData{}
-					err := proto.Unmarshal(msg.Value, pLog)
-					if err != nil {
-						log.Errorf("unmarshal err=%v", err)
-						break
-					}
-					processLog(pLog)
-				}
-			}
-		case <-c.stop:
+	for msg := range claim.Messages() {
+		if msg == nil {
+			log.Infof("session was close")
 			return nil
 		}
+		log.Debugf("Message claimed: timestamp = %v, topic = %s", msg.Timestamp, msg.Topic)
+		session.MarkMessage(msg, "")
+		if t, ok := c.topics[msg.Topic]; ok {
+			switch t {
+			case metric:
+				metrics := &agentv3.JVMMetricCollection{}
+				err := proto.Unmarshal(msg.Value, metrics)
+				if err != nil {
+					log.Errorf("unmarshal err=%v", err)
+					break
+				}
+				processMetrics(metrics)
+			case profilings:
+				profile := &profileV3.ThreadSnapshot{}
+				err := proto.Unmarshal(msg.Value, profile)
+				if err != nil {
+					log.Errorf("unmarshal err=%v", err)
+					break
+				}
+				processProfile(profile)
+			case segments:
+				segment := &agentv3.SegmentObject{}
+				err := proto.Unmarshal(msg.Value, segment)
+				if err != nil {
+					log.Errorf("unmarshal err=%v", err)
+					break
+				}
+				if storage == nil {
+					parseSegmentObject(segment)
+				} else {
+					buf, err := proto.Marshal(segment)
+					if err != nil {
+						log.Errorf("Marshal err =%v", err)
+						break
+					}
+					param := &itrace.TraceParameters{Meta: &itrace.TraceMeta{Buf: buf}}
+					if err = storage.Send(param); err != nil {
+						log.Errorf("storage send err=%v", err)
+						break
+					}
+				}
+			case managements:
+				instance := &managementV3.InstanceProperties{}
+				err := proto.Unmarshal(msg.Value, instance)
+				if err != nil {
+					log.Errorf("unmarshal err=%v", err)
+					break
+				}
+				log.Debugf("unmarshal instance is= %+v", instance)
+			case meters:
+				meters := &agentv3.MeterData{}
+				err := proto.Unmarshal(msg.Value, meters)
+				if err != nil {
+					log.Errorf("unmarshal err=%v", err)
+					break
+				}
+				log.Debugf("unmarshal Metrer is= %+v", meters)
+			case logging:
+				pLog := &loggingv3.LogData{}
+				err := proto.Unmarshal(msg.Value, pLog)
+				if err != nil {
+					log.Errorf("unmarshal err=%v", err)
+					break
+				}
+				processLog(pLog)
+			}
+		}
 	}
+	return nil
 }
 
 func (mq *SkyConsumer) SaramaConsumerGroup(addr string, groupID string) {
 	log = logger.SLogger("kafkamq")
+	mq.stop = make(chan struct{}, 1)
 	config := sarama.NewConfig() // auto commit
 	config.Consumer.Return.Errors = false
 	config.Version = sarama.V0_10_2_0                     // specify appropriate version
@@ -237,9 +235,10 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addr string, groupID string) {
 	}()
 	log.Infof("Consumed start")
 	// Iterate over consumer sessions.
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	mq.cancel = cancel
 	for {
-		handler := &consumerGroupHandler{topics: formatTopics, stop: make(chan struct{}, 1)}
+		handler := &consumerGroupHandler{topics: formatTopics}
 		mq.handler = handler
 		log.Infof("start consumer....")
 		// `Consume` should be called inside an infinite loop, when a
@@ -247,14 +246,17 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addr string, groupID string) {
 		// recreated to get the new claims.
 		err := group.Consume(ctx, topics, handler)
 		if err != nil {
-			log.Errorf("group begin consume is err=%v", err)
+			log.Infof("group begin consume is err=%v", err)
 		}
-		time.Sleep(time.Second * 5)
+		select {
+		case <-mq.stop:
+			return
+		case <-time.After(time.Second * 10):
+		}
 	}
 }
 
 func (mq *SkyConsumer) Stop() {
-	if mq.handler != nil {
-		mq.handler.stop <- struct{}{}
-	}
+	mq.stop <- struct{}{}
+	mq.cancel()
 }
