@@ -160,7 +160,7 @@ create_time 1639657028706
 
 === "主机安装"
 
-    - 可直接使用如下命令安装/更新 IP 地理信息库,安装geolite2只需把iploc换成geolite2：
+    - 可直接使用如下命令安装/更新 IP 地理信息库（此处可选择另一个 IP 地址库 `geolite2`，只需把 `iploc` 换成 `geolite2` 即可）：
     
     ```shell
     datakit install --ipdb iploc
@@ -168,13 +168,12 @@ create_time 1639657028706
     
     - 更新完 IP 地理信息库后，修改 datakit.conf 配置：
     
-    
-    ```
+    ``` toml
     [pipeline]
       ipdb_type = "iploc"
     ```
     
-    - 重启 DataKit 生效。
+    - 重启 DataKit 生效
 
     - 测试 IP 库是否生效
 
@@ -200,23 +199,13 @@ create_time 1639657028706
 
 === "Kubernetes(yaml)"
 
-    - 修改 *datakit.yaml*
+    - 修改 *datakit.yaml*，打开如下注释掉的高亮内容即可：
     
-    开放环境变量注释：
-   
-    将4处 `# # ---iploc-start` 和 `# # ---iploc-end` 中间注释放开
-    
-    ```yaml
-    修改前
-        # # ---iploc-start  
+    ```yaml hl_lines="2 3"
+        # ---iploc-start  
         #- name: ENV_IPDB
         #  value: iploc        
-        # # ---iploc-end      
-    修改后
-        # ---iploc-start  
-        - name: ENV_IPDB
-         value: iploc        
-        # ---iploc-end       
+        # ---iploc-end      
     ```
     
     - 重新安装 DataKit：
@@ -224,7 +213,7 @@ create_time 1639657028706
     ```shell
     $ kubectl apply -f datakit.yaml
     
-    # 确保确实生效
+    # 确保 DataKit 容器启动
     $ kubectl get pod -n datakit
     ```
 
@@ -246,23 +235,22 @@ create_time 1639657028706
            isp: unknown
             ip: 1.2.3.4
           city: 
-      province: 
-       country: 
+      province:
+       country:
     ```
     
 === "Kubernetes(helm)"
 
     - helm 部署添加 `--set iploc.enable`
     
-    $ ```shell
-    helm install datakit datakit/datakit -n datakit \
-    --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
+    ```shell
+    $ helm install datakit datakit/datakit -n datakit \
+    --set datakit.dataway_url="https://openway.guance.com?token=<YOUR-TOKEN>" \
     --set iploc.enable true \
     --create-namespace 
     ```
     
     关于 helm 的部署事项，参见[这里](datakit-daemonset-deploy.md/#__tabbed_1_2)。
-    
     
     - 进入容器，测试 IP 库是否生效
 
@@ -282,10 +270,9 @@ create_time 1639657028706
            isp: unknown
             ip: 1.2.3.4
           city: 
-      province: 
-       country: 
+      province:
+       country:
     ```
-        
 
 ## DataKit 安装第三方软件 {#extras}
 

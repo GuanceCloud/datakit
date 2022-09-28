@@ -44,8 +44,8 @@ var metrics = []metric{
 				title:  "",
 				sql:    "select last(first_ep),last(version),last(master_uptime) from log.cluster_info",
 				unit:   "",
-				fields: []string{"master_uptime", "first_ep", "version"},
-				tags:   []string{},
+				fields: []string{"master_uptime"},
+				tags:   []string{"first_ep", "version"},
 			},
 			{
 				desc:   "企业版授权到期时间", // 非企业版没有该指标
