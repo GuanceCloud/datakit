@@ -134,8 +134,6 @@ type Config struct {
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
 
-	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
-
 	Tracer *tracer.Tracer `toml:"tracer,omitempty"`
 
 	GitRepos *GitRepost `toml:"git_repos"`
@@ -353,10 +351,6 @@ func (c *Config) ApplyMainConfig() error {
 		} else {
 			l.Infof("ulimit set to softLimit = %d, hardLimit = %d", soft, hard)
 		}
-	}
-
-	if c.EnableUncheckedInputs {
-		datakit.EnableUncheckInputs = true
 	}
 
 	if c.Hostname == "" {
