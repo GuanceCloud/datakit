@@ -331,6 +331,8 @@ func (dw *DataWayDefault) buildBody(pts []*point.Point) ([]*body, error) {
 		encoder     = lineproto.NewLineEncoder()
 	)
 
+	encoder.EnableLax()
+
 	for idx, pt := range pts {
 		err := encoder.AppendPoint(pt.Point)
 		if err != nil {
