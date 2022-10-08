@@ -395,7 +395,7 @@ func sendToIO(profileID string) error {
 		if err := dkio.Feed(inputName,
 			datakit.Profiling,
 			[]*point.Point{pt},
-			&dkio.Option{CollectCost: time.Since(pt.Time)}); err != nil {
+			&dkio.Option{CollectCost: time.Since(pt.Time())}); err != nil {
 			return err
 		}
 		return nil

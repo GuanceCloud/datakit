@@ -81,7 +81,7 @@ func TestFiltered(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			pts, err := lp.Parse([]byte(tc.inLineProtocol), nil)
+			pts, err := lp.ParsePoints([]byte(tc.inLineProtocol), nil)
 			assert.NoError(t, err)
 			conds, err := filter.GetConds(tc.inFilters)
 			assert.NoError(t, err)

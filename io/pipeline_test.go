@@ -8,8 +8,9 @@ package io
 import (
 	"testing"
 
+	"github.com/influxdata/influxdb1-client/models"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
@@ -42,23 +43,35 @@ func TestSCriptName(t *testing.T) {
 		})
 	assert.Equal(t, nil, err)
 
-	f := pt.Fields
+	f, err := pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	name, ok := scriptName(datakit.Tracing, pt.Name, pt.Tags, f, nil)
+	name, ok := scriptName(datakit.Tracing, pt.Name(), pt.Tags(), f, nil)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "svc_name.p", name)
 
-	f = pt.Fields
-	name, ok = scriptName(datakit.Tracing, pt.Name, pt.Tags, f, map[string]string{"c": "d"})
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, ok = scriptName(datakit.Tracing, pt.Name(), pt.Tags(), f, map[string]string{"c": "d"})
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "svc_name.p", name)
 
-	f = pt.Fields
-	_, ok = scriptName(datakit.Tracing, pt.Name, pt.Tags, f, map[string]string{"svc_name": "-"})
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, ok = scriptName(datakit.Tracing, pt.Name(), pt.Tags(), f, map[string]string{"svc_name": "-"})
 	assert.Equal(t, false, ok)
 
-	f = pt.Fields
-	name, ok = scriptName(datakit.Profiling, pt.Name, pt.Tags, f, map[string]string{"svc_name": "def.p"})
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, ok = scriptName(datakit.Profiling, pt.Name(), pt.Tags(), f, map[string]string{"svc_name": "def.p"})
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "def.p", name)
 
@@ -67,71 +80,87 @@ func TestSCriptName(t *testing.T) {
 		map[string]string{"m_name": "def.p"})
 	assert.Equal(t, false, ok)
 
-	f = pt.Fields
-	name, ok = scriptName(datakit.Metric, pt.Name, pt.Tags, f, map[string]string{"abc": "def.p"})
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, ok = scriptName(datakit.Metric, pt.Name(), pt.Tags(), f, map[string]string{"abc": "def.p"})
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "m_name.p", name)
 
-	f = pt.Fields
-	name, ok = scriptName(datakit.Metric, pt.Name, pt.Tags, f, map[string]string{"m_name": "def.p"})
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, ok = scriptName(datakit.Metric, pt.Name(), pt.Tags(), f, map[string]string{"m_name": "def.p"})
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "def.p", name)
 
-	f = pt.Fields
-	_, ok = scriptName(datakit.Metric, pt.Name, pt.Tags, f, map[string]string{"m_name": "-"})
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, ok = scriptName(datakit.Metric, pt.Name(), pt.Tags(), f, map[string]string{"m_name": "-"})
 	assert.Equal(t, false, ok)
 
 	_, ok = scriptName(datakit.Metric, "", nil, nil, map[string]string{"m_name": "-"})
 	assert.Equal(t, false, ok)
 
-	pts, err := lineproto.Parse(scheckTestPointData, lineproto.DefaultOption)
+	pts, err := models.ParsePoints(scheckTestPointData)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	ptSc := pts[0]
 	pt = &point.Point{
-		Point: ptSc,
+		Point: influxdb.NewPointFrom(ptSc),
 	}
-
-	f = pt.Fields
-	name, ok = scriptName(datakit.Security, pt.Name, pt.Tags, f, nil)
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, ok = scriptName(datakit.Security, pt.Name(), pt.Tags(), f, nil)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "system.p", name)
 
-	pts, err = lineproto.Parse(scheckTestPointDataWithoutTagCategory, lineproto.DefaultOption)
+	pts, err = models.ParsePoints(scheckTestPointDataWithoutTagCategory)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ptSc = pts[0]
 	pt = &point.Point{
-		Point: ptSc,
+		Point: influxdb.NewPointFrom(ptSc),
 	}
-	f = pt.Fields
-	_, ok = scriptName(datakit.Security, pt.Name, pt.Tags, f, nil)
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, ok = scriptName(datakit.Security, pt.Name(), pt.Tags(), f, nil)
 	assert.Equal(t, false, ok)
 
-	pts, err = lineproto.Parse(rumTestPointData, lineproto.DefaultOption)
+	pts, err = models.ParsePoints(rumTestPointData)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ptSc = pts[0]
 	pt = &point.Point{
-		Point: ptSc,
+		Point: influxdb.NewPointFrom(ptSc),
 	}
-	f = pt.Fields
-	name, ok = scriptName(datakit.RUM, pt.Name, pt.Tags, f, nil)
+	f, err = pt.Fields()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, ok = scriptName(datakit.RUM, pt.Name(), pt.Tags(), f, nil)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "appid01_error.p", name)
 
-	pts, err = lineproto.Parse(rumTestPointDataWithoutAppID, lineproto.DefaultOption)
+	pts, err = models.ParsePoints(rumTestPointDataWithoutAppID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ptSc = pts[0]
 	pt = &point.Point{
-		Point: ptSc,
+		Point: influxdb.NewPointFrom(ptSc),
 	}
-	_, ok = scriptName(datakit.RUM, pt.Name, pt.Tags, f, nil)
+	_, ok = scriptName(datakit.RUM, pt.Name(), pt.Tags(), f, nil)
 	assert.Equal(t, false, ok)
 }

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
+	"github.com/influxdata/influxdb1-client/models"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
@@ -48,7 +48,7 @@ data`,
 		},
 	}
 
-	tags := map[string]string{"a": `~!@#$%^&*()_+=-|}{\][":';?><,./`}
+	tags := models.Tags{models.NewTag([]byte("a"), []byte(`~!@#$%^&*()_+=-|}{\][":';?><,./`))}
 
 	for _, tc := range cases {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -61,40 +61,21 @@ data`,
 
 		ts.Close()
 
-		pt1, err := lineproto.NewPoint("test", tags, map[string]interface{}{"extra_cloud_meta": x}, time.Now())
+		pt1, err := models.NewPoint("test", tags,
+			map[string]interface{}{"extra_cloud_meta": x}, time.Now())
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
-		encoder := lineproto.NewLineEncoder()
-		if err := encoder.AppendPoint(pt1); err != nil {
-			t.Fatal(err)
-		}
-		lines, err := encoder.Bytes()
+		pts, err := models.ParsePointsWithPrecision([]byte(pt1.String()), time.Now(), "n")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
-		l1 := string(lines)
 
-		pts, err := lineproto.ParseWithOptionSetter(lines, lineproto.WithTime(time.Now()), lineproto.WithPrecisionV2(lineproto.Nanosecond))
-		if err != nil {
-			t.Fatal(err)
-		}
 		tu.Equals(t, 1, len(pts))
 
-		encoder.Reset()
-		if err := encoder.AppendPoint(pts[0]); err != nil {
-			t.Fatal(err)
-		}
+		tu.Equals(t, pt1.String(), pts[0].String())
 
-		b2, err := encoder.Bytes()
-		if err != nil {
-			t.Fatal(err)
-		}
-		l2 := string(b2)
-
-		tu.Equals(t, l1, l2)
-
-		t.Logf("pt: %s", l1)
+		t.Logf("pt: %s", pt1.String())
 	}
 }

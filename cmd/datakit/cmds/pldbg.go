@@ -112,7 +112,7 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 		}
 		pt = newPt
 	default:
-		pts, err := lp.Parse([]byte(txt), nil)
+		pts, err := lp.ParsePoints([]byte(txt), nil)
 		if err != nil {
 			return err
 		}
@@ -133,8 +133,9 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 		return nil
 	}
 
-	fields := res.Fields
-	tags := res.Tags
+	fields, _ := res.Fields()
+	tags := res.Tags()
+
 	if len(fields) == 0 && len(tags) == 0 {
 		cp.Errorf("[E] No data extracted from pipeline\n")
 		return nil
@@ -144,9 +145,9 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 	maxWidth := 0
 
 	if *flagPLDate {
-		result["time"] = res.Time
+		result["time"] = res.Time()
 	} else {
-		result["time"] = res.Time.UnixNano()
+		result["time"] = res.Time().UnixNano()
 	}
 
 	for k, v := range fields {
@@ -163,7 +164,7 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 		}
 	}
 
-	measurementName = res.Name
+	measurementName = res.Name()
 
 	if *flagPLTable {
 		fmtStr := fmt.Sprintf("%% %ds: %%v", maxWidth)

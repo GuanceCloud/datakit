@@ -8,7 +8,6 @@ package point
 import (
 	"testing"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
@@ -85,7 +84,6 @@ func TestPointOptions(t *testing.T) {
 		},
 	}
 
-	encoder := lineproto.NewLineEncoder()
 	for _, tc := range cases {
 		EnableElection = tc.election
 		ClearGlobalTags()
@@ -184,16 +182,8 @@ func TestPointOptions(t *testing.T) {
 						}
 					}
 				}
-				encoder.Reset()
-				if err := encoder.AppendPoint(pt.Point); err != nil {
-					t.Fatal(err)
-				}
-				line, err := encoder.UnsafeStringWithoutLn()
-				if err != nil {
-					t.Fatal(err)
-				}
 
-				t.Log(line)
+				t.Log(pt.String())
 			})
 		}
 	}
