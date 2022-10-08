@@ -67,9 +67,16 @@ func TestGetDecodeData(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			pts, err := decodeDataAndConv2Point(datakit.Logging, "a", tc.in.Encode, tc.in.Data)
+
 			var r []string
 			for _, pt := range pts {
-				r = append(r, pt.Fields["message"].(string))
+				fields, err := pt.Fields()
+				if err != nil {
+					t.Error(err)
+					return
+				}
+
+				r = append(r, fields["message"].(string))
 			}
 			assert.Equal(t, tc.expectError, err, "getDecodeData found error: %v", err)
 			assert.Equal(t, tc.expectData, r, "getDecodeData not equal")
