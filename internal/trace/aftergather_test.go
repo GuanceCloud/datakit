@@ -6,12 +6,10 @@
 package trace
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
@@ -54,24 +52,14 @@ func TestAfterGather(t *testing.T) {
 }
 
 func TestBuildPoint(t *testing.T) {
-	encoder := lineproto.NewLineEncoder()
 	for i := 0; i < 100; i++ {
-		pt, err := BuildPoint(randDatakitSpan(t), false)
-		if err != nil {
+		if pt, err := BuildPoint(randDatakitSpan(t), false); err != nil {
 			t.Error(err.Error())
 			t.FailNow()
-		}
-		err = encoder.AppendPoint(pt.Point)
-		if err != nil {
-			t.Error(err)
-			t.FailNow()
+		} else {
+			t.Log(pt.String())
 		}
 	}
-	lines, err := encoder.UnsafeString()
-	if err != nil {
-		t.Error(err)
-	}
-	fmt.Println(lines)
 }
 
 func TestBuildPointsBatch(t *testing.T) {

@@ -24,6 +24,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
+	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 )
 
 var (
@@ -42,8 +44,31 @@ func startHTTP() {
 		func(c *gin.Context) {
 			time.Sleep(*flagDatawayLatency)
 
-			_, _ = ioutil.ReadAll(c.Request.Body)
-			c.Request.Body.Close() //nolint: errcheck,gosec
+			body, err := ioutil.ReadAll(c.Request.Body)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			if c.Request.Header.Get("Content-Encoding") == "gzip" {
+				unzipbody, err := uhttp.Unzip(body)
+				if err != nil {
+					log.Printf("unzip: %s", err)
+					return
+				}
+
+				log.Printf("unzip body: %d => %d(%.4f)", len(body), len(unzipbody), float64(len(body))/float64(len(unzipbody)))
+
+				body = unzipbody
+			}
+
+			pts, err := lp.ParsePoints(body, &lp.Option{EnablePointInKey: true})
+			if err != nil {
+				log.Printf("ParsePoints: %s, points: %q", err, body)
+			} else {
+				log.Printf("accept %d points from %s: %s", len(pts), c.Request.URL.Path, pts[0].Name())
+			}
+
 			c.Status(http.StatusOK)
 		})
 
@@ -95,6 +120,7 @@ func main() {
 	reqs := map[string][]byte{
 		fmt.Sprintf("http://localhost:9529/v1/write/logstreaming?type=influxdb&size=%d",
 			len(loggingData)): []byte(loggingData),
+
 		fmt.Sprintf("http://localhost:9529/v1/write/logging?input=post-v1-write-logging&size=%d",
 			len(loggingData)): []byte(loggingData),
 
@@ -103,10 +129,15 @@ func main() {
 
 		fmt.Sprintf("http://localhost:9529/v1/write/metric?input=post-v1-write-metric&size=%d",
 			len(metricData)): []byte(metricData),
+
 		fmt.Sprintf("http://localhost:9529/v1/write/metric?input=post-v1-write-metric-large&size=%d",
 			len(metricData)*500): []byte(strings.Repeat(metricData, 500)),
+
 		fmt.Sprintf("http://localhost:9529/v1/write/object?input=post-v1-write&size=%d",
 			len(objectData)): []byte(objectData),
+
+		fmt.Sprintf("http://localhost:9529/v1/write/rum?precision=ms&input=post-v1-write-rum&size=%d",
+			len(rumData)): []byte(rumData),
 	}
 
 	if *flagWorker <= 0 {
@@ -175,4 +206,7 @@ var (
 
 	//go:embed object.data
 	objectData string
+
+	//go:embed rum.data
+	rumData string
 )

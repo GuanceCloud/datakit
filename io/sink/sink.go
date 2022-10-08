@@ -65,8 +65,7 @@ func Write(category string, pts []*point.Point) (*point.Failed, error) {
 
 		if datakit.LogSinkDetail {
 			for _, v := range remainPoints {
-				lineStr, _ := v.String()
-				l.Infof("(sink_detail) remain point: (%s) (%s)", category, lineStr)
+				l.Infof("(sink_detail) remain point: (%s) (%s)", category, v.String())
 			}
 		}
 
@@ -78,8 +77,7 @@ func Write(category string, pts []*point.Point) (*point.Failed, error) {
 
 		if datakit.LogSinkDetail {
 			for _, v := range pts {
-				line, _ := v.String()
-				l.Infof("(sink_detail) default point: (%s) (%s)", category, line)
+				l.Infof("(sink_detail) default point: (%s) (%s)", category, v.String())
 			}
 		}
 

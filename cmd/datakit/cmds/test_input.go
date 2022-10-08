@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -89,19 +90,20 @@ func printResultEx(mpts map[string][]*point.Point) error {
 		fmt.Printf("%s: ", category)
 		ptsLen += len(points)
 
-		lines, err := point.ToLines(points)
-		if err != nil {
-			return err
-		}
-		fmt.Printf(" %s\n", string(lines))
-
 		for _, pt := range points {
-			influxPoint, err := models.NewPoint(pt.Name, models.NewTags(pt.Tags), pt.Fields, pt.Time)
+			lp := pt.String()
+			fmt.Println(lp)
+
+			influxPoint, err := models.ParsePointsWithPrecision([]byte(lp), time.Now(), "n")
+			if len(influxPoint) != 1 {
+				return fmt.Errorf("parse point error")
+			}
+
 			if err != nil {
 				return err
 			}
-			timeSeries[fmt.Sprint(influxPoint.HashID())] = trueString
-			name := pt.Name
+			timeSeries[fmt.Sprint(influxPoint[0].HashID())] = trueString
+			name := pt.Name()
 			measurements[name] = trueString
 		}
 	}
