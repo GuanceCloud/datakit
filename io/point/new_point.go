@@ -90,10 +90,9 @@ func NewPoint(name string,
 	}
 
 	lpOpt := &lp.Option{
-		Time:        opt.Time,
-		Strict:      opt.Strict,
-		Precision:   "n",
-		PrecisionV2: lp.Nanosecond,
+		Time:      opt.Time,
+		Strict:    opt.Strict,
+		Precision: "n",
 
 		MaxTags:   MaxTags,
 		MaxFields: MaxFields,
@@ -108,7 +107,6 @@ func NewPoint(name string,
 		DisabledTagKeys:   nil,
 		DisabledFieldKeys: nil,
 		Callback:          nil,
-		CallbackV2:        nil,
 	}
 
 	if opt.DisableGlobalTags {
@@ -151,7 +149,7 @@ func doMakePoint(name string,
 	fields map[string]interface{},
 	opt *lp.Option,
 ) (*Point, error) {
-	p, warnings, err := lp.MakeLineProtoPointWithWarningsV2(name, tags, fields, opt)
+	p, warnings, err := lp.MakeLineProtoPointWithWarnings(name, tags, fields, opt)
 
 	if err != nil {
 		return nil, err

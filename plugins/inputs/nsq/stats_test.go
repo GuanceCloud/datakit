@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 )
 
 //nolint:lll
@@ -42,18 +41,10 @@ func TestStatsPoint(t *testing.T) {
 	if len(pts) != len(ptsCases) {
 		t.Errorf("shoud %d, got %d", len(pts), len(ptsCases))
 	}
-	encoder := lineproto.NewLineEncoder()
+
 	var arr []string
 	for _, pt := range pts {
-		encoder.Reset()
-		if err := encoder.AppendPoint(pt.Point); err != nil {
-			t.Error(err)
-		}
-		lineBytes, err := encoder.BytesWithoutLn()
-		if err != nil {
-			t.Error(err)
-		}
-		arr = append(arr, string(lineBytes))
+		arr = append(arr, pt.String())
 	}
 	sort.Strings(arr)
 

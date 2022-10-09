@@ -174,13 +174,13 @@ func (f *filter) pull(filters map[string][]string, dw dataway.DataWay) {
 	}
 }
 
+// GetConds returns Filter's Parser Conditions and error.
 func GetConds(filterArr []string) (parser.WhereConditions, error) {
 	var conds parser.WhereConditions
 	for _, v := range filterArr {
 		cond := parser.GetConds(v)
 		if cond == nil {
 			return nil, fmt.Errorf("condition empty")
-			// >>>>>>> 9f4d4ea67904d7563218ec7853e11efa992c306b:io/filter/filter.go
 		}
 		conds = append(conds, cond...)
 	}
@@ -190,23 +190,23 @@ func GetConds(filterArr []string) (parser.WhereConditions, error) {
 // CheckPointFiltered returns whether the point matches the fitler rule.
 // If returns true means they are matched.
 func CheckPointFiltered(conds parser.WhereConditions, category string, pt *point.Point) (bool, error) {
-	tags := make(map[string]string, len(pt.Tags))
-	for k, v := range pt.Tags {
-		tags[k] = v
+	tags := pt.Tags()
+	fields, err := pt.Fields()
+	if err != nil {
+		return false, err
 	}
-	fields := pt.Fields
 
 	// Before checks, should adjust tags under some conditions.
 	// Must stay the same 'switch' logic with kodo project function named 'getSourceValue' in source file apis/esFields.go.
 	switch category {
 	case datakit.Logging, datakit.Network, datakit.KeyEvent, datakit.RUM:
-		tags["source"] = pt.Point.Name // set measurement name as tag `source'
+		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
 	case datakit.Tracing, datakit.Security, datakit.Profiling:
 		// using measurement name as tag `service'.
 	case datakit.Metric:
-		tags["measurement"] = pt.Point.Name // set measurement name as tag `measurement'
+		tags["measurement"] = pt.Point.Name() // set measurement name as tag `measurement'
 	case datakit.Object, datakit.CustomObject:
-		tags["class"] = pt.Point.Name // set measurement name as tag `class'
+		tags["class"] = pt.Point.Name() // set measurement name as tag `class'
 	default:
 		l.Warnf("unsupport category: %s", category)
 		return false, fmt.Errorf("unsupport category: %s", category)
@@ -222,7 +222,6 @@ func filtered(conds parser.WhereConditions, tags map[string]string, fields map[s
 func (f *filter) doFilter(category string, pts []*point.Point) ([]*point.Point, int) {
 	f.RWMutex.RLock()
 	defer f.RWMutex.RUnlock()
-	// >>>>>>> 9f4d4ea67904d7563218ec7853e11efa992c306b:io/filter/filter.go
 
 	// "/v1/write/metric" => "metric"
 	categoryPureStr, ok := datakit.CategoryPureMap[category]
@@ -248,8 +247,7 @@ func (f *filter) doFilter(category string, pts []*point.Point) ([]*point.Point, 
 		if !isFiltered { // Pick those points that not matched filter rules.
 			after = append(after, pt)
 		} else if datakit.LogSinkDetail {
-			lineStr, _ := pt.String()
-			l.Infof("(sink_detail) defaultFilter filtered point: (%s) (%s)", category, lineStr)
+			l.Infof("(sink_detail) defaultFilter filtered point: (%s) (%s)", category, pt.String())
 		}
 	}
 

@@ -105,18 +105,21 @@ type Pipeline struct {
 	Script *plscript.PlScript
 }
 
-func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.PointOption,
-	signal plruntime.Signal,
-) (*point.Point, bool, error) {
+func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.PointOption, signal plruntime.Signal) (*point.Point, bool, error) {
 	if p.Script == nil || p.Script.Engine() == nil {
 		return nil, false, fmt.Errorf("pipeline engine not initialized")
 	}
+
 	if pt == nil {
 		return nil, false, fmt.Errorf("no data")
 	}
 
-	if measurement, tags, fields, tn, drop, err := p.Script.Run(pt.Name, pt.Tags, pt.Fields,
-		ioPtOpt.Time, signal, plOpt); err != nil {
+	fields, err := pt.Fields()
+	if err != nil {
+		return nil, false, err
+	}
+
+	if measurement, tags, fields, tn, drop, err := p.Script.Run(pt.Name(), pt.Tags(), fields, ioPtOpt.Time, signal, plOpt); err != nil {
 		return nil, drop, err
 	} else {
 		if !tn.IsZero() {

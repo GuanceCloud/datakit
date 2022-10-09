@@ -10,7 +10,6 @@ import (
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 )
 
 func TestCon(t *testing.T) {
@@ -25,17 +24,9 @@ func TestCon(t *testing.T) {
 	}
 
 	n.getMetric()
-	encoder := lineproto.NewLineEncoder()
 	for _, v := range collectCache {
-		if err := encoder.AppendPoint(v.Point); err != nil {
-			t.Error(err)
-		}
+		t.Log(v.String())
 	}
-	lines, err := encoder.UnsafeString()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(lines)
 }
 
 func TestFilterDBInstance(t *testing.T) {

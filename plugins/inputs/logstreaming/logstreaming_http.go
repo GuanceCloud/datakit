@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"time"
 
+	client "github.com/influxdata/influxdb1-client/v2"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -160,19 +161,13 @@ func processLogBody(param *parameters) error {
 			break
 		}
 
-		var pts []*lp.Point
-
-		precisionV2, _err := lp.ConvertPrecisionToV2(completePrecision(param.queryValues.Get("precision")))
-		if _err != nil {
-			return fmt.Errorf("not support precision: %w", err)
-		}
-
-		if pts, err = lp.ParseWithOptionSetter(body,
-			lp.WithTime(time.Now()),
-			lp.WithExtraTags(extraTags),
-			lp.WithStrict(true),
-			lp.WithPrecisionV2(precisionV2),
-		); err != nil {
+		var pts []*client.Point
+		if pts, err = lp.ParsePoints(body, &lp.Option{
+			Time:      time.Now(),
+			ExtraTags: extraTags,
+			Strict:    true,
+			Precision: completePrecision(param.queryValues.Get("precision")),
+		}); err != nil {
 			log.Errorf("url %s handler err: %s", urlstr, err)
 
 			return err
@@ -187,7 +182,7 @@ func processLogBody(param *parameters) error {
 		scriptMap := map[string]string{}
 		for _, v := range pts1 {
 			if v != nil {
-				scriptMap[v.Name] = v.Name + ".p"
+				scriptMap[v.Name()] = v.Name() + ".p"
 			}
 		}
 		err = dkio.Feed(inputName, datakit.Logging, pts1, &dkio.Option{PlScript: scriptMap})

@@ -66,7 +66,7 @@ type Sinker struct {
 }
 
 type Config struct {
-	DefaultEnabledInputs []string `toml:"default_enabled_inputs,omitempty"`
+	DefaultEnabledInputs []string `toml:"default_enabled_inputs"`
 
 	BlackList []*inputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`

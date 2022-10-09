@@ -10,8 +10,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	mrand "math/rand"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func doRandomPoints(count int) ([]*Point, error) {
@@ -27,9 +25,6 @@ func doRandomPoints(count int) ([]*Point, error) {
 
 	var pts []*Point
 
-	option := defaultPointOption()
-	option.Category = datakit.Logging
-
 	for i := 0; i < count; i++ {
 		if pt, err := NewPoint("mock_random_point",
 			map[string]string{
@@ -40,8 +35,7 @@ func doRandomPoints(count int) ([]*Point, error) {
 				base64.StdEncoding.EncodeToString(buf[3:]): mrand.Int(),         //nolint:gosec
 				base64.StdEncoding.EncodeToString(buf[4:]): mrand.NormFloat64(), //nolint:gosec
 			},
-			option,
-		); err != nil {
+			nil); err != nil {
 			return nil, err
 		} else {
 			pts = append(pts, pt)

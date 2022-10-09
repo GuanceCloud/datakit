@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/influxdata/influxdb1-client/models"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
@@ -207,20 +208,16 @@ test,t1=abc f1=1i,f2=2,f3="str"`),
 
 			tu.Equals(t, tc.npts, len(pts))
 
-			encoder := lp.NewLineEncoder()
-
 			t.Logf("----------- [%d] -----------", i)
 			for _, pt := range pts {
-				encoder.Reset()
-				if err := encoder.AppendPoint(pt.Point); err != nil {
-					t.Error(err)
-				}
-				s, err := encoder.UnsafeString()
+				s := pt.String()
+				fs, err := pt.Fields()
 				if err != nil {
 					t.Error(err)
+					continue
 				}
 
-				x, err := pt.ToInfluxdbPoint(time.Now())
+				x, err := models.NewPoint(pt.Name(), models.NewTags(pt.Tags()), fs, pt.Time())
 				if err != nil {
 					t.Error(err)
 					continue

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
@@ -89,7 +88,6 @@ func TestGetPointsFromMeasurement(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			encoder := lineproto.NewLineEncoder()
 			points, err := GetPointsFromMeasurement(c.m)
 			if c.fail {
 				assert.Error(t, err)
@@ -98,16 +96,7 @@ func TestGetPointsFromMeasurement(t *testing.T) {
 			assert.NoError(t, err)
 
 			t.Logf("points: %+#v", points)
-			for _, pt := range points {
-				err := encoder.AppendPoint(pt.Point)
-				if err != nil {
-					t.Logf("encoder append point err: %s ,ignored", err)
-					encoder.Reset()
-				}
-			}
-			lines, _ := encoder.UnsafeStringWithoutLn()
-			t.Log(lines)
-			assert.Equal(t, c.expected, lines)
+			assert.Equal(t, c.expected, points[0].String())
 		})
 	}
 }

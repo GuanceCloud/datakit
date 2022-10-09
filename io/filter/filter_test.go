@@ -80,7 +80,7 @@ test1,service=test1 f1="1",f2=2i,f3=3 125`,
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			pts, err := lp.Parse([]byte(tc.pts), nil)
+			pts, err := lp.ParsePoints([]byte(tc.pts), nil)
 			if err != nil {
 				t.Error(err)
 				return
