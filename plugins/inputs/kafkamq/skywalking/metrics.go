@@ -61,7 +61,7 @@ type jvmMeasurement struct {
 }
 
 func (m *jvmMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+	return point.NewPoint(m.name, m.tags, m.fields, &point.PointOption{Category: datakit.Metric, DisableGlobalTags: true})
 }
 
 func (*jvmMeasurement) Info() *inputs.MeasurementInfo {

@@ -140,9 +140,9 @@ func (t *TcpTask) CheckResult() (reasons []string, succFlag bool) {
 					reqCost += t.reqDnsCost
 				}
 
-				if reqCost > v.targetTime && v.targetTime > 0 {
+				if reqCost >= v.targetTime {
 					reasons = append(reasons,
-						fmt.Sprintf("TCP response time(%v) larger than %v", reqCost, v.targetTime))
+						fmt.Sprintf("TCP response time(%v) larger equal than %v", reqCost, v.targetTime))
 				} else if v.targetTime > 0 {
 					succFlag = true
 				}

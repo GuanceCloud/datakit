@@ -231,24 +231,27 @@ func Test_makePoints(t *testing.T) {
 			got := makePoints(tt.args.orms)
 			rpt := got[0]
 
-			tags := rpt.Tags
+			tags := rpt.Tags()
 			if len(tags) != 3 {
 				t.Errorf("tags len not 3")
 			}
-			if rpt.Name != resourceMetric.Service {
+			if rpt.Name() != resourceMetric.Service {
 				t.Errorf("service not equal")
 			}
-			fields := rpt.Fields
+			fields, err := rpt.Fields()
+			if err != nil {
+				t.Errorf("field is  nil and err=%v", err)
+				return
+			}
 			for key, i := range fields {
 				t.Logf("key=%s val=%v", key, i)
 			}
-
-			if val, ok := fields[resourceMetric.Operation]; ok {
-				if val != resourceMetric.Value {
+			if val, ok := fields[resourceMetric.Operation].(int64); ok {
+				if int(val) != resourceMetric.Value {
 					t.Errorf("val not equal")
 				}
 			} else {
-				t.Errorf("can not find field: Operation")
+				t.Errorf("can find field: Operation")
 			}
 		})
 	}

@@ -308,8 +308,16 @@ func AssertMeasurement(t *testing.T,
 		}
 		// field
 		if (flag & FieldCompare) == FieldCompare {
-			expectFields := expect.Fields
-			actualFields := actual.Fields
+			expectFields, err := expect.Fields()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			actualFields, err := actual.Fields()
+			if err != nil {
+				t.Error(err)
+				return
+			}
 			for key, valueE := range expectFields {
 				valueA, ok := actualFields[key]
 				if !ok {
@@ -322,15 +330,15 @@ func AssertMeasurement(t *testing.T,
 
 		// name
 		if (flag & NameCompare) == NameCompare {
-			if expect.Name != actual.Name {
-				t.Errorf("The expected measurement name is %s, the actual is %s", expect.Name, actual.Name)
+			if expect.Name() != actual.Name() {
+				t.Errorf("The expected measurement name is %s, the actual is %s", expect.Name(), actual.Name())
 			}
 		}
 
 		// tag
 		if (flag & TagCompare) == TagCompare {
-			expectTags := expect.Tags
-			actualTags := actual.Tags
+			expectTags := expect.Tags()
+			actualTags := actual.Tags()
 			for kE, vE := range expectTags {
 				vA, ok := actualTags[kE]
 				if !ok {
@@ -343,8 +351,8 @@ func AssertMeasurement(t *testing.T,
 
 		// time
 		if (flag & TimeCompare) == TimeCompare {
-			if expect.Time != actual.Time {
-				t.Error("The expected time is ", expect.Time.String(), ", the actual is ", actual.Time.String())
+			if expect.Time() != actual.Time() {
+				t.Error("The expected time is ", expect.Time().String(), ", the actual is ", actual.Time().String())
 			}
 		}
 	}

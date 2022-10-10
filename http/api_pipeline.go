@@ -151,12 +151,18 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 				Error: err.Error(),
 			})
 		} else {
+			fields, err := pt.Fields()
+			if err != nil {
+				l.Errorf("Fields: %s", err.Error())
+				return nil, err
+			}
+
 			runResult = append(runResult, &pipelineResult{
-				Measurement: pt.Name,
-				Tags:        pt.Tags,
-				Fields:      pt.Fields,
-				Time:        pt.Time.Unix(),
-				TimeNS:      int64(pt.Time.Nanosecond()),
+				Measurement: pt.Name(),
+				Tags:        pt.Tags(),
+				Fields:      fields,
+				Time:        pt.Time().Unix(),
+				TimeNS:      int64(pt.Time().Nanosecond()),
 				Dropped:     drop,
 			})
 		}
@@ -283,7 +289,7 @@ func decodeDataAndConv2Point(category, name, encode string, data []string) ([]*p
 			}
 			result = append(result, pt)
 		default:
-			pts, err := lp.Parse([]byte(line), nil)
+			pts, err := lp.ParsePoints([]byte(line), nil)
 			if err != nil {
 				return nil, err
 			}

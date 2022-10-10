@@ -77,8 +77,8 @@ func TestGatherServer(t *testing.T) {
 
 	metric := memcached.collectCache[0]
 	point, _ := metric.LineProto()
-	assert.Equal(t, point.Name, "memcached")
-	fields := point.Fields
+	assert.Equal(t, point.Name(), "memcached")
+	fields, _ := point.Fields()
 	values := make(map[string]string)
 	for k, v := range fields {
 		values[k] = fmt.Sprint(v)
