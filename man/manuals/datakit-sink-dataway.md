@@ -28,12 +28,19 @@
     ```toml
     ...
     [sinks]
-      [[sinks.sink]]
-        categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S", "P"]
-        target = "dataway"
-        url = "https://openway.guance.com?token=<YOUR-TOKEN>"
-        # proxy = "127.0.0.1:1080"
-        filters = ["{ host = 'user-ubuntu' }"] # 这里是举例。这里填写的是过滤条件, 满足该条件的就会往上述 url 里面打数据。
+       [[sinks.sink]]
+         categories = ["M"]
+         filters = ["{host='user-ubuntu'}", "{cpu='cpu-total'}"]
+         target = "dataway"
+         token = <YOUR-TOKEN1>
+         url = "https://openway.guance.com"
+ 
+       [[sinks.sink]]
+         categories = ["M"]
+         filters = ["{cpu='cpu-total'}"]
+         target = "dataway"
+         token = <YOUR-TOKEN2>
+         url = "https://openway.guance.com"
     ...
     ```
     
@@ -55,37 +62,7 @@
 Dataway Sink 支持安装时，通过环境变量的方式来设置：
 
 ```shell
-# 这里为了演示，写了 2 个 filters, 只要满足任何一个条件就会写数据。
-# 对应配置文件效果:
-#    [sinks]
-#
-#      [[sinks.sink]]
-#        categories = ["M"]
-#        filters = ["{host='user-ubuntu'}", "{cpu='cpu-total'}"]
-#        target = "dataway"
-#        token = <YOUR-TOKEN>
-#        url = "https://openway.guance.com"
 DK_SINK_M="dataway://?url=https://openway.guance.com&token=<YOUR-TOKEN>&filters={host='user-ubuntu'}&filters={cpu='cpu-total'}" \
-bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
-
-# 这条演示使用多个 dataway 对应不同 filter 的情况。
-# 对应配置文件效果:
-#    [sinks]
-#
-#      [[sinks.sink]]
-#        categories = ["M"]
-#        filters = ["{host='user-ubuntu'}", "{cpu='cpu-total'}"]
-#        target = "dataway"
-#        token = <YOUR-TOKEN1>
-#        url = "https://openway.guance.com"
-#
-#      [[sinks.sink]]
-#        categories = ["M"]
-#        filters = ["{cpu='cpu-total'}"]
-#        target = "dataway"
-#        token = <YOUR-TOKEN2>
-#        url = "https://openway.guance.com"
-DK_SINK_M="dataway://?url=https://openway.guance.com&token=<YOUR-TOKEN1>&filters={host='user-ubuntu'}||dataway://?url=https://openway.guance.com&token=<YOUR-TOKEN2>&filters={cpu='cpu-total'}" \
 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 ```
 
