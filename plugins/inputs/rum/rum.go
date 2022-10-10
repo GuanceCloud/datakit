@@ -28,6 +28,8 @@ import (
 	"time"
 
 	"github.com/go-sourcemap/sourcemap"
+	influxm "github.com/influxdata/influxdb1-client/models"
+	client "github.com/influxdata/influxdb1-client/v2"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -177,7 +179,7 @@ func doHandleRUMBody(body []byte,
 			return nil, err
 		}
 		for _, p := range rumpts {
-			tags := p.Tags
+			tags := p.Tags()
 			if !contains(tags[rumMetricAppID], appIDWhiteList) {
 				return nil, dkhttp.ErrRUMAppIDNotInWhiteList
 			}
@@ -185,39 +187,36 @@ func doHandleRUMBody(body []byte,
 		return rumpts, nil
 	}
 
-	precisionV2, err := lp.ConvertPrecisionToV2(precision)
-	if err != nil {
-		return nil, fmt.Errorf("not support precision: %w", err)
-	}
+	rumpts, err := lp.ParsePoints(body,
+		&lp.Option{
+			Time:      time.Now(),
+			Precision: precision,
+			ExtraTags: extraTags,
+			Strict:    true,
+			// 由于 RUM 数据需要分别处理，故用回调函数来区分
+			Callback: func(p influxm.Point) (influxm.Point, error) {
+				name := string(p.Name())
 
-	rumpts, err := lp.ParseWithOptionSetter(body,
-		lp.WithTime(time.Now()),
-		lp.WithPrecisionV2(precisionV2),
-		lp.WithExtraTags(extraTags),
-		lp.WithStrict(true),
-		lp.WithCallbackV2(func(p *lp.Point) (*lp.Point, error) {
-			name := p.Name
-
-			if !contains(p.Tags[rumMetricAppID], appIDWhiteList) {
-				return nil, dkhttp.ErrRUMAppIDNotInWhiteList
-			}
-
-			if _, ok := rumMetricNames[name]; !ok {
-				return nil, uhttp.Errorf(dkhttp.ErrUnknownRUMMeasurement, "unknow RUM measurement: %s", name)
-			}
-
-			// handle sourcemap
-			if name == "error" {
-				sdkName := p.Tags["sdk_name"]
-				err := handleSourcemap(p, sdkName, input)
-				if err != nil {
-					log.Errorf("handle source map failed: %s", err.Error())
+				if !contains(p.Tags().GetString(rumMetricAppID), appIDWhiteList) {
+					return nil, dkhttp.ErrRUMAppIDNotInWhiteList
 				}
-			}
 
-			return p, nil
-		}),
-	)
+				if _, ok := rumMetricNames[name]; !ok {
+					return nil, uhttp.Errorf(dkhttp.ErrUnknownRUMMeasurement, "unknow RUM measurement: %s", name)
+				}
+
+				// handle sourcemap
+				if name == "error" {
+					sdkName := p.Tags().GetString("sdk_name")
+					err := handleSourcemap(p, sdkName, input)
+					if err != nil {
+						log.Errorf("handle source map failed: %s", err.Error())
+					}
+				}
+
+				return p, nil
+			},
+		})
 	if err != nil {
 		log.Warnf("doHandleRUMBody: %s", err)
 		return nil, err
@@ -225,14 +224,18 @@ func doHandleRUMBody(body []byte,
 
 	// 把error_stack_source_base64从tags中移到fields中
 	for i, rumpt := range rumpts {
-		fields := rumpt.Fields
+		fields, err := rumpt.Fields()
+		if err != nil {
+			log.Errorf("get client.Point Fields() err: %s", err)
+			continue
+		}
 		_, ok1 := fields["error_stack"]
-		_, ok2 := rumpt.Tags["error_stack_source_base64"]
+		_, ok2 := rumpt.Tags()["error_stack_source_base64"]
 		if ok1 && ok2 {
-			tags := rumpt.Tags
+			tags := rumpt.Tags()
 			fields["error_stack_source_base64"] = tags["error_stack_source_base64"]
 			delete(tags, "error_stack_source_base64")
-			newPoint, err := lp.NewPoint(rumpt.Name, tags, fields, rumpt.Time)
+			newPoint, err := client.NewPoint(rumpt.Name(), tags, fields, rumpt.Time())
 			if err != nil {
 				log.Errorf("client.NewPoint() err: %s", err)
 				continue
@@ -394,15 +397,20 @@ func checkJavaShrinkTool(mappingFile string) (string, error) {
 	return cmds.Proguard, nil
 }
 
-func handleSourcemap(p *lp.Point, sdkName string, input *Input) error {
-	fields := p.Fields
+func handleSourcemap(p influxm.Point, sdkName string, input *Input) error {
+	fields, err := p.Fields()
+	if err != nil {
+		return fmt.Errorf("parse field error: %w", err)
+	}
 	errStack, ok := fields["error_stack"]
+
 	// if error_stack exists
 	if ok {
 		errStackStr := fmt.Sprintf("%v", errStack)
-		appID := p.Tags["app_id"]
-		env := p.Tags["env"]
-		version := p.Tags["version"]
+
+		appID := p.Tags().GetString("app_id")
+		env := p.Tags().GetString("env")
+		version := p.Tags().GetString("version")
 
 		if len(appID) > 0 && (len(env) > 0) && (len(version) > 0) {
 			zipFile := GetSourcemapZipFileName(appID, env, version)
@@ -430,12 +438,10 @@ func handleSourcemap(p *lp.Point, sdkName string, input *Input) error {
 				if ok {
 					errorStackSource := getSourcemap(errStackStr, sourcemapCache[zipFile])
 					errorStackSourceBase64 := base64.StdEncoding.EncodeToString([]byte(errorStackSource)) // tag cannot have '\n'
-					if err := p.AddField("error_stack_source_base64", errorStackSourceBase64); err != nil {
-						return fmt.Errorf("addfield err: %w", err)
-					}
+					p.AddTag("error_stack_source_base64", errorStackSourceBase64)
 				}
 			case SdkAndroid:
-				errorType := p.Tags["error_type"]
+				errorType := p.Tags().GetString("error_type")
 				if errorType == JavaCrash {
 					if err := uncompressZipFile(zipFileAbsPath); err != nil {
 						return fmt.Errorf("uncompress zip file fail: %w", err)
@@ -483,9 +489,7 @@ func handleSourcemap(p *lp.Point, sdkName string, input *Input) error {
 						return r == '\r' || r == '\n'
 					})
 					originStackB64 := base64.StdEncoding.EncodeToString(originStack)
-					if err := p.AddField("error_stack_source_base64", originStackB64); err != nil {
-						return fmt.Errorf("add field err: %w", err)
-					}
+					p.AddTag("error_stack_source_base64", originStackB64)
 				} else if errorType == NativeCrash {
 					if input.NDKHome == "" {
 						return fmt.Errorf("android ndk home not set")
@@ -541,11 +545,9 @@ func handleSourcemap(p *lp.Point, sdkName string, input *Input) error {
 					}
 
 					originStackB64 := base64.StdEncoding.EncodeToString(originStack)
-					if err := p.AddField("error_stack_source_base64", originStackB64); err != nil {
-						return fmt.Errorf("add field err:%w", err)
-					}
+					p.AddTag("error_stack_source_base64", originStackB64)
 
-					log.Infof("native crash source map 处理成功， appid: %s, creat time: %s", appID, p.Time.In(time.Local).Format(time.RFC3339))
+					log.Infof("native crash source map 处理成功， appid: %s, creat time: %s", appID, p.Time().In(time.Local).Format(time.RFC3339))
 				}
 
 			case SdkIOS:
@@ -559,7 +561,6 @@ func handleSourcemap(p *lp.Point, sdkName string, input *Input) error {
 					return fmt.Errorf("the path of atos/atosl bin not set")
 				}
 				if !path.IsFileExists(atosBinPath) {
-					var err error
 					atosBinPath, err = exec.LookPath(cmds.Atosl)
 					if err != nil || atosBinPath == "" {
 						return fmt.Errorf("the atos tool/atosl not found")
@@ -574,6 +575,7 @@ func handleSourcemap(p *lp.Point, sdkName string, input *Input) error {
 				}
 				if len(crashAddress) == 0 {
 					log.Infof("crashAddress length is 0")
+					// do nothing
 					return nil
 				}
 				originStackTrace := errStackStr
@@ -607,6 +609,7 @@ func handleSourcemap(p *lp.Point, sdkName string, input *Input) error {
 								}
 								continue
 							}
+
 							// adapt varies os newLine
 							stdoutStr := strings.ReplaceAll(string(stdout), "\r\n", "\n")
 							stdoutStr = strings.ReplaceAll(stdoutStr, "\r", "\n")
@@ -617,12 +620,11 @@ func handleSourcemap(p *lp.Point, sdkName string, input *Input) error {
 					}
 				}
 				originStackB64 := base64.StdEncoding.EncodeToString([]byte(originStackTrace))
-				if err := p.AddField("error_stack_source_base64", originStackB64); err != nil {
-					return fmt.Errorf("add field err:%w", err)
-				}
+				p.AddTag("error_stack_source_base64", originStackB64)
 			}
 		}
 	}
+
 	return nil
 }
 

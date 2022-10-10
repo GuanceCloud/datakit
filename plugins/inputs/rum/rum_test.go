@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/go-sourcemap/sourcemap"
+	"github.com/influxdata/influxdb1-client/models"
 	"github.com/stretchr/testify/assert"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
@@ -88,7 +89,7 @@ func TestRUMHandleBody(t *testing.T) {
 			name: `Precision ms`,
 			prec: "ms",
 			body: []byte(`error,app_id=appid01,t2=tag2 f1=1.0,f2=2i,f3="abc"
-action,app_id=appid01,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			action,app_id=appid01,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
 			npts:           2,
 			appidWhiteList: []string{"appid01"},
 		},
@@ -97,7 +98,7 @@ action,app_id=appid01,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
 			name: "app_id not in white-list",
 			prec: "ms",
 			body: []byte(`error,app_id=appid01,t2=tag2 f1=1.0,f2=2i,f3="abc"
-action,app_id=appid01,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			action,app_id=appid01,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
 			npts:           2,
 			appidWhiteList: []string{"appid02"},
 			fail:           true,
@@ -107,10 +108,10 @@ action,app_id=appid01,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
 			name: `Precision ns`,
 			prec: "n",
 			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
 			npts: 5,
 		},
 
@@ -129,7 +130,7 @@ action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
 			pts, err := doHandleRUMBody(tc.body, tc.prec, tc.js, nil, tc.appidWhiteList, &Input{})
 
 			if tc.fail {
-				tu.NotOk(t, err, "case[%d] expect fail, but ok, err: %v", i, err)
+				tu.NotOk(t, err, "case[%d] expect fail, but ok", i)
 				t.Logf("[%d] handle body failed: %s", i, err)
 				return
 			}
@@ -141,50 +142,30 @@ action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
 
 			tu.Equals(t, tc.npts, len(pts))
 
-			encoder := lp.NewLineEncoder()
-
 			for _, pt := range pts {
-				if err := encoder.AppendPoint(pt.Point); err != nil {
-					t.Fatal(err)
+				lp := pt.String()
+				t.Logf("\t%s", lp)
+				_, err := models.ParsePointsWithPrecision([]byte(lp), time.Now(), "n")
+				if err != nil {
+					t.Error(err)
 				}
 			}
-			lineBytes, err := encoder.Bytes()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			lineBytes2, err := encoder.BytesWithoutLn()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			now := time.Now()
-			pts1, err := lp.ParseWithOptionSetter(lineBytes, lp.WithTime(now), lp.WithPrecisionV2(lp.Nanosecond))
-			if err != nil {
-				t.Fatal(err)
-			}
-			pts2, err := lp.ParseWithOptionSetter(lineBytes2, lp.WithTime(now), lp.WithPrecisionV2(lp.Nanosecond))
-			if err != nil {
-				t.Fatal()
-			}
-			tu.Equals(t, len(pts1), len(pts2))
-			t.Log(string(lineBytes))
 		})
 	}
 }
 
 func TestHandleSourcemap(t *testing.T) {
 	bodyStr := `resource,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={},resource_url=https://static.dataflux.cn/browser-sdk/v2/dataflux-rum.js,resource_url_host=static.dataflux.cn,resource_url_path=/browser-sdk/v2/dataflux-rum.js,resource_url_path_group=/browser-sdk/?/dataflux-rum.js,resource_url_query={},resource_type=js,resource_status=200,resource_status_group=2xx,resource_method=GET duration=0 1636524705407
-    long_task,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={} duration=158000000 1636524705407
-    resource,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={},resource_url=http://localhost:5500/dist/,resource_url_host=localhost,resource_url_path=/dist/,resource_url_path_group=/dist/,resource_url_query={},resource_type=document,resource_method=GET duration=25300000,resource_ttfb=4900000,resource_trans=1300000,resource_first_byte=16100000 1636524705288
-    resource,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={},resource_url=http://localhost:5500/dist/bundle.js,resource_url_host=localhost,resource_url_path=/dist/bundle.js,resource_url_path_group=/dist/bundle.js,resource_url_query={},resource_type=js,resource_method=GET duration=15100000,resource_ttfb=2500000,resource_trans=1100000,resource_first_byte=14000000 1636524705407
-    long_task,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={} duration=118000000 1636524705588
-    long_task,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={} duration=703000000 1636524705819
-    error,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={},error_source=source,error_type=TypeError error_message="l.aa is not a function",error_stack="TypeError
-        at <anonymous> @ http://localhost:5500/dist/bundle.js:1:821" 1636524715601
-    error,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={},error_source=source,error_type=TypeError error_message="l.aa is not a function",error_stack="TypeError
-        at <anonymous> @ http://localhost:5500/dist/bundle.js:1:821" 1636524725599
-    view,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={},view_loading_type=initial_load,view_apdex_level=0,is_active=true view_error_count=2,view_resource_count=3,view_long_task_count=3,view_action_count=0,cumulative_layout_shift=0,loading_time=1252500000,dom_interactive=310000000,dom_content_loaded=331900000,dom_complete=1249000000,first_paint_time=17400000,resource_load_time=917200000,time_to_interactive=302100000,dom=939000000,dom_ready=324000000,time_spent=23318700000 1636524705288`
+	long_task,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={} duration=158000000 1636524705407
+	resource,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={},resource_url=http://localhost:5500/dist/,resource_url_host=localhost,resource_url_path=/dist/,resource_url_path_group=/dist/,resource_url_query={},resource_type=document,resource_method=GET duration=25300000,resource_ttfb=4900000,resource_trans=1300000,resource_first_byte=16100000 1636524705288
+	resource,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={},resource_url=http://localhost:5500/dist/bundle.js,resource_url_host=localhost,resource_url_path=/dist/bundle.js,resource_url_path_group=/dist/bundle.js,resource_url_query={},resource_type=js,resource_method=GET duration=15100000,resource_ttfb=2500000,resource_trans=1100000,resource_first_byte=14000000 1636524705407
+	long_task,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={} duration=118000000 1636524705588
+	long_task,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={} duration=703000000 1636524705819
+	error,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={},error_source=source,error_type=TypeError error_message="l.aa is not a function",error_stack="TypeError
+		at <anonymous> @ http://localhost:5500/dist/bundle.js:1:821" 1636524715601
+	error,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={},error_source=source,error_type=TypeError error_message="l.aa is not a function",error_stack="TypeError
+		at <anonymous> @ http://localhost:5500/dist/bundle.js:1:821" 1636524725599
+	view,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={},view_loading_type=initial_load,view_apdex_level=0,is_active=true view_error_count=2,view_resource_count=3,view_long_task_count=3,view_action_count=0,cumulative_layout_shift=0,loading_time=1252500000,dom_interactive=310000000,dom_content_loaded=331900000,dom_complete=1249000000,first_paint_time=17400000,resource_load_time=917200000,time_to_interactive=302100000,dom=939000000,dom_ready=324000000,time_spent=23318700000 1636524705288`
 	body := []byte(bodyStr)
 	mapFileContent := `{"version":3,"file":"bundle.js","mappings":"qBAeAA,EAAOC,QAfP,WACEC,QAAQC,IAAI,gBACZD,QAAQC,IAAI,gBACZD,QAAQC,IAAI,gBACZD,QAAQC,IAAI,gBACZD,QAAQC,IAAI,gBACZD,QAAQC,IAAI,sBACZD,QAAQC,IAAI,gBACZD,QAAQC,IAAI,gBACZD,QAAQC,IAAI,gBACZD,QAAQC,IAAI,gBACZD,QAAQC,IAAI,gBACZD,QAAQC,IAAI,mBCXVC,EAA2B,GAG/B,SAASC,EAAoBC,GAE5B,IAAIC,EAAeH,EAAyBE,GAC5C,QAAqBE,IAAjBD,EACH,OAAOA,EAAaN,QAGrB,IAAID,EAASI,EAAyBE,GAAY,CAGjDL,QAAS,IAOV,OAHAQ,EAAoBH,GAAUN,EAAQA,EAAOC,QAASI,GAG/CL,EAAOC,QCpBfI,EAAoBK,EAAKV,IACxB,IAAIW,EAASX,GAAUA,EAAOY,WAC7B,IAAOZ,EAAiB,QACxB,IAAM,EAEP,OADAK,EAAoBQ,EAAEF,EAAQ,CAAEG,EAAGH,IAC5BA,GCLRN,EAAoBQ,EAAI,CAACZ,EAASc,KACjC,IAAI,IAAIC,KAAOD,EACXV,EAAoBY,EAAEF,EAAYC,KAASX,EAAoBY,EAAEhB,EAASe,IAC5EE,OAAOC,eAAelB,EAASe,EAAK,CAAEI,YAAY,EAAMC,IAAKN,EAAWC,MCJ3EX,EAAoBY,EAAI,CAACK,EAAKC,IAAUL,OAAOM,UAAUC,eAAeC,KAAKJ,EAAKC,G,yCCEhFrB,QAAQC,IAAI,KCEd,MAEAwB,aAAY,KAUVC,EAAEC,OARD,KAEH,IAAID,EAAI,I","sources":["webpack:///./src/func1.js","webpack:///webpack/bootstrap","webpack:///webpack/runtime/compat get default export","webpack:///webpack/runtime/define property getters","webpack:///webpack/runtime/hasOwnProperty shorthand","webpack:///./src/func.js","webpack:///./src/index.js"],"sourcesContent":["function add () {\n  console.log(\"xxxxxxxxxxxx\")\n  console.log(\"xxxxxxxxxxxx\")\n  console.log(\"xxxxxxxxxxxx\")\n  console.log(\"xxxxxxxxxxxx\")\n  console.log(\"xxxxxxxxxxxx\")\n  console.log(\"xxxxxx\\n\\n\\nxxxxxx\")\n  console.log(\"xxxxxxxxxxxx\")\n  console.log(\"xxxxxxxxxxxx\")\n  console.log(\"xxxxxxxxxxxx\")\n  console.log(\"xxxxxxxxxxxx\")\n  console.log(\"xxxxxxxxxxxx\")\n  console.log(\"xxxxxxxxxxxx\")\n}\n\nmodule.exports = add","// The module cache\nvar __webpack_module_cache__ = {};\n\n// The require function\nfunction __webpack_require__(moduleId) {\n\t// Check if module is in cache\n\tvar cachedModule = __webpack_module_cache__[moduleId];\n\tif (cachedModule !== undefined) {\n\t\treturn cachedModule.exports;\n\t}\n\t// Create a new module (and put it into the cache)\n\tvar module = __webpack_module_cache__[moduleId] = {\n\t\t// no module.id needed\n\t\t// no module.loaded needed\n\t\texports: {}\n\t};\n\n\t// Execute the module function\n\t__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n\n\t// Return the exports of the module\n\treturn module.exports;\n}\n\n","// getDefaultExport function for compatibility with non-harmony modules\n__webpack_require__.n = (module) => {\n\tvar getter = module && module.__esModule ?\n\t\t() => (module['default']) :\n\t\t() => (module);\n\t__webpack_require__.d(getter, { a: getter });\n\treturn getter;\n};","// define getter functions for harmony exports\n__webpack_require__.d = (exports, definition) => {\n\tfor(var key in definition) {\n\t\tif(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {\n\t\t\tObject.defineProperty(exports, key, { enumerable: true, get: definition[key] });\n\t\t}\n\t}\n};","__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))","export default function run() {\n  debugger\n  console.log(\"a\")\n}","import run from './func'\nimport run1 from './func1'\n\nrun()\nrun1()\n\nsetInterval(() => {\n  a()\n}, 10000)\n\nlet b = {}\nfunction a(){\n  c()\n}\n\nfunction c(){\n  b.aa()\n}"],"names":["module","exports","console","log","__webpack_module_cache__","__webpack_require__","moduleId","cachedModule","undefined","__webpack_modules__","n","getter","__esModule","d","a","definition","key","o","Object","defineProperty","enumerable","get","obj","prop","prototype","hasOwnProperty","call","setInterval","b","aa"],"sourceRoot":""}`
 
@@ -222,34 +203,34 @@ func TestHandleSourcemap(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.Remove(zipFilePath) //nolint:errcheck
 
-	if err := loadSourcemapFile(); err != nil {
-		t.Log(err)
-	}
+	loadSourcemapFile()
 
-	pts, err := lp.ParseWithOptionSetter(
-		body,
-		lp.WithTime(time.Now()),
-		lp.WithPrecisionV2(lp.Millisecond),
-		lp.WithCallbackV2(func(p *lp.Point) (*lp.Point, error) {
-			if p.Name == "error" {
-				if err := handleSourcemap(p, SdkWeb, &Input{}); err != nil {
-					return nil, fmt.Errorf("handleSourcemap fail: %w", err)
-				}
+	pts, err := lp.ParsePoints(body, &lp.Option{
+		Time:      time.Now(),
+		Precision: "ms",
+		Callback: func(p models.Point) (models.Point, error) {
+			if string(p.Name()) == "error" {
+				_ = handleSourcemap(p, SdkWeb, &Input{})
 			}
 			return p, nil
-		}),
-	)
+		},
+	})
 
 	assert.NoError(t, err)
 	assert.Greater(t, len(pts), 0)
 
 	for _, p := range pts {
-		if p.Name == "error" {
-			if _, ok := p.Fields["error_stack"]; ok {
-				if errorStackSource, ok := p.Fields["error_stack_source_base64"]; !ok {
+		if p.Name() == "error" {
+			fields, err := p.Fields()
+			if err != nil {
+				continue
+			}
+			if _, ok := fields["error_stack"]; ok {
+				tags := p.Tags()
+				if errorStackSource, ok := tags["error_stack_source_base64"]; !ok {
 					assert.Fail(t, "error stack transform failed")
 				} else {
-					decodBytes, err := base64.StdEncoding.DecodeString(errorStackSource.(string))
+					decodBytes, err := base64.StdEncoding.DecodeString(errorStackSource)
 					assert.NoError(t, err)
 					assert.Contains(t, string(decodBytes), "webpack")
 				}
@@ -272,9 +253,7 @@ func TestHandleSourcemap(t *testing.T) {
 	})
 
 	t.Run("getSourceMapString", func(t *testing.T) {
-		if err := updateSourcemapCache(zipFilePath); err != nil {
-			t.Error(err)
-		}
+		updateSourcemapCache(zipFilePath)
 		fileName := filepath.Base(zipFilePath)
 		cases := []struct {
 			src           string

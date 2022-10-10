@@ -110,14 +110,7 @@ type jsonPoint struct {
 
 // convert json point to lineproto point.
 func (jp *jsonPoint) point(opt *lp.Option) (*point.Point, error) {
-	if opt.Precision != "" {
-		precisionV2, err := lp.ConvertPrecisionToV2(opt.Precision)
-		if err != nil {
-			return nil, fmt.Errorf("not support pricision: %w", err)
-		}
-		opt.PrecisionV2 = precisionV2
-	}
-	p, err := lp.MakeLineProtoPointV2(jp.Measurement, jp.Tags, jp.Fields, opt)
+	p, err := lp.MakeLineProtoPoint(jp.Measurement, jp.Tags, jp.Fields, opt)
 	if err != nil {
 		return nil, err
 	}

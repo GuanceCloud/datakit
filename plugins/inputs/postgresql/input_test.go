@@ -128,12 +128,13 @@ func TestCollect(t *testing.T) {
 	points, err := input.collectCache[0].LineProto()
 	assert.NoError(t, err)
 
-	fields := points.Fields
+	fields, err := points.Fields()
+	assert.NoError(t, err)
 
 	trueFields := getTrueData(mockFields)
 	assert.True(t, reflect.DeepEqual(trueFields, fields), "not equal: %v <> %v", trueFields, fields)
 
-	tags := points.Tags
+	tags := points.Tags()
 	assert.Equal(t, tags[datakit.DatakitInputName], datakit.DatakitInputName)
 	assert.Equal(t, tags["db"], "datname")
 

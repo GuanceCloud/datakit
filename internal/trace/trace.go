@@ -424,7 +424,7 @@ func (s *Storage) RunStorageConsumer(log *logger.Logger, paramHandler func(param
 				return err
 			}); err != nil {
 				if errors.Is(err, cache.ErrEOF) {
-					log.Debug(err.Error())
+					log.Debug("no cache available, ignored")
 					time.Sleep(time.Second)
 				} else {
 					log.Error(err.Error())
