@@ -309,7 +309,7 @@ func (x *IO) flush(c *consumer) {
 
 	for k, pts := range c.dynamicDatawayPts {
 		log.Debugf("try flush dynamic dataway %d pts on %s", len(pts), k)
-		if n, err := x.doFlush(pts, c.category, c.fc); err != nil {
+		if n, err := x.doFlush(pts, k, c.fc); err != nil {
 			log.Errorf("post %d to %s failed", len(pts), k)
 			failed += n
 		} else {

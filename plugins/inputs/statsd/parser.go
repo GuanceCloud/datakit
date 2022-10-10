@@ -91,8 +91,8 @@ func (ipt *input) parseStatsdLine(line string) error {
 		// Validate splitting the bit on "|"
 		pipesplit := strings.Split(bit, "|")
 		if len(pipesplit) < 2 {
-			l.Errorf("Splitting '|', unable to parse metric: %s", line)
-			return errors.New("error parsing statsd line")
+			l.Debugf("Splitting '|', unable to parse metric: %s, ignored", line)
+			return nil
 		} else if len(pipesplit) > 2 {
 			sr := pipesplit[2]
 
