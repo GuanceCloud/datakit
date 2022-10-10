@@ -544,7 +544,7 @@ func collectPlanForStatement(i *Input, row eventRow) (planObj, error) {
 	queryCacheKey := getRowKey(row.currentSchema.String, querySignature)
 
 	if !checkLimitRate(i, queryCacheKey) {
-		l.Debugf("ingore check: %s", queryCacheKey)
+		l.Debugf("check limit rate failed, ignore plan: %s", obfuscatedStatement)
 		return plan, nil
 	}
 
