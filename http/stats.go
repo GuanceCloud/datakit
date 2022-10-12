@@ -360,9 +360,6 @@ func GetStats() (*DatakitStats, error) {
 	}
 
 	for k := range inputs.Inputs {
-		if !datakit.Enabled(k) {
-			continue
-		}
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[D] %s", k))
 	}
 
