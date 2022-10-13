@@ -8,11 +8,11 @@ package skywalking
 
 import (
 	"context"
+	"sync"
 	"time"
 
-	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/skywalkingapi"
 	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/language/agent/v3"
 	profileV3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/language/profile/v3"
 	loggingv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/logging/v3"
@@ -32,79 +32,23 @@ var (
 	logging     = "skywalking-logging"
 )
 
-var (
-	plugins        []string
-	afterGatherRun itrace.AfterGatherHandler
-	customerKeys   []string
-	tags           map[string]string
-	storage        *itrace.Storage
-)
-
-func InitOptions(pls []string, iStorage *itrace.Storage, closeResource map[string][]string,
-	keepRareResource bool, sampler *itrace.Sampler, customerTags []string, itags map[string]string,
-) {
-	plugins = pls
-	if iStorage != nil {
-		if cache, err := cache.Open(iStorage.Path, &cache.Option{Capacity: int64(iStorage.Capacity) << 20}); err != nil {
-			log.Errorf("### open cache %s with cap %dMB failed, cache.Open: %s", iStorage.Path, iStorage.Capacity, err)
-		} else {
-			iStorage.SetCache(cache)
-			iStorage.RunStorageConsumer(log, parseSegmentObjectWrapper)
-			storage = iStorage
-			log.Infof("### open cache %s with cap %dMB OK", iStorage.Path, iStorage.Capacity)
-		}
-	}
-
-	var afterGather *itrace.AfterGather
-	if storage == nil {
-		afterGather = itrace.NewAfterGather()
-	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithRetry(100 * time.Millisecond))
-	}
-	afterGatherRun = afterGather
-
-	if len(closeResource) != 0 {
-		iCloseResource := &itrace.CloseResource{}
-		iCloseResource.UpdateIgnResList(closeResource)
-		afterGather.AppendFilter(iCloseResource.Close)
-	}
-
-	// add error status penetration
-	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
-	// add rare resource keeper
-	if keepRareResource {
-		krs := &itrace.KeepRareResource{}
-		krs.UpdateStatus(keepRareResource, time.Hour)
-		afterGather.AppendFilter(krs.Keep)
-	}
-
-	// add sampler
-	var isampler *itrace.Sampler
-	if sampler != nil && (sampler.SamplingRateGlobal >= 0 && sampler.SamplingRateGlobal <= 1) {
-		isampler = sampler
-	} else {
-		isampler = &itrace.Sampler{SamplingRateGlobal: 1}
-	}
-	afterGather.AppendFilter(isampler.Sample)
-
-	customerKeys = customerTags
-	tags = itags
-}
+var api *skywalkingapi.SkyAPI
 
 type SkyConsumer struct {
 	Topics    []string `toml:"topics"`
 	Namespace string   `toml:"namespace"`
 
-	handler *consumerGroupHandler
-	cancel  context.CancelFunc
-	stop    chan struct{}
+	stop chan struct{}
 }
 
 type consumerGroupHandler struct {
 	topics map[string]string
+	ready  chan bool
 }
 
 func (c *consumerGroupHandler) Setup(sarama.ConsumerGroupSession) error {
+	// Mark the consumer as ready
+	close(c.ready)
 	return nil
 }
 
@@ -112,89 +56,94 @@ func (c *consumerGroupHandler) Cleanup(sarama.ConsumerGroupSession) error { retu
 
 // ConsumeClaim must start a consumer loop of ConsumerGroupClaim's Messages().
 func (c *consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	for msg := range claim.Messages() {
-		if msg == nil {
-			log.Infof("session was close")
+	if api == nil {
+		log.Errorf("skywalking api is nil")
+		return nil
+	}
+	for {
+		select {
+		case msg := <-claim.Messages():
+			if msg == nil {
+				log.Infof("session was close")
+				return nil
+			}
+			log.Debugf("Message claimed: timestamp = %v, topic = %s", msg.Timestamp, msg.Topic)
+			session.MarkMessage(msg, "")
+			if t, ok := c.topics[msg.Topic]; ok {
+				switch t {
+				case metric:
+					metrics := &agentv3.JVMMetricCollection{}
+					err := proto.Unmarshal(msg.Value, metrics)
+					if err != nil {
+						log.Warnf("unmarshal err=%v", err)
+						break
+					}
+					log.Debugf("unmarshal metrics is %+v", metrics)
+					api.ProcessMetrics(metrics)
+				case profilings:
+					profile := &profileV3.ThreadSnapshot{}
+					err := proto.Unmarshal(msg.Value, profile)
+					if err != nil {
+						log.Warnf("unmarshal err=%v", err)
+						break
+					}
+					api.ProcessProfile(profile)
+				case segments:
+					segment := &agentv3.SegmentObject{}
+					err := proto.Unmarshal(msg.Value, segment)
+					if err != nil {
+						log.Warnf("Marshal err =%v , and val is [%s]", err, string(msg.Value))
+						break
+					}
+					api.ProcessSegment(segment)
+				case managements:
+					instance := &managementV3.InstanceProperties{}
+					err := proto.Unmarshal(msg.Value, instance)
+					if err != nil {
+						log.Warnf("unmarshal err=%v", err)
+						break
+					}
+					log.Debugf("unmarshal instance is= %+v", instance)
+				case meters:
+					meters := &agentv3.MeterData{}
+					err := proto.Unmarshal(msg.Value, meters)
+					if err != nil {
+						log.Warnf("Marshal err =%v , and val is [%s]", err, string(msg.Value))
+						break
+					}
+					log.Debugf("unmarshal Metrer is= %+v", meters)
+				case logging:
+					pLog := &loggingv3.LogData{}
+					err := proto.Unmarshal(msg.Value, pLog)
+					if err != nil {
+						log.Warnf("unmarshal err=%v", err)
+						break
+					}
+					api.ProcessLog(pLog)
+				}
+			}
+		case <-session.Context().Done():
+			log.Infof("session context is close")
 			return nil
 		}
-		log.Debugf("Message claimed: timestamp = %v, topic = %s", msg.Timestamp, msg.Topic)
-		session.MarkMessage(msg, "")
-		if t, ok := c.topics[msg.Topic]; ok {
-			switch t {
-			case metric:
-				metrics := &agentv3.JVMMetricCollection{}
-				err := proto.Unmarshal(msg.Value, metrics)
-				if err != nil {
-					log.Errorf("unmarshal err=%v", err)
-					break
-				}
-				processMetrics(metrics)
-			case profilings:
-				profile := &profileV3.ThreadSnapshot{}
-				err := proto.Unmarshal(msg.Value, profile)
-				if err != nil {
-					log.Errorf("unmarshal err=%v", err)
-					break
-				}
-				processProfile(profile)
-			case segments:
-				segment := &agentv3.SegmentObject{}
-				err := proto.Unmarshal(msg.Value, segment)
-				if err != nil {
-					log.Errorf("unmarshal err=%v", err)
-					break
-				}
-				if storage == nil {
-					parseSegmentObject(segment)
-				} else {
-					buf, err := proto.Marshal(segment)
-					if err != nil {
-						log.Errorf("Marshal err =%v", err)
-						break
-					}
-					param := &itrace.TraceParameters{Meta: &itrace.TraceMeta{Buf: buf}}
-					if err = storage.Send(param); err != nil {
-						log.Errorf("storage send err=%v", err)
-						break
-					}
-				}
-			case managements:
-				instance := &managementV3.InstanceProperties{}
-				err := proto.Unmarshal(msg.Value, instance)
-				if err != nil {
-					log.Errorf("unmarshal err=%v", err)
-					break
-				}
-				log.Debugf("unmarshal instance is= %+v", instance)
-			case meters:
-				meters := &agentv3.MeterData{}
-				err := proto.Unmarshal(msg.Value, meters)
-				if err != nil {
-					log.Errorf("unmarshal err=%v", err)
-					break
-				}
-				log.Debugf("unmarshal Metrer is= %+v", meters)
-			case logging:
-				pLog := &loggingv3.LogData{}
-				err := proto.Unmarshal(msg.Value, pLog)
-				if err != nil {
-					log.Errorf("unmarshal err=%v", err)
-					break
-				}
-				processLog(pLog)
-			}
-		}
 	}
-	return nil
 }
 
-func (mq *SkyConsumer) SaramaConsumerGroup(addr string, groupID string) {
+//nolint:lll
+func (mq *SkyConsumer) SaramaConsumerGroup(addrs []string, groupID string, skyapi *skywalkingapi.SkyAPI, version sarama.KafkaVersion, balance sarama.BalanceStrategy) {
+	if skyapi != nil {
+		api = skyapi
+	} else {
+		log.Errorf("skywalking api is nil")
+		return
+	}
 	log = logger.SLogger("kafkamq")
 	mq.stop = make(chan struct{}, 1)
 	config := sarama.NewConfig() // auto commit
 	config.Consumer.Return.Errors = false
-	config.Version = sarama.V0_10_2_0                     // specify appropriate version
+	config.Version = version                              // specify appropriate version
 	config.Consumer.Offsets.Initial = sarama.OffsetOldest // 未找到组消费位移的时候从哪边开始消费
+	config.Consumer.Group.Rebalance.Strategy = balance
 	formatTopics := make(map[string]string)
 	topics := make([]string, 0)
 	for _, topic := range mq.Topics {
@@ -206,7 +155,7 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addr string, groupID string) {
 		topics = append(topics, topic)
 	}
 	log.Debugf("topic is %v", topics)
-	log.Infof("skywalking consumer addr= %s  groupID=%s", addr, groupID)
+	log.Infof("skywalking consumer addr= %s  groupID=%s", addrs, groupID)
 	var group sarama.ConsumerGroup
 	var err error
 	var count int
@@ -215,7 +164,7 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addr string, groupID string) {
 			log.Errorf("can not connect to kafka, consrmer exit")
 			return
 		}
-		group, err = sarama.NewConsumerGroup([]string{addr}, groupID, config)
+		group, err = sarama.NewConsumerGroup(addrs, groupID, config)
 		if err != nil {
 			log.Errorf("new group is err,restart count=%d , err=%v", count, err)
 			time.Sleep(time.Second * 10)
@@ -227,36 +176,49 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addr string, groupID string) {
 
 	defer func() { _ = group.Close() }()
 
-	// Track errors
-	go func() {
-		for err := range group.Errors() {
-			log.Errorf("group has err=%v", err)
-		}
-	}()
-	log.Infof("Consumed start")
 	// Iterate over consumer sessions.
 	ctx, cancel := context.WithCancel(context.Background())
-	mq.cancel = cancel
-	for {
-		handler := &consumerGroupHandler{topics: formatTopics}
-		mq.handler = handler
-		log.Infof("start consumer....")
-		// `Consume` should be called inside an infinite loop, when a
-		// server-side rebalance happens, the consumer session will need to be
-		// recreated to get the new claims.
-		err := group.Consume(ctx, topics, handler)
-		if err != nil {
-			log.Infof("group begin consume is err=%v", err)
+
+	handler := &consumerGroupHandler{topics: formatTopics, ready: make(chan bool)}
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			// `Consume` should be called inside an infinite loop, when a
+			// server-side rebalance happens, the consumer session will need to be
+			// recreated to get the new claims.
+			if err := group.Consume(ctx, topics, handler); err != nil {
+				log.Errorf("Error from consumer: %v", err)
+			}
+			// check if context was cancelled, signaling that the consumer should stop.
+			if ctx.Err() != nil {
+				return
+			}
+			handler.ready = make(chan bool)
 		}
-		select {
-		case <-mq.stop:
-			return
-		case <-time.After(time.Second * 10):
-		}
+	}()
+
+	<-handler.ready // Await till the consumer has been set up
+	log.Infof("Sarama consumer up and running!...")
+
+	select {
+	case <-ctx.Done():
+		log.Infof("terminating: context cancelled")
+	case <-mq.stop:
+		log.Infof("consumer stop")
+	}
+
+	cancel()
+	wg.Wait()
+	if err = group.Close(); err != nil {
+		log.Panicf("Error closing client: %v", err)
 	}
 }
 
 func (mq *SkyConsumer) Stop() {
 	mq.stop <- struct{}{}
-	mq.cancel()
+	if api != nil {
+		api.StopStorage()
+	}
 }
