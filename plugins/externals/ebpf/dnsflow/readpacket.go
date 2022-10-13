@@ -5,6 +5,7 @@ package dnsflow
 
 import (
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/google/gopacket"
@@ -88,7 +89,7 @@ func NewTPacketDNS() (*afpacket.TPacket, error) {
 
 type DNSStats struct {
 	TS        time.Time
-	RCODE     uint8
+	RCODE     int
 	RespTime  time.Duration
 	Timeout   bool
 	Responded bool
@@ -100,8 +101,8 @@ type DNSQAKey struct {
 	IsV4          bool   // IPv4(true) IPv6(false)
 	ClientPort    uint16 // Client Port
 	ServerPort    uint16 // Server Port
-	ClientIP      string
-	ServerIP      string
+	ClientIP      [4]uint32
+	ServerIP      [4]uint32
 }
 
 type DNSPacketInfo struct {
@@ -133,12 +134,12 @@ func ReadPacketInfoFromDNSParser(ts time.Time, dnsParser *DNSParser) (*DNSPacket
 			pinfo.Key.ServerPort = uint16(dnsParser.tcpSupport.tcp.DstPort)
 		case layers.LayerTypeIPv4:
 			pinfo.Key.IsV4 = true
-			pinfo.Key.ClientIP = dnsParser.ipv4.SrcIP.String()
-			pinfo.Key.ServerIP = dnsParser.ipv4.DstIP.String()
+			pinfo.Key.ClientIP = conv2arr(dnsParser.ipv4.SrcIP)
+			pinfo.Key.ServerIP = conv2arr(dnsParser.ipv4.DstIP)
 		case layers.LayerTypeIPv6:
 			pinfo.Key.IsV4 = false
-			pinfo.Key.ClientIP = dnsParser.ipv6.SrcIP.String()
-			pinfo.Key.ServerIP = dnsParser.ipv6.DstIP.String()
+			pinfo.Key.ClientIP = conv2arr(dnsParser.ipv6.SrcIP)
+			pinfo.Key.ServerIP = conv2arr(dnsParser.ipv6.DstIP)
 		case layers.LayerTypeDNS:
 			pinfo.Key.TransactionID = dnsParser.dns.ID
 			pinfo.QR = dnsParser.dns.QR
@@ -160,4 +161,19 @@ func ReadPacketInfoFromDNSParser(ts time.Time, dnsParser *DNSParser) (*DNSPacket
 	}
 
 	return &pinfo, nil
+}
+
+func conv2arr(ip net.IP) [4]uint32 {
+	ipArr := [4]uint32{}
+	switch len(ip) {
+	case 4:
+		ipArr[3] = uint32(ip[3])<<24 | uint32(ip[2])<<16 |
+			uint32(ip[1])<<8 | uint32(ip[0])
+	case 16:
+		for i := 0; i < 4; i++ {
+			ipArr[i] = uint32(ip[i*4+3])<<24 | uint32(ip[i*4+2])<<16 |
+				uint32(ip[i*4+1])<<8 | uint32(ip[i*4])
+		}
+	}
+	return ipArr
 }

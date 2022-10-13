@@ -61,6 +61,9 @@ struct conn_skb_l4_info
 {
     __u16 hdr_len;
     __u16 tcp_flags; // 12bits
+    __u16 offset;
+    // __u32 seg_seq;  // seq
+    // __u32 seg_ack;  // ack
 };
 
 struct connection_stats

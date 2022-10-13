@@ -180,6 +180,7 @@ func main() {
 			go k8sinfo.AutoUpdate(ctx)
 			dknetflow.SetK8sNetInfo(k8sinfo)
 			dkhttpflow.SetK8sNetInfo(k8sinfo)
+			dkdns.SetK8sNetInfo(k8sinfo)
 		}
 		constEditor := dkoffset.NewConstEditor(offset)
 

@@ -63,6 +63,59 @@ static __always_inline void read_ipv6_from_skb(struct __sk_buff *skb, struct con
     conn_info->meta = (conn_info->meta & ~CONN_L3_MASK) | CONN_L3_IPv6;
 }
 
+static __always_inline void read_payload_skb(struct conn_skb_l4_info *l4, __u32 *payload, struct __sk_buff *skb)
+{
+    __u32 offset = l4->hdr_len + 0;
+
+    __u32 pkt_read_size = l4->hdr_len + HTTP_PAYLOAD_MAXSIZE;
+    if (pkt_read_size > skb->len)
+    {
+        pkt_read_size = skb->len;
+    }
+
+// 越界访问 skb 数据将有异常
+#pragma unroll
+    for (int i = 0; i < HTTP_PAYLOAD_LOOP_SIZE; i++) // arr[HTTP_PAYLOAD_MAXSIZE - 1] == EOF
+    {
+        if (offset + 4 > pkt_read_size)
+        {
+            break;
+        }
+
+        bpf_skb_load_bytes(skb, offset, payload, 4);
+        offset += 4;
+        payload++;
+    }
+}
+
+
+// TODO:
+// Looks like the BPF stack limit of 512 bytes is exceeded.
+//
+// static __always_inline void read_payload_skb_for_oldversion(struct conn_skb_l4_info *l4, __u32 *payload, struct __sk_buff *skb)
+// {
+//     __u32 offset = l4->hdr_len + 0;
+//     __u32 pkt_read_size = l4->hdr_len + HTTP_PAYLOAD_MAXSIZE;
+//     if (pkt_read_size > skb->len)
+//     {
+//         pkt_read_size = skb->len;
+//     }
+// // 越界访问 skb 时读取的 payload 数据有异常
+// #pragma unroll
+//     for (int i = 0; i < HTTP_PAYLOAD_LOOP_SIZE - 1; i++) // arr[HTTP_PAYLOAD_MAXSIZE - 1] == EOF
+//     {
+//         if (offset + 4 > pkt_read_size)
+//         {
+//             break;
+//         }
+//         asm volatile("" ::
+//                          : "r1");
+//         *payload = __builtin_bswap32(load_word(skb, offset));
+//         offset += 4;
+//         payload++;
+//     }
+// }
+
 // 从结构体 __skb_buff 读取连接信息 和 eth 帧头、ip 头、tcp/udp 头的总字节数
 static __always_inline int read_connection_info_skb(struct __sk_buff *skb, struct conn_skb_l4_info *skbinfo, struct connection_info *conn_info)
 {
@@ -95,6 +148,9 @@ static __always_inline int read_connection_info_skb(struct __sk_buff *skb, struc
 
         conn_info->sport = load_half(skb, skbinfo->hdr_len + offsetof(struct tcphdr, source));
         conn_info->dport = load_half(skb, skbinfo->hdr_len + offsetof(struct tcphdr, dest));
+
+        // skbinfo->seg_seq = load_word(skb, skbinfo->hdr_len + offsetof(struct tcphdr, seq));
+        // skbinfo->seg_ack = load_word(skb, skbinfo->hdr_len + offsetof(struct tcphdr, ack_seq));
 
         // load_half 将交换字节序
         __u16 doff_and_flags = load_half(skb, skbinfo->hdr_len + offsetof(struct tcphdr, ack_seq) + 4);
