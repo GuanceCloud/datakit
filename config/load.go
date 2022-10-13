@@ -18,9 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
@@ -181,22 +179,6 @@ func feedEnvs(data []byte) []byte {
 	}
 
 	return data
-}
-
-func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
-	for _, v := range iputs {
-		if inp, ok := v.(inputs.PipelineInput); ok {
-			opts := inp.GetPipeline()
-			for _, vv := range opts {
-				if vv.Pipeline == "" {
-					continue
-				}
-				// 跳过检查
-			}
-		}
-	}
-
-	return nil, nil
 }
 
 func GetPipelinePath(category, pipeLineName string) (string, error) {
