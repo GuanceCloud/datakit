@@ -191,7 +191,7 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addrs []string, groupID string, skyap
 			if err := group.Consume(ctx, topics, handler); err != nil {
 				log.Errorf("Error from consumer: %v", err)
 			}
-			// check if context was cancelled, signaling that the consumer should stop.
+			// check if context was canceled, signaling that the consumer should stop.
 			if ctx.Err() != nil {
 				return
 			}
@@ -204,7 +204,7 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addrs []string, groupID string, skyap
 
 	select {
 	case <-ctx.Done():
-		log.Infof("terminating: context cancelled")
+		log.Infof("terminating: context canceled")
 	case <-mq.stop:
 		log.Infof("consumer stop")
 	}
