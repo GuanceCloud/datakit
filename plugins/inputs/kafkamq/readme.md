@@ -18,6 +18,11 @@
 
 数据结构也是固定的，数据结构 go 代码 [github](https://github.com/apache/skywalking-data-collect-protocol)  本地位置 inputs/skywalking/compiled/
 
+## 分配策略
+参考：
+- [csnd-中文详细说明](https://blog.csdn.net/u010022158/article/details/106271208)
+- [kafka-说明-英文](https://kafka.apache.org/10/javadoc/org/apache/kafka/clients/consumer/StickyAssignor.html)
+
 
 ## todo
 - 剩下的消息 `meters` `managements` `profilings`

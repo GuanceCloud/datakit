@@ -3,8 +3,8 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package skywalking handle SkyWalking tracing, metrics and logging.
-package skywalking
+// Package skywalkingapi handle SkyWalking tracing metrics.
+package skywalkingapi
 
 import (
 	"encoding/json"
@@ -13,16 +13,28 @@ import (
 	"strings"
 	"time"
 
-	commonv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/common/v3"
-
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	commonv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/common/v3"
 	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/language/agent/v3"
 	"google.golang.org/protobuf/proto"
 )
 
-var inputName = "skywalking"
+func (api *SkyAPI) ProcessSegment(segment *agentv3.SegmentObject) {
+	if api.storage == nil {
+		api.parseSegmentObject(segment)
+	} else {
+		buf, err := proto.Marshal(segment)
+		if err != nil {
+			api.log.Error(err.Error())
+		}
+		param := &itrace.TraceParameters{Meta: &itrace.TraceMeta{Buf: buf}}
+		if err = api.storage.Send(param); err != nil {
+			api.log.Error(err.Error())
+		}
+	}
+}
 
-func parseSegmentObjectWrapper(param *itrace.TraceParameters) error {
+func (api *SkyAPI) parseSegmentObjectWrapper(param *itrace.TraceParameters) error {
 	if param == nil || param.Meta == nil || len(param.Meta.Buf) == 0 {
 		return errors.New("invalid parameters")
 	}
@@ -32,12 +44,12 @@ func parseSegmentObjectWrapper(param *itrace.TraceParameters) error {
 		return err
 	}
 
-	parseSegmentObject(segobj)
+	api.parseSegmentObject(segobj)
 
 	return nil
 }
 
-func parseSegmentObject(segment *agentv3.SegmentObject) {
+func (api *SkyAPI) parseSegmentObject(segment *agentv3.SegmentObject) {
 	var dktrace itrace.DatakitTrace
 	for _, span := range segment.Spans {
 		if span == nil {
@@ -50,7 +62,7 @@ func parseSegmentObject(segment *agentv3.SegmentObject) {
 			Service:    segment.Service,
 			Resource:   span.OperationName,
 			Operation:  span.OperationName,
-			Source:     inputName,
+			Source:     api.inputName,
 			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
 			Start:      span.StartTime * int64(time.Millisecond),
 			Duration:   (span.EndTime - span.StartTime) * int64(time.Millisecond),
@@ -67,7 +79,7 @@ func parseSegmentObject(segment *agentv3.SegmentObject) {
 						Service:    span.Refs[0].ParentService,
 						Resource:   span.Refs[0].ParentEndpoint,
 						Operation:  span.Refs[0].ParentEndpoint,
-						Source:     inputName,
+						Source:     api.inputName,
 						SpanType:   itrace.SPAN_TYPE_ENTRY,
 						SourceType: itrace.SPAN_SOURCE_WEB,
 						Start:      dkspan.Start - int64(time.Millisecond),
@@ -105,8 +117,8 @@ func parseSegmentObject(segment *agentv3.SegmentObject) {
 			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
 		}
 
-		for i := range plugins {
-			if value, ok := getTagValue(span.Tags, plugins[i]); ok {
+		for i := range api.plugins {
+			if value, ok := getTagValue(span.Tags, api.plugins[i]); ok {
 				dkspan.Service = value
 				dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
 				dkspan.SourceType = mapToSpanSourceType(span.SpanLayer)
@@ -128,13 +140,13 @@ func parseSegmentObject(segment *agentv3.SegmentObject) {
 		for _, tag := range span.Tags {
 			sourceTags[tag.Key] = tag.Value
 		}
-		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+		dkspan.Tags = itrace.MergeInToCustomerTags(api.customerKeys, api.tags, sourceTags)
 		if span.Peer != "" {
 			dkspan.Tags[itrace.TAG_ENDPOINT] = span.Peer
 		}
 
 		if buf, err := json.Marshal(span); err != nil {
-			log.Warn(err.Error())
+			api.log.Warn(err.Error())
 		} else {
 			dkspan.Content = string(buf)
 		}
@@ -146,8 +158,8 @@ func parseSegmentObject(segment *agentv3.SegmentObject) {
 		dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
 	}
 
-	if len(dktrace) != 0 && afterGatherRun != nil {
-		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+	if len(dktrace) != 0 && api.afterGatherRun != nil {
+		api.afterGatherRun.Run(api.inputName, itrace.DatakitTraces{dktrace}, false)
 	}
 }
 

@@ -3,8 +3,8 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package skywalking handle SkyWalking tracing, metrics and logging.
-package skywalking
+// Package skywalkingapi handle SkyWalking tracing metrics.
+package skywalkingapi
 
 import (
 	"strconv"
@@ -17,7 +17,7 @@ import (
 	loggingv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/logging/v3"
 )
 
-func processLog(plog *loggingv3.LogData) {
+func (api *SkyAPI) ProcessLog(plog *loggingv3.LogData) {
 	source := plog.Service
 	extraTags := make(map[string]string)
 
@@ -27,7 +27,7 @@ func processLog(plog *loggingv3.LogData) {
 	if plog.Layer != "" {
 		extraTags["layer"] = plog.Layer
 	}
-	for k, v := range tags {
+	for k, v := range api.tags {
 		extraTags[k] = v
 	}
 	for _, datum := range plog.GetTags().Data {
@@ -51,13 +51,10 @@ func processLog(plog *loggingv3.LogData) {
 	switch i := plog.Body.Content.(type) {
 	case *loggingv3.LogDataBody_Text:
 		line = i.Text.GetText()
-		log.Debugf("log string = %s", line)
 	case *loggingv3.LogDataBody_Json:
 		line = i.Json.GetJson()
-		log.Debugf("log string = %s", line)
 	case *loggingv3.LogDataBody_Yaml:
 		line = i.Yaml.GetYaml()
-		log.Debugf("log string = %s", line)
 	}
 	if line == "" {
 		return
@@ -67,12 +64,12 @@ func processLog(plog *loggingv3.LogData) {
 			pipeline.FieldMessage: line,
 		}, &point.PointOption{Category: datakit.Logging, DisableGlobalTags: true})
 	if err != nil {
-		log.Errorf("mew point err=%v", err)
+		api.log.Errorf("mew point err=%v", err)
 		return
 	}
 
 	err = dkio.Feed(source, datakit.Logging, []*point.Point{pt}, nil)
 	if err != nil {
-		log.Errorf("feed logging err=%v", err)
+		api.log.Errorf("feed logging err=%v", err)
 	}
 }
