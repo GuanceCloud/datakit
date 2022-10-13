@@ -46,6 +46,10 @@ type scoredPattern struct {
 	regexp *regexp.Regexp
 }
 
+func (s *scoredPattern) String() string {
+	return fmt.Sprintf("score:%d, regexp:%s", s.score, s.regexp)
+}
+
 type AutoMultiline struct {
 	patterns []*scoredPattern
 }
@@ -77,19 +81,16 @@ func NewAutoMultiline(additionalPatterns []string) (*AutoMultiline, error) {
 }
 
 func (m *AutoMultiline) Match(content []byte) bool {
-	match := false
-
 	for idx, scoredPattern := range m.patterns {
-		match = scoredPattern.regexp.Match(content)
+		match := scoredPattern.regexp.Match(content)
 		if match {
 			scoredPattern.score++
-
 			if idx != 0 {
 				sort.Slice(m.patterns, func(i, j int) bool {
 					return m.patterns[i].score > m.patterns[j].score
 				})
 			}
-			break
+			return true
 		}
 	}
 
@@ -97,5 +98,5 @@ func (m *AutoMultiline) Match(content []byte) bool {
 		return defaultRegexp.Match(content)
 	}
 
-	return match
+	return false
 }

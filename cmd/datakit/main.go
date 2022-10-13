@@ -57,7 +57,6 @@ func main() {
 		datakit.DownloadAddr = DownloadAddr
 	}
 
-	datakit.EnableUncheckInputs = (InputsReleaseType == "all")
 	cmds.ReleaseVersion = ReleaseVersion
 	cmds.InputsReleaseType = InputsReleaseType
 

@@ -3,8 +3,8 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package skywalking handle SkyWalking tracing metrics.
-package skywalking
+// Package kafkamq  mq
+package kafkamq
 
 import (
 	"context"
@@ -15,26 +15,19 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/skywalkingapi"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"google.golang.org/grpc"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafkamq/skywalking"
 )
 
-var _ inputs.InputV2 = &Input{}
+const mqSampleConfig = `
+[[inputs.kafkamq]]
+  addrs = ["localhost:9092"]
+  # your kafka version:0.8.2.0 ~ 2.8.0.0
+  kafka_version = "2.8.0.0"
+  group_id = "datakit-group"
+  plugins = ["db.type"]
+  # Consumer group partition assignment strategy (range, roundrobin, sticky)
+  assignor = "roundrobin"
 
-const (
-	inputName    = "skywalking"
-	sampleConfig = `
-[[inputs.skywalking]]
-  ## Skywalking grpc server listening on address.
-  address = "localhost:11800"
-
-  ## plugins is a list contains all the widgets used in program that want to be regarded as service.
-  ## every key words list in plugins represents a plugin defined as special tag by skywalking.
-  ## the value of the key word will be used to set the service name.
-  # plugins = ["db.type"]
-
-  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
-  ## that want to send to data center. Those keys set by client code will take precedence over
-  ## keys in [inputs.skywalking.tags]. DOT(.) IN KEY WILL BE REPLACED BY DASH(_) WHEN SENDING.
   # customer_tags = ["key1", "key2", ...]
 
   ## Keep rare tracing resources list switch.
@@ -42,12 +35,23 @@ const (
   ## to data center and do not consider samplers and filters.
   # keep_rare_resource = false
 
+  [inputs.kafkamq.skywalking]  
+    topics = [
+      "skywalking-metrics",
+      "skywalking-profilings",
+      "skywalking-segments",
+      "skywalking-managements",
+      "skywalking-meters",
+      "skywalking-logging",
+    ]
+    namespace = ""
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
   ## If you want to block some resources universally under all services, you can set the
   ## service name as "*". Note: double quotes "" cannot be omitted.
-  # [inputs.skywalking.close_resource]
+  # [inputs.kafkamq.close_resource]
     # service1 = ["resource1", "resource2", ...]
     # service2 = ["resource1", "resource2", ...]
     # "*" = ["close_resource_under_all_services"]
@@ -55,10 +59,10 @@ const (
 
   ## Sampler config uses to set global sampling strategy.
   ## sampling_rate used to set global sampling rate.
-  # [inputs.skywalking.sampler]
+  # [inputs.kafkamq.sampler]
     # sampling_rate = 1.0
 
-  # [inputs.skywalking.tags]
+  # [inputs.kafkamq.tags]
     # key1 = "value1"
     # key2 = "value2"
     # ...
@@ -66,29 +70,27 @@ const (
   ## Storage config a local storage space in hard dirver to cache trace data.
   ## path is the local file path used to cache data.
   ## capacity is total space size(MB) used to store data.
-  # [inputs.skywalking.storage]
+  # [inputs.kafkamq.storage]
     # path = "./skywalking_storage"
     # capacity = 5120
+
+  ## todo: add other input-mq 
 `
-)
 
 var (
-	log     = logger.DefaultSLogger(inputName)
-	address = "localhost:11800"
-	//	plugins        []string
-	//	afterGatherRun itrace.AfterGatherHandler
-	//	customerKeys   []string
-	//	tags           map[string]string
-	skySvr *grpc.Server
-	//	storage        *itrace.Storage
-	api *skywalkingapi.SkyAPI
+	_         inputs.InputV2 = &Input{}
+	log                      = logger.DefaultSLogger(inputName)
+	inputName                = "kafkamq"
 )
 
 type Input struct {
-	V2               interface{}         `toml:"V2"`        // deprecated *skywalkingConfig
-	V3               interface{}         `toml:"V3"`        // deprecated *skywalkingConfig
-	Pipelines        map[string]string   `toml:"pipelines"` // deprecated
-	Address          string              `toml:"address"`
+	Addr         string                  `toml:"addr"`
+	Addrs        []string                `toml:"addrs"`         // 向下兼容 addr
+	KafkaVersion string                  `toml:"kafka_version"` // kafka version
+	GroupID      string                  `toml:"group_id"`
+	SkyWalking   *skywalking.SkyConsumer `toml:"skywalking"` // 命名时 注意区分源
+	Assignor     string                  `toml:"assignor"`   // 消费模式
+
 	Plugins          []string            `toml:"plugins"`
 	CustomerTags     []string            `toml:"customer_tags"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
@@ -98,43 +100,41 @@ type Input struct {
 	Storage          *itrace.Storage     `toml:"storage"`
 }
 
-func (*Input) Catalog() string {
-	return inputName
-}
+func (*Input) Catalog() string      { return "kafkamq" }
+func (*Input) SampleConfig() string { return mqSampleConfig }
 
 func (*Input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 
-func (*Input) SampleConfig() string {
-	return sampleConfig
-}
-
-func (ipt *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&skywalkingapi.MetricMeasurement{}}
-}
-
-func (ipt *Input) Run() {
-	log = logger.SLogger(inputName)
-	api = skywalkingapi.InitApiPluginAges(ipt.Plugins, ipt.Storage, ipt.CloseResource,
-		ipt.KeepRareResource, ipt.Sampler, ipt.CustomerTags, ipt.Tags, inputName)
-	log.Debug("start skywalking grpc v3 server")
-
-	// start up grpc v3 routine
-	if len(ipt.Address) == 0 {
-		ipt.Address = address
+func (i *Input) Terminate() {
+	if i.SkyWalking != nil {
+		i.SkyWalking.Stop()
 	}
-	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_skywalking"})
-	g.Go(func(ctx context.Context) error {
-		registerServerV3(ipt.Address)
-		return nil
-	})
+	log.Infof("input[%s] exit", inputName)
 }
 
-func (ipt *Input) Terminate() {
-	api.StopStorage()
-	if skySvr != nil {
-		skySvr.Stop()
+func (i Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&skywalkingapi.MetricMeasurement{},
+	}
+}
+
+func (i *Input) Run() {
+	log = logger.SLogger(inputName)
+	log.Infof("init input = %v", i)
+
+	api := skywalkingapi.InitApiPluginAges(i.Plugins, i.Storage, i.CloseResource, i.KeepRareResource, i.Sampler, i.CustomerTags, i.Tags, inputName)
+	addrs := getAddrs(i.Addr, i.Addrs)
+	version := getKafkaVersion(i.KafkaVersion)
+	balance := getAssignors(i.Assignor)
+	if i.SkyWalking != nil {
+		g := goroutine.NewGroup(goroutine.Option{Name: "inputs_kafkamq"})
+		g.Go(func(ctx context.Context) error {
+			log.Infof("start input kafkamq")
+			i.SkyWalking.SaramaConsumerGroup(addrs, i.GroupID, api, version, balance)
+			return nil
+		})
 	}
 }
 

@@ -374,8 +374,8 @@ func TestConvConn2M(t *testing.T) {
 			t.Error(err)
 			continue
 		}
-		tags := pt.Tags
-		fields := pt.Fields
+		tags := pt.Tags()
+		fields, _ := pt.Fields()
 		delete(fields, "message")
 		if len(fields) != len(v.result.fields) {
 			t.Error("fields length not equal")

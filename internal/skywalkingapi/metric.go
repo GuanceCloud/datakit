@@ -3,8 +3,8 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package skywalking handle SkyWalking tracing metrics.
-package skywalking
+// Package skywalkingapi handle SkyWalking tracing metrics.
+package skywalkingapi
 
 import (
 	"strings"
@@ -20,7 +20,7 @@ import (
 
 const jvmMetricName = "skywalking_jvm"
 
-func processMetrics(jvm *agentv3.JVMMetricCollection) {
+func (api *SkyAPI) ProcessMetrics(jvm *agentv3.JVMMetricCollection) {
 	var (
 		m     []inputs.Measurement
 		start = time.Now()

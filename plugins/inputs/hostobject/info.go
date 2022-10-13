@@ -96,7 +96,6 @@ type (
 		IP         string          `json:"ip"`
 		DCAConfig  *http.DCAConfig `json:"dca_config"`
 		HTTPListen string          `json:"http_listen"`
-		APIToken   string          `json:"api_token"`
 	}
 
 	HostObjectMessage struct {
@@ -459,7 +458,6 @@ func getHostConfig() *HostConfig {
 
 	hostConfig.DCAConfig = config.Cfg.DCAConfig
 
-	hostConfig.APIToken = config.GetToken()
 	hostConfig.HTTPListen = config.Cfg.HTTPAPI.Listen
 
 	return hostConfig

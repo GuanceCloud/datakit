@@ -75,13 +75,20 @@ func HTTPMethodString(method string) int {
 	}
 }
 
-func FindHTTPURI(payload string) string {
+func FindHTTPURI(payload string) (string, bool) {
+	var pathTrunc bool
 	split := strings.Split(payload, " ")
+
 	if len(split) < 2 {
-		return ""
+		return "", pathTrunc
 	}
+
+	if len(split) == 2 {
+		pathTrunc = true
+	}
+
 	if HTTPMethodString(split[0]) == HTTP_METHOD_UNKNOWN {
-		return ""
+		return "", pathTrunc
 	}
 	uri := split[1]
 	startOffset := -1
@@ -90,13 +97,19 @@ func FindHTTPURI(payload string) string {
 	case len(uri) > 8 && (uri[:8] == "https://"):
 		off := strings.Index(uri[8:], "/")
 		if off == -1 {
-			return "/"
+			if strings.Contains(uri, "?") {
+				pathTrunc = false
+			}
+			return "/", pathTrunc
 		}
 		startOffset = 8 + off
 	case len(uri) > 7 && (uri[:7] == "http://"):
 		off := strings.Index(uri[7:], "/")
 		if off == -1 {
-			return "/"
+			if strings.Contains(uri, "?") {
+				pathTrunc = false
+			}
+			return "/", pathTrunc
 		}
 		startOffset = 7 + off
 	case (len(uri) > 0) && (uri[:1] == "/"):
@@ -104,14 +117,15 @@ func FindHTTPURI(payload string) string {
 	}
 
 	if startOffset == -1 {
-		return ""
+		return "", pathTrunc
 	}
 
 	endOffset := strings.Index(uri, "?")
 	if endOffset > 0 && startOffset < endOffset {
-		return uri[startOffset:endOffset]
+		pathTrunc = false
+		return uri[startOffset:endOffset], pathTrunc
 	}
-	return uri[startOffset:]
+	return uri[startOffset:], pathTrunc
 }
 
 func ParseHTTPVersion(v uint32) string {

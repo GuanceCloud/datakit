@@ -52,17 +52,22 @@ shell 命令执行记录采集支持采集终端执行的 bash 命令
   - 标签
       |标签名|描述|
       |-|-|
-      |dst_ip|DNS server address|
-      |dst_port|DNS server port|
+      |direction|传输方向 (incoming/outgoing)|
+      |dst_domain|目标域名|
+      |dst_ip|目标 IP|
+      |dst_ip_type|目标 IP 类型 (other/private/multicast)|
+      |dst_port|目标端口|
       |family|TCP/IP 协议族 (IPv4/IPv6)|
-      |host|host name|
+      |host|主机名|
       |source|固定值: dnsflow|
-      |src_ip|DNS client address|
-      |src_port|DNS client port|
+      |src_ip|源 IP|
+      |src_ip_type|源 IP 类型 (other/private/multicast)|
+      |src_port|源端口|
       |transport|传输协议 (udp/tcp)|
   - 指标列表
       |指标|描述|数据类型|单位|
       |-|-|-|-|
       |rcode|DNS 响应码: 0 - NoError, 1 - FormErr, 2 - ServFail, 3 - NXDomain, 4 - NotImp, 5 - Refused, ...|int|-|
-      |resp_time|DNS 请求的响应时间间隔|int|ns|
-      |timeout|DNS 请求超时|bool|-|
+      |latency|DNS 平均请求的响应时间间隔|int|ns|
+      |latency_max|DNS 最大请求的响应时间间隔|int|ns|
+      |count|请求次数|int|-|
