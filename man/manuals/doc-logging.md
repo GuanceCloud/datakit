@@ -178,7 +178,7 @@ $ RED='\033[0;31m' && NC='\033[0m' && print "${RED}red${NC}"
     ```
     {"log":"2022/09/14 15:11:11 Bash For Loop Examples. Hello, world! Testing output.\n","stream":"stdout","time":"2022-09-14T15:11:11.125641305Z"}
     ```
-- Containerd（CRI）单条日志格式如下，各项字段以空格分割。和 Docker 相同的是，Containerd（CRI）也有日志截断的标记，即第三个字段 `P`，此外还有 `F`。`P` 表示 `Partia`，即不完整的、被截断的；`F` 表示 `Full`。 
+- Containerd（CRI）单条日志格式如下，各项字段以空格分割。和 Docker 相同的是，Containerd（CRI）也有日志截断的标记，即第三个字段 `P`，此外还有 `F`。`P` 表示 `Partial`，即不完整的、被截断的；`F` 表示 `Full`。 
     ```
     2016-10-06T00:17:09.669794202Z stdout P log content 1
     2016-10-06T00:17:09.669794202Z stdout F log content 2
