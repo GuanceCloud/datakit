@@ -15,12 +15,12 @@ func TestMultiline(t *testing.T) {
 	const maxLines = 10
 
 	cases := []struct {
-		name    string
-		pattern string
-		in, out [][]byte
+		name     string
+		patterns []string
+		in, out  [][]byte
 	}{
 		{
-			pattern: "^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})",
+			patterns: []string{"^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})"},
 			in: [][]byte{
 				[]byte("# Time: 2021-05-31T11:15:26.043419Z"),
 				[]byte("# User@Host: datakitMonitor[datakitMonitor] @ localhost []  Id:  1228"),
@@ -35,7 +35,7 @@ func TestMultiline(t *testing.T) {
 			},
 		},
 		{
-			pattern: "^# Time",
+			patterns: []string{"^# Time"},
 			in: [][]byte{
 				[]byte("# Time: 2021-05-31T11:15:26.043419Z"),
 				[]byte("# Line: 2 ========================"),
@@ -56,25 +56,25 @@ func TestMultiline(t *testing.T) {
 			},
 		},
 		{
-			pattern: "^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})",
-			in:      [][]byte{[]byte("2021-05-31T11:15:26.043419Z")},
-			out:     [][]byte{[]byte("2021-05-31T11:15:26.043419Z")},
+			patterns: []string{"^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})"},
+			in:       [][]byte{[]byte("2021-05-31T11:15:26.043419Z")},
+			out:      [][]byte{[]byte("2021-05-31T11:15:26.043419Z")},
 		},
 		{
-			pattern: "",
-			in:      [][]byte{[]byte("2021-05-31T11:15:26.043419Z\n  Line:10================")},
-			out:     [][]byte{[]byte("2021-05-31T11:15:26.043419Z\n  Line:10================")},
+			patterns: nil,
+			in:       [][]byte{[]byte("2021-05-31T11:15:26.043419Z\n  Line:10================")},
+			out:      [][]byte{[]byte("2021-05-31T11:15:26.043419Z\n  Line:10================")},
 		},
 		{
-			pattern: "",
-			in:      [][]byte{[]byte("2021-05-31T11:15:26.043419Z"), []byte("Line:10================")},
-			out:     [][]byte{[]byte("2021-05-31T11:15:26.043419Z"), []byte("Line:10================")},
+			patterns: nil,
+			in:       [][]byte{[]byte("2021-05-31T11:15:26.043419Z"), []byte("Line:10================")},
+			out:      [][]byte{[]byte("2021-05-31T11:15:26.043419Z"), []byte("Line:10================")},
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			m, err := New([]string{tc.pattern})
+			m, err := New(tc.patterns)
 			tu.Equals(t, nil, err)
 
 			outIdx := 0
@@ -86,9 +86,9 @@ func TestMultiline(t *testing.T) {
 				}
 			}
 
-			tu.Equals(t, string(tc.out[outIdx]), string(m.Flush()))
-			// if m.buff.Len() > 0 {
-			//}
+			if m.buff.Len() > 0 {
+				tu.Equals(t, string(tc.out[outIdx]), string(m.Flush()))
+			}
 		})
 	}
 }
@@ -97,11 +97,12 @@ func TestMultilineString(t *testing.T) {
 	const maxLines = 10
 
 	cases := []struct {
-		pattern, name string
-		in, out       []string
+		name     string
+		patterns []string
+		in, out  []string
 	}{
 		{
-			pattern: "^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})",
+			patterns: []string{"^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})"},
 			in: []string{
 				"# Time: 2021-05-31T11:15:26.043419Z",
 				"# User@Host: datakitMonitor[datakitMonitor] @ localhost []  Id:  1228",
@@ -114,7 +115,7 @@ func TestMultilineString(t *testing.T) {
 			out: []string{"# Time: 2021-05-31T11:15:26.043419Z\n# User@Host: datakitMonitor[datakitMonitor] @ localhost []  Id:  1228\n# Query_time: 0.015214  Lock_time: 0.000112 Rows_sent: 4  Rows_examined: 288\nSET timestamp=1622459726;\nSELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb\n                FROM     information_schema.tables\n                GROUP BY table_schema;"},
 		},
 		{
-			pattern: "^# Time",
+			patterns: []string{"^# Time"},
 			in: []string{
 				"# Time: 2021-05-31T11:15:26.043419Z",
 				"# Line: 2 ========================",
@@ -133,26 +134,30 @@ func TestMultilineString(t *testing.T) {
 			},
 		},
 		{
-			pattern: "^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})",
-			in:      []string{"2021-05-31T11:15:26.043419Z"},
-			out:     []string{"2021-05-31T11:15:26.043419Z"},
+			patterns: []string{"^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})"},
+			in:       []string{"2021-05-31T11:15:26.043419Z"},
+			out:      []string{"2021-05-31T11:15:26.043419Z"},
 		},
 		{
-			pattern: "",
-			in:      []string{"2021-05-31T11:15:26.043419Z\n  Line:10================"},
-			out:     []string{"2021-05-31T11:15:26.043419Z\n  Line:10================"},
+			patterns: nil,
+			in:       []string{"2021-05-31T11:15:26.043419Z\n  Line:10================"},
+			out:      []string{"2021-05-31T11:15:26.043419Z\n  Line:10================"},
 		},
-
 		{
-			pattern: "",
-			in:      []string{"2021-05-31T11:15:26.043419Z", "Line:10================"},
-			out:     []string{"2021-05-31T11:15:26.043419Z", "Line:10================"},
+			patterns: nil,
+			in:       []string{"2021-05-31T11:15:26.043419Z", "Line:10================"},
+			out:      []string{"2021-05-31T11:15:26.043419Z", "Line:10================"},
+		},
+		{
+			patterns: []string{"^\\S"},
+			in:       []string{"  string01", "  string02"},
+			out:      []string{"  string01", "  string02"},
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			m, err := New([]string{tc.pattern})
+			m, err := New(tc.patterns)
 			tu.Equals(t, nil, err)
 
 			outIdx := 0
@@ -164,7 +169,9 @@ func TestMultilineString(t *testing.T) {
 				}
 			}
 
-			tu.Equals(t, tc.out[outIdx], m.FlushString())
+			if m.buff.Len() > 0 {
+				tu.Equals(t, tc.out[outIdx], m.FlushString())
+			}
 		})
 	}
 }

@@ -46,6 +46,8 @@ type Single struct {
 	offset   int64 // 必然只在同一个 goroutine 操作，不必使用 atomic
 	readTime time.Time
 
+	partialContentBuff bytes.Buffer
+
 	tags map[string]string
 }
 
@@ -269,6 +271,7 @@ func (t *Single) forwardMessage() {
 		default:
 			t.defaultHandler(lines)
 		}
+
 		// 数据处理完成，再记录 offset
 		t.offset += int64(readNum)
 	}
@@ -308,10 +311,28 @@ func (t *Single) generateJSONLogs(lines []string) []string {
 			}
 		}
 
+		if isJSONLogPartialContent(msg.Log) {
+			t.opt.log.Debugf("partial text: %s, write buff", msg.Log)
+			t.partialContentBuff.WriteString(msg.Log)
+			continue
+		}
+
+		var originalText string
+
+		if t.partialContentBuff.Len() != 0 {
+			t.partialContentBuff.WriteString(msg.Log)
+			originalText = t.partialContentBuff.String()
+			t.partialContentBuff.Reset()
+			t.opt.log.Debugf("flush text: %s", originalText)
+		} else {
+			originalText = msg.Log
+			t.opt.log.Debugf("no text: %s", originalText)
+		}
+
 		tags["stream"] = msg.Stream
 
 		var text string
-		text, err = t.decode(msg.Log)
+		text, err = t.decode(originalText)
 		if err != nil {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
@@ -344,7 +365,7 @@ func (t *Single) generateCRILogs(lines []string) []string {
 		var text string
 
 		if err := parseCRILog([]byte(line), &criMsg); err != nil {
-			l.Warnf("parse cri-o log err: %s, data: %s", err, line)
+			t.opt.log.Warnf("parse cri-o log err: %s, data: %s", err, line)
 			continue
 		}
 		text = t.multiline(criMsg.log)
@@ -620,4 +641,14 @@ func parseCRILog(log []byte, msg *logMessage) error {
 	msg.log = string(log[idx+1:])
 
 	return nil
+}
+
+func isJSONLogPartialContent(content string) bool {
+	if len(content) < 1 {
+		return false
+	}
+	if content[len(content)-1] != '\n' {
+		return true
+	}
+	return false
 }
