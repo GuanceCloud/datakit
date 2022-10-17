@@ -103,7 +103,7 @@ func checkConfig(dir, suffix string) error {
 			continue
 		}
 
-		if v, err := config.LoadSingleConfFile(fp, inputs.Inputs); err != nil {
+		if v, err := config.LoadSingleConfFile(fp, inputs.Inputs, false); err != nil {
 			cp.Errorf("[E] failed to parse %s: %s, %s\n", fp, err.Error(), reflect.TypeOf(err))
 			failed = append(failed, fp+": "+err.Error())
 		} else {

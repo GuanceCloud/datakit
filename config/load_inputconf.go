@@ -125,7 +125,7 @@ func CheckConfFileDupOrSet(data []byte) bool {
 	return false
 }
 
-func LoadSingleConfFile(fp string, creators map[string]inputs.Creator) (map[string][]inputs.Input, error) {
+func LoadSingleConfFile(fp string, creators map[string]inputs.Creator, skipChecksum bool) (map[string][]inputs.Input, error) {
 	data, err := ioutil.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		l.Errorf("ioutil.ReadFile: %s", err.Error())
@@ -133,7 +133,7 @@ func LoadSingleConfFile(fp string, creators map[string]inputs.Creator) (map[stri
 	}
 
 	// ignore config file has the same check sum
-	if CheckConfFileDupOrSet(data) {
+	if !skipChecksum && CheckConfFileDupOrSet(data) {
 		l.Warnf("the config file [%s] has same check sum with previouslly loaded file, ignore", fp)
 		return nil, nil
 	}
@@ -156,7 +156,7 @@ func LoadInputConf(root string) map[string][]inputs.Input {
 			continue
 		}
 
-		x, err := LoadSingleConfFile(fp, inputs.Inputs)
+		x, err := LoadSingleConfFile(fp, inputs.Inputs, false)
 		if err != nil {
 			l.Warnf("load conf(%s) failed: %s, ignored", fp, err)
 			continue
