@@ -134,6 +134,7 @@ func LoadCfg(c *Config, mcp string) error {
 	initDefaultEnabledPlugins(c)
 
 	loadInputsConfFromDirs(getConfRootPaths())
+
 	return nil
 }
 

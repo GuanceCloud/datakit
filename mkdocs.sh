@@ -110,6 +110,7 @@ datakit_docs=(
   $tmp_doc_dir/beats_output.md
   $tmp_doc_dir/clickhousev1.md
   $tmp_doc_dir/cloudprober.md
+  $tmp_doc_dir/confd.md
   $tmp_doc_dir/consul.md
   $tmp_doc_dir/container.md
   $tmp_doc_dir/coredns.md

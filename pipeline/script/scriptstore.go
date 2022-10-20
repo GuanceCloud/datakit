@@ -81,11 +81,13 @@ func whichStore(category string) *ScriptStore {
 const (
 	DefaultScriptNS = "default" // 内置 pl script， 优先级最低
 	GitRepoScriptNS = "gitrepo" // git 管理的 pl script
+	ConfdScriptNS   = "confd"   // confd 管理的 pl script
 	RemoteScriptNS  = "remote"  // remote pl script，优先级最高
 )
 
-var plScriptNSSearchOrder = [3]string{
+var plScriptNSSearchOrder = [4]string{
 	RemoteScriptNS, // 优先级最高的 ns
+	ConfdScriptNS,
 	GitRepoScriptNS,
 	DefaultScriptNS,
 }
@@ -102,8 +104,10 @@ func NSFindPriority(ns string) int {
 		return 0 // lowest priority
 	case GitRepoScriptNS:
 		return 1
-	case RemoteScriptNS:
+	case ConfdScriptNS:
 		return 2
+	case RemoteScriptNS:
+		return 3
 	default:
 		return -1
 	}
@@ -126,6 +130,7 @@ func NewScriptStore(category string) *ScriptStore {
 		storage: scriptStorage{
 			scripts: map[string]map[string]*PlScript{
 				RemoteScriptNS:  {},
+				ConfdScriptNS:   {},
 				GitRepoScriptNS: {},
 				DefaultScriptNS: {},
 			},
@@ -147,6 +152,7 @@ func (store *ScriptStore) Count() int {
 	defer store.storage.RUnlock()
 
 	return len(store.storage.scripts[RemoteScriptNS]) +
+		len(store.storage.scripts[ConfdScriptNS]) +
 		len(store.storage.scripts[GitRepoScriptNS]) +
 		len(store.storage.scripts[DefaultScriptNS])
 }
