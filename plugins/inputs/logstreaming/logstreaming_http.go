@@ -35,7 +35,7 @@ type parameters struct {
 }
 
 func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("### received log request from %s", req.URL.String())
+	log.Debugf("### Log request from %s", req.URL.String())
 
 	var (
 		readbodycost = time.Now()
@@ -66,7 +66,7 @@ func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request
 	log.Debugf("### path: %s, body-data-type: %s, body-size: %d, read-body-cost: %dms",
 		param.url.Path, param.queryValues.Get("type"), pbuf.Len(), time.Since(readbodycost)/time.Millisecond)
 
-	if wpool == nil {
+	if wkpool == nil {
 		if err = processLogBody(param); err != nil {
 			log.Error(err.Error())
 			resp.Write([]byte(fmt.Sprintf(`{"status":"fail","error_msg":%q}`, err.Error()))) //nolint:errcheck,gosec
@@ -90,7 +90,7 @@ func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request
 			return
 		}
 
-		if err = wpool.MoreJob(job); err != nil {
+		if err = wkpool.MoreJob(job); err != nil {
 			log.Error(err.Error())
 			resp.WriteHeader(http.StatusTooManyRequests)
 

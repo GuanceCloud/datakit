@@ -434,9 +434,11 @@ func (s *Storage) RunStorageConsumer(log *logger.Logger, paramHandler func(param
 			select {
 			case <-s.exit.Wait():
 				log.Infof("on exit, storage stop on path '%s' exit", s.Path)
+
 				return nil
 			case <-datakit.Exit.Wait():
 				log.Infof("on datakit exit, stop on path '%s' exit", s.Path)
+
 				return nil
 			default:
 			}

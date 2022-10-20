@@ -14,8 +14,11 @@ import (
 )
 
 func TestWorkerPool(t *testing.T) {
-	wpool := NewWorkerPool(9000)
-	if err := wpool.Start(16); err != nil {
+	wpool, err := NewWorkerPool(&WorkerPoolConfig{100, 100}, nil)
+	if err != nil {
+		t.Error(err.Error())
+		t.FailNow()
+	} else if err = wpool.Start(); err != nil {
 		t.Error(err.Error())
 		t.FailNow()
 	}

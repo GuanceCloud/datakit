@@ -67,7 +67,7 @@ const (
     # key2 = "value2"
     # ...
 
-  ## Threads config controls how many goroutines an agent cloud start.
+  ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
   ## timeout is the duration(ms) before a job can return a result.
@@ -89,7 +89,7 @@ var (
 	afterGatherRun itrace.AfterGatherHandler
 	customerKeys   []string
 	tags           map[string]string
-	wpool          workerpool.WorkerPool
+	wkpool         *workerpool.WorkerPool
 	storage        *itrace.Storage
 )
 
@@ -108,17 +108,11 @@ type Input struct {
 	Storage          *itrace.Storage              `toml:"storage"`
 }
 
-func (*Input) Catalog() string {
-	return inputName
-}
+func (*Input) Catalog() string { return inputName }
 
-func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
-func (*Input) SampleConfig() string {
-	return sampleConfig
-}
+func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
@@ -172,10 +166,12 @@ func (ipt *Input) RegHTTPHandler() {
 	afterGather.AppendFilter(sampler.Sample)
 
 	if ipt.WPConfig != nil {
-		wpool = workerpool.NewWorkerPool(ipt.WPConfig.Buffer)
-		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
-			log.Errorf("### start workerpool failed: %s", err.Error())
-			wpool = nil
+		var err error
+		if wkpool, err = workerpool.NewWorkerPool(ipt.WPConfig, log); err != nil {
+			log.Errorf("### new worker-pool failed: %s", err.Error())
+		} else if err = wkpool.Start(); err != nil {
+			log.Errorf("### start worker-pool failed: %s", err.Error())
+			wkpool = nil
 		}
 	}
 
@@ -202,8 +198,8 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) Terminate() {
-	if wpool != nil {
-		wpool.Shutdown()
+	if wkpool != nil {
+		wkpool.Shutdown()
 		log.Debug("### workerpool closed")
 	}
 	if storage != nil {

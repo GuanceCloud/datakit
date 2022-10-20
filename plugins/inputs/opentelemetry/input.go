@@ -73,7 +73,7 @@ const (
     # key2 = "value2"
     # ...
 
-  ## Threads config controls how many goroutines an agent cloud start.
+  ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
   # [inputs.opentelemetry.threads]
@@ -122,7 +122,7 @@ var (
 	log         = logger.DefaultSLogger(inputName)
 	spanStorage *collector.SpansStorage
 	afterGather *itrace.AfterGather
-	wpool       workerpool.WorkerPool
+	wkpool      *workerpool.WorkerPool
 	storage     *itrace.Storage
 )
 
@@ -143,17 +143,11 @@ type Input struct {
 	semStop             *cliutils.Sem // start stop signal
 }
 
-func (*Input) Catalog() string {
-	return inputName
-}
+func (*Input) Catalog() string { return inputName }
 
-func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
-func (*Input) SampleConfig() string {
-	return sampleConfig
-}
+func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
@@ -211,10 +205,12 @@ func (ipt *Input) RegHTTPHandler() {
 	}
 
 	if ipt.WPConfig != nil {
-		wpool = workerpool.NewWorkerPool(ipt.WPConfig.Buffer)
-		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
-			log.Errorf("### start workerpool failed: %s", err.Error())
-			wpool = nil
+		var err error
+		if wkpool, err = workerpool.NewWorkerPool(ipt.WPConfig, log); err != nil {
+			log.Errorf("### new worker-pool failed: %s", err.Error())
+		} else if err = wkpool.Start(); err != nil {
+			log.Errorf("### start worker-pool failed: %s", err.Error())
+			wkpool = nil
 		}
 	}
 
@@ -274,8 +270,8 @@ func (ipt *Input) exit() {
 		_ = storage.Close()
 		log.Info("openTelemetry storage closed")
 	}
-	if wpool != nil {
-		wpool.Shutdown()
+	if wkpool != nil {
+		wkpool.Shutdown()
 		log.Info("openTelemetry workerpool closed")
 	}
 	if spanStorage != nil {

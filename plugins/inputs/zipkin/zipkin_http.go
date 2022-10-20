@@ -55,7 +55,7 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %dkb, read-body-cost: %dms",
 		req.URL.Path, param.Meta.Media, param.Meta.Encode, pbuf.Len()>>10, time.Since(readbodycost)/time.Millisecond)
 
-	if wpool == nil {
+	if wkpool == nil {
 		if storage == nil {
 			if err = parseZipkinTraceV1(param); err != nil {
 				log.Error(err.Error())
@@ -88,7 +88,7 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		if err = wpool.MoreJob(job); err != nil {
+		if err = wkpool.MoreJob(job); err != nil {
 			log.Error(err.Error())
 			resp.WriteHeader(http.StatusTooManyRequests)
 
@@ -187,7 +187,7 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %dkb, read-body-cost: %dms",
 		req.URL.Path, param.Meta.Media, param.Meta.Encode, pbuf.Len()>>10, time.Since(readbodycost)/time.Millisecond)
 
-	if wpool == nil {
+	if wkpool == nil {
 		if storage == nil {
 			if err = parseZipkinTraceV2(param); err != nil {
 				log.Error(err.Error())
@@ -220,7 +220,7 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		if err = wpool.MoreJob(job); err != nil {
+		if err = wkpool.MoreJob(job); err != nil {
 			log.Error(err)
 			resp.WriteHeader(http.StatusTooManyRequests)
 
