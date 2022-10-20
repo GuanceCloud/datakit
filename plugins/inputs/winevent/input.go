@@ -110,9 +110,7 @@ func (ipt *Input) handleEvent(event Event) {
 		l.Error(err.Error())
 		ts = time.Now()
 	}
-	tags := map[string]string{
-		"source": "windows_event",
-	}
+	tags := map[string]string{}
 	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
