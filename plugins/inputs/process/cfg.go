@@ -98,6 +98,7 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 			"cpu_usage_top":    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "cpu使用占比（%*100）, 一个采集周期内的进程的 CPU 使用率均值"),
 			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "mem使用占比（%*100）"),
 			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "open_files 个数(仅支持linux)"),
+			"open_files_list":  newOtherFieldInfo(inputs.String, inputs.UnknownType, inputs.UnknownUnit, "进程打开的文件及其描述符列表(仅支持linux)"),
 			"work_directory":   newOtherFieldInfo(inputs.String, inputs.Gauge, inputs.UnknownUnit, "工作目录(仅支持linux)"),
 			"cmdline":          newOtherFieldInfo(inputs.String, inputs.Gauge, inputs.UnknownUnit, "进程的命令行参数"),
 			"state_zombie":     newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.UnknownUnit, "是否是僵尸进程"),
