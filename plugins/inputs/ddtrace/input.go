@@ -169,7 +169,7 @@ func (ipt *Input) RegHTTPHandler() {
 					if req.URL, err = url.Parse(reqpb.Url); err != nil {
 						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
 					}
-					handleDDTraces(&ihttp.NopResponseWriter{nil}, req)
+					handleDDTraces(&ihttp.NopResponseWriter{}, req)
 
 					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
 
@@ -237,8 +237,10 @@ func (ipt *Input) RegHTTPHandler() {
 	for _, endpoint := range ipt.Endpoints {
 		switch endpoint {
 		case v1, v2, v3, v4, v5:
-			dkhttp.RegHTTPHandler(http.MethodPost, endpoint, workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, handleDDTraces)))
-			dkhttp.RegHTTPHandler(http.MethodPut, endpoint, workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, handleDDTraces)))
+			dkhttp.RegHTTPHandler(http.MethodPost, endpoint,
+				workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, handleDDTraces)))
+			dkhttp.RegHTTPHandler(http.MethodPut, endpoint,
+				workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, handleDDTraces)))
 			isReg = true
 			log.Debugf("### pattern %s registered for %s agent", endpoint, inputName)
 		default:

@@ -115,7 +115,7 @@ func (ipt *Input) RegHTTPHandler() {
 					if req.URL, err = url.Parse(reqpb.Url); err != nil {
 						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
 					}
-					ipt.handleLogstreaming(&ihttp.NopResponseWriter{nil}, req)
+					ipt.handleLogstreaming(&ihttp.NopResponseWriter{}, req)
 
 					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
 
@@ -125,7 +125,8 @@ func (ipt *Input) RegHTTPHandler() {
 		}
 	}
 
-	dkhttp.RegHTTPHandler("POST", "/v1/write/logstreaming", workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, ihttp.ProtectedHandlerFunc(ipt.handleLogstreaming, log))))
+	dkhttp.RegHTTPHandler("POST", "/v1/write/logstreaming",
+		workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, ihttp.ProtectedHandlerFunc(ipt.handleLogstreaming, log))))
 }
 
 func (*Input) Run() {

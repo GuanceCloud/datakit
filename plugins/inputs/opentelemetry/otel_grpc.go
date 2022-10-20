@@ -77,7 +77,9 @@ type ExportTrace struct {
 	storage         *collector.SpansStorage
 }
 
-func (et *ExportTrace) Export(ctx context.Context, ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
+func (et *ExportTrace) Export(ctx context.Context,
+	ets *collectortracepb.ExportTraceServiceRequest,
+) (*collectortracepb.ExportTraceServiceResponse, error) {
 	md, haveHeader := metadata.FromIncomingContext(ctx)
 	if haveHeader {
 		if !checkHandler(et.ExpectedHeaders, md) {
@@ -113,7 +115,9 @@ type ExportMetric struct {
 	storage         *collector.SpansStorage
 }
 
-func (em *ExportMetric) Export(ctx context.Context, ets *collectormetricepb.ExportMetricsServiceRequest) (*collectormetricepb.ExportMetricsServiceResponse, error) {
+func (em *ExportMetric) Export(ctx context.Context,
+	ets *collectormetricepb.ExportMetricsServiceRequest,
+) (*collectormetricepb.ExportMetricsServiceResponse, error) {
 	md, haveHeader := metadata.FromIncomingContext(ctx)
 	if haveHeader {
 		if !checkHandler(em.ExpectedHeaders, md) {

@@ -56,7 +56,7 @@ func ReadBodyHandlerFunc(handler http.HandlerFunc, log *logger.Logger, validator
 		}
 		resp.WriteHeader(http.StatusOK)
 
-		req.Body.Close()
+		req.Body.Close() // nolint: errcheck,gosec
 		req.Body = io.NopCloser(pbuf)
 		handler(&NopResponseWriter{resp}, req)
 	}

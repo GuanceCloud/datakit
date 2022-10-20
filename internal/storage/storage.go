@@ -3,6 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+// Package storage define local-cache for tracing, logging, rum high frequency data buffering
 package storage
 
 import (
@@ -19,11 +20,11 @@ import (
 )
 
 const (
-	HTTP_KEY uint8 = iota + 1
-	OTEL_GRPC_KEY
-	SKY_WALKING_GRPC_KEY
-	ZIPKIN_HTTP_V1_KEY
-	ZIPKIN_HTTP_V2_KEY
+	HTTP_KEY             uint8 = iota + 1 // nolint: stylecheck
+	OTEL_GRPC_KEY                         // nolint: stylecheck
+	SKY_WALKING_GRPC_KEY                  // nolint: stylecheck
+	ZIPKIN_HTTP_V1_KEY                    // nolint: stylecheck
+	ZIPKIN_HTTP_V2_KEY                    // nolint: stylecheck
 )
 
 type StorageConfig struct {
@@ -134,7 +135,7 @@ func (s *Storage) Get() (key uint8, buf []byte, err error) {
 
 		return nil
 	})
-	if err != nil {
+	if err != nil { // nolint: gocritic
 		return 0, nil, err
 	} else if len(buf) < 1 {
 		return 0, nil, fmt.Errorf("get wrong bytes with prefix: %d len: %d", key, len(buf))

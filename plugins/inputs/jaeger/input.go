@@ -164,7 +164,7 @@ func (ipt *Input) RegHTTPHandler() {
 					if req.URL, err = url.Parse(reqpb.Url); err != nil {
 						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
 					}
-					handleJaegerTrace(&ihttp.NopResponseWriter{nil}, req)
+					handleJaegerTrace(&ihttp.NopResponseWriter{}, req)
 
 					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
 
