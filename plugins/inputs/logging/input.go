@@ -15,7 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -95,11 +95,13 @@ type Input struct {
 	AutoMultilineDetection     bool              `toml:"auto_multiline_detection"`
 	AutoMultilineExtraPatterns []string          `toml:"auto_multiline_extra_patterns"`
 	RemoveAnsiEscapeCodes      bool              `toml:"remove_ansi_escape_codes"`
-	IgnoreDeadLog              string            `toml:"ignore_dead_log"`
 	Tags                       map[string]string `toml:"tags"`
 	BlockingMode               bool              `toml:"blocking_mode"`
 	FromBeginning              bool              `toml:"from_beginning,omitempty"`
 	DockerMode                 bool              `toml:"docker_mode,omitempty"`
+	IgnoreDeadLog              string            `toml:"ignore_dead_log"`
+	MinFlushInterval           time.Duration     `toml:"-"`
+	MaxMultilineLifeDuration   time.Duration     `toml:"-"`
 
 	DeprecatedPipeline       string `toml:"pipeline_path"`
 	DeprecatedMultilineMatch string `toml:"match"`

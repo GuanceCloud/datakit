@@ -181,6 +181,9 @@ spec:
           name: rootfs
         - mountPath: /sys/kernel/debug
           name: debugfs
+        - mountPath: /usr/local/datakit/cache
+          name: cache
+          readOnly: false
         # # ---iploc-start
         # - mountPath: /usr/local/datakit/data/ipdb/iploc/
         #   name: datakit-ipdb
@@ -238,6 +241,9 @@ spec:
       - hostPath:
           path: /
         name: rootfs
+      - hostPath:
+          path: /root/datakit_cache
+        name: cache
       - hostPath:
           path: /sys/kernel/debug
         name: debugfs

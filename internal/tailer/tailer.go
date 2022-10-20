@@ -14,17 +14,16 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 )
 
 const (
 	// 定期寻找符合条件的新文件.
 	scanNewFileInterval = time.Second * 10
 
-	defaultSource   = "default"
-	maxFieldsLength = 32 * 1024 * 1024
+	defaultSource    = "default"
+	maxFieldsLength  = 32 * 1024 * 1024
+	minflushInterval = time.Second * 5
 )
 
 var l = logger.DefaultSLogger("socketLog")
@@ -86,6 +85,9 @@ type Option struct {
 	// 是否开启阻塞发送模式
 	BlockingMode bool
 
+	MinFlushInterval         time.Duration
+	MaxMultilineLifeDuration time.Duration
+
 	Done <-chan interface{}
 
 	Mode Mode
@@ -112,6 +114,10 @@ func (opt *Option) Init() error {
 		opt.InputName = "logging/" + opt.Source
 	}
 
+	if opt.MinFlushInterval <= 0 {
+		opt.MinFlushInterval = minflushInterval
+	}
+
 	if opt.GlobalTags == nil {
 		opt.GlobalTags = make(map[string]string)
 	}
@@ -119,13 +125,6 @@ func (opt *Option) Init() error {
 	opt.GlobalTags["service"] = opt.Service
 	opt.log = logger.SLogger(opt.InputName)
 
-	if _, err := encoding.NewDecoder(opt.CharacterEncoding); err != nil {
-		return err
-	}
-
-	if _, err := multiline.New(opt.MultilinePatterns); err != nil {
-		return err
-	}
 	if opt.Pipeline != "" && filepath.Base(opt.Pipeline) != opt.Pipeline {
 		opt.log.Warnf("invalid pipeline! the pipeline conf is file name like: nginx.p or xxx.p")
 	}

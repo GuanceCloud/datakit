@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"unicode"
 )
 
 var GlobalPatterns = []string{
@@ -50,18 +51,17 @@ func (s *scoredPattern) String() string {
 	return fmt.Sprintf("score:%d, regexp:%s", s.score, s.regexp)
 }
 
-type AutoMultiline struct {
-	patterns []*scoredPattern
+type Matcher struct {
+	patterns  []*scoredPattern
+	noPattern bool
 }
 
-var defaultRegexp = regexp.MustCompile(`^\S`)
-
-func NewAutoMultiline(additionalPatterns []string) (*AutoMultiline, error) {
+func NewMatcher(additionalPatterns []string) (*Matcher, error) {
 	if len(additionalPatterns) == 0 {
-		return nil, fmt.Errorf("invalid argument")
+		return &Matcher{noPattern: true}, nil
 	}
 
-	m := &AutoMultiline{
+	m := &Matcher{
 		patterns: make([]*scoredPattern, len(additionalPatterns)),
 	}
 
@@ -80,7 +80,13 @@ func NewAutoMultiline(additionalPatterns []string) (*AutoMultiline, error) {
 	return m, nil
 }
 
-func (m *AutoMultiline) Match(content []byte) bool {
+func (m *Matcher) Match(content []byte) bool {
+	if m.noPattern {
+		// 为什么要取反？
+		// 因为默认的匹配策略是行首非空白字符，函数功能是确认行首是空白字符，所以要再进行取反
+		return !prefixIsSpace(content)
+	}
+
 	for idx, scoredPattern := range m.patterns {
 		match := scoredPattern.regexp.Match(content)
 		if match {
@@ -95,8 +101,16 @@ func (m *AutoMultiline) Match(content []byte) bool {
 	}
 
 	if m.patterns[0].score == 0 {
-		return defaultRegexp.Match(content)
+		return !prefixIsSpace(content)
 	}
 
 	return false
+}
+
+func prefixIsSpace(text []byte) bool {
+	if len(text) == 0 {
+		return true
+	}
+	// white space 定义为 '\t', '\n', '\v', '\f', '\r', ' ', 0x85, 0xA0
+	return unicode.IsSpace(rune(text[0]))
 }
