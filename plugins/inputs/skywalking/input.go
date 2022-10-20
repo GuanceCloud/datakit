@@ -98,17 +98,11 @@ type Input struct {
 	Storage          *itrace.Storage     `toml:"storage"`
 }
 
-func (*Input) Catalog() string {
-	return inputName
-}
+func (*Input) Catalog() string { return inputName }
 
-func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
-func (*Input) SampleConfig() string {
-	return sampleConfig
-}
+func (*Input) SampleConfig() string { return sampleConfig }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&skywalkingapi.MetricMeasurement{}}

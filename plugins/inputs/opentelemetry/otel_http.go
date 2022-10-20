@@ -80,7 +80,7 @@ func (o *otlpHTTPCollector) apiOtlpTrace(resp http.ResponseWriter, req *http.Req
 	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %dkb, read-body-cost: %dms",
 		req.URL.Path, media, encode, len(buf)>>10, time.Since(readbodycost)/time.Millisecond)
 
-	if wpool == nil {
+	if wkpool == nil {
 		if storage == nil {
 			if err = o.parseOtelTrace(param); err != nil {
 				log.Error(err.Error())
@@ -110,7 +110,7 @@ func (o *otlpHTTPCollector) apiOtlpTrace(resp http.ResponseWriter, req *http.Req
 			return
 		}
 
-		if err = wpool.MoreJob(job); err != nil {
+		if err = wkpool.MoreJob(job); err != nil {
 			log.Error(err.Error())
 			resp.WriteHeader(http.StatusTooManyRequests)
 

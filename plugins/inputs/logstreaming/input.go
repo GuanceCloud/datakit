@@ -27,7 +27,7 @@ const (
 [inputs.logstreaming]
   ignore_url_tags = true
 
-  ## Threads config controls how many goroutines an agent cloud start.
+  ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
   # [inputs.logstreaming.threads]
@@ -37,8 +37,8 @@ const (
 )
 
 var (
-	log   = logger.DefaultSLogger(inputName)
-	wpool workerpool.WorkerPool
+	log    = logger.DefaultSLogger(inputName)
+	wkpool *workerpool.WorkerPool
 )
 
 type Input struct {
@@ -48,9 +48,7 @@ type Input struct {
 
 func (*Input) Catalog() string { return "log" }
 
-func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) SampleConfig() string { return sampleCfg }
 
@@ -62,10 +60,12 @@ func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
 
 	if ipt.WPConfig != nil {
-		wpool = workerpool.NewWorkerPool(ipt.WPConfig.Buffer)
-		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
-			log.Errorf("### start workerpool failed: %s", err.Error())
-			wpool = nil
+		var err error
+		if wkpool, err = workerpool.NewWorkerPool(ipt.WPConfig, log); err != nil {
+			log.Errorf("### new worker-pool failed: %s", err.Error())
+		} else if err = wkpool.Start(); err != nil {
+			log.Errorf("### start worker-pool failed: %s", err.Error())
+			wkpool = nil
 		}
 	}
 
@@ -77,8 +77,8 @@ func (*Input) Run() {
 }
 
 func (*Input) Terminate() {
-	if wpool != nil {
-		wpool.Shutdown()
+	if wkpool != nil {
+		wkpool.Shutdown()
 		log.Debugf("### workerpool in %s is shudown", inputName)
 	}
 }

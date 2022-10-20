@@ -125,9 +125,10 @@ func TestRUMHandleBody(t *testing.T) {
 		},
 	}
 
+	ipt := &Input{}
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			pts, err := doHandleRUMBody(tc.body, tc.prec, tc.js, nil, tc.appidWhiteList, &Input{})
+			pts, err := ipt.parseRUMBody(tc.body, tc.prec, tc.js, nil, tc.appidWhiteList)
 
 			if tc.fail {
 				tu.NotOk(t, err, "case[%d] expect fail, but ok", i)
@@ -179,7 +180,7 @@ func TestHandleSourcemap(t *testing.T) {
 	datakit.DataDir = path.Join(tmpDir, "data")
 
 	sourcemapFileName := GetSourcemapZipFileName("appid_e6208285ab6947dbaef25d1f1e4749bd", "production", "1.0.0")
-	rumDir := GetRumSourcemapDir(srcMapDirWeb)
+	rumDir := getRumSourcemapDir(srcMapDirWeb)
 
 	err := os.MkdirAll(rumDir, os.ModePerm)
 	assert.NoError(t, err)
@@ -210,7 +211,8 @@ func TestHandleSourcemap(t *testing.T) {
 		Precision: "ms",
 		Callback: func(p models.Point) (models.Point, error) {
 			if string(p.Name()) == "error" {
-				_ = handleSourcemap(p, SdkWeb, &Input{})
+				ipt := &Input{}
+				_ = ipt.parseSourcemap(p, SdkWeb)
 			}
 			return p, nil
 		},
