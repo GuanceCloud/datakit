@@ -119,7 +119,8 @@ func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("init input = %v", ipt)
 
-	api := skywalkingapi.InitApiPluginAges(ipt.Plugins, ipt.localCacheConfig, ipt.CloseResource, ipt.KeepRareResource, ipt.Sampler, ipt.CustomerTags, ipt.Tags, inputName)
+	api := skywalkingapi.InitApiPluginAges(ipt.Plugins, ipt.localCacheConfig, ipt.CloseResource, ipt.KeepRareResource,
+		ipt.Sampler, ipt.CustomerTags, ipt.Tags, inputName)
 	addrs := getAddrs(ipt.Addr, ipt.Addrs)
 	version := getKafkaVersion(ipt.KafkaVersion)
 	balance := getAssignors(ipt.Assignor)

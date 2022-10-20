@@ -17,10 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
-var (
-	once                                                                             = sync.Once{}
-	dkioFeed func(name, category string, pts []*point.Point, opt *dkio.Option) error = dkio.Feed
-)
+var dkioFeed func(name, category string, pts []*point.Point, opt *dkio.Option) error = dkio.Feed
 
 type AfterGatherHandler interface {
 	Run(inputName string, dktraces DatakitTraces, strikMod bool)

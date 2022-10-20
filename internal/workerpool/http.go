@@ -47,10 +47,10 @@ func HTTPWrapper(wkp *WorkerPool, handler http.HandlerFunc) http.HandlerFunc {
 			wkp.log.Debugf("### [worker-pool wrapper] method: %s, url: %s, body-size: %d, read-body-cost: %dms",
 				req.Method, req.URL.String(), pbuf.Len(), time.Since(start)/time.Millisecond)
 
-			req.Body.Close()
+			req.Body.Close() // nolint: errcheck,gosec
 			req.Body = io.NopCloser(pbuf)
 			param := &parameters{
-				resp: &ihttp.NopResponseWriter{resp},
+				resp: &ihttp.NopResponseWriter{Raw: resp},
 				req:  req,
 				body: pbuf,
 			}

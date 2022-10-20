@@ -103,8 +103,6 @@ const (
 )
 
 var (
-	// packageName = "dktrace"
-	// log         = logger.DefaultSLogger(packageName).
 	sourceTypes = map[string]string{
 		"consul":        SPAN_SOURCE_APP,
 		"django":        SPAN_SOURCE_FRAMEWORK,

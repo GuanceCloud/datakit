@@ -199,7 +199,7 @@ func (ipt *Input) RegHTTPHandler() {
 					if req.URL, err = url.Parse(reqpb.Url); err != nil {
 						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
 					}
-					ipt.HTTPCol.apiOtlpTrace(&ihttp.NopResponseWriter{nil}, req)
+					ipt.HTTPCol.apiOtlpTrace(&ihttp.NopResponseWriter{}, req)
 
 					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
 
@@ -249,7 +249,8 @@ func (ipt *Input) RegHTTPHandler() {
 
 	log.Infof("### register handler for /otel/v1/trace of agent %s", inputName)
 	log.Infof("### register handler for /otel/v1/metric of agent %s", inputName)
-	dkhttp.RegHTTPHandler("POST", "/otel/v1/trace", workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, ipt.HTTPCol.apiOtlpTrace)))
+	dkhttp.RegHTTPHandler("POST", "/otel/v1/trace",
+		workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, ipt.HTTPCol.apiOtlpTrace)))
 	dkhttp.RegHTTPHandler("POST", "/otel/v1/metric", ipt.HTTPCol.apiOtlpMetric)
 }
 

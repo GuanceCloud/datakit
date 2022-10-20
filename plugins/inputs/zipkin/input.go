@@ -159,7 +159,7 @@ func (ipt *Input) RegHTTPHandler() {
 					if req.URL, err = url.Parse(reqpb.Url); err != nil {
 						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
 					}
-					handleZipkinTraceV1(&ihttp.NopResponseWriter{nil}, req)
+					handleZipkinTraceV1(&ihttp.NopResponseWriter{}, req)
 
 					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
 
@@ -191,7 +191,7 @@ func (ipt *Input) RegHTTPHandler() {
 					if req.URL, err = url.Parse(reqpb.Url); err != nil {
 						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
 					}
-					handleZipkinTraceV2(&ihttp.NopResponseWriter{nil}, req)
+					handleZipkinTraceV2(&ihttp.NopResponseWriter{}, req)
 
 					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
 
@@ -238,13 +238,15 @@ func (ipt *Input) RegHTTPHandler() {
 		ipt.PathV1 = apiv1Path
 	}
 	log.Debugf("### register handler for %s of agent %s", ipt.PathV1, inputName)
-	dkhttp.RegHTTPHandler("POST", ipt.PathV1, workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.ZIPKIN_HTTP_V1_KEY, localCache, handleZipkinTraceV1)))
+	dkhttp.RegHTTPHandler("POST", ipt.PathV1,
+		workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.ZIPKIN_HTTP_V1_KEY, localCache, handleZipkinTraceV1)))
 
 	if ipt.PathV2 == "" {
 		ipt.PathV2 = apiv2Path
 	}
 	log.Debugf("### register handler for %s of agent %s", ipt.PathV2, inputName)
-	dkhttp.RegHTTPHandler("POST", ipt.PathV2, workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.ZIPKIN_HTTP_V2_KEY, localCache, handleZipkinTraceV2)))
+	dkhttp.RegHTTPHandler("POST", ipt.PathV2,
+		workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.ZIPKIN_HTTP_V2_KEY, localCache, handleZipkinTraceV2)))
 }
 
 func (ipt *Input) Run() {

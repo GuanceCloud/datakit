@@ -116,7 +116,9 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 	httpOK(resp, nil)
 }
 
-func (ipt *Input) parseRUMBody(body []byte, precision string, isjson bool, extraTags map[string]string, appIDWhiteList []string) ([]*point.Point, error) {
+func (ipt *Input) parseRUMBody(body []byte, precision string, isjson bool,
+	extraTags map[string]string, appIDWhiteList []string,
+) ([]*point.Point, error) {
 	if isjson {
 		opt := lp.NewDefaultOption()
 		opt.Precision = precision
