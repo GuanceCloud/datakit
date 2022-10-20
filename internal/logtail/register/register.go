@@ -91,6 +91,10 @@ func (r *register) flush() error {
 		return fmt.Errorf("unable build matedata, err %w", err)
 	}
 
+	if err := r.file.Truncate(0); err != nil {
+		return fmt.Errorf("truncate logtail.history error %w", err)
+	}
+
 	// reset seek to begnning
 	_, err = r.file.Seek(0, io.SeekStart)
 	if err != nil {
