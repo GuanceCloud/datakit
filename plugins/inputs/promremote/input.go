@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -38,18 +39,19 @@ const (
 )
 
 type Input struct {
-	Path           string            `toml:"path"`
-	Methods        []string          `toml:"methods"`
-	DataSource     string            `toml:"data_source"`
-	MaxBodySize    int64             `toml:"max_body_size"`
-	BasicUsername  string            `toml:"basic_username"`
-	BasicPassword  string            `toml:"basic_password"`
-	HTTPHeaderTags map[string]string `toml:"http_header_tags"`
-	Tags           map[string]string `toml:"tags"`
-	TagsIgnore     []string          `toml:"tags_ignore"`
-	TagsRename     map[string]string `toml:"tags_rename"`
-	Overwrite      bool              `toml:"overwrite"`
-	Output         string            `toml:"output"`
+	Path            string            `toml:"path"`
+	Methods         []string          `toml:"methods"`
+	DataSource      string            `toml:"data_source"`
+	MaxBodySize     int64             `toml:"max_body_size"`
+	BasicUsername   string            `toml:"basic_username"`
+	BasicPassword   string            `toml:"basic_password"`
+	HTTPHeaderTags  map[string]string `toml:"http_header_tags"`
+	Tags            map[string]string `toml:"tags"`
+	TagsIgnore      []string          `toml:"tags_ignore"`
+	TagsIgnoreRegex []string          `toml:"tags_ignore_regex"`
+	TagsRename      map[string]string `toml:"tags_rename"`
+	Overwrite       bool              `toml:"overwrite"`
+	Output          string            `toml:"output"`
 	Parser
 }
 
@@ -187,6 +189,7 @@ func (h *Input) isAcceptedMethod(method string) bool {
 func (h *Input) SetTags(m *Measurement) {
 	h.addTags(m)
 	h.ignoreTags(m)
+	h.ignoreTagsRegex(m)
 	h.renameTags(m)
 }
 
@@ -199,6 +202,24 @@ func (h *Input) addTags(m *Measurement) {
 func (h *Input) ignoreTags(m *Measurement) {
 	for _, t := range h.TagsIgnore {
 		delete(m.tags, t)
+	}
+}
+
+func (h *Input) ignoreTagsRegex(m *Measurement) {
+	if len(h.TagsIgnoreRegex) == 0 {
+		return
+	}
+	for tagKey := range m.tags {
+		for _, r := range h.TagsIgnoreRegex {
+			match, err := regexp.MatchString(r, tagKey)
+			if err != nil {
+				continue
+			}
+			if match {
+				delete(m.tags, tagKey)
+				break
+			}
+		}
 	}
 }
 
