@@ -1,7 +1,6 @@
-
 ### `parse_date()` {#fn-parse-date}
 
-函数原型：`parse_date(key=required, yy=require, MM=require, dd=require, hh=require, mm=require, ss=require, ms=require, zone=require)`
+函数原型：`fn parse_date(key: str, yy: str, MM: str, dd: str, hh: str, mm: str, ss: str, ms: str, zone: str)`
 
 函数说明：将传入的日期字段各部分的值转化为时间戳
 
@@ -30,4 +29,3 @@ parse_date(aa, "2021", "12", "12", "10", "10", "34", "100", "Asia/Shanghai") # �
 
 parse_date(aa, "20", "February", "12", "10", "10", "34", "", "+8") 结果 aa=1581473434000000000
 ```
-

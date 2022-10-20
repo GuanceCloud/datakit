@@ -6,6 +6,7 @@
 package jaeger
 
 import (
+	"bytes"
 	"context"
 	"net"
 	"time"
@@ -58,28 +59,16 @@ func StartUDPAgent(addr string) error {
 		}
 		log.Debugf("### read from udp server:%s %d bytes", addr, n)
 
-		param := &itrace.TraceParameters{
-			Meta: &itrace.TraceMeta{
-				Protocol: "udp",
-				Buf:      buf[:n],
-			},
-		}
-
-		if storage == nil {
-			if err = parseJaegerTraceUDP(param); err != nil {
-				log.Error(err.Error())
-			}
-		} else {
-			if err = storage.Send(param); err != nil {
-				log.Error(err.Error())
-			}
+		param := &itrace.TraceParameters{Body: bytes.NewBuffer(buf[:n])}
+		if err = parseJaegerTraceUDP(param); err != nil {
+			log.Errorf("### parse jaeger trace from UDP failed: %s", err.Error())
 		}
 	}
 }
 
 func parseJaegerTraceUDP(param *itrace.TraceParameters) error {
-	thriftBuffer := thrift.NewTMemoryBufferLen(len(param.Meta.Buf))
-	_, err := thriftBuffer.Write(param.Meta.Buf)
+	thriftBuffer := thrift.NewTMemoryBufferLen(param.Body.Len())
+	_, err := thriftBuffer.Write(param.Body.Bytes())
 	if err != nil {
 		return err
 	}

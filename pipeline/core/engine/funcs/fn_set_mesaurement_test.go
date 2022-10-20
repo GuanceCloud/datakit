@@ -30,7 +30,7 @@ func TestSetMeasurement(t *testing.T) {
 		set_measurement(client_ip)
 
 		`,
-			del:    true,
+			del:    false,
 			out:    "client_ip",
 			expect: "162.62.81.1",
 			fail:   false,
@@ -45,7 +45,7 @@ func TestSetMeasurement(t *testing.T) {
 		set_measurement(client_ip, true)
 
 		`,
-			del:    false,
+			del:    true,
 			out:    "client_ip",
 			expect: "162.62.81.1",
 			fail:   false,
@@ -73,7 +73,7 @@ func TestSetMeasurement(t *testing.T) {
 			}
 			t.Log(t)
 			_, ok := tags[tc.out]
-			assert.Equal(t, tc.del, ok)
+			assert.Equal(t, tc.del, !ok)
 			assert.Equal(t, tc.expect, m)
 			t.Logf("[%d] PASS", idx)
 		})

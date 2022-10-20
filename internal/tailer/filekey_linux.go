@@ -15,7 +15,7 @@ import (
 
 //nolint
 func getFileKey(file string) string {
-	inodeStr := "inode"
+	var inodeStr = "inode"
 	var stat syscall.Stat_t
 	if err := syscall.Stat(file, &stat); err == nil {
 		inodeStr = strconv.Itoa(int(stat.Ino))

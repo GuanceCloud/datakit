@@ -159,6 +159,11 @@ func RunCallExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.CallExpr) 
 	if !ok {
 		return fmt.Errorf("unsupported func: `%v'", expr.Name)
 	}
+
+	if err := RunStmtsCheck(ctx, ctxCheck, expr.Param); err != nil {
+		return err
+	}
+
 	funcCheck, ok := ctx.GetFuncCheck(expr.Name)
 	if !ok {
 		return fmt.Errorf("not found check for func: `%v'", expr.Name)

@@ -1,6 +1,3 @@
-# 更新日志
----
-
 <!--
 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)
 [:fontawesome-solid-flag-checkered:](index.md#legends "支持选举")
@@ -8,7 +5,52 @@
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.4.19-new}
+### 问题修复 {#cl-1.4.19-fix}
+### 功能优化 {#cl-1.4.19-opt}
+### 兼容调整 {#cl-1.4.19-brk}
 -->
+
+## 1.4.19(2022/10/20) {#cl-1.4.19}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.4.19-new}
+
+- DataKit 采集器配置和 Pipeline 支持[通过 etcd/Consul 等配置中心](confd.md)来同步(#1090)
+
+### 问题修复 {#cl-1.4.19-fix}
+
+- 修复 Windows Event 采集不到数据的问题(#1200)
+- 修复 prom 调试器不工作的问题(#1192)
+
+### 功能优化 {#cl-1.4.19-opt}
+
+- Prometheus Remote Write 优化
+    - 采集支持通过正则过滤 tag(#1197)
+    - 支持通过正则过滤指标集名称(#1196)
+
+- Pipeline 优化(#1188)
+    - 优化 [grok()](../developers/pipeline.md#fn-grok) 等函数，使得其可以用在 `if/else` 语句中，以判定操作是否生效
+    - 增加 [match()](../developers/pipeline.md#fn-match) 函数
+    - 增加 [cidr()](../developers/pipeline.md#fn-cidr) 函数(#733)
+    <!-- - Pipeline 函数增加分类支持，便于用户在 Studio 页面上更快速定位操作函数(#1150) -->
+
+- 进程采集器增加打开的文件列表详情字段(#1173)
+- 完善外部接入类数据（T/R/L）的磁盘缓存和队列处理(#971)
+- Monitor 上增加用量超支提示：在 monitor 底部，如果当前空间用量超支，会有红色文字 `Beyond Usage` 提示(#1025)
+- 优化日志采集 position 功能，在容器环境下会将该文件外挂到宿主机，避免 DataKit 重启后丢失原有 position 记录(#1203)
+- 优化稀疏日志场景下采集延迟问题(#1202)
+
+
+### 兼容调整 {#cl-1.4.19-brk}
+
+由于更换了日志采集的 position 存储（存储位置和存储格式都换了），更新本版本后，原有 position 将失效。新升级本版本后，升级间隙产生的日志将不被采集，请慎重。
+
+---
 
 ## 1.4.18(2022/10/13) {#cl-1.4.18}
 
@@ -42,6 +84,7 @@
 - 修复 git 模式下，部分默认开启的采集器不工作的问题(#1154)
 - 修复 Kafka 指标集缺失问题(#1170)
 - 修复拨测采集器数据上传错误问题(#1175)
+- 修复 statsd 采集器日志问题(#1164)
 
 ### 优化 {#cl-1.4.17-opt}
 

@@ -8,7 +8,6 @@ package jaeger
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,22 +18,13 @@ import (
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 )
 
 func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### received tracing data from path: %s", req.URL.Path)
 
-	var (
-		readbodycost = time.Now()
-		enterWPoolOK = false
-	)
 	pbuf := bufpool.GetBuffer()
-	defer func() {
-		if !enterWPoolOK {
-			bufpool.PutBuffer(pbuf)
-		}
-	}()
+	defer bufpool.PutBuffer(pbuf)
 
 	_, err := io.Copy(pbuf, req.Body)
 	if err != nil {
@@ -44,70 +34,15 @@ func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	param := &itrace.TraceParameters{
-		Meta: &itrace.TraceMeta{Protocol: "http"},
-		Body: pbuf,
-	}
+	param := &itrace.TraceParameters{Body: pbuf}
+	if err = parseJaegerTrace(param); err != nil {
+		log.Errorf("### parse jaeger trace from HTTP failed: %s", err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
 
-	log.Debugf("### path: %s, Content-Type: %s, body-size: %dkb, read-body-cost: %dms",
-		req.URL.Path, req.Header.Get("Content-Type"), param.Body.Len()>>10, time.Since(readbodycost)/time.Millisecond)
-
-	if wpool == nil {
-		if storage == nil {
-			if err := parseJaegerTrace(param); err != nil {
-				log.Error(err.Error())
-				resp.WriteHeader(http.StatusBadRequest)
-
-				return
-			}
-		} else {
-			if err := storage.Send(param); err != nil {
-				log.Error(err.Error())
-				resp.WriteHeader(http.StatusBadRequest)
-
-				return
-			}
-		}
-	} else {
-		job, err := workerpool.NewJob(workerpool.WithInput(param),
-			workerpool.WithProcess(parseJaegerTraceAdapter),
-			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
-				if param, ok := input.(*itrace.TraceParameters); ok {
-					bufpool.PutBuffer(param.Body)
-				}
-				log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
-			}),
-		)
-		if err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusBadRequest)
-
-			return
-		}
-
-		if err = wpool.MoreJob(job); err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusTooManyRequests)
-
-			return
-		}
-		enterWPoolOK = true
+		return
 	}
 
 	resp.WriteHeader(http.StatusOK)
-}
-
-func parseJaegerTraceAdapter(input interface{}) (output interface{}) {
-	param, ok := input.(*itrace.TraceParameters)
-	if !ok {
-		return errors.New("type assertion failed")
-	}
-
-	if storage == nil {
-		return parseJaegerTrace(param)
-	} else {
-		return storage.Send(param)
-	}
 }
 
 func parseJaegerTrace(param *itrace.TraceParameters) error {

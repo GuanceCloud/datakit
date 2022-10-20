@@ -17,7 +17,8 @@ import (
 	"github.com/pborman/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/register"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
@@ -73,7 +74,10 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 			return nil, err
 		}
 	}
-	t.mult, err = multiline.New(opt.MultilinePatterns)
+	t.mult, err = multiline.New(
+		opt.MultilinePatterns,
+		&multiline.Option{MaxLifeDuration: opt.MaxMultilineLifeDuration},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -82,38 +86,14 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.filepath = t.file.Name()
+	t.filename = filepath.Base(t.filepath)
 
-	// check if from begine
-	if !opt.FromBeginning {
-		ret, err := t.file.Seek(0, io.SeekEnd)
-		if err != nil {
-			return nil, err
-		}
-		t.offset = ret
-	}
-
-	checkpointData, err := getLogCheckpoint(getFileKey(filename))
-	if err == nil {
-		t.opt.log.Debugf("fetch offset %d from filename %s", checkpointData.Offset, filename)
-
-		stat, err := t.file.Stat()
-		if err != nil {
-			return nil, err
-		}
-
-		if checkpointData.Offset <= stat.Size() {
-			ret, err := t.file.Seek(checkpointData.Offset, io.SeekStart)
-			if err != nil {
-				return nil, err
-			}
-			t.offset = ret
-			t.opt.log.Debugf("setting primary offset %d to filename %s", t.offset, filename)
-		}
+	if err := t.seekOffset(); err != nil {
+		return nil, err
 	}
 
 	t.readBuff = make([]byte, readBuffSize)
-	t.filepath = t.file.Name()
-	t.filename = filepath.Base(t.filepath)
 	t.tags = t.buildTags(opt.GlobalTags)
 
 	return t, nil
@@ -125,16 +105,68 @@ func (t *Single) Run() {
 }
 
 func (t *Single) Close() {
-	if t.offset > 0 {
-		err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: t.offset})
-		if err != nil {
-			t.opt.log.Warnf("recording file %s, offset %d, err: %s", t.filepath, t.offset, err)
-		} else {
-			t.opt.log.Infof("recording file %s, offset %d, success", t.filepath, t.offset)
-		}
-	}
+	t.recordingCache()
 	t.closeFile()
 	t.opt.log.Infof("closing: file %s", t.filepath)
+}
+
+func (t *Single) seekOffset() error {
+	if t.file == nil {
+		return fmt.Errorf("unreachable, invalid file pointer")
+	}
+
+	// check if from begine
+	if !t.opt.FromBeginning {
+		ret, err := t.file.Seek(0, io.SeekEnd)
+		if err != nil {
+			return err
+		}
+		t.offset = ret
+	}
+
+	if err := register.Init(logtailCachePath); err != nil {
+		t.opt.log.Infof("init logtail.cache error %s, ignored", err)
+		return nil
+	}
+
+	data := register.Get(getFileKey(t.filepath))
+	if data == nil {
+		t.opt.log.Infof("not found logtail cache for file %s, skip", t.filepath)
+		return nil
+	}
+
+	t.opt.log.Debugf("hit offset %d from filename %s", data.Offset, t.filepath)
+
+	stat, err := t.file.Stat()
+	if err != nil {
+		return err
+	}
+
+	if data.Offset <= stat.Size() {
+		ret, err := t.file.Seek(data.Offset, io.SeekStart)
+		if err != nil {
+			return err
+		}
+		t.offset = ret
+		t.opt.log.Debugf("setting primary offset %d to filename %s", t.offset, t.filepath)
+	}
+
+	return nil
+}
+
+func (t *Single) recordingCache() {
+	if t.offset <= 0 {
+		return
+	}
+
+	c := &register.MetaData{Source: t.opt.Source, Offset: t.offset}
+
+	if err := register.Set(getFileKey(t.filepath), c); err != nil {
+		t.opt.log.Warnf("recording cache %s err: %s", c, err)
+		return
+	}
+
+	t.opt.log.Debugf("recording cache %s success", c)
 }
 
 func (t *Single) closeFile() {
@@ -175,8 +207,10 @@ func (t *Single) forwardMessage() {
 		err     error
 
 		checkTicker = time.NewTicker(checkInterval)
+		flushTicker = time.NewTicker(t.opt.MinFlushInterval)
 	)
 	defer checkTicker.Stop()
+	defer flushTicker.Stop()
 
 	for {
 		select {
@@ -187,16 +221,15 @@ func (t *Single) forwardMessage() {
 			t.opt.log.Infof("exiting: file %s", t.filepath)
 			return
 
+		case <-flushTicker.C:
+			if t.mult != nil && t.mult.BuffLength() > 0 {
+				t.feed([]string{t.mult.FlushString()})
+			}
+
 		case <-checkTicker.C:
 			if !FileIsActive(t.filepath, t.opt.IgnoreDeadLog) {
 				t.opt.log.Infof("file %s is not active, larger than %s, exit", t.filepath, t.opt.IgnoreDeadLog)
 				return
-			}
-			if t.offset > 0 {
-				err := updateLogCheckpoint(getFileKey(t.filepath), &logCheckpointData{Offset: t.offset})
-				if err != nil {
-					t.opt.log.Warnf("recording file %s, offset %d, err: %s", t.filepath, t.offset, err)
-				}
 			}
 
 			did, err := DidRotate(t.file, t.offset)
@@ -233,6 +266,8 @@ func (t *Single) forwardMessage() {
 					}
 					// 数据处理完成，再记录 offset
 					t.offset += int64(readNum)
+					// 记录 cache
+					t.recordingCache()
 				}
 
 				t.opt.log.Infof("file %s has rotated, try to reopen file", t.filepath)
@@ -258,6 +293,7 @@ func (t *Single) forwardMessage() {
 			continue
 		}
 		t.readTime = time.Now()
+		flushTicker.Reset(t.opt.MinFlushInterval)
 
 		lines = b.split()
 
@@ -274,6 +310,8 @@ func (t *Single) forwardMessage() {
 
 		// 数据处理完成，再记录 offset
 		t.offset += int64(readNum)
+		// 记录 cache
+		t.recordingCache()
 	}
 }
 
@@ -469,32 +507,6 @@ func (t *Single) read() ([]byte, int, error) {
 	}
 	return t.readBuff[:n], n, nil
 }
-
-/*
-func (t *Single) readAll() ([]byte, int, error) {
-	var res []byte
-	var num int
-
-	temp := make([]byte, 1024)
-
-	for {
-		n, err := t.file.Read(temp)
-		if err != nil && err != io.EOF {
-			// an unexpected error occurred, stop the tailor
-			t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
-			return nil, 0, err
-		}
-		if n == 0 {
-			break
-		}
-		res = append(res, temp[:n]...)
-		num += n
-	}
-
-	t.offset += int64(num)
-	return res, num, nil
-}
-*/
 
 func (t *Single) wait() {
 	time.Sleep(defaultSleepDuration)

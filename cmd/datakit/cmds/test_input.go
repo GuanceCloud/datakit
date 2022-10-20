@@ -41,7 +41,7 @@ func inputDebugger(configFile string) error {
 
 	cp.Infof("[I] config path: %s\n", configPath)
 
-	inputsInstance, err := config.LoadSingleConfFile(configPath, inputs.Inputs)
+	inputsInstance, err := config.LoadSingleConfFile(configPath, inputs.Inputs, false)
 	if err != nil {
 		cp.Errorf("[E] parse failed: %v\n", err)
 		return err

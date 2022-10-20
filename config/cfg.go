@@ -89,6 +89,9 @@ type Config struct {
 	EnablePProf bool   `toml:"enable_pprof"`
 	PProfListen string `toml:"pprof_listen"`
 
+	// confd config
+	Confds []*ConfdCfg `toml:"confds"`
+
 	// DCA config
 	DCAConfig *dkhttp.DCAConfig `toml:"dca"`
 

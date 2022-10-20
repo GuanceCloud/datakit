@@ -1,7 +1,6 @@
-
 ### `drop_key()` {#fn-drop-key}
 
-函数原型：`drop_key(key=required)`
+函数原型：`fn drop_key(key)`
 
 函数说明：删除已提取字段
 

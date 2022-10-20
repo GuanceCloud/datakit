@@ -229,6 +229,135 @@ if ($x -ne $null) {
 	Write-COutput yellow "* set install log"
 }
 
+$confd_backend=""
+$confd_auth_token=""
+$confd_auth_type=""
+$confd_basic_auth=""
+$confd_client_ca_keys=""
+$confd_client_cert=""
+$confd_client_key=""
+$confd_client_insecure=""
+$confd_backend_nodes=""
+$confd_password=""
+$confd_scheme=""
+$confd_table=""
+$confd_separator=""
+$confd_username=""
+$confd_app_id=""
+$confd_user_id=""
+$confd_role_id=""
+$confd_secret_id=""
+$confd_filter=""
+$confd_path=""
+$confd_role=""
+
+$x = [Environment]::GetEnvironmentVariable("DK_CONFD_BACKEND")
+if ($x -ne $null) {
+	$confd_backend = $x
+	Write-COutput yellow "* set confd backend"
+
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_AUTH_TOKEN")
+	if ($x -ne $null) { 
+		$confd_auth_token = $x
+		Write-COutput yellow "* set confd_auth_token     "
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_AUTH_TYPE")
+	if ($x -ne $null) { 
+		$confd_auth_type = $x
+		Write-COutput yellow "* set confd_auth_type"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_BASIC_AUTH")
+	if ($x -ne $null) { 
+		$confd_basic_auth = $x
+		Write-COutput yellow "* set confd_basic_auth"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CLIENT_CA_KEYS")
+	if ($x -ne $null) { 
+		$confd_client_ca_keys = $x
+		Write-COutput yellow "* set confd_client_ca_keys"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CLIENT_CERT")
+	if ($x -ne $null) { 
+		$confd_client_cert = $x
+		Write-COutput yellow "* set confd_client_cert"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CLIENT_KEY")
+	if ($x -ne $null) { 
+		$confd_client_key = $x
+		Write-COutput yellow "* set confd_client_key"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CLIENT_INSECURE")
+	if ($x -ne $null) { 
+		$confd_client_insecure = $x
+		Write-COutput yellow "* set confd_client_insecure"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_BACKEND_NODES")
+	if ($x -ne $null) { 
+		$confd_backend_nodes = $x
+		Write-COutput yellow "* set confd_backend_nodes"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_PASSWORD")
+	if ($x -ne $null) { 
+		$confd_password = $x
+		Write-COutput yellow "* set confd_password"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_SCHEME")
+	if ($x -ne $null) { 
+		$confd_scheme = $x
+		Write-COutput yellow "* set confd_scheme"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_TABLE")
+	if ($x -ne $null) { 
+		$confd_table = $x
+		Write-COutput yellow "* set confd_table"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_SEPARATOR")
+	if ($x -ne $null) { 
+		$confd_separator = $x
+		Write-COutput yellow "* set confd_separator"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_USERNAME")
+	if ($x -ne $null) { 
+		$confd_username = $x
+		Write-COutput yellow "* set confd_username"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_APP_ID")
+	if ($x -ne $null) { 
+		$confd_app_id = $x
+		Write-COutput yellow "* set confd_app_id"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_USER_ID")
+	if ($x -ne $null) { 
+		$confd_user_id = $x
+		Write-COutput yellow "* set confd_user_id"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_ROLE_ID")
+	if ($x -ne $null) { 
+		$confd_role_id = $x
+		Write-COutput yellow "* set confd_role_id"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_SECRET_ID")
+	if ($x -ne $null) { 
+		$confd_secret_id = $x
+		Write-COutput yellow "* set confd_secret_id"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_FILTER")
+	if ($x -ne $null) { 
+		$confd_filter = $x
+		Write-COutput yellow "* set confd_filter"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_PATH")
+	if ($x -ne $null) { 
+		$confd_path = $x
+		Write-COutput yellow "* set confd_path"
+	}
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_ROLE")
+	if ($x -ne $null) { 
+		$confd_role = $x
+		Write-COutput yellow "* set confd_role"
+	}
+}
+
 $git_url=""
 $x = [Environment]::GetEnvironmentVariable("DK_GIT_URL")
 if ($x -ne $null) {
@@ -421,7 +550,7 @@ Invoke-Expression $dl_installer_action
 if ($upgrade -ne $null) { # upgrade
 	$action = "$installer --install-log=${install_log} --upgrade --proxy=${proxy} --installer_base_url=${installer_base_url} --enable-experimental=${enable_experimental}"
 } else { # install new datakit
-	$action = "$installer --install-log=${install_log} --dataway=$dataway --listen=$http_listen --installer_base_url=${installer_base_url} --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-host-tags='${global_host_tags}' --global-election-tags='${global_election_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list --git-url='${git_url}' --git-key-path='${git_key_path}' --git-key-pw='${git_key_pw}' --git-branch='${git_branch}' --git-pull-interval='${git_pull_interval}' --install-only='${install_only}' --enable-election='${enable_election}' --rum-origin-ip-header='${rum_origin_ip_header}' --disable-404page='${disable_404page}' --log-level='${log_level}' --log='${log}' --gin-log='${gin_log}' --ipdb-type='${ipdb_type}' --enable-pprof='${enable_pprof}' --pprof-listen='${pprof_listen}' --sink-metric='${sink_metric}' --sink-network='${sink_network}' --sink-keyevent='${sink_keyevent}' --sink-object='${sink_object}' --sink-custom-object='${sink_custom_object}' --sink-logging='${sink_logging}' --sink-tracing='${sink_tracing}' --sink-rum='${sink_rum}' --sink-security='${sink_security}' --sink-profile='${sink_profile}' --log-sink-detail='${log_sink_detail}'"
+	$action = "$installer --install-log=${install_log} --dataway=$dataway --listen=$http_listen --installer_base_url=${installer_base_url} --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-host-tags='${global_host_tags}' --global-election-tags='${global_election_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list --confd-backend='${confd_backend}' --confd-auth-token='${confd_auth_token}' --confd-auth-type='${confd_auth_type}' --confd-basic-auth='${confd_basic_auth}' --confd-client-ca-keys='${confd_client_ca_keys}' --confd-client-cert='${confd_client_cert}' --confd-client-key='${confd_client_key}' --confd-client-insecure='${confd_client_insecure}' --confd-backend-nodes='${confd_backend_nodes}' --confd-password='${confd_password}' --confd-scheme='${confd_scheme}' --confd-table='${confd_table}' --confd-separator='${confd_separator}' --confd-username='${confd_username}' --confd-app-id='${confd_app_id}' --confd-user-id='${confd_user_id}' --confd-role-id='${confd_role_id}' --confd-secret-id='${confd_secret_id}' --confd-filter='${confd_filter}' --confd-path='${confd_path}' --confd-role='${confd_role}' --git-url='${git_url}' --git-key-path='${git_key_path}' --git-key-pw='${git_key_pw}' --git-branch='${git_branch}' --git-pull-interval='${git_pull_interval}' --install-only='${install_only}' --enable-election='${enable_election}' --rum-origin-ip-header='${rum_origin_ip_header}' --disable-404page='${disable_404page}' --log-level='${log_level}' --log='${log}' --gin-log='${gin_log}' --ipdb-type='${ipdb_type}' --enable-pprof='${enable_pprof}' --pprof-listen='${pprof_listen}' --sink-metric='${sink_metric}' --sink-network='${sink_network}' --sink-keyevent='${sink_keyevent}' --sink-object='${sink_object}' --sink-custom-object='${sink_custom_object}' --sink-logging='${sink_logging}' --sink-tracing='${sink_tracing}' --sink-rum='${sink_rum}' --sink-security='${sink_security}' --sink-profile='${sink_profile}' --log-sink-detail='${log_sink_detail}'"
 }
 
 Write-COutput green "action: $action"

@@ -369,3 +369,15 @@ func loadContentPipeline(in map[string]map[string]string) {
 		script.ReloadAllRemoteDotPScript2StoreFromMap(category, val)
 	}
 }
+
+// todo confd
+// func loadContentPipeline(in map[string]map[string]string) {
+// 	for categoryShort, val := range in {
+// 		category, err := convertutil.GetMapCategoryShortToFull(categoryShort)
+// 		if err != nil {
+// 			l.Warnf("GetMapCategoryShortToFull failed: err = %s, categoryShort = %s", err, categoryShort)
+// 			continue
+// 		}
+// 		script.ReloadAllRemoteDotPScript2StoreFromMap(category, val)
+// 	}
+// }

@@ -1,9 +1,8 @@
-
 ### `cast()` {#fn-cast}
 
-函数原型：`cast(key=required, type=required)`
+函数原型：`fn cast(key, dst_type: str)`
 
-函数说明：将 key 值转换拆成指定类型
+函数说明：将 key 值转换成指定类型
 
 函数参数
 
@@ -16,7 +15,8 @@
 # 待处理数据: {"first": 1,"second":2,"third":"aBC","forth":true}
 
 # 处理脚本
-json(_, first) cast(first, "str")
+json(_, first) 
+cast(first, "str")
 
 # 处理结果
 {

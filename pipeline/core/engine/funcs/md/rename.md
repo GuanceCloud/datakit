@@ -1,14 +1,13 @@
-
 ### `rename()` {#fn-rename}
 
-函数原型：`rename(new-key=required, old-key=required)`
+函数原型：`fn rename(new_key, old_key)`
 
 函数说明：将已提取的字段重新命名
 
 参数:
 
-- `new-key`: 新字段名
-- `old-key`: 已提取的字段名
+- `new_key`: 新字段名
+- `old_key`: 已提取的字段名
 
 ```python
 # 把已提取的 abc 字段重新命名为 abc1

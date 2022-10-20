@@ -9,9 +9,11 @@ package skywalkingapi
 import (
 	"time"
 
-	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/language/agent/v3"
+	"google.golang.org/protobuf/proto"
 )
 
 /*
@@ -26,32 +28,41 @@ type SkyAPI struct {
 	afterGatherRun itrace.AfterGatherHandler
 	customerKeys   []string
 	tags           map[string]string
-	storage        *itrace.Storage
+	localCache     *storage.Storage
 	log            *logger.Logger
 }
 
 // InitApiPluginAges 可以初始化多次, 用 name 区分.
 //nolint:gofumpt,stylecheck
-func InitApiPluginAges(pls []string, iStorage *itrace.Storage, closeResource map[string][]string,
+func InitApiPluginAges(pls []string, localCacheConfig *storage.StorageConfig, closeResource map[string][]string,
 	keepRareResource bool, sampler *itrace.Sampler, customerTags []string, itags map[string]string, name string) *SkyAPI {
 	api := &SkyAPI{inputName: name, plugins: pls, tags: itags}
 	api.log = logger.SLogger(name)
-	if iStorage != nil {
-		if cache, err := cache.Open(iStorage.Path, &cache.Option{Capacity: int64(iStorage.Capacity) << 20}); err != nil {
-			api.log.Errorf("### open cache %s with cap %dMB failed, cache.Open: %s", iStorage.Path, iStorage.Capacity, err)
+	if localCacheConfig != nil {
+		if localCache, err := storage.NewStorage(localCacheConfig, api.log); err != nil {
+			api.log.Errorf("### new local-cache failed: %s", err.Error())
+		} else if err = localCache.RunConsumeWorker(); err != nil {
+			api.log.Errorf("### run local-cache consumer failed: %s", err.Error())
 		} else {
-			iStorage.SetCache(cache)
-			iStorage.RunStorageConsumer(api.log, api.parseSegmentObjectWrapper)
-			api.storage = iStorage
-			api.log.Infof("### open cache %s with cap %dMB OK", iStorage.Path, iStorage.Capacity)
+			api.localCache = localCache
+			api.localCache.RegisterConsumer(storage.SKY_WALKING_GRPC_KEY, func(buf []byte) error {
+				segobj := &agentv3.SegmentObject{}
+				if err := proto.Unmarshal(buf, segobj); err != nil {
+					return err
+				}
+
+				api.parseSegmentObject(segobj)
+
+				return nil
+			})
 		}
 	}
 
 	var afterGather *itrace.AfterGather
-	if api.storage == nil {
-		afterGather = itrace.NewAfterGather()
+	if api.localCache != nil && api.localCache.Enabled() {
+		afterGather = itrace.NewAfterGather(itrace.WithLogger(api.log), itrace.WithRetry(100*time.Millisecond), itrace.WithBlockIOModel(true))
 	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithRetry(100 * time.Millisecond))
+		afterGather = itrace.NewAfterGather(itrace.WithLogger(api.log))
 	}
 	api.afterGatherRun = afterGather
 
@@ -80,11 +91,12 @@ func InitApiPluginAges(pls []string, iStorage *itrace.Storage, closeResource map
 	afterGather.AppendFilter(isampler.Sample)
 
 	api.customerKeys = customerTags
+
 	return api
 }
 
 func (api *SkyAPI) StopStorage() {
-	if api.storage != nil {
-		_ = api.storage.Close()
+	if api.localCache != nil {
+		_ = api.localCache.Close()
 	}
 }

@@ -17,10 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
-var (
-	once                                                                             = sync.Once{}
-	dkioFeed func(name, category string, pts []*point.Point, opt *dkio.Option) error = dkio.Feed
-)
+var dkioFeed func(name, category string, pts []*point.Point, opt *dkio.Option) error = dkio.Feed
 
 type AfterGatherHandler interface {
 	Run(inputName string, dktraces DatakitTraces, strikMod bool)
@@ -32,24 +29,21 @@ func (ag AfterGatherFunc) Run(inputName string, dktraces DatakitTraces, strikMod
 	ag(inputName, dktraces, strikMod)
 }
 
-// CalculatorFunc is func type for calculation, statistics, etc
-// any data changes in DatakitTraces will be saved and affect the next actions afterwards.
-type CalculatorFunc func(dktrace DatakitTrace)
-
-// FilterFunc is func type for data filter.
-// Return the DatakitTraces that need to propagate to next action and
-// return ture if one want to skip all FilterFunc afterwards, false otherwise.
-type FilterFunc func(dktrace DatakitTrace) (DatakitTrace, bool)
-
 type AfterGather struct {
 	sync.Mutex
-	calculators    []CalculatorFunc
+	log            *logger.Logger
 	filters        []FilterFunc
 	ReFeedInterval time.Duration
 	BlockIOModel   bool
 }
 
 type Option func(aga *AfterGather)
+
+func WithLogger(log *logger.Logger) Option {
+	return func(aga *AfterGather) {
+		aga.log = log
+	}
+}
 
 func WithRetry(interval time.Duration) Option {
 	return func(aga *AfterGather) {
@@ -64,21 +58,12 @@ func WithBlockIOModel(block bool) Option {
 }
 
 func NewAfterGather(options ...Option) *AfterGather {
-	aga := &AfterGather{}
+	aga := &AfterGather{log: logger.DefaultSLogger("after-gather")}
 	for i := range options {
 		options[i](aga)
 	}
 
 	return aga
-}
-
-// AppendCalculator will append new calculators into AfterGather structure,
-// and run them as the order they added.%.
-func (aga *AfterGather) AppendCalculator(calc ...CalculatorFunc) {
-	aga.Lock()
-	defer aga.Unlock()
-
-	aga.calculators = append(aga.calculators, calc...)
 }
 
 // AppendFilter will append new filters into AfterGather structure
@@ -92,12 +77,8 @@ func (aga *AfterGather) AppendFilter(filter ...FilterFunc) {
 }
 
 func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod bool) {
-	once.Do(func() {
-		log = logger.SLogger(packageName)
-	})
-
 	if len(dktraces) == 0 {
-		log.Debug("empty dktraces")
+		aga.log.Debug("empty dktraces")
 
 		return
 	}
@@ -110,7 +91,7 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod
 			var temp DatakitTrace
 			for i := range aga.filters {
 				var skip bool
-				if temp, skip = aga.filters[i](dktraces[k]); skip {
+				if temp, skip = aga.filters[i](aga.log, dktraces[k]); skip {
 					break
 				}
 			}
@@ -123,7 +104,7 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod
 		return
 	}
 
-	if pts := BuildPointsBatch(afterFilters, stricktMod); len(pts) != 0 {
+	if pts := aga.BuildPointsBatch(afterFilters, stricktMod); len(pts) != 0 {
 		var (
 			start = time.Now()
 			opt   = &dkio.Option{Blocking: aga.BlockIOModel}
@@ -131,26 +112,26 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod
 		)
 	IO_FEED_RETRY:
 		if err = dkioFeed(inputName, datakit.Tracing, pts, opt); err != nil {
-			log.Warnf("### io feed points failed: %s, ignored", err.Error())
+			aga.log.Warnf("io feed points failed: %s, ignored", err.Error())
 			if aga.ReFeedInterval > 0 && errors.Is(err, dkio.ErrIOBusy) {
 				time.Sleep(aga.ReFeedInterval)
 				goto IO_FEED_RETRY
 			}
 		} else {
-			log.Debugf("### send %d points cost %dms with error: %v", len(pts), time.Since(start)/time.Millisecond, err)
+			aga.log.Debugf("### send %d points cost %dms with error: %v", len(pts), time.Since(start)/time.Millisecond, err)
 		}
 	} else {
-		log.Debug("### BuildPointsBatch return empty points array")
+		aga.log.Debug("BuildPointsBatch return empty points array")
 	}
 }
 
 // BuildPointsBatch builds points from whole trace.
-func BuildPointsBatch(dktraces DatakitTraces, strict bool) []*point.Point {
+func (aga *AfterGather) BuildPointsBatch(dktraces DatakitTraces, strict bool) []*point.Point {
 	var pts []*point.Point
 	for i := range dktraces {
 		for j := range dktraces[i] {
 			if pt, err := BuildPoint(dktraces[i][j], strict); err != nil {
-				log.Warnf("build point error: %s", err.Error())
+				aga.log.Warnf("build point error: %s", err.Error())
 			} else {
 				pts = append(pts, pt)
 			}

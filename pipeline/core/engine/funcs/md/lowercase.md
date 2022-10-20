@@ -1,7 +1,6 @@
-
 ### `lowercase()` {#fn-lowercase}
 
-函数原型：`lowercase(key=required)`
+函数原型：`fn lowercase(key: str)`
 
 函数说明：将已提取 key 中内容转换成小写
 

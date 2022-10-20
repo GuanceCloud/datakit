@@ -219,3 +219,13 @@ func (cw *ConnWatcher) String() string {
 func GetHeader(req *http.Request, key string) string {
 	return strings.ToLower(strings.TrimSpace(req.Header.Get(key)))
 }
+
+type NopResponseWriter struct {
+	Raw http.ResponseWriter
+}
+
+func (nop *NopResponseWriter) Header() http.Header { return make(http.Header) }
+
+func (nop *NopResponseWriter) Write([]byte) (int, error) { return 0, nil }
+
+func (nop *NopResponseWriter) WriteHeader(statusCode int) {}

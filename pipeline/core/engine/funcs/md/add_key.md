@@ -1,13 +1,13 @@
 ### `add_key()` {#fn-add-key}
 
-函数原型：`add_key(key_name=required, key_name=optional)`
+函数原型：`fn add_key(key, value)`
 
 函数说明：往 point 中增加一个字段
 
 函数参数
 
-- `key_name`: 新增的 key 名称
-- `key_name`：key 值（只能是 string/int/float/bool/nil 这几种类型）, 未填写时尝试从堆栈中获取同名变量的值
+- `key`: 新增的 key 名称
+- `value`：作为 key 的值
 
 示例:
 

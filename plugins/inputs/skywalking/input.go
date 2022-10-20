@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/skywalkingapi"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"google.golang.org/grpc"
@@ -85,30 +86,24 @@ var (
 )
 
 type Input struct {
-	V2               interface{}         `toml:"V2"`        // deprecated *skywalkingConfig
-	V3               interface{}         `toml:"V3"`        // deprecated *skywalkingConfig
-	Pipelines        map[string]string   `toml:"pipelines"` // deprecated
-	Address          string              `toml:"address"`
-	Plugins          []string            `toml:"plugins"`
-	CustomerTags     []string            `toml:"customer_tags"`
-	KeepRareResource bool                `toml:"keep_rare_resource"`
-	CloseResource    map[string][]string `toml:"close_resource"`
-	Sampler          *itrace.Sampler     `toml:"sampler"`
-	Tags             map[string]string   `toml:"tags"`
-	Storage          *itrace.Storage     `toml:"storage"`
+	V2               interface{}            `toml:"V2"`        // deprecated *skywalkingConfig
+	V3               interface{}            `toml:"V3"`        // deprecated *skywalkingConfig
+	Pipelines        map[string]string      `toml:"pipelines"` // deprecated
+	Address          string                 `toml:"address"`
+	Plugins          []string               `toml:"plugins"`
+	CustomerTags     []string               `toml:"customer_tags"`
+	KeepRareResource bool                   `toml:"keep_rare_resource"`
+	CloseResource    map[string][]string    `toml:"close_resource"`
+	Sampler          *itrace.Sampler        `toml:"sampler"`
+	Tags             map[string]string      `toml:"tags"`
+	LocalCacheConfig *storage.StorageConfig `toml:"storage"`
 }
 
-func (*Input) Catalog() string {
-	return inputName
-}
+func (*Input) Catalog() string { return inputName }
 
-func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
-func (*Input) SampleConfig() string {
-	return sampleConfig
-}
+func (*Input) SampleConfig() string { return sampleConfig }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&skywalkingapi.MetricMeasurement{}}
@@ -116,7 +111,8 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
-	api = skywalkingapi.InitApiPluginAges(ipt.Plugins, ipt.Storage, ipt.CloseResource,
+
+	api = skywalkingapi.InitApiPluginAges(ipt.Plugins, ipt.LocalCacheConfig, ipt.CloseResource,
 		ipt.KeepRareResource, ipt.Sampler, ipt.CustomerTags, ipt.Tags, inputName)
 	log.Debug("start skywalking grpc v3 server")
 
@@ -127,6 +123,7 @@ func (ipt *Input) Run() {
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_skywalking"})
 	g.Go(func(ctx context.Context) error {
 		registerServerV3(ipt.Address)
+
 		return nil
 	})
 }

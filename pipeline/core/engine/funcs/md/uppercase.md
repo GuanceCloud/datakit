@@ -1,7 +1,6 @@
-
 ### `uppercase()` {#fn-uppercase}
 
-函数原型：`uppercase(key=required)`
+函数原型：`fn uppercase(key: str)`
 
 函数说明：将已提取 key 中内容转换成大写
 

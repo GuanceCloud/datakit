@@ -33,6 +33,18 @@ func getKeyName(node *ast.Node) (string, error) {
 	return key, nil
 }
 
+func isPlVarbOrFunc(node *ast.Node) bool {
+	if node == nil {
+		return false
+	}
+	switch node.NodeType { //nolint:exhaustive
+	case ast.TypeIdentifier, ast.TypeAttrExpr, ast.TypeCallExpr:
+		return true
+	default:
+		return false
+	}
+}
+
 const (
 	InvalidInt   = math.MinInt32
 	DefaultInt   = int64(0xdeadbeef)

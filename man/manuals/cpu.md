@@ -17,7 +17,7 @@ CPU 采集器用于系统 CPU 使用率的采集。
 === "主机部署"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
-    
+
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```

@@ -285,24 +285,13 @@ func reloadCore(ctx context.Context) (int, error) {
 			case 0:
 				l.Info("before ReloadCheckInputCfg")
 
-				iputs, err := config.ReloadCheckInputCfg()
+				_, err := config.ReloadCheckInputCfg()
 				if err != nil {
 					l.Errorf("ReloadCheckInputCfg failed: %v", err)
 					return round, err
 				}
 
 				l.Info("before ReloadCheckPipelineCfg")
-
-				opt, err := config.ReloadCheckPipelineCfg(iputs)
-				if err != nil {
-					if opt != nil {
-						l.Errorf("ReloadCheckPipelineCfg failed: %v => Source: %s, Service: %s, Pipeline: %s",
-							err, opt.Source, opt.Service, opt.Pipeline)
-					} else {
-						l.Errorf("ReloadCheckPipelineCfg failed: %v", err)
-					}
-					return round, err
-				}
 
 			case 1:
 				l.Info("before StopInputs")
