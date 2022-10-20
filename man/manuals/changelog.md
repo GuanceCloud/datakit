@@ -20,7 +20,7 @@
 
 ### 新加功能 {#cl-1.4.19-new}
 
-- DataKit 采集器配置和 Pipeline 支持通过 etcd/Consul 等配置中心来同步(#1090)
+- DataKit 采集器配置和 Pipeline 支持[通过 etcd/Consul 等配置中心](confd.md)来同步(#1090)
 
 ### 问题修复 {#cl-1.4.19-fix}
 
