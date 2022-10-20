@@ -418,3 +418,10 @@ func getBinName() string {
 
 	return bin
 }
+
+func JoinToCacheDir(filename string) string {
+	if filepath.IsAbs(filename) {
+		return filename
+	}
+	return filepath.Join(CacheDir, filename)
+}
