@@ -300,6 +300,7 @@ func (x *IO) updateLastErr(e *lastError) {
 func (x *IO) flush(c *consumer) {
 	c.lastFlush = time.Now()
 	failed := 0
+
 	if n, err := x.doFlush(c.pts, c.category, c.fc); err != nil {
 		log.Errorf("post %d to %s failed: %s", len(c.pts), c.category, err)
 		failed += n
