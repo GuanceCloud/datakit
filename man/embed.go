@@ -13,6 +13,7 @@ import (
 var docs embed.FS
 
 var OtherDocs = map[string]bool{
+	"confd":                        true,
 	"datakit-sink-guide":           true,
 	"datakit-sink-dev":             true,
 	"datakit-sink-influxdb":        true,
