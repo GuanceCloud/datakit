@@ -1,6 +1,6 @@
 ### `get_key()` {#fn-get-key}
 
-函数原型：`get_key(key_name=required)`
+函数原型：`fn get_key(key)`
 
 函数说明：从 point 中读取 key 的值，而不是堆栈上的变量的值
 

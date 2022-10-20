@@ -22,7 +22,7 @@ func TestDz(t *testing.T) {
 	}{
 		{
 			name:     "normal",
-			pl:       `json(_, str); cover(str, [8, 13])`,
+			pl:       "json(_, `str`); cover(`str`, [8, 13])",
 			in:       `{"str": "13838130517"}`,
 			outKey:   "str",
 			expected: "1383813****",
@@ -31,7 +31,7 @@ func TestDz(t *testing.T) {
 
 		{
 			name:     "normal",
-			pl:       `json(_, str) ;cover(str, [8, 11])`,
+			pl:       "json(_, `str`) ;cover(`str`, [8, 11])",
 			in:       `{"str": "13838130517"}`,
 			outKey:   "str",
 			expected: "1383813****",
@@ -40,7 +40,7 @@ func TestDz(t *testing.T) {
 
 		{
 			name:     "normal",
-			pl:       `json(_, str); cover(str, [2, 4])`,
+			pl:       "json(_, `str`); cover(`str`, [2, 4])",
 			in:       `{"str": "13838130517"}`,
 			outKey:   "str",
 			expected: "1***8130517",
@@ -49,7 +49,7 @@ func TestDz(t *testing.T) {
 
 		{
 			name:     "normal",
-			pl:       `json(_, str) ;cover(str, [1, 1])`,
+			pl:       "json(_, `str`) ;cover(`str`, [1, 1])",
 			in:       `{"str": "13838130517"}`,
 			outKey:   "str",
 			expected: "*3838130517",
@@ -58,7 +58,7 @@ func TestDz(t *testing.T) {
 
 		{
 			name:     "odd range",
-			pl:       `json(_, str); cover(str, [1, 100])`,
+			pl:       "json(_, `str`); cover(`str`, [1, 100])",
 			in:       `{"str": "刘少波"}`,
 			outKey:   "str",
 			expected: "＊＊＊",
@@ -67,49 +67,49 @@ func TestDz(t *testing.T) {
 
 		{
 			name: "invalid range",
-			pl:   `json(_, str); cover(str, [3, 2])`,
+			pl:   "json(_, `str`); cover(`str`, [3, 2])",
 			in:   `{"str": "刘少波"}`,
 			fail: true,
 		},
 
 		{
 			name: "not enough args",
-			pl:   `json(_, str) ;cover(str)`,
+			pl:   "json(_, `str`) ;cover(`str`)",
 			in:   `{"str": "刘少波"}`,
 			fail: true,
 		},
 
 		{
 			name: "invalid range",
-			pl:   `json(_, str); cover(str, ["刘", "波"])`,
+			pl:   "json(_, `str`); cover(`str`, [\"刘\", \"波\"])",
 			in:   `{"str": "刘少波"}`,
 			fail: true,
 		},
 
 		{
 			name: "normal",
-			pl:   `json(_, str) ;cover(str, [1, 2])`,
+			pl:   "json(_, `str`) ;cover(`str`, [1, 2])",
 			in:   `{"str": 123456}`,
 			fail: true,
 		},
 
 		{
 			name: "normal",
-			pl:   `json(_, str) ;cover(str, [-1, -2])`,
+			pl:   "json(_, `str`) ;cover(`str`, [-1, -2])",
 			in:   `{"str": 123456}`,
 			fail: true,
 		},
 
 		{
 			name: "normal",
-			pl:   `json(_, str); cover(str, [-1, -2])`,
+			pl:   "json(_, `str`); cover(`str`, [-1, -2])",
 			in:   `{"str": 123456}`,
 			fail: true,
 		},
 
 		{
 			name:     "normal",
-			pl:       `json(_, str) ; cast(str,"int"); cover(str, [-2, 10000])`,
+			pl:       "json(_, `str`) ; cast(`str`, \"int\"); cover(`str`, [-2, 10000])",
 			in:       `{"str": 123456}`,
 			outKey:   "str",
 			expected: int64(123456),

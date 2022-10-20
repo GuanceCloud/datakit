@@ -7,6 +7,7 @@ package ast
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
@@ -224,6 +225,7 @@ type CallExpr struct {
 	// ParamIndex []int
 
 	Grok *grok.GrokRegexp
+	Re   *regexp.Regexp
 }
 
 func (e *CallExpr) IsExpr() bool {

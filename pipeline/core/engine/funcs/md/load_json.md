@@ -1,6 +1,6 @@
 ### `load_json()` {#fn-load_json}
 
-函数原型：`load_json(val=required) -> Type(nil, bool, float, map, list)`
+函数原型：`fn load_json(val: str) nil|bool|float|map|list`
 
 函数说明：将 json 字符串转换成 map、list、nil、bool、float 的其中一种，可通过 index 表达式取值及修改值。
 

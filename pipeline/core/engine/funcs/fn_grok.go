@@ -55,17 +55,20 @@ func GrokChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) error {
 func Grok(ng *runtime.Context, funcExpr *ast.CallExpr) runtime.PlPanic {
 	grokRe := funcExpr.Grok
 	if grokRe == nil {
+		ng.Regs.Append(false, ast.Bool)
 		return fmt.Errorf("no grok obj")
 	}
 	var err error
 
 	key, err := getKeyName(funcExpr.Param[0])
 	if err != nil {
+		ng.Regs.Append(false, ast.Bool)
 		return err
 	}
 
 	val, err := ng.GetKeyConv2Str(key)
 	if err != nil {
+		ng.Regs.Append(false, ast.Bool)
 		return nil
 	}
 
@@ -75,6 +78,7 @@ func Grok(ng *runtime.Context, funcExpr *ast.CallExpr) runtime.PlPanic {
 		case ast.TypeBoolLiteral:
 			trimSpace = funcExpr.Param[2].BoolLiteral.Val
 		default:
+			ng.Regs.Append(false, ast.Bool)
 			return fmt.Errorf("param key expect BoolLiteral, got `%s'",
 				funcExpr.Param[2].NodeType)
 		}
@@ -82,6 +86,7 @@ func Grok(ng *runtime.Context, funcExpr *ast.CallExpr) runtime.PlPanic {
 
 	m, _, err := grokRe.RunWithTypeInfo(val, trimSpace)
 	if err != nil {
+		ng.Regs.Append(false, ast.Bool)
 		return nil
 	}
 
@@ -105,8 +110,10 @@ func Grok(ng *runtime.Context, funcExpr *ast.CallExpr) runtime.PlPanic {
 		}
 		if err := ng.AddKey2PtWithVal(k, v, dtype, runtime.KindPtDefault); err != nil {
 			l.Debug(err)
+			ng.Regs.Append(false, ast.Bool)
 			return nil
 		}
 	}
+	ng.Regs.Append(true, ast.Bool)
 	return nil
 }

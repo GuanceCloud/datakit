@@ -79,15 +79,19 @@ var (
 		"identifier": IDENTIFIER,
 		"nil":        NIL,
 		"null":       NULL,
-		"re":         RE,
 		"true":       TRUE,
-		"jp":         JP,
 		"for":        FOR,
 		"in":         IN,
 		"while":      WHILE,
 		"break":      BREAK,
 		"continue":   CONTINUE,
 		"return":     RETURN,
+		"str":        STR,
+		"bool":       BOOL,
+		"int":        INT,
+		"float":      FLOAT,
+		"list":       LIST,
+		"map":        MAP,
 	}
 
 	ItemTypeStr = map[ItemType]string{

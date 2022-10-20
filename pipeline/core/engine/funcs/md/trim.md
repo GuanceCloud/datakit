@@ -1,6 +1,6 @@
 ### `trim()` {#fn-trim}
 
-函数原型：`trim(key=required, cutset=optional)`
+函数原型：`fn trim(key, cutset: str = "")`
 
 函数说明：删除 key 中首尾中指定的字符，cutset 为空字符串时默认删除所有空白符
 
