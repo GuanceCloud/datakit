@@ -1187,13 +1187,6 @@ func TestParser(t *testing.T) {
 		},
 
 		{
-			name: "case: attr syntax in function arg",
-			in:   `avg(x.y.z, 1,2,3, p68, re("cd"), pqa)`,
-			// 函数参数不可以 re()
-			fail: true,
-		},
-
-		{
 			name: "attr syntax with index syntax in function arg",
 			in:   `json(_, x.y[1].z)`,
 			expected: ast.Stmts{

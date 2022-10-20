@@ -20,6 +20,46 @@ func TestGrok(t *testing.T) {
 		outkey       string
 	}{
 		{
+			name: "normal_return_t",
+			pl: `
+add_pattern("_second", "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)")
+add_pattern("_minute", "(?:[0-5][0-9])")
+add_pattern("_hour", "(?:2[0123]|[01]?[0-9])")
+add_pattern("time", "([^0-9]?)%{_hour:hour}:%{_minute:minute}(?::%{_second:second})([^0-9]?)")
+add_key(grok_match_ok, grok(_, "%{time}"))`,
+			in:       "12:13:14.123",
+			expected: true,
+			outkey:   "grok_match_ok",
+		},
+		{
+			name: "normal_return_f",
+			pl: `
+add_pattern("_second", "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)")
+add_pattern("_minute", "(?:[0-5][0-9])")
+add_pattern("_hour", "(?:2[0123]|[01]?[0-9])")
+add_pattern("time", "([^0-9]?)%{_hour:hour}:%{_minute:minute}(?::%{_second:second})([^0-9]?)")
+add_key(grok_match_ok, grok(_, "%{time}"))`,
+			in:       "12 :13:14.123",
+			expected: false,
+			outkey:   "grok_match_ok",
+		},
+		{
+			name: "normal_return_sample_t",
+			pl: `
+add_key(grok_match_ok, grok(_, "12 :13:14.123"))`,
+			in:       "12 :13:14.123",
+			expected: true,
+			outkey:   "grok_match_ok",
+		},
+		{
+			name: "normal_return_sample_f",
+			pl: `
+add_key(grok_match_ok, grok(_, "12 :13:14.123"))`,
+			in:       "12:13:14.123",
+			expected: false,
+			outkey:   "grok_match_ok",
+		},
+		{
 			name: "normal",
 			pl: `
 add_pattern("_second", "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)")
@@ -88,6 +128,21 @@ aa222`,
 add_pattern("time", "%{NUMBER:time:float}")
 grok(_, '''%{time}
 %{WORD:word:string}
+	%{WORD:code:int}
+%{WORD:w1}''')`,
+			in: `1.1
+s
+	123
+aa222`,
+			expected: int64(123),
+			outkey:   "code",
+		},
+		{
+			name: "normal",
+			pl: `
+add_pattern("time", "%{NUMBER:time:float}")
+grok(_, '''%{time}
+%{WORD:word:str}
 	%{WORD:code:int}
 %{WORD:w1}''')`,
 			in: `1.1

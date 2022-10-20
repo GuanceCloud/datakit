@@ -1,7 +1,6 @@
-
 ### `user_agent()` {#fn-user-agent}
 
-函数原型：`user_agent(key=required)`
+函数原型：`fn user_agent(key: str)`
 
 函数说明：对指定字段上获取客户端信息
 

@@ -1,14 +1,13 @@
-
 ### `default_time()` {#fn-defalt-time}
 
-函数原型：`default_time(key=required, timezone=optional)`
+函数原型：`fn default_time(key: str, timezone: str = "")`
 
 函数说明：以提取的某个字段作为最终数据的时间戳
 
 函数参数
 
 - `key`: 指定的 key， key 的数据类型需要为字符串类型
-- `timezone`: 指定待格式化的时间文本所使用的时区，默认为本机当前时区，时区示例 `+8/-8/+8:30`
+- `timezone`: 指定待格式化的时间文本所使用的时区，可选参数，默认为当前系统时区，时区示例 `+8/-8/+8:30`
 
 待处理数据支持以下格式化时间
 

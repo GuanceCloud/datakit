@@ -1,6 +1,6 @@
 ### `use()` {#fn-use}
 
-函数原型：`use(name=required)`
+函数原型：`fn use(name: str)`
 
 参数:
 

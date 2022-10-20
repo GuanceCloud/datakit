@@ -1,6 +1,6 @@
 ### `mquery_refer_table()` {#fn-mquery-refer-table}
 
-函数原型：`mquery_refer_table(table_name=requierd, keys=required, values=required)`
+函数原型：`fn mquery_refer_table(table_name: str, keys: list, values: list)`
 
 函数说明：通过指定多个 key 查询外部引用表，并将查询结果的首行的所有列追加到 field 中。
 

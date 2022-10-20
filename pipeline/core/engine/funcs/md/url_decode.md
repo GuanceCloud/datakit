@@ -1,7 +1,6 @@
-
 ### `url_decode()` {#fn-url-decode}
 
-函数原型：`url_decode(key=required)`
+函数原型：`fn url_decode(key: str)`
 
 函数说明：将已提取 `key` 中的 URL 解析成明文
 

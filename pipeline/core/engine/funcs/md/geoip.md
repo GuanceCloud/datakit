@@ -1,7 +1,6 @@
-
 ### `geoip()` {#fn-geoip}
 
-函数原型：`geoip(key=required)`
+函数原型：`fn geoip(ip: str)`
 
 函数说明：在 IP 上追加更多 IP 信息。 `geoip()` 会额外产生多个字段，如：
 
@@ -12,7 +11,7 @@
 
 参数:
 
-- `key`: 已经提取出来的 IP 字段，支持 IPv4/6
+- `ip`: 已经提取出来的 IP 字段，支持 IPv4/6
 
 示例：
 

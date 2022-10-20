@@ -1,7 +1,6 @@
-
 ### `replace()` {#fn-replace}
 
-函数原型：`replace(key=required, regex=required, replaceStr=required)`
+函数原型：`fn replace(key: str, regex: str, replace_str: str)`
 
 函数说明：对指定字段上获取的字符串数据按正则进行替换
 
@@ -9,7 +8,7 @@
 
 - `key`: 待提取字段
 - `regex`: 正则表达式
-- `replaceStr`: 替换的字符串
+- `replace_str`: 替换的字符串
 
 示例:
 

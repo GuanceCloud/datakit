@@ -18,6 +18,7 @@ func InitLog() {
 }
 
 var FuncsMap = map[string]runtime.FuncCall{
+	"cidr":                  CIDR,
 	"grok":                  Grok,
 	"add_key":               AddKey,
 	"adjust_timezone":       AdjustTimezone,
@@ -56,14 +57,15 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"replace":               Replace,
 	"duration_precision":    DurationPrecision,
 	"xml":                   XML,
-	// "match":                 Match,
-	"sql_cover": SQLCover,
-	"decode":    Decode,
+	"match":                 Match,
+	"sql_cover":             SQLCover,
+	"decode":                Decode,
 	// disable
 	"json_all": JSONAll,
 }
 
 var FuncsCheckMap = map[string]runtime.FuncCheck{
+	"cidr":                  CIDRChecking,
 	"grok":                  GrokChecking,
 	"add_key":               AddkeyChecking,
 	"adjust_timezone":       AdjustTimezoneChecking,
@@ -103,8 +105,8 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	"duration_precision":    DurationPrecisionChecking,
 	"sql_cover":             SQLCoverChecking,
 	"xml":                   XMLChecking,
-	// "match":                 MatchChecking,
-	"decode": DecodeChecking,
+	"match":                 MatchChecking,
+	"decode":                DecodeChecking,
 	// disable
 	"json_all": JSONAllChecking,
 }
