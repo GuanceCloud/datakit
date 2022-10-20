@@ -224,7 +224,7 @@ type NopResponseWriter struct {
 	Raw http.ResponseWriter
 }
 
-func (nop *NopResponseWriter) Header() http.Header { return nil }
+func (nop *NopResponseWriter) Header() http.Header { return make(http.Header) }
 
 func (nop *NopResponseWriter) Write([]byte) (int, error) { return 0, nil }
 

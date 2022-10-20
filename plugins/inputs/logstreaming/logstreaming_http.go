@@ -8,8 +8,6 @@ package logstreaming
 import (
 	"bufio"
 	"bytes"
-	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -21,7 +19,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
@@ -37,16 +34,8 @@ type parameters struct {
 func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### Log request from %s", req.URL.String())
 
-	var (
-		readbodycost = time.Now()
-		enterWPoolOK = false
-	)
 	pbuf := bufpool.GetBuffer()
-	defer func() {
-		if !enterWPoolOK {
-			bufpool.PutBuffer(pbuf)
-		}
-	}()
+	defer bufpool.PutBuffer(pbuf)
 
 	_, err := io.Copy(pbuf, req.Body)
 	if err != nil {
@@ -62,41 +51,11 @@ func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request
 		queryValues:   req.URL.Query(),
 		body:          pbuf,
 	}
+	if err = processLogBody(param); err != nil {
+		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
 
-	log.Debugf("### path: %s, body-data-type: %s, body-size: %d, read-body-cost: %dms",
-		param.url.Path, param.queryValues.Get("type"), pbuf.Len(), time.Since(readbodycost)/time.Millisecond)
-
-	if wkpool == nil {
-		if err = processLogBody(param); err != nil {
-			log.Error(err.Error())
-			resp.Write([]byte(fmt.Sprintf(`{"status":"fail","error_msg":%q}`, err.Error()))) //nolint:errcheck,gosec
-
-			return
-		}
-	} else {
-		job, err := workerpool.NewJob(workerpool.WithInput(param),
-			workerpool.WithProcess(processLogBodyAdapter),
-			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
-				if param, ok := input.(*parameters); ok {
-					bufpool.PutBuffer(param.body)
-				}
-				log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
-			}),
-		)
-		if err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusBadRequest)
-
-			return
-		}
-
-		if err = wkpool.MoreJob(job); err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusTooManyRequests)
-
-			return
-		}
-		enterWPoolOK = true
+		return
 	}
 
 	resp.Write([]byte(`{"status":"success"}`)) //nolint:errcheck,gosec
@@ -124,15 +83,6 @@ func completePrecision(precision string) string {
 	}
 
 	return precision
-}
-
-func processLogBodyAdapter(input interface{}) (output interface{}) {
-	param, ok := input.(*parameters)
-	if !ok {
-		return errors.New("type assertion failed")
-	}
-
-	return processLogBody(param)
 }
 
 func processLogBody(param *parameters) error {

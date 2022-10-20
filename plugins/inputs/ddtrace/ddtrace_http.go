@@ -7,7 +7,6 @@ package ddtrace
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -46,27 +45,15 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	param := &itrace.TraceParameters{
-		Meta: &itrace.TraceMeta{
-			UrlPath: req.URL.Path,
-			Media:   req.Header.Get("Content-Type"),
-		},
-		Body: pbuf,
+		URLPath: req.URL.Path,
+		Media:   req.Header.Get("Content-Type"),
+		Body:    pbuf,
 	}
+	if err = parseDDTraces(param); err != nil {
+		log.Errorf("### parse ddtrace failed: %s", err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
 
-	if storage == nil {
-		if err = parseDDTraces(param); err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusBadRequest)
-
-			return
-		}
-	} else {
-		if err = storage.Send(param); err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusBadRequest)
-
-			return
-		}
+		return
 	}
 
 	switch req.URL.Path {
@@ -89,19 +76,6 @@ func handleDDInfo(resp http.ResponseWriter, req *http.Request) { // nolint: unus
 func handleDDStats(resp http.ResponseWriter, req *http.Request) {
 	log.Errorf("### %s unsupported yet", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
-}
-
-func parseDDTracesAdapter(input interface{}) (output interface{}) {
-	param, ok := input.(*itrace.TraceParameters)
-	if !ok {
-		return errors.New("type assertion failed")
-	}
-
-	if storage == nil {
-		return parseDDTraces(param)
-	} else {
-		return storage.Send(param)
-	}
 }
 
 func parseDDTraces(param *itrace.TraceParameters) error {
@@ -138,7 +112,7 @@ func decodeDDTraces(param *itrace.TraceParameters) (DDTraces, error) {
 		traces DDTraces
 		err    error
 	)
-	switch param.Meta.UrlPath {
+	switch param.URLPath {
 	case v1:
 		var spans DDTrace
 		if err := json.NewDecoder(param.Body).Decode(&spans); err != nil {
@@ -159,7 +133,7 @@ func decodeDDTraces(param *itrace.TraceParameters) (DDTraces, error) {
 }
 
 func decodeRequest(param *itrace.TraceParameters, out *DDTraces) error {
-	mediaType, _, err := mime.ParseMediaType(param.Meta.Media)
+	mediaType, _, err := mime.ParseMediaType(param.Media)
 	if err != nil {
 		log.Debug(err.Error())
 	}

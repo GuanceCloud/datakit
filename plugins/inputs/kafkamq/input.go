@@ -13,10 +13,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/skywalkingapi"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafkamq/skywalking"
 )
+
+var _ inputs.InputV2 = &Input{}
 
 const mqSampleConfig = `
 [[inputs.kafkamq]]
@@ -35,7 +38,7 @@ const mqSampleConfig = `
   ## to data center and do not consider samplers and filters.
   # keep_rare_resource = false
 
-  [inputs.kafkamq.skywalking]  
+  [inputs.kafkamq.skywalking]
     topics = [
       "skywalking-metrics",
       "skywalking-profilings",
@@ -74,13 +77,12 @@ const mqSampleConfig = `
     # path = "./skywalking_storage"
     # capacity = 5120
 
-  ## todo: add other input-mq 
+  ## todo: add other input-mq
 `
 
 var (
-	_         inputs.InputV2 = &Input{}
-	log                      = logger.DefaultSLogger(inputName)
-	inputName                = "kafkamq"
+	log       = logger.DefaultSLogger(inputName)
+	inputName = "kafkamq"
 )
 
 type Input struct {
@@ -91,13 +93,13 @@ type Input struct {
 	SkyWalking   *skywalking.SkyConsumer `toml:"skywalking"` // 命名时 注意区分源
 	Assignor     string                  `toml:"assignor"`   // 消费模式
 
-	Plugins          []string            `toml:"plugins"`
-	CustomerTags     []string            `toml:"customer_tags"`
-	KeepRareResource bool                `toml:"keep_rare_resource"`
-	CloseResource    map[string][]string `toml:"close_resource"`
-	Sampler          *itrace.Sampler     `toml:"sampler"`
-	Tags             map[string]string   `toml:"tags"`
-	Storage          *itrace.Storage     `toml:"storage"`
+	Plugins          []string               `toml:"plugins"`
+	CustomerTags     []string               `toml:"customer_tags"`
+	KeepRareResource bool                   `toml:"keep_rare_resource"`
+	CloseResource    map[string][]string    `toml:"close_resource"`
+	Sampler          *itrace.Sampler        `toml:"sampler"`
+	Tags             map[string]string      `toml:"tags"`
+	localCacheConfig *storage.StorageConfig `toml:"storage"`
 }
 
 func (*Input) Catalog() string      { return "kafkamq" }
@@ -107,35 +109,35 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 
-func (i *Input) Terminate() {
-	if i.SkyWalking != nil {
-		i.SkyWalking.Stop()
-	}
-	log.Infof("input[%s] exit", inputName)
-}
-
-func (i Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&skywalkingapi.MetricMeasurement{},
 	}
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
-	log.Infof("init input = %v", i)
+	log.Infof("init input = %v", ipt)
 
-	api := skywalkingapi.InitApiPluginAges(i.Plugins, i.Storage, i.CloseResource, i.KeepRareResource, i.Sampler, i.CustomerTags, i.Tags, inputName)
-	addrs := getAddrs(i.Addr, i.Addrs)
-	version := getKafkaVersion(i.KafkaVersion)
-	balance := getAssignors(i.Assignor)
-	if i.SkyWalking != nil {
+	api := skywalkingapi.InitApiPluginAges(ipt.Plugins, ipt.localCacheConfig, ipt.CloseResource, ipt.KeepRareResource, ipt.Sampler, ipt.CustomerTags, ipt.Tags, inputName)
+	addrs := getAddrs(ipt.Addr, ipt.Addrs)
+	version := getKafkaVersion(ipt.KafkaVersion)
+	balance := getAssignors(ipt.Assignor)
+	if ipt.SkyWalking != nil {
 		g := goroutine.NewGroup(goroutine.Option{Name: "inputs_kafkamq"})
 		g.Go(func(ctx context.Context) error {
 			log.Infof("start input kafkamq")
-			i.SkyWalking.SaramaConsumerGroup(addrs, i.GroupID, api, version, balance)
+			ipt.SkyWalking.SaramaConsumerGroup(addrs, ipt.GroupID, api, version, balance)
 			return nil
 		})
 	}
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.SkyWalking != nil {
+		ipt.SkyWalking.Stop()
+	}
+	log.Infof("input[%s] exit", inputName)
 }
 
 func init() { //nolint:gochecknoinits
