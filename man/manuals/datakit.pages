@@ -6,6 +6,7 @@ nav:
     - '采集器配置':
       - datakit-input-conf.md
       - git-config-how-to.md
+      - confd.md
     - datakit-conf.md
     - datakit-service-how-to.md
     - election.md

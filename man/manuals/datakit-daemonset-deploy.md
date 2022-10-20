@@ -219,6 +219,21 @@ spec:
 | `ENV_RUM_ORIGIN_IP_HEADER`       | string      | `X-Forwarded-For` | 否     | RUM 专用                                                                                                                                                                                                    |
 | `ENV_RUM_APP_ID_WHITE_LIST`      | string      | 无                | 否     | RUM app-id 白名单列表，以 `,` 分割，如 `appid-1,appid-2`                                                                                                                                                    |
 
+### Confd 配置相关环境变量 {#env-confd}
+
+| 环境变量名                 | 类型   | 适用场景            | 说明     | 样例值 |
+| ----                     | ----   | ----               | ----     | ---- |
+| ENV_CONFD_BACKEND        | string |  全部              | 后端源类型  | `etcdv3`或`zookeeper`或`redis`或`consul` |
+| ENV_CONFD_BASIC_AUTH     | string | `etcdv3`或`consul` | 可选      | |
+| ENV_CONFD_CLIENT_CA_KEYS | string | `etcdv3`或`consul` | 可选      | |
+| ENV_CONFD_CLIENT_CERT    | string | `etcdv3`或`consul` | 可选      | |
+| ENV_CONFD_CLIENT_KEY     | string | `etcdv3`或`consul`或`redis` | 可选      | |
+| ENV_CONFD_BACKEND_NODES  | string |  全部              | 后端源地址 | `[IP地址:2379,IP地址2:2379]` |
+| ENV_CONFD_PASSWORD       | string | `etcdv3`或`consul` | 可选      |  |
+| ENV_CONFD_SCHEME         | string | `etcdv3`或`consul` | 可选      |  |
+| ENV_CONFD_SEPARATOR      | string | `redis`            | 可选默认0 |  |
+| ENV_CONFD_USERNAME       | string | `etcdv3`或`consul` | 可选      |  |
+
 ### Git 配置相关环境变量 {#env-git}
 
 | 环境变量名称       | 类型     | 默认值 | 必须   | 说明                                                                                                   |

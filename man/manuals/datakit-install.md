@@ -135,6 +135,21 @@ NAME1="value1" NAME2="value2"
 ### 外部采集器相关 {#env-external-inputs}
 - `DK_INSTALL_EXTERNALS`: 可用于安装如 ebpf 等未与 DataKit 一起打包的外部采集器
 
+### Confd 配置相关 {#env-connfd}
+
+| 环境变量名                 | 类型   | 适用场景            | 说明     | 样例值 |
+| ----                     | ----   | ----               | ----     | ---- |
+| DK_CONFD_BACKEND        | string |  全部              | 后端源类型  | `etcdv3`或`zookeeper`或`redis`或`consul` |
+| DK_CONFD_BASIC_AUTH     | string | `etcdv3`或`consul` | 可选      | |
+| DK_CONFD_CLIENT_CA_KEYS | string | `etcdv3`或`consul` | 可选      | |
+| DK_CONFD_CLIENT_CERT    | string | `etcdv3`或`consul` | 可选      | |
+| DK_CONFD_CLIENT_KEY     | string | `etcdv3`或`consul`或`redis` | 可选      | |
+| DK_CONFD_BACKEND_NODES  | string |  全部              | 后端源地址 | `[IP地址:2379,IP地址2:2379]` |
+| DK_CONFD_PASSWORD       | string | `etcdv3`或`consul` | 可选      |  |
+| DK_CONFD_SCHEME         | string | `etcdv3`或`consul` | 可选      |  |
+| DK_CONFD_SEPARATOR      | string | `redis`            | 可选默认0 |  |
+| DK_CONFD_USERNAME       | string | `etcdv3`或`consul` | 可选      |  |
+
 ### Git 配置相关 {#env-gitrepo}
 
 - `DK_GIT_URL`: 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`）

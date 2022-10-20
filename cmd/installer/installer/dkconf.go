@@ -85,6 +85,28 @@ var (
 	HostName,
 	IPDBType string
 
+	ConfdBackend,
+	ConfdAuthToken,
+	ConfdAuthType,
+	ConfdBasicAuth,
+	ConfdClientCaKeys,
+	ConfdClientCert,
+	ConfdClientKey,
+	ConfdClientInsecure,
+	ConfdBackendNodes,
+	ConfdPassword,
+	ConfdScheme,
+	ConfdTable,
+	ConfdSeparator,
+	ConfdUsername,
+	ConfdAppID,
+	ConfdUserID,
+	ConfdRoleID,
+	ConfdSecretID,
+	ConfdFilter,
+	ConfdPath,
+	ConfdRole string
+
 	GitURL,
 	GitKeyPath,
 	GitKeyPW,
