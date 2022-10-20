@@ -8,11 +8,11 @@ package skywalkingapi
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	commonv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/common/v3"
 	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/language/agent/v3"
@@ -20,33 +20,17 @@ import (
 )
 
 func (api *SkyAPI) ProcessSegment(segment *agentv3.SegmentObject) {
-	if api.storage == nil {
+	if api.localCache == nil {
 		api.parseSegmentObject(segment)
 	} else {
-		buf, err := proto.Marshal(segment)
-		if err != nil {
+		if buf, err := proto.Marshal(segment); err != nil {
 			api.log.Error(err.Error())
+		} else {
+			if err = api.localCache.Put(storage.SKY_WALKING_GRPC_KEY, buf); err != nil {
+				api.log.Error(err.Error())
+			}
 		}
-		param := &itrace.TraceParameters{Meta: &itrace.TraceMeta{Buf: buf}}
-		if err = api.storage.Send(param); err != nil {
-			api.log.Error(err.Error())
-		}
 	}
-}
-
-func (api *SkyAPI) parseSegmentObjectWrapper(param *itrace.TraceParameters) error {
-	if param == nil || param.Meta == nil || len(param.Meta.Buf) == 0 {
-		return errors.New("invalid parameters")
-	}
-
-	segobj := &agentv3.SegmentObject{}
-	if err := proto.Unmarshal(param.Meta.Buf, segobj); err != nil {
-		return err
-	}
-
-	api.parseSegmentObject(segobj)
-
-	return nil
 }
 
 func (api *SkyAPI) parseSegmentObject(segment *agentv3.SegmentObject) {

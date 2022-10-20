@@ -10,6 +10,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 func TestCloseResource(t *testing.T) {
@@ -31,6 +33,7 @@ func TestCloseResource(t *testing.T) {
 		"*": {"Allen.*", ".*333", "GET /nacos/v1/.*"},
 	})
 
+	log := logger.DefaultSLogger("filters-test")
 	wg := sync.WaitGroup{}
 	wg.Add(10)
 	for i := 0; i < 10; i++ {
@@ -40,7 +43,7 @@ func TestCloseResource(t *testing.T) {
 			for i := range testcases {
 				parentialize(testcases[i])
 
-				trace, _ := closer.Close(testcases[i])
+				trace, _ := closer.Close(log, testcases[i])
 				if !expected[i](trace) {
 					t.Errorf("close resource %s failed trace:%v", testcases[i][0].Resource, trace)
 					t.FailNow() // nolint:govet,staticcheck
@@ -59,9 +62,12 @@ func TestRespectUserRule(t *testing.T) {
 		testcases[i] = trace
 	}
 
-	var keep, auto DatakitTraces
+	var (
+		keep, auto DatakitTraces
+		log        = logger.DefaultSLogger("filters-test")
+	)
 	for i := range testcases {
-		if trace, ok := RespectUserRule(testcases[i]); ok {
+		if trace, ok := RespectUserRule(log, testcases[i]); ok {
 			if trace != nil {
 				keep = append(keep, trace)
 			}
@@ -110,9 +116,12 @@ func TestOmitStatusCode(t *testing.T) {
 		testcases[i] = randDatakitTrace(t, 10, randService(_services...), randResource(_resources...), randHTTPStatusCode(_http_status_codes...))
 	}
 
-	var afterOmitStatusCode DatakitTraces
+	var (
+		afterOmitStatusCode DatakitTraces
+		log                 = logger.DefaultSLogger("filters-test")
+	)
 	for i := range testcases {
-		if trace, ok := OmitHTTPStatusCodeFilterWrapper([]string{"404", "500", "307"})(testcases[i]); !ok {
+		if trace, ok := OmitHTTPStatusCodeFilterWrapper([]string{"404", "500", "307"})(log, testcases[i]); !ok {
 			afterOmitStatusCode = append(afterOmitStatusCode, trace)
 		}
 	}
@@ -134,9 +143,12 @@ func TestPenetrateError(t *testing.T) {
 		testcases[i] = randDatakitTrace(t, 10, randService(_services...), randResource(_resources...))
 	}
 
-	var afterErrPenetrate DatakitTraces
+	var (
+		afterErrPenetrate DatakitTraces
+		log               = logger.DefaultSLogger("filters-test")
+	)
 	for i := range testcases {
-		if t, ok := PenetrateErrorTracing(testcases[i]); ok {
+		if t, ok := PenetrateErrorTracing(log, testcases[i]); ok {
 			afterErrPenetrate = append(afterErrPenetrate, t)
 		}
 	}
@@ -169,6 +181,7 @@ func TestKeepRareResource(t *testing.T) {
 	keep := &KeepRareResource{}
 	keep.UpdateStatus(true, 10*time.Millisecond)
 
+	log := logger.DefaultSLogger("filters-test")
 	wg := sync.WaitGroup{}
 	wg.Add(10)
 	for i := 0; i < 10; i++ {
@@ -178,7 +191,7 @@ func TestKeepRareResource(t *testing.T) {
 			var kept DatakitTraces
 			for i := range traces {
 				time.Sleep(5 * time.Millisecond)
-				if t, skip := keep.Keep(traces[i]); skip {
+				if t, skip := keep.Keep(log, traces[i]); skip {
 					kept = append(kept, t)
 				}
 			}
@@ -193,7 +206,7 @@ func TestKeepRareResource(t *testing.T) {
 	var kept DatakitTraces
 	for i := range traces {
 		time.Sleep(15 * time.Millisecond)
-		if t, skip := keep.Keep(traces[i]); skip {
+		if t, skip := keep.Keep(log, traces[i]); skip {
 			kept = append(kept, t)
 		}
 	}
@@ -213,6 +226,7 @@ func TestSampler(t *testing.T) {
 
 	sampler := &Sampler{SamplingRateGlobal: 0.15}
 
+	log := logger.DefaultSLogger("filters-test")
 	wg := sync.WaitGroup{}
 	wg.Add(10)
 	for i := 0; i < 10; i++ {
@@ -221,7 +235,7 @@ func TestSampler(t *testing.T) {
 
 			var sampled DatakitTraces
 			for i := range origin {
-				if t, _ := sampler.Sample(origin[i]); t != nil {
+				if t, _ := sampler.Sample(log, origin[i]); t != nil {
 					sampled = append(sampled, t)
 				}
 			}

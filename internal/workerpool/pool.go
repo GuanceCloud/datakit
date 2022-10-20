@@ -96,7 +96,7 @@ func (wkp *WorkerPool) Start() error {
 		return errors.New("worker-pool is already enabled")
 	}
 
-	var g = goroutine.NewGroup(goroutine.Option{Name: "internal_worker_pool"})
+	g := goroutine.NewGroup(goroutine.Option{Name: "internal_trace"})
 	for i := 0; i < wkp.wkpConf.Threads; i++ {
 		g.Go(func(ctx context.Context) error {
 			wkp.worker()

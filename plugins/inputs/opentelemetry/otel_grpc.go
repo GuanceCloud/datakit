@@ -12,14 +12,15 @@ import (
 	"net"
 	"strings"
 
-	"github.com/gogo/protobuf/proto"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	istorage "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 	collectormetricepb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/grpc"
 	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 )
 
 type otlpGrpcCollector struct {
@@ -37,6 +38,17 @@ func (o *otlpGrpcCollector) run(storage *collector.SpansStorage) {
 
 		return
 	}
+
+	localCache.RegisterConsumer(istorage.OTEL_GRPC_KEY, func(buf []byte) error {
+		trace := &tracepb.TracesData{}
+		if err := proto.Unmarshal(buf, trace); err != nil {
+			return err
+		}
+		spanStorage.AddSpans(trace.ResourceSpans)
+
+		return nil
+	})
+
 	srv := grpc.NewServer()
 	if o.TraceEnable {
 		et := &ExportTrace{storage: storage}
@@ -65,9 +77,7 @@ type ExportTrace struct {
 	storage         *collector.SpansStorage
 }
 
-func (et *ExportTrace) Export(ctx context.Context,
-	ets *collectortracepb.ExportTraceServiceRequest,
-) (*collectortracepb.ExportTraceServiceResponse, error) {
+func (et *ExportTrace) Export(ctx context.Context, ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
 	md, haveHeader := metadata.FromIncomingContext(ctx)
 	if haveHeader {
 		if !checkHandler(et.ExpectedHeaders, md) {
@@ -76,23 +86,17 @@ func (et *ExportTrace) Export(ctx context.Context,
 	}
 
 	if rss := ets.GetResourceSpans(); len(rss) > 0 {
-		if storage == nil {
+		if localCache == nil {
 			et.storage.AddSpans(rss)
 		} else {
-			buf, err := proto.Marshal(ets)
+			buf, err := proto.Marshal(&tracepb.TracesData{ResourceSpans: rss})
 			if err != nil {
 				log.Error(err.Error())
 
 				return nil, err
 			}
 
-			param := &itrace.TraceParameters{
-				Meta: &itrace.TraceMeta{
-					Protocol: "grpc",
-					Buf:      buf,
-				},
-			}
-			if err = storage.Send(param); err != nil {
+			if err = localCache.Put(istorage.OTEL_GRPC_KEY, buf); err != nil {
 				log.Error(err.Error())
 
 				return nil, err
@@ -103,27 +107,13 @@ func (et *ExportTrace) Export(ctx context.Context,
 	return &collectortracepb.ExportTraceServiceResponse{}, nil
 }
 
-func parseOtelTraceGRPC(spanStorage *collector.SpansStorage, param *itrace.TraceParameters) error {
-	ets := &collectortracepb.ExportTraceServiceRequest{}
-	err := proto.Unmarshal(param.Meta.Buf, ets)
-	if err != nil {
-		return err
-	}
-
-	spanStorage.AddSpans(ets.GetResourceSpans())
-
-	return nil
-}
-
 type ExportMetric struct {
 	collectormetricepb.UnimplementedMetricsServiceServer
 	ExpectedHeaders map[string]string
 	storage         *collector.SpansStorage
 }
 
-func (em *ExportMetric) Export(ctx context.Context,
-	ets *collectormetricepb.ExportMetricsServiceRequest,
-) (*collectormetricepb.ExportMetricsServiceResponse, error) {
+func (em *ExportMetric) Export(ctx context.Context, ets *collectormetricepb.ExportMetricsServiceRequest) (*collectormetricepb.ExportMetricsServiceResponse, error) {
 	md, haveHeader := metadata.FromIncomingContext(ctx)
 	if haveHeader {
 		if !checkHandler(em.ExpectedHeaders, md) {

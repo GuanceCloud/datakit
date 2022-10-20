@@ -8,13 +8,11 @@
 package opentelemetry
 
 import (
-	"errors"
+	"bytes"
 	"fmt"
 	"net/http"
-	"time"
 
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 	collectormetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
@@ -59,8 +57,7 @@ func (o *otlpHTTPCollector) apiOtlpTrace(resp http.ResponseWriter, req *http.Req
 		return
 	}
 
-	readbodycost := time.Now()
-	media, encode, buf, err := itrace.ParseTracerRequest(req)
+	media, _, buf, err := itrace.ParseTracerRequest(req)
 	if err != nil {
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
@@ -69,73 +66,22 @@ func (o *otlpHTTPCollector) apiOtlpTrace(resp http.ResponseWriter, req *http.Req
 	}
 
 	param := &itrace.TraceParameters{
-		Meta: &itrace.TraceMeta{
-			Protocol: "http",
-			UrlPath:  req.URL.Path,
-			Media:    media,
-			Buf:      buf,
-		},
+		URLPath: req.URL.Path,
+		Media:   media,
+		Body:    bytes.NewBuffer(buf),
+	}
+	if err = o.parseOtelTrace(param); err != nil {
+		log.Errorf("### parse otel trace failed: %s", err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
+
+		return
 	}
 
-	log.Debugf("### path: %s, Content-Type: %s, Encode-Type: %s, body-size: %dkb, read-body-cost: %dms",
-		req.URL.Path, media, encode, len(buf)>>10, time.Since(readbodycost)/time.Millisecond)
-
-	if wkpool == nil {
-		if storage == nil {
-			if err = o.parseOtelTrace(param); err != nil {
-				log.Error(err.Error())
-				resp.WriteHeader(http.StatusBadRequest)
-
-				return
-			}
-		} else {
-			if err := storage.Send(param); err != nil {
-				log.Error(err.Error())
-				resp.WriteHeader(http.StatusBadRequest)
-
-				return
-			}
-		}
-	} else {
-		job, err := workerpool.NewJob(workerpool.WithInput(param),
-			workerpool.WithProcess(o.parseOtelTraceAdapter),
-			workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
-				log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
-			}),
-		)
-		if err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusBadRequest)
-
-			return
-		}
-
-		if err = wkpool.MoreJob(job); err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusTooManyRequests)
-
-			return
-		}
-	}
-
-	writeReply(resp, rawResponse, o.HTTPStatusOK, param.Meta.Media, nil)
-}
-
-func (o *otlpHTTPCollector) parseOtelTraceAdapter(input interface{}) (output interface{}) {
-	param, ok := input.(*itrace.TraceParameters)
-	if !ok {
-		return errors.New("type assertion failed")
-	}
-
-	if storage == nil {
-		return o.parseOtelTrace(param)
-	} else {
-		return storage.Send(param)
-	}
+	writeReply(resp, rawResponse, o.HTTPStatusOK, param.Media, nil)
 }
 
 func (o *otlpHTTPCollector) parseOtelTrace(param *itrace.TraceParameters) error {
-	request, err := unmarshalTraceRequest(param.Meta.Buf, param.Meta.Media)
+	request, err := unmarshalTraceRequest(param.Body.Bytes(), param.Media)
 	if err != nil {
 		return err
 	}
