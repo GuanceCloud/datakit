@@ -6,7 +6,6 @@
 package trace
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -18,11 +17,7 @@ import (
 func TestAfterGather(t *testing.T) {
 	dkioFeed = func(name, category string, pts []*point.Point, opt *dkio.Option) error { return nil }
 
-	StartTracingStatistic()
-
 	afterGather := NewAfterGather()
-	afterGather.AppendCalculator(StatTracingInfo)
-
 	afterGather.AppendFilter(PenetrateErrorTracing)
 
 	closer := &CloseResource{}
@@ -58,13 +53,14 @@ func TestBuildPoint(t *testing.T) {
 			t.Error(err.Error())
 			t.FailNow()
 		} else {
-			fmt.Println(pt.String())
+			t.Log(pt.String())
 		}
 	}
 }
 
 func TestBuildPointsBatch(t *testing.T) {
+	aga := NewAfterGather()
 	for i := 0; i < 100; i++ {
-		BuildPointsBatch(DatakitTraces{randDatakitTrace(t, 10)}, false)
+		aga.BuildPointsBatch(DatakitTraces{randDatakitTrace(t, 10)}, false)
 	}
 }

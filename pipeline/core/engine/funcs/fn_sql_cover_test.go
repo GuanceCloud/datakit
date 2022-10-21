@@ -10,7 +10,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 )
 
 func TestSqlCover(t *testing.T) {
@@ -23,27 +22,27 @@ func TestSqlCover(t *testing.T) {
 	}{
 		{
 			name: "normal",
-			pl: `json(_, str) 
-			sql_cover(str)`,
-			in:       `{"str": "select abc from def where x > 3 and y < 5"}`,
-			outKey:   "str",
+			pl: `json(_, str_msg) 
+			sql_cover(str_msg)`,
+			in:       `{"str_msg": "select abc from def where x > 3 and y < 5"}`,
+			outKey:   "str_msg",
 			expected: "select abc from def where x > ? and y < ?",
 			fail:     false,
 		},
 
 		{
 			name: "normal",
-			pl: `json(_, str) 
-			sql_cover(str)`,
-			in:   `{"str": "SELECT $func$INSERT INTO table VALUES ('a', 1, 2)$func$ FROM users"}`,
+			pl: `json(_, str_msg) 
+			sql_cover(str_msg)`,
+			in:   `{"str_msg": "SELECT $func$INSERT INTO table VALUES ('a', 1, 2)$func$ FROM users"}`,
 			fail: true,
 		},
 		{
 			name: "normal",
-			pl: `json(_, str) 
-			sql_cover(str)`,
-			in:       `{"str": "SELECT Codi , Nom_CA AS Nom, Descripció_CAT AS Descripció FROM ProtValAptitud WHERE Vigent=1 ORDER BY Ordre, Codi"}`,
-			outKey:   "str",
+			pl: `json(_, str_msg) 
+			sql_cover(str_msg)`,
+			in:       `{"str_msg": "SELECT Codi , Nom_CA AS Nom, Descripció_CAT AS Descripció FROM ProtValAptitud WHERE Vigent=1 ORDER BY Ordre, Codi"}`,
+			outKey:   "str_msg",
 			expected: "SELECT Codi, Nom_CA, Descripció_CAT FROM ProtValAptitud WHERE Vigent = ? ORDER BY Ordre, Codi",
 			fail:     false,
 		},
@@ -54,10 +53,10 @@ func TestSqlCover(t *testing.T) {
 		},
 		{
 			name: "normal",
-			pl: `json(_, str) 
-			sql_cover(str)`,
-			in:       `{"str": "SELECT ('/uffd')"}`,
-			outKey:   "str",
+			pl: `json(_, str_msg) 
+			sql_cover(str_msg)`,
+			in:       `{"str_msg": "SELECT ('/uffd')"}`,
+			outKey:   "str_msg",
 			expected: "SELECT ( ? )",
 			fail:     false,
 		},
@@ -93,7 +92,7 @@ select abc from def where x > 3 and y < 5`,
 				return
 			}
 
-			_, _, f, _, _, err := engine.RunScript(runner, "test", nil, map[string]interface{}{
+			_, _, f, _, _, err := runScript(runner, "test", nil, map[string]interface{}{
 				"message": tc.in,
 			}, time.Now())
 			if err != nil {

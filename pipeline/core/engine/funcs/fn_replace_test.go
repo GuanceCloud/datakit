@@ -10,7 +10,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 )
 
 func TestReplace(t *testing.T) {
@@ -23,8 +22,8 @@ func TestReplace(t *testing.T) {
 	}{
 		{
 			name: `normal`,
-			pl: `json(_, str) 
-			replace(str, "(1[0-9]{2})[0-9]{4}([0-9]{4})", "$1****$2")`,
+			pl: "json(_, `str`)\n" +
+				"replace(`str`, \"(1[0-9]{2})[0-9]{4}([0-9]{4})\", \"$1****$2\")",
 			in:       `{"str": "13789123014"}`,
 			outKey:   "str",
 			fail:     false,
@@ -33,8 +32,8 @@ func TestReplace(t *testing.T) {
 
 		{
 			name: `normal`,
-			pl: `json(_, str) 
-			replace(str, "([a-z]*) \\w*", "$1 ***")`,
+			pl: "json(_, `str`)\n" +
+				"replace(`str`, \"([a-z]*) \\\\w*\", \"$1 ***\")",
 			in:       `{"str": "zhang san"}`,
 			outKey:   "str",
 			expected: "zhang ***",
@@ -43,8 +42,8 @@ func TestReplace(t *testing.T) {
 
 		{
 			name: `normal`,
-			pl: `json(_, str) 
-			replace(str, "([1-9]{4})[0-9]{10}([0-9]{4})", "$1**********$2")`,
+			pl: "json(_, `str`)\n" +
+				"replace(`str`, \"([1-9]{4})[0-9]{10}([0-9]{4})\", \"$1**********$2\")",
 			in:       `{"str": "362201200005302565"}`,
 			outKey:   "str",
 			expected: "3622**********2565",
@@ -53,36 +52,33 @@ func TestReplace(t *testing.T) {
 
 		{
 			name: `normal`,
-			pl: `json(_, str) 
-			replace(str, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")`,
+			pl: "json(_, `str`)\n" +
+				"replace(`str`, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', \"$1＊$2\")",
 			in:       `{"str": "小阿卡"}`,
 			outKey:   "str",
 			expected: "小＊卡",
 			fail:     false,
 		},
-
 		{
 			name: `normal`,
-			pl: `json(_, str) 
-			replace(str1, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")`,
+			pl: "json(_, `str`)\n" +
+				"replace(str1, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', \"$1＊$2\")",
 			in:       `{"str": "小阿卡"}`,
 			outKey:   "str",
 			expected: "小阿卡",
 			fail:     false,
 		},
-
 		{
 			name: `not enough args`,
-			pl: `json(_, str) 
-			replace(str, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])')`,
+			pl: "json(_, `str`)\n" +
+				"replace(`str`, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])')",
 			in:   `{"str": "小阿卡"}`,
 			fail: true,
 		},
-
 		{
 			name: `invalid arg type`,
-			pl: `json(_, str) 
-			replace(str, 2, "$1＊$2")`,
+			pl: "json(_, `str`)\n" +
+				"replace(`str`, 2, \"$1＊$2\")",
 			in:   `{"str": "小阿卡"}`,
 			fail: true,
 		},
@@ -100,7 +96,7 @@ func TestReplace(t *testing.T) {
 				return
 			}
 
-			_, _, f, _, _, err := engine.RunScript(runner, "test", nil, map[string]interface{}{
+			_, _, f, _, _, err := runScript(runner, "test", nil, map[string]interface{}{
 				"message": tc.in,
 			}, time.Now())
 			if err != nil {

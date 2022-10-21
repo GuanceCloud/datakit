@@ -53,8 +53,7 @@ func TestFilter(t *testing.T) {
 		{
 			pts: `test1 f1="1",f2=2i,f3=3 124
 test1 f1="2",f2=2i,f3=3 124
-test1 f1="3",f2=2i,f3=3 125
-			`,
+test1 f1="3",f2=2i,f3=3 125`,
 			category:  datakit.Logging,
 			expectPts: 0,
 		},

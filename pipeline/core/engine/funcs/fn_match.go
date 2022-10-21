@@ -7,7 +7,6 @@ package funcs
 
 import (
 	"fmt"
-	"reflect"
 	"regexp"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/ast"
@@ -15,75 +14,55 @@ import (
 )
 
 func MatchChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) error {
-	if len(funcExpr.Param) < 2 || len(funcExpr.Param) > 2 {
-		return fmt.Errorf("func %s expected 2", funcExpr.Name)
+	if len(funcExpr.Param) != 2 {
+		return fmt.Errorf("func %s expects 2 args", funcExpr.Name)
 	}
 
-	if _, err := getKeyName(funcExpr.Param[0]); err != nil {
-		return err
+	param0 := funcExpr.Param[0]
+	if param0.NodeType != ast.TypeStringLiteral {
+		return fmt.Errorf("expect StringLiteral, got %s",
+			param0.NodeType)
 	}
 
-	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
-	case ast.TypeAttrExpr, ast.TypeIdentifier, ast.TypeStringLiteral:
-	default:
-		return fmt.Errorf("expect AttrExpr , Identifier or StringLiteral, got %s",
-			funcExpr.Param[1].NodeType)
+	// 预先编译正则表达式
+	re, err := regexp.Compile(param0.StringLiteral.Val)
+	if err != nil {
+		return fmt.Errorf("func match: regexp compile failed: %w", err)
 	}
+	funcExpr.Re = re
+
+	param1 := funcExpr.Param[1]
+	if !isPlVarbOrFunc(param1) && param1.NodeType != ast.TypeStringLiteral {
+		return fmt.Errorf("expect StringLiteral, Identifier or AttrExpr, got %s",
+			param1.NodeType)
+	}
+
 	return nil
 }
 
 func Match(ctx *runtime.Context, funcExpr *ast.CallExpr) runtime.PlPanic {
-	var cont string
-	var err error
-	var res bool
-
-	// var words, pattern parser.Node
-
-	word, err := getKeyName(funcExpr.Param[0])
-	if err != nil {
-		return err
-	}
-
-	cont, err = ctx.GetKeyConv2Str(word)
-	if err != nil {
-		return err
-	}
-
-	var pattern string
-	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
-	case ast.TypeAttrExpr, ast.TypeIdentifier, ast.TypeStringLiteral:
-		p, dtype, err := runtime.RunStmt(ctx, funcExpr.Param[1])
-		if err != nil {
-			return err
-		}
-		if dtype == ast.String {
-			pattern, _ = p.(string)
-		}
-	default:
-		l.Debugf("expect AttrExpr or Identifier, got %s",
-			reflect.TypeOf(funcExpr.Param[1]).String())
+	if len(funcExpr.Param) != 2 {
+		err := fmt.Errorf("func %s expects 2 args", funcExpr.Name)
+		l.Debug(err)
 		ctx.Regs.Append(false, ast.Bool)
 		return nil
 	}
 
-	res, err = isMatch(cont, pattern)
-	if err != nil {
+	if funcExpr.Re == nil {
 		ctx.Regs.Append(false, ast.Bool)
 		return nil
 	}
-	if res {
-		ctx.Regs.Append(true, ast.Bool)
-		return nil
-	} else {
-		ctx.Regs.Append(false, ast.Bool)
-		return nil
-	}
-}
 
-func isMatch(words string, pattern string) (bool, error) {
-	isMatch, err := regexp.MatchString(pattern, "'"+words+"'")
+	cnt, err := getStr(ctx, funcExpr.Param[1])
 	if err != nil {
-		return false, err
+		l.Debug(err)
+		ctx.Regs.Append(false, ast.Bool)
+		return nil
 	}
-	return isMatch, err
+
+	isMatch := funcExpr.Re.MatchString(cnt)
+
+	ctx.Regs.Append(isMatch, ast.Bool)
+
+	return nil
 }

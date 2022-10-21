@@ -190,7 +190,7 @@ type cronjobObject struct {
 }
 
 func (c *cronjobObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_cron_jobs", c.tags, c.fields, point.MOptElectionV2(c.election))
+	return point.NewPoint("kubernetes_cron_jobs", c.tags, c.fields, point.OOptElectionV2(c.election))
 }
 
 //nolint:lll

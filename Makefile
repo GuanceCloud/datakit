@@ -290,7 +290,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare gofmt lfparser_disable_line plparser_disable_line 
+deps: prepare gofmt lfparser_disable_line plparser_disable_line
 
 # ignore files under vendor/.git/git
 gofmt:

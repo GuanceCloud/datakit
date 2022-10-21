@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 )
 
 func TestSetMeasurement(t *testing.T) {
@@ -31,7 +30,7 @@ func TestSetMeasurement(t *testing.T) {
 		set_measurement(client_ip)
 
 		`,
-			del:    true,
+			del:    false,
 			out:    "client_ip",
 			expect: "162.62.81.1",
 			fail:   false,
@@ -46,7 +45,7 @@ func TestSetMeasurement(t *testing.T) {
 		set_measurement(client_ip, true)
 
 		`,
-			del:    false,
+			del:    true,
 			out:    "client_ip",
 			expect: "162.62.81.1",
 			fail:   false,
@@ -65,7 +64,7 @@ func TestSetMeasurement(t *testing.T) {
 				return
 			}
 
-			m, tags, _, _, _, err := engine.RunScript(runner, "test", nil, map[string]interface{}{
+			m, tags, _, _, _, err := runScript(runner, "test", nil, map[string]interface{}{
 				"message": tc.in,
 			}, time.Now())
 			if err != nil {
@@ -74,7 +73,7 @@ func TestSetMeasurement(t *testing.T) {
 			}
 			t.Log(t)
 			_, ok := tags[tc.out]
-			assert.Equal(t, tc.del, ok)
+			assert.Equal(t, tc.del, !ok)
 			assert.Equal(t, tc.expect, m)
 			t.Logf("[%d] PASS", idx)
 		})

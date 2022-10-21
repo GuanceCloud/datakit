@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -57,14 +58,15 @@ type metaInfoMeasurement struct {
 	From   string                 `json:"from"`
 }
 
+//nolint:lll
 func ExportMetaInfo(path string) error {
-	infof("set TODO as '%s'\n", inputs.TODO)
+	cp.Infof("set TODO as '%s'\n", inputs.TODO)
 
 	f, err := os.Stat(path)
 	if err == nil {
 		if f.IsDir() {
 			err := errors.New("the specified path is a directory")
-			errorf("%s", err)
+			cp.Errorf("%s", err)
 			return err
 		}
 	} else if err = os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
@@ -88,12 +90,12 @@ func ExportMetaInfo(path string) error {
 				}
 
 				if tmp.Name == "" {
-					warnf("[W] ignore measurement from %s: empty measurement name: %+#v\n", k, tmp)
+					cp.Warnf("[W] ignore measurement from %s: empty measurement name: %+#v\n", k, tmp)
 					continue
 				}
 
 				if len(tmp.Fields) == 0 {
-					warnf("[W] ignore measurement from %s: no fields\n", k)
+					cp.Warnf("[W] ignore measurement from %s: no fields\n", k)
 					continue
 				}
 
@@ -105,12 +107,12 @@ func ExportMetaInfo(path string) error {
 					if _, ok := defaultMetaInfo.ObjectMetaInfo[tmp.Name]; ok {
 						if defaultMetaInfo.ObjectMetaInfo[tmp.Name].From == k {
 							err := errors.New("object measurement set already exists in same collector")
-							errorf("[E] original object measurement set:%s, Now measurement set:%s, measurement type:%s, measurement name:%s, error:%s\n",
+							cp.Errorf("[E] original object measurement set:%s, Now measurement set:%s, measurement type:%s, measurement name:%s, error:%s\n",
 								defaultMetaInfo.ObjectMetaInfo[tmp.Name].From, k, tmp.Type, tmp.Name, err)
 							return err
 						} else {
 							err = errors.New("same measurement set in different collector")
-							warnf("[E] original object measurement set: %s, current measurement set: %s, measurement type: %s, measurement name: %s, error:%s\n",
+							cp.Warnf("[E] original object measurement set: %s, current measurement set: %s, measurement type: %s, measurement name: %s, error:%s\n",
 								defaultMetaInfo.ObjectMetaInfo[tmp.Name].From, k, tmp.Type, tmp.Name, err)
 						}
 					}
@@ -127,12 +129,12 @@ func ExportMetaInfo(path string) error {
 					if _, ok := defaultMetaInfo.MetricMetaInfo[tmp.Name]; ok {
 						if defaultMetaInfo.MetricMetaInfo[tmp.Name].From == k {
 							err = errors.New("metric measurement set already exists in same collector")
-							errorf("[E] original metric measurement set: %s, current measurement set: %s, measurement type: %s, measurement name: %s, error:%s\n",
+							cp.Errorf("[E] original metric measurement set: %s, current measurement set: %s, measurement type: %s, measurement name: %s, error:%s\n",
 								defaultMetaInfo.MetricMetaInfo[tmp.Name].From, k, tmp.Type, tmp.Name, err)
 							return err
 						} else {
 							err = errors.New("same metric measurement set in different collector")
-							warnf("[E] original metric measurement set:%s, current measurement set: %s, measurement type: %s, measurement name: %s, error:%s\n",
+							cp.Warnf("[E] original metric measurement set:%s, current measurement set: %s, measurement type: %s, measurement name: %s, error:%s\n",
 								defaultMetaInfo.MetricMetaInfo[tmp.Name].From, k, tmp.Type, tmp.Name, err)
 						}
 					}

@@ -9,7 +9,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"log"
 	mrand "math/rand"
 )
 
@@ -37,7 +36,7 @@ func doRandomPoints(count int) ([]*Point, error) {
 				base64.StdEncoding.EncodeToString(buf[4:]): mrand.NormFloat64(), //nolint:gosec
 			},
 			nil); err != nil {
-			log.Fatal(err.Error())
+			return nil, err
 		} else {
 			pts = append(pts, pt)
 		}

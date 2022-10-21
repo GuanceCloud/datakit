@@ -53,7 +53,8 @@ func runPl(category string, pts []*point.Point, opt *Option) (ret []*point.Point
 			continue
 		}
 
-		name, tags, fields, tn, drop, err := script.Run(ptName, tags, fields, *ptTime, plOpt)
+		name, tags, fields, tn, drop, err := script.Run(ptName,
+			tags, fields, *ptTime, nil, plOpt)
 		if err != nil {
 			plLogger.Debug(err)
 			ret = append(ret, pt)
@@ -79,8 +80,8 @@ func runPl(category string, pts []*point.Point, opt *Option) (ret []*point.Point
 	return ret, nil
 }
 
-func getScript(category string, pt *point.Point, scriptMap map[string]string) (*plscript.PlScript,
-	string, map[string]string, map[string]interface{}, *time.Time,
+func getScript(category string, pt *point.Point, scriptMap map[string]string) (
+	*plscript.PlScript, string, map[string]string, map[string]interface{}, *time.Time,
 ) {
 	switch category {
 	case datakit.RUM, datakit.Security, datakit.Tracing, datakit.Profiling:
@@ -114,9 +115,10 @@ func getScript(category string, pt *point.Point, scriptMap map[string]string) (*
 
 		fields, err := pt.Fields()
 		if err != nil {
-			plLogger.Debug(err)
+			plLogger.Errorf("Fields: %s", err)
 			break
 		}
+
 		ptTime := pt.Time()
 		tags := pt.Tags()
 		return s, name, tags, fields, &ptTime

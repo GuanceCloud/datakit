@@ -42,7 +42,7 @@ func (c *DNSAnswerRecord) addRecord(packetInfo *DNSPacketInfo) {
 			}
 			c.record[answer.IP.String()] = [2]interface{}{
 				string(answer.Name),
-				packetInfo.TS.Add(time.Second * time.Duration(answer.TTL)),
+				packetInfo.TS,
 			}
 		case layers.DNSTypeCNAME, layers.DNSTypeHINFO, layers.DNSTypeMB,
 			layers.DNSTypeMD, layers.DNSTypeMF, layers.DNSTypeMG,

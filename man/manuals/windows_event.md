@@ -10,7 +10,7 @@ Windows 事件日志采集是采集应用程序、安全、系统等 Windows 事
 
 ## 前置条件 {#requrements}
 
-- Windows 版本 >= Windows 10
+- Windows 版本 >= Windows Server 2008 R2
 
 ## 配置 {#config}
 

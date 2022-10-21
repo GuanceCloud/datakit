@@ -59,7 +59,6 @@ fi
 ##################
 RED="\033[31m"
 CLR="\033[0m"
-BLU="\033[34m"
 
 ##################
 # Set Variables
@@ -123,7 +122,7 @@ fi
 installer_file="installer-${os}-${arch}-{{.Version}}"
 
 # shellcheck disable=SC2059
-printf "${BLU} Detect installer ${installer_file}${CLR}\n"
+printf "Detect installer ${installer_file}\n"
 
 installer_url="${installer_base_url}/${installer_file}"
 installer=/tmp/dk-installer
@@ -231,14 +230,14 @@ proxy_type=""
 if [ -n "$DK_PROXY_TYPE" ]; then
 	proxy_type=$DK_PROXY_TYPE
 	proxy_type=$(echo $proxy_type | tr '[:upper:]' '[:lower:]') # to lowercase
-	printf "${BLU}\n* found Proxy Type: $proxy_type${CLR}\n"
+	printf "\n* found Proxy Type: $proxy_type\n"
 
 	if [ "$proxy_type" == "nginx" ]; then
 		# env DK_NGINX_IP has highest priority on proxy level
 		if [ -n "$DK_NGINX_IP" ]; then
 			proxy=$DK_NGINX_IP
 			if [ "$proxy" != "" ]; then
-				printf "${BLU}\n* got nginx Proxy: $proxy${CLR}\n"
+				printf "\n* got nginx Proxy: $proxy\n"
 
 				for i in ${domain[@]}; do
 					updateHosts "$proxy" "$i"
@@ -282,6 +281,91 @@ fi
 install_log=/var/log/datakit/install.log
 if [ -n "$DK_INSTALL_LOG" ]; then
 	install_log=$DK_INSTALL_LOG
+fi
+
+confd_backend=""
+confd_auth_token=""
+confd_auth_type=""
+confd_basic_auth=""
+confd_client_ca_keys=""
+confd_client_cert=""
+confd_client_key=""
+confd_client_insecure=""
+confd_backend_nodes=""
+confd_password=""
+confd_scheme=""
+confd_table=""
+confd_separator=""
+confd_username=""
+confd_app_id=""
+confd_user_id=""
+confd_role_id=""
+confd_secret_id=""
+confd_filter=""
+confd_path=""
+confd_role=""
+if [ -n "$DK_CONFD_BACKEND" ]; then
+	confd_backend=$DK_CONFD_BACKEND
+fi
+if [ -n "$DK_CONFD_AUTH_TOKEN" ]; then
+    confd_auth_token=$DK_CONFD_AUTH_TOKEN
+fi
+if [ -n "$DK_CONFD_AUTH_TYPE" ]; then
+    confd_auth_type=$DK_CONFD_AUTH_TYPE
+fi
+if [ -n "$DK_CONFD_BASIC_AUTH" ]; then
+    confd_basic_auth=$DK_CONFD_BASIC_AUTH
+fi
+if [ -n "$DK_CONFD_CLIENT_CA_KEYS" ]; then
+    confd_client_ca_keys=$DK_CONFD_CLIENT_CA_KEYS
+fi
+if [ -n "$DK_CONFD_CLIENT_CERT" ]; then
+    confd_client_cert=$DK_CONFD_CLIENT_CERT
+fi
+if [ -n "$DK_CONFD_CLIENT_KEY" ]; then
+    confd_client_key=$DK_CONFD_CLIENT_KEY
+fi
+if [ -n "$DK_CONFD_CLIENT_INSECURE" ]; then
+    confd_client_insecure=$DK_CONFD_CLIENT_INSECURE
+fi
+if [ -n "$DK_CONFD_BACKEND_NODES" ]; then
+    confd_backend_nodes=$DK_CONFD_BACKEND_NODES
+fi
+if [ -n "$DK_CONFD_PASSWORD" ]; then
+    confd_password=$DK_CONFD_PASSWORD
+fi
+if [ -n "$DK_CONFD_SCHEME" ]; then
+    confd_scheme=$DK_CONFD_SCHEME
+fi
+if [ -n "$DK_CONFD_TABLE" ]; then
+    confd_table=$DK_CONFD_TABLE
+fi
+if [ -n "$DK_CONFD_SEPARATOR" ]; then
+    confd_separator=$DK_CONFD_SEPARATOR
+fi
+if [ -n "$DK_CONFD_USERNAME" ]; then
+    confd_username=$DK_CONFD_USERNAME
+fi
+if [ -n "$DK_CONFD_APP_ID" ]; then
+    confd_app_id=$DK_CONFD_APP_ID
+fi
+if [ -n "$DK_CONFD_USER_ID" ]; then
+    confd_user_id=$DK_CONFD_USER_ID
+fi
+if [ -n "$DK_CONFD_ROLE_ID" ]; then
+    confd_role_id=$DK_CONFD_ROLE_ID
+fi
+if [ -n "$DK_CONFD_SECRET_ID" ]; then
+    confd_secret_id=$DK_CONFD_SECRET_ID
+fi
+if [ -n "$DK_CONFD_FILTER" ]; then
+    confd_filter=$DK_CONFD_FILTER
+fi
+if [ -n "$DK_CONFD_PATH" ]; then
+    confd_path=$DK_CONFD_PATH
+fi
+if [ -n "$DK_CONFD_ROLE" ]; then
+    confd_role=$DK_CONFD_ROLE
 fi
 
 git_url=""
@@ -399,13 +483,13 @@ fi
 # Try install...
 ##################
 # shellcheck disable=SC2059
-printf "${BLU}\n* Downloading installer ${installer}\n${CLR}"
+printf "\n* Downloading installer ${installer}\n"
 
 rm -rf $installer
 
 if [ "$proxy" ]; then # add proxy for curl
 	# shellcheck disable=SC2086
-	curl -x "$proxy" --fail --progress-bar $installer_url > $installer
+	curl -s -x "$proxy" --fail --progress-bar $installer_url > $installer
 else
 	# shellcheck disable=SC2086
 	curl --fail --progress-bar $installer_url > $installer
@@ -416,13 +500,15 @@ chmod +x $installer
 
 if [ "$upgrade" ]; then
 	# shellcheck disable=SC2059
-	printf "${BLU}\n* Upgrading DataKit...${CLR}\n"
+	printf "\n* Upgrading DataKit...\n"
 	$sudo_cmd $installer \
-		--upgrade --proxy="${proxy}" --installer_base_url="$installer_base_url" --enable-experimental=${enable_experimental} | $sudo_cmd tee ${install_log}
+		--install-log=${install_log} \
+		--upgrade --proxy="${proxy}" --installer_base_url="$installer_base_url" --enable-experimental=${enable_experimental}
 else
-	printf "${BLU}\n* Installing DataKit...${CLR}\n"
+	printf "\n* Installing DataKit...\n"
 		$sudo_cmd $installer \
-		--install-only="$install_only" \
+		--install-log="${install_log}" \
+		--install-only="${install_only}" \
 		--installer_base_url="${installer_base_url}" \
 		--dataway="${dataway}" \
 		--global-host-tags="${global_host_tags}" \
@@ -439,6 +525,36 @@ else
 		--enable-pprof="${enable_pprof}" \
 		--pprof-listen="${pprof_listen}" \
 		--install-externals="${install_externals}" \
+        --confd-backend="${confd_backend}" \
+        --confd-auth-token="${confd_auth_token}" \
+        --confd-auth-type="${confd_auth_type}" \
+        --confd-basic-auth="${confd_basic_auth}" \
+        --confd-client-ca-keys="${confd_client_ca_keys}" \
+        --confd-client-cert="${confd_client_cert}" \
+        --confd-client-key="${confd_client_key}" \
+        --confd-client-insecure="${confd_client_insecure}" \
+        --confd-backend-nodes="${confd_backend_nodes}" \
+        --confd-password="${confd_password}" \
+        --confd-scheme="${confd_scheme}" \
+        --confd-table="${confd_table}" \
+        --confd-separator="${confd_separator}" \
+        --confd-username="${confd_username}" \
+        --confd-app-id="${confd_app_id}" \
+        --confd-user-id="${confd_user_id}" \
+        --confd-role-id="${confd_role_id}" \
+        --confd-secret-id="${confd_secret_id}" \
+        --confd-filter="${confd_filter}" \
+        --confd-path="${confd_path}" \
+        --confd-role="${confd_role}" \
+        --confd-basic-auth="${confd_basic_auth}" \
+        --confd-client-ca-keys="${confd_client_ca_keys}" \
+        --confd-client-cert="${confd_client_cert}" \
+        --confd-client-key="${confd_client_key}" \
+        --confd-backend-nodes="${confd_backend_nodes}" \
+        --confd-password="${confd_password}" \
+        --confd-scheme="${confd_scheme}" \
+        --confd-separator="${confd_separator}" \
+        --confd-username="${confd_username}" \
 		--git-url="${git_url}" \
 		--git-key-path="${git_key_path}" \
 		--git-key-pw="${git_key_pw}" \
@@ -466,7 +582,7 @@ else
 		--sink-profile="${sink_profile}" \
 		--log-sink-detail="${log_sink_detail}" \
 		--ipdb-type="${ipdb_type}" \
-		--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
+		--gin-log="${gin_log}"
 fi
 rm -rf $installer
 

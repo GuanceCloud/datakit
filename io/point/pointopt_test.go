@@ -183,7 +183,7 @@ func TestPointOptions(t *testing.T) {
 					}
 				}
 
-				t.Logf(pt.String())
+				t.Log(pt.String())
 			})
 		}
 	}

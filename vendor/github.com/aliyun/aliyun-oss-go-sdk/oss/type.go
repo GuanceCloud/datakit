@@ -358,13 +358,14 @@ type ListObjectsResult struct {
 // ObjectProperties defines Objecct properties
 type ObjectProperties struct {
 	XMLName      xml.Name  `xml:"Contents"`
-	Key          string    `xml:"Key"`          // Object key
-	Type         string    `xml:"Type"`         // Object type
-	Size         int64     `xml:"Size"`         // Object size
-	ETag         string    `xml:"ETag"`         // Object ETag
-	Owner        Owner     `xml:"Owner"`        // Object owner information
-	LastModified time.Time `xml:"LastModified"` // Object last modified time
-	StorageClass string    `xml:"StorageClass"` // Object storage class (Standard, IA, Archive)
+	Key          string    `xml:"Key"`                   // Object key
+	Type         string    `xml:"Type"`                  // Object type
+	Size         int64     `xml:"Size"`                  // Object size
+	ETag         string    `xml:"ETag"`                  // Object ETag
+	Owner        Owner     `xml:"Owner"`                 // Object owner information
+	LastModified time.Time `xml:"LastModified"`          // Object last modified time
+	StorageClass string    `xml:"StorageClass"`          // Object storage class (Standard, IA, Archive)
+	RestoreInfo  string    `xml:"RestoreInfo,omitempty"` // Object restoreInfo
 }
 
 // ListObjectsResultV2 defines the result from ListObjectsV2 request
@@ -410,15 +411,16 @@ type ObjectDeleteMarkerProperties struct {
 
 type ObjectVersionProperties struct {
 	XMLName      xml.Name  `xml:"Version"`
-	Key          string    `xml:"Key"`          // The Object Key
-	VersionId    string    `xml:"VersionId"`    // The Object VersionId
-	IsLatest     bool      `xml:"IsLatest"`     // is latest version or not
-	LastModified time.Time `xml:"LastModified"` // Object last modified time
-	Type         string    `xml:"Type"`         // Object type
-	Size         int64     `xml:"Size"`         // Object size
-	ETag         string    `xml:"ETag"`         // Object ETag
-	StorageClass string    `xml:"StorageClass"` // Object storage class (Standard, IA, Archive)
-	Owner        Owner     `xml:"Owner"`        // bucket owner element
+	Key          string    `xml:"Key"`                   // The Object Key
+	VersionId    string    `xml:"VersionId"`             // The Object VersionId
+	IsLatest     bool      `xml:"IsLatest"`              // is latest version or not
+	LastModified time.Time `xml:"LastModified"`          // Object last modified time
+	Type         string    `xml:"Type"`                  // Object type
+	Size         int64     `xml:"Size"`                  // Object size
+	ETag         string    `xml:"ETag"`                  // Object ETag
+	StorageClass string    `xml:"StorageClass"`          // Object storage class (Standard, IA, Archive)
+	Owner        Owner     `xml:"Owner"`                 // bucket owner element
+	RestoreInfo  string    `xml:"RestoreInfo,omitempty"` // Object restoreInfo
 }
 
 // Owner defines Bucket/Object's owner
@@ -914,10 +916,22 @@ type GetBucketEncryptionResult ServerEncryptionRule
 type GetBucketTaggingResult Tagging
 
 type BucketStat struct {
-	XMLName              xml.Name `xml:"BucketStat"`
-	Storage              int64    `xml:"Storage"`
-	ObjectCount          int64    `xml:"ObjectCount"`
-	MultipartUploadCount int64    `xml:"MultipartUploadCount"`
+	XMLName                     xml.Name `xml:"BucketStat"`
+	Storage                     int64    `xml:"Storage"`
+	ObjectCount                 int64    `xml:"ObjectCount"`
+	MultipartUploadCount        int64    `xml:"MultipartUploadCount"`
+	LiveChannelCount            int64    `xml:"LiveChannelCount"`
+	LastModifiedTime            int64    `xml:"LastModifiedTime"`
+	StandardStorage             int64    `xml:"StandardStorage"`
+	StandardObjectCount         int64    `xml:"StandardObjectCount"`
+	InfrequentAccessStorage     int64    `xml:"InfrequentAccessStorage"`
+	InfrequentAccessRealStorage int64    `xml:"InfrequentAccessRealStorage"`
+	InfrequentAccessObjectCount int64    `xml:"InfrequentAccessObjectCount"`
+	ArchiveStorage              int64    `xml:"ArchiveRealStorage"`
+	ArchiveObjectCount          int64    `xml:"ArchiveObjectCount"`
+	ColdArchiveStorage          int64    `xml:"ColdArchiveStorage"`
+	ColdArchiveRealStorage      int64    `xml:"ColdArchiveRealStorage"`
+	ColdArchiveObjectCount      int64    `xml:"ColdArchiveObjectCount"`
 }
 type GetBucketStatResult BucketStat
 
@@ -1304,3 +1318,92 @@ type CreateBucketCnameTokenResult CnameTokenXML
 
 // GetBucketCnameTokenResult defines result object for GetBucketCnameToken request
 type GetBucketCnameTokenResult CnameTokenXML
+
+// GetMetaQueryStatusResult defines result for GetMetaQueryStatus result
+type GetMetaQueryStatusResult GetMetaQueryStatusResultXml
+
+// GetMetaQueryStatusResultXml define get meta query status information
+type GetMetaQueryStatusResultXml struct {
+	XMLName    xml.Name `xml:"MetaQueryStatus"`
+	State      string   `xml:"State"`
+	Phase      string   `xml:"Phase"`
+	CreateTime string   `xml:"CreateTime"`
+	UpdateTime string   `xml:"UpdateTime"`
+}
+
+// DoMetaQuery defines meta query struct
+type MetaQuery struct {
+	XMLName      xml.Name                      `xml:"MetaQuery"`
+	NextToken    string                        `xml:"NextToken,omitempty"`
+	MaxResults   int64                         `xml:"MaxResults,omitempty"`
+	Query        string                        `xml:"Query"`
+	Sort         string                        `xml:"Sort,omitempty"`
+	Order        string                        `xml:"Order,omitempty"`
+	Aggregations []MetaQueryAggregationRequest `xml:"Aggregations>Aggregation,omitempty"`
+}
+
+// MetaQueryAggregationRequest defines meta query aggregation request
+type MetaQueryAggregationRequest struct {
+	XMLName   xml.Name `xml:"Aggregation"`
+	Field     string   `xml:"Field,omitempty"`
+	Operation string   `xml:"Operation,omitempty"`
+}
+
+//MetaQueryAggregationResponse defines meta query aggregation response
+type MetaQueryAggregationResponse struct {
+	XMLName   xml.Name         `xml:"Aggregation"`
+	Field     string           `xml:"Field,omitempty"`
+	Operation string           `xml:"Operation,omitempty"`
+	Value     float64          `xml:"Value,omitempty"`
+	Groups    []MetaQueryGroup `xml:"Groups>Group,omitempty"`
+}
+
+// DoMetaQueryResult defines result for DoMetaQuery result
+type DoMetaQueryResult DoMetaQueryResultXml
+
+// DoMetaQueryResultXml defines do meta query information
+type DoMetaQueryResultXml struct {
+	XMLName      xml.Name                       `xml:"MetaQuery"`
+	NextToken    string                         `xml:"NextToken,omitempty"`                 // next token
+	Files        []MetaQueryFile                `xml:"Files>File,omitempty"`                // file
+	Aggregations []MetaQueryAggregationResponse `xml:"Aggregations>Aggregation,omitempty"'` // Aggregation
+}
+
+// MetaQueryFile defines do meta query result file information
+type MetaQueryFile struct {
+	XMLName                               xml.Name            `xml:"File"`
+	Filename                              string              `xml:"Filename"`                                        //file name
+	Size                                  int64               `xml:"Size"`                                            // file size
+	FileModifiedTime                      string              `xml:"FileModifiedTime"`                                // file Modified Time
+	OssObjectType                         string              `xml:"OSSObjectType"`                                   // Oss Object Type
+	OssStorageClass                       string              `xml:"OSSStorageClass"`                                 // Oss Storage Class
+	ObjectACL                             string              `xml:"ObjectACL"`                                       // Object Acl
+	ETag                                  string              `xml:"ETag"`                                            // ETag
+	OssCRC64                              string              `xml:"OSSCRC64"`                                        // Oss CRC64
+	OssTaggingCount                       int64               `xml:"OSSTaggingCount,omitempty"`                       // Oss Tagging Count
+	OssTagging                            []MetaQueryTagging  `xml:"OSSTagging>Tagging,omitempty"`                    // Tagging
+	OssUserMeta                           []MetaQueryUserMeta `xml:"OSSUserMeta>UserMeta,omitempty"`                  // UserMeta
+	ServerSideEncryption                  string              `xml:"ServerSideEncryption,omitempty"`                  //Server Side Encryption
+	ServerSideEncryptionCustomerAlgorithm string              `xml:"ServerSideEncryptionCustomerAlgorithm,omitempty"` // Server Side Encryption Customer Algorithm
+}
+
+// MetaQueryTagging defines do meta query result tagging information
+type MetaQueryTagging struct {
+	XMLName xml.Name `xml:"Tagging"`
+	Key     string   `xml:"Key"`
+	Value   string   `xml:"Value"`
+}
+
+// MetaQueryUserMeta defines do meta query result user meta information
+type MetaQueryUserMeta struct {
+	XMLName xml.Name `xml:"UserMeta"`
+	Key     string   `xml:"Key"`
+	Value   string   `xml:"Value"`
+}
+
+// MetaQueryGroup defines do meta query result group information
+type MetaQueryGroup struct {
+	XMLName xml.Name `xml:"Group"`
+	Value   string   `xml:"Value"`
+	Count   int64    `xml:"Count"`
+}

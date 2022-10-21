@@ -6,14 +6,12 @@
 package http
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -21,7 +19,6 @@ import (
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"golang.org/x/text/encoding/simplifiedchinese"
@@ -29,88 +26,110 @@ import (
 )
 
 const (
-	defaultNotSetMakePoint = "default_not_set"
-	defaultNotSetService   = "default_not_set_service"
+	defaultEncode = "utf-8"
 
 	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/608
-	maxLenPipelineBefore = 3 * 4096
-	maxLenDataBefore     = 3 * 8192
+	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/1128
+
+	// 限制单个 pipeline 文件大小.
+	PipelineScriptByteSizeLimit = 1 * 1024 * 1024
+
+	// 由于日志采集器最大允许 32 MB，此处限制为 32 MB, 行协议暂设与日志大小相同.
+	DataByteSizeLimit = 32 * 1024 * 1024
 )
 
+// request body.
 type pipelineDebugRequest struct {
-	Pipeline   string `json:"pipeline"`
-	ScriptName string `json:"script_name"`
-	Category   string `json:"category"`
-	Data       string `json:"data"`
-	Multiline  string `json:"multiline"`
-	Encode     string `json:"encode"`
-	Benchmark  bool   `json:"benchmark"`
+	Pipeline   map[string]map[string]string `json:"pipeline"`
+	ScriptName string                       `json:"script_name"`
+	Category   string                       `json:"category"`
+
+	Data      []string `json:"data"`
+	Multiline string   `json:"multiline"`
+	Encode    string   `json:"encode"`
+	Benchmark bool     `json:"benchmark"`
+	Timezone  string   `json:"timezone"`
 }
 
-type pipelineDebugResult struct {
-	Measurement string                 `json:"measurement"`
-	Tags        map[string]string      `json:"tags"`
-	Fields      map[string]interface{} `json:"fields"`
-	Time        int64                  `json:"time"`
-	TimeNS      int64                  `json:"time_ns"`
-	Dropped     bool                   `json:"dropped"`
-}
-
+// response body.
 type pipelineDebugResponse struct {
-	Cost         string                 `json:"cost"`
-	Benchmark    string                 `json:"benchmark"`
-	ErrorMessage string                 `json:"error_msg"`
-	PLResults    []*pipelineDebugResult `json:"plresults"`
+	Cost         string            `json:"cost"`
+	Benchmark    string            `json:"benchmark"`
+	ErrorMessage string            `json:"error_msg"`
+	PLResults    []*pipelineResult `json:"plresults"`
 }
 
-// func plAPIDebugCallback(ret *pipeline.Result) (*pipeline.Result, error) {
-// 	return pipeline.ResultUtilsLoggingProcessor(ret, false, nil), nil
-// }
+type pipelineResult struct {
+	Measurement string `json:"measurement"`
 
-func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever ...interface{}) (interface{}, error) {
+	Tags   map[string]string      `json:"tags"`
+	Fields map[string]interface{} `json:"fields"`
+
+	Time   int64 `json:"time"`
+	TimeNS int64 `json:"time_ns"`
+
+	Dropped bool `json:"dropped"`
+
+	Error string `json:"error"`
+}
+
+func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever ...interface{}) (interface{}, error) {
 	tid := req.Header.Get(uhttp.XTraceId)
 
-	reqDebug, err := getAPIDebugPipelineRequest(req)
+	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
-		return nil, err
+		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
 
-	if err := checkRequest(reqDebug); err != nil {
+	var reqBody pipelineDebugRequest
+	if err := json.Unmarshal(body, &reqBody); err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
-		return nil, err
+		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
-	category := getPointCategory(reqDebug.Category)
+
+	category := normalizeCategory(reqBody.Category)
 	if category == "" {
 		err := uhttp.Error(ErrInvalidCategory, "invalid category")
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, err
 	}
 
-	//------------------------------------------------------------------
-	// -- pipeline debug procedure start --
-
-	// STEP 1: check pipeline
-	decodePipeline, err := base64.StdEncoding.DecodeString(reqDebug.Pipeline)
-	if err != nil {
+	// get all base64 encoded scripts for the current category
+	if len(reqBody.Pipeline) == 0 ||
+		len(reqBody.Pipeline[reqBody.Category]) == 0 {
+		err := uhttp.Error(ErrInvalidPipeline, "invalid pipeline")
 		l.Errorf("[%s] %s", tid, err.Error())
-		return nil, uhttp.Error(ErrInvalidPipeline, err.Error())
+		return nil, err
 	}
 
-	scriptInfo, err := pipeline.NewPipeline(category, reqDebug.ScriptName+".p", string(decodePipeline))
-	if err != nil {
+	scriptContent := reqBody.Pipeline[reqBody.Category]
+	if _, ok := scriptContent[reqBody.ScriptName]; !ok {
+		err := uhttp.Error(ErrInvalidPipeline, "invalid pipeline")
 		l.Errorf("[%s] %s", tid, err.Error())
-		return nil, uhttp.Error(ErrCompiledFailed, err.Error())
+		return nil, err
 	}
 
-	// STEP 2: get logging data
-	data, err := getDecodeData(reqDebug)
+	// decode pipeline script content
+	// script name will automatically add the file suffix
+	scriptContent, err = decodePipeline(category, scriptContent)
 	if err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidData, err.Error())
 	}
 
-	dataLines, err := getDataLines(data, reqDebug.Multiline)
+	// parse pipeline script
+	plRunner, err := parsePipeline(category, reqBody.ScriptName+".p", scriptContent)
+	if err != nil {
+		l.Errorf("[%s] %s", tid, err.Error())
+		return nil, uhttp.Error(ErrCompiledFailed, err.Error())
+	}
+
+	// decode log or line protocol data
+	// conv data to point
+	ptName := pointName(category, reqBody.ScriptName)
+	pts, err := decodeDataAndConv2Point(category, ptName, reqBody.Encode,
+		reqBody.Data)
 	if err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidData, err.Error())
@@ -121,210 +140,61 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 		Time:     time.Now(),
 	}
 
-	// STEP 3: pipeline processing
+	var runResult []*pipelineResult
+
 	start := time.Now()
-	res := []*pipeline.Result{}
-	for _, line := range dataLines {
-		switch category {
-		case datakit.Logging:
-			pt, err := point.NewPoint(reqDebug.ScriptName, nil, map[string]interface{}{pipeline.FieldMessage: line}, opt)
-			if err != nil {
-				l.Errorf("[%s] %s", tid, err.Error())
-				return nil, uhttp.Error(ErrInvalidData, err.Error())
-			}
-			if single := getSinglePointResult(scriptInfo, pt, opt); single != nil {
-				res = append(res, single)
-			}
-		default:
-			pts, err := lp.ParsePoints([]byte(line), nil)
-			if err != nil {
-				l.Errorf("[%s] %s", tid, err.Error())
-				return nil, uhttp.Error(ErrInvalidData, err.Error())
-			}
-			newPts := point.WrapPoint(pts)
-			for _, pt := range newPts {
-				if single := getSinglePointResult(scriptInfo, pt, opt); single != nil {
-					res = append(res, single)
-				}
-			}
-		}
-	}
-
-	// STEP 4 (optional): benchmark
-	var benchmarkResult testing.BenchmarkResult
-	if reqDebug.Benchmark {
-		benchmarkResult = testing.Benchmark(func(b *testing.B) {
-			b.Helper()
-			for n := 0; n < b.N; n++ {
-				for _, line := range dataLines {
-					pt, _ := point.NewPoint(defaultNotSetMakePoint,
-						nil,
-						map[string]interface{}{pipeline.FieldMessage: line}, opt)
-					_, _, _ = scriptInfo.Run(pt, nil, opt)
-				}
-			}
-		})
-	}
-
-	// -- pipeline debug procedure end --
-	//------------------------------------------------------------------
-
-	return getReturnResult(start, res, reqDebug, &benchmarkResult), nil
-}
-
-func getSinglePointResult(scriptInfo *pipeline.Pipeline, pt *point.Point, opt *point.PointOption) *pipeline.Result {
-	pt, drop, err := scriptInfo.Run(pt, nil, opt)
-	if err != nil || pt == nil {
-		return nil
-	}
-	fields, err := pt.Fields()
-	if err != nil {
-		return nil
-	}
-	tags := pt.Tags()
-
-	if _, ok := tags["service"]; !ok {
-		tags["service"] = defaultNotSetService
-	}
-
-	return &pipeline.Result{
-		Output: &pipeline.Output{
-			Drop:        drop,
-			Measurement: pt.Name(),
-			Time:        pt.Time(),
-			Tags:        tags,
-			Fields:      fields,
-		},
-	}
-}
-
-func getReturnResult(start time.Time, res []*pipeline.Result,
-	reqDebug *pipelineDebugRequest,
-	benchmarkResult *testing.BenchmarkResult,
-) *pipelineDebugResponse {
-	var returnres pipelineDebugResponse
-	cost := time.Since(start)
-	returnres.Cost = cost.String()
-
-	var results []*pipelineDebugResult
-	for _, v := range res {
-		var tm, tmns int64
-		if t, err := v.GetTime(); err != nil {
-			l.Debugf("GetTime failed: %v", err)
+	for _, pt := range pts {
+		// run pipeline
+		pt, drop, err := plRunner.Run(pt, nil, opt, newPlTestSingal())
+		if err != nil {
+			runResult = append(runResult, &pipelineResult{
+				Error: err.Error(),
+			})
 		} else {
-			tmstr := fmt.Sprintf("%d", t.Unix())
-			tmnsstr := fmt.Sprintf("%d", t.UnixNano())
-			nsstr := strings.ReplaceAll(tmnsstr, tmstr, "")
-
-			n, err := strconv.ParseInt(nsstr, 10, 64)
+			fields, err := pt.Fields()
 			if err != nil {
-				l.Debugf("strconv.ParseInt failed: %v", err)
-			} else {
-				tm = t.Unix()
-				tmns = n
+				l.Errorf("Fields: %s", err.Error())
+				return nil, err
 			}
-		}
 
-		results = append(results, &pipelineDebugResult{
-			Measurement: v.GetMeasurement(),
-			Tags:        v.GetTags(),
-			Fields:      v.GetFields(),
-			Time:        tm,
-			TimeNS:      tmns,
-			Dropped:     v.IsDropped(),
-		})
-	}
-	returnres.PLResults = results
-	if reqDebug.Benchmark {
-		returnres.Benchmark = benchmarkResult.String()
-	}
-
-	return &returnres
-}
-
-func getDataLines(originBytes []byte, pattern string) ([]string, error) {
-	var outArr []string
-
-	multi, err := multiline.New([]string{pattern})
-	if err != nil {
-		return nil, err
-	}
-
-	lines, err := getBytesLines(originBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, v := range lines {
-		res := multi.ProcessLineString(v)
-		if len(res) != 0 {
-			outArr = append(outArr, res)
+			runResult = append(runResult, &pipelineResult{
+				Measurement: pt.Name(),
+				Tags:        pt.Tags(),
+				Fields:      fields,
+				Time:        pt.Time().Unix(),
+				TimeNS:      int64(pt.Time().Nanosecond()),
+				Dropped:     drop,
+			})
 		}
 	}
 
-	if multi.BuffLength() > 0 {
-		outArr = append(outArr, multi.FlushString())
+	var benchmarkInfo string
+	if reqBody.Benchmark && len(pts) > 0 {
+		benchmarkInfo = benchPipeline(plRunner, pts[0], opt)
 	}
 
-	return outArr, nil
+	return &pipelineDebugResponse{
+		PLResults: runResult,
+		Benchmark: benchmarkInfo,
+		Cost:      time.Since(start).String(),
+	}, nil
 }
 
-func getBytesLines(bys []byte) ([]string, error) {
-	var arr []string
-	scanner := bufio.NewScanner(bytes.NewBuffer(bys))
-	for scanner.Scan() {
-		arr = append(arr, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
+func parsePipeline(category, scriptName string, scripts map[string]string) (*pipeline.Pipeline, error) {
+	success, faild := pipeline.NewPipelineMulti(category, scripts, nil)
+	if err, ok := faild[scriptName]; ok && err != nil {
 		return nil, err
 	}
-	return arr, nil
+	if pl, ok := success[scriptName]; !ok {
+		return nil, uhttp.Error(ErrInvalidPipeline, "invalid pipeline")
+	} else {
+		return pl, nil
+	}
 }
 
-func checkRequest(reqDebug *pipelineDebugRequest) error {
-	switch reqDebug.Category {
-	case datakit.CategoryMetric,
-		datakit.CategoryNetwork,
-		datakit.CategoryKeyEvent,
-		datakit.CategoryObject,
-		datakit.CategoryCustomObject,
-		datakit.CategoryLogging,
-		datakit.CategoryTracing,
-		datakit.CategoryRUM,
-		datakit.CategorySecurity:
-	default:
-		return uhttp.Error(ErrInvalidCategory, "invalid category")
-	}
-
-	if len(reqDebug.Pipeline) > maxLenPipelineBefore ||
-		len(reqDebug.ScriptName) > maxLenPipelineBefore ||
-		len(reqDebug.Category) > maxLenPipelineBefore ||
-		len(reqDebug.Data) > maxLenDataBefore ||
-		len(reqDebug.Multiline) > maxLenPipelineBefore ||
-		len(reqDebug.Encode) > maxLenPipelineBefore {
-		return uhttp.Error(ErrBadReq, "too large")
-	}
-
-	return nil
-}
-
-func getAPIDebugPipelineRequest(req *http.Request) (*pipelineDebugRequest, error) {
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
-	}
-
-	var reqDebug pipelineDebugRequest
-	if err := json.Unmarshal(body, &reqDebug); err != nil {
-		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
-	}
-
-	return &reqDebug, nil
-}
-
-func getPointCategory(category string) string {
+func normalizeCategory(category string) string {
 	switch category {
-	case datakit.Metric, datakit.MetricDeprecated, datakit.CategoryMetric, "metrics":
+	case datakit.Metric, datakit.MetricDeprecated, datakit.CategoryMetric:
 		return datakit.Metric
 	case datakit.Network, datakit.CategoryNetwork:
 		return datakit.Network
@@ -349,34 +219,108 @@ func getPointCategory(category string) string {
 	}
 }
 
+func pointName(category, name string) string {
+	switch category {
+	case datakit.RUM:
+		return datakit.CategoryRUM
+	case datakit.Security:
+		return datakit.CategorySecurity
+	case datakit.Tracing:
+		return datakit.CategoryTracing
+	case datakit.Profiling:
+		return datakit.Profiling
+	default:
+		return name
+	}
+}
+
+func benchPipeline(runner *pipeline.Pipeline, pt *point.Point, ptOPt *point.PointOption) string {
+	benchmarkResult := testing.Benchmark(func(b *testing.B) {
+		b.Helper()
+		for n := 0; n < b.N; n++ {
+			_, _, _ = runner.Run(pt, nil, ptOPt, newPlTestSingal())
+		}
+	})
+	return benchmarkResult.String()
+}
+
 //------------------------------------------------------------------------------
 // -- decoding functions' area start --
 
-func getDecodeData(reqDebug *pipelineDebugRequest) ([]byte, error) {
-	decodeData, err := base64.StdEncoding.DecodeString(reqDebug.Data)
-	if err != nil {
-		return nil, uhttp.Error(ErrInvalidData, err.Error())
+func decodePipeline(category string, scripts map[string]string) (map[string]string, error) {
+	decodedScripts := map[string]string{}
+	for scriptName, scriptContent := range scripts {
+		scriptContent, err := decodeBase64Content(scriptContent, defaultEncode)
+		if err != nil {
+			return nil, err
+		}
+		if len(scriptContent) > PipelineScriptByteSizeLimit {
+			return nil, fmt.Errorf("script size exceeds 1MB limit")
+		}
+		// since the incoming script name has no suffix, add it here
+		decodedScripts[scriptName+".p"] = scriptContent
+	}
+	return decodedScripts, nil
+}
+
+func decodeDataAndConv2Point(category, name, encode string, data []string) ([]*point.Point, error) {
+	result := []*point.Point{}
+
+	opt := &point.PointOption{
+		Category: category,
+		Time:     time.Now(),
 	}
 
-	var data []byte
+	for _, line := range data {
+		line, err := decodeBase64Content(line, encode)
+		if err != nil {
+			return nil, err
+		}
+		if len(line) > DataByteSizeLimit {
+			return nil, fmt.Errorf("data size exceeds 32MB limit")
+		}
+		switch category {
+		case datakit.Logging:
+			pt, err := point.NewPoint(name, nil, map[string]interface{}{
+				pipeline.FieldMessage: line,
+			}, opt)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, pt)
+		default:
+			pts, err := lp.ParsePoints([]byte(line), nil)
+			if err != nil {
+				return nil, err
+			}
+			newPts := point.WrapPoint(pts)
+			result = append(result, newPts...)
+		}
+	}
+	return result, nil
+}
 
-	var encode string
-	if reqDebug.Encode != "" {
-		encode = strings.ToLower(reqDebug.Encode)
+func decodeBase64Content(content string, encode string) (string, error) {
+	data, err := base64.StdEncoding.DecodeString(content)
+	if err != nil {
+		return "", err
+	}
+
+	if encode != "" {
+		encode = strings.ToLower(encode)
 	}
 	switch encode {
 	case "gbk", "gb18030":
-		data, err = GbToUtf8(decodeData, encode)
+		data, err = GbToUtf8(data, encode)
 		if err != nil {
-			return nil, uhttp.Error(ErrInvalidData, err.Error())
+			return "", err
 		}
 	case "utf8", "utf-8":
 		fallthrough
 	default:
-		data = decodeData
 	}
 
-	return data, nil
+	return string(data), nil
 }
 
 // GbToUtf8 Gb to UTF-8.
@@ -398,3 +342,23 @@ func GbToUtf8(s []byte, encoding string) ([]byte, error) {
 
 // -- decode functions' area end --
 //------------------------------------------------------------------------------
+
+type plTestSignal struct {
+	tn      time.Time
+	timeout time.Duration
+}
+
+func (s *plTestSignal) ExitSignal() bool {
+	return time.Since(s.tn) >= s.timeout
+}
+
+func (s *plTestSignal) Reset() {
+	s.tn = time.Now()
+}
+
+func newPlTestSingal() *plTestSignal {
+	return &plTestSignal{
+		tn:      time.Now(),
+		timeout: time.Millisecond * 500,
+	}
+}

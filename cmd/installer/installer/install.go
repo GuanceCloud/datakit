@@ -19,6 +19,7 @@ import (
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 )
@@ -43,6 +44,9 @@ func Install(svc service.Service) {
 			}
 		case service.StatusRunning: // should not been here
 			l.Warnf("unexpected: datakit service should have stopped")
+			if err := service.Control(svc, "uninstall"); err != nil {
+				l.Warnf("uninstall service failed: %s", err.Error())
+			}
 		}
 	}
 
@@ -55,7 +59,7 @@ func Install(svc service.Service) {
 		if err != nil {
 			l.Fatal(err)
 		}
-		l.Infof("set dataway to %s OK", Dataway)
+		cp.Infof("Set dataway to %s\n", Dataway)
 	}
 
 	if OTA {
@@ -161,6 +165,9 @@ func Install(svc service.Service) {
 		l.Infof("set datakit name to %s", mc.Name)
 	}
 
+	// 一个 func 最大 230 行
+	addConfdConfig(mc)
+
 	if GitURL != "" {
 		mc.GitRepos = &config.GitRepost{
 			PullInterval: GitPullInterval,
@@ -232,7 +239,7 @@ func Install(svc service.Service) {
 		}
 	}
 	if updateEBPF {
-		l.Info("install DataKit eBPF plugin...")
+		cp.Infof("Install DataKit eBPF plugin...")
 		// nolint:gosec
 		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--ebpf")
 		if msg, err := cmd.CombinedOutput(); err != nil {
@@ -240,9 +247,61 @@ func Install(svc service.Service) {
 		}
 	}
 
-	l.Infof("installing service %s...", dkservice.Name)
+	cp.Infof("Installing service %s...\n", dkservice.Name)
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("uninstall service failed %s", err.Error()) //nolint:lll
+	}
+}
+
+func addConfdConfig(mcPrt *config.Config) {
+	if ConfdBackend != "" {
+		// 个别数据类型需要转换
+
+		// 解析后台源，应该填写成 "[地址A:端口号A,地址B:端口号B]"字样
+		if i := strings.Index(ConfdBackendNodes, "["); i > -1 {
+			ConfdBackendNodes = ConfdBackendNodes[i+1:]
+		}
+		if i := strings.Index(ConfdBackendNodes, "]"); i > -1 {
+			ConfdBackendNodes = ConfdBackendNodes[:i]
+		}
+		backendNodes := strings.Split(ConfdBackendNodes, ",")
+		for i := 0; i < len(backendNodes); i++ {
+			backendNodes[i] = strings.TrimSpace(backendNodes[i])
+		}
+
+		basicAuth := false
+		if ConfdBasicAuth == "true" {
+			basicAuth = true
+		}
+		clientInsecure := false
+		if ConfdClientInsecure == "true" {
+			clientInsecure = true
+		}
+
+		mcPrt.Confds = []*config.ConfdCfg{{
+			Enable:         true,
+			Backend:        ConfdBackend,
+			AuthToken:      ConfdAuthToken,
+			AuthType:       ConfdAuthType,
+			BasicAuth:      basicAuth,
+			ClientCaKeys:   ConfdClientCaKeys,
+			ClientCert:     ConfdClientCert,
+			ClientKey:      ConfdClientKey,
+			ClientInsecure: clientInsecure,
+			BackendNodes:   append(backendNodes[0:0], backendNodes...),
+			Password:       ConfdPassword,
+			Scheme:         ConfdScheme,
+			Table:          ConfdTable,
+			Separator:      ConfdSeparator,
+			Username:       ConfdUsername,
+			AppID:          ConfdAppID,
+			UserID:         ConfdUserID,
+			RoleID:         ConfdRoleID,
+			SecretID:       ConfdSecretID,
+			Filter:         ConfdFilter,
+			Path:           ConfdPath,
+			Role:           ConfdRole,
+		}}
 	}
 }
 

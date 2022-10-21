@@ -11,6 +11,7 @@ import (
 
 	"github.com/influxdata/influxdb1-client/models"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -26,6 +27,8 @@ var (
 		datakit.Object:  {"class"},
 		// others data type not set...
 	}
+
+	log = logger.DefaultSLogger("point")
 
 	DisabledFieldKeys = map[string][]string{
 		datakit.Logging: {"source"},
@@ -75,6 +78,15 @@ func NewPoint(name string,
 ) (*Point, error) {
 	if opt == nil {
 		opt = defaultPointOption()
+	}
+
+	newTags := make(map[string]string, len(tags))
+	for k, v := range tags {
+		newTags[k] = v
+	}
+	newFields := make(map[string]interface{}, len(fields))
+	for k, v := range fields {
+		newFields[k] = v
 	}
 
 	lpOpt := &lp.Option{
@@ -129,7 +141,7 @@ func NewPoint(name string,
 	default:
 		return nil, fmt.Errorf("invalid point category: %s", opt.Category)
 	}
-	return doMakePoint(name, tags, fields, lpOpt)
+	return doMakePoint(name, newTags, newFields, lpOpt)
 }
 
 func doMakePoint(name string,
@@ -146,6 +158,7 @@ func doMakePoint(name string,
 		for _, warn := range warnings {
 			warningsStr += warn.Message + ";"
 		}
+		log.Warnf("make point %s warnning: %s", name, warningsStr)
 	}
 
 	return &Point{Point: p}, nil

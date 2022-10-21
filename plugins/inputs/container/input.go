@@ -8,17 +8,13 @@ package container
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -31,8 +27,9 @@ const (
 )
 
 var (
-	_ inputs.ReadEnv = (*Input)(nil)
-	g                = datakit.G(goroutineGroupName)
+	_ inputs.ReadEnv   = (*Input)(nil)
+	_ inputs.Singleton = (*Input)(nil)
+	g                  = datakit.G(goroutineGroupName)
 )
 
 type Input struct {
@@ -48,11 +45,12 @@ type Input struct {
 	ExcludePauseContainer        bool `toml:"exclude_pause_container"`
 	Election                     bool `toml:"election"`
 
-	K8sURL                string `toml:"kubernetes_url"`
-	K8sBearerToken        string `toml:"bearer_token"`
-	K8sBearerTokenString  string `toml:"bearer_token_string"`
-	DisableK8sEvents      bool   `toml:"disable_k8s_events"`
-	ExtractK8sLabelAsTags bool   `toml:"extract_k8s_label_as_tags"`
+	K8sURL                              string `toml:"kubernetes_url"`
+	K8sBearerToken                      string `toml:"bearer_token"`
+	K8sBearerTokenString                string `toml:"bearer_token_string"`
+	DisableK8sEvents                    bool   `toml:"disable_k8s_events"`
+	AutoDiscoveryOfK8sServicePrometheus bool   `toml:"auto_discovery_of_k8s_service_prometheus"`
+	ExtractK8sLabelAsTags               bool   `toml:"extract_k8s_label_as_tags"`
 
 	ContainerIncludeLog               []string          `toml:"container_include_log"`
 	ContainerExcludeLog               []string          `toml:"container_exclude_log"`
@@ -60,6 +58,8 @@ type Input struct {
 	LoggingSourceMultilineMap         map[string]string `toml:"logging_source_multiline_map"`
 	LoggingAutoMultilineDetection     bool              `toml:"logging_auto_multiline_detection"`
 	LoggingAutoMultilineExtraPatterns []string          `toml:"logging_auto_multiline_extra_patterns"`
+	LoggingMinFlushInterval           time.Duration     `toml:"-"`
+	LoggingMaxMultilineLifeDuration   time.Duration     `toml:"-"`
 
 	Tags map[string]string `toml:"tags"`
 
@@ -79,6 +79,9 @@ type Input struct {
 	pause   bool
 
 	discovery *discovery
+}
+
+func (i *Input) Singleton() {
 }
 
 var (
@@ -181,6 +184,9 @@ func (i *Input) Run() {
 			i.collectObject()
 
 		case i.pause = <-i.chPause:
+			if i.discovery != nil {
+				i.discovery.chPause <- i.pause
+			}
 			globalPause.set(i.pause)
 		}
 	}
@@ -433,7 +439,10 @@ func (i *Input) setup() bool {
 			} else {
 				i.k8sInput = k
 
-				i.discovery = newDiscovery(i.k8sInput.client, i.Tags, i.ExtractK8sLabelAsTags, i.semStop.Wait())
+				i.discovery = newDiscovery(i.k8sInput.client, i.semStop.Wait())
+				i.discovery.extraTags = i.Tags
+				i.discovery.extractK8sLabelAsTags = i.ExtractK8sLabelAsTags
+				i.discovery.autoDiscoveryOfK8sServicePrometheus = i.AutoDiscoveryOfK8sServicePrometheus
 
 				if i.dockerInput != nil {
 					i.dockerInput.k8sClient = i.k8sInput.client
@@ -473,172 +482,6 @@ func (i *Input) Resume() error {
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
-	}
-}
-
-// ReadEnv , support envs：
-//   ENV_INPUT_CONTAINER_DOCKER_ENDPOINT : string
-//   ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS : string
-//   ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
-//   ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC : booler
-//   ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC : booler
-//   ENV_INPUT_CONTAINER_ENABLE_POD_METRIC : booler
-//   ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS: booler
-//   ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
-//   ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER : booler
-//   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG : []string
-//   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG : []string
-//   ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH : int
-//   ENV_INPUT_CONTAINER_KUBERNETES_URL : string
-//   ENV_INPUT_CONTAINER_BEARER_TOKEN : string
-//   ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING : string
-//   ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP : string
-//   ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON : string (JSON map)
-//   ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE : booler
-//   ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION: booler
-//   ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON : string (JSON string array)
-func (i *Input) ReadEnv(envs map[string]string) {
-	if endpoint, ok := envs["ENV_INPUT_CONTAINER_DOCKER_ENDPOINT"]; ok {
-		i.DockerEndpoint = endpoint
-	}
-
-	if address, ok := envs["ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS"]; ok {
-		i.ContainerdAddress = address
-	}
-
-	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP"]; ok {
-		i.LoggingExtraSourceMap = config.ParseGlobalTags(v)
-	}
-
-	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON"]; ok {
-		if err := json.Unmarshal([]byte(v), &i.LoggingSourceMultilineMap); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON to map: %s, ignore", err)
-		}
-	}
-
-	if remove, ok := envs["ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES"]; ok {
-		b, err := strconv.ParseBool(remove)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES to bool: %s, ignore", err)
-		} else {
-			i.LoggingRemoveAnsiEscapeCodes = b
-		}
-	}
-
-	if disable, ok := envs["ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE"]; ok {
-		b, err := strconv.ParseBool(disable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE to bool: %s, ignore", err)
-		} else {
-			i.LoggingBlockingMode = b
-		}
-	}
-
-	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC"]; ok {
-		b, err := strconv.ParseBool(enable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC to bool: %s, ignore", err)
-		} else {
-			i.EnableContainerMetric = b
-		}
-	}
-
-	if enable, ok := envs["ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS"]; ok {
-		b, err := strconv.ParseBool(enable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS to bool: %s, ignore", err)
-		} else {
-			i.ExtractK8sLabelAsTags = b
-		}
-	}
-
-	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC"]; ok {
-		b, err := strconv.ParseBool(enable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC to bool: %s, ignore", err)
-		} else {
-			i.EnableK8sMetric = b
-		}
-	}
-	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_POD_METRIC"]; ok {
-		b, err := strconv.ParseBool(enable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_POD_METRIC to bool: %s, ignore", err)
-		} else {
-			i.EnablePodMetric = b
-		}
-	}
-
-	if exclude, ok := envs["ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER"]; ok {
-		b, err := strconv.ParseBool(exclude)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER to bool: %s, ignore", err)
-		} else {
-			i.ExcludePauseContainer = b
-		}
-	}
-
-	if open, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION"]; ok {
-		b, err := strconv.ParseBool(open)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION to bool: %s, ignore", err)
-		} else {
-			i.LoggingAutoMultilineDetection = b
-		}
-	}
-
-	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON"]; ok {
-		if err := json.Unmarshal([]byte(v), &i.LoggingAutoMultilineExtraPatterns); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON to map: %s, ignore", err)
-		}
-	}
-
-	if tagsStr, ok := envs["ENV_INPUT_CONTAINER_TAGS"]; ok {
-		tags := config.ParseGlobalTags(tagsStr)
-		for k, v := range tags {
-			i.Tags[k] = v
-		}
-	}
-
-	//   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG : []string
-	//   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG : []string
-
-	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG"]; ok {
-		arrays := strings.Split(str, ",")
-		l.Debugf("add CONTAINER_INCLUDE_LOG from ENV: %v", arrays)
-		i.ContainerIncludeLog = append(i.ContainerIncludeLog, arrays...)
-	}
-
-	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG"]; ok {
-		arrays := strings.Split(str, ",")
-		l.Debugf("add CONTAINER_EXCLUDE_LOG from ENV: %v", arrays)
-		i.ContainerExcludeLog = append(i.ContainerExcludeLog, arrays...)
-	}
-
-	//   ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH : int
-	//   ENV_INPUT_CONTAINER_KUBERNETES_URL : string
-	//   ENV_INPUT_CONTAINER_BEARER_TOKEN : string
-	//   ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING : string
-
-	if str, ok := envs["ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH"]; ok {
-		n, err := strconv.Atoi(str)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_MAX_LOGGING_LENGTH to int: %s, ignore", err)
-		} else {
-			i.MaxLoggingLength = n
-		}
-	}
-
-	if str, ok := envs["ENV_INPUT_CONTAINER_KUBERNETES_URL"]; ok {
-		i.K8sURL = str
-	}
-
-	if str, ok := envs["ENV_INPUT_CONTAINER_BEARER_TOKEN"]; ok {
-		i.K8sBearerToken = str
-	}
-
-	if str, ok := envs["ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING"]; ok {
-		i.K8sBearerTokenString = str
 	}
 }
 

@@ -28,7 +28,7 @@ agent.service_name=${SW_AGENT_NAME:your-service-name}
 collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skywalking-agent-port>}
 ```
 
-## 配置 SkyWaking Agent {#agent-config}
+## 配置 SkyWalking Agent {#agent-config}
 
 === "主机安装"
 
@@ -56,6 +56,31 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
 ```command
 java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
 ```
+
+## 将日志发送到 Datakit {#logging}
+- log4j2
+
+toolkit 依赖包添加到 maven 或者 gradle 中。
+```xml
+	<dependency>
+      	<groupId>org.apache.skywalking</groupId>
+      	<artifactId>apm-toolkit-log4j-2.x</artifactId>
+      	<version>{project.release.version}</version>
+	</dependency>
+```
+
+通过 grpc 协议发送出去：
+```xml
+<GRPCLogClientAppender name="grpc-log">
+        <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n"/>
+    </GRPCLogClientAppender>
+```
+
+其他：
+
+- [log4j-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-log4j-1.x.md){:target="_blank"}
+- [logback-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-logback-1.x.md){:target="_blank"}
+
 
 ## SkyWalking JVM 指标集 {#jvm-measurements}
 

@@ -17,20 +17,16 @@ import (
 
 func (i *Input) collectMysql() error {
 	var err error
-	defer func() {
-		if err != nil {
-			i.globalStatus = map[string]interface{}{}
-			i.globalVariables = map[string]interface{}{}
-			i.binlog = map[string]interface{}{}
-		}
-	}()
+
+	i.globalStatus = map[string]interface{}{}
+	i.globalVariables = map[string]interface{}{}
+	i.binlog = map[string]interface{}{}
 
 	// We should first collect global MySQL metrics
 	if res := globalStatusMetrics(i.q("SHOW /*!50002 GLOBAL */ STATUS;")); res != nil {
 		i.globalStatus = res
 	} else {
-		err = fmt.Errorf("collect_show_status_failed")
-		return err
+		l.Warn("collect_show_status_failed")
 	}
 
 	if res := globalVariablesMetrics(i.q("SHOW GLOBAL VARIABLES;")); res != nil {
@@ -44,16 +40,14 @@ func (i *Input) collectMysql() error {
 			i.binLogOn = false
 		}
 	} else {
-		err = fmt.Errorf("collect_show_variables_failed")
-		return err
+		l.Warn("collect_show_variables_failed")
 	}
 
 	if i.binLogOn {
 		if res := binlogMetrics(i.q("SHOW BINARY LOGS;")); res != nil {
 			i.binlog = res
 		} else {
-			err = fmt.Errorf("collect_show_binlog_failed")
-			return err
+			l.Warn("collect_show_binlog_failed")
 		}
 	}
 
@@ -61,13 +55,8 @@ func (i *Input) collectMysql() error {
 }
 
 func (i *Input) collectMysqlSchema() error {
-	var err error
-	defer func() {
-		if err != nil {
-			i.mSchemaSize = map[string]interface{}{}
-			i.mSchemaQueryExecTime = map[string]interface{}{}
-		}
-	}()
+	i.mSchemaSize = map[string]interface{}{}
+	i.mSchemaQueryExecTime = map[string]interface{}{}
 
 	querySizePerschemaSQL := `
 		SELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb
@@ -77,8 +66,7 @@ func (i *Input) collectMysqlSchema() error {
 	if res := getCleanSchemaData(i.q(querySizePerschemaSQL)); res != nil {
 		i.mSchemaSize = res
 	} else {
-		err = fmt.Errorf("collect_schema_size_failed")
-		return err
+		l.Warn("collect_schema_size_failed")
 	}
 
 	queryExecPerTimeSQL := `
@@ -90,40 +78,28 @@ func (i *Input) collectMysqlSchema() error {
 	if res := getCleanSchemaData(i.q(queryExecPerTimeSQL)); res != nil {
 		i.mSchemaQueryExecTime = res
 	} else {
-		err = fmt.Errorf("collect_schema_failed")
-		return err
+		l.Warn("collect_schema_failed")
 	}
 
-	return err
+	return nil
 }
 
 func (i *Input) collectMysqlInnodb() error {
-	var err error
-	defer func() {
-		if err != nil {
-			i.mInnodb = map[string]interface{}{}
-		}
-	}()
+	i.mInnodb = map[string]interface{}{}
 
 	globalInnodbSQL := `SELECT NAME, COUNT FROM information_schema.INNODB_METRICS WHERE status='enabled'`
 
 	if res := getCleanInnodb(i.q(globalInnodbSQL)); res != nil {
 		i.mInnodb = res
 	} else {
-		err = fmt.Errorf("collect_innodb_failed")
-		return err
+		l.Warn("collect_innodb_failed")
 	}
 
-	return err
+	return nil
 }
 
 func (i *Input) collectMysqlTableSchema() error {
-	var err error
-	defer func() {
-		if err != nil {
-			i.mTableSchema = []map[string]interface{}{}
-		}
-	}()
+	i.mTableSchema = []map[string]interface{}{}
 
 	tableSchemaSQL := `
 	SELECT
@@ -160,18 +136,13 @@ func (i *Input) collectMysqlTableSchema() error {
 		}
 	}
 
-	return err
+	return nil
 }
 
 func (i *Input) collectMysqlUserStatus() error {
-	var err error
-	defer func() {
-		if err != nil {
-			i.mUserStatusName = map[string]interface{}{}
-			i.mUserStatusVariable = map[string]map[string]interface{}{}
-			i.mUserStatusConnection = map[string]map[string]interface{}{}
-		}
-	}()
+	i.mUserStatusName = map[string]interface{}{}
+	i.mUserStatusVariable = map[string]map[string]interface{}{}
+	i.mUserStatusConnection = map[string]map[string]interface{}{}
 
 	userSQL := `select DISTINCT(user) from mysql.user`
 
@@ -188,8 +159,7 @@ func (i *Input) collectMysqlUserStatus() error {
 	if res := getCleanUserStatusName(i.q(userSQL)); res != nil {
 		i.mUserStatusName = res
 	} else {
-		err = fmt.Errorf("collect_user_name_failed")
-		return err
+		l.Warn("collect_user_name_failed")
 	}
 
 	userQuerySQL := `
@@ -223,16 +193,11 @@ func (i *Input) collectMysqlUserStatus() error {
 		l.Warnf("collect_user_connection_failed")
 	}
 
-	return err
+	return nil
 }
 
 func (i *Input) collectMysqlCustomQueries() error {
-	var err error
-	defer func() {
-		if err != nil {
-			i.mCustomQueries = map[string][]map[string]interface{}{}
-		}
-	}()
+	i.mCustomQueries = map[string][]map[string]interface{}{}
 
 	for _, item := range i.Query {
 		arr := getCleanMysqlCustomQueries(i.q(item.sql))
@@ -244,7 +209,7 @@ func (i *Input) collectMysqlCustomQueries() error {
 		i.mCustomQueries[hs] = arr
 	}
 
-	return err
+	return nil
 }
 
 func (i *Input) collectMysqlDbmMetric() error {

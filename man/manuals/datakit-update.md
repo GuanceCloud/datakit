@@ -170,3 +170,30 @@ service cron restart
     ```
 
 这里的版本号，可以从 [DataKit 的发布历史](changelog.md)页面找到。目前只支持退回到 [1.2.0](changelog.md#cl-1.2.0) 以后的版本，之前的 rc 版本不建议回退。回退版本后，可能会碰到一些新版本中才有的配置，无法在回退后的版本中解析，这个暂时只能手动调整配置，适配老版本的 DataKit。
+
+## 版本检测失败的处理 {#version-check-failed}
+
+在 DataKit 安装/升级过程中，安装程序会对当前运行的 DataKit 版本进行检测，以确保当前运行的 DataKit 版本就是升级后的版本。
+
+但是某些情况下，老版本的 DataKit 服务并未卸载成功，导致检测过程中中发现，当前运行的 DataKit 版本号还是老的版本号：
+
+```shell
+2022-09-22T21:20:35.967+0800    ERROR   installer  installer/main.go:374  checkIsNewVersion: current version: 1.4.13, expect 1.4.16
+```
+
+此时我们可以强制停止老版本的 DataKit，并重启 DataKit：
+
+``` shell
+datakit service -T # 停止服务
+datakit service -S # 启动新的服务
+
+datakit version # 确保当前运行的 DataKit 已经是最新的版本
+
+       Version: 1.4.16
+        Commit: 1357544bd6
+        Branch: master
+ Build At(UTC): 2022-09-20 11:43:20
+Golang Version: go version go1.18.3 linux/amd64
+      Uploader: zy-infra-gitlab-prod-runner/root/xxx
+ReleasedInputs: checked
+```

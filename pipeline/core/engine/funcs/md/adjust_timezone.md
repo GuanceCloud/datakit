@@ -1,6 +1,6 @@
 ### `adjust_timezone()` {#fn-adjust-timezone}
 
-函数原型：`adjust_timezone(key=required, minute=optional)`
+函数原型：`fn adjust_timezone(key: int, minute: int)`
 
 函数参数
 

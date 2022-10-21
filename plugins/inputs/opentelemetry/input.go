@@ -8,22 +8,26 @@
 package opentelemetry
 
 import (
+	"bytes"
 	"context"
-	"errors"
-	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	dkHTTP "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -73,7 +77,7 @@ const (
     # key2 = "value2"
     # ...
 
-  ## Threads config controls how many goroutines an agent cloud start.
+  ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
   # [inputs.opentelemetry.threads]
@@ -84,7 +88,7 @@ const (
   ## path is the local file path used to cache data.
   ## capacity is total space size(MB) used to store data.
   # [inputs.opentelemetry.storage]
-    # path = "./opentelemetry_storage"
+    # path = "./otel_storage"
     # capacity = 5120
 
   [inputs.opentelemetry.expectedHeaders]
@@ -121,9 +125,8 @@ const (
 var (
 	log         = logger.DefaultSLogger(inputName)
 	spanStorage *collector.SpansStorage
-	afterGather *itrace.AfterGather
-	wpool       workerpool.WorkerPool
-	storage     *itrace.Storage
+	wkpool      *workerpool.WorkerPool
+	localCache  *storage.Storage
 )
 
 type Input struct {
@@ -137,23 +140,17 @@ type Input struct {
 	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"`
 	Tags                map[string]string            `toml:"tags"`
 	WPConfig            *workerpool.WorkerPoolConfig `toml:"threads"`
-	Storage             *itrace.Storage              `toml:"storage"`
+	LocalCacheConfig    *storage.StorageConfig       `toml:"storage"`
 	ExpectedHeaders     map[string]string            `toml:"expectedHeaders"`
 	inputName           string
 	semStop             *cliutils.Sem // start stop signal
 }
 
-func (*Input) Catalog() string {
-	return inputName
-}
+func (*Input) Catalog() string { return inputName }
 
-func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
-func (*Input) SampleConfig() string {
-	return sampleConfig
-}
+func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
@@ -162,21 +159,61 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(ipt.inputName)
 
-	if ipt.Storage != nil {
-		if cache, err := cache.Open(ipt.Storage.Path, &cache.Option{Capacity: int64(ipt.Storage.Capacity) << 20}); err != nil {
-			log.Errorf("### open cache %s with cap %dMB failed, cache.Open: %s", ipt.Storage.Path, ipt.Storage.Capacity, err)
+	var err error
+	if ipt.WPConfig != nil {
+		if wkpool, err = workerpool.NewWorkerPool(ipt.WPConfig, log); err != nil {
+			log.Errorf("### new worker-pool failed: %s", err.Error())
+		} else if err = wkpool.Start(); err != nil {
+			log.Errorf("### start worker-pool failed: %s", err.Error())
+		}
+	}
+	if ipt.LocalCacheConfig != nil {
+		log.Debug("### start register")
+		if localCache, err = storage.NewStorage(ipt.LocalCacheConfig, log); err != nil {
+			log.Errorf("### new local-cache failed: %s", err.Error())
+		} else if err = localCache.RunConsumeWorker(); err != nil {
+			log.Errorf("### run local-cache consumer failed: %s", err.Error())
 		} else {
-			ipt.Storage.SetCache(cache)
-			ipt.Storage.RunStorageConsumer(log, ipt.parseOtelTraceFanout)
-			storage = ipt.Storage
-			log.Infof("### open cache %s with cap %dMB OK", ipt.Storage.Path, ipt.Storage.Capacity)
+			localCache.RegisterConsumer(storage.HTTP_KEY, func(buf []byte) error {
+				start := time.Now()
+				reqpb := &storage.Request{}
+				if err := proto.Unmarshal(buf, reqpb); err != nil {
+					return err
+				} else {
+					req := &http.Request{
+						Method:           reqpb.Method,
+						Proto:            reqpb.Proto,
+						ProtoMajor:       int(reqpb.ProtoMajor),
+						ProtoMinor:       int(reqpb.ProtoMinor),
+						Header:           storage.ConvertMapEntriesToMap(reqpb.Header),
+						Body:             io.NopCloser(bytes.NewBuffer(reqpb.Body)),
+						ContentLength:    reqpb.ContentLength,
+						TransferEncoding: reqpb.TransferEncoding,
+						Close:            reqpb.Close,
+						Host:             reqpb.Host,
+						Form:             storage.ConvertMapEntriesToMap(reqpb.Form),
+						PostForm:         storage.ConvertMapEntriesToMap(reqpb.PostForm),
+						RemoteAddr:       reqpb.RemoteAddr,
+						RequestURI:       reqpb.RequestUri,
+					}
+					if req.URL, err = url.Parse(reqpb.Url); err != nil {
+						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
+					}
+					ipt.HTTPCol.apiOtlpTrace(&ihttp.NopResponseWriter{}, req)
+
+					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
+
+					return nil
+				}
+			})
 		}
 	}
 
-	if storage == nil {
-		afterGather = itrace.NewAfterGather()
+	var afterGather *itrace.AfterGather
+	if localCache != nil && localCache.Enabled() {
+		afterGather = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithRetry(100*time.Millisecond), itrace.WithBlockIOModel(true))
 	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithRetry(100 * time.Millisecond))
+		afterGather = itrace.NewAfterGather(itrace.WithLogger(log))
 	}
 
 	// add filters: the order of appending filters into AfterGather is important!!!
@@ -210,18 +247,11 @@ func (ipt *Input) RegHTTPHandler() {
 		spanStorage.RegexpString = strings.Join(ipt.IgnoreAttributeKeys, "|")
 	}
 
-	if ipt.WPConfig != nil {
-		wpool = workerpool.NewWorkerPool(ipt.WPConfig.Buffer)
-		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
-			log.Errorf("### start workerpool failed: %s", err.Error())
-			wpool = nil
-		}
-	}
-
 	log.Infof("### register handler for /otel/v1/trace of agent %s", inputName)
 	log.Infof("### register handler for /otel/v1/metric of agent %s", inputName)
-	dkHTTP.RegHTTPHandler("POST", "/otel/v1/trace", ipt.HTTPCol.apiOtlpTrace)
-	dkHTTP.RegHTTPHandler("POST", "/otel/v1/metric", ipt.HTTPCol.apiOtlpMetric)
+	dkhttp.RegHTTPHandler("POST", "/otel/v1/trace",
+		workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, ipt.HTTPCol.apiOtlpTrace)))
+	dkhttp.RegHTTPHandler("POST", "/otel/v1/metric", ipt.HTTPCol.apiOtlpMetric)
 }
 
 func (ipt *Input) Run() {
@@ -240,6 +270,7 @@ func (ipt *Input) Run() {
 		func(spanStorage *collector.SpansStorage) {
 			g.Go(func(ctx context.Context) error {
 				ipt.GRPCCol.run(spanStorage)
+
 				return nil
 			})
 		}(spanStorage)
@@ -247,6 +278,7 @@ func (ipt *Input) Run() {
 	if open {
 		g.Go(func(ctx context.Context) error {
 			spanStorage.Run()
+
 			return nil
 		})
 		for {
@@ -270,12 +302,12 @@ func (ipt *Input) Run() {
 
 func (ipt *Input) exit() {
 	ipt.GRPCCol.stop()
-	if storage != nil {
-		_ = storage.Close()
+	if localCache != nil {
+		_ = localCache.Close()
 		log.Info("openTelemetry storage closed")
 	}
-	if wpool != nil {
-		wpool.Shutdown()
+	if wkpool != nil {
+		wkpool.Shutdown()
 		log.Info("openTelemetry workerpool closed")
 	}
 	if spanStorage != nil {
@@ -286,21 +318,6 @@ func (ipt *Input) exit() {
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-	}
-}
-
-func (ipt *Input) parseOtelTraceFanout(param *itrace.TraceParameters) error {
-	if param == nil || param.Meta == nil {
-		return errors.New("invalid parameters")
-	}
-
-	switch param.Meta.Protocol {
-	case "http":
-		return ipt.HTTPCol.parseOtelTrace(param)
-	case "grpc":
-		return parseOtelTraceGRPC(spanStorage, param)
-	default:
-		return fmt.Errorf("invalid protocol: %s", param.Meta.Protocol)
 	}
 }
 

@@ -237,11 +237,11 @@ func makeSeries(tags map[string]string, key string, i interface{}, dataTime time
 
 // toPromWriteRequest converts a list of timeseries to a Prometheus proto write request.
 func toPromWriteRequest(promts []*TimeSeries) *prompb.WriteRequest {
-	promPbTS := make([]*prompb.TimeSeries, len(promts))
+	promPbTS := make([]prompb.TimeSeries, len(promts))
 	for i, ts := range promts {
-		labels := make([]*prompb.Label, len(ts.Labels))
+		labels := make([]prompb.Label, len(ts.Labels))
 		for j, label := range ts.Labels {
-			labels[j] = &prompb.Label{Name: label.Name, Value: label.Value}
+			labels[j] = prompb.Label{Name: label.Name, Value: label.Value}
 		}
 
 		sample := []prompb.Sample{
@@ -251,7 +251,7 @@ func toPromWriteRequest(promts []*TimeSeries) *prompb.WriteRequest {
 				Value:     ts.Datapoint.Value,
 			},
 		}
-		promPbTS[i] = &prompb.TimeSeries{Labels: labels, Samples: sample}
+		promPbTS[i] = prompb.TimeSeries{Labels: labels, Samples: sample}
 	}
 
 	return &prompb.WriteRequest{

@@ -57,7 +57,6 @@ func main() {
 		datakit.DownloadAddr = DownloadAddr
 	}
 
-	datakit.EnableUncheckInputs = (InputsReleaseType == "all")
 	cmds.ReleaseVersion = ReleaseVersion
 	cmds.InputsReleaseType = InputsReleaseType
 
@@ -240,15 +239,30 @@ func doRun() error {
 		return err
 	}
 
-	if config.GitHasEnabled() {
-		if err := gitrepo.StartPull(); err != nil {
-			l.Errorf("gitrepo.StartPull failed: %v", err)
-			return err
-		}
-	} else {
+	if config.IsUseConfd() {
+		// First need RunInputs. lots of start in this func
+		// must befor StartConfd()
 		if err := inputs.RunInputs(); err != nil {
 			l.Error("error running inputs: %v", err)
 			return err
+		}
+
+		// if use config source from confd, like etcd zookeeper concul tredis ...
+		if err := config.StartConfd(); err != nil {
+			l.Errorf("config.StartConfd failed: %v", err)
+			return err
+		}
+	} else {
+		if config.GitHasEnabled() {
+			if err := gitrepo.StartPull(); err != nil {
+				l.Errorf("gitrepo.StartPull failed: %v", err)
+				return err
+			}
+		} else {
+			if err := inputs.RunInputs(); err != nil {
+				l.Error("error running inputs: %v", err)
+				return err
+			}
 		}
 	}
 

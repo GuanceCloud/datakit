@@ -5,13 +5,12 @@ package dnsflow
 
 import (
 	"context"
-	"fmt"
-	"net"
 	"time"
 
 	"github.com/google/gopacket/afpacket"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
 )
 
@@ -24,6 +23,12 @@ var l = logger.DefaultSLogger("ebpf")
 
 func SetLogger(nl *logger.Logger) {
 	l = nl
+}
+
+var k8sNetInfo *k8sinfo.K8sNetInfo
+
+func SetK8sNetInfo(n *k8sinfo.K8sNetInfo) {
+	k8sNetInfo = n
 }
 
 func NewDNSFlowTracer() *DNSFlowTracer {
@@ -47,25 +52,24 @@ func (tracer *DNSFlowTracer) updateDNSStats(packetInfo *DNSPacketInfo, dnsRecord
 				TS:        packetInfo.TS,
 				Timeout:   false,
 				Responded: false,
+				RCODE:     -1,
 			}
+			return &stats
 		}
-		return nil
 	} else {
 		if packetInfo.QR { // answer
-			stats.Responded = true
 			stats.RespTime = packetInfo.TS.Sub(stats.TS)
-			stats.RCODE = packetInfo.RCODE
+			stats.RCODE = int(packetInfo.RCODE)
 			stats.Timeout = false
 			delete(tracer.statsMap, packetInfo.Key)
-			if dnsRecord != nil && stats.RCODE == 0 {
+			if dnsRecord != nil && !stats.Responded {
+				stats.Responded = true
 				dnsRecord.addRecord(packetInfo)
+				return &stats
 			}
-		} else {
-			return nil
 		}
 	}
-
-	return &stats
+	return nil
 }
 
 func (tracer *DNSFlowTracer) checkTimeoutDNSQuery() map[DNSQAKey]DNSStats {
@@ -115,7 +119,7 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 	dnsRecord *DNSAnswerRecord, feedAddr string,
 ) {
 	mCh := make(chan []*point.Point)
-	finishedStatsM := []*point.Point{}
+	agg := FlowAgg{}
 	go tracer.readPacket(ctx, tp)
 	go func() {
 		t := time.NewTicker(time.Second * 30)
@@ -124,32 +128,24 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 			case <-t.C:
 				stats := tracer.checkTimeoutDNSQuery()
 				for k, v := range stats {
-					if pt, err := conv2M(k, v, gTag); err != nil {
-						l.Error(err)
-					} else {
-						finishedStatsM = append(finishedStatsM, pt)
+					err := agg.Append(k, v)
+					if err != nil {
+						l.Debug(err)
 					}
 				}
-				collectData := finishedStatsM
-				finishedStatsM = []*point.Point{}
+
+				pts := agg.ToPoint(gTag, k8sNetInfo)
+				agg.Clean()
 				select {
-				case mCh <- collectData:
+				case mCh <- pts:
 				default:
 					l.Warn("mCh full, drop data")
 				}
 			case pinfo := <-tracer.pInfoCh:
-				serverIP := net.ParseIP(pinfo.Key.ServerIP)
-				if serverIP == nil {
-					continue
-				} else if serverIP.IsLoopback() {
-					continue
-				}
-
 				if stats := tracer.updateDNSStats(pinfo, dnsRecord); stats != nil {
-					if pt, err := conv2M(pinfo.Key, *stats, gTag); err != nil {
-						l.Error(err)
-					} else {
-						finishedStatsM = append(finishedStatsM, pt)
+					err := agg.Append(pinfo.Key, *stats)
+					if err != nil {
+						l.Debug(err)
 					}
 				}
 			case <-ctx.Done():
@@ -169,34 +165,4 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 			}
 		}
 	}
-}
-
-func conv2M(key DNSQAKey, stats DNSStats, gTags map[string]string) (*point.Point, error) {
-	mTags := map[string]string{}
-	// ts:     stats.TS,
-
-	for k, v := range gTags {
-		mTags[k] = v
-	}
-	mTags["src_ip"] = key.ClientIP
-	mTags["src_port"] = fmt.Sprintf("%d", key.ClientPort)
-	mTags["dst_ip"] = key.ServerIP
-	mTags["dst_port"] = fmt.Sprintf("%d", key.ServerPort)
-	if key.IsUDP {
-		mTags["transport"] = "udp"
-	} else {
-		mTags["transport"] = "tcp"
-	}
-	if key.IsV4 {
-		mTags["family"] = "IPv4"
-	} else {
-		mTags["family"] = "IPv6"
-	}
-	mFields := map[string]interface{}{
-		"timeout":   stats.Timeout,
-		"rcode":     int64(stats.RCODE),
-		"resp_time": stats.RespTime.Nanoseconds(),
-	}
-
-	return point.NewPoint(srcNameM, mTags, mFields, point.NOpt())
 }

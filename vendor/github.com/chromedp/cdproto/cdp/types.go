@@ -167,26 +167,31 @@ func (t PseudoType) String() string {
 
 // PseudoType values.
 const (
-	PseudoTypeFirstLine           PseudoType = "first-line"
-	PseudoTypeFirstLetter         PseudoType = "first-letter"
-	PseudoTypeBefore              PseudoType = "before"
-	PseudoTypeAfter               PseudoType = "after"
-	PseudoTypeMarker              PseudoType = "marker"
-	PseudoTypeBackdrop            PseudoType = "backdrop"
-	PseudoTypeSelection           PseudoType = "selection"
-	PseudoTypeTargetText          PseudoType = "target-text"
-	PseudoTypeSpellingError       PseudoType = "spelling-error"
-	PseudoTypeGrammarError        PseudoType = "grammar-error"
-	PseudoTypeHighlight           PseudoType = "highlight"
-	PseudoTypeFirstLineInherited  PseudoType = "first-line-inherited"
-	PseudoTypeScrollbar           PseudoType = "scrollbar"
-	PseudoTypeScrollbarThumb      PseudoType = "scrollbar-thumb"
-	PseudoTypeScrollbarButton     PseudoType = "scrollbar-button"
-	PseudoTypeScrollbarTrack      PseudoType = "scrollbar-track"
-	PseudoTypeScrollbarTrackPiece PseudoType = "scrollbar-track-piece"
-	PseudoTypeScrollbarCorner     PseudoType = "scrollbar-corner"
-	PseudoTypeResizer             PseudoType = "resizer"
-	PseudoTypeInputListButton     PseudoType = "input-list-button"
+	PseudoTypeFirstLine                   PseudoType = "first-line"
+	PseudoTypeFirstLetter                 PseudoType = "first-letter"
+	PseudoTypeBefore                      PseudoType = "before"
+	PseudoTypeAfter                       PseudoType = "after"
+	PseudoTypeMarker                      PseudoType = "marker"
+	PseudoTypeBackdrop                    PseudoType = "backdrop"
+	PseudoTypeSelection                   PseudoType = "selection"
+	PseudoTypeTargetText                  PseudoType = "target-text"
+	PseudoTypeSpellingError               PseudoType = "spelling-error"
+	PseudoTypeGrammarError                PseudoType = "grammar-error"
+	PseudoTypeHighlight                   PseudoType = "highlight"
+	PseudoTypeFirstLineInherited          PseudoType = "first-line-inherited"
+	PseudoTypeScrollbar                   PseudoType = "scrollbar"
+	PseudoTypeScrollbarThumb              PseudoType = "scrollbar-thumb"
+	PseudoTypeScrollbarButton             PseudoType = "scrollbar-button"
+	PseudoTypeScrollbarTrack              PseudoType = "scrollbar-track"
+	PseudoTypeScrollbarTrackPiece         PseudoType = "scrollbar-track-piece"
+	PseudoTypeScrollbarCorner             PseudoType = "scrollbar-corner"
+	PseudoTypeResizer                     PseudoType = "resizer"
+	PseudoTypeInputListButton             PseudoType = "input-list-button"
+	PseudoTypePageTransition              PseudoType = "page-transition"
+	PseudoTypePageTransitionContainer     PseudoType = "page-transition-container"
+	PseudoTypePageTransitionImageWrapper  PseudoType = "page-transition-image-wrapper"
+	PseudoTypePageTransitionOutgoingImage PseudoType = "page-transition-outgoing-image"
+	PseudoTypePageTransitionIncomingImage PseudoType = "page-transition-incoming-image"
 )
 
 // MarshalEasyJSON satisfies easyjson.Marshaler.
@@ -242,6 +247,16 @@ func (t *PseudoType) UnmarshalEasyJSON(in *jlexer.Lexer) {
 		*t = PseudoTypeResizer
 	case PseudoTypeInputListButton:
 		*t = PseudoTypeInputListButton
+	case PseudoTypePageTransition:
+		*t = PseudoTypePageTransition
+	case PseudoTypePageTransitionContainer:
+		*t = PseudoTypePageTransitionContainer
+	case PseudoTypePageTransitionImageWrapper:
+		*t = PseudoTypePageTransitionImageWrapper
+	case PseudoTypePageTransitionOutgoingImage:
+		*t = PseudoTypePageTransitionOutgoingImage
+	case PseudoTypePageTransitionIncomingImage:
+		*t = PseudoTypePageTransitionIncomingImage
 
 	default:
 		in.AddError(errors.New("unknown PseudoType value"))
@@ -371,6 +386,7 @@ type Node struct {
 	Name              string            `json:"name,omitempty"`             // Attr's name.
 	Value             string            `json:"value,omitempty"`            // Attr's value.
 	PseudoType        PseudoType        `json:"pseudoType,omitempty"`       // Pseudo element type for this node.
+	PseudoIdentifier  string            `json:"pseudoIdentifier,omitempty"` // Pseudo element identifier for this node. Only present if there is a valid pseudoType.
 	ShadowRootType    ShadowRootType    `json:"shadowRootType,omitempty"`   // Shadow root type.
 	FrameID           FrameID           `json:"frameId,omitempty"`          // Frame ID for frame owner elements.
 	ContentDocument   *Node             `json:"contentDocument,omitempty"`  // Content document for frame owner elements.
@@ -380,6 +396,7 @@ type Node struct {
 	DistributedNodes  []*BackendNode    `json:"distributedNodes,omitempty"` // Distributed nodes for given insertion point.
 	IsSVG             bool              `json:"isSVG,omitempty"`            // Whether the node is SVG.
 	CompatibilityMode CompatibilityMode `json:"compatibilityMode,omitempty"`
+	AssignedSlot      *BackendNode      `json:"assignedSlot,omitempty"`
 	Parent            *Node             `json:"-"` // Parent node.
 	Invalidated       chan struct{}     `json:"-"` // Invalidated channel.
 	State             NodeState         `json:"-"` // Node state.
@@ -1072,6 +1089,7 @@ const (
 	OriginTrialTokenStatusFeatureDisabled        OriginTrialTokenStatus = "FeatureDisabled"
 	OriginTrialTokenStatusTokenDisabled          OriginTrialTokenStatus = "TokenDisabled"
 	OriginTrialTokenStatusFeatureDisabledForUser OriginTrialTokenStatus = "FeatureDisabledForUser"
+	OriginTrialTokenStatusUnknownTrial           OriginTrialTokenStatus = "UnknownTrial"
 )
 
 // MarshalEasyJSON satisfies easyjson.Marshaler.
@@ -1109,6 +1127,8 @@ func (t *OriginTrialTokenStatus) UnmarshalEasyJSON(in *jlexer.Lexer) {
 		*t = OriginTrialTokenStatusTokenDisabled
 	case OriginTrialTokenStatusFeatureDisabledForUser:
 		*t = OriginTrialTokenStatusFeatureDisabledForUser
+	case OriginTrialTokenStatusUnknownTrial:
+		*t = OriginTrialTokenStatusUnknownTrial
 
 	default:
 		in.AddError(errors.New("unknown OriginTrialTokenStatus value"))

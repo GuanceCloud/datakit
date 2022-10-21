@@ -27,6 +27,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/installer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
@@ -69,7 +70,7 @@ const (
 //nolint:gochecknoinits,lll
 func init() {
 	flag.BoolVar(&flagDKUpgrade, "upgrade", false, "")
-	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
+	flag.StringVar(&flagInstallLog, "install-log", "install.log", "install log")
 	flag.StringVar(&flagSrc, "srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of install files`)
 	flag.IntVar(&flagInstallOnly, "install-only", 0, "install only, not start")
 	flag.BoolVar(&flagInfo, "info", false, "show installer info")
@@ -106,6 +107,29 @@ func init() {
 	flag.StringVar(&installer.HostName, "env_hostname", "", "host name")
 	flag.StringVar(&installer.IPDBType, "ipdb-type", "", "ipdb type")
 	flag.StringVar(&installer.CloudProvider, "cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
+
+	// confd flags
+	flag.StringVar(&installer.ConfdBackend, "confd-backend", "", "confd-backend")
+	flag.StringVar(&installer.ConfdAuthToken, "confd-auth-token", "", "confd-auth-token")
+	flag.StringVar(&installer.ConfdAuthType, "confd-auth-type", "", "confd-auth-type")
+	flag.StringVar(&installer.ConfdBasicAuth, "confd-basic-auth", "", "confd-basic-auth")
+	flag.StringVar(&installer.ConfdClientCaKeys, "confd-client-ca-keys", "", "confd-client-ca-keys")
+	flag.StringVar(&installer.ConfdClientCert, "confd-client-cert", "", "confd-client-cert")
+	flag.StringVar(&installer.ConfdClientKey, "confd-client-key", "", "confd-client-key")
+	flag.StringVar(&installer.ConfdClientInsecure, "confd-client-insecure", "", "confd-client-insecure")
+	flag.StringVar(&installer.ConfdBackendNodes, "confd-backend-nodes", "", "confd-backend-nodes")
+	flag.StringVar(&installer.ConfdPassword, "confd-password", "", "confd-password")
+	flag.StringVar(&installer.ConfdScheme, "confd-scheme", "", "confd-scheme")
+	flag.StringVar(&installer.ConfdTable, "confd-table", "", "confd-table")
+	flag.StringVar(&installer.ConfdSeparator, "confd-separator", "", "confd-separator")
+	flag.StringVar(&installer.ConfdUsername, "confd-username", "", "confd-username")
+	flag.StringVar(&installer.ConfdAppID, "confd-app-id", "", "confd-app-id")
+	flag.StringVar(&installer.ConfdUserID, "confd-user-id", "", "confd-user-id")
+	flag.StringVar(&installer.ConfdRoleID, "confd-role-id", "", "confd-role-id")
+	flag.StringVar(&installer.ConfdSecretID, "confd-secret-id", "", "confd-secret-id")
+	flag.StringVar(&installer.ConfdFilter, "confd-filter", "", "confd-filter")
+	flag.StringVar(&installer.ConfdPath, "confd-path", "", "confd-path")
+	flag.StringVar(&installer.ConfdRole, "confd-role", "", "confd-role")
 
 	// gitrepo flags
 	flag.StringVar(&installer.GitURL, "git-url", "", "git repo url")
@@ -197,26 +221,29 @@ func applyFlags() {
 	var err error
 
 	// setup logging
-	if flagInstallLog == "" {
+	if flagInstallLog == "stdout" {
+		cp.Infof("Set log file to stdout")
+
 		if err = logger.InitRoot(
 			&logger.Option{
 				Level: logger.DEBUG,
 				Flags: logger.OPT_DEFAULT | logger.OPT_STDOUT,
 			}); err != nil {
-			l.Errorf("set root log faile: %s", err.Error())
+			cp.Errorf("Set root log faile: %s\n", err.Error())
 		}
 	} else {
-		l.Infof("set log file to %s", flagInstallLog)
-
+		cp.Infof("Set log file to %s\n", flagInstallLog)
 		if err = logger.InitRoot(&logger.Option{
 			Path:  flagInstallLog,
 			Level: logger.DEBUG,
 			Flags: logger.OPT_DEFAULT,
 		}); err != nil {
-			l.Errorf("set root log faile: %s", err.Error())
+			cp.Errorf("Set root log faile: %s", err.Error())
 		}
 	}
 
+	config.SetLog()
+	installer.SetLog()
 	l = logger.SLogger("installer")
 
 	installer.DataKitVersion = DataKitVersion
@@ -266,7 +293,8 @@ func applyFlags() {
 		if !strings.HasSuffix(InstallerBaseURL, "/") {
 			InstallerBaseURL += "/"
 		}
-		l.Infof("InstallerBaseURL = %s", InstallerBaseURL)
+
+		cp.Infof("Set installer base URL to %s\n", InstallerBaseURL)
 		dataURL = InstallerBaseURL + "data.tar.gz"
 
 		datakitURL = InstallerBaseURL + fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
@@ -306,18 +334,18 @@ Data           : %s
 	svcStatus, err := svc.Status()
 	if err != nil {
 		if errors.Is(err, service.ErrNotInstalled) {
-			l.Infof("datakit service not installed before")
+			cp.Infof("datakit service not installed before\n")
 		} else {
 			l.Warnf("svc.Status: %s, ignored", err.Error())
 		}
 	} else {
 		switch svcStatus {
 		case service.StatusUnknown: // not installed
-			l.Info("datakit service maybe not installed")
+			cp.Infof("DataKit service maybe not installed\n")
 		case service.StatusStopped: // pass
-			l.Info("datakit service stopped")
+			cp.Infof("DataKit service stopped\n")
 		case service.StatusRunning:
-			l.Info("stoping datakit...")
+			cp.Infof("Stopping running DataKit...\n")
 			if err = service.Control(svc, "stop"); err != nil {
 				l.Warnf("stop service failed %s, ignored", err.Error())
 			}
@@ -330,16 +358,24 @@ Data           : %s
 	mvOldDatakit(svc)
 
 	if !flagOffline {
-		for i := 0; i < 5; i++ {
+		dlRetry := 5
+
+		cp.Infof("Download installer...")
+
+		for i := 0; i < dlRetry; i++ {
 			if err = downloadFiles(datakit.InstallDir); err != nil { // download 过程直接覆盖已有安装
-				l.Errorf("[%d] download failed: %s, retry...", i, err.Error())
+				cp.Warnf("[%d] download failed: %s, retry...", i, err.Error())
 				continue
 			}
-			l.Infof("[%d] download installer ok", i)
-			break
+
+			goto __downloadOK
 		}
+
+		cp.Errorf("Download failed, please check your network settings.\n")
+		return
 	}
 
+__downloadOK:
 	datakit.InitDirs()
 
 	if flagDKUpgrade { // upgrade new version
@@ -348,40 +384,42 @@ Data           : %s
 			return
 		}
 
-		l.Infof("Upgrading to version %s...", DataKitVersion)
-		if err = installer.Upgrade(svc); err != nil {
-			l.Warnf("upgrade datakit failed: %s", err.Error())
+		cp.Infof("Upgrading to version %s...\n", DataKitVersion)
+		if err = installer.Upgrade(); err != nil {
+			cp.Warnf("upgrade datakit failed: %s, ignored\n", err.Error())
 		}
 	} else { // install new datakit
-		l.Infof("Installing version %s...", DataKitVersion)
+		cp.Infof("Installing version %s...\n", DataKitVersion)
 		installer.Install(svc)
 	}
 
 	if flagInstallOnly != 0 {
-		l.Infof("only install service %s, NOT started", dkservice.Name)
+		cp.Warnf("Only install service %s, NOT started\n", dkservice.Name)
 	} else {
-		l.Infof("starting service %s...", dkservice.Name)
+		cp.Infof("Starting service %s...\n", dkservice.Name)
 		if err = service.Control(svc, "start"); err != nil {
-			l.Warnf("start service failed: %s", err.Error())
+			cp.Warnf("Start service failed: %s\n", err.Error())
 		}
 	}
 
+	cp.Infof("Create symlinks...\n")
 	if err := config.CreateSymlinks(); err != nil {
 		l.Errorf("CreateSymlinks: %s", err.Error())
 	}
 
 	if err := checkIsNewVersion("http://"+config.Cfg.HTTPAPI.Listen, DataKitVersion); err != nil {
-		l.Errorf("checkIsNewVersion: %s", err.Error())
-	} else {
-		l.Infof("current running datakit is version: %s", DataKitVersion)
-
-		if flagDKUpgrade {
-			l.Info(":) Upgrade Success!")
-		} else {
-			l.Info(":) Install Success!")
-		}
-		promptReferences()
+		promptFixVersionChecking()
+		return
 	}
+
+	cp.Infof("Current running datakit version: %s\n", DataKitVersion)
+
+	if flagDKUpgrade {
+		cp.Infof("Upgrade OK.\n")
+	} else {
+		cp.Infof("Install OK.\n")
+	}
+	promptReferences()
 }
 
 // test if installed/upgraded to expected version.
@@ -391,7 +429,7 @@ func checkIsNewVersion(host, version string) error {
 	}{}
 
 	for i := 0; i < 10; i++ {
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * time.Duration(i+1))
 
 		resp, err := http.Get(host + "/v1/ping")
 		if err != nil {
@@ -402,32 +440,34 @@ func checkIsNewVersion(host, version string) error {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			l.Errorf("ioutil.ReadAll: %s", err)
-			continue
 		}
 
-		defer resp.Body.Close() //nolint:errcheck
+		resp.Body.Close() //nolint:errcheck,gosec
 
 		if err := json.Unmarshal(body, &x); err != nil {
 			l.Errorf("json.Unmarshal: %s", err)
-			return err
 		}
 
 		if x.Content["version"] != version {
-			return fmt.Errorf("current version: %s, expect %s", x.Content["version"], version)
+			l.Warnf("current version: %s, expect %s", x.Content["version"], version)
 		} else {
 			return nil
 		}
 	}
 
-	return fmt.Errorf("check current version failed")
+	return fmt.Errorf("check version failed")
+}
+
+func promptFixVersionChecking() {
+	cp.Warnf("\n\tVisit https://docs.guance.com/datakit/datakit-update/#version-check-failed to fix the issue.\n")
 }
 
 func promptReferences() {
-	fmt.Println("\n\tVisit https://docs.guance.com/datakit/changelog/ to see DataKit change logs.")
+	cp.Infof("\nVisit https://docs.guance.com/datakit/changelog/ to see DataKit change logs.\n")
 	if config.Cfg.HTTPAPI.Listen != "localhost:9529" {
-		fmt.Printf("\tUse `datakit monitor --to %s` to see DataKit running status.\n", config.Cfg.HTTPAPI.Listen)
+		cp.Infof("Use `datakit monitor --to %s` to see DataKit running status.\n", config.Cfg.HTTPAPI.Listen)
 	} else {
-		fmt.Println("\tUse `datakit monitor` to see DataKit running status.")
+		cp.Infof("Use `datakit monitor` to see DataKit running status.\n")
 	}
 }
 
@@ -441,7 +481,7 @@ func mvOldDatakit(svc service.Service) {
 	}
 
 	if _, err := os.Stat(olddir); err != nil {
-		l.Infof("deprecated install path %s not found", olddir)
+		l.Infof("deprecated install path %s not found\n", olddir)
 		return
 	}
 

@@ -174,6 +174,11 @@ func TestPlScriptStore(t *testing.T) {
 
 	assert.Equal(t, store.Count(), 2)
 
+	err = store.UpdateScriptsWithNS(ConfdScriptNS, map[string]string{"abc.p": "default_time(time)"}, nil)
+	if err != nil {
+		t.Error(err)
+	}
+
 	err = store.UpdateScriptsWithNS(RemoteScriptNS, map[string]string{"abc.p": "default_time(time)"}, nil)
 	if err != nil {
 		t.Error(err)

@@ -23,7 +23,7 @@ type (
 )
 
 func RunScript(proc *Script, measurement string,
-	tags map[string]string, fields map[string]any, tn time.Time) (
+	tags map[string]string, fields map[string]any, tn time.Time, signal Signal) (
 	string, map[string]string, map[string]any, time.Time, bool, error,
 ) {
 	if proc == nil {
@@ -37,7 +37,7 @@ func RunScript(proc *Script, measurement string,
 
 	pt = InitPt(pt, measurement, tags, fields, tn)
 
-	ctx = InitCtx(ctx, pt, proc.FuncCall, proc.CallRef)
+	ctx = InitCtx(ctx, pt, proc.FuncCall, proc.CallRef, signal)
 	RunStmts(ctx, proc.Ast)
 
 	pt.KeyTime2Time()
@@ -50,7 +50,7 @@ func RunScriptWithCtx(ctx *Context, proc *Script) error {
 	newctx := GetContext()
 	defer PutContext(newctx)
 
-	newctx = InitCtx(newctx, pt, proc.FuncCall, proc.CallRef)
+	newctx = InitCtx(newctx, pt, proc.FuncCall, proc.CallRef, ctx.signal)
 	RunStmts(newctx, proc.Ast)
 	return nil
 }

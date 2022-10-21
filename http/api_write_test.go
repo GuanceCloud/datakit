@@ -164,14 +164,14 @@ func TestHandleBody(t *testing.T) {
 			name: `raw point body with/wthout timestamp`,
 			opt: func() *lp.Option {
 				o := lp.NewDefaultOption()
-				o.Precision = "s"
+				o.PrecisionV2 = lp.Second
 				return o
 			}(),
 			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			view,t1=tag2,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
-			resource,t1=tag3,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
-			long_task,t1=tag4,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			action,t1=tag5,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+            view,t1=tag2,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
+            resource,t1=tag3,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
+            long_task,t1=tag4,t2=tag2 f1=1.0,f2=2i,f3="abc"
+            action,t1=tag5,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
 			npts: 5,
 		},
 

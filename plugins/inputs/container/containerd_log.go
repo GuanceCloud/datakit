@@ -67,7 +67,20 @@ func (c *containerdInput) inLogList(logpath string) bool {
 }
 
 func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
+	var name string
+	if status.GetMetadata() != nil && status.GetMetadata().Name != "" {
+		name = status.GetMetadata().Name
+	} else {
+		name = "unknown"
+	}
+
+	if !tailer.FileIsActive(status.GetLogPath(), ignoreDeadLogDuration) {
+		l.Infof("container %s file %s is not active, larger than %s, ignored", name, status.GetLogPath(), ignoreDeadLogDuration)
+		return nil
+	}
+
 	info := &containerLogBasisInfo{
+		name:                  name,
 		id:                    status.GetId(),
 		logPath:               status.GetLogPath(),
 		labels:                status.GetLabels(),
@@ -76,12 +89,6 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		sourceMultilineMap:    c.ipt.LoggingSourceMultilineMap,
 		autoMultilinePatterns: c.ipt.getAutoMultilinePatterns(),
 		extractK8sLabelAsTags: c.ipt.ExtractK8sLabelAsTags,
-	}
-
-	if status.GetMetadata() != nil && status.GetMetadata().Name != "" {
-		info.name = status.GetMetadata().Name
-	} else {
-		info.name = "unknown"
 	}
 
 	if n := status.GetImage(); n != nil {
@@ -105,7 +112,12 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 	opt := composeTailerOption(c.k8sClient, info)
 	opt.Mode = tailer.ContainerdMode
 	opt.BlockingMode = c.ipt.LoggingBlockingMode
+	opt.MinFlushInterval = c.ipt.LoggingMinFlushInterval
+	opt.MaxMultilineLifeDuration = c.ipt.LoggingMaxMultilineLifeDuration
 	opt.Done = c.ipt.semStop.Wait()
+	_ = opt.Init()
+
+	l.Debugf("use container-log opt:%#v, containerId: %s", opt, status.GetId())
 
 	t, err := tailer.NewTailerSingle(info.logPath, opt)
 	if err != nil {

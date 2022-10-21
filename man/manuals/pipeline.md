@@ -70,7 +70,7 @@ a = 3
 
 布尔类型值仅有 `true` 和 `false` 两种
 
-**字符串类型(string)**
+**字符串类型(str)**
 
 字符串值可用双引号或单引号，多行字符串可以使用三双引号或三单引号将内容括起来进行编写
   * `"hello world"`
@@ -390,25 +390,10 @@ if status == 200 {
 ```
 
 ## for 循环 {#for-loop}
-for 循环分为 for 和 for-in 两种，并可通过 `continue` 和 `break` 进行循环控制
+允许通过 for 遍历 map、list 和字符串，并可通过 `continue` 和 `break` 进行循环控制
 
 ```python
 # 示例 1
-for a = 0; a < 12; a = a + 1 {
-  if a > 5 {
-    add_key(a)
-    break
-  }
-  continue
-  a = a - 1
-}
-# 处理结果
-{
-  "a": 6
-}
-
-
-# 示例 2
 b = "2"
 for a in ["1", "a" ,"2"] {
   b = b + a
@@ -420,7 +405,7 @@ add_key(b)
 }
 
 
-# 示例 3
+# 示例 2
 d = 0
 map_a = {"a": 1, "b":2}
 for x in map_a {

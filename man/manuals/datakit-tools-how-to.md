@@ -160,7 +160,7 @@ create_time 1639657028706
 
 === "主机安装"
 
-    - 可直接使用如下命令安装/更新 IP 地理信息库,安装geolite2只需把iploc换成geolite2：
+    - 可直接使用如下命令安装/更新 IP 地理信息库（此处可选择另一个 IP 地址库 `geolite2`，只需把 `iploc` 换成 `geolite2` 即可）：
     
     ```shell
     datakit install --ipdb iploc
@@ -168,13 +168,12 @@ create_time 1639657028706
     
     - 更新完 IP 地理信息库后，修改 datakit.conf 配置：
     
-    
-    ```
+    ``` toml
     [pipeline]
       ipdb_type = "iploc"
     ```
     
-    - 重启 DataKit 生效。
+    - 重启 DataKit 生效
 
     - 测试 IP 库是否生效
 
@@ -198,74 +197,81 @@ create_time 1639657028706
        country: 
     ```
 
-=== "Kubernetes"
+=== "Kubernetes(yaml)"
 
-    当 DataKit 是 DaemonSet 形式安装时，可以在 *datakit.yaml* 中指定 IP 信息库，其步骤如下：
+    - 修改 *datakit.yaml*，打开如下注释掉的高亮内容即可：
     
-    - 在 Kubernetes Node 上下载 IP 信息库：
-    
-    ```shell
-    # iploc 下载
-    cd /path/to/storage
-    wget https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/ipdb/iploc.tar.gz
-    tar xzvf iploc.tar.gz
-    ```
-    
-    此时在当前目录下，会生成文件夹 iploc
-    
-    - 修改 *datakit.yaml*
-    
-    修改环境变量：
-    
-    ```yaml
-            - name: ENV_IPDB
-              value: iploc
-    ```
-    
-    再将 */path/to/storage/iploc* 挂载进 DataKit：
-    
-    ```yaml
-    volumeMounts: # 指定 Pod 的挂载路径
-    - mountPath: /usr/local/datakit/data/ipdb/iploc
-      name: datakit-ipdb
-      readOnly: true
-    
-    volumes: # 指定 Node 上 ipdb 路径
-    - hostPath:
-        path: /path/to/storage/iploc
-        type: Directory    # 如果 Node path 不存在，这个将报错
-      name: datakit-ipdb
+    ```yaml hl_lines="2 3"
+        # ---iploc-start  
+        #- name: ENV_IPDB
+        #  value: iploc        
+        # ---iploc-end      
     ```
     
     - 重新安装 DataKit：
     
     ```shell
-    kubectl apply -f datakit.yaml
+    $ kubectl apply -f datakit.yaml
     
-    # 确保确实生效
-    kubectl get pod -n datakit
+    # 确保 DataKit 容器启动
+    $ kubectl get pod -n datakit
     ```
 
-    - 测试 IP 库是否生效
+    - 进入容器，测试 IP 库是否生效
 
     ```shell
-    $ kubectl exec --stdin --tty datakit -- /bin/bash
+    $ datakit tool --ipinfo 1.2.3.4
             ip: 1.2.3.4
           city: Brisbane
       province: Queensland
        country: AU
            isp: unknown
     ```
-    
+
     如果安装失败，其输出如下：
     
     ```shell
-    $ kubectl exec --stdin --tty datakit -- /bin/bash
+    $ datakit tool --ipinfo 1.2.3.4
            isp: unknown
             ip: 1.2.3.4
           city: 
-      province: 
-       country: 
+      province:
+       country:
+    ```
+    
+=== "Kubernetes(helm)"
+
+    - helm 部署添加 `--set iploc.enable`
+    
+    ```shell
+    $ helm install datakit datakit/datakit -n datakit \
+    --set datakit.dataway_url="https://openway.guance.com?token=<YOUR-TOKEN>" \
+    --set iploc.enable true \
+    --create-namespace 
+    ```
+    
+    关于 helm 的部署事项，参见[这里](datakit-daemonset-deploy.md/#__tabbed_1_2)。
+    
+    - 进入容器，测试 IP 库是否生效
+
+    ```shell
+    $ datakit tool --ipinfo 1.2.3.4
+            ip: 1.2.3.4
+          city: Brisbane
+      province: Queensland
+       country: AU
+           isp: unknown
+    ```
+
+    如果安装失败，其输出如下：
+    
+    ```shell
+    $ datakit tool --ipinfo 1.2.3.4
+           isp: unknown
+            ip: 1.2.3.4
+          city: 
+      province:
+       country:
     ```
 
 ## DataKit 安装第三方软件 {#extras}

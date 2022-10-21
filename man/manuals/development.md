@@ -368,13 +368,13 @@ cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
 ==================
 WARNING: DATA RACE
 Read at 0x00c000d40160 by goroutine 33:
-  gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting.(*HTTPTask).GetResults()
-	  /Users/tanbiao/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting/http.go:208 +0x103c
+  gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting.(*HTTPTask).GetResults()
+	  /Users/tanbiao/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting/http.go:208 +0x103c
 	...
 
 Previous write at 0x00c000d40160 by goroutine 74:
-  gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting.(*HTTPTask).Run.func2()
-	  /Users/tanbiao/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting/http.go:306 +0x8c
+  gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting.(*HTTPTask).Run.func2()
+	  /Users/tanbiao/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting/http.go:306 +0x8c
 	...
 ```
 

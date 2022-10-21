@@ -6,7 +6,6 @@
 package sqlserver
 
 import (
-	"fmt"
 	"testing"
 
 	_ "github.com/denisenkom/go-mssqldb"
@@ -26,7 +25,7 @@ func TestCon(t *testing.T) {
 
 	n.getMetric()
 	for _, v := range collectCache {
-		fmt.Println(v.String())
+		t.Log(v.String())
 	}
 }
 

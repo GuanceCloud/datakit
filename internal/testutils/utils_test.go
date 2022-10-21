@@ -6,15 +6,13 @@
 package testutils
 
 import (
-	"fmt"
-	"log"
 	"testing"
 )
 
 func TestRandInt64(t *testing.T) {
 	for i := 1; i <= 30; i++ {
 		for j := 0; j < 10; j++ {
-			fmt.Println(RandInt64(i))
+			t.Log(RandInt64(i))
 		}
 	}
 }
@@ -22,29 +20,29 @@ func TestRandInt64(t *testing.T) {
 func TestRandWithinInts(t *testing.T) {
 	data := []int{2, 3, 45, 9, 67, 8, 9}
 	for i := 0; i < 10; i++ {
-		log.Println(RandWithinInts(data))
+		t.Log(RandWithinInts(data))
 	}
 }
 
 func TestRandStrID(t *testing.T) {
 	for i := 1; i <= 30; i++ {
 		for j := 0; j < 10; j++ {
-			fmt.Println(RandStrID(i))
+			t.Log(RandStrID(i))
 		}
 	}
 }
 
 func TestRandTime(t *testing.T) {
 	for i := 0; i < 10; i++ {
-		fmt.Println(RandTime().String())
+		t.Log(RandTime().String())
 	}
 }
 
 func TestRandPoint(t *testing.T) {
 	pnt := RandPoint("test_utils", 30, 90)
-	fmt.Println(pnt.String())
+	t.Log(pnt.String())
 	pnts := RandPoints(100, 10, 30)
 	for i := range pnts {
-		fmt.Println(pnts[i].String())
+		t.Log(pnts[i].String())
 	}
 }

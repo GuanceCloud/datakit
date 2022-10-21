@@ -12,11 +12,17 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
 )
 
+// FilterFunc is func type for data filter.
+// Return the DatakitTraces that need to propagate to next action and
+// return ture if one want to skip all FilterFunc afterwards, false otherwise.
+type FilterFunc func(log *logger.Logger, dktrace DatakitTrace) (DatakitTrace, bool)
+
 // NoneFilter always return current trace.
-func NoneFilter(dktrace DatakitTrace) (DatakitTrace, bool) {
+func NoneFilter(log *logger.Logger, dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
 }
 
@@ -25,7 +31,7 @@ type CloseResource struct {
 	IgnoreResources map[string][]*regexp.Regexp
 }
 
-func (cres *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
+func (cres *CloseResource) Close(log *logger.Logger, dktrace DatakitTrace) (DatakitTrace, bool) {
 	if len(cres.IgnoreResources) == 0 {
 		return dktrace, false
 	}
@@ -69,7 +75,7 @@ func (cres *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
 	}
 }
 
-func RespectUserRule(dktrace DatakitTrace) (DatakitTrace, bool) {
+func RespectUserRule(log *logger.Logger, dktrace DatakitTrace) (DatakitTrace, bool) {
 	if len(dktrace) == 0 {
 		return nil, true
 	}
@@ -116,7 +122,7 @@ func OmitHTTPStatusCodeFilterWrapper(statusCodeList []string) FilterFunc {
 	if len(statusCodeList) == 0 {
 		return NoneFilter
 	} else {
-		return func(dktrace DatakitTrace) (DatakitTrace, bool) {
+		return func(log *logger.Logger, dktrace DatakitTrace) (DatakitTrace, bool) {
 			for i := range dktrace {
 				if dktrace[i].SourceType != SPAN_SOURCE_WEB {
 					continue
@@ -135,7 +141,7 @@ func OmitHTTPStatusCodeFilterWrapper(statusCodeList []string) FilterFunc {
 	}
 }
 
-func PenetrateErrorTracing(dktrace DatakitTrace) (DatakitTrace, bool) {
+func PenetrateErrorTracing(log *logger.Logger, dktrace DatakitTrace) (DatakitTrace, bool) {
 	if len(dktrace) == 0 {
 		return nil, true
 	}
@@ -158,7 +164,7 @@ type KeepRareResource struct {
 	presentMap sync.Map
 }
 
-func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
+func (kprres *KeepRareResource) Keep(log *logger.Logger, dktrace DatakitTrace) (DatakitTrace, bool) {
 	if len(dktrace) == 0 {
 		return nil, true
 	}
@@ -211,7 +217,7 @@ type Sampler struct {
 	SamplingRateGlobal float64 `toml:"sampling_rate" json:"sampling_rate"`
 }
 
-func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
+func (smp *Sampler) Sample(log *logger.Logger, dktrace DatakitTrace) (DatakitTrace, bool) {
 	if len(dktrace) == 0 {
 		return nil, true
 	}

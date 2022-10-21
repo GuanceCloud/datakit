@@ -9,6 +9,7 @@ package io
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"sync"
@@ -299,6 +300,7 @@ func (x *IO) updateLastErr(e *lastError) {
 func (x *IO) flush(c *consumer) {
 	c.lastFlush = time.Now()
 	failed := 0
+
 	if n, err := x.doFlush(c.pts, c.category, c.fc); err != nil {
 		log.Errorf("post %d to %s failed: %s", len(c.pts), c.category, err)
 		failed += n
@@ -308,7 +310,7 @@ func (x *IO) flush(c *consumer) {
 
 	for k, pts := range c.dynamicDatawayPts {
 		log.Debugf("try flush dynamic dataway %d pts on %s", len(pts), k)
-		if n, err := x.doFlush(pts, c.category, c.fc); err != nil {
+		if n, err := x.doFlush(pts, k, c.fc); err != nil {
 			log.Errorf("post %d to %s failed", len(pts), k)
 			failed += n
 		} else {
@@ -432,8 +434,13 @@ func (x *IO) fileOutput(d *iodata) error {
 			x.outputFileSize += int64(n)
 			if x.outputFileSize > 32*1024*1024 { // truncate file on 32MB
 				if err := x.fd.Truncate(0); err != nil {
-					return err
+					return fmt.Errorf("truncate error: %w", err)
 				}
+
+				if _, err := x.fd.Seek(0, io.SeekStart); err != nil {
+					return fmt.Errorf("seek error: %w", err)
+				}
+
 				x.outputFileSize = 0
 			}
 		}

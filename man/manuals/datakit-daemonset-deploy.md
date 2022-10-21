@@ -219,6 +219,21 @@ spec:
 | `ENV_RUM_ORIGIN_IP_HEADER`       | string      | `X-Forwarded-For` | 否     | RUM 专用                                                                                                                                                                                                    |
 | `ENV_RUM_APP_ID_WHITE_LIST`      | string      | 无                | 否     | RUM app-id 白名单列表，以 `,` 分割，如 `appid-1,appid-2`                                                                                                                                                    |
 
+### Confd 配置相关环境变量 {#env-confd}
+
+| 环境变量名                 | 类型   | 适用场景            | 说明     | 样例值 |
+| ----                     | ----   | ----               | ----     | ---- |
+| ENV_CONFD_BACKEND        | string |  全部              | 后端源类型  | `etcdv3`或`zookeeper`或`redis`或`consul` |
+| ENV_CONFD_BASIC_AUTH     | string | `etcdv3`或`consul` | 可选      | |
+| ENV_CONFD_CLIENT_CA_KEYS | string | `etcdv3`或`consul` | 可选      | |
+| ENV_CONFD_CLIENT_CERT    | string | `etcdv3`或`consul` | 可选      | |
+| ENV_CONFD_CLIENT_KEY     | string | `etcdv3`或`consul`或`redis` | 可选      | |
+| ENV_CONFD_BACKEND_NODES  | string |  全部              | 后端源地址 | `[IP地址:2379,IP地址2:2379]` |
+| ENV_CONFD_PASSWORD       | string | `etcdv3`或`consul` | 可选      |  |
+| ENV_CONFD_SCHEME         | string | `etcdv3`或`consul` | 可选      |  |
+| ENV_CONFD_SEPARATOR      | string | `redis`            | 可选默认0 |  |
+| ENV_CONFD_USERNAME       | string | `etcdv3`或`consul` | 可选      |  |
+
 ### Git 配置相关环境变量 {#env-git}
 
 | 环境变量名称       | 类型     | 默认值 | 必须   | 说明                                                                                                   |
@@ -231,19 +246,28 @@ spec:
 
 ### Sinker 配置相关环境变量 {#env-sinker}
 
-| 环境变量名称 | 类型   | 默认值 | 必须   | 说明                                  |
-| ---------:   | ----:  | ---:   | ------ | ----                             |
-| `ENV_SINK_M`   | string | 无     | 否     | 安装时指定 Metric 的 sink。       |
-| `ENV_SINK_N`   | string | 无     | 否     | 安装时指定 Network 的 sink。      |
-| `ENV_SINK_K`   | string | 无     | 否     | 安装时指定 KeyEvent 的 sink。     |
-| `ENV_SINK_O`   | string | 无     | 否     | 安装时指定 Object 的 sink。       |
-| `ENV_SINK_CO`  | string | 无     | 否     | 安装时指定 CustomObject 的 sink。 |
-| `ENV_SINK_L`   | string | 无     | 否     | 安装时指定 Logging 的 sink。      |
-| `ENV_SINK_T`   | string | 无     | 否     | 安装时指定 Tracing 的 sink。      |
-| `ENV_SINK_R`   | string | 无     | 否     | 安装时指定 RUM 的 sink。          |
-| `ENV_SINK_S`   | string | 无     | 否     | 安装时指定 Security 的 sink。     |
-| `ENV_SINK_P`   | string | 无     | 否     | 安装时指定 Profiling 的 sink。    |
-| `ENV_LOG_SINK_DETAIL` | string | 无 | 否  | 安装时指定开启 sink 详细日志(开启后会产生大量日志, 仅供调试, 不建议在生产环境中使用)。例: "yes"。 |
+| 环境变量名称  | 类型   | 默认值 | 必须   | 说明                            |
+| ---------:    | ----:  | ---:   | ------ | ----                            |
+| `ENV_SINK_M`  | string | 无     | 否     | 安装时指定 Metric 的 sink       |
+| `ENV_SINK_N`  | string | 无     | 否     | 安装时指定 Network 的 sink      |
+| `ENV_SINK_K`  | string | 无     | 否     | 安装时指定 KeyEvent 的 sink     |
+| `ENV_SINK_O`  | string | 无     | 否     | 安装时指定 Object 的 sink       |
+| `ENV_SINK_CO` | string | 无     | 否     | 安装时指定 CustomObject 的 sink |
+| `ENV_SINK_L`  | string | 无     | 否     | 安装时指定 Logging 的 sink      |
+| `ENV_SINK_T`  | string | 无     | 否     | 安装时指定 Tracing 的 sink      |
+| `ENV_SINK_R`  | string | 无     | 否     | 安装时指定 RUM 的 sink          |
+| `ENV_SINK_S`  | string | 无     | 否     | 安装时指定 Security 的 sink     |
+| `ENV_SINK_P`  | string | 无     | 否     | 安装时指定 Profiling 的 sink    |
+
+<!-- | `ENV_LOG_SINK_DETAIL` | string | 无     | 否     | 安装时指定开启 sink 详细日志(开启后会产生大量日志, 仅供调试, 不建议在生产环境中使用)。例: "yes"。 | -->
+
+如果单个数据类型要配置多个 sink 地址，sink 地址可以用 `||` 分割，如：
+
+```shell
+ENV_SINK_M = "dataway://?url=https://openway.guance.com&token=<TOKEN-1>&filters={host='user-ubuntu'}||dataway://?url=https://openway.guance.com&token=<TOKEN-2>&filters={host='user-centos'}"
+
+ENV_SINK_M = "influxdb://host1:8087?protocol=http&database=db1&precision=ns&timeout=15s||influxdb://host2:8087?protocol=http&database=db1&precision=ns&timeout=15s"
+```
 
 ### IO 模块配置相关环境变量 {#env-io}
 

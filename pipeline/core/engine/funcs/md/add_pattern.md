@@ -1,6 +1,6 @@
 ### `add_pattern()` {#fn-add-pattern}
 
-函数原型：`add_pattern(name=required, pattern=required)`
+函数原型：`fn add_pattern(name: str, pattern: str)`
 
 函数说明：创建自定义 grok 模式。grok 模式有作用域限制, 如在 if else 语句内将产生新的作用域, 该 pattern 仅在此作用域内有效。该函数不可覆盖同一作用域或者上一作用域已经存在的 grok 模式
 

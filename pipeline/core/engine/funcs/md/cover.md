@@ -1,7 +1,6 @@
-
 ### `cover()` {#fn-cover}
 
-函数原型：`cover(key=required, range=require)`
+函数原型：`fn cover(key: str, range: list)`
 
 函数说明：对指定字段上获取的字符串数据，按范围进行数据脱敏处理
 
@@ -14,14 +13,10 @@
 
 ```python
 # 待处理数据 {"str": "13789123014"}
-json(_, str) cover(str, [8, 13])
+json(_, `str`)
+cover(`str`, [8, 9])
 
-# 待处理数据 {"str": "13789123014"}
-json(_, str) cover(str, [2, 4])
-
-# 待处理数据 {"str": "13789123014"}
-json(_, str) cover(str, [1, 1])
-
-# 待处理数据 {"str": "小阿卡"}
-json(_, str) cover(str, [2, 2])
+# 待处理数据 {"abc": "13789123014"}
+json(_, abc)
+cover(abc, [2, 4])
 ```

@@ -22,6 +22,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"add_pattern()":        &addPatternMarkdown,
 	"adjust_timezone()":    &adjustTimezoneMarkdown,
 	"cast()":               &castMarkdown,
+	"cidr()":               &cidrMarkdown,
 	"cover()":              &coverMarkdown,
 	"datetime()":           &datetimeMarkdown,
 	"decode":               &decodeMarkdown,
@@ -44,10 +45,11 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"parse_date()":         &parseDateMarkdown,
 	"parse_duration()":     &parseDurationMarkdown,
 	"query_refer_table()":  &queryReferTableMarkdown,
-	"mquery_refer_table":   &mQueryReferTableMarkdown,
+	"match()":              &matchMarkdown,
+	"mquery_refer_table()": &mQueryReferTableMarkdown,
 	"rename()":             &renameMarkdown,
 	"replace()":            &replaceMarkdown,
-	"set_measurement":      &setMeasurementMarkdown,
+	"set_measurement()":    &setMeasurementMarkdown,
 	"set_tag()":            &setTagMarkdown,
 	"sql_cover":            &sqlCoverMarkdown,
 	"strfmt()":             &strfmtMarkdown,
@@ -64,6 +66,9 @@ var (
 	//go:embed md/add_pattern.md
 	docAddPattern string
 
+	//go:embed md/cidr.md
+	docCIDR string
+
 	//go:embed md/grok.md
 	docGrok string
 
@@ -75,6 +80,9 @@ var (
 
 	//go:embed md/mquery_refer_table.md
 	docMQueryReferTable string
+
+	//go:embed md/match.md
+	docMatch string
 
 	//go:embed md/rename.md
 	docRename string
@@ -185,6 +193,7 @@ var (
 	addPatternMarkdown        = PLDoc{Doc: docAddPattern, Deprecated: false}
 	adjustTimezoneMarkdown    = PLDoc{Doc: docAdjustTimezone, Deprecated: false}
 	castMarkdown              = PLDoc{Doc: docCast, Deprecated: false}
+	cidrMarkdown              = PLDoc{Doc: docCIDR, Deprecated: false}
 	coverMarkdown             = PLDoc{Doc: docCover, Deprecated: false}
 	datetimeMarkdown          = PLDoc{Doc: docDatetime, Deprecated: false}
 	decodeMarkdown            = PLDoc{Doc: docDecode, Deprecated: false}
@@ -207,6 +216,7 @@ var (
 	parseDateMarkdown         = PLDoc{Doc: docParseDate, Deprecated: false}
 	parseDurationMarkdown     = PLDoc{Doc: docParseDuration, Deprecated: false}
 	queryReferTableMarkdown   = PLDoc{Doc: docQueryReferTable, Deprecated: false}
+	matchMarkdown             = PLDoc{Doc: docMatch, Deprecated: false}
 	mQueryReferTableMarkdown  = PLDoc{Doc: docMQueryReferTable, Deprecated: false}
 	renameMarkdown            = PLDoc{Doc: docRename, Deprecated: false}
 	replaceMarkdown           = PLDoc{Doc: docReplace, Deprecated: false}

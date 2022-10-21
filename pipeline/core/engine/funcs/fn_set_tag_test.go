@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 )
 
 func TestSetTag(t *testing.T) {
@@ -71,6 +70,18 @@ func TestSetTag(t *testing.T) {
 			expect: "3",
 			fail:   false,
 		},
+		{
+			name: "set_tag 3 int",
+			in:   `{"str_a": "2", "str_b": 3}`,
+			pl: `
+			json(_, str_a)
+			json(_, str_b)
+			set_tag(str_a, str_b)
+	`,
+			outtag: "str_a",
+			expect: "3",
+			fail:   false,
+		},
 	}
 
 	for idx, tc := range cases {
@@ -84,7 +95,7 @@ func TestSetTag(t *testing.T) {
 				}
 				return
 			}
-			_, tags, _, _, _, err := engine.RunScript(runner, "test", nil, map[string]interface{}{
+			_, tags, _, _, _, err := runScript(runner, "test", nil, map[string]interface{}{
 				"message": tc.in,
 			}, time.Now())
 			if err != nil {

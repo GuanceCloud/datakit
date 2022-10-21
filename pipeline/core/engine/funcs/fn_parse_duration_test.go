@@ -10,7 +10,6 @@ import (
 	"time"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
 )
 
 func TestParseDuration(t *testing.T) {
@@ -23,8 +22,8 @@ func TestParseDuration(t *testing.T) {
 	}{
 		{
 			name: "normal",
-			pl: `json(_, str)
-			 parse_duration(str)`,
+			pl: "json(_, `str`)\n" +
+				"parse_duration(`str`)",
 			in:       `{"str": "1s"}`,
 			outKey:   "str",
 			expected: int64(time.Second),
@@ -33,8 +32,8 @@ func TestParseDuration(t *testing.T) {
 
 		{
 			name: "normal",
-			pl: `json(_, str)
-			 parse_duration(str)`,
+			pl: "json(_, `str`)\n" +
+				"parse_duration(`str`)",
 			in:       `{"str": "1ms"}`,
 			outKey:   "str",
 			expected: int64(time.Millisecond),
@@ -43,8 +42,8 @@ func TestParseDuration(t *testing.T) {
 
 		{
 			name: "normal",
-			pl: `json(_, str)
-			 parse_duration(str)`,
+			pl: "json(_, `str`)\n" +
+				"parse_duration(`str`)",
 			in:       `{"str": "1us"}`,
 			outKey:   "str",
 			expected: int64(time.Microsecond),
@@ -53,8 +52,8 @@ func TestParseDuration(t *testing.T) {
 
 		{
 			name: "normal",
-			pl: `json(_, str)
-			 parse_duration(str)`,
+			pl: "json(_, `str`)\n" +
+				"parse_duration(`str`)",
 			in:       `{"str": "1µs"}`,
 			outKey:   "str",
 			expected: int64(time.Microsecond),
@@ -63,8 +62,8 @@ func TestParseDuration(t *testing.T) {
 
 		{
 			name: "normal",
-			pl: `json(_, str)
-			 parse_duration(str)`,
+			pl: "json(_, `str`)\n" +
+				"parse_duration(`str`)",
 			in:       `{"str": "1m"}`,
 			outKey:   "str",
 			expected: int64(time.Minute),
@@ -73,8 +72,8 @@ func TestParseDuration(t *testing.T) {
 
 		{
 			name: "normal",
-			pl: `json(_, str)
-			 parse_duration(str)`,
+			pl: "json(_, `str`)\n" +
+				"parse_duration(`str`)",
 			in:       `{"str": "1h"}`,
 			outKey:   "str",
 			expected: int64(time.Hour),
@@ -83,8 +82,8 @@ func TestParseDuration(t *testing.T) {
 
 		{
 			name: "normal",
-			pl: `json(_, str)
-			 parse_duration(str)`,
+			pl: "json(_, `str`)\n" +
+				"parse_duration(`str`)",
 			in:       `{"str": "-23h"}`,
 			outKey:   "str",
 			expected: -23 * int64(time.Hour),
@@ -93,8 +92,8 @@ func TestParseDuration(t *testing.T) {
 
 		{
 			name: "normal",
-			pl: `json(_, str)
-			 parse_duration(str)`,
+			pl: "json(_, `str`)\n" +
+				"parse_duration(`str`)",
 			in:       `{"str": "-23ns"}`,
 			outKey:   "str",
 			expected: int64(-23),
@@ -103,8 +102,8 @@ func TestParseDuration(t *testing.T) {
 
 		{
 			name: "normal",
-			pl: `json(_, str)
-			 parse_duration(str)`,
+			pl: "json(_, `str`)\n" +
+				"parse_duration(`str`)",
 			in:       `{"str": "-2.3s"}`,
 			outKey:   "str",
 			expected: int64(time.Second*-2 - 300*time.Millisecond),
@@ -113,8 +112,8 @@ func TestParseDuration(t *testing.T) {
 
 		{
 			name: "invalid input string",
-			pl: `json(_, str)
-			 parse_duration(str)`,
+			pl: "json(_, `str`)\n" +
+				"parse_duration(`str`)",
 			in:       `{"str": "1uuus"}`,
 			outKey:   "str",
 			expected: "1uuus",
@@ -123,16 +122,16 @@ func TestParseDuration(t *testing.T) {
 
 		{
 			name: "too many args",
-			pl: `json(_, str)
-			 parse_duration(str, 1)`,
+			pl: "json(_, `str`)\n" +
+				"parse_duration(`str`)",
 			in:   `{"str": "1uuus"}`,
 			fail: true,
 		},
 
 		{
 			name: "invalid input type",
-			pl: `json(_, str)
-			 parse_duration(str)`,
+			pl: "json(_, `str`)\n" +
+				"parse_duration(`str`)",
 			in:   `{"str": 1}`,
 			fail: true,
 		},
@@ -150,7 +149,7 @@ func TestParseDuration(t *testing.T) {
 				return
 			}
 
-			_, _, f, _, _, err := engine.RunScript(runner, "test", nil, map[string]interface{}{
+			_, _, f, _, _, err := runScript(runner, "test", nil, map[string]interface{}{
 				"message": tc.in,
 			}, time.Now())
 			if err != nil {

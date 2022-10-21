@@ -282,10 +282,13 @@ func TestNewPoint(t *testing.T) {
 			}
 
 			tu.Ok(t, err)
+
 			x := pt.Point.String()
+
 			if tc.expect != "" {
 				tu.Equals(t, tc.expect, x)
 			}
+			t.Logf("point: %s", tc.expect)
 			t.Logf("point: %s", x)
 		})
 	}

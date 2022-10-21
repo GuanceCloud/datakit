@@ -186,10 +186,6 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 		l.Infof("source %s, filename %s, automatic-multiline on, patterns %v", opt.Source, info.logPath, info.autoMultilinePatterns)
 	}
 
-	_ = opt.Init()
-
-	l.Debugf("use container-log opt:%#v, containerId: %s", opt, info.id)
-
 	return opt
 }
 

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
 var wss []*workerSpace
@@ -27,30 +28,30 @@ func switchToken(s string) {
 	// 将token赋值之后 提示‘已经切换到了xxx空间’
 	name := strings.TrimSpace(strings.TrimPrefix(s, "use"))
 	if name == "" {
-		infof("use workspace command is:use tkn_xxxx\n")
+		cp.Infof("use workspace command is:use tkn_xxxx\n")
 		return
 	}
 	if name == config.GetToken() {
 		temporaryToken = ""
-		infof("change workerSpace to default\n")
+		cp.Infof("change workerSpace to default\n")
 		return
 	}
 	if temporaryToken != "" {
-		infof("can't change to : %s because workspace is not default\n", name)
+		cp.Infof("can't change to : %s because workspace is not default\n", name)
 		return
 	}
 	if wss == nil {
-		infof("no workerSpace to switch, use 'show_workspaces()'\n")
+		cp.Infof("no workerSpace to switch, use 'show_workspaces()'\n")
 		return
 	}
 	for _, space := range wss {
 		if space.Name == name || space.Token == name {
 			temporaryToken = space.Token
-			infof("change workerSpace to %s\n", space.Name)
+			cp.Infof("change workerSpace to %s\n", space.Name)
 			return
 		}
 	}
-	infof("[error] invalid workerSpace:'%s' , use 'show_workspaces()'\n", name)
+	cp.Infof("[error] invalid workerSpace:'%s' , use 'show_workspaces()'\n", name)
 }
 
 func cacheWorkerSpace(c []*queryResult) {

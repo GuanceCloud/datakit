@@ -14,23 +14,19 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
 const (
 	// 定期寻找符合条件的新文件.
 	scanNewFileInterval = time.Second * 10
 
-	defaultSource   = "default"
-	maxFieldsLength = 32 * 1024 * 1024
+	defaultSource    = "default"
+	maxFieldsLength  = 32 * 1024 * 1024
+	minflushInterval = time.Second * 5
 )
 
-var (
-	g = datakit.G("tailer")
-	l = logger.DefaultSLogger("socketLog")
-)
+var l = logger.DefaultSLogger("socketLog")
 
 type ForwardFunc func(filename, text string) error
 
@@ -89,6 +85,9 @@ type Option struct {
 	// 是否开启阻塞发送模式
 	BlockingMode bool
 
+	MinFlushInterval         time.Duration
+	MaxMultilineLifeDuration time.Duration
+
 	Done <-chan interface{}
 
 	Mode Mode
@@ -115,6 +114,10 @@ func (opt *Option) Init() error {
 		opt.InputName = "logging/" + opt.Source
 	}
 
+	if opt.MinFlushInterval <= 0 {
+		opt.MinFlushInterval = minflushInterval
+	}
+
 	if opt.GlobalTags == nil {
 		opt.GlobalTags = make(map[string]string)
 	}
@@ -122,13 +125,6 @@ func (opt *Option) Init() error {
 	opt.GlobalTags["service"] = opt.Service
 	opt.log = logger.SLogger(opt.InputName)
 
-	if _, err := encoding.NewDecoder(opt.CharacterEncoding); err != nil {
-		return err
-	}
-
-	if _, err := multiline.New(opt.MultilinePatterns); err != nil {
-		return err
-	}
 	if opt.Pipeline != "" && filepath.Base(opt.Pipeline) != opt.Pipeline {
 		opt.log.Warnf("invalid pipeline! the pipeline conf is file name like: nginx.p or xxx.p")
 	}
@@ -145,7 +141,7 @@ type Tailer struct {
 
 	stop chan interface{}
 	mu   sync.Mutex
-	wg   sync.WaitGroup
+	g    *goroutine.Group
 }
 
 func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (*Tailer, error) {
@@ -172,6 +168,7 @@ func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (
 		}(),
 		stop:     make(chan interface{}),
 		fileList: make(map[string]interface{}),
+		g:        goroutine.NewGroup(goroutine.Option{Name: "tailer"}),
 	}
 
 	if t.opt == nil {
@@ -195,7 +192,7 @@ func (t *Tailer) Start() {
 		select {
 		case <-t.stop:
 			t.opt.log.Infof("waiting for all tailers to exit")
-			t.wg.Wait()
+			_ = t.g.Wait()
 			t.opt.log.Info("all exit")
 			return
 
@@ -219,11 +216,8 @@ func (t *Tailer) scan() {
 			continue
 		}
 
-		t.wg.Add(1)
-
 		func(filename string) {
 			g.Go(func(ctx context.Context) error {
-				defer t.wg.Done()
 				defer t.removeFromFileList(filename)
 
 				tl, err := NewTailerSingle(filename, t.opt)

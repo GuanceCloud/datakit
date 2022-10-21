@@ -70,11 +70,6 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 // Creata datakit input plugin's configures if not exists.
 func initPluginSamples() error {
 	for name, create := range inputs.Inputs {
-		if !datakit.Enabled(name) {
-			l.Debugf("initPluginSamples: ignore unchecked input %s", name)
-			continue
-		}
-
 		if err := initDatakitConfSample(name, create); err != nil {
 			return err
 		}
@@ -151,7 +146,16 @@ func enableDefaultInputs(list []string) {
 	for _, name := range list {
 		if c, ok := inputs.Inputs[name]; ok {
 			i := c()
-			inputs.AddInput(name, i)
+			inputInstances, err := LoadSingleConf(i.SampleConfig(), inputs.Inputs)
+			if err != nil {
+				l.Errorf("LoadSingleConf failed: %v", err)
+				continue
+			}
+			for _, arr := range inputInstances {
+				for _, ipt := range arr {
+					inputs.AddInput(name, ipt)
+				}
+			}
 		}
 	}
 }

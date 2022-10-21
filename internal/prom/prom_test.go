@@ -212,7 +212,7 @@ up 1
 				assert.NoError(t, err)
 			}
 
-			arr := []string{}
+			var arr []string
 			for _, pt := range pts {
 				arr = append(arr, pt.String())
 			}
@@ -875,6 +875,7 @@ up 1
 			if tc.fail {
 				t.Errorf("[%d] expected to fail but it didn't", idx)
 			}
+
 			var got []string
 			for _, p := range points {
 				s := p.String()
@@ -962,6 +963,7 @@ func TestGetTimestampS(t *testing.T) {
 }
 
 func TestRenameTag(t *testing.T) {
+	tm := time.Now()
 	cases := []struct {
 		name     string
 		opt      *Option
@@ -1076,7 +1078,7 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="ye
 					pt, err := point.NewPoint("http",
 						nil,
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0},
-						&point.PointOption{Category: datakit.Metric})
+						&point.PointOption{Category: datakit.Metric, Time: tm})
 					if err != nil {
 						t.Errorf("NewPoint: %s", err)
 						return nil
@@ -1390,12 +1392,14 @@ node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",addr
 				assert.NoError(t, err)
 
 				assert.Equal(t, len(pts1), len(pts2))
+
 				for _, pt := range pts1 {
 					arr1 = append(arr1, trimTimeStamp(pt.String()))
 				}
 				for _, pt := range pts2 {
 					arr2 = append(arr2, trimTimeStamp(pt.String()))
 				}
+
 				sort.Strings(arr1)
 				sort.Strings(arr2)
 				for i := range arr1 {
@@ -1413,6 +1417,7 @@ node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",addr
 
 				pts, err := p.text2Metrics(bytes.NewReader([]byte(tc.text)))
 				assert.NoError(t, err)
+
 				for _, pt := range pts {
 					arr = append(arr, trimTimeStamp(pt.String()))
 				}

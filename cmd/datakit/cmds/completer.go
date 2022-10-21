@@ -14,6 +14,7 @@ import (
 	"runtime"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
 // generate auto completer command/options for DataKit
@@ -103,22 +104,22 @@ func setupCompleterScripts() {
 
 	cmd := exec.Command("/bin/bash", "-c", "complete")
 	if err := cmd.Run(); err != nil {
-		warnf("run completer failed: %s, skip\n", err)
+		cp.Warnf("run completer failed: %s, skip\n", err)
 		return
 	}
 
 	for _, dir := range bashCompletionDirs {
 		if fi, err := os.Stat(dir); err != nil {
-			warnf("%s not found: %s, skip\n", dir, err)
+			cp.Warnf("%s not found: %s, skip\n", dir, err)
 			continue
 		} else {
 			if !fi.IsDir() {
-				warnf("invalid %s(not directory), skip\n", dir)
+				cp.Warnf("invalid %s(not directory), skip\n", dir)
 				continue
 			}
 
 			if err := ioutil.WriteFile(filepath.Join(dir, "datakit"), completerShell, os.ModePerm); err != nil {
-				errorf("ioutil.WriteFile: %s\n", err)
+				cp.Errorf("ioutil.WriteFile: %s\n", err)
 				return
 			}
 		}

@@ -9,7 +9,6 @@ package trace
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -17,15 +16,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
-	"google.golang.org/protobuf/proto"
 )
 
 // tracing data constants
@@ -111,8 +103,6 @@ const (
 )
 
 var (
-	packageName = "dktrace"
-	log         = logger.DefaultSLogger(packageName)
 	sourceTypes = map[string]string{
 		"consul":        SPAN_SOURCE_APP,
 		"django":        SPAN_SOURCE_FRAMEWORK,
@@ -364,91 +354,8 @@ func UnknowServiceName(dkspan *DatakitSpan) string {
 }
 
 type TraceParameters struct {
-	Meta *TraceMeta
-	Body *bytes.Buffer
-}
-
-type Storage struct {
-	Path     string `json:"storage"`
-	Capacity int    `json:"capacity"`
-	Consumer int    `json:"consumer"`
-	cache    *cache.DiskCache
-	exit     *cliutils.Sem
-}
-
-func (s *Storage) SetCache(cache *cache.DiskCache) {
-	s.exit = cliutils.NewSem()
-	if cache == nil {
-		return
-	} else {
-		s.cache = cache
-	}
-}
-
-func (s *Storage) Send(param *TraceParameters) error {
-	if param == nil {
-		return errors.New("parameter invalid")
-	}
-
-	if param.Meta == nil {
-		param.Meta = &TraceMeta{}
-	}
-	if len(param.Meta.Buf) == 0 && param.Body != nil {
-		param.Meta.Buf = param.Body.Bytes()
-	}
-
-	buf, err := proto.Marshal(param.Meta)
-	if err != nil {
-		return err
-	}
-
-	return s.cache.Put(buf)
-}
-
-func (s *Storage) RunStorageConsumer(log *logger.Logger, paramHandler func(param *TraceParameters) error) {
-	g := goroutine.NewGroup(goroutine.Option{Name: "internal_trace"})
-	g.Go(func(ctx context.Context) error {
-		for {
-			start := time.Now()
-			if err := s.cache.Get(func(buf []byte) error {
-				meta := &TraceMeta{}
-				err := proto.Unmarshal(buf, meta)
-				if err == nil {
-					param := &TraceParameters{Meta: meta}
-					param.Body = bytes.NewBuffer(meta.Buf)
-					err = paramHandler(param)
-
-					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(param.Meta.Buf)>>10, time.Since(start)/time.Millisecond, err)
-				}
-
-				return err
-			}); err != nil {
-				if errors.Is(err, cache.ErrEOF) {
-					log.Debug(err.Error())
-					time.Sleep(time.Second)
-				} else {
-					log.Error(err.Error())
-				}
-			}
-
-			select {
-			case <-s.exit.Wait():
-				log.Infof("on exit, storage stop on path '%s' exit", s.Path)
-				return nil
-			case <-datakit.Exit.Wait():
-				log.Infof("on datakit exit, stop on path '%s' exit", s.Path)
-				return nil
-			default:
-			}
-		}
-	})
-}
-
-func (s *Storage) Close() error {
-	s.exit.Close()
-	if s.cache != nil {
-		return s.cache.Close()
-	}
-
-	return nil
+	URLPath string
+	Media   string
+	Encode  string
+	Body    *bytes.Buffer
 }

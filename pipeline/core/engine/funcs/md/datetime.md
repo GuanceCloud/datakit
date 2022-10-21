@@ -1,7 +1,6 @@
-
 ### `datetime()` {#fn-datetime}
 
-函数原型：`datetime(key=required, precision=required, fmt=required)`
+函数原型：`fn datetime(key, precision: str, fmt: str)`
 
 函数说明：将时间戳转成指定日期格式
 

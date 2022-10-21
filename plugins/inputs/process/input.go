@@ -28,12 +28,13 @@ import (
 )
 
 var (
-	l                                = logger.DefaultSLogger(inputName)
-	minObjectInterval                = time.Second * 30
-	maxObjectInterval                = time.Minute * 15
-	minMetricInterval                = time.Second * 10
-	maxMetricInterval                = time.Minute
-	_                 inputs.ReadEnv = (*Input)(nil)
+	l                                  = logger.DefaultSLogger(inputName)
+	minObjectInterval                  = time.Second * 30
+	maxObjectInterval                  = time.Minute * 15
+	minMetricInterval                  = time.Second * 10
+	maxMetricInterval                  = time.Minute
+	_                 inputs.ReadEnv   = (*Input)(nil)
+	_                 inputs.Singleton = (*Input)(nil)
 )
 
 type Input struct {
@@ -52,6 +53,9 @@ type Input struct {
 	isTest  bool
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (p *Input) Singleton() {
 }
 
 func (*Input) Catalog() string { return category }
@@ -360,8 +364,21 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 			"state":        state,
 			"name":         fmt.Sprintf("%s_%d", config.Cfg.Hostname, ps.Pid),
 			"process_name": name,
-			"listen_ports": getListeningPorts(ps),
 		}
+		if listeningPorts, err := getListeningPortsJSON(ps); err != nil {
+			l.Warnf("getListeningPortsJSON: %v", err)
+		} else {
+			tags["listen_ports"] = string(listeningPorts)
+		}
+		if runtime.GOOS == "linux" {
+			openFilesJSON, err := getOpenFilesJSON(ps)
+			if err != nil {
+				l.Errorf("failed to get open files list: %v", err)
+			} else {
+				fields["open_files_list"] = string(openFilesJSON)
+			}
+		}
+
 		for k, v := range p.Tags {
 			tags[k] = v
 		}
@@ -480,21 +497,27 @@ func (p *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, tn
 	}
 }
 
-// getListeningPorts returns ports given process is listening
-// in format "[aaa,bbb,ccc]" or "[]" when error occurs.
-func getListeningPorts(proc *pr.Process) string {
+func getListeningPortsJSON(proc *pr.Process) ([]byte, error) {
 	connections, err := proc.Connections()
 	if err != nil {
-		l.Warnf("proc.Connections: %s", err)
-		return "[]"
+		return nil, err
 	}
-	var listening []string
+	var listening []uint32
 	for _, c := range connections {
 		if c.Status == "LISTEN" {
-			listening = append(listening, strconv.FormatInt(int64(c.Laddr.Port), 10))
+			listening = append(listening, c.Laddr.Port)
 		}
 	}
-	return "[" + strings.Join(listening, ",") + "]"
+	return json.Marshal(listening)
+}
+
+func getOpenFilesJSON(proc *pr.Process) ([]byte, error) {
+	openFiles, err := proc.OpenFiles()
+	if err != nil {
+		return nil, err
+	}
+	data, err := json.Marshal(openFiles)
+	return data, err
 }
 
 func init() { //nolint:gochecknoinits

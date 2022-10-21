@@ -40,6 +40,11 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 		return err
 	}
 
+	if !tailer.FileIsActive(inspect.LogPath, ignoreDeadLogDuration) {
+		l.Infof("container %s file %s is not active, larger than %s, ignored", getContainerName(container.Names), inspect.LogPath, ignoreDeadLogDuration)
+		return nil
+	}
+
 	image := container.Image
 
 	if d.k8sClient != nil {
@@ -83,7 +88,12 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 	opt := composeTailerOption(d.k8sClient, info)
 	opt.Mode = tailer.DockerMode
 	opt.BlockingMode = d.ipt.LoggingBlockingMode
+	opt.MinFlushInterval = d.ipt.LoggingMinFlushInterval
+	opt.MaxMultilineLifeDuration = d.ipt.LoggingMaxMultilineLifeDuration
 	opt.Done = d.ipt.semStop.Wait()
+	_ = opt.Init()
+
+	l.Debugf("use container-log opt:%#v, containerId: %s", opt, container.ID)
 
 	t, err := tailer.NewTailerSingle(info.logPath, opt)
 	if err != nil {

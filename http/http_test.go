@@ -37,18 +37,6 @@ func TestParsePoint(t *testing.T) {
 	}{
 		{
 			body: []byte(`m1,t1=abc f1=123 123`),
-			prec: "h",
-			npts: 1,
-		},
-
-		{
-			body: []byte(`m1,t1=abc f1=123 123`),
-			prec: "m",
-			npts: 1,
-		},
-
-		{
-			body: []byte(`m1,t1=abc f1=123 123`),
 			prec: "s",
 			npts: 1,
 		},
@@ -73,12 +61,12 @@ func TestParsePoint(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		points, err := models.ParsePointsWithPrecision(tc.body, time.Now(), tc.prec)
+		pts, err := models.ParsePointsWithPrecision(tc.body, time.Now(), tc.prec)
 		if tc.fail {
 			tu.NotOk(t, err, "")
 		} else {
-			tu.Equals(t, tc.npts, len(points))
-			for _, pt := range points {
+			tu.Equals(t, tc.npts, len(pts))
+			for _, pt := range pts {
 				t.Log(pt.String())
 			}
 		}

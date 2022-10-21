@@ -13,14 +13,18 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 )
 
 var l = logger.DefaultSLogger("upgrade")
+
+func SetLog() {
+	l = logger.SLogger("upgrade")
+}
 
 func CheckVersion(s string) error {
 	v := version.VerInfo{VersionString: s}
@@ -37,7 +41,7 @@ func CheckVersion(s string) error {
 
 	if !v.IsStable() {
 		if EnableExperimental != 0 {
-			l.Info("upgrade version is unstable")
+			cp.Warnf("upgrade version is unstable\n")
 		} else {
 			return fmt.Errorf("upgrade to %s is not stable version, use env: <$DK_ENABLE_EXPEIMENTAL=1> to upgrade", s)
 		}
@@ -45,7 +49,7 @@ func CheckVersion(s string) error {
 	return nil
 }
 
-func Upgrade(svc service.Service) error {
+func Upgrade() error {
 	mc := config.Cfg
 
 	// load exists datakit.conf
@@ -78,6 +82,7 @@ func Upgrade(svc service.Service) error {
 	for _, v := range strings.Split(InstallExternals, ",") {
 		installExternals[v] = struct{}{}
 	}
+
 	updateEBPF := false
 	if runtime.GOOS == datakit.OSLinux && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") {
 		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
@@ -87,17 +92,14 @@ func Upgrade(svc service.Service) error {
 			updateEBPF = true
 		}
 	}
+
 	if updateEBPF {
-		l.Info("upgrade DataKit eBPF plugin...")
+		cp.Infof("upgrade DataKit eBPF plugin...\n")
 		// nolint:gosec
 		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--ebpf")
 		if msg, err := cmd.CombinedOutput(); err != nil {
 			l.Warnf("upgrade external input plugin %s failed: %s msg: %s", "ebpf", err.Error(), msg)
 		}
-	}
-
-	if err := service.Control(svc, "install"); err != nil {
-		return err
 	}
 
 	return nil
@@ -110,8 +112,8 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 		c.DataWayCfg.HTTPProxy = Proxy
 	}
 
-	l.Infof("set log to %s, remove ", c.Logging.Log)
-	l.Infof("set gin log to %s", c.Logging.GinLog)
+	cp.Infof("Set log to %s\n", c.Logging.Log)
+	cp.Infof("Set gin log to %s\n", c.Logging.GinLog)
 
 	// upgrade logging settings
 	if c.LogDeprecated != "" {

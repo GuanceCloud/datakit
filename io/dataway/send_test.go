@@ -38,7 +38,7 @@ func TestBuildBody(t *testing.T) {
 
 			t.Logf("get %d bodies", len(bodies))
 			for _, b := range bodies {
-				t.Logf("body: %s", b)
+				t.Logf("body: %s, compress ratio: %.3f", b, float64(len(b.buf))/float64(b.rawBufBytes))
 			}
 		})
 	}
@@ -53,6 +53,7 @@ func TestBuildBody(t *testing.T) {
 			}
 
 			t.Logf("get %d bodies", len(bodies))
+
 			for _, b := range bodies {
 				t.Logf("body: %s", b)
 
@@ -72,7 +73,7 @@ func TestBuildBody(t *testing.T) {
 
 					assert.Equal(t, len(pts), end-begin)
 
-					for i := 0; i < len(b.idxRange); i++ {
+					for i := 0; i < len(pts); i++ {
 						assert.Equal(t, tc.pts[begin+i].String(), pts[i].String(), "index %d <> %d", begin+i, i)
 					}
 				}

@@ -13,6 +13,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -26,28 +27,28 @@ var (
 )
 
 func showCheckResult() {
-	infof("\n------------------------\n")
-	infof("checked %d samples, %d ignored, %d passed, %d failed, %d unknown, total input instance %d\n",
+	cp.Infof("\n------------------------\n")
+	cp.Infof("checked %d samples, %d ignored, %d passed, %d failed, %d unknown, total input instance %d\n",
 		checked, len(ignored), passed, len(failed), len(unknown), inputsCnt)
 
 	if len(ignored) > 0 {
-		infof("ignored:\n")
+		cp.Infof("ignored:\n")
 		for _, x := range ignored {
-			infof("\t%s\n", x)
+			cp.Infof("\t%s\n", x)
 		}
 	}
 
 	if len(unknown) > 0 {
-		infof("unknown:\n")
+		cp.Infof("unknown:\n")
 		for _, x := range unknown {
-			warnf("\t%s\n", x)
+			cp.Warnf("\t%s\n", x)
 		}
 	}
 
 	if len(failed) > 0 {
-		infof("failed:\n")
+		cp.Infof("failed:\n")
 		for _, x := range failed {
-			errorf("\t%s\n", x)
+			cp.Errorf("\t%s\n", x)
 		}
 	}
 }
@@ -64,13 +65,13 @@ func checkSample() error {
 		i := c()
 
 		if k == datakit.DatakitInputName {
-			warnf("[W] ignore self input\n")
+			cp.Warnf("[W] ignore self input\n")
 			ignored = append(ignored, k)
 			continue
 		}
 
 		if _, err := config.LoadSingleConf(i.SampleConfig(), inputs.Inputs); err != nil {
-			errorf("[E] failed to parse %s: %s\n", k, err.Error())
+			cp.Errorf("[E] failed to parse %s: %s\n", k, err.Error())
 			failed = append(failed, k+": "+err.Error())
 		} else {
 			passed++
@@ -102,16 +103,16 @@ func checkConfig(dir, suffix string) error {
 			continue
 		}
 
-		if v, err := config.LoadSingleConfFile(fp, inputs.Inputs); err != nil {
-			errorf("[E] failed to parse %s: %s, %s\n", fp, err.Error(), reflect.TypeOf(err))
+		if v, err := config.LoadSingleConfFile(fp, inputs.Inputs, false); err != nil {
+			cp.Errorf("[E] failed to parse %s: %s, %s\n", fp, err.Error(), reflect.TypeOf(err))
 			failed = append(failed, fp+": "+err.Error())
 		} else {
 			passed++
 			for k, arr := range v {
 				if len(arr) == 0 {
-					warnf("[W] no input enabled in %s\n", fp)
+					cp.Warnf("[W] no input enabled in %s\n", fp)
 				} else {
-					infof("[I] got %d %s input in %s\n", len(arr), k, fp)
+					cp.Infof("[I] got %d %s input in %s\n", len(arr), k, fp)
 					inputsCnt += len(arr)
 				}
 			}

@@ -1,6 +1,6 @@
 ### `xml()` {#fn-xml}
 
-函数原型：`xml(input=required, xpath_expr=required, key_name=required)`
+函数原型：`fn xml(input: str, xpath_expr: str, key_name)`
 
 函数说明：通过 xpath 表达式，从 XML 中提取字段。
 

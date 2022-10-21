@@ -11,6 +11,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 )
 
@@ -30,7 +31,7 @@ var (
 
 func tryLoadMainCfg() {
 	if err := config.Cfg.LoadMainTOML(datakit.MainConfPath); err != nil {
-		warnf("[W] load config %s failed: %s, ignored\n", datakit.MainConfPath, err)
+		cp.Warnf("[W] load config %s failed: %s, ignored\n", datakit.MainConfPath, err)
 	}
 }
 

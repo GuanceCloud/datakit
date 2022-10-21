@@ -8,12 +8,12 @@ package skywalking
 
 import (
 	"context"
-	"time"
 
-	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/skywalkingapi"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"google.golang.org/grpc"
@@ -22,9 +22,8 @@ import (
 var _ inputs.InputV2 = &Input{}
 
 const (
-	inputName     = "skywalking"
-	jvmMetricName = "skywalking_jvm"
-	sampleConfig  = `
+	inputName    = "skywalking"
+	sampleConfig = `
 [[inputs.skywalking]]
   ## Skywalking grpc server listening on address.
   address = "localhost:11800"
@@ -75,98 +74,46 @@ const (
 )
 
 var (
-	log            = logger.DefaultSLogger(inputName)
-	address        = "localhost:11800"
-	plugins        []string
-	afterGatherRun itrace.AfterGatherHandler
-	customerKeys   []string
-	tags           map[string]string
-	skySvr         *grpc.Server
-	storage        *itrace.Storage
+	log     = logger.DefaultSLogger(inputName)
+	address = "localhost:11800"
+	//	plugins        []string
+	//	afterGatherRun itrace.AfterGatherHandler
+	//	customerKeys   []string
+	//	tags           map[string]string
+	skySvr *grpc.Server
+	//	storage        *itrace.Storage
+	api *skywalkingapi.SkyAPI
 )
 
 type Input struct {
-	V2               interface{}         `toml:"V2"`        // deprecated *skywalkingConfig
-	V3               interface{}         `toml:"V3"`        // deprecated *skywalkingConfig
-	Pipelines        map[string]string   `toml:"pipelines"` // deprecated
-	Address          string              `toml:"address"`
-	Plugins          []string            `toml:"plugins"`
-	CustomerTags     []string            `toml:"customer_tags"`
-	KeepRareResource bool                `toml:"keep_rare_resource"`
-	CloseResource    map[string][]string `toml:"close_resource"`
-	Sampler          *itrace.Sampler     `toml:"sampler"`
-	Tags             map[string]string   `toml:"tags"`
-	Storage          *itrace.Storage     `toml:"storage"`
+	V2               interface{}            `toml:"V2"`        // deprecated *skywalkingConfig
+	V3               interface{}            `toml:"V3"`        // deprecated *skywalkingConfig
+	Pipelines        map[string]string      `toml:"pipelines"` // deprecated
+	Address          string                 `toml:"address"`
+	Plugins          []string               `toml:"plugins"`
+	CustomerTags     []string               `toml:"customer_tags"`
+	KeepRareResource bool                   `toml:"keep_rare_resource"`
+	CloseResource    map[string][]string    `toml:"close_resource"`
+	Sampler          *itrace.Sampler        `toml:"sampler"`
+	Tags             map[string]string      `toml:"tags"`
+	LocalCacheConfig *storage.StorageConfig `toml:"storage"`
 }
 
-func (*Input) Catalog() string {
-	return inputName
-}
+func (*Input) Catalog() string { return inputName }
 
-func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
-func (*Input) SampleConfig() string {
-	return sampleConfig
-}
+func (*Input) SampleConfig() string { return sampleConfig }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&skywalkingMetricMeasurement{}}
+	return []inputs.Measurement{&skywalkingapi.MetricMeasurement{}}
 }
 
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 
-	plugins = ipt.Plugins
-
-	if ipt.Storage != nil {
-		if cache, err := cache.Open(ipt.Storage.Path, &cache.Option{Capacity: int64(ipt.Storage.Capacity) << 20}); err != nil {
-			log.Errorf("### open cache %s with cap %dMB failed, cache.Open: %s", ipt.Storage.Path, ipt.Storage.Capacity, err)
-		} else {
-			ipt.Storage.SetCache(cache)
-			ipt.Storage.RunStorageConsumer(log, parseSegmentObjectWrapper)
-			storage = ipt.Storage
-			log.Infof("### open cache %s with cap %dMB OK", ipt.Storage.Path, ipt.Storage.Capacity)
-		}
-	}
-
-	var afterGather *itrace.AfterGather
-	if storage == nil {
-		afterGather = itrace.NewAfterGather()
-	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithRetry(100 * time.Millisecond))
-	}
-	afterGatherRun = afterGather
-
-	// add filters: the order of appending filters into AfterGather is important!!!
-	// the order of appending represents the order of that filter executes.
-	// add close resource filter
-	if len(ipt.CloseResource) != 0 {
-		closeResource := &itrace.CloseResource{}
-		closeResource.UpdateIgnResList(ipt.CloseResource)
-		afterGather.AppendFilter(closeResource.Close)
-	}
-	// add error status penetration
-	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
-	// add rare resource keeper
-	if ipt.KeepRareResource {
-		keepRareResource := &itrace.KeepRareResource{}
-		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
-		afterGather.AppendFilter(keepRareResource.Keep)
-	}
-	// add sampler
-	var sampler *itrace.Sampler
-	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
-		sampler = ipt.Sampler
-	} else {
-		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
-	}
-	afterGather.AppendFilter(sampler.Sample)
-
-	customerKeys = ipt.CustomerTags
-	tags = ipt.Tags
-
+	api = skywalkingapi.InitApiPluginAges(ipt.Plugins, ipt.LocalCacheConfig, ipt.CloseResource,
+		ipt.KeepRareResource, ipt.Sampler, ipt.CustomerTags, ipt.Tags, inputName)
 	log.Debug("start skywalking grpc v3 server")
 
 	// start up grpc v3 routine
@@ -176,17 +123,13 @@ func (ipt *Input) Run() {
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_skywalking"})
 	g.Go(func(ctx context.Context) error {
 		registerServerV3(ipt.Address)
+
 		return nil
 	})
 }
 
 func (ipt *Input) Terminate() {
-	if storage != nil {
-		if err := storage.Close(); err != nil {
-			log.Error(err.Error())
-		}
-		log.Debug("### storage closed")
-	}
+	api.StopStorage()
 	if skySvr != nil {
 		skySvr.Stop()
 	}

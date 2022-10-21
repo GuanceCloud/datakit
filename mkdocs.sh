@@ -16,11 +16,11 @@ datakit_docs_dir=${mkdocs_dir}/docs/datakit
 developers_docs_dir=${mkdocs_dir}/docs/developers
 pwd=$(pwd)
 
-mkdir -p $datakit_docs_dir $tmp_doc_dir
+mkdir -p $datakit_docs_dir $developers_docs_dir $tmp_doc_dir
 
 rm -rf $tmp_doc_dir/*.md
 
-latest_version=$(curl https://static.guance.com/datakit/version | grep  '"version"' | awk -F'"' '{print $4}')
+latest_version=$(curl https://static.guance.com/datakit/version | grep '"version"' | awk -F'"' '{print $4}')
 
 man_version=$1
 
@@ -31,9 +31,9 @@ fi
 
 arch=$(uname -m)
 if [[ "$arch" == "x86_64" ]]; then
-	arch=amd64
+  arch=amd64
 else
-	arch=arm64
+  arch=arm64
 fi
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -53,14 +53,14 @@ make || exit -1
 # 所有文档导出
 printf "${GREEN}> Export internal docs...${CLR}\n"
 LOGGER_PATH=.mkdocs.log $datakit doc \
-	--export-docs $tmp_doc_dir \
-	--ignore demo \
-	--version "${man_version}" \
-	--TODO "-"
+  --export-docs $tmp_doc_dir \
+  --ignore demo \
+  --version "${man_version}" \
+  --TODO "-"
 
 if [ $? -ne 0 ]; then
-	printf "${RED}[E] Export docs failed${CLR}\n"
-	exit -1
+  printf "${RED}[E] Export docs failed${CLR}\n"
+  exit -1
 fi
 
 # 导出 .pages/index.md
@@ -95,6 +95,7 @@ datakit_docs=(
   $tmp_doc_dir/datakit-sink-otel-jaeger.md
   $tmp_doc_dir/datakit-sink-dataway.md
   $tmp_doc_dir/datakit-tools-how-to.md
+  $tmp_doc_dir/datakit-tracing-introduction.md
   $tmp_doc_dir/datakit-update.md
   $tmp_doc_dir/dca.md
   $tmp_doc_dir/development.md
@@ -105,11 +106,12 @@ datakit_docs=(
   $tmp_doc_dir/why-no-data.md
   $tmp_doc_dir/doc-logging.md
 
-	# inputs
+  # inputs
   $tmp_doc_dir/apache.md
   $tmp_doc_dir/beats_output.md
   $tmp_doc_dir/clickhousev1.md
   $tmp_doc_dir/cloudprober.md
+  $tmp_doc_dir/confd.md
   $tmp_doc_dir/consul.md
   $tmp_doc_dir/container.md
   $tmp_doc_dir/coredns.md
@@ -145,6 +147,7 @@ datakit_docs=(
   $tmp_doc_dir/jvm.md
   $tmp_doc_dir/k8s-config-how-to.md
   $tmp_doc_dir/kafka.md
+  $tmp_doc_dir/kafkamq.md
   $tmp_doc_dir/kubernetes-crd.md
   $tmp_doc_dir/kubernetes-prom.md
   $tmp_doc_dir/logfwd.md
@@ -158,6 +161,7 @@ datakit_docs=(
   $tmp_doc_dir/mysql.md
   $tmp_doc_dir/net.md
   $tmp_doc_dir/netstat.md
+  $tmp_doc_dir/nvidia_smi.md
   $tmp_doc_dir/nginx.md
   $tmp_doc_dir/nsq.md
   $tmp_doc_dir/opentelemetry-go.md
@@ -168,6 +172,7 @@ datakit_docs=(
   $tmp_doc_dir/profile.md
   $tmp_doc_dir/prom.md
   $tmp_doc_dir/prom_remote_write.md
+  $tmp_doc_dir/promtail.md
   $tmp_doc_dir/rabbitmq.md
   $tmp_doc_dir/redis.md
   $tmp_doc_dir/rum.md
@@ -209,4 +214,5 @@ for f in "${developers_docs[@]}"; do
 done
 
 printf "${GREEN}> Start mkdocs...${CLR}\n"
-cd $mkdocs_dir && mkdocs serve -a 0.0.0.0:8000 2>&1 | tee mkdocs.log
+cd $mkdocs_dir &&
+  mkdocs serve -a 0.0.0.0:8000 2>&1 | tee mkdocs.log

@@ -1,7 +1,6 @@
-
 ### `drop_origin_data()` {#fn-drop-origin-data}
 
-函数原型：`drop_origin_data()`
+函数原型：`fn drop_origin_data()`
 
 函数说明：丢弃初始化文本，否则初始文本放在 message 字段中
 

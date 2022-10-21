@@ -73,7 +73,7 @@ func (i *Input) RunPipeline() {
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
 		MultilinePatterns: []string{i.Log.MultilineMatch},
-		Done:              i.SemStop.Wait(),
+		Done:              i.SemStop.Wait(), // nolint:typecheck
 	}
 
 	var err error

@@ -10,26 +10,41 @@ import (
 	"strings"
 )
 
-// isValid checks whether a metric name is valid by
-// checking whether it matches any pattern in p.MetricNameFilter.
-func (p *Parser) isValid(name string) bool {
-	metricNameFilter := p.MetricNameFilter
-	nameValid := false
-	if len(metricNameFilter) == 0 {
-		nameValid = true
-	} else {
-		for _, filter := range metricNameFilter {
-			match, err := regexp.MatchString(filter, name)
-			if err != nil {
-				continue
-			}
-			if match {
-				nameValid = true
-				break
-			}
+// shouldFilterThroughMetricName checks whether a metric name should be filtered by checking whether it matches any regex
+// specified in p.MetricNameFilter. It passes if metric name filter is empty.
+func (p *Parser) shouldFilterThroughMetricName(metric string) bool {
+	if len(p.MetricNameFilter) == 0 {
+		return true
+	}
+	for _, filter := range p.MetricNameFilter {
+		match, err := regexp.MatchString(filter, metric)
+		if err != nil {
+			continue
+		}
+		if match {
+			return true
 		}
 	}
-	return nameValid
+	// Did not match any regex.
+	return false
+}
+
+// shouldFilterThroughMeasurementName checks if by default rule, the measurement name we've gotten should be filtered through.
+func (p *Parser) shouldFilterThroughMeasurementName(metric string) bool {
+	if len(p.MeasurementNameFilter) == 0 {
+		return true
+	}
+	measurementName, _ := p.getNamesByDefaultRule(metric)
+	for _, filter := range p.MeasurementNameFilter {
+		match, err := regexp.MatchString(filter, measurementName)
+		if err != nil {
+			continue
+		}
+		if match {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *Parser) getNames(metric string) (measurementName, metricName string) {
@@ -37,11 +52,16 @@ func (p *Parser) getNames(metric string) (measurementName, metricName string) {
 		return p.MeasurementPrefix + p.MeasurementName, metric
 	}
 	// Split measurement name and metric name by the first '_' met.
-	index := strings.Index(metric, "_")
+	measurementName, metricName = p.getNamesByDefaultRule(metric)
+	return p.MeasurementPrefix + measurementName, metricName
+}
+
+func (*Parser) getNamesByDefaultRule(metric string) (measurementName, metricName string) {
 	measurementName, metricName = metric, metric
+	index := strings.Index(metric, "_")
 	if index != -1 {
 		measurementName = metric[:index]
 		metricName = metric[index+1:]
 	}
-	return p.MeasurementPrefix + measurementName, metricName
+	return
 }

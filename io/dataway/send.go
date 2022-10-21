@@ -14,10 +14,12 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	retryablehttp "github.com/hashicorp/go-retryablehttp"
+	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
@@ -29,6 +31,8 @@ var (
 
 	maxKodoPack = uint64(10 * 1000 * 1000)
 	minGZSize   = 1024
+
+	BeyondUsage uint64
 )
 
 // GetSendStat return the sent fail count of the specified category.
@@ -137,13 +141,31 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 	case 2:
 		isSendOk = true
 		log.Debugf("post %d to %s ok(gz: %v), cost %v", len(data), requrl, gz, time.Since(postbeg))
+
+		if strings.Contains(requrl, "/v1/write/") { //  clear beyond-usage error
+			atomic.StoreUint64(&BeyondUsage, 0)
+			log.Info("reset BeyondUsage to 0")
+		}
+
 	case 4:
+
+		strBody := string(body)
 		log.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
 			len(data),
 			requrl,
 			resp.Status,
-			string(body),
+			strBody,
 			time.Since(postbeg))
+
+		switch resp.StatusCode {
+		case http.StatusForbidden:
+			if strings.Contains(strBody, "beyondDataUsage") {
+				atomic.AddUint64(&BeyondUsage, 1)
+				log.Warnf("set BeyondUsage to %d", atomic.LoadUint64(&BeyondUsage))
+			}
+		default:
+			// pass
+		}
 	case 5:
 		log.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v",
 			len(data),
