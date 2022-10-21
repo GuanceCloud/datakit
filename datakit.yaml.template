@@ -152,8 +152,6 @@ spec:
           value: stdout
         - name: ENV_HTTP_LISTEN
           value: 0.0.0.0:9529
-        #- name: ENV_IPDB
-        #  value: iploc
         # # ---iploc-start
         #- name: ENV_IPDB
         #  value: iploc
@@ -183,8 +181,6 @@ spec:
           name: rootfs
         - mountPath: /sys/kernel/debug
           name: debugfs
-        # - mountPath: /usr/local/datakit/data/ipdb/iploc/
-        #   name: datakit-ipdb
         - mountPath: /usr/local/datakit/cache
           name: cache
           readOnly: false
@@ -251,8 +247,6 @@ spec:
       - hostPath:
           path: /sys/kernel/debug
         name: debugfs
-      # - emptyDir: {}
-      #   name: datakit-ipdb
       # # ---iploc-start
       # - emptyDir: {}
       #   name: datakit-ipdb
