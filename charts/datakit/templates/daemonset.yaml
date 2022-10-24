@@ -187,12 +187,12 @@ spec:
             name: id-rsa
           name: id-rsa
         {{- end }}
+        {{- end }}
         {{- if .Values.dkconfig }}
         - configMap:
             name: datakit-conf
           name: datakit-conf
         {{- end }}
-  {{- end }}
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1
