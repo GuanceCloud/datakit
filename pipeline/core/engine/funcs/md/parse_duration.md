@@ -1,7 +1,6 @@
-
 ### `parse_duration()` {#fn-parse-duration}
 
-函数原型：`parse_duration(key=required)`
+函数原型：`fn parse_duration(key: str)`
 
 函数说明：如果 `key` 的值是一个 golang 的 duration 字符串（如 `123ms`），则自动将 `key` 解析成纳秒为单位的整数
 

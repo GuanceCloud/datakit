@@ -13,6 +13,7 @@ package main
 import (
 	"bytes"
 	_ "embed"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -33,6 +34,9 @@ var (
 	flagDatawayLatency = flag.Duration("dataway-duration", time.Millisecond, "dataway response latency")
 	flagWorker         = flag.Int("worker", 10, "set to 0 to disable workers")
 	flagWrokerSleep    = flag.Duration("worker-sleep", 10*time.Millisecond, "worker sleep during request")
+	flagBeyondUsage    = flag.Bool("beyond-usage", false, "mock beyond-usage error on every /v1/write/:category API")
+
+	errBeyoundUsage = uhttp.NewNamespaceErr(errors.New(`beyond data usage`), http.StatusForbidden, "kodo")
 )
 
 func startHTTP() {
@@ -69,7 +73,11 @@ func startHTTP() {
 				log.Printf("accept %d points from %s: %s", len(pts), c.Request.URL.Path, pts[0].Name())
 			}
 
-			c.Status(http.StatusOK)
+			if *flagBeyondUsage {
+				uhttp.HttpErr(c, errBeyoundUsage)
+			} else {
+				c.Status(http.StatusOK)
+			}
 		})
 
 	srv := &http.Server{

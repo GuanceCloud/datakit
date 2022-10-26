@@ -1,7 +1,6 @@
-
 ### `nullif()` {#fn-nullif}
 
-函数原型：`nullif(key=required, value=required)`
+函数原型：`fn nullif(key, value)`
 
 函数说明：若已提取 `key` 指定的字段内容等于 `value` 值，则删除此字段
 

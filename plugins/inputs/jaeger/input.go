@@ -7,17 +7,21 @@
 package jaeger
 
 import (
-	"errors"
-	"fmt"
+	"bytes"
+	"io"
+	"net/http"
+	"net/url"
 	"time"
 
-	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -67,7 +71,7 @@ const (
     # key2 = "value2"
     # ...
 
-  ## Threads config controls how many goroutines an agent cloud start.
+  ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
   ## timeout is the duration(ms) before a job can return a result.
@@ -89,8 +93,8 @@ var (
 	afterGatherRun itrace.AfterGatherHandler
 	customerKeys   []string
 	tags           map[string]string
-	wpool          workerpool.WorkerPool
-	storage        *itrace.Storage
+	wkpool         *workerpool.WorkerPool
+	localCache     *storage.Storage
 )
 
 type Input struct {
@@ -105,20 +109,14 @@ type Input struct {
 	Sampler          *itrace.Sampler              `toml:"sampler"`
 	Tags             map[string]string            `toml:"tags"`
 	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
-	Storage          *itrace.Storage              `toml:"storage"`
+	LocalCacheConfig *storage.StorageConfig       `toml:"storage"`
 }
 
-func (*Input) Catalog() string {
-	return inputName
-}
+func (*Input) Catalog() string { return inputName }
 
-func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
-func (*Input) SampleConfig() string {
-	return sampleConfig
-}
+func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
@@ -127,22 +125,60 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
 
-	if ipt.Storage != nil {
-		if cache, err := cache.Open(ipt.Storage.Path, &cache.Option{Capacity: int64(ipt.Storage.Capacity) << 20}); err != nil {
-			log.Errorf("### open cache %s with cap %dMB failed, cache.Open: %s", ipt.Storage.Path, ipt.Storage.Capacity, err)
+	var err error
+	if ipt.WPConfig != nil {
+		if wkpool, err = workerpool.NewWorkerPool(ipt.WPConfig, log); err != nil {
+			log.Errorf("### new worker-pool failed: %s", err.Error())
+		} else if err = wkpool.Start(); err != nil {
+			log.Errorf("### start worker-pool failed: %s", err.Error())
+		}
+	}
+	if ipt.LocalCacheConfig != nil {
+		if localCache, err = storage.NewStorage(ipt.LocalCacheConfig, log); err != nil {
+			log.Errorf("### new local-cache failed: %s", err.Error())
+		} else if err = localCache.RunConsumeWorker(); err != nil {
+			log.Errorf("### run local-cache consumer failed: %s", err.Error())
 		} else {
-			ipt.Storage.SetCache(cache)
-			ipt.Storage.RunStorageConsumer(log, parseJaegerTraceFanout)
-			storage = ipt.Storage
-			log.Infof("### open cache %s with cap %dMB OK", ipt.Storage.Path, ipt.Storage.Capacity)
+			localCache.RegisterConsumer(storage.HTTP_KEY, func(buf []byte) error {
+				start := time.Now()
+				reqpb := &storage.Request{}
+				if err := proto.Unmarshal(buf, reqpb); err != nil {
+					return err
+				} else {
+					req := &http.Request{
+						Method:           reqpb.Method,
+						Proto:            reqpb.Proto,
+						ProtoMajor:       int(reqpb.ProtoMajor),
+						ProtoMinor:       int(reqpb.ProtoMinor),
+						Header:           storage.ConvertMapEntriesToMap(reqpb.Header),
+						Body:             io.NopCloser(bytes.NewBuffer(reqpb.Body)),
+						ContentLength:    reqpb.ContentLength,
+						TransferEncoding: reqpb.TransferEncoding,
+						Close:            reqpb.Close,
+						Host:             reqpb.Host,
+						Form:             storage.ConvertMapEntriesToMap(reqpb.Form),
+						PostForm:         storage.ConvertMapEntriesToMap(reqpb.PostForm),
+						RemoteAddr:       reqpb.RemoteAddr,
+						RequestURI:       reqpb.RequestUri,
+					}
+					if req.URL, err = url.Parse(reqpb.Url); err != nil {
+						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
+					}
+					handleJaegerTrace(&ihttp.NopResponseWriter{}, req)
+
+					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
+
+					return nil
+				}
+			})
 		}
 	}
 
 	var afterGather *itrace.AfterGather
-	if storage == nil {
-		afterGather = itrace.NewAfterGather()
+	if localCache != nil && localCache.Enabled() {
+		afterGather = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithRetry(100*time.Millisecond), itrace.WithBlockIOModel(true))
 	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithRetry(100*time.Millisecond), itrace.WithBlockIOModel(true))
+		afterGather = itrace.NewAfterGather(itrace.WithLogger(log))
 	}
 	afterGatherRun = afterGather
 
@@ -171,18 +207,10 @@ func (ipt *Input) RegHTTPHandler() {
 	}
 	afterGather.AppendFilter(sampler.Sample)
 
-	if ipt.WPConfig != nil {
-		wpool = workerpool.NewWorkerPool(ipt.WPConfig.Buffer)
-		if err := wpool.Start(ipt.WPConfig.Threads); err != nil {
-			log.Errorf("### start workerpool failed: %s", err.Error())
-			wpool = nil
-		}
-	}
-
 	log.Debugf("### register handler for %s of agent %s", ipt.Endpoint, inputName)
 	if ipt.Endpoint != "" {
 		// itrace.StartTracingStatistic()
-		http.RegHTTPHandler("POST", ipt.Endpoint, handleJaegerTrace)
+		dkhttp.RegHTTPHandler("POST", ipt.Endpoint, workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, handleJaegerTrace)))
 	}
 }
 
@@ -202,30 +230,15 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) Terminate() {
-	if wpool != nil {
-		wpool.Shutdown()
+	if wkpool != nil {
+		wkpool.Shutdown()
 		log.Debug("### workerpool closed")
 	}
-	if storage != nil {
-		if err := storage.Close(); err != nil {
+	if localCache != nil {
+		if err := localCache.Close(); err != nil {
 			log.Error(err.Error())
 		}
 		log.Debug("### storage closed")
-	}
-}
-
-func parseJaegerTraceFanout(param *itrace.TraceParameters) error {
-	if param == nil || param.Meta == nil {
-		return errors.New("invalid parameters")
-	}
-
-	switch param.Meta.Protocol {
-	case "http":
-		return parseJaegerTrace(param)
-	case "udp":
-		return parseJaegerTraceUDP(param)
-	default:
-		return fmt.Errorf("invalid protocol: %s", param.Meta.Protocol)
 	}
 }
 

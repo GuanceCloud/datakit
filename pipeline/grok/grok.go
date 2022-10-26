@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	valid    = regexp.MustCompile(`^\w+([-.]\w+)*(:([-.\w]+)(:(string|float|int|bool))?)?$`)
+	valid    = regexp.MustCompile(`^\w+([-.]\w+)*(:([-.\w]+)(:(string|str|float|int|bool))?)?$`)
 	normal   = regexp.MustCompile(`%{([\w-.]+(?::[\w-.]+(?::[\w-.]+)?)?)}`)
 	symbolic = regexp.MustCompile(`\W`)
 )
@@ -91,7 +91,7 @@ func (g *GrokRegexp) RunWithTypeInfo(content interface{}, trimSpace bool) (map[s
 				dstV, err = cast.ToFloat64E(v)
 			case GTypeBool:
 				dstV, err = cast.ToBoolE(v)
-			case GTypeString:
+			case GTypeStr:
 			default:
 				err = fmt.Errorf("unsupported data type: %s", varType)
 			}

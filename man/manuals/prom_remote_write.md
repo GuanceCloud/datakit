@@ -51,7 +51,15 @@ remote_write:
   tags_ignore = ["xxxx"]
 ```
 
+可以通过配置 `tags_ignore_regex` 正则匹配并忽略指标上的标签，如下：
+
+```toml
+  ## tags to ignore with regex
+  tags_ignore_regex = ["xxxx"]
+```
+
 可以通过配置 `tags_rename` 重命名指标已有的某些标签名，如下：
+
 ```toml
   ## tags to rename
   [inputs.prom_remote_write.tags_rename]

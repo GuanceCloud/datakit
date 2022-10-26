@@ -32,10 +32,16 @@ const (
   # if specified, you can use 'datakit --prom-conf /path/to/this/conf' to debug collected data
   # output = "/abs/path/file"
 
-  ## metric name filter
-  # regex is supported
-  # no filter if empty
+  ## Metric name filter
+  # Regex is supported.
+  # Only metric matches one of the regex can pass through. No filter if left empty.
   # metric_name_filter = ["gc", "go"]
+
+  ## Measurement name filter
+  # Regex is supported.
+  # Only measurement matches one of the regex can pass through. No filter if left empty.
+  # This filtering is done before any prefixing rule or renaming rule is applied.
+  # measurement_name_filter = ["kubernetes", "container"]
 
   ## metric name prefix
   # prefix will be added to metric name
@@ -58,6 +64,9 @@ const (
 
   ## tags to ignore
   # tags_ignore = ["xxxx"]
+
+  ## tags to ignore with regex
+  tags_ignore_regex = ["xxxx"]
 
   ## Indicate whether tags_rename overwrites existing key if tag with the new key name already exists.
   overwrite = false

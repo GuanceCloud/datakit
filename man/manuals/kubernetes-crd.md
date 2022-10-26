@@ -65,31 +65,31 @@ metadata:
 spec:
   group: guance.com
   versions:
-    - name: v1beta1
-      served: true
-      storage: true
-      schema:
-        openAPIV3Schema:
-          type: object
-          properties:
-            spec:
-              type: object
-              properties:
-                instances:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      k8sNamespace:
-                        type: string
-                      k8sDaemonSet:
-                        type: string
-                      k8sDeployment:
-                        type: string
-                      datakit/logs:
-                        type: string
-                      inputConf:
-                        type: string
+  - name: v1beta1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              instances:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    k8sNamespace:
+                      type: string
+                    k8sDaemonSet:
+                      type: string
+                    k8sDeployment:
+                      type: string
+                    datakit/logs:
+                      type: string
+                    inputConf:
+                      type: string
   scope: Namespaced
   names:
     plural: datakits

@@ -1,7 +1,6 @@
-
 ### `group_between()` {#fn-group-between}
 
-函数原型：`group_between(key=required, between=required, new-value=required, new-key=optional)`
+函数原型：`fn group_between(key: int, between: list, new_value: int|float|bool|str|map|list|nil, new_key)`
 
 函数说明：如果 `key` 值在指定范围 `between` 内（注意：只能是单个区间，如 `[0,100]`），则可创建一个新字段，并赋予新值。若不提供新字段，则覆盖原字段值
 
@@ -38,4 +37,3 @@ group_between(http_status, [200, 300], "OK", status)
     "status": "OK"
 }
 ```
-

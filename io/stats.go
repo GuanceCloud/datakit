@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"sync/atomic"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 type InputsStat struct {
@@ -142,6 +144,9 @@ type Stats struct {
 
 	FeedDropPts uint64 `json:"drop_pts"`
 
+	// 0: ok, others: beyond usage
+	BeyondUsage uint64 `json:"beyond_usage"`
+
 	// TODO: add disk cache stats
 }
 
@@ -185,6 +190,7 @@ func GetIOStats() *Stats {
 		TFailPts:  atomic.LoadUint64(&TFailPts),
 
 		FeedDropPts: atomic.LoadUint64(&FeedDropPts),
+		BeyondUsage: atomic.LoadUint64(&dataway.BeyondUsage),
 	}
 }
 

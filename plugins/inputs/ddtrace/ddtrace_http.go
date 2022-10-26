@@ -7,17 +7,14 @@ package ddtrace
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"strconv"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 )
 
 const (
@@ -33,90 +30,39 @@ const (
 	keySamplingRate = "_sample_rate"
 )
 
-func handleDDTraceWithVersion(v string) http.HandlerFunc {
-	return func(resp http.ResponseWriter, req *http.Request) {
-		log.Debugf("### received tracing data from path: %s", req.URL.Path)
+func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
+	log.Debugf("### received tracing data from path: %s", req.URL.Path)
 
-		var (
-			readbodycost = time.Now()
-			enterWPoolOK = false
-		)
-		pbuf := bufpool.GetBuffer()
-		defer func() {
-			if !enterWPoolOK {
-				bufpool.PutBuffer(pbuf)
-			}
-		}()
+	pbuf := bufpool.GetBuffer()
+	defer bufpool.PutBuffer(pbuf)
 
-		_, err := io.Copy(pbuf, req.Body)
-		if err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusBadRequest)
+	_, err := io.Copy(pbuf, req.Body)
+	if err != nil {
+		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
 
-			return
-		}
+		return
+	}
 
-		param := &itrace.TraceParameters{
-			Meta: &itrace.TraceMeta{
-				UrlPath: req.URL.Path,
-				Media:   req.Header.Get("Content-Type"),
-			},
-			Body: pbuf,
-		}
+	param := &itrace.TraceParameters{
+		URLPath: req.URL.Path,
+		Media:   req.Header.Get("Content-Type"),
+		Body:    pbuf,
+	}
+	if err = parseDDTraces(param); err != nil {
+		log.Errorf("### parse ddtrace failed: %s", err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
 
-		log.Debugf("### path: %s, Content-Type: %s, body-size: %dkb, read-body-cost: %dms",
-			param.Meta.UrlPath, param.Meta.Media, pbuf.Len()>>10, time.Since(readbodycost)/time.Millisecond)
+		return
+	}
 
-		if wpool == nil {
-			if storage == nil {
-				if err = parseDDTraces(param); err != nil {
-					log.Error(err.Error())
-					resp.WriteHeader(http.StatusBadRequest)
-
-					return
-				}
-			} else {
-				if err = storage.Send(param); err != nil {
-					log.Error(err.Error())
-					resp.WriteHeader(http.StatusBadRequest)
-
-					return
-				}
-			}
-		} else {
-			job, err := workerpool.NewJob(workerpool.WithInput(param),
-				workerpool.WithProcess(parseDDTracesAdapter),
-				workerpool.WithProcessCallback(func(input, output interface{}, cost time.Duration) {
-					if param, ok := input.(*itrace.TraceParameters); ok {
-						bufpool.PutBuffer(param.Body)
-					}
-					log.Debugf("### job status: input: %v, output: %v, cost: %dms", input, output, cost/time.Millisecond)
-				}),
-			)
-			if err != nil {
-				log.Error(err.Error())
-				resp.WriteHeader(http.StatusBadRequest)
-
-				return
-			}
-
-			if err = wpool.MoreJob(job); err != nil {
-				log.Error(err.Error())
-				resp.WriteHeader(http.StatusTooManyRequests)
-
-				return
-			}
-			enterWPoolOK = true
-		}
-
-		switch v {
-		case v1, v2, v3:
-			io.WriteString(resp, "OK\n") // nolint: errcheck,gosec
-		default:
-			resp.Header().Set("Content-Type", "application/json")
-			resp.Header().Set(headerRatesPayloadVersion, req.Header.Get(headerRatesPayloadVersion))
-			resp.Write([]byte("{}")) // nolint: errcheck,gosec
-		}
+	switch req.URL.Path {
+	case v1, v2, v3:
+		io.WriteString(resp, "OK\n") // nolint: errcheck,gosec
+	default:
+		resp.Header().Set("Content-Type", "application/json")
+		resp.Header().Set(headerRatesPayloadVersion, req.Header.Get(headerRatesPayloadVersion))
+		resp.Write([]byte("{}")) // nolint: errcheck,gosec
 	}
 }
 
@@ -130,19 +76,6 @@ func handleDDInfo(resp http.ResponseWriter, req *http.Request) { // nolint: unus
 func handleDDStats(resp http.ResponseWriter, req *http.Request) {
 	log.Errorf("### %s unsupported yet", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
-}
-
-func parseDDTracesAdapter(input interface{}) (output interface{}) {
-	param, ok := input.(*itrace.TraceParameters)
-	if !ok {
-		return errors.New("type assertion failed")
-	}
-
-	if storage == nil {
-		return parseDDTraces(param)
-	} else {
-		return storage.Send(param)
-	}
 }
 
 func parseDDTraces(param *itrace.TraceParameters) error {
@@ -179,7 +112,7 @@ func decodeDDTraces(param *itrace.TraceParameters) (DDTraces, error) {
 		traces DDTraces
 		err    error
 	)
-	switch param.Meta.UrlPath {
+	switch param.URLPath {
 	case v1:
 		var spans DDTrace
 		if err := json.NewDecoder(param.Body).Decode(&spans); err != nil {
@@ -200,7 +133,7 @@ func decodeDDTraces(param *itrace.TraceParameters) (DDTraces, error) {
 }
 
 func decodeRequest(param *itrace.TraceParameters, out *DDTraces) error {
-	mediaType, _, err := mime.ParseMediaType(param.Meta.Media)
+	mediaType, _, err := mime.ParseMediaType(param.Media)
 	if err != nil {
 		log.Debug(err.Error())
 	}

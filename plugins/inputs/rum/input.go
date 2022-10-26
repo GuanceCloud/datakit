@@ -7,381 +7,167 @@
 package rum
 
 import (
-	"encoding/json"
-	"fmt"
+	"bytes"
+	"io"
 	"net/http"
-	"strings"
+	"net/url"
 	"time"
 
-	"github.com/gin-gonic/gin/binding"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"google.golang.org/protobuf/proto"
+)
+
+var (
+	_ inputs.HTTPInput = &Input{}
+	_ inputs.InputV2   = &Input{}
 )
 
 const (
-	inputName = "rum"
-
+	inputName    = "rum"
 	sampleConfig = `
 [[inputs.rum]]
-## profile Agent endpoints register by version respectively.
-## Endpoints can be skipped listen by remove them from the list.
-## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
-endpoints = ["/v1/write/rum"]
+  ## profile Agent endpoints register by version respectively.
+  ## Endpoints can be skipped listen by remove them from the list.
+  ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
+  endpoints = ["/v1/write/rum"]
 
-# Android command-line-tools HOME
-android_cmdline_home = "/usr/local/datakit/data/rum/tools/cmdline-tools"
+  ## Android command-line-tools HOME
+  android_cmdline_home = "/usr/local/datakit/data/rum/tools/cmdline-tools"
 
-# proguard HOME
-proguard_home = "/usr/local/datakit/data/rum/tools/proguard"
+  ## proguard HOME
+  proguard_home = "/usr/local/datakit/data/rum/tools/proguard"
 
-# android-ndk HOME
-ndk_home = "/usr/local/datakit/data/rum/tools/android-ndk"
+  ## android-ndk HOME
+  ndk_home = "/usr/local/datakit/data/rum/tools/android-ndk"
 
-# atos or atosl bin path
-# for macOS datakit use the built-in tool atos default
-# for Linux there are several tools that can be used to instead of macOS atos partially,
-# such as https://github.com/everettjf/atosl-rs
-atos_bin_path = "/usr/local/datakit/data/rum/tools/atosl"
+  ## atos or atosl bin path
+  ## for macOS datakit use the built-in tool atos default
+  ## for Linux there are several tools that can be used to instead of macOS atos partially,
+  ## such as https://github.com/everettjf/atosl-rs
+  atos_bin_path = "/usr/local/datakit/data/rum/tools/atosl"
 
+  ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
+  ## buffer is the size of jobs' buffering of worker channel.
+  ## threads is the total number fo goroutines at running time.
+  # [inputs.rum.threads]
+    # buffer = 100
+    # threads = 8
+
+  ## Storage config a local storage space in hard dirver to cache trace data.
+  ## path is the local file path used to cache data.
+  ## capacity is total space size(MB) used to store data.
+  # [inputs.rum.storage]
+    # path = "./rum_storage"
+    # capacity = 5120
 `
 )
 
 var (
-	log                                    = logger.DefaultSLogger(inputName)
-	_                     inputs.HTTPInput = &Input{}
-	_                     inputs.InputV2   = &Input{}
-	sourceMapTokenBuckets                  = newExecCmdTokenBuckets(64)
+	log        = logger.DefaultSLogger(inputName)
+	wkpool     *workerpool.WorkerPool
+	localCache *storage.Storage
 )
+
+type Input struct {
+	Endpoints          []string                     `toml:"endpoints"`
+	JavaHome           string                       `toml:"java_home"`
+	AndroidCmdLineHome string                       `toml:"android_cmdline_home"`
+	ProguardHome       string                       `toml:"proguard_home"`
+	NDKHome            string                       `toml:"ndk_home"`
+	AtosBinPath        string                       `toml:"atos_bin_path"`
+	WPConfig           *workerpool.WorkerPoolConfig `toml:"threads"`
+	LocalCacheConfig   *storage.StorageConfig       `toml:"storage"`
+}
+
+func (*Input) Catalog() string { return inputName }
+
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
+
+func (*Input) SampleConfig() string { return sampleConfig }
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{&trace.TraceMeasurement{Name: inputName}}
+}
+
+func (ipt *Input) RegHTTPHandler() {
+	log = logger.SLogger(inputName)
+
+	var err error
+	if ipt.WPConfig != nil {
+		if wkpool, err = workerpool.NewWorkerPool(ipt.WPConfig, log); err != nil {
+			log.Errorf("### new worker-pool failed: %s", err.Error())
+		} else if err = wkpool.Start(); err != nil {
+			log.Errorf("### start worker-pool failed: %s", err.Error())
+		}
+	}
+	if ipt.LocalCacheConfig != nil {
+		if localCache, err = storage.NewStorage(ipt.LocalCacheConfig, log); err != nil {
+			log.Errorf("### new local-cache failed: %s", err.Error())
+		} else if err = localCache.RunConsumeWorker(); err != nil {
+			log.Errorf("### run local-cache consumer failed: %s", err.Error())
+		} else {
+			localCache.RegisterConsumer(storage.HTTP_KEY, func(buf []byte) error {
+				start := time.Now()
+				reqpb := &storage.Request{}
+				if err := proto.Unmarshal(buf, reqpb); err != nil {
+					return err
+				} else {
+					req := &http.Request{
+						Method:           reqpb.Method,
+						Proto:            reqpb.Proto,
+						ProtoMajor:       int(reqpb.ProtoMajor),
+						ProtoMinor:       int(reqpb.ProtoMinor),
+						Header:           storage.ConvertMapEntriesToMap(reqpb.Header),
+						Body:             io.NopCloser(bytes.NewBuffer(reqpb.Body)),
+						ContentLength:    reqpb.ContentLength,
+						TransferEncoding: reqpb.TransferEncoding,
+						Close:            reqpb.Close,
+						Host:             reqpb.Host,
+						Form:             storage.ConvertMapEntriesToMap(reqpb.Form),
+						PostForm:         storage.ConvertMapEntriesToMap(reqpb.PostForm),
+						RemoteAddr:       reqpb.RemoteAddr,
+						RequestURI:       reqpb.RequestUri,
+					}
+					if req.URL, err = url.Parse(reqpb.Url); err != nil {
+						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
+					}
+					ipt.handleRUM(&ihttp.NopResponseWriter{}, req)
+
+					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
+
+					return nil
+				}
+			})
+		}
+	}
+
+	for _, endpoint := range ipt.Endpoints {
+		dkhttp.RegHTTPHandler(http.MethodPost, endpoint, workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, ipt.handleRUM)))
+		log.Infof("### register RUM endpoint: %s", endpoint)
+	}
+}
+
+func (ipt *Input) Run() {
+	log.Infof("### RUM agent serving on: %+#v", ipt.Endpoints)
+
+	if err := loadSourcemapFile(); err != nil {
+		log.Errorf("load source map file failed: %s", err.Error())
+	}
+}
+
+func (*Input) Terminate() {
+	log.Info("### RUM exits")
+}
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})
-}
-
-type execCmdTokenBuckets struct {
-	buckets chan struct{}
-}
-
-func newExecCmdTokenBuckets(size int) *execCmdTokenBuckets {
-	if size < 16 {
-		size = 16
-	}
-	tb := &execCmdTokenBuckets{
-		buckets: make(chan struct{}, size),
-	}
-	for i := 0; i < size; i++ {
-		tb.buckets <- struct{}{}
-	}
-	return tb
-}
-
-func (e *execCmdTokenBuckets) getToken() struct{} {
-	return <-e.buckets
-}
-
-func (e *execCmdTokenBuckets) sendBackToken(token struct{}) {
-	e.buckets <- token
-}
-
-type Input struct {
-	Endpoints          []string `toml:"endpoints"`
-	JavaHome           string   `toml:"java_home"`
-	AndroidCmdLineHome string   `toml:"android_cmdline_home"`
-	ProguardHome       string   `toml:"proguard_home"`
-	NDKHome            string   `toml:"ndk_home"`
-	AtosBinPath        string   `toml:"atos_bin_path"`
-}
-
-type jsonPoint struct {
-	Measurement string                 `json:"measurement"`
-	Tags        map[string]string      `json:"tags,omitempty"`
-	Fields      map[string]interface{} `json:"fields"`
-	Time        int64                  `json:"time,omitempty"`
-}
-
-// convert json point to lineproto point.
-func (jp *jsonPoint) point(opt *lp.Option) (*point.Point, error) {
-	p, err := lp.MakeLineProtoPoint(jp.Measurement, jp.Tags, jp.Fields, opt)
-	if err != nil {
-		return nil, err
-	}
-
-	return &point.Point{Point: p}, nil
-}
-
-func (i *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&trace.TraceMeasurement{Name: inputName}}
-}
-
-func (i *Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
-
-func (i *Input) Terminate() {
-	log.Info("rum plugin over...")
-}
-
-func jsonPoints(body []byte, opt *lp.Option) ([]*point.Point, error) {
-	var jps []jsonPoint
-	err := json.Unmarshal(body, &jps)
-	if err != nil {
-		log.Error(err)
-		return nil, dkhttp.ErrInvalidJSONPoint
-	}
-
-	if opt == nil {
-		opt = lp.DefaultOption
-	}
-
-	var pts []*point.Point
-	for _, jp := range jps {
-		if jp.Time != 0 { // use time from json point
-			opt.Time = time.Unix(0, jp.Time)
-		}
-
-		if p, err := jp.point(opt); err != nil {
-			log.Error(err)
-			return nil, uhttp.Error(dkhttp.ErrInvalidJSONPoint, err.Error())
-		} else {
-			pts = append(pts, p)
-		}
-	}
-	return pts, nil
-}
-
-func (i *Input) handleRUM(req *http.Request) ([]*point.JSONPoint, error) {
-	var body []byte
-	var err error
-
-	category := req.URL.Path
-
-	q := req.URL.Query()
-
-	precision := dkhttp.DefaultPrecision
-	if x := q.Get(dkhttp.ArgPrecision); x != "" {
-		precision = x
-	}
-
-	// extraTags comes from global-host-tag or global-env-tags
-	extraTags := map[string]string{}
-	for _, arg := range []string{
-		dkhttp.ArgIgnoreGlobalHostTags,
-		dkhttp.ArgIgnoreGlobalTags, // deprecated
-	} {
-		if x := q.Get(arg); x != "" {
-			extraTags = map[string]string{}
-			break
-		} else {
-			for k, v := range point.GlobalHostTags() {
-				log.Debugf("arg=%s, add host tag %s: %s", arg, k, v)
-				extraTags[k] = v
-			}
-		}
-	}
-
-	if x := q.Get(dkhttp.ArgGlobalElectionTags); x != "" {
-		for k, v := range point.GlobalEnvTags() {
-			log.Debugf("add env tag %s: %s", k, v)
-			extraTags[k] = v
-		}
-	}
-
-	var version string
-	if x := q.Get(dkhttp.ArgVersion); x != "" {
-		version = x
-	}
-
-	var pipelineSource string
-	if x := q.Get(dkhttp.ArgPipelineSource); x != "" {
-		pipelineSource = x
-	}
-
-	switch precision {
-	case "h", "m", "s", "ms", "u", "n":
-	default:
-		log.Warnf("invalid precision %s", precision)
-		return nil, dkhttp.ErrInvalidPrecision
-	}
-
-	body, err = uhttp.ReadBody(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(body) == 0 {
-		return nil, dkhttp.ErrEmptyBody
-	}
-
-	isjson := (strings.Contains(req.Header.Get("Content-Type"), "application/json"))
-
-	var pts []*point.Point
-
-	apiConfig := config.Cfg.HTTPAPI
-	pts, err = handleRUMBody(body,
-		precision, isjson,
-		geoInfo(getSrcIP(apiConfig, req)),
-		apiConfig.RUMAppIDWhiteList,
-		i,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if len(pts) == 0 {
-		return nil, dkhttp.ErrNoPoints
-	}
-
-	log.Debugf("received %d(%s) points from %s, pipeline source: %v", len(pts), category, inputName, pipelineSource)
-
-	err = sendToIO(inputName, category, pts, &io.Option{HighFreq: true, Version: version})
-	if err != nil {
-		return nil, err
-	}
-
-	if q.Get(dkhttp.ArgEchoLineProto) != "" {
-		var res []*point.JSONPoint
-		for _, pt := range pts {
-			x, err := pt.ToJSON()
-			if err != nil {
-				log.Warnf("ToJSON: %s, ignored", err)
-				continue
-			}
-			res = append(res, x)
-		}
-
-		return res, nil
-	}
-
-	return nil, nil
-}
-
-func writeBody(w http.ResponseWriter, statusCode int, contentType string, body []byte) error {
-	w.WriteHeader(statusCode)
-	if body != nil {
-		w.Header().Set("Content-Type", contentType)
-		n, err := w.Write(body)
-		if n != len(body) {
-			return fmt.Errorf("send partial http response, full length(%d), send length(%d) ", len(body), n)
-		}
-		if err != nil {
-			return fmt.Errorf("send http response popup err: %w", err)
-		}
-	}
-	return nil
-}
-
-func writeJSON(w http.ResponseWriter, statusCode int, body []byte) error {
-	return writeBody(w, statusCode, binding.MIMEJSON, body)
-}
-
-func jsonReturnf(he *uhttp.HttpError, w http.ResponseWriter, format string, args ...interface{}) {
-	resp := &uhttp.BodyResp{
-		HttpError: he,
-	}
-
-	if args != nil {
-		resp.Message = fmt.Sprintf(format, args...)
-	}
-
-	j, err := json.Marshal(resp)
-	if err != nil {
-		jsonReturnf(uhttp.NewErr(err, http.StatusInternalServerError), w, "%s: %+#v", "json.Marshal() failed", resp)
-		return
-	}
-
-	if err := writeJSON(w, he.HttpCode, j); err != nil {
-		log.Error(err)
-	}
-}
-
-func httpErr(w http.ResponseWriter, err error) {
-	switch e := err.(type) { // nolint:errorlint
-	case *uhttp.HttpError:
-		jsonReturnf(e, w, "")
-	case *uhttp.MsgError:
-		if e.Args != nil {
-			jsonReturnf(e.HttpError, w, e.Fmt, e.Args)
-		}
-	default:
-		jsonReturnf(uhttp.NewErr(err, http.StatusInternalServerError), w, "")
-	}
-}
-
-func httpOK(w http.ResponseWriter, body interface{}) {
-	if body == nil {
-		if err := writeJSON(w, dkhttp.OK.HttpCode, nil); err != nil {
-			log.Error(err)
-		}
-		return
-	}
-
-	var bodyBytes []byte
-	var contentType string
-	var err error
-
-	switch x := body.(type) {
-	case []byte:
-		bodyBytes = x
-	default:
-		resp := &uhttp.BodyResp{
-			HttpError: dkhttp.OK,
-			Content:   body,
-		}
-		contentType = `application/json`
-
-		bodyBytes, err = json.Marshal(resp)
-		if err != nil {
-			jsonReturnf(uhttp.NewErr(err, http.StatusInternalServerError), w, "%s: %+#v", "json.Marshal() failed", resp)
-			return
-		}
-	}
-
-	if err := writeBody(w, dkhttp.OK.HttpCode, contentType, bodyBytes); err != nil {
-		log.Error(err)
-	}
-}
-
-func (i *Input) RegHTTPHandler() {
-	for _, endpoint := range i.Endpoints {
-		dkhttp.RegHTTPHandler(http.MethodPost, endpoint, func(w http.ResponseWriter, req *http.Request) {
-			res, err := i.handleRUM(req)
-			if err != nil {
-				httpErr(w, err)
-				return
-			}
-
-			httpOK(w, res)
-		})
-
-		log.Infof("pattern: %s registered", endpoint)
-	}
-}
-
-func (i *Input) Catalog() string {
-	return inputName
-}
-
-func (i *Input) Run() {
-	log = logger.SLogger(inputName)
-	log.Infof("the input %s is running...", inputName)
-
-	log.Infof("rum config: %+#v\n", i)
-
-	if err := loadSourcemapFile(); err != nil {
-		log.Warnf("load source map file fail: %s", err)
-	}
-}
-
-func (i *Input) SampleConfig() string {
-	return sampleConfig
 }

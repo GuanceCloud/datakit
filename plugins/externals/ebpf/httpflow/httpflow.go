@@ -30,7 +30,7 @@ import (
 // #include "../c/netflow/l7_stats.h"
 import "C"
 
-const HTTPPayloadMaxsize = 69
+const HTTPPayloadMaxsize = 157
 
 const srcNameM = "httpflow"
 
@@ -59,8 +59,20 @@ var (
 )
 
 type (
-	HTTPStatsC           C.struct_http_stats
-	HTTPReqFinishedInfoC C.struct_http_req_finished_info
+	//nolint:stylecheck
+	HTTPStatsC struct {
+		payload      [HTTPPayloadMaxsize]uint8
+		req_method   uint8
+		resp_code    uint16
+		http_version uint32
+		req_ts       uint64
+		resp_ts      uint64
+	}
+	//nolint:stylecheck
+	HTTPReqFinishedInfoC struct {
+		conn_info  C.struct_connection_info
+		http_stats HTTPStatsC
+	}
 
 	ConnectionInfoC dknetflow.ConnectionInfoC
 	ConnectionInfo  dknetflow.ConnectionInfo
@@ -232,11 +244,11 @@ func (tracer *HTTPFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
 		},
 		HTTPStats: HTTPStats{
 			Payload:     unix.ByteSliceToString((*(*[HTTPPayloadMaxsize]byte)(unsafe.Pointer(&eventC.http_stats.payload)))[:]),
-			ReqMethod:   uint8(eventC.http_stats.req_method),
-			HTTPVersion: uint32(eventC.http_stats.http_version),
+			ReqMethod:   eventC.http_stats.req_method,
+			HTTPVersion: eventC.http_stats.http_version,
 			RespCode:    uint32(eventC.http_stats.resp_code),
-			ReqTS:       uint64(eventC.http_stats.req_ts),
-			RespTS:      uint64(eventC.http_stats.resp_ts),
+			ReqTS:       eventC.http_stats.req_ts,
+			RespTS:      eventC.http_stats.resp_ts,
 		},
 	}
 	tracer.finReqCh <- &httpStats
@@ -280,7 +292,7 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) (*point.Poi
 		httpFinReq.ConnInfo.Sport, httpFinReq.ConnInfo.Dport = httpFinReq.ConnInfo.Dport, httpFinReq.ConnInfo.Sport
 		direction = DirectionIncoming
 	}
-	path := FindHTTPURI(httpFinReq.HTTPStats.Payload)
+	path, pathTrunc := FindHTTPURI(httpFinReq.HTTPStats.Payload)
 	if path == "" {
 		return nil, fmt.Errorf("path == \"\"")
 	}
@@ -325,6 +337,7 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) (*point.Poi
 	mTags["transport"] = l4proto
 
 	mFields := map[string]interface{}{
+		"truncated":    pathTrunc,
 		"path":         path,
 		"status_code":  int(httpFinReq.HTTPStats.RespCode),
 		"latency":      int64(httpFinReq.HTTPStats.RespTS - httpFinReq.HTTPStats.ReqTS),

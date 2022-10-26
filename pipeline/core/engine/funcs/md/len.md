@@ -1,6 +1,6 @@
 ### `len()` {#fn-len}
 
-函数原型：`len(val=required)`
+函数原型：`fn len(val: str|map|list) int`
 
 函数说明：计算 string 字节数，map 和 list 的元素个数。
 

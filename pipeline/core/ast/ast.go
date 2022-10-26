@@ -56,10 +56,6 @@ type KwArgs map[string]*Node
 
 type FuncArgList []*Node
 
-type Regex struct{ Regex string }
-
-type Jspath struct{ Jspath string }
-
 func (e KwArgs) String() string {
 	keys := []string{}
 	for k := range e {
@@ -80,14 +76,6 @@ func (e Stmts) String() string {
 		arr = append(arr, x.String())
 	}
 	return strings.Join(arr, "\n")
-}
-
-func (e *Regex) String() string {
-	return fmt.Sprintf("re('%s')", e.Regex)
-}
-
-func (e *Jspath) String() string {
-	return fmt.Sprintf("jp('%s')", e.Jspath)
 }
 
 type Node struct {

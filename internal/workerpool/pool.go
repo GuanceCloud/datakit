@@ -11,54 +11,48 @@ import (
 	"errors"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
-
-var g = goroutine.NewGroup(goroutine.Option{Name: "internal_workerpool"})
 
 type WorkerPoolConfig struct {
 	Buffer  int `json:"buffer"`  // worker pool channel buffer size
 	Threads int `json:"threads"` // goroutines count in total
-	// Timeout int `json:"timeout"` // deprecated
 }
+
 type Process func(input interface{}) (output interface{})
 
 type ProcessCallback func(input, output interface{}, cost time.Duration)
 
-type Job struct {
-	input   interface{}
-	timeout time.Duration
-	p       Process
-	cb      ProcessCallback
-}
+type JobOption func(job *Job)
 
-type Option func(job *Job)
-
-func WithInput(input interface{}) Option {
+func WithInput(input interface{}) JobOption {
 	return func(job *Job) {
 		job.input = input
 	}
 }
 
-func WithTimeout(timeout time.Duration) Option {
-	return func(job *Job) {
-		job.timeout = timeout
-	}
-}
-
-func WithProcess(p Process) Option {
+func WithProcess(p Process) JobOption {
 	return func(job *Job) {
 		job.p = p
 	}
 }
 
-func WithProcessCallback(cb ProcessCallback) Option {
+func WithProcessCallback(cb ProcessCallback) JobOption {
 	return func(job *Job) {
 		job.cb = cb
 	}
 }
 
-func NewJob(options ...Option) (*Job, error) {
+type Job struct {
+	input interface{}
+	p     Process
+	cb    ProcessCallback
+}
+
+func NewJob(options ...JobOption) (*Job, error) {
 	job := &Job{}
 	for i := range options {
 		options[i](job)
@@ -70,58 +64,95 @@ func NewJob(options ...Option) (*Job, error) {
 	return job, nil
 }
 
-type WorkerPool chan *Job
-
-func NewWorkerPool(buffer int) WorkerPool {
-	if buffer < 0 {
-		return nil
-	}
-
-	return make(WorkerPool, buffer)
+type WorkerPool struct {
+	wkpConf *WorkerPoolConfig
+	log     *logger.Logger
+	jobs    chan *Job
+	exit    *cliutils.Sem
+	enabled bool
 }
 
-func (wp WorkerPool) Start(threads int) error {
-	if wp == nil {
-		return errors.New("worker pool is not ready")
-	}
-	if threads < 1 {
-		return errors.New("worker pool needs at least one thread")
+func NewWorkerPool(config *WorkerPoolConfig, log *logger.Logger) (*WorkerPool, error) {
+	if config == nil || config.Buffer < 0 || config.Threads < 1 {
+		return nil, errors.New("worker-pool config error")
 	}
 
-	for i := 0; i < threads; i++ {
+	wkp := &WorkerPool{
+		wkpConf: config,
+		log:     log,
+		jobs:    make(chan *Job, config.Buffer),
+		exit:    cliutils.NewSem(),
+		enabled: false,
+	}
+	if wkp.log == nil {
+		wkp.log = logger.DefaultSLogger("worker-pool")
+	}
+
+	return wkp, nil
+}
+
+func (wkp *WorkerPool) Start() error {
+	if wkp.enabled {
+		return errors.New("worker-pool is already enabled")
+	}
+
+	g := goroutine.NewGroup(goroutine.Option{Name: "internal_trace"})
+	for i := 0; i < wkp.wkpConf.Threads; i++ {
 		g.Go(func(ctx context.Context) error {
-			wp.worker()
+			wkp.worker()
+
 			return nil
 		})
 	}
+	wkp.enabled = true
 
 	return nil
 }
 
-func (wp WorkerPool) Shutdown() {
-	close(wp)
+func (wkp *WorkerPool) Shutdown() {
+	close(wkp.jobs)
+	wkp.enabled = false
 }
 
-func (wp WorkerPool) MoreJob(job *Job) error {
+func (wkp *WorkerPool) Enabled() bool {
+	return wkp.enabled
+}
+
+func (wkp *WorkerPool) MoreJob(job *Job) error {
+	if !wkp.enabled {
+		return errors.New("woker-pool not start")
+	}
 	if job == nil {
-		return nil
+		return errors.New("job is nil")
 	}
 
 	select {
-	case wp <- job:
+	case wkp.jobs <- job:
 		return nil
 	default:
-		return errors.New("worker pool busy")
+		return errors.New("worker-pool busy")
 	}
 }
 
-func (wp WorkerPool) worker() {
-	if wp == nil {
+func (wkp *WorkerPool) worker() {
+	if wkp == nil {
 		return
 	}
 
 	for {
-		job, ok := <-wp
+		select {
+		case <-wkp.exit.Wait():
+			wkp.log.Infof("on exit, worker-pool worker exits")
+
+			return
+		case <-datakit.Exit.Wait():
+			wkp.log.Infof("on datakit exit, woker-pool worker exits")
+
+			return
+		default:
+		}
+
+		job, ok := <-wkp.jobs
 		if !ok {
 			break
 		}

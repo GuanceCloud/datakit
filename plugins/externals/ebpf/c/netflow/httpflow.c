@@ -29,18 +29,12 @@ int socket__http_filter(struct __sk_buff *skb)
         return DROPPACKET;
     }
 
-    // 使用 load_byte 时当 HTTP_PAYLOAD_MAXSIZE 值超出一定长度后分片读取异常，
-    // 可出现在使用代理程序时 TCP 分片需重组的情况下读取 response 数据异常；
-    // 使用 bpf_skb_load_bytes 能获取一部分数据
-    // TODO
-#pragma unroll
-    for (int i = 0; i < HTTP_PAYLOAD_MAXSIZE - 1; i++) // arr[HTTP_PAYLOAD_MAXSIZE - 1] == EOF
-    {
-        // stats.payload[i] = load_byte(skb, skbl4_info.hdr_len + i);
-        bpf_skb_load_bytes(skb, skbl4_info.hdr_len + i, stats.payload + i, sizeof(__u8));
-    }
+    // bpf_printk("skb len: %d, hdr_len: %d", skb->len, skbl4_info.hdr_len);
+    // bpf_printk("tcp seq: %u ack: %u", skbl4_info.seg_seq, skbl4_info.seg_ack);
 
     struct layer7_http l7http = {0};
+
+    read_payload_skb(&skbl4_info, (__u32 *)stats.payload, skb);
 
     if (parse_layer7_http(stats.payload, &l7http) != 0)
     {
@@ -51,11 +45,17 @@ int socket__http_filter(struct __sk_buff *skb)
     if (l7http.req_status == HTTP_REQ_REQ)
     { // request
         record_http_req(&conn_info, &stats, l7http.method);
+
+        // bpf_printk("req size: %d, %d", skb->len, skbl4_info.hdr_len);
+        // bpf_printk("req: %s", stats.payload);
     }
     else if (l7http.req_status == HTTP_REQ_RESP)
     {
         swap_conn_src_dst(&conn_info); // src -> client; dst -> server
         record_http_resp(&conn_info, &stats, &l7http);
+        
+        // bpf_printk("resp size: %d, %d", skb->len, skbl4_info.hdr_len);
+        // bpf_printk("resp: %s", stats.payload);
     }
     return DROPPACKET;
 }

@@ -420,8 +420,13 @@ func (m *monitorAPP) renderGoroutineTable(ds *dkhttp.DatakitStats, colArr []stri
 }
 
 func (m *monitorAPP) renderExitPrompt() {
-	fmt.Fprintf(m.exitPrompt, "[green]Refresh: %s. monitor: %s | Double ctrl+c to exit.",
-		*flagMonitorRefreshInterval, time.Since(m.start).String())
+	if m.ds.IOStats.BeyondUsage == 0 {
+		fmt.Fprintf(m.exitPrompt, "[green]Refresh: %s. monitor: %s | Double ctrl+c to exit",
+			*flagMonitorRefreshInterval, time.Since(m.start).String())
+	} else {
+		fmt.Fprintf(m.exitPrompt, "[green]Refresh: %s. monitor: %s | Double ctrl+c to exit | [red] Beyond Usage",
+			*flagMonitorRefreshInterval, time.Since(m.start).String())
+	}
 }
 
 func (m *monitorAPP) renderAnyError() {

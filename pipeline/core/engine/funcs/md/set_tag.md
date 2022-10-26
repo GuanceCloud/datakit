@@ -1,7 +1,6 @@
-
 ### `set_tag()` {#fn-set-tag}
 
-函数原型：`set_tag(key=required, value=optional)`
+函数原型：`fn set_tag(key, value: str)`
 
 函数说明：对指定字段标记为 tag 输出，设置为 tag 后，其他函数仍可对该变量操作。如果被置为 tag 的 key 是已经切割出来的 field，那么它将不会在 field 中出现，这样可以避免切割出来的 field key 跟已有数据上的 tag key 重名
 

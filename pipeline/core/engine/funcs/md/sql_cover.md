@@ -1,7 +1,6 @@
-
 ### `sql_cover()` {#fn-sql-cover}
 
-函数原型：`sql_cover(sql_test)`
+函数原型：`fn sql_cover(sql_test: str)`
 
 函数说明：脱敏sql语句
 

@@ -17,7 +17,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/dnsflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
 	"golang.org/x/sys/unix"
 )
@@ -30,11 +29,15 @@ const (
 
 var l = logger.DefaultSLogger("ebpf")
 
-var dnsRecord *dnsflow.DNSAnswerRecord
+type dnsRecorder interface {
+	LookupAddr(ip string) string
+}
+
+var dnsRecord dnsRecorder
 
 var k8sNetInfo *k8sinfo.K8sNetInfo
 
-func SetDNSRecord(r *dnsflow.DNSAnswerRecord) {
+func SetDNSRecord(r dnsRecorder) {
 	dnsRecord = r
 }
 

@@ -17,9 +17,10 @@ import (
 )
 
 type Parser struct {
-	MetricNameFilter  []string `toml:"metric_name_filter"`
-	MeasurementPrefix string   `toml:"measurement_prefix"`
-	MeasurementName   string   `toml:"measurement_name"`
+	MetricNameFilter      []string `toml:"metric_name_filter"`
+	MeasurementNameFilter []string `toml:"measurement_name_filter"`
+	MeasurementPrefix     string   `toml:"measurement_prefix"`
+	MeasurementName       string   `toml:"measurement_name"`
 }
 
 // Parse parses given byte as protocol buffer. it performs necessary
@@ -39,22 +40,25 @@ func (p *Parser) Parse(buf []byte) ([]inputs.Measurement, error) {
 			tags[l.Name] = l.Value
 		}
 
-		metricName := tags[model.MetricNameLabel]
-		if metricName == "" {
+		metric := tags[model.MetricNameLabel]
+		if metric == "" {
 			return nil, fmt.Errorf("metric name %q not found in tag-set or empty", model.MetricNameLabel)
 		}
 		delete(tags, model.MetricNameLabel)
 
-		if !p.isValid(metricName) {
+		if !p.shouldFilterThroughMetricName(metric) {
+			continue
+		}
+		if !p.shouldFilterThroughMeasurementName(metric) {
 			continue
 		}
 
-		firstName, subName := p.getNames(metricName)
+		measurementName, metricName := p.getNames(metric)
 
 		for _, s := range ts.Samples {
 			fields := make(map[string]interface{})
 			if !math.IsNaN(s.Value) {
-				fields[subName] = s.Value
+				fields[metricName] = s.Value
 			}
 			if len(fields) > 0 {
 				t := now
@@ -62,7 +66,7 @@ func (p *Parser) Parse(buf []byte) ([]inputs.Measurement, error) {
 					t = time.Unix(0, s.Timestamp*1000000)
 				}
 				m := &Measurement{
-					name:   firstName,
+					name:   measurementName,
 					tags:   tags,
 					fields: fields,
 					ts:     t,
