@@ -176,7 +176,7 @@
     # 用法和上文的 `根据 image 过滤容器` 完全相同，`image:` 后面填写正则表达式
     "only_images"  : ["image:<your_image_regexp>"],
 
-    "multiline_match" : "^\d{4}-\d{2}",
+    "multiline_match" : "^\\d{4}-\\d{2}",
 
     # 可以给该容器/Pod 日志打上额外的标签
     "tags" : {
@@ -231,7 +231,7 @@ Value 字段说明：
                   "source": "testing-source",
                   "service": "testing-service",
                   "pipeline": "test.p",
-                  "multiline_match": "^\d{4}-\d{2}",
+                  "multiline_match": "^\\d{4}-\\d{2}",
                   "only_images": ["image:.*nginx.*", "image:.*my_app.*"],
                   "tags" : {
                     "some_tag" : "some_value"
