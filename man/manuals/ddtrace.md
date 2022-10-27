@@ -16,7 +16,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
     ---
 
     [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-py){:target="_blank"} ·
-		[:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers){:target="_blank"} ·
+    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-python.md)
 
 -   :material-language-java: __Java__
@@ -24,7 +24,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
     ---
 
     [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-java){:target="_blank"} ·
-		[:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
+    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-java.md)
 
 -   :material-language-ruby: __Ruby__
@@ -102,11 +102,20 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
 ???+ attention
 
-    不要修改这里的 `endpoints` 列表。
+    - 不要修改这里的 `endpoints` 列表。
 
     ```toml
     endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
     ```
+
+    - 如果要关闭采样（即采集所有数据），采样率字段需做如下设置：
+    
+    ``` toml
+    # [inputs.ddtrace.sampler]
+    # sampling_rate = 1.0
+    ```
+
+    不要只注释 `sampling_rate = 1.0` 这一行，必须连同 `[inputs.ddtrace.sampler]` 也一并注释掉，否则采集器会认为 `sampling_rate` 被置为 0.0，从而导致所有数据都被丢弃。
 
 ### HTTP 设置 {#http}
 
