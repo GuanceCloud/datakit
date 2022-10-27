@@ -28,6 +28,15 @@ Prom 采集器可以获取各种 Prometheus Exporters 暴露出来的指标数�
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
+???+ attention "interval 的配置"
+
+    Prometheus 的指标采集会对目标服务造成一定的开销（HTTP 请求），为防止意外的配置，采集间隔目前默认为 30s，且配置项没有在 conf 中明显放出来。如果一定要配置采集间隔，可在 conf 中增加该配置：
+
+    ``` toml hl_lines="2"
+    [[inputs.prom]]
+        interval = "10s"
+    ```
+
 ### 配置额外的 header {#extra-header}
 
 Prom 采集器支持在数据拉取的 HTTP 请求中配置额外的请求头，如下：
