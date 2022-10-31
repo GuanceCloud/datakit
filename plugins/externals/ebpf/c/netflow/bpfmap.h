@@ -94,4 +94,18 @@ struct bpf_map_def SEC("maps/bpfmap_tmp_sendfile") bpfmap_tmp_sendfile = {
     .max_entries = 65536,
 };
 
+// struct conn_src_info
+// {
+//     __be32 saddr[4]; // src ip address； Use the last element to store the IPv4 address
+//     __u32 meta;
+//     __u16 sport;     // src port
+// };
+
+// struct bpf_map_def SEC("maps/bpfmap_conn_pid") bpfmap_conn_pid = {
+//     .type = BPF_MAP_TYPE_HASH,
+//     .key_size = sizeof(struct conn_src_info),
+//     .value_size = sizeof(__u64),
+//     .max_entries = 65536,
+// };
+
 #endif // !__BPFMAP_H

@@ -92,7 +92,7 @@ int kprobe__do_sendfile(struct pt_regs *ctx)
     }
     struct sock *sk = *skpp;
     bpf_map_update_elem(&bpfmap_tmp_sendfile, &pid_tgid, &sk, BPF_ANY);
-    return 0; 
+    return 0;
 }
 
 SEC("kretprobe/do_sendfile")
@@ -108,6 +108,7 @@ int kretprobe__do_sendfile(struct pt_regs *ctx)
     struct connection_info conninf = {};
     if (read_connection_info(*skpp, &conninf, pid_tgid, CONN_L4_TCP) == 0)
     {
+        // update_conn_pid(&conninf, pid_tgid, CONN_PID_APPEND);
         size_t sent = (size_t)PT_REGS_RC(ctx);
         update_conn_stats(&conninf, sent, 0, ktime_ns, CONN_DIRECTION_AUTO, 0, 0, -1);
     }
@@ -133,6 +134,7 @@ int kprobe__tcp_set_state(struct pt_regs *ctx)
         {
             return 0;
         }
+        // update_conn_pid(&conninf, pid_tgid, CONN_PID_APPEND);
         struct connection_tcp_stats tcpstats = {};
         __builtin_memset(&tcpstats, 0, sizeof(struct connection_tcp_stats));
         tcpstats.state_transitions = (1 << state);
@@ -162,6 +164,8 @@ int kretprobe__inet_csk_accept(struct pt_regs *ctx)
     {
         return 0;
     }
+
+    // update_conn_pid(&conninf, pid_tgid, CONN_PID_APPEND);
 
     struct connection_tcp_stats tcpstat = {};
     __builtin_memset(&tcpstat, 0, sizeof(struct connection_tcp_stats));
@@ -229,6 +233,7 @@ int kprobe__tcp_close(struct pt_regs *ctx)
     {
         return 0;
     }
+    // update_conn_pid(&conn, pid_tgid, CONN_PID_DELETE);
     struct connection_closed_info event = {};
     remove_from_conn_map(conn, &event);
     __u64 cpu = bpf_get_smp_processor_id();
@@ -278,6 +283,7 @@ int kprobe__tcp_sendmsg(struct pt_regs *ctx)
         {
             return 0;
         }
+        // update_conn_pid(&conn_info, pid_tgid, CONN_PID_APPEND);
 
         // packets in & out
         __u32 packets_in = 0;
@@ -307,6 +313,7 @@ int kprobe__tcp_sendmsg(struct pt_regs *ctx)
         {
             return 0;
         }
+        // update_conn_pid(&conn_info, pid_tgid, CONN_PID_APPEND);
 
         // packets in & out
         __u32 packets_in = 0;
@@ -346,6 +353,8 @@ int kprobe__tcp_cleanup_buf(struct pt_regs *ctx)
     {
         return 0;
     }
+
+    // update_conn_pid(&conn_info, pid_tgid, CONN_PID_APPEND);
 
     __u32 packets_in = 0;
     __u32 packets_out = 0;
@@ -399,6 +408,7 @@ int kprobe__ip_make_skb(struct pt_regs *ctx)
         swap_u16(&conninf.dport);
     }
     update_conn_stats(&conninf, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0, 2);
+    // update_conn_pid(&conninf, pid_tgid, CONN_PID_APPEND);
     return 0;
 }
 
@@ -434,8 +444,9 @@ int kprobe__ip6_make_skb(struct pt_regs *ctx)
             bpf_probe_read(&conn.sport, sizeof(__u32), (__u8 *)fl6 + offset_flowi6_sport);
             swap_u16(&conn.sport);
             swap_u16(&conn.dport);
-            update_conn_stats(&conn, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0, 2);
         }
+        update_conn_stats(&conn, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0, 2);
+        // update_conn_pid(&conn, pid_tgid, CONN_PID_APPEND);
     }
     else
     {
@@ -464,8 +475,9 @@ int kprobe__ip6_make_skb(struct pt_regs *ctx)
             bpf_probe_read(&conn.sport, sizeof(__u32), (__u8 *)fl6 + offset_flowi6_sport);
             swap_u16(&conn.sport);
             swap_u16(&conn.dport);
-            update_conn_stats(&conn, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0, 2);
         }
+        update_conn_stats(&conn, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0, 2);
+        // update_conn_pid(&conn, pid_tgid, CONN_PID_APPEND);
     }
 
     return 0;
@@ -552,6 +564,8 @@ int kretprobe__udp_recvmsg(struct pt_regs *ctx)
     {
         return 0;
     }
+
+    // update_conn_pid(&conn, pid_tgid, CONN_PID_APPEND);
 
     struct sockaddr *ska = NULL;
     if (rcvd->msg != NULL)

@@ -46,6 +46,12 @@ const configSample = `
   ##
   ipv6_disabled = false
 
+  ## ephemeral port strart from <ephemeral_port>
+  ##
+  # ephemeral_port = 10001
+
+  # interval = "60s"
+
   [inputs.ebpf.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"

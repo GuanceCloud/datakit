@@ -63,6 +63,63 @@ static __always_inline void read_ipv6_from_skb(struct __sk_buff *skb, struct con
     conn_info->meta = (conn_info->meta & ~CONN_L3_MASK) | CONN_L3_IPv6;
 }
 
+// static __always_inline void get_tcp_conn_pid(struct connection_info *conninf, __u8 req_resp, __u64 *c_s_pid)
+// {
+//     struct conn_src_info srcinfo = {0};
+
+//     srcinfo.meta = conninf->meta;
+
+//     // dst addr first
+//     __builtin_memcpy(&srcinfo.saddr, conninf->saddr, sizeof(__u32) * 4);
+//     srcinfo.sport = conninf->sport;
+
+//     __u64 *pid = (__u64 *)bpf_map_lookup_elem(&bpfmap_conn_pid, &srcinfo);
+
+//     if (pid != NULL)
+//     {
+//         if (req_resp == HTTP_REQ_REQ)
+//         {
+//             if ((*c_s_pid >> 32) == 0)
+//             {
+//                 // client ip => client pid
+//                 *c_s_pid |= (*pid >> 32) << 32;
+//             }
+//         }
+//         else
+//         {
+//             if ((*c_s_pid & 0xFFFFFFFF) == 0)
+//             {
+//                 *c_s_pid |= *pid >> 32;
+//             }
+//         }
+//     }
+
+//     // dst addr first
+//     __builtin_memcpy(&srcinfo.saddr, conninf->daddr, sizeof(__u32) * 4);
+//     srcinfo.sport = conninf->dport;
+
+//     pid = (__u64 *)bpf_map_lookup_elem(&bpfmap_conn_pid, &srcinfo);
+
+//     if (pid != NULL)
+//     {
+//         if (req_resp == HTTP_REQ_REQ)
+//         {
+//             if ((*c_s_pid & 0xFFFFFFFF) == 0)
+//             {
+//                 // server ip => server pid
+//                 *c_s_pid |= *pid >> 32;
+//             }
+//         }
+//         else
+//         {
+//             if ((*c_s_pid >> 32) == 0)
+//             {
+//                 *c_s_pid |= (*pid >> 32) << 32;
+//             }
+//         }
+//     }
+// }
+
 static __always_inline void read_payload_skb(struct conn_skb_l4_info *l4, __u32 *payload, struct __sk_buff *skb)
 {
     __u32 offset = l4->hdr_len + 0;
@@ -87,7 +144,6 @@ static __always_inline void read_payload_skb(struct conn_skb_l4_info *l4, __u32 
         payload++;
     }
 }
-
 
 // TODO:
 // Looks like the BPF stack limit of 512 bytes is exceeded.
@@ -396,7 +452,8 @@ static __always_inline int record_http_resp(struct connection_info *conn,
 
     http_finished.http_stats.resp_code = l7http->status_code;
     http_finished.http_stats.http_version = l7http->http_version;
-    http_finished.http_stats.resp_ts = bpf_ktime_get_ns();
+    http_finished.http_stats.req_ts = bpf_ktime_get_ns() - http_finished.http_stats.req_ts;
+    // http_finished.http_stats.c_s_pid = stats->c_s_pid;
 
     map_cache_finished_http_req(&http_finished);
     return 0;
