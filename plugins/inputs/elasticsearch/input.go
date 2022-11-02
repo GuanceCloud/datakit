@@ -440,7 +440,7 @@ func (i *Input) Collect() error {
 
 				// Always gather node stats
 				if clusterName, err = i.gatherNodeStats(url); err != nil {
-					return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+					l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 				}
 
 				if i.ClusterHealth {
@@ -449,13 +449,13 @@ func (i *Input) Collect() error {
 						url = url + "?level=" + i.ClusterHealthLevel
 					}
 					if err := i.gatherClusterHealth(url, s); err != nil {
-						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+						l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
 
 				if i.ClusterStats && (i.serverInfo[s].isMaster() || !i.ClusterStatsOnlyFromMaster || !i.Local) {
 					if err := i.gatherClusterStats(s + "/_cluster/stats"); err != nil {
-						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+						l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
 
@@ -467,15 +467,15 @@ func (i *Input) Collect() error {
 						if err := i.gatherIndicesStats(s+
 							"/"+
 							strings.Join(i.IndicesInclude, ",")+
-							"/_stats", clusterName); err != nil {
-							return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+							"/_stats?ignore_unavailable=true", clusterName); err != nil {
+							l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					} else {
 						if err := i.gatherIndicesStats(s+
 							"/"+
 							strings.Join(i.IndicesInclude, ",")+
-							"/_stats?level=shards", clusterName); err != nil {
-							return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+							"/_stats?level=shards&ignore_unavailable=true", clusterName); err != nil {
+							l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					}
 				}
