@@ -15,6 +15,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 //------------------------------------------------------------------------------
@@ -29,11 +30,15 @@ func WriteTarFromMap(data map[string]string, dest string) error {
 	defer gw.Close() //nolint:errcheck
 	tw := tar.NewWriter(gw)
 	defer tw.Close() //nolint:errcheck
+	tNow := time.Now()
 	for name, content := range data {
 		hdr := &tar.Header{
-			Name: name,
-			Mode: 0o600,
-			Size: int64(len(content)),
+			Name:       name,
+			Mode:       0o600,
+			Size:       int64(len(content)),
+			ModTime:    tNow,
+			AccessTime: tNow,
+			ChangeTime: tNow,
 		}
 		if err := tw.WriteHeader(hdr); err != nil {
 			return err
