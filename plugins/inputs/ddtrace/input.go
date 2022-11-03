@@ -181,10 +181,8 @@ func (ipt *Input) RegHTTPHandler() {
 
 	var afterGather *itrace.AfterGather
 	if localCache != nil && localCache.Enabled() {
-		log.Debug("### 1")
 		afterGather = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithRetry(100*time.Millisecond), itrace.WithBlockIOModel(true))
 	} else {
-		log.Debug("### 2")
 		afterGather = itrace.NewAfterGather(itrace.WithLogger(log))
 	}
 	afterGatherRun = afterGather
