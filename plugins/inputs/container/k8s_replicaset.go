@@ -121,7 +121,6 @@ func (r *replicaset) object(election bool) (inputsMeas, error) {
 			tags: map[string]string{
 				"name":             fmt.Sprintf("%v", item.UID),
 				"replica_set_name": item.Name,
-				"cluster_name":     defaultClusterName(item.ClusterName),
 				"namespace":        defaultNamespace(item.Namespace),
 			},
 			fields: map[string]interface{}{
@@ -229,7 +228,6 @@ func (*replicasetObject) Info() *inputs.MeasurementInfo {
 			"name":             inputs.NewTagInfo("UID"),
 			"replica_set_name": inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
-			"cluster_name":     inputs.NewTagInfo("The name of the cluster which the object belongs to."),
 			"deployment":       inputs.NewTagInfo("The name of the deployment which the object belongs to."),
 		},
 		Fields: map[string]interface{}{

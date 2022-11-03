@@ -45,12 +45,12 @@ type Input struct {
 
 	URL               string       `toml:"url,omitempty"` // Deprecated
 	URLs              []string     `toml:"urls"`
-	IgnoreReqErr      bool         `toml:"ignore_req_err"`
-	MetricTypes       []string     `toml:"metric_types"`
-	MetricNameFilter  []string     `toml:"metric_name_filter"`
-	MeasurementPrefix string       `toml:"measurement_prefix"`
-	MeasurementName   string       `toml:"measurement_name"`
-	Measurements      []iprom.Rule `json:"measurements"`
+	IgnoreReqErr      bool         `toml:"ignore_req_err" json:"ignore_req_err"`
+	MetricTypes       []string     `toml:"metric_types" json:"metric_types"`
+	MetricNameFilter  []string     `toml:"metric_name_filter" json:"metricName_filter"`
+	MeasurementPrefix string       `toml:"measurement_prefix" json:"measurement_prefix"`
+	MeasurementName   string       `toml:"measurement_name" json:"measurement_name"`
+	Measurements      []iprom.Rule `toml:"measurements" json:"measurements"`
 	Output            string       `toml:"output"`
 	MaxFileSize       int64        `toml:"max_file_size"`
 
@@ -59,15 +59,15 @@ type Input struct {
 	CertFile   string `toml:"tls_cert"`
 	KeyFile    string `toml:"tls_key"`
 
-	TagsIgnore  []string            `toml:"tags_ignore"`
-	TagsRename  *iprom.RenameTags   `toml:"tags_rename"`
-	AsLogging   *iprom.AsLogging    `toml:"as_logging"`
-	IgnoreTagKV map[string][]string `toml:"ignore_tag_kv_match"`
-	HTTPHeaders map[string]string   `toml:"http_headers"`
+	TagsIgnore  []string            `toml:"tags_ignore" json:"tags_ignore"`
+	TagsRename  *iprom.RenameTags   `toml:"tags_rename" json:"tags_rename"`
+	AsLogging   *iprom.AsLogging    `toml:"as_logging" json:"as_logging"`
+	IgnoreTagKV map[string][]string `toml:"ignore_tag_kv_match" json:"ignore_tag_kv_match"`
+	HTTPHeaders map[string]string   `toml:"http_headers" json:"http_headers"`
 
-	Tags map[string]string `toml:"tags"`
+	Tags map[string]string `toml:"tags" json:"tags"`
 
-	Auth map[string]string `toml:"auth"`
+	Auth map[string]string `toml:"auth" json:"auth"`
 
 	pm *iprom.Prom
 

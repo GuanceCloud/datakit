@@ -174,17 +174,16 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 	for _, item := range p.items {
 		obj := &podObject{
 			tags: map[string]string{
-				"name":         fmt.Sprintf("%v", item.UID),
-				"pod_name":     item.Name,
-				"pod_ip":       item.Status.PodIP,
-				"node_name":    item.Spec.NodeName,
-				"host":         item.Spec.NodeName, // 指向 pod 所在的 node，便于关联
-				"phase":        fmt.Sprintf("%v", item.Status.Phase),
-				"qos_class":    fmt.Sprintf("%v", item.Status.QOSClass),
-				"state":        fmt.Sprintf("%v", item.Status.Phase), // Depercated
-				"status":       fmt.Sprintf("%v", item.Status.Phase),
-				"cluster_name": defaultClusterName(item.ClusterName),
-				"namespace":    defaultNamespace(item.Namespace),
+				"name":      fmt.Sprintf("%v", item.UID),
+				"pod_name":  item.Name,
+				"pod_ip":    item.Status.PodIP,
+				"node_name": item.Spec.NodeName,
+				"host":      item.Spec.NodeName, // 指向 pod 所在的 node，便于关联
+				"phase":     fmt.Sprintf("%v", item.Status.Phase),
+				"qos_class": fmt.Sprintf("%v", item.Status.QOSClass),
+				"state":     fmt.Sprintf("%v", item.Status.Phase), // Depercated
+				"status":    fmt.Sprintf("%v", item.Status.Phase),
+				"namespace": defaultNamespace(item.Namespace),
 			},
 			fields: map[string]interface{}{
 				"age":         int64(time.Since(item.CreationTimestamp.Time).Seconds()),
@@ -275,6 +274,17 @@ func queryPodMetaData(k8sClient k8sClientX, podname, podnamespace string) (*podM
 	return &podMeta{pod}, nil
 }
 
+func (item *podMeta) containerPort(name string) int {
+	for _, container := range item.Spec.Containers {
+		for _, port := range container.Ports {
+			if port.Name == name {
+				return int(port.ContainerPort)
+			}
+		}
+	}
+	return -1
+}
+
 func (item *podMeta) labels() map[string]string { return item.Labels }
 
 func (item *podMeta) annotations() map[string]string { return item.Annotations }
@@ -345,17 +355,16 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 		Desc: "Kubernetes pod 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo("UID"),
-			"pod_name":     inputs.NewTagInfo("Name must be unique within a namespace."),
-			"node_name":    inputs.NewTagInfo("NodeName is a request to schedule this pod onto a specific node."),
-			"cluster_name": inputs.NewTagInfo("The name of the cluster which the object belongs to."),
-			"namespace":    inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
-			"phase":        inputs.NewTagInfo("The phase of a Pod is a simple, high-level summary of where the Pod is in its lifecycle.(Pending/Running/Succeeded/Failed/Unknown)"),
-			"state":        inputs.NewTagInfo("Reason the container is not yet running. (Depercated, use status)"),
-			"status":       inputs.NewTagInfo("Reason the container is not yet running."),
-			"qos_class":    inputs.NewTagInfo("The Quality of Service (QOS) classification assigned to the pod based on resource requirements"),
-			"deployment":   inputs.NewTagInfo("The name of the deployment which the object belongs to. (Probably empty)"),
-			"replica_set":  inputs.NewTagInfo("The name of the replicaSet which the object belongs to. (Probably empty)"),
+			"name":        inputs.NewTagInfo("UID"),
+			"pod_name":    inputs.NewTagInfo("Name must be unique within a namespace."),
+			"node_name":   inputs.NewTagInfo("NodeName is a request to schedule this pod onto a specific node."),
+			"namespace":   inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"phase":       inputs.NewTagInfo("The phase of a Pod is a simple, high-level summary of where the Pod is in its lifecycle.(Pending/Running/Succeeded/Failed/Unknown)"),
+			"state":       inputs.NewTagInfo("Reason the container is not yet running. (Depercated, use status)"),
+			"status":      inputs.NewTagInfo("Reason the container is not yet running."),
+			"qos_class":   inputs.NewTagInfo("The Quality of Service (QOS) classification assigned to the pod based on resource requirements"),
+			"deployment":  inputs.NewTagInfo("The name of the deployment which the object belongs to. (Probably empty)"),
+			"replica_set": inputs.NewTagInfo("The name of the replicaSet which the object belongs to. (Probably empty)"),
 		},
 		Fields: map[string]interface{}{
 			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},

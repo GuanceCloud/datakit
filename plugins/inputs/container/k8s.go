@@ -185,13 +185,6 @@ func defaultNamespace(ns string) string {
 	return ns
 }
 
-func defaultClusterName(name string) string {
-	if name != "" {
-		return name
-	}
-	return "kubernetes"
-}
-
 type (
 	newK8sResourceMetricHandle func(k8sClientX, map[string]string, string) k8sResourceMetricInterface
 	newK8sResourceObjectHandle func(k8sClientX, map[string]string, string) k8sResourceObjectInterface
