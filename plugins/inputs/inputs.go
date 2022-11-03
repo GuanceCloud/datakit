@@ -276,10 +276,8 @@ func RunInputs() error {
 	envs := getEnvs()
 
 	for name, arr := range InputsInfo {
-
 		if len(arr) > 1 {
 			if _, ok := arr[0].input.(Singleton); ok {
-				//单例采集器只保留一个实例
 				arr = arr[:1]
 			}
 		}

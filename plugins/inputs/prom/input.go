@@ -107,7 +107,6 @@ func (i *Input) ElectionEnabled() bool {
 }
 
 func (i *Input) Run() {
-
 	if i.setup() {
 		return
 	}
