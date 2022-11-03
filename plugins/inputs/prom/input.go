@@ -80,6 +80,7 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 
 	isInitialized bool
+	l             *logger.Logger
 }
 
 func (*Input) SampleConfig() string { return sampleCfg }
@@ -106,7 +107,6 @@ func (i *Input) ElectionEnabled() bool {
 }
 
 func (i *Input) Run() {
-	l = logger.SLogger(inputName)
 
 	if i.setup() {
 		return
@@ -115,24 +115,24 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.pm.Option().GetIntervalDuration())
 	defer tick.Stop()
 
-	l.Info("prom start")
+	i.l.Info("prom start")
 
 	for {
 		if i.pause {
-			l.Debug("prom paused")
+			i.l.Debug("prom paused")
 		} else {
 			if err := i.RunningCollect(); err != nil {
-				l.Warn(err)
+				i.l.Warn(err)
 			}
 		}
 
 		select {
 		case <-datakit.Exit.Wait():
-			l.Info("prom exit")
+			i.l.Info("prom exit")
 			return
 
 		case <-i.semStop.Wait():
-			l.Info("prom return")
+			i.l.Info("prom return")
 			return
 
 		case <-tick.C:
@@ -148,7 +148,7 @@ const defaultIntervalDuration = time.Second * 30
 func (i *Input) GetIntervalDuration() time.Duration {
 	if !i.isInitialized {
 		if err := i.Init(); err != nil {
-			l.Infof("prom init error: %s", err)
+			i.l.Infof("prom init error: %s", err)
 			return defaultIntervalDuration
 		}
 	}
@@ -173,14 +173,14 @@ func (i *Input) RunningCollect() error {
 			// each point might have different measurement name.
 			if err := io.Feed(pt.Name(), datakit.Logging, []*point.Point{pt},
 				&io.Option{CollectCost: time.Since(start)}); err != nil {
-				l.Errorf("Feed: %s", err)
+				i.l.Errorf("Feed: %s", err)
 				io.FeedLastError(ioname, err.Error())
 			}
 		}
 	} else {
 		if err := io.Feed(ioname, datakit.Metric, pts,
 			&io.Option{CollectCost: time.Since(start)}); err != nil {
-			l.Errorf("Feed: %s", err)
+			i.l.Errorf("Feed: %s", err)
 			io.FeedLastError(ioname, err.Error())
 		}
 	}
@@ -188,27 +188,27 @@ func (i *Input) RunningCollect() error {
 }
 
 func (i *Input) doCollect() []*point.Point {
-	l.Debugf("collect URLs %v", i.URLs)
+	i.l.Debugf("collect URLs %v", i.URLs)
 
 	// If Output is configured, data is written to local file specified by Output.
 	// Data will no more be written to datakit io.
 	if i.Output != "" {
 		err := i.WriteMetricText2File()
 		if err != nil {
-			l.Errorf("WriteMetricText2File: %s", err.Error())
+			i.l.Errorf("WriteMetricText2File: %s", err.Error())
 		}
 		return nil
 	}
 
 	pts, err := i.Collect()
 	if err != nil {
-		l.Errorf("Collect: %s", err)
+		i.l.Errorf("Collect: %s", err)
 		io.FeedLastError(i.Source, err.Error())
 
 		// Try testing the connect
 		for _, u := range i.urls {
 			if err := net.RawConnect(u.Hostname(), u.Port(), time.Second*3); err != nil {
-				l.Errorf("failed to connect to %s:%s, %s", u.Hostname(), u.Port(), err)
+				i.l.Errorf("failed to connect to %s:%s, %s", u.Hostname(), u.Port(), err)
 			}
 		}
 
@@ -216,7 +216,7 @@ func (i *Input) doCollect() []*point.Point {
 	}
 
 	if len(pts) == 0 {
-		l.Warnf("no data")
+		i.l.Warnf("no data")
 		return nil
 	}
 
@@ -250,7 +250,7 @@ func (i *Input) setup() bool {
 }
 
 func (i *Input) Init() error {
-	l = logger.SLogger(inputName + "/" + i.Source)
+	i.l = logger.SLogger(inputName + "/" + i.Source)
 
 	if i.URL != "" {
 		i.URLs = append(i.URLs, i.URL)
@@ -267,7 +267,7 @@ func (i *Input) Init() error {
 	for k, arr := range i.IgnoreTagKV {
 		for _, x := range arr {
 			if re, err := regexp.Compile(x); err != nil {
-				l.Warnf("regexp.Compile('%s'): %s, ignored", x, err)
+				i.l.Warnf("regexp.Compile('%s'): %s, ignored", x, err)
 			} else {
 				kvIgnore[k] = append(kvIgnore[k], re)
 			}
@@ -313,7 +313,7 @@ func (i *Input) Init() error {
 
 	pm, err := iprom.NewProm(opt)
 	if err != nil {
-		l.Warnf("prom.NewProm: %s, ignored", err)
+		i.l.Warnf("prom.NewProm: %s, ignored", err)
 		return err
 	}
 	i.pm = pm
