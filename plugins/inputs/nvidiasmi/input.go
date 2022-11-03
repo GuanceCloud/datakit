@@ -34,15 +34,22 @@ const (
 )
 
 const (
-	inputName  = "nvidia_smi"
-	metricName = inputName
+	// old is "nvidia_smi" , now is "gpu_smi".
+	inputName  = "gpu_smi"
+	metricName = "gpu_smi"
 	// conf File samples, reflected in the document.
 	sampleCfg = `
-[[inputs.nvidia_smi]]
-  ##the binPath of nvidia-smi 
-  ##(example) ["/usr/bin/nvidia-smi", "/usr02/bin/nvidia-smi"]
-  bin_paths = ["/usr/bin/nvidia-smi"]
-  ##(optional) exec nvidia-smi timeout, default is 5 seconds
+[[inputs.gpu_smi]]
+  ##the binPath of gpu-smi 
+  ##if nvidia GPU
+  #(example & default) ["/usr/bin/nvidia-smi"]
+  ##if lluvatar GPU
+  #(example) bin_paths = ["/usr/local/corex/bin/ixsmi"]
+  #(example) envs = [ "LD_LIBRARY_PATH=/usr/local/corex/lib/:$LD_LIBRARY_PATH" ]
+
+  ##(optional) exec gpu-smi envs, default is []
+  #envs = [ "LD_LIBRARY_PATH=/usr/local/corex/lib/:$LD_LIBRARY_PATH" ]
+  ##(optional) exec gpu-smi timeout, default is 5 seconds
   timeout = "5s"
   ##(optional) collect interval, default is 10 seconds
   interval = "10s"
@@ -51,7 +58,7 @@ const (
   ##(optional) gpu drop card warning delay, default is 300 seconds
   gpu_drop_warning_delay = "300s"
 
-[inputs.nvidia_smi.tags]
+[inputs.gpu_smi.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"`
 )
@@ -68,6 +75,7 @@ type Input struct {
 	Timeout             datakit.Duration `toml:"timeout"`                // "nvidia-smi" 超时失败阈值
 	ProcessInfoMaxLen   int              `toml:"process_info_max_len"`   // Feed how much log data for ProcessInfos. (0: 0 ,-1: all)
 	GPUDropWarningDelay datakit.Duration `toml:"gpu_drop_warning_delay"` // 来自于 nvidia_msi.conf 掉卡后，告警延迟时长。（默认300s）
+	Envs                []string         `toml:"envs"`                   // exec.Command 环境变量
 	GPUs                []GPUInfo        // 活跃卡的列表，掉卡告警后就会删除那张卡
 	semStop             *cliutils.Sem    // start stop signal
 }
@@ -79,7 +87,7 @@ type GPUInfo struct {
 
 // nvidiaSmi Measurement structure.
 type nvidiaSmiMeasurement struct {
-	name   string                 // Indicator set name ，here is "nvidia_smi"
+	name   string                 // Indicator set name ，here is "gpu_smi"
 	tags   map[string]string      // Indicator name
 	fields map[string]interface{} // Indicator measurement results
 }
@@ -146,13 +154,13 @@ func (ipt *Input) GPUOnlineInfo(uuid string) {
 	fieldsLog["status"] = "info"
 
 	pt, err := point.NewPoint(
-		inputName,
+		metricName,
 		tagsLog,
 		fieldsLog,
 		point.LOpt(),
 	)
 	if err != nil {
-		l.Errorf("warning nvidia_smi gpu online log: %s .", err)
+		l.Errorf("warning gpu_smi gpu online log: %s .", err)
 	} else {
 		ipt.pts = append(ipt.pts, pt)
 	}
@@ -177,13 +185,13 @@ func (ipt *Input) GPUDropWarning() {
 			fieldsLog["status"] = "warning"
 
 			pt, err := point.NewPoint(
-				inputName,
+				metricName,
 				tagsLog,
 				fieldsLog,
 				point.LOpt(),
 			)
 			if err != nil {
-				l.Errorf("warning nvidia_smi gpu drop log: %s .", err)
+				l.Errorf("warning gpu_smi gpu drop log: %s .", err)
 			} else {
 				ipt.pts = append(ipt.pts, pt)
 			}
@@ -229,20 +237,20 @@ func (ipt *Input) Collect() error {
 		// Append to the cache, the Run() function will handle it
 		for _, metric := range metrics {
 			ipt.collectCache = append(ipt.collectCache, &nvidiaSmiMeasurement{
-				name:   inputName,
+				name:   metricName,
 				tags:   metric.tags,
 				fields: metric.fields,
 			})
 		}
 		for i := 0; i < len(metricsLog); i++ {
 			pt, err := point.NewPoint(
-				inputName,
+				metricName,
 				metricsLog[i].tags,
 				metricsLog[i].fields,
 				point.LOpt(),
 			)
 			if err != nil {
-				l.Errorf("collect nvidia_smi prosess log: %s .", err)
+				l.Errorf("collect gpu_smi prosess log: %s .", err)
 			} else {
 				ipt.pts = append(ipt.pts, pt)
 			}
@@ -255,6 +263,9 @@ func (ipt *Input) Collect() error {
 // @binPath One of run bin files.
 func (ipt *Input) getBytes(binPath string) ([]byte, error) {
 	c := exec.Command(binPath, "-q", "-x")
+	// 增加 exec.Command 环境变量
+	c.Env = ipt.Envs
+
 	var b bytes.Buffer
 	c.Stdout = &b
 	c.Stderr = &b
@@ -270,7 +281,7 @@ func (ipt *Input) getBytes(binPath string) ([]byte, error) {
 // The for{} loops every tick.
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
-	l.Infof("nvidiaSmi input started")
+	l.Infof("gpuSmi input started")
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
@@ -294,7 +305,7 @@ func (ipt *Input) Run() {
 		if len(ipt.pts) > 0 {
 			err := io.Feed(inputName, datakit.Logging, ipt.pts, nil)
 			if err != nil {
-				l.Errorf("Feed nvidia_smi prosess log: %s", err)
+				l.Errorf("Feed gpu_smi prosess log: %s", err)
 			}
 		}
 
@@ -321,7 +332,7 @@ func (ipt *Input) Terminate() {
 
 // Catalog Catalog.
 func (*Input) Catalog() string {
-	return "host"
+	return "gpu_smi"
 }
 
 // SampleConfig : conf File samples, reflected in the document.
@@ -346,10 +357,17 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 // ReadEnv support envs：only for K8S
-//   ENV_INPUT_NVIDIASMI_TAGS : "a=b,c=d"
-//   ENV_INPUT_NVIDIASMI_INTERVAL : datakit.Duration
+//   ENV_INPUT_GPUSMI_TAGS : "a=b,c=d"
+//   ENV_INPUT_GPUSMI_INTERVAL : datakit.Duration
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if tagsStr, ok := envs["ENV_INPUT_NVIDIASMI_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			ipt.Tags[k] = v
+		}
+	}
+	// To adapt to the variable name nvidia_smi --> gpu_smi
+	if tagsStr, ok := envs["ENV_INPUT_GPUSMI_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
 			ipt.Tags[k] = v
@@ -358,6 +376,17 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 	//   ENV_INPUT_NVIDIASMI_INTERVAL : datakit.Duration
 	if str, ok := envs["ENV_INPUT_NVIDIASMI_INTERVAL"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_NVIDIASMI_INTERVAL to time.Duration: %s, ignore", err)
+		} else {
+			ipt.Interval.Duration = config.ProtectedInterval(minInterval,
+				maxInterval,
+				da)
+		}
+	}
+	// To adapt to the variable name nvidia_smi --> gpu_smi
+	if str, ok := envs["ENV_INPUT_GPUSMI_INTERVAL"]; ok {
 		da, err := time.ParseDuration(str)
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_NVIDIASMI_INTERVAL to time.Duration: %s, ignore", err)
@@ -380,12 +409,18 @@ func newDefaultInput() *Input {
 		ProcessInfoMaxLen:   10,
 		GPUDropWarningDelay: datakit.Duration{Duration: time.Second * 300},
 		GPUs:                make([]GPUInfo, 0, 1),
+		Envs:                []string{},
 	}
 	return ipt
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
+		return newDefaultInput()
+	})
+
+	// To adapt to the variable name nvidia_smi --> gpu_smi in the .conf file
+	inputs.Add("nvidia_smi", func() inputs.Input {
 		return newDefaultInput()
 	})
 }
