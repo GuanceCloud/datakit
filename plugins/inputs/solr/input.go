@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -264,6 +265,7 @@ func (i *Input) Collect() error {
 	for _, s := range i.Servers {
 		func(s string) {
 			g.Go(func(ctx context.Context) error {
+				host := getHost(s)
 				ts := time.Now()
 				resp := Response{}
 				if err := i.gatherData(i, URLAll(s), &resp); err != nil {
@@ -286,6 +288,9 @@ func (i *Input) Collect() error {
 					}
 					// searcher stats tags and fields
 					tagsSearcher := map[string]string{}
+					if host != "" {
+						tagsSearcher["host"] = host
+					}
 					for kTag, vTag := range commTag {
 						tagsSearcher[kTag] = vTag
 					}
@@ -321,6 +326,18 @@ func (i *Input) Collect() error {
 	}
 	_ = g.Wait()
 	return nil
+}
+
+func getHost(u string) string {
+	if u == "" || strings.Contains(u, "127.0.0.1") || strings.Contains(u, "localhost") {
+		return ""
+	}
+	uu, err := url.Parse(u)
+	if err != nil {
+		l.Errorf("failed to get host from url: %v", err)
+		return ""
+	}
+	return uu.Host
 }
 
 func (i *Input) Pause() error {

@@ -29,6 +29,9 @@ func getQueues(n *Input) {
 			"queue_name": queue.Name,
 			"node_name":  queue.Node,
 		}
+		if n.host != "" {
+			tags["host"] = n.host
+		}
 		for k, v := range n.Tags {
 			tags[k] = v
 		}

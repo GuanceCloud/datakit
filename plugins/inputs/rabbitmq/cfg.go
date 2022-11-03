@@ -93,6 +93,7 @@ type Input struct {
 
 	// HTTP client
 	client *http.Client
+	host   string
 
 	tail    *tailer.Tailer
 	lastErr error

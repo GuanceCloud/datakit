@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -49,6 +50,7 @@ type Input struct {
 	} `toml:"log"`
 
 	tls.ClientConfig
+	host string
 
 	start  time.Time
 	tail   *tailer.Tailer
@@ -158,6 +160,10 @@ func (n *Input) Run() {
 	}
 	n.client = client
 
+	if err := n.setHost(); err != nil {
+		l.Errorf("failed to set host: %v", err)
+	}
+
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
 
@@ -257,6 +263,9 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 	tags := map[string]string{
 		"url": n.URL,
 	}
+	if n.host != "" {
+		tags["host"] = n.host
+	}
 	for k, v := range n.Tags {
 		tags[k] = v
 	}
@@ -290,42 +299,42 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 				metric.fields[fieldKey] = value
 			case "Scoreboard":
 				scoreboard := map[string]int{
-					WaitingForConnection: 0,
-					StartingUp:           0,
-					ReadingRequest:       0,
-					SendingReply:         0,
-					KeepAlive:            0,
-					DNSLookup:            0,
-					ClosingConnection:    0,
-					Logging:              0,
-					GracefullyFinishing:  0,
-					IdleCleanup:          0,
-					OpenSlot:             0,
+					waitingForConnection: 0,
+					startingUp:           0,
+					readingRequest:       0,
+					sendingReply:         0,
+					keepAlive:            0,
+					dnsLookup:            0,
+					closingConnection:    0,
+					logging:              0,
+					gracefullyFinishing:  0,
+					idleCleanup:          0,
+					openSlot:             0,
 				}
 				for _, c := range part {
 					switch c {
 					case '_':
-						scoreboard[WaitingForConnection]++
+						scoreboard[waitingForConnection]++
 					case 'S':
-						scoreboard[StartingUp]++
+						scoreboard[startingUp]++
 					case 'R':
-						scoreboard[ReadingRequest]++
+						scoreboard[readingRequest]++
 					case 'W':
-						scoreboard[SendingReply]++
+						scoreboard[sendingReply]++
 					case 'K':
-						scoreboard[KeepAlive]++
+						scoreboard[keepAlive]++
 					case 'D':
-						scoreboard[DNSLookup]++
+						scoreboard[dnsLookup]++
 					case 'C':
-						scoreboard[ClosingConnection]++
+						scoreboard[closingConnection]++
 					case 'L':
-						scoreboard[Logging]++
+						scoreboard[logging]++
 					case 'G':
-						scoreboard[GracefullyFinishing]++
+						scoreboard[gracefullyFinishing]++
 					case 'I':
-						scoreboard[IdleCleanup]++
+						scoreboard[idleCleanup]++
 					case '.':
-						scoreboard[OpenSlot]++
+						scoreboard[openSlot]++
 					}
 				}
 				for k, v := range scoreboard {
@@ -349,6 +358,18 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 	metric.tags = tags
 
 	return metric, nil
+}
+
+func (n *Input) setHost() error {
+	if strings.Contains(n.URL, "127.0.0.1") || strings.Contains(n.URL, "localhost") {
+		return nil
+	}
+	u, err := url.Parse(n.URL)
+	if err != nil {
+		return err
+	}
+	n.host = u.Host
+	return nil
 }
 
 func (n *Input) Pause() error {

@@ -102,6 +102,9 @@ func (i *Input) GetLatencyData() error {
 		election: i.Election,
 	}
 	m.tags["server_addr"] = i.Addr
+	if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
+		m.tags["host"] = i.Host
+	}
 	var pts []*point.Point
 	for index, info := range fieldName {
 		m.fields[info] = finalPart[index]

@@ -26,6 +26,9 @@ func getNode(n *Input) {
 			"url":       n.URL,
 			"node_name": node.Name,
 		}
+		if n.host != "" {
+			tags["host"] = n.host
+		}
 		for k, v := range n.Tags {
 			tags[k] = v
 		}

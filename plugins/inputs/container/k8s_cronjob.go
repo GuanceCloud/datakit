@@ -25,13 +25,19 @@ type cronjob struct {
 	client    k8sClientX
 	extraTags map[string]string
 	items     []v1beta1.CronJob
+	host      string
 }
 
-func newCronjob(client k8sClientX, extraTags map[string]string) *cronjob {
+func newCronjob(client k8sClientX, extraTags map[string]string, host string) *cronjob {
 	return &cronjob{
 		client:    client,
 		extraTags: extraTags,
+		host:      host,
 	}
+}
+
+func (c *cronjob) getHost() string {
+	return c.host
 }
 
 func (c *cronjob) name() string {
@@ -69,6 +75,9 @@ func (c *cronjob) metric(election bool) (inputsMeas, error) {
 			},
 			election: election,
 		}
+		if c.host != "" {
+			met.tags["host"] = c.host
+		}
 		// t := item.Status.LastScheduleTime
 		// met.fields["duration_since_last_schedule"] = int64(time.Since(t).Seconds())
 
@@ -82,6 +91,9 @@ func (c *cronjob) metric(election bool) (inputsMeas, error) {
 			tags:     map[string]string{"namespace": ns},
 			fields:   map[string]interface{}{"count": ct},
 			election: election,
+		}
+		if c.host != "" {
+			met.tags["host"] = c.host
 		}
 		met.tags.append(c.extraTags)
 		res = append(res, met)
@@ -112,6 +124,9 @@ func (c *cronjob) object(election bool) (inputsMeas, error) {
 				"suspend":     false,
 			},
 			election: election,
+		}
+		if c.host != "" {
+			obj.tags["host"] = c.host
 		}
 
 		if y, err := yaml.Marshal(item); err != nil {
@@ -217,8 +232,12 @@ func (*cronjobObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newCronjob(c, m) })
-	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newCronjob(c, m) })
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
+		return newCronjob(c, m, host)
+	})
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string, host string) k8sResourceObjectInterface {
+		return newCronjob(c, m, host)
+	})
 	registerMeasurement(&cronjobMetric{})
 	registerMeasurement(&cronjobObject{})
 }
