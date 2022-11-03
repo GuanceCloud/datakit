@@ -125,12 +125,14 @@ setenforce 0
 
     通过以下环境变量可以调整 Kubernetes 中 ebpf 采集配置：
     
-    | 环境变量名                                  | 对应的配置参数项              | 参数示例                                                                              |
-    | :---                                        | ---                           | ---                                                                                   |
-    | `ENV_INPUT_EBPF_ENABLED_PLUGINS`            | `enabled_plugins`             | `ebpf-net,ebpf-bash`                                                                          |
-    | `ENV_INPUT_EBPF_L7NET_ENABLED`              | `l7net_enabled`               | `httpflow,httpflow-tls`                                                                       |
-    | `ENV_INPUT_EBPF_IPV6_DISABLED`              | `ipv6_disabled`               | `false/true`                                                |
-    
+    | 环境变量名                                    | 对应的配置参数项                 | 参数示例                    |
+    | :---                                        | ---                           | ---                        |
+    | `ENV_INPUT_EBPF_ENABLED_PLUGINS`            | `enabled_plugins`             | `ebpf-net,ebpf-bash`       |
+    | `ENV_INPUT_EBPF_L7NET_ENABLED`              | `l7net_enabled`               | `httpflow,httpflow-tls`    |
+    | `ENV_INPUT_EBPF_IPV6_DISABLED`              | `ipv6_disabled`               | `false/true`               |
+    | `ENV_INPUT_EBPF_EPHEMERAL_PORT`             | `ephemeral_port`              | `32768`                    |
+    | `ENV_INPUT_EBPF_INTERVAL`                   | `interval`                    | `60s`                      |
+
 
 ## 指标集 {#measurements}
 

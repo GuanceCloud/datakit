@@ -4,9 +4,9 @@
 enum
 {
     HTTP_PAYLOAD_MAXSIZE = ((8 * 19) + 5),
-#define HTTP_PAYLOAD_MAXSIZE HTTP_PAYLOAD_MAXSIZE 
+#define HTTP_PAYLOAD_MAXSIZE HTTP_PAYLOAD_MAXSIZE
     HTTP_PAYLOAD_LOOP_SIZE = HTTP_PAYLOAD_MAXSIZE / 4
-#define HTTP_PAYLOAD_LOOP_SIZE HTTP_PAYLOAD_LOOP_SIZE 
+#define HTTP_PAYLOAD_LOOP_SIZE HTTP_PAYLOAD_LOOP_SIZE
 };
 
 #include <linux/types.h>
@@ -21,7 +21,7 @@ struct http_stats
     __u16 resp_code;
     __u32 http_version;
     __u64 req_ts;
-    __u64 resp_ts;
+    __u64 c_s_pid;
 };
 
 struct http_req_finished_info

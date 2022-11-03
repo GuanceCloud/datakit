@@ -41,6 +41,10 @@ int socket__http_filter(struct __sk_buff *skb)
         return DROPPACKET;
     }
 
+    // get_tcp_conn_pid(&conn_info, l7http.req_status, &stats.c_s_pid);
+
+    // bpf_printk("c pid: %d, s pid: %d", stats.c_s_pid >> 32, stats.c_s_pid & 0xFFFFFFFF);
+
     // TODO 判断本机是客户端还是服务端
     if (l7http.req_status == HTTP_REQ_REQ)
     { // request
@@ -53,7 +57,7 @@ int socket__http_filter(struct __sk_buff *skb)
     {
         swap_conn_src_dst(&conn_info); // src -> client; dst -> server
         record_http_resp(&conn_info, &stats, &l7http);
-        
+
         // bpf_printk("resp size: %d, %d", skb->len, skbl4_info.hdr_len);
         // bpf_printk("resp: %s", stats.payload);
     }
