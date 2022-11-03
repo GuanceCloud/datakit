@@ -460,8 +460,10 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 			}
 		}
 	}
-
-	return pts, lastErr
+	if lastErr != nil {
+		return pts, fmt.Errorf("doText2Metrics encountered make point error: %w", lastErr)
+	}
+	return pts, nil
 }
 
 func getValue(m *dto.Metric, metricType dto.MetricType) float64 {
