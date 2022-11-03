@@ -205,6 +205,12 @@ func AddInput(name string, input Input) {
 	mtx.Lock()
 	defer mtx.Unlock()
 
+	// 单例采集器只添加一次
+	if _, ok := input.(Singleton); ok {
+		if len(InputsInfo[name]) > 0 {
+			return
+		}
+	}
 	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input})
 
 	l.Debugf("add input %s, total %d", name, len(InputsInfo[name]))
@@ -270,6 +276,14 @@ func RunInputs() error {
 	envs := getEnvs()
 
 	for name, arr := range InputsInfo {
+
+		if len(arr) > 1 {
+			if _, ok := arr[0].input.(Singleton); ok {
+				//单例采集器只保留一个实例
+				arr = arr[:1]
+			}
+		}
+
 		for _, ii := range arr {
 			if ii.input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
