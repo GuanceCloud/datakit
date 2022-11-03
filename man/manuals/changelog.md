@@ -1,3 +1,6 @@
+# 更新日志
+---
+
 <!--
 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)
 [:fontawesome-solid-flag-checkered:](index.md#legends "支持选举")
@@ -13,6 +16,33 @@
 ### 功能优化 {#cl-1.4.19-opt}
 ### 兼容调整 {#cl-1.4.19-brk}
 -->
+
+## 1.4.20(2022/11/03) {#cl-1.4.20}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.4.20-new}
+
+- 完善 Prometheus 生态兼容，增加 [ServiceMonitor 和 PodMonitor 采集识别](kubernetes-prometheus-operator-crd.md)(#1130)
+- 增加基于 async-profiler 的 [Java Profiling 接入](profile-java-async-profiler.md)(#1240)
+
+### 问题修复 {#cl-1.4.20-fix}
+
+- 修复 Prom 采集器日志错乱问题(#1226)
+- 修复 DDTrace trace-id 转换溢出问题，该问题可能导致 trace/span 丢失(#1235)
+- 修复 ElasticSearch 采集器采集中断问题(#1236)
+- 修复 Git 模式下采集器仍然会多开的问题(#1241)
+
+### 功能优化 {#cl-1.4.20-opt}
+
+- eBPF 采集增加 [interval 参数](ebpf.md#config)，便于调节采集的数据量(#1106)
+- 所有远程采集器默认以其采集地址作为 `host` 字段的取值，避免远程采集时可能误解 `host` 字段的取值(#1120)
+- DDTrace 采集到的 APM 数据，能自动提取 error 相关的字段，便于中心做更好的 APM 错误追踪(#1161)
+- MySQL 采集器增加额外字段（`Com_commit/Com_rollback`）采集(#1206)
+- 优化 GPU 采集器以适配更多显卡厂商(#1232)
+- 其它完善(#1204/#1231/#1233)
+
+---
 
 ## 1.4.19(2022/10/20) {#cl-1.4.19}
 

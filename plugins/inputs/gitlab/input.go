@@ -10,6 +10,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -246,6 +248,9 @@ func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
 			measurement = inputName + "_http"
 		}
 
+		if host := getHost(ipt.URL); host != "" {
+			m.tags["host"] = host
+		}
 		for k, v := range ipt.Tags {
 			m.tags[k] = v
 		}
@@ -275,6 +280,18 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&gitlabPipelineMeasurement{},
 		&gitlabJobMeasurement{},
 	}
+}
+
+func getHost(rawURL string) string {
+	if strings.Contains(rawURL, "127.0.0.1") || strings.Contains(rawURL, "localhost") {
+		return ""
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		l.Errorf("failed to get host from url: %v", err)
+		return ""
+	}
+	return u.Host
 }
 
 func init() { //nolint:gochecknoinits

@@ -11,7 +11,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 ## 接入方式 {#supported-platforms}
 
 <div class="grid cards" markdown>
-- :material-web: [__JavaScritp__](../real-user-monitoring/web/app-access.md)
+- :material-web: [__JavaScript__](../real-user-monitoring/web/app-access.md)
 - :material-wechat: [__微信小程序__](../real-user-monitoring/miniapp/app-access.md)
 - :material-android: [__Android__](../real-user-monitoring/android/app-access.md)
 - :material-apple-ios: [__iOS__](../real-user-monitoring/ios/app-access.md)

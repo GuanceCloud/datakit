@@ -63,6 +63,8 @@ type Option struct {
 	Tags    string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
 	Enabled string `long:"enabled" description:"enabled plugins list in 'a,b,...' format"`
 
+	EphemeralPort int32 `long:"ephemeral_port" default:"0"`
+
 	L7NetDisabled string `long:"l7net-disabled" description:"disabled sub plugins of epbf-net list in 'a,b,...' format"`
 	L7NetEnabled  string `long:"l7net-enabled" description:"enabled sub plugins of epbf-net list in 'a,b,...' format"`
 
@@ -87,7 +89,7 @@ const (
 )
 
 var (
-	interval = time.Second * 30
+	interval = time.Second * 60
 	l        = logger.DefaultSLogger(inputName)
 )
 
@@ -144,7 +146,7 @@ func main() {
 			tmp = maxInterval
 		}
 		interval = tmp
-		l.Debug("interval: ", opt.Interval)
+		l.Infof("interval: %s", interval)
 	} else {
 		interval = time.Second * 60
 	}
@@ -156,6 +158,8 @@ func main() {
 
 	// ebpf-net
 	if enableEbpfNet {
+		dknetflow.SetEphemeralPortMin(opt.EphemeralPort)
+		l.Infof("ephemeral port start from: %d", opt.EphemeralPort)
 		offset, err := LoadOffset()
 		if err != nil {
 			offset = nil
@@ -237,7 +241,7 @@ func main() {
 
 			tracer := dkhttpflow.NewHTTPFlowTracer(gTags, fmt.Sprintf("http://%s%s?input="+inputNameNetHTTP,
 				dkout.DataKitAPIServer, datakit.Network))
-			if err := tracer.Run(ctx, constEditor, bpfMapSockFD, enableHTTPFlowTLS); err != nil {
+			if err := tracer.Run(ctx, constEditor, bpfMapSockFD, enableHTTPFlowTLS, interval); err != nil {
 				l.Error(err)
 			}
 		}

@@ -24,19 +24,19 @@ import (
 )
 
 type Rule struct {
-	Pattern string `toml:"pattern"`
-	Prefix  string `toml:"prefix"`
-	Name    string `toml:"name"`
+	Pattern string `toml:"pattern" json:"pattern"`
+	Prefix  string `toml:"prefix" json:"prefix"`
+	Name    string `toml:"name" json:"name"`
 }
 
 type RenameTags struct {
-	OverwriteExistTags bool              `toml:"overwrite_exist_tags"`
-	Mapping            map[string]string `toml:"mapping"`
+	OverwriteExistTags bool              `toml:"overwrite_exist_tags" json:"overwrite_exist_tags"`
+	Mapping            map[string]string `toml:"mapping" json:"mapping"`
 }
 
 type AsLogging struct {
-	Enable  bool   `toml:"enable"`
-	Service string `toml:"service"`
+	Enable  bool   `toml:"enable" json:"enable"`
+	Service string `toml:"service" json:"service"`
 }
 
 type IgnoreTagKeyValMatch map[string][]*regexp.Regexp
@@ -239,7 +239,7 @@ func (p *Prom) CollectFromHTTP(u string) ([]*point.Point, error) {
 		}
 	}
 	defer resp.Body.Close() //nolint:errcheck
-	pts, err := p.text2Metrics(resp.Body)
+	pts, err := p.text2Metrics(resp.Body, u)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +252,7 @@ func (p *Prom) CollectFromFile(filepath string) ([]*point.Point, error) {
 		return nil, err
 	}
 	defer f.Close() //nolint:errcheck,gosec
-	return p.text2Metrics(f)
+	return p.text2Metrics(f, "")
 }
 
 // WriteMetricText2File scrapes raw prometheus metric text from u

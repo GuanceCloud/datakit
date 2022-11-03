@@ -21,7 +21,9 @@ import (
 //   ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_POD_METRIC : booler
-//   ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_K8S_SERVICE_PROMETHEUS: booler
+//   ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVIER_ANNOTATIONS booler
+//   ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS        booler
+//   ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS    booler
 //   ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS: booler
 //   ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
 //   ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER : booler
@@ -37,6 +39,7 @@ import (
 //   ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON : string (JSON string array)
 //   ENV_INPUT_CONTAINER_LOGGING_MIN_FLUSH_INTERVAL: string ("10s")
 //   ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION : string ("5s")
+//   ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG : string (JSON to prometheusMonitoringExtraConfig)
 func (i *Input) ReadEnv(envs map[string]string) {
 	if endpoint, ok := envs["ENV_INPUT_CONTAINER_DOCKER_ENDPOINT"]; ok {
 		i.DockerEndpoint = endpoint
@@ -110,12 +113,35 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
+	// 兼容 ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVIER_ANNOTATIONS
 	if enable, ok := envs["ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_K8S_SERVICE_PROMETHEUS"]; ok {
 		b, err := strconv.ParseBool(enable)
+		if err == nil {
+			i.EnableAutoDiscoveryOfPrometheusServierAnnotations = b
+		}
+	}
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVIER_ANNOTATIONS"]; ok {
+		b, err := strconv.ParseBool(enable)
 		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_K8S_SERVICE_PROMETHEUS to bool: %s, ignore", err)
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVIER_ANNOTATIONS to bool: %s, ignore", err)
 		} else {
-			i.AutoDiscoveryOfK8sServicePrometheus = b
+			i.EnableAutoDiscoveryOfPrometheusServierAnnotations = b
+		}
+	}
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS to bool: %s, ignore", err)
+		} else {
+			i.EnableAutoDiscoveryOfPrometheusPodMonitors = b
+		}
+	}
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS to bool: %s, ignore", err)
+		} else {
+			i.EnableAutoDiscoveryOfPrometheusServiceMonitors = b
 		}
 	}
 
@@ -187,6 +213,15 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION to time.Duration: %s, ignore", err)
 		} else {
 			i.LoggingMaxMultilineLifeDuration = dur
+		}
+	}
+
+	if confStr, ok := envs["ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG"]; ok {
+		var conf prometheusMonitoringExtraConfig
+		if err := json.Unmarshal([]byte(confStr), &conf); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG to config structure: %s, ignore", err)
+		} else {
+			i.prometheusMonitoringExtraConfig = &conf
 		}
 	}
 }

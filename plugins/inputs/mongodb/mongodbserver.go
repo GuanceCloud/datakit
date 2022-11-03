@@ -7,6 +7,7 @@ package mongodb
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/strarr"
@@ -29,6 +30,9 @@ type MongodbServer struct {
 func (svr *MongodbServer) getDefaultTags() map[string]string {
 	tags := make(map[string]string)
 	tags["mongod_host"] = svr.host
+	if !strings.Contains(svr.host, "127.0.0.1") && !strings.Contains(svr.host, "localhost") {
+		tags["host"] = svr.host
+	}
 	for k, v := range defTags {
 		tags[k] = v
 	}

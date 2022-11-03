@@ -8,6 +8,7 @@ package nsq
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
@@ -101,8 +102,9 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 				tags[k] = v
 			}
 			fields := channelStats.ToMap()
-
-			pt, err := point.NewPoint("nsq_topics", tags, fields, point.MOptElectionV2(s.election))
+			opt := point.MOptElectionV2(s.election)
+			opt.DisableGlobalTags = true
+			pt, err := point.NewPoint("nsq_topics", tags, fields, opt)
 			if err != nil {
 				lastErr = err
 				continue
@@ -114,6 +116,9 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 	for nodeHost, n := range s.nodeCache {
 		tags := map[string]string{
 			"server_host": nodeHost,
+		}
+		if !strings.Contains(nodeHost, "127.0.0.1") && !strings.Contains(nodeHost, "localhost") {
+			tags["host"] = nodeHost
 		}
 		for k, v := range addTags {
 			tags[k] = v

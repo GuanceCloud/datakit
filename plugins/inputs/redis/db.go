@@ -106,6 +106,9 @@ func (i *Input) ParseInfoData(list string) ([]inputs.Measurement, error) {
 		// cmdstat_get:calls=2,usec=16,usec_per_call=8.00
 		db := parts[0]
 		m.name = "redis_db"
+		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
+			m.tags["host"] = i.Host
+		}
 		m.tags["db_name"] = db
 		itemStrs := strings.Split(parts[1], ",")
 

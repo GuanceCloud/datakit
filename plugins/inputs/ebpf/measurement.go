@@ -42,7 +42,7 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 			"dst_port":                inputs.TagInfo{Desc: "目标端口"},
 			"dst_ip_type":             inputs.TagInfo{Desc: "目标 IP 类型 (other/private/multicast)"},
 			"src_ip":                  inputs.TagInfo{Desc: "源 IP"},
-			"src_port":                inputs.TagInfo{Desc: "源端口, 临时端口(32768 ~ 60999)聚合后的值为 `*`"},
+			"src_port":                inputs.TagInfo{Desc: "源端口, 临时端口聚合后的值为 `*`"},
 			"src_ip_type":             inputs.TagInfo{Desc: "源 IP 类型 (other/private/multicast)"},
 			"src_k8s_pod_name":        inputs.TagInfo{Desc: "源 IP 所属 k8s 的 pod name"},
 			"src_k8s_deployment_name": inputs.TagInfo{Desc: "源 IP 所属 k8s 的 deployment name"},
@@ -90,7 +90,7 @@ func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
 			"dst_port":                inputs.TagInfo{Desc: "目标端口"},
 			"dst_ip_type":             inputs.TagInfo{Desc: "目标 IP 类型 (other/private/multicast)"},
 			"src_ip":                  inputs.TagInfo{Desc: "源 IP"},
-			"src_port":                inputs.TagInfo{Desc: "源端口, 临时端口(32768 ~ 60999)聚合后的值为 `*`"},
+			"src_port":                inputs.TagInfo{Desc: "源端口, 临时端口聚合后的值为 `*`"},
 			"src_ip_type":             inputs.TagInfo{Desc: "源 IP 类型 (other/private/multicast)"},
 			"src_k8s_pod_name":        inputs.TagInfo{Desc: "源 IP 所属 k8s 的 pod name"},
 			"src_k8s_deployment_name": inputs.TagInfo{Desc: "源 IP 所属 k8s 的 deployment name"},
@@ -108,6 +108,8 @@ func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
 			"direction":  inputs.TagInfo{Desc: "传输方向 (incoming/outgoing)"},
 			"source":     inputs.TagInfo{Desc: "固定值: httpflow"},
 			"sub_source": inputs.TagInfo{Desc: "用于 httpflow 的部分特定连接分类，如 Kubernetes 流量的值为 K8s"},
+			// "pid":          inputs.TagInfo{Desc: "进程号"},
+			// "process_name": inputs.TagInfo{Desc: "进程名"},
 		},
 		Fields: map[string]interface{}{
 			"truncated":    newFInfBool("请求路径长度达到采集的字节上限，请求路径存在截断可能", inputs.UnknownUnit),
@@ -116,6 +118,7 @@ func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
 			"method":       newFString("GET/POST/..."),
 			"latency":      newFInfInt("ttfb", inputs.DurationNS),
 			"http_version": newFString("1.1 / 1.0 ..."),
+			"count":        newFInfInt("一个采集周期内的 HTTP 请求数聚合总数", inputs.UnknownUnit),
 		},
 	}
 }

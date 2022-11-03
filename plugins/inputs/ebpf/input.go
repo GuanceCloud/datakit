@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -53,6 +54,8 @@ type Input struct {
 	L7NetDisabled  []string      `toml:"l7net_disabled"`
 	L7NetEnabled   []string      `toml:"l7net_enabled"`
 	IPv6Disabled   bool          `toml:"ipv6_disabled"`
+	EphemeralPort  int32         `toml:"ephemeral_port"`
+	Interval       string        `toml:"interval"`
 	semStop        *cliutils.Sem // start stop signal
 }
 
@@ -162,6 +165,16 @@ loop:
 			"--ipv6-disabled", "true")
 	}
 
+	if ipt.EphemeralPort >= 0 {
+		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args,
+			"--ephemeral_port", strconv.FormatInt(int64(ipt.EphemeralPort), 10))
+	}
+
+	if ipt.Interval != "" {
+		ipt.ExternalInput.Args = append(ipt.ExternalInput.Args,
+			"--interval", ipt.Interval)
+	}
+
 	if len(ipt.EnabledPlugins) == 0 {
 		ipt.EnabledPlugins = []string{"ebpf-net"}
 	}
@@ -210,8 +223,10 @@ func (*Input) AvailableArchs() []string {
 
 // ReadEnv support envs：
 //   ENV_INPUT_EBPF_ENABLED_PLUGINS : []string
-//   ENV_INPUT_EBPF_L7NET_ENABLED  : []string
+//   ENV_INPUT_EBPF_L7NET_ENABLED   : []string
 //   ENV_INPUT_EBPF_IPV6_DISABLED   : bool
+// 	 ENV_INPUT_EBPF_EPHEMERAL_PORT  : int32
+//   ENV_INPUT_EBPF_INTERVAL        : string
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if pluginList, ok := envs["ENV_INPUT_EBPF_ENABLED_PLUGINS"]; ok {
 		l.Debugf("add enabled_plugins from ENV: %v", pluginList)
@@ -231,6 +246,18 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.IPv6Disabled = true
 		}
 	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_EPHEMERAL_PORT"]; ok {
+		if p, err := strconv.ParseInt(v, 10, 32); err != nil {
+			l.Warn("parse ENV_INPUT_EBPF_EPHEMERAL_PORT: %w", err)
+		} else {
+			ipt.EphemeralPort = int32(p)
+		}
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_INTERVAL"]; ok {
+		ipt.Interval = v
+	}
 }
 
 func init() { //nolint:gochecknoinits
@@ -239,6 +266,7 @@ func init() { //nolint:gochecknoinits
 			semStop:        cliutils.NewSem(),
 			EnabledPlugins: []string{},
 			ExternalInput:  *external.NewExternalInput(),
+			EphemeralPort:  -1,
 		}
 		ret.ExternalInput.Election = false
 		return ret

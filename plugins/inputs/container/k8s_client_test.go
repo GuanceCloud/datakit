@@ -6,18 +6,9 @@
 package container
 
 /*
-import (
-	"context"
-	"encoding/json"
-	"os"
-	"testing"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
 func TestNewClient(t *testing.T) {
 	var (
-		kubeURL     = "1.15.22.133:6443"
+		kubeURL     = "10.211.55.4:6443"
 		bearerToken = os.Getenv("K8S_TOKEN")
 	)
 
@@ -28,7 +19,7 @@ func TestNewClient(t *testing.T) {
 
 	// metav1.ListOptions{LabelSelector: "app=nginx"}
 	// list, err := cli.getDataKits().List(context.Background(), metav1.ListOptions{})
-	list, err := cli.getPods().List(context.Background(), metav1.ListOptions{})
+	list, err := cli.getPrmetheusPodMonitors().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		t.Error(err)
 	}

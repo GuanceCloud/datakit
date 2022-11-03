@@ -17,6 +17,7 @@ import (
 	"github.com/DataDog/ebpf"
 	"github.com/DataDog/ebpf/manager"
 	"github.com/google/gopacket/afpacket"
+	client "github.com/influxdata/influxdb1-client/v2"
 	"github.com/sirupsen/logrus"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -66,7 +67,7 @@ type (
 		resp_code    uint16
 		http_version uint32
 		req_ts       uint64
-		resp_ts      uint64
+		c_s_pid      uint64
 	}
 	//nolint:stylecheck
 	HTTPReqFinishedInfoC struct {
@@ -83,7 +84,7 @@ type (
 		HTTPVersion uint32
 		RespCode    uint32
 		ReqTS       uint64
-		RespTS      uint64
+		CSPid       uint64
 	}
 	HTTPReqFinishedInfo struct {
 		ConnInfo  ConnectionInfo
@@ -112,8 +113,9 @@ var (
 	}
 )
 
-func NewHTTPFlowManger(fd int, constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.Map, closedEventHandler func(cpu int, data []byte,
-	perfmap *manager.PerfMap, manager *manager.Manager), enableTLS bool) (*manager.Manager, *sysmonitor.UprobeDynamicLibRegister, error) {
+func NewHTTPFlowManger(fd int, constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.Map,
+	closedEventHandler func(cpu int, data []byte, perfmap *manager.PerfMap,
+		manager *manager.Manager), enableTLS bool) (*manager.Manager, *sysmonitor.UprobeDynamicLibRegister, error) {
 	m := &manager.Manager{
 		Probes: []*manager.Probe{
 			{
@@ -194,13 +196,14 @@ func NewHTTPFlowTracer(tags map[string]string, datakitPostURL string) *HTTPFlowT
 	}
 }
 
-func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.Map, enableTLS bool) error {
+func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor,
+	bpfMapSockFD *ebpf.Map, enableTLS bool, interval time.Duration) error {
 	rawSocket, err := afpacket.NewTPacket()
 	if err != nil {
 		return fmt.Errorf("error creating raw socket: %w", err)
 	}
 
-	go tracer.feedHandler(ctx)
+	go tracer.feedHandler(ctx, interval)
 	// The underlying socket file descriptor is private, hence the use of reflection
 	socketFD := int(reflect.ValueOf(rawSocket).Elem().FieldByName("fd").Int())
 
@@ -248,33 +251,29 @@ func (tracer *HTTPFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
 			HTTPVersion: eventC.http_stats.http_version,
 			RespCode:    uint32(eventC.http_stats.resp_code),
 			ReqTS:       eventC.http_stats.req_ts,
-			RespTS:      eventC.http_stats.resp_ts,
+			CSPid:       eventC.http_stats.c_s_pid,
 		},
 	}
 	tracer.finReqCh <- &httpStats
 	// l.Warnf("%#v", httpStats)
 }
 
-func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context) {
-	ticker := time.NewTicker(time.Second * 10)
-	cache := []*HTTPReqFinishedInfo{}
+func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	agg := FlowAgg{}
 	for {
 		select {
 		case <-ticker.C:
-			if len(cache) == 0 {
-				continue
-			}
-			if err := feed(tracer.datakitPostURL, cache, tracer.gTags); err != nil {
+			pidMap, _ := sysmonitor.AllProcess()
+			pts := agg.ToPoint(tracer.gTags, k8sNetInfo, pidMap)
+			agg.Clean()
+			if err := feed(tracer.datakitPostURL, pts); err != nil {
 				l.Error(err)
 			}
-			cache = make([]*HTTPReqFinishedInfo, 0)
 		case finReq := <-tracer.finReqCh:
-			cache = append(cache, finReq)
-			if len(cache) > 256 {
-				if err := feed(tracer.datakitPostURL, cache, tracer.gTags); err != nil {
-					l.Error(err)
-				}
-				cache = make([]*HTTPReqFinishedInfo, 0)
+			err := agg.Append(finReq)
+			if err != nil {
+				l.Debug(err)
 			}
 		case <-ctx.Done():
 			return
@@ -282,93 +281,11 @@ func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context) {
 	}
 }
 
-func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) (*point.Point, error) {
-	// name:   srcNameM,
-	mTags := map[string]string{}
-
-	direction := DirectionOutgoing
-	if _, err := dknetflow.SrcIPPortRecorder.Query(httpFinReq.ConnInfo.Daddr); err == nil {
-		httpFinReq.ConnInfo.Saddr, httpFinReq.ConnInfo.Daddr = httpFinReq.ConnInfo.Daddr, httpFinReq.ConnInfo.Saddr
-		httpFinReq.ConnInfo.Sport, httpFinReq.ConnInfo.Dport = httpFinReq.ConnInfo.Dport, httpFinReq.ConnInfo.Sport
-		direction = DirectionIncoming
-	}
-	path, pathTrunc := FindHTTPURI(httpFinReq.HTTPStats.Payload)
-	if path == "" {
-		return nil, fmt.Errorf("path == \"\"")
-	}
-	for k, v := range tags {
-		mTags[k] = v
-	}
-	mTags["direction"] = direction
-
-	isV6 := !dknetflow.ConnAddrIsIPv4(httpFinReq.ConnInfo.Meta)
-
-	if httpFinReq.ConnInfo.Saddr[0] == 0 && httpFinReq.ConnInfo.Saddr[1] == 0 &&
-		httpFinReq.ConnInfo.Daddr[0] == 0 && httpFinReq.ConnInfo.Daddr[1] == 0 {
-		if httpFinReq.ConnInfo.Saddr[2] == 0xffff0000 && httpFinReq.ConnInfo.Daddr[2] == 0xffff0000 {
-			isV6 = false
-		} else if httpFinReq.ConnInfo.Saddr[2] == 0 && httpFinReq.ConnInfo.Daddr[2] == 0 &&
-			httpFinReq.ConnInfo.Saddr[3] > 1 && httpFinReq.ConnInfo.Daddr[3] > 1 {
-			isV6 = false
-		}
-	}
-	if isV6 {
-		mTags["src_ip_type"] = dknetflow.ConnIPv6Type(httpFinReq.ConnInfo.Saddr)
-		mTags["dst_ip_type"] = dknetflow.ConnIPv6Type(httpFinReq.ConnInfo.Daddr)
-		mTags["family"] = "IPv6"
-	} else {
-		mTags["src_ip_type"] = dknetflow.ConnIPv4Type(httpFinReq.ConnInfo.Saddr[3])
-		mTags["dst_ip_type"] = dknetflow.ConnIPv4Type(httpFinReq.ConnInfo.Daddr[3])
-		mTags["family"] = "IPv4"
-	}
-	srcIP := dknetflow.U32BEToIP(httpFinReq.ConnInfo.Saddr, isV6).String()
-	dstIP := dknetflow.U32BEToIP(httpFinReq.ConnInfo.Daddr, isV6).String()
-	mTags["src_ip"] = srcIP
-	mTags["src_port"] = fmt.Sprintf("%d", httpFinReq.ConnInfo.Sport)
-	mTags["dst_ip"] = dstIP
-	mTags["dst_port"] = fmt.Sprintf("%d", httpFinReq.ConnInfo.Dport)
-
-	var l4proto string
-	if dknetflow.ConnProtocolIsTCP(httpFinReq.ConnInfo.Meta) {
-		l4proto = "tcp"
-	} else {
-		l4proto = "udp"
-	}
-	mTags["transport"] = l4proto
-
-	mFields := map[string]interface{}{
-		"truncated":    pathTrunc,
-		"path":         path,
-		"status_code":  int(httpFinReq.HTTPStats.RespCode),
-		"latency":      int64(httpFinReq.HTTPStats.RespTS - httpFinReq.HTTPStats.ReqTS),
-		"method":       HTTPMethodInt(int(httpFinReq.HTTPStats.ReqMethod)),
-		"http_version": ParseHTTPVersion(httpFinReq.HTTPStats.HTTPVersion),
-	}
-
-	mTags = dknetflow.AddK8sTags2Map(k8sNetInfo, srcIP, dstIP,
-		httpFinReq.ConnInfo.Sport, httpFinReq.ConnInfo.Dport, l4proto, mTags)
-	return point.NewPoint(srcNameM, mTags, mFields, point.NOpt())
-}
-
-func feed(url string, data []*HTTPReqFinishedInfo, tags map[string]string) error {
+func feed(url string, data []*client.Point) error {
 	if len(data) == 0 {
 		return nil
 	}
-	ms := make([]*point.Point, 0)
-	for _, httpFinReq := range data {
-		if !ConnNotNeedToFilter(httpFinReq.ConnInfo) {
-			continue
-		}
-		if m, err := conv2M(httpFinReq, tags); err != nil {
-			l.Error(err)
-		} else {
-			ms = append(ms, m)
-		}
-	}
-	if len(ms) == 0 {
-		return nil
-	}
-	if err := dkout.FeedMeasurement(url, ms); err != nil {
+	if err := dkout.FeedMeasurement(url, point.WrapPoint(data)); err != nil {
 		return err
 	}
 	return nil

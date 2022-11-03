@@ -20,13 +20,19 @@ type daemonset struct {
 	client    k8sClientX
 	extraTags map[string]string
 	items     []v1.DaemonSet
+	host      string
 }
 
-func newDaemonset(client k8sClientX, extraTags map[string]string) *daemonset {
+func newDaemonset(client k8sClientX, extraTags map[string]string, host string) *daemonset {
 	return &daemonset{
 		client:    client,
 		extraTags: extraTags,
+		host:      host,
 	}
+}
+
+func (d *daemonset) getHost() string {
+	return d.host
 }
 
 func (d *daemonset) name() string {
@@ -69,6 +75,9 @@ func (d *daemonset) metric(election bool) (inputsMeas, error) {
 			},
 			election: election,
 		}
+		if d.host != "" {
+			met.tags["host"] = d.host
+		}
 		met.tags.append(d.extraTags)
 		res = append(res, met)
 	}
@@ -79,6 +88,9 @@ func (d *daemonset) metric(election bool) (inputsMeas, error) {
 			tags:     map[string]string{"namespace": ns},
 			fields:   map[string]interface{}{"count": c},
 			election: election,
+		}
+		if d.host != "" {
+			met.tags["host"] = d.host
 		}
 		met.tags.append(d.extraTags)
 		res = append(res, met)
@@ -139,6 +151,8 @@ func (*daemonsetMetric) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newDaemonset(c, m) })
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
+		return newDaemonset(c, m, host)
+	})
 	registerMeasurement(&daemonsetMetric{})
 }

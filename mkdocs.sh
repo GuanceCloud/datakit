@@ -150,6 +150,7 @@ datakit_docs=(
   $tmp_doc_dir/kafkamq.md
   $tmp_doc_dir/kubernetes-crd.md
   $tmp_doc_dir/kubernetes-prom.md
+  $tmp_doc_dir/kubernetes-prometheus-operator-crd.md
   $tmp_doc_dir/logfwd.md
   $tmp_doc_dir/logfwdserver.md
   $tmp_doc_dir/logging.md
@@ -161,7 +162,7 @@ datakit_docs=(
   $tmp_doc_dir/mysql.md
   $tmp_doc_dir/net.md
   $tmp_doc_dir/netstat.md
-  $tmp_doc_dir/nvidia_smi.md
+  $tmp_doc_dir/gpu_smi.md
   $tmp_doc_dir/nginx.md
   $tmp_doc_dir/nsq.md
   $tmp_doc_dir/opentelemetry-go.md
@@ -170,6 +171,8 @@ datakit_docs=(
   $tmp_doc_dir/oracle.md
   $tmp_doc_dir/postgresql.md
   $tmp_doc_dir/profile.md
+  $tmp_doc_dir/profile-ddtrace.md
+  $tmp_doc_dir/profile-java-async-profiler.md
   $tmp_doc_dir/prom.md
   $tmp_doc_dir/prom_remote_write.md
   $tmp_doc_dir/promtail.md

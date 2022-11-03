@@ -79,7 +79,7 @@ spec:
           {{- end }}
           {{- end }}
           {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion | default .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           name: {{ .Chart.Name }}
           ports:
@@ -96,19 +96,17 @@ spec:
               name: lib
             - mountPath: /var/log
               name: log
-            - mountPath: /host/proc
-              name: proc
-              readOnly: true
-            - mountPath: /host/dev
-              name: dev
-              readOnly: true
-            - mountPath: /host/sys
-              name: sys
-              readOnly: true
+            - mountPath: /usr/lib
+              name: usrlib
+            - mountPath: /etc
+              name: etc
             - mountPath: /rootfs
               name: rootfs
             - mountPath: /sys/kernel/debug
               name: debugfs
+            - mountPath: /usr/local/datakit/cache
+              name: cache
+              readOnly: false
             {{- if .Values.iploc.enable }}
             - mountPath: /usr/local/datakit/data/ipdb/iploc/
               name: datakit-ipdb
@@ -155,9 +153,6 @@ spec:
       serviceAccount: {{ include "datakit.fullname" . }}
       serviceAccountName: {{ include "datakit.fullname" . }}
       volumes:
-        {{/*        - configMap:*/}}
-        {{/*            name: datakit-conf*/}}
-        {{/*          name: datakit-conf*/}}
         - hostPath:
             path: /var/run
           name: run
@@ -168,24 +163,19 @@ spec:
             path: /var/log
           name: log
         - hostPath:
-            path: /proc
-            type: ""
-          name: proc
+            path: /usr/lib
+          name: usrlib
         - hostPath:
-            path: /dev
-            type: ""
-          name: dev
-        - hostPath:
-            path: /sys
-            type: ""
-          name: sys
+            path: /etc
+          name: etc
         - hostPath:
             path: /
-            type: ""
           name: rootfs
         - hostPath:
+            path: /root/datakit_cache
+          name: cache
+        - hostPath:
             path: /sys/kernel/debug
-            type: ""
           name: debugfs
         {{- if .Values.iploc.enable }}
         - emptyDir: {}
@@ -196,8 +186,13 @@ spec:
         - configMap:
             name: id-rsa
           name: id-rsa
-  {{- end }}
-  {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.dkconfig }}
+        - configMap:
+            name: datakit-conf
+          name: datakit-conf
+        {{- end }}
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1

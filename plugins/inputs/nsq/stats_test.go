@@ -21,7 +21,7 @@ func TestStatsPoint(t *testing.T) {
 	}
 
 	ptsCases := []string{
-		`nsq_nodes,server_host=testhost,t_key=t_value backend_depth=0i,depth=337i,message_count=0i`,
+		`nsq_nodes,host=testhost,server_host=testhost,t_key=t_value backend_depth=0i,depth=337i,message_count=0i`,
 		`nsq_topics,channel=chan-A,t_key=t_value,topic=topic-A backend_depth=0i,deferred_count=0i,depth=21i,in_flight_count=0i,message_count=0i,requeue_count=0i,timeout_count=0i`,
 		`nsq_topics,channel=chan-B,t_key=t_value,topic=topic-B backend_depth=0i,deferred_count=0i,depth=41i,in_flight_count=0i,message_count=0i,requeue_count=0i,timeout_count=0i`,
 		`nsq_topics,channel=chan-C,t_key=t_value,topic=topic-C backend_depth=0i,deferred_count=0i,depth=61i,in_flight_count=0i,message_count=0i,requeue_count=0i,timeout_count=0i`,

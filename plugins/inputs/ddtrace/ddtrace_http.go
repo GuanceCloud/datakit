@@ -224,6 +224,18 @@ func pickupMeta(dkspan *itrace.DatakitSpan, ddspan *DDSpan, keys ...string) {
 			dkspan.Tags[itrace.TAG_HTTP_STATUS_CODE] = statusCode
 		}
 	}
+
+	if dkspan.Status == itrace.STATUS_ERR || dkspan.Status == itrace.STATUS_CRITICAL {
+		if errType, ok := ddspan.Meta["error.type"]; ok {
+			dkspan.Tags[itrace.TAG_ERR_TYPE] = errType
+		}
+		if errStack, ok := ddspan.Meta["error.stack"]; ok {
+			dkspan.Tags[itrace.TAG_ERR_STACK] = errStack
+		}
+		if errMsg, ok := ddspan.Meta["error.msg"]; ok {
+			dkspan.Tags[itrace.TAG_ERR_MESSAGE] = errMsg
+		}
+	}
 }
 
 func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
@@ -237,9 +249,9 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			TraceID:    strconv.FormatInt(int64(span.TraceID), 10),
-			ParentID:   strconv.FormatInt(int64(span.ParentID), 10),
-			SpanID:     strconv.FormatInt(int64(span.SpanID), 10),
+			TraceID:    strconv.FormatUint(span.TraceID, 10),
+			ParentID:   strconv.FormatUint(span.ParentID, 10),
+			SpanID:     strconv.FormatUint(span.SpanID, 10),
 			Service:    span.Service,
 			Resource:   span.Resource,
 			Operation:  span.Name,
@@ -252,8 +264,6 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			Duration:   span.Duration,
 		}
 
-		pickupMeta(dkspan, span, itrace.PROJECT, itrace.VERSION, itrace.ENV, itrace.CONTAINER_HOST)
-
 		dkspan.Status = itrace.STATUS_OK
 		if span.Error != 0 {
 			dkspan.Status = itrace.STATUS_ERR
@@ -265,6 +275,8 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		if rate, ok := span.Metrics[keySamplingRate]; ok {
 			dkspan.Metrics[itrace.FIELD_SAMPLE_RATE] = rate
 		}
+
+		pickupMeta(dkspan, span, itrace.PROJECT, itrace.VERSION, itrace.ENV, itrace.CONTAINER_HOST)
 
 		if buf, err := json.Marshal(span); err != nil {
 			log.Warn(err.Error())

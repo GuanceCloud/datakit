@@ -20,13 +20,19 @@ type endpoint struct {
 	client    k8sClientX
 	extraTags map[string]string
 	items     []v1.Endpoints
+	host      string
 }
 
-func newEndpoint(client k8sClientX, extraTags map[string]string) *endpoint {
+func newEndpoint(client k8sClientX, extraTags map[string]string, host string) *endpoint {
 	return &endpoint{
 		client:    client,
 		extraTags: extraTags,
+		host:      host,
 	}
+}
+
+func (e *endpoint) getHost() string {
+	return e.host
 }
 
 func (e *endpoint) name() string {
@@ -65,6 +71,9 @@ func (e *endpoint) metric(election bool) (inputsMeas, error) {
 			},
 			election: election,
 		}
+		if e.host != "" {
+			met.tags["host"] = e.host
+		}
 
 		var available, notReady int
 		for _, subset := range item.Subsets {
@@ -85,6 +94,9 @@ func (e *endpoint) metric(election bool) (inputsMeas, error) {
 			tags:     map[string]string{"namespace": ns},
 			fields:   map[string]interface{}{"count": c},
 			election: election,
+		}
+		if e.host != "" {
+			met.tags["host"] = e.host
 		}
 		met.tags.append(e.extraTags)
 		res = append(res, met)
@@ -140,6 +152,8 @@ func (*endpointMetric) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newEndpoint(c, m) })
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
+		return newEndpoint(c, m, host)
+	})
 	registerMeasurement(&endpointMetric{})
 }

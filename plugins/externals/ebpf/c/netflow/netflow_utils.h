@@ -462,6 +462,32 @@ static __always_inline int read_connection_info(struct sock *sk, struct connecti
     return 0;
 }
 
+// #define CONN_PID_APPEND 1
+// #define CONN_PID_DELETE 0
+// static __always_inline void update_conn_pid(struct connection_info *conn_info,
+//                                             __u64 pid_tgid, __u8 flag)
+// {
+//     struct conn_src_info conn_src = {0};
+
+//     __builtin_memcpy(&conn_src.saddr, conn_info->saddr, sizeof(__u32) * 4);
+//     conn_src.meta = conn_info->meta;
+//     conn_src.sport = conn_info->sport;
+
+//     switch (flag)
+//     {
+//     case CONN_PID_APPEND:
+//         bpf_map_update_elem(&bpfmap_conn_pid, &conn_src, &pid_tgid, BPF_ANY); 
+//         break;
+
+//     case CONN_PID_DELETE:
+//         bpf_map_delete_elem(&bpfmap_conn_pid, &conn_src);
+//         break;
+
+//     default:
+//         break;
+//     }
+// }
+
 // read tcp info: rtt, rtt_var
 static __always_inline int read_tcp_rtt(struct sock *sk, struct connection_tcp_stats *tcp_stats)
 {

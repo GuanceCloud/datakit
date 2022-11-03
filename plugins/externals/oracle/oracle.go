@@ -226,6 +226,9 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 	for _, item := range response {
 		tags := map[string]string{}
 
+		if !strings.Contains(m.host, "127.0.0.1") && !strings.Contains(m.host, "localhost") {
+			tags["host"] = m.host
+		}
 		tags["oracle_service"] = m.serviceName
 		tags["oracle_server"] = fmt.Sprintf("%s:%s", m.host, m.port)
 

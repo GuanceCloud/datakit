@@ -25,13 +25,19 @@ type node struct {
 	client    k8sClientX
 	extraTags map[string]string
 	items     []v1.Node
+	host      string
 }
 
-func newNode(client k8sClientX, extraTags map[string]string) *node {
+func newNode(client k8sClientX, extraTags map[string]string, host string) *node {
 	return &node{
 		client:    client,
 		extraTags: extraTags,
+		host:      host,
 	}
+}
+
+func (n *node) getHost() string {
+	return n.host
 }
 
 func (n *node) name() string {
@@ -68,6 +74,9 @@ func (n *node) metric(election bool) (inputsMeas, error) {
 			},
 			fields:   map[string]interface{}{},
 			election: election,
+		}
+		if n.host != "" {
+			met.tags["host"] = n.host
 		}
 		// t := item.Status.LastScheduleTime
 		// met.fields["node.age"] = int64(time.Since(*t).Seconds())
@@ -106,6 +115,9 @@ func (n *node) metric(election bool) (inputsMeas, error) {
 			fields:   map[string]interface{}{"count": c},
 			election: election,
 		}
+		if n.host != "" {
+			met.tags["host"] = n.host
+		}
 		met.tags.append(n.extraTags)
 		res = append(res, met)
 	}
@@ -122,17 +134,19 @@ func (n *node) object(election bool) (inputsMeas, error) {
 	for _, item := range n.items {
 		obj := &nodeObject{
 			tags: map[string]string{
-				"name":         fmt.Sprintf("%v", item.UID),
-				"node_name":    item.Name,
-				"status":       fmt.Sprintf("%v", item.Status.Phase),
-				"cluster_name": defaultClusterName(item.ClusterName),
-				"namespace":    defaultNamespace(item.Namespace),
+				"name":      fmt.Sprintf("%v", item.UID),
+				"node_name": item.Name,
+				"status":    fmt.Sprintf("%v", item.Status.Phase),
+				"namespace": defaultNamespace(item.Namespace),
 			},
 			fields: map[string]interface{}{
 				"age":             int64(time.Since(item.CreationTimestamp.Time).Seconds()),
 				"kubelet_version": item.Status.NodeInfo.KubeletVersion,
 			},
 			election: election,
+		}
+		if n.host != "" {
+			obj.tags["host"] = n.host
 		}
 
 		if _, ok := item.Labels["node-role.kubernetes.io/master"]; ok {
@@ -237,14 +251,13 @@ func (*nodeObject) Info() *inputs.MeasurementInfo {
 		Desc: "Kubernetes node 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo("UID"),
-			"node_name":    inputs.NewTagInfo("Name must be unique within a namespace."),
-			"node_ip":      inputs.NewTagInfo("Node IP (depercated)"),
-			"internal_ip":  inputs.NewTagInfo("Node internal IP"),
-			"role":         inputs.NewTagInfo("Node role. (master/node)"),
-			"cluster_name": inputs.NewTagInfo("The name of the cluster which the object belongs to."),
-			"namespace":    inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
-			"status":       inputs.NewTagInfo("NodePhase is the recently observed lifecycle phase of the node. (Pending/Running/Terminated)"),
+			"name":        inputs.NewTagInfo("UID"),
+			"node_name":   inputs.NewTagInfo("Name must be unique within a namespace."),
+			"node_ip":     inputs.NewTagInfo("Node IP (depercated)"),
+			"internal_ip": inputs.NewTagInfo("Node internal IP"),
+			"role":        inputs.NewTagInfo("Node role. (master/node)"),
+			"namespace":   inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"status":      inputs.NewTagInfo("NodePhase is the recently observed lifecycle phase of the node. (Pending/Running/Terminated)"),
 		},
 		Fields: map[string]interface{}{
 			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
@@ -256,8 +269,12 @@ func (*nodeObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newNode(c, m) })
-	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newNode(c, m) })
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
+		return newNode(c, m, host)
+	})
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string, host string) k8sResourceObjectInterface {
+		return newNode(c, m, host)
+	})
 	registerMeasurement(&nodeMetric{})
 	registerMeasurement(&nodeObject{})
 }

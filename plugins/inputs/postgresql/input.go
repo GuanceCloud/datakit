@@ -128,6 +128,7 @@ type Input struct {
 	tail         *tailer.Tailer
 	duration     time.Duration
 	collectCache []inputs.Measurement
+	host         string
 
 	Election bool `toml:"election"`
 	pause    bool
@@ -353,6 +354,9 @@ func (ipt *Input) accRow(columnMap map[string]*interface{}) error {
 	}
 
 	tags := map[string]string{"server": tagAddress, "db": "postgres"}
+	if ipt.host != "" {
+		tags["host"] = ipt.host
+	}
 
 	if ipt.Tags != nil {
 		for k, v := range ipt.Tags {
@@ -445,6 +449,10 @@ func (ipt *Input) Run() {
 		l.Error("invalid interval, cannot be less than zero")
 	}
 
+	if err := ipt.setHost(); err != nil {
+		l.Errorf("failed to set host: %v", err)
+	}
+
 	ipt.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
 	tick := time.NewTicker(ipt.duration)
@@ -522,6 +530,18 @@ func (ipt *Input) Resume() error {
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
+}
+
+func (ipt *Input) setHost() error {
+	if strings.Contains(ipt.Address, "127.0.0.1") || strings.Contains(ipt.Address, "localhost") {
+		return nil
+	}
+	u, err := url.Parse(ipt.Address)
+	if err != nil {
+		return err
+	}
+	ipt.host = u.Host
+	return nil
 }
 
 func parseURL(uri string) (string, error) {

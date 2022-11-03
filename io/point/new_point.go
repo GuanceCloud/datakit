@@ -151,17 +151,23 @@ func doMakePoint(name string,
 ) (*Point, error) {
 	p, warnings, err := lp.MakeLineProtoPointWithWarnings(name, tags, fields, opt)
 
+	if len(warnings) > 0 {
+		// We may need these warnings to debug. Therefore still print them even if error occurs.
+		log.Warnf("make point %s warning: %s", name, buildWarningMessage(warnings))
+	}
 	if err != nil {
 		return nil, err
-	} else if len(warnings) > 0 {
-		warningsStr := ""
-		for _, warn := range warnings {
-			warningsStr += warn.Message + ";"
-		}
-		log.Warnf("make point %s warnning: %s", name, warningsStr)
 	}
 
 	return &Point{Point: p}, nil
+}
+
+func buildWarningMessage(warnings []*lp.PointWarning) string {
+	warningsStr := ""
+	for _, warn := range warnings {
+		warningsStr += warn.Message + ";"
+	}
+	return warningsStr
 }
 
 // deprecated.

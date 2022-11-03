@@ -25,13 +25,19 @@ type replicaset struct {
 	client    k8sClientX
 	extraTags map[string]string
 	items     []v1.ReplicaSet
+	host      string
 }
 
-func newReplicaset(client k8sClientX, extraTags map[string]string) *replicaset {
+func newReplicaset(client k8sClientX, extraTags map[string]string, host string) *replicaset {
 	return &replicaset{
 		client:    client,
 		extraTags: extraTags,
+		host:      host,
 	}
+}
+
+func (r *replicaset) getHost() string {
+	return r.host
 }
 
 func (r *replicaset) name() string {
@@ -72,6 +78,9 @@ func (r *replicaset) metric(election bool) (inputsMeas, error) {
 			},
 			election: election,
 		}
+		if r.host != "" {
+			met.tags["host"] = r.host
+		}
 
 		for _, ref := range item.OwnerReferences {
 			if ref.Kind == "Deployment" {
@@ -91,6 +100,9 @@ func (r *replicaset) metric(election bool) (inputsMeas, error) {
 			fields:   map[string]interface{}{"count": c},
 			election: election,
 		}
+		if r.host != "" {
+			met.tags["host"] = r.host
+		}
 		met.tags.append(r.extraTags)
 		res = append(res, met)
 	}
@@ -109,7 +121,6 @@ func (r *replicaset) object(election bool) (inputsMeas, error) {
 			tags: map[string]string{
 				"name":             fmt.Sprintf("%v", item.UID),
 				"replica_set_name": item.Name,
-				"cluster_name":     defaultClusterName(item.ClusterName),
 				"namespace":        defaultNamespace(item.Namespace),
 			},
 			fields: map[string]interface{}{
@@ -118,6 +129,9 @@ func (r *replicaset) object(election bool) (inputsMeas, error) {
 				"available": item.Status.AvailableReplicas,
 			},
 			election: election,
+		}
+		if r.host != "" {
+			obj.tags["host"] = r.host
 		}
 
 		for _, ref := range item.OwnerReferences {
@@ -214,7 +228,6 @@ func (*replicasetObject) Info() *inputs.MeasurementInfo {
 			"name":             inputs.NewTagInfo("UID"),
 			"replica_set_name": inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
-			"cluster_name":     inputs.NewTagInfo("The name of the cluster which the object belongs to."),
 			"deployment":       inputs.NewTagInfo("The name of the deployment which the object belongs to."),
 		},
 		Fields: map[string]interface{}{
@@ -228,8 +241,12 @@ func (*replicasetObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newReplicaset(c, m) })
-	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newReplicaset(c, m) })
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
+		return newReplicaset(c, m, host)
+	})
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string, host string) k8sResourceObjectInterface {
+		return newReplicaset(c, m, host)
+	})
 	registerMeasurement(&replicasetMetric{})
 	registerMeasurement(&replicasetObject{})
 }
