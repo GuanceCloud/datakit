@@ -237,9 +237,9 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			TraceID:    strconv.FormatInt(int64(span.TraceID), 10),
-			ParentID:   strconv.FormatInt(int64(span.ParentID), 10),
-			SpanID:     strconv.FormatInt(int64(span.SpanID), 10),
+			TraceID:    strconv.FormatUint(span.TraceID, 10),
+			ParentID:   strconv.FormatUint(span.ParentID, 10),
+			SpanID:     strconv.FormatUint(span.SpanID, 10),
 			Service:    span.Service,
 			Resource:   span.Resource,
 			Operation:  span.Name,
