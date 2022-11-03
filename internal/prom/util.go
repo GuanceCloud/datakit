@@ -11,6 +11,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -142,8 +143,12 @@ func (p *Prom) tagKVMatched(tags map[string]string) bool {
 	return false
 }
 
-func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string) map[string]string {
+func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string) map[string]string {
 	tags := map[string]string{}
+
+	if host := getHost(u); host != "" {
+		tags["host"] = host
+	}
 
 	// Add custom tags.
 	for k, v := range p.opt.Tags {
@@ -168,6 +173,17 @@ func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string) map[stri
 	}
 
 	return tags
+}
+
+func getHost(u string) string {
+	if u == "" || strings.Contains(u, "127.0.0.1") || strings.Contains(u, "localhost") {
+		return ""
+	}
+	uu, err := url.Parse(u)
+	if err != nil {
+		return ""
+	}
+	return uu.Host
 }
 
 func (p *Prom) getTagsWithLE(labels []*dto.LabelPair, measurementName string, b *dto.Bucket) map[string]string {
@@ -240,7 +256,7 @@ func (p *Prom) filterMetricFamilies(metricFamilies map[string]*dto.MetricFamily)
 // text2Metrics converts raw prometheus metric text to line protocol points.
 // It handles the case in which the same kind of comment for a metric name appears repeatedly.
 // E.g. multiple '# TYPE node_network_info gauge' appears in one piece of text.
-func (p *Prom) text2Metrics(in io.Reader) ([]*point.Point, error) {
+func (p *Prom) text2Metrics(in io.Reader, u string) ([]*point.Point, error) {
 	var (
 		buf         []byte
 		index       int
@@ -275,7 +291,7 @@ func (p *Prom) text2Metrics(in io.Reader) ([]*point.Point, error) {
 				}
 			}
 			if split {
-				pts, err := p.doText2Metrics(bytes.NewReader(buf))
+				pts, err := p.doText2Metrics(bytes.NewReader(buf), u)
 				if err != nil {
 					return nil, err
 				}
@@ -296,7 +312,7 @@ func (p *Prom) text2Metrics(in io.Reader) ([]*point.Point, error) {
 	}
 
 	if len(buf) != 0 {
-		pts, err := p.doText2Metrics(bytes.NewReader(buf))
+		pts, err := p.doText2Metrics(bytes.NewReader(buf), u)
 		if err != nil {
 			return nil, err
 		}
@@ -336,7 +352,7 @@ func newTokenIterator(text []byte, start int) tokenIterator {
 }
 
 // doText2Metrics converts raw prometheus metric text to line protocol point.
-func (p *Prom) doText2Metrics(in io.Reader) (pts []*point.Point, lastErr error) {
+func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr error) {
 	metricFamilies, err := p.parser.TextToMetricFamilies(in)
 	if err != nil {
 		return nil, err
@@ -358,7 +374,7 @@ func (p *Prom) doText2Metrics(in io.Reader) (pts []*point.Point, lastErr error) 
 				fields := map[string]interface{}{
 					fieldName: v,
 				}
-				tags := p.getTags(m.GetLabel(), measurementName)
+				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
 					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
@@ -377,7 +393,7 @@ func (p *Prom) doText2Metrics(in io.Reader) (pts []*point.Point, lastErr error) 
 					fieldName + "_sum":   m.GetSummary().GetSampleSum(),
 				}
 
-				tags := p.getTags(m.GetLabel(), measurementName)
+				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
 					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
@@ -393,7 +409,7 @@ func (p *Prom) doText2Metrics(in io.Reader) (pts []*point.Point, lastErr error) 
 						fieldName: q.GetValue(),
 					}
 
-					tags := p.getTags(m.GetLabel(), measurementName)
+					tags := p.getTags(m.GetLabel(), measurementName, u)
 					tags["quantile"] = fmt.Sprint(q.GetQuantile())
 
 					if !p.tagKVMatched(tags) {
@@ -414,7 +430,7 @@ func (p *Prom) doText2Metrics(in io.Reader) (pts []*point.Point, lastErr error) 
 					fieldName + "_sum":   m.GetHistogram().GetSampleSum(),
 				}
 
-				tags := p.getTags(m.GetLabel(), measurementName)
+				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
 					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))

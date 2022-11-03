@@ -134,7 +134,7 @@ func Test_makeMeasurements(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotMeasurements := makeMeasurements(tt.args.subMetricName, tt.args.res, tt.args.sql, false)
+			gotMeasurements := makeMeasurements(tt.args.subMetricName, tt.args.res, tt.args.sql, false, "")
 			for i := 0; i < len(gotMeasurements); i++ {
 				if !reflect.DeepEqual(gotMeasurements[i], tt.wantMeasurements[i]) {
 					t.Errorf("makeMeasurements()[%d] = %v, want %v", i, gotMeasurements[i], tt.wantMeasurements[i])

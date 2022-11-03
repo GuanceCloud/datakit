@@ -25,13 +25,19 @@ type job struct {
 	client    k8sClientX
 	extraTags map[string]string
 	items     []v1.Job
+	host      string
 }
 
-func newJob(client k8sClientX, extraTags map[string]string) *job {
+func newJob(client k8sClientX, extraTags map[string]string, host string) *job {
 	return &job{
 		client:    client,
 		extraTags: extraTags,
+		host:      host,
 	}
+}
+
+func (j *job) getHost() string {
+	return j.host
 }
 
 func (j *job) name() string {
@@ -75,6 +81,9 @@ func (j *job) metric(election bool) (inputsMeas, error) {
 			},
 			election: election,
 		}
+		if j.host != "" {
+			met.tags["host"] = j.host
+		}
 
 		var succeeded, failed int
 		for _, condition := range item.Status.Conditions {
@@ -99,6 +108,9 @@ func (j *job) metric(election bool) (inputsMeas, error) {
 			tags:     map[string]string{"namespace": ns},
 			fields:   map[string]interface{}{"count": c},
 			election: election,
+		}
+		if j.host != "" {
+			met.tags["host"] = j.host
 		}
 		met.tags.append(j.extraTags)
 		res = append(res, met)
@@ -133,6 +145,9 @@ func (j *job) object(election bool) (inputsMeas, error) {
 				"backoff_limit":   0,
 			},
 			election: election,
+		}
+		if j.host != "" {
+			obj.tags["host"] = j.host
 		}
 
 		// 因为原数据类型（例如 item.Spec.Parallelism）就是 int32，所以此处也用 int32
@@ -255,8 +270,12 @@ func (*jobObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newJob(c, m) })
-	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newJob(c, m) })
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
+		return newJob(c, m, host)
+	})
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string, host string) k8sResourceObjectInterface {
+		return newJob(c, m, host)
+	})
 	registerMeasurement(&jobMetric{})
 	registerMeasurement(&jobObject{})
 }

@@ -7,6 +7,8 @@ package container
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -48,7 +50,7 @@ func (k *kubernetesInput) gatherResourceMetric() (inputsMeas, error) {
 	)
 
 	for _, fn := range k8sResourceMetricList {
-		x := fn(k.client, k.ipt.Tags)
+		x := fn(k.client, k.ipt.Tags, k.getHost())
 
 		if xPod, ok := x.(podResourceInterface); ok {
 			xPod.setExtractK8sLabelAsTags(k.ipt.ExtractK8sLabelAsTags)
@@ -104,7 +106,7 @@ func (k *kubernetesInput) gatherResourceObject() (inputsMeas, error) {
 	)
 
 	for _, fn := range k8sResourceObjectList {
-		x := fn(k.client, k.ipt.Tags)
+		x := fn(k.client, k.ipt.Tags, k.getHost())
 		if m, err := x.object(k.ipt.Election); err == nil {
 			res = append(res, m...)
 		} else {
@@ -119,10 +121,24 @@ func (k *kubernetesInput) watchingEventLog(done <-chan interface{}) {
 	watchingEvent(k.client, k.ipt.Tags, done, k.ipt.Election)
 }
 
+func (k *kubernetesInput) getHost() string {
+	u := k.ipt.K8sURL
+	if strings.Contains(u, "127.0.0.1") || strings.Contains(u, "localhost") {
+		return ""
+	}
+	uu, err := url.Parse(u)
+	if err != nil {
+		l.Errorf("getHost: failed to parse k8s URL: %v", err)
+		return ""
+	}
+	return uu.Host
+}
+
 type k8sResourceMetricInterface interface {
 	name() string
 	metric(election bool) (inputsMeas, error)
 	count() (map[string]int, error)
+	getHost() string
 }
 
 type k8sResourceObjectInterface interface {
@@ -177,8 +193,8 @@ func defaultClusterName(name string) string {
 }
 
 type (
-	newK8sResourceMetricHandle func(k8sClientX, map[string]string) k8sResourceMetricInterface
-	newK8sResourceObjectHandle func(k8sClientX, map[string]string) k8sResourceObjectInterface
+	newK8sResourceMetricHandle func(k8sClientX, map[string]string, string) k8sResourceMetricInterface
+	newK8sResourceObjectHandle func(k8sClientX, map[string]string, string) k8sResourceObjectInterface
 )
 
 var (

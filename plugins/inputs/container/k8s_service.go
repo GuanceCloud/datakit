@@ -25,13 +25,19 @@ type service struct {
 	client    k8sClientX
 	extraTags map[string]string
 	items     []v1.Service
+	host      string
 }
 
-func newService(client k8sClientX, extraTags map[string]string) *service {
+func newService(client k8sClientX, extraTags map[string]string, host string) *service {
 	return &service{
 		client:    client,
 		extraTags: extraTags,
+		host:      host,
 	}
+}
+
+func (s *service) getHost() string {
+	return s.host
 }
 
 func (s *service) name() string {
@@ -97,6 +103,9 @@ func (s *service) object(election bool) (inputsMeas, error) {
 			},
 			election: election,
 		}
+		if s.host != "" {
+			obj.tags["host"] = s.host
+		}
 
 		if y, err := yaml.Marshal(item); err != nil {
 			l.Debugf("failed to get service yaml %s, namespace %s, name %s, ignored", err.Error(), item.Namespace, item.Name)
@@ -156,7 +165,11 @@ func (*serviceObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newService(c, m) })
-	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newService(c, m) })
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
+		return newService(c, m, host)
+	})
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string, host string) k8sResourceObjectInterface {
+		return newService(c, m, host)
+	})
 	registerMeasurement(&serviceObject{})
 }
