@@ -155,7 +155,7 @@ datakit_docs=(
   $tmp_doc_dir/mysql.md
   $tmp_doc_dir/net.md
   $tmp_doc_dir/netstat.md
-  $tmp_doc_dir/nvidia_smi.md
+  $tmp_doc_dir/gpu_smi.md
   $tmp_doc_dir/nginx.md
   $tmp_doc_dir/nsq.md
   $tmp_doc_dir/opentelemetry-go.md

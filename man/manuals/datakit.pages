@@ -53,7 +53,7 @@ nav:
         - swap.md
         - net.md
         - netstat.md
-        - nvidia_smi.md
+        - gpu_smi.md
         - socket.md
         - system.md
         - hostdir.md
