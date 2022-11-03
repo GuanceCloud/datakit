@@ -220,9 +220,8 @@ func (c *K8sClient) GetPodNet(ns string) (map[string][]*K8sPodNet, error) {
 	}
 	for _, v := range list.Items {
 		pod := &K8sPodNet{
-			Namespace:   v.GetNamespace(),
-			ClusterName: v.GetClusterName(),
-			Name:        v.GetName(),
+			Namespace: v.GetNamespace(),
+			Name:      v.GetName(),
 
 			DeploymentName: "N/A",
 			ServiceName:    "N/A",

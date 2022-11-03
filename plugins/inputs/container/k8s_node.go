@@ -134,11 +134,10 @@ func (n *node) object(election bool) (inputsMeas, error) {
 	for _, item := range n.items {
 		obj := &nodeObject{
 			tags: map[string]string{
-				"name":         fmt.Sprintf("%v", item.UID),
-				"node_name":    item.Name,
-				"status":       fmt.Sprintf("%v", item.Status.Phase),
-				"cluster_name": defaultClusterName(item.ClusterName),
-				"namespace":    defaultNamespace(item.Namespace),
+				"name":      fmt.Sprintf("%v", item.UID),
+				"node_name": item.Name,
+				"status":    fmt.Sprintf("%v", item.Status.Phase),
+				"namespace": defaultNamespace(item.Namespace),
 			},
 			fields: map[string]interface{}{
 				"age":             int64(time.Since(item.CreationTimestamp.Time).Seconds()),
@@ -252,14 +251,13 @@ func (*nodeObject) Info() *inputs.MeasurementInfo {
 		Desc: "Kubernetes node 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo("UID"),
-			"node_name":    inputs.NewTagInfo("Name must be unique within a namespace."),
-			"node_ip":      inputs.NewTagInfo("Node IP (depercated)"),
-			"internal_ip":  inputs.NewTagInfo("Node internal IP"),
-			"role":         inputs.NewTagInfo("Node role. (master/node)"),
-			"cluster_name": inputs.NewTagInfo("The name of the cluster which the object belongs to."),
-			"namespace":    inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
-			"status":       inputs.NewTagInfo("NodePhase is the recently observed lifecycle phase of the node. (Pending/Running/Terminated)"),
+			"name":        inputs.NewTagInfo("UID"),
+			"node_name":   inputs.NewTagInfo("Name must be unique within a namespace."),
+			"node_ip":     inputs.NewTagInfo("Node IP (depercated)"),
+			"internal_ip": inputs.NewTagInfo("Node internal IP"),
+			"role":        inputs.NewTagInfo("Node role. (master/node)"),
+			"namespace":   inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"status":      inputs.NewTagInfo("NodePhase is the recently observed lifecycle phase of the node. (Pending/Running/Terminated)"),
 		},
 		Fields: map[string]interface{}{
 			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},

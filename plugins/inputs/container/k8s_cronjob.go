@@ -113,7 +113,6 @@ func (c *cronjob) object(election bool) (inputsMeas, error) {
 			tags: map[string]string{
 				"name":          fmt.Sprintf("%v", item.UID),
 				"cron_job_name": item.Name,
-				"cluster_name":  defaultClusterName(item.ClusterName),
 				"namespace":     defaultNamespace(item.Namespace),
 			},
 			fields: map[string]interface{}{
@@ -217,7 +216,6 @@ func (*cronjobObject) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":          inputs.NewTagInfo("UID"),
 			"cron_job_name": inputs.NewTagInfo("Name must be unique within a namespace."),
-			"cluster_name":  inputs.NewTagInfo("The name of the cluster which the object belongs to."),
 			"namespace":     inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
 		Fields: map[string]interface{}{

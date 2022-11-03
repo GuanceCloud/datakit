@@ -68,6 +68,7 @@ nav:
       - kubernetes-crd.md
       - logfwd.md
       - kubernetes-prom.md
+      - kubernetes-prometheus-operator-crd.md
 
     - 应用性能监测（APM）:
       - 'Datakit Tracing 综述': datakit-tracing.md

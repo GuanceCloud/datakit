@@ -69,8 +69,6 @@ func (j *job) metric(election bool) (inputsMeas, error) {
 			tags: map[string]string{
 				"job":       item.Name,
 				"namespace": defaultNamespace(item.Namespace),
-				// TODO
-				"cronjob": "",
 			},
 			fields: map[string]interface{}{
 				"failed":               item.Status.Failed,
@@ -88,10 +86,14 @@ func (j *job) metric(election bool) (inputsMeas, error) {
 		var succeeded, failed int
 		for _, condition := range item.Status.Conditions {
 			switch condition.Type {
-			case v1.JobComplete:
-				succeeded++
 			case v1.JobFailed:
 				failed++
+			case v1.JobComplete:
+				succeeded++
+			case v1.AlphaNoCompatGuaranteeJobFailureTarget:
+				// nil
+			case v1.JobSuspended:
+				// nil
 			}
 		}
 
@@ -128,9 +130,8 @@ func (j *job) object(election bool) (inputsMeas, error) {
 	for _, item := range j.items {
 		obj := &jobObject{
 			tags: map[string]string{
-				"name":         fmt.Sprintf("%v", item.UID),
-				"job_name":     item.Name,
-				"cluster_name": defaultClusterName(item.ClusterName),
+				"name":     fmt.Sprintf("%v", item.UID),
+				"job_name": item.Name,
 
 				"namespace": defaultNamespace(item.Namespace),
 			},
@@ -249,10 +250,9 @@ func (*jobObject) Info() *inputs.MeasurementInfo {
 		Desc: "Kubernetes Job 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo("UID"),
-			"job_name":     inputs.NewTagInfo("Name must be unique within a namespace."),
-			"cluster_name": inputs.NewTagInfo("The name of the cluster which the object belongs to."),
-			"namespace":    inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"name":      inputs.NewTagInfo("UID"),
+			"job_name":  inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
 		Fields: map[string]interface{}{
 			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},

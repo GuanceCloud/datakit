@@ -91,7 +91,6 @@ func (s *service) object(election bool) (inputsMeas, error) {
 				"name":         fmt.Sprintf("%v", item.UID),
 				"service_name": item.Name,
 				"type":         fmt.Sprintf("%v", item.Spec.Type),
-				"cluster_name": defaultClusterName(item.ClusterName),
 				"namespace":    defaultNamespace(item.Namespace),
 			},
 			fields: map[string]interface{}{
@@ -128,6 +127,17 @@ func (s *service) object(election bool) (inputsMeas, error) {
 	return res, nil
 }
 
+type serviceMeta struct{ *v1.Service }
+
+func (item *serviceMeta) servicePort(name string) int {
+	for _, s := range item.Spec.Ports {
+		if s.Name == name {
+			return int(s.Port)
+		}
+	}
+	return -1
+}
+
 type serviceObject struct {
 	tags     tagsType
 	fields   fieldsType
@@ -147,7 +157,6 @@ func (*serviceObject) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("UID"),
 			"service_name": inputs.NewTagInfo("Name must be unique within a namespace."),
-			"cluster_name": inputs.NewTagInfo("The name of the cluster which the object belongs to."),
 			"namespace":    inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"type":         inputs.NewTagInfo("type determines how the Service is exposed. Defaults to ClusterIP. (ClusterIP/NodePort/LoadBalancer/ExternalName)"),
 		},
