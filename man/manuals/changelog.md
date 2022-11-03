@@ -23,7 +23,7 @@
 
 ### 新加功能 {#cl-1.4.20-new}
 
-- 完善 Prometheus 生态兼容，增加 ServiceMonitor 和 PodMonitor 采集识别（#1130）
+- 完善 Prometheus 生态兼容，增加 [ServiceMonitor 和 PodMonitor 采集识别](kubernetes-prometheus-operator-crd.md)(#1130)
 - 增加基于 async-profiler 的 [Java Profiling 接入](profile-java-async-profiler.md)(#1240)
 
 ### 问题修复 {#cl-1.4.20-fix}
