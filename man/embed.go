@@ -48,6 +48,8 @@ var OtherDocs = map[string]bool{
 	"datatypes":                    true,
 	"dataway":                      true,
 	"dca":                          true,
+	"profile-ddtrace":              true,
+	"profile-java-async-profiler":  true,
 	"ddtrace-golang":               true,
 	"ddtrace-java":                 true,
 	"ddtrace-python":               true,
