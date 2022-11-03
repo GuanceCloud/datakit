@@ -170,6 +170,8 @@ datakit_docs=(
   $tmp_doc_dir/oracle.md
   $tmp_doc_dir/postgresql.md
   $tmp_doc_dir/profile.md
+  $tmp_doc_dir/profile-ddtrace.md
+  $tmp_doc_dir/profile-java-async-profiler.md
   $tmp_doc_dir/prom.md
   $tmp_doc_dir/prom_remote_write.md
   $tmp_doc_dir/promtail.md

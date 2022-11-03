@@ -73,9 +73,13 @@ nav:
       - 'Datakit Tracing 综述': datakit-tracing.md
       - datakit-tracing-struct.md
 
+      - 'Profiling':
+        - 'Profile 采集配置': profile.md
+        - profile-ddtrace.md
+        - 'Java profiling': profile-java-async-profiler.md
+
       - 'DDTrace':
         - 'DDtrace 采集配置': ddtrace.md
-        - profile.md
         - ddtrace-golang.md
         - ddtrace-java.md
         - ddtrace-python.md

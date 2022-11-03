@@ -137,9 +137,9 @@ git 验证方式采用用户名和密码方式。
 
 更多关于 Datakit 的 Kubernates 环境下面的配置可以参见[这个文档](k8s-config-how-to.md#via-env-config)。
 
-## FAQ
+## FAQ {#faq}
 
-### 报错: authentication required
+### 报错: authentication required {#auth-required}
 
 出现这个报错可能是以下几种情况。
 
