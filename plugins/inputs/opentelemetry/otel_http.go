@@ -25,7 +25,7 @@ const (
 	jsonContentType = "application/json"
 )
 
-func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
+func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, _ error) {
 	response := collectortracepb.ExportTraceServiceResponse{}
 	rawResponse, err := proto.Marshal(&response)
 	if err != nil {

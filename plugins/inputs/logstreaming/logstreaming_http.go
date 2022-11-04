@@ -25,7 +25,7 @@ import (
 )
 
 func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
-	resp.Write([]byte(`{"status":"success"}`))
+	resp.Write([]byte(`{"status":"success"}`)) // nolint: errcheck,gosec
 }
 
 type parameters struct {
