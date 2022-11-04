@@ -144,7 +144,6 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 
 		if strings.Contains(requrl, "/v1/write/") { //  clear beyond-usage error
 			atomic.StoreUint64(&BeyondUsage, 0)
-			log.Info("reset BeyondUsage to 0")
 		}
 
 	case 4:
