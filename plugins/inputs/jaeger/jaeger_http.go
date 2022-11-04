@@ -20,6 +20,10 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
+func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
+	resp.WriteHeader(http.StatusOK)
+}
+
 func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### received tracing data from path: %s", req.URL.Path)
 

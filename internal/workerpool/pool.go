@@ -13,7 +13,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
@@ -142,11 +141,7 @@ func (wkp *WorkerPool) worker() {
 	for {
 		select {
 		case <-wkp.exit.Wait():
-			wkp.log.Infof("on exit, worker-pool worker exits")
-
-			return
-		case <-datakit.Exit.Wait():
-			wkp.log.Infof("on datakit exit, woker-pool worker exits")
+			wkp.log.Infof("worker-pool worker exits")
 
 			return
 		default:

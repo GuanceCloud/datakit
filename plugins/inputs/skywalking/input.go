@@ -76,13 +76,8 @@ const (
 var (
 	log     = logger.DefaultSLogger(inputName)
 	address = "localhost:11800"
-	//	plugins        []string
-	//	afterGatherRun itrace.AfterGatherHandler
-	//	customerKeys   []string
-	//	tags           map[string]string
-	skySvr *grpc.Server
-	//	storage        *itrace.Storage
-	api *skywalkingapi.SkyAPI
+	api     *skywalkingapi.SkyAPI
+	skySvr  *grpc.Server
 )
 
 type Input struct {
@@ -122,10 +117,13 @@ func (ipt *Input) Run() {
 	}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_skywalking"})
 	g.Go(func(ctx context.Context) error {
-		registerServerV3(ipt.Address)
+		runGRPCV3(ipt.Address)
 
 		return nil
 	})
+
+	<-datakit.Exit.Wait()
+	ipt.Terminate()
 }
 
 func (ipt *Input) Terminate() {
@@ -133,6 +131,7 @@ func (ipt *Input) Terminate() {
 	if skySvr != nil {
 		skySvr.Stop()
 	}
+	api.CloseLocalCache()
 }
 
 func init() { //nolint:gochecknoinits

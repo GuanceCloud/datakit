@@ -87,8 +87,6 @@ func (ipt *Input) RegHTTPHandler() {
 	if ipt.LocalCacheConfig != nil {
 		if localCache, err = storage.NewStorage(ipt.LocalCacheConfig, log); err != nil {
 			log.Errorf("### new local-cache failed: %s", err.Error())
-		} else if err = localCache.RunConsumeWorker(); err != nil {
-			log.Errorf("### run local-cache consumer failed: %s", err.Error())
 		} else {
 			localCache.RegisterConsumer(storage.HTTP_KEY, func(buf []byte) error {
 				start := time.Now()
@@ -122,21 +120,28 @@ func (ipt *Input) RegHTTPHandler() {
 					return nil
 				}
 			})
+			if err = localCache.RunConsumeWorker(); err != nil {
+				log.Errorf("### run local-cache consumer failed: %s", err.Error())
+			}
 		}
 	}
 
 	dkhttp.RegHTTPHandler("POST", "/v1/write/logstreaming",
-		workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, ihttp.ProtectedHandlerFunc(ipt.handleLogstreaming, log))))
+		workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
+			storage.HTTPWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, ihttp.ProtectedHandlerFunc(ipt.handleLogstreaming, log))))
 }
 
-func (*Input) Run() {
+func (ipt *Input) Run() {
 	log.Info("### register logstreaming router")
+
+	<-datakit.Exit.Wait()
+	ipt.Terminate()
 }
 
 func (*Input) Terminate() {
 	if wkpool != nil {
 		wkpool.Shutdown()
-		log.Debugf("### workerpool in %s is shudown", inputName)
+		log.Debug("### workerpool closed")
 	}
 }
 

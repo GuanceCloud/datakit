@@ -41,20 +41,23 @@ func InitApiPluginAges(pls []string, localCacheConfig *storage.StorageConfig, cl
 	if localCacheConfig != nil {
 		if localCache, err := storage.NewStorage(localCacheConfig, api.log); err != nil {
 			api.log.Errorf("### new local-cache failed: %s", err.Error())
-		} else if err = localCache.RunConsumeWorker(); err != nil {
-			api.log.Errorf("### run local-cache consumer failed: %s", err.Error())
 		} else {
 			api.localCache = localCache
 			api.localCache.RegisterConsumer(storage.SKY_WALKING_GRPC_KEY, func(buf []byte) error {
+				start := time.Now()
 				segobj := &agentv3.SegmentObject{}
 				if err := proto.Unmarshal(buf, segobj); err != nil {
 					return err
 				}
-
 				api.parseSegmentObject(segobj)
+
+				api.log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(buf)>>10, time.Since(start)/time.Millisecond, err)
 
 				return nil
 			})
+			if err = localCache.RunConsumeWorker(); err != nil {
+				api.log.Errorf("### run local-cache consumer failed: %s", err.Error())
+			}
 		}
 	}
 
@@ -98,5 +101,13 @@ func InitApiPluginAges(pls []string, localCacheConfig *storage.StorageConfig, cl
 func (api *SkyAPI) StopStorage() {
 	if api.localCache != nil {
 		_ = api.localCache.Close()
+	}
+}
+
+func (api *SkyAPI) CloseLocalCache() {
+	if api.localCache != nil {
+		if err := api.localCache.Close(); err != nil {
+			api.log.Error(err.Error())
+		}
 	}
 }

@@ -131,8 +131,6 @@ func (ipt *Input) RegHTTPHandler() {
 	if ipt.LocalCacheConfig != nil {
 		if localCache, err = storage.NewStorage(ipt.LocalCacheConfig, log); err != nil {
 			log.Errorf("### new local-cache failed: %s", err.Error())
-		} else if err = localCache.RunConsumeWorker(); err != nil {
-			log.Errorf("### run local-cache consumer failed: %s", err.Error())
 		} else {
 			localCache.RegisterConsumer(storage.ZIPKIN_HTTP_V1_KEY, func(buf []byte) error {
 				start := time.Now()
@@ -198,6 +196,9 @@ func (ipt *Input) RegHTTPHandler() {
 					return nil
 				}
 			})
+			if err = localCache.RunConsumeWorker(); err != nil {
+				log.Errorf("### run local-cache consumer failed: %s", err.Error())
+			}
 		}
 	}
 
@@ -239,14 +240,16 @@ func (ipt *Input) RegHTTPHandler() {
 	}
 	log.Debugf("### register handler for %s of agent %s", ipt.PathV1, inputName)
 	dkhttp.RegHTTPHandler("POST", ipt.PathV1,
-		workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.ZIPKIN_HTTP_V1_KEY, localCache, handleZipkinTraceV1)))
+		workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
+			storage.HTTPWrapper(storage.ZIPKIN_HTTP_V1_KEY, httpStatusRespFunc, localCache, handleZipkinTraceV1)))
 
 	if ipt.PathV2 == "" {
 		ipt.PathV2 = apiv2Path
 	}
 	log.Debugf("### register handler for %s of agent %s", ipt.PathV2, inputName)
 	dkhttp.RegHTTPHandler("POST", ipt.PathV2,
-		workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.ZIPKIN_HTTP_V2_KEY, localCache, handleZipkinTraceV2)))
+		workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
+			storage.HTTPWrapper(storage.ZIPKIN_HTTP_V2_KEY, httpStatusRespFunc, localCache, handleZipkinTraceV2)))
 }
 
 func (ipt *Input) Run() {
@@ -254,9 +257,12 @@ func (ipt *Input) Run() {
 	tags = ipt.Tags
 
 	log.Debugf("### %s agent is running...", inputName)
+
+	<-datakit.Exit.Wait()
+	ipt.Terminate()
 }
 
-func (ipt *Input) Terminate() {
+func (*Input) Terminate() {
 	if wkpool != nil {
 		wkpool.Shutdown()
 		log.Debug("### workerpool closed")
@@ -273,4 +279,8 @@ func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})
+}
+
+func httpStatRespFunc(statusCode int, err error, resp http.ResponseWriter) {
+
 }
