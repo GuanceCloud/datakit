@@ -280,7 +280,3 @@ func init() { //nolint:gochecknoinits
 		return &Input{}
 	})
 }
-
-func httpStatRespFunc(statusCode int, err error, resp http.ResponseWriter) {
-
-}
