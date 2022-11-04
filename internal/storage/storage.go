@@ -81,17 +81,13 @@ func (s *Storage) RunConsumeWorker() error {
 				s.log.Infof("on exit, storage stop on path '%s' exit", s.path)
 
 				return nil
-			case <-datakit.Exit.Wait():
-				s.log.Infof("on datakit exit, stop on path '%s' exit", s.path)
-
-				return nil
 			default:
 			}
 
 			key, buf, err := s.Get()
 			if err != nil {
 				if errors.Is(err, cache.ErrEOF) {
-					s.log.Info("local-cache running empty sleep 1 sec")
+					s.log.Debug("local-cache empty")
 					time.Sleep(time.Second)
 					continue
 				}

@@ -10,10 +10,11 @@ import (
 	"net/http"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"google.golang.org/protobuf/proto"
 )
 
-func HTTPWrapper(key uint8, s *Storage, handler http.HandlerFunc) http.HandlerFunc {
+func HTTPWrapper(key uint8, statRespFunc ihttp.HTTPStatusResponse, s *Storage, handler http.HandlerFunc) http.HandlerFunc {
 	if s == nil || !s.enabled {
 		return handler
 	} else {
@@ -56,10 +57,10 @@ func HTTPWrapper(key uint8, s *Storage, handler http.HandlerFunc) http.HandlerFu
 
 			if err = s.Put(key, buf); err != nil {
 				s.log.Error(err.Error())
-				resp.WriteHeader(http.StatusBadRequest)
+				statRespFunc(resp, req, err)
 			} else {
-				s.log.Debug("HTTP wrapper: put new data into local-cache success")
-				resp.WriteHeader(http.StatusOK)
+				s.log.Debug("HTTP wrapper: new data put into local-cache success")
+				statRespFunc(resp, req, nil)
 			}
 		}
 	}

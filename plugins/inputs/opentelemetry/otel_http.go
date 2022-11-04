@@ -25,6 +25,27 @@ const (
 	jsonContentType = "application/json"
 )
 
+func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
+	response := collectortracepb.ExportTraceServiceResponse{}
+	rawResponse, err := proto.Marshal(&response)
+	if err != nil {
+		log.Error(err.Error())
+		resp.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	media, _, _, err := itrace.ParseTracerRequest(req)
+	if err != nil {
+		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	writeReply(resp, rawResponse, http.StatusOK, media, nil)
+}
+
 // handler collector.
 type otlpHTTPCollector struct {
 	spanStorage     *collector.SpansStorage

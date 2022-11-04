@@ -229,3 +229,5 @@ func (nop *NopResponseWriter) Header() http.Header { return make(http.Header) }
 func (nop *NopResponseWriter) Write([]byte) (int, error) { return 0, nil }
 
 func (nop *NopResponseWriter) WriteHeader(statusCode int) {}
+
+type HTTPStatusResponse func(resp http.ResponseWriter, req *http.Request, err error)
