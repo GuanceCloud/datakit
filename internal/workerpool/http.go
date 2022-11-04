@@ -21,7 +21,7 @@ type parameters struct {
 	body *bytes.Buffer
 }
 
-func HTTPWrapper(wkp *WorkerPool, handler http.HandlerFunc) http.HandlerFunc {
+func HTTPWrapper(statRespFunc ihttp.HTTPStatusResponse, wkp *WorkerPool, handler http.HandlerFunc) http.HandlerFunc {
 	if wkp == nil || !wkp.enabled {
 		return handler
 	} else {
@@ -75,16 +75,13 @@ func HTTPWrapper(wkp *WorkerPool, handler http.HandlerFunc) http.HandlerFunc {
 			}
 
 			if err = wkp.MoreJob(job); err != nil {
-				wkp.log.Warnf("### send more job failed: %s", err.Error())
-				resp.WriteHeader(http.StatusTooManyRequests)
-
-				return
+				wkp.log.Error(err.Error())
+				statRespFunc(resp, req, err)
+			} else {
+				enterWorkerPool = true
+				wkp.log.Debug("HTTP wrapper: new job enters worker-pool success")
+				statRespFunc(resp, req, nil)
 			}
-			enterWorkerPool = true
-
-			wkp.log.Debug("HTTP wrapper: new job enters worker-pool success")
-
-			resp.WriteHeader(http.StatusOK)
 		}
 	}
 }
