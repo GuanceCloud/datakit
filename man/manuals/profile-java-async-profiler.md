@@ -181,7 +181,6 @@ fi
 java_process_ids=$(jps -q -J-XX:+PerfDisableSharedMem)
 if [ -n "$PROCESS_ID" ]; then
     java_process_ids=`echo $PROCESS_ID | tr "," " "`
-    return
 fi
 
 if [[ $java_process_ids == "" ]]; then
