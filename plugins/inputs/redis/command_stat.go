@@ -87,7 +87,9 @@ func (i *Input) parseCommandData(list string) ([]inputs.Measurement, error) {
 			resData:  make(map[string]interface{}),
 			election: i.Election,
 		}
-
+		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
+			m.tags["host"] = i.Host
+		}
 		for key, value := range i.Tags {
 			m.tags[key] = value
 		}

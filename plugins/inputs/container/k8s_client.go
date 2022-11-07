@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	kubev1prometheusclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
+	kubev1prometheusmonitoring "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
 	kubev1guancebeta1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/typed/guance/v1beta1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,7 +35,6 @@ var (
 )
 
 type k8sClientX interface {
-	getDatakits() kubev1guancebeta1.DatakitInterface
 	getDeployments() kubev1apps.DeploymentInterface
 	getDaemonSets() kubev1apps.DaemonSetInterface
 	getReplicaSets() kubev1apps.ReplicaSetInterface
@@ -49,9 +50,15 @@ type k8sClientX interface {
 	getIngress() kubev1extensionsbeta1.IngressInterface
 	getEvents() kubev1core.EventInterface
 
+	// CRDs
+	getDatakits() kubev1guancebeta1.DatakitInterface
+	getPrmetheusPodMonitors() kubev1prometheusmonitoring.PodMonitorInterface
+	getPrmetheusServiceMonitors() kubev1prometheusmonitoring.ServiceMonitorInterface
+
 	getDaemonSetsForNamespace(string) kubev1apps.DaemonSetInterface
 	getDeploymentsForNamespace(string) kubev1apps.DeploymentInterface
 	getPodsForNamespace(string) kubev1core.PodInterface
+	getServicesForNamespace(string) kubev1core.ServiceInterface
 }
 
 type k8sClient struct {
@@ -59,7 +66,20 @@ type k8sClient struct {
 	metricsClient k8sMetricsClientX
 
 	*kubernetes.Clientset
-	guanceV1beta1 *kubev1guancebeta1.GuanceV1Client
+	guanceV1beta1          *kubev1guancebeta1.GuanceV1Client
+	prometheusMonitoringV1 *kubev1prometheusclient.Clientset
+}
+
+func newRestConfig(baseURL, token string) *rest.Config {
+	restConfig := &rest.Config{
+		Host:        baseURL,
+		BearerToken: token,
+		TLSClientConfig: rest.TLSClientConfig{
+			Insecure: true,
+		},
+		RateLimiter: flowcontrol.NewTokenBucketRateLimiter(1000, 1000), // setting default limit
+	}
+	return restConfig
 }
 
 func newK8sClientFromBearerToken(baseURL, path string) (*k8sClient, error) {
@@ -76,15 +96,7 @@ func newK8sClientFromBearerToken(baseURL, path string) (*k8sClient, error) {
 }
 
 func newK8sClientFromBearerTokenString(baseURL, token string) (*k8sClient, error) {
-	restConfig := &rest.Config{
-		Host:        baseURL,
-		BearerToken: token,
-		TLSClientConfig: rest.TLSClientConfig{
-			Insecure: true,
-		},
-		RateLimiter: flowcontrol.NewTokenBucketRateLimiter(1000, 1000), // setting default limit
-	}
-	return newK8sClient(restConfig)
+	return newK8sClient(newRestConfig(baseURL, token))
 }
 
 //nolint:deadcode,unused
@@ -133,9 +145,15 @@ func newK8sClient(restConfig *rest.Config) (*k8sClient, error) {
 		return nil, err
 	}
 
+	prometheusClient, err := kubev1prometheusclient.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	k := &k8sClient{
-		Clientset:     config,
-		guanceV1beta1: guanceClient,
+		Clientset:              config,
+		guanceV1beta1:          guanceClient,
+		prometheusMonitoringV1: prometheusClient,
 	}
 
 	if c, err := newK8sMetricsClient(restConfig); err != nil {
@@ -150,10 +168,6 @@ func newK8sClient(restConfig *rest.Config) (*k8sClient, error) {
 //nolint:deadcode,unused
 func (c *k8sClient) setNamespace(namespace string) {
 	c.namespace = namespace
-}
-
-func (c *k8sClient) getDatakits() kubev1guancebeta1.DatakitInterface {
-	return c.guanceV1beta1.Datakits(c.namespace)
 }
 
 func (c *k8sClient) getDeployments() kubev1apps.DeploymentInterface {
@@ -196,6 +210,10 @@ func (c *k8sClient) getServices() kubev1core.ServiceInterface {
 	return c.CoreV1().Services(c.namespace)
 }
 
+func (c *k8sClient) getServicesForNamespace(namespace string) kubev1core.ServiceInterface {
+	return c.CoreV1().Services(namespace)
+}
+
 func (c *k8sClient) getNodes() kubev1core.NodeInterface {
 	return c.CoreV1().Nodes()
 }
@@ -222,4 +240,18 @@ func (c *k8sClient) getIngress() kubev1extensionsbeta1.IngressInterface {
 
 func (c *k8sClient) getEvents() kubev1core.EventInterface {
 	return c.CoreV1().Events(c.namespace)
+}
+
+/// CRDs
+
+func (c *k8sClient) getDatakits() kubev1guancebeta1.DatakitInterface {
+	return c.guanceV1beta1.Datakits(c.namespace)
+}
+
+func (c *k8sClient) getPrmetheusPodMonitors() kubev1prometheusmonitoring.PodMonitorInterface {
+	return c.prometheusMonitoringV1.MonitoringV1().PodMonitors(c.namespace)
+}
+
+func (c *k8sClient) getPrmetheusServiceMonitors() kubev1prometheusmonitoring.ServiceMonitorInterface {
+	return c.prometheusMonitoringV1.MonitoringV1().ServiceMonitors(c.namespace)
 }

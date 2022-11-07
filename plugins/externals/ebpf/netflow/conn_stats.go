@@ -102,13 +102,13 @@ func ConnAddrIsIPv4(meta uint32) bool {
 func connDirection2Str(direction uint8) string {
 	switch direction {
 	case ConnDirectionIncoming:
-		return "incoming"
+		return DirectionIncoming
 	case ConnDirectionOutgoing:
-		return "outgoing"
+		return DirectionOutgoing
 	default:
 		// netflow.c 中的 kprobe__tcp_close 不判断进出口流量，
 		// 若该连接只触发此函数，direction 值为 0.
-		return "outgoing"
+		return DirectionOutgoing
 	}
 }
 

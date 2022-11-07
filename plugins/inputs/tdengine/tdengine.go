@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -150,9 +151,9 @@ func (t *tdEngine) run() {
 								continue
 							}
 							if sql.plugInFun != nil {
-								msmC <- sql.plugInFun.resToMeasurement(metric.metricName, res, sql, t.election)
+								msmC <- sql.plugInFun.resToMeasurement(metric.metricName, res, sql, t.election, t.adapter)
 							} else {
-								msmC <- makeMeasurements(metric.metricName, res, sql, t.election)
+								msmC <- makeMeasurements(metric.metricName, res, sql, t.election, t.adapter)
 							}
 						}
 					}
@@ -277,7 +278,8 @@ func query(url string, basicAuth, token string, reqBody []byte) ([]byte, error) 
 	return body, nil
 }
 
-func makeMeasurements(subMetricName string, res restResult, sql selectSQL, election bool) (measurements []inputs.Measurement) {
+func makeMeasurements(subMetricName string, res restResult, sql selectSQL, election bool, u string) (measurements []inputs.Measurement) {
+	host := getHost(u)
 	measurements = make([]inputs.Measurement, 0, res.Rows)
 	if len(res.Data) == 0 {
 		return
@@ -285,10 +287,13 @@ func makeMeasurements(subMetricName string, res restResult, sql selectSQL, elect
 
 	for i := 0; i < len(res.Data); i++ {
 		msm := &Measurement{
-			tags:     make(map[string]string),
+			tags:     map[string]string{},
 			fields:   make(map[string]interface{}),
 			ts:       time.Time{},
 			election: election,
+		}
+		if host != "" {
+			msm.tags["host"] = host
 		}
 		for j := 0; j < len(res.Data[i]); j++ {
 			name := res.ColumnMeta[j][0].(string)
@@ -350,4 +355,16 @@ func setGlobalTags(msm *Measurement) {
 			msm.tags[key] = val
 		}
 	}
+}
+
+func getHost(u string) string {
+	if u == "" || strings.Contains(u, "127.0.0.1") || strings.Contains(u, "localhost") {
+		return ""
+	}
+	uu, err := url.Parse(u)
+	if err != nil {
+		l.Errorf("failed to get host from url: %v", err)
+		return ""
+	}
+	return uu.Host
 }

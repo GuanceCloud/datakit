@@ -1100,7 +1100,7 @@ http_request_duration_seconds_bucket 1
 		}
 
 		t.Run(tc.name, func(t *testing.T) {
-			pts, err := p.text2Metrics(bytes.NewBufferString(tc.promdata))
+			pts, err := p.text2Metrics(bytes.NewBufferString(tc.promdata), "")
 			if err != nil {
 				t.Error(err)
 				return
@@ -1377,7 +1377,7 @@ node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",addr
 			assert.NoError(t, err)
 			p.SetClient(&http.Client{Transport: newTransportMock(tc.text)})
 			if tc.fail {
-				_, err := p.text2Metrics(bytes.NewReader([]byte(tc.text)))
+				_, err := p.text2Metrics(bytes.NewReader([]byte(tc.text)), "")
 				assert.Error(t, err)
 				return
 			}
@@ -1386,9 +1386,9 @@ node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",addr
 				// doText2Metrics should produce exactly the same metrics as text2Metrics.
 				var arr1, arr2 []string
 
-				pts1, err := p.doText2Metrics(bytes.NewReader([]byte(tc.text)))
+				pts1, err := p.doText2Metrics(bytes.NewReader([]byte(tc.text)), "")
 				assert.NoError(t, err)
-				pts2, err := p.text2Metrics(bytes.NewReader([]byte(tc.text)))
+				pts2, err := p.text2Metrics(bytes.NewReader([]byte(tc.text)), "")
 				assert.NoError(t, err)
 
 				assert.Equal(t, len(pts1), len(pts2))
@@ -1412,10 +1412,10 @@ node_network_info{duplex="unknown",broadcast="ff:ff:ff:ff:ff:ff",ifalias="",addr
 				arr = arr1
 			} else {
 				// Repetitive comments should make doText2Metrics fail.
-				_, err := p.doText2Metrics(bytes.NewReader([]byte(tc.text)))
+				_, err := p.doText2Metrics(bytes.NewReader([]byte(tc.text)), "")
 				assert.Error(t, err)
 
-				pts, err := p.text2Metrics(bytes.NewReader([]byte(tc.text)))
+				pts, err := p.text2Metrics(bytes.NewReader([]byte(tc.text)), "")
 				assert.NoError(t, err)
 
 				for _, pt := range pts {
@@ -1484,7 +1484,7 @@ func Benchmark_text2Metrics(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					f, err := os.Open(t.filepath)
 					assert.NoError(b, err)
-					pts, err := p.text2Metrics(f)
+					pts, err := p.text2Metrics(f, "")
 					assert.NoError(b, err)
 					assert.Equal(b, t.numPts, len(pts))
 					err = f.Close()
@@ -1496,7 +1496,7 @@ func Benchmark_text2Metrics(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					f, err := os.Open(t.filepath)
 					assert.NoError(b, err)
-					pts, err := p.doText2Metrics(f)
+					pts, err := p.doText2Metrics(f, "")
 					assert.NoError(b, err)
 					assert.Equal(b, t.numPts, len(pts))
 					err = f.Close()

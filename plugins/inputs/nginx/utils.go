@@ -8,6 +8,7 @@ package nginx
 import (
 	"net"
 	"net/url"
+	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -37,6 +38,10 @@ func getTags(urlString string) map[string]string {
 	}
 	tags["nginx_server"] = host
 	tags["nginx_port"] = port
+	if !strings.Contains(host, "127.0.0.1") && !strings.Contains(host, "localhost") {
+		tags["host"] = host
+	}
+	tags["host"] = host
 	return tags
 }
 

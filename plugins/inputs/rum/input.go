@@ -110,8 +110,6 @@ func (ipt *Input) RegHTTPHandler() {
 	if ipt.LocalCacheConfig != nil {
 		if localCache, err = storage.NewStorage(ipt.LocalCacheConfig, log); err != nil {
 			log.Errorf("### new local-cache failed: %s", err.Error())
-		} else if err = localCache.RunConsumeWorker(); err != nil {
-			log.Errorf("### run local-cache consumer failed: %s", err.Error())
 		} else {
 			localCache.RegisterConsumer(storage.HTTP_KEY, func(buf []byte) error {
 				start := time.Now()
@@ -145,11 +143,16 @@ func (ipt *Input) RegHTTPHandler() {
 					return nil
 				}
 			})
+			if err = localCache.RunConsumeWorker(); err != nil {
+				log.Errorf("### run local-cache consumer failed: %s", err.Error())
+			}
 		}
 	}
 
 	for _, endpoint := range ipt.Endpoints {
-		dkhttp.RegHTTPHandler(http.MethodPost, endpoint, workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, ipt.handleRUM)))
+		dkhttp.RegHTTPHandler(http.MethodPost, endpoint,
+			workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
+				storage.HTTPWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, ipt.handleRUM)))
 		log.Infof("### register RUM endpoint: %s", endpoint)
 	}
 }
@@ -160,10 +163,22 @@ func (ipt *Input) Run() {
 	if err := loadSourcemapFile(); err != nil {
 		log.Errorf("load source map file failed: %s", err.Error())
 	}
+
+	<-datakit.Exit.Wait()
+	ipt.Terminate()
 }
 
 func (*Input) Terminate() {
-	log.Info("### RUM exits")
+	if wkpool != nil {
+		wkpool.Shutdown()
+		log.Debug("### workerpool closed")
+	}
+	if localCache != nil {
+		if err := localCache.Close(); err != nil {
+			log.Error(err.Error())
+		}
+		log.Debug("### local storage closed")
+	}
 }
 
 func init() { //nolint:gochecknoinits

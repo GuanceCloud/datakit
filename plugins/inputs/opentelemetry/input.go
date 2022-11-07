@@ -171,8 +171,6 @@ func (ipt *Input) RegHTTPHandler() {
 		log.Debug("### start register")
 		if localCache, err = storage.NewStorage(ipt.LocalCacheConfig, log); err != nil {
 			log.Errorf("### new local-cache failed: %s", err.Error())
-		} else if err = localCache.RunConsumeWorker(); err != nil {
-			log.Errorf("### run local-cache consumer failed: %s", err.Error())
 		} else {
 			localCache.RegisterConsumer(storage.HTTP_KEY, func(buf []byte) error {
 				start := time.Now()
@@ -206,6 +204,9 @@ func (ipt *Input) RegHTTPHandler() {
 					return nil
 				}
 			})
+			if err = localCache.RunConsumeWorker(); err != nil {
+				log.Errorf("### run local-cache consumer failed: %s", err.Error())
+			}
 		}
 	}
 
@@ -250,20 +251,22 @@ func (ipt *Input) RegHTTPHandler() {
 	log.Infof("### register handler for /otel/v1/trace of agent %s", inputName)
 	log.Infof("### register handler for /otel/v1/metric of agent %s", inputName)
 	dkhttp.RegHTTPHandler("POST", "/otel/v1/trace",
-		workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, ipt.HTTPCol.apiOtlpTrace)))
+		workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
+			storage.HTTPWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, ipt.HTTPCol.apiOtlpTrace)))
 	dkhttp.RegHTTPHandler("POST", "/otel/v1/metric", ipt.HTTPCol.apiOtlpMetric)
 }
 
 func (ipt *Input) Run() {
+	log.Infof("### %s agent is running...", inputName)
+
 	open := false
-	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
-	// 从配置文件 开启
 	if ipt.HTTPCol.Enable {
-		// add option
 		ipt.HTTPCol.spanStorage = spanStorage
 		ipt.HTTPCol.ExpectedHeaders = ipt.ExpectedHeaders
 		open = true
 	}
+
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
 	if ipt.GRPCCol.TraceEnable || ipt.GRPCCol.MetricEnable {
 		open = true
 		ipt.GRPCCol.ExpectedHeaders = ipt.ExpectedHeaders
@@ -281,34 +284,27 @@ func (ipt *Input) Run() {
 
 			return nil
 		})
-		for {
-			select {
-			case <-datakit.Exit.Wait():
-				ipt.exit()
-				log.Infof("### %s exit", ipt.inputName)
-
-				return
-			case <-ipt.semStop.Wait():
-				ipt.exit()
-				log.Infof("### %s return", ipt.inputName)
-
-				return
-			}
+		select {
+		case <-datakit.Exit.Wait():
+			log.Infof("### %s exit", ipt.inputName)
+		case <-ipt.semStop.Wait():
+			log.Infof("### %s return", ipt.inputName)
 		}
+		ipt.exit()
 	}
-
-	log.Infof("### %s agent is running...", inputName)
 }
 
 func (ipt *Input) exit() {
 	ipt.GRPCCol.stop()
-	if localCache != nil {
-		_ = localCache.Close()
-		log.Info("openTelemetry storage closed")
-	}
 	if wkpool != nil {
 		wkpool.Shutdown()
-		log.Info("openTelemetry workerpool closed")
+		log.Info("### workerpool closed")
+	}
+	if localCache != nil {
+		if err := localCache.Close(); err != nil {
+			log.Error(err.Error())
+		}
+		log.Info("### storage closed")
 	}
 	if spanStorage != nil {
 		spanStorage.Stop()

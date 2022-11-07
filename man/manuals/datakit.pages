@@ -53,7 +53,7 @@ nav:
         - swap.md
         - net.md
         - netstat.md
-        - nvidia_smi.md
+        - gpu_smi.md
         - socket.md
         - system.md
         - hostdir.md
@@ -68,14 +68,19 @@ nav:
       - kubernetes-crd.md
       - logfwd.md
       - kubernetes-prom.md
+      - kubernetes-prometheus-operator-crd.md
 
     - 应用性能监测（APM）:
       - 'Datakit Tracing 综述': datakit-tracing.md
       - datakit-tracing-struct.md
 
+      - 'Profiling':
+        - 'Profile 采集配置': profile.md
+        - profile-ddtrace.md
+        - 'Java profiling': profile-java-async-profiler.md
+
       - 'DDTrace':
         - 'DDtrace 采集配置': ddtrace.md
-        - profile.md
         - ddtrace-golang.md
         - ddtrace-java.md
         - ddtrace-python.md

@@ -20,7 +20,7 @@ import (
 )
 
 func (api *SkyAPI) ProcessSegment(segment *agentv3.SegmentObject) {
-	if api.localCache == nil {
+	if api.localCache == nil || !api.localCache.Enabled() {
 		api.parseSegmentObject(segment)
 	} else {
 		if buf, err := proto.Marshal(segment); err != nil {

@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	url         = "http://example.com:9200"
+	uu          = "http://example.com:9200"
 	clusterName = "elasticsearch_cluster"
 )
 
@@ -68,10 +68,10 @@ func defaultServerInfo() serverInfo {
 
 func TestGatherNodeStats(t *testing.T) {
 	es := newElasticsearchWithClient()
-	es.Servers = []string{url}
+	es.Servers = []string{uu}
 	es.client.Transport = newTransportMock(nodeStatsResponse)
 	es.serverInfo = make(map[string]serverInfo)
-	es.serverInfo[url] = defaultServerInfo()
+	es.serverInfo[uu] = defaultServerInfo()
 
 	if _, err := es.gatherNodeStats(""); err != nil {
 		t.Fatal(err)
@@ -122,13 +122,13 @@ func TestUtilDuration(t *testing.T) {
 
 func TestCollect(t *testing.T) {
 	es := newElasticsearchWithClient()
-	es.Servers = []string{url}
+	es.Servers = []string{uu}
 	es.ClusterHealth = true
 	es.ClusterStats = true
 	es.ClusterHealthLevel = ""
 	es.client.Transport = newTransportMock(clusterHealthResponse)
 	es.serverInfo = make(map[string]serverInfo)
-	es.serverInfo[url] = defaultServerInfo()
+	es.serverInfo[uu] = defaultServerInfo()
 
 	if err := es.Collect(); err != nil {
 		t.Fatal(err)
@@ -137,12 +137,12 @@ func TestCollect(t *testing.T) {
 
 func TestGatherClusterHealthEmptyClusterHealth(t *testing.T) {
 	es := newElasticsearchWithClient()
-	es.Servers = []string{url}
+	es.Servers = []string{uu}
 	es.ClusterHealth = true
 	es.ClusterHealthLevel = ""
 	es.client.Transport = newTransportMock(clusterHealthResponse)
 	es.serverInfo = make(map[string]serverInfo)
-	es.serverInfo[url] = defaultServerInfo()
+	es.serverInfo[uu] = defaultServerInfo()
 
 	if err := es.gatherClusterHealth("", ""); err != nil {
 		t.Fatal(err)
@@ -165,12 +165,12 @@ func TestGatherClusterHealthEmptyClusterHealth(t *testing.T) {
 
 func TestGatherClusterHealthSpecificClusterHealth(t *testing.T) {
 	es := newElasticsearchWithClient()
-	es.Servers = []string{url}
+	es.Servers = []string{uu}
 	es.ClusterHealth = true
 	es.ClusterHealthLevel = "cluster"
 	es.client.Transport = newTransportMock(clusterHealthResponse)
 	es.serverInfo = make(map[string]serverInfo)
-	es.serverInfo[url] = defaultServerInfo()
+	es.serverInfo[uu] = defaultServerInfo()
 
 	if err := es.gatherClusterHealth("", ""); err != nil {
 		t.Fatal(err)
@@ -193,12 +193,12 @@ func TestGatherClusterHealthSpecificClusterHealth(t *testing.T) {
 
 func TestGatherClusterHealthAlsoIndicesHealth(t *testing.T) {
 	es := newElasticsearchWithClient()
-	es.Servers = []string{url}
+	es.Servers = []string{uu}
 	es.ClusterHealth = true
 	es.ClusterHealthLevel = "indices"
 	es.client.Transport = newTransportMock(clusterHealthResponseWithIndices)
 	es.serverInfo = make(map[string]serverInfo)
-	es.serverInfo[url] = defaultServerInfo()
+	es.serverInfo[uu] = defaultServerInfo()
 
 	if err := es.gatherClusterHealth("", ""); err != nil {
 		t.Fatal(err)
@@ -215,10 +215,10 @@ func TestGatherClusterHealthAlsoIndicesHealth(t *testing.T) {
 func TestGatherClusterIndicesStats(t *testing.T) {
 	es := newElasticsearchWithClient()
 	es.IndicesInclude = []string{"_all"}
-	es.Servers = []string{url}
+	es.Servers = []string{uu}
 	es.client.Transport = newTransportMock(clusterIndicesResponse)
 	es.serverInfo = make(map[string]serverInfo)
-	es.serverInfo[url] = defaultServerInfo()
+	es.serverInfo[uu] = defaultServerInfo()
 
 	if err := es.gatherIndicesStats("", ""); err != nil {
 		t.Fatal(err)
@@ -303,7 +303,7 @@ func TestTlsConfig(t *testing.T) {
 func TestGatherClusterStatsMaster(t *testing.T) {
 	es := newElasticsearchWithClient()
 	es.ClusterStats = true
-	es.Servers = []string{url}
+	es.Servers = []string{uu}
 	es.serverInfo = make(map[string]serverInfo)
 	info := serverInfo{nodeID: "SDFsfSDFsdfFSDSDfSFDSDF", masterID: ""}
 
@@ -313,7 +313,7 @@ func TestGatherClusterStatsMaster(t *testing.T) {
 		t.Fatal(err)
 	}
 	info.masterID = masterID
-	es.serverInfo[url] = info
+	es.serverInfo[uu] = info
 
 	IsMasterResultTokens := strings.Split(string(IsMasterResult), " ")
 
@@ -474,7 +474,7 @@ func newElasticsearchWithClient() *Input {
 
 func TestGetVersion(t *testing.T) {
 	es := newElasticsearchWithClient()
-	es.Servers = []string{url}
+	es.Servers = []string{uu}
 	es.client.Transport = newTransportMock(clusterInfo)
 	version, err := es.getVersion("")
 
@@ -486,12 +486,12 @@ func TestGetLifeCycleErrorCount(t *testing.T) {
 	es := newElasticsearchWithClient()
 	es.client.Transport = newTransportMock(lifeCycleStateResponse)
 	es.serverInfo = make(map[string]serverInfo)
-	es.serverInfo[url] = serverInfo{version: "6.8"}
+	es.serverInfo[uu] = serverInfo{version: "6.8"}
 
-	assert.Equal(t, 1, es.getLifeCycleErrorCount(url))
+	assert.Equal(t, 1, es.getLifeCycleErrorCount(uu))
 
-	es.serverInfo[url] = serverInfo{version: "7.8"}
-	assert.Equal(t, 2, es.getLifeCycleErrorCount(url))
+	es.serverInfo[uu] = serverInfo{version: "7.8"}
+	assert.Equal(t, 2, es.getLifeCycleErrorCount(uu))
 }
 
 func TestMetric(t *testing.T) {
@@ -515,12 +515,12 @@ func TestMetric(t *testing.T) {
 
 func TestSetServerInfo(t *testing.T) {
 	es := newElasticsearchWithClient()
-	es.Servers = []string{url}
+	es.Servers = []string{uu}
 	es.client.Transport = newTransportMock(clusterInfo)
 
 	err := es.setServerInfo()
 	assert.NoError(t, err)
-	assert.Equal(t, clusterInfoExpected["version"], es.serverInfo[url].version)
+	assert.Equal(t, clusterInfoExpected["version"], es.serverInfo[uu].version)
 }
 
 func TestGetUserPrivilege(t *testing.T) {

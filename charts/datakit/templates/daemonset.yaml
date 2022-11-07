@@ -79,7 +79,7 @@ spec:
           {{- end }}
           {{- end }}
           {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion | default .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           name: {{ .Chart.Name }}
           ports:

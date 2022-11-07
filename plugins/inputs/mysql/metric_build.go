@@ -6,6 +6,7 @@
 package mysql
 
 import (
+	"strings"
 	"time"
 
 	"github.com/spf13/cast"
@@ -19,9 +20,12 @@ func (i *Input) buildMysql() ([]*point.Point, error) {
 	m := &baseMeasurement{
 		i:        i,
 		resData:  make(map[string]interface{}),
-		tags:     make(map[string]string),
+		tags:     map[string]string{},
 		fields:   make(map[string]interface{}),
 		election: i.Election,
+	}
+	if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
+		m.tags["host"] = i.Host
 	}
 
 	m.name = "mysql"
@@ -70,9 +74,12 @@ func (i *Input) buildMysqlSchema() ([]*point.Point, error) {
 	for k, v := range i.mSchemaSize {
 		m := &schemaMeasurement{
 			name:     "mysql_schema",
-			tags:     make(map[string]string),
+			tags:     map[string]string{},
 			fields:   make(map[string]interface{}),
 			election: i.Election,
+		}
+		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
+			m.tags["host"] = i.Host
 		}
 
 		for key, value := range i.Tags {
@@ -96,6 +103,9 @@ func (i *Input) buildMysqlSchema() ([]*point.Point, error) {
 			tags:     make(map[string]string),
 			fields:   make(map[string]interface{}),
 			election: i.Election,
+		}
+		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
+			m.tags["host"] = i.Host
 		}
 
 		for key, value := range i.Tags {
@@ -128,9 +138,12 @@ func (i *Input) buildMysqlInnodb() ([]*point.Point, error) {
 	ms := []inputs.Measurement{}
 
 	m := &innodbMeasurement{
-		tags:     make(map[string]string),
+		tags:     map[string]string{},
 		fields:   make(map[string]interface{}),
 		election: i.Election,
+	}
+	if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
+		m.tags["host"] = i.Host
 	}
 
 	m.name = "mysql_innodb"
@@ -160,9 +173,12 @@ func (i *Input) buildMysqlTableSchema() ([]*point.Point, error) {
 
 	for _, v := range i.mTableSchema {
 		m := &tbMeasurement{
-			tags:     make(map[string]string),
+			tags:     map[string]string{},
 			fields:   make(map[string]interface{}),
 			election: i.Election,
+		}
+		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
+			m.tags["host"] = i.Host
 		}
 
 		m.name = "mysql_table_schema"
@@ -201,9 +217,12 @@ func (i *Input) buildMysqlUserStatus() ([]*point.Point, error) {
 
 	for user := range i.mUserStatusName {
 		m := &userMeasurement{
-			tags:     make(map[string]string),
+			tags:     map[string]string{},
 			fields:   make(map[string]interface{}),
 			election: i.Election,
+		}
+		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
+			m.tags["host"] = i.Host
 		}
 
 		m.name = "mysql_user_status"
@@ -251,10 +270,12 @@ func (i *Input) buildMysqlDbmMetric() ([]*point.Point, error) {
 			name: "mysql_dbm_metric",
 			tags: map[string]string{
 				"service": "mysql",
-				"host":    i.Host,
 			},
 			fields:   make(map[string]interface{}),
 			election: i.Election,
+		}
+		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
+			m.tags["host"] = i.Host
 		}
 
 		if len(row.digestText) > 0 {
@@ -308,7 +329,6 @@ func (i *Input) buildMysqlDbmSample() ([]*point.Point, error) {
 	for _, plan := range i.dbmSamplePlans {
 		tags := map[string]string{
 			"service":           "mysql",
-			"host":              i.Host,
 			"current_schema":    plan.currentSchema,
 			"plan_definition":   plan.planDefinition,
 			"plan_signature":    plan.planSignature,
@@ -320,6 +340,9 @@ func (i *Input) buildMysqlDbmSample() ([]*point.Point, error) {
 			"digest":            plan.digest,
 			"processlist_db":    plan.processlistDB,
 			"processlist_user":  plan.processlistUser,
+		}
+		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
+			tags["host"] = i.Host
 		}
 
 		// append extra tags
@@ -387,9 +410,12 @@ func (i *Input) buildMysqlCustomQueries() ([]*point.Point, error) {
 		for _, item := range items {
 			m := &customerMeasurement{
 				name:     qy.metric,
-				tags:     make(map[string]string),
+				tags:     map[string]string{},
 				fields:   make(map[string]interface{}),
 				election: i.Election,
+			}
+			if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
+				m.tags["host"] = i.Host
 			}
 
 			for key, value := range i.Tags {

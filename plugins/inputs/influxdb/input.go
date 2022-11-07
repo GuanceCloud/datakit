@@ -12,7 +12,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"reflect"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -286,6 +288,9 @@ func (i *Input) Collect() error {
 			if point.Tags == nil {
 				point.Tags = make(map[string]string)
 			}
+			if host := getHost(i.URL); host != "" {
+				point.Tags["host"] = host
+			}
 			for k, v := range i.Tags {
 				point.Tags[k] = v
 			}
@@ -299,6 +304,18 @@ func (i *Input) Collect() error {
 		}
 	}
 	return nil
+}
+
+func getHost(rawURL string) string {
+	if strings.Contains(rawURL, "127.0.0.1") || strings.Contains(rawURL, "localhost") {
+		return ""
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		l.Errorf("failed to get host from url: %v", err)
+		return ""
+	}
+	return u.Host
 }
 
 func (i *Input) Pause() error {
