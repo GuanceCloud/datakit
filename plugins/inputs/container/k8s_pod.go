@@ -30,13 +30,19 @@ type pod struct {
 	extraTags             map[string]string
 	items                 []v1.Pod
 	extractK8sLabelAsTags bool
+	host                  string
 }
 
-func newPod(client k8sClientX, extraTags map[string]string) *pod {
+func newPod(client k8sClientX, extraTags map[string]string, host string) *pod {
 	return &pod{
 		client:    client,
 		extraTags: extraTags,
+		host:      host,
 	}
+}
+
+func (p *pod) getHost() string {
+	return p.host
 }
 
 func (p *pod) name() string {
@@ -90,6 +96,9 @@ func (p *pod) metric(election bool) (inputsMeas, error) {
 			},
 			election: election,
 		}
+		if p.host != "" {
+			met.tags["host"] = p.host
+		}
 
 		// extract pod lables to tags, not overwrite the existed tags
 		if p.extractK8sLabelAsTags {
@@ -129,6 +138,9 @@ func (p *pod) metric(election bool) (inputsMeas, error) {
 			fields:   map[string]interface{}{"count": c},
 			election: election,
 		}
+		if p.host != "" {
+			met.tags["host"] = p.host
+		}
 		met.tags.append(p.extraTags)
 		res = append(res, met)
 	}
@@ -162,17 +174,16 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 	for _, item := range p.items {
 		obj := &podObject{
 			tags: map[string]string{
-				"name":         fmt.Sprintf("%v", item.UID),
-				"pod_name":     item.Name,
-				"pod_ip":       item.Status.PodIP,
-				"node_name":    item.Spec.NodeName,
-				"host":         item.Spec.NodeName, // 指向 pod 所在的 node，便于关联
-				"phase":        fmt.Sprintf("%v", item.Status.Phase),
-				"qos_class":    fmt.Sprintf("%v", item.Status.QOSClass),
-				"state":        fmt.Sprintf("%v", item.Status.Phase), // Depercated
-				"status":       fmt.Sprintf("%v", item.Status.Phase),
-				"cluster_name": defaultClusterName(item.ClusterName),
-				"namespace":    defaultNamespace(item.Namespace),
+				"name":      fmt.Sprintf("%v", item.UID),
+				"pod_name":  item.Name,
+				"pod_ip":    item.Status.PodIP,
+				"node_name": item.Spec.NodeName,
+				"host":      item.Spec.NodeName, // 指向 pod 所在的 node，便于关联
+				"phase":     fmt.Sprintf("%v", item.Status.Phase),
+				"qos_class": fmt.Sprintf("%v", item.Status.QOSClass),
+				"state":     fmt.Sprintf("%v", item.Status.Phase), // Depercated
+				"status":    fmt.Sprintf("%v", item.Status.Phase),
+				"namespace": defaultNamespace(item.Namespace),
 			},
 			fields: map[string]interface{}{
 				"age":         int64(time.Since(item.CreationTimestamp.Time).Seconds()),
@@ -180,6 +191,9 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 				"create_time": item.CreationTimestamp.Time.UnixNano() / int64(time.Millisecond),
 			},
 			election: election,
+		}
+		if p.host != "" {
+			obj.tags["host"] = p.host
 		}
 
 		if y, err := yaml.Marshal(item); err != nil {
@@ -260,6 +274,17 @@ func queryPodMetaData(k8sClient k8sClientX, podname, podnamespace string) (*podM
 	return &podMeta{pod}, nil
 }
 
+func (item *podMeta) containerPort(name string) int {
+	for _, container := range item.Spec.Containers {
+		for _, port := range container.Ports {
+			if port.Name == name {
+				return int(port.ContainerPort)
+			}
+		}
+	}
+	return -1
+}
+
 func (item *podMeta) labels() map[string]string { return item.Labels }
 
 func (item *podMeta) annotations() map[string]string { return item.Annotations }
@@ -330,17 +355,16 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 		Desc: "Kubernetes pod 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo("UID"),
-			"pod_name":     inputs.NewTagInfo("Name must be unique within a namespace."),
-			"node_name":    inputs.NewTagInfo("NodeName is a request to schedule this pod onto a specific node."),
-			"cluster_name": inputs.NewTagInfo("The name of the cluster which the object belongs to."),
-			"namespace":    inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
-			"phase":        inputs.NewTagInfo("The phase of a Pod is a simple, high-level summary of where the Pod is in its lifecycle.(Pending/Running/Succeeded/Failed/Unknown)"),
-			"state":        inputs.NewTagInfo("Reason the container is not yet running. (Depercated, use status)"),
-			"status":       inputs.NewTagInfo("Reason the container is not yet running."),
-			"qos_class":    inputs.NewTagInfo("The Quality of Service (QOS) classification assigned to the pod based on resource requirements"),
-			"deployment":   inputs.NewTagInfo("The name of the deployment which the object belongs to. (Probably empty)"),
-			"replica_set":  inputs.NewTagInfo("The name of the replicaSet which the object belongs to. (Probably empty)"),
+			"name":        inputs.NewTagInfo("UID"),
+			"pod_name":    inputs.NewTagInfo("Name must be unique within a namespace."),
+			"node_name":   inputs.NewTagInfo("NodeName is a request to schedule this pod onto a specific node."),
+			"namespace":   inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"phase":       inputs.NewTagInfo("The phase of a Pod is a simple, high-level summary of where the Pod is in its lifecycle.(Pending/Running/Succeeded/Failed/Unknown)"),
+			"state":       inputs.NewTagInfo("Reason the container is not yet running. (Depercated, use status)"),
+			"status":      inputs.NewTagInfo("Reason the container is not yet running."),
+			"qos_class":   inputs.NewTagInfo("The Quality of Service (QOS) classification assigned to the pod based on resource requirements"),
+			"deployment":  inputs.NewTagInfo("The name of the deployment which the object belongs to. (Probably empty)"),
+			"replica_set": inputs.NewTagInfo("The name of the replicaSet which the object belongs to. (Probably empty)"),
 		},
 		Fields: map[string]interface{}{
 			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
@@ -358,8 +382,12 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface { return newPod(c, m) })
-	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface { return newPod(c, m) })
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
+		return newPod(c, m, host)
+	})
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string, host string) k8sResourceObjectInterface {
+		return newPod(c, m, host)
+	})
 	registerMeasurement(&podMetric{})
 	registerMeasurement(&podObject{})
 }

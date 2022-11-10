@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
+	"golang.org/x/exp/slices"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kubev1guancebeta1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/typed/guance/v1beta1"
@@ -34,14 +35,21 @@ const (
 	annotationPrometheusioScheme = "prometheus.io/scheme"
 
 	defaultPrometheusioInterval = "60s"
+	defaultPromScheme           = "http"
+	defaultPromPath             = "/metrics"
 )
 
 type discovery struct {
-	client                              k8sClientX
-	extraTags                           map[string]string
-	localNodeName                       string
-	extractK8sLabelAsTags               bool
-	autoDiscoveryOfK8sServicePrometheus bool
+	client                k8sClientX
+	extraTags             map[string]string
+	localNodeName         string
+	extractK8sLabelAsTags bool
+
+	enablePrometheusServiceAnnotations bool
+	enablePrometheusPodMonitors        bool
+	enablePrometheusServiceMonitors    bool
+
+	prometheusMonitoringExtraConfig *prometheusMonitoringExtraConfig
 
 	pause   bool
 	chPause chan bool
@@ -85,8 +93,8 @@ func (d *discovery) start() {
 	runners = d.updateRunners()
 	l.Infof("autodiscovery: update input list, len %d", len(runners))
 
-	if d.autoDiscoveryOfK8sServicePrometheus {
-		electionRunners := d.updateElectionRunners()
+	if d.election() {
+		electionRunners = d.updateElectionRunners()
 		l.Infof("autodiscovery: update electionInput list, len %d", len(electionRunners))
 	}
 
@@ -105,7 +113,7 @@ func (d *discovery) start() {
 
 		if d.pause {
 			l.Debug("not leader, skipped")
-		} else if d.autoDiscoveryOfK8sServicePrometheus {
+		} else if d.election() {
 			for _, r := range electionRunners {
 				r.collect()
 			}
@@ -124,7 +132,7 @@ func (d *discovery) start() {
 			runners = d.updateRunners()
 			l.Infof("autodiscovery: update input list, len %d", len(runners))
 
-			if d.autoDiscoveryOfK8sServicePrometheus {
+			if d.election() {
 				electionRunners = d.updateElectionRunners()
 				l.Infof("autodiscovery: update electionInput list, len %d", len(electionRunners))
 			}
@@ -137,16 +145,28 @@ func (d *discovery) start() {
 	}
 }
 
+func (d *discovery) election() bool {
+	return d.enablePrometheusServiceAnnotations || d.enablePrometheusServiceMonitors
+}
+
 func (d *discovery) updateRunners() []*discoveryRunner {
 	runners := []*discoveryRunner{}
 	runners = append(runners, d.fetchPromInputsFromPodAnnotations()...)
 	runners = append(runners, d.fetchInputsFromDatakitCRD()...)
+	if d.enablePrometheusPodMonitors {
+		runners = append(runners, d.fetchPromInputsForPodMonitors()...)
+	}
 	return runners
 }
 
 func (d *discovery) updateElectionRunners() []*discoveryRunner {
 	runners := []*discoveryRunner{}
-	runners = append(runners, d.fetchPromInputsFromService()...)
+	if d.enablePrometheusServiceAnnotations {
+		runners = append(runners, d.fetchPromInputsFromService()...)
+	}
+	if d.enablePrometheusServiceMonitors {
+		runners = append(runners, d.fetchPromInputsForServiceMonitors()...)
+	}
 	return runners
 }
 
@@ -183,25 +203,22 @@ func (d *discovery) fetchPromInputsFromService() []*discoveryRunner {
 			continue
 		}
 
-		scheme := "http"
-		path := "/metrics"
+		u := url.URL{
+			Scheme: defaultPromScheme,
+			Path:   defaultPromPath,
+			Host:   fmt.Sprintf("%s.%s:%s", item.Name, item.Namespace, port), // service_name.service_namespace:port
+		}
 
 		if s, ok := item.Annotations[annotationPrometheusioScheme]; ok {
 			if s == "https" {
-				scheme = s
+				u.Scheme = s
 			} else {
 				l.Warnf("autodiscovery: invalid scheme %s from service %s, use default 'http'", s, item.Name)
 			}
 		}
 
 		if p, ok := item.Annotations[annotationPrometheusioPath]; ok {
-			path = p
-		}
-
-		u := url.URL{
-			Scheme: scheme,
-			Host:   fmt.Sprintf("%s.%s:%s", item.Name, item.Namespace, port), // service_name.service_namespace:port
-			Path:   path,
+			u.Path = p
 		}
 
 		l.Infof("autodiscovery: new promInput for service %s, url %s", item.Name, u.String())
@@ -286,6 +303,204 @@ func (d *discovery) fetchInputsFromDatakitCRD() []*discoveryRunner {
 	return res
 }
 
+func (d *discovery) fetchPromInputsForPodMonitors() []*discoveryRunner {
+	var res []*discoveryRunner
+
+	list, err := d.client.getPrmetheusPodMonitors().List(context.Background(), metaV1ListOption)
+	if err != nil {
+		l.Warnf("autodiscovery: failed to get podMonitors, err: %s, retry in a minute", d.localNodeName, err)
+		return nil
+	}
+
+	for idx, item := range list.Items {
+		if item == nil {
+			continue
+		}
+
+		l.Infof("autodiscovery: find podMonitor %s spec: %#v", item.Name, item)
+
+		var pods []*podMeta
+
+		if item.Spec.NamespaceSelector.Any {
+			pods = d.getPodsFromLabelSelector("", "podMonitors", &list.Items[idx].Spec.Selector)
+		} else {
+			if len(item.Spec.NamespaceSelector.MatchNames) != 0 {
+				for _, namespace := range item.Spec.NamespaceSelector.MatchNames {
+					pods = append(pods, d.getPodsFromLabelSelector(namespace, "podMonitors", &list.Items[idx].Spec.Selector)...)
+				}
+			} else {
+				pods = d.getPodsFromLabelSelector(item.Namespace, "podMonitors", &list.Items[idx].Spec.Selector)
+			}
+		}
+
+		for _, pod := range pods {
+			for _, metricsEndpoints := range item.Spec.PodMetricsEndpoints {
+				u := url.URL{
+					Scheme:   defaultPromScheme,
+					Path:     defaultPromPath,
+					RawQuery: url.Values(metricsEndpoints.Params).Encode(),
+				}
+				if metricsEndpoints.Scheme != "" {
+					u.Scheme = metricsEndpoints.Scheme
+				}
+				if metricsEndpoints.Path != "" {
+					u.Path = metricsEndpoints.Path
+				}
+
+				if metricsEndpoints.Port != "" {
+					port := pod.containerPort(metricsEndpoints.Port)
+					if port == -1 {
+						l.Warnf("autodiscovery: not found port %s for podMonitor %s podName %s, ignored", metricsEndpoints.Port, item.Name, pod.Name)
+						continue
+					}
+					u.Host = fmt.Sprintf("%s:%d", pod.Status.PodIP, port)
+				} else {
+					//nolint
+					// deprecated
+					if metricsEndpoints.TargetPort != nil {
+						u.Host = fmt.Sprintf("%s:%d", pod.Status.PodIP, metricsEndpoints.TargetPort.IntVal)
+					} else {
+						l.Warnf("autodiscovery: not found port for podMonitor %s podName %s, ignored", item.Name, pod.Name)
+						continue
+					}
+				}
+
+				l.Infof("autodiscovery: new promInput for podMonitor %s podName %s, url %s", item.Name, pod.Name, u.String())
+
+				promInput := prom.NewProm()
+				promInput.Source = fmt.Sprintf("k8s.podMonitor/%s::%s", item.Name, pod.Name)
+				promInput.URLs = []string{u.String()}
+				for k, v := range d.extraTags {
+					promInput.Tags[k] = v
+				}
+				if metricsEndpoints.Interval != "" {
+					promInput.Interval = string(metricsEndpoints.Interval)
+				}
+				promInput.Tags["namespace"] = pod.Namespace
+				promInput.Tags["service"] = pod.Name
+
+				if d.prometheusMonitoringExtraConfig != nil {
+					l.Debugf("autodiscovery: matching promConfig %#v", d.prometheusMonitoringExtraConfig)
+					promConfig := d.prometheusMonitoringExtraConfig.matchPromConfig(pod.Labels, pod.Namespace)
+					if promConfig != nil {
+						l.Debugf("autodiscovery: use promConfig %#v for podMonitor %s podName %s", promConfig, item.Name, pod.Name)
+						promInput = mergePromConfig(promInput, promConfig)
+					}
+				}
+
+				l.Infof("autodiscovery: new promInput for podMonitor %s podName %s, config: %#v", item.Name, pod.Name, promInput)
+
+				res = append(res, &discoveryRunner{
+					runner:   promInput,
+					source:   item.Name + "::" + pod.Name,
+					lastTime: time.Now(),
+				})
+			}
+		}
+	}
+
+	return res
+}
+
+func (d *discovery) fetchPromInputsForServiceMonitors() []*discoveryRunner {
+	var res []*discoveryRunner
+
+	list, err := d.client.getPrmetheusServiceMonitors().List(context.Background(), metaV1ListOption)
+	if err != nil {
+		l.Warnf("autodiscovery: failed to get serviceMonitors, err: %s, retry in a minute", d.localNodeName, err)
+		return nil
+	}
+
+	for idx, item := range list.Items {
+		if item == nil {
+			continue
+		}
+
+		l.Infof("autodiscovery: find serviceMonitor %s spec: %#v", item.Name, item)
+
+		var services []*serviceMeta
+
+		if item.Spec.NamespaceSelector.Any {
+			services = d.getServicesFromLabelSelector("", "serviceMonitors", &list.Items[idx].Spec.Selector)
+		} else {
+			if len(item.Spec.NamespaceSelector.MatchNames) != 0 {
+				for _, namespace := range item.Spec.NamespaceSelector.MatchNames {
+					services = append(services, d.getServicesFromLabelSelector(namespace, "serviceMonitors", &list.Items[idx].Spec.Selector)...)
+				}
+			} else {
+				services = d.getServicesFromLabelSelector(item.Namespace, "serviceMonitors", &list.Items[idx].Spec.Selector)
+			}
+		}
+
+		for _, service := range services {
+			for _, endpoint := range item.Spec.Endpoints {
+				u := url.URL{
+					Scheme:   defaultPromScheme,
+					Path:     defaultPromPath,
+					RawQuery: url.Values(endpoint.Params).Encode(),
+				}
+				if endpoint.Scheme != "" {
+					u.Scheme = endpoint.Scheme
+				}
+				if endpoint.Path != "" {
+					u.Path = endpoint.Path
+				}
+
+				if endpoint.Port != "" {
+					port := service.servicePort(endpoint.Port)
+					if port == -1 {
+						l.Warnf("autodiscovery: not found port %s for serviceMonitor %s serviceName %s, ignored", endpoint.Port, item.Name, service.Name)
+						continue
+					}
+					u.Host = fmt.Sprintf("%s.%s:%d", service.Name, service.Namespace, port)
+				} else {
+					//nolint
+					// deprecated
+					if endpoint.TargetPort != nil {
+						u.Host = fmt.Sprintf("%s.%s:%d", service.Name, service.Namespace, endpoint.TargetPort.IntVal)
+					} else {
+						l.Warnf("autodiscovery: not found port for serviceMonitor %s serviceName %s, ignored", item.Name, service.Name)
+						continue
+					}
+				}
+
+				l.Infof("autodiscovery: new promInput for serviceMonitor %s serviceName %s, url %s", item.Name, service.Name, u.String())
+
+				promInput := prom.NewProm()
+				promInput.Source = fmt.Sprintf("k8s.serviceMonitor/%s::%s", item.Name, service.Name)
+				promInput.URLs = []string{u.String()}
+				for k, v := range d.extraTags {
+					promInput.Tags[k] = v
+				}
+				if endpoint.Interval != "" {
+					promInput.Interval = string(endpoint.Interval)
+				}
+				promInput.Tags["namespace"] = service.Namespace
+				promInput.Tags["service"] = service.Name
+
+				if d.prometheusMonitoringExtraConfig != nil {
+					l.Debugf("autodiscovery: matching promConfig %#v", d.prometheusMonitoringExtraConfig)
+					promConfig := d.prometheusMonitoringExtraConfig.matchPromConfig(service.Labels, service.Namespace)
+					if promConfig != nil {
+						l.Debugf("autodiscovery: use promConfig %#v for serviceMonitor %s serviceName %s", promConfig, item.Name, service.Name)
+						promInput = mergePromConfig(promInput, promConfig)
+					}
+				}
+
+				l.Infof("autodiscovery: new promInput for serviceMonitor %s serviceName %s, config: %#v", item.Name, service.Name, promInput)
+
+				res = append(res, &discoveryRunner{
+					runner:   promInput,
+					source:   item.Name + "::" + service.Name,
+					lastTime: time.Now(),
+				})
+			}
+		}
+	}
+
+	return res
+}
+
 func (d *discovery) updateGlobalCRDLogsConfList() {
 	fn := func(ins kubev1guancebeta1.DatakitInstance, pod *podMeta) {
 		// 添加到全局 list
@@ -329,21 +544,21 @@ func (d *discovery) processCRDWithPod(fn datakitCRDHandler) error {
 			pods := []*podMeta{}
 
 			if ins.K8sDaemonSet != "" {
-				lableSelector, err := d.getDaemonSetLabelSelector(ins.K8sNamespace, ins.K8sDaemonSet)
+				selector, err := d.getDaemonSetLabelSelector(ins.K8sNamespace, ins.K8sDaemonSet)
 				if err != nil {
 					l.Debugf("autodiscovery: not found DaemonSet %s LabelSelector, error %s, namespace %s", ins.K8sDaemonSet, err, ins.K8sNamespace)
 				} else {
-					t := d.getPodsFromLabelSelector(ins.K8sNamespace, ins.K8sDaemonSet, lableSelector)
+					t := d.getPodsFromLabelSelector(ins.K8sNamespace, ins.K8sDaemonSet, selector)
 					pods = append(pods, t...)
 				}
 			}
 
 			if ins.K8sDeployment != "" {
-				lableSelector, err := d.getDeploymentLabelSelector(ins.K8sNamespace, ins.K8sDeployment)
+				selector, err := d.getDeploymentLabelSelector(ins.K8sNamespace, ins.K8sDeployment)
 				if err != nil {
 					l.Debugf("autodiscovery: not found Deployment %s LabelSelector, error %s, namespace %s", ins.K8sDeployment, err, ins.K8sNamespace)
 				} else {
-					t := d.getPodsFromLabelSelector(ins.K8sNamespace, ins.K8sDeployment, lableSelector)
+					t := d.getPodsFromLabelSelector(ins.K8sNamespace, ins.K8sDeployment, selector)
 					pods = append(pods, t...)
 				}
 			}
@@ -357,9 +572,32 @@ func (d *discovery) processCRDWithPod(fn datakitCRDHandler) error {
 	return nil
 }
 
-func (d *discovery) getPodsFromLabelSelector(namespace, appName string, lableSelector map[string]string) (res []*podMeta) {
+func (d *discovery) getServicesFromLabelSelector(namespace, appName string, selector *metav1.LabelSelector) (res []*serviceMeta) {
+	if selector == nil {
+		return nil
+	}
 	opt := metav1.ListOptions{
-		LabelSelector: joinLabelSelector(lableSelector),
+		LabelSelector: newLabelSelector(selector.MatchLabels, selector.MatchExpressions).String(),
+	}
+
+	services, err := d.client.getServicesForNamespace(namespace).List(context.Background(), opt)
+	if err != nil {
+		l.Warnf("autodiscovery: failed to get pods from node_name %s, namespace %s, app %s, err: %s, retry in 3 minute",
+			d.localNodeName, namespace, appName, err)
+		return
+	}
+	for idx := range services.Items {
+		res = append(res, &serviceMeta{Service: &services.Items[idx]})
+	}
+	return
+}
+
+func (d *discovery) getPodsFromLabelSelector(namespace, appName string, selector *metav1.LabelSelector) (res []*podMeta) {
+	if selector == nil {
+		return nil
+	}
+	opt := metav1.ListOptions{
+		LabelSelector: newLabelSelector(selector.MatchLabels, selector.MatchExpressions).String(),
 		FieldSelector: "spec.nodeName=" + d.localNodeName,
 	}
 	pods, err := d.client.getPodsForNamespace(namespace).List(context.Background(), opt)
@@ -374,26 +612,26 @@ func (d *discovery) getPodsFromLabelSelector(namespace, appName string, lableSel
 	return
 }
 
-func (d *discovery) getDaemonSetLabelSelector(namespace, daemonset string) (map[string]string, error) {
+func (d *discovery) getDaemonSetLabelSelector(namespace, daemonset string) (*metav1.LabelSelector, error) {
 	daemonsetObj, err := d.client.getDaemonSetsForNamespace(namespace).Get(context.Background(), daemonset, metaV1GetOption)
 	if err != nil {
 		return nil, err
 	}
 	if daemonsetObj.Spec.Selector == nil {
-		return nil, fmt.Errorf("invalid DaemonSet LableSelector")
+		return nil, fmt.Errorf("invalid DaemonSet LabelSelector")
 	}
-	return daemonsetObj.Spec.Selector.MatchLabels, nil
+	return daemonsetObj.Spec.Selector, nil
 }
 
-func (d *discovery) getDeploymentLabelSelector(namespace, deployment string) (map[string]string, error) {
+func (d *discovery) getDeploymentLabelSelector(namespace, deployment string) (*metav1.LabelSelector, error) {
 	deploymentObj, err := d.client.getDeploymentsForNamespace(namespace).Get(context.Background(), deployment, metaV1GetOption)
 	if err != nil {
 		return nil, err
 	}
 	if deploymentObj.Spec.Selector == nil {
-		return nil, fmt.Errorf("invalid Deployment LableSelector")
+		return nil, fmt.Errorf("invalid Deployment LabelSelector")
 	}
-	return deploymentObj.Spec.Selector.MatchLabels, nil
+	return deploymentObj.Spec.Selector, nil
 }
 
 type discoveryRunner struct {
@@ -521,10 +759,76 @@ func getLocalNodeName() (string, error) {
 	return "", fmt.Errorf("invalid ENV_K8S_NODE_NAME environment, cannot be empty")
 }
 
-func joinLabelSelector(m map[string]string) string {
-	var res []string
-	for k, v := range m {
-		res = append(res, k+"="+v)
+type promConfig prom.Input
+
+type prometheusMonitoringExtraConfig struct {
+	Matches []struct {
+		NamespaceSelector struct {
+			Any             bool     `json:"any,omitempty"`
+			MatchNamespaces []string `json:"matchNamespaces,omitempty"`
+		} `json:"namespaceSelector,omitempty"`
+
+		Selector metav1.LabelSelector `json:"selector"`
+
+		PromConfig *promConfig `json:"promConfig"`
+	} `json:"matches"`
+}
+
+func (p *prometheusMonitoringExtraConfig) matchPromConfig(targetLabels map[string]string, namespace string) *promConfig {
+	if len(p.Matches) == 0 {
+		return nil
 	}
-	return strings.Join(res, ",")
+
+	for _, match := range p.Matches {
+		if !match.NamespaceSelector.Any {
+			if len(match.NamespaceSelector.MatchNamespaces) != 0 &&
+				slices.Index(match.NamespaceSelector.MatchNamespaces, namespace) == -1 {
+				continue
+			}
+		}
+		if !newLabelSelector(match.Selector.MatchLabels, match.Selector.MatchExpressions).Matches(targetLabels) {
+			continue
+		}
+		return match.PromConfig
+	}
+
+	return nil
+}
+
+func mergePromConfig(c1 *prom.Input, c2 *promConfig) *prom.Input {
+	c3 := &prom.Input{}
+
+	c3.URLs = c1.URLs
+	c3.Tags = c1.Tags
+	c3.MetricTypes = []string{"counter", "gauge"}
+
+	if c1.Interval != "" {
+		c3.Interval = c1.Interval
+	} else {
+		c3.Interval = defaultPrometheusioInterval
+	}
+
+	c3.MetricNameFilter = c2.MetricNameFilter
+	c3.MeasurementPrefix = c2.MeasurementPrefix
+	c3.MeasurementName = c2.MeasurementName
+	c3.Measurements = c2.Measurements
+	c3.TagsIgnore = c2.TagsIgnore
+	c3.TagsRename = c2.TagsRename
+	c3.IgnoreReqErr = c2.IgnoreReqErr
+	c3.AsLogging = c2.AsLogging
+	c3.IgnoreTagKV = c2.IgnoreTagKV
+	c3.HTTPHeaders = c2.HTTPHeaders
+	c3.Auth = c2.Auth
+
+	if len(c2.MetricTypes) != 0 {
+		c3.MetricTypes = c2.MetricTypes
+	}
+
+	for k, v := range c2.Tags {
+		if _, ok := c3.Tags[k]; !ok {
+			c3.Tags[k] = v
+		}
+	}
+
+	return c3
 }

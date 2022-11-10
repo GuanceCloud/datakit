@@ -86,6 +86,18 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 				Unit:     inputs.NCount,
 				Desc:     "The number of times of load statement has been executed.",
 			},
+			"Com_commit": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The number of times of commit statement has been executed.",
+			},
+			"Com_rollback": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The number of times of rollback statement has been executed.",
+			},
 			"Com_insert_select": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,

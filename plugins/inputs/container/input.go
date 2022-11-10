@@ -45,12 +45,14 @@ type Input struct {
 	ExcludePauseContainer        bool `toml:"exclude_pause_container"`
 	Election                     bool `toml:"election"`
 
-	K8sURL                              string `toml:"kubernetes_url"`
-	K8sBearerToken                      string `toml:"bearer_token"`
-	K8sBearerTokenString                string `toml:"bearer_token_string"`
-	DisableK8sEvents                    bool   `toml:"disable_k8s_events"`
-	AutoDiscoveryOfK8sServicePrometheus bool   `toml:"auto_discovery_of_k8s_service_prometheus"`
-	ExtractK8sLabelAsTags               bool   `toml:"extract_k8s_label_as_tags"`
+	K8sURL                                            string `toml:"kubernetes_url"`
+	K8sBearerToken                                    string `toml:"bearer_token"`
+	K8sBearerTokenString                              string `toml:"bearer_token_string"`
+	DisableK8sEvents                                  bool   `toml:"disable_k8s_events"`
+	ExtractK8sLabelAsTags                             bool   `toml:"extract_k8s_label_as_tags"`
+	EnableAutoDiscoveryOfPrometheusServierAnnotations bool   `toml:"enable_autdo_discovery_of_prometheus_service_annotations"`
+	EnableAutoDiscoveryOfPrometheusPodMonitors        bool   `toml:"enable_autdo_discovery_of_prometheus_pod_monitors"`
+	EnableAutoDiscoveryOfPrometheusServiceMonitors    bool   `toml:"enable_autdo_discovery_of_prometheus_service_monitors"`
 
 	ContainerIncludeLog               []string          `toml:"container_include_log"`
 	ContainerExcludeLog               []string          `toml:"container_exclude_log"`
@@ -78,7 +80,8 @@ type Input struct {
 	chPause chan bool
 	pause   bool
 
-	discovery *discovery
+	discovery                       *discovery
+	prometheusMonitoringExtraConfig *prometheusMonitoringExtraConfig
 }
 
 func (i *Input) Singleton() {
@@ -442,7 +445,11 @@ func (i *Input) setup() bool {
 				i.discovery = newDiscovery(i.k8sInput.client, i.semStop.Wait())
 				i.discovery.extraTags = i.Tags
 				i.discovery.extractK8sLabelAsTags = i.ExtractK8sLabelAsTags
-				i.discovery.autoDiscoveryOfK8sServicePrometheus = i.AutoDiscoveryOfK8sServicePrometheus
+				i.discovery.prometheusMonitoringExtraConfig = i.prometheusMonitoringExtraConfig
+
+				i.discovery.enablePrometheusServiceAnnotations = i.EnableAutoDiscoveryOfPrometheusServierAnnotations
+				i.discovery.enablePrometheusPodMonitors = i.EnableAutoDiscoveryOfPrometheusPodMonitors
+				i.discovery.enablePrometheusServiceMonitors = i.EnableAutoDiscoveryOfPrometheusServiceMonitors
 
 				if i.dockerInput != nil {
 					i.dockerInput.k8sClient = i.k8sInput.client

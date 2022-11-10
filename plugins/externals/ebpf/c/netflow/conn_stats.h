@@ -57,6 +57,7 @@ struct connection_info
     __u32 meta;  // first byte: 0x0000|IPv4 or 0x0001|IPv6; second byte 0x0000|TCP or 0x0100|UDP; ...
 };
 
+
 struct conn_skb_l4_info
 {
     __u16 hdr_len;

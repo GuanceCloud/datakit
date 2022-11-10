@@ -131,7 +131,7 @@ func TestConnFilter(t *testing.T) {
 	}
 
 	for k := 0; k < len(cases); k++ {
-		if cases[k].result != ConnNotNeedToFilter(cases[k].conn, cases[k].connStats) {
+		if cases[k].result != ConnNotNeedToFilter(&cases[k].conn, &cases[k].connStats) {
 			t.Errorf("test case %d", k)
 		}
 	}
@@ -399,7 +399,13 @@ func TestConvConn2M(t *testing.T) {
 			}
 		}
 	}
-	assert.Equal(t, len(cases), len(ConvertConn2Measurement(&connR, testServiceName, ptOpt, nil)))
+	agg := FlowAgg{}
+	for k, v := range connR.result {
+		_ = agg.Append(k, v)
+	}
+	pts := agg.ToPoint(connR.tags, nil, nil)
+	assert.Equal(t, len(cases), len(pts))
+	agg.Clean()
 }
 
 type caseStatsOp struct {

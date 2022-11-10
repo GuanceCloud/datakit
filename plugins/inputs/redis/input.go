@@ -199,6 +199,9 @@ func (i *Input) collectInfoMeasurement() ([]inputs.Measurement, error) {
 
 	m.name = "redis_info"
 
+	if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
+		m.tags["host"] = i.Host
+	}
 	for key, value := range i.Tags {
 		m.tags[key] = value
 	}

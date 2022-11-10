@@ -136,8 +136,6 @@ func (ipt *Input) RegHTTPHandler() {
 	if ipt.LocalCacheConfig != nil {
 		if localCache, err = storage.NewStorage(ipt.LocalCacheConfig, log); err != nil {
 			log.Errorf("### new local-cache failed: %s", err.Error())
-		} else if err = localCache.RunConsumeWorker(); err != nil {
-			log.Errorf("### run local-cache consumer failed: %s", err.Error())
 		} else {
 			localCache.RegisterConsumer(storage.HTTP_KEY, func(buf []byte) error {
 				start := time.Now()
@@ -171,6 +169,9 @@ func (ipt *Input) RegHTTPHandler() {
 					return nil
 				}
 			})
+			if err = localCache.RunConsumeWorker(); err != nil {
+				log.Errorf("### run local-cache consumer failed: %s", err.Error())
+			}
 		}
 	}
 
@@ -209,8 +210,9 @@ func (ipt *Input) RegHTTPHandler() {
 
 	log.Debugf("### register handler for %s of agent %s", ipt.Endpoint, inputName)
 	if ipt.Endpoint != "" {
-		// itrace.StartTracingStatistic()
-		dkhttp.RegHTTPHandler("POST", ipt.Endpoint, workerpool.HTTPWrapper(wkpool, storage.HTTPWrapper(storage.HTTP_KEY, localCache, handleJaegerTrace)))
+		dkhttp.RegHTTPHandler("POST", ipt.Endpoint,
+			workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
+				storage.HTTPWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleJaegerTrace)))
 	}
 }
 
@@ -227,9 +229,12 @@ func (ipt *Input) Run() {
 	tags = ipt.Tags
 
 	log.Debugf("### %s agent is running...", inputName)
+
+	<-datakit.Exit.Wait()
+	ipt.Terminate()
 }
 
-func (ipt *Input) Terminate() {
+func (*Input) Terminate() {
 	if wkpool != nil {
 		wkpool.Shutdown()
 		log.Debug("### workerpool closed")

@@ -9,8 +9,8 @@ import (
 
 	"github.com/DataDog/ebpf"
 	"github.com/DataDog/ebpf/manager"
+	client "github.com/influxdata/influxdb1-client/v2"
 	"github.com/shirou/gopsutil/host"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/sysmonitor"
@@ -26,7 +26,9 @@ type ConnResult struct {
 const connExpirationInterval = 6 * 3600 // 6 * 3600s
 
 const (
-	srcNameM = "netflow"
+	srcNameM     = "netflow"
+	transportTCP = "tcp"
+	transportUDP = "udp"
 )
 
 type NetFlowTracer struct {
@@ -56,8 +58,9 @@ func (tracer *NetFlowTracer) Run(ctx context.Context, bpfManger *manager.Manager
 		return err
 	}
 
-	go tracer.feedHandler(ctx, datakitPostURL)
-	go tracer.connCollectHanllder(ctx, connStatsMap, tcpStatsMap, interval, gTags)
+	// go tracer.feedHandler(ctx, datakitPostURL)
+	go tracer.connCollectHanllder(ctx, connStatsMap, tcpStatsMap,
+		interval, gTags, datakitPostURL)
 	return nil
 }
 
@@ -115,22 +118,18 @@ func (tracer *NetFlowTracer) bpfMapCleanup(cl []ConnectionInfo, connStatsMap *eb
 
 // 在扫描 connStatMap 时锁定资源 connStatsRecord.
 func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMap *ebpf.Map,
-	interval time.Duration, gTags map[string]string,
+	interval time.Duration, gTags map[string]string, datakitPostURL string,
 ) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
+
+	agg := FlowAgg{}
 
 	for {
 		select {
 		case event := <-tracer.closedEventCh:
 			tracer.connStatsRecord.updateClosedUseEvent(event)
 		case <-ticker.C:
-			connResult := ConnResult{
-				result: make(map[ConnectionInfo]ConnFullStats),
-				tags:   gTags,
-				ts:     time.Now(),
-			}
-
 			var connInfoC ConnectionInfoC
 
 			var connStatsC ConnectionStatsC
@@ -200,7 +199,10 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 						continue
 					}
 				}
-				connResult.result[connInfo] = connFullStats
+				err := agg.Append(connInfo, connFullStats)
+				if err != nil {
+					l.Debug(err)
+				}
 			}
 			if len(connsNeedCleanup) > 0 {
 				for _, conn := range connsNeedCleanup {
@@ -210,15 +212,17 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 			}
 			// 收集当前周期处于关闭状态的连接
 			for k, v := range tracer.connStatsRecord.closedConns {
-				connResult.result[k] = v
+				err := agg.Append(k, v)
+				if err != nil {
+					l.Debug(err)
+				}
 			}
 			tracer.connStatsRecord.clearClosedConnsCache()
-			select {
-			case tracer.resultCh <- &connResult:
-			default:
-				l.Error("channel is full, drop data")
-			}
 
+			pidMap, _ := sysmonitor.AllProcess()
+			pts := agg.ToPoint(gTags, k8sNetInfo, pidMap)
+			agg.Clean()
+			tracer.feedHandler(datakitPostURL, pts)
 		case <-ctx.Done():
 			return
 		}
@@ -226,21 +230,8 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 }
 
 // 接收一个周期内采集的全部连接, 并发送至 DataKit.
-func (tracer *NetFlowTracer) feedHandler(ctx context.Context, datakitPostURL string) {
-	for {
-		select {
-		case result := <-tracer.resultCh:
-			MergeConns(result)
-			ptOpt := &point.PointOption{Category: datakit.Network}
-			pidMap, _ := sysmonitor.AllProcess()
-			collectCache := ConvertConn2Measurement(result, srcNameM, ptOpt, pidMap)
-			if len(collectCache) == 0 {
-				l.Warn("netflow: no data")
-			} else if err := dkout.FeedMeasurement(datakitPostURL, collectCache); err != nil {
-				l.Error(err)
-			}
-		case <-ctx.Done():
-			return
-		}
+func (tracer *NetFlowTracer) feedHandler(datakitPostURL string, pts []*client.Point) {
+	if err := dkout.FeedMeasurement(datakitPostURL, point.WrapPoint(pts)); err != nil {
+		l.Debug(err)
 	}
 }

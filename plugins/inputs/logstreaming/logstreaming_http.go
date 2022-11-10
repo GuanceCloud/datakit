@@ -24,6 +24,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
+func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
+	resp.Write([]byte(`{"status":"success"}`)) // nolint: errcheck,gosec
+}
+
 type parameters struct {
 	ignoreURLTags bool
 	url           *url.URL

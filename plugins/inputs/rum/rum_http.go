@@ -33,6 +33,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
+func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
+	if err != nil {
+		httpErr(resp, err)
+	} else {
+		httpOK(resp, nil)
+	}
+}
+
 func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### RUM request from %s", req.URL.String())
 

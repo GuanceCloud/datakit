@@ -32,22 +32,24 @@ type otlpGrpcCollector struct {
 }
 
 func (o *otlpGrpcCollector) run(storage *collector.SpansStorage) {
-	ln, err := net.Listen("tcp", o.Addr)
+	if localCache != nil {
+		localCache.RegisterConsumer(istorage.OTEL_GRPC_KEY, func(buf []byte) error {
+			trace := &tracepb.TracesData{}
+			if err := proto.Unmarshal(buf, trace); err != nil {
+				return err
+			}
+			spanStorage.AddSpans(trace.ResourceSpans)
+
+			return nil
+		})
+	}
+
+	listener, err := net.Listen("tcp", o.Addr)
 	if err != nil {
 		log.Errorf("Failed to get an endpoint: %v", err)
 
 		return
 	}
-
-	localCache.RegisterConsumer(istorage.OTEL_GRPC_KEY, func(buf []byte) error {
-		trace := &tracepb.TracesData{}
-		if err := proto.Unmarshal(buf, trace); err != nil {
-			return err
-		}
-		spanStorage.AddSpans(trace.ResourceSpans)
-
-		return nil
-	})
 
 	srv := grpc.NewServer()
 	if o.TraceEnable {
@@ -60,7 +62,7 @@ func (o *otlpGrpcCollector) run(storage *collector.SpansStorage) {
 	}
 	o.stopFunc = srv.Stop
 
-	if err = srv.Serve(ln); err != nil {
+	if err = srv.Serve(listener); err != nil {
 		log.Error(err.Error())
 	}
 }
@@ -77,9 +79,7 @@ type ExportTrace struct {
 	storage         *collector.SpansStorage
 }
 
-func (et *ExportTrace) Export(ctx context.Context,
-	ets *collectortracepb.ExportTraceServiceRequest,
-) (*collectortracepb.ExportTraceServiceResponse, error) {
+func (et *ExportTrace) Export(ctx context.Context, ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) { //nolint: lll
 	md, haveHeader := metadata.FromIncomingContext(ctx)
 	if haveHeader {
 		if !checkHandler(et.ExpectedHeaders, md) {
@@ -88,7 +88,7 @@ func (et *ExportTrace) Export(ctx context.Context,
 	}
 
 	if rss := ets.GetResourceSpans(); len(rss) > 0 {
-		if localCache == nil {
+		if localCache == nil || !localCache.Enabled() {
 			et.storage.AddSpans(rss)
 		} else {
 			buf, err := proto.Marshal(&tracepb.TracesData{ResourceSpans: rss})
@@ -115,9 +115,7 @@ type ExportMetric struct {
 	storage         *collector.SpansStorage
 }
 
-func (em *ExportMetric) Export(ctx context.Context,
-	ets *collectormetricepb.ExportMetricsServiceRequest,
-) (*collectormetricepb.ExportMetricsServiceResponse, error) {
+func (em *ExportMetric) Export(ctx context.Context, ets *collectormetricepb.ExportMetricsServiceRequest) (*collectormetricepb.ExportMetricsServiceResponse, error) { //nolint: lll
 	md, haveHeader := metadata.FromIncomingContext(ctx)
 	if haveHeader {
 		if !checkHandler(em.ExpectedHeaders, md) {

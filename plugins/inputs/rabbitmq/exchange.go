@@ -36,6 +36,9 @@ func getExchange(n *Input) {
 			"durable":       strconv.FormatBool(exchange.Durable),
 			"auto_delete":   strconv.FormatBool(exchange.AutoDelete),
 		}
+		if n.host != "" {
+			tags["host"] = n.host
+		}
 		for k, v := range n.Tags {
 			tags[k] = v
 		}

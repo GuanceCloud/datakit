@@ -18,6 +18,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin/corev1"
 )
 
+func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
+	if err != nil {
+		resp.WriteHeader(http.StatusInternalServerError)
+	} else {
+		resp.WriteHeader(http.StatusOK)
+	}
+}
+
 func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### received tracing data from path: %s", req.URL.Path)
 

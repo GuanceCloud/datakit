@@ -10,11 +10,11 @@ import (
 	"net"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/DataDog/ebpf/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
@@ -26,6 +26,16 @@ const (
 	DirectionOutgoing = "outgoing"
 	DirectionIncoming = "incoming"
 )
+
+var ephemeralPortMin int32 = 0 // 10_001
+
+func SetEphemeralPortMin(val int32) {
+	if val < 0 {
+		val = 0
+	}
+	l.Debugf("ephemeral port start from %d", val)
+	atomic.StoreInt32(&ephemeralPortMin, val)
+}
 
 var l = logger.DefaultSLogger("ebpf")
 
@@ -191,27 +201,6 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler f
 	return m, nil
 }
 
-func ConvertConn2Measurement(connR *ConnResult, name string, ptOpt *point.PointOption, pidMap map[int][2]string) []*point.Point {
-	collectCache := []*point.Point{}
-
-	if ptOpt == nil {
-		ptOpt = &point.PointOption{
-			Category: datakit.Network,
-		}
-	}
-	ptOpt.Time = connR.ts
-	for k, v := range connR.result {
-		if ConnNotNeedToFilter(k, v) {
-			if m, err := ConvConn2M(k, v, name, connR.tags, ptOpt, pidMap); err != nil {
-				l.Error(err)
-			} else {
-				collectCache = append(collectCache, m)
-			}
-		}
-	}
-	return collectCache
-}
-
 func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	gTags map[string]string, ptOpt *point.PointOption, pidMap map[int][2]string,
 ) (*point.Point, error) {
@@ -294,6 +283,20 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	mTags = AddK8sTags2Map(k8sNetInfo, srcIP, dstIP, k.Sport, k.Dport, l4proto, mTags)
 
 	return point.NewPoint(name, mTags, mFields, ptOpt)
+}
+
+func IsIncomingFromK8s(k8sNetInfo *k8sinfo.K8sNetInfo, srcIP, dstIP string,
+	srcPort, dstPort uint32, transport string,
+) bool {
+	if k8sNetInfo != nil {
+		if _, _, _, _, _, svcP, err := k8sNetInfo.QueryPodInfo(srcIP,
+			srcPort, transport); err == nil {
+			if svcP == srcPort {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func AddK8sTags2Map(k8sNetInfo *k8sinfo.K8sNetInfo, srcIP, dstIP string,
@@ -405,7 +408,7 @@ func U32BEToIP(addr [4]uint32, isIPv6 bool) net.IP {
 // 3. 过滤一个采集周期内的无数据收发的连接;
 // 4. 过滤端口 为 0 或 ip address 为 :: or 0.0.0.0 的连接;
 // 需过滤，函数返回 False.
-func ConnNotNeedToFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
+func ConnNotNeedToFilter(conn *ConnectionInfo, connStats *ConnFullStats) bool {
 	if (conn.Saddr[0]|conn.Saddr[1]|conn.Saddr[2]|conn.Saddr[3]) == 0 ||
 		(conn.Daddr[0]|conn.Daddr[1]|conn.Daddr[2]|conn.Daddr[3]) == 0 ||
 		conn.Sport == 0 || conn.Dport == 0 {
@@ -446,9 +449,9 @@ func MergeConns(preResult *ConnResult) {
 	resultTmpConn := map[ConnectionInfo]ConnFullStats{}
 
 	for k, v := range preResult.result {
-		if v.Stats.Direction == ConnDirectionIncoming && isEphemeralPort(k.Dport) {
+		if v.Stats.Direction == ConnDirectionIncoming && IsEphemeralPort(k.Dport) {
 			k.Dport = math.MaxUint32
-		} else if v.Stats.Direction == ConnDirectionOutgoing && isEphemeralPort(k.Sport) {
+		} else if v.Stats.Direction == ConnDirectionOutgoing && IsEphemeralPort(k.Sport) {
 			k.Sport = math.MaxUint32
 		}
 		if v2, ok := resultTmpConn[k]; ok {
@@ -481,8 +484,8 @@ const (
 	EphemeralPortMax = 60999
 )
 
-func isEphemeralPort(port uint32) bool {
-	return port >= EphemeralPortMin && port <= EphemeralPortMax
+func IsEphemeralPort(port uint32) bool {
+	return port >= uint32(ephemeralPortMin)
 }
 
 func IPPortFilterIn(conn *ConnectionInfo) bool {

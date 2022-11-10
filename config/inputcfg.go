@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -128,12 +129,14 @@ func loadInputsConfFromDirs(paths []string) {
 	for _, rp := range paths {
 		for name, arr := range LoadInputConf(rp) {
 			for _, x := range arr {
+				l.Infof("load inputs from file add input: %s", name)
 				inputs.AddInput(name, x)
 			}
 		}
 	}
 
 	if GitHasEnabled() {
+		l.Infof("DefaultEnabledInputs: %s", strings.Join(Cfg.DefaultEnabledInputs, ","))
 		enableDefaultInputs(Cfg.DefaultEnabledInputs)
 	}
 
@@ -153,6 +156,7 @@ func enableDefaultInputs(list []string) {
 			}
 			for _, arr := range inputInstances {
 				for _, ipt := range arr {
+					l.Infof("add input name: %s ", name)
 					inputs.AddInput(name, ipt)
 				}
 			}

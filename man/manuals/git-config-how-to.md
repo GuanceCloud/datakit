@@ -136,3 +136,19 @@ git 验证方式采用用户名和密码方式。
 | ENV_GIT_INTERVAL | `1m`                                                         |
 
 更多关于 Datakit 的 Kubernates 环境下面的配置可以参见[这个文档](k8s-config-how-to.md#via-env-config)。
+
+## FAQ {#faq}
+
+### 报错: authentication required {#auth-required}
+
+出现这个报错可能是以下几种情况。
+
+如果用的是 SSH 方式:
+
+1. 提供的密钥有错;
+
+如果用的是 HTTP 方式:
+
+1. 提供的用户名和密码有错;
+2. git 地址的协议填错了;
+比如说, 原地址是 `https://username:password@github.com/path/to/repository.git`, 然后被写成了 `http://username:password@github.com/path/to/repository.git`, 即把 `https` 改成了 `http`, 则也会报出这个错误。

@@ -23,7 +23,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func registerServerV3(addr string) {
+func runGRPCV3(addr string) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Errorf("### skywalking grpc server v3 listening on %s failed: %v", addr, err)
