@@ -59,6 +59,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"use()":                &useMarkdown,
 	"user_agent()":         &userAgentMarkdown,
 	"xml()":                &xmlMarkdown,
+	"sample()":             &sampleMarkdown,
 }
 
 // embed docs.
@@ -162,6 +163,9 @@ var (
 	//go:embed md/set_tag.md
 	docSetTag string
 
+	//go:embed md/sample.md
+	docSample string
+
 	//go:embed md/drop.md
 	docDrop string
 
@@ -220,6 +224,7 @@ var (
 	mQueryReferTableMarkdown  = PLDoc{Doc: docMQueryReferTable, Deprecated: false}
 	renameMarkdown            = PLDoc{Doc: docRename, Deprecated: false}
 	replaceMarkdown           = PLDoc{Doc: docReplace, Deprecated: false}
+	sampleMarkdown            = PLDoc{Doc: docSample, Deprecated: false}
 	setMeasurementMarkdown    = PLDoc{Doc: docSetMeasurement, Deprecated: false}
 	setTagMarkdown            = PLDoc{Doc: docSetTag, Deprecated: false}
 	sqlCoverMarkdown          = PLDoc{Doc: docSQLCover, Deprecated: false}
