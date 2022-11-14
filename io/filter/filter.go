@@ -397,12 +397,14 @@ func (f *filter) start(filters map[string][]string, dw dataway.DataWay) {
 		f.stats.RuleSource = "remote"
 	}
 
-	for {
-		l.Debugf("try pull remote filters...")
-		defaultFilter.pull(filters, dw)
+	// Try pull rules ASAP.
+	defaultFilter.pull(filters, dw)
 
+	for {
 		select {
 		case <-defaultFilter.tick.C:
+			l.Debugf("try pull remote filters...")
+			defaultFilter.pull(filters, dw)
 
 		case m := <-defaultFilter.metricCh:
 			l.Debugf("update metrics...")
