@@ -71,7 +71,6 @@ require (
 	github.com/tidwall/gjson v1.14.3
 	github.com/tinylib/msgp v1.1.6
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
-	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/ubwbu/grok v1.0.6
 	github.com/ugorji/go/codec v1.2.6
 	github.com/vjeantet/grok v1.0.0
@@ -122,6 +121,8 @@ require (
 	github.com/r3labs/diff/v3 v3.0.0
 	github.com/schollz/progressbar/v3 v3.9.0
 	github.com/tidwall/wal v1.1.7
+	github.com/uber/jaeger-client-go v2.29.1+incompatible
+	golang.org/x/exp v0.0.0-20221026004748-78e5e7837ae6
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -202,7 +203,6 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.5 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.5 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.5 // indirect
-	golang.org/x/exp v0.0.0-20221026004748-78e5e7837ae6 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	k8s.io/apiextensions-apiserver v0.25.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea // indirect

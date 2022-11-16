@@ -68,7 +68,7 @@ func thriftV1SpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 			Resource:   span.Name,
 			Operation:  span.Name,
 			Source:     inputName,
-			SpanType:   itrace.FindSpanTypeInMultiServersIntSpanID(span.ID, *span.ParentID, service, spanIDs, parentIDs),
+			SpanType:   itrace.FindSpanTypeInMultiServersIntSpanID(uint64(span.ID), uint64(*span.ParentID), service, spanIDs, parentIDs),
 			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
 		}
 
@@ -125,16 +125,16 @@ func thriftV1SpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 	return dktrace
 }
 
-func gatherZpkCoreV1SpansInfo(trace []*zpkcorev1.Span) (parentIDs map[int64]bool, spanIDs map[int64]string) {
-	parentIDs = make(map[int64]bool)
-	spanIDs = make(map[int64]string)
+func gatherZpkCoreV1SpansInfo(trace []*zpkcorev1.Span) (parentIDs map[uint64]bool, spanIDs map[uint64]string) {
+	parentIDs = make(map[uint64]bool)
+	spanIDs = make(map[uint64]string)
 	for _, span := range trace {
 		if span == nil {
 			continue
 		}
-		spanIDs[span.ID] = getServiceFromZpkCoreV1Span(span)
+		spanIDs[uint64(span.ID)] = getServiceFromZpkCoreV1Span(span)
 		if span.ParentID != nil && *span.ParentID != 0 {
-			parentIDs[*span.ParentID] = true
+			parentIDs[uint64(*span.ParentID)] = true
 		}
 	}
 
