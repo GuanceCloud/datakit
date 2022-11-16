@@ -18,6 +18,7 @@ import (
 //   ENV_INPUT_CONTAINER_DOCKER_ENDPOINT : string
 //   ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS : string
 //   ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
+//   ENV_INPUT_CONTAINER_LOGGING_SEARCH_INTERVAL : string ("10s")
 //   ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_POD_METRIC : booler
@@ -51,6 +52,10 @@ func (i *Input) ReadEnv(envs map[string]string) {
 
 	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP"]; ok {
 		i.LoggingExtraSourceMap = config.ParseGlobalTags(v)
+	}
+
+	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_SEARCH_INTERVAL"]; ok {
+		i.LoggingSearchInterval = v
 	}
 
 	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON"]; ok {
