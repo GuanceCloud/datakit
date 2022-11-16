@@ -45,15 +45,10 @@ func (c *clusterRole) getHost() string {
 }
 
 func (c *clusterRole) pullItems() error {
-	if len(c.items) != 0 {
-		return nil
-	}
-
 	list, err := c.client.getClusterRoles().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return fmt.Errorf("failed to get clusterRoles resource: %w", err)
 	}
-
 	c.items = list.Items
 	return nil
 }

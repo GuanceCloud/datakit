@@ -40,15 +40,10 @@ func (d *daemonset) name() string {
 }
 
 func (d *daemonset) pullItems() error {
-	if len(d.items) != 0 {
-		return nil
-	}
-
 	list, err := d.client.getDaemonSets().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return fmt.Errorf("failed to get daemonSets resource: %w", err)
 	}
-
 	d.items = list.Items
 	return nil
 }
