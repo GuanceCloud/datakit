@@ -267,7 +267,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			Resource:   span.Resource,
 			Operation:  span.Name,
 			Source:     inputName,
-			SpanType:   itrace.FindSpanTypeInMultiServersIntSpanID(int64(span.SpanID), int64(span.ParentID), span.Service, spanIDs, parentIDs),
+			SpanType:   itrace.FindSpanTypeInMultiServersIntSpanID(span.SpanID, span.ParentID, span.Service, spanIDs, parentIDs),
 			SourceType: itrace.GetSpanSourceType(span.Type),
 			Tags:       itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
 			Metrics:    make(map[string]interface{}),
@@ -301,16 +301,16 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 	return dktrace
 }
 
-func gatherSpansInfo(trace DDTrace) (parentIDs map[int64]bool, spanIDs map[int64]string) {
-	parentIDs = make(map[int64]bool)
-	spanIDs = make(map[int64]string)
+func gatherSpansInfo(trace DDTrace) (parentIDs map[uint64]bool, spanIDs map[uint64]string) {
+	parentIDs = make(map[uint64]bool)
+	spanIDs = make(map[uint64]string)
 	for _, span := range trace {
 		if span == nil {
 			continue
 		}
-		spanIDs[int64(span.SpanID)] = span.Service
+		spanIDs[span.SpanID] = span.Service
 		if span.ParentID != 0 {
-			parentIDs[int64(span.ParentID)] = true
+			parentIDs[span.ParentID] = true
 		}
 	}
 

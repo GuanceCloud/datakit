@@ -1579,7 +1579,6 @@ golang.org/x/crypto/ssh/terminal
 # golang.org/x/exp v0.0.0-20221026004748-78e5e7837ae6
 ## explicit; go 1.18
 golang.org/x/exp/constraints
-golang.org/x/exp/maps
 golang.org/x/exp/slices
 # golang.org/x/image v0.0.0-20191206065243-da761ea9ff43
 ## explicit; go 1.12
