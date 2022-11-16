@@ -53,7 +53,7 @@ GO
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-## 指标集 {#measurements}
+## 指标 {#measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -65,17 +65,35 @@ GO
 ```
 
 {{ range $i, $m := .Measurements }}
-
+{{if eq $m.Type "metric"}}
 ### `{{$m.Name}}`
 
 -  标签
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
 
+{{ end }}
+{{ end }}
+
+## 日志 {#logging}
+
+{{ range $i, $m := .Measurements }}
+{{if eq $m.Type "logging"}}
+### `{{$m.Name}}`
+
+-  标签
+
+{{$m.TagsMarkdownTable}}
+
+- 字段列表
+
+{{$m.FieldsMarkdownTable}}
+
+{{ end }}
 {{ end }}
 
 

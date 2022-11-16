@@ -7,11 +7,15 @@ package sqlserver
 
 import (
 	"database/sql"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -56,19 +60,29 @@ grok(_,"%{TIMESTAMP_ISO8601:time} %{NOTSPACE:origin}\\s+%{GREEDYDATA:msg}")
 default_time(time)
 `
 
-	inputName    = `sqlserver`
-	catalogName  = "db"
-	l            = logger.DefaultSLogger(inputName)
-	collectCache []*point.Point
-	minInterval  = time.Second * 5
-	maxInterval  = time.Second * 30
-	query        = []string{
+	inputName           = `sqlserver`
+	catalogName         = "db"
+	l                   = logger.DefaultSLogger(inputName)
+	collectCache        []*point.Point
+	loggingCollectCache []*point.Point
+	minInterval         = time.Second * 5
+	maxInterval         = time.Second * 30
+	query               = []string{
 		sqlServerPerformanceCounters,
 		sqlServerWaitStatsCategorized,
 		sqlServerDatabaseIO,
 		sqlServerProperties,
 		sqlServerSchedulers,
 		sqlServerVolumeSpace,
+		sqlServerLockDatabase,
+		sqlServerLockTable,
+		sqlServerDatabaseSize,
+	}
+	loggingQuery = []string{
+		sqlServerLockRow,
+		sqlServerLockDead,
+		sqlServerLogicIO,
+		sqlServerWorkerTime,
 	}
 )
 
@@ -133,11 +147,69 @@ func newByteFieldInfo(desc string) *inputs.FieldInfo {
 	}
 }
 
+func newKByteFieldInfo(desc string) *inputs.FieldInfo {
+	return &inputs.FieldInfo{
+		DataType: inputs.Float,
+		Type:     inputs.Gauge,
+		Unit:     inputs.SizeKB,
+		Desc:     desc,
+	}
+}
+
 func newBoolFieldInfo(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Bool,
 		Type:     inputs.Gauge,
 		Unit:     inputs.UnknownUnit,
 		Desc:     desc,
+	}
+}
+
+func obfuscateSQL(text string) string {
+	reg := regexp.MustCompile(`\n|\s+`)
+	sql := strings.TrimSpace(reg.ReplaceAllString(text, " "))
+
+	if out, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", sql); err != nil {
+		l.Debugf("Failed to obfuscate, err: %s \n", err.Error())
+		return text
+	} else {
+		return out.Query
+	}
+}
+
+func transformData(measurement string, tags map[string]string, fields map[string]interface{}) {
+	if tags == nil {
+		return
+	}
+	switch measurement {
+	case "sqlserver_lock_dead":
+		if field, ok := fields["blocking_text"]; ok {
+			if text, isString := field.(string); isString {
+				fields["blocking_text"] = obfuscateSQL(text)
+				fields["message"] = fields["blocking_text"]
+			}
+		}
+	case "sqlserver_logical_io":
+		if field, ok := fields["message"]; ok {
+			if text, isString := field.(string); isString {
+				fields["message"] = obfuscateSQL(text)
+			}
+		}
+	case "sqlserver_database_size":
+		if field, ok := fields["data_size"]; ok {
+			if data, isUint := field.([]uint8); isUint {
+				if dataSize, err := strconv.ParseFloat(string(data), 64); err == nil {
+					fields["data_size"] = dataSize
+				}
+			}
+		}
+		if field, ok := fields["log_size"]; ok {
+			if data, isUint := field.([]uint8); isUint {
+				if dataSize, err := strconv.ParseFloat(string(data), 64); err == nil {
+					fields["log_size"] = dataSize
+				}
+			}
+		}
+	default:
 	}
 }
