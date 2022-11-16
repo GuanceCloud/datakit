@@ -5,62 +5,72 @@ metadata:
   name: {{ include "datakit.fullname" . }}
 rules:
 - apiGroups:
-  - rbac.authorization.k8s.io
+    - rbac.authorization.k8s.io
   resources:
-  - clusterroles
+    - clusterroles
   verbs:
-  - get
-  - list
-  - watch
+    - get
+    - list
+    - watch
 - apiGroups:
-  - ""
+    - ""
   resources:
-  - nodes
-  - nodes/proxy
-  - namespaces
-  - pods
-  - pods/log
-  - events
-  - services
-  - endpoints
+    - nodes
+    - nodes/proxy
+    - namespaces
+    - pods
+    - pods/log
+    - events
+    - services
+    - endpoints
   verbs:
-  - get
-  - list
-  - watch
+    - get
+    - list
+    - watch
 - apiGroups:
-  - apps
+    - apps
   resources:
-  - deployments
-  - daemonsets
-  - statefulsets
-  - replicasets
+    - deployments
+    - daemonsets
+    - statefulsets
+    - replicasets
   verbs:
-  - get
-  - list
-  - watch
+    - get
+    - list
+    - watch
 - apiGroups:
-  - batch
+    - batch
   resources:
-  - jobs
-  - cronjobs
+    - jobs
+    - cronjobs
   verbs:
-  - get
-  - list
-  - watch
+    - get
+    - list
+    - watch
 - apiGroups:
-  - guance.com
+    - guance.com
   resources:
-  - datakits
+    - datakits
   verbs:
-  - get
-  - list
+    - get
+    - list
+    - watch
 - apiGroups:
-  - metrics.k8s.io
+    - monitoring.coreos.com
   resources:
-  - pods
-  - nodes
+    - podmonitors
+    - servicemonitors
   verbs:
-  - get
-  - list
+    - get
+    - list
+    - watch
+- apiGroups:
+    - metrics.k8s.io
+  resources:
+    - pods
+    - nodes
+  verbs:
+    - get
+    - list
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
