@@ -53,11 +53,11 @@ nav:
         - swap.md
         - net.md
         - netstat.md
-        - gpu_smi.md
         - socket.md
         - system.md
         - hostdir.md
         - ssh.md
+        - gpu_smi.md
         - Windows 相关:
           - 'Windows 事件': windows_event.md
           - iis.md

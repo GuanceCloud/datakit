@@ -70,6 +70,11 @@ const (
 	BytesPerSec    = "B/S"
 	RequestsPerSec = "reqps"
 	Celsius        = "C"
+	Ampere         = "ampere"
+	Watt           = "watt"
+	Volt           = "volt"
+	FrequencyMHz   = "MHz"
+	RPMPercent     = "RPM%"
 )
 
 type Measurement interface {
