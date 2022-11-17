@@ -1,0 +1,199 @@
+Temp             | 36 degrees C      | ok
+Temp             | 45 degrees C      | ok
+Inlet Temp       | 24 degrees C      | ok
+DIMM PG          | 0x00              | ok
+NDC PG           | 0x00              | ok
+PS1 PG FAIL      | 0x00              | ok
+PS2 PG FAIL      | 0x00              | ok
+BP0 PG           | 0x00              | ok
+BP1 PG           | 0x00              | ok
+BP2 PG           | 0x00              | ok
+1.8V SW PG       | 0x00              | ok
+2.5V SW PG       | 0x00              | ok
+5V SW PG         | 0x00              | ok
+PVNN SW PG       | 0x00              | ok
+VSB11 SW PG      | 0x00              | ok
+VSBM SW PG       | 0x00              | ok
+3.3V B PG        | 0x00              | ok
+MEM012 VDDQ PG   | 0x00              | ok
+MEM012 VPP PG    | 0x00              | ok
+MEM012 VTT PG    | 0x00              | ok
+MEM345 VDDQ PG   | 0x00              | ok
+MEM345 VPP PG    | 0x00              | ok
+MEM345 VTT PG    | 0x00              | ok
+VCCIO PG         | 0x00              | ok
+VCORE PG         | 0x00              | ok
+FIVR PG          | 0x00              | ok
+MEM012 VDDQ PG   | 0x00              | ok
+MEM012 VPP PG    | 0x00              | ok
+MEM012 VTT PG    | 0x00              | ok
+MEM345 VDDQ PG   | 0x00              | ok
+MEM345 VPP PG    | 0x00              | ok
+MEM345 VTT PG    | 0x00              | ok
+VCCIO PG         | 0x00              | ok
+VCORE PG         | 0x00              | ok
+FIVR PG          | 0x00              | ok
+Fan1             | 3600 RPM          | ok
+Fan2             | 3480 RPM          | ok
+Fan3             | 3600 RPM          | ok
+Fan4             | 3480 RPM          | ok
+Fan5             | 3600 RPM          | ok
+Fan6             | 3480 RPM          | ok
+Presence         | 0x00              | ok
+Presence         | 0x00              | ok
+Presence         | 0x00              | ok
+Presence         | 0x00              | ok
+Intrusion Cable  | 0x00              | ok
+VGA Cable Pres   | 0x00              | ok
+Presence         | 0x00              | ok
+BP0 Presence     | 0x00              | ok
+BP1 Presence     | 0x00              | ok
+BP2 Presence     | 0x00              | ok
+Power Cable      | Not Readable      | ns
+Signal Cable     | Not Readable      | ns
+Power Cable      | 0x00              | ok
+Signal Cable     | 0x00              | ok
+Power Cable      | Not Readable      | ns
+Signal Cable     | Not Readable      | ns
+Presence         | 0x00              | ok
+Presence         | 0x00              | ok
+Current 1        | 1 Amps            | ok
+Current 2        | 0.20 Amps         | ok
+Voltage 1        | 220 Volts         | ok
+Voltage 2        | 220 Volts         | ok
+Riser Config Err | 0x00              | ok
+OS Watchdog      | 0x00              | ok
+SEL              | Not Readable      | ns
+Intrusion        | 0x00              | ok
+Power Optimized  | 0x00              | ok
+Pwr Consumption  | 208 Watts         | ok
+PS Redundancy    | 0x00              | ok
+Fan Redundancy   | 0x00              | ok
+Redundancy       | Not Readable      | ns
+SD1              | Not Readable      | ns
+SD2              | Not Readable      | ns
+SD               | Not Readable      | ns
+IO Usage         | 0 percent         | ok
+MEM Usage        | 0 percent         | ok
+SYS Usage        | 2 percent         | ok
+CPU Usage        | 1 percent         | ok
+Status           | 0x00              | ok
+Status           | 0x00              | ok
+Status           | 0x00              | ok
+Status           | 0x00              | ok
+CMOS Battery     | 0x00              | ok
+ROMB Battery     | Not Readable      | ns
+PCIe Slot1       | Not Readable      | ns
+PCIe Slot2       | Not Readable      | ns
+PCIe Slot3       | Not Readable      | ns
+PCIe Slot4       | 0x00              | ok
+PCIe Slot5       | Not Readable      | ns
+PCIe Slot6       | Not Readable      | ns
+PCIe Slot7       | Not Readable      | ns
+PCIe Slot8       | Not Readable      | ns
+Drive 0          | 0x00              | ok
+Drive 15         | 0x00              | ok
+Drive 30         | Not Readable      | ns
+Cable PCIe A0    | Not Readable      | ns
+Cable PCIe B0    | Not Readable      | ns
+Cable PCIe A1    | Not Readable      | ns
+Cable PCIe B1    | Not Readable      | ns
+Cable PCIe A2    | Not Readable      | ns
+Cable PCIe B2    | Not Readable      | ns
+Cable SAS A0     | 0x00              | ok
+Cable SAS B0     | 0x00              | ok
+Cable SAS A1     | Not Readable      | ns
+Cable SAS B1     | Not Readable      | ns
+Cable SAS A2     | Not Readable      | ns
+Cable SAS B2     | Not Readable      | ns
+Cable PCIe A0    | Not Readable      | ns
+Cable PCIe B0    | Not Readable      | ns
+A                | 0x00              | ok
+B                | 0x00              | ok
+ECC Corr Err     | Not Readable      | ns
+ECC Uncorr Err   | Not Readable      | ns
+PCI Parity Err   | Not Readable      | ns
+PCI System Err   | Not Readable      | ns
+SBE Log Disabled | Not Readable      | ns
+Unknown          | Not Readable      | ns
+CPU Machine Chk  | Not Readable      | ns
+Memory Spared    | Not Readable      | ns
+Memory Mirrored  | Not Readable      | ns
+PCIE Fatal Err   | Not Readable      | ns
+Chipset Err      | Not Readable      | ns
+Err Reg Pointer  | Not Readable      | ns
+Mem ECC Warning  | Not Readable      | ns
+POST Err         | Not Readable      | ns
+Hdwr version err | Not Readable      | ns
+Non Fatal PCI Er | Not Readable      | ns
+Fatal IO Error   | Not Readable      | ns
+MSR Info Log     | Not Readable      | ns
+TXT Status       | Not Readable      | ns
+iDPT Mem Fail    | Not Readable      | ns
+Additional Info  | Not Readable      | ns
+CPU TDP          | Not Readable      | ns
+QPIRC Warning    | Not Readable      | ns
+QPIRC Warning    | Not Readable      | ns
+Link Warning     | Not Readable      | ns
+Link Warning     | Not Readable      | ns
+Link Error       | Not Readable      | ns
+MRC Warning      | Not Readable      | ns
+MRC Warning      | Not Readable      | ns
+Chassis Mismatch | Not Readable      | ns
+FatalPCIErrOnBus | Not Readable      | ns
+NonFatalPCIErBus | Not Readable      | ns
+Fatal PCI SSD Er | Not Readable      | ns
+NonFatalSSDEr    | Not Readable      | ns
+CPUMachineCheck  | Not Readable      | ns
+FatalPCIErARI    | Not Readable      | ns
+NonFatalPCIErARI | Not Readable      | ns
+FatalPCIExpEr    | Not Readable      | ns
+NonFatalPCIExpEr | Not Readable      | ns
+CP Left Pres     | 0x00              | ok
+CP Right Pres    | 0x00              | ok
+CPU Link Info    | Not Readable      | ns
+Chipset Info     | Not Readable      | ns
+Memory Config    | Not Readable      | ns
+QPI Link Err     | Not Readable      | ns
+LT/Flex Addr     | Not Readable      | ns
+OS Watchdog Time | Not Readable      | ns
+TPM Presence     | Not Readable      | ns
+VSA PG           | 0x00              | ok
+VSA PG           | 0x00              | ok
+TPM Presence     | 0x00              | ok
+Dedicated NIC    | 0x00              | ok
+Status           | Not Readable      | ns
+Pfault Fail Safe | Not Readable      | ns
+Unresp sensor    | 0x00              | ok
+Presence         | 0x00              | ok
+GPU1 Temp        | disabled          | ns
+GPU2 Temp        | disabled          | ns
+Riser 3 Presence | 0x00              | ok
+Riser 2 Presence | 0x00              | ok
+Riser 1 Presence | 0x00              | ok
+GPU3 Temp        | disabled          | ns
+GPU4 Temp        | disabled          | ns
+GPU5 Temp        | disabled          | ns
+GPU6 Temp        | disabled          | ns
+GPU7 Temp        | disabled          | ns
+GPU8 Temp        | disabled          | ns
+Front LED Panel  | 0x00              | ok
+NVDIMM Battery   | Not Readable      | ns
+NVDIMM Warning   | Not Readable      | ns
+NVDIMM Error     | Not Readable      | ns
+NVDIMM Info      | Not Readable      | ns
+POST Pkg Repair  | Not Readable      | ns
+Fan1 Status      | 0x00              | ok
+Fan2 Status      | 0x00              | ok
+Fan3 Status      | 0x00              | ok
+Fan4 Status      | 0x00              | ok
+Fan5 Status      | 0x00              | ok
+Fan6 Status      | 0x00              | ok
+Exhaust Temp     | 32 degrees C      | ok
+ROMB Battery     | Not Readable      | ns
+Cable SAS A0     | Not Readable      | ns
+Cable SAS A0     | Not Readable      | ns
+MMIOChipset Info | Not Readable      | ns
+DIMM Media Info  | Not Readable      | ns
+DIMMThermal Info | Not Readable      | ns
+CPU Internal Err | Not Readable      | ns

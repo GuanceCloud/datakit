@@ -1,0 +1,139 @@
+SEL              | Not Readable      | ns
+Intrusion        | 0x00              | ok
+Fan1A RPM        | 2160 RPM          | ok
+Fan2A RPM        | 2280 RPM          | ok
+Fan3A RPM        | 2280 RPM          | ok
+Fan4A RPM        | 2400 RPM          | ok
+Fan5A RPM        | 2280 RPM          | ok
+Fan6A RPM        | 2160 RPM          | ok
+Inlet Temp       | 23 degrees C      | ok
+Exhaust Temp     | 37 degrees C      | ok
+Temp             | 47 degrees C      | ok
+Temp             | 44 degrees C      | ok
+OS Watchdog      | 0x00              | ok
+VCORE PG         | 0x00              | ok
+VCORE PG         | 0x00              | ok
+3.3V PG          | 0x00              | ok
+5V PG            | 0x00              | ok
+USB Cable Pres   | 0x00              | ok
+VGA Cable Pres   | 0x00              | ok
+Dedicated NIC    | 0x00              | ok
+Presence         | 0x00              | ok
+Presence         | 0x00              | ok
+Presence         | 0x00              | ok
+PLL PG           | 0x00              | ok
+PLL PG           | 0x00              | ok
+1.1V PG          | 0x00              | ok
+M23 VDDQ PG      | 0x00              | ok
+M23 VTT PG       | 0x00              | ok
+FETDRV PG        | 0x00              | ok
+Presence         | 0x00              | ok
+VSA PG           | 0x00              | ok
+VSA PG           | 0x00              | ok
+M01 VDDQ PG      | 0x00              | ok
+M01 VDDQ PG      | 0x00              | ok
+M23 VTT PG       | 0x00              | ok
+M01 VTT PG       | 0x00              | ok
+NDC PG           | 0x00              | ok
+LCD Cable Pres   | 0x00              | ok
+VTT PG           | 0x00              | ok
+VTT PG           | 0x00              | ok
+M23 VDDQ PG      | 0x00              | ok
+Presence         | 0x00              | ok
+Presence         | 0x00              | ok
+Status           | 0x00              | ok
+Status           | 0x00              | ok
+Fan Redundancy   | 0x00              | ok
+Riser Config Err | 0x00              | ok
+Riser 3 Presence | 0x00              | ok
+1.5V PG          | 0x00              | ok
+PS2 PG Fail      | Not Readable      | ns
+PS1 PG Fail      | Not Readable      | ns
+BP1 5V PG        | 0x00              | ok
+BP2 5V PG        | Not Readable      | ns
+M01 VTT PG       | 0x00              | ok
+Presence         | 0x00              | ok
+PCIe Slot1       | Not Readable      | ns
+PCIe Slot2       | Not Readable      | ns
+PCIe Slot3       | Not Readable      | ns
+PCIe Slot4       | Not Readable      | ns
+PCIe Slot5       | Not Readable      | ns
+PCIe Slot6       | Not Readable      | ns
+PCIe Slot7       | Not Readable      | ns
+vFlash           | 0x00              | ok
+CMOS Battery     | 0x00              | ok
+ROMB Battery     | 0x00              | ok
+ROMB Battery     | Not Readable      | ns
+Presence         | 0x00              | ok
+Presence         | 0x00              | ok
+Current 1        | 0.40 Amps         | ok
+Current 2        | no reading        | ns
+Voltage 1        | 220 Volts         | ok
+Voltage 2        | no reading        | ns
+PS Redundancy    | Not Readable      | ns
+Status           | 0x00              | ok
+Status           | Not Readable      | ns
+Pwr Consumption  | 98 Watts          | ok
+Power Optimized  | 0x00              | ok
+SD1              | Not Readable      | ns
+SD2              | Not Readable      | ns
+Redundancy       | Not Readable      | ns
+ECC Corr Err     | Not Readable      | ns
+ECC Uncorr Err   | Not Readable      | ns
+I/O Channel Chk  | Not Readable      | ns
+PCI Parity Err   | Not Readable      | ns
+PCI System Err   | Not Readable      | ns
+SBE Log Disabled | Not Readable      | ns
+Logging Disabled | Not Readable      | ns
+Unknown          | Not Readable      | ns
+CPU Protocol Err | Not Readable      | ns
+CPU Bus PERR     | Not Readable      | ns
+CPU Init Err     | Not Readable      | ns
+CPU Machine Chk  | Not Readable      | ns
+Memory Spared    | Not Readable      | ns
+Memory Mirrored  | Not Readable      | ns
+Memory RAID      | Not Readable      | ns
+Memory Added     | Not Readable      | ns
+Memory Removed   | Not Readable      | ns
+Memory Cfg Err   | Not Readable      | ns
+Mem Redun Gain   | Not Readable      | ns
+PCIE Fatal Err   | Not Readable      | ns
+Chipset Err      | Not Readable      | ns
+Err Reg Pointer  | Not Readable      | ns
+Mem ECC Warning  | Not Readable      | ns
+Mem CRC Err      | Not Readable      | ns
+USB Over-current | Not Readable      | ns
+POST Err         | Not Readable      | ns
+Hdwr version err | Not Readable      | ns
+Mem Overtemp     | Not Readable      | ns
+Mem Fatal SB CRC | Not Readable      | ns
+Mem Fatal NB CRC | Not Readable      | ns
+OS Watchdog Time | Not Readable      | ns
+Non Fatal PCI Er | Not Readable      | ns
+Fatal IO Error   | Not Readable      | ns
+MSR Info Log     | Not Readable      | ns
+TXT Status       | Not Readable      | ns
+Drive 0          | 0x00              | ok
+Cable SAS A      | 0x00              | ok
+Cable SAS B      | 0x00              | ok
+Cable SAS C      | Not Readable      | ns
+Cable SAS D      | Not Readable      | ns
+Cable SAS A      | Not Readable      | ns
+Cable SAS B      | Not Readable      | ns
+Cable SAS C      | Not Readable      | ns
+Cable SAS D      | Not Readable      | ns
+Power Cable      | 0x00              | ok
+Signal Cable     | 0x00              | ok
+Power Cable      | Not Readable      | ns
+Signal Cable     | Not Readable      | ns
+Fan7A RPM        | 2400 RPM          | ok
+Fan1B RPM        | 2280 RPM          | ok
+Fan2B RPM        | 2280 RPM          | ok
+Fan3B RPM        | 2520 RPM          | ok
+Fan4B RPM        | 2040 RPM          | ok
+Fan5B RPM        | 2520 RPM          | ok
+Fan6B RPM        | 2400 RPM          | ok
+Fan7B RPM        | 2640 RPM          | ok
+PFault Fail Safe | Not Readable      | ns
+A                | 0x00              | ok
+B                | 0x00              | ok

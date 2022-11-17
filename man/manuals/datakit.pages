@@ -165,3 +165,4 @@ nav:
     - '其它采集器':
       - sensors.md
       - smart.md
+      - ipmi.md

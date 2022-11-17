@@ -142,6 +142,7 @@ datakit_docs=(
   $tmp_doc_dir/hostobject.md
   $tmp_doc_dir/iis.md
   $tmp_doc_dir/influxdb.md
+  $tmp_doc_dir/ipmi.md
   $tmp_doc_dir/jaeger.md
   $tmp_doc_dir/jenkins.md
   $tmp_doc_dir/jvm.md
