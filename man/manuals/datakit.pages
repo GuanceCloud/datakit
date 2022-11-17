@@ -64,6 +64,7 @@ nav:
 
     - '云原生':
       - '容器数据采集': container.md
+      - container-log.md
       - k8s-config-how-to.md
       - kubernetes-crd.md
       - logfwd.md

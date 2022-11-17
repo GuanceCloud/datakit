@@ -114,7 +114,7 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		}
 	}
 
-	opt := composeTailerOption(c.k8sClient, info)
+	opt, _ := composeTailerOption(c.k8sClient, info)
 	opt.Mode = tailer.ContainerdMode
 	opt.BlockingMode = c.ipt.LoggingBlockingMode
 	opt.MinFlushInterval = c.ipt.LoggingMinFlushInterval

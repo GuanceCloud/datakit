@@ -420,7 +420,7 @@
 - 优化 [TDEngine 采集](tdengine.md)(#877)
 - 完善 Containerd 日志采集，支持默认格式的日志自动解析(#869)
 - [Pipeline](../developers/pipeline.md) 增加 [Profiling 类数据](profile.md)支持(#866)
-- 容器/Pod 日志采集支持在 Label/Annotation 上[额外追加 tag](container.md#logging-with-annotation-or-label)(#861)
+- 容器/Pod 日志采集支持在 Label/Annotation 上[额外追加 tag](container-log.md#logging-with-annotation-or-label)(#861)
 - 修复 [Jenkins CI](jenkins.md#jenkins_pipeline) 数据采集的时间精度问题(#860)
 - 修复 Tracing resource-type 值不统一的问题(#856)
 - eBPF 增加 [HTTPS 支持](ebpf.md#https)(#782)

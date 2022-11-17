@@ -37,7 +37,7 @@
   - `$NAMESPACE`：Pod Namespace
   - `$PODNAME`：Pod Name
   - `$NODENAME`：当前所在 node 的 name
-- `datakit/logs`：日志配置，用以指定 Pod 日志的相关配置，和容器的 Annotations 用法相同，[详见这里](container.md#logging-with-annotation-or-label)。优先级低于 Pod Annotations datakit/logs 配置
+- `datakit/logs`：日志配置，用以指定 Pod 日志的相关配置，和容器的 Annotations 用法相同，[详见这里](container-log.md#logging-with-annotation-or-label)。优先级低于 Pod Annotations datakit/logs 配置
 
 执行 `kubectl apply -f datakit-crd.yaml` 命令。
 
