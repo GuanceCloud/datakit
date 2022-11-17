@@ -1,0 +1,199 @@
+Temp             | 01h | ok  |  3.1 | 34 degrees C
+Temp             | 02h | ok  |  3.2 | 45 degrees C
+Inlet Temp       | 05h | ok  |  7.1 | 23 degrees C
+DIMM PG          | 07h | ok  |  7.1 | State Deasserted
+NDC PG           | 08h | ok  |  7.1 | State Deasserted
+PS1 PG FAIL      | 09h | ok  |  7.1 | State Deasserted
+PS2 PG FAIL      | 0Ah | ok  |  7.1 | State Deasserted
+BP0 PG           | 0Bh | ok  |  7.1 | State Deasserted
+BP1 PG           | 0Ch | ok  |  7.1 | State Deasserted
+BP2 PG           | 0Dh | ok  |  7.1 | State Deasserted
+1.8V SW PG       | 0Eh | ok  |  7.1 | State Deasserted
+2.5V SW PG       | 0Fh | ok  |  7.1 | State Deasserted
+5V SW PG         | 10h | ok  |  7.1 | State Deasserted
+PVNN SW PG       | 11h | ok  |  7.1 | State Deasserted
+VSB11 SW PG      | 12h | ok  |  7.1 | State Deasserted
+VSBM SW PG       | 13h | ok  |  7.1 | State Deasserted
+3.3V B PG        | 15h | ok  |  7.1 | State Deasserted
+MEM012 VDDQ PG   | 24h | ok  |  3.1 | State Deasserted
+MEM012 VPP PG    | 25h | ok  |  3.1 | State Deasserted
+MEM012 VTT PG    | 26h | ok  |  3.1 | State Deasserted
+MEM345 VDDQ PG   | 27h | ok  |  3.1 | State Deasserted
+MEM345 VPP PG    | 28h | ok  |  3.1 | State Deasserted
+MEM345 VTT PG    | 29h | ok  |  3.1 | State Deasserted
+VCCIO PG         | 2Ah | ok  |  3.1 | State Deasserted
+VCORE PG         | 2Bh | ok  |  3.1 | State Deasserted
+FIVR PG          | 2Ch | ok  |  3.1 | State Deasserted
+MEM012 VDDQ PG   | 2Eh | ok  |  3.2 | State Deasserted
+MEM012 VPP PG    | 2Fh | ok  |  3.2 | State Deasserted
+MEM012 VTT PG    | 30h | ok  |  3.2 | State Deasserted
+MEM345 VDDQ PG   | 31h | ok  |  3.2 | State Deasserted
+MEM345 VPP PG    | 32h | ok  |  3.2 | State Deasserted
+MEM345 VTT PG    | 33h | ok  |  3.2 | State Deasserted
+VCCIO PG         | 34h | ok  |  3.2 | State Deasserted
+VCORE PG         | 35h | ok  |  3.2 | State Deasserted
+FIVR PG          | 36h | ok  |  3.2 | State Deasserted
+Fan1             | 38h | ok  |  7.1 | 3480 RPM
+Fan2             | 39h | ok  |  7.1 | 3360 RPM
+Fan3             | 3Ah | ok  |  7.1 | 3480 RPM
+Fan4             | 3Bh | ok  |  7.1 | 3240 RPM
+Fan5             | 3Ch | ok  |  7.1 | 3840 RPM
+Fan6             | 3Dh | ok  |  7.1 | 3360 RPM
+Presence         | 48h | ok  | 10.1 | Present
+Presence         | 49h | ok  | 10.2 | Present
+Presence         | 4Ah | ok  | 11.1 | Present
+Presence         | 4Bh | ok  | 11.3 | Absent
+Intrusion Cable  | 51h | ok  |  7.1 | Connected
+VGA Cable Pres   | 52h | ok  |  7.1 | Connected
+Presence         | 58h | ok  | 11.2 | Absent
+BP0 Presence     | 59h | ok  | 26.1 | Absent
+BP1 Presence     | 5Ah | ok  | 26.2 | Present
+BP2 Presence     | 5Bh | ok  | 26.3 | Absent
+Power Cable      | 5Ch | ns  | 26.1 | Disabled
+Signal Cable     | 5Dh | ns  | 26.1 | Disabled
+Power Cable      | 5Eh | ok  | 26.2 | Connected
+Signal Cable     | 5Fh | ok  | 26.2 | Connected
+Power Cable      | 60h | ns  | 26.3 | Disabled
+Signal Cable     | 61h | ns  | 26.3 | Disabled
+Presence         | 66h | ok  |  3.1 | Present
+Presence         | 67h | ok  |  3.2 | Present
+Current 1        | 6Bh | ok  | 10.1 | 1 Amps
+Current 2        | 6Ch | ok  | 10.2 | 0.20 Amps
+Voltage 1        | 6Dh | ok  | 10.1 | 220 Volts
+Voltage 2        | 6Eh | ok  | 10.2 | 222 Volts
+Riser Config Err | 6Fh | ok  |  7.1 | Connected
+OS Watchdog      | 71h | ok  |  7.1 | 
+SEL              | 72h | ns  |  0.1 | No Reading
+Intrusion        | 73h | ok  |  7.1 | 
+Power Optimized  | 75h | ok  |  7.1 | 
+Pwr Consumption  | 76h | ok  |  7.1 | 208 Watts
+PS Redundancy    | 77h | ok  |  7.1 | Fully Redundant
+Fan Redundancy   | 78h | ok  |  7.1 | Fully Redundant
+Redundancy       | 79h | ns  | 11.3 | Disabled
+SD1              | 7Ah | ns  | 11.3 | Disabled
+SD2              | 7Bh | ns  | 11.3 | Disabled
+SD               | 7Ch | ns  | 11.4 | Disabled
+IO Usage         | 7Dh | ok  |  7.1 | 0 percent
+MEM Usage        | 7Eh | ok  |  7.1 | 0 percent
+SYS Usage        | 7Fh | ok  |  7.1 | 2 percent
+CPU Usage        | 80h | ok  |  7.1 | 1 percent
+Status           | 81h | ok  |  3.1 | Presence detected
+Status           | 82h | ok  |  3.2 | Presence detected
+Status           | 85h | ok  | 10.1 | Presence detected
+Status           | 86h | ok  | 10.2 | Presence detected
+CMOS Battery     | 87h | ok  |  7.1 | Presence Detected
+ROMB Battery     | 88h | ns  | 11.2 | Disabled
+PCIe Slot1       | 8Bh | ns  |  7.1 | Disabled
+PCIe Slot2       | 8Ch | ns  |  7.1 | Disabled
+PCIe Slot3       | 8Dh | ns  |  7.1 | Disabled
+PCIe Slot4       | 8Eh | ok  |  7.1 | 
+PCIe Slot5       | 8Fh | ns  |  7.1 | Disabled
+PCIe Slot6       | 90h | ns  |  7.1 | Disabled
+PCIe Slot7       | 91h | ns  |  7.1 | Disabled
+PCIe Slot8       | 92h | ns  |  7.1 | Disabled
+Drive 0          | 98h | ok  |  7.1 | Drive Present
+Drive 15         | A7h | ok  |  7.1 | 
+Drive 30         | B6h | ns  |  7.1 | Disabled
+Cable PCIe A0    | BAh | ns  | 26.2 | Disabled
+Cable PCIe B0    | BBh | ns  | 26.2 | Disabled
+Cable PCIe A1    | BCh | ns  | 26.2 | Disabled
+Cable PCIe B1    | BDh | ns  | 26.2 | Disabled
+Cable PCIe A2    | BEh | ns  | 26.2 | Disabled
+Cable PCIe B2    | BFh | ns  | 26.2 | Disabled
+Cable SAS A0     | C0h | ok  | 26.2 | Connected
+Cable SAS B0     | C1h | ok  | 26.2 | Connected
+Cable SAS A1     | C2h | ns  | 26.2 | Disabled
+Cable SAS B1     | C3h | ns  | 26.2 | Disabled
+Cable SAS A2     | C4h | ns  | 26.2 | Disabled
+Cable SAS B2     | C5h | ns  | 26.2 | Disabled
+Cable PCIe A0    | C6h | ns  | 26.3 | Disabled
+Cable PCIe B0    | C7h | ns  | 26.3 | Disabled
+A                | CAh | ok  | 32.1 | Presence Detected
+B                | D6h | ok  | 32.1 | Presence Detected
+ECC Corr Err     | 01h | ns  | 34.1 | No Reading
+ECC Uncorr Err   | 02h | ns  | 34.1 | No Reading
+PCI Parity Err   | 04h | ns  | 34.1 | No Reading
+PCI System Err   | 05h | ns  | 34.1 | No Reading
+SBE Log Disabled | 06h | ns  | 34.1 | No Reading
+Unknown          | 08h | ns  | 34.1 | No Reading
+CPU Machine Chk  | 0Dh | ns  | 34.1 | No Reading
+Memory Spared    | 11h | ns  | 34.1 | No Reading
+Memory Mirrored  | 12h | ns  | 34.1 | No Reading
+PCIE Fatal Err   | 18h | ns  | 34.1 | No Reading
+Chipset Err      | 19h | ns  | 34.1 | No Reading
+Err Reg Pointer  | 1Ah | ns  | 34.1 | No Reading
+Mem ECC Warning  | 1Bh | ns  | 34.1 | No Reading
+POST Err         | 1Eh | ns  | 34.1 | No Reading
+Hdwr version err | 1Fh | ns  | 34.1 | No Reading
+Non Fatal PCI Er | 26h | ns  | 34.1 | No Reading
+Fatal IO Error   | 27h | ns  | 34.1 | No Reading
+MSR Info Log     | 28h | ns  | 34.1 | No Reading
+TXT Status       | 2Ah | ns  | 34.1 | No Reading
+iDPT Mem Fail    | 2Bh | ns  | 34.1 | No Reading
+Additional Info  | 2Eh | ns  | 34.1 | No Reading
+CPU TDP          | 2Fh | ns  | 34.1 | No Reading
+QPIRC Warning    | 30h | ns  | 34.1 | No Reading
+QPIRC Warning    | 31h | ns  | 34.1 | No Reading
+Link Warning     | 32h | ns  | 34.1 | No Reading
+Link Warning     | 33h | ns  | 34.1 | No Reading
+Link Error       | 34h | ns  | 34.1 | No Reading
+MRC Warning      | 35h | ns  | 34.1 | No Reading
+MRC Warning      | 36h | ns  | 34.1 | No Reading
+Chassis Mismatch | 37h | ns  | 34.1 | No Reading
+FatalPCIErrOnBus | 38h | ns  | 34.1 | No Reading
+NonFatalPCIErBus | 39h | ns  | 34.1 | No Reading
+Fatal PCI SSD Er | 3Ah | ns  | 34.1 | No Reading
+NonFatalSSDEr    | 3Bh | ns  | 34.1 | No Reading
+CPUMachineCheck  | 3Ch | ns  | 34.1 | No Reading
+FatalPCIErARI    | 3Dh | ns  | 34.1 | No Reading
+NonFatalPCIErARI | 3Eh | ns  | 34.1 | No Reading
+FatalPCIExpEr    | 3Fh | ns  | 34.1 | No Reading
+NonFatalPCIExpEr | 40h | ns  | 34.1 | No Reading
+CP Left Pres     | 56h | ok  |  7.1 | Present
+CP Right Pres    | 57h | ok  |  7.1 | Present
+CPU Link Info    | 42h | ns  | 34.1 | No Reading
+Chipset Info     | 43h | ns  | 34.1 | No Reading
+Memory Config    | 44h | ns  | 34.1 | No Reading
+QPI Link Err     | 29h | ns  | 34.1 | No Reading
+LT/Flex Addr     | 25h | ns  | 34.1 | No Reading
+OS Watchdog Time | 23h | ns  | 34.1 | No Reading
+TPM Presence     | 41h | ns  | 34.1 | No Reading
+VSA PG           | 2Dh | ok  |  3.1 | State Deasserted
+VSA PG           | 37h | ok  |  3.2 | State Deasserted
+TPM Presence     | 54h | ok  |  7.1 | Absent
+Dedicated NIC    | 70h | ok  |  7.1 | Present
+Status           | 53h | ns  | 11.6 | No Reading
+Pfault Fail Safe | 74h | ns  |  7.1 | No Reading
+Unresp sensor    | FEh | ok  |  7.1 | 
+Presence         | 4Ch | ok  | 11.4 | Absent
+GPU1 Temp        | 89h | ns  |  7.1 | Disabled
+GPU2 Temp        | 8Ah | ns  |  7.1 | Disabled
+Riser 3 Presence | 4Fh | ok  |  7.1 | 
+Riser 2 Presence | 4Eh | ok  |  7.1 | Connected
+Riser 1 Presence | 4Dh | ok  |  7.1 | Connected
+GPU3 Temp        | 62h | ns  |  7.1 | Disabled
+GPU4 Temp        | 63h | ns  |  7.1 | Disabled
+GPU5 Temp        | 64h | ns  |  7.1 | Disabled
+GPU6 Temp        | 65h | ns  |  7.1 | Disabled
+GPU7 Temp        | FCh | ns  |  7.1 | Disabled
+GPU8 Temp        | FDh | ns  |  7.1 | Disabled
+Front LED Panel  | 55h | ok  |  7.1 | 
+NVDIMM Battery   | 6Ah | ns  |  7.1 | Disabled
+NVDIMM Warning   | 46h | ns  | 34.1 | No Reading
+NVDIMM Error     | 47h | ns  | 34.1 | No Reading
+NVDIMM Info      | 48h | ns  | 34.1 | No Reading
+POST Pkg Repair  | 45h | ns  | 34.1 | No Reading
+Fan1 Status      | 3Eh | ok  |  7.1 | 
+Fan2 Status      | 3Fh | ok  |  7.1 | 
+Fan3 Status      | 40h | ok  |  7.1 | 
+Fan4 Status      | 41h | ok  |  7.1 | 
+Fan5 Status      | 42h | ok  |  7.1 | 
+Fan6 Status      | 43h | ok  |  7.1 | 
+Exhaust Temp     | 06h | ok  |  7.1 | 31 degrees C
+ROMB Battery     | 83h | ns  | 11.5 | Disabled
+Cable SAS A0     | C8h | ns  | 26.3 | Disabled
+Cable SAS A0     | C9h | ns  | 26.1 | Disabled
+MMIOChipset Info | 49h | ns  | 34.1 | No Reading
+DIMM Media Info  | 4Ah | ns  | 34.1 | No Reading
+DIMMThermal Info | 4Bh | ns  | 34.1 | No Reading
+CPU Internal Err | 09h | ns  | 34.1 | No Reading

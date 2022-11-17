@@ -75,6 +75,7 @@ const (
 	Volt           = "volt"
 	FrequencyMHz   = "MHz"
 	RPMPercent     = "RPM%"
+	RotationRete   = "RPM"
 )
 
 type Measurement interface {

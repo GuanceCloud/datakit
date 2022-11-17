@@ -32,6 +32,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/iis"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/influxdb"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ipmi"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jaeger"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jenkins"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jvm"
