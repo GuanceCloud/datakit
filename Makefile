@@ -156,13 +156,7 @@ define build_k8s_charts
 	@echo `echo $(VERSION) | cut -d'-' -f1`
 	@sed -e "s,{{repository}},$(2)/datakit/datakit,g" charts/values.yaml > charts/datakit/values.yaml
 	@helm package charts/datakit --version `echo $(VERSION) | cut -d'-' -f1` --app-version `echo $(VERSION)`
-	@if [ $$((`echo $(VERSION) | awk -F . '{print $$2}'`%2)) -eq 0 ];then \
-        helm cm-push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1); \
-     else \
-			  printf "\033[31m [FAIL] unstable version not allowed\n\033[0m"; \
-        exit 1; \
-     fi
-
+	@helm cm-push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1); \
 	@rm -f datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz
 endef
 
