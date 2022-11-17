@@ -21,6 +21,9 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"add_key()":            &addKeyMarkdown,
 	"add_pattern()":        &addPatternMarkdown,
 	"adjust_timezone()":    &adjustTimezoneMarkdown,
+	"append()":             &appendMarkdown,
+	"b64dec()":             &b64decMarkdown,
+	"b64enc()":             &b64encMarkdown,
 	"cast()":               &castMarkdown,
 	"cidr()":               &cidrMarkdown,
 	"cover()":              &coverMarkdown,
@@ -67,6 +70,15 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 var (
 	//go:embed md/add_pattern.md
 	docAddPattern string
+
+	//go:embed md/append.md
+	docAppend string
+
+	//go:embed md/b64dec.md
+	docB64dec string
+
+	//go:embed md/b64enc.md
+	docB64enc string
 
 	//go:embed md/cidr.md
 	docCIDR string
@@ -200,6 +212,9 @@ var (
 	addKeyMarkdown            = PLDoc{Doc: docAddKey, Deprecated: false}
 	addPatternMarkdown        = PLDoc{Doc: docAddPattern, Deprecated: false}
 	adjustTimezoneMarkdown    = PLDoc{Doc: docAdjustTimezone, Deprecated: false}
+	appendMarkdown            = PLDoc{Doc: docAppend, Deprecated: false}
+	b64decMarkdown            = PLDoc{Doc: docB64dec, Deprecated: false}
+	b64encMarkdown            = PLDoc{Doc: docB64enc, Deprecated: false}
 	castMarkdown              = PLDoc{Doc: docCast, Deprecated: false}
 	cidrMarkdown              = PLDoc{Doc: docCIDR, Deprecated: false}
 	coverMarkdown             = PLDoc{Doc: docCover, Deprecated: false}
