@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
@@ -116,7 +117,13 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 	}
 
 	// run pipeline
-	after, err := runPl(category, pts, opt)
+	var plopt *plscript.Option
+	var scriptConfMap map[string]string
+	if opt != nil {
+		plopt = opt.PlOption
+		scriptConfMap = opt.PlScript
+	}
+	after, err := pipeline.RunPl(category, pts, plopt, scriptConfMap)
 	if err != nil {
 		log.Error(err)
 	} else {

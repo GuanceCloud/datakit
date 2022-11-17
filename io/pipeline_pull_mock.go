@@ -8,13 +8,12 @@ package io
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 )
 
 var defPipelinePullMock pipelinePullMock = &prodPipelinePullMock{}
 
 type pipelinePullMock interface {
-	getPipelinePull(ts int64) (*pullPipelineReturn, error)
+	getPipelinePull(ts, relationTS int64) (*pullPipelineReturn, error)
 }
 
 type prodPipelinePullMock struct{}
@@ -22,33 +21,35 @@ type prodPipelinePullMock struct{}
 //------------------------------------------------------------------------------
 // copied from kodo project
 
-type dataways struct {
-	Regions    map[string][]string `json:"regions"`
-	UpdateTime int64               `json:"update_time"` // not used
-}
-
 type pipelineUnit struct {
 	Name       string `json:"name"`
 	Base64Text string `json:"base64text"`
 	Category   string `json:"category"`
+	AsDefault  bool   `json:"asDefault"`
+}
+
+type pipelineRelation struct {
+	Category string `json:"category"`
+	Source   string `json:"source"`
+	Name     string `json:"name"`
 }
 
 type pullPipelineReturn struct {
 	UpdateTime int64           `json:"update_time"`
 	Pipelines  []*pipelineUnit `json:"pipelines"`
+
+	RelationUpdateTime int64               `json:"relation_update_time"`
+	Relation           []*pipelineRelation `json:"relation"`
 }
 
 type pullResp struct {
-	Filters      map[string][]string `json:"filters"`
-	RemotePL     *pullPipelineReturn `json:"remote_pipelines"`
-	Dataways     *dataways           `json:"dataways"`
-	PullInterval time.Duration       `json:"pull_interval"`
+	RemotePL *pullPipelineReturn `json:"remote_pipelines"`
 }
 
 //------------------------------------------------------------------------------
 
-func (*prodPipelinePullMock) getPipelinePull(ts int64) (*pullPipelineReturn, error) {
-	body, err := defaultIO.dw.DatakitPull(fmt.Sprintf("remote_pipelines=true&ts=%d", ts))
+func (*prodPipelinePullMock) getPipelinePull(ts int64, relationTS int64) (*pullPipelineReturn, error) {
+	body, err := defaultIO.dw.DatakitPull(fmt.Sprintf("remote_pipelines=true&ts=%d&relation_ts=%d", ts, relationTS))
 	if err != nil {
 		return nil, err
 	}

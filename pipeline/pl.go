@@ -3,23 +3,21 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package io
+package pipeline
 
 import (
 	"fmt"
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/relation"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 )
 
-var plLogger = logger.DefaultSLogger("pipeline")
-
-func runPl(category string, pts []*point.Point, opt *Option) (ret []*point.Point, retErr error) {
+func RunPl(category string, pts []*point.Point, plOpt *plscript.Option, scriptMap map[string]string) (ret []*point.Point, retErr error) {
 	defer func() {
 		if err := recover(); err != nil {
 			retErr = fmt.Errorf("run pl: %s", err)
@@ -30,12 +28,6 @@ func runPl(category string, pts []*point.Point, opt *Option) (ret []*point.Point
 		return pts, nil
 	}
 
-	var scriptMap map[string]string
-	var plOpt *plscript.Option
-	if opt != nil {
-		scriptMap = opt.PlScript
-		plOpt = opt.PlOption
-	}
 	ret = []*point.Point{}
 	ptOpt := &point.PointOption{
 		DisableGlobalTags: true,
@@ -56,7 +48,7 @@ func runPl(category string, pts []*point.Point, opt *Option) (ret []*point.Point
 		name, tags, fields, tn, drop, err := script.Run(ptName,
 			tags, fields, *ptTime, nil, plOpt)
 		if err != nil {
-			plLogger.Debug(err)
+			l.Debug(err)
 			ret = append(ret, pt)
 			continue
 		}
@@ -68,7 +60,7 @@ func runPl(category string, pts []*point.Point, opt *Option) (ret []*point.Point
 		ptOpt.Time = tn
 
 		if p, err := point.NewPoint(name, tags, fields, ptOpt); err != nil {
-			plLogger.Error(err)
+			l.Error(err)
 			stats.WriteScriptStats(script.Category(), script.NS(), script.Name(), 0, 0, 1, 0, err)
 		} else {
 			pt = p
@@ -87,7 +79,7 @@ func getScript(category string, pt *point.Point, scriptMap map[string]string) (
 	case datakit.RUM, datakit.Security, datakit.Tracing, datakit.Profiling:
 		fields, err := pt.Fields()
 		if err != nil {
-			plLogger.Debug(err)
+			l.Debug(err)
 			break
 		}
 		ptTime := pt.Time()
@@ -115,7 +107,7 @@ func getScript(category string, pt *point.Point, scriptMap map[string]string) (
 
 		fields, err := pt.Fields()
 		if err != nil {
-			plLogger.Errorf("Fields: %s", err)
+			l.Errorf("Fields: %s", err)
 			break
 		}
 
@@ -181,6 +173,10 @@ func scriptName(category string, name string, tags map[string]string, fields map
 		default:
 			return sName, ok
 		}
+	}
+
+	if sName, ok := relation.QueryRemoteRelation(category, scriptName); ok {
+		return sName, ok
 	}
 
 	return scriptName + ".p", true
