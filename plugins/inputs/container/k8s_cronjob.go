@@ -12,7 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	v1beta1 "k8s.io/api/batch/v1beta1"
+	v1 "k8s.io/api/batch/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -24,7 +24,7 @@ var (
 type cronjob struct {
 	client    k8sClientX
 	extraTags map[string]string
-	items     []v1beta1.CronJob
+	items     []v1.CronJob
 	host      string
 }
 
@@ -45,15 +45,10 @@ func (c *cronjob) name() string {
 }
 
 func (c *cronjob) pullItems() error {
-	if len(c.items) != 0 {
-		return nil
-	}
-
 	list, err := c.client.getCronJobs().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return fmt.Errorf("failed to get cronjobs resource: %w", err)
 	}
-
 	c.items = list.Items
 	return nil
 }

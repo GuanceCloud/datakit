@@ -33,10 +33,12 @@ func (e IfList) String() string {
 	if len(e) == 0 {
 		return ""
 	}
+
 	arr := []string{"if", e[0].String()}
 	for i := 1; i < len(e); i++ {
 		arr = append(arr, "elif", e[i].String())
 	}
+
 	return strings.Join(arr, " ")
 }
 

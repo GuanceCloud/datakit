@@ -66,8 +66,7 @@ var (
 
 	DataKitVersion = ""
 
-	EnableExperimental int
-	OTA                = false
+	OTA = false
 
 	EnableInputs,
 	CloudProvider,

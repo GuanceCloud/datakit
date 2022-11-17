@@ -2,7 +2,7 @@
 
 # Install waque:
 #		$ npm i -g waque
-#		$ waque login # 此处会弹出浏览器，确认雨雀登陆
+#		$ waque login # 此处会弹出浏览器，确认语雀登陆
 
 ##################
 # colors

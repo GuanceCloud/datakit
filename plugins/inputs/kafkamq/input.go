@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafkamq/custom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafkamq/skywalking"
 )
 
@@ -30,6 +31,16 @@ const mqSampleConfig = `
   plugins = ["db.type"]
   # Consumer group partition assignment strategy (range, roundrobin, sticky)
   assignor = "roundrobin"
+
+  ## kafka tls config
+  # tls_enable = true
+  # tls_security_protocol = "SASL_PLAINTEXT"
+  # tls_sasl_mechanism = "PLAIN"
+  # tls_sasl_plain_username = "user"
+  # tls_sasl_plain_password = "pw"
+
+  ## -1:Offset Newest, -2:Offset Oldest
+  #offsets=-2
 
   # customer_tags = ["key1", "key2", ...]
 
@@ -77,6 +88,18 @@ const mqSampleConfig = `
     # path = "./skywalking_storage"
     # capacity = 5120
 
+  ## user custom message with PL script.
+  [inputs.kafkamq.custom]
+  #group_id="datakit"
+  #log_topics=["apm"]
+  #log_pl="log.p"
+  #metric_topic=["metric1"]
+  #metric_pl="kafka_metric.p"
+  ## rate limit. 
+  #limit_sec = 100
+  ## sample
+  # sampling_rate = 1.0
+
   ## todo: add other input-mq
 `
 
@@ -86,12 +109,18 @@ var (
 )
 
 type Input struct {
-	Addr         string                  `toml:"addr"`
-	Addrs        []string                `toml:"addrs"`         // 向下兼容 addr
-	KafkaVersion string                  `toml:"kafka_version"` // kafka version
-	GroupID      string                  `toml:"group_id"`
-	SkyWalking   *skywalking.SkyConsumer `toml:"skywalking"` // 命名时 注意区分源
-	Assignor     string                  `toml:"assignor"`   // 消费模式
+	Addr                 string                  `toml:"addr"`
+	Addrs                []string                `toml:"addrs"`         // 向下兼容 addr
+	KafkaVersion         string                  `toml:"kafka_version"` // kafka version
+	GroupID              string                  `toml:"group_id"`
+	Offsets              int64                   `toml:"offsets"`
+	SkyWalking           *skywalking.SkyConsumer `toml:"skywalking"` // 命名时 注意区分源
+	Assignor             string                  `toml:"assignor"`   // 消费模式
+	TLSEnable            bool                    `toml:"tls_enable"`
+	TLSSecurityProtocol  string                  `toml:"tls_security_protocol"`
+	TLSSaslMechanism     string                  `toml:"tls_sasl_mechanism"`
+	TLSSaslPlainUsername string                  `toml:"tls_sasl_plain_username"`
+	TLSSaslPlainPassword string                  `toml:"tls_sasl_plain_password"`
 
 	Plugins          []string               `toml:"plugins"`
 	CustomerTags     []string               `toml:"customer_tags"`
@@ -100,6 +129,8 @@ type Input struct {
 	Sampler          *itrace.Sampler        `toml:"sampler"`
 	Tags             map[string]string      `toml:"tags"`
 	localCacheConfig *storage.StorageConfig `toml:"storage"`
+
+	Custom *custom.Custom `toml:"custom"`
 }
 
 func (*Input) Catalog() string      { return "kafkamq" }
@@ -132,11 +163,26 @@ func (ipt *Input) Run() {
 			return nil
 		})
 	}
+
+	if len(ipt.Custom.LogTopics) > 0 || len(ipt.Custom.MetricTopics) > 0 {
+		config := newConfig(version, balance, ipt.Offsets)
+		config = sasl(config, ipt.TLSEnable, ipt.TLSSaslMechanism, ipt.TLSSaslPlainUsername, ipt.TLSSaslPlainPassword)
+		g := goroutine.NewGroup(goroutine.Option{Name: "inputs_kafkamq"})
+		g.Go(func(ctx context.Context) error {
+			log.Infof("start input kafka custom mode")
+			//	ipt.Custom.SampleRote = ipt.SamplingRate * 100
+			ipt.Custom.SaramaConsumerGroup(addrs, config)
+			return nil
+		})
+	}
 }
 
 func (ipt *Input) Terminate() {
 	if ipt.SkyWalking != nil {
 		ipt.SkyWalking.Stop()
+	}
+	if ipt.Custom != nil {
+		ipt.Custom.Stop()
 	}
 	log.Infof("input[%s] exit", inputName)
 }

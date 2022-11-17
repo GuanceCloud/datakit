@@ -62,15 +62,10 @@ func (s *service) count() (map[string]int, error) {
 }
 
 func (s *service) pullItems() error {
-	if len(s.items) != 0 {
-		return nil
-	}
-
 	list, err := s.client.getServices().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return fmt.Errorf("failed to get services resource: %w", err)
 	}
-
 	s.items = list.Items
 	return nil
 }

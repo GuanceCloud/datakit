@@ -45,15 +45,10 @@ func (j *job) name() string {
 }
 
 func (j *job) pullItems() error {
-	if len(j.items) != 0 {
-		return nil
-	}
-
 	list, err := j.client.getJobs().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return fmt.Errorf("failed to get jobs resource: %w", err)
 	}
-
 	j.items = list.Items
 	return nil
 }

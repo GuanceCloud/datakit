@@ -125,53 +125,55 @@ java -javaagent:dd-java-agent.jar \
         - `-Ddd.agent.host=localhost`
         - `-Ddd.agent.port=9529`
 
-开启后，大概能采集到如下指标：
+开启后，就能采集到 DDTrace 暴露出来的 jvm  指标。
 
-- `buffer_pool_direct_capacity`
-- `buffer_pool_direct_count`
-- `buffer_pool_direct_used`
-- `buffer_pool_mapped_capacity`
-- `buffer_pool_mapped_count`
-- `buffer_pool_mapped_used`
-- `cpu_load_process`
-- `cpu_load_system`
-- `gc_eden_size`
-- `gc_major_collection_count`
-- `gc_major_collection_time`
-- `gc_metaspace_size`
-- `gc_minor_collection_count`
-- `gc_minor_collection_time`
-- `gc_old_gen_size`
-- `gc_survivor_size`
-- `heap_memory_committed`
-- `heap_memory_init`
-- `heap_memory_max`
-- `heap_memory`
-- `loaded_classes`
-- `non_heap_memory_committed`
-- `non_heap_memory_init`
-- `non_heap_memory_max`
-- `non_heap_memory`
-- `os_open_file_descriptors`
-- `thread_count`
+???+ attention
+
+    实际采集到的指标，以 [DataDog 的文档](https://docs.datadoghq.com/tracing/metrics/runtime_metrics/java/#data-collected){:target="_blank"} 为准。
+
+### `jvm` {#dd-jvm-measurement}
+
+-  标签
 
 其中每个指标有如下 tags （实际 tags 受 java 启动参数以及 statsd 配置影响）
 
-- `env`
-- `host`
-- `instance`
-- `jmx_domain`
-- `metric_type`
-- `name`
-- `service`
-- `type`
-- `version`
+| 标签名        | 描述          |
+| ----          | --------      |
+| `env`         | 对应 `DD_ENV` |
+| `host`        | 主机名        |
+| `instance`    | 实例          |
+| `jmx_domain`  |               |
+| `metric_type` |               |
+| `name`        |               |
+| `service`     |               |
+| `type`        |               |
+| `version`     |               |
+
+- 指标列表
+
+| 指标                        | 描述                                                                                                                          | 数据类型 | 单位   |
+| ----                        | ----                                                                                                                          | :---:    | :----: |
+| `heap_memory`               | The total Java heap memory used                                                                                               | int      | B      |
+| `heap_memory_committed`     | The total Java heap memory committed to be used                                                                               | int      | B      |
+| `heap_memory_init`          | The initial Java heap memory allocated                                                                                        | int      | B      |
+| `heap_memory_max`           | The maximum Java heap memory available                                                                                        | int      | B      |
+| `non_heap_memory`           | The total Java non-heap memory used. Non-heap memory is calculated as follows: `Metaspace + CompressedClassSpace + CodeCache` | int      | B      |
+| `non_heap_memory_committed` | The total Java non-heap memory committed to be used                                                                           | int      | B      |
+| `non_heap_memory_init`      | The initial Java non-heap memory allocated                                                                                    | int      | B      |
+| `non_heap_memory_max`       | The maximum Java non-heap memory available                                                                                    | int      | B      |
+| `thread_count`              | The number of live threads                                                                                                    | int      | count  |
+| `gc_cms_count`              | The total number of garbage collections that have occurred                                                                    | int      | count  |
+| `gc_major_collection_count` | The number of major garbage collections that have occurred. Set `new_gc_metrics: true` to receive this metric                 | int      | count  |
+| `gc_minor_collection_count` | The number of minor garbage collections that have occurred. Set `new_gc_metrics: true` to receive this metric                 | int      | count  |
+| `gc_parnew_time`            | The approximate accumulated garbage collection time elapsed                                                                   | int      | ms     |
+| `gc_major_collection_time`  | The approximate major garbage collection time elapsed. Set `new_gc_metrics: true` to receive this metric                      | int      | ms     |
+| `gc_minor_collection_time`  | The approximate minor garbage collection time elapsed. Set `new_gc_metrics: true` to receive this metric                      | int      | ms     |
 
 ## 通过 Jolokia 采集 JVM 指标 {#jvm-jolokia}
 
 JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到观测云，帮助分析 Java 运行情况。
 
-## 前置条件 {#jolokia-requirements}
+### 前置条件 {#jolokia-requirements}
 
 安装或下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar){:target="_blank"}。DataKit 安装目录下的 `data` 目录中已经有下载好的 Jolokia jar 包。通过如下方式开启 Java 应用：
 
@@ -179,7 +181,7 @@ JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到观�
 java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar your_app.jar
 ```
 
-## 配置 {#jolokia-config}
+### 配置 {#jolokia-config}
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
@@ -189,7 +191,7 @@ java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar you
 
 配置好后，重启 DataKit 即可。
 
-## 指标集 {#measurements}
+### 指标集 {#measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -202,7 +204,7 @@ java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar you
 
 {{ range $i, $m := .Measurements }}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
 
 -  标签
 

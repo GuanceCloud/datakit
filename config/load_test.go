@@ -8,6 +8,7 @@ package config
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -81,6 +82,37 @@ func TestGetPipelinePath(t *testing.T) {
 			}
 
 			t.Log(ss)
+		})
+	}
+}
+
+// go test -v -timeout 30s -run ^Test_getConfRootPaths$ gitlab.jiagouyun.com/cloudcare-tools/datakit/config
+func Test_getConfRootPaths(t *testing.T) {
+	cases := []struct {
+		name                 string
+		gitReposRepoName     string
+		gitReposRepoFullPath string
+		expect               []string
+	}{
+		{
+			name:                 "git_enabled",
+			gitReposRepoName:     "conf",
+			gitReposRepoFullPath: "/usr/local/datakit/gitrepos/conf",
+			expect:               []string{"/usr/local/datakit/gitrepos/conf/conf.d"},
+		},
+		{
+			name:   "git_disabled",
+			expect: []string{"/usr/local/datakit/conf.d"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			datakit.GitReposRepoName = tc.gitReposRepoName
+			datakit.GitReposRepoFullPath = tc.gitReposRepoFullPath
+
+			out := getConfRootPaths()
+			assert.Equal(t, tc.expect, out)
 		})
 	}
 }

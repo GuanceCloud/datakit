@@ -52,7 +52,7 @@
 
 - 在被采集对象（比如容器/Pod）上做特定的标注，告知 DataKit 如何处理它们产生的日志
 
-前面提到，单纯在容器采集器 conf 中配置日志采集，因为细粒度太粗，不利于精细配置，但可以在[容器/Pod 上打上标注](container.md#logging-with-annotation-or-label)，DataKit 会**主动去发现这些标注**，进而就知道每个容器/Pod 日志要如何处理了。
+前面提到，单纯在容器采集器 conf 中配置日志采集，因为细粒度太粗，不利于精细配置，但可以在[容器/Pod 上打上标注](container-log.md#logging-with-annotation-or-label)，DataKit 会**主动去发现这些标注**，进而就知道每个容器/Pod 日志要如何处理了。
 
 ### 优先级说明 {#priority}
 

@@ -114,6 +114,7 @@ datakit_docs=(
   $tmp_doc_dir/confd.md
   $tmp_doc_dir/consul.md
   $tmp_doc_dir/container.md
+  $tmp_doc_dir/container-log.md
   $tmp_doc_dir/coredns.md
   $tmp_doc_dir/cpu.md
   $tmp_doc_dir/datakit-logging-how.md
@@ -142,6 +143,7 @@ datakit_docs=(
   $tmp_doc_dir/hostobject.md
   $tmp_doc_dir/iis.md
   $tmp_doc_dir/influxdb.md
+  $tmp_doc_dir/ipmi.md
   $tmp_doc_dir/jaeger.md
   $tmp_doc_dir/jenkins.md
   $tmp_doc_dir/jvm.md
@@ -189,6 +191,7 @@ datakit_docs=(
   $tmp_doc_dir/sqlserver.md
   $tmp_doc_dir/ssh.md
   $tmp_doc_dir/statsd.md
+  $tmp_doc_dir/snmp.md
   $tmp_doc_dir/swap.md
   $tmp_doc_dir/system.md
   $tmp_doc_dir/tdengine.md

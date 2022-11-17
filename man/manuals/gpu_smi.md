@@ -7,7 +7,7 @@
 
 - 操作系统支持：{{.AvailableArchs}}
 
-SMI 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用率、GPU内每个运行程序的内存占用 等。
+SMI 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用率、GPU内每个运行程序的内存占用等。
 
 ### 使用SMI指标前置条件 {#SMI-precondition}
 

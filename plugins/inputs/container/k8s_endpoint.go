@@ -40,15 +40,10 @@ func (e *endpoint) name() string {
 }
 
 func (e *endpoint) pullItems() error {
-	if len(e.items) != 0 {
-		return nil
-	}
-
 	list, err := e.client.getEndpoints().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return fmt.Errorf("failed to get endpoints resource: %w", err)
 	}
-
 	e.items = list.Items
 	return nil
 }

@@ -71,7 +71,6 @@ require (
 	github.com/tidwall/gjson v1.14.3
 	github.com/tinylib/msgp v1.1.6
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
-	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/ubwbu/grok v1.0.6
 	github.com/ugorji/go/codec v1.2.6
 	github.com/vjeantet/grok v1.0.0
@@ -117,11 +116,14 @@ require (
 	github.com/cortexproject/cortex v1.9.1-0.20210722081137-485474c9afb2
 	github.com/gin-contrib/timeout v0.0.3
 	github.com/golang/protobuf v1.5.2
+	github.com/gosnmp/gosnmp v1.35.0
 	github.com/klauspost/compress v1.15.9
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.60.1
 	github.com/r3labs/diff/v3 v3.0.0
 	github.com/schollz/progressbar/v3 v3.9.0
 	github.com/tidwall/wal v1.1.7
+	github.com/uber/jaeger-client-go v2.29.1+incompatible
+	golang.org/x/exp v0.0.0-20221026004748-78e5e7837ae6
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -191,6 +193,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20201211165307-7117e9ea2414 // indirect
 	github.com/sercand/kuberesolver v2.4.0+incompatible // indirect
+	github.com/stretchr/objx v0.4.0 // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/weaveworks/common v0.0.0-20210419092856-009d1eebd624 // indirect
@@ -202,7 +205,6 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.5 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.5 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.5 // indirect
-	golang.org/x/exp v0.0.0-20221026004748-78e5e7837ae6 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	k8s.io/apiextensions-apiserver v0.25.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea // indirect
@@ -322,7 +324,7 @@ require (
 	golang.org/x/image v0.0.0-20191206065243-da761ea9ff43 // indirect
 	golang.org/x/oauth2 v0.1.0 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
-	golang.org/x/time v0.1.0 // indirect
+	golang.org/x/time v0.1.0
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220505152158-f39f71e6c8f3 // indirect

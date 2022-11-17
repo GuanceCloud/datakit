@@ -111,6 +111,11 @@ func (t *Single) Close() {
 }
 
 func (t *Single) seekOffset() error {
+	if err := register.Init(logtailCachePath); err != nil {
+		t.opt.log.Infof("init logtail.cache error %s, ignored", err)
+		return nil
+	}
+
 	if t.file == nil {
 		return fmt.Errorf("unreachable, invalid file pointer")
 	}
@@ -122,11 +127,6 @@ func (t *Single) seekOffset() error {
 			return err
 		}
 		t.offset = ret
-	}
-
-	if err := register.Init(logtailCachePath); err != nil {
-		t.opt.log.Infof("init logtail.cache error %s, ignored", err)
-		return nil
 	}
 
 	data := register.Get(getFileKey(t.filepath))

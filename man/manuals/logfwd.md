@@ -284,7 +284,7 @@ MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
 
 - [DataKit 日志采集综述](datakit-logging.md)
 - [Socket 日志接入最佳实践](logging_socket.md)
-- [Kubernetes 中指定 Pod 的日志采集配置](container.md#logging-with-annotation-or-label)
+- [Kubernetes 中指定 Pod 的日志采集配置](container-log.md#logging-with-annotation-or-label)
 - [第三方日志接入](logstreaming.md)
 - [Kubernetes 环境下 DataKit 配置方式介绍](k8s-config-how-to.md)
 - [以 DaemonSet 形式安装 DataKit](datakit-daemonset-deploy.md)

@@ -53,17 +53,18 @@ nav:
         - swap.md
         - net.md
         - netstat.md
-        - gpu_smi.md
         - socket.md
         - system.md
         - hostdir.md
         - ssh.md
+        - gpu_smi.md
         - Windows 相关:
           - 'Windows 事件': windows_event.md
           - iis.md
 
     - '云原生':
       - '容器数据采集': container.md
+      - container-log.md
       - k8s-config-how-to.md
       - kubernetes-crd.md
       - logfwd.md
@@ -143,6 +144,7 @@ nav:
       - 'Java':
         - 'JVM': jvm.md
         - tomcat.md
+      - snmp.md
 
     - '网络拨测':
       - '采集器配置': dialtesting.md
@@ -165,3 +167,4 @@ nav:
     - '其它采集器':
       - sensors.md
       - smart.md
+      - ipmi.md

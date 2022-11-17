@@ -23,13 +23,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/convertutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/relation"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
 const (
-	pipelineRemoteName        = "PipelineRemote"
-	pipelineRemoteConfigFile  = ".config"
-	pipelineRemoteContentFile = "content.tar.gz"
+	pipelineRemoteName             = "PipelineRemote"
+	pipelineRemoteConfigFile       = ".config"
+	pipelineRemoteContentFile      = "content.tar.gz"
+	pipelineRemoteRelationDumpFile = ".relation_dump.json"
 	// pipelineWarning           = `
 	// #------------------------------------   警告   -------------------------------------
 	// # 不要修改或删除本文件
@@ -75,7 +77,8 @@ type IPipelineRemote interface {
 	ReadFile(filename string) ([]byte, error)
 	WriteFile(filename string, data []byte, perm fs.FileMode) error
 	ReadDir(dirname string) ([]fs.FileInfo, error)
-	PullPipeline(ts int64) (mFiles map[string]map[string]string, updateTime int64, err error)
+	PullPipeline(int64, int64) (mFiles map[string]map[string]string, plRelation map[string]map[string]string,
+		defaultPl map[string]string, updateTime int64, relationTS int64, err error)
 	GetTickerDurationAndBreak() (time.Duration, bool)
 	Remove(name string) error
 	FeedLastError(inputName string, err string)
@@ -83,6 +86,7 @@ type IPipelineRemote interface {
 	WriteTarFromMap(data map[string]string, dest string) error
 }
 
+// Make sure pipelineRemoteImpl implements the IPipelineRemote interface.
 var _ IPipelineRemote = new(pipelineRemoteImpl)
 
 type pipelineRemoteImpl struct{}
@@ -111,8 +115,11 @@ func (*pipelineRemoteImpl) ReadDir(dirname string) ([]fs.FileInfo, error) {
 	return ioutil.ReadDir(dirname)
 }
 
-func (*pipelineRemoteImpl) PullPipeline(ts int64) (mFiles map[string]map[string]string, updateTime int64, err error) {
-	return io.PullPipeline(ts)
+func (*pipelineRemoteImpl) PullPipeline(ts, relationTS int64) (
+	map[string]map[string]string, map[string]map[string]string,
+	map[string]string, int64, int64, error,
+) {
+	return io.PullPipeline(ts, relationTS)
 }
 
 func (*pipelineRemoteImpl) GetTickerDurationAndBreak() (time.Duration, bool) {
@@ -150,6 +157,7 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 	}
 
 	pathConfig := filepath.Join(datakit.PipelineRemoteDir, pipelineRemoteConfigFile)
+	pathRelation := filepath.Join(datakit.PipelineRemoteDir, pipelineRemoteRelationDumpFile)
 	pathContent = filepath.Join(datakit.PipelineRemoteDir, pipelineRemoteContentFile)
 
 	td, isReturn := ipr.GetTickerDurationAndBreak()
@@ -161,7 +169,7 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 	var err error
 
 	for {
-		err = doPull(pathConfig, urls[0], ipr)
+		err = doPull(pathConfig, pathRelation, urls[0], ipr)
 		if err != nil {
 			ipr.FeedLastError(datakit.DatakitInputName, err.Error())
 		}
@@ -181,14 +189,16 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 	} // for
 }
 
-func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
+func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error {
 	localTS, err := getPipelineRemoteConfig(pathConfig, siteURL, ipr)
 	if err != nil {
 		l.Errorf("getPipelineRemoteConfig failed: %s", err.Error())
 		return err
 	}
 
-	mFiles, updateTime, err := ipr.PullPipeline(localTS)
+	relationTS := relation.RelationRemoteUpdateAt()
+
+	mFiles, pRelation, defaultPl, updateTime, relationUpdateTime, err := ipr.PullPipeline(localTS, relationTS)
 	if err != nil {
 		l.Errorf("PullPipeline failed: %s", err.Error())
 		return err
@@ -199,32 +209,47 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 	} else {
 		if updateTime == deleteAll {
 			l.Debug("deleteAll")
+
+			relation.UpdateRemoteDefaultPl(nil)
+
 			// remove lcoal files
 			if err := removeLocalRemote(ipr); err != nil {
 				return err
 			}
-			return nil
+		} else {
+			l.Infof("localTS = %d, updateTime = %d, so update", localTS, updateTime)
+
+			err := dumpFiles(mFiles, defaultPl, ipr)
+			if err != nil {
+				l.Errorf("dumpFiles failed: %s", err.Error())
+				return err
+			}
+
+			l.Debug("dumpFiles succeeded")
+
+			loadContentPipeline(mFiles)
+			relation.UpdateRemoteDefaultPl(defaultPl)
+
+			err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
+			if err != nil {
+				l.Errorf("updatePipelineRemoteConfig failed: %s", err.Error())
+				return err
+			}
+
+			l.Debugf("update completed: %d", updateTime)
 		}
+	}
 
-		l.Infof("localTS = %d, updateTime = %d, so update", localTS, updateTime)
+	if relationUpdateTime != -1 {
+		// 通常无正常状态的 pl 关系时，update time 不会更新，
+		// 中心不会返回最近（禁用/删除的）的关系的 ts 值，此时返回 ts 默认值 0
+		// 这种情况会将存储的 relation_update_at 置为 0
 
-		err := dumpFiles(mFiles, ipr)
-		if err != nil {
-			l.Errorf("dumpFiles failed: %s", err.Error())
-			return err
+		l.Info("update remote pipeline relation map")
+		relation.UpdateRemoteRelation(relationUpdateTime, pRelation)
+		if err := dumpRelation(pathRelation, pRelation); err != nil {
+			l.Debug(err)
 		}
-
-		l.Debug("dumpFiles succeeded")
-
-		loadContentPipeline(mFiles)
-
-		err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
-		if err != nil {
-			l.Errorf("updatePipelineRemoteConfig failed: %s", err.Error())
-			return err
-		}
-
-		l.Debugf("update completed: %d", updateTime)
 	}
 
 	return nil
@@ -238,7 +263,7 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 	for _, fi := range files {
 		if !fi.IsDir() {
 			localName := strings.ToLower(fi.Name())
-			if localName != pipelineRemoteConfigFile {
+			if localName != pipelineRemoteConfigFile && localName != pipelineRemoteRelationDumpFile {
 				fullPath := filepath.Join(datakit.PipelineRemoteDir, localName)
 				if err = ipr.Remove(fullPath); err != nil {
 					l.Errorf("failed to remove pipeline remote %s, err: %s", fi.Name(), err.Error())
@@ -251,16 +276,33 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 	return nil
 }
 
-func dumpFiles(mFiles map[string]map[string]string, ipr IPipelineRemote) error {
+func dumpFiles(mFiles map[string]map[string]string, defaultPl map[string]string, ipr IPipelineRemote) error {
 	l.Debugf("dumpFiles: %#v", mFiles)
 	// remove lcoal files
 	if err := removeLocalRemote(ipr); err != nil {
 		return err
 	}
 	// dump
-	data := convertThreeMapToContentMap(mFiles)
+	data := convertThreeMapToContentMap(mFiles, defaultPl)
 	if err := ipr.WriteTarFromMap(data, pathContent); err != nil {
 		return err
+	}
+	return nil
+}
+
+type relationInfo struct {
+	Relation map[string]map[string]string `json:"relation"`
+}
+
+func dumpRelation(path string, relation map[string]map[string]string) error {
+	if body, err := json.Marshal(&relationInfo{
+		Relation: relation,
+	}); err != nil {
+		return err
+	} else {
+		if err := ioutil.WriteFile(path, body, os.ModePerm); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -289,24 +331,7 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 	} else if isFirst {
 		// init load pipeline remotes
 		isFirst = false
-
-		mContent, err := ipr.ReadTarToMap(pathContent)
-		if err != nil {
-			l.Errorf("ReadTarToMap failed: %v", err)
-		} else {
-			data := ConvertContentMapToThreeMap(mContent)
-			if _, ok := data["."]; ok { // check old version
-				if err := ipr.Remove(pathConfig); err != nil {
-					l.Warnf("not compatible content file, remove config failed: %v", err)
-				}
-				if err := removeLocalRemote(ipr); err != nil {
-					l.Warnf("not compatible content file, removeLocalRemote failed: %v", err)
-				}
-				return 0, nil // need update when using compatible content file
-			} else {
-				loadContentPipeline(data)
-			}
-		}
+		cf.UpdateTime = 0 // 永远不从磁盘文件初始化
 	} // isFirst
 
 	return cf.UpdateTime, nil
@@ -349,13 +374,22 @@ func ConvertContentMapToThreeMap(in map[string]string) map[string]map[string]str
 }
 
 // more info see test case.
-func convertThreeMapToContentMap(in map[string]map[string]string) map[string]string {
+func convertThreeMapToContentMap(in map[string]map[string]string, defaultPl map[string]string) map[string]string {
 	out := make(map[string]string)
 	for category, mVal := range in {
 		for name, content := range mVal {
 			out[filepath.Join(category, name)] = content
 		}
 	}
+
+	if defaultPl != nil {
+		if v, err := json.Marshal(defaultPl); err != nil {
+			l.Error(err)
+		} else {
+			out["category_default.json"] = string(v)
+		}
+	}
+
 	return out
 }
 
@@ -369,15 +403,3 @@ func loadContentPipeline(in map[string]map[string]string) {
 		script.ReloadAllRemoteDotPScript2StoreFromMap(category, val)
 	}
 }
-
-// todo confd
-// func loadContentPipeline(in map[string]map[string]string) {
-// 	for categoryShort, val := range in {
-// 		category, err := convertutil.GetMapCategoryShortToFull(categoryShort)
-// 		if err != nil {
-// 			l.Warnf("GetMapCategoryShortToFull failed: err = %s, categoryShort = %s", err, categoryShort)
-// 			continue
-// 		}
-// 		script.ReloadAllRemoteDotPScript2StoreFromMap(category, val)
-// 	}
-// }

@@ -115,6 +115,7 @@ func (n *Input) initDB() error {
 	db := sql.OpenDB(conn)
 
 	if err := db.Ping(); err != nil {
+		db.Close() //nolint:errcheck,gosec
 		return err
 	}
 
@@ -208,6 +209,15 @@ func (n *Input) Run() {
 				if err != nil {
 					n.lastErr = err
 					l.Errorf(err.Error())
+				}
+			}
+
+			if len(loggingCollectCache) > 0 {
+				err := io.Feed(inputName, datakit.Logging, loggingCollectCache, &io.Option{CollectCost: time.Since(n.start)})
+				loggingCollectCache = loggingCollectCache[:0]
+				if err != nil {
+					n.lastErr = err
+					l.Errorf(err.Error())
 					continue
 				}
 			}
@@ -248,12 +258,17 @@ func (n *Input) Terminate() {
 func (n *Input) getMetric() {
 	start := time.Now()
 	n.start = start
+
 	for _, v := range query {
-		n.handRow(v, start)
+		n.handRow(v, start, false)
+	}
+
+	for _, v := range loggingQuery {
+		n.handRow(v, start, true)
 	}
 }
 
-func (n *Input) handRow(query string, ts time.Time) {
+func (n *Input) handRow(query string, ts time.Time, isLogging bool) {
 	rows, err := n.db.Query(query)
 	if err != nil {
 		l.Error(err.Error())
@@ -309,7 +324,15 @@ func (n *Input) handRow(query string, ts time.Time) {
 					measurement = str
 					continue
 				}
-				tags[header] = strings.TrimSuffix(str, "\\")
+
+				trimText := strings.TrimSuffix(str, "\\")
+				if isLogging {
+					fields[header] = trimText
+				} else {
+					tags[header] = trimText
+				}
+			} else if t, ok := (*val).(time.Time); ok {
+				fields[header] = t.UnixMilli()
 			} else {
 				if *val == nil {
 					continue
@@ -324,13 +347,27 @@ func (n *Input) handRow(query string, ts time.Time) {
 			continue
 		}
 
-		point, err := point.NewPoint(measurement, tags, fields, point.MOptElectionV2(n.Election))
+		var opt *point.PointOption
+		if isLogging {
+			tags["status"] = "info"
+			opt = point.LOptElectionV2(n.Election)
+		} else {
+			opt = point.MOptElectionV2(n.Election)
+		}
+
+		transformData(measurement, tags, fields)
+
+		point, err := point.NewPoint(measurement, tags, fields, opt)
 		if err != nil {
 			l.Errorf("make point err:%s", err.Error())
 			n.lastErr = err
 			continue
 		}
-		collectCache = append(collectCache, point)
+		if isLogging {
+			loggingCollectCache = append(loggingCollectCache, point)
+		} else {
+			collectCache = append(collectCache, point)
+		}
 	}
 }
 
@@ -368,6 +405,13 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 		&DatabaseIO{},
 		&Schedulers{},
 		&VolumeSpace{},
+		&LockRow{},
+		&LockDatabase{},
+		&LockTable{},
+		&LockDead{},
+		&LogicalIO{},
+		&WorkerTime{},
+		&DatabaseSize{},
 	}
 }
 

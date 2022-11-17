@@ -169,6 +169,7 @@ var (
 	flagToolIPInfo            = fsTool.String("ipinfo", "", "show IP geo info")
 	flagToolWorkspaceInfo     = fsTool.Bool("workspace-info", false, "show workspace info")
 	flagToolCheckConfig       = fsTool.Bool("check-config", false, "check inputs configure and main configure")
+	flagToolTestSNMP          = fsTool.String("test-snmp", "", "test snmp device")
 	flagToolDumpSamples       = fsTool.String("dump-samples", "", "dump all inputs samples")
 	flagToolLoadLog           = fsTool.Bool("upload-log", false, "upload log")
 	flagToolDefaultMainConfig = fsTool.Bool("default-main-conf", false, "print default datakit.conf")
