@@ -36,7 +36,7 @@
 
 ### 功能优化 {#cl-1.5.0-opt}
 
-- 新增批量注入 [DDTrace-Java 工具](../developers/ddtrace-attatch.md)(#786)
+- 新增批量注入 [DDTrace-Java 工具](../developers/ddtrace-attach.md)(#786)
 - [最新 DDTrace-Java SDK](../developers/ddtrace-guance.md) 增强了 SQL 脱敏功能(#789)
 - 远程 Pipeline 优化（以下两个功能，要求 Studio 升级到 2022/11/17 以后的版本）：
     - Pipeline 支持来源映射关系配置，便于实现 Pipeline 和数据源之间的批量配置(#1211)

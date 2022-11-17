@@ -156,7 +156,7 @@ define build_k8s_charts
 	@echo `echo $(VERSION) | cut -d'-' -f1`
 	@sed -e "s,{{repository}},$(2)/datakit/datakit,g" charts/values.yaml > charts/datakit/values.yaml
 	@helm package charts/datakit --version `echo $(VERSION) | cut -d'-' -f1` --app-version `echo $(VERSION)`
-	@helm cm-push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1); \
+	@helm cm-push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1)
 	@rm -f datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz
 endef
 
