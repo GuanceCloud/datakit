@@ -18,6 +18,7 @@ type dnsCacher struct {
 	callback dnsUpdateCallBackFunc
 }
 
+// Make sure dnsCacher implements the dnswatcher.IDNSWatcher interface.
 var _ dnswatcher.IDNSWatcher = new(dnsCacher)
 
 func (d *dnsCacher) initDNSCache(host string, callback dnsUpdateCallBackFunc) {

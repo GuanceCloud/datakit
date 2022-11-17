@@ -143,6 +143,7 @@ nav:
       - 'Java':
         - 'JVM': jvm.md
         - tomcat.md
+      - snmp.md
 
     - '网络拨测':
       - '采集器配置': dialtesting.md

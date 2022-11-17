@@ -53,7 +53,7 @@ func uploadLog(urls []string) error {
 
 	defer os.Remove(logFileName) //nolint:errcheck
 
-	hostName := getHostName()
+	hostName := config.Cfg.Hostname
 
 	resp, err := dw.UploadLog(fileReader, hostName)
 	if err != nil {
@@ -155,23 +155,4 @@ func getLogFile() (string, error) {
 		return fileName, fmt.Errorf("invalid log dir: %s", logPath)
 	}
 	return tmpFile.Name(), nil
-}
-
-func getHostName() string {
-	var hostName string
-
-	// 1. from datakit.conf
-	if customHostName, ok := config.Cfg.Environments["ENV_HOSTNAME"]; ok {
-		hostName = customHostName
-	}
-
-	// 2. default: os.Hostname()
-	if len(hostName) == 0 {
-		osHostName, err := os.Hostname()
-		if err == nil && len(osHostName) > 0 {
-			hostName = osHostName
-		}
-	}
-
-	return hostName
 }

@@ -189,6 +189,7 @@ datakit_docs=(
   $tmp_doc_dir/sqlserver.md
   $tmp_doc_dir/ssh.md
   $tmp_doc_dir/statsd.md
+  $tmp_doc_dir/snmp.md
   $tmp_doc_dir/swap.md
   $tmp_doc_dir/system.md
   $tmp_doc_dir/tdengine.md

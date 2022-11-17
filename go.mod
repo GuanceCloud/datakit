@@ -116,6 +116,7 @@ require (
 	github.com/cortexproject/cortex v1.9.1-0.20210722081137-485474c9afb2
 	github.com/gin-contrib/timeout v0.0.3
 	github.com/golang/protobuf v1.5.2
+	github.com/gosnmp/gosnmp v1.35.0
 	github.com/klauspost/compress v1.15.9
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.60.1
 	github.com/r3labs/diff/v3 v3.0.0
@@ -192,6 +193,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20201211165307-7117e9ea2414 // indirect
 	github.com/sercand/kuberesolver v2.4.0+incompatible // indirect
+	github.com/stretchr/objx v0.4.0 // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/weaveworks/common v0.0.0-20210419092856-009d1eebd624 // indirect

@@ -82,6 +82,7 @@ func (fileInfoStruct) Sys() interface{} {
 	return nil
 }
 
+// Make sure pipelineRemoteMockerTest implements the IPipelineRemote interface
 var _ IPipelineRemote = new(pipelineRemoteMockerTest)
 
 type pipelineRemoteMockerTest struct{}

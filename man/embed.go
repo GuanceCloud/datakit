@@ -73,6 +73,7 @@ var OtherDocs = map[string]bool{
 	"prometheus":                         true,
 	"rum":                                true,
 	"sec-checker":                        true,
+	"snmp":                               true,
 	"telegraf":                           true,
 	"why-no-data":                        true,
 	"git-config-how-to":                  true,
