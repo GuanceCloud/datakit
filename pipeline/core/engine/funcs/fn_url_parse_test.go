@@ -6,9 +6,10 @@
 package funcs
 
 import (
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"testing"
 	"time"
+
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 func TestURLParse(t *testing.T) {
