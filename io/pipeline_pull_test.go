@@ -16,6 +16,7 @@ var debugPipelinePullData *pullPipelineReturn
 
 type debugPipelinePullMock struct{}
 
+// Make sure debugPipelinePullMock implements the pipelinePullMock interface
 var _ pipelinePullMock = new(debugPipelinePullMock)
 
 func (*debugPipelinePullMock) getPipelinePull(ts int64) (*pullPipelineReturn, error) {

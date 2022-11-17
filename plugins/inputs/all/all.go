@@ -7,6 +7,7 @@
 package inputs
 
 import (
+	// nolint:typecheck
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/apache"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/beats_output"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/clickhousev1"
@@ -20,8 +21,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dialtesting"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/disk"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/diskio"
-
-	// nolint:typecheck
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ebpf"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/elasticsearch"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
@@ -67,6 +66,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/sensors"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/smart"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/socket"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/solr"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/sqlserver"

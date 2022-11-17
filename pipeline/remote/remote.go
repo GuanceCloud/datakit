@@ -83,6 +83,7 @@ type IPipelineRemote interface {
 	WriteTarFromMap(data map[string]string, dest string) error
 }
 
+// Make sure pipelineRemoteImpl implements the IPipelineRemote interface.
 var _ IPipelineRemote = new(pipelineRemoteImpl)
 
 type pipelineRemoteImpl struct{}

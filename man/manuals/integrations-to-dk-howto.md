@@ -22,7 +22,7 @@
 
 已有的 datakit 文档，大部分集成文档中的内容都已具备，主要缺少的是截图信息以及场景导航，除此之外，环境配置和指标信息基本都已具备。故合并的时候，只需要添加一些截图信息即可：
 
-- 在现有雨雀的集成文档中，获取截图的链接地址，在当前的集成文档库中直接下载即可：
+- 在现有语雀的集成文档中，获取截图的链接地址，在当前的集成文档库中直接下载即可：
 
 ```shell
 cd dataflux-doc/docs/integrations
@@ -48,7 +48,7 @@ wget http://yuque-img-url.png -O imgs/input-xxx-2.png
 
 对于 datakit 中没有直接采集器支持的集成文档，添加起来会简单一点，下面以现有集成库中的 resin 为例，分别说明上述过程。
 
-- 从雨雀现有页面获取 markdown 原文，保存到 *man/manuals/* 目录下
+- 从语雀现有页面获取 markdown 原文，保存到 *man/manuals/* 目录下
 
 直接在 resin 集成页面的 URL 后加上 markdown 后，[访问即可得到其 Markdown 原文](https://www.yuque.com/dataflux/integrations/resin/markdown){:target="_blank"}，全选拷贝，保存到 *man/manuals/resin.md* 中。
 
