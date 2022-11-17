@@ -28,9 +28,11 @@ type containerLogBasisInfo struct {
 	sourceMultilineMap    map[string]string
 	autoMultilinePatterns []string
 	extractK8sLabelAsTags bool
+
+	configKey string
 }
 
-func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tailer.Option {
+func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) (*tailer.Option, []string) {
 	if info.tags == nil {
 		info.tags = make(map[string]string)
 	}
@@ -42,8 +44,13 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 		info.tags["container_name"] = info.tags["container_runtime_name"]
 	}
 	info.tags["container_id"] = info.id
-	info.tags["pod_name"] = getPodNameForLabels(info.labels)
-	info.tags["namespace"] = getPodNamespaceForLabels(info.labels)
+
+	if n := getPodNameForLabels(info.labels); n != "" {
+		info.tags["pod_name"] = n
+	}
+	if ns := getPodNamespaceForLabels(info.labels); ns != "" {
+		info.tags["namespace"] = ns
+	}
 
 	if info.image != "" {
 		imageName, imageShortName, imageTag := ParseImage(info.image)
@@ -89,7 +96,7 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 	var logconf *containerLogConfig
 
 	func() {
-		if !datakit.Docker || info.tags["pod_name"] == "" {
+		if !datakit.Docker || info.tags["pod_name"] == "" || k8sClient == nil {
 			return
 		}
 		meta, err := queryPodMetaData(k8sClient, info.tags["pod_name"], info.tags["namespace"])
@@ -113,8 +120,8 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 		}
 
 		var conf string
-		if meta.annotations() != nil && meta.annotations()[containerLogConfigKey] != "" {
-			conf = meta.annotations()[containerLogConfigKey]
+		if meta.annotations() != nil && meta.annotations()[info.configKey] != "" {
+			conf = meta.annotations()[info.configKey]
 			l.Infof("use annotation datakit/logs, conf: %s, pod_name %s", conf, info.tags["pod_name"])
 		} else {
 			globalCRDLogsConfList.mu.Lock()
@@ -142,7 +149,7 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 	}()
 
 	if logconf == nil {
-		c, err := getContainerLogConfig(info.labels)
+		c, err := getContainerLogConfig(info.configKey, info.labels)
 		if err != nil {
 			l.Warnf("failed of parse logconfig from labels, err: %s", err)
 		} else {
@@ -186,12 +193,17 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) *tai
 		l.Infof("source %s, filename %s, automatic-multiline on, patterns %v", opt.Source, info.logPath, info.autoMultilinePatterns)
 	}
 
-	return opt
+	if logconf != nil && len(logconf.Paths) != 0 {
+		return opt, logconf.Paths
+	}
+
+	return opt, nil
 }
 
 type containerLogConfig struct {
 	Disable    bool              `json:"disable"`
 	Source     string            `json:"source"`
+	Paths      []string          `json:"paths"`
 	Pipeline   string            `json:"pipeline"`
 	Service    string            `json:"service"`
 	Multiline  string            `json:"multiline_match"`
@@ -199,13 +211,16 @@ type containerLogConfig struct {
 	Tags       map[string]string `json:"tags"`
 }
 
-const containerLogConfigKey = "datakit/logs"
+const (
+	containerLogConfigKey        = "datakit/logs"
+	containerInsiderLogConfigKey = "datakit/logs/inside"
+)
 
-func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
-	if m == nil || m[containerLogConfigKey] == "" {
+func getContainerLogConfig(key string, m map[string]string) (*containerLogConfig, error) {
+	if m == nil || m[key] == "" {
 		return nil, nil
 	}
-	return parseContainerLogConfig(m[containerLogConfigKey])
+	return parseContainerLogConfig(m[key])
 }
 
 func parseContainerLogConfig(cfg string) (*containerLogConfig, error) {

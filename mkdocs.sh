@@ -114,6 +114,7 @@ datakit_docs=(
   $tmp_doc_dir/confd.md
   $tmp_doc_dir/consul.md
   $tmp_doc_dir/container.md
+  $tmp_doc_dir/container-log.md
   $tmp_doc_dir/coredns.md
   $tmp_doc_dir/cpu.md
   $tmp_doc_dir/datakit-logging-how.md
