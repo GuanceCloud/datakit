@@ -507,7 +507,7 @@ func emptyDir(fp string) bool {
 func removeSamples() {
 	l.Debugf("searching samples under %s", datakit.ConfdDir)
 
-	fps := SearchDir(datakit.ConfdDir, ".conf.sample")
+	fps := SearchDir(datakit.ConfdDir, ".conf.sample", ".git")
 
 	l.Debugf("searched %d samples", len(fps))
 
@@ -624,7 +624,7 @@ func GetToken() string {
 }
 
 func GitHasEnabled() bool {
-	return datakit.GitReposRepoName != "" && datakit.GitReposRepoFullPath != ""
+	return len(datakit.GitReposRepoName) > 0 && len(datakit.GitReposRepoFullPath) > 0
 }
 
 func ProtectedInterval(min, max, cur time.Duration) time.Duration {

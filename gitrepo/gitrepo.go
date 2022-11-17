@@ -160,7 +160,7 @@ func doRun(c *config.GitRepository) error {
 		// clone a new one
 		l.Debug("PlainClone start")
 
-		if err := gitPlainClone(clonePath, c.URL, authMethod); err != nil {
+		if err := gitPlainClone(clonePath, c.URL, c.Branch, authMethod); err != nil {
 			l.Errorf("gitPlainClone failed: %v", err)
 			return err
 		}
@@ -256,7 +256,7 @@ func gitPull(clonePath, branch string, authMethod transport.AuthMethod) (isUpdat
 	return isUpdate, nil
 }
 
-func gitPlainClone(clonePath, gitURL string, authMethod transport.AuthMethod) error {
+func gitPlainClone(clonePath, gitURL, branch string, authMethod transport.AuthMethod) error {
 	ctxNew, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if _, err := git.PlainCloneContext(ctxNew, clonePath, false, &git.CloneOptions{
@@ -266,6 +266,8 @@ func gitPlainClone(clonePath, gitURL string, authMethod transport.AuthMethod) er
 		Auth:            authMethod,
 		URL:             gitURL,
 		InsecureSkipTLS: true,
+		RemoteName:      "origin",
+		ReferenceName:   plumbing.NewBranchReferenceName(branch),
 	}); err != nil {
 		return err
 	}
