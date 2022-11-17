@@ -17,6 +17,41 @@
 ### 兼容调整 {#cl-1.4.19-brk}
 -->
 
+## 1.5.0(2022/11/17) {#cl-1.5.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.0-new}
+
+- 新增 [SNMP 采集器](snmp.md)(#1068)
+- 新增 [IPMI 采集器](ipmi.md)(#1085)
+
+### 问题修复 {#cl-1.5.0-fix}
+
+- 修复 Git 管理配置文件模式下启动未预期采集器问题(#1250)
+- 修复 Jaeger 链路采集 TraceID 问题(#1251)
+- 修复极端情况下容器采集器存在的内存泄露问题(#1256)
+- 修复 Windows 下代理安装问题(#1244)
+- 其它修复(#1259)
+
+### 功能优化 {#cl-1.5.0-opt}
+
+- 新增批量注入 [DDTrace-Java 工具](../developers/ddtrace-attatch.md)(#786)
+- [最新 DDTrace-Java SDK](../developers/ddtrace-guance.md) 增强了 SQL 脱敏功能(#789)
+- 远程 Pipeline 优化（以下两个功能，要求 Studio 升级到 2022/11/17 以后的版本）：
+    - Pipeline 支持来源映射关系配置，便于实现 Pipeline 和数据源之间的批量配置(#1211)
+    - Pipeline 提供了函数分类信息，便于远程 Pipeline 编写(#1150)
+- 优化 [Kafka 消息订阅](kafkamq.md)，不再局限于获取 SkyWalking 相关的数据，同时支持限速、多版本覆盖、采样以及负载均衡等设定(#1212)
+- 通过提供额外配置参数（`ENV_INPUT_CONTAINER_LOGGING_SEARCH_INTERVAL`），缓解短生命周期 Pod 日志采集问题(#1255)
+- 纯容器环境下，支持[通过 label 方式](container-log.md#logging-with-annotation-or-label)配置容器内日志采集(#1187)
+- 新增 Pipeline 函数(#1220/#1224)
+    - [sample()](../developers/pipeline.md#fn-sample)：采样函数
+    - [b64enc()](../developers/pipeline.md#fn-b64enc)：Base64 编码函数
+    - [b64dec()](../developers/pipeline.md#fn-b64dec)：Base64 解码函数
+    - [append()](../developers/pipeline.md#fn-append)：列表追加函数
+
+- 各种文档完善(#1242/#1238/#1247)
+
 ## 1.4.20(2022/11/03) {#cl-1.4.20}
 
 本次发布属于迭代发布，主要有如下更新：
