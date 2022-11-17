@@ -18,12 +18,15 @@ func InitLog() {
 }
 
 var FuncsMap = map[string]runtime.FuncCall{
+	"append":                Append,
 	"cidr":                  CIDR,
 	"grok":                  Grok,
 	"add_key":               AddKey,
 	"adjust_timezone":       AdjustTimezone,
 	"json":                  JSON,
 	"add_pattern":           AddPattern,
+	"b64dec":                B64dec,
+	"b64enc":                B64enc,
 	"cast":                  Cast,
 	"datetime":              DateTime,
 	"default_time":          DefaultTime,
@@ -67,12 +70,15 @@ var FuncsMap = map[string]runtime.FuncCall{
 }
 
 var FuncsCheckMap = map[string]runtime.FuncCheck{
+	"append":                AppendChecking,
 	"cidr":                  CIDRChecking,
 	"grok":                  GrokChecking,
 	"add_key":               AddkeyChecking,
 	"adjust_timezone":       AdjustTimezoneChecking,
 	"json":                  JSONChecking,
 	"add_pattern":           AddPatternChecking,
+	"b64dec":                B64decChecking,
+	"b64enc":                B64encChecking,
 	"cast":                  CastChecking,
 	"datetime":              DateTimeChecking,
 	"default_time":          DefaultTimeChecking,
