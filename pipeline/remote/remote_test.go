@@ -23,6 +23,8 @@ var (
 	isFileExist            bool
 	readDirResult          []fs.FileInfo
 	pullPipelineUpdateTime int64
+	pullRelationUpdate     bool
+	pullRelationUpdateAt   int64
 
 	errGeneral                   = fmt.Errorf("test_specific_error")
 	errMarshal                   error
@@ -42,6 +44,8 @@ func resetVars() {
 	readFileData = []byte{}
 	isFileExist = false
 	readDirResult = []fs.FileInfo{}
+	pullPipelineUpdateTime = 0
+	pullRelationUpdate = false
 	pullPipelineUpdateTime = 0
 
 	errMarshal = nil
@@ -140,17 +144,26 @@ func (*pipelineRemoteMockerTest) ReadDir(dirname string) ([]fs.FileInfo, error) 
 	return readDirResult, nil
 }
 
-func (*pipelineRemoteMockerTest) PullPipeline(ts int64) (mFiles map[string]map[string]string, updateTime int64, err error) {
+func (*pipelineRemoteMockerTest) PullPipeline(ts, relationTS int64) (mFiles, plRelation map[string]map[string]string,
+	defaultPl map[string]string, updateTime int64, relationUpdateAt int64, err error,
+) {
 	if errPullPipeline != nil {
-		return nil, 0, errPullPipeline
+		return nil, nil, nil, 0, 0, errPullPipeline
 	}
 
 	return map[string]map[string]string{
-		"logging": {
-			"123.p": "text123",
-			"456.p": "text456",
-		},
-	}, pullPipelineUpdateTime, nil
+			"logging": {
+				"123.p": "text123",
+				"456.p": "text456",
+			},
+		}, map[string]map[string]string{
+			"logging": {
+				"123": "123.p",
+				"234": "123.p",
+			},
+		}, map[string]string{
+			"logging": "123.p",
+		}, pullPipelineUpdateTime, relationUpdateAt, nil
 }
 
 func (*pipelineRemoteMockerTest) GetTickerDurationAndBreak() (time.Duration, bool) {
@@ -226,6 +239,7 @@ func TestPullMain(t *testing.T) {
 func TestDoPull(t *testing.T) {
 	const dwURL = "https://openway.guance.com?token=tkn_123"
 	const configPath = "/usr/local/datakit/pipeline_remote/.config_fake"
+	const relationPath = "/usr/local/datakit/pipeline_remote/.relation_fake_dump.json"
 
 	cases := []struct {
 		name                       string
@@ -234,6 +248,8 @@ func TestDoPull(t *testing.T) {
 		siteURL                    string
 		configContent              []byte
 		testPullPipelineUpdateTime int64
+		testPullRelationUpdate     bool
+		testPullRelationUpdateAt   int64
 		testReadDirResult          []fs.FileInfo
 		failedMarshal              error
 		failedReadFile             error
@@ -330,12 +346,14 @@ func TestDoPull(t *testing.T) {
 			errReadDir = tc.failedReadDir
 			errPullPipeline = tc.failedPullPipeline
 			pullPipelineUpdateTime = tc.testPullPipelineUpdateTime
+			pullRelationUpdate = tc.testPullRelationUpdate
+			pullRelationUpdateAt = tc.testPullRelationUpdateAt
 			if len(tc.testReadDirResult) > 0 {
 				readDirResult = tc.testReadDirResult
 			}
 			errRemove = tc.failedRemove
 
-			err := doPull(tc.pathConfig, tc.siteURL, &pipelineRemoteMockerTest{})
+			err := doPull(tc.pathConfig, relationPath, tc.siteURL, &pipelineRemoteMockerTest{})
 			assert.Equal(t, tc.expectError, err, "doPull found error: %v", err)
 		})
 	}
@@ -384,7 +402,7 @@ func TestDumpFiles(t *testing.T) {
 			errReadDir = tc.failedReadDir
 			errWriteTarFromMap = tc.failedWriteTarFromMap
 
-			err := dumpFiles(tc.files, &pipelineRemoteMockerTest{})
+			err := dumpFiles(tc.files, nil, &pipelineRemoteMockerTest{})
 			assert.Equal(t, tc.expectError, err, "dumpFiles found error: %v", err)
 		})
 	}
@@ -415,7 +433,7 @@ func TestGetPipelineRemoteConfig(t *testing.T) {
 			pathConfig:    configPath,
 			siteURL:       dwURL,
 			configContent: []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
-			expect:        1644318398,
+			expect:        0,
 		},
 		{
 			name:       "config_not_exist",
@@ -449,7 +467,7 @@ func TestGetPipelineRemoteConfig(t *testing.T) {
 			siteURL:            dwURL,
 			configContent:      []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
 			failedReadTarToMap: errGeneral,
-			expect:             1644318398,
+			expect:             0,
 		},
 		{
 			name:          "remove_error",
@@ -612,12 +630,34 @@ func TestConvertContentMapToThreeMap(t *testing.T) {
 // go test -v -timeout 30s -run ^TestConvertThreeMapToContentMap$ gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote
 func TestConvertThreeMapToContentMap(t *testing.T) {
 	cases := []struct {
-		name   string
-		in     map[string]map[string]string
-		expect map[string]string
+		name      string
+		in        map[string]map[string]string
+		inDefault map[string]string
+		expect    map[string]string
 	}{
 		{
 			name: "normal",
+			in: map[string]map[string]string{
+				"logging": {
+					"123.p":  "text123",
+					"1234.p": "text1234",
+				},
+				"metric": {
+					"456.p": "text456",
+				},
+			},
+			inDefault: map[string]string{
+				"logging": "123.p",
+			},
+			expect: map[string]string{
+				"logging/123.p":         "text123",
+				"logging/1234.p":        "text1234",
+				"metric/456.p":          "text456",
+				"category_default.json": "{\"logging\":\"123.p\"}",
+			},
+		},
+		{
+			name: "normal1",
 			in: map[string]map[string]string{
 				"logging": {
 					"123.p":  "text123",
@@ -633,11 +673,30 @@ func TestConvertThreeMapToContentMap(t *testing.T) {
 				"metric/456.p":   "text456",
 			},
 		},
+		{
+			name: "normal2",
+			in: map[string]map[string]string{
+				"logging": {
+					"123.p":  "text123",
+					"1234.p": "text1234",
+				},
+				"metric": {
+					"456.p": "text456",
+				},
+			},
+			inDefault: map[string]string{},
+			expect: map[string]string{
+				"logging/123.p":         "text123",
+				"logging/1234.p":        "text1234",
+				"metric/456.p":          "text456",
+				"category_default.json": "{}",
+			},
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			out := convertThreeMapToContentMap(tc.in)
+			out := convertThreeMapToContentMap(tc.in, tc.inDefault)
 			assert.Equal(t, tc.expect, out)
 		})
 	}

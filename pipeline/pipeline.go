@@ -29,6 +29,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/geoip"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
 	plrefertable "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/refertable"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/relation"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
@@ -140,6 +141,7 @@ func Init(pipelineCfg *PipelineCfg) error {
 	funcs.InitLog()
 	parser.InitLog()
 	plrefertable.InitLog()
+	relation.InitRelationLog()
 
 	if _, err := InitIPdb(pipelineCfg); err != nil {
 		l.Warnf("init ipdb error: %s", err.Error())

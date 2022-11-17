@@ -10,11 +10,12 @@ import (
 )
 
 type PLDoc struct {
-	Doc             string `json:"doc"`
-	Prototype       string `json:"prototype"`
-	Description     string `json:"description"`
-	Deprecated      bool   `json:"deprecated"`
-	RequiredVersion string `json:"required_version"`
+	Doc             string              `json:"doc"`
+	Prototype       string              `json:"prototype"`
+	Description     string              `json:"description"`
+	Deprecated      bool                `json:"deprecated"`
+	RequiredVersion string              `json:"required_version"`
+	FnCategory      map[string][]string `json:"fn_category"`
 }
 
 var PipelineFunctionDocs = map[string]*PLDoc{
@@ -207,51 +208,302 @@ var (
 	docURLParse string
 )
 
+const (
+	langTagZhCN = "zh-CN"
+)
+
+const (
+	cEncodeDecode    = "编解码"
+	cMeasurementOp   = "行协议操作"
+	cRegExp          = "RegExp"
+	cGrok            = "Grok"
+	cJSON            = "JSON"
+	cXML             = "XML"
+	cTimeOp          = "时间操作"
+	cTypeCast        = "类型转换"
+	cNetwork         = "网络"
+	cStringOp        = "字符串操作"
+	cDesensitization = "脱敏"
+	cSample          = "采样"
+	cOther           = "其他"
+)
+
 var (
-	URLDecodeMarkdown         = PLDoc{Doc: docURLDecode, Deprecated: false}
-	addKeyMarkdown            = PLDoc{Doc: docAddKey, Deprecated: false}
-	addPatternMarkdown        = PLDoc{Doc: docAddPattern, Deprecated: false}
-	adjustTimezoneMarkdown    = PLDoc{Doc: docAdjustTimezone, Deprecated: false}
-	appendMarkdown            = PLDoc{Doc: docAppend, Deprecated: false}
-	b64decMarkdown            = PLDoc{Doc: docB64dec, Deprecated: false}
-	b64encMarkdown            = PLDoc{Doc: docB64enc, Deprecated: false}
-	castMarkdown              = PLDoc{Doc: docCast, Deprecated: false}
-	cidrMarkdown              = PLDoc{Doc: docCIDR, Deprecated: false}
-	coverMarkdown             = PLDoc{Doc: docCover, Deprecated: false}
-	datetimeMarkdown          = PLDoc{Doc: docDatetime, Deprecated: false}
-	decodeMarkdown            = PLDoc{Doc: docDecode, Deprecated: false}
-	defaultTimeMarkdown       = PLDoc{Doc: docDefaultTime, Deprecated: false}
-	getKeyMarkdown            = PLDoc{Doc: docGetKey, Deprecated: false}
-	dropKeyMarkdown           = PLDoc{Doc: docDropKey, Deprecated: false}
-	dropMarkdown              = PLDoc{Doc: docDrop, Deprecated: false}
-	dropOriginDataMarkdown    = PLDoc{Doc: docDropOriginData, Deprecated: false}
-	durationPrecisionMarkdown = PLDoc{Doc: docDurationPresicion, Deprecated: false}
-	exitMarkdown              = PLDoc{Doc: docExit, Deprecated: false}
-	geoIPMarkdown             = PLDoc{Doc: docGeoIP, Deprecated: false}
-	grokMarkdown              = PLDoc{Doc: docGrok, Deprecated: false}
-	groupBetweenMarkdown      = PLDoc{Doc: docGroupBetreen, Deprecated: false}
-	groupInMarkdown           = PLDoc{Doc: docGroupIn, Deprecated: false}
-	jsonMarkdown              = PLDoc{Doc: docJSON, Deprecated: false}
-	lenMarkdown               = PLDoc{Doc: docLen, Deprecated: false}
-	loadJSONMarkdown          = PLDoc{Doc: docLoadJSON, Deprecated: false}
-	lowercaseMarkdown         = PLDoc{Doc: docLowercase, Deprecated: false}
-	nullIfMarkdown            = PLDoc{Doc: docNullif, Deprecated: false}
-	parseDateMarkdown         = PLDoc{Doc: docParseDate, Deprecated: false}
-	parseDurationMarkdown     = PLDoc{Doc: docParseDuration, Deprecated: false}
-	queryReferTableMarkdown   = PLDoc{Doc: docQueryReferTable, Deprecated: false}
-	matchMarkdown             = PLDoc{Doc: docMatch, Deprecated: false}
-	mQueryReferTableMarkdown  = PLDoc{Doc: docMQueryReferTable, Deprecated: false}
-	renameMarkdown            = PLDoc{Doc: docRename, Deprecated: false}
-	replaceMarkdown           = PLDoc{Doc: docReplace, Deprecated: false}
-	sampleMarkdown            = PLDoc{Doc: docSample, Deprecated: false}
-	setMeasurementMarkdown    = PLDoc{Doc: docSetMeasurement, Deprecated: false}
-	setTagMarkdown            = PLDoc{Doc: docSetTag, Deprecated: false}
-	sqlCoverMarkdown          = PLDoc{Doc: docSQLCover, Deprecated: false}
-	strfmtMarkdown            = PLDoc{Doc: docStrfmt, Deprecated: false}
-	trimMarkdown              = PLDoc{Doc: docTrim, Deprecated: false}
-	uppercaseMarkdown         = PLDoc{Doc: docUppercase, Deprecated: false}
-	userAgentMarkdown         = PLDoc{Doc: docUserAgent, Deprecated: false}
-	useMarkdown               = PLDoc{Doc: docUse, Deprecated: false}
-	xmlMarkdown               = PLDoc{Doc: docXML, Deprecated: false}
-	urlParseMarkdown          = PLDoc{Doc: docURLParse, Deprecated: false}
+	URLDecodeMarkdown = PLDoc{
+		Doc: docURLDecode, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cEncodeDecode, cNetwork},
+		},
+	}
+	addKeyMarkdown = PLDoc{
+		Doc: docAddKey, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cMeasurementOp},
+		},
+	}
+	addPatternMarkdown = PLDoc{
+		Doc: docAddPattern, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cGrok},
+		},
+	}
+	adjustTimezoneMarkdown = PLDoc{
+		Doc: docAdjustTimezone, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cTimeOp},
+		},
+	}
+	appendMarkdown = PLDoc{
+		Doc: docAppend, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+	b64decMarkdown = PLDoc{
+		Doc: docB64dec, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cEncodeDecode},
+		},
+	}
+	b64encMarkdown = PLDoc{
+		Doc: docB64enc, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cEncodeDecode},
+		},
+	}
+	castMarkdown = PLDoc{
+		Doc: docCast, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cTypeCast},
+		},
+	}
+	cidrMarkdown = PLDoc{
+		Doc: docCIDR, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cNetwork},
+		},
+	}
+	coverMarkdown = PLDoc{
+		Doc: docCover, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cStringOp, cDesensitization},
+		},
+	}
+	datetimeMarkdown = PLDoc{
+		Doc: docDatetime, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cTimeOp},
+		},
+	}
+	decodeMarkdown = PLDoc{
+		Doc: docDecode, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cEncodeDecode},
+		},
+	}
+	defaultTimeMarkdown = PLDoc{
+		Doc: docDefaultTime, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cTimeOp, cMeasurementOp},
+		},
+	}
+	getKeyMarkdown = PLDoc{
+		Doc: docGetKey, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cMeasurementOp},
+		},
+	}
+	dropKeyMarkdown = PLDoc{
+		Doc: docDropKey, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cMeasurementOp},
+		},
+	}
+	dropMarkdown = PLDoc{
+		Doc: docDrop, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cMeasurementOp},
+		},
+	}
+	dropOriginDataMarkdown = PLDoc{
+		Doc: docDropOriginData, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cMeasurementOp},
+		},
+	}
+	durationPrecisionMarkdown = PLDoc{
+		Doc: docDurationPresicion, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cTimeOp},
+		},
+	}
+	exitMarkdown = PLDoc{
+		Doc: docExit, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+	geoIPMarkdown = PLDoc{
+		Doc: docGeoIP, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cNetwork},
+		},
+	}
+	grokMarkdown = PLDoc{
+		Doc: docGrok, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cGrok, cRegExp},
+		},
+	}
+	groupBetweenMarkdown = PLDoc{
+		Doc: docGroupBetreen, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+	groupInMarkdown = PLDoc{
+		Doc: docGroupIn, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+	jsonMarkdown = PLDoc{
+		Doc: docJSON, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cJSON},
+		},
+	}
+	lenMarkdown = PLDoc{
+		Doc: docLen, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+	loadJSONMarkdown = PLDoc{
+		Doc: docLoadJSON, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cJSON},
+		},
+	}
+	lowercaseMarkdown = PLDoc{
+		Doc: docLowercase, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cStringOp},
+		},
+	}
+	nullIfMarkdown = PLDoc{
+		Doc: docNullif, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+	parseDateMarkdown = PLDoc{
+		Doc: docParseDate, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cTimeOp},
+		},
+	}
+	parseDurationMarkdown = PLDoc{
+		Doc: docParseDuration, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cTimeOp},
+		},
+	}
+	queryReferTableMarkdown = PLDoc{
+		Doc: docQueryReferTable, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+	matchMarkdown = PLDoc{
+		Doc: docMatch, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cRegExp},
+		},
+	}
+	mQueryReferTableMarkdown = PLDoc{
+		Doc: docMQueryReferTable, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+	renameMarkdown = PLDoc{
+		Doc: docRename, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cMeasurementOp},
+		},
+	}
+	replaceMarkdown = PLDoc{
+		Doc: docReplace, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cRegExp},
+		},
+	}
+	sampleMarkdown = PLDoc{
+		Doc: docSample, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cSample},
+		},
+	}
+
+	setMeasurementMarkdown = PLDoc{
+		Doc: docSetMeasurement, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cMeasurementOp},
+		},
+	}
+	setTagMarkdown = PLDoc{
+		Doc: docSetTag, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cMeasurementOp},
+		},
+	}
+	sqlCoverMarkdown = PLDoc{
+		Doc: docSQLCover, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cDesensitization},
+		},
+	}
+	strfmtMarkdown = PLDoc{
+		Doc: docStrfmt, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cStringOp},
+		},
+	}
+	trimMarkdown = PLDoc{
+		Doc: docTrim, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cStringOp},
+		},
+	}
+	uppercaseMarkdown = PLDoc{
+		Doc: docUppercase, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cStringOp},
+		},
+	}
+	userAgentMarkdown = PLDoc{
+		Doc: docUserAgent, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+	useMarkdown = PLDoc{
+		Doc: docUse, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+	xmlMarkdown = PLDoc{
+		Doc: docXML, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cXML},
+		},
+	}
+	urlParseMarkdown = PLDoc{
+		Doc: docURLParse, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cNetwork, cEncodeDecode},
+		},
+	}
 )
