@@ -13,9 +13,8 @@ import (
 
 func TestCheckUpgradeVersion(t *testing.T) {
 	cases := []struct {
-		enableExperimental int
-		id, s              string
-		fail               bool
+		id, s string
+		fail  bool
 	}{
 		{
 			id: "normal",
@@ -70,18 +69,10 @@ func TestCheckUpgradeVersion(t *testing.T) {
 			s:    "1.3.7",
 			fail: true,
 		},
-
-		{
-			id:                 `stable_to_unstable_env`,
-			enableExperimental: 1,
-			s:                  "1.3.7",
-			fail:               false,
-		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.id, func(t *testing.T) {
-			EnableExperimental = tc.enableExperimental
 			err := CheckVersion(tc.s)
 			if tc.fail {
 				tu.NotOk(t, err, "")

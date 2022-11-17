@@ -6,7 +6,6 @@
 package installer
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,36 +16,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 )
 
 var l = logger.DefaultSLogger("upgrade")
 
 func SetLog() {
 	l = logger.SLogger("upgrade")
-}
-
-func CheckVersion(s string) error {
-	v := version.VerInfo{VersionString: s}
-	if err := v.Parse(); err != nil {
-		return err
-	}
-
-	// 对 1.1.x 版本的 datakit，此处暂且认为是 stable 版本，不然
-	// 无法从 1.1.x 升级到 1.2.x
-	// 1.2 以后的版本（1.3/1.5/...）等均视为 unstable 版本
-	if v.GetMinor() == 1 {
-		return nil
-	}
-
-	if !v.IsStable() {
-		if EnableExperimental != 0 {
-			cp.Warnf("upgrade version is unstable\n")
-		} else {
-			return fmt.Errorf("upgrade to %s is not stable version, use env: <$DK_ENABLE_EXPEIMENTAL=1> to upgrade", s)
-		}
-	}
-	return nil
 }
 
 func Upgrade() error {
