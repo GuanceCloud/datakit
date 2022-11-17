@@ -103,31 +103,38 @@ func (n *nvidiaSmiMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
 		Fields: map[string]interface{}{
-			"fan_speed":                     NewFieldInfoC("gauge, Fan speed (or N/A)."),
-			"memory_total":                  NewFieldInfoC("gauge, Framebuffer memory total (in MiB)."),
-			"memory_used":                   NewFieldInfoC("gauge, Framebuffer memory used (in MiB)."),
-			"temperature_gpu":               NewFieldInfoC("gauge, GPU temperature (in C)."),
-			"utilization_gpu":               NewFieldInfoC("gauge, GPU utilization (in %)."),
-			"utilization_memory":            NewFieldInfoC("gauge, Memory utilization (in %)."),
-			"utilization_encoder":           NewFieldInfoC("gauge, Encoder utilization (in %)."),
-			"utilization_decoder":           NewFieldInfoC("gauge, Decoder utilization (in %)."),
-			"pcie_link_gen_current":         NewFieldInfoC("gauge, PCI-Express link gen."),
-			"pcie_link_width_current":       NewFieldInfoC("gauge, PCI link width."),
-			"encoder_stats_session_count":   NewFieldInfoC("count, Encoder session count."),
-			"encoder_stats_average_fps":     NewFieldInfoC("count, Encoder average fps."),
-			"encoder_stats_average_latency": NewFieldInfoC("count, Encoder average latency."),
-			"fbc_stats_session_count":       NewFieldInfoC("count, Frame Buffer Cache session count."),
-			"fbc_stats_average_fps":         NewFieldInfoC("count, Frame Buffer Cache average fps."),
-			"fbc_stats_average_latency":     NewFieldInfoC("count, Frame Buffer Cache average latency."),
-			"clocks_current_graphics":       NewFieldInfoC("gauge, Graphics clock frequency (in MHz)."),
-			"clocks_current_sm":             NewFieldInfoC("gauge, Streaming Multiprocessor clock frequency (in MHz)."),
-			"clocks_current_memory":         NewFieldInfoC("gauge, Memory clock frequency (in MHz)."),
-			"clocks_current_video":          NewFieldInfoC("gauge, Video clock frequency (in MHz)."),
-			"power_draw":                    NewFieldInfoP("gauge, Power draw."),
+			"fan_speed":                     &inputs.FieldInfo{Type: inputs.Rate, DataType: inputs.Int, Unit: inputs.RPMPercent, Desc: "Fan speed."},
+			"memory_total":                  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeMB, Desc: "Framebuffer memory total."},
+			"memory_used":                   &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeMB, Desc: "Framebuffer memory used."},
+			"temperature_gpu":               &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Celsius, Desc: "GPU temperature."},
+			"utilization_gpu":               &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Percent, Desc: "GPU utilization."},
+			"utilization_memory":            &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Percent, Desc: "Memory utilization."},
+			"utilization_encoder":           &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Percent, Desc: "Encoder utilization."},
+			"utilization_decoder":           &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Percent, Desc: "Decoder utilization."},
+			"pcie_link_gen_current":         &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "PCI-Express link gen."},
+			"pcie_link_width_current":       &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "PCI link width."},
+			"encoder_stats_session_count":   &inputs.FieldInfo{Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount, Desc: "Encoder session count."},
+			"encoder_stats_average_fps":     &inputs.FieldInfo{Type: inputs.Rate, DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "Encoder average fps."},
+			"encoder_stats_average_latency": &inputs.FieldInfo{Type: inputs.Count, DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "Encoder average latency."},
+			"fbc_stats_session_count":       &inputs.FieldInfo{Type: inputs.Count, DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "Frame Buffer Cache session count."},
+			"fbc_stats_average_fps":         &inputs.FieldInfo{Type: inputs.Count, DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "Frame Buffer Cache average fps."},
+			"fbc_stats_average_latency":     &inputs.FieldInfo{Type: inputs.Count, DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "Frame Buffer Cache average latency."},
+			"clocks_current_graphics":       &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.FrequencyMHz, Desc: "Graphics clock frequency."},
+			"clocks_current_sm":             &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.FrequencyMHz, Desc: "Streaming Multiprocessor clock frequency."},
+			"clocks_current_memory":         &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.FrequencyMHz, Desc: "Memory clock frequency."},
+			"clocks_current_video":          &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.FrequencyMHz, Desc: "Video clock frequency."},
+			"power_draw":                    &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Watt, Desc: "Power draw."},
 		},
 
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "主机名"},
+			"host":           &inputs.TagInfo{Desc: "主机名"},
+			"pstate":         &inputs.TagInfo{Desc: "GPU 性能状态"},
+			"name":           &inputs.TagInfo{Desc: "GPU 板卡型号"},
+			"uuid":           &inputs.TagInfo{Desc: "UUID"},
+			"compute_mode":   &inputs.TagInfo{Desc: "计算模式"},
+			"pci_bus_id":     &inputs.TagInfo{Desc: "pci 插槽 id"},
+			"driver_version": &inputs.TagInfo{Desc: "驱动版本"},
+			"cuda_version":   &inputs.TagInfo{Desc: "CUDA 版本"},
 		},
 	}
 }
@@ -569,13 +576,11 @@ type ProcessInfo []struct {
 func (s *SMI) genTagsFields(ipt *Input) ([]metric, []metric) {
 	metrics := []metric{}
 	metricsLog := []metric{}
-	for i, gpu := range s.GPU {
+	for _, gpu := range s.GPU {
 		// handle GPU online info
 		ipt.GPUOnlineInfo(gpu.UUID)
 
-		tags := map[string]string{
-			"index": strconv.Itoa(i),
-		}
+		tags := map[string]string{}
 		fields := map[string]interface{}{}
 
 		setTagIfUsed(tags, "pstate", gpu.PState)
@@ -583,7 +588,6 @@ func (s *SMI) genTagsFields(ipt *Input) ([]metric, []metric) {
 		setTagIfUsed(tags, "uuid", gpu.UUID)
 		setTagIfUsed(tags, "compute_mode", gpu.ComputeMode)
 		setTagIfUsed(tags, "pci_bus_id", gpu.PCI.PciBusID)
-
 		setTagIfUsed(tags, "driver_version", s.DriverVersion)
 		setTagIfUsed(tags, "cuda_version", s.CUDAVersion)
 
