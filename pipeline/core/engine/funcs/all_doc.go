@@ -60,6 +60,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"user_agent()":         &userAgentMarkdown,
 	"xml()":                &xmlMarkdown,
 	"sample()":             &sampleMarkdown,
+	"url_parse()":          &urlParseMarkdown,
 }
 
 // embed docs.
@@ -189,6 +190,9 @@ var (
 
 	//go:embed md/use.md
 	docUse string
+
+	//go:embed md/url_parse.md
+	docURLParse string
 )
 
 var (
@@ -234,4 +238,5 @@ var (
 	userAgentMarkdown         = PLDoc{Doc: docUserAgent, Deprecated: false}
 	useMarkdown               = PLDoc{Doc: docUse, Deprecated: false}
 	xmlMarkdown               = PLDoc{Doc: docXML, Deprecated: false}
+	urlParseMarkdown          = PLDoc{Doc: docURLParse, Deprecated: false}
 )

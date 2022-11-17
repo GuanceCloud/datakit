@@ -61,6 +61,7 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"sql_cover":             SQLCover,
 	"decode":                Decode,
 	"sample":                Sample,
+	"url_parse":             URLParse,
 	// disable
 	"json_all": JSONAll,
 }
@@ -108,6 +109,7 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	"xml":                   XMLChecking,
 	"match":                 MatchChecking,
 	"decode":                DecodeChecking,
+	"url_parse":             URLParseChecking,
 	"sample":                SampleChecking,
 	// disable
 	"json_all": JSONAllChecking,
