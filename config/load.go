@@ -140,7 +140,7 @@ func LoadCfg(c *Config, mcp string) error {
 
 func getConfRootPaths() []string {
 	if GitHasEnabled() {
-		return []string{datakit.GitReposRepoFullPath}
+		return []string{filepath.Join(datakit.GitReposRepoFullPath, datakit.GitRepoSubDirNameConfd)}
 	} else {
 		return []string{datakit.ConfdDir}
 	}
@@ -237,6 +237,7 @@ func GetPipelinePath(category, pipeLineName string) (string, error) {
 	return plPath, nil
 }
 
+// InitGitreposDir must exported because other modules, like pythond tests, would use it.
 func InitGitreposDir() {
 	// search enabled gitrepos
 	for _, v := range Cfg.GitRepos.Repos {
