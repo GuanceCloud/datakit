@@ -62,13 +62,12 @@ datakit.conf 配置：
 
 - Windows 位于 `C:\Program Files\datakit\log`
 
-# 通过 Powershell 给出最近 10 个 ERROR, WARN 级别的日志
-
 ```powershell
+# 通过 Powershell 给出最近 10 个 ERROR, WARN 级别的日志
 Select-String -Path 'C:\Program Files\datakit\log' -Pattern "ERROR", "WARN"  | Select-Object Line -Last 10
 ```
 
-Linux/Mac 位于 `/var/log/datakit/log`
+- Linux/Mac 位于 `/var/log/datakit/log`
 
 ```shell
 # 给出最近 10 个 ERROR, WARN 级别的日志
