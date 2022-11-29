@@ -2,8 +2,11 @@
 
 ## DataKit/操作系统版本信息/部署信息（必填）
 
-- DataKit 版本号：
-- 操作系统（选其一）：Linux/Windows/macOS
+- DataKit 版本号：通过 `datakit version` 命令可获取
+- 操作系统信息（选其一）：
+    - Linux：给出 Linux 发行版（比如 `CentOS 7.2`）以及内核版本号（比如 `6.0.10`）
+    - Windows：一般形如 `Windows Server 2016` 这种形式
+    - macOS：一般形如 `Version 12.0`
 - K8s Daemonset 部署（选择是或者否）：？
 - 配置是如何管理的？（选择以下的一种）
     - 本地磁盘：一般主机部署时，默认的配置都是在主机磁盘上
@@ -14,6 +17,10 @@
         - consul
         - etcd
         - ...
+
+- 被采集的软件信息（以 MySQL 为例）：
+    - MySQL 版本号
+    - 部署的操作系统平台（参见上面的 _操作系统信息_）
 
 <!--
 建议提供命令 datakit version 的输出
