@@ -2,9 +2,18 @@
 
 ## DataKit/操作系统版本信息/部署信息（必填）
 
-- DataKit 版本：？
-- 操作系统：？
-- K8s Daemonset 部署：？
+- DataKit 版本号：
+- 操作系统（选其一）：Linux/Windows/macOS
+- K8s Daemonset 部署（选择是或者否）：？
+- 配置是如何管理的？（选择以下的一种）
+    - 本地磁盘：通过
+    - Git
+    - k8s-ENV
+    - k8s-configmap
+    - confd
+        - consul
+        - etcd
+        - ...
 
 <!--
 建议提供命令 datakit version 的输出
