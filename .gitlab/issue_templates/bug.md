@@ -6,11 +6,11 @@
 - 操作系统（选其一）：Linux/Windows/macOS
 - K8s Daemonset 部署（选择是或者否）：？
 - 配置是如何管理的？（选择以下的一种）
-    - 本地磁盘：通过
+    - 本地磁盘：一般主机部署时，默认的配置都是在主机磁盘上
     - Git
-    - k8s-ENV
-    - k8s-configmap
-    - confd
+    - k8s-ENV：通过 k8s 环境变量控制采集器配置
+    - k8s-configmap：通过 k8s configmap 挂载采集器配置
+    - confd：通过以下几种配置管理工具管理配置
         - consul
         - etcd
         - ...
