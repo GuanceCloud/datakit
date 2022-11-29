@@ -55,9 +55,9 @@ datakit.conf 配置：
 
 贴图片的推荐方式：
 
-<img src="/uploads/1d10e09cb7292de571axxxxxxxxxxxxx/image-1.png"  width="730">
+<img src="/uploads/1d10e09cb7292de571axxxxxxxxxxxxx/image-1-not-exists.png"  width="730">
 
-<img src="/uploads/1d10e09cb7292de571axxxxxxxxxxxxx/image-2.png"  width="730">
+<img src="/uploads/1d10e09cb7292de571axxxxxxxxxxxxx/image-2-not-exists.png"  width="730">
 
 这里建议用 730 作为图片宽度，连续的图片之间，用空行分割下。单个图片不要超过 250KB。
 
