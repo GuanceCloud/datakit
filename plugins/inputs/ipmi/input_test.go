@@ -235,8 +235,8 @@ func TestInput_convert(t *testing.T) {
 				&ipmiMeasurement{
 					name: inputName,
 					tags: map[string]string{
-						"server": "192.168.1.2",
-						"unit":   "current_1",
+						"host": "192.168.1.2",
+						"unit": "current_1",
 					},
 					fields: map[string]interface{}{
 						"current": float64(1),
@@ -245,8 +245,8 @@ func TestInput_convert(t *testing.T) {
 				&ipmiMeasurement{
 					name: inputName,
 					tags: map[string]string{
-						"server": "192.168.1.2",
-						"unit":   "current_2",
+						"host": "192.168.1.2",
+						"unit": "current_2",
 					},
 					fields: map[string]interface{}{
 						"current": float64(0.2),
@@ -275,8 +275,8 @@ func TestInput_convert(t *testing.T) {
 				&ipmiMeasurement{
 					name: inputName,
 					tags: map[string]string{
-						"server": "192.168.1.1",
-						"unit":   "voltage_1",
+						"host": "192.168.1.1",
+						"unit": "voltage_1",
 					},
 					fields: map[string]interface{}{
 						"voltage": float64(220),
