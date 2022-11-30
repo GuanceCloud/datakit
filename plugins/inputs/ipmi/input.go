@@ -184,9 +184,10 @@ type dataSrtuct struct {
 
 // Measurement structure.
 type ipmiMeasurement struct {
-	name   string                 // Indicator set name
-	tags   map[string]string      // Indicator name
-	fields map[string]interface{} // Indicator measurement results
+	name     string                 // Indicator set name
+	tags     map[string]string      // Indicator name
+	fields   map[string]interface{} // Indicator measurement results
+	election bool
 }
 
 // be used for server drop warning.
@@ -476,8 +477,8 @@ func (ipt *Input) convert(data []byte, metricVersion int, server string) {
 		}
 
 		tags := map[string]string{
-			"server": server,
-			"unit":   strs[0],
+			"host": server,
+			"unit": strs[0],
 		}
 
 		fields := map[string]interface{}{
@@ -487,9 +488,10 @@ func (ipt *Input) convert(data []byte, metricVersion int, server string) {
 		// metric := metric{tags, fields}
 
 		ipt.collectCache = append(ipt.collectCache, &ipmiMeasurement{
-			name:   inputName,
-			tags:   tags,
-			fields: fields,
+			name:     inputName,
+			tags:     tags,
+			fields:   fields,
+			election: ipt.Election,
 		})
 	}
 }
@@ -806,7 +808,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 // LineProto data formatting, submit through FeedMeasurement.
 func (n *ipmiMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(n.name, n.tags, n.fields, point.MOpt())
+	return point.NewPoint(n.name, n.tags, n.fields, point.MOptElectionV2(n.election))
 }
 
 // Info , reflected in the document
@@ -827,9 +829,8 @@ func (n *ipmiMeasurement) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"host":   &inputs.TagInfo{Desc: "主机名"},
-			"server": &inputs.TagInfo{Desc: "被监测设备名"},
-			"unit":   &inputs.TagInfo{Desc: "设备内单元名"},
+			"host": &inputs.TagInfo{Desc: "被监测主机名"},
+			"unit": &inputs.TagInfo{Desc: "设备内单元名"},
 		},
 	}
 }
@@ -869,7 +870,7 @@ func (ipt *Input) handleSreverDrop() {
 
 			// send warning
 			tags := map[string]string{
-				"server": ipt.servers[i].server,
+				"host": ipt.servers[i].server,
 			}
 
 			fields := map[string]interface{}{
@@ -877,9 +878,10 @@ func (ipt *Input) handleSreverDrop() {
 			}
 
 			ipt.collectCache = append(ipt.collectCache, &ipmiMeasurement{
-				name:   inputName,
-				tags:   tags,
-				fields: fields,
+				name:     inputName,
+				tags:     tags,
+				fields:   fields,
+				election: ipt.Election,
 			})
 
 			// set warned state
