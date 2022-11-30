@@ -42,7 +42,8 @@ const (
 [[inputs.gpu_smi]]
   ##the binPath of gpu-smi 
   ##if nvidia GPU
-  #(example & default) ["/usr/bin/nvidia-smi"]
+  #(example & default) bin_paths = ["/usr/bin/nvidia-smi"]
+  #(example windows) bin_paths = ["nvidia-smi"]
   ##if lluvatar GPU
   #(example) bin_paths = ["/usr/local/corex/bin/ixsmi"]
   #(example) envs = [ "LD_LIBRARY_PATH=/usr/local/corex/lib/:$LD_LIBRARY_PATH" ]
@@ -230,6 +231,7 @@ func (ipt *Input) Collect() error {
 				continue
 			}
 		}
+
 		// convert xml -> SMI{} struct
 		smi := &SMI{}
 		err = xml.Unmarshal(data, smi)
@@ -271,7 +273,10 @@ func (ipt *Input) Collect() error {
 func (ipt *Input) getBytes(binPath string) ([]byte, error) {
 	c := exec.Command(binPath, "-q", "-x")
 	// 增加 exec.Command 环境变量
-	c.Env = ipt.Envs
+	if len(ipt.Envs) != 0 {
+		// windows 下，这里会破坏原有的 PATH
+		c.Env = ipt.Envs
+	}
 
 	var b bytes.Buffer
 	c.Stdout = &b
