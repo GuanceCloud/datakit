@@ -199,16 +199,7 @@ type TrapsConfig struct {
 
 func (*Input) Catalog() string { return snmpmeasurement.InputName }
 
-func (*Input) SampleConfig() string {
-	onceReleasePrefiles.Do(func() {
-		if err := snmprefiles.ReleaseFiles(); err != nil {
-			SetLog()
-			l.Errorf("snmp release prefiles failed: %v", err)
-		}
-	})
-
-	return sampleCfg
-}
+func (*Input) SampleConfig() string { return sampleCfg }
 
 func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
@@ -219,6 +210,12 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) Run() {
 	SetLog()
 	l.Info("Run entry")
+
+	onceReleasePrefiles.Do(func() {
+		if err := snmprefiles.ReleaseFiles(); err != nil {
+			l.Errorf("snmp release prefiles failed: %v", err)
+		}
+	})
 
 	// starting traps server
 	if ipt.Traps.Enable {
