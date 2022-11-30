@@ -176,7 +176,6 @@ func (ipt *Input) Run() {
 			})
 		}
 	}
-
 }
 
 func (ipt *Input) Terminate() {
