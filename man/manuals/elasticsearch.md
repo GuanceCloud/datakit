@@ -233,6 +233,3 @@ files = ["/path/to/your/file.log"]
 | index    | shopping            | 索引名称         |
 | duration | 34000000            | 请求耗时，单位ns |
 
-## 更多阅读 {#more-reading}
-
-- [ElasticSearch 最佳实践](../best-practices/monitoring/elasticsearch.md)
