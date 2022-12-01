@@ -178,7 +178,7 @@ Value 字段说明：
     - 只支持 Docker runtime，暂不支持 Contaienrd
     - 只支持 GraphDriver 是 `overlay2` 的容器
 
-在容器 Label 中，标注有特定的 Key（`datakit/logs/insider`），其 Value 是一个 JSON 字符串，示例如下：
+在容器 Label 中，标注有特定的 Key（`datakit/logs/inside`），其 Value 是一个 JSON 字符串，示例如下：
 
 ``` json
 [
