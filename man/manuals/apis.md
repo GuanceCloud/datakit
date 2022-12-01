@@ -20,7 +20,7 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 
 | 参数名                    | 类型   | 是否必选 | 默认值    | 说明                                                                                                                                          |
 | --------------------      | ------ | -------- | --------- | --------------------------------------------------                                                                                            |
-| `category`                | string | Y        | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                                                                            |
+| `category`                | string | Y        | 无        | 目前支持 `metric/logging/rum/object/custom_object/keyevent`                                                                                            |
 | `echo_line_proto`         | string | N        | 无        | 给任意值（如 `true`）即返回 json 行协议类容，默认不返回                                                                                       |
 | `global_election_tags`    | string | N        | 无        | 给任意值（如 `true`）即认为追加全局选举类 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                                     |
 | `ignore_global_host_tags` | string | false    | 无        | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）。`ignore_global_tags` 将弃用 |

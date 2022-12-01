@@ -143,7 +143,7 @@ var (
 	l                                  = logger.DefaultSLogger(snmpmeasurement.InputName)
 	g                                  = datakit.G("inputs_snmp_")
 	onceReleasePrefiles sync.Once
-	setLogOnce          sync.Once
+	onceSetLog          sync.Once
 )
 
 type Input struct {
@@ -966,7 +966,7 @@ func (ipt *Input) initializeDevice(deviceIP, subnet string) (*deviceInfo, error)
 // only for command "datakit tool --test-snmp".
 
 func SetLog() {
-	setLogOnce.Do(func() {
+	onceSetLog.Do(func() {
 		l = logger.SLogger(snmpmeasurement.InputName)
 	})
 	snmputil.SetLog()
