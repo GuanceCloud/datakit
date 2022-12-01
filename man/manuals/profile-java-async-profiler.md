@@ -1,4 +1,4 @@
-# Java profiling
+# async-profiler
 
 本文将介绍基于 [async-profiler](https://github.com/jvm-profiling-tools/async-profiler#async-profiler) 来采集 java 应用，并将采集到的数据上报给 DataKit，从而可以在观测云平台进行分析。
 
