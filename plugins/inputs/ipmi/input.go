@@ -53,8 +53,8 @@ const (
 	// conf File samples, reflected in the document.
 	sampleCfg = `
 [[inputs.ipmi]]
-  ## If you have so many servers that 10 seconds can't finish the job. 
-  ## You can start multiple collectors. 
+  ## If you have so many servers that 10 seconds can't finish the job.
+  ## You can start multiple collectors.
 
   ## (Optional) collect interval: (defaults to "10s").
   interval = "10s"
@@ -62,7 +62,7 @@ const (
   ## Set true to enable election
   election = true
 
-  ## The binPath of ipmitool 
+  ## The binPath of ipmitool
   ## (Example) bin_path = "/usr/bin/ipmitool"
   bin_path = "/usr/bin/ipmitool"
 
@@ -113,7 +113,7 @@ const (
   regexp_voltage = ["voltage"]
 
   ## key words of power.
-  ## (Example) regexp_power = ["pwr"] 
+  ## (Example) regexp_power = ["pwr"]
   regexp_power = ["pwr"]
 
   ## key words of temp.
@@ -135,7 +135,7 @@ const (
   ## key words of status.
   ## (Example) regexp_status = ["fan","slot","drive"]
   regexp_status = ["fan","slot","drive"]
-  
+
 [inputs.ipmi.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"`

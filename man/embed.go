@@ -73,6 +73,8 @@ var OtherDocs = map[string]bool{
 	"opentelemetry-go":                   true,
 	"opentelemetry-java":                 true,
 	"pipeline":                           true,
+	"profile-ddtrace":                    true,
+	"profile-java-async-profiler":        true,
 	"prometheus":                         true,
 	"rum":                                true,
 	"sec-checker":                        true,

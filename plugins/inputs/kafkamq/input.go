@@ -95,7 +95,7 @@ const mqSampleConfig = `
   #log_pl="log.p"
   #metric_topic=["metric1"]
   #metric_pl="kafka_metric.p"
-  ## rate limit. 
+  ## rate limit.
   #limit_sec = 100
   ## sample
   # sampling_rate = 1.0
@@ -155,6 +155,7 @@ func (ipt *Input) Run() {
 	addrs := getAddrs(ipt.Addr, ipt.Addrs)
 	version := getKafkaVersion(ipt.KafkaVersion)
 	balance := getAssignors(ipt.Assignor)
+
 	if ipt.SkyWalking != nil {
 		g := goroutine.NewGroup(goroutine.Option{Name: "inputs_kafkamq"})
 		g.Go(func(ctx context.Context) error {
@@ -163,6 +164,7 @@ func (ipt *Input) Run() {
 			return nil
 		})
 	}
+
 	if ipt.Custom != nil {
 		if len(ipt.Custom.LogTopics) > 0 || len(ipt.Custom.MetricTopics) > 0 {
 			config := newConfig(version, balance, ipt.Offsets)

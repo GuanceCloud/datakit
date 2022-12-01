@@ -108,7 +108,7 @@ metadata:
 
 如上所示，定义了一个 `sysobjectid` 为 `1.3.6.1.4.1.9.1.1745` 的设备，下次 Datakit 如果采集到 `sysobjectid` 相同的设备时，便会应用该文件，在此情况下，采集到 OID 为 `1.3.6.1.4.1.9.3.6.3.0` 的数据便会上报为名称是 `chassisId` 的指标。
 
->注意: `conf.d/snmp/profiles` 这个文件夹需要 SNMP 采集器运行一次后才会出现。
+> 注意: `conf.d/snmp/profiles` 这个文件夹需要 SNMP 采集器运行一次后才会出现。
 
 ## 指标集 {#measurements}
 
