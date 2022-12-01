@@ -18,12 +18,12 @@
 === "主机安装"
 
     需要先开启 [logfwdserver](logfwdserver.md)，进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
-    
+
     ``` toml hl_lines="1"
     [inputs.logfwdserver] # 注意这里是 logfwdserver 的配置
       ## logfwd 接收端监听地址和端口
       address = "0.0.0.0:9533"
-    
+
       [inputs.logfwdserver.tags]
       # some_tag = "some_value"
       # more_tag = "some_other_value"
@@ -79,6 +79,18 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
     - `remove_ansi_escape_codes` 是否删除 ANSI 转义码，例如标准输出的文本颜色等，值为 `true` 或 `false`
     - `tags` 添加额外 `tag`，书写格式是 JSON map，例如 `{ "key1":"value1", "key2":"value2" }`
 
+支持的环境变量：
+
+| 环境变量名                       | 配置项含义                                                                     |
+| :---                             | :---                                                                           |
+| `LOGFWD_DATAKIT_HOST`            | Datakit 地址                                                                   |
+| `LOGFWD_DATAKIT_PORT`            | Datakit Port                                                                   |
+| `LOGFWD_GLOBAL_SOURCE`           | 配置全局 source，优先级最高                                                    |
+| `LOGFWD_GLOBAL_SERVICE`          | 配置全局 service，优先级最高                                                   |
+| `LOGFWD_POD_NAME`                | 指定 pod name，会 tags 中添加 `pod_name`                                       |
+| `LOGFWD_POD_NAMESPACE`           | 指定 pod namespace，会 tags 中添加 `pod_namespace`                             |
+| `LOGFWD_ANNOTATION_DATAKIT_LOGS` | 使用当前 Pod 的 Annotations `datakit/logs` 配置，优先级比 logfwd JSON 配置更高 |
+
 #### 安装和运行 {#install-run}
 
 logfwd 在 Kubernetes 的部署配置分为两部分，一是 Kubernetes Pod 创建 `spec.containers` 的配置，包括注入环境变量和挂载目录。配置如下：
@@ -110,6 +122,8 @@ spec:
         fieldRef:
           apiVersion: v1
           fieldPath: metadata.namespace
+    - name: LOGFWD_GLOBAL_SOURCE
+      value: nginx-souce-test
     image: pubrepo.jiagouyun.com/datakit/logfwd:{{.Version}}
     imagePullPolicy: Always
     volumeMounts:
@@ -289,4 +303,4 @@ MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
 - [Kubernetes 环境下 DataKit 配置方式介绍](k8s-config-how-to.md)
 - [以 DaemonSet 形式安装 DataKit](datakit-daemonset-deploy.md)
 - [在 DataKit 上部署 `logfwdserver`](logfwdserver.md)
-- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex) 
+- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex)
