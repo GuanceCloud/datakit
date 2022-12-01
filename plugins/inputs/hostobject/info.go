@@ -11,6 +11,7 @@ import (
 	"net"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	cpuutil "github.com/shirou/gopsutil/cpu"
@@ -26,6 +27,15 @@ import (
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
+)
+
+var (
+	DiskUsed               uint64
+	DiskFree               uint64
+	DiskIOReadBytesPerSec  int64
+	DiskIOWriteBytesPerSec int64
+	NetRecvBytesPerSec     int64
+	NetSendBytesPerSec     int64
 )
 
 type (
@@ -76,17 +86,23 @@ type (
 	}
 
 	HostInfo struct {
-		HostMeta   *HostMetaInfo       `json:"meta"`
-		CPU        []*CPUInfo          `json:"cpu"`
-		Mem        *MemInfo            `json:"mem"`
-		Net        []*NetInfo          `json:"net"`
-		Disk       []*DiskInfo         `json:"disk"`
-		Conntrack  *conntrackutil.Info `json:"conntrack"`
-		FileFd     *filefdutil.Info    `json:"filefd"`
-		Election   *ElectionInfo       `json:"election"`
-		cpuPercent float64
-		load5      float64
-		cloudInfo  map[string]interface{}
+		HostMeta               *HostMetaInfo       `json:"meta"`
+		CPU                    []*CPUInfo          `json:"cpu"`
+		Mem                    *MemInfo            `json:"mem"`
+		Net                    []*NetInfo          `json:"net"`
+		Disk                   []*DiskInfo         `json:"disk"`
+		Conntrack              *conntrackutil.Info `json:"conntrack"`
+		FileFd                 *filefdutil.Info    `json:"filefd"`
+		Election               *ElectionInfo       `json:"election"`
+		cpuPercent             float64
+		load5                  float64
+		cloudInfo              map[string]interface{}
+		diskUsedPercent        float64
+		diskIOReadBytesPerSec  int64
+		diskIOWriteBytesPerSec int64
+		netRecvBytesPerSec     int64
+		netSendBytesPerSec     int64
+		loggingLevel           string
 	}
 	ElectionInfo struct {
 		Namespace string `json:"namespace"`
@@ -124,9 +140,6 @@ func getHostMeta() (*HostMetaInfo, error) {
 	}
 
 	return &HostMetaInfo{
-		// HostName:        info.Hostname,
-		// 此处用户可能自定义 Hostname，如果用户不
-		// 定义 Hostname，那么 config.Cfg.Hostname == info.Hostname
 		HostName:        config.Cfg.Hostname,
 		OS:              info.OS,
 		BootTime:        info.BootTime,
@@ -265,7 +278,7 @@ func getDiskInfo(excludeDevice []string, extraDevice []string, ignoreZeroBytesDi
 
 		// nolint
 		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows && !excluded(p.Device, extraDevice) {
-			continue // 忽略该 partition
+			continue
 		}
 
 		if excluded(p.Device, excludeDevice) {
@@ -346,22 +359,30 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	if !ipt.isTestMode {
 		stat := ipt.getEnabledInputs()
 
-		// NOTE: 由于获取采集器的运行情况信息时，io 模块可能较忙，导致获取不到
-		// 故此处缓存一下历史，以免在 message 字段中采集器信息字段(collectors)
-		// 为空
+		// NOTE: Since the io module may be busy when obtaining the running status
+		// information of the collector, it cannot be obtained.
+
+		// Therefore, cache the history here to prevent the collector information
+		// field (collectors) in the message field from being empty.
 		if len(stat) != 0 {
 			collectorStatHist = stat
 		}
 
 		msg.Collectors = collectorStatHist
 		if len(msg.Collectors) == 0 {
-			// 此处也是为了避免采集器信息字段为空: 宁可丢弃当前这次对象采集，也不能导致采集器信息为空
-			// 采集器信息为空（或缺失）的两种可能：
+			// This is also to prevent the collector information field from being empty:
+			// it is better to discard the current object collection than to cause
+			// the collector information to be empty
 			//
-			// 1: io 忙：不便于接收查询请求
-			// 2: 具体的某个采集器，可能因为尚未来得及启动，就被要求查询运行信息，此时 io 模块肯定没有登记
+			// There are two possibilities for the collector information to be empty (or missing):
 			//
-			// 故一般只有启动后第一次采集时会获取不到统计信息，后续基本都能获取到，即使拿不到，就用旧的统计信息替代
+			// 1: io is busy: it is not convenient to receive query requests
+			// 2: A specific collector may be asked to query the running information
+			// because it has not had time to start, and the io module must not be registered at this time
+			//
+			// Therefore, generally only the first collection after startup will not be able to
+			// obtain the statistical information, and the follow-up can basically be obtained.
+			// Even if it cannot be obtained, the old statistical information will be used instead
 			return nil, fmt.Errorf("collector stats missing")
 		}
 	}
@@ -412,17 +433,30 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	l.Debugf("get election info...")
 	election := getElectionInfo()
 
+	var diskUsedPercent float64 = 0
+	diskUsed := atomic.LoadUint64(&DiskUsed)
+	diskFree := atomic.LoadUint64(&DiskFree)
+	if diskUsed+diskFree > 0 {
+		diskUsedPercent = float64(diskUsed) / (float64(diskUsed) + float64(diskFree)) * 100
+	}
+
 	msg.Host = &HostInfo{
-		HostMeta:   hostMeta,
-		CPU:        cpuInfo,
-		cpuPercent: cpuPercent,
-		load5:      load5,
-		Mem:        mem,
-		Net:        net,
-		Disk:       disk,
-		Conntrack:  conntrack,
-		FileFd:     fileFd,
-		Election:   election,
+		HostMeta:               hostMeta,
+		CPU:                    cpuInfo,
+		cpuPercent:             cpuPercent,
+		load5:                  load5,
+		Mem:                    mem,
+		Net:                    net,
+		Disk:                   disk,
+		Conntrack:              conntrack,
+		FileFd:                 fileFd,
+		Election:               election,
+		diskUsedPercent:        diskUsedPercent,
+		diskIOReadBytesPerSec:  atomic.LoadInt64(&DiskIOReadBytesPerSec),
+		diskIOWriteBytesPerSec: atomic.LoadInt64(&DiskIOWriteBytesPerSec),
+		netRecvBytesPerSec:     atomic.LoadInt64(&NetRecvBytesPerSec),
+		netSendBytesPerSec:     atomic.LoadInt64(&NetSendBytesPerSec),
+		loggingLevel:           config.Cfg.Logging.Level,
 	}
 
 	// sync cloud extra fields
