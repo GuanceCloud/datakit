@@ -133,13 +133,7 @@ func processLogBody(param *parameters) error {
 		}
 
 		pts1 := point.WrapPoint(pts)
-		scriptMap := map[string]string{}
-		for _, v := range pts1 {
-			if v != nil {
-				scriptMap[v.Name()] = v.Name() + ".p"
-			}
-		}
-		err = dkio.Feed(inputName, datakit.Logging, pts1, &dkio.Option{PlScript: scriptMap})
+		err = dkio.Feed(inputName, datakit.Logging, pts1, nil)
 	default:
 		scanner := bufio.NewScanner(param.body)
 		pts := []*point.Point{}
@@ -161,7 +155,16 @@ func processLogBody(param *parameters) error {
 
 			return nil
 		}
-		err = dkio.Feed(source, datakit.Logging, pts, &dkio.Option{PlScript: map[string]string{source: param.queryValues.Get("pipeline")}})
+
+		var scriptMap map[string]string
+
+		if scriptName := param.queryValues.Get("pipeline"); scriptName != "" {
+			scriptMap = map[string]string{
+				source: scriptName,
+			}
+		}
+
+		err = dkio.Feed(source, datakit.Logging, pts, &dkio.Option{PlScript: scriptMap})
 	}
 
 	return err

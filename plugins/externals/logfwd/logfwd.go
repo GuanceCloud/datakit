@@ -29,6 +29,8 @@ var (
 	argJSONConfig = flag.String("json-config", "", "logfwd json-config")
 	argConfig     = flag.String("config", "", "logfwd config file")
 
+	globalSource             = os.Getenv("LOGFWD_GLOBAL_SOURCE")
+	globalService            = os.Getenv("LOGFWD_GLOBAL_SERVICE")
 	podName                  = os.Getenv("LOGFWD_POD_NAME")
 	podNamespace             = os.Getenv("LOGFWD_POD_NAMESPACE")
 	wsHost                   = os.Getenv("LOGFWD_DATAKIT_HOST")
@@ -125,10 +127,15 @@ func forwardFunc(lg *logging, fn writeMessage) tailer.ForwardFunc {
 			Type:     "1",
 			Source:   lg.Source,
 			Pipeline: lg.Pipeline,
-			Tags:     lg.Tags,
 			Log:      text,
+			Tags:     make(map[string]string),
 		}
-		msg.addTags("filename", filename)
+
+		msg.Tags["filename"] = filename
+		for k, v := range lg.Tags {
+			msg.Tags[k] = v
+		}
+
 		data, err := msg.json()
 		if err != nil {
 			return err
@@ -164,8 +171,6 @@ func startTailing(lg *logging, fn tailer.ForwardFunc, stop <-chan struct{}) {
 	<-stop
 	tailer.Close()
 }
-
-// main config
 
 type config struct {
 	DataKitAddr string   `json:"datakit_addr"`
@@ -239,30 +244,31 @@ func (lg *logging) merge(cfgs loggings) {
 }
 
 func (lg *logging) setup() {
-	if lg.Source == "" {
+	if globalSource != "" {
+		lg.Source = globalSource
+	} else if lg.Source == "" {
 		lg.Source = "default"
 	}
-	if lg.Service == "" {
+
+	if globalService != "" {
+		lg.Service = globalService
+	} else if lg.Service == "" {
 		lg.Service = lg.Source
 	}
 
-	lg.addTags("service", lg.Service)
-	if podName != "" {
-		lg.addTags("pod_name", podName)
-	}
-	if podNamespace != "" {
-		lg.addTags("pod_namespace", podNamespace)
-	}
-}
-
-func (lg *logging) addTags(key, value string) {
 	if lg.Tags == nil {
 		lg.Tags = make(map[string]string)
 	}
-	lg.Tags[key] = value
-}
 
-// message
+	lg.Tags["service"] = lg.Service
+
+	if podName != "" {
+		lg.Tags["pod_name"] = podName
+	}
+	if podNamespace != "" {
+		lg.Tags["pod_namespace"] = podNamespace
+	}
+}
 
 type message struct {
 	Type     string            `json:"type"`
@@ -272,13 +278,6 @@ type message struct {
 	Log      string            `json:"log"`
 }
 
-func (m *message) addTags(key, value string) {
-	if m.Tags == nil {
-		m.Tags = make(map[string]string)
-	}
-	m.Tags[key] = value
-}
-
 func (m *message) json() ([]byte, error) {
 	j, err := json.Marshal(m)
 	if err != nil {
@@ -286,8 +285,6 @@ func (m *message) json() ([]byte, error) {
 	}
 	return j, nil
 }
-
-// wsclient
 
 type wsclient struct {
 	u      *url.URL

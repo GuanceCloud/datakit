@@ -9,6 +9,9 @@
     {{ CodeBlock .InputSample 4 }}
     ```
 
+# 外链的添加方式
+[some text](http://external-host.com){:target="_blank"}
+
 本次发布属于迭代发布，主要有如下更新：
 
 ### 新加功能 {#cl-1.4.19-new}
@@ -16,6 +19,30 @@
 ### 功能优化 {#cl-1.4.19-opt}
 ### 兼容调整 {#cl-1.4.19-brk}
 -->
+
+## 1.5.1(2022/12/01) {#cl-1.5.1}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.1-new}
+
+- 新增 Python Profiling 接入(#1146)
+- Pythond 新增自定义事件上报功能(#1174)
+- netstat 支持特定端口的指标采集(#1276)
+
+### 问题修复 {#cl-1.5.1-fix}
+
+- 修复 API write 接口 JSON 写入的时间戳精度问题(#1264)
+- 修复 Windows GPU 数据采集问题(#1268)
+- 其它问题修复(#1273/#1278/#1279/#1285/#1281/#1282)
+
+### 功能优化 {#cl-1.5.1-opt}
+
+- 优化 Redis 采集器 CPU 使用率采集，增加了新的指标字段(#1263)
+- 优化 logfwd 采集器配置(#1280)
+- 补全主机对象的字段采集，增加网络、磁盘等相关字段(#1252)
+
+---
 
 ## 1.5.0(2022/11/17) {#cl-1.5.0}
 
@@ -36,7 +63,7 @@
 
 ### 功能优化 {#cl-1.5.0-opt}
 
-- 新增批量注入 [DDTrace-Java 工具](../developers/ddtrace-attatch.md)(#786)
+- 新增批量注入 [DDTrace-Java 工具](../developers/ddtrace-attach.md)(#786)
 - [最新 DDTrace-Java SDK](../developers/ddtrace-guance.md) 增强了 SQL 脱敏功能(#789)
 - 远程 Pipeline 优化（以下两个功能，要求 Studio 升级到 2022/11/17 以后的版本）：
     - Pipeline 支持来源映射关系配置，便于实现 Pipeline 和数据源之间的批量配置(#1211)
@@ -44,11 +71,13 @@
 - 优化 [Kafka 消息订阅](kafkamq.md)，不再局限于获取 SkyWalking 相关的数据，同时支持限速、多版本覆盖、采样以及负载均衡等设定(#1212)
 - 通过提供额外配置参数（`ENV_INPUT_CONTAINER_LOGGING_SEARCH_INTERVAL`），缓解短生命周期 Pod 日志采集问题(#1255)
 - 纯容器环境下，支持[通过 label 方式](container-log.md#logging-with-annotation-or-label)配置容器内日志采集(#1187)
+- [SQLServer 采集器](sqlserver.md)增加更多指标集采集(#1216)
 - 新增 Pipeline 函数(#1220/#1224)
     - [sample()](../developers/pipeline.md#fn-sample)：采样函数
     - [b64enc()](../developers/pipeline.md#fn-b64enc)：Base64 编码函数
     - [b64dec()](../developers/pipeline.md#fn-b64dec)：Base64 解码函数
     - [append()](../developers/pipeline.md#fn-append)：列表追加函数
+    - [url_parse()](../developers/pipeline.md#fn-url-parse)：HTTP URL 解析函数
 
 - 各种文档完善(#1242/#1238/#1247)
 

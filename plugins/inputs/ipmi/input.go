@@ -53,8 +53,8 @@ const (
 	// conf File samples, reflected in the document.
 	sampleCfg = `
 [[inputs.ipmi]]
-  ## If you have so many servers that 10 seconds can't finish the job. 
-  ## You can start multiple collectors. 
+  ## If you have so many servers that 10 seconds can't finish the job.
+  ## You can start multiple collectors.
 
   ## (Optional) collect interval: (defaults to "10s").
   interval = "10s"
@@ -62,7 +62,7 @@ const (
   ## Set true to enable election
   election = true
 
-  ## The binPath of ipmitool 
+  ## The binPath of ipmitool
   ## (Example) bin_path = "/usr/bin/ipmitool"
   bin_path = "/usr/bin/ipmitool"
 
@@ -113,7 +113,7 @@ const (
   regexp_voltage = ["voltage"]
 
   ## key words of power.
-  ## (Example) regexp_power = ["pwr"] 
+  ## (Example) regexp_power = ["pwr"]
   regexp_power = ["pwr"]
 
   ## key words of temp.
@@ -135,7 +135,7 @@ const (
   ## key words of status.
   ## (Example) regexp_status = ["fan","slot","drive"]
   regexp_status = ["fan","slot","drive"]
-  
+
 [inputs.ipmi.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"`
@@ -184,9 +184,10 @@ type dataSrtuct struct {
 
 // Measurement structure.
 type ipmiMeasurement struct {
-	name   string                 // Indicator set name
-	tags   map[string]string      // Indicator name
-	fields map[string]interface{} // Indicator measurement results
+	name     string                 // Indicator set name
+	tags     map[string]string      // Indicator name
+	fields   map[string]interface{} // Indicator measurement results
+	election bool
 }
 
 // be used for server drop warning.
@@ -476,8 +477,8 @@ func (ipt *Input) convert(data []byte, metricVersion int, server string) {
 		}
 
 		tags := map[string]string{
-			"server": server,
-			"unit":   strs[0],
+			"host": server,
+			"unit": strs[0],
 		}
 
 		fields := map[string]interface{}{
@@ -487,9 +488,10 @@ func (ipt *Input) convert(data []byte, metricVersion int, server string) {
 		// metric := metric{tags, fields}
 
 		ipt.collectCache = append(ipt.collectCache, &ipmiMeasurement{
-			name:   inputName,
-			tags:   tags,
-			fields: fields,
+			name:     inputName,
+			tags:     tags,
+			fields:   fields,
+			election: ipt.Election,
 		})
 	}
 }
@@ -684,7 +686,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_SERVERS"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_SERVERS: %s, ignore", err)
 		} else {
 			ipt.IpmiServers = strs
@@ -692,7 +694,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_INTERFACES"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_INTERFACES: %s, ignore", err)
 		} else {
 			ipt.IpmiInterfaces = strs
@@ -700,7 +702,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_USERS"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_USERS: %s, ignore", err)
 		} else {
 			ipt.IpmiUsers = strs
@@ -708,7 +710,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_PASSWORDS"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_PASSWORDS: %s, ignore", err)
 		} else {
 			ipt.IpmiPasswords = strs
@@ -716,7 +718,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_HEX_KEYS"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_HEX_KEYS: %s, ignore", err)
 		} else {
 			ipt.HexKeys = strs
@@ -724,7 +726,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_METRIC_VERSIONS"]; ok {
-		if ints, err := Ints2IntSlice(str); err != nil {
+		if ints, err := datakit.Ints2IntSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_METRIC_VERSIONS: %s, ignore", err)
 		} else {
 			ipt.MetricVersions = ints
@@ -732,7 +734,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_HEX_KEYS"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_HEX_KEYS: %s, ignore", err)
 		} else {
 			ipt.HexKeys = strs
@@ -740,7 +742,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_CURRENT"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_CURRENT: %s, ignore", err)
 		} else {
 			ipt.RegexpCurrent = strs
@@ -748,7 +750,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_VOLTAGE"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_VOLTAGE: %s, ignore", err)
 		} else {
 			ipt.RegexpVoltage = strs
@@ -756,7 +758,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_POWER"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_POWER: %s, ignore", err)
 		} else {
 			ipt.RegexpPower = strs
@@ -764,7 +766,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_TEMP"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_TEMP: %s, ignore", err)
 		} else {
 			ipt.RegexpTemp = strs
@@ -772,7 +774,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_FAN_SPEED"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_FAN_SPEED: %s, ignore", err)
 		} else {
 			ipt.RegexpFanSpeed = strs
@@ -780,7 +782,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_USAGE"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_USAGE: %s, ignore", err)
 		} else {
 			ipt.RegexpUsage = strs
@@ -788,7 +790,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_COUNT"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_COUNT: %s, ignore", err)
 		} else {
 			ipt.RegexpCount = strs
@@ -796,7 +798,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_STATUS"]; ok {
-		if strs, err := Strings2StringSlice(str); err != nil {
+		if strs, err := datakit.Strings2StringSlice(str); err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_STATUS: %s, ignore", err)
 		} else {
 			ipt.RegexpStatus = strs
@@ -806,7 +808,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 // LineProto data formatting, submit through FeedMeasurement.
 func (n *ipmiMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(n.name, n.tags, n.fields, point.MOpt())
+	return point.NewPoint(n.name, n.tags, n.fields, point.MOptElectionV2(n.election))
 }
 
 // Info , reflected in the document
@@ -827,9 +829,8 @@ func (n *ipmiMeasurement) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"host":   &inputs.TagInfo{Desc: "主机名"},
-			"server": &inputs.TagInfo{Desc: "被监测设备名"},
-			"unit":   &inputs.TagInfo{Desc: "设备内单元名"},
+			"host": &inputs.TagInfo{Desc: "被监测主机名"},
+			"unit": &inputs.TagInfo{Desc: "设备内单元名"},
 		},
 	}
 }
@@ -869,7 +870,7 @@ func (ipt *Input) handleSreverDrop() {
 
 			// send warning
 			tags := map[string]string{
-				"server": ipt.servers[i].server,
+				"host": ipt.servers[i].server,
 			}
 
 			fields := map[string]interface{}{
@@ -877,9 +878,10 @@ func (ipt *Input) handleSreverDrop() {
 			}
 
 			ipt.collectCache = append(ipt.collectCache, &ipmiMeasurement{
-				name:   inputName,
-				tags:   tags,
-				fields: fields,
+				name:     inputName,
+				tags:     tags,
+				fields:   fields,
+				election: ipt.Election,
 			})
 
 			// set warned state

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/shirou/gopsutil/v3/net"
+	"github.com/stretchr/testify/assert"
 )
 
 var connectionStats = []net.ConnectionStat{
@@ -76,9 +77,16 @@ func ConnectionStat4Test() ([]net.ConnectionStat, error) {
 }
 
 func TestNetStatCollect(t *testing.T) {
-	i := &Input{netConnections: ConnectionStat4Test}
+	i := &Input{
+		netConnections: ConnectionStat4Test, AddrPorts: []*portConf{
+			{
+				Ports: []string{"127.0.0.1:8000", "5353", "*:53303"},
+				Tags:  map[string]string{"service": "http"},
+			},
+		},
+		netInfos: make(map[string]*netInfo),
+	}
 	i.platform = "linux" // runtime.GOOS
-
 	if err := i.Collect(); err != nil {
 		t.Error(err)
 	}
@@ -97,6 +105,43 @@ func TestNetStatCollect(t *testing.T) {
 	assertEqualint(t, 3, collect["tcp_syn_sent"].(int), "tcp_syn_sent")
 	assertEqualint(t, 0, collect["tcp_time_wait"].(int), "tcp_time_wait")
 	assertEqualint(t, 16, collect["udp_socket"].(int), "udp_socket")
+
+	// assert collectCachePort
+	collect = i.collectCachePort[0].(*netStatMeasurement).fields
+	assertEqualint(t, 0, collect["tcp_close"].(int), "tcp_close")
+	assertEqualint(t, 0, collect["tcp_close_wait"].(int), "tcp_close_wait")
+	assertEqualint(t, 0, collect["tcp_closing"].(int), "tcp_closing")
+	assertEqualint(t, 0, collect["tcp_established"].(int), "tcp_established")
+	assertEqualint(t, 0, collect["tcp_fin_wait1"].(int), "tcp_fin_wait1")
+	assertEqualint(t, 0, collect["tcp_fin_wait2"].(int), "tcp_fin_wait2")
+	assertEqualint(t, 0, collect["tcp_last_ack"].(int), "tcp_last_ack")
+	assertEqualint(t, 0, collect["tcp_listen"].(int), "tcp_listen")
+	assertEqualint(t, 0, collect["tcp_none"].(int), "tcp_none")
+	assertEqualint(t, 0, collect["tcp_syn_recv"].(int), "tcp_syn_recv")
+	assertEqualint(t, 0, collect["tcp_syn_sent"].(int), "tcp_syn_sent")
+	assertEqualint(t, 0, collect["tcp_time_wait"].(int), "tcp_time_wait")
+	assertEqualint(t, 11, collect["udp_socket"].(int), "udp_socket")
+
+	collect = i.collectCachePort[1].(*netStatMeasurement).fields
+	assertEqualint(t, 0, collect["tcp_close"].(int), "tcp_close")
+	assertEqualint(t, 0, collect["tcp_close_wait"].(int), "tcp_close_wait")
+	assertEqualint(t, 0, collect["tcp_closing"].(int), "tcp_closing")
+	assertEqualint(t, 1, collect["tcp_established"].(int), "tcp_established")
+	assertEqualint(t, 0, collect["tcp_fin_wait1"].(int), "tcp_fin_wait1")
+	assertEqualint(t, 0, collect["tcp_fin_wait2"].(int), "tcp_fin_wait2")
+	assertEqualint(t, 0, collect["tcp_last_ack"].(int), "tcp_last_ack")
+	assertEqualint(t, 1, collect["tcp_listen"].(int), "tcp_listen")
+	assertEqualint(t, 0, collect["tcp_none"].(int), "tcp_none")
+	assertEqualint(t, 0, collect["tcp_syn_recv"].(int), "tcp_syn_recv")
+	assertEqualint(t, 0, collect["tcp_syn_sent"].(int), "tcp_syn_sent")
+	assertEqualint(t, 0, collect["tcp_time_wait"].(int), "tcp_time_wait")
+	assertEqualint(t, 0, collect["udp_socket"].(int), "udp_socket")
+
+	tags := i.collectCachePort[0].(*netStatMeasurement).tags
+	assert.EqualValues(t, "5353", tags["addr_port"])
+
+	tags = i.collectCachePort[1].(*netStatMeasurement).tags
+	assert.EqualValues(t, "127.0.0.1:8000", tags["addr_port"])
 }
 
 func assertEqualint(t *testing.T, expected, actual int, mName string) {

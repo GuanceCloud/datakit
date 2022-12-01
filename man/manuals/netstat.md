@@ -29,10 +29,11 @@ Netstat 指标采集，包括 TCP/UDP 连接数、等待连接、等待处理请
     Kubernetes 中支持以环境变量的方式修改配置参数：
 
 
-    | 环境变量名                   | 对应的配置参数项 | 参数示例                                                     |
-    |:-----------------------------| ---              | ---                                                          |
-    | `ENV_INPUT_NETSTAT_TAGS`     | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-    | `ENV_INPUT_NETSTAT_INTERVAL` | `interval`       | `10s`                                                        |
+    | 环境变量名                          | 对应的配置参数项 | 参数示例 |
+    |:-----------------------------     | ---            | ---   |
+    | `ENV_INPUT_NETSTAT_TAGS`          | `tags`         | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+    | `ENV_INPUT_NETSTAT_INTERVAL`      | `interval`     | `10s` |
+    | `ENV_INPUT_NETSTAT_ADDR_PORTS`    | `ports`        | `["1.1.1.1:80","443"]` |
 
 ---
 
@@ -47,9 +48,9 @@ Netstat 指标采集，包括 TCP/UDP 连接数、等待连接、等待处理请
   # ...
 ```
 
-{{ range $i, $m := .Measurements }}
+不分端口号统计的指标集: `netstat` ，分端口号统计的指标集: `netstat_port` 。
 
-### `{{$m.Name}}`
+{{ range $i, $m := .Measurements }}
 
 -  标签 
 

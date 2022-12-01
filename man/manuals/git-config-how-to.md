@@ -57,8 +57,9 @@ git push origin master
 
 ```shell
 .
-├── repository
-│   └── clickhousev1.conf
+└── repository
+    └── conf.d
+        └── clickhousev1.conf
 ```
 
 根据自己的实际情况，修改 `clickhousev1.conf` 的各项配置、保存。

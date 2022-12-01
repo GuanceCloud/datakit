@@ -73,6 +73,7 @@ var OtherDocs = map[string]bool{
 	"profile-ddtrace":                    true,
 	"profile-java-async-profiler":        true,
 	"prometheus":                         true,
+	"python-profiling":                   true,
 	"rum":                                true,
 	"sec-checker":                        true,
 	"snmp":                               true,

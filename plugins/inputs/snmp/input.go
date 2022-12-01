@@ -143,7 +143,7 @@ var (
 	l                                  = logger.DefaultSLogger(snmpmeasurement.InputName)
 	g                                  = datakit.G("inputs_snmp_")
 	onceReleasePrefiles sync.Once
-	setLogOnce          sync.Once
+	onceSetLog          sync.Once
 )
 
 type Input struct {
@@ -199,16 +199,7 @@ type TrapsConfig struct {
 
 func (*Input) Catalog() string { return snmpmeasurement.InputName }
 
-func (*Input) SampleConfig() string {
-	onceReleasePrefiles.Do(func() {
-		if err := snmprefiles.ReleaseFiles(); err != nil {
-			SetLog()
-			l.Errorf("snmp release prefiles failed: %v", err)
-		}
-	})
-
-	return sampleCfg
-}
+func (*Input) SampleConfig() string { return sampleCfg }
 
 func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
@@ -219,6 +210,12 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) Run() {
 	SetLog()
 	l.Info("Run entry")
+
+	onceReleasePrefiles.Do(func() {
+		if err := snmprefiles.ReleaseFiles(); err != nil {
+			l.Errorf("snmp release prefiles failed: %v", err)
+		}
+	})
 
 	// starting traps server
 	if ipt.Traps.Enable {
@@ -969,7 +966,7 @@ func (ipt *Input) initializeDevice(deviceIP, subnet string) (*deviceInfo, error)
 // only for command "datakit tool --test-snmp".
 
 func SetLog() {
-	setLogOnce.Do(func() {
+	onceSetLog.Do(func() {
 		l = logger.SLogger(snmpmeasurement.InputName)
 	})
 	snmputil.SetLog()
