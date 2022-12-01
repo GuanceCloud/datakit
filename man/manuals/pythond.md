@@ -45,10 +45,12 @@ py -m ensurepip --upgrade
 具体的使用可以参见源代码文件 `datakit/python.d/core/demo.py`:
 
 ```python
+#encoding: utf-8
+
 from datakit_framework import DataKitFramework
 
 class Demo(DataKitFramework):
-    __name = 'Demo'
+    name = 'Demo'
     interval = 10 # triggered interval seconds.
 
     # if your datakit ip is 127.0.0.1 and port is 9529, you won't need use this,
@@ -56,19 +58,20 @@ class Demo(DataKitFramework):
     # def __init__(self, **kwargs):
     #     super().__init__(ip = '127.0.0.1', port = 9529)
 
+    # General report example.
     def run(self):
         print("Demo")
         data = [
                 {
                     "measurement": "abc",
                     "tags": {
-                      "t1": "b",
-                      "t2": "d"
+                    "t1": "b",
+                    "t2": "d"
                     },
                     "fields": {
-                      "f1": 123,
-                      "f2": 3.4,
-                      "f3": "strval"
+                    "f1": 123,
+                    "f2": 3.4,
+                    "f3": "strval"
                     },
                     # "time": 1624550216 # you don't need this
                 },
@@ -76,13 +79,13 @@ class Demo(DataKitFramework):
                 {
                     "measurement": "def",
                     "tags": {
-                      "t1": "b",
-                      "t2": "d"
+                    "t1": "b",
+                    "t2": "d"
                     },
                     "fields": {
-                      "f1": 123,
-                      "f2": 3.4,
-                      "f3": "strval"
+                    "f1": 123,
+                    "f2": 3.4,
+                    "f3": "strval"
                     },
                     # "time": 1624550216 # you don't need this
                 }
@@ -94,6 +97,125 @@ class Demo(DataKitFramework):
         }
 
         return self.report(in_data) # you must call self.report here
+
+    # # KeyEvent report example.
+    # def run(self):
+    #     print("Demo")
+
+    #     tags = {"tag1": "val1", "tag2": "val2"}
+    #     date_range = 10
+    #     status = 'info'
+    #     event_id = 'event_id'
+    #     title = 'title'
+    #     message = 'message'
+    #     kwargs = {"custom_key1":"custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}
+
+        # # Feed df_source=user event.
+        # user_id="user_id"
+        # return self.feed_user_event(
+        #     user_id,
+        #     tags, date_range, status, event_id, title, message, **kwargs
+        #     )
+
+        # # Feed df_source=monitor event.
+        # dimension_tags='{"host":"web01"}' # dimension_tags must be the String(JSON format).
+        # return self.feed_monitor_event(
+        #     dimension_tags,
+        #     tags, date_range, status, event_id, title, message, **kwargs
+        #     )
+
+        # # Feed df_source=system event.
+        # return self.feed_system_event(
+        #     tags, date_range, status, event_id, title, message, **kwargs
+        #     )
+```
+
+### 编写 Pythond 上报 event 事件 {#report-event}
+
+可以使用以下三个内置函数来上报 event 事件:
+
+- 上报 `df_source = user` 的事件: `feed_user_event(self, df_user_id=None, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
+- 上报 `df_source = monitor` 的事件: `feed_monitor_event(self, df_dimension_tags=None, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
+- 上报 `df_source = system` 的事件: `feed_system_event(self, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
+
+通用 event 字段说明:
+
+|  字段名   | 类型  | 是否必须  | 说明  |
+|  ----  | ----  | ----  | ----  |
+| df_date_range  | Integer | 必须 | 时间范围。单位 s |
+| df_source  | String | 必须 | 数据来源。取值 `system` , `monitor` , `user` |
+| df_status  | Enum | 必须 | 状态。取值 `ok` , `info` , `warning` , `error` , `critical` , `nodata` |
+| df_event_id  | String | 必须 | event ID |
+| df_title  | String | 必须 | 标题 |
+| df_message  | String |  | 详细描述 |
+| {其他字段}  | `kwargs`, 例如 `k1=5, k2=6` |  | 其他额外字段 |
+
+- 当 `df_source = monitor` 时：
+
+表示由观测云检测功能产生的事件，额外存在以下字段：
+
+|  额外字段名   | 类型  | 是否必须  | 说明  |
+|  ----  | ----  | ----  | ----  |
+| df_dimension_tags  | String(JSON format) | 必须 | 检测纬度标签，如 `{"host":"web01"}` |
+
+- 当 `df_source = user` 时：
+
+表示由用户直接创建的事件，额外存在以下字段：
+
+|  额外字段名   | 类型  | 是否必须  | 说明  |
+|  ----  | ----  | ----  | ----  |
+| df_user_id  | String | 必须 | 用户 ID |
+
+- 当 `df_source = system` 时：
+
+表示为系统生成的事件，不存在额外字段。
+
+使用示例:
+
+```py
+#encoding: utf-8
+
+from datakit_framework import DataKitFramework
+
+class Demo(DataKitFramework):
+    name = 'Demo'
+    interval = 10 # triggered interval seconds.
+
+    # if your datakit ip is 127.0.0.1 and port is 9529, you won't need use this,
+    # just comment it.
+    # def __init__(self, **kwargs):
+    #     super().__init__(ip = '127.0.0.1', port = 9529)
+
+    # KeyEvent report example.
+    def run(self):
+        print("Demo")
+
+        tags = {"tag1": "val1", "tag2": "val2"}
+        date_range = 10
+        status = 'info'
+        event_id = 'event_id'
+        title = 'title'
+        message = 'message'
+        kwargs = {"custom_key1":"custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}
+
+        # Feed df_source=user event.
+        user_id="user_id"
+        return self.feed_user_event(
+            df_user_id=user_id,
+            tags=tags, df_date_range=date_range, df_status=status, df_event_id=event_id, df_title=title, df_message=message, **kwargs
+            )
+
+        # Feed df_source=monitor event.
+        dimension_tags='{"host":"web01"}' # dimension_tags must be the String(JSON format).
+        return self.feed_monitor_event(
+            df_dimension_tags=dimension_tags,
+            tags=tags, df_date_range=date_range, df_status=status, df_event_id=event_id, df_title=title, df_message=message, **kwargs
+            )
+
+        # Feed df_source=system event.
+        return self.feed_system_event(
+            tags=tags, df_date_range=date_range, df_status=status, df_event_id=event_id, df_title=title, df_message=message, **kwargs
+            )
 ```
 
 ## 配置 {#config}
@@ -106,14 +228,17 @@ class Demo(DataKitFramework):
 
 ## Git 支持 {#git}
 
-支持使用 git repo，一旦开启 git repo 功能，则 conf 里面的 args 里面填写的路径是相对于 `gitrepos` 的路径。比如下面这种情况，args 就填写 `myconf/mytest.py`:
+支持使用 git repo，一旦开启 git repo 功能，则 conf 里面的 args 里面填写的路径是相对于 `gitrepos` 的路径。比如下面这种情况，args 就填写 `mytest`:
 
 ```
 ├── datakit
-├── gitrepos
-│   └── myconf
-│       ├── mytest.py
-│       └── pythond.conf
+└── gitrepos
+    └── myconf
+        ├── conf.d
+        │   └── pythond.conf
+        └── python.d
+            └── mytest
+                └── mytest.py
 ```
 
 ## 完整示例 {#example}
@@ -124,7 +249,7 @@ class Demo(DataKitFramework):
 from datakit_framework import DataKitFramework
 
 class MyTest(DataKitFramework):
-    __name = 'MyTest'
+    name = 'MyTest'
     interval = 10 # triggered interval seconds.
 
     # if your datakit ip is 127.0.0.1 and port is 9529, you won't need use this,
@@ -203,3 +328,11 @@ class MyTest(DataKitFramework):
 ```shell
 sudo datakit --restart
 ```
+
+## FAQ {#faq}
+
+### 如何排查错误 {#log}
+
+如果结果不及预期, 可以查看以下日志文件:
+- `~/_datakit_pythond_cli.log`
+- `_datakit_pythond_framework_[pythond name]_.log`
