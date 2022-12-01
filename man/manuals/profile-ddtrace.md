@@ -10,7 +10,7 @@
 
 ```shell
 # java版本要求：java8版本需要高于8u262+，或者使用java11及以上版本
-wget -O dd-java-agent.jar 'https://dtdg.co/latest-java-tracer'
+wget -O dd-java-agent.jar 'https://github.com/DataDog/dd-trace-java/releases/download/v0.107.0/dd-java-agent-0.107.0.jar'
 ```
 
 运行 Java Code
