@@ -6,10 +6,6 @@
 package ipmi
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -41,53 +37,4 @@ func NewFieldInfoC(desc string) *inputs.FieldInfo {
 		Unit:     inputs.NCount,
 		Desc:     desc,
 	}
-}
-
-func Strings2StringSlice(str string) (strs []string, err error) {
-	// trim blank
-	str = strings.Trim(str, " ")
-	// trim "[" "]"
-	str = strings.Trim(str, "[")
-	str = strings.Trim(str, "]")
-	str = strings.Trim(str, " ")
-	if len(str) < 1 {
-		return nil, fmt.Errorf("length of data is 0")
-	}
-	// Split by ","
-	strs = strings.Split(str, ",")
-	// trim `"`
-	for i := 0; i < len(strs); i++ {
-		// trim `"`
-		strs[i] = strings.Trim(strs[i], "\"")
-		strs[i] = strings.Trim(strs[i], " ")
-	}
-
-	return
-}
-
-func Ints2IntSlice(str string) (ints []int, err error) {
-	// trim blank
-	str = strings.Trim(str, " ")
-	// trim "[" "]"
-	str = strings.Trim(str, "[")
-	str = strings.Trim(str, "]")
-	str = strings.Trim(str, " ")
-	if len(str) < 1 {
-		return nil, fmt.Errorf("length of data is 0")
-	}
-	// Split by ","
-	strs := strings.Split(str, ",")
-
-	for i := 0; i < len(strs); i++ {
-		// trim `"`
-		strs[i] = strings.Trim(strs[i], " ")
-		// Atoi
-		v, err := strconv.Atoi(strs[i])
-		if err != nil {
-			return ints, err
-		}
-		ints = append(ints, v)
-	}
-
-	return
 }
