@@ -7,12 +7,14 @@ package ddtrace
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"strconv"
 
+	"github.com/tinylib/msgp/msgp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -31,6 +33,13 @@ const (
 )
 
 func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
+	if err != nil {
+		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
 	switch req.URL.Path {
 	case v1, v2, v3:
 		io.WriteString(resp, "OK\n") // nolint: errcheck,gosec
@@ -43,6 +52,13 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 
 func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### received tracing data from path: %s", req.URL.Path)
+
+	if req.Header.Get("X-Datadog-Trace-Count") == "0" {
+		log.Debug("X-Datadog-Trace-Count: 0")
+		httpStatusRespFunc(resp, req, nil)
+
+		return
+	}
 
 	pbuf := bufpool.GetBuffer()
 	defer bufpool.PutBuffer(pbuf)
@@ -61,20 +77,17 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 		Body:    pbuf,
 	}
 	if err = parseDDTraces(param); err != nil {
-		log.Errorf("### parse ddtrace failed: %s", err.Error())
+		if errors.Is(err, msgp.ErrShortBytes) {
+			log.Warn(err.Error())
+		} else {
+			log.Errorf("### parse ddtrace failed: %s", err.Error())
+		}
 		resp.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	switch req.URL.Path {
-	case v1, v2, v3:
-		io.WriteString(resp, "OK\n") // nolint: errcheck,gosec
-	default:
-		resp.Header().Set("Content-Type", "application/json")
-		resp.Header().Set(headerRatesPayloadVersion, req.Header.Get(headerRatesPayloadVersion))
-		resp.Write([]byte("{}")) // nolint: errcheck,gosec
-	}
+	httpStatusRespFunc(resp, req, nil)
 }
 
 // TODO:.
