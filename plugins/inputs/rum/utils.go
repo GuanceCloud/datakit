@@ -175,18 +175,6 @@ func geoTags(srcip string) (tags map[string]string) {
 		return tags
 	}
 
-	switch ipInfo.Country { // #issue 354
-	case "TW":
-		ipInfo.Country = "CN"
-		ipInfo.Region = "Taiwan"
-	case "MO":
-		ipInfo.Country = "CN"
-		ipInfo.Region = "Macao"
-	case "HK":
-		ipInfo.Country = "CN"
-		ipInfo.Region = "Hong Kong"
-	}
-
 	if len(ipInfo.City) > 0 {
 		tags["city"] = ipInfo.City
 	}
