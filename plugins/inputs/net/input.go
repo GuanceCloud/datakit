@@ -11,6 +11,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	psNet "github.com/shirou/gopsutil/net"
@@ -21,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
 )
 
 var (
@@ -235,6 +237,11 @@ func (i *Input) Collect() error {
 					fields["bytes_recv/sec"] = int64(ioStat.BytesRecv-lastIOStat.BytesRecv) / (ts.Unix() - i.lastTime.Unix())
 					fields["packets_sent/sec"] = int64(ioStat.PacketsSent-lastIOStat.PacketsSent) / (ts.Unix() - i.lastTime.Unix())
 					fields["packets_recv/sec"] = int64(ioStat.PacketsRecv-lastIOStat.PacketsRecv) / (ts.Unix() - i.lastTime.Unix())
+					atomic.StoreInt64(&hostobject.NetSendBytesPerSec, int64(ioStat.BytesSent-lastIOStat.BytesSent)/(ts.Unix()-i.lastTime.Unix()))
+					atomic.StoreInt64(&hostobject.NetRecvBytesPerSec, int64(ioStat.BytesRecv-lastIOStat.BytesRecv)/(ts.Unix()-i.lastTime.Unix()))
+				} else {
+					atomic.StoreInt64(&hostobject.NetSendBytesPerSec, int64(0))
+					atomic.StoreInt64(&hostobject.NetRecvBytesPerSec, int64(0))
 				}
 			}
 		}
