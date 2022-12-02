@@ -38,9 +38,10 @@ var (
 	FlagProm      string
 	FlagTestInput string
 
-	FlagDefConf bool
+	FlagDefConf,
+	FlagMan, // Deprecated
+	FlagDisableTFMono bool
 
-	FlagDisableTFMono, FlagMan bool
 	FlagIgnore,
 	FlagExportManuals, // Deprecated
 	FlagExportIntegration,
@@ -407,23 +408,6 @@ func runOldStyleCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		grokq()
-		os.Exit(0)
-	}
-
-	if FlagMan {
-		setCmdRootLog(FlagCmdLogPath)
-		cmdMan()
-		os.Exit(0)
-	}
-
-	if FlagExportManuals != "" {
-		setCmdRootLog(FlagCmdLogPath)
-		if err := exportMan(FlagExportManuals, FlagIgnore,
-			FlagManVersion, FlagDisableTFMono); err != nil {
-			l.Errorf("exportMan: %s", err)
-		} else {
-			l.Infof("exportMan ok")
-		}
 		os.Exit(0)
 	}
 

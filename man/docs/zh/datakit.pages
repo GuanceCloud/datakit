@@ -1,0 +1,171 @@
+nav:
+  - index.md
+  - changelog.md
+  - 'DataKit 使用':
+    - 'DataKit 整体架构简介': datakit-arch.md
+    - '采集器配置':
+      - datakit-input-conf.md
+      - git-config-how-to.md
+      - confd.md
+    - datakit-conf.md
+    - datakit-service-how-to.md
+    - election.md
+    - datakit-dql-how-to.md
+    - datakit-monitor.md
+    - datakit-tools-how-to.md
+    - proxy.md
+    - doc-logging.md
+    - aliyun-access.md
+    - dca.md
+    - 'Sinker 设置':
+      - 'DataKit Sink 使用': datakit-sink-guide.md
+      - datakit-sink-influxdb.md
+      - datakit-sink-logstash.md
+      - datakit-sink-m3db.md
+      - datakit-sink-otel-jaeger.md
+      - datakit-sink-dataway.md
+    - why-no-data.md
+  - 'DataKit 安装':
+    - '主机安装': datakit-install.md
+    - datakit-offline-install.md
+    - datakit-batch-deploy.md
+    - datakit-update.md
+    - datakit-daemonset-deploy.md
+  - 'DataKit 开发':
+    - 'DataKit 开发手册': development.md
+    - datakit-filter.md
+    - apis.md
+    - datakit-sink-dev.md
+    - common-tags.md
+    - '文档撰写':
+      - '集成文档合并': integrations-to-dk-howto.md
+      - mkdocs-howto.md
+  - '采集器':
+    - '主机':
+      - 'DataKit 自身指标': self.md
+      - hostobject.md
+      - host_processes.md
+      - '主机指标':
+        - 'CPU': cpu.md
+        - disk.md
+        - diskio.md
+        - mem.md
+        - swap.md
+        - net.md
+        - netstat.md
+        - socket.md
+        - system.md
+        - hostdir.md
+        - ssh.md
+        - gpu_smi.md
+        - Windows 相关:
+          - 'Windows 事件': windows_event.md
+          - iis.md
+
+    - '云原生':
+      - '容器数据采集': container.md
+      - container-log.md
+      - k8s-config-how-to.md
+      - kubernetes-crd.md
+      - logfwd.md
+      - kubernetes-prom.md
+      - kubernetes-prometheus-operator-crd.md
+
+    - 应用性能监测（APM）:
+      - 'Datakit Tracing 综述': datakit-tracing.md
+      - datakit-tracing-struct.md
+
+      - 'Profiling':
+        - 'Profile 采集配置': profile.md
+        - 'ddtrace': profile-ddtrace.md
+        - 'Java profiling': profile-java-async-profiler.md
+        - 'Python profiling': python-profiling.md
+
+      - 'DDTrace':
+        - 'DDtrace 采集配置': ddtrace.md
+        - ddtrace-golang.md
+        - ddtrace-java.md
+        - ddtrace-python.md
+        - ddtrace-php.md
+        - ddtrace-nodejs.md
+        - ddtrace-cpp.md
+        - ddtrace-ruby.md
+
+      - 'SkyWalking':
+        - 'SkyWalking 采集配置': skywalking.md
+
+      - 'OpenTelemetry':
+        - 'OpenTelemetry 采集配置': opentelemetry.md
+        - opentelemetry-go.md
+        - opentelemetry-java.md
+
+      - 'Zipkin':
+        - 'Zipkin 采集器配置': zipkin.md
+
+      - 'Jaeger' :
+        - 'Jaeger 采集器配置': jaeger.md
+
+    - '日志':
+      - '日志采集': logging.md
+      - logging_socket.md
+      - '第三方日志接入':
+        - '采集器配置': logstreaming.md
+      - datakit-logging.md
+      - datakit-logging-how.md
+
+    - '用户访问监测(RUM)':
+      - '采集器配置': rum.md
+
+    - 中间件:
+      - 'ClickHouse': clickhousev1.md
+      - mysql.md
+      - oracle.md
+      - sqlserver.md
+      - postgresql.md
+      - redis.md
+      - memcached.md
+      - mongodb.md
+      - influxdb.md
+      - tdengine.md
+      - elasticsearch.md
+      - solr.md
+      - flinkv1.md
+      - nsq.md
+      - rabbitmq.md
+      - kafka.md
+      - '订阅kafka MQ': kafkamq.md
+      - etcd.md
+      - consul.md
+      - coredns.md
+      - jenkins.md
+      - gitlab.md
+      - 'Web 服务器':
+        - 'Nginx': nginx.md
+        - apache.md
+      - 'Java':
+        - 'JVM': jvm.md
+        - tomcat.md
+      - snmp.md
+
+    - '网络拨测':
+      - '采集器配置': dialtesting.md
+      - dialtesting_json.md
+
+    - 'eBPF':
+      - 'eBPF 采集配置': ebpf.md
+
+    - '第三方数据接入':
+      - 'Prometheus Exportor 数据采集': prom.md
+      - prom_remote_write.md
+      - kafkamq.md
+      - promtail.md
+      - statsd.md
+      - beats_output.md
+      - cloudprober.md
+      - telegraf.md
+      - sec-checker.md
+
+    - '其它采集器':
+      - sensors.md
+      - smart.md
+      - ipmi.md
