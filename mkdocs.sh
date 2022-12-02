@@ -12,11 +12,21 @@ CLR="\033[0m"
 
 mkdocs_dir=~/git/dataflux-doc
 tmp_doc_dir=.docs
-datakit_docs_dir=${mkdocs_dir}/docs/datakit
-developers_docs_dir=${mkdocs_dir}/docs/developers
+
+base_docs_dir=${mkdocs_dir}/docs
+
+datakit_docs_dir_zh=${base_docs_dir}/zh/datakit
+datakit_docs_dir_en=${base_docs_dir}/en/datakit
+developers_docs_dir_zh=${base_docs_dir}/zh/developers
+developers_docs_dir_en=${base_docs_dir}/en/developers
+
 pwd=$(pwd)
 
-mkdir -p $datakit_docs_dir $developers_docs_dir $tmp_doc_dir
+mkdir -p $datakit_docs_dir_zh \
+	$datakit_docs_dir_en \
+	$developers_docs_dir_zh \
+	$developers_docs_dir_en \
+	$tmp_doc_dir
 
 rm -rf $tmp_doc_dir/*.md
 
@@ -64,8 +74,8 @@ if [ $? -ne 0 ]; then
 fi
 
 # 导出 .pages/index.md
-cp man/manuals/datakit.pages $datakit_docs_dir/.pages
-cp man/manuals/datakit-index.md $datakit_docs_dir/index.md
+cp man/manuals/datakit.pages $datakit_docs_dir_zh/.pages
+cp man/manuals/datakit-index.md $datakit_docs_dir_zh/index.md
 
 # 只发布到 datakit 文档列表
 datakit_docs=(
@@ -204,7 +214,7 @@ datakit_docs=(
 
 printf "${GREEN}> Copy docs...${CLR}\n"
 for f in "${datakit_docs[@]}"; do
-  cp $f $datakit_docs_dir/
+  cp $f $datakit_docs_dir_zh/
 done
 
 developers_docs=(
@@ -217,7 +227,7 @@ developers_docs=(
 
 printf "${GREEN}> Copy docs to developers ...${CLR}\n"
 for f in "${developers_docs[@]}"; do
-  cp $f $developers_docs_dir/
+  cp $f $developers_docs_dir_zh/
 done
 
 printf "${GREEN}> Start mkdocs...${CLR}\n"
