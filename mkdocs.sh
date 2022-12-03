@@ -12,27 +12,37 @@ CLR="\033[0m"
 
 mkdocs_dir=~/git/dataflux-doc
 tmp_doc_dir=.docs
-
 base_docs_dir=${mkdocs_dir}/docs
 
-datakit_docs_dir_zh=${base_docs_dir}/zh/datakit
-datakit_docs_dir_en=${base_docs_dir}/en/datakit
-developers_docs_dir_zh=${base_docs_dir}/zh/developers
-developers_docs_dir_en=${base_docs_dir}/en/developers
+######################################
+# list i18n languages
+######################################
+i18n=(
+	"zh"
+	"en"
+	# add more...
+)
 
-pwd=$(pwd)
-
-mkdir -p $datakit_docs_dir_zh \
-	$datakit_docs_dir_en \
-	$developers_docs_dir_zh \
-	$developers_docs_dir_en \
-	$tmp_doc_dir/zh \
-	$tmp_doc_dir/en
-
+######################################
+# prepare workdirs
+######################################
+# clear tmp dir
 rm -rf $tmp_doc_dir/*.md
 
+# create workdirs
+for lang in "${i18n[@]}"; do
+	mkdir -p $base_docs_dir/${lang}/datakit \
+		$base_docs_dir/${lang}/developers \
+		$tmp_doc_dir/${lang}
+done
+
+######################################
+# check version info
+######################################
+# get online datakit version
 latest_version=$(curl https://static.guance.com/datakit/version | grep '"version"' | awk -F'"' '{print $4}')
 
+# or we set the version manually
 man_version=$1
 
 if [ -z $man_version ]; then
@@ -40,6 +50,9 @@ if [ -z $man_version ]; then
   man_version="${latest_version}"
 fi
 
+######################################
+# select datakit binary
+######################################
 arch=$(uname -m)
 if [[ "$arch" == "x86_64" ]]; then
   arch=amd64
@@ -57,11 +70,12 @@ else              # if under windows(amd64):
   datakit=datakit # windows 下应该设置了对应的 $PATH
 fi
 
-# 如果无需编译 datakit，请注释一下此处的编译
 printf "${GREEN}> Building datakit...${CLR}\n"
 make || exit -1
 
-# 所有文档导出
+######################################
+# export all docs to temp dir
+######################################
 printf "${GREEN}> Export internal docs to %s${CLR}\n" $tmp_doc_dir
 truncate -s 0 .mkdocs.log
 LOGGER_PATH=.mkdocs.log $datakit doc \
@@ -75,46 +89,31 @@ if [ $? -ne 0 ]; then
   exit -1
 fi
 
-# 导出 .pages
-cp man/docs/zh/datakit.pages $datakit_docs_dir_zh/.pages
-cp man/docs/en/datakit.pages $datakit_docs_dir_en/.pages
-
-# 只发布到 datakit 文档列表
-datakit_docs=(
-	$tmp_doc_dir/zh/*.md
-	$tmp_doc_dir/en/*.md
-)
-
+######################################
+# copy docs to different mkdocs sub-dirs
+######################################
 printf "${GREEN}> Copy docs...${CLR}\n"
-for f in "${datakit_docs[@]}"; do
-  cp -r $f $datakit_docs_dir_zh/
+for lang in "${i18n[@]}"; do
+	# copy .pages
+	printf "${GREEN}> Copy pages(%s) to repo datakit ...${CLR}\n" $lang
+	cp man/docs/${lang}/datakit.pages $base_docs_dir/${lang}/datakit/.pages
+
+	# copy specific docs to datakit
+	printf "${GREEN}> Copy docs(%s) to repo datakit ...${CLR}\n" $lang
+	cp $tmp_doc_dir/${lang}/*.md $base_docs_dir/${lang}/datakit/
+
+	# copy specific docs to developers
+	printf "${GREEN}> Copy docs(%s) to repo developers ...${CLR}\n" $lang
+  cp $tmp_doc_dir/${lang}/pythond.md                ${base_docs_dir}/$lang/developers
+  cp $tmp_doc_dir/${lang}/pipeline.md               ${base_docs_dir}/$lang/developers
+  cp $tmp_doc_dir/${lang}/datakit-pl-global.md      ${base_docs_dir}/$lang/developers
+  cp $tmp_doc_dir/${lang}/datakit-pl-how-to.md      ${base_docs_dir}/$lang/developers
+  cp $tmp_doc_dir/${lang}/datakit-refer-table.md    ${base_docs_dir}/$lang/developers
 done
 
-developers_docs_zh=(
-  $tmp_doc_dir/zh/pythond.md
-  $tmp_doc_dir/zh/pipeline.md
-  $tmp_doc_dir/zh/datakit-pl-global.md
-  $tmp_doc_dir/zh/datakit-pl-how-to.md
-  $tmp_doc_dir/zh/datakit-refer-table.md
-)
-
-developers_docs_en=(
-  $tmp_doc_dir/en/pythond.md
-  $tmp_doc_dir/en/pipeline.md
-  $tmp_doc_dir/en/datakit-pl-global.md
-  $tmp_doc_dir/en/datakit-pl-how-to.md
-  $tmp_doc_dir/en/datakit-refer-table.md
-)
-
-printf "${GREEN}> Copy docs to developers ...${CLR}\n"
-for f in "${developers_docs_zh[@]}"; do
-  cp $f $developers_docs_dir_zh/
-done
-
-for f in "${developers_docs_en[@]}"; do
-  cp $f $developers_docs_dir_en/
-done
-
+######################################
+# start mkdocs local server
+######################################
 printf "${GREEN}> Start mkdocs...${CLR}\n"
 cd $mkdocs_dir &&
   mkdocs serve -a 0.0.0.0:8000 2>&1 | tee mkdocs.log
