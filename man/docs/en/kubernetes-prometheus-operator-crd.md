@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 # Kubernetes Prometheus CRD 支持
 
 ## 介绍 {#intro}

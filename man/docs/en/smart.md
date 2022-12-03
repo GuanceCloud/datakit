@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 {{.CSS}}
 # 磁盘 S.M.A.R.T
 ---

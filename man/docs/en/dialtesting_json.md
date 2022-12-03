@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 # 通过本地 JSON 定义拨测任务
 ---
 

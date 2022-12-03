@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 {{.CSS}}
 # 通过 Sidecar 方式采集 Pod 日志
 ---

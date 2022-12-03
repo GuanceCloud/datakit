@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 # 集成文档合并
 ---
 

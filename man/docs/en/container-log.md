@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 {{.CSS}}
 # 容器日志采集
 ---

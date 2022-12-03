@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 {{.CSS}}
 # Prometheus Remote Write 支持
 ---

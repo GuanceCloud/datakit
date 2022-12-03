@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 {{.CSS}}
 # Prometheus Exportor 数据采集
 ---

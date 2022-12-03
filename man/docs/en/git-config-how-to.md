@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 # 使用 Git 管理配置
 ---
 

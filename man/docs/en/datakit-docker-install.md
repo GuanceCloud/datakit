@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 {{.CSS}}
 
 - 操作系统支持：:fontawesome-brands-linux:

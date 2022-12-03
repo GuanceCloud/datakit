@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 # Kubernetes CRD 扩展采集
 ---
 

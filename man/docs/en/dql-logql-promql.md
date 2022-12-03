@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 # DQL 与其它几种查询语言的对比
 ---
 

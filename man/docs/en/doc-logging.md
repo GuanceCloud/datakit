@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 # Datakit 日志采集系统的设计和实现
 
 ## 前言 {#head}

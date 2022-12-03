@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 # 通过配置中心分发配置
 ---
 

@@ -1,4 +1,3 @@
+sed -i '' '1i \
 <!-- This file required to translate to EN. -->
-# 简介
-
-Comming Soon...
+' *.md *.pages

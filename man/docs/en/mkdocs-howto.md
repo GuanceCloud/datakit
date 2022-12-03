@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 # 文档撰写指南
 ---
 

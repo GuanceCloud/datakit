@@ -1,3 +1,4 @@
+<!-- This file required to translate to EN. -->
 # Socket 日志接入示例
 ---
 
