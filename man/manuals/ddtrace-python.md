@@ -1,5 +1,5 @@
 {{.CSS}}
-# Python 示例
+# Python
 ---
 
 ## 安装依赖 {#dependence}
