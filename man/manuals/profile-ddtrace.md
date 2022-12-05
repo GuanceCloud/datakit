@@ -1,4 +1,4 @@
-# DDTrace profiling
+# DDTrace Profiling
 
 ## 安装运行 Profiling Agent {#install}
 
@@ -9,8 +9,8 @@
 下载最新的 ddtrace agent dd-java-agent.jar
 
 ```shell
-# java版本要求：java8版本需要高于8u262+，或者使用java11及以上版本
-wget -O dd-java-agent.jar 'https://github.com/DataDog/dd-trace-java/releases/download/v0.107.0/dd-java-agent-0.107.0.jar'
+# java 版本要求：java8 版本需要高于 8u262+，或者使用 java11 及以上版本
+wget -O dd-java-agent.jar 'https://static.guance.com/ddtrace/dd-java-agent.jar'
 ```
 
 运行 Java Code

@@ -1,6 +1,6 @@
 {{.CSS}}
 
-# Golang 示例
+# Golang
 
 ---
 

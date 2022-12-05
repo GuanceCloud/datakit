@@ -15,7 +15,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-py){:target="_blank"} ·
+    [SDK :material-download:](https://github.com/DataDog/dd-trace-py){:target="_blank"} ·
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-python.md)
 
@@ -23,7 +23,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-java){:target="_blank"} ·
+    [SDK :material-download:](https://static.guance.com/ddtrace/dd-java-agent.jar){:target="_blank"} ·
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-java.md)
 
@@ -31,7 +31,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-rb){:target="_blank"} ·
+    [SDK :material-download:](https://github.com/DataDog/dd-trace-rb){:target="_blank"} ·
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-java.md)
 
@@ -39,7 +39,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-go){:target="_blank"} ·
+    [SDK :material-download:](https://github.com/DataDog/dd-trace-go){:target="_blank"} ·
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/go?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-golang.md)
 
@@ -47,7 +47,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-php){:target="_blank"} ·
+    [SDK :material-download:](https://github.com/DataDog/dd-trace-php){:target="_blank"} ·
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/php?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-php.md)
 
@@ -55,7 +55,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-js){:target="_blank"} ·
+    [SDK :material-download:](https://github.com/DataDog/dd-trace-js){:target="_blank"} ·
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-nodejs.md)
 
@@ -63,7 +63,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/opentracing/opentracing-cpp){:target="_blank"} ·
+    [SDK :material-download:](https://github.com/opentracing/opentracing-cpp){:target="_blank"} ·
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/cpp?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-cpp.md)
 
@@ -71,16 +71,14 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-dotnet){:target="_blank"} ·
+    [SDK :material-download:](https://github.com/DataDog/dd-trace-dotnet){:target="_blank"} ·
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"} ·
     [:octicons-book-16: .Net Core 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"}
 </div>
 
 ???+ tip
 
-    DataKit 安装目录 `data` 目录下，有预先准备好的 `dd-java-agent.jar`（推荐使用）。也可以直接去 [Maven 下载](https://mvnrepository.com/artifact/com.datadoghq/dd-java-agent){:target="_blank"}
-
-    观测云也在 DDTrace-Java 基础上 Fork 了自己的分支，增加更多功能及探针，更多版本详细信息请查看 [Ddtrace 二次开发版本说明](../developers/ddtrace-guance.md)
+    我们对 DDTrace 做了一些[功能扩展](ddtrace-ext-changelog.md)，便于支持更多的主流框架和更细粒度的数据追踪。
 
 ## 采集器配置 {#config}
 

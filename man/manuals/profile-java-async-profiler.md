@@ -1,8 +1,8 @@
-# async-profiler
+# Async Profiler
 
 本文将介绍基于 [async-profiler](https://github.com/jvm-profiling-tools/async-profiler#async-profiler) 来采集 java 应用，并将采集到的数据上报给 DataKit，从而可以在观测云平台进行分析。
 
-## async-profiler 介绍 {#info}
+## Async Profiler 介绍 {#info}
 
 async-profiler 是一款开源的 Java 性能分析工具，基于 HotSpot 的 API，可以收集程序运行中的堆栈和内存分配等信息。
 
