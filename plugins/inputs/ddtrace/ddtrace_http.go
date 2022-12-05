@@ -53,8 +53,8 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### received tracing data from path: %s", req.URL.Path)
 
-	if req.Header.Get("X-Datadog-Trace-Count") == "0" {
-		log.Debug("X-Datadog-Trace-Count: 0")
+	if req.Header.Get("Content-Length") == "0" || req.Header.Get("X-Datadog-Trace-Count") == "0" {
+		log.Debug("empty request body")
 		httpStatusRespFunc(resp, req, nil)
 
 		return
