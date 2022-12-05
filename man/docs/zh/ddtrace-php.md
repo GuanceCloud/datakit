@@ -1,5 +1,7 @@
 {{.CSS}}
-# PHP 示例
+
+# PHP
+
 ---
 
 ## 安装依赖 {#dependence}

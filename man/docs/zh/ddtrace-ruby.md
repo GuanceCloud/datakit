@@ -1,5 +1,7 @@
 {{.CSS}}
-# Ruby 示例
+
+# Ruby
+
 ---
 
 ## 安装依赖 {#dependence}

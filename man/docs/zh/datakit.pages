@@ -76,20 +76,30 @@ nav:
       - datakit-tracing-struct.md
 
       - 'Profiling':
-        - 'Profile 采集配置': profile.md
-        - 'ddtrace': profile-ddtrace.md
-        - 'Java profiling': profile-java-async-profiler.md
-        - 'Python profiling': python-profiling.md
+        - 'DataKit 采集配置': profile.md
+        - 'DDTrace Profiling': profile-ddtrace.md
+        - '工具接入':
+          - 'Java': profile-java-async-profiler.md 
+          - python-profiling.md
 
       - 'DDTrace':
-        - 'DDtrace 采集配置': ddtrace.md
-        - ddtrace-golang.md
-        - ddtrace-java.md
-        - ddtrace-python.md
-        - ddtrace-php.md
-        - ddtrace-nodejs.md
-        - ddtrace-cpp.md
-        - ddtrace-ruby.md
+        - 'DataKit 采集配置': ddtrace.md
+
+        - 'SDK 接入':
+          - 'Java': ddtrace-java.md
+          - ddtrace-golang.md
+          - ddtrace-python.md
+          - ddtrace-php.md
+          - ddtrace-nodejs.md
+          - ddtrace-cpp.md
+          - ddtrace-ruby.md
+
+        - 'DDTrace 注入':
+          - 'Java': ddtrace-attach.md
+
+        - 'DDTrace 扩展':
+          - '更新历史': ddtrace-ext-changelog.md
+          - ddtrace-ext-java.md
 
       - 'SkyWalking':
         - 'SkyWalking 采集配置': skywalking.md
