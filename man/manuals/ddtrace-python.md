@@ -93,7 +93,7 @@ if __name__ == '__main__':
 ```shell
 DD_SERVICE=SERVICE_A \
 DD_SERVICE_MAPPING=postgres:postgresql,defaultdb:postgresql \
-DD_TAGS=project:your_project_name,env=test,version=v1 \
+DD_TAGS=project:your_project_name,env:test,version:v1 \
 DD_AGENT_HOST=localhost \
 DD_AGENT_PORT=9529 \
 ddtrace-run python3 service_a.py &> a.log &
@@ -104,7 +104,7 @@ ddtrace-run python3 service_a.py &> a.log &
 ```shell
 DD_SERVICE=SERVICE_B \
 DD_SERVICE_MAPPING=postgres:postgresql,defaultdb:postgresql \
-DD_TAGS=project:your_project_name,env=test,version=v1 \
+DD_TAGS=project:your_project_name,env:test,version:v1 \
 DD_AGENT_HOST=localhost \
 DD_AGENT_PORT=9529 \
 ddtrace-run python3 service_b.py &> b.log &
@@ -129,7 +129,7 @@ curl http://localhost:54322/stop
 - DD_VERSION: APP 版本号。
 - DD_SERVICE: 用于设置应用程序的服务名称，在为 Pylons、Flask 或 Django 等 Web 框架集成设置中间件时，会传递该值。 对于没有 Web 集成的 Tracing，建议您在代码中设置服务名称。
 - DD_SERVICE_MAPPING: 定义服务名映射用于在 Tracing 里重命名服务。
-- DD_TAGS: 为每个 Span 添加默认 Tags。
+- DD_TAGS: 为每个 Span 添加默认 Tags，格式为 `key:val,key:val`。
 - DD_AGENT_HOST: Datakit 监听的地址名，默认 localhost。
 - DD_AGENT_PORT: Datakit 监听的端口号，默认 9529。
 - DD_TRACE_SAMPLE_RATE: 设置采样率从 0.0(0%) ~ 1.0(100%)。

@@ -24,7 +24,7 @@ DDTrace 默认会将 SQL 中参数转化为 `?`，这导致用户在排查问题
 -Ddd.jdbc.sql.obfuscation=true
 ```
 
-### 效果示例
+### 效果示例 {#show}
 
 以 setString() 为例。新增探针的位置在 `java.sql.PreparedStatement/setString(key, value)`。
 
