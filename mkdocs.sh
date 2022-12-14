@@ -34,7 +34,7 @@ for lang in "${i18n[@]}"; do
 	mkdir -p $base_docs_dir/${lang}/datakit \
 		$base_docs_dir/${lang}/developers \
 		$tmp_doc_dir/${lang}
-done
+	done
 
 ######################################
 # check version info
@@ -46,8 +46,8 @@ latest_version=$(curl https://static.guance.com/datakit/version | grep '"version
 man_version=$1
 
 if [ -z $man_version ]; then
-  printf "${YELLOW}> Version missing, use latest version '%s'${CLR}\n" $latest_version
-  man_version="${latest_version}"
+	printf "${YELLOW}> Version missing, use latest version '%s'${CLR}\n" $latest_version
+	man_version="${latest_version}"
 fi
 
 ######################################
@@ -55,19 +55,19 @@ fi
 ######################################
 arch=$(uname -m)
 if [[ "$arch" == "x86_64" ]]; then
-  arch=amd64
+	arch=amd64
 else
-  arch=arm64
+	arch=arm64
 fi
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  os="darwin"
-  datakit=dist/datakit-${os}-${arch}/datakit
+	os="darwin"
+	datakit=dist/datakit-${os}-${arch}/datakit
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  os="linux"
-  datakit=dist/datakit-${os}-${arch}/datakit
+	os="linux"
+	datakit=dist/datakit-${os}-${arch}/datakit
 else              # if under windows(amd64):
-  datakit=datakit # windows 下应该设置了对应的 $PATH
+	datakit=datakit # windows 下应该设置了对应的 $PATH
 fi
 
 printf "${GREEN}> Building datakit...${CLR}\n"
@@ -79,14 +79,14 @@ make || exit -1
 printf "${GREEN}> Export internal docs to %s${CLR}\n" $tmp_doc_dir
 truncate -s 0 .mkdocs.log
 LOGGER_PATH=.mkdocs.log $datakit doc \
-  --export-docs $tmp_doc_dir \
-  --ignore demo \
-  --version "${man_version}" \
-  --TODO "-"
+	--export-docs $tmp_doc_dir \
+	--ignore demo \
+	--version "${man_version}" \
+	--TODO "-"
 
 if [ $? -ne 0 ]; then
-  printf "${RED}[E] Export docs failed${CLR}\n"
-  exit -1
+	printf "${RED}[E] Export docs failed${CLR}\n"
+	exit -1
 fi
 
 ######################################
@@ -104,11 +104,11 @@ for lang in "${i18n[@]}"; do
 
 	# copy specific docs to developers
 	printf "${GREEN}> Copy docs(%s) to repo developers ...${CLR}\n" $lang
-  cp $tmp_doc_dir/${lang}/pythond.md                ${base_docs_dir}/$lang/developers
-  cp $tmp_doc_dir/${lang}/pipeline.md               ${base_docs_dir}/$lang/developers
-  cp $tmp_doc_dir/${lang}/datakit-pl-global.md      ${base_docs_dir}/$lang/developers
-  cp $tmp_doc_dir/${lang}/datakit-pl-how-to.md      ${base_docs_dir}/$lang/developers
-  cp $tmp_doc_dir/${lang}/datakit-refer-table.md    ${base_docs_dir}/$lang/developers
+	cp $tmp_doc_dir/${lang}/pythond.md                ${base_docs_dir}/$lang/developers
+	cp $tmp_doc_dir/${lang}/pipeline.md               ${base_docs_dir}/$lang/developers
+	cp $tmp_doc_dir/${lang}/datakit-pl-global.md      ${base_docs_dir}/$lang/developers
+	cp $tmp_doc_dir/${lang}/datakit-pl-how-to.md      ${base_docs_dir}/$lang/developers
+	cp $tmp_doc_dir/${lang}/datakit-refer-table.md    ${base_docs_dir}/$lang/developers
 done
 
 ######################################
@@ -116,4 +116,4 @@ done
 ######################################
 printf "${GREEN}> Start mkdocs...${CLR}\n"
 cd $mkdocs_dir &&
-  mkdocs serve -a 0.0.0.0:8000 2>&1 | tee mkdocs.log
+	mkdocs serve -a 0.0.0.0:8000 2>&1 | tee mkdocs.log
