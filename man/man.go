@@ -8,6 +8,7 @@ package man
 
 import (
 	"bytes"
+	"path/filepath"
 	"sort"
 
 	// nolint:typecheck
@@ -35,14 +36,34 @@ type Params struct {
 	PipelineFuncs  string
 }
 
+type i18n int
+
+const (
+	I18nZH = iota
+	I18nEN = iota
+)
+
+func (x i18n) String() string {
+	switch x {
+	case I18nZH:
+		return "zh"
+	case I18nEN:
+		return "en"
+	default:
+		return ""
+	}
+}
+
 type Option struct {
 	WithCSS                       bool
 	IgnoreMissing                 bool
+	Skips                         string
 	DisableMonofontOnTagFieldName bool
 	ManVersion                    string
+	Path                          string
 }
 
-func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
+func BuildMarkdownManual(name string, opt *Option) (map[i18n][]byte, error) {
 	var p *Params
 
 	css := MarkdownCSS
@@ -113,32 +134,40 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 		}
 	}
 
-	md, err := docs.ReadFile("manuals/" + name + ".md")
-	if err != nil {
-		if !opt.IgnoreMissing {
-			return nil, err
-		} else {
-			l.Warn(err)
-			return nil, nil
-		}
-	}
-
-	temp, err := template.New(name).Funcs(map[string]interface{}{
-		"CodeBlock": func(code string, indent int) string {
-			arr := []string{}
-			for _, line := range strings.Split(code, "\n") {
-				arr = append(arr, strings.Repeat(" ", indent)+line)
+	res := map[i18n][]byte{}
+	for _, x := range []i18n{I18nZH, I18nEN} {
+		// read raw markdown from embed repository
+		md, err := docs.ReadFile(filepath.Join("docs", x.String(), name+".md"))
+		if err != nil {
+			if !opt.IgnoreMissing {
+				return nil, err
+			} else {
+				l.Warn(err)
+				continue
 			}
-			return strings.Join(arr, "\n")
-		},
-	}).Parse(string(md))
-	if err != nil {
-		return nil, err
+		}
+
+		// render raw markdown
+		temp, err := template.New(name).Funcs(map[string]interface{}{
+			"CodeBlock": func(code string, indent int) string {
+				arr := []string{}
+				for _, line := range strings.Split(code, "\n") {
+					arr = append(arr, strings.Repeat(" ", indent)+line)
+				}
+				return strings.Join(arr, "\n")
+			},
+		}).Parse(string(md))
+		if err != nil {
+			return nil, err
+		}
+
+		var buf bytes.Buffer
+		if err := temp.Execute(&buf, p); err != nil {
+			return nil, err
+		}
+
+		res[x] = buf.Bytes()
 	}
 
-	var buf bytes.Buffer
-	if err := temp.Execute(&buf, p); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+	return res, nil
 }
