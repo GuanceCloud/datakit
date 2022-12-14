@@ -47,22 +47,29 @@ const (
   ##(optional) collect interval, default is 10 seconds
   interval = '10s'
 
-  ##(optional) addr_ports which counts separately, default is []
-  ## addr_ports measurements will be "netstat_port" 
-  ## server may have multiple network cards, 
-  ## only display this addr+port, example "1.1.1.1:80"
-  ## display by server if only have port number, example "443"
-  ## should add tags for some port, example ["80","443","0"] add tags
-  #[[inputs.netstat.addr_ports]]
-  #   ports = ["1.1.1.1:80","443","0"]
-  #   [inputs.netstat.addr_ports.tags]
-  #		project = "datakit"
-  #		yyy = "xxx"
-  #		service = "http"
+  ## the ports you want display
+  ## can and tags too
+  # [[inputs.netstat.addr_ports]]
+  #   ports = ["80","443"]
 
-  ## display this port by ip, example "*:9529"
-  #[[inputs.netstat.addr_ports]]
-  #	ports = ["*:9529"]
+  ## groups of ports and add different tags to facilitate statistics
+  # [[inputs.netstat.addr_ports]]
+  #   ports = ["80","443"]
+  #   [inputs.netstat.addr_ports.tags]
+  #     service = "http"
+  # [[inputs.netstat.addr_ports]]
+  #   ports = ["9529"]
+  #   [inputs.netstat.addr_ports.tags]
+  # 	service = "datakit"
+  #     foo = "bar"
+  
+  ## server may have multiple network cards
+  ## display only some network cards  
+  ## can and tags too
+  # [[inputs.netstat.addr_ports]]
+  #   ports = ["1.1.1.1:80","2.2.2.2:80"]
+  #   ports_match is preferred if both ports and ports_match configured
+  #   ports_match = ["*:80","*:443"]
 
 [inputs.netstat.tags]
   # some_tag = "some_value"
@@ -70,8 +77,9 @@ const (
 )
 
 type portConf struct {
-	Ports []string
-	Tags  map[string]string
+	Ports      []string          `toml:"ports"`       // monitor addr:port or port
+	PortsMatch []string          `toml:"ports_match"` // monitor *:port, will shield Ports
+	Tags       map[string]string `toml:"tags"`
 }
 
 var l = logger.DefaultSLogger(inputName)
@@ -117,6 +125,12 @@ func (n *netInfo) toMap() map[string]interface{} {
 	}
 }
 
+type NetInfos struct {
+	typ     string
+	tags    map[string]string
+	netInfo *netInfo
+}
+
 type Input struct {
 	Interval         datakit.Duration
 	Tags             map[string]string // Indicator name
@@ -126,7 +140,7 @@ type Input struct {
 	netConnections   NetConnections // A function Type, the instance of Input calls the function
 	semStop          *cliutils.Sem  // start stop signal
 	AddrPorts        []*portConf    `toml:"addr_ports"` // the ip and port that must show
-	netInfos         map[string]*netInfo
+	netInfos         []*NetInfos    // cache metric,
 }
 
 func (ipt *Input) Singleton() {
@@ -186,70 +200,61 @@ func (ipt *Input) Collect() error {
 
 	// count every indicator
 	for _, netConn := range netConns {
+		// walk every single connection
+		// result is ipt.netInfos
 		ipt.handleNetConn(netConn)
 	}
 
-	// collectCache tags
-	tags := map[string]string{}
-	for k, v := range ipt.Tags {
-		tags[k] = v
+	// Append to the collectCache, the Run() function will handle it
+	i := 0
+	for i = 0; i < len(ipt.netInfos); i++ {
+		if ipt.netInfos[i].typ == "all" {
+			break
+		}
+	}
+	if i < len(ipt.netInfos) {
+		// find typ "all"
+
+		fields := ipt.netInfos[i].netInfo.toMap()
+		delete(fields, "pid")
+
+		// collectCache tags
+		tags := map[string]string{}
+		for k, v := range ipt.Tags {
+			tags[k] = v
+		}
+
+		// Append to the collectCache, the Run() function will handle it
+		ipt.collectCache = append(ipt.collectCache, &netStatMeasurement{
+			name: inputName,
+			tags: tags,
+			// "all" mean count by server
+			fields: fields,
+		})
 	}
 
-	// handle  fields
-	fields := ipt.netInfos["all"].toMap()
-	delete(fields, "pid")
-
-	// Append to the collectCache, the Run() function will handle it
-	ipt.collectCache = append(ipt.collectCache, &netStatMeasurement{
-		name: inputName,
-		tags: tags,
-		// "all" mean count by server
-		fields: fields,
-	})
-
 	// Append port data to the collectCachePort, the Run() function will handle it
-	for addrPort, value := range ipt.netInfos {
-		if addrPort == "all" {
+	for i := 0; i < len(ipt.netInfos); i++ {
+		if ipt.netInfos[i].typ == "all" {
 			continue
 		}
 
 		// tag of addr+port
-		portTags := map[string]string{"addr_port": addrPort}
-		for k, v := range ipt.Tags {
+		portTags := map[string]string{"addr_port": ipt.netInfos[i].typ}
+		// tags for these ports
+		for k, v := range ipt.netInfos[i].tags {
 			portTags[k] = v
 		}
-
-		// add tag follow ports
-	loppOut:
-		for _, addrInfo := range ipt.AddrPorts {
-			for _, port := range addrInfo.Ports {
-				if strings.Index(port, "*:") == 0 {
-					// handle like "*:8080"
-
-					// must compare the real port
-					portLeft, _ := getPort(port)
-					portRight, _ := getPort(port)
-					if portLeft == portRight {
-						for k, v := range addrInfo.Tags {
-							portTags[k] = v
-						}
-						break loppOut
-					}
-				} else if port == addrPort {
-					// handle like "8080", "1.1.1.1:90"
-					for k, v := range addrInfo.Tags {
-						portTags[k] = v
-					}
-					break loppOut
-				}
-			}
+		// tags for all
+		for k, v := range ipt.Tags {
+			portTags[k] = v
 		}
 
 		// Append to the collectCachePort, the Run() function will handle it
 		ipt.collectCachePort = append(ipt.collectCachePort, &netStatMeasurement{
 			name:   inputNamePort,
 			tags:   portTags,
-			fields: value.toMap(),
+			fields: ipt.netInfos[i].netInfo.toMap(),
 		})
 	}
 
@@ -260,39 +265,48 @@ func (ipt *Input) handleNetConn(netConn net.ConnectionStat) {
 	var key string // key word of field Status
 	var gotAddrPort string
 
-	// make key
+	// get connection status, like "UDP" "CLOSE_WAIT"
 	if netConn.Type == syscall.SOCK_DGRAM {
 		key = "UDP"
-		// continue // UDP has no status
+		// UDP has no status
 	} else {
 		key = netConn.Status
 	}
 
-	// make mertric netstat
-	ipt.addCounts("all", key, netConn.Laddr.IP, int(netConn.Pid), int(netConn.Laddr.Port))
+	// make metric netstat
+	ipt.addCounts("all", key, netConn.Laddr.IP, int(netConn.Pid), int(netConn.Laddr.Port), -1)
 
-	// make mertric netstat_port
-	for _, addrInfo := range ipt.AddrPorts {
-		for _, port := range addrInfo.Ports {
-			if strings.Index(port, "*:") == 0 {
-				// handle like "*:8080"
+	// make metric netstat_port
+	for confIndex, addrInfo := range ipt.AddrPorts {
+		// walk configs
+		if len(addrInfo.PortsMatch) > 0 {
+			// have like "*:port"
+			for _, port := range addrInfo.PortsMatch {
+				// walk config.ports_match
+				if strings.Index(port, "*:") != 0 {
+					continue
+				}
 				gotPort := strconv.Itoa(int(netConn.Laddr.Port))
-				if port == gotPort {
-					// like "*:8080", nust show add ip prefix
+				if port[2:] == gotPort {
+					// like "*:8080", must show add ip prefix
 					gotAddrPort = netConn.Laddr.IP + ":" + gotPort
 					if _, err := netip.ParseAddrPort(gotAddrPort); err == nil {
 						// use typ make form netConn just now
-						ipt.addCounts(gotAddrPort, key, netConn.Laddr.IP, int(netConn.Pid), int(netConn.Laddr.Port))
+						ipt.addCounts(gotAddrPort, key, netConn.Laddr.IP, int(netConn.Pid), int(netConn.Laddr.Port), confIndex)
 						return
 					}
 				}
-			} else {
+			}
+		} else {
+			// not have like "*:port"
+			for _, port := range addrInfo.Ports {
+				// walk config.ports
 				// handle like "8080", "1.1.1.1:90"
 				gotPort := strconv.Itoa(int(netConn.Laddr.Port))
 				gotAddrPort = netConn.Laddr.IP + ":" + gotPort
 				if port == gotPort || port == gotAddrPort {
 					// use typ from ipt.addrPorts
-					ipt.addCounts(port, key, netConn.Laddr.IP, int(netConn.Pid), int(netConn.Laddr.Port))
+					ipt.addCounts(port, key, netConn.Laddr.IP, int(netConn.Pid), int(netConn.Laddr.Port), confIndex)
 					return
 				}
 			}
@@ -301,43 +315,64 @@ func (ipt *Input) handleNetConn(netConn net.ConnectionStat) {
 }
 
 // addCounts add counts.
-func (ipt *Input) addCounts(typ, key, addr string, pid int, port int) {
-	// check map key, creat if non-existent
-	if _, ok := ipt.netInfos[typ]; !ok {
-		ipt.netInfos[typ] = newNetInfo()
+func (ipt *Input) addCounts(typ, key, addr string, pid int, port int, confIndex int) {
+	// check key, creat if non-existent
+	i := 0
+	for i = 0; i < len(ipt.netInfos); i++ {
+		if ipt.netInfos[i].typ == typ {
+			break
+		}
+	}
+	if i >= len(ipt.netInfos) {
+		// non-existent, append
+		n := &NetInfos{
+			typ:     typ,
+			tags:    map[string]string{},
+			netInfo: newNetInfo(),
+		}
+
+		// add tag
+		if confIndex > -1 {
+			// "all" is netstat, have no tags
+			for k, v := range ipt.AddrPorts[confIndex].Tags {
+				n.tags[k] = v
+			}
+		}
+
+		ipt.netInfos = append(ipt.netInfos, n)
 	}
 
 	// add pid
-	ipt.netInfos[typ].pid = pid
+	ipt.netInfos[i].netInfo.pid = pid
 
 	// add netInfos data
 	switch key {
 	case "ESTABLISHED":
-		ipt.netInfos[typ].tcpEstablished++
+		ipt.netInfos[i].netInfo.tcpEstablished++
 	case "SYN_SENT":
-		ipt.netInfos[typ].tcpSynSent++
+		ipt.netInfos[i].netInfo.tcpSynSent++
 	case "SYN_RECV":
-		ipt.netInfos[typ].tcpSynRecv++
+		ipt.netInfos[i].netInfo.tcpSynRecv++
 	case "FIN_WAIT1":
-		ipt.netInfos[typ].tcpFinWait1++
+		ipt.netInfos[i].netInfo.tcpFinWait1++
 	case "FIN_WAIT2":
-		ipt.netInfos[typ].tcpFinWait2++
+		ipt.netInfos[i].netInfo.tcpFinWait2++
 	case "TIME_WAIT":
-		ipt.netInfos[typ].tcpTimeWait++
+		ipt.netInfos[i].netInfo.tcpTimeWait++
 	case "CLOSE":
-		ipt.netInfos[typ].tcpClose++
+		ipt.netInfos[i].netInfo.tcpClose++
 	case "CLOSE_WAIT":
-		ipt.netInfos[typ].tcpCloseWait++
+		ipt.netInfos[i].netInfo.tcpCloseWait++
 	case "LAST_ACK":
-		ipt.netInfos[typ].tcpLastAck++
+		ipt.netInfos[i].netInfo.tcpLastAck++
 	case "LISTEN":
-		ipt.netInfos[typ].tcpListen++
+		ipt.netInfos[i].netInfo.tcpListen++
 	case "CLOSING":
-		ipt.netInfos[typ].tcpClosing++
+		ipt.netInfos[i].netInfo.tcpClosing++
 	case "NONE":
-		ipt.netInfos[typ].tcpNone++
+		ipt.netInfos[i].netInfo.tcpNone++
 	case "UDP":
-		ipt.netInfos[typ].udpSocket++
+		ipt.netInfos[i].netInfo.udpSocket++
 	}
 }
 
@@ -388,25 +423,6 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			l.Infof("memory input return")
 			return
-		}
-	}
-}
-
-// get the port example "*:8080" "1.1.1.1:8080" "8080".
-func getPort(s string) (string, error) {
-	if _, err := strconv.Atoi(s); err == nil {
-		// only port
-		return s, nil
-	} else {
-		// get last part of string
-		strs := strings.Split(s, ":")
-		str := strs[len(strs)-1]
-
-		if _, err := strconv.Atoi(str); err == nil {
-			// right port
-			return str, nil
-		} else {
-			return "", fmt.Errorf("get port form string error")
 		}
 	}
 }
@@ -484,7 +500,7 @@ func newDefaultInput() *Input {
 		Interval:       datakit.Duration{Duration: time.Second * 10},
 		semStop:        cliutils.NewSem(),
 		Tags:           make(map[string]string),
-		netInfos:       make(map[string]*netInfo),
+		netInfos:       []*NetInfos{},
 	}
 	return ipt
 }

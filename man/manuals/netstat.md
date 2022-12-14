@@ -22,7 +22,40 @@ Netstat 指标采集，包括 TCP/UDP 连接数、等待连接、等待处理请
     {{ CodeBlock .InputSample 4 }}
     ```
 
+    配置技巧: 
+    ```
+    (1)配置关注的端口号
+    [[inputs.netstat.addr_ports]]
+      ports = ["80","443"]
+    ```
+    ```
+    (2)配置两组端口，加上不同的tag，方便统计
+    [[inputs.netstat.addr_ports]]
+      ports = ["80","443"]
+      [inputs.netstat.addr_ports.tags]
+  		service = "http"
+
+    [[inputs.netstat.addr_ports]]
+  	  ports = ["9529"]
+      [inputs.netstat.addr_ports.tags]
+        service = "datakit"
+    ```
+    ```
+    (3)服务器有多个网卡，只关心某几个网卡的情况
+    [[inputs.netstat.addr_ports]]
+      ports = ["1.1.1.1:80","2.2.2.2:80"]
+    ```
+    ```
+    (4)服务器有多个网卡，要求按每个网卡分别展示
+       这个配置，会屏蔽掉 ports 的配置值
+    [[inputs.netstat.addr_ports]]
+      ports = ["1.1.1.1:80","2.2.2.2:80"] // 无效，被 ports_match 屏蔽
+      ports_match = ["*:80","*:443"] // 有效
+    ```
+
     配置好后，重启 DataKit 即可。
+
+
 
 === "Kubernetes"
 

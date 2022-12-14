@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -686,7 +687,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_SERVERS"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_SERVERS: %s, ignore", err)
 		} else {
 			ipt.IpmiServers = strs
@@ -694,7 +697,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_INTERFACES"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_INTERFACES: %s, ignore", err)
 		} else {
 			ipt.IpmiInterfaces = strs
@@ -702,7 +707,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_USERS"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_USERS: %s, ignore", err)
 		} else {
 			ipt.IpmiUsers = strs
@@ -710,7 +717,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_PASSWORDS"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_PASSWORDS: %s, ignore", err)
 		} else {
 			ipt.IpmiPasswords = strs
@@ -718,7 +727,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_HEX_KEYS"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_HEX_KEYS: %s, ignore", err)
 		} else {
 			ipt.HexKeys = strs
@@ -726,7 +737,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_METRIC_VERSIONS"]; ok {
-		if ints, err := datakit.Ints2IntSlice(str); err != nil {
+		var ints []int
+		err := json.Unmarshal([]byte(str), &ints)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_METRIC_VERSIONS: %s, ignore", err)
 		} else {
 			ipt.MetricVersions = ints
@@ -734,7 +747,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_HEX_KEYS"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_HEX_KEYS: %s, ignore", err)
 		} else {
 			ipt.HexKeys = strs
@@ -742,7 +757,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_CURRENT"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_CURRENT: %s, ignore", err)
 		} else {
 			ipt.RegexpCurrent = strs
@@ -750,7 +767,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_VOLTAGE"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_VOLTAGE: %s, ignore", err)
 		} else {
 			ipt.RegexpVoltage = strs
@@ -758,7 +777,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_POWER"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_POWER: %s, ignore", err)
 		} else {
 			ipt.RegexpPower = strs
@@ -766,7 +787,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_TEMP"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_TEMP: %s, ignore", err)
 		} else {
 			ipt.RegexpTemp = strs
@@ -774,7 +797,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_FAN_SPEED"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_FAN_SPEED: %s, ignore", err)
 		} else {
 			ipt.RegexpFanSpeed = strs
@@ -782,7 +807,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_USAGE"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_USAGE: %s, ignore", err)
 		} else {
 			ipt.RegexpUsage = strs
@@ -790,7 +817,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_COUNT"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_COUNT: %s, ignore", err)
 		} else {
 			ipt.RegexpCount = strs
@@ -798,7 +827,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_STATUS"]; ok {
-		if strs, err := datakit.Strings2StringSlice(str); err != nil {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
 			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_STATUS: %s, ignore", err)
 		} else {
 			ipt.RegexpStatus = strs
