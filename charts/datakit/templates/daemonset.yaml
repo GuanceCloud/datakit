@@ -49,6 +49,18 @@ spec:
               value: {{ .Values.datakit.log_level }}
             - name: ENV_HTTP_LISTEN
               value: {{ .Values.datakit.http_listen }}
+            - name: HOST_PROC
+              value: /rootfs/proc
+            - name: HOST_SYS
+              value: /rootfs/sys
+            - name: HOST_ETC
+              value: /rootfs/etc
+            - name: HOST_VAR
+              value: /rootfs/var
+            - name: HOST_RUN
+              value: /rootfs/run
+            - name: HOST_DEV
+              value: /rootfs/dev
             {{- if .Values.iploc.enable }}
             - name: ENV_IPDB
               value: iploc
@@ -98,8 +110,6 @@ spec:
               name: log
             - mountPath: /usr/lib
               name: usrlib
-            - mountPath: /etc
-              name: etc
             - mountPath: /rootfs
               name: rootfs
             - mountPath: /sys/kernel/debug
@@ -165,9 +175,6 @@ spec:
         - hostPath:
             path: /usr/lib
           name: usrlib
-        - hostPath:
-            path: /etc
-          name: etc
         - hostPath:
             path: /
           name: rootfs
