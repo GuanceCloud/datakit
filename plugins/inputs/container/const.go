@@ -48,6 +48,8 @@ const sampleCfg = `
 
   ## Removes ANSI escape codes from text strings
   logging_remove_ansi_escape_codes = false
+  ## Search logging interval, default "60s"
+  #logging_search_interval = ""
 
   ## If the data sent failure, will retry forevery
   logging_blocking_mode = true

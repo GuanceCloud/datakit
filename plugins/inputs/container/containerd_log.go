@@ -12,6 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	cri "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -20,17 +21,17 @@ const (
 	maxMsgSize            = 1024 * 1024 * 16
 )
 
-func newCRIClient(endpoint string) (cri.RuntimeServiceClient, error) {
+func newCRIClient(endpoint string) (*grpc.ClientConn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	//nolint:lll
-	conn, err := grpc.DialContext(ctx, endpoint, grpc.WithInsecure(), grpc.WithDialer(dial), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMsgSize))) //nolint:staticcheck
-	if err != nil {
-		return nil, err
-	}
-
-	return cri.NewRuntimeServiceClient(conn), nil
+	return grpc.DialContext(
+		ctx,
+		endpoint,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(dial),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMsgSize)),
+	)
 }
 
 func getCRIRuntimeVersion(client cri.RuntimeServiceClient) (*cri.VersionResponse, error) {
@@ -43,7 +44,11 @@ func getContextWithTimeout(timeout time.Duration) (context.Context, context.Canc
 	return context.WithTimeout(context.Background(), timeout)
 }
 
-func dial(addr string, timeout time.Duration) (net.Conn, error) {
+func dial(ctx context.Context, addr string) (net.Conn, error) {
+	var timeout time.Duration = 0
+	if deadline, ok := ctx.Deadline(); ok {
+		timeout = time.Until(deadline)
+	}
 	return net.DialTimeout("unix", addr, timeout)
 }
 
@@ -109,7 +114,7 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		}
 	}
 
-	opt := composeTailerOption(c.k8sClient, info)
+	opt, _ := composeTailerOption(c.k8sClient, info)
 	opt.Mode = tailer.ContainerdMode
 	opt.BlockingMode = c.ipt.LoggingBlockingMode
 	opt.MinFlushInterval = c.ipt.LoggingMinFlushInterval

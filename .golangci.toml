@@ -83,8 +83,8 @@ disable = [
   "paralleltest",     # 可开启，改动范围较大
   "noctx",            # 要求 HTTP 请求都用 context 形式，改动较大
   "nlreturn",         # 要求 return 语句前有一个空行
-  "gomnd",            # 不放过任何一个魔术数
   "wsl",              # 更好代码分段
+  "gomnd",            # 不放过任何一个魔术数
   "prealloc",         # Too many false-positive.
   "nestif",           # Too many false-positive.
   "goerr113",         # 不能 fmt.Errorf/errors.New

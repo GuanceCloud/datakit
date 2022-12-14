@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/shirou/gopsutil/disk"
@@ -21,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
 )
 
 var (
@@ -238,10 +240,16 @@ func (i *Input) Collect() error {
 			deltaTime := ts.Unix() - i.lastTime.Unix()
 			if v, ok := i.lastStat[stat.Name]; ok && deltaTime > 0 {
 				if stat.ReadBytes >= v.ReadBytes {
+					atomic.StoreInt64(&hostobject.DiskIOReadBytesPerSec, int64(stat.ReadBytes-v.ReadBytes)/deltaTime)
 					fields["read_bytes/sec"] = int64(stat.ReadBytes-v.ReadBytes) / deltaTime
+				} else {
+					atomic.StoreInt64(&hostobject.DiskIOReadBytesPerSec, 0)
 				}
 				if stat.WriteBytes >= v.WriteBytes {
+					atomic.StoreInt64(&hostobject.DiskIOWriteBytesPerSec, int64(stat.WriteBytes-v.WriteBytes)/deltaTime)
 					fields["write_bytes/sec"] = int64(stat.WriteBytes-v.WriteBytes) / deltaTime
+				} else {
+					atomic.StoreInt64(&hostobject.DiskIOWriteBytesPerSec, 0)
 				}
 			}
 		}

@@ -1,0 +1,177 @@
+root@iluvatar-ae-server-3:~# ixsmi
+Timestamp    Mon Oct 31 16:20:22 2022
++-----------------------------------------------------------------------------+
+|  IX-ML: 2.3.1       Driver Version: 2.3.0       CUDA Version: 10.2          |
+|-------------------------------+----------------------+----------------------|
+| GPU  Name                     | Bus-Id               | Clock-SM  Clock-Mem  |
+| Fan  Temp  Perf  Pwr:Usage/Cap|      Memory-Usage    | GPU-Util  Compute M. |
+|===============================+======================+======================|
+| 0    Iluvatar BI-V100         | 00000000:65:00.0     | 1500MHz   1200MHz    |
+| 0%   35C   P0    52W / 250W   | 513MiB / 32768MiB    | 0%        Default    |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                       GPU Memory |
+|  GPU        PID      Process name                                Usage(MiB) |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+root@iluvatar-ae-server-3:~# ixsmi -q
+
+==============IXSMI LOG==============
+Timestamp                                       : Mon Oct 31 16:20:25 2022
+Driver Version                                  : 2.3.0
+CUDA Version                                    : 10.2
+
+Attached GPU device count                       : 1
+GPU 00000000:65:00.0
+    Product Name                                : Iluvatar BI-V100
+    Serial Number                               : N/A
+    GPU UUID                                    : GPU-e970e785-80c9-4d97-8bca-bc74f3b701df
+    Minor Number                                : 0
+    Board ID                                    : 0x42ea9163
+    GPU Part Number                             : 04002108
+    PCI
+        Bus                                     : 0x65
+        Device                                  : 0x00
+        Domain                                  : 0x0000
+        Device Id                               : 0x00011E3E
+        Bus Id                                  : 00000000:65:00.0
+        Sub System Id                           : 0x00000000
+        GPU Link Info
+            PCIe Generation
+                Max                             : 4
+                Current                         : 3
+            Link Width
+                Max                             : 16x
+                Current                         : 16x
+    Memory Usage
+        Total                                   : 32768 MiB
+        Used                                    : 513 MiB
+        Free                                    : 32255 MiB
+    Utilization
+        Gpu                                     : 0 %
+        Memory                                  : 2 %
+        Encoder                                 : 0 %
+        Decoder                                 : 0 %
+    Ecc Mode
+        Current                                 : Disabled
+        Pending                                 : N/A
+    Temperature
+        GPU Current Temp                        : 35 C
+        GPU Shutdown Temp                       : 100 C
+        GPU Slowdown Temp                       : 95 C
+        GPU Max Operating Temp                  : 90 C
+    Power Readings
+        Power Draw                              : 50 W
+        Power Limit                             : 250 W
+        Default Power Limit                     : 250 W
+        Enforced Power Limit                    : 250 W
+        Min Power Limit                         : N/A
+        Max Power Limit                         : N/A
+    Clocks
+        SM                                      : 1500 MHz
+        Memory                                  : 1200 MHz
+    Max Clocks
+        SM                                      : 2500 MHz
+        Memory                                  : 1500 MHz
+    Compute Mode                                : Default
+    License Status                              : Default
+    Processes                                   : None
+    Performance State                           : P0
+    Supported Clocks                            : N/A
+    Retired Pages
+        Single Bit ECC                          : N/A
+        Double Bit ECC                          : N/A
+    Accounting Mode                             : N/A
+
+root@iluvatar-ae-server-3:~# ixsmi -q -x
+<?xml version="1.0" ?>
+<!DOCTYPE ixsmi_log SYSTEM "ixsmi_device.dtd">
+<ixsmi_log>
+        <timestamp>Mon Oct 31 16:20:31 2022</timestamp>
+        <driver_version>2.3.0</driver_version>
+        <cuda_version>10.2</cuda_version>
+        <attached_gpus>1</attached_gpus>
+        <gpu id="00000000:65:00.0">
+                <product_name>Iluvatar BI-V100</product_name>
+                <serial>N/A</serial>
+                <uuid>GPU-e970e785-80c9-4d97-8bca-bc74f3b701df</uuid>
+                <minor_number>0</minor_number>
+                <board_id>42ea9163</board_id>
+                <gpu_part_number>04002108</gpu_part_number>
+                <pci>
+                        <pci_bus>65</pci_bus>
+                        <pci_device>00</pci_device>
+                        <pci_domain>0000</pci_domain>
+                        <pci_device_id>00011E3E</pci_device_id>
+                        <pci_bus_id>00000000:65:00.0</pci_bus_id>
+                        <pci_sub_system_id>00000000</pci_sub_system_id>
+                        <pci_gpu_link_info>
+                                <pcie_gen>
+                                        <max_link_gen>4</max_link_gen>
+                                        <current_link_gen>3</current_link_gen>
+                                </pcie_gen>
+                                <link_widths>
+                                        <max_link_width>16x</max_link_width>
+                                        <current_link_width>16x</current_link_width>
+                                </link_widths>
+                        </pci_gpu_link_info>
+                </pci>
+                <memory_usage>
+                        <total>32768 MiB</total>
+                        <used>513 MiB</used>
+                        <free>32255 MiB</free>
+                </memory_usage>
+                <utilization>
+                        <gpu_util>0 %</gpu_util>
+                        <memory_util>2 %</memory_util>
+                        <encoder_util>0 %</encoder_util>
+                        <decoder_util>0 %</decoder_util>
+                </utilization>
+                <ecc_mode>
+                        <current_ecc>Disabled</current_ecc>
+                        <pending_ecc>N/A</pending_ecc>
+                </ecc_mode>
+                <temperature>
+                        <gpu_temp>35 C</gpu_temp>
+                        <gpu_temp_max_threshold>100 C</gpu_temp_max_threshold>
+                        <gpu_temp_slow_threshold>95 C</gpu_temp_slow_threshold>
+                        <gpu_temp_max_gpu_threshold>90 C</gpu_temp_max_gpu_threshold>
+                </temperature>
+                <power_readings>
+                        <power_draw>53 W</power_draw>
+                        <power_limit>250 W</power_limit>
+                        <default_power_limit>250 W</default_power_limit>
+                        <enforced_power_limit>250 W</enforced_power_limit>
+                        <min_power_limit>N/A</min_power_limit>
+                        <max_power_limit>N/A</max_power_limit>
+                </power_readings>
+                <clocks>
+                        <sm_clock>1500 MHz</sm_clock>
+                        <mem_clock>1200 MHz</mem_clock>
+                </clocks>
+                <max_clocks>
+                        <sm_clock>2500 MHz</sm_clock>
+                        <mem_clock>1500 MHz</mem_clock>
+                </max_clocks>
+                <compute_mode>Default</compute_mode>
+                <license_status>Default</license_status>
+                <performance_state>P0</performance_state>
+                <supported_clocks>N/A</supported_clocks>
+                <retired_pages>
+                        <multiple_single_bit_retirement>
+                                <retired_count>N/A</retired_count>
+                                <retired_pagelist>N/A</retired_pagelist>
+                        </multiple_single_bit_retirement>
+                        <double_bit_retirement>
+                                <retired_count>N/A</retired_count>
+                                <retired_pagelist>N/A</retired_pagelist>
+                        </double_bit_retirement>
+                </retired_pages>
+                <accounting_mode>N/A</accounting_mode>
+                <processes>
+                </processes>
+        </gpu>
+</ixsmi_log>
+root@iluvatar-ae-server-3:~#

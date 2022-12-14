@@ -149,7 +149,7 @@ func (iploc *IPloc) Geo(ip string) (*ipdb.IPdbRecord, error) {
 		return record, nil
 	}
 
-	r, err := iploc.Get(ip)
+	r, err := iploc.get(ip)
 	if err != nil {
 		return nil, err
 	}
@@ -173,10 +173,10 @@ func (iploc *IPloc) Geo(ip string) (*ipdb.IPdbRecord, error) {
 	record.Region = r.Region
 	record.Country = r.Country_short
 
-	return record, err
+	return record.CheckData(), err
 }
 
-func (iploc *IPloc) Get(ip string) (*ip2location.IP2Locationrecord, error) {
+func (iploc *IPloc) get(ip string) (*ip2location.IP2Locationrecord, error) {
 	if iploc.db == nil {
 		return nil, fmt.Errorf("GEO DB not set")
 	}

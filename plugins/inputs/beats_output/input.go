@@ -70,6 +70,7 @@ type Input struct {
 	stopped bool
 }
 
+// Make sure Input implements the inputs.InputV2 interface.
 var _ inputs.InputV2 = &Input{}
 
 var l = logger.DefaultSLogger(inputName)

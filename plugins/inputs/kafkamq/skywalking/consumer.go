@@ -174,8 +174,6 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addrs []string, groupID string, skyap
 		break
 	}
 
-	defer func() { _ = group.Close() }()
-
 	// Iterate over consumer sessions.
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -195,6 +193,7 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addrs []string, groupID string, skyap
 			if ctx.Err() != nil {
 				return
 			}
+			time.Sleep(time.Second)
 			handler.ready = make(chan bool)
 		}
 	}()
@@ -212,7 +211,7 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addrs []string, groupID string, skyap
 	cancel()
 	wg.Wait()
 	if err = group.Close(); err != nil {
-		log.Panicf("Error closing client: %v", err)
+		log.Errorf("Error closing client: %v", err)
 	}
 }
 

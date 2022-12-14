@@ -89,7 +89,7 @@ func checkSample() error {
 }
 
 func checkConfig(dir, suffix string) error {
-	fps := config.SearchDir(dir, suffix)
+	fps := config.SearchDir(dir, suffix, ".git")
 
 	failed = []string{}
 	unknown = []string{}

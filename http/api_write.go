@@ -259,7 +259,7 @@ func jsonPoints(body []byte, opt *lp.Option) ([]*point.Point, error) {
 	var pts []*point.Point
 	for _, jp := range jps {
 		if jp.Time != 0 { // use time from json point
-			opt.Time = time.Unix(0, jp.Time)
+			opt.Time = getTimeFromInt64(jp.Time, opt)
 		}
 
 		if p, err := jp.point(opt); err != nil {
@@ -270,6 +270,27 @@ func jsonPoints(body []byte, opt *lp.Option) ([]*point.Point, error) {
 		}
 	}
 	return pts, nil
+}
+
+func getTimeFromInt64(n int64, opt *lp.Option) time.Time {
+	if opt != nil {
+		switch opt.Precision {
+		case "h":
+			return time.Unix(n*3600, 0).UTC()
+		case "m":
+			return time.Unix(n*60, 0).UTC()
+		case "s":
+			return time.Unix(n, 0).UTC()
+		case "ms":
+			return time.Unix(0, n*1000).UTC()
+		case "u":
+			return time.Unix(0, n*1000000).UTC()
+		default:
+		}
+	}
+
+	// nanoseconds
+	return time.Unix(0, n).UTC()
 }
 
 func checkObjectPoint(p *point.Point) error {

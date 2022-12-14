@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -42,111 +43,14 @@ const (
 
 	# 用户脚本的相对路径(填写文件夹，填好后该文件夹下一级目录的模块和 py 文件都将得到应用)
 	dirs = []
-`  // configSample
-
-	pyCli = `
-import os
-import sys
-import time
-import importlib
-import threading
-import argparse
-import logging
-from logging.handlers import RotatingFileHandler
-
-import sys
-sys.path.append(${PythonCorePath})
-sys.path.extend(${CustomerDefinedScriptRoot})
-
-from datakit_framework import DataKitFramework
-
-PY2 = sys.version_info[0] == 2
-PY3 = sys.version_info[0] == 3
-
-logger = logging.getLogger('pythond_cli')
-
-def init_log():
-    log_path = os.path.join(os.path.expanduser('~'), "_datakit_pythond_cli.log")
-    print(log_path)
-    logger.setLevel(logging.DEBUG)
-    handler = RotatingFileHandler(log_path, maxBytes=100000, backupCount=10)
-    logger.addHandler(handler)
-
-def mylog(msg, *args, **kwargs):
-    logger.debug(msg, *args, **kwargs)
-
-class RunThread (threading.Thread):
-	__plugin = DataKitFramework()
-	__interval = 10
-
-	def __init__(self, plugin):
-		threading.Thread.__init__(self)
-		self.__plugin = plugin
-		if self.__plugin.interval:
-			self.__interval = self.__plugin.interval
-
-	def run(self):
-		if self.__plugin:
-			while True:
-				try:
-					self.__plugin.run()
-				except:
-					mylog("Unexpected error:", sys.exc_info()[0], self.__plugin.__name)
-				time.sleep(self.__interval)
-
-def search_plugin(plugin_path):
-	try:
-		mod = importlib.import_module(plugin_path)
-	except ModuleNotFoundError:
-		mylog(plugin_path + " not found.")
-		return
-
-	plugins = []
-
-	for _, v in mod.__dict__.items():
-		if v is not DataKitFramework and type(v).__name__ == 'type' and issubclass(v, DataKitFramework):
-			plugin = v()
-			# return plugin
-			plugins.append(plugin)
-
-	return plugins
-
-def main(*args):
-    plugins = []
-    threads = []
-
-    for arg in args:
-        plg = search_plugin(arg)
-        if plg and len(plg) > 0:
-            plugins.extend(plg)
-
-    for plg in plugins:
-        thd = RunThread(plg)
-        thd.start()
-        threads.append(thd)
-
-    for t in threads:
-        t.join()
-
-if __name__ == '__main__':
-	parser = argparse.ArgumentParser(description="datakit framework")
-	parser.add_argument('--logname', '-l', help='indicates datakit framework log name, required')
-	args = parser.parse_args()
-	if args.logname:
-		DataKitFramework.log_name = args.logname
-	else:
-		print("need logname")
-		sys.exit(-1)
-
-	init_log()
-	main(${CustomerDefinedScriptName})
-`  // pyCli
-
-) // const
+`
+)
 
 var (
-	inputName = "pythond"
-	l         = logger.DefaultSLogger(inputName)
+	inputName           = "pythond"
+	l                   = logger.DefaultSLogger(inputName)
+	onceReleasePrefiles sync.Once
+	onceSetLog          sync.Once
 )
 
 type PythonDInput struct {
@@ -209,7 +113,7 @@ func (pe *PythonDInput) start() error {
 	}
 	pe.cmd.Stderr = pe.cmd.Stdout
 
-	l.Debugf("starting cmd %s, envs: %+#v", pe.cmd.String(), pe.cmd.Env)
+	l.Infof("starting cmd %s, envs: %+#v", pe.cmd.String(), pe.cmd.Env)
 	if err := pe.cmd.Start(); err != nil {
 		l.Errorf("start pythond input %s failed: %s", pe.Name, err.Error())
 		return err
@@ -376,9 +280,14 @@ func getScriptNameRoot(dirs []string, ipd IPythond) (scriptName, scriptRoot stri
 //------------------------------------------------------------------------------
 
 func (pe *PythonDInput) Run() {
-	l = logger.SLogger(inputName)
-
+	setLog()
 	l.Infof("starting pythond input %s...", pe.Name)
+
+	onceReleasePrefiles.Do(func() {
+		if err := ReleaseFiles(); err != nil {
+			l.Errorf("pythond release prefiles failed: %v", err)
+		}
+	})
 
 	// check
 	pe.Name = dkstring.TrimString(pe.Name)
@@ -464,6 +373,12 @@ func (pe *PythonDInput) stop() error {
 		return err
 	}
 	return nil
+}
+
+func setLog() {
+	onceSetLog.Do(func() {
+		l = logger.SLogger(inputName)
+	})
 }
 
 func init() { //nolint:gochecknoinits

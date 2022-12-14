@@ -1,0 +1,139 @@
+SEL              | 72h | ns  |  7.1 | No Reading
+Intrusion        | 73h | ok  |  7.1 | 
+Fan1A RPM        | 30h | ok  |  7.1 | 2160 RPM
+Fan2A RPM        | 32h | ok  |  7.1 | 2280 RPM
+Fan3A RPM        | 34h | ok  |  7.1 | 2280 RPM
+Fan4A RPM        | 36h | ok  |  7.1 | 2400 RPM
+Fan5A RPM        | 38h | ok  |  7.1 | 2280 RPM
+Fan6A RPM        | 3Ah | ok  |  7.1 | 2160 RPM
+Inlet Temp       | 04h | ok  |  7.1 | 23 degrees C
+Exhaust Temp     | 01h | ok  |  7.1 | 37 degrees C
+Temp             | 0Eh | ok  |  3.1 | 47 degrees C
+Temp             | 0Fh | ok  |  3.2 | 45 degrees C
+OS Watchdog      | 71h | ok  |  7.1 | 
+VCORE PG         | 23h | ok  |  3.1 | State Deasserted
+VCORE PG         | 24h | ok  |  3.2 | State Deasserted
+3.3V PG          | 19h | ok  |  7.1 | State Deasserted
+5V PG            | 1Ah | ok  |  7.1 | State Deasserted
+USB Cable Pres   | 50h | ok  |  7.1 | Connected
+VGA Cable Pres   | 51h | ok  |  7.1 | Connected
+Dedicated NIC    | 70h | ok  |  7.1 | Present
+Presence         | 49h | ok  | 11.2 | Present
+Presence         | 40h | ok  |  3.1 | Present
+Presence         | 41h | ok  |  3.2 | Present
+PLL PG           | 22h | ok  |  3.2 | State Deasserted
+PLL PG           | 25h | ok  |  3.1 | State Deasserted
+1.1V PG          | 27h | ok  |  7.1 | State Deasserted
+M23 VDDQ PG      | 15h | ok  |  3.1 | State Deasserted
+M23 VTT PG       | 16h | ok  |  3.1 | State Deasserted
+FETDRV PG        | 21h | ok  |  7.1 | State Deasserted
+Presence         | 43h | ok  | 10.2 | Absent
+VSA PG           | 29h | ok  |  3.2 | State Deasserted
+VSA PG           | 2Bh | ok  |  3.1 | State Deasserted
+M01 VDDQ PG      | 1Bh | ok  |  3.2 | State Deasserted
+M01 VDDQ PG      | 1Eh | ok  |  3.1 | State Deasserted
+M23 VTT PG       | 2Eh | ok  |  3.2 | State Deasserted
+M01 VTT PG       | 1Ch | ok  |  3.2 | State Deasserted
+NDC PG           | 2Fh | ok  |  7.1 | State Deasserted
+LCD Cable Pres   | 4Ch | ok  |  7.1 | Connected
+VTT PG           | 1Fh | ok  |  3.2 | State Deasserted
+VTT PG           | 20h | ok  |  3.1 | State Deasserted
+M23 VDDQ PG      | 1Dh | ok  |  3.2 | State Deasserted
+Presence         | 4Ah | ok  | 11.1 | Present
+Presence         | 48h | ok  | 11.3 | Absent
+Status           | 60h | ok  |  3.1 | Presence detected
+Status           | 61h | ok  |  3.2 | Presence detected
+Fan Redundancy   | 75h | ok  |  7.1 | Fully Redundant
+Riser Config Err | 64h | ok  |  7.1 | Connected
+Riser 3 Presence | 4Fh | ok  |  7.1 | Connected
+1.5V PG          | 28h | ok  |  7.1 | State Deasserted
+PS2 PG Fail      | 2Ch | ns  |  7.1 | Disabled
+PS1 PG Fail      | 2Dh | ns  |  7.1 | Disabled
+BP1 5V PG        | F6h | ok  |  7.1 | State Deasserted
+BP2 5V PG        | F7h | ns  |  7.1 | Disabled
+M01 VTT PG       | 14h | ok  |  3.1 | State Deasserted
+Presence         | 42h | ok  | 10.1 | Present
+PCIe Slot1       | 90h | ns  |  7.1 | Disabled
+PCIe Slot2       | 91h | ns  |  7.1 | Disabled
+PCIe Slot3       | 92h | ns  |  7.1 | Disabled
+PCIe Slot4       | 93h | ns  |  7.1 | Disabled
+PCIe Slot5       | 94h | ns  |  7.1 | Disabled
+PCIe Slot6       | 95h | ns  |  7.1 | Disabled
+PCIe Slot7       | 96h | ns  |  7.1 | Disabled
+vFlash           | FAh | ok  |  0.1 | 
+CMOS Battery     | 65h | ok  |  7.1 | 
+ROMB Battery     | 68h | ok  | 11.2 | 
+ROMB Battery     | 69h | ns  | 11.4 | Disabled
+Presence         | 54h | ok  | 26.1 | Present
+Presence         | 55h | ok  | 26.2 | Absent
+Current 1        | 6Ah | ok  | 10.1 | 0.40 Amps
+Current 2        | 6Bh | ns  | 10.2 | No Reading
+Voltage 1        | 6Ch | ok  | 10.1 | 220 Volts
+Voltage 2        | 6Dh | ns  | 10.2 | No Reading
+PS Redundancy    | 74h | ns  |  7.1 | No Reading
+Status           | 62h | ok  | 10.1 | Presence detected
+Status           | 63h | ns  | 10.2 | Disabled
+Pwr Consumption  | 77h | ok  |  7.1 | 98 Watts
+Power Optimized  | 76h | ok  |  7.1 | 
+SD1              | F4h | ns  | 11.3 | Disabled
+SD2              | F5h | ns  | 11.3 | Disabled
+Redundancy       | 78h | ns  | 11.3 | Disabled
+ECC Corr Err     | 01h | ns  | 34.1 | No Reading
+ECC Uncorr Err   | 02h | ns  | 34.1 | No Reading
+I/O Channel Chk  | 03h | ns  | 34.1 | No Reading
+PCI Parity Err   | 04h | ns  | 34.1 | No Reading
+PCI System Err   | 05h | ns  | 34.1 | No Reading
+SBE Log Disabled | 06h | ns  | 34.1 | No Reading
+Logging Disabled | 07h | ns  | 34.1 | No Reading
+Unknown          | 08h | ns  | 34.1 | No Reading
+CPU Protocol Err | 0Ah | ns  | 34.1 | No Reading
+CPU Bus PERR     | 0Bh | ns  | 34.1 | No Reading
+CPU Init Err     | 0Ch | ns  | 34.1 | No Reading
+CPU Machine Chk  | 0Dh | ns  | 34.1 | No Reading
+Memory Spared    | 11h | ns  | 34.1 | No Reading
+Memory Mirrored  | 12h | ns  | 34.1 | No Reading
+Memory RAID      | 13h | ns  | 34.1 | No Reading
+Memory Added     | 14h | ns  | 34.1 | No Reading
+Memory Removed   | 15h | ns  | 34.1 | No Reading
+Memory Cfg Err   | 16h | ns  | 34.1 | No Reading
+Mem Redun Gain   | 17h | ns  | 34.1 | No Reading
+PCIE Fatal Err   | 18h | ns  | 34.1 | No Reading
+Chipset Err      | 19h | ns  | 34.1 | No Reading
+Err Reg Pointer  | 1Ah | ns  | 34.1 | No Reading
+Mem ECC Warning  | 1Bh | ns  | 34.1 | No Reading
+Mem CRC Err      | 1Ch | ns  | 34.1 | No Reading
+USB Over-current | 1Dh | ns  | 34.1 | No Reading
+POST Err         | 1Eh | ns  | 34.1 | No Reading
+Hdwr version err | 1Fh | ns  | 34.1 | No Reading
+Mem Overtemp     | 20h | ns  | 34.1 | No Reading
+Mem Fatal SB CRC | 21h | ns  | 34.1 | No Reading
+Mem Fatal NB CRC | 22h | ns  | 34.1 | No Reading
+OS Watchdog Time | 71h | ns  | 34.1 | No Reading
+Non Fatal PCI Er | 26h | ns  | 34.1 | No Reading
+Fatal IO Error   | 27h | ns  | 34.1 | No Reading
+MSR Info Log     | 28h | ns  | 34.1 | No Reading
+TXT Status       | 2Ah | ns  | 34.1 | No Reading
+Drive 0          | A0h | ok  |  7.1 | Drive Present
+Cable SAS A      | E0h | ok  | 26.1 | Connected
+Cable SAS B      | E1h | ok  | 26.1 | Connected
+Cable SAS C      | E2h | ns  | 26.1 | Disabled
+Cable SAS D      | E3h | ns  | 26.1 | Disabled
+Cable SAS A      | E4h | ns  | 26.2 | Disabled
+Cable SAS B      | E5h | ns  | 26.2 | Disabled
+Cable SAS C      | E6h | ns  | 26.2 | Disabled
+Cable SAS D      | E7h | ns  | 26.2 | Disabled
+Power Cable      | 58h | ok  | 26.1 | Connected
+Signal Cable     | 59h | ok  | 26.1 | Connected
+Power Cable      | 5Ah | ns  | 26.2 | Disabled
+Signal Cable     | 5Bh | ns  | 26.2 | Disabled
+Fan7A RPM        | 3Ch | ok  |  7.1 | 2520 RPM
+Fan1B RPM        | 31h | ok  |  7.1 | 2280 RPM
+Fan2B RPM        | 33h | ok  |  7.1 | 2280 RPM
+Fan3B RPM        | 35h | ok  |  7.1 | 2520 RPM
+Fan4B RPM        | 37h | ok  |  7.1 | 2160 RPM
+Fan5B RPM        | 39h | ok  |  7.1 | 2520 RPM
+Fan6B RPM        | 3Bh | ok  |  7.1 | 2400 RPM
+Fan7B RPM        | 3Dh | ok  |  7.1 | 2640 RPM
+PFault Fail Safe | 66h | ns  |  7.1 | No Reading
+A                | C0h | ok  | 32.1 | Presence Detected
+B                | CCh | ok  | 32.1 | Presence Detected

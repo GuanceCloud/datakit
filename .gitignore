@@ -10,6 +10,7 @@ __debug_bin
 *-packr.go
 *.ak
 *.bak
+*.bak.md
 *.csv
 *.err
 *.log

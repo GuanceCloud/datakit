@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -37,13 +38,14 @@ type Input struct {
 	DockerEndpoint     string `toml:"docker_endpoint"`
 	ContainerdAddress  string `toml:"containerd_address"`
 
-	EnableContainerMetric        bool `toml:"enable_container_metric"`
-	EnableK8sMetric              bool `toml:"enable_k8s_metric"`
-	EnablePodMetric              bool `toml:"enable_pod_metric"`
-	LoggingRemoveAnsiEscapeCodes bool `toml:"logging_remove_ansi_escape_codes"`
-	LoggingBlockingMode          bool `toml:"logging_blocking_mode"`
-	ExcludePauseContainer        bool `toml:"exclude_pause_container"`
-	Election                     bool `toml:"election"`
+	EnableContainerMetric        bool   `toml:"enable_container_metric"`
+	EnableK8sMetric              bool   `toml:"enable_k8s_metric"`
+	EnablePodMetric              bool   `toml:"enable_pod_metric"`
+	LoggingRemoveAnsiEscapeCodes bool   `toml:"logging_remove_ansi_escape_codes"`
+	LoggingBlockingMode          bool   `toml:"logging_blocking_mode"`
+	LoggingSearchInterval        string `toml:"logging_search_interval"`
+	ExcludePauseContainer        bool   `toml:"exclude_pause_container"`
+	Election                     bool   `toml:"election"`
 
 	K8sURL                                            string `toml:"kubernetes_url"`
 	K8sBearerToken                                    string `toml:"bearer_token"`
@@ -141,8 +143,19 @@ func (i *Input) Run() {
 
 	objectTick := time.NewTicker(objectInterval)
 	defer objectTick.Stop()
+
 	metricTick := time.NewTicker(metricInterval)
 	defer metricTick.Stop()
+
+	loggingInterval := metricInterval
+	if i.LoggingSearchInterval != "" {
+		dur, err := timex.ParseDuration(i.LoggingSearchInterval)
+		if err == nil && 0 < dur {
+			loggingInterval = dur
+		}
+	}
+	loggingTick := time.NewTicker(loggingInterval)
+	defer loggingTick.Stop()
 
 	if datakit.Docker && !i.DisableK8sEvents {
 		g.Go(func(ctx context.Context) error {
@@ -165,6 +178,7 @@ func (i *Input) Run() {
 
 	i.collectObject()
 	i.collectMetric()
+	i.collectLogging()
 
 	for {
 		select {
@@ -181,6 +195,9 @@ func (i *Input) Run() {
 		case <-metricTick.C:
 			l.Debug("collect mertric")
 			i.collectMetric()
+
+		case <-loggingTick.C:
+			i.collectLogging()
 
 		case <-objectTick.C:
 			l.Debug("collect object")
@@ -254,18 +271,6 @@ func (i *Input) collectMetric() {
 		}
 	}
 
-	if i.discovery != nil {
-		i.discovery.updateGlobalCRDLogsConfList()
-	}
-
-	if err := i.watchNewDockerContainerLogs(); err != nil {
-		l.Errorf("failed to watch container log: %s", err)
-	}
-
-	if err := i.watchNewContainerdLogs(); err != nil {
-		l.Errorf("failed to watch containerd log: %s", err)
-	}
-
 	if !datakit.Docker {
 		return
 	}
@@ -284,6 +289,20 @@ func (i *Input) collectMetric() {
 
 	if err := i.gatherK8sResourceMetric(); err != nil {
 		l.Errorf("failed to collect resource metric: %s", err)
+	}
+}
+
+func (i *Input) collectLogging() {
+	if i.discovery != nil {
+		i.discovery.updateGlobalCRDLogsConfList()
+	}
+
+	if err := i.watchNewDockerContainerLogs(); err != nil {
+		l.Errorf("failed to watch container log: %s", err)
+	}
+
+	if err := i.watchNewContainerdLogs(); err != nil {
+		l.Errorf("failed to watch containerd log: %s", err)
 	}
 }
 

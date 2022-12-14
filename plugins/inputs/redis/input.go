@@ -82,8 +82,16 @@ type Input struct {
 	pauseCh         chan bool
 	hashMap         [][16]byte
 	latencyLastTime time.Time
+	cpuUsage        redisCPUUsage
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+type redisCPUUsage struct {
+	usedCPUSys    float64
+	usedCPUSysTS  time.Time
+	usedCPUUser   float64
+	usedCPUUserTS time.Time
 }
 
 func (i *Input) ElectionEnabled() bool {
@@ -190,11 +198,12 @@ func (i *Input) collectInfoMeasurement() ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 
 	m := &infoMeasurement{
-		cli:      i.client,
-		resData:  make(map[string]interface{}),
-		tags:     make(map[string]string),
-		fields:   make(map[string]interface{}),
-		election: i.Election,
+		cli:         i.client,
+		resData:     make(map[string]interface{}),
+		tags:        make(map[string]string),
+		fields:      make(map[string]interface{}),
+		election:    i.Election,
+		lastCollect: &i.cpuUsage,
 	}
 
 	m.name = "redis_info"

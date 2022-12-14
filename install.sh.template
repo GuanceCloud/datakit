@@ -248,11 +248,6 @@ if [ -n "$DK_PROXY_TYPE" ]; then
 	fi
 fi
 
-enable_experimental=0
-if [ -n "$DK_ENABLE_EXPEIMENTAL" ]; then
-	enable_experimental=$DK_ENABLE_EXPEIMENTAL
-fi
-
 env_hostname=
 if [ -n "$DK_HOSTNAME" ]; then
 	env_hostname=$DK_HOSTNAME
@@ -503,7 +498,7 @@ if [ "$upgrade" ]; then
 	printf "\n* Upgrading DataKit...\n"
 	$sudo_cmd $installer \
 		--install-log=${install_log} \
-		--upgrade --proxy="${proxy}" --installer_base_url="$installer_base_url" --enable-experimental=${enable_experimental}
+		--upgrade --proxy="${proxy}" --installer_base_url="$installer_base_url"
 else
 	printf "\n* Installing DataKit...\n"
 		$sudo_cmd $installer \

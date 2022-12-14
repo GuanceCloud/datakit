@@ -125,7 +125,7 @@ func applyFlags() {
 
 	build.DownloadAddr = *flagDownloadAddr
 	if !vi.IsStable() {
-		l.Fatalf("unstable version %s not allowed", build.ReleaseVersion)
+		l.Warnf("use odd minor version %s, ignored", build.ReleaseVersion)
 	}
 
 	switch *flagRelease {

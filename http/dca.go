@@ -15,22 +15,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
 type apiList struct {
-	GetStats           func() (*DatakitStats, error)
-	GetMarkdownContent func(string) ([]byte, error)
-	RestartDataKit     func() error
-	TestPipeline       func(string, string) (string, error)
+	GetStats       func() (*DatakitStats, error)
+	RestartDataKit func() error
+	TestPipeline   func(string, string) (string, error)
 }
 
 var dcaAPI = &apiList{
-	GetStats:           GetStats,
-	GetMarkdownContent: getMarkdownContent,
-	RestartDataKit:     restartDataKit,
-	TestPipeline:       pipelineTest,
+	GetStats:       GetStats,
+	RestartDataKit: restartDataKit,
+	TestPipeline:   pipelineTest,
 }
 
 var ignoreAuthURI = []string{
@@ -188,7 +185,6 @@ func setupDcaRouter() *gin.Engine {
 	router.NoRoute(dcaDefault)
 
 	router.GET("/v1/dca/stats", dcaStats)
-	router.GET("/v1/dca/inputDoc", dcaInputDoc)
 	router.GET("/v1/dca/reload", dcaReload)
 	// conf
 	router.POST("/v1/dca/saveConfig", dcaSaveConfig)
@@ -200,8 +196,8 @@ func setupDcaRouter() *gin.Engine {
 	router.POST("/v1/dca/pipelines", dcaCreatePipeline)
 	router.PATCH("/v1/dca/pipelines", dcaUpdatePipeline)
 
-	router.POST("/v1/rum/sourcemap", dcaUploadSourcemap)
 	router.DELETE("/v1/rum/sourcemap", dcaDeleteSourcemap)
+	router.POST("/v1/rum/sourcemap", dcaUploadSourcemap)
 
 	router.GET("/v1/filter", dcaGetFilter)
 	router.GET("/v1/stats/:type", dcaStatsByType)
@@ -210,8 +206,4 @@ func setupDcaRouter() *gin.Engine {
 	router.GET("/v1/log/download", dcaDownloadLog)
 
 	return router
-}
-
-func getMarkdownContent(inputName string) ([]byte, error) {
-	return man.BuildMarkdownManual(inputName, &man.Option{})
 }

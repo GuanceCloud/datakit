@@ -8,6 +8,7 @@ package redis
 import (
 	"bufio"
 	"context"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,12 +18,13 @@ import (
 )
 
 type infoMeasurement struct {
-	cli      *redis.Client
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	resData  map[string]interface{}
-	election bool
+	cli         *redis.Client
+	name        string
+	tags        map[string]string
+	fields      map[string]interface{}
+	resData     map[string]interface{}
+	election    bool
+	lastCollect *redisCPUUsage
 }
 
 // 生成行协议.
@@ -297,26 +299,38 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"used_cpu_sys": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type:     inputs.Rate,
-				Unit:     inputs.Percent,
+				Type:     inputs.Count,
+				Unit:     inputs.DurationSecond,
 				Desc:     "System CPU consumed by the Redis server, which is the sum of system CPU consumed by all threads of the server process (main thread and background threads)",
 			},
-			"used_cpu_sys_children": &inputs.FieldInfo{
+			"used_cpu_sys_percent": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Rate,
 				Unit:     inputs.Percent,
+				Desc:     "System CPU percentage consumed by the Redis server, which is the sum of system CPU consumed by all threads of the server process (main thread and background threads)",
+			},
+			"used_cpu_sys_children": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.DurationSecond,
 				Desc:     "System CPU consumed by the background processes",
 			},
 			"used_cpu_user": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type:     inputs.Rate,
-				Unit:     inputs.Percent,
+				Type:     inputs.Count,
+				Unit:     inputs.DurationSecond,
 				Desc:     "User CPU consumed by the Redis server, which is the sum of user CPU consumed by all threads of the server process (main thread and background threads)",
 			},
-			"used_cpu_user_children": &inputs.FieldInfo{
+			"used_cpu_user_percent": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Rate,
 				Unit:     inputs.Percent,
+				Desc:     "User CPU percentage consumed by the Redis server, which is the sum of user CPU consumed by all threads of the server process (main thread and background threads)",
+			},
+			"used_cpu_user_children": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.DurationSecond,
 				Desc:     "User CPU consumed by the background processes",
 			},
 			"keyspace_hits": &inputs.FieldInfo{
@@ -365,6 +379,7 @@ func (m *infoMeasurement) getData() error {
 		return err
 	}
 	elapsed := time.Since(start)
+	nextTS := start.Add(elapsed / 2)
 
 	latencyMs := Round(float64(elapsed)/float64(time.Millisecond), 2)
 
@@ -372,6 +387,40 @@ func (m *infoMeasurement) getData() error {
 	if err := m.parseInfoData(info); err != nil {
 		l.Error("redis exec command `All` result data, parse error,", err)
 		return err
+	}
+
+	// Calculate CPU usage.
+	if usedCPUSys, has := m.resData["used_cpu_sys"]; has {
+		if usedCPUSysStr, ok := usedCPUSys.(string); ok {
+			usedCPUSysFloat, err := strconv.ParseFloat(usedCPUSysStr, 64)
+			if err != nil {
+				l.Errorf("failed to parse used_cpu_sys: %v", err)
+			}
+			totElapsed := nextTS.Sub(m.lastCollect.usedCPUSysTS)
+			if !m.lastCollect.usedCPUSysTS.IsZero() {
+				m.resData["used_cpu_sys_percent"] = (usedCPUSysFloat - m.lastCollect.usedCPUSys) / totElapsed.Seconds()
+			}
+			m.lastCollect.usedCPUSys = usedCPUSysFloat
+			m.lastCollect.usedCPUSysTS = nextTS
+		} else {
+			l.Errorf("failed to cast used_cpu_sys to string, got type = %T", usedCPUSys)
+		}
+	}
+	if usedCPUUser, has := m.resData["used_cpu_user"]; has {
+		if usedCPUUserStr, ok := usedCPUUser.(string); ok {
+			usedCPUUserFloat, err := strconv.ParseFloat(usedCPUUserStr, 64)
+			if err != nil {
+				l.Errorf("failed to parse used_cpu_user: %v", err)
+			}
+			totElapsed := nextTS.Sub(m.lastCollect.usedCPUUserTS)
+			if !m.lastCollect.usedCPUUserTS.IsZero() {
+				m.resData["used_cpu_user_percent"] = (usedCPUUserFloat - m.lastCollect.usedCPUUser) / totElapsed.Seconds()
+			}
+			m.lastCollect.usedCPUUser = usedCPUUserFloat
+			m.lastCollect.usedCPUUserTS = nextTS
+		} else {
+			l.Errorf("failed to cast used_cpu_user to string, got type = %T", usedCPUUser)
+		}
 	}
 
 	return nil

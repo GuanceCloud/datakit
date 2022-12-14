@@ -83,7 +83,6 @@ func init() {
 	flag.StringVar(&installer.DatakitName, "name", "", "specify DataKit name, example: prod-env-datakit")
 	flag.StringVar(&installer.EnableInputs, "enable-inputs", "", "default enable inputs(comma splited, example:cpu,mem,disk)")
 	flag.BoolVar(&installer.OTA, "ota", false, "auto update")
-	flag.IntVar(&installer.EnableExperimental, "enable-experimental", 0, "")
 	flag.StringVar(&installer.InstallExternals, "install-externals", "", "install some external inputs")
 
 	// DCA flags
@@ -379,11 +378,6 @@ __downloadOK:
 	datakit.InitDirs()
 
 	if flagDKUpgrade { // upgrade new version
-		if err := installer.CheckVersion(git.Version); err != nil {
-			l.Fatalf("upgrade datakit: %s", err.Error())
-			return
-		}
-
 		cp.Infof("Upgrading to version %s...\n", DataKitVersion)
 		if err = installer.Upgrade(); err != nil {
 			cp.Warnf("upgrade datakit failed: %s, ignored\n", err.Error())

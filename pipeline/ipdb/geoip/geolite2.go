@@ -69,7 +69,7 @@ func (g *Geoip) Geo(ip string) (*ipdb.IPdbRecord, error) {
 		return record, nil
 	}
 
-	r, err := g.Get(ip)
+	r, err := g.get(ip)
 	if err != nil {
 		return record, err
 	}
@@ -89,10 +89,10 @@ func (g *Geoip) Geo(ip string) (*ipdb.IPdbRecord, error) {
 	}
 	record.Country = r.Country.Names["en"]
 
-	return record, err
+	return record.CheckData(), err
 }
 
-func (g *Geoip) Get(ip string) (*geoip2.City, error) {
+func (g *Geoip) get(ip string) (*geoip2.City, error) {
 	if g.db == nil {
 		return nil, fmt.Errorf("GEO DB not set")
 	}

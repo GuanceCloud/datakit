@@ -45,15 +45,10 @@ func (r *replicaset) name() string {
 }
 
 func (r *replicaset) pullItems() error {
-	if len(r.items) != 0 {
-		return nil
-	}
-
 	list, err := r.client.getReplicaSets().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return fmt.Errorf("failed to get replicasets resource: %w", err)
 	}
-
 	r.items = list.Items
 	return nil
 }

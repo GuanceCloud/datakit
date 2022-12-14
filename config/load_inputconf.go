@@ -85,7 +85,7 @@ func LoadSingleConf(confData string, creators map[string]inputs.Creator) (map[st
 	return ret, nil
 }
 
-func SearchDir(dir string, suffix string) []string {
+func SearchDir(dir string, suffix string, ignoreDirs ...string) []string {
 	fps := []string{}
 
 	if err := filepath.Walk(dir, func(fp string, f os.FileInfo, err error) error {
@@ -104,8 +104,17 @@ func SearchDir(dir string, suffix string) []string {
 			return nil
 		}
 
+		// ignore specific directories, like ".git".
+		for _, v := range ignoreDirs {
+			if strings.Contains(fp, v) {
+				l.Debugf("ignored specific: %s", fp)
+				return nil
+			}
+		}
+
 		if suffix == "" || strings.HasSuffix(f.Name(), suffix) {
 			fps = append(fps, fp)
+			l.Debugf("SearchDir: suffix = %s, fp = %s, ignoreDirs = %v", suffix, fp, ignoreDirs)
 		}
 		return nil
 	}); err != nil {
@@ -146,7 +155,7 @@ func LoadSingleConfFile(fp string, creators map[string]inputs.Creator, skipCheck
 // LoadInputConf read all inputs configures(toml) from @root,
 // then create various inputs object.
 func LoadInputConf(root string) map[string][]inputs.Input {
-	confs := SearchDir(root, ".conf")
+	confs := SearchDir(root, ".conf", ".git")
 
 	ret := map[string][]inputs.Input{}
 

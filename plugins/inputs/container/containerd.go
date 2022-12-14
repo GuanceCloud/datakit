@@ -38,11 +38,18 @@ type containerdInput struct {
 	mu            sync.Mutex
 }
 
-func newContainerdInput(ipt *Input) (*containerdInput, error) {
-	criClient, err := newCRIClient(ipt.ContainerdAddress)
+func newContainerdInput(ipt *Input) (cx *containerdInput, err error) {
+	conn, err := newCRIClient(ipt.ContainerdAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to new CRI-Client: %w ", err)
 	}
+	defer func() {
+		if err != nil {
+			_ = conn.Close()
+		}
+	}()
+
+	criClient := cri.NewRuntimeServiceClient(conn)
 
 	runtimeVersion, err := getCRIRuntimeVersion(criClient)
 	if err != nil {

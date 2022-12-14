@@ -10,144 +10,80 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
-	markdown "github.com/MichaelMure/go-term-markdown"
-	prompt "github.com/c-bata/go-prompt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func runDocFlags() error {
 	inputs.TODO = *flagDocTODO
-	return exportMan(*flagDocExportDocs, *flagDocIgnore, *flagDocVersion, *flagDocDisableTagFieldMonoFont)
+
+	opt := &man.Option{
+		ManVersion:    *flagDocVersion,
+		Path:          *flagDocExportDocs,
+		Skips:         *flagDocIgnore,
+		IgnoreMissing: true,
+	}
+
+	return exportMan(opt)
 }
 
-func cmdMan() {
-	if runtime.GOOS == datakit.OSWindows {
-		fmt.Println("\n[E] --man do not support Windows")
-		return
-	}
-
-	// load input-names
-	for k := range inputs.Inputs {
-		suggestions = append(suggestions, prompt.Suggest{Text: k, Description: ""})
-	}
-
-	for k := range man.OtherDocs {
-		suggestions = append(suggestions, prompt.Suggest{Text: k, Description: ""})
-	}
-
-	// TODO: add suggestions for pipeline
-
-	c, _ := newCompleter()
-
-	p := prompt.New(
-		runMan,
-		c.Complete,
-		prompt.OptionTitle("man: DataKit manual query"),
-		prompt.OptionPrefix("man > "),
-	)
-
-	p.Run()
-}
-
-func exportMan(to, skipList, ver string, disableMono bool) error {
-	if err := os.MkdirAll(to, os.ModePerm); err != nil {
+func exportMan(opt *man.Option) error {
+	if err := os.MkdirAll(opt.Path, os.ModePerm); err != nil {
 		return err
 	}
 
-	arr := strings.Split(skipList, ",")
-	skip := map[string]bool{}
-	for _, x := range arr {
-		skip[x] = true
-	}
-
 	for k := range inputs.Inputs {
-		if skip[k] {
+		if strings.Contains(opt.Skips, k) {
 			l.Warnf("skip %s", k)
 			continue
 		}
 
 		l.Debugf("build doc %s.md...", k)
-		data, err := man.BuildMarkdownManual(k,
-			&man.Option{
-				ManVersion:                    ver,
-				WithCSS:                       false,
-				IgnoreMissing:                 true,
-				DisableMonofontOnTagFieldName: disableMono,
-			})
+		datas, err := man.BuildMarkdownManual(k, opt)
 		if err != nil {
-			return err
+			return fmt.Errorf("man.BuildMarkdownManual: %w", err)
 		}
 
-		if len(data) == 0 {
+		if len(datas) == 0 {
 			l.Warnf("no data, skip %s", k)
 			continue
 		}
 
-		if err := ioutil.WriteFile(filepath.Join(to, k+".md"), data, os.ModePerm); err != nil {
-			return err
+		for i18n, data := range datas {
+			if err := ioutil.WriteFile(filepath.Join(opt.Path, i18n.String(), k+".md"), data, os.ModePerm); err != nil {
+				return fmt.Errorf("ioutil.WriteFile: %w", err)
+			}
 		}
 
-		l.Infof("export %s to %s ok", k+".md", to)
+		l.Infof("export %s to %s ok", k+".md", opt.Path)
 	}
 
 	for k := range man.OtherDocs {
-		if skip[k] {
+		if strings.Contains(opt.Skips, k) {
+			l.Warnf("skip %s", k)
 			continue
 		}
 
-		data, err := man.BuildMarkdownManual(k, &man.Option{ManVersion: ver, WithCSS: false})
+		datas, err := man.BuildMarkdownManual(k, opt)
 		if err != nil {
-			return err
+			return fmt.Errorf("man.BuildMarkdownManual: %w", err)
 		}
 
-		if len(data) == 0 {
+		if len(datas) == 0 {
 			l.Warnf("no data in %s, ignored", k)
 			continue
 		}
 
-		if err := ioutil.WriteFile(filepath.Join(to, k+".md"), data, os.ModePerm); err != nil {
-			return err
+		for i18n, data := range datas {
+			if err := ioutil.WriteFile(filepath.Join(opt.Path, i18n.String(), k+".md"), data, os.ModePerm); err != nil {
+				return fmt.Errorf("ioutil.WriteFile: %w", err)
+			}
 		}
 
-		l.Infof("export %s to %s ok", k+".md", to)
+		l.Infof("export %s to %s ok", k+".md", opt.Path)
 	}
 
 	return nil
-}
-
-func runMan(txt string) {
-	s := strings.Join(strings.Fields(strings.TrimSpace(txt)), " ")
-	if s == "" {
-		return
-	}
-
-	switch s {
-	case "Q", "q", "exit":
-		fmt.Println("Bye!")
-		os.Exit(0)
-	default:
-		x, err := man.BuildMarkdownManual(s,
-			&man.Option{
-				WithCSS:                       false,
-				DisableMonofontOnTagFieldName: true,
-			})
-
-		width := 80
-		leftPad := 6
-		if err != nil {
-			fmt.Printf("[E] %s\n", err.Error())
-		} else {
-			if len(x) == 0 {
-				fmt.Printf("[E] intput %s got no manual", s)
-			} else {
-				result := markdown.Render(string(x), width, leftPad)
-				fmt.Println(string(result))
-			}
-		}
-	}
 }

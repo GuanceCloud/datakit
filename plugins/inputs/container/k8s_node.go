@@ -45,15 +45,10 @@ func (n *node) name() string {
 }
 
 func (n *node) pullItems() error {
-	if len(n.items) != 0 {
-		return nil
-	}
-
 	list, err := n.client.getNodes().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return fmt.Errorf("failed to get nodes resource: %w", err)
 	}
-
 	n.items = list.Items
 	return nil
 }
