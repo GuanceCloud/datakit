@@ -8,16 +8,16 @@
 
 **RAILS APPLICATIONS**
 
-1. 添加 ddtrace gem 到你的 Gemfile：
+- 添加 ddtrace gem 到你的 Gemfile：
 
 ```shell
 source 'https://rubygems.org'
 gem 'ddtrace', require: 'ddtrace/auto_instrument'
 ```
 
-2. 使用 bundle install 安装 gem。
+- 使用 bundle install 安装 gem
 
-3. 创建配置文件 config/initializers/datadog.rb：
+- 创建配置文件 config/initializers/datadog.rb：
 
 ```rb
 Datadog.configure do |c|
@@ -28,16 +28,18 @@ end
 
 **RUBY APPLICATIONS**
 
-1. 添加 ddtrace gem 到你的 Gemfile：
+- 添加 ddtrace gem 到你的 Gemfile：
 
 ```shell
 source 'https://rubygems.org'
 gem 'ddtrace'
 ```
 
-2. 使用 bundle install 安装 gem。
+- 使用 bundle install 安装 gem
 
-3. 添加 require 'ddtrace/auto_instrument' 到 Ruby 代码中。 **Note:** 需要在所有 library 和 framework 加载后再加载。
+- 添加 `require 'ddtrace/auto_instrument'` 到 Ruby 代码中。
+
+> 需要在所有 library 和 framework 加载后再加载。
 
 ```rb
 # Example frameworks and libraries
@@ -48,7 +50,7 @@ require 'redis'
 require 'ddtrace/auto_instrument'
 ```
 
-4. 添加配置块到 Ruby 应用中：
+- 添加配置块到 Ruby 应用中：
 
 ```rb
 Datadog.configure do |c|
@@ -59,16 +61,16 @@ end
 
 **CONFIGURING OPENTRACING**
 
-1. 添加 ddtrace gem 到你的 Gemfile：
+- 添加 ddtrace gem 到你的 Gemfile：
 
 ```shell
 source 'https://rubygems.org'
 gem 'ddtrace'
 ```
 
-2. 使用 bundle install 安装 gem。
+- 使用 bundle install 安装 gem。
 
-3. 在 OpenTracing 配置中添加如下代码：
+- 在 OpenTracing 配置中添加如下代码：
 
 ```rb
 require 'opentracing'
@@ -80,7 +82,7 @@ require 'datadog/opentracer'
 OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new
 ```
 
-4. 添加配置块到 Ruby 应用中：
+- 添加配置块到 Ruby 应用中：
 
 ```rb
 Datadog.configure do |c|

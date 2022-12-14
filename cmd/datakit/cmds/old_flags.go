@@ -39,7 +39,6 @@ var (
 	FlagTestInput string
 
 	FlagDefConf,
-	FlagMan, // Deprecated
 	FlagDisableTFMono bool
 
 	FlagIgnore,
@@ -107,7 +106,6 @@ func initOldStyleFlags() { //nolint:gochecknoinits
 	pflag.StringVar(&FlagTestInput, "test-input", "", "specify config file to test")
 
 	// manuals related
-	pflag.BoolVar(&FlagMan, "man", false, "read manuals of inputs")
 	pflag.StringVar(&FlagExportManuals, "export-manuals", "", "export all inputs and related manuals to specified path")
 	pflag.StringVar(&FlagExportMetaInfo, "export-metainfo", "", "output metainfo to specified file")
 	pflag.BoolVar(&FlagDisableTFMono, "disable-tf-mono", false, "use normal font on tag/field")

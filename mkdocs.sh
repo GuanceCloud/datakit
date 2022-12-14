@@ -98,17 +98,17 @@ for lang in "${i18n[@]}"; do
 	printf "${GREEN}> Copy pages(%s) to repo datakit ...${CLR}\n" $lang
 	cp man/docs/${lang}/datakit.pages $base_docs_dir/${lang}/datakit/.pages
 
+	# move specific docs to developers
+	printf "${GREEN}> Copy docs(%s) to repo developers ...${CLR}\n" $lang
+	mv $tmp_doc_dir/${lang}/pythond.md                ${base_docs_dir}/$lang/developers
+	mv $tmp_doc_dir/${lang}/pipeline.md               ${base_docs_dir}/$lang/developers
+	mv $tmp_doc_dir/${lang}/datakit-pl-global.md      ${base_docs_dir}/$lang/developers
+	mv $tmp_doc_dir/${lang}/datakit-pl-how-to.md      ${base_docs_dir}/$lang/developers
+	mv $tmp_doc_dir/${lang}/datakit-refer-table.md    ${base_docs_dir}/$lang/developers
+
 	# copy specific docs to datakit
 	printf "${GREEN}> Copy docs(%s) to repo datakit ...${CLR}\n" $lang
 	cp $tmp_doc_dir/${lang}/*.md $base_docs_dir/${lang}/datakit/
-
-	# copy specific docs to developers
-	printf "${GREEN}> Copy docs(%s) to repo developers ...${CLR}\n" $lang
-	cp $tmp_doc_dir/${lang}/pythond.md                ${base_docs_dir}/$lang/developers
-	cp $tmp_doc_dir/${lang}/pipeline.md               ${base_docs_dir}/$lang/developers
-	cp $tmp_doc_dir/${lang}/datakit-pl-global.md      ${base_docs_dir}/$lang/developers
-	cp $tmp_doc_dir/${lang}/datakit-pl-how-to.md      ${base_docs_dir}/$lang/developers
-	cp $tmp_doc_dir/${lang}/datakit-refer-table.md    ${base_docs_dir}/$lang/developers
 done
 
 ######################################
