@@ -256,9 +256,6 @@ spec:
           path: /usr/lib
         name: usrlib
       - hostPath:
-          path: /etc
-        name: etc
-      - hostPath:
           path: /
         name: rootfs
       - hostPath:
