@@ -162,6 +162,18 @@ spec:
           value: stdout
         - name: ENV_HTTP_LISTEN
           value: 0.0.0.0:9529
+        - name: HOST_PROC
+          value: /rootfs/proc
+        - name: HOST_SYS
+          value: /rootfs/sys
+        - name: HOST_ETC
+          value: /rootfs/etc
+        - name: HOST_VAR
+          value: /rootfs/var
+        - name: HOST_RUN
+          value: /rootfs/run
+        - name: HOST_DEV
+          value: /rootfs/dev
         # # ---iploc-start
         #- name: ENV_IPDB
         #  value: iploc
@@ -185,8 +197,6 @@ spec:
           name: log
         - mountPath: /usr/lib
           name: usrlib
-        - mountPath: /etc
-          name: etc
         - mountPath: /rootfs
           name: rootfs
         - mountPath: /sys/kernel/debug
