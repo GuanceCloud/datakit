@@ -25,7 +25,20 @@ SMI 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用�
 {{.InputSample}}
 ```
 
+???+ attention
+
+    1. `datakit`可以通过 SSH 远程采集 GPU 服务器的指标。(开启远程采集后，本地采集配置将失效)。
+    2. `remote_addrs`配置的个数可以多于`remote_users` `remote_passwords` `remote_rsa_paths`个数，不够的匹配排位第一的数值。
+    3. 可以通过`remote_addrs`+`remote_users`+`remote_passwords`采集。
+    4. 也可以通过`remote_addrs`+`remote_users`+`remote_rsa_paths`采集。(配置 RSA 公钥后，`remote_passwords`将失效)。
+    5. 开启远程采集后，必须开启选举。(防止多个 datakit 上传重复数据)。
+    6. 出于安全考虑，可以变更 SSH 端口号，也可以单独为 GPU 远程采集创建专用的账户。 
+
+
+
 配置好后，重启 DataKit 即可。
+
+
 
 支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
 
@@ -33,6 +46,15 @@ SMI 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用�
 |:-----------------------------| ---              | ---                                                          |
 | `ENV_INPUT_GPUSMI_TAGS`   | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
 | `ENV_INPUT_GPUSMI_INTERVAL` | `interval`       | `10s`                                                        |
+| `ENV_INPUT_GPUSMI_BIN_PATHS`            | `bin_paths`              | `["/usr/bin/nvidia-smi"]`         |
+| `ENV_INPUT_GPUSMI_TIMEOUT`              | `timeout`                | `"5s"`                            |
+| `ENV_INPUT_GPUSMI_PROCESS_INFO_MAX_LEN` | `process_info_max_len`   | `10`                              |
+| `ENV_INPUT_GPUSMI_DROP_WARNING_DELAY`   | `gpu_drop_warning_delay` | `"300s"`                          |
+| `ENV_INPUT_GPUSMI_ENVS`                 | `envs`                   | `["LD_LIBRARY_PATH=/usr/local/corex/lib/:$LD_LIBRARY_PATH"]` |
+| `ENV_INPUT_GPUSMI_REMOTE_ADDRS`         | `remote_addrs`           | `["192.168.1.1:22"]`              |
+| `ENV_INPUT_GPUSMI_REMOTE_USERS`         | `remote_users`           | `["remote_login_name"]`           |
+| `ENV_INPUT_GPUSMI_REMOTE_RSA_PATHS`     | `remote_rsa_paths`       | `["/home/your_name/.ssh/id_rsa"]` |
+| `ENV_INPUT_GPUSMI_REMOTE_COMMAND`       | `remote_command`         | `"nvidia-smi -x -q"`              |
 
 ### SMI指标集 {#SMI-measurements}
 
