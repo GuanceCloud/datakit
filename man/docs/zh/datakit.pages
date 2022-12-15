@@ -77,10 +77,10 @@ nav:
 
       - 'Profiling':
         - 'DataKit 采集配置': profile.md
-        - 'DDTrace Profiling': profile-ddtrace.md
         - '工具接入':
-          - 'Java': profile-java-async-profiler.md 
+          - 'Java': profile-java.md 
           - python-profiling.md
+          - 'Go': profile-go.md
 
       - 'DDTrace':
         - 'DataKit 采集配置': ddtrace.md

@@ -6,9 +6,16 @@
 
 ---
 
-Profile 支持采集使用 Java / Python 等不同语言环境下应用程序运行过程中的动态性能数据，帮助用户查看 CPU、内存、IO 的性能问题。
+Profile 支持采集使用 Java, Python 和 Go 等不同语言环境下应用程序运行过程中的动态性能数据，帮助用户查看 CPU、内存、IO 的性能问题。
 
 ## 配置说明 {#config}
+
+目前 DataKit 采集 profiling 数据有两种方式：
+
+- 推送方式: 需要开启 DataKit Profile 服务，由客户端向 DataKit 主动推送数据
+- 拉取方式: 目前仅 [Go](profile-go.md) 支持，需要手动配置相关信息
+
+### DataKit 配置 {#datakit-config}
 
 === "主机安装"
 
@@ -18,11 +25,19 @@ Profile 支持采集使用 Java / Python 等不同语言环境下应用程序运
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) ，开启 Profile 服务。
 
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+### 客户端应用配置 {#app-config}
+
+客户的应用根据编程语言需要分别进行配置，目前支持的语言如下：
+
+- [Java](profile-java.md)
+- [Go](profile-go.md)
+- [Python](python-profiling.md)
 
 ## 指标集 {#measurements}
 
