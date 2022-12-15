@@ -1007,35 +1007,36 @@ WITH CTE_SID ( BSID, SID, sql_handle )
 `
 
 	sqlServerLogicIO = `
-	select top 5
-		'sqlserver_logical_io' as [measurement],
+	select 
+	  'sqlserver_logical_io' as [measurement],
 		creation_time,
 		last_execution_time,
 		total_logical_reads,
 		total_logical_writes,
 		(total_logical_reads + total_logical_writes) as total_logical_io,
-		(total_logical_reads + total_logical_writes) /execution_count avg_logical_io,
 		execution_count,
+		(total_logical_reads + total_logical_writes)/Execution_count AS 'avg_logical_io',
 		substring(sql_text.text, (statement_start_offset/2),
 		case
 		when (statement_end_offset -statement_start_offset)/2 <=0 then 64000
-		else (statement_end_offset -statement_start_offset)/2 end) message
+		else (statement_end_offset -statement_start_offset)/2 end) message 
 	from sys.dm_exec_query_stats
 		cross apply sys.dm_exec_sql_text(sql_handle) as sql_text
 		cross apply sys.dm_exec_query_plan(plan_handle) as plan_text
-	order by
-		(total_logical_reads + total_logical_writes) Desc
-
+	where (total_logical_reads + total_logical_writes)/Execution_count > 50000
+		and
+		creation_time > dateadd(second, -__COLLECT_INTERVAL_SECONDS__, GETDATE())
+	order by (total_logical_reads + total_logical_writes) Desc
 `
 
 	sqlServerWorkerTime = `
-	select top 5
+	select 
 	  'sqlserver_worker_time' as [measurement],
 		creation_time,
 		last_execution_time,
 		total_worker_time/1000 total_worker_time,
 		execution_count,
-		(total_worker_time / execution_count)/1000 avg_worker_time,
+		((total_worker_time / execution_count)/1000) as 'avg_worker_time',
 		substring(sql_text.text, (statement_start_offset/2),
 		case
 		when (statement_end_offset -statement_start_offset)/2 <=0 then 64000
@@ -1043,8 +1044,9 @@ WITH CTE_SID ( BSID, SID, sql_handle )
 	from sys.dm_exec_query_stats
 	cross apply sys.dm_exec_sql_text(sql_handle) as sql_text
 	cross apply sys.dm_exec_query_plan(plan_handle) as plan_text
-	order by
-		total_worker_time/1000 Desc
+	where ((total_worker_time / execution_count)/1000) >= 1000 
+		and creation_time > dateadd(second, -__COLLECT_INTERVAL_SECONDS__, GETDATE())
+	order by total_worker_time/1000 Desc
 `
 
 	sqlServerDatabaseSize = `
