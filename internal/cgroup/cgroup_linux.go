@@ -7,6 +7,7 @@ package cgroup
 
 import (
 	"os"
+	"path"
 	"runtime"
 	"time"
 
@@ -51,6 +52,11 @@ func (c *Cgroup) memSetup() {
 	c.opt.MemMax *= MB
 }
 
+func cgroupEnabled(mountPoint, name string) bool {
+	_, err := os.Stat(path.Join(mountPoint, name))
+	return err == nil
+}
+
 func (c *Cgroup) setup() error {
 	c.cpuSetup()
 	c.memSetup()
@@ -65,8 +71,10 @@ func (c *Cgroup) setup() error {
 	if c.opt.MemMax > 0 {
 		r.Memory = &specs.LinuxMemory{
 			Limit:            &c.opt.MemMax,
-			Swap:             &c.opt.MemMax,
 			DisableOOMKiller: &c.opt.DisableOOM,
+		}
+		if cgroupEnabled(c.opt.Path, "memory.memsw.limit_in_bytes") {
+			r.Memory.Swap = &c.opt.MemMax
 		}
 	} else {
 		l.Infof("memory limit not set")

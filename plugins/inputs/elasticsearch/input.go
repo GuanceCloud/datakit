@@ -582,7 +582,6 @@ func (i *Input) Run() {
 				i.collectCache = i.collectCache[:0]
 			}
 		}
-
 		select {
 		case <-datakit.Exit.Wait():
 			i.exit()
