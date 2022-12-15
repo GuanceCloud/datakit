@@ -237,7 +237,7 @@ func (t *Single) forwardMessage() {
 				t.opt.log.Warnf("didrotate err: %s", err)
 			}
 			if did {
-				t.opt.log.Infof("file %s has rotated, try to read EOF", t.filepath)
+				t.opt.log.Infof("file %s has rotated, current offset %d, try to read EOF", t.filepath, t.offset)
 				for {
 					b.buf, readNum, err = t.read()
 					if err != nil {
