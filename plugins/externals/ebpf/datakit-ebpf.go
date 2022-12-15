@@ -186,7 +186,16 @@ func main() {
 			dkhttpflow.SetK8sNetInfo(k8sinfo)
 			dkdns.SetK8sNetInfo(k8sinfo)
 		}
+
 		constEditor := dkoffset.NewConstEditor(offset)
+
+		httpConst, err := dkoffset.GuessOffsetHTTPFlow(offset)
+		if err != nil {
+			err = fmt.Errorf("get http offset failed: %w", err)
+			feedLastErrorLoop(err, signaIterrrupt)
+		}
+
+		constEditor = append(constEditor, httpConst...)
 
 		netflowTracer := dknetflow.NewNetFlowTracer()
 		ebpfNetManger, err := dknetflow.NewNetFlowManger(constEditor, netflowTracer.ClosedEventHandler)
@@ -268,22 +277,18 @@ func main() {
 }
 
 func getOffset(saved *dkoffset.OffsetGuessC) (*dkoffset.OffsetGuessC, error) {
-	bpfManger, err := dkoffset.NewGuessManger()
+	bpfManager, err := dkoffset.NewGuessManger()
 	if err != nil {
 		return nil, fmt.Errorf("new offset manger: %w", err)
 	}
 	// Start the manager
-	if err := bpfManger.Start(); err != nil {
+	if err := bpfManager.Start(); err != nil {
 		return nil, err
 	}
 	loopCount := 5
-	defer bpfManger.Stop(manager.CleanAll) //nolint:errcheck
+	defer bpfManager.Stop(manager.CleanAll) //nolint:errcheck
 	for i := 0; i < loopCount; i++ {
-		mapG, err := dkoffset.BpfMapGuessInit(bpfManger)
-		if err != nil {
-			return nil, err
-		}
-		status, err := dkoffset.GuessOffset(mapG, saved, ipv6Disabled)
+		status, err := dkoffset.GuessOffset(bpfManager, saved, ipv6Disabled)
 		if err != nil {
 			saved = nil
 			if i == loopCount-1 {

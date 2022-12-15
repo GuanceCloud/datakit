@@ -76,7 +76,7 @@ datakit.yaml 参考修改:
 
 目前 Linux 3.10 内核的项目生命周期已经结束，建议您升级至 Linux 4.9 及以上 LTS 版内核。
 
-除 CentOS 7.6+ 和 Ubuntu 16.04 以外，其他发行版本需要 Linux 内核版本高于 4.0.0, 可使用命令 `uname -r` 查看，如下：
+除 CentOS 7.6+ 和 Ubuntu 16.04 以外，其他发行版本需要 Linux 内核版本高于 4.0, 可使用命令 `uname -r` 查看，如下：
 
 ```shell
 uname -r 
@@ -85,13 +85,13 @@ uname -r
 
 ???+ warning "内核限制"
 
-    对于 CentOS 7.6+ 和 Ubuntu 16.04 不能开启 ebpf-net 类别中的 httpflow 数据采集，由于其 Linux 3.10.x 内核不支持 eBPF 程序中的 BPF_PROG_TYPE_SOCKET_FILTER 类型;
+    DataKit 版本低于 v1.5.2 时，对于 CentOS 7.6+ 不能开启 ebpf-net 类别中的 httpflow 数据采集，由于其 Linux 3.10.x 内核不支持 eBPF 程序中的 BPF_PROG_TYPE_SOCKET_FILTER 类型;
 
-    由于 BPF_FUNC_skb_load_bytes 不存在于 Linux Kernel <= 4.4，若需开启 httpflow，需要 Linux Kernel >= 4.5，此问题待后续优化；
+    DataKit 版本低于 v1.5.2 时，由于 BPF_FUNC_skb_load_bytes 不存在于 Linux Kernel <= 4.4，若需开启 httpflow，需要 Linux Kernel >= 4.5，此问题待后续优化；
 
 ### 已启用 SELinux 的系统 {#selinux}
 
-对于启用了 SELinux 的系统，需要关闭其(待后续优化)，执行以下命令进行关闭:
+对于启用了 SELinux 的系统，需要关闭其，执行以下命令进行关闭:
 
 ```sh
 setenforce 0

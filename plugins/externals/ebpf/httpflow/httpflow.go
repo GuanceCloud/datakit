@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"reflect"
 	"regexp"
 	"time"
 	"unsafe"
@@ -18,7 +17,6 @@ import (
 	"github.com/DataDog/ebpf/manager"
 	"github.com/google/gopacket/afpacket"
 	client "github.com/influxdata/influxdb1-client/v2"
-	"github.com/sirupsen/logrus"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
@@ -28,7 +26,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// #include "../c/netflow/l7_stats.h"
+// #include "../c/apiflow/l7_stats.h"
 import "C"
 
 const HTTPPayloadMaxsize = 157
@@ -60,37 +58,48 @@ var (
 )
 
 type (
-	//nolint:stylecheck
-	HTTPStatsC struct {
-		payload      [HTTPPayloadMaxsize]uint8
-		req_method   uint8
-		resp_code    uint16
-		http_version uint32
-		req_ts       uint64
-		c_s_pid      uint64
-	}
-	//nolint:stylecheck
-	HTTPReqFinishedInfoC struct {
-		conn_info  C.struct_connection_info
-		http_stats HTTPStatsC
-	}
+	CLayer7Http      C.struct_layer7_http
+	CHTTPReqFinished C.struct_http_req_finished
+	CL7Buffer        C.struct_l7_buffer
 
 	ConnectionInfoC dknetflow.ConnectionInfoC
 	ConnectionInfo  dknetflow.ConnectionInfo
-	HTTPStats       struct {
-		// payload    [HTTP_PAYLOAD_MAXSIZE]byte
-		Payload     string
-		ReqMethod   uint8
+
+	CPayloadId C.struct_payload_id
+
+	HTTPStats struct {
+		Direction string
+
+		ReqMethod uint8
+
+		Path     string
+		RespCode uint32
+
 		HTTPVersion uint32
-		RespCode    uint32
-		ReqTS       uint64
-		CSPid       uint64
+
+		Pid uint64
+
+		ReqTS  uint64
+		RespTS uint64
 	}
+
 	HTTPReqFinishedInfo struct {
 		ConnInfo  ConnectionInfo
 		HTTPStats HTTPStats
 	}
 )
+
+func (conn ConnectionInfo) String() string {
+	return fmt.Sprintf("%s:%d -> %s:%d, pid:%d, tcp:%t", dknetflow.U32BEToIP(conn.Saddr,
+		!dknetflow.ConnAddrIsIPv4(conn.Meta)), conn.Sport,
+		dknetflow.U32BEToIP(conn.Daddr, !dknetflow.ConnAddrIsIPv4(conn.Meta)),
+		conn.Dport, conn.Pid, dknetflow.ConnProtocolIsTCP(conn.Meta))
+}
+
+func (payloadid CPayloadId) String() string {
+	return fmt.Sprintf("cpu%d,ktime%d,pid%d,tid%d,random%d",
+		payloadid.cpuid, payloadid.ktime, payloadid.pid_tid>>32, payloadid.pid_tid&0xFFFFFFFF, payloadid.prandom)
+}
 
 var l = logger.DefaultSLogger("ebpf")
 
@@ -113,17 +122,49 @@ var (
 	}
 )
 
-func NewHTTPFlowManger(fd int, constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.Map,
-	closedEventHandler func(cpu int, data []byte, perfmap *manager.PerfMap,
-		manager *manager.Manager), enableTLS bool) (*manager.Manager, *sysmonitor.UprobeDynamicLibRegister, error) {
+type perferEventHandle func(cpu int, data []byte, perfmap *manager.PerfMap,
+	manager *manager.Manager)
+
+func NewHTTPFlowManger(constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.Map,
+	closedEventHandler, bufHandler perferEventHandle, enableTLS bool) (*manager.Manager, *sysmonitor.UprobeDynamicLibRegister, error) {
 	m := &manager.Manager{
 		Probes: []*manager.Probe{
 			{
-				Section:  "socket/http_filter",
-				SocketFD: fd,
+				Section: "tracepoint/syscalls/sys_enter_read",
 			},
 			{
-				Section: "kretprobe/tcp_sendmsg",
+				Section: "tracepoint/syscalls/sys_exit_read",
+			},
+			{
+				Section: "tracepoint/syscalls/sys_enter_write",
+			},
+			{
+				Section: "tracepoint/syscalls/sys_exit_write",
+			},
+
+			{
+				Section: "tracepoint/syscalls/sys_enter_recvfrom",
+			},
+			{
+				Section: "tracepoint/syscalls/sys_exit_recvfrom",
+			},
+			{
+				Section: "tracepoint/syscalls/sys_enter_sendto",
+			},
+			{
+				Section: "tracepoint/syscalls/sys_exit_sendto",
+			},
+			{
+				Section: "tracepoint/syscalls/sys_enter_writev",
+			},
+			{
+				Section: "tracepoint/syscalls/sys_exit_writev",
+			},
+			{
+				Section: "tracepoint/syscalls/sys_enter_readv",
+			},
+			{
+				Section: "tracepoint/syscalls/sys_exit_readv",
 			},
 		},
 		PerfMaps: []*manager.PerfMap{
@@ -133,8 +174,18 @@ func NewHTTPFlowManger(fd int, constEditor []manager.ConstantEditor, bpfMapSockF
 				},
 				PerfMapOptions: manager.PerfMapOptions{
 					// pagesize ~= 4k,
-					PerfRingBufferSize: 32 * os.Getpagesize(),
+					PerfRingBufferSize: 128 * os.Getpagesize(),
 					DataHandler:        closedEventHandler,
+				},
+			},
+			{
+				Map: manager.Map{
+					Name: "bpfmap_l7_buffer_out",
+				},
+				PerfMapOptions: manager.PerfMapOptions{
+					// pagesize ~= 4k,
+					PerfRingBufferSize: 512 * os.Getpagesize(),
+					DataHandler:        bufHandler,
 				},
 			},
 		},
@@ -168,9 +219,6 @@ func NewHTTPFlowManger(fd int, constEditor []manager.ConstantEditor, bpfMapSockF
 			Max: math.MaxUint64,
 		},
 		ConstantEditors: constEditor,
-		MapEditors: map[string]*ebpf.Map{
-			"bpfmap_sockfd": bpfMapSockFD,
-		},
 	}
 	if buf, err := dkebpf.HTTPFlowBin(); err != nil {
 		return nil, nil, fmt.Errorf("httpflow.o: %w", err)
@@ -184,13 +232,11 @@ func NewHTTPFlowManger(fd int, constEditor []manager.ConstantEditor, bpfMapSockF
 type HTTPFlowTracer struct {
 	TPacket        *afpacket.TPacket
 	gTags          map[string]string
-	finReqCh       chan *HTTPReqFinishedInfo
 	datakitPostURL string
 }
 
 func NewHTTPFlowTracer(tags map[string]string, datakitPostURL string) *HTTPFlowTracer {
 	return &HTTPFlowTracer{
-		finReqCh:       make(chan *HTTPReqFinishedInfo, 64),
 		gTags:          tags,
 		datakitPostURL: datakitPostURL,
 	}
@@ -198,19 +244,20 @@ func NewHTTPFlowTracer(tags map[string]string, datakitPostURL string) *HTTPFlowT
 
 func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor,
 	bpfMapSockFD *ebpf.Map, enableTLS bool, interval time.Duration) error {
-	rawSocket, err := afpacket.NewTPacket()
-	if err != nil {
-		return fmt.Errorf("error creating raw socket: %w", err)
-	}
+
+	// rawSocket, err := afpacket.NewTPacket()
+	// if err != nil {
+	// 	return fmt.Errorf("error creating raw socket: %w", err)
+	// }
 
 	go tracer.feedHandler(ctx, interval)
 	// The underlying socket file descriptor is private, hence the use of reflection
-	socketFD := int(reflect.ValueOf(rawSocket).Elem().FieldByName("fd").Int())
+	// socketFD := int(reflect.ValueOf(rawSocket).Elem().FieldByName("fd").Int())
 
-	logrus.Error(socketFD)
-	tracer.TPacket = rawSocket
+	// tracer.TPacket = rawSocket
 
-	bpfManger, r, err := NewHTTPFlowManger(socketFD, constEditor, bpfMapSockFD, tracer.reqFinishedEventHandler, enableTLS)
+	bpfManger, r, err := NewHTTPFlowManger(constEditor, bpfMapSockFD,
+		tracer.reqFinishedEventHandler, tracer.bufHandle, enableTLS)
 	if err != nil {
 		return err
 	}
@@ -235,31 +282,43 @@ func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.Con
 
 func (tracer *HTTPFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
 	perfmap *manager.PerfMap, manager *manager.Manager) {
-	eventC := (*HTTPReqFinishedInfoC)(unsafe.Pointer(&data[0])) //nolint:gosec
+	eventC := (*CHTTPReqFinished)(unsafe.Pointer(&data[0])) //nolint:gosec
 
-	httpStats := HTTPReqFinishedInfo{
+	httpStats := &HTTPReqFinishedInfo{
 		ConnInfo: ConnectionInfo{
 			Saddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.saddr))),
 			Sport: uint32(eventC.conn_info.sport),
 			Daddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.daddr))),
 			Dport: uint32(eventC.conn_info.dport),
 			Meta:  uint32(eventC.conn_info.meta),
+			Pid:   uint32(eventC.conn_info.pid),
 		},
 		HTTPStats: HTTPStats{
-			Payload:     unix.ByteSliceToString((*(*[HTTPPayloadMaxsize]byte)(unsafe.Pointer(&eventC.http_stats.payload)))[:]),
-			ReqMethod:   eventC.http_stats.req_method,
-			HTTPVersion: eventC.http_stats.http_version,
-			RespCode:    uint32(eventC.http_stats.resp_code),
-			ReqTS:       eventC.http_stats.req_ts,
-			CSPid:       eventC.http_stats.c_s_pid,
+			Direction:   dknetflow.ConnDirection2Str(uint8(eventC.http.direction)),
+			ReqMethod:   uint8(eventC.http.method),
+			HTTPVersion: uint32(eventC.http.http_version),
+			RespCode:    uint32(eventC.http.status_code),
+			ReqTS:       uint64(eventC.http.req_ts),
+			RespTS:      uint64(eventC.http.resp_ts),
+			Pid:         uint64(eventC.conn_info.pid),
 		},
 	}
-	tracer.finReqCh <- &httpStats
-	// l.Warnf("%#v", httpStats)
+
+	_reqCache.AppendFinReq(CPayloadId(eventC.http.req_payload_id), httpStats)
+}
+
+func (tracer *HTTPFlowTracer) bufHandle(cpu int, data []byte,
+	perfmap *manager.PerfMap, manager *manager.Manager) {
+
+	bufferC := *((*CL7Buffer)(unsafe.Pointer(&data[0])))
+
+	_reqCache.AppendPayload(&bufferC)
 }
 
 func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
+	mergeTicker := time.NewTicker(time.Second * 8)
+	cleanCacheTicker := time.NewTicker(time.Minute)
 	agg := FlowAgg{}
 	for {
 		select {
@@ -270,11 +329,17 @@ func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context, interval time.Dur
 			if err := feed(tracer.datakitPostURL, pts); err != nil {
 				l.Error(err)
 			}
-		case finReq := <-tracer.finReqCh:
-			err := agg.Append(finReq)
-			if err != nil {
-				l.Debug(err)
+		case <-mergeTicker.C:
+			reqs := _reqCache.MergeReq()
+
+			for _, req := range reqs {
+				err := agg.Append(req)
+				if err != nil {
+					l.Debug(err)
+				}
 			}
+		case <-cleanCacheTicker.C:
+			_reqCache.CleanPathExpr()
 		case <-ctx.Done():
 			return
 		}

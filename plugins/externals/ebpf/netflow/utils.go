@@ -277,7 +277,7 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 		l4proto = "udp"
 		mTags["transport"] = l4proto
 	}
-	mTags["direction"] = connDirection2Str(v.Stats.Direction)
+	mTags["direction"] = ConnDirection2Str(v.Stats.Direction)
 
 	// add K8s tags
 	mTags = AddK8sTags2Map(k8sNetInfo, srcIP, dstIP, k.Sport, k.Dport, l4proto, mTags)

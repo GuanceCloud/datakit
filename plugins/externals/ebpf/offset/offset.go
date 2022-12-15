@@ -54,6 +54,27 @@ type Conninfo struct {
 
 const minKernelVersionB16 = 0x0004000400000000
 
+func NewConstHTTPEditor(offsetHTTP *OffsetHTTPFlowC) []manager.ConstantEditor {
+	return []manager.ConstantEditor{
+		{
+			Name:  "offset_task_struct_files",
+			Value: uint64(offsetHTTP.offset_task_struct_files),
+		},
+		{
+			Name:  "offset_files_struct_fdt",
+			Value: uint64(offsetHTTP.offset_files_struct_fdt),
+		},
+		{
+			Name:  "offset_socket_file",
+			Value: uint64(offsetHTTP.offset_socket_file),
+		},
+		{
+			Name:  "offset_file_private_data",
+			Value: uint64(offsetHTTP.offset_file_private_data),
+		},
+	}
+}
+
 func NewConstEditor(offsetGuess *OffsetGuessC) []manager.ConstantEditor {
 	kernelVersion, err := getLinuxKernelVesion()
 	if err != nil {
@@ -153,11 +174,16 @@ func NewConstEditor(offsetGuess *OffsetGuessC) []manager.ConstantEditor {
 }
 
 // GuessOffset guess the offset of the structure field, such as tcp_sock.srtt_us.
-func GuessOffset(ebpfMapGuess *ebpf.Map, guessed *OffsetGuessC, ipv6Disabled bool) (*OffsetGuessC, error) {
+func GuessOffset(bpfManager *manager.Manager, guessed *OffsetGuessC, ipv6Disabled bool) (*OffsetGuessC, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	ebpfMapGuess, err := BpfMapGuessInit(bpfManager)
+	if err != nil {
+		return nil, err
+	}
 
 	tcp4ServerPort, err := runTCPServer(ctx, "tcp4", listenIPv4)
 	if err != nil {

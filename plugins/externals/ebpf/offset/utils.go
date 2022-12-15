@@ -31,6 +31,16 @@ import (
 
 type OffsetGuessC C.struct_offset_guess
 
+type OffsetHTTPFlowC C.struct_offset_httpflow
+
+type offsethttpflowcheck struct {
+	taskStructFilesOk uint64
+	filesStructFdt    uint64
+	fdTableFd         uint64
+	socketFile        uint64
+	filePrivateData   uint64
+}
+
 //nolint:structcheck
 type OffsetCheck struct {
 	skNumOk           uint64
@@ -129,6 +139,31 @@ func NewGuessManger() (*manager.Manager, error) {
 	return m, nil
 }
 
+func NewOffsetHTTPFlow() (*manager.Manager, error) {
+	m := &manager.Manager{
+		Probes: []*manager.Probe{
+			{
+				Section: "kretprobe/sock_common_getsockopt",
+			},
+			{
+				Section: "kprobe/sock_common_getsockopt",
+			},
+		},
+	}
+	mOpts := manager.Options{
+		RLimit: &unix.Rlimit{
+			Cur: math.MaxUint64,
+			Max: math.MaxUint64,
+		},
+	}
+	if buf, err := dkebpf.OffsetHttpflowBin(); err != nil {
+		return nil, fmt.Errorf("offset_httpflow.o: %w", err)
+	} else if err := m.InitWithOptions((bytes.NewReader(buf)), mOpts); err != nil {
+		return nil, fmt.Errorf("init offset httpflow guess: %w", err)
+	}
+	return m, nil
+}
+
 func readMapGuessStatus(m *ebpf.Map) (*OffsetGuessC, error) {
 	status := OffsetGuessC{}
 	zero := uint64(0)
@@ -158,9 +193,14 @@ func updateMapGuessStatus(m *ebpf.Map, status *OffsetGuessC) error {
 
 func BpfMapGuessInit(m *manager.Manager) (*ebpf.Map, error) {
 	bpfmapOffsetGuess, found, err := m.GetMap("bpfmap_offset_guess")
-	if err != nil || !found {
+	if err != nil {
 		return nil, err
 	}
+
+	if !found {
+		return nil, fmt.Errorf("bpf map bpfmap_offset_guess not found")
+	}
+
 	zero := uint64(0)
 	status := newGuessStatus()
 	err = bpfmapOffsetGuess.Update(zero, unsafe.Pointer(&status), ebpf.UpdateAny)
@@ -169,6 +209,30 @@ func BpfMapGuessInit(m *manager.Manager) (*ebpf.Map, error) {
 	}
 	time.Sleep(time.Millisecond * 5)
 	return bpfmapOffsetGuess, nil
+}
+
+func BpfMapGuessHTTPInit(m *manager.Manager) (*ebpf.Map, error) {
+	bpfmapOffsetHTTP, found, err := m.GetMap("bpf_map_offset_httpflow")
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !found {
+		return nil, fmt.Errorf("bpf map bpf_map_offset_httpflow not found")
+	}
+
+	key := uint64(0)
+	value := newGuessHTTP()
+
+	err = bpfmapOffsetHTTP.Update(key, unsafe.Pointer(&value), ebpf.UpdateAny)
+	if err != nil {
+		return nil, err
+	}
+
+	time.Sleep(time.Millisecond * 5)
+
+	return bpfmapOffsetHTTP, nil
 }
 
 func newGuessStatus() OffsetGuessC {
@@ -188,6 +252,25 @@ func newGuessStatus() OffsetGuessC {
 	}
 
 	return status
+}
+
+func newGuessHTTP() OffsetHTTPFlowC {
+	procName := filepath.Base(os.Args[0])
+	if len(procName) > PROCNAMLEN-1 {
+		procName = procName[:PROCNAMLEN-1]
+	}
+
+	procNameC := [PROCNAMLEN]C.__u8{}
+	for i := 0; i < PROCNAMLEN-1 && i < len(procName); i++ {
+		procNameC[i] = C.__u8(procName[i])
+	}
+
+	httpOffset := OffsetHTTPFlowC{
+		process_name: procNameC,
+		pid_tgid:     C.__u64(uint64(unix.Getpid())<<32 | uint64(unix.Gettid())),
+	}
+
+	return httpOffset
 }
 
 func copyOffset(src *OffsetGuessC, dst *OffsetGuessC) {
