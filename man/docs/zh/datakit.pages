@@ -143,7 +143,6 @@ nav:
       - nsq.md
       - rabbitmq.md
       - kafka.md
-      - '订阅kafka MQ': kafkamq.md
       - etcd.md
       - consul.md
       - coredns.md
