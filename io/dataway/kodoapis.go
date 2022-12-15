@@ -7,15 +7,11 @@ package dataway
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/big"
-	"mime/multipart"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -28,6 +24,10 @@ func (dw *DataWayDefault) GetLogFilter() ([]byte, error) {
 	}
 
 	return dw.endPoints[0].getLogFilter()
+}
+
+func (dc *endPoint) GetCategoryURL() map[string]string {
+	return dc.categoryURL
 }
 
 func (dc *endPoint) getLogFilter() ([]byte, error) {
@@ -387,100 +387,8 @@ func (dw *DataWayDefault) DeleteObjectLabels(tkn string, body []byte) (*http.Res
 	return dw.sendReq(req)
 }
 
-func (dw *DataWayDefault) ProfilingProxyURL() (*url.URL, error) {
-	lastErr := fmt.Errorf("no dataway profiling proxy endpoint available")
-
-	if len(dw.endPoints) == 0 {
-		return nil, lastErr
-	}
-
-	// copy endpoints
-	endPoints := append([]*endPoint(nil), dw.endPoints...)
-
-	for len(endPoints) > 0 {
-		idx := big.NewInt(0)
-		if len(dw.endPoints) > 1 {
-			var err error
-			idx.SetInt64(int64(len(dw.endPoints)))
-			idx, err = rand.Int(rand.Reader, idx)
-			if err != nil {
-				return nil, fmt.Errorf("create random use crypto/rand fail: %w", err)
-			}
-		}
-		ep := endPoints[idx.Int64()]
-		// del the selected endpoint
-		endPoints = append(endPoints[:idx.Int64()], endPoints[idx.Int64()+1:]...)
-
-		rawURL := ep.categoryURL[datakit.ProfilingUpload]
-		if rawURL == "" {
-			lastErr = fmt.Errorf("profiling upload url empty")
-			continue
-		}
-
-		URL, err := url.Parse(rawURL)
-		if err != nil {
-			lastErr = fmt.Errorf("profiling upload url [%s] parse err:%w", rawURL, err)
-			continue
-		}
-		return URL, nil
-	}
-	return nil, lastErr
-}
-
-func (dw *DataWayDefault) UploadProfiling(profileID string, formFiles map[string][]*multipart.FileHeader) (*http.Response, error) {
-	if profileID == "" {
-		return nil, fmt.Errorf("empty profileID not allowed")
-	}
-
-	if len(formFiles) == 0 {
-		return nil, fmt.Errorf("empty formFiles")
-	}
-
-	if len(dw.endPoints) == 0 {
-		return nil, fmt.Errorf("no dataway available")
-	}
-	dc := dw.endPoints[0]
-
-	reqURL, ok := dc.categoryURL[datakit.Profiling]
-	if !ok {
-		return nil, fmt.Errorf("no profiling upload url available")
-	}
-
-	body := &bytes.Buffer{}
-	mp := multipart.NewWriter(body)
-
-	for fieldName, headers := range formFiles {
-		for _, header := range headers {
-			if header.Size <= 0 {
-				continue
-			}
-			src, err := header.Open()
-			if err != nil {
-				return nil, fmt.Errorf("open upload file fail: %w", err)
-			}
-			partW, err := mp.CreateFormFile(fieldName, header.Filename)
-			if err != nil {
-				return nil, fmt.Errorf("multipart CreateFormFile fail:%w", err)
-			}
-			if n, err := io.Copy(partW, src); n != header.Size || err != nil {
-				return nil, fmt.Errorf("copy uploaded file fail: %w", err)
-			}
-			_ = src.Close()
-		}
-	}
-
-	if err := mp.Close(); err != nil {
-		return nil, fmt.Errorf("multipart close fail: %w", err)
-	}
-
-	req, err := http.NewRequest("POST", reqURL, body)
-	if err != nil {
-		return nil, fmt.Errorf("http newrequest fail: %w", err)
-	}
-
-	req.Header.Set("Content-Type", mp.FormDataContentType())
-	req.Header.Set("Datakit-Profile-Id", profileID)
-	return dw.sendReq(req)
+func (dw *DataWayDefault) GetAvailableEndpoints() []*endPoint {
+	return dw.endPoints
 }
 
 func (dw *DataWayDefault) UploadLog(r io.Reader, hostName string) (*http.Response, error) {

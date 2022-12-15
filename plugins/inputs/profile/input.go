@@ -15,6 +15,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"regexp"
 	"strconv"
 	"sync"
@@ -32,9 +33,10 @@ import (
 )
 
 const (
-	inputName      = "profile"
-	profileMaxSize = (1 << 20) * 8
-	sampleConfig   = `
+	inputName            = "profile"
+	profileMaxSize       = 1 << 23
+	ProxySaveErrorHeader = "X-Proxy-Error"
+	sampleConfig         = `
 [[inputs.profile]]
   ## profile Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
@@ -80,6 +82,8 @@ var (
 
 	workSpaceUUID         string
 	workSpaceUUIDInitLock sync.Mutex
+	// A Regexp is concurrent safe, so we can define this var globally
+	workSpaceUUIDRegexp = regexp.MustCompile(`ws_uuid"\s*:\s*"([^"]*?)"`)
 
 	pointCache     *profileCache
 	pointCacheOnce sync.Once
@@ -377,23 +381,43 @@ func queryWorkSpaceUUID() (string, error) {
 		return "", fmt.Errorf("read response body fail:%w", err)
 	}
 
-	express := `ws_uuid"\s*:\s*"(.*?)"`
-	re, err := regexp.Compile(express)
-	if err != nil {
-		return "", fmt.Errorf("compile regexp fail: %w, express: %s", err, express)
-	}
-
-	matches := re.FindSubmatch(body)
+	matches := workSpaceUUIDRegexp.FindSubmatch(body)
 	if len(matches) < 2 {
-		return "", fmt.Errorf("no match for express[%s] found", express)
+		return "", fmt.Errorf("no match for express[%s] found, body [%s]", workSpaceUUIDRegexp.String(), string(body))
 	}
 	workSpaceUUID = string(matches[1])
 	return workSpaceUUID, nil
 }
 
+func profilingProxyURL() (*url.URL, error) {
+	lastErr := fmt.Errorf("no dataway endpoint available now")
+
+	endpoints := config.Cfg.DataWay.GetAvailableEndpoints()
+
+	if len(endpoints) == 0 {
+		return nil, lastErr
+	}
+
+	for _, ep := range endpoints {
+		rawURL, ok := ep.GetCategoryURL()[datakit.ProfilingUpload]
+		if !ok || rawURL == "" {
+			lastErr = fmt.Errorf("profiling upload url empty")
+			continue
+		}
+
+		URL, err := url.Parse(rawURL)
+		if err != nil {
+			lastErr = fmt.Errorf("profiling upload url [%s] parse err:%w", rawURL, err)
+			continue
+		}
+		return URL, nil
+	}
+	return nil, lastErr
+}
+
 // RegHTTPHandler simply proxy profiling request to dataway.
 func (i *Input) RegHTTPHandler() {
-	URL, err := config.Cfg.DataWay.ProfilingProxyURL()
+	URL, err := profilingProxyURL()
 	if err != nil {
 		log.Errorf("no profiling proxy url available: %s", err)
 		return
@@ -403,18 +427,21 @@ func (i *Input) RegHTTPHandler() {
 
 	proxy := &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
-			req.URL = URL
-			req.Host = URL.Host // must override the host
 
 			// not a post request
 			if req.Body == nil {
+				req.Header.Set(ProxySaveErrorHeader, "profiling request body is nil")
 				log.Errorf("profiling request body is nil")
+				// Set req.URL to nil will trigger a proxy err and then the request will be terminated immediately
+				req.URL = nil
 				return
 			}
 
 			bodyBytes, err := ioutil.ReadAll(http.MaxBytesReader(nil, req.Body, profileMaxSize))
 			if err != nil {
+				req.Header.Set(ProxySaveErrorHeader, fmt.Sprintf("readall profile body err: %s", err))
 				log.Errorf("read profile body err: %s", err)
+				req.URL = nil
 				return
 			}
 			_ = req.Body.Close()
@@ -434,14 +461,22 @@ func (i *Input) RegHTTPHandler() {
 
 			wsID, err := queryWorkSpaceUUID()
 			if err != nil {
+				req.Header.Set(ProxySaveErrorHeader, fmt.Sprintf("query workspace uuid fail: %s", err))
 				log.Errorf("query workspace id fail: %s", err)
+				req.URL = nil
+				return
 			}
 
 			profileID, unixNano, err := cache(req)
 			if err != nil {
+				req.Header.Set(ProxySaveErrorHeader, fmt.Sprintf("cache profile data fail: %s", err))
 				log.Errorf("send profile to datakit io fail: %s", err)
+				req.URL = nil
 				return
 			}
+
+			req.URL = URL
+			req.Host = URL.Host // must override the host
 
 			log.Infof("receive profiling request, bodyLength: %d, datakit will proxy the request to url [%s], workspaceID: [%s]",
 				req.ContentLength, URL.String(), wsID)
@@ -498,8 +533,16 @@ func (i *Input) RegHTTPHandler() {
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			w.WriteHeader(http.StatusInternalServerError)
-			log.Errorf("proxy error handler get err: %s", err.Error())
+			proxyErr := r.Header.Get(ProxySaveErrorHeader)
+			if proxyErr != "" {
+				w.WriteHeader(http.StatusBadRequest)
+				_, _ = w.Write([]byte(proxyErr))
+				log.Errorf("proxy error handler get err: %s, %s", proxyErr, err.Error())
+			} else {
+				w.WriteHeader(http.StatusBadGateway)
+				_, _ = w.Write([]byte(err.Error()))
+				log.Errorf("proxy error handler get err: %s", err.Error())
+			}
 		},
 	}
 
