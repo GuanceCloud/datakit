@@ -81,15 +81,16 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
 
 支持的环境变量：
 
-| 环境变量名                       | 配置项含义                                                                     |
-| :---                             | :---                                                                           |
-| `LOGFWD_DATAKIT_HOST`            | Datakit 地址                                                                   |
-| `LOGFWD_DATAKIT_PORT`            | Datakit Port                                                                   |
-| `LOGFWD_GLOBAL_SOURCE`           | 配置全局 source，优先级最高                                                    |
-| `LOGFWD_GLOBAL_SERVICE`          | 配置全局 service，优先级最高                                                   |
-| `LOGFWD_POD_NAME`                | 指定 pod name，会 tags 中添加 `pod_name`                                       |
-| `LOGFWD_POD_NAMESPACE`           | 指定 pod namespace，会 tags 中添加 `pod_namespace`                             |
-| `LOGFWD_ANNOTATION_DATAKIT_LOGS` | 使用当前 Pod 的 Annotations `datakit/logs` 配置，优先级比 logfwd JSON 配置更高 |
+| 环境变量名                       | 配置项含义                                                                                                              |
+| :---                             | :---                                                                                                                    |
+| `LOGFWD_DATAKIT_HOST`            | Datakit 地址                                                                                                            |
+| `LOGFWD_DATAKIT_PORT`            | Datakit Port                                                                                                            |
+| `LOGFWD_TARGET_CONTAINER_IMAGE`  | 配置目标容器的镜像名，例如 `nginx:1.22`，解析并添加相关的 tag（`image`、`image_name`、`image_short_name`、`image_tag`） |
+| `LOGFWD_GLOBAL_SOURCE`           | 配置全局 source，优先级最高                                                                                             |
+| `LOGFWD_GLOBAL_SERVICE`          | 配置全局 service，优先级最高                                                                                            |
+| `LOGFWD_POD_NAME`                | 指定 pod name，会 tags 中添加 `pod_name`                                                                                |
+| `LOGFWD_POD_NAMESPACE`           | 指定 pod namespace，会 tags 中添加 `pod_namespace`                                                                      |
+| `LOGFWD_ANNOTATION_DATAKIT_LOGS` | 使用当前 Pod 的 Annotations `datakit/logs` 配置，优先级比 logfwd JSON 配置更高                                          |
 
 #### 安装和运行 {#install-run}
 
@@ -130,9 +131,19 @@ spec:
     - name: varlog
       mountPath: /var/log
     - mountPath: /opt/logfwd/config
-      name: logfwd-config
+      name: logfwd-conf
       subPath: config
-      workingDir: /opt/logfwd
+    - mountPath: /usr/local/datakit/cache
+      name: cache
+      readOnly: false
+    workingDir: /opt/logfwd
+  volumes:
+  - hostPath:
+      path: /root/datakit_cache
+    name: cache
+  - configMap:
+      name: logfwd-conf
+    name: logfwd-config
 
 ```
 
@@ -224,12 +235,18 @@ spec:
     - name: varlog
       mountPath: /var/log
     - mountPath: /opt/logfwd/config
-      name: logfwd-config
+      name: logfwd-conf
       subPath: config
+    - mountPath: /usr/local/datakit/cache
+      name: cache
+      readOnly: false
     workingDir: /opt/logfwd
   volumes:
   - name: varlog
     emptyDir: {}
+  - hostPath:
+      path: /root/datakit_cache
+    name: cache
   - configMap:
       name: logfwd-conf
     name: logfwd-config
@@ -239,7 +256,7 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: logfwd-conf
+  name: logfwd-config
 data:
   config: |
     [
