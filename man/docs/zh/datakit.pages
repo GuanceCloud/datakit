@@ -79,7 +79,7 @@ nav:
         - 'DataKit 采集配置': profile.md
         - '工具接入':
           - 'Java': profile-java.md 
-          - python-profiling.md
+          - 'Python': profile-python.md
           - 'Go': profile-go.md
 
       - 'DDTrace':
