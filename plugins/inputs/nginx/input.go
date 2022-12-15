@@ -194,7 +194,7 @@ func (n *Input) Run() {
 							n.collectCache = n.collectCache[:0]
 						}
 					}
-				} // for
+				}
 			}
 		}
 
@@ -203,16 +203,12 @@ func (n *Input) Run() {
 			n.exit()
 			l.Info("nginx exit")
 			return
-
 		case <-n.semStop.Wait():
 			n.exit()
 			l.Info("nginx return")
 			return
-
 		case <-tick.C:
-
 		case n.pause = <-n.pauseCh:
-			// nil
 		}
 	}
 }

@@ -218,7 +218,6 @@ func (n *Input) Run() {
 				if err != nil {
 					n.lastErr = err
 					l.Errorf(err.Error())
-					continue
 				}
 			}
 

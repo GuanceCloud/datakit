@@ -290,7 +290,7 @@ func (ipt *Input) createMgoClient(url string) (*mongo.Client, error) {
 			cliOpts.SetTLSConfig(tlscfg)
 		}
 	}
-
+	cliOpts.SetConnectTimeout(time.Second * 10)
 	mgocli, err := mongo.Connect(context.TODO(), cliOpts)
 	if err != nil {
 		return nil, err
