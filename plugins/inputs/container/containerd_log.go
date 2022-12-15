@@ -79,15 +79,17 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		name = "unknown"
 	}
 
-	if !tailer.FileIsActive(status.GetLogPath(), ignoreDeadLogDuration) {
-		l.Infof("container %s file %s is not active, larger than %s, ignored", name, status.GetLogPath(), ignoreDeadLogDuration)
+	logpath := logsJoinRootfs(status.GetLogPath())
+
+	if !tailer.FileIsActive(logpath, ignoreDeadLogDuration) {
+		l.Debugf("container %s file %s is not active, larger than %s, ignored", name, logpath, ignoreDeadLogDuration)
 		return nil
 	}
 
 	info := &containerLogBasisInfo{
 		name:                  name,
 		id:                    status.GetId(),
-		logPath:               status.GetLogPath(),
+		logPath:               logpath,
 		labels:                status.GetLabels(),
 		tags:                  make(map[string]string),
 		extraSourceMap:        c.ipt.LoggingExtraSourceMap,
