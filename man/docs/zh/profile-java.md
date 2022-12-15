@@ -1,8 +1,32 @@
-# Async Profiler
+# Java profiling
 
-本文将介绍基于 [async-profiler](https://github.com/jvm-profiling-tools/async-profiler#async-profiler) 来采集 java 应用，并将采集到的数据上报给 DataKit，从而可以在观测云平台进行分析。
+DataKit 支持两种方式来采集 Java profiling 数据，即 [ddtrace](https://github.com/DataDog/dd-trace-go) 和 [async-profiler](https://github.com/jvm-profiling-tools/async-profiler#async-profiler)。
 
-## Async Profiler 介绍 {#info}
+## ddtrace {#ddtrace}
+
+下载最新的 ddtrace agent dd-java-agent.jar
+
+```shell
+# java版本要求：java8版本需要高于8u262+，或者使用java11及以上版本
+wget -O dd-java-agent.jar 'https://github.com/DataDog/dd-trace-java/releases/download/v0.107.0/dd-java-agent-0.107.0.jar'
+```
+
+运行 Java Code
+
+```shell
+java -javaagent:/<your-path>/dd-java-agent.jar \
+-Ddd.service=profiling-demo \
+-Ddd.env=dev \
+-Ddd.version=1.2.3  \
+-Ddd.profiling.enabled=true  \
+-XX:FlightRecorderOptions=stackdepth=256 \
+-Ddd.trace.agent.port=9529 \
+-jar your-app.jar 
+```
+
+程序运行后，约 1 分钟后即可在观测云平台查看相关数据。
+
+## async-profiler {#async-profiler}
 
 async-profiler 是一款开源的 Java 性能分析工具，基于 HotSpot 的 API，可以收集程序运行中的堆栈和内存分配等信息。
 
@@ -13,7 +37,7 @@ async-profiler 可以收集以下几种事件：
 - Java 堆的分配
 - Contented lock attempts, 包括 Java object monitors 和 ReentrantLocks
 
-## async-profiler 安装 {#install}
+### async-profiler 安装 {#install}
 
 官网提供了不同平台的安装包的下载(当前版本 2.8.3):
 
@@ -35,9 +59,9 @@ $ cd async-profiler-2.8.3-linux-x64 && ls
   build  CHANGELOG.md  LICENSE  profiler.sh  README.md
 ```
 
-## async-profiler 使用 {#usage}
+### async-profiler 使用 {#usage}
 
-### 前置条件 {#async-requirement} 
+**前置条件** 
 
 - 设置 `perf_events` 参数
 
@@ -86,7 +110,7 @@ $ jps
 8983 Computey
 ```
 
-### 采集 java 进程 {#collect}
+**采集 java 进程**
 
  选定一个需要采集的 java 进程 (如上面的 8983 进程)， 执行目录下的 `profiler.sh`，采集数据 
 
@@ -99,9 +123,9 @@ Done
 
  约 10 秒后，会在当前目录下生成一个名为 `profiling.html` 的 html 文件，通过浏览器打开该文件，就可以查看火焰图。
 
-## 整合 DataKit 和 async-profiler {#async-datakit}
+### 整合 DataKit 和 async-profiler {#async-datakit}
 
-### 准备工作 {#profile-requirement}
+**准备工作**
 
 - [准备 DataKit 服务](datakit-install.md)，版本 DataKit >= 1.4.3
 
@@ -109,14 +133,14 @@ Done
 
 - [开启 Profile 采集器](profile.md) 
 
-### 整合步骤 {#steps}
+**整合步骤**
 
 整合方式，可以分为两种：
 
 - [自动化脚本 (推荐)](#script)
 - [手动操作](#manual) 
 
-#### 自动化脚本 {#script}
+**1. 自动化脚本**
 
 自动化脚本可以方便地整合 async-profiler 和 DataKit，使用方法如下。
 
@@ -311,7 +335,7 @@ $ bash collect.sh
 $ DATAKIT_URL=http://localhost:9529 APP_ENV=test APP_VERSION=1.0.0 HOST_NAME=datakit PROFILING_EVENT=cpu,alloc PROFILING_DURATION=20 PROCESS_ID=98789,33432 bash collect.sh
 ```
 
-#### 手动操作 {#manual}
+**2. 手动操作**
 
 相比自动化脚本，手动操作自由度高，可满足不同的场景需求。
 

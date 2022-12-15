@@ -8,6 +8,7 @@ package profile
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,10 +20,12 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -37,14 +40,43 @@ const (
   ## Endpoints can be skipped listen by remove them from the list.
   ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
   endpoints = ["/profiling/v1/input"]
+
+  ## set true to enable election, pull mode only
+  election = true
+
+## go pprof config
+## collect profiling data in pull mode
+#[[inputs.profile.go]]
+  ## pprof url
+  #url = "http://localhost:6060"
+
+  ## pull interval, should be greater or equal than 10s
+  #interval = "10s"
+
+  ## service name
+  #service = "go-demo"
+
+  ## app env
+  #env = "dev"
+
+  ## app version
+  #version = "0.0.0"
+
+  ## types to pull 
+  ## values: cpu, goroutine, heap, mutex, block
+  #enabled_types = ["cpu","goroutine","heap","mutex","block"]
+
+#[inputs.profile.go.tags]
+  # tag1 = xxxxx
 `
 )
 
 var (
 	log = logger.DefaultSLogger(inputName)
 
-	_ inputs.HTTPInput = &Input{}
-	_ inputs.InputV2   = &Input{}
+	_ inputs.HTTPInput     = &Input{}
+	_ inputs.InputV2       = &Input{}
+	_ inputs.ElectionInput = (*Input)(nil)
 
 	workSpaceUUID         string
 	workSpaceUUIDInitLock sync.Mutex
@@ -258,12 +290,49 @@ func (pc *profileCache) drop(profileID string) *point.Point {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+			Election: true,
+			semStop:  cliutils.NewSem(),
+		}
 	})
 }
 
 type Input struct {
-	Endpoints []string `toml:"endpoints"`
+	Endpoints []string      `toml:"endpoints"`
+	Go        []*GoProfiler `toml:"go"`
+
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
+
+	semStop *cliutils.Sem // start stop signal
+}
+
+func (i *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
 }
 
 // uploadResponse {"content":{"profileID":"fa9c3d16-1cfc-4e37-950d-129cbebd1cdb"}}.
@@ -323,7 +392,7 @@ func queryWorkSpaceUUID() (string, error) {
 }
 
 // RegHTTPHandler simply proxy profiling request to dataway.
-func (in *Input) RegHTTPHandler() {
+func (i *Input) RegHTTPHandler() {
 	URL, err := config.Cfg.DataWay.ProfilingProxyURL()
 	if err != nil {
 		log.Errorf("no profiling proxy url available: %s", err)
@@ -434,33 +503,58 @@ func (in *Input) RegHTTPHandler() {
 		},
 	}
 
-	for _, endpoint := range in.Endpoints {
+	for _, endpoint := range i.Endpoints {
 		dkhttp.RegHTTPHandler(http.MethodPost, endpoint, proxy.ServeHTTP)
 		log.Infof("pattern: %s registered", endpoint)
 	}
 }
 
-func (in *Input) Catalog() string {
+func (i *Input) Catalog() string {
 	return inputName
 }
 
-func (in *Input) Run() {
+func (i *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("the input %s is running...", inputName)
+
+	group := goroutine.NewGroup(goroutine.Option{
+		Name: "profile",
+		PanicCb: func(b []byte) bool {
+			log.Error(string(b))
+			return false
+		},
+	})
+
+	for _, g := range i.Go {
+		func(g *GoProfiler) {
+			group.Go(func(ctx context.Context) error {
+				if err := g.run(i); err != nil {
+					log.Errorf("go profile collect error: %s", err.Error())
+				}
+				return nil
+			})
+		}(g)
+	}
+
+	if err := group.Wait(); err != nil {
+		log.Errorf("profile collect err: %s", err.Error())
+	}
 }
 
-func (in *Input) SampleConfig() string {
+func (i *Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (in *Input) SampleMeasurement() []inputs.Measurement {
+func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&trace.TraceMeasurement{Name: inputName}}
 }
 
-func (in *Input) AvailableArchs() []string {
+func (i *Input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 
-func (in *Input) Terminate() {
-	// TODO: 必须写
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+	}
 }
