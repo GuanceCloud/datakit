@@ -251,13 +251,13 @@ func pickupMeta(dkspan *itrace.DatakitSpan, ddspan *DDSpan, keys ...string) {
 
 	if dkspan.Status == itrace.STATUS_ERR || dkspan.Status == itrace.STATUS_CRITICAL {
 		if errType, ok := ddspan.Meta["error.type"]; ok {
-			dkspan.Tags[itrace.TAG_ERR_TYPE] = errType
+			dkspan.Metrics[itrace.TAG_ERR_TYPE] = errType
 		}
 		if errStack, ok := ddspan.Meta["error.stack"]; ok {
-			dkspan.Tags[itrace.TAG_ERR_STACK] = errStack
+			dkspan.Metrics[itrace.TAG_ERR_STACK] = errStack
 		}
 		if errMsg, ok := ddspan.Meta["error.msg"]; ok {
-			dkspan.Tags[itrace.TAG_ERR_MESSAGE] = errMsg
+			dkspan.Metrics[itrace.TAG_ERR_MESSAGE] = errMsg
 		}
 	}
 }
