@@ -10,7 +10,7 @@ Datakit 内嵌的 SkyWalking Agent 用于接收，运算，分析 Skywalking Tra
 
 ## SkyWalking 文档 {#doc}
 
-> APM v8.8.3 目前存在不兼容问题无法使用。目前已支持 v8.5.0 v8.6.0 v8.7.0
+> 最新的 Datakit Skywalking 实现支持所有 8.x.x 的 Skywalking APM Agent
 
 - [Quickstart](https://skywalking.apache.org/docs/skywalking-showcase/latest/readme/){:target="_blank"}
 - [Docs](https://skywalking.apache.org/docs/){:target="_blank"}
@@ -33,13 +33,13 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
-    
+
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-    
+
     以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
-    
+
     ```toml
      [inputs.{{.InputName}}.tags]
       # some_tag = "some_value"
