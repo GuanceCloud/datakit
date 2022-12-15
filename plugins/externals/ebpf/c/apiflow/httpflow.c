@@ -58,14 +58,14 @@ int tracepoint__sys_exit_write(struct tp_syscall_exit_args *ctx)
     req_resp_t req_resp = checkHTTP(arg->skt, arg->buf, arg->ts, &conn, &stats);
     if (req_resp == HTTP_REQ_UNKNOWN)
     {
-        return 0;
+        goto clean;
     }
 
     int index = 0;
     struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
     if (l7buffer == NULL)
     {
-        return 0;
+        goto clean;
     }
 
     copy_data_from_buffer(arg->buf, ctx->ret, &stats.req_payload_id, l7buffer);
@@ -127,7 +127,7 @@ int tracepoint__sys_exit_read(struct tp_syscall_exit_args *ctx)
     req_resp_t req_resp = checkHTTP(arg->skt, arg->buf, arg->ts, &conn, &stats);
     if (req_resp == HTTP_REQ_UNKNOWN)
     {
-        return 0;
+        goto clean;
     }
 
     // 如果是 resp，此 buffer 不使用
@@ -135,7 +135,7 @@ int tracepoint__sys_exit_read(struct tp_syscall_exit_args *ctx)
     struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
     if (l7buffer == NULL)
     {
-        return 0;
+        goto clean;
     }
 
     copy_data_from_buffer(arg->buf, ctx->ret, &stats.req_payload_id, l7buffer);
@@ -198,14 +198,14 @@ int tracepoint__sys_exit_sendto(struct tp_syscall_exit_args *ctx)
     req_resp_t req_resp = checkHTTP(arg->skt, arg->buf, arg->ts, &conn, &stats);
     if (req_resp == HTTP_REQ_UNKNOWN)
     {
-        return 0;
+        goto clean;
     }
 
     int index = 0;
     struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
     if (l7buffer == NULL)
     {
-        return 0;
+        goto clean;
     }
 
     copy_data_from_buffer(arg->buf, ctx->ret, &stats.req_payload_id, l7buffer);
@@ -267,7 +267,7 @@ int tracepoint__sys_exit_recvfrom(struct tp_syscall_exit_args *ctx)
     req_resp_t req_resp = checkHTTP(arg->skt, arg->buf, arg->ts, &conn, &stats);
     if (req_resp == HTTP_REQ_UNKNOWN)
     {
-        return 0;
+        goto clean;
     }
 
     // 如果是 resp，此 buffer 不使用
@@ -275,7 +275,7 @@ int tracepoint__sys_exit_recvfrom(struct tp_syscall_exit_args *ctx)
     struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
     if (l7buffer == NULL)
     {
-        return 0;
+        goto clean;
     }
 
     copy_data_from_buffer(arg->buf, ctx->ret, &stats.req_payload_id, l7buffer);
@@ -336,7 +336,7 @@ int tracepoint__sys_exit_writev(struct tp_syscall_exit_args *ctx)
 
     if (arg->vlen == 0)
     {
-        return 0;
+        goto clean;
     }
     struct iovec vec = {0};
     bpf_probe_read(&vec, sizeof(vec), arg->vec);
@@ -346,7 +346,7 @@ int tracepoint__sys_exit_writev(struct tp_syscall_exit_args *ctx)
     req_resp_t req_resp = checkHTTP(arg->skt, vec.iov_base, arg->ts, &conn, &stats);
     if ((req_resp != HTTP_REQ_REQ) && (req_resp != HTTP_REQ_RESP))
     {
-        return 0;
+        goto clean;
     }
 
     // 如果是 resp，此 buffer 不使用
@@ -354,7 +354,7 @@ int tracepoint__sys_exit_writev(struct tp_syscall_exit_args *ctx)
     struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
     if (l7buffer == NULL)
     {
-        return 0;
+        goto clean;
     }
 
     copy_data_from_iovec(arg->vec, arg->vlen, &stats.req_payload_id, l7buffer);
@@ -415,7 +415,7 @@ int tracepoint__sys_exit_readv(struct tp_syscall_exit_args *ctx)
 
     if (arg->vlen == 0)
     {
-        return 0;
+        goto clean;
     }
     struct iovec vec = {0};
     bpf_probe_read(&vec, sizeof(vec), arg->vec);
@@ -425,7 +425,7 @@ int tracepoint__sys_exit_readv(struct tp_syscall_exit_args *ctx)
     req_resp_t req_resp = checkHTTP(arg->skt, vec.iov_base, arg->ts, &conn, &stats);
     if ((req_resp != HTTP_REQ_REQ) && (req_resp != HTTP_REQ_RESP))
     {
-        return 0;
+        goto clean;
     }
 
     // 如果是 resp，此 buffer 不使用
@@ -433,7 +433,7 @@ int tracepoint__sys_exit_readv(struct tp_syscall_exit_args *ctx)
     struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
     if (l7buffer == NULL)
     {
-        return 0;
+        goto clean;
     }
 
     copy_data_from_iovec(arg->vec, arg->vlen, &stats.req_payload_id, l7buffer);
@@ -530,14 +530,14 @@ int uretprobe__SSL_read(struct pt_regs *ctx)
     struct ssl_read_args *args = bpf_map_lookup_elem(&bpfmap_ssl_read_args, &pid_tgid);
     if (args == NULL)
     {
-        goto cleanup;
+        goto clean;
     }
 
     void *ssl_ctx = args->ctx;
     __u64 *fd_ptr = (__u64 *)bpf_map_lookup_elem(&bpfmap_ssl_ctx_sockfd, &ssl_ctx);
     if (fd_ptr == NULL)
     {
-        return 0;
+        goto clean;
     }
 
     struct task_struct *task = bpf_get_current_task();
@@ -546,7 +546,7 @@ int uretprobe__SSL_read(struct pt_regs *ctx)
 
     if (skt == NULL)
     {
-        return 0;
+        goto clean;
     }
 
     __u64 ts = bpf_ktime_get_ns();
@@ -556,7 +556,7 @@ int uretprobe__SSL_read(struct pt_regs *ctx)
     req_resp_t req_resp = checkHTTP(skt, args->buf, ts, &conn, &stats);
     if (req_resp == HTTP_REQ_UNKNOWN)
     {
-        return 0;
+        goto clean;
     }
 
     // 如果是 resp，此 buffer 不使用
@@ -564,13 +564,13 @@ int uretprobe__SSL_read(struct pt_regs *ctx)
     struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
     if (l7buffer == NULL)
     {
-        return 0;
+        goto clean;
     }
 
     copy_data_from_buffer(args->buf, args->num, &stats.req_payload_id, l7buffer);
     parse_http1x(ctx, l7buffer, ts, &conn, &stats, req_resp, MSG_READ);
 
-cleanup:
+clean:
     bpf_map_delete_elem(&bpfmap_ssl_read_args, &pid_tgid);
     return 0;
 }
