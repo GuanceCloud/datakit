@@ -42,8 +42,10 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 		return err
 	}
 
-	if !tailer.FileIsActive(inspect.LogPath, ignoreDeadLogDuration) {
-		l.Infof("container %s file %s is not active, larger than %s, ignored", getContainerName(container.Names), inspect.LogPath, ignoreDeadLogDuration)
+	logpath := logsJoinRootfs(inspect.LogPath)
+
+	if !tailer.FileIsActive(logpath, ignoreDeadLogDuration) {
+		l.Debugf("container %s file %s is not active, larger than %s, ignored", getContainerName(container.Names), logpath, ignoreDeadLogDuration)
 		return nil
 	}
 
@@ -66,7 +68,7 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 	info := &containerLogBasisInfo{
 		name:                  getContainerName(container.Names),
 		id:                    container.ID,
-		logPath:               inspect.LogPath,
+		logPath:               logpath,
 		labels:                container.Labels,
 		image:                 image,
 		tags:                  make(map[string]string),
