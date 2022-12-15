@@ -130,7 +130,9 @@ kubectl apply -f deployment.yaml
 
 至此，Annotations 已经添加完成。DataKit 稍后会读取到 Pod 的 Annotations，并采集 `url` 上暴露出来的指标。
 
-## 自动发现 Service 暴露指标接口 {#auto-discovery-of-service-prometheus}
+## 自动发现 Service 服务并采集其配置的指标接口 {#auto-discovery-of-service-prometheus}
+
+注意，此功能默认关闭，需要手动开启，即添加环境变量 `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVIER_ANNOTATIONS` 为 `"true"`，详见 [container 文档](container.md)。
 
 需要在 Pod 上绑定 Service，且 Service 添加指定的 Annotations，由 Datakit 自动发现并访问 Service 以获取 prometheus 指标。
 
