@@ -174,6 +174,8 @@ spec:
           value: /rootfs/run
         - name: HOST_DEV
           value: /rootfs/dev
+        - name: HOST_ROOT
+          value: /rootfs
         # # ---iploc-start
         #- name: ENV_IPDB
         #  value: iploc
@@ -189,21 +191,15 @@ spec:
         securityContext:
           privileged: true
         volumeMounts:
-        - mountPath: /var/run
-          name: run
-        - mountPath: /var/lib
-          name: lib
-        - mountPath: /var/log
-          name: log
-        - mountPath: /usr/lib
-          name: usrlib
-        - mountPath: /rootfs
-          name: rootfs
-        - mountPath: /sys/kernel/debug
-          name: debugfs
         - mountPath: /usr/local/datakit/cache
           name: cache
           readOnly: false
+        - mountPath: /rootfs
+          name: rootfs
+        - mountPath: /var/run
+          name: run
+        - mountPath: /sys/kernel/debug
+          name: debugfs
         # # ---iploc-start
         # - mountPath: /usr/local/datakit/data/ipdb/iploc/
         #   name: datakit-ipdb
@@ -244,23 +240,14 @@ spec:
           name: datakit-conf
         name: datakit-conf
       - hostPath:
-          path: /var/run
-        name: run
-      - hostPath:
-          path: /var/lib
-        name: lib
-      - hostPath:
-          path: /var/log
-        name: log
-      - hostPath:
-          path: /usr/lib
-        name: usrlib
+          path: /root/datakit_cache
+        name: cache
       - hostPath:
           path: /
         name: rootfs
       - hostPath:
-          path: /root/datakit_cache
-        name: cache
+          path: /var/run
+        name: run
       - hostPath:
           path: /sys/kernel/debug
         name: debugfs
