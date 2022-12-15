@@ -182,6 +182,34 @@ static __always_inline __u64 load_offset_socket_sk()
     return var;
 }
 
+static __always_inline __u64 load_offset_socket_file()
+{
+    __u64 var = 0;
+    LOAD_OFFSET("offset_socket_file", var);
+    return var;
+}
+
+static __always_inline __u64 load_offset_task_struct_files()
+{
+    __u64 var = 0;
+    LOAD_OFFSET("offset_task_struct_files", var);
+    return var;
+}
+
+static __always_inline __u64 load_offset_files_struct_fdt()
+{
+    __u64 var = 0;
+    LOAD_OFFSET("offset_files_struct_fdt", var);
+    return var;
+}
+
+static __always_inline __u64 load_offset_file_private_data()
+{
+    __u64 var = 0;
+    LOAD_OFFSET("offset_file_private_data", var);
+    return var;
+}
+
 // value of sknet: &(struct net *) or &(struct possible_net_t)
 static __always_inline __u32 read_netns(void *sk)
 {
@@ -445,6 +473,10 @@ static __always_inline int read_connection_info(struct sock *sk, struct connecti
             return -1;
         }
     }
+    else
+    {
+        return -1;
+    }
 
     // read sport and dport
 
@@ -461,32 +493,6 @@ static __always_inline int read_connection_info(struct sock *sk, struct connecti
     }
     return 0;
 }
-
-// #define CONN_PID_APPEND 1
-// #define CONN_PID_DELETE 0
-// static __always_inline void update_conn_pid(struct connection_info *conn_info,
-//                                             __u64 pid_tgid, __u8 flag)
-// {
-//     struct conn_src_info conn_src = {0};
-
-//     __builtin_memcpy(&conn_src.saddr, conn_info->saddr, sizeof(__u32) * 4);
-//     conn_src.meta = conn_info->meta;
-//     conn_src.sport = conn_info->sport;
-
-//     switch (flag)
-//     {
-//     case CONN_PID_APPEND:
-//         bpf_map_update_elem(&bpfmap_conn_pid, &conn_src, &pid_tgid, BPF_ANY); 
-//         break;
-
-//     case CONN_PID_DELETE:
-//         bpf_map_delete_elem(&bpfmap_conn_pid, &conn_src);
-//         break;
-
-//     default:
-//         break;
-//     }
-// }
 
 // read tcp info: rtt, rtt_var
 static __always_inline int read_tcp_rtt(struct sock *sk, struct connection_tcp_stats *tcp_stats)

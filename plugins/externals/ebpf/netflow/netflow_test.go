@@ -768,10 +768,10 @@ func TestConnMeta(t *testing.T) {
 }
 
 func TestDirection(t *testing.T) {
-	assert.Equal(t, "incoming", connDirection2Str(ConnDirectionIncoming))
-	assert.Equal(t, "outgoing", connDirection2Str(ConnDirectionOutgoing))
-	assert.Equal(t, "outgoing", connDirection2Str(ConnDirectionAuto))
-	assert.Equal(t, "outgoing", connDirection2Str(ConnDirectionUnknown))
+	assert.Equal(t, "incoming", ConnDirection2Str(ConnDirectionIncoming))
+	assert.Equal(t, "outgoing", ConnDirection2Str(ConnDirectionOutgoing))
+	assert.Equal(t, "outgoing", ConnDirection2Str(ConnDirectionAuto))
+	assert.Equal(t, "outgoing", ConnDirection2Str(ConnDirectionUnknown))
 }
 
 func TestIPv4Type(t *testing.T) {

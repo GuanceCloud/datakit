@@ -61,11 +61,26 @@ test-datakit-testing:
   tags:
     - cloudcare-ft
 
-release-ebpf-testing:
+release-ebpf-amd64-testing:
   stage: deploy_ebpf
   resource_group: production
   needs: [test-datakit-testing]
-  image: vircoys/datakit-developer:1.4
+  image: vircoys/datakit-developer:1.5
+  only:
+    - testing
+    - hotfix
+    - /^testing-.*$/
+  script:
+    - make clean
+    - make pub_epbf_testing DATAKIT_EBPF_ARCHS="linux/amd64" GIT_BRANCH=$CI_COMMIT_BRANCH
+  tags:
+    - cloudcare-ft-docker
+
+release-ebpf-aarch64-testing:
+  stage: deploy_ebpf
+  resource_group: production
+  needs: [test-datakit-testing]
+  image: vircoys/datakit-developer:1.5
   only:
     - testing
     - hotfix
@@ -76,11 +91,28 @@ release-ebpf-testing:
   tags:
     - dk-arm-docker-runner
 
-release-ebpf-production:
+
+
+release-ebpf-amd64-production:
   stage: deploy_ebpf
   resource_group: production
   needs: [test-datakit-production]
-  image: vircoys/datakit-developer:1.4
+  image: vircoys/datakit-developer:1.5
+  only:
+    - master
+    - unstable
+  script:
+    - make clean
+    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/amd64" GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
+  tags:
+    - cloudcare-ft-docker
+
+
+release-ebpf-aarch64-production:
+  stage: deploy_ebpf
+  resource_group: production
+  needs: [test-datakit-production]
+  image: vircoys/datakit-developer:1.5
   only:
     - master
     - unstable
@@ -93,7 +125,7 @@ release-ebpf-production:
 release-testing:
   stage: deploy
   resource_group: production
-  needs: [test-datakit-testing, release-ebpf-testing]
+  needs: [test-datakit-testing, release-ebpf-amd64-testing, release-ebpf-aarch64-testing]
   only:
     - testing
     - hotfix
@@ -110,7 +142,7 @@ release-testing:
 release-stable:
   stage: deploy
   resource_group: production
-  needs: [test-datakit-production, release-ebpf-production]
+  needs: [test-datakit-production, release-ebpf-amd64-production, release-ebpf-aarch64-production]
   only:
     - master
   script:

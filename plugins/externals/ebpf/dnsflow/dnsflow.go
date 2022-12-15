@@ -34,7 +34,7 @@ func SetK8sNetInfo(n *k8sinfo.K8sNetInfo) {
 func NewDNSFlowTracer() *DNSFlowTracer {
 	return &DNSFlowTracer{
 		statsMap: map[DNSQAKey]DNSStats{},
-		pInfoCh:  make(chan *DNSPacketInfo, 128),
+		pInfoCh:  make(chan *DNSPacketInfo, 1024),
 	}
 }
 
@@ -118,7 +118,7 @@ func (tracer *DNSFlowTracer) readPacket(ctx context.Context, tp *afpacket.TPacke
 func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag map[string]string,
 	dnsRecord *DNSAnswerRecord, feedAddr string,
 ) {
-	mCh := make(chan []*point.Point)
+	mCh := make(chan []*point.Point, 8)
 	agg := FlowAgg{}
 	go tracer.readPacket(ctx, tp)
 	go func() {
