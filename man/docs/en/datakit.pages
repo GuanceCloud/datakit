@@ -78,9 +78,10 @@ nav:
 
       - 'Profiling':
         - 'Profile 采集配置': profile.md
-        - 'ddtrace': profile-ddtrace.md
-        - 'Java profiling': profile-java-async-profiler.md
-        - 'Python profiling': python-profiling.md
+        - '工具接入':
+          - 'Java': profile-java.md
+          - 'Python': profile-python.md
+          - 'Go': profile-go.md
 
       - 'DDTrace':
         - 'DDtrace 采集配置': ddtrace.md
