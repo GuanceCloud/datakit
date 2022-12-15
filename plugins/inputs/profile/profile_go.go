@@ -24,7 +24,6 @@ import (
 
 	pprofile "github.com/google/pprof/profile"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
@@ -328,7 +327,7 @@ func (g *GoProfiler) pushProfileData(startTime, endTime time.Time, profiledatas 
 
 	profileID := randomProfileID()
 
-	URL, err := config.Cfg.DataWay.ProfilingProxyURL()
+	URL, err := profilingProxyURL()
 	if err != nil {
 		return err
 	}
