@@ -61,6 +61,8 @@ spec:
               value: /rootfs/run
             - name: HOST_DEV
               value: /rootfs/dev
+            - name: HOST_ROOT
+              value: /rootfs
             {{- if .Values.iploc.enable }}
             - name: ENV_IPDB
               value: iploc
@@ -104,12 +106,6 @@ spec:
           volumeMounts:
             - mountPath: /var/run
               name: run
-            - mountPath: /var/lib
-              name: lib
-            - mountPath: /var/log
-              name: log
-            - mountPath: /usr/lib
-              name: usrlib
             - mountPath: /rootfs
               name: rootfs
             - mountPath: /sys/kernel/debug
@@ -166,15 +162,6 @@ spec:
         - hostPath:
             path: /var/run
           name: run
-        - hostPath:
-            path: /var/lib
-          name: lib
-        - hostPath:
-            path: /var/log
-          name: log
-        - hostPath:
-            path: /usr/lib
-          name: usrlib
         - hostPath:
             path: /
           name: rootfs
