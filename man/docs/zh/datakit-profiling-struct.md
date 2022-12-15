@@ -21,24 +21,25 @@
 source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 ```
 
-| <span style="color:green">**Section**</span> | <span style="color:green">**Name**</span> | <span style="color:green">**Unit**</span> | <span style="color:green">**Description**</span>                              |
-| -------------------------------------------- | ----------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------- |
-| Tag                                          | host                                      |                                           | host name                                                        |
-| Tag                                          | endpoint                                  |                                           | end point of resource                                                         |
-| Tag                                          | service                                   |                                           | service name                                                                  |
-| Tag                                          | env                                       |                                           | environment arguments                                                         |
-| Tag                                          | version                                   |                                           | service version                                                               |
-| Tag                                          | language                                  |                                           | language [Java, Python, Golang, ...]                                    |
-| Tag                                          | Runtime                                   |                                           | runtime [jvm, CPython, go, ....]                              |
-| Tag                                          | runtime_os                                |                                           | os                                                        |
-| Tag                                          | runtime_arch                              |                                           | cpu architecture                                                        |
-| Field                                        | profile_id                                |                                           | profiling ID                                                                      |
-| Field                                        | agent_ver                                 |                                           | 客户端agent版本                                                                       |
-| Field                                        | start                                     | 微秒                                      | profiling start timestamp                                                          |
-| Field                                        | end                                       | 微秒                                      | profiling end timestamp                                                          |
-| Field                                        | duration                                  | 微秒                                      | profiling duration                                                                 |
-| Field                                        | pid                                       |                                           | process id                                                                    |
-| Field                                        | format                                    |                                           | binary profiling file format                                                            |
+| <span style="color:green">**Section**</span> | <span style="color:green">**Name**</span> | <span style="color:green">**Unit**</span> | <span style="color:green">**Description**</span> |
+|----------------------------------------------|-------------------------------------------|-------------------------------------------|--------------------------------------------------|
+| Tag                                          | host                                      |                                           | host name                                        |
+| Tag                                          | endpoint                                  |                                           | end point of resource                            |
+| Tag                                          | service                                   |                                           | service name                                     |
+| Tag                                          | env                                       |                                           | environment arguments                            |
+| Tag                                          | version                                   |                                           | service version                                  |
+| Tag                                          | language                                  |                                           | language [Java, Python, Golang, ...]             |
+| Tag                                          | Runtime                                   |                                           | runtime [jvm, CPython, go, ....]                 |
+| Tag                                          | runtime_os                                |                                           | os                                               |
+| Tag                                          | runtime_arch                              |                                           | cpu architecture                                 |
+| Field                                        | profile_id                                |                                           | profiling ID                                     |
+| Field                                        | agent_ver                                 |                                           | 客户端agent版本                                       |
+| Field                                        | start                                     | 微秒                                        | profiling start timestamp                        |
+| Field                                        | end                                       | 微秒                                        | profiling end timestamp                          |
+| Field                                        | duration                                  | 微秒                                        | profiling duration                               |
+| Field                                        | pid                                       |                                           | process id                                       |
+| Field                                        | format                                    |                                           | binary profiling file format                     |
+| Field                                        | __file_size                               | Byte                                      | profiling 文件大小                                   |
 
 
 > 以下简称 dkproto
