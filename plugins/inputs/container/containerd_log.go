@@ -132,7 +132,8 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		return err
 	}
 
-	c.addToLogList(info.logPath)
+	// 这里添加原始 logpath，而不是修改过的
+	c.addToLogList(status.GetLogPath())
 	l.Infof("add containerd log, containerId: %s, source: %s, logpath: %s", status.Id, opt.Source, info.logPath)
 	defer func() {
 		c.removeFromLogList(info.logPath)
