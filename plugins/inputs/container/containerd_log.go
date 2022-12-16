@@ -79,15 +79,17 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		name = "unknown"
 	}
 
-	if !tailer.FileIsActive(status.GetLogPath(), ignoreDeadLogDuration) {
-		l.Infof("container %s file %s is not active, larger than %s, ignored", name, status.GetLogPath(), ignoreDeadLogDuration)
+	logpath := logsJoinRootfs(status.GetLogPath())
+
+	if !tailer.FileIsActive(logpath, ignoreDeadLogDuration) {
+		l.Debugf("container %s file %s is not active, larger than %s, ignored", name, logpath, ignoreDeadLogDuration)
 		return nil
 	}
 
 	info := &containerLogBasisInfo{
 		name:                  name,
 		id:                    status.GetId(),
-		logPath:               status.GetLogPath(),
+		logPath:               logpath,
 		labels:                status.GetLabels(),
 		tags:                  make(map[string]string),
 		extraSourceMap:        c.ipt.LoggingExtraSourceMap,
@@ -130,7 +132,8 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		return err
 	}
 
-	c.addToLogList(info.logPath)
+	// 这里添加原始 logpath，而不是修改过的
+	c.addToLogList(status.GetLogPath())
 	l.Infof("add containerd log, containerId: %s, source: %s, logpath: %s", status.Id, opt.Source, info.logPath)
 	defer func() {
 		c.removeFromLogList(info.logPath)

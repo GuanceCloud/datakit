@@ -2,6 +2,7 @@
 #define __CONN_STATS_H
 
 #include <linux/types.h>
+
 // ------------------------------------------------------
 // ---------------- define or enum ----------------------
 
@@ -48,7 +49,7 @@ enum ConnLayerP
 // key of bpf map conn_stats
 struct connection_info
 {
-    __be32 saddr[4]; //src ip address； Use the last element to store the IPv4 address
+    __be32 saddr[4]; // src ip address； Use the last element to store the IPv4 address
     __be32 daddr[4]; // dst ip address
     __u16 sport;     // src port
     __u16 dport;     // dst port
@@ -56,7 +57,6 @@ struct connection_info
     __u32 netns; // network namespace
     __u32 meta;  // first byte: 0x0000|IPv4 or 0x0001|IPv6; second byte 0x0000|TCP or 0x0100|UDP; ...
 };
-
 
 struct conn_skb_l4_info
 {
@@ -107,5 +107,6 @@ struct pid_fd
     __u32 pid;
     __s32 fd;
 };
+
 
 #endif // !__CONN_STATS_H

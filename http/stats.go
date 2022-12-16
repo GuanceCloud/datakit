@@ -117,6 +117,8 @@ var (
 	part1 = `
 ## 基本信息
 
+**请使用 'datakit monitor' 来查看 monitor 信息**
+
 - 主机名     ：{{.HostName}}
 - 版本       : {{.Version}}
 - 运行时间   : {{.Uptime}}

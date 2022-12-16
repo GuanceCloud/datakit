@@ -8,46 +8,82 @@ package profile
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"regexp"
 	"strconv"
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
-	inputName      = "profile"
-	profileMaxSize = (1 << 20) * 8
-	sampleConfig   = `
+	inputName            = "profile"
+	profileMaxSize       = 1 << 23
+	ProxySaveErrorHeader = "X-Proxy-Error"
+	sampleConfig         = `
 [[inputs.profile]]
   ## profile Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
   ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
   endpoints = ["/profiling/v1/input"]
+
+  ## set true to enable election, pull mode only
+  election = true
+
+## go pprof config
+## collect profiling data in pull mode
+#[[inputs.profile.go]]
+  ## pprof url
+  #url = "http://localhost:6060"
+
+  ## pull interval, should be greater or equal than 10s
+  #interval = "10s"
+
+  ## service name
+  #service = "go-demo"
+
+  ## app env
+  #env = "dev"
+
+  ## app version
+  #version = "0.0.0"
+
+  ## types to pull 
+  ## values: cpu, goroutine, heap, mutex, block
+  #enabled_types = ["cpu","goroutine","heap","mutex","block"]
+
+#[inputs.profile.go.tags]
+  # tag1 = xxxxx
 `
 )
 
 var (
 	log = logger.DefaultSLogger(inputName)
 
-	_ inputs.HTTPInput = &Input{}
-	_ inputs.InputV2   = &Input{}
+	_ inputs.HTTPInput     = &Input{}
+	_ inputs.InputV2       = &Input{}
+	_ inputs.ElectionInput = (*Input)(nil)
 
 	workSpaceUUID         string
 	workSpaceUUIDInitLock sync.Mutex
+	// A Regexp is concurrent safe, so we can define this var globally
+	workSpaceUUIDRegexp = regexp.MustCompile(`ws_uuid"\s*:\s*"([^"]*?)"`)
 
 	pointCache     *profileCache
 	pointCacheOnce sync.Once
@@ -258,12 +294,49 @@ func (pc *profileCache) drop(profileID string) *point.Point {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+			Election: true,
+			semStop:  cliutils.NewSem(),
+		}
 	})
 }
 
 type Input struct {
-	Endpoints []string `toml:"endpoints"`
+	Endpoints []string      `toml:"endpoints"`
+	Go        []*GoProfiler `toml:"go"`
+
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
+
+	semStop *cliutils.Sem // start stop signal
+}
+
+func (i *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
 }
 
 // uploadResponse {"content":{"profileID":"fa9c3d16-1cfc-4e37-950d-129cbebd1cdb"}}.
@@ -308,23 +381,43 @@ func queryWorkSpaceUUID() (string, error) {
 		return "", fmt.Errorf("read response body fail:%w", err)
 	}
 
-	express := `ws_uuid"\s*:\s*"(.*?)"`
-	re, err := regexp.Compile(express)
-	if err != nil {
-		return "", fmt.Errorf("compile regexp fail: %w, express: %s", err, express)
-	}
-
-	matches := re.FindSubmatch(body)
+	matches := workSpaceUUIDRegexp.FindSubmatch(body)
 	if len(matches) < 2 {
-		return "", fmt.Errorf("no match for express[%s] found", express)
+		return "", fmt.Errorf("no match for express[%s] found, body [%s]", workSpaceUUIDRegexp.String(), string(body))
 	}
 	workSpaceUUID = string(matches[1])
 	return workSpaceUUID, nil
 }
 
+func profilingProxyURL() (*url.URL, error) {
+	lastErr := fmt.Errorf("no dataway endpoint available now")
+
+	endpoints := config.Cfg.DataWay.GetAvailableEndpoints()
+
+	if len(endpoints) == 0 {
+		return nil, lastErr
+	}
+
+	for _, ep := range endpoints {
+		rawURL, ok := ep.GetCategoryURL()[datakit.ProfilingUpload]
+		if !ok || rawURL == "" {
+			lastErr = fmt.Errorf("profiling upload url empty")
+			continue
+		}
+
+		URL, err := url.Parse(rawURL)
+		if err != nil {
+			lastErr = fmt.Errorf("profiling upload url [%s] parse err:%w", rawURL, err)
+			continue
+		}
+		return URL, nil
+	}
+	return nil, lastErr
+}
+
 // RegHTTPHandler simply proxy profiling request to dataway.
-func (in *Input) RegHTTPHandler() {
-	URL, err := config.Cfg.DataWay.ProfilingProxyURL()
+func (i *Input) RegHTTPHandler() {
+	URL, err := profilingProxyURL()
 	if err != nil {
 		log.Errorf("no profiling proxy url available: %s", err)
 		return
@@ -334,18 +427,21 @@ func (in *Input) RegHTTPHandler() {
 
 	proxy := &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
-			req.URL = URL
-			req.Host = URL.Host // must override the host
 
 			// not a post request
 			if req.Body == nil {
+				req.Header.Set(ProxySaveErrorHeader, "profiling request body is nil")
 				log.Errorf("profiling request body is nil")
+				// Set req.URL to nil will trigger a proxy err and then the request will be terminated immediately
+				req.URL = nil
 				return
 			}
 
 			bodyBytes, err := ioutil.ReadAll(http.MaxBytesReader(nil, req.Body, profileMaxSize))
 			if err != nil {
+				req.Header.Set(ProxySaveErrorHeader, fmt.Sprintf("readall profile body err: %s", err))
 				log.Errorf("read profile body err: %s", err)
+				req.URL = nil
 				return
 			}
 			_ = req.Body.Close()
@@ -365,14 +461,22 @@ func (in *Input) RegHTTPHandler() {
 
 			wsID, err := queryWorkSpaceUUID()
 			if err != nil {
+				req.Header.Set(ProxySaveErrorHeader, fmt.Sprintf("query workspace uuid fail: %s", err))
 				log.Errorf("query workspace id fail: %s", err)
+				req.URL = nil
+				return
 			}
 
 			profileID, unixNano, err := cache(req)
 			if err != nil {
+				req.Header.Set(ProxySaveErrorHeader, fmt.Sprintf("cache profile data fail: %s", err))
 				log.Errorf("send profile to datakit io fail: %s", err)
+				req.URL = nil
 				return
 			}
+
+			req.URL = URL
+			req.Host = URL.Host // must override the host
 
 			log.Infof("receive profiling request, bodyLength: %d, datakit will proxy the request to url [%s], workspaceID: [%s]",
 				req.ContentLength, URL.String(), wsID)
@@ -429,38 +533,71 @@ func (in *Input) RegHTTPHandler() {
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			w.WriteHeader(http.StatusInternalServerError)
-			log.Errorf("proxy error handler get err: %s", err.Error())
+			proxyErr := r.Header.Get(ProxySaveErrorHeader)
+			if proxyErr != "" {
+				w.WriteHeader(http.StatusBadRequest)
+				_, _ = w.Write([]byte(proxyErr))
+				log.Errorf("proxy error handler get err: %s, %s", proxyErr, err.Error())
+			} else {
+				w.WriteHeader(http.StatusBadGateway)
+				_, _ = w.Write([]byte(err.Error()))
+				log.Errorf("proxy error handler get err: %s", err.Error())
+			}
 		},
 	}
 
-	for _, endpoint := range in.Endpoints {
+	for _, endpoint := range i.Endpoints {
 		dkhttp.RegHTTPHandler(http.MethodPost, endpoint, proxy.ServeHTTP)
 		log.Infof("pattern: %s registered", endpoint)
 	}
 }
 
-func (in *Input) Catalog() string {
+func (i *Input) Catalog() string {
 	return inputName
 }
 
-func (in *Input) Run() {
+func (i *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("the input %s is running...", inputName)
+
+	group := goroutine.NewGroup(goroutine.Option{
+		Name: "profile",
+		PanicCb: func(b []byte) bool {
+			log.Error(string(b))
+			return false
+		},
+	})
+
+	for _, g := range i.Go {
+		func(g *GoProfiler) {
+			group.Go(func(ctx context.Context) error {
+				if err := g.run(i); err != nil {
+					log.Errorf("go profile collect error: %s", err.Error())
+				}
+				return nil
+			})
+		}(g)
+	}
+
+	if err := group.Wait(); err != nil {
+		log.Errorf("profile collect err: %s", err.Error())
+	}
 }
 
-func (in *Input) SampleConfig() string {
+func (i *Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (in *Input) SampleMeasurement() []inputs.Measurement {
+func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&trace.TraceMeasurement{Name: inputName}}
 }
 
-func (in *Input) AvailableArchs() []string {
+func (i *Input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 
-func (in *Input) Terminate() {
-	// TODO: 必须写
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+	}
 }

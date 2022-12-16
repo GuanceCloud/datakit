@@ -131,7 +131,7 @@ func stopDatakit() error {
 		if err != nil {
 			return err
 		}
-	case <-time.After(time.Second * 10):
+	case <-time.After(time.Second * 30):
 		return errors.New("datakit.service stop-sigterm timed out")
 	}
 	return nil

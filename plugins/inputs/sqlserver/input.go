@@ -218,7 +218,6 @@ func (n *Input) Run() {
 				if err != nil {
 					n.lastErr = err
 					l.Errorf(err.Error())
-					continue
 				}
 			}
 
@@ -256,15 +255,22 @@ func (n *Input) Terminate() {
 }
 
 func (n *Input) getMetric() {
-	start := time.Now()
-	n.start = start
+	now := time.Now()
+	collectInterval := 10 * time.Minute
+	if !n.start.IsZero() {
+		collectInterval = now.Sub(n.start)
+	}
+	n.start = now
 
 	for _, v := range query {
-		n.handRow(v, start, false)
+		n.handRow(v, now, false)
 	}
 
 	for _, v := range loggingQuery {
-		n.handRow(v, start, true)
+		if strings.Contains(v, "__COLLECT_INTERVAL_SECONDS__") {
+			v = strings.ReplaceAll(v, "__COLLECT_INTERVAL_SECONDS__", fmt.Sprintf("%.0f", collectInterval.Seconds()))
+		}
+		n.handRow(v, now, true)
 	}
 }
 

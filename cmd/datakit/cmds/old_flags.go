@@ -38,9 +38,9 @@ var (
 	FlagProm      string
 	FlagTestInput string
 
-	FlagDefConf bool
+	FlagDefConf,
+	FlagDisableTFMono bool
 
-	FlagDisableTFMono, FlagMan bool
 	FlagIgnore,
 	FlagExportManuals, // Deprecated
 	FlagExportIntegration,
@@ -106,7 +106,6 @@ func initOldStyleFlags() { //nolint:gochecknoinits
 	pflag.StringVar(&FlagTestInput, "test-input", "", "specify config file to test")
 
 	// manuals related
-	pflag.BoolVar(&FlagMan, "man", false, "read manuals of inputs")
 	pflag.StringVar(&FlagExportManuals, "export-manuals", "", "export all inputs and related manuals to specified path")
 	pflag.StringVar(&FlagExportMetaInfo, "export-metainfo", "", "output metainfo to specified file")
 	pflag.BoolVar(&FlagDisableTFMono, "disable-tf-mono", false, "use normal font on tag/field")
@@ -407,23 +406,6 @@ func runOldStyleCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		grokq()
-		os.Exit(0)
-	}
-
-	if FlagMan {
-		setCmdRootLog(FlagCmdLogPath)
-		cmdMan()
-		os.Exit(0)
-	}
-
-	if FlagExportManuals != "" {
-		setCmdRootLog(FlagCmdLogPath)
-		if err := exportMan(FlagExportManuals, FlagIgnore,
-			FlagManVersion, FlagDisableTFMono); err != nil {
-			l.Errorf("exportMan: %s", err)
-		} else {
-			l.Infof("exportMan ok")
-		}
 		os.Exit(0)
 	}
 

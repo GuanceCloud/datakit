@@ -9,14 +9,16 @@ import (
 	"embed"
 )
 
-//go:embed manuals/*.md
+//go:embed docs/*
 var docs embed.FS
 
 var OtherDocs = map[string]bool{
 	"apis":                               true,
 	"changelog":                          true,
+	"common-tags":                        true,
 	"confd":                              true,
 	"container-log":                      true,
+	"datakit-arch":                       true,
 	"datakit-batch-deploy":               true,
 	"datakit-conf":                       true,
 	"datakit-daemonset-deploy":           true,
@@ -45,10 +47,11 @@ var OtherDocs = map[string]bool{
 	"datakit-tracing-introduction":       true,
 	"datakit-tracing-struct":             true,
 	"datakit-update":                     true,
-	"datatypes":                          true,
-	"dataway":                            true,
 	"dca":                                true,
+	"ddtrace-attach":                     true,
 	"ddtrace-cpp":                        true,
+	"ddtrace-ext-java":                   true,
+	"ddtrace-ext-changelog":              true,
 	"ddtrace-golang":                     true,
 	"ddtrace-java":                       true,
 	"ddtrace-nodejs":                     true,
@@ -60,6 +63,8 @@ var OtherDocs = map[string]bool{
 	"doc-logging":                        true,
 	"election":                           true,
 	"git-config-how-to":                  true,
+	"index":                              true,
+	"integrations-to-dk-howto":           true,
 	"k8s-config-how-to":                  true,
 	"kubernetes-crd":                     true,
 	"kubernetes-prom":                    true,
@@ -67,13 +72,14 @@ var OtherDocs = map[string]bool{
 	"logfwd":                             true,
 	"logging-pipeline-bench":             true,
 	"logging_socket":                     true,
+	"mkdocs-howto":                       true,
 	"opentelemetry-go":                   true,
 	"opentelemetry-java":                 true,
 	"pipeline":                           true,
-	"profile-ddtrace":                    true,
-	"profile-java-async-profiler":        true,
+	"profile-java":                       true,
+	"profile-python":                     true,
+	"profile-go":                         true,
 	"prometheus":                         true,
-	"python-profiling":                   true,
 	"rum":                                true,
 	"sec-checker":                        true,
 	"snmp":                               true,

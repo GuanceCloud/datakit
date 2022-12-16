@@ -8,6 +8,8 @@ package container
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"time"
 
@@ -251,4 +253,14 @@ func getPodNamespaceForLabels(labels map[string]string) string {
 
 func getContainerNameForLabels(labels map[string]string) string {
 	return labels["io.kubernetes.container.name"]
+}
+
+func logsJoinRootfs(logs string) string {
+	if !datakit.Docker {
+		return logs
+	}
+	if v := os.Getenv("HOST_ROOT"); v != "" {
+		return filepath.Join(v, logs)
+	}
+	return filepath.Join("/rootfs", logs)
 }

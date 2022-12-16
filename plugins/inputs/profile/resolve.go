@@ -68,6 +68,7 @@ const (
 	FieldFormat     = "format"
 	FieldPid        = "pid"
 	FieldRuntimeID  = "runtime_id"
+	FieldFileSize   = "__file_size"
 )
 
 var langMaps = map[string]Language{
@@ -268,20 +269,28 @@ func json2StringMap(m map[string]interface{}) map[string][]string {
 	return formatted
 }
 
-func parseMetadata(req *http.Request) (map[string][]string, error) {
+func parseMetadata(req *http.Request) (map[string][]string, int64, error) {
 	if err := req.ParseMultipartForm(profileMaxSize); err != nil {
-		return nil, fmt.Errorf("parse multipart/form-data fail: %w", err)
+		return nil, 0, fmt.Errorf("parse multipart/form-data fail: %w", err)
 	}
+
+	filesize := int64(0)
+	for _, files := range req.MultipartForm.File {
+		for _, f := range files {
+			filesize += f.Size
+		}
+	}
+
 	if req.MultipartForm.Value != nil {
 		if _, ok := req.MultipartForm.Value["tags[]"]; ok {
-			return req.MultipartForm.Value, nil
+			return req.MultipartForm.Value, filesize, nil
 		}
 	}
 	if eventFiles, ok := req.MultipartForm.File[eventJSONFile]; ok {
 		if len(eventFiles) == 1 {
 			fp, err := eventFiles[0].Open()
 			if err != nil {
-				return nil, fmt.Errorf("read event json file fail: %w", err)
+				return nil, filesize, fmt.Errorf("read event json file fail: %w", err)
 			}
 			defer func() {
 				_ = fp.Close()
@@ -290,7 +299,7 @@ func parseMetadata(req *http.Request) (map[string][]string, error) {
 			var events map[string]interface{}
 			decoder := json.NewDecoder(fp)
 			if err := decoder.Decode(&events); err != nil {
-				return nil, fmt.Errorf("resolve the event file fail: %w", err)
+				return nil, filesize, fmt.Errorf("resolve the event file fail: %w", err)
 			}
 			metadata := json2StringMap(events)
 			if len(metadata["tags_profiler"]) == 1 {
@@ -298,16 +307,16 @@ func parseMetadata(req *http.Request) (map[string][]string, error) {
 				delete(metadata, "tags_profiler")
 			}
 			if _, ok := metadata["tags[]"]; !ok {
-				return nil, fmt.Errorf("the profiling data format not supported, tags[] field missing")
+				return nil, filesize, fmt.Errorf("the profiling data format not supported, tags[] field missing")
 			}
-			return metadata, nil
+			return metadata, filesize, nil
 		}
 	}
-	return nil, fmt.Errorf("the profiling data format not supported, check your datadog trace library version")
+	return nil, filesize, fmt.Errorf("the profiling data format not supported, check your datadog trace library version")
 }
 
 func cache(req *http.Request) (string, int64, error) {
-	formValues, err := parseMetadata(req)
+	formValues, filesize, err := parseMetadata(req)
 	if err != nil {
 		return "", 0, fmt.Errorf("parse multipart form values fail: %w", err)
 	}
@@ -358,6 +367,7 @@ func cache(req *http.Request) (string, int64, error) {
 		FieldStart:      startNS, // precision: ns
 		FieldEnd:        endNS,
 		FieldDuration:   endNS - startNS,
+		FieldFileSize:   filesize,
 	}
 
 	// user custom tags
@@ -368,13 +378,15 @@ func cache(req *http.Request) (string, int64, error) {
 		if _, ok := pointFields[tName]; ok {
 			continue
 		}
+		// line protocol field name must not contain "."
+		tName = strings.ReplaceAll(tName, ".", "_")
 		pointFields[tName] = tVal
 	}
 
 	// 删除中划线 "runtime-id"
 	delete(pointFields, "runtime-id")
 
-	point, err := point.NewPoint(inputName, pointTags, pointFields, &point.PointOption{
+	pt, err := point.NewPoint(inputName, pointTags, pointFields, &point.PointOption{
 		Time:     time.Unix(0, startNS),
 		Category: datakit.Profiling,
 		Strict:   false,
@@ -383,7 +395,7 @@ func cache(req *http.Request) (string, int64, error) {
 		return "", 0, fmt.Errorf("build profile point fail: %w", err)
 	}
 
-	pointCache.push(profileID, time.Now(), point)
+	pointCache.push(profileID, time.Now(), pt)
 
 	return profileID, startNS, nil
 }

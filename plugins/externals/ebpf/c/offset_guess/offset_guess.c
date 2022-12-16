@@ -2,33 +2,17 @@
 #include <uapi/linux/ptrace.h>
 #include <uapi/linux/tcp.h>
 #include <net/sock.h>
+#include <linux/fdtable.h>
 
+#include "bpfmap.h"
+#include "../apiflow/tp_syscall_arg.h"
 #include "bpf_helpers.h"
 #include "offset.h"
-#include "bpfmap.h"
+#include "filter.h"
 
 static __always_inline void swap_u16(__u16 *v)
 {
     *v = ((*v & 0x00FF) << 8) | ((*v & 0xFF00) >> 8);
-}
-
-static __always_inline int skipConn(struct offset_guess *status)
-{
-    char actual[PROCNAMELEN] = {};
-    bpf_get_current_comm(&actual, PROCNAMELEN);
-    for (int i = 0; i < PROCNAMELEN - 1; i++)
-    {
-        if (actual[i] != status->process_name[i])
-        {
-            return 1;
-        }
-    }
-    __u64 pid_tgid = bpf_get_current_pid_tgid();
-    if ((pid_tgid >> 32) != (status->pid_tgid >> 32))
-    {
-        return 1;
-    }
-    return 0;
 }
 
 static __always_inline int read_offset(struct offset_guess *dst)
@@ -82,42 +66,6 @@ static __always_inline void read_netns_inum(struct sock *sk, struct offset_guess
     }
 }
 
-// static __always_inline int read_conn_info(struct sock *sk, struct offset_guess *status)
-// {
-//     unsigned short family = AF_UNSPEC;
-//     // read_netns_inum(sk, status);
-
-//     bpf_probe_read(&family, sizeof(family), (__u8 *)sk + status->offset_sk_family);
-//     if (family == AF_INET)
-//     {
-//         status->meta = CONN_L3_IPv4;
-//     }
-//     else if (family == AF_INET6)
-//     {
-//         status->meta = CONN_L3_IPv6;
-//     }
-//     else
-//     {
-//         status->meta = CONN_L3_MASK; // unknown
-//     }
-
-//     if ((status->conn_type & CONN_L3_MASK) == CONN_L3_IPv4)
-//     {
-//         // src ip
-//         bpf_probe_read(status->daddr + 3, sizeof(__be32), (__u8 *)sk + status->offset_sk_daddr);
-
-//         bpf_probe_read(&status->dport, sizeof(__u16), (__u8 *)sk + status->offset_sk_dport);
-//         swap_u16(&status->dport);
-//         bpf_probe_read(&status->sport, sizeof(__u16), (__u8 *)sk + status->offset_inet_sport);
-//         swap_u16(&status->sport);
-//     }
-//     else
-//     {
-//         bpf_probe_read(status->daddr, sizeof(__be32) * 4, (__u8 *)sk + status->offset_sk_v6_daddr);
-//     }
-//     return 0;
-// }
-
 SEC("kprobe/sock_common_getsockopt")
 int kprobe_sock_common_getsockopt(struct pt_regs *ctx)
 {
@@ -127,7 +75,7 @@ int kprobe_sock_common_getsockopt(struct pt_regs *ctx)
         return 0;
     }
 
-    if (skipConn(&status) != 0)
+    if (skipConn(status.process_name, status.pid_tgid) != 0)
     {
         return 0;
     }
@@ -135,11 +83,14 @@ int kprobe_sock_common_getsockopt(struct pt_regs *ctx)
     struct socket *skt = (struct socket *)PT_REGS_PARM1(ctx);
     __u8 *skt_sk = NULL;
     bpf_probe_read(&skt_sk, sizeof(skt_sk), (__u8 *)skt + status.offset_socket_sk);
-    bpf_probe_read(&status.sport_skt, sizeof(status.sport_skt), skt_sk + status.offset_inet_sport);
-    bpf_probe_read(&status.dport_skt, sizeof(status.dport_skt), skt_sk + status.offset_sk_dport);
+    bpf_probe_read(&status.sport_skt, sizeof(status.sport_skt), (__u8 *)skt_sk + status.offset_inet_sport);
+    bpf_probe_read(&status.dport_skt, sizeof(status.dport_skt), (__u8 *)skt_sk + status.offset_sk_dport);
     swap_u16(&status.dport_skt);
     swap_u16(&status.sport_skt);
+
+
     update_offset(&status);
+
     return 0;
 }
 
@@ -160,7 +111,7 @@ int kprobe__tcp_getsockopt(struct pt_regs *ctx)
         return 0;
     }
 
-    if (skipConn(&status) != 0)
+    if (skipConn(status.process_name, status.pid_tgid) != 0)
     {
         return 0;
     }
@@ -230,7 +181,7 @@ int kretprobe__tcp_v6_connect(struct pt_regs *ctx)
     {
         return 0;
     }
-    if (skipConn(&status) != 0)
+    if (skipConn(status.process_name, status.pid_tgid) != 0)
     {
         return 0;
     }
@@ -268,7 +219,7 @@ int kprobe__ip_make_skb(struct pt_regs *ctx)
     {
         return 0;
     }
-    if (skipConn(&status) != 0)
+    if (skipConn(status.process_name, status.pid_tgid) != 0)
     {
         return 0;
     }

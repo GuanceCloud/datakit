@@ -12,18 +12,23 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
+	"net/netip"
 	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/klauspost/compress/zstd"
 	pr "github.com/shirou/gopsutil/v3/process"
+	"golang.org/x/crypto/ssh"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
@@ -450,81 +455,176 @@ func WaitTimeout(c *exec.Cmd, timeout time.Duration) error {
 	return err
 }
 
-// Strings2StringSlice example: `["aaa","bbb","ccc"]` -> []string{"aaa","bbb","ccc"}.
-func Strings2StringSlice(str string) (strs []string, err error) {
-	// trim blank
-	str = strings.Trim(str, " ")
-	// trim "[" "]"
-	str = strings.Trim(str, "[")
-	str = strings.Trim(str, "]")
-	str = strings.Trim(str, " ")
-	if len(str) < 1 {
-		return []string{}, nil
-	}
-	// Split by ","
-	strs = strings.Split(str, ",")
-	// trim `"`
-	for i := 0; i < len(strs); i++ {
-		// trim `"`
-		strs[i] = strings.Trim(strs[i], "\"")
-		strs[i] = strings.Trim(strs[i], " ")
-	}
+// SSH remote get data
+/*
+    // use like this way
 
-	return
+ 	// use goroutine, send data through dataCh, with timeout, with tag
+	dataCh := make(chan datakit.SSHData, 1)
+	l = logger.SLogger("gpu_smi")
+	g := datakit.G("gpu_smi")
+
+	g.Go(func(ctx context.Context) error {
+		return datakit.SSHGetData(dataCh, &ipt.SSHServers, ipt.Timeout.Duration)
+	})
+
+	// to receive data through dataCh
+	ipt.handleDatas(dataCh)
+*/
+
+type SSHData struct {
+	Server string
+	Data   []byte
+}
+type SSHServers struct {
+	RemoteAddrs     []string `toml:"remote_addrs"`     // remote server addr:port list
+	RemoteUsers     []string `toml:"remote_users"`     // remote server username list
+	RemotePasswords []string `toml:"remote_passwords"` // remote server password list
+	RemoteRsaPaths  []string `toml:"remote_rsa_paths"` // rsa path for remote server list
+	RemoteCommand   string   `toml:"remote_command"`   // remote command
 }
 
-// Ints2IntSlice example: "[123,456,789]" -> []int{123,456,789}.
-func Ints2IntSlice(str string) (ints []int, err error) {
-	// trim blank
-	str = strings.Trim(str, " ")
-	// trim "[" "]"
-	str = strings.Trim(str, "[")
-	str = strings.Trim(str, "]")
-	str = strings.Trim(str, " ")
-	if len(str) < 1 {
-		return []int{}, nil
+// SSHGetData use goroutine in goroutine, parallel get gpu-smi data through ssh.
+// need not context timeout because "golang.org/x/crypto/ssh" have.
+func SSHGetData(ch chan SSHData, servers *SSHServers, timeout time.Duration) error {
+	if len(servers.RemoteUsers) == 0 {
+		l.Errorf("SSHServers RemoteUsers is null.")
+		return errors.New("RemoteUsers is null")
 	}
-	// Split by ","
-	strs := strings.Split(str, ",")
+	if len(servers.RemoteCommand) == 0 {
+		l.Errorf("SSHServers RemoteCommand is null.")
+		return errors.New("SSHServers RemoteCommand is null")
+	}
+	if len(servers.RemotePasswords) == 0 && len(servers.RemoteRsaPaths) == 0 {
+		l.Errorf("SSHServers RemotePasswords RemoteRsaPaths all be null.")
+		return errors.New("SSHServers RemotePasswords RemoteRsaPaths all be null")
+	}
 
-	for i := 0; i < len(strs); i++ {
-		// trim `"`
-		strs[i] = strings.Trim(strs[i], " ")
-		// Atoi
-		v, err := strconv.Atoi(strs[i])
-		if err != nil {
-			return ints, err
+	// walk all remote servers
+	var wg sync.WaitGroup
+
+	for i := 0; i < len(servers.RemoteAddrs); i++ {
+		var (
+			addr     string
+			command  string
+			username string
+			password string
+			rsa      string
+		)
+		addr = servers.RemoteAddrs[i]
+		command = servers.RemoteCommand
+
+		if i >= len(servers.RemoteUsers) {
+			// RemoteUsers short than RemoteAddrs
+			username = servers.RemoteUsers[0]
+		} else {
+			username = servers.RemoteUsers[i]
 		}
-		ints = append(ints, v)
+
+		if len(servers.RemoteRsaPaths) > 0 {
+			// rsa first than password
+			// use rsa public key
+			if i >= len(servers.RemoteRsaPaths) {
+				// RemoteRsaPaths short than RemoteAddrs
+				rsa = servers.RemoteRsaPaths[0]
+			} else {
+				rsa = servers.RemoteRsaPaths[i]
+			}
+		} else {
+			// use password
+			if i >= len(servers.RemotePasswords) {
+				// RemotePasswords short than RemoteAddrs
+				password = servers.RemotePasswords[0]
+			} else {
+				password = servers.RemotePasswords[i]
+			}
+		}
+
+		// check addr:port
+		_, err := netip.ParseAddrPort(servers.RemoteAddrs[i])
+		if err != nil {
+			l.Errorf("SSHServers ParseAddrPort : ", servers.RemoteAddrs[i])
+			continue
+		}
+
+		// walk and do get data
+		wg.Add(1)
+		go func(ch chan SSHData, index int, addr, command, username, password, rsa string, timeout time.Duration) {
+			defer wg.Done()
+
+			// get data from ipmiServer（[]byte）
+			data, err := getData(addr, command, username, password, rsa, timeout)
+			if err != nil {
+				l.Errorf("get SSH data : %s .", servers.RemoteAddrs[index], err)
+			} else {
+				ch <- SSHData{
+					Server: servers.RemoteAddrs[index],
+					Data:   data,
+				}
+			}
+		}(ch, i, addr, command, username, password, rsa, timeout)
 	}
 
-	return
+	wg.Wait()
+	// all finish
+	close(ch)
+
+	return nil
 }
 
-// Ints2Uint32Slice example: "[123,456,789]" -> []uint32{123,456,789}.
-func Ints2Uint32Slice(str string) (ints []uint32, err error) {
-	// trim blank
-	str = strings.Trim(str, " ")
-	// trim "[" "]"
-	str = strings.Trim(str, "[")
-	str = strings.Trim(str, "]")
-	str = strings.Trim(str, " ")
-	if len(str) < 1 {
-		return []uint32{}, nil
-	}
-	// Split by ","
-	strs := strings.Split(str, ",")
+// get data from shh server, need not context timeout because "golang.org/x/crypto/ssh" have.
+func getData(addr, command, username, password, rsa string, timeout time.Duration) ([]byte, error) {
+	var config ssh.ClientConfig
 
-	for i := 0; i < len(strs); i++ {
-		// trim `"`
-		strs[i] = strings.Trim(strs[i], " ")
-		v, err := strconv.ParseUint(strs[i], 10, 32)
-		if err != nil {
-			return ints, err
+	if rsa == "" {
+		// use password
+		config = ssh.ClientConfig{
+			User: username,
+			Auth: []ssh.AuthMethod{ssh.Password(password)},
+			HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+				return nil
+			},
+			Timeout: timeout,
 		}
-		W := uint32(v)
-		ints = append(ints, W)
+	} else {
+		// use rsa public key
+		// nolint:gosec
+		key, err := ioutil.ReadFile(rsa)
+		if err != nil {
+			err = fmt.Errorf("unable to read rsa public key: %w", err)
+			return nil, err
+		}
+		signer, err := ssh.ParsePrivateKey(key)
+		if err != nil {
+			err = fmt.Errorf("unable to parse rsa public key: %w", err)
+			return nil, err
+		}
+		config = ssh.ClientConfig{
+			User: username,
+			Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
+			HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+				return nil
+			},
+			Timeout: timeout,
+		}
 	}
 
-	return
+	// creat client
+	client, err := ssh.Dial("tcp", addr, &config)
+	if err != nil {
+		return nil, fmt.Errorf("unable to connect: %s error %w", addr, err)
+	}
+	// nolint:errcheck
+	defer client.Close()
+
+	// creat session
+	session, err := client.NewSession()
+	if err != nil {
+		return nil, fmt.Errorf("ssh new session error %w", err)
+	}
+	// nolint:errcheck
+	defer session.Close()
+
+	// get data
+	return session.Output(command)
 }
