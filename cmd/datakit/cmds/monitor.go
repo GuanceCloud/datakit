@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"golang.org/x/term"
 )
 
@@ -922,8 +924,21 @@ func (m *monitorAPP) setup() {
 	})
 
 	if err := m.app.SetRoot(m.flex, true).EnableMouse(true).Run(); err != nil {
+		if getCharset() == "zh_CN.gbk" {
+			cp.Errorf("GBK is not support by monitor\n")
+			os.Exit(1)
+		}
 		panic(err)
 	}
+}
+
+func getCharset() (locale string) {
+	if locale = os.Getenv("LC_ALL"); locale == "" {
+		if locale = os.Getenv("LC_CTYPE"); locale == "" {
+			locale = os.Getenv("LANG")
+		}
+	}
+	return
 }
 
 func (m *monitorAPP) run() error {
