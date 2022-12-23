@@ -49,6 +49,20 @@ spec:
               value: {{ .Values.datakit.log_level }}
             - name: ENV_HTTP_LISTEN
               value: {{ .Values.datakit.http_listen }}
+            - name: HOST_PROC
+              value: /rootfs/proc
+            - name: HOST_SYS
+              value: /rootfs/sys
+            - name: HOST_ETC
+              value: /rootfs/etc
+            - name: HOST_VAR
+              value: /rootfs/var
+            - name: HOST_RUN
+              value: /rootfs/run
+            - name: HOST_DEV
+              value: /rootfs/dev
+            - name: HOST_ROOT
+              value: /rootfs
             {{- if .Values.iploc.enable }}
             - name: ENV_IPDB
               value: iploc
@@ -79,7 +93,7 @@ spec:
           {{- end }}
           {{- end }}
           {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion | default .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           name: {{ .Chart.Name }}
           ports:
@@ -92,14 +106,6 @@ spec:
           volumeMounts:
             - mountPath: /var/run
               name: run
-            - mountPath: /var/lib
-              name: lib
-            - mountPath: /var/log
-              name: log
-            - mountPath: /usr/lib
-              name: usrlib
-            - mountPath: /etc
-              name: etc
             - mountPath: /rootfs
               name: rootfs
             - mountPath: /sys/kernel/debug
@@ -156,18 +162,6 @@ spec:
         - hostPath:
             path: /var/run
           name: run
-        - hostPath:
-            path: /var/lib
-          name: lib
-        - hostPath:
-            path: /var/log
-          name: log
-        - hostPath:
-            path: /usr/lib
-          name: usrlib
-        - hostPath:
-            path: /etc
-          name: etc
         - hostPath:
             path: /
           name: rootfs

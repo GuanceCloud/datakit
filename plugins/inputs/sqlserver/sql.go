@@ -919,4 +919,150 @@ IF @MajorMinorVersion >= 1050 BEGIN
 	FROM sys.master_files AS mf
 	CROSS APPLY sys.dm_os_volume_stats(mf.[database_id], mf.[file_id]) AS vs
 END`
+
+	sqlServerLockRow = `
+use master;
+
+WITH CTE_SID ( BSID, SID, sql_handle )        
+    AS ( SELECT [Blocking_Session_ID],
+                        [Session_ID] ,
+                        sql_handle
+               FROM     sys.dm_exec_requests
+               WHERE    [Blocking_Session_ID] <> 0
+               UNION ALL
+               SELECT   A.[Blocking_Session_ID] ,
+                        A.[Session_ID] ,
+                        A.sql_handle
+               FROM     sys.dm_exec_requests A
+                        JOIN CTE_SID B ON A.[Session_ID] = B.BSID
+             )
+    SELECT  'sqlserver_lock_row' AS [measurement],
+            C.BSID AS blocking_session_id,
+            C.SID AS session_id,
+            S.login_name ,
+            S.host_name ,
+            S.status as session_status,
+            S.cpu_time ,
+            S.memory_usage ,
+            S.last_request_start_time ,
+            S.last_request_end_time ,
+            S.logical_reads ,
+            S.row_count ,
+            q.text as message
+    FROM CTE_SID C
+            JOIN sys.dm_exec_sessions S ON C.sid = s.[Session_ID]
+            CROSS APPLY sys.dm_exec_sql_text(C.sql_handle) Q
+    ORDER BY sid
+`
+	sqlServerLockDatabase = `
+  SELECT 'sqlserver_lock_database' as [measurement],
+		str(request_session_id, 4, 0) as spid,
+		resource_database_id,
+		convert(varchar(20), db_name(resource_database_id)) as db_name,
+		case when resource_database_id = db_id() and resource_type = 'OBJECT'
+		then convert(char(20), object_name(resource_associated_entity_id))
+		else convert(char(20), resource_associated_entity_id)
+		end as object,
+		convert(varchar(12), resource_type) as resource_type,
+		convert(varchar(12), request_type) as request_type,
+		convert(char(3), request_mode) as request_mode,
+		convert(varchar(8), request_status) as request_status
+	from sys.dm_tran_locks
+	order by request_session_id desc;
+`
+
+	sqlServerLockTable = `
+  SELECT 'sqlserver_lock_table' as [measurement],
+		request_session_id,
+		resource_type,
+		convert(varchar(20), db_name(resource_database_id)) as db_name,
+		OBJECT_NAME(resource_associated_entity_id, resource_database_id) object_name,
+		request_mode,
+		request_status
+	from sys.dm_tran_locks
+	where resource_type in ('OBJECT')
+
+`
+
+	sqlServerLockDead = `
+  SELECT
+	  'sqlserver_lock_dead' as [measurement],
+    db.name db_name,
+    tl.request_session_id,
+    wt.blocking_session_id,
+    OBJECT_NAME(p.OBJECT_ID) blocking_object_name,
+    tl.resource_type,
+    h1.TEXT AS requesting_text,
+    h2.TEXT AS blocking_text,
+		h2.TEXT AS message,
+    tl.request_mode
+    FROM sys.dm_tran_locks AS tl
+    INNER JOIN sys.databases db ON db.database_id = tl.resource_database_id
+    INNER JOIN sys.dm_os_waiting_tasks AS wt ON tl.lock_owner_address = wt.resource_address
+    INNER JOIN sys.partitions AS p ON p.hobt_id = tl.resource_associated_entity_id
+    INNER JOIN sys.dm_exec_connections ec1 ON ec1.session_id = tl.request_session_id
+    INNER JOIN sys.dm_exec_connections ec2 ON ec2.session_id = wt.blocking_session_id
+    CROSS APPLY sys.dm_exec_sql_text(ec1.most_recent_sql_handle) AS h1
+    CROSS APPLY sys.dm_exec_sql_text(ec2.most_recent_sql_handle) AS h2
+`
+
+	sqlServerLogicIO = `
+	select 
+	  'sqlserver_logical_io' as [measurement],
+		creation_time,
+		last_execution_time,
+		total_logical_reads,
+		total_logical_writes,
+		(total_logical_reads + total_logical_writes) as total_logical_io,
+		execution_count,
+		(total_logical_reads + total_logical_writes)/Execution_count AS 'avg_logical_io',
+		substring(sql_text.text, (statement_start_offset/2),
+		case
+		when (statement_end_offset -statement_start_offset)/2 <=0 then 64000
+		else (statement_end_offset -statement_start_offset)/2 end) message 
+	from sys.dm_exec_query_stats
+		cross apply sys.dm_exec_sql_text(sql_handle) as sql_text
+		cross apply sys.dm_exec_query_plan(plan_handle) as plan_text
+	where (total_logical_reads + total_logical_writes)/Execution_count > 50000
+		and
+		creation_time > dateadd(second, -__COLLECT_INTERVAL_SECONDS__, GETDATE())
+	order by (total_logical_reads + total_logical_writes) Desc
+`
+
+	sqlServerWorkerTime = `
+	select 
+	  'sqlserver_worker_time' as [measurement],
+		creation_time,
+		last_execution_time,
+		total_worker_time/1000 total_worker_time,
+		execution_count,
+		((total_worker_time / execution_count)/1000) as 'avg_worker_time',
+		substring(sql_text.text, (statement_start_offset/2),
+		case
+		when (statement_end_offset -statement_start_offset)/2 <=0 then 64000
+		else (statement_end_offset -statement_start_offset)/2 end) message 
+	from sys.dm_exec_query_stats
+	cross apply sys.dm_exec_sql_text(sql_handle) as sql_text
+	cross apply sys.dm_exec_query_plan(plan_handle) as plan_text
+	where ((total_worker_time / execution_count)/1000) >= 1000 
+		and creation_time > dateadd(second, -__COLLECT_INTERVAL_SECONDS__, GETDATE())
+	order by total_worker_time/1000 Desc
+`
+
+	sqlServerDatabaseSize = `
+	with fs
+	as
+	(
+		select database_id, type, size * 8.0 / 1024 size
+		from sys.master_files
+	)
+
+	select top 10
+	'sqlserver_database_size' as [measurement],
+	name database_name,
+	(select cast(round(sum(size),2) as numeric(15,2)) from fs where type = 0 and fs.database_id = db.database_id) data_size,
+	(select cast(round(sum(size),2) as numeric(15,2)) from fs where type = 1 and fs.database_id = db.database_id) log_size 
+	from sys.databases db
+	order by 2 desc
+`
 )

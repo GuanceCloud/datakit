@@ -12,6 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	cri "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -20,17 +21,17 @@ const (
 	maxMsgSize            = 1024 * 1024 * 16
 )
 
-func newCRIClient(endpoint string) (cri.RuntimeServiceClient, error) {
+func newCRIClient(endpoint string) (*grpc.ClientConn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	//nolint:lll
-	conn, err := grpc.DialContext(ctx, endpoint, grpc.WithInsecure(), grpc.WithDialer(dial), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMsgSize))) //nolint:staticcheck
-	if err != nil {
-		return nil, err
-	}
-
-	return cri.NewRuntimeServiceClient(conn), nil
+	return grpc.DialContext(
+		ctx,
+		endpoint,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(dial),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMsgSize)),
+	)
 }
 
 func getCRIRuntimeVersion(client cri.RuntimeServiceClient) (*cri.VersionResponse, error) {
@@ -43,7 +44,11 @@ func getContextWithTimeout(timeout time.Duration) (context.Context, context.Canc
 	return context.WithTimeout(context.Background(), timeout)
 }
 
-func dial(addr string, timeout time.Duration) (net.Conn, error) {
+func dial(ctx context.Context, addr string) (net.Conn, error) {
+	var timeout time.Duration = 0
+	if deadline, ok := ctx.Deadline(); ok {
+		timeout = time.Until(deadline)
+	}
 	return net.DialTimeout("unix", addr, timeout)
 }
 
@@ -74,15 +79,17 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		name = "unknown"
 	}
 
-	if !tailer.FileIsActive(status.GetLogPath(), ignoreDeadLogDuration) {
-		l.Infof("container %s file %s is not active, larger than %s, ignored", name, status.GetLogPath(), ignoreDeadLogDuration)
+	logpath := logsJoinRootfs(status.GetLogPath())
+
+	if !tailer.FileIsActive(logpath, ignoreDeadLogDuration) {
+		l.Debugf("container %s file %s is not active, larger than %s, ignored", name, logpath, ignoreDeadLogDuration)
 		return nil
 	}
 
 	info := &containerLogBasisInfo{
 		name:                  name,
 		id:                    status.GetId(),
-		logPath:               status.GetLogPath(),
+		logPath:               logpath,
 		labels:                status.GetLabels(),
 		tags:                  make(map[string]string),
 		extraSourceMap:        c.ipt.LoggingExtraSourceMap,
@@ -109,7 +116,7 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		}
 	}
 
-	opt := composeTailerOption(c.k8sClient, info)
+	opt, _ := composeTailerOption(c.k8sClient, info)
 	opt.Mode = tailer.ContainerdMode
 	opt.BlockingMode = c.ipt.LoggingBlockingMode
 	opt.MinFlushInterval = c.ipt.LoggingMinFlushInterval
@@ -125,7 +132,8 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		return err
 	}
 
-	c.addToLogList(info.logPath)
+	// 这里添加原始 logpath，而不是修改过的
+	c.addToLogList(status.GetLogPath())
 	l.Infof("add containerd log, containerId: %s, source: %s, logpath: %s", status.Id, opt.Source, info.logPath)
 	defer func() {
 		c.removeFromLogList(info.logPath)

@@ -87,6 +87,7 @@ func (*BaiduImpl) Update() error {
 	return nil
 }
 
+// Make sure BaiduImpl implements the IDNSWatcher interface
 var _ IDNSWatcher = new(BaiduImpl)
 
 type QQImpl struct{}
@@ -108,6 +109,7 @@ func (*QQImpl) Update() error {
 	return nil
 }
 
+// Make sure QQImpl implements the IDNSWatcher interface
 var _ IDNSWatcher = new(QQImpl)
 
 // go test -v -timeout 30s -run ^TestCheckDNSChanged$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dnswatcher

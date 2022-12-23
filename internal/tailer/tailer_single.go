@@ -111,6 +111,11 @@ func (t *Single) Close() {
 }
 
 func (t *Single) seekOffset() error {
+	if err := register.Init(logtailCachePath); err != nil {
+		t.opt.log.Infof("init logtail.cache error %s, ignored", err)
+		return nil
+	}
+
 	if t.file == nil {
 		return fmt.Errorf("unreachable, invalid file pointer")
 	}
@@ -122,11 +127,6 @@ func (t *Single) seekOffset() error {
 			return err
 		}
 		t.offset = ret
-	}
-
-	if err := register.Init(logtailCachePath); err != nil {
-		t.opt.log.Infof("init logtail.cache error %s, ignored", err)
-		return nil
 	}
 
 	data := register.Get(getFileKey(t.filepath))
@@ -237,7 +237,7 @@ func (t *Single) forwardMessage() {
 				t.opt.log.Warnf("didrotate err: %s", err)
 			}
 			if did {
-				t.opt.log.Infof("file %s has rotated, try to read EOF", t.filepath)
+				t.opt.log.Infof("file %s has rotated, current offset %d, try to read EOF", t.filepath, t.offset)
 				for {
 					b.buf, readNum, err = t.read()
 					if err != nil {
@@ -438,10 +438,6 @@ func (t *Single) defaultHandler(lines []string) {
 			continue
 		}
 
-		if t.opt.ForwardFunc != nil {
-			t.sendToForwardCallback(text)
-			continue
-		}
 		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
 		pending = append(pending, logstr)
 	}
@@ -451,14 +447,27 @@ func (t *Single) defaultHandler(lines []string) {
 	t.feed(pending)
 }
 
-func (t *Single) sendToForwardCallback(text string) {
-	err := t.opt.ForwardFunc(t.filename, text)
-	if err != nil {
-		t.opt.log.Warnf("failed to forward text from file %s, error: %s", t.filename, err)
+func (t *Single) feed(pending []string) {
+	// feed to remote
+	if t.opt.ForwardFunc != nil {
+		t.feedToRemote(pending)
+		return
+	}
+
+	// flush to io
+	t.feedToIO(pending)
+}
+
+func (t *Single) feedToRemote(pending []string) {
+	for _, text := range pending {
+		err := t.opt.ForwardFunc(t.filename, text)
+		if err != nil {
+			t.opt.log.Warnf("failed to forward text from file %s, error: %s", t.filename, err)
+		}
 	}
 }
 
-func (t *Single) feed(pending []string) {
+func (t *Single) feedToIO(pending []string) {
 	res := []*point.Point{}
 	// -1ns
 	timeNow := time.Now().Add(-time.Duration(len(pending)))

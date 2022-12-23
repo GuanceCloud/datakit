@@ -16,21 +16,25 @@ var debugPipelinePullData *pullPipelineReturn
 
 type debugPipelinePullMock struct{}
 
+// Make sure debugPipelinePullMock implements the pipelinePullMock interface
 var _ pipelinePullMock = new(debugPipelinePullMock)
 
-func (*debugPipelinePullMock) getPipelinePull(ts int64) (*pullPipelineReturn, error) {
+func (*debugPipelinePullMock) getPipelinePull(ts, relationTS int64) (*pullPipelineReturn, error) {
 	return debugPipelinePullData, nil
 }
 
 // go test -v -timeout 30s -run ^TestPullPipeline$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io
 func TestPullPipeline(t *testing.T) {
 	cases := []struct {
-		Name      string
-		LocalTS   int64
-		Pipelines *pullPipelineReturn
-		Expect    *struct {
-			mFiles     map[string]map[string]string
-			updateTime int64
+		Name       string
+		LocalTS    int64
+		RelationTS int64
+		Pipelines  *pullPipelineReturn
+		Expect     *struct {
+			mFiles, plRelation map[string]map[string]string
+			defaultPl          map[string]string
+			updateTime         int64
+			relationUpdateTime int64
 		}
 	}{
 		{
@@ -46,18 +50,40 @@ func TestPullPipeline(t *testing.T) {
 					{
 						Name:       "456.p",
 						Base64Text: base64.StdEncoding.EncodeToString([]byte("text2")),
+						AsDefault:  true,
+					},
+				},
+				Relation: []*pipelineRelation{
+					{
+						Source: "a1",
+						Name:   "abc",
+					},
+					{
+						Source: "a2",
+						Name:   "abc",
 					},
 				},
 			},
 			Expect: &struct {
-				mFiles     map[string]map[string]string
-				updateTime int64
+				mFiles, plRelation map[string]map[string]string
+				defaultPl          map[string]string
+				updateTime         int64
+				relationUpdateTime int64
 			}{
 				mFiles: map[string]map[string]string{
 					"": {
 						"123.p": "text1",
 						"456.p": "text2",
 					},
+				},
+				plRelation: map[string]map[string]string{
+					"": {
+						"a1": "abc",
+						"a2": "abc",
+					},
+				},
+				defaultPl: map[string]string{
+					"": "456.p",
 				},
 				updateTime: 1641796675,
 			},
@@ -69,10 +95,14 @@ func TestPullPipeline(t *testing.T) {
 				UpdateTime: -1,
 			},
 			Expect: &struct {
-				mFiles     map[string]map[string]string
-				updateTime int64
+				mFiles, plRelation map[string]map[string]string
+				defaultPl          map[string]string
+				updateTime         int64
+				relationUpdateTime int64
 			}{
 				mFiles:     map[string]map[string]string{},
+				plRelation: map[string]map[string]string{},
+				defaultPl:  map[string]string{},
 				updateTime: -1,
 			},
 		},
@@ -81,10 +111,13 @@ func TestPullPipeline(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			debugPipelinePullData = tc.Pipelines
-			mFiles, updateTime, err := PullPipeline(tc.LocalTS)
+			mFiles, plRelation, defaultPl, updateTime, relationUpdateTime, err := PullPipeline(tc.LocalTS, tc.RelationTS)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.Expect.mFiles, mFiles)
 			assert.Equal(t, tc.Expect.updateTime, updateTime)
+			assert.Equal(t, tc.Expect.defaultPl, defaultPl)
+			assert.Equal(t, tc.Expect.plRelation, plRelation)
+			assert.Equal(t, tc.Expect.relationUpdateTime, relationUpdateTime)
 		})
 	}
 }
@@ -99,9 +132,11 @@ func TestParsePipelinePullStruct(t *testing.T) {
 		name      string
 		pipelines *pullPipelineReturn
 		expect    *struct {
-			mfiles     map[string]map[string]string
-			updateTime int64
-			err        error
+			mfiles, relation   map[string]map[string]string
+			defaultPl          map[string]string
+			updateTime         int64
+			relationUpdateTime int64
+			err                error
 		}
 	}{
 		{
@@ -118,6 +153,7 @@ func TestParsePipelinePullStruct(t *testing.T) {
 						Name:       "1234.p",
 						Base64Text: base64.StdEncoding.EncodeToString([]byte("text1234")),
 						Category:   "logging",
+						AsDefault:  true,
 					},
 					{
 						Name:       "456.p",
@@ -125,11 +161,23 @@ func TestParsePipelinePullStruct(t *testing.T) {
 						Category:   "metric",
 					},
 				},
+				Relation: []*pipelineRelation{
+					{
+						Source: "a1",
+						Name:   "abc",
+					},
+					{
+						Source: "a2",
+						Name:   "abc",
+					},
+				},
 			},
 			expect: &struct {
-				mfiles     map[string]map[string]string
-				updateTime int64
-				err        error
+				mfiles, relation   map[string]map[string]string
+				defaultPl          map[string]string
+				updateTime         int64
+				relationUpdateTime int64
+				err                error
 			}{
 				mfiles: map[string]map[string]string{
 					"logging": {
@@ -139,6 +187,15 @@ func TestParsePipelinePullStruct(t *testing.T) {
 					"metric": {
 						"456.p": "text456",
 					},
+				},
+				relation: map[string]map[string]string{
+					"": {
+						"a1": "abc",
+						"a2": "abc",
+					},
+				},
+				defaultPl: map[string]string{
+					"logging": "1234.p",
 				},
 				updateTime: 1653020819,
 			},
@@ -166,9 +223,11 @@ func TestParsePipelinePullStruct(t *testing.T) {
 				},
 			},
 			expect: &struct {
-				mfiles     map[string]map[string]string
-				updateTime int64
-				err        error
+				mfiles, relation   map[string]map[string]string
+				defaultPl          map[string]string
+				updateTime         int64
+				relationUpdateTime int64
+				err                error
 			}{
 				mfiles: map[string]map[string]string{
 					"logging": {
@@ -178,6 +237,8 @@ func TestParsePipelinePullStruct(t *testing.T) {
 						"456.p": "text456",
 					},
 				},
+				relation:   map[string]map[string]string{},
+				defaultPl:  map[string]string{},
 				updateTime: 1653020819,
 			},
 		},
@@ -185,10 +246,13 @@ func TestParsePipelinePullStruct(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			mFiles, updateTime, err := parsePipelinePullStruct(tc.pipelines)
+			mFiles, plRelation, defaultPl, updateTime, relationUpdateTime, err := parsePipelinePullStruct(tc.pipelines)
 			assert.Equal(t, tc.expect.mfiles, mFiles)
 			assert.Equal(t, tc.expect.updateTime, updateTime)
 			assert.Equal(t, tc.expect.err, err)
+			assert.Equal(t, tc.expect.defaultPl, defaultPl)
+			assert.Equal(t, tc.expect.relation, plRelation)
+			assert.Equal(t, tc.expect.relationUpdateTime, relationUpdateTime)
 		})
 	}
 }

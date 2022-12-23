@@ -24,6 +24,7 @@ func (m *Performance) LineProto() (*point.Point, error) {
 func (m *Performance) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_performance",
+		Type: "metric",
 		Desc: "performance counter maintained by the server,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-performance-counters-transact-sql?view=sql-server-ver15)",
 		Fields: map[string]interface{}{
 			"cntr_value": newCountFieldInfo("Current value of the counter."),
@@ -50,6 +51,7 @@ func (m *WaitStatsCategorized) LineProto() (*point.Point, error) {
 func (m *WaitStatsCategorized) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_waitstats",
+		Type: "metric",
 		Desc: "information about all the waits encountered by threads that executed,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-wait-stats-transact-sql?view=sql-server-ver15)",
 		Fields: map[string]interface{}{
 			"max_wait_time_ms":    newTimeFieldInfo("Maximum wait time on this wait type."),
@@ -80,6 +82,7 @@ func (m *DatabaseIO) LineProto() (*point.Point, error) {
 func (m *DatabaseIO) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_database_io",
+		Type: "metric",
 		Desc: "I/O statistics for data and log files,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-io-virtual-file-stats-transact-sql?view=sql-server-ver15)",
 		Fields: map[string]interface{}{
 			"read_bytes":        newByteFieldInfo("Total number of bytes read on this file"),
@@ -115,6 +118,7 @@ func (m *ServerProperties) LineProto() (*point.Point, error) {
 func (m *ServerProperties) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"cpu_count":           newCountFieldInfo("Specifies the number of logical CPUs on the system. Not nullable."),
 			"db_online":           newCountFieldInfo("num of database state in online"),
@@ -145,6 +149,7 @@ func (m *Schedulers) LineProto() (*point.Point, error) {
 func (m *Schedulers) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_schedulers",
+		Type: "metric",
 		Desc: "one row per scheduler in SQL Server where each scheduler is mapped to an individual processor,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-schedulers-transact-sql?view=sql-server-ver15)",
 		Fields: map[string]interface{}{
 			"active_workers_count":      newCountFieldInfo("Number of workers that are active. An active worker is never preemptive, must have an associated task, and is either running, runnable, or suspended. Is not nullable."),
@@ -184,6 +189,7 @@ func (m *VolumeSpace) LineProto() (*point.Point, error) {
 func (m *VolumeSpace) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_volumespace",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"volume_available_space_bytes": newByteFieldInfo("Available free space on the volume"),
 			"volume_total_space_bytes":     newByteFieldInfo("Total size in bytes of the volume"),
@@ -192,6 +198,216 @@ func (m *VolumeSpace) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"sqlserver_host":     inputs.NewTagInfo("host name which installed sqlserver"),
 			"volume_mount_point": inputs.NewTagInfo("Mount point at which the volume is rooted. Can return an empty string. Returns null on Linux operating system."),
+		},
+	}
+}
+
+type LockRow struct {
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
+}
+
+func (m *LockRow) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
+}
+
+//nolint:lll
+func (m *LockRow) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "sqlserver_lock_row",
+		Type: "logging",
+		Fields: map[string]interface{}{
+			"blocking_session_id":     newCountFieldInfo("ID of the session that is blocking the request"),
+			"session_id":              newCountFieldInfo("ID of the session to which this request is related"),
+			"cpu_time":                newTimeFieldInfo("CPU time in milliseconds that is used by the request"),
+			"logical_reads":           newCountFieldInfo("Number of logical reads that have been performed by the request"),
+			"row_count":               newCountFieldInfo("Number of rows returned on the session up to this point"),
+			"memory_usage":            newCountFieldInfo("Number of 8-KB pages of memory used by this session"),
+			"last_request_start_time": newTimeFieldInfo("Time at which the last request on the session began, in second"),
+			"last_request_end_time":   newTimeFieldInfo("Time of the last completion of a request on the session, in second"),
+		},
+		Tags: map[string]interface{}{
+			"host_name":      inputs.NewTagInfo("Name of the client workstation that is specific to a session"),
+			"login_name":     inputs.NewTagInfo("SQL Server login name under which the session is currently executing"),
+			"session_status": inputs.NewTagInfo("Status of the session"),
+			"text":           inputs.NewTagInfo("Text of the SQL query"),
+		},
+	}
+}
+
+type LockDatabase struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+}
+
+func (m *LockDatabase) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+}
+
+//nolint:lll
+func (m *LockDatabase) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "sqlserver_lock_database",
+		Type: "metric",
+		Fields: map[string]interface{}{
+			"resource_database_id": newCountFieldInfo("ID of the database under which this resource is scoped"),
+		},
+		Tags: map[string]interface{}{
+			"spid":           inputs.NewTagInfo("Session ID that currently owns this request, maximum length is 4 "),
+			"object":         inputs.NewTagInfo("ID or name of the entity in a database with which a resource is associated"),
+			"db_name":        inputs.NewTagInfo("Name of the database under which this resource is scoped"),
+			"resource_type":  inputs.NewTagInfo("Represents the resource type"),
+			"request_type":   inputs.NewTagInfo("Request type"),
+			"request_mode":   inputs.NewTagInfo("Mode of the request"),
+			"request_status": inputs.NewTagInfo("Current status of this request"),
+		},
+	}
+}
+
+type LockTable struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+}
+
+func (m *LockTable) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+}
+
+//nolint:lll
+func (m *LockTable) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "sqlserver_lock_table",
+		Type: "metric",
+		Fields: map[string]interface{}{
+			"resource_session_id": newCountFieldInfo("Session ID that currently owns this request"),
+		},
+		Tags: map[string]interface{}{
+			"object_name":    inputs.NewTagInfo("Name of the entity in a database with which a resource is associated"),
+			"db_name":        inputs.NewTagInfo("Name of the database under which this resource is scoped"),
+			"resource_type":  inputs.NewTagInfo("Represents the resource type"),
+			"request_mode":   inputs.NewTagInfo("Mode of the request"),
+			"request_status": inputs.NewTagInfo("Current status of this request"),
+		},
+	}
+}
+
+type LockDead struct {
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
+}
+
+func (m *LockDead) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
+}
+
+//nolint:lll
+func (m *LockDead) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "sqlserver_lock_dead",
+		Type: "logging",
+		Fields: map[string]interface{}{
+			"request_session_id":  newCountFieldInfo("Session ID that currently owns this request"),
+			"blocking_session_id": newCountFieldInfo("ID of the session that is blocking the request"),
+		},
+		Tags: map[string]interface{}{
+			"blocking_object_name": inputs.NewTagInfo("Indicates the name of the object to which this partition belongs"),
+			"db_name":              inputs.NewTagInfo("Name of the database under which this resource is scoped"),
+			"resource_type":        inputs.NewTagInfo("Represents the resource type"),
+			"request_mode":         inputs.NewTagInfo("Mode of the request"),
+			"requesting_text":      inputs.NewTagInfo("Text of the SQL query which is requesting"),
+			"blocking_text":        inputs.NewTagInfo("Text of the SQL query which is blocking"),
+		},
+	}
+}
+
+type LogicalIO struct {
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
+}
+
+func (m *LogicalIO) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
+}
+
+//nolint:lll
+func (m *LogicalIO) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "sqlserver_logical_io",
+		Type: "logging",
+		Fields: map[string]interface{}{
+			"avg_logical_io":       newCountFieldInfo("Average number of logical writes and logical reads"),
+			"total_logical_io":     newCountFieldInfo("Total number of logical writes and logical reads"),
+			"total_logical_reads":  newCountFieldInfo("Total amount of logical reads"),
+			"total_logical_writes": newCountFieldInfo("Total amount of logical writes"),
+			"creation_time":        newCountFieldInfo("The Unix time at which the plan was compiled, in millisecond"),
+			"execution_count":      newCountFieldInfo("Number of times that the plan has been executed since it was last compiled"),
+			"last_execution_time":  newCountFieldInfo("Last time at which the plan started executing, unix time in millisecond"),
+		},
+		Tags: map[string]interface{}{
+			"message": inputs.NewTagInfo("Text of the SQL query"),
+		},
+	}
+}
+
+type WorkerTime struct {
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
+}
+
+func (m *WorkerTime) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
+}
+
+//nolint:lll
+func (m *WorkerTime) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "sqlserver_worker_time",
+		Type: "logging",
+		Fields: map[string]interface{}{
+			"creation_time":       newCountFieldInfo("The Unix time at which the plan was compiled, in millisecond"),
+			"execution_count":     newCountFieldInfo("Number of times that the plan has been executed since it was last compiled"),
+			"last_execution_time": newCountFieldInfo("Last time at which the plan started executing, unix time in millisecond"),
+			"total_worker_time":   newCountFieldInfo("Total amount of CPU time, reported in milliseconds"),
+			"avg_worker_time":     newCountFieldInfo("Average amount of CPU time, reported in milliseconds"),
+		},
+		Tags: map[string]interface{}{
+			"message": inputs.NewTagInfo("Text of the SQL query"),
+		},
+	}
+}
+
+type DatabaseSize struct {
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
+}
+
+func (m *DatabaseSize) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+}
+
+//nolint:lll
+func (m *DatabaseSize) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "sqlserver_database_size",
+		Type: "metric",
+		Fields: map[string]interface{}{
+			"data_size": newKByteFieldInfo("The size of file of Rows"),
+			"log_size":  newKByteFieldInfo("The size of file of Log"),
+		},
+		Tags: map[string]interface{}{
+			"name": inputs.NewTagInfo("Name of the database"),
 		},
 	}
 }

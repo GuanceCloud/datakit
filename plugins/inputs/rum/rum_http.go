@@ -84,7 +84,7 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 	var (
 		pts       []*point.Point
 		apiConfig = config.Cfg.HTTPAPI
-		isjson    = (strings.Contains(req.Header.Get("Content-Type"), "application/json"))
+		isjson    = strings.Contains(req.Header.Get("Content-Type"), "application/json")
 	)
 	if pts, err = ipt.parseRUMBody(body, precision, isjson, geoTags(getSrcIP(apiConfig, req)), apiConfig.RUMAppIDWhiteList); err != nil {
 		log.Error(err.Error())

@@ -377,26 +377,6 @@ func dcaSaveConfig(c *gin.Context) {
 	})
 }
 
-func dcaInputDoc(c *gin.Context) {
-	context := getContext(c)
-	inputName := c.Query("inputName")
-	l.Debug("api_doc", inputName)
-	if inputName == "" {
-		context.fail()
-		return
-	}
-
-	md, err := dcaAPI.GetMarkdownContent(inputName)
-	if err != nil {
-		l.Warn(err)
-		// context.fail(dcaError{ErrorCode: "record.not.exist", ErrorMsg: "record not exist", Code: http.StatusNotFound})
-		context.success("")
-		return
-	}
-
-	context.success(string(md))
-}
-
 func getContext(c *gin.Context) dcaContext {
 	return dcaContext{c: c}
 }

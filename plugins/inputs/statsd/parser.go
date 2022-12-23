@@ -75,8 +75,8 @@ func (ipt *input) parseStatsdLine(line string) error {
 	// Validate splitting the line on ":"
 	bits := strings.Split(line, ":")
 	if len(bits) < 2 {
-		l.Warnf("Splitting ':', unable to parse metric: %s", line)
-		return errors.New("error parsing statsd line")
+		l.Debugf("Splitting ':', unable to parse metric: %s", line)
+		return nil
 	}
 
 	// Extract bucket name from individual metric bits

@@ -31,12 +31,14 @@ func TestBuildMarkdownManual(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			md, err := BuildMarkdownManual(tc.doc, &Option{})
+			docs, err := BuildMarkdownManual(tc.doc, &Option{})
 			if err != nil {
 				t.Error(err)
 			}
 
-			t.Log(string(md))
+			for k, md := range docs {
+				t.Logf("%s:\n%s", k, string(md))
+			}
 		})
 	}
 }

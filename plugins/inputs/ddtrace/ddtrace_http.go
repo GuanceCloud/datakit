@@ -7,12 +7,14 @@ package ddtrace
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"strconv"
 
+	"github.com/tinylib/msgp/msgp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -31,6 +33,13 @@ const (
 )
 
 func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
+	if err != nil {
+		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
 	switch req.URL.Path {
 	case v1, v2, v3:
 		io.WriteString(resp, "OK\n") // nolint: errcheck,gosec
@@ -43,6 +52,13 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 
 func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### received tracing data from path: %s", req.URL.Path)
+
+	if req.Header.Get("Content-Length") == "0" || req.Header.Get("X-Datadog-Trace-Count") == "0" {
+		log.Debug("empty request body")
+		httpStatusRespFunc(resp, req, nil)
+
+		return
+	}
 
 	pbuf := bufpool.GetBuffer()
 	defer bufpool.PutBuffer(pbuf)
@@ -61,20 +77,17 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 		Body:    pbuf,
 	}
 	if err = parseDDTraces(param); err != nil {
-		log.Errorf("### parse ddtrace failed: %s", err.Error())
+		if errors.Is(err, msgp.ErrShortBytes) {
+			log.Warn(err.Error())
+		} else {
+			log.Errorf("### parse ddtrace failed: %s", err.Error())
+		}
 		resp.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	switch req.URL.Path {
-	case v1, v2, v3:
-		io.WriteString(resp, "OK\n") // nolint: errcheck,gosec
-	default:
-		resp.Header().Set("Content-Type", "application/json")
-		resp.Header().Set(headerRatesPayloadVersion, req.Header.Get(headerRatesPayloadVersion))
-		resp.Write([]byte("{}")) // nolint: errcheck,gosec
-	}
+	httpStatusRespFunc(resp, req, nil)
 }
 
 // TODO:.
@@ -238,13 +251,13 @@ func pickupMeta(dkspan *itrace.DatakitSpan, ddspan *DDSpan, keys ...string) {
 
 	if dkspan.Status == itrace.STATUS_ERR || dkspan.Status == itrace.STATUS_CRITICAL {
 		if errType, ok := ddspan.Meta["error.type"]; ok {
-			dkspan.Tags[itrace.TAG_ERR_TYPE] = errType
+			dkspan.Metrics[itrace.TAG_ERR_TYPE] = errType
 		}
 		if errStack, ok := ddspan.Meta["error.stack"]; ok {
-			dkspan.Tags[itrace.TAG_ERR_STACK] = errStack
+			dkspan.Metrics[itrace.TAG_ERR_STACK] = errStack
 		}
 		if errMsg, ok := ddspan.Meta["error.msg"]; ok {
-			dkspan.Tags[itrace.TAG_ERR_MESSAGE] = errMsg
+			dkspan.Metrics[itrace.TAG_ERR_MESSAGE] = errMsg
 		}
 	}
 }
@@ -267,7 +280,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			Resource:   span.Resource,
 			Operation:  span.Name,
 			Source:     inputName,
-			SpanType:   itrace.FindSpanTypeInMultiServersIntSpanID(int64(span.SpanID), int64(span.ParentID), span.Service, spanIDs, parentIDs),
+			SpanType:   itrace.FindSpanTypeInMultiServersIntSpanID(span.SpanID, span.ParentID, span.Service, spanIDs, parentIDs),
 			SourceType: itrace.GetSpanSourceType(span.Type),
 			Tags:       itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
 			Metrics:    make(map[string]interface{}),
@@ -301,16 +314,16 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 	return dktrace
 }
 
-func gatherSpansInfo(trace DDTrace) (parentIDs map[int64]bool, spanIDs map[int64]string) {
-	parentIDs = make(map[int64]bool)
-	spanIDs = make(map[int64]string)
+func gatherSpansInfo(trace DDTrace) (parentIDs map[uint64]bool, spanIDs map[uint64]string) {
+	parentIDs = make(map[uint64]bool)
+	spanIDs = make(map[uint64]string)
 	for _, span := range trace {
 		if span == nil {
 			continue
 		}
-		spanIDs[int64(span.SpanID)] = span.Service
+		spanIDs[span.SpanID] = span.Service
 		if span.ParentID != 0 {
-			parentIDs[int64(span.ParentID)] = true
+			parentIDs[span.ParentID] = true
 		}
 	}
 

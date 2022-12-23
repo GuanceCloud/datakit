@@ -45,15 +45,10 @@ func (d *deployment) name() string {
 }
 
 func (d *deployment) pullItems() error {
-	if len(d.items) != 0 {
-		return nil
-	}
-
 	list, err := d.client.getDeployments().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return fmt.Errorf("failed to get deployments resource: %w", err)
 	}
-
 	d.items = list.Items
 	return nil
 }

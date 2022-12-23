@@ -23,12 +23,8 @@ var (
 	//
 	// doc related flags.
 	//
-	fsDocName = "doc"
-	fsDoc     = pflag.NewFlagSet(fsDocName, pflag.ContinueOnError)
-	// TODO: this flags not used, comment them to disable lint errors.
-	flagDocDisableTagFieldMonoFont = fsDoc.Bool("disable-tf-mono", false, "use normal font on tag/field, make it more readable under terminal")
-	// flagDocExportIntegration       = fsDoc.String("export-integration", "", "export all integration documents(to another git repository)").
-	// flagDocExportMetaInfo = fsDoc.String("export-metainfo", "", "output metainfo to specified file").
+	fsDocName         = "doc"
+	fsDoc             = pflag.NewFlagSet(fsDocName, pflag.ContinueOnError)
 	flagDocExportDocs = fsDoc.String("export-docs", "", "export all inputs and related docs to specified path")
 	flagDocIgnore     = fsDoc.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagDocLogPath    = fsDoc.String("log", commonLogFlag(), "command line log path")
@@ -169,6 +165,7 @@ var (
 	flagToolIPInfo            = fsTool.String("ipinfo", "", "show IP geo info")
 	flagToolWorkspaceInfo     = fsTool.Bool("workspace-info", false, "show workspace info")
 	flagToolCheckConfig       = fsTool.Bool("check-config", false, "check inputs configure and main configure")
+	flagToolTestSNMP          = fsTool.String("test-snmp", "", "test snmp device")
 	flagToolDumpSamples       = fsTool.String("dump-samples", "", "dump all inputs samples")
 	flagToolLoadLog           = fsTool.Bool("upload-log", false, "upload log")
 	flagToolDefaultMainConfig = fsTool.Bool("default-main-conf", false, "print default datakit.conf")

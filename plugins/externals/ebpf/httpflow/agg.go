@@ -4,8 +4,8 @@
 package httpflow
 
 import (
-	"fmt"
 	"math"
+	"strconv"
 	"time"
 
 	client "github.com/influxdata/influxdb1-client/v2"
@@ -33,7 +33,7 @@ type aggKey struct {
 	transport string
 	direction string
 
-	// pid int
+	pid int64
 
 	pathTrunc bool
 }
@@ -68,17 +68,17 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		"src_ip": key.sAddr,
 		"dst_ip": key.dAddr,
 
-		// "pid": strconv.FormatInt(int64(key.pid), 10),
+		"pid": strconv.FormatInt(key.pid, 10),
 
 		"src_ip_type": key.sType,
 		"dst_ip_type": key.dType,
 	}
 
-	// if procName, ok := pidMap[key.pid]; ok {
-	// 	tags["process_name"] = procName[0]
-	// } else {
-	// 	tags["process_name"] = NoValue
-	// }
+	if procName, ok := pidMap[int(key.pid)]; ok {
+		tags["process_name"] = procName[0]
+	} else {
+		tags["process_name"] = NoValue
+	}
 
 	if key.sPort == math.MaxUint32 {
 		tags["src_port"] = "*"
@@ -138,23 +138,14 @@ func (agg *FlowAgg) Append(httpFinReq *HTTPReqFinishedInfo) error {
 
 	var key aggKey
 
-	// key.pid = 0
+	key.pid = int64(httpFinReq.ConnInfo.Pid)
 
 	// direction
-	key.direction = DirectionOutgoing
-
-	if _, err := dknetflow.SrcIPPortRecorder.Query(httpFinReq.ConnInfo.Daddr); err == nil {
-		// swap src and dst conn port and addr
-		httpFinReq.ConnInfo.Saddr, httpFinReq.ConnInfo.Daddr = httpFinReq.ConnInfo.Daddr, httpFinReq.ConnInfo.Saddr
-		httpFinReq.ConnInfo.Sport, httpFinReq.ConnInfo.Dport = httpFinReq.ConnInfo.Dport, httpFinReq.ConnInfo.Sport
-		key.direction = DirectionIncoming
-	}
+	key.direction = httpFinReq.HTTPStats.Direction
 
 	// url
-	key.path, key.pathTrunc = FindHTTPURI(httpFinReq.HTTPStats.Payload)
-	if key.path == "" {
-		return fmt.Errorf("path == \"\"")
-	}
+	key.path = httpFinReq.HTTPStats.Path
+	key.pathTrunc = false
 
 	// http version, method, status_code
 	key.httpVersion = ParseHTTPVersion(httpFinReq.HTTPStats.HTTPVersion)
@@ -214,12 +205,12 @@ func (agg *FlowAgg) Append(httpFinReq *HTTPReqFinishedInfo) error {
 	if v, ok := agg.data[key]; ok {
 		v.count++
 		v.latency = append(v.latency,
-			int(httpFinReq.HTTPStats.ReqTS))
+			int(httpFinReq.HTTPStats.RespTS-httpFinReq.HTTPStats.ReqTS))
 	} else {
 		agg.data[key] = &aggValue{
 			count: 1,
 			latency: []int{
-				int(httpFinReq.HTTPStats.ReqTS),
+				int(httpFinReq.HTTPStats.RespTS - httpFinReq.HTTPStats.ReqTS),
 			},
 		}
 	}
@@ -237,6 +228,7 @@ func (agg *FlowAgg) ToPoint(tags map[string]string, k8sInfo *k8sinfo.K8sNetInfo,
 		if pt, err := kv2point(&k, v, pTime, tags, k8sInfo, pidMap); err != nil {
 			l.Debug(err)
 		} else {
+			l.Debug(pt)
 			result = append(result, pt)
 		}
 	}

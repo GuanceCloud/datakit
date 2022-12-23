@@ -7,6 +7,8 @@ package container
 
 import (
 	"context"
+	"encoding/json"
+	"path/filepath"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -40,10 +42,15 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 		return err
 	}
 
-	if !tailer.FileIsActive(inspect.LogPath, ignoreDeadLogDuration) {
-		l.Infof("container %s file %s is not active, larger than %s, ignored", getContainerName(container.Names), inspect.LogPath, ignoreDeadLogDuration)
+	logpath := logsJoinRootfs(inspect.LogPath)
+
+	if !tailer.FileIsActive(logpath, ignoreDeadLogDuration) {
+		l.Debugf("container %s file %s is not active, larger than %s, ignored", getContainerName(container.Names), logpath, ignoreDeadLogDuration)
 		return nil
 	}
+
+	inspectJSON, _ := json.Marshal(inspect)
+	l.Debugf("containerId: %s inspect %v", container.ID, string(inspectJSON))
 
 	image := container.Image
 
@@ -61,7 +68,7 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 	info := &containerLogBasisInfo{
 		name:                  getContainerName(container.Names),
 		id:                    container.ID,
-		logPath:               inspect.LogPath,
+		logPath:               logpath,
 		labels:                container.Labels,
 		image:                 image,
 		tags:                  make(map[string]string),
@@ -85,30 +92,57 @@ func (d *dockerInput) tailingLog(ctx context.Context, container *types.Container
 		}
 	}
 
-	opt := composeTailerOption(d.k8sClient, info)
-	opt.Mode = tailer.DockerMode
-	opt.BlockingMode = d.ipt.LoggingBlockingMode
-	opt.MinFlushInterval = d.ipt.LoggingMinFlushInterval
-	opt.MaxMultilineLifeDuration = d.ipt.LoggingMaxMultilineLifeDuration
-	opt.Done = d.ipt.semStop.Wait()
-	_ = opt.Init()
+	{
+		info.configKey = containerInsiderLogConfigKey
+		opt, paths := composeTailerOption(d.k8sClient, info)
+		opt.Mode = tailer.FileMode
+		opt.BlockingMode = d.ipt.LoggingBlockingMode
+		opt.MinFlushInterval = d.ipt.LoggingMinFlushInterval
+		opt.MaxMultilineLifeDuration = d.ipt.LoggingMaxMultilineLifeDuration
+		opt.Done = d.ipt.semStop.Wait()
+		_ = opt.Init()
 
-	l.Debugf("use container-log opt:%#v, containerId: %s", opt, container.ID)
+		l.Debugf("use container-log opt:%#v, paths:%#v, containerId: %s", opt, paths, container.ID)
 
-	t, err := tailer.NewTailerSingle(info.logPath, opt)
-	if err != nil {
-		l.Warnf("failed to new docker log, containerID: %s, source: %s, logpath: %s, err: %s", container.ID, opt.Source, info.logPath, err)
-		return err
+		if len(paths) != 0 && info.tags["container_type"] == "docker" {
+			if inspect.GraphDriver.Name == "overlay2" && inspect.GraphDriver.Data["MergedDir"] != "" {
+				opt2 := deepCopyTailerOption(opt)
+				opt2.Mode = tailer.FileMode
+				_ = opt2.Init()
+				tailMerged, err := tailer.NewTailer(completePaths(inspect.GraphDriver.Data["MergedDir"], paths), opt2)
+				if err != nil {
+					l.Warnf("failed to new paths, containerID: %s, source: %s, paths: %s, err: %s", container.ID, opt2.Source, paths, err)
+					return err
+				}
+				go tailMerged.Start()
+			}
+		}
 	}
 
-	d.addToContainerList(container.ID)
-	l.Infof("add docker log, containerId: %s, source: %s, logpath: %s", container.ID, opt.Source, info.logPath)
-	defer func() {
-		d.removeFromContainerList(container.ID)
-		l.Debugf("remove docker log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
-	}()
+	{
+		info.configKey = containerLogConfigKey
+		opt, _ := composeTailerOption(d.k8sClient, info)
+		opt.Mode = tailer.DockerMode
+		opt.BlockingMode = d.ipt.LoggingBlockingMode
+		opt.MinFlushInterval = d.ipt.LoggingMinFlushInterval
+		opt.MaxMultilineLifeDuration = d.ipt.LoggingMaxMultilineLifeDuration
+		opt.Done = d.ipt.semStop.Wait()
+		_ = opt.Init()
+		t, err := tailer.NewTailerSingle(info.logPath, opt)
+		if err != nil {
+			l.Warnf("failed to new docker log, containerID: %s, source: %s, logpath: %s, err: %s", container.ID, opt.Source, info.logPath, err)
+			return err
+		}
 
-	t.Run()
+		d.addToContainerList(container.ID)
+		l.Infof("add docker log, containerId: %s, source: %s, logpath: %s", container.ID, opt.Source, info.logPath)
+		defer func() {
+			d.removeFromContainerList(container.ID)
+			l.Debugf("remove docker log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
+		}()
+
+		t.Run()
+	}
 	return nil
 }
 
@@ -154,6 +188,42 @@ func checkContainerIsOlder(createdTime string, limit time.Duration) bool {
 		return true
 	}
 	return time.Since(t) > limit
+}
+
+func completePaths(target string, paths []string) []string {
+	var res []string
+	for _, path := range paths {
+		res = append(res, filepath.Join(target, path))
+	}
+	return res
+}
+
+func deepCopyTailerOption(in *tailer.Option) *tailer.Option {
+	out := &tailer.Option{}
+	out.IgnoreStatus = in.IgnoreStatus
+	out.Sockets = in.Sockets
+	out.InputName = in.InputName
+	out.Source = in.Source
+	out.Service = in.Service
+	out.Pipeline = in.Pipeline
+	out.CharacterEncoding = in.CharacterEncoding
+	out.MultilinePatterns = in.MultilinePatterns
+	out.FromBeginning = in.FromBeginning
+	out.RemoveAnsiEscapeCodes = in.RemoveAnsiEscapeCodes
+	out.DisableAddStatusField = in.DisableAddStatusField
+	out.DisableHighFreqIODdata = in.DisableHighFreqIODdata
+	out.ForwardFunc = in.ForwardFunc
+	out.IgnoreDeadLog = in.IgnoreDeadLog
+	out.BlockingMode = in.BlockingMode
+	out.MinFlushInterval = in.MinFlushInterval
+	out.MaxMultilineLifeDuration = in.MaxMultilineLifeDuration
+
+	out.GlobalTags = make(map[string]string)
+	for k, v := range in.GlobalTags {
+		out.GlobalTags[k] = v
+	}
+
+	return out
 }
 
 //nolint:gochecknoinits

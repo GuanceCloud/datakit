@@ -19,7 +19,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	kubev1apps "k8s.io/client-go/kubernetes/typed/apps/v1"
 	kubev1batch "k8s.io/client-go/kubernetes/typed/batch/v1"
-	kubev1batchbeta1 "k8s.io/client-go/kubernetes/typed/batch/v1beta1"
 	kubev1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	kubev1extensionsbeta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	kubev1rbac "k8s.io/client-go/kubernetes/typed/rbac/v1"
@@ -40,7 +39,7 @@ type k8sClientX interface {
 	getReplicaSets() kubev1apps.ReplicaSetInterface
 	getStatefulSets() kubev1apps.StatefulSetInterface
 	getJobs() kubev1batch.JobInterface
-	getCronJobs() kubev1batchbeta1.CronJobInterface
+	getCronJobs() kubev1batch.CronJobInterface
 	getEndpoints() kubev1core.EndpointsInterface
 	getServices() kubev1core.ServiceInterface
 	getNodes() kubev1core.NodeInterface
@@ -198,8 +197,8 @@ func (c *k8sClient) getJobs() kubev1batch.JobInterface {
 	return c.BatchV1().Jobs(c.namespace)
 }
 
-func (c *k8sClient) getCronJobs() kubev1batchbeta1.CronJobInterface {
-	return c.BatchV1beta1().CronJobs(c.namespace)
+func (c *k8sClient) getCronJobs() kubev1batch.CronJobInterface {
+	return c.BatchV1().CronJobs(c.namespace)
 }
 
 func (c *k8sClient) getEndpoints() kubev1core.EndpointsInterface {

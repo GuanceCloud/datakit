@@ -249,32 +249,6 @@ func TestDcaStats(t *testing.T) {
 	assert.Equal(t, hostName, hostNameValue)
 }
 
-func TestDcaInputDoc(t *testing.T) {
-	mdContent := "this is demo content"
-	dcaAPI.GetMarkdownContent = func(s string) ([]byte, error) {
-		return []byte(mdContent), nil
-	}
-
-	// no query parameter "inputName"
-	req, _ := http.NewRequest("GET", "/v1/dca/inputDoc", nil)
-	req.Header.Add("X-Token", TOKEN)
-
-	w := getResponse(req, nil)
-	res, _ := getResponseBody(w)
-
-	assert.Equal(t, 500, res.Code)
-
-	// has "inputName"
-	req, _ = http.NewRequest("GET", "/v1/dca/inputDoc?inputName=elasticsearch", nil)
-	req.Header.Add("X-Token", TOKEN)
-
-	w = getResponse(req, nil)
-	res, _ = getResponseBody(w)
-
-	assert.Equal(t, 200, res.Code)
-	assert.Equal(t, mdContent, res.Content)
-}
-
 func TestDcaReload(t *testing.T) {
 	// reload ok
 	dcaAPI.RestartDataKit = func() error {

@@ -286,15 +286,8 @@ func PubDatakit() error {
 			buildPath := filepath.Join(BuildDir, "standalone")
 			switch appName {
 			case "datakit-ebpf":
-				if parts[0] != runtime.GOOS {
-					continue
-				}
-				if parts[0] != "linux" {
-					continue
-				}
-				if parts[1] != runtime.GOARCH {
-					continue
-				}
+				// eBPF programs can only be published using the function PubDatakitEBpf
+				continue
 			default:
 			}
 			gz, gzP := tarFiles(PubDir, buildPath, appName, parts[0], parts[1])

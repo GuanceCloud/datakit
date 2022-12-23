@@ -103,6 +103,17 @@ func runToolFlags() error {
 		}
 		os.Exit(0)
 
+	case *flagToolTestSNMP != "":
+		if !datakit.FileExist(*flagToolTestSNMP) {
+			cp.Errorf("[E] File not exist: %s\n", *flagToolTestSNMP)
+			return nil
+		}
+
+		if err := testSNMP(*flagToolTestSNMP); err != nil {
+			os.Exit(-1)
+		}
+		os.Exit(0)
+
 	case *flagToolDumpSamples != "":
 		tryLoadMainCfg()
 		fpath := *flagToolDumpSamples

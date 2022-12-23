@@ -6,8 +6,13 @@
 package config
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -244,4 +249,91 @@ percpu = false
 			}
 		})
 	}
+}
+
+// go test -v -timeout 30s -run ^Test_SearchDir$ gitlab.jiagouyun.com/cloudcare-tools/datakit/config
+func Test_SearchDir(t *testing.T) {
+	cases := []struct {
+		name                        string
+		testDirName                 string
+		preparedDirs, preparedFiles []string
+		suffix                      string
+		ignoreDirs                  []string
+		out                         []string
+	}{
+		{
+			name:        "normal",
+			testDirName: "test_data",
+			preparedDirs: []string{
+				"dir1",
+				"dir2/.git",
+			},
+			preparedFiles: []string{
+				"a.conf",
+				"dir1/b.conf",
+				"dir1/c.conf",
+				"dir1/d.conf.sample",
+				"dir2/e.conf",
+				"dir2/.git/f.conf",
+			},
+			suffix:     ".conf",
+			ignoreDirs: []string{".git"},
+			out: []string{
+				"/a.conf",
+				"/dir1/b.conf",
+				"/dir1/c.conf",
+				"/dir2/e.conf",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rootDir := prepareDirs(tc.testDirName, tc.preparedDirs, tc.preparedFiles)
+			fmt.Printf("rootDir = %s\n", rootDir)
+
+			out := SearchDir(rootDir, tc.suffix, tc.ignoreDirs...)
+			for k, v := range out {
+				stripped := strings.Replace(v, rootDir, "", 1)
+				out[k] = stripped
+			}
+			assert.Equal(t, tc.out, out)
+
+			if err := os.RemoveAll(rootDir); err != nil {
+				panic(err)
+			}
+		})
+	}
+}
+
+func prepareDirs(testDirName string, arrDirs, arrFiles []string) string {
+	path, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	testDir := filepath.Join(path, testDirName)
+
+	for _, v := range arrDirs {
+		path := filepath.Join(testDir, v)
+		if err := os.MkdirAll(path, os.ModePerm); err != nil {
+			panic(err)
+		}
+	}
+
+	for _, v := range arrFiles {
+		path := filepath.Join(testDir, v)
+		if err := TouchFile(path); err != nil {
+			panic(err)
+		}
+	}
+
+	return testDir
+}
+
+func TouchFile(name string) error {
+	file, err := os.OpenFile(name, os.O_RDONLY|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return file.Close()
 }

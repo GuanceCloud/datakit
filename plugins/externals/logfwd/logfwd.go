@@ -15,6 +15,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,12 +30,17 @@ var (
 	argJSONConfig = flag.String("json-config", "", "logfwd json-config")
 	argConfig     = flag.String("config", "", "logfwd config file")
 
+	loggerLevel = os.Getenv("LOGFWD_LOG_LEVEL")
+
+	globalSource             = os.Getenv("LOGFWD_GLOBAL_SOURCE")
+	globalService            = os.Getenv("LOGFWD_GLOBAL_SERVICE")
 	podName                  = os.Getenv("LOGFWD_POD_NAME")
 	podNamespace             = os.Getenv("LOGFWD_POD_NAMESPACE")
 	wsHost                   = os.Getenv("LOGFWD_DATAKIT_HOST")
 	wsPort                   = os.Getenv("LOGFWD_DATAKIT_PORT")
 	envMainJSONConfig        = os.Getenv("LOGFWD_JSON_CONFIG")
 	envAnnotationDataKitLogs = os.Getenv("LOGFWD_ANNOTATION_DATAKIT_LOGS")
+	targetContainerImage     = os.Getenv("LOGFWD_TARGET_CONTAINER_IMAGE")
 
 	l = logger.DefaultSLogger(name)
 )
@@ -43,10 +49,7 @@ func main() {
 	quitChannel := make(chan struct{})
 	flag.Parse()
 
-	optflags := (logger.OPT_DEFAULT | logger.OPT_STDOUT)
-	if err := logger.InitRoot(&logger.Option{Level: logger.INFO, Flags: optflags}); err != nil {
-		l.Warnf("failed to set root log, err: %w", err)
-	}
+	setLogger()
 
 	cfg, err := getConfig()
 	if err != nil {
@@ -55,9 +58,30 @@ func main() {
 		os.Exit(0)
 	}
 
+	l.Info("logfwd running..")
 	startLog(cfg, quitChannel)
 
 	<-quitChannel
+}
+
+func setLogger() {
+	lopt := &logger.Option{
+		Level: "info",
+		Flags: (logger.OPT_DEFAULT | logger.OPT_STDOUT),
+	}
+
+	if loggerLevel == "debug" {
+		lopt.Level = "debug"
+	}
+
+	if err := logger.InitRoot(lopt); err != nil {
+		l.Errorf("set root log(options: %+#v) failed: %s", lopt, err.Error())
+		return
+	}
+
+	l = logger.SLogger(name)
+
+	l.Infof("set root logger(options:  %+#v) ok", lopt)
 }
 
 func getConfig() (*config, error) {
@@ -125,10 +149,15 @@ func forwardFunc(lg *logging, fn writeMessage) tailer.ForwardFunc {
 			Type:     "1",
 			Source:   lg.Source,
 			Pipeline: lg.Pipeline,
-			Tags:     lg.Tags,
 			Log:      text,
+			Tags:     make(map[string]string),
 		}
-		msg.addTags("filename", filename)
+
+		msg.Tags["filename"] = filename
+		for k, v := range lg.Tags {
+			msg.Tags[k] = v
+		}
+
 		data, err := msg.json()
 		if err != nil {
 			return err
@@ -151,6 +180,7 @@ func startTailing(lg *logging, fn tailer.ForwardFunc, stop <-chan struct{}) {
 		RemoveAnsiEscapeCodes: lg.RemoveAnsiEscapeCodes,
 		ForwardFunc:           fn,
 		FromBeginning:         true,
+		IgnoreDeadLog:         time.Hour * 12,
 	}
 
 	tailer, err := tailer.NewTailer(lg.LogFiles, opt, lg.Ignore)
@@ -164,8 +194,6 @@ func startTailing(lg *logging, fn tailer.ForwardFunc, stop <-chan struct{}) {
 	<-stop
 	tailer.Close()
 }
-
-// main config
 
 type config struct {
 	DataKitAddr string   `json:"datakit_addr"`
@@ -239,30 +267,39 @@ func (lg *logging) merge(cfgs loggings) {
 }
 
 func (lg *logging) setup() {
-	if lg.Source == "" {
+	if globalSource != "" {
+		lg.Source = globalSource
+	} else if lg.Source == "" {
 		lg.Source = "default"
 	}
-	if lg.Service == "" {
+
+	if globalService != "" {
+		lg.Service = globalService
+	} else if lg.Service == "" {
 		lg.Service = lg.Source
 	}
 
-	lg.addTags("service", lg.Service)
-	if podName != "" {
-		lg.addTags("pod_name", podName)
-	}
-	if podNamespace != "" {
-		lg.addTags("pod_namespace", podNamespace)
-	}
-}
-
-func (lg *logging) addTags(key, value string) {
 	if lg.Tags == nil {
 		lg.Tags = make(map[string]string)
 	}
-	lg.Tags[key] = value
-}
 
-// message
+	lg.Tags["service"] = lg.Service
+
+	if podName != "" {
+		lg.Tags["pod_name"] = podName
+	}
+	if podNamespace != "" {
+		lg.Tags["pod_namespace"] = podNamespace
+	}
+
+	if targetContainerImage != "" {
+		imageName, imageShortName, imageTag := ParseImage(targetContainerImage)
+		lg.Tags["image"] = targetContainerImage
+		lg.Tags["image_name"] = imageName
+		lg.Tags["image_short_name"] = imageShortName
+		lg.Tags["image_tag"] = imageTag
+	}
+}
 
 type message struct {
 	Type     string            `json:"type"`
@@ -272,13 +309,6 @@ type message struct {
 	Log      string            `json:"log"`
 }
 
-func (m *message) addTags(key, value string) {
-	if m.Tags == nil {
-		m.Tags = make(map[string]string)
-	}
-	m.Tags[key] = value
-}
-
 func (m *message) json() ([]byte, error) {
 	j, err := json.Marshal(m)
 	if err != nil {
@@ -286,8 +316,6 @@ func (m *message) json() ([]byte, error) {
 	}
 	return j, nil
 }
-
-// wsclient
 
 type wsclient struct {
 	u      *url.URL
@@ -338,4 +366,43 @@ func (w *wsclient) writeMessage(data []byte) error {
 	w.dataCh <- data
 	// fmt.Errorf("failed to write channel")
 	return nil
+}
+
+// ParseImage adapts some of the logic from the actual Docker library's image parsing
+// routines:
+// https://github.com/docker/distribution/blob/release/2.7/reference/normalize.go
+func ParseImage(image string) (string, string, string) {
+	var domain, remainder string
+
+	i := strings.IndexRune(image, '/')
+
+	if i == -1 || (!strings.ContainsAny(image[:i], ".:") && image[:i] != "localhost") {
+		remainder = image
+	} else {
+		domain, remainder = image[:i], image[i+1:]
+	}
+
+	var imageName string
+	imageVersion := "unknown"
+
+	i = strings.LastIndex(remainder, ":")
+	if i > -1 {
+		imageVersion = remainder[i+1:]
+		imageName = remainder[:i]
+	} else {
+		imageName = remainder
+	}
+
+	if domain != "" {
+		imageName = domain + "/" + imageName
+	}
+
+	shortName := imageName
+	if imageBlock := strings.Split(imageName, "/"); len(imageBlock) > 0 {
+		// there is no need to do
+		// Split not return empty slice
+		shortName = imageBlock[len(imageBlock)-1]
+	}
+
+	return imageName, shortName, imageVersion
 }

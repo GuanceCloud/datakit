@@ -18,6 +18,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/influxdb1-client/models"
+	"github.com/stretchr/testify/assert"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
@@ -246,6 +247,8 @@ func (x *apiWriteMock) geoInfo(ip string) map[string]string {
 }
 
 func TestAPIWrite(t *testing.T) {
+	const timestamp = 1000000000 // 2001-09-09 01:46:40 +0000 UTC
+
 	router := gin.New()
 	router.Use(uhttp.RequestLoggerMiddleware)
 	router.POST("/v1/write/:category", rawHTTPWraper(nil, apiWrite, &apiWriteMock{t: t}))
@@ -265,7 +268,7 @@ func TestAPIWrite(t *testing.T) {
 		fail bool
 	}{
 		//--------------------------------------------
-		// loging cases
+		// logging cases
 		//--------------------------------------------
 		{
 			name:             `write-logging-empty-data`,
@@ -369,11 +372,98 @@ func TestAPIWrite(t *testing.T) {
 			expectStatusCode: 200,
 		},
 		{
+			name:             `metric-json-point-key-with-point-seconds`,
+			method:           "POST",
+			url:              "/v1/write/metric?echo_line_proto=1&precision=s",
+			contentType:      "application/json",
+			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}, "time":` + fmt.Sprintf("%d", timestamp) + `}]`),
+			expectStatusCode: 200,
+			expectBody: &uhttp.BodyResp{
+				Content: []*sinkcommon.JSONPoint{
+					{
+						Measurement: "view",
+						Tags: map[string]string{
+							"t1": "1", "name": "some-obj-name",
+						},
+						Fields: map[string]interface{}{
+							"f1.1": 1, "f2": 3.14,
+						},
+						Time: time.Unix(timestamp, 0).UTC(),
+					},
+				},
+			},
+		},
+		{
+			name:             `metric-json-point-key-with-point-nanoseconds`,
+			method:           "POST",
+			url:              "/v1/write/metric?echo_line_proto=1",
+			contentType:      "application/json",
+			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}, "time":` + fmt.Sprintf("%d", timestamp*1000*1000*1000) + `}]`),
+			expectStatusCode: 200,
+			expectBody: &uhttp.BodyResp{
+				Content: []*sinkcommon.JSONPoint{
+					{
+						Measurement: "view",
+						Tags: map[string]string{
+							"t1": "1", "name": "some-obj-name",
+						},
+						Fields: map[string]interface{}{
+							"f1.1": 1, "f2": 3.14,
+						},
+						Time: time.Unix(0, timestamp*1000*1000*1000).UTC(),
+					},
+				},
+			},
+		},
+
+		{
 			name:             `metric-point-key-with-point`,
 			method:           "POST",
 			url:              "/v1/write/metric",
 			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=3,f3.14=3.14`),
 			expectStatusCode: 200,
+		},
+		{
+			name:             `metric-point-key-with-point-seconds`,
+			method:           "POST",
+			url:              "/v1/write/metric?echo_line_proto=1&precision=s",
+			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 ` + fmt.Sprintf("%d", timestamp)),
+			expectStatusCode: 200,
+			expectBody: &uhttp.BodyResp{
+				Content: []*sinkcommon.JSONPoint{
+					{
+						Measurement: "measurement",
+						Tags: map[string]string{
+							"t1": "1", "t2": "2",
+						},
+						Fields: map[string]interface{}{
+							"f1": 1, "f2": 2, "f3.14": 3.14,
+						},
+						Time: time.Unix(timestamp, 0).UTC(),
+					},
+				},
+			},
+		},
+		{
+			name:             `metric-point-key-with-point-nanoseconds`,
+			method:           "POST",
+			url:              "/v1/write/metric?echo_line_proto=1&precision=n",
+			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 ` + fmt.Sprintf("%d", timestamp*1000*1000*1000)),
+			expectStatusCode: 200,
+			expectBody: &uhttp.BodyResp{
+				Content: []*sinkcommon.JSONPoint{
+					{
+						Measurement: "measurement",
+						Tags: map[string]string{
+							"t1": "1", "t2": "2",
+						},
+						Fields: map[string]interface{}{
+							"f1": 1, "f2": 2, "f3.14": 3.14,
+						},
+						Time: time.Unix(0, timestamp*1000*1000*1000).UTC(),
+					},
+				},
+			},
 		},
 
 		//--------------------------------------------
@@ -419,7 +509,7 @@ func TestAPIWrite(t *testing.T) {
 						Fields: map[string]interface{}{
 							"f1": 1, "message": "dump object message",
 						},
-						Time: time.Unix(0, 123),
+						Time: time.Unix(0, 123).UTC(),
 					},
 				},
 			},
@@ -452,7 +542,7 @@ func TestAPIWrite(t *testing.T) {
 						Fields: map[string]interface{}{
 							"f1": 1, "message": "dump object message",
 						},
-						Time: time.Unix(0, 123),
+						Time: time.Unix(0, 123).UTC(),
 					},
 				},
 			},
@@ -535,5 +625,76 @@ func TestAPIWrite(t *testing.T) {
 
 			tu.Equals(t, tc.expectStatusCode, resp.StatusCode)
 		})
+	}
+}
+
+// go test -v -timeout 30s -run ^Test_getTimeFromInt64$ gitlab.jiagouyun.com/cloudcare-tools/datakit/http
+func Test_getTimeFromInt64(t *testing.T) {
+	const timestamp = 1000000000 // 2001-09-09 01:46:40 +0000 UTC
+
+	cases := []struct {
+		name string
+		in   int64
+		opt  *lp.Option
+		out  string
+	}{
+		{
+			name: "seconds_1",
+			in:   timestamp,
+			opt:  &lp.Option{Precision: "s"},
+			out:  "2001-09-09 01:46:40 +0000 UTC",
+		},
+		{
+			name: "nanoseconds_1",
+			in:   timestamp * 1000 * 1000 * 1000, // nanoseconds
+			out:  "2001-09-09 01:46:40 +0000 UTC",
+		},
+		{
+			name: "hours",
+			in:   1,
+			opt:  &lp.Option{Precision: "h"},
+			out:  "1970-01-01 01:00:00 +0000 UTC",
+		},
+		{
+			name: "minutes",
+			in:   2,
+			opt:  &lp.Option{Precision: "m"},
+			out:  "1970-01-01 00:02:00 +0000 UTC",
+		},
+		{
+			name: "seconds",
+			in:   3,
+			opt:  &lp.Option{Precision: "s"},
+			out:  "1970-01-01 00:00:03 +0000 UTC",
+		},
+		{
+			name: "millseconds",
+			in:   4,
+			opt:  &lp.Option{Precision: "ms"},
+			out:  "1970-01-01 00:00:00.000004 +0000 UTC",
+		},
+		{
+			name: "microseconds",
+			in:   5,
+			opt:  &lp.Option{Precision: "u"},
+			out:  "1970-01-01 00:00:00.005 +0000 UTC",
+		},
+		{
+			name: "nanoseconds",
+			in:   6,
+			opt:  &lp.Option{Precision: "n"},
+			out:  "1970-01-01 00:00:00.000000006 +0000 UTC",
+		},
+		{
+			name: "nanoseconds_with_no_precision",
+			in:   7,
+			out:  "1970-01-01 00:00:00.000000007 +0000 UTC",
+		},
+	}
+
+	for _, tc := range cases {
+		out := getTimeFromInt64(tc.in, tc.opt)
+		// fmt.Printf("name = %s, out = %s\n", tc.name, out.String())
+		assert.Equal(t, tc.out, out.String())
 	}
 }

@@ -30,7 +30,7 @@ type ConnectionInfo struct {
 	Meta  uint32
 }
 
-func (conn *ConnectionInfo) String() string {
+func (conn ConnectionInfo) String() string {
 	return fmt.Sprintf("%s:%d -> %s:%d, pid:%d, tcp:%t", U32BEToIP(conn.Saddr, true), conn.Sport, U32BEToIP(conn.Daddr, true), conn.Dport, conn.Pid, ConnProtocolIsTCP(conn.Meta))
 }
 
@@ -99,7 +99,7 @@ func ConnAddrIsIPv4(meta uint32) bool {
 	return (meta & ConnL3Mask) == ConnL3IPv4
 }
 
-func connDirection2Str(direction uint8) string {
+func ConnDirection2Str(direction uint8) string {
 	switch direction {
 	case ConnDirectionIncoming:
 		return DirectionIncoming

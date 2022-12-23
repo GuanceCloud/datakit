@@ -13,10 +13,10 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/skywalkingapi"
-	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/language/agent/v3"
-	profileV3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/language/profile/v3"
-	loggingv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/logging/v3"
-	managementV3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/management/v3"
+	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/language/agent/v3"
+	profileV3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/language/profile/v3"
+	loggingv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/logging/v3"
+	managementV3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/management/v3"
 
 	"github.com/Shopify/sarama"
 	"google.golang.org/protobuf/proto"
@@ -174,8 +174,6 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addrs []string, groupID string, skyap
 		break
 	}
 
-	defer func() { _ = group.Close() }()
-
 	// Iterate over consumer sessions.
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -195,6 +193,7 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addrs []string, groupID string, skyap
 			if ctx.Err() != nil {
 				return
 			}
+			time.Sleep(time.Second)
 			handler.ready = make(chan bool)
 		}
 	}()
@@ -212,7 +211,7 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addrs []string, groupID string, skyap
 	cancel()
 	wg.Wait()
 	if err = group.Close(); err != nil {
-		log.Panicf("Error closing client: %v", err)
+		log.Errorf("Error closing client: %v", err)
 	}
 }
 

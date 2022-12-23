@@ -13,6 +13,7 @@ import (
 
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/agent"
+	"github.com/uber/jaeger-client-go/utils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -30,7 +31,7 @@ func StartUDPAgent(addr string) error {
 	log.Debugf("%s(UDP): listen on path: %s", inputName, addr)
 
 	// receiving loop
-	buf := make([]byte, 65535)
+	buf := make([]byte, utils.UDPPacketMaxLength)
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -43,7 +44,7 @@ func StartUDPAgent(addr string) error {
 		default:
 		}
 
-		err := udpConn.SetDeadline(time.Now().Add(3 * time.Second))
+		err := udpConn.SetDeadline(time.Now().Add(10 * time.Second))
 		if err != nil {
 			log.Error(err.Error())
 			continue
@@ -67,27 +68,28 @@ func StartUDPAgent(addr string) error {
 }
 
 func parseJaegerTraceUDP(param *itrace.TraceParameters) error {
-	thriftBuffer := thrift.NewTMemoryBufferLen(param.Body.Len())
-	_, err := thriftBuffer.Write(param.Body.Bytes())
+	tmbuf := thrift.NewTMemoryBufferLen(param.Body.Len())
+	_, err := tmbuf.Write(param.Body.Bytes())
 	if err != nil {
 		return err
 	}
 
 	var (
-		protocolFactory = thrift.NewTCompactProtocolFactoryConf(&thrift.TConfiguration{})
-		thriftProtocol  = protocolFactory.GetProtocol(thriftBuffer)
+		tprot = thrift.NewTCompactProtocolFactoryConf(&thrift.TConfiguration{}).GetProtocol(tmbuf)
+		ctx   = context.Background()
 	)
-	if _, _, _, err = thriftProtocol.ReadMessageBegin(context.TODO()); err != nil { //nolint:dogsled
+	if _, _, _, err = tprot.ReadMessageBegin(ctx); err != nil { //nolint:dogsled
 		return err
 	}
+	defer func() {
+		if err := tprot.ReadMessageEnd(ctx); err != nil {
+			log.Error("read message end failed :%s,", err.Error())
+		}
+	}()
 
-	batch := agent.AgentEmitBatchArgs{}
-	if err = batch.Read(context.TODO(), thriftProtocol); err != nil {
+	batch := &agent.AgentEmitBatchArgs{}
+	if err = batch.Read(ctx, tprot); err != nil {
 		return err
-	}
-
-	if err = thriftProtocol.ReadMessageEnd(context.TODO()); err != nil {
-		log.Error("read message end failed :%s,", err.Error())
 	}
 
 	if dktrace := batchToDkTrace(batch.Batch); len(dktrace) != 0 && afterGatherRun != nil {

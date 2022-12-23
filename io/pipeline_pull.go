@@ -11,7 +11,9 @@ import (
 )
 
 // PullPipeline returns name/text, updateTime, err.
-func PullPipeline(ts int64) (mFiles map[string]map[string]string, updateTime int64, err error) {
+func PullPipeline(ts, relaTS int64) (mFiles, plRelation map[string]map[string]string,
+	defaultPl map[string]string, updateTime int64, relationTS int64, err error,
+) {
 	defer func() {
 		if err := recover(); err != nil {
 			if log != nil {
@@ -19,27 +21,33 @@ func PullPipeline(ts int64) (mFiles map[string]map[string]string, updateTime int
 			}
 		}
 	}()
-	pulledStruct, err := defPipelinePullMock.getPipelinePull(ts)
+	pulledStruct, err := defPipelinePullMock.getPipelinePull(ts, relaTS)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, nil, 0, 0, err
 	}
 	if pulledStruct == nil {
 		err = fmt.Errorf("got nil")
-		return nil, 0, err
+		return nil, nil, nil, 0, 0, err
 	}
 
-	mFiles, updateTime, err = parsePipelinePullStruct(pulledStruct)
+	mFiles, plRelation, defaultPl, updateTime, relationTS, err = parsePipelinePullStruct(pulledStruct)
 	return
 }
 
 func parsePipelinePullStruct(pulledStruct *pullPipelineReturn) (
-	map[string]map[string]string, int64, error,
+	map[string]map[string]string, map[string]map[string]string,
+	map[string]string, int64, int64, error,
 ) {
 	mFiles := make(map[string]map[string]string)
+	defaultPl := make(map[string]string)
 	for _, v := range pulledStruct.Pipelines {
 		bys, err := base64.StdEncoding.DecodeString(v.Base64Text)
 		if err != nil {
-			return nil, 0, err
+			return nil, nil, nil, 0, 0, err
+		}
+
+		if v.AsDefault {
+			defaultPl[v.Category] = v.Name
 		}
 
 		if val, ok := mFiles[v.Category]; ok {
@@ -50,5 +58,18 @@ func parsePipelinePullStruct(pulledStruct *pullPipelineReturn) (
 			mFiles[v.Category] = mf
 		}
 	}
-	return mFiles, pulledStruct.UpdateTime, nil
+
+	plRelation := make(map[string]map[string]string)
+	for _, v := range pulledStruct.Relation {
+		if m, ok := plRelation[v.Category]; !ok {
+			plRelation[v.Category] = map[string]string{
+				v.Source: v.Name,
+			}
+		} else {
+			m[v.Source] = v.Name
+		}
+	}
+
+	return mFiles, plRelation, defaultPl, pulledStruct.UpdateTime,
+		pulledStruct.RelationUpdateTime, nil
 }

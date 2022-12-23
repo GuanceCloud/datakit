@@ -54,15 +54,10 @@ func (p *pod) setExtractK8sLabelAsTags(enabled bool) {
 }
 
 func (p *pod) pullItems() error {
-	if len(p.items) != 0 {
-		return nil
-	}
-
 	list, err := p.client.getPods().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return fmt.Errorf("failed to get pods resource: %w", err)
 	}
-
 	p.items = list.Items
 	return nil
 }
@@ -187,7 +182,7 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 			},
 			fields: map[string]interface{}{
 				"age":         int64(time.Since(item.CreationTimestamp.Time).Seconds()),
-				"availale":    len(item.Status.ContainerStatuses),
+				"available":   len(item.Status.ContainerStatuses),
 				"create_time": item.CreationTimestamp.Time.UnixNano() / int64(time.Millisecond),
 			},
 			election: election,
@@ -371,8 +366,8 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 			"create_time":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(milliseconds)"},
 			"restart":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted. (Depercated, use restarts)"},
 			"restarts":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
-			"ready":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Describes whether the pod is ready to serve requests."},
-			"available":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Number of containers"},
+			"ready":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
+			"available":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of containers"},
 			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
 			"memory_usage_bytes": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of memory used in bytes"},
 			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},

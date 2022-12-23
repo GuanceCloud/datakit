@@ -1,5 +1,5 @@
-#ifndef __OFFSET_H
-#define __OFFSET_H
+#ifndef __OFFSET_H__
+#define __OFFSET_H__
 
 #ifndef PROCNAMELEN
 #define PROCNAMELEN 16
@@ -95,4 +95,38 @@ struct offset_guess
     __u32 _pad;
 };
 
-#endif // !__OFFSET_H
+struct offset_httpflow
+{
+    __u8 process_name[PROCNAMELEN];
+
+    __u64 pid_tgid;
+
+    __s32 offset_task_struct_files;
+    
+    // eBPF prog loop 0 ~ 300 times
+    __s32 offset_files_struct_fdt;
+    
+    // TODO
+    __s32 offset_fdtable_fd;
+
+    // offset_sock - sizeof(void *)
+    __s32 offset_socket_file;
+    
+    __s32 offset_file_private_data;
+
+    __s32 times; 
+    
+    __s32 state; // 0b1 | 0b10, ok
+
+    __s32 fd;
+};
+
+
+
+
+struct comm_getsockopt_arg {
+    void * skt;
+    void *file;
+};
+
+#endif // !__OFFSET_H__

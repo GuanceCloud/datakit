@@ -1,0 +1,1 @@
+make DK_EBPF_DEBUG=-D__DK_DEBUG__ && sudo ./dist/amd64/datakit-ebpf --interval 10s --enabled ebpf-net --l7net-enabled httpflow,httpflow-tls --log /dev/stdout --log-level debug

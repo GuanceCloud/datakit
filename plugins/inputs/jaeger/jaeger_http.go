@@ -71,6 +71,14 @@ func parseJaegerTrace(param *itrace.TraceParameters) error {
 	return nil
 }
 
+type DkJaegerSpan struct {
+	TraceIdLow   uint64 `json:"traceIdLow"`   //nolint: stylecheck
+	TraceIdHigh  uint64 `json:"traceIdHigh"`  //nolint: stylecheck
+	SpanId       uint64 `json:"spanId"`       //nolint: stylecheck
+	ParentSpanId uint64 `json:"parentSpanId"` //nolint: stylecheck
+	*jaeger.Span
+}
+
 func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 	var (
 		project, version, env = getExpandInfo(batch)
@@ -83,22 +91,22 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			ParentID:   strconv.FormatInt(span.ParentSpanId, 16),
-			SpanID:     strconv.FormatInt(span.SpanId, 16),
+			ParentID:   strconv.FormatUint(uint64(span.ParentSpanId), 16),
+			SpanID:     strconv.FormatUint(uint64(span.SpanId), 16),
 			Service:    batch.Process.ServiceName,
 			Resource:   span.OperationName,
 			Operation:  span.OperationName,
 			Source:     inputName,
 			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
-			SpanType:   itrace.FindSpanTypeIntSpanID(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
+			SpanType:   itrace.FindSpanTypeIntSpanID(uint64(span.SpanId), uint64(span.ParentSpanId), spanIDs, parentIDs),
 			Start:      span.StartTime * int64(time.Microsecond),
 			Duration:   span.Duration * int64(time.Microsecond),
 		}
 
 		if span.TraceIdHigh != 0 {
-			dkspan.TraceID = fmt.Sprintf("%x%x", span.TraceIdHigh, span.TraceIdLow)
+			dkspan.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
 		} else {
-			dkspan.TraceID = strconv.FormatInt(span.TraceIdLow, 16)
+			dkspan.TraceID = strconv.FormatUint(uint64(span.TraceIdLow), 16)
 		}
 
 		dkspan.Status = itrace.STATUS_OK
@@ -124,7 +132,14 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			dkspan.Tags[itrace.TAG_ENV] = env
 		}
 
-		if buf, err := json.Marshal(span); err != nil {
+		dkJSpan := &DkJaegerSpan{
+			TraceIdLow:   uint64(span.TraceIdLow),
+			TraceIdHigh:  uint64(span.TraceIdHigh),
+			SpanId:       uint64(span.SpanId),
+			ParentSpanId: uint64(span.ParentSpanId),
+			Span:         span,
+		}
+		if buf, err := json.Marshal(dkJSpan); err != nil {
 			log.Warn(err.Error())
 		} else {
 			dkspan.Content = string(buf)
@@ -140,16 +155,16 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 	return dktrace
 }
 
-func gatherSpansInfo(trace []*jaeger.Span) (parentIDs map[int64]bool, spanIDs map[int64]bool) {
-	parentIDs = make(map[int64]bool)
-	spanIDs = make(map[int64]bool)
+func gatherSpansInfo(trace []*jaeger.Span) (parentIDs map[uint64]bool, spanIDs map[uint64]bool) {
+	parentIDs = make(map[uint64]bool)
+	spanIDs = make(map[uint64]bool)
 	for _, span := range trace {
 		if span == nil {
 			continue
 		}
-		spanIDs[span.SpanId] = true
+		spanIDs[uint64(span.SpanId)] = true
 		if span.ParentSpanId != 0 {
-			parentIDs[span.ParentSpanId] = true
+			parentIDs[uint64(span.ParentSpanId)] = true
 		}
 	}
 

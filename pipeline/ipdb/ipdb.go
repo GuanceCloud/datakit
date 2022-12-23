@@ -29,6 +29,21 @@ type IPdbRecord struct {
 	Areacode  string
 }
 
+func (record *IPdbRecord) CheckData() *IPdbRecord {
+	switch record.Country { // #issue 354
+	case "TW":
+		record.Country = "CN"
+		record.Region = "Taiwan"
+	case "MO":
+		record.Country = "CN"
+		record.Region = "Macao"
+	case "HK":
+		record.Country = "CN"
+		record.Region = "Hong Kong"
+	}
+	return record
+}
+
 func ParseIPCIDR(ipCidr string) (string, error) {
 	var err error
 	var cidrLen int64 = 32

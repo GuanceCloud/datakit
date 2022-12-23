@@ -277,7 +277,7 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 		l4proto = "udp"
 		mTags["transport"] = l4proto
 	}
-	mTags["direction"] = connDirection2Str(v.Stats.Direction)
+	mTags["direction"] = ConnDirection2Str(v.Stats.Direction)
 
 	// add K8s tags
 	mTags = AddK8sTags2Map(k8sNetInfo, srcIP, dstIP, k.Sport, k.Dport, l4proto, mTags)
@@ -436,35 +436,6 @@ func ConnNotNeedToFilter(conn *ConnectionInfo, connStats *ConnFullStats) bool {
 	}
 
 	return true
-}
-
-// MergeConns 聚合 src/dst port 为临时端口(32768 ~ 60999)的连接,
-// 被聚合的端口号被设置为
-// cat /proc/sys/net/ipv4/ip_local_port_range.
-func MergeConns(preResult *ConnResult) {
-	if len(preResult.result) == 0 {
-		return
-	}
-
-	resultTmpConn := map[ConnectionInfo]ConnFullStats{}
-
-	for k, v := range preResult.result {
-		if v.Stats.Direction == ConnDirectionIncoming && IsEphemeralPort(k.Dport) {
-			k.Dport = math.MaxUint32
-		} else if v.Stats.Direction == ConnDirectionOutgoing && IsEphemeralPort(k.Sport) {
-			k.Sport = math.MaxUint32
-		}
-		if v2, ok := resultTmpConn[k]; ok {
-			v2 = StatsTCPOp("+", v2, v.Stats, v.TCPStats)
-			v2.TotalEstablished += v.TotalEstablished
-			v2.TotalClosed += v.TotalClosed
-			resultTmpConn[k] = v2
-		} else {
-			resultTmpConn[k] = v
-		}
-	}
-
-	preResult.result = resultTmpConn
 }
 
 func ConnCmpNoSPort(expected, actual ConnectionInfo) bool {

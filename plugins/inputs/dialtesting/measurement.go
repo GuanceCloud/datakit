@@ -61,7 +61,7 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "HTTP 相应时间, 单位 ms",
+				Desc:     "HTTP 响应时间",
 			},
 			"response_body_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -135,13 +135,13 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "TCP 连接时间, 单位",
+				Desc:     "TCP 连接时间 ",
 			},
 			"response_time_with_dns": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "连接时间（含DNS解析）, 单位",
+				Desc:     "连接时间（含DNS解析）",
 			},
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -327,13 +327,13 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "连接时间, 单位",
+				Desc:     "连接时间",
 			},
 			"response_time_with_dns": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "连接时间（含DNS解析）, 单位",
+				Desc:     "连接时间（含DNS解析）",
 			},
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,

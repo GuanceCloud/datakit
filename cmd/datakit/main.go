@@ -7,11 +7,9 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -32,7 +30,6 @@ import (
 	plRemote "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
 )
 
@@ -181,27 +178,6 @@ func tryLoadConfig() {
 	l.Infof("datakit run ID: %s, version: %s", cliutils.XID("dkrun_"), datakit.Version)
 }
 
-func initPythonCore() error {
-	// remove core dir
-	if err := os.RemoveAll(datakit.PythonCoreDir); err != nil {
-		return err
-	}
-
-	// generate new core dir
-	if err := os.MkdirAll(datakit.PythonCoreDir, datakit.ConfPerm); err != nil {
-		return err
-	}
-
-	for k, v := range pythond.PythonDCoreFiles {
-		bFile := filepath.Join(datakit.PythonCoreDir, k)
-		if err := ioutil.WriteFile(bFile, []byte(v), datakit.ConfPerm); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func doRun() error {
 	// check io start
 	checkutil.CheckConditionExit(func() bool {
@@ -232,11 +208,6 @@ func doRun() error {
 		}
 	} else {
 		l.Warn("Ignore election or pipeline remote because dataway is not set")
-	}
-
-	if err := initPythonCore(); err != nil {
-		l.Errorf("initPythonCore failed: %v", err)
-		return err
 	}
 
 	if config.IsUseConfd() {
