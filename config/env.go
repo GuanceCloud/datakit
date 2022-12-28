@@ -172,6 +172,14 @@ func (c *Config) LoadEnvs() error {
 		c.Pipeline.ReferTablePullInterval = v
 	}
 
+	if v := datakit.GetEnv("ENV_REFER_TABLE_USE_SQLITE"); v != "" {
+		c.Pipeline.UseSQLite = true
+	}
+
+	if v := datakit.GetEnv("ENV_REFER_TABLE_SQLITE_MEM_MODE"); v != "" {
+		c.Pipeline.SQLiteMemMode = true
+	}
+
 	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT"); v != "" {
 		if x, err := strconv.ParseFloat(v, 64); err != nil {
 			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT, expect int or float, got %s, ignored", v)

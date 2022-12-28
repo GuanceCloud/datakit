@@ -312,6 +312,8 @@ ENV_SINK_M = "influxdb://host1:8087?protocol=http&database=db1&precision=ns&time
 | ---------:                      | ----:  | ---:   | ------ | ----                          |
 | `ENV_REFER_TABLE_URL`           | string | 无     | 否     | 设置数据源 URL                |
 | `ENV_REFER_TABLE_PULL_INTERVAL` | string | 5m     | 否     | 设置数据源 URL 的请求时间间隔 |
+| `ENV_REFER_TABLE_USE_SQLITE` | bool | false | 否 | 设置是否使用 SQLite 保存数据 |
+| `ENV_REFER_TABLE_SQLITE_MEM_MODE` | bool | false | 否 | 当使用 SQLite 保存数据时，使用 SQLite 内存模式/磁盘模式 |
 
 ### 其它杂项 {#env-others}
 

@@ -23,7 +23,7 @@ func TestQueryReferTable(t *testing.T) {
 	defer server.Close()
 	url := server.URL
 
-	refertable.InitReferTableRunner(url+"?name=a.json", time.Second*5)
+	refertable.InitReferTableRunner(url+"?name=a.json", time.Second*5, false, false)
 
 	ok := refertable.InitFinished(time.Second * 5)
 	if !ok {

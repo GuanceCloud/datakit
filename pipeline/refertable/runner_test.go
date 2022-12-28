@@ -66,7 +66,7 @@ func TestRunner(t *testing.T) {
 
 	url := server.URL
 
-	plReferTable := &PlReferTables{}
+	plReferTable := &PlReferTablesInMemory{}
 	runner := &Runner{
 		initFinished: make(chan struct{}),
 	}

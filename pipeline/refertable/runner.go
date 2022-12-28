@@ -7,6 +7,7 @@ package refertable
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -22,7 +23,7 @@ import (
 )
 
 var (
-	_plReferTables = &PlReferTables{}
+	_plReferTables PlReferTables
 	_runner        = &Runner{
 		initFinished: make(chan struct{}),
 	}
@@ -52,6 +53,9 @@ func QueryReferTable(tableName string, colName []string, colValue []any,
 }
 
 func Stats() *ReferTableStats {
+	if _plReferTables == nil {
+		return nil
+	}
 	return _plReferTables.stats()
 }
 
@@ -92,11 +96,31 @@ func InitLog() {
 	l = logger.SLogger("refer-table")
 }
 
-func InitReferTableRunner(tableURL string, interval time.Duration) error {
+func InitReferTableRunner(tableURL string, interval time.Duration, useSQLite bool, sqliteMemMode bool) error {
+	if useSQLite {
+		if sqliteMemMode {
+			l.Infof("using in-memory SQLite for refer-table")
+			d, err := sql.Open("sqlite", ":memory:")
+			if err != nil {
+				return fmt.Errorf("open in-memory SQLite failed: %w", err)
+			}
+			_plReferTables = &PlReferTablesSqlite{db: d}
+		} else {
+			l.Infof("using on-disk SQLite for refer-table")
+			d, err := sql.Open("sqlite", dbPath)
+			if err != nil {
+				return fmt.Errorf("open SQLite at %s failed: %w", dbPath, err)
+			}
+			_plReferTables = &PlReferTablesSqlite{db: d}
+		}
+	} else {
+		l.Infof("using memory mode for refer-table")
+		_plReferTables = &PlReferTablesInMemory{}
+	}
 	return initReferTableRunner(_runner, _plReferTables, tableURL, interval)
 }
 
-func initReferTableRunner(runner *Runner, plRefTables *PlReferTables, tableURL string, interval time.Duration) error {
+func initReferTableRunner(runner *Runner, plRefTables PlReferTables, tableURL string, interval time.Duration) error {
 	if tableURL == "" {
 		return nil
 	}
@@ -150,10 +174,10 @@ func checkURL(tableURL string) (string, error) {
 	return scheme, nil
 }
 
-func httpGetWkr(plRefTable *PlReferTables, runner *Runner, ch <-chan any) error {
+func httpGetWkr(plRefTables PlReferTables, runner *Runner, ch <-chan any) error {
 	ticker := time.NewTicker(runner.inConfig.Interval)
 	for {
-		getAndUpdate(plRefTable, runner)
+		getAndUpdate(plRefTables, runner)
 		select {
 		case <-ticker.C:
 		case <-ch:
@@ -162,12 +186,12 @@ func httpGetWkr(plRefTable *PlReferTables, runner *Runner, ch <-chan any) error 
 	}
 }
 
-func getAndUpdate(plRefTable *PlReferTables, runner *Runner) {
+func getAndUpdate(plRefTables PlReferTables, runner *Runner) {
 	if tables, err := httpGet(runner.cli, runner.inConfig.URL); err != nil {
-		l.Error(err)
+		l.Errorf("get table data from URL: %v", err)
 	} else {
-		if err := plRefTable.updateAll(tables); err != nil {
-			l.Error(err)
+		if err := plRefTables.updateAll(tables); err != nil {
+			l.Errorf("failed to update tables: %v", err)
 		}
 	}
 

@@ -62,6 +62,8 @@ type PipelineCfg struct {
 	RemotePullInterval     string            `toml:"remote_pull_interval"`
 	ReferTableURL          string            `toml:"refer_table_url"`
 	ReferTablePullInterval string            `toml:"refer_table_pull_interval"`
+	UseSQLite              bool              `toml:"use_sqlite"`
+	SQLiteMemMode          bool              `toml:"sqlite_mem_mode"`
 }
 
 func NewPipelineFromFile(category string, path string) (*Pipeline, error) {
@@ -154,7 +156,7 @@ func Init(pipelineCfg *PipelineCfg) error {
 			dur = time.Minute * 5
 		}
 		if err := plrefertable.InitReferTableRunner(
-			pipelineCfg.ReferTableURL, dur); err != nil {
+			pipelineCfg.ReferTableURL, dur, pipelineCfg.UseSQLite, pipelineCfg.SQLiteMemMode); err != nil {
 			l.Error("init refer table, error: %v", err)
 		}
 	}
