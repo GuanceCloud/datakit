@@ -82,7 +82,7 @@ var (
 
 	workSpaceUUID         string
 	workSpaceUUIDInitLock sync.Mutex
-	// A Regexp is concurrent safe, so we can define this var globally
+	// A Regexp is concurrent safe, so we can define this var globally.
 	workSpaceUUIDRegexp = regexp.MustCompile(`ws_uuid"\s*:\s*"([^"]*?)"`)
 
 	pointCache     *profileCache
@@ -427,7 +427,6 @@ func (i *Input) RegHTTPHandler() {
 
 	proxy := &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
-
 			// not a post request
 			if req.Body == nil {
 				req.Header.Set(ProxySaveErrorHeader, "profiling request body is nil")

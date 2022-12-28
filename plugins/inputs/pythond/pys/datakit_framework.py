@@ -120,6 +120,75 @@ class DataKitFramework(object):
         if not checkStr:
             raise ValueError('arguments missing \"' + name + '\"')
 
+    def feed_metric(self, input=None, measurement=None, tags=None, fields=None, time=None, **kwargs):
+        self.checkArgEmpty("measurement", measurement)
+        self.checkArgEmpty("fields", fields)
+        data = {
+            "measurement": measurement,
+            "tags": tags,
+            "fields": fields,
+            "time": time,
+        }
+        for key, value in kwargs.items():
+            data["fields"][key] = value
+
+        dataArr = [data]
+
+        in_data = {
+            'M': dataArr,
+            'input':input,
+        }
+
+        return self.report(in_data)
+
+    def feed_logging(self, input=None, source=None, tags=None, message=None, time=None, **kwargs):
+        self.checkArgEmpty("source", source)
+        data = {
+            "measurement": source,
+            "tags": tags,
+            "fields": {
+                "message": message,
+            },
+            "time": time,
+        }
+        for key, value in kwargs.items():
+            data["fields"][key] = value
+
+        dataArr = [data]
+
+        in_data = {
+            'L': dataArr,
+            'input':input,
+        }
+
+        return self.report(in_data)
+
+    # cls is class.
+    def feed_object(self, input=None, cls=None, name=None, tags=None, fields=None, time=None, **kwargs):
+        self.checkArgEmpty("cls", cls)
+        self.checkArgEmpty("fields", fields)
+        data = {
+            "measurement": cls,
+            "tags": tags,
+            "fields": fields,
+            "time": time,
+        }
+        for key, value in kwargs.items():
+            data["fields"][key] = value
+
+        if not data["tags"]:
+            data["tags"] = {}
+        
+        data["tags"]["name"] = name
+
+        dataArr = [data]
+
+        in_data = {
+            'O': dataArr,
+            'input':input,
+        }
+
+        return self.report(in_data)
 
     def feed_user_event(self, df_user_id=None, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs):
         self.checkArgEmpty("df_user_id", df_user_id)
