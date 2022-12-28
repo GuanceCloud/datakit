@@ -15,7 +15,7 @@ func TestTable(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	plRefTable := PlReferTables{}
+	plRefTable := PlReferTablesInMemory{}
 	plRefTable.updateAll(tables)
 
 	if v, ok := plRefTable.query("table1", []string{"key1"}, []any{"ab"}, nil); ok {
@@ -35,7 +35,7 @@ func BenchmarkTableQueyr(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	plRefTable := PlReferTables{}
+	plRefTable := PlReferTablesInMemory{}
 	plRefTable.updateAll(tables)
 
 	for i := 0; i < b.N; i++ {
