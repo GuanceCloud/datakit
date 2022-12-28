@@ -60,11 +60,11 @@ const (
   # [[inputs.netstat.addr_ports]]
   #   ports = ["9529"]
   #   [inputs.netstat.addr_ports.tags]
-  # 	service = "datakit"
+  #     service = "datakit"
   #     foo = "bar"
-  
+
   ## server may have multiple network cards
-  ## display only some network cards  
+  ## display only some network cards
   ## can and tags too
   # [[inputs.netstat.addr_ports]]
   #   ports = ["1.1.1.1:80","2.2.2.2:80"]
@@ -102,8 +102,7 @@ type netInfo struct {
 }
 
 func newNetInfo() *netInfo {
-	n := &netInfo{}
-	return n
+	return &netInfo{}
 }
 
 func (n *netInfo) toMap() map[string]interface{} {
@@ -143,8 +142,7 @@ type Input struct {
 	netInfos         []*NetInfos    // cache metric,
 }
 
-func (ipt *Input) Singleton() {
-}
+func (ipt *Input) Singleton() {}
 
 // netStat Measurement structure.
 type netStatMeasurement struct {
@@ -189,6 +187,7 @@ func (n *netStatMeasurement) Info() *inputs.MeasurementInfo {
 
 // Collect Get, Aggregate, Calculate Data.
 func (ipt *Input) Collect() error {
+	ipt.netInfos = make([]*NetInfos, 0)
 	ipt.collectCache = make([]inputs.Measurement, 0)
 	ipt.collectCachePort = make([]inputs.Measurement, 0)
 
@@ -494,7 +493,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 }
 
 func newDefaultInput() *Input {
-	ipt := &Input{
+	return &Input{
 		netConnections: GetNetConnections,
 		platform:       runtime.GOOS,
 		Interval:       datakit.Duration{Duration: time.Second * 10},
@@ -502,7 +501,6 @@ func newDefaultInput() *Input {
 		Tags:           make(map[string]string),
 		netInfos:       []*NetInfos{},
 	}
-	return ipt
 }
 
 func init() { //nolint:gochecknoinits
