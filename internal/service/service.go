@@ -34,7 +34,7 @@ var (
 
 type program struct{}
 
-func NewService() (service.Service, error) {
+func NewService(userName string) (service.Service, error) {
 	prog := &program{}
 
 	scfg := &service.Config{
@@ -44,6 +44,7 @@ func NewService() (service.Service, error) {
 		Executable:  Executable,
 		Arguments:   Arguments,
 		Option:      option,
+		UserName:    userName,
 	}
 
 	if runtime.GOOS == "darwin" {
@@ -59,7 +60,7 @@ func NewService() (service.Service, error) {
 }
 
 func StartService() error {
-	svc, err := NewService()
+	svc, err := NewService("")
 	if err != nil {
 		return err
 	}

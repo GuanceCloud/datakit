@@ -103,6 +103,7 @@ NAME1="value1" NAME2="value2"
 - `DK_DEF_INPUTS`：默认开启的采集器名称列表，格式范例：`cpu,mem,disk`
   - 由于[默认会开启很多采集器](datakit-input-conf.md#default-enabled-inputs)，这个环境变量用于调整这个默认的采集器列表，比如，可以选择只开启 cpu,mem,disk 三个采集的话，传入 `DK_DEF_INPUTS="cpu,mem,disk"` 即可
 - `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`)
+- `DK_USER_NAME`：Datakit 服务运行时的用户名。目前仅支持 `root` 和 `datakit`, 默认为 `root`。
 
 ### DataKit 自身日志相关 {#env-logging}
 
