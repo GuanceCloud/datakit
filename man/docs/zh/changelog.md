@@ -20,6 +20,31 @@
 ### 兼容调整 {#cl-1.4.19-brk}
 -->
 
+## 1.5.3(2022/12/29) {#cl-1.5.3}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.3-new}
+
+- Prometheus 采集器支持通过 Unix Socket 采集数据(#1317)
+
+### 问题修复 {#cl-1.5.3-fix}
+
+- 修复 netstat 采集器链接数问题(#1276/#1336)
+- 修复 go profiler 差值问题(#1328)
+- 修复 Datakit 重启超时问题(#1297)
+- 修复非 root 用户运行问题(#1153)
+
+### 功能优化 {#cl-1.5.3-opt}
+
+- 优化 eBPF 中 httpflow 协议判定(#1318)
+- 优化 Windows 下 Datakit 安装升级命令(#1316)
+- 优化 Pythond 性能(#1304)
+- 提供更详细的 PL 操作报错信息(#1262)
+- 提供 PL reftable 的本地化存储方案(#1158)
+
+---
+
 ## 1.5.1(2022/12/01) {#cl-1.5.1}
 
 本次发布属于迭代发布，主要有如下更新：
@@ -220,7 +245,7 @@
     - 如果时间字段切割出错，支持自动修正时间字段(`time`)，以避免控制台页面上时间无法展示(#1091)
     - 新增 [len()](../developers/pipeline.md#fn-len) 函数
 
-### 问题修复 {#cl-1.4.16-fix} 
+### 问题修复 {#cl-1.4.16-fix}
 
 - 修复 OOM 后 DataKit 服务不会自动启动的问题(#691)
 - 修复 prom 采集器过滤指标问题(#1084)
@@ -380,7 +405,7 @@
 - 容器采集器相关更新：
     - 修复 Kubernetes 中 Node 主机操作系统信息采集错误(#950)
     - Kubernetes 中 Prom 采集不再自动追加 pod 相关信息，避免时间线暴增(#965)
-    - Pod 对象中追加对应 yaml 信息(#969) 
+    - Pod 对象中追加对应 yaml 信息(#969)
 
 - Pipeline 相关更新：
     - 优化 Pipeline 执行步骤(#1007)
@@ -409,7 +434,7 @@
 - 修复容器采集器导致的奔溃问题(#956/#979/#980)
 - 修复 Redis slowlog 采集问题(#986)
 
---- 
+---
 
 ## 1.4.8(2022/07/21) {#cl-1.4.8}
 
@@ -433,7 +458,7 @@
 
 - eBPF 相关：
     - 修复 uprobe event name 命名冲突问题
-    - 增加更多[环境变量配置](ebpf.md#config)，便于 k8s 环境的部署 
+    - 增加更多[环境变量配置](ebpf.md#config)，便于 k8s 环境的部署
 
 - 优化 APM 数据接收接口的数据处理，缓解卡死客户端以及内存占用问题(#902)
 
@@ -474,13 +499,13 @@
 
 - 调整[全局 tag](datakit-conf.md#set-global-tag) 的行为，避免选举类采集的 tag 分裂(#870)
 - [SQLServer 采集器](sqlserver.md)增加选举支持(#882)
-- [行协议过滤器](datakit-filter.md)支持所有数据类型(#855) 
+- [行协议过滤器](datakit-filter.md)支持所有数据类型(#855)
 - 9529 HTTP 服务增加[超时机制](datakit-conf.md#http-other-settings)(#900)
 - MySQL
     - [dbm 指标集名字](mysql.md#logging)调整(#898)
-    - `service` 字段冲突问题(#895) 
+    - `service` 字段冲突问题(#895)
 - [容器对象](container.md#docker_containers)增加字段 `container_runtime_name` 以区分不同层次的容器名(#891)
-- Redis 调整 [slowlog 采集](redis.md#redis_slowlog)，将其数据改为日志存储(#885) 
+- Redis 调整 [slowlog 采集](redis.md#redis_slowlog)，将其数据改为日志存储(#885)
 - 优化 [TDEngine 采集](tdengine.md)(#877)
 - 完善 Containerd 日志采集，支持默认格式的日志自动解析(#869)
 - [Pipeline](../developers/pipeline.md) 增加 [Profiling 类数据](profile.md)支持(#866)
@@ -786,7 +811,7 @@ volumes:
 1. 允许 DataKit [升级到非稳定版](datakit-update#42d8b0e4)(#639)
 1. 调整 Remote Pipeline 的在 DataKit 本地的存储，避免不同文件系统差异导致的文件名大小写问题(#649)
 1. (Alpha)初步支持 [Kubernetes/Containerd 架构的数据采集](container#b3edf30c)(#402)
-1. 修复 Redis 采集器的不合理报错(#671) 
+1. 修复 Redis 采集器的不合理报错(#671)
 1. OpenTelemetry 采集器字段微调(#672)
 1. 修复 [DataKit 自身采集器](self) CPU 计算错误(#664)
 1. 修复 RUM 采集器因 IPDB 缺失导致的 IP 关联字段缺失问题(#652)
