@@ -20,6 +20,7 @@
 ### 兼容调整 {#cl-1.4.19-brk}
 -->
 
+
 ## 1.5.3(2022/12/29) {#cl-1.5.3}
 
 本次发布属于迭代发布，主要有如下更新：
@@ -27,21 +28,51 @@
 ### 新加功能 {#cl-1.5.3-new}
 
 - Prometheus 采集器支持通过 Unix Socket 采集数据(#1317)
+- 允许[非 root 用户运行 DataKit](datakit-install.md#common-envs)(#1153)
 
 ### 问题修复 {#cl-1.5.3-fix}
 
 - 修复 netstat 采集器链接数问题(#1276/#1336)
-- 修复 go profiler 差值问题(#1328)
+- 修复 Go profiler 差值问题(#1328)
 - 修复 Datakit 重启超时问题(#1297)
-- 修复非 root 用户运行问题(#1153)
 
 ### 功能优化 {#cl-1.5.3-opt}
 
 - 优化 eBPF 中 httpflow 协议判定(#1318)
 - 优化 Windows 下 Datakit 安装升级命令(#1316)
-- 优化 Pythond 性能(#1304)
-- 提供更详细的 PL 操作报错信息(#1262)
-- 提供 PL reftable 的本地化存储方案(#1158)
+- 优化 Pythond 使用封装(#1304)
+- Pipeline 提供更详细的操作报错信息(#1262)
+- Pipeline reftable 提供基于 SQLite 的本地化存储实现(#1158)
+
+## 1.5.2(2022/12/15) {#cl-1.5.2}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.2-new}
+
+- 新增 [Golang Profiling](profile-go.md) 接入(#1265)
+
+### 问题修复 {#cl-1.5.2-fix}
+
+- logfwd 修复不采集问题(#1288)
+- 修复 cgroup 不生效问题(#1293)
+- 修复 DataKit 服务操作超时问题(#1297)
+- 修复 SQLServer 采集可能卡死的问题(#1289)
+
+### 功能优化 {#cl-1.5.2-opt}
+
+- logfwd 支持通过 `LOGFWD_TARGET_CONTAINER_IMAGE` 来支持 image 字段注入(#1299)
+- trace 采集器：
+    - 优化 error-stack/error-message 格式问题(#1307)
+    - SkyWalking 兼容性调整，支持 8.X 全序列(#1296)
+- eBPF httpflow 增加 `pid/process_name` 字段(#1218/#1124)，优化内核版本支持(#1277)
+- 其它细节优化(#1311/#1260/#1301/#1291/#1298/#1305)
+- datakit.yaml 有调整，建议更新新的 yaml(#1253)
+
+### 兼容调整 {#cl-1.5.2-brk}
+
+- 移除 `datakit --man` 命令
+
 
 ---
 
