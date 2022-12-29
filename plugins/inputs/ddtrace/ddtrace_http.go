@@ -92,13 +92,13 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 
 // TODO:.
 func handleDDInfo(resp http.ResponseWriter, req *http.Request) { // nolint: unused,deadcode
-	log.Errorf("### %s unsupported yet", req.URL.Path)
+	log.Infof("### %s unsupported yet", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
 }
 
 // TODO:.
 func handleDDStats(resp http.ResponseWriter, req *http.Request) {
-	log.Errorf("### %s unsupported yet", req.URL.Path)
+	log.Infof("### %s unsupported yet", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
 }
 
