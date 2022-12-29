@@ -18,49 +18,49 @@
 === "Linux"
 
     命令大概如下：
-    
+
     ```shell
     DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
     ```
-    
+
     安装完成后，在终端会看到安装成功的提示。
-    
+
 === "Mac"
 
     Mac 下安装命令跟 Linux 基本一样：
-    
+
     ```shell
     DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
     ```
-    
+
     安装完成后，在终端会看到安装成功的提示。
 
 === "Windows"
 
     Windows 上安装需在 Powershell 命令行安装，且必须以管理员身份运行 Powershell。按下 Windows 键，输入 powershell 即可看到弹出的 powershell 图标，右键选择「以管理员身份运行」即可。
-    
+
     ```powershell
-    $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+    $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; Remove-item .install.ps1 -erroraction silentlycontinue; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
     ```
 
 ???+ attention "Mac 安装问题"
 
     Mac 上安装时，如果安装/升级过程中出现
-    
+
     ```shell
     "launchctl" failed with stderr: /Library/LaunchDaemons/cn.dataflux.datakit.plist: Service is disabled
     # 或者
     "launchctl" failed with stderr: /Library/LaunchDaemons/com.guance.datakit.plist: Service is disabled
     ```
-    
+
     执行
-    
+
     ```shell
     sudo launchctl enable system/datakit
     ```
-    
+
     然后再执行如下命令即可
-    
+
     ```shell
     sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
     # 或者

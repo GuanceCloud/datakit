@@ -474,6 +474,11 @@ if [ -n "$DK_LOG_SINK_DETAIL" ]; then
 	log_sink_detail=$DK_LOG_SINK_DETAIL
 fi
 
+user_name=""
+if [ -n "$DK_USER_NAME" ]; then
+	user_name=$DK_USER_NAME
+fi
+
 ##################
 # Try install...
 ##################
@@ -576,7 +581,7 @@ else
 		--sink-security="${sink_security}" \
 		--sink-profile="${sink_profile}" \
 		--log-sink-detail="${log_sink_detail}" \
-		--ipdb-type="${ipdb_type}" \
+		--user-name="${user_name}" \
 		--gin-log="${gin_log}"
 fi
 rm -rf $installer

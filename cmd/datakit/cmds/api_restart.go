@@ -27,7 +27,7 @@ func apiRestart() {
 	goos := runtime.GOOS
 	// linux: service restart
 	if goos == "linux" {
-		svc, err := dkservice.NewService()
+		svc, err := dkservice.NewService("")
 		if err != nil {
 			l.Error(err)
 			return

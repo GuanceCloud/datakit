@@ -10,10 +10,12 @@ import (
 	"fmt"
 	"time"
 
+	plengine "github.com/GuanceCloud/platypus/pkg/engine"
+	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine/funcs"
-	plruntime "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/runtime"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 )
 
@@ -31,7 +33,7 @@ type PlScript struct {
 	ns       string // script 所属 namespace
 	category string
 
-	ng *plruntime.Script
+	proc *plruntime.Script
 
 	updateTS int64
 }
@@ -57,7 +59,7 @@ func NewScripts(scripts map[string]string, scriptPath map[string]string, ns, cat
 		}
 		return nil, retErr
 	}
-	ret, retErr := engine.ParseScript(scripts, scriptPath, funcs.FuncsMap, funcs.FuncsCheckMap)
+	ret, retErr := plengine.ParseScript(scripts, funcs.FuncsMap, funcs.FuncsCheckMap)
 
 	retScipt := map[string]*PlScript{}
 
@@ -73,7 +75,7 @@ func NewScripts(scripts map[string]string, scriptPath map[string]string, ns, cat
 			filePath: sPath,
 			ns:       ns,
 			category: category,
-			ng:       ng,
+			proc:     ng,
 			updateTS: time.Now().UnixNano(),
 		}
 	}
@@ -82,37 +84,25 @@ func NewScripts(scripts map[string]string, scriptPath map[string]string, ns, cat
 }
 
 func (script *PlScript) Engine() *plruntime.Script {
-	return script.ng
+	return script.proc
 }
 
-func (script *PlScript) Run(measurement string, tags map[string]string, fields map[string]interface{},
-	t time.Time, signal plruntime.Signal, opt *Option,
-) (string, map[string]string, map[string]interface{}, time.Time, bool, error) {
+func (script *PlScript) Run(plpt *ptinput.Point, signal plruntime.Signal, opt *Option,
+) error {
 	startTime := time.Now()
-	if script.ng == nil {
-		return "", nil, nil, t, false, fmt.Errorf("no script")
+	if script.proc == nil {
+		return fmt.Errorf("no script")
 	}
 
-	measurement, tags, fields, t, rDrop, err := engine.RunScript(script.ng, measurement, tags, fields, t, signal)
+	err := plengine.RunScriptWithRMapIn(script.proc, plpt, signal)
 	if err != nil {
 		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 0, 1, int64(time.Since(startTime)), err)
-		return "", nil, nil, t, false, err
+		return err
 	}
 
 	switch script.category {
-	case datakit.Metric:
-	case datakit.Network:
-	case datakit.KeyEvent:
-	case datakit.Object:
-	case datakit.CustomObject:
-	case datakit.Tracing:
-	case datakit.RUM:
-	case datakit.Security:
-	case datakit.Profiling:
-
 	case datakit.Logging:
 		var disable bool
-		var statusDrop bool
 		var ignore []string
 
 		if opt != nil {
@@ -121,21 +111,19 @@ func (script *PlScript) Run(measurement string, tags map[string]string, fields m
 			// spiltLen = opt.MaxFieldValLen
 		}
 		// out = ProcLoggingStatus(out, disable, ignore, spiltLen)
-		tags, fields, statusDrop = ProcLoggingStatus(tags, fields, disable, ignore)
-		if statusDrop {
-			rDrop = statusDrop
-		}
+		plpt.Tags, plpt.Fields, plpt.Drop = ProcLoggingStatus(plpt.Tags, plpt.Fields, disable, ignore)
 	default:
-		return "", nil, nil, t, false, fmt.Errorf("unsupported category: %s", script.category)
 	}
 
-	if rDrop {
+	if plpt.Drop {
 		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 1, 0, int64(time.Since(startTime)), nil)
 	} else {
 		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 0, 0, int64(time.Since(startTime)), nil)
 	}
 
-	return measurement, tags, fields, t, rDrop, nil
+	plpt.KeyTime2Time()
+
+	return nil
 }
 
 func (script *PlScript) Name() string {

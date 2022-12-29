@@ -11,7 +11,7 @@
 
 ???+ attention
 
-    该功能内存消耗较高，参考 150 万行磁盘占用约 200MB (JSON 文件) 的不重复数据 (string 类型两列; int, float, bool 各一列) 为例，其内存占用维持在 950MB ～ 1.2GB, 更新时的峰值内存 2.2GB ~ 2.7GB
+    该功能内存消耗较高，参考 150 万行磁盘占用约 200MB (JSON 文件) 的不重复数据 (string 类型两列; int, float, bool 各一列) 为例，其内存占用维持在 950MB ～ 1.2GB, 更新时的峰值内存 2.2GB ~ 2.7GB。可以通过配置 use_sqlite = true，将数据保存到磁盘上。
 
 ## 表结构与列的数据类型 {#table-struct}
 
@@ -38,6 +38,8 @@
     [pipeline]
       refer_table_url = "http[s]://host:port/path/to/resource"
       refer_table_pull_interval = "5m"
+      use_sqlite = false
+      sqlite_mem_mode = false
     ```
 
 === "Kubernetes"
@@ -103,6 +105,24 @@
 ]
 ```
 
+## 使用 SQLite 保存导入数据 {#sqlite}
+
+要将导入的数据保存到 SQLite 数据库中时，只需配置 use_sqlite 为 true：
+
+```toml
+[pipeline]
+    refer_table_url = "http[s]://host:port/path/to/resource"
+    refer_table_pull_interval = "5m"
+    use_sqlite = true
+    sqlite_mem_mode = false
+```
+
+当使用 SQLite 保存数据，且上述 sqlite_mem_mode 设置为 true 时，将使用 SQLite 的内存模式；默认为 SQLite 磁盘模式。
+
+???+ attention
+
+    目前 windows-386 下不支持此功能。
+
 ## 实践示例 {#example}
 
 将上面的 json 文本写成文件 `test.json`，在 Ubuntu18.04+ 使用 apt 安装 nginx 后将文件放置于 /var/www/html 下
@@ -133,6 +153,8 @@
 [pipeline]
   refer_table_url = "http://localhost/test.json"
   refer_table_pull_interval = "5m"
+  use_sqlite = false
+  sqlite_mem_mode = false
 ```
 
 进入 datakit pipeline loggging 目录, 并创建测试脚本 `refer_table_for_test.p`，并写入以下内容

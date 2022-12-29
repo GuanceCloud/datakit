@@ -14,6 +14,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"os/user"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -57,6 +59,7 @@ var (
 	flagDownloadOnly,
 	flagInfo bool
 
+	flagUserName,
 	flagInstallLog,
 	flagSrc string
 
@@ -77,6 +80,7 @@ func init() {
 	flag.BoolVar(&flagOffline, "offline", false, "-offline option removed")
 	flag.BoolVar(&flagDownloadOnly, "download-only", false, "only download install packages")
 	flag.StringVar(&InstallerBaseURL, "installer_base_url", "", "install datakit and data BaseUrl")
+	flag.StringVar(&flagUserName, "user-name", "root", "install log") // user & group.
 
 	flag.StringVar(&installer.Dataway, "dataway", "", "DataWay host(https://guance.openway.com?token=xxx)")
 	flag.StringVar(&installer.Proxy, "proxy", "", "http proxy http://ip:port for datakit")
@@ -324,7 +328,11 @@ Data           : %s
 		dkservice.Executable += ".exe"
 	}
 
-	svc, err := dkservice.NewService()
+	var userName string
+	if flagUserName != "root" {
+		userName = builtInUserName // set as 'datakit'.
+	}
+	svc, err := dkservice.NewService(userName)
 	if err != nil {
 		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
 		return
@@ -386,6 +394,8 @@ __downloadOK:
 		cp.Infof("Installing version %s...\n", DataKitVersion)
 		installer.Install(svc)
 	}
+
+	setupUserGroup(flagUserName, flagUserName)
 
 	if flagInstallOnly != 0 {
 		cp.Warnf("Only install service %s, NOT started\n", dkservice.Name)
@@ -486,4 +496,73 @@ func mvOldDatakit(svc service.Service) {
 	if err := os.Rename(olddir, datakit.InstallDir); err != nil {
 		l.Fatalf("move %s -> %s failed: %s", olddir, datakit.InstallDir, err.Error())
 	}
+}
+
+const (
+	installDir      = "/usr/local/datakit"
+	defaultLogDir   = "/var/log/datakit"
+	builtInUserName = "datakit"
+)
+
+func setupUserGroup(userName, groupName string) {
+	l.Info("setupUserGroup entry")
+
+	if runtime.GOOS != datakit.OSLinux || userName == "root" {
+		return
+	}
+
+	l.Info("setupUserGroup start")
+
+	// set as 'datakit'.
+	userName = builtInUserName
+	_ = groupName // for lint.
+	groupName = builtInUserName
+
+	// add group.
+	if _, err := user.LookupGroup(groupName); err != nil {
+		if err.Error() == user.UnknownGroupError(groupName).Error() {
+			if err = executeCmd("addgroup", "--system", groupName); err != nil {
+				l.Errorf("addgroup failed: %v", err)
+				return
+			}
+		} else {
+			l.Errorf("LookupGroup failed: %v", err)
+		}
+	}
+
+	// add user.
+	if _, err := user.Lookup(userName); err != nil {
+		if err.Error() == user.UnknownUserError(userName).Error() {
+			if err = executeCmd("adduser", "--system", "--no-create-home", "--disabled-password", "--ingroup", groupName, userName); err != nil {
+				l.Errorf("adduser failed: %v", err)
+				return
+			}
+		} else {
+			l.Errorf("Lookup failed: %v", err)
+		}
+	}
+
+	// make dirs.
+	if err := os.MkdirAll(installDir, os.ModePerm); err != nil {
+		l.Errorf("make installDir failed: %v", err)
+	}
+	if err := os.MkdirAll(defaultLogDir, os.ModePerm); err != nil {
+		l.Errorf("make defaultLogDir failed: %v", err)
+	}
+
+	// chown.
+	if err := executeCmd("chown", "-R", fmt.Sprintf("%s:%s", userName, groupName), installDir, defaultLogDir); err != nil {
+		l.Errorf("chown failed: %v", err)
+		return
+	}
+	// chmod.
+	if err := executeCmd("chmod", "-R", "755", installDir, defaultLogDir); err != nil {
+		l.Errorf("chmod failed: %v", err)
+		return
+	}
+}
+
+func executeCmd(name string, arg ...string) error {
+	cmd := exec.Command(name, arg...)
+	return cmd.Run()
 }

@@ -337,9 +337,9 @@ func Test_Auth(t *testing.T) {
 
 func Test_Option(t *testing.T) {
 	o := Option{
-		Disabel: true,
+		Disable: true,
 	}
-	assert.True(t, o.IsDisable(), o.Disabel)
+	assert.True(t, o.IsDisable(), o.Disable)
 
 	// GetSource
 	assert.Equal(t, o.GetSource("p"), "p")

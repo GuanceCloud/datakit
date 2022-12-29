@@ -23,6 +23,7 @@ __debug_bin
 *.yaml
 *.zip
 **build/
+!cmd/make/build
 ag.sh
 agent_linux
 agent.conf
@@ -52,7 +53,9 @@ docker/agent
 docker/datakit
 embed/*
 git/git.go
-gram_y.go
+io/parser/gram_y.go
+pipeline/core/parser/gram_y.go
+pipeline/parser/gram_y.go
 install_local.sh
 install.ps1
 install.sh

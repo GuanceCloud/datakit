@@ -8,14 +8,14 @@ package pipeline
 import (
 	"testing"
 
-	"github.com/ubwbu/grok"
+	"github.com/GuanceCloud/grok"
 	vgrok "github.com/vjeantet/grok"
 )
 
 func TestParsePattern(t *testing.T) {
 	pattern := grok.CopyDefalutPatterns()
-	if de, err := grok.DenormalizePatternsFromMap(pattern); err != nil {
-		t.Error(err)
+	if de, errs := grok.DenormalizePatternsFromMap(pattern); len(errs) != 0 {
+		t.Error(errs)
 	} else {
 		if len(pattern) != len(de) {
 			t.Error("length not equal")

@@ -92,7 +92,7 @@ class Demo(DataKitFramework):
             ]
 
         in_data = {
-            'M':data,
+            'M':data, # 'M' for metrics, 'L' for logging, 'R' for rum, 'O' for object, 'CO' for custom object, 'E' for event.
             'input': "datakitpy"
         }
 
@@ -110,25 +110,67 @@ class Demo(DataKitFramework):
     #     message = 'message'
     #     kwargs = {"custom_key1":"custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}
 
-        # # Feed df_source=user event.
-        # user_id="user_id"
-        # return self.feed_user_event(
-        #     user_id,
-        #     tags, date_range, status, event_id, title, message, **kwargs
-        #     )
+    #     # Feed df_source=user event.
+    #     user_id="user_id"
+    #     return self.feed_user_event(
+    #         user_id,
+    #         tags, date_range, status, event_id, title, message, **kwargs
+    #         )
 
-        # # Feed df_source=monitor event.
-        # dimension_tags='{"host":"web01"}' # dimension_tags must be the String(JSON format).
-        # return self.feed_monitor_event(
-        #     dimension_tags,
-        #     tags, date_range, status, event_id, title, message, **kwargs
-        #     )
+    #     # Feed df_source=monitor event.
+    #     dimension_tags='{"host":"web01"}' # dimension_tags must be the String(JSON format).
+    #     return self.feed_monitor_event(
+    #         dimension_tags,
+    #         tags, date_range, status, event_id, title, message, **kwargs
+    #         )
 
-        # # Feed df_source=system event.
-        # return self.feed_system_event(
-        #     tags, date_range, status, event_id, title, message, **kwargs
-        #     )
+    #     # Feed df_source=system event.
+    #     return self.feed_system_event(
+    #         tags, date_range, status, event_id, title, message, **kwargs
+    #         )
+
+    # # metrics, logging, object example.
+    # def run(self):
+    #     print("Demo")
+
+    #     measurement = "mydata"
+    #     tags = {"tag1": "val1", "tag2": "val2"}
+    #     fields = {"custom_field1": "val1","custom_field2": 1000}
+    #     kwargs = {"custom_key1":"custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}
+
+    #     # Feed metrics example.
+    #     return self.feed_metric(
+    #         measurement=measurement,
+    #         tags=tags,
+    #         fields=fields,
+    #         **kwargs
+    #         )
+
+    #     # Feed logging example.
+    #     message = "This is the message for testing"
+    #     return self.feed_logging(
+    #         source=measurement,
+    #         tags=tags,
+    #         message=message,
+    #         **kwargs
+    #         )
+
+    #     # Feed object example.
+    #     name = "name"
+    #     return self.feed_object(
+    #         cls=measurement,
+    #         name=name,
+    #         tags=tags,
+    #         fields=fields,
+    #         **kwargs
+    #         )
 ```
+
+Python SDK API 定义(详情参见 `datakit_framework.py`):
+
+- 上报 metrics 数据: `feed_metric(self, input=None, measurement=None, tags=None, fields=None, time=None, **kwargs)`;
+- 上报 logging 数据: `feed_logging(self, input=None, source=None, tags=None, message=None, time=None, **kwargs)`;
+- 上报 object 数据: `feed_object(self, input=None, cls=None, name=None, tags=None, fields=None, time=None, **kwargs)`; (`cls` 就是 `class`。因为 `class` 是 Python 的关键字, 所以里把 `class` 缩写为 `cls`。)
 
 ### 编写 Pythond 上报 event 事件 {#report-event}
 

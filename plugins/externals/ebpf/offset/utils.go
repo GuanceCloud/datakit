@@ -33,14 +33,6 @@ type OffsetGuessC C.struct_offset_guess
 
 type OffsetHTTPFlowC C.struct_offset_httpflow
 
-type offsethttpflowcheck struct {
-	taskStructFilesOk uint64
-	filesStructFdt    uint64
-	fdTableFd         uint64
-	socketFile        uint64
-	filePrivateData   uint64
-}
-
 //nolint:structcheck
 type OffsetCheck struct {
 	skNumOk           uint64

@@ -187,8 +187,8 @@ func (agg *FlowAgg) Append(info ConnectionInfo, stats ConnFullStats) error {
 	// direction
 	key.direction = ConnDirection2Str(stats.Stats.Direction)
 
-	if IsIncomingFromK8s(k8sNetInfo, key.sAddr, key.dAddr,
-		key.sPort, key.dPort, key.transport) {
+	if IsIncomingFromK8s(k8sNetInfo, key.sAddr,
+		key.sPort, key.transport) {
 		key.direction = DirectionIncoming
 	}
 

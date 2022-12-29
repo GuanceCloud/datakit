@@ -25,7 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine/funcs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput/funcs"
 )
 
 type versionDesc struct {

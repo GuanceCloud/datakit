@@ -17,6 +17,7 @@ import (
 	"github.com/DataDog/ebpf/manager"
 	"github.com/google/gopacket/afpacket"
 	client "github.com/influxdata/influxdb1-client/v2"
+	"github.com/shirou/gopsutil/host"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
@@ -65,7 +66,7 @@ type (
 	ConnectionInfoC dknetflow.ConnectionInfoC
 	ConnectionInfo  dknetflow.ConnectionInfo
 
-	CPayloadId C.struct_payload_id
+	CPayloadID C.struct_payload_id
 
 	HTTPStats struct {
 		Direction string
@@ -96,7 +97,7 @@ func (conn ConnectionInfo) String() string {
 		conn.Dport, conn.Pid, dknetflow.ConnProtocolIsTCP(conn.Meta))
 }
 
-func (payloadid CPayloadId) String() string {
+func (payloadid CPayloadID) String() string {
 	return fmt.Sprintf("cpu%d,ktime%d,pid%d,tid%d,random%d",
 		payloadid.cpuid, payloadid.ktime, payloadid.pid_tid>>32, payloadid.pid_tid&0xFFFFFFFF, payloadid.prandom)
 }
@@ -244,7 +245,6 @@ func NewHTTPFlowTracer(tags map[string]string, datakitPostURL string) *HTTPFlowT
 
 func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor,
 	bpfMapSockFD *ebpf.Map, enableTLS bool, interval time.Duration) error {
-
 	// rawSocket, err := afpacket.NewTPacket()
 	// if err != nil {
 	// 	return fmt.Errorf("error creating raw socket: %w", err)
@@ -265,6 +265,13 @@ func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.Con
 		l.Error(err)
 		return err
 	}
+
+	httpStatsMap, found, err := bpfManger.GetMap("bpfmap_http_stats")
+	if err != nil || !found {
+		return err
+	}
+
+	go cleanupBPFMapConn(ctx, httpStatsMap)
 
 	if enableTLS && r != nil {
 		r.ScanAndUpdate()
@@ -304,12 +311,11 @@ func (tracer *HTTPFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
 		},
 	}
 
-	_reqCache.AppendFinReq(CPayloadId(eventC.http.req_payload_id), httpStats)
+	_reqCache.AppendFinReq(CPayloadID(eventC.http.req_payload_id), httpStats)
 }
 
 func (tracer *HTTPFlowTracer) bufHandle(cpu int, data []byte,
 	perfmap *manager.PerfMap, manager *manager.Manager) {
-
 	bufferC := *((*CL7Buffer)(unsafe.Pointer(&data[0])))
 
 	_reqCache.AppendPayload(&bufferC)
@@ -317,7 +323,7 @@ func (tracer *HTTPFlowTracer) bufHandle(cpu int, data []byte,
 
 func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
-	mergeTicker := time.NewTicker(time.Second * 8)
+	mergeTicker := time.NewTicker(time.Second * 15)
 	cleanCacheTicker := time.NewTicker(time.Minute)
 	agg := FlowAgg{}
 	for {
@@ -354,4 +360,49 @@ func feed(url string, data []*client.Point) error {
 		return err
 	}
 	return nil
+}
+
+func cleanupBPFMapConn(ctx context.Context, m *ebpf.Map) {
+	ticker := time.NewTicker(time.Minute * 15)
+
+	select {
+	case <-ticker.C:
+		uptime, err := host.Uptime() // seconds since boot
+		if err != nil {
+			l.Error(err)
+			return
+		}
+
+		var connStatsC dknetflow.ConnectionStatsC
+		var layer7HTTP CLayer7Http
+
+		iter := m.IterateFrom(connStatsC)
+
+		connNeedDel := []dknetflow.ConnectionStatsC{}
+
+		for iter.Next(unsafe.Pointer(&connStatsC), unsafe.Pointer(&layer7HTTP)) {
+			ts := uint64(0)
+			if layer7HTTP.req_ts != 0 {
+				ts = uint64(layer7HTTP.req_ts)
+			}
+			if layer7HTTP.resp_ts != 0 {
+				ts = uint64(layer7HTTP.resp_ts)
+			}
+			if reqExpr(uptime, ts) {
+				connNeedDel = append(connNeedDel, connStatsC)
+			}
+		}
+
+		if len(connNeedDel) > 0 {
+			l.Info("cleannup %d unfinished http conn key", len(connNeedDel))
+			for _, v := range connNeedDel {
+				if err = m.Delete(unsafe.Pointer(&v)); err != nil {
+					l.Warn(err)
+				}
+			}
+		}
+
+	case <-ctx.Done():
+		return
+	}
 }

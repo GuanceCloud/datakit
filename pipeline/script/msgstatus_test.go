@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/runtime"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput"
 )
 
 func TestStatus(t *testing.T) {
 	for k, v := range statusMap {
-		outp := &runtime.Point{
+		outp := &ptinput.Point{
 			Fields: map[string]interface{}{
 				FieldStatus: k,
 			},
@@ -24,7 +24,7 @@ func TestStatus(t *testing.T) {
 	}
 
 	{
-		outp := &runtime.Point{
+		outp := &ptinput.Point{
 			Fields: map[string]interface{}{
 				FieldStatus:  "x",
 				FieldMessage: "1234567891011",
@@ -36,7 +36,7 @@ func TestStatus(t *testing.T) {
 	}
 
 	{
-		outp := &runtime.Point{
+		outp := &ptinput.Point{
 			Fields: map[string]interface{}{
 				FieldStatus:  "x",
 				FieldMessage: "1234567891011",
@@ -56,7 +56,7 @@ func TestStatus(t *testing.T) {
 	}
 
 	{
-		outp := &runtime.Point{
+		outp := &ptinput.Point{
 			Fields: map[string]interface{}{
 				FieldStatus:  "n",
 				FieldMessage: "1234567891011",
@@ -77,7 +77,7 @@ func TestStatus(t *testing.T) {
 }
 
 func TestGetSetStatus(t *testing.T) {
-	out := &runtime.Point{
+	out := &ptinput.Point{
 		Tags: map[string]string{
 			"status": "n",
 		},
