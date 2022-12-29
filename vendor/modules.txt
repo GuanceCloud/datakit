@@ -1,9 +1,15 @@
 # github.com/BurntSushi/toml v0.3.1
 ## explicit
 github.com/BurntSushi/toml
+# github.com/DataDog/datadog-agent/pkg/obfuscate v0.40.1
+## explicit; go 1.12
+github.com/DataDog/datadog-agent/pkg/obfuscate
 # github.com/DataDog/datadog-go v4.8.3+incompatible
 ## explicit
 github.com/DataDog/datadog-go/statsd
+# github.com/DataDog/datadog-go/v5 v5.1.0
+## explicit; go 1.13
+github.com/DataDog/datadog-go/v5/statsd
 # github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 ## explicit; go 1.12
 github.com/DataDog/ebpf
@@ -46,6 +52,19 @@ github.com/GuanceCloud/confd/backends/vault
 github.com/GuanceCloud/confd/backends/zookeeper
 github.com/GuanceCloud/confd/log
 github.com/GuanceCloud/confd/util
+# github.com/GuanceCloud/grok v1.1.2
+## explicit; go 1.18
+github.com/GuanceCloud/grok
+# github.com/GuanceCloud/platypus v0.2.3
+## explicit; go 1.18
+github.com/GuanceCloud/platypus/internal/logger
+github.com/GuanceCloud/platypus/pkg/ast
+github.com/GuanceCloud/platypus/pkg/engine
+github.com/GuanceCloud/platypus/pkg/engine/runtime
+github.com/GuanceCloud/platypus/pkg/errchain
+github.com/GuanceCloud/platypus/pkg/inimpl/guancecloud/input
+github.com/GuanceCloud/platypus/pkg/parser
+github.com/GuanceCloud/platypus/pkg/token
 # github.com/MichaelMure/go-term-markdown v0.1.3
 ## explicit; go 1.12
 github.com/MichaelMure/go-term-markdown
@@ -149,7 +168,7 @@ github.com/alecthomas/chroma/styles
 # github.com/aliyun/aliyun-oss-go-sdk v2.2.5+incompatible
 ## explicit
 github.com/aliyun/aliyun-oss-go-sdk/oss
-# github.com/antchfx/xmlquery v1.3.11
+# github.com/antchfx/xmlquery v1.3.12
 ## explicit; go 1.14
 github.com/antchfx/xmlquery
 # github.com/antchfx/xpath v1.2.1
@@ -1108,7 +1127,7 @@ github.com/modern-go/reflect2
 # github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
 ## explicit
 github.com/montanaflynn/stats
-# github.com/mssola/user_agent v0.5.2
+# github.com/mssola/user_agent v0.5.3
 ## explicit; go 1.13
 github.com/mssola/user_agent
 # github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
@@ -1288,8 +1307,8 @@ github.com/shirou/w32
 # github.com/sirupsen/logrus v1.8.1
 ## explicit; go 1.13
 github.com/sirupsen/logrus
-# github.com/spf13/cast v1.4.1
-## explicit
+# github.com/spf13/cast v1.5.0
+## explicit; go 1.18
 github.com/spf13/cast
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
@@ -1346,9 +1365,6 @@ github.com/uber/jaeger-client-go/utils
 # github.com/uber/jaeger-lib v2.4.1+incompatible
 ## explicit
 github.com/uber/jaeger-lib/metrics
-# github.com/ubwbu/grok v1.0.6
-## explicit; go 1.15
-github.com/ubwbu/grok
 # github.com/ugorji/go/codec v1.2.6
 ## explicit; go 1.11
 github.com/ugorji/go/codec
@@ -1555,16 +1571,17 @@ go.opentelemetry.io/proto/otlp/common/v1
 go.opentelemetry.io/proto/otlp/metrics/v1
 go.opentelemetry.io/proto/otlp/resource/v1
 go.opentelemetry.io/proto/otlp/trace/v1
-# go.uber.org/atomic v1.9.0
-## explicit; go 1.13
+# go.uber.org/atomic v1.10.0
+## explicit; go 1.18
 go.uber.org/atomic
 # go.uber.org/multierr v1.7.0
 ## explicit; go 1.14
 go.uber.org/multierr
-# go.uber.org/zap v1.21.0
-## explicit; go 1.13
+# go.uber.org/zap v1.23.0
+## explicit; go 1.18
 go.uber.org/zap
 go.uber.org/zap/buffer
+go.uber.org/zap/internal
 go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit

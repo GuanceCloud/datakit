@@ -16,6 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/platypus/pkg/errchain"
+	"github.com/GuanceCloud/platypus/pkg/token"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -53,24 +55,25 @@ type pipelineDebugRequest struct {
 
 // response body.
 type pipelineDebugResponse struct {
-	Cost         string            `json:"cost"`
-	Benchmark    string            `json:"benchmark"`
-	ErrorMessage string            `json:"error_msg"`
-	PLResults    []*pipelineResult `json:"plresults"`
+	Cost      string             `json:"cost"`
+	Benchmark string             `json:"benchmark"`
+	PlErrors  []errchain.PlError `json:"pl_errors"`
+	PLResults []pipelineResult   `json:"plresults"`
+}
+
+type PlRetPoint struct {
+	Name   string                 `json:"name"`
+	Tags   map[string]string      `json:"tags"`
+	Fields map[string]interface{} `json:"fields"`
+	Time   int64                  `json:"time"`
+	TimeNS int64                  `json:"time_ns"`
 }
 
 type pipelineResult struct {
-	Measurement string `json:"measurement"`
+	Point   *PlRetPoint `json:"point"`
+	Dropped bool        `json:"dropped"`
 
-	Tags   map[string]string      `json:"tags"`
-	Fields map[string]interface{} `json:"fields"`
-
-	Time   int64 `json:"time"`
-	TimeNS int64 `json:"time_ns"`
-
-	Dropped bool `json:"dropped"`
-
-	Error string `json:"error"`
+	RunError *errchain.PlError `json:"run_error"`
 }
 
 func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever ...interface{}) (interface{}, error) {
@@ -121,8 +124,23 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 	// parse pipeline script
 	plRunner, err := parsePipeline(category, reqBody.ScriptName+".p", scriptContent)
 	if err != nil {
-		l.Errorf("[%s] %s", tid, err.Error())
-		return nil, uhttp.Error(ErrCompiledFailed, err.Error())
+		var plerrs []errchain.PlError
+		if plerr, ok := err.(*errchain.PlError); ok { //nolint:errorlint
+			plerrs = append(plerrs, *plerr)
+		} else {
+			plerrs = append(plerrs, *errchain.NewErr(
+				reqBody.ScriptName+".p",
+				token.LnColPos{
+					Pos: 0,
+					Ln:  1,
+					Col: 1,
+				},
+				err.Error(),
+			))
+		}
+		return &pipelineDebugResponse{
+			PlErrors: plerrs,
+		}, nil
 	}
 
 	// decode log or line protocol data
@@ -140,15 +158,25 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 		Time:     time.Now(),
 	}
 
-	var runResult []*pipelineResult
+	var runResult []pipelineResult
 
 	start := time.Now()
 	for _, pt := range pts {
 		// run pipeline
 		pt, drop, err := plRunner.Run(pt, nil, opt, newPlTestSingal())
+
 		if err != nil {
-			runResult = append(runResult, &pipelineResult{
-				Error: err.Error(),
+			plerr, ok := err.(*errchain.PlError) //nolint:errorlint
+			if !ok {
+				plerr = errchain.NewErr(reqBody.ScriptName+".p", token.LnColPos{
+					Pos: 0,
+					Ln:  1,
+					Col: 1,
+				}, err.Error())
+			}
+
+			runResult = append(runResult, pipelineResult{
+				RunError: plerr,
 			})
 		} else {
 			fields, err := pt.Fields()
@@ -157,13 +185,15 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 				return nil, err
 			}
 
-			runResult = append(runResult, &pipelineResult{
-				Measurement: pt.Name(),
-				Tags:        pt.Tags(),
-				Fields:      fields,
-				Time:        pt.Time().Unix(),
-				TimeNS:      int64(pt.Time().Nanosecond()),
-				Dropped:     drop,
+			runResult = append(runResult, pipelineResult{
+				Point: &PlRetPoint{
+					Name:   pt.Name(),
+					Tags:   pt.Tags(),
+					Fields: fields,
+					Time:   pt.Time().Unix(),
+					TimeNS: int64(pt.Time().Nanosecond()),
+				},
+				Dropped: drop,
 			})
 		}
 	}

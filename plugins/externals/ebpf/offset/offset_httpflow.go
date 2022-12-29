@@ -18,7 +18,6 @@ import (
 )
 
 func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]manager.ConstantEditor, error) {
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -138,7 +137,6 @@ func readMapGuessHTTP(m *ebpf.Map) (*OffsetHTTPFlowC, error) {
 	} else {
 		return &value, nil
 	}
-
 }
 
 func updateMapGuessHTTP(m *ebpf.Map, offset *OffsetHTTPFlowC) error {

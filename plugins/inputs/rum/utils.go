@@ -31,8 +31,8 @@ import (
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput/funcs"
 )
 
 const iosDSYMFilePath = "Contents/Resources/DWARF"

@@ -398,6 +398,44 @@ status_code: 500
 
 提供远程调试 PL 的功能。
 
+
+错误信息 PlError 结构:
+```go
+type Position struct {
+	File string `json:"file"`
+	Ln   int    `json:"ln"`
+	Col  int    `json:"col"`
+	Pos  int    `json:"pos"`
+}
+
+type PlError struct {
+	PosChain []Position `json:"pos_chain"`
+	Err      string     `json:"error"`
+}
+```
+错误信息 json 示例:
+```json
+{
+  "pos_chain": [
+    { // 错误生成位置 (脚本终止运行)
+      "file": "xx.p",    // 文件名或文件路径
+      "ln":   15,        // 行号
+      "col":  29,        // 列号
+      "pos":  576,       // 从 0 开始的字符在文本中绝对位置
+    },
+    ... ,
+    { // 调用链的起点
+      "file": "b.p",
+      "ln":   1,
+      "col":  1,
+      "pos":  0,
+    },
+  ],
+  "error": "error msg"
+}
+```
+
+
 请求示例：
 
 ``` http
@@ -405,7 +443,11 @@ POST /v1/pipeline/debug
 Content-Type: application/json
 
 {
-    "pipeline": base64("pipeline-source-code"),
+    "pipeline": {
+      "<caregory>": {
+        "<script_name>": <base64("pipeline-source-code")>
+      }
+    },
     "script_name": "<script_name>"
     "category": "<logging[metric, tracing, ...]>", # 日志类别传入日志文本，其他类别需要传入行协议文本
     "data": [ base64("raw-logging-data1"), ... ], # 可以是日志或者行协议
@@ -423,16 +465,18 @@ HTTP/1.1 200 OK
     "content": {
         "cost": "2.3ms",
         "benchmark": BenchmarkResult.String(), # 返回 benchmark 结果
-        "error_msg": "",
+        "pl_errors": [],   # 脚本解析或检查时产生的 PlError 列表
         "plresults": [ # 由于日志可能是多行的，此处会返回多个切割结果
             {
-                "measurement" : "指标集名称，一般是日志 source",
-                "tags": { "key": "val", "other-key": "other-val"},
-                "fields": { "f1": 1, "f2": "abc", "f3": 1.2 },
-                "time": 1644380607, # Unix 时间戳（单位秒）, 前端可将其转成可读日期,
-                "time_ns": 421869748, # 余下的纳秒时间，便于精确转换成日期，完整的纳秒时间戳为 1644380607421869748,
+                "point": {
+                  "name" : "可以是指标集名称、日志 source 等",
+                  "tags": { "key": "val", "other-key": "other-val"},
+                  "fields": { "f1": 1, "f2": "abc", "f3": 1.2 },
+                  "time": 1644380607, # Unix 时间戳（单位秒）, 前端可将其转成可读日期,
+                  "time_ns": 421869748, # 余下的纳秒时间，便于精确转换成日期，完整的纳秒时间戳为 1644380607421869748,
+                }
                 "dropped": false, # 是否在执行 pipeline 中将结果标记为待丢弃
-                "error":""
+                "run_error": null  # 如果没有错误，值为 null
             },
             {  another-result },
             ...
