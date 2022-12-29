@@ -62,7 +62,9 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]manager.ConstantEditor, error)
 	}
 
 	connFile, err := tcpConn.File()
-
+	if err != nil {
+		return nil, fmt.Errorf("get tcp file failed: %w", err)
+	}
 	// 写入 pid 和 socket 结构体成员 file（sk - 8）的偏移量
 	offsetHTTP.fd = _Ctype_int(connFile.Fd())
 	offsetHTTP.offset_socket_file = _Ctype_int(status.offset_socket_sk) - 8
@@ -102,7 +104,10 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]manager.ConstantEditor, error)
 		}
 
 		offsetTmp.times = 0
-		updateMapGuessHTTP(m, offsetTmp)
+		err = updateMapGuessHTTP(m, offsetTmp)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if skipCount >= 20 {
@@ -132,7 +137,7 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]manager.ConstantEditor, error)
 func readMapGuessHTTP(m *ebpf.Map) (*OffsetHTTPFlowC, error) {
 	value := OffsetHTTPFlowC{}
 	key := uint64(0)
-	if err := m.Lookup(&key, unsafe.Pointer(&value)); err != nil {
+	if err := m.Lookup(&key, unsafe.Pointer(&value)); err != nil { //nolint:gosec
 		return nil, err
 	} else {
 		return &value, nil
