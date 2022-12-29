@@ -169,7 +169,7 @@ static __always_inline req_resp_t parse_layer7_http1(__u8 *buffer, struct layer7
     switch (buffer[0])
     {
     case 'G':
-        if (buffer[1] == 'E' && buffer[2] == 'T') // HTTP GET
+        if (buffer[1] == 'E' && buffer[2] == 'T' && buffer[3] == ' ') // HTTP GET
         {
             stats->method = HTTP_METHOD_GET;
             return HTTP_REQ_REQ;
@@ -179,21 +179,21 @@ static __always_inline req_resp_t parse_layer7_http1(__u8 *buffer, struct layer7
         switch (buffer[1])
         {
         case 'O':
-            if (buffer[2] == 'S' && buffer[3] == 'T') // HTTP POST
+            if (buffer[2] == 'S' && buffer[3] == 'T' && buffer[4] == ' ') // HTTP POST
             {
                 stats->method = HTTP_METHOD_POST;
                 return HTTP_REQ_REQ;
             }
             break;
         case 'U':
-            if (buffer[2] == 'T') // HTTP PUT
+            if (buffer[2] == 'T' && buffer[3] == ' ') // HTTP PUT
             {
                 stats->method = HTTP_METHOD_PUT;
                 return HTTP_REQ_REQ;
             }
             break;
         case 'A':
-            if (buffer[2] == 'T' && buffer[3] == 'C' && buffer[4] == 'H') // HTTP PATCH
+            if (buffer[2] == 'T' && buffer[3] == 'C' && buffer[4] == 'H' && buffer[5] == ' ') // HTTP PATCH
             {
                 stats->method = HTTP_METHOD_PATCH;
                 return HTTP_REQ_REQ;
@@ -203,7 +203,7 @@ static __always_inline req_resp_t parse_layer7_http1(__u8 *buffer, struct layer7
             break;
         }
     case 'D':
-        if (buffer[1] == 'E' && buffer[2] == 'L' && buffer[3] == 'E' && buffer[4] == 'T' && buffer[5] == 'E') // HTTP DELETE
+        if (buffer[1] == 'E' && buffer[2] == 'L' && buffer[3] == 'E' && buffer[4] == 'T' && buffer[5] == 'E' && buffer[6] == ' ') // HTTP DELETE
         {
             stats->method = HTTP_METHOD_DELETE;
             return HTTP_REQ_REQ;
@@ -215,14 +215,14 @@ static __always_inline req_resp_t parse_layer7_http1(__u8 *buffer, struct layer7
             stats->status_code = HTTP_REQ_RESP;
             goto HTTPRESPONSE;
         }
-        else if (buffer[1] == 'E' && buffer[2] == 'A' && buffer[3] == 'D') // HTTP HEAD
+        else if (buffer[1] == 'E' && buffer[2] == 'A' && buffer[3] == 'D' && buffer[4] == ' ') // HTTP HEAD
         {
             stats->method = HTTP_METHOD_HEAD;
             return HTTP_REQ_REQ;
         }
         break;
     case 'O':
-        if (buffer[1] == 'P' && buffer[2] == 'T' && buffer[3] == 'I' && buffer[4] == 'O' && buffer[5] == 'N' && buffer[6] == 'S') // HTTP OPTIONS
+        if (buffer[1] == 'P' && buffer[2] == 'T' && buffer[3] == 'I' && buffer[4] == 'O' && buffer[5] == 'N' && buffer[6] == 'S' && buffer[7] == ' ') // HTTP OPTIONS
         {
             stats->method = HTTP_METHOD_OPTIONS;
             return HTTP_REQ_REQ;

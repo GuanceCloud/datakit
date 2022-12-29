@@ -27,7 +27,9 @@ struct bpf_map_def SEC("maps/bpfmap_l7_buffer_out") bpfmap_l7_buffer_out = {
     .max_entries = 0,
 };
 
-struct bpf_map_def SEC("maps/bpfmap_conn_stats") bpfmap_http_stats = {
+
+// 需要手动清理
+struct bpf_map_def SEC("maps/bpfmap_http_stats") bpfmap_http_stats = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(struct connection_info),
     .value_size = sizeof(struct layer7_http),

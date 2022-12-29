@@ -12,17 +12,16 @@ import (
 var _reqCache = NewReqCache()
 
 type ReqCache struct {
-	pathMap   map[CPayloadId]string
-	finReqMap map[CPayloadId]*HTTPReqFinishedInfo
+	pathMap   map[CPayloadID]string
+	finReqMap map[CPayloadID]*HTTPReqFinishedInfo
 
-	pathMutex sync.Mutex
-	reqMutex  sync.Mutex
+	mutex sync.Mutex
 }
 
 func NewReqCache() *ReqCache {
 	return &ReqCache{
-		pathMap:   map[CPayloadId]string{},
-		finReqMap: map[CPayloadId]*HTTPReqFinishedInfo{},
+		pathMap:   map[CPayloadID]string{},
+		finReqMap: map[CPayloadID]*HTTPReqFinishedInfo{},
 	}
 }
 
@@ -62,13 +61,13 @@ func (cache *ReqCache) AppendPayload(buf *CL7Buffer) {
 
 	reqPath := string(buf.payload[start:end])
 
-	cache.pathMutex.Lock()
-	defer cache.pathMutex.Unlock()
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
 
-	cache.pathMap[CPayloadId(buf.id)] = reqPath
+	cache.pathMap[CPayloadID(buf.id)] = reqPath
 }
 
-const connExpirationInterval = 6 * 3600 // 6 * 3600s
+const connExpirationInterval = 15 * 60 // 15min
 
 func reqExpr(uptimeS, tsNs uint64) bool {
 	tsS := tsNs / 1000000000
@@ -80,13 +79,13 @@ func reqExpr(uptimeS, tsNs uint64) bool {
 	return false
 }
 
-func (cache *ReqCache) AppendFinReq(id CPayloadId, finReq *HTTPReqFinishedInfo) {
+func (cache *ReqCache) AppendFinReq(id CPayloadID, finReq *HTTPReqFinishedInfo) {
 	if finReq == nil {
 		return
 	}
 
-	cache.reqMutex.Lock()
-	defer cache.reqMutex.Unlock()
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
 
 	cache.finReqMap[id] = finReq
 }
@@ -97,11 +96,8 @@ func (cache *ReqCache) MergeReq() []*HTTPReqFinishedInfo {
 		l.Error(err)
 	}
 
-	cache.pathMutex.Lock()
-	defer cache.pathMutex.Unlock()
-
-	cache.reqMutex.Lock()
-	defer cache.reqMutex.Unlock()
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
 
 	var finReqList []*HTTPReqFinishedInfo
 
@@ -127,11 +123,8 @@ func (cache *ReqCache) CleanPathExpr() {
 		l.Error(err)
 		return
 	}
-	cache.pathMutex.Lock()
-	defer cache.pathMutex.Unlock()
-
-	cache.reqMutex.Lock()
-	defer cache.reqMutex.Unlock()
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
 
 	for id := range cache.finReqMap {
 		if reqExpr(uptime, uint64(id.ktime)) {
