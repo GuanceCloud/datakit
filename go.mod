@@ -8,7 +8,7 @@ require (
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.5+incompatible
-	github.com/antchfx/xmlquery v1.3.11
+	github.com/antchfx/xmlquery v1.3.12
 	github.com/apache/thrift v0.13.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/c-bata/go-prompt v0.2.5
@@ -51,7 +51,7 @@ require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/kardianos/service v1.2.1
 	github.com/lib/pq v1.10.2
-	github.com/mssola/user_agent v0.5.2
+	github.com/mssola/user_agent v0.5.3
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/oschwald/geoip2-golang v1.7.0
@@ -64,14 +64,13 @@ require (
 	github.com/rivo/tview v0.0.0-20220129131435-1f7581b67bd1
 	github.com/shirou/gopsutil v3.21.8+incompatible
 	github.com/shirou/gopsutil/v3 v3.20.12
-	github.com/sirupsen/logrus v1.8.1
-	github.com/spf13/cast v1.4.1
+	github.com/sirupsen/logrus v1.8.1 // indirect
+	github.com/spf13/cast v1.5.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.0
 	github.com/tidwall/gjson v1.14.3
 	github.com/tinylib/msgp v1.1.6
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
-	github.com/ubwbu/grok v1.0.6
 	github.com/ugorji/go/codec v1.2.6
 	github.com/vjeantet/grok v1.0.0
 	github.com/whilp/git-urls v1.0.0
@@ -90,8 +89,8 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v0.27.0
 	go.opentelemetry.io/otel/trace v1.4.1
 	go.opentelemetry.io/proto/otlp v0.12.0
-	go.uber.org/atomic v1.9.0
-	go.uber.org/zap v1.21.0
+	go.uber.org/atomic v1.10.0
+	go.uber.org/zap v1.23.0
 	golang.org/x/crypto v0.1.0
 	golang.org/x/net v0.1.0
 	golang.org/x/sys v0.1.0
@@ -110,12 +109,16 @@ require (
 )
 
 require (
+	github.com/DataDog/datadog-agent/pkg/obfuscate v0.40.1
 	github.com/DataDog/gopsutil v1.1.0
 	github.com/GuanceCloud/confd v0.0.0-20221011061652-936375adb49b
+	github.com/GuanceCloud/grok v1.1.2
+	github.com/GuanceCloud/platypus v0.2.3
 	github.com/Shopify/sarama v1.29.1
 	github.com/cortexproject/cortex v1.9.1-0.20210722081137-485474c9afb2
 	github.com/gin-contrib/timeout v0.0.3
 	github.com/golang/protobuf v1.5.2
+	github.com/google/pprof v0.0.0-20221118152302-e6195bd50e26
 	github.com/gosnmp/gosnmp v1.35.0
 	github.com/klauspost/compress v1.15.9
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.60.1
@@ -129,6 +132,7 @@ require (
 )
 
 require (
+	github.com/DataDog/datadog-go/v5 v5.1.0 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/aws/aws-sdk-go v1.44.107 // indirect
@@ -150,7 +154,6 @@ require (
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/gogo/status v1.0.3 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
-	github.com/google/pprof v0.0.0-20221118152302-e6195bd50e26 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/hashicorp/consul/api v1.15.2 // indirect

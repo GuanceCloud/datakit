@@ -17,17 +17,17 @@ import (
 	// it will use this embedded information in time/tzdata.
 	_ "time/tzdata"
 
+	"github.com/GuanceCloud/grok"
+	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine/funcs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/parser"
-	plruntime "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/runtime"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/geoip"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput/funcs"
 	plrefertable "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/refertable"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/relation"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
@@ -122,17 +122,21 @@ func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.P
 		return nil, false, err
 	}
 
-	if measurement, tags, fields, tn, drop, err := p.Script.Run(pt.Name(), pt.Tags(), fields, ioPtOpt.Time, signal, plOpt); err != nil {
-		return nil, drop, err
+	plpt := &ptinput.Point{}
+
+	plpt = ptinput.InitPt(plpt, pt.Name(), pt.Tags(), fields, ioPtOpt.Time)
+
+	if err := p.Script.Run(plpt, signal, plOpt); err != nil {
+		return nil, false, err
 	} else {
-		if !tn.IsZero() {
-			ioPtOpt.Time = tn
+		if !plpt.Time.IsZero() {
+			ioPtOpt.Time = plpt.Time
 		}
-		if pt, err := point.NewPoint(measurement, tags, fields, ioPtOpt); err != nil {
+		if pt, err := point.NewPoint(plpt.Name, plpt.Tags, plpt.Fields, ioPtOpt); err != nil {
 			// stats.WriteScriptStats(p.script.Category(), p.script.NS(), p.script.Name(), 0, 0, 1, err)
 			return nil, false, err
 		} else {
-			return pt, drop, nil
+			return pt, plpt.Drop, nil
 		}
 	}
 }
@@ -141,7 +145,6 @@ func Init(pipelineCfg *PipelineCfg) error {
 	l = logger.SLogger("pipeline")
 	plscript.InitStore()
 	funcs.InitLog()
-	parser.InitLog()
 	plrefertable.InitLog()
 	relation.InitRelationLog()
 
@@ -189,12 +192,14 @@ func InitIPdb(pipelineCfg *PipelineCfg) (ipdb.IPdb, error) {
 }
 
 func loadPatterns() error {
+	// 从文件加载 pattern
 	loadedPatterns, err := grok.LoadPatternsFromPath(datakit.PipelinePatternDir)
 	if err != nil {
 		return err
 	}
 
-	for k, v := range grok.CopyDefalutPatterns() {
+	// 使用内置的 pattern，可能覆盖文件中的 pattern
+	for k, v := range CopyDefalutPatterns() {
 		loadedPatterns[k] = v
 	}
 
@@ -213,6 +218,7 @@ func loadPatterns() error {
 		}
 	}
 
+	// 替换 ppl runtime 中的 patterns
 	plruntime.DenormalizedGlobalPatterns = denormalizedGlobalPatterns
 
 	return nil

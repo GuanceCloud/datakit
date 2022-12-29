@@ -244,7 +244,6 @@ func NewHTTPFlowTracer(tags map[string]string, datakitPostURL string) *HTTPFlowT
 
 func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor,
 	bpfMapSockFD *ebpf.Map, enableTLS bool, interval time.Duration) error {
-
 	// rawSocket, err := afpacket.NewTPacket()
 	// if err != nil {
 	// 	return fmt.Errorf("error creating raw socket: %w", err)
@@ -309,7 +308,6 @@ func (tracer *HTTPFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
 
 func (tracer *HTTPFlowTracer) bufHandle(cpu int, data []byte,
 	perfmap *manager.PerfMap, manager *manager.Manager) {
-
 	bufferC := *((*CL7Buffer)(unsafe.Pointer(&data[0])))
 
 	_reqCache.AppendPayload(&bufferC)

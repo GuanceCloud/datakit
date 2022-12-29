@@ -66,7 +66,6 @@ func (cache *ReqCache) AppendPayload(buf *CL7Buffer) {
 	defer cache.pathMutex.Unlock()
 
 	cache.pathMap[CPayloadId(buf.id)] = reqPath
-
 }
 
 const connExpirationInterval = 6 * 3600 // 6 * 3600s

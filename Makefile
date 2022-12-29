@@ -1,4 +1,4 @@
-.PHONY: default testing local deps prepare plparser_disable_line
+.PHONY: default testing local deps prepare
 
 default: local
 
@@ -284,7 +284,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare gofmt lfparser_disable_line plparser_disable_line
+deps: prepare gofmt lfparser_disable_line
 
 # ignore files under vendor/.git/git
 gofmt:
@@ -322,7 +322,7 @@ all_test: deps
 		printf "\033[32m all testinig passed.\n\033[0m"; \
 	fi
 
-test_deps: prepare gofmt lfparser_disable_line plparser_disable_line vet
+test_deps: prepare gofmt lfparser_disable_line vet
 
 lint: deps check_man copyright_check
 	$(call check_golint_version)
@@ -349,13 +349,13 @@ lfparser_disable_line:
 	@rm -rf io/parser/parser_y.go
 	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y # use -l to disable `//line`
 
-plparser_disable_line:
-	@rm -rf pipeline/parser/gram_y.go
-	@rm -rf pipeline/parser/parser.y.go
+# plparser_disable_line:
+# 	@rm -rf pipeline/parser/gram_y.go
+# 	@rm -rf pipeline/parser/parser.y.go
 
-	@rm -rf pipeline/core/parser/gram_y.go
-	@rm -rf pipeline/core/parser/parser.y.go
-	@goyacc -l -o pipeline/core/parser/gram_y.go pipeline/core/parser/gram.y # use -l to disable `//line`
+# 	@rm -rf pipeline/core/parser/gram_y.go
+# 	@rm -rf pipeline/core/parser/parser.y.go
+# 	@goyacc -l -o pipeline/core/parser/gram_y.go pipeline/core/parser/gram.y # use -l to disable `//line`
 
 prepare:
 	@mkdir -p git

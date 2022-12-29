@@ -8,10 +8,10 @@ package pipeline
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/relation"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
@@ -37,29 +37,33 @@ func RunPl(category string, pts []*point.Point, plOpt *plscript.Option, scriptMa
 		ptOpt.MaxFieldValueLen = plOpt.MaxFieldValLen
 	}
 
-	for _, pt := range pts {
-		script, ptName, tags, fields, ptTime := getScript(category, pt, scriptMap)
+	plPt := ptinput.GetPoint()
+	defer ptinput.PutPoint(plPt)
 
-		if script == nil {
+	var ok bool
+	var script *plscript.PlScript
+	for _, pt := range pts {
+		// 这里将清理 plPt 并填充 point 到 plPt,
+		// plPt 在函数运行结束后尽量放回对象池
+		script, plPt, ok = getScriptAndFillPlPt(category, pt, scriptMap, plPt)
+
+		if !ok || script == nil {
 			ret = append(ret, pt)
 			continue
 		}
 
-		name, tags, fields, tn, drop, err := script.Run(ptName,
-			tags, fields, *ptTime, nil, plOpt)
+		err := script.Run(plPt, nil, plOpt)
 		if err != nil {
 			l.Debug(err)
 			ret = append(ret, pt)
 			continue
 		}
 
-		if drop { // drop
+		if plPt.Drop { // drop
 			continue
 		}
 
-		ptOpt.Time = tn
-
-		if p, err := point.NewPoint(name, tags, fields, ptOpt); err != nil {
+		if p, err := point.NewPoint(plPt.Name, plPt.Tags, plPt.Fields, ptOpt); err != nil {
 			l.Error(err)
 			stats.WriteScriptStats(script.Category(), script.NS(), script.Name(), 0, 0, 1, 0, err)
 		} else {
@@ -72,9 +76,16 @@ func RunPl(category string, pts []*point.Point, plOpt *plscript.Option, scriptMa
 	return ret, nil
 }
 
-func getScript(category string, pt *point.Point, scriptMap map[string]string) (
-	*plscript.PlScript, string, map[string]string, map[string]interface{}, *time.Time,
+func getScriptAndFillPlPt(category string, pt *point.Point, scriptMap map[string]string, plpt *ptinput.Point) (
+	*plscript.PlScript, *ptinput.Point, bool,
 ) {
+	if pt == nil {
+		return nil, plpt, false
+	}
+	if plpt == nil {
+		plpt = &ptinput.Point{}
+	}
+
 	switch category {
 	case datakit.RUM, datakit.Security, datakit.Tracing, datakit.Profiling:
 		fields, err := pt.Fields()
@@ -91,7 +102,15 @@ func getScript(category string, pt *point.Point, scriptMap map[string]string) (
 			break
 		}
 		if s, ok := plscript.QueryScript(category, scriptName); ok {
-			return s, name, tags, fields, &ptTime
+			fields, err := pt.Fields()
+			if err != nil {
+				l.Errorf("Fields: %s", err)
+				break
+			}
+
+			plpt = ptinput.InitPt(plpt, name, tags, fields, ptTime)
+
+			return s, plpt, true
 		}
 	default:
 		name := pt.Name()
@@ -113,10 +132,11 @@ func getScript(category string, pt *point.Point, scriptMap map[string]string) (
 
 		ptTime := pt.Time()
 		tags := pt.Tags()
-		return s, name, tags, fields, &ptTime
+		plpt = ptinput.InitPt(plpt, name, tags, fields, ptTime)
+		return s, plpt, true
 	}
 
-	return nil, "", nil, nil, nil
+	return nil, plpt, false
 }
 
 func scriptName(category string, name string, tags map[string]string, fields map[string]interface{},
