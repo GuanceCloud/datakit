@@ -216,9 +216,10 @@ func (g *GoProfiler) pullProfileItem(profileType string, item ProfileItem) (*pro
 		}
 
 		prevProf, ok := g.deltas[profileType]
+		g.deltas[profileType] = curProf
+
 		// ignore first profile
 		if !ok {
-			g.deltas[profileType] = curProf
 			return nil, nil
 		}
 
