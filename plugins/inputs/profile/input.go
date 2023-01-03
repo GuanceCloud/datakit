@@ -64,7 +64,7 @@ const (
   ## app version
   #version = "0.0.0"
 
-  ## types to pull 
+  ## types to pull
   ## values: cpu, goroutine, heap, mutex, block
   #enabled_types = ["cpu","goroutine","heap","mutex","block"]
 

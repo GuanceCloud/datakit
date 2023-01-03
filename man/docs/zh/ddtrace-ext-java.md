@@ -90,7 +90,7 @@ DDTrace 默认会将 SQL 中参数转化为 `?`，这导致用户在排查问题
 
 ## xxl-jobs 支持 {#xxl-jobs}
 
-前言： xxl-jobs 是一个基于Java开发的分布式任务调度框架, [github 地址](https://github.com/xuxueli/xxl-job) 
+前言： xxl-jobs 是一个基于Java开发的分布式任务调度框架, [github 地址](https://github.com/xuxueli/xxl-job)
 
 版本支持： 目前支持 2.3 及以上版本。
 
@@ -102,7 +102,7 @@ dubbo 是阿里云的一个开源框架，目前已经支持 dubbo2 以及 dubbo
 
 ## RocketMQ {#rocketmq}
 
-RocketMQ 是阿里云贡献 Apache 基金会的开源消息队列框架。注意：阿里云 RocketMQ 5.0 与 Apache基金会的是两个不同的库。 
+RocketMQ 是阿里云贡献 Apache 基金会的开源消息队列框架。注意：阿里云 RocketMQ 5.0 与 Apache基金会的是两个不同的库。
 
 版本支持： 目前支持 4.8.0 及以上版本。
 

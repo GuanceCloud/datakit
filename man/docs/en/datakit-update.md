@@ -21,7 +21,7 @@ DataKit 支持手动更新和自动更新两种方式。
 
     ``` shell
     $ datakit version
-    
+
            Version: 1.2.8
             Commit: e9ccdfbae4
             Branch: testing
@@ -30,9 +30,9 @@ DataKit 支持手动更新和自动更新两种方式。
           Uploader: xxxxxxxxxxxxx/xxxxxxx/xxxxxxx
     ReleasedInputs: all
     ---------------------------------------------------
-    
+
     Online version available: 1.2.9, commit 9f5ac898be (release at 2022-03-10 12:03:12)
-    
+
     Upgrade:
         DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
     ```
@@ -41,7 +41,7 @@ DataKit 支持手动更新和自动更新两种方式。
 
     ``` powershell
     $ datakit.exe version
-    
+
            Version: 1.2.8
             Commit: e9ccdfbae4
             Branch: testing
@@ -50,9 +50,9 @@ DataKit 支持手动更新和自动更新两种方式。
           Uploader: xxxxxxxxxxxxx/xxxxxxx/xxxxxxx
     ReleasedInputs: all
     ---------------------------------------------------
-    
+
     Online version available: 1.2.9, commit 9f5ac898be (release at 2022-03-10 12:03:12)
-    
+
     Upgrade:
         $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; Remove-item .install.ps1 -erroraction silentlycontinue; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
     ```
@@ -120,9 +120,9 @@ Tips: crontab 基本语法如下
 ^   ^   ^   ^   ^
 |   |   |   |   |
 |   |   |   |   +----- day of week(0 - 6) (Sunday=0)
-|   |   |   +--------- month (1 - 12)   
+|   |   |   +--------- month (1 - 12)
 |   |   +------------- day of month (1 - 31)
-|   +----------------- hour (0 - 23)   
+|   +----------------- hour (0 - 23)
 +--------------------- minute (0 - 59)
 ```
 
@@ -153,7 +153,7 @@ service cron restart
 2021-05-10T09:52:18.391+0800 DEBUG ota-update datakit/main.go:216 online version: datakit 1.1.6-rc0/9bc4b960, local version: datakit 1.0.1/7a1d0956
 2021-05-10T09:52:18.391+0800 INFO  ota-update datakit/main.go:219 New online version available: 1.1.6-rc0, commit 9bc4b960 (release at 2021-04-30 14:31:27)
 ...
-``` 
+```
 
 ## DataKit 版本回退 {#downgrade}
 
