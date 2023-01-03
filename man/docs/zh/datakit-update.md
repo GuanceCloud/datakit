@@ -187,6 +187,12 @@ service cron restart
 datakit service -T # 停止服务
 datakit service -S # 启动新的服务
 
+# 如若不行，可以先卸载 DataKit 服务，并重装服务
+datakit service -U # 卸载服务
+datakit service -I # 重装服务
+
+# 以上操作完成后，再确认下 DataKit 版本是否是最新版本
+
 datakit version # 确保当前运行的 DataKit 已经是最新的版本
 
        Version: 1.4.16
