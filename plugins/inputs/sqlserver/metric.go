@@ -244,14 +244,14 @@ type LockDatabase struct {
 }
 
 func (m *LockDatabase) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
 }
 
 //nolint:lll
 func (m *LockDatabase) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_lock_database",
-		Type: "metric",
+		Type: "logging",
 		Fields: map[string]interface{}{
 			"resource_database_id": newCountFieldInfo("ID of the database under which this resource is scoped"),
 		},
@@ -274,14 +274,14 @@ type LockTable struct {
 }
 
 func (m *LockTable) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
 }
 
 //nolint:lll
 func (m *LockTable) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_lock_table",
-		Type: "metric",
+		Type: "logging",
 		Fields: map[string]interface{}{
 			"resource_session_id": newCountFieldInfo("Session ID that currently owns this request"),
 		},
@@ -296,14 +296,13 @@ func (m *LockTable) Info() *inputs.MeasurementInfo {
 }
 
 type LockDead struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
 }
 
 func (m *LockDead) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
+	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
 }
 
 //nolint:lll
