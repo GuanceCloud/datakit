@@ -106,3 +106,24 @@ func TestNewScript(t *testing.T) {
 		t.Error("error == nil")
 	}
 }
+
+func TestDrop(t *testing.T) {
+	ret, retErr := NewScripts(map[string]string{"abc.p": "add_key(a, \"a\"); add_key(status, \"debug\"); drop(); add_key(b, \"b\")"},
+		nil, GitRepoScriptNS, datakit.Logging)
+	if len(retErr) > 0 {
+		t.Fatal(retErr)
+	}
+
+	s := ret["abc.p"]
+	t.Log(s.FilePath())
+
+	plpt := &ptinput.Point{}
+	plpt = ptinput.InitPt(plpt, "ng", nil, nil, time.Now())
+	if err := s.Run(plpt, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	if plpt.Drop != true {
+		t.Error("drop != true")
+	}
+}

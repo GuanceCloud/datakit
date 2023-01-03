@@ -54,7 +54,7 @@ func RunPl(category string, pts []*point.Point, plOpt *plscript.Option, scriptMa
 
 		err := script.Run(plPt, nil, plOpt)
 		if err != nil {
-			l.Debug(err)
+			l.Warn(err)
 			ret = append(ret, pt)
 			continue
 		}
