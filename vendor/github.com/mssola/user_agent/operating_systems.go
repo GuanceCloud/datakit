@@ -1,4 +1,4 @@
-// Copyright (C) 2012-2020 Miquel Sabaté Solà <mikisabate@gmail.com>
+// Copyright (C) 2012-2021 Miquel Sabaté Solà <mikisabate@gmail.com>
 // This file is licensed under the MIT license.
 // See the LICENSE file.
 
@@ -78,7 +78,7 @@ func webkit(p *UserAgent, comment []string) {
 			p.browser.Name = "Android"
 		}
 		if len(comment) > 1 {
-			if comment[1] == "U" {
+			if comment[1] == "U" || comment[1] == "arm_64" {
 				if len(comment) > 2 {
 					p.os = comment[2]
 				} else {
@@ -116,6 +116,12 @@ func webkit(p *UserAgent, comment []string) {
 			}
 		}
 	}
+
+	// Special case for Firefox on iPad, where the platform is advertised as Macintosh instead of iPad
+	if p.platform == "Macintosh" && p.browser.Engine == "AppleWebKit" && p.browser.Name == "Firefox" {
+		p.platform = "iPad"
+		p.mobile = true
+	}
 }
 
 // Guess the OS, the localization and if this is a mobile device
@@ -125,7 +131,7 @@ func webkit(p *UserAgent, comment []string) {
 // argument is a slice of strings containing the comment.
 func gecko(p *UserAgent, comment []string) {
 	if len(comment) > 1 {
-		if comment[1] == "U" {
+		if comment[1] == "U" || comment[1] == "arm_64" {
 			if len(comment) > 2 {
 				p.os = normalizeOS(comment[2])
 			} else {
@@ -279,6 +285,10 @@ func (p *UserAgent) detectOS(s section) {
 		if len(s.comment) > 0 {
 			dalvik(p, s.comment)
 		}
+	} else if s.name == "okhttp" {
+		p.mobile = true
+		p.browser.Name = "OkHttp"
+		p.browser.Version = s.version
 	} else {
 		// Check whether this is a bot or just a weird browser.
 		p.undecided = true

@@ -118,23 +118,26 @@ func TestApiDebugPipelineHandler(t *testing.T) {
 			},
 			hasResult: true,
 			expect: &pipelineDebugResponse{
-				PLResults: []*pipelineResult{
+				PLResults: []pipelineResult{
 					{
-						Measurement: "nginx",
-						Fields: map[string]interface{}{
-							"client_ip":    "127.0.0.1",
-							"http_method":  "GET",
-							"http_url":     "/server_status",
-							"http_version": "1.1",
-							"ip_or_host":   "localhost:8080",
-							"message":      "2021/11/10 16:59:53 [error] 16393#0: *17 open() \"/usr/local/Cellar/nginx/1.21.3/html/server_status\" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: \"GET /server_status HTTP/1.1\", host: \"localhost:8080\"",
-							"msg":          "16393#0: *17 open() \"/usr/local/Cellar/nginx/1.21.3/html/server_status\" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: \"GET /server_status HTTP/1.1\", host: \"localhost:8080\"",
-							"server":       "localhost",
-							"status":       "error",
-							"b_p":          true,
+						Point: &PlRetPoint{
+							Name: "nginx",
+							Fields: map[string]interface{}{
+								"client_ip":    "127.0.0.1",
+								"http_method":  "GET",
+								"http_url":     "/server_status",
+								"http_version": "1.1",
+								"ip_or_host":   "localhost:8080",
+								"message":      "2021/11/10 16:59:53 [error] 16393#0: *17 open() \"/usr/local/Cellar/nginx/1.21.3/html/server_status\" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: \"GET /server_status HTTP/1.1\", host: \"localhost:8080\"",
+								"msg":          "16393#0: *17 open() \"/usr/local/Cellar/nginx/1.21.3/html/server_status\" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: \"GET /server_status HTTP/1.1\", host: \"localhost:8080\"",
+								"server":       "localhost",
+								"status":       "error",
+								"b_p":          true,
+							},
+							Time:   time.Date(2021, 11, 10, 16, 59, 53, 0, time.Local).Unix(),
+							TimeNS: 0,
 						},
-						Time:    time.Date(2021, 11, 10, 16, 59, 53, 0, time.Local).Unix(),
-						TimeNS:  0,
+
 						Dropped: false,
 					},
 				},
@@ -203,13 +206,13 @@ func TestApiDebugPipelineHandler(t *testing.T) {
 			assert.NoError(t, err, "json.Unmarshal error")
 
 			if tc.hasResult {
-				assert.Equal(t, tc.expect.PLResults[0].Measurement, strings.TrimSpace(resp.PLResults[0].Measurement))
-				assert.Equal(t, tc.expect.PLResults[0].Time, resp.PLResults[0].Time)
-				assert.Equal(t, tc.expect.PLResults[0].TimeNS, resp.PLResults[0].TimeNS)
+				assert.Equal(t, tc.expect.PLResults[0].Point.Name, strings.TrimSpace(resp.PLResults[0].Point.Name))
+				assert.Equal(t, tc.expect.PLResults[0].Point.Time, resp.PLResults[0].Point.Time)
+				assert.Equal(t, tc.expect.PLResults[0].Point.TimeNS, resp.PLResults[0].Point.TimeNS)
 				assert.Equal(t, tc.expect.PLResults[0].Dropped, resp.PLResults[0].Dropped)
 
-				for k := range resp.PLResults[0].Fields {
-					assert.Equal(t, tc.expect.PLResults[0].Fields[k], resp.PLResults[0].Fields[k])
+				for k := range resp.PLResults[0].Point.Fields {
+					assert.Equal(t, tc.expect.PLResults[0].Point.Fields[k], resp.PLResults[0].Point.Fields[k])
 				}
 			}
 		})

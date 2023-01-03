@@ -22,7 +22,13 @@ const (
 	columnTypeBool  = "bool"
 )
 
-type PlReferTables struct {
+type PlReferTables interface {
+	query(tableName string, colName []string, colValue []any, kGet []string) (map[string]any, bool)
+	updateAll(tables []referTable) (retErr error)
+	stats() *ReferTableStats
+}
+
+type PlReferTablesInMemory struct {
 	tables       map[string]*referTable
 	tablesName   []string
 	updateMutex  sync.Mutex
@@ -34,7 +40,7 @@ type ReferTableStats struct {
 	Row  []int
 }
 
-func (plrefer *PlReferTables) query(tableName string, colName []string, colValue []any,
+func (plrefer *PlReferTablesInMemory) query(tableName string, colName []string, colValue []any,
 	kGet []string,
 ) (map[string]any, bool) {
 	plrefer.queryRWmutex.RLock()
@@ -77,7 +83,7 @@ func (plrefer *PlReferTables) query(tableName string, colName []string, colValue
 	return result, true
 }
 
-func (plrefer *PlReferTables) updateAll(tables []referTable) (retErr error) {
+func (plrefer *PlReferTablesInMemory) updateAll(tables []referTable) (retErr error) {
 	defer func() {
 		if err := recover(); err != nil {
 			retErr = fmt.Errorf("run pl: %s", err)
@@ -107,7 +113,7 @@ func (plrefer *PlReferTables) updateAll(tables []referTable) (retErr error) {
 	return nil
 }
 
-func (plrefer *PlReferTables) stats() *ReferTableStats {
+func (plrefer *PlReferTablesInMemory) stats() *ReferTableStats {
 	plrefer.queryRWmutex.RLock()
 	defer plrefer.queryRWmutex.RUnlock()
 

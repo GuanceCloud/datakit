@@ -55,6 +55,7 @@ type Input struct {
 	MaxFileSize       int64        `toml:"max_file_size"`
 
 	TLSOpen    bool   `toml:"tls_open"`
+	UDSPath    string `toml:"uds_path"`
 	CacertFile string `toml:"tls_ca"`
 	CertFile   string `toml:"tls_cert"`
 	KeyFile    string `toml:"tls_key"`
@@ -292,6 +293,7 @@ func (i *Input) Init() error {
 		Measurements:      i.Measurements,
 
 		TLSOpen:    i.TLSOpen,
+		UDSPath:    i.UDSPath,
 		CacertFile: i.CacertFile,
 		CertFile:   i.CertFile,
 		KeyFile:    i.KeyFile,

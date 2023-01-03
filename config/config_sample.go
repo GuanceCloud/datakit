@@ -65,9 +65,13 @@ ulimit = 64000
 
   ## refer_table_url: string, 当前支持的 scheme: http,https
   ## refer_table_pull_interval: string, 数据拉取间隔
+  ## use_sqlite: bool, 使用 SQLite 保存拉取的表数据
+  ## sqlite_mem_mode: bool, 当使用 SQLite 保存拉取的数据时，使用 SQLite 内存模式，默认使用磁盘模式
   #
   refer_table_url = ""
   refer_table_pull_interval = "5m"
+  use_sqlite = false
+  sqlite_mem_mode = false
 
 ## http_api: HTTP 服务设置
 #

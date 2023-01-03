@@ -25,6 +25,7 @@ import (
 
 var (
 	log     = logger.DefaultSLogger("kafkamq_custom")
+	MsgType = "kafka"
 	limiter *rate.Limiter
 	sample  *sampler
 )
@@ -204,49 +205,51 @@ func (c *consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession,
 					break
 				}
 			}
-			pl := ""
-			category := ""
-			if p, ok := c.logTopics[msg.Topic]; ok {
-				pl = p
-				category = datakit.Logging
-			}
-			if p, ok := c.metricTopics[msg.Topic]; ok {
-				pl = p
-				category = datakit.Metric
-			}
-			if pl == "" || category == "" {
-				log.Warnf("can not find [%s] pipeline script", msg.Topic)
-				break
-			}
-			// 把换行符替换成空格.
-			newMessage := strings.ReplaceAll(string(msg.Value), "\n", " ")
-			log.Debugf("kafka_message is:  %s", newMessage)
-			msgLen := len(newMessage)
-
-			pt, err := point.NewPoint(
-				msg.Topic,
-				map[string]string{"type": "kafka", pipeline.FieldMessage: newMessage},
-				map[string]interface{}{pipeline.FieldStatus: pipeline.DefaultStatus, "message_len": msgLen},
-				&point.PointOption{
-					Time:     time.Now(),
-					Category: category,
-				})
-			if err != nil {
-				log.Warnf("make point err=%v", err)
-				break
-			}
-
-			err = dkio.Feed(msg.Topic, category, []*point.Point{pt}, &dkio.Option{PlScript: map[string]string{msg.Topic: pl}})
-			if err != nil {
-				log.Warnf("feed io err=%v", err)
-			}
+			c.feedMsg(msg)
 			if limiter != nil {
 				_ = limiter.Wait(ctx)
 			}
 		case <-session.Context().Done():
-			log.Infof("session context is close")
+			log.Infof("session context is close,err=%v", session.Context().Err())
 			return nil
 		}
+	}
+}
+
+func (c *consumerGroupHandler) feedMsg(msg *sarama.ConsumerMessage) {
+	pl := ""
+	category := ""
+	newMessage := strings.ReplaceAll(string(msg.Value), "\n", " ")
+	log.Debugf("kafka_message is:  %s", newMessage)
+	msgLen := len(newMessage)
+	var tags = map[string]string{"type": MsgType}
+	var fields = map[string]interface{}{pipeline.FieldStatus: pipeline.DefaultStatus, "message_len": msgLen}
+	if p, ok := c.logTopics[msg.Topic]; ok {
+		pl = p
+		category = datakit.Logging
+		fields[pipeline.FieldMessage] = newMessage
+	}
+	if p, ok := c.metricTopics[msg.Topic]; ok {
+		pl = p
+		category = datakit.Metric
+		tags[pipeline.FieldMessage] = newMessage
+	}
+	if pl == "" || category == "" {
+		log.Warnf("can not find [%s] pipeline script", msg.Topic)
+		return
+	}
+	pt, err := point.NewPoint(msg.Topic, tags, fields,
+		&point.PointOption{
+			Time:     time.Now(),
+			Category: category,
+		})
+	if err != nil {
+		log.Warnf("make point err=%v", err)
+		return
+	}
+	err = dkio.Feed(msg.Topic, category, []*point.Point{pt}, &dkio.Option{PlScript: map[string]string{msg.Topic: pl}})
+	if err != nil {
+		log.Warnf("feed io err=%v", err)
 	}
 }
 

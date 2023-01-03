@@ -18,7 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	plfuncs "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/core/engine/funcs"
+	plfuncs "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 

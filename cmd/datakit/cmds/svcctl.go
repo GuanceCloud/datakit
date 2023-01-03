@@ -103,7 +103,7 @@ func stopDatakit() error {
 		return cmd.Run()
 	}
 
-	svc, err := dkservice.NewService()
+	svc, err := dkservice.NewService("")
 	if err != nil {
 		return err
 	}
@@ -143,7 +143,7 @@ func startDatakit() error {
 		return cmd.Run()
 	}
 
-	svc, err := dkservice.NewService()
+	svc, err := dkservice.NewService("")
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func restartDatakit() error {
 }
 
 func uninstallDatakit() error {
-	svc, err := dkservice.NewService()
+	svc, err := dkservice.NewService("")
 	if err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func uninstallDatakit() error {
 }
 
 func reinstallDatakit() error {
-	svc, err := dkservice.NewService()
+	svc, err := dkservice.NewService("")
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func datakitStatus() (string, error) {
 		return string(res), err
 	}
 
-	svc, err := dkservice.NewService()
+	svc, err := dkservice.NewService("")
 	if err != nil {
 		return "", err
 	}

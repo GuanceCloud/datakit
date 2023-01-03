@@ -111,7 +111,7 @@ func (tracer *NetFlowTracer) bpfMapCleanup(cl []ConnectionInfo, connStatsMap *eb
 		}
 		err := connStatsMap.Delete(unsafe.Pointer(&c)) //nolint:gosec
 		if err != nil {
-			l.Error(err)
+			l.Warn(err)
 		}
 	}
 }

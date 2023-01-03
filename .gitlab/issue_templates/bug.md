@@ -2,6 +2,7 @@
 
 ## DataKit/操作系统版本信息/部署信息（必填）
 
+<!--
 - DataKit 版本号：通过 `datakit version` 命令可获取
 - 操作系统信息（选其一）：
     - Linux：给出 Linux 发行版（比如 `CentOS 7.2`）以及内核版本号（比如 `6.0.10`）
@@ -22,7 +23,7 @@
     - MySQL 版本号
     - 部署的操作系统平台（参见上面的 _操作系统信息_）
 
-<!--
+
 建议提供命令 datakit version 的输出
 -->
 
@@ -33,6 +34,7 @@
 
 ## 尽可能提供复现步骤（必填）
 
+<!--
 复现步骤：
 
 1. xxxxx
@@ -60,10 +62,11 @@ datakit.conf 配置：
 <img src="/uploads/1d10e09cb7292de571axxxxxxxxxxxxx/image-2-not-exists.png"  width="730">
 
 这里建议用 730 作为图片宽度，连续的图片之间，用空行分割下。单个图片不要超过 250KB。
+-->
 
 ## 如果是采集器问题，请给出对应采集器的配置文件
 
-
+<!--
 如 MySQL 采集器问题，给出 .conf.d/db/mysql.conf 配置
 
 ```toml
@@ -89,3 +92,4 @@ Select-String -Path 'C:\Program Files\datakit\log' -Pattern "ERROR", "WARN"  | S
 # 给出最近 10 个 ERROR, WARN 级别的日志
 cat /var/log/datakit/log | grep "WARN\|ERROR" | head 10
 ```
+-->

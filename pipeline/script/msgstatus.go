@@ -44,11 +44,10 @@ var statusMap = map[string]string{
 	"ok":       "OK",
 }
 
-func ProcLoggingStatus(tags map[string]string, fileds map[string]any,
+func ProcLoggingStatus(tags map[string]string, fileds map[string]any, drop bool,
 	disable bool, ignore []string,
 ) (map[string]string, map[string]any, bool) {
 	var status string
-	var drop bool
 
 	status, _ = getStatus(tags, fileds)
 

@@ -12,6 +12,22 @@
 - xxl-jobs 支持
 - dubbo 2/3 支持
 - Thrift 框架支持
+- RocketMQ 支持
+- log pattern 自定义
+- hsf 支持
+- 阿里云 RocketMQ 5.0 支持
+
+## log pattern 支持自定义 {#log-pattern}
+通过修改默认的 log pattern 来实现应用日志和链路互相关联，从而降低部署成本。目前已支持`log4j2`日志框架，对于`logback` 暂不支持。
+
+通过`-Ddd.logs.pattern`来调整默认的pattern。比如 `-Ddd.logs.pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %X{dd.service} %X{dd.trace_id} %X{dd.span_id} - %msg%n"`
+
+支持版本： log4j2
+
+## hsf {#hsf}
+[hsf](https://help.aliyun.com/document_detail/100087.html) 是在阿里巴巴广泛使用的分布式 RPC 服务框架。
+
+支持版本：2.2.8.2--2019-06-stable
 
 ## SQL 脱敏 {#jdbc-sql-obfuscation}
 
@@ -74,7 +90,7 @@ DDTrace 默认会将 SQL 中参数转化为 `?`，这导致用户在排查问题
 
 ## xxl-jobs 支持 {#xxl-jobs}
 
-前言： xxl-jobs 是一个基于Java开发的分布式任务调度框架, [github 地址](https://github.com/xuxueli/xxl-job) 
+前言： xxl-jobs 是一个基于Java开发的分布式任务调度框架, [github 地址](https://github.com/xuxueli/xxl-job)
 
 版本支持： 目前支持 2.3 及以上版本。
 
@@ -86,7 +102,7 @@ dubbo 是阿里云的一个开源框架，目前已经支持 dubbo2 以及 dubbo
 
 ## RocketMQ {#rocketmq}
 
-RocketMQ 是阿里云贡献 apache 基金会的开源消息队列框架，注意：是 apache 项目，代码中引用位置应当是 `org.apache.rocketmq`。
+RocketMQ 是阿里云贡献 Apache 基金会的开源消息队列框架。注意：阿里云 RocketMQ 5.0 与 Apache基金会的是两个不同的库。
 
 版本支持： 目前支持 4.8.0 及以上版本。
 

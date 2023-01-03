@@ -7,8 +7,10 @@
 package prom
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,7 +21,7 @@ import (
 
 	"github.com/prometheus/common/expfmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
@@ -81,14 +83,15 @@ type Option struct {
 
 	Election bool
 
-	TLSOpen bool `toml:"tls_open"`
-	Disabel bool `toml:"disble"`
+	TLSOpen bool   `toml:"tls_open"`
+	UDSPath string `toml:"uds_path"`
+	Disable bool   `toml:"disble"`
 }
 
 const defaultInterval = 30 * time.Second
 
 func (opt *Option) IsDisable() bool {
-	return opt.Disabel
+	return opt.Disable
 }
 
 func (opt *Option) GetSource(defaultSource ...string) string {
@@ -155,7 +158,16 @@ func NewProm(opt *Option) (*Prom, error) {
 	}
 
 	p := Prom{opt: opt}
-	p.SetClient(&http.Client{Timeout: timeout})
+
+	var dialContext func(_ context.Context, _ string, _ string) (net.Conn, error)
+	if p.opt.UDSPath != "" {
+		dialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("unix", p.opt.UDSPath)
+		}
+	}
+	p.SetClient(&http.Client{Timeout: timeout, Transport: &http.Transport{
+		DialContext: dialContext,
+	}})
 
 	if opt.TLSOpen {
 		caCerts := []string{}
@@ -165,7 +177,7 @@ func NewProm(opt *Option) (*Prom, error) {
 		} else {
 			insecureSkipVerify = true
 		}
-		tc := &net.TLSClientConfig{
+		tc := &dnet.TLSClientConfig{
 			CaCerts:            caCerts,
 			Cert:               opt.CertFile,
 			CertKey:            opt.KeyFile,
@@ -178,6 +190,7 @@ func NewProm(opt *Option) (*Prom, error) {
 		}
 		p.client.Transport = &http.Transport{
 			TLSClientConfig: tlsconfig,
+			DialContext:     dialContext,
 		}
 	}
 
