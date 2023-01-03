@@ -110,8 +110,8 @@ func (script *PlScript) Run(plpt *ptinput.Point, signal plruntime.Signal, opt *O
 			ignore = opt.IgnoreStatus
 			// spiltLen = opt.MaxFieldValLen
 		}
-		// out = ProcLoggingStatus(out, disable, ignore, spiltLen)
-		plpt.Tags, plpt.Fields, plpt.Drop = ProcLoggingStatus(plpt.Tags, plpt.Fields, disable, ignore)
+
+		plpt.Tags, plpt.Fields, plpt.Drop = ProcLoggingStatus(plpt.Tags, plpt.Fields, plpt.Drop, disable, ignore)
 	default:
 	}
 

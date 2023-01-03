@@ -19,7 +19,7 @@ func TestStatus(t *testing.T) {
 				FieldStatus: k,
 			},
 		}
-		_, f, _ := ProcLoggingStatus(nil, outp.Fields, false, nil)
+		_, f, _ := ProcLoggingStatus(nil, outp.Fields, outp.Drop, false, nil)
 		assert.Equal(t, v, f[FieldStatus])
 	}
 
@@ -30,7 +30,7 @@ func TestStatus(t *testing.T) {
 				FieldMessage: "1234567891011",
 			},
 		}
-		_, f, _ := ProcLoggingStatus(nil, outp.Fields, false, nil)
+		_, f, _ := ProcLoggingStatus(nil, outp.Fields, outp.Drop, false, nil)
 		assert.Equal(t, "unknown", f[FieldStatus])
 		assert.Equal(t, "1234567891011", f[FieldMessage])
 	}
@@ -45,7 +45,7 @@ func TestStatus(t *testing.T) {
 				"xxxqqqddd": "1234567891011",
 			},
 		}
-		tags, f, _ := ProcLoggingStatus(outp.Tags, outp.Fields, false, nil)
+		tags, f, _ := ProcLoggingStatus(outp.Tags, outp.Fields, outp.Drop, false, nil)
 		assert.Equal(t, map[string]interface{}{
 			FieldStatus:  "unknown",
 			FieldMessage: "1234567891011",
@@ -65,7 +65,7 @@ func TestStatus(t *testing.T) {
 				"xxxqqqddd": "1234567891011",
 			},
 		}
-		tags, f, _ := ProcLoggingStatus(outp.Tags, outp.Fields, false, nil)
+		tags, f, _ := ProcLoggingStatus(outp.Tags, outp.Fields, outp.Drop, false, nil)
 		assert.Equal(t, map[string]interface{}{
 			FieldStatus:  "notice",
 			FieldMessage: "1234567891011",
@@ -84,7 +84,7 @@ func TestGetSetStatus(t *testing.T) {
 		Fields: make(map[string]interface{}),
 	}
 
-	tags, f, _ := ProcLoggingStatus(out.Tags, out.Fields, false, nil)
+	tags, f, _ := ProcLoggingStatus(out.Tags, out.Fields, out.Drop, false, nil)
 	assert.Equal(t, map[string]string{
 		"status": "notice",
 	}, tags)
@@ -94,7 +94,7 @@ func TestGetSetStatus(t *testing.T) {
 		"status": "n",
 	}
 	out.Tags = make(map[string]string)
-	tags, f, _ = ProcLoggingStatus(out.Tags, out.Fields, false, nil)
+	tags, f, _ = ProcLoggingStatus(out.Tags, out.Fields, out.Drop, false, nil)
 	assert.Equal(t, map[string]interface{}{
 		"status": "notice",
 	}, f)
@@ -106,7 +106,7 @@ func TestGetSetStatus(t *testing.T) {
 	out.Tags = map[string]string{
 		"status": "n",
 	}
-	tags, f, _ = ProcLoggingStatus(out.Tags, out.Fields, false, nil)
+	tags, f, _ = ProcLoggingStatus(out.Tags, out.Fields, out.Drop, false, nil)
 	assert.Equal(t, map[string]string{
 		"status": "notice",
 	}, tags)
