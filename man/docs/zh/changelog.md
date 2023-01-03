@@ -35,6 +35,8 @@
 - 修复 netstat 采集器链接数问题(#1276/#1336)
 - 修复 Go profiler 差值问题(#1328)
 - 修复 Datakit 重启超时问题(#1297)
+- 修复 Kafka 订阅消息被截断问题(#1338)
+- 修复 Pipeline `drop()` 函数无效问题(#1343)
 
 ### 功能优化 {#cl-1.5.3-opt}
 
@@ -43,6 +45,7 @@
 - 优化 Pythond 使用封装(#1304)
 - Pipeline 提供更详细的操作报错信息(#1262)
 - Pipeline reftable 提供基于 SQLite 的本地化存储实现(#1158)
+- 优化 SQLServer 时间线问题(#1345)
 
 ---
 
