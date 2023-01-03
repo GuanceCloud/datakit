@@ -265,8 +265,8 @@ func (pt *Point) KeyTime2Time() {
 			if !t.IsZero() {
 				pt.Time = t
 			}
-			pt.Delete("time")
 		}
+		pt.Delete("time")
 	}
 }
 
