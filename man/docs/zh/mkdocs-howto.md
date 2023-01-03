@@ -99,10 +99,10 @@
 请参考这个[新功能](some-doc.md#new-feature)
 ```
 
-如果是在文档内引用：
+如果是在文档内引用，也**必须加上当前文档名字**，原因参见[后面的 404 检测](mkdocs-howto.md#404-check)说明：
 
 ```markdown
-请参考这个[新功能](#new-feature)
+请参考这个[新功能](current.md#new-feature)
 ```
 
 如果跨文档库引用：
@@ -149,6 +149,23 @@
     .assam ni mauq merol repmes cen ,assam rotcua surup otsuj ,subinif tauqesnoc non rotrot ,taiguef rutibaruC .allun domsiue te alluN .tile gnicsipida rutetcesnoc ,tema tis rolod muspi meroL
 
 具体用法，参见[这里](https://squidfunk.github.io/mkdocs-material/reference/content-tabs/){:target="_blank"}
+
+### 404 链接检查 {#404-check}
+
+在日常的文档编写过程中，我们一般会做如下几类文档链接：
+
+- 链接文档库内的其他文档，其形式为：`这是一段带[内部文档链接](some-other.md#some-section)的文本`
+- 链接外站，其形式为：`这是一段带[外站链接](https://host.com#some-section){:target="_blank"}的文本`
+- 引用当前文档的其它章节，形如：`请参见[前一章节](#prev-section)的描述`，或者 `请参见[前一章节](current.md#prev-section)的描述`
+
+为了避免 404 检测程序误报，需遵循如下规范：
+
+- 站内链接技术上可以有两种形式，一种形如 `[xxx](datakit/datakit-conf/#config-http-server)`，一种形如 `[xxx](datakit-conf.md#config-http-server)`，这两种写法，在页面上都能正常跳转，但**前者不能通过 404 检测**，请使用第二种形式。
+- 所有引用当前文档章节的链接，链接中必须带当前文档名，比如 `请参见[前一章节](current.md#prev-section)的描述`，不能只有章节名。只有章节名会被视为非法的连接。
+- 链接的形式必须准确，不能：
+    - 带有无意义的多余空格，如 `请参见这个[非法链接]( https://invalid-link.com)`
+    - 多余的 `#`，如 `请参见这个[非法链接](https://invalid-link.com/#)`
+- 如果普通文本中带有链接说明，需用代码字体来排版这个链接，不然会触发 404 误报。比如：`` 请将主机地址设置为 `http://localhost:8080` ``，文中的这个 localhost 链接用代码字体修饰后，就不会触发 404 误报了。
 
 ## 更多阅读 {#more-reading}
 

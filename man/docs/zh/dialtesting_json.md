@@ -113,7 +113,7 @@
 }
 ```
 
->  编辑完这个 JSON 后，建议找一些在线工具（[这个](https://www.json.cn/){:target="_blank"}或[这个](https://jsonformatter.curiousconcept.com/#){:target="_blank"}）验证下 JSON 格式是不是正确。如果 JSON 格式不对，那么会导致拨测不生效。
+>  编辑完这个 JSON 后，建议找一些[在线工具](https://www.json.cn/){:target="_blank"}验证下 JSON 格式是不是正确。如果 JSON 格式不对，那么会导致拨测不生效。
 
 配置好后，重启 DataKit 即可。
 

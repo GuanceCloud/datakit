@@ -140,7 +140,7 @@ traceroute 是「路由跟踪」数据的 JSON 文本，整个数据是一个数
 | `min_cost` | number        | 最小耗时(μs)                |
 | `max_cost` | number        | 最大耗时(μs)                |
 | `std_cost` | number        | 耗时标准差(μs)              |
-| `items`    | Item 的 Array | 每次探测信息([详见](#item)) |
+| `items`    | Item 的 Array | 每次探测信息([详见](dialtesting.md#item)) |
 
 ### Item {#item}
 

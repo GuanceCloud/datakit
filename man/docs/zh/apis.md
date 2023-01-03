@@ -30,7 +30,7 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 | `source`                  | string | N        | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割                    |
 | `version`                 | string | N        | 无        | 当前采集器的版本号                                                                                                                            |
 
-HTTP body 支持行协议以及 JSON 俩种形式。关于数据结构（不管是行协议形式还是 JSON 形式）的约束，参见[这里](#lineproto-limitation)。
+HTTP body 支持行协议以及 JSON 俩种形式。关于数据结构（不管是行协议形式还是 JSON 形式）的约束，参见[这里](apis.md#lineproto-limitation)。
 
 ### JSON Body 示例 {#api-json-example}
 

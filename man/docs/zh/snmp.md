@@ -6,7 +6,7 @@
 
 ---
 
-本文主要介绍 [SNMP](https://en.wikipedia.org/wiki/Simple_Network_Management_Protocol/){:target="_blank"} 数据采集。
+本文主要介绍 [SNMP](https://en.wikipedia.org/wiki/Simple_Network_Management_Protocol){:target="_blank"} 数据采集。
 
 ## 关于 SNMP 协议 {#config-pre}
 

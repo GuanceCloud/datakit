@@ -137,8 +137,8 @@ Done
 
 整合方式，可以分为两种：
 
-- [自动化脚本 (推荐)](#script)
-- [手动操作](#manual) 
+- [自动化脚本 (推荐)](profile-java.md#script)
+- [手动操作](profile-java.md#manual) 
 
 **1. 自动化脚本**
 
@@ -322,7 +322,7 @@ $ bash collect.sh
 
 脚本支持如下环境变量:
 
-- `DATAKIT_URL`: DataKit url 地址，默认为 http://localhost:9529
+- `DATAKIT_URL`: DataKit url 地址，默认为 `http://localhost:9529`
 - `APP_ENV`: 当前应用环境，如 `dev | prod | test` 等
 - `APP_VERSION`: 当前应用版本
 - `HOST_NAME`: 主机名称

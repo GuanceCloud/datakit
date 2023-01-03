@@ -12,10 +12,7 @@ SMI 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用�
 ### 使用SMI指标前置条件 {#SMI-precondition}
 
 #### 安装 驱动及CUDA工具包 {#SMI-install-driver}
-参考网址 [https://www.nvidia.com/Download/index.aspx]( https://www.nvidia.com/Download/index.aspx)
-
-
-
+参考网址 [https://www.nvidia.com/Download/index.aspx](https://www.nvidia.com/Download/index.aspx)
 
 ### SMI指标配置 {#SMI-input-config}
 
@@ -118,9 +115,7 @@ DCGM 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用�
 
 #### 安装 dcgm-exporter {#DCGM-install-driver}
 
-参考网址 [https://github.com/NVIDIA/dcgm-exporter]( https://github.com/NVIDIA/dcgm-exporter)
-
-
+参考网址 [https://github.com/NVIDIA/dcgm-exporter](https://github.com/NVIDIA/dcgm-exporter)
 
 ### DCGM指标配置 {#DCGM-input-config}
 
