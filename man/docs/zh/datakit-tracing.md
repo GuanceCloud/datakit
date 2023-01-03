@@ -14,9 +14,9 @@
 
 ## Datakit Tracing Frontend {#datakit-tracing-frontend}
 
-Tracing Frontend 即接收各种不同类 Trace 数据的 API，它们一般通过 HTTP 或 gRPC 等方式接收各种 Trace SDK 发送过来的数据。DataKit 收到这些数据后，会将它们转换成[统一的 Span 结构](datakit-tracing-struct.md)。然后再发送到 [Backend](#backend) 处理。
+Tracing Frontend 即接收各种不同类 Trace 数据的 API，它们一般通过 HTTP 或 gRPC 等方式接收各种 Trace SDK 发送过来的数据。DataKit 收到这些数据后，会将它们转换成[统一的 Span 结构](datakit-tracing-struct.md)。然后再发送到 [Backend](#datakit-tracing-backend) 处理。
 
-除了转换 Span 结构外，Tracing Frontend 还会完成对[Tracing Backend](#backend)中过滤单元和运算单元的配置
+除了转换 Span 结构外，Tracing Frontend 还会完成对[Tracing Backend](#datakit-tracing-backend)中过滤单元和运算单元的配置
 
 ## Tracing 数据采集通用配置 {#tracing-common-config}
 
@@ -70,8 +70,8 @@ Tracing Frontend 即接收各种不同类 Trace 数据的 API，它们一般通�
   如果用户对链路上报的其他 tag 感兴趣可以在这项配置添加告知 Datakit 去拾取。此项配置优先级高于 `[inputs.tracer.tags]`。
 - `keep_rare_resource`: 如果来自某个 Resource 的链路在最近一小时内没有出现过，那么系统认为此条链路为稀有链路并直接上报到 Data Center。
 - `omit_err_status`: 默认情况下如果链路中存在 Error 状态的 Span 那么数据会被直接上报到 Data Center，如果用户需要忽略某些 HTTP Error Status（例如：429 too many requests） 的链路可以通过配置此项告知 Datakit 忽略。
-- `[inputs.tracer.close_resource]`: 用户可以通过配置此项来关闭 [span_type](datakit-tracing-struct) 为 Entry 的 Resource 链路。
-- `[inputs.tracer.sampler]`: 配置当前 Datakit 的全局采样率，[配置示例](#datakit-samplers)。
+- `[inputs.tracer.close_resource]`: 用户可以通过配置此项来关闭 [span_type](datakit-tracing-struct.md) 为 Entry 的 Resource 链路。
+- `[inputs.tracer.sampler]`: 配置当前 Datakit 的全局采样率，[配置示例](datakit-tracing.md#samplers)。
 - `[inputs.tracer.tags]`: 配置 Datakit Global Tags，优先级低于 `customer_tags` 。
 - `[inputs.tracer.threads]`: 配置当前 Tracing Agent 的线程队列用来控制处理数据过程中能使用的 CPU 和 Memory 资源。
   - buffer: 工作队列的缓存，配置越大那么内存消耗越大同时发送到 Agent 上的请求能更大概率入队成功并快速返回否则将被丢弃并返回 429 错误。

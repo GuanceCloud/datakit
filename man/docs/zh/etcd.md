@@ -12,7 +12,7 @@ etcd 采集器可以从 etcd 实例中采取很多指标，比如etcd服务器�
 
 - etcd 版本  >=3
 
-- 开启etcd，默认的metrics接口是http://localhost:2379/metrics，也可以自己去配置文件中修改。
+- 开启 etcd，默认的 metrics 接口是 `http://localhost:2379/metrics`，也可以自己去配置文件中修改。
 
 ## 配置 {#config}
 

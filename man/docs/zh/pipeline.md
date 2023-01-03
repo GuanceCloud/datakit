@@ -189,7 +189,7 @@ drop_origin_data()
 DataKit 中 grok 模式可以分为两类：
 
 - 全局模式：*pattern* 目录下的模式文件都是全局模式，所有 pipeline 脚本都可使用
-- 局部模式：在 pipeline 脚本中通过 [add_pattern()](#fn-add-pattern) 函数新增的模式为局部模式，只针对当前 pipeline 脚本有效
+- 局部模式：在 pipeline 脚本中通过 [add_pattern()](pipeline.md#fn-add-pattern) 函数新增的模式为局部模式，只针对当前 pipeline 脚本有效
 
 以下以 Nginx access-log 为例，说明一下如何编写对应的 grok，原始 nginx access log 如下：
 
@@ -230,7 +230,7 @@ group_between(status_code, [500,599], "error", status)
 default_time(time)
 ```
 
-优化之后的切割，相较于初步的单行 pattern 来说可读性更好。由于 grok 解析出的字段默认数据类型是 string，在此处指定字段的数据类型后，可以避免后续再使用 [cast()](#fn-cast) 函数来进行类型转换。
+优化之后的切割，相较于初步的单行 pattern 来说可读性更好。由于 grok 解析出的字段默认数据类型是 string，在此处指定字段的数据类型后，可以避免后续再使用 [cast()](pipeline.md#fn-cast) 函数来进行类型转换。
 
 ### grok 组合 {#grok-compose}
 
@@ -258,7 +258,7 @@ grok(_, %{time})
 ???+ attention
 
     - 如果出现同名模式，则以局部模式优先（即局部模式覆盖全局模式）
-    - pipeline 脚本中，[add_pattern()](#fn-add-pattern) 需在 [grok()](#fn-grok) 函数前面调用，否则会导致第一条数据提取失败
+    - pipeline 脚本中，[add_pattern()](pipeline.md#fn-add-pattern) 需在 [grok()](pipeline.md#fn-grok) 函数前面调用，否则会导致第一条数据提取失败
 
 ### 内置的 Pattern 列表 {#builtin-patterns}
 

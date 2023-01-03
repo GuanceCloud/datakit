@@ -29,7 +29,7 @@ stdout/stderr 日志采集的主要配置有以下两种方式：
     container_exclude_logging = ["image:*"]
     ```
     
-    - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为一种[类正则的 Glob 通配](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}： `"image:<glob规则>"`
+    - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为一种[类正则的 Glob 通配][1]：`"image:<glob规则>"`
     
 === "Kubernetes"
 
@@ -276,3 +276,5 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 - [Pipeline：文本数据处理](../developers/pipeline.md)
 - [DataKit 日志采集综述](datakit-logging.md)
+
+[1]: https://en.wikipedia.org/wiki/Glob_(programming)

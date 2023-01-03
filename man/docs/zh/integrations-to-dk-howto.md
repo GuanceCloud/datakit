@@ -77,7 +77,7 @@ cp man/manuals/resin.md $integration_docs_dir/
 
 在 datakit 现有仓库中，直接执行 mkdocs.sh 即可实现编译、发布两个步骤。在 mkdocs.sh 中，目前直接将文档分成两份导出，分别同步到文档库的 datakit 和 integrations 两个目录下。
 
-如果要在文档中插入图片，在 datakit 和 integrations 各自的 *imgs* 目录下放置图片即可。如何引用图片，参考[上面的例子](#merge)。
+如果要在文档中插入图片，在 datakit 和 integrations 各自的 *imgs* 目录下放置图片即可。如何引用图片，参考[上面的例子](integrations-to-dk-howto.md#merge)。
 
 下面具体说下文档库的本地操作方式。主要以下几个步骤。
 
@@ -101,5 +101,5 @@ pip install -r requirements.txt # 期间可能要求你更新 pip 版本
 
 在 datakit 根目录下有一个 mkdocs.sh 脚本，它负责导出 DataKit 所有文档，并拷贝到文档库的不同目录，最后启动本地文档服务。
 
-- 访问本地 http://localhost:8000 即可看到
+- 访问本地 `http://localhost:8000` 即可看到
 - 调试完成后，提交 Merge Request 到 datakit 项目的 `mkdocs` 分支

@@ -330,21 +330,18 @@ func consulDo(index int) {
 }
 ```
 
-## 配置中心更新Pipeline {#update-config-pipeline}
+## 配置中心更新 Pipeline {#update-config-pipeline}
 
-参考 [配置中心如何更新配置](#update-config)
+参考 [配置中心如何更新配置](confd.md#update-config)，其中：
 
-键名 `datakit/confd` 字样改为 `datakit/pipeline` ，再加上 `类型/文件名` 即可。
+键名 `datakit/confd` 字样改为 `datakit/pipeline` ，再加上 `类型/文件名` 即可。例如 `datakit/pipeline/logging/nginx.p`，键值就是 pipeline 的文本内容。
 
-例如 `datakit/pipeline/logging/nginx.p` 。
-
-键值 就是 pipeline 的文本。
-
-更新 Pipeline 支持 etcdv3 consul redis zookeeper， 不支持 file 后端。
+更新 Pipeline 目前支持 etcdv3/consul/redis/zookeeper，不支持 file 后端。
 
 ## 后端数据源软件版本说明 {#backend-version}
 
 在开发、测试过程中，后端数据源软件使用了如下版本。
+
 - REDIS: v6.0.16
 - ETCD: v3.3.0 
 - CONSUL: v1.13.2
