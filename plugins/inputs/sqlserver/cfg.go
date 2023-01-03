@@ -74,11 +74,11 @@ default_time(time)
 		sqlServerProperties,
 		sqlServerSchedulers,
 		sqlServerVolumeSpace,
-		sqlServerLockDatabase,
-		sqlServerLockTable,
 		sqlServerDatabaseSize,
 	}
 	loggingQuery = []string{
+		sqlServerLockTable,
+		sqlServerLockDatabase,
 		sqlServerLockRow,
 		sqlServerLockDead,
 		sqlServerLogicIO,
