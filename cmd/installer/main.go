@@ -328,10 +328,19 @@ Data           : %s
 		dkservice.Executable += ".exe"
 	}
 
-	var userName string
-	if flagUserName != "root" {
-		userName = builtInUserName // set as 'datakit'.
+	// fix user name.
+	var userName, groupAdd, userAdd string
+	if len(flagUserName) > 0 && flagUserName != "root" {
+		// check add group and user command.
+		groupAdd, userAdd, err = checkUserGroupCmdOK()
+		if err != nil {
+			cp.Errorf("check command failed: %v\n", err)
+			return
+		}
+		userName = builtInUserName // set as 'datakit'(default).
 	}
+	cp.Infof("datakit service run as user: '%s' (default/empty is 'root'. details: DK_USER_NAME = '%s')\n", userName, flagUserName)
+
 	svc, err := dkservice.NewService(userName)
 	if err != nil {
 		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
@@ -395,7 +404,7 @@ __downloadOK:
 		installer.Install(svc)
 	}
 
-	setupUserGroup(flagUserName, flagUserName)
+	setupUserGroup(userName, userName, groupAdd, userAdd)
 
 	if flagInstallOnly != 0 {
 		cp.Warnf("Only install service %s, NOT started\n", dkservice.Name)
@@ -504,10 +513,15 @@ const (
 	builtInUserName = "datakit"
 )
 
-func setupUserGroup(userName, groupName string) {
+func setupUserGroup(userName, groupName, groupAdd, userAdd string) {
 	l.Info("setupUserGroup entry")
 
-	if runtime.GOOS != datakit.OSLinux || userName == "root" {
+	if len(userName) == 0 || userName == "root" || runtime.GOOS != datakit.OSLinux {
+		return
+	}
+
+	if len(groupAdd) == 0 || len(userAdd) == 0 {
+		l.Errorf("groupAdd or userAdd command not set.")
 		return
 	}
 
@@ -521,8 +535,8 @@ func setupUserGroup(userName, groupName string) {
 	// add group.
 	if _, err := user.LookupGroup(groupName); err != nil {
 		if err.Error() == user.UnknownGroupError(groupName).Error() {
-			if err = executeCmd("addgroup", "--system", groupName); err != nil {
-				l.Errorf("addgroup failed: %v", err)
+			if err = executeCmd(groupAdd, "--system", groupName); err != nil {
+				l.Errorf("%s failed: %v", groupAdd, err)
 				return
 			}
 		} else {
@@ -533,8 +547,8 @@ func setupUserGroup(userName, groupName string) {
 	// add user.
 	if _, err := user.Lookup(userName); err != nil {
 		if err.Error() == user.UnknownUserError(userName).Error() {
-			if err = executeCmd("adduser", "--system", "--no-create-home", "--disabled-password", "--ingroup", groupName, userName); err != nil {
-				l.Errorf("adduser failed: %v", err)
+			if err = executeCmd(userAdd, "--system", "--no-create-home", "--disabled-password", "--ingroup", groupName, userName); err != nil {
+				l.Errorf("%s failed: %v", userAdd, err)
 				return
 			}
 		} else {
@@ -565,4 +579,36 @@ func setupUserGroup(userName, groupName string) {
 func executeCmd(name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
 	return cmd.Run()
+}
+
+func checkUserGroupCmdOK() (groupAdd string, userAdd string, err error) {
+	// check group
+	groupAdd, err = checkCmd("addgroup", "groupadd")
+	if err != nil {
+		return "", "", fmt.Errorf("neither 'addgroup' or 'groupadd' executable file found in $PATH")
+	}
+
+	userAdd, err = checkCmd("adduser", "useradd")
+	if err != nil {
+		return "", "", fmt.Errorf("neither 'adduser' or 'useradd' executable file found in $PATH")
+	}
+
+	return groupAdd, userAdd, nil
+}
+
+func checkCmd(candidates ...string) (cmdString string, err error) {
+	for _, v := range candidates {
+		if err = commandExists(v); err != nil {
+			cp.Infof("try '%s' failed: %v\n", v, err)
+		} else {
+			l.Infof("try '%s' ok.", v)
+			return v, nil
+		}
+	}
+	return "", err
+}
+
+func commandExists(cmd string) error {
+	_, err := exec.LookPath(cmd)
+	return err
 }
