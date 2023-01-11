@@ -78,7 +78,6 @@ default_time(time)
 	}
 	loggingQuery = []string{
 		sqlServerLockTable,
-		sqlServerLockDatabase,
 		sqlServerLockRow,
 		sqlServerLockDead,
 		sqlServerLogicIO,

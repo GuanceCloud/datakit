@@ -412,7 +412,6 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 		&Schedulers{},
 		&VolumeSpace{},
 		&LockRow{},
-		&LockDatabase{},
 		&LockTable{},
 		&LockDead{},
 		&LogicalIO{},

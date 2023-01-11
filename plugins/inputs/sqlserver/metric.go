@@ -237,36 +237,6 @@ func (m *LockRow) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type LockDatabase struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *LockDatabase) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
-}
-
-//nolint:lll
-func (m *LockDatabase) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: "sqlserver_lock_database",
-		Type: "logging",
-		Fields: map[string]interface{}{
-			"resource_database_id": newCountFieldInfo("ID of the database under which this resource is scoped"),
-		},
-		Tags: map[string]interface{}{
-			"spid":           inputs.NewTagInfo("Session ID that currently owns this request, maximum length is 4 "),
-			"object":         inputs.NewTagInfo("ID or name of the entity in a database with which a resource is associated"),
-			"db_name":        inputs.NewTagInfo("Name of the database under which this resource is scoped"),
-			"resource_type":  inputs.NewTagInfo("Represents the resource type"),
-			"request_type":   inputs.NewTagInfo("Request type"),
-			"request_mode":   inputs.NewTagInfo("Mode of the request"),
-			"request_status": inputs.NewTagInfo("Current status of this request"),
-		},
-	}
-}
-
 type LockTable struct {
 	name   string
 	tags   map[string]string

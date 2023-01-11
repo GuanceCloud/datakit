@@ -954,22 +954,6 @@ WITH CTE_SID ( BSID, SID, sql_handle )
             CROSS APPLY sys.dm_exec_sql_text(C.sql_handle) Q
     ORDER BY sid
 `
-	sqlServerLockDatabase = `
-  SELECT 'sqlserver_lock_database' as [measurement],
-		str(request_session_id, 4, 0) as spid,
-		resource_database_id,
-		convert(varchar(20), db_name(resource_database_id)) as db_name,
-		case when resource_database_id = db_id() and resource_type = 'OBJECT'
-		then convert(char(20), object_name(resource_associated_entity_id))
-		else convert(char(20), resource_associated_entity_id)
-		end as object,
-		convert(varchar(12), resource_type) as resource_type,
-		convert(varchar(12), request_type) as request_type,
-		convert(char(3), request_mode) as request_mode,
-		convert(varchar(8), request_status) as request_status
-	from sys.dm_tran_locks
-	order by request_session_id desc;
-`
 
 	sqlServerLockTable = `
   SELECT 'sqlserver_lock_table' as [measurement],
