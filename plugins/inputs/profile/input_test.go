@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMinHeap(t *testing.T) {
@@ -86,4 +88,69 @@ func TestMinHeap(t *testing.T) {
 	fmt.Println("top: ", heap.getTop())
 	fmt.Println("heap.Len: ", heap.Len())
 	fmt.Println(heap.indexes)
+}
+
+// go test -v -timeout 30s -run ^Test_addTags$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/profile
+func Test_addTags(t *testing.T) {
+	cases := []struct {
+		name         string
+		inOriginTags map[string]string
+		inNewKey     string
+		inNewVal     string
+		expect       map[string]string
+	}{
+		{
+			name:         "add",
+			inOriginTags: map[string]string{"a1": "a11", "b1": "b11"},
+			inNewKey:     "c1",
+			inNewVal:     "c11",
+			expect:       map[string]string{"a1": "a11", "b1": "b11", "c1": "c11"},
+		},
+		{
+			name:         "new",
+			inOriginTags: map[string]string{},
+			inNewKey:     "c1",
+			inNewVal:     "c11",
+			expect:       map[string]string{"c1": "c11"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			addTags(tc.inOriginTags, tc.inNewKey, tc.inNewVal)
+			assert.Equal(t, tc.expect, tc.inOriginTags)
+		})
+	}
+}
+
+// go test -v -timeout 30s -run ^Test_getPyroscopeTagFromLabels$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/profile
+func Test_getPyroscopeTagFromLabels(t *testing.T) {
+	cases := []struct {
+		name     string
+		inLabels map[string]string
+		expect   map[string]string
+	}{
+		{
+			name:     "empty",
+			inLabels: map[string]string{},
+			expect:   map[string]string{},
+		},
+		{
+			name:     "name",
+			inLabels: map[string]string{"__name__": "server", "a1": "a11", "a2": "a22"},
+			expect:   map[string]string{"a1": "a11", "a2": "a22"},
+		},
+		{
+			name:     "no_name",
+			inLabels: map[string]string{"a1": "a11", "a2": "a22"},
+			expect:   map[string]string{"a1": "a11", "a2": "a22"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := getPyroscopeTagFromLabels(tc.inLabels)
+			assert.Equal(t, tc.expect, out)
+		})
+	}
 }

@@ -12,7 +12,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
-func (c *Config) setupDataway() error {
+func (c *Config) SetupDataway() error {
 	if c.DataWayCfg == nil {
 		return fmt.Errorf("dataway config is empty")
 	}

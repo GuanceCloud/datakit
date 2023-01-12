@@ -363,7 +363,7 @@ func (c *Config) ApplyMainConfig() error {
 	}
 
 	if c.DataWayCfg != nil && len(c.DataWayCfg.URLs) > 0 {
-		if err := c.setupDataway(); err != nil {
+		if err := c.SetupDataway(); err != nil {
 			return err
 		}
 	}
