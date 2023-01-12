@@ -53,8 +53,10 @@ type GoProfiler struct {
 }
 
 type profileData struct {
-	fileName string
-	buf      *bytes.Buffer
+	fileName  string
+	buf       *bytes.Buffer
+	startTime time.Time
+	endTime   time.Time
 }
 
 type valueType struct {
@@ -181,33 +183,39 @@ func (g *GoProfiler) run(i *Input) error {
 }
 
 func (g *GoProfiler) pullProfile() {
-	profileDatas := []*profileData{}
-	startTime := time.Now()
+	deletaDatas := []*profileData{}
 	for _, k := range g.EnabledTypes {
 		if p, ok := profileConfigMap[k]; ok {
-			if profileData, err := g.pullProfileItem(k, p); err != nil {
+			if pData, err := g.pullProfileItem(k, p); err != nil {
 				log.Warnf("profile for %s error: %s", k, err.Error())
-			} else if profileData != nil {
-				profileDatas = append(profileDatas, profileData)
+			} else if pData != nil {
+				if p.deltaValues != nil {
+					deletaDatas = append(deletaDatas, pData)
+				} else if err := g.pushProfileData(pData.startTime, pData.endTime, []*profileData{pData}); err != nil {
+					log.Warnf("push profile data error: %s", err.Error())
+				}
 			}
 		} else {
 			log.Warnf("invalid profile type: %s", k)
 		}
 	}
-	endTime := time.Now()
 
-	if len(profileDatas) > 0 {
-		if err := g.pushProfileData(startTime, endTime, profileDatas); err != nil {
-			log.Warnf("push profile data error: %s", err.Error())
+	// push delta profiles together
+	if len(deletaDatas) > 0 {
+		pData := deletaDatas[0]
+		if err := g.pushProfileData(pData.startTime, pData.endTime, deletaDatas); err != nil {
+			log.Warnf("push delta profile data error: %s", err.Error())
 		}
 	}
 }
 
 func (g *GoProfiler) pullProfileItem(profileType string, item ProfileItem) (*profileData, error) {
+	startTime := time.Now()
 	buf, err := g.pullProfileData(item.path, item.params)
 	if err != nil {
 		return nil, fmt.Errorf("pull profile data error: %w", err)
 	}
+	endTime := time.Now()
 
 	if len(item.deltaValues) > 0 {
 		curProf, err := pprofile.ParseData(buf.Bytes())
@@ -236,14 +244,18 @@ func (g *GoProfiler) pullProfileItem(profileType string, item ProfileItem) (*pro
 		}
 
 		return &profileData{
-			fileName: item.fileName,
-			buf:      deltaBuf,
+			fileName:  item.fileName,
+			buf:       deltaBuf,
+			startTime: time.UnixMicro(prevProf.TimeNanos / 1000),
+			endTime:   time.UnixMicro(curProf.TimeNanos / 1000),
 		}, nil
 	}
 
 	return &profileData{
-		fileName: item.fileName,
-		buf:      buf,
+		fileName:  item.fileName,
+		buf:       buf,
+		startTime: startTime,
+		endTime:   endTime,
 	}, nil
 }
 
