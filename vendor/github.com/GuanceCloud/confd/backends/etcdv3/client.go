@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"sync"
+
 	"github.com/GuanceCloud/confd/log"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"sync"
 )
 
 // A watch only tells the latest revision

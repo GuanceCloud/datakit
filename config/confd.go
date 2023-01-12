@@ -11,8 +11,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -29,14 +27,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
+	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
 	PrefixConfd      = "/datakit/confd"    // confd source prefix
 	PrefixPipeline   = "/datakit/pipeline" // pipeline source prefix
-	ConnfdBackPath   = "remote.conf"       // backup confd data
+	ConfdBackPath    = "remote.conf"       // backup confd data
 	PipelineBackPath = "pipeline_confd"    // backup pipeline data
 	Lazy             = 2                   // Delay execution time (seconds)
 	Timeout          = 60                  // confd Execute in case of blocking, Timeout seconds
@@ -44,29 +42,36 @@ const (
 )
 
 type ConfdCfg struct {
-	Enable         bool     `toml:"enable"`          // 本后端源是否生效
-	AuthToken      string   `toml:"auth_token"`      // 备用
-	AuthType       string   `toml:"auth_type"`       // 备用
-	Backend        string   `toml:"backend"`         // Kind of backend，example：etcdv3 zookeeper redis consul file
-	BasicAuth      bool     `toml:"basic_auth"`      // basic auth, 适用etcdv3 consul
-	ClientCaKeys   string   `toml:"client_ca_keys"`  // client ca keys, 适用etcdv3 consul
-	ClientCert     string   `toml:"client_cert"`     // client cert, 适用etcdv3 consul
-	ClientKey      string   `toml:"client_key"`      // client key, 适用etcdv3 consul redis
-	ClientInsecure bool     `toml:"client_insecure"` // 备用
-	BackendNodes   []string `toml:"nodes"`           // backend servers, 适用：etcdv3 zookeeper redis consul
-	Password       string   `toml:"password"`        // 适用etcdv3 consul
-	Scheme         string   `toml:"scheme"`          // 适用etcdv3 consul
-	Table          string   `toml:"table"`           // 备用
+	Enable         bool     `toml:"enable"`          // is this backend enable
+	AuthToken      string   `toml:"auth_token"`      // space
+	AuthType       string   `toml:"auth_type"`       // space
+	Backend        string   `toml:"backend"`         // Kind of backend，example：etcdv3 zookeeper redis consul nacos file
+	BasicAuth      bool     `toml:"basic_auth"`      // basic auth, applicable: etcdv3 consul
+	ClientCaKeys   string   `toml:"client_ca_keys"`  // client ca keys, applicable: etcdv3 consul
+	ClientCert     string   `toml:"client_cert"`     // client cert, applicable: etcdv3 consul
+	ClientKey      string   `toml:"client_key"`      // client key, applicable: etcdv3 consul redis
+	ClientInsecure bool     `toml:"client_insecure"` // space
+	BackendNodes   []string `toml:"nodes"`           // backend servers, applicable: etcdv3 zookeeper redis consul nacos
+	Password       string   `toml:"password"`        // applicable: etcdv3 consul nacos
+	Scheme         string   `toml:"scheme"`          // applicable: etcdv3 consul
+	Table          string   `toml:"table"`           // space
 	Separator      string   `toml:"separator"`       // redis DB number, default 0
-	Username       string   `toml:"username"`        // 适用etcdv3 consul
-	AppID          string   `toml:"app_id"`          // 备用
-	UserID         string   `toml:"user_id"`         // 备用
-	RoleID         string   `toml:"role_id"`         // 备用
-	SecretID       string   `toml:"secret_id"`       // 备用
+	Username       string   `toml:"username"`        // applicable: etcdv3 consul nacos
+	AppID          string   `toml:"app_id"`          // space
+	UserID         string   `toml:"user_id"`         // space
+	RoleID         string   `toml:"role_id"`         // space
+	SecretID       string   `toml:"secret_id"`       // space
 	YAMLFile       []string `toml:"file"`            // backend files
-	Filter         string   `toml:"filter"`          // 备用
-	Path           string   `toml:"path"`            // 备用
-	Role           string   // 备用
+	Filter         string   `toml:"filter"`          // space
+	Path           string   `toml:"path"`            // space
+	Role           string   // space
+
+	AccessKey         string `toml:"access_key"`         // for nacos
+	SecretKey         string `toml:"secret_key"`         // for nacos
+	CircleInterval    int    `toml:"circle_interval"`    // cycle time interval in second
+	ConfdNamespace    string `toml:"confd_namespace"`    // nacos confd namespace id
+	PipelineNamespace string `toml:"pipeline_namespace"` // nacos pipeline namespace id
+	Region            string `toml:"region"`
 }
 
 // All confd backend list.
@@ -110,6 +115,12 @@ func StartConfd() error {
 }
 
 func confdMain() error {
+	// the start input perhaps not start, wait......
+	time.Sleep(12 * time.Second)
+
+	clientConfds = make([]clientStruct, 0)
+	clientPipelines = make([]clientStruct, 0)
+
 	if err := makeClients(); err != nil {
 		return err
 	}
@@ -216,7 +227,7 @@ func makeClients() error {
 		if !confd.Enable {
 			continue
 		}
-		// beckends config (etcdv3、redis、file、zookeeper、consul ...)
+		// backends config (etcdv3、redis、file、zookeeper、consul ...)
 		cfg := backends.Config{
 			AuthToken:      confd.AuthToken,
 			AuthType:       confd.AuthType,
@@ -240,16 +251,22 @@ func makeClients() error {
 			Filter:         confd.Filter,
 			Path:           confd.Path,
 			Role:           confd.Role,
+			AccessKey:      confd.AccessKey,
+			SecretKey:      confd.SecretKey,
+			CircleInterval: confd.CircleInterval,
+			Region:         confd.Region,
 		}
 
 		// initialize the backend handle According to the configuration
+		cfg.Namespace = confd.ConfdNamespace // for nacose confd‘s namespace
 		client, err := backends.New(cfg)
 		if err != nil {
 			l.Errorf("new confd backends client: %v", err)
-			continue
+		} else {
+			clientConfds = append(clientConfds, clientStruct{client, cfg})
 		}
-		clientConfds = append(clientConfds, clientStruct{client, cfg})
 
+		cfg.Namespace = confd.PipelineNamespace // for nacose pipeline‘s namespace
 		clientPipeline, err := backends.New(cfg)
 		if err != nil {
 			l.Errorf("new confd backends client: %v", err)
@@ -261,9 +278,8 @@ func makeClients() error {
 	}
 
 	if len(clientConfds) == 0 {
-		l.Errorf("used confd, but no beckends")
-		alarmLog("used confd, but no beckends")
-		return errors.New("used confd, but no beckends")
+		l.Errorf("used confd, but no backends")
+		return errors.New("used confd, but no backends")
 	}
 	return nil
 }
@@ -289,7 +305,6 @@ func watchConfdDo(c *clientStruct) {
 	for {
 		// Every time there is a watch hit, index returns the index number of the latest backend library operation
 		index, err := c.client.WatchPrefix(PrefixConfd, []string{PrefixConfd}, lastIndex, stopCh)
-
 		if c.cfg.Backend == "consul" && lastIndex == index {
 			// consul exit monitoring every 300 seconds,but index is same
 			continue
@@ -320,7 +335,7 @@ func watchPipeline() {
 				watchPipelineDo(c)
 				return nil
 			})
-		}(&clientConfds[i])
+		}(&clientPipelines[i])
 	}
 }
 
@@ -334,7 +349,6 @@ func watchPipelineDo(c *clientStruct) {
 			// consul exit monitoring every 300 seconds,but index is same
 			continue
 		}
-
 		l.Info("pipeline WatchPrefix", index, c.cfg.Backend)
 		if err != nil {
 			time.Sleep(time.Second * 2)
@@ -362,7 +376,6 @@ func doWithContext(ctx context.Context, fn func() (interface{}, error)) (interfa
 		select {
 		case <-ctx.Done():
 			l.Errorf("confdDo or pipelineDo timeout failed")
-			alarmLog("confdDo or pipelineDo timeout failed")
 			return nil, errors.New("timeout error")
 		case res := <-resCh:
 			return res, nil
@@ -488,168 +501,85 @@ func confdDo() (err error) {
 
 // real data processing operations.
 func pipelineDo() (err error) {
-	scripts := map[string](map[string]string){}
-	scriptsPath := map[string](map[string]string){}
-
-	// 可用的分类名称
 	dirCategory := map[string]string{}
-	for category, dirName := range datakit.CategoryDirName() {
-		dirCategory[dirName] = category
 
-		// 一级框架
-		if _, ok := scripts[category]; !ok {
-			scripts[category] = map[string]string{}
-		}
-		if _, ok := scriptsPath[category]; !ok {
-			scriptsPath[category] = map[string]string{}
-		}
+	// flip k/v
+	// dir      mean "logging"
+	// Category mean "/v1/write/logging"
+	// datakit.CategoryPureMap example: map["/v1/write/logging"]"logging"
+	// want dirCategory example: map["logging"]"/v1/write/logging"
+	for category, dirName := range datakit.CategoryPureMap {
+		dirCategory[dirName] = category
 	}
 
-	// befor save pipeline on disk
+	// before save pipeline on disk
 	pipelineBakPath := filepath.Join(datakit.InstallDir, PipelineBackPath)
 
-	// besure pipeline_confd 子目录 存在
-	err = besureDirPath(pipelineBakPath)
+	// build pipeline top folder. If exists, remove and rebuild.
+	err = datakit.RebuildFolder(pipelineBakPath, datakit.ConfPerm)
 	if err != nil {
 		l.Errorf("%v", err)
-		// 存盘错误，不干了
 		return err
 	}
 
-	// 循环二级子目录
+	// walk and build pipeline sub folder
 	for dirName := range dirCategory {
 		fullDirName := filepath.Join(pipelineBakPath, dirName)
-		// 确保二级目录存在
-		err = besureDirPath(fullDirName)
+		err = datakit.RebuildFolder(fullDirName, datakit.ConfPerm)
 		if err != nil {
 			l.Errorf("%v", err)
-			// 存盘错误，不干了
 			return err
 		}
-
-		// 确保二级子目录，下面全空
-		dir, err := ioutil.ReadDir(fullDirName)
-		if err != nil {
-			l.Errorf("%v", err)
-			// 存盘错误，不干了
-			return err
-		}
-		for _, d := range dir {
-			_ = os.RemoveAll(filepath.Join(fullDirName, d.Name()))
-		}
 	}
 
-	// 确保二级没有多余的文件or子目录
-	dir, err := ioutil.ReadDir(pipelineBakPath)
-	if err != nil {
-		l.Errorf("%v", err)
-		// 存盘错误，不干了
-		return err
-	}
-	for _, d := range dir {
-		if _, ok := dirCategory[d.Name()]; !ok {
-			_ = os.RemoveAll(filepath.Join(pipelineBakPath, d.Name()))
-		}
-	}
-
-	// 遍历后端种类
+	// walk confd backends
 	for _, clientStru := range clientPipelines {
 		if clientStru.cfg.Backend == "file" {
 			continue
 		}
-		// backends, currently etcdv3+redis+zookeeper+consul
+		// backends, example etcdv3+redis+zookeeper+consul
 		values, err := clientStru.client.GetValues([]string{PrefixPipeline})
 		if err != nil {
 			l.Errorf("get values from pipeline:%v %v", clientStru.cfg.Backend, err)
 		}
 
-		if err != nil {
-			l.Errorf("get values from pipeline: %v", err)
-		}
-
+		// walk data from one confd backend
 		for keyStr, value := range values {
 			if value == "" {
 				continue
 			}
 
+			// keys example: /datakit/pipeline/{path}/{file}.p
 			keys := strings.Split(keyStr, "/")
 			if len(keys) != 5 {
 				l.Errorf("get pipeline key err,want: like /datakit/pipeline/{path}/{file}.p,  got:%v", keyStr)
 				continue
 			}
 
-			if category, ok := dirCategory[keys[3]]; !ok {
-				l.Errorf("confd find %s pipeline data from %s is wrong", keys[4], clientStru.cfg.Backend)
+			// Compare the key word {path}
+			if _, ok := dirCategory[keys[3]]; !ok {
+				l.Errorf("confd find {path} %s pipeline data from %s is wrong", keys[4], clientStru.cfg.Backend)
 				continue
 			} else {
-				scripts[category][keys[4]] = value
-
-				// todo 落盘(有就覆盖)
+				// save pipeline script on disk
 				fullDirName := filepath.Join(pipelineBakPath, keys[3])
 				fullFileName := filepath.Join(fullDirName, keys[4])
-				// Create a file
-				// #nosec
-				f, err := os.Create(fullFileName)
-				if err != nil {
-					l.Errorf("os.Create(%v): %v", fullFileName, err)
-					_ = f.Close()
+				if err = datakit.SaveStringToFile(fullFileName, value); err != nil {
 					return err
 				}
-
-				n, err := io.WriteString(f, value)
-				if err != nil {
-					l.Errorf("os.WriteString(%v): %v", fullFileName, err)
-					_ = f.Close()
-					return err
-				}
-				l.Info("os.WriteString(%v) success: %d bytes", fullFileName, n)
-				_ = f.Close()
 			}
 		}
 	}
 
-	// 上传/更新 pipeline 脚本
-	script.LoadAllScript(NameSpace, scripts, scriptsPath)
+	// update pipeline script
+	l.Info("before set pipelines from confd")
+	plscript.LoadAllScripts2StoreFromPlStructPath(plscript.ConfdScriptNS, pipelineBakPath)
+
 	return nil
 }
 
-// 通过日志通道报警.
-func alarmLog(note string) {
-	// 暂停使用
-
-	// // the log data for ProcessInfos
-	// pts := []*point.Point{}
-
-	// // 发 warning
-	// tagsLog := map[string]string{}
-	// fieldsLog := map[string]interface{}{}
-
-	// tagsLog["service"] = "confd"
-
-	// fieldsLog["confd_alarm"] = 2
-	// fieldsLog["message"] = note
-	// fieldsLog["status"] = "warning"
-
-	// pt, err := point.NewPoint(
-	// 	"confd",
-	// 	tagsLog,
-	// 	fieldsLog,
-	// 	point.LOpt(),
-	// )
-	// if err != nil {
-	// 	l.Errorf("make alarmLog message for confd: %s .", err)
-	// } else {
-	// 	pts = append(pts, pt)
-	// }
-
-	// err = datakitio.Feed("confd", datakit.Logging, pts, nil)
-	// if err != nil {
-	// 	l.Errorf("Feed confd alarm log failed: %s", err)
-	// }
-}
-
 func backupConfdData() error {
-	confdBakPath := filepath.Join(datakit.DataDir, ConnfdBackPath)
+	confdBakPath := filepath.Join(datakit.DataDir, ConfdBackPath)
 
 	arr := []string{}
 	bufStr := "# ######### This file is the bak from confd. #########\n"
@@ -683,43 +613,4 @@ func buildStringOfInput(k string, i *inputs.ConfdInfo) (str string) {
 	str += buf.String()
 
 	return
-}
-
-// 确保 子目录 存在.
-func besureDirPath(path string) error {
-	isExists, isDir, err := pathExists(path)
-	if err != nil {
-		// 存盘错误，退回
-		return err
-	}
-
-	if isExists && !isDir {
-		// 存在，但是不是子目录
-		err = os.RemoveAll(path)
-		if err != nil {
-			return fmt.Errorf("remove %v: %w", path, err)
-		}
-		isExists = false
-	}
-
-	if !isExists {
-		// 不存在，就建立子目录
-		if err := os.MkdirAll(path, datakit.ConfPerm); err != nil {
-			return fmt.Errorf("create %s failed: %w", path, err)
-		}
-	}
-	return nil
-}
-
-// 判断所给路径文件/文件夹是否存在.
-func pathExists(path string) (isExists, isDir bool, err error) {
-	s, err := os.Stat(path)
-	if err == nil {
-		return true, s.IsDir(), nil
-	}
-
-	if os.IsNotExist(err) {
-		return false, false, nil
-	}
-	return false, false, fmt.Errorf("cheack %v: %w", path, err)
 }

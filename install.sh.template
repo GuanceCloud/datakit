@@ -299,6 +299,12 @@ confd_secret_id=""
 confd_filter=""
 confd_path=""
 confd_role=""
+confd_access_key=""
+confd_secret_key=""
+confd_circle_interval=""
+confd_confd_namespace=""
+confd_pipeline_namespace=""
+confd_region=""
 if [ -n "$DK_CONFD_BACKEND" ]; then
 	confd_backend=$DK_CONFD_BACKEND
 fi
@@ -361,6 +367,24 @@ if [ -n "$DK_CONFD_PATH" ]; then
 fi
 if [ -n "$DK_CONFD_ROLE" ]; then
     confd_role=$DK_CONFD_ROLE
+fi
+if [ -n "$DK_CONFD_ACCESS_KEY" ]; then    
+    confd_role=$DK_CONFD_ACCESS_KEY        
+fi
+if [ -n "$DK_CONFD_SECRET_KEY" ]; then    
+    confd_role=$DK_CONFD_SECRET_KEY        
+fi
+if [ -n "$DK_CONFD_CIRCLE_INTERVAL" ]; then    
+    confd_role=$DK_CONFD_CIRCLE_INTERVAL    
+fi
+if [ -n "$DK_CONFD_CONFD_NAMESPACE" ]; then    
+    confd_role=$DK_CONFD_CONFD_NAMESPACE   
+fi
+if [ -n "$DK_CONFD_PIPELINE_NAMESPACE" ]; then    
+    confd_role=$DK_CONFD_PIPELINE_NAMESPACE
+fi
+if [ -n "$DK_CONFD_REGION" ]; then    
+    confd_role=$DK_CONFD_REGION
 fi
 
 git_url=""
@@ -555,6 +579,12 @@ else
         --confd-scheme="${confd_scheme}" \
         --confd-separator="${confd_separator}" \
         --confd-username="${confd_username}" \
+        --confd-access-key="${confd_access_key}" \
+        --confd-secret-key="${confd_secret_key}" \
+        --confd-circle-interval="${confd_circle_interval}" \
+        --confd-confd-namespace="${confd_confd_namespace}" \
+        --confd-pipeline-namespace="${confd_pipeline_namespace}" \
+        --confd-region="${confd_region}" \
 		--git-url="${git_url}" \
 		--git-key-path="${git_key_path}" \
 		--git-key-pw="${git_key_pw}" \
