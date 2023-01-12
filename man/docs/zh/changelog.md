@@ -28,10 +28,13 @@
 
 - confd 增加 Nacos 后端(#1315)
 - 日志采集器添加 LocalCache 特性(#1326)
+- 支持 C/C++ Profiling 数据(#1320)
+<!-- - RUM Session Replay 文件上报(#1283) -->
+<!-- - WEB DCA 支持远程更新 config(#1284) -->
 
 ### 问题修复 {#cl-1.5.4-fix}
 
-- 修复 K8S 采集资源失败(#1362)
+- 修复 K8S 采集失败数据丢失(#1362/#)
 - 修复 K8S Host 字段错误(#1351)
 - 修复 K8S Metrics Server 超时(#1353)
 - 修复 Containerd 环境下 annotation 配置问题(#1352)
@@ -39,6 +42,7 @@
 - 修复 Golang Profiler 函数执行时间计算错误(#1335)
 - 修复 Datakit Monitor 字符集问题(#1321)
 - 修复 async-profiler 服务现实问题(#1290)
+- 修复 Redis 采集器 slowlog 问题(#1360)
 
 ### 功能优化 {#cl-1.5.4-opt}
 
