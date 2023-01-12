@@ -16,6 +16,17 @@
 - log pattern 自定义
 - hsf 支持
 - 阿里云 RocketMQ 5.0 支持
+- redis 链路增加参数
+
+## ddtrace agent 默认远端端口 {#agent_port}
+ddtrace 二次开发将默认的远端端口 8126 修改为 9529。
+
+## redis 链路中查看参数 {#redis-command-args}
+redis 的链路中的 Resource 只会显示 redis.command 信息， 并不会显示参数（args）信息。 
+
+开启此功能：启动命令添加环境变量 `-Ddd.redis.command.args`， 在观测云链路的详情中会增加一个 tag：`redis.command.args=key val`。 
+
+支持版本：jedis1.4.0及以上版本。
 
 ## log pattern 支持自定义 {#log-pattern}
 通过修改默认的 log pattern 来实现应用日志和链路互相关联，从而降低部署成本。目前已支持`log4j2`日志框架，对于`logback` 暂不支持。
@@ -104,7 +115,10 @@ dubbo 是阿里云的一个开源框架，目前已经支持 dubbo2 以及 dubbo
 
 RocketMQ 是阿里云贡献 Apache 基金会的开源消息队列框架。注意：阿里云 RocketMQ 5.0 与 Apache基金会的是两个不同的库。
 
-版本支持： 目前支持 4.8.0 及以上版本。
+引用库时有区别，apache rocketmq artifactId: `rocketmq-client`, 而阿里云 rocketmq 5.0 的 artifactId ：`rocketmq-client-java`
+
+
+版本支持： 目前支持 4.8.0 及以上版本。 阿里云 Rocketmq 服务支持 5.0 以上。
 
 ## Thrift 支持 {#thrift}
 
