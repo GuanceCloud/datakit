@@ -256,8 +256,10 @@ func (m *monitorAPP) renderEnabledInputTable(ds *dkhttp.DatakitStats, colArr []s
 	// sort inputs(by name)
 	for _, k := range names {
 		ei := ds.EnabledInputs[k]
-		table.SetCell(row, 0, tview.NewTableCell(ei.Input).
+		clicked := m.inputClicked(k)
+		table.SetCell(row, 0, tview.NewTableCell(ei.Input).SetClickedFunc(clicked).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+
 		table.SetCell(row, 1, tview.NewTableCell(fmt.Sprintf("%d", ei.Instances)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 2, tview.NewTableCell(fmt.Sprintf("%d", ei.Panics)).
@@ -780,19 +782,23 @@ type monitorAPP struct {
 	filterStatsTable      *tview.Table
 	filterRulesStatsTable *tview.Table
 
-	exitPrompt     *tview.TextView
-	anyErrorPrompt *tview.TextView
-	lastErrText    *tview.TextView
+	exitPrompt      *tview.TextView
+	anyErrorPrompt  *tview.TextView
+	lastErrText     *tview.TextView
+	inputConfigText *tview.TextView
 
 	flex *tview.Flex
 
 	ds *dkhttp.DatakitStats
+
+	inputsStats map[string]string
 
 	anyError error
 
 	refresh time.Duration
 	start   time.Time
 	url     string
+	isURL   string
 }
 
 func (m *monitorAPP) setupLastErr(lastErr string) {
@@ -914,6 +920,11 @@ func (m *monitorAPP) setup() {
 				m.anyError = fmt.Errorf("request stats failed: %w", err)
 			}
 
+			m.inputsStats, err = requestInputInfo(m.isURL)
+			if err != nil {
+				m.anyError = fmt.Errorf("request input stats failed: %w", err)
+			}
+
 			m.render()
 			m.app = m.app.Draw() // NOTE: cause DATA RACE
 
@@ -997,6 +1008,7 @@ func runMonitorFlags() error {
 		app:     tview.NewApplication(),
 		refresh: *flagMonitorRefreshInterval,
 		url:     fmt.Sprintf("http://%s/stats", to),
+		isURL:   fmt.Sprintf("http://%s/stats/input", to),
 		start:   time.Now(),
 	}
 
@@ -1030,6 +1042,43 @@ func requestStats(url string) (*dkhttp.DatakitStats, error) {
 	}
 
 	return &ds, nil
+}
+
+func requestInputInfo(url string) (map[string]string, error) {
+	resp, err := http.Get(url) //nolint:gosec
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close() //nolint:errcheck
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s", string(body))
+	}
+
+	var info map[string]interface{}
+
+	if err = json.Unmarshal(body, &info); err != nil {
+		return nil, err
+	}
+
+	inputs := make(map[string]string, 1)
+	for name, val := range info {
+		bb, err := json.MarshalIndent(val, "", "\t")
+		if err != nil {
+			fmt.Println(err.Error())
+			inputs[name] = err.Error()
+			continue
+		}
+		inputs[name] = string(bb)
+	}
+
+	return inputs, nil
 }
 
 // cmdMonitor deprecated.
@@ -1089,5 +1138,44 @@ func doCMDMonitor(url string, verbose bool) ([]byte, error) {
 			result := markdown.Render(string(mdtxt), width, leftPad)
 			return result, nil
 		}
+	}
+}
+
+func (m *monitorAPP) renderInputConfigView(text string) {
+	if m.inputConfigText != nil {
+		m.inputConfigText.Clear()
+		m.flex.RemoveItem(m.inputConfigText)
+	}
+
+	m.inputConfigText = tview.NewTextView().SetWordWrap(true).SetDynamicColors(true)
+
+	m.inputConfigText.SetBorder(true)
+	fmt.Fprintf(m.inputConfigText, "[green]ESC/Enter to close the message\n [white]%s\n", text)
+
+	m.flex.AddItem(m.inputConfigText, 0, 30, false)
+
+	m.inputConfigText.SetDoneFunc(func(key tcell.Key) {
+		if key == tcell.KeyESC || key == tcell.KeyEnter {
+			m.inputConfigText.Clear()
+			m.flex.RemoveItem(m.inputConfigText)
+		}
+	})
+}
+
+func (m *monitorAPP) inputClicked(input string) func() bool {
+	if m.anyError != nil { // some error occurred, we just gone
+		return func() bool {
+			return true
+		}
+	}
+
+	return func() bool {
+		conf := "没有此采集器的配置"
+		if m.inputsStats != nil && len(m.inputsStats[input]) > 0 {
+			conf = m.inputsStats[input]
+		}
+		m.renderInputConfigView(conf)
+
+		return true
 	}
 }

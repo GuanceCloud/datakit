@@ -540,6 +540,7 @@ func showRow(r *models.Row) {
 }
 
 // Not used
+//
 //nolint:deadcode,unused
 func tableShow(resp *queryResult) int {
 	nrows := 0
