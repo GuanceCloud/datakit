@@ -82,6 +82,7 @@ type Option struct {
 	IgnoreTagKV IgnoreTagKeyValMatch
 
 	Election bool
+	pointOpt *point.PointOption
 
 	TLSOpen bool   `toml:"tls_open"`
 	UDSPath string `toml:"uds_path"`
@@ -192,6 +193,12 @@ func NewProm(opt *Option) (*Prom, error) {
 			TLSClientConfig: tlsconfig,
 			DialContext:     dialContext,
 		}
+	}
+
+	if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+		p.opt.pointOpt = point.LOptElectionV2(p.opt.Election)
+	} else {
+		p.opt.pointOpt = point.MOptElectionV2(p.opt.Election)
 	}
 
 	return &p, nil
