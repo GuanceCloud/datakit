@@ -26,9 +26,9 @@
 
 ### 新加功能 {#cl-1.5.4-new}
 
-- confd 增加 Nacos 后端(#1315)
+- [confd 增加 Nacos 后端](confd.md)(#1315#1327)
 - 日志采集器添加 LocalCache 特性(#1326)
-- 支持 C/C++ Profiling 数据(#1320)
+- 支持 [C/C++ Profiling](profiling-cpp.md) 数据(#1320)
 <!-- - RUM Session Replay 文件上报(#1283) -->
 <!-- - WEB DCA 支持远程更新 config(#1284) -->
 
@@ -42,7 +42,7 @@
 - 修复 Golang Profiler 函数执行时间计算错误(#1335)
 - 修复 Datakit Monitor 字符集问题(#1321)
 - 修复 async-profiler 服务现实问题(#1290)
-- 修复 Redis 采集器 slowlog 问题(#1360)
+<!-- - 修复 Redis 采集器 slowlog 问题(#1360) -->
 
 ### 功能优化 {#cl-1.5.4-opt}
 
