@@ -132,6 +132,12 @@ Done
   以下操作默认地址为 `http://localhost:9529`。如果不是，需要修改为实际的 DataKit 服务地址。
 
 - [开启 Profile 采集器](profile.md) 
+- java 应用注入服务名称 (`service`)（可选）
+
+  默认会自动获取程序名称作为 `servie` 上报观测云，如果需要自定义，可以程序启动时注入 service 名称:
+
+  ```shell
+  java -Ddk.service=<service-name> ... -jar <your-jar>
 
 **整合步骤**
 
@@ -236,7 +242,19 @@ profile_collect() {
 	jfr_file=$runtime_dir/profiler_$uuid.jfr
 	event_json_file=$runtime_dir/event_$uuid.json
   
-  process_name=$(jps | grep $process_id | awk '{print $2}')
+  arr=($(jps -v | grep "^$process_id"))
+
+  process_name="default"
+
+  for (( i = 0; i < ${#arr[@]}; i++ ))
+  do
+    value=${arr[$i]}
+    if [ $i == 1 ]; then
+      process_name=$value
+    elif [[ $value =~ "-Ddk.service=" ]]; then
+      service_name=${value/-Ddk.service=/} 
+    fi
+  done
   
 	start_time=$(date +%FT%T.%N%:z)
 	./profiler.sh -d $profiling_duration --fdtransfer -e $profiling_event -o jfr -f $jfr_file $process_id 
