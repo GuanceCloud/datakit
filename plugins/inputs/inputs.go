@@ -169,6 +169,21 @@ func (ii *inputInfo) Run() {
 	}
 }
 
+func GetInput() map[string][]Input {
+	inputs := make(map[string][]Input)
+
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	for name, info := range InputsInfo {
+		for _, ii := range info {
+			inputs[name] = append(inputs[name], ii.input)
+		}
+	}
+
+	return inputs
+}
+
 // AddConfigInfoPath add or update input info.
 //  if fp is empty, add new config when inputName not exist, or set ConfigPaths empty when not exist.
 func AddConfigInfoPath(inputName string, fp string, loaded int8) {
