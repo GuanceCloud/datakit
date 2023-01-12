@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package logger
 
 import (
@@ -8,17 +13,17 @@ import (
 )
 
 const (
-	// 禁用 JSON 形式输出
+	// 禁用 JSON 形式输出.
 	OPT_ENC_CONSOLE = 1 //nolint:golint,stylecheck
-	// 显示代码路径时，不显示全路径
+	// 显示代码路径时，不显示全路径.
 	OPT_SHORT_CALLER = 2 //nolint:stylecheck,golint
-	// 日志写到 stdout
+	// 日志写到 stdout.
 	OPT_STDOUT = 4 //nolint:stylecheck,golint
-	// 日志内容中追加颜色
+	// 日志内容中追加颜色.
 	OPT_COLOR = 8 //nolint:stylecheck,golint
-	// 日志自动切割
+	// 日志自动切割.
 	OPT_ROTATE = 32 //nolint:stylecheck,golint
-	// 默认日志 flags
+	// 默认日志 flags.
 	OPT_DEFAULT = OPT_ENC_CONSOLE | OPT_SHORT_CALLER | OPT_ROTATE //nolint:stylecheck,golint
 
 	DEBUG  = "debug"
@@ -66,7 +71,9 @@ func Reset() {
 
 func Close() {
 	if root != nil {
-		root.Sync() //nolint:errcheck
+		if err := root.Sync(); err != nil {
+			_ = err // pass
+		}
 	}
 }
 

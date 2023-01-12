@@ -30,19 +30,13 @@ type pod struct {
 	extraTags             map[string]string
 	items                 []v1.Pod
 	extractK8sLabelAsTags bool
-	host                  string
 }
 
-func newPod(client k8sClientX, extraTags map[string]string, host string) *pod {
+func newPod(client k8sClientX, extraTags map[string]string) *pod {
 	return &pod{
 		client:    client,
 		extraTags: extraTags,
-		host:      host,
 	}
-}
-
-func (p *pod) getHost() string {
-	return p.host
 }
 
 func (p *pod) name() string {
@@ -91,9 +85,6 @@ func (p *pod) metric(election bool) (inputsMeas, error) {
 			},
 			election: election,
 		}
-		if p.host != "" {
-			met.tags["host"] = p.host
-		}
 
 		// extract pod lables to tags, not overwrite the existed tags
 		if p.extractK8sLabelAsTags {
@@ -115,7 +106,7 @@ func (p *pod) metric(election bool) (inputsMeas, error) {
 		if cli, ok := p.client.(*k8sClient); ok && cli.metricsClient != nil {
 			podMet, err := gatherPodMetrics(cli.metricsClient, item.Namespace, item.Name)
 			if err != nil {
-				l.Debugf("unable get pod metric %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
+				l.Debugf("unable get pod-metric %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
 			} else if podMet != nil {
 				met.fields["cpu_usage"] = podMet.cpuUsage
 				met.fields["memory_usage_bytes"] = podMet.memoryUsageBytes
@@ -132,9 +123,6 @@ func (p *pod) metric(election bool) (inputsMeas, error) {
 			tags:     map[string]string{"namespace": ns},
 			fields:   map[string]interface{}{"count": c},
 			election: election,
-		}
-		if p.host != "" {
-			met.tags["host"] = p.host
 		}
 		met.tags.append(p.extraTags)
 		res = append(res, met)
@@ -186,9 +174,6 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 				"create_time": item.CreationTimestamp.Time.UnixNano() / int64(time.Millisecond),
 			},
 			election: election,
-		}
-		if p.host != "" {
-			obj.tags["host"] = p.host
 		}
 
 		if y, err := yaml.Marshal(item); err != nil {
@@ -377,11 +362,11 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
-		return newPod(c, m, host)
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface {
+		return newPod(c, m)
 	})
-	registerK8sResourceObject(func(c k8sClientX, m map[string]string, host string) k8sResourceObjectInterface {
-		return newPod(c, m, host)
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface {
+		return newPod(c, m)
 	})
 	registerMeasurement(&podMetric{})
 	registerMeasurement(&podObject{})

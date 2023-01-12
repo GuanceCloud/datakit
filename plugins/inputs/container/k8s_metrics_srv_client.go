@@ -8,6 +8,7 @@ package container
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"k8s.io/client-go/rest"
 	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
@@ -46,7 +47,9 @@ func (c *k8sMetricsClient) getNodeMetrics() metricsv1beta1.NodeMetricsInterface 
 }
 
 func gatherPodMetrics(client k8sMetricsClientX, namespace, name string) (*podSrvMetric, error) {
-	met, err := client.getPodMetricsForNamespace(namespace).Get(context.Background(), name, metaV1GetOption)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
+	defer cancel()
+	met, err := client.getPodMetricsForNamespace(namespace).Get(ctx, name, metaV1GetOption)
 	if err != nil {
 		return nil, err
 	}

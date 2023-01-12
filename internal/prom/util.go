@@ -35,6 +35,9 @@ func (p *Prom) getMetricTypeName(familyType dto.MetricType) string {
 		metricTypeName = "summary"
 	case dto.MetricType_UNTYPED:
 		metricTypeName = "untyped"
+	case dto.MetricType_GAUGE_HISTOGRAM:
+		// TODO
+		// passed lint
 	}
 	return metricTypeName
 }
@@ -474,6 +477,9 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 					}
 				}
 			}
+		case dto.MetricType_GAUGE_HISTOGRAM:
+			// TODO
+			// passed lint
 		}
 	}
 	if lastErr != nil {

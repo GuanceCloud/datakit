@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package dialtesting
 
 // HTTP dialer testing
@@ -92,8 +97,8 @@ func (t *HTTPTask) SetOwnerExternalID(exid string) {
 	t.OwnerExternalID = exid
 }
 
-func (t *HTTPTask) SetRegionId(regionId string) {
-	t.Region = regionId
+func (t *HTTPTask) SetRegionID(regionID string) {
+	t.Region = regionID
 }
 
 func (t *HTTPTask) SetAk(ak string) {
@@ -228,7 +233,7 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 		fields[`message`] = string(data)
 	}
 
-	return
+	return tags, fields
 }
 
 func (t *HTTPTask) RegionName() string {
@@ -429,7 +434,7 @@ func (t *HTTPTask) CheckResult() (reasons []string, succFlag bool) {
 		}
 	}
 
-	return
+	return reasons, succFlag
 }
 
 func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
@@ -505,7 +510,7 @@ func (t *HTTPTask) init(debug bool) error {
 		t.Option = map[string]string{}
 	}
 
-	if strings.ToLower(t.CurStatus) == StatusStop {
+	if strings.EqualFold(t.CurStatus, StatusStop) {
 		return nil
 	}
 
@@ -539,7 +544,7 @@ func (t *HTTPTask) init(debug bool) error {
 		if opt.Certificate.IgnoreServerCertificateError {
 			t.cli.Transport = &http.Transport{
 				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: opt.Certificate.IgnoreServerCertificateError,
+					InsecureSkipVerify: opt.Certificate.IgnoreServerCertificateError, //nolint:gosec
 				},
 			}
 		} else {
@@ -552,7 +557,7 @@ func (t *HTTPTask) init(debug bool) error {
 			}
 
 			t.cli.Transport = &http.Transport{
-				TLSClientConfig: &tls.Config{
+				TLSClientConfig: &tls.Config{ //nolint:gosec
 					RootCAs:      caCertPool,
 					Certificates: []tls.Certificate{cert},
 				},
@@ -594,7 +599,6 @@ func (t *HTTPTask) init(debug bool) error {
 				if err != nil {
 					return err
 				}
-
 			}
 		}
 
@@ -613,7 +617,6 @@ func (t *HTTPTask) init(debug bool) error {
 				return err
 			}
 		}
-
 	}
 
 	// TODO: more checking on task validity

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package diskcache
 
 import (
@@ -8,13 +13,11 @@ import (
 
 // open next read file.
 func (c *DiskCache) switchNextFile() error {
-
 	c.rwlock.Lock()
 	defer c.rwlock.Unlock()
 
 	if len(c.dataFiles) == 0 {
 		return nil
-		//c.curReadfile = c.curWriteFile
 	} else {
 		c.curReadfile = c.dataFiles[0]
 	}

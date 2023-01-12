@@ -22,7 +22,6 @@ const (
 	scanNewFileInterval = time.Second * 10
 
 	defaultSource    = "default"
-	maxFieldsLength  = 32 * 1024 * 1024
 	minflushInterval = time.Second * 5
 )
 
@@ -84,6 +83,9 @@ type Option struct {
 
 	// 是否开启阻塞发送模式
 	BlockingMode bool
+
+	// 是否使用磁盘缓存
+	EnableDiskCache bool
 
 	MinFlushInterval         time.Duration
 	MaxMultilineLifeDuration time.Duration

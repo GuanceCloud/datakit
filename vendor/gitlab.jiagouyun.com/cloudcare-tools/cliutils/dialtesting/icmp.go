@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package dialtesting
 
 import (
@@ -12,7 +17,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
-const PING_TIMEOUT = 3 * time.Second
+const (
+	PingTimeout = 3 * time.Second
+)
 
 type ICMP struct {
 	Type        uint8
@@ -30,20 +37,20 @@ type ResponseTimeSucess struct {
 	target float64
 }
 
-type IcmpSuccess struct {
+type ICMPSuccess struct {
 	PacketLossPercent []*ValueSuccess       `json:"packet_loss_percent,omitempty"`
 	ResponseTime      []*ResponseTimeSucess `json:"response_time,omitempty"`
 	Hops              []*ValueSuccess       `json:"hops,omitempty"`
 	Packets           []*ValueSuccess       `json:"packets,omitempty"`
 }
 
-type IcmpTask struct {
+type ICMPTask struct {
 	Host             string            `json:"host"`
 	PacketCount      int               `json:"packet_count"`
 	Timeout          string            `json:"timeout"`
 	EnableTraceroute bool              `json:"enable_traceroute"`
 	TracerouteConfig *TracerouteOption `json:"traceroute_config"`
-	SuccessWhen      []*IcmpSuccess    `json:"success_when"`
+	SuccessWhen      []*ICMPSuccess    `json:"success_when"`
 	SuccessWhenLogic string            `json:"success_when_logic"`
 	ExternalID       string            `json:"external_id"`
 	Name             string            `json:"name"`
@@ -71,17 +78,17 @@ type IcmpTask struct {
 	traceroute        []*Route
 }
 
-func (t *IcmpTask) InitDebug() error {
+func (t *ICMPTask) InitDebug() error {
 	return t.init(true)
 }
 
-func (t *IcmpTask) Init() error {
+func (t *ICMPTask) Init() error {
 	return t.init(false)
 }
 
-func (t *IcmpTask) init(debug bool) error {
+func (t *ICMPTask) init(debug bool) error {
 	if len(t.Timeout) == 0 {
-		t.timeout = PING_TIMEOUT
+		t.timeout = PingTimeout
 	} else {
 		if timeout, err := time.ParseDuration(t.Timeout); err != nil {
 			return err
@@ -101,7 +108,7 @@ func (t *IcmpTask) init(debug bool) error {
 		t.ticker = time.NewTicker(du)
 	}
 
-	if strings.ToLower(t.CurStatus) == StatusStop {
+	if strings.EqualFold(t.CurStatus, StatusStop) {
 		return nil
 	}
 
@@ -128,7 +135,6 @@ func (t *IcmpTask) init(debug bool) error {
 		if checker.Hops != nil {
 			t.EnableTraceroute = true
 		}
-
 	}
 
 	t.originBytes = make([]byte, 2000)
@@ -136,7 +142,7 @@ func (t *IcmpTask) init(debug bool) error {
 	return nil
 }
 
-func (t *IcmpTask) Check() error {
+func (t *ICMPTask) Check() error {
 	if t.ExternalID == "" {
 		return fmt.Errorf("external ID missing")
 	}
@@ -148,7 +154,7 @@ func (t *IcmpTask) Check() error {
 	return t.Init()
 }
 
-func (t *IcmpTask) CheckResult() (reasons []string, succFlag bool) {
+func (t *ICMPTask) CheckResult() (reasons []string, succFlag bool) {
 	for _, chk := range t.SuccessWhen {
 		// check response time
 		for _, v := range chk.ResponseTime {
@@ -211,13 +217,12 @@ func (t *IcmpTask) CheckResult() (reasons []string, succFlag bool) {
 				}
 			}
 		}
-
 	}
 
-	return
+	return reasons, succFlag
 }
 
-func (t *IcmpTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
+func (t *ICMPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
 		"name":      t.Name,
 		"dest_host": t.Host,
@@ -301,16 +306,16 @@ func (t *IcmpTask) GetResults() (tags map[string]string, fields map[string]inter
 		fields[`message`] = string(data)
 	}
 
-	return
+	return tags, fields
 }
 
-func (t *IcmpTask) MetricName() string {
+func (t *ICMPTask) MetricName() string {
 	return `icmp_dial_testing`
 }
 
-func (t *IcmpTask) Clear() {
+func (t *ICMPTask) Clear() {
 	if t.timeout == 0 {
-		t.timeout = PING_TIMEOUT
+		t.timeout = PingTimeout
 	}
 
 	t.avgRoundTripTime = 0
@@ -326,11 +331,10 @@ func (t *IcmpTask) Clear() {
 	t.traceroute = nil
 }
 
-func (t *IcmpTask) Run() error {
+func (t *ICMPTask) Run() error {
 	t.Clear()
 
 	pinger, err := ping.NewPinger(t.Host)
-
 	if err != nil {
 		t.reqError = err.Error()
 		return err
@@ -389,85 +393,85 @@ func (t *IcmpTask) Run() error {
 	return nil
 }
 
-func (t *IcmpTask) round(num float64, n int) float64 {
+func (t *ICMPTask) round(num float64, n int) float64 {
 	s := fmt.Sprintf("%."+strconv.Itoa(n)+"f", num)
 	roundNum, _ := strconv.ParseFloat(s, 64)
 
 	return roundNum
 }
 
-func (t *IcmpTask) Stop() error {
+func (t *ICMPTask) Stop() error {
 	return nil
 }
 
-func (t *IcmpTask) UpdateTimeUs() int64 {
+func (t *ICMPTask) UpdateTimeUs() int64 {
 	return t.UpdateTime
 }
 
-func (t *IcmpTask) ID() string {
+func (t *ICMPTask) ID() string {
 	if t.ExternalID == `` {
 		return cliutils.XID("dtst_")
 	}
 	return fmt.Sprintf("%s_%s", t.AK, t.ExternalID)
 }
 
-func (t *IcmpTask) GetOwnerExternalID() string {
+func (t *ICMPTask) GetOwnerExternalID() string {
 	return t.OwnerExternalID
 }
 
-func (t *IcmpTask) SetOwnerExternalID(exid string) {
+func (t *ICMPTask) SetOwnerExternalID(exid string) {
 	t.OwnerExternalID = exid
 }
 
-func (t *IcmpTask) SetRegionId(regionId string) {
-	t.Region = regionId
+func (t *ICMPTask) SetRegionID(regionID string) {
+	t.Region = regionID
 }
 
-func (t *IcmpTask) SetAk(ak string) {
+func (t *ICMPTask) SetAk(ak string) {
 	t.AK = ak
 }
 
-func (t *IcmpTask) SetStatus(status string) {
+func (t *ICMPTask) SetStatus(status string) {
 	t.CurStatus = status
 }
 
-func (t *IcmpTask) SetUpdateTime(ts int64) {
+func (t *ICMPTask) SetUpdateTime(ts int64) {
 	t.UpdateTime = ts
 }
 
-func (t *IcmpTask) Status() string {
+func (t *ICMPTask) Status() string {
 	return t.CurStatus
 }
 
-func (t *IcmpTask) Ticker() *time.Ticker {
+func (t *ICMPTask) Ticker() *time.Ticker {
 	return t.ticker
 }
 
-func (t *IcmpTask) Class() string {
+func (t *ICMPTask) Class() string {
 	return ClassICMP
 }
 
-func (t *IcmpTask) GetFrequency() string {
+func (t *ICMPTask) GetFrequency() string {
 	return t.Frequency
 }
 
-func (t *IcmpTask) GetLineData() string {
+func (t *ICMPTask) GetLineData() string {
 	return ""
 }
 
-func (t *IcmpTask) RegionName() string {
+func (t *ICMPTask) RegionName() string {
 	return t.Region
 }
 
-func (t *IcmpTask) PostURLStr() string {
+func (t *ICMPTask) PostURLStr() string {
 	return t.PostURL
 }
 
-func (t *IcmpTask) AccessKey() string {
+func (t *ICMPTask) AccessKey() string {
 	return t.AK
 }
 
-func (t *IcmpTask) CheckSum(data []byte) (rt uint16) {
+func (t *ICMPTask) CheckSum(data []byte) (rt uint16) {
 	var (
 		sum    uint32
 		length int = len(data)
