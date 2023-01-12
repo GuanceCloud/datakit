@@ -132,6 +132,7 @@ var (
 		"kafka":         SPAN_SOURCE_MSGQUE,
 		"mqtt":          SPAN_SOURCE_MSGQUE,
 		"rabbitmq":      SPAN_SOURCE_MSGQUE,
+		"rocketmq":      SPAN_SOURCE_MSGQUE,
 		"dns":           SPAN_SOURCE_WEB,
 		"grpc":          SPAN_SOURCE_WEB,
 		"http":          SPAN_SOURCE_WEB,

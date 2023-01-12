@@ -218,6 +218,6 @@ func (mq *SkyConsumer) SaramaConsumerGroup(addrs []string, groupID string, skyap
 func (mq *SkyConsumer) Stop() {
 	mq.stop <- struct{}{}
 	if api != nil {
-		api.StopStorage()
+		api.CloseLocalCache()
 	}
 }
