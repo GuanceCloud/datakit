@@ -141,14 +141,15 @@ func (s *Storage) Get() (key uint8, buf []byte, err error) {
 }
 
 func (s *Storage) RegisterConsumer(key uint8, consumer ConsumerFunc) {
-	if consumer == nil {
-		return
+	if consumer != nil {
+		s.consumers[key] = consumer
 	}
-	s.consumers[key] = consumer
 }
 
 func (s *Storage) Close() error {
-	s.exit.Close()
+	if s.exit != nil {
+		s.exit.Close()
+	}
 	if s.cache != nil {
 		return s.cache.Close()
 	}

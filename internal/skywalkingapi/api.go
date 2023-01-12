@@ -98,12 +98,6 @@ func InitApiPluginAges(pls []string, localCacheConfig *storage.StorageConfig, cl
 	return api
 }
 
-func (api *SkyAPI) StopStorage() {
-	if api.localCache != nil {
-		_ = api.localCache.Close()
-	}
-}
-
 func (api *SkyAPI) CloseLocalCache() {
 	if api.localCache != nil {
 		if err := api.localCache.Close(); err != nil {

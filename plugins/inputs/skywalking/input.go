@@ -127,11 +127,12 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) Terminate() {
-	api.StopStorage()
 	if skySvr != nil {
 		skySvr.Stop()
 	}
-	api.CloseLocalCache()
+	if api != nil {
+		api.CloseLocalCache()
+	}
 }
 
 func init() { //nolint:gochecknoinits
