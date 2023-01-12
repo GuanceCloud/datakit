@@ -31,6 +31,10 @@
 
 ### 问题修复 {#cl-1.5.4-fix}
 
+- 修复 K8S 采集资源失败(#1362)
+- 修复 K8S Host 字段错误(#1351)
+- 修复 K8S Metrics Server 超时(#1353)
+- 修复 Containerd 环境下 annotation 配置问题(#1352)
 - 修复 Datakit 重新加载过程中采集器崩溃(#1359)
 - 修复 Golang Profiler 函数执行时间计算错误(#1335)
 - 修复 Datakit Monitor 字符集问题(#1321)
