@@ -169,8 +169,6 @@ github.com/alecthomas/chroma/lexers/w
 github.com/alecthomas/chroma/lexers/x
 github.com/alecthomas/chroma/lexers/y
 github.com/alecthomas/chroma/styles
-# github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1
-## explicit
 # github.com/aliyun/alibaba-cloud-sdk-go v1.62.123
 ## explicit; go 1.13
 github.com/aliyun/alibaba-cloud-sdk-go/sdk
@@ -184,7 +182,7 @@ github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/utils
 github.com/aliyun/alibaba-cloud-sdk-go/services/kms
-# github.com/aliyun/aliyun-oss-go-sdk v2.2.5+incompatible
+# github.com/aliyun/aliyun-oss-go-sdk v2.2.6+incompatible
 ## explicit
 github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/antchfx/xmlquery v1.3.12
@@ -372,62 +370,6 @@ github.com/cespare/xxhash
 # github.com/cespare/xxhash/v2 v2.1.2
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/chromedp/cdproto v0.0.0-20220914223734-4ab9dc957c3e
-## explicit; go 1.18
-github.com/chromedp/cdproto
-github.com/chromedp/cdproto/accessibility
-github.com/chromedp/cdproto/animation
-github.com/chromedp/cdproto/audits
-github.com/chromedp/cdproto/backgroundservice
-github.com/chromedp/cdproto/browser
-github.com/chromedp/cdproto/cachestorage
-github.com/chromedp/cdproto/cast
-github.com/chromedp/cdproto/cdp
-github.com/chromedp/cdproto/css
-github.com/chromedp/cdproto/database
-github.com/chromedp/cdproto/debugger
-github.com/chromedp/cdproto/deviceorientation
-github.com/chromedp/cdproto/dom
-github.com/chromedp/cdproto/domdebugger
-github.com/chromedp/cdproto/domsnapshot
-github.com/chromedp/cdproto/domstorage
-github.com/chromedp/cdproto/emulation
-github.com/chromedp/cdproto/eventbreakpoints
-github.com/chromedp/cdproto/fetch
-github.com/chromedp/cdproto/headlessexperimental
-github.com/chromedp/cdproto/heapprofiler
-github.com/chromedp/cdproto/indexeddb
-github.com/chromedp/cdproto/input
-github.com/chromedp/cdproto/inspector
-github.com/chromedp/cdproto/io
-github.com/chromedp/cdproto/layertree
-github.com/chromedp/cdproto/log
-github.com/chromedp/cdproto/media
-github.com/chromedp/cdproto/memory
-github.com/chromedp/cdproto/network
-github.com/chromedp/cdproto/overlay
-github.com/chromedp/cdproto/page
-github.com/chromedp/cdproto/performance
-github.com/chromedp/cdproto/performancetimeline
-github.com/chromedp/cdproto/profiler
-github.com/chromedp/cdproto/runtime
-github.com/chromedp/cdproto/security
-github.com/chromedp/cdproto/serviceworker
-github.com/chromedp/cdproto/storage
-github.com/chromedp/cdproto/systeminfo
-github.com/chromedp/cdproto/target
-github.com/chromedp/cdproto/tethering
-github.com/chromedp/cdproto/tracing
-github.com/chromedp/cdproto/webaudio
-github.com/chromedp/cdproto/webauthn
-# github.com/chromedp/chromedp v0.8.5
-## explicit; go 1.18
-github.com/chromedp/chromedp
-github.com/chromedp/chromedp/device
-github.com/chromedp/chromedp/kb
-# github.com/chromedp/sysutil v1.0.0
-## explicit; go 1.15
-github.com/chromedp/sysutil
 # github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575
 ## explicit
 github.com/cihub/seelog
@@ -786,7 +728,7 @@ github.com/go-git/go-git/v5/utils/merkletrie/noder
 ## explicit; go 1.13
 github.com/go-kit/kit/log
 github.com/go-kit/kit/log/level
-# github.com/go-kit/log v0.2.0
+# github.com/go-kit/log v0.2.1
 ## explicit; go 1.17
 github.com/go-kit/log
 github.com/go-kit/log/level
@@ -1198,7 +1140,6 @@ github.com/lib/pq/scram
 github.com/lucasb-eyer/go-colorful
 # github.com/mailru/easyjson v0.7.7
 ## explicit; go 1.12
-github.com/mailru/easyjson
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
@@ -1214,7 +1155,7 @@ github.com/mattn/go-runewidth
 # github.com/mattn/go-tty v0.0.3
 ## explicit; go 1.14
 github.com/mattn/go-tty
-# github.com/matttproud/golang_protobuf_extensions v1.0.2
+# github.com/matttproud/golang_protobuf_extensions v1.0.4
 ## explicit; go 1.9
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mdlayher/netlink v1.4.1
@@ -1365,25 +1306,25 @@ github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/scheme
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1alpha1
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1beta1
-# github.com/prometheus/client_golang v1.12.2
-## explicit; go 1.13
+# github.com/prometheus/client_golang v1.14.0
+## explicit; go 1.17
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promauto
 github.com/prometheus/client_golang/prometheus/promhttp
-# github.com/prometheus/client_model v0.2.0
+# github.com/prometheus/client_model v0.3.0
 ## explicit; go 1.9
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.37.0
-## explicit; go 1.16
+# github.com/prometheus/common v0.39.0
+## explicit; go 1.17
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
 # github.com/prometheus/node_exporter v1.0.0-rc.0.0.20200428091818-01054558c289
 ## explicit; go 1.13
 github.com/prometheus/node_exporter/https
-# github.com/prometheus/procfs v0.7.3
-## explicit; go 1.13
+# github.com/prometheus/procfs v0.8.0
+## explicit; go 1.17
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
@@ -1521,10 +1462,10 @@ github.com/spf13/cast
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
-# github.com/stretchr/objx v0.4.0
+# github.com/stretchr/objx v0.5.0
 ## explicit; go 1.12
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.8.0
+# github.com/stretchr/testify v1.8.1
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
@@ -1626,7 +1567,7 @@ github.com/xdg-go/stringprep
 # github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 ## explicit
 github.com/youmark/pkcs8
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220928075050-6a94ccf938f8
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230112074430-3c9cc2d5ebc0
 ## explicit; go 1.18
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting
@@ -1635,6 +1576,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws
+gitlab.jiagouyun.com/cloudcare-tools/cliutils/point
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer
@@ -1860,12 +1802,12 @@ golang.org/x/net/ipv6
 golang.org/x/net/netutil
 golang.org/x/net/proxy
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.1.0
+# golang.org/x/oauth2 v0.3.0
 ## explicit; go 1.17
 golang.org/x/oauth2
 golang.org/x/oauth2/clientcredentials
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.1.0
+# golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -8,7 +13,7 @@ import (
 	"github.com/didip/tollbooth/v6/limiter"
 )
 
-// RateLimiter used to define API request rate limiter
+// RateLimiter used to define API request rate limiter.
 type RateLimiter interface {
 	// Detect if rate limit reached on @key
 	Limited(key string) bool
@@ -22,7 +27,7 @@ type RateLimiter interface {
 // RequestKey is a callback used to calculate request @r's ID, we can
 // use r.Method + tkn + r.URL.Path as the id of @r, if the ID is empty
 // string, it's degrade into a simple rate limiter(all API's request
-// are limited under the rate)
+// are limited under the rate).
 type RequestKey func(r *http.Request) string
 
 // DefaultRequestKey used to get key of HTTP request if you don't know how
@@ -39,7 +44,7 @@ type APIRateLimiter interface {
 	UpdateRate(float64)
 }
 
-// APIRateLimiterImpl is default implemented of APIRateLimiter based on tollbooth
+// APIRateLimiterImpl is default implemented of APIRateLimiter based on tollbooth.
 type APIRateLimiterImpl struct {
 	*limiter.Limiter
 	rk RequestKey
@@ -65,12 +70,12 @@ func (rl *APIRateLimiterImpl) RequestLimited(r *http.Request) bool {
 	return rl.Limiter.LimitReached(rl.rk(r))
 }
 
-// LimitReadchedCallback do nothing, just drop the request
+// LimitReadchedCallback do nothing, just drop the request.
 func (rl *APIRateLimiterImpl) LimitReadchedCallback(r *http.Request) {
 	// do nothing
 }
 
-// UpdateRate update limite rate exclusively
+// UpdateRate update limite rate exclusively.
 func (rl *APIRateLimiterImpl) UpdateRate(rate float64) {
 	rl.Limiter.SetMax(rate)
 }

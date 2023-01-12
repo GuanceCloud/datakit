@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package dialtesting
 
 import (
@@ -11,25 +16,25 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
-type TcpResponseTime struct {
+type TCPResponseTime struct {
 	IsContainDNS bool   `json:"is_contain_dns"`
 	Target       string `json:"target"`
 
 	targetTime time.Duration
 }
 
-type TcpSuccess struct {
-	ResponseTime []*TcpResponseTime `json:"response_time,omitempty"`
+type TCPSuccess struct {
+	ResponseTime []*TCPResponseTime `json:"response_time,omitempty"`
 	Hops         []*ValueSuccess    `json:"hops,omitempty"`
 }
 
-type TcpTask struct {
+type TCPTask struct {
 	Host             string            `json:"host"`
 	Port             string            `json:"port"`
 	Timeout          string            `json:"timeout"`
 	EnableTraceroute bool              `json:"enable_traceroute"`
 	TracerouteConfig *TracerouteOption `json:"traceroute_config"`
-	SuccessWhen      []*TcpSuccess     `json:"success_when"`
+	SuccessWhen      []*TCPSuccess     `json:"success_when"`
 	SuccessWhenLogic string            `json:"success_when_logic"`
 	ExternalID       string            `json:"external_id"`
 	Name             string            `json:"name"`
@@ -44,7 +49,7 @@ type TcpTask struct {
 	UpdateTime       int64             `json:"update_time,omitempty"`
 
 	reqCost    time.Duration
-	reqDnsCost time.Duration
+	reqDNSCost time.Duration
 	reqError   string
 	destIP     string
 	timeout    time.Duration
@@ -52,12 +57,11 @@ type TcpTask struct {
 	traceroute []*Route
 }
 
-func (t *TcpTask) InitDebug() error {
-
+func (t *TCPTask) InitDebug() error {
 	return t.init(true)
 }
 
-func (t *TcpTask) init(debug bool) error {
+func (t *TCPTask) init(debug bool) error {
 	if len(t.Timeout) == 0 {
 		t.timeout = 10 * time.Second
 	} else {
@@ -79,7 +83,7 @@ func (t *TcpTask) init(debug bool) error {
 		t.ticker = time.NewTicker(du)
 	}
 
-	if strings.ToLower(t.CurStatus) == StatusStop {
+	if strings.EqualFold(t.CurStatus, StatusStop) {
 		return nil
 	}
 
@@ -102,18 +106,16 @@ func (t *TcpTask) init(debug bool) error {
 		if checker.Hops != nil {
 			t.EnableTraceroute = true
 		}
-
 	}
 
 	return nil
 }
 
-func (t *TcpTask) Init() error {
-
+func (t *TCPTask) Init() error {
 	return t.init(false)
 }
 
-func (t *TcpTask) Check() error {
+func (t *TCPTask) Check() error {
 	if t.ExternalID == "" {
 		return fmt.Errorf("external ID missing")
 	}
@@ -129,7 +131,7 @@ func (t *TcpTask) Check() error {
 	return t.Init()
 }
 
-func (t *TcpTask) CheckResult() (reasons []string, succFlag bool) {
+func (t *TCPTask) CheckResult() (reasons []string, succFlag bool) {
 	for _, chk := range t.SuccessWhen {
 		// check response time
 		if chk.ResponseTime != nil {
@@ -137,7 +139,7 @@ func (t *TcpTask) CheckResult() (reasons []string, succFlag bool) {
 				reqCost := t.reqCost
 
 				if v.IsContainDNS {
-					reqCost += t.reqDnsCost
+					reqCost += t.reqDNSCost
 				}
 
 				if reqCost >= v.targetTime {
@@ -164,14 +166,13 @@ func (t *TcpTask) CheckResult() (reasons []string, succFlag bool) {
 					}
 				}
 			}
-
 		}
 	}
 
-	return
+	return reasons, succFlag
 }
 
-func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
+func (t *TCPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
 		"name":      t.Name,
 		"dest_host": t.Host,
@@ -182,7 +183,7 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 	}
 
 	responseTime := int64(t.reqCost) / 1000                     // us
-	responseTimeWithDNS := int64(t.reqCost+t.reqDnsCost) / 1000 // us
+	responseTimeWithDNS := int64(t.reqCost+t.reqDNSCost) / 1000 // us
 
 	fields = map[string]interface{}{
 		"response_time":          responseTime,
@@ -251,20 +252,20 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 		fields[`message`] = string(data)
 	}
 
-	return
+	return tags, fields
 }
 
-func (t *TcpTask) MetricName() string {
+func (t *TCPTask) MetricName() string {
 	return `tcp_dial_testing`
 }
 
-func (t *TcpTask) Clear() {
+func (t *TCPTask) Clear() {
 	t.reqCost = 0
 	t.reqError = ""
 	t.traceroute = nil
 }
 
-func (t *TcpTask) Run() error {
+func (t *TCPTask) Run() error {
 	t.Clear()
 
 	var d net.Dialer
@@ -284,7 +285,7 @@ func (t *TcpTask) Run() error {
 				t.reqError = err.Error()
 				return err
 			} else {
-				t.reqDnsCost = time.Since(start)
+				t.reqDNSCost = time.Since(start)
 				hostIP = ips[0] // TODO: support mutiple ip for one host
 			}
 		}
@@ -298,10 +299,12 @@ func (t *TcpTask) Run() error {
 
 	if err != nil {
 		t.reqError = err.Error()
-		t.reqDnsCost = 0
+		t.reqDNSCost = 0
 	} else {
 		t.reqCost = time.Since(start)
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			_ = err // pass
+		}
 	}
 
 	if t.EnableTraceroute {
@@ -316,73 +319,73 @@ func (t *TcpTask) Run() error {
 	return nil
 }
 
-func (t *TcpTask) Stop() error {
+func (t *TCPTask) Stop() error {
 	return nil
 }
 
-func (t *TcpTask) UpdateTimeUs() int64 {
+func (t *TCPTask) UpdateTimeUs() int64 {
 	return t.UpdateTime
 }
 
-func (t *TcpTask) ID() string {
+func (t *TCPTask) ID() string {
 	if t.ExternalID == `` {
 		return cliutils.XID("dtst_")
 	}
 	return fmt.Sprintf("%s_%s", t.AK, t.ExternalID)
 }
 
-func (t *TcpTask) GetOwnerExternalID() string {
+func (t *TCPTask) GetOwnerExternalID() string {
 	return t.OwnerExternalID
 }
 
-func (t *TcpTask) SetOwnerExternalID(exid string) {
+func (t *TCPTask) SetOwnerExternalID(exid string) {
 	t.OwnerExternalID = exid
 }
 
-func (t *TcpTask) SetRegionId(regionId string) {
-	t.Region = regionId
+func (t *TCPTask) SetRegionID(regionID string) {
+	t.Region = regionID
 }
 
-func (t *TcpTask) SetAk(ak string) {
+func (t *TCPTask) SetAk(ak string) {
 	t.AK = ak
 }
 
-func (t *TcpTask) SetStatus(status string) {
+func (t *TCPTask) SetStatus(status string) {
 	t.CurStatus = status
 }
 
-func (t *TcpTask) SetUpdateTime(ts int64) {
+func (t *TCPTask) SetUpdateTime(ts int64) {
 	t.UpdateTime = ts
 }
 
-func (t *TcpTask) Status() string {
+func (t *TCPTask) Status() string {
 	return t.CurStatus
 }
 
-func (t *TcpTask) Ticker() *time.Ticker {
+func (t *TCPTask) Ticker() *time.Ticker {
 	return t.ticker
 }
 
-func (t *TcpTask) Class() string {
+func (t *TCPTask) Class() string {
 	return ClassTCP
 }
 
-func (t *TcpTask) GetFrequency() string {
+func (t *TCPTask) GetFrequency() string {
 	return t.Frequency
 }
 
-func (t *TcpTask) GetLineData() string {
+func (t *TCPTask) GetLineData() string {
 	return ""
 }
 
-func (t *TcpTask) RegionName() string {
+func (t *TCPTask) RegionName() string {
 	return t.Region
 }
 
-func (t *TcpTask) PostURLStr() string {
+func (t *TCPTask) PostURLStr() string {
 	return t.PostURL
 }
 
-func (t *TcpTask) AccessKey() string {
+func (t *TCPTask) AccessKey() string {
 	return t.AK
 }

@@ -121,7 +121,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			name: "test dial success3",
 			t: &dialtestingDebugRequest{
 				TaskType: "TCP",
-				Task:     &dt.TcpTask{},
+				Task:     &dt.TCPTask{},
 			},
 			errInit:   nil,
 			expectRes: map[string]interface{}{"Status": "success"},
@@ -130,7 +130,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			name: "test dial success4",
 			t: &dialtestingDebugRequest{
 				TaskType: "ICMP",
-				Task:     &dt.IcmpTask{},
+				Task:     &dt.ICMPTask{},
 			},
 			errInit:   nil,
 			expectRes: map[string]interface{}{"Status": "success"},

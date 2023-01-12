@@ -1,3 +1,10 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+// Package lineproto wraps influxdb lineprotocol.
+// Deprecated: use point package.
 package lineproto
 
 import (
@@ -13,8 +20,10 @@ import (
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
-type Callback func(models.Point) (models.Point, error)
-type CallbackV2 func(point *Point) (*Point, error)
+type (
+	Callback   func(models.Point) (models.Point, error)
+	CallbackV2 func(point *Point) (*Point, error)
+)
 
 type Option struct {
 	Time time.Time
@@ -261,8 +270,8 @@ func ParsePoints(data []byte, opt *Option) ([]*influxdb.Point, error) {
 func MakeLineProtoPoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
-	opt *Option) (*influxdb.Point, error) {
-
+	opt *Option,
+) (*influxdb.Point, error) {
 	pt, _, err := MakeLineProtoPointWithWarnings(name, tags, fields, opt)
 	return pt, err
 }
@@ -270,8 +279,8 @@ func MakeLineProtoPoint(name string,
 func MakeLineProtoPointWithWarnings(name string,
 	tags map[string]string,
 	fields map[string]interface{},
-	opt *Option) (pt *influxdb.Point, warnings []*PointWarning, err error) {
-
+	opt *Option,
+) (pt *influxdb.Point, warnings []*PointWarning, err error) {
 	warnings = []*PointWarning{}
 
 	if name == "" {
@@ -327,8 +336,8 @@ func MakeLineProtoPointWithWarnings(name string,
 func MakeLineProtoPointV2(name string,
 	tags map[string]string,
 	fields map[string]interface{},
-	opt *Option) (*Point, error) {
-
+	opt *Option,
+) (*Point, error) {
 	pt, _, err := MakeLineProtoPointWithWarningsV2(name, tags, fields, opt)
 	return pt, err
 }
@@ -336,8 +345,8 @@ func MakeLineProtoPointV2(name string,
 func MakeLineProtoPointWithWarningsV2(name string,
 	tags map[string]string,
 	fields map[string]interface{},
-	opt *Option) (pt *Point, warnings []*PointWarning, err error) {
-
+	opt *Option,
+) (pt *Point, warnings []*PointWarning, err error) {
 	warnings = []*PointWarning{}
 
 	if name == "" {
@@ -475,7 +484,7 @@ func checkPointV2(p *Point, opt *Option) error {
 		return fmt.Errorf("exceed max tag count(%d), got %d tags", opt.MaxTags, len(tags))
 	}
 
-	for key, _ := range tags {
+	for key := range tags {
 		if strings.IndexByte(key, '.') != -1 && !opt.EnablePointInKey {
 			return fmt.Errorf("invalid tag key `%s': found `.'", key)
 		}
@@ -496,7 +505,6 @@ func checkTagFieldSameKey(tags map[string]string, fields map[string]interface{},
 	for k := range tags {
 		// delete same key from fields
 		if _, ok := fields[k]; ok {
-
 			*warnings = append(*warnings, &PointWarning{
 				WarningType: WarnSameTagFieldKey,
 				Message:     fmt.Sprintf("same key `%s' in tag and field, ", k),
@@ -522,7 +530,6 @@ func trimSuffixAll(s, sfx string) string {
 }
 
 func checkField(k string, v interface{}, opt *Option, pointWarnings *[]*PointWarning) (interface{}, error) {
-
 	if strings.Contains(k, ".") && !opt.EnablePointInKey {
 		return nil, fmt.Errorf("invalid field key `%s': found `.'", k)
 	}
@@ -565,11 +572,9 @@ func checkField(k string, v interface{}, opt *Option, pointWarnings *[]*PointWar
 				Message:     fmt.Sprintf("field(%s) dropped with string value, when [DisableStringField] enabled", k),
 			})
 			return nil, nil // drop the field
-
 		}
 
 		if len(x) > opt.MaxFieldValueLen && opt.MaxFieldValueLen > 0 {
-
 			*pointWarnings = append(*pointWarnings, &PointWarning{
 				WarningType: WarnMaxFieldValueLen,
 				Message:     fmt.Sprintf("field (%s) exceed max field value length(%d), got %d, value truncated", k, opt.MaxFieldValueLen, len(x)),
@@ -582,7 +587,6 @@ func checkField(k string, v interface{}, opt *Option, pointWarnings *[]*PointWar
 	default:
 		if opt.Strict {
 			if v == nil {
-
 				*pointWarnings = append(*pointWarnings, &PointWarning{
 					WarningType: WarnInvalidFieldValueType,
 					Message:     fmt.Sprintf("invalid field (%s) value type: nil value, field dropped", k),
@@ -590,7 +594,6 @@ func checkField(k string, v interface{}, opt *Option, pointWarnings *[]*PointWar
 
 				return nil, fmt.Errorf("invalid field value type %s, value is nil", k)
 			} else {
-
 				*pointWarnings = append(*pointWarnings, &PointWarning{
 					WarningType: WarnInvalidFieldValueType,
 					Message:     fmt.Sprintf("invalid field (%s) type: %s, field dropped", k, reflect.TypeOf(v).String()),
@@ -685,7 +688,6 @@ func checkTags(tags map[string]string, opt *Option, pointWarnings *[]*PointWarni
 	}
 
 	for k, v := range tags {
-
 		if opt.MaxTagKeyLen > 0 && len(k) > opt.MaxTagKeyLen {
 			warnings = append(warnings, &PointWarning{
 				WarningType: WarnMaxTagKeyLen,
@@ -743,7 +745,7 @@ func checkTags(tags map[string]string, opt *Option, pointWarnings *[]*PointWarni
 }
 
 // Remove all `\` suffix on key/val
-// Replace all `\n` with ` `
+// Replace all `\n` with ` `.
 func adjustKV(x string) string {
 	if strings.HasSuffix(x, `\`) {
 		x = trimSuffixAll(x, `\`)

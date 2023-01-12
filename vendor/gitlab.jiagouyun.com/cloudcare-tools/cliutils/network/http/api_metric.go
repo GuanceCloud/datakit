@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -5,10 +10,9 @@ import (
 )
 
 var (
-	metricCh        = make(chan *APIMetric, 32)
-	qch             = make(chan *qAPIStats)
-	exitch          = make(chan interface{})
-	defaultReporter = ReporterImpl{}
+	metricCh = make(chan *APIMetric, 32)
+	qch      = make(chan *qAPIStats)
+	exitch   = make(chan interface{})
 )
 
 type APIMetric struct {
@@ -18,12 +22,13 @@ type APIMetric struct {
 	Limited    bool
 }
 
-// APIMetric used to collects API metrics during API handing
+// APIMetricReporter used to collects API metrics during API handing.
 type APIMetricReporter interface {
 	Report(*APIMetric) // report these metrics
 }
 
-// we should implemente a default API metric reporter under cliutils
+// ReporterImpl used to report API stats
+// TODO: We should implemente a default API metric reporter under cliutils.
 type ReporterImpl struct{}
 
 func (r *ReporterImpl) Report(m *APIMetric) {

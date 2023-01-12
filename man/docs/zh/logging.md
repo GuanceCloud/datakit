@@ -77,6 +77,9 @@
     
       ## 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据
       blocking_mode = true
+
+      ## 是否开启磁盘缓存，可以有效避免采集延迟，有一定的性能开销，建议只在日志量超过 3000 条/秒再开启
+      enable_diskcache = false
     
       # 自定义 tags
       [inputs.logging.tags]

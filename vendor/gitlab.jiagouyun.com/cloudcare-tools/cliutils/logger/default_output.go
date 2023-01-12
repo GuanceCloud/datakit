@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package logger
 
 import (
@@ -88,5 +93,5 @@ func newNormalRootLogger(fpath, level string, options int) (*zap.Logger, error) 
 }
 
 func newWinFileSink(u *url.URL) (zap.Sink, error) {
-	return os.OpenFile(u.Path[1:], os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
+	return os.OpenFile(u.Path[1:], os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644) //nolint:gosec
 }

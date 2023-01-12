@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 //nolint:golint,stylecheck
 package http
 
@@ -71,7 +76,7 @@ func (he *HttpError) HttpBodyPretty(c *gin.Context, body interface{}) {
 
 	j, err := json.MarshalIndent(resp, "", "    ")
 	if err != nil {
-		undefinedErr(err).httpResp(c, "%s: %+#v", "json.Marshal() failed", resp)
+		undefinedErr(err).httpRespf(c, "%s: %+#v", "json.Marshal() failed", resp)
 		return
 	}
 
@@ -97,7 +102,7 @@ func (he *HttpError) WriteBody(c *gin.Context, obj interface{}) {
 
 		bodyBytes, err = json.Marshal(obj)
 		if err != nil {
-			undefinedErr(err).httpResp(c, "%s: %+#v", "json.Marshal() failed", obj)
+			undefinedErr(err).httpRespf(c, "%s: %+#v", "json.Marshal() failed", obj)
 			return
 		}
 	}
@@ -106,7 +111,7 @@ func (he *HttpError) WriteBody(c *gin.Context, obj interface{}) {
 	c.Data(he.HttpCode, contentType, bodyBytes)
 }
 
-// HttpBody Deprecated, use WriteBody
+// HttpBody Deprecated, use WriteBody.
 func (he *HttpError) HttpBody(c *gin.Context, body interface{}) {
 	if body == nil {
 		c.Status(he.HttpCode)
@@ -129,7 +134,7 @@ func (he *HttpError) HttpBody(c *gin.Context, body interface{}) {
 
 		bodyBytes, err = json.Marshal(resp)
 		if err != nil {
-			undefinedErr(err).httpResp(c, "%s: %+#v", "json.Marshal() failed", resp)
+			undefinedErr(err).httpRespf(c, "%s: %+#v", "json.Marshal() failed", resp)
 			return
 		}
 	}
@@ -139,34 +144,40 @@ func (he *HttpError) HttpBody(c *gin.Context, body interface{}) {
 }
 
 func HttpErr(c *gin.Context, err error) {
-	switch err.(type) {
-	case *HttpError:
-		he := err.(*HttpError)
-		he.httpResp(c, "")
-	case *MsgError:
-		me := err.(*MsgError)
-		if me.Args != nil {
-			me.HttpError.httpResp(c, me.Fmt, me.Args...)
+	var (
+		e1 *HttpError
+		e2 *MsgError
+	)
+
+	switch {
+	case errors.As(err, &e1):
+		e1.httpRespf(c, "")
+	case errors.As(err, &e2):
+		if e2.Args != nil {
+			e2.HttpError.httpRespf(c, e2.Fmt, e2.Args...)
 		}
 	default:
-		undefinedErr(err).httpResp(c, "")
+		undefinedErr(err).httpRespf(c, "")
 	}
 }
 
 func HttpErrf(c *gin.Context, err error, format string, args ...interface{}) {
-	switch err.(type) {
-	case *HttpError:
-		he := err.(*HttpError)
-		he.httpResp(c, format, args...)
-	case *MsgError:
-		me := err.(*MsgError)
-		me.HttpError.httpResp(c, format, args...)
+	var (
+		e1 *HttpError
+		e2 *MsgError
+	)
+
+	switch {
+	case errors.As(err, &e1):
+		e1.httpRespf(c, format, args...)
+	case errors.As(err, &e2):
+		e2.HttpError.httpRespf(c, format, args...)
 	default:
-		undefinedErr(err).httpResp(c, "")
+		undefinedErr(err).httpRespf(c, "")
 	}
 }
 
-func (he *HttpError) httpResp(c *gin.Context, format string, args ...interface{}) {
+func (he *HttpError) httpRespf(c *gin.Context, format string, args ...interface{}) {
 	resp := &BodyResp{
 		HttpError: he,
 	}
@@ -177,7 +188,7 @@ func (he *HttpError) httpResp(c *gin.Context, format string, args ...interface{}
 
 	j, err := json.Marshal(&resp)
 	if err != nil {
-		undefinedErr(err).httpResp(c, "%s: %+#v", "json.Marshal() failed", resp)
+		undefinedErr(err).httpRespf(c, "%s: %+#v", "json.Marshal() failed", resp)
 		return
 	}
 
@@ -203,13 +214,13 @@ func titleErr(namespace string, err error) string {
 			out += e
 			continue
 		}
-		out += strings.Title(e)
+		out += strings.Title(e) //nolint:staticcheck
 	}
 
 	return out
 }
 
-// Dynamic error create based on specific HttpError
+// Dynamic error create based on specific HttpError.
 type MsgError struct {
 	*HttpError
 	Fmt  string

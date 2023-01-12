@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package diskcache
 
 import (
@@ -10,7 +15,7 @@ import (
 	"strings"
 )
 
-// rotate to next new file, append to reading list
+// rotate to next new file, append to reading list.
 func (c *DiskCache) rotate() error {
 	l.Debugf("try rotate...")
 
@@ -47,7 +52,9 @@ func (c *DiskCache) rotate() error {
 		return err
 	}
 
-	os.Rename(c.curWriteFile, newfile)
+	if err := os.Rename(c.curWriteFile, newfile); err != nil {
+		return err
+	}
 
 	c.rwlock.Lock()
 	defer c.rwlock.Unlock()
@@ -65,9 +72,8 @@ func (c *DiskCache) rotate() error {
 	return nil
 }
 
-// after file read on EOF, remove the file
+// after file read on EOF, remove the file.
 func (c *DiskCache) removeCurrentReadingFile() error {
-
 	c.rwlock.Lock()
 	defer c.rwlock.Unlock()
 

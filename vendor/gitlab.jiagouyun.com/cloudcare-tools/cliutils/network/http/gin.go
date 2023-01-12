@@ -1,9 +1,14 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
 	"bytes"
 	"compress/gzip"
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -31,7 +36,7 @@ const (
 	XSource        = "X-Source"
 	XTableName     = "X-Table-Name"
 	XToken         = "X-Token"
-	XTraceId       = "X-Trace-Id"
+	XTraceID       = "X-Trace-Id"
 	XVersion       = "X-Version"
 	XWorkspaceUUID = "X-Workspace-UUID"
 )
@@ -125,13 +130,13 @@ func TraceIDMiddleware(c *gin.Context) {
 	if c.Request.Method == `OPTIONS` {
 		c.Next()
 	} else {
-		tid := c.Request.Header.Get(XTraceId)
+		tid := c.Request.Header.Get(XTraceID)
 		if tid == "" {
 			tid = cliutils.XID(`trace_`)
-			c.Request.Header.Set(XTraceId, tid)
+			c.Request.Header.Set(XTraceID, tid)
 		}
 
-		c.Writer.Header().Set(XTraceId, tid)
+		c.Writer.Header().Set(XTraceID, tid)
 		c.Next()
 	}
 }
@@ -191,7 +196,7 @@ func GinReadWithMD5(c *gin.Context) (buf []byte, md5str string, err error) {
 		return
 	}
 
-	md5str = fmt.Sprintf("%x", md5.Sum(buf))
+	md5str = fmt.Sprintf("%x", md5.Sum(buf)) //nolint:gosec
 
 	if c.Request.Header.Get("Content-Encoding") == "gzip" {
 		buf, err = Unzip(buf)
@@ -234,7 +239,10 @@ func Unzip(in []byte) (out []byte, err error) {
 	if err != nil {
 		return
 	}
-	gzr.Close()
+
+	if err := gzr.Close(); err != nil {
+		_ = err // pass
+	}
 	return
 }
 
@@ -244,6 +252,10 @@ func readBody(c *gin.Context) ([]byte, error) {
 		return nil, err
 	}
 
-	defer c.Request.Body.Close()
+	defer func() {
+		if err := c.Request.Body.Close(); err != nil {
+			_ = err // pass
+		}
+	}()
 	return body, nil
 }

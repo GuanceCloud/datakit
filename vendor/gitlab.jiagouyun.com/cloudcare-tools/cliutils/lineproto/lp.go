@@ -1,27 +1,32 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package lineproto
 
 import (
 	"bytes"
 	"fmt"
-	"github.com/influxdata/influxdb1-client/models"
 	"reflect"
 	"sort"
 	"time"
 	"unsafe"
 
+	"github.com/influxdata/influxdb1-client/models"
 	lp "github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
 func unsafeBytesToString(runes []byte) string {
-	return *(*string)(unsafe.Pointer(&runes))
+	return *(*string)(unsafe.Pointer(&runes)) //nolint:gosec
 }
 
-// GetSafeString get a copy of string s
+// GetSafeString get a copy of string s.
 func GetSafeString(s string) string {
 	if s == "" {
 		return ""
 	}
-	return string(*(*[]byte)(unsafe.Pointer(&s)))
+	return string(*(*[]byte)(unsafe.Pointer(&s))) //nolint:gosec
 }
 
 type Precision = lp.Precision
@@ -33,7 +38,7 @@ const (
 	Second      = lp.Second
 )
 
-// ConvertPrecisionToV2 map version 1 precision to version 2
+// ConvertPrecisionToV2 map version 1 precision to version 2.
 func ConvertPrecisionToV2(precision string) (Precision, error) {
 	switch precision {
 	case "u":
@@ -61,7 +66,8 @@ type Point struct {
 func NewPoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
-	t ...time.Time) (*Point, error) {
+	t ...time.Time,
+) (*Point, error) {
 	var tm time.Time
 	if len(t) > 0 {
 		tm = t[0]
@@ -324,13 +330,13 @@ func (le *LineEncoder) AppendPoint(pt *Point) error {
 }
 
 // Bytes return the line protocol bytes
-// You should be **VERY CAREFUL** when using this function together with the Reset
+// You should be **VERY CAREFUL** when using this function together with the Reset.
 func (le *LineEncoder) Bytes() ([]byte, error) {
 	return le.Encoder.Bytes(), le.Encoder.Err()
 }
 
 // BytesWithoutLn return the line protocol bytes without the trailing new line
-// You should be **VERY CAREFUL** when using this function together with the Reset
+// You should be **VERY CAREFUL** when using this function together with the Reset.
 func (le *LineEncoder) BytesWithoutLn() ([]byte, error) {
 	return bytes.TrimRightFunc(le.Encoder.Bytes(), func(r rune) bool {
 		return r == '\r' || r == '\n'
@@ -338,21 +344,21 @@ func (le *LineEncoder) BytesWithoutLn() ([]byte, error) {
 }
 
 // UnsafeString return string with no extra allocation
-// You should be **VERY CAREFUL** when using this function together with the Reset
+// You should be **VERY CAREFUL** when using this function together with the Reset.
 func (le *LineEncoder) UnsafeString() (string, error) {
 	lineBytes, err := le.Bytes()
 	if len(lineBytes) > 0 {
-		return *(*string)(unsafe.Pointer(&lineBytes)), err
+		return *(*string)(unsafe.Pointer(&lineBytes)), err //nolint:gosec
 	}
 	return "", err
 }
 
 // UnsafeStringWithoutLn return the line protocol **UNSAFE** string without the trailing new line
-// You should be **VERY CAREFUL** when using this function together with the Reset
+// You should be **VERY CAREFUL** when using this function together with the Reset.
 func (le *LineEncoder) UnsafeStringWithoutLn() (string, error) {
 	lineBytes, err := le.BytesWithoutLn()
 	if len(lineBytes) > 0 {
-		return *(*string)(unsafe.Pointer(&lineBytes)), err
+		return *(*string)(unsafe.Pointer(&lineBytes)), err //nolint:gosec
 	}
 	return "", err
 }
