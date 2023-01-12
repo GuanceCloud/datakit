@@ -170,7 +170,7 @@ func (ii *inputInfo) Run() {
 }
 
 // AddConfigInfoPath add or update input info.
-//  if fp is empty, add new config when inputName not exist, or set ConfigPaths empty when not exist.
+//  if fp is empty, add new config when inputName not exist, or set ConfigPaths empty when exist.
 func AddConfigInfoPath(inputName string, fp string, loaded int8) {
 	if c, ok := ConfigInfo[inputName]; ok {
 		if len(fp) == 0 {
@@ -197,6 +197,19 @@ func AddConfigInfoPath(inputName string, fp string, loaded int8) {
 				config.ConfigPaths = append(config.ConfigPaths, &ConfigPathStat{Loaded: loaded, Path: fp})
 			}
 			ConfigInfo[inputName] = config
+		}
+	}
+}
+
+// DeleteConfigInfoPath remove fp from config paths of selected input.
+func DeleteConfigInfoPath(inputName, fp string) {
+	mtx.Lock()
+	defer mtx.Unlock()
+	if i, ok := ConfigInfo[inputName]; ok {
+		for j, f := range i.ConfigPaths {
+			if f.Path == fp {
+				i.ConfigPaths = append(i.ConfigPaths[:j], i.ConfigPaths[j+1:]...)
+			}
 		}
 	}
 }
@@ -248,7 +261,13 @@ func ResetInputs() {
 	mtx.Lock()
 	defer mtx.Unlock()
 	InputsInfo = map[string][]*inputInfo{}
-	ConfigInfo = map[string]*Config{}
+
+	// only reset input config path
+	for _, v := range ConfigInfo {
+		v.ConfigPaths = v.ConfigPaths[0:0]
+		v.ConfigDir = datakit.ConfdDir
+	}
+
 	ConfigFileHash = map[string]struct{}{}
 }
 
