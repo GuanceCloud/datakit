@@ -222,8 +222,8 @@ func (c *consumerGroupHandler) feedMsg(msg *sarama.ConsumerMessage) {
 	newMessage := strings.ReplaceAll(string(msg.Value), "\n", " ")
 	log.Debugf("kafka_message is:  %s", newMessage)
 	msgLen := len(newMessage)
-	var tags = map[string]string{"type": MsgType}
-	var fields = map[string]interface{}{pipeline.FieldStatus: pipeline.DefaultStatus, "message_len": msgLen}
+	tags := map[string]string{"type": MsgType}
+	fields := map[string]interface{}{pipeline.FieldStatus: pipeline.DefaultStatus, "message_len": msgLen}
 	if p, ok := c.logTopics[msg.Topic]; ok {
 		pl = p
 		category = datakit.Logging

@@ -51,9 +51,9 @@ Wed Jul 21 08:22:32 UTC 2021
 
 ## 查看数据是否被黑名单过滤或 Pipeline 丢弃 {#filter-pl}
 
-如果配置了[黑名单](datakit-filter)（如日志黑名单），新采集的数据可能会被黑名单过滤掉。
+如果配置了[黑名单](datakit-filter.md)（如日志黑名单），新采集的数据可能会被黑名单过滤掉。
 
-同理，如果 Pipeline 中对数据进行了一些[丢弃操作](pipeline#fb024a10)，那么也可能导致中心看不到这些数据。
+同理，如果 Pipeline 中对数据进行了一些[丢弃操作](../developers/pipeline.md#fn-drop)，那么也可能导致中心看不到这些数据。
 
 ## 查看 Monitor 页面 {#monitor}
 
@@ -63,7 +63,7 @@ Wed Jul 21 08:22:32 UTC 2021
 
 在 Windows/Linux/Mac 上，这一功能均支持，其中 Windows 需在 Powershell 中执行
 
-> DataKit [1.1.7-rc7](changelog#cl-1.1.7-rc7) 才支持这一功能
+> DataKit [1.1.7-rc7](changelog.md#cl-1.1.7-rc7) 才支持这一功能
 
 ```shell
 datakit dql

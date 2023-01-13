@@ -451,7 +451,17 @@ func TestDcaTestPipelines(t *testing.T) {
 	}{
 		{
 			Title: "test ok",
-			IsOk:  true,
+			Body: `{
+				"script_name": "nginx", 
+				"category": "logging",
+				"pipeline": {
+					"logging": {
+						"nginx": "add_key(name, \"test-pipeline\")"
+					}
+				},
+				"data": ["test"]
+			}`,
+			IsOk: true,
 		},
 		{
 			Title:        "test pipeline failed",
@@ -461,16 +471,9 @@ func TestDcaTestPipelines(t *testing.T) {
 			Title: "invalid body",
 			Body:  "xxxxxxx",
 		},
-		{
-			Title: "invalid body",
-			Body:  `{"fileName": "xxxx"}`,
-		},
-		{
-			Title: "invalid body",
-			Body:  `{"text": "xxxx"}`,
-		},
 	}
 	for _, tc := range testCases {
+		t.Logf("test: %s", tc.Title)
 		parsedPipeline := "parse text"
 		if tc.TestPipeline != nil {
 			dcaAPI.TestPipeline = tc.TestPipeline
@@ -489,18 +492,11 @@ func TestDcaTestPipelines(t *testing.T) {
 		assert.NoError(t, err)
 
 		pipelineContent := "this is demo pipeline"
-		fileName := filepath.Base(f.Name())
 
 		err = ioutil.WriteFile(f.Name(), []byte(pipelineContent), os.ModePerm)
 		assert.NoError(t, err)
 
-		var body *strings.Reader
-		if len(tc.Body) > 0 {
-			body = strings.NewReader(tc.Body)
-		} else {
-			bodyTemplate := `{"fileName": "%s", "text": "%s"}`
-			body = strings.NewReader(fmt.Sprintf(bodyTemplate, fileName, pipelineContent))
-		}
+		body := strings.NewReader(tc.Body)
 		req, _ := http.NewRequest("POST", "/v1/dca/pipelines/test", body)
 		req.Header.Add("X-Token", TOKEN)
 
@@ -520,6 +516,7 @@ func TestDcaCreatePipeline(t *testing.T) {
 		Title          string
 		IsOk           bool
 		FileName       string
+		Category       string
 		IsContentEmpty bool
 		Body           string
 	}{
@@ -534,18 +531,35 @@ func TestDcaCreatePipeline(t *testing.T) {
 		{
 			Title:          "content is empty",
 			IsContentEmpty: true,
+			IsOk:           true,
 		},
 		{
 			Title:    "invalid fileName",
-			FileName: "pipeline.p",
+			FileName: "pipeline",
+		},
+		{
+			Title:    "test category",
+			FileName: "test.p",
+			Category: "logging",
+			IsOk:     true,
+		},
+		{
+			Title:    "test invalid category",
+			FileName: "test.p",
+			Category: "logging-invalid",
+			IsOk:     false,
 		},
 	}
 
 	for _, tc := range testCases {
+		t.Logf("testing: %s", tc.Title)
 		pipelineDir, err := ioutil.TempDir("./", "pipeline")
+		assert.NoError(t, err)
+		defer os.RemoveAll(pipelineDir) //nolint: errcheck
+
 		datakit.PipelineDir = pipelineDir
 
-		defer os.RemoveAll(pipelineDir) //nolint: errcheck
+		err = os.Mkdir(filepath.Join(pipelineDir, "logging"), 0o777)
 		assert.NoError(t, err)
 
 		pipelineContent := "this is demo pipeline"
@@ -564,8 +578,8 @@ func TestDcaCreatePipeline(t *testing.T) {
 		if len(tc.Body) > 0 {
 			body = strings.NewReader(tc.Body)
 		} else {
-			bodyTemplate := `{"fileName":"%s", "fileDir": "%s","content": "%s"}`
-			body = strings.NewReader(fmt.Sprintf(bodyTemplate, fileName, pipelineDir, pipelineContent))
+			bodyTemplate := `{"fileName":"%s", "category": "%s","content": "%s"}`
+			body = strings.NewReader(fmt.Sprintf(bodyTemplate, fileName, tc.Category, pipelineContent))
 		}
 		req, _ := http.NewRequest("POST", "/v1/dca/pipelines", body)
 		req.Header.Add("X-Token", TOKEN)

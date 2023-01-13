@@ -44,7 +44,7 @@ $ $tomcat_dir/bin/startup.sh
  Tomcat started.
 ```
 
-前往 http://localhost:8080/jolokia 查看是否配置成功
+前往 `http://localhost:8080/jolokia` 查看是否配置成功
 
 ## 配置 {#config}
 

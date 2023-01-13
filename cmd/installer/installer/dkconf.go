@@ -85,26 +85,21 @@ var (
 	IPDBType string
 
 	ConfdBackend,
-	ConfdAuthToken,
-	ConfdAuthType,
 	ConfdBasicAuth,
 	ConfdClientCaKeys,
 	ConfdClientCert,
 	ConfdClientKey,
-	ConfdClientInsecure,
 	ConfdBackendNodes,
 	ConfdPassword,
 	ConfdScheme,
-	ConfdTable,
 	ConfdSeparator,
 	ConfdUsername,
-	ConfdAppID,
-	ConfdUserID,
-	ConfdRoleID,
-	ConfdSecretID,
-	ConfdFilter,
-	ConfdPath,
-	ConfdRole string
+	ConfdAccessKey,
+	ConfdSecretKey,
+	ConfdConfdNamespace,
+	ConfdPipelineNamespace,
+	ConfdRegion string
+	ConfdCircleInterval int
 
 	GitURL,
 	GitKeyPath,

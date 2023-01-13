@@ -20,8 +20,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/platypus/pkg/errchain"
+	"github.com/GuanceCloud/platypus/pkg/token"
+
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/toml"
+	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -281,6 +285,47 @@ func dcaGetConfig(c *gin.Context) {
 	context.success(string(content))
 }
 
+func dcaDeleteConfig(c *gin.Context) {
+	body, err := ioutil.ReadAll(c.Request.Body)
+	defer c.Request.Body.Close() //nolint:errcheck
+
+	context := &dcaContext{c: c}
+	if err != nil {
+		l.Errorf("Read request body error: %s", err.Error())
+		context.fail()
+		return
+	}
+
+	param := &struct {
+		Path      string `json:"path"`
+		InputName string `json:"inputName"`
+	}{}
+
+	if err := json.Unmarshal(body, &param); err != nil {
+		l.Errorf("Json unmarshal error: %s", err.Error())
+		context.fail(dcaError{Code: 400, ErrorCode: "param.json.invalid", ErrorMsg: "body invalid json format"})
+		return
+	}
+
+	if errMsg, err := checkPath(param.Path); err != nil {
+		context.fail(errMsg)
+		return
+	}
+
+	if !path.IsFileExists(param.Path) {
+		context.fail(dcaError{Code: 400, ErrorCode: "file.path.invalid", ErrorMsg: "The file to be deleted is not existed!"})
+		return
+	}
+
+	if err := os.Remove(param.Path); err != nil {
+		context.fail(dcaError{Code: 500, ErrorCode: "file.delete.failed", ErrorMsg: "Fail to delete conf file"})
+		l.Errorf("Delete conf file [%s] failed, %s", param.Path, err.Error())
+	} else {
+		inputs.DeleteConfigInfoPath(param.InputName, param.Path)
+		context.success()
+	}
+}
+
 // save config.
 func dcaSaveConfig(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
@@ -412,12 +457,6 @@ func isValidPipelineFileName(name string) bool {
 	return pipelineFileRegxp.Match([]byte(name))
 }
 
-func isValidCustomPipelineName(name string) bool {
-	pipelineFileRegxp := regexp.MustCompile(`^custom_.+\.p$`)
-
-	return pipelineFileRegxp.Match([]byte(name))
-}
-
 // filter info.
 type filterInfo struct {
 	Content  string `json:"content"`  // file content string
@@ -537,6 +576,7 @@ type pipelineInfo struct {
 	FileName string `json:"fileName"`
 	FileDir  string `json:"fileDir"`
 	Content  string `json:"content"`
+	Category string `json:"category"`
 }
 
 func dcaGetPipelines(c *gin.Context) {
@@ -557,17 +597,24 @@ func dcaGetPipelines(c *gin.Context) {
 			if isValidPipelineFileName(name) {
 				pipelines = append(pipelines, pipelineInfo{FileName: name, FileDir: datakit.PipelineDir})
 			}
-		} else if file.Name() == "logging" {
-			allFiles, err := ioutil.ReadDir(filepath.Join(datakit.PipelineDir, "logging"))
+		} else {
+			pipelines = append(pipelines, pipelineInfo{Category: file.Name()})
+			allFiles, err := ioutil.ReadDir(filepath.Join(datakit.PipelineDir, file.Name()))
 			if err != nil {
 				context.fail()
 				return
 			}
-			for _, file := range allFiles {
-				if !file.IsDir() {
-					name := file.Name()
+			for _, subFile := range allFiles {
+				if !subFile.IsDir() {
+					name := subFile.Name()
 					if isValidPipelineFileName(name) {
-						pipelines = append(pipelines, pipelineInfo{FileName: "logging/" + name, FileDir: datakit.PipelineDir})
+						pipelines = append(pipelines,
+							pipelineInfo{
+								FileName: name,
+								FileDir:  filepath.Join(datakit.PipelineDir, file.Name()),
+								Category: file.Name(),
+							},
+						)
 					}
 				}
 			}
@@ -575,6 +622,11 @@ func dcaGetPipelines(c *gin.Context) {
 	}
 
 	context.success(pipelines)
+}
+
+type pipelineDetailResponse struct {
+	Path    string `json:"path"`
+	Content string `json:"content"`
 }
 
 func dcaGetPipelinesDetail(c *gin.Context) {
@@ -585,12 +637,14 @@ func dcaGetPipelinesDetail(c *gin.Context) {
 		return
 	}
 
+	category := c.Query("category")
+
 	if !isValidPipelineFileName(fileName) {
 		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: fmt.Sprintf("param %s is not valid", fileName)})
 		return
 	}
 
-	path := filepath.Join(datakit.PipelineDir, fileName)
+	path := filepath.Join(datakit.PipelineDir, category, fileName)
 
 	contentBytes, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
@@ -599,7 +653,10 @@ func dcaGetPipelinesDetail(c *gin.Context) {
 		return
 	}
 
-	context.success(string(contentBytes))
+	context.success(pipelineDetailResponse{
+		Path:    path,
+		Content: string(contentBytes),
+	})
 }
 
 func dcaCreatePipeline(c *gin.Context) {
@@ -625,10 +682,15 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 		return
 	}
 
-	fileName = pipeline.FileName
-	filePath = filepath.Join(datakit.PipelineDir, fileName)
+	if pipeline.Category == "default" {
+		pipeline.Category = ""
+	}
 
-	if len(pipeline.Content) == 0 {
+	fileName = pipeline.FileName
+	category := pipeline.Category
+	filePath = filepath.Join(datakit.PipelineDir, category, fileName)
+
+	if isUpdate && len(pipeline.Content) == 0 {
 		context.fail(dcaError{
 			ErrorCode: "param.invalid",
 			ErrorMsg:  "'content' should not be empty",
@@ -652,11 +714,10 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 		}
 	}
 
-	// only save or update custom pipeline!
-	if !isValidCustomPipelineName(fileName) {
+	if !isValidPipelineFileName(fileName) {
 		context.fail(dcaError{
 			ErrorCode: "param.invalid",
-			ErrorMsg:  "fileName is not valid custom pipeline name",
+			ErrorMsg:  "fileName is not valid pipeline name",
 		})
 		return
 	}
@@ -670,6 +731,47 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 	}
 	pipeline.FileDir = datakit.PipelineDir
 	context.success(pipeline)
+}
+
+func dcaDeletePipelines(c *gin.Context) {
+	body, err := ioutil.ReadAll(c.Request.Body)
+	defer c.Request.Body.Close() //nolint:errcheck
+
+	context := &dcaContext{c: c}
+	if err != nil {
+		l.Errorf("Read request body error: %s", err.Error())
+		context.fail()
+		return
+	}
+
+	param := &struct {
+		Category string `json:"category"`
+		FileName string `json:"fileName"`
+	}{}
+
+	if err := json.Unmarshal(body, &param); err != nil {
+		l.Errorf("Json unmarshal error: %s", err.Error())
+		context.fail(dcaError{Code: 400, ErrorCode: "param.json.invalid", ErrorMsg: "body invalid json format"})
+		return
+	}
+
+	if param.Category == "default" {
+		param.Category = ""
+	}
+
+	fp := filepath.Join(datakit.PipelineDir, param.Category, param.FileName)
+
+	if !path.IsFileExists(fp) {
+		context.fail(dcaError{Code: 400, ErrorCode: "file.path.invalid", ErrorMsg: "The file to be deleted is not existed!"})
+		return
+	}
+
+	if err := os.Remove(fp); err != nil {
+		context.fail(dcaError{Code: 500, ErrorCode: "file.delete.failed", ErrorMsg: "Fail to delete conf file"})
+		l.Errorf("Delete pipeline file [%s] failed, %s", fp, err.Error())
+	} else {
+		context.success()
+	}
 }
 
 func pipelineTest(pipelineFile string, text string) (string, error) {
@@ -725,36 +827,123 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 	}
 }
 
+type dcaTestParam struct {
+	Pipeline   map[string]map[string]string `json:"pipeline"`
+	ScriptName string                       `json:"script_name"`
+	Category   string                       `json:"category"`
+	Data       []string                     `json:"data"`
+}
+
 func dcaTestPipelines(c *gin.Context) {
 	context := getContext(c)
 
-	body := map[string]string{}
-
+	body := dcaTestParam{}
 	if err := getBody(c, &body); err != nil {
 		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "parameter format error"})
 		return
 	}
 
-	text, ok := body["text"]
+	if len(body.Category) == 0 {
+		body.Category = "logging"
+	}
+
+	// deal with default
+	if body.Category == "default" {
+		body.Pipeline["logging"] = body.Pipeline["default"]
+		body.Category = "logging"
+	}
+
+	category := normalizeCategory(body.Category)
+
+	pls, errs := pipeline.NewPipelineMulti(category, body.Pipeline[body.Category], nil)
+	if err, ok := errs[body.ScriptName]; ok && err != nil {
+		context.fail(dcaError{ErrorCode: "400", ErrorMsg: fmt.Sprintf("pipeline parse error: %s", err.Error())})
+		return
+	}
+
+	pl, ok := pls[body.ScriptName]
+
 	if !ok {
-		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "parameter 'text' is required"})
+		context.fail(dcaError{ErrorCode: "400", ErrorMsg: "pipeline is not valid"})
 		return
 	}
 
-	fileName, ok := body["fileName"]
-	if !ok {
-		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "parameter 'fileName' is required"})
+	var pts []*point.Point
+	var pointErr error
+	for _, data := range body.Data {
+		switch category {
+		case datakit.Logging:
+			pt, err := point.NewPoint(body.ScriptName, nil, map[string]interface{}{
+				pipeline.FieldMessage: data,
+			}, &point.PointOption{
+				Category: category,
+				Time:     time.Now(),
+			})
+			if err != nil {
+				l.Warnf("make logging point error: %s", err.Error())
+				pointErr = err
+				break
+			}
+			pts = append(pts, pt)
+		default:
+			ps, err := lp.ParsePoints([]byte(data), nil)
+			if err != nil {
+				l.Warnf("make point error: %s", err.Error())
+				pointErr = err
+				break
+			}
+			pts = append(pts, point.WrapPoint(ps)...)
+		}
+	}
+
+	if pointErr != nil {
+		context.fail(dcaError{ErrorCode: "400", ErrorMsg: fmt.Sprintf("invalid sample: %s", pointErr.Error())})
 		return
 	}
 
-	parsedText, err := dcaAPI.TestPipeline(fileName, text)
-	if err != nil {
-		l.Errorf("Test pipeline error: %s", err.Error())
-		context.fail(dcaError{ErrorCode: "pipeline.parse.error", ErrorMsg: err.Error()})
-		return
+	opt := &point.PointOption{
+		Category: category,
+		Time:     time.Now(),
 	}
 
-	context.success(parsedText)
+	var runResult []*pipelineResult
+
+	for _, pt := range pts {
+		pt, drop, err := pl.Run(pt, nil, opt, newPlTestSingal())
+		if err != nil {
+			plerr, ok := err.(*errchain.PlError) //nolint:errorlint
+			if !ok {
+				plerr = errchain.NewErr(body.ScriptName+".p", token.LnColPos{
+					Pos: 0,
+					Ln:  1,
+					Col: 1,
+				}, err.Error())
+			}
+			runResult = append(runResult, &pipelineResult{
+				RunError: plerr,
+			})
+		} else {
+			fields, err := pt.Fields()
+			if err != nil {
+				l.Errorf("Fields: %s", err.Error())
+				context.fail(dcaError{ErrorCode: "500", ErrorMsg: fmt.Sprintf("fields failed: %s", err.Error())})
+				return
+			}
+
+			runResult = append(runResult, &pipelineResult{
+				Point: &PlRetPoint{
+					Name:   pt.Name(),
+					Tags:   pt.Tags(),
+					Fields: fields,
+					Time:   pt.Time().Unix(),
+					TimeNS: int64(pt.Time().Nanosecond()),
+				},
+
+				Dropped: drop,
+			})
+		}
+	}
+	context.success(&runResult)
 }
 
 type rumQueryParam struct {

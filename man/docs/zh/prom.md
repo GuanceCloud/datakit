@@ -49,7 +49,7 @@ Prom 采集器支持在数据拉取的 HTTP 请求中配置额外的请求头，
 
 ### 关于 tag 重命名 {#tag-rename}
 
-> 注意：对于 [DataKit 全局 tag key](datakit-conf#update-global-tag)，此处不支持将它们重命名。
+> 注意：对于 [DataKit 全局 tag key](datakit-conf.md#update-global-tag)，此处不支持将它们重命名。
 
 `tags_rename` 可以实现对采集到的 Prometheus Exporter 数据做 tag 名称的替换，里面的 `overwrite_exist_tags` 用于开启覆盖已有 tag 的选项。举个例子，对于已有 Prometheus Exporter 数据：
 

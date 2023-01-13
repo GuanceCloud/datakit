@@ -20,6 +20,36 @@
 ### 兼容调整 {#cl-1.4.19-brk}
 -->
 
+## 1.5.4(2022/12/29) {#cl-1.5.4}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.4-new}
+
+- [confd 增加 Nacos 后端](confd.md)(#1315#1327)
+- 日志采集器添加 LocalCache 特性(#1326)
+- 支持 [C/C++ Profiling](profile-cpp.md)(#1320)
+- RUM Session Replay 文件上报(#1283)
+- WEB DCA 支持远程更新 config(#1284)
+
+### 问题修复 {#cl-1.5.4-fix}
+
+- 修复 K8S 采集失败数据丢失(#1362)
+- 修复 K8S Host 字段错误(#1351)
+- 修复 K8S Metrics Server 超时(#1353)
+- 修复 Containerd 环境下 annotation 配置问题(#1352)
+- 修复 Datakit 重新加载过程中采集器崩溃(#1359)
+- 修复 Golang Profiler 函数执行时间计算错误(#1335)
+- 修复 Datakit Monitor 字符集问题(#1321)
+- 修复 async-profiler 服务现实问题(#1290)
+- 修复 Redis 采集器 slowlog 问题(#1360)
+
+### 功能优化 {#cl-1.5.4-opt}
+
+- 优化 SQL 数据资源占用较高问题(#1358)
+- 优化 Datakit Monitor(1222)
+
+---
 
 ## 1.5.3(2022/12/29) {#cl-1.5.3}
 
@@ -35,6 +65,8 @@
 - 修复 netstat 采集器链接数问题(#1276/#1336)
 - 修复 Go profiler 差值问题(#1328)
 - 修复 Datakit 重启超时问题(#1297)
+- 修复 Kafka 订阅消息被截断问题(#1338)
+- 修复 Pipeline `drop()` 函数无效问题(#1343)
 
 ### 功能优化 {#cl-1.5.3-opt}
 
@@ -43,6 +75,7 @@
 - 优化 Pythond 使用封装(#1304)
 - Pipeline 提供更详细的操作报错信息(#1262)
 - Pipeline reftable 提供基于 SQLite 的本地化存储实现(#1158)
+- 优化 SQLServer 时间线问题(#1345)
 
 ---
 

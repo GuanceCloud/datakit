@@ -34,6 +34,7 @@ var (
 		datakit.LogFilter,
 		datakit.Tracing,
 		datakit.RUM,
+		datakit.SessionReplayUpload,
 		datakit.Security,
 		datakit.HeartBeat,
 		datakit.Election,

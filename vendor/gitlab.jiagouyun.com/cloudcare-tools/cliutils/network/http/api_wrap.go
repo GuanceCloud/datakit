@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -10,19 +15,18 @@ import (
 
 var (
 	ErrTooManyRequest = NewErr(errors.New("reach max API rate limit"), http.StatusTooManyRequests)
-	HttpOK            = NewErr(nil, http.StatusOK)
+	HTTPOK            = NewErr(nil, http.StatusOK) //nolint:errname
 	EnableTracing     bool
 )
 
 type WrapPlugins struct {
 	Limiter  APIRateLimiter
 	Reporter APIMetricReporter
-	//Tracer   Tracer
 }
 
 type apiHandler func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error)
 
-func HTTPAPIWrapper(p *WrapPlugins, next apiHandler, any ...interface{}) func(*gin.Context) {
+func HTTPAPIWrapper(p *WrapPlugins, next apiHandler, args ...interface{}) func(*gin.Context) {
 	return func(c *gin.Context) {
 		var start time.Time
 		var m *APIMetric
@@ -47,10 +51,10 @@ func HTTPAPIWrapper(p *WrapPlugins, next apiHandler, any ...interface{}) func(*g
 			}
 		}
 
-		if res, err := next(c.Writer, c.Request, any...); err != nil {
+		if res, err := next(c.Writer, c.Request, args...); err != nil {
 			HttpErr(c, err)
 		} else {
-			HttpOK.WriteBody(c, res)
+			HTTPOK.WriteBody(c, res)
 		}
 
 		if m != nil {

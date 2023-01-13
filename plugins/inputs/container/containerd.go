@@ -399,7 +399,7 @@ func newContainerdObject(info *containers.Container) *containerdObject {
 func isPauseContainerd(info *containers.Container) bool {
 	_, imageShortName, _ := ParseImage(info.Image)
 	// ex: pause@sha256
-	return strings.HasPrefix(imageShortName, "pause")
+	return strings.Contains(imageShortName, "pause")
 }
 
 type containerdMetric struct {

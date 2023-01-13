@@ -145,7 +145,7 @@ questions:
 
 #Kube Metrics Server
 - variable: MetricsServerEnabled
-  default: true
+  default: false
   description: "Create a metrics-server deployment"
   type: boolean
   label: Deployment KubeState Metrics Server Deployment

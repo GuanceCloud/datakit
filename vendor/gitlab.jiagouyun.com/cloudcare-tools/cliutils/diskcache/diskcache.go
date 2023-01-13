@@ -1,3 +1,9 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+// Package diskcache is a simple local-disk cache implements.
 package diskcache
 
 import (
@@ -37,8 +43,8 @@ func defaultOpt() *Option {
 		BatchSize:   20 * 1024 * 1024,
 		MaxDataSize: 0, // not set
 
-		DirPerms:  0750,
-		FilePerms: 0640,
+		DirPerms:  0o750,
+		FilePerms: 0o640,
 	}
 }
 
@@ -81,13 +87,12 @@ type Option struct {
 	// NoSync if enabled, may cause data missing, default false
 	NoSync bool
 
-	// File permisions, default 0750/0640
+	// File permission, default 0750/0640
 	DirPerms, FilePerms os.FileMode
 }
 
-// Open init and create a new disk cache
+// Open init and create a new disk cache.
 func Open(path string, opt *Option) (*DiskCache, error) {
-
 	l = logger.SLogger("diskcache")
 
 	c := &DiskCache{
@@ -107,11 +112,11 @@ func Open(path string, opt *Option) (*DiskCache, error) {
 	c.opt.syncEnv()
 
 	if c.opt.DirPerms == 0 {
-		opt.DirPerms = 0755
+		opt.DirPerms = 0o755
 	}
 
 	if c.opt.FilePerms == 0 {
-		opt.FilePerms = 0640
+		opt.FilePerms = 0o640
 	}
 
 	if c.opt.BatchSize == 0 {
@@ -164,7 +169,7 @@ func Open(path string, opt *Option) (*DiskCache, error) {
 	return c, nil
 }
 
-// Close reclame fd resources
+// Close reclame fd resources.
 func (c *DiskCache) Close() error {
 	c.rwlock.Lock()
 	defer c.rwlock.Unlock()
@@ -229,17 +234,17 @@ func (c *DiskCache) Put(data []byte) error {
 	return nil
 }
 
-// Fn is the handler to eat cache from disk
+// Fn is the handler to eat cache from disk.
 type Fn func([]byte) error
 
 // Get fetch new data from disk cache, then passing to @fn
 // if any error occurred during call @fn, the reading data is
-// ignored, and will not read again
+// ignored, and will not read again.
 func (c *DiskCache) Get(fn Fn) error {
 	c.rlock.Lock()
 	defer c.rlock.Unlock()
 
-	// wakeup sleeping write file, rotate it for successing reading!
+	// wakeup sleeping write file, rotate it for succession reading!
 	if time.Since(c.wfdCreated) > time.Second*3 && c.curBatchSize > 0 {
 		l.Debugf("####################### wakeup %s(%d bytes), global size: %d",
 			c.curWriteFile, c.curBatchSize, c.size)

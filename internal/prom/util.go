@@ -20,6 +20,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
+const statusInfo = "INFO"
+
 func (p *Prom) getMetricTypeName(familyType dto.MetricType) string {
 	var metricTypeName string
 	switch familyType {
@@ -33,6 +35,9 @@ func (p *Prom) getMetricTypeName(familyType dto.MetricType) string {
 		metricTypeName = "summary"
 	case dto.MetricType_UNTYPED:
 		metricTypeName = "untyped"
+	case dto.MetricType_GAUGE_HISTOGRAM:
+		// TODO
+		// passed lint
 	}
 	return metricTypeName
 }
@@ -374,10 +379,13 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 				fields := map[string]interface{}{
 					fieldName: v,
 				}
+				if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+					fields["status"] = statusInfo
+				}
 				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
+					pt, err := point.NewPoint(measurementName, tags, fields, p.opt.pointOpt)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -392,11 +400,13 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 					fieldName + "_count": float64(m.GetSummary().GetSampleCount()),
 					fieldName + "_sum":   m.GetSummary().GetSampleSum(),
 				}
-
+				if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+					fields["status"] = statusInfo
+				}
 				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
+					pt, err := point.NewPoint(measurementName, tags, fields, p.opt.pointOpt)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -408,12 +418,15 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 					fields := map[string]interface{}{
 						fieldName: q.GetValue(),
 					}
+					if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+						fields["status"] = statusInfo
+					}
 
 					tags := p.getTags(m.GetLabel(), measurementName, u)
 					tags["quantile"] = fmt.Sprint(q.GetQuantile())
 
 					if !p.tagKVMatched(tags) {
-						pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
+						pt, err := point.NewPoint(measurementName, tags, fields, p.opt.pointOpt)
 						if err != nil {
 							lastErr = err
 						} else {
@@ -429,11 +442,14 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 					fieldName + "_count": float64(m.GetHistogram().GetSampleCount()),
 					fieldName + "_sum":   m.GetHistogram().GetSampleSum(),
 				}
+				if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+					fields["status"] = statusInfo
+				}
 
 				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
+					pt, err := point.NewPoint(measurementName, tags, fields, p.opt.pointOpt)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -445,11 +461,14 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 					fields := map[string]interface{}{
 						fieldName + "_bucket": b.GetCumulativeCount(),
 					}
+					if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+						fields["status"] = statusInfo
+					}
 
 					tags := p.getTagsWithLE(m.GetLabel(), measurementName, b)
 
 					if !p.tagKVMatched(tags) {
-						pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
+						pt, err := point.NewPoint(measurementName, tags, fields, p.opt.pointOpt)
 						if err != nil {
 							lastErr = err
 						} else {
@@ -458,6 +477,9 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 					}
 				}
 			}
+		case dto.MetricType_GAUGE_HISTOGRAM:
+			// TODO
+			// passed lint
 		}
 	}
 	if lastErr != nil {

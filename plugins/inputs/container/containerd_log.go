@@ -96,6 +96,7 @@ func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
 		sourceMultilineMap:    c.ipt.LoggingSourceMultilineMap,
 		autoMultilinePatterns: c.ipt.getAutoMultilinePatterns(),
 		extractK8sLabelAsTags: c.ipt.ExtractK8sLabelAsTags,
+		configKey:             containerLogConfigKey,
 	}
 
 	if n := status.GetImage(); n != nil {

@@ -21,7 +21,7 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
     - [Statsd](statsd.md)
     - [Fluentd](logstreaming.md)
     - [Filebeats](beats_output.md)
-    - [Function](../dataflux-func/write-data-via-datakit.md)
+    - [Function](https://func.guance.com/doc/practice-write-data-via-datakit/){:target="_blank"}
     - Tracing 相关
         - [OpenTelemetry](opentelemetry.md)
         - [DDTrace](ddtrace.md)

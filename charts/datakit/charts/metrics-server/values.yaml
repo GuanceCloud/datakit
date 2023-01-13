@@ -3,9 +3,9 @@
 # Declare variables to be passed into your templates.
 
 image:
-  repository: docker.io/bitnami/metrics-server
+  repository: pubrepo.guance.com/googleimages/metrics-server
   # Overrides the image tag whose default is v{{ .Chart.AppVersion }}
-  tag: "0.6.1"
+  tag: "v0.6.2"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []

@@ -79,6 +79,7 @@ var OtherDocs = map[string]bool{
 	"profile-java":                       true,
 	"profile-python":                     true,
 	"profile-go":                         true,
+	"profile-cpp":                        true,
 	"prometheus":                         true,
 	"rum":                                true,
 	"sec-checker":                        true,

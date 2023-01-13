@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 //go:build !windows
 // +build !windows
 
@@ -24,7 +29,7 @@ type receivePacket struct {
 	buf            []byte
 }
 
-// traceroute specified host with max hops and timeout
+// Traceroute specified host with max hops and timeout.
 type Traceroute struct {
 	Host    string
 	Hops    int
@@ -43,20 +48,20 @@ type Traceroute struct {
 func (t *Traceroute) init() {
 	if t.Hops <= 0 {
 		t.Hops = 30
-	} else if t.Hops > MAX_HOPS {
-		t.Hops = MAX_HOPS
+	} else if t.Hops > MaxHops {
+		t.Hops = MaxHops
 	}
 
 	if t.Retry <= 0 {
 		t.Retry = 3
-	} else if t.Retry > MAX_RETRY {
-		t.Retry = MAX_RETRY
+	} else if t.Retry > MaxRetry {
+		t.Retry = MaxRetry
 	}
 
 	if t.Timeout <= 0 {
 		t.Timeout = 1 * time.Second
-	} else if t.Timeout > MAX_TIMEOUT {
-		t.Timeout = MAX_TIMEOUT
+	} else if t.Timeout > MaxTimeout {
+		t.Timeout = MaxTimeout
 	}
 
 	t.routes = make([]*Route, 0)
@@ -69,10 +74,10 @@ func (t *Traceroute) init() {
 	t.id = t.getRandomID()
 }
 
-// getRandomID generate random id, max 60000
+// getRandomID generate random id, max 60000.
 func (t *Traceroute) getRandomID() uint32 {
 	rand.Seed(time.Now().UnixNano())
-	return uint32(rand.Intn(60000))
+	return uint32(rand.Intn(60000)) //nolint:gosec
 }
 
 func (t *Traceroute) Run() error {
@@ -148,7 +153,6 @@ func (t *Traceroute) startTrace(ip net.IP) error {
 
 					responseTimes = append(responseTimes, float64(icmpResponse.ResponseTime.Microseconds()))
 				}
-
 			}
 
 			routeItems = append(routeItems, routeItem)
@@ -171,7 +175,6 @@ func (t *Traceroute) startTrace(ip net.IP) error {
 		if isReply {
 			return nil
 		}
-
 	}
 
 	return nil
@@ -194,7 +197,6 @@ func (t *Traceroute) dealPacket() {
 						continue
 					}
 					msg, err := icmp.ParseMessage(1, p.buf)
-
 					if err != nil {
 						continue
 					}
@@ -205,7 +207,6 @@ func (t *Traceroute) dealPacket() {
 						if echo.ID != packet.ID {
 							continue
 						}
-
 					} else {
 						icmpData := t.getReplyData(msg)
 						if len(icmpData) < ipv4.HeaderLen {
@@ -230,7 +231,6 @@ func (t *Traceroute) dealPacket() {
 
 								packetID = header.FlowLabel
 							}
-
 						}()
 						if packetID != packet.ID {
 							continue
@@ -241,21 +241,22 @@ func (t *Traceroute) dealPacket() {
 					break
 				}
 			}
-
 		}
 	}
-
 }
 
 func (t *Traceroute) listenICMP() error {
 	var addr *net.IPAddr
 	conn, err := net.ListenIP("ip4:icmp", addr)
-
 	if err != nil {
 		return err
 	}
 
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			_ = err // pass
+		}
+	}()
 
 	go t.dealPacket()
 
@@ -273,17 +274,20 @@ func (t *Traceroute) listenICMP() error {
 			deadLine = time.Now().Add(t.Timeout)
 		}
 
-		conn.SetDeadline(deadLine)
+		if err := conn.SetDeadline(deadLine); err != nil {
+			return err
+		}
 
-		n, from, _ := conn.ReadFromIP(buf)
-
-		t.receivePacketsCh <- &receivePacket{
-			from:           from,
-			packetRecvTime: time.Now(),
-			buf:            buf[:n],
+		if n, from, err := conn.ReadFromIP(buf); err != nil {
+			return err
+		} else {
+			t.receivePacketsCh <- &receivePacket{
+				from:           from,
+				packetRecvTime: time.Now(),
+				buf:            buf[:n],
+			}
 		}
 	}
-
 }
 
 func (t *Traceroute) getReplyData(msg *icmp.Message) []byte {
@@ -332,7 +336,6 @@ func (t *Traceroute) sendICMP(ip net.IP, ttl int) error {
 	}
 
 	buf, err := ipHeader.Marshal()
-
 	if err != nil {
 		return err
 	}
@@ -340,11 +343,14 @@ func (t *Traceroute) sendICMP(ip net.IP, ttl int) error {
 	buf = append(buf, p...)
 
 	conn, err := net.ListenIP("ip4:icmp", nil)
-
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			_ = err // pass
+		}
+	}()
 
 	raw, err := conn.SyscallConn()
 	if err != nil {
@@ -401,5 +407,5 @@ func TracerouteIP(ip string, opt *TracerouteOption) (routes []*Route, err error)
 
 	routes = traceroute.routes
 
-	return
+	return routes, err
 }

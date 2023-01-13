@@ -149,8 +149,8 @@ DD_XXX=<env-value> DD_YYY=<env-value> ./my-app
 | `DD_TRACE_ENABLED`        | `true`      | 开启 trace 开关。如果手动将该开关关闭，则不会产生任何 trace 数据                                                                                                                                                                                                                                                                                                                                                                                     |
 | `DD_SERVICE_MAPPING`      | -           | 动态重命名服务名，各个服务名映射之间可用空格和英文逗号分割，如 `mysql:mysql-service-name,postgres:postgres-service-name`，`mysql:mysql-service-name postgres:postgres-service-name`                                                                                                                                                                                                                                                                  |
 
-[1]: /datakit/datakit-install/
-[2]: /datakit/datakit-service-how-to/
-[3]: /datakit/ddtrace/#config
-[4]: /datakit/datakit-conf/#config-http-server
-[5]: /datakit/statsd/
+[1]: datakit-install.md
+[2]: datakit-service-how-to.md
+[3]: ddtrace.md#config
+[4]: datakit-conf.md#config-http-server
+[5]: statsd.md

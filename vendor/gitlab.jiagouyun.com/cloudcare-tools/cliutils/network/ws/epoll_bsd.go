@@ -1,8 +1,15 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+//go:build darwin || netbsd || freebsd || openbsd || dragonfly
 // +build darwin netbsd freebsd openbsd dragonfly
 
 package ws
 
 import (
+	"errors"
 	"net"
 	"sync"
 	"syscall"
@@ -27,7 +34,8 @@ func MkEpoll() (*epoll, error) {
 			Ident:  0,
 			Filter: syscall.EVFILT_USER,
 			Flags:  syscall.EV_ADD | syscall.EV_CLEAR,
-		}}, nil, nil)
+		},
+	}, nil, nil)
 
 	if err != nil {
 		return nil, err
@@ -71,7 +79,7 @@ func (e *epoll) Remove(conn net.Conn) error {
 		ident := uint64(fd)
 		for _, ke := range e.changes {
 			if ke.Ident != ident {
-				changes = append(changes)
+				changes = append(changes, ke)
 			}
 		}
 
@@ -93,7 +101,7 @@ retry:
 
 	n, err := syscall.Kevent(e.fd, changes, events, &e.ts)
 	if err != nil {
-		if err == syscall.EINTR {
+		if errors.Is(err, syscall.EINTR) {
 			goto retry
 		}
 
@@ -107,7 +115,9 @@ retry:
 	for i := 0; i < n; i++ {
 		conn := e.connections[int(events[i].Ident)]
 		if (events[i].Flags & syscall.EV_EOF) == syscall.EV_EOF {
-			conn.Close()
+			if err := conn.Close(); err != nil {
+				l.Warnf("Close: %s, ignored", err)
+			}
 		}
 		connections = append(connections, conn)
 	}

@@ -61,6 +61,7 @@ type Input struct {
 	WarnOnMissingKeys bool              `toml:"warn_on_missing_keys"`
 	CommandStats      bool              `toml:"command_stats"`
 	Slowlog           bool              `toml:"slow_log"`
+	AllSlowLog        bool              `toml:"all_slow_log"`
 	Tags              map[string]string `toml:"tags"`
 	Keys              []string          `toml:"keys"`
 	DBS               []int             `toml:"dbs"`
@@ -85,6 +86,8 @@ type Input struct {
 	cpuUsage        redisCPUUsage
 
 	semStop *cliutils.Sem // start stop signal
+
+	startUpUnix int64
 }
 
 type redisCPUUsage struct {
@@ -183,8 +186,10 @@ func (i *Input) Collect() error {
 			}
 		}
 	}
-	if err := i.getSlowData(); err != nil {
-		return err
+	if i.Slowlog {
+		if err := i.getSlowData(); err != nil {
+			return err
+		}
 	}
 
 	if err := i.GetLatencyData(); err != nil {
@@ -303,7 +308,7 @@ func (i *Input) RunPipeline() {
 
 func (i *Input) Run() {
 	l = logger.SLogger("redis")
-
+	i.startUpUnix = time.Now().Unix()
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	tick := time.NewTicker(i.Interval.Duration)

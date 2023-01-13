@@ -64,6 +64,8 @@ type k8sClient struct {
 	namespace     string
 	metricsClient k8sMetricsClientX
 
+	restConfig *rest.Config
+
 	*kubernetes.Clientset
 	guanceV1beta1          *kubev1guancebeta1.GuanceV1Client
 	prometheusMonitoringV1 *kubev1prometheusclient.Clientset
@@ -149,19 +151,21 @@ func newK8sClient(restConfig *rest.Config) (*k8sClient, error) {
 		return nil, err
 	}
 
-	k := &k8sClient{
+	return &k8sClient{
+		restConfig:             restConfig,
 		Clientset:              config,
 		guanceV1beta1:          guanceClient,
 		prometheusMonitoringV1: prometheusClient,
-	}
+	}, nil
+}
 
-	if c, err := newK8sMetricsClient(restConfig); err != nil {
-		l.Warnf("failed to connect k8s metrics-server, error: %s", err)
-	} else {
-		k.metricsClient = c
+func (c *k8sClient) kubeStateMetrics() error {
+	client, err := newK8sMetricsClient(c.restConfig)
+	if err != nil {
+		return err
 	}
-
-	return k, nil
+	c.metricsClient = client
+	return nil
 }
 
 //nolint:deadcode,unused

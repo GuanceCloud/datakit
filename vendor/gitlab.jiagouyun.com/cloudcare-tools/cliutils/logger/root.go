@@ -1,3 +1,9 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+// Package logger wrapped zap as a basic logging implement.
 package logger
 
 import (
@@ -52,7 +58,7 @@ func doSetGlobalRootLogger(fpath, level string, options int) error {
 	return nil
 }
 
-// Deprecated: use InitRoot() instead
+// SetGlobalRootLogger deprecated, use InitRoot() instead.
 func SetGlobalRootLogger(fpath, level string, options int) error {
 	return doSetGlobalRootLogger(fpath, level, options)
 }
@@ -100,7 +106,6 @@ func InitRoot(opt *Option) error {
 }
 
 func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
-
 	if fpath == "" {
 		return newNormalRootLogger(fpath, level, options)
 	}

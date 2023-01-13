@@ -5,6 +5,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -78,6 +80,7 @@ type LifecycleRule struct {
 	// Deprecated: Use NonVersionTransitions instead.
 	NonVersionTransition  *LifecycleVersionTransition  `xml:"-"` // NonVersionTransition is not suggested to use
 	NonVersionTransitions []LifecycleVersionTransition `xml:"NoncurrentVersionTransition,omitempty"`
+	Filter                *LifecycleFilter             `xml:Filter,omitempty` //condition parameter container of this exclusion rule
 }
 
 // LifecycleExpiration defines the rule's expiration property
@@ -91,10 +94,13 @@ type LifecycleExpiration struct {
 
 // LifecycleTransition defines the rule's transition propery
 type LifecycleTransition struct {
-	XMLName           xml.Name         `xml:"Transition"`
-	Days              int              `xml:"Days,omitempty"`              // Relative transition time: The transition time in days after the last modified time
-	CreatedBeforeDate string           `xml:"CreatedBeforeDate,omitempty"` // objects created before the date will be expired
-	StorageClass      StorageClassType `xml:"StorageClass,omitempty"`      // Specifies the target storage type
+	XMLName              xml.Name         `xml:"Transition"`
+	Days                 int              `xml:"Days,omitempty"`                 // Relative transition time: The transition time in days after the last modified time
+	CreatedBeforeDate    string           `xml:"CreatedBeforeDate,omitempty"`    // objects created before the date will be expired
+	StorageClass         StorageClassType `xml:"StorageClass,omitempty"`         // Specifies the target storage type
+	IsAccessTime         *bool            `xml:"IsAccessTime,omitempty"`         // access time
+	ReturnToStdWhenVisit *bool            `xml:"ReturnToStdWhenVisit,omitempty"` // Return To Std When Visit
+	AllowSmallFile       *bool            `xml:AllowSmallFile,omitempty`
 }
 
 // LifecycleAbortMultipartUpload defines the rule's abort multipart upload propery
@@ -112,9 +118,25 @@ type LifecycleVersionExpiration struct {
 
 // LifecycleVersionTransition defines the rule's NoncurrentVersionTransition propery
 type LifecycleVersionTransition struct {
-	XMLName        xml.Name         `xml:"NoncurrentVersionTransition"`
-	NoncurrentDays int              `xml:"NoncurrentDays,omitempty"` // How many days after the Object becomes a non-current version
-	StorageClass   StorageClassType `xml:"StorageClass,omitempty"`
+	XMLName              xml.Name         `xml:"NoncurrentVersionTransition"`
+	NoncurrentDays       int              `xml:"NoncurrentDays,omitempty"` // How many days after the Object becomes a non-current version
+	StorageClass         StorageClassType `xml:"StorageClass,omitempty"`
+	IsAccessTime         *bool            `xml:"IsAccessTime,omitempty"`         // access time
+	ReturnToStdWhenVisit *bool            `xml:"ReturnToStdWhenVisit,omitempty"` // Return To Std When Visit
+	AllowSmallFile       *bool            `xml:AllowSmallFile,omitempty`
+}
+
+// LifecycleFilter defines the rule's Filter propery
+type LifecycleFilter struct {
+	XMLName xml.Name             `xml:"Filter"`
+	Not     []LifecycleFilterNot `xml:"Not,omitempty"`
+}
+
+// LifecycleFilterNot defines the rule's Filter Not propery
+type LifecycleFilterNot struct {
+	XMLName xml.Name `xml:"Not"`
+	Prefix  string   `xml:"Prefix,omitempty"` //Object prefix applicable to this exclusion rule
+	Tag     *Tag     `xml:"Tag,omitempty"`    //the tags applicable to this exclusion rule
 }
 
 const iso8601DateFormat = "2006-01-02T15:04:05.000Z"
@@ -321,6 +343,7 @@ type GetBucketInfoResult struct {
 type BucketInfo struct {
 	XMLName                xml.Name  `xml:"Bucket"`
 	Name                   string    `xml:"Name"`                     // Bucket name
+	AccessMonitor          string    `xml:"AccessMonitor"`            // Bucket Access Monitor
 	Location               string    `xml:"Location"`                 // Bucket datacenter
 	CreationDate           time.Time `xml:"CreationDate"`             // Bucket creation time
 	ExtranetEndpoint       string    `xml:"ExtranetEndpoint"`         // Bucket external endpoint
@@ -768,6 +791,33 @@ func decodeListMultipartUploadResult(result *ListMultipartUploadResult) error {
 	return nil
 }
 
+// marshalDeleteObjectToXml deleteXML struct to xml
+func marshalDeleteObjectToXml(dxml deleteXML) string {
+	var builder strings.Builder
+	builder.WriteString("<Delete>")
+	builder.WriteString("<Quiet>")
+	builder.WriteString(strconv.FormatBool(dxml.Quiet))
+	builder.WriteString("</Quiet>")
+	if len(dxml.Objects) > 0 {
+		for _, object := range dxml.Objects {
+			builder.WriteString("<Object>")
+			if object.Key != "" {
+				builder.WriteString("<Key>")
+				builder.WriteString(EscapeXml(object.Key))
+				builder.WriteString("</Key>")
+			}
+			if object.VersionId != "" {
+				builder.WriteString("<VersionId>")
+				builder.WriteString(object.VersionId)
+				builder.WriteString("</VersionId>")
+			}
+			builder.WriteString("</Object>")
+		}
+	}
+	builder.WriteString("</Delete>")
+	return builder.String()
+}
+
 // createBucketConfiguration defines the configuration for creating a bucket.
 type createBucketConfiguration struct {
 	XMLName            xml.Name           `xml:"CreateBucketConfiguration"`
@@ -927,7 +977,8 @@ type BucketStat struct {
 	InfrequentAccessStorage     int64    `xml:"InfrequentAccessStorage"`
 	InfrequentAccessRealStorage int64    `xml:"InfrequentAccessRealStorage"`
 	InfrequentAccessObjectCount int64    `xml:"InfrequentAccessObjectCount"`
-	ArchiveStorage              int64    `xml:"ArchiveRealStorage"`
+	ArchiveStorage              int64    `xml:"ArchiveStorage"`
+	ArchiveRealStorage          int64    `xml:"ArchiveRealStorage"`
 	ArchiveObjectCount          int64    `xml:"ArchiveObjectCount"`
 	ColdArchiveStorage          int64    `xml:"ColdArchiveStorage"`
 	ColdArchiveRealStorage      int64    `xml:"ColdArchiveRealStorage"`
@@ -1349,7 +1400,7 @@ type MetaQueryAggregationRequest struct {
 	Operation string   `xml:"Operation,omitempty"`
 }
 
-//MetaQueryAggregationResponse defines meta query aggregation response
+// MetaQueryAggregationResponse defines meta query aggregation response
 type MetaQueryAggregationResponse struct {
 	XMLName   xml.Name         `xml:"Aggregation"`
 	Field     string           `xml:"Field,omitempty"`
@@ -1406,4 +1457,16 @@ type MetaQueryGroup struct {
 	XMLName xml.Name `xml:"Group"`
 	Value   string   `xml:"Value"`
 	Count   int64    `xml:"Count"`
+}
+
+//GetBucketAccessMonitorResult define config for get bucket access monitor
+type GetBucketAccessMonitorResult BucketAccessMonitorXml
+
+//BucketAccessMonitor define the xml of bucket access monitor config
+type PutBucketAccessMonitor BucketAccessMonitorXml
+
+// GetBucketAccessMonitorXml define get bucket access monitor information
+type BucketAccessMonitorXml struct {
+	XMLName xml.Name `xml:"AccessMonitorConfiguration"`
+	Status  string   `xml:"Status"` // access monitor status
 }

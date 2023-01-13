@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package dialtesting
 
 import (
@@ -64,7 +69,7 @@ type WebsocketTask struct {
 	UpdateTime       int64                   `json:"update_time,omitempty"`
 
 	reqCost         time.Duration
-	reqDnsCost      time.Duration
+	reqDNSCost      time.Duration
 	responseMessage string
 	resp            *http.Response
 	parsedURL       *url.URL
@@ -97,7 +102,7 @@ func (t *WebsocketTask) init(debug bool) error {
 		t.ticker = time.NewTicker(du)
 	}
 
-	if strings.ToLower(t.CurStatus) == StatusStop {
+	if strings.EqualFold(t.CurStatus, StatusStop) {
 		return nil
 	}
 
@@ -122,7 +127,6 @@ func (t *WebsocketTask) init(debug bool) error {
 				if err != nil {
 					return err
 				}
-
 			}
 		}
 
@@ -131,7 +135,6 @@ func (t *WebsocketTask) init(debug bool) error {
 			if err != nil {
 				return err
 			}
-
 		}
 	}
 
@@ -181,7 +184,7 @@ func (t *WebsocketTask) CheckResult() (reasons []string, succFlag bool) {
 			for _, v := range chk.ResponseTime {
 				reqCost := t.reqCost
 				if v.IsContainDNS {
-					reqCost += t.reqDnsCost
+					reqCost += t.reqDNSCost
 				}
 
 				if reqCost > v.targetTime && v.targetTime > 0 {
@@ -216,10 +219,9 @@ func (t *WebsocketTask) CheckResult() (reasons []string, succFlag bool) {
 				}
 			}
 		}
-
 	}
 
-	return
+	return reasons, succFlag
 }
 
 func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
@@ -230,8 +232,8 @@ func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]
 		"proto":  "websocket",
 	}
 
-	responseTime := int64(t.reqCost+t.reqDnsCost) / 1000        // us
-	responseTimeWithDNS := int64(t.reqCost+t.reqDnsCost) / 1000 // us
+	responseTime := int64(t.reqCost+t.reqDNSCost) / 1000        // us
+	responseTimeWithDNS := int64(t.reqCost+t.reqDNSCost) / 1000 // us
 
 	fields = map[string]interface{}{
 		"response_time":          responseTime,
@@ -291,7 +293,7 @@ func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]
 		fields[`message`] = string(data)
 	}
 
-	return
+	return tags, fields
 }
 
 func (t *WebsocketTask) MetricName() string {
@@ -322,7 +324,7 @@ func (t *WebsocketTask) Run() error {
 				t.reqError = err.Error()
 				return err
 			} else {
-				t.reqDnsCost = time.Since(start)
+				t.reqDNSCost = time.Since(start)
 				hostIP = ips[0] // TODO: support mutiple ip for one host
 			}
 		}
@@ -332,23 +334,25 @@ func (t *WebsocketTask) Run() error {
 
 	t.parsedURL.Host = net.JoinHostPort(hostIP.String(), t.parsedURL.Port())
 
-	//ingore tls verify
 	if t.parsedURL.Scheme == "wss" {
-		websocket.DefaultDialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		websocket.DefaultDialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // nolint:gosec
 	}
 
 	start := time.Now()
 
 	c, resp, err := websocket.DefaultDialer.DialContext(ctx, t.parsedURL.String(), header)
-
 	if err != nil {
 		t.reqError = err.Error()
-		t.reqDnsCost = 0
+		t.reqDNSCost = 0
 		return err
 	}
 
 	t.reqCost = time.Since(start)
-	defer c.Close()
+	defer func() {
+		if err := c.Close(); err != nil {
+			_ = err // pass
+		}
+	}()
 
 	t.resp = resp
 
@@ -372,7 +376,6 @@ func (t *WebsocketTask) getMessage(c *websocket.Conn) {
 
 	// close error ignore
 	_ = c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-
 }
 
 func (t *WebsocketTask) getHeader() http.Header {
@@ -416,8 +419,8 @@ func (t *WebsocketTask) SetOwnerExternalID(exid string) {
 	t.OwnerExternalID = exid
 }
 
-func (t *WebsocketTask) SetRegionId(regionId string) {
-	t.Region = regionId
+func (t *WebsocketTask) SetRegionID(regionID string) {
+	t.Region = regionID
 }
 
 func (t *WebsocketTask) SetAk(ak string) {

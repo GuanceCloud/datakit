@@ -189,7 +189,7 @@ drop_origin_data()
 DataKit 中 grok 模式可以分为两类：
 
 - 全局模式：*pattern* 目录下的模式文件都是全局模式，所有 pipeline 脚本都可使用
-- 局部模式：在 pipeline 脚本中通过 [add_pattern()](#fn-add-pattern) 函数新增的模式为局部模式，只针对当前 pipeline 脚本有效
+- 局部模式：在 pipeline 脚本中通过 [add_pattern()](pipeline.md#fn-add-pattern) 函数新增的模式为局部模式，只针对当前 pipeline 脚本有效
 
 以下以 Nginx access-log 为例，说明一下如何编写对应的 grok，原始 nginx access log 如下：
 
@@ -230,7 +230,7 @@ group_between(status_code, [500,599], "error", status)
 default_time(time)
 ```
 
-优化之后的切割，相较于初步的单行 pattern 来说可读性更好。由于 grok 解析出的字段默认数据类型是 string，在此处指定字段的数据类型后，可以避免后续再使用 [cast()](#fn-cast) 函数来进行类型转换。
+优化之后的切割，相较于初步的单行 pattern 来说可读性更好。由于 grok 解析出的字段默认数据类型是 string，在此处指定字段的数据类型后，可以避免后续再使用 [cast()](pipeline.md#fn-cast) 函数来进行类型转换。
 
 ### grok 组合 {#grok-compose}
 
@@ -258,7 +258,7 @@ grok(_, %{time})
 ???+ attention
 
     - 如果出现同名模式，则以局部模式优先（即局部模式覆盖全局模式）
-    - pipeline 脚本中，[add_pattern()](#fn-add-pattern) 需在 [grok()](#fn-grok) 函数前面调用，否则会导致第一条数据提取失败
+    - pipeline 脚本中，[add_pattern()](pipeline.md#fn-add-pattern) 需在 [grok()](pipeline.md#fn-grok) 函数前面调用，否则会导致第一条数据提取失败
 
 ### 内置的 Pattern 列表 {#builtin-patterns}
 
@@ -461,6 +461,42 @@ Pipeline 的目录搜索优先级是:
 ### 内置的 pipeline 目录 {#internal-pl}
 
 在 Datakit 的安装目录下面的 `pipeline` 目录下，目录结构如上所示。
+
+## 脚本输入数据结构 {#input-data}
+
+所有类别的数据在被 Pipeline 脚本处理前均会封装成 Point 结构，其结构大致为：
+
+```
+struct Point {
+    Name:    str
+    Tags:    map[str]str
+    Fields:  map[str]any
+    Time:    int64
+}
+```
+
+以一条 nginx 日志数据为例，其被日志采集器采集到后生成的数据作为 Pipeline 脚本的输入大致为：
+
+```
+Point {
+    Name: "nginx"
+    Tags: map[str]str {
+        "host": "your_hostname"
+    },
+    Fields: map[str]any {
+        "message": "127.0.0.1 - - [12/Jan/2023:11:51:38 +0800] \"GET / HTTP/1.1\" 200 612 \"-\" \"curl/7.81.0\""
+    },
+    Time: 1673495498000123456
+}
+```
+
+提示：
+
+- 其中 `Name` 可以通过函数 `set_measurement()` 修改。
+
+- 对于 `Tags` 和 `Fields`，任意一个 key 不能同时出现在这两个 map 中；可以在 pipeline 中通过自定义标识符或函数 `get_key()` 读取，修改 `Tags` 或 `Fields` 中 key 的值需要通过其他**内置函数**进行。其中 **`_`** 可以视为 `message` 这个 key 的别名。
+
+- 在脚本运行结束后，如果在 `Tags` 或 `Fields` 中存在名为 `time` 的 key，将被删除；当其值为 int64 类型，则将其值被赋予 Point 的 time 后删除。如果 time 为字符串，可以尝试使用函数 `default_time()` 将其转换为 int64。
 
 ## 脚本函数 {#functions}
 

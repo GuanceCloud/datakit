@@ -25,23 +25,17 @@ type clusterRole struct {
 	client    k8sClientX
 	extraTags map[string]string
 	items     []v1.ClusterRole
-	host      string
 }
 
-func newClusterRole(client k8sClientX, extraTags map[string]string, host string) *clusterRole {
+func newClusterRole(client k8sClientX, extraTags map[string]string) *clusterRole {
 	return &clusterRole{
 		client:    client,
 		extraTags: extraTags,
-		host:      host,
 	}
 }
 
 func (c *clusterRole) name() string {
 	return "cluster_role"
-}
-
-func (c *clusterRole) getHost() string {
-	return c.host
 }
 
 func (c *clusterRole) pullItems() error {
@@ -92,9 +86,6 @@ func (c *clusterRole) object(election bool) (inputsMeas, error) {
 				"create_time": item.CreationTimestamp.Time.Unix() / int64(time.Millisecond),
 			},
 			election: election,
-		}
-		if c.host != "" {
-			obj.tags["host"] = c.host
 		}
 
 		if y, err := yaml.Marshal(item); err != nil {
@@ -147,11 +138,11 @@ func (*clusterRoleObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
-		return newClusterRole(c, m, host)
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface {
+		return newClusterRole(c, m)
 	})
-	registerK8sResourceObject(func(c k8sClientX, m map[string]string, host string) k8sResourceObjectInterface {
-		return newClusterRole(c, m, host)
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface {
+		return newClusterRole(c, m)
 	})
 	registerMeasurement(&clusterRoleObject{})
 }
