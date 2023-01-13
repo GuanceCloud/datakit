@@ -6,25 +6,26 @@
 // Package register wraps history cache functions
 package register
 
-import "errors"
+import (
+	"fmt"
+	"sync"
+)
 
 var (
-	ErrInvalidRegister = errors.New("invalid register")
-	globalRegister     Register
+	globalRegister Register
+
+	initOnce sync.Once
+	//nolint
+	initErr error
 
 	assertTesting = false
 )
 
 func Init(file string) error {
-	if globalRegister != nil {
-		return nil
-	}
-	r, err := NewRegisterFileIfNotExist(file)
-	if err != nil {
-		return err
-	}
-	globalRegister = r
-	return nil
+	initOnce.Do(func() {
+		globalRegister, initErr = NewRegisterFileIfNotExist(file)
+	})
+	return initErr
 }
 
 func AssertTesting() {
@@ -36,7 +37,7 @@ func Set(key string, value *MetaData) error {
 		return nil
 	}
 	if globalRegister == nil {
-		return ErrInvalidRegister
+		return fmt.Errorf("invalid register")
 	}
 	return globalRegister.Set(key, value)
 }

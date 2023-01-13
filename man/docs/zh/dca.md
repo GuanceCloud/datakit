@@ -82,7 +82,7 @@ $ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
 
 - 测试
 
-容器运行成功后，可以通过浏览器进行访问：http://localhost:8000
+容器运行成功后，可以通过浏览器进行访问：`http://localhost:8000`
 
 ### 环境变量配置 {#envs}
 

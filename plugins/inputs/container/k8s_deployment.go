@@ -25,19 +25,13 @@ type deployment struct {
 	client    k8sClientX
 	extraTags map[string]string
 	items     []v1.Deployment
-	host      string
 }
 
-func newDeployment(client k8sClientX, extraTags map[string]string, host string) *deployment {
+func newDeployment(client k8sClientX, extraTags map[string]string) *deployment {
 	return &deployment{
 		client:    client,
 		extraTags: extraTags,
-		host:      host,
 	}
-}
-
-func (d *deployment) getHost() string {
-	return d.host
 }
 
 func (d *deployment) name() string {
@@ -77,9 +71,6 @@ func (d *deployment) metric(election bool) (inputsMeas, error) {
 				// TODO:"replicas_desired"
 			},
 			election: election,
-		}
-		if d.host != "" {
-			met.tags["host"] = d.host
 		}
 
 		if item.Spec.Strategy.RollingUpdate != nil {
@@ -122,9 +113,6 @@ func (d *deployment) object(election bool) (inputsMeas, error) {
 				"max_unavailable": 0,
 			},
 			election: election,
-		}
-		if d.host != "" {
-			obj.tags["host"] = d.host
 		}
 
 		if item.Spec.Strategy.RollingUpdate != nil {
@@ -244,11 +232,11 @@ func (*deploymentObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
-		return newDeployment(c, m, host)
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface {
+		return newDeployment(c, m)
 	})
-	registerK8sResourceObject(func(c k8sClientX, m map[string]string, host string) k8sResourceObjectInterface {
-		return newDeployment(c, m, host)
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface {
+		return newDeployment(c, m)
 	})
 	registerMeasurement(&deploymentObject{})
 	registerMeasurement(&deploymentMetric{})

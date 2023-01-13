@@ -31,7 +31,7 @@ const sampleCfg = `
 
   enable_container_metric = true
   enable_k8s_metric = true
-  enable_pod_metric = true
+  enable_pod_metric = false
   extract_k8s_label_as_tags = false
 
   ## Auto-Discovery of PrometheusMonitoring Annotations/CRDs

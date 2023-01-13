@@ -1,3 +1,9 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+// Package dialtesting defined dialtesting tasks and task implements.
 package dialtesting
 
 import (
@@ -38,7 +44,7 @@ type Task interface {
 	SetOwnerExternalID(string)
 	GetLineData() string
 
-	SetRegionId(string)
+	SetRegionID(string)
 	SetAk(string)
 	SetStatus(string)
 	SetUpdateTime(int64)

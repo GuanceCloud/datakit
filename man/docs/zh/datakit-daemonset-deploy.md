@@ -211,8 +211,8 @@ spec:
 | 环境变量名称                     | 类型        | 默认值            | 必须   | 说明                                                                                                                                                                                                        |
 | ---------:                       | ----:       | ---:              | ------ | ----                                                                                                                                                                                                        |
 | `ENV_DISABLE_404PAGE`            | bool        | -                 | 否     | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用）                                                                                                                                                        |
-| `ENV_HTTP_LISTEN`                | string      | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [DataKit 接口](apis)                                                                                                                                                           |
-| `ENV_HTTP_PUBLIC_APIS`           | string-list | 无                | 否     | 允许外部访问的 DataKit [API 列表](apis)，多个 API 之间以英文逗号分割。当 DataKit 部署在公网时，用来禁用部分 API                                                                                             |
+| `ENV_HTTP_LISTEN`                | string      | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [DataKit 接口](apis.md)                                                                                                                                                           |
+| `ENV_HTTP_PUBLIC_APIS`           | string-list | 无                | 否     | 允许外部访问的 DataKit [API 列表](apis.md)，多个 API 之间以英文逗号分割。当 DataKit 部署在公网时，用来禁用部分 API                                                                                             |
 | `ENV_HTTP_TIMEOUT`               | duration    | 30s               | 否     | 设置 9529 HTTP API 服务端超时时间 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)                                                     |
 | `ENV_HTTP_CLOSE_IDLE_CONNECTION` | bool        | -                 | 否     | 如果开启，则 9529 HTTP server 会主动关闭闲置连接（闲置时间等同于 `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental) |
 | `ENV_REQUEST_RATE_LIMIT`         | float       | 无                | 否     | 限制 9529 [API 每秒请求数](datakit-conf.md#set-http-api-limit)                                                                                                                                              |
@@ -228,11 +228,17 @@ spec:
 | ENV_CONFD_CLIENT_CA_KEYS | string | `etcdv3`或`consul` | 可选      | |
 | ENV_CONFD_CLIENT_CERT    | string | `etcdv3`或`consul` | 可选      | |
 | ENV_CONFD_CLIENT_KEY     | string | `etcdv3`或`consul`或`redis` | 可选      | |
-| ENV_CONFD_BACKEND_NODES  | string |  全部              | 后端源地址 | `[IP地址:2379,IP地址2:2379]` |
-| ENV_CONFD_PASSWORD       | string | `etcdv3`或`consul` | 可选      |  |
+| ENV_CONFD_BACKEND_NODES  | string |  全部              | 后端源地址 | `["IP地址:2379","IP地址2:2379"]` (nacos 加 http://) |
+| ENV_CONFD_PASSWORD       | string | `etcdv3`或`consul`或`nacos` | 可选      |  |
 | ENV_CONFD_SCHEME         | string | `etcdv3`或`consul` | 可选      |  |
 | ENV_CONFD_SEPARATOR      | string | `redis`            | 可选默认0 |  |
-| ENV_CONFD_USERNAME       | string | `etcdv3`或`consul` | 可选      |  |
+| ENV_CONFD_USERNAME       | string | `etcdv3`或`consul`或`nacos` | 可选      |  |
+| ENV_CONFD_ACCESS_KEY         | string | `nacos`或`aws` | 可选                    |          |
+| ENV_CONFD_SECRET_KEY         | string | `nacos`或`aws` | 可选                    |          |
+| ENV_CONFD_CIRCLE_INTERVAL    | string | `nacos`或`aws` | 可选                    | 默认 60   |
+| ENV_CONFD_CONFD_NAMESPACE    | string | `nacos` | 配置信息空间ID        | `6aa36e0e-bd57-4483-9937-e7c0ccf59599` |
+| ENV_CONFD_PIPELINE_NAMESPACE | string | `nacos` | `pipeline`信息空间ID | `d10757e6-aa0a-416f-9abf-e1e1e8423497` |
+| ENV_CONFD_REGION             | string | `aws`   | AWS 服务区           | `cn-north-1` |
 
 ### Git 配置相关环境变量 {#env-git}
 

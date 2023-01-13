@@ -1,3 +1,9 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+// Package ws wraps websocket implements among UNIX-like(Linux & macOS) platform
 package ws
 
 import (
@@ -5,7 +11,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
 	"sync"
 	"syscall"
 	"time"
@@ -59,7 +64,10 @@ func NewServer(bind, path string) (s *Server, err error) {
 func (s *Server) AddConnection(conn net.Conn) error {
 	if err := s.epoller.Add(conn); err != nil {
 		l.Errorf("epoll.Add() error: %s", err.Error())
-		conn.Close()
+
+		if err := conn.Close(); err != nil {
+			l.Warnf("Close: %s, ignored", err)
+		}
 		return err
 	}
 
@@ -94,13 +102,6 @@ func (s *Server) Start() {
 	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
 		fmt.Printf("warn: Setrlimit %+#v failed: %s\n", rLimit, err.Error())
 	}
-
-	// Enable pprof hooks
-	//go func() {
-	//	if err := http.ListenAndServe("0.0.0.0:6060", nil); err != nil {
-	//		l.Fatalf("pprof failed: %v", err)
-	//	}
-	//}()
 
 	s.wg.Add(1)
 	go func() {
@@ -139,7 +140,9 @@ func (s *Server) startEpoll() {
 		select {
 		case <-s.exit.Wait():
 			l.Debug("epoll exit.")
-			s.epoller.Close()
+			if err := s.epoller.Close(); err != nil {
+				l.Warnf("Close: %s, ignored", err)
+			}
 			return
 
 		default:
@@ -166,12 +169,12 @@ func (s *Server) startEpoll() {
 					}
 
 					l.Debugf("close cli %s", conn.RemoteAddr().String())
-					conn.Close()
-				} else {
-					if s.MsgHandler != nil {
-						if err := s.MsgHandler(s, conn, data, opcode); err != nil {
-							l.Error("s.handler() error: %s", err.Error())
-						}
+					if err := conn.Close(); err != nil {
+						l.Warnf("Close: %s, ignored", err)
+					}
+				} else if s.MsgHandler != nil {
+					if err := s.MsgHandler(s, conn, data, opcode); err != nil {
+						l.Error("s.handler() error: %s", err.Error())
 					}
 				}
 			}

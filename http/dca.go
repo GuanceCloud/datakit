@@ -188,9 +188,11 @@ func setupDcaRouter() *gin.Engine {
 	router.GET("/v1/dca/reload", dcaReload)
 	// conf
 	router.POST("/v1/dca/saveConfig", dcaSaveConfig)
+	router.DELETE("/v1/dca/deleteConfig", dcaDeleteConfig)
 	router.GET("/v1/dca/getConfig", dcaGetConfig)
 	// pipelines
 	router.GET("/v1/dca/pipelines", dcaGetPipelines)
+	router.DELETE("/v1/dca/pipelines", dcaDeletePipelines)
 	router.GET("/v1/dca/pipelines/detail", dcaGetPipelinesDetail)
 	router.POST("/v1/dca/pipelines/test", dcaTestPipelines)
 	router.POST("/v1/dca/pipelines", dcaCreatePipeline)

@@ -37,7 +37,8 @@ Profile 支持采集使用 Java, Python 和 Go 等不同语言环境下应用程
 
 - [Java](profile-java.md)
 - [Go](profile-go.md)
-- [Python](python-profiling.md)
+- [Python](profile-python.md)
+- [C/C++](profile-cpp.md)
 
 ## 指标集 {#measurements}
 
@@ -65,4 +66,3 @@ Profile 支持采集使用 Java, Python 和 Go 等不同语言环境下应用程
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
-

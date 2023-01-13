@@ -251,7 +251,6 @@ func (sl *socketLogger) feed(pending []string) {
 		ioOpt = &iod.Option{
 			PlScript: map[string]string{sl.opt.Source: sl.opt.Pipeline},
 			PlOption: &script.Option{
-				MaxFieldValLen:        maxFieldsLength,
 				DisableAddStatusField: sl.opt.DisableAddStatusField,
 				IgnoreStatus:          sl.ignorePatterns,
 			},

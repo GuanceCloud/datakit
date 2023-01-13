@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package dialtesting
 
 import (
@@ -6,12 +11,13 @@ import (
 	"time"
 )
 
-// max config
-const MAX_TIMEOUT = 10 * time.Second
-const MAX_HOPS = 60
-const MAX_RETRY = 3
+const (
+	MaxTimeout = 10 * time.Second
+	MaxHops    = 60
+	MaxRetry   = 3
+)
 
-// traceroute option
+// TracerouteOption represent traceroute option.
 type TracerouteOption struct {
 	Hops    int
 	Retry   int
@@ -20,7 +26,7 @@ type TracerouteOption struct {
 	timeout time.Duration
 }
 
-// response for sent packet, may be failed response when timeout
+// Response for sent packet, may be failed response when timeout.
 type Response struct {
 	From         net.IP
 	ResponseTime time.Duration
@@ -28,13 +34,13 @@ type Response struct {
 	fail bool
 }
 
-// each retry response
+// RouteItem  represent each retry response.
 type RouteItem struct {
 	IP           string  `json:"ip"`
 	ResponseTime float64 `json:"response_time"`
 }
 
-// route summary for each hop
+// Route is summary for each hop.
 type Route struct {
 	Total   int          `json:"total"`
 	Failed  int          `json:"failed"`
@@ -46,7 +52,7 @@ type Route struct {
 	Items   []*RouteItem `json:"items"`
 }
 
-// sent packet
+// Packet represent sent packet.
 type Packet struct {
 	ID  int
 	Dst net.IP
@@ -70,7 +76,7 @@ func mean(v []float64) float64 {
 
 func variance(v []float64) float64 {
 	var res float64 = 0
-	var m = mean(v)
+	m := mean(v)
 	var n int = len(v)
 	for i := 0; i < n; i++ {
 		res += (v[i] - m) * (v[i] - m)
@@ -80,6 +86,7 @@ func variance(v []float64) float64 {
 	}
 	return res / float64(n-1)
 }
+
 func std(v []float64) float64 {
 	if len(v) == 0 {
 		return 0

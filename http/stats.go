@@ -546,3 +546,15 @@ func apiGetDatakitStatsByType(w http.ResponseWriter, r *http.Request, x ...inter
 
 	return body, nil
 }
+
+func apiGetInputStats(w http.ResponseWriter, r *http.Request, x ...interface{}) (interface{}, error) {
+	stat := inputs.GetInput()
+
+	// var body bytes.Buffer
+	body, err := json.Marshal(stat)
+	if err != nil {
+		return nil, err
+	}
+
+	return body, nil
+}

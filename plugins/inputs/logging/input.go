@@ -75,6 +75,8 @@ const (
   ## time units are "ms", "s", "m", "h"
   ignore_dead_log = "1h"
 
+  ## use disk cache of logging
+  enable_diskcache = false
 
   [inputs.logging.tags]
   # some_tag = "some_value"
@@ -98,6 +100,7 @@ type Input struct {
 	Tags                       map[string]string `toml:"tags"`
 	BlockingMode               bool              `toml:"blocking_mode"`
 	FromBeginning              bool              `toml:"from_beginning,omitempty"`
+	EnableDiskCache            bool              `toml:"enable_diskcache,omitempty"`
 	DockerMode                 bool              `toml:"docker_mode,omitempty"`
 	IgnoreDeadLog              string            `toml:"ignore_dead_log"`
 	MinFlushInterval           time.Duration     `toml:"-"`
@@ -151,6 +154,7 @@ func (ipt *Input) Run() {
 		IgnoreDeadLog:         ignoreDuration,
 		GlobalTags:            ipt.Tags,
 		BlockingMode:          ipt.BlockingMode,
+		EnableDiskCache:       ipt.EnableDiskCache,
 		Done:                  ipt.semStop.Wait(),
 	}
 

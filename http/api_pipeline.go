@@ -77,7 +77,7 @@ type pipelineResult struct {
 }
 
 func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever ...interface{}) (interface{}, error) {
-	tid := req.Header.Get(uhttp.XTraceId)
+	tid := req.Header.Get(uhttp.XTraceID)
 
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {

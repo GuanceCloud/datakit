@@ -394,11 +394,11 @@ func (d *Input) dispatchTasks(j []byte) error {
 				l.Warnf("DNS task deprecated, ignored")
 				continue
 			case dt.ClassTCP:
-				t = &dt.TcpTask{}
+				t = &dt.TCPTask{}
 			case dt.ClassWebsocket:
 				t = &dt.WebsocketTask{}
 			case dt.ClassICMP:
-				t = &dt.IcmpTask{}
+				t = &dt.ICMPTask{}
 			case dt.ClassOther:
 				// TODO
 				l.Warnf("OTHER task deprecated, ignored")

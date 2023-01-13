@@ -77,6 +77,9 @@
     
       ## 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据
       blocking_mode = true
+
+      ## 是否开启磁盘缓存，可以有效避免采集延迟，有一定的性能开销，建议只在日志量超过 3000 条/秒再开启
+      enable_diskcache = false
     
       # 自定义 tags
       [inputs.logging.tags]
@@ -453,4 +456,4 @@ bytes * 2 * 8 /1024/1024 = xxx MBit
 - [Pipeline 调试](../developers/datakit-pl-how-to.md)
 - [Pipeline 性能测试和对比](logging-pipeline-bench.md)
 - [通过 Sidecar(logfwd) 采集容器内部日志](logfwd.md)
-- [正确使用正则表达式来配置](datakit-input-conf#debug-regex) 
+- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex) 

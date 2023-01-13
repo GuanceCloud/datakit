@@ -109,7 +109,11 @@ func (wkp *WorkerPool) Start() error {
 }
 
 func (wkp *WorkerPool) Shutdown() {
-	close(wkp.jobs)
+	select {
+	case <-wkp.jobs:
+	default:
+		close(wkp.jobs)
+	}
 	wkp.enabled = false
 }
 

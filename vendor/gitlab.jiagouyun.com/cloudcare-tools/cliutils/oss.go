@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cliutils
 
 import (
@@ -104,9 +109,7 @@ func (oc *OssCli) Upload(from, to string) error {
 		return err
 	}
 
-	size := st.Size()
-
-	if size <= oc.PartSize { // 小文件直接上传
+	if size := st.Size(); size <= oc.PartSize { // 小文件直接上传
 		if err := oc.bkt.PutObjectFromFile(to, from); err != nil {
 			oc.FailedCnt++
 			return err
@@ -148,7 +151,8 @@ func (oc *OssCli) Move(from, to string) error {
 }
 
 func (oc *OssCli) mpworker(imur *oss.InitiateMultipartUploadResult,
-	c *oss.FileChunk, from string, exit chan interface{}) (p oss.UploadPart, err error) {
+	c *oss.FileChunk, from string, exit chan interface{},
+) (p oss.UploadPart, err error) {
 	select {
 	case <-exit:
 		return

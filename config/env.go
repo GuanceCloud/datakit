@@ -364,21 +364,21 @@ func (c *Config) LoadEnvs() error {
 		}
 	}
 
-	// k8s 环境变量配置 confd 后台源
+	// k8s ENV confd
 	if backend := datakit.GetEnv("ENV_CONFD_BACKEND"); backend != "" {
 		authToken := datakit.GetEnv("ENV_CONFD_AUTH_TOKEN")
 		authType := datakit.GetEnv("ENV_CONFD_AUTH_TYPE")
-		basicAuthBool := datakit.GetEnv("ENV_CONFD_BASIC_AUTH")    // 可选
-		clientCaKeys := datakit.GetEnv("ENV_CONFD_CLIENT_CA_KEYS") // 可选
-		clientCert := datakit.GetEnv("ENV_CONFD_CLIENT_CERT")      // 可选
-		clientKey := datakit.GetEnv("ENV_CONFD_CLIENT_KEY")        // 可选
+		basicAuthBool := datakit.GetEnv("ENV_CONFD_BASIC_AUTH")
+		clientCaKeys := datakit.GetEnv("ENV_CONFD_CLIENT_CA_KEYS")
+		clientCert := datakit.GetEnv("ENV_CONFD_CLIENT_CERT")
+		clientKey := datakit.GetEnv("ENV_CONFD_CLIENT_KEY")
 		clientInsecureBool := datakit.GetEnv("ENV_CONFD_CLIENT_INSECURE")
-		backendNodesArry := datakit.GetEnv("ENV_CONFD_BACKEND_NODES") // 后端源地址
-		password := datakit.GetEnv("ENV_CONFD_PASSWORD")              // 可选
-		scheme := datakit.GetEnv("ENV_CONFD_SCHEME")                  // 可选
+		backendNodesArry := datakit.GetEnv("ENV_CONFD_BACKEND_NODES")
+		password := datakit.GetEnv("ENV_CONFD_PASSWORD")
+		scheme := datakit.GetEnv("ENV_CONFD_SCHEME")
 		table := datakit.GetEnv("ENV_CONFD_TABLE")
-		separator := datakit.GetEnv("ENV_CONFD_SEPARATOR") // 可选默认0
-		username := datakit.GetEnv("ENV_CONFD_USERNAME")   // 可选
+		separator := datakit.GetEnv("ENV_CONFD_SEPARATOR")
+		username := datakit.GetEnv("ENV_CONFD_USERNAME")
 		appID := datakit.GetEnv("ENV_CONFD_APP_ID")
 		userID := datakit.GetEnv("ENV_CONFD_USER_ID")
 		roleID := datakit.GetEnv("ENV_CONFD_ROLE_ID")
@@ -386,15 +386,20 @@ func (c *Config) LoadEnvs() error {
 		filter := datakit.GetEnv("ENV_CONFD_FILTER")
 		path := datakit.GetEnv("ENV_CONFD_PATH")
 		role := datakit.GetEnv("ENV_CONFD_ROLE")
+		accessKey := datakit.GetEnv("ENV_CONFD_ACCESS_KEY")
+		secretKey := datakit.GetEnv("ENV_CONFD_SECRET_KEY")
+		circleIntervalInt := datakit.GetEnv("ENV_CONFD_CIRCLE_INTERVAL")
+		confdNamespace := datakit.GetEnv("ENV_CONFD_CONFD_NAMESPACE")
+		pipelineNamespace := datakit.GetEnv("ENV_CONFD_PIPELINE_NAMESPACE")
+		region := datakit.GetEnv("ENV_CONFD_REGION")
 
-		// 个别数据类型需要转换
-		if i := strings.Index(backendNodesArry, "["); i > -1 {
-			backendNodesArry = backendNodesArry[i+1:]
+		// some data types need to be converted
+		var backendNodes []string
+		err := json.Unmarshal([]byte(backendNodesArry), &backendNodes)
+		if err != nil {
+			l.Warnf("parse ENV_CONFD_BACKEND_NODES: %s, ignore", err)
+			backendNodes = make([]string, 0)
 		}
-		if i := strings.Index(backendNodesArry, "]"); i > -1 {
-			backendNodesArry = backendNodesArry[:i]
-		}
-		backendNodes := strings.Split(backendNodesArry, ",")
 		basicAuth := false
 		if basicAuthBool == "true" {
 			basicAuth = true
@@ -403,30 +408,42 @@ func (c *Config) LoadEnvs() error {
 		if clientInsecureBool == "true" {
 			clientInsecure = true
 		}
+		circleInterval := 60
+		if interval, err := strconv.Atoi(circleIntervalInt); err == nil {
+			circleInterval = interval
+		} else {
+			l.Warnf("parse ENV_CONFD_CIRCLE_INTERVAL: %s, ignore", err)
+		}
 
 		c.Confds = append(c.Confds, &ConfdCfg{
-			Enable:         true,
-			Backend:        backend,
-			AuthToken:      authToken,
-			AuthType:       authType,
-			BasicAuth:      basicAuth,
-			ClientCaKeys:   clientCaKeys,
-			ClientCert:     clientCert,
-			ClientKey:      clientKey,
-			ClientInsecure: clientInsecure,
-			BackendNodes:   append(backendNodes[0:0], backendNodes...),
-			Password:       password,
-			Scheme:         scheme,
-			Table:          table,
-			Separator:      separator,
-			Username:       username,
-			AppID:          appID,
-			UserID:         userID,
-			RoleID:         roleID,
-			SecretID:       secretID,
-			Filter:         filter,
-			Path:           path,
-			Role:           role,
+			Enable:            true,
+			Backend:           backend,
+			AuthToken:         authToken,
+			AuthType:          authType,
+			BasicAuth:         basicAuth,
+			ClientCaKeys:      clientCaKeys,
+			ClientCert:        clientCert,
+			ClientKey:         clientKey,
+			ClientInsecure:    clientInsecure,
+			BackendNodes:      append(backendNodes[0:0], backendNodes...),
+			Password:          password,
+			Scheme:            scheme,
+			Table:             table,
+			Separator:         separator,
+			Username:          username,
+			AppID:             appID,
+			UserID:            userID,
+			RoleID:            roleID,
+			SecretID:          secretID,
+			Filter:            filter,
+			Path:              path,
+			Role:              role,
+			AccessKey:         accessKey,
+			SecretKey:         secretKey,
+			CircleInterval:    circleInterval,
+			ConfdNamespace:    confdNamespace,
+			PipelineNamespace: pipelineNamespace,
+			Region:            region,
 		})
 	}
 

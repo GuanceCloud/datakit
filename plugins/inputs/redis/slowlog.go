@@ -136,7 +136,7 @@ func (i *Input) getSlowData() error {
 			return fmt.Errorf("startTime expect int64, got %s", reflect.TypeOf(entry[1]).String())
 		}
 
-		m.ts = time.Unix(startTime, 0)
+		m.ts = time.Now()
 
 		var duration int64
 		if x, ok := entry[2].(int64); ok {
@@ -145,12 +145,17 @@ func (i *Input) getSlowData() error {
 			return fmt.Errorf("duration expect int64, got %s", reflect.TypeOf(entry[2]).String())
 		}
 
-		hashRes := md5.Sum([]byte(strconv.FormatInt(startTime, 10) + string(rune(id)))) //nolint:gosec
-		if i.hashMap[int32(id%int64(i.SlowlogMaxLen))] == hashRes {
-			continue // ignore old slow-logs
+		// Skip collected slowlog.
+		if !i.AllSlowLog {
+			if startTime < i.startUpUnix {
+				continue
+			}
+			hashRes := md5.Sum([]byte(strconv.FormatInt(startTime, 10) + string(rune(id)))) //nolint:gosec
+			if i.hashMap[int32(id%int64(i.SlowlogMaxLen))] == hashRes {
+				continue // ignore old slow-logs
+			}
+			i.hashMap[int32(id%int64(i.SlowlogMaxLen))] = hashRes
 		}
-
-		i.hashMap[int32(id%int64(i.SlowlogMaxLen))] = hashRes
 
 		var command string
 		if obj, ok := entry[3].([]interface{}); ok {
@@ -169,6 +174,7 @@ func (i *Input) getSlowData() error {
 			"slowlog_id":     id,
 			"command":        command,
 			"message":        command + " cost time " + strconv.FormatInt(duration, 10) + "us",
+			"status":         "WARNING",
 		}
 
 		pt, err := point.NewPoint("redis_slowlog", m.tags, m.fields,

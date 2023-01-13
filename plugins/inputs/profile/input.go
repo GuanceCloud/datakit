@@ -13,11 +13,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/http/httputil"
+	"net/textproto"
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,6 +31,7 @@ import (
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -70,6 +74,23 @@ const (
 
 #[inputs.profile.go.tags]
   # tag1 = xxxxx
+
+## pyroscope config
+#[[inputs.profile.pyroscope]]
+  ## listen url
+  #url = "0.0.0.0:4040"
+
+  ## service name
+  #service = "pyroscope-demo"
+
+  ## app env
+  #env = "dev"
+
+  ## app version
+  #version = "0.0.0"
+
+#[inputs.profile.pyroscope.tags]
+  #tag1 = xxxxx
 `
 )
 
@@ -88,6 +109,17 @@ var (
 	pointCache     *profileCache
 	pointCacheOnce sync.Once
 )
+
+type pyroscopeOpts struct {
+	URL     string            `toml:"url"`
+	Service string            `toml:"service"`
+	Env     string            `toml:"env"`
+	Version string            `toml:"version"`
+	Tags    map[string]string `toml:"tags"`
+
+	tags  map[string]string //nolint:unused
+	input *Input            //nolint:unused
+}
 
 func InitCache() {
 	pointCacheOnce.Do(func() {
@@ -303,8 +335,9 @@ func init() { //nolint:gochecknoinits
 }
 
 type Input struct {
-	Endpoints []string      `toml:"endpoints"`
-	Go        []*GoProfiler `toml:"go"`
+	Endpoints      []string         `toml:"endpoints"`
+	Go             []*GoProfiler    `toml:"go"`
+	PyroscopeLists []*pyroscopeOpts `toml:"pyroscope"`
 
 	Election bool `toml:"election"`
 	pause    bool
@@ -578,6 +611,17 @@ func (i *Input) Run() {
 		}(g)
 	}
 
+	for _, g := range i.PyroscopeLists {
+		func(g *pyroscopeOpts) {
+			group.Go(func(ctx context.Context) error {
+				if err := g.run(i); err != nil {
+					log.Errorf("pyroscope profile collect error: %s", err.Error())
+				}
+				return nil
+			})
+		}(g)
+	}
+
 	if err := group.Wait(); err != nil {
 		log.Errorf("profile collect err: %s", err.Error())
 	}
@@ -599,4 +643,194 @@ func (i *Input) Terminate() {
 	if i.semStop != nil {
 		i.semStop.Close()
 	}
+}
+
+type pushProfileDataOpt struct {
+	startTime       time.Time
+	endTime         time.Time
+	profiledatas    []*profileData
+	reportFamily    string
+	reportFormat    string
+	endPoint        string
+	inputTags       map[string]string
+	election        bool
+	inputNameSuffix string
+}
+
+type eventOpts struct {
+	Family string `toml:"family"`
+	Format string `toml:"format"`
+}
+
+func pushProfileData(opt *pushProfileDataOpt) error {
+	b := new(bytes.Buffer)
+	mw := multipart.NewWriter(b)
+
+	for _, profileData := range opt.profiledatas {
+		if ff, err := mw.CreateFormFile(profileData.fileName, profileData.fileName); err != nil {
+			continue
+		} else {
+			if _, err = io.Copy(ff, profileData.buf); err != nil {
+				continue
+			}
+		}
+	}
+
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", "form-data; name=\"event\"; filename=\"event.json\"")
+	h.Set("Content-Type", "application/json")
+	f, err := mw.CreatePart(h)
+	if err != nil {
+		return err
+	}
+	event := &eventOpts{
+		Family: opt.reportFamily,
+		Format: opt.reportFormat,
+	}
+	eventJSONString, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(f, bytes.NewReader(eventJSONString)); err != nil {
+		return err
+	}
+	if err := mw.Close(); err != nil {
+		return err
+	}
+
+	profileID := randomProfileID()
+
+	URL, err := profilingProxyURL()
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", URL.String(), b)
+	if err != nil {
+		return err
+	}
+
+	wsID, err := queryWorkSpaceUUID()
+	if err != nil {
+		log.Errorf("query workspace id fail: %s", err)
+	}
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("X-Datakit-Workspace", wsID)
+	req.Header.Set("X-Datakit-Profileid", profileID)
+	req.Header.Set("X-Datakit-Unixnano", strconv.FormatInt(opt.startTime.UnixNano(), 10))
+
+	client := &http.Client{Timeout: 15 * time.Second}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	bo, _ := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode == http.StatusOK {
+		var resp uploadResponse
+
+		if err := json.Unmarshal(bo, &resp); err != nil {
+			return fmt.Errorf("json unmarshal upload profile binary response err: %w", err)
+		}
+
+		if resp.Content == nil || resp.Content.ProfileID == "" {
+			return fmt.Errorf("fetch profile upload response profileID fail")
+		}
+
+		if err := writeProfilePoint(&writeProfilePointOpt{
+			profileID:       profileID,
+			startTime:       opt.startTime,
+			endTime:         opt.endTime,
+			reportFamily:    opt.reportFamily,
+			reportFormat:    opt.reportFormat,
+			endPoint:        opt.endPoint,
+			inputTags:       opt.inputTags,
+			election:        opt.election,
+			inputNameSuffix: opt.inputNameSuffix,
+		}); err != nil {
+			return fmt.Errorf("write profile point failed: %w", err)
+		}
+	} else {
+		return fmt.Errorf("push profile data failed, response status: %s", resp.Status)
+	}
+	return nil
+}
+
+type writeProfilePointOpt struct {
+	profileID       string
+	startTime       time.Time
+	endTime         time.Time
+	reportFamily    string
+	reportFormat    string
+	endPoint        string
+	inputTags       map[string]string
+	election        bool
+	inputNameSuffix string
+}
+
+func writeProfilePoint(opt *writeProfilePointOpt) error {
+	pointTags := map[string]string{
+		TagEndPoint: opt.endPoint,
+		TagLanguage: opt.reportFamily,
+	}
+
+	// extend custom tags
+	for k, v := range opt.inputTags {
+		if _, ok := pointTags[k]; !ok {
+			pointTags[k] = v
+		}
+	}
+
+	pointFields := map[string]interface{}{
+		FieldProfileID:  opt.profileID,
+		FieldFormat:     opt.reportFormat,
+		FieldDatakitVer: datakit.Version,
+		FieldStart:      opt.startTime.UnixNano(),
+		FieldEnd:        opt.endTime.UnixNano(),
+		FieldDuration:   opt.endTime.Sub(opt.startTime).Nanoseconds(),
+	}
+
+	pt, err := point.NewPoint(inputName, pointTags, pointFields, &point.PointOption{
+		Time:               opt.startTime,
+		Category:           datakit.Profiling,
+		Strict:             false,
+		GlobalElectionTags: opt.election,
+	})
+	if err != nil {
+		return fmt.Errorf("build profile point fail: %w", err)
+	}
+
+	err = dkio.Feed(inputName+opt.inputNameSuffix,
+		datakit.Profiling,
+		[]*point.Point{pt},
+		&dkio.Option{CollectCost: time.Since(pt.Time())})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func addTags(originTags map[string]string, newKey, newVal string) {
+	if _, ok := originTags[newKey]; !ok {
+		originTags[newKey] = newVal
+	}
+}
+
+const (
+	pyroscopeReservedPrefix = "__"
+)
+
+func getPyroscopeTagFromLabels(labels map[string]string) map[string]string {
+	out := make(map[string]string, len(labels)-1) // exclude '__name__'.
+	for k, v := range labels {
+		if strings.HasPrefix(k, pyroscopeReservedPrefix) {
+			continue
+		}
+		out[k] = v
+	}
+	return out
 }

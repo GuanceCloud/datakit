@@ -1,6 +1,13 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cliutils
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/aes"
 	"crypto/cipher"
 
@@ -162,4 +169,39 @@ func LeftStringTrim(s string, n int) string {
 	} else {
 		return s
 	}
+}
+
+func GZipStr(str string) ([]byte, error) {
+	var z bytes.Buffer
+	zw := gzip.NewWriter(&z)
+	if _, err := io.WriteString(zw, str); err != nil {
+		return nil, err
+	}
+
+	if err := zw.Flush(); err != nil {
+		return nil, err
+	}
+
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+	return z.Bytes(), nil
+}
+
+func GZip(data []byte) ([]byte, error) {
+	var z bytes.Buffer
+	zw := gzip.NewWriter(&z)
+
+	if _, err := zw.Write(data); err != nil {
+		return nil, err
+	}
+
+	if err := zw.Flush(); err != nil {
+		return nil, err
+	}
+
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+	return z.Bytes(), nil
 }

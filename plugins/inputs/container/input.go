@@ -394,7 +394,12 @@ func (i *Input) gatherK8sResourceMetric() error {
 
 	metricMeas, err := i.k8sInput.gatherResourceMetric()
 	if err != nil {
-		return err
+		l.Warnf("failed to collect k8s-metric: %s", err)
+	}
+
+	if len(metricMeas) == 0 {
+		l.Info("k8s-metric: no point")
+		return nil
 	}
 
 	return inputs.FeedMeasurement("k8s-metric", datakit.Metric, metricMeas,
@@ -406,7 +411,12 @@ func (i *Input) gatherK8sResourceObject() error {
 
 	objectMeas, err := i.k8sInput.gatherResourceObject()
 	if err != nil {
-		return err
+		l.Warnf("failed to collect k8s-object: %s", err)
+	}
+
+	if len(objectMeas) == 0 {
+		l.Infof("k8s-object: no point")
+		return nil
 	}
 
 	return inputs.FeedMeasurement("k8s-object", datakit.Object, objectMeas,
@@ -475,6 +485,16 @@ func (i *Input) setup() bool {
 				}
 				if i.containerdInput != nil {
 					i.containerdInput.k8sClient = i.k8sInput.client
+				}
+				if i.EnablePodMetric {
+					l.Info("pod-metric on")
+					if err := i.k8sInput.client.kubeStateMetrics(); err != nil {
+						l.Warnf("failed to connect kube-state-metrics server, error: %s", err)
+					} else {
+						l.Info("connect kube-state-metrics server")
+					}
+				} else {
+					l.Info("pod-metric off")
 				}
 			}
 		}

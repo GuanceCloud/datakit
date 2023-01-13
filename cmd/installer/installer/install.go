@@ -273,34 +273,25 @@ func addConfdConfig(mcPrt *config.Config) {
 		if ConfdBasicAuth == "true" {
 			basicAuth = true
 		}
-		clientInsecure := false
-		if ConfdClientInsecure == "true" {
-			clientInsecure = true
-		}
 
 		mcPrt.Confds = []*config.ConfdCfg{{
-			Enable:         true,
-			Backend:        ConfdBackend,
-			AuthToken:      ConfdAuthToken,
-			AuthType:       ConfdAuthType,
-			BasicAuth:      basicAuth,
-			ClientCaKeys:   ConfdClientCaKeys,
-			ClientCert:     ConfdClientCert,
-			ClientKey:      ConfdClientKey,
-			ClientInsecure: clientInsecure,
-			BackendNodes:   append(backendNodes[0:0], backendNodes...),
-			Password:       ConfdPassword,
-			Scheme:         ConfdScheme,
-			Table:          ConfdTable,
-			Separator:      ConfdSeparator,
-			Username:       ConfdUsername,
-			AppID:          ConfdAppID,
-			UserID:         ConfdUserID,
-			RoleID:         ConfdRoleID,
-			SecretID:       ConfdSecretID,
-			Filter:         ConfdFilter,
-			Path:           ConfdPath,
-			Role:           ConfdRole,
+			Enable:            true,
+			Backend:           ConfdBackend,
+			BasicAuth:         basicAuth,
+			ClientCaKeys:      ConfdClientCaKeys,
+			ClientCert:        ConfdClientCert,
+			ClientKey:         ConfdClientKey,
+			BackendNodes:      append(backendNodes[0:0], backendNodes...),
+			Password:          ConfdPassword,
+			Scheme:            ConfdScheme,
+			Separator:         ConfdSeparator,
+			Username:          ConfdUsername,
+			AccessKey:         ConfdAccessKey,
+			SecretKey:         ConfdSecretKey,
+			ConfdNamespace:    ConfdConfdNamespace,
+			PipelineNamespace: ConfdPipelineNamespace,
+			Region:            ConfdRegion,
+			CircleInterval:    ConfdCircleInterval,
 		}}
 	}
 }

@@ -435,7 +435,7 @@ func TestSetupDataway(t *testing.T) {
 			c := DefaultConfig()
 			c.DataWayCfg = tc.dwcfg
 
-			err := c.setupDataway()
+			err := c.SetupDataway()
 			assert.Equal(t, tc.expect, err)
 		})
 	}

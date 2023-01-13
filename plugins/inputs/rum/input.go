@@ -8,10 +8,15 @@ package rum
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -30,13 +35,18 @@ var (
 )
 
 const (
-	inputName    = "rum"
-	sampleConfig = `
+	inputName         = "rum"
+	ReplayFileMaxSize = 1 << 22 // 1024 * 1024 * 4  4Mib
+	ProxyErrorHeader  = "X-Proxy-Error"
+	sampleConfig      = `
 [[inputs.rum]]
   ## profile Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
   ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
   endpoints = ["/v1/write/rum"]
+
+  ## use to upload rum screenshot,html,etc...
+  session_replay_endpoints = ["/v1/write/rum/replay"]
 
   ## Android command-line-tools HOME
   android_cmdline_home = "/usr/local/datakit/data/rum/tools/cmdline-tools"
@@ -76,14 +86,43 @@ var (
 )
 
 type Input struct {
-	Endpoints          []string                     `toml:"endpoints"`
-	JavaHome           string                       `toml:"java_home"`
-	AndroidCmdLineHome string                       `toml:"android_cmdline_home"`
-	ProguardHome       string                       `toml:"proguard_home"`
-	NDKHome            string                       `toml:"ndk_home"`
-	AtosBinPath        string                       `toml:"atos_bin_path"`
-	WPConfig           *workerpool.WorkerPoolConfig `toml:"threads"`
-	LocalCacheConfig   *storage.StorageConfig       `toml:"storage"`
+	Endpoints              []string                     `toml:"endpoints"`
+	SessionReplayEndpoints []string                     `toml:"session_replay_endpoints"`
+	JavaHome               string                       `toml:"java_home"`
+	AndroidCmdLineHome     string                       `toml:"android_cmdline_home"`
+	ProguardHome           string                       `toml:"proguard_home"`
+	NDKHome                string                       `toml:"ndk_home"`
+	AtosBinPath            string                       `toml:"atos_bin_path"`
+	WPConfig               *workerpool.WorkerPoolConfig `toml:"threads"`
+	LocalCacheConfig       *storage.StorageConfig       `toml:"storage"`
+}
+
+var errLimitReader = errors.New("limit reader err")
+
+type limitReader struct {
+	r io.ReadCloser
+}
+
+func newLimitReader(r io.ReadCloser, max int64) io.ReadCloser {
+	return &limitReader{
+		r: http.MaxBytesReader(nil, r, max),
+	}
+}
+
+func (l *limitReader) Read(p []byte) (int, error) {
+	n, err := l.r.Read(p)
+	if err != nil {
+		if err == io.EOF { //nolint:errorlint
+			return n, err
+		}
+		// wrap the errLimitReader
+		return n, fmt.Errorf("%w: %s", errLimitReader, err)
+	}
+	return n, nil
+}
+
+func (l *limitReader) Close() error {
+	return l.r.Close()
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -94,6 +133,71 @@ func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&trace.TraceMeasurement{Name: inputName}}
+}
+
+func replayUploadHandler() (*httputil.ReverseProxy, error) {
+	endpoints := config.Cfg.DataWay.GetAvailableEndpoints()
+
+	if len(endpoints) == 0 {
+		return nil, fmt.Errorf("no available dataway endpoint now")
+	}
+
+	var (
+		validURL *url.URL
+		lastErr  error
+	)
+	for _, ep := range endpoints {
+		replayURL := ep.GetCategoryURL()[datakit.SessionReplayUpload]
+		if replayURL == "" {
+			lastErr = fmt.Errorf("empty category url")
+			continue
+		}
+		parsedURL, err := url.Parse(replayURL)
+		if err == nil {
+			validURL = parsedURL
+			break
+		}
+		lastErr = err
+	}
+
+	if validURL == nil {
+		if lastErr != nil {
+			return nil, lastErr
+		}
+		return nil, fmt.Errorf("no available dataway endpoint")
+	}
+
+	return &httputil.ReverseProxy{
+		Director: func(req *http.Request) {
+			if req.ContentLength > ReplayFileMaxSize {
+				req.URL = nil // this will trigger a proxy err, and let request complete earlier
+				req.Header.Set(ProxyErrorHeader, fmt.Sprintf("request body size [%d] exceeds the limit", req.ContentLength))
+				return
+			}
+
+			req.URL = validURL
+			req.Host = validURL.Host
+			req.Body = newLimitReader(req.Body, ReplayFileMaxSize)
+		},
+
+		ErrorHandler: func(w http.ResponseWriter, req *http.Request, err error) {
+			proxyErr := req.Header.Get(ProxyErrorHeader)
+			if proxyErr != "" {
+				log.Errorf("proxy error: %s", proxyErr)
+				w.WriteHeader(http.StatusBadRequest)
+				_, _ = w.Write([]byte(proxyErr))
+				return
+			}
+			if errors.Is(err, errLimitReader) {
+				log.Errorf("request body is too large: %s", err)
+				w.WriteHeader(http.StatusBadRequest)
+			} else {
+				log.Errorf("other rum replay err: %s", err)
+				w.WriteHeader(http.StatusBadGateway)
+			}
+			_, _ = w.Write([]byte(err.Error()))
+		},
+	}, nil
 }
 
 func (ipt *Input) RegHTTPHandler() {
@@ -154,6 +258,16 @@ func (ipt *Input) RegHTTPHandler() {
 			workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
 				storage.HTTPWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, ipt.handleRUM)))
 		log.Infof("### register RUM endpoint: %s", endpoint)
+	}
+
+	proxy, err := replayUploadHandler()
+	if err != nil {
+		log.Errorf("register rum replay upload proxy fail: %s", err)
+	} else {
+		for _, endpoint := range ipt.SessionReplayEndpoints {
+			dkhttp.RegHTTPHandler(http.MethodPost, endpoint, proxy.ServeHTTP)
+			log.Infof("register RUM replay upload endpoint: %s", endpoint)
+		}
 	}
 }
 

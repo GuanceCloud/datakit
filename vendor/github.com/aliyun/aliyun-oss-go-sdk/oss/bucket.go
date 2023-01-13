@@ -9,6 +9,7 @@ import (
 	"hash"
 	"hash/crc64"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -449,46 +450,24 @@ func (bucket Bucket) DeleteObjects(objectKeys []string, options ...Option) (Dele
 	for _, key := range objectKeys {
 		dxml.Objects = append(dxml.Objects, DeleteObject{Key: key})
 	}
-
 	isQuiet, _ := FindOption(options, deleteObjectsQuiet, false)
 	dxml.Quiet = isQuiet.(bool)
-
-	bs, err := xml.Marshal(dxml)
+	xmlData := marshalDeleteObjectToXml(dxml)
+	body, err := bucket.DeleteMultipleObjectsXml(xmlData, options...)
 	if err != nil {
 		return out, err
 	}
-	buffer := new(bytes.Buffer)
-	buffer.Write(bs)
-
-	contentType := http.DetectContentType(buffer.Bytes())
-	options = append(options, ContentType(contentType))
-	sum := md5.Sum(bs)
-	b64 := base64.StdEncoding.EncodeToString(sum[:])
-	options = append(options, ContentMD5(b64))
-
-	params := map[string]interface{}{}
-	params["delete"] = nil
-	params["encoding-type"] = "url"
-
-	resp, err := bucket.do("POST", "", params, options, buffer, nil)
-	if err != nil {
-		return out, err
-	}
-	defer resp.Body.Close()
-
 	deletedResult := DeleteObjectVersionsResult{}
 	if !dxml.Quiet {
-		if err = xmlUnmarshal(resp.Body, &deletedResult); err == nil {
+		if err = xmlUnmarshal(strings.NewReader(body), &deletedResult); err == nil {
 			err = decodeDeleteObjectsResult(&deletedResult)
 		}
 	}
-
 	// Keep compatibility:need convert to struct DeleteObjectsResult
 	out.XMLName = deletedResult.XMLName
 	for _, v := range deletedResult.DeletedObjectsDetail {
 		out.DeletedObjects = append(out.DeletedObjects, v.Key)
 	}
-
 	return out, err
 }
 
@@ -505,38 +484,48 @@ func (bucket Bucket) DeleteObjectVersions(objectVersions []DeleteObject, options
 	out := DeleteObjectVersionsResult{}
 	dxml := deleteXML{}
 	dxml.Objects = objectVersions
-
 	isQuiet, _ := FindOption(options, deleteObjectsQuiet, false)
 	dxml.Quiet = isQuiet.(bool)
-
-	bs, err := xml.Marshal(dxml)
+	xmlData := marshalDeleteObjectToXml(dxml)
+	body, err := bucket.DeleteMultipleObjectsXml(xmlData, options...)
 	if err != nil {
 		return out, err
 	}
-	buffer := new(bytes.Buffer)
-	buffer.Write(bs)
-
-	contentType := http.DetectContentType(buffer.Bytes())
-	options = append(options, ContentType(contentType))
-	sum := md5.Sum(bs)
-	b64 := base64.StdEncoding.EncodeToString(sum[:])
-	options = append(options, ContentMD5(b64))
-
-	params := map[string]interface{}{}
-	params["delete"] = nil
-	params["encoding-type"] = "url"
-
-	resp, err := bucket.do("POST", "", params, options, buffer, nil)
-	if err != nil {
-		return out, err
-	}
-	defer resp.Body.Close()
-
 	if !dxml.Quiet {
-		if err = xmlUnmarshal(resp.Body, &out); err == nil {
+		if err = xmlUnmarshal(strings.NewReader(body), &out); err == nil {
 			err = decodeDeleteObjectsResult(&out)
 		}
 	}
+	return out, err
+}
+
+// DeleteMultipleObjectsXml deletes multiple object or deletes multiple object versions.
+//
+// xmlData    the object keys and versions to delete as the xml format.
+// options    the options for deleting objects.
+//
+// string the result response body.
+// error    it's nil if no error, otherwise it's an error.
+//
+func (bucket Bucket) DeleteMultipleObjectsXml(xmlData string, options ...Option) (string, error) {
+	buffer := new(bytes.Buffer)
+	bs := []byte(xmlData)
+	buffer.Write(bs)
+	options = append(options, ContentType("application/xml"))
+	sum := md5.Sum(bs)
+	b64 := base64.StdEncoding.EncodeToString(sum[:])
+	options = append(options, ContentMD5(b64))
+	params := map[string]interface{}{}
+	params["delete"] = nil
+	params["encoding-type"] = "url"
+	resp, err := bucket.doInner("POST", "", params, options, buffer, nil)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	out := string(body)
 	return out, err
 }
 
@@ -591,7 +580,7 @@ func (bucket Bucket) ListObjects(options ...Option) (ListObjectsResult, error) {
 		return out, err
 	}
 
-	resp, err := bucket.do("GET", "", params, options, nil, nil)
+	resp, err := bucket.doInner("GET", "", params, options, nil, nil)
 	if err != nil {
 		return out, err
 	}
@@ -619,7 +608,7 @@ func (bucket Bucket) ListObjectsV2(options ...Option) (ListObjectsResultV2, erro
 		return out, err
 	}
 
-	resp, err := bucket.do("GET", "", params, options, nil, nil)
+	resp, err := bucket.doInner("GET", "", params, options, nil, nil)
 	if err != nil {
 		return out, err
 	}
@@ -645,7 +634,7 @@ func (bucket Bucket) ListObjectVersions(options ...Option) (ListObjectVersionsRe
 	}
 	params["versions"] = nil
 
-	resp, err := bucket.do("GET", "", params, options, nil, nil)
+	resp, err := bucket.doInner("GET", "", params, options, nil, nil)
 	if err != nil {
 		return out, err
 	}
@@ -901,6 +890,11 @@ func (bucket Bucket) RestoreObjectXML(objectKey, configXML string, options ...Op
 // error    it's nil if no error, otherwise it's an error object.
 //
 func (bucket Bucket) SignURL(objectKey string, method HTTPMethod, expiredInSec int64, options ...Option) (string, error) {
+	err := CheckObjectName(objectKey)
+	if err != nil {
+		return "", err
+	}
+
 	if expiredInSec < 0 {
 		return "", fmt.Errorf("invalid expires: %d, expires must bigger than 0", expiredInSec)
 	}
@@ -1191,11 +1185,6 @@ func (bucket Bucket) GetObjectTagging(objectKey string, options ...Option) (GetO
 func (bucket Bucket) DeleteObjectTagging(objectKey string, options ...Option) error {
 	params, _ := GetRawParams(options)
 	params["tagging"] = nil
-
-	if objectKey == "" {
-		return fmt.Errorf("invalid argument: object name is empty")
-	}
-
 	resp, err := bucket.do("DELETE", objectKey, params, options, nil, nil)
 	if err != nil {
 		return err
@@ -1207,7 +1196,7 @@ func (bucket Bucket) DeleteObjectTagging(objectKey string, options ...Option) er
 
 func (bucket Bucket) OptionsMethod(objectKey string, options ...Option) (http.Header, error) {
 	var out http.Header
-	resp, err := bucket.do("OPTIONS", objectKey, nil, options, nil, nil)
+	resp, err := bucket.doInner("OPTIONS", objectKey, nil, options, nil, nil)
 	if err != nil {
 		return out, err
 	}
@@ -1219,11 +1208,11 @@ func (bucket Bucket) OptionsMethod(objectKey string, options ...Option) (http.He
 // public
 func (bucket Bucket) Do(method, objectName string, params map[string]interface{}, options []Option,
 	data io.Reader, listener ProgressListener) (*Response, error) {
-	return bucket.do(method, objectName, params, options, data, listener)
+	return bucket.doInner(method, objectName, params, options, data, listener)
 }
 
 // Private
-func (bucket Bucket) do(method, objectName string, params map[string]interface{}, options []Option,
+func (bucket Bucket) doInner(method, objectName string, params map[string]interface{}, options []Option,
 	data io.Reader, listener ProgressListener) (*Response, error) {
 	headers := make(map[string]string)
 	err := handleOptions(headers, options)
@@ -1235,7 +1224,6 @@ func (bucket Bucket) do(method, objectName string, params map[string]interface{}
 	if len(bucket.BucketName) > 0 && err != nil {
 		return nil, err
 	}
-
 	resp, err := bucket.Client.Conn.Do(method, bucket.BucketName, objectName,
 		params, headers, data, 0, listener)
 
@@ -1248,6 +1236,17 @@ func (bucket Bucket) do(method, objectName string, params map[string]interface{}
 		}
 	}
 
+	return resp, err
+}
+
+// Private check object name before bucket.do
+func (bucket Bucket) do(method, objectName string, params map[string]interface{}, options []Option,
+	data io.Reader, listener ProgressListener) (*Response, error) {
+	err := CheckObjectName(objectName)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := bucket.doInner(method, objectName, params, options, data, listener)
 	return resp, err
 }
 
