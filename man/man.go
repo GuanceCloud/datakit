@@ -128,7 +128,7 @@ func BuildMarkdownManual(name string, opt *Option) (map[i18n][]byte, error) {
 			sort.Strings(arr) // order by name
 
 			for _, elem := range arr {
-				sb.WriteString(plfuncs.PipelineFunctionDocs[elem].Doc)
+				sb.WriteString(plfuncs.PipelineFunctionDocs[elem].Doc + "\n\n")
 			}
 			p.PipelineFuncs = sb.String()
 		}

@@ -16,7 +16,7 @@
 
 ## 配置 {#config}
 
-=== "主机安装" {#install-host}
+=== "主机安装"
 
     如果是纯 Docker 或 Containerd 环境，那么 DataKit 只能安装在宿主机上。
     
@@ -26,7 +26,7 @@
     {{ CodeBlock .InputSample 4 }}
     ```
     
-=== "Kubernetes" {#install-k8s}
+=== "Kubernetes"
 
     Kubernetes 中容器采集器一般默认自动开启，无需通过 *container.conf* 来配置。但可以通过如下环境变量来调整配置参数：
     
