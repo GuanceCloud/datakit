@@ -117,7 +117,6 @@ RocketMQ 是阿里云贡献 Apache 基金会的开源消息队列框架。注意
 
 引用库时有区别，apache rocketmq artifactId: `rocketmq-client`, 而阿里云 rocketmq 5.0 的 artifactId ：`rocketmq-client-java`
 
-
 版本支持： 目前支持 4.8.0 及以上版本。 阿里云 Rocketmq 服务支持 5.0 以上。
 
 ## Thrift 支持 {#thrift}
