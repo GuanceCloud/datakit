@@ -81,7 +81,7 @@ nav:
           - 'Java': profile-java.md 
           - 'Python': profile-python.md
           - 'Go': profile-go.md
-          - 'C/C++': profiling-cpp.md
+          - 'C/C++': profile-cpp.md
 
       - 'DDTrace':
         - 'DataKit 采集配置': ddtrace.md

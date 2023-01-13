@@ -112,7 +112,9 @@ func init() {
 	flag.StringVar(&installer.CloudProvider, "cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
 
 	// confd flags
-	flag.StringVar(&installer.ConfdBackend, "confd-backend", "", "confd-backend")
+	flag.StringVar(&installer.ConfdAccessKey, "confd-access-key", "", "confd access key")
+	flag.StringVar(&installer.ConfdSecretKey, "confd-secret-key", "", "confd secret key")
+	flag.StringVar(&installer.ConfdBackend, "confd-backend", "", "confd backend")
 	flag.StringVar(&installer.ConfdAuthToken, "confd-auth-token", "", "confd-auth-token")
 	flag.StringVar(&installer.ConfdAuthType, "confd-auth-type", "", "confd-auth-type")
 	flag.StringVar(&installer.ConfdBasicAuth, "confd-basic-auth", "", "confd-basic-auth")
@@ -135,11 +137,11 @@ func init() {
 	flag.StringVar(&installer.ConfdRole, "confd-role", "", "confd-role")
 
 	// gitrepo flags
-	flag.StringVar(&installer.GitURL, "git-url", "", "git repo url")
-	flag.StringVar(&installer.GitKeyPath, "git-key-path", "", "git repo access private key path")
-	flag.StringVar(&installer.GitKeyPW, "git-key-pw", "", "git repo access private use password")
-	flag.StringVar(&installer.GitBranch, "git-branch", "", "git repo branch name")
-	flag.StringVar(&installer.GitPullInterval, "git-pull-interval", "", "git repo pull interval")
+	flag.StringVar(&installer.GitURL, "git-url", "", "git repository url")
+	flag.StringVar(&installer.GitKeyPath, "git-key-path", "", "git repository access private key path")
+	flag.StringVar(&installer.GitKeyPW, "git-key-pw", "", "git repository access private use password")
+	flag.StringVar(&installer.GitBranch, "git-branch", "", "git repository branch name")
+	flag.StringVar(&installer.GitPullInterval, "git-pull-interval", "", "git repository pull interval")
 
 	// rum flags
 	flag.StringVar(&installer.RumOriginIPHeader, "rum-origin-ip-header", "", "rum only")

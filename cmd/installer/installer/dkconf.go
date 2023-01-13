@@ -84,6 +84,8 @@ var (
 	HostName,
 	IPDBType string
 
+	ConfdAccessKey,
+	ConfdSecretKey,
 	ConfdBackend,
 	ConfdAuthToken,
 	ConfdAuthType,

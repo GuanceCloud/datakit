@@ -28,7 +28,7 @@
 
 - [confd 增加 Nacos 后端](confd.md)(#1315#1327)
 - 日志采集器添加 LocalCache 特性(#1326)
-- 支持 [C/C++ Profiling](profiling-cpp.md) 数据(#1320)
+- 支持 [C/C++ Profiling](profile-cpp.md)(#1320)
 - RUM Session Replay 文件上报(#1283)
 - WEB DCA 支持远程更新 config(#1284)
 
