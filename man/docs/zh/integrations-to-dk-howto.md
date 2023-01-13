@@ -14,7 +14,7 @@
 大概看了下，集成文档合并到 datakit 文档，有几种可能：
 
 - 合并集成文档：直接扩展现有采集器文档，比如 [CPU 集成文档](https://www.yuque.com/dataflux/integrations/fyiw75){:target="_blank"}，可以直接合并到采集器的 cpu.md （man/manuals/cpu.md）中
-- 新增 datakit 文档：如果 datakit 中并无对应的文档，那么需要手动在 datkit 中新增文档
+- 新增 datakit 文档：如果 DataKit 中并无对应的文档，那么需要手动在 DataKit 中新增文档
 
 下面将针对以上几种情况，分别说明如何合并。
 
