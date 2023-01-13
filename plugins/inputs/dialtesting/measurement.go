@@ -289,7 +289,7 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 		Name: "websocket_dial_testing",
 		Tags: map[string]interface{}{
 			"name":     &inputs.TagInfo{Desc: "示例 拨测名称,百度测试"},
-			"url":      &inputs.TagInfo{Desc: "示例 ws://www.abc.com"},
+			"url":      &inputs.TagInfo{Desc: "示例 `ws://www.abc.com`"},
 			"country":  &inputs.TagInfo{Desc: "示例 中国"},
 			"province": &inputs.TagInfo{Desc: "示例 浙江"},
 			"city":     &inputs.TagInfo{Desc: "示例 杭州"},

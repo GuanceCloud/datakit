@@ -430,7 +430,7 @@ func consulDo(index int) {
 
 ## 配置中心更新Pipeline {#update-config-pipeline}
 
-参考 [配置中心如何更新配置](#update-config)
+参考 [配置中心如何更新配置](confd.md#update-config)
 
 键名 `datakit/confd` 字样改为 `datakit/pipeline` ，再加上 `类型/文件名` 即可。
 

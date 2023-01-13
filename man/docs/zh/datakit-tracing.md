@@ -14,9 +14,9 @@
 
 ## Datakit Tracing Frontend {#datakit-tracing-frontend}
 
-Tracing Frontend 即接收各种不同类 Trace 数据的 API，它们一般通过 HTTP 或 gRPC 等方式接收各种 Trace SDK 发送过来的数据。DataKit 收到这些数据后，会将它们转换成[统一的 Span 结构](datakit-tracing-struct.md)。然后再发送到 [Backend](#datakit-tracing-backend) 处理。
+Tracing Frontend 即接收各种不同类 Trace 数据的 API，它们一般通过 HTTP 或 gRPC 等方式接收各种 Trace SDK 发送过来的数据。DataKit 收到这些数据后，会将它们转换成[统一的 Span 结构](datakit-tracing-struct.md)。然后再发送到 [Backend](datakit-tracing.md#datakit-tracing-backend) 处理。
 
-除了转换 Span 结构外，Tracing Frontend 还会完成对[Tracing Backend](#datakit-tracing-backend)中过滤单元和运算单元的配置
+除了转换 Span 结构外，Tracing Frontend 还会完成对[Tracing Backend](datakit-tracing.md#datakit-tracing-backend)中过滤单元和运算单元的配置
 
 ## Tracing 数据采集通用配置 {#tracing-common-config}
 
