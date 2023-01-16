@@ -209,14 +209,7 @@ create_time 1639657028706
 
 === "Kubernetes(yaml)"
 
-    - 修改 *datakit.yaml*，打开如下注释掉的高亮内容即可：
-    
-    ```yaml hl_lines="2 3"
-        # ---iploc-start  
-        #- name: ENV_IPDB
-        #  value: iploc        
-        # ---iploc-end      
-    ```
+    - 修改 *datakit.yaml*，打开 4 处带 `---iploc-start ` 和 `---iploc-end` 中间注释。
     
     - 重新安装 DataKit：
     
