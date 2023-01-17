@@ -14,9 +14,9 @@ profiling 数据流向: `Pyroscope Agent 采集 profiling 数据 -> Datakit -> �
 
 ### 前置条件 {#pyroscope-requirement}
 
-1. 根据 pyroscope 官方文档 [eBPF Profiling](https://pyroscope.io/docs/ebpf/#prerequisites-for-profiling-with-ebpf){:target="_blank"}，需要 Linux 内核版本 >= 4.9 (due to [BPF_PROG_TYPE_PERF_EVENT](https://lkml.org/lkml/2016/9/1/831){:target="_blank"})。
+1.根据 pyroscope 官方文档 [eBPF Profiling](https://pyroscope.io/docs/ebpf/#prerequisites-for-profiling-with-ebpf){:target="_blank"}，需要 Linux 内核版本 >= 4.9 (due to [BPF_PROG_TYPE_PERF_EVENT](https://lkml.org/lkml/2016/9/1/831){:target="_blank"})。
 
-2. 已安装 [DataKit](https://www.guance.com/){:target="_blank"} 并且已开启 [profile](profile.md#config) 采集器，配置参考如下:
+2.已安装 [DataKit](https://www.guance.com/){:target="_blank"} 并且已开启 [profile](profile.md#config) 采集器，配置参考如下:
 
 ```toml
 [[inputs.profile]]
@@ -46,7 +46,7 @@ profiling 数据流向: `Pyroscope Agent 采集 profiling 数据 -> Datakit -> �
 	tag1 = "val1"
 ```
 
-3. 安装 pyroscope
+3.安装 pyroscope
 
 这里以 Linux AMD64 平台为例:
 
@@ -63,7 +63,7 @@ tar -zxvf pyroscope-0.36.0-linux-amd64.tar.gz
 
 Pyroscope Agent 的 [eBPF](https://pyroscope.io/docs/ebpf/){:target="_blank"} 模式支持 C/C++ 程序的 profiling 采集。
 
-1. 设置环境变量:
+1.设置环境变量:
 
 ```sh
 export PYROSCOPE_APPLICATION_NAME='my.ebpf.program{host=server-node-1,region=us-west-1,tag2=val2}'
@@ -71,7 +71,7 @@ export PYROSCOPE_SERVER_ADDRESS='http://localhost:4040/' # Datakit profile 配�
 export PYROSCOPE_SPY_NAME='ebpfspy'
 ```
 
-2. 根据需要 profiling 的目标使用不同的命令:
+2.根据需要 profiling 的目标使用不同的命令:
 
 - profiling 正在运行的程序(以 PID 为 `1000` 为例): `sudo -E pyroscope connect --pid 1000`
 - profiling 运行指定程序(以 `mongod` 为例): `sudo -E pyroscope exec mongod`
