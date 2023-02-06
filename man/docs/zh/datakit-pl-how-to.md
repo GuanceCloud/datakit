@@ -201,7 +201,7 @@ Extracted data(cost: 421.705µs):
 
 Pipeline 为：
 
-```python
+```py linenums="1"
 json(_, message, "message")
 json(_, thread_name, "thread")
 json(_, level, "status")
