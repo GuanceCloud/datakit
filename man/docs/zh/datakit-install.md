@@ -39,31 +39,20 @@
     Windows 上安装需在 Powershell 命令行安装，且必须以管理员身份运行 Powershell。按下 Windows 键，输入 powershell 即可看到弹出的 powershell 图标，右键选择「以管理员身份运行」即可。
     
     ```powershell
-    $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; Remove-item .install.ps1 -erroraction silentlycontinue; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+    $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>";
+    Set-ExecutionPolicy Bypass -scope Process -Force;
+    Import-Module bitstransfer;
+    Remove-item .install.ps1 -erroraction silentlycontinue;
+    start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1;
+    powershell .install.ps1;
     ```
 
-???+ attention "Mac 安装问题"
+???+ tip "安装指定版本的 DataKit"
 
-    Mac 上安装时，如果安装/升级过程中出现
-    
+    可通过在安装命令中指定版本号来安装指定版本的 DataKit，如安装 1.2.3 版本的 DataKit：
+
     ```shell
-    "launchctl" failed with stderr: /Library/LaunchDaemons/cn.dataflux.datakit.plist: Service is disabled
-    # 或者
-    "launchctl" failed with stderr: /Library/LaunchDaemons/com.guance.datakit.plist: Service is disabled
-    ```
-    
-    执行
-    
-    ```shell
-    sudo launchctl enable system/datakit
-    ```
-    
-    然后再执行如下命令即可
-    
-    ```shell
-    sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
-    # 或者
-    sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
+    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install-1.2.3.sh)"
     ```
 
 ## 额外支持的安装变量 {#extra-envs}
@@ -208,7 +197,33 @@ NAME1="value1" NAME2="value2"
 	ENV_HOSTNAME = "your-fake-hostname-for-datakit"
 ```
 
-> 注意：如果之前某个主机已经采集了一段时间的数据，更改主机名后，这些历史数据将不再跟新的主机名关联。更改主机名，相当于新增了一台全新的主机。
+???+ attention
+
+    如果之前某个主机已经采集了一段时间的数据，更改主机名后，这些历史数据将不再跟新的主机名关联。更改主机名，相当于新增了一台全新的主机。
+
+### Mac 安装问题 {#mac-failed}
+
+    Mac 上安装时，如果安装/升级过程中出现
+    
+    ```shell
+    "launchctl" failed with stderr: /Library/LaunchDaemons/cn.dataflux.datakit.plist: Service is disabled
+    # 或者
+    "launchctl" failed with stderr: /Library/LaunchDaemons/com.guance.datakit.plist: Service is disabled
+    ```
+    
+    执行
+    
+    ```shell
+    sudo launchctl enable system/datakit
+    ```
+    
+    然后再执行如下命令即可
+    
+    ```shell
+    sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
+    # 或者
+    sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
+    ```
 
 ## 扩展阅读 {#more-reading}
 
