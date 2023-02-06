@@ -13,11 +13,20 @@ CLR="\033[0m"
 mkdocs_dir=~/git/dataflux-doc
 
 usage() {
-	echo "Usage: $0 [-V <version, such as 1.2.3>] [-B do not build datakit] [-D mkdocs workdir]" 1>&2;
+	echo "" 1>&2;
+	echo "mkdocs.sh used to build/preview/release DataKit documents." 1>&2;
+	echo "" 1>&2;
+	echo "Usage: " 1>&2;
+	echo "" 1>&2;
+	echo "  ./mkdocs.sh -V string: Set version, such as 1.2.3" 1>&2;
+	echo "              -D string: Set workdir, such as my-test" 1>&2;
+	echo "              -B: Do not build datakit" 1>&2;
+	echo "              -h: Show help" 1>&2;
+	echo "" 1>&2;
 	exit 1;
 }
 
-while getopts "V:D:B" arg; do
+while getopts "V:D:Bh" arg; do
 	case "${arg}" in
 		V)
 			version="${OPTARG}"
@@ -39,9 +48,14 @@ while getopts "V:D:B" arg; do
 
 			# just copy files to the directory.
 			mkdir -p $mkdocs_dir/docs/zh/datakit/ && \
-				cp mkdocs.yml $mkdocs_dir/mkdocs.yml && \
+				cp man/docs/mkdocs.yml $mkdocs_dir/mkdocs.yml && \
 				cp man/docs/zh/aliyun-access.md $mkdocs_dir/docs/zh/datakit/
 				;;
+
+		h)
+			usage
+			;;
+
 		*)
 			echo "invalid args $@";
 			usage
