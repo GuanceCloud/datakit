@@ -11,6 +11,56 @@ YELLOW="\033[33m"
 CLR="\033[0m"
 
 mkdocs_dir=~/git/dataflux-doc
+
+usage() {
+	echo "Usage: $0 [-V <version, such as 1.2.3>] [-B do not build datakit] [-D mkdocs workdir]" 1>&2;
+	exit 1;
+}
+
+while getopts "V:D:B" arg; do
+	case "${arg}" in
+		V)
+			version="${OPTARG}"
+			;;
+
+		B)
+			no_build=true;
+			;;
+
+		D)
+			mkdocs_dir="${OPTARG}";
+			if [ ! -d $mkdocs_dir ]
+			then # create new project & download required files
+				mkdocs new $mkdocs_dir && \
+					mkdir -p $mkdocs_dir/overrides/.icons/zy/ && \
+					curl https://static.guance.com/images/datakit/datakit.svg \
+					--output  $mkdocs_dir/overrides/.icons/zy/datakit.svg;
+			fi
+
+			# just copy files to the directory.
+			mkdir -p $mkdocs_dir/docs/zh/datakit/ && \
+				cp mkdocs.yml $mkdocs_dir/mkdocs.yml && \
+				cp man/docs/zh/aliyun-access.md $mkdocs_dir/docs/zh/datakit/
+				;;
+		*)
+			echo "invalid args $@";
+			usage
+			;;
+	esac
+done
+shift $((OPTIND-1))
+
+# if -v not set...
+if [ -z $version ]; then
+	# get online datakit version
+	latest_version=$(curl https://static.guance.com/datakit/version | grep '"version"' | awk -F'"' '{print $4}')
+
+	printf "${YELLOW}> Version missing, use latest version '%s'${CLR}\n" $latest_version
+	version="${latest_version}"
+fi
+
+echo ${version} ${no_build} ${mkdocs_dir}
+
 tmp_doc_dir=.docs
 base_docs_dir=${mkdocs_dir}/docs
 
@@ -37,20 +87,6 @@ for lang in "${i18n[@]}"; do
 	done
 
 ######################################
-# check version info
-######################################
-# get online datakit version
-latest_version=$(curl https://static.guance.com/datakit/version | grep '"version"' | awk -F'"' '{print $4}')
-
-# or we set the version manually
-man_version=$1
-
-if [ -z $man_version ]; then
-	printf "${YELLOW}> Version missing, use latest version '%s'${CLR}\n" $latest_version
-	man_version="${latest_version}"
-fi
-
-######################################
 # select datakit binary
 ######################################
 arch=$(uname -m)
@@ -70,8 +106,10 @@ else              # if under windows(amd64):
 	datakit=datakit # windows 下应该设置了对应的 $PATH
 fi
 
-printf "${GREEN}> Building datakit...${CLR}\n"
-make || exit -1
+if [[ ! $no_build ]]; then
+	printf "${GREEN}> Building datakit...${CLR}\n"
+	make || exit -1
+fi
 
 ######################################
 # export all docs to temp dir
@@ -81,7 +119,7 @@ truncate -s 0 .mkdocs.log
 LOGGER_PATH=.mkdocs.log $datakit doc \
 	--export-docs $tmp_doc_dir \
 	--ignore demo \
-	--version "${man_version}" \
+	--version "${version}" \
 	--TODO "-"
 
 if [ $? -ne 0 ]; then
