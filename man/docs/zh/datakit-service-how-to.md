@@ -94,3 +94,17 @@ sudo launchctl unload -w /Library/LaunchDaemons/com.guance.datakit.plist
 datakit service -I # re-install
 datakit service -U # uninstall
 ```
+
+## FAQ {#faq}
+
+### Windows 下启动失败 {#windows-start-fail}
+
+DataKit 在 Windows 下以服务的形式启动，启动后会写入很多 Event 日志，随着日志的积累，可能会出现如下报错：
+
+```
+Start service failed: The event log file is full.
+```
+
+该报错会导致 DataKit 无法启动。通过[设置一下 Windows Event](https://stackoverflow.com/a/13868216/342348){:target="_blank"} 即可（以 Windows Server 2016 为例）：
+
+![ 修改 Windows Event 设置](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/set-windows-event-log.gif) 
