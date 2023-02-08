@@ -1,60 +1,59 @@
-<!-- This file required to translate to EN. -->
-# 使用 Git 管理配置
+# Managing Configuration with Git
 ---
 
-## Git 的工作原理 {#intro}
+## How Git Works {#intro}
 
-Git 是用于版本控制的一项技术, 同 SVN。更多介绍详见[这里](https://www.runoob.com/git/git-tutorial.html){:target="_blank"}。
+Git is a technology for version control, the same as SVN. For more information, see [here](https://www.runoob.com/git/git-tutorial.html){:target="_blank"}.
 
-Git 组件分为 Git Server 和 Git Client。在远程服务器上运行的是 Git Server, 即远程仓库。在本地 (或 Kubernates 容器里面。以下说的 "本地" 都是这层意思。) 运行的是 Git Client, 即本地副本。
+Git components are divided into Git Server and Git Client. Running on the remote server is the Git Server, the remote repository. In the local (or Kubernates container). The following words "local" all mean this. ) is running the Git Client, the local copy.
 
-Git 管理的内容分为本地副本和远程仓库两份。在执行 commit 操作的时候会把改动提交到本地作为副本, 只有当执行 push 操作时才会把改动提交到远程仓库。
+The content managed by Git is divided into local copy and remote warehouse. Changes are submitted locally as a copy during commit operations and to the remote repository only when push operations are performed.
 
-## 创建 Git 仓库 {#new-repo}
+## Create A Git Repository {#new-repo}
 
-一般可在 Github/Gitlab 中使用 `New Project` 中即可创建一个 Git 仓库。
+You can generally create a Git repository using `New Project` in Github/Gitlab.
 
-创建 Git 仓库后可以获得一个地址，类似 `http://github.com/path/to/repository.git` 这样的，Git Client 通过该地址 push 或 pull 内容。
+After creating the Git repository, you can get an address like `http://github.com/path/to/repository.git`, through which the Git Client pushes or pulls the content.
 
-## Git 的操作流程 {#steps}
+## Git Operation Flow {#steps}
 
-一般 Git 的操作流程大致如下:
+Generally Git operation flow is roughly as follows:
 
-第 1 步: 添加改动文件。如:
+Step 1: Add the change file. Such as:
 
 ```shell
 git add clickhouse.conf
 ```
 
-第 2 步: 说明此次改动, 并提交到本地副本(commit 操作)。如:
+Step 2: Explain this change and submit it to the local copy (commit operation). Such as:
 
 ```shell
-git commit -m "修改了 Exporter 的 IP 地址"
+git commit -m "Modified the IP address of Exporter"
 ```
 
-第 3 步: 把改动提交到远程仓库(push 操作)。如:
+Step 3: Commit the changes to the remote repository (push operation). Such as:
 
 ```shell
 git push origin master
 ```
 
-## Git 仓库的目录要求 {#dir-naming}
+## Directory Requirements for Git Repositories {#dir-naming}
 
-- `gitrepos/repo-name/conf.d` 用来放采集器配置文件，其下的子目录不做限制（`datakit.conf` 不在 `gitrepos` 管理）
-- `gitrepos/repo-name/pipeline` 用来放 pipeline 脚本，且只有该目录下第一层的 `.p` 才生效，其下的子目录均不生效
-- `gitrepos/repo-name/python.d` 用来放 python 脚本
+- `gitrepos/repo-name/conf.d` is used to place collector configuration files with unrestricted subdirectories (`datakit.conf` is not managed by `gitrepos`)
+- `gitrepos/repo-name/pipeline` is used to put pipeline scripts, and only `.p` in the first tier of this directory will take effect, and none of its subdirectories will take effect
+- `gitrepos/repo-name/python.d` for python scripts
 
-## 远程提交一个 conf 文件和目录 {#commit-conf}
+## Submit A conf File and Directory {#commit-conf}
 
-下面以 [clickhouse](clickhousev1.md) 采集器为例进行演示。
+The following is an example of the [clickhouse](clickhousev1.md) collector.
 
-第 1 步: 切换到 `/root` 目录下，使用 `git clone http://github.com/path/to/repository.git` 命令拉取远程仓库到本地。
+Step 1: Switch to the `/root` directory and use the `git clone http://github.com/path/to/repository.git` command to pull the remote repository locally.
 
-选取想要开启的采集器，这里是 clickhouse。复制 `[Datakit 安装目录]/conf.d/db/clickhousev1.conf.sample` 到上面的 `/root/repository` 目录下。
+Select the collector you want to open, here is clickhouse. Copy `[Datakit 安装目录]/conf.d/db/clickhousev1.conf.sample` to the `/root/repository` directory above.
 
-备注: 所有采集器配置文件样本在 `[Datakit 安装目录]/conf.d` 目录下。
+Note: All collector configuration file samples are in the `[Datakit 安装目录]/conf.d` directory.
 
-文件名去掉 `.sample`，文件结构如下:
+The file name is removed from `.sample`, and the file structure is as follows:
 
 ```shell
 .
@@ -63,94 +62,94 @@ git push origin master
         └── clickhousev1.conf
 ```
 
-根据自己的实际情况，修改 `clickhousev1.conf` 的各项配置、保存。
+According to their actual situation, modify the `clickhousev1.conf` configuration, save.
 
-第 2 步: 提交改动到远程仓库。
+Step 2: Commit changes to the remote repository.
 
 ```shell
-$ git add clickhousev1.conf              # 添加改动文件
-$ git commit -m "new clickhousev1.conf"  # 添加改动说明
-$ git push origin master                 # 提交改动到远程仓库
+$ git add clickhousev1.conf              # Add change file
+$ git commit -m "new clickhousev1.conf"  # Add change description
+$ git push origin master                 # Commit changes to remote repository
 ```
 
-至此，已经将编辑好的 `clickhousev1.conf` 文件成功推送到了远程仓库。
+At this point, the edited `clickhousev1.conf` file has been successfully pushed to the remote repository.
 
-## 在 DataKit 上配置仓库 {#config-git-repo}
+## Configure the Repository on the DataKit {#config-git-repo}
 
-这里演示采用的是宿主机的方式，不适应于 Kubernates 环境。Kubernates 环境下的操作在下面单独介绍。
+The demonstration here adopts the host mode, which is not suitable for Kubernates environment. Operations in the Kubernates environment are described separately below.
 
-这里演示采用的 Git 验证方式是用户名和密码方式。
+The Git authentication method demonstrated here is user name and password.
 
-第 1 步: 需要在 `datakit.conf` 中开启 gitrepos 功能。
+Step 1: You need to turn on the gitrepos functionality in `datakit.conf`.
 
-在 `datakit.conf` 中找到 `git_repos` 进行配置，如下所示:
+Find `git_repos` in `datakit.conf` to configure as follows:
 
 ```toml
 [git_repos]
-  pull_interval = "1m"  # 每分钟拉一次更新
+  pull_interval = "1m"  # Pull updates every minute
 
   [[git_repos.repo]]
-    enable = true                                                       # 开启拉取这个 Git 分支。
-    url = "http://username:password@github.com/path/to/repository.git"  # 使用 用户名/密码 验证方式。
-    branch = "master"                                                   # 要拉取的分支名。一般为 master。
+    enable = true                                                       # Open to pull this Git branch.
+    url = "http://username:password@github.com/path/to/repository.git"  # User name/password authentication is used.
+    branch = "master"                                                   # The name of the branch to pull. Usually master.
 ```
 
-第 2 步: 配置完成后，重启 datakit 即可。
+Step 2: After configuration, restart datakit.
 
 ```shell
 $ sudo datakit service -R
 ```
 
-第 3 步: 观察 Git 是否已拉取更新并加载配置。
+Step 3: Observe whether Git has pulled updates and loaded the configuration.
 
-可以通过观察新增/修改的采集器是否生效:
+You can observe whether the newly added/modified collector is effective:
 
 ```shell
 $ sudo datakit monitor -V
 ```
 
-## 更新和拉取仓库 {#git-pull}
+## Update and Pull Warehouse {#git-pull}
 
-上面我们在 `/root/repository` 里面存有一份本地副本。我们在那里对 `clickhousev1.conf` 文件进行一下修改。
+We have a local copy in `/root/repository` above. There we made some modifications to the `clickhousev1.conf` file.
 
-修改完成后进行提交:
+Submit after modification is completed:
 
 ```shell
-$ git add clickhousev1.conf                 # 添加改动文件
-$ git commit -m "modify clickhousev1.conf"  # 添加改动说明
-$ git push origin master                    # 提交改动到远程仓库
+$ git add clickhousev1.conf                 # Add change file
+$ git commit -m "modify clickhousev1.conf"  # Add change description
+$ git push origin master                    # Commit changes to remote repository
 ```
 
-提交完成后。datakit 根据配置里面 `pull_interval` 设定的拉取间隔，间隔时间到了即会自动拉取最新的 `clickhousev1.conf` 并使其生效。
+After the submission is completed. datakit pulls according to the interval set by `pull_interval` in the configuration, and when the interval expires, it automatically pulls the latest `clickhousev1.conf` and makes it effective.
 
-## Kubernates 中的 Git 使用 {#k8s}
+## Git Uses in Kubernates {#k8s}
 
-由于 Kubernates 环境的特殊性，采用环境变量传递的安装/配置方式最为简单。
+Because of the particularity of Kubernates environment, the installation/configuration mode with environment variable passing is the simplest.
 
-git 验证方式采用用户名和密码方式。
+The git authentication method is user name and password.
 
-在 Kubernates 里面安装的时候需要设置如下的环境变量，把 Git 配置信息带进去:
+When installing in Kubernates, you need to set the following environment variables to bring Git configuration information into it:
 
-| 环境变量名       | 环境变量值                                                   |
+| Environment Variable Name       | Environment Variable Value                                                   |
 | ----             | ----                                                         |
 | ENV_GIT_URL      | `http://username:password@github.com/path/to/repository.git` |
 | ENV_GIT_BRANCH   | `master`                                                     |
 | ENV_GIT_INTERVAL | `1m`                                                         |
 
-更多关于 Datakit 的 Kubernates 环境下面的配置可以参见[这个文档](k8s-config-how-to.md#via-env-config)。
+For more information on the configuration under Datakit's Kubernates environment, see [this document](k8s-config-how-to.md#via-env-config).
 
 ## FAQ {#faq}
 
-### 报错: authentication required {#auth-required}
+### Error: Authentication Required {#auth-required}
 
-出现这个报错可能是以下几种情况。
+This error may be reported in the following situations.
 
-如果用的是 SSH 方式:
+If SSH is used:
 
-1. 提供的密钥有错;
+1. The key provided is wrong;
 
-如果用的是 HTTP 方式:
+If you are using HTTP:
 
-1. 提供的用户名和密码有错;
-2. git 地址的协议填错了;
-比如说, 原地址是 `https://username:password@github.com/path/to/repository.git`, 然后被写成了 `http://username:password@github.com/path/to/repository.git`, 即把 `https` 改成了 `http`, 则也会报出这个错误。
+1. The user name and password provided are wrong;
+2. The protocol of git address is incorrect;
+For example, if the original address is `https://username:password@github.com/path/to/repository.git`, and then it is written as `http://username:password@github.com/path/to/repository.git`, that is, if `https` is changed to `http`, this error will also be reported.

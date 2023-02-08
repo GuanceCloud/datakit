@@ -1,61 +1,60 @@
-<!-- This file required to translate to EN. -->
-# 通过本地 JSON 定义拨测任务
+# Defining Dialing Test Tasks Through Local JSON
 ---
 
-某些情况下，可能不能连接 SAAS 的拨测任务服务，此时，我们可以通过本地的 json 文件来定义拨测任务。
+In some cases, you may not be able to connect to SAAS's dialing task service. In this case, we can define the dialing task through the local json file.
 
-## 配置 {#config}
+## Configuration {#config}
 
-### 配置采集器 {#config-inputs}
+### Configure Collector {#config-inputs}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/network` 目录，复制 `dialtesting.conf.sample` 并命名为 `dialtesting.conf`。示例如下：
-
+    Go to the `conf.d/network` directory under the DataKit installation directory, copy `dialtesting.conf.sample` and name it `dialtesting.conf`. Examples are as follows:
+    
     ```toml
     [[inputs.dialtesting]]
       server = "file://</path/to/your/local.json>"
     
-      # 注意：以 Linux 为例，假定你的 json 目录为 /some/path/my.json，那么此处的
-      # server 应该写成 file:///some/path/my.json
+      # Note: Taking Linux as an example, assuming your json directory is /some/path/my.json, then the
+      # server should be written as file:///some/path/my.json
     
-      # 注意，以下 tag 建议都一一填写（不要修改这里的 tag key），便于在页面上展示完整的拨测结果
+      # Note that the following tag suggestions are filled in one by one (do not modify the tag key here), so that the complete dialing test results can be displayed on the page.
       [inputs.dialtesting.tags] 
-        country  = "<specify-datakit-country>"  # DataKit 部署所在的国家
-        province = "<specify-datakit-province>" # DataKit 部署所在的省份
-        city     = "<specify-datakit-city>"     # DataKit 部署所在的城市
-        isp      = "<specify-datakit-ISP>"      # 指定 DataKit 所在的网络服务商
-        region   = "<your-region>"              # 可随意指定一个 region 名称
+        country  = "<specify-datakit-country>"  # Countries where DataKit is deployed
+        province = "<specify-datakit-province>" # Provices where DataKit is deployed
+        city     = "<specify-datakit-city>"     # Cities where DataKit is deployed
+        isp      = "<specify-datakit-ISP>"      # Specify the network service provider where DataKit is located
+        region   = "<your-region>"              # You can specify a region name at will
     ```
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap injection collector configuration](datakit-daemonset-deploy.md#configmap-setting).
 
 ---
 
-具体的国家/地域以及 ISP 选择，可按照下图所示方式来选择（注意，不要真的新建「自建节点」，此处只是提供一个可供选择的来源）：
+The specific country/region and ISP selection can be selected as shown in the following figure (note that you don't really create a new "self-built node", just provide an alternative source here):
 
 <figure markdown>
 ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-select-country-city-isp.png){ width="800" }
 </figure>
-    
-### 配置拨测任务 {#config-task}
 
-目前拨测任务支持四种拨测类型，即 HTTP, TCP, ICMP, WEBSOCKET 服务，JSON 格式如下：
+### Configure the Dial Test Task {#config-task}
+
+At present, the dialing test task supports four dialing test types, namely HTTP, TCP, ICMP and WEBSOCKET services. The JSON format is as follows:
 
 ```json
 {
-  "<拨测类型>": [
-    {拨测任务1},
-    {拨测任务2},
+  "<Dial Test Type>": [
+    {Dial test task 1},
+    {Dial test task 2},
        ...
-    {拨测任务n},
+    {Dial test task n},
   ]
 }
 ```
 
-下面是一个具体的拨测示例：
+The following is a specific dialing test example:
 
 ```json
 {
@@ -114,39 +113,39 @@
 }
 ```
 
->  编辑完这个 JSON 后，建议找一些在线工具（[这个](https://www.json.cn/){:target="_blank"}或[这个](https://jsonformatter.curiousconcept.com/#){:target="_blank"}）验证下 JSON 格式是不是正确。如果 JSON 格式不对，那么会导致拨测不生效。
+>  After editing this JSON, it is recommended to find some（[online tools](https://www.json.cn/){:target="_blank"} or [this tool](https://jsonformatter.curiousconcept.com/#){:target="_blank"}）to verify that the JSON format is correct. If the JSON format is incorrect, the dialing test will not take effect.
 
-配置好后，重启 DataKit 即可。
+After configuration, restart DataKit.
 
-### 拨测任务字段定义 {#field-def}
+### Test Task Field Definition {#field-def}
 
-拨测任务字段包括「公共字段」和具体拨测任务的「额外字段」。
+The dialing task fields include "public fields" and "additional fields" for specific dialing tasks.
 
-#### 公共字段 {#pub}
+#### Public Field {#pub}
 
-拨测任务公共字段定义如下：
+The public fields of dialing test tasks are defined as follows:
 
-| 字段                 | 类型   | 是否必须 | 说明                                                                                 |
+| Field                 | Type   | Whether Required | Description                                                                                 |
 | :---                 | ---    | ---      | ---                                                                                  |
-| `name`               | string | Y        | 拨测服务名称                                                                         |
-| `status`             | string | Y        | 拨测服务状态，如 "OK"/"stop"                                                         |
-| `frequency`          | string | Y        | 拨测频率                                                                             |
-| `success_when_logic` | string | N        | success_when条件之间的逻辑关系，如"and"/"or",默认为"and"                             |
-| `success_when`       | object | Y        | 详见下文                                                                             |
-| `advance_options`    | object | N        | 详见下文                                                                             |
-| `post_url`           | string | N        | 将拨测结果发往该 Token 所指向的工作空间，如果不填写，则发给当前 DataKit 所在工作空间 |
+| `name`               | string | Y        | Dial test service name                                                                         |
+| `status`             | string | Y        | Dial test service status, such as "OK"/"stop"                                                         |
+| `frequency`          | string | Y        | Dial frequency                                                                             |
+| `success_when_logic` | string | N        | The logical relationship between success_when conditions, such as "and"/"or", defaults to "and"                             |
+| `success_when`       | object | Y        | See below for details                                                                             |
+| `advance_options`    | object | N        | See below for details                                                                             |
+| `post_url`           | string | N        | Send the dialing test result to the workspace pointed by the Token, and if it is not filled in, send it to the workspace where the current DataKit is located |
 
-#### HTTP 拨测 {#http}
+#### HTTP Dial Test {#http}
 
-**额外字段**
+**Extra field**
 
-| 字段              | 类型   | 是否必须 | 说明                                    |
+| Field              | Type   | Whether Required | Description                                    |
 | :---              | ---    | ---      | ---                                     |
-| `method`          | string | Y        | HTTP 请求方法                           |
-| `url`             | string | Y        | 完整的 HTTP 请求地址                    |
+| `method`          | string | Y        | HTTP request method                           |
+| `url`             | string | Y        | Complete HTTP request address                   |
 
 
-总体的 JSON 结构如下：
+The overall JSON structure is as follows:
 
 ```
 {
@@ -169,22 +168,22 @@
 }
 ```
 
-##### `success_when` 定义 {#http-success-when}
+##### `success_when` Definition {#http-success-when}
 
-用来定义拨测成功与否的判定条件，主要有如下几个方面：
+The judging conditions used to define the success of dialing test mainly include the following aspects:
 
-- HTTP 请求返回 body 判断（`body`）
+- HTTP request returns body judgment（`body`）
 
-| 字段              | 类型   | 是否必须 | 说明                                      |
+| Field              | Type   | Whether Required | Description                                      |
 | :---              | ---    | ---      | ---                                       |
-| `is`              | string | N        | 返回的 body 是否等于该指定字段                   |
-| `is_not`          | string | N        | 返回的 body 是否不等于该指定字段                 |
-| `match_regex`     | string | N        | 返回的 body 是否含有该匹配正则表达式的子字符串   |
-| `not_match_regex` | string | N        | 返回的 body 是否不含有该匹配正则表达式的子字符串 |
-| `contains`        | string | N        | 返回的 body 是否含有该指定的子字符串             |
-| `not_contains`    | string | N        | 返回的 body 是否不含有该指定的子字符串           |
+| `is`              | string | N        | Whether the returned body is equal to the specified field                  |
+| `is_not`          | string | N        | Whether the returned body is not equal to the specified field                 |
+| `match_regex`     | string | N        | Whether the returned body contains a substring of the matching regular expression   |
+| `not_match_regex` | string | N        | Whether the returned body does not contain a substring of the matching regular expression|
+| `contains`        | string | N        | Whether the returned body contains the specified substring             |
+| `not_contains`    | string | N        | Whether the returned body does not contain the specified substring           |
 
-如：
+eg.
 
 ```json
 "success_when": [
@@ -198,22 +197,22 @@
 ]
 ```
 
-此处 `body` 可以配置多个验证规则，由"success_when_logic"确定他们之间的关系，配置为`and`时，**任何一个规则验证不过，则认为当前拨测失败**；配置为`or`时，**任何一个规则验证通过，则认为当前拨测成功**；默认是 `and` 的关系。下面的验证规则，均遵循这一判定原则。
+Here, `body` can configure multiple verification rules, and the relationship between them is determined by "success_when_logic". When it is configured as `and`, **if any rule is verified, it will be considered that the current dialing test failed**; When it is configured to `or`, **if any rule is verified, it will be considered that the current dialing test is successful**. The default is an `and` relationship. The following verification rules all follow this judgment principle.
 
-> 注意，此处正则要正确转义，示例中的实际正则表达式是 `\d\d.*`。
+> Note that the regular is escaped correctly here, and the actual regular expression in the example is `\d\d.*`.
 
-- HTTP 请求返回 Header 判断（`header`）
+- HTTP request returns header judgment (`header`)
 
-| 字段              | 类型   | 是否必须 | 说明                                                       |
+| Field              | Type   | Whether Required | Description                                                       |
 | :---              | ---    | ---      | ---                                                        |
-| `is`              | string | N        | 返回的 header 指定字段是否等于该指定值                     |
-| `is_not`          | string | N        | 返回的 header 指定字段是否不等于该指定值                   |
-| `match_regex`     | string | N        | 返回的 header 指定字段是否含有该匹配正则表达式的子字符串   |
-| `not_match_regex` | string | N        | 返回的 header 指定字段是否不含有该匹配正则表达式的子字符串 |
-| `contains`        | string | N        | 返回的 header 指定字段是否含有该指定的子字符串             |
-| `not_contains`    | string | N        | 返回的 header 指定字段是否不含有该指定的子字符串           |
+| `is`              | string | N        | The header returned specifies whether the field is equal to the specified value                     |
+| `is_not`          | string | N        | The header returned specifies whether the field is not equal to the specified value.                   |
+| `match_regex`     | string | N        | The header returned specifies whether the field contains a substring of the matching regular expression.   |
+| `not_match_regex` | string | N        | The header returned specifies whether the field does not contain a substring of the matching regular expression. |
+| `contains`        | string | N        | The header returned specifies whether the field contains the specified substring.             |
+| `not_contains`    | string | N        | The header returned specifies whether the field does not contain the specified substring.           |
 
-如：
+for example:
 
 ```json
 "success_when": [
@@ -229,7 +228,7 @@
 ]
 ```
 
-由于可能存在多种类型 Header 的判定，此处也能配置多种 Header 的检验：
+Because there may be decisions for multiple types of headers, validation for multiple headers can also be configured here:
 
 ```json
 "success_when": [
@@ -251,18 +250,18 @@
 ]
 ```
 
-- HTTP 请求返回状态码（`status_code`）
+- HTTP request returns status code (`status_code`)
 
-| 字段              | 类型   | 是否必须 | 说明                                             |
+| Field              | Type   | Whether Required | Description                                             |
 | :---              | ---    | ---      | ---                                              |
-| `is`              | string | N        | 返回的 status code 是否等于该指定字段                   |
-| `is_not`          | string | N        | 返回的 status code 是否不等于该指定字段                 |
-| `match_regex`     | string | N        | 返回的 status code 是否含有该匹配正则表达式的子字符串   |
-| `not_match_regex` | string | N        | 返回的 status code 是否不含有该匹配正则表达式的子字符串 |
-| `contains`        | string | N        | 返回的 status code 是否含有该指定的子字符串             |
-| `not_contains`    | string | N        | 返回的 status code 是否不含有该指定的子字符串           |
+| `is`              | string | N        | Whether the status code returned is equal to the specified field                   |
+| `is_not`          | string | N        | Whether the status code returned is not equal to the specified field                 |
+| `match_regex`     | string | N        | Whether the status code returned contains a substring of the matching regular expression   |
+| `not_match_regex` | string | N        | Whether the status code returned does not contain a substring of the matching regular expression |
+| `contains`        | string | N        | Whether the status code returned contains the specified substring             |
+| `not_contains`    | string | N        | Whether the status code returned does not contain the specified substring           |
 
-如：
+for example:
 
 ```json
 "success_when": [
@@ -276,11 +275,11 @@
 ]
 ```
 
-> 对于一个确定的 URL 拨测，一般其 HTTP 返回就一个，故此处一般只配置一个验证规则（虽然支持数组配置多个）。
+> For a certain URL dial test, its HTTP return is usually only one, so only one validation rule is generally configured here (although multiple array configurations are supported).
 
-- HTTP 请求响应时间（`response_time`）
+- HTTP request response time (`response_time`)
 
-此处只能填写一个时间值，如果请求的响应时间小于该指定值，则判定拨测成功，如：
+Only one time value can be filled in here. If the response time of the request is less than the specified value, the dialing test is judged to be successful, such as:
 
 ```json
 "success_when": [
@@ -290,9 +289,9 @@
 ]
 ```
 
-> 注意，此处指定的时间单位有 `ns`（纳秒）/`us`（微秒）/`ms`（毫秒）/`s`（秒）/`m`（分钟）/`h`（小时）。对 HTTP 拨测而言，一般使用 `ms` 单位。
+> Note that the time units specified here are `ns` (nanoseconds)/`us` (microseconds) /`ms` (milliseconds) /`s` (seconds) /`m` (minutes) /`h` (hours). For HTTP dial testing, `ms` units are generally used.
 
-以上列举的几种判定依据，可以组合使用，由"success_when_logic"确定他们之间的关系，配置为`and`时，**任何一个规则验证不过，则认为当前拨测失败**；配置为`or`时，**任何一个规则验证通过，则认为当前拨测成功**；默认是 `and` 的关系。如：
+Several kinds of judgment basis listed above can be used in combination, and the relationship between them is determined by "success_when_logic". When it is configured as `and`, **if any rule is verified, it is considered that the current dialing test fails**; When it is configured to `or`, **if any rule is verified, it will be considered that the current dialing test is successful**; The default is an `and` relationship. Such as:
 
 ```json
 "success_when": [
@@ -305,37 +304,37 @@
 ]
 ```
 
-##### `advance_options` 定义 {#http-advance-options}
+##### `advance_options` Definition {#http-advance-options}
 
-高级选项主要用来调整具体的拨测行为，主要有如下几个方面：
+Advanced options are mainly used to adjust specific dialing behavior, mainly in the following aspects:
 
-- HTTP 请求选项（`request_options`）
+- HTTP Request Option (`request_options`）
 
-| 字段              | 类型              | 是否必须 | 说明                       |
+| Field              | Type              | Whether Required | Description                       |
 | :---              | ---               | ---      | ---                        |
-| `follow_redirect` | bool              | N        | 是否支持重定向跳转         |
-| `headers`         | map[string]string | N        | HTTP 请求时指定一组 Header |
-| `cookies`         | string            | N        | 指定请求的 Cookie          |
-| `auth`            | object            | N        | 指定请求的认证方式         |
+| `follow_redirect` | bool              | N        | Whether redirect jump is supported         |
+| `headers`         | map[string]string | N        | Specify a set of headers on an HTTP request |
+| `cookies`         | string            | N        | Specify the requested Cookie          |
+| `auth`            | object            | N        | Specify the authentication method of the request         |
 
-其中 `auth` 只支持普通的用户名密码认证，定义如下：
+Among them, `auth` only supports ordinary username and password authentication, which is defined as follows:
 
-| 字段       | 类型   | 是否必须 | 说明       |
+| Field       | Type   | Whether Required | Description       |
 | :---       | ---    | ---      | ---        |
-| `username` | string | Y        | 用户名     |
-| `password` | string | Y        | 用户名密码 |
+| `username` | string | Y        | User name     |
+| `password` | string | Y        | User name and password |
 
-`request_options` 示例：
+`request_options` example:
 
 ```json
 "advance_options": {
   "request_options": {
     "auth": {
-        "username": "张三",
+        "username": "zhangsan",
         "password": "fawaikuangtu"
       },
     "headers": {
-      "X-Prison-Breaker": "张三",
+      "X-Prison-Breaker": "zhangsan",
       "X-Prison-Break-Password": "fawaikuangtu"
     },
     "follow_redirect": false
@@ -343,34 +342,34 @@
 }
 ```
 
-- HTTP 请求 Body（`request_body`）
+- HTTP Request Body（`request_body`）
 
-| 字段        | 类型   | 是否必须 | 说明                                    |
+| Field        | Type   | Whether Required | Description                                    |
 | :---        | ---    | ---      | ---                                     |
-| `body_type` | string | N        | Body 类型，即请求头 `Content-Type` 的值 |
-| `body`      | string | N        | 请求 Body                               |
+| `body_type` | string | N        | Body type, that is, the value of the request header `Content-Type` |
+| `body`      | string | N        | Request Body                               |
 
-`request_body` 示例：
+`request_body` example:
 
 ```json
 "advance_options": {
   "request_body": {
     "body_type": "text/html",
-    "body": "填写好请求体，此处注意各种复杂的转义"
+    "body": "Fill in the request body, and pay attention to various complicated escapes here"
   }
 }
 ```
 
-- HTTP 请求证书（`certificate`）
+- HTTP Request a Certificate (`certificate`)
 
-| 字段                              | 类型   | 是否必须 | 说明             |
+| Field                              | Type   | Whether Required | Description             |
 | :---                              | ---    | ---      | ---              |
-| `ignore_server_certificate_error` | bool   | N        | 是否忽略证书错误 |
+| `ignore_server_certificate_error` | bool   | N        | Whether to ignore certificate errors |
 | `private_key`                     | string | N        | key              |
-| `certificate`                     | string | N        | 证书             |
-| `ca`                              | string | N        | 暂时未使用       |
+| `certificate`                     | string | N        | Certificate             |
+| `ca`                              | string | N        | Temporarily unused       |
 
-`certificate` 示例：
+`certificate` example:
 
 ```json
 "advance_options": {
@@ -382,7 +381,7 @@
 }
 ```
 
-`private_key` 示例：
+`private_key` example:
 
 ```
 -----BEGIN PRIVATE KEY-----
@@ -415,7 +414,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxNn+/x
 -----END PRIVATE KEY-----
 ```
 
-下面是 `certificate` 示例：
+Here is an example of `certificate`:
 
 ```
 -----BEGIN CERTIFICATE-----
@@ -441,20 +440,20 @@ InEHyg==
 -----END CERTIFICATE-----
 ```
 
-在 Linux 下，可通过如下命令生成这对 key：
+Under Linux, this pair of keys can be generated by the following command:
 
 ```shell
 openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -keyout example.key
 ```
 
-- HTTP 请求代理（`proxy`）
+- HTTP Request broker (`proxy`)
 
-| 字段      | 类型              | 是否必须 | 说明                                 |
+| Field      | Type              | Whether Required | Description                                 |
 | :---      | ---               | ---      | ---                                  |
-| `url`     | string            | N        | 代理的 URL，如 `http://1.2.3.4:4321` |
-| `headers` | map[string]string | N        | HTTP 请求时指定一组 Header           |
+| `url`     | string            | N        | 代理的 The URL of the proxy, such as `http://1.2.3.4:4321` |
+| `headers` | map[string]string | N        | Specify a set of headers on an HTTP request           |
 
-`proxy` 示例：
+`proxy` example:
 
 ```json
 "advance_options": {
@@ -469,17 +468,17 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 }
 ```
 
-#### TCP 拨测 {#tcp}
+#### TCP Dial Test {#tcp}
 
-##### 额外字段 {#tcp-extra}
+##### Extra Field {#tcp-extra}
 
-| 字段              | 类型   | 是否必须 | 说明                                    |
+| Field              | Type   | Whether Required | Description                                    |
 | :---              | ---    | ---      | ---                                     |
-| `host`          | string | Y        | TCP 主机地址                           |
-| `port`             | string | Y        | TCP 端口                    |
-| `timeout`             | string | N        | TCP 连接超时时间                    |
+| `host`          | string | Y        | TCP Host address                           |
+| `port`             | string | Y        | TCP Port                    |
+| `timeout`             | string | N        | TCP connection timeout                    |
 
-完整 JSON 结构如下:
+The complete JSON structure is as follows:
 
 ```
 {
@@ -515,16 +514,16 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 }
 ```
 
-##### `success_when` 定义 {#tcp-success-when}
+##### `success_when` Definition {#tcp-success-when}
 
-- TCP 响应时间判断 (`response_time`)
+- TCP Response Time Determination (`response_time`)
 
-`response_time` 为一个数组对象，每个对象参数如下：
+`response_time` is an array object with the following parameters for each object:
 
-| 字段              | 类型   | 是否必须 | 说明                                                       |
+| Field              | Type   | Whether Required | Description                                                       |
 | :---              | ---    | ---      | ---                                                        |
-| `target`          | string | Y        | 判定响应时间是否小于该值                     |
-| `is_contain_dns`  | bool | N        | 指明响应时间是否包含 DNS 解析时间                     |
+| `target`          | string | Y        | Determining whether the response time is less than the value                     |
+| `is_contain_dns`  | bool | N        | Indicates whether the response time includes DNS resolution time                     |
 
 
 ```json
@@ -540,14 +539,14 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 ]
 ```
 
-- 网络跳数 (`hops`)
+- Network hop count (`hops`)
 
-`hops` 为一个数组对象，每个对象参数如下：
+`hops` is an array object with the following parameters for each object:
 
-| 字段              | 类型   | 是否必须 | 说明                                      |
+| Field              | Type   | Whether Required | Description                                      |
 | :---              | ---    | ---      | ---                                       |
-| `op`              | string | Y        | 比较关系，可取值 `eq(=),lt(<),leq(<=),gt(>),geq(>=)`|
-| `target`          | float | Y        | 判定值                 |
+| `op`              | string | Y        | Compare relation, retrievable `eq(=),lt(<),leq(<=),gt(>),geq(>=)`|
+| `target`          | float | Y        | Decision value                 |
 
 
 ```json
@@ -564,17 +563,17 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 ```
 
 
-#### ICMP 拨测 {#icmp}
+#### ICMP Dial Test {#icmp}
 
-##### 额外字段 {#icmp-extra}
+##### Extra Field {#icmp-extra}
 
-| 字段              | 类型   | 是否必须 | 说明                                    |
+| Field              | Type   | Whether Required | Description                                    |
 | :---              | ---    | ---      | ---                                     |
-| `host`            | string | Y        | 主机地址                           |
-| `packet_count`    | int |   N         | 发送 ICMP 包的次数  
-| `timeout`             | string | N    | 连接超时时间
+| `host`            | string | Y        | Host address                           |
+| `packet_count`    | int |   N         | Number of ICMP packets sent  
+| `timeout`             | string | N    | Connection timeout
 
-完整 JSON 结构如下:
+The complete JSON structure is as follows:
 
 ``` json
 {
@@ -623,16 +622,16 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 }
 ```
 
-##### `success_when` 定义 {#icmp-success-when}
+##### `success_when` Definition {#icmp-success-when}
 
-- ICMP 丢包率 (`packet_loss_percent`)
+- ICMP packet loss rate (`packet_loss_percent`)
 
-填写具体的值，为一个数组对象，每个对象参数如下：
+Fill in the specific value as an array object, and each object parameter is as follows:
 
-| 字段              | 类型   | 是否必须 | 说明                                      |
+| Field              | Type   | Whether Required | Description                                      |
 | :---              | ---    | ---      | ---                                       |
-| `op`              | string | Y        | 比较关系，可取值 `eq(=),lt(<),leq(<=),gt(>),geq(>=)`|
-| `target`          | float | Y        | 判定值                 |
+| `op`              | string | Y        | Compare relationship retrievable `eq(=),lt(<),leq(<=),gt(>),geq(>=)`|
+| `target`          | float | Y        | Decision value                 |
 
 ```json
 "success_when": [
@@ -647,15 +646,15 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 ]
 ```
 
-- ICMP 响应时间 (`response_time`)
+- ICMP response time (`response_time`)
 
-填写具体的时间，为一个数组对象，每个对象参数如下：
+Fill in the specific time as an array object, and each object parameter is as follows:
 
-| 字段              | 类型   | 是否必须 | 说明                                      |
+| Field              | Type   | Whether Required | Description                                      |
 | :---              | ---    | ---      | ---                                       |
-| `func`            | string | Y        | 统计类型，可取值 `avg,min,max,std`|
-| `op`              | string | Y        | 比较关系，可取值 `eq(=),lt(<),leq(<=),gt(>),geq(>=)`|
-| `target`          | string | Y        | 判定值                 |
+| `func`            | string | Y        | Statistical type, take the value `avg,min,max,std`|
+| `op`              | string | Y        | Comparison relation, take value `eq(=),lt(<),leq(<=),gt(>),geq(>=)`|
+| `target`          | string | Y        | Decision value                 |
 
 ```json
 "success_when": [
@@ -671,14 +670,14 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 ]
 ```
 
-- 网络跳数 (`hops`)
+- Network hop count (`hops`)
 
-`hops` 为一个数组对象，每个对象参数如下：
+`hops` is an array object with the following parameters for each object:
 
-| 字段              | 类型   | 是否必须 | 说明                                      |
+| Field              | Type   | Whether Required | Description                                      |
 | :---              | ---    | ---      | ---                                       |
-| `op`              | string | Y        | 比较关系，可取值 `eq(=),lt(<),leq(<=),gt(>),geq(>=)`|
-| `target`          | float | Y        | 判定值                 |
+| `op`              | string | Y        | Compare relationships, retrievable `eq(=),lt(<),leq(<=),gt(>),geq(>=)`|
+| `target`          | float | Y        | Decision value                 |
 
 
 ```json
@@ -694,14 +693,14 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 ]
 ```
 
-- 抓包数 (`packets`)
+- Number of packets grabbed (`packets`)
 
-`packets` 为一个数组对象，每个对象参数如下：
+`packets` is an array object with the following parameters for each object:
 
-| 字段              | 类型   | 是否必须 | 说明                                      |
+| Field              | Type   | Whether Required | Description                                      |
 | :---              | ---    | ---      | ---                                       |
-| `op`              | string | Y        | 比较关系，可取值 `eq(=),lt(<),leq(<=),gt(>),geq(>=)`|
-| `target`          | float | Y        | 判定值                 |
+| `op`              | string | Y        | Compare relationship retrievable `eq(=),lt(<),leq(<=),gt(>),geq(>=)`|
+| `target`          | float | Y        | Decision value                 |
 
 
 ```json
@@ -717,16 +716,16 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 ]
 ```
 
-#### WEBSOCKET 拨测 {#ws}
+#### WEBSOCKET Dial Test {#ws}
 
-##### 额外字段 {#ws-extra}
+##### Extra Field {#ws-extra}
 
-| 字段              | 类型   | 是否必须 | 说明                                    |
+| Field              | Type   | Whether Required | Description                                    |
 | :---              | ---    | ---      | ---                                     |
-| `url`          | string | Y        | Websocket 连接地址，如 ws://localhost:8080  |
-| `message`       | string | Y        | Websocket 连接成功后发送的消息                |
+| `url`          | string | Y        | Websocket connection address, such as ws://localhost:8080  |
+| `message`       | string | Y        | Websocket message sent after successful connection                |
 
-完整 JSON 结构如下:
+The complete JSON structure is as follows:
 
 ```json
 {
@@ -779,16 +778,16 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 }
 ```
 
-##### `success_when` 定义 {#ws-success-when}
+##### `success_when` Definition {#ws-success-when}
 
-- 响应时间判断 (`response_time`)
+- Response time judgment (`response_time`)
 
-`response_time` 为一个数组对象，每个对象参数如下：
+`response_time` is an array object with the following parameters for each object:
 
-| 字段             | 类型   | 是否必须 | 说明                              |
+| Field             | Type   | Whether Required | Description                              |
 | :---             | ---    | ---      | ---                               |
-| `target`         | string | Y        | 判定响应时间是否小于该值          |
-| `is_contain_dns` | bool   | N        | 指明响应时间是否包含 DNS 解析时间 |
+| `target`         | string | Y        | Determining whether the response time is less than the value          |
+| `is_contain_dns` | bool   | N        | Indicates whether the response time includes DNS resolution time |
 
 
 ```json
@@ -804,20 +803,20 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 ]
 ```
 
-- 返回消息判定（`response_message`）
+- Return a message decision (`response_message`）
 
-`response_message` 为一个数组对象，每个对象参数如下：
+`response_message` is an array object with the following parameters for each object:
 
-| 字段              | 类型   | 是否必须 | 说明                                                |
+| Field              | Type   | Whether Required | Description                                                |
 | :---              | ---    | ---      | ---                                                 |
-| `is`              | string | N        | 返回的 message 是否等于该指定字段                   |
-| `is_not`          | string | N        | 返回的 message 是否不等于该指定字段                 |
-| `match_regex`     | string | N        | 返回的 message 是否含有该匹配正则表达式的子字符串   |
-| `not_match_regex` | string | N        | 返回的 message 是否不含有该匹配正则表达式的子字符串 |
-| `contains`        | string | N        | 返回的 message 是否含有该指定的子字符串             |
-| `not_contains`    | string | N        | 返回的 message 是否不含有该指定的子字符串           |
+| `is`              | string | N        | Whether the returned message is equal to the specified field                   |
+| `is_not`          | string | N        | Whether the returned message is not equal to the specified field                 |
+| `match_regex`     | string | N        | Whether the returned message contains a substring of the matching regular expression   |
+| `not_match_regex` | string | N        | Whether the returned message does not contain a substring of the matching regular expression |
+| `contains`        | string | N        | Whether the returned message contains the specified substring             |
+| `not_contains`    | string | N        | Whether the returned message does not contain the specified substring           |
 
-如：
+for example:
 
 ```json
 "success_when": [
@@ -831,20 +830,20 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 ]
 ```
 
-- 请求返回 Header 判断（`header`）
+- Request to return header judgment（`header`）
 
-`header`为一个字典类型对象，其每个对象元素的值为为一个数组对象，相应参数如下：
+`header` is a dictionary type object whose value for each object element is an array object with the following parameters:
 
-| 字段              | 类型   | 是否必须 | 说明                                                       |
+| Field              | Type   | Whether Required | Description                                                       |
 | :---              | ---    | ---      | ---                                                        |
-| `is`              | string | N        | 返回的 header 指定字段是否等于该指定值                     |
-| `is_not`          | string | N        | 返回的 header 指定字段是否不等于该指定值                   |
-| `match_regex`     | string | N        | 返回的 header 指定字段是否含有该匹配正则表达式的子字符串   |
-| `not_match_regex` | string | N        | 返回的 header 指定字段是否不含有该匹配正则表达式的子字符串 |
-| `contains`        | string | N        | 返回的 header 指定字段是否含有该指定的子字符串             |
-| `not_contains`    | string | N        | 返回的 header 指定字段是否不含有该指定的子字符串           |
+| `is`              | string | N        | The header returned specifies whether the field is equal to the specified value                     |
+| `is_not`          | string | N        | The header returned specifies whether the field is not equal to the specified value                   |
+| `match_regex`     | string | N        | The header returned specifies whether the field contains a substring of the matching regular expression  |
+| `not_match_regex` | string | N        | The header returned specifies whether the field does not contain a substring of the matching regular expression |
+| `contains`        | string | N        | The header returned specifies whether the field contains the specified substring             |
+| `not_contains`    | string | N        | The header returned specifies whether the field does not contain the specified substring           |
 
-如：
+for example:
 
 ```json
 "success_when": [
@@ -860,14 +859,14 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 ]
 ```
 
-##### `advance_options` 定义 {#ws-advance-options}
+##### `advance_options` Definition {#ws-advance-options}
 
-- 请求选项 (`request_options`)
+- Request option (`request_options`)
 
-| 字段              | 类型              | 是否必须 | 说明                       |
+| Field              | Type              | Whether Required | Description                       |
 | :---              | ---               | ---      | ---                        |
-| `timeout` | string              | N        | 连接超时时间         |
-| `headers` | map[string]string | N        |  请求时指定一组 Header |
+| `timeout` | string              | N        | Connection timeout         |
+| `headers` | map[string]string | N        |  Specify a set of headers on request |
 
 ```json
 "advance_options": {
@@ -880,14 +879,14 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 }
 ```
 
-- 认证信息 (`auth`)
+- Authentication information (`auth`)
 
-支持普通的用户名和密码认证(Basic access authentication)。
+Support for common user name and password authentication (Basic access authentication)。
 
-| 字段       | 类型   | 是否必须 | 说明       |
+| Field       | Type   | Whether Required | Description       |
 | :---       | ---    | ---      | ---        |
-| `username` | string | Y        | 用户名     |
-| `password` | string | Y        | 用户名密码 |
+| `username` | string | Y        | user name     |
+| `password` | string | Y        | user name and password |
 
 ```json
 "advance_options": {

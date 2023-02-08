@@ -1,106 +1,107 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# 主机对象
+
+# Host Object
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗等。
+Hostobject is used to collect basic host information, such as hardware model, basic resource consumption and so on.
 
-## 前置条件 {#requirements}
+## Preconditions {#requirements}
 
-暂无
+None
 
-## 配置 {#config}
+## Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    一般情况下，主机对象是默认开启的，无需配置。
-
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    In general, the host object is turned on by default and does not need to be configured.
+    
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    配置好后，重启 DataKit 即可。
+    After configuration, restart DataKit.
 
 === "Kubernetes"
 
-    一般情况下，主机对象是默认开启的，无需配置。Kubernetes 中支持以环境变量的方式修改默认参数：
+    In general, the host object is turned on by default and does not need to be configured. In Kubernetes, it is supported to modify default parameters in the form of environment variables:
     
-    | 环境变量名                                           | 对应的配置参数项                | 参数说明                                                           | 参数示例                                                                                                   |
+    | Environment Variable Name                                           | Corresponding Configuration Parameter Item                | Parameter Description                                                           | Parameter Example                                                                                                   |
     | :---                                                 | ---                             | ---                                                                | ---                                                                                                        |
-    | `ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES` | `enable_net_virtual_interfaces` | 允许采集虚拟网卡                                                   | `true`/`false`                                                                                             |
-    | `ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK`        | `ignore_zero_bytes_disk`        | 忽略大小为 0 的磁盘                                                | `true`/`false`                                                                                             |
-    | `ENV_INPUT_HOSTOBJECT_TAGS`                          | `tags`                          | 增加额外标签                                                       | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它                                               |
-    | `ENV_INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE`          | `only_physical_device`          | 忽略非物理磁盘（如网盘、NFS 等，只采集本机硬盘/CD ROM/USB 磁盘等） | 任意给一个字符串值即可                                                                                     |
-    | `ENV_INPUT_HOSTOBJECT_EXCLUDE_DEVICE`                      | `exclude_device`                | 忽略的device                                | `"/dev/loop0","/dev/loop1"` 以英文逗号隔开                      |
-    | `ENV_INPUT_HOSTOBJECT_EXTRA_DEVICE`                        | `extra_device`                  | 额外增加的device                            | `"/nfsdata"` 以英文逗号隔开                      |
-    | `ENV_CLOUD_PROVIDER`                                 | `tags`                          | 指定云服务商                                                       | `aliyun/aws/tencent/hwcloud/azure`                                                                         |
+    | `ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES` | `enable_net_virtual_interfaces` | Allow collection of virtual network card                                                   | `true`/`false`                                                                                             |
+    | `ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK`        | `ignore_zero_bytes_disk`        | Ignore disks with size 0                                                | `true`/`false`                                                                                             |
+    | `ENV_INPUT_HOSTOBJECT_TAGS`                          | `tags`                          | Add additional labels                                                       | `tag1=value1,tag2=value2`; If there is a tag with the same name in the configuration file, it will be overwritten.                                               |
+    | `ENV_INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE`          | `only_physical_device`          | Ignore non-physical disks (such as network disk, NFS, etc., only collect local hard disk/CD ROM/USB disk, etc.) | Just give an arbitrary string value                                                                                     |
+    | `ENV_INPUT_HOSTOBJECT_EXCLUDE_DEVICE`                      | `exclude_device`                | ignored device                                | `"/dev/loop0","/dev/loop1"` separated by English commas                      |
+    | `ENV_INPUT_HOSTOBJECT_EXTRA_DEVICE`                        | `extra_device`                  | Additional device                            | `"/nfsdata"` separated by English commas                      |
+    | `ENV_CLOUD_PROVIDER`                                 | `tags`                          | Designate cloud service provider                                                       | `aliyun/aws/tencent/hwcloud/azure`                                                                         |
 
-## 开启云同步 {#cloudinfo}
+## Turn on Cloud Synchronization {#cloudinfo}
 
-Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/微软云。可以通过设置 cloud_provider tag 显式指定云厂商，也可以由 Datakit 自动进行探测：
+Datakit turns on cloud synchronization by default, and currently supports Alibaba Cloud/Tencent Cloud/AWS/Huawei Cloud/Microsoft Cloud. You can specify the cloud vendor explicitly by setting the cloud_provider tag, or you can detect it automatically by Datakit:
 
 ```toml
 [inputs.hostobject.tags]
-  # 此处目前支持 aliyun/tencent/aws/hwcloud/azure 几种，若不设置，则由 Datakit 自动探测并设置此 tag
+  # There are several kinds of aliyun/tencent/aws/hwcloud/azure supported at present. If not set, Datakit will detect and set this tag automatically
   cloud_provider = "aliyun"
 ```
 
-可以通过在 hostobject 配置文件中配置 `disable_cloud_provider_sync = true` 关闭云同步功能。
+You can turn off cloud synchronization by configuring `disable_cloud_provider_sync = true` in the hostobject configuration file.
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.hostobject.tags]`:
 
 ``` toml
- [inputs.{{.InputName}}.tags]
+ [inputs.hostobject.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
 ```
 
-> 注意：这里添加自定义 tag 时，尽量不要跟已有的 tag key/field key 同名。如果同名，DataKit 将选择配置里面的 tag 来覆盖采集的数据，可能导致一些数据问题。
+> Note: When adding custom tags here, try not to have the same name as the existing tag key/field key. If it has the same name, DataKit will choose to configure the tag inside to overwrite the collected data, which may cause some data problems.
 
 {{ range $i, $m := .Measurements }}
 
 ### `{{$m.Name}}`
 
--  标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
 
-如果开启了云同步，会多出如下一些字段（以同步到的字段为准）：
 
-| 字段名                  | 描述           | 类型   |
+
+If cloud synchronization is turned on, the following additional fields will be added (whichever field is synchronized to):
+
+| Field Name                  | Description           | Type   |
 | ---                     | ----           | :---:  |
-| `cloud_provider`        | 云服务商       | string |
-| `description`           | 描述           | string |
-| `instance_id`           | 实例 ID        | string |
-| `instance_name`         | 实例名         | string |
-| `instance_type`         | 实例类型       | string |
-| `instance_charge_type`  | 实例计费类型   | string |
-| `instance_network_type` | 实例网络类型   | string |
-| `instance_status`       | 实例状态       | string |
-| `security_group_id`     | 实例分组       | string |
-| `private_ip`            | 实例私网 IP    | string |
-| `zone_id`               | 实例 Zone ID   | string |
-| `region`                | 实例 Region ID | string |
+| `cloud_provider`        | Cloud service provider       | string |
+| `description`           | Description           | string |
+| `instance_id`           | Instance ID        | string |
+| `instance_name`         | Instance name         | string |
+| `instance_type`         | Instance type       | string |
+| `instance_charge_type`  | Instance billing type   | string |
+| `instance_network_type` | Instance network type   | string |
+| `instance_status`       | Instance state       | string |
+| `security_group_id`     | Instance grouping       | string |
+| `private_ip`            | Instance private network IP    | string |
+| `zone_id`               | Instance Zone ID   | string |
+| `region`                | Instance Region ID | string |
 
 
-### `message` 指标字段结构 {#message-struct}
+### `message` Metric Field Structure {#message-struct}
 
-`message` 字段基本结构如下：
+The basic structure of the `message` field is as follows:
 
 ```json
 {
@@ -115,7 +116,7 @@ Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/�
     "election": ...,
   },
 
-  "collectors": [ # 各个采集器的运行情况
+  "collectors": [ # Operation of each collector
     ...
   ]
 }
@@ -123,65 +124,65 @@ Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/�
 
 #### `host.meta` {#host-meta}
 
-| 字段名             | 描述                                           | 类型   |
+| Field Name             | Description                                           | Type   |
 | ---                | ----                                           | :---:  |
-| `host_name`        | 主机名                                         | string |
-| `boot_time`        | 开机时间                                       | int    |
-| `os`               | 操作系统类型，如 `linux/windows/darwin`        | string |
-| `platform`         | 平台名称，如 `ubuntu`                          | string |
-| `platform_family`  | 平台分类，如 `ubuntu` 属于 `debian` 分类       | string |
-| `platform_version` | 平台版本，如 `18.04`，即 Ubuntu 的某个分发版本 | string |
-| `kernel_release`   | 内核版本，如 `4.15.0-139-generic`              | string |
-| `arch`             | CPU 硬件架构，如 `x86_64/arm64` 等             | string |
-| `extra_cloud_meta` | 开启云同步时，会带上一串云属性的 JSON 数据     | string |
+| `host_name`        | hostname                                         | string |
+| `boot_time`        | Startup time                                       | int    |
+| `os`               | Operating system type, such as `linux/windows/darwin`        | string |
+| `platform`         | Platform name, such as `ubuntu`                          | string |
+| `platform_family`  | Platform classification, such as `ubuntu` belongs to `debian` classification       | string |
+| `platform_version` | Platform version, such as `18.04`, that is, a distribution version of Ubuntu | string |
+| `kernel_release`   | Kernel version, such as `4.15.0-139-generic`              | string |
+| `arch`             | Switch hardware architecture, such as `x86_64/arm64`            | string |
+| `extra_cloud_meta` | When cloud synchronization is turned on, it will bring a string of JSON data with cloud attributes.     | string |
 
 #### `host.cpu` {#host-cpu}
 
-| 字段名        | 描述                                                    | 类型   |
+| Field Name        | Description                                                    | Type   |
 | ---           | ----                                                    |:---:   |
-| `vendor_id`   | 供应商 ID，如 `GenuineIntel`                            | string |
-| `module_name` | CPU 型号，如 `Intel(R) Core(TM) i5-8210Y CPU @ 1.60GHz` | string |
-| `cores`       | 核数                                                    | int    |
-| `mhz`         | 频率                                                    | int    |
-| `cache_size`  | L2 缓存大小（KB）                                       | int    |
+| `vendor_id`   | Vendor ID, such as `GenuineIntel`                            | string |
+| `module_name` | CPU model, such as `Intel(R) Core(TM) i5-8210Y CPU @ 1.60GHz` | string |
+| `cores`       | Audit                                                    | int    |
+| `mhz`         | Frequency                                                    | int    |
+| `cache_size`  | L2 Cache size (KB)                                       | int    |
 
 #### `host.mem` {#host-mem}
 
-| 字段名         | 描述       | 类型 |
+| Field Name         | Description       | Type |
 | ---            | ----       |:---: |
-| `memory_total` | 总内存大小 | int  |
-| `swap_total`:  | swap 大小  | int  |
+| `memory_total` | Total memory size | int  |
+| `swap_total`:  | swap size  | int  |
 
 #### `host.net` {#host-net}
 
-| 字段名  | 描述               | 类型     |
+| Field Name  | Description               | Type     |
 | ---     | ----               |:---:     |
-| `mtu`   | 最大传输单元       | int      |
-| `name`  | 网卡名称           | string   |
-| `mac`   | MAC 地址           | string   |
-| `flags` | 状态位（可能多个） | []string |
-| `ip4`   | IPv4 地址          | string   |
-| `ip6`   | IPv6 地址          | string   |
-| `ip4_all`| 所有 IPv4 地址     | []string |
-| `ip6_all`| 所有 IPv6 地址     | []string |
+| `mtu`   | Maximum transmission unit       | int      |
+| `name`  | NIC Name           | string   |
+| `mac`   | MAC address           | string   |
+| `flags` | Status bits (may be multiple) | []string |
+| `ip4`   | IPv4 address          | string   |
+| `ip6`   | IPv6 address          | string   |
+| `ip4_all`| all IPv4 address     | []string |
+| `ip6_all`| all IPv6 address     | []string |
 
 #### `host.disk` {#host-disk}
 
-| 字段名       | 描述         | 类型   |
+| Field Name       | Description         | Type   |
 | ---          | ----         |:---:   |
-| `device`     | 磁盘设备名   | string |
-| `total`      | 磁盘总大小   | int    |
-| `mountpoint` | 挂载点       | string |
-| `fstype`     | 文件系统类型 | string |
+| `device`     | Disk device name   | string |
+| `total`      | Total disk size   | int    |
+| `mountpoint` | Mount point       | string |
+| `fstype`     | File system type | string |
 
 #### `host.election` {#host-election}
 
-> 注意：当配置文件中 `enable_election`选项关闭时，该字段为null
+> Note: This field is null when the `enable_election` option is turned off in the configuration file
 
-| 字段名      | 描述     | 类型   |
+| Field Name      | Description     | Type   |
 | ---         | ----     | :---:  |
-| `elected`   | 选举状态 | string |
-| `namespace` | 选举空间 | string |
+| `elected`   | Election status | string |
+| `namespace` | Election space | string |
 
 
 #### `host.conntrack` {#host-conntrack}
@@ -190,39 +191,39 @@ Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/�
 
     `conntrack` 仅 Linux 平台支持
 
-| 字段名                | 描述                                           | 类型  |
+| Field Name                | Description                                           | Type  |
 | ---                   | ---                                            | :---: |
-| `entries`             | 当前连接数量                                   | int   |
-| `entries_limit`       | 连接跟踪表的大小                               | int   |
-| `stat_found`          | 成功的搜索条目数目                             | int   |
-| `stat_invalid`        | 不能被跟踪的包数目                             | int   |
-| `stat_ignore`         | 已经被跟踪的报数目                             | int   |
-| `stat_insert`         | 插入的包数目                                   | int   |
-| `stat_insert_failed`  | 插入失败的包数目                               | int   |
-| `stat_drop`           | 跟踪失败被丢弃的包数目                         | int   |
-| `stat_early_drop`     | 由于跟踪表满而导致部分已跟踪包条目被丢弃的数目 | int   |
-| `stat_search_restart` | 由于hash表大小修改而导致跟踪表查询重启的数目   | int   |
+| `entries`             | Current number of connections                                   | int   |
+| `entries_limit`       | Size of Connection Trace Table                               | int   |
+| `stat_found`          | Number of successful search terms                             | int   |
+| `stat_invalid`        | Number of packets that cannot be tracked                             | int   |
+| `stat_ignore`         | Number of reports that have been tracked                             | int   |
+| `stat_insert`         | Number of packets inserted                                   | int   |
+| `stat_insert_failed`  | Number of packets that failed to insert                               | int   |
+| `stat_drop`           | Trace failed the number of discarded packets                         | int   |
+| `stat_early_drop`     | Number of partially tracked packet entries discarded due to full trace table | int   |
+| `stat_search_restart` | Number of trace table queries restarted due to hash table size modification   | int   |
 
 #### `host.filefd` {#host-filefd}
 
 ???+ attention
 
-    `filefd` 仅 Linux 平台支持
+    `filefd` Linux platform only
 
-| 字段名         | 描述                                                 | 类型  |
+| Field Name         | Description                                                 | Type  |
 | ---            | ---                                                  | :---: |
-| `allocated`    | 已分配文件句柄的数目                                 | int   |
-| `maximum`      | 文件句柄的最大数目（已弃用，用 `maximum_mega` 替代） | int   |
-| `maximum_mega` | 文件句柄的最大数目，单位 M(10^6)                     | float |
+| `allocated`    | Number of allocated file handles                                 | int   |
+| `maximum`      | Maximum number of file handles (deprecated, replaced by `maximum_mega`) | int   |
+| `maximum_mega` | Maximum number of file handles in M(10^6)                     | float |
 
-#### 采集器运行情况字段列表 {#inputs-stats}
+#### Collector Performance Field List {#inputs-stats}
 
-`collectors` 字段是一个对象列表，每个对象的字段如下：
+The `collectors` field is a list of objects with the following fields for each object:
 
-| 字段名          | 描述                                             | 类型   |
+| Field Name          | Description                                             | Type   |
 | ---             | ----                                             | :---:  |
-| `name`          | 采集器名称                                       | string |
-| `count`         | 采集次数                                         | int    |
-| `last_err`      | 最后一次报错信息，只报告最近 30 秒(含)以内的错误 | string |
-| `last_err_time` | 最后一次报错时间（Unix 时间戳，单位为秒）        | int    |
-| `last_time`     | 最近一次采集时间（Unix 时间戳，单位为秒）        | int    |
+| `name`          | Collector name                                       | string |
+| `count`         | Collection times                                         | int    |
+| `last_err`      | For the last error message, only the errors within the last 30 seconds (inclusive) are reported. | string |
+| `last_err_time` | The last time an error was reported (Unix timestamp in seconds).        | int    |
+| `last_time`     | Last collection time (Unix timestamp in seconds)       | int    |

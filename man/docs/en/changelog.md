@@ -1,5 +1,4 @@
-<!-- This file required to translate to EN. -->
-# Changelog
+# 更新日志
 ---
 
 <!--
@@ -7,7 +6,7 @@
 [:fontawesome-solid-flag-checkered:](index.md#legends "支持选举")
 
     ```toml
-    {{ CodeBlock .InputSample 4 }}
+        
     ```
 
 # 外链的添加方式

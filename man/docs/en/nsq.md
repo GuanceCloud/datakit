@@ -1,49 +1,48 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # NSQ
 ---
 
-{{.AvailableArchs}}
+{{.AvailableArchs}}index.md#legends "支持选举")
 
 ---
 
-采集 NSQ 运行数据并以指标的方式上报到观测云。
+Collect NSQ operation data and report it to Guance Cloud in the form of indicators.
 
-## 前置条件 {#requirements}
+## Preconditions {#requirements}
 
-- 已安装 NSQ（[NSQ 官方网址](https://nsq.io/){:target="_blank"}）
+- NSQ installed（[NSQ official website](https://nsq.io/){:target="_blank"}）
 
-- NSQ 版本 >= 1.0.0
+- NSQ version >= 1.0.0
 
-## 配置 {#config}
+## Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    NSQ 采集器提供两种配置方式，分别为 `lookupd` 和 `nsqd`，具体说明如下：
+    The NSQ collector is available in two configurations, `lookupd` and `nsqd`, as follows:
     
-    - `lookupd`：配置 NSQ 集群的 `lookupd` 地址，采集器会自动发现 NSQ Server 并采集数据，扩展性更佳
-    - `nsqd`：配置固定的 NSQD 地址列表，采集器只会采集该列表的 NSQ Server 数据
+    - `lookupd`: Configure the `lookupd` address of the NSQ cluster, and the collector will automatically discover the NSQ Server and collect data, which is more scalable.
+    - `nsqd`: Configure a fixed list of NSQD addresses for which the collector collects only NSQ Server data
     
-    以上两种配置方式是互斥的，`lookupd` 优先级更高，推荐使用 `lookupd` 配置方式。
+    The above two configuration methods are mutually exclusive, and `lookupd` has higher priority, so it is recommended to use `lookupd` configuration method.
     
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.nsq.tags]`:
 
 ``` toml
- [inputs.{{.InputName}}.tags]
+ [inputs.nsq.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -55,12 +54,12 @@
 
 {{$m.Desc}}
 
--  标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} 
+{{ end }}

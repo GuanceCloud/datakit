@@ -1,15 +1,14 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# 采集器配置
+
+# Collector Configuration
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用户访问监测数据。
+RUM (Real User Monitor) collector is used to collect user access monitoring data reported by web page or mobile terminal.
 
-## 接入方式 {#supported-platforms}
+## Access Mode {#supported-platforms}
 
 <div class="grid cards" markdown>
 - :material-web: [__JavaScript__](../real-user-monitoring/web/app-access.md)
@@ -20,45 +19,39 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 - :material-react:[__ReactNative__](../real-user-monitoring/react-native/app-access.md)
 </div>
 
-## 前置条件 {#requirements}
+## Preconditions {#requirements}
 
-- 将 DataKit 部署成公网可访问
+- Deploy DataKit to be publicly accessible
 
-建议将 RUM 以单独的方式部署在公网上，==不要跟已有的服务部署在一起==（如 Kubernetes 集群）。因为 RUM 这个接口上的流量可能很大，集群内部的流量会被它干扰到，而且一些可能的集群内部资源调度机制，可能影响 RUM 服务的运行。
+It is recommended that RUM be deployed separately on the public network, ==not with existing services== (such as Kubernetes cluster). As the traffic on RUM interface may be very large, the traffic within the cluster will be disturbed by it, and some possible resource scheduling mechanisms within the cluster may affect the operation of RUM services.
 
-- 在 DataKit 上[安装 IP 地理信息库](datakit-tools-how-to.md#install-ipdb)
-- 自 [1.2.7](changelog.md#cl-1.2.7) 之后，由于调整了 IP 地理信息库的安装方式，默认安装不再自带 IP 信息库，需手动安装
+- On the DataKit [install IP geo-Repository](datakit-tools-how-to.md#install-ipdb)
+- Since [1.2.7](changelog.md#cl-1.2.7), due to the adjustment of the installation method of IP geographic information base, the default installation no longer comes with its own IP information base, but needs to be installed manually.
 
-## 配置 {#config}
+## Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-
-    或者直接在 *datakit.conf* 中默认采集器中开启即可：
-
-    ``` toml
-    default_enabled_inputs = [ "rum", "cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes" ]
-    ```
-
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    
+    After configuration, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    在 datakit.yaml 中，环境变量 `ENV_DEFAULT_ENABLED_INPUTS` 增加 rum 采集器名称（如下 `value` 中第一个所示）：
-
+    In datakit.yaml, the environment variable `ENV_DEFAULT_ENABLED_INPUTS` adds the rum collector name (as shown in the first in `value` below):
+    
     ```yaml
     - name: ENV_DEFAULT_ENABLED_INPUTS
       value: rum,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
     ```
 
-## 安全限制 {#security-setting}
+## Security Restrictions {#security-setting}
 
-由于 RUM DataKit 一般部署在公网环境，但是只会使用其中特定的 [DataKit API](apis.md) 接口，其它接口是不能开放的。通过如下方式可加强 API 访问控制，在 *datakit.conf* 中，修改如下 *public_apis* 字段配置：
+Because RUM DataKit is generally deployed in a public network environment, but only uses a specific [DataKit API](apis.md) interface, other interfaces cannot be opened. API access control can be tightened by modifying the following *public_apis* field configuration in *datakit.conf*:
 
 ```toml
 [http_api]
@@ -67,29 +60,29 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
   disable_404page = true
   rum_app_id_white_list = []
 
-  public_apis = [  # 如果该列表为空，则所有 API 不做访问控制
+  public_apis = [  # If the list is empty, all APIs do not do access control
     "/v1/write/rum",
     "/some/other/apis/..."
 
-    # 除此之外的其他 API，只能 localhost 访问，比如 datakit -M 就需要访问 /stats 接口
-    # 另外，DCA 不受这个影响，因为它是独立的 HTTP server
+    # Other APIs can only be accessed by localhost, for example, datakit-M needs to access the/stats interface.
+    # In addition, DCA is not affected by this because it is a stand-alone HTTP server.
   ]
 ```
 
-其它接口依然可用，但只能通过 DataKit 本机访问，比如[查询 DQL](datakit-dql-how-to.md) 或者查看 [DataKit 运行状态](datakit-tools-how-to.md#using-monitor)。
+Other interfaces are still available, but can only be accessed natively through the DataKit, such as [query DQL](datakit-dql-how-to.md) or view [DataKit running status](datakit-tools-how-to.md#using-monitor).
 
-### 禁用 DataKit 404 页面 {#disable-404}
+### Disable DataKit 404 Page {#disable-404}
 
-可通过如下配置，禁用公网访问 DataKit 404 页面：
+You can disable public network access to DataKit 404 pages with the following configuration:
 
 ```toml
 # datakit.conf
 disable_404page = true
 ```
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-RUM 采集器默认会采集如下几个指标集：
+The RUM collector collects the following metric sets by default:
 
 - `error`
 - `view`
@@ -97,46 +90,46 @@ RUM 采集器默认会采集如下几个指标集：
 - `long_task`
 - `action`
 
-## Sourcemap 转换 {#sourcemap}
+## Sourcemap Transformation {#sourcemap}
 
-通常生产环境的 js 文件或移动端App代码会经过混淆和压缩以减小应用的尺寸，发生错误时的调用堆栈与开发时的源代码差异较大，不便于排错(`troubleshoot`)。如果需要定位错误至源码中，就得借助于`sourcemap`文件。
+Usually, js files in production environment or App code on mobile side will be confused and compressed to reduce the size of application. The call stack when an error occurs is quite different from the source code at development time, which is inconvenient for debugging (`troubleshoot`). If you need to locate errors in the source code, you have to rely on the `sourcemap` file.
 
-DataKit 支持这种源代码文件信息的映射，方法是将对应符号表文件进行 zip 压缩打包，命名格式为 `<app_id>-<env>-<version>.zip`，上传至`<DataKit安装目录>/data/rum/<platform>`，这样就可以对上报的`error`指标集数据自动进行转换，并追加 `error_stack_source` 字段至该指标集中。
+DataKit supports this mapping of source code file information by zipping the corresponding symbol table file, named `<app_id>-<env>-<version>.zip` and uploading it to`<DataKit Installation Directory>/data/rum/<platform>` so that the reported `error` measurement data can be automatically converted and the `error_stack_source` field appended to the metric set.
 
-### 安装 sourcemap 工具集 {#install-tools}
+### Install the sourcemap Toolset {#install-tools}
 
-首先需要安装相应的符号还原工具，datakit 提供了一键安装命令来简化工具的安装：
+First, you need to install the corresponding symbol restoration tool. Datakit provides a one-click installation command to simplify the installation of the tool:
 
 ```shell
 sudo datakit install --symbol-tools
 ```
 
-如果安装过程中出现某个软件安装失败的情况，你可能需要根据错误提示手动安装对应的软件
+If a software installation fails during the installation process, you may need to manually install the corresponding software according to the error prompt.
 
 
-### Zip 包打包说明 {#zip}
+### Zip Packaging Instructions {#zip}
 
 === "Web"
 
-    将js文件经 webpack 混淆和压缩后生成的 `.map` 文件进行 zip 压缩打包，再拷贝到 `<DataKit安装目录>/data/rum/web`目录下，必须要保证该压缩包解压后的文件路径与`error_stack`中 URL 的路径一致。 假设如下 `error_stack`：
-
+    After the js file is obfuscated and compressed by webpack, the `.map` file is zip compressed and packaged, and then copied to the `<DataKit installation directory>/data/rum/web`directory. It is necessary to ensure that the uncompressed file path of the compressed package is consistent with the URL path in `error_stack`. Assume the following `error_stack`：
+    
     ```
     ReferenceError
       at a.hideDetail @ http://localhost:8080/static/js/app.7fb548e3d065d1f48f74.js:1:1037
       at a.showDetail @ http://localhost:8080/static/js/app.7fb548e3d065d1f48f74.js:1:986
       at <anonymous> @ http://localhost:8080/static/js/app.7fb548e3d065d1f48f74.js:1:1174
     ```
-
-    需要转换的路径是`/static/js/app.7fb548e3d065d1f48f74.js`，与其对应的`sourcemap`路径为`/static/js/app.7fb548e3d065d1f48f74.js.map`，那么对应压缩包解压后的目录结构如下：
-
+    
+    The path to be converted is `/static/js/app.7fb548e3d065d1f48f74.js`, and its corresponding `sourcemap` path is `/static/js/app.7fb548e3d065d1f48f74.js.map`, so the directory structure of the corresponding compressed package after decompression is as follows:
+    
     ```
     static/
     └── js
     └── app.7fb548e3d065d1f48f74.js.map
     
     ```
-
-    转换后的`error_stack_source`：
+    
+    After conversion `error_stack_source`：
     
     ```
     
@@ -148,7 +141,7 @@ sudo datakit install --symbol-tools
 
 === "Android"
     
-    Android 目前存在两种 `sourcemap` 文件，一种是 Java 字节码经 `R8`/`Proguard` 压缩混淆后产生的 mapping 文件，另一种为 C/C++ 原生代码编译时未清除符号表和调试信息的（unstripped） `.so` 文件，如果你的安卓应用同时包含这两种 `sourcemap` 文件， 打包时需要把这两种文件都打包进 zip 包中，之后再把 zip 包拷贝到 `<DataKit安装目录>/data/rum/android` 目录下，zip 包解压后的目录结构类似：
+    Android currently has two types of `sourcemap` files. One is the mapping file produced by Java bytecode obfuscated by `R8`/`Proguard` compression. The other is an (unstripped) `.so` file that does not clear the symbol table and debugging information when compiling C/C + + native code. If your android application contains these two `sourcemap` files at the same time, you need to package these two files into a zip package when packaging, and then copy the zip package to the `<DataKit installation directory>/data/rum/android` directory. The directory structure after zip package decompression is similar:
     
     ```
     <app_id>-<env>-<version>/
@@ -170,15 +163,15 @@ sudo datakit install --symbol-tools
         ├── libothercode.so
         └── libvideocodec.so
     ```
-
-    默认情况下，`mapping` 文件将位于： `<项目文件夹>/<Module>/build/outputs/mapping/<build-type>/`，`.so` 文件在用CMake编译项目时位于： `<项目文件夹>/<Module>/build/intermediates/cmake/debug/obj/`，用NDK编译时位于：`<项目文件夹>/<Module>/build/intermediates/ndk/debug/obj/`（debug编译） 或 `<项目文件夹>/<Module>/build/intermediates/ndk/release/obj/`（release编译）。
-
-    转换的效果如下：
-
+    
+    By default, the `mapping` file will be in: `<project folder>/<Module>/build/outputs/mapping/<build-type>/`, the `.so` file will be in: `<project folder>/<Module>/build/intermediates/cmake/debug/obj/` when compiling with ndk: `<project folder>/<Module>/build/intermediates/ndk/debug/obj/`（debug compilation) or `<project folder>/<Module>/build/intermediates/ndk/release/obj/`(release compile).
+    
+    The effect of the transformation is as follows:
+    
     === "Java/Kotlin"
-
-        转换前 `error_stack` :
-
+    
+        Before conversion `error_stack` :
+    
         ```
         java.lang.ArithmeticException: divide by zero
             at prof.wang.activity.TeamInvitationActivity.o0(Unknown Source:1)
@@ -187,17 +180,17 @@ sudo datakit install --symbol-tools
             at java.lang.Thread.run(Thread.java:1012)
         ```
         
-        转换后 `error_stack_source` :
+        After conversion `error_stack_source` :
     
         ```
         java.lang.ArithmeticException: divide by zero
         at prof.wang.activity.TeamInvitationActivity.onClick$lambda-0(TeamInvitationActivity.java:1)
         at java.lang.Thread.run(Thread.java:1012)
         ```
-
-    === "C/C++ 原生代码"
-
-        转换前 `error_stack` :
+    
+    === "C/C++ Native Code"
+    
+        Before conversion `error_stack` :
     
         ```
         backtrace:
@@ -209,7 +202,7 @@ sudo datakit install --symbol-tools
         ...
         ```
         
-        转换后 `error_stack_source` :
+        After conversion `error_stack_source` :
     
         ```
         backtrace:
@@ -235,8 +228,8 @@ sudo datakit install --symbol-tools
 
 === "iOS"
 
-    iOS平台上的 `sourcemap` 文件是以 `.dSYM` 为后缀的带有调试信息的符号表文件，一般情况下，项目编译完和 `.app` 文件在同一个目录下，如下所示：
-
+    The `sourcemap` file on the iOS platform is a symbol table file with debugging information suffixed `.dSYM`. Typically, the project is compiled in the same directory as the `.app` file, as follows:
+    
     ```
     $ ls -l Build/Products/Debug-iphonesimulator/
     total 0
@@ -245,15 +238,15 @@ sudo datakit install --symbol-tools
     drwxr-xr-x  15 zy  staff  480  8  9 15:27 Fishing.doccarchive
     drwxr-xr-x   6 zy  staff  192  8  9 13:55 Fishing.swiftmodule
     ```
-
-    需要注意，XCode Release编译默认会生成 `.dSYM` 文件，而Debug编译默认不会生成，需要对 XCode 做如下相应的设置：
-
+    
+    Note that XCode Release builds the `.dSYM` file by default, while Debug compilation will not be generated by default, so you need to set XCode accordingly:
+    
     ```
     Build Settings -> Code Generation -> Generate Debug Symbols -> Yes
     Build Settings -> Build Option -> Debug Information Format -> DWARF with dSYM File
     ```
-
-    进行 zip 打包时，把相应的 `.dSYM` 文件打包进 zip 包即可，如果你的项目涉及多个 `.dSYM` 文件，需要一起打包到 zip 包内，之后再把 zip 包拷贝到 `<DataKit安装目录>/data/rum/ios` 目录下，zip 包解压后的目录结构类似如下(`.dSYM` 文件本质上是一个目录，和macOS下的可执行程序 `.app` 文件类似)：
+    
+    When packaging zip, you can package the corresponding `.dSYM` files into the zip package. If your project involves multiple `.dSYM` files, you need to package them together into the zip package, and then copy the zip package to the `<DataKit installation directory >/data/rum/ios` directory. The directory structure after zip package decompression is similar to the following (the`.dSYM` file is essentially a directory, which is similar to the executable program `.app` file under macOS):
 
 
     ```
@@ -273,23 +266,23 @@ sudo datakit install --symbol-tools
     
     ```
 
-### 文件上传和删除 {#upload-delete}
+### File Upload and Delete {#upload-delete}
 
-打包完成后，除了手动拷贝至 DataKit 相关目录，还可通过 http 接口上传和删除该文件，前提是 Datakit 开启了 DCA 服务。
+After packaging, in addition to manually copying to Datakit related directories, the file can also be uploaded and deleted through http interface, provided that Datakit starts DCA service.
 
-上传：
+Upload:
 
 ```shell
 curl -X POST '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>' -F "file=@<sourcemap_path>" -H "Content-Type: multipart/form-data"
 ```
 
-删除：
+Delete:
 
 ```shell
 curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>'
 ```
 
-变量说明：
+Variable description:
 
 - `<dca_address>`: DCA 服务的地址，如 `http://localhost:9531`
 - `<app_id>`: 对应 RUM 的 `applicationId`
@@ -300,7 +293,7 @@ curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version
 
 ???+ attention
 
-    - 该转换过程，只针对 `error` 指标集
-    - 当前只支持 Javascript/Android/iOS 的 sourcemap 转换
-    - 如果未找到对应的 sourcemap 文件，将不进行转换
-    - 通过接口上传的 sourcemap 压缩包，不需要重启 DataKit 即可生效。但如果是手动上传，需要重启 DataKit，方可生效
+    - This conversion process is only for the `error` measurement.
+    - Currently only Javascript/Android/iOS sourcemap conversion is supported.
+    - If the corresponding sourcemap file is not found, no conversion will be performed.
+    - Sourcemap compressed package uploaded through the interface, which does not need to restart DataKit to take effect. However, if it is uploaded manually, you need to restart the DataKit before it can take effect.

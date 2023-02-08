@@ -1,39 +1,39 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 
 # Reference Table
 
-[:octicons-tag-24: Version-1.4.11](../datakit/changelog.md#cl-1.4.11) ·
+[:octicons-tag-24: Version-1.4.11](../datakit/changelog.md#cl-1.4.6) ·
 [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
 ---
 
-通过 Reference Table 功能，Pipeline 支持导入外部数据进行数据处理。
+Through the Reference Table function, Pipeline supports importing external data for data processing.
 
 ???+ attention
 
-    该功能内存消耗较高，参考 150 万行磁盘占用约 200MB (JSON 文件) 的不重复数据 (string 类型两列; int, float, bool 各一列) 为例，其内存占用维持在 950MB ～ 1.2GB, 更新时的峰值内存 2.2GB ~ 2.7GB
+    This feature consumes high memory, with reference to 1.5 million rows of disk occupying about 200MB (JSON file) of non-repetitive data (string type two columns; int, float, bool), the memory footprint is maintained at 950MB ~ 1.2 GB, and the peak memory at update is 2.2 GB ~ 2.7 GB.
 
-## 表结构与列的数据类型 {#table-struct}
+## Table Structure and Column Data Type {#table-struct}
 
-表结构为一个二维表，表与表之间通过表名区分，需要至少存在一列，各列内的元素的数据类型必须一致，且数据类型需为 int(int64), float(float64), string, bool 之一。
+The table structure is a two-dimensional table, which is distinguished from each other by table name. At least one column needs to exist. The data types of elements in each column must be consistent, and the data types must be one of int (int 64), float (float 64), string and bool.
 
-暂未支持给表设置主键，但是可以通过任意列进行查询，并将查到的所有结果中的第一行作为查询结果。以下为一个表结构示例：
+Setting primary keys to tables is not supported yet, but you can query through any column and take the first row of all the results found as the query result. The following is an example of a table structure:
 
-- 表名： `refer_table_abc`
+- Table name: `refer_table_abc`
 
-- 列名(col1, col2, ...)、列数据类型(int, float, ...)、行数据：
+- Column name(col1, col2, ...), column data type(int, float, ...), line data:
 
 | col1: int | col2: float | col3: string | col4: bool |
 | ---       | ---         | ---          | ---        |
 | 1         | 1.1         | "abc"        | true       |
 | 2         | 3           | "def"        | false      |
 
-## 从外部导入数据 {#import}
+## Import Data from Outside {#import}
 
-=== "主机安装"
 
-    在配置文件 `datakit.conf` 中配置 reference table url 与拉取间隔(默认间隔为 5 分钟)
+=== "Host Installation"
+
+    Configure reference table url and pull interval in configuration file `datakit.conf` (default interval is 5 minutes)
     
     ```toml
     [pipeline]
@@ -43,24 +43,22 @@
 
 === "Kubernetes"
 
-    [参见这里](datakit-daemonset-deploy.md#env-reftab)
+    [see here](datakit-daemonset-deploy.md#env-reftab)
 
 ---
 
-???+ attention
+Supported data formats:
 
-    目前要求 refer_table_url 指定的地址，其 HTTP 返回的 Content-Type 必须为 `Content-Type: application/json`。
+Content-Type: application/json ：
 
----
+* The data consists of a list of tables, and each table consists of a map with the fields in the map:
 
-* 数据由多个 table 构成列表，每个表由一个 map 构成，map 中的字段为：
-
-| 字段名   | table_name | column_name | column_type                                                         | row_data                                                                                                             |
+| Field Name   | table_name | column_name | column_type                                                         | row_data                                                                                                             |
 | ---      | ---        | --          | --                                                                  | ---                                                                                                                  |
-| 描述     | 表名       | 所有列名    | 列数据类型，需要与列名对应，值范围 "int", "float", "string", "bool" | 多个行数据，对于 int, float, bool 类型可以使用对应类型数据或转换成字符串表示; []any 中元素需与列名以及列类型一一对应 |
-| 数据类型 | string     | [ ]string   | [ ]string                                                           | [ ][ ]any                                                                                                            |
+| Description     | Table Name       | All Column Names    | Column data type, need to correspond to column name, value range "int", "float", "string", "bool" | Multiple rows of data, for int, float, bool types can use corresponding type data or converted to string representation; Elements in [] any must correspond to column names and column types one by one. |
+| Data Type | string     | [ ]string   | [ ]string                                                           | [ ][ ]any                                                                                                            |
 
-* JSON 结构：
+* JSON structure:
   
 ```json
 [
@@ -77,7 +75,7 @@
 ]
 ```
 
-* 示例：
+* example:
 
 ```json
 [
@@ -104,11 +102,11 @@
 ]
 ```
 
-## 实践示例 {#example}
+## Practice Example {#example}
 
-将上面的 json 文本写成文件 `test.json`，在 Ubuntu18.04+ 使用 apt 安装 nginx 后将文件放置于 /var/www/html 下
+Write the json text above as the file `test.json` and place the file under/var/www/html after installing nginx with apt in Ubuntu 18.04 +
 
-执行 `curl -v localhost/test.json` 测试文件是否能通过 HTTP GET 获取到，输出结果大致为
+Execute `curl -v localhost/test.json` to test whether the file can be obtained via HTTP GET, and the output is roughly
 
 ```txt
 ...
@@ -128,7 +126,7 @@
 ...
 ```
 
-在配置文件 `datakit.conf` 修改 refer_table_url 的值为：
+Modify the value of refer_table_url in the configuration file `datakit.conf`:
 
 ```toml
 [pipeline]
@@ -136,15 +134,15 @@
   refer_table_pull_interval = "5m"
 ```
 
-进入 datakit pipeline loggging 目录, 并创建测试脚本 `refer_table_for_test.p`，并写入以下内容
+Go into the datakit pipeline logging directory and create the test script `refer_table_for_test.p` and write the following
 
 ```python
-# 从输入中提取 表名，列名，列值
+# Extract table name, column name and column value from input
 json(_, table)
 json(_, key)
 json(_, value)
 
-# 查询并追加当前列的数据，默认作为 field 添加到数据中
+# Query and append the data of the current column, which is added to the data as field by default
 query_refer_table(table, key, value)
 ```
 
@@ -156,7 +154,7 @@ vim refer_table_for_test.p
 datakit pipeline refer_table_for_test.p -T '{"table": "table_abc", "key": "col2", "value": 1234.0}' --date
 ```
 
-由以下输出结果可知，表中列的 col, col2, col3, col4 成功被追加到输出的结果中：
+As can be seen from the following output results, coll, col2, col3 and col4 of the columns in the table were successfully appended to the output results:
 
 ```shell
 2022-08-16T15:02:14.150+0800  DEBUG  refer-table  refertable/cli.go:26  performing request[method GET url http://localhost/test.json]

@@ -1,30 +1,29 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# 如何编写 Pipeline 脚本
+
+# How to Write Pipeline Scripts
 ---
 
-Pipeline 编写较为麻烦，为此，DataKit 中内置了简单的调试工具，用以辅助大家来编写 Pipeline 脚本。
+Pipeline writing is relatively troublesome, so DataKit has built-in simple debugging tools to help you write Pipeline scripts.
 
-## 调试 grok 和 pipeline {#debug}
+## Debug grok and pipeline {#debug}
 
-指定 pipeline 脚本名称，输入一段文本即可判断提取是否成功
+Specify the pipeline script name and enter a piece of text to determine whether the extraction is successful or not.
 
-> Pipeline 脚本必须放在 *<DataKit 安装目录>/pipeline* 目录下。
+> The pipeline script must be placed in the *<DataKit 安装目录>/pipeline* directory.
 
 ```shell
 $ datakit pipeline your_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
-Extracted data(cost: 421.705µs): # 表示切割成功
+Extracted data(cost: 421.705µs): # Indicate successful cutting
 {
-	"code"   : "io/io.go: 458",       # 对应代码位置
-	"level"  : "DEBUG",               # 对应日志等级
-	"module" : "io",                  # 对应代码模块
-	"msg"    : "post cost 6.87021ms", # 纯日志内容
-	"time"   : 1610358231887000000    # 日志时间(Unix 纳秒时间戳)
+	"code"   : "io/io.go: 458",       # Corresponding code position
+	"level"  : "DEBUG",               # Corresponding log level
+	"module" : "io",                  # Corresponding code module
+	"msg"    : "post cost 6.87021ms", # Pure log attributes
+	"time"   : 1610358231887000000    # Log time (Unix nanosecond timestamp)
 	"message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
 }
 ```
 
-提取失败示例（只有 `message` 留下了，说明其它字段并未提取出来）：
+Extraction failure example (only `message` is left, indicating that other fields have not been extracted):
 
 ```shell
 $ datakit pipeline other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
@@ -33,43 +32,43 @@ $ datakit pipeline other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  
 }
 ```
 
-> 如果调试文本比较复杂，可以将它们写入一个文件（sample.log），用如下方式调试：
+> If the debug text is complex, you can write it to a file (sample.log) and debug it as follows:
 
 ```shell
 $ datakit pipeline your_pipeline.p -F sample.log
 ```
 
-更多 Pipeline 调试命令，参见 `datakit help pipeline`。
+For more Pipeline debugging commands, see `datakit help pipeline`.
 
-### Grok 通配搜索 {#grokq}
+### Grok Wildcard Search {#grokq}
 
-由于 Grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
+Manual matching is troublesome due to the large number of Grok patterns. DataKit provides an interactive command-line tool, `grokq`（grok query）：
 
 ```Shell
 datakit tool --grokq
-grokq > Mon Jan 25 19:41:17 CST 2021   # 此处输入你希望匹配的文本
-        2 %{DATESTAMP_OTHER: ?}        # 工具会给出对应对的建议，越靠前匹配月精确（权重也越大）。前面的数字表明权重。
+grokq > Mon Jan 25 19:41:17 CST 2021   # Enter the text you want to match here
+        2 %{DATESTAMP_OTHER: ?}        # The tool will give corresponding suggestions, and the more accurate the matching month is (the greater the weight is). The previous figures indicate the weights.
         0 %{GREEDYDATA: ?}
 
 grokq > 2021-01-25T18:37:22.016+0800
-        4 %{TIMESTAMP_ISO8601: ?}      # 此处的 ? 表示你需要用一个字段来命名匹配到的文本
+        4 %{TIMESTAMP_ISO8601: ?}      # Here ? indicates that you need to name the matching text with a field
         0 %{NOTSPACE: ?}
         0 %{PROG: ?}
         0 %{SYSLOGPROG: ?}
-        0 %{GREEDYDATA: ?}             # 像 GREEDYDATA 这种范围很广的 pattern，权重都较低
-                                       # 权重越高，匹配的精确度越大
+        0 %{GREEDYDATA: ?}             # A wide range of patterns like GREEDYDATA have low weights
+                                       # The higher the weight, the greater the matching accuracy
 
-grokq > Q                              # Q 或 exit 退出
+grokq > Q                              # Q or exit 
 Bye!
 ```
 
 ???+ info
 
-    Windows 下，请在 Powershell 中执行调试。
+    In Windows environment, debug in Powershell.
 
-### 多行如何处理 {#multiline}
+### How to Handle with Multiple Lines {#multiline}
 
-在处理一些调用栈相关的日志时，由于其日志行数不固定，直接用 `GREEDYDATA` 这个 pattern 无法处理如下情况的日志：
+When dealing with some call stack related logs, the logs of the following situations cannot be handled directly with the pattern `GREEDYDATA` since the number of log lines is not fixed:
 
 ```
 2022-02-10 16:27:36.116 ERROR 1629881 --- [scheduling-1] o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task
@@ -86,23 +85,23 @@ Bye!
 	at java.util.stream.ReferencePipeline.collect(xxxxxxxxxxxxxxxxx.java:499)
 ```
 
-此处可以使用 `GREEDYLINES` 规则来通配，如（*/usr/local/datakit/pipeline/test.p*）：
+Here you can use the `GREEDYLINES` rule for generalization, such as (*/usr/local/datakit/pipeline/test.p*):
 
 ```python
 add_pattern('_dklog_date', '%{YEAR}-%{MONTHNUM}-%{MONTHDAY} %{HOUR}:%{MINUTE}:%{SECOND}%{INT}')
 grok(_, '%{_dklog_date:log_time}\\s+%{LOGLEVEL:Level}\\s+%{NUMBER:Level_value}\\s+---\\s+\\[%{NOTSPACE:thread_name}\\]\\s+%{GREEDYDATA:Logger_name}\\s+(\\n)?(%{GREEDYLINES:stack_trace})'
 
-# 此处移除 message 字段便于调试
+# Remove the message field here for easy debugging
 drop_origin_data()
 ```
 
-将上述多行日志存为 *multi-line.log*，调试一下：
+Save the above multi-line log as *multi-line.log* and debug it:
 
 ```shell
 $ datakit --pl test.p --txt "$(<multi-line.log)"
 ```
 
-得到如下切割结果：
+The following cutting results are obtained:
 
 ```json
 {
@@ -115,44 +114,44 @@ $ datakit --pl test.p --txt "$(<multi-line.log)"
 }
 ```
 
-### Pipeline 字段命名注意事项 {#naming}
+### Pipeline Field Naming Notes {#naming}
 
-在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](../datakit/apis.md#lineproto-limitation)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
+In all the fields cut out by Pipeline, they are a field rather than a tag. We should not cut out any fields with the same name as tag due to the [line protocol constraint](apis.md#lineproto-limitation). These tags include the following categories:
 
-- DataKit 中的[全局 Tag](../datakit/datakit-conf.md#set-global-tag)
-- 日志采集器中[自定义的 Tag](../datakit/logging.md#measurements)
+- [Global Tag](datakit-conf.md#set-global-tag) in DataKit
+- [Custom Tag](logging.md#measurements) in Log Collector
 
-另外，所有采集上来的日志，均存在如下多个保留字段。==我们不应该去覆盖这些字段==，否则可能导致数据在查看器页面显示不正常。
+In addition, all collected logs have the following reserved fields. ==We should not override these fields==, otherwise the data may not appear properly on the observer page.
 
-| 字段名    | 类型          | 说明                                  |
+| Field Name    | Type          | Description                                  |
 | ---       | ----          | ----                                  |
-| `source`  | string(tag)   | 日志来源                              |
-| `service` | string(tag)   | 日志对应的服务，默认跟 `service` 一样 |
-| `status`  | string(tag)   | 日志对应的[等级](../datakit/logging.md#status)   |
-| `message` | string(field) | 原始日志                              |
-| `time`    | int           | 日志对应的时间戳                      |
+| `source`  | string(tag)   | Log source                              |
+| `service` | string(tag)   | The service corresponding to the log is the same as the `service` by default |
+| `status`  | string(tag)   | The [level](logging.md#status)  corresponding to the log  |
+| `message` | string(field) | Original log                              |
+| `time`    | int           | Timestamp corresponding to log          |
 
 
 ???+ tip
 
-    当然我们可以通过[特定的 Pipeline 函数](pipeline.md#fn-set-tag)覆盖上面这些 tag 的值。
+    Of course, we can override the values of these tags by [specific Pipeline function](pipeline.md#fn-set-tag).
 
-一旦 Pipeline 切割出来的字段跟已有 Tag 重名（大小写敏感），都会导致如下数据报错。故建议在 Pipeline 切割中，绕开这些字段命名。
+Once the Pipeline cut-out field has the same name as the existing Tag (case sensitive), it will cause the following data error. Therefore, it is recommended to bypass these field naming in Pipeline cutting.
 
 ```shell
-# 该错误在 DataKit monitor 中能看到
+# This error is visible in the DataKit monitor
 same key xxx in tag and field
 ```
 
-### 完整 Pipeline 示例 {#example}
+### Complete Pipeline Sample {#example}
 
-这里以 DataKit 自身的日志切割为例。DataKit 自身的日志形式如下：
+Take DataKit's own log cutting as an example. DataKit's own log form is as follows:
 
 ```
 2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms
 ```
 
-编写对应 pipeline：
+Write the corresponding pipeline：
 
 ```python
 # pipeline for datakit log
@@ -160,19 +159,19 @@ same key xxx in tag and field
 # auth: tanb
 
 grok(_, '%{_dklog_date:log_time}%{SPACE}%{_dklog_level:level}%{SPACE}%{_dklog_mod:module}%{SPACE}%{_dklog_source_file:code}%{SPACE}%{_dklog_msg:msg}')
-rename("time", log_time) # 将 log_time 重名命名为 time
-default_time(time)       # 将 time 字段作为输出数据的时间戳
-drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
+rename("time", log_time) # rename log_time to time
+default_time(time)       # use the time field as the timestamp of the output data
+drop_origin_data()       # discard the original log text (not recommended)
 ```
 
-这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 `<datakit安装目录>/pipeline/pattern` 下。
+Several user-defined patterns are referenced, such as `_dklog_date`、`_dklog_level`. We put these rules under `<datakit安装目录>/pipeline/pattern` .
 
-> 注意，用户自定义 pattern 如果需要==全局生效==（即在其它 Pipeline 脚本中应用），必须放置在 `<DataKit安装目录/pipeline/pattern/>` 目录下）:
+> Note that the user-defined pattern must be placed in the `<DataKit安装目录/pipeline/pattern/>` directory) if it needs to be ==globally effective== (that is, applied in other pipeline scripts):
 
 ```Shell
 $ cat pipeline/pattern/datakit
-# 注意：自定义的这些 pattern，命名最好加上特定的前缀，以免跟内置的命名冲突（内置 pattern 名称不允许覆盖）
-# 自定义 pattern 格式为：
+# Note: For these custom patterns, it is best to add a specific prefix to the name so as not to conflict with the built-in naming (the built-in pattern name is not allowed to be overwritten)
+# Custom pattern format is:
 #    <pattern-name><空格><具体 pattern 组合>
 _dklog_date %{YEAR}-%{MONTHNUM}-%{MONTHDAY}T%{HOUR}:%{MINUTE}:%{SECOND}%{INT}
 _dklog_level (DEBUG|INFO|WARN|ERROR|FATAL)
@@ -181,10 +180,10 @@ _dklog_source_file (/?[\w_%!$@:.,-]?/?)(\S+)?
 _dklog_msg %{GREEDYDATA}
 ```
 
-现在 pipeline 以及其引用的 pattern 都有了，就能通过 DataKit 内置的 pipeline 调试工具，对这一行日志进行切割：
+Now that you have the pipeline and its referenced pattern, you can cut this line of logs through DataKit's built-in pipeline debugging tool:
 
 ```Shell
-# 提取成功示例
+# Extract successful examples
 $ ./datakit --pl dklog_pl.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs):
 {
@@ -198,9 +197,9 @@ Extracted data(cost: 421.705µs):
 
 ## FAQ {#faq}
 
-### Pipeline 调试时，为什么变量无法引用？ {#ref-variables}
+### Why can't variables be referenced when Pipeline is debugging? {#ref-variables}
 
-Pipeline 为：
+Pipeline:
 
 ```python
 json(_, message, "message")
@@ -209,7 +208,7 @@ json(_, level, "status")
 json(_, @timestamp, "time")
 ```
 
-其报错如下：
+The error reported is as follows:
 
 ```
 [E] new piepline failed: 4:8 parse error: unexpected character: '@'
@@ -217,17 +216,17 @@ json(_, @timestamp, "time")
 
 ---
 
-A: 对于有特殊字符的变量，需将其用两个 `` ` `` 修饰一下：
+A: For variables with special characters, you need to decorate them with two `` ` ``:
 
 ```python
 json(_, `@timestamp`, "time")
 ```
 
-参见 [Pipeline 的基本语法规则](pipeline.md#basic-syntax)
+See [Basic syntax rules of Pipeline](pipeline.md#basic-syntax)
 
-### Pipeline 调试时，为什么找不到对应的 Pipeline 脚本？ {#pl404}
+### When debugging Pipeline, why can't you find the corresponding Pipeline script? {#pl404}
 
-命令如下：
+The order is as follows:
 
 ```shell
 $ datakit pipeline test.p -T "..."
@@ -236,65 +235,65 @@ $ datakit pipeline test.p -T "..."
 
 ---
 
-A: 调试用的 Pipeline 脚本，需将其放置到 *<DataKit 安装目录>/pipeline* 目录下。
+A: Pipeline scripts for debugging. Place them in *<DataKit 安装目录>/pipeline* Directory.
 
-### 如何在一个 Pipeline 中切割多种不同格式的日志？ {#if-else}
+### How to cut logs in many different formats in one Pipeline? {#if-else}
 
-在日常的日志中，因为业务的不同，日志会呈现出多种形态，此时，需写多个 Grok 切割，为提高 Grok 的运行效率，==可根据日志出现的频率高低，优先匹配出现频率更高的那个 Grok==，这样，大概率日志在前面几个 Grok 中就匹配上了，避免了无效的匹配。
+In daily logs, because of different services, logs will take on various forms. At this time, multiple Grok cuts need to be written. In order to improve the running efficiency of Grok, ==you can give priority to matching the Grok with higher frequency according to the frequency of logs==, so that high probability logs can be matched in the previous Groks, avoiding invalid matching.
 
-> 在日志切割中，Grok 匹配是性能开销最大的部分，故避免重复的 Grok 匹配，能极大的提高 Grok 的切割性能。
+> In log cutting, Grok matching is the most expensive part, so avoiding repeated Grok matching can greatly improve the cutting performance of Grok.
 
 ```python
 grok(_, "%{NOTSPACE:client_ip} %{NOTSPACE:http_ident} ...")
 if client_ip != nil {
-	# 证明此时上面的 grok 已经匹配上了，那么就按照该日志来继续后续处理
+	# Prove that the above grok has matched at this time, then continue the subsequent processing according to the log
 	...
 } else {
-	# 这里说明是不同的日志来了，上面的 grok 没有匹配上当前的日志
+	# Here shows that there is a different log, and the above grok does not match the current log
 	grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg} ...")
 
 	if status != nil {
-		# 此处可再检查上面的 grok 是否匹配上...
+		# Here you can check whether the grok above matches...
 	} else {
-		# 未识别的日志，或者，在此可再加一个 grok 来处理，如此层层递进
+		# Unrecognized logs, or a grok can be added here to process them, so as to step by step
 	}
 }
 ```
 
-### 如何丢弃字段切割 {#drop-keys}
+### How to discard field cut? {#drop-keys}
 
-在某些情况下，我们需要的只是日志==中间的几个字段==，但不好跳过前面的部分，比如 
+In some cases, all we need is ==a few fields in the middle of log==, but it is difficult to skip the previous parts, such as: 
 
 ```
 200 356 1 0 44 30032 other messages
 ```
 
-其中，我们只需要 `44` 这个值，它可能代码响应延迟，那么可以这样切割（即 Grok 中不附带 `:some_field` 这个部分）：
+Where we only need the value of `44` , which may be code response delay, we can cut it like this (that is, the `:some_field` part is not included in Grok):
 
 ```python
 grok(_, "%{INT} %{INT} %{INT} %{INT:response_time} %{GREEDYDATA}")
 ```
 
-### `add_pattern()` 转义问题 {#escape}
+### `add_pattern()` Escape Problem {#escape}
 
-大家在使用 `add_pattern()` 添加局部模式时，容易陷入转义问题，比如如下这个 pattern（用来通配文件路径以及文件名）：
+When you use `add_pattern()` to add local patterns, you are prone to escape problems, such as the following pattern (used to match file paths and file names):
 
 ```
 (/?[\w_%!$@:.,-]?/?)(\S+)?
 ```
 
-如果我们将其放到全局 pattern 目录下（即 *pipeline/pattern* 目录），可这么写：
+If we put it in the global pattern directory (that is, *pipeline/pattern* directory), we can write this:
 
 ```
 # my-test
 source_file (/?[\w_%!$@:.,-]?/?)(\S+)?
 ```
 
-如果使用 `add_pattern()`，就需写成这样： 
+If you use `add_pattern()`, you need to write this:
 
 ```python
 # my-test.p
 add_pattern('source_file', '(/?[\\w_%!$@:.,-]?/?)(\\S+)?')
 ```
 
-即这里面反斜杠需要转义。
+That is, the backslash needs to be escaped.

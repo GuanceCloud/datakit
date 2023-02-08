@@ -1,5 +1,4 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # ClickHouse
 ---
 
@@ -7,13 +6,13 @@
 
 ---
 
-ClickHouse 采集器可以采集 ClickHouse 服务器实例主动暴露的多种指标，比如语句执行数量和内存存储量，IO交互等多种指标，并将指标采集到观测云，帮助你监控分析 ClickHouse 各种异常情况。
+ClickHouse collector can collect various metrics actively exposed by ClickHouse server instances, such as the number of statements executed, memory storage, IO interaction and other metrics, and collect the metrics into Guance Cloud to help you monitor and analyze various abnormal situations of ClickHouse.
 
-## 前置条件 {#requirements}
+## Preconditions {#requirements}
 
-ClickHouse 版本 >=v20.1.2.4
+ClickHouse version >=v20.1.2.4
 
-在 clickhouse-server 的 config.xml 配置文件中找到如下的代码段，取消注释，并设置 metrics 暴露的端口号（具体哪个自己造择，唯一即可）。修改完成后重启（若为集群，则每台机器均需操作）。
+Find the following code snippet in the config.xml configuration file of clickhouse-server, uncomment it, and set the port number exposed by metrics (which is unique if you choose it yourself). Restart after modification (if it is a cluster, every machine needs to operate).
 
 ```shell
 vim /etc/clickhouse-server/config.xml
@@ -29,33 +28,33 @@ vim /etc/clickhouse-server/config.xml
 </prometheus>
 ```
 
-字段说明：
+Field description:
 
-- `endpoint` Prometheus 服务器抓取指标的 HTTP 路由
-- `port` 端点的端口号
-- `metrics` 从 ClickHouse 的 `system.metrics` 表中抓取暴露的指标标志
-- `events` 从 ClickHouse 的 `system.events` 表中抓取暴露的事件标志
-- `asynchronous_metrics` 从 ClickHouse 中 `system.asynchronous_metrics` 表中抓取暴露的异步指标标志
+- HTTP Routing of `endpoint` Prometheus Server Fetch Metrics
+- `port` number of the port endpoint
+- `metrics` grabs exposed metrics flags from ClickHouse's `system.metrics` table
+- `events` grabs exposed event flags from ClickHouse's `table.events`.
+- `asynchronous_metrics` grabs exposed asynchronous_metrics flags from ClickHouse's `system.asynchronous_metrics` table
 
-详见[ClickHouse 官方文档](https://ClickHouse.com/docs/en/operations/server-configuration-parameters/settings/#server_configuration_parameters-prometheus){:target="_blank"}
+See [ClickHouse official documents](https://ClickHouse.com/docs/en/operations/server-configuration-parameters/settings/#server_configuration_parameters-prometheus){:target="_blank"}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    
+    After configuration, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    At present, you can [inject collector configuration in ConfigMap mode](datakit-daemonset-deploy.md#configmap-setting)。
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.prom.tags]`自定义指定其它Tags：(集群可添加主机名)
+For all the following data collections, a global tag named `host` is appended by default (the tag value is the host name where the DataKit is located), or other tags can be customized in the configuration through `[inputs.prom.tags]`(Hostname can be added to the cluster).
 
 ``` toml
     [inputs.prom.tags]
@@ -63,7 +62,7 @@ vim /etc/clickhouse-server/config.xml
     # more_tag = "some_other_value"
 ```
 
-## 指标 {#metrics}
+## Metrics {#metrics}
 
 {{ range $i, $m := .Measurements }}
 
@@ -73,13 +72,12 @@ vim /etc/clickhouse-server/config.xml
 
 {{$m.Desc}}
 
--  标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 字段列表
+- field list
 
-{{$m.FieldsMarkdownTable}}
-{{end}}
+{{$m.FieldsMarkdownTable}} {{end}}
 
 {{ end }}

@@ -1,23 +1,22 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# DataKit 服务管理
+
+# DataKit Service Management
 ---
 
-[DataKit 安装](datakit-install.md)完后，有必要对安装好的 DataKit 做一些基本的介绍。
+After [DataKit installation](datakit-install.md), it is necessary to do some basic introduction to the installed DataKit.
 
-## DataKit 目录介绍 {#install-dir}
+## DataKit Introduction {#install-dir}
 
-DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
+DataKit currently supports three major platforms, Linux/Windows/Mac:
 
-| 操作系统                            | 架构                | 安装路径                                                                   |
-| ---------                           | ---:                | ------                                                                     |
-| Linux 内核 2.6.23 或更高版本        | amd64/386/arm/arm64 | `/usr/local/datakit`                                                       |
-| macOS 10.13 或更高版本[^1]          | amd64               | `/usr/local/datakit`                                                       |
-| Windows 7, Server 2008R2 或更高版本 | amd64/386           | 64位：`C:\Program Files\datakit`<br />32位：`C:\Program Files(32)\datakit` |
+| Operating System                            | Structure                | Installation Path                                                                   |
+| :--------                           | :---                | :-----                                                                     |
+| Linux kernel version 2.6. 23 or later        | amd64/386/arm/arm64 | `/usr/local/datakit`                                                       |
+| macOS 10.13 or later [^1]          | amd64               | `/usr/local/datakit`                                                       |
+| Windows 7, Server 2008R2 Or above | amd64/386           | 64 bit: `C:\Program Files\datakit`<br />32 bit: `C:\Program Files(32)\datakit` |
 
-[^1]: Golang 1.18 要求 macOS-amd64 版本为 10.13。
+[^1]: Golang 1.18 requires macOS-amd64 version 10.13.
 
-安装完成以后，DataKit 目录列表大概如下：
+After installation, the list of DataKit directories is roughly as follows:
 
 ```
 ├── [4.4K]  conf.d
@@ -25,31 +24,31 @@ DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
 ├── [ 64M]  datakit
 ├── [ 192]  externals
 ├── [1.2K]  pipeline
-├── [ 192]  gin.log   # Windows 平台
-└── [1.2K]  log       # Windows 平台
+├── [ 192]  gin.log   # Windows platform
+└── [1.2K]  log       # Windows platform
 ```
 
-其中：
+Among them:
 
-- `conf.d`：存放所有采集器的配置示例。DataKit 主配置文件 datakit.conf 位于目录下
-- `data`：存放 DataKit 运行所需的数据文件，如 IP 地址数据库等
-- `datakit`：DataKit 主程序，Windows 下为 `datakit.exe`
-- `externals`：部分采集器没有集成在 DataKit 主程序中，就都在这里了
-- `pipeline` 存放用于文本处理的脚本代码
-- `gin.log`：DataKit 可以接收外部的 HTTP 数据输入，这个日志文件相当于 HTTP 的 access-log
-- `log`：DataKit 运行日志（Linux/Mac 平台下，DataKit 运行日志在 */var/log/datakit* 目录下）
+- `conf.d`: Store configuration examples for all collectors. The DataKit main configuration file datakit.conf is located in the directory.
+- `data`: Store data files needed for DataKit to run, such as IP address database, etc.
+- `datakit`: DataKit main program, `datakit.exe` in Windows
+- `externals`: Part of the collector is not integrated in the DataKit main program, it's all here.
+- `pipeline` holds script code for text processing.
+- `gin.log`: DataKit can receive external HTTP data input, and this log file is equivalent to HTTP access-log.
+- `log`: Datakit run log (under Linux/Mac platform, datakit run log is in */var/log/datakit* directory).
 
-???+ tip "查看内核版本"
+???+ tip "View kernel version"
 
     - Linux/Mac：`uname -r`
-    - Windows：执行 `cmd` 命令（按住 Win键 + `r`，输入 `cmd` 回车），输入 `winver` 即可获取系统版本信息
+    - Windows: Execute the `cmd` command (hold down the Win key + `r`, enter `cmd` carriage return) and enter `winver` to get system version information
 
-## DataKit 服务管理 {#manage-service}
+## DataKit Service Management {#manage-service}
 
-可直接使用如下命令直接管理 DataKit：
+DataKit can be directly managed using the following command:
 
 ```shell
-# Linux/Mac 可能需加上 sudo
+# Linux/Mac may need to add sudo
 datakit service -T # stop
 datakit service -S # start
 datakit service -R # restart
@@ -57,38 +56,38 @@ datakit service -R # restart
 
 ???+ tip
 
-    可通过 `datakit help service` 查看更多帮助信息。
+    You can view more help information through `datakit help service`.
 
-#### 服务管理失败处理 {#when-service-failed}
+#### Service Management Failure Handling {#when-service-failed}
 
-有时候可能因为 DataKit 部分组件的 bug，导致服务操作失败（如 `datakit service -T` 之后，服务并未停止），可按照如下方式来强制处理。
+Sometimes a service operation may fail due to a bug in some DataKit components (for example, the service does not stop after `datakit service -T`), which can be enforced as follows.
 
-Linux 下，如果上述命令失效，可使用以下命令来替代：
+Under Linux, if the above command fails, the following command can be used instead:
 
 ```shell
 sudo service datakit stop/start/restart
 sudo systemctl stop/start/restart datakit
 ```
 
-Mac 下，可以用如下命令代替：
+Under Mac, you can use the following command instead:
 
 ```shell
-# 启动 DataKit
+# Start DataKit
 sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
-# 或者
+# or
 sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
 
-# 停止 DataKit
+# Stop DataKit
 sudo launchctl unload -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
-# 或者
+# or
 sudo launchctl unload -w /Library/LaunchDaemons/com.guance.datakit.plist
 ```
 
-#### 服务卸载以及重装 {#uninstall-reinstall}
+#### Service Uninstall and Reinstall {#uninstall-reinstall}
 
-可直接使用如下命令直接卸载或恢复 DataKit 服务：
+You can uninstall or restore the DataKit service directly using the following command:
 
-> 注意：此处卸载 DataKit 并不会删除 DataKit 相关文件。
+> Note: Uninstalling the DataKit here does not delete the DataKit-related files.
 
 ```shell
 # Linux/Mac shell

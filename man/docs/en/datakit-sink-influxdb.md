@@ -1,16 +1,15 @@
-<!-- This file required to translate to EN. -->
 # InfluxDB
 ---
 
-InfluxDB 仅支持写入 Metric 种类的数据。
+InfuxDB only supports writing Metric-type data.
 
-## 第一步: 搭建后端存储 {#backend-storage}
+## Step 1: Build Back-end Storage {#backend-storage}
 
-自己搭建一个 InfluxDB 的 server 环境。
+Build your own InfuxDB server environment.
 
-## 第二步: 增加配置 {#config}
+## Step 2: Add Configuration {#config}
 
-在 `datakit.conf` 中增加以下片段:
+Add the following fragment to `datakit.conf`:
 
 ```conf
 ...
@@ -26,11 +25,11 @@ InfluxDB 仅支持写入 Metric 种类的数据。
 ...
 ```
 
-除了 Sink 必须配置[通用参数](datakit-sink-guide.md)外, InfluxDB 的 Sink 实例目前支持以下参数:
+In addition to the fact that the Sink must be configured with the [generic parameter](datakit-sink-guide.md), the Sink instance of InfuxDB currently supports the following parameters:
 
-- `host`(必须): HTTP/UDP host should be of the form `host:port` or `[ipv6-host%zone]:port`.
-- `protocol`(必须): `http` or `udp`.
-- `database`(必须): Database is the database to write points to.
+- `host`(required): HTTP/UDP host should be of the form `host:port` or `[ipv6-host%zone]:port`.
+- `protocol`(required): `http` or `udp`.
+- `database`(required): Database is the database to write points to.
 - `precision`: Precision is the write precision of the points, defaults to "ns".
 - `username`: Username is the influxdb username, optional.
 - `password`: Password is the influxdb password, optional.
@@ -39,15 +38,15 @@ InfluxDB 仅支持写入 Metric 种类的数据。
 - `retention_policy`: RetentionPolicy is the retention policy of the points.
 - `write_consistency`: Write consistency is the number of servers required to confirm write.
 - `write_encoding`: WriteEncoding specifies the encoding of write request
-- `payload_size`(UDP 协议专用): PayloadSize is the maximum size of a UDP client message, optional. Tune this based on your network. Defaults to 512.
+- `payload_size`(UDP protocol specific): PayloadSize is the maximum size of a UDP client message, optional. Tune this based on your network. Defaults to 512.
 
-## 第三步: 重启 DataKit {#restart-dk}
+## Step 3: Restart DataKit {#restart-dk}
 
 `$ sudo datakit --restart`
 
-## 安装阶段指定 InfluxDB Sink 设置 {#setup-influxdb}
+## Specify the InfuxDB Sink Setting During Installation {#setup-influxdb}
 
-InfluxDB 支持安装时环境变量开启的方式。
+InfuxDB supports the way environment variables are turned on during installation.
 
 ```shell
 DK_SINK_M="influxdb://localhost:8087?protocol=http&database=db1&precision=ns&timeout=15s" \

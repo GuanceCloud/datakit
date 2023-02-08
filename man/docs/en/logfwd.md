@@ -1,44 +1,43 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# 通过 Sidecar 方式采集 Pod 日志
+
+# Collect Pod Log by Sidecar Mode
 ---
 
 ":material-kubernetes:"
 
 ---
 
-为了便于在 Kubernetes Pod 中采集应用容器的日志，提供一个轻量的日志采集客户端，以 sidecar 方式挂载到 Pod 中，并将采集到的日志发送给 DataKit。
+In order to collect the log of application container in Kubernetes Pod, a lightweight log collection client is provided, which is mounted in Pod in sidecar mode and sends the collected log to DataKit.
 
-## 使用 {#using}
+## Use {#using}
 
-分成两部分，一是配置 DataKit 开启相应的日志接收功能，二是配置和启动 logfwd 采集。
+It is divided into two parts, one is to configure DataKit to start the corresponding log receiving function, and the other is to configure and start logfwd collection.
 
-### DataKit 配置 {#datakit-conf}
+### DataKit Configuration {#datakit-conf}
 
 
-=== "主机安装"
+=== "Host Installation"
 
-    需要先开启 [logfwdserver](logfwdserver.md)，进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
-
+    You need to open [logfwdserver](logfwdserver.md), go to the `conf.d/log` directory under the DataKit installation directory, copy `logfwdserver.conf.sample` and name it  `logfwdserver.conf`. Examples are as follows:
+    
     ``` toml hl_lines="1"
-    [inputs.logfwdserver] # 注意这里是 logfwdserver 的配置
-      ## logfwd 接收端监听地址和端口
+    [inputs.logfwdserver] # Note that this is the configuration of logfwdserver
+      ## logfwd receiver listens for addresses and ports
       address = "0.0.0.0:9533"
-
+    
       [inputs.logfwdserver.tags]
       # some_tag = "some_value"
       # more_tag = "some_other_value"
     ```
-
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    
+    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入 logfwdserver 采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [injecting logfwdserver collector configuration in ConfigMap mode](datakit-daemonset-deploy.md#configmap-setting).
 
-### logfwd 使用和配置 {#config}
+### logfwd Usage and Configuration  {#config}
 
-logfwd 主配置是 JSON 格式，以下是配置示例：
+The logfwd main configuration is in JSON format, and the following is a configuration example:
 
 ``` json
 [
@@ -65,36 +64,36 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
 ]
 ```
 
-配置参数说明：
+Description of configuration parameters:
 
-- `datakit_addr` 是 DataKit logfwdserver 地址，通常使用环境变量 `LOGFWD_DATAKIT_HOST` 和 `LOGFWD_DATAKIT_PORT` 进行配置
+- `datakit_addr` is the DataKit logfwdserver address, typically configured with the environment variables `LOGFWD_DATAKIT_HOST` and `LOGFWD_DATAKIT_PORT` 
 
-- `loggings` 为主要配置，是一个数组，子项也基本和 [logging](logging.md) 采集器相同。
-    - `logfiles` 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定，推荐使用绝对路径
-    - `ignore` 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
-    - `source` 数据来源，如果为空，则默认使用 'default'
-    - `service` 新增标记 tag，如果为空，则默认使用 $source
-    - `pipeline` pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline（此脚本文件存在于 DataKit 端）
-    - `character_encoding` # 选择编码，如果编码有误会导致数据无法查看，默认为空即可。支持`utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
-    - `multiline_match` 多行匹配，与 [logging](logging.md) 该项配置一样，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
-    - `remove_ansi_escape_codes` 是否删除 ANSI 转义码，例如标准输出的文本颜色等，值为 `true` 或 `false`
-    - `tags` 添加额外 `tag`，书写格式是 JSON map，例如 `{ "key1":"value1", "key2":"value2" }`
+- `loggings` is the primary configuration, an array, and the subitems are basically the same as the [logging](logging.md) collector.
+    - `logfiles` list of log files, you can specify absolute paths, support batch specifying using glob rules, and recommend using absolute paths.
+    - `ignore` file path filtering, using glob rules, the file will not be collected if any filtering condition is met.
+    - `source` data source; if empty, 'default' is used by default.
+    - `service` adds tag; if empty, $source is used by default.
+    - `pipeline` pipeline script path, if empty $source.p will be used, if $source.p does not exist will not use pipeline (this script file exists on the DataKit side).
+    - `character_encoding` # Select the code. If there is a misunderstanding in the code and the data cannot be viewed, it will be empty by default. Support `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
+    - `multiline_match` multi-line match, as in the [logging](logging.md) configuration, note that "no escape writing" with 3 single quotes is not supported because it is in JSON format, and regular `^\d{4}` needs to be escaped as `^\\d{4}`
+    - `remove_ansi_escape_codes` whether to remove ANSI escape codes, such as the text color of standard output, and so on, with a value of `true` or `false`
+    - `tags` adds additional `tag` written in a JSON map, such as `{ "key1":"value1", "key2":"value2" }`
 
-支持的环境变量：
+Supported environment variables:
 
-| 环境变量名                       | 配置项含义                                                                     |
+| Environment Variable Name                       | Configuration Item Mmeaning                                                                     |
 | :---                             | :---                                                                           |
 | `LOGFWD_DATAKIT_HOST`            | Datakit 地址                                                                   |
 | `LOGFWD_DATAKIT_PORT`            | Datakit Port                                                                   |
-| `LOGFWD_GLOBAL_SOURCE`           | 配置全局 source，优先级最高                                                    |
-| `LOGFWD_GLOBAL_SERVICE`          | 配置全局 service，优先级最高                                                   |
-| `LOGFWD_POD_NAME`                | 指定 pod name，会 tags 中添加 `pod_name`                                       |
-| `LOGFWD_POD_NAMESPACE`           | 指定 pod namespace，会 tags 中添加 `pod_namespace`                             |
-| `LOGFWD_ANNOTATION_DATAKIT_LOGS` | 使用当前 Pod 的 Annotations `datakit/logs` 配置，优先级比 logfwd JSON 配置更高 |
+| `LOGFWD_GLOBAL_SOURCE`           | Configure the global source with the highest priority                                                    |
+| `LOGFWD_GLOBAL_SERVICE`          | Configure the global service with the highest priority                                                   |
+| `LOGFWD_POD_NAME`                | Specifying pod name adds `pod_name` to tags                                       |
+| `LOGFWD_POD_NAMESPACE`           | Specifying pod namespace adds `pod_namespace` to tags                            |
+| `LOGFWD_ANNOTATION_DATAKIT_LOGS` | Use the annotations `datakit/logs` configuration of the current Pod with higher priority than the logfwd JSON configuration |
 
-#### 安装和运行 {#install-run}
+#### Installation and Running {#install-run}
 
-logfwd 在 Kubernetes 的部署配置分为两部分，一是 Kubernetes Pod 创建 `spec.containers` 的配置，包括注入环境变量和挂载目录。配置如下：
+The deployment configuration of logfwd in Kubernetes is divided into two parts. One is the configuration of Kubernetes Pod to create `spec.containers`, including injecting environment variables and mounting directories. The configuration is as follows:
 
 ```
 spec:
@@ -125,7 +124,7 @@ spec:
           fieldPath: metadata.namespace
     - name: LOGFWD_GLOBAL_SOURCE
       value: nginx-souce-test
-    image: pubrepo.jiagouyun.com/datakit/logfwd:{{.Version}}
+    image: pubrepo.jiagouyun.com/datakit/logfwd:1.5.1
     imagePullPolicy: Always
     volumeMounts:
     - name: varlog
@@ -137,9 +136,9 @@ spec:
 
 ```
 
-第二份配置为 logfwd 实际运行的配置，即前文提到的 JSON 格式的主配置，在 Kubernetes 中以 ConfigMap 形式存在。
+The second configuration is the configuration where logfwd actually runs, the JSON-formatted master configuration mentioned earlier, which exists in Kubernetes as a ConfigMap.
 
-根据 logfwd 配置示例，按照实际情况修改 `config`。`ConfigMap` 格式如下：
+According to the logfwd configuration example, modify `config` as it is. The `ConfigMap` format is as follows:
 
 ```
 apiVersion: v1
@@ -165,11 +164,11 @@ data:
     ]
 ```
 
-将两份配置集成到现有的 Kubernetes yaml 中，并使用 `volumes` 和 `volumeMounts` 将目录在 containers 内部共享，即可实现 logfwd 容器采集其他容器的日志文件。
+By integrating the two configurations into the existing Kubernetes yaml and using `volumes` and `volumeMounts` to share directories within containers, the logfwd container collects log files from other containers.
 
-> 注意，需要使用 `volumes` 和 `volumeMounts` 将应用容器（即示例中的 `count` 容器）的日志目录挂载和共享，以便在 logfwd 容器中能够正常访问到。`volumes` 官方说明[文档](https://kubernetes.io/docs/concepts/storage/volumes/){:target="_blank"}
+> Note that you need to use `volumes` and `volumeMounts` to mount and share the log directory of the application container (that is, the `count` container in the example) for normal access in the logfwd container. See `volumes` [doc](https://kubernetes.io/docs/concepts/storage/volumes/){:target="_blank"}
 
-完整示例如下：
+The complete example is as follows:
 
 ```yaml
 apiVersion: v1
@@ -219,7 +218,7 @@ spec:
         fieldRef:
           apiVersion: v1
           fieldPath: metadata.namespace
-    image: pubrepo.jiagouyun.com/datakit/logfwd:{{.Version}}
+    image: pubrepo.jiagouyun.com/datakit/logfwd:1.5.1
     imagePullPolicy: Always
     volumeMounts:
     - name: varlog
@@ -262,9 +261,9 @@ data:
     ]
 ```
 
-### 性能测试 {#bench}
+### Performance Test {#bench}
 
-- 环境：
+- Environment:
 
 ```
 goos: linux
@@ -272,17 +271,17 @@ goarch: amd64
 cpu: Intel(R) Core(TM) i5-7500 CPU @ 3.40GHz
 ```
 
-- 日志文件内容为 1000w 条 nginx 日志，文件大小 2.2GB：
+- Log file contains 1000w nginx logs, file size 2.2 GB:
 
 ```
 192.168.17.1 - - [06/Jan/2022:16:16:37 +0000] "GET /google/company?test=var1%20Pl HTTP/1.1" 401 612 "http://www.google.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36" "-"
 ```
 
-- 结果：
+- Results:
 
-耗时**95 秒**将所有日志读取和转发完毕，平均每秒读取 10w 条日志。
+It takes**95 seconds** to read and forward all logs, with an average of 10w logs read per second.
 
-单核心 CPU 使用率峰值为 42%，以下是当时的 `top` 记录：
+The peak single-core CPU utilization rate was 42%, and the following is the `top` record at that time:
 
 ```
 top - 16:32:46 up 52 days,  7:28, 17 users,  load average: 2.53, 0.96, 0.59
@@ -295,13 +294,13 @@ MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
 1850829 root      20   0  715416  17500   8964 R  42.1   0.1   0:10.44 logfwd
 ```
 
-## 延伸阅读 {#more-reading}
+## More Readings {#more-reading}
 
-- [DataKit 日志采集综述](datakit-logging.md)
-- [Socket 日志接入最佳实践](logging_socket.md)
-- [Kubernetes 中指定 Pod 的日志采集配置](container-log.md#logging-with-annotation-or-label)
-- [第三方日志接入](logstreaming.md)
-- [Kubernetes 环境下 DataKit 配置方式介绍](k8s-config-how-to.md)
-- [以 DaemonSet 形式安装 DataKit](datakit-daemonset-deploy.md)
-- [在 DataKit 上部署 `logfwdserver`](logfwdserver.md)
-- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex)
+- [DataKit summary of log collection](datakit-logging.md)
+- [Socket Log access best practices](logging_socket.md)
+- [Log collection configuration for specifying pod in Kubernetes](container-log.md#logging-with-annotation-or-label)
+- [Third-party log access](logstreaming.md)
+- [Introduction of DataKit configuration mode in Kubernetes environment](k8s-config-how-to.md)
+- [Install DataKit as DaemonSet](datakit-daemonset-deploy.md)
+- [Deploy `logfwdserver` on DataKit](logfwdserver.md)
+- [Proper use of regular expressions to configure](datakit-input-conf.md#debug-regex)

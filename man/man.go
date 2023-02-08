@@ -8,6 +8,7 @@ package man
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"sort"
 
@@ -158,7 +159,7 @@ func BuildMarkdownManual(name string, opt *Option) (map[i18n][]byte, error) {
 			},
 		}).Parse(string(md))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("[%s] template.New(%s): %w", x, name, err)
 		}
 
 		var buf bytes.Buffer

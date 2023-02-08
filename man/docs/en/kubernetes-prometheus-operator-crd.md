@@ -1,31 +1,30 @@
-<!-- This file required to translate to EN. -->
-# Kubernetes Prometheus CRD 支持
+# Kubernetes Prometheus CRD Support
 
-## 介绍 {#intro}
+## Introduction {#intro}
 
-本文档介绍如何让 Datakit 支持 Prometheus-Operator CRD 并采集对应指标。
+This document describes how to enable Datakit to support Prometheus-Operator CRD and capture corresponding metrics.
 
-## 描述 {#description}
+## Description {#description}
 
-Prometheus 有一套完善的 Kubernetes 应用指标采集方案，流程简述如下：
+Prometheus has a complete Kubernetes application metrics collection scheme, and the process is briefly described as follows:
 
-1. 在 Kubernetes 集群中创建 Prometheus-Operator
-2. 根据需求，创建对应的 CRD 实例，该实例必须携带采集目标指标的必要配置，例如 `matchLabels` `port` `path` 等配置
-3. Prometheus-Operator 会监听 CRD 实例，并根据其配置项开启指标采集
+1. Create Prometheus-Operator in the Kubernetes cluster
+2. Create a corresponding CRD instance according to the requirements, which must carry the necessary configuration for collecting target metrics, such as `matchLabels`, `port` and `path` and so on
+3. Prometheus-Operator listens for CRD instances and starts metric collection based on their configuration items
 
 ???+ attention
 
-    Prometheus-Operator [官方链接](https://github.com/prometheus-operator/prometheus-operator) 和 [应用示例](https://alexandrev.medium.com/prometheus-concepts-servicemonitor-and-podmonitor-8110ce904908)。
+    Prometheus-Operator [official link](https://github.com/prometheus-operator/prometheus-operator) and [application example](https://alexandrev.medium.com/prometheus-concepts-servicemonitor-and-podmonitor-8110ce904908)。
 
-在此处，Datakit 扮演了第 3 步的角色，由 Datakit 来监听和发现 Prometheus-Operator CRD，并根据配置开启指标采集，最终上传到观测云。
+Here, Datakit plays the role of step 3, in which Datakit monitors and discovers Prometheus-Operator CRD, starts metric collection according to configuration, and finally uploads it to Guance Cloud.
 
-目前 Datakit 支持 Prometheus-Operator 两种 CRD 资源 —— `PodMonitor` 和 `ServiceMonitor`，以及其必要（require）配置。
+Currently, Datakit supports Prometheus-Operator CRD resources —— `PodMonitor` and `ServiceMonitor` —— and their required configuration.
 
-## 示例 {#example}
+## Examples {#example}
 
-以 nacos 集群为例。
+Take the nacos cluster as an example.
 
-安装 nacos
+Installing nacos
 
 ```
 $ git clone https://github.com/nacos-group/nacos-k8s.git
@@ -34,7 +33,7 @@ $ chmod +x quick-startup.sh
 $ ./quick-startup.sh
 ```
 
-nacos/nacos-quick-start.yaml 容器端口配置：
+nacos/nacos-quick-start.yaml container port configuration:
 ```
       containers:
         - name: k8snacos
@@ -50,14 +49,14 @@ nacos/nacos-quick-start.yaml 容器端口配置：
             - containerPort: 7848
               name: old-raft-rpc
 ```
-- metrics 接口：$IP:8848/nacos/actuator/prometheus
-- metrics port：8848
+- metrics access: $IP:8848/nacos/actuator/prometheus
+- metrics port: 8848
 
-现在在 Kubernetes 集群中存在一个 nacos metrics 服务可以采集指标。
+There is now a nacos metrics service in the Kubernetes cluster that collects metrics.
 
-### 创建 Prometheus-Operator CRD {#create-crd}
+### Create Prometheus-Operator CRD {#create-crd}
 
-1. 安装 Prometheus-Operator
+1. Install Prometheus-Operator
 
 ```
 $ wget https://github.com/prometheus-operator/prometheus-operator/blob/main/bundle.yaml
@@ -74,7 +73,7 @@ servicemonitors.monitoring.coreos.com       2022-11-02T16:31:34Z
 thanosrulers.monitoring.coreos.com          2022-11-02T16:31:34Z
 ```
 
-2. 创建 PodMonitor
+2. Create PodMonitor
 
 ```
 $ cat pod-monitor.yaml
@@ -99,20 +98,20 @@ spec:
 $ kubectl apply -f pod-monitor.yaml
 ```
 
-几个重要的配置项要和 nacos 一致：
+Several important configuration items should be consistent with nacos:
 
 - namespace: default
 - app: nacos
 - port: client
 - path: /nacos/actuator/prometheus
 
-配置参数[文档](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0)，目前 Datakit 只支持 require 部分，暂不支持诸如 `baseAuth` `bearerToeknSecret` 和 `tlsConfig` 等认证配置。
+Configuration parameters [document](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0). Currently, Datakit only supports the requirement part, and does not support authentication configurations such as `baseAuth`, `bearerToeknSecret` and `tlsConfig`.
 
-### 开启 Datakit 采集功能 {#config}
+### Turn on Datakit Collection {#config}
 
-在 datakit.yaml 中添加环境变量 `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS` 值为 `"true"`，开启 PodMonitor 指标采集。
+Add the environment variable `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS` to datakit.yaml with a value of `"true"` to start PodMonitor metrics collection.
 
-为了更细致的处理指标数据，Datakit 提供环境变量 `ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG`，内容是 JSON 格式，如下：
+To work with metric data in more detail, Datakit provides the environment variable `ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG` in JSON format, as follows:
 
 ```json
 {
@@ -147,17 +146,17 @@ $ kubectl apply -f pod-monitor.yaml
 }
 ```
 
-- matches：数组格式，允许多个匹配，只有最先匹配成功的会生效
-    - namespaceSelector：指定对象的命名空间
-        - any：booler 类型，是否接受所有命名空间
-        - matchNamespaces：字符串数组，指定命名空间列表
-    - selector：选择 Pod 对象
-        - matchLabels：K/V 键值对的 map，等价于 matchExpressions operator 的 IN，所有条件都是 AND
-        - matchExpressions：匹配表达式列表
-            - key：字符串值， 表示 label 的 key
-            - operator：字符串值，表示 key 和 values 的关系，只能是 In、NotIn、Exists 和 DoesNotExist
-            - values：字符串数组，如果 operator 是 In 或者 NotIn，数组必须为空；如果是其他 operator 则必须不为空
-    - promConfig：prom 采集器的对应配置
+- matches: array format, allowing multiple matches, only the first successful match will take effect.
+    - namespaceSelector: Specify the namespace of the object
+        - any：booler type, whether to accept all namespaces
+        - matchNamespaces: an array of strings that specifies a list of namespaces
+    - selector: Select the Pod object
+        - matchLabels: The map of the K/V key-value pair, equivalent to the IN of the matchExpressions operator with all conditions being AND
+        - matchExpressions: List of matching expressions
+            - key: A string value that represents the key of the label
+            - operator: A string value that represents the relationship between key and values and can only be In, NotIn, Exists, and DoesNotExist
+            - values: an array of strings that must be empty if the operator is In or NotIn; If it is another operator, it must not be empty.
+    - promConfig: Corresponding configuration of prom collector
         - metric_types
         - metric_name_filter
         - measurement_prefix
@@ -178,15 +177,15 @@ $ kubectl apply -f pod-monitor.yaml
         - tags
         - auth
 
-`promConfig` 支持 prom 采集器的大部分 conf 字段，已经列在上述字段列表，具体含义见[文档](prom.md)。
+`promConfig` supports most of the conf fields of the prom collector, which are listed in the above field list, as shown in [doc](prom.md)。
 
 ???+ attention
 
-    matchLabels 和 matchExpressions 是 Kubernetes 通用的 match 方式，详见[文档](https://kubernetes.io/zh-cn/docs/concepts/overview/working-with-objects/labels/#label-selectors)。
+    matchLabels and matchExpressions are Kubernetes' common match methods, as shown in [doc](https://kubernetes.io/zh-cn/docs/concepts/overview/working-with-objects/labels/#label-selectors)。
 
 ???+ attention
 
-    环境变量 `ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG` 的值是 JSON 格式，需要注意压缩成一行和转义。可以通过 ConfigMap 将配置存储，再由 ENV 指定替换即可。例如：
+    The value of the environment variable `ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG` is in JSON format and needs to be compressed into a line and escaped. You can store the configuration through ConfigMap, and then specify the replacement by ENV. For example:
     ```yaml
     apiVersion: v1
     kind: ConfigMap
@@ -217,17 +216,17 @@ $ kubectl apply -f pod-monitor.yaml
         }
     ```
 
-    ENV 使用 ConfigMap 内容：
+    ENV uses ConfigMap content:
     ```
       - env:
         - name: ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG
           valueFrom:
             configMapKeyRef:
-              name: datakit-prom-crd  # configmap的名称
-              key: prom-match-config # configmap的主键名称
+              name: datakit-prom-crd  # name of configmap
+              key: prom-match-config # The primary key name of configmap
               optional: false
     ```
 
-### 验证 {#check}
+### Check {#check}
 
-启动 Datakit，使用 `datakit monitor -V` 或在观测云页面上查看，能找到以 `nacos_` 开头的指标集说明采集成功。
+Start Datakit, use `datakit monitor -V` or view it on the Guance Cloud page, and you can find a metric set beginning with `nacos_` to indicate that the collection was successful.

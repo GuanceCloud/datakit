@@ -1,16 +1,15 @@
-<!-- This file required to translate to EN. -->
-# Golang 示例
+# Golang Example
 ---
 
-本文以常见 Web 端三层架构模式实现 OTEL 的链路追踪及可观测性。
+In this paper, the common Web-side three-tier architecture mode is used to realize the link tracing and observability of OTEL.
 
-在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经[配置好了采集器](opentelemetry.md)。
+Before using OTEL to send Trace to Datakit, make sure you have [configured the collector](opentelemetry.md).
 
-## 接下来使用伪代码实现 {#code}
+## Next, implement in pseudo code {#code}
 
-模拟场景：一条用户的登录请求在服务端的各个模块流转并返回到客户端的过程。在每一个过程中都加上链路追踪并标记，最后登录观测云平台查看在这个过程中每个模块的处理时间和服务状态。
+Simulation scenario: A user's login request flows through various modules on the server and is returned to the client. Add link tracking and marking in each process, and finally log in to the Guance Cloud platform to check the processing time and service status of each module in this process.
 
-流程介绍：用户请求到 web 层，解析后发送到 service 层，需要查询数据库的 dao 层，最终将结果返回到用户。
+Process introduction: The user requests to the web layer, after analysis, send to the service layer, need to query the database of the dao layer, and finally return the results to the user.
 
 ``` go
 package main
@@ -150,17 +149,17 @@ func main() {
 }
 ```
 
-## 效果查看 {#view}
+## View Effect {#view}
 
-登录 [观测云](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} 后查看 `应用性能监测` -> `链路` -> 点击单条 `链路`
+Log in to [Guance Cloud](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} and then view `application performance monitoring` -> `links` -> Click on a single `link`
 
 ![](imgs/otel-go-example.png)
 
-在火焰图中可看到每一个模块中执行的时间、调用流程等。
+In the flame diagram, you can see the execution time, call flow and so on in each module.
 
 --- 
 
-## 参考 {#more-readings}
+## Reference {#more-readings}
 
-- 源码示例 [github-opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go/tree/main/example/otel-collector){:target="_blank"}
-- 文档 [官方文档](https://opentelemetry.io/docs/instrumentation/go/getting-started/){:target="_blank"}
+- Source sample [github-opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go/tree/main/example/otel-collector){:target="_blank"}
+- [Doc](https://opentelemetry.io/docs/instrumentation/go/getting-started/){:target="_blank"}

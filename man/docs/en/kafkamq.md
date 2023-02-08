@@ -1,43 +1,40 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# 订阅 Kafka 中的数据
+
+# Subscribe to Data in Kafka
 ---
 
 {{.AvailableArchs}}
 
-***作者：宋龙奇***
-
 ---
 
-Datakit 支持从 kafka 中订阅消息采集链路、指标和日志信息。目前仅支持 `SkyWalking` 以及自定义 topic.
+Datakit supports subscribing messages from kafka to gather link, metric, and log information. Currently, only `SkyWalking` and custom topic are supported.
 
 ## SkyWalking {#kafkamq-SkyWalking}
 
-### java agent启动配置 {#agent}
+### java Agent Startup Configuration {#agent}
 
-kafka 插件默认会将 `traces`, `JVM metrics`, `logging`,  `Instance Properties`, and `profiled snapshots` 发送到 kafka 集群中。 该功能默认是关闭的。需要将 `kafka-reporter-plugin-x.y.z.jar`, 从 `agent/optional-reporter-plugins` 放到 `agent/plugins` 才会生效.
+By default, the kafka plug-in sends `traces`, `JVM metrics`, `logging`, `Instance Properties`, and `profiled snapshots` to the kafka cluster. This feature is turned off by default. You need to put `kafka-reporter-plugin-x.y.z.jar` from `agent/optional-reporter-plugins` to `agent/plugins` to take effect.
 
 
-修改配置文件 agent/config/agent.config
+Modify the configuration file agent/config/agent.config
 ```txt
-# 服务名称：最终会在 UI 中展示，确保唯一
+# Service name: Eventually displayed in the UI, making sure it is unique
 agent.service_name=${SW_AGENT_NAME:myApp}
 
-# kafka 地址
+# kafka address
 plugin.kafka.bootstrap_servers=${SW_KAFKA_BOOTSTRAP_SERVERS:<ip>:<port>}
 
 ```
 
-> 在启动之前请先确保 kafka 已经启动。
+> Make sure kafka is started before starting.
 
-或者 通过环境变量方式
+Or through environment variables
 ```shell
 -Dskywalking.agent.service_name=myApp 
 -Dskywalking.plugin.kafka.bootstrap_servers=10.200.14.114:9092
 ```
 
 
-启动java项目（jar包形式启动）
+Start a java project (start as a jar package)
 
 - Linux Tomcat 7, Tomcat 8, Tomcat 9  
   Change the first line of `tomcat/bin/catalina.sh`.
@@ -68,8 +65,8 @@ export JAVA_OPTIONS="${JAVA_OPTIONS} -javaagent:/path/to/skywalking-agent/skywal
 ```
 
 
-### 配置 datakit {#datakit-config}
-复制配置文件并修改
+### Configure datakit {#datakit-config}
+Copy configuration files and modify
 
 ```txt
 cd /usr/local/datakit/conf/kafkamq
@@ -77,7 +74,7 @@ cp kafkamq.conf.sample kafka.conf
 
 ```
 
-配置文件说明
+Profile description
 ```toml
 [[inputs.kafkamq]]
   addrs = ["localhost:9092"]
@@ -145,29 +142,29 @@ cp kafkamq.conf.sample kafka.conf
     # capacity = 5120
 
   ## user custom message with PL script.
-  ## 目前仅支持 log 和 metrics， topic 和 pl 是必填
+  ## Currently only log and metrics are supported, topic and pl are required
   [inputs.kafkamq.custom]
   #group_id="datakit"
   #log_topics=["apm"]
   #log_pl="log.p"
   #metric_topic=["metric1"]
   #metric_pl="kafka_metric.p"
-  ## rate limit. 限速：速率/秒
+  ## rate limit. Speed limit: rate/sec
   #limit_sec = 100
-  ## sample 采样率
+  ## sample rate
   # sampling_rate = 1.0
 
   ## todo: add other input-mq
  
 ```
 
-重启 datakit
+Restart datakit
 
-## 将日志发送到 kafka {#log-to-kafka}
+## Send log to kafka {#log-to-kafka}
 
 - log4j2
 
-toolkit 依赖包添加到 maven 或者 gradle 中。
+The toolkit dependency package is added to the maven or gradle.
 ```xml
 	<dependency>
       	<groupId>org.apache.skywalking</groupId>
@@ -176,7 +173,7 @@ toolkit 依赖包添加到 maven 或者 gradle 中。
 	</dependency>
 ```
 
-在日志中打印 trace ID
+Print trace ID in log
 
 ```xml
     <Configuration>
@@ -193,14 +190,14 @@ toolkit 依赖包添加到 maven 或者 gradle 中。
     </Configuration>
 ```
 
-将日志发送到kafka
+Send log to kafka
 ```xml
 <GRPCLogClientAppender name="grpc-log">
         <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
     </GRPCLogClientAppender>
 ```
 
-整体配置：
+Overall configuration:
 ```xml
 <Configuration status="WARN">
     <Appenders>
@@ -229,20 +226,20 @@ toolkit 依赖包添加到 maven 或者 gradle 中。
 </Configuration>
 ```
 
-至此 agent 会将日志发送到 kafka 中。
+At this point, the agent will send the log to kafka.
 
-更多日志如何配置：
+How to configure more logs:
 
 - [log4j-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-log4j-1.x.md){:target="_blank"}
 - [logback-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-logback-1.x.md){:target="_blank"}
 
-从 kafka 中采集的日志不需要通过 pipeline 处理。已经全部切割好。
+Logs collected from kafka do not need to be processed by pipeline. It's all cut.
 
-## 自定义Topic {#kafka-custom}
+## Custom Topic {#kafka-custom}
 
-有些时候用户使用的并不是市面上常用的工具，有些的三方库并不是开源的，数据结构也不是公开的。这样就需要根据采集到的数据结构手动进行处理，这时候就体现到 pipeline  的强大之处，用户可通过自定义配置进行订阅并消费消息。
+Sometimes users don't use common tools in the market, and some tripartite libraries are not open source, and the data structure is not public. This requires manual processing according to the collected data structure, which reflects the power of pipeline, and users can subscribe and consume messages through custom configuration.
 
-配置文件：
+Profile:
 ```toml
  ...
   ## 《复制时注意中文！》 
@@ -263,24 +260,24 @@ toolkit 依赖包添加到 maven 或者 gradle 中。
 
 ```
 
-### 示例 {#example}
+### Example {#example}
 
-以一个简单的metric为例，介绍如何使用自定义配置订阅消息。
+Take a simple metric as an example to show you how to subscribe to messages using custom configuration.
 
-当不知道发送到 kafka 上的数据结构时什么格式时。可以先将 datakit 的日志级别改为 debug。 将订阅打开，在 datakit 日志中会有输出。假设拿到的如下数据：
+When you don't know what format the data structure sent to kafka is. You can change the logging level of datakit to debug first. Open the subscription, and there will be output in the datakit log. Suppose you get the following data:
 ```shell
-# 打开 debug 日志级别之后,查看日志, datakit 会将消息信息打印出来.
+# After opening the debug log level, look at the log, and datakit prints out the message information.
 tailf /var/log/datakit/log | grep "kafka_message"
 ```
 
-假设拿到的这是一个 metric 的 json 格式纯文本字符串：
+Suppose you get a json-formatted plain text string of metric:
 
 ```json
 {"time": 1666492218, "dimensions": {"bk_biz_id": 225,"ip": "10.200.64.45" },  "metrics": { "cpu_usage_pct": 0.01}, "exemplar": null}
 ```
 
 
-有了数据格式，就可以手写 pipeline 脚本。登录 观测云 -> 管理 -> 文本处理(pipeline) 编写脚本。 如：
+With the data format, you can write pipeline scripts by hand. Log in to Guance Cloud-> Management-> Text Processing (Pipeline) to write scripts. Such as:
 
 ```toml
 data=load_json(message)
@@ -294,36 +291,36 @@ set_tag(hostip,hostip)
 set_tag(bk_biz_id,bkzid)
 
 add_key(cpu_usage_pct,data["metrics"]["cpu_usage_pct"])
-# 注意 此处为行协议缺省值，pl脚本通过之后 这个 message_len 就可以删掉了。
+# Note that this is the line protocol default, and the message_len can be deleted after the pl script is passed.
 drop_key(message_len)
 ```
 
-将文件放到 `/usr/local/datakit/pipeline/metric/` 目录下。
+Place the file in the directory `/usr/local/datakit/pipeline/metric/`.
 
-> 注意：指标数据的pl脚本放到`metric/`下，logging数据的pl脚本放到 `pipeline/`
+> Note: The pl script for metrics data is placed under `metric/` and the pl script for logging data is placed under `pipeline/`
 
-配置好 PL 脚本，重启 datakit。
+Configure the PL script and restart datakit.
 
-### 问题排查 {#some_problems}
+### Troubleshooting {#some_problems}
 
-脚本测试命令 查看切割是否正确：
+Script test command to see if cutting is correct:
 ```shell
 datakit pipeline metric.p -T '{"time": 1666492218,"dimensions":{"bk_biz_id": 225,"ip": "172.253.64.45"},"metrics": {"cpu_usage_pct": 0.01}, "exemplar": null}'
 ```
 
-将 outputfile 设置为本地， 查看行协议格式是否正确：
+Set outputfile to local to see if the line protocol format is correct:
 ```shell
 vim conf/datakit.conf
-# 设置为本地文件，就不会输出到io，测试结束之后赋值为空即可。
+# If it is set to a local file, it will not be output to io, and it can be assigned to null after the test.
 output_file = "/usr/local/datakit/out.pts"
-# 查看文件 out.pts 是否正确
+# Check to see if the file out.pts is correct
 ```
 
-连接失败可能是版本问题：请在配置文件中正确填写 kafka 版本。
+Connection failure may be a version problem: Please fill in the kafka version correctly in the configuration file.
 
-其他问题：
+Other issues:
 
-通过 `datakit monitor` 命令查看。 或者 `datakit monitor -V` 查看。
+View through the `datakit monitor` command, or through `datakit monitor -V`.
 
 
 
