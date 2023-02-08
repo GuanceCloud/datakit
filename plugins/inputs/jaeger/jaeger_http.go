@@ -163,9 +163,7 @@ func gatherSpansInfo(trace []*jaeger.Span) (parentIDs map[uint64]bool, spanIDs m
 			continue
 		}
 		spanIDs[uint64(span.SpanId)] = true
-		if span.ParentSpanId != 0 {
-			parentIDs[uint64(span.ParentSpanId)] = true
-		}
+		parentIDs[uint64(span.ParentSpanId)] = true
 	}
 
 	return spanIDs, parentIDs
