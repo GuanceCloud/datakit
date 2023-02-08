@@ -75,7 +75,7 @@ require (
 	github.com/ugorji/go/codec v1.2.6
 	github.com/vjeantet/grok v1.0.0
 	github.com/whilp/git-urls v1.0.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230112074430-3c9cc2d5ebc0
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230129083855-d3a0b575048e
 	go.etcd.io/bbolt v1.3.6
 	go.mercari.io/go-dnscache v0.0.0-20220124075326-2701c2ab5df5
 	go.opentelemetry.io/otel v1.4.1
