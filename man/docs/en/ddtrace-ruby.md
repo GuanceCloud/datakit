@@ -1,22 +1,21 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# Ruby 示例
+
+# Ruby Example
 ---
 
-## 安装依赖 {#dependence}
+## Install Dependence {#dependence}
 
 **RAILS APPLICATIONS**
 
-1. 添加 ddtrace gem 到你的 Gemfile：
+1. Add ddtrace gem to your Gemfile:
 
 ```shell
 source 'https://rubygems.org'
 gem 'ddtrace', require: 'ddtrace/auto_instrument'
 ```
 
-2. 使用 bundle install 安装 gem。
+1. Install the gem using bundle.
 
-3. 创建配置文件 config/initializers/datadog.rb：
+2. Create the configuration file config/initializers/datadog.rb:
 
 ```rb
 Datadog.configure do |c|
@@ -27,16 +26,16 @@ end
 
 **RUBY APPLICATIONS**
 
-1. 添加 ddtrace gem 到你的 Gemfile：
+1. Add ddtrace gem to your Gemfile:
 
 ```shell
 source 'https://rubygems.org'
 gem 'ddtrace'
 ```
 
-2. 使用 bundle install 安装 gem。
+2. Install the gem using bundle.
 
-3. 添加 require 'ddtrace/auto_instrument' 到 Ruby 代码中。 **Note:** 需要在所有 library 和 framework 加载后再加载。
+3. Add require 'ddtrace/auto_instrument' to Ruby code. **Note:** It needs to be loaded after all the library and framework are loaded.
 
 ```rb
 # Example frameworks and libraries
@@ -47,7 +46,7 @@ require 'redis'
 require 'ddtrace/auto_instrument'
 ```
 
-4. 添加配置块到 Ruby 应用中：
+1. Add configuration blocks to Ruby applications:
 
 ```rb
 Datadog.configure do |c|
@@ -58,16 +57,16 @@ end
 
 **CONFIGURING OPENTRACING**
 
-1. 添加 ddtrace gem 到你的 Gemfile：
+1. Add ddtrace gem to your Gemfile:
 
 ```shell
 source 'https://rubygems.org'
 gem 'ddtrace'
 ```
 
-2. 使用 bundle install 安装 gem。
+2. Install the gem using bundle.
 
-3. 在 OpenTracing 配置中添加如下代码：
+3. Add the following code to the OpenTracing configuration:
 
 ```rb
 require 'opentracing'
@@ -79,7 +78,7 @@ require 'datadog/opentracer'
 OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new
 ```
 
-4. 添加配置块到 Ruby 应用中：
+4. Add configuration blocks to Ruby applications:
 
 ```rb
 Datadog.configure do |c|
@@ -93,7 +92,7 @@ end
 
 **INTEGRATION INSTRUMENTATION**
 
-很多 libraries and frameworks 支持开箱即用的自动检测功能。通过简单配置即可打开自动检测。使用 Datadog.configure API：
+Many libraries and frameworks support automatic detection out of the box. Automatic detection can be turned on by simple configuration. Using the Datadog.configure API:
 
 ```rb
 Datadog.configure do |c|
@@ -104,9 +103,9 @@ c.tracing.instrument :integration_name, options
 end
 ```
 
-## 运行 {#run}
+## Run {#run}
 
-可以通过配置环境变量并启动 Ruby：
+You can configure environment variables and start Ruby:
 
 ```shell
 DD_AGENT_HOST=localhost \
@@ -114,7 +113,7 @@ DD_TRACE_AGENT_PORT=9529 \
 ruby your_ruby_script.rb
 ```
 
-也可以通过配置 Datadog.configure 代码块：
+You can also configure the Datadog.configure code block by:
 
 ```rb
 Datadog.configure do |c|

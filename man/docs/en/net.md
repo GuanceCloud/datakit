@@ -1,5 +1,4 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # Net
 ---
 
@@ -7,42 +6,42 @@
 
 ---
 
-net 采集器用于采集主机网络信息，如各网络接口的流量信息等。对于 Linux 将采集系统范围 TCP 和 UDP 统计信息。
+Net collector is used to collect host network information, such as traffic information of each network interface. For Linux, system-wide TCP and UDP statistics will be collected.
 
-## 前置条件 {#requirements}
+## Preconditions {#requirements}
 
-暂无
+None
 
-## 配置 {#config}
+## Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service) 即可。
 
 === "Kubernetes"
 
-    支持以环境变量的方式修改配置参数：
+    Support modifying configuration parameters as environment variables:
     
-    | 环境变量名                                | 对应的配置参数项            | 参数示例                                                     |
+    | Environment Variable Name                                | Corresponding Configuration Parameter Item            | Parameter Example                                                     |
     | :---                                      | ---                         | ---                                                          |
     | `ENV_INPUT_NET_IGNORE_PROTOCOL_STATS`     | `ignore_protocol_stats`     | `true`/`false`                                               |
     | `ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES` | `enable_virtual_interfaces` | `true`/`false`                                               |
-    | `ENV_INPUT_NET_TAGS`                      | `tags`                      | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+    | `ENV_INPUT_NET_TAGS`                      | `tags`                      | `tag1=value1,tag2=value2`; If there is a tag with the same name in the configuration file, it will be overwritten. |
     | `ENV_INPUT_NET_INTERVAL`                  | `interval`                  | `10s`                                                        |
     | `ENV_INPUT_NET_INTERFACES`                | `interfaces`                | `'''eth[\w-]+''', '''lo'''` 以英文逗号隔开                   |
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.net.tags]`:
 
 ``` toml
- [inputs.{{.InputName}}.tags]
+ [inputs.net.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -52,16 +51,18 @@ net 采集器用于采集主机网络信息，如各网络接口的流量信息�
 
 ### `{{$m.Name}}`
 
--  标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
 
-## 延伸阅读 {#more-readings}
 
-- [eBPF 数据采集](ebpf.md)
+
+## More Readings {#more-readings}
+
+- [eBPF data collection](ebpf.md)

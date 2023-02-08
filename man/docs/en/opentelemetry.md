@@ -1,51 +1,132 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # OpenTelemetry
 ---
 
-{{.AvailableArchs}}
+:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
 
 ---
 
-OpenTelemetry （以下简称 OTEL）是 CNCF 的一个可观测性项目，旨在提供可观测性领域的标准化方案，解决观测数据的数据模型、采集、处理、导出等的标准化问题。
+OpenTelemetry (hereinafter referred to as OTEL) is an observability project of CNCF, which aims to provide a standardization scheme in the field of observability and solve the standardization problems of data model, collection, processing and export of observation data.
 
-OTEL 是一组标准和工具的集合，旨在管理观测类数据，如 trace、metrics、logs 等 (未来可能有新的观测类数据类型出现)。
+OTEL is a collection of standards and tools for managing observational data, such as trace, metrics, logs, etc. (new observational data types may appear in the future).
 
-OTEL 提供与 vendor 无关的实现，根据用户的需要将观测类数据导出到不同的后端，如开源的 Prometheus、Jaeger、Datakit 或云厂商的服务中。
+OTEL provides vendor-independent implementations that export observation class data to different backends, such as open source Prometheus, Jaeger, Datakit, or cloud vendor services, depending on the user's needs.
 
-本篇旨在介绍如何在 Datakit 上配置并开启 OTEL 的数据接入，以及 Java、Go 的最佳实践。
+The purpose of this article is to introduce how to configure and enable OTEL data access on Datakit, and the best practices of Java and Go.
 
-***版本说明***：Datakit 目前只接入 OTEL v1 版本的 otlp 数据。
+***Version Notes***: Datakit currently only accesses OTEL v1 version of otlp data.
 
-## 配置说明 {#config}
+## Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/opentelemetry` directory under the DataKit installation directory, copy `opentelemetry.conf.sample` and name it `opentelemetry.conf`. Examples are as follows:
     
     ```toml
-    {{ CodeBlock .InputSample 4 }}
+        
+    [[inputs.opentelemetry]]
+      ## When you create 'trace', 'Span', 'resource', you add a lot of tags that will eventually appear in 'Span'
+      ## If you don't want too many of these tags to cause unnecessary traffic loss on the network, you can choose to ignore these tags
+      ## Support regular expression, note: replace all '.' with '_'
+      ## When creating 'trace', 'span' and 'resource', many labels will be added, and these labels will eventually appear in all 'spans'
+      ## When you don't want too many labels to cause unnecessary traffic loss on the network, you can choose to ignore these labels
+      ## Support regular expression. Note!!!: all '.' Replace with '_'
+      # ignore_attribute_keys = ["os_*","process_*"]
+    
+      ## Keep rare tracing resources list switch.
+      ## If some resources are rare enough(not presend in 1 hour), those resource will always send
+      ## to data center and do not consider samplers and filters.
+      # keep_rare_resource = false
+    
+      ## By default every error presents in span will be send to data center and omit any filters or
+      ## sampler. If you want to get rid of some error status, you can set the error status list here.
+      # omit_err_status = ["404"]
+    
+      ## Ignore tracing resources map like service:[resources...].
+      ## The service name is the full service name in current application.
+      ## The resource list is regular expressions uses to block resource names.
+      ## If you want to block some resources universally under all services, you can set the
+      ## service name as "*". Note: double quotes "" cannot be omitted.
+      # [inputs.opentelemetry.close_resource]
+        # service1 = ["resource1", "resource2", ...]
+        # service2 = ["resource1", "resource2", ...]
+        # "*" = ["close_resource_under_all_services"]
+        # ...
+    
+      ## Sampler config uses to set global sampling strategy.
+      ## sampling_rate used to set global sampling rate.
+      # [inputs.opentelemetry.sampler]
+        # sampling_rate = 1.0
+    
+      # [inputs.opentelemetry.tags]
+        # key1 = "value1"
+        # key2 = "value2"
+        # ...
+    
+      ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
+      ## buffer is the size of jobs' buffering of worker channel.
+      ## threads is the total number fo goroutines at running time.
+      # [inputs.opentelemetry.threads]
+        # buffer = 100
+        # threads = 8
+    
+      ## Storage config a local storage space in hard dirver to cache trace data.
+      ## path is the local file path used to cache data.
+      ## capacity is total space size(MB) used to store data.
+      # [inputs.opentelemetry.storage]
+        # path = "./otel_storage"
+        # capacity = 5120
+    
+      [inputs.opentelemetry.expectedHeaders]
+      # If header is configured, the request must carry the otherwise return status code 500
+      ## Be used as a security check and must be all lowercase
+      # ex_version = xxx
+      # ex_name = xxx
+      # ...
+    
+      ## grpc
+      [inputs.opentelemetry.grpc]
+      ## trace for grpc
+      trace_enable = true
+    
+      ## metric for grpc
+      metric_enable = true
+    
+      ## grpc listen addr
+      addr = "127.0.0.1:4317"
+    
+      ## http
+      [inputs.opentelemetry.http]
+      ## if enable=true
+      ## http path (do not edit):
+      ##	trace : /otel/v1/trace
+      ##	metric: /otel/v1/metric
+      ## use as : http://127.0.0.1:9529/otel/v1/trace . Method = POST
+      enable = true
+      ## return to client status_ok_code :200/202
+      http_status_ok = 200
+    
     ```
 
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service) 即可。
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).
 
-### 注意事项 {#attentions}
+### Notes {#attentions}
 
-1. 建议使用 grpc 协议, grpc 具有压缩率高、序列化快、效率更高等优点。
+1. It is recommended to use grpc protocol, which has the advantages of high compression ratio, fast serialization and higher efficiency.
 
-1. http 协议的路由是不可配置的，请求路径是 trace:`/otel/v1/trace` ，metric:`/otel/v1/metric`
+1. The route of the http protocol is not configurable and the request path is trace: `/otel/v1/trace`, metric:`/otel/v1/metric`
 
-1. 在涉及到 `float` `double` 类型数据时，会最多保留两位小数。
+1. When data of type `float` `double` is involved, a maximum of two decimal places are reserved.
 
-1. http 和 grpc 都支持 gzip 压缩格式。在 exporter 中可配置环境变量来开启：`OTEL_EXPORTER_OTLP_COMPRESSION = gzip`, 默认是不会开启 gzip。
+1. Both http and grpc support the gzip compression format. You can configure the environment variable in exporter to turn it on: `OTEL_EXPORTER_OTLP_COMPRESSION = gzip`; gzip is not turned on by default.
     
-1. http 协议请求格式同时支持 json 和 protobuf 两种序列化格式。但 grpc 仅支持 protobuf 一种。
+1. The http protocol request format supports both json and protobuf serialization formats. But grpc only supports protobuf.
 
-1. 配置字段 `ignore_attribute_keys` 是过滤掉一些不需要的 Key 。但是在 OTEL 中的 `attributes` 大多数的标签中用 `.` 分隔。例如在 resource 的源码中：
+1. The configuration field `ignore_attribute_keys` is to filter out some unwanted keys. But in OTEL, `attributes` are separated by `.` in most tags. For example, in the source code of resource:
 
 ```golang
 ServiceNameKey = attribute.Key("service.name")
@@ -57,21 +138,21 @@ OSDescriptionKey = attribute.Key("os.description")
 ...
 ```
 
-因此，如果您想要过滤所有 `teletemetry.sdk` 和 `os`  下所有的子类型标签，那么应该这样配置：
+Therefore, if you want to filter all subtype tags under `teletemetry.sdk` and `os`, you should configure this:
 
 ``` toml
-# 在创建 trace,Span,Resource 时，会加入很多标签，这些标签最终都会出现在 Span 中
-# 当您不希望这些标签太多造成网络上不必要的流量损失时，可选择忽略掉这些标签
-# 支持正则表达，
-# 注意:将所有的 '.' 替换成 '_'
+# When you create trace, Span, Resource, you add a lot of tags, and these tags will eventually appear in the Span
+# If you don't want too many tags to cause unnecessary traffic loss on the network, you can choose to ignore these tags
+# Support regular expression
+# Note: Replace all '.' with '_'
 ignore_attribute_keys = ["os_*","teletemetry_sdk*"]
 ```
 
-### 最佳实践 {#bp}
+### Best Practices {#bp}
 
-datakit 目前提供了 [Go 语言](opentelemetry-go.md)、[Java](opentelemetry-java.md) 两种语言的最佳实践，其他语言会在后续提供。
+Datakit currently provides [Go language](opentelemetry-go.md)、[Java](opentelemetry-java.md) languages, with other languages available later.
 
-## 更多文档 {#more-readings}
-- go开源地址 [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go){:target="_blank"}
-- 官方使用手册 ：[opentelemetry-io-docs](https://opentelemetry.io/docs/){:target="_blank"}
-- 环境变量配置: [sdk-extensions](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters){:target="_blank"}
+## More Docs {#more-readings}
+- Go open source address [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go){:target="_blank"}
+- Official user manual: [opentelemetry-io-docs](https://opentelemetry.io/docs/){:target="_blank"}
+- Environment variable configuration: [sdk-extensions](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters){:target="_blank"}

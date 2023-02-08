@@ -1,5 +1,4 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # Consul
 ---
 
@@ -7,70 +6,69 @@
 
 ---
 
-Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prometheus 格式的数据
+Consul collector is used to collect metric data related to Consul, and currently it only supports data in Prometheus format.
 
-## 前置条件 {#requirements}
+## Preconditions {#requirements}
 
-- 安装 consul-exporter
-  - 下载 consul_exporter 压缩包
+- Installing consul-exporter
+  - Download consul_exporter package
 
     ```shell
     sudo wget https://github.com/prometheus/consul_exporter/releases/download/v0.7.1/consul_exporter-0.7.1.linux-amd64.tar.gz
     ```
-  - 解压 consul_exporter 压缩包
+  - Unzip consul_exporter package
 
     ```shell
     sudo tar -zxvf consul_exporter-0.7.1.linux-amd64.tar.gz  
     ```
-  - 进入 consul_exporter-0.7.1.linux-amd64 目录，运行 consul_exporter 脚本
+  - Go to the consul_exporter-0.7.1.linux-amd64 directory and run the consul_exporter script
 
     ```shell
     ./consul_exporter     
     ```
 
-## 配置 {#input-config}
+## Configuration {#input-config}
 
-=== "主机安装"
+=== "host installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    
+    After configuration, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
 {{ range $i, $m := .Measurements }}
 
 ### `{{$m.Name}}`
 
-- 标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
 
-## 日志 {#logging}
+## Logs {#logging}
 
-如需采集 Consul 的日志，需要在开启 Consul 的时候，使用 -syslog 参数，例如
+If you need to collect the log of Consul, you need to use the-syslog parameter when opening Consul, for example:
 
 ```shell
 consul agent -dev -syslog
 ```
 
-使用 logging 采集器采集日志，需要配置 logging 采集器。
-进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logging.conf.sample` 并命名为 `logging.conf`。
-配置如下：
+To use the logging collector to collect logs, you need to configure the logging collector. Go to the `conf.d/log` directory under the DataKit installation directory, copy `logging.conf.sample` and name it  `logging.conf`.
+The configuration is as follows:
 
 ```toml
 [[inputs.logging]]
@@ -108,17 +106,17 @@ consul agent -dev -syslog
   # more_tag = "some_other_value"
 ```
 
-日志原文：
+Original log:
 
 ```
 Sep 18 19:30:23 derrick-ThinkPad-X230 consul[11803]: 2021-09-18T19:30:23.522+0800 [INFO]  agent.server.connect: initialized primary datacenter CA with provider: provider=consul
 ```
 
-切割后的字段列表如下：
+The list of cut fields is as follows:
 
-| 字段名      | 字段值                                                             | 说明     |
+| Field name      | Field value                                                             | Description     |
 | ---         | ---                                                                | ---      |
-| `date`      | `2021-09-18T19:30:23.522+0800`                                     | 日志日期 |
-| `level`     | `INFO`                                                             | 日志级别 |
-| `character` | `agent.server.connect`                                             | 角色     |
-| `msg`       | `initialized primary datacenter CA with provider: provider=consul` | 日志内容 |
+| `date`      | `2021-09-18T19:30:23.522+0800`                                     | log date |
+| `level`     | `INFO`                                                             | log level |
+| `character` | `agent.server.connect`                                             | role     |
+| `msg`       | `initialized primary datacenter CA with provider: provider=consul` | log content |

@@ -1,48 +1,50 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # Disk
 ---
 
-{{.AvailableArchs}}
+:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
 
 ---
 
-disk 采集器用于主机磁盘信息采集，如磁盘存储空间、inodes 使用情况等。
+Disk collector is used to collect disk information, such as disk storage space, inodes usage, etc.
 
-## 前置条件 {#requirements}
+## Preconditions {#requirements}
 
-暂无
+None
 
 
-## 配置 {#config}
+## Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+
+
+​    
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    
+    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    支持以环境变量的方式修改配置参数：
+    Supports modifying configuration parameters as environment variables:
     
-    | 环境变量名                            | 对应的配置参数项       | 参数示例                                                                                 |
+    | Environment Variable Name                            | Corresponding Configuration Parameter Item       | Parameter Example                                                                                 |
     | ---                                   | ---                    | ---                                                                                      |
-    | `ENV_INPUT_DISK_EXCLUDE_DEVICE`       | `exclude_device`       | `"/dev/loop0","/dev/loop1"` 以英文逗号隔开                      |
-    | `ENV_INPUT_DISK_EXTRA_DEVICE`         | `extra_device`         | `"/nfsdata"` 以英文逗号隔开                      |
-    | `ENV_INPUT_DISK_TAGS`                 | `tags`                 | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它                             |
-    | `ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE` | `only_physical_device` | 忽略非物理磁盘（如网盘、NFS 等，只采集本机硬盘/CD ROM/USB 磁盘等）任意给一个字符串值即可 |
+    | `ENV_INPUT_DISK_EXCLUDE_DEVICE`       | `exclude_device`       | `"/dev/loop0","/dev/loop1"`, separated by English commas                      |
+    | `ENV_INPUT_DISK_EXTRA_DEVICE`         | `extra_device`         | `"/nfsdata"`， separated by English commas                        |
+    | `ENV_INPUT_DISK_TAGS`                 | `tags`                 | `tag1=value1,tag2=value2`; If there is a tag with the same name in the configuration file, it will be overwritten                             |
+    | `ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE` | `only_physical_device` | Ignore non-physical disks (such as network disk, NFS, etc., only collect local hard disk/CD ROM/USB disk, etc.) and give a string value at will|
     | `ENV_INPUT_DISK_INTERVAL`             | `interval`             | `10s`                                                                                    |
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.disk.tags]`:
 
 ``` toml
- [inputs.{{.InputName}}.tags]
+ [inputs.disk.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -52,11 +54,11 @@ disk 采集器用于主机磁盘信息采集，如磁盘存储空间、inodes �
 
 ### `{{$m.Name}}`
 
--  标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
 {{$m.FieldsMarkdownTable}}
 

@@ -1,16 +1,15 @@
-<!-- This file required to translate to EN. -->
 # Logstash
 ---
 
-Logstash 仅支持写入 Logging 种类的数据。
+Logstash only supports writing data of the Logging type.
 
-## 第一步: 搭建后端存储 {#backend-storage}
+## Step 1: Build Back-end Storage {#backend-storage}
 
-自己搭建一个 Logstash 的环境, 需要开启 [HTTP 模块](https://www.elastic.co/cn/blog/introducing-logstash-input-http-plugin){:target="_blank"}, 开启的方法也非常简单, 直接在 Logstash 的 pipeline 文件中配置即可。
+To build your own Logstash environment, you need to open the [HTTP module](https://www.elastic.co/cn/blog/introducing-logstash-input-http-plugin){:target="_blank"}, and the opening method is also very simple, which can be configured directly in the pipeline file of Logstash.
 
-### 新建 Logstash 的 pipeline 文件 {#new-pipeline}
+### New Logstash Pipeline File {#new-pipeline}
 
-新建一个 Logstash 的 pipeline 文件 `pipeline-http.conf`, 如下所示:
+Create a new Logstash pipeline file `pipeline-http.conf` as follows:
 
 ```conf
 input {
@@ -22,36 +21,36 @@ input {
 
 output {
     elasticsearch {
-        hosts => [ "localhost:9200"] # 我这里配置的是往 elasticsearch 写入数据
+        hosts => [ "localhost:9200"] # What I configured here is to write data to elasticsearch
     }
 }
 ```
 
-这个文件可以任意放, 我这里放在 `/opt/elastic/logstash` 下, 即全路径是 `/opt/elastic/logstash/pipeline-http.conf`。
+This file can be put anywhere, and I put it under `/opt/elastic/logstash` , that is, the full path is `/opt/elastic/logstash/pipeline-http.conf`.
 
-### 配置 Logstash 使用上面的 pipeline 文件 {#setup-pipeline}
+### Configure Logstash to Use the Pipeline File above {#setup-pipeline}
 
-有两种方式: 配置文件方式和命令行方式。选其一即可。
+There are two ways: configuration file mode and command line mode. Just choose one.
 
-- 配置文件方式
+- Profile mode
 
-在配置文件 `logstash/config/logstash.yml` 中增加一行:
+Add a line to the configuration file `logstash/config/logstash.yml`:
 
 ```yml
 path.config: /opt/elastic/logstash/pipeline-http.conf
 ```
 
-- 命令行方式
+- Command line mode
 
-在命令行中指定 pipeline 文件:
+Specify the pipeline file on the command line:
 
 ```shell
 $ logstash/bin/logstash -f /opt/elastic/logstash/pipeline-http.conf
 ```
 
-## 第二步: 增加配置 {#config-sink}
+## Step 2: Add Configuration {#config-sink}
 
-在 `datakit.conf` 中增加以下片段:
+Add the following fragment to `datakit.conf`:
 
 ```conf
 ...
@@ -68,21 +67,21 @@ $ logstash/bin/logstash -f /opt/elastic/logstash/pipeline-http.conf
 ...
 ```
 
-除了 Sink 必须配置[通用参数](datakit-sink-guide.md)外, Logstash 的 Sink 实例目前支持以下参数:
+In addition to the fact that the Sink must be configured with the [generic parameter](datakit-sink-guide.md), the Sink instance of Logstash currently supports the following parameters:
 
-- `host`(必须): HTTP host should be of the form `host:port` or `[ipv6-host%zone]:port`.
-- `protocol`(必须): `http` or `https`.
-- `write_type`(必须): 写入的源数据的格式类型: `json` 或者 `plain`。
-- `request_path`: 请求 URL 的路径.
+- `host`(required): HTTP host should be of the form `host:port` or `[ipv6-host%zone]:port`.
+- `protocol`(required): `http` or `https`.
+- `write_type`(required): The format type of the source data being written: `json` or `plain`。
+- `request_path`: The path of the request URL.
 - `timeout`: Timeout for influxdb writes, defaults to 10 seconds.
 
-## 第三步: 重启 DataKit {#restart-dk}
+## Step 3: Restart DataKit {#restart-dk}
 
 `$ sudo datakit --restart`
 
-## 安装阶段指定 LogStash Sink 设置 {#logstash-on-installer}
+## Specifying the LogStash Sink Setting in Installation Phase {#logstash-on-installer}
 
-LogStash 支持安装时环境变量开启的方式。
+LogStash supports the way environment variables are turned on during installation.
 
 ```shell
 DK_SINK_L="logstash://localhost:8080?protocol=http&request_path=/index/type/id&timeout=5s&write_type=json" \

@@ -1,5 +1,4 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # IIS
 ---
 
@@ -7,60 +6,72 @@
 
 ---
 
-Microsoft IIS 采集器
+Microsoft IIS collector
 
-## 前置条件 {#requirements}
+## Preconditions {#requirements}
 
-操作系统要求:
+Operating system requirements::
 
-* Windows Vista 以上版本 (不包含 Windows Vista)
-* Windows Server 2008 R2 及以上版本
+* Windows Vista and above (excluding Windows Vista)
+* Windows Server 2008 R2 and above
 
-## 配置 {#config}
+## Configuration {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+Go to the `conf.d/iis` directory under the DataKit installation directory, copy `iis.conf.sample` and name it `iis.conf`. Examples are as follows:
 
 ```toml
-{{.InputSample}} 
+
+[[inputs.iis]]
+  ## (optional) collect interval, default is 15 seconds
+  interval = '15s'
+  ##
+
+  [inputs.iis.log]
+    files = []
+    ## grok pipeline script path
+    pipeline = "iis.p" 
 ```
 
-配置好后，重启 DataKit 即可。
+After configuration, restart DataKit.
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.iis.tags]`:
 
 ``` toml
-  [inputs.{{.InputName}}.tags]
+  [inputs.iis.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"
     # ...
 ```
 
-## 指标 {#measurements}
+## Measurements {#measurements}
 
 {{ range $i, $m := .Measurements }}
 
 {{if or (eq $m.Type "metric") (eq $m.Type "")}}
 
 ### `{{$m.Name}}`
+
 {{$m.Desc}}
 
--  标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
-{{$m.FieldsMarkdownTable}}
-{{end}}
+{{$m.FieldsMarkdownTable}} {{end}}
 
 {{ end }}
 
-## 日志 {#logging}
+## 
 
-如需采集 IIS 的日志，将配置中 log 相关的配置打开，如：
+
+## Log {#logging}
+
+If you need to collect IIS logs, open the log-related configuration in the configuration, such as:
 
 ```toml
 [inputs.iis.log]
-    # 填入绝对路径
+    # Fill in the absolute path
     files = ["C:/inetpub/logs/LogFiles/W3SVC1/*"] 
 ```

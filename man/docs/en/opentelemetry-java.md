@@ -1,15 +1,14 @@
-<!-- This file required to translate to EN. -->
-# Java 示例
+# Java Example
 ---
 
-在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经[配置好了采集器](opentelemetry.md)。
+Before using OTEL to send Trace to Datakit, make sure you have [configured the collector](opentelemetry.md).
 
 
-配置：[Datakit 配置 OTEL](opentelemetry.md)
+Configuration: [Datakit Configuration OTEL](opentelemetry.md)
 
-## 添加依赖 {#dependencies}
+## Add Dependencies {#dependencies}
 
-在 pom.xml 中添加依赖
+Add dependencies in pom.xml
 
 ``` xml
     <!-- 加入opentelemetry  -->
@@ -42,16 +41,16 @@
 
 ```
 
-## Java agent 形式 {#with-agent}
-您有多种方式启动 Agent ，接下来介绍如何通过环境变量方式、命令行方式和 Tomcat 配置方式。
+## Java Agent Form {#with-agent}
+There are many ways you can start an Agent. Next, we will show you how to start an Agent through environment variables, command line, and Tomcat configuration.
 
-1. 环境变量形式启动
+1. Start in the form of environment variables
 ```shell
 $ export JAVA_OPTS="-javaagent:PATH/TO/opentelemetry-javaagent.jar"
 $ export OTEL_TRACES_EXPORTER=otlp
 ```
 
-2. 命令行启动
+2. Command line activation
 ```shell
 java -javaagent:opentelemetry-javaagent-1.13.1.jar \
 -Dotel.traces.exporter=otlp \
@@ -59,7 +58,7 @@ java -javaagent:opentelemetry-javaagent-1.13.1.jar \
 -jar your-server.jar
 ```
 
-3. Tomcat 配置形式
+3. Tomcat configuration form
 ```shell
 cd <本机 tomcat 安装目录>
 cd bin
@@ -70,9 +69,9 @@ CATALINA_OPTS="$CATALINA_OPTS -javaagent:PATH/TO/opentelemetry-javaagent.jar -Do
 # 重启Tomcat
 ```
 
-在配置字段 `exporter.otlp.endpoint` 时，可以不用配置并使用默认值(localhost:4317)，因为 Datakit 与 Java 程序在一台主机上，默认的端口也是4317.
+When configuring the field `exporter.otlp.endpoint`, you can dispense with the configuration and use the default value (localhost: 4317), because Datakit is on the same host as the Java program, and the default port is also 4317.
 
-## Java 2:代码注入形式 {#with-code}
+## Java 2: Code Injection Form {#with-code}
 
 ``` java
 package com.example;
@@ -155,17 +154,17 @@ public class otlpdemo {
 ```
 
 
-## 查看效果 {#view}
+## View Effect {#view}
 
-登录 [观测云](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} 后查看 `应用性能监测` -> `链路` -> 点击单条 `链路`
+Log in to [Guance Cloud](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} and view `application performance monitoring` -> `links` -> Click on a single `link`
 
 ![avatar](imgs/otel-java-example.png)
 
-在火焰图中可看到每一个模块中执行的时间、调用流程等。
+In the flame diagram, you can see the execution time, call flow and so on in each module.
 
 --- 
 
-## 参考 {#more-readings}
+## Reference {#more-readings}
 
-- 源码示例 [github-opentelemetry-java](https://github.com/open-telemetry/opentelemetry-java){:target="_blank"}
-- 文档 [官方文档](https://opentelemetry.io/docs/instrumentation/go/getting-started/){:target="_blank"}
+- Source sample [github-opentelemetry-java](https://github.com/open-telemetry/opentelemetry-java){:target="_blank"}
+- [Doc](https://opentelemetry.io/docs/instrumentation/go/getting-started/){:target="_blank"}

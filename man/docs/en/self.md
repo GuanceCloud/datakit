@@ -1,23 +1,22 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# DataKit 自身指标
+
+# DataKit Self-metric
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-self 采集器用于 DataKit 自身基本信息的采集，包括运行环境信息、CPU、内存占用情况等。
+Self collector is used to collect the basic information of DataKit itself, including running environment information, CPU, memory occupation and so on.
 
-## 前置条件 {#reqirement}
+## Preconditions {#reqirement}
 
-暂无
+None
 
-## 配置 {#config}
+## Configuration {#config}
 
-self 采集器会自动运行，无需配置，且无法关闭。
+The self collector runs automatically without configuration and cannot be shut down.
 
-## 指标 {#measurements}
+## Metrics {#measurements}
 
 {{ range $i, $m := .Measurements }}
 
@@ -27,17 +26,17 @@ self 采集器会自动运行，无需配置，且无法关闭。
 
 {{$m.Desc}}
 
-- 标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 字段列表
+- metric list
 
-{{$m.FieldsMarkdownTable}}
-{{end}}
+{{$m.FieldsMarkdownTable}} {{end}}
 
 {{ end }}
 
-## 延申阅读 {#more-reading}
 
-- [主机采集器](hostobject.md)
+## More Readings {#more-reading}
+
+- [Host collector](hostobject.md)

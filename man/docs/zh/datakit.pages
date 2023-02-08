@@ -149,9 +149,8 @@ nav:
       - coredns.md
       - jenkins.md
       - gitlab.md
-      - 'Web 服务器':
-        - 'Nginx': nginx.md
-        - apache.md
+      - nginx.md
+      - apache.md
       - 'Java':
         - 'JVM': jvm.md
         - tomcat.md

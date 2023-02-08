@@ -1,46 +1,145 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# Prometheus Exportor 数据采集
+
+# Prometheus Exportor Data Collection
 ---
 
-{{.AvailableArchs}}
+:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:  · [:fontawesome-solid-flag-checkered:](index.md#legends "支持选举")
 
 ---
 
-Prom 采集器可以获取各种 Prometheus Exporters 暴露出来的指标数据，只要配置相应的 Exporter 地址，就可以将指标数据接入。
+The Prom collector can obtain all kinds of metric data exposed by Prometheus Exporters, so long as the corresponding Exporter address is configured, the metric data can be accessed.
 
-## 前置条件 {#requirements}
+## Preconditions {#requirements}
 
-只能接入 Prometheus 形式的指标数据。
+Only metric data in Prometheus form can be accessed.
 
-## 配置 {#config}
+## Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/prom` directory under the DataKit installation directory, copy `prom.conf.sample` and name it `prom.conf`. Examples are as follows:
     
     ```toml
-    {{ CodeBlock .InputSample 4 }}
+        
+    [[inputs.prom]]
+      # Exporter URLs
+      # urls = ["http://127.0.0.1:9100/metrics", "http://127.0.0.1:9200/metrics"]
+    
+      # Ignoring request error to url
+      ignore_req_err = false
+    
+      # Collector alias
+      source = "prom"
+    
+      # Collection data output source
+      # Configure this to write collected data to a local file instead of typing the data to the center
+      # Then you can debug the locally saved metric set directly with the  datakit --prom-conf /path/to/this/conf
+      # If url has been configured as the local file path, then --prom-conf takes precedence over debugging the data in the output path
+      # output = "/abs/path/to/file"
+    
+      # Maximum size of data collected in bytes
+      # When outputting data to a local file, you can set the upper limit of the size of the collected data
+      # If the size of the collected data exceeds this limit, the collected data will be discarded
+      # The maximum size of collected data is set to 32MB by default
+      # max_file_size = 0
+    
+      # Filtering metrics type, optional values are counter, gauge, histogram, summary, untyped
+      # Only counter and gauge metrics are collected by default
+      # If empty, no filtering is performed
+      metric_types = ["counter", "gauge"]
+    
+      # Metric name filter: Eligible metrics will be retained
+      # Support regular, it can configure more than one, that is, satisfy one of them
+      # If blank, no filtering is performed and all metrics are retained
+      # metric_name_filter = ["cpu"]
+    
+      # Measurement name prefix
+      # Configure this to prefix the measurement name
+      measurement_prefix = ""
+    
+      # Measurement name
+      # By default, the metric name will be cut with an underscore "_". The first field after cutting will be the measurement name, and the remaining fields will be the current metric name
+      # If measurement_name is configured, the metric name is not cut
+      # The final measurement name is prefixed with measurement_prefix
+      # measurement_name = "prom"
+    
+      # TLS configuration
+      tls_open = false
+      # tls_ca = "/tmp/ca.crt"
+      # tls_cert = "/tmp/peer.crt"
+      # tls_key = "/tmp/peer.key"
+    
+      ## Set to true to turn on the election function
+      election = true
+    
+      # Filter tags, configurable multiple tags
+      # Matching tags will be ignored, but the corresponding data will still be reported
+      # tags_ignore = ["xxxx"]
+    
+      # Custom authentication method, currently only Bearer Token is supported
+      # token 和 token_file: You only need to configure one of them
+      # [inputs.prom.auth]
+      # type = "bearer_token"
+      # token = "xxxxxxxx"
+      # token_file = "/tmp/token"
+      # Custom measurement name
+      # You can group metrics that contain the prefix into one measurement
+      # Custom measurement name configuration priority measurement_name configuration items
+      #[[inputs.prom.measurements]]
+      #  prefix = "cpu_"
+      #  name = "cpu"
+    
+      # [[inputs.prom.measurements]]
+      # prefix = "mem_"
+      # name = "mem"
+    
+      # For data related to matching the following tag, discard these data and do not collect them
+      [inputs.prom.ignore_tag_kv_match]
+      # key1 = [ "val1.*", "val2.*"]
+      # key2 = [ "val1.*", "val2.*"]
+    
+      # Add additional request headers to HTTP requests for data pull
+      [inputs.prom.http_headers]
+      # Root = "passwd"
+      # Michael = "1234"
+    
+      # Rename tag key in prom data
+      [inputs.prom.tags_rename]
+        overwrite_exist_tags = false
+        [inputs.prom.tags_rename.mapping]
+        # tag1 = "new-name-1"
+        # tag2 = "new-name-2"
+        # tag3 = "new-name-3"
+    
+      # Call the collected metrics as logs to the center
+      # When the service field is left blank, the service tag is set to the measurement name
+      [inputs.prom.as_logging]
+        enable = false
+        service = "service_name"
+    
+      # Custom Tags
+      [inputs.prom.tags]
+      # some_tag = "some_value"
+      # more_tag = "some_other_value"
     ```
     
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    After configuration, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).
 
-???+ attention "interval 的配置"
+???+ attention "Configuration of interval"
 
-    Prometheus 的指标采集会对目标服务造成一定的开销（HTTP 请求），为防止意外的配置，采集间隔目前默认为 30s，且配置项没有在 conf 中明显放出来。如果一定要配置采集间隔，可在 conf 中增加该配置：
+    Prometheus' metrics collection will cause some overhead (HTTP request) to the target service. To prevent unexpected configuration, the collection interval is currently 30s by default, and the configuration items are not obviously released in conf. If you must configure the collection interval, you can add this configuration in conf:
 
     ``` toml hl_lines="2"
     [[inputs.prom]]
         interval = "10s"
     ```
 
-### 配置额外的 header {#extra-header}
+### Configure Extra header {#extra-header}
 
-Prom 采集器支持在数据拉取的 HTTP 请求中配置额外的请求头，如下：
+The Prom collector supports configuring additional request headers in HTTP requests for data pull, as follows:
 
 ```toml
   [inputs.prom.http_headers]
@@ -48,17 +147,17 @@ Prom 采集器支持在数据拉取的 HTTP 请求中配置额外的请求头，
   Michael = "1234"
 ```
 
-### 关于 tag 重命名 {#tag-rename}
+### About Tag Renaming {#tag-rename}
 
-> 注意：对于 [DataKit 全局 tag key](datakit-conf#update-global-tag)，此处不支持将它们重命名。
+> Note: For [DataKit global tag key](datakit-conf#update-global-tag), renaming them is not supported here.
 
-`tags_rename` 可以实现对采集到的 Prometheus Exporter 数据做 tag 名称的替换，里面的 `overwrite_exist_tags` 用于开启覆盖已有 tag 的选项。举个例子，对于已有 Prometheus Exporter 数据：
+`tags_rename` can replace the tag name of the collected Prometheus Exporter data, and `overwrite_exist_tags` is used to open the option of overwriting existing tags. For example, for existing Prometheus Exporter data:
 
 ```
 http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="yes", method="GET"} 1
 ```
 
-假定这里的 `tags_rename` 配置如下：
+Assume that the `tags_rename` configuration here is as follows:
 
 ```toml
 [inputs.prom.tags_rename]
@@ -68,25 +167,25 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="ye
     method      = "tag_exists", // 将 `method` 这个 tag 重命名为一个已存在的 tag
 ```
 
-那么最终的行协议数据会变成（忽略时间戳）：
+Then the final line protocol data will become (ignoring the timestamp):
 
 ```shell
-# 注意，这里的 tag_exists 被殃及，其值为原 method 的值
+# Note that tag_exists is affected here, and its value is the value of the original method
 http,StatusCode=404,le=0.003,tag_exists=GET request_duration_seconds_bucket=1
 ```
 
-如果 `overwrite_exist_tags` 禁用，则最终数据为：
+If `overwrite_exist_tags` is disabled, the final data is:
 
 ```shell
-# tag_exists 和 method 这两个 tag 均未发生变化
+# Neither tag_exists nor method has changed
 http,StatusCode=404,le=0.003,method=GET,tag_exists=yes request_duration_seconds_bucket=1
 ```
 
-注意，这里的 tag 名称是大小写敏感的，可以用下面的调试工具测试一下数据情况，以决定 tag 名称如何替换。
+Note that the tag name here is case-sensitive, and you can test the data with the following debugging tool to determine how to replace the tag name.
 
-## 协议转换说明 {#proto-transfer}
+## Protocol Conversion Description {#proto-transfer}
 
-由于 Prometheus 的数据格式跟 Influxdb 的行协议格式存在一定的差别。 对 Prometheus 而言，以下为一个 K8s 集群中一段分暴露出来的数据：
+Because the data format of Prometheus is different from the line protocol format of Infuxdb. For Prometheus, the following is a piece of data exposed in a K8s cluster:
 
 ```
 node_filesystem_avail_bytes{device="/dev/disk1s1",fstype="apfs",mountpoint="/"} 1.21585664e+08
@@ -113,19 +212,19 @@ node_filesystem_files{device="map -hosts",fstype="autofs",mountpoint="/net"} 0
 node_filesystem_files{device="map auto_home",fstype="autof
 ```
 
-对 Influxdb 而言，上面数据的一种组织方式为
+For Infuxdb, one way to organize the above data is
 
 ```
 node_filesystem,tag-list available_bytes=1.21585664e+08,device_error=0,files=9.223372036854776e+18 time
 ```
 
-其组织依据是：
+Its organizational basis is:
 
-- 在 Prometheus 暴露出来的指标中，如果名称前缀都是 `node_filesystem`，那么就将其规约到行协议指标集 `node_filesystem` 上
-- 将切割掉前缀的原 Prometheus 指标，都放到指标集 `node_filesystem` 的指标中
-- 默认情况下，Prometheus 中的所有 tags（即 `{}` 中的部分）在 Influxdb 的行协议中，都保留下来
+- In Prometheus exposed metrics, if the name prefix is `node_filesystem`, then it is specified on the line protocol measurement `node_filesystem`.
+- Place the original Prometheus metrics with their prefixes cut off into the metrics of the measurement `node_filesystem`.
+- By default, all tags in Prometheus (that is, parts in `{}` remain in the row protocol of Infuxdb
 
-要达到这样的切割目的，可以这样配置 `prom.conf`
+To achieve this cutting purpose, you can configure `prom.conf` as follows
 
 ```
   [[inputs.prom.measurements]]
@@ -133,26 +232,26 @@ node_filesystem,tag-list available_bytes=1.21585664e+08,device_error=0,files=9.2
     name = "node_filesystem"
 ```
 
-## 命令行调试指标集 {#debug}
+## Command Line Debug Measurement {#debug}
 
-由于 Prometheus 暴露出来的指标非常多，大家不一定需要所有的指标，故 DataKit 提供一个简单的调试 `prom.conf` 的工具，如果不断调整 `prom.conf` 的配置，以达到如下几个目的：
+Because Prometheus exposes a lot of metrics, you don't necessarily need all of them, so DataKit provides a simple tool to debug `prom.conf` . If you constantly adjust the configuration of `prom.conf`, you can achieve the following purposes:
 
-- 只采集符合一定名称规则的 Prometheus 指标
-- 只采集部分计量数据（`metric_types`），如 `gauge` 类指标和 `counter` 类指标
+- Only Prometheus metrics that meet certain name rules are collected
+- Collect only partial measurement data (`metric_types`), such as `gauge` type indicators and `counter` type metrics
 
-Datakit 支持命令行直接调试 prom 采集器的配置文件，从 conf.d/{{.Catalog}} 拷贝出一份 prom.conf 模板，填写对应 Exporter 地址，即可通过 DataKit 调试这个 `prom.conf`：
+DataKit supports debugging the configuration file of prom collector directly from the command line, copying a prom.conf template from conf.d/prom, filling in the corresponding Exporter address, and debugging this `prom.conf` through DataKit:
 
-执行如下命令，即可调试 `prom.conf`
+Debug `prom.conf` by executing the following command
 
 ```shell
 datakit tool --prom-conf prom.conf
 ```
 
-参数说明：
+Parameter description:
 
-- `prom-conf`: 指定配置文件，默认在当前目录下寻找 `prom.conf` 文件，如果未找到，会去 `<datakit-install-dir>/conf.d/{{.Catalog}}` 目录下查找相应文件。
+- `prom-conf`: Specifies the configuration file. By default, it looks for the `prom.conf` file in the current directory. If it is not found, it will look for the corresponding file in the `<datakit-install-dir>/conf.d/prom` directory.
 
-输出示例：
+Output sample:
 
 ```
 ================= Line Protocol Points ==================
@@ -178,10 +277,10 @@ Total line protocol points: 261
 Total measurements: 3 (prom_node, prom_go, prom_promhttp)
 ```
 
-输出说明：
+Output description:
 
-- Line Protocol Points： 产生的行协议点
-- Summary： 汇总结果
-    - Total time series: 时间线数量
-    - Total line protocol points: 行协议点数
-    - Total measurements: 指标集个数及其名称。
+- Line Protocol Points: Generated line protocol points
+- Summary: Summary results
+    - Total time series: Number of timelines
+    - Total line protocol points: Line protocol points
+    - Total measurements: Number of measurements and their names.

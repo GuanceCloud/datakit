@@ -1,18 +1,17 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# Scheck 接入
+
+# Scheck Access
 ---
 
-操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows:
+Operating system support: :fontawesome-brands-linux: :fontawesome-brands-windows:
 
 ---
 
-Datakit 可以直接接入 Security Checker的数据。Security Checker 具体使用，参见[这里](../scheck/scheck-install.md)。
+Datakit has direct access to Security Checker's data. For specific use of Security Checker, see [here](../scheck/scheck-install.md).
 
-## 通过 DataKit 安装 Security Checker 安装 {#install}
+## To Install the Security Checker Installation Through the DataKit {#install}
 
 ```shell
 $ sudo datakit install --scheck
 ```
 
-安装完后，Security Checker 默认将数据发送给 DataKit `:9529/v1/write/security` 接口。
+After installation, security Checker sends data to the DataKit `:9529/v1/write/security` interface by default.

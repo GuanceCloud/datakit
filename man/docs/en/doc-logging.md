@@ -1,89 +1,88 @@
-<!-- This file required to translate to EN. -->
-# Datakit 日志采集系统的设计和实现
+# Design and Implementation of Datakit Log Collection System
 
-## 前言 {#head}
+## Preface {#head}
 
-日志采集（logging）是观测云 Datakit 重要的一项，它将主动采集或被动接收的日志数据加以处理，最终上传到观测云中心。日志采集按照数据来源可以分为 “网络流数据” 和 “本地磁盘文件” 两种。
+Log collection is an important item of Guance Cloud Datakit, which processes the actively collected or passively received log data and finally uploads it to the Guance Cloud center. Log collection can be divided into "network stream data" and "local disk file" according to data sources.
 
-### 网络流数据 {#network}
+### Network Flow Data {#network}
 
-基本都是以订阅网络接口的方式，被动接收日志产生端发送过来的数据。
+Basically, they passively receive the data sent by the log generator by subscribing to the network interface.
 
-最常见的例子就是查看 Docker 日志，当执行 `docker logs -f CONTAIENR_NAME` 命令时，Docker 会启动一个单独的进程并连接到主进程，接收主进程发送过来的数据输出到终端。虽然 Docker 日志进程和主进程在同一台主机，但是它们的交互是通过本地环回网络。
+The most common example is to look at the Docker log. When the command `docker logs -f CONTAIENR_NAME` is executed, the Docker starts a separate process and connects to the main process, receiving the data sent by the main process and outputting it to the terminal. Although the Docker logging process and the main process are on the same host, their interaction is through the local loopback network.
 
-更加复杂的网络日志场景比如 Kubenetes 集群，它们的日志分布在不同 Node 上面，需要以 api-server 进行中转，比 Docker 的单一访问链路复杂一倍。
+More complex weblog scenarios, such as Kubenetes clusters, have logs spread across different Nodes and need to be forwarded in api-server, which is twice as complex as Docker's single access link.
 
-但是大部分通过网络获取日志都存在一个问题 —— 无法指定日志位置。日志接收端只能选择从首部开始接收日志，有多少收多少，可能一次收到几十万条；或从尾部开始，类似 `tail -f` 只接收当前产生的最新的数据，如果日志接收端的进程重启，那么这期间的日志就丢失了。
+However, most logs obtained through the network have a problem-it is impossible to specify the log location. The log receiver can only choose to receive logs from the head, and may receive hundreds of thousands of logs at a time; Or start from the tail, something like `tail -f` only receives the latest data that is currently generated. If the process at the log receiver restarts, the log during this period will be lost.
 
-Datakit 的容器日志采集最初是使用网络接收的方式，被上述问题困扰许久，后通过逐步调整改为下文提到的 “本地磁盘文件” 采集方式。
+Datakit's container log collection was initially received by the network, which was troubled by the above problems for a long time, and then gradually adjusted to the "local disk file" collection method mentioned below.
 
-### 本地磁盘文件 {#disk-file}
+### Local Disk File {#disk-file}
 
-采集本地日志文件是最常见和最高效的方式，省去了中间繁杂的传输步骤，直接对磁盘文件进行访问，可操控性更高，但是实现更复杂，会遇到一系列的细节问题，比如：
+Collecting local log files is the most common and efficient way, which saves the complicated transmission steps in the middle and accesses the disk files directly, which has higher maneuverability, but the implementation is more complicated and will encounter a series of detailed problems, such as:
 
-- 怎样在磁盘上读取数据更高效？
-- 文件被删除或者执行翻转（rotate）该怎么办？
-- 重新打开文件时该怎样定位上次的位置进行 “续读”？
+- How to read data more efficiently on disk?
+- What should we do if the file is deleted or rotated?
+- How to locate the last location for "continuing reading" when reopening a file?
 
-这些问题等同是将 Docker 日志服务给铺展开，各种细节和执行都交由自己来处理，只省去最后的网络传输部分，实现的复杂度比单纯用网络接收要麻烦很多。
+These problems are equivalent to spreading Docker log service, and all kinds of details and execution are handled by themselves, only the last network transmission part is omitted, and the complexity of implementation is much more troublesome than simply using network to receive.
 
-本文将主要针对 “本地磁盘文件”，自底向上，分为 “发现文件”、“采集数据并处理”、“发送和同步” 三个方面，依次介绍 Datakit 日志采集系统的设计和实现细节。
+This paper, focusing on "local disk file", will be divided into three aspects from bottom to top: "file discovery", "data collection and processing", "sending and synchronizing", and introduce the design and implementation details of Datakit log collection system in turn.
 
-补充，Datakit 日志采集执行流如下，涵盖和细分了上述的 “三个方面” ：
+Additionally, the Datakit log collection execution flow is as follows, covering and subdividing the above "three aspects":
 
 ```
-    glob 发现文件       Docker API 发现文件      Containerd（CRI）发现文件
+    glob Discover Files       Docker API Discover Files      Discover Files
          |                       |                            |
          ------------------------------------------------------
                                  |
-                   添加到日志调度器，分配到指定 lines
+                   Add to the log scheduler and assign to the specified lines
                                  |
          ---------------------------------------------------
          |                |                |               |
        line1            line2            line3          line4
                           |
-                          |              |- 采集数据，分行
+                          |              |- Collect data, branch
                           |              |
-                          |              |- 数据转码
+                          |              |- Data transcoding
                |----->    |              |
-               |          |              |- 特殊字符处理
-               |          |-  文件 A      |
-               |          | 一个采集周期   |- 多行处理
+               |          |              |- Special character processing
+               |          |-  Document A      |
+               |          | One collection cycle   |- Multi-line processing
                |          |              |
-               |          |              |- Pipeline 处理
+               |          |              |- Pipeline processing
                |          |              |
-               |          |              |- 发送
+               |          |              |- Send
                |          |              |
-               |          |              |- 同步文件采集位置
+               |          |              |- Synchronize file collection location
                |          |              |
-               | 流水线    |              |- 文件状态检测
-               | 循环      |
+               | Pipeline    |              |- File status detection
+               | Cycling      |
                |          |
-               |          |-  文件 B |-
+               |          |-  Document B |-
                |          |
                |          |
-               |          |-  文件 C |-
+               |          |-  Document C |-
                |          |
                |----------|
 ```
 
-## 发现和定位日志文件 {#discovery}
+## Discover and Locate Log File {#discovery}
 
-既然要读取和采集日志文件，那么首先要在磁盘上定位文件位置。在 Datakit 中主要有三种文件日志，其中两种容器日志，一种普通日志，它们的采集方式大同小异，本文也主要介绍这种三种，它们分别是：
+Since you want to read and collect log files, you must first locate the file location on disk. There are mainly three kinds of file logs in Datakit, including two kinds of container logs and one kind of ordinary logs. Their collection methods are similar. This paper also mainly introduces these three kinds, which are:
 
-- 普通日志文件
-- Docker Stdout/Stderr，由 Docker 服务本身进行日志管理和落盘（Datakit 目前只支持解析 `json-file` 驱动）
-- Containerd Stdout/Stderr，Containerd 没有输出日志的策略，现阶段的 Containerd Stdout/Stderr 都是由 Kubenetes 的 kubelet 组件进行管理，后续会统称为 `Containerd（CRI）`
+- Normal log files
+- Docker Stdout/Stderr, which is managed and dropped by the Docker service itself (Datakit currently only supports parsing the `json-file` driver)
+- Containerd Stdout/Stderr. Containerd has no strategy for outputting logs. At present, Containerd Stdout/Stderr is managed by kubelet component of Kubenetes, which will be collectively referred to as `Containerd（CRI）`
 
-### 发现普通日志文件 {#discovery-log}
+### Found Common Log File {#discovery-log}
 
-普通日志文件是最常见的一种，它们是进程直接将可读的记录数据写到磁盘文件，像著名的 “log4j” 框架或者执行 `echo "this is log" >> /tmp/log` 命令都会产生日志文件。
+Ordinary log files are the most common, where processes write readable record data directly to disk files, such as the famous "log4j" framework or execute the `echo "this is log" >> /tmp/log` command to generate log files.
 
-这种日志的文件路径大部分情况都是固定的，像 MySQL 在 Linux 平台的日志路径是 `/var/log/mysql/mysql.log`，如果运行 Datakit MySQL 采集器，默认会去找个路径找寻日志文件。但是日志存储路径是可配的，Datakit 无法兼顾所有情况，所以必须支持手动指定文件路径。
+The file path of this log is mostly fixed. For example, the log path of mysql on Linux platform is `/var/log/mysql/mysql.log`. If you run Datakit MySQL collector, you will find a path to find the log file by default. However, log storage paths are configurable, and Datakit can't take care of all situations, so it must support manually specifying file paths.
 
-在 Datakit 中使用 glob 模式配置文件路径，它使用通配符来定位文件名（当然也可以不使用通配符）。
+In Datakit, the glob mode is used to configure the file path, which uses wildcard characters to locate the file name (of course, you can not use wildcard characters).
 
-举个例子，现在有以下的文件：
+For example, there are now the following files:
 
 ```
 $ tree /tmp
@@ -99,100 +98,100 @@ $ tree /tmp
 3 directories, 4 files
 ```
 
-在 Datakit logging 采集器中可以通过配置 `logfiles` 参数项，指定要采集的日志文件，比如：
+In the Datakit logging collector, you can specify the log files to collect by configuring the `logfiles` parameter entry, such as:
 
-- 采集 `datakit` 目录下所有文件，glob 为`/tmp/datakit/*`
-- 采集所有带有 `datakit` 名字的文件，对应的 glob 为`/tmp/datakit/datakit-*log`
-- 采集 `mysql.log`，但是中间有 `mysql.d` 和 `mysql` 两层目录，有好几种方法定位到 `mysql.log` 文件：
-   - 直接指定：`/tmp/mysql.d/mysql/mysql.log`
-   - 单星号指定：`/tmp/*/*/mysql.log`，这种方法基本用不到
-   - 双星号（`double star`）：`/tmp/**/mysql.log`，使用双星号 `**` 代替中间的多层目录结构，是较为简洁、常用的一种方式
+- Collect all files in the `datakit` directory with glob `/tmp/datakit/*`
+- Collect all files with the name `datakit` and the corresponding glob is `/tmp/datakit/datakit-*log`
+- Collect `mysql.log`, but with `mysql.d` and `mysql` directories in between, there are several ways to navigate to the `mysql.log` file:
+   - Specify directly: `/tmp/mysql.d/mysql/mysql.log`
+   - A single asterisk specifies: `/tmp/*/*/mysql.log`, which is rarely used
+   - Double star `double star`): `/tmp/**/mysql.log`, a simpler and more common way to use the double star `**` instead of the intermediate multi-tier directory structure
 
-在配置文件中使用 glob 指定文件路径后，Datakit 会定期在磁盘中搜寻符合规则的文件，如果发现没有在采集列表中，便将其添加并进行采集。
+After using glob to specify the file path in the configuration file, Datakit periodically searches disk for files that meet the rules, and if it finds that they are not in the collection list, it adds them and collects them.
 
-### 定位容器 Stdout/Stderr 日志文件 {#discovery-container-log}
+### Locate the container Stdout/Stderr Log File {#discovery-container-log}
 
-在容器中输出日志有两种方式：
+There are two ways to output logs in a container:
 
-- 一是直接写到挂载的磁盘目录，这种方式在主机看来和上述的 “普通日志文件” 相同，都是在磁盘固定位置的文件
-- 另一种方式是输出到 Stdout/Stderr，由容器的 runtime 来收集并管理落盘，这也是较为常见的方式。这个落盘路径通过访问 runtime API 可以获取到
+- First, write directly to the mounted disk directory, which is the same as the above-mentioned "ordinary log files" in the host's view, and they are all files at a fixed location on the disk.
+- Another way is to output to Stdout/Stderr, where the runtime of the container collects and manages the drop, which is also a more common way. This drop path can be obtained by accessing the runtime API.
 
-Datakit 通过连接 Docker 或 Containerd 的 sock 文件，访问它们的 API 获取指定容器的 `LogPath`，类似在命令行执行 `docker inspect --format='{{`{{.LogPath}}`}}' $INSTANCE_ID`：
+Datakit gets the `LogPath` of the specified container by connecting to the sock file of Docker or Containerd and accessing their API, similar to executing `docker inspect --format='{{`{{.LogPath}}`}}' $INSTANCE_ID`:
 
 ```
 $ docker inspect --format='{{`{{.LogPath}}`}}' cf681e
 /var/lib/docker/containers/cf681eXXXX/cf681eXXXX-json.log
 ```
 
-获取到容器 `LogPath` 后，使用这个路径和相应配置创建日志采集。
+Once the container `LogPath` is obtained, the log collection is created using this path and the corresponding configuration.
 
-## 采集日志数据并加以处理 {#log-process}
+## Collect Log Data and Process {#log-process}
 
-### 日志采集调度器 {#scheduler}
+###  Log Collection Scheduler {#scheduler}
 
-在拿到一个日志文件路径后，因为 Datakit 使用 Golang 编写的，通常会选择开启一个或多个 goroutine 独立对文件进行采集，模型简单、实现方便，Datakit 在之前确实是这么做的。
+After getting a log file path, because Datakit is written in Golang, it usually chooses to open one or more goroutines to collect files independently. The model is simple and easy to implement, which Datakit did before.
 
-但是如果文件数量太多，要开启的 goroutine 数量也会随之增加，这对 goroutine 的管理很不利。所以 Datakit 实现了一个日志采集的调度器。
+However, if the number of files is too large, the number of goroutines to be opened will also increase, which is very unfavorable to the management of goroutine. So Datakit implements a scheduler for log collection.
 
-和大多数调度器模型一样，Datakit 会在调度器下层实现多条流水线（line）。当一个新的日志采集注册到调度器，Datakit 会根据各条流水线的权重进行分配。
+Like most scheduler models, Datakit implements multiple pipelines (lines) under the scheduler. When a new log collection is registered with the scheduler, Datakit allocates it according to the weights of each pipeline.
 
-每条流水线都是循环执行，即 A 文件采集一次（或是连续采集 N 秒，视情况而定），再采集 B 文件，再采集 C 文件，这样可以对 goroutine 数量有效控制，而且避免了大量 goroutine 的底层调度和资源争夺。
+Each pipeline is executed cyclically, that is, A files are collected once (or continuously collected for N seconds, depending on the situation), then B files are collected, and then C files are collected, which can effectively control the number of goroutines and avoid the underlying scheduling and resource competition of a large number of goroutines.
 
-如果发现这个日志采集出现错误，会将其从流水线撤下，下次循环就不会再采集。
+If an error is found in this log collection, it will be removed from the pipeline and will not be collected again in the next cycle.
 
-### 读取数据并分割成行 {#read}
+### Read Data and Split it into Rows {#read}
 
-提到读取日志数据，大部分情况都会先想到类似 `Readline()` 这种方法函数，每次调用都会返回完整的一行日志。但是在 Datakit 没有这样实现。
+When it comes to reading log data, most of the time you think of a method function like `Readline()` that returns a full row of logs each time you call it. But this is not implemented in Datakit.
 
-为了确保更细致的操控和更高的性能，Datakit 只使用了最基础的 `Read()` 方法，每次读取 4KiB 数据（buff 大小是 4KiB，实际读取到可能更少），手动将这 4KiB 数据通过换行符 `\n` 分割成 N 份。这样会出现两种情况：
+To ensure finer manipulation and higher performance, Datakit uses only the most basic `Read()` method, reading 4KiB of data at a time (buff size is 4KiB, and actually reading may be less), and manually dividing this 4KiB data into N parts by the newline character `\n`. This will lead to two situations:
 
-- 这 4KiB 数据最后一个字符刚好是换行符，可以分割成 N 份，没有剩余
-- 这 4KiB 数据最后一个字符不是换行符，对比上文，本次的分割只有 N-1 份，有剩余部分，这段剩余的部分将补充到下一个 4KiB 数据的首部，依次类推
+- The last character of this 4KiB data is just a newline character, which can be divided into N parts, and there is no surplus.
+- The last character of this 4KiB data is not a newline character. Compared with the above, there are only N-1 copies of this division, and there is a remaining part, which will be added to the head of the next 4KiB data, and so on.
 
-在 Datakit 的代码中，此处对同一个 buff 不断进行 `update CursorPosition`、`copy` 和 `truncate`，以实现最大化的内存复用。
+In Datakit's code, here `update CursorPosition`, `copy` and `truncate` for the same buff to maximize memory reuse. 
 
-经过处理，读取到的数据已经变成一行一行，可以走向执行流的下一层也就是转码和特殊字符处理。
+After processing, the read data has become line by line, which can be moved to the next level of the execution stream, namely transcoding and special character processing.
 
-### 转码和特殊字符处理 {#decode}
+### Transcoding and Special Character Processing {#decode}
 
-转码和特殊字符的处理要在数据成型之后再进行，否则会出现从字符中间截断、对一段截断的数据做处理的情况。比如一个 UTF-8 的中文字符占 3 字节，在采集到第 1 个字节时就做转码处理，这属于 Undefined 行为。
+Transcoding and special character processing should be carried out after data shaping, otherwise it will be truncated from the middle of characters and a truncated data will be processed. For example, a UTF-8 Chinese character occupies 3 bytes, and transcoding is done when the first byte is collected, which belongs to Undefined behavior.
 
-数据转码是很常见的行为，需要指定编码类型和大端小端（如果有），本文重点讲述一下 “特殊字符处理”。
+Data transcoding is a very common behavior, which requires specifying the encoding type and the big end and small end (if any). This article focuses on "special character processing".
 
-“特殊字符” 在此处代指数据中的颜色字符，比如以下命令会在命令行终端输出一个红色 `rea` 单词：
+"Special characters" here refer to the color characters in the data. For example, the following command will output a red `rea`  word at the command line terminal:
 
 ```
 $ RED='\033[0;31m' && NC='\033[0m' && print "${RED}red${NC}"
 ```
 
-如果不进行处理，不删除颜色字符，那么最终日志数据也会带有 `\033[0;31m`，不仅缺乏美观、占用存储，而且可能对后续的数据处理产生负影响。所以要在此处筛除特殊颜色字符。
+If you do not process and delete color characters, the final log data will also have `\033[0;31m`, not only lack of aesthetics, take up storage, and may have a negative impact on subsequent data processing. Therefore, special color characters should be screened out here.
 
-开源社区有许多案例，大部分都使用正则表达式进行实现，性能不是很出色。
+There are many cases in the open source community, most of which are implemented using regular expressions, and the performance is not very good.
 
-但是对于一个成熟的日志输出框架，一定有关闭颜色字符的方法，Datakit 更推荐这种做法，由日志产生端从避免打印颜色字符。
+However, for a mature log output framework, there must be a way to turn off color characters, which Datakit recommends, and the log generator avoids printing color characters.
 
-### 解析行数据 {#parse}
+### Parse Row Data {#parse}
 
-“解析行数据” 主要是针对容器 Stdout/Stderr 日志。容器 runtime 管理和落盘日志时会添加一些额外的信息字段，比如产生时间，来源是 `stdout` 还是 `stderr`，本条日志是否被截断等等。Datakit 需要对这种数据做解析，提取对应字段。
+"Parsing row data" is primarily for container Stdout/Stderr logs. When the container runtime manages and drops the log, it adds some additional information fields, such as when it was generated, whether the source is `stdout` or `stderr`, whether this log is truncated, and so on. Datakit needs to parse this data and extract the corresponding fields.
 
-- Docker json-file 日志单条格式如下，是 JSON 格式，正文在 `log` 字段中。如果 `log` 内容的结尾是 `\n` 表示这一行数据是完整的，没有被截断；如果不是 `\n`，则表明数据太长超过 16KB 被截断了，其剩余部分在下一个 JSON 中。
+- The Docker json-file log is in the following single format, JSON format, and the body is in the `log` field. If the end of the `log` content is `\n` , this row of data is complete and not truncated; If it is not `\n`, it means that the data is too long for more than 16KB and is truncated, and the rest of it is in the next JSON.
     ```
     {"log":"2022/09/14 15:11:11 Bash For Loop Examples. Hello, world! Testing output.\n","stream":"stdout","time":"2022-09-14T15:11:11.125641305Z"}
     ```
-- Containerd（CRI）单条日志格式如下，各项字段以空格分割。和 Docker 相同的是，Containerd（CRI）也有日志截断的标记，即第三个字段 `P`，此外还有 `F`。`P` 表示 `Partial`，即不完整的、被截断的；`F` 表示 `Full`。 
+- The Containerd (CRI) single log format is as follows, with fields separated by spaces. Like Docker, Containerd (CRI) has a log truncation flag, the third field `P`, in addition to `F`. `P` means `Partial`, that is, incomplete and truncated; `F` means `Full`.
     ```
     2016-10-06T00:17:09.669794202Z stdout P log content 1
     2016-10-06T00:17:09.669794202Z stdout F log content 2
     ```
-    拼接之后的日志数据是 `log content 1 log content 2`。
+    The spliced log data is `log content 1 log content 2`.
 
-通过解析行数据，可以获得日志正文、stdout/sterr 等信息，根据标记确定是否是不完整的截断日志，要进行日志拼接。在普通日志文件中不存在截断，文件中的单行数据理论上可以无限长。
+By parsing the row data, we can get the log body, stdout/sterr and other information. According to the mark, we can determine whether it is an incomplete truncated log and splice the log. There is no truncation in ordinary log files, and a single line of data in a file can theoretically be infinitely long.
 
-此外，日志单行被截断，拼接之后也属于一行日志，而不是下文要提到的多行日志，这是两个不同的概念。
+In addition, a single log line is truncated, and after splicing, it also belongs to a one-line log, instead of a multi-line log mentioned below, which are two different concepts.
 
-### 多行数据 {#multiline}
+### Multiline {#multiline}
 
-多行处理是日志采集非常重要的一项，它将一些不符合特征的数据，在不丢失数据的前提下变得符合特征。比如日志文件中有以下数据，这是一段常见的 Python 栈打印：
+Multi-line processing is a very important part of log collection, which makes some data that do not conform to the characteristics conform to the characteristics without losing the data. For example, the log file has the following data, which is a common Python stack print:
 
 ```
 2020-10-23 06:41:56,688 INFO demo.py 1.0
@@ -203,9 +202,9 @@ Traceback (most recent call last):
 2020-10-23 06:41:56,688 INFO demo.py 5.0
 ```
 
-如果没有多行处理，那么最终数据就是以上 7 行，和原文一模一样。这不利于后续的 Pipeline 切割，因为像第 3 行的 `Traceback (most recent call last):` 或 第 4 行的 `File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app` 都不是固定格式。
+If there is no multi-line processing, the final data is the above 7 lines, which is exactly the same as the original text. This is not conducive to subsequent Pipeline cuts, because neither `Traceback (most recent call last):` in line 3 nor `File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app` in line 4 are fixed formats.
 
-如果经过有效的多行处理，这 7 行数据会变成 3 行，结果如下：
+After effective multi-line processing, these 7 rows of data will become 3 rows, and the result is as follows:
 
 ```
 2020-10-23 06:41:56,688 INFO demo.py 1.0
@@ -213,38 +212,38 @@ Traceback (most recent call last):
 2020-10-23 06:41:56,688 INFO demo.py 5.0
 ```
 
-可以看到，现在每行日志数据都以 `2020-10-23` 这样的特征字符串开头，原文中不符合特征的第 3、4、5 行被追加到第 2 行的末尾。这样看起来要美观很多，而且有利于后续的 Pipeline 字段切割。
+As you can see, each line of log data now begins with a character string such as `2020-10-23`, and lines 3, 4, and 5 that do not match the character in the original text are appended to the end of line 2. This looks much more beautiful and is beneficial to the subsequent Pipeline field cutting.
 
-这一功能并不复杂，只需要指定特征字符串的正则表达式即可。
+This function is not complicated, just specify the regular expression of the feature string.
 
-在 Datakit logging 采集器配置有 `multiline_match` 项，以上文的例子，该项的配置应该是 `^\d{4}-\d{2}-\d{2}`，即匹配形如 `2020-10-23` 这样的行首。
+The Datakit logging collector is configured with the `multiline_match` entry, which in the example above should be configured to `^\d{4}-\d{2}-\d{2}` to match a line header of the form `2020-10-23`.
 
-具体实现上类似一个数据结构中的栈（stack）结构，符合特征就将前一条出栈并再把自己入栈进去，不符合特征就只将自己入栈追加到前一条末尾，这样从外面收到的出栈数据都是符合特征的。
+The concrete implementation is similar to the stack structure in a data structure. If it conforms to the characteristics, it will stack the previous one and then put itself into the stack. If it does not conform to the characteristics, it will only add its own stack to the end of the previous one, so that the stack data received from the outside is consistent with the characteristics.
 
-此外，Datakit 还支持自动多行，在 logging 采集器的配置项中是 `auto_multiline_detection` 和 `auto_multiline_extra_patterns`，它的逻辑非常简单，就是提供一组的 `multiline_match`，根据原文遍历匹配所有规则，匹配成功就提高它的权重以便下次优先选择它。
+In addition, Datakit supports automatic multi-lines, in the configuration items of the logging collector `auto_multiline_detection` and `auto_multiline_extra_patterns`, and its logic is very simple: it provides a set of `multiline_match` that matches all the rules according to the original traversal, increasing its weight if the match succeeds so that it can be selected first next time.
 
-自动多行是简化配置的一种方式，除了用户配置外，还提供 “默认自动多行规则列表”，详情链接见文章末尾。
+Automatic multiline is a way to simplify configuration. In addition to user configuration, it also provides a "default automatic multiline rule list". See the end of the article for details.
 
-### Pipeline 切割和日志 status {#pipeline}
+### Pipeline Cut and Log Status {#pipeline}
 
-Pipeline 是一种简单的脚本语言，提供各种函数和语法，用以编写对一段文本数据的执行规则，主要用于切割非结构化的文本数据，例如把一行字符串文本切割出多个有意义的字段，或者用于从结构化的文本中（如 JSON）提取部分信息。
+Pipeline is a simple scripting language that provides various functions and syntax to write execution rules for a piece of text data. It is mainly used to cut unstructured text data, such as cutting a line of string text into multiple meaningful fields, or to extract some information from structured text (such as JSON).
 
-Pipeline 的实现比较复杂，它由抽象语法树（AST）和一系列内部状态机、功能纯函数组成，此处不过多描述。
+The implementation of Pipeline is more complex, it consists of abstract syntax tree (AST) and a series of internal state machines and functional pure functions, which would not be described here.
 
-只看使用场景，举个简单的例子，原文如下：
+Just look at the usage scenario, give a simple example, the original text is as follows:
 
 ```
 2020-10-23 06:41:56,688 INFO demo.py 1.0
 ```
 
-pipeline 脚本：
+pipeline script:
 
 ```python
 grok(_, "%{date:time} %{NOTSPACE:status} %{GREEDYDATA:msg}")
 default_time(time)
 ```
 
-最终结果：
+Final result:
 
 ```python
 {
@@ -255,55 +254,55 @@ default_time(time)
 }
 ```
 
-*注意：Pipeline 切割后的 `status` 字段是 `INFO`，但是 Datakit 有做映射处理，所以严谨起见显示为小写的 `info`*
+*Note: Pipeline's cut `status` field is `INFO`, but Datakit is mapped, so it appears as lowercase `info` for the sake of rigor*
 
-Pipeline 是日志数据处理最后一步，Datakit 会使用 Pipeline 的结果构建行协议，序列化对象并准备打包发送给 Dataway。
+Pipeline is the last step in log data processing, and Datakit uses the results of the Pipeline to build a row protocol, serialize the object, and prepare to package it and send it to Dataway.
 
-## 发送数据和同步 {#send}
+## Send Data and Synchronize {#send}
 
-数据发送是很常见的行为，在 Datakit 中基本就三步 —— “打包”、“转码” 和 “发送”。
+Data sending is a very common behavior, and there are basically three steps in Datakit-"packaging", "transcoding" and "sending".
 
-但是发送之后的操作必不可少，而且至关重要，分别是 “同步当前文件的读取位置” 和 “检测文件状态”。
+However, the operations after sending are essential and crucial, namely, "synchronizing the reading position of the current file" and "detecting the file status".
 
-### 同步 {#sync}
+### Syncronization {#sync}
 
-在文章第一节介绍 “网络流数据” 时提到，为了能够进行日志文件的定点续读，而不是只支持 “从文件首部开始读取” 或者 `tail -f` 模式，Datakit 引入一个重要的操作 —— 记录当前文件的读取位置（position）。
+In the first section of the article, when introducing "network flow data", it was mentioned that in order to be able to continue reading log files at a fixed point, instead of only supporting "reading from the beginning of the file" or `tail -f` mode, Datakit introduced an important operation-recording the reading position of the current file.
 
-日志采集每次从磁盘文件中读取数据，都会记录这段数据在文件的位置，只有当一系列处理和发送完成，才会将这个位置信息连通其他数据，同步到单独一个磁盘文件中。
+Every time log collection reads data from a disk file, it will record the location of this data in the file. Only when a series of processing and sending are completed will this location information be connected with other data and synchronized to a single disk file.
 
-这样做的好处是 Datakit 每次开启日志采集，如果这个日志文件之前被采集过，这次就能定位到上次的位置继续采集，不会造成数据采集重复，也不会丢失中间某段数据。
+The advantage of this is that Datakit starts log collection every time. If this log file has been collected before, it can locate the last location to continue collection this time, which will not cause repeated data collection and will not lose a certain piece of data in the middle.
 
-功能实现并不复杂：
+Functional implementation is not complicated:
 
-Datakit 开启日志采集时，使用 `文件绝对路径 + 文件 inode + 文件首部的 N 个字节` 拼凑成一个专属的 key 值，使用这个 key 去指定路径的文件中找寻 position
+When Datakit starts log collection, it uses `File Absolute Path + File inode + N Bytes of File Header` to piece together an exclusive key value, and uses this key to find position in the file with the specified path.
 
-- 如果能找到 position，表示这个文件上次已经被采集过，会从当前 position 再进行读取
-- 如果没有找到 position，说明这是一个新的文件，会根据情况选择从文件首部读取，还是文件尾部读取
+- If the position can be found, it means that the file was collected last time and will be read again from the current position.
+- If position is not found, it means that this is a new file, and it will be read from the beginning or the end of the file according to the situation.
 
-### 检测文件的状态 {#checking}
+### Detect File Status {#checking}
 
-磁盘文件的状态不是一成不变的，这个文件可能会被删除、被重命名，或者长时间没有改动，Datakit 要对这些情况做处理。
+The state of a disk file is not static, and the file may be deleted, renamed, or left unchanged for a long time. Datakit has to deal with these situations.
 
-- 文件长时间没有修改：
-    - Datakit 会定期获取该文件的修改时间（`file Modification Date`），如果发现距离当前时间超过某个限定值，就会认为这文件已经 “不活跃”（inactive)，从而将其关闭不再采集
-    - 这个逻辑在使用 glob 规则搜寻日志文件时也存在，如果找到一个符合 glob 规则的文件，但是它长久没有修改（也可以说 “更新”），不会对其进行日志采集
+- The file has not been modified for a long time:
+    - Datakit will periodically get the modification time of the file (`file Modification Date`). If it finds that the distance from the current time exceeds a certain limit value, it will consider the file "inactive" and close it no longer to collect.
+    - This logic also exists when searching for log files using glob rules. If a file that conforms to glob rules is found, but it has not been modified for a long time (or "updated"), it will not be logged.
 
-- 文件发生反转（rotate）：
-    - 文件 rotate 是一个很复杂的逻辑，通俗一点来说就是文件名不变，但是文件名指向的具体文件发生改变，比如它的 inode。典型的例子就是 Docker 日志落盘。
+- The file is rotated:
+    - File rotate is a very complicated logic. Generally speaking, the file name remains unchanged, but the specific file pointed to by the file name changes, such as its inode. A typical example is Docker log drop.
     
-Datakit 会定期检查当前正在采集的文件是否发生 rotate，检查的逻辑是：使用此文件名打开一个新的文件句柄，调用类似 `SameFile()` 的函数，判断两个句柄是否指向一致，如果不一致表示当前这个文件名已经发生 rotate。
+Datakit will regularly check whether rotate has occurred in the file currently being collected. The logic of checking is to open a new file handle with this file name, call a function like `SameFile()`, and judge whether the two handles point to the same. If they are inconsistent, it means that rotate has occurred in the current file name.
 
-一旦检测到文件发生 rotate，Datakit 会将当前文件的剩余数据（直到 EOF）采集完，再重新打开文件，此时已经是一个新的文件，然后操作流程一切照旧。
+Once it detects that the file has rotated, Datakit collects the remaining data of the current file (until EOF), reopens the file, which is already a new file, and then operates as usual.
 
-## 总结 {#end}
+## Summary {#end}
 
-日志采集是一个很复杂的系统，涉及到非常多的细节处理和优化逻辑。本文旨在介绍 Datakit 日志采集系统的设计和实现，没有 Benchmark 报告以及跟同类项目的性能对比，后续可以视情况补全。
+Log collection is a very complex system, which involves a lot of detail processing and optimization logic. The purpose of this paper is to introduce the design and implementation of Datakit log collection system, without Benchmark report and performance comparison with similar projects, the follow-up can be completed depending on the situation.
 
-补充链接：
+Supplementary links:
 
-- [glob 模式介绍](https://en.wikipedia.org/wiki/Glob_(programming))
-- [Datakit 自动多行配置](https://docs.guance.com/integrations/logging/#auto-multiline)
-- [Datakit Pipeline 处理](https://docs.guance.com/datakit/pipeline/)
-- [Docker 截断超过 16KiB 日志的讨论](https://github.com/moby/moby/issues/34855)
-- [Docker 截断超过 16KiB 的源码](https://github.com/nalind/docker/blob/master/daemon/logger/copier.go#L13)
+- [Introduction to the glob schema](https://en.wikipedia.org/wiki/Glob_(programming))
+- [Datakit automatic multiline configuration](https://docs.guance.com/integrations/logging/#auto-multiline)
+- [Datakit pipeline processing](https://docs.guance.com/datakit/pipeline/)
+- [Docker truncates discussions over 16KiB logs](https://github.com/moby/moby/issues/34855)
+- [Docker truncates more than 16KiB of source code](https://github.com/nalind/docker/blob/master/daemon/logger/copier.go#L13)
 - [Docker logging driver](https://docs.docker.com/config/containers/logging/local/)
