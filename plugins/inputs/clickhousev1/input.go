@@ -29,7 +29,7 @@ const (
   # output = "/abs/path/to/file"
 
   ## Collect data upper limit as bytes.
-  # Only avaliable when set output to local file.
+  # Only available when set output to local file.
   # If collect data exceeded the limit, the data would be dropped.
   # Default is 32MB.
   # max_file_size = 0
