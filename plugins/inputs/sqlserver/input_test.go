@@ -1,94 +1,113 @@
-// Unless explicitly stated otherwise all files in this repository are licensed
-// under the MIT License.
-// This product includes software developed at Guance Cloud (https://www.guance.com/).
-// Copyright 2021-present Guance, Inc.
-
 package sqlserver
 
 import (
-	"testing"
+	T "testing"
 
-	_ "github.com/denisenkom/go-mssqldb"
+	dt "github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/point"
 )
 
-func TestCon(t *testing.T) {
-	n := Input{
-		Host:     "10.100.64.109:1433",
-		User:     "_",
-		Password: "_",
-	}
-	if err := n.initDB(); err != nil {
-		l.Error(err.Error())
-		return
-	}
+type caseSpec struct {
+	t *T.T
 
-	n.getMetric()
-	for _, v := range collectCache {
-		t.Log(v.String())
-	}
+	name    string
+	repo    string
+	repoTag string
+	envs    []string
+
+	conf      []byte
+	expectPts []*point.Point
+
+	saPassword string
+
+	pool     *dockertest.Pool
+	resource *dockertest.Resource
+
+	// TODO: test-result
 }
 
-func TestFilterDBInstance(t *testing.T) {
-	testCases := []struct {
-		name              string
-		tags              map[string]string
-		dbFilter          []string
-		expectedFilterOut bool
+func (cs *caseSpec) run() {
+	p, err := dt.NewPool()
+	assert.NoError(t, err)
+
+	r, err := p.RunWithOptions(&dt.RunOptions{
+		Repository: cs.repo,
+		Tag:        cs.repoTag,
+		PortBindings: map[docker.Port][]docker.PortBinding{
+			"1433/tcp": []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: "1433"}},
+		},
+
+		Name: "container-of-" + cs.name,
+		Env:  cs.envs,
+	}, func(c *docker.HostConfig) {
+		c.AutoRemove = true
+		c.RestartPolicy = docker.RestartPolicy{Name: "no"}
+	})
+
+	assert.NoError(t, err)
+
+	cs.pool = p
+	cs.resource = r
+
+	// TODO: run the test
+}
+
+func buildCases(t *T.T) []*caseSpec {
+	t.Helper()
+
+	basicSpecs := []struct {
+		title         string
+		tomlPath      string
+		expectPtsPath string
 	}{
 		{
-			"filter out",
-			map[string]string{
-				"database_name": "db1",
-				"some_tag":      "some_tag_val",
-			},
-			[]string{"db1", "db2", "db3"},
-			true,
+			name:      "remote-sqlserver",
+			conf:      []byte(`some-conf`),
+			expectPts: nil,
 		},
+
 		{
-			"not filter out",
-			map[string]string{
-				"database_name": "db4",
-				"hello":         "world",
-			},
-			[]string{"db1", "db2", "db3"},
-			false,
-		},
-		{
-			"database_name tag not present",
-			map[string]string{
-				"hello":       "world",
-				"object_name": "Rebecca",
-			},
-			[]string{"db1", "db2", "db3"},
-			false,
-		},
-		{
-			"empty filter",
-			map[string]string{
-				"database_name": "db-1",
-				"hello":         "world",
-				"object_name":   "Rebecca",
-			},
-			[]string{},
-			false,
-		},
-		{
-			"blank database_name tag",
-			map[string]string{
-				"database_name": "",
-			},
-			[]string{},
-			false,
+			name:      "remote-sqlserver-with-extra-tags",
+			conf:      []byte(`some-conf`),
+			expectPts: nil,
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			n := Input{}
-			n.DBFilter = tc.dbFilter
-			n.initDBFilterMap()
-			assert.Equal(t, tc.expectedFilterOut, n.filterOutDBName(tc.tags))
+	images := [][2]string{
+		[2]string{"mcr.microsoft.com/mssql/server", "2017-latest"},
+		[2]string{"mcr.microsoft.com/mssql/server", "2019-latest"},
+		[2]string{"mcr.microsoft.com/mssql/server", "2022-latest"},
+	}
+
+	// TODO: add per-image configs
+	perImageCfgs := []interface{}{}
+	_ = perImageCfgs
+
+	for _, img := range images {
+		for _, c := range basicSpecs {
+			cases = append(cases, &caseSpec{
+				t:    t,
+				name: c.name,
+
+				repo:    img[0],
+				repoTag: img[1],
+
+				conf:      c.conf,
+				expectPts: c.expectPts,
+			})
+		}
+	}
+	return
+}
+
+func TestInput(t *T.T) {
+	cases := buildCases(t)
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *T.T) {
+			tc.run()
 		})
 	}
 }
