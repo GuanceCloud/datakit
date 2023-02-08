@@ -171,7 +171,7 @@ func (r *replicasetMetric) LineProto() (*point.Point, error) {
 func (*replicasetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kube_replicaset",
-		Desc: "Kubernetes replicaset 指标数据",
+		Desc: "The metric of the Kubernetes ReplicaSet.",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"replica_set": inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -202,7 +202,7 @@ func (r *replicasetObject) LineProto() (*point.Point, error) {
 func (*replicasetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kubernetes_replica_sets",
-		Desc: "Kubernetes replicaset 对象数据",
+		Desc: "The object of the Kubernetes ReplicaSet.",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("UID"),

@@ -196,7 +196,7 @@ func (j *jobMetric) LineProto() (*point.Point, error) {
 func (*jobMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kube_job",
-		Desc: "Kubernetes Job 指标数据",
+		Desc: "The metric of the Kubernetes Job.",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"job":       inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -227,7 +227,7 @@ func (j *jobObject) LineProto() (*point.Point, error) {
 func (*jobObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kubernetes_jobs",
-		Desc: "Kubernetes Job 对象数据",
+		Desc: "The object of the Kubernetes Job.",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":      inputs.NewTagInfo("UID"),

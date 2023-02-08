@@ -163,7 +163,7 @@ func (c *cronjobMetric) LineProto() (*point.Point, error) {
 func (*cronjobMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kube_cronjob",
-		Desc: "Kubernetes cron job 指标数据",
+		Desc: "The metric of the Kubernetes CronJob.",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"cronjob":   inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -191,7 +191,7 @@ func (c *cronjobObject) LineProto() (*point.Point, error) {
 func (*cronjobObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kubernetes_cron_jobs",
-		Desc: "Kubernetes cron job 对象数据",
+		Desc: "The obejct of the Kubernetes CronJob.",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":          inputs.NewTagInfo("UID"),

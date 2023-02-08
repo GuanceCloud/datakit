@@ -174,7 +174,7 @@ func (d *deploymentMetric) LineProto() (*point.Point, error) {
 func (*deploymentMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kube_deployment",
-		Desc: "Kubernetes Deployment 指标数据",
+		Desc: "The metric of the Kubernetes Deployment.",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"deployment": inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -209,7 +209,7 @@ func (d *deploymentObject) LineProto() (*point.Point, error) {
 func (*deploymentObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kubernetes_deployments",
-		Desc: "Kubernetes Deployment 对象数据",
+		Desc: "The object of the Kubernetes Deployment.",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":            inputs.NewTagInfo("UID"),

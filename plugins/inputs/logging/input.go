@@ -275,21 +275,21 @@ func (ipt *loggingMeasurement) LineProto() (*point.Point, error) {
 //nolint:lll
 func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "logging 日志采集",
+		Name: "logging collect",
 		Type: "logging",
-		Desc: "使用配置文件中的 `source` 字段值，如果该值为空，则默认为 `default`",
+		Desc: "Use the `source` of the config，if empty then use `default`",
 		Tags: map[string]interface{}{
-			"filename": inputs.NewTagInfo(`此条日志来源的文件名，仅为基础文件名，并非带有全路径`),
-			"host":     inputs.NewTagInfo(`主机名`),
-			"service":  inputs.NewTagInfo("service 名称，对应配置文件中的 `service` 字段值"),
+			"filename": inputs.NewTagInfo(`The base name of the file.`),
+			"host":     inputs.NewTagInfo(`Host name`),
+			"service":  inputs.NewTagInfo("Use the `service` of the config."),
 		},
 		Fields: map[string]interface{}{
-			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志正文，默认存在，可以使用 pipeline 删除此字段"},
-			"status":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，默认为 `unknown`，采集器会该字段做支持映射，映射表见上述 pipelie 配置和使用[^1]"},
-			"log_read_lines":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "采集到的行数计数，多行数据算成一行（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）"},
-			"log_read_offset": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "当前数据在文件中的偏移位置（[:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental)）"},
-			"log_read_time":   &inputs.FieldInfo{DataType: inputs.DurationSecond, Unit: inputs.UnknownUnit, Desc: "数据从文件中读取到的这一刻的时间戳，单位是秒"},
-			"message_length":  &inputs.FieldInfo{DataType: inputs.SizeByte, Unit: inputs.NCount, Desc: "message 字段的长度，单位字节"},
+			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The text of the logging."},
+			"status":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The status of the logging, default is `unknown`[^1]."},
+			"log_read_lines":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The lines of the read file ([:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6))."},
+			"log_read_offset": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The offset of the read file ([:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental))."},
+			"log_read_time":   &inputs.FieldInfo{DataType: inputs.DurationSecond, Unit: inputs.UnknownUnit, Desc: "The timestamp of the read file."},
+			"message_length":  &inputs.FieldInfo{DataType: inputs.SizeByte, Unit: inputs.NCount, Desc: "The length of the message content."},
 		},
 	}
 }

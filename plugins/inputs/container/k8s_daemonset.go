@@ -112,7 +112,7 @@ func (d *daemonsetMetric) LineProto() (*point.Point, error) {
 func (*daemonsetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kube_daemonset",
-		Desc: "Kubernetes Daemonset 指标数据",
+		Desc: "The metric of the Kubernetes Daemonset.",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"daemonset": inputs.NewTagInfo("Name must be unique within a namespace."),
