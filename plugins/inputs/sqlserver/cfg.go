@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -104,6 +105,7 @@ type Input struct {
 	tail    *tailer.Tailer
 	start   time.Time
 	db      *sql.DB
+	feeder  dkio.Feeder
 
 	Election bool `toml:"election"`
 	pauseCh  chan bool

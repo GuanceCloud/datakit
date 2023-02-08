@@ -13,12 +13,22 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
-var ErrIOBusy = errors.New("io busy")
+var (
+	ErrIOBusy = errors.New("io busy")
+	feeder    ioFeeder
+)
+
+// DefaultFeeder get global default feeder.
+func DefaultFeeder() Feeder {
+	return &feeder
+}
 
 type Option struct {
 	CollectCost time.Duration
@@ -51,23 +61,53 @@ type iodata struct {
 	pts      []*point.Point
 }
 
-func Feed(name, category string, pts []*point.Point, opt *Option) error {
-	if len(pts) == 0 {
-		return nil
-	}
-
-	return defaultIO.DoFeed(pts, category, name, opt)
-}
-
 type lastError struct {
 	from, err string
 	ts        time.Time
 }
 
+type Feeder interface {
+	Feed(name, category string, pts []*point.Point, opt ...*Option) error
+	FeedLastError(inputName string, err string)
+}
+
+// default IO feed implements
+type ioFeeder struct{}
+
+func (f *ioFeeder) Feed(name, category string, pts []*point.Point, opts ...*Option) error {
+	if len(pts) > 0 {
+		return defaultIO.doFeed(pts, category, name, opts[0])
+	} else {
+		return defaultIO.doFeed(pts, category, name, nil)
+	}
+}
+
+func (f *ioFeeder) FeedLastError(name, category string) {
+	doFeedLastError(name, category)
+}
+
+// Feed send data to io module.
+//
+// Deprecated: inputs should use DefaultFeeder to get global default feeder.
+func Feed(name, category string, pts []*point.Point, opt *Option) error {
+	if len(pts) == 0 {
+		return nil
+	}
+
+	return defaultIO.doFeed(pts, category, name, opt)
+}
+
 // FeedLastError feed some error message(*unblocking*) to inputs stats
 // we can see the error in monitor.
+//
 // NOTE: the error may be skipped if there is too many error.
-func FeedLastError(inputName string, err string) {
+//
+// Deprecated: should use DefaultFeeder to get global default feeder.
+func FeedLastError(inputName, err string) {
+	doFeedLastError(inputName, err)
+}
+
+func doFeedLastError(inputName, err string) {
 	select {
 	case defaultIO.inLastErr <- &lastError{
 		from: inputName,
@@ -83,12 +123,8 @@ func FeedLastError(inputName string, err string) {
 	}
 }
 
-func SelfError(err string) {
-	FeedLastError(datakit.DatakitInputName, err)
-}
-
 //nolint:gocyclo
-func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) error {
+func (x *IO) doFeed(pts []*point.Point, category, from string, opt *Option) error {
 	log.Debugf("io feed %s|%s", from, category)
 
 	var ch chan *iodata
