@@ -65,6 +65,16 @@ func (ss *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) itrace.DatakitTr
 					dkspan.Tags[itrace.TAG_PID] = v
 				}
 
+				for i := range span.Events {
+					if span.Events[i].Name == ExceptionEventName {
+						dkspan.Metrics = make(map[string]interface{})
+						for _, v := range span.Events[i].Attributes {
+							dkspan.Metrics[otelErrKeyToDkErrKey[v.Key]] = v.Value.GetStringValue()
+						}
+						break
+					}
+				}
+
 				bts, err := json.Marshal(span)
 				if err == nil {
 					dkspan.Content = string(bts)
