@@ -210,7 +210,7 @@ func gatherSpanModelsInfo(trace []*zpkmodel.SpanModel) (parentIDs map[string]boo
 			continue
 		}
 		spanIDs[span.ID.String()] = getServiceFromSpanModel(span)
-		if span.ParentID != nil && span.ParentID.String() != "0" {
+		if span.ParentID != nil {
 			parentIDs[span.ParentID.String()] = true
 		}
 	}
