@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/ory/dockertest/v3"
 	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
@@ -30,8 +29,8 @@ type caseSpec struct {
 	ipt    *Input
 	feeder *io.MockedFeeder
 
-	pool     *dockertest.Pool
-	resource *dockertest.Resource
+	pool     *dt.Pool
+	resource *dt.Resource
 
 	// TODO: test-result
 }
