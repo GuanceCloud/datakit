@@ -3,12 +3,16 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//go:build !windows && !arm && !386
+// +build !windows,!arm,!386
+
 package profile
 
 import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
@@ -42,5 +46,37 @@ func TestPyroscopeRun(t *testing.T) {
 	err = pyro.run(ipt)
 	if err != nil {
 		panic(err)
+	}
+}
+
+// go test -v -timeout 30s -run ^Test_getLangFamilyFromSpyName$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/profile
+func Test_getLangFamilyFromSpyName(t *testing.T) {
+	cases := []struct {
+		name    string
+		spyName string
+		expect  string
+	}{
+		{
+			name:    "ebpf",
+			spyName: "ebpfspy",
+			expect:  "ebpf",
+		},
+		{
+			name:    "go",
+			spyName: "goSpy",
+			expect:  "go",
+		},
+		{
+			name:    "length_3",
+			spyName: "une",
+			expect:  "une",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := getLangFamilyFromSpyName(tc.spyName)
+			assert.Equal(t, tc.expect, out)
+		})
 	}
 }
