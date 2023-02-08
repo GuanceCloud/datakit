@@ -119,7 +119,7 @@ func (e *endpointMetric) LineProto() (*point.Point, error) {
 func (*endpointMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kube_endpoint",
-		Desc: "Kubernetes Endpoints 指标数据",
+		Desc: "The metric of the Kubernetes Endpoints.",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"endpoint":  inputs.NewTagInfo("Name must be unique within a namespace."),

@@ -301,7 +301,7 @@ func (p *podMetric) LineProto() (*point.Point, error) {
 func (*podMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kube_pod",
-		Desc: "Kubernetes pod 指标数据",
+		Desc: "The metric of the Kubernetes Pod.",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"pod":         inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -332,7 +332,7 @@ func (p *podObject) LineProto() (*point.Point, error) {
 func (*podObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kubelet_pod",
-		Desc: "Kubernetes pod 对象数据",
+		Desc: "The object of the Kubernetes Pod.",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":        inputs.NewTagInfo("UID"),

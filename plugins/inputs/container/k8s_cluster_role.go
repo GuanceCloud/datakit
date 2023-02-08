@@ -122,7 +122,7 @@ func (c *clusterRoleObject) LineProto() (*point.Point, error) {
 func (*clusterRoleObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kubernetes_cluster_roles",
-		Desc: "Kubernetes cluster role 对象数据",
+		Desc: "The object of the Kubernetes ClusterRole.",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":              inputs.NewTagInfo("UID"),
