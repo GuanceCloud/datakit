@@ -8,6 +8,8 @@ package elasticsearch
 import (
 	"bytes"
 	"fmt"
+	"net"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -126,4 +128,20 @@ func (f *JSONFlattener) FullFlattenJSON(
 			t, t, fieldname)
 	}
 	return nil
+}
+
+func setHostTagIfNotLoopback(tags map[string]string, u string) {
+	uu, err := url.Parse(u)
+	if err != nil {
+		l.Errorf("parse url: %v", err)
+		return
+	}
+	host, _, err := net.SplitHostPort(uu.Host)
+	if err != nil {
+		l.Errorf("split host and port: %v", err)
+		return
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		tags["host"] = host
+	}
 }

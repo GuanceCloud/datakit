@@ -8,7 +8,6 @@ package nginx
 import (
 	"net"
 	"net/url"
-	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -38,11 +37,14 @@ func getTags(urlString string) map[string]string {
 	}
 	tags["nginx_server"] = host
 	tags["nginx_port"] = port
-	if !strings.Contains(host, "127.0.0.1") && !strings.Contains(host, "localhost") {
+	setHostTagIfNotLoopback(tags, host)
+	return tags
+}
+
+func setHostTagIfNotLoopback(tags map[string]string, host string) {
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
 		tags["host"] = host
 	}
-	tags["host"] = host
-	return tags
 }
 
 func newCountFieldInfo(desc string) *inputs.FieldInfo {

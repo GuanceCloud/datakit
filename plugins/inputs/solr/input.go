@@ -9,6 +9,7 @@ package solr
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -265,7 +266,7 @@ func (i *Input) Collect() error {
 	for _, s := range i.Servers {
 		func(s string) {
 			g.Go(func(ctx context.Context) error {
-				host := getHost(s)
+				host := getHostTagIfNotLoopback(s)
 				ts := time.Now()
 				resp := Response{}
 				if err := i.gatherData(i, URLAll(s), &resp); err != nil {
@@ -328,16 +329,21 @@ func (i *Input) Collect() error {
 	return nil
 }
 
-func getHost(u string) string {
-	if u == "" || strings.Contains(u, "127.0.0.1") || strings.Contains(u, "localhost") {
-		return ""
-	}
+func getHostTagIfNotLoopback(u string) string {
 	uu, err := url.Parse(u)
 	if err != nil {
-		l.Errorf("failed to get host from url: %v", err)
+		l.Errorf("url parse: %v", err)
 		return ""
 	}
-	return uu.Host
+	host, _, err := net.SplitHostPort(uu.Host)
+	if err != nil {
+		l.Errorf("split host and port: %v", err)
+		return ""
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		return host
+	}
+	return ""
 }
 
 func (i *Input) Pause() error {
