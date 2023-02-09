@@ -66,6 +66,8 @@ type Input struct {
 	pause    bool
 
 	semStop *cliutils.Sem // start stop signal
+
+	feed io.Feeder
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -77,8 +79,8 @@ func newInput() *Input {
 		pauseCh:          make(chan bool, maxPauseCh),
 		httpClient:       &http.Client{Timeout: 5 * time.Second},
 		Election:         true,
-
-		semStop: cliutils.NewSem(),
+		semStop:          cliutils.NewSem(),
+		feed:             io.DefaultFeeder(),
 	}
 }
 
@@ -137,7 +139,7 @@ func (ipt *Input) Run() {
 				continue
 			}
 
-			if err := io.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+			if err := ipt.feed.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("io.Feed: %s, ignored", err)
 			}
 
