@@ -167,11 +167,13 @@ spec:
 
 ### 最常用环境变量 {#env-common}
 
-| 环境变量名称                 | 类型        | 默认值 | 必须   | 说明                                                                                                                                     |
-| ---------:                   | ----:       | ---:   | ------ | ----                                                                                                                                     |
-| `ENV_DATAWAY`                | string      | 无     | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx`                                                                             |
-| `ENV_DEFAULT_ENABLED_INPUTS` | string-list | 无     | 否     | 默认开启[采集器列表](datakit-input-conf.md#default-enabled-inputs)，以英文逗号分割，如 `cpu,mem,disk`，老的 `ENV_ENABLE_INPUTS` 将被废弃 |
-| `ENV_GLOBAL_HOST_TAGS`       | string-list | 无     | 否     | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`。老的 `ENV_GLOBAL_TAGS` 将被废弃                                          |
+| 环境变量名称                              | 类型        | 默认值 | 必须   | 说明                                                                                                  |
+| ---------:                                | ----:       | ---:   | ------ | ----                                                                                                  |
+| `ENV_DATAWAY`                             | string      | 无     | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx`                                          |
+| `ENV_DEFAULT_ENABLED_INPUTS`              | string-list | 无     | 否     | 默认开启[采集器列表](datakit-input-conf.md#default-enabled-inputs)，以英文逗号分割，如 `cpu,mem,disk` |
+| `ENV_ENABLE_INPUTS` :fontawesome-solid-x: | string-list | 无     | 否     | 同 ENV_DEFAULT_ENABLED_INPUTS，将废弃                                                                 |
+| `ENV_GLOBAL_HOST_TAGS`                    | string-list | 无     | 否     | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`                                        |
+| `ENV_GLOBAL_TAGS` :fontawesome-solid-x:   | string-list | 无     | 否     | 同 ENV_GLOBAL_HOST_TAGS，将废弃                                                                       |
 
 ???+ note "区分*全局主机 tag* 和*全局选举 tag*"
 
