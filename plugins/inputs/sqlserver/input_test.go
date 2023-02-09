@@ -8,6 +8,7 @@ package sqlserver
 import (
 	"fmt"
 	"net/netip"
+	"os"
 	"sync"
 	T "testing"
 	"time"
@@ -78,13 +79,23 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
 
+	start := time.Now()
+
 	p, err := dt.NewPool(dockerTCP)
 	if err != nil {
 		return err
 	}
 
+	hostname, err := os.Hostname()
+	if err != nil {
+		cs.t.Logf("get hostname failed: %s, ignored", err)
+		hostname = "unknown-hostname"
+	}
+
+	containerName := fmt.Sprintf("%s.%s", hostname, cs.name)
+
 	// remove the container if exist.
-	if err := p.RemoveContainerByName(cs.name); err != nil {
+	if err := p.RemoveContainerByName(containerName); err != nil {
 		return err
 	}
 
@@ -98,8 +109,7 @@ func (cs *caseSpec) run() error {
 			"1433/tcp": {{HostIP: "0.0.0.0", HostPort: cs.servicePort}},
 		},
 
-		// container name
-		Name: cs.name,
+		Name: containerName,
 
 		// container run-time envs
 		Env: cs.envs,
@@ -119,6 +129,8 @@ func (cs *caseSpec) run() error {
 		return fmt.Errorf("service checking failed")
 	}
 
+	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
+
 	var wg sync.WaitGroup
 
 	// start input
@@ -130,11 +142,15 @@ func (cs *caseSpec) run() error {
 	}()
 
 	// wait data
+	start = time.Now()
 	cs.t.Logf("wait points...")
 	pts, err := cs.feeder.AnyPoints()
 	if err != nil {
 		return err
 	}
+
+	cs.cr.AddField("point_latency", int64(time.Since(start)))
+	cs.cr.AddField("point_count", len(pts))
 
 	cs.t.Logf("get %d points", len(pts))
 	if err := cs.checkPoint(pts); err != nil {
@@ -225,8 +241,9 @@ password = "Abc123abC$" # SQLServer require password to be larger than 8bytes, m
 				servicePort: fmt.Sprintf("%d", ipport.Port()),
 
 				cr: &testutils.CaseResult{
-					Name: t.Name(),
-					Case: base.name,
+					Name:        t.Name(),
+					Case:        base.name,
+					ExtraFields: map[string]any{},
 					ExtraTags: map[string]string{
 						"image":         img[0],
 						"image_tag":     img[1],

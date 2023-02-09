@@ -19,6 +19,8 @@ var (
 	metricFile string
 	host       string
 	mtx        sync.Mutex
+
+	hostname string
 )
 
 type CaseStatus int
@@ -57,12 +59,29 @@ type CaseResult struct {
 	ExtraFields map[string]any
 }
 
+func (cr *CaseResult) AddField(k string, v any) {
+	if cr.ExtraFields == nil {
+		cr.ExtraFields = map[string]any{}
+	}
+
+	cr.ExtraFields[k] = v
+}
+
+func (cr *CaseResult) AddTag(k, v string) {
+	if cr.ExtraTags == nil {
+		cr.ExtraTags = map[string]string{}
+	}
+
+	cr.ExtraTags[k] = v
+}
+
 func (cr *CaseResult) LineProtocol() string {
 
 	tags := map[string]string{
 		"name":   cr.Name,
 		"case":   cr.Case,
 		"status": cr.Status.String(),
+		"host":   hostname,
 	}
 
 	fields := map[string]any{
@@ -137,4 +156,13 @@ func (cr *CaseResult) Flush() error {
 func (cr *CaseResult) Post() error {
 	// TODO: post to some datakit://v1/write/metrics
 	return nil
+}
+
+func init() { //nolint:gochecknoinits
+	x, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown"
+	} else {
+		hostname = x
+	}
 }
