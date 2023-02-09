@@ -147,7 +147,7 @@ func (n *Input) RunPipeline() {
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
+		n.feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 
@@ -173,7 +173,7 @@ func (n *Input) Run() {
 	for {
 		if err := n.initDB(); err != nil {
 			l.Errorf("initDB: %s", err.Error())
-			io.FeedLastError(inputName, err.Error())
+			n.feeder.FeedLastError(inputName, err.Error())
 		} else {
 			break
 		}
@@ -204,7 +204,7 @@ func (n *Input) Run() {
 		} else {
 			n.getMetric()
 			if len(collectCache) > 0 {
-				err := io.Feed(inputName, datakit.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
+				err := n.feeder.Feed(inputName, datakit.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
 				collectCache = collectCache[:0]
 				if err != nil {
 					n.lastErr = err
@@ -213,7 +213,7 @@ func (n *Input) Run() {
 			}
 
 			if len(loggingCollectCache) > 0 {
-				err := io.Feed(inputName, datakit.Logging, loggingCollectCache, &io.Option{CollectCost: time.Since(n.start)})
+				err := n.feeder.Feed(inputName, datakit.Logging, loggingCollectCache, &io.Option{CollectCost: time.Since(n.start)})
 				loggingCollectCache = loggingCollectCache[:0]
 				if err != nil {
 					n.lastErr = err
@@ -222,7 +222,7 @@ func (n *Input) Run() {
 			}
 
 			if n.lastErr != nil {
-				io.FeedLastError(inputName, n.lastErr.Error())
+				n.feeder.FeedLastError(inputName, n.lastErr.Error())
 				n.lastErr = nil
 			}
 
@@ -427,6 +427,7 @@ func defaultInput() *Input {
 		pauseCh:     make(chan bool, inputs.ElectionPauseChannelLength),
 		semStop:     cliutils.NewSem(),
 		dbFilterMap: make(map[string]struct{}, 0),
+		feeder:      io.DefaultFeeder(),
 	}
 }
 

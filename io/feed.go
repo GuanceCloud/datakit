@@ -13,6 +13,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 
@@ -20,7 +21,15 @@ import (
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
-var ErrIOBusy = errors.New("io busy")
+var (
+	ErrIOBusy = errors.New("io busy")
+	feeder    ioFeeder
+)
+
+// DefaultFeeder get global default feeder.
+func DefaultFeeder() Feeder {
+	return &feeder
+}
 
 type Option struct {
 	CollectCost time.Duration
@@ -53,23 +62,38 @@ type iodata struct {
 	pts      []*dkpt.Point
 }
 
-func Feed(name, category string, pts []*dkpt.Point, opt *Option) error {
-	if len(pts) == 0 {
-		return nil
-	}
-
-	return defaultIO.DoFeed(pts, category, name, opt)
-}
-
 type lastError struct {
 	from, err string
 	ts        time.Time
 }
 
+type Feeder interface {
+	Feed(name, category string, pts []*point.Point, opt ...*Option) error
+	FeedLastError(inputName string, err string)
+}
+
+// Feed send data to io module.
+//
+// Deprecated: inputs should use DefaultFeeder to get global default feeder.
+func Feed(name, category string, pts []*dkpt.Point, opt *Option) error {
+	if len(pts) == 0 {
+		return nil
+	}
+
+	return defaultIO.doFeed(pts, category, name, opt)
+}
+
 // FeedLastError feed some error message(*unblocking*) to inputs stats
 // we can see the error in monitor.
+//
 // NOTE: the error may be skipped if there is too many error.
-func FeedLastError(inputName string, err string) {
+//
+// Deprecated: should use DefaultFeeder to get global default feeder.
+func FeedLastError(inputName, err string) {
+	doFeedLastError(inputName, err)
+}
+
+func doFeedLastError(inputName, err string) {
 	select {
 	case defaultIO.inLastErr <- &lastError{
 		from: inputName,
@@ -83,10 +107,6 @@ func FeedLastError(inputName string, err string) {
 	default:
 		log.Warnf("FeedLastError(%s, %s) skipped, ignored", inputName, err)
 	}
-}
-
-func SelfError(err string) {
-	FeedLastError(datakit.DatakitInputName, err)
 }
 
 //nolint:gocyclo
