@@ -16,69 +16,93 @@ type ConfdInfo struct {
 	Input Input
 }
 type handle struct {
-	name       string
-	handleType handleType // 0: add, 1: delete, 2: change
-	index      int
+	name        string
+	insertIndex int // the index begin insert input, -1: need not insert
+	deleteIndex int // the index begin delete input, -1: need not delete
 }
 
-type handleType int
-
-const (
-	ADD    handleType = 0
-	DELETE handleType = 1
-	MODIFY handleType = 2
-)
-
 // CompareInputs Sub-category comparison collector.
-func CompareInputs(confdInputs map[string][]*ConfdInfo) {
+func CompareInputs(confdInputs map[string][]*ConfdInfo, defaultEnabledInputs []string) {
 	handleList := make([]handle, 0)
+
+	// Make sure confdInputs have all InputsInfo inputs kind
+	for inputsName := range InputsInfo {
+		if _, ok := confdInputs[inputsName]; !ok {
+			confdInputs[inputsName] = []*ConfdInfo{}
+			l.Debugf("confdInputs add non-datakit-input-kind %s", inputsName)
+		}
+	}
 
 	// Traverse the collector types, len(confdInputs) must be >= len(Inputs)
 	for confdInputName, confdConfigs := range confdInputs {
-		// Processing within a single collector kind
-		inputsInfoLen := 0
-		inputsInfo, ok := InputsInfo[confdInputName]
-		if ok {
-			inputsInfoLen = len(inputsInfo)
+		handleList = append(handleList, handle{confdInputName, -1, -1})
+
+		// Make sure InputsInfo have this collector kind
+		var inputsInfo []*inputInfo
+		var ok bool
+		if inputsInfo, ok = InputsInfo[confdInputName]; !ok {
+			InputsInfo[confdInputName] = []*inputInfo{}
+			l.Debugf("confd add non-datakit-input-kind %s", confdInputName)
 		}
-		forLen := inputsInfoLen
-		if inputsInfoLen > len(confdConfigs) {
+
+		forLen := len(inputsInfo)
+		if forLen > len(confdConfigs) {
 			forLen = len(confdConfigs)
 		}
 
-		// region Forward comparison, traverse inputsInfo, and discover modifications and deletions
+		// Compare one kind inputs
+		// Find index if need modify
 		for i := 0; i < forLen; i++ {
 			jsonConfd, _ := json.Marshal(confdConfigs[i].Input)
 			jsonInput, _ := json.Marshal(InputsInfo[confdInputName][i].input)
 
+			jsonConfdStr := string(jsonConfd)
+			jsonInputStr := string(jsonInput)
+			_ = jsonConfdStr
+			_ = jsonInputStr
+
 			if string(jsonConfd) != string(jsonInput) {
 				l.Info("input configInfo modified, reset, inputName: ", confdInputName, ", index: ", i)
-				handleList = append(handleList, handle{confdInputName, MODIFY, i})
+				// from here insert(append) by confd
+				handleList[len(handleList)-1].insertIndex = i
+				// from here delete, first delete then append so =i. If singleton len(confdConfigs) must be 1
+				handleList[len(handleList)-1].deleteIndex = i
+				break
 			}
 		}
 
-		// Find possible collectors that need to be deleted (reverse order, deleteInput needs to be deleted in reverse order)
-		if inputsInfoLen > len(confdConfigs) {
-			for i := inputsInfoLen - 1; i >= forLen; i-- {
-				// Reverse order, delete from the back, to avoid possible misalignment.
-				l.Info("input configInfo delete, inputName: ", confdInputName, ", index: ", i)
-				handleList = append(handleList, handle{confdInputName, DELETE, i})
+		// Find index if need only insert
+		if handleList[len(handleList)-1].insertIndex == -1 {
+			// If insertIndex > -1 , need not these code
+			if len(confdConfigs) > len(inputsInfo) {
+				// confd is long
+				handleList[len(handleList)-1].insertIndex = len(inputsInfo) // from here insert(append) by confd
 			}
 		}
-		// endregion
 
-		// region Reverse comparison, traverse the redundant confdConfigs, you can find the increase.
-		if inputsInfoLen < len(confdConfigs) {
-			for i := forLen; i < len(confdConfigs); i++ {
-				l.Info("input configInfo creat new, inputName: ", confdInputName, ", index: ", i)
-				handleList = append(handleList, handle{confdInputName, ADD, i})
+		// Find index if need only delete. Be careful some input is default enabled and must singleton
+		if handleList[len(handleList)-1].insertIndex == -1 {
+			// If insertIndex > -1 , need not these code
+			if len(confdConfigs) < len(inputsInfo) {
+				// old inputsInfo is long
+
+				// Some input is default enabled and must singleton
+				// Default start collector + self
+				i := 0
+				for i = 0; i < len(defaultEnabledInputs); i++ {
+					if confdInputName == defaultEnabledInputs[i] {
+						break
+					}
+				}
+				if i >= len(defaultEnabledInputs) && confdInputName != "self" {
+					// Not default enabled input
+					handleList[len(handleList)-1].deleteIndex = len(confdConfigs) // from here delete
+				} else if len(InputsInfo[confdInputName]) > 1 {
+					// Default enabled input and must singleton and len >1
+					handleList[len(handleList)-1].deleteIndex = 1 // singleton
+				}
 			}
 		}
-		// endregion
-	}
-
-	if len(handleList) == 0 {
-		return
 	}
 
 	// Start execute, use context timeout to prevent failure and cause memory leaks
