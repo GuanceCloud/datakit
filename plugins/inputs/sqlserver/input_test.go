@@ -53,6 +53,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 		// check if tag appended
 		if len(cs.ipt.Tags) != 0 {
+			cs.t.Logf("checking tags %+#v...", cs.ipt.Tags)
+
 			tags := pt.Tags()
 			for k, expect := range cs.ipt.Tags {
 				if got, ok := tags[k]; !ok {
@@ -81,6 +83,7 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
+	// remove the container if exist.
 	if err := p.RemoveContainerByName(cs.name); err != nil {
 		return err
 	}
@@ -166,11 +169,13 @@ password = "Abc123abC$"`, tu.GetRemote().Host+":1433"),
 		{
 			name: "remote-sqlserver-with-extra-tags",
 
+			// Why config like this? See:
+			//    https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/1391#note_36026
 			conf: fmt.Sprintf(`
 host = "%s"
 user = "sa"
-password = "Abc123abC$"
-[sqlserver.tags]
+password = "Abc123abC$" # SQLServer require password to be larger than 8bytes, must include number/alpha/symbol.
+[tags]
   tag1 = "some_value"
   tag2 = "some_other_value"`, tu.GetRemote().Host+":2433"),
 		},
