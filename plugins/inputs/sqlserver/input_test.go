@@ -261,9 +261,12 @@ func TestSQLServerInput(t *T.T) {
 			caseStart := time.Now()
 
 			t.Logf("testing %s...", tc.name)
+
 			if err := tc.run(); err != nil {
 				tc.cr.Status = testutils.CaseFailed
 				tc.cr.FailedMessage = err.Error()
+
+				assert.NoError(t, err)
 			} else {
 				tc.cr.Status = testutils.CasePassed
 			}
