@@ -26,14 +26,10 @@ const (
 	ThanosRulerKindKey = "thanosrulers"
 )
 
+// ThanosRuler defines a ThanosRuler deployment.
 // +genclient
 // +k8s:openapi-gen=true
-// +kubebuilder:resource:categories="prometheus-operator",shortName="ruler"
-// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
-// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +kubebuilder:printcolumn:name="Paused",type="boolean",JSONPath=".status.paused",description="Whether the resource reconciliation is paused or not",priority=1
-
-// ThanosRuler defines a ThanosRuler deployment.
+// +kubebuilder:resource:categories="prometheus-operator"
 type ThanosRuler struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -134,31 +130,22 @@ type ThanosRulerSpec struct {
 	// and metric that is user created. The label value will always be the namespace of the object that is
 	// being created.
 	EnforcedNamespaceLabel string `json:"enforcedNamespaceLabel,omitempty"`
-	// List of references to PrometheusRule objects
-	// to be excluded from enforcing a namespace label of origin.
-	// Applies only if enforcedNamespaceLabel set to true.
-	ExcludedFromEnforcement []ObjectReference `json:"excludedFromEnforcement,omitempty"`
 	// PrometheusRulesExcludedFromEnforce - list of Prometheus rules to be excluded from enforcing
 	// of adding namespace labels. Works only if enforcedNamespaceLabel set to true.
 	// Make sure both ruleNamespace and ruleName are set for each pair
-	// Deprecated: use excludedFromEnforcement instead.
 	PrometheusRulesExcludedFromEnforce []PrometheusRuleExcludeConfig `json:"prometheusRulesExcludedFromEnforce,omitempty"`
 	// Log level for ThanosRuler to be configured with.
-	//+kubebuilder:validation:Enum="";debug;info;warn;error
 	LogLevel string `json:"logLevel,omitempty"`
 	// Log format for ThanosRuler to be configured with.
-	//+kubebuilder:validation:Enum="";logfmt;json
 	LogFormat string `json:"logFormat,omitempty"`
 	// Port name used for the pods and governing service.
 	// This defaults to web
 	PortName string `json:"portName,omitempty"`
 	// Interval between consecutive evaluations.
-	// +kubebuilder:default:="15s"
-	EvaluationInterval Duration `json:"evaluationInterval,omitempty"`
+	EvaluationInterval string `json:"evaluationInterval,omitempty"`
 	// Time duration ThanosRuler shall retain data for. Default is '24h',
 	// and must match the regular expression `[0-9]+(ms|s|m|h|d|w|y)` (milliseconds seconds minutes hours days weeks years).
-	// +kubebuilder:default:="24h"
-	Retention Duration `json:"retention,omitempty"`
+	Retention string `json:"retention,omitempty"`
 	// Containers allows injecting additional containers or modifying operator generated
 	// containers. This can be used to allow adding an authentication proxy to a ThanosRuler pod or
 	// to change the behavior of an operator generated container. Containers described here modify
@@ -177,14 +164,11 @@ type ThanosRulerSpec struct {
 	InitContainers []v1.Container `json:"initContainers,omitempty"`
 	// TracingConfig configures tracing in Thanos. This is an experimental feature, it may change in any upcoming release in a breaking way.
 	TracingConfig *v1.SecretKeySelector `json:"tracingConfig,omitempty"`
-	// TracingConfig specifies the path of the tracing configuration file.
-	// When used alongside with TracingConfig, TracingConfigFile takes precedence.
-	TracingConfigFile string `json:"tracingConfigFile,omitempty"`
-	// Labels configure the external label pairs to ThanosRuler. A default replica label
-	// `thanos_ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
+	// Labels configure the external label pairs to ThanosRuler. If not provided, default replica label
+	// `thanos_ruler_replica` will be added as a label and be dropped in alerts.
 	Labels map[string]string `json:"labels,omitempty"`
 	// AlertDropLabels configure the label names which should be dropped in ThanosRuler alerts.
-	// The replica label `thanos_ruler_replica` will always be dropped in alerts.
+	// If `labels` field is not provided, `thanos_ruler_replica` will be dropped in alerts by default.
 	AlertDropLabels []string `json:"alertDropLabels,omitempty"`
 	// The external URL the Thanos Ruler instances will be available under. This is
 	// necessary to generate correct URLs. This is necessary if Thanos Ruler is not
@@ -207,18 +191,6 @@ type ThanosRulerSpec struct {
 	// This is an alpha field and requires enabling StatefulSetMinReadySeconds feature gate.
 	// +optional
 	MinReadySeconds *uint32 `json:"minReadySeconds,omitempty"`
-	// AlertRelabelConfigs configures alert relabeling in ThanosRuler.
-	// Alert relabel configurations must have the form as specified in the official Prometheus documentation:
-	// https://prometheus.io/docs/prometheus/latest/configuration/configuration/#alert_relabel_configs
-	// Alternative to AlertRelabelConfigFile, and lower order priority.
-	AlertRelabelConfigs *v1.SecretKeySelector `json:"alertRelabelConfigs,omitempty"`
-	// AlertRelabelConfigFile specifies the path of the alert relabeling configuration file.
-	// When used alongside with AlertRelabelConfigs, alertRelabelConfigFile takes precedence.
-	AlertRelabelConfigFile *string `json:"alertRelabelConfigFile,omitempty"`
-	// Pods' hostAliases configuration
-	// +listType=map
-	// +listMapKey=ip
-	HostAliases []HostAlias `json:"hostAliases,omitempty"`
 }
 
 // ThanosRulerStatus is the most recent observed status of the ThanosRuler. Read-only. Not

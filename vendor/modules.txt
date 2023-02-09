@@ -45,6 +45,10 @@ github.com/DataDog/sketches-go/ddsketch/store
 # github.com/DataDog/zstd v1.4.1
 ## explicit
 github.com/DataDog/zstd
+# github.com/GuanceCloud/cliutils v0.0.0-20230209110134-0816fc24778b
+## explicit; go 1.18
+github.com/GuanceCloud/cliutils
+github.com/GuanceCloud/cliutils/point
 # github.com/GuanceCloud/confd v0.0.0-20230110090426-b3190049be1c
 ## explicit; go 1.18
 github.com/GuanceCloud/confd/backends
@@ -1340,19 +1344,17 @@ github.com/pkg/term/termios
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.60.1
-## explicit; go 1.17
+# github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.51.2
+## explicit; go 1.14
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1alpha1
-github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1beta1
-# github.com/prometheus-operator/prometheus-operator/pkg/client v0.60.1
-## explicit; go 1.17
+# github.com/prometheus-operator/prometheus-operator/pkg/client v0.51.2
+## explicit; go 1.14
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/scheme
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1alpha1
-github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1beta1
 # github.com/prometheus/client_golang v1.14.0
 ## explicit; go 1.17
 github.com/prometheus/client_golang/prometheus
@@ -2378,7 +2380,6 @@ modernc.org/strutil
 modernc.org/token
 # sigs.k8s.io/controller-runtime v0.13.0
 ## explicit; go 1.17
-sigs.k8s.io/controller-runtime/pkg/conversion
 # sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2
 ## explicit; go 1.18
 sigs.k8s.io/json

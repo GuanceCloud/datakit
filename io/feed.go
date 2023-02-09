@@ -20,7 +20,7 @@ type ioFeeder struct{}
 
 func ptConvert(pts ...*point.Point) (res []*dkpt.Point) {
 	for _, pt := range pts {
-		pt, err := dkpt.NewPoint(string(pt.Name()), pt.InfluxFields(), pt.InfluxTags())
+		pt, err := dkpt.NewPoint(string(pt.Name()), pt.InfluxTags(), pt.InfluxFields(), nil)
 		if err != nil {
 			continue
 		}

@@ -123,7 +123,7 @@ require (
 	github.com/gosnmp/gosnmp v1.35.0
 	github.com/klauspost/compress v1.15.9
 	github.com/ory/dockertest/v3 v3.9.1
-	github.com/prometheus-operator/prometheus-operator/pkg/client v0.60.1
+	github.com/prometheus-operator/prometheus-operator/pkg/client v0.51.2
 	github.com/prometheus/client_golang v1.14.0
 	github.com/r3labs/diff/v3 v3.0.0
 	github.com/schollz/progressbar/v3 v3.9.0
@@ -138,6 +138,7 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/DataDog/datadog-go/v5 v5.1.0 // indirect
 	github.com/DataDog/zstd v1.4.1 // indirect
+	github.com/GuanceCloud/cliutils v0.0.0-20230209110134-0816fc24778b // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.123 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
@@ -223,7 +224,7 @@ require (
 	github.com/opentracing-contrib/go-stdlib v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.60.1 // indirect
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.51.2 // indirect
 	github.com/prometheus/node_exporter v1.0.0-rc.0.0.20200428091818-01054558c289 // indirect
 	github.com/pyroscope-io/jfr-parser v0.5.2 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
