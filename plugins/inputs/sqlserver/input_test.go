@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package sqlserver
 
 import (
@@ -32,14 +37,14 @@ type caseSpec struct {
 	pool     *dt.Pool
 	resource *dt.Resource
 
-	// TODO: test-result
+	cr *testutils.CaseResult
 }
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
 		switch pt.Name() {
 		case "sqlserver_performance":
-			cs.t.Logf("get %s", pt.String())
+			//cs.t.Logf("get %s", pt.String())
 
 			// TODO: check pt according to Performance
 
@@ -65,7 +70,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 }
 
 func (cs *caseSpec) run() error {
-
 	// start remote sqlserver
 	r := tu.GetRemote()
 	dockerTCP := r.TCPURL()
@@ -73,7 +77,13 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
 
 	p, err := dt.NewPool(dockerTCP)
-	assert.NoError(cs.t, err)
+	if err != nil {
+		return err
+	}
+
+	if err := p.RemoveContainerByName(cs.name); err != nil {
+		return err
+	}
 
 	resource, err := p.RunWithOptions(&dt.RunOptions{
 		// specify container image & tag
@@ -82,7 +92,7 @@ func (cs *caseSpec) run() error {
 
 		// port binding
 		PortBindings: map[docker.Port][]docker.PortBinding{
-			"1433/tcp": []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: cs.servicePort}},
+			"1433/tcp": {{HostIP: "0.0.0.0", HostPort: cs.servicePort}},
 		},
 
 		// container name
@@ -91,17 +101,20 @@ func (cs *caseSpec) run() error {
 		// container run-time envs
 		Env: cs.envs,
 	}, func(c *docker.HostConfig) {
-		//c.AutoRemove = true
+
 		c.RestartPolicy = docker.RestartPolicy{Name: "no"}
 	})
-
-	assert.NoError(cs.t, err)
+	if err != nil {
+		return err
+	}
 
 	cs.pool = p
 	cs.resource = resource
 
 	cs.t.Logf("check service(%s:%s)...", r.Host, cs.servicePort)
-	assert.True(cs.t, r.PortOK(cs.servicePort, time.Minute))
+	if  !r.PortOK(cs.servicePort, time.Minute) {
+		return fmt.Errorf("service checking failed")
+	}
 
 	var wg sync.WaitGroup
 
@@ -114,17 +127,15 @@ func (cs *caseSpec) run() error {
 	}()
 
 	// wait data
-	var pts []*point.Point
 	cs.t.Logf("wait points...")
-	for {
-		pts = cs.feeder.Points()
-		if len(pts) > 0 {
-			cs.t.Logf("get %d points", len(pts))
-			assert.NoError(cs.t, cs.checkPoint(pts))
-			break
-		}
+	pts, err := cs.feeder.AnyPoints()
+	if err != nil {
+		return err
+	}
 
-		time.Sleep(time.Second)
+	cs.t.Logf("get %d points", len(pts))
+	if err:= cs.checkPoint(pts)); err!= nil {
+		return err
 	}
 
 	cs.t.Logf("stop input...")
@@ -166,9 +177,9 @@ password = "Abc123abC$"
 	}
 
 	images := [][2]string{
-		[2]string{"mcr.microsoft.com/mssql/server", "2017-latest"},
-		[2]string{"mcr.microsoft.com/mssql/server", "2019-latest"},
-		[2]string{"mcr.microsoft.com/mssql/server", "2022-latest"},
+		{"mcr.microsoft.com/mssql/server", "2017-latest"},
+		{"mcr.microsoft.com/mssql/server", "2019-latest"},
+		{"mcr.microsoft.com/mssql/server", "2022-latest"},
 	}
 
 	// TODO: add per-image configs
@@ -180,7 +191,6 @@ password = "Abc123abC$"
 	// compose cases
 	for _, img := range images {
 		for _, base := range bases {
-
 			feeder := io.NewMockedFeeder()
 
 			ipt := defaultInput()
@@ -194,6 +204,9 @@ password = "Abc123abC$"
 				fmt.Sprintf("SA_PASSWORD=%s", ipt.Password),
 			}
 
+			ipport, err := netip.ParseAddrPort(ipt.Host)
+			assert.NoError(t, err, "parse %s failed: %s", ipt.Host, err)
+
 			cases = append(cases, &caseSpec{
 				t:      t,
 				ipt:    ipt,
@@ -204,11 +217,17 @@ password = "Abc123abC$"
 				repo:    img[0],
 				repoTag: img[1],
 
-				servicePort: func() string {
-					x, err := netip.ParseAddrPort(ipt.Host)
-					assert.NoError(t, err, "parse %s failed: %s", ipt.Host, err)
-					return fmt.Sprintf("%d", x.Port())
-				}(),
+				servicePort: fmt.Sprintf("%d", ipport.Port()),
+
+				cr: &testutils.CaseResult{
+					Name: t.Name(),
+					Case: base.name,
+					ExtraTags: map[string]string{
+						"image":         img[0],
+						"image_tag":     img[1],
+						"remote_server": ipt.Host,
+					},
+				},
 			})
 		}
 	}
@@ -221,7 +240,7 @@ func TestSQLServerInput(t *T.T) {
 	if err != nil {
 		cs := testutils.CaseResult{
 			Name:          t.Name(),
-			Passed:        false,
+			Status:        testutils.CasePassed,
 			FailedMessage: err.Error(),
 			Cost:          time.Since(start),
 		}
@@ -234,11 +253,19 @@ func TestSQLServerInput(t *T.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *T.T) {
-
 			caseStart := time.Now()
 
 			t.Logf("testing %s...", tc.name)
-			err := tc.run()
+			if err := tc.run(); err != nil {
+				tc.cr.Status = testutils.CaseFailed
+				tc.cr.FailedMessage = err.Error()
+			} else {
+				tc.cr.Status = testutils.CasePassed
+			}
+
+			tc.cr.Cost = time.Since(caseStart)
+
+			assert.NoError(t, tc.cr.Flush())
 
 			t.Cleanup(func() {
 				// clean remote docker resources
@@ -248,19 +275,6 @@ func TestSQLServerInput(t *T.T) {
 
 				assert.NoError(t, tc.pool.Purge(tc.resource))
 			})
-
-			cs := testutils.CaseResult{
-				Name:   t.Name(),
-				Case:   tc.name,
-				Passed: err == nil,
-				Cost:   time.Since(caseStart),
-			}
-
-			if err != nil {
-				cs.FailedMessage = err.Error()
-			}
-
-			_ = cs.Flush()
 		})
 	}
 }

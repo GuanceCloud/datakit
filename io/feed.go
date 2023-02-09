@@ -71,7 +71,7 @@ type Feeder interface {
 	FeedLastError(inputName string, err string)
 }
 
-// default IO feed implements
+// default IO feed implements.
 type ioFeeder struct{}
 
 func (f *ioFeeder) Feed(name, category string, pts []*point.Point, opts ...*Option) error {

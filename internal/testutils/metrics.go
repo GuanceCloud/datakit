@@ -1,30 +1,140 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package testutils
 
-import "time"
+import (
+	"fmt"
+	"os"
+	"path"
+	"sync"
+	"time"
 
-var (
-	Path = "testing.metrics"
-	Host = "http://localhost:9529"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
+var (
+	metricFile string
+	host       string
+	mtx        sync.Mutex
+)
+
+type CaseStatus int
+
+const (
+	CaseStatusUnknown CaseStatus = iota
+	CasePassed
+	CaseFailed
+	CaseSkipped
+)
+
+func (c CaseStatus) String() string {
+	switch c {
+	case CasePassed:
+		return "pass"
+	case CaseFailed:
+		return "fail"
+	case CaseSkipped:
+		return "skip"
+
+	default:
+		return "unknown"
+	}
+}
+
 type CaseResult struct {
-	Name          string
-	Case          string
-	Passed        bool
+	Name string
+	Case string
+
 	FailedMessage string
-	Cost          time.Duration
+
+	Status CaseStatus
+	Cost   time.Duration
+
+	ExtraTags   map[string]string
+	ExtraFields map[string]any
+}
+
+func (cr *CaseResult) LineProtocol() string {
+
+	tags := map[string]string{
+		"name":   cr.Name,
+		"case":   cr.Case,
+		"status": cr.Status.String(),
+	}
+
+	fields := map[string]any{
+		"cost": int64(cr.Cost),
+	}
+
+	for k, v := range cr.ExtraTags {
+		switch k {
+		case "name", "case", "status": // ingored
+		default:
+			tags[k] = v
+		}
+	}
+
+	for k, v := range cr.ExtraFields {
+		switch k {
+		case "cost", "time": // ingored
+		default:
+			fields[k] = v
+		}
+	}
+
+	p, err := point.NewPoint("testing", tags, fields, nil)
+	if err != nil {
+		// return commeted info
+		return fmt.Sprintf("# invalid result: %s, CaseResult: %+#v\n", err.Error(), cr)
+	}
+
+	return p.String() + "\n"
 }
 
 func (cr *CaseResult) Flush() error {
-	// TODO: write to file
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	first := false
+
+	if metricFile == "" {
+		if v := os.Getenv("TESTING_METRIC_PATH"); v != "" {
+			metricFile = v
+		} else {
+			metricFile = "./testing_metrics"
+		}
+
+		if err := os.MkdirAll(path.Dir(metricFile), os.ModePerm); err != nil {
+			return err
+		}
+
+		first = true
+	}
+
+	f, err := os.OpenFile(metricFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	if first {
+		if _, err := f.WriteString(fmt.Sprintf("# metrics for %s\n", cr.Name)); err != nil {
+			return err
+		}
+	}
+
+	if _, err := f.WriteString(cr.LineProtocol()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (cr *CaseResult) Post() error {
 	// TODO: post to some datakit://v1/write/metrics
 	return nil
-}
-
-func init() {
-	// TODO: init file-path and HTTP remote host
 }

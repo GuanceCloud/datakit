@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package testutils
 
 import (
@@ -17,7 +22,8 @@ type RemoteInfo struct {
 // RemoteAPIOK test if remote HTTP API ok.
 func (i *RemoteInfo) RemoteAPIOK(port int,
 	url string,
-	args ...time.Duration) bool {
+	args ...time.Duration,
+) bool {
 	return false // TODO
 }
 
@@ -51,7 +57,6 @@ func (i *RemoteInfo) PortOK(port string, args ...time.Duration) bool {
 				}
 			}
 		}
-
 	} else {
 		for { // wait until ok
 			select {
@@ -76,7 +81,7 @@ func (i *RemoteInfo) TCPURL() string {
 	return fmt.Sprintf("tcp://%s:%s", i.Host, i.Port)
 }
 
-// GetRemote only return the IP of remote node
+// GetRemote only return the IP of remote node.
 func GetRemote() *RemoteInfo {
 	ri := &RemoteInfo{
 		Host: "",
