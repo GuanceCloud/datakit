@@ -46,7 +46,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		switch pt.Name() {
 		case "sqlserver_performance":
 
-
 			// TODO: check pt according to Performance
 
 		default: // TODO: check other measurement
