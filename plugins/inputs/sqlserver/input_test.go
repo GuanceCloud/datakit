@@ -112,7 +112,7 @@ func (cs *caseSpec) run() error {
 	cs.resource = resource
 
 	cs.t.Logf("check service(%s:%s)...", r.Host, cs.servicePort)
-	if  !r.PortOK(cs.servicePort, time.Minute) {
+	if !r.PortOK(cs.servicePort, time.Minute) {
 		return fmt.Errorf("service checking failed")
 	}
 
@@ -134,7 +134,7 @@ func (cs *caseSpec) run() error {
 	}
 
 	cs.t.Logf("get %d points", len(pts))
-	if err:= cs.checkPoint(pts)); err!= nil {
+	if err := cs.checkPoint(pts); err != nil {
 		return err
 	}
 
