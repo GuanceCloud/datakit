@@ -1,6 +1,6 @@
-# CPU 采集器
+# CPU collector
 
-配置示例
+Configuration example:
 
 ```toml
 [[inputs.cpu]]
@@ -12,10 +12,10 @@
     # tag1 = "a"
 ```
 
-## CPU 指标采集
+## CPU metrics collection
 
 * cpu
-    |指标|描述|数据类型|单位|
+    |Metric|Description|Data Type|Unit|
     |:--| - | -| -|
     |core_temperature|cpu core temperature|float|°C|
     |usage_guest|% CPU spent running a virtual CPU for guest operating systems.|float|%|

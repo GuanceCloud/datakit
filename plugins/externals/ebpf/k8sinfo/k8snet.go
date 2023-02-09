@@ -13,7 +13,7 @@ type K8sNetInfo struct {
 	svcNetInfo         map[string]*K8sServicesNet
 	svcNetInfoNodePort map[Port]*K8sServicesNet
 	poNetInfoIP        map[string]*K8sPodNet
-	// 使用主机网络的 pod 		需要判断端口
+	// Pods using the host network need to determine the port
 	poNetInfoPort map[string]map[Port]*K8sPodNet
 
 	autoUpdate bool
@@ -86,9 +86,8 @@ func (kinfo *K8sNetInfo) Update() error {
 			if !ok {
 				continue
 			}
-			// svc‘ endpoint’ ip port
-			// 取 endpoint 的 ip 和端口通过
-			// label selector 匹配出 pod
+			// svc' endpoint' ip port
+			// Take the ip and port of the endpoint and match the pod through the label selector
 			for ip, ports := range ep.IPPort {
 				pods, ok := k8sPodTmpNetMap[ip]
 				if ok {
@@ -165,13 +164,13 @@ func (kinfo *K8sNetInfo) QueryPodInfo(ip string, port uint32, protocol string) (
 		pP.Protocol = "UDP"
 	}
 	if p, ok := kinfo.poNetInfoPort[ip]; ok {
-		// 可能是 HostNetwork ip pod, 需要 port 辅助判定
+		// It may be a HostNetwork ip pod, which needs port assistance to determine
 		if v, ok := p[pP]; ok {
 			return v.Name, v.ServiceName, v.Namespace, v.DeploymentName, nil
 		}
 	}
 
-	// 作为 client 发送请求的 pod， 不含(host network ip)
+	// The pod that sends the request as the client, without (host network ip)
 	if v, ok := kinfo.poNetInfoIP[ip]; ok {
 		return v.Name, v.ServiceName, v.Namespace, v.DeploymentName, nil
 	}

@@ -130,7 +130,7 @@ int tracepoint__sys_exit_read(struct tp_syscall_exit_args *ctx)
         goto clean;
     }
 
-    // 如果是 resp，此 buffer 不使用
+    // If it is resp, this buffer is not used.
     int index = 0;
     struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
     if (l7buffer == NULL)
@@ -270,7 +270,7 @@ int tracepoint__sys_exit_recvfrom(struct tp_syscall_exit_args *ctx)
         goto clean;
     }
 
-    // 如果是 resp，此 buffer 不使用
+    // If it is resp, this buffer is not used.
     int index = 0;
     struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
     if (l7buffer == NULL)
@@ -349,7 +349,7 @@ int tracepoint__sys_exit_writev(struct tp_syscall_exit_args *ctx)
         goto clean;
     }
 
-    // 如果是 resp，此 buffer 不使用
+    // If it is resp, this buffer is not used.
     int index = 0;
     struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
     if (l7buffer == NULL)
@@ -428,7 +428,7 @@ int tracepoint__sys_exit_readv(struct tp_syscall_exit_args *ctx)
         goto clean;
     }
 
-    // 如果是 resp，此 buffer 不使用
+    // If it is resp, this buffer is not used.
     int index = 0;
     struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
     if (l7buffer == NULL)
@@ -559,7 +559,7 @@ int uretprobe__SSL_read(struct pt_regs *ctx)
         goto clean;
     }
 
-    // 如果是 resp，此 buffer 不使用
+    // If it is resp, this buffer is not used.
     int index = 0;
     struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
     if (l7buffer == NULL)
@@ -609,7 +609,7 @@ int uprobe__SSL_write(struct pt_regs *ctx)
         return 0;
     }
 
-    // 如果是 resp，此 buffer 不使用
+    // If it is resp, this buffer is not used.
     int index = 0;
     struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
     if (l7buffer == NULL)

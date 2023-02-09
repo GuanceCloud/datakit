@@ -59,31 +59,31 @@ func (m *swapMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
-				Desc: "Host swap memory free",
+				Desc: "Host swap memory free.",
 			},
 			"used": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
-				Desc: "Host swap memory used",
+				Desc: "Host swap memory used.",
 			},
 			"free": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
-				Desc: "Host swap memory total",
+				Desc: "Host swap memory total.",
 			},
 			"used_percent": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "Host swap memory percentage used",
+				Desc: "Host swap memory percentage used.",
 			},
 			"in": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
-				Desc: "Moving data from swap space to main memory of the machine",
+				Desc: "Moving data from swap space to main memory of the machine.",
 			},
 			"out": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
-				Desc: "Moving main memory contents to swap disk when main memory space fills up",
+				Desc: "Moving main memory contents to swap disk when main memory space fills up.",
 			},
 		},
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "主机名"},
+			"host": &inputs.TagInfo{Desc: "hostname"},
 		},
 	}
 }

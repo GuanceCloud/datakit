@@ -96,23 +96,23 @@ func (m *diskioMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "diskio",
 		Fields: map[string]interface{}{
-			"reads":            newFieldsInfoCount("reads completed successfully"),
-			"writes":           newFieldsInfoCount("writes completed"),
-			"read_bytes":       newFieldsInfoBytes("read bytes"),
-			"read_bytes/sec":   newFieldsInfoBytesPerSec("read bytes per second"),
-			"write_bytes":      newFieldsInfoBytes("write bytes"),
-			"write_bytes/sec":  newFieldsInfoBytesPerSec("write bytes per second"),
-			"read_time":        newFieldsInfoMS("time spent reading"),
-			"write_time":       newFieldsInfoMS("time spent writing"),
-			"io_time":          newFieldsInfoMS("time spent doing I/Os"),
-			"weighted_io_time": newFieldsInfoMS("weighted time spent doing I/Os"),
-			"iops_in_progress": newFieldsInfoCount("I/Os currently in progress"),
-			"merged_reads":     newFieldsInfoCount("reads merged"),
-			"merged_writes":    newFieldsInfoCount("writes merged"),
+			"reads":            newFieldsInfoCount("The number of read requests."),
+			"writes":           newFieldsInfoCount("The number of write requests."),
+			"read_bytes":       newFieldsInfoBytes("The number of bytes read from the device."),
+			"read_bytes/sec":   newFieldsInfoBytesPerSec("The number of bytes read from the per second."),
+			"write_bytes":      newFieldsInfoBytes("The number of bytes written to the device."),
+			"write_bytes/sec":  newFieldsInfoBytesPerSec("The number of bytes written to the device per second."),
+			"read_time":        newFieldsInfoMS("Time spent reading."),
+			"write_time":       newFieldsInfoMS("Time spent writing."),
+			"io_time":          newFieldsInfoMS("Time spent doing I/Os."),
+			"weighted_io_time": newFieldsInfoMS("Weighted time spent doing I/Os."),
+			"iops_in_progress": newFieldsInfoCount("I/Os currently in progres."),
+			"merged_reads":     newFieldsInfoCount("The number of merged read requests."),
+			"merged_writes":    newFieldsInfoCount("The number of merged write requests."),
 		},
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "主机名"},
-			"name": &inputs.TagInfo{Desc: "磁盘设备名"},
+			"host": &inputs.TagInfo{Desc: "System hostname."},
+			"name": &inputs.TagInfo{Desc: "Device name."},
 		},
 	}
 }
@@ -168,7 +168,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) Collect() error {
-	// 设置 disk device 过滤器
+	// set disk device filter
 	i.deviceFilter = &DevicesFilter{}
 	err := i.deviceFilter.Compile(i.Devices)
 	if err != nil {
@@ -185,13 +185,13 @@ func (i *Input) Collect() error {
 	for _, stat := range diskio {
 		match := false
 
-		// 匹配 disk name
+		// match disk name
 		if len(i.deviceFilter.filters) < 1 || i.deviceFilter.Match(stat.Name) {
 			match = true
 		}
 
 		tags := map[string]string{}
-		// 用户自定义tags
+		// user-defined tags
 		for k, v := range i.Tags {
 			tags[k] = v
 		}

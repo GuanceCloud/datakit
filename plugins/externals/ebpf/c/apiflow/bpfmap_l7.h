@@ -11,7 +11,7 @@
 // ------------------------------------------------------
 // ---------------------- BPF MAP -----------------------
 
-// 临时存储 tcp payload 数据
+// Temporarily store tcp payload data.
 struct bpf_map_def SEC("maps/bpfmap_l7_buffer") bpfmap_l7_buffer = {
     .type = BPF_MAP_TYPE_PERCPU_ARRAY,
     .key_size = sizeof(__s32),
@@ -19,7 +19,7 @@ struct bpf_map_def SEC("maps/bpfmap_l7_buffer") bpfmap_l7_buffer = {
     .max_entries = 1,
 };
 
-// 上传 tcp payload 数据至用户态 agent 程序
+// Upload tcp payload data to user mode agent program.
 struct bpf_map_def SEC("maps/bpfmap_l7_buffer_out") bpfmap_l7_buffer_out = {
     .type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
     .key_size = sizeof(__u32),
@@ -27,7 +27,7 @@ struct bpf_map_def SEC("maps/bpfmap_l7_buffer_out") bpfmap_l7_buffer_out = {
     .max_entries = 0,
 };
 
-// 需要手动清理
+// Need to clean up manually.
 struct bpf_map_def SEC("maps/bpfmap_http_stats") bpfmap_http_stats = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(struct connection_info),

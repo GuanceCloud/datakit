@@ -26,8 +26,8 @@ struct tp_syscall_send_recv_msg_args
     __u64 flags;                     // offset:32, size:8
 };
 
-// for syscall read, write, sendto, recvfrom
-// ！ sendto 和 recvfrom 后几个参数的 addr 通常与 tcp_sock 中的一致
+// For syscall read, write, sendto, recvfrom,
+// the addr of the last few parameters of sendto and recvfrom is usually consistent with that in tcp_sock.
 struct tp_syscall_read_write_args
 {
     __u64 _common; // offset:8, size:2 + 1 + 1 + 4(signed)

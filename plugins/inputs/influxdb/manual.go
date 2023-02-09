@@ -37,7 +37,7 @@ func (m *InfluxdbMemstatsM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "memstats",
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "host name"},
+			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
 		Fields: map[string]interface{}{
 			"alloc":           nFIFloatBytes("The currently allocated number of bytes of heap objects."),
@@ -83,7 +83,7 @@ func (m *InfluxdbRuntimeM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "runtime",
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "host name"},
+			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
 		Fields: map[string]interface{}{
 			"alloc":          nFIFloatBytes("The currently allocated number of bytes of heap objects."),
@@ -116,7 +116,7 @@ func (m *InfluxdbQueryExecutorM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "queryExecutor",
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "host name"},
+			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
 		Fields: map[string]interface{}{
 			"queries_active":    nFIFloatUnknown("The number of active queries currently being handled."),
@@ -139,8 +139,8 @@ func (m *InfluxdbDatabaseM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "database",
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "host name"},
-			"database": &inputs.TagInfo{Desc: "database name"},
+			"host":     &inputs.TagInfo{Desc: "System hostname."},
+			"database": &inputs.TagInfo{Desc: "Database name."},
 		},
 		Fields: map[string]interface{}{
 			"num_measurements": nFIFloatUnknown("The current number of measurements in the specified database."),
@@ -160,14 +160,14 @@ func (m *InfluxdbShardM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "shard",
 		Tags: map[string]interface{}{
-			"host":             &inputs.TagInfo{Desc: "host name"},
-			"database":         &inputs.TagInfo{Desc: "database name"},
-			"engine":           &inputs.TagInfo{Desc: "engine"},
-			"id":               &inputs.TagInfo{Desc: "id"},
-			"index_type":       &inputs.TagInfo{Desc: "index type"},
-			"path":             &inputs.TagInfo{Desc: "path"},
-			"retention_policy": &inputs.TagInfo{Desc: "retention policy"},
-			"wal_path":         &inputs.TagInfo{Desc: "wal path"},
+			"host":             &inputs.TagInfo{Desc: "System hostname."},
+			"database":         &inputs.TagInfo{Desc: "Database name."},
+			"engine":           &inputs.TagInfo{Desc: "Engine."},
+			"id":               &inputs.TagInfo{Desc: "ID."},
+			"index_type":       &inputs.TagInfo{Desc: "Index type."},
+			"path":             &inputs.TagInfo{Desc: "Path."},
+			"retention_policy": &inputs.TagInfo{Desc: "Retention policy."},
+			"wal_path":         &inputs.TagInfo{Desc: "Wal path."},
 		},
 		Fields: map[string]interface{}{
 			"disk_bytes":           nFIFloatBytes("The size, in bytes, of the shard, including the size of the data directory and the WAL directory."),
@@ -196,14 +196,14 @@ func (m *InfluxdbTsm1EngineM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "tsm1_engine",
 		Tags: map[string]interface{}{
-			"host":             &inputs.TagInfo{Desc: "host name"},
-			"database":         &inputs.TagInfo{Desc: "database name"},
-			"engine":           &inputs.TagInfo{Desc: "engine"},
-			"id":               &inputs.TagInfo{Desc: "id"},
-			"index_type":       &inputs.TagInfo{Desc: "index type"},
-			"path":             &inputs.TagInfo{Desc: "path"},
-			"retention_policy": &inputs.TagInfo{Desc: "retention policy"},
-			"wal_path":         &inputs.TagInfo{Desc: "wal path"},
+			"host":             &inputs.TagInfo{Desc: "System hostname."},
+			"database":         &inputs.TagInfo{Desc: "Database name."},
+			"engine":           &inputs.TagInfo{Desc: "Engine."},
+			"id":               &inputs.TagInfo{Desc: "ID."},
+			"index_type":       &inputs.TagInfo{Desc: "Index type."},
+			"path":             &inputs.TagInfo{Desc: "Path."},
+			"retention_policy": &inputs.TagInfo{Desc: "Retention policy."},
+			"wal_path":         &inputs.TagInfo{Desc: "Wal path."},
 		},
 		Fields: map[string]interface{}{
 			"cache_compaction_duration": nFIFloatDurationNs("The duration (wall time), in nanoseconds, spent in cache compactions."),
@@ -255,14 +255,14 @@ func (m *InfluxdbTsm1CacheM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "tsm1_cache",
 		Tags: map[string]interface{}{
-			"host":             &inputs.TagInfo{Desc: "host name"},
-			"database":         &inputs.TagInfo{Desc: "database name"},
-			"engine":           &inputs.TagInfo{Desc: "engine"},
-			"id":               &inputs.TagInfo{Desc: "id"},
-			"index_type":       &inputs.TagInfo{Desc: "index type"},
-			"path":             &inputs.TagInfo{Desc: "path"},
-			"retention_policy": &inputs.TagInfo{Desc: "retention policy"},
-			"wal_path":         &inputs.TagInfo{Desc: "wal path"},
+			"host":             &inputs.TagInfo{Desc: "System hostname."},
+			"database":         &inputs.TagInfo{Desc: "Database name."},
+			"engine":           &inputs.TagInfo{Desc: "Engine."},
+			"id":               &inputs.TagInfo{Desc: "ID."},
+			"index_type":       &inputs.TagInfo{Desc: "Index type."},
+			"path":             &inputs.TagInfo{Desc: "Path."},
+			"retention_policy": &inputs.TagInfo{Desc: "Retention policy."},
+			"wal_path":         &inputs.TagInfo{Desc: "Wal path."},
 		},
 		Fields: map[string]interface{}{
 			"wal_compaction_time_ms": nFIFloatDurationMs("The duration, in milliseconds, that the commit lock is held while compacting snapshots."),
@@ -289,14 +289,14 @@ func (m *InfluxdbTsm1FilestoreM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "tsm1_filestore",
 		Tags: map[string]interface{}{
-			"host":             &inputs.TagInfo{Desc: "host name"},
-			"database":         &inputs.TagInfo{Desc: "database name"},
-			"engine":           &inputs.TagInfo{Desc: "engine"},
-			"id":               &inputs.TagInfo{Desc: "id"},
-			"index_type":       &inputs.TagInfo{Desc: "index type"},
-			"path":             &inputs.TagInfo{Desc: "path"},
-			"retention_policy": &inputs.TagInfo{Desc: "retention policy"},
-			"wal_path":         &inputs.TagInfo{Desc: "wal path"},
+			"host":             &inputs.TagInfo{Desc: "System hostname."},
+			"database":         &inputs.TagInfo{Desc: "Database name."},
+			"engine":           &inputs.TagInfo{Desc: "Engine."},
+			"id":               &inputs.TagInfo{Desc: "ID."},
+			"index_type":       &inputs.TagInfo{Desc: "Index type."},
+			"path":             &inputs.TagInfo{Desc: "Path."},
+			"retention_policy": &inputs.TagInfo{Desc: "Retention policy."},
+			"wal_path":         &inputs.TagInfo{Desc: "Wal path."},
 		},
 		Fields: map[string]interface{}{
 			"disk_bytes": nFIFloatBytes("The size, in bytes, of disk usage by the TSM file store."),
@@ -316,13 +316,14 @@ func (m *InfluxdbTsm1WalM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "tsm1_wal",
 		Tags: map[string]interface{}{
-			"host":             &inputs.TagInfo{Desc: "host name"},
-			"database":         &inputs.TagInfo{Desc: "database name"},
-			"engine":           &inputs.TagInfo{Desc: "engine"},
-			"id":               &inputs.TagInfo{Desc: "id"},
-			"index_type":       &inputs.TagInfo{Desc: "index type"},
-			"path":             &inputs.TagInfo{Desc: "path"},
-			"retention_policy": &inputs.TagInfo{Desc: "retention policy"},
+			"host":             &inputs.TagInfo{Desc: "System hostname."},
+			"database":         &inputs.TagInfo{Desc: "Database name."},
+			"engine":           &inputs.TagInfo{Desc: "Engine."},
+			"id":               &inputs.TagInfo{Desc: "ID."},
+			"index_type":       &inputs.TagInfo{Desc: "Index type."},
+			"path":             &inputs.TagInfo{Desc: "Path."},
+			"retention_policy": &inputs.TagInfo{Desc: "Retention policy."},
+			"wal_path":         &inputs.TagInfo{Desc: "Wal path."},
 		},
 		Fields: map[string]interface{}{
 			"current_segment_disk_bytes": nFIFloatBytes("The current size, in bytes, of the segment disk."),
@@ -344,7 +345,7 @@ func (m *InfluxdbWriteM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "write",
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "host name"},
+			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
 		Fields: map[string]interface{}{
 			"point_req":       nFIFloatUnknown("The total number of every point requested to be written to this data node."),
@@ -371,7 +372,7 @@ func (m *InfluxdbSubscriberM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "subscriber",
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "host name"},
+			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
 		Fields: map[string]interface{}{
 			"create_failures": nFIFloatUnknown("The number of subscriptions that failed to be created."),
@@ -392,11 +393,11 @@ func (m *InfluxdbCqM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "cq",
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "host name"},
+			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
 		Fields: map[string]interface{}{
 			"query_fail": nFIFloatUnknown("The total number of continuous queries that executed but failed."),
-			"query_ok":   nFIFloatUnknown("The total number of continuous queries that executed successfully. "),
+			"query_ok":   nFIFloatUnknown("The total number of continuous queries that executed successfully."),
 		},
 	}
 }
@@ -412,8 +413,8 @@ func (m *InfluxdbHttpdM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "httpd",
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "host name"},
-			"bind": &inputs.TagInfo{Desc: "bind port"},
+			"host": &inputs.TagInfo{Desc: "System hostname."},
+			"bind": &inputs.TagInfo{Desc: "Bind port."},
 		},
 		Fields: map[string]interface{}{
 			"auth_fail":                  nFIFloatUnknown("The number of HTTP requests that were aborted due to authentication being required, but not supplied or incorrect."),

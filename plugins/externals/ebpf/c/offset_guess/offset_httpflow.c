@@ -34,14 +34,12 @@ static __always_inline __s32 update_offset(struct offset_httpflow *src)
     return 0;
 }
 
-// 用于推算 offsetof(struct file, private_data)
+// Used to calculate offsetof(struct file, private_data)
 SEC("kprobe/sock_common_getsockopt")
 int kprobe_sock_common_getsockopt(struct pt_regs *ctx)
 {
-
-    // 计算偏移前，需要 lock thread
-    // 否则可能 tgid 对不上，找不到缓存的 file 的地址
-
+    // Before calculating the offset, you need to lock the thread,
+    // otherwise the tgid may not match and the address of the cached file cannot be found.
     __u64 pid_tgid = bpf_get_current_pid_tgid();
 
     struct offset_httpflow offset = {};
@@ -112,8 +110,8 @@ update:
     return 0;
 }
 
-// 用于推算 offset(struct task_struct, files)
-// 和 offset(struct files_struct)
+// Used to calculate offset(struct task_struct, files)
+// and offset(struct files_struct)
 SEC("kretprobe/sock_common_getsockopt")
 int kpretrobe_sock_common_getsockopt(struct pt_regs *ctx)
 {
@@ -141,8 +139,6 @@ int kpretrobe_sock_common_getsockopt(struct pt_regs *ctx)
     {
         return 0;
     }
-
-    // 计算偏移量
 
     void *file = NULL;
 

@@ -1,6 +1,6 @@
-# solr采集器开发文档
+# solr collector development documentation
 
-配置示例
+Configuration example
 
 ```toml
 [[inputs.solr]]
@@ -23,15 +23,15 @@
     # tag1 = "a"
 ```  
 
-## Solr 指标采集
+## Solr metrics collection
 
-通过 Solr Metric API 获取数据
+Get data through the Solr Metric API
 
-指标集：
+Indicator set:
 
 * solr_cache:
 
-  |指标|描述|数据类型|单位|
+  |Metric|Description|Data Type|Unit|
   |:-- |- |-|-|
   |cumulative_evictions|Number of cache evictions across all caches since this node has been running.|int|count|
   |cumulative_hitratio|Ratio of cache hits to lookups across all the caches since this node has been running.|float|%|
@@ -50,7 +50,7 @@
 
 * solr_request_times:
 
-  |指标|描述|数据类型|单位|
+  |Metric|Description|Data Type|Unit|
   |:-- |- |-|-|
   |count|Total number of requests made since the Solr process was started.|int|count|
   |max|Max of all the request processing time.|float|msec|
@@ -69,16 +69,16 @@
 
 * solr_searcher:
 
-  |指标|描述|数据类型|单位|
+  |Metric|Description|Data Type|Unit|
   |:-- |- |-|-|
   |deleted_docs|The number of deleted documents.|int|count|
   |max_docs|The largest possible document number.|int|count|
   |num_docs|The total number of indexed documents.|int|count|
   |warmup|The time spent warming up.|int|msec|
 
-## 日志采集
+## Log Collection
 
-许配在配置文件中修改以下配置的 files 的值 以指向 solr 的日志
+Allow to modify the value of the following configured files in the configuration file to point to the solr log
 
 ```toml
   [inputs.solr.log]

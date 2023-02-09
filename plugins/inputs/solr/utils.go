@@ -86,8 +86,8 @@ func whichMesaurement(k string) string {
 	return ""
 }
 
-// 根据 server url 生成 instance name， 使用正则匹配域名/ip和端口。
-// 如 localhost_8983, 127.0.0.1_8983.
+// Generate instance name based on server url, use regular pattern to match domain name/ip and port.
+// Such as localhost_8983, 127.0.0.1_8983.
 func instanceName(serv string) (string, error) {
 	var err error
 	instanceName := ""
