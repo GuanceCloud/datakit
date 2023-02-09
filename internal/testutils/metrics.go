@@ -76,7 +76,6 @@ func (cr *CaseResult) AddTag(k, v string) {
 }
 
 func (cr *CaseResult) LineProtocol() string {
-
 	tags := map[string]string{
 		"name":   cr.Name,
 		"case":   cr.Case,
@@ -133,7 +132,7 @@ func (cr *CaseResult) Flush() error {
 		first = true
 	}
 
-	f, err := os.OpenFile(metricFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(metricFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}

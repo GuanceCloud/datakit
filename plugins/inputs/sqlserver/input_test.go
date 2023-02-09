@@ -45,7 +45,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
 		switch pt.Name() {
 		case "sqlserver_performance":
-			//cs.t.Logf("get %s", pt.String())
+
 
 			// TODO: check pt according to Performance
 
@@ -114,7 +114,6 @@ func (cs *caseSpec) run() error {
 		// container run-time envs
 		Env: cs.envs,
 	}, func(c *docker.HostConfig) {
-
 		c.RestartPolicy = docker.RestartPolicy{Name: "no"}
 	})
 	if err != nil {
