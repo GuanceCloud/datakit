@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -279,7 +280,7 @@ func query(url string, basicAuth, token string, reqBody []byte) ([]byte, error) 
 }
 
 func makeMeasurements(subMetricName string, res restResult, sql selectSQL, election bool, u string) (measurements []inputs.Measurement) {
-	host := getHost(u)
+	host := getHostTagIfNotLoopback(u)
 	measurements = make([]inputs.Measurement, 0, res.Rows)
 	if len(res.Data) == 0 {
 		return
@@ -357,14 +358,19 @@ func setGlobalTags(msm *Measurement) {
 	}
 }
 
-func getHost(u string) string {
-	if u == "" || strings.Contains(u, "127.0.0.1") || strings.Contains(u, "localhost") {
-		return ""
-	}
+func getHostTagIfNotLoopback(u string) string {
 	uu, err := url.Parse(u)
 	if err != nil {
-		l.Errorf("failed to get host from url: %v", err)
+		l.Errorf("url parse: %v", err)
 		return ""
 	}
-	return uu.Host
+	host, _, err := net.SplitHostPort(uu.Host)
+	if err != nil {
+		l.Errorf("split host and port: %v", err)
+		return ""
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		return host
+	}
+	return ""
 }

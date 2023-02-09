@@ -7,7 +7,8 @@ package mongodb
 
 import (
 	"context"
-	"strings"
+	"net"
+	"net/url"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/strarr"
@@ -30,9 +31,7 @@ type MongodbServer struct {
 func (svr *MongodbServer) getDefaultTags() map[string]string {
 	tags := make(map[string]string)
 	tags["mongod_host"] = svr.host
-	if !strings.Contains(svr.host, "127.0.0.1") && !strings.Contains(svr.host, "localhost") {
-		tags["host"] = svr.host
-	}
+	setHostTagIfNotLoopback(tags, svr.host)
 	for k, v := range defTags {
 		tags[k] = v
 	}
@@ -318,4 +317,24 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 	svr.lastResult = result
 
 	return nil
+}
+
+func setHostTagIfNotLoopback(tags map[string]string, u string) {
+	// input pattern:
+	// localhost:27017/?authMechanism=SCRAM-SHA-256&authSource=admin
+	// 127.0.0.1:27017,
+	// 10.10.3.33:18832,
+	uu, err := url.Parse("mongodb://" + u)
+	if err != nil {
+		log.Errorf("parse url: %v", err)
+		return
+	}
+	host, _, err := net.SplitHostPort(uu.Host)
+	if err != nil {
+		log.Errorf("split host and port: %v", err)
+		return
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		tags["host"] = host
+	}
 }

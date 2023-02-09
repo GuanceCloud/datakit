@@ -11,6 +11,7 @@ import (
 	"crypto/md5"
 	"database/sql"
 	"fmt"
+	"net"
 	"regexp"
 	"strconv"
 	"strings"
@@ -193,4 +194,10 @@ func isListHasStr(list []string, str string) bool {
 		}
 	}
 	return false
+}
+
+func setHostTagIfNotLoopback(tags map[string]string, host string) {
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		tags["host"] = host
+	}
 }
