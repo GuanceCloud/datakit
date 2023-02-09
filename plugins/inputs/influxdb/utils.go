@@ -25,7 +25,7 @@ type Point struct {
 	Values map[string]interface{} `json:"values"`
 }
 
-type Memstats struct { // influxdb v2 （若接口/debug/vars未移除）包含该数据
+type Memstats struct { // influxdb v2 (if the interface /debug/vars is not removed) contains this data
 	Alloc         float64      `json:"Alloc"`
 	TotalAlloc    float64      `json:"TotalAlloc"`
 	Sys           float64      `json:"Sys"`
@@ -128,7 +128,7 @@ func DebugVarsDataParse2Point(respBody []byte,
 			}
 		}
 
-		// 映射名
+		// mapping name
 		if metricMap != nil {
 			values := map[string]interface{}{}
 			if nameMap, ok := metricMap[point.Name]; ok {
@@ -137,7 +137,7 @@ func DebugVarsDataParse2Point(respBody []byte,
 						values[newMName] = pV
 					}
 				}
-			} else { // map 中不含的则返回空
+			} else {
 				return nil, nil
 			}
 			point.Values = values

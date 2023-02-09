@@ -119,7 +119,7 @@ int kretprobe__do_sendfile(struct pt_regs *ctx)
 // ===============================================
 
 // TCP_ESTABLISHED；
-// 记录 TCP_CLOSE 后将导致 kprobe__tcp_close 清除的 tcp 连接信息被重新写入 bpfmap,
+// After recording TCP_CLOSE, the tcp connection information cleared by kprobe__tcp_close will be rewritten into bpfmap.
 // https://elixir.bootlin.com/linux/latest/source/net/ipv4/tcp.c#L2707 .
 SEC("kprobe/tcp_set_state")
 int kprobe__tcp_set_state(struct pt_regs *ctx)

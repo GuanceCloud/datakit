@@ -106,8 +106,8 @@ func ConnDirection2Str(direction uint8) string {
 	case ConnDirectionOutgoing:
 		return DirectionOutgoing
 	default:
-		// netflow.c 中的 kprobe__tcp_close 不判断进出口流量，
-		// 若该连接只触发此函数，direction 值为 0.
+		// kprobe__tcp_close in netflow.c does not judge the in/out traffic,
+		// If the connection only triggers this function, the direction value is 0.
 		return DirectionOutgoing
 	}
 }
@@ -187,7 +187,7 @@ func (c *ConnStatsRecord) clearClosedConnsCache() {
 
 func (c *ConnStatsRecord) updateClosedUseEvent(closedEvents *ConncetionClosedInfo) {
 	if connLastActive, ok := c.lastActiveConns[closedEvents.Info]; ok {
-		// 上一采集周期内未关闭的连接
+		// Connections that were not closed during the last collection cycle.
 		if ConnProtocolIsTCP(closedEvents.Info.Meta) {
 			connLastActive.TotalEstablished = 0
 			connLastActive.TotalClosed = 1
@@ -196,11 +196,11 @@ func (c *ConnStatsRecord) updateClosedUseEvent(closedEvents *ConncetionClosedInf
 			connLastActive = StatsOp("-", connLastActive, closedEvents.Stats)
 		}
 		c.deleteLastActive(closedEvents.Info)
-		// save to closedConns
+		// Save to closedConns.
 
 		c.closedConns[closedEvents.Info] = connLastActive
 	} else if connClosed, ok := c.closedConns[closedEvents.Info]; ok {
-		// 已经关闭的连接，已被记录的
+		// A connection that has been closed, has been recorded.
 
 		if ConnProtocolIsTCP(closedEvents.Info.Meta) {
 			connClosed.TotalClosed += 1
@@ -211,7 +211,7 @@ func (c *ConnStatsRecord) updateClosedUseEvent(closedEvents *ConncetionClosedInf
 		}
 		c.closedConns[closedEvents.Info] = connClosed
 	} else {
-		// 在当前周期内建立连接，并关闭的连接, 首次记录
+		// Connections established and closed during the current cycle, the first record.
 		connF := ConnFullStats{
 			Stats:    closedEvents.Stats,
 			TCPStats: closedEvents.TCPStats,
@@ -239,8 +239,8 @@ func (c *ConnStatsRecord) deleteLastActive(conninfo ConnectionInfo) {
 	delete(c.lastActiveConns, conninfo)
 }
 
-// 返回合并结果(与已关闭的和上一周期未关闭的);
-// 调用此方法将更新/删除 record 中的 Map: lastActiveConns, closedConns 的元素.
+// Return the merged result (closed and unclosed in the previous cycle);
+// Calling this method will update/delete the elements of Map: lastActiveConns, closedConns in record.
 func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, connFullStats ConnFullStats) ConnFullStats {
 	if v, ok := c.closedConns[connInfo]; ok {
 		// closed
@@ -250,8 +250,12 @@ func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, con
 		} else {
 			v = StatsOp("+", v, connFullStats.Stats)
 		}
-		c.updateLastActive(connInfo, connFullStats) // 将当前 active 拷贝至 lastActiveConns 中
-		delete(c.closedConns, connInfo)             // 移除当前周期内当前连接连接建立后关闭的信息
+
+		c.updateLastActive(connInfo, connFullStats) // Copy current active to lastActiveConns.
+
+		// Remove the information that the current connection is closed after the connection is established in the current cycle.
+		delete(c.closedConns, connInfo)
+
 		return v
 	} else if v, ok := c.readLastActive(connInfo); ok {
 		// last active
@@ -265,9 +269,9 @@ func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, con
 		return v
 	} else {
 		if ConnProtocolIsTCP(connInfo.Meta) {
-			// 在 net_ebpf 启动前建立的连接无法记录 TCP_ESTABLISHED,
-			// 不依据 TCP_ESTABLISHED 判断连接是否建立，
-			// 存在于 bpfmap_conn_stats 的连接视为未关闭的连接
+			// Connections established before ebpf-net started cannot record TCP_ESTABLISHED.
+			// Do not judge whether the connection is established according to TCP_ESTABLISHED,
+			// connections that exist in bpfmap_conn_stats are considered unclosed connections
 			// if connFullStats.TcpStats.State_transitions>>TCP_ESTABLISHED == 1 .
 			connFullStats.TotalEstablished = 1
 		}
@@ -276,7 +280,7 @@ func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, con
 	}
 }
 
-// StatsOp fullConn = connStats op("+", "-", ...) fullConn;.
+// StatsOp fullConn = connStats op("+", "-", ...) fullConn.
 func StatsOp(op string, fullConn ConnFullStats, connStats ConnectionStats) ConnFullStats {
 	switch op {
 	case "+":
@@ -285,7 +289,8 @@ func StatsOp(op string, fullConn ConnFullStats, connStats ConnectionStats) ConnF
 		fullConn.Stats.SentPackets += connStats.SentPackets
 		fullConn.Stats.RecvPackets += connStats.RecvPackets
 	case "-":
-		if connStats.SentBytes >= fullConn.Stats.SentBytes && connStats.RecvBytes >= fullConn.Stats.RecvBytes && connStats.SentPackets >= fullConn.Stats.SentPackets && connStats.RecvPackets >= fullConn.Stats.RecvPackets {
+		if connStats.SentBytes >= fullConn.Stats.SentBytes && connStats.RecvBytes >= fullConn.Stats.RecvBytes &&
+			connStats.SentPackets >= fullConn.Stats.SentPackets && connStats.RecvPackets >= fullConn.Stats.RecvPackets {
 			fullConn.Stats.SentBytes = connStats.SentBytes - fullConn.Stats.SentBytes
 			fullConn.Stats.RecvBytes = connStats.RecvBytes - fullConn.Stats.RecvBytes
 			fullConn.Stats.SentPackets = connStats.SentPackets - fullConn.Stats.SentPackets
@@ -303,7 +308,7 @@ func StatsOp(op string, fullConn ConnFullStats, connStats ConnectionStats) ConnF
 	return fullConn
 }
 
-// StatsTCPOp op: 操作符; fullConn: 被保存的一个连接统计信息; connStat: 新的连接统计信息; tcpstats: TC统计信息
+// StatsTCPOp op: operator; fullConn: a saved connection statistics; connStat: new connection statistics; tcpstats: TCP statistics.
 func StatsTCPOp(op string, fullConn ConnFullStats, connStats ConnectionStats,
 	tcpstats ConnectionTCPStats) ConnFullStats {
 	fullConn = StatsOp(op, fullConn, connStats)

@@ -1560,3 +1560,4 @@ xml(_, '/OrderEvent/OrderNumber/text()', OrderNumber)
 }
 ```
 
+{{.PipelineFuncsEN}}

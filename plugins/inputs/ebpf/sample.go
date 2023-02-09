@@ -21,7 +21,9 @@ const configSample = `
   ##
   # kubernetes_url = "https://kubernetes.default:443"
   # bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
-  # or # bearer_token_string = "<your-token-string>"
+  ##
+  ## or 
+  # bearer_token_string = "<your-token-string>"
   
   ## all supported plugins:
   ## - "ebpf-net"  :
@@ -33,8 +35,8 @@ const configSample = `
     "ebpf-net",
   ]
 
-  ## 若开启 ebpf-net 插件，需选配: 
-  ##  - "httpflow" (* 默认开启)
+  ## If you enable the ebpf-net plugin, you can configure:
+  ##  - "httpflow" (* enabled by default)
   ##  - "httpflow-tls"
   ##
   l7net_enabled = [
@@ -42,7 +44,7 @@ const configSample = `
     # "httpflow-tls"
   ]
 
-  ## if the system does not enable ipv6, it needs to be changed to true
+  ## If the system does not enable ipv6, it needs to be changed to true
   ##
   ipv6_disabled = false
 
@@ -57,11 +59,13 @@ const configSample = `
     # more_tag = "some_other_value"
 
 #############################
-# 参数说明(若标 * 为必选项)
+## Parameter description (if marked * is required)
 #############################
-#  --hostname               : 主机名，此参数可改变该采集器上传数据时 host tag 的值, 优先级为: 指定该参数 > datakit.conf 中的 ENV_HOSTNAME 值(若非空，启动时自动添加该参数) > 采集器自行获取(默认值)
-#  --datakit-apiserver      : DataKit API Server 地址, 默认值 0.0.0.0:9529
-#  --log                    : 日志输出路径, 默认值 DataKitInstallDir/externals/datakit-ebpf.log
-#  --log-level              : 日志级别，默认 info
-#  --service                : 默认值 ebpf
+##  --hostname               : Host name, this parameter can change the value of the host tag when the collector uploads data, the priority is: specify this parameter >
+##                             ENV_HOSTNAME value in datakit.conf (if it is not empty, this parameter will be added automatically at startup) >
+##                             collector Get it yourself (the default)
+##  --datakit-apiserver      : DataKit API Server address, default value 0.0.0.0:9529
+##  --log                    : Log output path, default <DataKitInstallDir>/externals/datakit-ebpf.log
+##  --log-level              : Log level, the default value is 'info'
+##  --service                : The default value is 'ebpf'
 `
