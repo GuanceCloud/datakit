@@ -448,10 +448,18 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 
 	elems := strings.Split(inputlist, ",")
 	for _, name := range elems {
+		if name == "-" {
+			continue
+		}
+
 		if _, ok := inputsUnique[name]; !ok {
 			inputsUnique[name] = true
 			inputs = append(inputs, name)
 		}
+	}
+
+	if len(inputs) == 0 {
+		l.Warnf("no default inputs enabled!")
 	}
 
 	c.DefaultEnabledInputs = inputs
