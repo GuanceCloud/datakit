@@ -48,10 +48,20 @@ func Test_spiltBuffer(t *testing.T) {
 				fromCache: "",
 				date: `2021-12-22T14:12:42 ERROR internal.lua luafuncs/monitor.go:297  0055update to mon
 0055-rc.local-exist update to
-`, full: false,
+`,
+				full: false,
 			},
 			wantCacheDate: "",
-			wantPipdata:   []string{"2021-12-22T14:12:42 ERROR internal.lua luafuncs/monitor.go:297  0055update to mon", "0055-rc.local-exist update to"},
+			wantPipdata:   []string{"2021-12-22T14:12:42 ERROR internal.lua luafuncs/monitor.go:297  0055update to mon", "0055-rc.local-exist update to", ""},
+		},
+		{
+			name: "case04", args: args{
+				fromCache: "",
+				date:      `2021-12-22T14:12:42 ERROR internal.lua luafuncs/monitor.go:297  0055update to mon`,
+				full:      false,
+			},
+			wantCacheDate: "",
+			wantPipdata:   []string{"2021-12-22T14:12:42 ERROR internal.lua luafuncs/monitor.go:297  0055update to mon"},
 		},
 	}
 	sl := &socketLogger{}
@@ -59,7 +69,7 @@ func Test_spiltBuffer(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gotPipdata, gotCacheDate := sl.spiltBuffer(tt.args.fromCache, tt.args.date, tt.args.full)
 			if !reflect.DeepEqual(gotPipdata, tt.wantPipdata) {
-				t.Errorf("gotPipdata len=%d want len=%d", len(gotPipdata), len(tt.wantCacheDate))
+				t.Errorf("gotPipdata len=%d want len=%d", len(gotPipdata), len(tt.wantPipdata))
 				t.Errorf("spiltBuffer() gotPipdata = %v, want %v", gotPipdata, tt.wantPipdata)
 			}
 			if gotCacheDate != tt.wantCacheDate {
