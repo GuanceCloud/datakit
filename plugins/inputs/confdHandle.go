@@ -30,95 +30,116 @@ func handleInput(confdInputs map[string][]*ConfdInfo, handleList []handle, ctx c
 		default:
 			switch round {
 			case 0:
-				// 停止
+				// Stop
 				l.Info("before confd stopInput")
 
 				stopInput(handleList, &errs)
-
 			case 1:
-				// 追加
+				// Delete
+				l.Info("before confd deleteInput")
+
+				deleteInput(handleList, &errs)
+			case 2:
+				// Add
 				l.Info("before confd addInputs")
 
 				addInputs(confdInputs, handleList, &errs)
-
-			case 2:
-				// 修改
-				l.Info("before confd addInputs")
-
-				modifyInput(confdInputs, handleList, &errs)
 
 			case 3:
 				l.Info("before set pipelines")
 
 				plscript.LoadAllScripts2StoreFromPlStructPath(plscript.GitRepoScriptNS,
 					filepath.Join(datakit.GitReposRepoFullPath, "pipeline"))
-
-			case 4:
-				// start and restart
-				l.Info("before confd runInput")
-
-				runInput(handleList, &errs)
-
-			case 5:
-				// delete
-				l.Info("before confd deleteInput")
-
-				deleteInput(handleList, &errs)
 			}
 		}
 
 		round++
 		if round > 6 {
+			mtx.Lock()
+			defer mtx.Unlock()
+
+			// If this kind inputs is empty, delete the map
+			for name, inputInfo := range InputsInfo {
+				if len(inputInfo) == 0 {
+					delete(InputsInfo, name)
+				}
+			}
+
 			return errs
 		}
 	}
 }
 
-// stopInput stop collector List.
+// Stop collector List.
 func stopInput(handles []handle, errs *[]error) {
 	mtx.RLock()
 	defer mtx.RUnlock()
 
+	// Stop when insertIndex and deleteIndex any not be -1
 	for _, h := range handles {
-		if h.handleType == ADD {
+		if h.deleteIndex == -1 && h.insertIndex == -1 {
 			continue
-		} // 0: add, 1: delete, 2: change
+		}
 
-		// Make sure have this collector
+		// Make sure have this input kind
 		if _, ok := InputsInfo[h.name]; !ok {
 			l.Debugf("confd stop skip non-datakit-input-kind %s", h.name)
 			*errs = append(*errs, fmt.Errorf("confd stop skip non-datakit-input-kind %s", h.name))
 			continue
 		}
-		if h.index >= len(InputsInfo[h.name]) {
-			l.Debugf("confd stop datakit-input h.index out of bounds  %s, %d", h.name, h.index)
-			*errs = append(*errs, fmt.Errorf("confd stop datakit-input h.index out of bounds %s, %d", h.name, h.index))
+
+		// Walk stop all this kind inputs
+		for i := 0; i < len(InputsInfo[h.name]); i++ {
+			ii := InputsInfo[h.name][i]
+			if ii.input == nil {
+				l.Debugf("confd stop skip datakit-input is nil %s, %d", h.name, i)
+				continue
+			}
+
+			if v2, ok := ii.input.(InputV2); ok {
+				v2.Terminate()
+			}
+		}
+	}
+}
+
+// Delete the input kind.
+func deleteInput(handles []handle, errs *[]error) {
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	// Delete this input kind when insertIndex and deleteIndex any not be -1
+	for _, h := range handles {
+		if h.deleteIndex == -1 && h.insertIndex == -1 {
 			continue
 		}
 
-		ii := InputsInfo[h.name][h.index]
-		if ii.input == nil {
-			l.Debugf("confd stop skip datakit-input is nil %s, %d", h.name, h.index)
+		// Make sure have this input kind
+		if _, ok := InputsInfo[h.name]; !ok {
+			l.Debugf("confd delete skip non-datakit-input-kind %s", h.name)
+			*errs = append(*errs, fmt.Errorf("confd delete skip non-datakit-input-kind %s", h.name))
 			continue
 		}
 
-		if inp, ok := ii.input.(InputV2); ok {
-			inp.Terminate()
-		}
+		// Delete this input kind
+		delete(InputsInfo, h.name)
 	}
 }
 
 // Add collector list.
 func addInputs(confdInputs map[string][]*ConfdInfo, handles []handle, errs *[]error) {
+	envs := getEnvs()
 	mtx.Lock()
 	defer mtx.Unlock()
 
+	// Recreate this input kind, and append form confdInputs,
+	// When insertIndex and deleteIndex any not be -1
 	for _, h := range handles {
-		if h.handleType != ADD {
+		if h.insertIndex == -1 {
 			continue
-		} // 0: add, 1: delete, 2: change
+		}
 
-		// Make sure you have this collector type
+		// Make sure you have this input type
 		if _, ok := InputsInfo[h.name]; !ok {
 			InputsInfo[h.name] = []*inputInfo{}
 			l.Debugf("confd add non-datakit-input-kind %s", h.name)
@@ -130,134 +151,35 @@ func addInputs(confdInputs map[string][]*ConfdInfo, handles []handle, errs *[]er
 			continue
 		}
 
-		// The new serial number should be at the end of InputsInfo[h.name]
-		if h.index != len(InputsInfo[h.name]) {
-			l.Debugf("confd add confd-input h.index wrong  %s, %d", h.name, h.index)
-			*errs = append(*errs, fmt.Errorf("confd add confd-input h.index wrong %s, %d, %d. ", h.name, h.index, len(InputsInfo[h.name])))
-			continue
-		}
+		// Append all confd data
+		for i := 0; i < len(confdInputs[h.name]); i++ {
+			newInput := &inputInfo{confdInputs[h.name][i].Input}
 
-		InputsInfo[h.name] = append(InputsInfo[h.name], &inputInfo{confdInputs[h.name][h.index].Input})
-	}
-}
+			if inp, ok := newInput.input.(HTTPInput); ok {
+				inp.RegHTTPHandler()
+			}
 
-// Modify the Collector List.
-func modifyInput(confdInputs map[string][]*ConfdInfo, handles []handle, errs *[]error) {
-	mtx.Lock()
-	defer mtx.Unlock()
+			if inp, ok := newInput.input.(PipelineInput); ok {
+				inp.RunPipeline()
+			}
 
-	for _, h := range handles {
-		if h.handleType != MODIFY {
-			continue
-		} // 0: add, 1: delete, 2: change
+			if inp, ok := newInput.input.(ReadEnv); ok && datakit.Docker {
+				inp.ReadEnv(envs)
+			}
 
-		// Make sure have this collector
-		if _, ok := InputsInfo[h.name]; !ok {
-			l.Debugf("confd modify skip non-datakit-input-kind %s", h.name)
-			*errs = append(*errs, fmt.Errorf("confd modify skip non-datakit-input-kind %s", h.name))
-			continue
-		}
-		if h.index >= len(InputsInfo[h.name]) {
-			l.Debugf("confd modify datakit-input h.index out of bounds  %s, %d", h.name, h.index)
-			*errs = append(*errs, fmt.Errorf("confd modify datakit-input h.index out of bounds  %s, %d", h.name, h.index))
-			continue
-		}
+			InputsInfo[h.name] = append(InputsInfo[h.name], newInput)
 
-		// Make sure confd has this collector
-		if _, ok := confdInputs[h.name]; !ok {
-			l.Debugf("confd modify skip non-confd-input-kind %s", h.name)
-			*errs = append(*errs, fmt.Errorf("confd modify skip non-confd-input-kind %s", h.name))
-			continue
-		}
+			func(name string, ii *inputInfo) {
+				g.Go(func(ctx context.Context) error {
+					// NOTE: 让每个采集器间歇运行，防止每个采集器扎堆启动，导致主机资源消耗出现规律性的峰值
+					time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second)))) //nolint:gosec
+					l.Infof("starting input %s ...", name)
 
-		// The original location is a new collector instance.
-		InputsInfo[h.name][h.index].input = confdInputs[h.name][h.index].Input
-	}
-}
-
-// Start the collector.
-func runInput(handles []handle, errs *[]error) {
-	mtx.RLock()
-	defer mtx.RUnlock()
-
-	g := datakit.G("inputs")
-
-	for _, h := range handles {
-		if h.handleType == DELETE {
-			continue
-		} // 0: add, 1: delete, 2: change
-
-		// Make sure have this collector
-		if _, ok := InputsInfo[h.name]; !ok {
-			l.Debugf("confd run skip non-datakit-input-kind %s", h.name)
-			*errs = append(*errs, fmt.Errorf("confd run skip non-datakit-input-kind %s", h.name))
-			continue
-		}
-		if h.index >= len(InputsInfo[h.name]) {
-			l.Debugf("confd run datakit-input h.index out of bounds  %s, %d", h.name, h.index)
-			*errs = append(*errs, fmt.Errorf("confd run datakit-input h.index out of bounds  %s, %d, %d. ",
-				h.name, h.index, len(InputsInfo[h.name])))
-			continue
-		}
-
-		ii := InputsInfo[h.name][h.index].input
-		if ii == nil {
-			l.Debugf("confd run skip non-datakit-input id nil %s", h.name)
-			*errs = append(*errs, fmt.Errorf("confd run skip non-datakit-input id nil %s", h.name))
-		}
-
-		if inp, ok := ii.(HTTPInput); ok {
-			inp.RegHTTPHandler()
-		}
-
-		if inp, ok := ii.(PipelineInput); ok {
-			inp.RunPipeline()
-		}
-
-		func(name string, ii *inputInfo) {
-			g.Go(func(ctx context.Context) error {
-				// NOTE: 让每个采集器间歇运行，防止每个采集器扎堆启动，导致主机资源消耗出现规律性的峰值
-				time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second)))) //nolint:gosec
-				l.Infof("starting input %s ...", name)
-
-				protectRunningInput(name, ii)
-				l.Infof("input %s exited", name)
-				return nil
-			})
-		}(h.name, &inputInfo{ii})
-	}
-}
-
-// Remove the collector.
-func deleteInput(handles []handle, errs *[]error) {
-	mtx.Lock()
-	defer mtx.Unlock()
-
-	// []handle is in reverse order
-	for i := 0; i < len(handles); i++ {
-		h := handles[i]
-
-		if h.handleType != DELETE {
-			continue
-		} // 0: add, 1: delete, 2: change
-
-		// Make sure have this collector
-		if _, ok := InputsInfo[h.name]; !ok {
-			l.Debugf("confd delete non-datakit-input-kind %s", h.name)
-			*errs = append(*errs, fmt.Errorf("confd delete skip non-datakit-input-kind %s", h.name))
-			continue
-		}
-		if h.index >= len(InputsInfo[h.name]) {
-			l.Debugf("confd delete datakit-input h.index out of bounds  %s, %d", h.name, h.index)
-			*errs = append(*errs, fmt.Errorf("confd delete datakit-input h.index out of bounds %s, %d", h.name, h.index))
-			continue
-		}
-
-		InputsInfo[h.name] = append(InputsInfo[h.name][:h.index], InputsInfo[h.name][h.index+1:]...)
-
-		// If this kind collector is empty, delete the map
-		if len(InputsInfo[h.name]) == 0 {
-			delete(InputsInfo, h.name)
+					protectRunningInput(name, ii)
+					l.Infof("input %s exited", name)
+					return nil
+				})
+			}(h.name, newInput)
 		}
 	}
 }
