@@ -13,7 +13,9 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
@@ -35,7 +37,7 @@ type Option struct {
 	HTTPHost string
 
 	PostTimeout time.Duration
-	Sample      func(points []*point.Point) []*point.Point
+	Sample      func(points []*dkpt.Point) []*dkpt.Point
 
 	Blocking bool
 
@@ -48,10 +50,10 @@ type iodata struct {
 	from string
 	filtered int
 	opt      *Option
-	pts      []*point.Point
+	pts      []*dkpt.Point
 }
 
-func Feed(name, category string, pts []*point.Point, opt *Option) error {
+func Feed(name, category string, pts []*dkpt.Point, opt *Option) error {
 	if len(pts) == 0 {
 		return nil
 	}
@@ -88,13 +90,13 @@ func SelfError(err string) {
 }
 
 //nolint:gocyclo
-func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) error {
+func (x *IO) DoFeed(pts []*dkpt.Point, category, from string, opt *Option) error {
 	log.Debugf("io feed %s|%s", from, category)
 
 	var ch chan *iodata
 
 	filtered := 0
-	var after []*point.Point
+	var after []*dkpt.Point
 
 	switch category {
 	case datakit.Logging,
