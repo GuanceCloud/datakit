@@ -28,12 +28,14 @@ const (
 
 	sampleCfg = `
 [[inputs.logging]]
-  ## required
+  ## Required
+  ## File names or a pattern to tail.
   logfiles = [
     "/var/log/syslog",
     "/var/log/message",
   ]
-  # only two protocols are supported:TCP and UDP
+
+  # Only two protocols are supported:TCP and UDP.
   # sockets = [
   #	 "tcp://0.0.0.0:9530",
   #	 "udp://0.0.0.0:9531",
@@ -41,13 +43,13 @@ const (
   ## glob filteer
   ignore = [""]
 
-  ## your logging source, if it's empty, use 'default'
+  ## Your logging source, if it's empty, use 'default'.
   source = ""
 
-  ## add service tag, if it's empty, use $source.
+  ## Add service tag, if it's empty, use $source.
   service = ""
 
-  ## grok pipeline script name
+  ## Grok pipeline script name.
   pipeline = ""
 
   ## optional status:
@@ -58,25 +60,28 @@ const (
   ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
   character_encoding = ""
 
-  ## The pattern should be a regexp. Note the use of '''this regexp'''
+  ## The pattern should be a regexp. Note the use of '''this regexp'''.
   ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
   # multiline_match = '''^\S'''
 
   auto_multiline_detection = true
   auto_multiline_extra_patterns = []
 
-  ## removes ANSI escape codes from text strings
+  ## Removes ANSI escape codes from text strings.
   remove_ansi_escape_codes = false
 
-  ## if the data sent failure, will retry forevery
+  ## If the data sent failure, will retry forevery.
   blocking_mode = true
 
-  ## if file is inactive, it is ignored
+  ## If file is inactive, it is ignored.
   ## time units are "ms", "s", "m", "h"
   ignore_dead_log = "1h"
 
-  ## use disk cache of logging
+  ## Use disk cache of logging.
   enable_diskcache = false
+
+  ## Read file from beginning.
+  from_beginning = false
 
   [inputs.logging.tags]
   # some_tag = "some_value"
