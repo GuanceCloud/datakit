@@ -49,8 +49,8 @@ func (ss *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) itrace.DatakitTr
 				if v, ok := dt.getAttributeVal(otelResourceServiceKey); ok {
 					dkspan.Service = v
 				}
-				if librarySpans.InstrumentationLibrary.Version != "" {
-					dkspan.Tags[itrace.TAG_VERSION] = librarySpans.InstrumentationLibrary.Version
+				if v, ok := dt.getAttributeVal(otelResourceServiceVersionKey); ok {
+					dkspan.Tags[itrace.TAG_VERSION] = v
 				}
 				if v, ok := dt.getAttributeVal(otelResourceHTTPMethodKey); ok {
 					dkspan.Tags[itrace.TAG_HTTP_METHOD] = v
@@ -63,6 +63,16 @@ func (ss *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) itrace.DatakitTr
 				}
 				if v, ok := dt.getAttributeVal(otelResourceProcessIDKey); ok {
 					dkspan.Tags[itrace.TAG_PID] = v
+				}
+
+				for i := range span.Events {
+					if span.Events[i].Name == ExceptionEventName {
+						dkspan.Metrics = make(map[string]interface{})
+						for _, v := range span.Events[i].Attributes {
+							dkspan.Metrics[otelErrKeyToDkErrKey[v.Key]] = v.Value.GetStringValue()
+						}
+						break
+					}
 				}
 
 				bts, err := json.Marshal(span)
@@ -91,27 +101,25 @@ func getSpanIDsAndParentIDs(rss []*tracepb.ResourceSpans) (map[string]bool, map[
 	for _, resourceSpans := range rss {
 		for _, librarySpans := range resourceSpans.InstrumentationLibrarySpans {
 			for _, span := range librarySpans.Spans {
-				spanID := byteToString(span.GetTraceId())
-				spanIDs[spanID] = true
-				if spanID != "" {
-					parentIDs[spanID] = true
+				if span == nil {
+					continue
 				}
+				spanIDs[byteToString(span.SpanId)] = true
+				parentIDs[byteToString(span.ParentSpanId)] = true
 			}
 		}
 	}
+
 	return spanIDs, parentIDs
 }
 
 type dkTags struct {
 	// 配置文件中的黑名单配置，通过正则过滤数据中的标签
 	regexpString string
-
 	// 配置文件中的全局标签
 	globalTags map[string]string
-
 	// 从span中获取的attribute 放到tags中
 	tags map[string]string
-
 	// 将`.`替换成`_`之后的map,防止二次遍历查找key,所以两者不可用一个map
 	replaceTags map[string]string
 }
@@ -243,8 +251,7 @@ func (dt *dkTags) getAttributeVal(keyName string) (string, bool) {
 
 func (dt *dkTags) getResourceType() string {
 	// 从 tag 中判断 span resource 类型，app、db、cache 等
-	for key, val := range dt.tags {
-		log.Debugf("tag = %s val =%s", key, val)
+	for key := range dt.tags {
 		switch key {
 		case string(semconv.HTTPSchemeKey), string(semconv.HTTPMethodKey):
 			return itrace.SPAN_SOURCE_WEB
@@ -263,6 +270,7 @@ func byteToString(bts []byte) string {
 	if hexCode == "" {
 		return "0"
 	}
+
 	return hexCode
 }
 
@@ -277,9 +285,9 @@ func getDKSpanStatus(statuspb *tracepb.Status) string {
 		status = itrace.STATUS_OK
 	case tracepb.Status_STATUS_CODE_ERROR:
 		status = itrace.STATUS_ERR
-
 	default:
 	}
+
 	return status
 }
 

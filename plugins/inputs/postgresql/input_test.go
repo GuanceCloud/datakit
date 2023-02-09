@@ -357,3 +357,56 @@ func TestTime(t *testing.T) {
 
 	fmt.Println("ok")
 }
+
+func TestInput_setHostIfNotLoopback(t *testing.T) {
+	tests := []struct {
+		name     string
+		address  string
+		expected string
+	}{
+		{
+			name:     "empty",
+			address:  "postgresql://",
+			expected: "",
+		},
+		{
+			name:     "loopback",
+			address:  "postgresql://localhost",
+			expected: "",
+		},
+		{
+			name:     "loopback",
+			address:  "postgresql://127.0.0.1",
+			expected: "",
+		},
+		{
+			name:     "normal",
+			address:  "postgresql://192.168.1.1:5432",
+			expected: "192.168.1.1",
+		},
+		{
+			name:     "with credentials",
+			address:  "postgresql://user:secret@192.168.1.1",
+			expected: "192.168.1.1",
+		},
+		{
+			name:     "with params and credentials",
+			address:  "postgresql://other@192.168.1.1/otherdb?connect_timeout=10&application_name=myapp",
+			expected: "192.168.1.1",
+		},
+		{
+			name:     "with params",
+			address:  "postgresql://192.168.1.1/mydb?user=other&password=secret",
+			expected: "192.168.1.1",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ipt := &Input{
+				Address: tt.address,
+			}
+			ipt.setHostIfNotLoopback()
+			assert.Equal(t, tt.expected, ipt.host)
+		})
+	}
+}

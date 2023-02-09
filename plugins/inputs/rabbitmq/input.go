@@ -9,8 +9,8 @@ package rabbitmq
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/url"
-	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -99,7 +99,7 @@ func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("rabbitmq start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
-	if err := n.setHost(); err != nil {
+	if err := n.setHostIfNotLoopback(); err != nil {
 		l.Errorf("failed to set host from url: %v", err)
 	}
 	client, err := n.createHTTPClient()
@@ -154,15 +154,18 @@ func (n *Input) Run() {
 	}
 }
 
-func (n *Input) setHost() error {
-	if strings.Contains(n.URL, "127.0.0.1") || strings.Contains(n.URL, "localhost") {
-		return nil
-	}
+func (n *Input) setHostIfNotLoopback() error {
 	uu, err := url.Parse(n.URL)
 	if err != nil {
 		return err
 	}
-	n.host = uu.Host
+	host, _, err := net.SplitHostPort(uu.Host)
+	if err != nil {
+		return err
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		n.host = host
+	}
 	return nil
 }
 

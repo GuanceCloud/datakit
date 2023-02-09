@@ -1,29 +1,28 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# Python 示例
+
+# Python Example
 ---
 
-## 安装依赖 {#dependence}
+## Install Dependency {#dependence}
 
-安装 Python Flask
+Installing Python Flask
 
 ```shell
 pip install flask
 ```
 
-安装 DDTrace Python 函数库
+Installing DDTrace Python Function Library
 
 ```shell
 pip install ddtrace
 ```
 
-**Note:** 这条命令需要 pip 版本 18.0.0 或更高。 对于 Ubuntu, Debian 或其他的包管理工具, 使用下面的命令升级 pip 版本:
+**Note:** This command requires pip version 18.0. 0 or higher. For Ubuntu, Debian, or other package management tools, upgrade the pip version using the following command:
 
 ```shell
 pip install --upgrade pip
 ```
 
-## 代码示例 {#example}
+## Code Example {#example}
 
 **service_a.py**
 
@@ -80,16 +79,16 @@ def stop():
     shutdown_server()
     return 'Server shutting down...\n'
 
-# 启动 service B: HTTP 服务启动在 54322 端口上
+# Start service B: The HTTP service starts on port 54322
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=54322, debug=True)
 ```
 
-## 运行 {#run}
+## Run {#run}
 
-这里以 Python 中常用的 Webserver Flask 应用为例。示例中 `SERVICE_A` 提供 HTTP 服务，并且调用 `SERVICE_B` HTTP 服务。
+Take the Webserver Flask application commonly used in Python as an example. In the example, `SERVICE_A` provides the HTTP service and calls the `SERVICE_B` HTTP service.
 
-**运行 SERVICE_A**
+**Run SERVICE_A**
 
 ```shell
 DD_SERVICE=SERVICE_A \
@@ -100,7 +99,7 @@ DD_AGENT_PORT=9529 \
 ddtrace-run python3 service_a.py &> a.log &
 ```
 
-**运行 SERVICE_B**
+**Run SERVICE_B**
 
 ```shell
 DD_SERVICE=SERVICE_B \
@@ -111,26 +110,26 @@ DD_AGENT_PORT=9529 \
 ddtrace-run python3 service_b.py &> b.log &
 ```
 
-调用 A 服务，促使其调用 B 服务，这样就能产生对应 trace 数据（此处可多次执行触发）
+Invoke the A service, causing it to invoke the B service, which produces the corresponding trace data (here you can perform multiple triggers)
 
 ```shell
 curl http://localhost:54321/a
 ```
 
-分别停止两个服务
+Stop both services separately
 
 ```shell
 curl http://localhost:54321/stop
 curl http://localhost:54322/stop
 ```
 
-## 环境变量支持 {#envs} 
+## Environment Variable Support {#envs} 
 
-- DD_ENV: 为服务设置环境变量。
-- DD_VERSION: APP 版本号。
-- DD_SERVICE: 用于设置应用程序的服务名称，在为 Pylons、Flask 或 Django 等 Web 框架集成设置中间件时，会传递该值。 对于没有 Web 集成的 Tracing，建议您在代码中设置服务名称。
-- DD_SERVICE_MAPPING: 定义服务名映射用于在 Tracing 里重命名服务。
-- DD_TAGS: 为每个 Span 添加默认 Tags。
-- DD_AGENT_HOST: Datakit 监听的地址名，默认 localhost。
-- DD_AGENT_PORT: Datakit 监听的端口号，默认 9529。
-- DD_TRACE_SAMPLE_RATE: 设置采样率从 0.0(0%) ~ 1.0(100%)。
+- DD_ENV: Set environment variables for the service.
+- DD_VERSION: APP version number.
+- DD_SERVICE: The service name used to set the application, which is passed when setting up middleware for Web framework integration such as Pylons, Flask, or Django. For Tracing without Web integration, it is recommended that you set the service name in your code.
+- DD_SERVICE_MAPPING: Define service name mappings for renaming services in Tracing.
+- DD_TAGS: Add default Tags for each Span.
+- DD_AGENT_HOST: The name of the address where Datakit listens, default localhost.
+- DD_AGENT_PORT: The port number on which Datakit listens, the default is 9529.
+- DD_TRACE_SAMPLE_RATE: Set the sampling rate from 0.0 (0%) to 1.0 (100%).

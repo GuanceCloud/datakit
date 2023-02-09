@@ -1,11 +1,10 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
 
-# Pipeline 各类别数据处理
+
+# Pipeline Category Data Processing
 
 ---
 
-自 DataKit v1.4.0 起，可通过内置的 Pipeline 功能直接操作 DataKit 采集数据，支持的类别如下:
+Since DataKit v1.4.0, DataKit can be directly manipulated to collect data through the built-in Pipeline function, and the supported categories are as follows:
 
 - CustomObject
 - Keyevent
@@ -17,102 +16,102 @@
 - Security
 - Tracing
 
-> 注意：
+> Note:
 >
-> - Pipeline 应用到所有数据，目前处于实验阶段，不保证后面会对机制或行为做不兼容的调整。
-> - 即使是通过 [DataKit API](../datakit/apis.md) 上报的数据也支持 Pipeline 处理。
-> - 用 Pipeline 对现有采集的数据进行处理（特别是非日志类数据），极有可能破坏已有的数据结构，导致数据在观测云上表现异常
-> - 应用 Pipeline 之前，请大家务必使用 [Pipeline 调试工具](datakit-pl-how-to.md)确认数据处理是否符合预期
+> - Pipeline is applied to all data and is currently in the experimental stage, so there is no guarantee that incompatible adjustments will be made to the mechanism or behavior later.
+> - Even data reported through the [DataKit API](apis.md) supports Pipeline processing.
+> - Using Pipeline to process the existing data (especially non-log data) may destroy the existing data structure and lead to abnormal performance of the data on Guance Cloud.
+> - Before applying Pipeline, be sure to use the [Pipeline debugging tool](datakit-pl-how-to.md) to confirm that the data processing is as expected.
 
-Pipeline 可以对 DataKit 采集的数据执行如下操作：
+Pipeline can do the following on the data collected by DataKit:
 
-- 新增、删除、修改 field 和 tag 的值或数据类型
-- 将 field 变更为 tag
-- 修改指标集名字
-- 丢弃当前数据（[drop()](pipeline.md#fn-drop)）
-- 终止 Pipeline 脚本的运行（[exit()](pipeline.md#fn-exit)）
+- Add, delete, and modify the values or data types of field and tag
+- Change field to tag
+- Modify measurment name
+- Drop current data（[drop()](pipeline.md#fn-drop)）
+- Terminate the run of the Pipeline script（[exit()](pipeline.md#fn-exit)）
 - ...
 
-## Pipeline 脚本存储、加载与选择 {#loading}
+## Pipeline Script Storage, Loading and Selection {#loading}
 
-当前 DataKit 支持三类 Pipeline：
+Currently, DataKit supports three types of Pipeline:
 
-1. 远程 Pipeline：位于 _<datakit 安装目录>/pipeline_remote_ 目录下
-1. Git 管理的 Pipeline：位于 _<datakit 安装目录>/gitrepos/<git 仓库名>_ 目录下
-1. 安装时自带的 Pipeline：位于 _<datakit 安装目录>/pipeline_ 目录下
+1. Remote Pipeline: Under _<datakit 安装目录>/pipeline_remote_ directory
+2. Git managed Pipeline: under _<datakit 安装目录>/gitrepos/<git 仓库名>_ directory
+3. Pipeline that comes with the installation: _<datakit 安装目录>/pipeline_ directory
 
-以上三类 Pipeline 目录均按照如下方式来存放 Pipeline 脚本：
+The above three types of Pipeline directories store Pipeline scripts as follows:
 
 ```
-├── pattern   <-- 专门存放自定义 pattern 的目录
+├── pattern   <-- dedicated to custom patterns
 ├── apache.p
 ├── consul.p
-├── sqlserver.p        <--- 所有顶层目录下的 Pipeline 默认作用于日志，以兼容历史设定
+├── sqlserver.p        <--- pipeline in all top-level directories defaults to logs for compatibility with history settings
 ├── tomcat.p
 ├── other.p
-├── custom_object      <--- 专用于自定义对象的 pipeline 存放目录
+├── custom_object      <--- dedicated pipeline storage directory for custom objects
 │   └── some-object.p
-├── keyevent           <--- 专用于事件的 pipeline 存放目录
+├── keyevent           <--- pipeline storage directory dedicated to events
 │   └── some-event.p
-├── logging            <--- 专用于日志的 pipeline 存放目录
+├── logging            <--- pipeline storage directory dedicated to logs
 │   └── nginx.p
-├── metric             <--- 专用于时序指标的 pipeline 存放目录
+├── metric             <--- dedicated pipeline storage directory for time series metrics
 │   └── cpu.p
-├── network            <--- 专用于网络指标的 pipeline 存放目录
+├── network            <--- pipeline directory dedicated to network metrics
 │   └── ebpf.p
-├── object             <--- 专用于对象的 pipeline 存放目录
+├── object             <--- object-specific pipeline storage directory
 │   └── HOST.p
-├── rum                <--- 专用于 RUM 的 pipeline 存放目录
+├── rum                <--- pipeline storage directory dedicated to RUM
 │   └── error.p
-├── security           <--- 专用于 scheck 的 pipeline 存放目录
+├── security           <--- pipeline storage directory dedicated to scheck
 │   └── scheck.p
-└── tracing            <--- 专用于 APM 的 pipeline 存放目录
+└── tracing            <--- pipeline storage directory dedicated to APM
     └── service_a.p
 ```
 
-### 脚本的自动生效规则 {#auto-apply-rules}
+### Autoeffective Rules for Scripts {#auto-apply-rules}
 
-上面的目录设定中，我们将应用于不同数据分类的 Pipeline 分别存放在对应的目录下，对 DataKit 而言，一旦采集到某类数据，会自动应用对应的 Pipeline 脚本进行处理。对不同类数据而言，其应用规则也有差异。主要分为几类：
+In the above directory setting, we store Pipeline applied to different data classifications in corresponding directories. For DataKit, the corresponding Pipeline script will be automatically applied for processing once a certain type of data is collected. For different types of data, their application rules are also different. It is mainly divided into several categories:
 
-1. 以特定的行协议标签名（tag）来匹配对应的 Pipeline：
-   1. 对 Tracing 与 Profiling 类别数据而言，以标签 `service` 的值来自动匹配 Pipeline。例如，DataKit 采集到一条数据，如果行协议上其 `service` 值为 `service-a`，则会将该数据送给 _tracing/service-a.p_ | _profiling/service-a.p_ 处理。
-   1. 对于 SECURITY (scheck) 类数据而言，以标签 `category` 的值来自动匹配 Pipeline。例如，DataKit 接收到一条 SECURITY 数据，如果行协议上其 `category` 值为 `system`，则会将该数据送给 _security/system.p_ 处理。
-1. 以特定的行协议标签名 (tag) 和指标集名来匹配对应的 Pipeline: 对 RUM 类数据而言，以标签名 `app_id` 的值和指标集 `action` 为例，会自动应用 `rum/<app_id>_action.p`;
-1. 以行协议指标集名称来匹配对应的 Pipeline：其它类数据，均以行协议的指标集来匹配 Pipeline。以时序指标集 `cpu` 为例，会自动应用 _metric/cpu.p_；而对主机对象而言，会自动应用 _object/HOST.p_。
+1. Match the corresponding Pipeline with a specific line protocol tag name (tag):
+   1. For Tracing and Profiling class data, Pipeline is automatically matched with the value of the label `service` 的值来自动匹配 Pipeline For example, DataKit collects a piece of data that, if the `service` value on the line protocol is `service-a`, will be sent to _tracing/service-a.p_ | _profiling/service-a.p_ for processing.
+   1. For SECURITY (scheck) class data, Pipeline is automatically matched with the value of the label `category` . For example, DataKit receives a piece of security data that is sent to _security/system.p_ for processing if its `category` value on the line protocol is `system`.
+1. Matching the corresponding Pipeline with a specific line protocol label name (tag) and measurement name: for rum class data, taking the value of label name `app_id` and measurement `action` as an example, `rum/<app_id>_action.p` will be automatically applied;
+1. Matching the corresponding Pipeline with the name of the line protocol measurement: For other class data, all match the Pipeline with the line protocol measurement. Taking the timeseries measurement `cpu` as an example, _metric/cpu.p_ will be automatically applied; For host objects, _object/HOST.p_ will be automatically applied.
 
-所以，我们可以在对应的目录下，通过适当方式， 可添加对应的 Pipeline 脚本，实现对采集到的数据进行 Pipeline 处理。
+Therefore, we can add corresponding Pipeline scripts in the corresponding directory in an appropriate way to realize Pipeline processing of the collected data.
 
-### Pipeline 选择策略 {#apply-priority}
+### Pipeline Selection Policy {#apply-priority}
 
-目前 pl 脚本按来源划分为三个分类， 在 DataKit 安装目录下分别为：
+At present, pl scripts are divided into three categories according to their sources, which are as follows under the DataKit installation directory:
 
 1. _pipeline_remote_
 1. _gitrepo_
 1. _pipeline_
 
-DataKit 在选择对应的 Pipeline 时，这三类的加载优先级是递减的。以 `cpu` 指标集为例，当需要 _metric/cpu.p_ 时，DataKit 加载顺序如下：
+When DataKit selects the corresponding Pipeline, the loading priority of these three categories is decreasing. Taking the `cpu` measurement as an example, when _metric/cpu.p_ is required, the DataKit is loaded in the following order:
 
 1. `pipeline_remote/metric/cpu.p`
 1. `gitrepo/<repo-name>/metric/cpu.p`
 1. `pipeline/metric/cpu.p`
 
-> 注：此处 `<repo-name>` 视大家 git 的仓库名而定。
+> Note: `<repo-name>` here depends on the warehouse name of your git.
 
-## Pipeline 运行情况查看 {#monitor}
+## Pipeline Running View {#monitor}
 
-大家可以通过 DataKit monitor 功能获取每个 Pipeline 的运行情况：
+You can get the running status of each Pipeline through the DataKit monitor function:
 
 ```shell
 datakit monitor -V
 ```
 
-## Pipeline 处理示例 {#examples}
+## Pipeline Processing Sample {#examples}
 
-> 示例脚本仅供参考，具体使用请根据需求编写
+> The sample script is for reference only. Please write it according to the requirements for specific use.
 
-### 处理时序数据 {#M}
+### Processing Timeseries Data {#M}
 
-以下示例用于展示如何通过 Pipeline 来修改 tag 和 field。通过 DQL，我们可以得知一个 CPU 指标集的字段如下：
+The following example is used to show how to modify tag and field with Pipeline. With DQL, we can know the fields of a CPU measurement as follows:
 
 ```shell
 dql > M::cpu{host='u'} LIMIT 1
@@ -135,7 +134,7 @@ usage_guest_nice 0
 ---------
 ```
 
-编写如下 Pipeline 脚本，
+Write the following Pipeline script,
 
 ```python
 # file pipeline/metric/cpu.p
@@ -145,7 +144,7 @@ set_tag(host2, host)
 usage_guest = 100.1
 ```
 
-重启 DataKit 后，新数据采集上来，通过 DQL 我们可以得到如下修改后的 CPU 指标集：
+After restarting DataKit, new data is collected, and we can get the following modified CPU measurement through DQL:
 
 ```shell
 dql > M::cpu{host='u'}[20s] LIMIT 1
@@ -153,10 +152,10 @@ dql > M::cpu{host='u'}[20s] LIMIT 1
 core_temperature 54.250000
              cpu 'cpu-total'
             host 'u'
-           host2 'u'                        <--- 新增的 tag
-          script 'metric::cpu.p'            <--- 新增的 tag
+           host2 'u'                        <---   added tag
+          script 'metric::cpu.p'            <--- added tag
             time 2022-05-31 12:49:15 +0800 CST
-     usage_guest 100.100000                 <--- 改写了具体的 field 值
+     usage_guest 100.100000                 <--- overwrites the specific field value
 usage_guest_nice 0
       usage_idle 94.251269
     usage_iowait 0.012690
@@ -170,9 +169,9 @@ usage_guest_nice 0
 ---------
 ```
 
-### 处理对象数据 {#O}
+### Processing Object Data {#O}
 
-以下 Pipeline 示例用于展示如何丢弃（过滤）数据。以 Nginx 进程为例，当前主机上的 Nginx 进程列表如下：
+The following Pipeline example is used to show how to discard (filter) data. Taking Nginx processes as an example, the list of Nginx processes on the current host is as follows:
 
 ```shell
 $ ps axuwf | grep  nginx
@@ -187,7 +186,7 @@ www-data    1286  0.0  0.0  55856  5212 ?        S    10:10   0:00  \_ nginx: wo
 www-data    1287  0.0  0.0  55856  5212 ?        S    10:10   0:00  \_ nginx: worker process
 ```
 
-通过 DQL 我们可以知道，一个具体进程的指标集字段如下：
+From DQL, we can know that the measurement fields of a specific process are as follows:
 
 ```shell
 dql > O::host_processes:(host, class, process_name, cmdline, pid) {host='u', pid=1278}
@@ -201,13 +200,13 @@ process_name 'nginx'
 ---------
 ```
 
-编写如下 Pipeline 脚本：
+Write the following Pipeline script:
 
 ```python
 if process_name == "nginx" {
-    drop()  # drop() 函数将该数据标记为待丢弃，且执行后会继续运行 pl
-    exit()  # 可通过 exit() 函数终止 Pipeline 运行
+    drop()  # drop() function marks the data to be discarded and continues running pl after execution
+    exit()  # terminates Pipeline with the exit () function
 }
 ```
 
-重启 DataKit 后，对应的 Ngxin 进程对象就不会再采集上来（中心对象有个过期策略，需等 5~10min 让原 nginx 对象自动过期）。
+After restarting DataKit, the corresponding Ngxin process object will not be collected again (the central object has an expiration policy, and it takes 5 ~ 10min for the original nginx object to automatically expire).

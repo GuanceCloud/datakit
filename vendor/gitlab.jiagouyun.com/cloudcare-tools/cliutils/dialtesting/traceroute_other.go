@@ -274,18 +274,13 @@ func (t *Traceroute) listenICMP() error {
 			deadLine = time.Now().Add(t.Timeout)
 		}
 
-		if err := conn.SetDeadline(deadLine); err != nil {
-			return err
-		}
+		_ = conn.SetDeadline(deadLine)
 
-		if n, from, err := conn.ReadFromIP(buf); err != nil {
-			return err
-		} else {
-			t.receivePacketsCh <- &receivePacket{
-				from:           from,
-				packetRecvTime: time.Now(),
-				buf:            buf[:n],
-			}
+		n, from, _ := conn.ReadFromIP(buf)
+		t.receivePacketsCh <- &receivePacket{
+			from:           from,
+			packetRecvTime: time.Now(),
+			buf:            buf[:n],
 		}
 	}
 }

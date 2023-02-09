@@ -17,9 +17,9 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// 非英语环境下，对于低版本 Windows 操作系统
-// 测试可能失败，
-// 原因是性能计数器名被本地化
+// In a non-English environment, for lower versions of Windows operating systems
+// test may fail,
+// The reason is that performance counter names are localized
 func TestPerfObjMetricMap(t *testing.T) {
 	for _, counterMap := range PerfObjMetricMap {
 		for k, v := range counterMap {

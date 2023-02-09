@@ -185,7 +185,7 @@ func (i *Input) Collect() error {
 			// measurement name -> instance name -> metric name -> counter query handle list index
 			indexMap := map[string]map[string]map[string]int{mName: {}}
 
-			// counter name 被本地化，无法使用
+			// counter name is localized and cannot be used
 			instanceList, _, ret := pdh.PdhEnumObjectItems(objName)
 			if ret != uint32(windows.ERROR_SUCCESS) {
 				return fmt.Errorf("failed to enumerate the instance and counter of object %s", objName)

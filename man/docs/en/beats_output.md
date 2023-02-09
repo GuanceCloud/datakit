@@ -1,42 +1,41 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # Filebeat
 ---
 
-{{.AvailableArchs}}
+:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
 
 ---
 
-本文档主要介绍 [Elastic Beats](https://www.elastic.co/products/beats/){:target="_blank"} 数据采集。目前支持:
+This document focuses on [Elastic Beats](https://www.elastic.co/products/beats/){:target="_blank"} data collection. Current support:
 
 - [Filebeat](https://www.elastic.co/beats/filebeat/){:target="_blank"}
-- [下载地址](http://www.elastic.co/cn/downloads/past-releases/filebeat-7-17-3){:target="_blank"}
+- [Download Address](http://www.elastic.co/cn/downloads/past-releases/filebeat-7-17-3){:target="_blank"}
 
-## 配置采集器 {#config-input}
+## Configure the Collector {#config-input}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    
+    After configuration, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap Mode Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).
 
 ---
-    
+
 ???+ attention
 
-    上面配置的 `inputs.beats_output.tags` 中如果与原始 fields 中的 key 同名重复，则会被原始数据覆盖。
+    If the `inputs.beats_output.tags` configured above duplicates the key in the original fields with the same name, it will be overwritten by the original data.
 
-### 配置 Filebeat {#config-filebeat}
+### Configure Filebeat {#config-filebeat}
 
-将 Filebeat 安装目录下的 `filebeat.yml` 配置如下。
+Configure `filebeat.yml` in the Filebeat installation directory as follows.
 
 - `filebeat.inputs`
 
@@ -66,11 +65,11 @@ output.logstash:
   hosts: ["<Datakit-IP>:5044"]
 ```
 
-这里的 `5044` 端口要与 `<Datakit 安装目录>/conf.d/beats_output/beats_output.conf` 中配置的 `listen` 端口一致。
+Port `5044` here should be consistent with the `listen` port configured in `<Datakit Installation Directory>/conf.d/beats_output/beats_output.conf`.
 
-这样就实现 Filebeat 采集日志文件 `/Users/mac/Downloads/tmp/1.log` 上报到 Datakit 了。
+In this way, the Filebeat collection log `/Users/mac/Downloads/tmp/1.log` is reported to Datakit.
 
-需要注意的是，**需要将 elasticsearch 的配置 9200 端口给注释掉**，完整的 *filebeat.yml* 文件如下:
+It should be noted that **the configuration port 9200 of elasticsearch needs to be commented out**, and the complete *filebeat.yml* file is as follows:
 
 ```yml
 #--------------------- Filebeat Configuration Example ------------------------#
@@ -301,16 +300,18 @@ processors:
 #migration.6_to_7.enabled: true
 ```
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-以下所有数据采集, 默认会追加名为 `host`(值为 Filebeat 所在主机名) 和 `filepath`(值为 Filebeat 采集文件的全路径) 的全局 tag, 也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签:
+All of the following data collections are appended by default with global tags named `host` (the value is the host name where Filebeat is located) and `filepath` (the value is the full path of the Filebeat collection file), or other tags can be specified in the configuration through `[inputs.beats_output.tags]`.
 
 ``` toml
- [inputs.{{.InputName}}.tags]
+ [inputs.beats_output.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
 ```
+
+
 
 {{ range $i, $m := .Measurements }}
 
@@ -318,16 +319,18 @@ processors:
 
 {{$m.Desc}}
 
--  标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} 
+{{ end }}
 
-## 其它 {#others}
+## 
 
-此接收器与日志采集器很相似，Pipeline 语法方面可参考[日志采集器](logging.md)。
+## Others {#others}
+
+This receiver is similar to a log collector, which you can refer to for [Pipeline syntax](logging.md).

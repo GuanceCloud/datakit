@@ -4,36 +4,36 @@ prom 采集器可以获取各种Prometheus Exporters的监控数据，用户只�
 ### 配置
 ```
 [[inputs.prom]]
-  ## Exporter 地址
+  # Exporter URLs.
   url = "http://127.0.0.1:9100/metrics"
 
-  ## 指标类型过滤, 可选值为 counter, gauge, histogram, summary
-  # 默认只采集 counter 和 gauge 类型的指标
-  # 如果为空，则不进行过滤
+  ## Metrics type whitelist. Optional: counter, gauge, histogram, summary
+  # Default only collect 'counter' and 'gauge'.
+  # Collect all if empty.
   metric_types = ["counter", "gauge"]
 
-  ## 指标名称过滤
-  # 支持正则，可以配置多个，即满足其中之一即可
-  # 如果为空，则不进行过滤
+  ## Metrics name whitelist.
+  # Regex supported. Multi supported, conditions met when one matched.
+  # Collect all if empty.
   # metric_name_filter = ["cpu"]
 
-  ## 指标集名称前缀
-  # 配置此项，可以给指标集名称添加前缀
+  ## Measurement prefix.
+  # Add prefix to measurement set name.
   measurement_prefix = "prom_"
 
-  ## 指标集名称
-  # 默认会将指标名称以下划线"_"进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称
-  # 如果配置`measurement_name`, 则不进行指标名称的切割
-  # 最终的指标集名称会添加上`measurement_prefix`前缀
+  ## Measurement name.
+  # If measurement_name is empty, split metric name by '_', the first field after split as measurement set name, the rest as current metric name.
+  # If measurement_name is not empty, using this as measurement set name.
+  # Always add 'measurement_prefix' prefix at last.
   # measurement_name = "prom"
 
-  ## 自定义指标集名称
-  # 可以将名称满足指定`pattern`的指标归为一类指标集
-  # 自定义指标集名称配置优先`measurement_name`配置项
+  ## Customize measurement set name.
+  # Treat those metrics with prefix as one set.
+  # Prioritier over 'measurement_name' configuration.
   #[[inputs.prom.measurements]]
-  #  名称匹配, 支持正则
+  #  Name match, supports Regex.
   #  pattern = "cpu"
-  #  指标集名称
+  #  Measurement set name
   #  name = "prom_cpu"
 
   # [[inputs.prom.measurements]]
@@ -41,16 +41,16 @@ prom 采集器可以获取各种Prometheus Exporters的监控数据，用户只�
   # pattern = "mem"
   # name = "mem"
 
-  ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  ## Collect interval, support "ns", "us" (or "µs"), "ms", "s", "m", "h".
   interval = "10s"
   
-  ## TLS 配置
+  ## TLS configuration.
   tls_open = false
   # tls_ca = "/tmp/ca.crt"
   # tls_cert = "/tmp/peer.crt"
   # tls_key = "/tmp/peer.key"
 
-  ## 自定义Tags
+  ## Customize tags.
   [inputs.prom.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"

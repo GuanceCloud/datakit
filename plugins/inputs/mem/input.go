@@ -75,18 +75,18 @@ func (m *memMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
 		Fields: map[string]interface{}{
-			"total":             NewFieldInfoB("Total amount of memory"),
-			"available":         NewFieldInfoB("Amount of available memory"),
-			"available_percent": NewFieldInfoP("Available memory percent"),
-			"used":              NewFieldInfoB("Amount of used memory"),
-			"used_percent":      NewFieldInfoP("Used memory percent"),
+			"total":             NewFieldInfoB("Total amount of memory."),
+			"available":         NewFieldInfoB("Amount of available memory."),
+			"available_percent": NewFieldInfoP("Available memory percent."),
+			"used":              NewFieldInfoB("Amount of used memory."),
+			"used_percent":      NewFieldInfoP("Used memory percent."),
 			"active": NewFieldInfoB("Memory that has been used more recently and usually " +
 				"not reclaimed unless absolutely necessary. (Darwin, Linux)"),
-			"free": NewFieldInfoB("Amount of free memory(Darwin, Linux)"),
+			"free": NewFieldInfoB("Amount of free memory. (Darwin, Linux)"),
 			"inactive": NewFieldInfoB("Memory which has been less recently used.  It is " +
 				"more eligible to be reclaimed for other purposes. (Darwin, Linux)"),
-			"wired":    NewFieldInfoB("wired (Darwin)"),
-			"buffered": NewFieldInfoB("buffered (Linux)"),
+			"wired":    NewFieldInfoB("Wired. (Darwin)"),
+			"buffered": NewFieldInfoB("Buffered. (Linux)"),
 			"cached":   NewFieldInfoB("In-memory cache for files read from the disk. (Linux)"),
 			"commit_limit": NewFieldInfoB("This is the total amount of memory currently " +
 				"available to be allocated on the system. (Linux)"),
@@ -101,7 +101,7 @@ func (m *memMeasurement) Info() *inputs.MeasurementInfo {
 			"low_total":       NewFieldInfoB("Total amount of lowmem. (Linux)"),
 			"mapped":          NewFieldInfoB("Files which have been mapped into memory, such as libraries. (Linux)"),
 			"page_tables":     NewFieldInfoB("Amount of memory dedicated to the lowest level of page tables. (Linux)"),
-			"shared":          NewFieldInfoB("Amount of shared memory (Linux)"),
+			"shared":          NewFieldInfoB("Amount of shared memory. (Linux)"),
 			"slab":            NewFieldInfoB("In-kernel data structures cache. (Linux)"),
 			"sreclaimable":    NewFieldInfoB("Part of Slab, that might be reclaimed, such as caches. (Linux)"),
 			"sunreclaim":      NewFieldInfoB("Part of Slab, that cannot be reclaimed on memory pressure. (Linux)"),
@@ -115,7 +115,7 @@ func (m *memMeasurement) Info() *inputs.MeasurementInfo {
 			"write_back_tmp":  NewFieldInfoB("Memory used by FUSE for temporary writeback buffers. (Linux)"),
 		},
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "主机名"},
+			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
 	}
 }

@@ -1,30 +1,29 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# Cloudprober 接入
+
+# Cloudprober Access
 ---
 
 :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
 
 ---
 
-Cloudprober 是一个开源的跟踪和监控应用程序。DataKit 通过简单的配置即可接入 Cloudprober 采集的数据集。
+Cloudprober is an open source tracking and monitoring application. The DataKit can be easily configured to access the data set collected by Cloudprober.
 
-## Cloudprober 安装 {#install}
+## Cloudprober Installation {#install}
 
-以 Ubuntu `cloudprober-v0.11.2` 为例，下载如下，其他版本或系统参见[下载页面](https://github.com/google/cloudprober/releases){:target="_blank"}：
+Take Ubuntu `cloudprober-v0.11.2` as an example. Download way as follows. See [Download Page](https://github.com/google/cloudprober/releases){:target="_blank"}：
 
 ```shell
 curl -O https://github.com/google/cloudprober/releases/download/v0.11.2/cloudprober-v0.11.2-ubuntu-x86_64.zip
 ```
 
-解压缩
+Unzip
 ```shell
 unzip cloudprober-v0.11.2-ubuntu-x86_64.zip
 ```
 
-## Cloudprober 配置 {#config}
+## Cloudprober Configuration {#config}
 
-以探测百度为例,创建一个 `cloudprober.cfg` 文件并写入：
+Take probing Baidu as an example, create a  `cloudprober.cfg` file and write it:
 
 ```
 probe {
@@ -38,21 +37,21 @@ probe {
 }
 ```
 
-## 运行 Cloudprober  {#start}
+## Running Cloudprober  {#start}
 
 ```shell
 ./cloudprober --config_file /your_path/cloudprober.cfg
 ```
 
-## 开启采集器 {#enable-input}
+## Turning on the Collector {#enable-input}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/cloudprober` 目录，复制 `cloudprober.conf.sample` 并命名为 `cloudprober.conf`。示例如下：
+    Go to the `conf.d/cloudprober` directory under the DataKit installation directory, copy `cloudprober.conf.sample` and name it `cloudprober.conf`. Examples are as follows:
     
     ```toml
     [[inputs.cloudprober]]
-        # Cloudprober 默认指标路由（prometheus format）
+        # Cloudprober default metric route（prometheus format）
         url = "http://localhost:9313/metrics" 
     
         # ##(optional) collection interval, default is 5s
@@ -70,10 +69,11 @@ probe {
           # a = "b"`
     
     ```
-    
-    
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+
+
+​    
+    After confuguration, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).

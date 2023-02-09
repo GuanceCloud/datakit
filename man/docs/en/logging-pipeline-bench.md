@@ -1,54 +1,53 @@
-<!-- This file required to translate to EN. -->
-# DataKit 日志采集器性能测试
+# DataKit Performance Test of Log Collector
 ---
 
-## 环境和工具 {#env-tools}
+## Environment and Tools {#env-tools}
 
-- 操作系统：Ubuntu 20.04.2 LTS
+- Operating system: Ubuntu 20.04.2 LTS
 - CPU：Intel(R) Core(TM) i5-7500 CPU @ 3.40GHz
-- 内存：16GB  Speed 2133 MT/s
+- Memory: 16GB  Speed 2133 MT/s
 - DataKit：1.1.8-rc1
-- 日志文本（nginx access log）： 
+- Log text (nginx access log): 
 ```
 172.17.0.1 - - [06/Jan/2017:16:16:37 +0000] "GET /datadoghq/company?test=var1%20Pl HTTP/1.1" 401 612 "http://www.perdu.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36" "-"
 ```
-- 日志数量：10w 行
-- 使用 pipeline：见后文
+- Number of logs: 10w lines
+- Using pipeline: See below
 
-## 测试结果 {#result}
+## Test Result {#result}
 
-| 测试条件                                                                                                   | 耗时   |
+| Test Conditions                                                                                                   | Time Consuming   |
 | :--                                                                                                        | ---    |
-| 不使用 pipeline，纯日志文本处理（包括编码、多行和字段检测等）                                              | 3秒63  |
-| 使用完整版的 pipeline（见附录一）                                                                          | 43秒70 |
-| 使用单一匹配的 pipeline，与完整版相比舍弃多种匹配格式，例如 nginx error log，只针对 access log（见附录二） | 16秒91 |
-| 使用优化过的单一匹配 pipeline，替换性能消耗多的 pattern（见附录三）                                        | 4秒40  |
+| No pipeline, pure log text processing (including encoding, multi-line, field detection and so on)                                              | 3.63 seconds  |
+| Use the full pipeline (see Appendix I)                                                                          | 43.70 seconds|
+| Use a single matching pipeline instead of multiple matching formats, such as nginx error log, as compared to the full version, for access log only (see Appendix II) | 16.91 seconds |
+| Replace the performance-intensive pattern with an optimized single matching pipeline (see Appendix III)                                        | 4.40 seconds |
 
 
-注：
-> pipeline 耗时期间，CPU 单核心满负载运行，使用率持续在 100% 左右，当 10w 条日志处理结束时 CPU 回落
+Note:
+> pipeline time-consuming period, the CPU single core runs at full load, the utilization rate continues at about 100%, and the CPU falls back when the 10w log processing is finished
 
-> 测试期间内存消耗稳定，没有明显的使用率增加
+> Memory consumption was stable during the test, with no significant increase in usage
 
-> 耗时为 DataKit 程序计算，不同环境下可能会有偏差
+> Time-consuming computation for DataKit programs, which may be biased in different environments
 
-## 对比 {#compare}
+## Comparison {#compare}
 
-使用 Fluentd 对同样 10w 行日志进行采集，CPU 使用率在 3秒内从 43% 升至 77% 然后回落，可以预见此时已经处理结束。
+Using Fluentd to capture the same 10w row log, CPU utilization increased from 43% to 77% in 3 seconds and then dropped, which can be predicted to be the end of processing.
 
-因 Fluentd 存在 metadate 缓存机制，分批次输出结果，所以无法确切计算究竟耗时多少。
+As Fluentd has a metadate caching mechanism, which outputs results in batches, it is impossible to calculate exactly how much time it takes.
 
-Fluentd 的 pipeline 匹配模式单一，没有进行同数据源多格式的 pipeline（例如 nginx 只支持 access log 而不支持 error log）。
+Fluentd's pipeline matching pattern is single, and there is no pipeline with multiple formats of the same data source (for example, nginx only supports access log but not error log).
 
-## 结论 {#conclusion}
+## Conclusion {#conclusion}
 
-DataKit 日志采集，在 pipeline 单一匹配模式下，处理耗时和 Fluentd 相差 30% 左右。
+In pipeline single matching mode, DataKit log collection processing time is about 30% different from Fluentd.
 
-但是如果使用完整版全量匹配 pipeline，耗时剧增。
+However, if you use the full version of the full matching pipeline, the time consumption increases dramatically.
 
-## 附录（pipeline） {#appendix}
+## Appendix {#appendix}
 
-### 一, 完整版/全量匹配 pipeline {#full-match}
+### 1, full version/full match pipeline {#full-match}
 
 ```
 add_pattern("date2", "%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}")
@@ -84,7 +83,7 @@ nullif(upstream, "")
 default_time(time)
 ```
 
-### 二, 单一匹配 pipeline {#single-match}
+### 2, a single matching pipeline {#single-match}
 
 ```
 # access log
@@ -96,7 +95,7 @@ cast(bytes, "int")
 default_time(time)
 ```
 
-### 三, 优化过的单一匹配 pipeline（将性能消耗极大的 IPORHOST 改为 NOTSPACE） {#optimized-pl}
+### 3, the optimized single matching pipeline (changing IPORHOST, which consumes a lot of performance, to NOTSPACE) {#optimized-pl}
 
 ```
 # access log

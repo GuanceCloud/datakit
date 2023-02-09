@@ -165,7 +165,7 @@ func (e *event) LineProto() (*point.Point, error) {
 func (*event) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: k8sEventName,
-		Desc: "Kubernetes event 日志数据",
+		Desc: "The logging of the Kubernetes Event.",
 		Type: "logging",
 		Tags: map[string]interface{}{
 			"kind":      inputs.NewTagInfo("Kind of the referent."),

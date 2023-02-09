@@ -47,7 +47,6 @@ import (
 var g = datakit.G("pyroscope")
 
 const (
-	pyroscopeReportFamily = "ebpf"
 	pyroscopeReportFormat = "rawflamegraph"
 	pyroscopeFilename     = "prof"
 )
@@ -335,9 +334,11 @@ func (h ingestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	spyName := input.Metadata.SpyName
+
 	addTags(h.pyrs.tags, "app_name", input.Metadata.Key.AppName())
 	addTags(h.pyrs.tags, "input_format", string(input.Format))
-	addTags(h.pyrs.tags, "spy_name", input.Metadata.SpyName)
+	addTags(h.pyrs.tags, "spy_name", spyName)
 	addTags(h.pyrs.tags, "sample_rate", fmt.Sprintf("%d", input.Metadata.SampleRate))
 	addTags(h.pyrs.tags, "units", input.Metadata.Units.String())
 	addTags(h.pyrs.tags, "aggregation_type", input.Metadata.AggregationType.String())
@@ -351,6 +352,8 @@ func (h ingestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var b bytes.Buffer
 	b.WriteString(collapsed) // Write strings to the Buffer.
 
+	langFamily := getLangFamilyFromSpyName(spyName)
+
 	if err := pushProfileData(
 		&pushProfileDataOpt{
 			startTime: input.Metadata.StartTime,
@@ -361,7 +364,7 @@ func (h ingestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					buf:      &b,
 				},
 			},
-			reportFamily:    pyroscopeReportFamily,
+			reportFamily:    langFamily,
 			reportFormat:    pyroscopeReportFormat,
 			endPoint:        h.pyrs.URL,
 			inputTags:       h.pyrs.tags,
@@ -372,6 +375,13 @@ func (h ingestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeClientError(h.httpUtils, r, w, "pushProfileData failed", err, http.StatusBadRequest)
 		return
 	}
+}
+
+func getLangFamilyFromSpyName(spyName string) string {
+	if length := len(spyName); length > 3 {
+		return spyName[:length-3]
+	}
+	return spyName
 }
 
 func copyBody(r *http.Request) ([]byte, error) {

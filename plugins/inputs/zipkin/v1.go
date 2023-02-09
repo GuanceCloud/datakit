@@ -133,7 +133,7 @@ func gatherZpkCoreV1SpansInfo(trace []*zpkcorev1.Span) (parentIDs map[uint64]boo
 			continue
 		}
 		spanIDs[uint64(span.ID)] = getServiceFromZpkCoreV1Span(span)
-		if span.ParentID != nil && *span.ParentID != 0 {
+		if span.ParentID != nil {
 			parentIDs[uint64(*span.ParentID)] = true
 		}
 	}
@@ -395,9 +395,7 @@ func gatherZpkV1SpansInfo(trace []*ZipkinSpanV1) (parentIDs map[string]bool, spa
 			continue
 		}
 		spanIDs[span.ID] = getServiceFromZpkV1Span(span)
-		if span.ParentID != "" && span.ParentID != "0" {
-			parentIDs[span.ParentID] = true
-		}
+		parentIDs[span.ParentID] = true
 	}
 
 	return

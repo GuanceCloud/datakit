@@ -163,7 +163,7 @@ runtime.SetBlockProfileRate(rate)
   enabled_types = ["cpu","goroutine","heap","mutex","block"]
 
 [inputs.profile.go.tags]
-  # tag1 = xxxxx
+  # tag1 = "val1"
 ```
 
 > 注意： 如果不需要开启 Profile 的 HTTP 服务，可将 endpoints 字段注释掉。

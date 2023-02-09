@@ -1,91 +1,90 @@
-<!-- This file required to translate to EN. -->
-# 常见 Tag 整理
+# Common Tag Organization
 ---
 
-在 DataKit 采集的数据中，Tag 是所有数据的关键字段，它影响数据的过滤和分组，一旦 Tag 数据有误，将导致 Web 页面数据展示错误。另外，Tag 的标定还会影响时序数据的用量统计。故在设计和变更 Tag 的过程中，应该深思熟虑，全盘考虑对应的变动是否会造成相关的问题。本文档主要列举一下当前 DataKit 中常见的 Tag，一来用以明确每个 Tag 的具体意义，二来，在未来新加 Tag 的时候，应该沿用、遵循以下这些 Tag 的命名和标定，避免出现不一致的情况。
+In the data collected by DataKit, Tag is the key field of all data, which affects the filtering and grouping of data. Once the Tag data is wrong, it will lead to the wrong display of Web page data. In addition, Tag calibration will also affect the consumption statistics of time series data. Therefore, in the process of designing and changing Tag, we should think carefully and consider whether the corresponding changes will cause related problems. This document mainly lists the common tags in DataKit at present, so as to clarify the specific meaning of each Tag. Secondly, when adding new tags in the future, the following tags should be used and followed to avoid inconsistency.
 
-下面将从全局 Tag 和特定数据类型专属 Tag 两个维度来进行罗列。
+The following will be listed from two dimensions: global Tag and specific data type Tag.
 
-## 全局类 Tag {#global-tags}
+## Global Tag {#global-tags}
 
-这些 Tag 跟具体数据类型无关，它可以追加到任意数据类型上。
+These tags are independent of the specific data type, and can be appended to any data type.
 
-| Tag                | 描述                                                                                                |
+| Tag                | Description                                                                                                |
 | ---                | ---                                                                                                 |
-| host               | 主机名，daemonset 安装和主机安装都能带上这个 tag，在某些特定的情况下，用户可以 rename 这个 tag 的值 |
-| project            | 项目名，一般都是由用户设置                                                                          |
-| cluster            | 集群名，一般在 daemonset 安装中，由用户设置                                                         |
-| election_namespace | 选举所在的命名空间，默认不追加，详见[文档](datakit-daemonset-deploy.md#env-elect)                   |
-| version            | 版本号，所有涉及版本信息的 tag 字段，都应该以该 tag 来表示                                          |
+| host               | Hostname, daemonset installation and host installation can all carry this tag, and in certain cases, users can rename the value of this tag. |
+| project            | Project name, which is usually set by the user.                                                                          |
+| cluster            | Cluster name, usually set by the user in daemonset installation.                                                         |
+| election_namespace | The namespace of the election is not appended by default. See [the document](datakit-daemonset-deploy.md#env-elect).                   |
+| version            | Version number, all tag fields involving version information, should be represented by this tag.                                          |
 
-### Kubernates/容器常见 Tag {#k8s-tags}
+### Kubernates/Common Tag of Container{#k8s-tags}
 
-这些 tag 在采集到的数据中，一般都会有追加，但涉及时序采集的时候，默认会忽略一些多变的 tag（比如 `pod_name`），以节约时间线。
+These tags are usually added to the collected data, but when it comes to time series collection, some changeable tags (such as `pod_name`) will be ignored by default to save the timeline.
 
-| Tag            | 描述                    |
+| Tag            | Description                    |
 | ---            | ---                     |
-| pod_name       | pod 名称                |
-| deployment     | k8s 中 Deployment 名称  |
-| service        | k8s 中 Service 名称     |
-| namespace      | k8s 中 Namespace 名称   |
-| job            | k8s 中 Job 名称         |
-| image          | k8s 中 镜像全称         |
-| image_name     | k8s 中镜像名简称        |
-| container_name | ks8/容器中的容器名      |
-| cronjob        | k8s 中 CronJob 名称     |
-| daemonset      | k8s 中 Daemonset 名称   |
-| replica_set    | k8s 中 ReplicaSet 名称 |
-| node_name      | k8s 中 Node 名称        |
-| node_ip        | k8s 中 Node IP          |
+| pod_name       | Pod name               |
+| deployment     | Deployment name in k8s |
+| service        | Service name in k8s    |
+| namespace      | Namespace name in k8s  |
+| job            | Job name in k8s        |
+| image          | Full name of mirroring in k8s    |
+| image_name     | Abbreviation of mirror name in k8s        |
+| container_name | K8s/Container name in the container      |
+| cronjob        | CronJob name in k8s    |
+| daemonset      | Daemonset name in k8s  |
+| replica_set    | ReplicaSet name in k8s|
+| node_name      | Node name in k8s       |
+| node_ip        | Node IP in k8s          |
 
-## 按特定数据类型的 Tag 分类 {#tag-classes}
+## Tag Categorization of Specific Data Types  {#tag-classes}
 
-### 日志 {#L}
+### Log {#L}
 
-| Tag                | 描述                                                                                                |
+| Tag                | Description                                                                                                |
 | ---                | ---                                                                                                 |
-| source | 日志来源，在行协议上，它并不是以 tag 形式存在，而是作为指标集名称，但中心将其作为 tag 存为日志的 source 字段 |
-| service | 日志的 service 名称，如果不填写，其值等同于 source 字段 |
-| status | 日志等级，如果不填写，采集器会默认将其值置为 `unknown`，常见的 status 列表在[这里](logging.md#status) |
+| source | The log source exists as a metric set name on the line protocol, not as a tag. The center stores it as a tag as the source field of the log. |
+| service | Referring to the service name of the log. If not filled in, its value is equivalent to the source field |
+| status | Referring to log level. If it is not filled in, the collector will set its value to  `unknown` by default, and the common status list is [here](logging.md#status). |
 
-### 对象 {#O}
+### Object {#O}
 
-| Tag                | 描述                                                                                                |
+| Tag                | Description                                                                                                |
 | ---                | ---                                                                                                 |
-| class | 对象分类，在行协议上，它并不是以 tag 形式存在，而是作为指标集名称，但中心将其作为 tag 存为对象的 class 字段 |
-| name | 对象名称，中心会结合 hash(class + name) 来唯一确定某个工作空间中的对象 |
+| class | Referring to object classification. It exists as a metric set name on the row protocol, instead of a tag. But the center stores it as a tag as the class field of the object |
+| name | Referring to object name. The center combines hash (class + name) to uniquely identify objects in a workspace. |
 
-### 指标 {#M}
+### Metrics {#M}
 
-指标由于数据来源纷杂，除了全局类 tag 完，没有固定的 tag。
+There is no fixed tag except the global tag because of the various data sources.
 
 ### APM {#T}
 
-Tracing 类数据的 tag 统一在[这里](ddtrace.md#measurements)
+The tag of Tracing class data is unified [here](ddtrace.md#measurements).
 
 ### RUM {#R}
 
-详见 RUM 文档：
+See RUM document.
 
 - [Web](../real-user-monitoring/web/app-data-collection.md)
 - [Android](../real-user-monitoring/android/app-data-collection.md)
 - [iOS](../real-user-monitoring/ios/app-data-collection.md)
-- [小程序](../real-user-monitoring/miniapp/app-data-collection.md)
+- [Mini programs](../real-user-monitoring/miniapp/app-data-collection.md)
 - [Flutter](../real-user-monitoring/flutter/app-data-collection.md)
 - [React Native](../real-user-monitoring/react-native/app-data-collection.md)
 
 ### Scheck {#S}
 
-参见 [Scheck 对应文档](../scheck/scheck-how-to.md)
+See the [Scheck doc](../scheck/scheck-how-to.md).
 
 ### Profile {#P}
 
-参见[采集器文档](profile.md#measurements)
+See the [collector doc](profile.md#measurements).
 
 ### Network {#N}
 
-参见[采集器文档](ebpf.md#measurements)
+See the [collector doc](ebpf.md#measurements).
 
 ### Event {#E}
 
-参见[设计文档](../events/generating.md)
+See the [design doc](../events/generating.md).

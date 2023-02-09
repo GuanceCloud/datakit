@@ -1,51 +1,50 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # Kafka
 ---
 
-{{.AvailableArchs}}
+{{.AvailableArchs}}index.md#legends "支持选举")
 
 ---
 
-采集 Kafka 指标和日志上报到观测云，帮助你监控分析 Kafka 各种异常情况。
+Collect Kafka indicators and logs and report them to Guance Cloud to help you monitor and analyze various abnormal situations of Kafka.
 
-## 前置条件 {#requirements}
+## Preconditions {#requirements}
 
-安装或下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar){:target="_blank"}。DataKit 安装目录下的 `data` 目录中已经有下载好的 Jolokia jar 包。 
+Install or download [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar){:target="_blank"}. The downloaded Jolokia jar package is already available in the `data` directory under the DataKit installation directory.
 
-Jolokia 是作为 Kafka 的 java agent，基于 HTTP 协议提供了一个使用 json 作为数据格式的外部接口，提供给 DataKit 使用。 Kafka 启动时，先配置 `KAFKA_OPTS` 环境变量：(port 可根据实际情况修改成可用端口）
+Jolokia is a java agent of Kafka, which provides an external interface using json as data format based on HTTP protocol for DataKit to use. When Kafka starts, first configure the `KAFKA_OPTS` environment variable: (port can be modified to be available according to the actual situation)
 
 ```shell
 export KAFKA_OPTS="$KAFKA_OPTS -javaagent:/usr/local/datakit/data/jolokia-jvm-agent.jar=host=*,port=8080"
 ```
 
-另外，也可以单独启动 Jolokia，将其指向 Kafka 进程 PID：
+Alternatively, you can start Jolokia separately and point it to the Kafka process PID:
 
 ```shell
 java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <Kafka-PID>
 ```
 
-在开启 Kafka 服务后，如需采集 Producer/Consumer/Connector 指标，则需分别为其配置 Jolokia。
+After Kafka service is started, if you need to collect Producer/Consumer/Connector indicators, you need to configure Jolokia for them respectively.
 
-参考 [KAFKA QUICKSTART](https://kafka.apache.org/quickstart){:target="_blank"} ，以 Producer 为例，先配置 `KAFKA_OPTS` 环境变量，示例如下：
+Referring to [KAFKA QUICKSTART](https://kafka.apache.org/quickstart){:target="_blank"}, configure the `KAFKA_OPTS` environment variable for the example of Producer, as follows:
 
 ```shell
 export KAFKA_OPTS="-javaagent:/usr/local/datakit/data/jolokia-jvm-agent.jar=host=127.0.0.1,port=8090"
 ```
 
-进入 Kafka 目录下启动一个 Producer：
+Go into the Kafka directory and start a Producer:
 
 ```shell
 bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server localhost:9092
 ```
 
-复制出一个 kafka.conf 以开启多个 Kafka 采集器，并配置该 url：
+Copy a Kafka.conf to open multiple Kafka collectors and configure the url:
 
 ```toml
   urls = ["http://localhost:8090/jolokia"]
 ```
 
-并将采集 Producer 指标部分的字段去掉注释：
+And remove comments from the fields in the collect producer metrics section:
 
 ```toml
   # The following metrics are available on producer instances.  
@@ -55,30 +54,30 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
     tag_keys   = ["client-id", "type"]
 ```
 
-重启 Datakit，这时 Datakit 便可采集到 Producer 实例的指标。
+Restart Datakit, which then collects metrics for the Producer instance.
 
-## 配置 {#config}
+## Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    
+    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.kafka.tags]`:
 
 ``` toml
- [inputs.{{.InputName}}.tags]
+ [inputs.kafka.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -88,20 +87,22 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 
 ### `{{$m.Name}}`
 
--  标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
 
+## 
 
-## 日志采集 {#logging}
 
-如需采集 Kafka 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 kafka 日志文件的绝对路径。比如：
+## Log Collection {#logging}
+
+To collect kafka's log, open `files` in kafka.conf and write to the absolute path of the kafka log file. For example:
 
 ```toml
 [[inputs.kafka]]
@@ -111,19 +112,19 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 ```
 
 
-开启日志采集以后，默认会产生日志来源（`source`）为 `kafka` 的日志。
+When log collection is turned on, a log with a log `source` of `kafka` is generated by default.
 
->注意：必须将 DataKit 安装在 Kafka 所在主机才能采集 Kafka 日志
+>Note: DataKit must be installed on Kafka's host to collect Kafka logs.
 
-切割日志示例：
+Example of cutting logs:
 
 ```
 [2020-07-07 15:04:29,333] DEBUG Progress event: HTTP_REQUEST_COMPLETED_EVENT, bytes: 0 (io.confluent.connect.s3.storage.S3OutputStream:286)
 ```
 
-切割后的字段列表如下：
+The list of cut fields is as follows:
 
-| 字段名 | 字段值                                                 |
+| Field Name | Field Value                                                 |
 | ------ | ------------------------------------------------------ |
 | msg    | Progress event: HTTP_REQUEST_COMPLETED_EVENT, bytes: 0 |
 | name   | io.confluent.connect.s3.storage.S3OutputStream:286     |

@@ -1,22 +1,21 @@
-<!-- This file required to translate to EN. -->
 # async-profiler
 
-本文将介绍基于 [async-profiler](https://github.com/jvm-profiling-tools/async-profiler#async-profiler) 来采集 java 应用，并将采集到的数据上报给 DataKit，从而可以在观测云平台进行分析。
+This article will introduce how to collect java applications based on [async-profiler](https://github.com/jvm-profiling-tools/async-profiler#async-profiler), and report the collected data to DataKit, so that it can be analyzed on Guance Cloud platform.
 
-## async-profiler 介绍 {#info}
+## async-profiler Introduction {#info}
 
-async-profiler 是一款开源的 Java 性能分析工具，基于 HotSpot 的 API，可以收集程序运行中的堆栈和内存分配等信息。
+Async-profiler is an open source Java performance analysis tool, based on HotSpot API, which can collect information such as stack and memory allocation in program running.
 
-async-profiler 可以收集以下几种事件：
+Async-profiler can collect the following events:
 
 - CPU cycles
-- 硬件和软件性能计数器，如cache misses, branch misses, page faults, context switches 等
-- Java 堆的分配
-- Contented lock attempts, 包括 Java object monitors 和 ReentrantLocks
+- Hardware and software performance counters, such as cache misses, branch misses, page faults, context switches and so on
+- Java heap allocation
+- Contented lock attempts, including Java object monitors and ReentrantLocks
 
-## async-profiler 安装 {#install}
+## async-profiler Installation {#install}
 
-官网提供了不同平台的安装包的下载(当前版本 2.8.3):
+Official website provides downloads of installation packages for different platforms (current version 2.8. 3):
 
  - Linux x64 (glibc): [async-profiler-2.8.3-linux-x64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-x64.tar.gz)
  - Linux x64 (musl): [async-profiler-2.8.3-linux-musl-x64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-musl-x64.tar.gz)
@@ -24,9 +23,9 @@ async-profiler 可以收集以下几种事件：
  - macOS x64/arm64: [async-profiler-2.8.3-macos.zip](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-macos.zip)
  - 不同格式文件转换器: [converter.jar](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/converter.jar)  
 
- 下载相应的安装包，并解压。
+ Download the corresponding installation package and unzip it.
 
- 下面以 Linux x64 (glibc) 平台为例(其他平台类似):
+ Take the Linux x64 (glibc) platform as an example (other platforms are similar):
 
 ```shell
 $ wget https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-x64.tar.gz 
@@ -36,49 +35,49 @@ $ cd async-profiler-2.8.3-linux-x64 && ls
   build  CHANGELOG.md  LICENSE  profiler.sh  README.md
 ```
 
-## async-profiler 使用 {#usage}
+## async-profiler Usage {#usage}
 
-### 前置条件 {#async-requirement} 
+### Preconditions {#async-requirement} 
 
-- 设置 `perf_events` 参数
+- Setting the `perf_events` parameter
 
-Linux 内核版本为 4.6 以后的，如果需要使用非 root 用户启动进程中的 `perf_events`, 需要设置两个系统运行时变量，可通过如下方式设置:
+After Linux kernel version 4.6, if you need to start `perf_events` in the process with a non-root user, you need to set two system runtime variables, which can be set as follows:
 
 ```shell
 $ sudo sysctl kernel.perf_event_paranoid=1
 $ sudo sysctl kernel.kptr_restrict=0 
 ```
 
-- 安装 Debug Symbols (采集 alloc 事件时)
+- Install Debug Symbols (When Collecting Alloc Events)
 
- 如果需要采集 alloc 相关事件，则要求安装 Debug Symbols 。Oracle JDK 已经内置这些 Symbols，可跳过此步骤。而 OpenJDK 则需要安装，安装方式参考如下：
+ If you need to collect alloc-related events, you need to install Debug Symbols. These Symbols are already built into the Oracle JDK, so you can skip this step. OpenJDK needs to be installed, and the installation method is as follows:
 
 Debian / Ubuntu:
 
 ```shell
 $ sudo apt install openjdk-8-dbg # OpenJDK 8
 
-或
+or
 
 $ sudo apt install openjdk-11-dbg # OpenJDK 11
 ```
 
-CentOS, RHEL 和其他 RPM 版本，可以通过 `debuginfo-install`:
+CentOS, RHEL and other RPM versions are available through `debuginfo-install`:
 
 ```shell
 $ sudo debuginfo-install java-1.8.0-openjdk
 ```
 
-linux 平台可以通过 `gdb` 查看是否正确安装:
+linux platform can be checked through `gdb` to see if it is installed correctly:
 ```shell
 $ gdb $JAVA_HOME/lib/server/libjvm.so -ex 'info address UseG1GC'
 ```
 
-输出结果如果包含 `Symbol "UseG1GC" is at 0xxxxx` 或 `No symbol "UseG1GC" in current context`，则表明安装成功。
+If the output contains `Symbol "UseG1GC" is at 0xxxxx` or `No symbol "UseG1GC" in current context`, the installation is successful.
 
-- 查看 java 进程 ID
+- View java Process ID
 
-采集之前，需要查看 java 进程的 PID (可以使用 `jps` 命令) 
+Before collecting, you need to check the PID of the java process (you can use the `jps` command).
 
 ```shell
 $ jps
@@ -87,9 +86,9 @@ $ jps
 8983 Computey
 ```
 
-### 采集 java 进程 {#collect}
+### Collect java Process {#collect}
 
- 选定一个需要采集的 java 进程 (如上面的 8983 进程)， 执行目录下的 `profiler.sh`，采集数据 
+ Select a java process that needs to be collected (such as the 8983 process above), execute `profiler.sh` in the directory and collect data. 
 
 ```shell
 $ ./profiler.sh -d 10 -f profiling.html 8983 
@@ -98,69 +97,68 @@ Profiling for 10 seconds
 Done
 ```
 
- 约 10 秒后，会在当前目录下生成一个名为 `profiling.html` 的 html 文件，通过浏览器打开该文件，就可以查看火焰图。
+ After about 10 seconds, an html file named `profiling.html` will be generated in the current directory, and you can view the flame map by opening the file through a browser.
 
-## 整合 DataKit 和 async-profiler {#async-datakit}
+## Integrate DataKit with async-profiler {#async-datakit}
 
-### 准备工作 {#profile-requirement}
+### Preparation {#profile-requirement}
 
-- [准备 DataKit 服务](datakit-install.md)，版本 DataKit >= 1.4.3
+- [Prepare DataKit Service](datakit-install.md), DataKit version >= 1.4.3
 
-  以下操作默认地址为 `http://localhost:9529`。如果不是，需要修改为实际的 DataKit 服务地址。
+  The default address for the following operations is `http://localhost:9529`. If not, it needs to be modified to the actual DataKit service address.
+- [Open Profile collector](profile.md) 
 
-- [开启 Profile 采集器](profile.md) 
+### Integrate Steps {#steps}
 
-### 整合步骤 {#steps}
+Integration methods can be divided into two types:
 
-整合方式，可以分为两种：
+- [Automation script (recommended)](#script)
+- [manual](#manual) 
 
-- [自动化脚本 (推荐)](#script)
-- [手动操作](#manual) 
+#### Automation Script {#script}
 
-#### 自动化脚本 {#script}
+Automation scripts can easily integrate async-profiler and DataKit as follows.
 
-自动化脚本可以方便地整合 async-profiler 和 DataKit，使用方法如下。
+**Create Shell Script**
 
-**创建 shell 脚本**
-
-在当前目录下新建一个文件，命名为 `collect.sh`, 输入以下内容:
+Create a new file in the current directory, named `collect.sh`,  and enter the following:
 
 ```shell
 set -e
 
 LIBRARY_VERSION=2.8.3
 
-# 允许上传至 DataKit 的 jfr 文件大小 (6 M)，请勿修改
+# jfr file size allowed to upload to DataKit (6 M), do not modify
 MAX_JFR_FILE_SIZE=6000000
 
-# DataKit 服务地址
+# DataKit service address
 datakit_url=http://localhost:9529
 if [ -n "$DATAKIT_URL" ]; then
 	datakit_url=$DATAKIT_URL
 fi
 
-# 上传 profiling 数据的完整地址
+# Full address for uploading profiling data
 datakit_profiling_url=$datakit_url/profiling/v1/input
 
-# 应用的环境
+# Applied environment
 app_env=dev
 if [ -n "$APP_ENV" ]; then
     app_env=$APP_ENV
 fi
 
-# 应用的版本
+# Applied version
 app_version=0.0.0
 if [ -n "$APP_VERSION" ]; then
     app_version=$APP_VERSION
 fi
 
-# 主机名称
+# Host name
 host_name=$(hostname)
 if [ -n "$HOST_NAME" ]; then
     host_name=$HOST_NAME
 fi
 
-# 服务名称
+# Service name
 service_name=
 if [ -n "$SERVICE_NAME" ]; then
   service_name=$SERVICE_NAME
@@ -178,7 +176,7 @@ if [ -n "$PROFILING_EVENT" ]; then
 	profiling_event=$PROFILING_EVENT
 fi
 
-# 采集的 java 应用进程 ID，此处可以自定义需要采集的 java 进程，比如可以根据进程名称过滤
+# Collection of java application process ID, here you can customize the need to collect the java process, for example, you can filter according to the process name.
 java_process_ids=$(jps -q -J-XX:+PerfDisableSharedMem)
 if [ -n "$PROCESS_ID" ]; then
     java_process_ids=`echo $PROCESS_ID | tr "," " "`
@@ -269,16 +267,16 @@ if [ ! -d $runtime_dir ]; then
   mkdir $runtime_dir
 fi
 
-# 并行采集 profiling 数据
+# Parallel collection of profiling data
 for process_id in $java_process_ids; do
   printf "profiling process %d\n" $process_id
   profile_collect $process_id > $runtime_dir/$process_id.log 2>&1 &
 done
 
-# 等待所有任务结束
+# Wait for all tasks to end
 wait
 
-# 输出任务执行日志
+# Output task execution log
 for process_id in $java_process_ids; do
   log_file=$runtime_dir/$process_id.log
   if [ -f $log_file ]; then
@@ -289,46 +287,46 @@ for process_id in $java_process_ids; do
 done
 ```
 
-**执行脚本**
+**Execute script**
 
 ```shell
 $ bash collect.sh
 ```
 
-脚本执行完毕后，采集的 profiling 数据会通过 DataKit 上报给观测云平台，稍后可在"应用性能监测"-"Profile" 查看。
+After the script is executed, the collected profiling data will be reported to Guance Cloud platform through DataKit, and can be viewed later in "Application Performance Monitoring"-"Profiling".
 
-脚本支持如下环境变量:
+The script supports the following environment variables:
 
-- `DATAKIT_URL`: DataKit url 地址，默认为 http://localhost:9529
-- `APP_ENV`: 当前应用环境，如 `dev | prod | test` 等
-- `APP_VERSION`: 当前应用版本
-- `HOST_NAME`: 主机名称
-- `SERVICE_NAME`: 服务名称
-- `PROFILING_DURATION`: 采样持续时间，单位为秒
-- `PROFILING_EVENT`: 采集的事件，如 `cpu,alloc,lock` 等
-- `PROCESS_ID`: 采集的 java 进程 ID, 多个 ID 以逗号分割，如 `98789,33432`
+- `DATAKIT_URL`: DataKit url address, default to http://localhost:9529
+- `APP_ENV`: Current application environment, such as `dev | prod | test` and so on
+- `APP_VERSION`: Current application version
+- `HOST_NAME`: Host name
+- `SERVICE_NAME`: Service name
+- `PROFILING_DURATION`: Sampling duration in seconds
+- `PROFILING_EVENT`: Collected events such as `cpu,alloc,lock` and so on
+- `PROCESS_ID`: Acquired java process IDs, multiple IDs separated by commas, such as `98789,33432`
 
 ```shell
 $ DATAKIT_URL=http://localhost:9529 APP_ENV=test APP_VERSION=1.0.0 HOST_NAME=datakit PROFILING_EVENT=cpu,alloc PROFILING_DURATION=20 PROCESS_ID=98789,33432 bash collect.sh
 ```
 
-#### 手动操作 {#manual}
+#### Manual {#manual}
 
-相比自动化脚本，手动操作自由度高，可满足不同的场景需求。
+Compared with automated scripts, manual operation has high degree of freedom and can meet the needs of different scenarios.
 
-**采集 profiling 文件 (jfr 格式)**
+**Collect Profiling Files (jfr format)**
 
-首先使用 `async-profiler` 收集 java 进程的 profiling 信息，并生成 **jfr** 格式的文件。
+First use `async-profiler` to collect the profiling information of the java process and generate a file in the **jfr** format.
 
-如:
+For example:
 
 ```shell
 $ ./profiler.sh -d 10 -o jfr -f profiling.jfr jps
 ```
 
-**准备元信息文件**
+**Prepare Meta-information Files**
 
-编写 profiling 元信息文件, 如 event.json:
+Write a profiling meta-information file, such as event.json:
 
 ```json
 {
@@ -340,25 +338,25 @@ $ ./profiler.sh -d 10 -o jfr -f profiling.jfr jps
 }
 ```
 
-字段含义：
+Field meaning:
 
-- `tags_profiler`: profiling 数据标签，可包含自定义标签
-    - `library_version`: 当前 async-profiler 版本
-    - `library_type`: profiler 库类型， 即 async-profiler
-    - `process_id`: java 进程 ID
-    - `host`: 主机名称
-    - `service`: 服务名称
-    - `env`: 应用的环境类型
-    - `version`: 应用的版本
-    - 其他自定义标签
-- `start`: profiling 开始时间
-- `end`: profiling 结束时间
-- `family`: 语言种类
-- `format`: 文件格式
+- `tags_profiler`: profiling data tag, which can contain custom tags
+    - `library_version`: current async-profiler version
+    - `library_type`: profiler library type, which is async-profiler
+    - `process_id`: java process ID
+    - `host`: host name
+    - `service`: service name
+    - `env`: the type of environment to apply
+    - `version`: applied version
+    - additional custom tags
+- `start`: profiling start time
+- `end`: end time of profiling
+- `family`: language type
+- `format`: file format
 
-**上传至 DataKit**
+**Upload to DataKit**
 
-上述的两种文件都准备完毕，即 `profiling.jfr` 和 `event.json`，就可以通过 http POST 请求发送至 DataKit，方式如下：
+When both of the above files are ready, `profiling.jfr` and `event.json`, they can be sent to the DataKit via an http POST request as follows:
 
 ```shell
 $ curl http://localhost:9529/profiling/v1/input \
@@ -367,6 +365,6 @@ $ curl http://localhost:9529/profiling/v1/input \
 
 ```
 
-当上述请求返回结果格式为 `{"content":{"ProfileID":"xxxxxxxx"}}` 时，表明上传成功。
-DataKit 会产生一条 profiling 记录，并将 jfr 文件保存至相应的后端存储，便于后续分析使用。
+When the above request returns a result in the format `{"content":{"ProfileID":"xxxxxxxx"}}`, it indicates that the upload was successful.
+DataKit generates a profile record and saves the jfr file to the appropriate back-end store for subsequent analysis.
 

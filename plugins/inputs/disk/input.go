@@ -87,51 +87,51 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
-				Desc: "Total disk size in bytes",
+				Desc: "Total disk size in bytes.",
 			},
 			"free": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
-				Desc: "Free disk size in bytes",
+				Desc: "Free disk size in bytes.",
 			},
 			"used": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
-				Desc: "Used disk size in bytes",
+				Desc: "Used disk size in bytes.",
 			},
 			"used_percent": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "Used disk size in percent",
+				Desc: "Used disk size in percent.",
 			},
 			"inodes_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Total inodes(**DEPRECATED: use inodes_total_mb instead**)",
+				Desc: "Total inodes(**DEPRECATED: use inodes_total_mb instead**).",
 			},
 			"inodes_total_mb": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Total inodes(in MB)",
+				Desc: "Total inodes(in MB).",
 			},
 			"inodes_free": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Free inodes(**DEPRECATED: use inodes_free_mb instead**)",
+				Desc: "Free inodes(**DEPRECATED: use inodes_free_mb instead**).",
 			},
 			"inodes_free_mb": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Free inodes(in MB)",
+				Desc: "Free inodes(in MB).",
 			},
 			"inodes_used_mb": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Used inodes(in MB)",
+				Desc: "Used inodes(in MB).",
 			},
 			"inodes_used": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Used inodes(**DEPRECATED: use inodes_used_mb instead**)",
+				Desc: "Used inodes(**DEPRECATED: use inodes_used_mb instead**).",
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":   &inputs.TagInfo{Desc: "主机名"},
-			"device": &inputs.TagInfo{Desc: "磁盘设备名"},
-			"fstype": &inputs.TagInfo{Desc: "文件系统名"},
-			"mode":   &inputs.TagInfo{Desc: "读写模式"},
-			"path":   &inputs.TagInfo{Desc: "磁盘挂载点"},
+			"host":   &inputs.TagInfo{Desc: "System hostname."},
+			"device": &inputs.TagInfo{Desc: "Disk device name."},
+			"fstype": &inputs.TagInfo{Desc: "File system name."},
+			"mode":   &inputs.TagInfo{Desc: "Read-write mode."},
+			"path":   &inputs.TagInfo{Desc: "Disk mount point."},
 		},
 	}
 }

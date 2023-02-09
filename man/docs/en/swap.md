@@ -1,5 +1,4 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # Swap
 ---
 
@@ -7,39 +6,39 @@
 
 ---
 
-swap 采集器用于采集主机 swap 内存的使用情况
+The swap collector is used to collect the usage of the host swap memory.
 
-## 前置条件 {#requrements}
+## Preconditions {#requrements}
 
-暂无
+None
 
-## 配置 {#config}
+## Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-    
-    配置好后，重启 DataKit 即可。
+
+    After configuration, restart DataKit.
 
 === "Kubernetes"
 
-    支持以环境变量的方式修改配置参数：
+    Modifying configuration parameters as environment variables is supported:
     
-    | 环境变量名                | 对应的配置参数项 | 参数示例                                                     |
+    | Environment Variable Name                | Corresponding Configuration Parameter Item | Parameter Example                                                     |
     | :---                      | ---              | ---                                                          |
-    | `ENV_INPUT_SWAP_TAGS`     | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+    | `ENV_INPUT_SWAP_TAGS`     | `tags`           | `tag1=value1,tag2=value2`. If there is a tag with the same name in the configuration file, it will be overwritten |
     | `ENV_INPUT_SWAP_INTERVAL` | `interval`       | `10s`                                                        |
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.swap.tags]`:
 
 ``` toml
- [inputs.{{.InputName}}.tags]
+ [inputs.swap.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -49,11 +48,11 @@ swap 采集器用于采集主机 swap 内存的使用情况
 
 ### `{{$m.Name}}`
 
--  标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
 {{$m.FieldsMarkdownTable}}
 

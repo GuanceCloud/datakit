@@ -32,14 +32,14 @@ InfluxDB 采集器仅适用于 InfluxDB v1.x, 对于 InfluxDB v2.x 需要使用 
 
 ```toml
 [[inputs.prom]]
-  ## Exporter 地址
+  ## Exporter HTTP URL.
   url = "http://127.0.0.1:8086/metrics"
 
   metric_types = ["counter", "gauge"]
 
   interval = "10s"
 
-  ## TLS 配置
+  ## TLS configuration.
   tls_open = false
   # tls_ca = "/tmp/ca.crt"
   # tls_cert = "/tmp/peer.crt"
@@ -53,7 +53,7 @@ InfluxDB 采集器仅适用于 InfluxDB v1.x, 对于 InfluxDB v2.x 需要使用 
     prefix = "go_"
     name = "influxdb_v2_go"
   
-  ## histogram 类型
+  ## Histogram type.
   # [[inputs.prom.measurements]]
   #   prefix = "http_api_request_"
   #   name = "influxdb_v2_http_request"
@@ -70,7 +70,7 @@ InfluxDB 采集器仅适用于 InfluxDB v1.x, 对于 InfluxDB v2.x 需要使用 
     prefix = "task_"
     name = "influxdb_v2_task" 
 
-  ## 自定义Tags
+  ## Customize tags.
   [inputs.prom.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"

@@ -491,6 +491,7 @@ else
 		--install-only="${install_only}" \
 		--installer_base_url="${installer_base_url}" \
 		--dataway="${dataway}" \
+		--enable-inputs="${def_inputs}" \
 		--global-host-tags="${global_host_tags}" \
 		--global-election-tags="${global_election_tags}" \
 		--cloud-provider="${cloud_provider}" \

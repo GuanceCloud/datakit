@@ -359,7 +359,11 @@ func (c *Config) LoadEnvs() error {
 		"ENV_ENABLE_INPUTS", // Deprecated
 	} {
 		if v := datakit.GetEnv(x); v != "" {
-			c.DefaultEnabledInputs = strings.Split(v, ",")
+			if v == "-" {
+				l.Warnf("no default inputs enabled!")
+			} else {
+				c.DefaultEnabledInputs = strings.Split(v, ",")
+			}
 			break
 		}
 	}

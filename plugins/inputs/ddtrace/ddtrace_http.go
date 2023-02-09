@@ -322,9 +322,7 @@ func gatherSpansInfo(trace DDTrace) (parentIDs map[uint64]bool, spanIDs map[uint
 			continue
 		}
 		spanIDs[span.SpanID] = span.Service
-		if span.ParentID != 0 {
-			parentIDs[span.ParentID] = true
-		}
+		parentIDs[span.ParentID] = true
 	}
 
 	return

@@ -1,5 +1,4 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # Solr
 ---
 
@@ -7,34 +6,37 @@
 
 ---
 
-solr 采集器，用于采集 solr cache 和 request times 等的统计信息。
+Solr collector, which collects statistics of solr cache, request times, and so on.
 
-## 前置条件 {#requrements}
+## Preconditions {#requrements}
 
-DataKit 使用 Solr Metrics API 采集指标数据，支持 Solr 7.0 及以上版本。可用于 Solr 6.6，但指标数据不完整。
+DataKit uses the Solr Metrics API to collect metrics data and supports Solr 7.0 and above. Available for Solr 6.6, but the indicator data is incomplete.
 
-## 配置 {#config}
+## Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/db` directory under the DataKit installation directory, copy `solr.conf.sample` and name it  `solr.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    配置好后，重启 DataKit 即可。
+
+
+​    
+    After configuration, restart DataKit.
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.solr.tags]`:
 
 ``` toml
- [inputs.{{.InputName}}.tags]
+ [inputs.solr.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -44,35 +46,35 @@ DataKit 使用 Solr Metrics API 采集指标数据，支持 Solr 7.0 及以上�
 
 ### `{{$m.Name}}`
 
--  标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
 
-## 日志采集 {#logging}
+## Log Collection {#logging}
 
-如需采集 Solr 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 Solr 日志文件的绝对路径。比如：
+To collect Solr's log, open `files` in Solr.conf and write to the absolute path of the Solr log file. For example:
 
 ```toml
 [inputs.solr.log]
-    # 填入绝对路径
+    # fill in the absolute path
     files = ["/path/to/demo.log"]
 ```
 
-切割日志示例：
+Example of cutting logs:
 
 ```
 2013-10-01 12:33:08.319 INFO (org.apache.solr.core.SolrCore) [collection1] webapp.reporter
 ```
 
-切割后字段：
+Cut fields:
 
-| 字段名   | 字段值                        |
+| Field Name   | Field Value                        |
 | -------- | ----------------------------- |
 | Reporter | webapp.reporter               |
 | status   | INFO                          |

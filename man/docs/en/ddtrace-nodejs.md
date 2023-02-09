@@ -1,11 +1,10 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# NodeJS 示例
+
+# NodeJS Example
 ---
 
-## 安装依赖 {#dependence}
+## Install Dependency {#dependence}
 
-安装 ddtrace 的 NodeJS 扩展
+Install the NodeJS extension for ddtrace.
 
 **NodeJS v12+**
 
@@ -19,18 +18,18 @@ npm install dd-trace --save
 npm install dd-trace@latest-node10
 ```
 
-**Note:** 你需要在任何 NodeJS 代码或载入任何 Module 前 import 并 initialize ddtracer lib，如果 ddtrace lib 没有被适当的初始化可能无法接收检测数据。
+**Note:** You need to import and initialize the ddtracer lib before any NodeJS code or loading any Module. If the ddtracer lib is not properly initialized, it may not receive the detection data.
 
-## 示例 {#example}
+## Example {#example}
 
-在只单纯运行 JavaScript 的环境下：
+In an environment that simply runs JavaScript:
 
 ```js
 // This line must come before importing any instrumented module.
 const tracer = require("dd-trace").init();
 ```
 
-对于使用了 TypeScript 和 bundlers 并支持 EcmaScript Module 语法的环境需要在不同的文件中初始化 ddtracer：
+For environments that use TypeScript and bundlers and support EcmaScript Module syntax, you need to initialize ddtracer in a different file:
 
 **server.ts**
 
@@ -46,27 +45,27 @@ tracer.init(); // initialized in a different file to avoid hoisting.
 export default tracer;
 ```
 
-另外如果默认配置足够有效或者通过环境变量以成功配置了 ddtracer 可以直接在代码中引入 module：
+In addition, if the default configuration is valid enough or ddtracer is successfully configured through environment variables, you can directly introduce module into your code:
 
 ```js
 import "dd-trace/init";
 ```
 
-## 运行 {#run}
+## Run {#run}
 
-运行 Node Code
+Run Node Code
 
 ```shell
 DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 node server
 ```
 
-## 环境变量支持 {#envs}
+## Environment Variable Support {#envs}
 
-- DD_ENV: 为服务设置环境变量。
-- DD_VERSION: APP 版本号。
-- DD_SERVICE: 用于设置应用程序的服务名称，默认使用 package.json 中的 name 字段。
-- DD_SERVICE_MAPPING: 定义服务名映射用于在 Tracing 里重命名服务。
-- DD_TAGS: 为每个 Span 添加默认 Tags。
-- DD_TRACE_AGENT_HOSTNAME: Datakit 监听的地址名，默认 localhost。
-- DD_AGENT_PORT: Datakit 监听的端口号，默认 9529。
-- DD_TRACE_SAMPLE_RATE: 设置采样率从 0.0(0%) ~ 1.0(100%)。
+- DD_ENV: Set environment variables for the service.
+- DD_VERSION: APP version number.
+- DD_SERVICE: Used to set the service name of the application, using the name field in package. json by default.
+- DD_SERVICE_MAPPING: Define service name mappings for renaming services in Tracing.
+- DD_TAGS: Add default Tags for each Span.
+- DD_TRACE_AGENT_HOSTNAME: The name of the address where Datakit listens, default localhost.
+- DD_AGENT_PORT: The port number on which Datakit listens, the default is 9529.
+- DD_TRACE_SAMPLE_RATE: Set the sampling rate from 0.0 (0%) to 1.0 (100%).

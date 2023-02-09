@@ -1,42 +1,47 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# DataKit 代理
+
+# DataKit Agent
 ---
 
-{{.AvailableArchs}}
+:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
 
 ---
 
-当 Datakit 无法访问外网时，可在内网部署一个代理将流量发送出来。本文提供俩种实现方式：
+When Datakit cannot access the extranet, a proxy can be deployed on the intranet to send traffic. This article provides two implementations:
 
-- 通过 DataKit 内置的正向代理服务
-- 通过 Nginx 反向代理服务
+- Through DataKit's built-in forward proxy service
+- Reverse proxy service via Nginx
 
-## DataKit 代理 {#datakit-proxy}
+## DataKit Agent {#datakit-proxy}
 
-挑选网络中的一个能访问外网的 DataKit，作为代理，配置其代理设置。
+Select a DataKit in the network that can access the external network as a proxy, and configure its proxy settings.
 
-- 进入 DataKit 安装目录下的 `conf.d/proxy` 目录，复制 `proxy.conf.sample` 并命名为 `proxy.conf`。示例如下：
+- Go to the `conf.d/proxy` directory under the DataKit installation directory, copy `proxy.conf.sample` and name it  `proxy.conf`. Examples are as follows:
 
 ```toml
-{{.InputSample}}
+
+[[inputs.proxy]]
+  ## default bind ip address
+  bind = "0.0.0.0"
+  ## default bind port
+  port = 9530
+
 ```
 
-配置好后，[重启该代理 DataKit](datakit-service-how-to.md#manage-service)。
+Once configured, [restart the agent DataKit](datakit-service-how-to.md#manage-service)。
 
-测试下代理服务是否正常：
+Test whether the proxy service is normal:
 
-- 通过发送 metrics 到工作空间测试
+- Test by sending metrics to the workspace
 
 ```shell
 curl -x <PROXY-IP:PROXY-PORT> -v -X POST https://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN> -d "proxy_test,name=test c=123i"
 ```
 
-如果代理服务器工作正常，工作空间将收到指标数据 `proxy_test,name=test c=123i`。
+If the proxy server works properly, the workspace will receive metric data `proxy_test,name=test c=123i`.
 
-- 设置 _被代理 Datakit_ 的代理模式
+- Set the proxy mode of _proxy Datakit_.
 
-进入被代理 DataKit 安装目录下的 `conf.d/` 目录，配置 `datakit.conf` 中的代理服务。如下：
+Go to the `conf.d/` directory under the proxy DataKit installation directory and configure the proxy service in `datakit.conf`. As follows:
 
 ```toml
 [dataway]
@@ -44,19 +49,19 @@ curl -x <PROXY-IP:PROXY-PORT> -v -X POST https://openway.guance.com/v1/write/met
   http_proxy = "http://<PROXY-IP:PROXY-PORT>"
 ```
 
-配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service)。
+Once configured, [restart DataKit](datakit-service-how-to.md#manage-service)。
 
-## Nginx 正向代理配置 {#nginx-proxy}
+## Nginx Forward Proxy Configuration {#nginx-proxy}
 
-代理 HTTPS 流量这里 nginx 采用 4 层的透明代理方式，即需要:
+Proxy HTTPS traffic nginx uses a 4-layer transparent proxy mode, that is, it needs:
 
-- 一台可以访问外网的 nginx 的透明代理服务器
-- datakit 所在的客户机使用 hosts 文件进行域名配置
+- a transparent nginx proxy server that can access the external network
+- The client where datakit resides uses the hosts file for domain name configuration
 
-### 配置 `Nginx` 代理服务 {#config-nginx-proxy}
+### Configure the `Nginx` Proxy Service {#config-nginx-proxy}
 
 ```
-# 代理 HTTPS
+# Proxy HTTPS
 stream {
     # resolver 114.114.114.114;
     # resolver_timeout 30s;
@@ -73,43 +78,43 @@ http {
 }
 ```
 
-代理 HTTP 流量这里 nginx 采用 7 层的透明代理方式(如果不需要代理 HTTP 这段可以跳过):
+Proxy HTTP traffic here nginx uses 7 layers of transparent proxy (this section can be skipped if proxy HTTP is not needed): 
 
 ```
-# 代理 HTTP
+# Proxy HTTP
 http {
     # resolver 114.114.114.114;
     # resolver_timeout 30s;
     server {
         listen 80;
         location / {
-            proxy_pass http://$http_host$request_uri;    # 配置正向代理参数
-            proxy_set_header Host $http_host;            # 解决如果 URL 中带 "." 后 nginx 503 错误
-            proxy_buffers 256 4k;                        # 配置缓存大小
-            proxy_max_temp_file_size 0;                  # 关闭磁盘缓存读写减少 I/O
-            proxy_connect_timeout 30;                    # 代理连接超时时间
+            proxy_pass http://$http_host$request_uri;    # Configure forward proxy parameters
+            proxy_set_header Host $http_host;            # Resolve nginx 503 error after "." in URL
+            proxy_buffers 256 4k;                        # Configure cache size
+            proxy_max_temp_file_size 0;                  # Turn off disk cache read and write to reduce I/O
+            proxy_connect_timeout 30;                    # Agent connection timeout
             proxy_cache_valid 200 302 10m;
             proxy_cache_valid 301 1h;
-            proxy_cache_valid any 1m;                    # 配置代理服务器缓存时间
+            proxy_cache_valid any 1m;                    # Configure proxy server cache time
             proxy_send_timeout 60;
             proxy_read_timeout 60;
         }
     }
 
-    // ... 其它配置
+    // ... other configurations
 }
 ```
 
-### 加载新配置及测试 {#load-test}
+### Load New Configuration and Test {#load-test}
 
 ```shell
-nginx -t        # 测试配置
-nginx -s reload # reload配置
+nginx -t        # Test configuration
+nginx -s reload # reload configuration
 ```
 
-# 配置 `Datakit` 被代理机器上的域名
+# Configure the Domain Name on the `Datakit` Agent Machine
 
-下面假设 `192.168.1.66` 是 nginx 透明代理服务器的 IP 地址。
+Let's assume that `192.168.1.66` is the IP address of the nginx transparent proxy server.
 
 ```sh
 $ sudo vi /etc/hosts
@@ -125,7 +130,7 @@ $ sudo vi /etc/hosts
 192.168.1.66 zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com
 ```
 
-在被代理机器上，测试代理是否正常：
+On the agent machine, test whether the agent is normal:
 
 === "Linux/Unix Shell"
 
@@ -141,7 +146,7 @@ $ sudo vi /etc/hosts
     curl -uri 'https://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN>' -Headers @{"param"="value"} -ContentType 'application/x-www-form-urlencoded' -body 'proxy_test_nginx,name=test c=123i' -method 'POST'
     ```
     
-    注意: PowerShell 有的机器上会报 `curl : 请求被中止: 未能创建 SSL/TLS 安全通道。` 的错误，这是因为服务端证书加密版本号在本地默认不被支持造成的，可以通过命令 `[Net.ServicePointManager]::SecurityProtocol` 查看支持的协议。如果想要本地支持可以做以下操作:
+    Note: Some PowerShell machines report the mistake of `curl : : Request aborted: Failed to create SSL/TLS secure channel`. Because the server-side certificate encryption version number is not supported locally by default, you can view the supported protocols with the command `[Net.ServicePointManager]::SecurityProtocol`. If you want local support, you can do the following:
     
     ```PowerShell
     # 64 bit PowerShell
@@ -151,7 +156,7 @@ $ sudo vi /etc/hosts
     Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\.NetFramework\v4.0.30319' -Name 'SchUseStrongCrypto' -Value '1' -Type DWord
     ```
     
-    关闭 PowerShell 窗口，打开一个新的 PowerShell 窗口，执行以下代码查看支持的协议:
+    Close the PowerShell window, open a new PowerShell window, and execute the following code to see the supported protocols:
     
     ```PowerShell
     [Net.ServicePointManager]::SecurityProtocol

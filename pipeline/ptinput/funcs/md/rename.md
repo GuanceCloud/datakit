@@ -9,6 +9,8 @@
 - `new_key`: 新字段名
 - `old_key`: 已提取的字段名
 
+示例：
+
 ```python
 # 把已提取的 abc 字段重新命名为 abc1
 rename('abc1', abc)
@@ -17,8 +19,6 @@ rename('abc1', abc)
 
 rename(abc1, abc)
 ```
-
-示例：
 
 ```python
 # 待处理数据: {"info": {"age": 17, "name": "zhangsan", "height": 180}}

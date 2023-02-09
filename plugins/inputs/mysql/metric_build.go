@@ -6,7 +6,6 @@
 package mysql
 
 import (
-	"strings"
 	"time"
 
 	"github.com/spf13/cast"
@@ -24,9 +23,7 @@ func (i *Input) buildMysql() ([]*point.Point, error) {
 		fields:   make(map[string]interface{}),
 		election: i.Election,
 	}
-	if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
-		m.tags["host"] = i.Host
-	}
+	setHostTagIfNotLoopback(m.tags, i.Host)
 
 	m.name = "mysql"
 	for key, value := range i.Tags {
@@ -78,9 +75,7 @@ func (i *Input) buildMysqlSchema() ([]*point.Point, error) {
 			fields:   make(map[string]interface{}),
 			election: i.Election,
 		}
-		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
-			m.tags["host"] = i.Host
-		}
+		setHostTagIfNotLoopback(m.tags, i.Host)
 
 		for key, value := range i.Tags {
 			m.tags[key] = value
@@ -104,9 +99,7 @@ func (i *Input) buildMysqlSchema() ([]*point.Point, error) {
 			fields:   make(map[string]interface{}),
 			election: i.Election,
 		}
-		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
-			m.tags["host"] = i.Host
-		}
+		setHostTagIfNotLoopback(m.tags, i.Host)
 
 		for key, value := range i.Tags {
 			m.tags[key] = value
@@ -142,9 +135,7 @@ func (i *Input) buildMysqlInnodb() ([]*point.Point, error) {
 		fields:   make(map[string]interface{}),
 		election: i.Election,
 	}
-	if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
-		m.tags["host"] = i.Host
-	}
+	setHostTagIfNotLoopback(m.tags, i.Host)
 
 	m.name = "mysql_innodb"
 
@@ -177,9 +168,7 @@ func (i *Input) buildMysqlTableSchema() ([]*point.Point, error) {
 			fields:   make(map[string]interface{}),
 			election: i.Election,
 		}
-		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
-			m.tags["host"] = i.Host
-		}
+		setHostTagIfNotLoopback(m.tags, i.Host)
 
 		m.name = "mysql_table_schema"
 
@@ -221,9 +210,7 @@ func (i *Input) buildMysqlUserStatus() ([]*point.Point, error) {
 			fields:   make(map[string]interface{}),
 			election: i.Election,
 		}
-		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
-			m.tags["host"] = i.Host
-		}
+		setHostTagIfNotLoopback(m.tags, i.Host)
 
 		m.name = "mysql_user_status"
 
@@ -274,9 +261,7 @@ func (i *Input) buildMysqlDbmMetric() ([]*point.Point, error) {
 			fields:   make(map[string]interface{}),
 			election: i.Election,
 		}
-		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
-			m.tags["host"] = i.Host
-		}
+		setHostTagIfNotLoopback(m.tags, i.Host)
 
 		if len(row.digestText) > 0 {
 			m.fields["message"] = row.digestText
@@ -341,9 +326,7 @@ func (i *Input) buildMysqlDbmSample() ([]*point.Point, error) {
 			"processlist_db":    plan.processlistDB,
 			"processlist_user":  plan.processlistUser,
 		}
-		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
-			tags["host"] = i.Host
-		}
+		setHostTagIfNotLoopback(tags, i.Host)
 
 		// append extra tags
 		for key, value := range i.Tags {
@@ -414,9 +397,7 @@ func (i *Input) buildMysqlCustomQueries() ([]*point.Point, error) {
 				fields:   make(map[string]interface{}),
 				election: i.Election,
 			}
-			if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
-				m.tags["host"] = i.Host
-			}
+			setHostTagIfNotLoopback(m.tags, i.Host)
 
 			for key, value := range i.Tags {
 				m.tags[key] = value

@@ -1567,7 +1567,7 @@ github.com/xdg-go/stringprep
 # github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 ## explicit
 github.com/youmark/pkcs8
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230112074430-3c9cc2d5ebc0
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230129083855-d3a0b575048e
 ## explicit; go 1.18
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting

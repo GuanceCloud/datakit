@@ -1,27 +1,26 @@
-<!-- This file required to translate to EN. -->
 # M3DB
 ---
 
-M3DB 是 Uber 开源的一款分布式时序数据库，主要用来存储 Metric 类型数据，已在 Uber 内部使用多年。
+M3DB is a distributed time series database open source by Uber, which is mainly used to store Metric type data and has been used in Uber for many years.
 
-Datakit 支持将采集到的指标性数据写入 M3db 中，可以通过配置文件和环境变量两种形式配置到指定的数据库中。
+Datakit supports writing the collected metric data into M3db, which can be configured to the specified database in the form of configuration file and environment variable.
 
-M3DB更多介绍和文档 请参考：
+For more information and documentation on M3DB, please refer to:
 
-- [m3db-github-源码](https://github.com/m3db/m3){:target="_blank"}
-- [m3db-官方文档](https://m3db.io/docs){:target="_blank"}
+- [m3db-github-source](https://github.com/m3db/m3){:target="_blank"}
+- [m3db-official document](https://m3db.io/docs){:target="_blank"}
 
-## 安装单机版 m3db {#install-storage}
+## Install the Stand-alone M3db {#install-storage}
 
 ``` shell 
-# 下载并启动
+# Download and start
 wget https://s3-gz01.didistatic.com/n9e-pub/tarball/m3dbnode-single-v0.0.1.tar.gz
 tar zxvf m3dbnode-single-v0.0.1.tar.gz
 cd m3dbnode-single 
-./scripts/install.sh #install.sh为自行编写的脚本，建议自己查看一下步骤
+./scripts/install.sh #install.sh is a self-written script. It is recommended to check the steps for yourself
 systemctl enable m3dbnode
 
-# 初始化
+# Initialization
 curl -X POST http://localhost:7201/api/v1/database/create -d '{
   "type": "local",
   "namespaceName": "default",
@@ -29,24 +28,24 @@ curl -X POST http://localhost:7201/api/v1/database/create -d '{
 }'
 
 
-# 查看状态
+# View status
 systemctl status m3dbnode
 
-# 或者
+# Or
 ss -tlnp|grep m3dbnode
 ```
 
-## 在 datakit 上开启 sink-m3db {#enable}
+## Start Sink-m3db on Datakit {#enable}
 
-### 通过配置文件指定 M3DB {#dk-config}
+### Specify M3DB Through Configuration File {#dk-config}
 
-1. 修改配置 datakit 配置文件
+1. Modify the datakit configuration file
 
 ``` shell 
 vim /usr/local/datakit/conf/datakit.conf
 ```
 
-2. 修改 sink 配置，注意 如果从没有配置过 sink 相关，新增一个配置项即可
+2. Modify the sink configuration. Note that if sink correlation has never been configured, you can add a configuration item
 
 ``` toml
 [sinks]
@@ -58,13 +57,13 @@ vim /usr/local/datakit/conf/datakit.conf
     target = "m3db"
 ```
 
-3. 重启 datakit
+3. Restart datakit
 
 ``` shell
 datakit --restart
 ```
 
-## 安装阶段指定 m3db 设置 {#install}
+## Specify M3db Settings During Installation {#install}
 
 ```shell
 DK_SINK_M="m3db://localhost:7201?scheme=http" \
@@ -72,8 +71,8 @@ DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" \
 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 ```
 
-通过环境变量安装的 Datakit，会在自动在配置文件中生成相应的配置。
+Datakit installed through environment variables automatically generates the corresponding configuration in the configuration file.
 
-## m3db 可视化 {#view}
+## M3db Visualization {#view}
 
-这里推荐您使用 [prometheus](https://prometheus.io/download/){:target="_blank"} 和 [grafana](https://grafana.com/){:target="_blank"} 去查询和展示数据。
+It is recommended that you use [prometheus](https://prometheus.io/download/){:target="_blank"} and [grafana](https://grafana.com/){:target="_blank"} to query and display data.

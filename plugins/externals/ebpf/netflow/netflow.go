@@ -116,7 +116,7 @@ func (tracer *NetFlowTracer) bpfMapCleanup(cl []ConnectionInfo, connStatsMap *eb
 	}
 }
 
-// 在扫描 connStatMap 时锁定资源 connStatsRecord.
+// Lock resource connStatsRecord while scanning connStatMap.
 func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMap *ebpf.Map,
 	interval time.Duration, gTags map[string]string, datakitPostURL string,
 ) {
@@ -144,7 +144,8 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 				l.Error(err)
 			}
 
-			// 收集未关闭的连接信息, 并与记录的关闭连接和上一采集周期未关闭的连接进行合并
+			// Collect unclosed connection information and merge it with recorded closed connections
+			// and unclosed connections in the previous collection cycle.
 			for iter.Next(unsafe.Pointer(&connInfoC), unsafe.Pointer(&connStatsC)) { //nolint:gosec
 				connInfo := ConnectionInfo{
 					Saddr: (*(*[4]uint32)(unsafe.Pointer(&connInfoC.saddr))), //nolint:gosec
@@ -210,7 +211,7 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 				}
 				tracer.bpfMapCleanup(connsNeedCleanup, connStatsMap)
 			}
-			// 收集当前周期处于关闭状态的连接
+			// Collect connections that are closed for the current cycle.
 			for k, v := range tracer.connStatsRecord.closedConns {
 				err := agg.Append(k, v)
 				if err != nil {
@@ -229,7 +230,7 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 	}
 }
 
-// 接收一个周期内采集的全部连接, 并发送至 DataKit.
+// Receive all connections collected in one cycle and send them to DataKit.
 func (tracer *NetFlowTracer) feedHandler(datakitPostURL string, pts []*client.Point) {
 	if err := dkout.FeedMeasurement(datakitPostURL, point.WrapPoint(pts)); err != nil {
 		l.Debug(err)

@@ -1,25 +1,24 @@
-<!-- This file required to translate to EN. -->
 {{.CSS}}
-# 用 Python 开发自定义采集器
+# Developing Custom Collector with Python
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-{{.InputName}} 是定时触发用户自定义 python 采集脚本的一整套方案。
+{{.InputName}} is a complete set of scenes for firing user-defined python collection scripts at regular intervals.
 
-## 前置条件 {#reqirement}
+## Preconditions {#reqirement}
 
-### Python 环境 {#req-python}
+### Python Environment {#req-python}
 
-目前处于 alpha 阶段，**同时兼容 Python 2.7+ 和 Python 3+**。
+Currently in the alpha phase, **it is compatible with both Python 2.7 + and Python 3++**。
 
-需要安装以下依赖库:
+The following dependency libraries need to be installed:
 
 - requests
 
-安装方法如下:
+The installation method is as follows:
 
 ```shell
 # python2
@@ -29,7 +28,7 @@ python -m pip install requests
 python3 -m pip install requests
 ```
 
-上述的安装需要安装 pip，如果你没有，可以参考以下方法(源自: [这里](https://pip.pypa.io/en/stable/installation/){:target="_blank"}):
+The above installation requires pip installation. If you don't have it, you can refer to the following method (from: [here](https://pip.pypa.io/en/stable/installation/){:target="_blank"}):
 
 ```shell
 # Linux/MacOS
@@ -39,11 +38,11 @@ python -m ensurepip --upgrade
 py -m ensurepip --upgrade
 ```
 
-### 编写用户自定义脚本 {#add-script}
+### Write a User-defined Script {#add-script}
 
-需要用户继承 `DataKitFramework` 类，然后对 `run` 方法进行改写。DataKitFramework 类源代码文件路径是 `datakit_framework.py` 在 `datakit/python.d/core/datakit_framework.py`。
+You need the user to inherit the `DataKitFramework` class and then override the `run` method. The DataKitFramework class source code file path is `datakit_framework.py` at `datakit/python.d/core/datakit_framework.py`.
 
-具体的使用可以参见源代码文件 `datakit/python.d/core/demo.py`:
+See the source code file `datakit/python.d/core/demo.py` for specific use:
 
 ```python
 #encoding: utf-8
@@ -93,7 +92,7 @@ class Demo(DataKitFramework):
             ]
 
         in_data = {
-            'M':data,
+            'M':data, # 'M' for metrics, 'L' for logging, 'R' for rum, 'O' for object, 'CO' for custom object, 'E' for event.
             'input': "datakitpy"
         }
 
@@ -111,67 +110,109 @@ class Demo(DataKitFramework):
     #     message = 'message'
     #     kwargs = {"custom_key1":"custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}
 
-        # # Feed df_source=user event.
-        # user_id="user_id"
-        # return self.feed_user_event(
-        #     user_id,
-        #     tags, date_range, status, event_id, title, message, **kwargs
-        #     )
+    #     # Feed df_source=user event.
+    #     user_id="user_id"
+    #     return self.feed_user_event(
+    #         user_id,
+    #         tags, date_range, status, event_id, title, message, **kwargs
+    #         )
 
-        # # Feed df_source=monitor event.
-        # dimension_tags='{"host":"web01"}' # dimension_tags must be the String(JSON format).
-        # return self.feed_monitor_event(
-        #     dimension_tags,
-        #     tags, date_range, status, event_id, title, message, **kwargs
-        #     )
+    #     # Feed df_source=monitor event.
+    #     dimension_tags='{"host":"web01"}' # dimension_tags must be the String(JSON format).
+    #     return self.feed_monitor_event(
+    #         dimension_tags,
+    #         tags, date_range, status, event_id, title, message, **kwargs
+    #         )
 
-        # # Feed df_source=system event.
-        # return self.feed_system_event(
-        #     tags, date_range, status, event_id, title, message, **kwargs
-        #     )
+    #     # Feed df_source=system event.
+    #     return self.feed_system_event(
+    #         tags, date_range, status, event_id, title, message, **kwargs
+    #         )
+
+    # # metrics, logging, object example.
+    # def run(self):
+    #     print("Demo")
+
+    #     measurement = "mydata"
+    #     tags = {"tag1": "val1", "tag2": "val2"}
+    #     fields = {"custom_field1": "val1","custom_field2": 1000}
+    #     kwargs = {"custom_key1":"custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}
+
+    #     # Feed metrics example.
+    #     return self.feed_metric(
+    #         measurement=measurement,
+    #         tags=tags,
+    #         fields=fields,
+    #         **kwargs
+    #         )
+
+    #     # Feed logging example.
+    #     message = "This is the message for testing"
+    #     return self.feed_logging(
+    #         source=measurement,
+    #         tags=tags,
+    #         message=message,
+    #         **kwargs
+    #         )
+
+    #     # Feed object example.
+    #     name = "name"
+    #     return self.feed_object(
+    #         cls=measurement,
+    #         name=name,
+    #         tags=tags,
+    #         fields=fields,
+    #         **kwargs
+    #         )
 ```
 
-### 编写 Pythond 上报 event 事件 {#report-event}
+Python SDK API definition (see `datakit_framework.py`):
 
-可以使用以下三个内置函数来上报 event 事件:
+- Reporting metrics data: `feed_metric(self, input=None, measurement=None, tags=None, fields=None, time=None, **kwargs)`;
+- Reporting metrics data: `feed_logging(self, input=None, source=None, tags=None, message=None, time=None, **kwargs)`;
+- Reporting metrics data: `feed_object(self, input=None, cls=None, name=None, tags=None, fields=None, time=None, **kwargs)`; (`cls` is `class`. Since `class` is a Python keyword, `class` is abbreviated to `cls`.)
 
-- 上报 `df_source = user` 的事件: `feed_user_event(self, df_user_id=None, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
-- 上报 `df_source = monitor` 的事件: `feed_monitor_event(self, df_dimension_tags=None, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
-- 上报 `df_source = system` 的事件: `feed_system_event(self, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
+### Write Python to Report Events {#report-event}
 
-通用 event 字段说明:
+You can use the following three built-in functions to report event events:
 
-|  字段名   | 类型  | 是否必须  | 说明  |
+- Events reporting `df_source = user`: `feed_user_event(self, df_user_id=None, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
+- Events reporting `df_source = monitor`: `feed_monitor_event(self, df_dimension_tags=None, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
+- Events reporting `df_source = system`: `feed_system_event(self, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
+
+General event field description:
+
+|  Field Name   | Type  | Required or not  | Description  |
 |  ----  | ----  | ----  | ----  |
-| df_date_range  | Integer | 必须 | 时间范围。单位 s |
-| df_source  | String | 必须 | 数据来源。取值 `system` , `monitor` , `user` |
-| df_status  | Enum | 必须 | 状态。取值 `ok` , `info` , `warning` , `error` , `critical` , `nodata` |
-| df_event_id  | String | 必须 | event ID |
-| df_title  | String | 必须 | 标题 |
-| df_message  | String |  | 详细描述 |
-| {其他字段}  | `kwargs`, 例如 `k1=5, k2=6` |  | 其他额外字段 |
+| df_date_range  | Integer | Required | Time range. Unit s |
+| df_source  | String | Required | Data source, value `system` , `monitor` , `user` |
+| df_status  | Enum | Required | Status, value `ok` , `info` , `warning` , `error` , `critical` , `nodata` |
+| df_event_id  | String | Required | event ID |
+| df_title  | String | Required | Title |
+| df_message  | String |  | Description |
+| {other field}  | `kwargs`, such as `k1=5, k2=6` |  | Other extra field |
 
-- 当 `df_source = monitor` 时：
+- When `df_source = monitor`:
 
-表示由观测云检测功能产生的事件，额外存在以下字段：
+Represent an event generated by Guance Cloud detection function, with the following additional fields:
 
-|  额外字段名   | 类型  | 是否必须  | 说明  |
+|  Extra Field Name   | Type  | Required or not  | Description  |
 |  ----  | ----  | ----  | ----  |
-| df_dimension_tags  | String(JSON format) | 必须 | 检测纬度标签，如 `{"host":"web01"}` |
+| df_dimension_tags  | String(JSON format) | Required | Detect latitude labels, such as `{"host":"web01"}` |
 
-- 当 `df_source = user` 时：
+- When `df_source = user`:
 
-表示由用户直接创建的事件，额外存在以下字段：
+Represent an event created directly by the user, with the following additional fields:
 
-|  额外字段名   | 类型  | 是否必须  | 说明  |
+|  Extra Field Name   | Type  | Required or not | Description  |
 |  ----  | ----  | ----  | ----  |
-| df_user_id  | String | 必须 | 用户 ID |
+| df_user_id  | String | Required | 用户 ID |
 
-- 当 `df_source = system` 时：
+- When `df_source = system`:
 
-表示为系统生成的事件，不存在额外字段。
+Represent an event generated by the system, and no additional fields exist.
 
-使用示例:
+Sample:
 
 ```py
 #encoding: utf-8
@@ -219,17 +260,17 @@ class Demo(DataKitFramework):
             )
 ```
 
-## 配置 {#config}
+## Configuration {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
 
 ```toml
 {{.InputSample}}
 ```
 
-## Git 支持 {#git}
+## Git Support {#git}
 
-支持使用 git repo，一旦开启 git repo 功能，则 conf 里面的 args 里面填写的路径是相对于 `gitrepos` 的路径。比如下面这种情况，args 就填写 `mytest`:
+Support the use of git repo. Once git repo is enabled, the path filled in args in conf is relative to the path of `gitrepos` . For example, args will fill in `mytest` in the following case:
 
 ```
 ├── datakit
@@ -242,9 +283,9 @@ class Demo(DataKitFramework):
                 └── mytest.py
 ```
 
-## 完整示例 {#example}
+## Complete Example {#example}
 
-第一步：写一个类，继承 `DataKitFramework`:
+Step 1: Write a class that inherits `DataKitFramework`:
 
 ```python
 from datakit_framework import DataKitFramework
@@ -298,7 +339,7 @@ class MyTest(DataKitFramework):
         return self.report(in_data) # you must call self.report here
 ```
 
-第二步：我们这里不开启 git repo 功能。将 `test.py` 放到 `python.d` 的 `mytest` 文件夹下:
+Step 2: We don't turn on git repo here. Put `test.py` under the `mytest` folder of `python.d`:
 
 ```
 └── python.d
@@ -306,25 +347,25 @@ class MyTest(DataKitFramework):
     │   ├── test.py
 ```
 
-第三步：配置 {{.InputName}}.conf:
+Step 3: Configure {{.InputName}}.conf:
 
 ```toml
 [[inputs.pythond]]
 
-  # Python 采集器名称
+  # Python collector name
   name = 'some-python-inputs'  # required
 
-  # 运行 Python 采集器所需的环境变量
+  # Environment variables required to run Python collector
   #envs = ['LD_LIBRARY_PATH=/path/to/lib:$LD_LIBRARY_PATH',]
 
-  # Python 采集器可执行程序路径(尽可能写绝对路径)
+  # Python collector executable program path (write absolute path wherever possible)
   cmd = "python3" # required. python3 is recommended.
 
-  # 用户脚本的相对路径(填写文件夹，填好后该文件夹下一级目录的模块和 py 文件都将得到应用)
+  # The relative path of the user script (fill in the folder, after which the modules and py files in the next directory of the folder will be applied)
   dirs = ["mytest"]
 ```
 
-第四步: 重启 DataKit:
+Step 3: Restart DataKit:
 
 ```shell
 sudo datakit --restart
@@ -332,8 +373,8 @@ sudo datakit --restart
 
 ## FAQ {#faq}
 
-### 如何排查错误 {#log}
+### How to Troubleshoot Errors {#log}
 
-如果结果不及预期, 可以查看以下日志文件:
+If the results are not as expected, you can view the following log files:
 - `~/_datakit_pythond_cli.log`
 - `_datakit_pythond_framework_[pythond name]_.log`

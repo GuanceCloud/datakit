@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -361,14 +362,20 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 }
 
 func (n *Input) setHost() error {
-	if strings.Contains(n.URL, "127.0.0.1") || strings.Contains(n.URL, "localhost") {
-		return nil
-	}
 	u, err := url.Parse(n.URL)
 	if err != nil {
 		return err
 	}
-	n.host = u.Host
+	var host string
+	h, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		host = u.Host
+	} else {
+		host = h
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		n.host = host
+	}
 	return nil
 }
 

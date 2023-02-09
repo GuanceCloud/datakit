@@ -1,137 +1,136 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # DDTrace
 ---
 
-{{.AvailableArchs}}
+:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
 
 ---
 
-Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing 协议数据。
+DDTrace Agent embedded in Datakit is used to receive, calculate and analyze DataDog Tracing protocol data.
 
-## DDTrace 文档和示例 {#doc-example}
+## DDTrace Documentation and Examples {#doc-example}
 
 <div class="grid cards" markdown>
 -   :fontawesome-brands-python: __Python__
 
     ---
-
+    
     [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-py){:target="_blank"} ·
-    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers){:target="_blank"} ·
-    [:octicons-arrow-right-24: 示例](ddtrace-python.md)
+    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: example](ddtrace-python.md)
 
 -   :material-language-java: __Java__
 
     ---
 
     [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-java){:target="_blank"} ·
-    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
-    [:octicons-arrow-right-24: 示例](ddtrace-java.md)
+    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: example](ddtrace-java.md)
 
 -   :material-language-ruby: __Ruby__
 
     ---
 
     [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-rb){:target="_blank"} ·
-    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby){:target="_blank"} ·
-    [:octicons-arrow-right-24: 示例](ddtrace-java.md)
+    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby){:target="_blank"} ·
+    [:octicons-arrow-right-24: example](ddtrace-java.md)
 
 -   :fontawesome-brands-golang: __Golang__
 
     ---
 
     [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-go){:target="_blank"} ·
-    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/go?tab=containers){:target="_blank"} ·
-    [:octicons-arrow-right-24: 示例](ddtrace-golang.md)
+    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/go?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: example](ddtrace-golang.md)
 
 -   :material-language-php: __PHP__
 
     ---
 
     [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-php){:target="_blank"} ·
-    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/php?tab=containers){:target="_blank"} ·
-    [:octicons-arrow-right-24: 示例](ddtrace-php.md)
+    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/php?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: example](ddtrace-php.md)
 
 -   :fontawesome-brands-node-js: __NodeJS__
 
     ---
 
     [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-js){:target="_blank"} ·
-    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs?tab=containers){:target="_blank"} ·
-    [:octicons-arrow-right-24: 示例](ddtrace-nodejs.md)
+    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: example](ddtrace-nodejs.md)
 
 -   :material-language-cpp:
 
     ---
 
     [:octicons-code-16: SDK](https://github.com/opentracing/opentracing-cpp){:target="_blank"} ·
-    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/cpp?tab=containers){:target="_blank"} ·
-    [:octicons-arrow-right-24: 示例](ddtrace-cpp.md)
+    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/cpp?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: example](ddtrace-cpp.md)
 
 -   :material-dot-net:
 
     ---
 
     [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-dotnet){:target="_blank"} ·
-    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"} ·
-    [:octicons-book-16: .Net Core 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"}
+    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"} ·
+    [:octicons-book-16: .Net Core doc](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"}
 </div>
 
 ???+ tip
 
-    DataKit 安装目录 `data` 目录下，有预先准备好的 `dd-java-agent.jar`（推荐使用）。也可以直接去 [Maven 下载](https://mvnrepository.com/artifact/com.datadoghq/dd-java-agent){:target="_blank"}
+    The DataKit installation directory, under the `data` directory, has a pre-prepared `dd-java-agent.jar`(recommended). You can also download it directly from [Maven download](https://mvnrepository.com/artifact/com.datadoghq/dd-java-agent){:target="_blank"}
+    
+    Guance Cloud also Fork its own branch on the basis of Ddtrace-Java, adding more functions and probes. For more version details, please see [Ddtrace Secondary Development Version Description](../developers/ddtrace-guance.md)
 
-    观测云也在 DDTrace-Java 基础上 Fork 了自己的分支，增加更多功能及探针，更多版本详细信息请查看 [Ddtrace 二次开发版本说明](../developers/ddtrace-guance.md)
+## Collector Configuration {#config}
 
-## 采集器配置 {#config}
+=== "Host Installation"
 
-=== "主机安装"
-
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    
+    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap injection collector configuration](datakit-daemonset-deploy.md#configmap-setting).
 
 ---
 
 ???+ attention
 
-    - 不要修改这里的 `endpoints` 列表。
-
+    - Don't modify the `endpoints` list here.
+    
     ```toml
     endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
     ```
-
-    - 如果要关闭采样（即采集所有数据），采样率字段需做如下设置：
+    
+    - If you want to turn off sampling (that is, collect all data), the sampling rate field needs to be set as follows:
     
     ``` toml
     # [inputs.ddtrace.sampler]
     # sampling_rate = 1.0
     ```
+    
+    Don't just comment on the line `sampling_rate = 1.0` , it must be commented out along with `[inputs.ddtrace.sampler]` , or the collector will assume that `sampling_rate` is set to 0.0, causing all data to be discarded.
 
-    不要只注释 `sampling_rate = 1.0` 这一行，必须连同 `[inputs.ddtrace.sampler]` 也一并注释掉，否则采集器会认为 `sampling_rate` 被置为 0.0，从而导致所有数据都被丢弃。
+### HTTP Settings {#http}
 
-### HTTP 设置 {#http}
+If Trace data is sent across machines, you need to set [HTTP settings for DataKit](datakit-conf.md#config-http-server).
 
-如果 Trace 数据是跨机器发送过来的，那么需要设置 [DataKit 的 HTTP 设置](datakit-conf.md#config-http-server)。
-
-如果有 ddtrace 数据发送给 DataKit，那么在 [DataKit 的 monitor](datakit-monitor.md) 上能看到：
+If you have ddtrace data sent to the DataKit, you can see it on [DataKit's monitor](datakit-monitor.md):
 
 <figure markdown>
   ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
-  <figcaption> DDtrace 将数据发送给了 /v0.4/traces 接口</figcaption>
+  <figcaption> DDtrace sends data to the /v0.4/traces interface</figcaption>
 </figure>
 
-### 开启磁盘缓存 {#disk-cache}
+### Turn on Disk Cache {#disk-cache}
 
-如果 Trace 数据量很大，为避免给主机造成大量的资源开销，可以将 Trace 数据临时缓存到磁盘中，延迟处理：
+If the amount of Trace data is large, in order to avoid causing a lot of resource overhead to the host, you can temporarily cache the Trace data to disk and delay processing:
 
 ``` toml
 [inputs.ddtrace.storage]
@@ -139,13 +138,13 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
   capacity = 5120
 ```
 
-## DDtrace SDK 配置 {#sdk}
+## DDtrace SDK Configuration {#sdk}
 
-配置完采集器之后，还可以对 DDtrace SDK 端做一些配置。
+After configuring the collector, you can also do some configuration on the DDtrace SDK side.
 
-### 环境变量设置 {#dd-envs}
+### Environment Variable Setting {#dd-envs}
 
-- `DD_TRACE_ENABLED`: Enable global tracer (部分语言平台支持)
+- `DD_TRACE_ENABLED`: Enable global tracer (Partial language platform support)
 - `DD_AGENT_HOST`: DDtrace agent host address
 - `DD_TRACE_AGENT_PORT`: DDtrace agent host port
 - `DD_SERVICE`: Service name
@@ -156,15 +155,15 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 - `DD_ENV`: Application env values
 - `DD_TAGS`: Application
 
-除了在应用初始化时设置项目名，环境名以及版本号外，还可通过如下两种方式设置：
+In addition to setting the project name, environment name, and version number when initialization is applied, you can also set them in the following two ways:
 
-- 通过命令行注入环境变量
+- Inject environment variables from the command line
 
 ```shell
 DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.py
 ```
 
-- 在 ddtrace.conf 中直接配置自定义标签。这种方式会影响**所有**发送给 DataKit tracing 服务的数据，需慎重考虑：
+- Configure custom tags directly in ddtrace. conf. This approach affects **all** data sends to the DataKit tracing service and should be considered carefully:
 
 ```toml
 # tags is ddtrace configed key value pairs
@@ -173,26 +172,26 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
   more_tag = "some_other_value"
 ```
 
-### 在代码中添加业务 tag {#add-tags}
+### Add a Business Tag to your Code {#add-tags}
 
-在应用代码中，可通过诸如 `span.SetTag(some-tag-key, some-tag-value)`（不同语言方式不同） 这样的方式来设置业务自定义 tag。对于这些业务自定义 tag，可通过在 ddtrace.conf 中配置 `customer_tags` 来识别并提取：
+In the application code, you can set the business custom tag in a way such as `span.SetTag(some-tag-key, some-tag-value)` (different languages have different ways). For these business custom tags, you can identify and extract them by configuring `customer_tags` in ddtrace.conf:
 
 ```toml
 customer_tags = [
   "order_id",
   "task_id",
-  "some.key",  # 被重命名为 some_key
+  "some.key",  # renamed some_key
 ]
 ```
 
-注意，这些 tag-key 中不能包含英文字符 '.'，带 `.` 的 tag-key 会替换为 `_`。
+Note that these tag-keys cannot contain the English character '.', and the tag-key with  `.` will be replaced with  `_`.
 
-???+ attention "应用代码中添加业务 tag 注意事项"
+???+ attention "Considerations for adding business tags to application code"
 
-    - 在应用代码中添加了对应的 tag 后，必须在 ddtrace.conf 的 `customer_tags` 中也同步添加对应的 tag-key 列表，否则 DataKit 不会对这些业务 tag 进行提取
-    - 在开启了采样的情况下，部分添加了 tag 的 span 有可能被舍弃
+    - After the corresponding tags are added in the application code, the corresponding tag-key list must also be added simultaneously in `customer_tags` of ddtrace.conf, otherwise DataKit will not extract these business tags
+    - Some span with tag added may be discarded when sampling is turned on
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
 {{ range $i, $m := .Measurements }}
 
@@ -202,19 +201,19 @@ customer_tags = [
 
 {{$m.Desc}}
 
-- 标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
-{{$m.FieldsMarkdownTable}}
-{{end}}
+{{$m.FieldsMarkdownTable}} {{end}}
 
 {{ end }}
 
-## 延伸阅读 {#more-reading}
 
-- [DataKit Tracing 字段定义](datakit-tracing-struct.md)
-- [DataKit 通用 Tracing 数据采集说明](datakit-tracing.md)
-- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex) 
+## More Readings {#more-reading}
+
+- [DataKit Tracing Field definition](datakit-tracing-struct.md)
+- [DataKit general Tracing data collection instructions](datakit-tracing.md)
+- [Proper use of regular expressions to configure](datakit-input-conf.md#debug-regex) 

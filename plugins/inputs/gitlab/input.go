@@ -9,9 +9,9 @@ package gitlab
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -248,9 +248,7 @@ func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
 			measurement = inputName + "_http"
 		}
 
-		if host := getHost(ipt.URL); host != "" {
-			m.tags["host"] = host
-		}
+		setHostTagIfNotLoopback(m.tags, ipt.URL)
 		for k, v := range ipt.Tags {
 			m.tags[k] = v
 		}
@@ -282,16 +280,20 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func getHost(rawURL string) string {
-	if strings.Contains(rawURL, "127.0.0.1") || strings.Contains(rawURL, "localhost") {
-		return ""
-	}
-	u, err := url.Parse(rawURL)
+func setHostTagIfNotLoopback(tags map[string]string, u string) {
+	uu, err := url.Parse(u)
 	if err != nil {
-		l.Errorf("failed to get host from url: %v", err)
-		return ""
+		l.Errorf("parse url: %v", err)
+		return
 	}
-	return u.Host
+	host, _, err := net.SplitHostPort(uu.Host)
+	if err != nil {
+		l.Errorf("split host and port: %v", err)
+		return
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		tags["host"] = host
+	}
 }
 
 func init() { //nolint:gochecknoinits

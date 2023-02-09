@@ -1,9 +1,9 @@
 nav:
   - index.md
   - changelog.md
-  - 'DataKit 使用':
-    - 'DataKit 整体架构简介': datakit-arch.md
-    - '采集器配置':
+  - 'Using DataKit':
+    - 'DataKit Architecture': datakit-arch.md
+    - 'Collector Configuration':
       - datakit-input-conf.md
       - git-config-how-to.md
       - confd.md
@@ -17,35 +17,34 @@ nav:
     - doc-logging.md
     - aliyun-access.md
     - dca.md
-    - 'Sinker 设置':
-      - 'DataKit Sink 使用': datakit-sink-guide.md
+    - 'Sinker Configuration':
+      - 'Sink': datakit-sink-guide.md
       - datakit-sink-influxdb.md
       - datakit-sink-logstash.md
       - datakit-sink-m3db.md
       - datakit-sink-otel-jaeger.md
       - datakit-sink-dataway.md
     - why-no-data.md
-  - 'DataKit 安装':
-    - '主机安装': datakit-install.md
+  - 'Install DataKit':
+    - 'Host Installing': datakit-install.md
     - datakit-offline-install.md
     - datakit-batch-deploy.md
     - datakit-update.md
     - datakit-daemonset-deploy.md
-  - 'DataKit 开发':
-    - 'DataKit 开发手册': development.md
+  - 'Development':
+    - 'Development Manual': development.md
     - datakit-filter.md
     - apis.md
     - datakit-sink-dev.md
     - common-tags.md
-    - '文档撰写':
-      - '集成文档合并': integrations-to-dk-howto.md
+    - 'Writing Docs':
       - mkdocs-howto.md
-  - '采集器':
-    - '主机':
-      - 'DataKit 自身指标': self.md
+  - 'Collectors':
+    - 'Host':
+      - 'DataKit Metrics': self.md
       - hostobject.md
       - host_processes.md
-      - '主机指标':
+      - 'Host Metrics':
         - 'CPU': cpu.md
         - disk.md
         - diskio.md
@@ -58,12 +57,12 @@ nav:
         - hostdir.md
         - ssh.md
         - gpu_smi.md
-        - Windows 相关:
-          - 'Windows 事件': windows_event.md
+        - Windows:
+          - 'Windows Event': windows_event.md
           - iis.md
 
-    - '云原生':
-      - '容器数据采集': container.md
+    - 'Cloud Native':
+      - 'Container': container.md
       - container-log.md
       - k8s-config-how-to.md
       - kubernetes-crd.md
@@ -71,19 +70,19 @@ nav:
       - kubernetes-prom.md
       - kubernetes-prometheus-operator-crd.md
 
-    - 应用性能监测（APM）:
-      - 'Datakit Tracing 综述': datakit-tracing.md
+    - APM:
+      - 'Datakit Tracing Overview': datakit-tracing.md
       - datakit-tracing-struct.md
 
       - 'Profiling':
-        - 'Profile 采集配置': profile.md
-        - '工具接入':
+        - 'Profile Collection Configuration': profile.md
+        - 'Tools for Languages':
           - 'Java': profile-java.md
           - 'Python': profile-python.md
           - 'Go': profile-go.md
 
       - 'DDTrace':
-        - 'DDtrace 采集配置': ddtrace.md
+        - 'DDtrace Configuration': ddtrace.md
         - ddtrace-golang.md
         - ddtrace-java.md
         - ddtrace-python.md
@@ -93,7 +92,7 @@ nav:
         - ddtrace-ruby.md
 
       - 'SkyWalking':
-        - 'SkyWalking 采集配置': skywalking.md
+        - 'SkyWalking': skywalking.md
 
       - 'OpenTelemetry':
         - 'OpenTelemetry 采集配置': opentelemetry.md
@@ -101,23 +100,23 @@ nav:
         - opentelemetry-java.md
 
       - 'Zipkin':
-        - 'Zipkin 采集器配置': zipkin.md
+        - 'Zipkin': zipkin.md
 
       - 'Jaeger' :
-        - 'Jaeger 采集器配置': jaeger.md
+        - 'Jaeger': jaeger.md
 
-    - '日志':
-      - '日志采集': logging.md
+    - 'Logging':
+      - 'File Log': logging.md
       - logging_socket.md
-      - '第三方日志接入':
-        - '采集器配置': logstreaming.md
+      - 'Third-Party Logging':
+        - 'LogStreaming': logstreaming.md
       - datakit-logging.md
       - datakit-logging-how.md
 
-    - '用户访问监测(RUM)':
-      - '采集器配置': rum.md
+    - 'RUM':
+      - 'Configuration': rum.md
 
-    - 中间件:
+    - Middlewares:
       - 'ClickHouse': clickhousev1.md
       - mysql.md
       - oracle.md
@@ -134,29 +133,27 @@ nav:
       - nsq.md
       - rabbitmq.md
       - kafka.md
-      - '订阅kafka MQ': kafkamq.md
       - etcd.md
       - consul.md
       - coredns.md
       - jenkins.md
       - gitlab.md
-      - 'Web 服务器':
-        - 'Nginx': nginx.md
-        - apache.md
+      - nginx.md
+      - apache.md
       - 'Java':
         - 'JVM': jvm.md
         - tomcat.md
       - snmp.md
 
-    - '网络拨测':
-      - '采集器配置': dialtesting.md
+    - 'Dial Testing':
+      - 'Configuration': dialtesting.md
       - dialtesting_json.md
 
     - 'eBPF':
-      - 'eBPF 采集配置': ebpf.md
+      - 'eBPF Configuration': ebpf.md
 
-    - '第三方数据接入':
-      - 'Prometheus Exportor 数据采集': prom.md
+    - 'Third-Party Collectors':
+      - 'Prometheus Exportor': prom.md
       - prom_remote_write.md
       - kafkamq.md
       - promtail.md
@@ -166,7 +163,7 @@ nav:
       - telegraf.md
       - sec-checker.md
 
-    - '其它采集器':
+    - 'Others':
       - sensors.md
       - smart.md
       - ipmi.md

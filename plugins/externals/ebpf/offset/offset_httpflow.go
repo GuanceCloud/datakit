@@ -65,7 +65,7 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]manager.ConstantEditor, error)
 	if err != nil {
 		return nil, fmt.Errorf("get tcp file failed: %w", err)
 	}
-	// 写入 pid 和 socket 结构体成员 file（sk - 8）的偏移量
+	// Write the offset of pid and socket structure member file (sk - 8)
 	offsetHTTP.fd = _Ctype_int(connFile.Fd())
 	offsetHTTP.offset_socket_file = _Ctype_int(status.offset_socket_sk) - 8
 

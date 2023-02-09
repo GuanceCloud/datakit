@@ -1,5 +1,4 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # Jaeger
 ---
 
@@ -7,38 +6,38 @@
 
 ---
 
-Datakit 内嵌的 Jaeger Agent 用于接收，运算，分析 Jaeger Tracing 协议数据。
+The Jaeger Agent embedded in Datakit is used to receive, calculate and analyze Jaeger Tracing protocol data.
 
-## Jaeger 文档 {#doc}
+## Jaeger Doc {#doc}
 
 - [Quickstart](https://www.jaegertracing.io/docs/1.27/getting-started/){:target="_blank"}
 - [Docs](https://www.jaegertracing.io/docs/){:target="_blank"}
 - [Clients Download](https://www.jaegertracing.io/download/){:target="_blank"}
 - [Source Code](https://github.com/jaegertracing/jaeger){:target="_blank"}
 
-## 配置 Jaeger Agent {#config-agent}
+## Configure Jaeger Agent {#config-agent}
 
 ???+ info
 
-    当前 Jaeger 版本支持 HTTP 和 UDP 通信协议和 Apache Thrift 编码规范
+    The current version of Jaeger supports the HTTP and UDP communication protocols and the Apache Thrift encoding specification.
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    
+    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap injection collector configuration](datakit-daemonset-deploy.md#configmap-setting).
 
-### 配置 Jaeger HTTP Agent {#config-http-agent}
+### Configure Jaeger HTTP Agent {#config-http-agent}
 
-endpoint 代表 Jaeger HTTP Agent 路由
+endpoint represents Jaeger HTTP Agent routing
 
 ```toml
 [[inputs.jaeger]]
@@ -47,12 +46,12 @@ endpoint 代表 Jaeger HTTP Agent 路由
   endpoint = "/apis/traces"
 ```
 
-- 修改 Jaeger Client 的 Agent Host Port 为 Datakit Port（默认为 9529）
-- 修改 Jaeger Client 的 Agent endpoint 为上面配置中指定的 endpoint
+- Modify the Agent Host Port of Jaeger Client to Datakit Port (default is 9529)
+- Modify the Agent endpoint of the Jaeger Client to the endpoint specified in the configuration above
 
-### 配置 Jaeger UDP Agent {#config-udp-agent}
+### Configure Jaeger UDP Agent {#config-udp-agent}
 
-修改 Jaeger Client 的 Agent UDP Host:Port 为下面配置中指定的 address：
+Modify the Agent UDP Host: Port of the Jaeger Client to the address specified in the following configuration:
 
 ```toml
 [[inputs.jaeger]]
@@ -60,11 +59,11 @@ endpoint 代表 Jaeger HTTP Agent 路由
   address = "127.0.0.1:6831"
 ```
 
-有关数据采样，数据过滤，关闭资源等配置请参考[Datakit Tracing](datakit-tracing.md)
+Refer to [Datakit Tracing](datakit-tracing.md) for configuration of data sampling, data filtering, closing resources, and so on.
 
-## Golang 示例 {#go-http}
+## Golang Sample {#go-http}
 
-以下是一个 HTTP Agent 示例：
+Here is an example of an HTTP Agent:
 
 ```golang
 package main
@@ -159,9 +158,9 @@ func send(urlstr string, i int) {
 }
 ```
 
-## Golang UDP 示例 {#go-udp}
+## Golang UDP Sample {#go-udp}
 
-以下是一个 UDP Agent 示例：
+Here is an example of a UDP Agent:
 
 ```golang
 package main
@@ -222,7 +221,7 @@ func foo() {
 }
 ```
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
 {{ range $i, $m := .Measurements }}
 
@@ -232,13 +231,12 @@ func foo() {
 
 {{$m.Desc}}
 
-- 标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
-{{$m.FieldsMarkdownTable}}
-{{end}}
+{{$m.FieldsMarkdownTable}} {{end}}
 
 {{ end }}

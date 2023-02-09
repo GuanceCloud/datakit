@@ -1,20 +1,19 @@
-<!-- This file required to translate to EN. -->
-# Socket 日志接入示例
+# Sample Socket Log Access
 ---
 
-本篇主要介绍 Java Go Python 日志框架 如何配置 socket 输出到 datakit socket 日志采集器中。
+This article focuses on how the Java Go Python logging framework configures socket output to the datakit socket log collector.
 
-> 文件采集和socket是互斥开启socket之前 请先关闭文件采集 请先配置好 `logging.conf` [具体配置说明](logging.md)  
+> File collection and socket are mutually exclusive. Please close file collection before opening socket. Please configure `logging.conf` [specific configuration instructions](logging.md).  
 
 ## Java {#java}
 
-在配置log4j的时候需要注意，log4j v1，默认是使用*.properties文件进行配置；而目前log4j v2使用*.xml文件进行配置。
+When configuring log4j, it should be noted that log4j v1 is configured by default using *. properties file; log4j v2 is currently configured using the *. xml file.
 
-虽然文件名有区别，但是log4j查找配置文件时，都是去classpath目录下查找,按照规范:v1的配置在 resources/log4j.properties, v2配置在resources/log4j.xml。
+Although there are differences in file names, when log4j looks for configuration files, it always goes to the classpath directory. According to the specification, v1 is configured in resources/log4j. properties, and v2 is configured in resources/log4j. xml.
 
 ### log4j(v2) {#log4j-v2}
 
-在maven的配置中导入log4j 2.x 的jar包:
+Import the log4j 2. x jar package in the configuration of maven:
 ``` xml
  <dependency>
     <groupId>org.apache.logging.log4j</groupId>
@@ -29,7 +28,7 @@
   </dependency>
 ```
 
-在 resources 中配置 log4j.xml，添加 socket appender：
+Configure log4j. xml in resources and add socket appender: 
 
 ``` xml
  <!-- Socket appender socket 配置日志传输到本机9540端口，protocol默认tcp -->
@@ -54,7 +53,7 @@
  </loggers>
 ```
  
-Java 代码示例：
+Java code example:
 
 ``` java
 package com.example;
@@ -87,7 +86,7 @@ public class logdemo {
  
 ### log4j(v1) {#log4j-v1}
 
-在maven的配置中导入log4j 1.x 的jar包
+Import log4j 1. x jar package in maven configuration
 
 ``` xml
  <dependency>
@@ -97,37 +96,37 @@ public class logdemo {
  </dependency>
 ```
 
-到 resources 目录下 创建log4j.properties文件
+Create the log4j. properties file in the resources directory
 
 ``` text
 log4j.rootLogger=INFO,server
-# ... 其他配置
+# ... other configurations
 
 log4j.appender.server=org.apache.log4j.net.SocketAppender
 log4j.appender.server.Port=<dk socket port>
 log4j.appender.server.RemoteHost=<dk socket ip>
 log4j.appender.server.ReconnectionDelay=10000
 
-# 可配置成json格式
+# Configurable to json format
 # log4j.appender.server.layout=net.logstash.log4j.JSONEventLayout
 ...
 ```
 
 ### logback {#logback}
 
-logback 中的`SocketAppender` 无法将纯文本发送到 socket上  [官方文档说明](https://logback.qos.ch/manual/appenders.html#SocketAppender){:target="_blank"}
+`SocketAppender` in logback cannot send plain text to socket [doc](https://logback.qos.ch/manual/appenders.html#SocketAppender){:target="_blank"}
 
-> 问题是 SocketAppender发送序列化Java对象而不是纯文本。您可以使用log4j输入，但我并不建议更换日志组件，而是重写一个将日志数据发送为纯文本的Appender，并且您将其与JSON格式化一起使用。
+> The problem is that the SocketAppender sends serialized Java objects instead of plain text. You can use log4j for input, but I do not recommend replacing the logging component. Rather, I rewrite an Appender that sends log data as plain text, and you use it with JSON formatting.
 
-datakit 同时支持从文件中采集日志 [从文本中采集日志](logging.md) ,可作为socket采集不可用时的最佳方案。 
+Datakit also supports logging from files [logging from text](logging.md), which is the best solution when socket collection is not available.
 
 ## Golang {#golang}
 
 ### zap {#zap}
 
-Golang 中最常用的是uber的zap开源日志框架，zap支持自定义output注入
+Most commonly used in Golang is uber's zap open source logging framework, which supports custom output injection
 
-自定义日志输出器并注入到`zap.core`
+Customize the log exporter and inject it into `zap.core`
 
 ``` go
 
@@ -175,17 +174,17 @@ func zapcal() {
 
 ### logging.handlers.SocketHandler {#socket-handler}
 
-原生的 socketHandler 通过socket发送的是日志对象，并不是纯文本形式，所以需要自定义 handler 并重写 socketHandler 中的`makePickle(slef,record)`方法。
+The native socketHandler sends a log object through the socket, not plain text, so you need to customize the handler and override the `makePickle(slef,record)` method in the socketHandler.
 
-代码仅供参考：
+The code is for reference only:
 
 ```python
 import logging
 import logging.handlers
 
-logger = logging.getLogger("") # 实例化logging
+logger = logging.getLogger("") # Instantiate logging
 
-#自定义class 并重写makePickle方法
+#Customize the class and override the makePickle method
 class PlainTextTcpHandler(logging.handlers.SocketHandler):
     """ Sends plain text log message over TCP channel """
 
@@ -195,25 +194,25 @@ class PlainTextTcpHandler(logging.handlers.SocketHandler):
 
 
 def logging_init():
-    # 创建文件handler
+    # Creat file handler
     fh = logging.FileHandler("test.log", encoding="utf-8")
-    #创建自定义handler
+    #Creat custom handler
     plain = PlainTextTcpHandler("10.200.14.226", 9540)
 
-    # 设置logger日志等级
+    # Setting logger log levels
     logger.setLevel(logging.INFO)
 
-    # 设置输出日志格式
+    # Setting output log format
     formatter = logging.Formatter(
         fmt="%(asctime)s - %(filename)s line:%(lineno)d - %(levelname)s: %(message)s"
     )
 
-    # 为handler指定输出格式，注意大小写
+    # Specify the output format for the handler, paying attention to the case
     fh.setFormatter(formatter)
     plain.setFormatter(formatter)
   
     
-    # 为logger添加的日志处理器
+    # Log handler added for logger
     logger.addHandler(fh)
     logger.addHandler(plain)
     
@@ -231,4 +230,4 @@ if __name__ == '__main__':
     
 ```
 
-TODO: 后续会慢慢补充其他语言的日志框架去使用 socket 将日志发送到 DataKit 上。
+TODO: The log framework of other languages will be supplemented later to use socket to send logs to DataKit. 

@@ -16,7 +16,7 @@ import (
 )
 
 func TestParseData(t *testing.T) {
-	// 指定指标名的映射 map
+	// map of the specified index name
 	if fc, err := DebugVarsDataParse2Point([]byte(dataInfluxDebugVars1v8),
 		MetricMap); err != nil {
 		t.Error("parse failed", err)
@@ -33,7 +33,7 @@ func TestParseData(t *testing.T) {
 		}
 	}
 
-	// 不指定指标名的映射 map
+	// map without specifying the index name
 	if fc, err := DebugVarsDataParse2Point([]byte(dataInfluxDebugVars1v8),
 		nil); err != nil {
 		t.Error("parse failed", err)
