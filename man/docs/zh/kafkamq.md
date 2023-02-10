@@ -39,28 +39,28 @@ plugin.kafka.bootstrap_servers=${SW_KAFKA_BOOTSTRAP_SERVERS:<ip>:<port>}
 启动java项目（jar包形式启动）
 
 - Linux Tomcat 7, Tomcat 8, Tomcat 9  
-  Change the first line of `tomcat/bin/catalina.sh`.
+  在配置文件 `tomcat/bin/catalina.sh` 中的第一行添加环境变量.
 
 ```shell
 CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/skywalking-agent/skywalking-agent.jar"; export CATALINA_OPTS
 ```
 
 - Windows Tomcat 7, Tomcat 8, Tomcat 9  
-  Change the first line of `tomcat/bin/catalina.bat`.
+  在配置文件 `tomcat/bin/catalina.bat` 中的第一行添加环境变量.
 
 ```shell
 set "CATALINA_OPTS=-javaagent:/path/to/skywalking-agent/skywalking-agent.jar"
 ```
 
-- JAR file  
-  Add `-javaagent` argument to command line in which you start your app. eg:
+- JAR 包形式启动  
+  在启动 java 项目时候添加 `-javaagent` 参数:
 
  ```shell
  java -javaagent:/path/to/skywalking-agent/skywalking-agent.jar -jar yourApp.jar
  ```
 
 - Jetty  
-  Modify `jetty.sh`, add `-javaagent` argument to command line in which you start your app. eg:
+  修改 `jetty.sh`, 并添加启动参数 `-javaagent` :
 
 ```shell
 export JAVA_OPTIONS="${JAVA_OPTIONS} -javaagent:/path/to/skywalking-agent/skywalking-agent.jar"
