@@ -194,6 +194,13 @@ func TestMan(t *testing.T) {
 	}
 }
 
+// ---------------------------------------
+/*
+nsq容器启动命令：
+1、docker run -d --name nsqd  -p 4150:4150 -p 4151:4151 -d nsqio/nsq:v1.2.1 /nsqd --broadcast-address=10.200.14.141  --lookupd-tcp-address=10.200.14.141:4150 --data-path=/data
+2、docker run -d --name lookupd  -p 4160:4160 -p 4161:4161 -d nsqio/nsq:v1.2.1 /nsqlookupd --broadcast-address=10.200.14.141
+
+*/
 type caseSpec struct {
 	t *testing.T
 
@@ -457,4 +464,56 @@ func TestIntergration(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestDockerNsq(t *testing.T) {
+	r := testutils.GetRemote()
+	r.Host = "10.200.14.141"
+	dockerTCP := r.TCPURL()
+
+	t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
+
+	p, err := dockertest.NewPool(dockerTCP)
+	if err != nil {
+		return
+	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		t.Logf("get hostname failed: %s, ignored", err)
+		hostname = "unknown-hostname"
+	}
+
+	// remove the container if exist.
+	if err := p.RemoveContainerByName(hostname); err != nil {
+		return
+	}
+
+	resource, err := p.RunWithOptions(&dockertest.RunOptions{
+		// specify container image & tag
+		Repository: "docker.io/nsqio/nsq",
+		Tag:        "v1.2.1",
+
+		// port binding
+		PortBindings: map[docker.Port][]docker.PortBinding{
+			"4170/tcp": {{HostIP: "0.0.0.0", HostPort: "4170"}},
+			"4171/tcp": {{HostIP: "0.0.0.0", HostPort: "4171"}},
+		},
+
+		Name: hostname,
+
+		// container run-time envs
+		Env: []string{},
+		Cmd: []string{
+			"/nsqlookupd",
+			"--broadcast-address=" + r.Host,
+		},
+	}, func(c *docker.HostConfig) {
+		c.RestartPolicy = docker.RestartPolicy{Name: "no"}
+	})
+	if err != nil {
+		return
+	}
+
+	assert.NoError(t, p.Purge(resource))
 }
