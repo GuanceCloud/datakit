@@ -1,5 +1,5 @@
 {{.CSS}}
-# 文件日志
+# 文件采集
 ---
 
 {{.AvailableArchs}}

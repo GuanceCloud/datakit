@@ -73,8 +73,6 @@ if [ -z $version ]; then
 	version="${latest_version}"
 fi
 
-echo ${version} ${no_build} ${mkdocs_dir}
-
 tmp_doc_dir=.docs
 base_docs_dir=${mkdocs_dir}/docs
 
