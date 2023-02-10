@@ -336,7 +336,9 @@ Data           : %s
 
 		cp.Infof("datakit service run as user: '%s'\n", userName)
 	} else {
-		cp.Infof("datakit service run as user 'root'\n")
+		if !flagDKUpgrade {
+			cp.Infof("datakit service run as user 'root'\n")
+		}
 	}
 
 	svc, err := dkservice.NewService(userName)
