@@ -45,7 +45,7 @@
 ### 功能优化 {#cl-1.5.5-opt}
 
 - Datakit pyroscope profiling 多程序语言识别(#1374)
-- 优化 CPU,Disk,EBPF,Net 等中英文文档(#1375)
+- 优化 CPU,Disk,eBPF,Net 等中英文文档(#1375)
 - 优化 elasticsearch, postgresql, dialtesting 等英文文档(#1373)
 - 优化 DCA,Profiling 文档(#1371#1372)
 - 优化日志采集流程(#1366)
@@ -80,7 +80,7 @@
 ### 功能优化 {#cl-1.5.4-opt}
 
 - 优化 SQL 数据资源占用较高问题(#1358)
-- 优化 Datakit Monitor(1222)
+- 优化 Datakit Monitor(#1222)
 
 ---
 
