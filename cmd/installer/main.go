@@ -325,7 +325,7 @@ Data           : %s
 
 	// fix user name.
 	var userName, groupAdd, userAdd string
-	if len(flagUserName) > 0 && flagUserName != "root" {
+	if runtime.GOOS == datakit.OSLinux && len(flagUserName) > 0 && flagUserName != "root" {
 		// check add group and user command.
 		groupAdd, userAdd, err = checkUserGroupCmdOK()
 		if err != nil {
