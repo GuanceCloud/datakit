@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"github.com/GuanceCloud/cliutils"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 )
 
 func TestZstdzip(t *testing.T) {

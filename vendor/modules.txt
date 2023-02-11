@@ -48,7 +48,16 @@ github.com/DataDog/zstd
 # github.com/GuanceCloud/cliutils v0.0.0-20230209110134-0816fc24778b
 ## explicit; go 1.18
 github.com/GuanceCloud/cliutils
+github.com/GuanceCloud/cliutils/dialtesting
+github.com/GuanceCloud/cliutils/diskcache
+github.com/GuanceCloud/cliutils/lineproto
+github.com/GuanceCloud/cliutils/logger
+github.com/GuanceCloud/cliutils/network/http
+github.com/GuanceCloud/cliutils/network/ws
 github.com/GuanceCloud/cliutils/point
+github.com/GuanceCloud/cliutils/system/rtpanic
+github.com/GuanceCloud/cliutils/testutil
+github.com/GuanceCloud/cliutils/tracer
 # github.com/GuanceCloud/confd v0.0.0-20230110090426-b3190049be1c
 ## explicit; go 1.18
 github.com/GuanceCloud/confd/backends
@@ -1626,18 +1635,7 @@ github.com/xeipuuv/gojsonschema
 ## explicit
 github.com/youmark/pkcs8
 # gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230112074430-3c9cc2d5ebc0
-## explicit; go 1.18
-gitlab.jiagouyun.com/cloudcare-tools/cliutils
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/point
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer
+## explicit
 # go.etcd.io/bbolt v1.3.6
 ## explicit; go 1.12
 go.etcd.io/bbolt

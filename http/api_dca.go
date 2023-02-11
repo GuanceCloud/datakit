@@ -25,7 +25,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/toml"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
+	lp "github.com/GuanceCloud/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"

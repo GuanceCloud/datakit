@@ -25,7 +25,7 @@ import (
 	"github.com/shirou/gopsutil/host"
 	"golang.org/x/sys/unix"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 )
 

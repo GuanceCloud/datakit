@@ -58,7 +58,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			tags := pt.Tags()
 			for k, expect := range cs.ipt.Tags {
 				if v := tags.Get([]byte(k)); v != nil {
-					return fmt.Errorf("tag %s not found", k)
+					return fmt.Errorf("tag %s not found, got %v", k, tags)
 				} else {
 					got := string(v.GetD())
 					if got != expect {

@@ -10,7 +10,7 @@
 package abc
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 )
 
 var (
@@ -37,7 +37,7 @@ func foo() {
 package main
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 )
 
 func main() {

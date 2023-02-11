@@ -10,7 +10,7 @@ import (
 	"path"
 	"testing"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 )
 
 func TestAddOSSFiles(t *testing.T) {

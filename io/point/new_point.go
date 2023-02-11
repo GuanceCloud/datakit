@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 

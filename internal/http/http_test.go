@@ -23,7 +23,7 @@ import (
 
 	"github.com/elazarl/goproxy"
 	"github.com/gin-gonic/gin"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 

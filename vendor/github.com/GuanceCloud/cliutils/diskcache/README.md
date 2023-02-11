@@ -36,7 +36,7 @@ data
 以下是基本的使用方式：
 
 ```golang
-import "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
+import "github.com/GuanceCloud/diskcache"
 
 c, err := diskcache.Open(".TestDropBatch", &Option{
 	BatchSize: 4 * 1024 * 1024, // each cache file set to ~4MB

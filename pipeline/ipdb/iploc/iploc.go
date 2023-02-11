@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/ip2location/ip2location-go"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
 )

@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/go-ping/ping"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
 const (

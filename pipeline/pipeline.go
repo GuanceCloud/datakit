@@ -19,7 +19,7 @@ import (
 
 	"github.com/GuanceCloud/grok"
 	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"

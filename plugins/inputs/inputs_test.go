@@ -10,7 +10,7 @@ import (
 	"os"
 	"testing"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 )
 
 func TestGetEnvs(t *testing.T) {

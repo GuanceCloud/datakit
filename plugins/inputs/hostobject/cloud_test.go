@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 )
 
 func TestMetaGet(t *testing.T) {

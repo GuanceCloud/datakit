@@ -15,10 +15,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 var (

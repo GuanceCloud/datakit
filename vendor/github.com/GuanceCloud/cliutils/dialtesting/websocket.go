@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/gorilla/websocket"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
 type WebsocketResponseTime struct {
