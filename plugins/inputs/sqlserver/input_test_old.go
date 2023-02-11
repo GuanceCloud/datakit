@@ -25,7 +25,7 @@ func TestCon(t *testing.T) {
 
 	n.getMetric()
 	for _, v := range collectCache {
-		t.Log(v.String())
+		t.Log(v.LineProto())
 	}
 }
 

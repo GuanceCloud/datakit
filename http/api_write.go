@@ -147,7 +147,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 	}
 
 	if x := q.Get(ArgGlobalElectionTags); x != "" {
-		for k, v := range point.GlobalEnvTags() {
+		for k, v := range point.GlobalElectionTags() {
 			l.Debugf("add env tag %s: %s", k, v)
 			opt.ExtraTags[k] = v
 		}

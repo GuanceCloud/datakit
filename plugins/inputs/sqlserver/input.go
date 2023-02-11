@@ -18,6 +18,7 @@ import (
 	mssql "github.com/denisenkom/go-mssqldb"
 	"github.com/denisenkom/go-mssqldb/msdsn"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -25,7 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -353,17 +354,18 @@ func (n *Input) handRow(query string, ts time.Time, isLogging bool) {
 			continue
 		}
 
-		var opt *point.PointOption
+		var opts []point.Option
 		if isLogging {
 			tags["status"] = "info"
-			opt = point.LOptElectionV2(n.Election)
-		} else {
-			opt = point.MOptElectionV2(n.Election)
+		}
+
+		if n.Election {
+			opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
 		}
 
 		transformData(measurement, tags, fields)
 
-		point, err := point.NewPoint(measurement, tags, fields, opt)
+		point, err := point.NewPoint(measurement, tags, fields, opts...)
 		if err != nil {
 			l.Errorf("make point err:%s", err.Error())
 			n.lastErr = err
