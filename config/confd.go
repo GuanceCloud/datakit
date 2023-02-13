@@ -24,7 +24,7 @@ import (
 
 	"github.com/GuanceCloud/confd/backends"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"

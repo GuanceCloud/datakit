@@ -18,7 +18,7 @@ import (
 	"strings"
 
 	humanize "github.com/dustin/go-humanize"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 )
 
 var (

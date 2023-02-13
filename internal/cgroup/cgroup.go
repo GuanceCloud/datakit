@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/cpu"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 

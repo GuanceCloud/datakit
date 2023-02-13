@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 )
 
 var testdata = `127.0.0.1

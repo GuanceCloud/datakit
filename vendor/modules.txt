@@ -45,6 +45,19 @@ github.com/DataDog/sketches-go/ddsketch/store
 # github.com/DataDog/zstd v1.4.1
 ## explicit
 github.com/DataDog/zstd
+# github.com/GuanceCloud/cliutils v0.0.0-20230209110134-0816fc24778b
+## explicit; go 1.18
+github.com/GuanceCloud/cliutils
+github.com/GuanceCloud/cliutils/dialtesting
+github.com/GuanceCloud/cliutils/diskcache
+github.com/GuanceCloud/cliutils/lineproto
+github.com/GuanceCloud/cliutils/logger
+github.com/GuanceCloud/cliutils/network/http
+github.com/GuanceCloud/cliutils/network/ws
+github.com/GuanceCloud/cliutils/point
+github.com/GuanceCloud/cliutils/system/rtpanic
+github.com/GuanceCloud/cliutils/testutil
+github.com/GuanceCloud/cliutils/tracer
 # github.com/GuanceCloud/confd v0.0.0-20230110090426-b3190049be1c
 ## explicit; go 1.18
 github.com/GuanceCloud/confd/backends
@@ -1340,19 +1353,17 @@ github.com/pkg/term/termios
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.60.1
-## explicit; go 1.17
+# github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.51.2
+## explicit; go 1.14
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1alpha1
-github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1beta1
-# github.com/prometheus-operator/prometheus-operator/pkg/client v0.60.1
-## explicit; go 1.17
+# github.com/prometheus-operator/prometheus-operator/pkg/client v0.51.2
+## explicit; go 1.14
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/scheme
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1alpha1
-github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1beta1
 # github.com/prometheus/client_golang v1.14.0
 ## explicit; go 1.17
 github.com/prometheus/client_golang/prometheus
@@ -1624,18 +1635,7 @@ github.com/xeipuuv/gojsonschema
 ## explicit
 github.com/youmark/pkcs8
 # gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230112074430-3c9cc2d5ebc0
-## explicit; go 1.18
-gitlab.jiagouyun.com/cloudcare-tools/cliutils
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/point
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer
+## explicit
 # go.etcd.io/bbolt v1.3.6
 ## explicit; go 1.12
 go.etcd.io/bbolt
@@ -2378,7 +2378,6 @@ modernc.org/strutil
 modernc.org/token
 # sigs.k8s.io/controller-runtime v0.13.0
 ## explicit; go 1.17
-sigs.k8s.io/controller-runtime/pkg/conversion
 # sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2
 ## explicit; go 1.18
 sigs.k8s.io/json

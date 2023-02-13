@@ -10,7 +10,7 @@ import (
 	"io/ioutil"
 
 	"github.com/gin-gonic/gin"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 )
 
 // create or update object labels.

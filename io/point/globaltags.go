@@ -22,7 +22,7 @@ func GlobalHostTags() map[string]string {
 	return globalHostTags
 }
 
-func GlobalEnvTags() map[string]string {
+func GlobalElectionTags() map[string]string {
 	return globalElectionTags
 }
 

@@ -14,8 +14,8 @@ import (
 	"path/filepath"
 	"time"
 
+	pbpoint "github.com/GuanceCloud/cliutils/point"
 	"github.com/pborman/ansi"
-	pbpoint "gitlab.jiagouyun.com/cloudcare-tools/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail"
@@ -490,8 +490,7 @@ func (t *Single) feedToCache(pending []string) {
 
 		pt := pbpoint.NewPointV2(
 			[]byte(t.opt.Source),
-			pbpoint.PBTags(t.tags),
-			pbpoint.PBFields(fields),
+			append(pbpoint.NewTags(t.tags), pbpoint.NewKVs(fields)...),
 			pbpoint.WithTime(timeNow.Add(time.Duration(i))),
 			pbpoint.WithEncoding(pbpoint.Protobuf),
 		)
@@ -502,7 +501,8 @@ func (t *Single) feedToCache(pending []string) {
 		return
 	}
 
-	encoder := pbpoint.Encoder{BatchSize: 0}
+	encoder := pbpoint.GetEncoder(pbpoint.WithEncBatchSize(0))
+
 	ptsDatas, err := encoder.Encode(res)
 	if err != nil {
 		t.opt.log.Warn(err)

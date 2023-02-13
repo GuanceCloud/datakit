@@ -12,7 +12,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 )
 
 type Workspace struct {

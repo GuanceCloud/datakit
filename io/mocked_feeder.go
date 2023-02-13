@@ -9,7 +9,7 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
 )
 
 var (

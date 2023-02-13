@@ -19,9 +19,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"github.com/GuanceCloud/cliutils"
+	dt "github.com/GuanceCloud/cliutils/dialtesting"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 )
 
 var httpCases = []struct {

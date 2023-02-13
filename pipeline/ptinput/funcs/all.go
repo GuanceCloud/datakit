@@ -8,7 +8,7 @@ package funcs
 
 import (
 	"github.com/GuanceCloud/platypus/pkg/engine/runtime"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 )
 
 var l = logger.DefaultSLogger("funcs")
