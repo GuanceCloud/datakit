@@ -84,7 +84,7 @@ func (i *RemoteInfo) TCPURL() string {
 // GetRemote only return the IP of remote node.
 func GetRemote() *RemoteInfo {
 	ri := &RemoteInfo{
-		Host: "",
+		Host: "0.0.0.0",
 		Port: "2375",
 	}
 
