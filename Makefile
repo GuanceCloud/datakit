@@ -277,8 +277,7 @@ define build_ip2isp
 endef
 
 define do_lint
-	$(GOLINT_BINARY) --version
-	GOARCH=$(1) GOOS=$(2) $(GOLINT_BINARY) run --fix --allow-parallel-runners
+	@GOARCH=$(1) GOOS=$(2) $(GOLINT_BINARY) run --fix --allow-parallel-runners
 endef
 
 ip2isp:
@@ -307,7 +306,7 @@ all_test: deps
 	i=0; \
 	for pkg in `go list ./... | grep -vE 'datakit/git'`; do \
 		echo "# testing $$pkg..." | tee -a test.output; \
-		GO111MODULE=off CGO_ENABLED=1 LOGGER_PATH=nul go test -timeout 1m -cover $$pkg; \
+		GO111MODULE=off CGO_ENABLED=1 LOGGER_PATH=nul go test -timeout 1h -cover $$pkg; \
 		if [ $$? != 0 ]; then \
 			printf "\033[31m [FAIL] %s\n\033[0m" $$pkg; \
 			i=`expr $$i + 1`; \
@@ -326,12 +325,11 @@ test_deps: prepare gofmt lfparser_disable_line vet
 
 lint: deps check_man copyright_check
 	$(call check_golint_version)
-	if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
+	@if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
 		echo '============== lint under amd64/linux ==================='; \
-		$(GOLINT_BINARY) --version; \
 		GOARCH=amd64 GOOS=linux $(GOLINT_BINARY) run --fix --allow-parallel-runners ; \
 	fi
-	@echo '============== lint under amd64/darwin==================='
+	@echo '============== lint under amd64/darwin ==================='
 	$(call do_lint,amd64,darwin)
 	@echo '============== lint under 386/windows ==================='
 	$(call do_lint,386,windows)

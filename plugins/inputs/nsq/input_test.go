@@ -272,6 +272,7 @@ election = true
 			// }
 
 			cases = append(cases, &caseSpec{
+				t:       t,
 				name:    in.name,
 				repo:    im[0],
 				repoTag: im[1],
@@ -470,7 +471,7 @@ func TestIntergration(t *testing.T) {
 	}
 }
 
-func TestDockerNsq(t *testing.T) {
+func TestDockerNSQ(t *testing.T) {
 	r := testutils.GetRemote()
 	r.Host = "10.200.14.141"
 	dockerTCP := r.TCPURL()
