@@ -107,7 +107,7 @@ var (
 )
 
 // RandPort return random port after offset baseOffset.
-func RandPort() int {
+func RandPort(proto string) int {
 	if v := os.Getenv("TESTING_BASE_PORT"); v != "" {
 		i, err := strconv.ParseInt(v, 10, 64)
 		if err == nil {
@@ -115,7 +115,24 @@ func RandPort() int {
 		}
 	}
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
+	for {
+		r := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
+		p := ((r.Int() % baseOffset) + baseOffset) % maxPort
+		if !portInUse(proto, p) {
+			return p
+		}
+	}
+}
 
-	return ((r.Int() % baseOffset) + baseOffset) % maxPort
+func portInUse(proto string, p int) bool {
+	c, err := net.DialTimeout(proto, net.JoinHostPort("0.0.0.0", fmt.Sprintf("%d", p)), time.Second)
+	if err != nil {
+		return false
+	}
+
+	if c != nil {
+		defer c.Close()
+	}
+
+	return true
 }
