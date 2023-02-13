@@ -20,11 +20,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/gin-gonic/gin/binding"
 	influxm "github.com/influxdata/influxdb1-client/models"
 	client "github.com/influxdata/influxdb1-client/v2"
-	lp "github.com/GuanceCloud/cliutils/lineproto"
-	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"

@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/influxdata/influxdb1-client/models"
 	lp "github.com/GuanceCloud/cliutils/lineproto"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 

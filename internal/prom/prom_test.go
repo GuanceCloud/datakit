@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )

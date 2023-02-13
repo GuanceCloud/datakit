@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"testing"
 
-	psNet "github.com/shirou/gopsutil/net"
 	tu "github.com/GuanceCloud/cliutils/testutil"
+	psNet "github.com/shirou/gopsutil/net"
 )
 
 func TestCollect(t *testing.T) {

@@ -23,11 +23,11 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/gin-contrib/timeout"
-	"github.com/gin-gonic/gin"
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/gin-contrib/timeout"
+	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"

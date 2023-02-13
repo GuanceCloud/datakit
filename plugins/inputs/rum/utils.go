@@ -23,9 +23,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-sourcemap/sourcemap"
 	lp "github.com/GuanceCloud/cliutils/lineproto"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/go-sourcemap/sourcemap"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"

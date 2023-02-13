@@ -16,11 +16,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/shirou/gopsutil/host"
 	pr "github.com/shirou/gopsutil/v3/process"
 	"github.com/tweekmonster/luser"
-	"github.com/GuanceCloud/cliutils"
-	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"

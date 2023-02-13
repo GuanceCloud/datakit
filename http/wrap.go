@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"time"
 
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	tollbooth "github.com/didip/tollbooth/v6"
 	"github.com/didip/tollbooth/v6/limiter"
 	"github.com/gin-gonic/gin"
-	uhttp "github.com/GuanceCloud/cliutils/network/http"
 )
 
 var reqLimiter *limiter.Limiter

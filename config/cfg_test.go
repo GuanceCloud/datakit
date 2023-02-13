@@ -14,8 +14,8 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
-	"github.com/stretchr/testify/assert"
 	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )

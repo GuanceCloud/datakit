@@ -17,8 +17,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	humanize "github.com/dustin/go-humanize"
 	"github.com/GuanceCloud/cliutils/logger"
+	humanize "github.com/dustin/go-humanize"
 )
 
 var (

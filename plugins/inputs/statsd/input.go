@@ -15,9 +15,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/influxdata/telegraf/plugins/parsers/graphite"
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/influxdata/telegraf/plugins/parsers/graphite"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"

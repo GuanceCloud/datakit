@@ -8,8 +8,8 @@ package http
 import (
 	"fmt"
 
-	"github.com/gin-gonic/gin"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/gin-gonic/gin"
 )
 
 func apiRestart(c *gin.Context) {

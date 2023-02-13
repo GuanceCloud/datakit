@@ -14,9 +14,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	psNet "github.com/shirou/gopsutil/net"
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	psNet "github.com/shirou/gopsutil/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"

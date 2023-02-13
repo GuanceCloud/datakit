@@ -17,11 +17,11 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -139,7 +139,10 @@ func (ipt *Input) Run() {
 				continue
 			}
 
-			if err := ipt.feed.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+			if err := ipt.feed.Feed(inputName,
+				datakit.Metric,
+				pts,
+				&io.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("io.Feed: %s, ignored", err)
 			}
 

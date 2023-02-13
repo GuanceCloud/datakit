@@ -19,8 +19,8 @@ import (
 	"text/template"
 	"time"
 
-	humanize "github.com/dustin/go-humanize"
 	"github.com/GuanceCloud/cliutils"
+	humanize "github.com/dustin/go-humanize"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"

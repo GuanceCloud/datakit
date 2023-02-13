@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	bstoml "github.com/BurntSushi/toml"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
-	tu "github.com/GuanceCloud/cliutils/testutil"
 )
 
 func TestEmptyDir(t *testing.T) {

@@ -17,9 +17,9 @@ import (
 	// it will use this embedded information in time/tzdata.
 	_ "time/tzdata"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/grok"
 	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
-	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"

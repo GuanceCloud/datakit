@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 //----------------------------------------------------------------------

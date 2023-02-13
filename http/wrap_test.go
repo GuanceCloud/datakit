@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/gin-gonic/gin"
 )
 
 func TestLimitWrap(t *testing.T) {

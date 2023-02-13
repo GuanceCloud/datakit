@@ -16,8 +16,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/prometheus/prometheus/util/strutil"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/prometheus/prometheus/util/strutil"
 )
 
 var (

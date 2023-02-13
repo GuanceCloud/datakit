@@ -19,8 +19,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/gorilla/websocket"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 

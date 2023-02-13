@@ -11,8 +11,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 

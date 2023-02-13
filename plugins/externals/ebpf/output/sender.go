@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 

@@ -24,9 +24,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	lp "github.com/GuanceCloud/cliutils/lineproto"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/gin-gonic/gin"
 )
 
 var (

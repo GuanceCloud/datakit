@@ -10,7 +10,8 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type topicChannels map[string]*ChannelStats
@@ -92,6 +93,12 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 	var pts []*point.Point
 	var lastErr error
 
+	var opts []point.Option
+
+	if s.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
 	for topic, c := range s.topicCache {
 		for channel, channelStats := range c {
 			tags := map[string]string{
@@ -102,9 +109,8 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 				tags[k] = v
 			}
 			fields := channelStats.ToMap()
-			opt := point.MOptElectionV2(s.election)
-			opt.DisableGlobalTags = true
-			pt, err := point.NewPoint("nsq_topics", tags, fields, opt)
+
+			pt, err := point.NewPoint("nsq_topics", tags, fields, opts...)
 			if err != nil {
 				lastErr = err
 				continue
@@ -125,7 +131,7 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 		}
 		fields := n.ToMap()
 
-		pt, err := point.NewPoint("nsq_nodes", tags, fields, point.MOptElectionV2(s.election))
+		pt, err := point.NewPoint("nsq_nodes", tags, fields, opts...)
 		if err != nil {
 			lastErr = err
 			continue

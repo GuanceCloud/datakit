@@ -18,10 +18,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/GuanceCloud/cliutils"
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/gin-gonic/gin"
 )
 
 var httpCases = []struct {

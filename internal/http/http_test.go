@@ -21,9 +21,9 @@ import (
 	"testing"
 	"time"
 
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/elazarl/goproxy"
 	"github.com/gin-gonic/gin"
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 

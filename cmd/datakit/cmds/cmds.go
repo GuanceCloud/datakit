@@ -7,8 +7,8 @@
 package cmds
 
 import (
-	prompt "github.com/c-bata/go-prompt"
 	"github.com/GuanceCloud/cliutils/logger"
+	prompt "github.com/c-bata/go-prompt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"

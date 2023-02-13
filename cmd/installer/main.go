@@ -22,8 +22,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kardianos/service"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/installer"
