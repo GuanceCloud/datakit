@@ -1,42 +1,41 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# Prometheus Remote Write 支持
+
+# Prometheus Remote Write
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-监听 Prometheus Remote Write 数据，上报到观测云。
+Monitor Prometheus Remote Write data and report it to Guance Cloud.
 
-## 前置条件 {#requirements}
+## Preconditions {#requirements}
 
-开启 Prometheus Remote Write 功能，在 prometheus.yml 添加如下配置：
+Turn on the Prometheus Remote Write feature and add the following configuration in prometheus.yml:
 
 ```yml
 remote_write:
  - url: "http://<datakit-ip>:9529/prom_remote_write"
 ```
 
-## 配置 {#config}
+## Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    
+    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).
 
-### tags 添加、忽略及重命名 {#tag-ops}
+### Add, Ignore and Rename Tags {#tag-ops}
 
-可以通过配置 `tags` 为采集到的指标加上标签，如下：
+You can label the collected metrics by configuring `tags`, as follows:
 
 ```toml
   ## custom tags
@@ -45,21 +44,21 @@ remote_write:
   more_tag = "some_other_value"
 ```
 
-可以通过配置 `tags_ignore` 忽略指标上的某些标签，如下：
+You can ignore some of the tags on the metric by configuring `tags_ignore`, as follows:
 
 ```toml
   ## tags to ignore
   tags_ignore = ["xxxx"]
 ```
 
-可以通过配置 `tags_ignore_regex` 正则匹配并忽略指标上的标签，如下：
+You can regularly match and ignore labels on metrics by configuring `tags_ignore_regex`, as follows:
 
 ```toml
   ## tags to ignore with regex
   tags_ignore_regex = ["xxxx"]
 ```
 
-可以通过配置 `tags_rename` 重命名指标已有的某些标签名，如下：
+You can rename some of the tag names that an indicator already has by configuring `tags_rename`, as follows:
 
 ```toml
   ## tags to rename
@@ -68,39 +67,39 @@ remote_write:
   more_old_tag_name = "other_new_tag_name"
 ```
 
-另外，当重命名后的 tag key 与已有 tag key 相同时:可以通过 `overwrite` 配置是否覆盖掉已有的 tag key。
+In addition, when the renamed tag key is the same as the existing tag key: You can configure whether to overwrite the existing tag key by `overwrite`.
 
-> 注意：对于 [DataKit 全局 tag key](datakit-conf.md#update-global-tag)，此处不支持将它们重命名。
+> Note: For [DataKit global tag key](datakit-conf.md#update-global-tag), renaming them is not supported here.
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-指标集以 Prometheus 发送过来的指标集为准。
+The standard set is based on the measurements sent by Prometheus.
 
-## 命令行调试指标集 {#debug}
+## Command Line Debug Measurements {#debug}
 
-DataKit 提供一个简单的调试 `prom.conf` 的工具，如果不断调整 `prom.conf` 的配置，可以实现只采集符合一定名称规则的 Prometheus 指标的目的。
+DataKit provides a simple tool for debugging `prom.conf`. If you constantly adjust the configuration of `prom.conf`, you can achieve the goal of collecting only Prometheus metrics that meet certain name rules.
 
-Datakit 支持命令行直接调试本采集器的配置文件。在配置 `conf.d/prom` 下 `prom_remote_write.conf` 的 `output` 项，将其配置为一个本地文件路径，之后`prom_remote_write.conf` 会将采集到的数据写到文件中，数据就不会上传到中心。
+Datakit supports direct debugging of the collector configuration files from the command line. Configure the `output` entry of `prom_remote_write.conf` under `conf.d/prom`, configure it as a local file path, and then `prom_remote_write.conf` writes the collected data to the file without uploading it to the center.
 
-重启 Datakit，让配置文件生效：
+Restart Datakit for the configuration file to take effect:
 
 ```shell
 datakit service -R
 ```
 
-这时 *prom_remote_write* 采集器将把采集的数据写到 output 指明的本地文件中。
+The *prom_remote_write* collector will then write the collected data to the local file indicated by the output.
 
-这时执行如下命令，即可调试 *prom_remote_write.conf*
+You can debug *prom_remote_write.conf* by executing the following command.
 
 ```shell
 datakit tool --prom-conf prom_remote_write.conf
 ```
 
-参数说明：
+Parameter description:
 
-- `prom-conf`: 指定配置文件，默认在当前目录下寻找 `prom_remote_write.conf` 文件，如果未找到，会去 `<datakit-install-dir>/conf.d/prom` 目录下查找相应文件。
+- `prom-conf`: Specify the configuration file and look for the  `prom_remote_write.conf` file in the current directory by default. If it is not found, it will look for the corresponding file in the `<datakit-install-dir>/conf.d/prom` directory.
 
-输出示例：
+Output sample:
 
 ```
 ================= Line Protocol Points ==================
@@ -148,14 +147,14 @@ Total measurements: 6 (prometheus, promhttp, up, scrape, go, node)
 
 
 
-输出说明：
+Output description:
 
-- Line Protocol Points： 产生的行协议点
+- Line Protocol Points: Generated line protocol points
 
-- Summary： 汇总结果 
+- Summary: Summary results
 
-- - Total time series: 时间线数量
+- - Total time series: Number of timelines
 
-- - Total line protocol points: 行协议点数
+- - Total line protocol points: Line protocol points
 
-- - Total measurements: 指标集个数及其名称。
+- - Total measurements: The number of measurements and their names.

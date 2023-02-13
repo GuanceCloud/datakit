@@ -67,6 +67,7 @@ measurements-meta.json
 old/
 parser_y.go
 pipeline-docs.json
+pipeline-docs.en.json
 pipeline/parser/parser.y.go
 plugins/external/csv/__tmp
 plugins/external/csv/venv

@@ -1,5 +1,4 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # Memcached
 ---
 
@@ -7,34 +6,34 @@
 
 ---
 
-Memcached 采集器可以从 Memcached 实例中采集实例运行状态指标，并将指标采集到观测云，帮助监控分析 Memcached 各种异常情况。
+Memcached collector can collect the running status metrics from Memcached instances, and collect the metrics to the observation cloud to help monitor and analyze various abnormal situations of Memcached.
 
-## 前置条件 {#requirements}
+## Preconditions {#requirements}
 
-- Memcached 版本 >= 1.5.0
+- Memcached version >= 1.5.0
 
-## 配置 {#config}
+## Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    
+    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.memcached.tags]`:
 
 ``` toml
- [inputs.{{.InputName}}.tags]
+ [inputs.memcached.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -44,11 +43,11 @@ Memcached 采集器可以从 Memcached 实例中采集实例运行状态指标�
 
 ### `{{$m.Name}}`
 
--  标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
 {{$m.FieldsMarkdownTable}}
 

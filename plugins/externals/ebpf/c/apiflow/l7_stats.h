@@ -8,7 +8,7 @@ enum
 {
     L7_BUFFER_SIZE = 1 << 10, // 2^10
 #define L7_BUFFER_SIZE L7_BUFFER_SIZE
-    L7_BUFFER_SIZE_MASK = 0xFFF // or 0x7FFFFFFF，需要大于 buffer size
+    L7_BUFFER_SIZE_MASK = 0xFFF // or 0x7FFFFFFF, need to be larger than buffer size
 #define L7_BUFFER_SIZE_MASK L7_BUFFER_SIZE_MASK
 };
 
@@ -19,7 +19,7 @@ typedef enum
     HTTP_REQ_RESP = 0b10
 }  req_resp_t;
 
-// 需要关联 payload 和 conn info
+// Need to associate payload and conn info.
 struct payload_id
 {
     __u64 pid_tid;

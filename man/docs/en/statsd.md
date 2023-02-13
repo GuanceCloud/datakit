@@ -1,34 +1,33 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# Statsd 数据接入
+
+# Statsd Data Access
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-statsd 采集器用于接收网络上发送过来的 statsd 数据。
+The statsd collector is used to receive statsd data sent over the network.
 
-## 前置条件 {#requrements}
+## Preconditions {#requrements}
 
-暂无
+None
 
-## 配置 {#config}
+## Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    配置好后，重启 DataKit 即可。
+    After configuration, restart DataKit.
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [configMap injection collector configuration](datakit-daemonset-deploy.md#configmap-setting).
 
-## 指标集 {#measurement}
+## Measurement {#measurement}
 
-statsd 暂无指标集定义，所有指标以网络发送过来的指标为准。
+Statsd has no measurement definition at present, and all metrics are subject to the metrics sent by the network.

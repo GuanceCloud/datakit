@@ -1,42 +1,41 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# 采集器配置
+
+# Collector Configuration
 ---
 
-DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_blank"}，所有采集器配置均位于 *conf.d* 目录下：
+The collector configuration in DataKit is in the [Toml format](https://toml.io/cn){:target="_blank"}, and all collector configurations are in the *conf.d* directory:
 
 - Linux/Mac：`/usr/local/datakit/conf.d/`
 - Windows：`C:\Program Files\datakit\conf.d\`
 
-每个采集都分门别类，位于 *conf.d* 的下层子目录中。可参考具体的采集器配置说明，找到对应的子目录。
+Each collection is categorized and located in the lower subdirectory of *conf.d*. You can refer to the specific collector configuration instructions to find the corresponding subdirectory.
 
-一个典型的配置采集器文件，其结构大概如下：
+A typical configuration collector file has the following structure:
 
 ```toml
-[[inputs.some_name]] # 这一行是必须的，它表明这个 toml 文件是哪一个采集器的配置
+[[inputs.some_name]] # The line is required to indicate which collector configuration this toml file is
 	key = value
 	...
 
-[[inputs.some_name.other_options]] # 这一行则可选，有些采集器配置有这一行，有些则没有
+[[inputs.some_name.other_options]] # The line is optional, and some collectors are configured with this line, while others are not
 	key = value
 	...
 ```
 
-> 由于 DataKit 只会搜索 `conf.d/` 目录下以 `.conf` 为扩展的文件，故所有采集器配置==必须放在 *conf.d* 目录下（或其下层子目录下），且必须以 *.conf* 作为文件后缀==，不然 DataKit 会忽略该配置文件的处理。
+> Because DataKit only searches for files in the `conf.d/` directory that are extended by `.conf`, all collector configurations==must be placed in the *conf.d* directory (or its lower subdirectory) and must be suffixed by *.conf*==, otherwise DataKit will ignore the processing of the configuration file.
 
-## 如何修改采集器配置 {#modify-input-conf}
+## How to Modify Collector Configuration {#modify-input-conf}
 
-目前部分采集器可以无需配置就能开启，有些则需要手动编辑配置。
+At present, some collectors can be turned on without configuration, while others need to edit the configuration manually.
 
-### 同一个采集器开启多份采集 {#input-multi-inst}
+### Enable Multiple Collections with the Same Collector {#input-multi-inst}
 
-以 MySQL 为例，如果要配置多个不同 MySQL 采集，有两种方式：
+Taking MySQL as an example, if you want to configure multiple different MySQL collections, there are two ways:
 
-1. 新加一个 conf 文件，比如 *mysql-2.conf*，可以将其跟已有的 *mysql.conf*  放在同一目录中。
-1. 在已有的 mysql.conf 中，新增一段，如下所示：
+1. Add a new conf file, such as *mysql-2.conf*, which can be placed in the same directory as the existing *mysql.conf*.
+1. In the existing mysql.conf, add a paragraph like this:
 
 ```toml
-# 第一个 MySQL 采集
+# The first MySQL collection
 [[inputs.mysql]]
   host = "localhost"
   user = "datakit"
@@ -50,10 +49,10 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
   
   [inputs.mysql.tags]
   
-    # 省略其它配置项...
+    # Omit other configuration items...
 
 #-----------------------------------------
-# 再来一个 MySQL 采集
+# Another MySQL collection
 #-----------------------------------------
 [[inputs.mysql]]
   host = "localhost"
@@ -68,18 +67,18 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
   
   [inputs.mysql.tags]
   
-    # 省略其它配置项...
+    # Omit other configuration items...
 
 #-----------------------------------------
-# 下面继续再加一个
+# Continue to add another one below
 #-----------------------------------------
 [[inputs.mysql]]
 	...
 ```
 
-第二种方法管理起来可能更为简单，它将所有的同名采集器都用同一个 conf 管理起来了，第一种可能导致配置目录混乱。
+The second method is probably simpler to manage, which manages all collectors with the same name with the same conf, and the first method may lead to confusion in the configuration directory.
 
-总结一下，第二种多采集配置的结构如下：
+To sum up, the structure of the second multi-acquisition configuration is as follows:
 
 ```toml
 [[inputs.some-name]]
@@ -90,47 +89,47 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
    ...
 ```
 
-这实际上是一个 Toml 的数组结构，==这种结构适用于所有采集器的多配置情况==。
+This is actually a Toml array structure, ==This structure is suitable for multiple configurations of all collectors==.
 
 ???+ attention
 
-    - 内容完全相同的两个采集器配置文件（文件名可以不同）为了防止误配置，只会应用其中一个
+    - Two collector configuration files with identical contents (file names can be different). To prevent misconfiguration, only one of them will be applied.
     
-    - 不建议将多个不同的采集器（比如 MySQL 和 Nginx）配置到一个 conf 中，这可能导致一些奇怪的问题，也不便于管理
+    - Configuring multiple different collectors (such as MySQL and Nginx) into one conf is not recommended, which can cause some odd problems and is not easy to administer.
     
-    - 部分采集器被限制为单实例运行，具体请查看 [只允许单实例运行的采集器](#input-singleton)
+    - Some collectors are limited to single-instance operation, see [input-singleton for details](#input-singleton).
 
-### 单实例采集器 {#input-singleton}
+### Single Instance Collector {#input-singleton}
 
-部分采集器只允许单实例运行，即使配置多份，也只会运行单个实例，这些单实例采集器列表如下：
+Some collectors only allow a single instance to run, and even if multiple copies are configured, only a single instance will run. These single instance collectors are listed as follows:
 
-| 采集器名称                            | 说明                                                                           |
+| Collector Name                            | Description                                                                           |
 | ------------------------------------- | -----------------------------------------------                                |
-| [cpu](cpu.md)                         | 采集主机的 CPU 使用情况                                                        |
-| [disk](disk.md)                       | 采集磁盘占用情况                                                               |
-| [diskio](diskio.md)                   | 采集主机的磁盘 IO 情况                                                         |
-| [ebpf](ebpf.md)                       | 采集主机网络 TCP、UDP 连接信息，Bash 执行日志等                                |
-| [mem](mem.md)                         | 采集主机的内存使用情况                                                         |
-| [swap](swap.md)                       | 采集 Swap 内存使用情况                                                         |
-| [system](system.md)                   | 采集主机操作系统负载                                                           |
-| [net](net.md)                         | 采集主机网络流量情况                                                           |
-| [netstat](netstat.md)                 | 采集网络连接情况，包括 TCP/UDP 连接数、等待连接、等待处理请求等                |
-| [host_dir](hostdir.md)                | 采集器用于目录文件的采集，例如文件个数，所有文件大小等                         |
-| [host_processes](host_processes.md)   | 采集主机上常驻（存活 10min 以上）进程列表                                      |
-| [hostobject](hostobject.md)           | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
-| [container](container.md)             | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
+| [cpu](cpu.md)                         | Collect the CPU usage of the host                                                        |
+| [disk](disk.md)                       | Collect disk occupancy                                                               |
+| [diskio](diskio.md)                   | Collect the disk IO status of the host                                                         |
+| [ebpf](ebpf.md)                       | Collect TCP and UDP connection information of host network, Bash execution log, etc.                                |
+| [mem](mem.md)                         | Collect the memory usage of the host                                                         |
+| [swap](swap.md)                       | Collect Swap memory usage                                                         |
+| [system](system.md)                   | Collect the load of host operating system                                                           |
+| [net](net.md)                         | Collect host network traffic                                                           |
+| [netstat](netstat.md)                 | Collect network connections, including TCP/UDP connections, waiting for connections, waiting for processing requests, etc.                |
+| [host_dir](hostdir.md)                | Collector is used to collect directory files, such as the number of files, all file sizes, etc.                         |
+| [host_processes](host_processes.md)   | Collect the list of resident (surviving for more than 10min) processes on the host                                      |
+| [hostobject](hostobject.md)           | Collect basic information of host computer (such as operating system information, hardware information, etc.)                                 |
+| [container](container.md)             | Collect possible containers or Kubernetes data on the host. Assuming there are no containers on the host, the collector will exit directly. |
 
 
-### 关闭具体采集器 {#disable-inputs}
+### Close the Specific Collector {#disable-inputs}
 
-有时候，我们希望临时关闭某个采集器，也有两种方式：
+Sometimes, we want to temporarily shut down a collector, and there are two ways:
 
-1. 将对应的采集器 conf 重命名，比如 *mysql.conf* 改成 *mysql.conf.bak*，==只要保证文件后缀不是 conf 即可==
-1. 在 conf 中，注释掉对应的采集配置，如
+1. Rename the corresponding collector conf, such as *mysql.conf* to  *mysql.conf.bak*，==Just make sure the file suffix is not conf==
+1. In conf, comment out the corresponding collection configuration, such as:
 
 ```toml
 
-# 注释掉第一个 MySQL 采集
+# Comment out the first MySQL collection
 #[[inputs.mysql]]
 #  host = "localhost"
 #  user = "datakit"
@@ -144,10 +143,10 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
 #  
 #  [inputs.mysql.tags]
 #  
-#    # 省略其它配置项...
+#    # Omit other configuration items...
 #
 
-# 保留这个 MySQL 采集
+# Keep this MySQL collection
 [[inputs.mysql]]
   host = "localhost"
   user = "datakit"
@@ -161,44 +160,44 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
   
   [inputs.mysql.tags]
   
-    # 省略其它配置项...
-``` 
+    # Omit other configuration items...
+```
 
-相比而言，第一种方式更粗暴简单，第二种需小心修改，它可能会导致 Toml 配置错误。
+In contrast, the first approach is more crude and simple, and the second one needs to be carefully modified, which may lead to Toml configuration errors.
 
-### 采集器配置中的正则表达式 {#debug-regex}
+### Regular Expressions in Collector Configuration {#debug-regex}
 
-在编辑采集器配置时，部分可能需要配置一些正则表达式。
+When editing the collector configuration, some regular expressions may need to be configured.
 
-由于 DataKit 绝大部分使用 Golang 开发，故涉及配置部分中所使用的正则通配，也是使用 Golang 自身的正则实现。由于不同语言的正则体系有一些差异，导致难以一次性正确的将配置写好。
+Since DataKit is mostly developed using Golang, the regular wildmatch used in the configuration section is also implemented using Golang's own regular implementation. As there are some differences in the regular systems of different languages, it is difficult to write the configuration correctly at one time.
 
-这里推荐一个[在线工具来调试我们的正则通配](https://regex101.com/){:target="_blank"}。如下图所示：
+We recommend an [online tool to debug our regular wildcard](https://regex101.com/){:target="_blank"}. As shown in the following figure:
 
 <figure markdown>
   ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/debug-golang-regexp.png){ width="800" }
 </figure>
 
-另外，由于 DataKit 中的配置均使用 Toml，故建议大家使用 `'''这里是一个具体的正则表达式'''` 的方式来填写正则（即正则俩边分别用三个英文单引号），这样可以避免一些复杂的转义。
+In addition, since Toml is used in the configuration of DataKit, it is recommended that you fill in the regular form by using `'''Here is a specific regular expression'''` (that is, three English single quotation marks are used on both sides of the regular form), so as to avoid some complicated escapes.
 
-## 默认开启的采集器 {#default-enabled-inputs}
+## Collector Turned on by Default {#default-enabled-inputs}
 
-DataKit 安装完成后，默认会开启一批采集器，无需手动开启。这些采集器一般跟主机相关，列表如下：
+After DataKit is installed, a batch of collectors will be turned on by default without manual opening. These collectors are generally related to the host, and the list is as follows:
 
-| 采集器名称                               | 说明                                            |
+| Collector Name                               | Description                                            |
 |-------------------------------------|-----------------------------------------------|
-| [cpu](cpu.md)                       | 采集主机的 CPU 使用情况                                |
-| [disk](disk.md)                     | 采集磁盘占用情况                                      |
-| [diskio](diskio.md)                 | 采集主机的磁盘 IO 情况                                 |
-| [mem](mem.md)                       | 采集主机的内存使用情况                                   |
-| [swap](swap.md)                     | 采集 Swap 内存使用情况                                |
-| [system](system.md)                 | 采集主机操作系统负载                                    |
-| [net](net.md)                       | 采集主机网络流量情况                                    |
-| [host_processes](host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                      |
-| [hostobject](hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                       |
-| [container](container.md)           | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
-| [rum](rum.md)                       | 采集真实用户监测信息                                    |
+| [cpu](cpu.md)                       | Collect the CPU usage of the host                                |
+| [disk](disk.md)                     | Collect disk occupancy                                      |
+| [diskio](diskio.md)                 | Collect the disk IO status of the host                                 |
+| [mem](mem.md)                       | Collect the memory usage of the host                                   |
+| [swap](swap.md)                     | Collect Swap memory usage                                |
+| [system](system.md)                 | Collect the load of host operating system                                    |
+| [net](net.md)                       | Collect host network traffic                                    |
+| [host_processes](host_processes.md) | Collect the list of resident (surviving for more than 10min) processes on the host                      |
+| [hostobject](hostobject.md)         | Collect basic information of host computer (such as operating system information, hardware information, etc.)                       |
+| [container](container.md)           | Collect possible containers or Kubernetes data on the host. Assuming there are no containers on the host, the collector will exit directly. |
+| [rum](rum.md)                       | Collect real user monitoring information                                    |
 
-## 更多阅读 {#more}
+## For More Readings {#more}
 
-- [DataKit K8s 安装以及配置](datakit-daemonset-deploy.md)
-- [通过 Git 管理采集器配置](git-config-how-to.md)
+- [DataKit K8s Installation and Configuration](datakit-daemonset-deploy.md)
+- [Manage collector configuration through Git](git-config-how-to.md)

@@ -1,12 +1,12 @@
 {{.CSS}}
-# 容器数据采集
+# 容器基础采集
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-采集 container 和 Kubernetes 的指标、对象和日志数据，上报到观测云。
+采集 Container 和 Kubernetes 的指标、对象和日志数据，上报到观测云。
 
 ## 前置条件 {#requrements}
 
@@ -194,7 +194,7 @@ Datakit 会采集 Kubernetes Pod 或 Service 等资源的 yaml 配置，并存�
 
 例如，现在需要在 env 中添加一份密码，正常情况下是这样：
 
-```
+```yaml
     containers:
     - name: mycontainer
       image: redis
@@ -207,7 +207,7 @@ Datakit 会采集 Kubernetes Pod 或 Service 等资源的 yaml 配置，并存�
 
 创建一个 Secret：
 
-```
+```yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -220,13 +220,13 @@ data:
 
 执行：
 
-```
+```shell
 kubectl apply -f mysecret.yaml
 ```
 
 在 env 中使用 Secret：
 
-```
+```yaml
     containers:
     - name: mycontainer
       image: redis

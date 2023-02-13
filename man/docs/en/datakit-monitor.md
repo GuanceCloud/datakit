@@ -1,142 +1,141 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# 查看 DataKit 的 Monitor
+
+# View Monitor for DataKit
 ---
 
-DataKit 提供了相对完善的基本可观测信息输出，通过查看 DataKit 的 monitor 输出，我们能清晰的知道当前 DataKit 的运行情况。
+DataKit provides relatively complete output of basic observable information. By looking at the monitor output of DataKit, we can clearly know the current operation of DataKit.
 
-## 查看 Monitor {#view}
+## View Monitor {#view}
 
-执行如下命令即可获取本机 DataKit 的运行情况。
+Execute the following command to get the running status of the native DataKit.
 
 ```
 datakit monitor
 ```
 
-> 可通过 `datakit help monitor` 查看更多 monitor 选项。
+> You can see more monitor options through the `datakit help monitor`.
 
-DataKit 基本 Monitor 页面信息如下图所示：
+The DataKit Basic Monitor page information is shown in the following figure:
 
 ![基础Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-basic-v1.gif) 
 
-该图中的元素可以通过鼠标或键盘操作。被鼠标选中的块会以双边框突出显示（如上图左上角的 `Basic Info` 块所示），另外，还能通过鼠标滚轮或者键盘上下方向键（或者 vim 的 J/K）来浏览。
+The elements in this diagram can be manipulated by mouse or keyboard. Blocks selected by the mouse are highlighted in bilateral boxes (as shown in the `Basic Info` block in the upper left corner of the above figure), and can also be browsed through the mouse wheel or the up and down arrow keys of the keyboard (or J/K of vim).
 
-上图中的每个 UI 块的信息分别是：
+The information of each UI block in the above figure is:
 
-- `Basic Info` 用来展示 DataKit 的基本信息，如版本号、主机名、运行时长等信息。从这里我们可以对 DataKit 当前的情况有个基本了解。现挑选几个字段出来单独说明：
-  - `Version`：DataKit 当前的版本号
-	- `Branch`：DataKit 当前的代码分支，一般情况下都是 master
-	- `Uptime`：DataKit 的启动时间
-	- `CGroup`：展示当前 DataKit 的 cgroup 配置，其中 `mem` 指最大内存限制，`cpu` 指使用率限制范围
-	- `OS/Arch`：当前 DataKit 的软硬件平台
-	- `IO`：展示 DataKit 当前 IO 通道的拥塞情况
-	- `Pipeline`：展示 DataKit 当前 Pipeline 的处理情况
-	- `Elected`：展示选举情况
-	  - 如果选举未开启，则显示 `<namespace-name>::disabled|<none>`
-	  - 如果选举开启，则显示 `<namespace-name>::<disabled-or-success>|<elected-datakit-host-name>`，如 `my-namespace::success|my-host123`
-	- `From`：当前被 Monitor 的 DataKit 地址，如 `http://localhost:9529/stats`
+- `Basic Info` is used to show the basic information of DataKit, such as version number, host name, runtime and so on. From here, we can have a basic understanding of the current situation of DataKit. Now select a few fields to explain separately:
+  - `Version`: Current version number of DataKit
+	- `Branch`: The current code branch of DataKit, which is generally master
+	- `Uptime`: Startup time of DataKit
+	- `CGroup`: Show the cgroup configuration of the current DataKit, where mem refers to the maximum memory limit and cpu refers to the usage limit
+	- `OS/Arch`: Current software and hardware platforms of DataKit
+	- `IO`: Show the current congestion of the DataKit IO channel
+	- `Pipeline`: Show the current Pipeline processing of DataKit
+	- `Elected`: Show the election situation
+	  - If the election is not open, display `<namespace-name>::disabled|<none>`
+	  - If the election is open, display `<namespace-name>::<disabled-or-success>|<elected-datakit-host-name>`, such as `my-namespace::success|my-host123`
+	- `From`: The DataKit address of the current Monitor, such as `http://localhost:9529/stats`
 
-- `Runtime Info` 用来展示 DataKit 的基本运行消耗（主要是内存以及 Goroutine 有关），其中：
+- `Runtime Info` Runtime Info is used to show the basic running consumption of DataKit (mainly related to memory and Goroutine):
 
-	- `Goroutines`：当前正在运行的 Goroutine 个数
-	- `Mem`：DataKit 进程当前实际消耗的内存字节数（*不含外部运行的采集器*）
-	- `System`：DataKit 进程当前消耗的虚拟内存（*不含外部运行的采集器*）
-	- `Stack`：当前栈中消耗的内存字节数
-	- `GC Paused`：自 DataKit 启动以来，GC（垃圾回收）所消耗的时间
-	- `GC Count`：自 DataKit 启动以来，GC 次数
+	- `Goroutines`: The number of Goroutines currently running
+	- `Mem`: The actual number of bytes of memory currently consumed by the DataKit process (*excluding externally running collectors*)
+	- `System`: Virtual memory currently consumed by the DataKit process (*excluding externally running collectors*)
+	- `Stack`: Number of bytes of memory consumed in the current Stack
+	- `GC Paused`: Time elapsed by GC (garbage collection) since DataKit started
+	- `GC Count`: Number of GCs since DataKit started
 
-> 关于这里的 Runtime Info，参见 [Golang 官方文档](https://pkg.go.dev/runtime#ReadMemStats){:target="_blank"}
+> For Runtime Info here, see [Golang doc](https://pkg.go.dev/runtime#ReadMemStats){:target="_blank"}
 
-- `Enabled Inputs` 展示开启的采集器列表，其中
+- `Enabled Inputs` displays a list of open collectors:
 
-	- `Input`：指采集器名称，该名称是固定的，不容修改
-	- `Instances`：指该采集器开启的个数
-	- `Crashed`：指该采集器的崩溃次数
+	- `Input`: Refer to the collector name, which is fixed and cannot be modified
+	- `Instances`: Refer to the number of the collector turned on
+	- `Crashed`: Refer to the number of crashes of the collector
 
-- `Inputs Info`：用来展示每个采集器的采集情况，这里信息较多，下面一一分解
-	- `Input`: 指采集器名称。某些情况下，这个名称是采集器自定义的（比如日志采集器/Prom 采集器）
-	- `Category`：指该采集器所采集的数据类型（M(指标)/L(日志)/O(对象)...）
-	- `Freq`：指该采集器每分钟的采集频率
-	- `Avg Pts`：指该采集器每次采集所获取的行协议点数（*如果采集器频率 Freq 高，但 Avg Pts 又少，则该采集器的设定可能有问题*）
-	- `Total Feed`：总的采集次数
-	- `Total Pts`：采集的总的行协议点数
-	- `1st Feed`：第一次采集的时间（相对当前时间）
-	- `Last Feed`：最后一次采集的时间（相对当前时间）
-	- `Avg Cost`：平均每次采集消耗
-	- `Max Cost`：最大采集消耗
-	- `Error(date)`：是否有采集错误（并附带最后一次错误相对当前的时间）
+- `Inputs Info`: It is used to show the collection situation of each collector. There is more information here, which is decomposed one by one below
+	- `Input`: Refer to the collector name. In some cases, this name is collector-specific (such as Log Collector/Prom Collector)
+	- `Category`: Refer to the type of data collected by the collector (M (metrics)/L (logs)/O (objects...)
+	- `Freq`: Refer to the acquisition frequency per minute of the collector
+	- `Avg Pts`: Refer to the number of line protocol points collected by the collector per collection (*if the collector frequency Freq is high but Avg Pts is low, the collector setting may be problematic*)
+	- `Total Feed`: Total collection times
+	- `Total Pts`: Total line protocol points collected
+	- `1st Feed`: Time of first collection (relative to current time)
+	- `Last Feed`: Time of last collection (relative to current time)
+	- `Avg Cost`: Average consumption per collection
+	- `Max Cost`: Maximum collection consumption
+	- `Error(date)`: Whether there is a collection Error (with the last Error relative to the current time)
 
-- 底部的提示文本，用于告知如何退出当前的 Monitor 程序，并且显示当前的 Monitor 刷新频率。
+- The prompt text at the bottom tells you how to exit the current Monitor program and displays the current Monitor refresh rate.
 
 ---
 
-如果运行 Monitor 时，指定了 verbose 选项（`-V`），则会额外输出更多信息，如下图所示：
+If the verbose option (`-V`) is specified when Monitor is run, additional information is output, as shown in the following figure:
 
 ![完整Monitor信息展示](imgs/monitor-verbose-v1.gif) 
 
-- `Goroutine Groups` 展示 DataKit 中已有的 Goroutine 分组（该分组中的 Goroutine 个数 <= 上面面板中的 `Goroutines` 个数）
-- `HTTP APIs` 展示 DataKit 中 API 调用情况
-- `Filter` 展示 DataKit 中黑名单过滤规则拉取情况
-- `Filter Rules` 展示每类黑名单的过滤情况
+- `Goroutine Groups` shows the existing Goroutine Groups in the DataKit (the number of Goroutines in the group < = the number of `Goroutines` in the panel above).
+- `HTTP APIs` show API calls in DataKit.
+- `Filter` shows the pull of blacklist filtering rules in DataKit.
+- `Filter Rules` shows the filtering of each type of blacklist.
 
-- `Sender Info` 展示 Sender 管理的各个 Sink 运行情况
-	- `Sink`: Sink 名称
-	- `Uptime`: 运行时间
-	- `Count`: Write 次数
-	- `Failed`: Write 失败次数
-	- `Pts`: Write 点数
-	- `Raw Bytes`: Write 字节数（压缩前）
-	- `Bytes`: Write 字节数（压缩后）
-	- `2XX`: HTTP 状态码 2XX 次数
-	- `4XX`: HTTP 状态码 4XX 次数
-	- `5XX`: HTTP 状态码 5XX 次数
-	- `Timeout`: HTTP 超时次数
+- `Sender Info` shows the operation of each Sink managed by Sender.
+	- `Sink`: Sink name
+	- `Uptime`: Runtime
+	- `Count`: Number of Write
+	- `Failed`: Number of Write failures
+	- `Pts`: Write Points
+	- `Raw Bytes`: Number of Write bytes (before compression)
+	- `Bytes`: Number of Write Bytes (compressed)
+	- `2XX`: HTTP status code 2XX times
+	- `4XX`: HTTP status code 4XX times
+	- `5XX`: HTTP status code 5XX times
+	- `Timeout`: The number of HTTP timeouts
 
 ## FAQ {#faq}
 
-### 如何只展示指定采集器的运行情况？ {#specify-inputs}
+### How to show only the operation of the specified collector? {#specify-inputs}
 
 ---
 
-A：可通过指定一个采集器名字列表（多个采集器之间以英文逗号分割）：
+A: You can specify a list of collector names (multiple collectors are separated by English commas):
 
 ```shell
 datakit monitor -I cpu,mem
-# 或者
+# or
 datakit monitor --input cpu,mem
 ```
 
-### 如何展示太长的文本？ {#too-long}
+### How to display too long text? {#too-long}
 
-当某些采集器产生报错时，其报错信息会很长，在表格展示不全。
+When some collectors report errors, their error information will be very long and incomplete in the table.
 
 ---
 
-A：可通过设定展示的列宽来显示完整的信息：
+A: Complete information can be displayed by setting the column width of the display:
 
 ```shell
 datakit monitor -W 1024
-# 或者
+# or
 datakit monitor --max-table-width 1024
 ```
 
-### 如何更改 Monitor 刷新频率？ {#freq}
+### How to change the Monitor refresh rate? {#freq}
 
 ---
 
-A：可通过设定刷新频率来更改：
+A: It can be changed by setting the refresh frequency:
 
 ```shell
 datakit monitor -R 1s
-# 或者
+# or
 datakit monitor --refresh 1s
 ```
 
-> 注意，这里的单位需注意，必须是如下几种：s（秒）/m（分钟）/h（小时），如果时间范围小于 1s，则按照 1s 来刷新。
+> Note that the units here must be the following: s (seconds)/m (minutes)/h (hours). If the time range is less than 1s, refresh according to 1s. 
 
-### 如何 Monitor 其它 DataKit？ {#remote-monitor}
+### How to Monitor other DataKits? {#remote-monitor}
 
-有时候，安装的 DataKit 并不是使用默认的 9529 端口，这时候就会出现类似如下的错误：
+Sometimes, the DataKit installed does not use the default 9529 port, and this time, an error like the following will occur:
 
 ```shell
 request stats failed: Get "http://localhost:9528/stats": dial tcp ...
@@ -144,17 +143,17 @@ request stats failed: Get "http://localhost:9528/stats": dial tcp ...
 
 ---
 
-A: 可通过指定 datakit 地址来查看其 monitor 数据：
+A: You can view its monitor data by specifying the datakit address:
 
 ```shell
 datakit monitor --to localhost:19528
 
-# 也能查看另一个远程 DataKit 的 monitor
+# You can also view the monitor of another remote DataKit
 datakit monitor --to <remote-ip>:9528
 ```
 
-### 如何查看具体采集器的错误信息？ {#view-errors}
+### How to view error messages for a specific collector? {#view-errors}
 
 ---
 
-A: 直接点击错误信息，即可在底部显示详细错误信息。点击该错误信息后，通过 ESC 或 Enter 键即可关闭该错误信息展示。
+A: Click on the error message directly to display a detailed error message at the bottom. After clicking the error message, the display of the error message can be closed by ESC or Enter.

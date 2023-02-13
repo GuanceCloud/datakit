@@ -52,9 +52,9 @@ type Input struct {
 	K8sBearerTokenString                              string `toml:"bearer_token_string"`
 	DisableK8sEvents                                  bool   `toml:"disable_k8s_events"`
 	ExtractK8sLabelAsTags                             bool   `toml:"extract_k8s_label_as_tags"`
-	EnableAutoDiscoveryOfPrometheusServierAnnotations bool   `toml:"enable_autdo_discovery_of_prometheus_service_annotations"`
-	EnableAutoDiscoveryOfPrometheusPodMonitors        bool   `toml:"enable_autdo_discovery_of_prometheus_pod_monitors"`
-	EnableAutoDiscoveryOfPrometheusServiceMonitors    bool   `toml:"enable_autdo_discovery_of_prometheus_service_monitors"`
+	EnableAutoDiscoveryOfPrometheusServierAnnotations bool   `toml:"enable_auto_discovery_of_prometheus_service_annotations"`
+	EnableAutoDiscoveryOfPrometheusPodMonitors        bool   `toml:"enable_auto_discovery_of_prometheus_pod_monitors"`
+	EnableAutoDiscoveryOfPrometheusServiceMonitors    bool   `toml:"enable_auto_discovery_of_prometheus_service_monitors"`
 
 	ContainerIncludeLog               []string          `toml:"container_include_log"`
 	ContainerExcludeLog               []string          `toml:"container_exclude_log"`

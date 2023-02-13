@@ -1,85 +1,84 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# 文件日志
+
+# File Log
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-本文档主要介绍本地磁盘日志采集和 Socket 日志采集：
+This document focuses on local disk log collection and Socket log collection:
 
-- 磁盘日志采集 ：采集文件尾部数据（类似命令行 `tail -f`）
-- Socket 端口获取：通过 TCP/UDP 方式将日志发送给 DataKit 
+- Disk log collection: Collect data at the end of the file (similar to command line `tail -f`）
+- Socket port collection: Send log to DataKit via TCP/UDP
 
-## 配置 {#config}
+## Configuration {#config}
 
-=== "主机部署"
+=== "Host deployment"
 
-    进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logging.conf.sample` 并命名为 `logging.conf`。示例如下：
+    Go to the `conf.d/log` directory under the DataKit installation directory, copy `logging.conf.sample` and name it `logging.conf`. Examples are as follows:
     
     ``` toml
     [[inputs.logging]]
-      # 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定
-      # 推荐使用绝对路径
+      # Log file list, you can specify absolute path, support batch specification using glob rules
+      # Absolute path recommended
       logfiles = [
-        "/var/log/*",                          # 文件路径下所有文件
-        "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
-        "/var/log/syslog",                     # Unix 格式文件路径
-        "C:/path/space 空格中文路径/some.txt", # Windows 风格文件路径
-        "/var/log/*",                          # 文件路径下所有文件
-        "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
+        "/var/log/*",                          # All files under the file path
+        "/var/log/sys*",                       # All files prefixed with sys under the file path
+        "/var/log/syslog",                     # Unix format file path
+        "C:/path/space 空格中文路径/some.txt", # Windows format file path
+        "/var/log/*",                          # All files under the file path
+        "/var/log/sys*",                       # All files prefixed with sys under the file path
       ]
     
-      ## socket 目前支持两种协议：tcp/udp。建议开启内网端口防止安全隐患
-      ## socket 和 log 目前只能选择其中之一，不能既通过文件采集，又通过 socket 采集
+      ## socket currently supports two protocols: tcp/udp. It is recommended to open the intranet port to prevent potential safety hazards
+      ## socket and log can only be selected at present, and can not be collected by both file and socket
       socket = [
        "tcp://0.0.0.0:9540"
        "udp://0.0.0.0:9541"
       ]
     
-      # 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
+      # File path filtering, using glob rules, meet any one of the filtering conditions will not be collected for the file
       ignore = [""]
       
-      # 数据来源，如果为空，则默认使用 'default'
+      # Data source, if empty, 'default' is used by default
       source = ""
       
-      # 新增标记tag，如果为空，则默认使用 $source
+      # Add tag. If it is empty, $source is used by default
       service = ""
       
-      # pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline
+      # if pipeline script path is empty, then $source.p will be used; and if $source.p does not exist, then pipeline will be used
       pipeline = ""
       
-      # 过滤对应 status:
+      # Filter corresponding status:
       #   `emerg`,`alert`,`critical`,`error`,`warning`,`info`,`debug`,`OK`
       ignore_status = []
       
-      # 选择编码，如果编码有误会导致数据无法查看。默认为空即可:
+      # Select the code, if there is a misunderstanding in the code, the data cannot be viewed. Default to null:
       #    `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
       character_encoding = ""
       
-      ## 设置正则表达式，例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
-      ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
-      ## 使用3个单引号 '''this-regexp''' 避免转义
-      ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+      ## Set regular expressions, such as ^\d{4}-\d{2}-\d{2} line headers to match the YYYY-MM-DD time format
+      ## Data that matches this regular match will be considered valid, otherwise it will be cumulatively appended to the end of the last valid data
+      ## Use three single quotation marks '''this-regexp''' to avoid escaping
+      ## Regular expression link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
       # multiline_match = '''^\S'''
-
-      ## 是否开启自动多行模式，开启后会在 patterns 列表中匹配适用的多行规则
+    
+      ## Whether to turn on automatic multiline mode, it will match the applicable multiline rule in the pattern list
       auto_multiline_detection = true
-      ## 配置自动多行的 patterns 列表，内容是多行规则的数组，即多个 multiline_match，如果为空则使用默认规则详见文档
+      ## Configure the automatic multiline patterns list, which is an array of multiline rules, i.e. multiple multiline_matches. If it is empty, use the default rule. See the document for details
       auto_multiline_extra_patterns = []
     
-      ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
+      ## Whether to delete ANSI escape codes, such as text color for standard output, etc
       remove_ansi_escape_codes = false
       
-      ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
-      ## 时间单位支持 "ms", "s", "m", "h"
+      ## Ignore inactive files. For example, files that were last modified 20 minutes ago and more than 10m ago will be ignored
+      ## Time unit supports "ms", "s", "m", "h"
       ignore_dead_log = "1h"
     
-      ## 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据
+      ## Whether to turn on blocking mode, which will continue to retry after data fails to be sent, instead of discarding the data
       blocking_mode = true
     
-      # 自定义 tags
+      # Custom tags
       [inputs.logging.tags]
       # some_tag = "some_value"
       # more_tag = "some_other_value"
@@ -88,19 +87,19 @@
 
 === "Kubernetes/Docker/Containerd"
 
-    在 Kubernetes 中，一旦[容器采集器](container.md)启动，则会默认去抓取各个容器（含 Pod 下的容器）的 stdout/stderr 日志，容器日志主要有以下几个配置方式：
-
-    - [通过 Annotation/Label 调整容器日志采集](container.md#logging-with-annotation-or-label)
-    - [根据容器 image 配置日志采集](container.md#logging-with-image-config)
-    - [通过 Sidecar 形式采集 Pod 内部日志](logfwd.md)
+    In Kubernetes, once the container collector (container.md) is started, the stdout/stderr logs of each container (including the container under Pod) will be crawled by default. The container logs are mainly configured in the following ways:
+    
+    - [Adjust container log collection via Annotation/Label](container.md#logging-with-annotation-or-label)
+    - [Configure log collection based on container image](container.md#logging-with-image-config)
+    - [Collect Pod internal logs in Sidecar form](logfwd.md)
 
 ???+ Note "关于 `ignore_dead_log` 的说明"
 
-    如果文件已经在采集，但 1h 内没有新日志写入的话，DataKit 会关闭该文件的采集。在这期间（1h），该文件**不能**被物理删除（如 `rm` 之后，该文件只是标记删除，DataKit 关闭该文件后，该文件才会真正被删除）。
+    If the file is already being collected, but no new log is written within 1 hour, DataKit will close the collection of the file. During this period (1h), the file **cannot** be physically deleted (for example, after `rm`, the file is only marked for deletion, and the file will not be actually deleted until DataKit closes it).
 
-### socket 采集日志 {#socket}
+### socket Collection Log {#socket}
 
-将 conf 中 `logfiles` 注释掉，并配置 `sockets`。以 log4j2 为例:
+Comment out `logfiles` in conf and configure `sockets`. Take log4j2 as an example:
 
 ``` xml
  <!-- socket 配置日志传输到本机 9540 端口，protocol 默认 tcp -->
@@ -113,25 +112,25 @@
  </Socket>
 ```
 
-更多: Java Go Python 主流日志组件的配置及代码示例，请参阅：[socket client 配置](logging_socket.md)
+More: For configuration and code examples of Java Go Python mainstream logging components, see: [socket client configuration](logging_socket.md)
 
-### 多行日志采集 {#multiline}
+### Multiline Log Collection {#multiline}
 
-通过识别多行日志的第一行特征，即可判定某行日志是不是一条新的日志。如果不符合这个特征，我们即认为当前行日志只是前一条多行日志的追加。
+It can be judged whether a line of logs is a new log by identifying the characteristics of the first line of multi-line logs. If this characteristic is not met, we consider that the current row log is only an append to the previous multi-row log.
 
-举例说明一下，一般情况下，日志都是顶格写的，但有些日志文本不是顶格写的，比如程序崩溃时的调用栈日志，那么，对于这种日志文本，就是多行日志。
+For example, logs are written in the top grid in general, but some log texts are not written in the top grid, such as the call stack log when the program crashes. Then, it is a multi-line log for this log text.
 
-在 DataKit 中，我们通过正则表达式来识别多行日志特征，正则匹配上的日志行，就是一条新的日志的开始，后续所有不匹配的日志行，都认为是这条新日志的追加，直到遇到另一行匹配正则的新日志为止。 
+In DataKit, we identify multi-line log characteristics through regular expressions. The log line on regular matching is the beginning of a new log, and all subsequent unmatched log lines are considered as appends to this new log until another new log matching regular is encountered.
 
-在 `logging.conf` 中，修改如下配置：
+In `logging.conf`, modify the following configuration:
 
 ```toml
-multiline_match = '''这里填写具体的正则表达式''' # 注意，这里的正则俩边，建议分别加上三个「英文单引号」
+multiline_match = '''Fill in the specific regular expression here''' # Note that it is recommended to add three "English single quotation marks" to the regular sides here
 ```
 
-日志采集器中使用的正则表达式风格[参考](https://golang.org/pkg/regexp/syntax/#hdr-Syntax){:target="_blank"}
+Regular expression style used in log collector [reference](https://golang.org/pkg/regexp/syntax/#hdr-Syntax){:target="_blank"}
 
-假定原数据为：
+Assume that the original data is:
 
 ```
 2020-10-23 06:41:56,688 INFO demo.py 1.0
@@ -143,9 +142,9 @@ ZeroDivisionError: division by zero
 2020-10-23 06:41:56,688 INFO demo.py 5.0
 ```
 
-`multiline_match` 配置为 `^\\d{4}-\\d{2}-\\d{2}.*` 时，（意即匹配形如 `2020-10-23` 这样的行首）
+`multiline_match` is configured to `^\\d{4}-\\d{2}-\\d{2}.*` (meaning to match a line header of the form `2020-10-23`)
 
-切割出的三个行协议点如下（行号分别是 1/2/8）。可以看到 `Traceback ...` 这一段（第 3 ~ 6 行）没有单独形成一条日志，而是追加在上一条日志（第 2 行）的 `message` 字段中。
+The cut out three line protocol points are as follows (line numbers are 1/2/8 respectively). You can see that the `Traceback ...` paragraph (lines 3-6) does not form a single log, but is appended to the `message` field of the previous log (line 2).
 
 ```
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 1.0" 1611746438938808642
@@ -158,18 +157,18 @@ ZeroDivisionError: division by zero
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.0" 1611746443938917265
 ```
 
-#### 自动多行模式 {#auto-multiline}
+#### Automatic Multiline Mode {#auto-multiline}
 
-开启此功能后，每一行日志数据都会在多行列表中匹配。如果匹配成功，就将当前的多行规则权重加一，以便后面能更快速的匹配到，然后退出匹配循环；如果整个列表结束依然没有匹配到，则认为匹配失败。
+When this function is turned on, each row of log data will be matched in the multi-row list. If the match is successful, the weight of the current multi-line rule is added by one, so that it can be matched more quickly, and then the matching cycle is exited; If there is no match at the end of the whole list, the match is considered to have failed.
 
-匹配成功与失败，后续操作和正常的多行日志采集是一样的：匹配成功，会将现存的多行数据发送出去，并将本条数据填入；匹配失败，会追加到现存数据的尾端。
+Matching success and failure, subsequent operation and normal multi-line log collection are the same: if matching is successful, the existing multi-line data will be sent out and this data will be filled in; If the match fails, it will be appended to the end of the existing data.
 
-因为日志存在多个多行配置，它们的优先级如下：
+Because there are multiple multi-row configurations for the log, their priorities are as follows:
 
-1. `multiline_match` 不为空，只使用当前规则
-2. 使用 source 到 `multiline_match` 的映射配置（只在容器日志中存在 `logging_source_multiline_map`），如果使用 source 能找到对应的多行规则，只使用此规则
-3. 开启 `auto_multiline_detection`，如果 `auto_multiline_extra_patterns` 不为空，会在这些多行规则中匹配
-3. 开启 `auto_multiline_detection`，如果 `auto_multiline_extra_patterns` 为空，使用默认的自动多行匹配规则列表，即：
+1. `multiline_match` is not empty, only the current rule is used
+2. Use source to `multiline_match` mapping configuration (`logging_source_multiline_map` exists only in the container log), using only this rule if the corresponding multiline rule can be found using source
+3. Turn on `auto_multiline_detection`, which matches in these multiline rules if `auto_multiline_extra_patterns` is not empty
+3. Turn on `auto_multiline_detection` and, if `auto_multiline_extra_patterns` is empty, use the default automatic multiline match rule list, namely:
 
 ```
 // time.RFC3339, "2006-01-02T15:04:05Z07:00"
@@ -212,9 +211,9 @@ testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.
 `^\d{4}-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])`,
 ```
 
-#### 超长多行日志处理的限制 {#too-long-logs}
+#### Restrictions on Processing Very Long Multi-line Logs {#too-long-logs}
 
-目前最多能处理不超过 32MiB 的单条多行日志，如果实际多行日志超过 32MiB，DataKit 会将其识别成多条。举例如下，假定有如下多行日志，我们要将其识别成单条日志：
+At present, a single multi-line log of no more than 32MiB can be processed at most. If the actual multi-line log exceeds 32MiB, DataKit will recognize it as multiple. For example, let's assume that there are several lines of logs as follows, and we want to identify them as a single log:
 
 ```log
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
@@ -230,9 +229,9 @@ Traceback (most recent call last):
  ...
 ```
 
-此处，由于有超长的多行日志，第一条日志超过 32MiB，DataKit 提前结束这条多行，最终得到三条日志：
+Here, because of the super-long multi-line log, the first log exceeds 32MiB, DataKit ends this multi-line early, and finally gets three logs:
 
-第一条：即头部的 32MiB
+Number 1: 32MiB of the head
 
 ```log
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
@@ -242,7 +241,7 @@ Traceback (most recent call last):
       ...                                 <---- 此处省略 32MiB - 800 字节，加上上面的 4 行，刚好超过 32MiB
 ```
 
-第二条：除去头部的 32MiB，剩余的部分独立成为一条日志
+Number 2: Remove the 32MiB in the header, and the rest will become a log independently
 
 ```log
         File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
@@ -250,7 +249,7 @@ Traceback (most recent call last):
              ZeroDivisionError: division by zero
 ```
 
-第三条：下面一条全新的日志：
+Number 3: The following is a brand-new log:
 
 ```log
 2020-10-23 06:41:56,688 INFO demo.py 5.0  <---- 全新的一条多行日志
@@ -258,24 +257,24 @@ Traceback (most recent call last):
  ...
 ```
 
-#### 日志单行最大长度 {#max-log}
+#### Maximum Log Single Line Length {#max-log}
 
-无论从文件还是从 socket 中读取的日志, 单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃。
+The maximum length of a single line (including after `multiline_match`) is 32MB, whether read from a file or from a socket, and the excess is truncated and discarded.
 
-### Pipeline 配置和使用 {#pipeline}
+### Pipeline Configuring and Using {#pipeline}
 
-[Pipeline](../developers/pipeline.md) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
+[Pipeline](../developers/pipeline.md) is used primarily to cut unstructured text data, or to extract parts of information from structured text, such as JSON.
 
-对日志数据而言，主要提取两个字段：
+For log data, there are two main fields to extract:
 
-- `time`：即日志的产生时间，如果没有提取 `time` 字段或解析此字段失败，默认使用系统当前时间
-- `status`：日志的等级，如果没有提取出 `status` 字段，则默认将 `stauts` 置为 `unknown`
+- `time`: When the log is generated, if the `time` field is not extracted or parsing this field fails, the current system time is used by default
+- `status`: The level of the log, with `stauts` set to `unknown` by default if the `status` field is not extracted
 
-#### 可用日志等级 {#status}
+#### Available Log Levels {#status}
 
-有效的 `status` 字段值如下（不区分大小写）：
+Valid `status` field values are as follows (case-insensitive):
 
-| 日志可用等级          | 简写    | Studio 显示值 |
+| Log Availability Level          | Abbreviation    | Studio Display value |
 | ------------          | :----   | ----          |
 | `alert`               | `a`     | `alert`       |
 | `critical`            | `c`     | `critical`    |
@@ -286,14 +285,14 @@ Traceback (most recent call last):
 | `debug/trace/verbose` | `d`     | `debug`       |
 | `OK`                  | `o`/`s` | `OK`          |
 
-> 注：如果日志等级（status）不属于上述任何一种（含简写），那么 DataKit 会将其 status 字段置为 `unknown`。
+> Note: DataKit sets its status field to `unknown` if the log level (status) does not belong to any of the above (including abbreviations).
 
-示例：假定文本数据如下：
+Example: Assume the text data is as follows:
 
 ```
 12115:M 08 Jan 17:45:41.572 # Server started, Redis version 3.0.6
 ```
-pipeline 脚本：
+pipeline script:
 
 ```python
 add_pattern("date2", "%{MONTHDAY} %{MONTH} %{YEAR}?%{TIME}")
@@ -303,7 +302,7 @@ cast(pid, "int")
 default_time(time)
 ```
 
-最终结果：
+Final result:
 
 ```python
 {
@@ -317,34 +316,34 @@ default_time(time)
 }
 ```
 
-Pipeline 的几个注意事项：
+A few considerations for Pipeline:
 
-- 如果 logging.conf 配置文件中 `pipeline` 为空，默认使用 `<source-name>.p`（假定 `source` 为 `nginx`，则默认使用 `nginx.p`）
-- 如果 `<source-name.p>` 不存在，将不启用 pipeline 功能
-- 所有 pipeline 脚本文件，统一存放在 DataKit 安装路径下的 pipeline 目录下
-- 如果日志文件配置的是通配目录，logging 采集器会自动发现新的日志文件，以确保符合规则的新日志文件能够尽快采集到
+- Default to `<source-name>.p` if `pipeline` is empty in the logging.conf configuration file (default to `nginx` assuming `source` is `nginx.p`)
+- If `<source-name.p>` does not exist, the pipeline feature will not be enabled
+- All pipeline script files are stored in the pipeline directory under the DataKit installation path
+- If the log file is configured with a wildcard directory, the logging collector will automatically discover new log files to ensure that new log files that meet the rules can be collected as soon as possible
 
-### glob 规则简述 {#grok-rules}
+### Introduction of Glob Rules {#grok-rules}
 
-使用 glob 规则更方便地指定日志文件，以及自动发现和文件过滤。
+Use glob rules to specify log files more conveniently, as well as automatic discovery and file filtering.
 
-| 通配符   | 描述                               | 正则示例       | 匹配示例                  | 不匹配                      |
+| Wildcard character   | Description                               | Regular Example       | Matching Sample                  | Mismatch                      |
 | :--      | ---                                | ---            | ---                       | ----                        |
-| `*`      | 匹配任意数量的任何字符，包括无     | `Law*`         | Law, Laws, Lawyer         | GrokLaw, La, aw             |
-| `?`      | 匹配任何单个字符                   | `?at`          | Cat, cat, Bat, bat        | at                          |
-| `[abc]`  | 匹配括号中给出的一个字符           | `[CB]at`       | Cat, Bat                  | cat, bat                    |
-| `[a-z]`  | 匹配括号中给出的范围中的一个字符   | `Letter[0-9]`  | Letter0, Letter1, Letter9 | Letters, Letter, Letter10   |
-| `[!abc]` | 匹配括号中未给出的一个字符         | `[!C]at`       | Bat, bat, cat             | Cat                         |
-| `[!a-z]` | 匹配不在括号内给定范围内的一个字符 | `Letter[!3-5]` | Letter1…                  | Letter3 … Letter5, Letterxx |
+| `*`      | Match any number of any characters, including none     | `Law*`         | Law, Laws, Lawyer         | GrokLaw, La, aw             |
+| `?`      | Match any single character                   | `?at`          | Cat, cat, Bat, bat        | at                          |
+| `[abc]`  | Match a character given in parentheses           | `[CB]at`       | Cat, Bat                  | cat, bat                    |
+| `[a-z]`  | Match a character in the range given in parentheses   | `Letter[0-9]`  | Letter0, Letter1, Letter9 | Letters, Letter, Letter10   |
+| `[!abc]` | Match a character not given in parentheses         | `[!C]at`       | Bat, bat, cat             | Cat                         |
+| `[!a-z]` | Match a character that is not within the given range in parentheses | `Letter[!3-5]` | Letter1…                  | Letter3 … Letter5, Letterxx |
 
-另需说明，除上述 glob 标准规则外，采集器也支持 `**` 进行递归地文件遍历，如示例配置所示。更多 Grok 介绍，参见[这里](https://rgb-24bit.github.io/blog/2018/glob.html){:target="_blank"}。
+Also, in addition to the glob standard rules described above, the collector also supports `**` recursive file traversal, as shown in the sample configuration. For more information on Grok, see [here](https://rgb-24bit.github.io/blog/2018/glob.html){:target="_blank"}。
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.logging.tags]`:
 
 ``` toml
- [inputs.{{.InputName}}.tags]
+ [inputs.logging.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -356,45 +355,43 @@ Pipeline 的几个注意事项：
 
 {{$m.Desc}}
 
--  标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} 
-
-[^1]: 早期 Pipeline 实现的时候，只能切割出 field，而 status 大部分都是通过 Pipeline 切割出来的，故将其归类到 field 中。但语义上，它应该属于 tag 的范畴。
+{{ end }}
 
 ## FAQ {#faq}
 
-### 为什么在页面上看不到日志数据？ {#why-no-data}
+### Why can't you see log data on the page? {#why-no-data}
 
-DataKit 启动后，`logfiles` 中配置的日志文件==有新的日志产生才会采集上来，老的日志数据是不会采集的==。
+After DataKit is started, the log file configured in `logfiles` ==will be collected only when new logs are generated, and the old log data will not be collected==.
 
-另外，一旦开始采集某个日志文件，将会自动触发一条日志，内容大概如下：
+In addition, once a log file is collected, a log will be automatically triggered, which reads as follows:
 
 ```
 First Message. filename: /some/path/to/new/log ...
 ```
 
-如果看到这样的信息，证明指定的文件==已经开始采集，只是当前尚无新的日志数据产生==。另外，日志数据的上传、处理、入库也有一定的时延，即使有新的数据产生，也需要等待一定时间（< 1min）。
+If you see such information, prove that the specified file ==has started to be collected, but no new log data has been generated at present==. In addition, there is a certain delay in uploading, processing and warehousing log data, and even if new data is generated, it needs to wait for a certain time (< 1min).
 
-### 磁盘日志采集和 Socket 日志采集的互斥性 {#exclusion}
+### Mutex of Disk Log Collection and Socket Log Collection {#exclusion}
 
-两种采集方式目前互斥，当以 Socket 方式采集日志时，需将配置中的 `logfiles` 字段置空：`logfiles=[]`
+The two collection methods are mutually exclusive at present. When collecting logs in Socket mode, the `logfiles` field in the configuration should be left blank: `logfiles=[]`
 
-### 远程文件采集方案 {#remote-ntfs}
+### Remote File Collection Scheme {#remote-ntfs}
 
-在 linux 上，可通过 [NFS 方式](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/){:target="_blank"}，将日志所在主机的文件路径，挂载到 DataKit 主机下，logging 采集器配置对应日志路径即可。
+On linux, you can mount the file path of the host where the log is located to the DataKit host by [NFS mode](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/){:target="_blank"}, and the logging collector can configure the corresponding log path.
 
-### 日志的特殊字节码过滤 {#ansi-decode}
+### Special Bytecode Filtering for Logs {#ansi-decode}
 
-日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以将 `remove_ansi_escape_codes` 设置为 `true` 对其删除过滤。
+The log may contain some unreadable bytecodes (such as the color of terminal output, etc.), which can be deleted and filtered by setting `remove_ansi_escape_codes` to `true`.
 
-此配置可能会影响日志的处理性能，基准测试结果如下：
+This configuration may affect log processing performance, and the benchmark results are as follows:
 
 ```
 goos: linux
@@ -407,37 +404,37 @@ PASS
 ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 ```
 
-每一条文本的处理耗时增加 `1616 ns` 不等。如果不开启此功能将无额外损耗。
+The processing time of each text increases by `1616 ns`. If this function is not turned on, there will be no extra loss.
 
-### MacOS 日志采集器报错 `operation not permitted` {#mac-no-permission}
+### MacOS Log Collector Error `operation not permitted` {#mac-no-permission}
 
-在 MacOS 中，因为系统安全策略的原因，DataKit 日志采集器可能会无法打开文件，报错 `operation not permitted`，解决方法参考 [apple developer doc](https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection){:target="_blank"}。
+In MacOS, because of system security policy, the DataKit log collector may fail to open files, error `operation not permitted`, refer to [apple developer doc](https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection){:target="_blank"}.
 
-### 如何估算日志的总量 {#log-size}
+### How to Estimate the Total Amount of Logs {#log-size}
 
-由于日志的收费是按照条数来计费的，但一般情况下，大部分的日志都是程序写到磁盘的，只能看到磁盘占用大小（比如每天 100GB 日志）。
+The charge of the log is according to the number of charges, but most of the logs are written to the disk by the program in general, and only the size of the disk occupied (such as 100GB logs per day) can be seen.
 
-一种可行的方式，可以用以下简单的 shell 来判断：
+A feasible way can be judged by the following simple shell:
 
 ```shell
-# 统计 1GB 日志的行数
+# Count the number of rows in 1GB log
 head -c 1g path/to/your/log.txt | wc -l
 ```
 
-有时候，要估计一下日志采集可能带来的流量消耗：
+Sometimes, it is necessary to estimate the possible traffic consumption caused by log collection:
 
 ```shell
-# 统计 1GB 日志压缩后大小（字节）
+# Count the compressed size of 1GB log (bytes)
 head -c 1g path/to/your/log.txt | gzip | wc -c
 ```
 
-这里拿到的是压缩后的字节数(bytes)，按照网络 bit 的计算方法（x8），其计算方式如下，以此可拿到大概的带宽消耗：
+What we get here is the compressed bytes. According to the calculation method of network bits (x8), the calculation method is as follows, so that we can get the approximate bandwidth consumption:
 
 ```
 bytes * 2 * 8 /1024/1024 = xxx MBit
-``` 
+```
 
-但实际上 DataKit 的压缩率不会这么高，因为 DataKit 不会一次性发送 1GB 的数据，而且分多次发送的，这个压缩率在 85% 左右（即 100MB 压缩到 15MB），故一个大概的计算方式是：
+But in fact, the compression ratio of DataKit will not be so high, because DataKit will not send 1GB of data at one time, and it will be sent several times, and this compression ratio is about 85% (that is, 100MB is compressed to 15MB), so a general calculation method is:
 
 ```
 1GB * 2 * 8 * 0.15/1024/1024 = xxx MBit
@@ -445,13 +442,13 @@ bytes * 2 * 8 /1024/1024 = xxx MBit
 
 ??? info
 
-    此处 `*2` 考虑到了 [Pipeline 切割](../developers/pipeline.md)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
+    Here `*2` takes into account the actual data inflation caused by [Pipeline cutting](../developers/pipeline.md) and the original data should be brought after cutting in general, so according to the worst case, the calculation here is doubled.
 
-## 延伸阅读 {#more-reading}
+## Extended reading {#more-reading}
 
-- [DataKit 日志采集综述](datakit-logging.md)
-- [Pipeline: 文本数据处理](../developers/pipeline.md)
-- [Pipeline 调试](../developers/datakit-pl-how-to.md)
-- [Pipeline 性能测试和对比](logging-pipeline-bench.md)
-- [通过 Sidecar(logfwd) 采集容器内部日志](logfwd.md)
-- [正确使用正则表达式来配置](datakit-input-conf#debug-regex) 
+- [DataKit Log Collection Overview](datakit-logging.md)
+- [Pipeline: Text Data Processing](../developers/pipeline.md)
+- [Pipeline debugging](../developers/datakit-pl-how-to.md)
+- [Pipeline Performance Test and Comparison](logging-pipeline-bench.md)
+- [Collect container internal logs via Sidecar (logfwd)](logfwd.md)
+- [Configure correctly with regular expressions](datakit-input-conf#debug-regex) 

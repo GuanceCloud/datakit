@@ -11,7 +11,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.5.4"
+  CI_VERSION: "1.5.5"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -91,8 +91,6 @@ release-ebpf-aarch64-testing:
   tags:
     - dk-arm-docker-runner
 
-
-
 release-ebpf-amd64-production:
   stage: deploy_ebpf
   resource_group: production
@@ -106,7 +104,6 @@ release-ebpf-amd64-production:
     - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/amd64" GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
   tags:
     - cloudcare-ft-docker
-
 
 release-ebpf-aarch64-production:
   stage: deploy_ebpf
@@ -125,7 +122,12 @@ release-ebpf-aarch64-production:
 release-testing:
   stage: deploy
   resource_group: production
-  needs: [test-datakit-testing, release-ebpf-amd64-testing, release-ebpf-aarch64-testing]
+  needs:
+    [
+      test-datakit-testing,
+      release-ebpf-amd64-testing,
+      release-ebpf-aarch64-testing,
+    ]
   only:
     - testing
     - hotfix
@@ -142,7 +144,12 @@ release-testing:
 release-stable:
   stage: deploy
   resource_group: production
-  needs: [test-datakit-production, release-ebpf-amd64-production, release-ebpf-aarch64-production]
+  needs:
+    [
+      test-datakit-production,
+      release-ebpf-amd64-production,
+      release-ebpf-aarch64-production,
+    ]
   only:
     - master
   script:

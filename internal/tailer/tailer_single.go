@@ -121,38 +121,48 @@ func (t *Single) seekOffset() error {
 		return fmt.Errorf("unreachable, invalid file pointer")
 	}
 
-	// check if from begine
-	if !t.opt.FromBeginning {
-		ret, err := t.file.Seek(0, io.SeekEnd)
-		if err != nil {
-			return err
+	var ret int64
+	var err error
+
+	if pos := t.getPosition(); pos != -1 {
+		ret, err = t.file.Seek(pos, io.SeekStart)
+		t.opt.log.Debugf("setting position %d to filename %s", pos, t.filepath)
+	} else {
+		if t.opt.FromBeginning {
+			ret, err = t.file.Seek(0, io.SeekStart)
+			t.opt.log.Debugf("setting 'from_beginning' to filename %s", t.filepath)
+		} else {
+			ret, err = t.file.Seek(0, io.SeekEnd)
 		}
-		t.offset = ret
 	}
+
+	t.offset = ret
+	return err
+}
+
+func (t *Single) getPosition() (pos int64) {
+	// default -1
+	pos = -1
 
 	data := register.Get(getFileKey(t.filepath))
 	if data == nil {
 		t.opt.log.Infof("not found logtail cache for file %s, skip", t.filepath)
-		return nil
+		return
 	}
-
 	t.opt.log.Debugf("hit offset %d from filename %s", data.Offset, t.filepath)
 
 	stat, err := t.file.Stat()
 	if err != nil {
-		return err
+		t.opt.log.Warnf("open file %s err %s, ignored", t.filepath, err)
+		return
 	}
 
-	if data.Offset <= stat.Size() {
-		ret, err := t.file.Seek(data.Offset, io.SeekStart)
-		if err != nil {
-			return err
-		}
-		t.offset = ret
-		t.opt.log.Debugf("setting primary offset %d to filename %s", t.offset, t.filepath)
+	if size := stat.Size(); data.Offset > size {
+		t.opt.log.Infof("position %d larger than the file size %d, may be truncated", data.Offset, size)
+		return
 	}
 
-	return nil
+	return data.Offset
 }
 
 func (t *Single) recordingCache() {

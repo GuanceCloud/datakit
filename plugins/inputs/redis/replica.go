@@ -62,9 +62,7 @@ func (i *Input) collectReplicaMeasurement() ([]inputs.Measurement, error) {
 	}
 
 	m.name = "redis_replica"
-	if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
-		m.tags["host"] = i.Host
-	}
+	setHostTagIfNotLoopback(m.tags, i.Host)
 
 	if err := m.getData(); err != nil {
 		return nil, err

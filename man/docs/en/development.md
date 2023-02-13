@@ -1,118 +1,117 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# DataKit 开发手册
+
+# DataKit Development Manual
 ---
 
-## 如何新增采集器 {#add-input}
+## How to Add a Collector {#add-input}
 
-假定新增采集器 `zhangsan`，一般遵循如下步骤：
+Assuming that a new collector `zhangsan` is added, the following steps are generally followed:
 
-- 在 `plugins/inputs` 下新增模块 `zhangsan`，创建一个  `input.go`
-- 在 `input.go` 中新建一个结构体
+- Add the module `zhangsan` under `plugins/inputs` and create an `input.go`
+- Create a new structure in `input.go`
 
 ```golang
-// 统一命名为 Input
+// Uniformly named Input
 type Input struct {
-	// 一些可配置的字段
+	// Some configurable fields
 	...
 
-	// 一般每个采集器都是可以新增用户自定义 tag 的
+	// Generally, each collector can add a user-defined tag
 	Tags   map[string]string
 }
 ```
 
-- 该结构体实现如下几个接口，具体示例，参见 `demo` 采集器：
+- The structure implements the following interfaces, for example, see `demo` collector:
 
 ```Golang
-Catalog() string                  // 采集器分类，比如 MySQL 采集器属于 `db` 分类
-Run()                             // 采集器入口函数，一般会在这里进行数据采集，并且将数据发送给 `io` 模块
-SampleConfig() string             // 采集器配置文件示例
-SampleMeasurement() []Measurement // 采集器文档生成辅助结构
-AvailableArchs() []string         // 采集器适用的操作系统
+Catalog() string                  // Collector classifications, such as MySQL collectors, belong to the `db` classification
+Run()                             // Collector entry function, which usually collects data here and sends the data to the `io` module
+SampleConfig() string             // Sample collector configuration file
+SampleMeasurement() []Measurement // Auxiliary structure of collector document generation
+AvailableArchs() []string         // Operating system applicable to collector
 ```
 
-> 由于不断会新增一些采集器功能，==新增的采集器应该尽可能实现 plugins/inputs/inputs.go 中的所有 interface==
+> As some collector features are constantly being added, ==new collectors should implement all interfaces in plugins/inputs/inputs.go as much as possible==
 
-- 在 `input.go` 中，新增如下模块初始化入口：
+- In `input.go`, add the following module initialization entry:
 
 ```Golang
 func init() {
 	inputs.Add("zhangsan", func() inputs.Input {
 		return &Input{
-			// 这里可初始化一堆该采集器的默认配置参数
+			// Here you can initialize a bunch of default configuration parameters for this collector
 		}
 	})
 }
 ```
 
-- 在 `plugins/inputs/all/all.go` 中新增 `import`：
+- Add `import` in `plugins/inputs/all/all.go`
 
 ```Golang
 import (
-	... // 其它已有采集器
+	... // Other existing collectors
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zhangsan"
 )
 ```
 
-- 在顶层目录 `checked.go` 中增加采集器：
+- Add collectors to the top-level directory `checked.go`:
 
 ```Golang
 allInputs = map[string]bool{
-	"zhangsan":       false, // 注意，这里初步置为 false，待该采集器发布时，再改成 true
+	"zhangsan":       false, // Note that it is initially set to false, and then changed to true when the collector is released
 	...
 }
 ```
 
-- 执行编译，将编译完的二进制替换掉已有 DataKit，以 Mac 平台为例：
+- Perform compilation and replace the existing DataKit with the compiled binary. Take the Mac platform as an example:
 
 ```shell
 $ make
 $ tree dist/
 dist/
 └── datakit-darwin-amd64
-    └── datakit          # 将该 dakakit 替换掉已有的 datakit 二进制，一般在 /usr/local/datakit/datakit
+    └── datakit          # Replace this dakakit with the existing datakit binary, typically /usr/local/datakit/datakit
 
-sudo datakit --stop                                             # 停掉现有 datakit
-sudo truncate -s 0 /var/log/datakit/log                         # 清空日志
-sudo cp -r dist/datakit-darwin-amd64/datakit /usr/local/datakit # 覆盖二进制
-sudo datakit --start                                            # 重启 datakit
+sudo datakit --stop                                             # stop existing datakit
+sudo truncate -s 0 /var/log/datakit/log                         # Empty the log
+sudo cp -r dist/datakit-darwin-amd64/datakit /usr/local/datakit # Overlay binary
+sudo datakit --start                                            # restart datakit
 ```
 
-- 此时，一般会在 `/usr/local/datakit/conf.d/<Catalog>/` 目录下有个 `zhangsan.conf.sample`。注意，这里的 `<Catalog>` 就是上面接口 `Catalog() string` 的返回值。
-- 开启 `zhangsan` 采集器，将 `zhangsan.conf.sample` 复制出一份 `zhangsan.conf`，如果有对应的配置（如用户名、目录配置等），修改之，然后重启 DataKit
-- 执行如下命令检查采集器情况：
+- At this point, you typically have a `zhangsan.conf.sample` in the `/usr/local/datakit/conf.d/<Catalog>/` directory. Note that the `<Catalog>` here is the return value of the interface `Catalog() string` above.
+- Open the `zhangsan` collector, make a copy of `zhangsan.conf` from `zhangsan.conf.sample`, modify the corresponding configuration (such as user name, directory configuration, etc.), and restart DataKit
+- Check the collector condition by executing the following command:
 
 ```shell
-sudo datakit tool --check-config # 检查采集器配置文件是否正常
-datakit -M --vvv            # 检查所有采集器的运行情况
+sudo datakit tool --check-config # Check whether the collector configuration file is normal
+datakit -M --vvv            # Check the operation of all collectors
 ```
 
-- 如果采集器功能完整，增加 `man/manuals/zhangsan.md` 文档，这个可参考 `demo.md`，安装里面的模板来写即可
+- If the collector function is complete, add `man/manuals/zhangsan.md` document, this can refer to `demo.md`, install the template inside to write
 
-- 对于文档中的指标集，默认是将所有能采集到的指标集以及各自的指标都列在文档中。某些特殊的指标集或指标，如果有前置条件，需在文档中做说明。
-  - 如果某个指标集需满足特定的条件，那么应该在指标集的 `MeasurementInfo.Desc` 中做说明
-  - 如果是指标集的某个指标有特定前置条件，应该在 `FieldInfo.Desc` 上做说明。
+- For measurements in the document, the default is to list all the measurements that can be collected and their respective metrics in the document. Some special measurements or metrics, if there are preconditions, need to be explained in the document.
+  - If a metric set needs to meet certain conditions, it should be described in `MeasurementInfo.Desc` of measurement
+  - If there is a specific precondition for a metric in the measurement, it should be described on `FieldInfo.Desc`.
 
-## 编译环境搭建 {#setup-compile-env}
+## Compile Environment Build {#setup-compile-env}
 
 === "Linux"
 
-    #### 安装 Golang
+    #### Install Golang
     
-    当前 Go 版本 [1.18.3](https://golang.org/dl/go1.18.3.linux-amd64.tar.gz)
+    the current Go version [1.18.3](https://golang.org/dl/go1.18.3.linux-amd64.tar.gz)
     
-    #### CI 设置
+    #### CI Settings
     
-    > 假定 go 安装在 /root/golang 目录下
+    > Assume go is installed in the /root/golang directory
     
-    - 设置目录
+    - Setting the directory
     
     ```
-    # 创建 Go 项目路径
+    # Create Go project path
     mkdir /root/go
     ```
     
-    - 设置如下环境变量
+    - Set the following environment variables
     
     ```
     export GO111MODULE=on
@@ -121,14 +120,14 @@ datakit -M --vvv            # 检查所有采集器的运行情况
     
     export GOPROXY=https://goproxy.io
     
-    # 假定 golang 安装在 /root 目录下
+    # Assume that golang is installed in the /root directory
     export GOROOT=/root/golang-1.18.3
-    # 将 go 代码 clone 到 GOPATH 里面
+    # Clone go code into GOPATH
     export GOPATH=/root/go
     export PATH=$GOROOT/bin:~/go/bin:$PATH
     ```
     
-    在 `~/.ossenv` 下创建一组环境变量，填写 OSS Access Key 以及 Secret Key，用于版本发布：
+    Create a set of environment variables under `~/.ossenv` and fill in OSS Access Key and Secret Key for release:
     
     ```shell
     export RELEASE_OSS_ACCESS_KEY='LT**********************'
@@ -138,13 +137,13 @@ datakit -M --vvv            # 检查所有采集器的运行情况
     export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
     ```
     
-    #### 安装 packr2
+    #### Install packr2
     
-    安装 [packr2](https://github.com/gobuffalo/packr/tree/master/v2){:target="_blank"}（可能需要翻墙）
+    Install [packr2](https://github.com/gobuffalo/packr/tree/master/v2){:target="_blank"}
     
     `go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
     
-    #### 安装常见工具
+    #### Install common tools
     
     - tree
     - make
@@ -154,11 +153,11 @@ datakit -M --vvv            # 检查所有采集器的运行情况
     - wget
     - docker
     - curl
-    - [llvm](https://apt.llvm.org/): 版本 >= 10.0
-    - clang: 版本 >= 10.0
-    - linux 内核（>= 5.4.0-99-generic）头文件：`apt-get install -y linux-headers-$(uname -r)` 
+    - [llvm](https://apt.llvm.org/): version >= 10.0
+    - clang: version >= 10.0
+    - linux kernel（>= 5.4.0-99-generic）header file: `apt-get install -y linux-headers-$(uname -r)` 
     
-    #### 安装第三方库
+    #### Installing third-party libraries
     
     - `gcc-multilib`
     
@@ -171,55 +170,55 @@ datakit -M --vvv            # 检查所有采集器的运行情况
 
 === "Mac"
 
-    暂不支持
+    not supported
 
 === "Windows"
 
-    暂不支持
+    not supported
 
-## 安装、升级测试 {#install-upgrade-testing}
+## Install, Upgrade and Test {#install-upgrade-testing}
 
-DataKit 新功能发布，大家最好做全套测试，包括安装、升级等流程。现有的所有 DataKit 安装文件，全部存储在 OSS 上，下面我们用另一个隔离的 OSS bucket 来做安装、升级测试。
+After DataKit released new features, we had better do a full set of testing, including installation, upgrade and other processes. All existing DataKit installation files are stored on OSS. Let's use another isolated OSS bucket to do installation and upgrade tests.
 
-大家试用下这个*预设 OSS 路径*：`oss://df-storage-dev/`（华东区域），以下 AK/SK 有需要可申请获取：
+Try this *default OSS path*：`oss://df-storage-dev/` (East China region). The following AK/SK can be obtained if necessary:
 
-> 可下载 [OSS Browser](https://help.aliyun.com/document_detail/209974.htm?spm=a2c4g.11186623.2.4.2f643d3bbtPfN8#task-2065478){:target="_blank"} 客户端工具来查看 OSS 中的文件。
+> Available for download [OSS Browser](https://help.aliyun.com/document_detail/209974.htm?spm=a2c4g.11186623.2.4.2f643d3bbtPfN8#task-2065478){:target="_blank"} client tool to view files in OSS.
 
 - AK: `LTAIxxxxxxxxxxxxxxxxxxxx`
 - SK: `nRr1xxxxxxxxxxxxxxxxxxxxxxxxxx`
 
-在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 DataKit 测试文件。具体脚本在源码 `scripts/build.sh` 中。将其 copy 到 datakit 源码根目录，稍作修改，即可用于本地编译、发布。
+In this OSS bucket, we specify that each developer has a subdirectory for storing their DataKit test files. The specific script is in the source code `scripts/build.sh`. Copy it to datakit source root directory, and slightly modify, can be used for local compilation and publishing.
 
-### 自定义目录运行 DataKit {#customize-workdir}
+### Custom Directory Running DataKit {#customize-workdir}
 
-默认情况下，DataKit 以==服务的形式==，运行在指定的目录（Linux 下为 /usr/local/datakit），但通过额外的方式，可以自定义 DataKit 工作目录，让它以非服务的方式运行，且从指定的目录读取配置和数据，主要用于开发的过程中调试 DataKit 的功能。
+DataKit runs in the specified directory (/usr/local/DataKit under Linux) as ==service== by default, but you can customize the DataKit working directory to run in a non-service mode and read configuration and data from the specified directory in an additional way, which is mainly used to debug the functions of DataKit during development.
 
-1. 更新最新的代码(dev 分支) 
-1. 编译
-1. 创建预期的 DataKit 工作目录，比如 `mkdir -p ~/datakit/conf.d`
-1. 生成默认 datakit.conf 配置文件。以 Linux 为例，执行
+1. Update the latest code (dev branch)
+2. Compile
+3. Create the expected datakit working directory, such as `mkdir -p ~/datakit/conf.d`
+4. Generate the default datakit.conf configuration file. Take Linux as an example, execute
 
 ```shell
 ./dist/datakit-linux-amd64/datakit tool --default-main-conf > ~/datakit/conf.d/datakit.conf
 ```
 
-1. 修改上面生成的 datakit.conf：
+1. Modify the datakit.conf generated above:
 
-	- 填写 `default_enabled_inputs`，加入希望开启的采集器列表，一般是 `cpu,disk,mem` 等这些
-	- `http_api.listen` 地址改一下
-	- `dataway.urls` 里面的 token 改一下
-	- 如有必要，logging 目录/level 都改一下
-	- 没有了
+	- Fill in `default_enabled_inputs` and add the list of collectors you want to open, typically `cpu,disk,mem` and so on
+	- `http_api.listen` change the address
+	- Change the token in `dataway.urls`
+	- Change the logging directory/level if necessary
+	- No more
 
-1. 启动 DataKit，以 Linux 为例：`DK_DEBUG_WORKDIR=~/datakit ./dist/datakit-linux-amd64/datakit`
-1. 可在本地 bash 中新加个 alias，这样每次编译完 DataKit 后，直接运行 `ddk` 即可（即 Debugging-DataKit）
+2. Start the datakit, taking Linux as an example: `DK_DEBUG_WORKDIR=~/datakit ./dist/datakit-linux-amd64/datakit`
+3. You can add a new alias to your local bash so that you can just run `ddk` each time you compile the DataKit (that is, Debugging-DataKit)
 
 ```shell
 echo 'alias ddk="DK_DEBUG_WORKDIR=~/datakit ./dist/datakit-linux-amd64/datakit"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-这样，DataKit 不是以服务的方式运行，可直接 ctrl+c 结束 DataKit
+In this way, the DataKit does not run as a service, and you can end the DataKit directly by ctrl+c
 
 ```shell
 $ ddk
@@ -237,13 +236,13 @@ $ ddk
 	...
 ```
 
-也可以直接用  ddk 执行一些命令行工具：
+You can also execute some command-line tools directly with ddk:
 
 ```shell
-# 安装 IPDB
+# Install IPDB
 ddk install --ipdb iploc
 
-# 查询 IP 信息
+# Query IP information
 ddk debug --ipinfo 1.2.3.4
 	    city: Brisbane
 	province: Queensland
@@ -252,76 +251,76 @@ ddk debug --ipinfo 1.2.3.4
 	      ip: 1.2.3.4
 ```
 
-## 版本发布 {#release}
+## Release {#release}
 
-DataKit 版本发布包含俩部分：
+The DataKit release consists of two parts:
 
-- DataKit 版本发布
-- 语雀文档发布
+- DataKit version release
+- Document release
 
-### DataKit 版本发布 {#release-dk}
+### DataKit Release {#release-dk}
 
-DataKit 当前的版本发布，是在 gitlab 中实现的，一旦特定分支的代码被推送到 GitLab，就会触发对应的版本发布，详见 _.gitlab-ci.yml_。
+The current release of DataKit is implemented in GitLab, which triggers the release of a specific branch of code once it is pushed to GitLab, as shown in _.gitlab-ci.yml_.
 
-在 1.2.6(含) 以前的版本中，DataKit 版本发布依赖于命令 `git describe --tags` 的输出。自 1.2.7 之后，DataKit 版本不再依赖这个机制，而是通过手动指定版本号，其步骤如下：
+In versions prior to 1.2. 6 inclusive, the DataKit release relied on the output of the command `git describe --tags`. Since 1.2. 7, DataKit versions no longer rely on this mechanism, but by manually specifying the version number, the steps are as follows:
 
-> 注：当前 script/build.sh 中依然依赖 `git describe --tags`，这只是一个版本获取策略问题，不影响主流程。
+> Note: The current reliance on `git describe --tags` in script/build.sh is just a version acquisition policy issue and does not affect the main process.
 
-- 编辑 *.gitlab-ci.yml*，修改里面的 `VERSION` 变量，如：
+- Edit *.gitlab-ci.yml* to modify the `VERSION`  variable inside, such as:
 
 ```yaml
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.8
 ```
 
-每次版本发布，都需要手动编辑 *.gitlab-ci.yml* 指定该版本号。
+Each release, you need to manually edit *.gitlab-ci.yml* to specify the version number.
 
-- 版本发布完成后，在代码上新增一个 tag
+- Add a tag to the code after the release is complete
 
 ```shell
 git tag -f <same-as-the-new-version>
 git push -f --tags
 ```
 
-> 注意： Mac 版本的发布，目前只能在 amd64 架构上的 Mac 发布，因为开启了 CGO 的原因，在 GitLab 上无法发布 Mac 版本的 DataKit。其实现如下：
+> Note: At present, the release of Mac version can only be released on Mac based on amd64 architecture. Because CGO is turned on, the Mac version of DataKit cannot be released on GitLab. It is implemented as follows:
 
 ```shell
 make production_mac VERSION=<the-new-version>
 make pub_production_mac VERSION=<the-new-version>
 ```
 
-### DataKit 版本号机制 {#version-naming}
+### DataKit Version Number Mechanism {#version-naming}
 
-- 稳定版：其版本号为 `x.y.z`，其中 `y` 必须是偶数
-- 非稳定版：其版本号为 `x.y.z`，其中 `y` 必须是基数
+- Stable version: Its version number is `x.y.z`, where `y` must be an even number
+- Non-stable version: its version number is `x.y.z`, where `y` must be cardinality
 
-### 文档发布 {#release-docs}
+### Document Publishing {#release-docs}
 
-文档的发布，只能在开发机器上发布，需安装 [mkdocs](https://www.mkdocs.org/){:target="_blank"}。其流程如下：
+Documentation can only be published on the development machine by installing [mkdocs](https://www.mkdocs.org/){:target="_blank"}. The process is as follows:
 
-- 执行 mkdocs.sh
+- Execute mkdocs.sh
 
 ```
 ./mkdocs.sh <the-new-version>
 ```
 
-如果不指定版本，会以最新的一个 tag 名称作为版本号。
+If no version is specified, the latest tag name is used as the version number.
 
-> 注意，如果是线上代码发布，最好保证跟**线上 DataKit 当前的稳定版版本号**保持一致，不然会导致用户困扰。
+> Note that if it is an online code release, it is best to ensure that it is consistent with **the current stable version number of online DataKit**, otherwise it will cause user trouble.
 
-## 关于代码规范 {#coding-rules}
+## About the Code Specification {#coding-rules}
 
-这里不强调具体的代码规范，现有工具能帮助我们规范各自的代码习惯，目前引入 golint 工具，可单独检查现有代码：
+We don't emphasize the specific code specification here. Existing tools can help us standardize our own code habits. At present, golint tools are introduced to check the existing code separately:
 
 ```golang
 make lint
 ```
 
-在 check.err 中即可看到各种修改建议。对于误报，我们可以用 `//nolint` 来显式关闭：
+You can see various modification suggestions in check.err. For false positives, we can use `//nolint` to explicitly turn off:
 
 ```golang
-// 显而易见，16 是最大的单字节 16 进制数，但 lint 中的 gomnd 会报错：
+// Obviously, 16 is the largest single-byte hexadecimal number, but gomnd in lint will report an error:
 // mnd: Magic number: 16, in <return> detected (gomnd)
-// 但此处可加后缀来屏蔽这个检查
+// But a suffix can be added here to mask this check
 func digitVal(ch rune) int {
 	switch {
 	case '0' <= ch && ch <= '9':
@@ -337,33 +336,33 @@ func digitVal(ch rune) int {
 }
 ```
 
-> 何时使用 `nolint`，参见[这里](https://golangci-lint.run/usage/false-positives/){:target="_blank"}
+> When to use `nolint`, see [here](https://golangci-lint.run/usage/false-positives/){:target="_blank"}
 
-但我们不建议频繁加上 `//nolint:xxx,yyy` 来掩耳盗铃，如下几种情况可用 lint：
+However, we do not recommend frequently adding `//nolint:xxx,yyy` to cover. Lint can be used in the following situations:
 
-- 中所众所周知的一些 magic number，比如 1024 表示 1K, 16 为最大的单字节值
-- 一些确实无关的安全告警，比如要在代码中运行个命令，但命令参数是外面传入的，但既然 lint 工具有提及，就有必要考虑是否有可能的安全问题。
+- Some well-known magic numbers in-such as 1024 for 1K and 16 for the maximum single-byte value.
+- Security alerts that are really irrelevant, such as running a command in your code, but the command parameters are passed in from outside, but since the lint tool mentions them, it is necessary to consider whether there are possible security issues.
 
 ```golang
 // cmd/datakit/cmds/monitor.go
 cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
 ```
-- 其它可能确实需要关闭检查的地方，慎重对待
+- Other places that may really need to be closed for inspection should be treated with caution.
 
-## 排查 DATA RACE 问题 {#data-race}
+## Troubleshoot DATA RACE {#data-race}
 
-在 DataKit 中存在较多的 DATA RACE 问题，这些问题可以通过在编译 DataKit 时加入特定的 option，让编译出来的二进制在运行期间自动检测出现 DATA RACE 的代码。
+There are many DATA RACE problems in DataKit. These problems can be solved by adding a specific option when compiling DataKit, so that the compiled binary can automatically detect the code with DATA RACE during runtime.
 
-编译带 DATA RACE 自动检测的 DataKit 需满足如下条件：
+To compile a DataKit with automatic detection of DATA RACE, the following conditions must be met:
 
-- 必须开启 CGO，故只能 make local（默认执行 make 即可）
-- 必须传入 Makefile 变量： `make RACE_DETECTION=on`
+- CGO must be turned on, so you can only make local (make by default).
+- You must pass in the Makefile variable: `make RACE_DETECTION=on`
 
-编译出来的二进制会增加一点，但无关紧要，我们只需要本地测试它。DATA RACE 自动检测有一个特征，只有代码运行到特定的代码才能检测到，故建议大家在日常测试自己的功能时，自动带上 `RACE_DETECTION=on` 编译，以尽早发现所有导致 DATA RACE 的代码。
+The compiled binary will increase a little, but it doesn't matter. We just need to test it locally. DATA RACE automatic detection has a feature, which can only be detected when the code runs to a specific code. Therefore, it is recommended that you automatically compile with `RACE_DETECTION=on` when testing your own functions daily, so as to find all the codes that cause DATA RACE as soon as possible.
 
-### DATA RACE 不一定真的导致数据错乱 {#data-race-mess}
+### DATA RACE Doesn't Really Cause Data Disorder {#data-race-mess}
 
-带有 DATA RACE 检测功能的二进制运行时，如果碰到 >=2 的 goroutine 访问同一份数据，且其中一个 goroutine 执行的是 write 逻辑，那么会在终端打印出类似如下的代码：
+When a binary runtime with DATA RACE detection function encounters goroutines >=2 accessing the same data, and one of the goroutines executes write logic, it will print out code similar to the following on the terminal:
 
 ```shell hl_lines="8 9 10 11"
 ==================
@@ -379,7 +378,7 @@ Previous write at 0x00c000d40160 by goroutine 74:
 	...
 ```
 
-通过这两个信息，即可得知两处的代码共同操作了某个数据对象，且其中至少有一个是 Write 操作。但要注意的是，这里打印的只是 WARNING 信息，即表示这段代码不一定会导致数据问题，最终的问题还需需要我们人工来甄别，比如以下的代码并不会有数据问题：
+From these two pieces of information, we can know that the two codes work together on a data object, and at least one of them is a Write operation. However, it should be noted that only WARNING information is printed here, which means that this code does not necessarily lead to data problems, and the final problems need to be identified manually. For example, the following codes will not have data problems:
 
 ```golang
 
@@ -392,40 +391,40 @@ go func() {
 }()
 ```
 
-## 排查 DataKit 内存泄露 {#mem-leak}
+## Troubleshooting DataKit Memory Leaks {#mem-leak}
 
-编辑 datakit.conf，顶部增加如下配置字段即可开启 DataKit 远程 pprof 功能：
+Edit DataKit.conf and add the following configuration fields at the top to turn on the DataKit remote pprof function:
 
 ```toml
 enable_pprof = true
 ```
 
-> 如果是 DaemonSet 安装 datakit，可注入环境变量:
+> If you install datakit for DaemonSet, you can inject environment variables:
 
 ```yaml
         - name: ENV_ENABLE_PPROF
           value: true
 ```
 
-重启 DataKit 生效。
+Restart DataKit to take effect.
 
-### 获取 pprof 文件 {#get-pprof}
+### Get Pprof File {#get-pprof}
 
 ```shell
-# 下载当前 DataKit 活跃内存 pprof 文件
+# Download the current DataKit active memory pprof file
 wget http://<datakit-ip>:6060/debug/pprof/heap
 
-# 下载当前 DataKit 总分配内存 pprof 文件（含已经被释放的内存）
+# 下Download the current DataKit Total Allocated Memory pprof file (including memory that has been freed)
 wget http://<datakit-ip>:6060/debug/pprof/allocs
 ```
 
-> 这里的 6060 端口是固定死的，暂时无法修改
+> Port 6060 here is fixed and cannot be modified for the time being
 
-另外通过 web 访问 `http://<datakit-ip>:6060/debug/pprof/heap?=debug=1` 也能查看一些内存分配信息。
+Also accessed via the web `http://<datakit-ip>:6060/debug/pprof/heap?=debug=1`. You can also see some memory allocation information.
 
-### 查看 pprof 文件 {#use-pprof}
+### View Pprof File {#use-pprof}
 
-下载到本地后，运行如下命令，进入交互命令后，可输入 top 即可查看内存消耗的 top10 热点：
+After downloading to the local, run the following command. After entering the interactive command, you can enter top to view the top10 hotspots of memory consumption:
 
 ```shell
 $ go tool pprof heap 
@@ -433,7 +432,7 @@ File: datakit
 Type: inuse_space
 Time: Feb 23, 2022 at 9:06pm (CST)
 Entering interactive mode (type "help" for commands, "o" for options)
-(pprof) top                            <------ 查看 top 10 的内存热点
+(pprof) top                            <------ View top 10 memory hotspots
 Showing nodes accounting for 7719.52kB, 88.28% of 8743.99kB total
 Showing top 10 nodes out of 108
 flat  flat%   sum%        cum   cum%
@@ -448,27 +447,27 @@ flat  flat%   sum%        cum   cum%
 513.31kB  5.87% 82.43%   513.31kB  5.87%  gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/k8s.io/apimachinery/pkg/conversion.ConversionFuncs.AddUntyped
 512.28kB  5.86% 88.28%   512.28kB  5.86%  encoding/pem.Decode
 (pprof) 
-(pprof) pdf                            <------ 输出成 pdf，即在当前目录下会生成 profile001.pdf
+(pprof) pdf                            <------ Output as pdf, that is, profile001. pdf will be generated in the current directory
 Generating report in profile001.pdf
 (pprof) 
-(pprof) web                            <------ 直接在浏览器上查看，效果跟 PDF 一样
+(pprof) web                            <------ View it directly in the browser, and the effect is the same as PDF
 ```
 
-> 通过 `go tool pprof -sample_index=inuse_objects heap` 可看对象的分配情况，详询 `go tool pprof -help`。
+> You can see the allocation of objects by `go tool pprof -sample_index=inuse_objects heap`, and consult `go tool pprof -help` for details.
 
-用同样的方式，可查看总分配内存 pprof 文件 allocs。PDF 的效果大概如下：
+In the same way, you can view the total allocated memory pprof file allocs. The effect of PDF is roughly as follows:
 
 <figure markdown>
   ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-pprof-pdf.png){ width="800" }
 </figure>
 
-更多 pprof 的使用方法，参见[这里](https://www.freecodecamp.org/news/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192/){:target="_blank"}。
+For more ways to use pprof, see [here](https://www.freecodecamp.org/news/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192/){:target="_blank"}.
 
-## DataKit 辅助功能 {#assist}
+## DataKit Accessibility {#assist}
 
-除了[官方文档](datakit-tools-how-to.md)列出的部分辅助功能外，DataKit 还支持其它功能，这些主要在开发过程中使用。
+In addition to some of the accessibility features listed in the [official document](datakit-tools-how-to.md), DataKit supports other features that are used primarily during development.
 
-### 检查 sample config 是否正确 {#check-sample-config}
+### Check Sample Config is Correct {#check-sample-config}
 
 ```shell
 datakit --check-sample
@@ -476,24 +475,24 @@ datakit --check-sample
 checked 52 sample, 0 ignored, 51 passed, 0 failed, 0 unknown, cost 10.938125ms
 ```
 
-### 导出文档 {#export-docs}
+### Export Document {#export-docs}
 
-将 DataKit 现有文档，导出到指定目录，同时指定文档版本，将文档中标记为 `TODO` 的用 `-` 代替，同时忽略采集器 `demo`
+Exports the existing DataKit document to the specified directory, specifies the document version, replaces the document marked `TODO` with `-` and ignores the collector `demo`.
 
 ```shell
-man_version=`git tag -l | sort -nr | head -n 1` # 获取最近发布的 tag 版本
+man_version=`git tag -l | sort -nr | head -n 1` # Get the most recently released tag version
 datakit --export-manuals /path/to/doc --man-version $man_version --TODO "-" --ignore demo
 ```
 
-### 集成导出 {#export-integrations}
+### Integration Export {#export-integrations}
 
-将集成内容导出到指定目录，一般这个目录是另一个 git-repo（当前是 [dataflux-integration](https://gitee.com/dataflux/dataflux-integration.git){:target="_blank"}）
+Export the integration contents to the specified directory, typically another git-repo (currently [dataflux-integration](https://gitee.com/dataflux/dataflux-integration.git){:target="_blank"}).
 
 ```shell
 datakit --ignore demo,tailf --export-integration /path/to/integration/git/repo
 ```
 
-## 延伸阅读 {#more-readings}
+## More Readings {#more-readings}
 
-- [DataKit Monitor 查看器](datakit-monitor.md)
-- [DataKit 整体架构介绍](datakit-arch.md)
+- [DataKit Monitor observer](datakit-monitor.md)
+- [Introduction on DataKit to the overall architecture](datakit-arch.md)

@@ -8,7 +8,7 @@ package nsq
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
+	"net"
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -123,9 +123,7 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 		tags := map[string]string{
 			"server_host": nodeHost,
 		}
-		if !strings.Contains(nodeHost, "127.0.0.1") && !strings.Contains(nodeHost, "localhost") {
-			tags["host"] = nodeHost
-		}
+		setHostTagIfNotLoopback(tags, nodeHost)
 		for k, v := range addTags {
 			tags[k] = v
 		}
@@ -194,5 +192,20 @@ func (c *ChannelStats) ToMap() map[string]interface{} {
 		"message_count":   c.MessageCount,
 		"requeue_count":   c.RequeueCount,
 		"timeout_count":   c.TimeoutCount,
+	}
+}
+
+func setHostTagIfNotLoopback(tags map[string]string, u string) {
+	// input pattern:
+	// ip:port or ip
+	var host string
+	h, _, err := net.SplitHostPort(u)
+	if err != nil {
+		host = u
+	} else {
+		host = h
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		tags["host"] = host
 	}
 }

@@ -2375,6 +2375,8 @@ github.com/zenazn/goji v1.0.1/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxt
 gitlab.com/nyarla/go-crypt v0.0.0-20160106005555-d9a5dc2b789b/go.mod h1:T3BPAOm2cqquPa0MKWeNkmOM5RQsRhkrwMWonFMN7fE=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230112074430-3c9cc2d5ebc0 h1:ee/hWz+3/5Ez2WQGeU6AC4s1CD7I0s73Lx33WxJ8tKE=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230112074430-3c9cc2d5ebc0/go.mod h1:sPEffPATmMH0mjk45gsyT6+Tzpq9o+9JYXm5PkUyW4k=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230129083855-d3a0b575048e h1:sSwW986OvxMH5+sqajah3zKpaQ7wtv+L7w2RRvNHXSk=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230129083855-d3a0b575048e/go.mod h1:sPEffPATmMH0mjk45gsyT6+Tzpq9o+9JYXm5PkUyW4k=
 go.elastic.co/apm v1.5.0/go.mod h1:OdB9sPtM6Vt7oz3VXt7+KR96i9li74qrxBGHTQygFvk=
 go.elastic.co/apm v1.11.0/go.mod h1:qoOSi09pnzJDh5fKnfY7bPmQgl8yl2tULdOu03xhui0=
 go.elastic.co/apm/module/apmhttp v1.5.0/go.mod h1:1FbmNuyD3ddauwzgVwFB0fqY6KbZt3JkV187tGCYYhY=

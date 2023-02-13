@@ -1,5 +1,4 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # SNMP
 ---
 
@@ -7,78 +6,78 @@
 
 ---
 
-本文主要介绍 [SNMP](https://en.wikipedia.org/wiki/Simple_Network_Management_Protocol/){:target="_blank"} 数据采集。
+This article focuses on [SNMP](https://en.wikipedia.org/wiki/Simple_Network_Management_Protocol/){:target="_blank"} data collection.
 
-## 关于 SNMP 协议 {#config-pre}
+## About SNMP Protocol {#config-pre}
 
-SNMP 协议分为 3 个版本: v1/v2c/v3，其中：
+The SNMP protocol is divided into three versions: v1/v2c/v3, of which:
 
-    - v1 和 v2c 是兼容的。很多 SNMP 设备只提供 v2c 和 v3 两种版本的选择。v2c 版本，兼容性最好，很多旧设备只支持这个版本
-    - 如果对安全性要求高，选用 v3。安全性也是 v3 版本与之前版本的主要区别
+    - V1 and v2c are compatible. Many SNMP devices only offer v2c and v3 versions. v2c version, the best compatibility, many older devices only support this version.
+    - If the safety requirements are high, choose v3. Security is also the main difference between v3 version and previous versions.
 
-如果选择 v2c 版本，需要提供 `community string`，中文翻译为 `团体名/团体字符串`。`未加密的口令` 即密码，与 SNMP 设备进行交互需要提供这个进行鉴权。另外，有的设备会进行区别，分为 `只读团体名` 和 `读写团体名`。顾名思义:
+If you choose v2c version, you need to provide `community string`, which translates into `community name/community string`in Chinese. An `unencrypted password` is a password, which is required for authentication when interacting with an SNMP device. In addition, some devices will be distinguished into `read-only community name` and `read-write community name`. As the name implies:
 
-- `只读团体名`: 设备只会向该方提供内部指标数据，不能修改内部的一些配置(DataKit 用这个就够了)
-- `读写团体名`: 提供方拥有设备内部指标数据查询与部分配置修改权限
+- `Read-only community name`: The device will only provide internal metrics data to that party, and cannot modify some internal configurations (this is enough for DataKit).
+- `Read and write community name`: The provider has the permission to query the internal metrics data of the equipment and modify some configurations.
 
-如果选择 v3 版本，需要提供 `用户名`、`认证算法/密码`、`加密算法/密码`、`上下文` 等，各个设备不同，根据要求进行填写。
+If you choose v3 version, you need to provide `username`, `authentication algorithm/password`, `encryption algorithm/password`, `context`, etc. Each device is different and should be filled in as required.
 
-## 配置采集器 {#config-input}
+## Configure Collector {#config-input}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下: 
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    
+    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service) is sufficient.
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).
 
 ---
-    
+
 ???+ attention
 
-    上面配置的 `inputs.snmp.tags` 中如果与原始 fields 中的 key 同名重复，则会被原始数据覆盖。
+    If the `inputs.snmp.tags` configured above duplicates the key in the original fields with the same name, it will be overwritten by the original data.
 
 
-### 配置 SNMP {#config-snmp}
+### Configure SNMP {#config-snmp}
 
-- 在设备侧, 配置 SNMP 协议
+- On the device side, configure the SNMP protocol
 
-SNMP 设备在默认情况下, 一般 SNMP 协议处于关闭状态, 需要进入管理界面手动打开。同时, 需要根据实际情况选择协议版本和填写相应信息。
+When SNMP devices are in the default, the general SNMP protocol is closed, you need to enter the management interface to open manually. At the same time, it is necessary to select the protocol version and fill in the corresponding information according to the actual situation.
 
 ???+ tip
 
-    有些设备为了安全需要额外配置放行 SNMP，具体因设备而异。比如华为系防火墙，需要在 "启用访问管理" 中勾选 SNMP 以放行。可以使用 `snmpwalk` 命令来测试采集侧与设备侧是否配置连通成功: 
-
+    Some devices require additional configuration to release SNMP for security, which varies from device to device. For example, Huawei is a firewall, so it is necessary to check SNMP in "Enable Access Management" to release it. You can use the `snmpwalk` command to test whether the acquisition side and the device side are configured to connect successfully:
+    
     ```shell
-    # 适用 v2c 版本
+    # Applicable v2c version
     snmpwalk -O bentU -v 2c -c [community string] [IP] 1.3.6` 
-    # 适用 v3 版本
+    # Applicable v3 version
     snmpwalk -v 3 -u user -l authPriv -a sha -A [认证密码] -x aes -X [加密密码] [IP] 1.3.6 
     ```
-
-    如果配置没有问题的话，该命令会输出大量数据。`snmpwalk` 是运行在采集侧的一个测试工具，MacOS 下自带，Linux 安装方法: 
-
+    
+    If there is no problem with the configuration, the command will output a large amount of data. `snmpwalk` is a test tool running on the collection side, which comes with MacOS. Linux installation method:
+    
     ```shell
     sudo yum install net–snmp–utils # CentOS
     sudo apt–get install snmp       # Ubuntu
     ```
 
-- 在 DataKit 侧, 配置采集。
+- On the DataKit side, configure collection.
 
-## 自定义设备的 OID 配置 {#custom-oid}
+## Custom Device OID c=Configuration {#custom-oid}
 
-如果你发现被采集的设备上报的数据中没有你想要的指标，那么，你可以需要为该设备额外定义一份 Profile。
+If you find that the data reported by the collected device does not contain the indicators you want, then you may need to define an additional Profile for the device.
 
-设备的所有 OID 一般都可以在其官网上下载。Datakit 定义了一些通用的 OID，以及 Cisco/Dell/HP 等部分设备。根据 SNMP 协议，各设备生产商可以自定义 [OID](https://www.dpstele.com/snmp/what-does-oid-network-elements.php)，用于标识其内部特殊对象。如果想要标识这些，你需要自定义设备的配置(我们这里称这种配置为 Profile，即 "自定义 Profile")，方法如下。
+All OIDs of devices can generally be downloaded from their official website. Datakit defines some common OIDs, as well as some devices such as Cisco/Dell/HP. According to snmp protocol, each device manufacturer can customize [OID](https://www.dpstele.com/snmp/what-does-oid-network-elements.php) to identify its internal special objects. If you want to identify these, you need to customize the configuration of the device (we call this configuration Profile here, that is, "Custom Profile"), as follows.
 
-在 Datakit 的安装目录的路径 `conf.d/snmp/profiles` 下，如下所示创建 yml 文件 `cisco-3850.yaml` (这里以 Cisco 3850 为例):
+Create the yml file `cisco-3850.yaml` under the path `conf.d/snmp/profiles` of the Datakit installation directory (in this case, Cisco 3850) as follows:
 
 ``` yaml
 # Backward compatibility shim. Prefer the Cisco Catalyst profile directly
@@ -107,16 +106,16 @@ metadata:
           name: chassisId
 ```
 
-如上所示，定义了一个 `sysobjectid` 为 `1.3.6.1.4.1.9.1.1745` 的设备，下次 Datakit 如果采集到 `sysobjectid` 相同的设备时，便会应用该文件，在此情况下，采集到 OID 为 `1.3.6.1.4.1.9.3.6.3.0` 的数据便会上报为名称是 `chassisId` 的指标。
+As shown above, a device with `sysobjectid` of `1.3.6.1.4.1.9.1.1745` is defined, and the file will be applied the next time Datakit collects a device with the same `sysobjectid`, in which case the collected data with an OID of `1.3.6.1.4.1.9.3.6.3.0` will be reported as an indicator with the name `chassisId`.
 
-> 注意: `conf.d/snmp/profiles` 这个文件夹需要 SNMP 采集器运行一次后才会出现。
+> Note: The folder `conf.d/snmp/profiles` requires the SNMP collector to run once before it appears.
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-以下所有数据采集，默认会追加名为 `host`(值为 SNMP 设备的名称)，也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签:
+All of the following data collections are appended by default with the name `host` (the value is the name of the SNMP device), or other labels can be specified in the configuration by `[inputs.snmp.tags]`:
 
 ``` toml
- [inputs.{{.InputName}}.tags]
+ [inputs.snmp.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -124,9 +123,9 @@ metadata:
 
 ???+ attention
 
-    以下所有指标集以及其指标，只包含部分常见的字段，一些设备特定的字段，根据配置和设备型号不同，会额外多出一些字段。
+    All the following measurements and their metrics contain only some common fields, some device-specific fields, and some additional fields will be added according to different configurations and device models.
 
-### 指标 {#metrics}
+### Metrics {#metrics}
 
 {{ range $i, $m := .Measurements }}
 
@@ -136,18 +135,18 @@ metadata:
 
 {{$m.Desc}}
 
-- 标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 字段列表
+- field list
 
-{{$m.FieldsMarkdownTable}}
-{{end}}
+{{$m.FieldsMarkdownTable}} {{end}}
 
 {{ end }}
 
-### 对象 {#objects}
+
+### Object {#objects}
 
 {{ range $i, $m := .Measurements }}
 
@@ -157,13 +156,12 @@ metadata:
 
 {{$m.Desc}}
 
-- 标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 字段列表
+- field list
 
-{{$m.FieldsMarkdownTable}}
-{{end}}
+{{$m.FieldsMarkdownTable}} {{end}}
 
 {{ end }}

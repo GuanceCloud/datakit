@@ -144,7 +144,7 @@ func (c *count) LineProto() (*point.Point, error) {
 func (*count) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kubernetes",
-		Desc: "Kubernetes count 指标数据",
+		Desc: "The count of the Kubernetes resource.",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"namespace": &inputs.TagInfo{Desc: "namespace"},

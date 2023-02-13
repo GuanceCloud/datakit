@@ -515,12 +515,8 @@ func (d *discovery) updateGlobalCRDLogsConfList() {
 	globalCRDLogsConfList.list = make(map[string]string)
 	defer globalCRDLogsConfList.mu.Unlock()
 
-	err := d.processCRDWithPod(fn)
-	if err != nil {
-		if strings.Contains(err.Error(), "could not find the requested resource") {
-			return
-		}
-		l.Warnf("autodiscovery: failed to get datakits, err: %s, retry in a minute", err)
+	if err := d.processCRDWithPod(fn); err != nil {
+		l.Debugf("autodiscovery: failed to get datakits, err: %s, retry in a minute", err)
 	}
 
 	l.Debugf("autodiscovery: find CRD datakit/logs len %d, map<uid:conf>: %v", len(globalCRDLogsConfList.list), globalCRDLogsConfList.list)

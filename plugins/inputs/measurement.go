@@ -111,7 +111,7 @@ type CommonMeasurement struct {
 
 func (m *MeasurementInfo) FieldsMarkdownTable() string {
 	const tableHeader = `
-| 指标 | 描述| 数据类型 | 单位   |
+| Metric | Descrition | Type | Unit |
 | ---- |---- | :---:    | :----: |`
 	const monoRowfmt = "|`%s`|%s|%s|%s|" // 指标/标签列等宽字体展示
 	const normalRowfmt = "|%s|%s|%s|%s|"
@@ -141,11 +141,11 @@ func (m *MeasurementInfo) FieldsMarkdownTable() string {
 
 func (m *MeasurementInfo) TagsMarkdownTable() string {
 	if len(m.Tags) == 0 {
-		return "暂无"
+		return "NA"
 	}
 
 	tableHeader := `
-| 标签名 | 描述    |
+| Tag | Descrition |
 |  ----  | --------|`
 
 	rows := []string{tableHeader}

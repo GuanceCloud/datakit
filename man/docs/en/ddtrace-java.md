@@ -1,18 +1,15 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-
-# Java 示例
+# Java Example
 
 ---
 
 
-## 安装依赖 {#dependence}
+## Install Dependency {#dependence}
 
-下载最新的 ddtrace agent dd-java-agent.jar，参见[下载说明](ddtrace.md#doc-example)
+Download the latest ddtrace agent dd-java-agent.jar, see [Download Instructions](ddtrace.md#doc-example).
 
-## 运行 {#run}
+## Run {#run}
 
-可以通过多种途径运行你的 Java Code，如 IDE，Maven，Gradle 或直接通过 java -jar 命令，以下通过 java 命令启动应用：
+You can run your java Code in a variety of ways, such as IDE, Maven, Gradle, or directly through the java-jar command. Start the application with the java command below:
 
 ```shell
 java -javaagent:/path/to/dd-java-agent.jar \
@@ -25,21 +22,21 @@ java -javaagent:/path/to/dd-java-agent.jar \
 -jar path/to/your/app.jar
 ```
 
-## 启动参数 {#start-options}
+## Startup Parameters {#start-options}
 
-- dd.env: 为服务设置环境变量，对应环境变量 DD_ENV。
-- dd.version: APP 版本号，对应环境变量 DD_VERSION。
-- dd.service: 设置服务名，对应环境变量 DD_SERVICE。
-- dd.trace.agent.timeout: 客户端网络发送超时默认 10s，对应环境变量 DD_TRACE_AGENT_TIMEOUT。
-- dd.logs.injection: 是否开启 Java 应用日志注入，让日志与链路数据进行关联，默认为 true，对应环境变量 DD_LOGS_INJECTION。
-- dd.tags: 为每个 Span 添加默认 Tags，对应环境变量 DD_TAGS。
-- dd.agent.host: Datakit 监听的地址名，默认 localhost，对应环境变量 DD_AGENT_HOST。
-- dd.trace.agent.port: Datakit 监听的端口号，默认 9529，对应环境变量 DD_TRACE_AGENT_PORT。
-- dd.trace.sample.rate: 设置采样率从 0.0(0%) ~ 1.0(100%)。
-- dd.jmxfetch.enabled: 开启 JMX metrics 采集，默认值 true， 对应环境变量 DD_JMXFETCH_ENABLED
-- dd.jmxfetch.config.dir: 额外的 JMX metrics 采集配置目录。Java Agent 将会在 yaml 配置文件中的 instance section 寻找 jvm_direct:true 来修改配置，对应环境变量 DD_JMXFETCH_CONFIG_DIR
-- dd.jmxfetch.config: 额外的 JMX metrics 采集配置文件。JAVA agent 将会在 yaml 配置文件中的 instance section 寻找 jvm_direct:true 来修改配置对应环境变量，DD_JMXFETCH_CONFIG
-- dd.jmxfetch.check-period: JMX metrics 发送频率(ms)，默认值 1500，对应环境变量 DD_JMXFETCH_CHECK_PERIOD。
-- dd.jmxfetch.refresh-beans-period: 刷新 JMX beans 频率(s)，默认值 600，对应环境变量 DD_JMXFETCH_REFRESH_BEANS_PERIOD。
-- dd.jmxfetch.statsd.host: Statsd 主机地址用来接收 JMX metrics，如果使用 Unix Domain Socket 请使用形如 `unix://PATH_TO_UDS_SOCKET` 的主机地址。默认值同 agent.host ，对应环境变量 DD_JMXFETCH_STATSD_HOST
-- dd.jmxfetch.statsd.port: StatsD 端口号用来接收 JMX metrics ，如果使用 Unix Domain Socket 请使填写 0。默认值同 agent.port 对应环境变量 DD_JMXFETCH_STATSD_PORT
+- dd.env: Set the environment variable for the service, corresponding to the environment variable DD_ENV.
+- dd.version: APP version number, corresponding to the environment variable DD_VERSION.
+- dd.service: Set the service name corresponding to the environment variable DD_SERVICE.
+- dd.trace.agent.timeout: The client network send timeout defaults to 10s, corresponding to the environment variable DD_TRACE_AGENT_TIMEOUT.
+- dd.logs.injection: Whether to start Java application log injection, so that the log can be associated with link data, the default is true, corresponding to the environment variable DD_LOGS_INJECTION.
+- dd.tags: Add the default Tags for each Span, corresponding to the environment variable DD_TAGS.
+- dd.agent.host: The name of the address where Datakit listens, default localhost, corresponding to the environment variable DD_AGENT_HOST.
+- dd.trace.agent.port: The port number on which Datakit listens, default 9529, corresponding to the environment variable DD_TRACE_AGENT_PORT.
+- dd.trace.sample.rate: Set the sampling rate from 0.0 (0%) to 1.0 (100%).
+- dd.jmxfetch.enabled: Start JMX metrics collection, default value is true, corresponding to environment variable DD_JMXFETCH_ENABLED.
+- dd.jmxfetch.config.dir: Additional JMX metrics collection configuration directory. The Java Agent will look for jvm_direct: true in the instance section of the yaml configuration file to modify the configuration, corresponding to the environment variable DD_JMXFETCH_CONFIG_DIR.
+- dd.jmxfetch.config: Additional JMX metrics collection configuration file. The JAVA agent will look for jvm_direct: true in the instance section of the yaml configuration file to modify the configuration corresponding environment variable,  DD_JMXFETCH_CONFIG
+- dd.jmxfetch.check-period: JMX metrics send frequency (ms), default 1500, corresponding to the environment variable DD_JMXFETCH_CHECK_PERIOD.
+- dd.jmxfetch.refresh-beans-period: Refresh the JMX beans frequency (s), default value 600, corresponding to the environment variable  DD_JMXFETCH_REFRESH_BEANS_PERIOD.
+- dd.jmxfetch.statsd.host: The Statsd host address is used to receive JMX metrics, and if you use unix Domain Socket, use a host address like `unix://PATH_TO_UDS_SOCKET`. The default value is the same as agent. host, corresponding to the environment variable DD_JMXFETCH_STATSD_HOST.
+- dd.jmxfetch.statsd.port: The StatsD port number is used to receive JMX metrics. If using Unix Domain Socket, make 0. The default value is the same as the environment variable DD_JMXFETCH_STATSD_PORT corresponding to agent. port.

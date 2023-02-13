@@ -147,9 +147,13 @@ func writeDefInputToMainCfg(mc *config.Config) {
 
 	// Enable default input, auto remove duplicated input name.
 	if EnableInputs == "" {
-		mc.EnableDefaultsInputs(strings.Join(hostInputs, ","))
+		x := strings.Join(hostInputs, ",")
+
+		cp.Infof("Use default enabled inputs '%s'\n", x)
+		mc.EnableDefaultsInputs(x)
 	} else {
-		mc.EnableDefaultsInputs(EnableInputs + "," + strings.Join(hostInputs, ","))
+		cp.Infof("Set default inputs '%s'...\n", EnableInputs)
+		mc.EnableDefaultsInputs(EnableInputs)
 	}
 
 	if CloudProvider != "" {

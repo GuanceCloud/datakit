@@ -194,7 +194,7 @@ func (n *nodeMetric) LineProto() (*point.Point, error) {
 func (*nodeMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kube_node",
-		Desc: "Kubernetes Node 指标数据",
+		Desc: "The metric of the Kubernetes Node.",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"node":      inputs.NewTagInfo("Name must be unique within a namespace. (depercated)"),
@@ -228,7 +228,7 @@ func (n *nodeObject) LineProto() (*point.Point, error) {
 func (*nodeObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kubernetes_nodes",
-		Desc: "Kubernetes node 对象数据",
+		Desc: "The object of the Kubernetes Node.",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":        inputs.NewTagInfo("UID"),

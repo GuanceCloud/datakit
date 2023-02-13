@@ -1,29 +1,28 @@
-<!-- This file required to translate to EN. -->
-# 集成文档合并
+# Integrated Document Merge
 ---
 
-本文档主要介绍如何将现有的集成文档合并进 datakit 的文档中。现有集成文档在[这里](https://www.yuque.com/dataflux/integrations){:target="_blank"}。
+This document focuses on how to incorporate existing integration documents into datakit's documentation. The existing integration documentation is at [here](https://www.yuque.com/dataflux/integrations){:target="_blank"}.
 
 ???+ Attention
 
-    DataKit 集成相关的文档，均不建议直接在 *dataflux-doc/docs/integrations* 中修改，因为 datakit 自身的文档导出是覆盖式写到该目录的，可能导致手动添加到 *dataflux-doc/docs/integrations* 的文档被覆盖。
+    Documents related to datakit integration are not recommended to be modified directly in *dataflux-doc/docs/integrations*, because datakit's own document export is overwritten to this directory, which may cause documents manually added to *dataflux-doc/docs/integrations* to be overwritten.
 
-名词定义：
+Noun definition:
 
-- 文档库：指新的文档库 dataflux-doc
+- Document library: Refers to the new document library dataflux-doc
 
-大概看了下，集成文档合并到 datakit 文档，有几种可能：
+There are several possibilities for merging the integration document into the datakit document:
 
-- 合并集成文档：直接扩展现有采集器文档，比如 [CPU 集成文档](https://www.yuque.com/dataflux/integrations/fyiw75){:target="_blank"}，可以直接合并到采集器的 cpu.md （man/manuals/cpu.md）中
-- 新增 datakit 文档：如果 datakit 中并无对应的文档，那么需要手动在 datkit 中新增文档
+- Merge integration documents: Extend existing collector documents directly, such as [CPU integration documents](https://www.yuque.com/dataflux/integrations/fyiw75){:target="_blank"}, which can be merged directly into the collector's cpu.md (man/manuals/cpu.md)
+- Add a datakit document: If there is no corresponding document in the datakit, you need to add a document in the datkit manually
 
-下面将针对以上几种情况，分别说明如何合并。
+The following will explain how to merge for the above situations.
 
-## 合并集成文档 {#merge}
+## Merge Integration Document {#merge}
 
-已有的 datakit 文档，大部分集成文档中的内容都已具备，主要缺少的是截图信息以及场景导航，除此之外，环境配置和指标信息基本都已具备。故合并的时候，只需要添加一些截图信息即可：
+In the existing datakit documents, most of the contents in the integrated documents are already available, but the main missing information is screenshot information and scene navigation. In addition, the environment configuration and metric information are basically available. Therefore, when merging, you only need to add some screenshot information:
 
-- 在现有语雀的集成文档中，获取截图的链接地址，在当前的集成文档库中直接下载即可：
+- In the integrated document of the existing language sparrow, get the link address of the screenshot and download it directly from the current integrated document library:
 
 ```shell
 cd dataflux-doc/docs/integrations
@@ -33,74 +32,74 @@ wget http://yuque-img-url.png -O imgs/input-xxx-2.png
 ...
 ```
 
-> 注意：不要将图片下载到 datakit 项目所在的文档目录中。
+> Note: Do not download images to the same documentation directory as the datakit project.
 
-对某个具体的采集器而言，此处可能有多张截图，建议这里以固定的命名规范来保存这些图片，即图片都保存在集成文档库的 *imgs* 目录下，并且每张采集器有关的图片都以 `input-` 为前缀，并且按照编号来命名。
+For a specific collector, there may be multiple screenshots here. It is recommended to save these pictures with a fixed naming convention, that is, all the pictures are saved in the *imgs* directory of the integrated document library, and each collector-related picture is prefixed with `input-` and named according to the number.
 
-下载完图片后，datakit 文档中，将图片添加进去即可，具体可查看现有 CPU 采集器示例（man/manuals/cpu.md）
+After downloading the picture, add it to the datakit document, as shown in the existing CPU collector sample (man/manuals/cpu.md).
 
-- 编译 DataKit
+- Compile DataKit
 
-由于修改的是 datakit 自身的文档，故需要编译才能生效。datakit 编译，参见[这里](https://github.com/GuanceCloud/datakit/blob/github-mirror/README.zh_CN.md){:target="_blank"}。
+As the document of datakit itself is modified, it needs to be compiled to take effect. datakit compilation, see [here](https://github.com/GuanceCloud/datakit/blob/github-mirror/README.zh_CN.md){:target="_blank"}.
 
-如果编译过程有困难，可以暂时不管，直接将上述修改提交 merge request 到 datakit 仓库即可，暂时可以由开发这边编译并最终同步到文档库。
+If the compilation process is difficult, you can ignore it for the time being, and directly submit the above changes to the merge request to the datakit repository, which can be compiled by the development side for the time being and finally synchronized to the document library.
 
-## 新增 datakit 文档 {#add}
+## Add datakit Doc {#add}
 
-对于 datakit 中没有直接采集器支持的集成文档，添加起来会简单一点，下面以现有集成库中的 resin 为例，分别说明上述过程。
+For integration documents that are not supported by direct collectors in datakit, it will be easier to add them. Let's take resin in the existing integration library as an example to illustrate the above process.
 
-- 从语雀现有页面获取 markdown 原文，保存到 *man/manuals/* 目录下
+- Get the markdown text from the existing page of the language sparrow and save it to the *man/manuals/* directory
 
-直接在 resin 集成页面的 URL 后加上 markdown 后，[访问即可得到其 Markdown 原文](https://www.yuque.com/dataflux/integrations/resin/markdown){:target="_blank"}，全选拷贝，保存到 *man/manuals/resin.md* 中。
+Add markdown directly to the URL of the resin integration page, [visit to get its original markdown text](https://www.yuque.com/dataflux/integrations/resin/markdown){:target="_blank"}, select all copies, and save them to *man/manuals/resin.md*.
 
-下载下来之后，要修改里面的排版，具体而言，去掉一些无谓的 html 修饰（可看下当前 resin.md 是怎么改的），另外就是将那些图片全部下载下来（跟上面 CPU 的示例一样）保存，然后在新的 resin.md 中引用这些图片。
+After downloading, modify the layout, specifically, remove some unnecessary html decorations (see how the current resin.md is changed), and download all those pictures (as in the CPU example above), save them, and then reference them in the new resin.md.
 
-- 修改 *man/manuals/integrations.pages* 中的目录结构，新增对应的文档
+- Modify the directory structure in *man/manuals/integrations.pages* to add corresponding documents
 
-由于 resin 是一类 web 服务器，故在现有 *integrations.pages* 文件中，我们将其跟 nginx/apache 放在一起：
+Because resin is a kind of web server, we put it with nginx/apache in the existing *integrations.pages* file:
 
 ```yaml
-- 'Web 服务器'
+- 'Web server'
   - 'Nginx': nginx.md
   - apache.md
   - resin.md
 ```
 
-- 修改 mkdocs.sh 脚本
+- Modify mkdocs.sh script
 
-修改 mkdocs.sh 脚本，将新增的文档增加到导出列表中：
+Modify the mkdocs.sh script to add the new document to the export list:
 
 ```
 cp man/manuals/resin.md $integration_docs_dir/
 ```
 
-## 文档生成和导出 {#export}
+## Document Generation and Export {#export}
 
-在 datakit 现有仓库中，直接执行 mkdocs.sh 即可实现编译、发布两个步骤。在 mkdocs.sh 中，目前直接将文档分成两份导出，分别同步到文档库的 datakit 和 integrations 两个目录下。
+In datakit's existing repository, you can implement the two steps of compiling and publishing by directly executing mkdocs.sh. In mkdocs.sh, the document is currently exported directly into two copies, synchronized to the datakit and integrations directories of the document library.
 
-如果要在文档中插入图片，在 datakit 和 integrations 各自的 *imgs* 目录下放置图片即可。如何引用图片，参考[上面的例子](#merge)。
+If you want to insert pictures into your document, you can place them in the *imgs* directories of datakit and integrations, respectively. For how to reference pictures, refer to [example above](#merge).
 
-下面具体说下文档库的本地操作方式。主要以下几个步骤。
+Let's talk about the local operation mode of the document library. The main steps are as follows.
 
-- clone 现有文档库并安装对应依赖
+- Clone existing document libraries and install corresponding dependencies
 
 ``` shell
 cd ~/ && mkdir -p git && cd git
 git clone ssh://git@gitlab.jiagouyun.com:40022/zy-docs/dataflux-doc.git
 cd dataflux-doc
-pip install -r requirements.txt # 期间可能要求你更新 pip 版本
+pip install -r requirements.txt # You may be asked to update the pip version during the period
 ```
 
 ???+ attention
 
-    mkdocs 安装完成后，可能需要设置 $PATH，Mac 的设置可能是这样的（具体可以 find  下 mkdocs 二进制位置）：
+    After mkdocs is installed, you may need to set $PATH, and the setting of Mac may be like this (you can find the binary location of mkdocs under find):
     
     ``` shell
     PATH="/System/Volumes/Data/Users/<user-name>/Library/Python/3.8/bin:$PATH"
     ```
-- 熟悉 *mkdocs.sh*
+- Familiar with *mkdocs.sh*
 
-在 datakit 根目录下有一个 mkdocs.sh 脚本，它负责导出 DataKit 所有文档，并拷贝到文档库的不同目录，最后启动本地文档服务。
+There is a mkdocs.sh script in the DataKit root directory, which exports all DataKit documents, copies them to different directories in the document library and finally starts the local document service.
 
-- 访问本地 http://localhost:8000 即可看到
-- 调试完成后，提交 Merge Request 到 datakit 项目的 `mkdocs` 分支
+- Visit local http://localhost:8000
+- After debugging, submit the Merge Request to the `mkdocs` branch of the datakit project

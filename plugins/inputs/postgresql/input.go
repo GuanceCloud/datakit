@@ -449,7 +449,7 @@ func (ipt *Input) Run() {
 		l.Error("invalid interval, cannot be less than zero")
 	}
 
-	if err := ipt.setHost(); err != nil {
+	if err := ipt.setHostIfNotLoopback(); err != nil {
 		l.Errorf("failed to set host: %v", err)
 	}
 
@@ -532,15 +532,21 @@ func (ipt *Input) Resume() error {
 	}
 }
 
-func (ipt *Input) setHost() error {
-	if strings.Contains(ipt.Address, "127.0.0.1") || strings.Contains(ipt.Address, "localhost") {
-		return nil
-	}
-	u, err := url.Parse(ipt.Address)
+func (ipt *Input) setHostIfNotLoopback() error {
+	uu, err := url.Parse(ipt.Address)
 	if err != nil {
 		return err
 	}
-	ipt.host = u.Host
+	var host string
+	h, _, err := net.SplitHostPort(uu.Host)
+	if err == nil {
+		host = h
+	} else {
+		host = uu.Host
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		ipt.host = host
+	}
 	return nil
 }
 

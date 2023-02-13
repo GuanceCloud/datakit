@@ -8,6 +8,7 @@ package man
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"sort"
 
@@ -25,15 +26,16 @@ import (
 var l = logger.DefaultSLogger("man")
 
 type Params struct {
-	InputName      string
-	Catalog        string
-	InputSample    string
-	Version        string
-	ReleaseDate    string
-	Measurements   []*inputs.MeasurementInfo
-	CSS            string
-	AvailableArchs string
-	PipelineFuncs  string
+	InputName       string
+	Catalog         string
+	InputSample     string
+	Version         string
+	ReleaseDate     string
+	Measurements    []*inputs.MeasurementInfo
+	CSS             string
+	AvailableArchs  string
+	PipelineFuncs   string
+	PipelineFuncsEN string
 }
 
 type i18n int
@@ -119,18 +121,35 @@ func BuildMarkdownManual(name string, opt *Option) (map[i18n][]byte, error) {
 		// NOTE: pipeline.md is not input's doc, we have to put all pipeline functions documents
 		// to pipeline.md
 		if name == "pipeline" {
-			sb := strings.Builder{}
-			arr := []string{}
-			for k := range plfuncs.PipelineFunctionDocs {
-				arr = append(arr, k)
+			{ // zh
+				sb := strings.Builder{}
+				arr := []string{}
+				for k := range plfuncs.PipelineFunctionDocs {
+					arr = append(arr, k)
+				}
+
+				sort.Strings(arr) // order by name
+
+				for _, elem := range arr {
+					sb.WriteString(plfuncs.PipelineFunctionDocs[elem].Doc + "\n\n")
+				}
+				p.PipelineFuncs = sb.String()
 			}
 
-			sort.Strings(arr) // order by name
+			{ // en
+				sb := strings.Builder{}
+				arr := []string{}
+				for k := range plfuncs.PipelineFunctionDocsEN {
+					arr = append(arr, k)
+				}
 
-			for _, elem := range arr {
-				sb.WriteString(plfuncs.PipelineFunctionDocs[elem].Doc + "\n\n")
+				sort.Strings(arr) // order by name
+
+				for _, elem := range arr {
+					sb.WriteString(plfuncs.PipelineFunctionDocsEN[elem].Doc + "\n\n")
+				}
+				p.PipelineFuncsEN = sb.String()
 			}
-			p.PipelineFuncs = sb.String()
 		}
 	}
 
@@ -158,7 +177,7 @@ func BuildMarkdownManual(name string, opt *Option) (map[i18n][]byte, error) {
 			},
 		}).Parse(string(md))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("[%s] template.New(%s): %w", x, name, err)
 		}
 
 		var buf bytes.Buffer

@@ -14,22 +14,13 @@
 
 > 注意，以下 Linux/Mac/Windows 安装程序，能自动识别硬件平台（arm/x86, 32bit/64bit），无需做硬件平台选择。
 
-=== "Linux"
+=== "Linux/macOS"
 
-    命令大概如下：
+    命令如下：
     
     ```shell
-    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
-    ```
-    
-    安装完成后，在终端会看到安装成功的提示。
-    
-=== "Mac"
-
-    Mac 下安装命令跟 Linux 基本一样：
-    
-    ```shell
-    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
+		  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
     ```
     
     安装完成后，在终端会看到安装成功的提示。
@@ -52,7 +43,8 @@
     可通过在安装命令中指定版本号来安装指定版本的 DataKit，如安装 1.2.3 版本的 DataKit：
 
     ```shell
-    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install-1.2.3.sh)"
+    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
+		  bash -c "$(curl -L https://static.guance.com/datakit/install-1.2.3.sh)"
     ```
 
 ## 额外支持的安装变量 {#extra-envs}
@@ -89,10 +81,19 @@ NAME1="value1" NAME2="value2"
 - `DK_GLOBAL_TAGS`：已弃用，改用 DK_GLOBAL_HOST_TAGS
 - `DK_GLOBAL_HOST_TAGS`：支持安装阶段填写全局主机 tag，格式范例：`host=__datakit_hostname,host_ip=__datakit_ip`（多个 tag 之间以英文逗号分隔）
 - `DK_GLOBAL_ELECTION_TAGS`：支持安装阶段填写全局选举 tag，格式范例：`project=my-porject,cluster=my-cluster`（多个 tag 之间以英文逗号分隔）
-- `DK_DEF_INPUTS`：默认开启的采集器名称列表，格式范例：`cpu,mem,disk`
-  - 由于[默认会开启很多采集器](datakit-input-conf.md#default-enabled-inputs)，这个环境变量用于调整这个默认的采集器列表，此处只允许增加额外的采集器，不允许删改默认已配置的采集器。
 - `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`)
 - `DK_USER_NAME`：Datakit 服务运行时的用户名。目前仅支持 `root` 和 `datakit`, 默认为 `root`。
+- `DK_DEF_INPUTS`：[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs)名称列表，以英文逗号分割，如 `cpu,mem,disk`
+
+???+ tip "禁用所有默认采集器 [:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5)"
+
+    如果要禁用所有默认开启的采集器，可以将 `DK_DEF_INPUTS` 设置为 `-`，如
+
+    ```shell
+    DK_DEF_INPUTS="-" \
+    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
+    bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+    ```
 
 ### DataKit 自身日志相关 {#env-logging}
 
@@ -203,27 +204,27 @@ NAME1="value1" NAME2="value2"
 
 ### Mac 安装问题 {#mac-failed}
 
-    Mac 上安装时，如果安装/升级过程中出现
-    
-    ```shell
-    "launchctl" failed with stderr: /Library/LaunchDaemons/cn.dataflux.datakit.plist: Service is disabled
-    # 或者
-    "launchctl" failed with stderr: /Library/LaunchDaemons/com.guance.datakit.plist: Service is disabled
-    ```
-    
-    执行
-    
-    ```shell
-    sudo launchctl enable system/datakit
-    ```
-    
-    然后再执行如下命令即可
-    
-    ```shell
-    sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
-    # 或者
-    sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
-    ```
+Mac 上安装时，如果安装/升级过程中出现
+
+```shell
+"launchctl" failed with stderr: /Library/LaunchDaemons/cn.dataflux.datakit.plist: Service is disabled
+# 或者
+"launchctl" failed with stderr: /Library/LaunchDaemons/com.guance.datakit.plist: Service is disabled
+```
+
+执行
+
+```shell
+sudo launchctl enable system/datakit
+```
+
+然后再执行如下命令即可
+
+```shell
+sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
+# 或者
+sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
+```
 
 ## 扩展阅读 {#more-reading}
 

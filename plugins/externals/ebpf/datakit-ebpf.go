@@ -138,7 +138,7 @@ func main() {
 	dkhttpflow.SetLogger(l)
 	dksysmonitor.SetLogger(l)
 
-	// duration 介于 10s ～ 30min，若非，取边界数值.
+	// duration is between 10s and 30min, if not, take the boundary value.
 	if tmp, err := time.ParseDuration(opt.Interval); err == nil {
 		if tmp < minInterval {
 			tmp = minInterval
@@ -481,7 +481,7 @@ func isRuning() bool {
 	var p *process.Process
 
 	cont, err := ioutil.ReadFile(filepath.Clean(pidFile))
-	// pid文件不存在
+	// pid file does not exist
 	if err != nil {
 		return false
 	}

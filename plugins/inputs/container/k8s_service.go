@@ -138,7 +138,7 @@ func (s *serviceObject) LineProto() (*point.Point, error) {
 func (*serviceObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kubernetes_services",
-		Desc: "Kubernetes service 对象数据",
+		Desc: "The object of the Kubernetes Service.",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("UID"),

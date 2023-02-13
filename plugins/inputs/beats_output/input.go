@@ -109,16 +109,16 @@ func (ipt *loggingMeasurement) LineProto() (*point.Point, error) {
 //nolint:lll
 func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "Elastic Beats 接收器",
+		Name: "Elastic Beats Collector",
 		Type: "logging",
-		Desc: "使用配置文件中的 `source` 字段值，如果该值为空，则默认为 `default`",
+		Desc: "Using `source` field in the config file, default is `default`.",
 		Tags: map[string]interface{}{
-			"filepath": inputs.NewTagInfo(`此条记录来源的文件名，全路径`), // log.file.path
-			"host":     inputs.NewTagInfo(`主机名`),            // host.name
-			"service":  inputs.NewTagInfo("service 名称，对应配置文件中的 `service` 字段值"),
+			"filepath": inputs.NewTagInfo(`This item source file, full path.`), // log.file.path
+			"host":     inputs.NewTagInfo(`Host name.`),                        // host.name
+			"service":  inputs.NewTagInfo("Service name, equal to `service` field in the config file."),
 		},
 		Fields: map[string]interface{}{
-			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "记录正文，默认存在，可以使用 pipeline 删除此字段"}, // message
+			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Message text, existed when default. Could use pipeline to delete this field."}, // message
 		},
 	}
 }

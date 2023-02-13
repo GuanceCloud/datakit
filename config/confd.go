@@ -115,9 +115,6 @@ func StartConfd() error {
 }
 
 func confdMain() error {
-	// the start input perhaps not start, wait......
-	time.Sleep(12 * time.Second)
-
 	clientConfds = make([]clientStruct, 0)
 	clientPipelines = make([]clientStruct, 0)
 
@@ -485,7 +482,7 @@ func confdDo() (err error) {
 	}
 
 	// Execute collector comparison, addition, deletion and modification
-	inputs.CompareInputs(confdInputs)
+	inputs.CompareInputs(confdInputs, Cfg.DefaultEnabledInputs)
 
 	if !isFirst {
 		// First need not Reload

@@ -1,46 +1,45 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
+
 # InfluxDB
 ---
 
-{{.AvailableArchs}}
+{{.AvailableArchs}}index.md#legends "支持选举")
 
 ---
 
-InfluxDB 采集器，用于采集 InfluxDB 的数据。
+The InfuxDB collector is used to collect the data of the InfuxDB.
 
-## 前置条件 {#requirements}
+## Preconditions {#requirements}
 
-InfluxDB 采集器仅适用于 InfluxDB v1.x, 对于 InfluxDB v2.x 需要使用 prom 采集器进行采集
+The infuxdb collector is only applicable to infuxdb v1.x, and the prom collector is required for infuxdb v2.x.
 
-## InfluxDB 采集器配置 {#config}
+## InfluxDB Collector Configuration {#config}
 
-=== "主机安装"
+=== "Host Installation"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    
+    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    The collector can now be turned on by [ConfigMap injection collector configuration](datakit-daemonset-deploy.md#configmap-setting).
 
-### 适用于 InfluxDB v2.x 的 prom 采集器配置示例 {#prom-config}
+### Sample Prom Collector Configuration for InfuxDB v2.x {#prom-config}
 
 ```toml
 [[inputs.prom]]
-  ## Exporter 地址
+  ## Exporter address
   url = "http://127.0.0.1:8086/metrics"
 
   metric_types = ["counter", "gauge"]
 
   interval = "10s"
 
-  ## TLS 配置
+  ## TLS configuration.
   tls_open = false
   # tls_ca = "/tmp/ca.crt"
   # tls_cert = "/tmp/peer.crt"
@@ -54,7 +53,7 @@ InfluxDB 采集器仅适用于 InfluxDB v1.x, 对于 InfluxDB v2.x 需要使用 
     prefix = "go_"
     name = "influxdb_v2_go"
   
-  ## histogram 类型
+  ## Histogram type.
   # [[inputs.prom.measurements]]
   #   prefix = "http_api_request_"
   #   name = "influxdb_v2_http_request"
@@ -71,19 +70,19 @@ InfluxDB 采集器仅适用于 InfluxDB v1.x, 对于 InfluxDB v2.x 需要使用 
     prefix = "task_"
     name = "influxdb_v2_task" 
 
-  ## 自定义Tags
+  ## Customize tags.
   [inputs.prom.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
 
 ```
 
-## 指标集 {#measurements}
+## Measurements {#measurements}
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.influxdb.tags]`:
 
 ``` toml
- [inputs.{{.InputName}}.tags]
+ [inputs.influxdb.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -93,23 +92,23 @@ InfluxDB 采集器仅适用于 InfluxDB v1.x, 对于 InfluxDB v2.x 需要使用 
 
 ### `{{$m.Name}}`
 
--  标签
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- metric list
 
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
 
-## 日志采集 {#logging}
+## Log Collection {#logging}
 
-如需采集 InfluxDB 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 InfluxDB 日志文件的绝对路径。比如：
+To collect the InfuxDB log, open `files` in infuxdb.conf and write to the absolute path of the InfuxDB log file. For example:
 
 ```toml
 [inputs.influxdb.log]
-    # 填入绝对路径
+    # Fill in the absolute path
     files = ["/path/to/demo.log"] 
     ## grok pipeline script path
     pipeline = "influxdb.p"

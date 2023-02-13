@@ -67,7 +67,7 @@ func (*tablesCount) resToMeasurement(subMetricName string, res restResult, sql s
 		ts:       time.Now(),
 		election: election,
 	}
-	if host := getHost(u); host != "" {
+	if host := getHostTagIfNotLoopback(u); host != "" {
 		msm.tags["host"] = host
 	}
 	setGlobalTags(msm)
@@ -88,7 +88,7 @@ func (d *databaseCount) resToMeasurement(subMetricName string, res restResult, s
 		ts:       time.Now(),
 		election: election,
 	}
-	if host := getHost(u); host != "" {
+	if host := getHostTagIfNotLoopback(u); host != "" {
 		msm.tags["host"] = host
 	}
 	setGlobalTags(msm)

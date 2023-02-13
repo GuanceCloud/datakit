@@ -11,6 +11,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"net"
 	"net/url"
 	"regexp"
 	"strings"
@@ -151,9 +152,7 @@ func (p *Prom) tagKVMatched(tags map[string]string) bool {
 func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string) map[string]string {
 	tags := map[string]string{}
 
-	if host := getHost(u); host != "" {
-		tags["host"] = host
-	}
+	setHostTagIfNotLoopback(tags, u)
 
 	// Add custom tags.
 	for k, v := range p.opt.Tags {
@@ -180,15 +179,18 @@ func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string
 	return tags
 }
 
-func getHost(u string) string {
-	if u == "" || strings.Contains(u, "127.0.0.1") || strings.Contains(u, "localhost") {
-		return ""
-	}
+func setHostTagIfNotLoopback(tags map[string]string, u string) {
 	uu, err := url.Parse(u)
 	if err != nil {
-		return ""
+		return
 	}
-	return uu.Host
+	host, _, err := net.SplitHostPort(uu.Host)
+	if err != nil {
+		return
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		tags["host"] = host
+	}
 }
 
 func (p *Prom) getTagsWithLE(labels []*dto.LabelPair, measurementName string, b *dto.Bucket) map[string]string {

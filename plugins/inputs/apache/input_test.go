@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 var testdata = `127.0.0.1
@@ -78,4 +79,56 @@ func TestGetMetric(t *testing.T) {
 	p, err := m.LineProto()
 	tu.Ok(t, err)
 	t.Logf(p.String())
+}
+
+func TestInput_setHost(t *testing.T) {
+	type fields struct {
+		URL string
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		wantErr  bool
+		expected string
+	}{
+		{
+			name: "loopback",
+			fields: fields{
+				URL: "http://127.0.0.1:80/server-status?auto",
+			},
+			expected: "",
+		},
+		{
+			name: "loopback",
+			fields: fields{
+				URL: "http://localhost:80/server-status?auto",
+			},
+			expected: "",
+		},
+		{
+			name: "normal",
+			fields: fields{
+				URL: "http://192.168.1.1:80/server-status?auto",
+			},
+			expected: "192.168.1.1",
+		},
+		{
+			name: "no port",
+			fields: fields{
+				URL: "http://192.168.1.3/server-status?auto",
+			},
+			expected: "192.168.1.3",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			n := &Input{
+				URL: tt.fields.URL,
+			}
+			if err := n.setHost(); (err != nil) != tt.wantErr {
+				t.Errorf("Input.setHost() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			assert.Equal(t, tt.expected, n.host)
+		})
+	}
 }

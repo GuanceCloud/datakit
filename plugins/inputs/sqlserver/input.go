@@ -318,9 +318,7 @@ func (n *Input) handRow(query string, ts time.Time, isLogging bool) {
 		}
 		measurement := ""
 		tags := make(map[string]string)
-		if !strings.Contains(n.Host, "127.0.0.1") && !strings.Contains(n.Host, "localhost") {
-			tags["host"] = n.Host
-		}
+		setHostTagIfNotLoopback(tags, n.Host)
 		for k, v := range n.Tags {
 			tags[k] = v
 		}

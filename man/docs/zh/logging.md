@@ -1,5 +1,5 @@
 {{.CSS}}
-# 文件日志
+# 文件采集
 ---
 
 {{.AvailableArchs}}
@@ -80,6 +80,9 @@
 
       ## 是否开启磁盘缓存，可以有效避免采集延迟，有一定的性能开销，建议只在日志量超过 3000 条/秒再开启
       enable_diskcache = false
+
+      ## 是否从文件首部开始读取
+      from_beginning = false
     
       # 自定义 tags
       [inputs.logging.tags]
@@ -340,6 +343,27 @@ Pipeline 的几个注意事项：
 | `[!a-z]` | 匹配不在括号内给定范围内的一个字符 | `Letter[!3-5]` | Letter1…                  | Letter3 … Letter5, Letterxx |
 
 另需说明，除上述 glob 标准规则外，采集器也支持 `**` 进行递归地文件遍历，如示例配置所示。更多 Grok 介绍，参见[这里](https://rgb-24bit.github.io/blog/2018/glob.html){:target="_blank"}。
+
+### 文件读取的偏移位置 {#read-position}
+
+*支持 Datakit [:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5) 及以上版本。*
+
+文件读取的偏移是指打开文件后，从哪个位置开始读取。一般是 “首部（head）” 或 “尾部（tail）”。
+
+在 Datakit 中主要是 3 种情况，按照优先级划分如下：
+
+- 优先使用该文件的 position cache，如果能够得到 position 值，且该值小于等于文件大小（说明这是一个没有被 truncated 的文件），使用这个 position 作为读取的偏移位置
+- 其次是配置 `from_beginning` 为 `true`，会从文件首部读取
+- 最后是默认的 `tail` 模式，即从尾部读取
+
+???+ Note "关于 `position cache` 的说明"
+
+    `position cache` 是日志采集的一项内置功能，它是多个 K/V 键值对，存放在 `cahce/logtail.history` 文件中：
+
+    - key 是根据日志文件路径、inode 等信息生成的唯一值
+    - value 是此文件的读取偏移位置（position），并且实施更新
+
+    日志采集在启动时，会根据 key 取得 position 作为读取偏移量，避免漏采和重复采集。
 
 ## 指标集 {#measurements}
 

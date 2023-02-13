@@ -39,12 +39,9 @@ const (
 	inputName    = "opentelemetry"
 	sampleConfig = `
 [[inputs.opentelemetry]]
-  ## 在创建'trace',Span','resource'时，会加入很多标签，这些标签最终都会出现在'Span'中
-  ## 当您不希望这些标签太多造成网络上不必要的流量损失时，可选择忽略掉这些标签
-  ## 支持正则表达，注意:将所有的'.'替换成'_'
-  ## When creating 'trace', 'span' and 'resource', many labels will be added, and these labels will eventually appear in all 'spans'
+  ## During creating 'trace', 'span' and 'resource', many labels will be added, and these labels will eventually appear in all 'spans'
   ## When you don't want too many labels to cause unnecessary traffic loss on the network, you can choose to ignore these labels
-  ## Support regular expression. Note!!!: all '.' Replace with '_'
+  ## Support regular expression. Note!!!: '.' WILL BE REPLACED BY '_'.
   # ignore_attribute_keys = ["os_*","process_*"]
 
   ## Keep rare tracing resources list switch.
@@ -92,7 +89,7 @@ const (
     # capacity = 5120
 
   [inputs.opentelemetry.expectedHeaders]
-  # 如有header配置 则请求中必须要携带 否则返回状态码500
+  ## 如有header配置 则请求中必须要携带 否则返回状态码500
   ## 可作为安全检测使用,必须全部小写
   # ex_version = xxx
   # ex_name = xxx
@@ -100,12 +97,10 @@ const (
 
   ## grpc
   [inputs.opentelemetry.grpc]
-  ## trace for grpc
+  ## enable trace
   trace_enable = true
-
-  ## metric for grpc
+  ## enable metrics
   metric_enable = true
-
   ## grpc listen addr
   addr = "127.0.0.1:4317"
 

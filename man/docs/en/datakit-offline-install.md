@@ -1,23 +1,22 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# 离线部署
+
+# Offline Deployment
 ---
 
-某些时候，目标机器没有公网访问出口，按照如下方式可离线安装 DataKit。
+In some cases, the target machine does not have a public access exit, so you can install DataKit offline as follows.
 
-## 代理安装 {#install-via-proxy}
+## Agent Installation {#install-via-proxy}
 
-如果内网有可以通外网的机器，可以在该节点部署一个 proxy，将内网机器的访问流量通过该机器代理出来。
+If there is a machine in the intranet that can access the extranet, a proxy can be deployed at the node to proxy the access traffic of the intranet machine through the machine.
 
-当前 DataKit 自己内置了一个 proxy 采集器；也能通过 Nginx 正向代理功能来实现同一目的。基本网络结构如下：
+At present, DataKit has a inner proxy collector; The same goal can also be achieved through Nginx forward proxy function. The basic network structure is as follows:
 
 <figure markdown>
   ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-nginx-proxy.png){ width="700"}
 </figure>
 
-### 前置条件 {#requrements}
+### Preconditions {#requrements}
 
-- 通过[正常安装方式](datakit-install.md)，在有公网出口的机器上安装一个 DataKit，开通该 DataKit 上的 [proxy](proxy.md) 采集器，假定 proxy 采集器所在 Datakit IP 为 1.2.3.4，有如下配置：
+- Install a DataKit on a machine with a public network exit [in the normal installation mode](datakit-install.md), and turn on the proxy collector on the DataKit, assuming that the [proxy](proxy.md) collector is located in Datakit IP 1.2. 3.4, with the following configuration:
 
 ```toml
 [[inputs.proxy]]
@@ -27,21 +26,21 @@
   port = 9530
 ```
 
-- 或者准备配置好正向代理的 Nginx
+- Or Nginx ready to configure the forward proxy
 
 === "Linux/Mac"
 
-    - 使用 datakit 代理
+    - Use the datakit proxy
     
-    增加环境变量 `HTTPS_PROXY="1.2.3.4:9530"`，安装命令如下：
+    Add the environment variable `HTTPS_PROXY="1.2.3.4:9530"`, and the installation command is as follows:
     
     ```shell
     export HTTPS_PROXY=http://1.2.3.4:9530; DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
     ```
     
-    - 使用 Nginx 代理
+    - Using the Nginx proxy
     
-    增加环境变量 `DK_PROXY_TYPE="nginx"; DK_NGINX_IP="1.2.3.4";`，安装命令如下：
+    Add the environment variable `DK_PROXY_TYPE="nginx"; DK_NGINX_IP="1.2.3.4";`, and the installation command is as follows:
     
     ```shell
     export DK_PROXY_TYPE="nginx"; DK_NGINX_IP="1.2.3.4"; DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
@@ -49,127 +48,127 @@
 
 === "Windows"
 
-    - 使用 datakit 代理
+    - Using the datakit proxy
     
-    增加环境变量 `$env:HTTPS_PROXY="1.2.3.4:9530"`，安装命令如下：
+    Add the environment variable `$env:HTTPS_PROXY="1.2.3.4:9530"`, and the installation command is as follows:
     
     ```powershell
     $env:HTTPS_PROXY="1.2.3.4:9530"; $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -ProxyUsage Override -ProxyList $env:HTTPS_PROXY -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
     ```
-
-    - 使用 Nginx 代理
     
-    增加环境变量 `$env:DK_PROXY_TYPE="nginx"; $env:DK_NGINX_IP="1.2.3.4";`，安装命令如下：
+    - Using the Nginx proxy
+    
+    Add the environment variable `$env:DK_PROXY_TYPE="nginx"; $env:DK_NGINX_IP="1.2.3.4";`, and the installation command is as follows:
     
     ```powershell
     $env:DK_PROXY_TYPE="nginx"; $env:DK_NGINX_IP="1.2.3.4"; $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -ProxyUsage Override -ProxyList $env:HTTPS_PROXY -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
     ```
     
-    > 注意：其它安装参数设置，跟[正常安装](datakit-install.md) 无异。
+    > Note: Other setup parameter settings are the same as [normal setup](datakit-install.md).
 
 ---
 
 
-## 全离线安装 {#offline}
+## Full Offline Installation {#offline}
 
-当环境完全没有外网的情况下，只能通过移动硬盘（U 盘）等方式将安装包从公网下载到内网。
+When there is no external network in the environment, the installation package can only be downloaded from the public network to the internal network by moving the hard disk (U disk).
 
-全离线安装有两张策略可以选择：
+There are two strategies to choose from for full offline installation:
 
-- 简单模式：直接将 U 盘内的文件拷贝到每一台主机上，安装 DataKit。但简单模式目前**不支持**安装阶段通过[环境变量来做一些设置](datakit-install.md#extra-envs)。
-- 高级模式：在内网部署一个 Nginx，通过 Nginx 构建一个文件服务器，以替代 static.guance.com
+- Simple mode: Directly copy the files in the U disk to each host and install DataKit. However, Simple Mode currently does **not support** [setting through environment variables](datakit-install.md#extra-envs) during installation.
+- Advanced mode: Deploy an Nginx on the intranet and build a file server with Nginx instead of static.guance.com.
 
-### 简单模式 {#offline-simple}
+### Simple Mode {#offline-simple}
 
-以下文件的地址，可通过 wget 等下载工具，也可以直接在浏览器中输入对应的 URL 下载。
+The address of the following files can be downloaded through wget and other download tools, or directly enter the corresponding URL to download in the browser.
 
 ???+ Attention
 
-    Safari 浏览器下载时，后缀名可能不同（如将 `.tar.gz` 文件下载成 `.tar`），会导致安装失败。建议用 Chrome 浏览器下载。
+    When downloading from Safari browser, the suffix name may be different (for example, downloading the `. tar.gz ` file to `. tar `), which will cause the installation to fail. It is recommended to download with Chrome browser. 
 
-- 先下载数据包 [data.tar.gz](https://static.guance.com/datakit/data.tar.gz)，每个平台都一样。
+- Download the packet [data.tar.gz](https://static.guance.com/datakit/data.tar.gz) first, which is the same for every platform.
 
-- 然后再下载俩个安装程序：
+- Then download two more installers:
 
-=== "Windows 32 位"
+=== "Windows 32 bit"
 
     - [Installer](https://static.guance.com/datakit/installer-windows-386.exe){:target="_blank"}
-    - [DataKit](https://static.guance.com/datakit/datakit-windows-386-{{.Version}}.tar.gz){:target="_blank"}
+    - [DataKit](https://static.guance.com/datakit/datakit-windows-386-1.5.1.tar.gz){:target="_blank"}
 
-=== "Windows 64 位"
+=== "Windows 64 bit"
 
     - [Installer](https://static.guance.com/datakit/installer-windows-amd64.exe){:target="_blank"}
-    - [DataKit](https://static.guance.com/datakit/datakit-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
+    - [DataKit](https://static.guance.com/datakit/datakit-windows-amd64-1.5.1.tar.gz){:target="_blank"}
 
-=== "Linux X86 32 位"
+=== "Linux X86 32 bit"
 
     - [Installer](https://static.guance.com/datakit/installer-linux-386){:target="_blank"}
-    - [DataKit](https://static.guance.com/datakit/datakit-linux-386-{{.Version}}.tar.gz){:target="_blank"}
+    - [DataKit](https://static.guance.com/datakit/datakit-linux-386-1.5.1.tar.gz){:target="_blank"}
 
-=== "Linux X86 64 位"
+=== "Linux X86 64 bit"
 
     - [Installer](https://static.guance.com/datakit/installer-linux-amd64){:target="_blank"}
-    - [DataKit](https://static.guance.com/datakit/datakit-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
+    - [DataKit](https://static.guance.com/datakit/datakit-linux-amd64-1.5.1.tar.gz){:target="_blank"}
 
-=== "Linux Arm 32 位"
+=== "Linux Arm 32 bit"
 
     - [Installer](https://static.guance.com/datakit/installer-linux-arm){:target="_blank"}
-    - [DataKit](https://static.guance.com/datakit/datakit-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
+    - [DataKit](https://static.guance.com/datakit/datakit-linux-arm-1.5.1.tar.gz){:target="_blank"}
 
-=== "Linux Arm 64 位"
+=== "Linux Arm 64 bit"
 
     - [Installer](https://static.guance.com/datakit/installer-linux-arm64){:target="_blank"}
-    - [DataKit](https://static.guance.com/datakit/datakit-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
+    - [DataKit](https://static.guance.com/datakit/datakit-linux-arm64-1.5.1.tar.gz){:target="_blank"}
 
-下载完后，应该有三个文件（此处 `<OS-ARCH>` 指特定平台的安装包）：
+After downloading, you should have three files (`<OS-ARCH>` here refers to the platform-specific installation package):
 
 - `datakit-<OS-ARCH>.tar.gz`
-- `installer-<OS-ARCH>` 或 `installer-<OS-ARCH>.exe`
+- `installer-<OS-ARCH>` or `installer-<OS-ARCH>.exe`
 - `data.tar.gz`
 
-将这些文件拷贝到对应机器上（通过 U 盘或 scp 等命令）。
+Copy these files to the corresponding machine (via USB flash drive or scp and other commands).
 
-### 安装 {#install}
+### Installation {#install}
 
 === "Windows"
 
-    需以 administrator 权限运行 Powershell 执行：
-
+    You need to run the Powershell with administrator privileges to execute:
+    
     ```powershell
-    .\installer-windows-amd64.exe --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs .\datakit-windows-amd64-{{.Version}}.tar.gz,.\data.tar.gz
+    .\installer-windows-amd64.exe --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs .\datakit-windows-amd64-1.5.1.tar.gz,.\data.tar.gz
     ```
 
 === "Linux"
 
-    需以 root 权限运行：
-
+    To run with root privileges:
+    
     ```shell
     chmod +x installer-linux-amd64
-    ./installer-linux-amd64 --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs datakit-linux-amd64-{{.Version}}.tar.gz,data.tar.gz
+    ./installer-linux-amd64 --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs datakit-linux-amd64-1.5.1.tar.gz,data.tar.gz
     ```
 
-### 高级模式 {#offline-advanced}
+### Advanced Mode {#offline-advanced}
 
-DataKit 目前的安装地址是公网地址，所有二进制数据以及安装脚本都是从 static.guance.com 站点下载。对于不能访问该站点的机器，可以通过在内网部署一个文件服务器，以替代 static.guance.com 站点。
+DataKit is currently installed on the public web, and all binary data and installation scripts are downloaded from the static.guance.com site. For machines that cannot access the site, you can replace the static.guance.com site by deploying a file server on the intranet.
 
-高级模式的网络流量拓扑如下：
+The network traffic topology of advanced mode is as follows:
 
 <figure markdown>
   ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/nginx-file-server.png){ width="700"}
 </figure>
 
 
-先准备一台内网均可访问的机器，在该机器上安装 Nginx， 将 DataKit 安装所需的文件下载（或通过 U 盘拷贝）到 Nginx 服务器上，这样其它机器可以从 Nginx 文件服务器上下载安装文件来完成安装。
+Prepare a machine that can be accessed on the intranet, install Nginx on the machine, and download (or copy) the files required for DataKit installation to the Nginx server, so that other machines can download the installation files from the Nginx file server to complete the installation.
 
-- 设置 Nginx 文件服务器 {#nginx-config}
+- Setting up the Nginx file server {#nginx-config}
 
-在 nginx.conf 中添加配置：
+Add configuration in nginx.conf
 
 ```
 server {
     listen 8080;
     server_name _;
-    ## 映射到跟目录下
+    ## Map to the following directory
     location / {
         root /;
         autoindex on;
@@ -180,14 +179,14 @@ server {
 }
 ```
 
-重启 Nginx：
+Restart Nginx：
 
 ```shell
-nginx -t        # 测试配置
-nginx -s reload # reload配置
+nginx -t        # test configuration
+nginx -s reload # reload configuration
 ```
 
-- 将文件下载到 Nginx 服务器所在的 */datakit* 目录下，这里以 wget 下载 Linux AMD64 平台的安装包为例：
+- Download the files to the */datakit* directory where the Nginx server is located, taking wget downloading the Linux AMD64 platform installation package as an example:
 
 ```shell
 #!/bin/bash
@@ -196,10 +195,10 @@ mkdir -p /datakit
 wget -P /datakit https://static.guance.com/datakit/install.sh
 wget -P /datakit https://static.guance.com/datakit/version
 wget -P /datakit https://static.guance.com/datakit/data.tar.gz
-wget -P /datakit https://static.guance.com/datakit/installer-linux-amd64-{{.Version}}
-wget -P /datakit https://static.guance.com/datakit/datakit-linux-amd64-{{.Version}}.tar.gz
+wget -P /datakit https://static.guance.com/datakit/installer-linux-amd64-1.5.1
+wget -P /datakit https://static.guance.com/datakit/datakit-linux-amd64-1.5.1.tar.gz
 
-# 下载其它工具包：sources 是开启 RUM sourcemap 功能使用的安装包，如果未开启此功能，可选择不下载
+# Download other toolkits: sources is the installation package used to turn on the RUM sourcemap function. If this function is not turned on, you can choose not to download it.
 sources=(
   "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_mac_hotspot_11.0.16_8.tar.gz"
   "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_mac_hotspot_11.0.15_10.tar.gz"
@@ -227,9 +226,9 @@ for((i=0;i<${#sources[@]};i++)); do
 done
 ```
 
-- 准备安装
+- Prepare for installation
 
-在内网机器上，通过设置 `DK_INSTALLER_BASE_URL`，将其指向 Nginx 文件服务器：
+On the intranet machine, point it to the Nginx file server by setting `DK_INSTALLER_BASE_URL`:
 
 === "Linux/Mac"
     
@@ -252,20 +251,20 @@ done
     powershell .install.ps1;
     ```
 
-到此为止，离线安装完成。注意，此处还额外设置了 HTTPS_PROXY。
+So far, the offline installation is complete. Note that HTTPS_PROXY is additionally set here.
 
 ---
 
-- 更新 DataKit
+- Update DataKit
 
-如果有新的 DataKit 版本，可以将其安装上面的方式下载下来，执行如下命令来升级：
+If there is a new version of DataKit, you can download it as above and execute the following command to upgrade:
 
 === "Linux/Mac"
 
     ```shell
     DK_INSTALLER_BASE_URL="http://<nginxServer>:8080/datakit" \
     DK_UPGRADE=1 \
-		bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+    	bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
     ```
 
 === "Windows"

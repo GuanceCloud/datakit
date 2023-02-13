@@ -152,10 +152,6 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 		TAG_OPERATION:   dkspan.Operation,
 		TAG_SOURCE_TYPE: dkspan.SourceType,
 		TAG_SPAN_STATUS: dkspan.Status,
-		TAG_SPAN_TYPE:   dkspan.SpanType,
-	}
-	if dkspan.SpanType == "" {
-		tags[TAG_SPAN_TYPE] = SPAN_TYPE_UNKNOW
 	}
 	if dkspan.SourceType == "" {
 		tags[TAG_SOURCE_TYPE] = SPAN_SOURCE_CUSTOMER
@@ -167,6 +163,11 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 			tags[k] = v
 		}
 	}
+	// exclude span_type in tags, span_type is crucial in data display
+	if dkspan.SpanType == "" {
+		dkspan.SpanType = SPAN_TYPE_UNKNOW
+	}
+	tags[TAG_SPAN_TYPE] = dkspan.SpanType
 
 	fields := map[string]interface{}{
 		FIELD_TRACEID:  dkspan.TraceID,

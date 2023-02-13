@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"path/filepath"
 	"reflect"
@@ -65,6 +66,7 @@ type monitor struct {
 	serviceName string
 	tags        map[string]string
 	election    bool
+	loopback    bool
 
 	db               *sql.DB
 	intervalDuration time.Duration
@@ -83,6 +85,8 @@ func buildMonitor() *monitor {
 		tags:        make(map[string]string),
 		election:    opt.Election,
 	}
+
+	m.loopback = m.host == "localhost" || net.ParseIP(m.host).IsLoopback()
 
 	items := strings.Split(opt.Tags, ";")
 	for _, item := range items {
@@ -226,7 +230,7 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 	for _, item := range response {
 		tags := map[string]string{}
 
-		if !strings.Contains(m.host, "127.0.0.1") && !strings.Contains(m.host, "localhost") {
+		if !m.loopback {
 			tags["host"] = m.host
 		}
 		tags["oracle_service"] = m.serviceName

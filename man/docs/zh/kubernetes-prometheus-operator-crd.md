@@ -1,4 +1,4 @@
-# Kubernetes Prometheus CRD 支持
+# Prometheus CRD 支持
 
 ## 介绍 {#intro}
 

@@ -108,6 +108,55 @@ func generateMetaInfo() error {
 	return cmds.ExportMetaInfo("measurements-meta.json")
 }
 
+func generatePipelineDocEN() error {
+	encoding := base64.StdEncoding
+	protoPrefix, descPrefix := "Function prototype: ", "Function description: "
+	// Write function description & prototype.
+	for _, plDoc := range funcs.PipelineFunctionDocsEN {
+		lines := strings.Split(plDoc.Doc, "\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, protoPrefix) {
+				proto := strings.TrimPrefix(line, protoPrefix)
+				// Prototype line contains starting and trailing ` only.
+				if len(proto) >= 2 && strings.Index(proto, "`") == 0 && strings.Index(proto[1:], "`") == len(proto[1:])-1 {
+					proto = proto[1 : len(proto)-1]
+				}
+				plDoc.Prototype = proto
+			} else if strings.HasPrefix(line, descPrefix) {
+				plDoc.Description = strings.TrimPrefix(line, descPrefix)
+			}
+		}
+	}
+	// Encode Markdown docs with base64.
+	for _, plDoc := range funcs.PipelineFunctionDocsEN {
+		plDoc.Doc = encoding.EncodeToString([]byte(plDoc.Doc))
+		plDoc.Prototype = encoding.EncodeToString([]byte(plDoc.Prototype))
+		plDoc.Description = encoding.EncodeToString([]byte(plDoc.Description))
+	}
+	exportPLDocs := struct {
+		Version   string                  `json:"version"`
+		Docs      string                  `json:"docs"`
+		Functions map[string]*funcs.PLDoc `json:"functions"`
+	}{
+		Version:   git.Version,
+		Docs:      "Base64-encoded pipeline function documentation, including function prototypes, function descriptions, and usage examples.",
+		Functions: funcs.PipelineFunctionDocsEN,
+	}
+	data, err := json.Marshal(exportPLDocs)
+	if err != nil {
+		return err
+	}
+	f, err := os.Create("pipeline-docs.en.json")
+	if err != nil {
+		return err
+	}
+	defer f.Close() //nolint:errcheck,gosec
+	if _, err := f.Write(data); err != nil {
+		return err
+	}
+	return nil
+}
+
 func generatePipelineDoc() error {
 	encoding := base64.StdEncoding
 	protoPrefix, descPrefix := "函数原型：", "函数说明："
@@ -253,6 +302,10 @@ func PubDatakit() error {
 		return err
 	}
 
+	if err := generatePipelineDocEN(); err != nil {
+		return err
+	}
+
 	if err := generatePipelineScripts(); err != nil {
 		return err
 	}
@@ -264,6 +317,7 @@ func PubDatakit() error {
 		"install.ps1":             "install.ps1",
 		"measurements-meta.json":  "measurements-meta.json",
 		"pipeline-docs.json":      "pipeline-docs.json",
+		"en/pipeline-docs.json":   "pipeline-docs.en.json",
 		"internal-pipelines.json": "internal-pipelines.json",
 		fmt.Sprintf("datakit-%s.yaml", ReleaseVersion): "datakit.yaml",
 		fmt.Sprintf("install-%s.sh", ReleaseVersion):   "install.sh",

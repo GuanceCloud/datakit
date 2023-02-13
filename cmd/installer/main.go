@@ -220,7 +220,7 @@ func applyFlags() {
 
 	// setup logging
 	if flagInstallLog == "stdout" {
-		cp.Infof("Set log file to stdout")
+		cp.Infof("Set log file to stdout\n")
 
 		if err = logger.InitRoot(
 			&logger.Option{
@@ -333,8 +333,11 @@ Data           : %s
 			return
 		}
 		userName = builtInUserName // set as 'datakit'(default).
+
+		cp.Infof("datakit service run as user: '%s'\n", userName)
+	} else {
+		cp.Infof("datakit service run as user 'root'\n")
 	}
-	cp.Infof("datakit service run as user: '%s' (default/empty is 'root'. details: DK_USER_NAME = '%s')\n", userName, flagUserName)
 
 	svc, err := dkservice.NewService(userName)
 	if err != nil {
