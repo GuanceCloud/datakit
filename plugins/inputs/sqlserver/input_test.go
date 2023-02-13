@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type caseSpec struct {
@@ -44,12 +45,17 @@ type caseSpec struct {
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
-		switch string(pt.Name()) {
-		case "sqlserver_performance":
+		measurement := string(pt.Name())
 
-			// TODO: check pt according to Performance
+		switch measurement {
+		case "sqlserver_performance":
+			msgs := inputs.CheckPoint(pt, &Performance{}, inputs.WithAllowExtraTags(len(cs.ipt.Tags) > 0))
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
 
 		default: // TODO: check other measurement
+
 		}
 
 		// check if tag appended
