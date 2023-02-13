@@ -305,7 +305,7 @@ func TestSQLServerInput(t *T.T) {
 	}
 }
 
-func Test_setHostTagIfNotLoopback(t *testing.T) {
+func Test_setHostTagIfNotLoopback(t *T.T) {
 	type args struct {
 		tags      map[string]string
 		ipAndPort string
@@ -351,7 +351,7 @@ func Test_setHostTagIfNotLoopback(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(t *T.T) {
 			setHostTagIfNotLoopback(tt.args.tags, tt.args.ipAndPort)
 			assert.Equal(t, tt.expected, tt.args.tags)
 		})

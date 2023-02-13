@@ -70,7 +70,7 @@ func (f *MockedFeeder) AnyPoints(args ...time.Duration) (pts []*point.Point, err
 }
 
 // NPoints wait at least n points.
-func (f *MockedFeeder) NPoints(n int, args ...time.Duration) ([]*point.Point, error) {
+func (f *MockedFeeder) NPoints(n int, args ...time.Duration) (pts []*point.Point, err error) {
 	var all []*point.Point
 
 	if len(args) > 0 {
@@ -96,6 +96,8 @@ func (f *MockedFeeder) NPoints(n int, args ...time.Duration) ([]*point.Point, er
 			}
 		}
 	}
+
+	return
 }
 
 func (f *MockedFeeder) LastErrors() [][2]string {

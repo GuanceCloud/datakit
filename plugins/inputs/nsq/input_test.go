@@ -220,6 +220,8 @@ type caseSpec struct {
 }
 
 func buildCases(t *testing.T) ([]*caseSpec, error) {
+	t.Helper()
+
 	inputs := []struct {
 		name string
 		conf string
@@ -298,7 +300,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
 		switch string(pt.Name()) {
 		case "nsq_performance":
-			//cs.t.Logf("get %s", pt.String())
 
 			// TODO: check pt according to Performance
 

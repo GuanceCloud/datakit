@@ -11,7 +11,7 @@ import (
 )
 
 type Feeder interface {
-	Feed(name, category string, pts []*point.Point, opt ...*Option) error
+	Feed(name string, category point.Category, pts []*point.Point, opt ...*Option) error
 	FeedLastError(inputName string, err string)
 }
 
@@ -31,14 +31,14 @@ func ptConvert(pts ...*point.Point) (res []*dkpt.Point) {
 	return res
 }
 
-func (f *ioFeeder) Feed(name, category string, pts []*point.Point, opts ...*Option) error {
+func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*Option) error {
 	// convert cliutils.Point to io.Point
 	iopts := ptConvert(pts...)
 
 	if len(pts) > 0 {
-		return defaultIO.doFeed(iopts, category, name, opts[0])
+		return defaultIO.doFeed(iopts, category.URL(), name, opts[0])
 	} else {
-		return defaultIO.doFeed(iopts, category, name, nil)
+		return defaultIO.doFeed(iopts, category.URL(), name, nil)
 	}
 }
 

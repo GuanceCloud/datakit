@@ -52,7 +52,6 @@ func TestNPoints(t *T.T) {
 		_, err := f.NPoints(n, time.Millisecond*10)
 		assert.Error(t, err)
 		t.Logf("got expected error: %s", err.Error())
-		return
 	})
 
 	t.Run("wait-1s", func(t *T.T) {
@@ -86,7 +85,5 @@ func TestNPoints(t *T.T) {
 		err := f.Feed(t.Name(), point.Metric, pts)
 		assert.Error(t, err)
 		t.Logf("got expect error: %s", err)
-
-		return
 	})
 }

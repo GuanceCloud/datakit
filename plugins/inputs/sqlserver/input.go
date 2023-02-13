@@ -205,7 +205,7 @@ func (n *Input) Run() {
 		} else {
 			n.getMetric()
 			if len(collectCache) > 0 {
-				err := n.feeder.Feed(inputName, datakit.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
+				err := n.feeder.Feed(inputName, point.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
 				collectCache = collectCache[:0]
 				if err != nil {
 					n.lastErr = err
@@ -214,7 +214,7 @@ func (n *Input) Run() {
 			}
 
 			if len(loggingCollectCache) > 0 {
-				err := n.feeder.Feed(inputName, datakit.Logging, loggingCollectCache, &io.Option{CollectCost: time.Since(n.start)})
+				err := n.feeder.Feed(inputName, point.Logging, loggingCollectCache, &io.Option{CollectCost: time.Since(n.start)})
 				loggingCollectCache = loggingCollectCache[:0]
 				if err != nil {
 					n.lastErr = err

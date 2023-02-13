@@ -140,7 +140,7 @@ func (ipt *Input) Run() {
 			}
 
 			if err := ipt.feed.Feed(inputName,
-				datakit.Metric,
+				point.Metric,
 				pts,
 				&io.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("io.Feed: %s, ignored", err)
