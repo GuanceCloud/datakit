@@ -8,8 +8,10 @@ package testutils
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -84,7 +86,7 @@ func (i *RemoteInfo) TCPURL() string {
 // GetRemote only return the IP of remote node.
 func GetRemote() *RemoteInfo {
 	ri := &RemoteInfo{
-		Host: "",
+		Host: "0.0.0.0",
 		Port: "2375",
 	}
 
@@ -97,4 +99,40 @@ func GetRemote() *RemoteInfo {
 	}
 
 	return ri
+}
+
+var (
+	maxPort    = 65535
+	baseOffset = 10000
+)
+
+// RandPort return random port after offset baseOffset.
+func RandPort(proto string) int {
+	if v := os.Getenv("TESTING_BASE_PORT"); v != "" {
+		i, err := strconv.ParseInt(v, 10, 64)
+		if err == nil {
+			baseOffset = int(i)
+		}
+	}
+
+	for {
+		r := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
+		p := ((r.Int() % baseOffset) + baseOffset) % maxPort
+		if !portInUse(proto, p) {
+			return p
+		}
+	}
+}
+
+func portInUse(proto string, p int) bool {
+	c, err := net.DialTimeout(proto, net.JoinHostPort("0.0.0.0", fmt.Sprintf("%d", p)), time.Second)
+	if err != nil {
+		return false
+	}
+
+	if c != nil {
+		defer c.Close()
+	}
+
+	return true
 }

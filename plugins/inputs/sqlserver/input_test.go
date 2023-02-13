@@ -7,6 +7,7 @@ package sqlserver
 
 import (
 	"fmt"
+	"net"
 	"net/netip"
 	"os"
 	"sync"
@@ -170,6 +171,8 @@ func (cs *caseSpec) run() error {
 func buildCases(t *T.T) ([]*caseSpec, error) {
 	t.Helper()
 
+	remote := tu.GetRemote()
+
 	bases := []struct {
 		name string
 		conf string
@@ -180,7 +183,8 @@ func buildCases(t *T.T) ([]*caseSpec, error) {
 			conf: fmt.Sprintf(`
 host = "%s"
 user = "sa"
-password = "Abc123abC$"`, tu.GetRemote().Host+":1433"),
+password = "Abc123abC$"`,
+				net.JoinHostPort(remote.Host, fmt.Sprintf("%d", tu.RandPort("tcp")))),
 		},
 
 		{
@@ -191,10 +195,10 @@ password = "Abc123abC$"`, tu.GetRemote().Host+":1433"),
 			conf: fmt.Sprintf(`
 host = "%s"
 user = "sa"
-password = "Abc123abC$" # SQLServer require password to be larger than 8bytes, must include number/alpha/symbol.
+password = "Abc123abC$" # SQLServer require password to be larger than 8bytes, must include number, alphabet and symbol.
 [tags]
   tag1 = "some_value"
-  tag2 = "some_other_value"`, tu.GetRemote().Host+":2433"),
+  tag2 = "some_other_value"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", tu.RandPort("tcp")))),
 		},
 	}
 
