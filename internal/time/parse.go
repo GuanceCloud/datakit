@@ -44,35 +44,45 @@ func ParseDuration(s string) (time.Duration, error) {
 
 		d := time.Duration(n)
 		du += d * mult //nolint:durationcheck
+
 		return nil
 	}
 
 	if err := f(2, 60*60*24*365*time.Second); err != nil {
 		return du, err
 	} // y
+
 	if err := f(4, 60*60*24*7*time.Second); err != nil {
 		return du, err
 	} // w
+
 	if err := f(6, 60*60*24*time.Second); err != nil {
 		return du, err
 	} // d
+
 	if err := f(8, 60*60*time.Second); err != nil {
 		return du, err
 	} // h
+
 	if err := f(10, 60*time.Second); err != nil {
 		return du, err
 	} // m
+
 	if err := f(12, time.Second); err != nil {
 		return du, err
 	} // s
+
 	if err := f(14, time.Millisecond); err != nil {
 		return du, err
 	} // ms
+
 	if err := f(16, time.Microsecond); err != nil {
 		return du, err
 	} // us
+
 	if err := f(18, time.Nanosecond); err != nil {
 		return du, err
 	} // ns
+
 	return du, nil
 }

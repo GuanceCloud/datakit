@@ -277,7 +277,7 @@ define build_ip2isp
 endef
 
 define do_lint
-	@GOARCH=$(1) GOOS=$(2) $(GOLINT_BINARY) run --fix --allow-parallel-runners
+	@GOARCH=$(1) GOOS=$(2) $(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
 endef
 
 ip2isp:
@@ -323,11 +323,13 @@ all_test: deps
 
 test_deps: prepare gofmt lfparser_disable_line vet
 
+#GOARCH=amd64 GOOS=linux $(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err;
 lint: deps check_man copyright_check
+	@truncate -s 0 lint.err
 	$(call check_golint_version)
 	@if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
 		echo '============== lint under amd64/linux ==================='; \
-		GOARCH=amd64 GOOS=linux $(GOLINT_BINARY) run --fix --allow-parallel-runners ; \
+	  $(call do_lint,amd64,linux); \
 	fi
 	@echo '============== lint under amd64/darwin ==================='
 	$(call do_lint,amd64,darwin)

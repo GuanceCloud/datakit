@@ -8,8 +8,10 @@ package testutils
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -97,4 +99,23 @@ func GetRemote() *RemoteInfo {
 	}
 
 	return ri
+}
+
+var (
+	maxPort    = 65535
+	baseOffset = 10000
+)
+
+// RandPort return random port after offset baseOffset.
+func RandPort() int {
+	if v := os.Getenv("TESTING_BASE_PORT"); v != "" {
+		i, err := strconv.ParseInt(v, 10, 64)
+		if err == nil {
+			baseOffset = int(i)
+		}
+	}
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
+
+	return ((r.Int() % baseOffset) + baseOffset) % maxPort
 }
