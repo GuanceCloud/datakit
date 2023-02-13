@@ -14,13 +14,13 @@ import (
 func TestGetPort(t *T.T) {
 	t.Run("base-100", func(t *T.T) {
 		for i := 0; i < 10; i++ {
-			get := RandPort()
+			get := RandPort("tcp")
 			assert.True(t, get > baseOffset)
 			t.Logf("get: %d -> %d", i, get)
 		}
 
 		for _, i := range []int{1234, 6379, 3306, 2375} {
-			get := RandPort()
+			get := RandPort("tcp")
 			assert.True(t, get > baseOffset)
 			t.Logf("get: %d -> %d", i, get)
 		}
@@ -28,7 +28,7 @@ func TestGetPort(t *T.T) {
 
 	t.Run("larger-than-base", func(t *T.T) {
 		for i := baseOffset; i < baseOffset+10; i++ {
-			get := RandPort()
+			get := RandPort("tcp")
 			assert.True(t, get > baseOffset)
 			t.Logf("get: %d -> %d", i, get)
 		}
@@ -36,7 +36,7 @@ func TestGetPort(t *T.T) {
 
 	t.Run("larger-than-max", func(t *T.T) {
 		for i := maxPort; i < maxPort+10; i++ {
-			get := RandPort()
+			get := RandPort("tcp")
 			assert.True(t, get > baseOffset)
 			t.Logf("get: %d -> %d", i, get)
 		}
