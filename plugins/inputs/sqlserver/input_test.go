@@ -195,7 +195,7 @@ password = "Abc123abC$"`,
 			conf: fmt.Sprintf(`
 host = "%s"
 user = "sa"
-password = "Abc123abC$" # SQLServer require password to be larger than 8bytes, must include number/alpha/symbol.
+password = "Abc123abC$" # SQLServer require password to be larger than 8bytes, must include number, alphabet and symbol.
 [tags]
   tag1 = "some_value"
   tag2 = "some_other_value"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", tu.RandPort("tcp")))),
