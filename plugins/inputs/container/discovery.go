@@ -374,7 +374,7 @@ func (d *discovery) fetchPromInputsForPodMonitors() []*discoveryRunner {
 					promInput.Tags[k] = v
 				}
 				if metricsEndpoints.Interval != "" {
-					promInput.Interval = string(metricsEndpoints.Interval)
+					promInput.Interval = metricsEndpoints.Interval
 				}
 				promInput.Tags["namespace"] = pod.Namespace
 				promInput.Tags["service"] = pod.Name
@@ -473,7 +473,7 @@ func (d *discovery) fetchPromInputsForServiceMonitors() []*discoveryRunner {
 					promInput.Tags[k] = v
 				}
 				if endpoint.Interval != "" {
-					promInput.Interval = string(endpoint.Interval)
+					promInput.Interval = endpoint.Interval
 				}
 				promInput.Tags["namespace"] = service.Namespace
 				promInput.Tags["service"] = service.Name

@@ -9,9 +9,8 @@ import (
 	T "testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 func TestNPoints(t *T.T) {
@@ -21,14 +20,13 @@ func TestNPoints(t *T.T) {
 
 	t.Run("wait-forever", func(t *T.T) {
 		go func() {
-			pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123}, nil)
+			pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123})
 			pts := []*point.Point{pt}
 
 			for i := 0; i < n; i++ {
-				assert.NoError(t, f.Feed(t.Name(), datakit.Metric, pts))
+				assert.NoError(t, f.Feed(t.Name(), point.Metric, pts))
 				time.Sleep(time.Millisecond * 10)
 			}
-			return
 		}()
 
 		pts, err := f.NPoints(n)
@@ -36,20 +34,19 @@ func TestNPoints(t *T.T) {
 		assert.Equal(t, n, len(pts))
 
 		for _, pt := range pts {
-			t.Logf("%s", pt.String())
+			t.Logf("%s", pt.LineProto())
 		}
 	})
 
 	t.Run("wait-10ms-and-timeout", func(t *T.T) {
 		go func() {
-			pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123}, nil)
+			pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123})
 			pts := []*point.Point{pt}
 
 			for i := 0; i < n; i++ {
-				assert.NoError(t, f.Feed(t.Name(), datakit.Metric, pts))
+				assert.NoError(t, f.Feed(t.Name(), point.Metric, pts))
 				time.Sleep(time.Millisecond * 10)
 			}
-			return
 		}()
 
 		_, err := f.NPoints(n, time.Millisecond*10)
@@ -60,14 +57,13 @@ func TestNPoints(t *T.T) {
 
 	t.Run("wait-1s", func(t *T.T) {
 		go func() {
-			pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123}, nil)
+			pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123})
 			pts := []*point.Point{pt}
 
 			for i := 0; i < n; i++ {
-				assert.NoError(t, f.Feed(t.Name(), datakit.Metric, pts))
+				assert.NoError(t, f.Feed(t.Name(), point.Metric, pts))
 				time.Sleep(time.Millisecond * 10)
 			}
-			return
 		}()
 
 		pts, err := f.NPoints(n, time.Second)
@@ -75,19 +71,19 @@ func TestNPoints(t *T.T) {
 		assert.Equal(t, n, len(pts))
 
 		for _, pt := range pts {
-			t.Logf("%s", pt.String())
+			t.Logf("%s", pt.LineProto())
 		}
 	})
 
 	t.Run("feed-busy", func(t *T.T) {
-		pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123}, nil)
+		pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123})
 		pts := []*point.Point{pt}
 
 		for i := 0; i < chanCap; i++ {
-			assert.NoError(t, f.Feed(t.Name(), datakit.Metric, pts))
+			assert.NoError(t, f.Feed(t.Name(), point.Metric, pts))
 		}
 
-		err := f.Feed(t.Name(), datakit.Metric, pts)
+		err := f.Feed(t.Name(), point.Metric, pts)
 		assert.Error(t, err)
 		t.Logf("got expect error: %s", err)
 

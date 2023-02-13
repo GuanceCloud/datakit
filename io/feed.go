@@ -32,7 +32,6 @@ func ptConvert(pts ...*point.Point) (res []*dkpt.Point) {
 }
 
 func (f *ioFeeder) Feed(name, category string, pts []*point.Point, opts ...*Option) error {
-
 	// convert cliutils.Point to io.Point
 	iopts := ptConvert(pts...)
 

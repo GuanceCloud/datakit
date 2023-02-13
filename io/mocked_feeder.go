@@ -31,7 +31,7 @@ func NewMockedFeeder() *MockedFeeder {
 	}
 }
 
-func (f *MockedFeeder) Feed(name, category string, pts []*point.Point, opt ...*Option) error {
+func (f *MockedFeeder) Feed(name string, category point.Category, pts []*point.Point, opt ...*Option) error {
 	// TODO: run pipeline & filter
 
 	select {
@@ -51,24 +51,22 @@ func (f *MockedFeeder) Clear() {
 	f.lastErrors = f.lastErrors[:0]
 }
 
-// NPoints wait if any point(s) got.
-func (f *MockedFeeder) AnyPoints(args ...time.Duration) ([]*point.Point, error) {
+// AnyPoints wait if any point(s) got.
+func (f *MockedFeeder) AnyPoints(args ...time.Duration) (pts []*point.Point, err error) {
 	if len(args) > 0 {
 		tick := time.NewTicker(args[0])
 		defer tick.Stop()
 
 		select {
-		case pts := <-f.ch:
+		case pts = <-f.ch:
 			return pts, nil
 		case <-tick.C:
 			return nil, ErrTimeout
 		}
-	} else { // wait forever...
-		select {
-		case pts := <-f.ch:
-			return pts, nil
-		}
 	}
+
+	// wait forever...
+	return <-f.ch, nil
 }
 
 // NPoints wait at least n points.
@@ -91,13 +89,10 @@ func (f *MockedFeeder) NPoints(n int, args ...time.Duration) ([]*point.Point, er
 			}
 		}
 	} else {
-		for {
-			select {
-			case pts := <-f.ch:
-				all = append(all, pts...)
-				if len(all) >= n {
-					return all, nil
-				}
+		for pts := range f.ch {
+			all = append(all, pts...)
+			if len(all) >= n {
+				return all, nil
 			}
 		}
 	}

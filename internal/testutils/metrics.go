@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -40,6 +41,8 @@ func (c CaseStatus) String() string {
 		return "fail"
 	case CaseSkipped:
 		return "skip"
+	case CaseStatusUnknown:
+		return "unknown"
 
 	default:
 		return "unknown"
@@ -132,12 +135,12 @@ func (cr *CaseResult) Flush() error {
 		first = true
 	}
 
-	f, err := os.OpenFile(metricFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile(filepath.Clean(metricFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
 	}
 
-	defer f.Close()
+	defer f.Close() //nolint:errcheck,gosec
 
 	if first {
 		if _, err := f.WriteString(fmt.Sprintf("# metrics for %s\n", cr.Name)); err != nil {
@@ -154,6 +157,7 @@ func (cr *CaseResult) Flush() error {
 
 func (cr *CaseResult) Post() error {
 	// TODO: post to some datakit://v1/write/metrics
+	_ = host
 	return nil
 }
 

@@ -27,7 +27,7 @@ func (i *RemoteInfo) RemoteAPIOK(port int,
 	return false // TODO
 }
 
-// RemotePortOK test if remote container ok.
+// PortOK test if remote container's port ok every second.
 func (i *RemoteInfo) PortOK(port string, args ...time.Duration) bool {
 	var (
 		con net.Conn
@@ -36,17 +36,18 @@ func (i *RemoteInfo) PortOK(port string, args ...time.Duration) bool {
 
 	addr := fmt.Sprintf("%s:%s", i.Host, port)
 
-	iter := time.NewTicker(time.Second)
-	defer iter.Stop()
-
 	if len(args) > 0 {
-		exit := time.NewTicker(args[0])
-		defer exit.Stop()
+		iter := time.NewTicker(time.Second)
+		defer iter.Stop()
+
+		timeout := time.NewTicker(args[0])
+		defer timeout.Stop()
 
 		for {
 			select {
-			case <-exit.C:
+			case <-timeout.C:
 				return false
+
 			case <-iter.C:
 				log.Printf("check port %s...", addr)
 				con, err = net.DialTimeout("tcp", addr, time.Second)
@@ -59,16 +60,14 @@ func (i *RemoteInfo) PortOK(port string, args ...time.Duration) bool {
 		}
 	} else {
 		for { // wait until ok
-			select {
-			case <-iter.C:
-				log.Printf("check port %s...", addr)
-				con, err = net.DialTimeout("tcp", addr, time.Second)
-				if err == nil {
-					goto end
-				} else {
-					log.Printf("check port: %s", err)
-				}
+			log.Printf("check port %s...", addr)
+			con, err = net.DialTimeout("tcp", addr, time.Second)
+			if err == nil {
+				goto end
+			} else {
+				log.Printf("check port: %s", err)
 			}
+			time.Sleep(time.Second)
 		}
 	}
 
@@ -77,8 +76,9 @@ end:
 	return true
 }
 
+// TCPURL get TCP URL format.
 func (i *RemoteInfo) TCPURL() string {
-	return fmt.Sprintf("tcp://%s:%s", i.Host, i.Port)
+	return "tcp://" + net.JoinHostPort(i.Host, i.Port)
 }
 
 // GetRemote only return the IP of remote node.

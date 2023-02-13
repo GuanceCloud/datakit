@@ -16,13 +16,13 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 //nolint:lll
@@ -296,7 +296,7 @@ election = true
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
-		switch pt.Name() {
+		switch string(pt.Name()) {
 		case "nsq_performance":
 			//cs.t.Logf("get %s", pt.String())
 
@@ -311,10 +311,13 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			tags := pt.Tags()
 			for k, expect := range cs.in.Tags {
-				if got, ok := tags[k]; !ok {
-					return fmt.Errorf("tag %s not found", k)
-				} else if got != expect {
-					return fmt.Errorf("expect tag value %s, got %s", expect, got)
+				if v := tags.Get([]byte(k)); v != nil {
+					got := string(v.GetD())
+					if got != expect {
+						return fmt.Errorf("expect tag value %s, got %s", expect, got)
+					}
+				} else {
+					return fmt.Errorf("tag %s not found, got %v", k, tags)
 				}
 			}
 		}
