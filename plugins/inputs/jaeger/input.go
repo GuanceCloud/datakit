@@ -13,7 +13,7 @@ import (
 	"net/url"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"

@@ -8,9 +8,9 @@ package dataway
 import (
 	"testing"
 
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/stretchr/testify/assert"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 

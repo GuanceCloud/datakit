@@ -9,7 +9,7 @@ import (
 	"errors"
 	"net/http"
 
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 )
 
 var OK = newErr(nil, http.StatusOK)

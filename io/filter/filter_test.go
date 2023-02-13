@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"

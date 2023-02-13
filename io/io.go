@@ -16,8 +16,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"

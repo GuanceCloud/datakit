@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"github.com/GuanceCloud/cliutils/testutil"
 )
 
 func TestLimitReader_Close(t *testing.T) {

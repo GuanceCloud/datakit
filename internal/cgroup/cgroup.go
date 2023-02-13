@@ -12,8 +12,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/shirou/gopsutil/cpu"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 

@@ -16,8 +16,8 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"

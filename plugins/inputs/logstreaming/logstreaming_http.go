@@ -14,8 +14,8 @@ import (
 	"net/url"
 	"time"
 
+	lp "github.com/GuanceCloud/cliutils/lineproto"
 	client "github.com/influxdata/influxdb1-client/v2"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"

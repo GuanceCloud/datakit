@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"github.com/GuanceCloud/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )

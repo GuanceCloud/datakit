@@ -12,12 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -60,14 +61,16 @@ grok(_,"%{TIMESTAMP_ISO8601:time} %{NOTSPACE:origin}\\s+%{GREEDYDATA:msg}")
 default_time(time)
 `
 
-	inputName           = `sqlserver`
-	catalogName         = "db"
-	l                   = logger.DefaultSLogger(inputName)
+	inputName   = `sqlserver`
+	catalogName = "db"
+	l           = logger.DefaultSLogger(inputName)
+
 	collectCache        []*point.Point
 	loggingCollectCache []*point.Point
-	minInterval         = time.Second * 5
-	maxInterval         = time.Second * 30
-	query               = []string{
+
+	minInterval = time.Second * 5
+	maxInterval = time.Second * 30
+	query       = []string{
 		sqlServerPerformanceCounters,
 		sqlServerWaitStatsCategorized,
 		sqlServerDatabaseIO,
@@ -104,6 +107,7 @@ type Input struct {
 	tail    *tailer.Tailer
 	start   time.Time
 	db      *sql.DB
+	feeder  dkio.Feeder
 
 	Election bool `toml:"election"`
 	pauseCh  chan bool

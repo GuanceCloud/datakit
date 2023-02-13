@@ -16,9 +16,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/shirou/gopsutil/v3/net"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"

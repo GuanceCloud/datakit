@@ -17,7 +17,7 @@ import (
 
 	"github.com/DataDog/ebpf/manager"
 	"github.com/DataDog/gopsutil/process/so"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 )
 
 var l = logger.DefaultSLogger("ebpf")

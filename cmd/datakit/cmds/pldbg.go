@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
+	lp "github.com/GuanceCloud/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"

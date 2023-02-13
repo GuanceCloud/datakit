@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/skywalkingapi"
 	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/language/agent/v3"
 	profileV3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/language/profile/v3"

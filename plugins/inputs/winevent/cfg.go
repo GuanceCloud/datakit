@@ -14,8 +14,8 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
