@@ -14,7 +14,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
