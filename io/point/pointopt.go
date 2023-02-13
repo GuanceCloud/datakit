@@ -77,6 +77,9 @@ func NOptElection() *PointOption {
 	}
 }
 
+// MOptElectionV2 get option to use election-related tags.
+//
+// Deprecated: use point.Option and point.NewPoint() to set election tags directly.
 func MOptElectionV2(inputElectionEnabled bool) *PointOption {
 	if EnableElection && inputElectionEnabled {
 		return optMetricElection
@@ -84,6 +87,9 @@ func MOptElectionV2(inputElectionEnabled bool) *PointOption {
 	return optMetric
 }
 
+// LOptElectionV2 get option to use election-related tags.
+//
+// Deprecated: use point.Option and point.NewPoint() to set election tags directly.
 func LOptElectionV2(inputElectionEnabled bool) *PointOption {
 	if EnableElection && inputElectionEnabled {
 		return optLoggingElection
@@ -91,6 +97,9 @@ func LOptElectionV2(inputElectionEnabled bool) *PointOption {
 	return optLogging
 }
 
+// OOptElectionV2 get option to use election-related tags.
+//
+// Deprecated: use point.Option and point.NewPoint() to set election tags directly.
 func OOptElectionV2(inputElectionEnabled bool) *PointOption {
 	if EnableElection && inputElectionEnabled {
 		return optObjectElection
@@ -98,6 +107,9 @@ func OOptElectionV2(inputElectionEnabled bool) *PointOption {
 	return optObject
 }
 
+// POptElectionV2 get option to use election-related tags.
+//
+// Deprecated: use point.Option and point.NewPoint() to set election tags directly.
 func POptElectionV2(inputElectionEnabled bool) *PointOption {
 	if EnableElection && inputElectionEnabled {
 		return optProfilingElection
@@ -105,6 +117,9 @@ func POptElectionV2(inputElectionEnabled bool) *PointOption {
 	return optProfiling
 }
 
+// NOptElectionV2 get option to use election-related tags.
+//
+// Deprecated: use point.Option and point.NewPoint() to set election tags directly.
 func NOptElectionV2(inputElectionEnabled bool) *PointOption {
 	if EnableElection && inputElectionEnabled {
 		return optNetworkElection

@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -147,7 +147,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 	}
 
 	if x := q.Get(ArgGlobalElectionTags); x != "" {
-		for k, v := range point.GlobalEnvTags() {
+		for k, v := range point.GlobalElectionTags() {
 			l.Debugf("add env tag %s: %s", k, v)
 			opt.ExtraTags[k] = v
 		}

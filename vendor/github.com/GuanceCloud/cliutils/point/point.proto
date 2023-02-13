@@ -1,0 +1,92 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+// Definition of point in protobuf
+// Generate: see pb.sh
+
+syntax = "proto3";
+
+option go_package = "/;point";
+option java_multiple_files = true;
+option java_outer_classname = "Point";
+
+package point;
+
+import "google/protobuf/any.proto";
+
+// Debug used to attached some debug info for the point, these debug info
+// will encoded into payload, storage can take optional handle on these debug
+// info.
+message Debug {
+	string info = 1;
+}
+
+// example of pb.Any
+message AnyDemo {
+	string demo = 1;
+}
+
+enum KeyType {
+	X   = 0; // unknown
+	I   = 1;
+	U   = 2;
+	F   = 3;
+	B   = 4;
+	D   = 5;
+	NIL = 6;
+}
+
+enum MetricType {
+	UNSPECIFIED = 0;
+	COUNT = 1;
+	RATE = 2;
+	GAUGE = 3;
+}
+
+message Field {
+
+	bytes key = 1; // field name
+
+	// See https://developers.google.com/protocol-buffers/docs/proto3#json
+	oneof val {
+			int64  i   = 2 [json_name = "i"]; // signed int
+			uint64 u   = 3 [json_name = "u"]; // unsigned int
+			double f   = 4 [json_name = "f"]; // float64
+			bool   b   = 5 [json_name = "b"]; // bool
+			bytes  d   = 6 [json_name = "d"]; // bytes, for string or binary data
+
+			// XXX: not used
+			google.protobuf.Any a = 7 [json_name = "a"]; // any data
+	}
+
+	bool is_tag  = 8 [json_name = "is_tag"]; // the field is a tag?
+
+	MetricType type = 9;
+
+	// field unit name
+	string unit = 10; // metric unit, such as bytes(B), duration(ms/us) and so on.
+}
+
+// Warn used to attach some warning message during building the point.
+message Warn {
+	string type = 1 [json_name="type"];
+	string msg = 2 [json_name="message"];
+}
+
+message PBPoint {
+	bytes name            = 1;
+	repeated Field fields = 2;
+	int64 time            = 3;
+
+	// Auxiliary fields for the point, they should not
+	// write to the final storage on production.
+	repeated Warn warns   = 4;
+	repeated Debug debugs = 5;
+}
+
+// Batch of PBPoint.
+message PBPoints {
+	repeated PBPoint arr = 1;
+}

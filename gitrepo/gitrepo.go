@@ -16,18 +16,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	giturls "github.com/whilp/git-urls"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	ssh2 "golang.org/x/crypto/ssh"
@@ -105,7 +104,6 @@ func pullMain(cg *config.GitRepost) error {
 
 				tip := fmt.Sprintf("[gitrepo] failed: %v", err)
 				l.Error(tip)
-				io.SelfError(tip)
 			}
 		}
 

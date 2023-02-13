@@ -14,8 +14,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	humanize "github.com/dustin/go-humanize"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	bolt "go.etcd.io/bbolt"
 )

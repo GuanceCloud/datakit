@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput"
 )
 

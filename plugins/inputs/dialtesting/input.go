@@ -21,11 +21,11 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
+	"github.com/GuanceCloud/cliutils"
+	dt "github.com/GuanceCloud/cliutils/dialtesting"
+	"github.com/GuanceCloud/cliutils/logger"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )

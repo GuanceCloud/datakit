@@ -17,8 +17,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"

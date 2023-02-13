@@ -13,8 +13,8 @@ import (
 	"regexp"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"

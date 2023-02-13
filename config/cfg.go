@@ -19,8 +19,8 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"

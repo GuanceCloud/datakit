@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	_ "github.com/go-ping/ping"
-	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )

@@ -18,11 +18,11 @@ import (
 	"testing"
 	"time"
 
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/go-sourcemap/sourcemap"
 	"github.com/influxdata/influxdb1-client/models"
 	"github.com/stretchr/testify/assert"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 

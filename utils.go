@@ -30,7 +30,7 @@ import (
 	pr "github.com/shirou/gopsutil/v3/process"
 	"golang.org/x/crypto/ssh"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"github.com/GuanceCloud/cliutils"
 )
 
 func TrimSuffixAll(s, sfx string) string {

@@ -23,9 +23,9 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 	"github.com/GuanceCloud/platypus/pkg/token"
 
+	lp "github.com/GuanceCloud/cliutils/lineproto"
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/toml"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"

@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 	"github.com/GuanceCloud/platypus/pkg/token"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"

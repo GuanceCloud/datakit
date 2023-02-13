@@ -4,7 +4,7 @@ issues-exit-code = 1
 skip-files = ["packrd"]
 go = "1.18"
 skip-dirs = [
-	# TODO: we should add lint check on the package
+# TODO: we should add lint check on the package
 	"internal/obfuscate",
 ]
 
@@ -62,16 +62,19 @@ kubeerror = "k8s.io/apimachinery/pkg/api/errors"
 
 [linters-settings.gomoddirectives]
 replace-allow-list = [
-  "github.com/abbot/go-http-auth",
-  "github.com/go-check/check",
-  "github.com/gorilla/mux",
-  "github.com/mailgun/minheap",
-  "github.com/mailgun/multibuf",
+	"github.com/abbot/go-http-auth",
+	"github.com/go-check/check",
+	"github.com/gorilla/mux",
+	"github.com/mailgun/minheap",
+	"github.com/mailgun/multibuf",
 ]
 
 [linters-settings.lll]
 line-length = 150
 tab-width = 2
+
+[linters-settings.staticcheck]
+checks = ["all", "-SA1019"] # disable `Deprecated warnings`
 
 [linters]
 enable-all = true
@@ -101,6 +104,9 @@ disable = [
 
   "dupl",     # 还不允许有相似代码
   "maligned", # deprecated: https://github.com/mdempsky/maligned
+
+	# go1.18 disabled
+	"bodyclose", "nilerr", "rowserrcheck", "sqlclosecheck", "structcheck", "tparallel", "unparam", "wastedassign",
 
   "cyclop",
   "gomoddirectives", # used `replace' in go.mod

@@ -23,9 +23,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	_ "github.com/godror/godror"
 	"github.com/jessevdk/go-flags"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"golang.org/x/net/context/ctxhttp"
