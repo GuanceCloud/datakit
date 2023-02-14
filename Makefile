@@ -327,22 +327,22 @@ test_deps: prepare gofmt lfparser_disable_line vet
 lint: deps check_man copyright_check
 	@truncate -s 0 lint.err
 	$(call check_golint_version)
+	@echo '============== lint under darwin/amd64 ==================='
+	$(call do_lint,amd64,darwin)
+	@echo '============== lint under windows/386 ==================='
+	$(call do_lint,386,windows)
+	@echo '============== lint under windows/amd64 ==================='
+	$(call do_lint,amd64,windows)
+	@echo '============== lint under linux/arm ==================='
+	$(call do_lint,arm,linux)
+	@echo '============== lint under linux/arm64 ==================='
+	$(call do_lint,arm64,linux)
+	@echo '============== lint under linux/386 ==================='
+	$(call do_lint,386,linux)
 	@if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
-		echo '============== lint under amd64/linux ==================='; \
+		echo '============== lint under linux/amd64 ==================='; \
 	  $(call do_lint,amd64,linux); \
 	fi
-	@echo '============== lint under amd64/darwin ==================='
-	$(call do_lint,amd64,darwin)
-	@echo '============== lint under 386/windows ==================='
-	$(call do_lint,386,windows)
-	@echo '============== lint under amd64/windows ==================='
-	$(call do_lint,amd64,windows)
-	@echo '============== lint under arm/linux ==================='
-	$(call do_lint,arm,linux)
-	@echo '============== lint under arm64/linux ==================='
-	$(call do_lint,arm64,linux)
-	@echo '============== lint under 386/linux ==================='
-	$(call do_lint,386,linux)
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go
