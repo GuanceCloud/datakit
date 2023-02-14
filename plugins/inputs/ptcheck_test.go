@@ -22,7 +22,6 @@ func (t *testMeasurement) LineProto() (*dkpt.Point, error) {
 
 func (t *testMeasurement) Info() *MeasurementInfo {
 	return &MeasurementInfo{
-
 		Name: "test-measurement",
 		Desc: "for testing",
 		Type: "metric",
@@ -40,7 +39,6 @@ func (t *testMeasurement) Info() *MeasurementInfo {
 }
 
 func TestPointChecker(t *T.T) {
-
 	t.Run("base", func(t *T.T) {
 		pt := point.NewPointV2([]byte(`test-measurement`),
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
@@ -51,7 +49,6 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("invalid-field-type", func(t *T.T) {
-
 		pt := point.NewPointV2([]byte(`test-measurement`),
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`f1`: 1.414, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
@@ -61,7 +58,6 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("field-missing", func(t *T.T) {
-
 		pt := point.NewPointV2([]byte(`test-measurement`),
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`unknown`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
@@ -80,7 +76,6 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("tag-missing", func(t *T.T) {
-
 		pt := point.NewPointV2([]byte(`test-measurement`),
 			append(point.NewTags(map[string]string{"t1": "some", "t3": "some"}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
@@ -90,7 +85,6 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("tag-count-not-equal", func(t *T.T) {
-
 		pt := point.NewPointV2([]byte(`test-measurement`),
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some", "t3": "other"}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
@@ -100,7 +94,6 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("tag-count-not-equal-and-tag-missing", func(t *T.T) {
-
 		pt := point.NewPointV2([]byte(`test-measurement`),
 			append(point.NewTags(map[string]string{"t1": "some"}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
@@ -110,7 +103,6 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("extra-tags", func(t *T.T) {
-
 		pt := point.NewPointV2([]byte(`test-measurement`),
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "", "tx": ""}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))

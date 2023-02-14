@@ -54,16 +54,11 @@ func CheckPoint(pt *point.Point, m Measurement, opts ...PointCheckOption) []stri
 		fields := pt.Fields()
 
 		if len(tags) != len(info.Tags) {
-
 			if len(tags) < len(info.Tags) {
 				errMsg = append(errMsg, fmt.Sprintf("expect %d tags, got %d", len(info.Tags), len(tags)))
-			} else {
-				if !c.allowExtraTags {
-					errMsg = append(errMsg, fmt.Sprintf("tag cound not equal: %d <> %d", len(tags), len(info.Tags)))
-				} else {
-					// pass
-				}
-			}
+			} else if !c.allowExtraTags {
+				errMsg = append(errMsg, fmt.Sprintf("tag cound not equal: %d <> %d", len(tags), len(info.Tags)))
+			} // else: pass
 		}
 
 		if len(fields) != len(info.Fields) {
@@ -71,7 +66,7 @@ func CheckPoint(pt *point.Point, m Measurement, opts ...PointCheckOption) []stri
 		}
 
 		// check each tags
-		for k, _ := range info.Tags { // expect
+		for k := range info.Tags { // expect
 			if v := tags.Get([]byte(k)); v != nil {
 				// TODO: check tag value
 			} else {
@@ -93,7 +88,6 @@ func CheckPoint(pt *point.Point, m Measurement, opts ...PointCheckOption) []stri
 				default:
 					errMsg = append(errMsg, fmt.Sprintf("missing type info on field %s", k))
 				}
-
 			} else {
 				errMsg = append(errMsg, fmt.Sprintf("field %s not found", k))
 			}
