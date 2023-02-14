@@ -1,3 +1,6 @@
+// Copyright © 2022 Ory Corp
+// SPDX-License-Identifier: Apache-2.0
+
 package dockertest
 
 import (
@@ -117,13 +120,23 @@ func (r *Resource) Exec(cmd []string, opts ExecOptions) (exitCode int, err error
 		Container:    r.Container.ID,
 		Cmd:          cmd,
 		Env:          opts.Env,
-		AttachStderr: opts.StdErr != nil,
-		AttachStdout: opts.StdOut != nil,
+		AttachStderr: true,
+		AttachStdout: true,
 		AttachStdin:  opts.StdIn != nil,
 		Tty:          opts.TTY,
 	})
 	if err != nil {
 		return -1, errors.Wrap(err, "Create exec failed")
+	}
+
+	// Always attach stderr/stdout, even if not specified, to ensure that exec
+	// waits with opts.Detach as false (default)
+	// ref: https://github.com/fsouza/go-dockerclient/issues/838
+	if opts.StdErr == nil {
+		opts.StdErr = io.Discard
+	}
+	if opts.StdOut == nil {
+		opts.StdOut = io.Discard
 	}
 
 	err = r.pool.Client.StartExec(exec.ID, dc.StartExecOptions{
@@ -333,7 +346,8 @@ func (d *Pool) BuildAndRunWithBuildOptions(buildOpts *BuildOptions, runOpts *Run
 		return nil, errors.Wrap(err, "")
 	}
 
-	runOpts.Repository = runOpts.Name
+	nameTag := strings.Split(runOpts.Name, ":")
+	runOpts.Name = nameTag[0]
 
 	return d.RunWithOptions(runOpts, hcOpts...)
 }
@@ -355,10 +369,10 @@ func (d *Pool) BuildAndRun(name, dockerfilePath string, env []string) (*Resource
 // RunWithOptions starts a docker container.
 // Optional modifier functions can be passed in order to change the hostconfig values not covered in RunOptions
 //
-//  pool.RunWithOptions(&RunOptions{Repository: "mongo", Cmd: []string{"mongod", "--smallfiles"}})
-//  pool.RunWithOptions(&RunOptions{Repository: "mongo", Cmd: []string{"mongod", "--smallfiles"}}, func(hostConfig *dc.HostConfig) {
-//			hostConfig.ShmSize = shmemsize
-//		})
+//	 pool.RunWithOptions(&RunOptions{Repository: "mongo", Cmd: []string{"mongod", "--smallfiles"}})
+//	 pool.RunWithOptions(&RunOptions{Repository: "mongo", Cmd: []string{"mongod", "--smallfiles"}}, func(hostConfig *dc.HostConfig) {
+//				hostConfig.ShmSize = shmemsize
+//			})
 func (d *Pool) RunWithOptions(opts *RunOptions, hcOpts ...func(*dc.HostConfig)) (*Resource, error) {
 	repository := opts.Repository
 	tag := opts.Tag
@@ -477,7 +491,7 @@ func (d *Pool) RunWithOptions(opts *RunOptions, hcOpts ...func(*dc.HostConfig)) 
 
 // Run starts a docker container.
 //
-//  pool.Run("mysql", "5.3", []string{"FOO=BAR", "BAR=BAZ"})
+//	pool.Run("mysql", "5.3", []string{"FOO=BAR", "BAR=BAZ"})
 func (d *Pool) Run(repository, tag string, env []string) (*Resource, error) {
 	return d.RunWithOptions(&RunOptions{Repository: repository, Tag: tag, Env: env})
 }
@@ -515,7 +529,7 @@ func (d *Pool) RemoveContainerByName(containerName string) error {
 	containers, err := d.Client.ListContainers(dc.ListContainersOptions{
 		All: true,
 		Filters: map[string][]string{
-			"name": []string{containerName},
+			"name": {containerName},
 		},
 	})
 	if err != nil {
@@ -557,7 +571,7 @@ func (d *Pool) Retry(op func() error) error {
 	bo.MaxElapsedTime = d.MaxWait
 	if err := backoff.Retry(op, bo); err != nil {
 		if bo.NextBackOff() == backoff.Stop {
-			return fmt.Errorf("reached retry deadline")
+			return fmt.Errorf("reached retry deadline: %w", err)
 		}
 
 		return err

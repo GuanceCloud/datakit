@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -48,7 +48,9 @@ type Input struct {
 
 	lastErr error
 
-	collectCache []inputs.Measurement
+	// collectCache []inputs.Measurement
+	collectCache []*point.Point
+	// loggingCollectCache []*point.Point
 
 	Election bool `toml:"election"`
 	pause    bool

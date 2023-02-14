@@ -534,7 +534,7 @@ github.com/disintegration/imaging
 ## explicit
 github.com/dlclark/regexp2
 github.com/dlclark/regexp2/syntax
-# github.com/docker/cli v20.10.14+incompatible
+# github.com/docker/cli v20.10.17+incompatible
 ## explicit
 github.com/docker/cli/cli/compose/interpolation
 github.com/docker/cli/cli/compose/loader
@@ -1265,6 +1265,8 @@ github.com/naoina/go-stringutil
 # github.com/oklog/run v1.1.0
 ## explicit; go 1.13
 github.com/oklog/run
+# github.com/onsi/ginkgo v1.16.5
+## explicit; go 1.16
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
 github.com/opencontainers/go-digest
@@ -1300,7 +1302,7 @@ github.com/opentracing/opentracing-go/log
 ## explicit; go 1.12
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/proto/v2
-# github.com/ory/dockertest/v3 v3.9.1
+# github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.2
 ## explicit; go 1.17
 github.com/ory/dockertest/v3
 github.com/ory/dockertest/v3/docker
@@ -1634,8 +1636,6 @@ github.com/xeipuuv/gojsonschema
 # github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 ## explicit
 github.com/youmark/pkcs8
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230129083855-d3a0b575048e
-## explicit
 # go.etcd.io/bbolt v1.3.6
 ## explicit; go 1.12
 go.etcd.io/bbolt
@@ -2376,8 +2376,6 @@ modernc.org/strutil
 # modernc.org/token v1.0.1
 ## explicit
 modernc.org/token
-# sigs.k8s.io/controller-runtime v0.13.0
-## explicit; go 1.17
 # sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2
 ## explicit; go 1.18
 sigs.k8s.io/json

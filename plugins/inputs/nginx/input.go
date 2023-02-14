@@ -14,12 +14,12 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -180,19 +180,16 @@ func (n *Input) Run() {
 		if n.pause {
 			l.Debugf("not leader, skipped")
 		} else {
-			mpts, err := n.Collect()
+			points, err := n.Collect()
 			if err != nil {
 				l.Errorf("Collect failed: %v", err)
 			} else {
-				for category, points := range mpts {
-					if len(points) > 0 {
-						if err := io.Feed(inputName, category, points,
-							&io.Option{CollectCost: time.Since(n.start)}); err != nil {
-							l.Errorf(err.Error())
-							io.FeedLastError(inputName, err.Error())
-						} else {
-							n.collectCache = n.collectCache[:0]
-						}
+				if len(points) > 0 {
+					if err := n.feeder.Feed(inputName, point.Metric, points, &io.Option{CollectCost: time.Since(n.start)}); err != nil {
+						l.Errorf(err.Error())
+						n.feeder.FeedLastError(inputName, err.Error())
+					} else {
+						n.collectCache = n.collectCache[:0]
 					}
 				}
 			}
@@ -307,26 +304,23 @@ func (n *Input) setup() error {
 	return nil
 }
 
-func (n *Input) Collect() (map[string][]*point.Point, error) {
+func (n *Input) Collect() ([]*point.Point, error) {
 	if err := n.setup(); err != nil {
-		return map[string][]*point.Point{}, err
+		return nil, err
 	}
 
 	n.getMetric()
 
 	if len(n.collectCache) == 0 {
-		return map[string][]*point.Point{}, fmt.Errorf("no points")
+		return nil, fmt.Errorf("no points")
 	}
 
-	pts, err := inputs.GetPointsFromMeasurement(n.collectCache)
-	if err != nil {
-		return map[string][]*point.Point{}, err
-	}
+	// pts, err := inputs.GetPointsFromMeasurement(n.collectCache)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	mpts := make(map[string][]*point.Point)
-	mpts[datakit.Metric] = pts
-
-	return mpts, nil
+	return n.collectCache, nil
 }
 
 func defaultInput() *Input {
@@ -334,8 +328,8 @@ func defaultInput() *Input {
 		Interval: datakit.Duration{Duration: time.Second * 10},
 		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
 		Election: true,
-
-		semStop: cliutils.NewSem(),
+		feeder:   io.DefaultFeeder(),
+		semStop:  cliutils.NewSem(),
 	}
 }
 

@@ -22,6 +22,57 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+func TestSQLServerInput(t *T.T) {
+	os.Setenv("REMOTE_HOST", "10.200.14.142")
+	os.Setenv("TESTING_METRIC_PATH", "/tmp/testing.metrics")
+
+	start := time.Now()
+	cases, err := buildCases(t)
+	if err != nil {
+		cs := tu.CaseResult{
+			Name:          t.Name(),
+			Status:        tu.CasePassed,
+			FailedMessage: err.Error(),
+			Cost:          time.Since(start),
+		}
+
+		_ = cs.Flush()
+		return
+	}
+
+	t.Logf("testing %d cases...", len(cases))
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *T.T) {
+			caseStart := time.Now()
+
+			t.Logf("testing %s...", tc.name)
+
+			if err := tc.run(); err != nil {
+				tc.cr.Status = tu.CaseFailed
+				tc.cr.FailedMessage = err.Error()
+
+				assert.NoError(t, err)
+			} else {
+				tc.cr.Status = tu.CasePassed
+			}
+
+			tc.cr.Cost = time.Since(caseStart)
+
+			assert.NoError(t, tc.cr.Flush())
+
+			t.Cleanup(func() {
+				// clean remote docker resources
+				if tc.resource == nil {
+					return
+				}
+
+				assert.NoError(t, tc.pool.Purge(tc.resource))
+			})
+		})
+	}
+}
+
 type caseSpec struct {
 	t *T.T
 
@@ -93,7 +144,7 @@ func (cs *caseSpec) run() error {
 
 	start := time.Now()
 
-	p, err := dt.NewPool(dockerTCP)
+	p, err := cs.getPool(dockerTCP)
 	if err != nil {
 		return err
 	}
@@ -111,24 +162,49 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	resource, err := p.RunWithOptions(&dt.RunOptions{
-		// specify container image & tag
-		Repository: cs.repo,
-		Tag:        cs.repoTag,
+	resource, err := p.BuildAndRunWithOptions(
+		"/Users/mac/Downloads/tmp/sh-dockers/nginx/http_stub_status_module/dockerfile",
 
-		// port binding
-		PortBindings: map[docker.Port][]docker.PortBinding{
-			"80/tcp":  {{HostIP: "0.0.0.0", HostPort: cs.servicePort[0]}},
-			"443/tcp": {{HostIP: "0.0.0.0", HostPort: cs.servicePort[1]}},
+		&dt.RunOptions{
+			Name: "nginx:httpstubstatusmodule",
+
+			// specify container image & tag
+			Repository: cs.repo,
+			Tag:        cs.repoTag,
+
+			ExposedPorts: []string{
+				"80/tcp",
+			},
+
+			// port binding
+			PortBindings: map[docker.Port][]docker.PortBinding{
+				"80/tcp": {{HostIP: "0.0.0.0", HostPort: cs.servicePort[0]}},
+			},
 		},
 
-		Name: containerName,
+		func(c *docker.HostConfig) {
+			c.RestartPolicy = docker.RestartPolicy{Name: "no"}
+		},
+	)
 
-		// container run-time envs
-		Env: cs.envs,
-	}, func(c *docker.HostConfig) {
-		c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-	})
+	// resource, err := p.RunWithOptions(&dt.RunOptions{
+	// 	// specify container image & tag
+	// 	Repository: cs.repo,
+	// 	Tag:        cs.repoTag,
+
+	// 	// port binding
+	// 	PortBindings: map[docker.Port][]docker.PortBinding{
+	// 		"80/tcp":  {{HostIP: "0.0.0.0", HostPort: cs.servicePort[0]}},
+	// 		"443/tcp": {{HostIP: "0.0.0.0", HostPort: cs.servicePort[1]}},
+	// 	},
+
+	// 	Name: containerName,
+
+	// 	// container run-time envs
+	// 	Env: cs.envs,
+	// }, func(c *docker.HostConfig) {
+	// 	c.RestartPolicy = docker.RestartPolicy{Name: "no"}
+	// })
 	if err != nil {
 		return err
 	}
@@ -216,11 +292,12 @@ func buildCases(t *T.T) ([]*caseSpec, error) {
 
 		{
 			name: "http_stub_status_module",
+			conf: fmt.Sprintf(`url = "http://%s:80/server_status"`, remote.Host),
 		},
 	}
 
 	images := [][2]string{
-		{"nginx", "latest"},
+		{"nginx", "httpstubstatusmodule"},
 	}
 
 	// TODO: add per-image configs
@@ -260,7 +337,6 @@ func buildCases(t *T.T) ([]*caseSpec, error) {
 
 				servicePort: []string{
 					"80",
-					"443",
 				},
 
 				cr: &tu.CaseResult{
@@ -271,6 +347,8 @@ func buildCases(t *T.T) ([]*caseSpec, error) {
 						"image":     img[0],
 						"image_tag": img[1],
 						// "remote_server": ipt.Host,
+						"remote_host": remote.Host,
+						"remote_port": remote.Port,
 					},
 				},
 			})
@@ -279,54 +357,17 @@ func buildCases(t *T.T) ([]*caseSpec, error) {
 	return cases, nil
 }
 
-func TestSQLServerInput(t *T.T) {
-	//
-
-	start := time.Now()
-	cases, err := buildCases(t)
+func (cs *caseSpec) getPool(endpoint string) (*dt.Pool, error) {
+	p, err := dt.NewPool(endpoint)
 	if err != nil {
-		cs := tu.CaseResult{
-			Name:          t.Name(),
-			Status:        tu.CasePassed,
-			FailedMessage: err.Error(),
-			Cost:          time.Since(start),
-		}
-
-		_ = cs.Flush()
-		return
+		return nil, err
 	}
-
-	t.Logf("testing %d cases...", len(cases))
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *T.T) {
-			caseStart := time.Now()
-
-			t.Logf("testing %s...", tc.name)
-
-			if err := tc.run(); err != nil {
-				tc.cr.Status = tu.CaseFailed
-				tc.cr.FailedMessage = err.Error()
-
-				assert.NoError(t, err)
-			} else {
-				tc.cr.Status = tu.CasePassed
-			}
-
-			tc.cr.Cost = time.Since(caseStart)
-
-			assert.NoError(t, tc.cr.Flush())
-
-			t.Cleanup(func() {
-				// clean remote docker resources
-				if tc.resource == nil {
-					return
-				}
-
-				assert.NoError(t, tc.pool.Purge(tc.resource))
-			})
-		})
+	err = p.Client.Ping()
+	if err != nil {
+		cs.t.Logf("Could not connect to Docker: %v", err)
+		return nil, err
 	}
+	return p, nil
 }
 
 func portsOK(r *tu.RemoteInfo, ports ...string) error {
