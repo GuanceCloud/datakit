@@ -1,0 +1,78 @@
+site_name: DataKit 文档
+docs_dir: './docs/zh'
+site_dir: './site/zh'
+
+theme:
+  palette:
+    primary: white
+  name: material
+  custom_dir: overrides/
+  #favicon: assets/images/favicon.ico
+  #logo: assets/images/logo.png
+  language: zh
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - content.tabs.link
+    - navigation.instant
+    - navigation.top
+    - navigation.tracking
+    - navigation.path
+    - search.suggest
+    - toc.follow
+
+markdown_extensions:
+  tables: {}
+  footnotes: {}
+  attr_list: {}
+  md_in_html: {}
+  toc:
+    permalink: True
+  meta: {}
+  pymdownx.caret: {}
+  pymdownx.mark: {}
+  pymdownx.tilde: {}
+  pymdownx.betterem: {}
+  pymdownx.critic: {}
+  pymdownx.keys: {}
+  pymdownx.snippets: {}
+  pymdownx.details: {}
+  pymdownx.tabbed:
+    alternate_style: true
+  pymdownx.highlight:
+    anchor_linenums: true
+    auto_title: false
+  pymdownx.inlinehilite: {}
+  pymdownx.superfences: {}
+  pymdownx.emoji:
+    emoji_index: !!python/name:materialx.emoji.twemoji
+    emoji_generator: !!python/name:materialx.emoji.to_svg
+    options:
+      custom_icons:
+        - overrides/.icons
+
+extra:
+  generator: false
+  homepage: https://localhost:8000/
+  alternate:
+    - name: 中文
+      link: /
+      lang: zh
+    - name: English
+      link: /en/
+      lang: en
+
+plugins:
+  awesome-pages: {}
+  section-index: {}
+  #git-revision-date-localized:
+  #  type: custom
+  #  custom_format: '%Y-%m-%d'
+  #  enable_creation_date: true
+  #  fallback_to_build_date: true
+  search:
+    separator: '[\s\u200b\-]'
+
+#extra_css:
+#  - assets/stylesheets/extra.css
