@@ -13,6 +13,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -52,6 +53,8 @@ type Input struct {
 	Election bool `toml:"election"`
 	pause    bool
 	pauseCh  chan bool
+
+	feeder dkio.Feeder
 
 	semStop *cliutils.Sem // start stop signal
 }

@@ -329,7 +329,7 @@ func (n *Input) Collect() (map[string][]*point.Point, error) {
 	return mpts, nil
 }
 
-func NewNginx() *Input {
+func defaultInput() *Input {
 	return &Input{
 		Interval: datakit.Duration{Duration: time.Second * 10},
 		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
@@ -341,6 +341,6 @@ func NewNginx() *Input {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return NewNginx()
+		return defaultInput()
 	})
 }
