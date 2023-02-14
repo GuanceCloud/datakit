@@ -75,7 +75,6 @@ require (
 	github.com/ugorji/go/codec v1.2.6
 	github.com/vjeantet/grok v1.0.0
 	github.com/whilp/git-urls v1.0.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230129083855-d3a0b575048e
 	go.etcd.io/bbolt v1.3.6
 	go.mercari.io/go-dnscache v0.0.0-20220124075326-2701c2ab5df5
 	go.opentelemetry.io/otel v1.4.1
@@ -112,6 +111,7 @@ require (
 require (
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.40.1
 	github.com/DataDog/gopsutil v1.1.0
+	github.com/GuanceCloud/cliutils v0.0.0-20230214065304-bcf19f5b34c2
 	github.com/GuanceCloud/confd v0.0.0-20230110090426-b3190049be1c
 	github.com/GuanceCloud/grok v1.1.2
 	github.com/GuanceCloud/platypus v0.2.3
@@ -138,7 +138,6 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/DataDog/datadog-go/v5 v5.1.0 // indirect
 	github.com/DataDog/zstd v1.4.1 // indirect
-	github.com/GuanceCloud/cliutils v0.0.0-20230209110134-0816fc24778b // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.123 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
@@ -220,6 +219,7 @@ require (
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/nacos-group/nacos-sdk-go v1.1.3 // indirect
 	github.com/oklog/run v1.1.0 // indirect
+	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/opentracing-contrib/go-grpc v0.0.0-20210225150812-73cb765af46e // indirect
 	github.com/opentracing-contrib/go-stdlib v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
@@ -263,7 +263,6 @@ require (
 	modernc.org/opt v0.1.3 // indirect
 	modernc.org/strutil v1.1.3 // indirect
 	modernc.org/token v1.0.1 // indirect
-	sigs.k8s.io/controller-runtime v0.13.0 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 )
 
