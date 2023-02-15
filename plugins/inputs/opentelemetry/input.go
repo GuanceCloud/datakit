@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -35,27 +34,6 @@ const (
 	inputName    = "opentelemetry"
 	sampleConfig = `
 [[inputs.opentelemetry]]
-  ## OTEL agent HTTP config for traces and metrics
-  [inputs.opentelemetry.http]
-  ## if enable=true
-  ## http path (do not edit):
-  ##  trace : /otel/v1/trace
-  ##  metric: /otel/v1/metric
-  ##  url: http://127.0.0.1:9529/otel/v1/trace
-	##  method = POST
-   enable = true
-  ## return to client status_ok_code :200/202
-   http_status_ok = 200
-
-  ## OTEL agent GRPC config for traces and metrics
-  [inputs.opentelemetry.grpc]
-  ## enable trace
-   trace_enable = true
-  ## enable metrics
-   metric_enable = true
-  ## grpc listening on address.
-   addr = "127.0.0.1:4317"
-
   ## During creating 'trace', 'span' and 'resource', many labels will be added, and these labels will eventually appear in all 'spans'
   ## When you don't want too many labels to cause unnecessary traffic loss on the network, you can choose to ignore these labels
   ## Support regular expression. Note!!!: '.' WILL BE REPLACED BY '_'.
@@ -91,13 +69,6 @@ const (
     # key2 = "value2"
     # ...
 
-  ## If 'expectedHeaders' is well configed, then the obligation of sending certain wanted HTTP headers is on the client side,
-  ## otherwise HTTP status code 400(bad request) will be provoked.
-  # [inputs.opentelemetry.expectedHeaders]
-  # ex_version = "12.3"
-  # ex_name = "my_service_name"
-  # ...
-
   ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
@@ -111,6 +82,32 @@ const (
   # [inputs.opentelemetry.storage]
     # path = "./otel_storage"
     # capacity = 5120
+
+  ## OTEL agent HTTP config for traces and metrics
+  ## If enable set to be true, traces and metrics will be received on path respectively:
+  ## trace : /otel/v1/trace
+  ## metric: /otel/v1/metric
+  ## and the client side should be configured properly with Datakit listening port(default:9529)
+  ## for example http://127.0.0.1:9529/otel/v1/trace
+  ## The acceptable http_status_ok values will be 200 or 202.
+  [inputs.opentelemetry.http]
+   enable = true
+   http_status_ok = 200
+
+  ## OTEL agent GRPC config for traces and metrics.
+  ## GRPC services for traces and metrics can be enabled respectively as setting either to be true.
+  ## add is the listening on address for GRPC server.
+  [inputs.opentelemetry.grpc]
+   trace_enable = true
+   metric_enable = true
+   addr = "127.0.0.1:4317"
+
+  ## If 'expectedHeaders' is well configed, then the obligation of sending certain wanted HTTP headers is on the client side,
+  ## otherwise HTTP status code 400(bad request) will be provoked.
+  # [inputs.opentelemetry.expectedHeaders]
+  # ex_version = "1.2.3"
+  # ex_name = "env_resource_name"
+  # ...
 `
 )
 
@@ -122,12 +119,12 @@ var (
 	localCache *storage.Storage
 )
 
-type otlpHTTPCollector struct {
-	Enabled bool   `toml:"enable"`
-	Address string `toml:"addr"`
+type httpConfig struct {
+	Enabled      bool `toml:"enable"`
+	StatusCodeOK int  `toml:"http_status_ok"`
 }
 
-type otlpGrpcCollector struct {
+type grpcConfig struct {
 	TraceEnabled  bool   `toml:"trace_enable"`
 	MetricEnabled bool   `toml:"metric_enable"`
 	Address       string `toml:"addr"`
@@ -135,17 +132,17 @@ type otlpGrpcCollector struct {
 
 type Input struct {
 	Pipelines           map[string]string            `toml:"pipelines"` // deprecated
-	HTTPConfig          *otlpHTTPCollector           `toml:"http"`
-	GRPCConfig          *otlpGrpcCollector           `toml:"grpc"`
+	HTTPConfig          *httpConfig                  `toml:"http"`
+	GRPCConfig          *grpcConfig                  `toml:"grpc"`
+	ExpectedHeaders     map[string]string            `toml:"expectedHeaders"`
+	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"`
 	KeepRareResource    bool                         `toml:"keep_rare_resource"`
 	CloseResource       map[string][]string          `toml:"close_resource"`
 	OmitErrStatus       []string                     `toml:"omit_err_status"`
 	Sampler             *itrace.Sampler              `toml:"sampler"`
-	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"`
 	Tags                map[string]string            `toml:"tags"`
 	WPConfig            *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig    *storage.StorageConfig       `toml:"storage"`
-	ExpectedHeaders     map[string]string            `toml:"expectedHeaders"`
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -159,7 +156,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) RegHTTPHandler() {
-	log = logger.SLogger(ipt.inputName)
+	log = logger.SLogger(inputName)
 
 	var err error
 	if ipt.WPConfig != nil {
@@ -290,17 +287,12 @@ func (ipt *Input) Run() {
 
 		// 	return nil
 		// })
-		select {
-		case <-datakit.Exit.Wait():
-			log.Infof("### %s exit", ipt.inputName)
-		case <-ipt.semStop.Wait():
-			log.Infof("### %s return", ipt.inputName)
-		}
-		ipt.exit()
+		<-datakit.Exit.Wait()
+		ipt.Terminate()
 	}
 }
 
-func (ipt *Input) exit() {
+func (ipt *Input) Terminate() {
 	if wkpool != nil {
 		wkpool.Shutdown()
 		log.Info("### workerpool closed")
@@ -313,17 +305,8 @@ func (ipt *Input) exit() {
 	}
 }
 
-func (ipt *Input) Terminate() {
-	if ipt.semStop != nil {
-		ipt.semStop.Close()
-	}
-}
-
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			inputName: inputName,
-			semStop:   cliutils.NewSem(),
-		}
+		return &Input{}
 	})
 }
