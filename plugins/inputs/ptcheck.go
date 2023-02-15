@@ -8,33 +8,94 @@ package inputs
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 )
 
-type ptChecker struct {
-	checkKeys      bool
-	checkTypes     bool
-	allowExtraTags bool
-}
+type PointCheckOption func(*ptChecker)
 
-func WithAllowExtraTags(on bool) PointCheckOption {
-	return func(c *ptChecker) { c.allowExtraTags = true }
+type ptChecker struct {
+	checkValues,
+	checkTypes bool
+
+	expect *point.Point
+
+	// expect measurement info
+	doc   Measurement
+	mInfo *MeasurementInfo
+
+	extraTags map[string]string
+
+	optionalFields []string
+
+	// check result
+	checkMsg []string
+
+	// the checking point's info
+	expName,
+	gotName string
+
+	expTags,
+	gotTags point.KVs
+
+	expFields,
+	gotFields point.KVs
+
+	expTime,
+	gotTime time.Time
 }
 
 func newPointChecker() *ptChecker {
 	return &ptChecker{
-		checkKeys:  true,
 		checkTypes: true,
 	}
 }
 
-type PointCheckOption func(*ptChecker)
+// WithDoc set the point's document to check consistency between doc and the real data.
+func WithDoc(m Measurement) PointCheckOption {
+	return func(c *ptChecker) {
+		c.doc = m
+		c.mInfo = m.Info()
+	}
+}
 
-func CheckPoint(pt *point.Point, m Measurement, opts ...PointCheckOption) []string {
+// WithExtraTags inject additional tags to check point.
+func WithExtraTags(tags map[string]string) PointCheckOption {
+	return func(c *ptChecker) { c.extraTags = tags }
+}
+
+// WithExpectPoint set expected point to check point.
+func WithExpectPoint(pt *point.Point) PointCheckOption {
+	return func(c *ptChecker) {
+		c.expect = pt
+		c.expName = string(pt.Name())
+		c.expTags = pt.Tags()
+		c.expFields = pt.Fields()
+		c.expTime = pt.Time()
+	}
+}
+
+// WithValueChecking will check point's tag/field value according to expected point.
+func WithValueChecking(on bool) PointCheckOption {
+	return func(c *ptChecker) { c.checkValues = on }
+}
+
+// WithTypeChecking will check point's all fields value type according to document.
+func WithTypeChecking(on bool) PointCheckOption {
+	return func(c *ptChecker) { c.checkTypes = on }
+}
+
+// WithOptionalFields set optional keys(field key) that will escape key-check.
+// Sometimes the point's field/tag keys are optional for different configures.
+func WithOptionalFields(keys ...string) PointCheckOption {
+	return func(c *ptChecker) {
+		c.optionalFields = append(c.optionalFields, keys...)
+	}
+}
+
+func CheckPoint(pt *point.Point, opts ...PointCheckOption) []string {
 	c := newPointChecker()
-
-	var errMsg []string
 
 	for _, opt := range opts {
 		if opt != nil {
@@ -42,59 +103,135 @@ func CheckPoint(pt *point.Point, m Measurement, opts ...PointCheckOption) []stri
 		}
 	}
 
-	info := m.Info()
+	c.gotName = string(pt.Name())
+	c.gotTags = pt.Tags()
+	c.gotFields = pt.Fields()
+	c.gotTime = pt.Time()
 
-	if c.checkKeys {
-		// check measurement name
-		if info.Name != string(pt.Name()) {
-			errMsg = append(errMsg, fmt.Sprintf("measurement name not equal: %s <> %s", info.Name, string(pt.Name())))
-		}
+	c.doCheck(pt)
 
-		tags := pt.Tags()
-		fields := pt.Fields()
+	return c.checkMsg
+}
 
-		if len(tags) != len(info.Tags) {
-			if len(tags) < len(info.Tags) {
-				errMsg = append(errMsg, fmt.Sprintf("expect %d tags, got %d", len(info.Tags), len(tags)))
-			} else if !c.allowExtraTags {
-				errMsg = append(errMsg, fmt.Sprintf("tag cound not equal: %d <> %d", len(tags), len(info.Tags)))
-			} // else: pass
-		}
+func (c *ptChecker) doCheck(pt *point.Point) {
+	// check according to doc info
+	if c.mInfo != nil {
+		c.checkOnDoc(pt)
+	}
 
-		if len(fields) != len(info.Fields) {
-			errMsg = append(errMsg, fmt.Sprintf("field cound not equal: %d <> %d", len(fields), len(info.Fields)))
-		}
+	if c.expect != nil {
+		c.checkOnPoint(pt)
+	}
+}
 
-		// check each tags
-		for k := range info.Tags { // expect
-			if v := tags.Get([]byte(k)); v != nil {
-				// TODO: check tag value
-			} else {
-				errMsg = append(errMsg, fmt.Sprintf("tag %s not found", k))
-			}
-		}
+func (c *ptChecker) checkOnPoint(pt *point.Point) {
+	if c.expName != c.gotName {
+		c.addMsg(fmt.Sprintf("expect measurement name %q got %q", c.expName, c.gotName))
+	}
 
-		// check each field
-		for k, f := range info.Fields { // expect
-			if got := fields.Get([]byte(k)); got != nil {
-				// TODO: check field type
+	if len(c.expTags) != len(c.gotTags) {
+		c.addMsg(fmt.Sprintf("expect %d tags got %d", len(c.expTags), len(c.gotTags)))
+	}
 
-				switch x := f.(type) {
-				case *FieldInfo:
-					if c.checkTypes && !typeEqual(x.DataType, got) {
-						errMsg = append(errMsg,
-							fmt.Sprintf("field '%s' expect type %s, got %s", k, x.DataType, reflect.TypeOf(got.GetVal())))
-					}
-				default:
-					errMsg = append(errMsg, fmt.Sprintf("missing type info on field %s", k))
-				}
-			} else {
-				errMsg = append(errMsg, fmt.Sprintf("field %s not found", k))
-			}
+	if len(c.expFields) != len(c.gotFields) {
+		c.addMsg(fmt.Sprintf("expect %d fields got %d", len(c.expFields), len(c.gotFields)))
+	}
+
+	for _, kv := range c.expTags {
+		if c.gotTags.Get(kv.Key) == nil {
+			c.addMsg(fmt.Sprintf("unknown tag %q", kv.Key))
 		}
 	}
 
-	return errMsg
+	for _, kv := range c.expFields {
+		if got := c.gotFields.Get(kv.Key); got == nil {
+			c.addMsg(fmt.Sprintf("expect field %q not found", kv.Key))
+		} else if c.checkTypes || c.checkValues {
+			if !reflect.DeepEqual(kv.Val, got.Val) {
+				c.addMsg(fmt.Sprintf("expect field %q type %q value %v got type %q value %v",
+					kv.Key,
+					reflect.TypeOf(kv.Val), kv.Val,
+					reflect.TypeOf(got.Val), got.Val))
+			}
+		}
+	}
+}
+
+func (c *ptChecker) checkOnDoc(pt *point.Point) {
+	if c.mInfo.Name != string(pt.Name()) {
+		c.addMsg(fmt.Sprintf("measurement name not equal: %q <> %q", c.mInfo.Name, string(pt.Name())))
+	}
+
+	// check tag key count
+	if len(c.mInfo.Tags)+len(c.extraTags) != len(c.gotTags) {
+		c.addMsg(fmt.Sprintf("expect %d tags got %d", len(c.mInfo.Tags)+len(c.extraTags), len(c.gotTags)))
+	}
+
+	// check field key count
+	if len(c.mInfo.Fields) != len(c.gotFields)+len(c.optionalFields) {
+		c.addMsg(fmt.Sprintf("expect %d fields got %d(%d keys optional)",
+			len(c.mInfo.Fields), len(c.gotFields), len(c.optionalFields)))
+	}
+
+	// check tag key matching
+	for key := range c.mInfo.Tags {
+		if got := c.gotTags.Get([]byte(key)); got == nil { // no such tag
+			c.addMsg(fmt.Sprintf("tag %q not found", key))
+		}
+	}
+
+	// check all tag key are expected
+	for _, kv := range c.gotTags {
+		key := string(kv.Key)
+		if _, ok := c.mInfo.Tags[key]; ok {
+			continue
+		}
+
+		if _, ok := c.extraTags[key]; ok {
+			continue
+		}
+
+		c.addMsg(fmt.Sprintf("tag %q not expected", key))
+	}
+
+	// check field key and value
+	for key, info := range c.mInfo.Fields {
+		if got := c.gotFields.Get([]byte(key)); got == nil { // field not found in @pt
+			if c.isOptionalField(key) {
+				continue
+			} else {
+				c.addMsg(fmt.Sprintf("field %q not found in point", key))
+			}
+		} else {
+			// check field value
+
+			switch x := info.(type) {
+			case *FieldInfo:
+				if c.checkTypes && !typeEqual(x.DataType, got) {
+					c.addMsg(fmt.Sprintf("field %q expect type %q got %q",
+						key, x.DataType, reflect.TypeOf(got.GetVal())))
+				}
+
+				// TODO: check metric type(gauge/count) and unit.
+			default:
+				c.addMsg(fmt.Sprintf("missing type info on field %q", key))
+			}
+		}
+	}
+}
+
+func (c *ptChecker) addMsg(s string) {
+	c.checkMsg = append(c.checkMsg, s)
+}
+
+func (c *ptChecker) isOptionalField(key string) bool {
+	for _, x := range c.optionalFields {
+		if x == key {
+			return true
+		}
+	}
+
+	return false
 }
 
 func typeEqual(expect string, f *point.Field) bool {
