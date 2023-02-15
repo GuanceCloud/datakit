@@ -216,7 +216,7 @@ func TestPointChecker(t *T.T) {
 					`f1`: 123,
 					`f2`: 3.14,
 					`f3`: "hello",
-					// `f4`: false, // missing
+					// `f4`: false, // +2: missing/field-count-not-match
 				})...))
 
 		exp := point.NewPointV2([]byte(`test-measurement`),
@@ -232,7 +232,7 @@ func TestPointChecker(t *T.T) {
 				})...))
 
 		msg := CheckPoint(pt, WithExpectPoint(exp), WithOptionalFields("optional"))
-		assert.Lenf(t, msg, 4, "got %+#v", msg)
+		assert.Lenf(t, msg, 5, "got %+#v", msg)
 
 		for _, m := range msg {
 			t.Logf("%s", m)
