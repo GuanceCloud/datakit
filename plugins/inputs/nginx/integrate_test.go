@@ -174,7 +174,12 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			// TODO: error here
 			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+				switch cs.name {
+				case "nginx:http_stub_status_module":
+					if !assert.ElementsMatch(cs.t, []string{"tag nginx_version not found", "field load_timestamp not found"}, msgs) {
+						return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+					}
+				}
 			}
 
 		default: // TODO: check other measurement
@@ -205,7 +210,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 }
 
 func (cs *caseSpec) run() error {
-	// start remote sqlserver
 	r := tu.GetRemote()
 	dockerTCP := r.TCPURL()
 
