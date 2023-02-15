@@ -183,14 +183,12 @@ func (n *Input) Run() {
 			points, err := n.Collect()
 			if err != nil {
 				l.Errorf("Collect failed: %v", err)
-			} else {
-				if len(points) > 0 {
-					if err := n.feeder.Feed(inputName, point.Metric, points, &io.Option{CollectCost: time.Since(n.start)}); err != nil {
-						l.Errorf(err.Error())
-						n.feeder.FeedLastError(inputName, err.Error())
-					} else {
-						n.collectCache = n.collectCache[:0]
-					}
+			} else if len(points) > 0 {
+				if err := n.feeder.Feed(inputName, point.Metric, points, &io.Option{CollectCost: time.Since(n.start)}); err != nil {
+					l.Errorf(err.Error())
+					n.feeder.FeedLastError(inputName, err.Error())
+				} else {
+					n.collectCache = n.collectCache[:0]
 				}
 			}
 		}

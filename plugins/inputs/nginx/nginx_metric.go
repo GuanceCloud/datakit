@@ -6,8 +6,6 @@
 package nginx
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -16,7 +14,6 @@ type NginxMeasurement struct {
 	name     string
 	tags     map[string]string
 	fields   map[string]interface{}
-	ts       time.Time
 	election bool
 }
 

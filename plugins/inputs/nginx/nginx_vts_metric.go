@@ -6,8 +6,6 @@
 package nginx
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -51,7 +49,6 @@ type UpstreamZoneMeasurement struct {
 	name     string
 	tags     map[string]string
 	fields   map[string]interface{}
-	ts       time.Time
 	election bool
 }
 
@@ -88,7 +85,6 @@ type CacheZoneMeasurement struct {
 	name     string
 	tags     map[string]string
 	fields   map[string]interface{}
-	ts       time.Time
 	election bool
 }
 

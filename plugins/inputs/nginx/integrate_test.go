@@ -32,14 +32,14 @@ func TestNginxInput(t *T.T) {
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
-		cs := tu.CaseResult{
+		cr := &tu.CaseResult{
 			Name:          t.Name(),
-			Status:        tu.CasePassed,
+			Status:        tu.TestPassed,
 			FailedMessage: err.Error(),
 			Cost:          time.Since(start),
 		}
 
-		_ = cs.Flush()
+		_ = tu.Flush(cr)
 		return
 	}
 
@@ -52,17 +52,17 @@ func TestNginxInput(t *T.T) {
 			t.Logf("testing %s...", tc.name)
 
 			if err := tc.run(); err != nil {
-				tc.cr.Status = tu.CaseFailed
+				tc.cr.Status = tu.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
 				assert.NoError(t, err)
 			} else {
-				tc.cr.Status = tu.CasePassed
+				tc.cr.Status = tu.TestPassed
 			}
 
 			tc.cr.Cost = time.Since(caseStart)
 
-			assert.NoError(t, tc.cr.Flush())
+			assert.NoError(t, tu.Flush(tc.cr))
 
 			t.Cleanup(func() {
 				// clean remote docker resources
@@ -147,7 +147,6 @@ type caseSpec struct {
 	name           string
 	repo           string
 	repoTag        string
-	envs           []string
 	exposedPorts   []string
 	dockerFileText string
 
@@ -166,7 +165,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 		switch measurement {
 		case "nginx":
-			msgs := inputs.CheckPoint(pt, &NginxMeasurement{}, inputs.WithAllowExtraTags(len(cs.ipt.Tags) > 0))
+			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&NginxMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
 
 			for _, msg := range msgs {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
@@ -174,8 +173,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			// TODO: error here
 			if len(msgs) > 0 {
-				switch cs.name {
-				case "nginx:http_stub_status_module":
+				if cs.name == "nginx:http_stub_status_module" {
 					if !assert.ElementsMatch(cs.t, []string{"tag nginx_version not found", "field load_timestamp not found"}, msgs) {
 						return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 					}
@@ -183,7 +181,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			}
 
 		default: // TODO: check other measurement
-
 		}
 
 		// check if tag appended
