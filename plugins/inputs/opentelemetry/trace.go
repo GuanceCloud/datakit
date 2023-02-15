@@ -3,8 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package collector is trace and tags.
-package collector
+package opentelemetry
 
 import (
 	"encoding/hex"
@@ -14,20 +13,19 @@ import (
 	"strings"
 
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
-	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
-	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
+	commonpb "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/compiled/v1/common"
+	tracepb "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/compiled/v1/trace"
 )
 
-func (ss *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) itrace.DatakitTraces {
+func parseResourceSpans(resspans []*tracepb.ResourceSpans) itrace.DatakitTraces {
 	dktraces := make(itrace.DatakitTraces, 0)
-	spanIDs, parentIDs := getSpanIDsAndParentIDs(rss)
-	for _, spans := range rss {
-		ls := spans.GetInstrumentationLibrarySpans()
-		for _, librarySpans := range ls {
+	spanIDs, parentIDs := getSpanIDsAndParentIDs(resspans)
+	for _, spans := range resspans {
+		scopeSpans := spans.GetScopeSpans()
+		for _, librarySpans := range scopeSpans {
 			dktrace := make([]*itrace.DatakitSpan, 0)
 			for _, span := range librarySpans.Spans {
-				dt := newEmptyTags(ss.RegexpString, ss.GlobalTags)
+				dt := newEmptyTags(greg, tags)
 				dt.makeAllTags(span, spans.Resource.Attributes)
 				spanID := byteToString(span.GetSpanId())
 				ParentID := byteToString(span.GetParentSpanId())
@@ -52,16 +50,16 @@ func (ss *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) itrace.DatakitTr
 				if v, ok := dt.getAttributeVal(otelResourceServiceVersionKey); ok {
 					dkspan.Tags[itrace.TAG_VERSION] = v
 				}
-				if v, ok := dt.getAttributeVal(otelResourceHTTPMethodKey); ok {
+				if v, ok := dt.getAttributeVal(otelHTTPMethodKey); ok {
 					dkspan.Tags[itrace.TAG_HTTP_METHOD] = v
 				}
-				if v, ok := dt.getAttributeVal(otelResourceHTTPStatusCodeKey); ok {
+				if v, ok := dt.getAttributeVal(otelHTTPStatusCodeKey); ok {
 					dkspan.Tags[itrace.TAG_HTTP_STATUS_CODE] = v
 				}
 				if v, ok := dt.getAttributeVal(otelResourceContainerNameKey); ok {
 					dkspan.Tags[itrace.TAG_CONTAINER_HOST] = v
 				}
-				if v, ok := dt.getAttributeVal(otelResourceProcessIDKey); ok {
+				if v, ok := dt.getAttributeVal(string(otelResourceProcessIDKey)); ok {
 					dkspan.Tags[itrace.TAG_PID] = v
 				}
 
@@ -93,14 +91,14 @@ func (ss *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) itrace.DatakitTr
 	return dktraces
 }
 
-func getSpanIDsAndParentIDs(rss []*tracepb.ResourceSpans) (map[string]bool, map[string]bool) {
+func getSpanIDsAndParentIDs(resspans []*tracepb.ResourceSpans) (map[string]bool, map[string]bool) {
 	var (
 		spanIDs   = make(map[string]bool)
 		parentIDs = make(map[string]bool)
 	)
-	for _, resourceSpans := range rss {
-		for _, librarySpans := range resourceSpans.InstrumentationLibrarySpans {
-			for _, span := range librarySpans.Spans {
+	for _, spans := range resspans {
+		for _, scopespans := range spans.ScopeSpans {
+			for _, span := range scopespans.Spans {
 				if span == nil {
 					continue
 				}
@@ -243,7 +241,7 @@ func (dt *dkTags) getAttributeVal(keyName string) (string, bool) {
 		}
 	}
 	if keyName == otelResourceServiceKey {
-		return defaultServiceVal, true // set default to 'service.name'
+		return otelUnknownServiceName, true
 	}
 
 	return "", false
@@ -253,9 +251,9 @@ func (dt *dkTags) getResourceType() string {
 	// 从 tag 中判断 span resource 类型，app、db、cache 等
 	for key := range dt.tags {
 		switch key {
-		case string(semconv.HTTPSchemeKey), string(semconv.HTTPMethodKey):
+		case otelHTTPSchemeKey, otelHTTPMethodKey:
 			return itrace.SPAN_SOURCE_WEB
-		case string(semconv.DBSystemKey):
+		case otelDBSystemKey:
 			return itrace.SPAN_SOURCE_DB
 		default:
 			continue
