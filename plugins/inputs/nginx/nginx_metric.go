@@ -6,7 +6,10 @@
 package nginx
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"fmt"
+
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -17,8 +20,22 @@ type NginxMeasurement struct {
 	election bool
 }
 
-func (m *NginxMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *NginxMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *NginxMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll

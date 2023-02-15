@@ -15,9 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 // 默认 http stub status module 模块的数据.
@@ -108,7 +105,6 @@ func (n *Input) getStubStatusModuleMetric() {
 	for k, v := range n.Tags {
 		tags[k] = v
 	}
-
 	fields := map[string]interface{}{
 		"connection_active":   active,
 		"connection_accepts":  accepts,
@@ -118,26 +114,13 @@ func (n *Input) getStubStatusModuleMetric() {
 		"connection_writing":  writing,
 		"connection_waiting":  waiting,
 	}
-
-	// metric := &NginxMeasurement{
-	// 	name:     nginx,
-	// 	tags:     tags,
-	// 	fields:   fields,
-	// 	ts:       time.Now(),
-	// 	election: n.Election,
-	// }
-	var opts []point.Option
-	if n.Election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	metric := &NginxMeasurement{
+		name:     nginx,
+		tags:     tags,
+		fields:   fields,
+		election: n.Election,
 	}
-
-	point, err := point.NewPoint(nginx, tags, fields, opts...)
-	if err != nil {
-		l.Errorf("make point err:%s", err.Error())
-		n.lastErr = err
-		return
-	}
-	n.collectCache = append(n.collectCache, point)
+	n.collectCache = append(n.collectCache, metric.Point())
 }
 
 func (n *Input) getVTSMetric() {
@@ -203,27 +186,13 @@ func (n *Input) makeConnectionsLine(vtsResp NginxVTSResponse, t time.Time) {
 		"connection_writing":  vtsResp.Connections.Writing,
 		"connection_waiting":  vtsResp.Connections.Waiting,
 	}
-	// metric := &NginxMeasurement{
-	// 	name:     nginx,
-	// 	tags:     tags,
-	// 	fields:   fields,
-	// 	ts:       t,
-	// 	election: n.Election,
-	// }
-	// n.collectCache = append(n.collectCache, metric)
-
-	var opts []point.Option
-	if n.Election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	metric := &NginxMeasurement{
+		name:     nginx,
+		tags:     tags,
+		fields:   fields,
+		election: n.Election,
 	}
-
-	point, err := point.NewPoint(nginx, tags, fields, opts...)
-	if err != nil {
-		l.Errorf("make point err:%s", err.Error())
-		n.lastErr = err
-		return
-	}
-	n.collectCache = append(n.collectCache, point)
+	n.collectCache = append(n.collectCache, metric.Point())
 }
 
 func (n *Input) makeServerZoneLine(vtsResp NginxVTSResponse, t time.Time) {
@@ -244,26 +213,13 @@ func (n *Input) makeServerZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 			"response_4xx": v.Responses.FourXx,
 			"response_5xx": v.Responses.FiveXx,
 		}
-		// metric := &NginxMeasurement{
-		// 	name:     ServerZone,
-		// 	tags:     tags,
-		// 	fields:   fields,
-		// 	ts:       t,
-		// 	election: n.Election,
-		// }
-		// n.collectCache = append(n.collectCache, metric)
-		var opts []point.Option
-		if n.Election {
-			opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+		metric := &NginxMeasurement{
+			name:     ServerZone,
+			tags:     tags,
+			fields:   fields,
+			election: n.Election,
 		}
-
-		point, err := point.NewPoint(ServerZone, tags, fields, opts...)
-		if err != nil {
-			l.Errorf("make point err:%s", err.Error())
-			n.lastErr = err
-			return
-		}
-		n.collectCache = append(n.collectCache, point)
+		n.collectCache = append(n.collectCache, metric.Point())
 	}
 }
 
@@ -287,26 +243,13 @@ func (n *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 				"response_4xx": upstream.Responses.FourXx,
 				"response_5xx": upstream.Responses.FiveXx,
 			}
-			// metric := &UpstreamZoneMeasurement{
-			// 	name:     UpstreamZone,
-			// 	tags:     tags,
-			// 	fields:   fields,
-			// 	ts:       t,
-			// 	election: n.Election,
-			// }
-			// n.collectCache = append(n.collectCache, metric)
-			var opts []point.Option
-			if n.Election {
-				opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+			metric := &UpstreamZoneMeasurement{
+				name:     UpstreamZone,
+				tags:     tags,
+				fields:   fields,
+				election: n.Election,
 			}
-
-			point, err := point.NewPoint(UpstreamZone, tags, fields, opts...)
-			if err != nil {
-				l.Errorf("make point err:%s", err.Error())
-				n.lastErr = err
-				return
-			}
-			n.collectCache = append(n.collectCache, point)
+			n.collectCache = append(n.collectCache, metric.Point())
 		}
 	}
 }
@@ -333,25 +276,12 @@ func (n *Input) makeCacheZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 			"responses_hit":         cacheZone.Responses.Hit,
 			"responses_scarce":      cacheZone.Responses.Scarce,
 		}
-		// metric := &CacheZoneMeasurement{
-		// 	name:     CacheZone,
-		// 	tags:     tags,
-		// 	fields:   fields,
-		// 	ts:       t,
-		// 	election: n.Election,
-		// }
-		// n.collectCache = append(n.collectCache, metric)
-		var opts []point.Option
-		if n.Election {
-			opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+		metric := &CacheZoneMeasurement{
+			name:     CacheZone,
+			tags:     tags,
+			fields:   fields,
+			election: n.Election,
 		}
-
-		point, err := point.NewPoint(CacheZone, tags, fields, opts...)
-		if err != nil {
-			l.Errorf("make point err:%s", err.Error())
-			n.lastErr = err
-			return
-		}
-		n.collectCache = append(n.collectCache, point)
+		n.collectCache = append(n.collectCache, metric.Point())
 	}
 }
