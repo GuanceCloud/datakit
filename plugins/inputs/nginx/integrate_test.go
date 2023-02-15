@@ -20,7 +20,6 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	dc "github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -111,13 +110,16 @@ func buildCases(t *T.T) ([]*caseSpec, error) {
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
-			t:            t,
-			ipt:          ipt,
-			name:         base.name,
-			feeder:       feeder,
-			repo:         repoTag[0],
-			repoTag:      repoTag[1],
-			exposedPorts: base.exposedPorts,
+			t:       t,
+			ipt:     ipt,
+			name:    base.name,
+			feeder:  feeder,
+			repo:    repoTag[0],
+			repoTag: repoTag[1],
+
+			exposedPorts:   base.exposedPorts,
+			dockerFileText: base.dockerFileText,
+
 			cr: &tu.CaseResult{
 				Name:        t.Name(),
 				Case:        base.name,
@@ -223,10 +225,11 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	dockerFilePath, err := cs.getDockerFilePath()
+	dockerFileDir, dockerFilePath, err := cs.getDockerFilePath()
 	if err != nil {
 		return err
 	}
+	defer os.RemoveAll(dockerFileDir)
 
 	resource, err := p.BuildAndRunWithOptions(
 		dockerFilePath,
@@ -244,6 +247,7 @@ func (cs *caseSpec) run() error {
 
 		func(c *dc.HostConfig) {
 			c.RestartPolicy = dc.RestartPolicy{Name: "no"}
+			c.AutoRemove = true
 		},
 	)
 	if err != nil {
@@ -309,38 +313,41 @@ func (cs *caseSpec) getPool(endpoint string) (*dt.Pool, error) {
 	return p, nil
 }
 
-func (cs *caseSpec) getDockerFilePath() (string, error) {
-	pyTmpFle, err := ioutil.TempFile("", "dockerfile_")
+func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err error) {
+	tmpDir, err := ioutil.TempDir("", "dockerfiles_")
+	if err != nil {
+		cs.t.Logf("ioutil.TempDir failed: %s", err.Error())
+		return "", "", err
+	}
+
+	tmpFile, err := ioutil.TempFile(tmpDir, "dockerfile_")
 	if err != nil {
 		cs.t.Logf("ioutil.TempFile failed: %s", err.Error())
-		return "", err
+		return "", "", err
 	}
 
-	_, err = pyTmpFle.WriteString(cs.dockerFileText)
+	_, err = tmpFile.WriteString(cs.dockerFileText)
 	if err != nil {
 		cs.t.Logf("TempFile.WriteString failed: %s", err.Error())
-		return "", err
+		return "", "", err
 	}
 
-	return pyTmpFle.Name(), nil
+	if err := os.Chmod(tmpFile.Name(), os.ModePerm); err != nil {
+		cs.t.Logf("os.Chmod failed: %s", err.Error())
+		return "", "", err
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		cs.t.Logf("Close failed: %s", err.Error())
+		return "", "", err
+	}
+
+	return tmpDir, tmpFile.Name(), nil
 }
 
 func (cs *caseSpec) getContainterName() string {
-	hostname, err := os.Hostname()
-	if err != nil {
-		cs.t.Logf("get hostname failed: %s, ignored", err)
-		hostname = "unknown-hostname"
-	} else {
-		tmp := dkstring.MD5Sum(hostname)
-
-		if len(tmp) > 6 {
-			hostname = tmp[:6]
-		} else {
-			hostname = tmp
-		}
-	}
-
-	return fmt.Sprintf("%s_%s", hostname, cs.name)
+	nameTag := strings.Split(cs.name, ":")
+	return nameTag[0]
 }
 
 func (cs *caseSpec) getPortBindings() map[dc.Port][]dc.PortBinding {
@@ -366,10 +373,8 @@ func (cs *caseSpec) portsOK(r *tu.RemoteInfo) error {
 
 // Dockerfiles.
 
-const dockerFileHTTPStubStatusModule = `
-FROM nginx:latest
+const dockerFileHTTPStubStatusModule = `FROM nginx:latest
 
 RUN sed -i "/location \/ {/i\    location = /server_status {" /etc/nginx/conf.d/default.conf \
     && sed -i "/location \/ {/i\        stub_status;" /etc/nginx/conf.d/default.conf \
-    && sed -i "/location \/ {/i\    }\n" /etc/nginx/conf.d/default.conf
-`
+    && sed -i "/location \/ {/i\    }\n" /etc/nginx/conf.d/default.conf`
