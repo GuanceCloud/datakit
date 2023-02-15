@@ -34,18 +34,24 @@ func (t *testMeasurement) Info() *MeasurementInfo {
 			"f2": &FieldInfo{DataType: Float},
 			"f3": &FieldInfo{DataType: String},
 			"f4": &FieldInfo{DataType: Bool},
+
+			"optional": &FieldInfo{DataType: Int},
 		},
 	}
 }
 
 func TestPointChecker(t *T.T) {
 	t.Run("base", func(t *T.T) {
-		pt := point.NewPointV2([]byte(`test-measurement`),
+		pt := point.NewPointV2([]byte(`test-measurement-not-defined`),
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, &testMeasurement{})
-		assert.True(t, len(msg) == 0, "got %+#v", msg)
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		assert.Lenf(t, msg, 3, "got %+#v", msg)
+
+		for _, m := range msg {
+			t.Logf("%s", m)
+		}
 	})
 
 	t.Run("invalid-field-type", func(t *T.T) {
@@ -53,8 +59,12 @@ func TestPointChecker(t *T.T) {
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`f1`: 1.414, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, &testMeasurement{})
-		assert.True(t, len(msg) == 1, "got %+#v", msg)
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		assert.Lenf(t, msg, 3, "got %+#v", msg)
+
+		for _, m := range msg {
+			t.Logf("%s", m)
+		}
 	})
 
 	t.Run("field-missing", func(t *T.T) {
@@ -62,8 +72,12 @@ func TestPointChecker(t *T.T) {
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`unknown`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, &testMeasurement{})
-		assert.True(t, len(msg) == 1, "got %+#v", msg)
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		assert.Lenf(t, msg, 3, "got %+#v", msg)
+
+		for _, m := range msg {
+			t.Logf("%s", m)
+		}
 	})
 
 	t.Run("field-missing-and-field-count-not-equal", func(t *T.T) {
@@ -71,26 +85,50 @@ func TestPointChecker(t *T.T) {
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, &testMeasurement{})
-		assert.True(t, len(msg) == 2, "got %+#v", msg)
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		assert.Lenf(t, msg, 3, "got %+#v", msg)
+
+		for _, m := range msg {
+			t.Logf("%s", m)
+		}
 	})
 
 	t.Run("tag-missing", func(t *T.T) {
 		pt := point.NewPointV2([]byte(`test-measurement`),
-			append(point.NewTags(map[string]string{"t1": "some", "t3": "some"}),
+			append(point.NewTags(map[string]string{
+				"t1": "some",
+				"t3": "some", // not expect
+			}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, &testMeasurement{})
-		assert.True(t, len(msg) == 1, "got %+#v", msg)
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		assert.Lenf(t, msg, 4, "got %+#v", msg)
+
+		for _, m := range msg {
+			t.Logf("%s", m)
+		}
 	})
 
 	t.Run("tag-count-not-equal", func(t *T.T) {
 		pt := point.NewPointV2([]byte(`test-measurement`),
-			append(point.NewTags(map[string]string{"t1": "some", "t2": "some", "t3": "other"}),
-				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
+			append(point.NewTags(map[string]string{
+				"t1": "some",
+				"t2": "some",
+				"t3": "other", // not expect
+			}),
+				point.NewKVs(map[string]any{
+					`f1`: 123,
+					`f2`: 3.14,
+					`f3`: "hello",
+					`f4`: false,
+				})...))
 
-		msg := CheckPoint(pt, &testMeasurement{})
-		assert.True(t, len(msg) == 1, "got %+#v", msg)
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		assert.Lenf(t, msg, 4, "got %+#v", msg)
+
+		for _, m := range msg {
+			t.Logf("%s", m)
+		}
 	})
 
 	t.Run("tag-count-not-equal-and-tag-missing", func(t *T.T) {
@@ -98,16 +136,139 @@ func TestPointChecker(t *T.T) {
 			append(point.NewTags(map[string]string{"t1": "some"}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, &testMeasurement{})
-		assert.True(t, len(msg) == 2, "got %+#v", msg)
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		assert.Lenf(t, msg, 4, "got %+#v", msg)
+
+		for _, m := range msg {
+			t.Logf("%s", m)
+		}
 	})
 
 	t.Run("extra-tags", func(t *T.T) {
 		pt := point.NewPointV2([]byte(`test-measurement`),
-			append(point.NewTags(map[string]string{"t1": "some", "t2": "", "tx": ""}),
+			append(point.NewTags(map[string]string{"t1": "some", "t2": "", "tx": "xt"}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, &testMeasurement{}, WithAllowExtraTags(true))
-		assert.True(t, len(msg) == 0, "got %+#v", msg)
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}), WithExtraTags(map[string]string{"tx": "xt"}))
+		assert.Lenf(t, msg, 2, "got %+#v", msg)
+
+		for _, m := range msg {
+			t.Logf("%s", m)
+		}
+	})
+
+	t.Run("optional-fields", func(t *T.T) {
+		pt := point.NewPointV2([]byte(`test-measurement`),
+			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
+				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
+
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}), WithOptionalFields("optional"))
+		assert.Lenf(t, msg, 0, "got %+#v", msg)
+	})
+
+	t.Run("with-expect-point", func(t *T.T) {
+		pt := point.NewPointV2([]byte(`test-measurement`),
+			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
+				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
+
+		exp := point.NewPointV2([]byte(`test-measurement`),
+			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
+				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
+
+		msg := CheckPoint(pt, WithExpectPoint(exp), WithOptionalFields("optional"))
+		assert.Lenf(t, msg, 0, "got %+#v", msg)
+
+		for _, m := range msg {
+			t.Logf("%s", m)
+		}
+	})
+
+	t.Run("with-expect-point-invalid-tag-field-key", func(t *T.T) {
+		pt := point.NewPointV2([]byte(`test-measurement`),
+			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
+				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
+
+		exp := point.NewPointV2([]byte(`test-measurement-invalid`), // bad measurement name
+			append(point.NewTags(map[string]string{
+				"t1":          "some",
+				"t2":          "some",
+				"invalid-tag": "", // invalid tag: tag not found/tag count not match
+			}),
+				point.NewKVs(map[string]any{
+					`f1`: 123,
+					`f2`: 3.14,
+					`f3`: "hello",
+					// `f4`: false,// missing
+				})...))
+
+		msg := CheckPoint(pt, WithExpectPoint(exp), WithOptionalFields("optional"))
+		assert.Lenf(t, msg, 4, "got %+#v", msg)
+
+		for _, m := range msg {
+			t.Logf("%s", m)
+		}
+	})
+
+	t.Run("with-expect-point-invalid-field-value", func(t *T.T) {
+		pt := point.NewPointV2([]byte(`test-measurement`),
+			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
+				point.NewKVs(map[string]any{
+					`f1`: 123,
+					`f2`: 3.14,
+					`f3`: "hello",
+					// `f4`: false, // missing
+				})...))
+
+		exp := point.NewPointV2([]byte(`test-measurement`),
+			append(point.NewTags(map[string]string{
+				"t1": "some",
+				"t2": "some",
+			}),
+				point.NewKVs(map[string]any{
+					`f1`: "123",
+					`f2`: "3.14",
+					`f3`: 1.414,
+					`f4`: "some-bool",
+				})...))
+
+		msg := CheckPoint(pt, WithExpectPoint(exp), WithOptionalFields("optional"))
+		assert.Lenf(t, msg, 4, "got %+#v", msg)
+
+		for _, m := range msg {
+			t.Logf("%s", m)
+		}
+	})
+
+	t.Run("with-value-and-type-check-off", func(t *T.T) {
+		pt := point.NewPointV2([]byte(`test-measurement`),
+			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
+				point.NewKVs(map[string]any{
+					`f1`: 123,
+					`f2`: 3.14,
+					`f3`: "hello",
+					`f4`: false,
+				})...))
+
+		exp := point.NewPointV2([]byte(`test-measurement`),
+			append(point.NewTags(map[string]string{
+				"t1": "some",
+				"t2": "some",
+			}),
+				point.NewKVs(map[string]any{
+					`f1`: "123",
+					`f2`: "3.14",
+					`f3`: 1.414,
+					`f4`: "some-bool",
+				})...))
+
+		msg := CheckPoint(pt, WithExpectPoint(exp),
+			WithOptionalFields("optional"),
+			WithValueChecking(false),
+			WithTypeChecking(false))
+		assert.Lenf(t, msg, 0, "got %+#v", msg)
+
+		for _, m := range msg {
+			t.Logf("%s", m)
+		}
 	})
 }

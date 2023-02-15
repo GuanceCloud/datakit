@@ -48,7 +48,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 		switch measurement {
 		case "sqlserver_performance":
-			msgs := inputs.CheckPoint(pt, &Performance{}, inputs.WithAllowExtraTags(len(cs.ipt.Tags) > 0))
+			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&Performance{}), inputs.WithExtraTags(cs.ipt.Tags))
 
 			for _, msg := range msgs {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
