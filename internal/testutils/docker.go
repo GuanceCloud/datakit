@@ -131,7 +131,7 @@ func portInUse(proto string, p int) bool {
 	}
 
 	if c != nil {
-		defer c.Close()
+		defer c.Close() //nolint:errcheck
 	}
 
 	return true

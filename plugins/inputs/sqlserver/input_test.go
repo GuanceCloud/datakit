@@ -19,7 +19,6 @@ import (
 	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -40,7 +39,7 @@ type caseSpec struct {
 	pool     *dt.Pool
 	resource *dt.Resource
 
-	cr *testutils.CaseResult
+	cr *tu.CaseResult
 }
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
@@ -49,19 +48,18 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 		switch measurement {
 		case "sqlserver_performance":
-			msgs := inputs.CheckPoint(pt, &Performance{}, inputs.WithAllowExtraTags(len(cs.ipt.Tags) > 0))
+			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&Performance{}), inputs.WithExtraTags(cs.ipt.Tags))
 
 			for _, msg := range msgs {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
 			}
 
 			// TODO: error here
-			//if len(msgs) > 0 {
+			// if len(msgs) > 0 {
 			//	return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			//}
 
 		default: // TODO: check other measurement
-
 		}
 
 		// check if tag appended
@@ -257,7 +255,7 @@ password = "Abc123abC$" # SQLServer require password to be larger than 8bytes, m
 
 				servicePort: fmt.Sprintf("%d", ipport.Port()),
 
-				cr: &testutils.CaseResult{
+				cr: &tu.CaseResult{
 					Name:        t.Name(),
 					Case:        base.name,
 					ExtraFields: map[string]any{},
@@ -277,14 +275,14 @@ func TestSQLServerInput(t *T.T) {
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
-		cs := testutils.CaseResult{
+		cr := &tu.CaseResult{
 			Name:          t.Name(),
-			Status:        testutils.CasePassed,
+			Status:        tu.TestPassed,
 			FailedMessage: err.Error(),
 			Cost:          time.Since(start),
 		}
 
-		_ = cs.Flush()
+		_ = tu.Flush(cr)
 		return
 	}
 
@@ -297,17 +295,17 @@ func TestSQLServerInput(t *T.T) {
 			t.Logf("testing %s...", tc.name)
 
 			if err := tc.run(); err != nil {
-				tc.cr.Status = testutils.CaseFailed
+				tc.cr.Status = tu.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
 				assert.NoError(t, err)
 			} else {
-				tc.cr.Status = testutils.CasePassed
+				tc.cr.Status = tu.TestPassed
 			}
 
 			tc.cr.Cost = time.Since(caseStart)
 
-			assert.NoError(t, tc.cr.Flush())
+			assert.NoError(t, tu.Flush(tc.cr))
 
 			t.Cleanup(func() {
 				// clean remote docker resources
