@@ -11,8 +11,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 var (
@@ -79,8 +80,13 @@ const (
 )
 
 type Measurement interface {
-	LineProto() (*point.Point, error)
+	LineProto() (*dkpt.Point, error)
 	Info() *MeasurementInfo
+}
+
+type MeasurementV2 interface {
+	Measurement
+	Point() *point.Point
 }
 
 type FieldInfo struct {
@@ -182,8 +188,8 @@ func FeedMeasurement(name, category string, measurements []Measurement, opt *io.
 	return io.Feed(name, category, pts, opt)
 }
 
-func GetPointsFromMeasurement(measurements []Measurement) ([]*point.Point, error) {
-	var pts []*point.Point
+func GetPointsFromMeasurement(measurements []Measurement) ([]*dkpt.Point, error) {
+	var pts []*dkpt.Point
 	for _, m := range measurements {
 		if pt, err := m.LineProto(); err != nil {
 			l.Warnf("make point failed: %v, ignore", err)

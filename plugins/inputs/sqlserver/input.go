@@ -355,6 +355,9 @@ func (n *Input) handRow(query string, ts time.Time, isLogging bool) {
 		var opts []point.Option
 		if isLogging {
 			tags["status"] = "info"
+			opts = point.DefaultLoggingOptions()
+		} else {
+			opts = point.DefaultMetricOptions()
 		}
 
 		if n.Election {
