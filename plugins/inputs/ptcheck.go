@@ -94,6 +94,8 @@ func WithOptionalFields(keys ...string) PointCheckOption {
 	}
 }
 
+// CheckPoint used to check pt with various options. If any checking
+// failed, the failed message are returned.
 func CheckPoint(pt *point.Point, opts ...PointCheckOption) []string {
 	c := newPointChecker()
 
