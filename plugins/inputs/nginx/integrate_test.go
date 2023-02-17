@@ -11,58 +11,57 @@ import (
 	"os"
 	"strings"
 	"sync"
-	T "testing"
+	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
-	dt "github.com/ory/dockertest/v3"
+	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	dc "github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func TestNginxInput(t *T.T) {
+func TestNginxInput(t *testing.T) {
 	os.Setenv("REMOTE_HOST", "10.200.14.142")
 	os.Setenv("TESTING_METRIC_PATH", "/tmp/testing.metrics")
 
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
-		cr := &tu.CaseResult{
+		cr := &testutils.CaseResult{
 			Name:          t.Name(),
-			Status:        tu.TestPassed,
+			Status:        testutils.TestPassed,
 			FailedMessage: err.Error(),
 			Cost:          time.Since(start),
 		}
 
-		_ = tu.Flush(cr)
+		_ = testutils.Flush(cr)
 		return
 	}
 
 	t.Logf("testing %d cases...", len(cases))
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *T.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			caseStart := time.Now()
 
 			t.Logf("testing %s...", tc.name)
 
 			if err := tc.run(); err != nil {
-				tc.cr.Status = tu.TestFailed
+				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
 				assert.NoError(t, err)
 			} else {
-				tc.cr.Status = tu.TestPassed
+				tc.cr.Status = testutils.TestPassed
 			}
 
 			tc.cr.Cost = time.Since(caseStart)
 
-			assert.NoError(t, tu.Flush(tc.cr))
+			assert.NoError(t, testutils.Flush(tc.cr))
 
 			t.Cleanup(func() {
 				// clean remote docker resources
@@ -76,23 +75,36 @@ func TestNginxInput(t *T.T) {
 	}
 }
 
-func buildCases(t *T.T) ([]*caseSpec, error) {
+func buildCases(t *testing.T) ([]*caseSpec, error) {
 	t.Helper()
 
-	remote := tu.GetRemote()
+	remote := testutils.GetRemote()
 
 	bases := []struct {
-		name           string
+		name           string // Also used as build image name:tag.
 		conf           string
-		dockerFileText string
+		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
+		opts           []inputs.PointCheckOption
 	}{
 		{
 			name:           "nginx:http_stub_status_module",
 			conf:           fmt.Sprintf(`url = "http://%s:80/server_status"`, remote.Host),
 			dockerFileText: dockerFileHTTPStubStatusModule,
 			exposedPorts:   []string{"80/tcp"},
+			opts:           []inputs.PointCheckOption{inputs.WithDoc(&NginxMeasurement{}), inputs.WithOptionalFields("nginx_version", "load_timestamp")},
 		},
+
+		// 		{
+		// 			name: "nginx:vts-1.23.3",
+
+		// 			conf: fmt.Sprintf(`
+		// url = "http://%s:80/status"
+		// use_vts = false`,
+		// 				remote.Host),
+
+		// 			exposedPorts: []string{"80/tcp"},
+		// 		},
 	}
 
 	var cases []*caseSpec
@@ -117,10 +129,11 @@ func buildCases(t *T.T) ([]*caseSpec, error) {
 			repo:    repoTag[0],
 			repoTag: repoTag[1],
 
-			exposedPorts:   base.exposedPorts,
 			dockerFileText: base.dockerFileText,
+			exposedPorts:   base.exposedPorts,
+			opts:           base.opts,
 
-			cr: &tu.CaseResult{
+			cr: &testutils.CaseResult{
 				Name:        t.Name(),
 				Case:        base.name,
 				ExtraFields: map[string]any{},
@@ -142,30 +155,35 @@ func buildCases(t *T.T) ([]*caseSpec, error) {
 // caseSpec.
 
 type caseSpec struct {
-	t *T.T
+	t *testing.T
 
 	name           string
 	repo           string
 	repoTag        string
-	exposedPorts   []string
 	dockerFileText string
+	exposedPorts   []string
+	opts           []inputs.PointCheckOption
 
 	ipt    *Input
 	feeder *io.MockedFeeder
 
-	pool     *dt.Pool
-	resource *dt.Resource
+	pool     *dockertest.Pool
+	resource *dockertest.Resource
 
-	cr *tu.CaseResult
+	cr *testutils.CaseResult
 }
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
+	var opts []inputs.PointCheckOption
+	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
+	opts = append(opts, cs.opts...)
+
 	for _, pt := range pts {
 		measurement := string(pt.Name())
 
 		switch measurement {
 		case "nginx":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&NginxMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
+			msgs := inputs.CheckPoint(pt, opts...)
 
 			for _, msg := range msgs {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
@@ -173,14 +191,13 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			// TODO: error here
 			if len(msgs) > 0 {
-				if cs.name == "nginx:http_stub_status_module" {
-					if !assert.ElementsMatch(cs.t, []string{"tag nginx_version not found", "field load_timestamp not found"}, msgs) {
-						return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-					}
-				}
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
 		default: // TODO: check other measurement
+			a := 1
+			b := a
+			_ = b
 		}
 
 		// check if tag appended
@@ -207,7 +224,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 }
 
 func (cs *caseSpec) run() error {
-	r := tu.GetRemote()
+	r := testutils.GetRemote()
 	dockerTCP := r.TCPURL()
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
@@ -232,25 +249,46 @@ func (cs *caseSpec) run() error {
 	}
 	defer os.RemoveAll(dockerFileDir)
 
-	resource, err := p.BuildAndRunWithOptions(
-		dockerFilePath,
+	var resource *dockertest.Resource
 
-		&dt.RunOptions{
-			Name: cs.name,
+	if len(cs.dockerFileText) == 0 {
+		resource, err = p.RunWithOptions(
+			&dockertest.RunOptions{
+				Name: containerName, // ATTENTION: not cs.name.
 
-			// specify container image & tag
-			Repository: cs.repo,
-			Tag:        cs.repoTag,
+				Repository: cs.repo,
+				Tag:        cs.repoTag,
 
-			ExposedPorts: cs.exposedPorts,
-			PortBindings: cs.getPortBindings(),
-		},
+				ExposedPorts: cs.exposedPorts,
+				PortBindings: cs.getPortBindings(),
+			},
 
-		func(c *dc.HostConfig) {
-			c.RestartPolicy = dc.RestartPolicy{Name: "no"}
-			c.AutoRemove = true
-		},
-	)
+			func(c *docker.HostConfig) {
+				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
+				c.AutoRemove = true
+			},
+		)
+	} else {
+		resource, err = p.BuildAndRunWithOptions(
+			dockerFilePath,
+
+			&dockertest.RunOptions{
+				Name: cs.name,
+
+				Repository: cs.repo,
+				Tag:        cs.repoTag,
+
+				ExposedPorts: cs.exposedPorts,
+				PortBindings: cs.getPortBindings(),
+			},
+
+			func(c *docker.HostConfig) {
+				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
+				c.AutoRemove = true
+			},
+		)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -301,8 +339,8 @@ func (cs *caseSpec) run() error {
 	return nil
 }
 
-func (cs *caseSpec) getPool(endpoint string) (*dt.Pool, error) {
-	p, err := dt.NewPool(endpoint)
+func (cs *caseSpec) getPool(endpoint string) (*dockertest.Pool, error) {
+	p, err := dockertest.NewPool(endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -351,19 +389,19 @@ func (cs *caseSpec) getContainterName() string {
 	return nameTag[0]
 }
 
-func (cs *caseSpec) getPortBindings() map[dc.Port][]dc.PortBinding {
-	portBindings := make(map[dc.Port][]dc.PortBinding)
+func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
+	portBindings := make(map[docker.Port][]docker.PortBinding)
 
 	for _, v := range cs.exposedPorts {
-		portBindings[dc.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: dc.Port(v).Port()}}
+		portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(v).Port()}}
 	}
 
 	return portBindings
 }
 
-func (cs *caseSpec) portsOK(r *tu.RemoteInfo) error {
+func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 	for _, v := range cs.exposedPorts {
-		if !r.PortOK(dc.Port(v).Port(), time.Minute) {
+		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
 			return fmt.Errorf("service checking failed")
 		}
 	}
