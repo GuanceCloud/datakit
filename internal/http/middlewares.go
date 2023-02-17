@@ -27,7 +27,7 @@ func ProtectedHandlerFunc(next http.HandlerFunc, log *logger.Logger) http.Handle
 	}
 }
 
-func ExpectedHeaders(next http.HandlerFunc, log *logger.Logger, expectedHeaders map[string][]string) http.HandlerFunc {
+func CheckExpectedHeaders(next http.HandlerFunc, log *logger.Logger, expectedHeaders map[string][]string) http.HandlerFunc {
 	if len(expectedHeaders) == 0 {
 		return next
 	}

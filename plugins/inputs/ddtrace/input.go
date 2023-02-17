@@ -249,8 +249,8 @@ func (ipt *Input) RegHTTPHandler() {
 		}
 	}
 	if isReg {
-		// itrace.StartTracingStatistic()
 		// unsupported api yet
+		// itrace.StartTracingStatistic()
 		dkhttp.RegHTTPHandler(http.MethodGet, info, handleDDInfo)
 		dkhttp.RegHTTPHandler(http.MethodPost, info, handleDDInfo)
 		dkhttp.RegHTTPHandler(http.MethodGet, stats, handleDDStats)

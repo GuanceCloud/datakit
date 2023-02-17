@@ -11,7 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
+	"regexp"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -112,11 +112,14 @@ const (
 )
 
 var (
-	log        = logger.DefaultSLogger(inputName)
-	greg       string
-	tags       map[string]string
-	wkpool     *workerpool.WorkerPool
-	localCache *storage.Storage
+	log              = logger.DefaultSLogger(inputName)
+	afterGatherRun   itrace.AfterGatherHandler
+	ignoreKeyRegExps []*regexp.Regexp
+	getAttribute     getAttributeFunc
+	extractAtrribute extractAttributesFunc
+	tags             map[string]string
+	wkpool           *workerpool.WorkerPool
+	localCache       *storage.Storage
 )
 
 type httpConfig struct {
@@ -215,6 +218,7 @@ func (ipt *Input) RegHTTPHandler() {
 	} else {
 		afterGather = itrace.NewAfterGather(itrace.WithLogger(log))
 	}
+	afterGatherRun = afterGather
 
 	// add filters: the order of appending filters into AfterGather is important!!!
 	// the order of appending represents the order of that filter executes.
@@ -241,11 +245,6 @@ func (ipt *Input) RegHTTPHandler() {
 	}
 	afterGather.AppendFilter(sampler.Sample)
 
-	tags = ipt.Tags
-	if len(ipt.IgnoreAttributeKeys) > 0 {
-		greg = strings.Join(ipt.IgnoreAttributeKeys, "|")
-	}
-
 	var expectedHeaders = map[string][]string{"Content-Type": {"application/x-protobuf", "application/json"}}
 	for k, v := range ipt.ExpectedHeaders {
 		expectedHeaders[k] = append(expectedHeaders[k], v)
@@ -253,7 +252,7 @@ func (ipt *Input) RegHTTPHandler() {
 
 	log.Infof("### register handler for /otel/v1/trace of agent %s", inputName)
 	dkhttp.RegHTTPHandler("POST", "/otel/v1/trace",
-		ihttp.ExpectedHeaders(
+		ihttp.CheckExpectedHeaders(
 			workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
 				storage.HTTPWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleOTELTraces)), log, expectedHeaders))
 
@@ -262,34 +261,19 @@ func (ipt *Input) RegHTTPHandler() {
 }
 
 func (ipt *Input) Run() {
-	log.Infof("### %s agent is running...", inputName)
-
-	open := false
-	if ipt.HTTPConfig.Enabled {
-		open = true
+	tags = ipt.Tags
+	for i := range ipt.IgnoreAttributeKeys {
+		ignoreKeyRegExps = append(ignoreKeyRegExps, regexp.MustCompile(ipt.IgnoreAttributeKeys[i]))
 	}
+	getAttribute = getAttrWrapper(ignoreKeyRegExps)
+	extractAtrribute = extractAttrWrapper(ignoreKeyRegExps)
 
-	// g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
-	// if ipt.GRPCCol.TraceEnable || ipt.GRPCCol.MetricEnable {
-	// 	open = true
-	// 	ipt.GRPCCol.ExpectedHeaders = ipt.ExpectedHeaders
-	// 	func(spanStorage *collector.SpansStorage) {
-	// 		g.Go(func(ctx context.Context) error {
-	// 			ipt.GRPCCol.run(spanStorage)
+	// TODO: start up grpc server
 
-	// 			return nil
-	// 		})
-	// 	}(spanStorage)
-	// }
-	if open {
-		// g.Go(func(ctx context.Context) error {
-		// 	spanStorage.Run()
+	log.Debugf("### %s agent is running...", inputName)
 
-		// 	return nil
-		// })
-		<-datakit.Exit.Wait()
-		ipt.Terminate()
-	}
+	<-datakit.Exit.Wait()
+	ipt.Terminate()
 }
 
 func (ipt *Input) Terminate() {

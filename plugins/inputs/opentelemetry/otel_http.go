@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package opentelemetry
 
 import (
@@ -38,12 +43,6 @@ func handleOTELTraces(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// param := &itrace.TraceParameters{
-	// 	URLPath: req.URL.Path,
-	// 	Media:   media,
-	// 	Body:    bytes.NewBuffer(buf),
-	// }
-
 	tsreq := &trace.ExportTraceServiceRequest{}
 	switch media {
 	case "application/x-protobuf":
@@ -57,5 +56,8 @@ func handleOTELTraces(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	parseResourceSpans(tsreq.ResourceSpans)
+	dktraces := parseResourceSpans(tsreq.ResourceSpans)
+	if len(dktraces) != 0 && afterGatherRun != nil {
+		afterGatherRun.Run(inputName, dktraces, false)
+	}
 }
