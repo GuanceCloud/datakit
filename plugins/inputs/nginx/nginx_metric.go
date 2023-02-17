@@ -50,6 +50,7 @@ func (m *NginxMeasurement) Info() *inputs.MeasurementInfo {
 			"connection_waiting":  newCountFieldInfo("The total number of waiting client connections"),
 			"connection_handled":  newCountFieldInfo("The total number of handled client connections"),
 			"connection_requests": newCountFieldInfo("The total number of requests client connections"),
+			"connection_accepts":  newCountFieldInfo("The total number of accepts client connections"),
 		},
 		Tags: map[string]interface{}{
 			"nginx_server":  inputs.NewTagInfo("nginx server host"),

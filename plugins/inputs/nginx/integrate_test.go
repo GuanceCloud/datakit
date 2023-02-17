@@ -87,24 +87,24 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		exposedPorts   []string
 		opts           []inputs.PointCheckOption
 	}{
+		// {
+		// 	name:           "nginx:http_stub_status_module",
+		// 	conf:           fmt.Sprintf(`url = "http://%s:80/server_status"`, remote.Host),
+		// 	dockerFileText: dockerFileHTTPStubStatusModule,
+		// 	exposedPorts:   []string{"80/tcp"},
+		// 	opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("nginx_version", "load_timestamp")},
+		// },
+
 		{
-			name:           "nginx:http_stub_status_module",
-			conf:           fmt.Sprintf(`url = "http://%s:80/server_status"`, remote.Host),
-			dockerFileText: dockerFileHTTPStubStatusModule,
-			exposedPorts:   []string{"80/tcp"},
-			opts:           []inputs.PointCheckOption{inputs.WithDoc(&NginxMeasurement{}), inputs.WithOptionalFields("nginx_version", "load_timestamp")},
+			name: "nginx:vts-1.20.2",
+
+			conf: fmt.Sprintf(`
+		url = "http://%s:80/status/format/json"
+		use_vts = true`,
+				remote.Host),
+
+			exposedPorts: []string{"80/tcp"},
 		},
-
-		// 		{
-		// 			name: "nginx:vts-1.23.3",
-
-		// 			conf: fmt.Sprintf(`
-		// url = "http://%s:80/status"
-		// use_vts = false`,
-		// 				remote.Host),
-
-		// 			exposedPorts: []string{"80/tcp"},
-		// 		},
 	}
 
 	var cases []*caseSpec
@@ -175,6 +175,7 @@ type caseSpec struct {
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	var opts []inputs.PointCheckOption
+	opts = append(opts, inputs.WithDoc(&NginxMeasurement{}))
 	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
 	opts = append(opts, cs.opts...)
 

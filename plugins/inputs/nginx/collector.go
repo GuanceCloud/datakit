@@ -178,6 +178,7 @@ func (n *Input) makeConnectionsLine(vtsResp NginxVTSResponse, t time.Time) {
 		tags[k] = v
 	}
 	fields := map[string]interface{}{
+		"load_timestamp":      vtsResp.LoadTimestamp,
 		"connection_active":   vtsResp.Connections.Active,
 		"connection_accepts":  vtsResp.Connections.Accepted,
 		"connection_handled":  vtsResp.Connections.Handled,
