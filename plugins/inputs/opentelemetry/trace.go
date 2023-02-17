@@ -48,9 +48,10 @@ func parseResourceSpans(resspans []*tracepb.ResourceSpans) itrace.DatakitTraces 
 					Resource:  span.Name,
 					Operation: span.Name,
 					Source:    inputName,
-					Start:     int64(span.StartTimeUnixNano),                        // 注意单位 nano
-					Duration:  int64(span.EndTimeUnixNano - span.StartTimeUnixNano), // 单位 nano
-					Status:    getDKSpanStatus(span.GetStatus()),                    // 使用 dk status
+					Start:     int64(span.StartTimeUnixNano),
+					Duration:  int64(span.EndTimeUnixNano - span.StartTimeUnixNano),
+					// TODO: optimize status fetch
+					Status: getDKSpanStatus(span.GetStatus()),
 				}
 				dkspan.SpanType = itrace.FindSpanTypeStrSpanID(dkspan.SpanID, dkspan.ParentID, spanIDs, parentIDs)
 

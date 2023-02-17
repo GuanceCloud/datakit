@@ -8,6 +8,7 @@ package opentelemetry
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"net/url"
@@ -17,11 +18,13 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -113,6 +116,7 @@ const (
 
 var (
 	log              = logger.DefaultSLogger(inputName)
+	statusOK         = 200
 	afterGatherRun   itrace.AfterGatherHandler
 	ignoreKeyRegExps []*regexp.Regexp
 	getAttribute     getAttributeFunc
@@ -120,6 +124,7 @@ var (
 	tags             map[string]string
 	wkpool           *workerpool.WorkerPool
 	localCache       *storage.Storage
+	otelSvr          *grpc.Server
 )
 
 type httpConfig struct {
@@ -250,7 +255,14 @@ func (ipt *Input) RegHTTPHandler() {
 		expectedHeaders[k] = append(expectedHeaders[k], v)
 	}
 
+	if ipt.HTTPConfig == nil || !ipt.HTTPConfig.Enabled {
+		log.Debugf("### HTTP server in OpenTelemetry are not enabled")
+
+		return
+	}
+
 	log.Infof("### register handler for /otel/v1/trace of agent %s", inputName)
+	statusOK = ipt.HTTPConfig.StatusCodeOK
 	dkhttp.RegHTTPHandler("POST", "/otel/v1/trace",
 		ihttp.CheckExpectedHeaders(
 			workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
@@ -269,6 +281,14 @@ func (ipt *Input) Run() {
 	extractAtrribute = extractAttrWrapper(ignoreKeyRegExps)
 
 	// TODO: start up grpc server
+	if ipt.GRPCConfig != nil && (ipt.GRPCConfig.TraceEnabled || ipt.GRPCConfig.MetricEnabled) {
+		g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
+		g.Go(func(ctx context.Context) error {
+			runGRPCV1(ipt.GRPCConfig.Address)
+
+			return nil
+		})
+	}
 
 	log.Debugf("### %s agent is running...", inputName)
 
