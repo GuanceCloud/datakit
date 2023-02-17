@@ -105,6 +105,39 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			exposedPorts: []string{"80/tcp"},
 		},
+
+		{
+			name: "nginx:vts-1.21.6",
+
+			conf: fmt.Sprintf(`
+		url = "http://%s:80/status/format/json"
+		use_vts = true`,
+				remote.Host),
+
+			exposedPorts: []string{"80/tcp"},
+		},
+
+		{
+			name: "nginx:vts-1.22.1",
+
+			conf: fmt.Sprintf(`
+		url = "http://%s:80/status/format/json"
+		use_vts = true`,
+				remote.Host),
+
+			exposedPorts: []string{"80/tcp"},
+		},
+
+		{
+			name: "nginx:vts-1.23.3",
+
+			conf: fmt.Sprintf(`
+		url = "http://%s:80/status/format/json"
+		use_vts = true`,
+				remote.Host),
+
+			exposedPorts: []string{"80/tcp"},
+		},
 	}
 
 	var cases []*caseSpec
