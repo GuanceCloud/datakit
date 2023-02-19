@@ -67,6 +67,7 @@ parser_y.go
 pipeline-docs.en.json
 pipeline-docs.json
 pipeline/parser/gram_y.go
+pipeline-docs.en.json
 pipeline/parser/parser.y.go
 plugins/external/csv/__tmp
 plugins/external/csv/venv

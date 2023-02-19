@@ -371,3 +371,56 @@ func Test_setHostTagIfNotLoopback(t *T.T) {
 		})
 	}
 }
+
+func Test_setHostTagIfNotLoopback(t *testing.T) {
+	type args struct {
+		tags      map[string]string
+		ipAndPort string
+	}
+	tests := []struct {
+		name     string
+		args     args
+		expected map[string]string
+	}{
+		{
+			name: "loopback",
+			args: args{
+				tags:      map[string]string{},
+				ipAndPort: "localhost:1234",
+			},
+			expected: map[string]string{},
+		},
+		{
+			name: "loopback",
+			args: args{
+				tags:      map[string]string{},
+				ipAndPort: "127.0.0.1:1234",
+			},
+			expected: map[string]string{},
+		},
+		{
+			name: "normal",
+			args: args{
+				tags:      map[string]string{},
+				ipAndPort: "192.168.1.1:1234",
+			},
+			expected: map[string]string{
+				"host": "192.168.1.1",
+			},
+		},
+		{
+			name: "error not ip:port",
+			args: args{
+				tags:      map[string]string{},
+				ipAndPort: "http://192.168.1.1:1234",
+			},
+			expected: map[string]string{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setHostTagIfNotLoopback(tt.args.tags, tt.args.ipAndPort)
+			assert.Equal(t, tt.expected, tt.args.tags)
+		})
+	}
+}
