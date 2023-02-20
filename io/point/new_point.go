@@ -71,6 +71,18 @@ func defaultPointOption() *PointOption {
 	}
 }
 
+func MustNewPoint(name string,
+	tags map[string]string,
+	fields map[string]interface{},
+	opt *PointOption,
+) *Point {
+	pt, err := NewPoint(name, tags, fields, opt)
+	if err != nil {
+		panic(err.Error())
+	}
+	return pt
+}
+
 func NewPoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},

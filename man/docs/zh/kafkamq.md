@@ -317,7 +317,7 @@ drop_key(message_len)
 
 另外减少日志输出、关闭 cgroup 限制、增加内网和公网带宽等，可以增加消费能力。
 
-### 多台 datakit 负载均衡 {datakit-assignor}
+### 多台 datakit 负载均衡 {#datakit-assignor}
 
 当消息量很大，一台 datakit 消费能力不足时可以增加多台 datakit 进行消费，这里有三点需要注意：
 1. 确保topic分区不是一个（至少2个），这个可以通过工具查看 [kafka-map](https://github.com/dushixiang/kafka-map/releases)

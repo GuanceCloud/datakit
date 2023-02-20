@@ -6,10 +6,14 @@
 package testutils
 
 import (
+	"bytes"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,7 +22,9 @@ import (
 
 var (
 	metricFile string
-	mtx        sync.Mutex
+	DatawayURL = "-"
+
+	mtx sync.Mutex
 
 	hostname string
 )
@@ -156,10 +162,50 @@ func (cr *CaseResult) LineProtocol() string {
 	return p.LineProto() + "\n"
 }
 
+// Flush write line-protocol data to file or remote HTTP server.
 func Flush(m TestingMetric) error {
 	mtx.Lock()
 	defer mtx.Unlock()
 
+	lp := m.LineProtocol()
+
+	log.Printf("write %q ...", lp)
+
+	if err := flushToFile([]byte(lp)); err != nil {
+		return err
+	}
+
+	if err := flushToDataway([]byte(lp)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func flushToDataway(data []byte) error {
+	log.Printf("write to dataway %q", DatawayURL)
+
+	if !strings.HasPrefix(DatawayURL, "http") {
+		return nil
+	}
+
+	// nolint: gosec
+	resp, err := http.Post(DatawayURL, "", bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close() // nolint: errcheck
+
+	switch resp.StatusCode / 100 {
+	case 2:
+		return nil
+	default:
+		return fmt.Errorf("post dataway %s", resp.Status)
+	}
+}
+
+func flushToFile(data []byte) error {
 	if metricFile == "" {
 		if v := os.Getenv("TESTING_METRIC_PATH"); v != "" {
 			metricFile = v
@@ -172,19 +218,17 @@ func Flush(m TestingMetric) error {
 		}
 	}
 
-	f, err := os.OpenFile(filepath.Clean(metricFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	f, err := os.OpenFile(filepath.Clean(metricFile),
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
 	}
 
 	defer f.Close() //nolint:errcheck,gosec
 
-	lp := m.LineProtocol()
-	log.Printf("write %s...", lp)
-	if _, err := f.WriteString(lp); err != nil {
+	if _, err := f.Write(data); err != nil {
 		return err
 	}
-
 	return nil
 }
 

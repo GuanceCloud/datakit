@@ -3,20 +3,25 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package io
+package funcs
 
 import (
+	"fmt"
 	T "testing"
+	"time"
 
-	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPointConvert(t *T.T) {
-	t.Run("basic", func(t *T.T) {
-		pt := point.NewPointV2([]byte(`abc`), point.NewKVs(map[string]any{"abc": 123}))
-		pts := point2dkpt(pt)
+func TestTimestampHandle(t *T.T) {
+	t.Run("test-tz+0", func(t *T.T) {
+		for i := 1970; i < 1980; i++ {
+			x := fmt.Sprintf("Thu Jan 16 10:05:19 %d", i)
+			ts, err := TimestampHandle(x, "+0")
 
-		assert.Equal(t, 1, len(pts))
+			assert.NoError(t, err)
+
+			t.Logf("%s : %v", x, time.Unix(0, ts))
+		}
 	})
 }

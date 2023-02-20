@@ -28,7 +28,7 @@ ci_lint_and_unit_test:
     # only run lint and unit-testing
     - make clean
     - make lint
-    - make all_test
+    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
   tags:
     - cloudcare-ft
 
@@ -41,8 +41,8 @@ test-datakit-production:
   script:
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
-    - make lint
-    - make all_test
+    - make lint 
+    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
   tags:
     - cloudcare-ft
 
@@ -57,7 +57,7 @@ test-datakit-testing:
     - make clean
     - make testing_notify GIT_BRANCH=$CI_COMMIT_BRANCH
     - make lint
-    - make all_test
+    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
   tags:
     - cloudcare-ft
 

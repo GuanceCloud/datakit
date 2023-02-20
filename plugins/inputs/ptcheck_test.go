@@ -26,8 +26,9 @@ func (t *testMeasurement) Info() *MeasurementInfo {
 		Desc: "for testing",
 		Type: "metric",
 		Tags: map[string]any{
-			"t1": &TagInfo{},
-			"t2": &TagInfo{},
+			"t1":       &TagInfo{},
+			"t2":       &TagInfo{},
+			"optional": &TagInfo{},
 		},
 		Fields: map[string]any{
 			"f1": &FieldInfo{DataType: Int},
@@ -46,7 +47,7 @@ func TestPointChecker(t *T.T) {
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}), WithOptionalTags("optional"))
 		assert.Lenf(t, msg, 3, "got %+#v", msg)
 
 		for _, m := range msg {
@@ -59,7 +60,7 @@ func TestPointChecker(t *T.T) {
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`f1`: 1.414, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}), WithOptionalTags("optional"))
 		assert.Lenf(t, msg, 3, "got %+#v", msg)
 
 		for _, m := range msg {
@@ -72,7 +73,7 @@ func TestPointChecker(t *T.T) {
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`unknown`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}), WithOptionalTags("optional"))
 		assert.Lenf(t, msg, 3, "got %+#v", msg)
 
 		for _, m := range msg {
@@ -85,7 +86,7 @@ func TestPointChecker(t *T.T) {
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}), WithOptionalTags("optional"))
 		assert.Lenf(t, msg, 3, "got %+#v", msg)
 
 		for _, m := range msg {
@@ -101,7 +102,7 @@ func TestPointChecker(t *T.T) {
 			}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}), WithOptionalTags("optional"))
 		assert.Lenf(t, msg, 4, "got %+#v", msg)
 
 		for _, m := range msg {
@@ -123,7 +124,7 @@ func TestPointChecker(t *T.T) {
 					`f4`: false,
 				})...))
 
-		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}), WithOptionalTags("optional"))
 		assert.Lenf(t, msg, 4, "got %+#v", msg)
 
 		for _, m := range msg {
@@ -136,7 +137,7 @@ func TestPointChecker(t *T.T) {
 			append(point.NewTags(map[string]string{"t1": "some"}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, WithDoc(&testMeasurement{}))
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}), WithOptionalTags("optional"))
 		assert.Lenf(t, msg, 4, "got %+#v", msg)
 
 		for _, m := range msg {
@@ -149,7 +150,7 @@ func TestPointChecker(t *T.T) {
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "", "tx": "xt"}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, WithDoc(&testMeasurement{}), WithExtraTags(map[string]string{"tx": "xt"}))
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}), WithExtraTags(map[string]string{"tx": "xt"}), WithOptionalTags("optional"))
 		assert.Lenf(t, msg, 2, "got %+#v", msg)
 
 		for _, m := range msg {
@@ -162,7 +163,7 @@ func TestPointChecker(t *T.T) {
 			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, WithDoc(&testMeasurement{}), WithOptionalFields("optional"))
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}), WithOptionalFields("optional"), WithOptionalTags("optional"))
 		assert.Lenf(t, msg, 0, "got %+#v", msg)
 	})
 
@@ -175,7 +176,7 @@ func TestPointChecker(t *T.T) {
 			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		msg := CheckPoint(pt, WithExpectPoint(exp), WithOptionalFields("optional"))
+		msg := CheckPoint(pt, WithExpectPoint(exp), WithOptionalFields("optional"), WithOptionalTags("optional"))
 		assert.Lenf(t, msg, 0, "got %+#v", msg)
 
 		for _, m := range msg {
@@ -201,7 +202,7 @@ func TestPointChecker(t *T.T) {
 					// `f4`: false,// missing
 				})...))
 
-		msg := CheckPoint(pt, WithExpectPoint(exp), WithOptionalFields("optional"))
+		msg := CheckPoint(pt, WithExpectPoint(exp), WithOptionalFields("optional"), WithOptionalTags("optional"))
 		assert.Lenf(t, msg, 4, "got %+#v", msg)
 
 		for _, m := range msg {
@@ -231,7 +232,7 @@ func TestPointChecker(t *T.T) {
 					`f4`: "some-bool",
 				})...))
 
-		msg := CheckPoint(pt, WithExpectPoint(exp), WithOptionalFields("optional"))
+		msg := CheckPoint(pt, WithExpectPoint(exp), WithOptionalFields("optional"), WithOptionalTags("optional"))
 		assert.Lenf(t, msg, 5, "got %+#v", msg)
 
 		for _, m := range msg {
@@ -263,6 +264,7 @@ func TestPointChecker(t *T.T) {
 
 		msg := CheckPoint(pt, WithExpectPoint(exp),
 			WithOptionalFields("optional"),
+			WithOptionalTags("optional"),
 			WithValueChecking(false),
 			WithTypeChecking(false))
 		assert.Lenf(t, msg, 0, "got %+#v", msg)

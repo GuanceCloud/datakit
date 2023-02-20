@@ -31,9 +31,7 @@ func NewMockedFeeder() *MockedFeeder {
 	}
 }
 
-func (f *MockedFeeder) Feed(name string, category point.Category, pts []*point.Point, opt ...*Option) error {
-	// TODO: run pipeline & filter
-
+func (f *MockedFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*Option) error {
 	select {
 	case f.ch <- pts:
 	default:
