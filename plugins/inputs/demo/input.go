@@ -101,7 +101,9 @@ func (ipt *Input) Run() {
 				l.Error(err)
 			} else {
 				if err := inputs.FeedMeasurement(inputName, datakit.Metric, ipt.collectCache,
-					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)}); err != nil {
+					&io.Option{
+						CollectCost: time.Since(start),
+					}); err != nil {
 					l.Errorf("FeedMeasurement: %s", err.Error())
 				}
 

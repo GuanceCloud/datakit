@@ -81,6 +81,8 @@ GO
 
 ## 日志 {#logging}
 
+以下指标集均以日志形式收集，所有日志等级均为 `info`。
+
 {{ range $i, $m := .Measurements }}
 {{if eq $m.Type "logging"}}
 ### `{{$m.Name}}`
@@ -103,19 +105,17 @@ GO
 
     必须将 DataKit 安装在 SQLServer 所在主机才能采集日志。
 
-如需采集 SQL Server 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 SQL Server 日志文件的绝对路径。比如：
+如需采集 SQL Server 的日志，可在 *{{.InputName}}.conf* 中 将 `files` 打开，并写入 SQL Server 日志文件的绝对路径。比如：
 
-```toml
-    [[inputs.sqlserver]]
-      ...
-      [inputs.sqlserver.log]
-        files = ["/var/opt/mssql/log/error.log"]
+```toml hl_lines="4"
+[[inputs.sqlserver]]
+	...
+	[inputs.sqlserver.log]
+		files = ["/var/opt/mssql/log/error.log"]
 ```
 
 
-开启日志采集以后，默认会产生日志来源（`source`）为 `sqlserver` 的日志。
-
->注意：必须将 DataKit 安装在 SQL Server 所在主机才能采集 SQL Server 日志
+开启日志采集以后，默认会产生日志来源（*source*）为 `sqlserver` 的日志。
 
 ### 日志 pipeline 功能切割字段说明 {#pipeline}
 
@@ -128,9 +128,9 @@ GO
 
 切割后的字段列表如下：
 
-| 字段名 | 字段值              | 说明                                         |
-| ---    | ---                 | ---                                          |
-| msg    | spid...             | 日志内容                                     |
-| time   | 1622169967780000000 | 纳秒时间戳（作为行协议时间）                 |
-| origin | spid10s             | 源                                           |
-| status | info                | 由于日志没有明确字段说明日志等级，默认为info |
+| 字段名   | 字段值              | 说明                                         |
+| ---      | ---                 | ---                                          |
+| `msg`    | spid...             | 日志内容                                     |
+| `time`   | 1622169967780000000 | 纳秒时间戳（作为行协议时间）                 |
+| `origin` | spid10s             | 源                                           |
+| `status` | info                | 由于日志没有明确字段说明日志等级，默认为info |

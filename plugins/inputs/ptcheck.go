@@ -28,6 +28,7 @@ type ptChecker struct {
 	extraTags map[string]string
 
 	optionalFields []string
+	optionalTags   []string
 
 	// check result
 	checkMsg []string
@@ -87,10 +88,18 @@ func WithTypeChecking(on bool) PointCheckOption {
 }
 
 // WithOptionalFields set optional keys(field key) that will escape key-check.
-// Sometimes the point's field/tag keys are optional for different configures.
+// Sometimes the point's field keys are optional for different configures.
 func WithOptionalFields(keys ...string) PointCheckOption {
 	return func(c *ptChecker) {
 		c.optionalFields = append(c.optionalFields, keys...)
+	}
+}
+
+// WithOptionalTags set optional keys(tag key) that will escape key-check.
+// Sometimes the point's tag keys are optional for different configures.
+func WithOptionalTags(keys ...string) PointCheckOption {
+	return func(c *ptChecker) {
+		c.optionalTags = append(c.optionalTags, keys...)
 	}
 }
 
@@ -165,8 +174,10 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 	}
 
 	// check tag key count
-	if len(c.mInfo.Tags)+len(c.extraTags) != len(c.gotTags) {
-		c.addMsg(fmt.Sprintf("expect %d tags got %d", len(c.mInfo.Tags)+len(c.extraTags), len(c.gotTags)))
+	if len(c.mInfo.Tags)+len(c.extraTags) != len(c.gotTags)+len(c.optionalTags) {
+		c.addMsg(fmt.Sprintf("expect %d tags got %d",
+			len(c.mInfo.Tags)+len(c.extraTags),
+			len(c.gotTags)+len(c.optionalTags)))
 	}
 
 	// check field key count
@@ -175,14 +186,16 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 			len(c.mInfo.Fields), len(c.gotFields), len(c.optionalFields)))
 	}
 
-	// check tag key matching
+	// check all documented tags are exist in got tags.
 	for key := range c.mInfo.Tags {
-		if got := c.gotTags.Get([]byte(key)); got == nil { // no such tag
-			c.addMsg(fmt.Sprintf("tag %q not found", key))
+		if got := c.gotTags.Get([]byte(key)); got == nil {
+			if !c.isOptionalTag(key) {
+				c.addMsg(fmt.Sprintf("tag %q not found", key))
+			}
 		}
 	}
 
-	// check all tag key are expected
+	// check all tag key are documented(exclude extra tags).
 	for _, kv := range c.gotTags {
 		key := string(kv.Key)
 		if _, ok := c.mInfo.Tags[key]; ok {
@@ -224,6 +237,16 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 
 func (c *ptChecker) addMsg(s string) {
 	c.checkMsg = append(c.checkMsg, s)
+}
+
+func (c *ptChecker) isOptionalTag(key string) bool {
+	for _, x := range c.optionalTags {
+		if x == key {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (c *ptChecker) isOptionalField(key string) bool {

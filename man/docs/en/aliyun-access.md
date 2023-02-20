@@ -2,7 +2,7 @@
 
 ---
 
-## Overview
+## Overview {#overview}
 
 If your Guance Cloud access system is deployed on Alibaba Cloud, this guide will guide you to access the data gateway private network from your host DataKit to the Guance cloud platform by subscribing to the computing nest “**Guance Cloud Data Gateway Virtual Internet**” service.
 
@@ -18,9 +18,9 @@ At present, the services that have been released are **cn-hangzhou and cn-beijin
 
 ![](imgs/aliyun_1.png)
 
-## Subscription Service
+## Subscription Service {#sub-service}
 
-### Service Deployment Link
+### Service Deployment Link {#service-dep}
 
 | **Access Site** | **Region Where the Server is Located** | **Compute Nest Deployment Link** |
 | -------- | ---------------------- | ----------- |
@@ -29,7 +29,7 @@ At present, the services that have been released are **cn-hangzhou and cn-beijin
 | China 3-Zhangjiakou | cn-beijing | [Guance Cloud Data Gateway Virtual Internet-from Beijing to Zhangjiakou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-a22bc59ed53c4946b8ce){:target="_blank"} | 
 | China 3-Zhangjiakou | cn-hangzhou | [Guance Cloud Data Gateway Virtual Internet-from Hangzhou to Zhangjiakou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-87a611279d9a42ceaeb2){:target="_blank"} | 
 
-### Private Network Data Gateway Default Endpoint for Different Regions 
+### Private Network Data Gateway Default Endpoint for Different Regions  {#region-endpoint}
 
 | **Access Site** | **Region Where the Server is Located** | **Endpoint** |
 | -------- | ---------------------- | ----------- |
@@ -40,7 +40,7 @@ At present, the services that have been released are **cn-hangzhou and cn-beijin
 
 **Virtual Internet services in other regions will be released soon.**
 
-### Configure Service Subscriptions
+### Configure Service Subscriptions {#config-sub}
 Sign in with your Alibaba Cloud account and open the above **service deployment link** to subscribe to our virtual Internet service, taking cn-hangzhou as an example:
 
 ![](imgs/aliyun_2.png)
@@ -53,21 +53,21 @@ Sign in with your Alibaba Cloud account and open the above **service deployment 
 
 Using the default openway.guance.com domain name, it is important to seamlessly switch the data network to a virtual intranet if DataKit has been deployed and implemented within the same VPC.
 
-### Subscription Completion
+### Subscription Completion {#sub-com}
 
 After the subscription is completed, the compute nest service will automatically create and configure it under your cloud account:
 
 1. A private network is connected to the terminal node;
 2. A cloud-resolved Private Zone that resolves the Endpoint domain name to the default domain.
 
-### Cost
+### Cost {#cost}
 
 The cost situation is mainly divided into two parts:
 
 1. The first part is the private network access fee directly paid by Alibaba Cloud to your Alibaba Cloud account, mainly including the fees for private network connection PrivateLink and cloud analysis PrivateZone services. Refer to Alibaba Cloud official website [Private Network Connection PrivateLink Billing Instructions](https://help.aliyun.com/document_detail/198081.html){:target="_blank"} and [Cloud Parsing PrivateZone Billing Instructions](https://help.aliyun.com/document_detail/71338.html){:target="_blank"}.
 2. The second part is the cross-regional network transmission traffic fee. If your Alibaba Cloud resource is connected to the Guance Cloud Hangzhou site in Beijing Region, it will generate cross-regional traffic transmission fee, which will be paid out to your Guance Cloud bill.
 
-## How to Use
+## How to Use {#how-to}
 
 After the subscription is completed, it is completely transparent to your DataKit access Guance Cloud. There is no need to modify the DataKit configuration, and the private network connection has been automatically established. You can log in to the cloud host and execute the following ping openway.guance.com command to view the IP pinged. If it is an intranet IP address, it means that you have successfully established a private network connection with the Guance Cloud data gateway:
 

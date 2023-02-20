@@ -101,7 +101,7 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 
 	log.Debugf("### received %d(%s) points from %s, pipeline source: %v", len(pts), req.URL.Path, inputName, pipelineSource)
 
-	if err = dkio.Feed(inputName, req.URL.Path, pts, &dkio.Option{HighFreq: true, Version: version}); err != nil {
+	if err = dkio.Feed(inputName, req.URL.Path, pts, &dkio.Option{Version: version}); err != nil {
 		log.Error(err.Error())
 		httpErr(resp, err)
 
