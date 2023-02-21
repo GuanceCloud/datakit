@@ -181,8 +181,6 @@ nav:
     - development.md
     - datakit-filter.md
     - apis.md
-    - datakit-sink-dev.md
     - common-tags.md
     - '文档撰写':
-      - '集成文档合并': integrations-to-dk-howto.md
       - mkdocs-howto.md

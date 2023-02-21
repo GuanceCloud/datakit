@@ -214,99 +214,23 @@ $ systemctl status datakit
 
 参见[这里](election.md#config)
 
+### DataWay Sinker 配置 {#dataway-sink}
+
+参见[这里](datakit-sink-dataway.md)
+
 ### 使用 Git 管理 DataKit 配置 {#using-gitrepo}
 
-由于 DataKit 各种采集器的配置都是文本类型，如果逐个修改、生效，需要耗费大量的精力。这里我们可以使用 Git 来管理这些配置，其优点如下：
-
-- 自动从远端 Git 仓库同步最新的配置，并自动生效
-- Git 自带的版本管理，能有效的追踪各种配置的变更历史
-
-在安装 DataKit 时（[DaemonSet 安装](datakit-daemonset-deploy.md)和[主机安装](datakit-install.md#env-gitrepo)都支持），即可指定 Git 配置仓库。
-
-#### 手动配置 Git 管理 {#setup-gitrepo}
-
-Datakit 支持使用 git 来管理采集器配置、Pipeline 以及 Python 脚本。在 *datakit.conf* 中，找到 *git_repos* 位置，编辑如下内容：
-
-```toml
-[git_repos]
-  pull_interval = "1m" # 同步配置间隔，即 1 分钟同步一次
-
-  [[git_repos.repo]]
-    enable = false   # 不启用该 repo
-
-    ###########################################
-    # Git 地址支持的三种协议：http/git/ssh
-    ###########################################
-    url = "http://username:password@github.com/path/to/repository.git"
-
-    # 以下两种协议(git/ssh)，需配置 key-path 以及 key-password
-    # url = "git@github.com:path/to/repository.git"
-    # url = "ssh://git@github.com:9000/path/to/repository.git"
-    # ssh_private_key_path = "/Users/username/.ssh/id_rsa"
-    # ssh_private_key_password = "<YOUR-PASSSWORD>"
-
-    branch = "master" # 指定 git branch
-```
-
-注意：开启 Git 同步后，原 `conf.d` 目录下的采集器配置将不再生效（*datakit.conf* 除外）。
-
-#### 应用 Git 管理的 Pipeline 示例 {#gitrepo-example}
-
-我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，**DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用**。在 [Nginx 采集器](nginx.md)的配置中，一个 pipeline 的配置示例：
-
-```toml
-[[inputs.nginx]]
-    ...
-    [inputs.nginx.log]
-    ...
-    pipeline = "my-nginx.p" # 具体加载哪里的 my-nginx.p，参见下面的 「约束」 说明
-```
-
-#### Git 管理的使用约束 {#gitrepo-limitation}
-
-在 Git 使用过程必须遵循以下约束:
-
-- git repo 里面新建 `conf.d` 文件夹，下面放 DataKit 采集器配置
-- git repo 里面新建 `pipeline` 文件夹，下面放置 Pipeline 文件
-- git repo 里面新建 `python.d` 文件夹，下面放置 Python 脚本文件
-
-下面以图例来说明：
-
-```
-datakit 根目录
-├── conf.d
-├── data
-├── pipeline # 顶层 Pipeline 脚本
-├── python.d # 顶层 python.d 脚本
-├── externals
-└── gitrepos
-    ├── repo-1  # 仓库 1
-    │   ├── conf.d    # 专门存放采集器配置
-    │   ├── pipeline  # 专门存放 pipeline 切割脚本
-    │   │   └── my-nginx.p # 合法的 pipeline 脚本
-    │   │   └── 123     # 不合法的 Pipeline 子目录，其下文件也不会生效
-    │   │       └── some-invalid.p
-    │   └── python.d    存放 python.d 脚本
-    │       └── core
-    └── repo-2  # 仓库 2
-        ├── ...
-```
-
-查找优先级定义如下:
-
-1. 按 *datakit.conf* 中配置的 *git_repos* 次序（它是一个数组，可配置多个 Git 仓库），逐个查找指定文件名，若找到，返回第一个。比如查找 *my-nginx.p*，如果在第一个仓库目录的 *pipeline* 下找到，则以该找到的为准，**即使第二个仓库中也有同名的 *my-nginx.p*，也不会选择它**。
-
-2. 在 *git_repos* 中找不到的情况下，则去 *<Datakit 安装目录>/pipeline* 目录查找 Pipeline 脚本，或者去 *<Datakit 安装目录>/python.d* 目录查找 Python 脚本。
+参见[这里](git-config-how-to.md)
 
 ### 设置打开的文件描述符的最大值 {#enable-max-fd}
 
-Linux 环境下，可以在 Datakit 主配置文件中配置 ulimit 项，以设置 Datakit 的最大可打开文件数，如下：
+Linux 环境下，可以在 Datakit 主配置文件中配置 `ulimit` 项，以设置 Datakit 的最大可打开文件数，如下：
 
 ```toml
 ulimit = 64000
 ```
 
-ulimit 默认配置为 64000。
+ulimit 默认配置为 64000。在 Kubernates 中，通过[设置 `ENV_ULIMIT`](datakit-daemonset-deploy.md#env-others) 即可。
 
 ## FAQ {#faq}
 
