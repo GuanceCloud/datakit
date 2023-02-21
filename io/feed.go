@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -66,12 +67,12 @@ type ioFeeder struct{}
 // point2dkpt convert point.Point to old io/point.Point.
 func point2dkpt(pts ...*point.Point) (res []*dkpt.Point) {
 	for _, pt := range pts {
-		pt, err := dkpt.NewPoint(string(pt.Name()), pt.InfluxTags(), pt.InfluxFields(), nil)
+		pt, err := influxdb.NewPoint(string(pt.Name()), pt.InfluxTags(), pt.InfluxFields(), pt.Time())
 		if err != nil {
 			continue
 		}
 
-		res = append(res, pt)
+		res = append(res, &dkpt.Point{Point: pt})
 	}
 
 	return res
