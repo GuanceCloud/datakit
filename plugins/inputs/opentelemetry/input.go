@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package opentelemetry handle OTEL APM traces
+// Package opentelemetry handle OTEL APM trace
 package opentelemetry
 
 import (
@@ -39,8 +39,9 @@ const (
 [[inputs.opentelemetry]]
   ## During creating 'trace', 'span' and 'resource', many labels will be added, and these labels will eventually appear in all 'spans'
   ## When you don't want too many labels to cause unnecessary traffic loss on the network, you can choose to ignore these labels
-  ## Support regular expression. Note!!!: '.' WILL BE REPLACED BY '_'.
-  # ignore_attribute_keys = ["os_*","process_*"]
+  ## with setting up an regular expression list.
+  ## Note: ignore_attribute_keys will be effected on both trace and metrics if setted up.
+  # ignore_attribute_keys = ["os_*", "process_*"]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -86,8 +87,8 @@ const (
     # path = "./otel_storage"
     # capacity = 5120
 
-  ## OTEL agent HTTP config for traces and metrics
-  ## If enable set to be true, traces and metrics will be received on path respectively:
+  ## OTEL agent HTTP config for trace and metrics
+  ## If enable set to be true, trace and metrics will be received on path respectively:
   ## trace : /otel/v1/trace
   ## metric: /otel/v1/metric
   ## and the client side should be configured properly with Datakit listening port(default:9529)
@@ -97,8 +98,8 @@ const (
    enable = true
    http_status_ok = 200
 
-  ## OTEL agent GRPC config for traces and metrics.
-  ## GRPC services for traces and metrics can be enabled respectively as setting either to be true.
+  ## OTEL agent GRPC config for trace and metrics.
+  ## GRPC services for trace and metrics can be enabled respectively as setting either to be true.
   ## add is the listening on address for GRPC server.
   [inputs.opentelemetry.grpc]
    trace_enable = true
@@ -107,6 +108,7 @@ const (
 
   ## If 'expectedHeaders' is well configed, then the obligation of sending certain wanted HTTP headers is on the client side,
   ## otherwise HTTP status code 400(bad request) will be provoked.
+  ## Note: expectedHeaders will be effected on both trace and metrics if setted up.
   # [inputs.opentelemetry.expectedHeaders]
   # ex_version = "1.2.3"
   # ex_name = "env_resource_name"
@@ -204,7 +206,7 @@ func (ipt *Input) RegHTTPHandler() {
 					if req.URL, err = url.Parse(reqpb.Url); err != nil {
 						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
 					}
-					handleOTELTraces(&ihttp.NopResponseWriter{}, req)
+					handleOTELTrace(&ihttp.NopResponseWriter{}, req)
 
 					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
 
@@ -261,15 +263,15 @@ func (ipt *Input) RegHTTPHandler() {
 		return
 	}
 
-	log.Infof("### register handler for /otel/v1/trace of agent %s", inputName)
+	log.Debugf("### register handler for /otel/v1/trace of agent %s", inputName)
 	statusOK = ipt.HTTPConfig.StatusCodeOK
 	dkhttp.RegHTTPHandler("POST", "/otel/v1/trace",
 		ihttp.CheckExpectedHeaders(
 			workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
-				storage.HTTPWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleOTELTraces)), log, expectedHeaders))
+				storage.HTTPWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleOTELTrace)), log, expectedHeaders))
 
-	// log.Infof("### register handler for /otel/v1/metric of agent %s", inputName)
-	// dkhttp.RegHTTPHandler("POST", "/otel/v1/metric", ipt.HTTPCol.apiOtlpMetric)
+	log.Debugf("### register handler for /otel/v1/metric of agent %s", inputName)
+	dkhttp.RegHTTPHandler("POST", "/otel/v1/metric", ihttp.CheckExpectedHeaders(handleOTElMetrics, log, expectedHeaders))
 }
 
 func (ipt *Input) Run() {

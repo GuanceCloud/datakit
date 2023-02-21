@@ -9,6 +9,10 @@ import (
 	"context"
 	"net"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/compiled/v1/collector/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/compiled/v1/collector/trace"
 	"google.golang.org/grpc"
 )
@@ -24,6 +28,7 @@ func runGRPCV1(addr string) {
 
 	otelSvr = grpc.NewServer()
 	trace.RegisterTraceServiceServer(otelSvr, &TraceServiceServer{})
+	metrics.RegisterMetricsServiceServer(otelSvr, &MetricsServiceServer{})
 
 	if err = otelSvr.Serve(listener); err != nil {
 		log.Error(err.Error())
@@ -37,9 +42,32 @@ type TraceServiceServer struct {
 }
 
 func (tss *TraceServiceServer) Export(ctx context.Context, tsreq *trace.ExportTraceServiceRequest) (*trace.ExportTraceServiceResponse, error) {
-	if dktraces := parseResourceSpans(tsreq.ResourceSpans); len(dktraces) != 0 && afterGatherRun != nil {
-		afterGatherRun.Run(inputName, dktraces, false)
+	if afterGatherRun != nil {
+		if dktraces := parseResourceSpans(tsreq.ResourceSpans); len(dktraces) != 0 {
+			afterGatherRun.Run(inputName, dktraces, false)
+		}
 	}
 
 	return &trace.ExportTraceServiceResponse{}, nil
+}
+
+type MetricsServiceServer struct {
+	metrics.UnimplementedMetricsServiceServer
+}
+
+func (mss *MetricsServiceServer) Export(ctx context.Context, msreq *metrics.ExportMetricsServiceRequest) (*metrics.ExportMetricsServiceResponse, error) {
+	omcs := parseResourceMetrics(msreq.ResourceMetrics)
+	var points []*point.Point
+	for i := range omcs {
+		if pts := omcs[i].getPoints(); len(pts) != 0 {
+			points = append(points, pts...)
+		}
+	}
+	if len(points) != 0 {
+		if err := dkio.Feed(inputName, datakit.Metric, points, &dkio.Option{HighFreq: true}); err != nil {
+			log.Error(err.Error())
+		}
+	}
+
+	return &metrics.ExportMetricsServiceResponse{}, nil
 }

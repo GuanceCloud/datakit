@@ -8,7 +8,11 @@ package opentelemetry
 import (
 	"net/http"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/compiled/v1/collector/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/compiled/v1/collector/trace"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -34,7 +38,7 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 	resp.Write(buf)
 }
 
-func handleOTELTraces(resp http.ResponseWriter, req *http.Request) {
+func handleOTELTrace(resp http.ResponseWriter, req *http.Request) {
 	media, _, buf, err := itrace.ParseTracerRequest(req)
 	if err != nil {
 		log.Error(err.Error())
@@ -56,8 +60,45 @@ func handleOTELTraces(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	dktraces := parseResourceSpans(tsreq.ResourceSpans)
-	if len(dktraces) != 0 && afterGatherRun != nil {
-		afterGatherRun.Run(inputName, dktraces, false)
+	if afterGatherRun != nil {
+		if dktraces := parseResourceSpans(tsreq.ResourceSpans); len(dktraces) != 0 {
+			afterGatherRun.Run(inputName, dktraces, false)
+		}
+	}
+}
+
+func handleOTElMetrics(resp http.ResponseWriter, req *http.Request) {
+	media, _, buf, err := itrace.ParseTracerRequest(req)
+	if err != nil {
+		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	msreq := &metrics.ExportMetricsServiceRequest{}
+	switch media {
+	case "application/x-protobuf":
+		err = proto.Unmarshal(buf, msreq)
+	case "application/json":
+		err = protojson.Unmarshal(buf, msreq)
+	default:
+		log.Error("unrecognized Content-Type")
+		resp.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	omcs := parseResourceMetrics(msreq.ResourceMetrics)
+	var points []*point.Point
+	for i := range omcs {
+		if pts := omcs[i].getPoints(); len(pts) != 0 {
+			points = append(points, pts...)
+		}
+	}
+	if len(points) != 0 {
+		if err = dkio.Feed(inputName, datakit.Metric, points, &dkio.Option{HighFreq: true}); err != nil {
+			log.Error(err.Error())
+		}
 	}
 }
