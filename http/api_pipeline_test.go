@@ -18,8 +18,8 @@ import (
 	"testing"
 	"time"
 
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/stretchr/testify/assert"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -248,7 +248,7 @@ func (c Client) PipelineDebug(in *pipelineDebugRequest) (int, http.Header, []byt
 }
 
 //------------------------------------------------------------------------------
-// modified from: vendor/gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http/err.go
+// modified from: vendor/github.com/GuanceCloud/cliutils/network/http/err.go
 
 type HttpError struct {
 	ErrCode  string `json:"error_code,omitempty"`

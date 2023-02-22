@@ -44,7 +44,7 @@ func TestStatsPoint(t *testing.T) {
 
 	var arr []string
 	for _, pt := range pts {
-		arr = append(arr, pt.String())
+		arr = append(arr, pt.LineProto())
 	}
 	sort.Strings(arr)
 

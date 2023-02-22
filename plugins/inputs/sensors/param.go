@@ -7,7 +7,7 @@
 package sensors
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 )
 
 var (

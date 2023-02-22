@@ -8,8 +8,8 @@ package sinkdataway
 import (
 	"testing"
 
+	lp "github.com/GuanceCloud/cliutils/lineproto"
 	"github.com/stretchr/testify/assert"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"

@@ -20,11 +20,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/gin-gonic/gin/binding"
 	influxm "github.com/influxdata/influxdb1-client/models"
 	client "github.com/influxdata/influxdb1-client/v2"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -101,7 +101,7 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 
 	log.Debugf("### received %d(%s) points from %s, pipeline source: %v", len(pts), req.URL.Path, inputName, pipelineSource)
 
-	if err = dkio.Feed(inputName, req.URL.Path, pts, &dkio.Option{HighFreq: true, Version: version}); err != nil {
+	if err = dkio.Feed(inputName, req.URL.Path, pts, &dkio.Option{Version: version}); err != nil {
 		log.Error(err.Error())
 		httpErr(resp, err)
 

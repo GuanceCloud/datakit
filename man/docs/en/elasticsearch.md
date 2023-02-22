@@ -209,162 +209,26 @@ For all of the following data collections, a global tag named `host` is appended
 # ...
 ```
 
+``` toml
+[inputs.{{.InputName}}.tags]
+# some_tag = "some_value"
+# more_tag = "some_other_value"
+# ...
+```
 
+{{ range $i, $m := .Measurements }}
 
-### `elasticsearch_node_stats`
+### `{{$m.Name}}`
 
--  Tag
+-  Tags
 
+{{$m.TagsMarkdownTable}}
 
-| Tag Name | Description    |
-|  ----  | --------|
-|`cluster_name`|Name of the cluster, based on the Cluster name setting setting.|
-|`node_attribute_ml.enabled`|Set to true (default) to enable machine learning APIs on the node.|
-|`node_attribute_ml.machine_memory`|The machine’s memory that machine learning may use for running analytics processes.|
-|`node_attribute_ml.max_open_jobs`|The maximum number of jobs that can run simultaneously on a node.|
-|`node_attribute_xpack.installed`|Show whether xpack is installed.|
-|`node_host`|Network host for the node, based on the network.host setting.|
-|`node_id`|The id for the node.|
-|`node_name`|Human-readable identifier for the node.|
+- Metrics
 
-- Metrics List
+{{$m.FieldsMarkdownTable}}
 
-
-| Metrics | Description| Data Type | Unit   |
-| ---- |---- | :---:    | :----: |
-|`fs_data_0_available_in_gigabytes`|Total number of gigabytes available to this Java virtual machine on this file store.|float|B|
-|`fs_data_0_free_in_gigabytes`|Total number of unallocated gigabytes in the file store.|float|B|
-|`fs_data_0_total_in_gigabytes`|Total size (in gigabytes) of the file store.|float|B|
-|`fs_io_stats_devices_0_operations`|The total number of read and write operations for the device completed since starting Elasticsearch.|float|count|
-|`fs_io_stats_devices_0_read_kilobytes`|The total number of kilobytes read for the device since starting Elasticsearch.|float|count|
-|`fs_io_stats_devices_0_read_operations`|The total number of read operations for the device completed since starting Elasticsearch.|float|count|
-|`fs_io_stats_devices_0_write_kilobytes`|The total number of kilobytes written for the device since starting Elasticsearch.|float|count|
-|`fs_io_stats_devices_0_write_operations`|The total number of write operations for the device completed since starting Elasticsearch.|float|count|
-|`fs_io_stats_total_operations`|The total number of read and write operations across all devices used by Elasticsearch completed since starting Elasticsearch.|float|count|
-|`fs_io_stats_total_read_kilobytes`|The total number of kilobytes read across all devices used by Elasticsearch since starting Elasticsearch.|float|count|
-|`fs_io_stats_total_read_operations`|The total number of read operations for across all devices used by Elasticsearch completed since starting Elasticsearch.|float|count|
-|`fs_io_stats_total_write_kilobytes`|The total number of kilobytes written across all devices used by Elasticsearch since starting Elasticsearch.|float|count|
-|`fs_io_stats_total_write_operations`|The total number of write operations across all devices used by Elasticsearch completed since starting Elasticsearch.|float|count|
-|`fs_timestamp`|Last time the file stores statistics were refreshed. Recorded in milliseconds since the Unix Epoch.|float|msec|
-|`fs_total_available_in_gigabytes`|Total number of gigabytes available to this Java virtual machine on all file stores.|float|B|
-|`fs_total_free_in_gigabytes`|Total number of unallocated gigabytes in all file stores.|float|B|
-|`fs_total_total_in_gigabytes`|Total size (in gigabytes) of all file stores.|float|B|
-|`http_current_open`|Current number of open HTTP connections for the node.|float|count|
-|`indices_fielddata_evictions`|Total number of evictions from the field data cache across all shards assigned to selected nodes.|float|count|
-|`indices_fielddata_memory_size_in_bytes`|Total amount, in bytes, of memory used for the field data cache across all shards assigned to selected nodes.|float|B|
-|`indices_get_missing_time_in_millis`|Time in milliseconds spent performing failed get operations.|float|ms|
-|`indices_get_missing_total`|Total number of failed get operations.|float|count|
-|`jvm_gc_collectors_old_collection_count`|Number of JVM garbage collectors that collect old generation objects.|float|count|
-|`jvm_gc_collectors_old_collection_time_in_millis`|Total time in milliseconds spent by JVM collecting old generation objects.|float|ms|
-|`jvm_gc_collectors_young_collection_count`|Number of JVM garbage collectors that collect young generation objects.|float|count|
-|`jvm_gc_collectors_young_collection_time_in_millis`|Total time in milliseconds spent by JVM collecting young generation objects.|float|ms|
-|`jvm_mem_heap_committed_in_bytes`|Amount of memory, in bytes, available for use by the heap.|float|B|
-|`jvm_mem_heap_used_percent`|Percentage of memory currently in use by the heap.|float|count|
-|`os_cpu_load_average_15m`|Fifteen-minute load average on the system (field is not present if fifteen-minute load average is not available).|float|count|
-|`os_cpu_load_average_1m`|One-minute load average on the system (field is not present if one-minute load average is not available).|float|count|
-|`os_cpu_load_average_5m`| Five-minute load average on the system (field is not present if five-minute load average is not available).|float|count|
-|`os_cpu_percent`|Recent CPU usage for the whole system, or -1 if not supported.|float|count|
-|`os_mem_total_in_bytes`|Total amount of physical memory in bytes.|float|B|
-|`os_mem_used_in_bytes`|Amount of used physical memory in bytes.|float|B|
-|`os_mem_used_percent`|Percentage of used memory.|float|percent|
-|`process_open_file_descriptors`|Number of opened file descriptors associated with the current or -1 if not supported.|float|count|
-|`thread_pool_force_merge_queue`|Number of tasks in queue for the thread pool|float|count|
-|`thread_pool_force_merge_rejected`|Number of tasks rejected by the thread pool executor.|float|count|
-|`thread_pool_rollup_indexing_queue`|Number of tasks in queue for the thread pool|float|count|
-|`thread_pool_rollup_indexing_rejected`|Number of tasks rejected by the thread pool executor.|float|count|
-|`thread_pool_search_queue`|Number of tasks in queue for the thread pool|float|count|
-|`thread_pool_search_rejected`|Number of tasks rejected by the thread pool executor.|float|count|
-|`thread_pool_transform_indexing_queue`|Number of tasks in queue for the thread pool|float|count|
-|`thread_pool_transform_indexing_rejected`|Number of tasks rejected by the thread pool executor.|float|count|
-|`transport_rx_size_in_bytes`|Size of RX packets received by the node during internal cluster communication.|float|B|
-|`transport_tx_size_in_bytes`|Size of TX packets sent by the node during internal cluster communication.|float|B|
-
-
-
-### `elasticsearch_indices_stats`
-
--  Tag
-
-
-| Tag Name | Description    |
-|  ----  | --------|
-|`cluster_name`|Name of the cluster, based on the Cluster name setting setting.|
-|`index_name`|Name of the index. The name '_all' target all data streams and indices in a cluster.|
-
-- Metrics List
-
-
-| Metrics | Description| Data Type | Unit   |
-| ---- |---- | :---:    | :----: |
-|`total_flush_total`|Number of flush operations.|float|count|
-|`total_flush_total_time_in_millis`|Total time in milliseconds spent performing flush operations.|float|ms|
-|`total_get_missing_total`|Total number of failed get operations.|float|count|
-|`total_indexing_index_current`|Number of indexing operations currently running.|float|count|
-|`total_indexing_index_time_in_millis`|Total time in milliseconds spent performing indexing operations.|float|ms|
-|`total_indexing_index_total`|Total number of indexing operations.|float|count|
-|`total_merges_current_docs`|Number of document merges currently running.|float|count|
-|`total_merges_total`|Total number of merge operations.|float|count|
-|`total_merges_total_docs`|Total number of merged documents.|float|count|
-|`total_merges_total_time_in_millis`|Total time in milliseconds spent performing merge operations.|float|ms|
-|`total_refresh_total`|Total number of refresh operations.|float|count|
-|`total_refresh_total_time_in_millis`|Total time in milliseconds spent performing refresh operations.|float|ms|
-|`total_search_fetch_current`|Number of fetch operations currently running.|float|count|
-|`total_search_fetch_time_in_millis`|Time in milliseconds spent performing fetch operations.|float|ms|
-|`total_search_fetch_total`|Total number of fetch operations.|float|count|
-|`total_search_query_current`|Number of query operations currently running.|float|count|
-|`total_search_query_time_in_millis`|Time in milliseconds spent performing query operations.|float|ms|
-|`total_search_query_total`|Total number of query operations.|float|count|
-|`total_store_size_in_bytes`|Total size, in bytes, of all shards assigned to selected nodes.|float|B|
-
-
-
-### `elasticsearch_cluster_stats`
-
--  Tag
-
-
-| Tag Name | Description    |
-|  ----  | --------|
-|`cluster_name`|Name of the cluster, based on the cluster.name setting.|
-|`node_name`|Name of the node.|
-|`status`|Health status of the cluster, based on the state of its primary and replica shards.|
-
-- Metrics List
-
-
-| Metrics | Description| Data Type | Unit   |
-| ---- |---- | :---:    | :----: |
-|`nodes_process_open_file_descriptors_avg`|Average number of concurrently open file descriptors. Returns -1 if not supported.|float|count|
-
-
-
-### `elasticsearch_cluster_health`
-
--  Tag
-
-
-| Tag Name | Description    |
-|  ----  | --------|
-|`cluster_name`|Name of the cluster.|
-|`cluster_status`|The cluster status: red, yellow, green.|
-
-- Metrics List
-
-
-| Metrics | Description| Data Type | Unit   |
-| ---- |---- | :---:    | :----: |
-|`active_primary_shards`|The number of active primary shards in the cluster.|int|count|
-|`active_shards`|The number of active shards in the cluster.|int|count|
-|`indices_lifecycle_error_count`|The number of indices that are managed by ILM and are in an error state.|int|count|
-|`initializing_shards`|The number of shards that are currently initializing.|int|count|
-|`number_of_data_nodes`|The number of data nodes in the cluster.|int|count|
-|`number_of_pending_tasks`|The total number of pending tasks.|int|count|
-|`relocating_shards`|The number of shards that are relocating from one node to another.|int|count|
-|`status_code`|The health as a number: red = 3, yellow = 2, green = 1.|int|count|
-|`unassigned_shards`|The number of shards that are unassigned to a node.|int|count|
-
- 
-
+{{ end }} 
 
 ## Log Collection {#logging}
 

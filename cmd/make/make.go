@@ -17,10 +17,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -44,12 +45,15 @@ var (
 	flagDumpSamples     = flag.Bool("dump-samples", false, "download and dump local samples to OSS")
 	flagUnitTest        = flag.Bool("ut", false, "test all DataKit code")
 	flagRaceDetection   = flag.String("race", "off", "enable race deteciton")
+	flagDatawayURL      = flag.String("dataway-url", "", "set dataway URL(https://dataway.com/v1/write/logging?token=xxx) to push testing metrics")
 
 	l = logger.DefaultSLogger("make")
 )
 
 func applyFlags() {
 	if *flagUnitTest {
+		testutils.DatawayURL = *flagDatawayURL
+
 		if err := build.UnitTestDataKit(); err != nil {
 			l.Errorf("build.UnitTestDataKit: %s", err)
 			os.Exit(-1)
@@ -98,7 +102,6 @@ func applyFlags() {
 	build.AppName = *flagName
 	build.Archs = *flagArchs
 	build.RaceDetection = (*flagRaceDetection == "on")
-
 	build.MainEntry = *flagMain
 
 	switch *flagRelease {

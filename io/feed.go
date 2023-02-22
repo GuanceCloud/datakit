@@ -11,52 +11,29 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
 var ErrIOBusy = errors.New("io busy")
 
-type Option struct {
-	CollectCost time.Duration
-
-	// HighFreq deprecated
-	// 之前的高频通道是避免部分不老实的采集器每次只 feed 少数几个点
-	// 容易导致 chan feed 效率低，所以选择惩罚性的定期才去消费该
-	// 高频通道。
-	// 目前基本不太会有这种采集器了，而且 io 本身也不会再有阻塞操作，
-	// 故移除了高频通道。
-	HighFreq bool
-
-	Version  string
-	HTTPHost string
-
-	PostTimeout time.Duration
-	Sample      func(points []*point.Point) []*point.Point
-
-	Blocking bool
-
-	PlScript map[string]string // <measurement>: <script name>
-	PlOption *plscript.Option
+// DefaultFeeder get default feeder.
+func DefaultFeeder() Feeder {
+	return &ioFeeder{}
 }
 
+// iodata wraps feeder data to upload queue.
 type iodata struct {
 	category,
 	from string
 	filtered int
 	opt      *Option
-	pts      []*point.Point
-}
-
-func Feed(name, category string, pts []*point.Point, opt *Option) error {
-	if len(pts) == 0 {
-		return nil
-	}
-
-	return defaultIO.DoFeed(pts, category, name, opt)
+	pts      []*dkpt.Point
 }
 
 type lastError struct {
@@ -64,37 +41,82 @@ type lastError struct {
 	ts        time.Time
 }
 
-// FeedLastError feed some error message(*unblocking*) to inputs stats
-// we can see the error in monitor.
-// NOTE: the error may be skipped if there is too many error.
-func FeedLastError(inputName string, err string) {
-	select {
-	case defaultIO.inLastErr <- &lastError{
-		from: inputName,
-		err:  err,
-		ts:   time.Now(),
-	}:
+// Option used to define various feed options.
+type Option struct {
+	CollectCost time.Duration
 
-	// NOTE: the defaultIO.inLastErr is unblock channel, so make it
-	// unblock feed here, to prevent inputs blocked when IO blocked(and
-	// the bug we have to fix)
-	default:
-		log.Warnf("FeedLastError(%s, %s) skipped, ignored", inputName, err)
+	Version  string
+	HTTPHost string
+
+	PostTimeout time.Duration
+
+	Blocking bool
+
+	PlScript map[string]string // <measurement>: <script name>
+	PlOption *plscript.Option
+}
+
+type Feeder interface {
+	Feed(name string, category point.Category, pts []*point.Point, opt ...*Option) error
+	FeedLastError(inputName string, err string)
+}
+
+// default IO feed implements.
+type ioFeeder struct{}
+
+// point2dkpt convert point.Point to old io/point.Point.
+func point2dkpt(pts ...*point.Point) (res []*dkpt.Point) {
+	for _, pt := range pts {
+		pt, err := influxdb.NewPoint(string(pt.Name()), pt.InfluxTags(), pt.InfluxFields(), pt.Time())
+		if err != nil {
+			continue
+		}
+
+		res = append(res, &dkpt.Point{Point: pt})
+	}
+
+	return res
+}
+
+// nolint: deadcode,unused
+// dkpt2point convert old io/point.Point to point.Point.
+func dkpt2point(pts ...*dkpt.Point) (res []*point.Point) {
+	for _, pt := range pts {
+		fs, err := pt.Fields()
+		if err != nil {
+			continue
+		}
+
+		pt := point.NewPointV2([]byte(pt.Name()),
+			append(point.NewTags(pt.Tags()), point.NewKVs(fs)...), nil)
+
+		res = append(res, pt)
+	}
+
+	return res
+}
+
+// Feed send collected point to io upload queue. Before sending to upload queue,
+// pipeline and filter are applied to pts.
+func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*Option) error {
+	iopts := point2dkpt(pts...)
+
+	if len(opts) == 0 {
+		return defaultIO.doFeed(iopts, category.URL(), name, nil)
+	} else {
+		return defaultIO.doFeed(iopts, category.URL(), name, opts[0])
 	}
 }
 
-func SelfError(err string) {
-	FeedLastError(datakit.DatakitInputName, err)
+// FeedLastError report any error message, these messages will show in monitor
+// and integration view.
+func (f *ioFeeder) FeedLastError(name, category string) {
+	doFeedLastError(name, category)
 }
 
-//nolint:gocyclo
-func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) error {
-	log.Debugf("io feed %s|%s", from, category)
-
-	var ch chan *iodata
-
-	filtered := 0
-	var after []*point.Point
+// beforeFeed apply pipeline and filter handling on pts.
+func beforeFeed(category string, pts []*dkpt.Point, opt *Option) ([]*dkpt.Point, error) {
+	var after []*dkpt.Point
 
 	switch category {
 	case datakit.Logging,
@@ -113,7 +135,7 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 		}
 	case datakit.Metric, datakit.MetricDeprecated:
 	default:
-		return fmt.Errorf("invalid category `%s'", category)
+		return nil, fmt.Errorf("invalid category `%s'", category)
 	}
 
 	// run pipeline
@@ -126,14 +148,25 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 	after, err := pipeline.RunPl(category, pts, plopt, scriptConfMap)
 	if err != nil {
 		log.Error(err)
-	} else {
-		pts = after
 	}
 
 	// run filters
-	after = filter.FilterPts(category, pts)
-	filtered = len(pts) - len(after)
-	pts = after
+	after = filter.FilterPts(category, after)
+	return after, nil
+}
+
+//nolint:gocyclo
+func (x *IO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) error {
+	log.Debugf("io feed %s|%s", from, category)
+
+	var ch chan *iodata
+
+	after, err := beforeFeed(category, pts, opt)
+	if err != nil {
+		return err
+	}
+
+	filtered := len(pts) - len(after)
 
 	if opt != nil && opt.HTTPHost != "" {
 		ch = x.chans[datakit.DynamicDatawayCategory]
@@ -143,7 +176,7 @@ func (x *IO) DoFeed(pts []*point.Point, category, from string, opt *Option) erro
 
 	job := &iodata{
 		category: category,
-		pts:      pts,
+		pts:      after,
 		filtered: filtered,
 		from:     from,
 		opt:      opt,
@@ -184,4 +217,41 @@ func blockingFeed(job *iodata, ch chan *iodata) error {
 		log.Warnf("%s/%s feed skipped on global exit", job.category, job.from)
 		return fmt.Errorf("feed on global exit")
 	}
+}
+
+// FeedLastError feed some error message(*unblocking*) to inputs stats
+// we can see the error in monitor.
+//
+// NOTE: the error may be skipped if there is too many error.
+//
+// Deprecated: should use DefaultFeeder to get global default feeder.
+func FeedLastError(inputName, err string) {
+	doFeedLastError(inputName, err)
+}
+
+func doFeedLastError(inputName, err string) {
+	select {
+	case defaultIO.inLastErr <- &lastError{
+		from: inputName,
+		err:  err,
+		ts:   time.Now(),
+	}:
+
+	// NOTE: the defaultIO.inLastErr is unblock channel, so make it
+	// unblock feed here, to prevent inputs blocked when IO blocked(and
+	// the bug we have to fix)
+	default:
+		log.Warnf("FeedLastError(%s, %s) skipped, ignored", inputName, err)
+	}
+}
+
+// Feed send data to io module.
+//
+// Deprecated: inputs should use DefaultFeeder to get global default feeder.
+func Feed(name, category string, pts []*dkpt.Point, opt *Option) error {
+	if len(pts) == 0 {
+		return nil
+	}
+
+	return defaultIO.doFeed(pts, category, name, opt)
 }

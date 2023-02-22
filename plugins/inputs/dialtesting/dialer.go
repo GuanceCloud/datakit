@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	_ "github.com/go-ping/ping"
-	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
@@ -78,6 +78,29 @@ func (d *dialer) run() error {
 	defer close(d.updateCh)
 
 	for {
+		failCount := d.getSendFailCount()
+		if failCount > MaxSendFailCount {
+			l.Warnf("dial testing %s send data failed %d times", d.task.ID(), failCount)
+			return nil
+		}
+
+		l.Debugf(`dialer run %+#v, fail count: %d`, d, failCount)
+		d.testCnt++
+
+		switch d.task.Class() {
+		case dt.ClassHeadless:
+			return fmt.Errorf("headless task deprecated")
+		default:
+			_ = d.task.Run() //nolint:errcheck
+		}
+
+		// dialtesting start
+		// 无论成功或失败，都要记录测试结果
+		err := d.feedIO()
+		if err != nil {
+			l.Warnf("io feed failed, %s", err.Error())
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			l.Infof("dial testing %s exit", d.task.ID())
@@ -88,28 +111,6 @@ func (d *dialer) run() error {
 			return nil
 
 		case <-d.ticker.C:
-			failCount := d.getSendFailCount()
-			if failCount > MaxSendFailCount {
-				l.Warnf("dial testing %s send data failed %d times", d.task.ID(), failCount)
-				return nil
-			}
-
-			l.Debugf(`dialer run %+#v, fail count: %d`, d, failCount)
-			d.testCnt++
-
-			switch d.task.Class() {
-			case dt.ClassHeadless:
-				return fmt.Errorf("headless task deprecated")
-			default:
-				_ = d.task.Run() //nolint:errcheck
-			}
-
-			// dialtesting start
-			// 无论成功或失败，都要记录测试结果
-			err := d.feedIO()
-			if err != nil {
-				l.Warnf("io feed failed, %s", err.Error())
-			}
 
 		case t := <-d.updateCh:
 			d.doUpdateTask(t)

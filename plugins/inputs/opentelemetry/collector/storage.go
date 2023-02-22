@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -130,7 +130,7 @@ func (ss *SpansStorage) feedAll() {
 
 	if metrics := ss.GetDKMetric(); len(metrics) > 0 {
 		pts := makePoints(metrics)
-		err := dkio.Feed(inputName, datakit.Metric, pts, &dkio.Option{HighFreq: true})
+		err := dkio.Feed(inputName, datakit.Metric, pts, nil)
 		if err != nil {
 			log.Errorf("feed to io error=%v", err)
 		}

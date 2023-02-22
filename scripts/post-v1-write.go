@@ -24,9 +24,9 @@ import (
 	"syscall"
 	"time"
 
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/gin-gonic/gin"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 )
 
 var (

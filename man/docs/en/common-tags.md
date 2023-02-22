@@ -17,7 +17,7 @@ These tags are independent of the specific data type, and can be appended to any
 | election_namespace | The namespace of the election is not appended by default. See [the document](datakit-daemonset-deploy.md#env-elect).                   |
 | version            | Version number, all tag fields involving version information, should be represented by this tag.                                          |
 
-### Kubernates/Common Tag of Container{#k8s-tags}
+### Kubernates/Common Tag of Container {#k8s-tags}
 
 These tags are usually added to the collected data, but when it comes to time series collection, some changeable tags (such as `pod_name`) will be ignored by default to save the timeline.
 

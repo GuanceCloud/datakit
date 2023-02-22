@@ -6,7 +6,8 @@
 package sqlserver
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -14,10 +15,25 @@ type Performance struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
+
+	ipt *Input
 }
 
-func (m *Performance) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+// Point implement MeasurementV2.
+func (m *Performance) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.ipt != nil && m.ipt.Election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *Performance) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
 }
 
 //nolint:lll
@@ -43,8 +59,8 @@ type WaitStatsCategorized struct {
 	fields map[string]interface{}
 }
 
-func (m *WaitStatsCategorized) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+func (m *WaitStatsCategorized) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
 }
 
 //nolint:lll
@@ -74,8 +90,8 @@ type DatabaseIO struct {
 	fields map[string]interface{}
 }
 
-func (m *DatabaseIO) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+func (m *DatabaseIO) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
 }
 
 //nolint:lll
@@ -110,8 +126,8 @@ type ServerProperties struct {
 	fields map[string]interface{}
 }
 
-func (m *ServerProperties) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+func (m *ServerProperties) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
 }
 
 //nolint:lll
@@ -141,8 +157,8 @@ type Schedulers struct {
 	fields map[string]interface{}
 }
 
-func (m *Schedulers) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+func (m *Schedulers) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
 }
 
 //nolint:lll
@@ -181,8 +197,8 @@ type VolumeSpace struct {
 	fields map[string]interface{}
 }
 
-func (m *VolumeSpace) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+func (m *VolumeSpace) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
 }
 
 //nolint:lll
@@ -209,8 +225,8 @@ type LockRow struct {
 	election bool
 }
 
-func (m *LockRow) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
+func (m *LockRow) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.LOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -243,8 +259,8 @@ type LockTable struct {
 	fields map[string]interface{}
 }
 
-func (m *LockTable) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
+func (m *LockTable) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.LOptElection())
 }
 
 //nolint:lll
@@ -271,8 +287,8 @@ type LockDead struct {
 	fields map[string]interface{}
 }
 
-func (m *LockDead) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
+func (m *LockDead) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.LOptElection())
 }
 
 //nolint:lll
@@ -302,8 +318,8 @@ type LogicalIO struct {
 	election bool
 }
 
-func (m *LogicalIO) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
+func (m *LogicalIO) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.LOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -333,8 +349,8 @@ type WorkerTime struct {
 	election bool
 }
 
-func (m *WorkerTime) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
+func (m *WorkerTime) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.LOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -362,8 +378,8 @@ type DatabaseSize struct {
 	election bool
 }
 
-func (m *DatabaseSize) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+func (m *DatabaseSize) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
 }
 
 //nolint:lll

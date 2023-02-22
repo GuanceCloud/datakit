@@ -424,7 +424,7 @@ func (m *monitorAPP) renderGoroutineTable(ds *dkhttp.DatakitStats, colArr []stri
 }
 
 func (m *monitorAPP) renderExitPrompt() {
-	if m.ds.IOStats.BeyondUsage == 0 {
+	if m.ds != nil && m.ds.IOStats != nil && m.ds.IOStats.BeyondUsage == 0 {
 		fmt.Fprintf(m.exitPrompt, "[green]Refresh: %s. monitor: %s | Double ctrl+c to exit",
 			*flagMonitorRefreshInterval, time.Since(m.start).String())
 	} else {
@@ -935,21 +935,9 @@ func (m *monitorAPP) setup() {
 	})
 
 	if err := m.app.SetRoot(m.flex, true).EnableMouse(true).Run(); err != nil {
-		if getCharset() == "zh_CN.gbk" {
-			cp.Errorf("GBK is not support by monitor\n")
-			os.Exit(1)
-		}
-		panic(err)
+		cp.Errorf("setup error:%s\n", err)
+		os.Exit(1)
 	}
-}
-
-func getCharset() (locale string) {
-	if locale = os.Getenv("LC_ALL"); locale == "" {
-		if locale = os.Getenv("LC_CTYPE"); locale == "" {
-			locale = os.Getenv("LANG")
-		}
-	}
-	return
 }
 
 func (m *monitorAPP) run() error {

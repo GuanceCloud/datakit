@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/gin-gonic/gin"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 )
 
 type SingleQuery struct {

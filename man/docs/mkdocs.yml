@@ -9,17 +9,12 @@ theme:
   #favicon: assets/images/favicon.ico
   #logo: assets/images/logo.png
   language: zh
-  font:
-    text: Roboto
-    code: Roboto Mono
   features:
-    - content.tabs.link
     - navigation.instant
-    - navigation.top
-    - navigation.tracking
-    - navigation.path
     - search.suggest
     - toc.follow
+    - content.tabs.link
+    - navigation.top
 
 markdown_extensions:
   tables: {}
