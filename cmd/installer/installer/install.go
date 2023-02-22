@@ -57,6 +57,7 @@ func Install(svc service.Service) {
 		var err error
 		mc.DataWay, err = getDataWay()
 		if err != nil {
+			cp.Errorf("%s\n", err.Error())
 			l.Fatal(err)
 		}
 		cp.Infof("Set dataway to %s\n", Dataway)
