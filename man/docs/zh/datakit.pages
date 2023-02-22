@@ -26,7 +26,6 @@ nav:
     - '代理配置': proxy.md
     - '其它配置方式':
       - '配置综述': k8s-config-how-to.md
-      - 'Dataway Sink': datakit-sink-dataway.md
       - 'DCA': dca.md
       - 'Git': git-config-how-to.md
       - '配置中心支持': confd.md
