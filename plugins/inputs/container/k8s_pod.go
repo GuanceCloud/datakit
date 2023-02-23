@@ -8,6 +8,7 @@ package container
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -188,8 +189,11 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 				break
 			}
 		}
-		if deployment := getDeployment(item.Labels["app"], item.Namespace); deployment != "" {
-			obj.tags["deployment"] = deployment
+
+		if podTemplateHash := item.Labels["pod-template-hash"]; podTemplateHash != "" {
+			if r := obj.tags["replica_set"]; r != "" {
+				obj.tags["deployment"] = strings.TrimSuffix(r, "-"+podTemplateHash)
+			}
 		}
 
 		for _, containerStatus := range item.Status.ContainerStatuses {
