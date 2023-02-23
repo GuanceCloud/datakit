@@ -366,6 +366,9 @@ github.com/aws/smithy-go/transport/http/internal/io
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
+# github.com/bmatcuk/doublestar/v4 v4.6.0
+## explicit; go 1.16
+github.com/bmatcuk/doublestar/v4
 # github.com/buger/jsonparser v1.1.1
 ## explicit; go 1.13
 github.com/buger/jsonparser
@@ -1185,6 +1188,8 @@ github.com/mattn/go-runewidth
 # github.com/mattn/go-tty v0.0.3
 ## explicit; go 1.14
 github.com/mattn/go-tty
+# github.com/mattn/go-zglob v0.0.4
+## explicit; go 1.12
 # github.com/matttproud/golang_protobuf_extensions v1.0.4
 ## explicit; go 1.9
 github.com/matttproud/golang_protobuf_extensions/pbutil

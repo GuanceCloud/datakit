@@ -7,8 +7,8 @@ package tailer
 
 import (
 	"os"
-	"path/filepath"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/gobwas/glob"
 )
 
@@ -31,7 +31,7 @@ func (p *Provider) SearchFiles(patterns []string) *Provider {
 			continue
 		}
 
-		paths, err := filepath.Glob(pattern)
+		paths, err := doublestar.FilepathGlob(pattern)
 		if err != nil {
 			p.lastErr = err
 			continue
