@@ -22,19 +22,26 @@ import (
 // There may be some error returned here.
 func runToolFlags() error {
 	switch {
-	case *flagPromConf != "":
-		if err := promDebugger(*flagPromConf); err != nil {
+	case *flagToolPromConf != "":
+		if err := promDebugger(*flagToolPromConf); err != nil {
 			cp.Errorf("[E] %s\n", err)
 			os.Exit(-1)
 		}
 
 		os.Exit(0)
 
-	case *flagSetupCompleterScripts:
+	case *flagToolParseLineProtocol != "":
+		if err := parseLineProto(); err != nil {
+			os.Exit(1)
+		} else {
+			os.Exit(-1)
+		}
+
+	case *flagToolSetupCompleterScripts:
 		setupCompleterScripts()
 		os.Exit(0)
 
-	case *flagCompleterScripts:
+	case *flagToolCompleterScripts:
 		showCompletionScripts()
 		os.Exit(0)
 
