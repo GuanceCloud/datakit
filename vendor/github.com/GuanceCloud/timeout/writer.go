@@ -55,6 +55,15 @@ func (w *Writer) writeHeader(code int) {
 	w.code = code
 }
 
+// Status we must implement this func,
+// or the status code will always be 200 when call gin.Context.Writer.Status() in our custom gin middleware.
+func (w *Writer) Status() int {
+	if w.code == 0 || w.timeout {
+		return w.ResponseWriter.Status()
+	}
+	return w.code
+}
+
 // Header will get response headers
 func (w *Writer) Header() http.Header {
 	return w.headers

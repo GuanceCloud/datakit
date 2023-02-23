@@ -88,6 +88,9 @@ github.com/GuanceCloud/platypus/pkg/errchain
 github.com/GuanceCloud/platypus/pkg/inimpl/guancecloud/input
 github.com/GuanceCloud/platypus/pkg/parser
 github.com/GuanceCloud/platypus/pkg/token
+# github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747
+## explicit; go 1.15
+github.com/GuanceCloud/timeout
 # github.com/MichaelMure/go-term-markdown v0.1.3
 ## explicit; go 1.12
 github.com/MichaelMure/go-term-markdown
@@ -685,7 +688,6 @@ github.com/gdamore/tcell/v2/terminfo/x/xterm_termite
 github.com/gin-contrib/sse
 # github.com/gin-contrib/timeout v0.0.3
 ## explicit; go 1.15
-github.com/gin-contrib/timeout
 # github.com/gin-gonic/gin v1.7.4
 ## explicit; go 1.13
 github.com/gin-gonic/gin

@@ -89,6 +89,7 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 	if pts, err = ipt.parseRUMBody(body, precision, isjson, geoTags(getSrcIP(apiConfig, req)), apiConfig.RUMAppIDWhiteList); err != nil {
 		log.Error(err.Error())
 		httpErr(resp, dkhttp.ErrInvalidLinePoint)
+
 		return
 	}
 	if len(pts) == 0 {

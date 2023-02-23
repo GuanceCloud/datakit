@@ -152,6 +152,8 @@ github.com/GuanceCloud/pyroscope v0.36.1 h1:u9hR7N+5ASIddXSVJAXYQG/EaXuUzKG2GkRR
 github.com/GuanceCloud/pyroscope v0.36.1/go.mod h1:VhUxChLTPH19q9V+5/4Yan4vY0XvtXQSySVf2luMx+w=
 github.com/GuanceCloud/service v1.2.1-rc3 h1:HtY/E0DNy6u2npmc2AMduhlmr2duYQfoH/F0i4eA2lc=
 github.com/GuanceCloud/service v1.2.1-rc3/go.mod h1:CIMRFEJVL+0DS1a3Nx06NaMn4Dz63Ng6O7dl0qH0zVM=
+github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747 h1:YqwjFsmNo7txn4caeD74aJTD8b7mk3EzEVnJDZUfDPM=
+github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747/go.mod h1:euv8CBpLJ81TJK8u4MHaiVVSHmbWBmj//c8xsTAwNNw=
 github.com/HdrHistogram/hdrhistogram-go v1.1.0 h1:6dpdDPTRoo78HxAJ6T1HfMiKSnqhgRRqzCuPshRkQ7I=
 github.com/HdrHistogram/hdrhistogram-go v1.1.0/go.mod h1:yDgFjdqOqDEKOvasDdhWNXYg9BVp4O+o5f6V/ehm6Oo=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
