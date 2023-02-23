@@ -90,6 +90,7 @@ func (p *pod) metric(election bool) (inputsMeas, error) {
 		// extract pod lables to tags, not overwrite the existed tags
 		if p.extractK8sLabelAsTags {
 			for k, v := range item.Labels {
+				k := strings.ReplaceAll(k, ".", "_")
 				if _, ok := met.tags[k]; !ok {
 					met.tags[k] = v
 				}
