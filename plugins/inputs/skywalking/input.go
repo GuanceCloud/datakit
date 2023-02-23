@@ -128,11 +128,11 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) Terminate() {
-	if skySvr != nil {
-		skySvr.Stop()
-	}
 	if api != nil {
 		api.CloseLocalCache()
+	}
+	if skySvr != nil {
+		skySvr.GracefulStop()
 	}
 }
 

@@ -309,6 +309,9 @@ func (ipt *Input) Terminate() {
 		}
 		log.Info("### storage closed")
 	}
+	if otelSvr != nil {
+		otelSvr.GracefulStop()
+	}
 }
 
 func init() { //nolint:gochecknoinits
