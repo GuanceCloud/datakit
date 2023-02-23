@@ -212,7 +212,7 @@ func TestHandleSourcemap(t *testing.T) {
 		Callback: func(p models.Point) (models.Point, error) {
 			if string(p.Name()) == "error" {
 				ipt := &Input{}
-				_, _ = ipt.parseSourcemap(p, SdkWeb)
+				p, _ = ipt.parseSourcemap(p, SdkWeb)
 			}
 			return p, nil
 		},
@@ -228,11 +228,12 @@ func TestHandleSourcemap(t *testing.T) {
 				continue
 			}
 			if _, ok := fields["error_stack"]; ok {
-				tags := p.Tags()
-				if errorStackSource, ok := tags["error_stack_source_base64"]; !ok {
+				fields, err := p.Fields()
+				assert.NoError(t, err)
+				if errorStackSource, ok := fields["error_stack_source_base64"]; !ok {
 					assert.Fail(t, "error stack transform failed")
 				} else {
-					decodBytes, err := base64.StdEncoding.DecodeString(errorStackSource)
+					decodBytes, err := base64.StdEncoding.DecodeString(errorStackSource.(string))
 					assert.NoError(t, err)
 					assert.Contains(t, string(decodBytes), "webpack")
 				}
