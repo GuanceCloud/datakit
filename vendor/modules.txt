@@ -1643,6 +1643,13 @@ github.com/xeipuuv/gojsonschema
 # github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 ## explicit
 github.com/youmark/pkcs8
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230209102325-20b8f6ded14e
+## explicit; go 1.18
+gitlab.jiagouyun.com/cloudcare-tools/cliutils
+gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
+gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
+gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
+gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
 # go.etcd.io/bbolt v1.3.6
 ## explicit; go 1.12
 go.etcd.io/bbolt
