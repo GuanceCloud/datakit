@@ -257,6 +257,7 @@ func (ipt *Input) RegHTTPHandler() {
 		dkhttp.RegHTTPHandler(http.MethodPost, endpoint,
 			workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
 				storage.HTTPWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, ipt.handleRUM)))
+
 		log.Infof("### register RUM endpoint: %s", endpoint)
 	}
 
