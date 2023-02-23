@@ -37,14 +37,32 @@ type versionDesc struct {
 	Go       string `json:"go"`
 }
 
-func tarFiles(pubPath, buildPath, appName, goos, goarch string) (string, string) {
-	gz := fmt.Sprintf("%s-%s-%s-%s.tar.gz",
-		appName, goos, goarch, ReleaseVersion)
-	gzPath := filepath.Join(pubPath, ReleaseType, gz)
+type tarFileOpt uint32
+
+const (
+	// Option to include version information in filename
+	TarRlsVerMask tarFileOpt = 0b1
+	TarNoRlsVer   tarFileOpt = 0b0
+	TarWithRlsVer tarFileOpt = 0b1
+)
+
+func tarFiles(pubPath, buildPath, appName, goos, goarch string, opt tarFileOpt) (string, string) {
+	var gzFileName, gzFilePath string
+
+	switch opt & TarRlsVerMask {
+	case TarWithRlsVer:
+		gzFileName = fmt.Sprintf("%s-%s-%s-%s.tar.gz",
+			appName, goos, goarch, ReleaseVersion)
+	case TarNoRlsVer:
+		gzFileName = fmt.Sprintf("%s-%s-%s.tar.gz",
+			appName, goos, goarch)
+	}
+
+	gzFilePath = filepath.Join(pubPath, ReleaseType, gzFileName)
 
 	args := []string{
 		`czf`,
-		gzPath,
+		gzFilePath,
 		`-C`,
 		// the whole basePath/appName-<goos>-<goarch> dir
 		filepath.Join(buildPath, fmt.Sprintf("%s-%s-%s", appName, goos, goarch)), `.`,
@@ -55,11 +73,11 @@ func tarFiles(pubPath, buildPath, appName, goos, goarch string) (string, string)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	l.Debugf("tar %s...", gzPath)
+	l.Debugf("tar %s...", gzFilePath)
 	if err := cmd.Run(); err != nil {
 		l.Fatal(err)
 	}
-	return gz, gzPath
+	return gzFileName, gzFilePath
 }
 
 func generateInstallScript() error {
@@ -288,7 +306,7 @@ func PubDatakit() error {
 	}
 
 	// upload all build archs
-	curArchs = parseArchs(Archs)
+	curArchs = ParseArchs(Archs)
 
 	if err := generateInstallScript(); err != nil {
 		return err
@@ -331,22 +349,9 @@ func PubDatakit() error {
 			return fmt.Errorf("invalid arch: %s", arch)
 		}
 		goos, goarch := parts[0], parts[1]
-
-		gzName, gzPath := tarFiles(PubDir, BuildDir, AppName, parts[0], parts[1])
+		gzName, gzPath := tarFiles(PubDir, BuildDir, AppName, parts[0], parts[1], TarWithRlsVer)
 		// gzName := fmt.Sprintf("%s-%s-%s.tar.gz", AppName, goos+"-"+goarch, ReleaseVersion)
 		basics[gzName] = gzPath
-
-		for _, appName := range StandaloneApps {
-			buildPath := filepath.Join(BuildDir, "standalone")
-			switch appName {
-			case "datakit-ebpf":
-				// eBPF programs can only be published using the function PubDatakitEBpf
-				continue
-			default:
-			}
-			gz, gzP := tarFiles(PubDir, buildPath, appName, parts[0], parts[1])
-			basics[gz] = gzP
-		}
 
 		installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
 		installerExeWithVer := fmt.Sprintf("installer-%s-%s-%s", goos, goarch, ReleaseVersion)
@@ -431,7 +436,7 @@ func PubDatakitEBpf() error {
 	}
 
 	// upload all build archs
-	curTmpArchs := parseArchs(Archs)
+	curTmpArchs := ParseArchs(Archs)
 
 	basics := map[string]string{}
 
@@ -458,7 +463,7 @@ func PubDatakitEBpf() error {
 			default:
 			}
 			curEBpfArchs = append(curEBpfArchs, arch)
-			gz, gzP := tarFiles(PubDir, buildPath, appName, parts[0], parts[1])
+			gz, gzP := tarFiles(PubDir, buildPath, appName, parts[0], parts[1], TarWithRlsVer)
 			basics[gz] = gzP
 		}
 	}

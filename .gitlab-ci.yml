@@ -135,7 +135,7 @@ release-testing:
   script:
     # building && publish testing
     - make clean
-    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH # do not set VERSION here, use git version
+    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH PKGEBPF=true # do not set VERSION here, use git version
     - make check_testing_conf_compatible
     - make testing_image IGN_EBPF_INSTALL_ERR=1
   tags:
@@ -154,7 +154,7 @@ release-stable:
     - master
   script:
     - make clean
-    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" # update the version on each release
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" PKGEBPF=true # update the version on each release
     - make check_production_conf_compatible
     - make pub_conf_samples
     - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"

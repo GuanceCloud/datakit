@@ -10,9 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -224,28 +221,6 @@ func Install(svc service.Service) {
 	// build datakit main config
 	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
-	}
-
-	installExts := map[string]struct{}{}
-	for _, v := range strings.Split(InstallExternals, ",") {
-		installExts[v] = struct{}{}
-	}
-	updateEBPF := false
-	if runtime.GOOS == datakit.OSLinux && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") {
-		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
-			updateEBPF = true
-		}
-		if _, ok := installExts["ebpf"]; ok {
-			updateEBPF = true
-		}
-	}
-	if updateEBPF {
-		cp.Infof("Install DataKit eBPF plugin...")
-		// nolint:gosec
-		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--ebpf")
-		if msg, err := cmd.CombinedOutput(); err != nil {
-			l.Errorf("upgradde external input plugin %s failed: %s msg: %s", "ebpf", err.Error(), msg)
-		}
 	}
 
 	cp.Infof("Installing service %s...\n", dkservice.Name)
