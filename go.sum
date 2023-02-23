@@ -152,6 +152,8 @@ github.com/GuanceCloud/pyroscope v0.36.1 h1:u9hR7N+5ASIddXSVJAXYQG/EaXuUzKG2GkRR
 github.com/GuanceCloud/pyroscope v0.36.1/go.mod h1:VhUxChLTPH19q9V+5/4Yan4vY0XvtXQSySVf2luMx+w=
 github.com/GuanceCloud/service v1.2.1-rc3 h1:HtY/E0DNy6u2npmc2AMduhlmr2duYQfoH/F0i4eA2lc=
 github.com/GuanceCloud/service v1.2.1-rc3/go.mod h1:CIMRFEJVL+0DS1a3Nx06NaMn4Dz63Ng6O7dl0qH0zVM=
+github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747 h1:YqwjFsmNo7txn4caeD74aJTD8b7mk3EzEVnJDZUfDPM=
+github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747/go.mod h1:euv8CBpLJ81TJK8u4MHaiVVSHmbWBmj//c8xsTAwNNw=
 github.com/HdrHistogram/hdrhistogram-go v1.1.0 h1:6dpdDPTRoo78HxAJ6T1HfMiKSnqhgRRqzCuPshRkQ7I=
 github.com/HdrHistogram/hdrhistogram-go v1.1.0/go.mod h1:yDgFjdqOqDEKOvasDdhWNXYg9BVp4O+o5f6V/ehm6Oo=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -2372,6 +2374,8 @@ github.com/yvasiyarov/newrelic_platform_go v0.0.0-20140908184405-b21fdbd4370f/go
 github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
 github.com/zenazn/goji v1.0.1/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
 gitlab.com/nyarla/go-crypt v0.0.0-20160106005555-d9a5dc2b789b/go.mod h1:T3BPAOm2cqquPa0MKWeNkmOM5RQsRhkrwMWonFMN7fE=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230209102325-20b8f6ded14e h1:ICIdiox6p5aHUW7laEBVoyNnb/El5HFSQ2/LiDkNDh8=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230209102325-20b8f6ded14e/go.mod h1:sPEffPATmMH0mjk45gsyT6+Tzpq9o+9JYXm5PkUyW4k=
 go.elastic.co/apm v1.5.0/go.mod h1:OdB9sPtM6Vt7oz3VXt7+KR96i9li74qrxBGHTQygFvk=
 go.elastic.co/apm v1.11.0/go.mod h1:qoOSi09pnzJDh5fKnfY7bPmQgl8yl2tULdOu03xhui0=
 go.elastic.co/apm/module/apmhttp v1.5.0/go.mod h1:1FbmNuyD3ddauwzgVwFB0fqY6KbZt3JkV187tGCYYhY=

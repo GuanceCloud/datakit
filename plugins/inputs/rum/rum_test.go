@@ -212,7 +212,7 @@ func TestHandleSourcemap(t *testing.T) {
 		Callback: func(p models.Point) (models.Point, error) {
 			if string(p.Name()) == "error" {
 				ipt := &Input{}
-				_ = ipt.parseSourcemap(p, SdkWeb)
+				_, _ = ipt.parseSourcemap(p, SdkWeb)
 			}
 			return p, nil
 		},
