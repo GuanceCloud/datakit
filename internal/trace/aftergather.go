@@ -141,14 +141,6 @@ func (aga *AfterGather) BuildPointsBatch(dktraces DatakitTraces, strict bool) []
 	return pts
 }
 
-func replaceDot(key string) string {
-	if strings.Contains(key, ".") {
-		return strings.ReplaceAll(key, ".", "_")
-	} else {
-		return key
-	}
-}
-
 // BuildPoint builds point from DatakitSpan.
 func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 	if dkspan.Service == "" {
@@ -165,7 +157,7 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 		tags[TAG_SOURCE_TYPE] = SPAN_SOURCE_CUSTOMER
 	}
 	for k, v := range dkspan.Tags {
-		tags[replaceDot(k)] = v
+		tags[strings.ReplaceAll(k, ".", "_")] = v
 	}
 	// exclude span_type in tags, span_type is crucial in data display
 	if dkspan.SpanType == "" {
@@ -183,7 +175,7 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 		FIELD_MESSAGE:  dkspan.Content,
 	}
 	for k, v := range dkspan.Metrics {
-		fields[replaceDot(k)] = v
+		fields[strings.ReplaceAll(k, ".", "_")] = v
 	}
 
 	return point.NewPoint(dkspan.Source, tags, fields, &point.PointOption{
