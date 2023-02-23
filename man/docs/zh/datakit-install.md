@@ -124,7 +124,7 @@ NAME1="value1" NAME2="value2"
 - `DK_DCA_WHITE_LIST`: 支持安装阶段设置访问 DCA 服务白名单，多个白名单以 `,` 分割 (如：`192.168.0.1/24,10.10.0.1/24`)
 
 ### 外部采集器相关 {#env-external-inputs}
-- `DK_INSTALL_EXTERNALS`: 可用于安装如 ebpf 等未与 DataKit 一起打包的外部采集器
+- `DK_INSTALL_EXTERNALS`: 可用于安装未与 DataKit 一起打包的外部采集器
 
 ### Confd 配置相关 {#env-connfd}
 

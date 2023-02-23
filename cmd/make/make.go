@@ -21,6 +21,8 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
@@ -39,6 +41,7 @@ var (
 	flagArchs           = flag.String("archs", "local", "os archs")
 	flagRelease         = flag.String("release", "", `build for local/testing/production`)
 	flagPub             = flag.Bool("pub", false, `publish binaries to OSS: local/testing/production`)
+	flagPkgEBpf         = flag.Bool("pkg-ebpf", false, `add datakit-ebpf to datakit tarball`)
 	flagPubEBpf         = flag.Bool("pub-ebpf", false, `publish datakit-ebpf to OSS: local/testing/production`)
 	flagBuildISP        = flag.Bool("build-isp", false, "generate ISP data")
 	flagDownloadSamples = flag.Bool("download-samples", false, "download samples from OSS to samples/")
@@ -397,6 +400,31 @@ func main() {
 
 	if *flagPub {
 		build.NotifyStartPub()
+		if *flagPkgEBpf {
+			curArch := build.ParseArchs(build.Archs)
+			for _, arch := range curArch {
+				parts := strings.Split(arch, "/")
+				if len(parts) != 2 {
+					err := fmt.Errorf("invalid arch: %s", arch)
+					l.Error(err)
+					build.NotifyFail(err.Error())
+				}
+				goos, goarch := parts[0], parts[1]
+				if goos == "linux" {
+					url := "https://" + filepath.Join(build.DownloadAddr, fmt.Sprintf(
+						"datakit-ebpf-%s-%s-%s.tar.gz", goos, goarch, build.ReleaseVersion))
+					dir := fmt.Sprintf("%s/%s-%s-%s/externals/", build.BuildDir, build.AppName, goos, goarch)
+
+					switch goarch {
+					case "amd64", "arm64":
+						if err := downloader.Download(ihttp.Cli(nil), url, dir, false, false); err != nil {
+							l.Error(err)
+							build.NotifyFail(err.Error())
+						}
+					}
+				}
+			}
+		}
 		if err := build.PubDatakit(); err != nil {
 			l.Error(err)
 			build.NotifyFail(err.Error())

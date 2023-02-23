@@ -45,6 +45,8 @@ DATAKIT_EBPF_ARCHS?="linux/arm64,linux/amd64"
 IGN_EBPF_INSTALL_ERR?=0
 RACE_DETECTION?="off"
 
+PKGEBPF?=false
+
 GO_MAJOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
 GO_MINOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
 GO_PATCH_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f3)
@@ -122,7 +124,8 @@ define pub
 	@GO111MODULE=off go run cmd/make/make.go \
 		-pub -release $(1) -pub-dir $(PUB_DIR) \
 		-name $(NAME) -download-addr $(2) \
-		-build-dir $(BUILD_DIR) -archs $(3)
+		-build-dir $(BUILD_DIR) -archs $(3) \
+		-pkg-ebpf $(PKGEBPF)
 endef
 
 define pub_ebpf
