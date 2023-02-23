@@ -218,6 +218,8 @@ func (t *Tailer) scan() {
 			continue
 		}
 
+		t.opt.log.Infof("new logging file %s with source %s", filename, t.opt.Source)
+
 		func(filename string) {
 			g.Go(func(ctx context.Context) error {
 				defer t.removeFromFileList(filename)
