@@ -8,6 +8,7 @@ package container
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -188,8 +189,11 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 				break
 			}
 		}
-		if deployment := getDeployment(item.Labels["app"], item.Namespace); deployment != "" {
-			obj.tags["deployment"] = deployment
+
+		if podTemplateHash := item.Labels["pod-template-hash"]; podTemplateHash != "" {
+			if r := obj.tags["replica_set"]; r != "" {
+				obj.tags["deployment"] = strings.TrimSuffix(r, "-"+podTemplateHash)
+			}
 		}
 
 		for _, containerStatus := range item.Status.ContainerStatuses {
@@ -209,18 +213,15 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 		}
 		obj.fields["ready"] = containerReadyCount
 
-		restartCount := 0
-		for _, containerStatus := range item.Status.InitContainerStatuses {
-			restartCount += int(containerStatus.RestartCount)
-		}
+		maxRestarts := 0
 		for _, containerStatus := range item.Status.ContainerStatuses {
-			restartCount += int(containerStatus.RestartCount)
+			if int(containerStatus.RestartCount) > maxRestarts {
+				maxRestarts = int(containerStatus.RestartCount)
+			}
 		}
-		for _, containerStatus := range item.Status.EphemeralContainerStatuses {
-			restartCount += int(containerStatus.RestartCount)
-		}
-		obj.fields["restart"] = restartCount
-		obj.fields["restarts"] = restartCount
+
+		obj.fields["restart"] = maxRestarts //depercated
+		obj.fields["restarts"] = maxRestarts
 
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
@@ -294,7 +295,7 @@ type podMetric struct {
 }
 
 func (p *podMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_pod", p.tags, p.fields, point.MOptElectionV2(p.election))
+	return point.NewPoint("kube_pod", p.tags, p.fields, &point.PointOption{GlobalElectionTags: p.election, Strict: true})
 }
 
 //nolint:lll

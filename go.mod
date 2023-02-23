@@ -116,6 +116,7 @@ require (
 	github.com/GuanceCloud/grok v1.1.2
 	github.com/GuanceCloud/platypus v0.2.3
 	github.com/Shopify/sarama v1.29.1
+	github.com/bmatcuk/doublestar/v4 v4.6.0
 	github.com/cortexproject/cortex v1.9.1-0.20210722081137-485474c9afb2
 	github.com/gin-contrib/timeout v0.0.3
 	github.com/golang/protobuf v1.5.2
