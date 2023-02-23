@@ -297,3 +297,16 @@ Variable description:
     - Currently only Javascript/Android/iOS sourcemap conversion is supported.
     - If the corresponding sourcemap file is not found, no conversion will be performed.
     - Sourcemap compressed package uploaded through the interface, which does not need to restart DataKit to take effect. However, if it is uploaded manually, you need to restart the DataKit before it can take effect.
+
+
+## CDN resolve {#cdn-resolve}
+
+For the `resource` indicator, DataKit attempts to analyze whether the resource uses CDN and the corresponding CDN manufacturer. When the `provider_type` field value in the indicator set is "CDN", it indicates that
+The resource uses CDN, and the `provider_name` field value is the specific CDN manufacturer name.
+
+### Customize the CDN lookup dictionary {#customize-cdn-map}
+
+DataKit has a built-in list of CDN manufacturers. If you find that the CDN you use cannot be recognized, you can modify the list in the configuration file, which is located at
+`/Usr/local/datakit/conf.d/rum/rum.conf`, off course it is determined according to your DataKit installation location, where `cdn_map` configuration item is used to customize the CDN dictionary,
+The value is a `[{"domain": "alicdn.com", "name": "Aliyun CDN", "website": "https://www.aliyun.com"},...]` JSON format like, 
+After modification, remember to restart the DataKit.
