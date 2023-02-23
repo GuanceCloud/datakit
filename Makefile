@@ -298,7 +298,12 @@ vet:
 	@go vet ./...
 
 ut: deps
-	GO111MODULE=off CGO_ENABLED=1 go run cmd/make/make.go -ut -dataway-url "$(DATAWAY_URL)"
+	GO111MODULE=off CGO_ENABLED=1 go run cmd/make/make.go -ut -dataway-url "$(DATAWAY_URL)"; \
+		if [ $$? != 0 ]; then \
+			exit 1; \
+		else \
+			echo "######################"; \
+		fi
 
 # all testing
 
