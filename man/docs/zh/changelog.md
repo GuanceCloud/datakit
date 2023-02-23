@@ -33,7 +33,7 @@
 - Datakit yaml 和 helm 支持资源 limit 配置(#1416)
 - Datakit yaml 和 helm 支持 CRD 部署(#1415)
 - 添加 SQL-Server 集成测试(#1406)
-- RUM 支持 resource CDN 标注(#1384)
+- RUM 支持 [resource CDN 标注](rum.md#cdn标注-cdn-resolve)(#1384)
 
 ### 问题修复 {#cl-1.5.6-fix}
 
@@ -50,8 +50,9 @@
 - 优化拨测逻辑(#1421)
 - 优化 Windows 下安装提示(#1404)
 - 优化 powershell 安装脚本模板(#1403)
-- 重构 point 数据结构及功能(#1400)
 - 优化 k8s 中 pod, ReplicaSet, Deployment 的关联方法(#1368)
+- 重构 point 数据结构及功能(#1400)
+- Datakit 自带 eBPF 采集器二进制安装(#1448)
 
 ---
 

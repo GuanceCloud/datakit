@@ -219,8 +219,6 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 				maxRestarts = int(containerStatus.RestartCount)
 			}
 		}
-
-		obj.fields["restart"] = maxRestarts //depercated
 		obj.fields["restarts"] = maxRestarts
 
 		obj.fields.addMapWithJSON("annotations", item.Annotations)

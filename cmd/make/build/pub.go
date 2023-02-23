@@ -40,7 +40,7 @@ type versionDesc struct {
 type tarFileOpt uint32
 
 const (
-	// Option to include version information in filename
+	// Option to include version information in filename.
 	TarRlsVerMask tarFileOpt = 0b1
 	TarNoRlsVer   tarFileOpt = 0b0
 	TarWithRlsVer tarFileOpt = 0b1
