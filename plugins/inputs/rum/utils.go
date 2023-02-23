@@ -37,6 +37,8 @@ import (
 
 const iosDSYMFilePath = "Contents/Resources/DWARF"
 
+const CacheInitCap = 16
+
 const (
 	SdkWeb     = "df_web_rum_sdk"
 	SdkAndroid = "df_android_rum_sdk"
@@ -654,4 +656,233 @@ func deleteSourcemapCache(zipFile string) {
 		defer sourcemapLock.Unlock()
 		delete(sourcemapCache, fileName)
 	}
+}
+
+// isDomainName checks if a string is a presentation-format domain name,
+// this func is copied from net package.
+func isDomainName(s string) bool {
+	// The root domain name is valid. See golang.org/issue/45715.
+	if s == "." {
+		return true
+	}
+
+	// See RFC 1035, RFC 3696.
+	// Presentation format has dots before every label except the first, and the
+	// terminal empty label is optional here because we assume fully-qualified
+	// (absolute) input. We must therefore reserve space for the first and last
+	// labels' length octets in wire format, where they are necessary and the
+	// maximum total length is 255.
+	// So our _effective_ maximum is 253, but 254 is not rejected if the last
+	// character is a dot.
+	l := len(s)
+	if l == 0 || l > 254 || l == 254 && s[l-1] != '.' {
+		return false
+	}
+
+	last := byte('.')
+	nonNumeric := false // true once we've seen a letter or hyphen
+	partlen := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		default:
+			return false
+		case 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || c == '_':
+			nonNumeric = true
+			partlen++
+		case '0' <= c && c <= '9':
+			// fine
+			partlen++
+		case c == '-':
+			// Byte before dash cannot be dot.
+			if last == '.' {
+				return false
+			}
+			partlen++
+			nonNumeric = true
+		case c == '.':
+			// Byte before dot cannot be dot, dash.
+			if last == '.' || last == '-' {
+				return false
+			}
+			if partlen > 63 || partlen == 0 {
+				return false
+			}
+			partlen = 0
+		}
+		last = c
+	}
+	if last == '-' || partlen > 63 {
+		return false
+	}
+
+	return nonNumeric
+}
+
+type QueueNode[T any] struct {
+	Data T
+	Prev *QueueNode[T]
+	Next *QueueNode[T]
+}
+
+func NewQueueNode[T any](t T) *QueueNode[T] {
+	return &QueueNode[T]{
+		Data: t,
+		Prev: nil,
+		Next: nil,
+	}
+}
+
+type Queue[T any] struct {
+	front *QueueNode[T]
+	rear  *QueueNode[T]
+	size  int
+}
+
+func NewQueue[T any]() *Queue[T] {
+	var _nil T
+	head, tail := NewQueueNode[T](_nil), NewQueueNode[T](_nil)
+	head.Next = tail
+	tail.Prev = head
+	return &Queue[T]{
+		front: head,
+		rear:  tail,
+		size:  0,
+	}
+}
+
+func (q *Queue[T]) dump() {
+	node := q.front.Next
+	for node != q.rear {
+		fmt.Printf("%v\n", node.Data)
+		node = node.Next
+	}
+	fmt.Println("--------------------------------")
+}
+
+func (q *Queue[T]) Size() int {
+	return q.size
+}
+
+func (q *Queue[T]) Empty() bool {
+	return q.size == 0
+}
+
+func (q *Queue[T]) FrontNode() *QueueNode[T] {
+	if q.Empty() {
+		return nil
+	}
+	return q.front.Next
+}
+
+func (q *Queue[T]) RearNode() *QueueNode[T] {
+	if q.Empty() {
+		return nil
+	}
+	return q.rear.Prev
+}
+
+func (q *Queue[T]) Enqueue(node *QueueNode[T]) *QueueNode[T] {
+	node.Next = q.front.Next
+	node.Prev = q.front
+	q.front.Next.Prev = node
+	q.front.Next = node
+	q.size++
+	return node
+}
+
+func (q *Queue[T]) Dequeue() *QueueNode[T] {
+	if q.size == 0 {
+		return nil
+	}
+	node := q.rear.Prev
+	q.Remove(node)
+	return node
+}
+
+func (q *Queue[T]) Remove(node *QueueNode[T]) {
+	if node == nil {
+		return
+	}
+	node.Prev.Next = node.Next
+	node.Next.Prev = node.Prev
+	q.size--
+}
+
+func (q *Queue[T]) MoveToFront(node *QueueNode[T]) {
+	if q.Size() > 1 {
+		q.Remove(node)
+		q.Enqueue(node)
+	}
+}
+
+type cdnResolved struct {
+	domain  string
+	cname   string
+	cdnName string
+	created time.Time
+}
+
+func newCDNResolved(domain, cname, cdnName string, created time.Time) *cdnResolved {
+	return &cdnResolved{
+		domain:  domain,
+		cname:   cname,
+		cdnName: cdnName,
+		created: created,
+	}
+}
+
+type lruCDNCache struct {
+	cdnMap  map[string]*QueueNode[*cdnResolved]
+	queue   *Queue[*cdnResolved]
+	maxSize int
+}
+
+func newLruCDNCache(maxCapacity int) *lruCDNCache {
+	return &lruCDNCache{
+		cdnMap:  make(map[string]*QueueNode[*cdnResolved], CacheInitCap),
+		queue:   NewQueue[*cdnResolved](),
+		maxSize: maxCapacity,
+	}
+}
+
+func (lru *lruCDNCache) push(cdn *cdnResolved) {
+	if lru.queue.Size() >= lru.maxSize {
+		oldest := lru.queue.Dequeue()
+		if oldest != nil {
+			delete(lru.cdnMap, oldest.Data.domain)
+
+			log.Warnf("Reach to max limit of cache，the oldest data is dropped，domain = [%s], created = [%s]",
+				oldest.Data.domain, oldest.Data.created.Format(time.RFC3339))
+		}
+	}
+
+	node := NewQueueNode(cdn)
+	lru.queue.Enqueue(node)
+	lru.cdnMap[cdn.domain] = node
+}
+
+func (lru *lruCDNCache) get(domain string) *QueueNode[*cdnResolved] {
+	if node, ok := lru.cdnMap[domain]; ok {
+		return node
+	}
+	return nil
+}
+
+func (lru *lruCDNCache) moveToFront(node *QueueNode[*cdnResolved]) {
+	lru.queue.MoveToFront(node)
+}
+
+func (lru *lruCDNCache) drop(domain string) *cdnResolved { //nolint: unused
+	if cdn, ok := lru.cdnMap[domain]; ok {
+		delete(lru.cdnMap, domain)
+		lru.queue.Remove(cdn)
+
+		if len(lru.cdnMap) != lru.queue.Size() {
+			log.Warnf("cache map size do not equals queue size, map size = [%d], queue size = [%d]",
+				len(lru.cdnMap), lru.queue.Size())
+		}
+		return cdn.Data
+	}
+	return nil
 }

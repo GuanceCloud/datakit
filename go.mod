@@ -129,6 +129,7 @@ require (
 	github.com/schollz/progressbar/v3 v3.9.0
 	github.com/tidwall/wal v1.1.7
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230209102325-20b8f6ded14e
 	golang.org/x/exp v0.0.0-20221026004748-78e5e7837ae6
 	modernc.org/sqlite v1.20.0
 	sigs.k8s.io/yaml v1.3.0
