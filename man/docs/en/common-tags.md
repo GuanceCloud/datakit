@@ -56,7 +56,7 @@ These tags are usually added to the collected data, but when it comes to time se
 
 ### Metrics {#M}
 
-There is no fixed tag except the global tag because of the various data sources.
+There is no fixed tag except the global tags because of the various data sources.
 
 ### APM {#T}
 

@@ -97,7 +97,7 @@ nav:
         - 'Sidecar 日志采集': logfwd.md
       - 'CRD': kubernetes-crd.md
       - 'Prometheus':
-        - 'Exportor': kubernetes-prom.md
+        - 'Exporter': kubernetes-prom.md
         - 'CRD': kubernetes-prometheus-operator-crd.md
 
     - 应用性能监测（APM）:
@@ -161,7 +161,7 @@ nav:
 
     - '第三方数据接入':
       - "Prometheus":
-        - "Exportor": prom.md
+        - "Exporter": prom.md
         - "Remote Write": prom_remote_write.md
       - 'Kafka 订阅': kafkamq.md
       - 'Promtail': promtail.md
