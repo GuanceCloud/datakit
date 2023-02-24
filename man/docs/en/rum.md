@@ -12,7 +12,7 @@ RUM (Real User Monitor) collector is used to collect user access monitoring data
 
 <div class="grid cards" markdown>
 - :material-web: [__JavaScript__](../real-user-monitoring/web/app-access.md)
-- :material-wechat: [__微信小程序__](../real-user-monitoring/miniapp/app-access.md)
+- :material-wechat: [__WeChat Mini-Program__](../real-user-monitoring/miniapp/app-access.md)
 - :material-android: [__Android__](../real-user-monitoring/android/app-access.md)
 - :material-apple-ios: [__iOS__](../real-user-monitoring/ios/app-access.md)
 - [__Flutter__](../real-user-monitoring/flutter/app-access.md)
@@ -284,12 +284,12 @@ curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version
 
 Variable description:
 
-- `<dca_address>`: DCA 服务的地址，如 `http://localhost:9531`
-- `<app_id>`: 对应 RUM 的 `applicationId`
-- `<env>`: 对应 RUM 的 `env`
-- `<version>`: 对应 RUM 的 `version`
-- `<platform>` 应用平台，当前支持 `web`/ `android` / `ios`
-- `<sourcemap_path>`: 待上传的`sourcemap` 压缩包文件路径
+- `<dca_address>`: DCA shost，such as `http://localhost:9531`
+- `<app_id>`: RUM's application ID
+- `<env>`: RUM's tag `env`
+- `<version>`: RUM's tag `version`
+- `<platform>` RUM supported platform, currently support `web/android/ios`
+- `<sourcemap_path>`: Path of zipped file path
 
 ???+ attention
 
@@ -301,12 +301,21 @@ Variable description:
 
 ## CDN resolve {#cdn-resolve}
 
-For the `resource` indicator, DataKit attempts to analyze whether the resource uses CDN and the corresponding CDN manufacturer. When the `provider_type` field value in the indicator set is "CDN", it indicates that
-The resource uses CDN, and the `provider_name` field value is the specific CDN manufacturer name.
+For the `resource` indicator, DataKit attempts to analyze whether the resource uses CDN and the corresponding CDN manufacturer. When the `provider_type` field value in the indicator set is "CDN", it indicates that The resource uses CDN, and the `provider_name` field value is the specific CDN manufacturer name.
 
 ### Customize the CDN lookup dictionary {#customize-cdn-map}
 
-DataKit has a built-in list of CDN manufacturers. If you find that the CDN you use cannot be recognized, you can modify the list in the configuration file, which is located at
-`/Usr/local/datakit/conf.d/rum/rum.conf`, which is determined according to your DataKit installation location, where `cdn_map` configuration item is used to customize the CDN dictionary,
-The value is a `[{"domain": "alicdn.com", "name": "Aliyun CDN", "website": "https://www.aliyun.com"},...]` JSON format like,
-After modification, remember to restart the DataKit.
+DataKit has a built-in list of CDN manufacturers. If we find that the CDN we use cannot be recognized, we can modify the list in the configuration file, which is located at */usr/local/datakit/conf.d/rum/rum.conf*, which is determined according to DataKit installation location, where `cdn_map` configuration item is used to customize the CDN dictionary. The CDN list seems like the following JSON:
+
+```json
+[
+  {
+    "domain": "alicdn.com",
+    "name": "Aliyun CDN",
+    "website": "https://www.aliyun.com"
+  },
+  ...
+]
+```
+
+We can easily copy and modify the [built-in CDN Dict](built-in_cdn_dict_config.md){:target="_blank"} config, then paste all the content to the configuration file, remember to restart the DataKit after modification.
