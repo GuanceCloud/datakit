@@ -350,3 +350,34 @@ datakit tool --show-cloud-info aws
         security_group_id: launch-wizard-1
                   zone_id: cnnw1-az2
 ```
+
+## 解析行协议数据 {#parse-lp}
+
+[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.5.6)
+
+通过如下命令可解析行协议数据：
+
+```shell
+datakit tool --parse-lp /path/to/file
+Parse 201 points OK, with 2 measurements and 201 time series
+```
+
+可以以 JSON 形式输出：
+
+```shell
+datakit tool --parse-lp /path/to/file --json
+{
+  "measurements": {  # 指标集列表
+    "testing": {
+      "points": 7,
+      "time_series": 6
+    },
+    "testing_module": {
+      "points": 195,
+      "time_series": 195
+    }
+  },
+  "point": 202,        # 总点数
+  "time_serial": 201   # 总时间线数
+}
+```

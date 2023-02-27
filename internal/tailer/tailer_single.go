@@ -563,7 +563,7 @@ func (t *Single) feedToIO(pending []string) {
 				pipeline.FieldMessage: cnt,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,
 			},
-			&point.PointOption{Time: timeNow.Add(time.Duration(i)), Category: datakit.Logging},
+			&point.PointOption{Time: timeNow.Add(time.Duration(i)), Category: datakit.Logging, Strict: true},
 		)
 		if err != nil {
 			t.opt.log.Warn(err)

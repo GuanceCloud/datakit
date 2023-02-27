@@ -27,12 +27,13 @@ const (
 )
 
 type CgroupOptions struct {
-	Enable     bool    `toml:"enable"`
-	Path       string  `toml:"path"`
-	CPUMax     float64 `toml:"cpu_max"`
-	CPUMin     float64 `toml:"cpu_min"`
-	MemMax     int64   `toml:"mem_max_mb"`
-	DisableOOM bool    `toml:"disable_oom,omitempty"`
+	Path   string  `toml:"path"`
+	CPUMax float64 `toml:"cpu_max"`
+	CPUMin float64 `toml:"cpu_min"`
+	MemMax int64   `toml:"mem_max_mb"`
+
+	DisableOOM bool `toml:"disable_oom,omitempty"`
+	Enable     bool `toml:"enable"`
 }
 
 func Run(c *CgroupOptions) {

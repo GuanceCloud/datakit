@@ -419,8 +419,8 @@ func (d *Input) dispatchTasks(j []byte) error {
 			}
 
 			if err := json.Unmarshal([]byte(j), &t); err != nil {
-				l.Errorf(`json.Unmarshal: %s`, err.Error())
-				return err
+				l.Warnf("json.Unmarshal task(%s) failed: %s, task json(%d bytes): '%s'", k, err.Error(), len(j), j)
+				continue
 			}
 
 			l.Debugf("unmarshal task: %+#v", t)

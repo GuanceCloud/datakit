@@ -64,7 +64,7 @@ func (mss *MetricsServiceServer) Export(ctx context.Context, msreq *metrics.Expo
 		}
 	}
 	if len(points) != 0 {
-		if err := dkio.Feed(inputName, datakit.Metric, points, &dkio.Option{HighFreq: true}); err != nil {
+		if err := dkio.Feed(inputName, datakit.Metric, points, nil); err != nil {
 			log.Error(err.Error())
 		}
 	}

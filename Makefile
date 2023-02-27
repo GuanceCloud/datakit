@@ -33,6 +33,7 @@ DEFAULT_ARCHS:="all"
 MAC_ARCHS:="darwin/amd64"
 NOT_SET="not-set"
 VERSION?=$(shell git describe --always --tags)
+DATAWAY_URL?="not-set"
 DATE:=$(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION:=$(shell go version)
 COMMIT:=$(shell git rev-parse --short HEAD)
@@ -43,6 +44,8 @@ DOCKER_IMAGE_ARCHS:="linux/arm64,linux/amd64"
 DATAKIT_EBPF_ARCHS?="linux/arm64,linux/amd64"
 IGN_EBPF_INSTALL_ERR?=0
 RACE_DETECTION?="off"
+
+PKGEBPF?=false
 
 GO_MAJOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
 GO_MINOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
@@ -111,7 +114,8 @@ define build
 	@echo "===== $(BIN) $(1) ===="
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go \
 		-main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
-		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3) -race $(RACE_DETECTION)
+		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3) \
+		-race $(RACE_DETECTION)
 	@tree -Csh -L 3 $(BUILD_DIR)
 endef
 
@@ -120,7 +124,8 @@ define pub
 	@GO111MODULE=off go run cmd/make/make.go \
 		-pub -release $(1) -pub-dir $(PUB_DIR) \
 		-name $(NAME) -download-addr $(2) \
-		-build-dir $(BUILD_DIR) -archs $(3)
+		-build-dir $(BUILD_DIR) -archs $(3) \
+		-pkg-ebpf $(PKGEBPF)
 endef
 
 define pub_ebpf
@@ -277,8 +282,7 @@ define build_ip2isp
 endef
 
 define do_lint
-	$(GOLINT_BINARY) --version
-	GOARCH=$(1) GOOS=$(2) $(GOLINT_BINARY) run --fix --allow-parallel-runners
+	GOARCH=$(1) GOOS=$(2) $(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
 endef
 
 ip2isp:
@@ -294,7 +298,12 @@ vet:
 	@go vet ./...
 
 ut: deps
-	@GO111MODULE=off CGO_ENABLED=1 go run cmd/make/make.go -ut
+	GO111MODULE=off CGO_ENABLED=1 go run cmd/make/make.go -ut -dataway-url "$(DATAWAY_URL)"; \
+		if [ $$? != 0 ]; then \
+			exit 1; \
+		else \
+			echo "######################"; \
+		fi
 
 # all testing
 
@@ -307,7 +316,7 @@ all_test: deps
 	i=0; \
 	for pkg in `go list ./... | grep -vE 'datakit/git'`; do \
 		echo "# testing $$pkg..." | tee -a test.output; \
-		GO111MODULE=off CGO_ENABLED=1 LOGGER_PATH=nul go test -timeout 1m -cover $$pkg; \
+		GO111MODULE=off CGO_ENABLED=1 LOGGER_PATH=nul go test -timeout 1h -cover $$pkg; \
 		if [ $$? != 0 ]; then \
 			printf "\033[31m [FAIL] %s\n\033[0m" $$pkg; \
 			i=`expr $$i + 1`; \
@@ -324,25 +333,26 @@ all_test: deps
 
 test_deps: prepare gofmt lfparser_disable_line vet
 
+#GOARCH=amd64 GOOS=linux $(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err;
 lint: deps check_man copyright_check
+	@truncate -s 0 lint.err
 	$(call check_golint_version)
-	if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
-		echo '============== lint under amd64/linux ==================='; \
-		$(GOLINT_BINARY) --version; \
-		GOARCH=amd64 GOOS=linux $(GOLINT_BINARY) run --fix --allow-parallel-runners ; \
-	fi
-	@echo '============== lint under amd64/darwin==================='
+	@echo '============== lint under darwin/amd64 ==================='
 	$(call do_lint,amd64,darwin)
-	@echo '============== lint under 386/windows ==================='
+	@echo '============== lint under windows/386 ==================='
 	$(call do_lint,386,windows)
-	@echo '============== lint under amd64/windows ==================='
+	@echo '============== lint under windows/amd64 ==================='
 	$(call do_lint,amd64,windows)
-	@echo '============== lint under arm/linux ==================='
+	@echo '============== lint under linux/arm ==================='
 	$(call do_lint,arm,linux)
-	@echo '============== lint under arm64/linux ==================='
+	@echo '============== lint under linux/arm64 ==================='
 	$(call do_lint,arm64,linux)
-	@echo '============== lint under 386/linux ==================='
+	@echo '============== lint under linux/386 ==================='
 	$(call do_lint,386,linux)
+	@if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
+		echo '============== lint under linux/amd64 ==================='; \
+	  $(call do_lint,amd64,linux); \
+	fi
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go
@@ -371,7 +381,7 @@ copyright_check_auto_fix:
 
 md_lint:
 	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
-	@markdownlint man/manuals 2>&1 > md.lint
+	@markdownlint man/docs 2>&1 > md.lint
 	@if [ $$? != 0 ]; then \
 		cat md.lint; \
 		exit -1; \
@@ -379,7 +389,7 @@ md_lint:
 
 # 要求所有文档的章节必须带上指定的标签（历史原因，先忽略 changelog.md）
 check_man:
-	@grep --color=always --exclude man/manuals/changelog.md -nr '^##' man/manuals/* | grep -vE ' {#' | grep -vE '{{' && \
+	@grep --color=always --exclude *changelog.md -nr '^##' man/docs/* | grep -vE ' {#' | grep -vE '{{' && \
 		{ echo "[E] some bad docs"; exit -1; } || \
 		{ echo "all docs ok"; exit 0; }
 

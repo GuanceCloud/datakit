@@ -11,6 +11,7 @@ YELLOW="\033[33m"
 CLR="\033[0m"
 
 mkdocs_dir=~/git/dataflux-doc
+lang=zh
 
 usage() {
 	echo "" 1>&2;
@@ -21,16 +22,20 @@ usage() {
 	echo "  ./mkdocs.sh -V string: Set version, such as 1.2.3" 1>&2;
 	echo "              -D string: Set workdir, such as my-test" 1>&2;
 	echo "              -B: Do not build datakit" 1>&2;
+	echo "              -L: Specify language(zh/en)" 1>&2;
 	echo "              -h: Show help" 1>&2;
 	echo "" 1>&2;
 	exit 1;
 }
 
-while getopts "V:D:Bh" arg; do
+while getopts "V:D:L:Bh" arg; do
 	case "${arg}" in
 		V)
 			version="${OPTARG}"
 			;;
+	 L)
+		 lang="${OPTARG}"
+		 ;;
 
 		B)
 			no_build=true;
@@ -38,18 +43,6 @@ while getopts "V:D:Bh" arg; do
 
 		D)
 			mkdocs_dir="${OPTARG}";
-			if [ ! -d $mkdocs_dir ]
-			then # create new project & download required files
-				mkdocs new $mkdocs_dir && \
-					mkdir -p $mkdocs_dir/overrides/.icons/zy/ && \
-					curl https://static.guance.com/images/datakit/datakit.svg \
-					--output  $mkdocs_dir/overrides/.icons/zy/datakit.svg;
-			fi
-
-			# just copy files to the directory.
-			mkdir -p $mkdocs_dir/docs/zh/datakit/ && \
-				cp man/docs/mkdocs.yml $mkdocs_dir/mkdocs.yml && \
-				cp man/docs/zh/aliyun-access.md $mkdocs_dir/docs/zh/datakit/
 				;;
 
 		h)
@@ -63,6 +56,20 @@ while getopts "V:D:Bh" arg; do
 	esac
 done
 shift $((OPTIND-1))
+
+# setup workdir
+if [ ! -d $mkdocs_dir ]
+then # create new project & download required files
+	mkdocs new $mkdocs_dir && \
+		mkdir -p $mkdocs_dir/overrides/.icons/zy/ && \
+		curl https://static.guance.com/images/datakit/datakit.svg \
+		--output  $mkdocs_dir/overrides/.icons/zy/datakit.svg;
+fi
+
+# just copy files to the directory.
+mkdir -p $mkdocs_dir/docs/${lang}/datakit/ && \
+	cp man/docs/mkdocs-${lang}.yml $mkdocs_dir/mkdocs.yml && \
+	cp man/docs/${lang}/aliyun-access.md $mkdocs_dir/docs/${lang}/datakit/
 
 # if -v not set...
 if [ -z $version ]; then
@@ -147,6 +154,7 @@ for lang in "${i18n[@]}"; do
 	# copy .pages
 	printf "${GREEN}> Copy pages(%s) to repo datakit ...${CLR}\n" $lang
 	cp man/docs/${lang}/datakit.pages $base_docs_dir/${lang}/datakit/.pages
+	cp man/developers-${lang}.pages $base_docs_dir/${lang}/developers/.pages
 
 	# move specific docs to developers
 	printf "${GREEN}> Copy docs(%s) to repo developers ...${CLR}\n" $lang

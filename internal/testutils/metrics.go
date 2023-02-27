@@ -6,42 +6,47 @@
 package testutils
 
 import (
+	"bytes"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
 )
 
 var (
 	metricFile string
-	host       string
-	mtx        sync.Mutex
+	DatawayURL = "-"
+
+	mtx sync.Mutex
 
 	hostname string
 )
 
-type CaseStatus int
+type TestStatus int
 
 const (
-	CaseStatusUnknown CaseStatus = iota
-	CasePassed
-	CaseFailed
-	CaseSkipped
+	TestStatusUnknown TestStatus = iota
+	TestPassed
+	TestFailed
+	TestSkipped
 )
 
-func (c CaseStatus) String() string {
+func (c TestStatus) String() string {
 	switch c {
-	case CasePassed:
+	case TestPassed:
 		return "pass"
-	case CaseFailed:
+	case TestFailed:
 		return "fail"
-	case CaseSkipped:
+	case TestSkipped:
 		return "skip"
-	case CaseStatusUnknown:
+	case TestStatusUnknown:
 		return "unknown"
 
 	default:
@@ -49,13 +54,57 @@ func (c CaseStatus) String() string {
 	}
 }
 
+type TestingMetric interface {
+	LineProtocol() string
+}
+
+// ModuleResult collect `go test` metrics for single go module.
+type ModuleResult struct {
+	Name     string
+	Cost     time.Duration
+	Status   TestStatus
+	Coverage float64
+	NoTest   bool
+
+	FailedMessage string
+	Message       string
+}
+
+func (mr *ModuleResult) LineProtocol() string {
+	tags := map[string]string{
+		"name":   mr.Name,
+		"status": mr.Status.String(),
+		"host":   hostname,
+	}
+
+	// Is the module have test or not?
+	if mr.NoTest {
+		tags["notest"] = "T"
+	} else {
+		tags["notest"] = "F"
+	}
+
+	fields := map[string]any{
+		"cost":           int64(mr.Cost),
+		"coverage":       mr.Coverage,
+		"message":        mr.Message,
+		"failed_message": mr.FailedMessage,
+	}
+
+	p := point.NewPointV2([]byte("testing_module"), append(point.NewTags(tags), point.NewKVs(fields)...))
+
+	return p.LineProto() + "\n"
+}
+
+// CaseResult collect `go test -run` metrics for single case within go module.
 type CaseResult struct {
 	Name string
 	Case string
 
 	FailedMessage string
+	Message       string
 
-	Status CaseStatus
+	Status TestStatus
 	Cost   time.Duration
 
 	ExtraTags   map[string]string
@@ -87,7 +136,9 @@ func (cr *CaseResult) LineProtocol() string {
 	}
 
 	fields := map[string]any{
-		"cost": int64(cr.Cost),
+		"cost":           int64(cr.Cost),
+		"message":        cr.Message,
+		"failed_message": cr.FailedMessage,
 	}
 
 	for k, v := range cr.ExtraTags {
@@ -106,21 +157,55 @@ func (cr *CaseResult) LineProtocol() string {
 		}
 	}
 
-	p, err := point.NewPoint("testing", tags, fields, nil)
-	if err != nil {
-		// return commeted info
-		return fmt.Sprintf("# invalid result: %s, CaseResult: %+#v\n", err.Error(), cr)
-	}
+	p := point.NewPointV2([]byte("testing"), append(point.NewTags(tags), point.NewKVs(fields)...))
 
-	return p.String() + "\n"
+	return p.LineProto() + "\n"
 }
 
-func (cr *CaseResult) Flush() error {
+// Flush write line-protocol data to file or remote HTTP server.
+func Flush(m TestingMetric) error {
 	mtx.Lock()
 	defer mtx.Unlock()
 
-	first := false
+	lp := m.LineProtocol()
 
+	log.Printf("write %q ...", lp)
+
+	if err := flushToFile([]byte(lp)); err != nil {
+		return err
+	}
+
+	if err := flushToDataway([]byte(lp)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func flushToDataway(data []byte) error {
+	log.Printf("write to dataway %q", DatawayURL)
+
+	if !strings.HasPrefix(DatawayURL, "http") {
+		return nil
+	}
+
+	// nolint: gosec
+	resp, err := http.Post(DatawayURL, "", bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close() // nolint: errcheck
+
+	switch resp.StatusCode / 100 {
+	case 2:
+		return nil
+	default:
+		return fmt.Errorf("post dataway %s", resp.Status)
+	}
+}
+
+func flushToFile(data []byte) error {
 	if metricFile == "" {
 		if v := os.Getenv("TESTING_METRIC_PATH"); v != "" {
 			metricFile = v
@@ -131,33 +216,19 @@ func (cr *CaseResult) Flush() error {
 		if err := os.MkdirAll(path.Dir(metricFile), os.ModePerm); err != nil {
 			return err
 		}
-
-		first = true
 	}
 
-	f, err := os.OpenFile(filepath.Clean(metricFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	f, err := os.OpenFile(filepath.Clean(metricFile),
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
 	}
 
 	defer f.Close() //nolint:errcheck,gosec
 
-	if first {
-		if _, err := f.WriteString(fmt.Sprintf("# metrics for %s\n", cr.Name)); err != nil {
-			return err
-		}
-	}
-
-	if _, err := f.WriteString(cr.LineProtocol()); err != nil {
+	if _, err := f.Write(data); err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func (cr *CaseResult) Post() error {
-	// TODO: post to some datakit://v1/write/metrics
-	_ = host
 	return nil
 }
 

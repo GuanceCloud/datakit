@@ -1,5 +1,5 @@
 
-# Prometheus Exportor Metric Collection
+# Prometheus Exporter Metric Collection
 ---
 
 :fontawesome-brands-linux: :material-kubernetes:
@@ -199,4 +199,4 @@ In addition, Datakit adds two tags, `service` and `namespace`, whose values are 
 
 ## Extended Reading {#more-readings}
 
-- [Prometheus Exportor Data Collection](prom.md)
+- [Prometheus Exporter Data Collection](prom.md)

@@ -7,6 +7,7 @@ package sqlserver
 
 import (
 	"fmt"
+	"net"
 	"net/netip"
 	"os"
 	"sync"
@@ -18,9 +19,11 @@ import (
 	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	pl "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type caseSpec struct {
@@ -38,15 +41,25 @@ type caseSpec struct {
 	pool     *dt.Pool
 	resource *dt.Resource
 
-	cr *testutils.CaseResult
+	cr *tu.CaseResult
 }
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
-		switch string(pt.Name()) {
-		case "sqlserver_performance":
+		measurement := string(pt.Name())
 
-			// TODO: check pt according to Performance
+		switch measurement {
+		case "sqlserver_performance":
+			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&Performance{}), inputs.WithExtraTags(cs.ipt.Tags))
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			// if len(msgs) > 0 {
+			//	return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			//}
 
 		default: // TODO: check other measurement
 		}
@@ -170,6 +183,8 @@ func (cs *caseSpec) run() error {
 func buildCases(t *T.T) ([]*caseSpec, error) {
 	t.Helper()
 
+	remote := tu.GetRemote()
+
 	bases := []struct {
 		name string
 		conf string
@@ -180,7 +195,8 @@ func buildCases(t *T.T) ([]*caseSpec, error) {
 			conf: fmt.Sprintf(`
 host = "%s"
 user = "sa"
-password = "Abc123abC$"`, tu.GetRemote().Host+":1433"),
+password = "Abc123abC$"`,
+				net.JoinHostPort(remote.Host, fmt.Sprintf("%d", tu.RandPort("tcp")))),
 		},
 
 		{
@@ -191,10 +207,10 @@ password = "Abc123abC$"`, tu.GetRemote().Host+":1433"),
 			conf: fmt.Sprintf(`
 host = "%s"
 user = "sa"
-password = "Abc123abC$" # SQLServer require password to be larger than 8bytes, must include number/alpha/symbol.
+password = "Abc123abC$" # SQLServer require password to be larger than 8bytes, must include number, alphabet and symbol.
 [tags]
   tag1 = "some_value"
-  tag2 = "some_other_value"`, tu.GetRemote().Host+":2433"),
+  tag2 = "some_other_value"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", tu.RandPort("tcp")))),
 		},
 	}
 
@@ -241,7 +257,7 @@ password = "Abc123abC$" # SQLServer require password to be larger than 8bytes, m
 
 				servicePort: fmt.Sprintf("%d", ipport.Port()),
 
-				cr: &testutils.CaseResult{
+				cr: &tu.CaseResult{
 					Name:        t.Name(),
 					Case:        base.name,
 					ExtraFields: map[string]any{},
@@ -261,14 +277,14 @@ func TestSQLServerInput(t *T.T) {
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
-		cs := testutils.CaseResult{
+		cr := &tu.CaseResult{
 			Name:          t.Name(),
-			Status:        testutils.CasePassed,
+			Status:        tu.TestPassed,
 			FailedMessage: err.Error(),
 			Cost:          time.Since(start),
 		}
 
-		_ = cs.Flush()
+		_ = tu.Flush(cr)
 		return
 	}
 
@@ -281,17 +297,17 @@ func TestSQLServerInput(t *T.T) {
 			t.Logf("testing %s...", tc.name)
 
 			if err := tc.run(); err != nil {
-				tc.cr.Status = testutils.CaseFailed
+				tc.cr.Status = tu.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
 				assert.NoError(t, err)
 			} else {
-				tc.cr.Status = testutils.CasePassed
+				tc.cr.Status = tu.TestPassed
 			}
 
 			tc.cr.Cost = time.Since(caseStart)
 
-			assert.NoError(t, tc.cr.Flush())
+			assert.NoError(t, tu.Flush(tc.cr))
 
 			t.Cleanup(func() {
 				// clean remote docker resources
@@ -356,4 +372,49 @@ func Test_setHostTagIfNotLoopback(t *T.T) {
 			assert.Equal(t, tt.expected, tt.args.tags)
 		})
 	}
+}
+
+func TestPipeline(t *T.T) {
+	source := `sqlserver`
+	t.Run("pl-sqlserver-logging", func(t *T.T) {
+		// sqlserver log examples
+		logs := []string{
+			`2020-01-01 00:00:01.00 spid28s     Server is listening on [ ::1 <ipv6> 1431] accept sockets 1.`,
+			`2020-01-01 00:00:02.00 Server      Common language runtime (CLR) functionality initialized.`,
+		}
+
+		expected := []*dkpt.Point{
+			dkpt.MustNewPoint(source, nil, map[string]any{
+				`message`: logs[0],
+				`msg`:     `Server is listening on [ ::1 <ipv6> 1431] accept sockets 1.`,
+				`origin`:  `spid28s`,
+				`status`:  `unknown`,
+			}, &dkpt.PointOption{Category: point.Logging.URL(), Time: time.Date(2020, 1, 1, 0, 0, 1, 0, time.UTC)}),
+
+			dkpt.MustNewPoint(source, nil, map[string]any{
+				`message`: logs[1],
+				`msg`:     `Common language runtime (CLR) functionality initialized.`,
+				`origin`:  `Server`,
+				`status`:  `unknown`,
+			}, &dkpt.PointOption{Category: point.Logging.URL(), Time: time.Date(2020, 1, 1, 0, 0, 2, 0, time.UTC)}),
+		}
+
+		p, err := pl.NewPipeline(point.Logging.URL(), "", pipeline)
+		assert.NoError(t, err, "NewPipeline: %s", err)
+
+		for idx, ln := range logs {
+			pt, err := dkpt.NewPoint(source,
+				nil,
+				map[string]any{"message": ln},
+				&dkpt.PointOption{Category: point.Logging.URL()})
+			assert.NoError(t, err)
+
+			after, dropped, err := p.Run(pt, nil, &dkpt.PointOption{Category: point.Logging.URL()}, nil)
+
+			assert.NoError(t, err)
+			assert.False(t, dropped)
+
+			assert.Equal(t, expected[idx].String(), after.String())
+		}
+	})
 }

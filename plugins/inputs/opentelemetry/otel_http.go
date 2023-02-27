@@ -97,7 +97,7 @@ func handleOTElMetrics(resp http.ResponseWriter, req *http.Request) {
 		}
 	}
 	if len(points) != 0 {
-		if err = dkio.Feed(inputName, datakit.Metric, points, &dkio.Option{HighFreq: true}); err != nil {
+		if err = dkio.Feed(inputName, datakit.Metric, points, nil); err != nil {
 			log.Error(err.Error())
 		}
 	}

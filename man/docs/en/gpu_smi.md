@@ -70,50 +70,19 @@ For all of the following data collections, a global tag named `host` is appended
 
 
 
-#### `gpu_smi`
+{{ range $i, $m := .Measurements }}
 
--  Tag
+#### `{{$m.Name}}`
 
+-  Tags
 
-| Tag Name | Description    |
-|  ----  | --------|
-|`compute_mode`|Computing mode|
-|`cuda_version`|CUDA version|
-|`driver_version`|Driver version|
-|`host`|hostname|
-|`name`|GPU board type|
-|`pci_bus_id`|pci Slot id|
-|`pstate`|GPU performance status|
-|`uuid`|UUID|
+{{$m.TagsMarkdownTable}}
 
-- Metrics List
+- Metrics
 
+{{$m.FieldsMarkdownTable}}
 
-| Metrics | Description| Data Type | Unit   |
-| ---- |---- | :---:    | :----: |
-|`clocks_current_graphics`|Graphics clock frequency.|int|MHz|
-|`clocks_current_memory`|Memory clock frequency.|int|MHz|
-|`clocks_current_sm`|Streaming Multiprocessor clock frequency.|int|MHz|
-|`clocks_current_video`|Video clock frequency.|int|MHz|
-|`encoder_stats_average_fps`|Encoder average fps.|int|-|
-|`encoder_stats_average_latency`|Encoder average latency.|int|-|
-|`encoder_stats_session_count`|Encoder session count.|int|count|
-|`fan_speed`|Fan speed.|int|RPM%|
-|`fbc_stats_average_fps`|Frame Buffer Cache average fps.|int|-|
-|`fbc_stats_average_latency`|Frame Buffer Cache average latency.|int|-|
-|`fbc_stats_session_count`|Frame Buffer Cache session count.|int|-|
-|`memory_total`|Framebuffer memory total.|int|MB|
-|`memory_used`|Framebuffer memory used.|int|MB|
-|`pcie_link_gen_current`|PCI-Express link gen.|int|-|
-|`pcie_link_width_current`|PCI link width.|int|-|
-|`power_draw`|Power draw.|float|watt|
-|`temperature_gpu`|GPU temperature.|int|C|
-|`utilization_decoder`|Decoder utilization.|int|percent|
-|`utilization_encoder`|Encoder utilization.|int|percent|
-|`utilization_gpu`|GPU utilization.|int|percent|
-|`utilization_memory`|Memory utilization.|int|percent|
-
-
+{{ end }}
 
 
 ### GPU Card Dropping && Card Loading Information {#SMI-drop-card}
