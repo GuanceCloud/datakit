@@ -34,7 +34,7 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 		return
 	}
 
-	resp.WriteHeader(http.StatusOK)
+	resp.WriteHeader(statusOK)
 	resp.Write(buf)
 }
 

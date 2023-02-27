@@ -95,10 +95,10 @@ func extractMetricPoints(metric *metricspb.Metric) []*pointData {
 		for _, pt := range t.Gauge.DataPoints {
 			tags, fields := extractAtrribute(pt.Attributes)
 			data := &pointData{tags: tags, fields: fields}
-			if double, ok := pt.Value.(*metricspb.NumberDataPoint_AsDouble); ok {
-				data.value = double.AsDouble
-			} else if i, ok := pt.Value.(*metricspb.NumberDataPoint_AsInt); ok {
-				data.value = i.AsInt
+			if v, ok := pt.Value.(*metricspb.NumberDataPoint_AsDouble); ok {
+				data.value = v.AsDouble
+			} else if v, ok := pt.Value.(*metricspb.NumberDataPoint_AsInt); ok {
+				data.value = v.AsInt
 			}
 			data.ts = int64(pt.TimeUnixNano)
 			points = append(points, data)
@@ -107,10 +107,10 @@ func extractMetricPoints(metric *metricspb.Metric) []*pointData {
 		for _, pt := range t.Sum.DataPoints {
 			tags, fields := extractAtrribute(pt.Attributes)
 			data := &pointData{tags: tags, fields: fields}
-			if double, ok := pt.Value.(*metricspb.NumberDataPoint_AsDouble); ok {
-				data.value = double.AsDouble
-			} else if i, ok := pt.Value.(*metricspb.NumberDataPoint_AsInt); ok {
-				data.value = i.AsInt
+			if v, ok := pt.Value.(*metricspb.NumberDataPoint_AsDouble); ok {
+				data.value = v.AsDouble
+			} else if v, ok := pt.Value.(*metricspb.NumberDataPoint_AsInt); ok {
+				data.value = v.AsInt
 			}
 			data.ts = int64(pt.TimeUnixNano)
 			points = append(points, data)
@@ -119,7 +119,7 @@ func extractMetricPoints(metric *metricspb.Metric) []*pointData {
 		for _, pt := range t.Histogram.DataPoints {
 			tags, fields := extractAtrribute(pt.Attributes)
 			data := &pointData{tags: tags, fields: fields}
-			data.value = pt.Sum
+			data.value = pt.GetSum()
 			data.ts = int64(pt.TimeUnixNano)
 			points = append(points, data)
 		}
@@ -127,7 +127,7 @@ func extractMetricPoints(metric *metricspb.Metric) []*pointData {
 		for _, pt := range t.ExponentialHistogram.DataPoints {
 			tags, fields := extractAtrribute(pt.Attributes)
 			data := &pointData{tags: tags, fields: fields}
-			data.value = pt.Sum
+			data.value = pt.GetSum()
 			data.ts = int64(pt.TimeUnixNano)
 			points = append(points, data)
 		}
@@ -135,7 +135,7 @@ func extractMetricPoints(metric *metricspb.Metric) []*pointData {
 		for _, pt := range t.Summary.DataPoints {
 			tags, fields := extractAtrribute(pt.Attributes)
 			data := &pointData{tags: tags, fields: fields}
-			data.value = pt.Sum
+			data.value = pt.GetSum()
 			data.ts = int64(pt.TimeUnixNano)
 			points = append(points, data)
 		}

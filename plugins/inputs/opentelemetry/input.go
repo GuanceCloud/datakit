@@ -275,6 +275,13 @@ func (ipt *Input) RegHTTPHandler() {
 }
 
 func (ipt *Input) Run() {
+	if (ipt.HTTPConfig == nil || !ipt.HTTPConfig.Enabled) &&
+		(ipt.GRPCConfig == nil || (!ipt.GRPCConfig.MetricEnabled && !ipt.GRPCConfig.TraceEnabled)) {
+		log.Debugf("### All OpenTelemetry web protocol are not enabled")
+
+		return
+	}
+
 	tags = ipt.Tags
 	for i := range ipt.IgnoreAttributeKeys {
 		ignoreKeyRegExps = append(ignoreKeyRegExps, regexp.MustCompile(ipt.IgnoreAttributeKeys[i]))
@@ -282,15 +289,12 @@ func (ipt *Input) Run() {
 	getAttribute = getAttrWrapper(ignoreKeyRegExps)
 	extractAtrribute = extractAttrWrapper(ignoreKeyRegExps)
 
-	// TODO: start up grpc server
-	if ipt.GRPCConfig != nil && (ipt.GRPCConfig.TraceEnabled || ipt.GRPCConfig.MetricEnabled) {
-		g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
-		g.Go(func(ctx context.Context) error {
-			runGRPCV1(ipt.GRPCConfig.Address)
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
+	g.Go(func(ctx context.Context) error {
+		runGRPCV1(ipt.GRPCConfig.Address)
 
-			return nil
-		})
-	}
+		return nil
+	})
 
 	log.Debugf("### %s agent is running...", inputName)
 
