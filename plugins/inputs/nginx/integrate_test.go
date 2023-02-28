@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -25,8 +26,8 @@ import (
 )
 
 func TestNginxInput(t *testing.T) {
-	t.Setenv("REMOTE_HOST", "10.200.14.142")
-	t.Setenv("TESTING_METRIC_PATH", "/tmp/testing.metrics")
+	// t.Setenv("REMOTE_HOST", "10.200.14.142")
+	// t.Setenv("TESTING_METRIC_PATH", "/tmp/testing.metrics")
 
 	start := time.Now()
 	cases, err := buildCases(t)
@@ -96,7 +97,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "nginx:vts-1.20.2",
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.20.2",
 
 			conf: fmt.Sprintf(`
 		url = "http://%s/status/format/json"
@@ -107,7 +108,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "nginx:vts-1.21.6",
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.21.6",
 
 			conf: fmt.Sprintf(`
 		url = "http://%s/status/format/json"
@@ -118,7 +119,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "nginx:vts-1.22.1",
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.22.1",
 
 			conf: fmt.Sprintf(`
 		url = "http://%s/status/format/json"
@@ -129,7 +130,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "nginx:vts-1.23.3",
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.23.3",
 
 			conf: fmt.Sprintf(`
 		url = "http://%s/status/format/json"
@@ -208,7 +209,6 @@ type caseSpec struct {
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	var opts []inputs.PointCheckOption
-	opts = append(opts, inputs.WithDoc(&NginxMeasurement{}))
 	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
 	opts = append(opts, cs.opts...)
 
@@ -216,7 +216,51 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		case "nginx":
+		case nginx:
+			opts = append(opts, inputs.WithDoc(&NginxMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+		case ServerZone:
+			opts = append(opts, inputs.WithDoc(&ServerZoneMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+		case UpstreamZone:
+			opts = append(opts, inputs.WithDoc(&UpstreamZoneMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+		case CacheZone:
+			opts = append(opts, inputs.WithDoc(&CacheZoneMeasurement{}))
+
 			msgs := inputs.CheckPoint(pt, opts...)
 
 			for _, msg := range msgs {
@@ -229,9 +273,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			}
 
 		default: // TODO: check other measurement
-			a := 1
-			b := a
-			_ = b
+			panic("not implement")
 		}
 
 		// check if tag appended
@@ -420,7 +462,8 @@ func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err er
 
 func (cs *caseSpec) getContainterName() string {
 	nameTag := strings.Split(cs.name, ":")
-	return nameTag[0]
+	name := filepath.Base(nameTag[0])
+	return name
 }
 
 func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {

@@ -43,14 +43,14 @@ func (m *ServerZoneMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: ServerZone,
 		Fields: map[string]interface{}{
-			"request_count": newCountFieldInfo("The total number of client requests received from clients."),
-			"received":      newByteFieldInfo("The total amount of data received from clients."),
-			"sent":          newByteFieldInfo("The total amount of data sent to clients."),
-			"response_1xx":  newCountFieldInfo("The number of responses with status codes 1xx"),
-			"response_2xx":  newCountFieldInfo("The number of responses with status codes 2xx"),
-			"response_3xx":  newCountFieldInfo("The number of responses with status codes 3xx"),
-			"response_4xx":  newCountFieldInfo("The number of responses with status codes 4xx"),
-			"response_5xx":  newCountFieldInfo("The number of responses with status codes 5xx"),
+			"requests":     newCountFieldInfo("The total number of client requests received from clients."),
+			"received":     newByteFieldInfo("The total amount of data received from clients."),
+			"send":         newByteFieldInfo("The total amount of data sent to clients."),
+			"response_1xx": newCountFieldInfo("The number of responses with status codes 1xx"),
+			"response_2xx": newCountFieldInfo("The number of responses with status codes 2xx"),
+			"response_3xx": newCountFieldInfo("The number of responses with status codes 3xx"),
+			"response_4xx": newCountFieldInfo("The number of responses with status codes 4xx"),
+			"response_5xx": newCountFieldInfo("The number of responses with status codes 5xx"),
 		},
 		Tags: map[string]interface{}{
 			"nginx_server":  inputs.NewTagInfo("nginx server host"),
@@ -94,7 +94,7 @@ func (m *UpstreamZoneMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"request_count": newCountFieldInfo("The total number of client requests received from server."),
 			"received":      newByteFieldInfo("The total number of bytes received from this server."),
-			"sent":          newByteFieldInfo("The total number of bytes sent to clients."),
+			"send":          newByteFieldInfo("The total number of bytes sent to clients."),
 			"response_1xx":  newCountFieldInfo("The number of responses with status codes 1xx"),
 			"response_2xx":  newCountFieldInfo("The number of responses with status codes 2xx"),
 			"response_3xx":  newCountFieldInfo("The number of responses with status codes 3xx"),
