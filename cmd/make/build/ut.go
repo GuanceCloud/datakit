@@ -118,6 +118,10 @@ func UnitTestDataKit() error {
 
 	fmt.Printf("============= %d pakage failed ===============\n", len(failedPkgs))
 	showFailedPkgs(failedPkgs)
+	if len(failedPkgs) > 0 {
+		return fmt.Errorf("%d package failed: %+#v", len(failedPkgs), failedPkgs)
+	}
+
 	return nil
 }
 

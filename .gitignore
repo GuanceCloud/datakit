@@ -1,4 +1,5 @@
 __debug_bin
+!cmd/make/build
 .cl.md
 .docs/
 .DS_Store
@@ -23,7 +24,6 @@ __debug_bin
 *.yaml
 *.zip
 **build/
-!cmd/make/build
 ag.sh
 agent_linux
 agent.conf
@@ -53,21 +53,21 @@ docker/agent
 docker/datakit
 embed/*
 git/git.go
-io/parser/gram_y.go
-pipeline/core/parser/gram_y.go
-pipeline/parser/gram_y.go
 install_local.sh
 install.ps1
 install.sh
 internal-pipelines.json
 internal/http/req.db
+io/parser/gram_y.go
 iploc.bin
 liu_script.sh
 measurements-meta.json
 old/
 parser_y.go
-pipeline-docs.json
 pipeline-docs.en.json
+pipeline-docs.en.json
+pipeline-docs.json
+pipeline/parser/gram_y.go
 pipeline/parser/parser.y.go
 plugins/external/csv/__tmp
 plugins/external/csv/venv
@@ -87,5 +87,6 @@ test.conf
 test.go
 test.jso
 test.output
+testing_metrics
 y.output
 testing_metrics

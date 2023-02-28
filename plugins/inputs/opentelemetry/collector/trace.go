@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
@@ -41,6 +42,7 @@ func (ss *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) itrace.DatakitTr
 					SpanType:   itrace.FindSpanTypeStrSpanID(spanID, ParentID, spanIDs, parentIDs),
 					SourceType: dt.getResourceType(),
 					Tags:       dt.resource(),
+					Metrics:    make(map[string]interface{}),
 					Start:      int64(span.StartTimeUnixNano),                        // 注意单位 nano
 					Duration:   int64(span.EndTimeUnixNano - span.StartTimeUnixNano), // 单位 nano
 					Status:     getDKSpanStatus(span.GetStatus()),                    // 使用 dk status
@@ -65,9 +67,15 @@ func (ss *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) itrace.DatakitTr
 					dkspan.Tags[itrace.TAG_PID] = v
 				}
 
+				// TODO: cope up with the "tag value length overflow" problem, waiting for reconstruct of otel agent
+				for _, attr := range span.Attributes {
+					if sv := attr.Value.GetStringValue(); len(sv) > point.MaxTagValueLen {
+						dkspan.Metrics[attr.Key] = sv
+					}
+				}
+
 				for i := range span.Events {
 					if span.Events[i].Name == ExceptionEventName {
-						dkspan.Metrics = make(map[string]interface{})
 						for _, v := range span.Events[i].Attributes {
 							dkspan.Metrics[otelErrKeyToDkErrKey[v.Key]] = v.Value.GetStringValue()
 						}
@@ -82,7 +90,6 @@ func (ss *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) itrace.DatakitTr
 				dktrace = append(dktrace, dkspan)
 			}
 			if len(dktrace) != 0 {
-				dktrace[0].Metrics = make(map[string]interface{})
 				dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
 			}
 
@@ -156,8 +163,10 @@ func (dt *dkTags) setAttributesToTags(attr []*commonpb.KeyValue) *dkTags {
 	for _, kv := range attr {
 		key := kv.Key
 		switch t := kv.GetValue().Value.(type) {
-		case *commonpb.AnyValue_StringValue:
-			dt.tags[key] = kv.GetValue().GetStringValue()
+		case *commonpb.AnyValue_StringValue, *commonpb.AnyValue_BytesValue:
+			if sv := kv.Value.GetStringValue(); len(sv) <= point.MaxTagValueLen {
+				dt.tags[key] = kv.GetValue().GetStringValue()
+			}
 		case *commonpb.AnyValue_BoolValue:
 			dt.tags[key] = strconv.FormatBool(t.BoolValue)
 		case *commonpb.AnyValue_IntValue:
@@ -169,12 +178,11 @@ func (dt *dkTags) setAttributesToTags(attr []*commonpb.KeyValue) *dkTags {
 			dt.tags[key] = t.ArrayValue.String()
 		case *commonpb.AnyValue_KvlistValue:
 			dt.setAttributesToTags(t.KvlistValue.Values)
-		case *commonpb.AnyValue_BytesValue:
-			dt.tags[key] = string(t.BytesValue)
 		default:
 			dt.tags[key] = kv.Value.GetStringValue()
 		}
 	}
+
 	return dt
 }
 

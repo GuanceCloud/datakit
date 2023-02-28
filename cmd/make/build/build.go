@@ -135,7 +135,7 @@ func prepare() {
 
 const archSep = ","
 
-func parseArchs(s string) (archs []string) {
+func ParseArchs(s string) (archs []string) {
 	switch s {
 	case ALL:
 
@@ -172,7 +172,7 @@ func Compile() error {
 
 	prepare()
 
-	curArchs = parseArchs(Archs)
+	curArchs = ParseArchs(Archs)
 
 	for _, arch := range curArchs {
 		parts := strings.Split(arch, "/")

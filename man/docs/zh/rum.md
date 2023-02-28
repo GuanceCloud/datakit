@@ -303,3 +303,25 @@ curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version
     - 当前只支持 Javascript/Android/iOS 的 sourcemap 转换
     - 如果未找到对应的 sourcemap 文件，将不进行转换
     - 通过接口上传的 sourcemap 压缩包，不需要重启 DataKit 即可生效。但如果是手动上传，需要重启 DataKit，方可生效
+
+
+## CDN标注 {#cdn-resolve}
+
+对于 `resource` 指标，DataKit 尝试分析资源是否使用了 CDN 以及对应的 CDN 厂家，当指标集中的 `provider_type` 字段值是 "CDN" 时，表明该资源使用了 CDN，此时 `provider_name` 字段值为具体的 CDN 厂家名称。
+
+### 自定义 CDN 查询列表 {#customize-cdn-map}
+
+DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用的 CDN 无法被正常识别，可以在配置文件中修改该列表，配置文件默认位于 */usr/local/datakit/conf.d/rum/rum.conf*，具体根据你的 DataKit 安装位置确定，其中的 `cdn_map` 配置项即用于自定义 CDN 列表集，配置值是一个类似如下的 JSON：
+
+```json
+[
+  {
+    "domain": "alicdn.com",
+    "name": "阿里云CDN",
+    "website": "https://www.aliyun.com"
+  },
+  ...
+]
+```
+
+可以简单复制 [内置CDN配置列表](built-in_cdn_dict_config.md){:target="_blank"} 并修改后直接粘贴到配置文件中，修改完需要重启 DataKit。

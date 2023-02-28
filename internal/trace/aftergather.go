@@ -179,7 +179,11 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 		FIELD_MESSAGE:  dkspan.Content,
 	}
 	for k, v := range dkspan.Metrics {
-		fields[k] = v
+		if strings.Contains(k, ".") {
+			fields[strings.ReplaceAll(k, ".", "_")] = v
+		} else {
+			fields[k] = v
+		}
 	}
 
 	return point.NewPoint(dkspan.Source, tags, fields, &point.PointOption{

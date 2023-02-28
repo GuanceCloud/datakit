@@ -197,7 +197,7 @@ func (ipt *Input) gather() {
 
 		if len(collectCache) != 0 {
 			if err := inputs.FeedMeasurement(inputName, datakit.Metric, collectCache,
-				&io.Option{CollectCost: time.Since(start), HighFreq: false}); err != nil {
+				&io.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("FeedMeasurement: %s", err.Error())
 			}
 		}

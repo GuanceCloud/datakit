@@ -1,5 +1,5 @@
 {{.CSS}}
-# Prometheus Exportor 指标采集
+# Prometheus Exporter 指标采集
 ---
 
 :fontawesome-brands-linux: :material-kubernetes:
@@ -201,4 +201,4 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 
 ## 延伸阅读 {#more-readings}
 
-- [Prometheus Exportor 数据采集](prom.md)
+- [Prometheus Exporter 数据采集](prom.md)

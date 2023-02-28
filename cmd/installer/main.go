@@ -325,7 +325,7 @@ Data           : %s
 
 	// fix user name.
 	var userName, groupAdd, userAdd string
-	if len(flagUserName) > 0 && flagUserName != "root" {
+	if runtime.GOOS == datakit.OSLinux && len(flagUserName) > 0 && flagUserName != "root" {
 		// check add group and user command.
 		groupAdd, userAdd, err = checkUserGroupCmdOK()
 		if err != nil {
@@ -335,7 +335,7 @@ Data           : %s
 		userName = builtInUserName // set as 'datakit'(default).
 
 		cp.Infof("datakit service run as user: '%s'\n", userName)
-	} else {
+	} else if !flagDKUpgrade {
 		cp.Infof("datakit service run as user 'root'\n")
 	}
 

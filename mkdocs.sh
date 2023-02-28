@@ -154,6 +154,7 @@ for lang in "${i18n[@]}"; do
 	# copy .pages
 	printf "${GREEN}> Copy pages(%s) to repo datakit ...${CLR}\n" $lang
 	cp man/docs/${lang}/datakit.pages $base_docs_dir/${lang}/datakit/.pages
+	cp man/developers-${lang}.pages $base_docs_dir/${lang}/developers/.pages
 
 	# move specific docs to developers
 	printf "${GREEN}> Copy docs(%s) to repo developers ...${CLR}\n" $lang

@@ -97,9 +97,6 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{ end }}
 
-## 
-
-
 ## Log Collection {#logging}
 
 To collect kafka's log, open `files` in kafka.conf and write to the absolute path of the kafka log file. For example:

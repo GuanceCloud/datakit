@@ -158,22 +158,26 @@ var (
 	//
 	// tools related flags.
 	//
-	fsToolName                = "tool"
-	fsTool                    = pflag.NewFlagSet(fsToolName, pflag.ContinueOnError)
-	flagToolLogPath           = fsTool.String("log", commonLogFlag(), "command line log path")
-	flagToolCloudInfo         = fsTool.Bool("show-cloud-info", false, "show current host's cloud info(currently support aliyun/tencent/aws/hwcloud/azure)") //nolint:lll
-	flagToolIPInfo            = fsTool.String("ipinfo", "", "show IP geo info")
-	flagToolWorkspaceInfo     = fsTool.Bool("workspace-info", false, "show workspace info")
-	flagToolCheckConfig       = fsTool.Bool("check-config", false, "check inputs configure and main configure")
-	flagToolTestSNMP          = fsTool.String("test-snmp", "", "test snmp device")
-	flagToolDumpSamples       = fsTool.String("dump-samples", "", "dump all inputs samples")
-	flagToolLoadLog           = fsTool.Bool("upload-log", false, "upload log")
-	flagToolDefaultMainConfig = fsTool.Bool("default-main-conf", false, "print default datakit.conf")
-	flagToolCheckSample       = fsTool.Bool("check-sample", false, "check all inputs config sample, to ensure all sample are valid TOML")
-	flagToolGrokQ             = fsTool.Bool("grokq", false, "query groks interactively")
-	flagSetupCompleterScripts = fsTool.Bool("setup-completer-script", false, "auto generate auto completion script(Linux only)")
-	flagCompleterScripts      = fsTool.Bool("completer-script", false, "show completion script(Linux only)")
-	flagPromConf              = fsTool.String("prom-conf", "", "specify the prom input conf to debug")
+	fsToolName = "tool"
+	fsTool     = pflag.NewFlagSet(fsToolName, pflag.ContinueOnError)
+
+	flagToolJSON = fsTool.Bool("json", false, "output in JSON format(partially supported)")
+
+	flagToolLogPath               = fsTool.String("log", commonLogFlag(), "command line log path")
+	flagToolCloudInfo             = fsTool.Bool("show-cloud-info", false, "show current host's cloud info(currently support aliyun/tencent/aws/hwcloud/azure)") //nolint:lll
+	flagToolIPInfo                = fsTool.String("ipinfo", "", "show IP geo info")
+	flagToolWorkspaceInfo         = fsTool.Bool("workspace-info", false, "show workspace info")
+	flagToolCheckConfig           = fsTool.Bool("check-config", false, "check inputs configure and main configure")
+	flagToolTestSNMP              = fsTool.String("test-snmp", "", "test snmp device")
+	flagToolDumpSamples           = fsTool.String("dump-samples", "", "dump all inputs samples")
+	flagToolLoadLog               = fsTool.Bool("upload-log", false, "upload log")
+	flagToolDefaultMainConfig     = fsTool.Bool("default-main-conf", false, "print default datakit.conf")
+	flagToolCheckSample           = fsTool.Bool("check-sample", false, "check all inputs config sample, to ensure all sample are valid TOML")
+	flagToolGrokQ                 = fsTool.Bool("grokq", false, "query groks interactively")
+	flagToolSetupCompleterScripts = fsTool.Bool("setup-completer-script", false, "auto generate auto completion script(Linux only)")
+	flagToolCompleterScripts      = fsTool.Bool("completer-script", false, "show completion script(Linux only)")
+	flagToolPromConf              = fsTool.String("prom-conf", "", "specify the prom input conf to debug")
+	flagToolParseLineProtocol     = fsTool.String("parse-lp", "", "parse line-protocol file")
 
 	fsToolUsage = func() {
 		fmt.Printf("usage: datakit tool [options]\n\n")

@@ -82,6 +82,7 @@ var OtherDocs = map[string]bool{
 	"profile-cpp":                        true,
 	"prometheus":                         true,
 	"rum":                                true,
+	"built-in_cdn_dict_config":           true,
 	"sec-checker":                        true,
 	"snmp":                               true,
 	"telegraf":                           true,

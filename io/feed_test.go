@@ -15,7 +15,7 @@ import (
 func TestPointConvert(t *T.T) {
 	t.Run("basic", func(t *T.T) {
 		pt := point.NewPointV2([]byte(`abc`), point.NewKVs(map[string]any{"abc": 123}))
-		pts := ptConvert(pt)
+		pts := point2dkpt(pt)
 
 		assert.Equal(t, 1, len(pts))
 	})

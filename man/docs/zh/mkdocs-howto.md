@@ -1,4 +1,4 @@
-# 文档撰写指南
+# Mkdocs 文档撰写
 ---
 
 本文主要阐述以下几个问题：
@@ -27,10 +27,6 @@
 2. 确定归属
 3. 将文档路径添加到上述三种文档之一中
 4. 执行 mkdocs.sh 脚本
-
-???+ attention
-
-    执行 mkdocs.sh 之前，需先[安装好 mkdocs 环境以及集成文档环境](integrations-to-dk-howto.md#export)。
 
 ## Mkdocs 技巧分享 {#mkdocs-tips}
 

@@ -21,6 +21,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	pl "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -370,4 +372,49 @@ func Test_setHostTagIfNotLoopback(t *T.T) {
 			assert.Equal(t, tt.expected, tt.args.tags)
 		})
 	}
+}
+
+func TestPipeline(t *T.T) {
+	source := `sqlserver`
+	t.Run("pl-sqlserver-logging", func(t *T.T) {
+		// sqlserver log examples
+		logs := []string{
+			`2020-01-01 00:00:01.00 spid28s     Server is listening on [ ::1 <ipv6> 1431] accept sockets 1.`,
+			`2020-01-01 00:00:02.00 Server      Common language runtime (CLR) functionality initialized.`,
+		}
+
+		expected := []*dkpt.Point{
+			dkpt.MustNewPoint(source, nil, map[string]any{
+				`message`: logs[0],
+				`msg`:     `Server is listening on [ ::1 <ipv6> 1431] accept sockets 1.`,
+				`origin`:  `spid28s`,
+				`status`:  `unknown`,
+			}, &dkpt.PointOption{Category: point.Logging.URL(), Time: time.Date(2020, 1, 1, 0, 0, 1, 0, time.UTC)}),
+
+			dkpt.MustNewPoint(source, nil, map[string]any{
+				`message`: logs[1],
+				`msg`:     `Common language runtime (CLR) functionality initialized.`,
+				`origin`:  `Server`,
+				`status`:  `unknown`,
+			}, &dkpt.PointOption{Category: point.Logging.URL(), Time: time.Date(2020, 1, 1, 0, 0, 2, 0, time.UTC)}),
+		}
+
+		p, err := pl.NewPipeline(point.Logging.URL(), "", pipeline)
+		assert.NoError(t, err, "NewPipeline: %s", err)
+
+		for idx, ln := range logs {
+			pt, err := dkpt.NewPoint(source,
+				nil,
+				map[string]any{"message": ln},
+				&dkpt.PointOption{Category: point.Logging.URL()})
+			assert.NoError(t, err)
+
+			after, dropped, err := p.Run(pt, nil, &dkpt.PointOption{Category: point.Logging.URL()}, nil)
+
+			assert.NoError(t, err)
+			assert.False(t, dropped)
+
+			assert.Equal(t, expected[idx].String(), after.String())
+		}
+	})
 }

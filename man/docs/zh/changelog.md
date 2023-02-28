@@ -20,7 +20,41 @@
 ### 问题修复 {#cl-x.x.x-fix}
 ### 功能优化 {#cl-x.x.x-opt}
 ### 兼容调整 {#cl-x.x.x-brk}
+
 -->
+
+## 1.5.6(2023/02/23) {#cl-1.5.6}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.6-new}
+
+- 命令行增加[解析行协议功能](datakit-tools-how-to.md#parse-lp)(#1412)
+- Datakit yaml 和 helm 支持资源 limit 配置(#1416)
+- Datakit yaml 和 helm 支持 CRD 部署(#1415)
+- 添加 SQL-Server 集成测试(#1406)
+- RUM 支持 [resource CDN 标注](rum.md#cdn标注-cdn-resolve)(#1384)
+
+### 问题修复 {#cl-1.5.6-fix}
+
+- 修复 RUM 请求返回 5xx 问题(#1412)
+- 修复日志采集路径错误问题(#1447)
+- 修复 k8s pod 字段业务逻辑问题(#1446)
+- 修复 Datakit 崩溃问题(#1422)
+- 修复 point 构建错误(#1413#1408)
+- 修复 Datakit Monitor 字符集问题(#1405)
+- 修复 OTEL tag 覆盖问题(#1396)
+
+### 功能优化 {#cl-1.5.6-opt}
+
+- 优化拨测逻辑(#1421)
+- 优化 Windows 下安装提示(#1404)
+- 优化 powershell 安装脚本模板(#1403)
+- 优化 k8s 中 pod, ReplicaSet, Deployment 的关联方法(#1368)
+- 重构 point 数据结构及功能(#1400)
+- Datakit 自带 eBPF 采集器二进制安装(#1448)
+
+---
 
 ## 1.5.5(2023/02/09) {#cl-1.5.5}
 

@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -115,6 +116,8 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) (*ta
 		// extract pod labels to tags
 		if info.extractK8sLabelAsTags {
 			for k, v := range meta.Labels {
+				// replace dot
+				k := strings.ReplaceAll(k, ".", "_")
 				if _, ok := opt.GlobalTags[k]; !ok {
 					opt.GlobalTags[k] = v
 				}

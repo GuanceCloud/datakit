@@ -27,6 +27,8 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 - v1.2.19+
   - 安装时[指定环境变量](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="ebpf"`
   - DataKit 安装完后，再手动安装 eBPF 采集器：`datakit install --ebpf`
+- v1.5.6+
+  - 无需手动安装
 
 在 Kubernetes 环境下部署时，必须挂载主机的 `/sys/kernel/debug` 目录到 pod 内,可参考最新的 datakit.yaml;
 

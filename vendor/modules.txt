@@ -88,6 +88,9 @@ github.com/GuanceCloud/platypus/pkg/errchain
 github.com/GuanceCloud/platypus/pkg/inimpl/guancecloud/input
 github.com/GuanceCloud/platypus/pkg/parser
 github.com/GuanceCloud/platypus/pkg/token
+# github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747
+## explicit; go 1.15
+github.com/GuanceCloud/timeout
 # github.com/MichaelMure/go-term-markdown v0.1.3
 ## explicit; go 1.12
 github.com/MichaelMure/go-term-markdown
@@ -366,6 +369,9 @@ github.com/aws/smithy-go/transport/http/internal/io
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
+# github.com/bmatcuk/doublestar/v4 v4.6.0
+## explicit; go 1.16
+github.com/bmatcuk/doublestar/v4
 # github.com/buger/jsonparser v1.1.1
 ## explicit; go 1.13
 github.com/buger/jsonparser
@@ -680,9 +686,6 @@ github.com/gdamore/tcell/v2/terminfo/x/xterm_termite
 # github.com/gin-contrib/sse v0.1.0
 ## explicit; go 1.12
 github.com/gin-contrib/sse
-# github.com/gin-contrib/timeout v0.0.3
-## explicit; go 1.15
-github.com/gin-contrib/timeout
 # github.com/gin-gonic/gin v1.7.4
 ## explicit; go 1.13
 github.com/gin-gonic/gin
@@ -1636,6 +1639,9 @@ github.com/xeipuuv/gojsonschema
 # github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 ## explicit
 github.com/youmark/pkcs8
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230209102325-20b8f6ded14e
+## explicit; go 1.18
+gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
 # go.etcd.io/bbolt v1.3.6
 ## explicit; go 1.12
 go.etcd.io/bbolt

@@ -1,5 +1,5 @@
 {{.CSS}}
-# Prometheus Exportor 数据采集
+# Prometheus Exporter 数据采集
 ---
 
 {{.AvailableArchs}}

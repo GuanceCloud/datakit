@@ -8,10 +8,10 @@
 
 DataKit Filter 用于对采集到的行协议数据进行筛选，用于过滤掉一些不想要的数据，它的功能跟 Pipeline 有一点类似，但有所区别：
 
-| 数据处理组件 | 支持本地配置 | 支持中心下发 | 支持数据丢弃 | 支持数据改写 | 使用方法                                                        |
-| ----         | ----         | ----         | ----         | ----         | ----                                                            |
-| Pipeline     | Y            | Y            | Y            | Y            | 通过在采集器中配置 Pipeline 或者在观测云 Studio 编写 Pipeline   |
-| Filter       | Y            | Y            | Y            | N            | 在观测云 Studio 编写 Pipeline 或者在 datakit.conf 中配置 filter |
+| 数据处理组件 | 支持本地配置     | 支持中心下发     | 支持数据丢弃     | 支持数据改写     | 使用方法                                                        |
+| ----         | ----             | ----             | ----             | ----             | ----                                                            |
+| Pipeline     | :material-check: | :material-check: | :material-check: | :material-check: | 通过在采集器中配置 Pipeline 或者在观测云 Studio 编写 Pipeline   |
+| Filter       | :material-check: | :material-check: | :material-check: | :octicons-x-16:  | 在观测云 Studio 编写 Pipeline 或者在 datakit.conf 中配置 filter |
 
 从表中可以看出，相比 Pipeline，如果只是简单的过滤掉部分数据，那么 Filter 是一种更便捷的数据筛选工具。
 
