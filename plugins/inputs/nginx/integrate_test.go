@@ -515,7 +515,6 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 }
 
 func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
-
 	for path, count := range cs.mPathCount {
 		newURL := fmt.Sprintf("http://%s%s", r.Host, path)
 
@@ -538,7 +537,6 @@ func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 
 		wg.Wait()
 	}
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
