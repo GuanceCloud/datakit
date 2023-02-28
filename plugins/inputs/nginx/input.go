@@ -313,11 +313,6 @@ func (n *Input) Collect() ([]*point.Point, error) {
 		return nil, fmt.Errorf("no points")
 	}
 
-	// pts, err := inputs.GetPointsFromMeasurement(n.collectCache)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	return n.collectCache, nil
 }
 

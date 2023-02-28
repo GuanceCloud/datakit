@@ -48,9 +48,7 @@ type Input struct {
 
 	lastErr error
 
-	// collectCache []inputs.Measurement
 	collectCache []*point.Point
-	// loggingCollectCache []*point.Point
 
 	Election bool `toml:"election"`
 	pause    bool
