@@ -92,7 +92,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			conf:           fmt.Sprintf(`url = "http://%s/server_status"`, remote.Host),
 			dockerFileText: dockerFileHTTPStubStatusModule,
 			exposedPorts:   []string{"80/tcp"},
-			opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("nginx_version", "load_timestamp")},
+			opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
 		},
 
 		{

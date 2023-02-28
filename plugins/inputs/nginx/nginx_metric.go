@@ -43,7 +43,7 @@ func (m *NginxMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nginx,
 		Fields: map[string]interface{}{
-			"load_timestamp":      newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.TimestampMS, "Loaded process time in milliseconds, when exist by open vts"),
+			"load_timestamp":      newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.TimestampMS, "Loaded process time in milliseconds, exist when using vts"),
 			"connection_active":   newCountFieldInfo("The current number of active client connections"),
 			"connection_reading":  newCountFieldInfo("The total number of reading client connections"),
 			"connection_writing":  newCountFieldInfo("The total number of writing client connections"),
@@ -55,8 +55,8 @@ func (m *NginxMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"nginx_server":  inputs.NewTagInfo("nginx server host"),
 			"nginx_port":    inputs.NewTagInfo("nginx server port"),
-			"host":          inputs.NewTagInfo("host mame which installed nginx,use vts exist"),
-			"nginx_version": inputs.NewTagInfo("nginx version,use vts exist"),
+			"host":          inputs.NewTagInfo("host mame which installed nginx"),
+			"nginx_version": inputs.NewTagInfo("nginx version, exist when using vts"),
 		},
 	}
 }
