@@ -8,6 +8,7 @@ package nginx
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -87,6 +88,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
 		opts           []inputs.PointCheckOption
+		mPathCount     map[string]int
 	}{
 		{
 			name:           "nginx:http_stub_status_module",
@@ -94,6 +96,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			dockerFileText: dockerFileHTTPStubStatusModule,
 			exposedPorts:   []string{"80/tcp"},
 			opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			mPathCount: map[string]int{
+				"/": 100,
+			},
 		},
 
 		{
@@ -105,6 +110,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				remote.Host),
 
 			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/1": 100,
+				"/2": 100,
+				"/3": 100,
+			},
 		},
 
 		{
@@ -116,6 +126,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				remote.Host),
 
 			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/1": 100,
+				"/2": 100,
+				"/3": 100,
+			},
 		},
 
 		{
@@ -127,6 +142,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				remote.Host),
 
 			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/1": 100,
+				"/2": 100,
+				"/3": 100,
+			},
 		},
 
 		{
@@ -138,6 +158,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				remote.Host),
 
 			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/1": 100,
+				"/2": 100,
+				"/3": 100,
+			},
 		},
 	}
 
@@ -166,6 +191,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
 			opts:           base.opts,
+			mPathCount:     base.mPathCount,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -197,6 +223,7 @@ type caseSpec struct {
 	dockerFileText string
 	exposedPorts   []string
 	opts           []inputs.PointCheckOption
+	mPathCount     map[string]int
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -380,6 +407,8 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
+	cs.runHTTPTests(r)
+
 	var wg sync.WaitGroup
 
 	// start input
@@ -483,6 +512,33 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 		}
 	}
 	return nil
+}
+
+func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
+
+	for path, count := range cs.mPathCount {
+		newURL := fmt.Sprintf("http://%s%s", r.Host, path)
+
+		var wg sync.WaitGroup
+		wg.Add(count)
+
+		for i := 0; i < count; i++ {
+			go func() {
+				defer wg.Done()
+
+				resp, err := http.Get(newURL)
+				if err != nil {
+					panic(err)
+				}
+				if err := resp.Body.Close(); err != nil {
+					panic(err)
+				}
+			}()
+		}
+
+		wg.Wait()
+	}
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -144,8 +144,8 @@ func (m *CacheZoneMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"max_size":              newByteFieldInfo("The limit on the maximum size of the cache specified in the configuration"),
 			"used_size":             newByteFieldInfo("The current size of the cache."),
-			"receive":               newByteFieldInfo("The total number of bytes received from the cache."),
-			"sent":                  newByteFieldInfo("The total number of bytes sent from the cache."),
+			"received":              newByteFieldInfo("The total number of bytes received from the cache."),
+			"send":                  newByteFieldInfo("The total number of bytes sent from the cache."),
 			"responses_miss":        newCountFieldInfo("The number of cache miss"),
 			"responses_bypass":      newCountFieldInfo("The number of cache bypass"),
 			"responses_expired":     newCountFieldInfo("The number of cache expired"),
