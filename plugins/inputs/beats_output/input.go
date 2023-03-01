@@ -20,7 +20,10 @@ import (
 	v2 "github.com/elastic/go-lumber/server/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -28,7 +31,8 @@ import (
 //------------------------------------------------------------------------------
 
 const (
-	inputName = "beats_output"
+	inputName       = "beats_output"
+	measurementName = "Elastic Beats Collector"
 
 	sampleCfg = `
 [[inputs.beats_output]]
@@ -66,6 +70,8 @@ type Input struct {
 	MaximumLength int               `toml:"maximum_length,omitempty"`
 	Tags          map[string]string `toml:"tags"`
 
+	feeder io.Feeder
+
 	semStop *cliutils.Sem // start stop signal
 	stopped bool
 }
@@ -102,14 +108,24 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (ipt *loggingMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(ipt.name, ipt.tags, ipt.fields, point.LOpt())
+// Point implement MeasurementV2.
+func (ipt *loggingMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	return point.NewPointV2([]byte(ipt.name),
+		append(point.NewTags(ipt.tags), point.NewKVs(ipt.fields)...),
+		opts...)
+}
+
+func (ipt *loggingMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(ipt.name, ipt.tags, ipt.fields, point.LOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
 func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "Elastic Beats Collector",
+		Name: measurementName,
 		Type: "logging",
 		Desc: "Using `source` field in the config file, default is `default`.",
 		Tags: map[string]interface{}{
@@ -233,19 +249,29 @@ func (ipt *Input) feed(pending []*DataStruct) {
 		newTags := ipt.getNewTags(v)
 		l.Debugf("newTags = %#v", newTags)
 
-		pt, err := point.NewPoint(ipt.Source, newTags,
-			map[string]interface{}{
+		// pt, err := point.NewPoint(ipt.Source, newTags,
+		// 	map[string]interface{}{
+		// 		pipeline.FieldMessage: v.Message,
+		// 		pipeline.FieldStatus:  pipeline.DefaultStatus,
+		// 	}, point.LOpt())
+		// if err != nil {
+		// 	l.Error(err)
+		// 	continue
+		// }
+
+		logging := &loggingMeasurement{
+			name: ipt.Source,
+			tags: newTags,
+			fields: map[string]interface{}{
 				pipeline.FieldMessage: v.Message,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,
-			}, point.LOpt())
-		if err != nil {
-			l.Error(err)
-			continue
+			},
 		}
-		pts = append(pts, pt)
+
+		pts = append(pts, logging.Point())
 	}
 	if len(pts) > 0 {
-		if err := io.Feed(inputName+"/"+ipt.Listen, datakit.Logging, pts, &io.Option{
+		if err := ipt.feeder.Feed(inputName+"/"+ipt.Listen, point.Logging, pts, &io.Option{
 			PlScript: map[string]string{
 				ipt.Source: ipt.Pipeline,
 			},
@@ -372,11 +398,16 @@ func getDataPieceFromEvent(event interface{}) *DataStruct {
 
 //------------------------------------------------------------------------------
 
+func defaultInput() *Input {
+	return &Input{
+		Tags:    make(map[string]string),
+		feeder:  io.DefaultFeeder(),
+		semStop: cliutils.NewSem(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			Tags:    make(map[string]string),
-			semStop: cliutils.NewSem(),
-		}
+		return defaultInput()
 	})
 }
