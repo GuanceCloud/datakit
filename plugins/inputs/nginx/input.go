@@ -32,7 +32,11 @@ var (
 	maxInterval = time.Second * 30
 	sample      = `
 [[inputs.nginx]]
+	# Nginx status URL.
+	# (Default) If not use with VTS, the formula is like this: "http://localhost:80/server_status".
+	# If using with VTS, the formula is like this: "http://localhost:80/status/format/json".
 	url = "http://localhost:80/server_status"
+
 	# ##(optional) collection interval, default is 30s
 	# interval = "30s"
 	use_vts = false
