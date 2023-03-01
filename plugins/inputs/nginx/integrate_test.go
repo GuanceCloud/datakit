@@ -341,7 +341,7 @@ func (cs *caseSpec) run() error {
 
 	containerName := cs.getContainterName()
 
-	// remove the container if exist.
+	// Remove the container if exist.
 	if err := p.RemoveContainerByName(containerName); err != nil {
 		return err
 	}
@@ -355,6 +355,7 @@ func (cs *caseSpec) run() error {
 	var resource *dockertest.Resource
 
 	if len(cs.dockerFileText) == 0 {
+		// Just run a container from existing docker image.
 		resource, err = p.RunWithOptions(
 			&dockertest.RunOptions{
 				Name: containerName, // ATTENTION: not cs.name.
@@ -372,6 +373,7 @@ func (cs *caseSpec) run() error {
 			},
 		)
 	} else {
+		// Build docker image from Dockerfile and run a container from it.
 		resource, err = p.BuildAndRunWithOptions(
 			dockerFilePath,
 
@@ -514,6 +516,7 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 	return nil
 }
 
+// Launch large amount of HTTP requests to remote nginx.
 func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 	for path, count := range cs.mPathCount {
 		newURL := fmt.Sprintf("http://%s%s", r.Host, path)
