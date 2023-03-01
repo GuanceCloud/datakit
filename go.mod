@@ -115,10 +115,10 @@ require (
 	github.com/GuanceCloud/confd v0.0.0-20230110090426-b3190049be1c
 	github.com/GuanceCloud/grok v1.1.2
 	github.com/GuanceCloud/platypus v0.2.3
+	github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747
 	github.com/Shopify/sarama v1.29.1
 	github.com/bmatcuk/doublestar/v4 v4.6.0
 	github.com/cortexproject/cortex v1.9.1-0.20210722081137-485474c9afb2
-	github.com/gin-contrib/timeout v0.0.3
 	github.com/golang/protobuf v1.5.2
 	github.com/google/pprof v0.0.0-20221118152302-e6195bd50e26
 	github.com/gosnmp/gosnmp v1.35.0
@@ -140,7 +140,6 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/DataDog/datadog-go/v5 v5.1.0 // indirect
 	github.com/DataDog/zstd v1.4.1 // indirect
-	github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.123 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
