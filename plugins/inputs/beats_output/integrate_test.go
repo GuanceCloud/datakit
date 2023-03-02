@@ -89,17 +89,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
 		opts           []inputs.PointCheckOption
-		mPathCount     map[string]int
 	}{
 		{
-			name:           "filebeat:7.17.9-logstash",
-			conf:           "tcp://0.0.0.0:5044",
-			dockerFileText: dockerFileLogstash,
-			exposedPorts:   []string{"80/tcp"},
-			opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
-			mPathCount: map[string]int{
-				"/": 100,
-			},
+			name:           "elastic/filebeat:7.17.9-logstash",
+			conf:           `listen = "tcp://0.0.0.0:5044"`,
+			dockerFileText: getDockerfile("7.17.9"),
+			// exposedPorts:   []string{"80/tcp"},
+			// opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
 		},
 
 		// {
@@ -192,7 +188,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
 			opts:           base.opts,
-			mPathCount:     base.mPathCount,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -224,7 +219,6 @@ type caseSpec struct {
 	dockerFileText string
 	exposedPorts   []string
 	opts           []inputs.PointCheckOption
-	mPathCount     map[string]int
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -311,6 +305,11 @@ func (cs *caseSpec) run() error {
 	}
 	defer os.RemoveAll(dockerFileDir)
 
+	extIP, err := externalIP()
+	if err != nil {
+		return err
+	}
+
 	var resource *dockertest.Resource
 
 	if len(cs.dockerFileText) == 0 {
@@ -321,6 +320,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -341,6 +341,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -354,6 +355,7 @@ func (cs *caseSpec) run() error {
 	}
 
 	if err != nil {
+		cs.t.Logf("%s", err.Error())
 		return err
 	}
 
@@ -540,12 +542,33 @@ func externalIP() (string, error) {
 	return "", errors.New("are you connected to the network?")
 }
 
+func getDockerfile(version string) string {
+	replacePair := map[string]string{
+		"VERSION":      version,
+		"a":            "$a",
+		"DATAKIT_HOST": "${DATAKIT_HOST}",
+	}
+
+	return os.Expand(dockerFileLogstash, func(k string) string { return replacePair[k] })
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // Dockerfiles.
 
-const dockerFileLogstash = `FROM nginx:latest
+const dockerFileLogstash = `FROM elastic/filebeat:${VERSION}
 
-RUN sed -i "/location \/ {/i\    location = /server_status {" /etc/nginx/conf.d/default.conf \
-    && sed -i "/location \/ {/i\        stub_status;" /etc/nginx/conf.d/default.conf \
-    && sed -i "/location \/ {/i\    }\n" /etc/nginx/conf.d/default.conf`
+USER root
+
+RUN sed -i '10,13d' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a output.logstash:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  hosts: ["${DATAKIT_HOST}:5044"]' /usr/share/filebeat/filebeat.yml \
+    && echo "" >> /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a filebeat.inputs:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a - type: filestream' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  id: my-filestream-id' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  enabled: true' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  paths:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \    - /var/log/*.log' /usr/share/filebeat/filebeat.yml
+
+USER filebeat`
