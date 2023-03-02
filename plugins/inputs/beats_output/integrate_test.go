@@ -421,32 +421,6 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 	return nil
 }
 
-// Launch large amount of HTTP requests to remote nginx.
-// func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
-// 	for path, count := range cs.mPathCount {
-// 		newURL := fmt.Sprintf("http://%s%s", r.Host, path)
-
-// 		var wg sync.WaitGroup
-// 		wg.Add(count)
-
-// 		for i := 0; i < count; i++ {
-// 			go func() {
-// 				defer wg.Done()
-
-// 				resp, err := http.Get(newURL)
-// 				if err != nil {
-// 					panic(err)
-// 				}
-// 				if err := resp.Body.Close(); err != nil {
-// 					panic(err)
-// 				}
-// 			}()
-// 		}
-
-// 		wg.Wait()
-// 	}
-// }
-
 ////////////////////////////////////////////////////////////////////////////////
 
 func externalIP() (string, error) {

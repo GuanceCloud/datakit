@@ -248,26 +248,12 @@ func (ipt *Input) feed(pending []*DataStruct) {
 		newTags := ipt.getNewTags(v)
 		l.Debugf("newTags = %#v", newTags)
 
-		// pt, err := point.NewPoint(ipt.Source, newTags,
-		// 	map[string]interface{}{
-		// 		pipeline.FieldMessage: v.Message,
-		// 		pipeline.FieldStatus:  pipeline.DefaultStatus,
-		// 	}, point.LOpt())
-		// if err != nil {
-		// 	l.Error(err)
-		// 	continue
-		// }
-
 		logging := &loggingMeasurement{
 			name:   measurementName,
 			tags:   newTags,
 			fields: v.Fields,
 		}
 
-		// map[string]interface{}{
-		// 	pipeline.FieldMessage: v.Message,
-		// 	pipeline.FieldStatus:  pipeline.DefaultStatus,
-		// }
 		if logging.fields == nil {
 			logging.fields = make(map[string]interface{})
 		}
