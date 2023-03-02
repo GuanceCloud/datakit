@@ -27,7 +27,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func TestNginxInput(t *testing.T) {
+func TestBeatsInput(t *testing.T) {
 	t.Setenv("REMOTE_HOST", "10.200.14.142")
 	t.Setenv("TESTING_METRIC_PATH", "/tmp/testing.metrics")
 
@@ -94,73 +94,17 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			name:           "elastic/filebeat:7.17.9-logstash",
 			conf:           `listen = "tcp://0.0.0.0:5044"`,
 			dockerFileText: getDockerfile("7.17.9"),
-			// exposedPorts:   []string{"80/tcp"},
-			// opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
 		},
-
-		// {
-		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.20.2",
-
-		// 	conf: fmt.Sprintf(`
-		// url = "http://%s/status/format/json"
-		// use_vts = true`,
-		// 		remote.Host),
-
-		// 	exposedPorts: []string{"80/tcp"},
-		// 	mPathCount: map[string]int{
-		// 		"/1": 100,
-		// 		"/2": 100,
-		// 		"/3": 100,
-		// 	},
-		// },
-
-		// {
-		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.21.6",
-
-		// 	conf: fmt.Sprintf(`
-		// url = "http://%s/status/format/json"
-		// use_vts = true`,
-		// 		remote.Host),
-
-		// 	exposedPorts: []string{"80/tcp"},
-		// 	mPathCount: map[string]int{
-		// 		"/1": 100,
-		// 		"/2": 100,
-		// 		"/3": 100,
-		// 	},
-		// },
-
-		// {
-		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.22.1",
-
-		// 	conf: fmt.Sprintf(`
-		// url = "http://%s/status/format/json"
-		// use_vts = true`,
-		// 		remote.Host),
-
-		// 	exposedPorts: []string{"80/tcp"},
-		// 	mPathCount: map[string]int{
-		// 		"/1": 100,
-		// 		"/2": 100,
-		// 		"/3": 100,
-		// 	},
-		// },
-
-		// {
-		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.23.3",
-
-		// 	conf: fmt.Sprintf(`
-		// url = "http://%s/status/format/json"
-		// use_vts = true`,
-		// 		remote.Host),
-
-		// 	exposedPorts: []string{"80/tcp"},
-		// 	mPathCount: map[string]int{
-		// 		"/1": 100,
-		// 		"/2": 100,
-		// 		"/3": 100,
-		// 	},
-		// },
+		{
+			name:           "elastic/filebeat:7.17.6-logstash",
+			conf:           `listen = "tcp://0.0.0.0:5044"`,
+			dockerFileText: getDockerfile("7.17.6"),
+		},
+		{
+			name:           "elastic/filebeat:8.6.2-logstash",
+			conf:           `listen = "tcp://0.0.0.0:5044"`,
+			dockerFileText: getDockerfile("8.6.2"),
+		},
 	}
 
 	var cases []*caseSpec

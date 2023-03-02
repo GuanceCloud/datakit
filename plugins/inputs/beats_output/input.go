@@ -17,13 +17,11 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	v2 "github.com/elastic/go-lumber/server/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-
-	"github.com/GuanceCloud/cliutils/point"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -110,7 +108,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 // Point implement MeasurementV2.
 func (ipt *loggingMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
+	opts := point.DefaultLoggingOptions()
 
 	return point.NewPointV2([]byte(ipt.name),
 		append(point.NewTags(ipt.tags), point.NewKVs(ipt.fields)...),
@@ -135,6 +133,7 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Message text, existed when default. Could use pipeline to delete this field."}, // message
+			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Log status."},
 		},
 	}
 }
@@ -260,13 +259,20 @@ func (ipt *Input) feed(pending []*DataStruct) {
 		// }
 
 		logging := &loggingMeasurement{
-			name: ipt.Source,
-			tags: newTags,
-			fields: map[string]interface{}{
-				pipeline.FieldMessage: v.Message,
-				pipeline.FieldStatus:  pipeline.DefaultStatus,
-			},
+			name:   measurementName,
+			tags:   newTags,
+			fields: v.Fields,
 		}
+
+		// map[string]interface{}{
+		// 	pipeline.FieldMessage: v.Message,
+		// 	pipeline.FieldStatus:  pipeline.DefaultStatus,
+		// }
+		if logging.fields == nil {
+			logging.fields = make(map[string]interface{})
+		}
+		logging.fields[pipeline.FieldMessage] = v.Message
+		logging.fields[pipeline.FieldStatus] = pipeline.DefaultStatus
 
 		pts = append(pts, logging.Point())
 	}
