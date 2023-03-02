@@ -32,27 +32,33 @@
 - 命令行增加[解析行协议功能](datakit-tools-how-to.md#parse-lp)(#1412)
 - Datakit yaml 和 helm 支持资源 limit 配置(#1416)
 - Datakit yaml 和 helm 支持 CRD 部署(#1415)
-- 添加 SQL-Server 集成测试(#1406)
-- RUM 支持 [resource CDN 标注](rum.md#cdn标注-cdn-resolve)(#1384)
+- 添加 SQLServer 集成测试(#1406)
+- RUM 支持 [resource CDN 标注](rum.md#cdn-resolve)(#1384)
 
 ### 问题修复 {#cl-1.5.6-fix}
 
 - 修复 RUM 请求返回 5xx 问题(#1412)
 - 修复日志采集路径错误问题(#1447)
-- 修复 k8s pod 字段业务逻辑问题(#1446)
-- 修复 Datakit 崩溃问题(#1422)
-- 修复 point 构建错误(#1413#1408)
+- 修复 K8s Pod(`restarts`) 字段问题(#1446)
+- 修复 DataKit filter 模块崩溃问题(#1422)
+- 修复 Point 构建中 tag key 命名问题(#1413#1408)
 - 修复 Datakit Monitor 字符集问题(#1405)
 - 修复 OTEL tag 覆盖问题(#1396)
+- 修复 public API 白名单问题(#1467) 
 
 ### 功能优化 {#cl-1.5.6-opt}
 
-- 优化拨测逻辑(#1421)
+- 优化拨测中无效任务的处理(#1421)
 - 优化 Windows 下安装提示(#1404)
-- 优化 powershell 安装脚本模板(#1403)
-- 优化 k8s 中 pod, ReplicaSet, Deployment 的关联方法(#1368)
+- 优化 Windows 中 Powershell 安装脚本模板(#1403)
+- 优化 K8s 中 Pod/ReplicaSet/Deployment 的关联方法(#1368)
 - 重构 point 数据结构及功能(#1400)
-- Datakit 自带 eBPF 采集器二进制安装(#1448)
+- Datakit 自带 [eBPF](ebpf.md) 采集器二进制安装(#1448)
+- 安装程序地址改成 CDN 地址，优化下载问题(#1457)
+
+### 兼容调整 {#cl-1.5.6-brk}
+
+- 由于内置了 eBPF 采集器，移除多余命令 `datakit install --datakit-ebpf`(#1400)
 
 ---
 

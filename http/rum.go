@@ -80,7 +80,7 @@ func geoTags(srcip string) (tags map[string]string) {
 		tags["ip"] = srcip
 	}
 
-	if isp := ip2isp.SearchIsp(srcip); len(isp) > 0 {
+	if isp := ip2isp.SearchISP(srcip); len(isp) > 0 {
 		tags["isp"] = isp
 	}
 

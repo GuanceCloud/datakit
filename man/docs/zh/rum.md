@@ -305,7 +305,7 @@ curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version
     - 通过接口上传的 sourcemap 压缩包，不需要重启 DataKit 即可生效。但如果是手动上传，需要重启 DataKit，方可生效
 
 
-## CDN标注 {#cdn-resolve}
+## CDN 标注 {#cdn-resolve}
 
 对于 `resource` 指标，DataKit 尝试分析资源是否使用了 CDN 以及对应的 CDN 厂家，当指标集中的 `provider_type` 字段值是 "CDN" 时，表明该资源使用了 CDN，此时 `provider_name` 字段值为具体的 CDN 厂家名称。
 

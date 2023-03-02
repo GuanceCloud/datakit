@@ -181,7 +181,7 @@ func InitIPdb(pipelineCfg *PipelineCfg) (ipdb.IPdb, error) {
 		ipdbInstance.Init(datakit.DataDir, pipelineCfg.IPdbAttr)
 		funcs.InitIPdb(ipdbInstance)
 		if pipelineCfg.IPdbType != "geolite2" {
-			ip2isp.InitIPdb(ipdbInstance)
+			ip2isp.InitIPDB(ipdbInstance)
 		}
 	} else { // invalid ipdb type, then use the default iploc to ignore the error.
 		l.Warnf("invalid ipdb_type %s", pipelineCfg.IPdbType)

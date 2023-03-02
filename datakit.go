@@ -124,7 +124,7 @@ var (
 	Version    = git.Version
 	AutoUpdate = false
 
-	DownloadAddr = ""
+	//UploadAddr = ""
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 

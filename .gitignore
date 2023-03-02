@@ -23,7 +23,6 @@ __debug_bin
 *.tar.gz
 *.yaml
 *.zip
-**build/
 ag.sh
 agent_linux
 agent.conf
