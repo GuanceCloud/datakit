@@ -2,69 +2,66 @@
 
 default: local
 
-# 正式环境
-PRODUCTION_DOWNLOAD_ADDR = zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit
+# For production release, download address point to CDN, upload address point to aliyun OSS
+PRODUCTION_UPLOAD_ADDR  ?= zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit
+PRODUCTION_DOWNLOAD_CDN ?= static.guance.com/datakit
+TESTING_UPLOAD_ADDR     ?= zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit # For testing: same download/upload address
+TESTING_DOWNLOAD_CDN    ?= zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit
+LOCAL_OSS_ADDR          ?= "not-set" # you should export these env in your make environment.
+LOCAL_UPLOAD_ADDR       ?= ${LOCAL_OSS_ADDR}
+LOCAL_DOWNLOAD_CDN      ?= ${LOCAL_OSS_ADDR} # CDN set as the same OSS bucket
 
-# 测试环境
-TESTING_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit
+# Local envs to publish local testing binaries.
+# export LOCAL_OSS_ACCESS_KEY = '<your-oss-AK>'
+# export LOCAL_OSS_SECRET_KEY = '<your-oss-SK>'
+# export LOCAL_OSS_BUCKET     = '<your-oss-bucket>'
+# export LOCAL_OSS_HOST       = 'oss-cn-hangzhou.aliyuncs.com'
+# export LOCAL_OSS_ADDR       = '<your-oss-bucket>.oss-cn-hangzhou.aliyuncs.com/datakit'
 
-# 本地环境: 需配置环境变量，便于完整测试采集器的发布、更新等流程
-# export LOCAL_OSS_ACCESS_KEY='<your-oss-AK>'
-# export LOCAL_OSS_SECRET_KEY='<your-oss-SK>'
-# export LOCAL_OSS_BUCKET='<your-oss-bucket>'
-# export LOCAL_OSS_HOST='oss-cn-hangzhou.aliyuncs.com' # 一般都是这个地址
-# export LOCAL_OSS_ADDR='<your-oss-bucket>.oss-cn-hangzhou.aliyuncs.com/datakit'
-# 如果只是编译，LOCAL_OSS_ADDR 这个环境变量可以随便给个值
-LOCAL_OSS_ADDR?="not-set"
-LOCAL_DOWNLOAD_ADDR=${LOCAL_OSS_ADDR}
+PUB_DIR            = dist
+BUILD_DIR          = dist
+BIN                = datakit
+NAME               = datakit
+NAME_EBPF          = datakit-ebpf
+ENTRY              = cmd/datakit/main.go
+LOCAL_ARCHS        = local
+DEFAULT_ARCHS      = all
+MAC_ARCHS          = darwin/amd64
+DOCKER_IMAGE_ARCHS = linux/arm64,linux/amd64
+GOLINT_BINARY      = golangci-lint
 
-PUB_DIR = dist
-BUILD_DIR = dist
+SUPPORTED_GOLINT_VERSION         = 1.46.2
+SUPPORTED_GOLINT_VERSION_ANOTHER = v1.46.2
 
-BIN = datakit
-NAME = datakit
-NAME_EBPF = datakit-ebpf
-ENTRY = cmd/datakit/main.go
+MINIMUM_GO_MAJOR_VERSION = 1
+MINIMUM_GO_MINOR_VERSION = 16
+GO_VERSION_ERR_MSG := Golang version is not supported, please update to at least $(MINIMUM_GO_MAJOR_VERSION).$(MINIMUM_GO_MINOR_VERSION)
 
-UNAME_S:=$(shell uname -s)
-UNAME_M:=$(shell uname -m | sed -e s/x86_64/x86_64/ -e s/aarch64.\*/arm64/)
-LOCAL_ARCHS:="local"
-DEFAULT_ARCHS:="all"
-MAC_ARCHS:="darwin/amd64"
-NOT_SET="not-set"
-VERSION?=$(shell git describe --always --tags)
-DATAWAY_URL?="not-set"
-DATE:=$(shell date -u +'%Y-%m-%d %H:%M:%S')
-GOVERSION:=$(shell go version)
-COMMIT:=$(shell git rev-parse --short HEAD)
-GIT_BRANCH?=$(shell git rev-parse --abbrev-ref HEAD)
-COMMITER:=$(shell git log -1 --pretty=format:'%an')
-UPLOADER:=$(shell hostname)/${USER}/${COMMITER}
-DOCKER_IMAGE_ARCHS:="linux/arm64,linux/amd64"
-DATAKIT_EBPF_ARCHS?="linux/arm64,linux/amd64"
-IGN_EBPF_INSTALL_ERR?=0
-RACE_DETECTION?="off"
+# Make them evaluate(expand) only once
+UNAME_S                := $(shell uname -s)
+UNAME_M                := $(shell uname -m | sed -e s/x86_64/x86_64/ -e s/aarch64.\*/arm64/)
+DATE                   := $(shell date -u +'%Y-%m-%d %H:%M:%S')
+GOVERSION              := $(shell go version)
+COMMIT                 := $(shell git rev-parse --short HEAD)
+COMMITER               := $(shell git log -1 --pretty=format:'%an')
+UPLOADER               := $(shell hostname)/${USER}/${COMMITER}
+GO_MAJOR_VERSION       := $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
+GO_MINOR_VERSION       := $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
+GO_PATCH_VERSION       := $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f3)
+BUILDER_GOOS_GOARCH    := $(shell go env GOOS)-$(shell go env GOARCH)
+GOLINT_VERSION         := $(shell $(GOLINT_BINARY) --version | cut -c 27- | cut -d' ' -f1)
+GOLINT_VERSION_ERR_MSG := golangci-lint version($(GOLINT_VERSION)) is not supported, please use version $(SUPPORTED_GOLINT_VERSION)
 
-PKGEBPF?=false
+# These can be override at runtime by make variables
+VERSION              ?= $(shell git describe --always --tags)
+DATAWAY_URL          ?= "not-set"
+GIT_BRANCH           ?= $(shell git rev-parse --abbrev-ref HEAD)
+DATAKIT_EBPF_ARCHS   ?= linux/arm64,linux/amd64
+IGN_EBPF_INSTALL_ERR ?= 0
+RACE_DETECTION       ?= "off"
+PKGEBPF              ?= false
 
-GO_MAJOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
-GO_MINOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
-GO_PATCH_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f3)
-MINIMUM_SUPPORTED_GO_MAJOR_VERSION = 1
-MINIMUM_SUPPORTED_GO_MINOR_VERSION = 16
-GO_VERSION_VALIDATION_ERR_MSG = Golang version is not supported, please update to at least $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION).$(MINIMUM_SUPPORTED_GO_MINOR_VERSION)
-BUILDER_GOOS_GOARCH=$(shell go env GOOS)-$(shell go env GOARCH)
-
-GOLINT_BINARY = golangci-lint
-GOLINT_VERSION = "$(shell $(GOLINT_BINARY) --version | cut -c 27- | cut -d' ' -f1)"
-SUPPORTED_GOLINT_VERSION = "1.46.2"
-SUPPORTED_GOLINT_VERSION_ANOTHER = "v1.46.2"
-GOLINT_VERSION_VALIDATION_ERR_MSG = golangci-lint version($(GOLINT_VERSION)) is not supported, please use version $(SUPPORTED_GOLINT_VERSION)
-
-#####################
-# Large strings
-#####################
-
+# Generate 'git/' package under root path
 define GIT_INFO
 // Package git used to define basic git info abount current version.
 package git
@@ -81,70 +78,92 @@ const (
 endef
 export GIT_INFO
 
+##############################################################################
+# Functions used within the Makefile
+##############################################################################
+
 define notify_build
-	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
+	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_GO_MAJOR_VERSION) ]; then \
 		exit 0 ; \
-	elif [ $(GO_MAJOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
-		echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
+	elif [ $(GO_MAJOR_VERSION) -lt $(MINIMUM_GO_MAJOR_VERSION) ]; then \
+		echo '$(GO_VERSION_ERR_MSG)';\
 		exit 1; \
-	elif [ $(GO_MINOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MINOR_VERSION) ] ; then \
-		echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
+	elif [ $(GO_MINOR_VERSION) -lt $(MINIMUM_GO_MINOR_VERSION) ] ; then \
+		echo '$(GO_VERSION_ERR_MSG)';\
 		exit 1; \
 	fi
 	@echo "===== notify $(BIN) $(1) ===="
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go \
 		-main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
-		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3) \
+		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -upload-addr $(3) -download-cdn $(4) \
 		-notify-only
 endef
 
-define build
-	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
+# build used to compile datakit binary and related dists
+define build_bin
+	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_GO_MAJOR_VERSION) ]; then \
 		exit 0 ; \
-	elif [ $(GO_MAJOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
-		echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
+	elif [ $(GO_MAJOR_VERSION) -lt $(MINIMUM_GO_MAJOR_VERSION) ]; then \
+		echo '$(GO_VERSION_ERR_MSG)';\
 		exit 1; \
-	elif [ $(GO_MINOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MINOR_VERSION) ] ; then \
-		echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
+	elif [ $(GO_MINOR_VERSION) -lt $(MINIMUM_GO_MINOR_VERSION) ] ; then \
+		echo '$(GO_VERSION_ERR_MSG)';\
 		exit 1; \
 	fi
 
 	@rm -rf $(PUB_DIR)/$(1)/*
 	@mkdir -p $(BUILD_DIR) $(PUB_DIR)/$(1)
 	@echo "===== $(BIN) $(1) ===="
-	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go \
-		-main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
-		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3) \
+	GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go \
+		-release $(1)             \
+		-archs $(2)               \
+		-upload-addr $(3)         \
+		-download-cdn $(4)        \
+		-main $(ENTRY)            \
+		-binary $(BIN)            \
+		-name $(NAME)             \
+		-build-dir $(BUILD_DIR)   \
+		-pub-dir $(PUB_DIR)       \
 		-race $(RACE_DETECTION)
 	@tree -Csh -L 3 $(BUILD_DIR)
 endef
 
-define pub
-	@echo "publish $(1) $(NAME) ..."
-	@GO111MODULE=off go run cmd/make/make.go \
-		-pub -release $(1) -pub-dir $(PUB_DIR) \
-		-name $(NAME) -download-addr $(2) \
-		-build-dir $(BUILD_DIR) -archs $(3) \
+# pub used to publish datakit version(for release/testing/local)
+define publish
+	@echo "publishing $(1) $(NAME) ..."
+	GO111MODULE=off go run cmd/make/make.go \
+		-release $(1)            \
+		-upload-addr $(2)        \
+		-download-cdn $(3)       \
+		-pub                     \
+		-pub-dir $(PUB_DIR)      \
+		-name $(NAME)            \
+		-build-dir $(BUILD_DIR)  \
+		-archs $(4)              \
 		-pkg-ebpf $(PKGEBPF)
 endef
 
 define pub_ebpf
-	@echo "publish $(1) $(NAME_EBPF) ..."
+	@echo "publishing $(1) $(NAME_EBPF) ..."
 	@GO111MODULE=off go run cmd/make/make.go \
-		-pub-ebpf -release $(1) -pub-dir $(PUB_DIR) \
-		-name $(NAME_EBPF) -download-addr $(2) \
-		-build-dir $(BUILD_DIR) -archs $(3)
+		-release $(1)             \
+		-upload-addr $(2)         \
+		-archs $(3)               \
+		-pub-ebpf                 \
+		-pub-dir $(PUB_DIR)       \
+		-name $(NAME_EBPF)        \
+		-build-dir $(BUILD_DIR)
 endef
 
 define build_docker_image
 	@if [ $(2) = "registry.jiagouyun.com" ]; then \
-		echo 'publish to $(2)...'; \
+		echo 'publishing to $(2)...'; \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/datakit:$(VERSION) . --push --build-arg IGN_EBPF_INSTALL_ERR=$(IGN_EBPF_INSTALL_ERR); \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push ; \
 	else \
-		echo 'publish to $(2)...'; \
+		echo 'publishing to $(2)...'; \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/datakit:$(VERSION) \
 			-t $(2)/dataflux/datakit:$(VERSION) \
@@ -177,68 +196,77 @@ define check_golint_version
 	$(SUPPORTED_GOLINT_VERSION_ANOTHER)) \
 	;; \
 	*) \
-		echo '$(GOLINT_VERSION_VALIDATION_ERR_MSG)'; \
+		echo '$(GOLINT_VERSION_ERR_MSG)'; \
 		exit 1; \
 	esac;
 endef
 
+define build_ip2isp
+	rm -rf china-operator-ip
+	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
+	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
+endef
+
+define do_lint
+	GOARCH=$(1) GOOS=$(2) $(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
+endef
+
+##############################################################################
+# Rules in the Makefile
+##############################################################################
+
 local: deps
-	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
+	$(call build_bin, local, $(LOCAL_ARCHS), $(LOCAL_UPLOAD_ADDR), $(LOCAL_DOWNLOAD_CDN))
 
 pub_local: deps
-	$(call pub, local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
+	$(call publish, local, $(LOCAL_UPLOAD_ADDR), $(LOCAL_DOWNLOAD_CDN), $(LOCAL_ARCHS))
 
 pub_ebpf_local: deps
-	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
-	$(call pub_ebpf, local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
+	$(call build_bin, local, $(LOCAL_ARCHS), $(LOCAL_UPLOAD_ADDR), $(LOCAL_DOWNLOAD_CDN))
+	$(call pub_ebpf, local, $(LOCAL_DOWNLOAD_CDN), $(LOCAL_ARCHS))
 
 pub_epbf_testing: deps
-	$(call build,testing, $(DATAKIT_EBPF_ARCHS), $(TESTING_DOWNLOAD_ADDR))
-	$(call pub_ebpf, testing,$(TESTING_DOWNLOAD_ADDR),$(DATAKIT_EBPF_ARCHS))
+	$(call build_bin, testing, $(DATAKIT_EBPF_ARCHS), $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN))
+	$(call pub_ebpf, testing, $(TESTING_DOWNLOAD_CDN), $(DATAKIT_EBPF_ARCHS))
 
 pub_ebpf_production: deps
-	$(call build,production, $(DATAKIT_EBPF_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
-	$(call pub_ebpf, production,$(PRODUCTION_DOWNLOAD_ADDR),$(DATAKIT_EBPF_ARCHS))
+	$(call build_bin, production, $(DATAKIT_EBPF_ARCHS), $(PRODUCTION_DOWNLOAD_CDN), $(TESTING_DOWNLOAD_CDN))
+	$(call pub_ebpf, production, $(PRODUCTION_DOWNLOAD_CDN), $(DATAKIT_EBPF_ARCHS))
 
 testing_notify: deps
-	$(call notify_build,testing, $(DEFAULT_ARCHS), $(TESTING_DOWNLOAD_ADDR))
+	$(call notify_build, testing, $(DEFAULT_ARCHS), $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN))
 
 testing: deps
-	$(call build, testing, $(DEFAULT_ARCHS), $(TESTING_DOWNLOAD_ADDR))
-	$(call pub, testing,$(TESTING_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+	$(call build_bin, testing, $(DEFAULT_ARCHS), $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN))
+	$(call publish, testing, $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN), $(DEFAULT_ARCHS))
 
 testing_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
-	# we also publish testing image to public image repo
+	# we also publishing testing image to public image repo
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
 	$(call build_k8s_charts, 'datakit-testing', registry.jiagouyun.com)
 
 production_notify: deps
-	$(call notify_build,production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
+	$(call notify_build,production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_CDN), $(TESTING_DOWNLOAD_CDN))
 
 production: deps # stable release
-	$(call build, production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
-	$(call pub, production, $(PRODUCTION_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+	$(call build_bin, production, $(DEFAULT_ARCHS), $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN))
+	$(call publish, production, $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN), $(DEFAULT_ARCHS))
 
 production_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
 	$(call build_k8s_charts, 'datakit', pubrepo.guance.com)
 
 production_mac: deps
-	$(call build, production, $(MAC_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
-	$(call pub,production,$(PRODUCTION_DOWNLOAD_ADDR),$(MAC_ARCHS))
-
-testing_mac: deps
-	$(call build, testing, $(MAC_ARCHS), $(TESTING_DOWNLOAD_ADDR))
-	$(call pub, testing,$(TESTING_DOWNLOAD_ADDR),$(MAC_ARCHS))
+	$(call build_bin, production, $(MAC_ARCHS), $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN))
+	$(call publish, production, $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN), $(MAC_ARCHS))
 
 # not used
 pub_testing_win_img:
 	@mkdir -p embed/windows-amd64
-	@wget --quiet -O - "https://$(TESTING_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
+	@wget --quiet -O - "https://$(TESTING_UPLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t registry.jiagouyun.com/datakit/datakit-win:$(VERSION) -f ./Dockerfile_win .
 	@sudo docker push registry.jiagouyun.com/datakit/datakit-win:$(VERSION)
-
 
 # not used
 pub_testing_charts:
@@ -249,11 +277,9 @@ pub_testing_charts:
 pub_release_win_img:
 	# release to pub hub
 	@mkdir -p embed/windows-amd64
-	@wget --quiet -O - "https://$(PRODUCTION_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
+	@wget --quiet -O - "https://$(PRODUCTION_UPLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit-win:$(VERSION) -f ./Dockerfile_win .
 	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit-win:$(VERSION)
-
-
 
 # Config samples should only be published by production release,
 # because config samples in multiple testing releases may not be compatible to each other.
@@ -275,16 +301,6 @@ check_production_conf_compatible:
 shame_logging:
 	$(call show_poor_logs)
 
-define build_ip2isp
-	rm -rf china-operator-ip
-	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
-	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
-endef
-
-define do_lint
-	GOARCH=$(1) GOOS=$(2) $(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
-endef
-
 ip2isp:
 	$(call build_ip2isp)
 
@@ -305,8 +321,8 @@ ut: deps
 			echo "######################"; \
 		fi
 
-# all testing
-
+# Run all testings
+# Deprecated: used `make ut' for better metrics exported.
 all_test: deps
 	@truncate -s 0 test.output
 	@echo "#####################" | tee -a test.output
@@ -359,14 +375,6 @@ lfparser_disable_line:
 	@rm -rf io/parser/parser_y.go
 	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y # use -l to disable `//line`
 
-# plparser_disable_line:
-# 	@rm -rf pipeline/parser/gram_y.go
-# 	@rm -rf pipeline/parser/parser.y.go
-
-# 	@rm -rf pipeline/core/parser/gram_y.go
-# 	@rm -rf pipeline/core/parser/parser.y.go
-# 	@goyacc -l -o pipeline/core/parser/gram_y.go pipeline/core/parser/gram.y # use -l to disable `//line`
-
 prepare:
 	@mkdir -p git
 	@echo "$$GIT_INFO" > git/git.go
@@ -387,7 +395,7 @@ md_lint:
 		exit -1; \
 	fi
 
-# 要求所有文档的章节必须带上指定的标签（历史原因，先忽略 changelog.md）
+# All document's section must attached with tag(exclude changelog.md)
 check_man:
 	@grep --color=always --exclude *changelog.md -nr '^##' man/docs/* | grep -vE ' {#' | grep -vE '{{' && \
 		{ echo "[E] some bad docs"; exit -1; } || \
