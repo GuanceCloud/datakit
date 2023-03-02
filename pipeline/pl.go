@@ -63,6 +63,7 @@ func RunPl(category string, pts []*point.Point, plOpt *plscript.Option, scriptMa
 			continue
 		}
 
+		ptOpt.Time = plPt.Time
 		if p, err := point.NewPoint(plPt.Name, plPt.Tags, plPt.Fields, ptOpt); err != nil {
 			l.Error(err)
 			stats.WriteScriptStats(script.Category(), script.NS(), script.Name(), 0, 0, 1, 0, err)
