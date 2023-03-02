@@ -369,3 +369,25 @@ type TraceParameters struct {
 	Encode  string
 	Body    *bytes.Buffer
 }
+
+func MergeTags(input ...map[string]string) map[string]string {
+	tags := make(map[string]string)
+	for i := range input {
+		for k, v := range input[i] {
+			tags[k] = v
+		}
+	}
+
+	return tags
+}
+
+func MergeFields(input ...map[string]interface{}) map[string]interface{} {
+	fields := make(map[string]interface{})
+	for i := range input {
+		for k, v := range input[i] {
+			fields[k] = v
+		}
+	}
+
+	return fields
+}
