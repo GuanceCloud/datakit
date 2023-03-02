@@ -54,7 +54,7 @@ func runGRPCV3(addr string) {
 		log.Error(err.Error())
 	}
 
-	log.Debug("### skywalking grpc v3 exits")
+	log.Debug("### skywalking v3 exits")
 }
 
 type TraceReportServerV3Old struct {

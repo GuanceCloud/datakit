@@ -3,71 +3,145 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+// Package opentelemetry is GRPC : trace & metric
 package opentelemetry
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/compiled/v1/collector/metrics"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/compiled/v1/collector/trace"
+	istorage "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
+	collectormetricepb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
+	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/grpc"
+	_ "google.golang.org/grpc/encoding/gzip"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 )
 
-func runGRPCV1(addr string) {
-	listener, err := net.Listen("tcp", addr)
+type otlpGrpcCollector struct {
+	TraceEnable     bool   `toml:"trace_enable"`
+	MetricEnable    bool   `toml:"metric_enable"`
+	Addr            string `toml:"addr"`
+	ExpectedHeaders map[string]string
+	stopFunc        func()
+}
+
+func (o *otlpGrpcCollector) run(storage *collector.SpansStorage) {
+	if localCache != nil {
+		localCache.RegisterConsumer(istorage.OTEL_GRPC_KEY, func(buf []byte) error {
+			trace := &tracepb.TracesData{}
+			if err := proto.Unmarshal(buf, trace); err != nil {
+				return err
+			}
+			spanStorage.AddSpans(trace.ResourceSpans)
+
+			return nil
+		})
+	}
+
+	listener, err := net.Listen("tcp", o.Addr)
 	if err != nil {
-		log.Errorf("### opentelemetry grpc server v1 listening on %s failed: %v", addr, err.Error())
+		log.Errorf("Failed to get an endpoint: %v", err)
 
 		return
 	}
-	log.Debugf("### opentelemetry grpc v1 listening on: %s", addr)
 
-	otelSvr = grpc.NewServer()
-	trace.RegisterTraceServiceServer(otelSvr, &TraceServiceServer{})
-	metrics.RegisterMetricsServiceServer(otelSvr, &MetricsServiceServer{})
+	srv := grpc.NewServer()
+	if o.TraceEnable {
+		et := &ExportTrace{storage: storage}
+		collectortracepb.RegisterTraceServiceServer(srv, et)
+	}
+	if o.MetricEnable {
+		em := &ExportMetric{storage: storage}
+		collectormetricepb.RegisterMetricsServiceServer(srv, em)
+	}
+	o.stopFunc = srv.Stop
 
-	if err = otelSvr.Serve(listener); err != nil {
+	if err = srv.Serve(listener); err != nil {
 		log.Error(err.Error())
 	}
-
-	log.Debug("### opentelemetry grpc v1 exits")
 }
 
-type TraceServiceServer struct {
-	trace.UnimplementedTraceServiceServer
+func (o *otlpGrpcCollector) stop() {
+	if o.stopFunc != nil {
+		o.stopFunc()
+	}
 }
 
-func (tss *TraceServiceServer) Export(ctx context.Context, tsreq *trace.ExportTraceServiceRequest) (*trace.ExportTraceServiceResponse, error) {
-	if afterGatherRun != nil {
-		if dktraces := parseResourceSpans(tsreq.ResourceSpans); len(dktraces) != 0 {
-			afterGatherRun.Run(inputName, dktraces, false)
+type ExportTrace struct {
+	collectortracepb.UnimplementedTraceServiceServer
+	ExpectedHeaders map[string]string
+	storage         *collector.SpansStorage
+}
+
+func (et *ExportTrace) Export(ctx context.Context, ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) { //nolint: lll
+	md, haveHeader := metadata.FromIncomingContext(ctx)
+	if haveHeader {
+		if !checkHandler(et.ExpectedHeaders, md) {
+			return nil, fmt.Errorf("invalid request haeders or nil headers")
 		}
 	}
 
-	return &trace.ExportTraceServiceResponse{}, nil
-}
+	if rss := ets.GetResourceSpans(); len(rss) > 0 {
+		if localCache == nil || !localCache.Enabled() {
+			et.storage.AddSpans(rss)
+		} else {
+			buf, err := proto.Marshal(&tracepb.TracesData{ResourceSpans: rss})
+			if err != nil {
+				log.Error(err.Error())
 
-type MetricsServiceServer struct {
-	metrics.UnimplementedMetricsServiceServer
-}
+				return nil, err
+			}
 
-func (mss *MetricsServiceServer) Export(ctx context.Context, msreq *metrics.ExportMetricsServiceRequest) (*metrics.ExportMetricsServiceResponse, error) {
-	omcs := parseResourceMetrics(msreq.ResourceMetrics)
-	var points []*point.Point
-	for i := range omcs {
-		if pts := omcs[i].getPoints(); len(pts) != 0 {
-			points = append(points, pts...)
+			if err = localCache.Put(istorage.OTEL_GRPC_KEY, buf); err != nil {
+				log.Error(err.Error())
+
+				return nil, err
+			}
 		}
 	}
-	if len(points) != 0 {
-		if err := dkio.Feed(inputName, datakit.Metric, points, nil); err != nil {
-			log.Error(err.Error())
+
+	return &collectortracepb.ExportTraceServiceResponse{}, nil
+}
+
+type ExportMetric struct {
+	collectormetricepb.UnimplementedMetricsServiceServer
+	ExpectedHeaders map[string]string
+	storage         *collector.SpansStorage
+}
+
+func (em *ExportMetric) Export(ctx context.Context, ets *collectormetricepb.ExportMetricsServiceRequest) (*collectormetricepb.ExportMetricsServiceResponse, error) { //nolint: lll
+	md, haveHeader := metadata.FromIncomingContext(ctx)
+	if haveHeader {
+		if !checkHandler(em.ExpectedHeaders, md) {
+			return nil, fmt.Errorf("invalid request haeders or nil headers")
 		}
 	}
 
-	return &metrics.ExportMetricsServiceResponse{}, nil
+	if rss := ets.ResourceMetrics; len(rss) > 0 {
+		orms := em.storage.ToDatakitMetric(rss)
+		em.storage.AddMetric(orms)
+	}
+
+	return &collectormetricepb.ExportMetricsServiceResponse{}, nil
+}
+
+func checkHandler(headers map[string]string, md metadata.MD) bool {
+	if len(headers) == 0 {
+		return true
+	}
+	for k, v := range headers {
+		strs := md.Get(strings.ToLower(k))
+		mdVal := strings.Join(strs, ",")
+		if mdVal != v {
+			return false
+		}
+	}
+
+	return true
 }

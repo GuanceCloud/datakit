@@ -6,13 +6,15 @@
 package http
 
 import (
+	"io"
 	"net/http"
 	"runtime/debug"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 )
 
-func ProtectedHandlerFunc(next http.HandlerFunc, log *logger.Logger) http.HandlerFunc {
+func ProtectedHandlerFunc(handler http.HandlerFunc, log *logger.Logger) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		log.Debugf("### protected mode HTTP handler for pattern: %s", req.URL.Path)
 
@@ -23,31 +25,39 @@ func ProtectedHandlerFunc(next http.HandlerFunc, log *logger.Logger) http.Handle
 			}
 		}()
 
-		next(resp, req)
+		handler(resp, req)
 	}
 }
 
-func CheckExpectedHeaders(next http.HandlerFunc, log *logger.Logger, expectedHeaders map[string][]string) http.HandlerFunc {
-	if len(expectedHeaders) == 0 {
-		return next
-	}
+type validator func(req *http.Request) error
 
+func ReadBodyHandlerFunc(handler http.HandlerFunc, log *logger.Logger, validators ...validator) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
-		for k, v := range expectedHeaders {
-			if ss, ok := req.Header[k]; ok {
-				for i := range ss {
-					for j := range v {
-						if ss[i] == v[j] {
-							next(resp, req)
+		log.Debugf("### read HTTP body and return mode for pattern: %s", req.URL.Path)
 
-							return
-						}
-					}
-				}
+		for i := range validators {
+			if err := validators[i](req); err != nil {
+				log.Error(err.Error())
+				resp.WriteHeader(http.StatusBadRequest)
+
+				return
 			}
 		}
 
-		log.Debug("### expected HTTP header not found")
-		resp.WriteHeader(http.StatusBadRequest)
+		pbuf := bufpool.GetBuffer()
+		defer bufpool.PutBuffer(pbuf)
+
+		_, err := io.Copy(pbuf, req.Body)
+		if err != nil {
+			log.Error(err.Error())
+			resp.WriteHeader(http.StatusBadRequest)
+
+			return
+		}
+		resp.WriteHeader(http.StatusOK)
+
+		req.Body.Close() // nolint: errcheck,gosec
+		req.Body = io.NopCloser(pbuf)
+		handler(&NopResponseWriter{resp}, req)
 	}
 }

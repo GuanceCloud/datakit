@@ -26,7 +26,7 @@ const (
 	sampleConfig = `
 [[inputs.skywalking]]
   ## Skywalking grpc server listening on address.
-  address = "127.0.0.1:11800"
+  address = "localhost:11800"
 
   ## plugins is a list contains all the widgets used in program that want to be regarded as service.
   ## every key words list in plugins represents a plugin defined as special tag by skywalking.
@@ -109,8 +109,7 @@ func (ipt *Input) Run() {
 
 	api = skywalkingapi.InitApiPluginAges(ipt.Plugins, ipt.LocalCacheConfig, ipt.CloseResource,
 		ipt.KeepRareResource, ipt.Sampler, ipt.CustomerTags, ipt.Tags, inputName)
-
-	log.Debug("### start skywalking grpc v3 server")
+	log.Debug("start skywalking grpc v3 server")
 
 	// start up grpc v3 routine
 	if len(ipt.Address) == 0 {
@@ -128,11 +127,11 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) Terminate() {
+	if skySvr != nil {
+		skySvr.Stop()
+	}
 	if api != nil {
 		api.CloseLocalCache()
-	}
-	if skySvr != nil {
-		skySvr.GracefulStop()
 	}
 }
 
