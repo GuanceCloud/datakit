@@ -64,6 +64,7 @@ measurements-meta.json
 old/
 parser_y.go
 pipeline-docs.en.json
+pipeline-docs.en.json
 pipeline-docs.json
 pipeline/parser/gram_y.go
 pipeline/parser/parser.y.go
