@@ -397,7 +397,7 @@ replace github.com/weaveworks/common => github.com/pyh4/common v0.0.0-2022092302
 replace (
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
 	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.1-rc3
-	github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.2
+	github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.3
 	github.com/pyroscope-io/pyroscope v0.36.0 => github.com/GuanceCloud/pyroscope v0.36.1
 // k8s.io/api => k8s.io/api v0.20.5
 // k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.5
