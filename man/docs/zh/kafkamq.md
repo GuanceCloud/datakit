@@ -39,28 +39,28 @@ plugin.kafka.bootstrap_servers=${SW_KAFKA_BOOTSTRAP_SERVERS:<ip>:<port>}
 启动java项目（jar包形式启动）
 
 - Linux Tomcat 7, Tomcat 8, Tomcat 9  
-  Change the first line of `tomcat/bin/catalina.sh`.
+  在配置文件 `tomcat/bin/catalina.sh` 中的第一行添加环境变量.
 
 ```shell
 CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/skywalking-agent/skywalking-agent.jar"; export CATALINA_OPTS
 ```
 
 - Windows Tomcat 7, Tomcat 8, Tomcat 9  
-  Change the first line of `tomcat/bin/catalina.bat`.
+  在配置文件 `tomcat/bin/catalina.bat` 中的第一行添加环境变量.
 
 ```shell
 set "CATALINA_OPTS=-javaagent:/path/to/skywalking-agent/skywalking-agent.jar"
 ```
 
-- JAR file  
-  Add `-javaagent` argument to command line in which you start your app. eg:
+- JAR 包形式启动  
+  在启动 java 项目时候添加 `-javaagent` 参数:
 
  ```shell
  java -javaagent:/path/to/skywalking-agent/skywalking-agent.jar -jar yourApp.jar
  ```
 
 - Jetty  
-  Modify `jetty.sh`, add `-javaagent` argument to command line in which you start your app. eg:
+  修改 `jetty.sh`, 并添加启动参数 `-javaagent` :
 
 ```shell
 export JAVA_OPTIONS="${JAVA_OPTIONS} -javaagent:/path/to/skywalking-agent/skywalking-agent.jar"
@@ -317,7 +317,7 @@ drop_key(message_len)
 
 另外减少日志输出、关闭 cgroup 限制、增加内网和公网带宽等，可以增加消费能力。
 
-### 多台 datakit 负载均衡 {datakit-assignor}
+### 多台 datakit 负载均衡 {#datakit-assignor}
 
 当消息量很大，一台 datakit 消费能力不足时可以增加多台 datakit 进行消费，这里有三点需要注意：
 1. 确保topic分区不是一个（至少2个），这个可以通过工具查看 [kafka-map](https://github.com/dushixiang/kafka-map/releases)

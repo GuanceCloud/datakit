@@ -16,7 +16,7 @@ There are two main configurations for stdout/stderr log collection:
 - Configure log collection through Pod/container *mirroring characteristics*
 - Label the log collection of a specific Pod/container through Annotation/Label
 
-### Adjust Log Collection According to Container Image{#logging-with-image-config}
+### Adjust Log Collection According to Container Image {#logging-with-image-config}
 
 By default, DataKit collects stdout/stderr logs for all containers/pods on your machine/Node, which may not be expected. Sometimes, we want to collect only (or not) the logs of some containers/pods, where the target container/Pod can be indirectly referred to by the mirror name.
 

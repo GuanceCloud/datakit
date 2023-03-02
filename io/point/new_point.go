@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"time"
 
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/influxdata/influxdb1-client/models"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -69,6 +69,18 @@ func defaultPointOption() *PointOption {
 		Category: datakit.Metric,
 		Strict:   true,
 	}
+}
+
+func MustNewPoint(name string,
+	tags map[string]string,
+	fields map[string]interface{},
+	opt *PointOption,
+) *Point {
+	pt, err := NewPoint(name, tags, fields, opt)
+	if err != nil {
+		panic(err.Error())
+	}
+	return pt
 }
 
 func NewPoint(name string,

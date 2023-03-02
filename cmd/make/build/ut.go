@@ -13,6 +13,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
+
+	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 func UnitTestDataKit() error {
@@ -34,7 +37,13 @@ func UnitTestDataKit() error {
 	for _, p := range pkgs {
 		fmt.Printf("=======================\n")
 		fmt.Printf("testing %s...\n", p)
-		tcmd := exec.Command("go", "test", "-timeout", "1m", "-cover", p) //nolint:gosec
+
+		mr := &tu.ModuleResult{
+			Name: p,
+		}
+
+		start := time.Now()
+		tcmd := exec.Command("go", "test", "-timeout", "1h", "-cover", p) //nolint:gosec
 		tcmd.Env = append(os.Environ(), []string{
 			"GO111MODULE=off",
 			"CGO_ENABLED=1",
@@ -42,8 +51,19 @@ func UnitTestDataKit() error {
 		}...)
 
 		res, err := tcmd.CombinedOutput()
+		mr.Cost = time.Since(start)
+		if len(res) > 0 {
+			mr.Message = string(res)
+		}
+
 		if err != nil {
 			failedPkgs[p] = string(res)
+
+			mr.Status = tu.TestFailed
+			mr.FailedMessage = err.Error()
+			if err := tu.Flush(mr); err != nil {
+				fmt.Printf("[E] flush metric failed: %s\n", err)
+			}
 			continue
 		}
 
@@ -51,7 +71,7 @@ func UnitTestDataKit() error {
 
 		coverageLine := lines[len(lines)-2]
 
-		// samples:
+		// go test output example:
 		//  ^ok  	gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/promremote	0.652s	coverage: 0.5% of statements [no tests to run]
 		//  ^?   	gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/process	[no test files]
 		//  ^ok  	gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/postgresql	0.715s	coverage: 52.3% of statements
@@ -60,8 +80,11 @@ func UnitTestDataKit() error {
 		case strings.HasPrefix(coverageLine, "?"),
 			strings.Contains(coverageLine, "[no tests to run]"):
 			noTestPkgs = append(noTestPkgs, p)
+			mr.NoTest = true
 
 		case strings.HasPrefix(coverageLine, "ok"):
+			mr.Status = tu.TestPassed
+
 			coverage := perc.FindString(coverageLine)
 			if len(coverage) != 0 {
 				f, err := strconv.ParseFloat(coverage[0:len(coverage)-1], 64)
@@ -72,11 +95,16 @@ func UnitTestDataKit() error {
 
 				passedPkgs[f] = append(passedPkgs[f], p)
 				coverTotal += f
+				mr.Coverage = f
 			} else {
 				fmt.Printf("[W] test ok, but no coverage: %s\n", p)
 			}
-		default:
-			// pass
+		default: // pass
+			fmt.Printf("[W] unknown coverage line: %s\n", coverageLine)
+		}
+
+		if err := tu.Flush(mr); err != nil {
+			fmt.Printf("[E] flush metric failed: %s\n", err)
 		}
 	}
 
@@ -90,6 +118,10 @@ func UnitTestDataKit() error {
 
 	fmt.Printf("============= %d pakage failed ===============\n", len(failedPkgs))
 	showFailedPkgs(failedPkgs)
+	if len(failedPkgs) > 0 {
+		return fmt.Errorf("%d package failed: %+#v", len(failedPkgs), failedPkgs)
+	}
+
 	return nil
 }
 

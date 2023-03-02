@@ -1,0 +1,7 @@
+nav:
+ - '用 Python 开发自定义采集器': pythond.md
+ - '文本数据处理':
+   - 'Pipeline 手册': pipeline.md
+   - datakit-pl-how-to.md
+   - datakit-pl-global.md
+   - datakit-refer-table.md

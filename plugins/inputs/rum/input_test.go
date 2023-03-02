@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"github.com/GuanceCloud/cliutils/testutil"
 )
 
 func TestLimitReader_Close(t *testing.T) {
@@ -26,4 +26,55 @@ func TestLimitReader_Close(t *testing.T) {
 	testutil.NotOk(t, err, "")
 	testutil.Equals(t, 10, len(c))
 	testutil.Equals(t, true, errors.Is(err, errLimitReader))
+}
+
+func TestLookupCDNName(t *testing.T) {
+	ok := isDomainName("xxxxx.xxxxxx")
+	testutil.Assert(t, ok, "")
+
+	_, _, err := lookupCDNName("xxxxx.xxxxxx")
+	t.Log(err)
+	testutil.NotOk(t, err, "")
+
+	{
+		cname, cdn, err := lookupCDNName("www-static.qbox.me")
+		t.Log(cname, cdn)
+		testutil.Ok(t, err)
+	}
+
+	{
+		cname, cdn, err := lookupCDNName("tbcache.com")
+		t.Log(cname, cdn)
+		testutil.Ok(t, err)
+	}
+
+	{
+		cname, cdn, err := lookupCDNName("go.dev")
+		t.Log(cname, cdn, err)
+		testutil.NotOk(t, err, "")
+	}
+
+	{
+		cname, cdn, err := lookupCDNName("ucc.alicdn.com")
+		t.Log(cname, cdn)
+		testutil.Ok(t, err)
+	}
+
+	{
+		cname, cdn, err := lookupCDNName("static.guance.com")
+		t.Log(cname, cdn)
+		testutil.Ok(t, err)
+	}
+
+	{
+		cname, cdn, err := lookupCDNName("res.vmallres.com")
+		t.Log(cname, cdn)
+		testutil.Ok(t, err)
+	}
+
+	{
+		cname, cdn, err := lookupCDNName("cdn.cnbj1.fds.api.mi-img.com")
+		t.Log(cname, cdn)
+		testutil.Ok(t, err)
+	}
 }

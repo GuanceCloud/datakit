@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 )
 
 func TestCloseResource(t *testing.T) {

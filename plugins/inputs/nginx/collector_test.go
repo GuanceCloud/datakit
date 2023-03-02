@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 )
 
 // go test -v -timeout 30s -run ^TestGetMetric$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nginx

@@ -15,13 +15,13 @@ import (
 	"strconv"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -66,6 +66,8 @@ type Input struct {
 	pause    bool
 
 	semStop *cliutils.Sem // start stop signal
+
+	feed io.Feeder
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -77,8 +79,8 @@ func newInput() *Input {
 		pauseCh:          make(chan bool, maxPauseCh),
 		httpClient:       &http.Client{Timeout: 5 * time.Second},
 		Election:         true,
-
-		semStop: cliutils.NewSem(),
+		semStop:          cliutils.NewSem(),
+		feed:             io.DefaultFeeder(),
 	}
 }
 
@@ -137,7 +139,10 @@ func (ipt *Input) Run() {
 				continue
 			}
 
-			if err := io.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+			if err := ipt.feed.Feed(inputName,
+				point.Metric,
+				pts,
+				&io.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("io.Feed: %s, ignored", err)
 			}
 

@@ -118,6 +118,7 @@ type OtelResourceMetric struct {
 func (ss *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*OtelResourceMetric {
 	orms := make([]*OtelResourceMetric, 0)
 	for _, resourceMetrics := range rss {
+		log.Debugf("tojson : %s", resourceMetrics.String())
 		dt := newEmptyTags(ss.RegexpString, ss.GlobalTags)
 		tags := dt.setAttributesToTags(resourceMetrics.Resource.Attributes).tags
 		LibraryMetrics := resourceMetrics.GetInstrumentationLibraryMetrics()
@@ -126,10 +127,11 @@ func (ss *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*Otel
 			metrics := libraryMetric.GetMetrics()
 			for _, metrice := range metrics {
 				ps := ss.getData(metrice)
+				log.Debugf("getdata len %d", len(ps))
 				for _, p := range ps {
 					orm := &OtelResourceMetric{
 						Operation:   metrice.Name,
-						Attributes:  tags,
+						Attributes:  make(map[string]string),
 						Service:     otelServiceName,
 						Resource:    resource,
 						Description: metrice.Description,
@@ -139,6 +141,9 @@ func (ss *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*Otel
 						Value:       p.val,
 					}
 					for k, v := range p.tags.resource() {
+						orm.Attributes[k] = v
+					}
+					for k, v := range tags {
 						orm.Attributes[k] = v
 					}
 					orms = append(orms, orm)
@@ -176,7 +181,6 @@ func makePoints(orms []*OtelResourceMetric) []*point.Point {
 			log.Errorf("make point err=%v", err)
 			continue
 		}
-
 		pts = append(pts, pt)
 	}
 	return pts

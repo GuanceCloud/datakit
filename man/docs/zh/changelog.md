@@ -20,13 +20,49 @@
 ### 问题修复 {#cl-x.x.x-fix}
 ### 功能优化 {#cl-x.x.x-opt}
 ### 兼容调整 {#cl-x.x.x-brk}
+
 -->
 
-## 1.5.6(2023/01/23) {#cl-1.5.5}
+## 1.5.6(2023/02/23) {#cl-1.5.6}
 
-TODO
+本次发布属于迭代发布，主要有如下更新：
 
-## 1.5.5(2023/01/09) {#cl-1.5.5}
+### 新加功能 {#cl-1.5.6-new}
+
+- 命令行增加[解析行协议功能](datakit-tools-how-to.md#parse-lp)(#1412)
+- Datakit yaml 和 helm 支持资源 limit 配置(#1416)
+- Datakit yaml 和 helm 支持 CRD 部署(#1415)
+- 添加 SQLServer 集成测试(#1406)
+- RUM 支持 [resource CDN 标注](rum.md#cdn-resolve)(#1384)
+
+### 问题修复 {#cl-1.5.6-fix}
+
+- 修复 RUM 请求返回 5xx 问题(#1412)
+- 修复日志采集路径错误问题(#1447)
+- 修复 K8s Pod(`restarts`) 字段问题(#1446)
+- 修复 DataKit filter 模块崩溃问题(#1422)
+- 修复 Point 构建中 tag key 命名问题(#1413#1408)
+- 修复 Datakit Monitor 字符集问题(#1405)
+- 修复 OTEL tag 覆盖问题(#1396)
+- 修复 public API 白名单问题(#1467) 
+
+### 功能优化 {#cl-1.5.6-opt}
+
+- 优化拨测中无效任务的处理(#1421)
+- 优化 Windows 下安装提示(#1404)
+- 优化 Windows 中 Powershell 安装脚本模板(#1403)
+- 优化 K8s 中 Pod/ReplicaSet/Deployment 的关联方法(#1368)
+- 重构 point 数据结构及功能(#1400)
+- Datakit 自带 [eBPF](ebpf.md) 采集器二进制安装(#1448)
+- 安装程序地址改成 CDN 地址，优化下载问题(#1457)
+
+### 兼容调整 {#cl-1.5.6-brk}
+
+- 由于内置了 eBPF 采集器，移除多余命令 `datakit install --datakit-ebpf`(#1400)
+
+---
+
+## 1.5.5(2023/02/09) {#cl-1.5.5}
 
 本次发布属于迭代发布，主要有如下更新：
 
@@ -44,23 +80,20 @@ TODO
 - 修复 OTEL 采集数据字段覆盖问题(#1383)
 - 修复 Nginx Host 识别错误(#1379)
 - 修复拨测超时(#1378)
+- 修复云厂商实例识别(#1382)
 
 ### 功能优化 {#cl-1.5.5-opt}
 
 - Datakit pyroscope profiling 多程序语言识别(#1374)
-- 优化 CPU,Disk,EBPF,Net 等中英文文档(#1375)
+- 优化 CPU,Disk,eBPF,Net 等中英文文档(#1375)
 - 优化 elasticsearch, postgresql, dialtesting 等英文文档(#1373)
 - 优化 DCA,Profiling 文档(#1371#1372)
 - 优化日志采集流程(#1366)
-
-### 兼容调整 {#cl-1.5.5-brk}
-
-- 兼容云厂商实例识别(#1382)
 - [iploc yaml](datakit-tools-how-to.md) 配置方法文档支持(#1370)
 
 ---
 
-## 1.5.4(2022/12/29) {#cl-1.5.4}
+## 1.5.4(2023/01/13) {#cl-1.5.4}
 
 本次发布属于迭代发布，主要有如下更新：
 
@@ -87,7 +120,7 @@ TODO
 ### 功能优化 {#cl-1.5.4-opt}
 
 - 优化 SQL 数据资源占用较高问题(#1358)
-- 优化 Datakit Monitor(1222)
+- 优化 Datakit Monitor(#1222)
 
 ---
 

@@ -27,6 +27,8 @@ As the executable file of this collector is large, it is no longer packaged in D
 - v1.2.19+
   - [specify environment variable](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="ebpf"` when installing
   - After the DataKit is installed, manually install the eBPF collector: `datakit install --ebpf`
+- v1.5.6+
+  - No manual installation required
 
 When deploying in Kubernetes environment, you must mount the host's' `/sys/kernel/debug` directory into pod, refer to the latest datakit.yaml;
 

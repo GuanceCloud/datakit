@@ -11,8 +11,8 @@ import (
 	"fmt"
 	sync "sync"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	pbpoint "gitlab.jiagouyun.com/cloudcare-tools/cliutils/point"
+	"github.com/GuanceCloud/cliutils/logger"
+	pbpoint "github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
@@ -106,7 +106,7 @@ func HandleFeedIO(p *PBData) error {
 	cfg := p.Config
 	l.Debugf("consume pbdata, config: %#v", cfg)
 
-	pts, err := pbpoint.NewDecoder(pbpoint.WithEncoding(pbpoint.Protobuf)).Decode(p.Points)
+	pts, err := pbpoint.GetDecoder(pbpoint.WithDecEncoding(pbpoint.Protobuf)).Decode(p.Points)
 	if err != nil {
 		return fmt.Errorf("decode pbpoint err: %w", err)
 	}

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 )
 
 type EventOP string

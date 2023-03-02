@@ -14,8 +14,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/gosnmp/gosnmp"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp/snmputil"
 )
 

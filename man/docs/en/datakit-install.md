@@ -133,7 +133,7 @@ The environment variables supported by the installation script are as follows (s
 - `DK_DCA_WHITE_LIST`: Support setup of DCA service access whitelist, multiple whitelists split (e.g. `192.168.0.1/24,10.10.0.1/24`)
 
 ### On External Collector  {#env-external-inputs}
-- `DK_INSTALL_EXTERNALS`: Be used to install external collectors such as ebpf that are not packaged with DataKit
+- `DK_INSTALL_EXTERNALS`: Used to install external collectors not packaged with DataKit
 
 ### On Confd Configuration  {#env-connfd}
 

@@ -16,9 +16,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/shirou/gopsutil/v3/process"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
@@ -123,8 +123,6 @@ var (
 	Docker     = false
 	Version    = git.Version
 	AutoUpdate = false
-
-	DownloadAddr = ""
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 

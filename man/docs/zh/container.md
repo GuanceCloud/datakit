@@ -1,12 +1,12 @@
 {{.CSS}}
-# 容器数据采集
+# 容器基础采集
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-采集 container 和 Kubernetes 的指标、对象和日志数据，上报到观测云。
+采集 Container 和 Kubernetes 的指标、对象和日志数据，上报到观测云。
 
 ## 前置条件 {#requrements}
 
@@ -37,7 +37,7 @@
     | `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`                                 | 是否忽略 k8s 的 pause 容器                                                                                                                   | true                                              | `"true"`/`"false"`                                                                          |
     | `ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC`                                 | 开启容器指标采集                                                                                                                             | true                                              | `"true"`/`"false"`                                                                          |
     | `ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC`                                       | 开启 k8s 指标采集                                                                                                                            | true                                              | `"true"`/`"false"`                                                                          |
-    | `ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS`                               | 是否追加 pod label 到采集的指标 tag 中                                                                                                       | false                                             | `"true"`/`"false"`                                                                          |
+    | `ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS`                               | 是否追加 pod label 到采集的指标 tag 中。如果 label 的 key 有 dot 字符，会将其变为横线                                                                                                       | false                                             | `"true"`/`"false"`                                                                          |
     | `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVIER_ANNOTATIONS` | 是否开启自动发现 Prometheuse Service Annotations 并采集指标                                                                                  | false                                             | `"true"`/`"false"`                                                                          |
     | `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS`        | 是否开启自动发现 Prometheuse PodMonitor CRD 并采集指标，详见[Prometheus-Operator CRD 文档](kubernetes-prometheus-operator-crd.md#config)     | false                                             | `"true"`/`"false"`                                                                          |
     | `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS`    | 是否开启自动发现 Prometheuse ServiceMonitor CRD 并采集指标，详见[Prometheus-Operator CRD 文档](kubernetes-prometheus-operator-crd.md#config) | false                                             | `"true"`/`"false"`                                                                          |

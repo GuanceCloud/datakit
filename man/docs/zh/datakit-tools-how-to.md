@@ -319,6 +319,11 @@ datakit install --ebpf
 
 如若提示 `open /usr/local/datakit/externals/datakit-ebpf: text file busy`，停止 DataKit 服务后再执行该命令
 
+???+ warning
+
+    该命令在 [:octicons-tag-24: Version-1.5.6](changelog.md#cl-1.5.6-brk) 已经被移除。新版本默认就内置了 eBPF 集成。
+
+
 ## 上传 DataKit 运行日志 {#upload-log}
 
 排查 DataKit 问题时，通常需要检查 DataKit 运行日志，为了简化日志搜集过程，DataKit 支持一键上传日志文件：
@@ -349,4 +354,35 @@ datakit tool --show-cloud-info aws
                    region: cn-northwest-1
         security_group_id: launch-wizard-1
                   zone_id: cnnw1-az2
+```
+
+## 解析行协议数据 {#parse-lp}
+
+[:octicons-tag-24: Version-1.5.6](changelog.md#cl-1.5.6)
+
+通过如下命令可解析行协议数据：
+
+```shell
+datakit tool --parse-lp /path/to/file
+Parse 201 points OK, with 2 measurements and 201 time series
+```
+
+可以以 JSON 形式输出：
+
+```shell
+datakit tool --parse-lp /path/to/file --json
+{
+  "measurements": {  # 指标集列表
+    "testing": {
+      "points": 7,
+      "time_series": 6
+    },
+    "testing_module": {
+      "points": 195,
+      "time_series": 195
+    }
+  },
+  "point": 202,        # 总点数
+  "time_serial": 201   # 总时间线数
+}
 ```

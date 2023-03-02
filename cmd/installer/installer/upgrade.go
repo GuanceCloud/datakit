@@ -7,12 +7,8 @@ package installer
 
 import (
 	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
-	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
@@ -50,30 +46,6 @@ func Upgrade() error {
 	for _, dir := range []string{datakit.DataDir, datakit.ConfdDir} {
 		if err := os.MkdirAll(dir, datakit.ConfPerm); err != nil {
 			return err
-		}
-	}
-
-	installExternals := map[string]struct{}{}
-	for _, v := range strings.Split(InstallExternals, ",") {
-		installExternals[v] = struct{}{}
-	}
-
-	updateEBPF := false
-	if runtime.GOOS == datakit.OSLinux && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") {
-		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
-			updateEBPF = true
-		}
-		if _, ok := installExternals["ebpf"]; ok {
-			updateEBPF = true
-		}
-	}
-
-	if updateEBPF {
-		cp.Infof("upgrade DataKit eBPF plugin...\n")
-		// nolint:gosec
-		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--ebpf")
-		if msg, err := cmd.CombinedOutput(); err != nil {
-			l.Warnf("upgrade external input plugin %s failed: %s msg: %s", "ebpf", err.Error(), msg)
 		}
 	}
 

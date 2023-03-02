@@ -6,6 +6,8 @@
 package tailer
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -46,6 +48,32 @@ func TestIgnoreFiles(t *testing.T) {
 		} else {
 			assert.NoError(t, err)
 		}
+
+		assert.Equal(t, tc.out, result)
+	}
+}
+
+func TestSearchFiles(t *testing.T) {
+	file, err := os.CreateTemp("", "")
+	assert.NoError(t, err)
+	defer os.Remove(file.Name())
+
+	filename := file.Name()
+
+	testcases := []struct {
+		in, out []string
+	}{
+		{
+			in:  []string{filename[:len(filename)-1] + "*"},
+			out: []string{filename},
+		},
+	}
+
+	for _, tc := range testcases {
+		fmt.Println(tc.in)
+		p := NewProvider()
+		result, err := p.SearchFiles(tc.in).Result()
+		assert.NoError(t, err)
 
 		assert.Equal(t, tc.out, result)
 	}

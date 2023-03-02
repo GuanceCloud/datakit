@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
@@ -126,15 +126,17 @@ func (dw *DataWayDefault) GetTokens() []string {
 	return resToken
 }
 
-var tokenFormatMap = map[string]int{
-	"token_": 32,
-	"tkn_":   32,
-	"tokn_":  24,
-}
+var (
+	tokenFormatMap = map[string]int{
+		"token_": 32,
+		"tkn_":   32,
+		"tokn_":  24,
+	}
+
+	errInvalidTokenFormat = fmt.Errorf("DataWay token should start with tkn_/token_/tokn_ and length larger than 24")
+)
 
 func (dw *DataWayDefault) CheckToken(token string) (err error) {
-	err = fmt.Errorf("token invalid format")
-
 	parts := strings.Split(token, "_")
 
 	if len(parts) == 2 {
@@ -143,12 +145,12 @@ func (dw *DataWayDefault) CheckToken(token string) (err error) {
 
 		if tokenLen, ok := tokenFormatMap[prefix]; ok {
 			if len(tokenVal) == tokenLen {
-				err = nil
+				return nil
 			}
 		}
 	}
 
-	return
+	return errInvalidTokenFormat
 }
 
 func (dw *DataWayDefault) Apply() error {

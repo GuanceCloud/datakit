@@ -16,6 +16,7 @@ import (
 	"net"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	// nolint:gosec
 	_ "net/http/pprof"
@@ -23,11 +24,11 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/gin-contrib/timeout"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/GuanceCloud/timeout"
 	"github.com/gin-gonic/gin"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
@@ -246,7 +247,7 @@ func setupRouter() *gin.Engine {
 
 	// use whitelist config
 	if len(apiConfig.PublicAPIs) != 0 {
-		router.Use(loopbackWhiteList)
+		router.Use(getAPIWhiteListMiddleware())
 	}
 
 	router.Use(setVersionInfo)
@@ -291,22 +292,27 @@ func setupRouter() *gin.Engine {
 	return router
 }
 
-// TODO: we should wrap this handler.
-func loopbackWhiteList(c *gin.Context) {
-	cliIP := net.ParseIP(c.ClientIP())
+func getAPIWhiteListMiddleware() gin.HandlerFunc {
+	publicAPITable := make(map[string]struct{}, len(apiConfig.PublicAPIs))
+	for _, apiPath := range apiConfig.PublicAPIs {
+		apiPath = strings.TrimSpace(apiPath)
+		if len(apiPath) > 0 && apiPath[0] != '/' {
+			apiPath = "/" + apiPath
+		}
+		publicAPITable[apiPath] = struct{}{}
+	}
 
-	for _, urlPath := range apiConfig.PublicAPIs {
-		// TODO: other 404 API still blocked by this whitelist, this should be a 404 status, but got 403
-		if c.Request.URL.Path != urlPath && !cliIP.IsLoopback() { // not public API and not loopback client
+	return func(c *gin.Context) {
+		cliIP := net.ParseIP(c.ClientIP())
+		if _, ok := publicAPITable[c.Request.URL.Path]; !ok && !cliIP.IsLoopback() {
 			uhttp.HttpErr(c, uhttp.Errorf(ErrPublicAccessDisabled,
 				"api %s disabled from IP %s, only loopback(localhost) allowed",
 				c.Request.URL.Path, cliIP.String()))
 			c.Abort()
 			return
 		}
+		c.Next()
 	}
-
-	c.Next()
 }
 
 func HTTPStart() {

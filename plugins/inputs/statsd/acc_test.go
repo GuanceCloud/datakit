@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 )
 
 func TestAddFields(t *testing.T) {

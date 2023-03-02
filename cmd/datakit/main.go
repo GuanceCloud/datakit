@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -39,7 +39,6 @@ var (
 	// injected during building: -X.
 	InputsReleaseType = ""
 	ReleaseVersion    = ""
-	DownloadAddr      = ""
 )
 
 func main() {
@@ -48,10 +47,6 @@ func main() {
 	datakit.Version = ReleaseVersion
 	if ReleaseVersion != "" {
 		datakit.Version = ReleaseVersion
-	}
-
-	if DownloadAddr != "" {
-		datakit.DownloadAddr = DownloadAddr
 	}
 
 	cmds.ReleaseVersion = ReleaseVersion

@@ -17,9 +17,9 @@ import (
 	// it will use this embedded information in time/tzdata.
 	_ "time/tzdata"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/grok"
 	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
@@ -181,7 +181,7 @@ func InitIPdb(pipelineCfg *PipelineCfg) (ipdb.IPdb, error) {
 		ipdbInstance.Init(datakit.DataDir, pipelineCfg.IPdbAttr)
 		funcs.InitIPdb(ipdbInstance)
 		if pipelineCfg.IPdbType != "geolite2" {
-			ip2isp.InitIPdb(ipdbInstance)
+			ip2isp.InitIPDB(ipdbInstance)
 		}
 	} else { // invalid ipdb type, then use the default iploc to ignore the error.
 		l.Warnf("invalid ipdb_type %s", pipelineCfg.IPdbType)
