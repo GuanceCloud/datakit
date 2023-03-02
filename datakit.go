@@ -124,8 +124,6 @@ var (
 	Version    = git.Version
 	AutoUpdate = false
 
-	//UploadAddr = ""
-
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 
 	DatakitHostName = "" // 默认为空
