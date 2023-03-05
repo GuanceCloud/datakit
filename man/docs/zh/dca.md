@@ -106,7 +106,7 @@ $ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_L
 DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打开 DCA  Web 端，登录账号，即可开始使用。若无账号，可先注册 [观测云账号](https://auth.guance.com/register?channel=帮助文档)。
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca-login.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca-login.png){ width="800" }
 </figure>
 
 登录到 DCA 后，可在左上角选择工作空间管理其对应 DataKit 及采集器，支持通过搜索关键字快速筛选需要查看和管理的主机名称。
@@ -122,7 +122,7 @@ DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打�
 登录到 DCA 后，选择工作空间，即可查看该工作空间下所有已经安装 DataKit 的主机名和 IP 信息。点击 DataKit 主机，即可远程连接到 DataKit ，查看该主机上 DataKit 的运行情况，包括版本、运行时间、发布日期、采集器运行情况等，以及可以对 DataKit 进行重启操作。
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca-run-info.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca-run-info.png){ width="800" }
 </figure>
 
 #### 采集器配置管理 {#view-inputs-conf}
@@ -135,7 +135,7 @@ DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打�
 
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca-input-conf.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca-input-conf.png){ width="800" }
 </figure>
 
 #### Pipelines 管理 {#view-pipeline}
@@ -143,7 +143,7 @@ DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打�
 远程连接到 DataKit 以后，点击「Pipelines」，即可查看，编辑和测试 DataKit 默认自带的 pipeline 文件。关于 pipeline 可参考文档 [文本数据处理](pipeline.md) 。
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca-pipeline.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca-pipeline.png){ width="800" }
 </figure>
 
 #### 查看黑名单 {#view-filters}
@@ -153,7 +153,7 @@ DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打�
 注意：通过观测云创建的黑名单文件统一保存在路径：`/usr/local/datakit/data/.pull` 。
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca-filter.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca-filter.png){ width="800" }
 </figure>
 
 #### 查看日志 {#view-log}
@@ -161,7 +161,7 @@ DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打�
 远程连接到 DataKit 以后，点击「日志」，即可实时查看 DataKit 的日志，并且可以导出相应的日志到本地。
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca-log.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca-log.png){ width="800" }
 </figure>
 
 #### 查看采集器帮助 {#view-input-helper}
@@ -171,5 +171,5 @@ DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打�
 关于如何查看更多采集器的帮助文档，可参考文档 [采集器](hostobject.md) 。
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca-help.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca-help.png){ width="800" }
 </figure>

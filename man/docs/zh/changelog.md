@@ -412,7 +412,7 @@
 - 调整 Pipeline 有关的文档，将其移到「自定义开发」目录下：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.14-dk-docs.gif){ width="300"}
+  ![](https://static.guance.com/images/datakit/cl-1.4.14-dk-docs.gif){ width="300"}
 </figure>
 
 ---
@@ -453,25 +453,25 @@
 - 采集器文档从原来「集成」移到 「DataKit」文档库(#1060)
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.13-dk-docs.gif){ width="300"}
+  ![](https://static.guance.com/images/datakit/cl-1.4.13-dk-docs.gif){ width="300"}
 </figure>
 
 - DataKit 文档目录结构调整，减少了目录层级
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.13-dk-doc-dirs.gif){ width="300"}
+  ![](https://static.guance.com/images/datakit/cl-1.4.13-dk-doc-dirs.gif){ width="300"}
 </figure>
 
 - 几乎每个采集器都增加了 k8s 配置入口
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.13-install-selector.gif){ width="800" }
+  ![](https://static.guance.com/images/datakit/cl-1.4.13-install-selector.gif){ width="800" }
 </figure>
 
 - 调整文档头部显示，除了操作系统标识外，对支持选举的采集器，增加选举标识
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.13-doc-header.gif){ width="800" }
+  ![](https://static.guance.com/images/datakit/cl-1.4.13-doc-header.gif){ width="800" }
 </figure>
 
 ---

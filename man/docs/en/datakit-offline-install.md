@@ -11,7 +11,7 @@ If there is a machine in the intranet that can access the extranet, a proxy can 
 At present, DataKit has a inner proxy collector; The same goal can also be achieved through Nginx forward proxy function. The basic network structure is as follows:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-nginx-proxy.png){ width="700"}
+  ![](https://static.guance.com/images/datakit/dk-nginx-proxy.png){ width="700"}
 </figure>
 
 ### Preconditions {#requrements}
@@ -154,7 +154,7 @@ DataKit is currently installed on the public web, and all binary data and instal
 The network traffic topology of advanced mode is as follows:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/nginx-file-server.png){ width="700"}
+  ![](https://static.guance.com/images/datakit/nginx-file-server.png){ width="700"}
 </figure>
 
 

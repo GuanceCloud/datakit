@@ -11,7 +11,7 @@
 当前 DataKit 自己内置了一个 proxy 采集器；也能通过 Nginx 正向代理功能来实现同一目的。基本网络结构如下：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-nginx-proxy.png){ width="700"}
+  ![](https://static.guance.com/images/datakit/dk-nginx-proxy.png){ width="700"}
 </figure>
 
 ### 前置条件 {#requrements}
@@ -154,7 +154,7 @@ DataKit 目前的安装地址是公网地址，所有二进制数据以及安装
 高级模式的网络流量拓扑如下：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/nginx-file-server.png){ width="700"}
+  ![](https://static.guance.com/images/datakit/nginx-file-server.png){ width="700"}
 </figure>
 
 

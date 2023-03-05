@@ -11,7 +11,7 @@ datakit dql      # 或者 datakit -Q
 ```
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-dql-gif.gif){ width="800" }
+  ![](https://static.guance.com/images/datakit/dk-dql-gif.gif){ width="800" }
   <figcaption> DQL 交互执行示例 </figcaption>
 </figure>
 

@@ -134,7 +134,7 @@ LD_LIBRARY_PATH=/usr/local/lib64  DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=95
 程序运行一段时间后，即可在观测云看到类似如下 trace 数据：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cpp-ddtrace-example.png){ width="800"}
+  ![](https://static.guance.com/images/datakit/cpp-ddtrace-example.png){ width="800"}
   <figcaption>C++ trace 数据展示</figcaption>
 </figure>
 

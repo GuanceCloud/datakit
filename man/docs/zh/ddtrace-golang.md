@@ -116,7 +116,7 @@ func runAppWithError() {
 程序运行一段时间后，即可在观测云看到类似如下 trace 数据：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/golang-ddtrace-example.png){ width="800"}
+  ![](https://static.guance.com/images/datakit/golang-ddtrace-example.png){ width="800"}
   <figcaption>Golang 程序 trace 数据展示</figcaption>
 </figure>
 

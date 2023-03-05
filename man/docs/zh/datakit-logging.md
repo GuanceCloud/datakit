@@ -17,7 +17,7 @@
 这是最原始的日志处理方式，不管是对开发者而言，还是传统的日志收集方案而言，日志最开始一般都是直接写到磁盘文件的，写到磁盘文件的日志有如下几个特点：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-from-disk.png){ width="300" }
+  ![](https://static.guance.com/images/datakit/datakit-logging-from-disk.png){ width="300" }
   <figcaption>从磁盘文件提取日志</figcaption>
 </figure>
 
@@ -37,7 +37,7 @@
 这种采集方式目前主要针对[容器环境中的 stdout 日志](container.md)，这种日志要求运行在容器（或 Kubernetes Pod）中的应用将日志输出到 stdout，这些 stdout 日志实际上会在 Node 上落盘，DataKit 通过对应的容器 ID 能找到对应的日志文件，然后按照普通磁盘文件的方式对其进行采集。
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-stdout.png){ width="300" }
+  ![](https://static.guance.com/images/datakit/datakit-logging-stdout.png){ width="300" }
   <figcaption>采集容器 stdout 日志</figcaption>
 </figure>
 
@@ -59,7 +59,7 @@
 - [第三方平台日志接入](logstreaming.md)
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-remote.png){ width="300" }
+  ![](https://static.guance.com/images/datakit/datakit-logging-remote.png){ width="300" }
   <figcaption>第三方日志接入</figcaption>
 </figure>
 
@@ -76,7 +76,7 @@
 这种方式的采集实际上是综合了磁盘日志采集和日志远程推送俩种方式，具体而言，就是在用户的 Pod 中添加一个跟 DataKit 配套（即 [logfwd](logfwd.md)）的 Sidecar 应用，其采集方式如下：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-sidecar.png){ width="300" }
+  ![](https://static.guance.com/images/datakit/datakit-logging-sidecar.png){ width="300" }
   <figcaption>Sidecar 形式日志采集</figcaption>
 </figure>
 

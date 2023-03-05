@@ -44,7 +44,7 @@ Add the extracted directory file path to the `LD_LIBRARY_PATH` environment varia
 > You can also download our pre-prepared dependency package directly:
 
 ```shell
-wget -q https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/otn_software/instantclient/instantclient-basiclite-linux.x64-19.8.0.0.0dbru.zip \
+wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-19.8.0.0.0dbru.zip \
 			-O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
 			&& unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle;
 ```

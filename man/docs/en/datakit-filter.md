@@ -151,7 +151,7 @@ In addition, the following list operations are supported:
 You can view the filtering using the `datakit monitor -V` command:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/filter-monitor.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/filter-monitor.png){ width="800" }
   <figcaption>View filter filtering</figcaption>
 </figure>
 

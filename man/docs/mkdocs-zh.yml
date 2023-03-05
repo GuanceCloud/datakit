@@ -23,34 +23,38 @@ theme:
     - toc.follow
 
 markdown_extensions:
-  tables: {}
-  footnotes: {}
-  attr_list: {}
-  md_in_html: {}
-  toc:
-    permalink: True
-  meta: {}
-  pymdownx.caret: {}
-  pymdownx.mark: {}
-  pymdownx.tilde: {}
-  pymdownx.betterem: {}
-  pymdownx.critic: {}
-  pymdownx.keys: {}
-  pymdownx.snippets: {}
-  pymdownx.details: {}
-  pymdownx.tabbed:
-    alternate_style: true
-  pymdownx.highlight:
-    anchor_linenums: true
-    auto_title: false
-  pymdownx.inlinehilite: {}
-  pymdownx.superfences: {}
-  pymdownx.emoji:
-    emoji_index: !!python/name:materialx.emoji.twemoji
-    emoji_generator: !!python/name:materialx.emoji.to_svg
-    options:
-      custom_icons:
-        - overrides/.icons
+  - toc:
+      permalink: True
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.betterem
+  - pymdownx.critic
+  - pymdownx.keys
+  - pymdownx.snippets
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - tables
+  - footnotes
+  - attr_list
+  - md_in_html
+  - meta
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      auto_title: false
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+      options:
+        custom_icons:
+          - overrides/.icons
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 
 extra:
   generator: false

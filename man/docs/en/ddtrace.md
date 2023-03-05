@@ -124,7 +124,7 @@ If Trace data is sent across machines, you need to set [HTTP settings for DataKi
 If you have ddtrace data sent to the DataKit, you can see it on [DataKit's monitor](datakit-monitor.md):
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
   <figcaption> DDtrace sends data to the /v0.4/traces interface</figcaption>
 </figure>
 
