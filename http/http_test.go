@@ -10,25 +10,28 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"sync"
 	"syscall"
-	"testing"
+	T "testing"
 	"time"
 
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/influxdb1-client/models"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
-func TestParsePoint(t *testing.T) {
+func TestParsePoint(t *T.T) {
 	cases := []struct {
 		body []byte
 		prec string
@@ -73,7 +76,7 @@ func TestParsePoint(t *testing.T) {
 	}
 }
 
-func TestRestartAPI(t *testing.T) {
+func TestRestartAPI(t *T.T) {
 	tokens := []string{
 		"http://1.2.3.4?token=tkn_abc123",
 		"http://4.3.2.1?token=tkn_abc456",
@@ -142,7 +145,7 @@ func TestRestartAPI(t *testing.T) {
 	}
 }
 
-func TestApiGetDatakitLastError(t *testing.T) {
+func TestApiGetDatakitLastError(t *T.T) {
 	const uri string = "/v1/lasterror"
 
 	cases := []struct {
@@ -207,7 +210,7 @@ func TestApiGetDatakitLastError(t *testing.T) {
 	}
 }
 
-func TestCORS(t *testing.T) {
+func TestCORS(t *T.T) {
 	router := setupRouter()
 
 	router.POST("/timeout", func(c *gin.Context) {})
@@ -238,7 +241,7 @@ func TestCORS(t *testing.T) {
 	tu.Assert(t, origin == got, "expect %s, got '%s'", origin, got)
 }
 
-func TestTimeout(t *testing.T) {
+func TestTimeout(t *T.T) {
 	apiConfig.timeoutDuration = 100 * time.Millisecond
 
 	router := gin.New()
@@ -277,7 +280,7 @@ func TestTimeout(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			req, err := http.NewRequest("POST", fmt.Sprintf("%s/timeout?x=%s", ts.URL, tc.timeout), nil)
 			if err != nil {
 				t.Errorf("http.NewRequest: %s", err)
@@ -325,7 +328,7 @@ func setulimit() {
 	}
 }
 
-func TestTimeoutOnConcurrentIdleTCPConnection(t *testing.T) {
+func TestTimeoutOnConcurrentIdleTCPConnection(t *T.T) {
 	setulimit()
 	router := gin.New()
 
@@ -387,7 +390,7 @@ nothing`))
 }
 
 //nolint:durationcheck
-func TestTimeoutOnIdleTCPConnection(t *testing.T) {
+func TestTimeoutOnIdleTCPConnection(t *T.T) {
 	router := gin.New()
 
 	idleSec := time.Duration(3)
@@ -438,35 +441,130 @@ nothing`))
 }
 
 // go test -v -timeout 30s -run ^TestParseListen$ gitlab.jiagouyun.com/cloudcare-tools/datakit/http
-func TestParseListen(t *testing.T) {
+func TestInitListener(t *T.T) {
 	cases := []struct {
 		name           string
 		lsn            string
 		expectListener bool
 	}{
+		// {
+		// 	name: "ipv6-loopback",
+		// 	lsn:  "[::1]:0",
+		// },
 		{
-			name: "normal HTTP localhost",
-			lsn:  "localhost:9529",
+			name: "loopback-127.0.0.1-ipv4",
+			lsn:  "127.0.0.1:0",
+		},
+
+		{
+			name: "loopback-localhost-ipv4",
+			lsn:  "localhost:0",
 		},
 		{
-			name: "normal HTTP IP",
-			lsn:  "0.0.0.0:9529",
+			name: "0000-ipv4",
+			lsn:  "0.0.0.0:0",
 		},
 		{
-			name:           "unix file tmp",
-			lsn:            "/tmp/datakit.sock",
-			expectListener: true,
+			name: "unix file tmp",
+			lsn:  filepath.Join(t.TempDir(), "datakit.sock"),
 		},
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			listener, err := parseListen(tc.lsn)
-			assert.NoError(t, err)
-			if tc.expectListener {
-				assert.NotNil(t, listener)
-				listener.Close()
-			}
+		t.Run(tc.name, func(t *T.T) {
+			listener, err := initListener(tc.lsn)
+			require.NoError(t, err)
+
+			t.Logf("listener: %s", listener.Addr())
+
+			t.Cleanup(func() {
+				listener.Close() //nolint: errcheck
+			})
 		})
 	}
+}
+
+func TestHTTPListers(t *T.T) {
+	t.Run("domain-socket", func(t *T.T) {
+		// To avoid 104-byte-len-of-unix-domain-socket, see:
+		//  https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars
+		os.Setenv("TMPDIR", "/tmp/")
+
+		uds := filepath.Join(t.TempDir(), "datakit.sock")
+		l, err := initListener(uds)
+		require.NoError(t, err, "initListener: %s, len: %d", err, len(uds))
+
+		t.Logf("uds: %s", uds)
+
+		ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(200)
+		}))
+
+		ts.Listener = l
+		ts.Start()
+		defer ts.Close() //nolint:errcheck
+
+		time.Sleep(time.Second) // wait ts ok
+
+		c := http.Client{
+			Transport: &http.Transport{
+				DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+					return net.Dial("unix", uds)
+				},
+			},
+		}
+
+		urlStr := fmt.Sprintf("http://unix%s", uds)
+		resp, err := c.Get(urlStr)
+		require.NoError(t, err, "request %q failed: %s", urlStr, err)
+		require.Equal(t, 2, resp.StatusCode/100)
+
+		t.Logf("request %s ok", urlStr)
+
+		t.Cleanup(func() {
+			os.Unsetenv("TMPDIR")
+		})
+	})
+
+	// t.Run("loopback-v6", func(t *T.T) {
+	// 	l, err := initListener("[::1]:0")
+	// 	require.NoError(t, err)
+
+	// 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 		w.WriteHeader(200)
+	// 	}))
+
+	// 	ts.Listener = l
+	// 	ts.Start()
+	// 	defer ts.Close() //nolint:errcheck
+
+	// 	time.Sleep(time.Second) // wait ts ok
+
+	// 	resp, err := http.Get(ts.URL)
+	// 	require.NoError(t, err)
+	// 	require.Equal(t, 2, resp.StatusCode/100)
+
+	// 	t.Logf("request %s ok", ts.URL)
+	// })
+
+	t.Run("loopback-v4", func(t *T.T) {
+		l, err := initListener("localhost:0")
+		require.NoError(t, err)
+
+		ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(200)
+		}))
+
+		ts.Listener = l
+		ts.Start()
+		defer ts.Close() //nolint:errcheck
+
+		time.Sleep(time.Second) // wait ts ok
+
+		resp, err := http.Get(ts.URL)
+		require.NoError(t, err)
+		require.Equal(t, 2, resp.StatusCode/100)
+
+		t.Logf("request %s ok", ts.URL)
+	})
 }
