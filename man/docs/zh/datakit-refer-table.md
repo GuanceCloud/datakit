@@ -44,7 +44,7 @@
 
 === "Kubernetes"
 
-    [参见这里](datakit-daemonset-deploy.md#env-reftab)
+    [参见这里](../datakit/datakit-daemonset-deploy.md#env-reftab)
 
 ---
 

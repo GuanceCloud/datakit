@@ -50,8 +50,6 @@ func installPlugins() error {
 		default:
 			return fmt.Errorf("unknown ipdb `%s'", *flagInstallIPDB)
 		}
-	case *flagInstallEbpf:
-		return InstallEbpf()
 	case *flagInstallSymbolTool:
 		return InstallSymbolTools()
 	default:

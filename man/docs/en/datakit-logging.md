@@ -17,7 +17,7 @@ Due to different specific environments, the above collection methods will have s
 This is the most primitive log processing method. No matter for developers or traditional log collection schemes, logs are generally written directly to disk files at the beginning. Logs written to disk files have the following characteristics:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-from-disk.png){ width="300" }
+  ![](https://static.guance.com/images/datakit/datakit-logging-from-disk.png){ width="300" }
   <figcaption>extract logs from disk files</figcaption>
 </figure>
 
@@ -37,7 +37,7 @@ Because of this feature, if the log file is continuously updated and the DataKit
 At present, this collection method is mainly aimed at [stdout logs in container environment](container.md), which requires applications running in container (or Kubernetes Pod) to output logs to stdout. These stdout logs will actually be dropped on Node, and DataKit can find corresponding log files through corresponding container ID, and then collect them in the way of ordinary disk files.
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-stdout.png){ width="300" }
+  ![](https://static.guance.com/images/datakit/datakit-logging-stdout.png){ width="300" }
   <figcaption>collect container stdout logs</figcaption>
 </figure>
 
@@ -59,7 +59,7 @@ For remote log push, it is mainly
 - [Third-party platform log access](logstreaming.md)
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-remote.png){ width="300" }
+  ![](https://static.guance.com/images/datakit/datakit-logging-remote.png){ width="300" }
   <figcaption>third-party platform log access</figcaption>
 </figure>
 
@@ -76,7 +76,7 @@ The characteristic of this form is that the log is sent directly to DataKit, and
 In fact, this method of collection is a combination of disk log collection and log remote push. Specifically, a Sidecar application matched with DataKit (i.e. [logfwd](logfwd.md)）) is added to the user's Pod, and its collection method is as follows:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-sidecar.png){ width="300" }
+  ![](https://static.guance.com/images/datakit/datakit-logging-sidecar.png){ width="300" }
   <figcaption>log collection in the form of Sidecar</figcaption>
 </figure>
 

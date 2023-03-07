@@ -23,7 +23,6 @@ __debug_bin
 *.tar.gz
 *.yaml
 *.zip
-**build/
 ag.sh
 agent_linux
 agent.conf
@@ -65,9 +64,9 @@ measurements-meta.json
 old/
 parser_y.go
 pipeline-docs.en.json
+pipeline-docs.en.json
 pipeline-docs.json
 pipeline/parser/gram_y.go
-pipeline-docs.en.json
 pipeline/parser/parser.y.go
 plugins/external/csv/__tmp
 plugins/external/csv/venv
@@ -87,5 +86,5 @@ test.conf
 test.go
 test.jso
 test.output
-y.output
 testing_metrics
+y.output

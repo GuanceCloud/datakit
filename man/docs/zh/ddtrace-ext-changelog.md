@@ -39,6 +39,33 @@
 
 --->
 
+## v1.8.0，v1.8.1，v1.8.3(2023/2/27) {#cl-1.8.0}
+
+### 新加功能 {#cl-1.8.0-new}
+
+- 合并最新 ddtrace 分支.
+- 增加功能 [获取特定函数的入参信息](https://github.com/GuanceCloud/dd-trace-java/issues/26){:target="_blank"})
+
+## v1.4.1(2023/2/27) {#cl-1.4.1}
+
+### 新加功能 {#cl-1.4.1-new}
+
+- 增加支持阿里云 RocketMQ 4.0系列.
+
+## v1.4.0(2023/1/12) {#cl-1.4.0}
+
+### 新加功能 {#cl-1.4.0-new}
+
+- 合并最新 ddtrace 最新分支v1.4.0.
+
+## v1.3.2(2023/1/12) {#cl-1.3.2}
+
+### 新加功能 {#cl-1.3.2-new}
+
+- 增加 redis 查看参数功能 [github-#19](https://github.com/GuanceCloud/dd-trace-java/issues/19){:target="_blank"})
+- 修改 dd-java-agent 默认端口 [github-#18](https://github.com/GuanceCloud/dd-trace-java/issues/18){:target="_blank"})
+- 阿里云 RocketMQ 单端为链路问题修正 [github-#22](https://github.com/GuanceCloud/dd-trace-java/issues/22){:target="_blank"})
+
 ## v1.3.0(2022/12/28) {#cl-1.3.0}
 
 ### 新加功能 {#cl-1.3.0-new}

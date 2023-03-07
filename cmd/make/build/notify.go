@@ -22,30 +22,31 @@ import (
 //nolint:lll
 var (
 	installNotifyTemplate = map[string]string{
-		`linux/386`:   `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-		`linux/amd64`: `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-		`linux/arm`:   `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-		`linux/arm64`: `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
+		`linux/386`:   `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadCDN}}/install-{{.Version}}.sh)\"`,
+		`linux/amd64`: `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadCDN}}/install-{{.Version}}.sh)\"`,
+		`linux/arm`:   `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadCDN}}/install-{{.Version}}.sh)\"`,
+		`linux/arm64`: `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadCDN}}/install-{{.Version}}.sh)\"`,
 
-		`darwin/amd64`: `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
+		`darwin/amd64`: `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadCDN}}/install-{{.Version}}.sh)\"`,
 
-		`windows/amd64`: `$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadAddr}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
-		`windows/386`:   `$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadAddr}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
+		`windows/amd64`: `$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadCDN}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
+		`windows/386`:   `$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadCDN}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
 	}
 
 	upgradeNotifyTemplate = map[string]string{
-		`linux/386`:   `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-		`linux/amd64`: `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-		`linux/arm`:   `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-		`linux/arm64`: `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
+		`linux/386`:   `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadCDN}}/install-{{.Version}}.sh)\"`,
+		`linux/amd64`: `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadCDN}}/install-{{.Version}}.sh)\"`,
+		`linux/arm`:   `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadCDN}}/install-{{.Version}}.sh)\"`,
+		`linux/arm64`: `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadCDN}}/install-{{.Version}}.sh)\"`,
 
-		`darwin/amd64`: `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
+		`darwin/amd64`: `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadCDN}}/install-{{.Version}}.sh)\"`,
 
-		`windows/amd64`: `$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadAddr}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
-		`windows/386`:   `$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadAddr}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
+		`windows/amd64`: `$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadCDN}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
+		`windows/386`:   `$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadCDN}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
 	}
 
-	k8sDaemonsetTemplete = "wget https://{{.DownloadAddr}}/datakit.yaml"
+	k8sDaemonsetTemplete = "wget https://{{.DownloadCDN}}/datakit.yaml"
+	NotifyOnly           = false
 )
 
 var (
@@ -174,11 +175,11 @@ func NotifyPubDone() {
 	}
 
 	x := struct {
-		Uploader, Version, DownloadAddr string
+		Uploader, Version, DownloadCDN string
 	}{
-		Uploader:     git.Uploader,
-		Version:      ReleaseVersion,
-		DownloadAddr: DownloadAddr,
+		Uploader:    git.Uploader,
+		Version:     ReleaseVersion,
+		DownloadCDN: DownloadCDN,
 	}
 
 	switch ReleaseType {
@@ -235,11 +236,11 @@ func NotifyPubEBpfDone() {
 	}
 
 	x := struct {
-		Uploader, Version, DownloadAddr string
+		Uploader, Version, DownloadCDN string
 	}{
-		Uploader:     git.Uploader,
-		Version:      ReleaseVersion,
-		DownloadAddr: DownloadAddr,
+		Uploader:    git.Uploader,
+		Version:     ReleaseVersion,
+		DownloadCDN: DownloadCDN,
 	}
 
 	switch ReleaseType {
@@ -252,7 +253,7 @@ func NotifyPubEBpfDone() {
 			for _, arch := range curEBpfArchs {
 				x = append(x, "--------------------------")
 				x = append(x, fmt.Sprintf("%s 下载地址：", arch))
-				x = append(x, "https://"+filepath.Join(DownloadAddr, fmt.Sprintf(
+				x = append(x, "https://"+filepath.Join(DownloadCDN, fmt.Sprintf(
 					"datakit-ebpf-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, ReleaseVersion)))
 			}
 			return x

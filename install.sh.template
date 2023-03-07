@@ -294,53 +294,69 @@ confd_circle_interval=0
 confd_confd_namespace=""
 confd_pipeline_namespace=""
 confd_region=""
+
 if [ -n "$DK_CONFD_BACKEND" ]; then
 	confd_backend=$DK_CONFD_BACKEND
 fi
+
 if [ -n "$DK_CONFD_BASIC_AUTH" ]; then
-    confd_basic_auth=$DK_CONFD_BASIC_AUTH
+	confd_basic_auth=$DK_CONFD_BASIC_AUTH
 fi
+
 if [ -n "$DK_CONFD_CLIENT_CA_KEYS" ]; then
-    confd_client_ca_keys=$DK_CONFD_CLIENT_CA_KEYS
+	confd_client_ca_keys=$DK_CONFD_CLIENT_CA_KEYS
 fi
+
 if [ -n "$DK_CONFD_CLIENT_CERT" ]; then
-    confd_client_cert=$DK_CONFD_CLIENT_CERT
+	confd_client_cert=$DK_CONFD_CLIENT_CERT
 fi
+
 if [ -n "$DK_CONFD_CLIENT_KEY" ]; then
-    confd_client_key=$DK_CONFD_CLIENT_KEY
+	confd_client_key=$DK_CONFD_CLIENT_KEY
 fi
+
 if [ -n "$DK_CONFD_BACKEND_NODES" ]; then
-    confd_backend_nodes=$DK_CONFD_BACKEND_NODES
+	confd_backend_nodes=$DK_CONFD_BACKEND_NODES
 fi
+
 if [ -n "$DK_CONFD_PASSWORD" ]; then
-    confd_password=$DK_CONFD_PASSWORD
+	confd_password=$DK_CONFD_PASSWORD
 fi
+
 if [ -n "$DK_CONFD_SCHEME" ]; then
-    confd_scheme=$DK_CONFD_SCHEME
+	confd_scheme=$DK_CONFD_SCHEME
 fi
+
 if [ -n "$DK_CONFD_SEPARATOR" ]; then
-    confd_separator=$DK_CONFD_SEPARATOR
+	confd_separator=$DK_CONFD_SEPARATOR
 fi
+
 if [ -n "$DK_CONFD_USERNAME" ]; then
-    confd_username=$DK_CONFD_USERNAME
+	confd_username=$DK_CONFD_USERNAME
 fi
-if [ -n "$DK_CONFD_ACCESS_KEY" ]; then    
-    confd_role=$DK_CONFD_ACCESS_KEY        
+
+if [ -n "$DK_CONFD_ACCESS_KEY" ]; then
+	confd_role=$DK_CONFD_ACCESS_KEY
 fi
-if [ -n "$DK_CONFD_SECRET_KEY" ]; then    
-    confd_role=$DK_CONFD_SECRET_KEY        
+
+if [ -n "$DK_CONFD_SECRET_KEY" ]; then
+	confd_role=$DK_CONFD_SECRET_KEY
 fi
-if [ -n "$DK_CONFD_CIRCLE_INTERVAL" ]; then    
-    confd_role=$DK_CONFD_CIRCLE_INTERVAL    
+
+if [ -n "$DK_CONFD_CIRCLE_INTERVAL" ]; then
+	confd_role=$DK_CONFD_CIRCLE_INTERVAL
 fi
-if [ -n "$DK_CONFD_CONFD_NAMESPACE" ]; then    
-    confd_role=$DK_CONFD_CONFD_NAMESPACE   
+
+if [ -n "$DK_CONFD_CONFD_NAMESPACE" ]; then
+	confd_role=$DK_CONFD_CONFD_NAMESPACE   
 fi
-if [ -n "$DK_CONFD_PIPELINE_NAMESPACE" ]; then    
-    confd_role=$DK_CONFD_PIPELINE_NAMESPACE
+
+if [ -n "$DK_CONFD_PIPELINE_NAMESPACE" ]; then
+	confd_role=$DK_CONFD_PIPELINE_NAMESPACE
 fi
-if [ -n "$DK_CONFD_REGION" ]; then    
-    confd_role=$DK_CONFD_REGION
+
+if [ -n "$DK_CONFD_REGION" ]; then
+	confd_role=$DK_CONFD_REGION
 fi
 
 git_url=""
@@ -485,8 +501,8 @@ if [ "$upgrade" ]; then
 		--install-log=${install_log} \
 		--upgrade --proxy="${proxy}" --installer_base_url="$installer_base_url"
 else
-	printf "\n* Installing DataKit...\n"
-		$sudo_cmd $installer \
+printf "\n* Installing DataKit...\n"
+$sudo_cmd $installer \
 		--install-log="${install_log}" \
 		--install-only="${install_only}" \
 		--installer_base_url="${installer_base_url}" \
@@ -506,22 +522,22 @@ else
 		--enable-pprof="${enable_pprof}" \
 		--pprof-listen="${pprof_listen}" \
 		--install-externals="${install_externals}" \
-        --confd-backend="${confd_backend}" \
-        --confd-basic-auth="${confd_basic_auth}" \
-        --confd-client-ca-keys="${confd_client_ca_keys}" \
-        --confd-client-cert="${confd_client_cert}" \
-        --confd-client-key="${confd_client_key}" \
-        --confd-backend-nodes="${confd_backend_nodes}" \
-        --confd-password="${confd_password}" \
-        --confd-scheme="${confd_scheme}" \
-        --confd-separator="${confd_separator}" \
-        --confd-username="${confd_username}" \
-        --confd-access-key="${confd_access_key}" \
-        --confd-secret-key="${confd_secret_key}" \
-        --confd-circle-interval="${confd_circle_interval}" \
-        --confd-confd-namespace="${confd_confd_namespace}" \
-        --confd-pipeline-namespace="${confd_pipeline_namespace}" \
-        --confd-region="${confd_region}" \
+		--confd-backend="${confd_backend}" \
+		--confd-basic-auth="${confd_basic_auth}" \
+		--confd-client-ca-keys="${confd_client_ca_keys}" \
+		--confd-client-cert="${confd_client_cert}" \
+		--confd-client-key="${confd_client_key}" \
+		--confd-backend-nodes="${confd_backend_nodes}" \
+		--confd-password="${confd_password}" \
+		--confd-scheme="${confd_scheme}" \
+		--confd-separator="${confd_separator}" \
+		--confd-username="${confd_username}" \
+		--confd-access-key="${confd_access_key}" \
+		--confd-secret-key="${confd_secret_key}" \
+		--confd-circle-interval="${confd_circle_interval}" \
+		--confd-confd-namespace="${confd_confd_namespace}" \
+		--confd-pipeline-namespace="${confd_pipeline_namespace}" \
+		--confd-region="${confd_region}" \
 		--git-url="${git_url}" \
 		--git-key-path="${git_key_path}" \
 		--git-key-pw="${git_key_pw}" \
@@ -550,7 +566,7 @@ else
 		--log-sink-detail="${log_sink_detail}" \
 		--user-name="${user_name}" \
 		--gin-log="${gin_log}"
-fi
+		fi
 rm -rf $installer
 
 # install completion

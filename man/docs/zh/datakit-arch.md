@@ -10,7 +10,7 @@ DataKit 是观测云中至关重要的一个数据采集组件，几乎所有观
 DataKit 网络模型主要分为三层，可以简单概括为用户环境、DataWay 以及观测云中心，如下图所示：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-network-arch.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dk-network-arch.png){ width="800" }
   <figcaption> DataKit 基础网络模型 </figcaption>
 </figure>
 
@@ -31,7 +31,7 @@ DataKit 网络模型主要分为三层，可以简单概括为用户环境、Dat
 DataKit 内部架构相对比较简单，如下图所示：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-internal-arch.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dk-internal-arch.png){ width="800" }
   <figcaption> DataKit 内部采集架构 </figcaption>
 </figure>
 

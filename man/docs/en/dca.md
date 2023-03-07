@@ -106,7 +106,7 @@ $ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_L
 After DCA is opened and installed, you can enter the address `localhost:8000` in the browser to open DCA Web, log in to your account, and start using it. If you don't have an account, you can register [Guance Cloud Account](https://auth.guance.com/register?channel=帮助文档).
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca_2_2.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca_2_2.png){ width="800" }
 </figure>
 
 After logging in to DCA, you can select the workspace in the upper left corner to manage its corresponding DataKit and collector, which supports quick filtering of host names to be viewed and managed by searching keywords.
@@ -122,7 +122,7 @@ Hosts remotely managed through DCA are divided into three states:
 After logging in to DCA, select a workspace to view the hostname and IP information of all DataKits installed in that workspace. Click on the DataKit host to connect to the DataKit remotely, and view the running status of the DataKit on the host, including version, running time, publishing data and collector running status.
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca_2_3.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca_2_3.png){ width="800" }
 </figure>
 
 #### View Collector Configuration {#view-inputs-conf}
@@ -136,7 +136,7 @@ After connecting to the DataKit remotely, click "Collector Configuration" to vie
 Note: DCA does not support configuration of collector at present, so it is necessary to log in to the host remotely for configuration operation.
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca_2_4.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca_2_4.png){ width="800" }
 </figure>
 
 #### View Log Pipeline {#view-pipeline}
@@ -144,7 +144,7 @@ Note: DCA does not support configuration of collector at present, so it is neces
 After connecting to the DataKit remotely, click「Pipelines」to view the pipeline file that comes with the DataKit by default. Refer to the document [text data processing ](pipeline.md) for pipeline.
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca_2_5.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca_2_5.png){ width="800" }
 </figure>
 
 #### View the Blacklist {#view-filters}
@@ -154,7 +154,7 @@ After connecting to DataKit remotely, click "Blacklist" to view the blacklist co
 Note: The blacklist files created through Guance Cloud are stored in the path: `/usr/local/datakit/data/.pull`.
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca_2_8.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca_2_8.png){ width="800" }
 </figure>
 
 #### View Collector Help {#view-input-helper}
@@ -164,5 +164,5 @@ After connecting to DataKit remotely, click Help to view the list of collector d
 For help on how to view more collectors, refer to the document [Collectors](hostobject.md).
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca_2_6.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca_2_6.png){ width="800" }
 </figure>

@@ -122,7 +122,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 如果有 ddtrace 数据发送给 DataKit，那么在 [DataKit 的 monitor](datakit-monitor.md) 上能看到：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
   <figcaption> DDtrace 将数据发送给了 /v0.4/traces 接口</figcaption>
 </figure>
 

@@ -458,7 +458,7 @@ Generating report in profile001.pdf
 用同样的方式，可查看总分配内存 pprof 文件 allocs。PDF 的效果大概如下：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-pprof-pdf.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/datakit-pprof-pdf.png){ width="800" }
 </figure>
 
 更多 pprof 的使用方法，参见[这里](https://www.freecodecamp.org/news/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192/){:target="_blank"}。

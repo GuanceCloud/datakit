@@ -326,6 +326,10 @@ datakit install --ebpf
 
 If you are prompted `open /usr/local/datakit/externals/datakit-ebpf: text file busy`, stop the DataKit service before executing the command.
 
+???+ warning
+
+    The install command has been remove in [:octicons-tag-24: Version-1.5.6](changelog.md#cl-1.5.6-brk).
+
 ## Upload DataKit Run Log {#upload-log}
 
 When troubleshooting DataKit problems, it is usually necessary to check the DataKit running log. To simplify the log collection process, DataKit supports one-click uploading of log files:
@@ -356,4 +360,35 @@ datakit tool --show-cloud-info aws
                    region: cn-northwest-1
         security_group_id: launch-wizard-1
                   zone_id: cnnw1-az2
+```
+
+## Parse Line Protocols {#parse-lp}
+
+[:octicons-tag-24: Version-1.5.6](changelog.md#cl-1.5.6)
+
+You can run the following command to parse the line protocol data:
+
+```shell
+datakit tool --parse-lp /path/to/file
+Parse 201 points OK, with 2 measurements and 201 time series
+```
+
+It can be output in JSON:
+
+```shell
+datakit tool --parse-lp /path/to/file --json
+{
+  "measurements": {  # Measurement list
+    "testing": {
+      "points": 7,
+      "time_series": 6
+    },
+    "testing_module": {
+      "points": 195,
+      "time_series": 195
+    }
+  },
+  "point": 202,      # Total points
+  "time_serial": 201 # Total time series
+}
 ```

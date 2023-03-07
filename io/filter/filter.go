@@ -384,7 +384,9 @@ func (f *filter) updateMetric(m *filterMetric) {
 	v.Total += int64(m.points)
 	v.Filtered += int64(m.filtered)
 	v.Cost += m.cost
-	v.CostPerPoint = v.Cost / time.Duration(v.Total)
+	if v.Total > 0 {
+		v.CostPerPoint = v.Cost / time.Duration(v.Total)
+	}
 	v.Conditions = m.conditions
 }
 

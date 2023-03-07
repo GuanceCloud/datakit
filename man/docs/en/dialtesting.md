@@ -50,7 +50,7 @@ The collector collects the data of network dialing test results, and all the dat
 ## Dial Test Deployment Map {#arch}
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-net-arch.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dialtesting-net-arch.png){ width="800" }
 </figure>
 
 ## Configuration {#config}

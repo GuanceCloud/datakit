@@ -50,7 +50,7 @@
 ## 拨测部署图 {#arch}
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-net-arch.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dialtesting-net-arch.png){ width="800" }
 </figure>
 
 ## 配置 {#config}

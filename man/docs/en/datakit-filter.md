@@ -8,10 +8,10 @@ This document mainly describes the basic use and considerations of DataKit Filte
 
 DataKit Filter is used to filter the collected line protocol data and filter out some unwanted data. Its function is similar to Pipeline, but there is a difference:
 
-| Data Processing Component | Support Local Configuration | Distributed by Support Center | Support Data Discarding | Support data rewriting | Instruction                                                        |
-| ----         | ----         | ----         | ----         | ----         | ----                                                            |
-| Pipeline     | Y            | Y            | Y            | Y            | By configuring Pipeline in the collector or writing Pipeline in Guance Cloud Studio   |
-| Filter       | Y            | Y            | Y            | N            | Write Pipeline in Guance Cloud Studio or configure filter in datakit.conf |
+| Data Processing Component | Support Local Configuration | Distributed by Support Center | Support Data Discarding | Support data rewriting | Instruction                                                                         |
+| ----                      | ----                        | ----                          | ----                    | ----                   | ----                                                                                |
+| Pipeline                  | :material-check:            | :material-check:              | :material-check:        | :material-check:       | By configuring Pipeline in the collector or writing Pipeline in Guance Cloud Studio |
+| Filter                    | :material-check:            | :material-check:              | :material-check:        | :octicons-x-16:  | Write Pipeline in Guance Cloud Studio or configure filter in datakit.conf           |
 
 It can be seen from the table that Filter is a more convenient data filtering tool than Pipeline if only some data is simply filtered out.
 
@@ -151,7 +151,7 @@ In addition, the following list operations are supported:
 You can view the filtering using the `datakit monitor -V` command:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/filter-monitor.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/filter-monitor.png){ width="800" }
   <figcaption>View filter filtering</figcaption>
 </figure>
 

@@ -12,6 +12,8 @@ CLR="\033[0m"
 
 mkdocs_dir=~/git/dataflux-doc
 lang=zh
+port=8000
+bind=0.0.0.0
 
 usage() {
 	echo "" 1>&2;
@@ -23,12 +25,14 @@ usage() {
 	echo "              -D string: Set workdir, such as my-test" 1>&2;
 	echo "              -B: Do not build datakit" 1>&2;
 	echo "              -L: Specify language(zh/en)" 1>&2;
+	echo "              -p: Specify local port(default 8000)" 1>&2;
+	echo "              -b: Specify local bind(default 0.0.0.0)" 1>&2;
 	echo "              -h: Show help" 1>&2;
 	echo "" 1>&2;
 	exit 1;
 }
 
-while getopts "V:D:L:Bh" arg; do
+while getopts "V:D:L:p:b:Bh" arg; do
 	case "${arg}" in
 		V)
 			version="${OPTARG}"
@@ -47,6 +51,14 @@ while getopts "V:D:L:Bh" arg; do
 
 		h)
 			usage
+			;;
+
+		p)
+			port="${OPTARG}"
+			;;
+
+		b)
+			bind="${OPTARG}"
 			;;
 
 		*)
@@ -154,6 +166,7 @@ for lang in "${i18n[@]}"; do
 	# copy .pages
 	printf "${GREEN}> Copy pages(%s) to repo datakit ...${CLR}\n" $lang
 	cp man/docs/${lang}/datakit.pages $base_docs_dir/${lang}/datakit/.pages
+	cp man/developers-${lang}.pages $base_docs_dir/${lang}/developers/.pages
 
 	# move specific docs to developers
 	printf "${GREEN}> Copy docs(%s) to repo developers ...${CLR}\n" $lang
@@ -171,6 +184,6 @@ done
 ######################################
 # start mkdocs local server
 ######################################
-printf "${GREEN}> Start mkdocs...${CLR}\n"
+printf "${GREEN}> Start mkdocs on ${bind}:${port}...${CLR}\n"
 cd $mkdocs_dir &&
-	mkdocs serve -a 0.0.0.0:8000 2>&1 | tee mkdocs.log
+	mkdocs serve -a ${bind}:${port} 2>&1 | tee mkdocs.log
