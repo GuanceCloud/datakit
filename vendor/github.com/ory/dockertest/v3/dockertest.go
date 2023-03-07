@@ -347,7 +347,7 @@ func (d *Pool) BuildAndRunWithBuildOptions(buildOpts *BuildOptions, runOpts *Run
 	}
 
 	nameTag := strings.Split(runOpts.Name, ":")
-	runOpts.Name = nameTag[0]
+	runOpts.Name = filepath.Base(nameTag[0])
 
 	return d.RunWithOptions(runOpts, hcOpts...)
 }

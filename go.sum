@@ -144,8 +144,8 @@ github.com/GuanceCloud/cliutils v0.0.0-20230214065304-bcf19f5b34c2 h1:tPGMfgUO6A
 github.com/GuanceCloud/cliutils v0.0.0-20230214065304-bcf19f5b34c2/go.mod h1:uYSyeraW4TvOSfKCX7isSZ3W/dvnjYtzeCNiDIwUq2M=
 github.com/GuanceCloud/confd v0.0.0-20230110090426-b3190049be1c h1:UWAlVn8vHQyPcpSkSW4x8mAsH8Y1PierrE0qTpsaddc=
 github.com/GuanceCloud/confd v0.0.0-20230110090426-b3190049be1c/go.mod h1:o0opIwOX+yNwV9nh56x5ymFMJ+YBD8JuPxBJ7a1mEmo=
-github.com/GuanceCloud/dockertest/v3 v3.9.2 h1:1bXsmRPfW40BoCwJO6IGd1ovWpioWheVPRWiEb6byyk=
-github.com/GuanceCloud/dockertest/v3 v3.9.2/go.mod h1:LDdHEB2bc9HxRQuXuMJOqesEasilevqVsFd5rnVb07I=
+github.com/GuanceCloud/dockertest/v3 v3.9.3 h1:ADJbg7BF7XwraWvaSr+VO5n9vnuCZo5rhj/MFGwh3kI=
+github.com/GuanceCloud/dockertest/v3 v3.9.3/go.mod h1:LDdHEB2bc9HxRQuXuMJOqesEasilevqVsFd5rnVb07I=
 github.com/GuanceCloud/grok v1.1.2 h1:xscdb39kbPjiO8HfhORt/wDZuQqhi8N/WyjNcQnWujA=
 github.com/GuanceCloud/grok v1.1.2/go.mod h1:AHkJZYf7Qbo1FTZT6htdyScpICpgnkQ5+Hc0EmA88vM=
 github.com/GuanceCloud/platypus v0.2.3 h1:kgrOM+6WBw993ZUA681qWpZ3hZNgQoTuNOJbuZ0FS1U=
