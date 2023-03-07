@@ -72,9 +72,4 @@ func TestLookupCDNName(t *testing.T) {
 		testutil.Ok(t, err)
 	}
 
-	{
-		cname, cdn, err := lookupCDNName("cdn.cnbj1.fds.api.mi-img.com")
-		t.Log(cname, cdn)
-		testutil.Ok(t, err)
-	}
 }

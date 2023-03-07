@@ -6,6 +6,8 @@
 package netstat
 
 import (
+	"net/netip"
+
 	"github.com/shirou/gopsutil/v3/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -26,4 +28,22 @@ func NewFieldInfoC(desc string) *inputs.FieldInfo {
 		Unit:     inputs.NCount,
 		Desc:     desc,
 	}
+}
+
+// getIPVersion return ip version of the given addr.
+func getIPVersion(addr string) string {
+	defaultVersion := "unknown"
+	ip, err := netip.ParseAddr(addr)
+	if err == nil {
+		switch {
+		case ip.Is4():
+			return "4"
+		case ip.Is6():
+			return "6"
+		default:
+			return defaultVersion
+		}
+	}
+
+	return defaultVersion
 }

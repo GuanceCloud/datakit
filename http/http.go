@@ -15,6 +15,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/netip"
 	"path/filepath"
 	"strings"
 
@@ -435,7 +436,12 @@ func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadComple
 		time.Sleep(time.Second)
 	}
 
-	listener, err := parseListen(srv.Addr)
+	listener, err := initListener(srv.Addr)
+	if err != nil {
+		l.Errorf("initListener failed: %v", err)
+		return
+	}
+
 	closeListener := func() {
 		if listener != nil {
 			err = listener.Close()
@@ -444,29 +450,24 @@ func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadComple
 			}
 		}
 	}
+
 	defer closeListener()
-	if err != nil {
-		l.Errorf("parseListen failed: %v", err)
-		return
-	}
 
 	for {
 		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
-		if listener != nil {
-			err = srv.Serve(listener)
-		} else {
-			err = srv.ListenAndServe()
-		}
+		if err = srv.Serve(listener); err != nil {
+			if !errors.Is(err, http.ErrServerClosed) {
+				l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
+				retryCnt++
+			} else {
+				l.Debugf("server(%s) stopped on: %s", srv.Addr, err.Error())
+				closeListener()
+				break
+			}
 
-		if !errors.Is(err, http.ErrServerClosed) {
-			l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
-			retryCnt++
-		} else {
-			l.Debugf("server(%s) stopped on: %s", srv.Addr, err.Error())
-			closeListener()
-			break
+			// retry
+			time.Sleep(time.Second)
 		}
-		time.Sleep(time.Second)
 	}
 }
 
@@ -498,17 +499,44 @@ func checkToken(r *http.Request) error {
 	return nil
 }
 
-func parseListen(lsn string) (net.Listener, error) {
-	var listener net.Listener
+func initListener(lsn string) (net.Listener, error) {
+	var (
+		listener net.Listener
+		err      error
+	)
 
 	if filepath.IsAbs(lsn) {
-		err := os.RemoveAll(lsn)
-		if err != nil {
-			return nil, err
+		if err = os.RemoveAll(lsn); err != nil {
+			return nil, fmt.Errorf("os.RemoveAll: %w", err)
 		}
-		listener, err = net.Listen("unix", lsn)
-		if err != nil {
-			return nil, err
+
+		if listener, err = net.Listen("unix", lsn); err != nil {
+			return nil, fmt.Errorf(`net.Listen("unix"): %w`, err)
+		}
+		return listener, nil
+	}
+
+	// netip.ParseAddrPort can't parse `localhost', see:
+	//  https://pkg.go.dev/net/netip#ParseAddrPort
+	if strings.Contains(lsn, "localhost") {
+		lsn = strings.ReplaceAll(lsn, "localhost", "127.0.0.1")
+	}
+
+	// ipv6 or ipv6
+	if addrPort, err := netip.ParseAddrPort(lsn); err != nil {
+		return nil, fmt.Errorf("netip.ParseAddrPort: %w", err)
+	} else {
+		switch {
+		case addrPort.Addr().Is6():
+			listener, err = net.Listen("tcp6", lsn)
+			if err != nil {
+				return nil, fmt.Errorf("net.Listen(tcp6): %w", err)
+			}
+		default: // Is4:
+			listener, err = net.Listen("tcp4", lsn)
+			if err != nil {
+				return nil, fmt.Errorf("net.Listen(tcp4): %w", err)
+			}
 		}
 	}
 
