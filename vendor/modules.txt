@@ -540,7 +540,7 @@ github.com/disintegration/imaging
 ## explicit
 github.com/dlclark/regexp2
 github.com/dlclark/regexp2/syntax
-# github.com/docker/cli v20.10.14+incompatible
+# github.com/docker/cli v20.10.17+incompatible
 ## explicit
 github.com/docker/cli/cli/compose/interpolation
 github.com/docker/cli/cli/compose/loader
@@ -1305,7 +1305,7 @@ github.com/opentracing/opentracing-go/log
 ## explicit; go 1.12
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/proto/v2
-# github.com/ory/dockertest/v3 v3.9.1
+# github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.2
 ## explicit; go 1.17
 github.com/ory/dockertest/v3
 github.com/ory/dockertest/v3/docker
