@@ -540,7 +540,7 @@ github.com/disintegration/imaging
 ## explicit
 github.com/dlclark/regexp2
 github.com/dlclark/regexp2/syntax
-# github.com/docker/cli v20.10.14+incompatible
+# github.com/docker/cli v20.10.17+incompatible
 ## explicit
 github.com/docker/cli/cli/compose/interpolation
 github.com/docker/cli/cli/compose/loader
@@ -686,8 +686,6 @@ github.com/gdamore/tcell/v2/terminfo/x/xterm_termite
 # github.com/gin-contrib/sse v0.1.0
 ## explicit; go 1.12
 github.com/gin-contrib/sse
-# github.com/gin-contrib/timeout v0.0.3
-## explicit; go 1.15
 # github.com/gin-gonic/gin v1.7.4
 ## explicit; go 1.13
 github.com/gin-gonic/gin
@@ -1307,7 +1305,7 @@ github.com/opentracing/opentracing-go/log
 ## explicit; go 1.12
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/proto/v2
-# github.com/ory/dockertest/v3 v3.9.1
+# github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.2
 ## explicit; go 1.17
 github.com/ory/dockertest/v3
 github.com/ory/dockertest/v3/docker
@@ -1643,10 +1641,6 @@ github.com/xeipuuv/gojsonschema
 github.com/youmark/pkcs8
 # gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20230209102325-20b8f6ded14e
 ## explicit; go 1.18
-gitlab.jiagouyun.com/cloudcare-tools/cliutils
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
 # go.etcd.io/bbolt v1.3.6
 ## explicit; go 1.12

@@ -20,8 +20,8 @@ NGINX collector can take many metrics from NGINX instances, such as the total nu
 
     - `nginx`
     - `nginx_server_zone`
-    - `nginx_upstream_zone` (NGINX needs to configure `upstream` related configuration)
-    - `nginx_cache_zone`    (NGINX needs to configure `cache` related configuration)
+    - `nginx_upstream_zone` (NGINX needs to configure [`upstream` related configuration](http://nginx.org/en/docs/http/ngx_http_upstream_module.html){:target="_blank"})
+    - `nginx_cache_zone`    (NGINX needs to configure [`cache` related configuration](https://docs.nginx.com/nginx/admin-guide/content-cache/content-caching/){:target="_blank"})
 
 - Take the example of generating the `nginx_upstream_zone` measurements. An example of NGINX-related configuration is as follows:
 
