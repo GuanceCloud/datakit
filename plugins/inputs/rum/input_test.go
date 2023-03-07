@@ -71,5 +71,4 @@ func TestLookupCDNName(t *testing.T) {
 		t.Log(cname, cdn)
 		testutil.Ok(t, err)
 	}
-
 }

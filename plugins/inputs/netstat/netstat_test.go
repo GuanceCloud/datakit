@@ -134,7 +134,6 @@ func TestNetStatCollect(t *testing.T) {
 			}
 		}
 	}
-
 }
 
 func assertEqualint(t *testing.T, expected, actual int, mName string) {
