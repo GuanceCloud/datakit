@@ -30,7 +30,7 @@ import (
 
 const (
 	inputName       = "beats_output"
-	measurementName = "Elastic Beats Collector"
+	measurementName = "default"
 
 	sampleCfg = `
 [[inputs.beats_output]]
@@ -249,7 +249,7 @@ func (ipt *Input) feed(pending []*DataStruct) {
 		l.Debugf("newTags = %#v", newTags)
 
 		logging := &loggingMeasurement{
-			name:   measurementName,
+			name:   ipt.Source,
 			tags:   newTags,
 			fields: v.Fields,
 		}
