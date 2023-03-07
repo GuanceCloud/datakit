@@ -273,4 +273,39 @@ func TestPointChecker(t *T.T) {
 			t.Logf("%s", m)
 		}
 	})
+
+	t.Run(`WithMeasurementCheckIgnored`, func(t *T.T) {
+		pt := point.NewPointV2([]byte(`test-measurement`),
+			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
+				point.NewKVs(map[string]any{
+					`f1`: 123,
+					`f2`: 3.14,
+					`f3`: "hello",
+					`f4`: false,
+				})...))
+
+		exp := point.NewPointV2([]byte(`another-measurement`),
+			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
+				point.NewKVs(map[string]any{
+					`f1`: 123,
+					`f2`: 3.14,
+					`f3`: "hello",
+					`f4`: false,
+				})...))
+
+		msg := CheckPoint(pt, WithExpectPoint(exp), WithMeasurementCheckIgnored(true))
+		assert.Lenf(t, msg, 0, "got %+#v", msg)
+	})
+
+	t.Run("optional-fields", func(t *T.T) {
+		pt := point.NewPointV2([]byte(`test-measurement-not-defined`),
+			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
+				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
+
+		msg := CheckPoint(pt, WithDoc(&testMeasurement{}),
+			WithOptionalFields("optional"),
+			WithOptionalTags("optional"),
+			WithMeasurementCheckIgnored(true))
+		assert.Lenf(t, msg, 0, "got %+#v", msg)
+	})
 }

@@ -101,7 +101,7 @@ nav:
         - 'CRD': kubernetes-prometheus-operator-crd.md
 
     - 应用性能监测（APM）:
-      - Tracing 综述': datakit-tracing.md
+      - 'Tracing 综述': datakit-tracing.md
       - datakit-tracing-struct.md
 
       - 'Profiling':
