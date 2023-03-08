@@ -6,19 +6,37 @@
 package oracle
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"fmt"
+
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type processMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
+}
+
+// Point implement MeasurementV2.
+func (m *processMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
 }
 
 // 生成行协议.
-func (m *processMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+func (m *processMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return nil, fmt.Errorf("not implement")
 }
 
 // 指定指标.
@@ -67,14 +85,29 @@ func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type tablespaceMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
+}
+
+// Point implement MeasurementV2.
+func (m *tablespaceMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
 }
 
 // 生成行协议.
-func (m *tablespaceMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+func (m *tablespaceMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
+	return nil, fmt.Errorf("not implement")
 }
 
 // 指定指标.
@@ -123,14 +156,29 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type systemMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
+}
+
+// Point implement MeasurementV2.
+func (m *systemMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
 }
 
 // 生成行协议.
-func (m *systemMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+func (m *systemMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, dkpt.MOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 // 指定指标.
