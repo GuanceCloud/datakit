@@ -67,20 +67,14 @@ datakit 支持 `etcdv3` `consul` `redis` `zookeeper` `aws secrets manager` `naco
       nodes = ["http://IP地址:8848","https://IP地址2:8848"...]
       # username = "可选"
       # password = "可选"
-      # access_key = "可选"
-      # secret_key = "可选"
       circle_interval = 60 
       confd_namespace =    "confd namespace ID"
       pipeline_namespace = "pipeline namespace ID"
-	# 不推荐  
-	[[confds]]
-	  enable = false
-	  backend = "file"
-	  file = ["/文件1路径/文件1","/文件2路径/文件2"...]
 	# 原有的其他配置信息...
 	```
-    
-	可以同时配置多个数据中心后端，每个后端的数据的配置信息会合并注入datakit。任何一个后端的信息变化，都会被 datakit 检测到，datakit 会自动更新相关的配置，重启对应的采集器。
+    ???+ attention
+
+    	如果配置多个的数据中心后端，只有排列第一的配置内容会生效。
 
 
 === "Kubernates引入"

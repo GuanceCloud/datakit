@@ -1,19 +1,17 @@
 package file
 
 import (
-	"fmt"
 	"io/ioutil"
 	"path"
 	"strconv"
 	"strings"
 
-	"github.com/GuanceCloud/confd/log"
 	util "github.com/GuanceCloud/confd/util"
 	"github.com/fsnotify/fsnotify"
 	"gopkg.in/yaml.v2"
 )
 
-var replacer = strings.NewReplacer("/", "_")
+// var replacer = strings.NewReplacer("/", "_")
 
 // Client provides a shell for the yaml client
 type Client struct {
@@ -76,7 +74,7 @@ VarsLoop:
 		}
 		delete(vars, k)
 	}
-	log.Debug(fmt.Sprintf("Key Map: %#v", vars))
+	// log.Debug(fmt.Sprintf("Key Map: %#v", vars))
 	return vars, nil
 }
 
@@ -112,7 +110,7 @@ func (c *Client) watchChanges(watcher *fsnotify.Watcher, stopChan chan bool) Res
 		for {
 			select {
 			case event := <-watcher.Events:
-				log.Debug(fmt.Sprintf("Event: %s", event))
+				// log.Debug(fmt.Sprintf("Event: %s", event))
 				if event.Op&fsnotify.Write == fsnotify.Write ||
 					event.Op&fsnotify.Remove == fsnotify.Remove ||
 					event.Op&fsnotify.Create == fsnotify.Create {
@@ -167,3 +165,5 @@ func (c *Client) WatchPrefix(prefix string, keys []string, waitIndex uint64, sto
 	}
 	return waitIndex, nil
 }
+
+func (c *Client) Close() {}
