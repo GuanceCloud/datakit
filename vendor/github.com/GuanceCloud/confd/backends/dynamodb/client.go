@@ -109,3 +109,5 @@ func (c *Client) WatchPrefix(prefix string, keys []string, waitIndex uint64, sto
 	<-stopChan
 	return 0, nil
 }
+
+func (c *Client) Close() {}
