@@ -1,4 +1,4 @@
-# Dataway
+# Dataway Sink
 ---
 
 如果希望将数据打到不同的工作空间，可以使用 Dataway Sink 功能：
