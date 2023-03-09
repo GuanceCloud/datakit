@@ -242,12 +242,6 @@ func (c *containerdInput) watchNewLogs() error {
 			continue
 		}
 
-		name := container.Id
-		if m := status.GetMetadata(); m != nil {
-			name = m.Name
-		}
-		l.Infof("add container log, containerName: %s image: %s", name, container.Image)
-
 		func(status *cri.ContainerStatus) {
 			g.Go(func(ctx context.Context) error {
 				if err := c.tailingLog(status); err != nil {
