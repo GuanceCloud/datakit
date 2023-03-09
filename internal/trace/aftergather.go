@@ -157,11 +157,7 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 		tags[TAG_SOURCE_TYPE] = SPAN_SOURCE_CUSTOMER
 	}
 	for k, v := range dkspan.Tags {
-		if strings.Contains(k, ".") {
-			tags[strings.ReplaceAll(k, ".", "_")] = v
-		} else {
-			tags[k] = v
-		}
+		tags[strings.ReplaceAll(k, ".", "_")] = v
 	}
 	// exclude span_type in tags, span_type is crucial in data display
 	if dkspan.SpanType == "" {
@@ -179,11 +175,7 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 		FIELD_MESSAGE:  dkspan.Content,
 	}
 	for k, v := range dkspan.Metrics {
-		if strings.Contains(k, ".") {
-			fields[strings.ReplaceAll(k, ".", "_")] = v
-		} else {
-			fields[k] = v
-		}
+		fields[strings.ReplaceAll(k, ".", "_")] = v
 	}
 
 	return point.NewPoint(dkspan.Source, tags, fields, &point.PointOption{

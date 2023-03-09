@@ -22,7 +22,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkinfluxdb"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinklogstash"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkm3db"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkotel"
 )
 
 //----------------------------------------------------------------------
