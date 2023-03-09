@@ -155,24 +155,10 @@ func GeoIPHandle(ip string) (map[string]string, error) {
 	return res, nil
 }
 
-func DateFormatHandle(data interface{}, precision string, fmts string) (string, error) {
-	v := conv.ToInt64(data)
-
-	var t time.Time
-	switch precision {
-	case "s":
-		t = time.Unix(v, 0)
-	case "ms":
-		num := v * int64(time.Millisecond)
-		t = time.Unix(0, num)
+func DateFormatHandle(t *time.Time, fmts string) (string, error) {
+	if timefmt, ok := dateFormatStr[fmts]; ok {
+		return t.Format(timefmt), nil
 	}
-
-	for key, value := range dateFormatStr {
-		if key == fmts {
-			return t.Format(value), nil
-		}
-	}
-
 	return "", fmt.Errorf("format pattern %v no support", fmts)
 }
 
@@ -268,6 +254,13 @@ var dateFormatStr = map[string]string{
 	"StampMilli":  time.StampMilli,
 	"StampMicro":  time.StampMicro,
 	"StampNano":   time.StampNano,
+}
+
+func datetimeInnerFormat(fmt string) bool {
+	if _, ok := dateFormatStr[fmt]; ok {
+		return ok
+	}
+	return false
 }
 
 func JSONParse(jsonStr string) map[string]interface{} {

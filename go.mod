@@ -122,6 +122,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/pprof v0.0.0-20221118152302-e6195bd50e26
 	github.com/gosnmp/gosnmp v1.35.0
+	github.com/itchyny/timefmt-go v0.1.5
 	github.com/klauspost/compress v1.15.9
 	github.com/ory/dockertest/v3 v3.9.1
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.51.2

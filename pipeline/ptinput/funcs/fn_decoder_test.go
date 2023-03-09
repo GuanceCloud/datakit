@@ -20,6 +20,7 @@ type funcCase struct {
 	script   string
 	expected interface{}
 	key      string
+	fail     bool
 }
 
 func TestDecode(t *testing.T) {

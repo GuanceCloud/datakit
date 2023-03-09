@@ -17,7 +17,7 @@ import (
 )
 
 func QueryReferTableChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	err := reIndexFuncArgs(funcExpr, []string{"table_name", "key", "value"}, 3)
+	err := reindexFuncArgs(funcExpr, []string{"table_name", "key", "value"}, 3)
 	if err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
 	}
