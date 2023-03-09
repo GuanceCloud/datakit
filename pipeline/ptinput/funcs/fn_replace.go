@@ -26,13 +26,23 @@ func ReplaceChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlE
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[0].StartPos())
 	}
 
+	var pattern string
 	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
+		pattern = funcExpr.Param[1].StringLiteral.Val
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"expect StringLiteral, got %s",
 			funcExpr.Param[1].NodeType), funcExpr.Param[1].StartPos())
 	}
+
+	reg, err := regexp.Compile(pattern)
+	if err != nil {
+		return runtime.NewRunError(ctx, fmt.Sprintf("regular expression %s parse err: %s",
+			reflect.TypeOf(funcExpr.Param[1]).String(), err.Error()), funcExpr.Param[1].StartPos())
+	}
+
+	funcExpr.PrivateData = reg
 
 	switch funcExpr.Param[2].NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
@@ -45,6 +55,11 @@ func ReplaceChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlE
 }
 
 func Replace(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+	reg, ok := funcExpr.PrivateData.(*regexp.Regexp)
+	if !ok {
+		return runtime.NewRunError(ctx, "regexp obj not found", funcExpr.Param[1].StartPos())
+	}
+
 	if len(funcExpr.Param) != 3 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 3 args", funcExpr.Name), funcExpr.NamePos)
@@ -55,15 +70,7 @@ func Replace(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[0].StartPos())
 	}
 
-	var pattern, dz string
-
-	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
-	case ast.TypeStringLiteral:
-		pattern = funcExpr.Param[1].StringLiteral.Val
-	default:
-		return runtime.NewRunError(ctx, fmt.Sprintf("expect StringLiteral, got %s",
-			funcExpr.Param[1].NodeType), funcExpr.Param[1].StartPos())
-	}
+	var dz string
 
 	switch funcExpr.Param[2].NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
@@ -71,12 +78,6 @@ func Replace(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf("expect StringLiteral, got %s",
 			funcExpr.Param[2].NodeType), funcExpr.Param[2].StartPos())
-	}
-
-	reg, err := regexp.Compile(pattern)
-	if err != nil {
-		return runtime.NewRunError(ctx, fmt.Sprintf("regular expression %s parse err: %s",
-			reflect.TypeOf(funcExpr.Param[1]).String(), err.Error()), funcExpr.Param[1].StartPos())
 	}
 
 	cont, err := ctx.GetKeyConv2Str(key)

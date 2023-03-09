@@ -41,6 +41,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"grok()":               &grokMarkdown,
 	"group_between()":      &groupBetweenMarkdown,
 	"group_in()":           &groupInMarkdown,
+	"kv_split":             &kvSplitMarkdown,
 	"json()":               &jsonMarkdown,
 	"len()":                &lenMarkdown,
 	"load_json()":          &loadJSONMarkdown,
@@ -65,6 +66,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"xml()":                &xmlMarkdown,
 	"sample()":             &sampleMarkdown,
 	"url_parse()":          &urlParseMarkdown,
+	"timestamp()":          &timestampMarkdown,
 }
 
 var PipelineFunctionDocsEN = map[string]*PLDoc{
@@ -90,6 +92,7 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"grok()":               &grokMarkdownEN,
 	"group_between()":      &groupBetweenMarkdownEN,
 	"group_in()":           &groupInMarkdownEN,
+	"kv_split()":           &kvSplitMarkdownEN,
 	"json()":               &jsonMarkdownEN,
 	"len()":                &lenMarkdownEN,
 	"load_json()":          &loadJSONMarkdownEN,
@@ -114,6 +117,7 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"xml()":                &xmlMarkdownEN,
 	"sample()":             &sampleMarkdownEN,
 	"url_parse()":          &urlParseMarkdownEN,
+	"timestamp()":          &timestampMarkdownEN,
 }
 
 // embed docs.
@@ -255,6 +259,12 @@ var (
 
 	//go:embed md/url_parse.md
 	docURLParse string
+
+	//go:embed md/timestamp.md
+	docTimestamp string
+
+	//go:embed md/kv_split.md
+	docKVSplit string
 )
 
 const (
@@ -553,6 +563,19 @@ var (
 		Doc: docURLParse, Deprecated: false,
 		FnCategory: map[string][]string{
 			langTagZhCN: {cNetwork, cEncodeDecode},
+		},
+	}
+	timestampMarkdown = PLDoc{
+		Doc: docTimestamp, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cTimeOp},
+		},
+	}
+
+	kvSplitMarkdown = PLDoc{
+		Doc: docKVSplit, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cRegExp},
 		},
 	}
 )

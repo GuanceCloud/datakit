@@ -188,7 +188,7 @@ func TestReIndexFuncArgs(t *testing.T) {
 
 	for _, v := range cases {
 		t.Run(v.name, func(t *testing.T) {
-			err := reIndexFuncArgs(v.fnArgs, v.keyList, v.reqParm)
+			err := reindexFuncArgs(v.fnArgs, v.keyList, v.reqParm)
 			if err != nil {
 				if !v.fail {
 					t.Error(err)
