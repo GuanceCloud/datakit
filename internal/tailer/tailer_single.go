@@ -502,7 +502,6 @@ func (t *Single) feedToCache(pending []string) {
 			[]byte(t.opt.Source),
 			append(pbpoint.NewTags(t.tags), pbpoint.NewKVs(fields)...),
 			pbpoint.WithTime(timeNow.Add(time.Duration(i))),
-			pbpoint.WithEncoding(pbpoint.Protobuf),
 		)
 		res = append(res, pt)
 	}
@@ -511,7 +510,7 @@ func (t *Single) feedToCache(pending []string) {
 		return
 	}
 
-	encoder := pbpoint.GetEncoder(pbpoint.WithEncBatchSize(0))
+	encoder := pbpoint.GetEncoder(pbpoint.WithEncBatchSize(0), pbpoint.WithEncEncoding(pbpoint.Protobuf))
 
 	ptsDatas, err := encoder.Encode(res)
 	if err != nil {
