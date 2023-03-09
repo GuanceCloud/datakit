@@ -156,7 +156,7 @@ func main() {
 		Level: opt.LogLevel,
 		Flags: logger.OPT_DEFAULT,
 	}); err != nil {
-		l.Errorf("set root log faile: %s", err.Error())
+		l.Errorf("set root log failed: %s", err.Error())
 	}
 
 	if opt.InstanceDesc != "" { // add description to logger
