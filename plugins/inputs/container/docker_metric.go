@@ -109,10 +109,11 @@ func getContainerInfo(container *types.Container, k8sClient k8sClientX) tagsType
 	return tags
 }
 
-const streamStats = false
-
 func getContainerStats(client dockerClientX, containerID string) (fieldsType, error) {
-	resp, err := client.ContainerStats(context.TODO(), containerID, streamStats)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	resp, err := client.ContainerStatsOneShot(ctx, containerID)
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +127,7 @@ func getContainerStats(client dockerClientX, containerID string) (fieldsType, er
 	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
 		return nil, err
 	}
+
 	return calculateContainerStats(v), nil
 }
 

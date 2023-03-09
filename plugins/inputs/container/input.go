@@ -134,12 +134,8 @@ func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("container input startd")
-
-	if i.setup() {
-		return
-	}
-
-	l.Debugf("container input, dockerInput: %#v, containerdInput: %#v", i.dockerInput, i.containerdInput)
+	i.setup()
+	l.Infof("container input, dockerInput: %#v, containerdInput: %#v", i.dockerInput, i.containerdInput)
 
 	objectTick := time.NewTicker(objectInterval)
 	defer objectTick.Stop()
@@ -193,14 +189,12 @@ func (i *Input) Run() {
 			return
 
 		case <-metricTick.C:
-			l.Debug("collect mertric")
 			i.collectMetric()
 
 		case <-loggingTick.C:
 			i.collectLogging()
 
 		case <-objectTick.C:
-			l.Debug("collect object")
 			i.collectObject()
 
 		case i.pause = <-i.chPause:
@@ -248,8 +242,6 @@ func (i *Input) collectObject() {
 		return
 	}
 
-	l.Debug("collect k8s resource object")
-
 	if err := i.gatherK8sResourceObject(); err != nil {
 		l.Errorf("failed to collect resource object: %s", err)
 	}
@@ -285,8 +277,6 @@ func (i *Input) collectMetric() {
 		return
 	}
 
-	l.Debug("collect k8s-pod metric")
-
 	if err := i.gatherK8sResourceMetric(); err != nil {
 		l.Errorf("failed to collect resource metric: %s", err)
 	}
@@ -310,17 +300,21 @@ func (i *Input) gatherDockerContainerMetric() error {
 	if i.dockerInput == nil {
 		return nil
 	}
+
+	l.Debug("collect docker metric")
 	start := time.Now()
 
 	res, err := i.dockerInput.gatherMetric()
 	if err != nil {
 		return err
 	}
+
 	if len(res) == 0 {
 		l.Debug("container metric: no point")
 		return nil
 	}
 
+	l.Debugf("feed docker metric, len(%d)", len(res))
 	return inputs.FeedMeasurement("container-metric", datakit.Metric, res,
 		&io.Option{CollectCost: time.Since(start)})
 }
@@ -329,6 +323,8 @@ func (i *Input) gatherDockerContainerObject() error {
 	if i.dockerInput == nil {
 		return nil
 	}
+
+	l.Debug("collect docker object")
 	start := time.Now()
 
 	res, err := i.dockerInput.gatherObject()
@@ -340,6 +336,7 @@ func (i *Input) gatherDockerContainerObject() error {
 		return nil
 	}
 
+	l.Debugf("feed docker object, len(%d)", len(res))
 	return inputs.FeedMeasurement("container-object", datakit.Object, res,
 		&io.Option{CollectCost: time.Since(start)})
 }
@@ -348,6 +345,8 @@ func (i *Input) gatherContainerdMetric() error {
 	if i.containerdInput == nil {
 		return nil
 	}
+
+	l.Debug("collect containerd metric")
 	start := time.Now()
 
 	res, err := i.containerdInput.gatherMetric()
@@ -359,6 +358,7 @@ func (i *Input) gatherContainerdMetric() error {
 		return nil
 	}
 
+	l.Debugf("feed containerd metric, len(%d)", len(res))
 	return inputs.FeedMeasurement("containerd-metric", datakit.Metric, res,
 		&io.Option{CollectCost: time.Since(start)})
 }
@@ -367,6 +367,8 @@ func (i *Input) gatherContainerdObject() error {
 	if i.containerdInput == nil {
 		return nil
 	}
+
+	l.Debug("collect conrtainerd object")
 	start := time.Now()
 
 	res, err := i.containerdInput.gatherObject()
@@ -378,6 +380,7 @@ func (i *Input) gatherContainerdObject() error {
 		return nil
 	}
 
+	l.Debugf("feed containerd object, len(%d)", len(res))
 	return inputs.FeedMeasurement("containerd-object", datakit.Object, res,
 		&io.Option{CollectCost: time.Since(start)})
 }
@@ -390,6 +393,7 @@ func (i *Input) watchNewContainerdLogs() error {
 }
 
 func (i *Input) gatherK8sResourceMetric() error {
+	l.Debug("collect k8s-pod metric")
 	start := time.Now()
 
 	metricMeas, err := i.k8sInput.gatherResourceMetric()
@@ -407,6 +411,7 @@ func (i *Input) gatherK8sResourceMetric() error {
 }
 
 func (i *Input) gatherK8sResourceObject() error {
+	l.Debug("collect k8s-pod object")
 	start := time.Now()
 
 	objectMeas, err := i.k8sInput.gatherResourceObject()
@@ -415,7 +420,7 @@ func (i *Input) gatherK8sResourceObject() error {
 	}
 
 	if len(objectMeas) == 0 {
-		l.Infof("k8s-object: no point")
+		l.Info("k8s-object: no point")
 		return nil
 	}
 

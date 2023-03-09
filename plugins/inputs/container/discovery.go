@@ -288,15 +288,7 @@ func (d *discovery) fetchInputsFromDatakitCRD() []*discoveryRunner {
 
 	err := d.processCRDWithPod(fn)
 	if err != nil {
-		// TODO:
-		// 对 error 内容进行子串判定，不再打印这个错误
-		// 避免因为 k8s 客户端没有 datakits resource 而获取失败，频繁报错
-		// “could not find the requested resource” 为 k8s api 实际返回的 error message，可能会因为版本不同而变更
-		// errors.Is()
-		if strings.Contains(err.Error(), "could not find the requested resource") {
-			return nil
-		}
-		l.Warnf("autodiscovery: failed to get datakits, err: %s, retry in a minute", err)
+		l.Debugf("autodiscovery: failed to get datakits, err: %s, retry in a minute", err)
 		return nil
 	}
 
