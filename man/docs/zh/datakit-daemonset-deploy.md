@@ -79,6 +79,46 @@
     $ helm uninstall datakit -n datakit
     ```
 
+## 资源限制 {#requests-limits}
+
+DataKit 默认设置了 Requests 和 Limits，如果 DataKit 容器状态变为 OOMKilled ，可自定义修改配置。
+
+=== "Yaml"
+
+    datakit.yaml 中其大概格式为
+    
+    ```yaml
+    ...
+            resources:
+              requests:
+                cpu: "200m"
+                memory: "128Mi"
+              limits:
+                cpu: "2000m"
+                memory: "4Gi"
+    ...
+    ```
+
+
+=== "Helm"
+
+    Helm values.yaml 中其大概格式为
+    
+    ```yaml
+    ...
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "128Mi"
+      limits:
+        cpu: "2000m"
+        memory: "4Gi"
+    ...
+    ```
+ 
+具体配置，参见[官方文档](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits){:target="_blank"}。
+
+
 ## Kubernetes 污点容忍度配置 {#toleration}
 
 DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有污点），如果 Kubernetes 中某些 node 节点添加了污点调度，且不希望在其上部署 DataKit，可修改 datakit.yaml，调整其中的污点容忍度：
