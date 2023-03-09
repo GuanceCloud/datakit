@@ -29,10 +29,10 @@
 
 ### 新加功能 {#cl-1.5.7-new}
 
-- [Pipeline 支持 key 删除](../development.md#fn-json)(#1465)
+- [Pipeline 支持 key 删除](../developers/pipeline.md#fn-json)(#1465)
 - [netstat 支持 IPV6](datakit-conf.md#http-服务的配置-config-http-server)(#1454)
-- [Pipeline 增加新的 KV 操作](../development.md#fn-kv_split)(#1414)
-- [Pipeline 增加时间函数](../development.md#fn-datetime)(#1411)
+- [Pipeline 增加新的 KV 操作](../developers/pipeline.md#fn-kv_split)(#1414)
+- [Pipeline 增加时间函数](../developers/pipeline.md#fn-datetime)(#1411)
 - [diskio 支持 io wait 指标](diskio.md#扩展指标-extend)(#1472)
 - [容器采集允许 Docker 和 Containerd 共存](container.md#requrements)(#1401)
 - [整合 Datakit Operator 配置文档](datakit-operator.md)(#1482)
