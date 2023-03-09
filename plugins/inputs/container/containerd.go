@@ -120,6 +120,10 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 	l.Debugf("containerd linux_namespaces: %v", nsList)
 
 	for _, ns := range nsList {
+		// ignore docker
+		if ns == "moby" {
+			continue
+		}
 		ctx := namespaces.WithNamespace(context.Background(), ns)
 		cList, err := c.client.Containers(ctx)
 		if err != nil {

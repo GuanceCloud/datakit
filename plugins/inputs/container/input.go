@@ -135,7 +135,7 @@ func (i *Input) Run() {
 
 	l.Info("container input startd")
 	i.setup()
-	l.Infof("container input, dockerInput: %#v, containerdInput: %#v", i.dockerInput, i.containerdInput)
+	l.Infof("container input, dockerInput: %p, containerdInput: %p", i.dockerInput, i.containerdInput)
 
 	objectTick := time.NewTicker(objectInterval)
 	defer objectTick.Stop()
@@ -439,75 +439,58 @@ func (i *Input) watchingK8sEventLog() {
 	i.k8sInput.watchingEventLog(i.semStop.Wait())
 }
 
-func (i *Input) setup() bool {
+func (i *Input) setup() {
 	if i.DepercatedEndpoint != "" && i.DepercatedEndpoint != i.DockerEndpoint {
 		i.DockerEndpoint = i.DepercatedEndpoint
 	}
 
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return true
-		default:
-			// nil
-		}
-
-		time.Sleep(time.Second)
-
-		if d, err := newDockerInput(i); err != nil {
-			l.Warnf("create docker input err: %s", err)
-		} else {
-			i.dockerInput = d
-		}
-
-		if i.dockerInput == nil {
-			if c, err := newContainerdInput(i); err != nil {
-				l.Warnf("create containerd input err: %s", err)
-			} else {
-				i.containerdInput = c
-			}
-		}
-
-		if datakit.Docker {
-			if k, err := newKubernetesInput(i); err != nil {
-				l.Errorf("create k8s input err: %s", err)
-				continue
-			} else {
-				i.k8sInput = k
-
-				i.discovery = newDiscovery(i.k8sInput.client, i.semStop.Wait())
-				i.discovery.extraTags = i.Tags
-				i.discovery.extractK8sLabelAsTags = i.ExtractK8sLabelAsTags
-				i.discovery.prometheusMonitoringExtraConfig = i.prometheusMonitoringExtraConfig
-
-				i.discovery.enablePrometheusServiceAnnotations = i.EnableAutoDiscoveryOfPrometheusServierAnnotations
-				i.discovery.enablePrometheusPodMonitors = i.EnableAutoDiscoveryOfPrometheusPodMonitors
-				i.discovery.enablePrometheusServiceMonitors = i.EnableAutoDiscoveryOfPrometheusServiceMonitors
-
-				if i.dockerInput != nil {
-					i.dockerInput.k8sClient = i.k8sInput.client
-				}
-				if i.containerdInput != nil {
-					i.containerdInput.k8sClient = i.k8sInput.client
-				}
-				if i.EnablePodMetric {
-					l.Info("pod-metric on")
-					if err := i.k8sInput.client.kubeStateMetrics(); err != nil {
-						l.Warnf("failed to connect kube-state-metrics server, error: %s", err)
-					} else {
-						l.Info("connect kube-state-metrics server")
-					}
-				} else {
-					l.Info("pod-metric off")
-				}
-			}
-		}
-
-		break
+	if d, err := newDockerInput(i); err != nil {
+		l.Warnf("create docker input err: %s", err)
+	} else {
+		i.dockerInput = d
 	}
 
-	return false
+	if c, err := newContainerdInput(i); err != nil {
+		l.Warnf("create containerd input err: %s", err)
+	} else {
+		i.containerdInput = c
+	}
+
+	if !datakit.Docker {
+		return
+	}
+
+	if k, err := newKubernetesInput(i); err != nil {
+		l.Errorf("create k8s input err: %s", err)
+	} else {
+		i.k8sInput = k
+
+		i.discovery = newDiscovery(i.k8sInput.client, i.semStop.Wait())
+		i.discovery.extraTags = i.Tags
+		i.discovery.extractK8sLabelAsTags = i.ExtractK8sLabelAsTags
+		i.discovery.prometheusMonitoringExtraConfig = i.prometheusMonitoringExtraConfig
+
+		i.discovery.enablePrometheusServiceAnnotations = i.EnableAutoDiscoveryOfPrometheusServierAnnotations
+		i.discovery.enablePrometheusPodMonitors = i.EnableAutoDiscoveryOfPrometheusPodMonitors
+		i.discovery.enablePrometheusServiceMonitors = i.EnableAutoDiscoveryOfPrometheusServiceMonitors
+
+		if i.dockerInput != nil {
+			i.dockerInput.k8sClient = i.k8sInput.client
+		}
+		if i.containerdInput != nil {
+			i.containerdInput.k8sClient = i.k8sInput.client
+		}
+		if i.EnablePodMetric {
+			l.Info("pod-metric on")
+			if err := i.k8sInput.client.kubeStateMetrics(); err != nil {
+				l.Warnf("failed to connect kube-state-metrics server, error: %s", err)
+			} else {
+				l.Info("connect kube-state-metrics server")
+			}
+		} else {
+			l.Info("pod-metric off")
+		}
+	}
 }
 
 func (i *Input) Terminate() {
