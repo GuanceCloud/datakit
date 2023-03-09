@@ -3,7 +3,6 @@ package ssm
 import (
 	"os"
 
-	"github.com/GuanceCloud/confd/log"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -26,7 +25,7 @@ func New() (*Client, error) {
 
 	var c *aws.Config
 	if os.Getenv("SSM_LOCAL") != "" {
-		log.Debug("SSM_LOCAL is set")
+		// log.Debug("SSM_LOCAL is set")
 		endpoint := "http://localhost:8001"
 		c = &aws.Config{
 			Endpoint: &endpoint,
@@ -45,7 +44,7 @@ func (c *Client) GetValues(keys []string) (map[string]string, error) {
 	vars := make(map[string]string)
 	var err error
 	for _, key := range keys {
-		log.Debug("Processing key=%s", key)
+		// log.Debug("Processing key=%s", key)
 		var resp map[string]string
 		resp, err = c.getParametersWithPrefix(key)
 		if err != nil {
@@ -101,3 +100,5 @@ func (c *Client) WatchPrefix(prefix string, keys []string, waitIndex uint64, sto
 	<-stopChan
 	return 0, nil
 }
+
+func (c *Client) Close() {}

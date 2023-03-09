@@ -174,7 +174,7 @@ Since DataKit is mostly developed using Golang, the regular wildmatch used in th
 We recommend an [online tool to debug our regular wildcard](https://regex101.com/){:target="_blank"}. As shown in the following figure:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/debug-golang-regexp.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/debug-golang-regexp.png){ width="800" }
 </figure>
 
 In addition, since Toml is used in the configuration of DataKit, it is recommended that you fill in the regular form by using `'''Here is a specific regular expression'''` (that is, three English single quotation marks are used on both sides of the regular form), so as to avoid some complicated escapes.

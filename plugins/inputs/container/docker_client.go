@@ -24,7 +24,7 @@ var (
 type dockerClientX interface {
 	Info(ctx context.Context) (types.Info, error)
 	ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error)
-	ContainerStats(ctx context.Context, containerID string, stream bool) (types.ContainerStats, error)
+	ContainerStatsOneShot(ctx context.Context, containerID string) (types.ContainerStats, error)
 	ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error)
 	ContainerTop(ctx context.Context, containerID string, arguments []string) (container.ContainerTopOKBody, error)
 	ContainerLogs(ctx context.Context, containerID string, options types.ContainerLogsOptions) (io.ReadCloser, error)
@@ -70,8 +70,8 @@ func (c *dockerClient) ContainerList(ctx context.Context, options types.Containe
 	return c.client.ContainerList(ctx, options)
 }
 
-func (c *dockerClient) ContainerStats(ctx context.Context, containerID string, stream bool) (types.ContainerStats, error) {
-	return c.client.ContainerStats(ctx, containerID, stream)
+func (c *dockerClient) ContainerStatsOneShot(ctx context.Context, containerID string) (types.ContainerStats, error) {
+	return c.client.ContainerStatsOneShot(ctx, containerID)
 }
 
 func (c *dockerClient) ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error) {

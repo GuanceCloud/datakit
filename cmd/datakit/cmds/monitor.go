@@ -41,6 +41,15 @@ var (
 	httpAPIStatCols  = strings.Split(`API,Total,Limited(%),Max Latency,Avg Latency,2xx,3xx,4xx,5xx`, ",")
 	ioStatCols       = strings.Split(`Cat,ChanUsage,pts Send/Failed`, ",")
 	filterRuleCols   = strings.Split("Cat,Total,Filtered(%),Cost,Cost/Pts,Rules", ",")
+
+	moduleGoroutine = []string{"G", "goroutine"}
+	moduleBasic     = []string{"B", "basic"}
+	moduleRuntime   = []string{"R", "runtime"}
+	moduleFilter    = []string{"F", "filter"}
+	moduleHTTP      = []string{"H", "http"}
+	moduleInputs    = []string{"In", "inputs"}
+	modulePipeline  = []string{"P", "pipeline"}
+	moduleIO        = []string{"IO", "io_stats"}
 )
 
 func number(i interface{}) string {
@@ -376,6 +385,10 @@ func (m *monitorAPP) renderHTTPStatTable(ds *dkhttp.DatakitStats, colArr []strin
 }
 
 func (m *monitorAPP) renderGoroutineTable(ds *dkhttp.DatakitStats, colArr []string) {
+	if !exitsStr(*flagMonitorModule, moduleGoroutine) && !*flagMonitorVerbose {
+		return
+	}
+
 	table := m.goroutineStatTable
 
 	if m.anyError != nil {
@@ -847,17 +860,57 @@ func (m *monitorAPP) setupFlex() {
 			AddItem(m.ioStatTable, 0, 14, false).
 			AddItem(m.anyErrorPrompt, 0, 1, false).
 			AddItem(m.exitPrompt, 0, 1, false)
-	} else {
-		m.flex.SetDirection(tview.FlexRow).
-			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-										AddItem(m.basicInfoTable, 0, 10, false).
-										AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
-			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn). // all inputs running stats
-										AddItem(m.enabledInputTable, 0, 3, false). // inputs config stats
-										AddItem(m.inputsStatTable, 0, 7, false), 0, 15, false).
-			AddItem(m.anyErrorPrompt, 0, 1, false).
-			AddItem(m.exitPrompt, 0, 1, false)
+		return
 	}
+
+	if len(*flagMonitorModule) > 0 {
+		flex := m.flex.SetDirection(tview.FlexRow)
+		if exitsStr(*flagMonitorModule, moduleBasic) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.basicInfoTable, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, moduleRuntime) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.golangRuntime, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, moduleFilter) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.filterStatsTable, 0, 10, false), 0, 10, false)
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.filterRulesStatsTable, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, moduleGoroutine) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.goroutineStatTable, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, moduleHTTP) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.httpServerStatTable, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, moduleInputs) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.enabledInputTable, 0, 10, false), 0, 10, false)
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.inputsStatTable, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, modulePipeline) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.plStatTable, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, moduleIO) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.ioStatTable, 0, 10, false), 0, 10, false)
+		}
+		flex.AddItem(m.anyErrorPrompt, 0, 1, false).AddItem(m.exitPrompt, 0, 1, false)
+
+		return
+	}
+	m.flex.SetDirection(tview.FlexRow).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
+									AddItem(m.basicInfoTable, 0, 10, false).
+									AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn). // all inputs running stats
+									AddItem(m.enabledInputTable, 0, 3, false). // inputs config stats
+									AddItem(m.inputsStatTable, 0, 7, false), 0, 15, false).
+		AddItem(m.anyErrorPrompt, 0, 1, false).
+		AddItem(m.exitPrompt, 0, 1, false)
 }
 
 func (m *monitorAPP) setup() {
@@ -953,22 +1006,17 @@ func (m *monitorAPP) render() {
 
 	m.basicInfoTable.Clear()
 	m.golangRuntime.Clear()
-
 	m.inputsStatTable.Clear()
 	m.enabledInputTable.Clear()
-
 	m.plStatTable.Clear()
-	if *flagMonitorVerbose {
-		m.goroutineStatTable.Clear()
+	m.goroutineStatTable.Clear()
+	m.ioStatTable.Clear()
+	m.filterStatsTable.Clear()
+	m.filterRulesStatsTable.Clear()
 
-		// HTTPMetrics maybe nil(request timeout), so keep original table
-		if m.ds.HTTPMetrics != nil {
-			m.httpServerStatTable.Clear()
-		}
-
-		m.ioStatTable.Clear()
-		m.filterStatsTable.Clear()
-		m.filterRulesStatsTable.Clear()
+	// HTTPMetrics maybe nil(request timeout), so keep original table
+	if m.ds.HTTPMetrics != nil {
+		m.httpServerStatTable.Clear()
 	}
 
 	m.renderBasicInfoTable(m.ds)
@@ -976,20 +1024,18 @@ func (m *monitorAPP) render() {
 	m.renderEnabledInputTable(m.ds, enabledInputCols)
 	m.renderInputsStatTable(m.ds, inputsStatsCols)
 	m.renderPLStatTable(m.ds, plStatsCols)
-	if *flagMonitorVerbose {
-		m.renderGoroutineTable(m.ds, goroutineCols)
+	m.renderGoroutineTable(m.ds, goroutineCols)
+	m.renderIOTable(m.ds, ioStatCols)
 
-		if m.ds.HTTPMetrics != nil {
-			m.renderHTTPStatTable(m.ds, httpAPIStatCols)
-		}
+	if m.ds.HTTPMetrics != nil {
+		m.renderHTTPStatTable(m.ds, httpAPIStatCols)
+	}
 
-		m.renderIOTable(m.ds, ioStatCols)
-		if m.ds.FilterStats != nil {
-			m.renderFilterStatsTable(m.ds)
-			m.renderFilterRulesStatsTable(m.ds, filterRuleCols)
-		} else {
-			l.Debugf("ds: %+#v")
-		}
+	if m.ds.FilterStats != nil {
+		m.renderFilterStatsTable(m.ds)
+		m.renderFilterRulesStatsTable(m.ds, filterRuleCols)
+	} else {
+		l.Debugf("ds: %+#v")
 	}
 
 end:
@@ -1181,4 +1227,15 @@ func (m *monitorAPP) inputClicked(input string) func() bool {
 
 		return true
 	}
+}
+
+func exitsStr(sli []string, str []string) bool {
+	var exits bool
+	for _, m := range sli {
+		if m == str[0] || m == str[1] {
+			exits = true
+			break
+		}
+	}
+	return exits
 }

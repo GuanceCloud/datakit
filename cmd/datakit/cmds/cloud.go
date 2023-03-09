@@ -15,8 +15,8 @@ func showCloudInfo() (map[string]interface{}, error) {
 	hostobject.SetLog()
 
 	x := hostobject.Input{Tags: map[string]string{}}
-	if err := x.SetCloudProviderIfAbsent(); err != nil {
-		return nil, fmt.Errorf("fail to decide cloud provider: %w", err)
+	if err := x.SetCloudProvider(); err != nil {
+		return nil, fmt.Errorf("failed to decide cloud provider: %w", err)
 	}
 	return x.SyncCloudInfo(x.Tags["cloud_provider"])
 }

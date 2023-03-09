@@ -16,7 +16,7 @@ datakit monitor
 
 The DataKit Basic Monitor page information is shown in the following figure:
 
-![基础Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-basic-v1.gif) 
+![基础Monitor信息展示](https://static.guance.com/images/datakit/monitor-basic-v1.gif) 
 
 The elements in this diagram can be manipulated by mouse or keyboard. Blocks selected by the mouse are highlighted in bilateral boxes (as shown in the `Basic Info` block in the upper left corner of the above figure), and can also be browsed through the mouse wheel or the up and down arrow keys of the keyboard (or J/K of vim).
 
@@ -92,6 +92,21 @@ If the verbose option (`-V`) is specified when Monitor is run, additional inform
 	- `Timeout`: The number of HTTP timeouts
 
 ## FAQ {#faq}
+
+### How to show only the operation of the specified module? {#specify-module}
+
+---
+
+A: You can specify a list of module names (multiple modules are separated by English commas):
+
+```shell
+datakit monitor -M inputs,filter
+# or
+datakit monitor --module inputs,filter
+
+# use thd module abbreviation
+datakit monitor -M in,f
+```
 
 ### How to show only the operation of the specified collector? {#specify-inputs}
 

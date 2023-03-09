@@ -43,7 +43,7 @@ Setting primary keys to tables is not supported yet, but you can query through a
 
 === "Kubernetes"
 
-    [see here](datakit-daemonset-deploy.md#env-reftab)
+    [see here](../datakit/datakit-daemonset-deploy.md#env-reftab)
 
 ---
 

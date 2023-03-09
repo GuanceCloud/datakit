@@ -105,7 +105,6 @@ func (n *Input) getStubStatusModuleMetric() {
 	for k, v := range n.Tags {
 		tags[k] = v
 	}
-
 	fields := map[string]interface{}{
 		"connection_active":   active,
 		"connection_accepts":  accepts,
@@ -115,15 +114,13 @@ func (n *Input) getStubStatusModuleMetric() {
 		"connection_writing":  writing,
 		"connection_waiting":  waiting,
 	}
-
 	metric := &NginxMeasurement{
 		name:     nginx,
 		tags:     tags,
 		fields:   fields,
-		ts:       time.Now(),
 		election: n.Election,
 	}
-	n.collectCache = append(n.collectCache, metric)
+	n.collectCache = append(n.collectCache, metric.Point())
 }
 
 func (n *Input) getVTSMetric() {
@@ -181,6 +178,7 @@ func (n *Input) makeConnectionsLine(vtsResp NginxVTSResponse, t time.Time) {
 		tags[k] = v
 	}
 	fields := map[string]interface{}{
+		"load_timestamp":      vtsResp.LoadTimestamp,
 		"connection_active":   vtsResp.Connections.Active,
 		"connection_accepts":  vtsResp.Connections.Accepted,
 		"connection_handled":  vtsResp.Connections.Handled,
@@ -193,10 +191,9 @@ func (n *Input) makeConnectionsLine(vtsResp NginxVTSResponse, t time.Time) {
 		name:     nginx,
 		tags:     tags,
 		fields:   fields,
-		ts:       t,
 		election: n.Election,
 	}
-	n.collectCache = append(n.collectCache, metric)
+	n.collectCache = append(n.collectCache, metric.Point())
 }
 
 func (n *Input) makeServerZoneLine(vtsResp NginxVTSResponse, t time.Time) {
@@ -221,10 +218,9 @@ func (n *Input) makeServerZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 			name:     ServerZone,
 			tags:     tags,
 			fields:   fields,
-			ts:       t,
 			election: n.Election,
 		}
-		n.collectCache = append(n.collectCache, metric)
+		n.collectCache = append(n.collectCache, metric.Point())
 	}
 }
 
@@ -252,10 +248,9 @@ func (n *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 				name:     UpstreamZone,
 				tags:     tags,
 				fields:   fields,
-				ts:       t,
 				election: n.Election,
 			}
-			n.collectCache = append(n.collectCache, metric)
+			n.collectCache = append(n.collectCache, metric.Point())
 		}
 	}
 }
@@ -286,9 +281,8 @@ func (n *Input) makeCacheZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 			name:     CacheZone,
 			tags:     tags,
 			fields:   fields,
-			ts:       t,
 			election: n.Election,
 		}
-		n.collectCache = append(n.collectCache, metric)
+		n.collectCache = append(n.collectCache, metric.Point())
 	}
 }

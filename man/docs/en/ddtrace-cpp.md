@@ -132,7 +132,7 @@ Here you can put *libdd_opentracing.so* and the corresponding header file into a
 After running the program for a period of time, you can see trace data similar to the following in Guance Cloud:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cpp-ddtrace-example.png){ width="800"}
+  ![](https://static.guance.com/images/datakit/cpp-ddtrace-example.png){ width="800"}
   <figcaption>C++ trace data display</figcaption>
 </figure>
 

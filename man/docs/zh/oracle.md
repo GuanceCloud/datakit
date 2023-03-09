@@ -44,7 +44,7 @@ unzip instantclient-basiclite-linux.x64-21.1.0.0.0.zip
 > 也可以直接下载我们预先准备好的依赖包：
 
 ```shell
-wget -q https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/otn_software/instantclient/instantclient-basiclite-linux.x64-19.8.0.0.0dbru.zip \
+wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-19.8.0.0.0dbru.zip \
 			-O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
 			&& unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle;
 ```

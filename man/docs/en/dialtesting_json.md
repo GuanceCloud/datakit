@@ -36,7 +36,7 @@ In some cases, you may not be able to connect to SAAS's dialing task service. In
 The specific country/region and ISP selection can be selected as shown in the following figure (note that you don't really create a new "self-built node", just provide an alternative source here):
 
 <figure markdown>
-![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-select-country-city-isp.png){ width="800" }
+![](https://static.guance.com/images/datakit/dialtesting-select-country-city-isp.png){ width="800" }
 </figure>
 
 ### Configure the Dial Test Task {#config-task}

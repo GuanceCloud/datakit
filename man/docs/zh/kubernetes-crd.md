@@ -253,7 +253,7 @@ $ datakit monitor
 ```
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-crd-ingress.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/datakit-crd-ingress.png){ width="800" }
   <figcaption> Ingress 数据采集 </figcaption>
 </figure>
 

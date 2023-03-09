@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"github.com/GuanceCloud/cliutils/testutil"
 )
 
 func TestQueue(t *testing.T) {

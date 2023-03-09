@@ -86,10 +86,7 @@ func (ipt *Input) matchCloudProvider(cloudProvider string) bool {
 	return true
 }
 
-func (ipt *Input) SetCloudProviderIfAbsent() error {
-	if _, has := ipt.Tags["cloud_provider"]; has {
-		return nil
-	}
+func (ipt *Input) SetCloudProvider() error {
 	cloudProviders := []string{Aliyun, AWS, Tencent, Azure, Hwcloud}
 	for _, cp := range cloudProviders {
 		if ipt.matchCloudProvider(cp) {

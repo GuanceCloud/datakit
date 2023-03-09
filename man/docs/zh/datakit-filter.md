@@ -151,7 +151,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 使用 `datakit monitor -V` 命令可以查看过滤情况：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/filter-monitor.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/filter-monitor.png){ width="800" }
   <figcaption>查看 filter 过滤情况</figcaption>
 </figure>
 

@@ -38,7 +38,11 @@ markdown_extensions:
     anchor_linenums: true
     auto_title: false
   pymdownx.inlinehilite: {}
-  pymdownx.superfences: {}
+  pymdownx.superfences:
+    custom_fences:
+      - name: mermaid
+        class: mermaid
+        format: !!!!python/name:mermaid2.fence_mermaid
   pymdownx.emoji:
     emoji_index: !!python/name:materialx.emoji.twemoji
     emoji_generator: !!python/name:materialx.emoji.to_svg

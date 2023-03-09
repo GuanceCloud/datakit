@@ -10,7 +10,7 @@ DataKit is an important data collection component in Guance Cloud, and almost al
 The DataKit network model is mainly divided into three layers, which can be simply summarized as user environment, DataWay and Guance Cloud center, as shown in the following figure:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-network-arch.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dk-network-arch.png){ width="800" }
   <figcaption> DataKit Basic Network Model </figcaption>
 </figure>
 
@@ -31,7 +31,7 @@ The maximum amount of this disk can also be configured to protect the disk on Da
 The internal architecture of DataKit is relatively simple, as shown in the following figure:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-internal-arch.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dk-internal-arch.png){ width="800" }
   <figcaption> DataKit Internal Architecture </figcaption>
 </figure>
 

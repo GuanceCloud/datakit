@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GuanceCloud/confd/log"
 	zk "github.com/samuel/go-zookeeper/zk"
 )
 
@@ -17,7 +16,8 @@ type Client struct {
 func NewZookeeperClient(machines []string) (*Client, error) {
 	c, _, err := zk.Connect(machines, time.Second) //*10)
 	if err != nil {
-		panic(err)
+		// panic(err) // panic should not be used, return error should be used.
+		return nil, err
 	}
 	return &Client{c}, nil
 }
@@ -103,7 +103,7 @@ func (c *Client) watch(key string, respChan chan watchResponse, cancelRoutine ch
 				respChan <- watchResponse{1, e.Err}
 			}
 		case <-cancelRoutine:
-			log.Debug("Stop watching: " + key)
+			// log.Debug("Stop watching: " + key)
 			// There is no way to stop GetW/ChildrenW so just quit
 			return
 		}
@@ -134,7 +134,7 @@ func (c *Client) WatchPrefix(prefix string, keys []string, waitIndex uint64, sto
 				for dir := filepath.Dir(k); dir != "/"; dir = filepath.Dir(dir) {
 					if _, ok := watchMap[dir]; !ok {
 						watchMap[dir] = ""
-						log.Debug("Watching: " + dir)
+						// log.Debug("Watching: " + dir)
 						go c.watch(dir, respChan, cancelRoutine)
 					}
 				}
@@ -147,12 +147,33 @@ func (c *Client) WatchPrefix(prefix string, keys []string, waitIndex uint64, sto
 	for k, _ := range entries {
 		for _, v := range keys {
 			if strings.HasPrefix(k, v) {
-				log.Debug("Watching: " + k)
+				// log.Debug("Watching: " + k)
 				go c.watch(k, respChan, cancelRoutine)
 				break
 			}
 		}
 	}
+
+	// Fix if network broken, then recovery, WatchPrefix may fail.
+	length := len(entries)
+	go func() {
+		for {
+			time.Sleep(time.Second * 60)
+			entriesNew, err := c.GetValues([]string{prefix})
+			if err == nil {
+				if length != len(entriesNew) {
+					respChan <- watchResponse{1, nil}
+					return
+				}
+				for k, v := range entries {
+					if entriesNew[k] != v {
+						respChan <- watchResponse{1, nil}
+						return
+					}
+				}
+			}
+		}
+	}()
 
 	for {
 		select {
@@ -163,3 +184,5 @@ func (c *Client) WatchPrefix(prefix string, keys []string, waitIndex uint64, sto
 		}
 	}
 }
+
+func (c *Client) Close() {}

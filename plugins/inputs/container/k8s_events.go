@@ -28,10 +28,10 @@ func watchingEvent(client k8sClientX, extraTags tagsType, done <-chan interface{
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			l.Infof("k8s event watching exit")
+			l.Info("k8s event watching exit")
 			return
 		case <-done:
-			l.Infof("k8s event watching stopped")
+			l.Info("k8s event watching stopped")
 			return
 		default:
 			// nil
@@ -100,12 +100,12 @@ func watchingEvent(client k8sClientX, extraTags tagsType, done <-chan interface{
 
 			case <-done:
 				watcher.Stop()
-				l.Infof("event watching stopped")
+				l.Info("event watching stopped")
 				return
 
 			case <-datakit.Exit.Wait():
 				watcher.Stop()
-				l.Infof("k8s event watching exit")
+				l.Info("k8s event watching exit")
 				return
 			}
 		}

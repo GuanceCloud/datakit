@@ -19,6 +19,8 @@ type ptChecker struct {
 	checkValues,
 	checkTypes bool
 
+	measurementCheckIgnored bool
+
 	expect *point.Point
 
 	// expect measurement info
@@ -50,6 +52,14 @@ type ptChecker struct {
 func newPointChecker() *ptChecker {
 	return &ptChecker{
 		checkTypes: true,
+	}
+}
+
+// WithMeasurementCheckIgnored set flag to not check measurement name.
+// Some inputs's measurement name are user defined(with a default name `default`).
+func WithMeasurementCheckIgnored(on bool) PointCheckOption {
+	return func(c *ptChecker) {
+		c.measurementCheckIgnored = on
 	}
 }
 
@@ -136,7 +146,7 @@ func (c *ptChecker) doCheck(pt *point.Point) {
 }
 
 func (c *ptChecker) checkOnPoint(pt *point.Point) {
-	if c.expName != c.gotName {
+	if !c.measurementCheckIgnored && c.expName != c.gotName {
 		c.addMsg(fmt.Sprintf("expect measurement name %q got %q", c.expName, c.gotName))
 	}
 
@@ -169,7 +179,7 @@ func (c *ptChecker) checkOnPoint(pt *point.Point) {
 }
 
 func (c *ptChecker) checkOnDoc(pt *point.Point) {
-	if c.mInfo.Name != string(pt.Name()) {
+	if !c.measurementCheckIgnored && c.mInfo.Name != string(pt.Name()) {
 		c.addMsg(fmt.Sprintf("measurement name not equal: %q <> %q", c.mInfo.Name, string(pt.Name())))
 	}
 

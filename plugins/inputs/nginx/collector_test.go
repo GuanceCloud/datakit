@@ -68,26 +68,20 @@ func TestGetMetric(t *testing.T) {
 			}
 			tc.i.client = client
 
-			mpts, err := tc.i.Collect()
+			points, err := tc.i.Collect()
 			if err != nil {
 				t.Errorf("Collect failed: %v", err)
-			} else {
-				for category, points := range mpts {
-					// t.Logf("category = %s, points = %v", category, points)
-					if category != "/v1/write/metric" {
-						t.Error("invalid_category")
-					}
-					for _, v := range points {
-						// t.Logf("count = %d, v = %s", count, v)
+			} else if len(points) > 0 {
+				for _, v := range points {
+					// t.Logf("count = %d, v = %s", count, v.LPPoint().String())
 
-						// 为什么使用 HasPrefix？因为后面会跟时间戳，会不断变化。
-						if strings.HasPrefix(v.String(), metrics[count]) {
-							t.Errorf("not equal, left = %s, right = %s", v.String(), metrics[count])
-						}
-
-						count++
+					// 为什么使用 HasPrefix？因为后面会跟时间戳，会不断变化。
+					if strings.HasPrefix(v.LPPoint().String(), metrics[count]) {
+						t.Errorf("not equal, left = %s, right = %s", v.LPPoint().String(), metrics[count])
 					}
-				} // for
+
+					count++
+				}
 			}
 
 			tu.Assert(t, len(tc.i.collectCache) > 0, "")

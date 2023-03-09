@@ -49,6 +49,7 @@ type Input struct {
 
 	DisableCloudProviderSync bool              `toml:"disable_cloud_provider_sync"`
 	CloudInfo                map[string]string `toml:"cloud_info,omitempty"`
+	lastSync                 time.Time
 
 	collectData *hostMeasurement
 

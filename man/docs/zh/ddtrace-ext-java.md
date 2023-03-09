@@ -17,6 +17,22 @@
 - hsf 支持
 - 阿里云 RocketMQ 5.0 支持
 - redis 链路增加参数
+- 获取特定函数的入参信息
+
+## 获取特定函数的入参信息 {#dd_trace_methods}
+**特定函数** 主要是指业务指定的函数，来获取对应的入参情况。
+
+**特定函数** 需要通过特定的参数进行定义声明，目前 ddtrace 提供了两种方式对特定的函数进行 trace 声明：
+
+1. 通过启动参数标记 -Ddd.trace.methods ，参考文档 [类或方法注入Trace](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace)
+
+2. 通过引入 SDK 的方式，使用 @Trace 进行标记 ,参考文档 [函数级别埋点](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-api/#2)
+
+通过上述方式进行声明后，会将对应的方法标记为 trace，同时生成对应的 Span 信息并包含函数（方法）的入参信息（入参名称、类型、值）。
+
+???+ info "提示"
+
+    由于无法对数据类型进行转化以及 json 序列化需要额外的依赖和开销，所以目前只是针对参数值做了`toString()`处理，且对于`toString()`结果做了二次处理，字段值长度不能超过 <font color="red">1024个字符</font>，对于超过部分做了丢弃操作。
 
 ## ddtrace agent 默认远端端口 {#agent_port}
 ddtrace 二次开发将默认的远端端口 8126 修改为 9529。
