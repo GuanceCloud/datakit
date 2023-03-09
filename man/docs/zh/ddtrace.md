@@ -23,7 +23,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
     ---
 
-    [SDK :material-download:](https://static.guance.com/ddtrace/dd-java-agent.jar){:target="_blank"} ·
+    [SDK :material-download:](https://static.guance.com/dd-image/dd-java-agent.jar){:target="_blank"} ·
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-java.md)
 

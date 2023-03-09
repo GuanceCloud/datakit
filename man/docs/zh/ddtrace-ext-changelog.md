@@ -44,7 +44,7 @@
 ### 新加功能 {#cl-1.8.0-new}
 
 - 合并最新 ddtrace 分支.
-- 增加功能 [获取特定函数的入参信息](https://github.com/GuanceCloud/dd-trace-java/issues/26){:target="_blank"})
+- 增加功能 [获取特定函数的入参信息](https://github.com/GuanceCloud/dd-trace-java/issues/26){:target="_blank"}
 
 ## v1.4.1(2023/2/27) {#cl-1.4.1}
 
