@@ -153,7 +153,8 @@ func (c *containerLog) LineProto() (*point.Point, error) { return nil, nil }
 //nolint:lll
 func (c *containerLog) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "The logging of the container.",
+		Name: "Use Logging Source",
+		Desc: "The logging of the container.",
 		Type: "logging",
 		Tags: map[string]interface{}{
 			"container_id":           inputs.NewTagInfo(`Container ID`),

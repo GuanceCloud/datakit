@@ -196,7 +196,7 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) (*ta
 		opt.MultilinePatterns = []string{multilineMatch}
 	} else if len(info.autoMultilinePatterns) != 0 {
 		opt.MultilinePatterns = info.autoMultilinePatterns
-		l.Infof("source %s, filename %s, automatic-multiline on, patterns %v", opt.Source, info.logPath, info.autoMultilinePatterns)
+		l.Debugf("source %s, filename %s, automatic-multiline on, patterns %v", opt.Source, info.logPath, info.autoMultilinePatterns)
 	}
 
 	if logconf != nil && len(logconf.Paths) != 0 {
