@@ -286,8 +286,7 @@ func (d *discovery) fetchInputsFromDatakitCRD() []*discoveryRunner {
 		res = append(res, runner...)
 	}
 
-	err := d.processCRDWithPod(fn)
-	if err != nil {
+	if err := d.processCRDWithPod(fn); err != nil {
 		l.Debugf("autodiscovery: failed to get datakits, err: %s, retry in a minute", err)
 		return nil
 	}
