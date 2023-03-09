@@ -324,7 +324,7 @@ func (tracer *HTTPFlowTracer) bufHandle(cpu int, data []byte,
 func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	mergeTicker := time.NewTicker(time.Second * 15)
-	cleanCacheTicker := time.NewTicker(time.Minute)
+	cleanCacheTicker := time.NewTicker(time.Second * 90)
 	agg := FlowAgg{}
 	for {
 		select {
@@ -364,45 +364,49 @@ func feed(url string, data []*client.Point) error {
 
 func cleanupBPFMapConn(ctx context.Context, m *ebpf.Map) {
 	ticker := time.NewTicker(time.Minute * 15)
-
-	select {
-	case <-ticker.C:
-		uptime, err := host.Uptime() // seconds since boot
-		if err != nil {
-			l.Error(err)
-			return
-		}
-
-		var connStatsC dknetflow.ConnectionStatsC
-		var layer7HTTP CLayer7Http
-
-		iter := m.IterateFrom(connStatsC)
-
-		connNeedDel := []dknetflow.ConnectionStatsC{}
-
-		for iter.Next(unsafe.Pointer(&connStatsC), unsafe.Pointer(&layer7HTTP)) {
-			ts := uint64(0)
-			if layer7HTTP.req_ts != 0 {
-				ts = uint64(layer7HTTP.req_ts)
+	for {
+		select {
+		case <-ticker.C:
+			uptime, err := host.Uptime() // seconds since boot
+			if err != nil {
+				l.Error(err)
+				return
 			}
-			if layer7HTTP.resp_ts != 0 {
-				ts = uint64(layer7HTTP.resp_ts)
-			}
-			if reqExpr(uptime, ts) {
-				connNeedDel = append(connNeedDel, connStatsC)
-			}
-		}
+			var connStatsC dknetflow.ConnectionStatsC
+			var layer7HTTP CLayer7Http
 
-		if len(connNeedDel) > 0 {
-			l.Info("cleannup %d unfinished http conn key", len(connNeedDel))
-			for _, v := range connNeedDel {
-				if err = m.Delete(unsafe.Pointer(&v)); err != nil {
-					l.Warn(err)
+			iter := m.IterateFrom(connStatsC)
+
+			connNeedDel := []dknetflow.ConnectionStatsC{}
+
+			count := 0
+			for iter.Next(unsafe.Pointer(&connStatsC), unsafe.Pointer(&layer7HTTP)) {
+				count++
+				ts := uint64(0)
+				if layer7HTTP.req_ts != 0 {
+					ts = uint64(layer7HTTP.req_ts)
+				}
+				if layer7HTTP.resp_ts != 0 {
+					ts = uint64(layer7HTTP.resp_ts)
+				}
+				if reqExpr(uptime, ts) {
+					connNeedDel = append(connNeedDel, connStatsC)
 				}
 			}
-		}
 
-	case <-ctx.Done():
-		return
+			l.Debugf("Total number of conn resources: %d.", count)
+			l.Debugf("The number of connections that need to be cleaned up: %d.", len(connNeedDel))
+
+			if len(connNeedDel) > 0 {
+				l.Info("cleannup %d unfinished http conn key", len(connNeedDel))
+				for _, v := range connNeedDel {
+					if err = m.Delete(unsafe.Pointer(&v)); err != nil {
+						l.Warn(err)
+					}
+				}
+			}
+		case <-ctx.Done():
+			return
+		}
 	}
 }

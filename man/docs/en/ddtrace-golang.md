@@ -114,7 +114,7 @@ func runAppWithError() {
 After running the program for a period of time, you can see trace data similar to the following in Guance Cloud:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/golang-ddtrace-example.png){ width="800"}
+  ![](https://static.guance.com/images/datakit/golang-ddtrace-example.png){ width="800"}
   <figcaption>Golang Program trace Data Display</figcaption>
 </figure>
 

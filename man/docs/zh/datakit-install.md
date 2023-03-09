@@ -44,7 +44,19 @@
 
     ```shell
     DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
-		  bash -c "$(curl -L https://static.guance.com/datakit/install-1.2.3.sh)"
+        bash -c "$(curl -L https://static.guance.com/datakit/install-1.2.3.sh)"
+    ```
+
+
+    Windows 下同理：
+
+    ```powershell
+    $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>";
+    Set-ExecutionPolicy Bypass -scope Process -Force;
+    Import-Module bitstransfer;
+    Remove-item .install.ps1 -erroraction silentlycontinue;
+    start-bitstransfer -source https://static.guance.com/datakit/install-1.2.3.ps1 -destination .install.ps1;
+    powershell .install.ps1;
     ```
 
 ## 额外支持的安装变量 {#extra-envs}

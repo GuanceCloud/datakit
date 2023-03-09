@@ -458,7 +458,7 @@ Generating report in profile001.pdf
 In the same way, you can view the total allocated memory pprof file allocs. The effect of PDF is roughly as follows:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-pprof-pdf.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/datakit-pprof-pdf.png){ width="800" }
 </figure>
 
 For more ways to use pprof, see [here](https://www.freecodecamp.org/news/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192/){:target="_blank"}.

@@ -23,7 +23,7 @@ DDTrace Agent embedded in Datakit is used to receive, calculate and analyze Data
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-java){:target="_blank"} ·
+    [:octicons-code-16: SDK](https://static.guance.com/dd-image/dd-java-agent.jar){:target="_blank"} ·
     [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: example](ddtrace-java.md)
 
@@ -124,7 +124,7 @@ If Trace data is sent across machines, you need to set [HTTP settings for DataKi
 If you have ddtrace data sent to the DataKit, you can see it on [DataKit's monitor](datakit-monitor.md):
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
   <figcaption> DDtrace sends data to the /v0.4/traces interface</figcaption>
 </figure>
 

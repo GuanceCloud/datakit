@@ -99,6 +99,9 @@ extraEnvs:
 
 
 resources:
+  requests:
+    cpu: "200m"
+    memory: "128Mi"
   limits:
     cpu: "2000m"
     memory: "4Gi"

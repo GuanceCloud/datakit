@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
-
-	log "github.com/GuanceCloud/confd/log"
 )
 
 const (
@@ -29,7 +26,7 @@ func NewRancherClient(backendNodes []string) (*Client, error) {
 		url = "http://" + backendNodes[0]
 	}
 
-	log.Info("Using Rancher Metadata URL: " + url)
+	// log.Info("Using Rancher Metadata URL: " + url)
 	client := &Client{
 		url:        url,
 		httpClient: &http.Client{},
@@ -87,7 +84,7 @@ func treeWalk(root string, val interface{}, vars map[string]string) error {
 	case nil:
 		vars[root] = "null"
 	default:
-		log.Error("Unknown type: " + reflect.TypeOf(val).Name())
+		// log.Error("Unknown type: " + reflect.TypeOf(val).Name())
 	}
 	return nil
 }
@@ -180,3 +177,5 @@ func (c *Client) WatchPrefix(prefix string, keys []string, waitIndex uint64, sto
 		}
 	}
 }
+
+func (c *Client) Close() {}

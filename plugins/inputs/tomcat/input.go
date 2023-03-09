@@ -103,10 +103,6 @@ func (i *Input) RunPipeline() {
 		return
 	}
 
-	if i.Log.Pipeline == "" {
-		i.Log.Pipeline = inputName + ".p" // use default
-	}
-
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,

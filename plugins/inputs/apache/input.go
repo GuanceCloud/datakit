@@ -120,10 +120,6 @@ func (n *Input) RunPipeline() {
 		return
 	}
 
-	if n.Log.Pipeline == "" {
-		n.Log.Pipeline = "apache.p" // use default
-	}
-
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
