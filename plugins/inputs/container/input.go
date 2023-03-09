@@ -133,9 +133,14 @@ func (i *Input) ElectionEnabled() bool {
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	l.Info("container input startd")
+	l.Info("container input started")
 	i.setup()
-	l.Infof("container input, dockerInput: %p, containerdInput: %p", i.dockerInput, i.containerdInput)
+	if i.dockerInput != nil {
+		l.Info("docker collector started")
+	}
+	if i.containerdInput != nil {
+		l.Info("containerd collector started")
+	}
 
 	objectTick := time.NewTicker(objectInterval)
 	defer objectTick.Stop()
