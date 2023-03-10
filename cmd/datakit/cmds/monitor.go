@@ -242,10 +242,10 @@ func (m *monitorAPP) renderEnabledInputTable(ds *dkhttp.DatakitStats, colArr []s
 	}
 
 	if len(ds.EnabledInputs) == 0 {
-		m.enabledInputTable.SetTitle("Enabled Inputs(no inputs enabled)")
+		m.enabledInputTable.SetTitle("Enabled [red]In[white]puts(no inputs enabled)")
 		return
 	} else {
-		m.enabledInputTable.SetTitle(fmt.Sprintf("Enabled Inputs(%d inputs)", len(ds.EnabledInputs)))
+		m.enabledInputTable.SetTitle(fmt.Sprintf("Enabled [red]In[white]puts(%d inputs)", len(ds.EnabledInputs)))
 	}
 
 	// set table header
@@ -458,10 +458,10 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 	}
 
 	if len(ds.InputsStats) == 0 {
-		m.inputsStatTable.SetTitle("Inputs Info(no data collected)")
+		m.inputsStatTable.SetTitle("[red]In[white]puts Info(no data collected)")
 		return
 	} else {
-		m.inputsStatTable.SetTitle(fmt.Sprintf("Inputs Info(%d inputs)", len(ds.InputsStats)))
+		m.inputsStatTable.SetTitle(fmt.Sprintf("[red]In[white]puts Info(%d inputs)", len(ds.InputsStats)))
 	}
 
 	// set table header
@@ -493,7 +493,7 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 	sort.Strings(inputsNames)
 
 	if len(*flagMonitorOnlyInputs) > 0 {
-		m.inputsStatTable.SetTitle(fmt.Sprintf("Inputs Info(total %d, %d selected)",
+		m.inputsStatTable.SetTitle(fmt.Sprintf("[red]In[white]puts Info(total %d, %d selected)",
 			len(ds.InputsStats), len(*flagMonitorOnlyInputs)))
 	}
 
@@ -575,10 +575,10 @@ func (m *monitorAPP) renderPLStatTable(ds *dkhttp.DatakitStats, colArr []string)
 	}
 
 	if len(ds.PLStats) == 0 {
-		table.SetTitle("Pipeline Info(no data collected)")
+		table.SetTitle("[red]P[white]ipeline Info(no data collected)")
 		return
 	} else {
-		table.SetTitle(fmt.Sprintf("Pipeline Info(%d scripts)", len(ds.PLStats)))
+		table.SetTitle(fmt.Sprintf("[red]P[white]ipeline Info(%d scripts)", len(ds.PLStats)))
 	}
 
 	// set table header
@@ -701,10 +701,10 @@ func (m *monitorAPP) renderIOTable(ds *dkhttp.DatakitStats, colArr []string) {
 	}
 
 	if ds.IOStats == nil {
-		m.ioStatTable.SetTitle("IO Info(no data collected)")
+		m.ioStatTable.SetTitle("[red]IO[white] Info(no data collected)")
 		return
 	} else {
-		m.ioStatTable.SetTitle(fmt.Sprintf("IO Info(dropped: %s)", number(ds.IOStats.FeedDropPts)))
+		m.ioStatTable.SetTitle(fmt.Sprintf("[red]IO[white] Info(dropped: %s)", number(ds.IOStats.FeedDropPts)))
 	}
 
 	// set table header
@@ -916,41 +916,41 @@ func (m *monitorAPP) setupFlex() {
 func (m *monitorAPP) setup() {
 	// basic info
 	m.basicInfoTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
-	m.basicInfoTable.SetBorder(true).SetTitle("Basic Info").SetTitleAlign(tview.AlignLeft)
+	m.basicInfoTable.SetBorder(true).SetTitle("[red]B[white]asic Info").SetTitleAlign(tview.AlignLeft)
 
 	m.golangRuntime = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
-	m.golangRuntime.SetBorder(true).SetTitle("Runtime Info").SetTitleAlign(tview.AlignLeft)
+	m.golangRuntime.SetBorder(true).SetTitle("[red]R[white]untime Info").SetTitleAlign(tview.AlignLeft)
 
 	// inputs running stats
 	m.inputsStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.inputsStatTable.SetBorder(true).SetTitle("Inputs Info").SetTitleAlign(tview.AlignLeft)
+	m.inputsStatTable.SetBorder(true).SetTitle("[red]In[white]puts Info").SetTitleAlign(tview.AlignLeft)
 
 	// pipeline running stats
 	m.plStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.plStatTable.SetBorder(true).SetTitle("Pipeline Info").SetTitleAlign(tview.AlignLeft)
+	m.plStatTable.SetBorder(true).SetTitle("[red]P[white]ipeline Info").SetTitleAlign(tview.AlignLeft)
 
 	// enabled inputs
 	m.enabledInputTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
-	m.enabledInputTable.SetBorder(true).SetTitle("Enabled Inputs").SetTitleAlign(tview.AlignLeft)
+	m.enabledInputTable.SetBorder(true).SetTitle("Enabled [red]In[white]puts").SetTitleAlign(tview.AlignLeft)
 
 	// goroutine stats
 	m.goroutineStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.goroutineStatTable.SetBorder(true).SetTitle("Goroutine Groups").SetTitleAlign(tview.AlignLeft)
+	m.goroutineStatTable.SetBorder(true).SetTitle("[red]G[white]oroutine Groups").SetTitleAlign(tview.AlignLeft)
 
 	// 9592 http stats
 	m.httpServerStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.httpServerStatTable.SetBorder(true).SetTitle("HTTP APIs").SetTitleAlign(tview.AlignLeft)
+	m.httpServerStatTable.SetBorder(true).SetTitle("[red]H[white]TTP APIs").SetTitleAlign(tview.AlignLeft)
 
 	// sender stats
 	m.ioStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.ioStatTable.SetBorder(true).SetTitle("Sender Info").SetTitleAlign(tview.AlignLeft)
+	m.ioStatTable.SetBorder(true).SetTitle("[red]IO[white] Info").SetTitleAlign(tview.AlignLeft)
 
 	// filter stats
 	m.filterStatsTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
-	m.filterStatsTable.SetBorder(true).SetTitle("Filter").SetTitleAlign(tview.AlignLeft)
+	m.filterStatsTable.SetBorder(true).SetTitle("[red]F[white]ilter").SetTitleAlign(tview.AlignLeft)
 
 	m.filterRulesStatsTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.filterRulesStatsTable.SetBorder(true).SetTitle("Filter Rules").SetTitleAlign(tview.AlignLeft)
+	m.filterRulesStatsTable.SetBorder(true).SetTitle("[red]F[white]ilter Rules").SetTitleAlign(tview.AlignLeft)
 
 	// bottom prompt
 	m.exitPrompt = tview.NewTextView().SetDynamicColors(true)
@@ -1232,9 +1232,11 @@ func (m *monitorAPP) inputClicked(input string) func() bool {
 func exitsStr(sli []string, str []string) bool {
 	var exits bool
 	for _, m := range sli {
-		if m == str[0] || m == str[1] {
-			exits = true
-			break
+		for _, s := range str {
+			if m == s {
+				exits = true
+				break
+			}
 		}
 	}
 	return exits
