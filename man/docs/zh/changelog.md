@@ -30,10 +30,10 @@
 ### 新加功能 {#cl-1.5.7-new}
 
 - [Pipeline 支持 key 删除](../developers/pipeline.md#fn-json)(#1465)
-- [netstat 支持 IPV6](datakit-conf.md#http-服务的配置-config-http-server)(#1454)
+- [netstat 支持 IPV6](datakit-conf.md#config-http-server)(#1454)
 - [Pipeline 增加新的 KV 操作](../developers/pipeline.md#fn-kv_split)(#1414)
 - [Pipeline 增加时间函数](../developers/pipeline.md#fn-datetime)(#1411)
-- [diskio 支持 io wait 指标](diskio.md#扩展指标-extend)(#1472)
+- [diskio 支持 io wait 指标](diskio.md#extend)(#1472)
 - [容器采集允许 Docker 和 Containerd 共存](container.md#requrements)(#1401)
 - [整合 Datakit Operator 配置文档](datakit-operator.md)(#1482)
 
@@ -53,7 +53,7 @@
 - 添加 Filebeat 集成测试能力(#1459)
 - 添加 Nginx 集成测试能力(#1399)
 - 重构 OTEL Agent(#1409)
-- 重构 [Datakit Monitor 信息](datakit-monitor.md#如何展示datakit指定模块的运行情况-specify-module)(#1261)
+- 重构 [Datakit Monitor 信息](datakit-monitor.md#specify-module)(#1261)
 
 ---
 
