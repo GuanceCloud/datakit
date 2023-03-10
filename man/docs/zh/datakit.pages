@@ -3,7 +3,7 @@ nav:
   - changelog.md
 
   - 'DataKit 介绍': 
-    - '整体架构简介': datakit-arch.md
+    - datakit-arch.md
 
   - 'DataKit 安装':
     - '主机安装': datakit-install.md
@@ -22,7 +22,6 @@ nav:
 
   - 'DataKit 配置': 
     - '主配置': datakit-conf.md
-    - '采集器配置': datakit-input-conf.md
     - '选举配置': election.md
     - '代理配置': proxy.md
     - 'Operator配置': datakit-operator.md
@@ -33,6 +32,7 @@ nav:
       - '配置中心支持': confd.md
 
   - 'DataKit 采集器':
+    - datakit-input-conf.md
     - 主机:
       - 默认采集:
         - 'DataKit': self.md 
