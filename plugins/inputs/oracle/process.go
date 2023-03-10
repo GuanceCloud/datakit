@@ -80,6 +80,9 @@ func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 			"program": &inputs.TagInfo{
 				Desc: "Program",
 			},
+			"host": &inputs.TagInfo{
+				Desc: "host",
+			},
 		},
 	}
 }
@@ -150,6 +153,9 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"tablespace_name": &inputs.TagInfo{
 				Desc: "Table space",
+			},
+			"host": &inputs.TagInfo{
+				Desc: "host",
 			},
 		},
 	}

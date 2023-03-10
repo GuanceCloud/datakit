@@ -7,7 +7,6 @@ package oracle
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -17,13 +16,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/gin-gonic/gin"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
@@ -168,8 +169,8 @@ type caseSpec struct {
 }
 
 var (
-	done      chan struct{}
-	lock      sync.RWMutex
+	done chan struct{}
+	// lock      sync.RWMutex
 	errorMsgs []string
 	count     uint32
 )
@@ -180,15 +181,15 @@ type FeedMeasurementBody []struct {
 	Fields      map[string]interface{} `json:"fields"`
 }
 
-func addErrorMsgs(str string) {
-	lock.RLock()
-	defer lock.RUnlock()
-	errorMsgs = append(errorMsgs, str)
-}
+// func addErrorMsgs(str string) {
+// 	lock.RLock()
+// 	defer lock.RUnlock()
+// 	errorMsgs = append(errorMsgs, str)
+// }
 
-func (cs *caseSpec) addErrorMsgs(str string) {
-	addErrorMsgs(str)
-}
+// func (cs *caseSpec) addErrorMsgs(str string) {
+// 	addErrorMsgs(str)
+// }
 
 func (cs *caseSpec) handler(c *gin.Context) {
 	uri, err := url.ParseRequestURI(c.Request.URL.RequestURI())
@@ -203,74 +204,90 @@ func (cs *caseSpec) handler(c *gin.Context) {
 		cs.t.Logf("%s", err.Error())
 		return
 	}
-	str := string(body)
-	cs.t.Logf(str)
-	cs.t.Logf("\n")
+	// str := string(body)
+	// cs.t.Logf(str)
+	// cs.t.Logf("\n")
+	// ioutil.WriteFile("/tmp/1.log", body, os.ModePerm)
 
 	switch uri.Path {
-	case "/v1/write/metrics":
+	// case "/v1/write/metrics":
 	case "/v1/write/metric":
-		atomic.AddUint32(&count, 1)
-		if uri.RawQuery == "input=py_from_docker" {
-			if str != `[{"measurement": "measurement1", "tags": {"tag_name": "tag_value"}, "fields": {"count": 1}}]` {
-				cs.addErrorMsgs("[ERROR] 10001")
-			}
-		} else {
-			if str != `[{"measurement": "measurement2", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"custom_field1": "val1", "custom_field2": 1000, "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
-				cs.addErrorMsgs("[ERROR] 10002")
-			}
-		}
-	case "/v1/write/network":
-	case "/v1/write/keyevent":
-		atomic.AddUint32(&count, 1)
-		parsedBody := FeedMeasurementBody{}
-		if err := json.Unmarshal(body, &parsedBody); err != nil {
-			cs.t.Logf("json.Unmarshal failed: %s", err.Error())
+		pts, err := lp.ParsePoints(body, nil)
+		if err != nil {
+			cs.t.Logf("ParsePoints failed: %s", err.Error())
 			return
 		}
-		if len(parsedBody) == 0 {
-			cs.t.Logf("parse body failed: body length 0")
-			return
-		}
-		src, ok := parsedBody[0].Fields["df_source"]
-		if !ok {
-			cs.t.Logf("parse body failed: no df_source")
-			return
-		}
-		srcStr, ok := src.(string)
-		if !ok {
-			cs.t.Logf("parse body failed: df_source not string")
-			return
-		}
-		switch srcStr {
-		case "user":
-			if str != `[{"measurement": "measurement", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"df_date_range": 10, "df_source": "user", "df_user_id": "user_id", "df_status": "info", "df_event_id": "event_id", "df_title": "title", "df_message": "message", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}}]` {
-				cs.addErrorMsgs("[ERROR] 10007")
-			}
-		case "monitor":
-			if str != `[{"measurement": "measurement", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"df_date_range": 10, "df_source": "monitor", "df_dimension_tags": "{\"host\":\"web01\"}", "df_status": "info", "df_event_id": "event_id", "df_title": "title", "df_message": "message", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}}]` {
-				cs.addErrorMsgs("[ERROR] 10005")
-			}
-		case "system":
-			if str != `[{"measurement": "measurement", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"df_date_range": 10, "df_source": "system", "df_status": "info", "df_event_id": "event_id", "df_title": "feed_system_event", "df_message": "message", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}}]` {
-				cs.addErrorMsgs("[ERROR] 10006")
+		if err := cs.checkPoint(dkpt2point(pts...)); err != nil {
+			if err != nil {
+				cs.t.Logf("%s", err.Error())
+				assert.NoError(cs.t, err)
+				return
 			}
 		}
-	case "/v1/write/object":
-		atomic.AddUint32(&count, 1)
-		if str != `[{"measurement": "measurement4", "tags": {"tag1": "val1", "tag2": "val2", "name": "name"}, "fields": {"custom_field1": "val1", "custom_field2": 1000, "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
-			cs.addErrorMsgs("[ERROR] 10004")
-		}
-	case "/v1/write/custom_object":
-	case "/v1/write/logging":
-		atomic.AddUint32(&count, 1)
-		if str != `[{"measurement": "measurement3", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"message": "This is the message for testing", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
-			cs.addErrorMsgs("[ERROR] 10003")
-		}
-	case "/v1/write/tracing":
-	case "/v1/write/rum":
-	case "/v1/write/security":
-	case "/v1/write/profiling":
+
+	// 	atomic.AddUint32(&count, 1)
+	// 	if uri.RawQuery == "input=py_from_docker" {
+	// 		if str != `[{"measurement": "measurement1", "tags": {"tag_name": "tag_value"}, "fields": {"count": 1}}]` {
+	// 			cs.addErrorMsgs("[ERROR] 10001")
+	// 		}
+	// 	} else {
+	// 		if str != `[{"measurement": "measurement2", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"custom_field1": "val1", "custom_field2": 1000, "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
+	// 			cs.addErrorMsgs("[ERROR] 10002")
+	// 		}
+	// 	}
+	// case "/v1/write/network":
+	// case "/v1/write/keyevent":
+	// 	atomic.AddUint32(&count, 1)
+	// 	parsedBody := FeedMeasurementBody{}
+	// 	if err := json.Unmarshal(body, &parsedBody); err != nil {
+	// 		cs.t.Logf("json.Unmarshal failed: %s", err.Error())
+	// 		return
+	// 	}
+	// 	if len(parsedBody) == 0 {
+	// 		cs.t.Logf("parse body failed: body length 0")
+	// 		return
+	// 	}
+	// 	src, ok := parsedBody[0].Fields["df_source"]
+	// 	if !ok {
+	// 		cs.t.Logf("parse body failed: no df_source")
+	// 		return
+	// 	}
+	// 	srcStr, ok := src.(string)
+	// 	if !ok {
+	// 		cs.t.Logf("parse body failed: df_source not string")
+	// 		return
+	// 	}
+	// 	switch srcStr {
+	// 	case "user":
+	// 		if str != `[{"measurement": "measurement", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"df_date_range": 10, "df_source": "user", "df_user_id": "user_id", "df_status": "info", "df_event_id": "event_id", "df_title": "title", "df_message": "message", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}}]` {
+	// 			cs.addErrorMsgs("[ERROR] 10007")
+	// 		}
+	// 	case "monitor":
+	// 		if str != `[{"measurement": "measurement", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"df_date_range": 10, "df_source": "monitor", "df_dimension_tags": "{\"host\":\"web01\"}", "df_status": "info", "df_event_id": "event_id", "df_title": "title", "df_message": "message", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}}]` {
+	// 			cs.addErrorMsgs("[ERROR] 10005")
+	// 		}
+	// 	case "system":
+	// 		if str != `[{"measurement": "measurement", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"df_date_range": 10, "df_source": "system", "df_status": "info", "df_event_id": "event_id", "df_title": "feed_system_event", "df_message": "message", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}}]` {
+	// 			cs.addErrorMsgs("[ERROR] 10006")
+	// 		}
+	// 	}
+	// case "/v1/write/object":
+	// 	atomic.AddUint32(&count, 1)
+	// 	if str != `[{"measurement": "measurement4", "tags": {"tag1": "val1", "tag2": "val2", "name": "name"}, "fields": {"custom_field1": "val1", "custom_field2": 1000, "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
+	// 		cs.addErrorMsgs("[ERROR] 10004")
+	// 	}
+	// case "/v1/write/custom_object":
+	// case "/v1/write/logging":
+	// 	atomic.AddUint32(&count, 1)
+	// 	if str != `[{"measurement": "measurement3", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"message": "This is the message for testing", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
+	// 		cs.addErrorMsgs("[ERROR] 10003")
+	// 	}
+	// case "/v1/write/tracing":
+	// case "/v1/write/rum":
+	// case "/v1/write/security":
+	// case "/v1/write/profiling":
+	default:
+		panic("not implement")
 	}
 
 	val := atomic.LoadUint32(&count)
@@ -280,6 +297,84 @@ func (cs *caseSpec) handler(c *gin.Context) {
 	}
 }
 
+func (cs *caseSpec) checkPoint(pts []*point.Point) error {
+	var opts []inputs.PointCheckOption
+	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
+	opts = append(opts, cs.opts...)
+
+	for _, pt := range pts {
+		measurement := string(pt.Name())
+
+		switch measurement {
+		case "oracle_process":
+			opts = append(opts, inputs.WithDoc(&processMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+		case "oracle_tablespace":
+			opts = append(opts, inputs.WithDoc(&tablespaceMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+		case "oracle_system":
+			opts = append(opts, inputs.WithDoc(&systemMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+		default: // TODO: check other measurement
+			panic("not implement")
+		}
+
+		// check if tag appended
+		if len(cs.ipt.Tags) != 0 {
+			cs.t.Logf("checking tags %+#v...", cs.ipt.Tags)
+
+			tags := pt.Tags()
+			for k, expect := range cs.ipt.Tags {
+				if v := tags.Get([]byte(k)); v != nil {
+					got := string(v.GetD())
+					if got != expect {
+						return fmt.Errorf("expect tag value %s, got %s", expect, got)
+					}
+				} else {
+					return fmt.Errorf("tag %s not found, got %v", k, tags)
+				}
+			}
+		}
+	}
+
+	// TODO: some other checking on @pts, such as `if some required measurements exist'...
+
+	return nil
+}
+
 func (cs *caseSpec) run() error {
 	r := testutils.GetRemote()
 	dockerTCP := r.TCPURL()
@@ -287,17 +382,17 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
 
 	router := gin.New()
-	router.POST("/v1/write/metrics", cs.handler)
+	// router.POST("/v1/write/metrics", cs.handler)
 	router.POST("/v1/write/metric", cs.handler)
-	router.POST("/v1/write/network", cs.handler)
-	router.POST("/v1/write/keyevent", cs.handler)
-	router.POST("/v1/write/object", cs.handler)
-	router.POST("/v1/write/custom_object", cs.handler)
-	router.POST("/v1/write/logging", cs.handler)
-	router.POST("/v1/write/tracing", cs.handler)
-	router.POST("/v1/write/rum", cs.handler)
-	router.POST("/v1/write/security", cs.handler)
-	router.POST("/v1/write/profiling", cs.handler)
+	// router.POST("/v1/write/network", cs.handler)
+	// router.POST("/v1/write/keyevent", cs.handler)
+	// router.POST("/v1/write/object", cs.handler)
+	// router.POST("/v1/write/custom_object", cs.handler)
+	// router.POST("/v1/write/logging", cs.handler)
+	// router.POST("/v1/write/tracing", cs.handler)
+	// router.POST("/v1/write/rum", cs.handler)
+	// router.POST("/v1/write/security", cs.handler)
+	// router.POST("/v1/write/profiling", cs.handler)
 
 	srv := &http.Server{
 		Addr:    ":59529",
@@ -534,4 +629,22 @@ func externalIP() (string, error) {
 		}
 	}
 	return "", errors.New("are you connected to the network?")
+}
+
+// nolint: deadcode,unused
+// dkpt2point convert old io/point.Point to point.Point.
+func dkpt2point(pts ...*influxdb.Point) (res []*point.Point) {
+	for _, pt := range pts {
+		fs, err := pt.Fields()
+		if err != nil {
+			continue
+		}
+
+		pt := point.NewPointV2([]byte(pt.Name()),
+			append(point.NewTags(pt.Tags()), point.NewKVs(fs)...), nil)
+
+		res = append(res, pt)
+	}
+
+	return res
 }
