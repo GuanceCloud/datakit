@@ -94,7 +94,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts           []inputs.PointCheckOption
 	}{
 		{
-			name:         "oracle:xe-11g-datakit",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle/oracle:xe-11g-datakit",
 			exposedPorts: []string{"1521/tcp"},
 		},
 	}
