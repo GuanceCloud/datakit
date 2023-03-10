@@ -16,7 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
+	"sync"
 	"testing"
 	"time"
 
@@ -34,9 +34,6 @@ import (
 )
 
 func TestOracleInput(t *testing.T) {
-	// t.Setenv("REMOTE_HOST", "10.200.14.142")
-	// t.Setenv("TESTING_METRIC_PATH", "/tmp/testing.metrics")
-
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -109,7 +106,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		feeder := dkio.NewMockedFeeder()
 
 		ipt := defaultInput()
-		// ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
 		assert.NoError(t, err)
@@ -169,10 +165,9 @@ type caseSpec struct {
 }
 
 var (
-	done chan struct{}
-	// lock      sync.RWMutex
-	errorMsgs []string
-	count     uint32
+	done             chan struct{}
+	errorMsgs        []string
+	mMeasurementName sync.Map
 )
 
 type FeedMeasurementBody []struct {
@@ -180,16 +175,6 @@ type FeedMeasurementBody []struct {
 	Tags        map[string]string      `json:"tags"`
 	Fields      map[string]interface{} `json:"fields"`
 }
-
-// func addErrorMsgs(str string) {
-// 	lock.RLock()
-// 	defer lock.RUnlock()
-// 	errorMsgs = append(errorMsgs, str)
-// }
-
-// func (cs *caseSpec) addErrorMsgs(str string) {
-// 	addErrorMsgs(str)
-// }
 
 func (cs *caseSpec) handler(c *gin.Context) {
 	uri, err := url.ParseRequestURI(c.Request.URL.RequestURI())
@@ -204,20 +189,26 @@ func (cs *caseSpec) handler(c *gin.Context) {
 		cs.t.Logf("%s", err.Error())
 		return
 	}
-	// str := string(body)
-	// cs.t.Logf(str)
-	// cs.t.Logf("\n")
-	// ioutil.WriteFile("/tmp/1.log", body, os.ModePerm)
 
 	switch uri.Path {
-	// case "/v1/write/metrics":
 	case "/v1/write/metric":
 		pts, err := lp.ParsePoints(body, nil)
 		if err != nil {
 			cs.t.Logf("ParsePoints failed: %s", err.Error())
 			return
 		}
-		if err := cs.checkPoint(dkpt2point(pts...)); err != nil {
+
+		newPts := dkpt2point(pts...)
+		for _, pt := range newPts {
+			if string(pt.Name()) == "oracle_system" {
+				if len(pt.Fields()) <= 6 {
+					cs.t.Logf("oracle_system not ready, ignored...")
+					return // not ready, ignore.
+				}
+			}
+		}
+
+		if err := cs.checkPoint(newPts); err != nil {
 			if err != nil {
 				cs.t.Logf("%s", err.Error())
 				assert.NoError(cs.t, err)
@@ -225,74 +216,16 @@ func (cs *caseSpec) handler(c *gin.Context) {
 			}
 		}
 
-	// 	atomic.AddUint32(&count, 1)
-	// 	if uri.RawQuery == "input=py_from_docker" {
-	// 		if str != `[{"measurement": "measurement1", "tags": {"tag_name": "tag_value"}, "fields": {"count": 1}}]` {
-	// 			cs.addErrorMsgs("[ERROR] 10001")
-	// 		}
-	// 	} else {
-	// 		if str != `[{"measurement": "measurement2", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"custom_field1": "val1", "custom_field2": 1000, "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
-	// 			cs.addErrorMsgs("[ERROR] 10002")
-	// 		}
-	// 	}
-	// case "/v1/write/network":
-	// case "/v1/write/keyevent":
-	// 	atomic.AddUint32(&count, 1)
-	// 	parsedBody := FeedMeasurementBody{}
-	// 	if err := json.Unmarshal(body, &parsedBody); err != nil {
-	// 		cs.t.Logf("json.Unmarshal failed: %s", err.Error())
-	// 		return
-	// 	}
-	// 	if len(parsedBody) == 0 {
-	// 		cs.t.Logf("parse body failed: body length 0")
-	// 		return
-	// 	}
-	// 	src, ok := parsedBody[0].Fields["df_source"]
-	// 	if !ok {
-	// 		cs.t.Logf("parse body failed: no df_source")
-	// 		return
-	// 	}
-	// 	srcStr, ok := src.(string)
-	// 	if !ok {
-	// 		cs.t.Logf("parse body failed: df_source not string")
-	// 		return
-	// 	}
-	// 	switch srcStr {
-	// 	case "user":
-	// 		if str != `[{"measurement": "measurement", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"df_date_range": 10, "df_source": "user", "df_user_id": "user_id", "df_status": "info", "df_event_id": "event_id", "df_title": "title", "df_message": "message", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}}]` {
-	// 			cs.addErrorMsgs("[ERROR] 10007")
-	// 		}
-	// 	case "monitor":
-	// 		if str != `[{"measurement": "measurement", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"df_date_range": 10, "df_source": "monitor", "df_dimension_tags": "{\"host\":\"web01\"}", "df_status": "info", "df_event_id": "event_id", "df_title": "title", "df_message": "message", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}}]` {
-	// 			cs.addErrorMsgs("[ERROR] 10005")
-	// 		}
-	// 	case "system":
-	// 		if str != `[{"measurement": "measurement", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"df_date_range": 10, "df_source": "system", "df_status": "info", "df_event_id": "event_id", "df_title": "feed_system_event", "df_message": "message", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}}]` {
-	// 			cs.addErrorMsgs("[ERROR] 10006")
-	// 		}
-	// 	}
-	// case "/v1/write/object":
-	// 	atomic.AddUint32(&count, 1)
-	// 	if str != `[{"measurement": "measurement4", "tags": {"tag1": "val1", "tag2": "val2", "name": "name"}, "fields": {"custom_field1": "val1", "custom_field2": 1000, "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
-	// 		cs.addErrorMsgs("[ERROR] 10004")
-	// 	}
-	// case "/v1/write/custom_object":
-	// case "/v1/write/logging":
-	// 	atomic.AddUint32(&count, 1)
-	// 	if str != `[{"measurement": "measurement3", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"message": "This is the message for testing", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
-	// 		cs.addErrorMsgs("[ERROR] 10003")
-	// 	}
-	// case "/v1/write/tracing":
-	// case "/v1/write/rum":
-	// case "/v1/write/security":
-	// case "/v1/write/profiling":
 	default:
 		panic("not implement")
 	}
 
-	val := atomic.LoadUint32(&count)
-	if val == 7 {
-		atomic.SwapUint32(&count, 0)
+	length := 0
+	mMeasurementName.Range(func(k, v interface{}) bool {
+		length++
+		return true
+	})
+	if length == 3 {
 		done <- struct{}{}
 	}
 }
@@ -307,6 +240,11 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 		switch measurement {
 		case "oracle_process":
+			_, ok := mMeasurementName.Load("oracle_process")
+			if ok {
+				return nil
+			}
+
 			opts = append(opts, inputs.WithDoc(&processMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -318,9 +256,17 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			} else {
+				cs.t.Logf("oracle_process check completed!")
+				mMeasurementName.Store("oracle_process", 1)
 			}
 
 		case "oracle_tablespace":
+			_, ok := mMeasurementName.Load("oracle_tablespace")
+			if ok {
+				return nil
+			}
+
 			opts = append(opts, inputs.WithDoc(&tablespaceMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -332,9 +278,17 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			} else {
+				cs.t.Logf("oracle_tablespace check completed!")
+				mMeasurementName.Store("oracle_tablespace", 1)
 			}
 
 		case "oracle_system":
+			_, ok := mMeasurementName.Load("oracle_system")
+			if ok {
+				return nil
+			}
+
 			opts = append(opts, inputs.WithDoc(&systemMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -346,6 +300,9 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			} else {
+				cs.t.Logf("oracle_system check completed!")
+				mMeasurementName.Store("oracle_system", 1)
 			}
 
 		default: // TODO: check other measurement
@@ -382,17 +339,7 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
 
 	router := gin.New()
-	// router.POST("/v1/write/metrics", cs.handler)
 	router.POST("/v1/write/metric", cs.handler)
-	// router.POST("/v1/write/network", cs.handler)
-	// router.POST("/v1/write/keyevent", cs.handler)
-	// router.POST("/v1/write/object", cs.handler)
-	// router.POST("/v1/write/custom_object", cs.handler)
-	// router.POST("/v1/write/logging", cs.handler)
-	// router.POST("/v1/write/tracing", cs.handler)
-	// router.POST("/v1/write/rum", cs.handler)
-	// router.POST("/v1/write/security", cs.handler)
-	// router.POST("/v1/write/profiling", cs.handler)
 
 	srv := &http.Server{
 		Addr:    ":59529",
@@ -492,7 +439,8 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
-	tick := time.NewTicker(time.Minute)
+	cs.t.Logf("checking oracle in 5 minutes...")
+	tick := time.NewTicker(5 * time.Minute)
 	out := false
 	for {
 		if out {
@@ -501,8 +449,10 @@ func (cs *caseSpec) run() error {
 
 		select {
 		case <-tick.C:
+			cs.t.Logf("check oracle timeout!")
 			out = true
 		case <-done:
+			cs.t.Logf("check oracle all done!")
 			out = true
 		}
 	}
