@@ -97,6 +97,10 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle/oracle:xe-11g-datakit",
 			exposedPorts: []string{"1521/tcp"},
 		},
+		{
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle/oracle:se-12c-datakit",
+			exposedPorts: []string{"1521/tcp"},
+		},
 	}
 
 	var cases []*caseSpec
