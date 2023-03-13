@@ -13,6 +13,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	oracleProcess    = "oracle_process"
+	oracleTablespace = "oracle_tablespace"
+	oracleSystem     = "oracle_system"
+)
+
 type processMeasurement struct {
 	name     string
 	tags     map[string]string
@@ -42,7 +48,7 @@ func (m *processMeasurement) LineProto() (*dkpt.Point, error) {
 // 指定指标.
 func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "oracle_process",
+		Name: oracleProcess,
 		Fields: map[string]interface{}{
 			// status
 			"pga_used_mem": &inputs.FieldInfo{
@@ -116,7 +122,7 @@ func (m *tablespaceMeasurement) LineProto() (*dkpt.Point, error) {
 // 指定指标.
 func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "oracle_tablespace",
+		Name: oracleTablespace,
 		Fields: map[string]interface{}{
 			// status
 			"used_space": &inputs.FieldInfo{
@@ -190,7 +196,7 @@ func (m *systemMeasurement) LineProto() (*dkpt.Point, error) {
 // 指定指标.
 func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "oracle_system",
+		Name: oracleSystem,
 		Fields: map[string]interface{}{
 			// status
 			"buffer_cachehit_ratio": &inputs.FieldInfo{

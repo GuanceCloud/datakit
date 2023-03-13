@@ -204,7 +204,7 @@ func (cs *caseSpec) handler(c *gin.Context) {
 
 		newPts := dkpt2point(pts...)
 		for _, pt := range newPts {
-			if string(pt.Name()) == "oracle_system" {
+			if string(pt.Name()) == oracleSystem {
 				if len(pt.Fields()) <= 6 {
 					cs.t.Logf("oracle_system not ready, ignored...")
 					return // not ready, ignore.
@@ -243,8 +243,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		case "oracle_process":
-			_, ok := mMeasurementName.Load("oracle_process")
+		case oracleProcess:
+			_, ok := mMeasurementName.Load(oracleProcess)
 			if ok {
 				return nil
 			}
@@ -262,11 +262,11 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			} else {
 				cs.t.Logf("oracle_process check completed!")
-				mMeasurementName.Store("oracle_process", 1)
+				mMeasurementName.Store(oracleProcess, 1)
 			}
 
-		case "oracle_tablespace":
-			_, ok := mMeasurementName.Load("oracle_tablespace")
+		case oracleTablespace:
+			_, ok := mMeasurementName.Load(oracleTablespace)
 			if ok {
 				return nil
 			}
@@ -284,11 +284,11 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			} else {
 				cs.t.Logf("oracle_tablespace check completed!")
-				mMeasurementName.Store("oracle_tablespace", 1)
+				mMeasurementName.Store(oracleTablespace, 1)
 			}
 
-		case "oracle_system":
-			_, ok := mMeasurementName.Load("oracle_system")
+		case oracleSystem:
+			_, ok := mMeasurementName.Load(oracleSystem)
 			if ok {
 				return nil
 			}
@@ -306,7 +306,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			} else {
 				cs.t.Logf("oracle_system check completed!")
-				mMeasurementName.Store("oracle_system", 1)
+				mMeasurementName.Store(oracleSystem, 1)
 			}
 
 		default: // TODO: check other measurement
