@@ -183,19 +183,18 @@ In addition, since Toml is used in the configuration of DataKit, it is recommend
 
 After DataKit is installed, a batch of collectors will be turned on by default without manual opening. These collectors are generally related to the host, and the list is as follows:
 
-| Collector Name                               | Description                                            |
-|-------------------------------------|-----------------------------------------------|
-| [cpu](cpu.md)                       | Collect the CPU usage of the host                                |
-| [disk](disk.md)                     | Collect disk occupancy                                      |
-| [diskio](diskio.md)                 | Collect the disk IO status of the host                                 |
-| [mem](mem.md)                       | Collect the memory usage of the host                                   |
-| [swap](swap.md)                     | Collect Swap memory usage                                |
-| [system](system.md)                 | Collect the load of host operating system                                    |
-| [net](net.md)                       | Collect host network traffic                                    |
-| [host_processes](host_processes.md) | Collect the list of resident (surviving for more than 10min) processes on the host                      |
-| [hostobject](hostobject.md)         | Collect basic information of host computer (such as operating system information, hardware information, etc.)                       |
+| Collector Name                      | Description                                                                                                                                 |
+| ---                                 | ---                                                                                                                                         |
+| [cpu](cpu.md)                       | Collect the CPU usage of the host                                                                                                           |
+| [disk](disk.md)                     | Collect disk occupancy                                                                                                                      |
+| [diskio](diskio.md)                 | Collect the disk IO status of the host                                                                                                      |
+| [mem](mem.md)                       | Collect the memory usage of the host                                                                                                        |
+| [swap](swap.md)                     | Collect Swap memory usage                                                                                                                   |
+| [system](system.md)                 | Collect the load of host operating system                                                                                                   |
+| [net](net.md)                       | Collect host network traffic                                                                                                                |
+| [host_processes](host_processes.md) | Collect the list of resident (surviving for more than 10min) processes on the host                                                          |
+| [hostobject](hostobject.md)         | Collect basic information of host computer (such as operating system information, hardware information, etc.)                               |
 | [container](container.md)           | Collect possible containers or Kubernetes data on the host. Assuming there are no containers on the host, the collector will exit directly. |
-| [rum](rum.md)                       | Collect real user monitoring information                                    |
 
 ## For More Readings {#more}
 

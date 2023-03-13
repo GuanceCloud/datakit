@@ -183,19 +183,18 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
 
 DataKit 安装完成后，默认会开启一批采集器，无需手动开启。这些采集器一般跟主机相关，列表如下：
 
-| 采集器名称                               | 说明                                            |
-|-------------------------------------|-----------------------------------------------|
-| [cpu](cpu.md)                       | 采集主机的 CPU 使用情况                                |
-| [disk](disk.md)                     | 采集磁盘占用情况                                      |
-| [diskio](diskio.md)                 | 采集主机的磁盘 IO 情况                                 |
-| [mem](mem.md)                       | 采集主机的内存使用情况                                   |
-| [swap](swap.md)                     | 采集 Swap 内存使用情况                                |
-| [system](system.md)                 | 采集主机操作系统负载                                    |
-| [net](net.md)                       | 采集主机网络流量情况                                    |
-| [host_processes](host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                      |
-| [hostobject](hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                       |
+| 采集器名称                          | 说明                                                                           |
+| ---                                 | ---                                                                            |
+| [cpu](cpu.md)                       | 采集主机的 CPU 使用情况                                                        |
+| [disk](disk.md)                     | 采集磁盘占用情况                                                               |
+| [diskio](diskio.md)                 | 采集主机的磁盘 IO 情况                                                         |
+| [mem](mem.md)                       | 采集主机的内存使用情况                                                         |
+| [swap](swap.md)                     | 采集 Swap 内存使用情况                                                         |
+| [system](system.md)                 | 采集主机操作系统负载                                                           |
+| [net](net.md)                       | 采集主机网络流量情况                                                           |
+| [host_processes](host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
+| [hostobject](hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
 | [container](container.md)           | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
-| [rum](rum.md)                       | 采集真实用户监测信息                                    |
 
 ## 更多阅读 {#more}
 
