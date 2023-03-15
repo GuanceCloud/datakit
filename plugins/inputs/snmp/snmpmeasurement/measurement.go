@@ -7,9 +7,11 @@
 package snmpmeasurement
 
 import (
+	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -28,8 +30,22 @@ type SNMPObject struct {
 	Election bool
 }
 
-func (m *SNMPObject) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.Name, m.Tags, m.Fields, point.OOptElectionV2(m.Election))
+// Point implement MeasurementV2.
+func (m *SNMPObject) Point() *point.Point {
+	opts := point.DefaultObjectOptions()
+
+	if m.Election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.Name),
+		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
+		opts...)
+}
+
+func (m *SNMPObject) LineProto() (*dkpt.Point, error) {
+	// return dkpt.NewPoint(m.Name, m.Tags, m.Fields, dkpt.OOptElectionV2(m.Election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -126,8 +142,22 @@ type SNMPMetric struct {
 	Election bool
 }
 
-func (m *SNMPMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.Name, m.Tags, m.Fields, point.MOptElectionV2(m.Election))
+// Point implement MeasurementV2.
+func (m *SNMPMetric) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.Election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.Name),
+		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
+		opts...)
+}
+
+func (m *SNMPMetric) LineProto() (*dkpt.Point, error) {
+	// return dkpt.NewPoint(m.Name, m.Tags, m.Fields, dkpt.MOptElectionV2(m.Election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll

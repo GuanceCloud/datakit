@@ -17,6 +17,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
@@ -188,6 +189,7 @@ type Input struct {
 	mDynamicDevices      sync.Map
 	jobs                 chan Job
 	autodetectProfile    bool
+	feeder               io.Feeder
 }
 
 type TrapsConfig struct {
@@ -497,36 +499,48 @@ func checkIPDone(deviceIP string) {
 
 func (ipt *Input) doCollectObject(deviceIP string, device *deviceInfo) {
 	tn := time.Now().UTC()
-	measurements := ipt.CollectingMeasurements(deviceIP, device, tn, true)
-	if len(measurements) == 0 {
+	points := ipt.CollectingMeasurements(deviceIP, device, tn, true)
+	if len(points) == 0 {
 		return
 	}
 
-	if err := inputs.FeedMeasurement(snmpmeasurement.InputName+"-object",
-		datakit.Object,
-		measurements,
-		&io.Option{CollectCost: time.Since(tn)}); err != nil {
+	// if err := inputs.FeedMeasurement(snmpmeasurement.InputName+"-object",
+	// 	datakit.Object,
+	// 	measurements,
+	// 	&io.Option{CollectCost: time.Since(tn)}); err != nil {
+	// 	l.Errorf("FeedMeasurement object err: %v", err)
+	// }
+
+	name := snmpmeasurement.InputName + "-object"
+	if err := ipt.feeder.Feed(name, point.Object, points, &io.Option{CollectCost: time.Since(tn)}); err != nil {
 		l.Errorf("FeedMeasurement object err: %v", err)
+		ipt.feeder.FeedLastError(name, err.Error())
 	}
 }
 
 func (ipt *Input) doCollectMetrics(deviceIP string, device *deviceInfo) {
 	tn := time.Now().UTC()
-	measurements := ipt.CollectingMeasurements(deviceIP, device, tn, false)
-	if len(measurements) == 0 {
+	points := ipt.CollectingMeasurements(deviceIP, device, tn, false)
+	if len(points) == 0 {
 		return
 	}
 
-	if err := inputs.FeedMeasurement(snmpmeasurement.InputName+"-metric",
-		datakit.Metric,
-		measurements,
-		&io.Option{CollectCost: time.Since(tn)}); err != nil {
-		l.Errorf("FeedMeasurement metric err :%v", err)
+	// if err := inputs.FeedMeasurement(snmpmeasurement.InputName+"-metric",
+	// 	datakit.Metric,
+	// 	measurements,
+	// 	&io.Option{CollectCost: time.Since(tn)}); err != nil {
+	// 	l.Errorf("FeedMeasurement metric err :%v", err)
+	// }
+
+	name := snmpmeasurement.InputName + "-metric"
+	if err := ipt.feeder.Feed(name, point.Metric, points, &io.Option{CollectCost: time.Since(tn)}); err != nil {
+		l.Errorf("FeedMeasurement metric err: %v", err)
+		ipt.feeder.FeedLastError(name, err.Error())
 	}
 }
 
-func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn time.Time, isObject bool) []inputs.Measurement {
-	var measurements []inputs.Measurement
+func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn time.Time, isObject bool) []*point.Point {
+	var pts []*point.Point
 
 	var fts fieldTags
 
@@ -534,29 +548,45 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 		ipt.doCollectCore(deviceIP, device, tn, &fts, true) // object need collect meta
 
 		for _, data := range fts.data {
-			measurements = append(measurements, &snmpmeasurement.SNMPObject{
+			// measurements = append(measurements, &snmpmeasurement.SNMPObject{
+			// 	Name:     snmpmeasurement.InputName,
+			// 	Tags:     data.tags,
+			// 	Fields:   data.fields,
+			// 	TS:       tn,
+			// 	Election: ipt.Election,
+			// })
+			sobj := &snmpmeasurement.SNMPObject{
 				Name:     snmpmeasurement.InputName,
 				Tags:     data.tags,
 				Fields:   data.fields,
 				TS:       tn,
 				Election: ipt.Election,
-			})
+			}
+			pts = append(pts, sobj.Point())
 		}
 	} else {
 		ipt.doCollectCore(deviceIP, device, tn, &fts, false) // metric not collect meta
 
 		for _, data := range fts.data {
-			measurements = append(measurements, &snmpmeasurement.SNMPMetric{
+			// measurements = append(measurements, &snmpmeasurement.SNMPMetric{
+			// 	Name:     snmpmeasurement.InputName,
+			// 	Tags:     data.tags,
+			// 	Fields:   data.fields,
+			// 	TS:       tn,
+			// 	Election: ipt.Election,
+			// })
+			smtc := &snmpmeasurement.SNMPMetric{
 				Name:     snmpmeasurement.InputName,
 				Tags:     data.tags,
 				Fields:   data.fields,
 				TS:       tn,
 				Election: ipt.Election,
-			})
+			}
+			pts = append(pts, smtc.Point())
 		}
 	}
 
-	return measurements
+	return pts
 }
 
 func (ipt *Input) doAutoDiscovery(deviceIP, subnet string) {
@@ -1022,11 +1052,16 @@ func (ipt *Input) Terminate() {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		Tags:    make(map[string]string),
+		semStop: cliutils.NewSem(),
+		feeder:  io.DefaultFeeder(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(snmpmeasurement.InputName, func() inputs.Input {
-		return &Input{
-			Tags:    make(map[string]string),
-			semStop: cliutils.NewSem(),
-		}
+		return defaultInput()
 	})
 }
