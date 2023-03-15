@@ -17,7 +17,11 @@ import (
 
 //------------------------------------------------------------------------------
 
-const InputName = "snmp"
+const (
+	InputName      = "snmp"
+	SNMPObjectName = "snmp_object"
+	SNMPMetricName = "snmp_metric"
+)
 
 //------------------------------------------------------------------------------
 
@@ -51,7 +55,7 @@ func (m *SNMPObject) LineProto() (*dkpt.Point, error) {
 //nolint:lll
 func (m *SNMPObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: InputName,
+		Name: SNMPObjectName,
 		Desc: "采集 SNMP 设备对象的数据",
 		Type: "object",
 		Fields: map[string]interface{}{
@@ -163,7 +167,7 @@ func (m *SNMPMetric) LineProto() (*dkpt.Point, error) {
 //nolint:lll
 func (m *SNMPMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: InputName,
+		Name: SNMPMetricName,
 		Desc: "采集 SNMP 设备指标的数据",
 		Type: "metric",
 		Fields: map[string]interface{}{

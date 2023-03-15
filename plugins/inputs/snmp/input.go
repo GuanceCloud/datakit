@@ -556,7 +556,7 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 			// 	Election: ipt.Election,
 			// })
 			sobj := &snmpmeasurement.SNMPObject{
-				Name:     snmpmeasurement.InputName,
+				Name:     snmpmeasurement.SNMPObjectName,
 				Tags:     data.tags,
 				Fields:   data.fields,
 				TS:       tn,
@@ -576,7 +576,7 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 			// 	Election: ipt.Election,
 			// })
 			smtc := &snmpmeasurement.SNMPMetric{
-				Name:     snmpmeasurement.InputName,
+				Name:     snmpmeasurement.SNMPMetricName,
 				Tags:     data.tags,
 				Fields:   data.fields,
 				TS:       tn,

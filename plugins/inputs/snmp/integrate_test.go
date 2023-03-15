@@ -8,7 +8,6 @@ package snmp
 import (
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,12 +17,14 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/gosnmp/gosnmp"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp/snmpmeasurement"
 )
 
 func TestSNMPInput(t *testing.T) {
@@ -85,82 +86,18 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
 		opts           []inputs.PointCheckOption
-		mPathCount     map[string]int
 	}{
 		{
-			name:           "nginx:http_stub_status_module",
-			conf:           fmt.Sprintf(`url = "http://%s/server_status"`, remote.Host),
-			dockerFileText: dockerFileHTTPStubStatusModule,
-			exposedPorts:   []string{"80/tcp"},
-			opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
-			mPathCount: map[string]int{
-				"/": 100,
-			},
+			name: "snmp:inexio-snmpsim:v2",
+			conf: fmt.Sprintf(`specific_devices = ["%s"]
+	snmp_version = 2
+	v2_community_string = "recorded/cisco-catalyst-3750"
+[tags]
+	tag1 = "val1"
+	tag2 = "val2"`, remote.Host),
+			exposedPorts: []string{"161/udp"},
+			// opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
 		},
-
-		// {
-		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.20.2",
-
-		// 	conf: fmt.Sprintf(`
-		// url = "http://%s/status/format/json"
-		// use_vts = true`,
-		// 		remote.Host),
-
-		// 	exposedPorts: []string{"80/tcp"},
-		// 	mPathCount: map[string]int{
-		// 		"/1": 100,
-		// 		"/2": 100,
-		// 		"/3": 100,
-		// 	},
-		// },
-
-		// {
-		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.21.6",
-
-		// 	conf: fmt.Sprintf(`
-		// url = "http://%s/status/format/json"
-		// use_vts = true`,
-		// 		remote.Host),
-
-		// 	exposedPorts: []string{"80/tcp"},
-		// 	mPathCount: map[string]int{
-		// 		"/1": 100,
-		// 		"/2": 100,
-		// 		"/3": 100,
-		// 	},
-		// },
-
-		// {
-		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.22.1",
-
-		// 	conf: fmt.Sprintf(`
-		// url = "http://%s/status/format/json"
-		// use_vts = true`,
-		// 		remote.Host),
-
-		// 	exposedPorts: []string{"80/tcp"},
-		// 	mPathCount: map[string]int{
-		// 		"/1": 100,
-		// 		"/2": 100,
-		// 		"/3": 100,
-		// 	},
-		// },
-
-		// {
-		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.23.3",
-
-		// 	conf: fmt.Sprintf(`
-		// url = "http://%s/status/format/json"
-		// use_vts = true`,
-		// 		remote.Host),
-
-		// 	exposedPorts: []string{"80/tcp"},
-		// 	mPathCount: map[string]int{
-		// 		"/1": 100,
-		// 		"/2": 100,
-		// 		"/3": 100,
-		// 	},
-		// },
 	}
 
 	var cases []*caseSpec
@@ -170,7 +107,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		feeder := io.NewMockedFeeder()
 
 		ipt := defaultInput()
-		// ipt.feeder = feeder
+		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
 		assert.NoError(t, err)
@@ -188,7 +125,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
 			opts:           base.opts,
-			mPathCount:     base.mPathCount,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -220,7 +156,6 @@ type caseSpec struct {
 	dockerFileText string
 	exposedPorts   []string
 	opts           []inputs.PointCheckOption
-	mPathCount     map[string]int
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -240,61 +175,33 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		// case nginx:
-		// 	opts = append(opts, inputs.WithDoc(&NginxMeasurement{}))
+		case snmpmeasurement.SNMPObjectName:
+			opts = append(opts, inputs.WithDoc(&snmpmeasurement.SNMPObject{}))
 
-		// 	msgs := inputs.CheckPoint(pt, opts...)
+			msgs := inputs.CheckPoint(pt, opts...)
 
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
 
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
 
-		// case ServerZone:
-		// 	opts = append(opts, inputs.WithDoc(&ServerZoneMeasurement{}))
+		case snmpmeasurement.SNMPMetricName:
+			opts = append(opts, inputs.WithDoc(&snmpmeasurement.SNMPMetric{}))
 
-		// 	msgs := inputs.CheckPoint(pt, opts...)
+			msgs := inputs.CheckPoint(pt, opts...)
 
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
 
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
-
-		// case UpstreamZone:
-		// 	opts = append(opts, inputs.WithDoc(&UpstreamZoneMeasurement{}))
-
-		// 	msgs := inputs.CheckPoint(pt, opts...)
-
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
-
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
-
-		// case CacheZone:
-		// 	opts = append(opts, inputs.WithDoc(&CacheZoneMeasurement{}))
-
-		// 	msgs := inputs.CheckPoint(pt, opts...)
-
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
-
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -400,13 +307,11 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
 
-	if err := cs.portsOK(r); err != nil {
+	if err := cs.checkSNMPPortOK(r); err != nil {
 		return err
 	}
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
-
-	cs.runHTTPTests(r)
 
 	var wg sync.WaitGroup
 
@@ -430,6 +335,11 @@ func (cs *caseSpec) run() error {
 	cs.cr.AddField("point_count", len(pts))
 
 	cs.t.Logf("get %d points", len(pts))
+
+	for _, v := range pts {
+		cs.t.Logf(v.LPPoint().String() + "\n")
+	}
+
 	if err := cs.checkPoint(pts); err != nil {
 		return err
 	}
@@ -504,47 +414,51 @@ func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
 	return portBindings
 }
 
-func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
-	for _, v := range cs.exposedPorts {
-		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
-			return fmt.Errorf("service checking failed")
+func (cs *caseSpec) checkSNMPPortOK(r *testutils.RemoteInfo) error {
+	tick := time.NewTicker(time.Minute)
+	var errReturn error
+
+	out := false
+	for {
+		if out {
+			break
+		}
+
+		select {
+		case <-tick.C:
+			out = true
+		default:
+			if err := checkSNMPPort(cs.cr.ExtraTags["docker_host"]); err != nil {
+				cs.t.Logf("checkSNMPPort failed: %v", err)
+				errReturn = err
+				continue
+			}
+
+			errReturn = nil
+			out = true
 		}
 	}
+
+	return errReturn
+}
+
+func checkSNMPPort(host string) error {
+	// Default is a pointer to a GoSNMP struct that contains sensible defaults
+	// eg port 161, community public, etc
+	gosnmp.Default.Target = host
+	err := gosnmp.Default.Connect()
+	if err != nil {
+		return err
+	}
+	defer gosnmp.Default.Conn.Close()
+
+	oids := []string{"1.3.6.1.2.1.1.4.0", "1.3.6.1.2.1.1.7.0"}
+	_, err2 := gosnmp.Default.Get(oids) // Get() accepts up to g.MAX_OIDS
+	if err2 != nil {
+		return err2
+	}
+
 	return nil
 }
 
-// Launch large amount of HTTP requests to remote nginx.
-func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
-	for path, count := range cs.mPathCount {
-		newURL := fmt.Sprintf("http://%s%s", r.Host, path)
-
-		var wg sync.WaitGroup
-		wg.Add(count)
-
-		for i := 0; i < count; i++ {
-			go func() {
-				defer wg.Done()
-
-				resp, err := http.Get(newURL)
-				if err != nil {
-					panic(err)
-				}
-				if err := resp.Body.Close(); err != nil {
-					panic(err)
-				}
-			}()
-		}
-
-		wg.Wait()
-	}
-}
-
 ////////////////////////////////////////////////////////////////////////////////
-
-// Dockerfiles.
-
-const dockerFileHTTPStubStatusModule = `FROM nginx:latest
-
-RUN sed -i "/location \/ {/i\    location = /server_status {" /etc/nginx/conf.d/default.conf \
-    && sed -i "/location \/ {/i\        stub_status;" /etc/nginx/conf.d/default.conf \
-    && sed -i "/location \/ {/i\    }\n" /etc/nginx/conf.d/default.conf`
