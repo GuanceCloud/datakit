@@ -114,7 +114,6 @@ Some collectors only allow a single instance to run, and even if multiple copies
 | [system](system.md)                   | Collect the load of host operating system                                                           |
 | [net](net.md)                         | Collect host network traffic                                                           |
 | [netstat](netstat.md)                 | Collect network connections, including TCP/UDP connections, waiting for connections, waiting for processing requests, etc.                |
-| [host_dir](hostdir.md)                | Collector is used to collect directory files, such as the number of files, all file sizes, etc.                         |
 | [host_processes](host_processes.md)   | Collect the list of resident (surviving for more than 10min) processes on the host                                      |
 | [hostobject](hostobject.md)           | Collect basic information of host computer (such as operating system information, hardware information, etc.)                                 |
 | [container](container.md)             | Collect possible containers or Kubernetes data on the host. Assuming there are no containers on the host, the collector will exit directly. |
