@@ -319,3 +319,24 @@ DataKit has a built-in list of CDN manufacturers. If we find that the CDN we use
 ```
 
 We can easily copy and modify the [built-in CDN Dict](built-in_cdn_dict_config.md){:target="_blank"} config, then paste all the content to the configuration file, remember to restart the DataKit after modification.
+
+## RUM Session Replay {#rum-session-replay}
+
+Starting from version [1.5.5](changelog.md#cl-1.5.5), Datakit support to collect the data of RUM Session Replay. It needs you to add item `session_replay_endpoints` to RUM configuration as bellow and then restart Datakit. 
+
+```toml
+[[inputs.rum]]
+  ## profile Agent endpoints register by version respectively.
+  ## Endpoints can be skipped listen by remove them from the list.
+  ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
+  endpoints = ["/v1/write/rum"]
+
+  ## use to upload rum screenshot,html,etc...
+  session_replay_endpoints = ["/v1/write/rum/replay"]
+
+  ...
+```
+
+???+ info
+
+    RUM configuration file is located at `/usr/local/datakit/conf.d/rum/rum.conf` by default, depending on the operating system you use and the installation location of the Datakit.
