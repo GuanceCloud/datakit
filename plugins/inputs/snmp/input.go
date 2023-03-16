@@ -98,6 +98,10 @@ const (
   #
   # device_namespace = "default"
 
+  ## Enable every interface monitoring.
+  #
+  enable_per_interface_monitor = true
+
   [inputs.snmp.tags]
   # tag1 = "val1"
   # tag2 = "val2"
@@ -148,27 +152,28 @@ var (
 )
 
 type Input struct {
-	AutoDiscovery       []string          `toml:"auto_discovery"`
-	SpecificDevices     []string          `toml:"specific_devices"`
-	SNMPVersion         uint8             `toml:"snmp_version"`
-	Port                uint16            `toml:"port"`
-	V2CommunityString   string            `toml:"v2_community_string"`
-	V3User              string            `toml:"v3_user"`
-	V3AuthProtocol      string            `toml:"v3_auth_protocol"`
-	V3AuthKey           string            `toml:"v3_auth_key"`
-	V3PrivProtocol      string            `toml:"v3_priv_protocol"`
-	V3PrivKey           string            `toml:"v3_priv_key"`
-	V3ContextEngineID   string            `toml:"v3_context_engine_id"`
-	V3ContextName       string            `toml:"v3_context_name"`
-	Workers             int               `toml:"workers"`
-	DiscoveryInterval   time.Duration     `toml:"discovery_interval"`
-	DiscoveryIgnoredIPs []string          `toml:"discovery_ignored_ip"`
-	Tags                map[string]string `toml:"tags"`
-	Traps               TrapsConfig       `toml:"traps"`
-	Election            bool              `toml:"election"`
-	DeviceNamespace     string            `toml:"device_namespace"`
-	ObjectInterval      time.Duration     `toml:"object_interval,omitempty"`
-	MetricInterval      time.Duration     `toml:"metric_interval,omitempty"`
+	AutoDiscovery             []string          `toml:"auto_discovery"`
+	SpecificDevices           []string          `toml:"specific_devices"`
+	SNMPVersion               uint8             `toml:"snmp_version"`
+	Port                      uint16            `toml:"port"`
+	V2CommunityString         string            `toml:"v2_community_string"`
+	V3User                    string            `toml:"v3_user"`
+	V3AuthProtocol            string            `toml:"v3_auth_protocol"`
+	V3AuthKey                 string            `toml:"v3_auth_key"`
+	V3PrivProtocol            string            `toml:"v3_priv_protocol"`
+	V3PrivKey                 string            `toml:"v3_priv_key"`
+	V3ContextEngineID         string            `toml:"v3_context_engine_id"`
+	V3ContextName             string            `toml:"v3_context_name"`
+	Workers                   int               `toml:"workers"`
+	DiscoveryInterval         time.Duration     `toml:"discovery_interval"`
+	DiscoveryIgnoredIPs       []string          `toml:"discovery_ignored_ip"`
+	Tags                      map[string]string `toml:"tags"`
+	Traps                     TrapsConfig       `toml:"traps"`
+	Election                  bool              `toml:"election"`
+	DeviceNamespace           string            `toml:"device_namespace"`
+	EnablePerInterfaceMonitor bool              `toml:"enable_per_interface_monitor"`
+	ObjectInterval            time.Duration     `toml:"object_interval,omitempty"`
+	MetricInterval            time.Duration     `toml:"metric_interval,omitempty"`
 
 	Profiles       snmputil.ProfileDefinitionMap
 	CustomProfiles snmputil.ProfileConfigMap `toml:"custom_profiles,omitempty"`
@@ -793,6 +798,9 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 			}
 		} // for data
 
+		tags[defaultDatakitHostKey] = tags["ip"] // replace host as ip.
+		tags["name"] = tags["ip"]                // replace name as ip.
+
 		fts.Add(&fieldTag{
 			tags:   tags,
 			fields: fields,
@@ -820,9 +828,9 @@ func getDatakitStyleTags(tags []string, outTags map[string]string) {
 		if len(arr) == 2 {
 			// ignore specific rules for GuanceCloud
 			switch arr[0] {
-			case agentHostKey, agentVersionKey:
-			case defaultSNMPHostKey:
-				outTags[defaultDatakitHostKey] = arr[1]
+			case agentHostKey, agentVersionKey: // drop
+			// case defaultSNMPHostKey:
+			// 	outTags[defaultDatakitHostKey] = arr[1]
 			default:
 				outTags[arr[0]] = arr[1]
 			}
@@ -1052,9 +1060,10 @@ func (ipt *Input) Terminate() {
 
 func defaultInput() *Input {
 	return &Input{
-		Tags:    make(map[string]string),
-		semStop: cliutils.NewSem(),
-		feeder:  io.DefaultFeeder(),
+		EnablePerInterfaceMonitor: true,
+		Tags:                      make(map[string]string),
+		semStop:                   cliutils.NewSem(),
+		feeder:                    io.DefaultFeeder(),
 	}
 }
 

@@ -339,9 +339,9 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("get %d points", len(pts))
 
-	// for _, v := range pts {
-	// 	cs.t.Logf(v.LPPoint().String() + "\n")
-	// }
+	for _, v := range pts {
+		cs.t.Logf(v.LPPoint().String() + "\n")
+	}
 
 	if err := cs.checkPoint(pts); err != nil {
 		return err
