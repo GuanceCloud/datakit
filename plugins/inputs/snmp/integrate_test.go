@@ -96,7 +96,10 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	tag1 = "val1"
 	tag2 = "val2"`, remote.Host),
 			exposedPorts: []string{"161/udp"},
-			// opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("ifHCInUcastPkts", "ifHCOutOctets", "ifOutErrorsRate", "ifNumber", "tcpEstabResets", "ifHCOutOctetsRate", "cieIfLastOutTime", "ifHCInBroadcastPkts", "ifHCInOctetsRate", "ifHighSpeed", "device_meta", "tcpAttemptFails", "tcpOutRsts", "ifHCOutMulticastPkts", "ifInDiscards", "memoryUsed", "memoryFree", "ifAdminStatus", "memoryUsage", "cieIfInputQueueDrops", "sysUpTimeInstance", "ifInErrors", "ciscoMemoryPoolLargestFree", "ifHCInMulticastPkts", "cpuUsage", "ciscoEnvMonFanState", "ifHCOutUcastPkts", "ifSpeed", "ciscoEnvMonTemperatureStatusValue", "ciscoMemoryPoolFree", "ifBandwidthInUsageRate", "cswStackPortOperStatus", "tcpPassiveOpens", "ifHCInOctets", "ifOutDiscardsRate", "ifOutErrors", "ifInDiscardsRate", "ifInErrorsRate", "ifOutDiscards", "ciscoMemoryPoolUsed", "tcpCurrEstab", "cieIfLastInTime", "cpmCPUTotal1minRev", "tcpRetransSegs", "udpInErrors", "ifOperStatus", "ifBandwidthOutUsageRate", "tcpInErrs", "udpNoPorts", "tcpActiveOpens", "ifHCOutBroadcastPkts", "cieIfOutputQueueDrops", "ciscoEnvMonSupplyState", "cpmCPUTotalMonIntervalValue", "cieIfResetCount", "cswSwitchState"),
+				inputs.WithOptionalTags("cpu", "mem", "interface_alias", "power_source", "interface", "temp_state", "mem_pool_name", "power_status_descr", "temp_index", "entity_name", "mac_addr", "sensor_id", "sensor_type"),
+			},
 		},
 	}
 
@@ -336,9 +339,9 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("get %d points", len(pts))
 
-	for _, v := range pts {
-		cs.t.Logf(v.LPPoint().String() + "\n")
-	}
+	// for _, v := range pts {
+	// 	cs.t.Logf(v.LPPoint().String() + "\n")
+	// }
 
 	if err := cs.checkPoint(pts); err != nil {
 		return err

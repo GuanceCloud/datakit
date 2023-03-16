@@ -511,10 +511,9 @@ func (ipt *Input) doCollectObject(deviceIP string, device *deviceInfo) {
 	// 	l.Errorf("FeedMeasurement object err: %v", err)
 	// }
 
-	name := snmpmeasurement.InputName + "-object"
-	if err := ipt.feeder.Feed(name, point.Object, points, &io.Option{CollectCost: time.Since(tn)}); err != nil {
+	if err := ipt.feeder.Feed(snmpmeasurement.SNMPObjectName, point.Object, points, &io.Option{CollectCost: time.Since(tn)}); err != nil {
 		l.Errorf("FeedMeasurement object err: %v", err)
-		ipt.feeder.FeedLastError(name, err.Error())
+		ipt.feeder.FeedLastError(snmpmeasurement.SNMPObjectName, err.Error())
 	}
 }
 
@@ -532,10 +531,9 @@ func (ipt *Input) doCollectMetrics(deviceIP string, device *deviceInfo) {
 	// 	l.Errorf("FeedMeasurement metric err :%v", err)
 	// }
 
-	name := snmpmeasurement.InputName + "-metric"
-	if err := ipt.feeder.Feed(name, point.Metric, points, &io.Option{CollectCost: time.Since(tn)}); err != nil {
+	if err := ipt.feeder.Feed(snmpmeasurement.SNMPMetricName, point.Metric, points, &io.Option{CollectCost: time.Since(tn)}); err != nil {
 		l.Errorf("FeedMeasurement metric err: %v", err)
-		ipt.feeder.FeedLastError(name, err.Error())
+		ipt.feeder.FeedLastError(snmpmeasurement.SNMPMetricName, err.Error())
 	}
 }
 
