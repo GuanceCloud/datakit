@@ -325,3 +325,25 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
 ```
 
 可以简单复制 [内置CDN配置列表](built-in_cdn_dict_config.md){:target="_blank"} 并修改后直接粘贴到配置文件中，修改完需要重启 DataKit。
+
+
+## RUM 会话重放 {#rum-session-replay}
+
+从 Datakit [1.5.5](changelog.md#cl-1.5.5) 版本开始支持采集 RUM 会话重放数据，该功能需要修改 RUM 采集器配置，增加配置项 `session_replay_endpoints` 并重启 Datakit。
+
+```toml
+[[inputs.rum]]
+  ## profile Agent endpoints register by version respectively.
+  ## Endpoints can be skipped listen by remove them from the list.
+  ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
+  endpoints = ["/v1/write/rum"]
+
+  ## use to upload rum screenshot,html,etc...
+  session_replay_endpoints = ["/v1/write/rum/replay"]
+
+  ...
+```
+
+???+ info
+
+    RUM 配置文件默认位于 `/usr/local/datakit/conf.d/rum/rum.conf`，具体根据你所使用的操作系统和 Datakit 安装位置确定。
