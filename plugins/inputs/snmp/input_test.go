@@ -245,7 +245,8 @@ func Test_getFieldTagArr(t *testing.T) {
 		mHash      map[string]map[string]interface{}
 		metaData   *deviceMetaData
 		origTags   []string
-		out        fieldTags
+		customTags map[string]string
+		out        tagFields
 	}{
 		{
 			name: "empty_hash",
@@ -309,36 +310,36 @@ func Test_getFieldTagArr(t *testing.T) {
 				"device_namespace:default",
 				"snmp_device:192.168.1.100",
 			},
-			out: fieldTags{
-				data: []*fieldTag{
+			out: tagFields{
+				Data: []*tagField{
 					{
-						tags: map[string]string{
+						Tags: map[string]string{
 							"abc": "value1",
 							"def": "value2",
 						},
-						fields: map[string]interface{}{
+						Fields: map[string]interface{}{
 							"key1": float64(1.0),
 							"key2": float64(2.0),
 						},
 					},
 					{
-						tags: map[string]string{
+						Tags: map[string]string{
 							"abc":   "value1",
 							"def":   "value2",
 							"apple": "value3",
 						},
-						fields: map[string]interface{}{
+						Fields: map[string]interface{}{
 							"key3": float64(3.0),
 							"key4": float64(4.0),
 							"key5": float64(5.0),
 						},
 					},
 					{
-						tags: map[string]string{
+						Tags: map[string]string{
 							"device_namespace": "default",
 							"snmp_device":      "192.168.1.100",
 						},
-						fields: map[string]interface{}{
+						Fields: map[string]interface{}{
 							deviceMetaKey: "fruit1=banana, fruit2=pear, fruit3=tomato",
 						},
 					},
@@ -400,25 +401,25 @@ func Test_getFieldTagArr(t *testing.T) {
 					"fruit3=tomato",
 				},
 			},
-			out: fieldTags{
-				data: []*fieldTag{
+			out: tagFields{
+				Data: []*tagField{
 					{
-						tags: map[string]string{
+						Tags: map[string]string{
 							"abc": "value1",
 							"def": "value2",
 						},
-						fields: map[string]interface{}{
+						Fields: map[string]interface{}{
 							"key1": float64(1.0),
 							"key2": float64(2.0),
 						},
 					},
 					{
-						tags: map[string]string{
+						Tags: map[string]string{
 							"abc":   "value1",
 							"def":   "value2",
 							"apple": "value3",
 						},
-						fields: map[string]interface{}{
+						Fields: map[string]interface{}{
 							"key3": float64(3.0),
 							"key4": float64(4.0),
 							"key5": float64(5.0),
@@ -431,13 +432,13 @@ func Test_getFieldTagArr(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fts := fieldTags{}
-			getFieldTagArr(tc.metricData, tc.mHash, &fts, tc.metaData, tc.origTags)
-			for _, v := range tc.out.data {
+			fts := tagFields{}
+			getFieldTagArr(tc.metricData, tc.mHash, &fts, tc.metaData, tc.origTags, tc.customTags)
+			for _, v := range tc.out.Data {
 				foundIdx := -1
-				for kk, vv := range fts.data {
-					resF := reflect.DeepEqual(v.fields, vv.fields)
-					resT := reflect.DeepEqual(v.tags, vv.tags)
+				for kk, vv := range fts.Data {
+					resF := reflect.DeepEqual(v.Fields, vv.Fields)
+					resT := reflect.DeepEqual(v.Tags, vv.Tags)
 					if resF && resT {
 						foundIdx = kk
 						break
@@ -568,24 +569,24 @@ func Test_checkIPWorking_checkIPDone(t *testing.T) {
 func Test_normalizeFieldTags(t *testing.T) {
 	cases := []struct {
 		name string
-		in   *fieldTag
-		out  *fieldTag
+		in   *tagField
+		out  *tagField
 	}{
 		{
 			name: "normal",
-			in: &fieldTag{
-				tags: map[string]string{
+			in: &tagField{
+				Tags: map[string]string{
 					"aaa_a.a": "not_used",
 				},
-				fields: map[string]interface{}{
+				Fields: map[string]interface{}{
 					"aaa_a.a": "not_used",
 				},
 			},
-			out: &fieldTag{
-				tags: map[string]string{
+			out: &tagField{
+				Tags: map[string]string{
 					"aaa_a_a": "not_used",
 				},
-				fields: map[string]interface{}{
+				Fields: map[string]interface{}{
 					"aaa_a_a": "not_used",
 				},
 			},

@@ -9,6 +9,7 @@ package snmp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -545,12 +546,12 @@ func (ipt *Input) doCollectMetrics(deviceIP string, device *deviceInfo) {
 func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn time.Time, isObject bool) []*point.Point {
 	var pts []*point.Point
 
-	var fts fieldTags
+	var fts tagFields
 
 	if isObject {
 		ipt.doCollectCore(deviceIP, device, tn, &fts, true) // object need collect meta
 
-		for _, data := range fts.data {
+		for _, data := range fts.Data {
 			// measurements = append(measurements, &snmpmeasurement.SNMPObject{
 			// 	Name:     snmpmeasurement.InputName,
 			// 	Tags:     data.tags,
@@ -560,8 +561,8 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 			// })
 			sobj := &snmpmeasurement.SNMPObject{
 				Name:     snmpmeasurement.SNMPObjectName,
-				Tags:     data.tags,
-				Fields:   data.fields,
+				Tags:     data.Tags,
+				Fields:   data.Fields,
 				TS:       tn,
 				Election: ipt.Election,
 			}
@@ -570,7 +571,7 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 	} else {
 		ipt.doCollectCore(deviceIP, device, tn, &fts, false) // metric not collect meta
 
-		for _, data := range fts.data {
+		for _, data := range fts.Data {
 			// measurements = append(measurements, &snmpmeasurement.SNMPMetric{
 			// 	Name:     snmpmeasurement.InputName,
 			// 	Tags:     data.tags,
@@ -580,8 +581,8 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 			// })
 			smtc := &snmpmeasurement.SNMPMetric{
 				Name:     snmpmeasurement.SNMPMetricName,
-				Tags:     data.tags,
-				Fields:   data.fields,
+				Tags:     data.Tags,
+				Fields:   data.Fields,
 				TS:       tn,
 				Election: ipt.Election,
 			}
@@ -622,7 +623,7 @@ func (ipt *Input) doAutoDiscovery(deviceIP, subnet string) {
 
 //------------------------------------------------------------------------------
 
-func (ipt *Input) doCollectCore(ip string, device *deviceInfo, tn time.Time, fts *fieldTags, collectMeta bool) {
+func (ipt *Input) doCollectCore(ip string, device *deviceInfo, tn time.Time, fts *tagFields, collectObject bool) {
 	deviceReachable, tags, values, checkErr, isErrClosed := device.getValuesAndTags()
 	if checkErr != nil {
 		if isErrClosed && len(device.Subnet) > 0 {
@@ -657,41 +658,41 @@ func (ipt *Input) doCollectCore(ip string, device *deviceInfo, tn time.Time, fts
 	}
 
 	var metaData deviceMetaData
-	if collectMeta {
+	if collectObject { // collect object needs to collect meta, so we use "collectMeta" represents collect object.
 		metaData.collectMeta = true
 		device.ReportNetworkDeviceMetadata(values, tags, device.Metadata, tn, deviceStatus, &metaData)
 	}
 
-	aggregateDeviceData(&metricData, fts, &metaData, tags)
+	aggregateDeviceData(&metricData, fts, &metaData, tags, ipt.Tags)
 }
 
-type fieldTags struct {
-	data []*fieldTag
+type tagFields struct {
+	Data []*tagField
 }
 
-func (fts *fieldTags) Add(ft *fieldTag) {
+func (fts *tagFields) Add(ft *tagField) {
 	normalizeFieldTags(ft)
-	fts.data = append(fts.data, ft)
+	fts.Data = append(fts.Data, ft)
 }
 
-type fieldTag struct {
-	tags   map[string]string
-	fields map[string]interface{}
+type tagField struct {
+	Tags   map[string]string      `json:"tags"`
+	Fields map[string]interface{} `json:"fields"`
 }
 
-func normalizeFieldTags(ft *fieldTag) {
-	for k, v := range ft.tags {
+func normalizeFieldTags(ft *tagField) {
+	for k, v := range ft.Tags {
 		tmp := replaceMetricsName(k)
 		if len(tmp) > 0 {
-			ft.tags[tmp] = v
-			delete(ft.tags, k)
+			ft.Tags[tmp] = v
+			delete(ft.Tags, k)
 		}
 	}
-	for k, v := range ft.fields {
+	for k, v := range ft.Fields {
 		tmp := replaceMetricsName(k)
 		if len(tmp) > 0 {
-			ft.fields[tmp] = v
-			delete(ft.fields, k)
+			ft.Fields[tmp] = v
+			delete(ft.Fields, k)
 		}
 	}
 }
@@ -737,11 +738,11 @@ func replaceMetricsName(in string) string {
 	return "" // not replace
 }
 
-func aggregateDeviceData(metricData *snmputil.MetricDatas, fts *fieldTags, metaData *deviceMetaData, origTags []string) {
+func aggregateDeviceData(metricData *snmputil.MetricDatas, fts *tagFields, metaData *deviceMetaData, origTags []string, customTags map[string]string) {
 	calcTagsHash(metricData)
 	mHash := make(map[string]map[string]interface{}) // map[hash]map[value_key]value_value
 	aggregateHash(metricData, mHash)
-	getFieldTagArr(metricData, mHash, fts, metaData, origTags)
+	getFieldTagArr(metricData, mHash, fts, metaData, origTags, customTags)
 }
 
 func calcTagsHash(metricData *snmputil.MetricDatas) {
@@ -778,15 +779,94 @@ func aggregateHash(metricData *snmputil.MetricDatas, mHash map[string]map[string
 	}
 }
 
+// interfaces.
+type interfaceAttribute struct {
+	Interface      string                 `json:"interface"`
+	InterfaceAlias string                 `json:"interface_alias"`
+	Fields         map[string]interface{} `json:"fields"`
+}
+
+// sensors.
+type sensorAttribute struct {
+	SensorID   string                 `json:"sensor_id"`
+	SensorType string                 `json:"sensor_type"`
+	Fields     map[string]interface{} `json:"fields"`
+}
+
+// mems.
+type memAttribute struct {
+	Mem    string                 `json:"mem"`
+	Fields map[string]interface{} `json:"fields"`
+}
+
+// mem_pool_names.
+type memPoolNameAttribute struct {
+	MemPoolName string                 `json:"mem_pool_name"`
+	Fields      map[string]interface{} `json:"fields"`
+}
+
+// cpus.
+type cpuAttribute struct {
+	CPU    string                 `json:"cpu"`
+	Fields map[string]interface{} `json:"fields"`
+}
+
+// type SNMPReportObject struct {
+// 	Interfaces   []*InterfaceAttribute
+// 	Sensors      []*SensorAttribute
+// 	Mems         []*MemAttribute
+// 	MemPoolNames []*MemPoolNameAttribute
+// 	CPUs         []*CPUAttribute
+// 	ALL          string
+// 	Meta         string
+// }
+
+var (
+	reservedKeys = []string{
+		"device_vendor",
+		"host",
+		"ip",
+		"name",
+		"snmp_host",
+		"snmp_profile",
+	}
+)
+
+func isReservedKeys(checkName string, customTags map[string]string) bool {
+	// custom tags should be reserved.
+	if _, ok := customTags[checkName]; ok {
+		return true
+	}
+
+	for _, v := range reservedKeys {
+		if v == checkName {
+			return true
+		}
+	}
+
+	return false
+}
+
 func getFieldTagArr(metricData *snmputil.MetricDatas,
 	mHash map[string]map[string]interface{},
-	fts *fieldTags,
+	fts *tagFields,
 	metaData *deviceMetaData,
 	origTags []string,
+	customTags map[string]string,
 ) {
 	if len(mHash) == 0 {
 		return
 	}
+
+	// for object only.
+	objectTags := make(map[string]string)
+	objectFields := make(map[string]interface{})
+	var objectFieldInterfaces []*interfaceAttribute     // interfaces.
+	var objectFieldSensors []*sensorAttribute           // sensors.
+	var objectFieldmems []*memAttribute                 // mems
+	var objectFieldMemPoolNames []*memPoolNameAttribute // mem_pool_names
+	var objectFieldcCPUs []*cpuAttribute                // cpus
+	var objectFieldAll []*tagField                      // all
 
 	for hash, fields := range mHash {
 		tags := make(map[string]string)
@@ -801,25 +881,115 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 		tags[defaultDatakitHostKey] = tags["ip"] // replace host as ip.
 		tags["name"] = tags["ip"]                // replace name as ip.
 
-		fts.Add(&fieldTag{
-			tags:   tags,
-			fields: fields,
-		})
+		if metaData.collectMeta {
+			// collect object.
+
+			// mTagFileds := make(map[string]map[string]interface{})
+			isCreated := false // whether already created data set.
+
+			for tagK, tagV := range tags {
+				if isReservedKeys(tagK, customTags) {
+					// reserved, only assignment once.
+					if _, ok := objectTags[tagK]; ok {
+						continue
+					} else {
+						objectTags[tagK] = tagV
+					}
+				} else {
+					if !isCreated {
+						isCreated = true
+
+						// gathering specific.
+						switch tagK {
+						case "interface":
+							objectFieldInterfaces = append(objectFieldInterfaces, &interfaceAttribute{
+								Interface:      tagV,
+								InterfaceAlias: tags["interface_alias"],
+								Fields:         fields,
+							})
+						case "sensor_id":
+							objectFieldSensors = append(objectFieldSensors, &sensorAttribute{
+								SensorID:   tagV,
+								SensorType: tags["sensor_type"],
+								Fields:     fields,
+							})
+						case "mem":
+							objectFieldmems = append(objectFieldmems, &memAttribute{
+								Mem:    tagV,
+								Fields: fields,
+							})
+						case "mem_pool_name":
+							objectFieldMemPoolNames = append(objectFieldMemPoolNames, &memPoolNameAttribute{
+								MemPoolName: tagV,
+								Fields:      fields,
+							})
+						case "cpu":
+							objectFieldcCPUs = append(objectFieldcCPUs, &cpuAttribute{
+								CPU:    tagV,
+								Fields: fields,
+							})
+						} // switch tagK
+
+						// gathering all.
+						unknownTags := make(map[string]string)
+						for tagKK, tagVV := range tags {
+							if !isReservedKeys(tagKK, customTags) {
+								unknownTags[tagKK] = tagVV
+							}
+						}
+						objectFieldAll = append(objectFieldAll, &tagField{
+							Tags:   unknownTags,
+							Fields: fields,
+						})
+					} // if !isCreated
+				}
+			}
+
+		} else {
+			// collect metrics.
+
+			fts.Add(&tagField{
+				Tags:   tags,
+				Fields: fields,
+			})
+		}
 	}
 
 	if metaData.collectMeta {
+		// collect object.
+
+		objectFields["interfaces"] = beJSON(objectFieldInterfaces)
+		objectFields["sensors"] = beJSON(objectFieldSensors)
+		objectFields["mems"] = beJSON(objectFieldmems)
+		objectFields["mem_pool_names"] = beJSON(objectFieldMemPoolNames)
+		objectFields["cpus"] = beJSON(objectFieldcCPUs)
+		objectFields["all"] = beJSON(objectFieldAll)
+
 		tags := make(map[string]string)
 		getDatakitStyleTags(origTags, tags)
 
 		metaAll := strings.Join(metaData.data, ", ")
-		fields := make(map[string]interface{})
-		fields[deviceMetaKey] = metaAll
+		// fields := make(map[string]interface{})
+		objectFields[deviceMetaKey] = metaAll
 
-		fts.Add(&fieldTag{
-			tags:   tags,
-			fields: fields,
+		fts.Add(&tagField{
+			Tags:   objectTags,
+			Fields: objectFields,
 		})
+		// } else {
+		// 	// collect metrics.
+
+		// 	//
 	}
+}
+
+func beJSON(in interface{}) interface{} {
+	bys, err := json.Marshal(in)
+	if err != nil {
+		l.Errorf("json.Marshal failed: %v", err)
+		return nil
+	}
+	return string(bys)
 }
 
 func getDatakitStyleTags(tags []string, outTags map[string]string) {
