@@ -91,11 +91,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "snmp:inexio-snmpsim:v2",
 			conf: fmt.Sprintf(`specific_devices = ["%s"]
-			snmp_version = 2
-			v2_community_string = "recorded/cisco-catalyst-3750"
-		[tags]
-			tag1 = "val1"
-			tag2 = "val2"`, remote.Host),
+	snmp_version = 2
+	v2_community_string = "recorded/cisco-catalyst-3750"
+[tags]
+	tag1 = "val1"
+	tag2 = "val2"`, remote.Host),
 			exposedPorts: []string{"161/udp"},
 			optsMetric: []inputs.PointCheckOption{
 				inputs.WithOptionalTags("interface", "interface_alias", "mac_addr", "entity_name", "power_source", "power_status_descr", "temp_index", "temp_state", "cpu", "mem", "mem_pool_name", "sensor_id", "sensor_type"),
