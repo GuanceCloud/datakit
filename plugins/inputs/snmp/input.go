@@ -31,6 +31,7 @@ import (
 )
 
 const (
+	// nolint:lll
 	sampleCfg = `
 [[inputs.snmp]]
   ## Filling in autodiscovery CIDR subnet, like ["10.200.10.0/24", "10.200.20.0/24"].
