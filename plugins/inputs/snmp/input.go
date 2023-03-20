@@ -517,13 +517,6 @@ func (ipt *Input) doCollectObject(deviceIP string, device *deviceInfo) {
 		return
 	}
 
-	// if err := inputs.FeedMeasurement(snmpmeasurement.InputName+"-object",
-	// 	datakit.Object,
-	// 	measurements,
-	// 	&io.Option{CollectCost: time.Since(tn)}); err != nil {
-	// 	l.Errorf("FeedMeasurement object err: %v", err)
-	// }
-
 	if err := ipt.feeder.Feed(snmpmeasurement.SNMPObjectName, point.Object, points, &io.Option{CollectCost: time.Since(tn)}); err != nil {
 		l.Errorf("FeedMeasurement object err: %v", err)
 		ipt.feeder.FeedLastError(snmpmeasurement.SNMPObjectName, err.Error())
@@ -536,13 +529,6 @@ func (ipt *Input) doCollectMetrics(deviceIP string, device *deviceInfo) {
 	if len(points) == 0 {
 		return
 	}
-
-	// if err := inputs.FeedMeasurement(snmpmeasurement.InputName+"-metric",
-	// 	datakit.Metric,
-	// 	measurements,
-	// 	&io.Option{CollectCost: time.Since(tn)}); err != nil {
-	// 	l.Errorf("FeedMeasurement metric err :%v", err)
-	// }
 
 	if err := ipt.feeder.Feed(snmpmeasurement.SNMPMetricName, point.Metric, points, &io.Option{CollectCost: time.Since(tn)}); err != nil {
 		l.Errorf("FeedMeasurement metric err: %v", err)
@@ -559,13 +545,6 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 		ipt.doCollectCore(deviceIP, device, tn, &fts, true) // object need collect meta
 
 		for _, data := range fts.Data {
-			// measurements = append(measurements, &snmpmeasurement.SNMPObject{
-			// 	Name:     snmpmeasurement.InputName,
-			// 	Tags:     data.tags,
-			// 	Fields:   data.fields,
-			// 	TS:       tn,
-			// 	Election: ipt.Election,
-			// })
 			sobj := &snmpmeasurement.SNMPObject{
 				Name:     snmpmeasurement.SNMPObjectName,
 				Tags:     data.Tags,
@@ -579,13 +558,6 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 		ipt.doCollectCore(deviceIP, device, tn, &fts, false) // metric not collect meta
 
 		for _, data := range fts.Data {
-			// measurements = append(measurements, &snmpmeasurement.SNMPMetric{
-			// 	Name:     snmpmeasurement.InputName,
-			// 	Tags:     data.tags,
-			// 	Fields:   data.fields,
-			// 	TS:       tn,
-			// 	Election: ipt.Election,
-			// })
 			smtc := &snmpmeasurement.SNMPMetric{
 				Name:     snmpmeasurement.SNMPMetricName,
 				Tags:     data.Tags,
@@ -818,26 +790,14 @@ type cpuAttribute struct {
 	Fields map[string]interface{} `json:"fields"`
 }
 
-// type SNMPReportObject struct {
-// 	Interfaces   []*InterfaceAttribute
-// 	Sensors      []*SensorAttribute
-// 	Mems         []*MemAttribute
-// 	MemPoolNames []*MemPoolNameAttribute
-// 	CPUs         []*CPUAttribute
-// 	ALL          string
-// 	Meta         string
-// }
-
-var (
-	reservedKeys = []string{
-		"device_vendor",
-		"host",
-		"ip",
-		"name",
-		"snmp_host",
-		"snmp_profile",
-	}
-)
+var reservedKeys = []string{
+	"device_vendor",
+	"host",
+	"ip",
+	"name",
+	"snmp_host",
+	"snmp_profile",
+}
 
 func isReservedKeys(checkName string, customTags map[string]string) bool {
 	// custom tags should be reserved.
@@ -950,7 +910,6 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 					} // if !isCreated
 				}
 			}
-
 		} else {
 			// collect metrics.
 
@@ -970,7 +929,6 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 						Fields: fields,
 					})
 				}
-
 			} else {
 				// collect every interface data.
 
@@ -1004,10 +962,6 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 		})
 	}
 }
-
-// func (ipt *Input) () {
-// 	mFieldNameSpecified
-// }
 
 func beJSON(in interface{}) interface{} {
 	bys, err := json.Marshal(in)
