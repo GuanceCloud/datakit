@@ -99,9 +99,14 @@ const (
   #
   # device_namespace = "default"
 
-  ## Enable every interface monitoring.
+  ## Picking the metric data only contains the field's names below.
   #
-  enable_per_interface_monitor = true
+  # enable_picking_data = true # Default is "false", which means collecting all data.
+  # status = ["sysUpTimeInstance", "tcpCurrEstab", "ifAdminStatus", "ifOperStatus", "cswSwitchState"]
+  # speed = ["ifHCInOctets", "ifHCInOctetsRate", "ifHCOutOctets", "ifHCOutOctetsRate", "ifHighSpeed", "ifSpeed", "ifBandwidthInUsageRate", "ifBandwidthOutUsageRate"]
+  # cpu = ["cpuUsage"]
+  # mem = ["memoryUsed", "memoryUsage", "memoryFree"]
+  # extra = []
 
   [inputs.snmp.tags]
   # tag1 = "val1"
@@ -132,15 +137,11 @@ const (
 	defaultBulkMaxRepetitions = uint32(10)
 
 	defaultDeviceNamespace = "default"
-
-	deviceNamespaceTagKey = "device_namespace"
-	deviceIPTagKey        = "snmp_device"
-	subnetTagKey          = "autodiscovery_subnet"
-	agentHostKey          = "agent_host"
-	agentVersionKey       = "agent_version"
-	deviceMetaKey         = "device_meta"
-	defaultSNMPHostKey    = "snmp_host"
-	defaultDatakitHostKey = "host"
+	deviceNamespaceTagKey  = "device_namespace"
+	deviceIPTagKey         = "snmp_device"
+	subnetTagKey           = "autodiscovery_subnet"
+	agentHostKey           = "agent_host"
+	agentVersionKey        = "agent_version"
 )
 
 var (
@@ -153,28 +154,33 @@ var (
 )
 
 type Input struct {
-	AutoDiscovery             []string          `toml:"auto_discovery"`
-	SpecificDevices           []string          `toml:"specific_devices"`
-	SNMPVersion               uint8             `toml:"snmp_version"`
-	Port                      uint16            `toml:"port"`
-	V2CommunityString         string            `toml:"v2_community_string"`
-	V3User                    string            `toml:"v3_user"`
-	V3AuthProtocol            string            `toml:"v3_auth_protocol"`
-	V3AuthKey                 string            `toml:"v3_auth_key"`
-	V3PrivProtocol            string            `toml:"v3_priv_protocol"`
-	V3PrivKey                 string            `toml:"v3_priv_key"`
-	V3ContextEngineID         string            `toml:"v3_context_engine_id"`
-	V3ContextName             string            `toml:"v3_context_name"`
-	Workers                   int               `toml:"workers"`
-	DiscoveryInterval         time.Duration     `toml:"discovery_interval"`
-	DiscoveryIgnoredIPs       []string          `toml:"discovery_ignored_ip"`
-	Tags                      map[string]string `toml:"tags"`
-	Traps                     TrapsConfig       `toml:"traps"`
-	Election                  bool              `toml:"election"`
-	DeviceNamespace           string            `toml:"device_namespace"`
-	EnablePerInterfaceMonitor bool              `toml:"enable_per_interface_monitor"`
-	ObjectInterval            time.Duration     `toml:"object_interval,omitempty"`
-	MetricInterval            time.Duration     `toml:"metric_interval,omitempty"`
+	AutoDiscovery       []string          `toml:"auto_discovery"`
+	SpecificDevices     []string          `toml:"specific_devices"`
+	SNMPVersion         uint8             `toml:"snmp_version"`
+	Port                uint16            `toml:"port"`
+	V2CommunityString   string            `toml:"v2_community_string"`
+	V3User              string            `toml:"v3_user"`
+	V3AuthProtocol      string            `toml:"v3_auth_protocol"`
+	V3AuthKey           string            `toml:"v3_auth_key"`
+	V3PrivProtocol      string            `toml:"v3_priv_protocol"`
+	V3PrivKey           string            `toml:"v3_priv_key"`
+	V3ContextEngineID   string            `toml:"v3_context_engine_id"`
+	V3ContextName       string            `toml:"v3_context_name"`
+	Workers             int               `toml:"workers"`
+	DiscoveryInterval   time.Duration     `toml:"discovery_interval"`
+	DiscoveryIgnoredIPs []string          `toml:"discovery_ignored_ip"`
+	Tags                map[string]string `toml:"tags"`
+	Traps               TrapsConfig       `toml:"traps"`
+	Election            bool              `toml:"election"`
+	DeviceNamespace     string            `toml:"device_namespace"`
+	EnablePickingData   bool              `toml:"enable_picking_data"`
+	PickingStatus       []string          `toml:"status"`
+	PickingSpeed        []string          `toml:"speed"`
+	PickingCPU          []string          `toml:"cpu"`
+	PickingMem          []string          `toml:"mem"`
+	PickingExtra        []string          `toml:"extra"`
+	ObjectInterval      time.Duration     `toml:"object_interval,omitempty"`
+	MetricInterval      time.Duration     `toml:"metric_interval,omitempty"`
 
 	Profiles       snmputil.ProfileDefinitionMap
 	CustomProfiles snmputil.ProfileConfigMap `toml:"custom_profiles,omitempty"`
@@ -193,6 +199,7 @@ type Input struct {
 	mDiscoveryIgnoredIPs map[string]struct{}
 	mSpecificDevices     map[string]*deviceInfo
 	mDynamicDevices      sync.Map
+	mFieldNameSpecified  map[string]struct{}
 	jobs                 chan Job
 	autodetectProfile    bool
 	feeder               io.Feeder
@@ -663,7 +670,7 @@ func (ipt *Input) doCollectCore(ip string, device *deviceInfo, tn time.Time, fts
 		device.ReportNetworkDeviceMetadata(values, tags, device.Metadata, tn, deviceStatus, &metaData)
 	}
 
-	aggregateDeviceData(&metricData, fts, &metaData, tags, ipt.Tags)
+	aggregateDeviceData(&metricData, fts, &metaData, tags, ipt)
 }
 
 type tagFields struct {
@@ -738,11 +745,11 @@ func replaceMetricsName(in string) string {
 	return "" // not replace
 }
 
-func aggregateDeviceData(metricData *snmputil.MetricDatas, fts *tagFields, metaData *deviceMetaData, origTags []string, customTags map[string]string) {
+func aggregateDeviceData(metricData *snmputil.MetricDatas, fts *tagFields, metaData *deviceMetaData, origTags []string, ipt *Input) {
 	calcTagsHash(metricData)
 	mHash := make(map[string]map[string]interface{}) // map[hash]map[value_key]value_value
 	aggregateHash(metricData, mHash)
-	getFieldTagArr(metricData, mHash, fts, metaData, origTags, customTags)
+	getFieldTagArr(metricData, mHash, fts, metaData, origTags, ipt)
 }
 
 func calcTagsHash(metricData *snmputil.MetricDatas) {
@@ -852,7 +859,7 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 	fts *tagFields,
 	metaData *deviceMetaData,
 	origTags []string,
-	customTags map[string]string,
+	ipt *Input,
 ) {
 	if len(mHash) == 0 {
 		return
@@ -878,17 +885,16 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 			}
 		} // for data
 
-		tags[defaultDatakitHostKey] = tags["ip"] // replace host as ip.
-		tags["name"] = tags["ip"]                // replace name as ip.
+		tags["host"] = tags["ip"] // replace host as ip.
+		tags["name"] = tags["ip"] // replace name as ip.
 
 		if metaData.collectMeta {
 			// collect object.
 
-			// mTagFileds := make(map[string]map[string]interface{})
 			isCreated := false // whether already created data set.
 
 			for tagK, tagV := range tags {
-				if isReservedKeys(tagK, customTags) {
+				if isReservedKeys(tagK, ipt.Tags) {
 					// reserved, only assignment once.
 					if _, ok := objectTags[tagK]; ok {
 						continue
@@ -933,7 +939,7 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 						// gathering all.
 						unknownTags := make(map[string]string)
 						for tagKK, tagVV := range tags {
-							if !isReservedKeys(tagKK, customTags) {
+							if !isReservedKeys(tagKK, ipt.Tags) {
 								unknownTags[tagKK] = tagVV
 							}
 						}
@@ -948,10 +954,31 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 		} else {
 			// collect metrics.
 
-			fts.Add(&tagField{
-				Tags:   tags,
-				Fields: fields,
-			})
+			if ipt.EnablePickingData {
+				// collect picking data.
+
+				found := false
+				for k := range fields {
+					if _, ok := ipt.mFieldNameSpecified[k]; ok {
+						found = true
+						break
+					}
+				}
+				if found {
+					fts.Add(&tagField{
+						Tags:   tags,
+						Fields: fields,
+					})
+				}
+
+			} else {
+				// collect every interface data.
+
+				fts.Add(&tagField{
+					Tags:   tags,
+					Fields: fields,
+				})
+			}
 		}
 	}
 
@@ -969,19 +996,18 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 		getDatakitStyleTags(origTags, tags)
 
 		metaAll := strings.Join(metaData.data, ", ")
-		// fields := make(map[string]interface{})
-		objectFields[deviceMetaKey] = metaAll
+		objectFields["device_meta"] = metaAll
 
 		fts.Add(&tagField{
 			Tags:   objectTags,
 			Fields: objectFields,
 		})
-		// } else {
-		// 	// collect metrics.
-
-		// 	//
 	}
 }
+
+// func (ipt *Input) () {
+// 	mFieldNameSpecified
+// }
 
 func beJSON(in interface{}) interface{} {
 	bys, err := json.Marshal(in)
@@ -999,8 +1025,6 @@ func getDatakitStyleTags(tags []string, outTags map[string]string) {
 			// ignore specific rules for GuanceCloud
 			switch arr[0] {
 			case agentHostKey, agentVersionKey: // drop
-			// case defaultSNMPHostKey:
-			// 	outTags[defaultDatakitHostKey] = arr[1]
 			default:
 				outTags[arr[0]] = arr[1]
 			}
@@ -1008,10 +1032,25 @@ func getDatakitStyleTags(tags []string, outTags map[string]string) {
 	}
 }
 
+func (ipt *Input) assignFieldNameSpecified(arr []string) {
+	for _, v := range arr {
+		ipt.mFieldNameSpecified[v] = struct{}{}
+	}
+}
+
 func (ipt *Input) ValidateConfig() error {
 	ipt.mAutoDiscovery = make(map[string]*discoveryInfo)
 	ipt.mSpecificDevices = make(map[string]*deviceInfo)
 	ipt.mDiscoveryIgnoredIPs = make(map[string]struct{})
+
+	if ipt.EnablePickingData {
+		ipt.mFieldNameSpecified = make(map[string]struct{})
+		ipt.assignFieldNameSpecified(ipt.PickingStatus)
+		ipt.assignFieldNameSpecified(ipt.PickingSpeed)
+		ipt.assignFieldNameSpecified(ipt.PickingCPU)
+		ipt.assignFieldNameSpecified(ipt.PickingMem)
+		ipt.assignFieldNameSpecified(ipt.PickingExtra)
+	}
 
 	// default check zone
 	if ipt.Port <= 0 || ipt.Port > 65535 {
@@ -1230,10 +1269,9 @@ func (ipt *Input) Terminate() {
 
 func defaultInput() *Input {
 	return &Input{
-		EnablePerInterfaceMonitor: true,
-		Tags:                      make(map[string]string),
-		semStop:                   cliutils.NewSem(),
-		feeder:                    io.DefaultFeeder(),
+		Tags:    make(map[string]string),
+		semStop: cliutils.NewSem(),
+		feeder:  io.DefaultFeeder(),
 	}
 }
 

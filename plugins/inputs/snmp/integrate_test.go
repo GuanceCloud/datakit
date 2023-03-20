@@ -85,7 +85,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		conf           string
 		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
-		opts           []inputs.PointCheckOption
+		optsObject     []inputs.PointCheckOption
+		optsMetric     []inputs.PointCheckOption
 	}{
 		{
 			name: "snmp:inexio-snmpsim:v2",
@@ -96,6 +97,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	tag1 = "val1"
 	tag2 = "val2"`, remote.Host),
 			exposedPorts: []string{"161/udp"},
+			// opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp")},
+			optsMetric: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("interface", "interface_alias", "mac_addr", "entity_name", "power_source", "power_status_descr", "temp_index", "temp_state", "cpu", "mem", "mem_pool_name", "sensor_id", "sensor_type"),
+				inputs.WithOptionalFields("ifNumber", "sysUpTimeInstance", "tcpActiveOpens", "tcpAttemptFails", "tcpCurrEstab", "tcpEstabResets", "tcpInErrs", "tcpOutRsts", "tcpPassiveOpens", "tcpRetransSegs", "udpInErrors", "udpNoPorts", "ifAdminStatus", "ifHCInBroadcastPkts", "ifHCInMulticastPkts", "ifHCInOctets", "ifHCInOctetsRate", "ifHCInUcastPkts", "ifHCOutBroadcastPkts", "ifHCOutMulticastPkts", "ifHCOutOctets", "ifHCOutOctetsRate", "ifHCOutUcastPkts", "ifHighSpeed", "ifInDiscards", "ifInDiscardsRate", "ifInErrors", "ifInErrorsRate", "ifOperStatus", "ifOutDiscards", "ifOutDiscardsRate", "ifOutErrors", "ifOutErrorsRate", "ifSpeed", "ifBandwidthInUsageRate", "ifBandwidthOutUsageRate", "cpuUsage", "memoryUsed", "memoryUsage", "memoryFree", "cieIfLastOutTime", "cieIfOutputQueueDrops", "ciscoMemoryPoolUsed", "cpmCPUTotalMonIntervalValue", "cieIfLastInTime", "cieIfResetCount", "ciscoMemoryPoolLargestFree", "ciscoEnvMonTemperatureStatusValue", "ciscoEnvMonSupplyState", "cswStackPortOperStatus", "cpmCPUTotal1minRev", "ciscoMemoryPoolFree", "cieIfInputQueueDrops", "ciscoEnvMonFanState", "cswSwitchState", "entSensorValue"),
+			},
 		},
 	}
 
@@ -123,7 +129,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
-			opts:           base.opts,
+			optsObject:     base.optsObject,
+			optsMetric:     base.optsMetric,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -154,7 +161,8 @@ type caseSpec struct {
 	repoTag        string
 	dockerFileText string
 	exposedPorts   []string
-	opts           []inputs.PointCheckOption
+	optsObject     []inputs.PointCheckOption
+	optsMetric     []inputs.PointCheckOption
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -168,7 +176,6 @@ type caseSpec struct {
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	var opts []inputs.PointCheckOption
 	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-	opts = append(opts, cs.opts...)
 
 	for _, pt := range pts {
 		measurement := string(pt.Name())
@@ -176,6 +183,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		switch measurement {
 		case snmpmeasurement.SNMPObjectName:
 			opts = append(opts, inputs.WithDoc(&snmpmeasurement.SNMPObject{}))
+			opts = append(opts, cs.optsObject...)
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -190,6 +198,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 		case snmpmeasurement.SNMPMetricName:
 			opts = append(opts, inputs.WithDoc(&snmpmeasurement.SNMPMetric{}))
+			opts = append(opts, cs.optsMetric...)
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -325,7 +334,7 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.AnyPoints()
+	pts, err := cs.feeder.NPoints(20)
 	if err != nil {
 		return err
 	}
@@ -335,7 +344,10 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("get %d points", len(pts))
 
-	for _, v := range pts {
+	for k, v := range pts {
+		if k == 0 {
+			continue
+		}
 		cs.t.Logf(v.LPPoint().String() + "\n")
 	}
 

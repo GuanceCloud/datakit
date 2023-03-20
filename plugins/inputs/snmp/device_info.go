@@ -189,7 +189,7 @@ func (di *deviceInfo) doAutodetectProfile() error {
 //------------------------------------------------------------------------------
 
 type deviceMetaData struct {
-	collectMeta bool
+	collectMeta bool // collect meta if collect object.
 	data        []string
 }
 

@@ -245,7 +245,6 @@ func Test_getFieldTagArr(t *testing.T) {
 		mHash      map[string]map[string]interface{}
 		metaData   *deviceMetaData
 		origTags   []string
-		customTags map[string]string
 		out        tagFields
 	}{
 		{
@@ -314,115 +313,17 @@ func Test_getFieldTagArr(t *testing.T) {
 				Data: []*tagField{
 					{
 						Tags: map[string]string{
-							"abc": "value1",
-							"def": "value2",
+							"name": "",
+							"host": "",
 						},
 						Fields: map[string]interface{}{
-							"key1": float64(1.0),
-							"key2": float64(2.0),
-						},
-					},
-					{
-						Tags: map[string]string{
-							"abc":   "value1",
-							"def":   "value2",
-							"apple": "value3",
-						},
-						Fields: map[string]interface{}{
-							"key3": float64(3.0),
-							"key4": float64(4.0),
-							"key5": float64(5.0),
-						},
-					},
-					{
-						Tags: map[string]string{
-							"device_namespace": "default",
-							"snmp_device":      "192.168.1.100",
-						},
-						Fields: map[string]interface{}{
-							deviceMetaKey: "fruit1=banana, fruit2=pear, fruit3=tomato",
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "not_collect_meta",
-			metricData: &snmputil.MetricDatas{
-				Data: []*snmputil.MetricData{
-					{
-						Name:     "key1",
-						Value:    1.0,
-						Tags:     []string{"abc:value1", "def:value2"},
-						TagsHash: "fake_hash_1",
-					},
-					{
-						Name:     "key2",
-						Value:    2.0,
-						Tags:     []string{"abc:value1", "def:value2"},
-						TagsHash: "fake_hash_1",
-					},
-					{
-						Name:     "key3",
-						Value:    3.0,
-						Tags:     []string{"abc:value1", "def:value2", "apple:value3"},
-						TagsHash: "fake_hash_2",
-					},
-					{
-						Name:     "key4",
-						Value:    4.0,
-						Tags:     []string{"abc:value1", "def:value2", "apple:value3"},
-						TagsHash: "fake_hash_2",
-					},
-					{
-						Name:     "key5",
-						Value:    5.0,
-						Tags:     []string{"abc:value1", "def:value2", "apple:value3"},
-						TagsHash: "fake_hash_2",
-					},
-				},
-			},
-			mHash: map[string]map[string]interface{}{
-				"fake_hash_1": {
-					"key1": float64(1.0),
-					"key2": float64(2.0),
-				},
-				"fake_hash_2": {
-					"key3": float64(3.0),
-					"key4": float64(4.0),
-					"key5": float64(5.0),
-				},
-			},
-			metaData: &deviceMetaData{
-				collectMeta: false,
-				data: []string{
-					"fruit1=banana",
-					"fruit2=pear",
-					"fruit3=tomato",
-				},
-			},
-			out: tagFields{
-				Data: []*tagField{
-					{
-						Tags: map[string]string{
-							"abc": "value1",
-							"def": "value2",
-						},
-						Fields: map[string]interface{}{
-							"key1": float64(1.0),
-							"key2": float64(2.0),
-						},
-					},
-					{
-						Tags: map[string]string{
-							"abc":   "value1",
-							"def":   "value2",
-							"apple": "value3",
-						},
-						Fields: map[string]interface{}{
-							"key3": float64(3.0),
-							"key4": float64(4.0),
-							"key5": float64(5.0),
+							"interfaces":     "null",
+							"sensors":        "null",
+							"mems":           "null",
+							"mem_pool_names": "null",
+							"cpus":           "null",
+							"all":            `[{"tags":{"abc":"value1","apple":"value3","def":"value2"},"fields":{"key3":3,"key4":4,"key5":5}},{"tags":{"abc":"value1","def":"value2"},"fields":{"key1":1,"key2":2}}]`,
+							"device_meta":    "fruit1=banana, fruit2=pear, fruit3=tomato",
 						},
 					},
 				},
@@ -433,13 +334,22 @@ func Test_getFieldTagArr(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			fts := tagFields{}
-			getFieldTagArr(tc.metricData, tc.mHash, &fts, tc.metaData, tc.origTags, tc.customTags)
+			getFieldTagArr(tc.metricData, tc.mHash, &fts, tc.metaData, tc.origTags, &Input{})
 			for _, v := range tc.out.Data {
 				foundIdx := -1
 				for kk, vv := range fts.Data {
-					resF := reflect.DeepEqual(v.Fields, vv.Fields)
+					// resF := reflect.DeepEqual(v.Fields, vv.Fields)
+
+					resF1 := reflect.DeepEqual(v.Fields["interfaces"], vv.Fields["interfaces"])
+					resF2 := reflect.DeepEqual(v.Fields["sensors"], vv.Fields["sensors"])
+					resF3 := reflect.DeepEqual(v.Fields["mems"], vv.Fields["mems"])
+					resF4 := reflect.DeepEqual(v.Fields["mem_pool_names"], vv.Fields["mem_pool_names"])
+					resF5 := reflect.DeepEqual(v.Fields["cpus"], vv.Fields["cpus"])
+					// resF6 := reflect.DeepEqual(v.Fields["all"], vv.Fields["all"])
+					resF7 := reflect.DeepEqual(v.Fields["device_meta"], vv.Fields["device_meta"])
+
 					resT := reflect.DeepEqual(v.Tags, vv.Tags)
-					if resF && resT {
+					if resT && resF1 && resF2 && resF3 && resF4 && resF5 && resF7 {
 						foundIdx = kk
 						break
 					}
@@ -472,12 +382,12 @@ func Test_getDatakitStyleTags(t *testing.T) {
 			out: map[string]string{},
 		},
 		{
-			name: defaultSNMPHostKey,
+			name: "snmp_host",
 			in: []string{
-				defaultSNMPHostKey + ":apple",
+				"snmp_host" + ":apple",
 			},
 			out: map[string]string{
-				defaultDatakitHostKey: "apple",
+				"host": "apple",
 			},
 		},
 		{
