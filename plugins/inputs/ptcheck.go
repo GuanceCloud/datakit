@@ -178,34 +178,6 @@ func (c *ptChecker) checkOnPoint(pt *point.Point) {
 	}
 }
 
-func difference(slice1 []string, slice2 []string) []string {
-	var diff []string
-
-	// Loop two times, first to find slice1 strings not in slice2,
-	// second loop to find slice2 strings not in slice1
-	for i := 0; i < 2; i++ {
-		for _, s1 := range slice1 {
-			found := false
-			for _, s2 := range slice2 {
-				if s1 == s2 {
-					found = true
-					break
-				}
-			}
-			// String not found. We add it to return slice
-			if !found {
-				diff = append(diff, s1)
-			}
-		}
-		// Swap the slices, only if it was the first loop
-		if i == 0 {
-			slice1, slice2 = slice2, slice1
-		}
-	}
-
-	return diff
-}
-
 func (c *ptChecker) checkOnDoc(pt *point.Point) {
 	if !c.measurementCheckIgnored && c.mInfo.Name != string(pt.Name()) {
 		c.addMsg(fmt.Sprintf("measurement name not equal: %q <> %q", c.mInfo.Name, string(pt.Name())))
@@ -242,15 +214,6 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 		}
 	}
 	if len(c.mInfo.Fields) != len(mGotFields) {
-		var a, b []string
-		for k := range c.mInfo.Fields {
-			a = append(a, k)
-		}
-		for k := range mGotFields {
-			b = append(b, k)
-		}
-		d := difference(a, b)
-		_ = d
 		c.addMsg(fmt.Sprintf("expect %d fields got %d(%d keys optional)",
 			len(c.mInfo.Fields), len(c.gotFields), len(c.optionalFields)))
 	}
