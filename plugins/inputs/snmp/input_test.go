@@ -387,7 +387,7 @@ func Test_getDatakitStyleTags(t *testing.T) {
 				"snmp_host" + ":apple",
 			},
 			out: map[string]string{
-				"host": "apple",
+				"snmp_host": "apple",
 			},
 		},
 		{
