@@ -91,8 +91,27 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "snmp:inexio-snmpsim:v2",
 			conf: fmt.Sprintf(`specific_devices = ["%s"]
-	snmp_version = 2
-	v2_community_string = "recorded/cisco-catalyst-3750"
+			snmp_version = 2
+			v2_community_string = "recorded/cisco-catalyst-3750"
+		[tags]
+			tag1 = "val1"
+			tag2 = "val2"`, remote.Host),
+			exposedPorts: []string{"161/udp"},
+			optsMetric: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("interface", "interface_alias", "mac_addr", "entity_name", "power_source", "power_status_descr", "temp_index", "temp_state", "cpu", "mem", "mem_pool_name", "sensor_id", "sensor_type"),
+				inputs.WithOptionalFields("ifNumber", "sysUpTimeInstance", "tcpActiveOpens", "tcpAttemptFails", "tcpCurrEstab", "tcpEstabResets", "tcpInErrs", "tcpOutRsts", "tcpPassiveOpens", "tcpRetransSegs", "udpInErrors", "udpNoPorts", "ifAdminStatus", "ifHCInBroadcastPkts", "ifHCInMulticastPkts", "ifHCInOctets", "ifHCInOctetsRate", "ifHCInUcastPkts", "ifHCOutBroadcastPkts", "ifHCOutMulticastPkts", "ifHCOutOctets", "ifHCOutOctetsRate", "ifHCOutUcastPkts", "ifHighSpeed", "ifInDiscards", "ifInDiscardsRate", "ifInErrors", "ifInErrorsRate", "ifOperStatus", "ifOutDiscards", "ifOutDiscardsRate", "ifOutErrors", "ifOutErrorsRate", "ifSpeed", "ifBandwidthInUsageRate", "ifBandwidthOutUsageRate", "cpuUsage", "memoryUsed", "memoryUsage", "memoryFree", "cieIfLastOutTime", "cieIfOutputQueueDrops", "ciscoMemoryPoolUsed", "cpmCPUTotalMonIntervalValue", "cieIfLastInTime", "cieIfResetCount", "ciscoMemoryPoolLargestFree", "ciscoEnvMonTemperatureStatusValue", "ciscoEnvMonSupplyState", "cswStackPortOperStatus", "cpmCPUTotal1minRev", "ciscoMemoryPoolFree", "cieIfInputQueueDrops", "ciscoEnvMonFanState", "cswSwitchState", "entSensorValue"),
+			},
+		},
+		{
+			name: "snmp:inexio-snmpsim:v2",
+			conf: fmt.Sprintf(`specific_devices = ["%s"]
+	snmp_version = 3
+	v3_user = "testing"
+	v3_auth_protocol = "MD5"
+	v3_auth_key = "testing123"
+	v3_priv_protocol = "DES"
+	v3_priv_key = "12345678"
+	v3_context_name = "recorded/cisco-catalyst-3750"
 [tags]
 	tag1 = "val1"
 	tag2 = "val2"`, remote.Host),
@@ -273,6 +292,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
+				Env:        []string{"EXTRA_FLAGS=--v3-user=testing --v3-auth-key=testing123 --v3-auth-proto=MD5 --v3-priv-key=12345678 --v3-priv-proto=DES"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -293,6 +313,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
+				Env:        []string{"EXTRA_FLAGS=--v3-user=testing --v3-auth-key=testing123 --v3-auth-proto=MD5 --v3-priv-key=12345678 --v3-priv-proto=DES"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
