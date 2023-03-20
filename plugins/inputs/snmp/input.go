@@ -918,7 +918,11 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 
 				found := false
 				for k := range fields {
-					if _, ok := ipt.mFieldNameSpecified[k]; ok {
+					tmp := replaceMetricsName(k)
+					if len(tmp) == 0 {
+						tmp = k
+					}
+					if _, ok := ipt.mFieldNameSpecified[tmp]; ok {
 						found = true
 						break
 					}

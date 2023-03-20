@@ -131,6 +131,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		ipt := defaultInput()
 		ipt.feeder = feeder
+		// ipt.EnablePickingData = true // If uncomment this, you must adjust point count parameters for performance(time cost) in the function call "cs.feeder.NPoints" which inside in the func "run".
+		// ipt.PickingCPU = []string{"cpuUsage"}
 
 		_, err := toml.Decode(base.conf, ipt)
 		assert.NoError(t, err)
@@ -354,7 +356,7 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.NPoints(20)
+	pts, err := cs.feeder.NPoints(100)
 	if err != nil {
 		return err
 	}
@@ -364,10 +366,7 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("get %d points", len(pts))
 
-	for k, v := range pts {
-		if k == 0 {
-			continue
-		}
+	for _, v := range pts {
 		cs.t.Logf(v.LPPoint().String() + "\n")
 	}
 
