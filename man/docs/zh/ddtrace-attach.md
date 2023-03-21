@@ -21,20 +21,51 @@
 
 Agent 注入的基本原理是通过 */proc/<Java-PID>*（或者 */tmp/*）目录下的一个文件，注入 `load instrument dd-agent.jar=<params...>`，再给 JVM 一个发送一个 SIGQUIT 信号，然后 JVM 就会读取指定的 agent jar 包。
 
-## 下载 {#download}
+## 下载并编译 {#download}
 
-源码编译:
+建议下载源码并编译:
 
 ```shell
 git clone https://github.com/GuanceCloud/agent-attach-java
 mvn package
 ```
 
-运行 jar 包：
+使用 -h 查看：
+```txt
+root@q-PC:agent-attach-java$ java -jar target/agent-attach-java-jar-with-dependencies.jar -h
+java -jar agent-attach-java.jar [-options <dd options>]
+                                [-agent-jar <agent filepath>]
+                                [-pid <pid>]
+                                [-displayName <service name/displayName>]
+                                [-h]
+                                [-help]
+[-options]:
+   this is dd-java-agnet.jar env, example:
+       dd.agent.port=9529,dd.agent.host=localhost,dd.service=serviceName,...
+[-agent-jar]:
+   default is: /usr/local/ddtrace/dd-java-agent.jar
+[-pid]:
+   service PID String
+[-displayName]:
+   service name
+Note: -pid or -displayName must have a non empty !!!
 
-```shell
-java -jar agent-attach-java.jar
+example command line:
+java -jar agent-attach-java.jar -options 'dd.service=test,dd.tag=v1'\
+ -displayName tmall.jar \
+ -agent-jar /usr/local/ddtrace/dd-java-agent.jar
+
 ```
+
+参数说明：
+- "-options" ddtrace 参数 ："dd.agent.host=localhost,dd.agent.port=9529,dd.service=mytest ... "
+- "-agent-jar" agent 路径 默认为：`/usr/local/ddtrace/dd-java-agent.jar`
+- "-pid" 进程 pid , pid 和 displayName 不可以同时为空。使用其中一个即可。
+- "-displayName" 进程名称 比如 -displayName tmall.jar
+- "-h or -help" 帮助
+
+> 由于从 jdk9 开始就没有 tools.jar 文件。所以在项目目录下带上了tools文件： `lib/tools.jar` 是 jdk1.8 版本的。
+
 
 ## 动态注入 dd-java-agent.jar {#dynamic-inject-ddagent-java}
 
@@ -55,13 +86,9 @@ wget https://static.guance.com/ddtrace/dd-java-agent.jar
 - 启动 agent-attach-java.jar 注入 *dd-trace-java.jar*
 
 ```shell
-java -jar agent-attach-java.jar -options "dd.agent.port=9529"
+java -jar agent-attach-java.jar \
+ -options "dd.agent.port=9529" \
+ -displayName "tmall.jar"
+ -agent-jar /usr/local/datakit/data/dd-java-agent.jar
 ```
 
-命令的参数有：
-
-<!-- options download agent-jar 没有的话 都是默认值 -->
-<!-- - download：下个版本(指定版本下载) -- >
-
-- `options`：dd-java-agent [有关的参数](../datakit/ddtrace-java.md#start-options)
-- `agent-jar`： dd-java-agent 绝对路径，默认为 */usr/local/ddtrace/dd-java-agent.jar*
