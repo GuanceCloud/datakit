@@ -45,7 +45,7 @@ This release is an iterative release with the following updates:
 ### Features Optimizations {#cl-1.5.7-opt}
 
 - Optimize Point Checker(#1478)
-- Optimize Pipeline funciton [`replace()`](../developers/#fn-replace.md) performance (#1477)
+- Optimize Pipeline funciton [`replace()`](../developers/pipeline.md#fn-replace.md) performance (#1477)
 - Optimize Datakit installation under Windows(#1406)
 - Optimize [confd](confd.md) configuration($1402)
 - Add more testing on [Filebeat](beats_output.md)(#1459)

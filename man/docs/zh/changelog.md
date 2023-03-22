@@ -48,7 +48,7 @@
 ### 功能优化 {#cl-1.5.7-opt}
 
 - 优化 Point Checker(#1478)
-- 优化 Pipeline [`replace()`](../developers/#fn-replace.md) 性能(#1477)
+- 优化 Pipeline [`replace()`](../developers/pipeline.md#fn-replace.md) 性能(#1477)
 - 优化 Windows 下 Datakit 安装流程(#1404)
 - 优化 [confd](confd.md) 配置处理流程(#1402)
 - 添加 [Filebeat](beats_output.md) 集成测试能力(#1459)
