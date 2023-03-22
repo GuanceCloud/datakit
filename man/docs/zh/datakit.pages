@@ -129,7 +129,7 @@ nav:
         - 'DDTrace 扩展':
           - '更新历史': ddtrace-ext-changelog.md
           - ddtrace-ext-java.md
-        - 'jmxfetch 指标'
+        - 'jmxfetch 指标':
           - '指标暴露和自定义指标': ddtrace-jmxfetch.md
 
       - 'SkyWalking':
