@@ -4,13 +4,26 @@
 
 ---
 
+> 本文档主要从 dd-trace-go 官方的 [github 页面](https://github.com/DataDog/dd-trace-go){:target="_blank"}摘取了部分信息便于大家直接上手，如果碰到一些过不去的问题，可能是本文档更新滞后，建议参考原始文档。
+
 ## 安装依赖 {#dependence}
 
-安装 ddtrace golang library 在开发目录下运行
+安装 ddtrace golang SDK：
 
 ```shell
-go get -v github.com/DataDog/dd-trace-go
+# 安装 tracing 库
+go get gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer
+
+# 安装 profiling 库
+go get gopkg.in/DataDog/dd-trace-go.v1/profiler
+
+# 其它跟组件有关的库，视情况而定，比如：
+go get gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux
+go get gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http
+go get gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql
 ```
+
+我们可以从 [contrib list](https://github.com/DataDog/dd-trace-go/tree/main/contrib){:target="_blank"} 找到更多可用的 tracing SDK。
 
 ## 设置 DataKit {#set-datakit}
 
