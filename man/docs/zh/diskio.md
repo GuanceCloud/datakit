@@ -65,6 +65,8 @@ diskperf -Y
 
 ## 扩展指标 {#extend}
 
+[:octicons-tag-24: Version-1.5.7](changelog.md#cl-1.5.7)
+
 ### Linux 平台下采集磁盘 `await` {#linux-await}
 
 默认情况下，DataKit 无法采集磁盘 `await` 指标，如果需要获取该指标，可以通过[自定义 Python 采集器](../../developers/pythond/)的方式来采集。

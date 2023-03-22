@@ -20,6 +20,39 @@ This release is an iterative release with the following updates:
 ### Breaking Changes {#cl-1.4.19-brk}
 -->
 
+## 1.5.7(2023/03/09) {#cl-1.5.7}
+
+This release is an iterative release with the following updates:
+
+### New Features {#cl-1.5.7-new}
+
+- Pipeline
+    - Add [key deletion](../developers/pipeline.md#fn-json) for `json` function (#1465)
+    - Add new function [`kv_split()`](../developers/pipeline.md#fn-kv_split)(#1414)
+    - Add new function[`datatime()`](../developers/pipeline.md#fn-datetime)(#1411)
+- Add [IPv6 support](datakit-conf.md#config-http-server)(#1454)
+- diskio add extended metrics on [io wait](diskio.md#extend)(#1472)
+- Container support [Docker Containerd co-exist](container.md#requrements)(#1401)
+<!-- - Update document on [Datakit Operator Configure](datakit-operator.md)(#1482) -->
+
+### Bug Fixes {#cl-1.5.7-fix}
+
+- Fix Pipeline related bugs(#1476/#1469/#1471/#1466)
+- Fix *datakit.yaml* missing `request` field, this may cause Datakit pod always pending(#1470)
+- Disable always-retrying on cloud synchronous, this produce a lot of warnning logging(#1433)
+- Fix encoding error in logging hisgory cache file(#1474)
+
+### Features Optimizations {#cl-1.5.7-opt}
+
+- Optimize Point Checker(#1478)
+- Optimize Pipeline funciton [`replace()`](../developers/#fn-replace.md) performance (#1477)
+- Optimize Datakit installation under Windows(#1406)
+- Optimize [confd](confd.md) configuration($1402)
+- Add more testing on [Filebeat](beats_output.md)(#1459)
+- Add more testing on [Nginx](nginx.md)(#1399)
+- Refactor [otel agent](opentelemetry.md)(#1409)
+- Update [Datakit Monitor](datakit-monitor.md#specify-module)(#1261)
+
 ## 1.5.6(2023/02/23) {#cl-1.5.6}
 
 This release is an iterative release with the following updates:
