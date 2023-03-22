@@ -1,5 +1,7 @@
 ### `datetime()` {#fn-datetime}
 
+[:octicons-tag-24: Version-1.5.7](../changelog.md#cl-1.5.7)
+
 Function prototype: `fn datetime(key, precision: str, fmt: str, tz: str = "")`
 
 Function description: Convert timestamp to specified date format

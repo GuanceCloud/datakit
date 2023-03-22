@@ -1,5 +1,7 @@
 ### `kv_split()` {#fn-kv_split}
 
+[:octicons-tag-24: Version-1.5.7](../changelog.md#cl-1.5.7)
+
 Function prototype: `fn kv_split(key, field_split_pattern = " ", value_split_pattern = "=", trim_key = "", trim_value = "", include_keys = [], prefix = "") -> bool`
 
 Function description: extract all key-value pairs from a string

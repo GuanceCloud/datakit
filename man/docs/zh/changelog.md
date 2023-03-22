@@ -29,13 +29,14 @@
 
 ### 新加功能 {#cl-1.5.7-new}
 
-- [Pipeline 支持 key 删除](../developers/pipeline.md#fn-json)(#1465)
-- [netstat 支持 IPV6](datakit-conf.md#config-http-server)(#1454)
-- [Pipeline 增加新的 KV 操作](../developers/pipeline.md#fn-kv_split)(#1414)
-- [Pipeline 增加时间函数](../developers/pipeline.md#fn-datetime)(#1411)
-- [diskio 支持 io wait 指标](diskio.md#extend)(#1472)
-- [容器采集允许 Docker 和 Containerd 共存](container.md#requrements)(#1401)
-- [整合 Datakit Operator 配置文档](datakit-operator.md)(#1482)
+- Pipeline
+    - `json` 函数增加 [key 删除](../developers/pipeline.md#fn-json) 功能(#1465)
+    - 增加函数 [`kv_split()`](../developers/pipeline.md#fn-kv_split)(#1414)
+    - 增加[时间函数](../developers/pipeline.md#fn-datetime)(#1411)
+- 增加 [IPv6 支持](datakit-conf.md#config-http-server)(#1454)
+- diskio 支持 [io wait 扩展指标](diskio.md#extend)(#1472)
+- 容器采集支持 [Docker 和 Containerd 共存](container.md#requrements)(#1401)
+- 整合 [Datakit Operator 配置文档](datakit-operator.md)(#1482)
 
 ### 问题修复 {#cl-1.5.7-fix}
 
@@ -47,12 +48,12 @@
 ### 功能优化 {#cl-1.5.7-opt}
 
 - 优化 Point Checker(#1478)
-- 优化 Pipeline replace 性能(#1477)
+- 优化 Pipeline [`replace()`](../developers/#fn-replace.md) 性能(#1477)
 - 优化 Windows 下 Datakit 安装流程(#1404)
-- 优化 confd 配置处理流程(#1402)
-- 添加 Filebeat 集成测试能力(#1459)
-- 添加 Nginx 集成测试能力(#1399)
-- 重构 OTEL Agent(#1409)
+- 优化 [confd](confd.md) 配置处理流程(#1402)
+- 添加 [Filebeat](beats_output.md) 集成测试能力(#1459)
+- 添加 [Nginx](nginx.md) 集成测试能力(#1399)
+- 重构 [otel agent](opentelemetry.md)(#1409)
 - 重构 [Datakit Monitor 信息](datakit-monitor.md#specify-module)(#1261)
 
 ---

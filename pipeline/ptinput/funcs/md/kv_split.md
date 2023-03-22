@@ -1,5 +1,7 @@
 ### `kv_split()` {#fn-kv_split}
 
+[:octicons-tag-24: Version-1.5.7](../changelog.md#cl-1.5.7)
+
 函数原型：`fn kv_split(key, field_split_pattern = " ", value_split_pattern = "=", trim_key = "", trim_value = "", include_keys = [], prefix = "") -> bool`
 
 函数说明：从字符串中提取出所有的键值对

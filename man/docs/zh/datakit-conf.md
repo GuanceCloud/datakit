@@ -32,6 +32,8 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
        # listen = "[::]:<other-port>"
     ```
 
+    注意，IPv6 支持需 [Datakit 升级到 1.5.7](changelog.md#cl-1.5.7-new)。
+
     #### 使用 Unix domain socket {#uds}
 
     Datakit 支持 UNIX domain sockets 访问。开启方式如下: `listen` 字段配置为<b>一个不存在文件的全路径</b>，这里以 `datakit.sock` 举例，可以为任意文件名。
