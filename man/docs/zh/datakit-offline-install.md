@@ -384,28 +384,33 @@ chmod +x datakit_tools.sh
 
 ### 代理安装 {#k8s-install-via-proxy}
 
-以下文件的地址，可通过 wget 等下载工具，也可以直接在浏览器中输入对应的 URL 下载。
-
-=== "Kubernetes Amd64"
-
-    - [Datakit.yaml](https://static.guance.com/datakit/datakit.yaml)
-    - [Datakit.tar](https://static.guance.com/datakit/datakit-amd64-{{.Version}}.tar)
-
-=== "Kubernetes Arm64"
-
-    - [Datakit.yaml](https://static.guance.com/datakit/datakit.yaml)
-    - [Datakit.tar](https://static.guance.com/datakit/datakit-arm64-{{.Version}}.tar)
-
 **如果内网有可以通外网的机器，可以在该节点部署一个 nginx 服务器，当作获取镜像使用。**
 
-1、下载 datakit.yaml 和 datakit 镜像文件
+1、下载 datakit.yaml 文件
 
 ```shell
-wget https://static.guance.com/datakit/datakit-amd64-{{.Version}}.yaml -P /home/guance/
-wget https://static.guance.com/datakit/datakit-amd64-{{.Version}}.tar -P /home/guance/
+wget https://static.guance.com/datakit/datakit.yaml -P /home/guance/
 ```
 
-2、修改Nginx配置代理
+2、下载 datakit 镜像并打包
+
+```shell
+# 拉取amd镜像并打包
+docker pull --platform amd64 pubrepo.guance.com/datakit/datakit:{{.Version}}
+docker save -o datakit-amd64-{{.Version}}.tar pubrepo.guance.com/datakit/datakit:{{.Version}}
+mv datakit-amd64-{{.Version}}.tar /home/guance
+
+# 拉取arm镜像并打包
+docker pull --platform arm64 pubrepo.guance.com/datakit/datakit:{{.Version}}
+docker save -o datakit-arm64-{{.Version}}.tar pubrepo.guance.com/datakit/datakit:{{.Version}}
+mv datakit-arm64-{{.Version}}.tar /home/guance
+
+# 查看镜像架构是否正确
+docker image inspect pubrepo.jiagouyun.com/datakit/datakit:{{.Version}} |grep Architecture
+
+```
+
+3、修改Nginx配置代理
 
 ???- note "/etc/nginx/nginx.conf (单击点开)"
     ```shell
@@ -521,14 +526,14 @@ wget https://static.guance.com/datakit/datakit-amd64-{{.Version}}.tar -P /home/g
     }
     ```
 
-3、其余内网机器执行命令。
+4、其余内网机器执行命令。
 
 ```shell
 wget http://<nginx-server-ip>:8080/datakit.yaml 
 wget http://<nginx-server-ip>:8080/datakit-amd64-{{.Version}}.tar 
 ```
 
-4、解压镜像命令
+5、解压镜像命令
 
 ```shell
 # docker 
@@ -539,7 +544,7 @@ ctr -n=k8s.io image import /k8sdata/datakit/datakit-amd64-{{.Version}}.tar
 
 ```
 
-5、启动datakit容器
+6、启动datakit容器
 
 ```shell
 kubectl apply -f datakit.yaml

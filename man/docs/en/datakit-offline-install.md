@@ -385,25 +385,30 @@ chmod +x datakit_tools.sh
 
 ### Agent Installation {#k8s-install-via-proxy}
 
-The address of the following files can be downloaded through wget and other download tools, or directly by entering the corresponding URL in the browser.
-
-=== "Kubernetes Amd64"
-
-    - [Datakit.yaml](https://static.guance.com/datakit/datakit.yaml)
-    - [Datakit.tar](https://static.guance.com/datakit/datakit-amd64-{{.Version}}.tar)
-
-=== "Kubernetes Arm64"
-
-    - [Datakit.yaml](https://static.guance.com/datakit/datakit.yaml)
-    - [Datakit.tar](https://static.guance.com/datakit/datakit-arm64-{{.Version}}.tar)
-
 **If there is a machine in the intranet that can connect to the internet, you can deploy an nginx server on this node to use as the image acquisition.**
 
 - Download datakit.yaml and datakit image files
 
 ```shell
-wget https://static.guance.com/datakit/datakit-amd64-{{.Version}}.yaml -P /home/guance/
-wget https://static.guance.com/datakit/datakit-amd64-{{.Version}}.tar -P /home/guance/
+wget https://static.guance.com/datakit/datakit.yaml -P /home/guance/
+```
+
+- Download the datakit image and make it into a package
+
+```shell
+# Pull the image of the amd64 architecture and make it into an image package
+docker pull --platform amd64 pubrepo.guance.com/datakit/datakit:{{.Version}}
+docker save -o datakit-amd64-{{.Version}}.tar pubrepo.guance.com/datakit/datakit:{{.Version}}
+mv datakit-amd64-{{.Version}}.tar /home/guance
+
+# Pull the image of the arm64 architecture and make it into an image package
+docker pull --platform arm64 pubrepo.guance.com/datakit/datakit:{{.Version}}
+docker save -o datakit-arm64-{{.Version}}.tar pubrepo.guance.com/datakit/datakit:{{.Version}}
+mv datakit-arm64-{{.Version}}.tar /home/guance
+
+# Check whether the image architecture is correct
+docker image inspect pubrepo.jiagouyun.com/datakit/datakit:{{.Version}} |grep Architecture
+
 ```
 
 - Modify Nginx configuration agent
