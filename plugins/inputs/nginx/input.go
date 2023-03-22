@@ -33,9 +33,9 @@ var (
 	sample      = `
 [[inputs.nginx]]
 	# Nginx status URL.
-	# (Default) If not use with VTS, the formula is like this: "http://localhost:80/server_status".
+	# (Default) If not use with VTS, the formula is like this: "http://localhost:80/nginx_status".
 	# If using with VTS, the formula is like this: "http://localhost:80/status/format/json".
-	url = "http://localhost:80/server_status"
+	url = "http://localhost:80/nginx_status"
 
 	# ##(optional) collection interval, default is 30s
 	# interval = "30s"

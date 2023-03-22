@@ -52,6 +52,10 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 {{.InputSample}}
 ```
 
+???+ warn
+
+    `url` 地址以 nginx 具体配置为准，一般常见的用法就是用 `/nginx_status` 这个路由。
+
 配置好后，重启 DataKit 即可。
 
 ## 指标集 {#measurements}
