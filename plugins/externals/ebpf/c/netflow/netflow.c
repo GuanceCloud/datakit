@@ -196,7 +196,7 @@ int kprobe__inet_csk_listen_stop(struct pt_regs *ctx)
         return 0;
     }
     struct port_bind pb = {};
-    pb.netns = read_netns(&sk->sk_net);
+    pb.netns = read_netns(sk);
     pb.port = port;
 
     bpf_map_delete_elem(&bpfmap_port_bind, &pb);
