@@ -93,6 +93,21 @@ If the verbose option (`-V`) is specified when Monitor is run, additional inform
 
 ## FAQ {#faq}
 
+### How to show only the operation of the specified module? {#specify-module}
+
+---
+
+A: You can specify a list of module names (multiple modules are separated by English commas): [:octicons-tag-24: Version-1.5.7](changelog.md#cl-1.5.7)
+
+```shell
+datakit monitor -M inputs,filter
+# or
+datakit monitor --module inputs,filter
+
+# use thd module abbreviation
+datakit monitor -M in,f
+```
+
 ### How to show only the operation of the specified collector? {#specify-inputs}
 
 ---

@@ -318,6 +318,13 @@ func decodeDataAndConv2Point(category, name, encode string, data []string) ([]*p
 				return nil, err
 			}
 			result = append(result, pt)
+		case datakit.Metric:
+			pts, err := lp.ParsePoints([]byte(line), &lp.Option{EnablePointInKey: true})
+			if err != nil {
+				return nil, err
+			}
+			newPts := point.WrapPoint(pts)
+			result = append(result, newPts...)
 		default:
 			pts, err := lp.ParsePoints([]byte(line), nil)
 			if err != nil {

@@ -7,17 +7,21 @@ package funcs
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/GuanceCloud/platypus/pkg/ast"
 	"github.com/GuanceCloud/platypus/pkg/engine/runtime"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
+	timefmt "github.com/itchyny/timefmt-go"
+	conv "github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput"
 )
 
 func DateTimeChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if len(funcExpr.Param) != 3 {
-		return runtime.NewRunError(ctx, fmt.Sprintf(
-			"func %s expected 3 args", funcExpr.Name), funcExpr.NamePos)
+	if err := reindexFuncArgs(funcExpr, []string{
+		"key", "precision", "fmt", "tz",
+	}, 3); err != nil {
+		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
 	}
 
 	if _, err := getKeyName(funcExpr.Param[0]); err != nil {
@@ -39,13 +43,25 @@ func DateTimeChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.Pl
 			"param `fmt` expect StringLiteral, got %s",
 			funcExpr.Param[2].NodeType), funcExpr.Param[2].StartPos())
 	}
+
+	if funcExpr.Param[3] != nil {
+		switch funcExpr.Param[3].NodeType { //nolint:exhaustive
+		case ast.TypeStringLiteral:
+		default:
+			return runtime.NewRunError(ctx, fmt.Sprintf(
+				"param `tz` expect StringLiteral, got %s",
+				funcExpr.Param[2].NodeType), funcExpr.Param[3].StartPos())
+		}
+	}
+
+	// switch
 	return nil
 }
 
 func DateTime(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if len(funcExpr.Param) != 3 {
+	if len(funcExpr.Param) < 3 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
-			"func %s expected 3 args", funcExpr.Name), funcExpr.NamePos)
+			"func %s expected 3 or 4 args", funcExpr.Name), funcExpr.NamePos)
 	}
 
 	key, err := getKeyName(funcExpr.Param[0])
@@ -79,9 +95,48 @@ func DateTime(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 		return nil //nolint:nilerr
 	}
 
-	if v, err := DateFormatHandle(cont.Value, precision, fmts); err != nil {
-		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
-	} else if err := addKey2PtWithVal(ctx.InData(), key, v, ast.String,
+	ts := conv.ToInt64(cont.Value)
+
+	switch precision {
+	case "us":
+		ts *= 1e3
+	case "ms":
+		ts *= 1e6
+	case "s":
+		ts *= 1e9
+	default:
+	}
+
+	t := time.Unix(0, ts)
+
+	var tz string
+	if funcExpr.Param[3] != nil {
+		if funcExpr.Param[3].NodeType == ast.TypeStringLiteral {
+			tz = funcExpr.Param[3].StringLiteral.Val
+		} else {
+			return runtime.NewRunError(ctx, fmt.Sprintf(
+				"param `tz` expect StringLiteral, got %s",
+				funcExpr.Param[2].NodeType), funcExpr.Param[3].StartPos())
+		}
+	}
+
+	if tz != "" {
+		loc, err := time.LoadLocation(tz)
+		if err != nil {
+			return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[2].StartPos())
+		}
+		t = t.In(loc)
+	}
+
+	if datetimeInnerFormat(fmts) {
+		if v, err := DateFormatHandle(&t, fmts); err != nil {
+			return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
+		} else if err := addKey2PtWithVal(ctx.InData(), key, v, ast.String,
+			ptinput.KindPtDefault); err != nil {
+			l.Debug(err)
+			return nil
+		}
+	} else if err := addKey2PtWithVal(ctx.InData(), key, timefmt.Format(t, fmts), ast.String,
 		ptinput.KindPtDefault); err != nil {
 		l.Debug(err)
 		return nil

@@ -23,6 +23,41 @@
 
 -->
 
+## 1.5.7(2023/03/09) {#cl-1.5.7}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.7-new}
+
+- Pipeline
+    - `json` 函数增加 [key 删除](../developers/pipeline.md#fn-json) 功能(#1465)
+    - 增加函数 [`kv_split()`](../developers/pipeline.md#fn-kv_split)(#1414)
+    - 增加[时间函数](../developers/pipeline.md#fn-datetime)(#1411)
+- 增加 [IPv6 支持](datakit-conf.md#config-http-server)(#1454)
+- diskio 支持 [io wait 扩展指标](diskio.md#extend)(#1472)
+- 容器采集支持 [Docker 和 Containerd 共存](container.md#requrements)(#1401)
+- 整合 [Datakit Operator 配置文档](datakit-operator.md)(#1482)
+
+### 问题修复 {#cl-1.5.7-fix}
+
+- 修复 Pipeline Bugs(#1476/#1469/#1471/#1466)
+- 修复 datakit.yaml 缺少 request 导致的容器 pending(#1470)
+- 修复云同步过程中反复探测问题(#1443)
+- 修复日志磁盘缓存的编码错误(#1474)
+
+### 功能优化 {#cl-1.5.7-opt}
+
+- 优化 Point Checker(#1478)
+- 优化 Pipeline [`replace()`](../developers/#fn-replace.md) 性能(#1477)
+- 优化 Windows 下 Datakit 安装流程(#1404)
+- 优化 [confd](confd.md) 配置处理流程(#1402)
+- 添加 [Filebeat](beats_output.md) 集成测试能力(#1459)
+- 添加 [Nginx](nginx.md) 集成测试能力(#1399)
+- 重构 [otel agent](opentelemetry.md)(#1409)
+- 重构 [Datakit Monitor 信息](datakit-monitor.md#specify-module)(#1261)
+
+---
+
 ## 1.5.6(2023/02/23) {#cl-1.5.6}
 
 本次发布属于迭代发布，主要有如下更新：
@@ -44,7 +79,7 @@
 - 修复 Point 构建中 tag key 命名问题(#1413#1408)
 - 修复 Datakit Monitor 字符集问题(#1405)
 - 修复 OTEL tag 覆盖问题(#1396)
-- 修复 public API 白名单问题(#1467) 
+- 修复 public API 白名单问题(#1467)
 
 ### 功能优化 {#cl-1.5.6-opt}
 

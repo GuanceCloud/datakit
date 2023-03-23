@@ -20,8 +20,8 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
     - `nginx`
     - `nginx_server_zone`
-    - `nginx_upstream_zone` (NGINX 需配置 `upstream` 相关配置)
-    - `nginx_cache_zone`    (NGINX 需配置 `cache` 相关配置)
+    - `nginx_upstream_zone` (NGINX 需配置 [`upstream` 相关配置](http://nginx.org/en/docs/http/ngx_http_upstream_module.html){:target="_blank"})
+    - `nginx_cache_zone`    (NGINX 需配置 [`cache` 相关配置](https://docs.nginx.com/nginx/admin-guide/content-cache/content-caching/){:target="_blank"})
 
 - 以产生 `nginx_upstream_zone` 指标集为例，NGINX 相关配置示例如下：
 

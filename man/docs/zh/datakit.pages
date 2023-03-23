@@ -24,6 +24,7 @@ nav:
     - '主配置': datakit-conf.md
     - '选举配置': election.md
     - '代理配置': proxy.md
+    - 'Operator配置': datakit-operator.md
     - '其它配置方式':
       - '配置综述': k8s-config-how-to.md
       - 'DCA': dca.md
@@ -101,7 +102,7 @@ nav:
         - 'CRD': kubernetes-prometheus-operator-crd.md
 
     - 应用性能监测（APM）:
-      - Tracing 综述': datakit-tracing.md
+      - 'Tracing 综述': datakit-tracing.md
       - datakit-tracing-struct.md
 
       - 'Profiling':
@@ -128,6 +129,8 @@ nav:
         - 'DDTrace 扩展':
           - '更新历史': ddtrace-ext-changelog.md
           - ddtrace-ext-java.md
+        - 'jmxfetch 指标':
+          - '指标暴露和自定义指标': ddtrace-jmxfetch.md
 
       - 'SkyWalking':
         - skywalking.md

@@ -125,9 +125,10 @@ func (n *netInfo) toMap() map[string]interface{} {
 }
 
 type NetInfos struct {
-	typ     string
-	tags    map[string]string
-	netInfo *netInfo
+	typ       string
+	tags      map[string]string
+	ipVersion string // ip version
+	netInfo   *netInfo
 }
 
 type Input struct {
@@ -179,8 +180,9 @@ func (n *netStatMeasurement) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"host":      &inputs.TagInfo{Desc: "Host name"},
-			"addr_port": &inputs.TagInfo{Desc: "Addr and port"},
+			"host":       &inputs.TagInfo{Desc: "Host name"},
+			"addr_port":  &inputs.TagInfo{Desc: "Addr and port"},
+			"ip_version": &inputs.TagInfo{Desc: "IP version, 4 for IPV4, 6 for IPV6, unknown for others"},
 		},
 	}
 }
@@ -205,56 +207,46 @@ func (ipt *Input) Collect() error {
 	}
 
 	// Append to the collectCache, the Run() function will handle it
-	i := 0
-	for i = 0; i < len(ipt.netInfos); i++ {
-		if ipt.netInfos[i].typ == "all" {
-			break
-		}
-	}
-	if i < len(ipt.netInfos) {
-		// find typ "all"
-
-		fields := ipt.netInfos[i].netInfo.toMap()
-		delete(fields, "pid")
-
-		// collectCache tags
-		tags := map[string]string{}
-		for k, v := range ipt.Tags {
-			tags[k] = v
-		}
-
-		// Append to the collectCache, the Run() function will handle it
-		ipt.collectCache = append(ipt.collectCache, &netStatMeasurement{
-			name: inputName,
-			tags: tags,
-			// "all" mean count by server
-			fields: fields,
-		})
-	}
-
-	// Append port data to the collectCachePort, the Run() function will handle it
 	for i := 0; i < len(ipt.netInfos); i++ {
-		if ipt.netInfos[i].typ == "all" {
-			continue
-		}
+		netInfo := ipt.netInfos[i]
+		if netInfo.typ != "all" {
+			// tag of addr+port
+			portTags := map[string]string{"addr_port": netInfo.typ, "ip_version": netInfo.ipVersion}
+			// tags for these ports
+			for k, v := range netInfo.tags {
+				portTags[k] = v
+			}
+			// tags for all
+			for k, v := range ipt.Tags {
+				portTags[k] = v
+			}
 
-		// tag of addr+port
-		portTags := map[string]string{"addr_port": ipt.netInfos[i].typ}
-		// tags for these ports
-		for k, v := range ipt.netInfos[i].tags {
-			portTags[k] = v
-		}
-		// tags for all
-		for k, v := range ipt.Tags {
-			portTags[k] = v
-		}
+			// Append to the collectCachePort, the Run() function will handle it
+			ipt.collectCachePort = append(ipt.collectCachePort, &netStatMeasurement{
+				name:   inputNamePort,
+				tags:   portTags,
+				fields: netInfo.netInfo.toMap(),
+			})
+		} else { // netstat all
+			fields := netInfo.netInfo.toMap()
+			delete(fields, "pid")
 
-		// Append to the collectCachePort, the Run() function will handle it
-		ipt.collectCachePort = append(ipt.collectCachePort, &netStatMeasurement{
-			name:   inputNamePort,
-			tags:   portTags,
-			fields: ipt.netInfos[i].netInfo.toMap(),
-		})
+			// collectCache tags
+			tags := map[string]string{}
+			for k, v := range ipt.Tags {
+				tags[k] = v
+			}
+
+			tags["ip_version"] = netInfo.ipVersion
+
+			// Append to the collectCache, the Run() function will handle it
+			ipt.collectCache = append(ipt.collectCache, &netStatMeasurement{
+				name: inputName,
+				tags: tags,
+				// "all" mean count by server
+				fields: fields,
+			})
+		}
 	}
 
 	return err
@@ -317,17 +309,19 @@ func (ipt *Input) handleNetConn(netConn net.ConnectionStat) {
 func (ipt *Input) addCounts(typ, key, addr string, pid int, port int, confIndex int) {
 	// check key, creat if non-existent
 	i := 0
+	ipVersion := getIPVersion(addr)
 	for i = 0; i < len(ipt.netInfos); i++ {
-		if ipt.netInfos[i].typ == typ {
+		if ipt.netInfos[i].typ == typ && ipt.netInfos[i].ipVersion == ipVersion {
 			break
 		}
 	}
 	if i >= len(ipt.netInfos) {
 		// non-existent, append
 		n := &NetInfos{
-			typ:     typ,
-			tags:    map[string]string{},
-			netInfo: newNetInfo(),
+			typ:       typ,
+			ipVersion: ipVersion,
+			tags:      map[string]string{},
+			netInfo:   newNetInfo(),
 		}
 
 		// add tag

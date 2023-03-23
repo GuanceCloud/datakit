@@ -14,8 +14,8 @@ import (
 
 func getTags(urlString string) map[string]string {
 	tags := map[string]string{
-		"server": "",
-		"port":   "",
+		"nginx_server": "",
+		"nginx_port":   "",
 	}
 	addr, err := url.Parse(urlString)
 	if err != nil {

@@ -111,6 +111,13 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 			return err
 		}
 		pt = newPt
+	case datakit.Metric:
+		pts, err := lp.ParsePoints([]byte(txt), &lp.Option{EnablePointInKey: true})
+		if err != nil {
+			return err
+		}
+		ptsW := point.WrapPoint(pts)
+		pt = ptsW[0]
 	default:
 		pts, err := lp.ParsePoints([]byte(txt), nil)
 		if err != nil {

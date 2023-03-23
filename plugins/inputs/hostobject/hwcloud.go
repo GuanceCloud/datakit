@@ -62,7 +62,7 @@ func (x *hwcloud) getHwMetaData() *hwMetaData {
 	model := &hwMetaData{}
 	err := json.Unmarshal(resp, &model)
 	if err != nil {
-		l.Errorf("marshal json failed: %s", err)
+		l.Warnf("marshal json failed: %s", err)
 		return nil
 	}
 	return model
@@ -73,7 +73,7 @@ func getNetWorkData() *netWorkData {
 	model := &netWorkData{}
 	err := json.Unmarshal(resp, &model)
 	if err != nil {
-		l.Errorf("marshal json failed: %s", err)
+		l.Warnf("marshal json failed: %s", err)
 		return nil
 	}
 	return model

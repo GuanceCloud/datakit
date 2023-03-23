@@ -48,7 +48,7 @@ func (x *azure) getAzureMetaData() *azureMetaData {
 	model := &azureMetaData{}
 	err := json.Unmarshal(resp, &model)
 	if err != nil {
-		l.Errorf("marshal json failed: %s", err)
+		l.Warnf("marshal json failed: %s", err)
 		return nil
 	}
 	return model

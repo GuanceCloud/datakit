@@ -335,8 +335,6 @@ Data           : %s
 		userName = builtInUserName // set as 'datakit'(default).
 
 		cp.Infof("datakit service run as user: '%s'\n", userName)
-	} else if !flagDKUpgrade {
-		cp.Infof("datakit service run as user 'root'\n")
 	}
 
 	svc, err := dkservice.NewService(userName)

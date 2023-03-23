@@ -28,7 +28,11 @@ DataKit opens an HTTP service to receive external data or provide basic data ser
     ```toml
     [http_api]
        listen = "0.0.0.0:<other-port>"
+       # or using IPV6 address
+       # listen = "[::]:<other-port>"
     ```
+
+    > NOTE: IPv6 need Datakit [version 1.5.7](changelog.md#cl-1.5.7-new).
     
     #### Using Unix Domain Socket {#uds}
     

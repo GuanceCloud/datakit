@@ -13,19 +13,19 @@ Function parameters:
 Example:
 
 ```python
-# Phone number: {"str": "13789123014"}
-json(_, str)
-replace(str, "(1[0-9]{2})[0-9]{4}([0-9]{4})", "$1****$2")
+# Phone number: {"str_abc": "13789123014"}
+json(_, str_abc)
+replace(str_abc, "(1[0-9]{2})[0-9]{4}([0-9]{4})", "$1****$2")
 
-# English name {"str": "zhang san"}
-json(_, str)
-replace(str, "([a-z]*) \\w*", "$1 ***")
+# English name {"str_abc": "zhang san"}
+json(_, str_abc)
+replace(str_abc, "([a-z]*) \\w*", "$1 ***")
 
-# ID number {"str": "362201200005302565"}
-json(_, str)
-replace(str, "([1-9]{4})[0-9]{10}([0-9]{4})", "$1**********$2")
+# ID number {"str_abc": "362201200005302565"}
+json(_, str_abc)
+replace(str_abc, "([1-9]{4})[0-9]{10}([0-9]{4})", "$1**********$2")
 
-# Chinese name {"str": "Little Aka"}
-json(_, str)
-replace(str, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")
+# Chinese name {"str_abc": "Little Aka"}
+json(_, str_abc)
+replace(str_abc, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")
 ```

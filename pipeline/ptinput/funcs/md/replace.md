@@ -13,20 +13,20 @@
 示例:
 
 ```python
-# 电话号码：{"str": "13789123014"}
-json(_, str)
-replace(str, "(1[0-9]{2})[0-9]{4}([0-9]{4})", "$1****$2")
+# 电话号码：{"str_abc": "13789123014"}
+json(_, str_abc)
+replace(str_abc, "(1[0-9]{2})[0-9]{4}([0-9]{4})", "$1****$2")
 
-# 英文名 {"str": "zhang san"}
-json(_, str)
-replace(str, "([a-z]*) \\w*", "$1 ***")
+# 英文名 {"str_abc": "zhang san"}
+json(_, str_abc)
+replace(str_abc, "([a-z]*) \\w*", "$1 ***")
 
-# 身份证号 {"str": "362201200005302565"}
-json(_, str)
-replace(str, "([1-9]{4})[0-9]{10}([0-9]{4})", "$1**********$2")
+# 身份证号 {"str_abc": "362201200005302565"}
+json(_, str_abc)
+replace(str_abc, "([1-9]{4})[0-9]{10}([0-9]{4})", "$1**********$2")
 
-# 中文名 {"str": "小阿卡"}
-json(_, str)
-replace(str, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")
+# 中文名 {"str_abc": "小阿卡"}
+json(_, str_abc)
+replace(str_abc, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")
 ```
 

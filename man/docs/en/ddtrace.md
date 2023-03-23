@@ -23,7 +23,7 @@ DDTrace Agent embedded in Datakit is used to receive, calculate and analyze Data
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-java){:target="_blank"} ·
+    [:octicons-code-16: SDK](https://static.guance.com/dd-image/dd-java-agent.jar){:target="_blank"} ·
     [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: example](ddtrace-java.md)
 

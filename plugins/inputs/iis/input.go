@@ -77,10 +77,6 @@ func (i *Input) RunPipeline() {
 		return
 	}
 
-	if i.Log.Pipeline == "" {
-		i.Log.Pipeline = "iis.p"
-	}
-
 	opt := &tailer.Option{
 		Source:     "iis",
 		Service:    "iis",

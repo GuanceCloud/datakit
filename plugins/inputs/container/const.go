@@ -6,6 +6,8 @@
 package container
 
 import (
+	"time"
+
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -16,6 +18,8 @@ const (
 
 	dockerEndpoint    = "unix:///var/run/docker.sock"
 	containerdAddress = "/var/run/containerd/containerd.sock"
+
+	timeout = time.Second * 3
 )
 
 var measurements = []inputs.Measurement{}

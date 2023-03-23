@@ -129,10 +129,6 @@ func (i *Input) RunPipeline() {
 		return
 	}
 
-	if i.Pipeline == "" {
-		i.Pipeline = inputName
-	}
-
 	opt := &tailer.Option{
 		Source:     inputName,
 		Service:    inputName,

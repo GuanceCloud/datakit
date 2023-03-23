@@ -14,6 +14,10 @@
 - 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](datakit-daemonset-deploy.md)。
 - 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation){:target="_blank"}。
 
+???+ info
+
+    - 容器采集支持 Docker 和 Containerd 两种运行时[:octicons-tag-24: Version-1.5.7](changelog.md#cl-1.5.7)，且默认都开启采集。
+
 ## 配置 {#config}
 
 === "主机安装"

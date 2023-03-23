@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/shirou/gopsutil/v3/net"
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -87,21 +88,52 @@ func TestNetStatCollect(t *testing.T) {
 	if err := i.Collect(); err != nil {
 		t.Error(err)
 	}
-	collect := i.collectCache[0].(*netStatMeasurement).fields
 
-	assertEqualint(t, 0, collect["tcp_close"].(int), "tcp_close")
-	assertEqualint(t, 6, collect["tcp_close_wait"].(int), "tcp_close_wait")
-	assertEqualint(t, 0, collect["tcp_closing"].(int), "tcp_closing")
-	assertEqualint(t, 25, collect["tcp_established"].(int), "tcp_established")
-	assertEqualint(t, 0, collect["tcp_fin_wait1"].(int), "tcp_fin_wait1")
-	assertEqualint(t, 0, collect["tcp_fin_wait2"].(int), "tcp_fin_wait2")
-	assertEqualint(t, 0, collect["tcp_last_ack"].(int), "tcp_last_ack")
-	assertEqualint(t, 6, collect["tcp_listen"].(int), "tcp_listen")
-	assertEqualint(t, 0, collect["tcp_none"].(int), "tcp_none")
-	assertEqualint(t, 0, collect["tcp_syn_recv"].(int), "tcp_syn_recv")
-	assertEqualint(t, 3, collect["tcp_syn_sent"].(int), "tcp_syn_sent")
-	assertEqualint(t, 0, collect["tcp_time_wait"].(int), "tcp_time_wait")
-	assertEqualint(t, 16, collect["udp_socket"].(int), "udp_socket")
+	assert.Equal(t, 2, len(i.collectCache))
+
+	expected := map[string]map[string]int{
+		"4": {
+			"tcp_close":       0,
+			"tcp_close_wait":  6,
+			"tcp_closing":     0,
+			"tcp_established": 25,
+			"tcp_fin_wait1":   0,
+			"tcp_fin_wait2":   0,
+			"tcp_last_ack":    0,
+			"tcp_listen":      4,
+			"tcp_none":        0,
+			"tcp_syn_recv":    0,
+			"tcp_syn_sent":    3,
+			"tcp_time_wait":   0,
+			"udp_socket":      0,
+		},
+		"unknown": {
+			"tcp_close":       0,
+			"tcp_close_wait":  0,
+			"tcp_closing":     0,
+			"tcp_established": 0,
+			"tcp_fin_wait1":   0,
+			"tcp_fin_wait2":   0,
+			"tcp_last_ack":    0,
+			"tcp_listen":      2,
+			"tcp_none":        0,
+			"tcp_syn_recv":    0,
+			"tcp_syn_sent":    0,
+			"tcp_time_wait":   0,
+			"udp_socket":      16,
+		},
+	}
+
+	for _, v := range i.collectCache {
+		stat := v.(*netStatMeasurement)
+		ipVersion := stat.tags["ip_version"]
+		collect := stat.fields
+		if expectedFields, ok := expected[ipVersion]; ok {
+			for k, v := range expectedFields {
+				assertEqualint(t, v, collect[k].(int), k)
+			}
+		}
+	}
 }
 
 func assertEqualint(t *testing.T, expected, actual int, mName string) {
@@ -272,13 +304,13 @@ var testData = []testStruct{
 		},
 		wantFields: []*netInfo{
 			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 3059},
-			{12, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3059},
 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 62951},
+			{12, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3059},
 		},
 		wantTags: []map[string]string{
-			{"addr_port": "5353"},
-			{"addr_port": "80"},
-			{"addr_port": "8000"},
+			{"addr_port": "5353", "ip_version": "unknown"},
+			{"addr_port": "8000", "ip_version": "4"},
+			{"addr_port": "80", "ip_version": "4"},
 		},
 		wantErr: false,
 	},
@@ -302,10 +334,10 @@ var testData = []testStruct{
 			{4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3059},
 		},
 		wantTags: []map[string]string{
-			{"service": "https", "addr_port": "10.100.64.115:443"},
-			{"service": "http", "addr_port": "10.100.64.115:80"},
-			{"service": "https", "addr_port": "10.100.64.119:443"},
-			{"service": "http", "addr_port": "10.100.64.119:80"},
+			{"service": "https", "addr_port": "10.100.64.115:443", "ip_version": "4"},
+			{"service": "http", "addr_port": "10.100.64.115:80", "ip_version": "4"},
+			{"service": "https", "addr_port": "10.100.64.119:443", "ip_version": "4"},
+			{"service": "http", "addr_port": "10.100.64.119:80", "ip_version": "4"},
 		},
 		wantErr: false,
 	},
@@ -323,9 +355,9 @@ var testData = []testStruct{
 			{5, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3059},
 		},
 		wantTags: []map[string]string{
-			{"addr_port": "10.100.64.115:443"},
-			{"addr_port": "443"},
-			{"addr_port": "80"},
+			{"addr_port": "10.100.64.115:443", "ip_version": "4"},
+			{"addr_port": "443", "ip_version": "4"},
+			{"addr_port": "80", "ip_version": "4"},
 		},
 		wantErr: false,
 	},

@@ -18,7 +18,7 @@ import (
 )
 
 func MQueryReferTableChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	err := reIndexFuncArgs(funcExpr, []string{"table_name", "keys", "values"}, 3)
+	err := reindexFuncArgs(funcExpr, []string{"table_name", "keys", "values"}, 3)
 	if err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
 	}

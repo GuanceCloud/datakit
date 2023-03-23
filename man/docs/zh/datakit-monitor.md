@@ -93,6 +93,21 @@ DataKit 基本 Monitor 页面信息如下图所示：
 
 ## FAQ {#faq}
 
+### 如何展示datakit指定模块的运行情况？ {#specify-module}
+
+---
+
+A：可指定一个模块名字列表（多个模块之间以英文逗号分割）： [:octicons-tag-24: Version-1.5.7](changelog.md#cl-1.5.7)
+
+```shell
+datakit monitor -M inputs,filter
+# 或者
+datakit monitor --module inputs,filter
+
+# 也可是模块名的简称
+datakit monitor -M in,f
+```
+
 ### 如何只展示指定采集器的运行情况？ {#specify-inputs}
 
 ---

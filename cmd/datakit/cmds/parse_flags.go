@@ -131,6 +131,7 @@ var (
 	flagMonitorLogPath         = fsMonitor.String("log", commonLogFlag(), "command line log path")
 	flagMonitorRefreshInterval = fsMonitor.DurationP("refresh", "R", 5*time.Second, "refresh interval")
 	flagMonitorVerbose         = fsMonitor.BoolP("verbose", "V", false, "show all statistics info, default not show goroutine and inputs config info")
+	flagMonitorModule          = fsMonitor.StringSliceP("module", "M", nil, "show only specified module stats, seprated by ',', i.e., -M filter,inputs")
 	fsMonitorUsage             = func() {
 		fmt.Printf("usage: datakit monitor [options]\n\n")
 		fmt.Printf("Monitor used to show datakit running statistics\n\n")

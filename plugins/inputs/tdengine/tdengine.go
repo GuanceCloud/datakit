@@ -258,7 +258,7 @@ func query(url string, basicAuth, token string, reqBody []byte) ([]byte, error) 
 
 	req.Header.Set("Authorization", "Basic "+basicAuth)
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: time.Second * 30}
 	resp, err := client.Do(req)
 	if err != nil {
 		l.Errorf("query "+url+"/rest/sql error: %v", err)
