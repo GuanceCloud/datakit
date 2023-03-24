@@ -2,7 +2,7 @@
 # 采集器配置
 ---
 
-## 简介
+## 简介 {#intro}
 
 DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_blank"}。每个采集都分门别类，位于 `conf.d` 的下层子目录中：
 
