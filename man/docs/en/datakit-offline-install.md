@@ -283,7 +283,7 @@ If there is a new version of DataKit, you can download it as above and execute t
 
 ### Bash Script Assisted Installation {#Auxiliary-installation}
 
-Here we provide a simple script to help you complete the tasks of password free login, file distribution, and image decompression.
+Here is a simple script to help you complete the tasks of password free login, file distribution and image decompression.
 
 ???- note "datakit_tools.sh (Stand-alone open)"
     ```shell
@@ -299,9 +299,9 @@ Here we provide a simple script to help you complete the tasks of password free 
 
     menu() {
       echo -e "\e[33m------Please select the required operation------\e[0m"
-      echo -e "\e[33m1、Set SSH remote keyless login\e[0m"
-      echo -e "\e[33m2、Scp remote transfer file\e[0m"
-      echo -e "\e[33m3、Remote decompression image\e[0m"
+      echo -e "\e[33m1. Set SSH remote keyless login\e[0m"
+      echo -e "\e[33m2. Scp remote transfer file\e[0m"
+      echo -e "\e[33m3. Remote decompression image\e[0m"
       read -p "Please enter an option:" num
     }
 
@@ -336,7 +336,7 @@ Here we provide a simple script to help you complete the tasks of password free 
 
     SSH(){
     read -p "Please enter the file name to extract: " file_name
-    # 远程解压镜像包
+    # Remotely unzip image packets
     for i in ${host_ip[@]}
       do
         echo -e "\e[33m------${i}------\e[0m"
@@ -385,7 +385,7 @@ chmod +x datakit_tools.sh
 
 ### Agent Installation {#k8s-install-via-proxy}
 
-**If there is a machine in the intranet that can connect to the internet, you can deploy an nginx server on this node to use as the image acquisition.**
+**If there is a machine in the intranet that can connect to the internet, you can deploy a nginx server on this node to use as the image acquisition.**
 
 - Download datakit.yaml and datakit image files
 
@@ -553,7 +553,7 @@ kubectl apply -f datakit.yaml
 
 ### Full Offline Installation {#k8s-offilne-all}
 
-When the environment has no external network at all, the installation package can only be downloaded from the public network to the internal network through mobile hard disk (U disk) and other methods.
+When there is no external network in the environment, the installation package needs be downloaded from the public network to the internal network through mobile hard disk (U disk).
 
 - Unzip image command
 

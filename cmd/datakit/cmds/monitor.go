@@ -42,14 +42,16 @@ var (
 	ioStatCols       = strings.Split(`Cat,ChanUsage,pts Send/Failed`, ",")
 	filterRuleCols   = strings.Split("Cat,Total,Filtered(%),Cost,Cost/Pts,Rules", ",")
 
-	moduleGoroutine = []string{"G", "goroutine"}
-	moduleBasic     = []string{"B", "basic"}
-	moduleRuntime   = []string{"R", "runtime"}
-	moduleFilter    = []string{"F", "filter"}
-	moduleHTTP      = []string{"H", "http"}
-	moduleInputs    = []string{"In", "inputs"}
-	modulePipeline  = []string{"P", "pipeline"}
-	moduleIO        = []string{"IO", "io_stats"}
+	moduleMap = map[string]string{
+		"G":  "goroutine",
+		"B":  "basic",
+		"R":  "runtime",
+		"F":  "filter",
+		"H":  "http",
+		"In": "inputs",
+		"P":  "pipeline",
+		"IO": "io_stats",
+	}
 )
 
 func number(i interface{}) string {
@@ -385,10 +387,6 @@ func (m *monitorAPP) renderHTTPStatTable(ds *dkhttp.DatakitStats, colArr []strin
 }
 
 func (m *monitorAPP) renderGoroutineTable(ds *dkhttp.DatakitStats, colArr []string) {
-	if !exitsStr(*flagMonitorModule, moduleGoroutine) && !*flagMonitorVerbose {
-		return
-	}
-
 	table := m.goroutineStatTable
 
 	if m.anyError != nil {
@@ -806,14 +804,13 @@ type monitorAPP struct {
 
 	ds *dkhttp.DatakitStats
 
-	inputsStats map[string]string
+	inputsStats map[string]interface{}
 
 	anyError error
 
 	refresh time.Duration
 	start   time.Time
 	url     string
-	isURL   string
 }
 
 func (m *monitorAPP) setupLastErr(lastErr string) {
@@ -840,7 +837,7 @@ func (m *monitorAPP) setupLastErr(lastErr string) {
 func (m *monitorAPP) setupFlex() {
 	m.flex.Clear()
 
-	if *flagMonitorVerbose { // with -V, we show more stats info
+	if *flagMonitorVerbose && len(*flagMonitorModule) == 0 { // with -V, we show more stats info
 		m.flex.SetDirection(tview.FlexRow).
 			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
 										AddItem(m.basicInfoTable, 0, 10, false).               // basic info
@@ -865,37 +862,37 @@ func (m *monitorAPP) setupFlex() {
 
 	if len(*flagMonitorModule) > 0 {
 		flex := m.flex.SetDirection(tview.FlexRow)
-		if exitsStr(*flagMonitorModule, moduleBasic) {
+		if oneModule(*flagMonitorModule, "B") {
 			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.basicInfoTable, 0, 10, false), 0, 10, false)
 		}
 
-		if exitsStr(*flagMonitorModule, moduleRuntime) {
+		if oneModule(*flagMonitorModule, "R") {
 			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.golangRuntime, 0, 10, false), 0, 10, false)
 		}
 
-		if exitsStr(*flagMonitorModule, moduleFilter) {
+		if oneModule(*flagMonitorModule, "F") {
 			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.filterStatsTable, 0, 10, false), 0, 10, false)
 			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.filterRulesStatsTable, 0, 10, false), 0, 10, false)
 		}
 
-		if exitsStr(*flagMonitorModule, moduleGoroutine) {
+		if oneModule(*flagMonitorModule, "G") {
 			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.goroutineStatTable, 0, 10, false), 0, 10, false)
 		}
 
-		if exitsStr(*flagMonitorModule, moduleHTTP) {
+		if oneModule(*flagMonitorModule, "H") {
 			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.httpServerStatTable, 0, 10, false), 0, 10, false)
 		}
 
-		if exitsStr(*flagMonitorModule, moduleInputs) {
+		if oneModule(*flagMonitorModule, "In") {
 			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.enabledInputTable, 0, 10, false), 0, 10, false)
 			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.inputsStatTable, 0, 10, false), 0, 10, false)
 		}
 
-		if exitsStr(*flagMonitorModule, modulePipeline) {
+		if oneModule(*flagMonitorModule, "P") {
 			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.plStatTable, 0, 10, false), 0, 10, false)
 		}
 
-		if exitsStr(*flagMonitorModule, moduleIO) {
+		if oneModule(*flagMonitorModule, "IO") {
 			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.ioStatTable, 0, 10, false), 0, 10, false)
 		}
 		flex.AddItem(m.anyErrorPrompt, 0, 1, false).AddItem(m.exitPrompt, 0, 1, false)
@@ -914,6 +911,11 @@ func (m *monitorAPP) setupFlex() {
 }
 
 func (m *monitorAPP) setup() {
+	// bottom prompt
+	m.exitPrompt = tview.NewTextView().SetDynamicColors(true)
+	// error prompt
+	m.anyErrorPrompt = tview.NewTextView().SetDynamicColors(true)
+
 	// basic info
 	m.basicInfoTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
 	m.basicInfoTable.SetBorder(true).SetTitle("[red]B[white]asic Info").SetTitleAlign(tview.AlignLeft)
@@ -952,11 +954,6 @@ func (m *monitorAPP) setup() {
 	m.filterRulesStatsTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
 	m.filterRulesStatsTable.SetBorder(true).SetTitle("[red]F[white]ilter Rules").SetTitleAlign(tview.AlignLeft)
 
-	// bottom prompt
-	m.exitPrompt = tview.NewTextView().SetDynamicColors(true)
-	// error prompt
-	m.anyErrorPrompt = tview.NewTextView().SetDynamicColors(true)
-
 	m.flex = tview.NewFlex()
 	m.setupFlex()
 
@@ -975,7 +972,7 @@ func (m *monitorAPP) setup() {
 				m.anyError = fmt.Errorf("request stats failed: %w", err)
 			}
 
-			m.inputsStats, err = requestInputInfo(m.isURL)
+			err = json.Unmarshal(m.ds.InputsConfigRun, &m.inputsStats)
 			if err != nil {
 				m.anyError = fmt.Errorf("request input stats failed: %w", err)
 			}
@@ -999,6 +996,7 @@ func (m *monitorAPP) run() error {
 
 func (m *monitorAPP) render() {
 	m.anyErrorPrompt.Clear()
+
 	if m.anyError != nil {
 		m.renderAnyError()
 		goto end
@@ -1057,7 +1055,6 @@ func runMonitorFlags() error {
 		app:     tview.NewApplication(),
 		refresh: *flagMonitorRefreshInterval,
 		url:     fmt.Sprintf("http://%s/stats", to),
-		isURL:   fmt.Sprintf("http://%s/stats/input", to),
 		start:   time.Now(),
 	}
 
@@ -1086,48 +1083,12 @@ func requestStats(url string) (*dkhttp.DatakitStats, error) {
 	ds := dkhttp.DatakitStats{
 		DisableMonofont: true,
 	}
+
 	if err = json.Unmarshal(body, &ds); err != nil {
 		return nil, err
 	}
 
 	return &ds, nil
-}
-
-func requestInputInfo(url string) (map[string]string, error) {
-	resp, err := http.Get(url) //nolint:gosec
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close() //nolint:errcheck
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s", string(body))
-	}
-
-	var info map[string]interface{}
-
-	if err = json.Unmarshal(body, &info); err != nil {
-		return nil, err
-	}
-
-	inputs := make(map[string]string, 1)
-	for name, val := range info {
-		bb, err := json.MarshalIndent(val, "", "\t")
-		if err != nil {
-			fmt.Println(err.Error())
-			inputs[name] = err.Error()
-			continue
-		}
-		inputs[name] = string(bb)
-	}
-
-	return inputs, nil
 }
 
 // cmdMonitor deprecated.
@@ -1220,8 +1181,15 @@ func (m *monitorAPP) inputClicked(input string) func() bool {
 
 	return func() bool {
 		conf := "没有此采集器的配置"
-		if m.inputsStats != nil && len(m.inputsStats[input]) > 0 {
-			conf = m.inputsStats[input]
+		if m.inputsStats != nil && m.inputsStats[input] != nil {
+			// conf = m.inputsStats[input]
+			bb, err := json.MarshalIndent(m.inputsStats[input], "", "    ")
+			if err != nil {
+				m.renderInputConfigView(err.Error())
+				return false
+			}
+
+			conf = string(bb)
 		}
 		m.renderInputConfigView(conf)
 
@@ -1229,15 +1197,31 @@ func (m *monitorAPP) inputClicked(input string) func() bool {
 	}
 }
 
-func exitsStr(sli []string, str []string) bool {
-	var exits bool
-	for _, m := range sli {
-		for _, s := range str {
-			if m == s {
-				exits = true
+func existsModule(str []string) []string {
+	wrong := []string{}
+	for _, s := range str {
+		exsist := false
+		for k, v := range moduleMap {
+			if s == k || s == v {
+				exsist = true
 				break
 			}
 		}
+		if !exsist {
+			wrong = append(wrong, s)
+		}
 	}
-	return exits
+
+	return wrong
+}
+
+func oneModule(str []string, abbr string) bool {
+	exists := false
+	for _, s := range str {
+		if s == abbr || s == moduleMap[abbr] {
+			exists = true
+			break
+		}
+	}
+	return exists
 }

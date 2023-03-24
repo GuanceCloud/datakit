@@ -11,7 +11,7 @@ Function parameters:
 示例:
 
 ```python
-data = `{\"age\": 17, \"name\": \"zhangsan\", \"height\": 180}`
+# data = `{\"age\": 17, \"name\": \"zhangsan\", \"height\": 180}`
 
 json(_, age,)
 json(_, name)

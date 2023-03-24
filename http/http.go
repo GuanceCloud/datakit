@@ -274,7 +274,7 @@ func setupRouter() *gin.Engine {
 
 	router.GET("/stats", rawHTTPWraper(reqLimiter, apiGetDatakitStats))
 	router.GET("/stats/:type", rawHTTPWraper(reqLimiter, apiGetDatakitStatsByType))
-	router.GET("/stats/input", rawHTTPWraper(reqLimiter, apiGetInputStats))
+	// router.GET("/stats/input", rawHTTPWraper(reqLimiter, apiGetInputStats))
 	router.GET("/monitor", apiGetDatakitMonitor)
 	router.GET("/restart", apiRestart)
 

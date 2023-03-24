@@ -289,6 +289,7 @@ func InitDirs() {
 		PipelineDir,
 		PipelinePatternDir,
 		GitReposDir,
+		PythonDDir,
 		PipelineRemoteDir,
 		CacheDir,
 	} {

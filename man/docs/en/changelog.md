@@ -20,6 +20,38 @@ This release is an iterative release with the following updates:
 ### Breaking Changes {#cl-1.4.19-brk}
 -->
 
+## 1.5.8(2023/03/24) {#cl-1.5.8}
+
+## This release is an iterative release, mainly for bug fixes and feature improvements.
+
+### Bug Fixes {#cl-1.5.8-fix}
+
+- Fix the issue of possible loss of container log collection (#1520)
+- Automatically create the Pythond directory after Datakit startup (#1484)
+- Remove the singleton restriction of the [hostdir](hostdir.md) collector (#1498)
+- Fix a problem with the eBPF numeric construction (#1509)
+- Fix the issue of parameter recognition in the Datakit monitor (#1506)
+
+### Feature Optimization {#cl-1.5.8-opt}
+
+- Add memory-related metrics for the [Jenkins](jenkins.md) collector (#1489)
+- Improve support for [cgroup v2](datakit-conf.md#enable-cgroup) (#1494)
+- Add an environment variable (`ENV_CLUSTER_K8S_NAME`) to configure the cluster name during Kubernetes installation (#1504)
+- Pipeline
+  - Add protective measures to the [`kv_split()`](../developers/pipeline.md#fn-kv_split) function to prevent data inflation (#1510)
+  - Optimize the functionality of [`json()`](../developers/pipeline.md#fn-json) and [`delete()`](../developers/pipeline.md#fn-delete) for processing JSON keys.
+- Other engineering optimizations (#1500)
+
+### Documentation Adjustments {#cl-1.5.8-doc}
+
+- Add [documentation](datakit-offline-install.md#k8s-offline) for full offline installation of Kubernetes (#1480)
+- Improve documentation related to statsd and ddtrace-java (#1481/#1507)
+- Supplement documentation related to TDEngine (#1486)
+- Remove outdated field descriptions from the disk collector documentation (#1488)
+- Improve documentation for the Oracle collector (#1519)
+
+---
+
 ## 1.5.7(2023/03/09) {#cl-1.5.7}
 
 This release is an iterative release with the following updates:
@@ -45,7 +77,7 @@ This release is an iterative release with the following updates:
 ### Features Optimizations {#cl-1.5.7-opt}
 
 - Optimize Point Checker(#1478)
-- Optimize Pipeline funciton [`replace()`](../developers/#fn-replace.md) performance (#1477)
+- Optimize Pipeline funciton [`replace()`](../developers/pipeline.md#fn-replace.md) performance (#1477)
 - Optimize Datakit installation under Windows(#1406)
 - Optimize [confd](confd.md) configuration($1402)
 - Add more testing on [Filebeat](beats_output.md)(#1459)
