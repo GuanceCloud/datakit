@@ -214,6 +214,10 @@ $ systemctl status datakit
     - cgroup 限制只在[宿主机安装](datakit-install.md)的时候会默认开启
     - cgourp 只支持 CPU 使用率和内存使用量（mem+swap）控制，且只支持 Linux 操作系统。
 
+???+ tip
+
+    Datakit 自 [1.5.8](changelog.md#cl-1.5.8) 开始支持 cgroup v2。如果不确定 cgroup 版本，可通过命令 `mount | grep cgroup` 来确认。
+
 ### 选举配置 {#election}
 
 参见[这里](election.md#config)

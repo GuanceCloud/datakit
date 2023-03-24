@@ -214,6 +214,10 @@ $ systemctl status datakit
     - cgroup restriction will only be turned on by default during [host installation](datakit-install.md).
     - cgourp only supports CPU usage and memory usage (mem + swap) controls, and only supports Linux operating systems.
 
+???+ tip
+
+    Datakit supports cgroup V2 from version [1.5.8](changelog.md#cl-1.5.8). If you are unsure of the cgroup version, you can use this command `mount | grep cgroup` to check.
+
 ### Election Configuration {#election}
 
 See [here](election.md#config)
