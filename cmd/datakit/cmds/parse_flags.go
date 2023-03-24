@@ -372,6 +372,13 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
+			nomodule := existsModule(*flagMonitorModule)
+			if len(nomodule) != 0 {
+				*flagMonitorVerbose = false
+				cp.Errorf("has no module:%+v,check please!\n", nomodule)
+				os.Exit(-1)
+			}
+
 			setCmdRootLog(*flagMonitorLogPath)
 			if err := runMonitorFlags(); err != nil {
 				cp.Errorf("%s\n", err)
