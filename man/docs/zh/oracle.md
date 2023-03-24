@@ -132,3 +132,7 @@ externals/oracle: /lib64/libc.so.6: version  `GLIBC_2.14` not found (required by
 - Oracle 采集器只能在 Linux/amd64 架构的 DataKit 使用，其它平台均不支持
 
 这意味着 Oracle 这个采集器只能在 amd64(X86) 的 Linux 上运行，其它平台一律无法运行当前的 Oracle 采集器。
+
+### 为什么看不到 `oracle_system` 指标集? {#faq-no-system}
+
+与 Oracle 数据库的版本有关。 `12c` 之前的版本，需要数据库运行起来之后，过几分钟才能看到。
