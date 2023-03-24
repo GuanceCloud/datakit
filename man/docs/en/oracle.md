@@ -132,3 +132,7 @@ externals/oracle: /lib64/libc.so.6: version  `GLIBC_2.14` not found (required by
 - Oracle Collector is only available on Linux/amd64 Architecture DataKit and is not supported on other platforms.
 
 This means that the Oracle collector can only run on amd64 (X86) Linux, and no other platform can run the current Oracle collector.
+
+### Why can't see `oracle_system` measurements? {#faq-no-system}
+
+It is version related. Earlier version than `12c`, it needs to taking a few minutes to see them after the database system starting up.

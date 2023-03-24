@@ -10,7 +10,7 @@
 - `json_path`: json 路径信息
 - `newkey`：提取后数据写入新 key
 - `trim_space`: 删除提取出的字符中的空白首尾字符，默认值为 `true`
-- `delete_after_extract`: 在提取结束后删除当前对象，在重新序列化后回写待提取对象；只能应用于 map 的 key 与 value 的删除，不能用于删除 list 的元素；默认值为 `false`，不进行任何操作
+- `delete_after_extract`: 在提取结束后删除当前对象，在重新序列化后回写待提取对象；只能应用于 map 的 key 与 value 的删除，不能用于删除 list 的元素；默认值为 `false`，不进行任何操作[:octicons-tag-24: Version-1.5.7](../changelog.md#cl-1.5.7)
 
 ```python
 # 直接提取原始输入 json 中的x.y字段，并可将其命名成新字段abc
@@ -100,7 +100,6 @@ json(_, item2.item3, item, delete_after_extract = true)
 # 处理脚本:
 # 如果尝试删除列表元素将无法通过脚本检查
 json(_, item2.item3[0], item, true, true)
-
 
 # 本地测试命令:
 # datakit pipeline j2.p -T '{"item": " not_space ", "item2":{"item3": [123]}}'

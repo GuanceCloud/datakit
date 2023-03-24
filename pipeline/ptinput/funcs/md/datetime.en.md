@@ -1,5 +1,7 @@
 ### `datetime()` {#fn-datetime}
 
+[:octicons-tag-24: Version-1.5.7](../changelog.md#cl-1.5.7)
+
 Function prototype: `fn datetime(key, precision: str, fmt: str, tz: str = "")`
 
 Function description: Convert timestamp to specified date format
@@ -77,6 +79,29 @@ Example:
 # script
 json(_, a.timestamp)
 datetime(a.timestamp, 'ms', 'RFC3339')
+```
+
+
+```python
+# script
+ts = timestamp()
+datetime(ts, 'ns', fmt='%Y-%m-%d %H:%M:%S', tz="UTC")
+
+# output
+{
+  "ts": "2023-03-08 06:43:39"
+}
+```
+
+```python
+# script
+ts = timestamp()
+datetime(ts, 'ns', '%m/%d/%y  %H:%M:%S %z', "Asia/Tokyo")
+
+# output
+{
+  "ts": "03/08/23  15:44:59 +0900"
+}
 ```
 
 

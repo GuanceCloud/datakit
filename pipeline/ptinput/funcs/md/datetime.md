@@ -1,5 +1,7 @@
 ### `datetime()` {#fn-datetime}
 
+[:octicons-tag-24: Version-1.5.7](../changelog.md#cl-1.5.7)
+
 函数原型：`fn datetime(key, precision: str, fmt: str, tz: str = "")`
 
 函数说明：将时间戳转成指定日期格式
@@ -77,6 +79,29 @@
 # 处理脚本
 json(_, a.timestamp)
 datetime(a.timestamp, 'ms', 'RFC3339')
+```
+
+
+```python
+# 处理脚本
+ts = timestamp()
+datetime(ts, 'ns', fmt='%Y-%m-%d %H:%M:%S', tz="UTC")
+
+# 输出
+{
+  "ts": "2023-03-08 06:43:39"
+}
+```
+
+```python
+# 处理脚本
+ts = timestamp()
+datetime(ts, 'ns', '%m/%d/%y  %H:%M:%S %z', "Asia/Tokyo")
+
+# 输出
+{
+  "ts": "03/08/23  15:44:59 +0900"
+}
 ```
 
 

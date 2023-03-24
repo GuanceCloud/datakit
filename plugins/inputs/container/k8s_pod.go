@@ -293,7 +293,7 @@ type podMetric struct {
 }
 
 func (p *podMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_pod", p.tags, p.fields, &point.PointOption{GlobalElectionTags: p.election, Strict: true})
+	return point.NewPoint("kube_pod", p.tags, p.fields, point.MOptElectionV2(p.election))
 }
 
 //nolint:lll

@@ -1,7 +1,12 @@
 nav:
+ - index.md
  - '用 Python 开发自定义采集器': pythond.md
  - '文本数据处理':
    - 'Pipeline 手册': pipeline.md
    - datakit-pl-how-to.md
    - datakit-pl-global.md
    - datakit-refer-table.md
+ - '自定义Scheck':
+   - '检查敏感文件的变动实现': scheck-filechange.md
+   - '监视系统用户变动': scheck-userchange.md
+ - '自定义对象': custom-object.md

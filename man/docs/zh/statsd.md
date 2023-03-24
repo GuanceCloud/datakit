@@ -10,7 +10,7 @@ statsd 采集器用于接收网络上发送过来的 statsd 数据。
 
 ## 前置条件 {#requrements}
 
-暂无
+可以参考 [jmxfetch指标暴露](ddtrace-jmxfetch/#requrements){:target="_blank"}
 
 ## 配置 {#config}
 

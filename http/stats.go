@@ -36,6 +36,7 @@ import (
 const (
 	StatInfoType   = "info"
 	StatMetricType = "metric"
+	InputStatType  = "input"
 )
 
 type enabledInput struct {
@@ -82,6 +83,7 @@ type DatakitStats struct {
 
 	EnabledInputsDeprecated []*enabledInput          `json:"enabled_inputs,omitempty"`
 	EnabledInputs           map[string]*enabledInput `json:"enabled_input_list"`
+	InputsConfigRun         []byte                   `json:"inputs_config_run"`
 
 	GolangRuntime *runtimeInfo `json:"golang_runtime"`
 
@@ -346,6 +348,12 @@ func GetStats() (*DatakitStats, error) {
 
 	var err error
 
+	l.Debugf("inputs.GetInput()...")
+	stats.InputsConfigRun, err = inputs.GetInput() // get all inputs config
+	if err != nil {
+		return nil, err
+	}
+
 	l.Debugf("io.GetStats()...")
 	stats.InputsStats, err = io.GetInputsStats() // get all inputs stats
 	if err != nil {
@@ -457,6 +465,7 @@ type StatInfo struct {
 	AutoUpdate      bool                      `json:"auto_update"`
 	Cgroup          string                    `json:"cgroup"`
 	ConfigInfo      map[string]*inputs.Config `json:"config_info"`
+	InputsConfigRun []byte                    `json:"inputs_config_run"`
 }
 
 // StatMetric contains datakit stat metric which changes over time.
@@ -490,6 +499,7 @@ func getStatInfo() *StatInfo {
 		infoStat.AutoUpdate = s.AutoUpdate
 		infoStat.Cgroup = s.Cgroup
 		infoStat.ConfigInfo = inputs.ConfigInfo
+		infoStat.InputsConfigRun = s.InputsConfigRun
 	}
 
 	return infoStat
@@ -540,18 +550,6 @@ func apiGetDatakitStatsByType(w http.ResponseWriter, r *http.Request, x ...inter
 	}
 
 	body, err := json.MarshalIndent(stat, "", "    ")
-	if err != nil {
-		return nil, err
-	}
-
-	return body, nil
-}
-
-func apiGetInputStats(w http.ResponseWriter, r *http.Request, x ...interface{}) (interface{}, error) {
-	stat := inputs.GetInput()
-
-	// var body bytes.Buffer
-	body, err := json.Marshal(stat)
 	if err != nil {
 		return nil, err
 	}

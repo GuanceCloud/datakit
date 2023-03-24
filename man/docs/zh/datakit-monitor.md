@@ -97,7 +97,7 @@ DataKit 基本 Monitor 页面信息如下图所示：
 
 ---
 
-A：可指定一个模块名字列表（多个模块之间以英文逗号分割）：
+A：可指定一个模块名字列表（多个模块之间以英文逗号分割）： [:octicons-tag-24: Version-1.5.7](changelog.md#cl-1.5.7)
 
 ```shell
 datakit monitor -M inputs,filter

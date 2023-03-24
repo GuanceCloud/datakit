@@ -137,6 +137,7 @@ func (m *systemMeasurement) LineProto() (*point.Point, error) {
 func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oracle_system",
+		Desc: "You have to wait for a few minutes to see these metrics when your running Oracle database's version is earlier than 12c.",
 		Fields: map[string]interface{}{
 			// status
 			"buffer_cachehit_ratio": &inputs.FieldInfo{
