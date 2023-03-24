@@ -130,8 +130,6 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 			"host":   &inputs.TagInfo{Desc: "System hostname."},
 			"device": &inputs.TagInfo{Desc: "Disk device name."},
 			"fstype": &inputs.TagInfo{Desc: "File system name."},
-			"mode":   &inputs.TagInfo{Desc: "Read-write mode."},
-			"path":   &inputs.TagInfo{Desc: "Disk mount point."},
 		},
 	}
 }
