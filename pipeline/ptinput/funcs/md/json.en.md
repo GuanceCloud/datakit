@@ -10,6 +10,7 @@ Function parameters:
 - `json_path`: json path information
 - `newkey`：Write the data to the new key after extraction
 - `trim_space`: Delete the leading and trailing blank characters in the extracted characters, the default value is true
+- `delete_after_extract`: After extract delete the extracted info from input. Only map key and map value are deletable, list(array) are not supported. Default is `false'.  [:octicons-tag-24: Version-1.5.7](../changelog.md#cl-1.5.7)
 
 ```python
 # Directly extract the x.y field in the original input json, and name it as a new field abc
@@ -22,22 +23,21 @@ json(key, x.y)
 Example 1:
 
 ```python
-# input data: {"info": {"age": 17, "name": "zhangsan", "height": 180}}
+# input data: 
+# {"info": {"age": 17, "name": "zhangsan", "height": 180}}
 
-# script
+# script:
 json(_, info, "zhangsan")
 json(zhangsan, name)
-json(zhangsan, age, "年龄")
+json(zhangsan, age, "age")
 
-# result
-# {
-#     "message": "{\"info\": {\"age\": 17, \"name\": \"zhangsan\", \"height\": 180}}
-#     "zhangsan": {
-#         "age": 17,
-#         "height": 180,
-#         "name": "zhangsan"
-#     }
-# }
+# result:
+{
+  "age": 17,
+  "message": "{\"info\": {\"age\": 17, \"name\": \"zhangsan\", \"height\": 180}}",
+  "name": "zhangsan",
+  "zhangsan": "{\"age\":17,\"height\":180,\"name\":\"zhangsan\"}"
+}
 ```
 
 Example 2:
@@ -56,7 +56,7 @@ Example 2:
 #        ]
 #    }
 
-# script
+# script:
 json(_, name) 
 json(name, first)
 ```
@@ -71,6 +71,40 @@ Example 3:
 #            {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
 #    ]
     
-# script
+# script:
 json(_, [0].nets[-1])
+```
+
+Example 4:
+
+```python
+# input data:
+{"item": " not_space ", "item2":{"item3": [123]}}
+
+# script:
+json(_, item2.item3, item, delete_after_extract = true)
+
+# result:
+{
+  "item": "[123]",
+  "message": "{\"item\":\" not_space \",\"item2\":{}}",
+}
+```
+
+
+Example 5:
+
+```python
+# input data:
+{"item": " not_space ", "item2":{"item3": [123]}}
+
+# If you try to remove a list element it will fail the script check.
+# Script:
+json(_, item2.item3[0], item, delete_after_extract = true)
+
+
+# test command:
+# datakit pipeline j2.p -T '{"item": " not_space ", "item2":{"item3": [123]}}'
+# report error:
+# [E] j2.p:1:54: does not support deleting elements in the list
 ```

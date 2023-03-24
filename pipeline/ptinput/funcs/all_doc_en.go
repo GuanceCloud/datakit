@@ -148,6 +148,12 @@ var (
 
 	//go:embed md/url_parse.en.md
 	docURLParseEN string
+
+	//go:embed md/timestamp.en.md
+	docTimestampEN string
+
+	//go:embed md/kv_split.en.md
+	docKVSplitEN string
 )
 
 const (
@@ -446,6 +452,19 @@ var (
 		Doc: docURLParseEN, Deprecated: false,
 		FnCategory: map[string][]string{
 			langTagEnUS: {eNetwork, eEncodeDecode},
+		},
+	}
+	timestampMarkdownEN = PLDoc{
+		Doc: docTimestampEN, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eTimeOp},
+		},
+	}
+
+	kvSplitMarkdownEN = PLDoc{
+		Doc: docKVSplitEN, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eRegExp},
 		},
 	}
 )

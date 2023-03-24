@@ -27,7 +27,7 @@ func TestJSON(t *testing.T) {
 			    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
 			  ]
 			}`,
-			script: `json(_, name) 
+			script: `json(_, name)
 			json(name, first)`,
 			expected: "Tom",
 			key:      "first",
@@ -44,7 +44,7 @@ func TestJSON(t *testing.T) {
 			    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
 			  ]
 			}`,
-			script: `json(_, friends) 
+			script: `json(_, friends)
 			json(friends, .[1].first, f_first)`,
 			expected: "Roger",
 			key:      "f_first",
@@ -90,12 +90,57 @@ func TestJSON(t *testing.T) {
 			key:      "item",
 			expected: "not_space",
 		},
+		{
+			name:     "map_delete_after",
+			in:       `{"item": " not_space "}`,
+			script:   `json(_, item, item, true, true)`,
+			key:      "message",
+			expected: "{}",
+			fail:     false,
+		},
+		{
+			name:     "map_delete_after1",
+			in:       `{"item": " not_space ", "item2":{"item3": [123]}}`,
+			script:   `json(_, item2.item3, item, delete_after_extract = true)`,
+			key:      "message",
+			expected: `{"item":" not_space ","item2":{}}`,
+		},
+		{
+			name:     "list_delete_after1",
+			in:       `{"item": " not_space ", "item2": [[1,2,3,4,5],[6]]}`,
+			script:   `json(_, .[0].item2[0][2].a[0], item, true, true)`,
+			key:      "item",
+			expected: "1",
+			fail:     true,
+		},
+		{
+			name:     "list_delete_after2",
+			in:       `{"item": " not_space ", "item2": [[1,2,3,4,5],[6]]}`,
+			script:   `json(_, .[0], item, true, true)`,
+			key:      "item",
+			expected: "1",
+			fail:     true,
+		},
+		{
+			name:     "list_delete_after3",
+			in:       `{"item": " not_space ", "item2": [[1,2,3,4,5],[6]]}`,
+			script:   `json(_, a[0][1], item, true, true)`,
+			key:      "item",
+			expected: "1",
+			fail:     true,
+		},
 	}
 
 	for idx, tc := range testCase {
 		t.Run(tc.name, func(t *testing.T) {
 			runner, err := NewTestingRunner(tc.script)
-			tu.Equals(t, nil, err)
+
+			if err != nil && tc.fail {
+				return
+			} else if err != nil || tc.fail {
+				tu.Equals(t, nil, err)
+				tu.Equals(t, tc.fail, err != nil)
+			}
 
 			pt := ptinput.GetPoint()
 			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())

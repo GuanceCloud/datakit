@@ -82,14 +82,24 @@ nav:
           - 'Go': profile-go.md
 
       - 'DDTrace':
-        - 'DDtrace Configuration': ddtrace.md
-        - ddtrace-golang.md
-        - ddtrace-java.md
-        - ddtrace-python.md
-        - ddtrace-php.md
-        - ddtrace-nodejs.md
-        - ddtrace-cpp.md
-        - ddtrace-ruby.md
+        - ddtrace.md
+        - 'SDK Access':
+          - ddtrace-golang.md
+          - ddtrace-java.md
+          - ddtrace-python.md
+          - ddtrace-php.md
+          - ddtrace-nodejs.md
+          - ddtrace-cpp.md
+          - ddtrace-ruby.md
+
+        - 'DDTrace Attach':
+          - ddtrace-attach.md
+
+        - 'DDTrace extend':
+          - ddtrace-ext-changelog.md
+          - ddtrace-ext-java.md
+        - 'jmxfetch metric':
+          - 'jmx metric to DK': ddtrace-jmxfetch.md
 
       - 'SkyWalking':
         - 'SkyWalking': skywalking.md

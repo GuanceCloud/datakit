@@ -154,9 +154,9 @@ service cron restart
 ...
 ``` 
 
-## DataKit 版本回退 {#downgrade}
+## 更新到指定版本 {#downgrade}
 
-如果新版本有不尽人意的地方，急于回退老版本恢复功能，可以通过如下方式直接逆向升级：
+如果需要**升级**或**回退**到指定版本，可以通过如下命令进行操作：
 
 === "Linux/macOS"
 
@@ -169,7 +169,9 @@ service cron restart
     $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; Remove-item .install.ps1 -erroraction silentlycontinue; start-bitstransfer -source https://static.guance.com/datakit/install-<版本号>.ps1 -destination .install.ps1; powershell .install.ps1;
     ```
 
-这里的版本号，可以从 [DataKit 的发布历史](changelog.md)页面找到。目前只支持退回到 [1.2.0](changelog.md#cl-1.2.0) 以后的版本，之前的 rc 版本不建议回退。回退版本后，可能会碰到一些新版本中才有的配置，无法在回退后的版本中解析，这个暂时只能手动调整配置，适配老版本的 DataKit。
+上述命令中的`<版本号>`，可以从 [DataKit 的发布历史](changelog.md)页面找到。
+
+若要回退 DataKit 版本，目前只支持退回到 [1.2.0](changelog.md#cl-1.2.0) 以后的版本，之前的 rc 版本不建议回退。
 
 ## 版本检测失败的处理 {#version-check-failed}
 

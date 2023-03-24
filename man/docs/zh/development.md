@@ -12,25 +12,100 @@
 ```golang
 // 统一命名为 Input
 type Input struct {
-	// 一些可配置的字段
-	...
-
-	// 一般每个采集器都是可以新增用户自定义 tag 的
-	Tags   map[string]string
+	// 采集周期间隔
+	Interval datakit.Duration
+	// 用户自定义 tag
+	Tags map[string]string
+	// (可选)采集到的指标缓存，在每个采集周期必须重新 make
+	collectCache []inputs.Measurement
+	// (可选)采集到的日志缓存，在每个采集周期必须重新 make
+	loggingCache []*point.Point
+	// 操作系统类型
+	platform string
+	// 触发停止采集器
+	semStop *cliutils.Sem
+	// (可选)和选举功能有关
+	Election bool `toml:"election"`
+	// (可选)和选举功能有关，json:"-" 是为了比对采集器不误判
+	pause bool `json:"-"`
+	// (可选)和选举功能有关，json:"-" 是为了比对采集器不误判
+	pauseCh chan bool `json:"-"`
 }
 ```
 
 - 该结构体实现如下几个接口，具体示例，参见 `demo` 采集器：
 
 ```Golang
-Catalog() string                  // 采集器分类，比如 MySQL 采集器属于 `db` 分类
-Run()                             // 采集器入口函数，一般会在这里进行数据采集，并且将数据发送给 `io` 模块
-SampleConfig() string             // 采集器配置文件示例
-SampleMeasurement() []Measurement // 采集器文档生成辅助结构
-AvailableArchs() []string         // 采集器适用的操作系统
+// 采集器分类，比如 MySQL 采集器属于 `db` 分类
+Catalog() string                  
+// 采集器入口函数，一般会在这里进行数据采集，并且将数据发送给 `io` 模块
+Run()                             
+// 采集器配置文件示例
+SampleConfig() string             
+// 采集器文档生成辅助结构
+SampleMeasurement() []Measurement 
+// 采集器适用的操作系统
+AvailableArchs() []string 
+// 读取环境变量  
+ReadEnv(envs map[string]string)  
+// (可选)单例模式，有这个的采集器，只可以存在单个实例
+Singleton()
+// 触发采集器停止
+Terminate()
+// (可选)选举功能，设定本采集器不采集数据。
+Pause() error
+// (可选)选举功能，设定本采集器采集数据。
+Resume() error
+// (可选)选举功能，设定该采集器是否参与选举。
+ElectionEnabled() bool
+
 ```
 
 > 由于不断会新增一些采集器功能，==新增的采集器应该尽可能实现 plugins/inputs/inputs.go 中的所有 interface==
+
+- 建议 `Run()` 方法的结构：
+
+```Golang
+func (ipt *Input) Run() {
+
+	// (可选) ...连接资源、准备资源
+
+	tick := time.NewTicker(ipt.Interval.Duration)
+	defer tick.Stop()
+
+	// 主要的采集循环流程
+	for {
+		select {
+		// case ipt.pause = <-ipt.pauseCh: // 选举才需要
+		case <-datakit.Exit.Wait():
+			return
+		case <-ipt.semStop.Wait():
+			// ...其他关闭连接、资源操作
+			return
+		default:
+		}
+
+		start := time.Now()
+		// if ipt.pause { // 如果开选举，需要的代码
+		// 	l.Debugf("not leader, skipped") // 如果开选举，需要的代码
+		// } else { // 如果开选举，需要的代码
+		// 采集数据
+		ipt.collectCache = make([]inputs.Measurement, 0) // 也可以放到 Collect()
+		ipt.loggingCache = make([]*point.Point, 0)       // 也可以放到 Collect()
+		if err := ipt.Collect(); err != nil {
+			l.Errorf("Collect: %s", err)
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		// ... 上传指标和日志
+
+		// } // 如果开选举，需要的代码
+
+		// 控制循环间隔
+		<-tick.C
+	}
+}
+```
 
 - 在 `input.go` 中，新增如下模块初始化入口：
 
@@ -39,9 +114,39 @@ func init() {
 	inputs.Add("zhangsan", func() inputs.Input {
 		return &Input{
 			// 这里可初始化一堆该采集器的默认配置参数
+            platform:       runtime.GOOS,
+			Interval:       datakit.Duration{Duration: time.Second * 10},
+			semStop:        cliutils.NewSem(),
+			Tags:           make(map[string]string),
+            // (可选)选举功能
+			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+            // (可选)选举功能
+			Election: true,
 		}
 	})
 }
+```
+
+- 开放选举功能，除了上述不同，还需要修改以下位置：
+
+LineProto() 要修改
+```Golang
+func (m *zhangsanMeasurement) LineProto() (*point.Point, error) {
+  // 不选举用这个
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+  // 选举用这个
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+}
+```
+
+AvailableArchs() 要修改，使得文档展示`选举`图标
+```Golang
+func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
+```
+
+本采集器的配置文件 `zhangsan.conf` 要加上
+```Golang
+  election = true
 ```
 
 - 在 `plugins/inputs/all/all.go` 中新增 `import`：
@@ -53,14 +158,9 @@ import (
 )
 ```
 
-- 在顶层目录 `checked.go` 中增加采集器：
-
-```Golang
-allInputs = map[string]bool{
-	"zhangsan":       false, // 注意，这里初步置为 false，待该采集器发布时，再改成 true
-	...
-}
-```
+- 执行 `make lint` : 进行代码检查
+  
+- 执行 `make ut` : 运行所有的测试用例
 
 - 执行编译，将编译完的二进制替换掉已有 DataKit，以 Mac 平台为例：
 
@@ -69,12 +169,13 @@ $ make
 $ tree dist/
 dist/
 └── datakit-darwin-amd64
-    └── datakit          # 将该 dakakit 替换掉已有的 datakit 二进制，一般在 /usr/local/datakit/datakit
+    └── datakit          # 将该 datakit 替换掉已有的 datakit 二进制，一般在 /usr/local/datakit/datakit
 
 sudo datakit --stop                                             # 停掉现有 datakit
 sudo truncate -s 0 /var/log/datakit/log                         # 清空日志
 sudo cp -r dist/datakit-darwin-amd64/datakit /usr/local/datakit # 覆盖二进制
 sudo datakit --start                                            # 重启 datakit
+datakit monitor                                                 # datakit 运行情况监测
 ```
 
 - 此时，一般会在 `/usr/local/datakit/conf.d/<Catalog>/` 目录下有个 `zhangsan.conf.sample`。注意，这里的 `<Catalog>` 就是上面接口 `Catalog() string` 的返回值。
@@ -86,12 +187,13 @@ sudo datakit tool --check-config # 检查采集器配置文件是否正常
 datakit -M --vvv            # 检查所有采集器的运行情况
 ```
 
-- 如果采集器功能完整，增加 `man/manuals/zhangsan.md` 文档，这个可参考 `demo.md`，安装里面的模板来写即可
+- 增加 `man/docs/zh/zhangsan.md` 文档，这个可参考 `demo.md`，安装里面的模板来写即可
 
 - 对于文档中的指标集，默认是将所有能采集到的指标集以及各自的指标都列在文档中。某些特殊的指标集或指标，如果有前置条件，需在文档中做说明。
   - 如果某个指标集需满足特定的条件，那么应该在指标集的 `MeasurementInfo.Desc` 中做说明
   - 如果是指标集的某个指标有特定前置条件，应该在 `FieldInfo.Desc` 上做说明。
 
+- 建议通过执行 `./b.sh` 进行测试版本编译发布，交付测试岗位进行测试
 ## 编译环境搭建 {#setup-compile-env}
 
 === "Linux"
@@ -291,7 +393,7 @@ make pub_production_mac VERSION=<the-new-version>
 ### DataKit 版本号机制 {#version-naming}
 
 - 稳定版：其版本号为 `x.y.z`，其中 `y` 必须是偶数
-- 非稳定版：其版本号为 `x.y.z`，其中 `y` 必须是基数
+- 非稳定版：其版本号为 `x.y.z`，其中 `y` 必须是奇数
 
 ### 文档发布 {#release-docs}
 

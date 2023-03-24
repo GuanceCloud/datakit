@@ -53,7 +53,10 @@ func gatherDockerContainerObject(client dockerClientX, k8sClient k8sClientX, con
 }
 
 func getContainerHostname(client dockerClientX, containerID string) (string, error) {
-	containerJSON, err := client.ContainerInspect(context.TODO(), containerID)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	containerJSON, err := client.ContainerInspect(ctx, containerID)
 	if err != nil {
 		return "", err
 	}
@@ -75,10 +78,13 @@ func getContainerProcessToJSON(client dockerClientX, containerID string) (string
 }
 
 func getContainerProcess(client dockerClientX, containerID string) ([]map[string]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	// query parameters: top
 	// default "-ef"
 	// The arguments to pass to ps. For example, aux
-	top, err := client.ContainerTop(context.TODO(), containerID, nil)
+	top, err := client.ContainerTop(ctx, containerID, nil)
 	if err != nil {
 		return nil, err
 	}

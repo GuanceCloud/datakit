@@ -183,10 +183,6 @@ func (ipt *Input) RunPipeline() {
 		return
 	}
 
-	if ipt.MgoDBLog.Pipeline == "" {
-		ipt.MgoDBLog.Pipeline = "mongod.p" // use default
-	}
-
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,

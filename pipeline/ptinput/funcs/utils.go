@@ -174,7 +174,7 @@ func doCast(result interface{}, tInfo string) (interface{}, ast.DType) {
 	return nil, ast.Nil
 }
 
-func reIndexFuncArgs(fnStmt *ast.CallExpr, keyList []string, reqParm int) error {
+func reindexFuncArgs(fnStmt *ast.CallExpr, keyList []string, reqParm int) error {
 	// reqParm >= 1, if < 0, no optional args
 	args := fnStmt.Param
 

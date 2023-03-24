@@ -67,10 +67,11 @@ func (cache *ReqCache) AppendPayload(buf *CL7Buffer) {
 	cache.pathMap[CPayloadID(buf.id)] = reqPath
 }
 
-const connExpirationInterval = 15 * 60 // 15min
+const connExpirationInterval = 61 // 61s
 
 func reqExpr(uptimeS, tsNs uint64) bool {
-	tsS := tsNs / 1000000000
+	tsS := tsNs / 1e9
+	l.Debugf("uptime: %d, reqTime: %d, uptime-reqTime: %d", uptimeS, tsS, uptimeS-tsS)
 	if uptimeS > tsS {
 		if uptimeS-tsS > connExpirationInterval {
 			return true
@@ -91,11 +92,6 @@ func (cache *ReqCache) AppendFinReq(id CPayloadID, finReq *HTTPReqFinishedInfo) 
 }
 
 func (cache *ReqCache) MergeReq() []*HTTPReqFinishedInfo {
-	uptime, err := host.Uptime() // seconds since boot
-	if err != nil {
-		l.Error(err)
-	}
-
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
@@ -107,9 +103,7 @@ func (cache *ReqCache) MergeReq() []*HTTPReqFinishedInfo {
 			finReqList = append(finReqList, finReq)
 			delete(cache.pathMap, id)
 			delete(cache.finReqMap, id)
-			continue
-		}
-		if reqExpr(uptime, uint64(id.ktime)) {
+		} else {
 			delete(cache.finReqMap, id)
 		}
 	}
@@ -134,7 +128,7 @@ func (cache *ReqCache) CleanPathExpr() {
 
 	for id := range cache.pathMap {
 		if reqExpr(uptime, uint64(id.ktime)) {
-			delete(cache.finReqMap, id)
+			delete(cache.pathMap, id)
 		}
 	}
 }

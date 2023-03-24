@@ -29,11 +29,12 @@ var fieldMap = map[string]string{
 	"jenkins.queue.size.value":      "queue_size",
 	"jenkins.queue.stuck.value":     "queue_stuck",
 
-	"system.cpu.load":      "system_cpu_load",
-	"vm.blocked.count":     "vm_blocked_count",
-	"vm.count":             "vm_count",
-	"vm.cpu.load":          "vm_cpu_load",
-	"vm.memory.total.used": "vm_memory_total_used ",
+	"system.cpu.load":           "system_cpu_load",
+	"vm.blocked.count":          "vm_blocked_count",
+	"vm.count":                  "vm_count",
+	"vm.cpu.load":               "vm_cpu_load",
+	"vm.memory.total.used":      "vm_memory_total_used",
+	"vm.memory.total.committed": "vm_memory_total_committed",
 }
 
 type Metric struct {
@@ -186,11 +187,12 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"queue_size":            newCountFieldInfo("The number of jobs that are in the Jenkins build queue."),
 			"queue_stuck":           newCountFieldInfo("he number of jobs that are in the Jenkins build queue and currently in the blocked state"),
 
-			"system_cpu_load":      newRateFieldInfo("The system load on the Jenkins controller as reported by the JVM’s Operating System JMX bean"),
-			"vm_blocked_count":     newCountFieldInfo("The number of threads in the Jenkins JVM that are currently blocked waiting for a monitor lock."),
-			"vm_count":             newCountFieldInfo("The total number of threads in the Jenkins JVM. This is the sum of: vm.blocked.count, vm.new.count, vm.runnable.count, vm.terminated.count, vm.timed_waiting.count and vm.waiting.count"),
-			"vm_cpu_load":          newRateFieldInfo("The rate of CPU time usage by the JVM per unit time on the Jenkins controller. This is equivalent to the number of CPU cores being used by the Jenkins JVM."),
-			"vm_memory_total_used": newByteFieldInfo("The total amount of memory that the Jenkins JVM is currently using.(Units of measurement: bytes)"),
+			"system_cpu_load":           newRateFieldInfo("The system load on the Jenkins controller as reported by the JVM’s Operating System JMX bean"),
+			"vm_blocked_count":          newCountFieldInfo("The number of threads in the Jenkins JVM that are currently blocked waiting for a monitor lock."),
+			"vm_count":                  newCountFieldInfo("The total number of threads in the Jenkins JVM. This is the sum of: vm.blocked.count, vm.new.count, vm.runnable.count, vm.terminated.count, vm.timed_waiting.count and vm.waiting.count"),
+			"vm_cpu_load":               newRateFieldInfo("The rate of CPU time usage by the JVM per unit time on the Jenkins controller. This is equivalent to the number of CPU cores being used by the Jenkins JVM."),
+			"vm_memory_total_used":      newByteFieldInfo("The total amount of memory that the Jenkins JVM is currently using.(Units of measurement: bytes)"),
+			"vm_memory_total_committed": newByteFieldInfo("The total amount of memory that is guaranteed by the operating system as available for use by the Jenkins JVM. (Units of measurement: bytes)"),
 		},
 	}
 }

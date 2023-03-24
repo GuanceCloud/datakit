@@ -2,13 +2,27 @@
 
 ---
 
+> This document are an overview of dd-trace-go official [github](https://github.com/DataDog/dd-trace-go){:target="_blank"} and maybe outdated. If there any issues to apply this library, please refer to original documents.
+
 ## Install Dependency {#dependence}
 
-Install the ddtrace golang library to run in the development directory.
+Install the ddtrace golang SDK:
 
 ```shell
-go get -v github.com/DataDog/dd-trace-go
+# install tracing SDK
+go get gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer
+
+# install profiling SDK
+go get gopkg.in/DataDog/dd-trace-go.v1/profiler
+
+# other module SDKs, such as HTTP/SQL related, such as:
+go get gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux
+go get gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http
+go get gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql
+...
 ```
+
+We can find more SDKs in the [contrib list](https://github.com/DataDog/dd-trace-go/tree/main/contrib){:target="_blank"}.
 
 ## Set DataKit {#set-datakit}
 

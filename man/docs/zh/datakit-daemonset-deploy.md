@@ -79,6 +79,46 @@
     $ helm uninstall datakit -n datakit
     ```
 
+## 资源限制 {#requests-limits}
+
+DataKit 默认设置了 Requests 和 Limits，如果 DataKit 容器状态变为 OOMKilled ，可自定义修改配置。
+
+=== "Yaml"
+
+    datakit.yaml 中其大概格式为
+    
+    ```yaml
+    ...
+            resources:
+              requests:
+                cpu: "200m"
+                memory: "128Mi"
+              limits:
+                cpu: "2000m"
+                memory: "4Gi"
+    ...
+    ```
+
+
+=== "Helm"
+
+    Helm values.yaml 中其大概格式为
+    
+    ```yaml
+    ...
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "128Mi"
+      limits:
+        cpu: "2000m"
+        memory: "4Gi"
+    ...
+    ```
+ 
+具体配置，参见[官方文档](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits){:target="_blank"}。
+
+
 ## Kubernetes 污点容忍度配置 {#toleration}
 
 DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有污点），如果 Kubernetes 中某些 node 节点添加了污点调度，且不希望在其上部署 DataKit，可修改 datakit.yaml，调整其中的污点容忍度：
@@ -207,7 +247,7 @@ spec:
 | `ENV_NAMESPACE`                     | string      | `default` | 否     | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。                                        |
 | `ENV_ENABLE_ELECTION_NAMESPACE_TAG` | bool        | -         | 否     | 开启该选项后，所有选举类的采集均会带上 `election_namespace=<your-election-namespace>` 的额外 tag，这可能会导致一些时间线的增长（[:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)） |
 | `ENV_GLOBAL_ELECTION_TAGS`          | string-list | 无        | 否     | 全局选举 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`。ENV_GLOBAL_ENV_TAGS 将被弃用                                                                                           |
-
+| `ENV_CLUSTER_NAME_K8S`              | string      | -         | 否     | DataKit 所在的 cluster，如果非空，会在 `global_election_tags` 添加一个指定 tag，key 是 `cluster_name_k8s`，value 是环境变量的值。（[:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)）|
 ### HTTP/API 相关环境变量 {#env-http-api}
 
 | 环境变量名称                     | 类型        | 默认值            | 必须   | 说明                                                                                                                                                                                                        |

@@ -404,10 +404,6 @@ func (ipt *Input) RunPipeline() {
 		return
 	}
 
-	if ipt.Log.Pipeline == "" {
-		ipt.Log.Pipeline = inputName + ".p" // use default
-	}
-
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,

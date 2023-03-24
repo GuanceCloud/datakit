@@ -56,7 +56,10 @@ func (d *dockerInput) stop() {
 }
 
 func (d *dockerInput) pingOK() bool {
-	ping, err := d.client.Ping(context.TODO())
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	ping, err := d.client.Ping(ctx)
 	if err != nil {
 		l.Warnf("docker ping error: %s", err)
 		return false
@@ -138,6 +141,7 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 	}
 
 	_ = g.Wait()
+
 	return res, nil
 }
 
@@ -281,7 +285,10 @@ func getPodAnnotationState(labels map[string]string, meta *podMeta) podAnnotatio
 }
 
 func (d *dockerInput) getContainerList() ([]types.Container, error) {
-	cList, err := d.client.ContainerList(context.Background(), types.ContainerListOptions{All: true})
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cList, err := d.client.ContainerList(ctx, types.ContainerListOptions{All: true})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container list: %w", err)
 	}
@@ -289,7 +296,10 @@ func (d *dockerInput) getContainerList() ([]types.Container, error) {
 }
 
 func (d *dockerInput) getRunningContainerList() ([]types.Container, error) {
-	cList, err := d.client.ContainerList(context.Background(), types.ContainerListOptions{All: false})
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cList, err := d.client.ContainerList(ctx, types.ContainerListOptions{All: false})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container list: %w", err)
 	}

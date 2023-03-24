@@ -13,6 +13,7 @@ import (
 	"net/http"
 
 	zpkmodel "github.com/openzipkin/zipkin-go/model"
+	zpkprotov2 "github.com/openzipkin/zipkin-go/proto/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin/corev1"
@@ -151,7 +152,8 @@ func parseZipkinTraceV2(param *itrace.TraceParameters) error {
 	)
 	switch param.Media {
 	case "application/x-protobuf":
-		zpkmodels, err = parseZipkinProtobuf3(buf)
+		// zpkmodels, err = parseZipkinProtobuf3(buf)
+		zpkmodels, err = zpkprotov2.ParseSpans(buf, false)
 	case "application/json":
 		err = json.Unmarshal(buf, &zpkmodels)
 	default:

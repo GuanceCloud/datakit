@@ -528,10 +528,6 @@ func (i *Input) RunPipeline() {
 		return
 	}
 
-	if i.Log.Pipeline == "" {
-		i.Log.Pipeline = "mysql.p" // use default
-	}
-
 	tags := make(map[string]string)
 
 	for k, v := range i.Tags {

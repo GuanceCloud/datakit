@@ -41,6 +41,15 @@ var (
 	httpAPIStatCols  = strings.Split(`API,Total,Limited(%),Max Latency,Avg Latency,2xx,3xx,4xx,5xx`, ",")
 	ioStatCols       = strings.Split(`Cat,ChanUsage,pts Send/Failed`, ",")
 	filterRuleCols   = strings.Split("Cat,Total,Filtered(%),Cost,Cost/Pts,Rules", ",")
+
+	moduleGoroutine = []string{"G", "goroutine"}
+	moduleBasic     = []string{"B", "basic"}
+	moduleRuntime   = []string{"R", "runtime"}
+	moduleFilter    = []string{"F", "filter"}
+	moduleHTTP      = []string{"H", "http"}
+	moduleInputs    = []string{"In", "inputs"}
+	modulePipeline  = []string{"P", "pipeline"}
+	moduleIO        = []string{"IO", "io_stats"}
 )
 
 func number(i interface{}) string {
@@ -233,10 +242,10 @@ func (m *monitorAPP) renderEnabledInputTable(ds *dkhttp.DatakitStats, colArr []s
 	}
 
 	if len(ds.EnabledInputs) == 0 {
-		m.enabledInputTable.SetTitle("Enabled Inputs(no inputs enabled)")
+		m.enabledInputTable.SetTitle("Enabled [red]In[white]puts(no inputs enabled)")
 		return
 	} else {
-		m.enabledInputTable.SetTitle(fmt.Sprintf("Enabled Inputs(%d inputs)", len(ds.EnabledInputs)))
+		m.enabledInputTable.SetTitle(fmt.Sprintf("Enabled [red]In[white]puts(%d inputs)", len(ds.EnabledInputs)))
 	}
 
 	// set table header
@@ -376,6 +385,10 @@ func (m *monitorAPP) renderHTTPStatTable(ds *dkhttp.DatakitStats, colArr []strin
 }
 
 func (m *monitorAPP) renderGoroutineTable(ds *dkhttp.DatakitStats, colArr []string) {
+	if !exitsStr(*flagMonitorModule, moduleGoroutine) && !*flagMonitorVerbose {
+		return
+	}
+
 	table := m.goroutineStatTable
 
 	if m.anyError != nil {
@@ -445,10 +458,10 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 	}
 
 	if len(ds.InputsStats) == 0 {
-		m.inputsStatTable.SetTitle("Inputs Info(no data collected)")
+		m.inputsStatTable.SetTitle("[red]In[white]puts Info(no data collected)")
 		return
 	} else {
-		m.inputsStatTable.SetTitle(fmt.Sprintf("Inputs Info(%d inputs)", len(ds.InputsStats)))
+		m.inputsStatTable.SetTitle(fmt.Sprintf("[red]In[white]puts Info(%d inputs)", len(ds.InputsStats)))
 	}
 
 	// set table header
@@ -480,7 +493,7 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 	sort.Strings(inputsNames)
 
 	if len(*flagMonitorOnlyInputs) > 0 {
-		m.inputsStatTable.SetTitle(fmt.Sprintf("Inputs Info(total %d, %d selected)",
+		m.inputsStatTable.SetTitle(fmt.Sprintf("[red]In[white]puts Info(total %d, %d selected)",
 			len(ds.InputsStats), len(*flagMonitorOnlyInputs)))
 	}
 
@@ -562,10 +575,10 @@ func (m *monitorAPP) renderPLStatTable(ds *dkhttp.DatakitStats, colArr []string)
 	}
 
 	if len(ds.PLStats) == 0 {
-		table.SetTitle("Pipeline Info(no data collected)")
+		table.SetTitle("[red]P[white]ipeline Info(no data collected)")
 		return
 	} else {
-		table.SetTitle(fmt.Sprintf("Pipeline Info(%d scripts)", len(ds.PLStats)))
+		table.SetTitle(fmt.Sprintf("[red]P[white]ipeline Info(%d scripts)", len(ds.PLStats)))
 	}
 
 	// set table header
@@ -688,10 +701,10 @@ func (m *monitorAPP) renderIOTable(ds *dkhttp.DatakitStats, colArr []string) {
 	}
 
 	if ds.IOStats == nil {
-		m.ioStatTable.SetTitle("IO Info(no data collected)")
+		m.ioStatTable.SetTitle("[red]IO[white] Info(no data collected)")
 		return
 	} else {
-		m.ioStatTable.SetTitle(fmt.Sprintf("IO Info(dropped: %s)", number(ds.IOStats.FeedDropPts)))
+		m.ioStatTable.SetTitle(fmt.Sprintf("[red]IO[white] Info(dropped: %s)", number(ds.IOStats.FeedDropPts)))
 	}
 
 	// set table header
@@ -847,57 +860,97 @@ func (m *monitorAPP) setupFlex() {
 			AddItem(m.ioStatTable, 0, 14, false).
 			AddItem(m.anyErrorPrompt, 0, 1, false).
 			AddItem(m.exitPrompt, 0, 1, false)
-	} else {
-		m.flex.SetDirection(tview.FlexRow).
-			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-										AddItem(m.basicInfoTable, 0, 10, false).
-										AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
-			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn). // all inputs running stats
-										AddItem(m.enabledInputTable, 0, 3, false). // inputs config stats
-										AddItem(m.inputsStatTable, 0, 7, false), 0, 15, false).
-			AddItem(m.anyErrorPrompt, 0, 1, false).
-			AddItem(m.exitPrompt, 0, 1, false)
+		return
 	}
+
+	if len(*flagMonitorModule) > 0 {
+		flex := m.flex.SetDirection(tview.FlexRow)
+		if exitsStr(*flagMonitorModule, moduleBasic) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.basicInfoTable, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, moduleRuntime) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.golangRuntime, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, moduleFilter) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.filterStatsTable, 0, 10, false), 0, 10, false)
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.filterRulesStatsTable, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, moduleGoroutine) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.goroutineStatTable, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, moduleHTTP) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.httpServerStatTable, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, moduleInputs) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.enabledInputTable, 0, 10, false), 0, 10, false)
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.inputsStatTable, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, modulePipeline) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.plStatTable, 0, 10, false), 0, 10, false)
+		}
+
+		if exitsStr(*flagMonitorModule, moduleIO) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(m.ioStatTable, 0, 10, false), 0, 10, false)
+		}
+		flex.AddItem(m.anyErrorPrompt, 0, 1, false).AddItem(m.exitPrompt, 0, 1, false)
+
+		return
+	}
+	m.flex.SetDirection(tview.FlexRow).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
+									AddItem(m.basicInfoTable, 0, 10, false).
+									AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn). // all inputs running stats
+									AddItem(m.enabledInputTable, 0, 3, false). // inputs config stats
+									AddItem(m.inputsStatTable, 0, 7, false), 0, 15, false).
+		AddItem(m.anyErrorPrompt, 0, 1, false).
+		AddItem(m.exitPrompt, 0, 1, false)
 }
 
 func (m *monitorAPP) setup() {
 	// basic info
 	m.basicInfoTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
-	m.basicInfoTable.SetBorder(true).SetTitle("Basic Info").SetTitleAlign(tview.AlignLeft)
+	m.basicInfoTable.SetBorder(true).SetTitle("[red]B[white]asic Info").SetTitleAlign(tview.AlignLeft)
 
 	m.golangRuntime = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
-	m.golangRuntime.SetBorder(true).SetTitle("Runtime Info").SetTitleAlign(tview.AlignLeft)
+	m.golangRuntime.SetBorder(true).SetTitle("[red]R[white]untime Info").SetTitleAlign(tview.AlignLeft)
 
 	// inputs running stats
 	m.inputsStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.inputsStatTable.SetBorder(true).SetTitle("Inputs Info").SetTitleAlign(tview.AlignLeft)
+	m.inputsStatTable.SetBorder(true).SetTitle("[red]In[white]puts Info").SetTitleAlign(tview.AlignLeft)
 
 	// pipeline running stats
 	m.plStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.plStatTable.SetBorder(true).SetTitle("Pipeline Info").SetTitleAlign(tview.AlignLeft)
+	m.plStatTable.SetBorder(true).SetTitle("[red]P[white]ipeline Info").SetTitleAlign(tview.AlignLeft)
 
 	// enabled inputs
 	m.enabledInputTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
-	m.enabledInputTable.SetBorder(true).SetTitle("Enabled Inputs").SetTitleAlign(tview.AlignLeft)
+	m.enabledInputTable.SetBorder(true).SetTitle("Enabled [red]In[white]puts").SetTitleAlign(tview.AlignLeft)
 
 	// goroutine stats
 	m.goroutineStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.goroutineStatTable.SetBorder(true).SetTitle("Goroutine Groups").SetTitleAlign(tview.AlignLeft)
+	m.goroutineStatTable.SetBorder(true).SetTitle("[red]G[white]oroutine Groups").SetTitleAlign(tview.AlignLeft)
 
 	// 9592 http stats
 	m.httpServerStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.httpServerStatTable.SetBorder(true).SetTitle("HTTP APIs").SetTitleAlign(tview.AlignLeft)
+	m.httpServerStatTable.SetBorder(true).SetTitle("[red]H[white]TTP APIs").SetTitleAlign(tview.AlignLeft)
 
 	// sender stats
 	m.ioStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.ioStatTable.SetBorder(true).SetTitle("Sender Info").SetTitleAlign(tview.AlignLeft)
+	m.ioStatTable.SetBorder(true).SetTitle("[red]IO[white] Info").SetTitleAlign(tview.AlignLeft)
 
 	// filter stats
 	m.filterStatsTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
-	m.filterStatsTable.SetBorder(true).SetTitle("Filter").SetTitleAlign(tview.AlignLeft)
+	m.filterStatsTable.SetBorder(true).SetTitle("[red]F[white]ilter").SetTitleAlign(tview.AlignLeft)
 
 	m.filterRulesStatsTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.filterRulesStatsTable.SetBorder(true).SetTitle("Filter Rules").SetTitleAlign(tview.AlignLeft)
+	m.filterRulesStatsTable.SetBorder(true).SetTitle("[red]F[white]ilter Rules").SetTitleAlign(tview.AlignLeft)
 
 	// bottom prompt
 	m.exitPrompt = tview.NewTextView().SetDynamicColors(true)
@@ -953,22 +1006,17 @@ func (m *monitorAPP) render() {
 
 	m.basicInfoTable.Clear()
 	m.golangRuntime.Clear()
-
 	m.inputsStatTable.Clear()
 	m.enabledInputTable.Clear()
-
 	m.plStatTable.Clear()
-	if *flagMonitorVerbose {
-		m.goroutineStatTable.Clear()
+	m.goroutineStatTable.Clear()
+	m.ioStatTable.Clear()
+	m.filterStatsTable.Clear()
+	m.filterRulesStatsTable.Clear()
 
-		// HTTPMetrics maybe nil(request timeout), so keep original table
-		if m.ds.HTTPMetrics != nil {
-			m.httpServerStatTable.Clear()
-		}
-
-		m.ioStatTable.Clear()
-		m.filterStatsTable.Clear()
-		m.filterRulesStatsTable.Clear()
+	// HTTPMetrics maybe nil(request timeout), so keep original table
+	if m.ds.HTTPMetrics != nil {
+		m.httpServerStatTable.Clear()
 	}
 
 	m.renderBasicInfoTable(m.ds)
@@ -976,20 +1024,18 @@ func (m *monitorAPP) render() {
 	m.renderEnabledInputTable(m.ds, enabledInputCols)
 	m.renderInputsStatTable(m.ds, inputsStatsCols)
 	m.renderPLStatTable(m.ds, plStatsCols)
-	if *flagMonitorVerbose {
-		m.renderGoroutineTable(m.ds, goroutineCols)
+	m.renderGoroutineTable(m.ds, goroutineCols)
+	m.renderIOTable(m.ds, ioStatCols)
 
-		if m.ds.HTTPMetrics != nil {
-			m.renderHTTPStatTable(m.ds, httpAPIStatCols)
-		}
+	if m.ds.HTTPMetrics != nil {
+		m.renderHTTPStatTable(m.ds, httpAPIStatCols)
+	}
 
-		m.renderIOTable(m.ds, ioStatCols)
-		if m.ds.FilterStats != nil {
-			m.renderFilterStatsTable(m.ds)
-			m.renderFilterRulesStatsTable(m.ds, filterRuleCols)
-		} else {
-			l.Debugf("ds: %+#v")
-		}
+	if m.ds.FilterStats != nil {
+		m.renderFilterStatsTable(m.ds)
+		m.renderFilterRulesStatsTable(m.ds, filterRuleCols)
+	} else {
+		l.Debugf("ds: %+#v")
 	}
 
 end:
@@ -1181,4 +1227,17 @@ func (m *monitorAPP) inputClicked(input string) func() bool {
 
 		return true
 	}
+}
+
+func exitsStr(sli []string, str []string) bool {
+	var exits bool
+	for _, m := range sli {
+		for _, s := range str {
+			if m == s {
+				exits = true
+				break
+			}
+		}
+	}
+	return exits
 }
