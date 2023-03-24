@@ -98,6 +98,8 @@ nav:
         - 'DDTrace extend':
           - ddtrace-ext-changelog.md
           - ddtrace-ext-java.md
+        - 'jmxfetch metric':
+          - 'jmx metric to DK': ddtrace-jmxfetch.md
 
       - 'SkyWalking':
         - 'SkyWalking': skywalking.md
