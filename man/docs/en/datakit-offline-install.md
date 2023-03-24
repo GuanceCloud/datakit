@@ -277,3 +277,304 @@ If there is a new version of DataKit, you can download it as above and execute t
     start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1;
     powershell .install.ps1;
     ```
+
+
+## Kubernetes Offline Deployment {#k8s-offline}
+
+### Bash Script Assisted Installation {#Auxiliary-installation}
+
+Here is a simple script to help you complete the tasks of password free login, file distribution and image decompression.
+
+???- note "datakit_tools.sh (Stand-alone open)"
+    ```shell
+    #!/bin/bash
+    # Please modify the host IP to be password-free
+    host_ip=(
+      10.200.14.112
+      10.200.14.113
+      10.200.14.114
+    )
+    # Please change the login password
+    psd='123.com'
+
+    menu() {
+      echo -e "\e[33m------Please select the required operation------\e[0m"
+      echo -e "\e[33m1. Set SSH remote keyless login\e[0m"
+      echo -e "\e[33m2. Scp remote transfer file\e[0m"
+      echo -e "\e[33m3. Remote decompression image\e[0m"
+      read -p "Please enter an option:" num
+    }
+
+    # Send ssh-copy-id to the host
+    SSH-COPY(){
+    yum install -y expect
+    ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
+    for i in ${host_ip[@]}
+      do
+        /usr/bin/expect<<EOF
+        spawn ssh-copy-id ${i}
+        expect {
+              "(yes/no)" {send "yes\r";exp_continue}
+              "password" {send "${psd}\r"}
+    }
+    expect eof
+    EOF
+    done
+    }
+
+    SCP(){
+    read  -p "Please enter the file name to transfer (multiple files can be passed in): " file_name
+    for i in ${host_ip[@]}
+      do
+      for j in ${file_name[@]}
+        do
+          echo -e "\e[33m------${i}---${j}------\e[0m"
+          scp ${j} root@${i}:/root/
+      done
+    done
+    }
+
+    SSH(){
+    read -p "Please enter the file name to extract: " file_name
+    # Remotely unzip image packets
+    for i in ${host_ip[@]}
+      do
+        echo -e "\e[33m------${i}------\e[0m"
+        # ssh root@${i} "docker load -i ${file_name}"
+        ssh root@${i} " ctr -n=k8s.io image import ${file_name} "
+    done
+    }
+    #menu
+    CASE(){
+    case ${num} in
+    1)
+    SSH-COPY
+            echo -e "\e[33m------------------------------------------------------\e[0m"
+    ;;
+    2)
+    SCP
+            echo -e "\e[33m------------------------------------------------------\e[0m"
+    ;;
+    3)
+    SSH
+            echo -e "\e[33m------------------------------------------------------\e[0m"
+      ;;
+    *)
+            
+      echo -e "\e[31mPlease enter the number in the option{1|2|3}\e[0m"
+    esac
+    }
+
+    menu
+    CASE
+    read -p "Do you want to continue with the list operation? [y/n]：" a
+    while [ "${a}" == "y" ]
+      do
+        menu 
+        CASE
+        read -p "Do you want to continue with the list operation? [y/n]：" a
+        continue
+    done
+    ```
+
+```shell
+# You need to modify the host IP and login password in the script, and then complete the operation according to the guidance.
+chmod +x datakit_tools.sh
+./datakit_tools.sh
+```
+
+### Agent Installation {#k8s-install-via-proxy}
+
+**If there is a machine in the intranet that can connect to the internet, you can deploy a nginx server on this node to use as the image acquisition.**
+
+- Download datakit.yaml and datakit image files
+
+```shell
+wget https://static.guance.com/datakit/datakit.yaml -P /home/guance/
+```
+
+- Download the datakit image and make it into a package
+
+```shell
+# Pull the image of the amd64 architecture and make it into an image package
+docker pull --platform amd64 pubrepo.guance.com/datakit/datakit:{{.Version}}
+docker save -o datakit-amd64-{{.Version}}.tar pubrepo.guance.com/datakit/datakit:{{.Version}}
+mv datakit-amd64-{{.Version}}.tar /home/guance
+
+# Pull the image of the arm64 architecture and make it into an image package
+docker pull --platform arm64 pubrepo.guance.com/datakit/datakit:{{.Version}}
+docker save -o datakit-arm64-{{.Version}}.tar pubrepo.guance.com/datakit/datakit:{{.Version}}
+mv datakit-arm64-{{.Version}}.tar /home/guance
+
+# Check whether the image architecture is correct
+docker image inspect pubrepo.jiagouyun.com/datakit/datakit:{{.Version}} |grep Architecture
+
+```
+
+- Modify Nginx configuration agent
+
+???- note "/etc/nginx/nginx.conf"
+    ```shell
+    #user  nobody;
+    worker_processes  1;
+
+    #error_log  logs/error.log;
+    #error_log  logs/error.log  notice;
+    #error_log  logs/error.log  info;
+
+    #pid        logs/nginx.pid;
+
+
+    events {
+        worker_connections  1024;
+    }
+
+
+    http {
+        include       mime.types;
+        default_type  application/octet-stream;
+
+        #log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+        #                  '$status $body_bytes_sent "$http_referer" '
+        #                  '"$http_user_agent" "$http_x_forwarded_for"';
+
+        #access_log  logs/access.log  main;
+
+        sendfile        on;
+        #tcp_nopush     on;
+
+        #keepalive_timeout  0;
+        keepalive_timeout  65;
+
+        #gzip  on;
+
+        server {
+            listen       8080;
+            server_name  localhost;
+            root /home/guance;
+            autoindex on;
+
+            #charset koi8-r;
+
+            #access_log  logs/host.access.log  main;
+
+
+            #error_page  404              /404.html;
+
+            # redirect server error pages to the static page /50x.html
+            #
+
+            # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+            #
+            #location ~ \.php$ {
+            #    proxy_pass   http://127.0.0.1;
+            #}
+
+            # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+            #
+            #location ~ \.php$ {
+            #    root           html;
+            #    fastcgi_pass   127.0.0.1:9000;
+            #    fastcgi_index  index.php;
+            #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+            #    include        fastcgi_params;
+            #}
+
+            # deny access to .htaccess files, if Apache's document root
+            # concurs with nginx's one
+            #
+            #location ~ /\.ht {
+            #    deny  all;
+            #}
+        }
+
+
+        # another virtual host using mix of IP-, name-, and port-based configuration
+        #
+        #server {
+        #    listen       8000;
+        #    listen       somename:8080;
+        #    server_name  somename  alias  another.alias;
+
+        #    location / {
+        #        root   html;
+        #        index  index.html index.htm;
+        #    }
+        #}
+
+
+        # HTTPS server
+        #
+        #server {
+        #    listen       443 ssl;
+        #    server_name  localhost;
+
+        #    ssl_certificate      cert.pem;
+        #    ssl_certificate_key  cert.key;
+
+        #    ssl_session_cache    shared:SSL:1m;
+        #    ssl_session_timeout  5m;
+
+        #    ssl_ciphers  HIGH:!aNULL:!MD5;
+        #    ssl_prefer_server_ciphers  on;
+
+        #    location / {
+        #        root   html;
+        #        index  index.html index.htm;
+        #    }
+        #}
+
+    }
+    ```
+
+- Other intranet machines execute commands.
+
+```shell
+wget http://<nginx-server-ip>:8080/datakit.yaml 
+wget http://<nginx-server-ip>:8080/datakit-amd64-{{.Version}}.tar 
+```
+
+- Unzip image command
+
+```shell
+# docker 
+docker load -i /k8sdata/datakit/datakit-amd64-{{.Version}}.tar
+
+# containerd
+ctr -n=k8s.io image import /k8sdata/datakit/datakit-amd64-{{.Version}}.tar
+
+```
+
+- Start datakit container
+
+```shell
+kubectl apply -f datakit.yaml
+```
+
+### Full Offline Installation {#k8s-offilne-all}
+
+When there is no external network in the environment, the installation package needs be downloaded from the public network to the internal network through mobile hard disk (U disk).
+
+- Unzip image command
+
+```shell
+# docker 
+docker load -i datakit-amd64-{{.Version}}.tar
+
+# containerd
+ctr -n=k8s.io image import datakit-amd64-{{.Version}}.tar
+
+```
+
+- The cluster controller executes the start command
+
+```
+kubectl apply -f datakit.yaml
+```
+
+- Update command
+
+```shell
+# You need to decompress the image first
+kubectl patch -n datakit daemonsets.apps datakit -p '{"spec": {"template": {"spec": {"containers": [{"image": "pubrepo.guance.com/datakit/datakit:<version>","name": "datakit"}]}}}}'
+```

@@ -8,6 +8,7 @@ package inputs
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -169,7 +170,7 @@ func (ii *inputInfo) Run() {
 	}
 }
 
-func GetInput() map[string][]Input {
+func GetInput() ([]byte, error) {
 	inputs := make(map[string][]Input)
 
 	mtx.Lock()
@@ -181,7 +182,12 @@ func GetInput() map[string][]Input {
 		}
 	}
 
-	return inputs
+	b, err := json.Marshal(inputs)
+	if err != nil {
+		l.Errorf("marshal error:%s", err)
+		return nil, err
+	}
+	return b, nil
 }
 
 // AddConfigInfoPath add or update input info.

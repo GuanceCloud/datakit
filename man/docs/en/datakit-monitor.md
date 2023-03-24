@@ -97,7 +97,7 @@ If the verbose option (`-V`) is specified when Monitor is run, additional inform
 
 ---
 
-A: You can specify a list of module names (multiple modules are separated by English commas):
+A: You can specify a list of module names (multiple modules are separated by English commas): [:octicons-tag-24: Version-1.5.7](changelog.md#cl-1.5.7)
 
 ```shell
 datakit monitor -M inputs,filter

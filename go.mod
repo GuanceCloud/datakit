@@ -13,7 +13,7 @@ require (
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/c-bata/go-prompt v0.2.5
 	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575
-	github.com/containerd/cgroups v1.0.1
+	github.com/containerd/cgroups v1.1.0
 	github.com/containerd/containerd v1.5.5
 	github.com/containerd/typeurl v1.0.2
 	github.com/denisenkom/go-mssqldb v0.12.2
@@ -106,6 +106,7 @@ require (
 	github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747
 	github.com/Shopify/sarama v1.29.1
 	github.com/bmatcuk/doublestar/v4 v4.6.0
+	github.com/containerd/cgroups/v3 v3.0.1
 	github.com/cortexproject/cortex v1.9.1-0.20210722081137-485474c9afb2
 	github.com/golang/protobuf v1.5.2
 	github.com/google/pprof v0.0.0-20221118152302-e6195bd50e26
@@ -151,6 +152,7 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
+	github.com/cilium/ebpf v0.9.1 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.2 // indirect
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
@@ -236,7 +238,6 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.6 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.6 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.6 // indirect
-	go.uber.org/goleak v1.1.12 // indirect
 	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/tools v0.6.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect

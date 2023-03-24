@@ -12,14 +12,16 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
+	"github.com/containerd/cgroups/v3/cgroup2"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
-	H          = "high"
-	L          = "low"
-	cgroupName = "datakit"
+	H                  = "high"
+	L                  = "low"
+	cgroupName         = "datakit"
+	defaultCgroup2Path = "/sys/fs/cgroup"
 )
 
 type Cgroup struct {
@@ -35,10 +37,12 @@ type Cgroup struct {
 	err error
 
 	control cgroups.Cgroup
+	manager *cgroup2.Manager
 }
 
 // 1 second.
 var period = uint64(1000000) //nolint:gomnd
+var cgroupV2 bool
 
 func (c *Cgroup) cpuSetup() {
 	c.cpuHigh = c.opt.CPUMax * float64(runtime.NumCPU()) / 100 //nolint:gomnd
@@ -60,6 +64,7 @@ func cgroupEnabled(mountPoint, name string) bool {
 func (c *Cgroup) setup() error {
 	c.cpuSetup()
 	c.memSetup()
+	// ------------ cgroup v2
 
 	r := &specs.LinuxResources{
 		CPU: &specs.LinuxCPU{
@@ -79,6 +84,15 @@ func (c *Cgroup) setup() error {
 	} else {
 		l.Infof("memory limit not set")
 	}
+	pid := os.Getpid()
+
+	if cgroups.Mode() == cgroups.Unified {
+		// use cgroupV2
+		l.Infof("use cgroup2")
+		cgroupV2 = true
+		resource := cgroup2.ToResources(r)
+		return c.setup2(resource, pid)
+	}
 
 	var control cgroups.Cgroup
 	var err error
@@ -92,7 +106,6 @@ func (c *Cgroup) setup() error {
 
 	c.control = control
 
-	pid := os.Getpid()
 	if err := c.control.Add(cgroups.Process{Pid: pid, Subsystem: cgroupName}); err != nil {
 		l.Errorf("faild of add cgroup: %s", err)
 		return err
@@ -101,6 +114,29 @@ func (c *Cgroup) setup() error {
 	l.Infof("add PID %d to cgroup", pid)
 
 	return nil
+}
+
+func (c *Cgroup) setup2(resource *cgroup2.Resources, pid int) error {
+	manager, err := cgroup2.Load(c.opt.Path)
+	if err != nil {
+		l.Infof("can not load form /sys/fs/cgroup/datakit, use new manager.")
+	} else {
+		// 先删除已有配置，再重新配置。
+		if stat, err := manager.Stat(); err == nil {
+			l.Infof("old manager stat is :%s", stat.String())
+		}
+		err = manager.Delete()
+		l.Infof("try to delete old cgroup2 manager err=%v", err)
+	}
+
+	manager, err = cgroup2.NewManager(defaultCgroup2Path, c.opt.Path, resource)
+	if err != nil {
+		l.Warnf("new cgroup2 err=%v", err)
+		return err
+	}
+
+	c.manager = manager
+	return manager.AddProc(uint64(pid))
 }
 
 func (c *Cgroup) load() cgroups.Cgroup {
@@ -138,7 +174,14 @@ func (c *Cgroup) load() cgroups.Cgroup {
 }
 
 func (c *Cgroup) stop() {
-	if err := c.control.Delete(); err != nil {
+	var err error
+	if cgroupV2 {
+		//	err = c.manager.Delete() // auto delete
+	} else if c.control != nil {
+		err = c.control.Delete()
+	}
+
+	if err != nil {
 		l.Warnf("control.Delete(): %s, ignored", err.Error())
 	} else {
 		l.Info("cgroup delete OK")
@@ -189,7 +232,11 @@ func (c *Cgroup) refreshCPULimit() {
 		},
 	}
 
-	err = c.control.Update(r)
+	if cgroupV2 {
+		err = c.manager.Update(cgroup2.ToResources(r))
+	} else {
+		err = c.control.Update(r)
+	}
 	if err != nil {
 		l.Warnf("failed of update cgroup(%+#v): %s", r, err)
 		return
@@ -221,5 +268,12 @@ func (c *Cgroup) start() {
 }
 
 func (c *Cgroup) show() {
-	l.Debugf("cgroup state: %s", c.control.State())
+	if cgroupV2 {
+		stat, err := c.manager.Stat()
+		if err == nil {
+			l.Debugf("cgroup state: %s", stat.String())
+		}
+	} else {
+		l.Debugf("cgroup state: %s", c.control.State())
+	}
 }

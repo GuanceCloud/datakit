@@ -237,6 +237,11 @@ func KVSplit(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 		}
 	}
 
+	if len(includeKeys) == 0 {
+		ctx.Regs.ReturnAppend(false, ast.Bool)
+		return nil
+	}
+
 	var prefix string
 	if funcExpr.Param[6] != nil {
 		switch funcExpr.Param[6].NodeType { //nolint:exhaustive
@@ -292,12 +297,10 @@ func kvSplit(str string, includeKeys []string, fieldSplit, valueSplit *regexp.Re
 
 		if len(keyValue) == 2 {
 			// trim key
-			if trimKey != "" {
-				if tk := strings.Trim(keyValue[0], trimKey); tk != "" {
-					keyValue[0] = tk
-				} else {
-					continue
-				}
+			if tk := strings.Trim(keyValue[0], trimKey); tk != "" {
+				keyValue[0] = tk
+			} else {
+				continue
 			}
 
 			// !include ? continue : ;

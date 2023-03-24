@@ -67,6 +67,8 @@ For all of the following data collections, a global tag named `host` is appended
 
 ## Extended measurements {#extend}
 
+[:octicons-tag-24: Version-1.5.7](changelog.md#cl-1.5.7)
+
 ### Collecting disk `await` for Linux {#linux-await}
 
 By default, DataKit cannot collect the disk `await` metric. If you need to obtain this metric, you can collect it by [Custom Collector with Python](../../developers/pythond/).

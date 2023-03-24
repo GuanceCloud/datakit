@@ -28,6 +28,11 @@ TDengine collector needs to connect `taos_adapter` can work normally, taosAdapte
 
     At present, the collector can be turned on by [injecting the collector configuration in ConfigMap mode](datakit-daemonset-deploy.md#configmap-setting).
 
+???+ tip
+
+    Please make sure the port is open before connecting to the taoAdapter. And the connecting user needs to have read permission.
+    If the connection still fails, [please refer to](https://docs.taosdata.com/2.6/train-faq/faq/)
+
 
 ### TdEngine Dashboard {#td-dashboard}
 

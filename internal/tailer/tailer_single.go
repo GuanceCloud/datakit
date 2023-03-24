@@ -238,17 +238,11 @@ func (t *Single) forwardMessage() {
 			}
 
 		case <-checkTicker.C:
-			if !FileIsActive(t.filepath, t.opt.IgnoreDeadLog) {
-				t.opt.log.Infof("file %s is not active, larger than %s, exit", t.filepath, t.opt.IgnoreDeadLog)
-				return
-			}
+			did, _ := DidRotate(t.file, t.offset)
+			exist := FileExists(t.filepath)
 
-			did, err := DidRotate(t.file, t.offset)
-			if err != nil {
-				t.opt.log.Warnf("didrotate err: %s", err)
-			}
-			if did {
-				t.opt.log.Infof("file %s has rotated, current offset %d, try to read EOF", t.filepath, t.offset)
+			if did || !exist {
+				t.opt.log.Infof("file %s has been rotated or removed, current offset %d, try to read EOF", t.filepath, t.offset)
 				for {
 					b.buf, readNum, err = t.read()
 					if err != nil {
@@ -280,12 +274,19 @@ func (t *Single) forwardMessage() {
 					// 记录 cache
 					t.recordingCache()
 				}
+			}
 
-				t.opt.log.Infof("file %s has rotated, try to reopen file", t.filepath)
+			if did { // 只有文件 rotated 才会 reopen
+				t.opt.log.Infof("reopen the file %s", t.filepath)
 				if err = t.reopen(); err != nil {
-					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
+					t.opt.log.Warnf("failed to reopen the file %s, err: %s", t.filepath, err)
 					return
 				}
+			}
+
+			if !FileIsActive(t.filepath, t.opt.IgnoreDeadLog) {
+				t.opt.log.Infof("file %s has been inactive for larger than %s or has been removed, exit", t.filepath, t.opt.IgnoreDeadLog)
+				return
 			}
 
 		default: // nil

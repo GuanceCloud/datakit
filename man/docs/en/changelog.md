@@ -20,6 +20,71 @@ This release is an iterative release with the following updates:
 ### Breaking Changes {#cl-1.4.19-brk}
 -->
 
+## 1.5.8(2023/03/24) {#cl-1.5.8}
+
+## This release is an iterative release, mainly for bug fixes and feature improvements.
+
+### Bug Fixes {#cl-1.5.8-fix}
+
+- Fix the issue of possible loss of container log collection (#1520)
+- Automatically create the Pythond directory after Datakit startup (#1484)
+- Remove the singleton restriction of the [hostdir](hostdir.md) collector (#1498)
+- Fix a problem with the eBPF numeric construction (#1509)
+- Fix the issue of parameter recognition in the Datakit monitor (#1506)
+
+### Feature Optimization {#cl-1.5.8-opt}
+
+- Add memory-related metrics for the [Jenkins](jenkins.md) collector (#1489)
+- Improve support for [cgroup v2](datakit-conf.md#enable-cgroup) (#1494)
+- Add an environment variable (`ENV_CLUSTER_K8S_NAME`) to configure the cluster name during Kubernetes installation (#1504)
+- Pipeline
+  - Add protective measures to the [`kv_split()`](../developers/pipeline.md#fn-kv_split) function to prevent data inflation (#1510)
+  - Optimize the functionality of [`json()`](../developers/pipeline.md#fn-json) and [`delete()`](../developers/pipeline.md#fn-delete) for processing JSON keys.
+- Other engineering optimizations (#1500)
+
+### Documentation Adjustments {#cl-1.5.8-doc}
+
+- Add [documentation](datakit-offline-install.md#k8s-offline) for full offline installation of Kubernetes (#1480)
+- Improve documentation related to statsd and ddtrace-java (#1481/#1507)
+- Supplement documentation related to TDEngine (#1486)
+- Remove outdated field descriptions from the disk collector documentation (#1488)
+- Improve documentation for the Oracle collector (#1519)
+
+---
+
+## 1.5.7(2023/03/09) {#cl-1.5.7}
+
+This release is an iterative release with the following updates:
+
+### New Features {#cl-1.5.7-new}
+
+- Pipeline
+    - Add [key deletion](../developers/pipeline.md#fn-json) for `json` function (#1465)
+    - Add new function [`kv_split()`](../developers/pipeline.md#fn-kv_split)(#1414)
+    - Add new function[`datatime()`](../developers/pipeline.md#fn-datetime)(#1411)
+- Add [IPv6 support](datakit-conf.md#config-http-server)(#1454)
+- diskio add extended metrics on [io wait](diskio.md#extend)(#1472)
+- Container support [Docker Containerd co-exist](container.md#requrements)(#1401)
+<!-- - Update document on [Datakit Operator Configure](datakit-operator.md)(#1482) -->
+
+### Bug Fixes {#cl-1.5.7-fix}
+
+- Fix Pipeline related bugs(#1476/#1469/#1471/#1466)
+- Fix *datakit.yaml* missing `request` field, this may cause Datakit pod always pending(#1470)
+- Disable always-retrying on cloud synchronous, this produce a lot of warnning logging(#1433)
+- Fix encoding error in logging hisgory cache file(#1474)
+
+### Features Optimizations {#cl-1.5.7-opt}
+
+- Optimize Point Checker(#1478)
+- Optimize Pipeline funciton [`replace()`](../developers/pipeline.md#fn-replace.md) performance (#1477)
+- Optimize Datakit installation under Windows(#1406)
+- Optimize [confd](confd.md) configuration($1402)
+- Add more testing on [Filebeat](beats_output.md)(#1459)
+- Add more testing on [Nginx](nginx.md)(#1399)
+- Refactor [otel agent](opentelemetry.md)(#1409)
+- Update [Datakit Monitor](datakit-monitor.md#specify-module)(#1261)
+
 ## 1.5.6(2023/02/23) {#cl-1.5.6}
 
 This release is an iterative release with the following updates:
