@@ -16,7 +16,7 @@ Currently DDTrace has added the following extensions to the technology stack：
 
     ---
 
-    [SDK :material-download:](https://static.guance.com/ddtrace/dd-java-agent.jar){:target="_blank"} ·
+    [SDK :material-download:](https://static.guance.com/dd-image/dd-java-agent.jar){:target="_blank"} ·
     [:material-github:](https://github.com/GuanceCloud/dd-trace-java){:target="_blank"} ·
     [Issue](https://github.com/GuanceCloud/dd-trace-java/issues/new){:target="_blank"} ·
     [:octicons-history-16:](https://github.com/GuanceCloud/dd-trace-java/releases){:target="_blank"}
