@@ -114,7 +114,6 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
 | [system](system.md)                   | 采集主机操作系统负载                                                           |
 | [net](net.md)                         | 采集主机网络流量情况                                                           |
 | [netstat](netstat.md)                 | 采集网络连接情况，包括 TCP/UDP 连接数、等待连接、等待处理请求等                |
-| [host_dir](hostdir.md)                | 采集器用于目录文件的采集，例如文件个数，所有文件大小等                         |
 | [host_processes](host_processes.md)   | 采集主机上常驻（存活 10min 以上）进程列表                                      |
 | [hostobject](hostobject.md)           | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
 | [container](container.md)             | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |

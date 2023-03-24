@@ -18,8 +18,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.Singleton = (*Input)(nil)
-
 func (i *Input) SampleConfig() string {
 	return sample
 }
@@ -149,7 +147,4 @@ func init() { //nolint:gochecknoinits
 		}
 		return s
 	})
-}
-
-func (i *Input) Singleton() {
 }
