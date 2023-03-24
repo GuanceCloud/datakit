@@ -23,6 +23,35 @@
 
 -->
 
+## 1.5.8(2023/03/24) {#cl-1.5.8}
+本次发布属于迭代发布，主要是一些问题修复和功能完善。
+
+### 问题修复 {#cl-1.5.8-fix}
+
+- 修复容器日志采集可能丢失的问题(#1520)
+- Datakit 启动后自动创建 Pythond 目录(#1484)
+- 移除 [hostdir](hostdir.md) 采集器单例限制(#1498)
+- 修复一个 eBPF 数值构造的问题(#1509)
+- 修复 Datakit monitor 参数识别问题(#1506)
+
+### 功能优化 {#cl-1.5.8-opt}
+
+- 补全 Jenkins 采集器内存有关的指标(#1489)
+- 完善 [cgroup v2](datakit-conf.md#enable-cgroup) 支持(#1494)
+- Kubernetes 安装时增加环境变量（`ENV_CLUSTER_K8S_NAME`）来配置 cluster 名称(#1504)
+- Pipeline
+    - [`kv_split()`](../developers/pipeline.md#fn-kv_split) 函数增加强制保护措施，避免数据膨胀(#1510)
+    - 关于 JSON 的处理，优化了 [`json()`](../developers/pipeline.md#fn-json) 和 [`delete()`](../developers/pipeline.md#fn-delete) 删除 key 的功能。
+- 其它工程上的优化(#1500)
+
+### 文档调整 {#cl-1.5.8-doc}
+
+- 增加 Kubernetes 全离线安装[文档](datakit-offline-install.md#k8s-offline)(#1480)
+- 完善 statsd 以及 ddtrace-java 有关的文档(#1481/#1507)
+- 补充 TDEngine 有关的文档(#1486)
+- 移除 disk 采集器文档中的过时字段描述(#1488)
+- 完善 Oracle 采集器文档(#1519)
+
 ## 1.5.7(2023/03/09) {#cl-1.5.7}
 
 本次发布属于迭代发布，主要有如下更新：
