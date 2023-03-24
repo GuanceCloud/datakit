@@ -26,6 +26,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"b64dec()":             &b64decMarkdown,
 	"b64enc()":             &b64encMarkdown,
 	"cast()":               &castMarkdown,
+	"delete()":             &deleteMarkdown,
 	"cidr()":               &cidrMarkdown,
 	"cover()":              &coverMarkdown,
 	"datetime()":           &datetimeMarkdown,
@@ -77,6 +78,7 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"b64dec()":             &b64decMarkdownEN,
 	"b64enc()":             &b64encMarkdownEN,
 	"cast()":               &castMarkdownEN,
+	"delete()":             &deleteMarkdownEN,
 	"cidr()":               &cidrMarkdownEN,
 	"cover()":              &coverMarkdownEN,
 	"datetime()":           &datetimeMarkdownEN,
@@ -166,6 +168,9 @@ var (
 
 	//go:embed md/cast.md
 	docCast string
+
+	//go:embed md/delete.md
+	docDelete string
 
 	//go:embed md/get_key.md
 	docGetKey string
@@ -334,6 +339,12 @@ var (
 		Doc: docCast, Deprecated: false,
 		FnCategory: map[string][]string{
 			langTagZhCN: {cTypeCast},
+		},
+	}
+	deleteMarkdown = PLDoc{
+		Doc: docDelete, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cJSON, cOther},
 		},
 	}
 	cidrMarkdown = PLDoc{
