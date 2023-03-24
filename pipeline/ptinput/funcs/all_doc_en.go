@@ -56,6 +56,9 @@ var (
 	//go:embed md/cast.en.md
 	docCastEN string
 
+	//go:embed md/delete.en.md
+	docDeleteEN string
+
 	//go:embed md/get_key.en.md
 	docGetKeyEN string
 
@@ -225,6 +228,13 @@ var (
 			langTagEnUS: {eTypeCast},
 		},
 	}
+	deleteMarkdownEN = PLDoc{
+		Doc: docDeleteEN, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eJSON, eOther},
+		},
+	}
+
 	cidrMarkdownEN = PLDoc{
 		Doc: docCIDREN, Deprecated: false,
 		FnCategory: map[string][]string{
