@@ -18,7 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
-const ignoreDeadLogDuration = time.Hour * 12
+const ignoreDeadLogDuration = time.Hour * 48
 
 type containerLogBasisInfo struct {
 	name, id              string
