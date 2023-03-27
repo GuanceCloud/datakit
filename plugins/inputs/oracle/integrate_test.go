@@ -101,6 +101,10 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle/oracle:se-12c-datakit",
 			exposedPorts: []string{"1521/tcp"},
 		},
+		{
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle/oracle:19c-ee-datakit",
+			exposedPorts: []string{"1521/tcp"},
+		},
 	}
 
 	var cases []*caseSpec
@@ -393,7 +397,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=59529", "ORACLE_PASSWORD=123456"},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=59529", "ORACLE_PASSWORD=123456", "ORACLE_SID=XE"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -414,7 +418,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=59529", "ORACLE_PASSWORD=123456"},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=59529", "ORACLE_PASSWORD=123456", "ORACLE_SID=XE"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
