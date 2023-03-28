@@ -8,7 +8,6 @@ package mongodb
 import (
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -84,93 +83,76 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		conf           string
 		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
+		cmd            []string
 		opts           []inputs.PointCheckOption
-		// mPathCount     map[string]int
 	}{
 		{
-			name: "mongo:5.0",
+			name: "mongo:3.0",
 			conf: fmt.Sprintf(`interval = "10s"
-	servers = ["mongodb://root:example@%s:27017"]
-	gather_replica_set_stats = false
-	gather_cluster_stats = false
-	gather_per_db_stats = true
-	gather_per_col_stats = true
-	col_stats_dbs = []
-	gather_top_stat = true
-	election = true
-[tags]
-	tag1 = "val1"`, remote.Host),
-			// dockerFileText: dockerFileHTTPStubStatusModule,
+			servers = ["mongodb://root:example@%s:27017"]
+			gather_replica_set_stats = false
+			gather_cluster_stats = false
+			gather_per_db_stats = true
+			gather_per_col_stats = true
+			col_stats_dbs = []
+			gather_top_stat = true
+			election = true
+		[tags]
+			tag1 = "val1"`, remote.Host),
 			exposedPorts: []string{"27017/tcp"},
-			// opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
-			// mPathCount: map[string]int{
-			// 	"/": 100,
-			// },
+			cmd:          []string{"docker-entrypoint.sh", "mongod", "--smallfiles"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("wtcache_unmodified_pages_evicted", "percent_cache_dirty", "wtcache_max_bytes_configured", "percent_cache_used", "wtcache_internal_pages_evicted", "wtcache_pages_read_into", "wtcache_server_evicting_pages", "wtcache_app_threads_page_write_count", "wtcache_app_threads_page_read_time", "wtcache_pages_written_from", "wtcache_current_bytes", "wtcache_app_threads_page_read_count", "wtcache_pages_requested_from", "wtcache_pages_evicted_by_app_thread", "wtcache_tracked_dirty_bytes", "wtcache_worker_thread_evictingpages", "wtcache_bytes_written_from", "wtcache_pages_queued_for_eviction", "wtcache_bytes_read_into", "wtcache_modified_pages_evicted", "non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
+			},
 		},
 
-		// {
-		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.20.2",
+		// 		{
+		// 			name: "mongo:4.0",
+		// 			conf: fmt.Sprintf(`interval = "10s"
+		// 	servers = ["mongodb://root:example@%s:27017"]
+		// 	gather_replica_set_stats = false
+		// 	gather_cluster_stats = false
+		// 	gather_per_db_stats = true
+		// 	gather_per_col_stats = true
+		// 	col_stats_dbs = []
+		// 	gather_top_stat = true
+		// 	election = true
+		// [tags]
+		// 	tag1 = "val1"`, remote.Host),
+		// 			exposedPorts: []string{"27017/tcp"},
+		// 		},
 
-		// 	conf: fmt.Sprintf(`
-		// url = "http://%s/status/format/json"
-		// use_vts = true`,
-		// 		remote.Host),
+		// 		{
+		// 			name: "mongo:5.0",
+		// 			conf: fmt.Sprintf(`interval = "10s"
+		// 	servers = ["mongodb://root:example@%s:27017"]
+		// 	gather_replica_set_stats = false
+		// 	gather_cluster_stats = false
+		// 	gather_per_db_stats = true
+		// 	gather_per_col_stats = true
+		// 	col_stats_dbs = []
+		// 	gather_top_stat = true
+		// 	election = true
+		// [tags]
+		// 	tag1 = "val1"`, remote.Host),
+		// 			exposedPorts: []string{"27017/tcp"},
+		// 		},
 
-		// 	exposedPorts: []string{"80/tcp"},
-		// 	mPathCount: map[string]int{
-		// 		"/1": 100,
-		// 		"/2": 100,
-		// 		"/3": 100,
-		// 	},
-		// },
-
-		// {
-		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.21.6",
-
-		// 	conf: fmt.Sprintf(`
-		// url = "http://%s/status/format/json"
-		// use_vts = true`,
-		// 		remote.Host),
-
-		// 	exposedPorts: []string{"80/tcp"},
-		// 	mPathCount: map[string]int{
-		// 		"/1": 100,
-		// 		"/2": 100,
-		// 		"/3": 100,
-		// 	},
-		// },
-
-		// {
-		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.22.1",
-
-		// 	conf: fmt.Sprintf(`
-		// url = "http://%s/status/format/json"
-		// use_vts = true`,
-		// 		remote.Host),
-
-		// 	exposedPorts: []string{"80/tcp"},
-		// 	mPathCount: map[string]int{
-		// 		"/1": 100,
-		// 		"/2": 100,
-		// 		"/3": 100,
-		// 	},
-		// },
-
-		// {
-		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.23.3",
-
-		// 	conf: fmt.Sprintf(`
-		// url = "http://%s/status/format/json"
-		// use_vts = true`,
-		// 		remote.Host),
-
-		// 	exposedPorts: []string{"80/tcp"},
-		// 	mPathCount: map[string]int{
-		// 		"/1": 100,
-		// 		"/2": 100,
-		// 		"/3": 100,
-		// 	},
-		// },
+		// 		{
+		// 			name: "mongo:6.0",
+		// 			conf: fmt.Sprintf(`interval = "10s"
+		// 	servers = ["mongodb://root:example@%s:27017"]
+		// 	gather_replica_set_stats = false
+		// 	gather_cluster_stats = false
+		// 	gather_per_db_stats = true
+		// 	gather_per_col_stats = true
+		// 	col_stats_dbs = []
+		// 	gather_top_stat = true
+		// 	election = true
+		// [tags]
+		// 	tag1 = "val1"`, remote.Host),
+		// 			exposedPorts: []string{"27017/tcp"},
+		// 		},
 	}
 
 	var cases []*caseSpec
@@ -198,7 +180,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
 			opts:           base.opts,
-			// mPathCount:     base.mPathCount,
+			cmd:            base.cmd,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -230,7 +212,7 @@ type caseSpec struct {
 	dockerFileText string
 	exposedPorts   []string
 	opts           []inputs.PointCheckOption
-	mPathCount     map[string]int
+	cmd            []string
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -384,6 +366,7 @@ func (cs *caseSpec) run() error {
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
 				Env:        []string{"MONGO_INITDB_ROOT_USERNAME=root", "MONGO_INITDB_ROOT_PASSWORD=example"},
+				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -405,6 +388,7 @@ func (cs *caseSpec) run() error {
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
 				Env:        []string{"MONGO_INITDB_ROOT_USERNAME=root", "MONGO_INITDB_ROOT_PASSWORD=example"},
+				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -431,8 +415,6 @@ func (cs *caseSpec) run() error {
 	}
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
-
-	// cs.runHTTPTests(r)
 
 	var wg sync.WaitGroup
 
@@ -543,38 +525,4 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 	return nil
 }
 
-// Launch large amount of HTTP requests to remote nginx.
-func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
-	for path, count := range cs.mPathCount {
-		newURL := fmt.Sprintf("http://%s%s", r.Host, path)
-
-		var wg sync.WaitGroup
-		wg.Add(count)
-
-		for i := 0; i < count; i++ {
-			go func() {
-				defer wg.Done()
-
-				resp, err := http.Get(newURL)
-				if err != nil {
-					panic(err)
-				}
-				if err := resp.Body.Close(); err != nil {
-					panic(err)
-				}
-			}()
-		}
-
-		wg.Wait()
-	}
-}
-
 ////////////////////////////////////////////////////////////////////////////////
-
-// Dockerfiles.
-
-const dockerFileHTTPStubStatusModule = `FROM nginx:latest
-
-RUN sed -i "/location \/ {/i\    location = /server_status {" /etc/nginx/conf.d/default.conf \
-    && sed -i "/location \/ {/i\        stub_status;" /etc/nginx/conf.d/default.conf \
-    && sed -i "/location \/ {/i\    }\n" /etc/nginx/conf.d/default.conf`
