@@ -14,6 +14,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	MongoDB           = "mongodb"
+	MongoDBStats      = "mongodb_db_stats"
+	MongoDBColStats   = "mongodb_col_stats"
+	MongoDBShardStats = "mongodb_shard_stats"
+	MongoDBTopStats   = "mongodb_top_stats"
+)
+
 type mongodbMeasurement struct {
 	name     string
 	tags     map[string]string
@@ -43,7 +51,7 @@ func (m *mongodbMeasurement) LineProto() (*dkpt.Point, error) {
 //nolint:lll
 func (m *mongodbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "mongodb",
+		Name: MongoDB,
 		Tags: map[string]interface{}{
 			"hostname":  &inputs.TagInfo{Desc: "mongodb host"},
 			"node_type": &inputs.TagInfo{Desc: "node type in replica set"},
@@ -244,7 +252,7 @@ func (m *mongodbDBMeasurement) LineProto() (*dkpt.Point, error) {
 //nolint:lll
 func (m *mongodbDBMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "mongodb_db_stats",
+		Name: MongoDBStats,
 		Tags: map[string]interface{}{
 			"db_name":  &inputs.TagInfo{Desc: "database name"},
 			"hostname": &inputs.TagInfo{Desc: "mongodb host"},
@@ -292,7 +300,7 @@ func (m *mongodbColMeasurement) LineProto() (*dkpt.Point, error) {
 //nolint:lll
 func (m *mongodbColMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "mongodb_col_stats",
+		Name: MongoDBColStats,
 		Tags: map[string]interface{}{
 			"collection": &inputs.TagInfo{Desc: "collection name"},
 			"db_name":    &inputs.TagInfo{Desc: "database name"},
@@ -339,7 +347,7 @@ func (m *mongodbShardMeasurement) LineProto() (*dkpt.Point, error) {
 //nolint:lll
 func (m *mongodbShardMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "mongodb_shard_stats",
+		Name: MongoDBShardStats,
 		Tags: map[string]interface{}{
 			"hostname": &inputs.TagInfo{Desc: "mongodb host"},
 		},
@@ -381,7 +389,7 @@ func (m *mongodbTopMeasurement) LineProto() (*dkpt.Point, error) {
 //nolint:lll
 func (m *mongodbTopMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "mongodb_top_stats",
+		Name: MongoDBTopStats,
 		Tags: map[string]interface{}{
 			"collection": &inputs.TagInfo{Desc: "collection name"},
 			"hostname":   &inputs.TagInfo{Desc: "mongodb host"},

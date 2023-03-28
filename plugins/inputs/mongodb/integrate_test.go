@@ -243,61 +243,75 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		// case nginx:
-		// 	opts = append(opts, inputs.WithDoc(&NginxMeasurement{}))
+		case MongoDB:
+			opts = append(opts, inputs.WithDoc(&mongodbMeasurement{}))
 
-		// 	msgs := inputs.CheckPoint(pt, opts...)
+			msgs := inputs.CheckPoint(pt, opts...)
 
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
 
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
 
-		// case ServerZone:
-		// 	opts = append(opts, inputs.WithDoc(&ServerZoneMeasurement{}))
+		case MongoDBStats:
+			opts = append(opts, inputs.WithDoc(&mongodbDBMeasurement{}))
 
-		// 	msgs := inputs.CheckPoint(pt, opts...)
+			msgs := inputs.CheckPoint(pt, opts...)
 
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
 
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
 
-		// case UpstreamZone:
-		// 	opts = append(opts, inputs.WithDoc(&UpstreamZoneMeasurement{}))
+		case MongoDBColStats:
+			opts = append(opts, inputs.WithDoc(&mongodbColMeasurement{}))
 
-		// 	msgs := inputs.CheckPoint(pt, opts...)
+			msgs := inputs.CheckPoint(pt, opts...)
 
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
 
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
 
-		// case CacheZone:
-		// 	opts = append(opts, inputs.WithDoc(&CacheZoneMeasurement{}))
+		case MongoDBShardStats:
+			opts = append(opts, inputs.WithDoc(&mongodbShardMeasurement{}))
 
-		// 	msgs := inputs.CheckPoint(pt, opts...)
+			msgs := inputs.CheckPoint(pt, opts...)
 
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
 
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+		case MongoDBTopStats:
+			opts = append(opts, inputs.WithDoc(&mongodbTopMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
 
 		default: // TODO: check other measurement
 			panic("not implement")

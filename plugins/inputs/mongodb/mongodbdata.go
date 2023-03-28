@@ -179,7 +179,7 @@ func (d *MongodbData) append() {
 	// 	election: d.election,
 	// })
 	metric := &mongodbMeasurement{
-		name:     "mongodb",
+		name:     MongoDB,
 		tags:     copyTags(d.Tags),
 		fields:   d.Fields,
 		ts:       now,
@@ -198,7 +198,7 @@ func (d *MongodbData) append() {
 		// 	election: d.election,
 		// })
 		metric := &mongodbDBMeasurement{
-			name:     "mongodb_db_stats",
+			name:     MongoDBStats,
 			tags:     tmp,
 			fields:   db.Fields,
 			ts:       now,
@@ -219,7 +219,7 @@ func (d *MongodbData) append() {
 		// 	election: d.election,
 		// })
 		metric := &mongodbColMeasurement{
-			name:     "mongodb_col_stats",
+			name:     MongoDBColStats,
 			tags:     tmp,
 			fields:   col.Fields,
 			ts:       now,
@@ -239,7 +239,7 @@ func (d *MongodbData) append() {
 		// 	election: d.election,
 		// })
 		metric := &mongodbShardMeasurement{
-			name:     "mongodb_shard_stats",
+			name:     MongoDBShardStats,
 			tags:     tmp,
 			fields:   host.Fields,
 			ts:       now,
@@ -259,7 +259,7 @@ func (d *MongodbData) append() {
 		// 	election: d.election,
 		// })
 		metric := &mongodbTopMeasurement{
-			name:     "mongodb_top_stats",
+			name:     MongoDBTopStats,
 			tags:     tmp,
 			fields:   col.Fields,
 			ts:       now,
