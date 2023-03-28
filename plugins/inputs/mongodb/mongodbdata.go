@@ -11,8 +11,7 @@ import (
 	"strconv"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -37,14 +36,16 @@ type MongodbData struct {
 	TopStatsData  []DBData
 	collectCache  []inputs.Measurement
 	election      bool
+	feeder        dkio.Feeder
 }
 
-func NewMongodbData(statLine *StatLine, tags map[string]string, election bool) *MongodbData {
+func NewMongodbData(statLine *StatLine, tags map[string]string, election bool, feeder dkio.Feeder) *MongodbData {
 	return &MongodbData{
 		StatLine: statLine,
 		Tags:     tags,
 		Fields:   make(map[string]interface{}),
 		election: election,
+		feeder:   feeder,
 	}
 }
 
@@ -230,10 +231,14 @@ func (d *MongodbData) append() {
 
 func (d *MongodbData) flush(cost time.Duration) {
 	if len(d.collectCache) != 0 {
-		if err := inputs.FeedMeasurement(inputName, datakit.Metric, d.collectCache, &io.Option{CollectCost: cost}); err != nil {
-			log.Errorf("FeedMeasurement: %s", err)
-			io.FeedLastError(inputName, err.Error())
-		}
+		// if err := inputs.FeedMeasurement(inputName, datakit.Metric, d.collectCache, &io.Option{CollectCost: cost}); err != nil {
+		// 	log.Errorf("FeedMeasurement: %s", err)
+		// 	io.FeedLastError(inputName, err.Error())
+		// }
+
+		//
+
+		// d.collectCache = d.collectCache[:0]
 	}
 }
 

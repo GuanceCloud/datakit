@@ -6,9 +6,11 @@
 package mongodb
 
 import (
+	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -20,8 +22,22 @@ type mongodbMeasurement struct {
 	election bool
 }
 
-func (m *mongodbMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *mongodbMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *mongodbMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -207,8 +223,22 @@ type mongodbDBMeasurement struct {
 	election bool
 }
 
-func (m *mongodbDBMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *mongodbDBMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *mongodbDBMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -241,8 +271,22 @@ type mongodbColMeasurement struct {
 	election bool
 }
 
-func (m *mongodbColMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *mongodbColMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *mongodbColMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -274,8 +318,22 @@ type mongodbShardMeasurement struct {
 	election bool
 }
 
-func (m *mongodbShardMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *mongodbShardMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *mongodbShardMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -302,8 +360,22 @@ type mongodbTopMeasurement struct {
 	election bool
 }
 
-func (m *mongodbTopMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *mongodbTopMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *mongodbTopMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
