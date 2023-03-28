@@ -26,10 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func TestNginxInput(t *testing.T) {
-	// t.Setenv("REMOTE_HOST", "10.200.14.142")
-	// t.Setenv("TESTING_METRIC_PATH", "/tmp/testing.metrics")
-
+func TestMongoInput(t *testing.T) {
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -88,82 +85,92 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
 		opts           []inputs.PointCheckOption
-		mPathCount     map[string]int
+		// mPathCount     map[string]int
 	}{
 		{
-			name:           "nginx:http_stub_status_module",
-			conf:           fmt.Sprintf(`url = "http://%s/server_status"`, remote.Host),
-			dockerFileText: dockerFileHTTPStubStatusModule,
-			exposedPorts:   []string{"80/tcp"},
-			opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
-			mPathCount: map[string]int{
-				"/": 100,
-			},
+			name: "mongo:5.0",
+			conf: fmt.Sprintf(`interval = "10s"
+	servers = ["mongodb://root:example@%s:27017"]
+	gather_replica_set_stats = false
+	gather_cluster_stats = false
+	gather_per_db_stats = true
+	gather_per_col_stats = true
+	col_stats_dbs = []
+	gather_top_stat = true
+	election = true
+[tags]
+	tag1 = "val1"`, remote.Host),
+			// dockerFileText: dockerFileHTTPStubStatusModule,
+			exposedPorts: []string{"27017/tcp"},
+			// opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			// mPathCount: map[string]int{
+			// 	"/": 100,
+			// },
 		},
 
-		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.20.2",
+		// {
+		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.20.2",
 
-			conf: fmt.Sprintf(`
-		url = "http://%s/status/format/json"
-		use_vts = true`,
-				remote.Host),
+		// 	conf: fmt.Sprintf(`
+		// url = "http://%s/status/format/json"
+		// use_vts = true`,
+		// 		remote.Host),
 
-			exposedPorts: []string{"80/tcp"},
-			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
-			},
-		},
+		// 	exposedPorts: []string{"80/tcp"},
+		// 	mPathCount: map[string]int{
+		// 		"/1": 100,
+		// 		"/2": 100,
+		// 		"/3": 100,
+		// 	},
+		// },
 
-		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.21.6",
+		// {
+		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.21.6",
 
-			conf: fmt.Sprintf(`
-		url = "http://%s/status/format/json"
-		use_vts = true`,
-				remote.Host),
+		// 	conf: fmt.Sprintf(`
+		// url = "http://%s/status/format/json"
+		// use_vts = true`,
+		// 		remote.Host),
 
-			exposedPorts: []string{"80/tcp"},
-			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
-			},
-		},
+		// 	exposedPorts: []string{"80/tcp"},
+		// 	mPathCount: map[string]int{
+		// 		"/1": 100,
+		// 		"/2": 100,
+		// 		"/3": 100,
+		// 	},
+		// },
 
-		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.22.1",
+		// {
+		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.22.1",
 
-			conf: fmt.Sprintf(`
-		url = "http://%s/status/format/json"
-		use_vts = true`,
-				remote.Host),
+		// 	conf: fmt.Sprintf(`
+		// url = "http://%s/status/format/json"
+		// use_vts = true`,
+		// 		remote.Host),
 
-			exposedPorts: []string{"80/tcp"},
-			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
-			},
-		},
+		// 	exposedPorts: []string{"80/tcp"},
+		// 	mPathCount: map[string]int{
+		// 		"/1": 100,
+		// 		"/2": 100,
+		// 		"/3": 100,
+		// 	},
+		// },
 
-		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.23.3",
+		// {
+		// 	name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.23.3",
 
-			conf: fmt.Sprintf(`
-		url = "http://%s/status/format/json"
-		use_vts = true`,
-				remote.Host),
+		// 	conf: fmt.Sprintf(`
+		// url = "http://%s/status/format/json"
+		// use_vts = true`,
+		// 		remote.Host),
 
-			exposedPorts: []string{"80/tcp"},
-			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
-			},
-		},
+		// 	exposedPorts: []string{"80/tcp"},
+		// 	mPathCount: map[string]int{
+		// 		"/1": 100,
+		// 		"/2": 100,
+		// 		"/3": 100,
+		// 	},
+		// },
 	}
 
 	var cases []*caseSpec
@@ -191,7 +198,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
 			opts:           base.opts,
-			mPathCount:     base.mPathCount,
+			// mPathCount:     base.mPathCount,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -376,6 +383,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
+				Env:        []string{"MONGO_INITDB_ROOT_USERNAME=root", "MONGO_INITDB_ROOT_PASSWORD=example"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -396,6 +404,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
+				Env:        []string{"MONGO_INITDB_ROOT_USERNAME=root", "MONGO_INITDB_ROOT_PASSWORD=example"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -423,7 +432,7 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
-	cs.runHTTPTests(r)
+	// cs.runHTTPTests(r)
 
 	var wg sync.WaitGroup
 

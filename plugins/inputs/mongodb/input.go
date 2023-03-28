@@ -233,9 +233,10 @@ func (ipt *Input) Run() {
 				host = strings.TrimPrefix(v, "mongodb://")
 			}
 			ipt.mgoSvrs = append(ipt.mgoSvrs, &MongodbServer{
-				host:   host,
-				cli:    mgocli,
-				feeder: ipt.feeder,
+				host:     host,
+				cli:      mgocli,
+				election: ipt.Election,
+				feeder:   ipt.feeder,
 			})
 		}
 	}
