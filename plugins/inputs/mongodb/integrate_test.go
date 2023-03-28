@@ -79,12 +79,16 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	remote := testutils.GetRemote()
 
 	bases := []struct {
-		name           string // Also used as build image name:tag.
-		conf           string
-		dockerFileText string // Empty if not build image.
-		exposedPorts   []string
-		cmd            []string
-		opts           []inputs.PointCheckOption
+		name             string // Also used as build image name:tag.
+		conf             string
+		dockerFileText   string // Empty if not build image.
+		exposedPorts     []string
+		cmd              []string
+		optsDB           []inputs.PointCheckOption
+		optsDBStats      []inputs.PointCheckOption
+		optsDBColStats   []inputs.PointCheckOption
+		optsDBShardStats []inputs.PointCheckOption
+		optsDBTopStats   []inputs.PointCheckOption
 	}{
 		{
 			name: "mongo:3.0",
@@ -101,58 +105,76 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			tag1 = "val1"`, remote.Host),
 			exposedPorts: []string{"27017/tcp"},
 			cmd:          []string{"docker-entrypoint.sh", "mongod", "--smallfiles"},
-			opts: []inputs.PointCheckOption{
+			optsDB: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("wtcache_unmodified_pages_evicted", "percent_cache_dirty", "wtcache_max_bytes_configured", "percent_cache_used", "wtcache_internal_pages_evicted", "wtcache_pages_read_into", "wtcache_server_evicting_pages", "wtcache_app_threads_page_write_count", "wtcache_app_threads_page_read_time", "wtcache_pages_written_from", "wtcache_current_bytes", "wtcache_app_threads_page_read_count", "wtcache_pages_requested_from", "wtcache_pages_evicted_by_app_thread", "wtcache_tracked_dirty_bytes", "wtcache_worker_thread_evictingpages", "wtcache_bytes_written_from", "wtcache_pages_queued_for_eviction", "wtcache_bytes_read_into", "wtcache_modified_pages_evicted", "non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
 			},
 		},
 
-		// 		{
-		// 			name: "mongo:4.0",
-		// 			conf: fmt.Sprintf(`interval = "10s"
-		// 	servers = ["mongodb://root:example@%s:27017"]
-		// 	gather_replica_set_stats = false
-		// 	gather_cluster_stats = false
-		// 	gather_per_db_stats = true
-		// 	gather_per_col_stats = true
-		// 	col_stats_dbs = []
-		// 	gather_top_stat = true
-		// 	election = true
-		// [tags]
-		// 	tag1 = "val1"`, remote.Host),
-		// 			exposedPorts: []string{"27017/tcp"},
-		// 		},
+		{
+			name: "mongo:4.0",
+			conf: fmt.Sprintf(`interval = "10s"
+			servers = ["mongodb://root:example@%s:27017"]
+			gather_replica_set_stats = false
+			gather_cluster_stats = false
+			gather_per_db_stats = true
+			gather_per_col_stats = true
+			col_stats_dbs = []
+			gather_top_stat = true
+			election = true
+		[tags]
+			tag1 = "val1"`, remote.Host),
+			exposedPorts: []string{"27017/tcp"},
+			optsDB: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
+			},
+			optsDBStats: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("wtcache_unmodified_pages_evicted", "percent_cache_dirty", "wtcache_app_threads_page_read_count", "wtcache_max_bytes_configured", "wtcache_pages_evicted_by_app_thread", "wtcache_pages_queued_for_eviction", "wtcache_current_bytes", "wtcache_modified_pages_evicted", "wtcache_app_threads_page_write_count", "wtcache_worker_thread_evictingpages", "wtcache_bytes_read_into", "wtcache_tracked_dirty_bytes", "wtcache_pages_written_from", "wtcache_pages_requested_from", "wtcache_bytes_written_from", "percent_cache_used", "wtcache_app_threads_page_read_time", "wtcache_internal_pages_evicted", "wtcache_server_evicting_pages", "wtcache_pages_read_into"), // nolint:lll
+			},
+		},
 
-		// 		{
-		// 			name: "mongo:5.0",
-		// 			conf: fmt.Sprintf(`interval = "10s"
-		// 	servers = ["mongodb://root:example@%s:27017"]
-		// 	gather_replica_set_stats = false
-		// 	gather_cluster_stats = false
-		// 	gather_per_db_stats = true
-		// 	gather_per_col_stats = true
-		// 	col_stats_dbs = []
-		// 	gather_top_stat = true
-		// 	election = true
-		// [tags]
-		// 	tag1 = "val1"`, remote.Host),
-		// 			exposedPorts: []string{"27017/tcp"},
-		// 		},
+		{
+			name: "mongo:5.0",
+			conf: fmt.Sprintf(`interval = "10s"
+			servers = ["mongodb://root:example@%s:27017"]
+			gather_replica_set_stats = false
+			gather_cluster_stats = false
+			gather_per_db_stats = true
+			gather_per_col_stats = true
+			col_stats_dbs = []
+			gather_top_stat = true
+			election = true
+		[tags]
+			tag1 = "val1"`, remote.Host),
+			exposedPorts: []string{"27017/tcp"},
+			optsDB: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
+			},
+			optsDBStats: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("wtcache_unmodified_pages_evicted", "percent_cache_dirty", "wtcache_app_threads_page_read_count", "wtcache_max_bytes_configured", "wtcache_pages_evicted_by_app_thread", "wtcache_pages_queued_for_eviction", "wtcache_current_bytes", "wtcache_modified_pages_evicted", "wtcache_app_threads_page_write_count", "wtcache_worker_thread_evictingpages", "wtcache_bytes_read_into", "wtcache_tracked_dirty_bytes", "wtcache_pages_written_from", "wtcache_pages_requested_from", "wtcache_bytes_written_from", "percent_cache_used", "wtcache_app_threads_page_read_time", "wtcache_internal_pages_evicted", "wtcache_server_evicting_pages", "wtcache_pages_read_into"), // nolint:lll
+			},
+		},
 
-		// 		{
-		// 			name: "mongo:6.0",
-		// 			conf: fmt.Sprintf(`interval = "10s"
-		// 	servers = ["mongodb://root:example@%s:27017"]
-		// 	gather_replica_set_stats = false
-		// 	gather_cluster_stats = false
-		// 	gather_per_db_stats = true
-		// 	gather_per_col_stats = true
-		// 	col_stats_dbs = []
-		// 	gather_top_stat = true
-		// 	election = true
-		// [tags]
-		// 	tag1 = "val1"`, remote.Host),
-		// 			exposedPorts: []string{"27017/tcp"},
-		// 		},
+		{
+			name: "mongo:6.0",
+			conf: fmt.Sprintf(`interval = "10s"
+			servers = ["mongodb://root:example@%s:27017"]
+			gather_replica_set_stats = false
+			gather_cluster_stats = false
+			gather_per_db_stats = true
+			gather_per_col_stats = true
+			col_stats_dbs = []
+			gather_top_stat = true
+			election = true
+		[tags]
+			tag1 = "val1"`, remote.Host),
+			exposedPorts: []string{"27017/tcp"},
+			optsDB: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
+			},
+			optsDBStats: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("wtcache_unmodified_pages_evicted", "percent_cache_dirty", "wtcache_app_threads_page_read_count", "wtcache_max_bytes_configured", "wtcache_pages_evicted_by_app_thread", "wtcache_pages_queued_for_eviction", "wtcache_current_bytes", "wtcache_modified_pages_evicted", "wtcache_app_threads_page_write_count", "wtcache_worker_thread_evictingpages", "wtcache_bytes_read_into", "wtcache_tracked_dirty_bytes", "wtcache_pages_written_from", "wtcache_pages_requested_from", "wtcache_bytes_written_from", "percent_cache_used", "wtcache_app_threads_page_read_time", "wtcache_internal_pages_evicted", "wtcache_server_evicting_pages", "wtcache_pages_read_into"), // nolint:lll
+			},
+		},
 	}
 
 	var cases []*caseSpec
@@ -179,8 +201,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
-			opts:           base.opts,
 			cmd:            base.cmd,
+
+			optsDB:           base.optsDB,
+			optsDBStats:      base.optsDBStats,
+			optsDBColStats:   base.optsDBColStats,
+			optsDBShardStats: base.optsDBShardStats,
+			optsDBTopStats:   base.optsDBTopStats,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -206,13 +233,17 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 type caseSpec struct {
 	t *testing.T
 
-	name           string
-	repo           string
-	repoTag        string
-	dockerFileText string
-	exposedPorts   []string
-	opts           []inputs.PointCheckOption
-	cmd            []string
+	name             string
+	repo             string
+	repoTag          string
+	dockerFileText   string
+	exposedPorts     []string
+	optsDB           []inputs.PointCheckOption
+	optsDBStats      []inputs.PointCheckOption
+	optsDBColStats   []inputs.PointCheckOption
+	optsDBShardStats []inputs.PointCheckOption
+	optsDBTopStats   []inputs.PointCheckOption
+	cmd              []string
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -226,13 +257,13 @@ type caseSpec struct {
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	var opts []inputs.PointCheckOption
 	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-	opts = append(opts, cs.opts...)
 
 	for _, pt := range pts {
 		measurement := string(pt.Name())
 
 		switch measurement {
 		case MongoDB:
+			opts = append(opts, cs.optsDB...)
 			opts = append(opts, inputs.WithDoc(&mongodbMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -247,6 +278,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			}
 
 		case MongoDBStats:
+			opts = append(opts, cs.optsDBStats...)
 			opts = append(opts, inputs.WithDoc(&mongodbDBMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -261,6 +293,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			}
 
 		case MongoDBColStats:
+			opts = append(opts, cs.optsDBColStats...)
 			opts = append(opts, inputs.WithDoc(&mongodbColMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -275,6 +308,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			}
 
 		case MongoDBShardStats:
+			opts = append(opts, cs.optsDBShardStats...)
 			opts = append(opts, inputs.WithDoc(&mongodbShardMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -289,6 +323,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			}
 
 		case MongoDBTopStats:
+			opts = append(opts, cs.optsDBTopStats...)
 			opts = append(opts, inputs.WithDoc(&mongodbTopMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
