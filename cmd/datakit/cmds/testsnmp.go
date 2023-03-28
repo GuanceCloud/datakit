@@ -9,8 +9,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp/snmpmeasurement"
@@ -57,16 +60,16 @@ func testSNMP(snmpConfFile string) error {
 	specificDevices := ipt.GetSpecificDevices()
 	for deviceIP, deviceInfo := range specificDevices {
 		tn := time.Now().UTC()
-		measurements := ipt.CollectingMeasurements(deviceIP, deviceInfo, tn, true)
+		points := ipt.CollectingMeasurements(deviceIP, deviceInfo, tn, true)
 		cp.Infof("\n>>>>>>>>>>>>>>>>>> Below is SNMP object (IP: %s) <<<<<<<<<<<<<<<<<<\n", deviceIP)
-		if err := printMeasurements(measurements); err != nil {
+		if err := printMeasurements(points); err != nil {
 			return err
 		}
 
 		tn = time.Now().UTC()
-		measurements = ipt.CollectingMeasurements(deviceIP, deviceInfo, tn, false)
+		points = ipt.CollectingMeasurements(deviceIP, deviceInfo, tn, false)
 		cp.Infof("\n>>>>>>>>>>>>>>>>>> Below is SNMP metrics (IP: %s) <<<<<<<<<<<<<<<<<<\n", deviceIP)
-		if err := printMeasurements(measurements); err != nil {
+		if err := printMeasurements(points); err != nil {
 			return err
 		}
 	}
@@ -74,15 +77,24 @@ func testSNMP(snmpConfFile string) error {
 	return nil
 }
 
-func printMeasurements(measurements []inputs.Measurement) error {
-	if len(measurements) == 0 {
+func printMeasurements(pts []*point.Point) error {
+	if len(pts) == 0 {
 		return fmt.Errorf("measurements_empty")
 	}
 
-	pts, err := inputs.GetPointsFromMeasurement(measurements)
-	if err != nil {
-		return err
+	return printResult(point2dkpt(pts...))
+}
+
+// point2dkpt convert point.Point to old io/point.Point.
+func point2dkpt(pts ...*point.Point) (res []*dkpt.Point) {
+	for _, pt := range pts {
+		pt, err := influxdb.NewPoint(string(pt.Name()), pt.InfluxTags(), pt.InfluxFields(), pt.Time())
+		if err != nil {
+			continue
+		}
+
+		res = append(res, &dkpt.Point{Point: pt})
 	}
 
-	return printResult(pts)
+	return res
 }
