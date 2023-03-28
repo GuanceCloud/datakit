@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type DBData struct {
@@ -34,7 +34,7 @@ type MongodbData struct {
 	DBData        []DBData
 	ColData       []ColData
 	TopStatsData  []DBData
-	collectCache  []inputs.Measurement
+	collectCache  []*point.Point
 	election      bool
 	feeder        dkio.Feeder
 }
@@ -171,74 +171,115 @@ func (d *MongodbData) add(key string, val interface{}) {
 
 func (d *MongodbData) append() {
 	now := time.Now()
-	d.collectCache = append(d.collectCache, &mongodbMeasurement{
+	// d.collectCache = append(d.collectCache, &mongodbMeasurement{
+	// 	name:     "mongodb",
+	// 	tags:     copyTags(d.Tags),
+	// 	fields:   d.Fields,
+	// 	ts:       now,
+	// 	election: d.election,
+	// })
+	metric := &mongodbMeasurement{
 		name:     "mongodb",
 		tags:     copyTags(d.Tags),
 		fields:   d.Fields,
 		ts:       now,
 		election: d.election,
-	})
+	}
+	d.collectCache = append(d.collectCache, metric.Point())
 
 	for _, db := range d.DBData {
 		tmp := copyTags(d.Tags)
 		tmp["db_name"] = db.Name
-		d.collectCache = append(d.collectCache, &mongodbDBMeasurement{
+		// d.collectCache = append(d.collectCache, &mongodbDBMeasurement{
+		// 	name:     "mongodb_db_stats",
+		// 	tags:     tmp,
+		// 	fields:   db.Fields,
+		// 	ts:       now,
+		// 	election: d.election,
+		// })
+		metric := &mongodbDBMeasurement{
 			name:     "mongodb_db_stats",
 			tags:     tmp,
 			fields:   db.Fields,
 			ts:       now,
 			election: d.election,
-		})
+		}
+		d.collectCache = append(d.collectCache, metric.Point())
 	}
 
 	for _, col := range d.ColData {
 		tmp := copyTags(d.Tags)
 		tmp["collection"] = col.Name
 		tmp["db_name"] = col.DBName
-		d.collectCache = append(d.collectCache, &mongodbColMeasurement{
+		// d.collectCache = append(d.collectCache, &mongodbColMeasurement{
+		// 	name:     "mongodb_col_stats",
+		// 	tags:     tmp,
+		// 	fields:   col.Fields,
+		// 	ts:       now,
+		// 	election: d.election,
+		// })
+		metric := &mongodbColMeasurement{
 			name:     "mongodb_col_stats",
 			tags:     tmp,
 			fields:   col.Fields,
 			ts:       now,
 			election: d.election,
-		})
+		}
+		d.collectCache = append(d.collectCache, metric.Point())
 	}
 
 	for _, host := range d.ShardHostData {
 		tmp := copyTags(d.Tags)
 		tmp["hostname"] = host.Name
-		d.collectCache = append(d.collectCache, &mongodbShardMeasurement{
+		// d.collectCache = append(d.collectCache, &mongodbShardMeasurement{
+		// 	name:     "mongodb_shard_stats",
+		// 	tags:     tmp,
+		// 	fields:   host.Fields,
+		// 	ts:       now,
+		// 	election: d.election,
+		// })
+		metric := &mongodbShardMeasurement{
 			name:     "mongodb_shard_stats",
 			tags:     tmp,
 			fields:   host.Fields,
 			ts:       now,
 			election: d.election,
-		})
+		}
+		d.collectCache = append(d.collectCache, metric.Point())
 	}
 
 	for _, col := range d.TopStatsData {
 		tmp := copyTags(d.Tags)
 		tmp["collection"] = col.Name
-		d.collectCache = append(d.collectCache, &mongodbTopMeasurement{
+		// d.collectCache = append(d.collectCache, &mongodbTopMeasurement{
+		// 	name:     "mongodb_top_stats",
+		// 	tags:     tmp,
+		// 	fields:   col.Fields,
+		// 	ts:       now,
+		// 	election: d.election,
+		// })
+		metric := &mongodbTopMeasurement{
 			name:     "mongodb_top_stats",
 			tags:     tmp,
 			fields:   col.Fields,
 			ts:       now,
 			election: d.election,
-		})
+		}
+		d.collectCache = append(d.collectCache, metric.Point())
 	}
 }
 
 func (d *MongodbData) flush(cost time.Duration) {
-	if len(d.collectCache) != 0 {
+	if len(d.collectCache) > 0 {
 		// if err := inputs.FeedMeasurement(inputName, datakit.Metric, d.collectCache, &io.Option{CollectCost: cost}); err != nil {
 		// 	log.Errorf("FeedMeasurement: %s", err)
 		// 	io.FeedLastError(inputName, err.Error())
 		// }
 
-		//
-
-		// d.collectCache = d.collectCache[:0]
+		if err := d.feeder.Feed(inputName, point.Metric, d.collectCache, &dkio.Option{CollectCost: cost}); err != nil {
+			log.Errorf(err.Error())
+			d.feeder.FeedLastError(inputName, err.Error())
+		}
 	}
 }
 
