@@ -41,6 +41,7 @@ type Option struct {
 	Password        string `long:"password" description:"oracle password"`
 	ServiceName     string `long:"service-name" description:"oracle service name"`
 	Tags            string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
+	DatakitHTTPHost string `long:"datakit-http-host" description:"DataKit HTTP server host" default:"localhost"`
 	DatakitHTTPPort int    `long:"datakit-http-port" description:"DataKit HTTP server port" default:"9529"`
 	Election        bool   `long:"election" description:"whether election of this input is enabled"`
 
@@ -51,7 +52,7 @@ type Option struct {
 
 var (
 	opt            Option
-	l              *logger.Logger
+	l              = logger.DefaultSLogger("externals_oracle")
 	datakitPostURL = ""
 )
 
@@ -155,7 +156,7 @@ func main() {
 		Level: opt.LogLevel,
 		Flags: logger.OPT_DEFAULT,
 	}); err != nil {
-		l.Errorf("set root log faile: %s", err.Error())
+		l.Errorf("set root log failed: %s", err.Error())
 	}
 
 	if opt.InstanceDesc != "" { // add description to logger
@@ -166,14 +167,16 @@ func main() {
 
 	l.Debugf("election: %t", opt.Election)
 
+	l.Infof("datakit: host=%s, port=%d", opt.DatakitHTTPHost, opt.DatakitHTTPPort)
+
 	var (
 		ignoreGlobalHostTags = "ignore_global_host_tags=true"
 		globalEnvTags        = "global_env_tags=true"
 	)
 	if opt.Election {
-		datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle&%s&%s", opt.DatakitHTTPPort, ignoreGlobalHostTags, globalEnvTags) //nolint:lll
+		datakitPostURL = fmt.Sprintf("http://%s:%d/v1/write/metric?input=oracle&%s&%s", opt.DatakitHTTPHost, opt.DatakitHTTPPort, ignoreGlobalHostTags, globalEnvTags) //nolint:lll
 	} else {
-		datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle", opt.DatakitHTTPPort) //nolint:lll
+		datakitPostURL = fmt.Sprintf("http://%s:%d/v1/write/metric?input=oracle", opt.DatakitHTTPHost, opt.DatakitHTTPPort) //nolint:lll
 	}
 	l.Debugf("post to datakit URL: %s", datakitPostURL)
 

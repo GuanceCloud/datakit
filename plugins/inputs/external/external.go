@@ -18,7 +18,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -155,7 +155,7 @@ func (ex *ExternalInput) Run() {
 		ex.Args = append(ex.Args, []string{"--tags", tagsStr}...)
 	}
 
-	if needElectionFlag(ex.Name) && point.EnableElection && ex.Election {
+	if needElectionFlag(ex.Name) && dkpt.EnableElection && ex.Election {
 		ex.Args = append(ex.Args, "--election")
 	}
 
