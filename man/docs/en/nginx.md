@@ -10,7 +10,7 @@ NGINX collector can take many metrics from NGINX instances, such as the total nu
 
 ## Preconditions {#requirements}
 
-- NGINX version >= 1.19.6
+- NGINX version >= `1.19.6`; Already tested version: `1.20.2`, `1.21.6`, `1.22.1`, `1.23.3`;
 
 - NGINX collects the data of `http_stub_status_module` by default. When the `http_stub_status_module` is opened, see [here](http://nginx.org/en/docs/http/ngx_http_stub_status_module.html){:target="_blank"}, which will report the data of NGINX measurements later.
 
