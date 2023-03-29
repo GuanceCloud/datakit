@@ -409,7 +409,7 @@ func (cs *caseSpec) run() error {
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				c.AutoRemove = true
+				// c.AutoRemove = true
 			},
 		)
 	} else {
@@ -431,7 +431,7 @@ func (cs *caseSpec) run() error {
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				c.AutoRemove = true
+				// c.AutoRemove = true
 			},
 		)
 	}
