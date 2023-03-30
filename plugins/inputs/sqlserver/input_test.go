@@ -300,7 +300,7 @@ func TestSQLServerInput(t *T.T) {
 				tc.cr.Status = tu.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
-				assert.NoError(t, err)
+				panic(err)
 			} else {
 				tc.cr.Status = tu.TestPassed
 			}

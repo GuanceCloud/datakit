@@ -26,6 +26,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+// ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
+
 func TestNginxInput(t *testing.T) {
 	start := time.Now()
 	cases, err := buildCases(t)
@@ -53,7 +55,7 @@ func TestNginxInput(t *testing.T) {
 				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
-				assert.NoError(t, err)
+				panic(err)
 			} else {
 				tc.cr.Status = testutils.TestPassed
 			}
