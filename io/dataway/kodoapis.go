@@ -13,93 +13,24 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-func (dw *DataWayDefault) GetLogFilter() ([]byte, error) {
-	if len(dw.endPoints) == 0 {
+func (dw *Dataway) GetLogFilter() ([]byte, error) {
+	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("[error] dataway url empty")
 	}
 
-	return dw.endPoints[0].getLogFilter()
+	return dw.eps[0].getLogFilter()
 }
 
-func (dc *endPoint) GetCategoryURL() map[string]string {
-	return dc.categoryURL
-}
-
-func (dc *endPoint) getLogFilter() ([]byte, error) {
-	url, ok := dc.categoryURL[datakit.LogFilter]
-	if !ok {
-		return nil, fmt.Errorf("LogFilter API missing, should not been here")
-	}
-
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := dc.dw.sendReq(req)
-	if err != nil {
-		log.Error(err.Error())
-
-		return nil, err
-	}
-
-	defer resp.Body.Close() //nolint:errcheck
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(err.Error())
-
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("getLogFilter failed with status code %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	return body, nil
-}
-
-func (dc *endPoint) datakitPull(args string) ([]byte, error) {
-	url, ok := dc.categoryURL[datakit.DatakitPull]
-	if !ok {
-		return nil, fmt.Errorf("datakit pull API missing, should not been here")
-	}
-
-	req, err := http.NewRequest(http.MethodGet, url+"&"+args, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := dc.dw.sendReq(req)
-	if err != nil {
-		log.Error(err.Error())
-
-		return nil, err
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(err.Error())
-		return nil, err
-	}
-
-	defer resp.Body.Close() //nolint:errcheck
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("datakitPull failed with status code %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	return body, nil
-}
-
-func (dw *DataWayDefault) WorkspaceQuery(body []byte) (*http.Response, error) {
-	if len(dw.endPoints) == 0 {
+func (dw *Dataway) WorkspaceQuery(body []byte) (*http.Response, error) {
+	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
 
-	dc := dw.endPoints[0]
+	dc := dw.eps[0]
 	requrl, ok := dc.categoryURL[datakit.Workspace]
 	if !ok {
 		return nil, fmt.Errorf("no workspace query URL available")
@@ -111,15 +42,15 @@ func (dw *DataWayDefault) WorkspaceQuery(body []byte) (*http.Response, error) {
 		return nil, err
 	}
 
-	return dw.sendReq(req)
+	return dw.eps[0].sendReq(req)
 }
 
-func (dw *DataWayDefault) DQLQuery(body []byte) (*http.Response, error) {
-	if len(dw.endPoints) == 0 {
+func (dw *Dataway) DQLQuery(body []byte) (*http.Response, error) {
+	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
 
-	dc := dw.endPoints[0]
+	dc := dw.eps[0]
 	requrl, ok := dc.categoryURL[datakit.QueryRaw]
 	if !ok {
 		return nil, fmt.Errorf("no DQL query URL available")
@@ -130,17 +61,17 @@ func (dw *DataWayDefault) DQLQuery(body []byte) (*http.Response, error) {
 		return nil, err
 	}
 
-	return dw.sendReq(req)
+	return dw.eps[0].sendReq(req)
 }
 
-func (dw *DataWayDefault) Election(namespace, id string) ([]byte, error) {
-	if len(dw.endPoints) == 0 {
+func (dw *Dataway) Election(namespace, id string) ([]byte, error) {
+	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
 
-	dc := dw.endPoints[0] // 选举相关接口只只发送给第一个 dataway
+	ep := dw.eps[0]
 
-	requrl, ok := dc.categoryURL[datakit.Election]
+	requrl, ok := ep.categoryURL[datakit.Election]
 	if !ok {
 		return nil, fmt.Errorf("no election URL available")
 	}
@@ -159,7 +90,7 @@ func (dw *DataWayDefault) Election(namespace, id string) ([]byte, error) {
 		return nil, err
 	}
 
-	resp, err := dc.dw.sendReq(req)
+	resp, err := ep.sendReq(req)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -182,14 +113,14 @@ func (dw *DataWayDefault) Election(namespace, id string) ([]byte, error) {
 	}
 }
 
-func (dw *DataWayDefault) ElectionHeartbeat(namespace, id string) ([]byte, error) {
-	if len(dw.endPoints) == 0 {
+func (dw *Dataway) ElectionHeartbeat(namespace, id string) ([]byte, error) {
+	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
 
-	dc := dw.endPoints[0] // 选举相关接口只只发送给第一个 dataway
+	ep := dw.eps[0]
 
-	requrl, ok := dc.categoryURL[datakit.ElectionHeartbeat]
+	requrl, ok := ep.categoryURL[datakit.ElectionHeartbeat]
 	if !ok {
 		return nil, fmt.Errorf("no election URL available")
 	}
@@ -208,7 +139,7 @@ func (dw *DataWayDefault) ElectionHeartbeat(namespace, id string) ([]byte, error
 		return nil, err
 	}
 
-	resp, err := dc.dw.sendReq(req)
+	resp, err := ep.sendReq(req)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -229,57 +160,13 @@ func (dw *DataWayDefault) ElectionHeartbeat(namespace, id string) ([]byte, error
 	}
 }
 
-func (dc *endPoint) heartBeat(data []byte) (int, error) {
-	requrl, ok := dc.categoryURL[datakit.HeartBeat]
-	if !ok {
-		return heartBeatIntervalDefault, fmt.Errorf("HeartBeat API missing, should not been here")
-	}
-
-	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(data))
-	if err != nil {
-		return heartBeatIntervalDefault, err
-	}
-
-	if dc.ontest {
-		return heartBeatIntervalDefault, nil
-	}
-
-	resp, err := dc.dw.sendReq(req)
-	if err != nil {
-		return heartBeatIntervalDefault, err
-	}
-
-	defer resp.Body.Close() //nolint:errcheck
-
-	if resp.StatusCode >= 400 {
-		err := fmt.Errorf("heart beat resp err: %+#v", resp)
-		return heartBeatIntervalDefault, err
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return heartBeatIntervalDefault, err
-	}
-	type heartBeat struct {
-		Content struct {
-			Interval int `json:"interval"`
-		} `json:"content"`
-	}
-
-	var hb heartBeat
-	if err := json.Unmarshal(body, &hb); err != nil {
-		log.Errorf(`%s, body: %s`, err, string(body))
-		return heartBeatIntervalDefault, err
-	}
-	return hb.Content.Interval, nil
-}
-
-func (dw *DataWayDefault) DatawayList() ([]string, int, error) {
-	if len(dw.endPoints) == 0 {
+func (dw *Dataway) DatawayList() ([]string, int, error) {
+	if len(dw.eps) == 0 {
 		return nil, datawayListIntervalDefault, fmt.Errorf("no dataway available")
 	}
 
-	dc := dw.endPoints[0]
-	requrl, ok := dc.categoryURL[datakit.ListDataWay]
+	ep := dw.eps[0]
+	requrl, ok := ep.categoryURL[datakit.ListDataWay]
 	if !ok {
 		return nil, datawayListIntervalDefault, fmt.Errorf("dataway list API not available")
 	}
@@ -289,7 +176,7 @@ func (dw *DataWayDefault) DatawayList() ([]string, int, error) {
 		return nil, datawayListIntervalDefault, err
 	}
 
-	resp, err := dw.sendReq(req)
+	resp, err := ep.sendReq(req)
 	if err != nil {
 		return nil, datawayListIntervalDefault, err
 	}
@@ -317,43 +204,14 @@ func (dw *DataWayDefault) DatawayList() ([]string, int, error) {
 	return dws.Content.DatawayList, dws.Content.Interval, nil
 }
 
-func (dw *DataWayDefault) HeartBeat() (int, error) {
-	body := map[string]interface{}{
-		"dk_uuid":   dw.Hostname, // 暂用 hostname 代之, 后将弃用该字段
-		"heartbeat": time.Now().Unix(),
-		"host":      dw.Hostname,
-	}
-
-	if dw.httpCli == nil {
-		if err := dw.initHTTP(); err != nil {
-			return heartBeatIntervalDefault, err
-		}
-	}
-
-	bodyByte, err := json.Marshal(body)
-	if err != nil {
-		err := fmt.Errorf("[error] heartbeat json marshal err: %w", err)
-		return heartBeatIntervalDefault, err
-	}
-	var interval int
-	for _, dc := range dw.endPoints {
-		interval, err = dc.heartBeat(bodyByte)
-		if err != nil {
-			return heartBeatIntervalDefault, err
-		}
-	}
-
-	return interval, nil
-}
-
-// UpsertObjectLabels , dw api create or update object labels.
-func (dw *DataWayDefault) UpsertObjectLabels(tkn string, body []byte) (*http.Response, error) {
-	if len(dw.endPoints) == 0 {
+// UpsertObjectLabels used to create or update object labels.
+func (dw *Dataway) UpsertObjectLabels(tkn string, body []byte) (*http.Response, error) {
+	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
 
-	dc := dw.endPoints[0]
-	requrl, ok := dc.categoryURL[datakit.ObjectLabel]
+	ep := dw.eps[0]
+	requrl, ok := ep.categoryURL[datakit.ObjectLabel]
 	if !ok {
 		return nil, fmt.Errorf("no object labels URL available")
 	}
@@ -363,17 +221,17 @@ func (dw *DataWayDefault) UpsertObjectLabels(tkn string, body []byte) (*http.Res
 		return nil, fmt.Errorf("delete object label error: %w", err)
 	}
 
-	return dw.sendReq(req)
+	return ep.sendReq(req)
 }
 
-// DeleteObjectLabels , dw api delete object labels.
-func (dw *DataWayDefault) DeleteObjectLabels(tkn string, body []byte) (*http.Response, error) {
-	if len(dw.endPoints) == 0 {
+// DeleteObjectLabels used to delete object labels.
+func (dw *Dataway) DeleteObjectLabels(tkn string, body []byte) (*http.Response, error) {
+	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
 
-	dc := dw.endPoints[0]
-	requrl, ok := dc.categoryURL[datakit.ObjectLabel]
+	ep := dw.eps[0]
+	requrl, ok := ep.categoryURL[datakit.ObjectLabel]
 	if !ok {
 		return nil, fmt.Errorf("no object labels URL available")
 	}
@@ -384,20 +242,20 @@ func (dw *DataWayDefault) DeleteObjectLabels(tkn string, body []byte) (*http.Res
 		return nil, fmt.Errorf("delete object label error: %w", err)
 	}
 
-	return dw.sendReq(req)
+	return ep.sendReq(req)
 }
 
-func (dw *DataWayDefault) GetAvailableEndpoints() []*endPoint {
-	return dw.endPoints
+func (dw *Dataway) GetAvailableEndpoints() []*endPoint {
+	return dw.eps
 }
 
-func (dw *DataWayDefault) UploadLog(r io.Reader, hostName string) (*http.Response, error) {
-	if len(dw.endPoints) == 0 {
+func (dw *Dataway) UploadLog(r io.Reader, hostName string) (*http.Response, error) {
+	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
 
-	dc := dw.endPoints[0]
-	reqURL, ok := dc.categoryURL[datakit.LogUpload]
+	ep := dw.eps[0]
+	reqURL, ok := ep.categoryURL[datakit.LogUpload]
 	if !ok {
 		return nil, fmt.Errorf("no file upload URL available")
 	}
@@ -408,5 +266,13 @@ func (dw *DataWayDefault) UploadLog(r io.Reader, hostName string) (*http.Respons
 	}
 
 	req.Header.Add("Host-Name", hostName)
-	return dw.sendReq(req)
+	return ep.sendReq(req)
+}
+
+func (dw *Dataway) Pull(args string) ([]byte, error) {
+	if dw.ClientsCount() == 0 {
+		return nil, fmt.Errorf("dataway URL not set")
+	}
+
+	return dw.eps[0].datakitPull(args)
 }

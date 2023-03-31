@@ -16,11 +16,12 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -88,9 +89,9 @@ type Input struct {
 	reqMemo requestMemo
 
 	// For testing purpose.
-	feed func(name, category string, pts []*point.Point, opt *iod.Option) error
+	feed func(name, category string, pts []*dkpt.Point, opt *iod.Option) error
 
-	feedLastError func(inputName string, err string)
+	feedLastError func(inputName string, err string, cat ...point.Category)
 }
 
 func (ipt *Input) ElectionEnabled() bool {
@@ -223,7 +224,7 @@ func (ipt *Input) gather() {
 	}
 }
 
-func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
+func (ipt *Input) gatherMetrics() ([]*dkpt.Point, error) {
 	resp, err := ipt.httpClient.Get(ipt.URL)
 	if err != nil {
 		return nil, err
@@ -235,7 +236,7 @@ func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
 		return nil, err
 	}
 
-	var points []*point.Point
+	var points []*dkpt.Point
 
 	for _, m := range metrics {
 		measurement := inputName
@@ -253,12 +254,12 @@ func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
 			m.tags[k] = v
 		}
 
-		point, err := point.NewPoint(measurement, m.tags, m.fields, point.MOptElectionV2(ipt.Election))
+		pt, err := dkpt.NewPoint(measurement, m.tags, m.fields, dkpt.MOptElectionV2(ipt.Election))
 		if err != nil {
 			l.Warn(err)
 			continue
 		}
-		points = append(points, point)
+		points = append(points, pt)
 	}
 
 	return points, nil

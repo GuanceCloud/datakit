@@ -337,7 +337,7 @@ You can see in the datakit monitor that `regionid` for `cn-qingdao` is filtered 
 
 ## FAQ {#faq}
 
-### View Synchronized Filters {#debug-filter}
+### :material-chat-question: View Synchronized Filters {#debug-filter}
 
 [:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
 

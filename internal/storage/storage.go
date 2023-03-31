@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
-	cache "github.com/GuanceCloud/cliutils/diskcache"
+	dc "github.com/GuanceCloud/cliutils/diskcache"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -36,7 +36,7 @@ type ConsumerFunc func(buf []byte) error
 
 type Storage struct {
 	path      string
-	cache     *cache.DiskCache
+	cache     *dc.DiskCache
 	log       *logger.Logger
 	exit      *cliutils.Sem
 	consumers map[uint8]ConsumerFunc
@@ -48,7 +48,9 @@ func NewStorage(config *StorageConfig, log *logger.Logger) (*Storage, error) {
 		return nil, errors.New("storage config error")
 	}
 
-	cache, err := cache.Open(datakit.JoinToCacheDir(config.Path), &cache.Option{Capacity: int64(config.Capacity) << 20})
+	cache, err := dc.Open(
+		dc.WithPath(datakit.JoinToCacheDir(config.Path)),
+		dc.WithCapacity(int64(config.Capacity)<<20))
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +88,7 @@ func (s *Storage) RunConsumeWorker() error {
 
 			key, buf, err := s.Get()
 			if err != nil {
-				if errors.Is(err, cache.ErrEOF) {
+				if errors.Is(err, dc.ErrEOF) {
 					s.log.Debug("local-cache empty")
 					time.Sleep(time.Second)
 					continue

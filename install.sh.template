@@ -415,59 +415,9 @@ if [ -n "$DK_GIN_LOG" ]; then
 fi
 
 
-sink_metric=""
-if [ -n "$DK_SINK_M" ]; then
-	sink_metric=$DK_SINK_M
-fi
-
-sink_network=""
-if [ -n "$DK_SINK_N" ]; then
-	sink_network=$DK_SINK_N
-fi
-
-sink_keyevent=""
-if [ -n "$DK_SINK_K" ]; then
-	sink_keyevent=$DK_SINK_K
-fi
-
-sink_object=""
-if [ -n "$DK_SINK_O" ]; then
-	sink_object=$DK_SINK_O
-fi
-
-sink_custom_object=""
-if [ -n "$DK_SINK_CO" ]; then
-	sink_custom_object=$DK_SINK_CO
-fi
-
-sink_logging=""
-if [ -n "$DK_SINK_L" ]; then
-	sink_logging=$DK_SINK_L
-fi
-
-sink_tracing=""
-if [ -n "$DK_SINK_T" ]; then
-	sink_tracing=$DK_SINK_T
-fi
-
-sink_rum=""
-if [ -n "$DK_SINK_R" ]; then
-	sink_rum=$DK_SINK_R
-fi
-
-sink_security=""
-if [ -n "$DK_SINK_S" ]; then
-	sink_security=$DK_SINK_S
-fi
-
-sink_profile=""
-if [ -n "$DK_SINK_P" ]; then
-	sink_profile=$DK_SINK_P
-fi
-
-log_sink_detail=""
-if [ -n "$DK_LOG_SINK_DETAIL" ]; then
-	log_sink_detail=$DK_LOG_SINK_DETAIL
+sinker=""
+if [ -n "$DK_SINKER" ]; then
+	sinker=$DK_SINKER
 fi
 
 user_name=""
@@ -553,17 +503,7 @@ $sudo_cmd $installer \
 		--log-level="${log_level}" \
 		--log="${log}" \
 		--ipdb-type="${ipdb_type}" \
-		--sink-metric="${sink_metric}" \
-		--sink-network="${sink_network}" \
-		--sink-keyevent="${sink_keyevent}" \
-		--sink-object="${sink_object}" \
-		--sink-custom-object="${sink_custom_object}" \
-		--sink-logging="${sink_logging}" \
-		--sink-tracing="${sink_tracing}" \
-		--sink-rum="${sink_rum}" \
-		--sink-security="${sink_security}" \
-		--sink-profile="${sink_profile}" \
-		--log-sink-detail="${log_sink_detail}" \
+		--sinker="${sinker}" \
 		--user-name="${user_name}" \
 		--gin-log="${gin_log}"
 		fi

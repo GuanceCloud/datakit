@@ -325,6 +325,11 @@ func (ipt *Input) Pause() error {
 	select {
 	case ipt.pauseCh <- true:
 		return nil
+
+	case <-datakit.Exit.Wait():
+		log.Info("pause mongodb interrupted by global exit.")
+		return nil
+
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}

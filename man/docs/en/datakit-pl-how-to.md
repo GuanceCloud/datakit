@@ -2,13 +2,13 @@
 # How to Write Pipeline Scripts
 ---
 
-Pipeline writing is relatively troublesome, so DataKit has built-in simple debugging tools to help you write Pipeline scripts.
+Pipeline writing is relatively troublesome, so Datakit has built-in simple debugging tools to help you write Pipeline scripts.
 
 ## Debug grok and pipeline {#debug}
 
 Specify the pipeline script name and enter a piece of text to determine whether the extraction is successful or not.
 
-> The pipeline script must be placed in the *<DataKit 安装目录>/pipeline* directory.
+> The pipeline script must be placed in the *[Datakit 安装目录]/pipeline* directory.
 
 ```shell
 $ datakit pipeline your_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
@@ -42,7 +42,7 @@ For more Pipeline debugging commands, see `datakit help pipeline`.
 
 ### Grok Wildcard Search {#grokq}
 
-Manual matching is troublesome due to the large number of Grok patterns. DataKit provides an interactive command-line tool, `grokq`（grok query）：
+Manual matching is troublesome due to the large number of Grok patterns. Datakit provides an interactive command-line tool, `grokq`（grok query）：
 
 ```Shell
 datakit tool --grokq
@@ -62,7 +62,7 @@ grokq > Q                              # Q or exit
 Bye!
 ```
 
-???+ info
+???+ attention
 
     In Windows environment, debug in Powershell.
 
@@ -118,10 +118,10 @@ The following cutting results are obtained:
 
 In all the fields cut out by Pipeline, they are a field rather than a tag. We should not cut out any fields with the same name as tag due to the [line protocol constraint](apis.md#lineproto-limitation). These tags include the following categories:
 
-- [Global Tag](datakit-conf.md#set-global-tag) in DataKit
+- [Global Tag](datakit-conf.md#set-global-tag) in Datakit
 - [Custom Tag](logging.md#measurements) in Log Collector
 
-In addition, all collected logs have the following reserved fields. ==We should not override these fields==, otherwise the data may not appear properly on the observer page.
+In addition, all collected logs have the following reserved fields. We should not override these fields, otherwise the data may not appear properly on the observer page.
 
 | Field Name    | Type          | Description                                  |
 | ---       | ----          | ----                                  |
@@ -139,13 +139,13 @@ In addition, all collected logs have the following reserved fields. ==We should 
 Once the Pipeline cut-out field has the same name as the existing Tag (case sensitive), it will cause the following data error. Therefore, it is recommended to bypass these field naming in Pipeline cutting.
 
 ```shell
-# This error is visible in the DataKit monitor
+# This error is visible in the Datakit monitor
 same key xxx in tag and field
 ```
 
 ### Complete Pipeline Sample {#example}
 
-Take DataKit's own log cutting as an example. DataKit's own log form is as follows:
+Take Datakit's own log cutting as an example. Datakit's own log form is as follows:
 
 ```
 2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms
@@ -166,7 +166,7 @@ drop_origin_data()       # discard the original log text (not recommended)
 
 Several user-defined patterns are referenced, such as `_dklog_date`、`_dklog_level`. We put these rules under `<datakit安装目录>/pipeline/pattern` .
 
-> Note that the user-defined pattern must be placed in the `<DataKit安装目录/pipeline/pattern/>` directory) if it needs to be ==globally effective== (that is, applied in other pipeline scripts):
+> Note that the user-defined pattern must be placed in the *[Datakit 安装目录]/pipeline/pattern/* directory) if it needs to be globally effective (that is, applied in other pipeline scripts):
 
 ```Shell
 $ cat pipeline/pattern/datakit
@@ -180,7 +180,7 @@ _dklog_source_file (/?[\w_%!$@:.,-]?/?)(\S+)?
 _dklog_msg %{GREEDYDATA}
 ```
 
-Now that you have the pipeline and its referenced pattern, you can cut this line of logs through DataKit's built-in pipeline debugging tool:
+Now that you have the pipeline and its referenced pattern, you can cut this line of logs through Datakit's built-in pipeline debugging tool:
 
 ```Shell
 # Extract successful examples
@@ -197,7 +197,7 @@ Extracted data(cost: 421.705µs):
 
 ## FAQ {#faq}
 
-### Why can't variables be referenced when Pipeline is debugging? {#ref-variables}
+### :material-chat-question: Why can't variables be referenced when Pipeline is debugging? {#ref-variables}
 
 Pipeline:
 
@@ -224,7 +224,7 @@ json(_, `@timestamp`, "time")
 
 See [Basic syntax rules of Pipeline](pipeline.md#basic-syntax)
 
-### When debugging Pipeline, why can't you find the corresponding Pipeline script? {#pl404}
+### :material-chat-question: When debugging Pipeline, why can't you find the corresponding Pipeline script? {#pl404}
 
 The order is as follows:
 
@@ -235,34 +235,36 @@ $ datakit pipeline test.p -T "..."
 
 ---
 
-A: Pipeline scripts for debugging. Place them in *<DataKit 安装目录>/pipeline* Directory.
+A: Pipeline scripts for debugging. Place them in *<Datakit 安装目录>/pipeline* Directory.
 
-### How to cut logs in many different formats in one Pipeline? {#if-else}
+### :material-chat-question: How to cut logs in many different formats in one Pipeline? {#if-else}
 
-In daily logs, because of different services, logs will take on various forms. At this time, multiple Grok cuts need to be written. In order to improve the running efficiency of Grok, ==you can give priority to matching the Grok with higher frequency according to the frequency of logs==, so that high probability logs can be matched in the previous Groks, avoiding invalid matching.
+In daily logs, because of different services, logs will take on various forms. At this time, multiple Grok cuts need to be written. In order to improve the running efficiency of Grok, you can give priority to matching the Grok with higher frequency according to the frequency of logs, so that high probability logs can be matched in the previous Groks, avoiding invalid matching.
 
-> In log cutting, Grok matching is the most expensive part, so avoiding repeated Grok matching can greatly improve the cutting performance of Grok.
+???+ attention
 
-```python
-grok(_, "%{NOTSPACE:client_ip} %{NOTSPACE:http_ident} ...")
-if client_ip != nil {
-	# Prove that the above grok has matched at this time, then continue the subsequent processing according to the log
-	...
-} else {
-	# Here shows that there is a different log, and the above grok does not match the current log
-	grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg} ...")
+    In log cutting, Grok matching is the most expensive part, so avoiding repeated Grok matching can greatly improve the cutting performance of Grok.
 
-	if status != nil {
-		# Here you can check whether the grok above matches...
-	} else {
-		# Unrecognized logs, or a grok can be added here to process them, so as to step by step
-	}
-}
-```
+    ```python
+    grok(_, "%{NOTSPACE:client_ip} %{NOTSPACE:http_ident} ...")
+    if client_ip != nil {
+        # Prove that the above grok has matched at this time, then continue the subsequent processing according to the log
+        ...
+    } else {
+        # Here shows that there is a different log, and the above grok does not match the current log
+        grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg} ...")
+    
+        if status != nil {
+            # Here you can check whether the grok above matches...
+        } else {
+            # Unrecognized logs, or a grok can be added here to process them, so as to step by step
+        }
+    }
+    ```
 
-### How to discard field cut? {#drop-keys}
+### :material-chat-question: How to discard field cut? {#drop-keys}
 
-In some cases, all we need is ==a few fields in the middle of log==, but it is difficult to skip the previous parts, such as: 
+In some cases, all we need is a few fields in the middle of log, but it is difficult to skip the previous parts, such as: 
 
 ```
 200 356 1 0 44 30032 other messages
@@ -274,7 +276,7 @@ Where we only need the value of `44` , which may be code response delay, we can 
 grok(_, "%{INT} %{INT} %{INT} %{INT:response_time} %{GREEDYDATA}")
 ```
 
-### `add_pattern()` Escape Problem {#escape}
+### :material-chat-question: `add_pattern()` Escape Problem {#escape}
 
 When you use `add_pattern()` to add local patterns, you are prone to escape problems, such as the following pattern (used to match file paths and file names):
 

@@ -127,11 +127,11 @@ var (
 	fsMonitor                  = pflag.NewFlagSet(fsMonitorName, pflag.ContinueOnError)
 	flagMonitorTo              = fsMonitor.String("to", "localhost:9529", "specify the DataKit(IP:Port) to show its statistics")
 	flagMonitorMaxTableWidth   = fsMonitor.IntP("max-table-width", "W", 128, "set max table cell width")
-	flagMonitorOnlyInputs      = fsMonitor.StringSliceP("input", "I", nil, "show only specified inputs stats, seprated by ',', i.e., -I cpu,mem")
 	flagMonitorLogPath         = fsMonitor.String("log", commonLogFlag(), "command line log path")
 	flagMonitorRefreshInterval = fsMonitor.DurationP("refresh", "R", 5*time.Second, "refresh interval")
 	flagMonitorVerbose         = fsMonitor.BoolP("verbose", "V", false, "show all statistics info, default not show goroutine and inputs config info")
-	flagMonitorModule          = fsMonitor.StringSliceP("module", "M", nil, "show only specified module stats, seprated by ',', i.e., -M filter,inputs")
+	flagMonitorModule          = fsMonitor.StringP("module", "M", "", "show only specified module stats, seprated by ',', i.e., -M filter,inputs")
+	flagMonitorOnlyInputs      = fsMonitor.StringP("input", "I", "", "show only specified inputs stats, seprated by ',', i.e., -I cpu,mem")
 	fsMonitorUsage             = func() {
 		fmt.Printf("usage: datakit monitor [options]\n\n")
 		fmt.Printf("Monitor used to show datakit running statistics\n\n")
@@ -372,11 +372,13 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
-			nomodule := existsModule(*flagMonitorModule)
-			if len(nomodule) != 0 {
-				*flagMonitorVerbose = false
-				cp.Errorf("has no module:%+v,check please!\n", nomodule)
-				os.Exit(-1)
+			if *flagMonitorModule != "" {
+				nomodule := existsModule(strings.Split(*flagMonitorModule, ","))
+				if len(nomodule) != 0 {
+					*flagMonitorVerbose = false
+					cp.Errorf("has no module:%+v,check please!\n", nomodule)
+					os.Exit(-1)
+				}
 			}
 
 			setCmdRootLog(*flagMonitorLogPath)

@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
@@ -30,40 +29,18 @@ var (
 	)
 )
 
-func isValidDataway(c *Config) bool {
-	if c.DataWayCfg == nil {
-		l.Error("config.Cfg.DataWayCfg == nil")
-		return false
+func isValidDataway(c *Config) error {
+	if c.Dataway == nil {
+		return fmt.Errorf("dataway not set")
 	}
 
-	if len(c.DataWayCfg.URLs) == 0 {
-		l.Error("len(config.Cfg.DataWayCfg.URLs) == 0")
-		return false
+	if len(c.Dataway.URLs) == 0 {
+		return fmt.Errorf("dataway URL not set")
 	}
 
-	return true
-}
+	// TODO: check if dataway's sinkers ok
 
-func isValidSink(c *Config) bool {
-	if c.Sinks == nil {
-		l.Error("config.Cfg.Sinks == nil")
-		return false
-	}
-
-	if len(c.Sinks.Sink) == 0 {
-		l.Error("len(config.Cfg.Sinks.Sink) == 0")
-		return false
-	}
-
-	empty := true
-	for _, v := range c.Sinks.Sink {
-		if _, ok := v["target"]; ok {
-			empty = false
-			break
-		}
-	}
-
-	return !empty
+	return nil
 }
 
 func LoadCfg(c *Config, mcp string) error {
@@ -102,15 +79,14 @@ func LoadCfg(c *Config, mcp string) error {
 		return err
 	}
 
-	// check dataway and sink config
-	checkutil.CheckConditionExit(func() bool {
-		if !isValidDataway(c) && !isValidSink(c) {
-			l.Errorf("dataway and sink not set")
-			return false
-		}
+	// check dataway config
+	if err := isValidDataway(c); err != nil {
+		l.Errorf("ValidDataway: %s", err)
+		return err
+	}
 
-		return true
-	})
+	//	return true
+	// })
 
 	l.Infof("loaded main cfg: \n%s", c.String())
 

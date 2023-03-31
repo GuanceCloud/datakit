@@ -15,6 +15,16 @@ DataKit 主配置用来配置 DataKit 自己的运行行为。
 
     DaemonSet 安装时，虽然在对应目录下也存在这个文件，**但实际上 DataKit 并不加载这里的配置**。这些配是通过在 datakit.yaml 中[注入环境变量](datakit-daemonset-deploy.md#using-k8-env)来生成的。下面所有的配置，都能在 Kubernates 部署文档中找到[对应的环境变量](datakit-daemonset-deploy.md#using-k8-env)配置。
 
+## Datakit 主配置示例 {#maincfg-example}
+
+Datakit 主配置示例如下，我们可以根据该示例来开启各种功能（当前版本 {{ .Version }}）：
+
+??? info "datakit.conf"
+
+    ```toml
+    {{ CodeBlock .DatakitConfSample 4 }}
+    ```
+
 ## HTTP 服务的配置 {#config-http-server}
 
 DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基础的数据服务。
@@ -159,14 +169,17 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
 #### IO 磁盘缓存 {#io-disk-cache}
 
+[:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8) · [:octicons-beaker-24: Experimental](index.md#experimental)
+
 当 DataKit 发送数据失败后，为了不丢失关键数据，可以开启磁盘缓存。磁盘缓存的目的在于将发送失败的数据暂时存入磁盘，待条件允许时，再将数据发送出去。
 
 === "datakit.conf"
 
     ```toml
     [io]
-      enable_cache = true   # 开启磁盘缓存
-      cache_max_size_gb = 5 # 指定磁盘大小为 5GB
+      enable_cache      = true   # 开启磁盘缓存
+      cache_all         = false  # 是否全类缓存（默认情况下，指标/对象/拨测数据不缓存）
+      cache_max_size_gb = 5      # 指定每个分类磁盘大小为 5GB
     ```
 
 === "Kubernetes"
@@ -177,7 +190,7 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
 ???+ attention
 
-    目前不支持时序数据的缓存，除此之外的数据，都支持发送失败的磁盘缓存。另外，由于限制了磁盘大小，如果发送一直失败，导致磁盘超过上限，仍然会丢失数据（优先丢弃较老的数据）。
+    这里的 `cache_max_size_gb` 指每个分类（Category）的缓存大小，总共 10 个分类的话，如果每个指定 5GB，理论上会占用 50GB 左右的空间。
 
 ### cgroup 限制  {#enable-cgroup}
 
@@ -242,7 +255,7 @@ ulimit 默认配置为 64000。在 Kubernates 中，通过[设置 `ENV_ULIMIT`](
 
 ## FAQ {#faq}
 
-### cgroup 设置失败 {#cgoup-fail}
+### :material-chat-question: cgroup 设置失败 {#cgoup-fail}
 
 有时候启用 cgroup 会失败，在 [DataKit Monitor](datakit-monitor.md) 的 `Basic Info` 中会报告类似如下错误：
 
@@ -256,14 +269,16 @@ write /sys/fs/cgroup/memory/datakit/memory.limit_in_bytes: invalid argument
 sudo cgdelete memory:/datakit
 ```
 
-> `cgdelete` 可能需额外安装工具包：
-> 
-> - Ubuntu: `apt-get install libcgroup-tools`
-> - CentOS: `yum install libcgroup-tools`
+???+ attention
 
-### cgroup CPU 使用率说明 {#cgroup-how}
+    `cgdelete` 可能需额外安装工具包：
+    
+    - Ubuntu: `apt-get install libcgroup-tools`
+    - CentOS: `yum install libcgroup-tools`
 
-CPU 使用率是百分比制（==最大值 100.0==），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，==在 top 命令上将显示为 160% 左右==。`cpu_min` 同理。
+### :material-chat-question: cgroup CPU 使用率说明 {#cgroup-how}
+
+CPU 使用率是百分比制（最大值 100.0），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，在 top 命令上将显示为 160% 左右。`cpu_min` 同理。
 
 ## 延伸阅读 {#more-reading}
 

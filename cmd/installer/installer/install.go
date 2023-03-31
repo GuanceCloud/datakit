@@ -18,7 +18,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 )
 
 var InstallExternals = ""
@@ -52,12 +51,16 @@ func Install(svc service.Service) {
 	// prepare dataway info and check token format
 	if len(Dataway) != 0 {
 		var err error
-		mc.DataWay, err = getDataWay()
+		mc.Dataway, err = getDataway()
 		if err != nil {
 			cp.Errorf("%s\n", err.Error())
 			l.Fatal(err)
 		}
 		cp.Infof("Set dataway to %s\n", Dataway)
+	}
+
+	if Sinker != "" {
+		mc.LoadSink(Sinker)
 	}
 
 	if OTA {
@@ -206,16 +209,6 @@ func Install(svc service.Service) {
 		mc.Logging.GinLog = GinLog
 	}
 
-	// parse sink
-	if err := parseSinkArgs(mc); err != nil {
-		mc.Sinks.Sink = []map[string]interface{}{{}} // clear
-		l.Fatalf("parseSinkArgs failed: %s", err.Error())
-	}
-	if LogSinkDetail != "" {
-		l.Info("set enable log sink detail.")
-		mc.LogSinkDetail = true
-	}
-
 	writeDefInputToMainCfg(mc)
 
 	// build datakit main config
@@ -270,48 +263,4 @@ func addConfdConfig(mcPrt *config.Config) {
 			CircleInterval:    ConfdCircleInterval,
 		}}
 	}
-}
-
-func parseSinkArgs(mc *config.Config) error {
-	if mc == nil {
-		return fmt.Errorf("invalid main config")
-	}
-
-	if mc.Sinks == nil {
-		return fmt.Errorf("invalid main config sinks")
-	}
-
-	categoryShorts := []string{
-		datakit.SinkCategoryMetric,
-		datakit.SinkCategoryNetwork,
-		datakit.SinkCategoryKeyEvent,
-		datakit.SinkCategoryObject,
-		datakit.SinkCategoryCustomObject,
-		datakit.SinkCategoryLogging,
-		datakit.SinkCategoryTracing,
-		datakit.SinkCategoryRUM,
-		datakit.SinkCategorySecurity,
-		datakit.SinkCategoryProfiling,
-	}
-
-	args := []string{
-		SinkMetric,
-		SinkNetwork,
-		SinkKeyEvent,
-		SinkObject,
-		SinkCustomObject,
-		SinkLogging,
-		SinkTracing,
-		SinkRUM,
-		SinkSecurity,
-		SinkProfiling,
-	}
-
-	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
-	if err != nil {
-		return err
-	}
-
-	mc.Sinks.Sink = sinks
-	return nil
 }

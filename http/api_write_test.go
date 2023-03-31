@@ -23,8 +23,7 @@ import (
 	"github.com/influxdata/influxdb1-client/models"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 func BenchmarkHandleWriteBody(b *testing.B) {
@@ -234,7 +233,7 @@ type apiWriteMock struct {
 	t *testing.T
 }
 
-func (x *apiWriteMock) sendToIO(string, string, []*point.Point, *io.Option) error {
+func (x *apiWriteMock) sendToIO(string, string, []*dkpt.Point, *io.Option) error {
 	x.t.Helper()
 	x.t.Log("under mock impl: sendToIO")
 	return nil // do nothing
@@ -379,7 +378,7 @@ func TestAPIWrite(t *testing.T) {
 			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}, "time":` + fmt.Sprintf("%d", timestamp) + `}]`),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
-				Content: []*sinkcommon.JSONPoint{
+				Content: []*dkpt.JSONPoint{
 					{
 						Measurement: "view",
 						Tags: map[string]string{
@@ -401,7 +400,7 @@ func TestAPIWrite(t *testing.T) {
 			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}, "time":` + fmt.Sprintf("%d", timestamp*1000*1000*1000) + `}]`),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
-				Content: []*sinkcommon.JSONPoint{
+				Content: []*dkpt.JSONPoint{
 					{
 						Measurement: "view",
 						Tags: map[string]string{
@@ -430,7 +429,7 @@ func TestAPIWrite(t *testing.T) {
 			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 ` + fmt.Sprintf("%d", timestamp)),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
-				Content: []*sinkcommon.JSONPoint{
+				Content: []*dkpt.JSONPoint{
 					{
 						Measurement: "measurement",
 						Tags: map[string]string{
@@ -451,7 +450,7 @@ func TestAPIWrite(t *testing.T) {
 			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 ` + fmt.Sprintf("%d", timestamp*1000*1000*1000)),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
-				Content: []*sinkcommon.JSONPoint{
+				Content: []*dkpt.JSONPoint{
 					{
 						Measurement: "measurement",
 						Tags: map[string]string{
@@ -500,7 +499,7 @@ func TestAPIWrite(t *testing.T) {
 			body:             []byte(`[{"measurement":"object-class","tags":{"name": "1"}, "fields":{"f1":1, "message": "dump object message"}, "time": 123}]`),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
-				Content: []*sinkcommon.JSONPoint{
+				Content: []*dkpt.JSONPoint{
 					{
 						Measurement: "object-class",
 						Tags: map[string]string{
@@ -532,7 +531,7 @@ func TestAPIWrite(t *testing.T) {
 			body:             []byte(`[{"measurement":"object-class","tags":{"name": "1"}, "fields":{"f1":1, "message": "dump object message"}, "time": 123}]`),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
-				Content: []*sinkcommon.JSONPoint{
+				Content: []*dkpt.JSONPoint{
 					{
 						Measurement: "object-class",
 						Tags: map[string]string{
@@ -555,17 +554,17 @@ func TestAPIWrite(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			point.ClearGlobalTags()
+			dkpt.ClearGlobalTags()
 
 			if tc.globalHostTags != nil {
 				for k, v := range tc.globalHostTags {
-					point.SetGlobalHostTags(k, v)
+					dkpt.SetGlobalHostTags(k, v)
 				}
 			}
 
 			if tc.globalEnvTags != nil {
 				for k, v := range tc.globalEnvTags {
-					point.SetGlobalElectionTags(k, v)
+					dkpt.SetGlobalElectionTags(k, v)
 				}
 			}
 

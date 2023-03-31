@@ -140,7 +140,7 @@ For more information on the configuration under Datakit's Kubernates environment
 
 ## FAQ {#faq}
 
-### Error: Authentication Required {#auth-required}
+### :material-chat-question: Error: Authentication Required {#auth-required}
 
 This error may be reported in the following situations.
 
@@ -152,4 +152,5 @@ If you are using HTTP:
 
 1. The user name and password provided are wrong;
 2. The protocol of git address is incorrect;
+
 For example, if the original address is `https://username:password@github.com/path/to/repository.git`, and then it is written as `http://username:password@github.com/path/to/repository.git`, that is, if `https` is changed to `http`, this error will also be reported.

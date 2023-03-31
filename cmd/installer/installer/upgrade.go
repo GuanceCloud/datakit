@@ -54,9 +54,9 @@ func Upgrade() error {
 
 func upgradeMainConfig(c *config.Config) *config.Config {
 	// setup dataway
-	if c.DataWayCfg != nil {
-		c.DataWayCfg.DeprecatedURL = ""
-		c.DataWayCfg.HTTPProxy = Proxy
+	if c.Dataway != nil {
+		c.Dataway.DeprecatedURL = ""
+		c.Dataway.HTTPProxy = Proxy
 	}
 
 	cp.Infof("Set log to %s\n", c.Logging.Log)
@@ -96,30 +96,30 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 
 	// upgrade IO settings
 	if c.IOCacheCountDeprecated != 0 {
-		c.IOConf.MaxCacheCount = c.IOCacheCountDeprecated
+		c.IO.MaxCacheCount = c.IOCacheCountDeprecated
 		c.IOCacheCountDeprecated = 0
 	}
 
-	if c.IOConf.MaxCacheCount < 1000 {
-		c.IOConf.MaxCacheCount = 1000
+	if c.IO.MaxCacheCount < 1000 {
+		c.IO.MaxCacheCount = 1000
 	}
 
 	if c.OutputFileDeprecated != "" {
-		c.IOConf.OutputFile = c.OutputFileDeprecated
+		c.IO.OutputFile = c.OutputFileDeprecated
 		c.OutputFileDeprecated = ""
 	}
 
 	if c.IntervalDeprecated != "" {
-		c.IOConf.FlushInterval = c.IntervalDeprecated
+		c.IO.FlushInterval = c.IntervalDeprecated
 		c.IntervalDeprecated = ""
 	}
 
-	if c.IOConf.FeedChanSize > 1 {
-		c.IOConf.FeedChanSize = 1 // reset to 1
+	if c.IO.FeedChanSize > 1 {
+		c.IO.FeedChanSize = 1 // reset to 1
 	}
 
-	if c.IOConf.MaxDynamicCacheCountDeprecated > 0 {
-		c.IOConf.MaxDynamicCacheCountDeprecated = 0 // clear the config
+	if c.IO.MaxDynamicCacheCountDeprecated > 0 {
+		c.IO.MaxDynamicCacheCountDeprecated = 0 // clear the config
 	}
 
 	// upgrade election settings
@@ -149,6 +149,12 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 	}
 
 	c.InstallVer = DataKitVersion
+
+	// move sinkers under dataway
+	if c.SinkersDeprecated != nil && len(c.SinkersDeprecated.Arr) > 0 {
+		c.Dataway.Sinkers = c.SinkersDeprecated.Arr
+		c.SinkersDeprecated = nil // clear
+	}
 
 	return c
 }

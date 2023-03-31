@@ -322,6 +322,7 @@ func RunInputs() error {
 			}
 		}
 
+		inputInstanceVec.WithLabelValues(name).Set(float64(len(arr)))
 		for _, ii := range arr {
 			if ii.input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
@@ -343,11 +344,19 @@ func RunInputs() error {
 			func(name string, ii *inputInfo) {
 				g.Go(func(ctx context.Context) error {
 					// NOTE: 让每个采集器间歇运行，防止每个采集器扎堆启动，导致主机资源消耗出现规律性的峰值
-					time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second)))) //nolint:gosec
-					l.Infof("starting input %s ...", name)
+					tick := time.NewTicker(time.Duration(rand.Int63n(int64(10 * time.Second)))) //nolint:gosec
+					defer tick.Stop()
+					select {
+					case <-tick.C:
+						l.Infof("starting input %s ...", name)
 
-					protectRunningInput(name, ii)
-					l.Infof("input %s exited", name)
+						protectRunningInput(name, ii)
+
+						l.Infof("input %s exited", name)
+						return nil
+					case <-datakit.Exit.Wait():
+						l.Infof("start input %s interrupted", name)
+					}
 					return nil
 				})
 			}(name, ii)
@@ -407,24 +416,19 @@ func protectRunningInput(name string, ii *inputInfo) {
 			l.Warnf("input %s panic err: %v", name, err)
 			l.Warnf("input %s panic trace:\n%s", name, string(trace))
 
+			inputsPanicVec.WithLabelValues(name).Inc()
+
 			crashTime = append(crashTime, fmt.Sprintf("%v", time.Now()))
 			addPanic(name)
 
-			io.FeedEventLog(&io.DKEvent{
-				Status:   "error",
-				Message:  string(trace),
-				Category: "input",
-			})
+			io.FeedLastError("crach_"+name, string(trace))
 
 			if len(crashTime) >= MaxCrash {
 				l.Warnf("input %s crash %d times(at %+#v), exit now.",
 					name, len(crashTime), strings.Join(crashTime, "\n"))
 
-				io.FeedEventLog(&io.DKEvent{
-					Message:  fmt.Sprintf("input '%s' has exceeded the max crash times %v and it will be stopped.", name, MaxCrash),
-					Status:   "error",
-					Category: "input",
-				})
+				io.FeedLastError("crash_"+name,
+					fmt.Sprintf("input '%s' has exceeded the max crash times %v and it will be stopped.", name, MaxCrash))
 
 				return
 			}

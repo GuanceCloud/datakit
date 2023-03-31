@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	clipt "github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -48,7 +49,7 @@ func (api *SkyAPI) ProcessMetrics(jvm *agentv3.JVMMetricCollection) {
 
 	if len(m) != 0 {
 		if err := inputs.FeedMeasurement(jvmMetricName, datakit.Metric, m, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
-			dkio.FeedLastError(jvmMetricName, err.Error())
+			dkio.FeedLastError(jvmMetricName, err.Error(), clipt.Tracing)
 		}
 	}
 }

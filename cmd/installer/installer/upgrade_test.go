@@ -11,7 +11,7 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 func TestUpgradeMainConfig(t *testing.T) {
@@ -37,7 +37,7 @@ func TestUpgradeMainConfig(t *testing.T) {
 
 			expect: func() *config.Config {
 				c := config.DefaultConfig()
-				c.Election = &election.Config{
+				c.Election = &config.ElectionCfg{
 					Namespace:          "ns-abc",
 					Enable:             true,
 					EnableNamespaceTag: true,
@@ -67,7 +67,7 @@ func TestUpgradeMainConfig(t *testing.T) {
 
 			expect: func() *config.Config {
 				c := config.DefaultConfig()
-				c.Election = &election.Config{
+				c.Election = &config.ElectionCfg{
 					Namespace:          "ns-abc",
 					Enable:             true,
 					EnableNamespaceTag: true,
@@ -140,10 +140,39 @@ func TestUpgradeMainConfig(t *testing.T) {
 
 			expect: func() *config.Config {
 				c := config.DefaultConfig()
-				c.IOConf.MaxCacheCount = 1000 // auto reset to 10000
-				c.IOConf.OutputFile = "/some/messy/file"
-				c.IOConf.FlushInterval = "100s"
+				c.IO.MaxCacheCount = 1000 // auto reset to 10000
+				c.IO.OutputFile = "/some/messy/file"
+				c.IO.FlushInterval = "100s"
 
+				return c
+			}(),
+		},
+
+		{
+			name: `upgrade-sinker`,
+			old: func() *config.Config {
+				c := config.DefaultConfig()
+				c.SinkersDeprecated = &config.SinkerDeprecated{Arr: []*dataway.Sinker{
+					{
+						Categories: []string{"M", "L"},
+						Filters:    []string{},
+						URL:        "some-dw-sinker",
+					},
+				}}
+				return c
+			}(),
+
+			expect: func() *config.Config {
+				c := config.DefaultConfig()
+				c.Dataway.Sinkers = []*dataway.Sinker{
+					{
+						Categories: []string{"M", "L"},
+						Filters:    []string{},
+						URL:        "some-dw-sinker",
+					},
+				}
+
+				t.Logf("c.dataway: %#v", c.Dataway)
 				return c
 			}(),
 		},

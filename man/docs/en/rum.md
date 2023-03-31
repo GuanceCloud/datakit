@@ -23,7 +23,7 @@ RUM (Real User Monitor) collector is used to collect user access monitoring data
 
 - Deploy DataKit to be publicly accessible
 
-It is recommended that RUM be deployed separately on the public network, ==not with existing services== (such as Kubernetes cluster). As the traffic on RUM interface may be very large, the traffic within the cluster will be disturbed by it, and some possible resource scheduling mechanisms within the cluster may affect the operation of RUM services.
+It is recommended that RUM be deployed separately on the public network, not with existing services (such as Kubernetes cluster). As the traffic on RUM interface may be very large, the traffic within the cluster will be disturbed by it, and some possible resource scheduling mechanisms within the cluster may affect the operation of RUM services.
 
 - On the DataKit [install IP geo-Repository](datakit-tools-how-to.md#install-ipdb)
 - Since [1.2.7](changelog.md#cl-1.2.7), due to the adjustment of the installation method of IP geographic information base, the default installation no longer comes with its own IP information base, but needs to be installed manually.

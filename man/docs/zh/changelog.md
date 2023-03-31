@@ -21,8 +21,27 @@
 ### 功能优化 {#cl-x.x.x-opt}
 ### 兼容调整 {#cl-x.x.x-brk}
 
+branch changelog
+
+- 由于一些编译限制，拨测采集器不再支持在 Windows 上运行
+- 重构 sinker 实现，仅仅保留 Dataway 上的 Sinker 功能，同时将 datakit.conf 中 sinker 顶级配置挪到 dataway 配置字段下面（升级过程中会平滑修改掉）
+- Datakit 自身指标支持 Prometheus 指标体系，通过 curl 其 /metrics API 即可获取 Datakit 自身各种指标
+
 -->
 
+## 1.5.9(2023/03/23) {#cl-1.5.9}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-x.x.x-new}
+### 问题修复 {#cl-x.x.x-fix}
+### 功能优化 {#cl-x.x.x-opt}
+### 兼容调整 {#cl-x.x.x-brk}
+
+- 本次移除了大部分 sinker 功能，只保留了 [Dataway 上的 sinker 功能](datakit-sink-dataway.md)(#1444)。同时 sinker 的[主机安装配置](datakit-install.md#env-sink)以及 [Kubernetes 安装配置](datakit-daemonset-deploy.md#env-sinker)都做了调整，其中的配置方式也跟之前不同，请大家升级的时候，注意调整。
+- 老版本的[发送失败磁盘缓存](datakit-conf.md#io-disk-cache)由于性能问题，我们替换了实现方式。新的实现方式，其缓存的二进制格式不再兼容，如果升级的话，老的数据将不被识别。建议先**手动删除老的缓存数据**（老数据可能会影响新版本磁盘缓存），然后再升级新版本的 Datakit。尽管如此，新版本的磁盘缓存，仍然是一个实验性功能，请谨慎使用。
+
+---
 ## 1.5.8(2023/03/24) {#cl-1.5.8}
 本次发布属于迭代发布，主要是一些问题修复和功能完善。
 

@@ -18,19 +18,38 @@ There are two ways to get the version number:
 
 This API is used to report various `category` of data to DataKit, and the parameters are described as follows:
 
-| Parameter                    | Type   | Required or not | Default Value    | Description                                                                                                                                          |
-| --------------------      | ------ | -------- | --------- | --------------------------------------------------                                                                                            |
-| `category`                | string | Y        | no        | support `metric/logging/rum/object/custom_object/keyevent` for now                                                                                            |
-| `echo_line_proto`         | string | N        | no        | Giving any value (such as `true`) returns json line protocol class capacity, which is not returned by default.                                                                                       |
-| `global_election_tags`    | string | N        | no        | Giving any value (such as `true`) is considered as appending the global election class tag ([:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)).                                     |
-| `ignore_global_host_tags` | string | false    | no       | Giving any value (such as `true`) is considered to ignore the global tag on DataKit（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）。`ignore_global_tags` would be abandoned. |
-| `input`                   | string | N        | `datakit` | Data source name                                                                                                                                    |
-| `loose`                   | bool   | N        | false     | Loose mode, for some non-compliant line protocols, DataKit would try to fix them ([:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)).                    |
-| `precision`               | string | N        | `n`       | Data accuracy (supporting `n/u/ms/s/m/h`)                                                                                                                 |
-| `source`                  | string | N        | no      | Specify this field only for logging support (that is, `category` is `logging`). If you do not specify `source`, the uploaded log data would not be cut by Pipeline.                    |
-| `version`                 | string | N        | no        | The version number of the current collector                                                                                                                            |
+| Parameter                 | Type   | Required or not | Default Value | Description                                                                                                                                                                               |
+| ---                       | ---    | ---             | ---           | ---                                                                                                                                                                                       |
+| `category`                | string | Y               | no            | support `metric/logging/rum/object/custom_object/keyevent`. For example, the URL of `metric` is `/v1/write/metric`                                                                        |
+| `echo_line_proto`         | string | N               | no            | Giving any value (such as `true`) returns json line protocol class capacity, which is not returned by default.                                                                            |
+| `global_election_tags`    | string | N               | no            | Giving any value (such as `true`) is considered as appending the global election class tag ([:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)).                                    |
+| `ignore_global_host_tags` | string | false           | no            | Giving any value (such as `true`) is considered to ignore the global tag on DataKit（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）。`ignore_global_tags` would be abandoned. |
+| `input`                   | string | N               | `datakit`     | Data source name                                                                                                                                                                          |
+| `loose`                   | bool   | N               | false         | Loose mode, for some non-compliant line protocols, DataKit would try to fix them ([:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)).                                            |
+| `precision`               | string | N               | `n`           | Data accuracy (supporting `n/u/ms/s/m/h`)                                                                                                                                                 |
+| `source`                  | string | N               | no            | Specify this field only for logging support (that is, `category` is `logging`). If you do not specify `source`, the uploaded log data would not be cut by Pipeline.                       |
+| `version`                 | string | N               | no            | The version number of the current collector                                                                                                                                               |
 
 HTTP body supports both line protocol and JSON. See [here](#lineproto-limitation) for constraints on data structures, whether in line protocol or JSON form.
+
+### Categories {#category}
+
+In DataKit, the main data types are as follows (listed in alphabetical order according to their abbreviations):
+
+| Abbreviations | Name          | URL form                | Description            |
+| ----          | ----          | ----                    | ---                    |
+| CO            | custom_object | /v1/write/custom_object | customized object data |
+| E             | keyevent      | /v1/write/keyevent      | Event data             |
+| L             | logging       | /v1/write/logging       | Logging data           |
+| M             | metric        | /v1/write/metric        | Time series            |
+| N             | network       | /v1/write/network       | eBPF data              |
+| O             | object        | /v1/write/object        | object data            |
+| P             | profiling     | /v1/write/profiling     | Profiling data         |
+| R             | rum           | /v1/write/rum           | RUM data               |
+| S             | security      | /v1/write/security      | Security check data    |
+| T             | tracing       | /v1/write/tracing       | APM(tracing) data      |
+
+不同的数据类型，其处理方式不一样，在观测云的用法也不尽相同。在 Datait 的配置和使用过程中，有时候会穿插使用某个类型的不同形式（比如在 sinker 配置中用简写，在 API 请求中则用其 URL 表示）
 
 ### JSON Body Examples {#api-json-example}
 
