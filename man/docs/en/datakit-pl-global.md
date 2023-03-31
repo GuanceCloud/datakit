@@ -2,26 +2,18 @@
 
 # Pipeline Category Data Processing
 
+[:octicons-beaker-24: Experimental](index.md#experimental)
+
 ---
 
-Since DataKit v1.4.0, DataKit can be directly manipulated to collect data through the built-in Pipeline function, and the supported categories are as follows:
+Since DataKit v1.4.0, DataKit can be directly manipulated to collect data through the built-in Pipeline function, and [all categories](apis.md#categories) are supported.
 
-- CustomObject
-- Keyevent
-- Logging
-- Metric
-- Network
-- Object
-- Rum
-- Security
-- Tracing
 
-> Note:
->
-> - Pipeline is applied to all data and is currently in the experimental stage, so there is no guarantee that incompatible adjustments will be made to the mechanism or behavior later.
-> - Even data reported through the [DataKit API](apis.md) supports Pipeline processing.
-> - Using Pipeline to process the existing data (especially non-log data) may destroy the existing data structure and lead to abnormal performance of the data on Guance Cloud.
-> - Before applying Pipeline, be sure to use the [Pipeline debugging tool](datakit-pl-how-to.md) to confirm that the data processing is as expected.
+???+ attention
+    - Pipeline is applied to all data and is currently in the experimental stage, so there is no guarantee that incompatible adjustments will be made to the mechanism or behavior later.
+    - Even data reported through the [DataKit API](../datakit/apis.md) supports Pipeline processing.
+    - Using Pipeline to process the existing data (especially non-logging data) may destroy the existing data structure and lead to abnormal performance of the data on Guance Cloud.
+    - Before applying Pipeline, be sure to use the [Pipeline debugging tool](datakit-pl-how-to.md) to confirm that the data processing is as expected.
 
 Pipeline can do the following on the data collected by DataKit:
 

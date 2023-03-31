@@ -43,6 +43,32 @@
 
     参见[这里](datakit-daemonset-deploy.md#env-elect)
 
+## 选举状态查看 {#status}
+
+配置完选举后，通过[查看 monitor](datakit-monitor.md#view) 即可知道当前 Datakit 的选举状态，在 `Basic Info` 栏中，有如下行：
+
+```
+Elected default::success|MacBook-Pro.local(elected: 4m40.554909s)
+```
+
+其中：
+
+- `default` 表示当前 Datakit 参与选举的命名空间。一个工作空间可以有多个选举专用的命名空间
+- `success` 表示当前 Datakit 开启了选举且选举成功
+- `MacBook-Pro.local` 表示当前命名空间被选上的 Datakit 所在主机名。如果该主机名就是当前这个 Datakit，则后面会显示其当选 leader 的时长（`elected: 4m40.554909s`）[:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)
+
+如果是如下显示，则表示当前 Datakit 未被选上，但会显示当前是哪个主机被选上：
+
+```
+Elected default::defeat|host-abc
+```
+
+其中：
+
+- `default` 表示当前 Datakit 参与选举的命名空间，同上
+- `defeat` 表示当前 Datakit 开启了，但选举失败
+- `host-abc` 表示当前命名空间被选上的 Datakit 所在主机名
+
 ## 选举原理 {#how}
 
 以 MySQL 为例，在同一个集群（如 k8s cluster）中，假定有 10 DataKit、2 个 MySQL 实例，且 DataKit 都开启了选举（Daemonset 模式下，每个 DataKit 的配置都是一样的）以及 MySQL 采集器：
@@ -103,7 +129,7 @@
 
 ## FAQ {#faq}
 
-### `host` 字段问题 {#host}
+### :material-chat-question: `host` 字段问题 {#host}
 
 对于由参与选举的采集器采集的对象，比如 MySQL，由于采集其数据的 DataKit 可能会变迁（发生了选举轮换），故默认情况下，这类采集器采集的数据不会带上 `host` 这个 tag，以避免时间线增长。我们建议在 MySQL 采集器配置上，增加额外的 `tags` 字段：
 

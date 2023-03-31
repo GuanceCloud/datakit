@@ -141,7 +141,7 @@ func runToolFlags() error {
 	case *flagToolLoadLog:
 		tryLoadMainCfg()
 		cp.Infof("Upload log start...\n")
-		if err := uploadLog(config.Cfg.DataWayCfg.URLs); err != nil {
+		if err := uploadLog(config.Cfg.Dataway.URLs); err != nil {
 			cp.Errorf("[E] upload log failed : %s\n", err.Error())
 			os.Exit(-1)
 		}

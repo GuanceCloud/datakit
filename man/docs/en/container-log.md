@@ -240,7 +240,7 @@ When datakit discovers this container, it creates log collections based on its `
 
 ## FAQ {#faq}
 
-### Special ByteCode Filtering of Container Log {#special-char-filter}
+### :material-chat-question: Special ByteCode Filtering of Container Log {#special-char-filter}
 
 Container logs may contain some unreadable bytecodes (such as the color of terminal output, etc.), which can
 
@@ -262,11 +262,13 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 The processing time of each text will increase by `1616 ns`. Do not turn on this function if the log is not decorated with colors.
 
-### Source Setting for Container Log Collection {#config-logging-source}
+### :material-chat-question: Source Setting for Container Log Collection {#config-logging-source}
 
 In the container environment, the log `source` setting is a very important configuration item, which directly affects the display effect on the page. However, it would be cruel to configure a source for each container's logs one by one. Without manually configuring the container log source, DataKit has the following rule (descending priority) for automatically inferring the source of the container log:
 
-> The so-called not manually specifying the container log source means that it is not specified in Pod Annotation or in container.conf (currently there is no configuration item specifying the container log source in container.conf).
+???+ attention
+
+    The so-called not manually specifying the container log source means that it is not specified in Pod Annotation or in container.conf (currently there is no configuration item specifying the container log source in container.conf).
 
 - Container name: Typically take the value from the label `io.kubernetes.container.name` of the container. If it is not a container created by Kubernetes (for example, if it is just a simple Docker environment, then this label does not have it, so the container name is not used as the log source).
 - short-image-name: Mirror name, `nginx` for `nginx.org/nginx:1.21.0`. In a non-Kubernetes container environment, the (reduced) image name is usually taken first.

@@ -19,7 +19,7 @@ Tips：
 
 - Enter `echo_explain` to see the back-end query statement
 - To avoid displaying too many `nil` uery results, you can switch it through `disable_nil/enable_nil`.
-- Support fuzzy search of query statement. For example, `echo_explain` only needs to input `echo` or `exp` to pop up a prompt, ==Drop-down prompt can be selected through Tab==
+- Support fuzzy search of query statement. For example, `echo_explain` only needs to input `echo` or `exp` to pop up a prompt, Drop-down prompt can be selected through Tab
 - DataKit automatically saves the previous DQL query history (up to 5000 queries), which can be selected by the up and down arrow keys
 
 > Note: Under Windows, execute `datakit dql` in Powershell.

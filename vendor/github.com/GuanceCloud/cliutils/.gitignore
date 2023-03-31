@@ -5,3 +5,5 @@ coverage.out
 .vscode
 .idea
 gen/
+dist/
+*.exe

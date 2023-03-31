@@ -28,9 +28,9 @@
 
 > 这里建议使用通配路径（甚至可以配置当前不存在、但将来会冒出来的文件），而不是将日志路径写死，因为应用的日志可能不会立即出现（比如部分应用的 error log 只有 error 发生的时候才会出现）。
 
-磁盘文件采集有一点需要注意，即它只会采集==自 DataKit 启动后有更新的日志文件==，如果配置的日志文件（自 DataKit 启动后）没有更新，其==历史数据是不会采集的==。
+磁盘文件采集有一点需要注意，即它**只会采集自 DataKit 启动后有更新的日志文件**，如果配置的日志文件（自 DataKit 启动后）没有更新，其**历史数据是不会采集的**。
 
-正因为这个特性，如果日志文件持续在更新，中间停止 DataKit，==该空窗期的日志也不会被采集到==，后面可能会做一些策略来缓解这个问题。
+正因为这个特性，如果日志文件持续在更新，中间停止 DataKit，**该空窗期的日志也不会被采集到**，后面可能会做一些策略来缓解这个问题。
 
 ## 容器 stdout 日志 {#container-stdout}
 
@@ -93,7 +93,7 @@
 以上的日志采集到之后，均支持后续 Pipeline 的切割，但配置形式稍有差异：
 
 - 磁盘日志采集：直接配置在 logging.conf 中，其中指定 pipeline 名称即可
-- 容器 stdout 日志采集：==不能在 container.conf 中配置 Pipeline==，因为这里针对的是所有容器的日志采集，很难用一个通用的 Pipeline 处理所有的日志。故必须通过 Annotation 的方式，[指定相关 Pod 的 Pipeline 配置](container-log.md#logging-with-annotation-or-label)
+- 容器 stdout 日志采集：**不能在 container.conf 中配置 Pipeline**，因为这里针对的是所有容器的日志采集，很难用一个通用的 Pipeline 处理所有的日志。故必须通过 Annotation 的方式，[指定相关 Pod 的 Pipeline 配置](container-log.md#logging-with-annotation-or-label)
 - 远程日志采集：对 TCP/UDP 传输方式，可以也是在 logging.conf 中指定 Pipeline 配置。而对于 HTTP 传输方式，开发者需在 [HTTP 请求参数上来配置 Pipeline](logstreaming.md#args)
 - Sidecar 日志采集：在 [logfwd 的配置](logfwd.md#config)中，配置宿主 Pod 的 Pipeline，其本质上跟容器 stdout 相似，都是针对 Pod 的定点标记
 

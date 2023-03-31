@@ -14,6 +14,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	clipt "github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -41,7 +42,7 @@ func (i *Input) Run() {
 		start := time.Now()
 		if err := i.Collect(); err != nil {
 			l.Errorf("Collect: %s", err)
-			io.FeedLastError(inputName, err.Error())
+			io.FeedLastError(inputName, err.Error(), clipt.Metric)
 		}
 
 		if len(i.collectCache) > 0 {

@@ -27,11 +27,14 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/metrics"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/timeout"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	dkm "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
@@ -49,9 +52,7 @@ var (
 
 	enableRequestLogger = false
 
-	uptime = time.Now()
-
-	dw        dataway.DataWay
+	dw        = &dataway.Dataway{}
 	apiConfig = &APIConfig{}
 	dcaConfig *DCAConfig
 
@@ -70,7 +71,7 @@ type Option struct {
 	GinLog    string
 	GinRotate int
 	APIConfig *APIConfig
-	DataWay   dataway.DataWay
+	DataWay   *dataway.Dataway
 	DCAConfig *DCAConfig
 
 	GinReleaseMode bool
@@ -153,6 +154,7 @@ func Start(o *Option) {
 			Addr: pprofListen,
 		}
 
+		l.Infof("start pprof on %s", pprofListen)
 		g.Go(func(ctx context.Context) error {
 			tryStartServer(pprofSrv, true, semReload, semReloadCompleted)
 			l.Info("pprof server exit")
@@ -191,12 +193,20 @@ func page404(c *gin.Context) {
 	}
 
 	buf := &bytes.Buffer{}
-	w.Uptime = fmt.Sprintf("%v", time.Since(uptime))
+	w.Uptime = fmt.Sprintf("%v", time.Since(dkm.Uptime))
 	if err := t.Execute(buf, w); err != nil {
 		l.Error("build html failed: %s", err.Error())
 		uhttp.HttpErr(c, err)
 		return
 	}
+
+	apiCountVec.WithLabelValues("404-page",
+		c.Request.Method,
+		http.StatusText(http.StatusNotFound)).Inc()
+
+	apiReqSizeVec.WithLabelValues("404-page",
+		c.Request.Method,
+		http.StatusText(http.StatusNotFound)).Observe(float64(approximateRequestSize(c.Request)))
 
 	c.String(http.StatusNotFound, buf.String())
 }
@@ -272,21 +282,25 @@ func setupRouter() *gin.Engine {
 
 	applyHTTPRoute(router)
 
-	router.GET("/stats", rawHTTPWraper(reqLimiter, apiGetDatakitStats))
+	router.GET("/stats", rawHTTPWraper(reqLimiter, apiGetDatakitStats)) // Deprecated, use /metrics
+
+	// limit metrics
+	router.GET("/metrics", ginLimiter(reqLimiter), metrics.HTTPGinHandler(promhttp.HandlerOpts{}))
+
 	router.GET("/stats/:type", rawHTTPWraper(reqLimiter, apiGetDatakitStatsByType))
 	// router.GET("/stats/input", rawHTTPWraper(reqLimiter, apiGetInputStats))
-	router.GET("/monitor", apiGetDatakitMonitor)
+
 	router.GET("/restart", apiRestart)
 
-	router.GET("/v1/workspace", apiWorkspace)
+	router.GET("/v1/workspace", ginLimiter(reqLimiter), apiWorkspace)
 	router.GET("/v1/ping", rawHTTPWraper(reqLimiter, apiPing))
-	router.POST("/v1/lasterror", apiGetDatakitLastError)
+	router.POST("/v1/lasterror", ginLimiter(reqLimiter), apiGetDatakitLastError)
 
 	router.POST("/v1/write/:category", rawHTTPWraper(reqLimiter, apiWrite, &apiWriteImpl{}))
 
-	router.POST("/v1/query/raw", apiQueryRaw)
-	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
-	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
+	router.POST("/v1/query/raw", ginLimiter(reqLimiter), apiQueryRaw)
+	router.POST("/v1/object/labels", ginLimiter(reqLimiter), apiCreateOrUpdateObjectLabel)
+	router.DELETE("/v1/object/labels", ginLimiter(reqLimiter), apiDeleteObjectLabel)
 
 	router.POST("/v1/pipeline/debug", rawHTTPWraper(reqLimiter, apiPipelineDebugHandler))
 	router.POST("/v1/dialtesting/debug", rawHTTPWraper(reqLimiter, apiDebugDialtestingHandler))
@@ -327,12 +341,6 @@ func HTTPStart() {
 	if apiConfig.CloseIdleConnection {
 		srv.ReadTimeout = apiConfig.timeoutDuration
 	}
-
-	g.Go(func(ctx context.Context) error {
-		l.Info("start HTTP metric goroutine")
-		metrics()
-		return nil
-	})
 
 	g.Go(func(ctx context.Context) error {
 		tryStartServer(srv, true, semReload, semReloadCompleted)

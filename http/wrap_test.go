@@ -24,7 +24,7 @@ func TestLimitWrap(t *testing.T) {
 		c.Data(200, "", nil)
 	}
 
-	r.GET("/", ginWraper(reqLimiter), apiHandler)
+	r.GET("/", ginLimiter(reqLimiter), apiHandler)
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()

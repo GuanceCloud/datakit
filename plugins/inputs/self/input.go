@@ -66,12 +66,11 @@ func (si *Input) Run() {
 
 		si.stat.Update()
 		cost := time.Since(start)
-		pt := si.stat.ToMetric()
-		pts := si.stat.ToHTTPMetric()
-		goroutinePts := si.stat.ToGoroutineMetric()
 
+		pt := si.stat.ToMetric()
 		newPts := []*point.Point{pt}
-		newPts = append(newPts, pts...)
+
+		goroutinePts := si.stat.ToGoroutineMetric()
 		newPts = append(newPts, goroutinePts...)
 
 		_ = io.Feed(inputName, datakit.Metric, newPts, &io.Option{

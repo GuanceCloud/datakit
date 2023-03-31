@@ -76,7 +76,6 @@ var (
 	FlagShowCloudInfo    bool
 	FlagIPInfo           string
 	FlagConfigDir        string
-	FlagMonitor          bool
 	FlagCheckConfig      bool
 	FlagCheckSample      bool
 	FlagDocker           bool
@@ -146,7 +145,6 @@ func initOldStyleFlags() { //nolint:gochecknoinits
 	pflag.BoolVar(&FlagWorkspaceInfo, "workspace-info", false, "show workspace info")
 
 	if runtime.GOOS != datakit.OSWindows { // unsupported options under windows
-		pflag.BoolVarP(&FlagMonitor, "monitor", "M", false, "show monitor info of current datakit")
 		pflag.BoolVar(&FlagDocker, "docker", false, "run within docker")
 	}
 
@@ -325,14 +323,6 @@ func runOldStyleCmds() {
 			cp.Infof("\t% 24s: %v\n", k, info[k])
 		}
 
-		os.Exit(0)
-	}
-
-	if FlagMonitor {
-		tryLoadMainCfg()
-		setCmdRootLog(FlagCmdLogPath)
-
-		cmdMonitor(FlagInterval, FlagVVV)
 		os.Exit(0)
 	}
 
@@ -534,13 +524,13 @@ func runOldStyleCmds() {
 	if FlagUploadLog {
 		tryLoadMainCfg()
 
-		if config.Cfg.DataWayCfg == nil {
+		if config.Cfg.Dataway == nil {
 			cp.Errorf("[E] upload log failed: dataway should be set\n")
 			os.Exit(-1)
 		}
 
 		cp.Infof("Upload log start...\n")
-		if err := uploadLog(config.Cfg.DataWayCfg.URLs); err != nil {
+		if err := uploadLog(config.Cfg.Dataway.URLs); err != nil {
 			cp.Errorf("[E] upload log failed : %s\n", err.Error())
 			os.Exit(-1)
 		}

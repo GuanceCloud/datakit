@@ -396,9 +396,9 @@ Pipeline 的几个注意事项：
 
 ## FAQ {#faq}
 
-### 为什么在页面上看不到日志数据？ {#why-no-data}
+### :material-chat-question: 为什么在页面上看不到日志数据？ {#why-no-data}
 
-DataKit 启动后，`logfiles` 中配置的日志文件==有新的日志产生才会采集上来，老的日志数据是不会采集的==。
+DataKit 启动后，`logfiles` 中配置的日志文件**有新的日志产生才会采集上来，老的日志数据是不会采集的**。
 
 另外，一旦开始采集某个日志文件，将会自动触发一条日志，内容大概如下：
 
@@ -406,17 +406,17 @@ DataKit 启动后，`logfiles` 中配置的日志文件==有新的日志产生�
 First Message. filename: /some/path/to/new/log ...
 ```
 
-如果看到这样的信息，证明指定的文件==已经开始采集，只是当前尚无新的日志数据产生==。另外，日志数据的上传、处理、入库也有一定的时延，即使有新的数据产生，也需要等待一定时间（< 1min）。
+如果看到这样的信息，说明指定的文件「已经开始采集，只是当前尚无新的日志数据产生」。另外，日志数据的上传、处理、入库也有一定的时延，即使有新的数据产生，也需要等待一定时间（< 1min）。
 
-### 磁盘日志采集和 Socket 日志采集的互斥性 {#exclusion}
+### :material-chat-question: 磁盘日志采集和 Socket 日志采集的互斥性 {#exclusion}
 
 两种采集方式目前互斥，当以 Socket 方式采集日志时，需将配置中的 `logfiles` 字段置空：`logfiles=[]`
 
-### 远程文件采集方案 {#remote-ntfs}
+### :material-chat-question: 远程文件采集方案 {#remote-ntfs}
 
 在 linux 上，可通过 [NFS 方式](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/){:target="_blank"}，将日志所在主机的文件路径，挂载到 DataKit 主机下，logging 采集器配置对应日志路径即可。
 
-### 日志的特殊字节码过滤 {#ansi-decode}
+### :material-chat-question: 日志的特殊字节码过滤 {#ansi-decode}
 
 日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以将 `remove_ansi_escape_codes` 设置为 `true` 对其删除过滤。
 
@@ -435,11 +435,11 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 每一条文本的处理耗时增加 `1616 ns` 不等。如果不开启此功能将无额外损耗。
 
-### MacOS 日志采集器报错 `operation not permitted` {#mac-no-permission}
+### :material-chat-question: MacOS 日志采集器报错 `operation not permitted` {#mac-no-permission}
 
 在 MacOS 中，因为系统安全策略的原因，DataKit 日志采集器可能会无法打开文件，报错 `operation not permitted`，解决方法参考 [apple developer doc](https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection){:target="_blank"}。
 
-### 如何估算日志的总量 {#log-size}
+### :material-chat-question: 如何估算日志的总量 {#log-size}
 
 由于日志的收费是按照条数来计费的，但一般情况下，大部分的日志都是程序写到磁盘的，只能看到磁盘占用大小（比如每天 100GB 日志）。
 

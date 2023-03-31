@@ -260,12 +260,14 @@ func compileArch(bin, goos, goarch, dir string) error {
 			"GOARCH=" + goarch,
 			`GO111MODULE=off`,
 			"CGO_ENABLED=on",
+			"CGO_CFLAGS=-Wno-undef-prefix",
 		}
 	} else {
 		envs = []string{
 			"GOOS=" + goos,
 			"GOARCH=" + goarch,
 			`GO111MODULE=off`,
+			"CGO_CFLAGS=-Wno-undef-prefix",
 			"CGO_ENABLED=" + cgoEnabled,
 		}
 	}

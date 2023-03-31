@@ -37,8 +37,8 @@ func tryLoadMainCfg() {
 
 func getcli() *http.Client {
 	var proxy string
-	if config.Cfg.DataWayCfg != nil {
-		proxy = config.Cfg.DataWayCfg.HTTPProxy
+	if config.Cfg.Dataway != nil {
+		proxy = config.Cfg.Dataway.HTTPProxy
 	}
 
 	cliopt := &ihttp.Options{

@@ -266,6 +266,7 @@ func SetWorkDir(dir string) {
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, StrDefaultConfFile)
 	MainConfPath = filepath.Join(ConfdDir, StrDefaultConfFile)
+	MainConfSamplePath = filepath.Join(ConfdDir, "datakit.conf.sample")
 
 	PipelineDir = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")

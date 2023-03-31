@@ -153,7 +153,7 @@ const (
 func getUpgradeCommand(dlurl string) string {
 	var upgradeCmd string
 
-	proxy := config.Cfg.DataWayCfg.HTTPProxy
+	proxy := config.Cfg.Dataway.HTTPProxy
 
 	switch runtime.GOOS {
 	case datakit.OSWindows:

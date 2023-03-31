@@ -13,14 +13,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/metrics"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/shirou/gopsutil/host"
 	pr "github.com/shirou/gopsutil/v3/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
@@ -57,12 +57,12 @@ type ClientStat struct {
 	DroppedPointsTotal uint64
 	DroppedPoints      uint64
 
+	mfs []*dto.MetricFamily
+
 	// 选举
-	Incumbency       int64
-	ElectedNamespace string
+	electionInfo *election.ElectionInfo
 
 	// HTTP
-	HTTPStats map[string]*dkhttp.APIStat
 
 	// goroutine
 	GoroutineStats *goroutine.Summary
@@ -85,9 +85,14 @@ func setMin(prev, cur int64) int64 {
 }
 
 func (s *ClientStat) Update() {
+	mfs, err := metrics.Gather()
+	if err == nil {
+		s.mfs = mfs
+	}
+
 	s.HostName = config.Cfg.Hostname
-	if config.Cfg.DataWayCfg != nil && config.Cfg.DataWayCfg.HTTPProxy != "" {
-		s.Proxy = config.Cfg.DataWayCfg.HTTPProxy
+	if config.Cfg.Dataway != nil && config.Cfg.Dataway.HTTPProxy != "" {
+		s.Proxy = config.Cfg.Dataway.HTTPProxy
 	}
 
 	var memStatus runtime.MemStats
@@ -124,14 +129,7 @@ func (s *ClientStat) Update() {
 		}
 	}
 
-	du, ns := s.getElectedInfo()
-	s.Incumbency = du
-	s.ElectedNamespace = ns
-
-	s.DroppedPoints = io.DroppedTotal() - s.DroppedPointsTotal
-	s.DroppedPointsTotal = io.DroppedTotal()
-
-	s.HTTPStats = dkhttp.GetMetrics()
+	s.getElectedInfo()
 
 	s.GoroutineStats = goroutine.GetStat()
 }
@@ -148,12 +146,14 @@ func (s *ClientStat) ToMetric() *point.Point {
 		"os_version_detail": s.OSDetail,
 		"arch":              s.Arch,
 		"host":              s.HostName,
-		"namespace":         s.ElectedNamespace,
+		"namespace":         s.electionInfo.Namespace,
 	}
 
 	if s.Proxy != "" {
 		tags["proxy"] = s.Proxy
 	}
+
+	elected := int64(s.electionInfo.ElectedTime / time.Second)
 
 	fields := map[string]interface{}{
 		"pid":    s.PID,
@@ -180,8 +180,9 @@ func (s *ClientStat) ToMetric() *point.Point {
 		"dropped_points":       s.DroppedPoints,
 		"open_files":           datakit.OpenFiles(),
 
-		"incumbency": s.Incumbency, // deprecated, used elected
-		"elected":    s.Incumbency,
+		"elected": elected,
+		// Deprecated: used elected
+		"incumbency": elected,
 	}
 
 	pt, err := point.NewPoint(measurementName, tags, fields, point.MOpt())
@@ -192,34 +193,34 @@ func (s *ClientStat) ToMetric() *point.Point {
 	return pt
 }
 
-func (s *ClientStat) ToHTTPMetric() []*point.Point {
-	var rtPts []*point.Point
-	for api, v := range s.HTTPStats {
-		tags := map[string]string{
-			"api": api,
-		}
-
-		fields := map[string]interface{}{
-			"total_request_count": v.TotalCount,
-			"max_latency":         int64(v.MaxLatency),
-			"avg_latency":         int64(v.AvgLatency),
-			"2XX":                 v.Status2xx,
-			"3XX":                 v.Status3xx,
-			"4XX":                 v.Status4xx,
-			"5XX":                 v.Status5xx,
-			"limited":             v.Limited,
-		}
-
-		pt, err := point.NewPoint(measurementHTTPName, tags, fields, point.MOpt())
-		if err != nil {
-			l.Error(err)
-			continue
-		}
-		rtPts = append(rtPts, pt)
-	}
-
-	return rtPts
-}
+// func (s *ClientStat) ToHTTPMetric() []*point.Point {
+//	var rtPts []*point.Point
+//	for api, v := range s.HTTPStats {
+//		tags := map[string]string{
+//			"api": api,
+//		}
+//
+//		fields := map[string]interface{}{
+//			"total_request_count": v.TotalCount,
+//			"max_latency":         int64(v.MaxLatency),
+//			"avg_latency":         int64(v.AvgLatency),
+//			"2XX":                 v.Status2xx,
+//			"3XX":                 v.Status3xx,
+//			"4XX":                 v.Status4xx,
+//			"5XX":                 v.Status5xx,
+//			"limited":             v.Limited,
+//		}
+//
+//		pt, err := point.NewPoint(measurementHTTPName, tags, fields, point.MOpt())
+//		if err != nil {
+//			l.Error(err)
+//			continue
+//		}
+//		rtPts = append(rtPts, pt)
+//	}
+//
+//	return rtPts
+//}
 
 func (s *ClientStat) ToGoroutineMetric() []*point.Point {
 	var pts []*point.Point
@@ -229,7 +230,7 @@ func (s *ClientStat) ToGoroutineMetric() []*point.Point {
 		if s.NumGoroutines >= s.GoroutineStats.RunningTotal {
 			tags := map[string]string{
 				"host":      s.HostName,
-				"namespace": s.ElectedNamespace,
+				"namespace": s.electionInfo.Namespace,
 				"group":     "unknown",
 			}
 
@@ -249,7 +250,7 @@ func (s *ClientStat) ToGoroutineMetric() []*point.Point {
 		for groupName, info := range s.GoroutineStats.Items {
 			tags := map[string]string{
 				"host":      s.HostName,
-				"namespace": s.ElectedNamespace,
+				"namespace": s.electionInfo.Namespace,
 				"group":     groupName,
 			}
 
@@ -274,17 +275,8 @@ func (s *ClientStat) ToGoroutineMetric() []*point.Point {
 	return pts
 }
 
-func (s *ClientStat) getElectedInfo() (int64, string) {
-	if !config.Cfg.Election.Enable {
-		return 0, ""
-	}
-
-	elected, ns, _ := election.Elected()
-	if elected == "success" {
-		return int64(time.Since(election.GetElectedTime()) / time.Second), ns
-	} else {
-		return 0, ""
-	}
+func (s *ClientStat) getElectedInfo() {
+	s.electionInfo = election.GetElectionInfo(s.mfs)
 }
 
 //------------------------------------------------------------------------------

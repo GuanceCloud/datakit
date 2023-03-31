@@ -8,7 +8,6 @@ package goroutine
 import (
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -36,44 +35,6 @@ type Option struct {
 	PanicTimeout time.Duration
 }
 
-func beforeCb(name string) func() {
-	return func() {
-		mu.Lock()
-		groupStat, ok := stat[name]
-		if !ok {
-			stat[name] = &StatInfo{}
-			groupStat = stat[name]
-		}
-		atomic.AddInt64(&groupStat.totalJobs, 1)
-		mu.Unlock()
-	}
-}
-
-func postCb(name string) func(error, time.Duration) {
-	return func(err error, costTime time.Duration) {
-		mu.Lock()
-		groupStat, ok := stat[name]
-		if !ok {
-			stat[name] = &StatInfo{}
-			groupStat = stat[name]
-		}
-		if costTime < groupStat.MinCostTime || groupStat.MinCostTime == 0 {
-			groupStat.MinCostTime = costTime
-		}
-
-		if costTime > groupStat.MaxCostTime {
-			groupStat.MaxCostTime = costTime
-		}
-
-		atomic.AddInt64(&groupStat.Total, 1)
-		if err != nil {
-			atomic.AddInt64(&groupStat.ErrCount, 1)
-		}
-		groupStat.CostTime += costTime
-		mu.Unlock()
-	}
-}
-
 // NewGroup create a custom group.
 func NewGroup(option Option) *Group {
 	name := "default"
@@ -87,8 +48,7 @@ func NewGroup(option Option) *Group {
 		panicTimeout: option.PanicTimeout,
 	}
 
-	g.postCb = postCb(name)
-	g.beforeCb = beforeCb(name)
+	goroutineGroups.Inc()
 
 	return g
 }

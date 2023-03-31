@@ -149,18 +149,8 @@ func init() {
 	flag.StringVar(&installer.EnablePProf, "enable-pprof", "", "enable pprof")
 	flag.StringVar(&installer.PProfListen, "pprof-listen", "", "pprof listen")
 
-	// sink flags
-	flag.StringVar(&installer.SinkMetric, "sink-metric", "", "sink for Metric")
-	flag.StringVar(&installer.SinkNetwork, "sink-network", "", "sink for Network")
-	flag.StringVar(&installer.SinkKeyEvent, "sink-keyevent", "", "sink for Key Event")
-	flag.StringVar(&installer.SinkObject, "sink-object", "", "sink for Object")
-	flag.StringVar(&installer.SinkCustomObject, "sink-custom-object", "", "sink for CustomObject")
-	flag.StringVar(&installer.SinkLogging, "sink-logging", "", "sink for Logging")
-	flag.StringVar(&installer.SinkTracing, "sink-tracing", "", "sink for Tracing")
-	flag.StringVar(&installer.SinkRUM, "sink-rum", "", "sink for RUM")
-	flag.StringVar(&installer.SinkSecurity, "sink-security", "", "sink for Security")
-	flag.StringVar(&installer.SinkProfiling, "sink-profile", "", "sink for Profiling")
-	flag.StringVar(&installer.LogSinkDetail, "log-sink-detail", "", "log sink detail")
+	// sinker flags
+	flag.StringVar(&installer.Sinker, "sinker", "", "sinker configures")
 
 	// cgroup flags
 	flag.IntVar(&installer.CgroupDisabled, "cgroup-disabled", 0, "enable disable cgroup(Linux) limits for CPU and memory")
