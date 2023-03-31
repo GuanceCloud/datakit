@@ -8,7 +8,7 @@ require (
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/DataDog/gopsutil v1.1.0
-	//github.com/GuanceCloud/cliutils v0.0.0-20230327111633-3e0586f99fae
+	github.com/GuanceCloud/cliutils v0.0.0-20230331102442-d9fb010ecf2e
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.2
 	github.com/GuanceCloud/platypus v0.2.3
@@ -359,13 +359,8 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
 
-require github.com/GuanceCloud/cliutils v0.0.0-00010101000000-000000000000
-
 // replace
 replace (
-	// TODO: temporary
-	github.com/GuanceCloud/cliutils => /Users/tanbiao/go/src/github.com/GuanceCloud/cliutils
-
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
 	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.1-rc3

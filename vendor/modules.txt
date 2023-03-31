@@ -45,7 +45,7 @@ github.com/DataDog/sketches-go/ddsketch/store
 # github.com/DataDog/zstd v1.4.1
 ## explicit
 github.com/DataDog/zstd
-# github.com/GuanceCloud/cliutils v0.0.0-00010101000000-000000000000 => /Users/tanbiao/go/src/github.com/GuanceCloud/cliutils
+# github.com/GuanceCloud/cliutils v0.0.0-20230331102442-d9fb010ecf2e
 ## explicit; go 1.18
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/dialtesting
@@ -2270,7 +2270,6 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.3.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
-# github.com/GuanceCloud/cliutils => /Users/tanbiao/go/src/github.com/GuanceCloud/cliutils
 # github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 # github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
 # github.com/kardianos/service => github.com/GuanceCloud/service v1.2.1-rc3
