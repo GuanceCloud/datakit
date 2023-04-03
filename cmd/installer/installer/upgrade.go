@@ -152,7 +152,12 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 
 	// move sinkers under dataway
 	if c.SinkersDeprecated != nil && len(c.SinkersDeprecated.Arr) > 0 {
-		c.Dataway.Sinkers = c.SinkersDeprecated.Arr
+		for _, x := range c.SinkersDeprecated.Arr {
+			if x.URL != "" && len(x.Categories) > 0 { // make sure it's a valid(at lease seems like) sinker
+				c.Dataway.Sinkers = append(c.Dataway.Sinkers, x)
+			}
+		}
+
 		c.SinkersDeprecated = nil // clear
 	}
 

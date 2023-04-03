@@ -7,6 +7,7 @@ package monitor
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/gdamore/tcell/v2"
@@ -53,9 +54,7 @@ func (app *monitorAPP) renderIOTable(mfs map[string]*dto.MetricFamily, colArr []
 			used,
 			capacity int64
 
-			ptsOK,
-			ptsFailed,
-			ptsDropped float64
+			ptsOK float64
 		)
 
 		for _, lp := range lps {
@@ -82,26 +81,15 @@ func (app *monitorAPP) renderIOTable(mfs map[string]*dto.MetricFamily, colArr []
 		}
 
 		if dwPtsTotal != nil {
-			if x := metricWithLabel(dwPtsTotal, point.CatString(cat).String(), "ok"); x != nil {
+			if x := metricWithLabel(dwPtsTotal, point.CatString(cat).String(), http.StatusText(http.StatusOK)); x != nil {
 				ptsOK = x.GetCounter().GetValue()
 			}
 
 			table.SetCell(row, 2, tview.NewTableCell(number(ptsOK)).
 				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 
-			if x := metricWithLabel(dwPtsTotal, point.CatString(cat).String(), "failed"); x != nil {
-				ptsFailed = x.GetCounter().GetValue()
-			}
-
-			table.SetCell(row, 3, tview.NewTableCell(number(ptsFailed)).
-				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
-
-			if x := metricWithLabel(dwPtsTotal, point.CatString(cat).String(), "dropped"); x != nil {
-				ptsDropped = x.GetCounter().GetValue()
-			}
-
-			table.SetCell(row, 4, tview.NewTableCell(number(ptsDropped)).
-				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+			// For failed points, there maybe more reasons(more tags), so do not
+			// show here, we can see them via /metrics API.
 		}
 
 		row++
