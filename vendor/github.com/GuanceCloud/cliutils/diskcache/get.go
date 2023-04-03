@@ -33,7 +33,7 @@ func (c *DiskCache) Get(fn Fn) error {
 	start := time.Now()
 
 	defer func() {
-		if nbytes != EOFHint {
+		if uint32(nbytes) != EOFHint {
 			getBytesVec.WithLabelValues(c.labels...).Add(float64(nbytes))
 
 			// get on EOF not counted as a real Get
@@ -75,7 +75,7 @@ retry:
 
 	nbytes = int(binary.LittleEndian.Uint32(hdr[0:]))
 
-	if nbytes == EOFHint { // EOF
+	if uint32(nbytes) == EOFHint { // EOF
 		if err = c.removeCurrentReadingFile(); err != nil {
 			return fmt.Errorf("removeCurrentReadingFile: %w", err)
 		}

@@ -28,7 +28,7 @@ const (
 	dataHeaderLen = 4
 
 	// EOFHint labels a file's end.
-	EOFHint = 0xdeadbeef
+	EOFHint = uint32(0xdeadbeef)
 )
 
 // Generic diskcache errors.
