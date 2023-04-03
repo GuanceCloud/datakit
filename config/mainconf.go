@@ -131,12 +131,6 @@ func DefaultConfig() *Config {
 
 		Dataway: &dataway.Dataway{
 			URLs: []string{"not-set"},
-			// Sinkers: []*dataway.Sinker{
-			//	{
-			//		Categories: []string{},
-			//		Filters:    []string{},
-			//	},
-			// },
 		},
 
 		ProtectMode: true,
