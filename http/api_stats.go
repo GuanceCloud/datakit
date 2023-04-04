@@ -58,7 +58,3 @@ func apiGetDatakitStatsByType(w http.ResponseWriter, r *http.Request, x ...inter
 
 	return nil, errors.New("TODO")
 }
-
-// func apiGetInputStats(w http.ResponseWriter, r *http.Request, x ...interface{}) (interface{}, error) {
-//	return nil, errors.New("TODO")
-//}

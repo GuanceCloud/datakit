@@ -18,7 +18,6 @@ type bodyPayload int
 const (
 	payloadLineProtocol bodyPayload = iota
 	// TODO: used to cache protobuf point.
-
 )
 
 type body struct {

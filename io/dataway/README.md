@@ -43,3 +43,4 @@ Dataway 模块暴露如下 metrics：
 | datakit_io_dataway_sink_total        | count   | dataway sink count, partitioned by category.                                             | category        |
 | datakit_io_dataway_sink_point_total  | count   | dataway sink points, partitioned by category and point send status(HTTP status)          | category,status |
 | datakit_io_dataway_api_latency       | summary | dataway HTTP request latency(ms) partitioned by HTTP API(url path) and HTTP status       | api,status      |
+| datakit_io_flush_failcache_bytes     | summary | IO flush fail-cache bytes(in gzip) summary                                               | category        |

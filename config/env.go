@@ -114,6 +114,16 @@ func (c *Config) loadIOEnvs() {
 		}
 	}
 
+	if v := datakit.GetEnv("ENV_IO_FLUSH_WORKERS"); v != "" {
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			l.Warnf("invalid env key ENV_IO_FLUSH_WORKERS, value %s, err: %s ignored", v, err)
+		} else {
+			l.Infof("set ENV_IO_FLUSH_WORKERS to %d", n)
+			c.IO.FlushWorkers = int(n)
+		}
+	}
+
 	if v := datakit.GetEnv("ENV_IO_CACHE_CLEAN_INTERVAL"); v != "" {
 		du, err := time.ParseDuration(v)
 		if err != nil {

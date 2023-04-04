@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/failcache"
@@ -44,6 +45,8 @@ type dkIO struct {
 	outputFileInputs []string
 
 	flushInterval time.Duration
+	flushWorkers  int
+
 	feedChanSize  int
 	maxCacheCount int
 
@@ -139,6 +142,11 @@ func (x *dkIO) start() {
 		}
 	}
 
+	nworker := runtime.NumCPU()*2 + 1
+	if x.flushWorkers > 0 {
+		nworker = x.flushWorkers
+	}
+
 	for _, c := range []string{
 		datakit.Metric,
 		datakit.Network,
@@ -155,9 +163,12 @@ func (x *dkIO) start() {
 		log.Infof("starting consumer on %s...", c)
 		switch c {
 		case datakit.Metric, datakit.Network, datakit.Logging, datakit.Tracing, datakit.RUM:
-			fn(c, runtime.NumCPU()*2+1)
+			fn(c, nworker)
+
+			flushWorkersVec.WithLabelValues(point.CatURL(c).String()).Set(float64(nworker))
 		default:
 			fn(c, 1)
+			flushWorkersVec.WithLabelValues(point.CatURL(c).String()).Set(1.0)
 		}
 	}
 }

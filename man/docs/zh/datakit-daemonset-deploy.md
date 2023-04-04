@@ -327,15 +327,16 @@ DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cp
 
 ### IO 模块配置相关环境变量 {#env-io}
 
-| 环境变量名称                  | 类型     | 默认值 | 必须   | 说明                                  |
-| ---------:                    | ---:     | ---:   | ------ | ----                                  |
-| `ENV_IO_FILTERS`              | json     | 无     | 否     | 添加[行协议过滤器](datakit-filter.md) |
-| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s    | 否     | IO 发送时间频率                       |
-| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000   | 否     | 发送 buffer（点数）大小               |
-| `ENV_IO_ENABLE_CACHE`         | bool     | false  | 否     | 是否开启发送失败的磁盘缓存            |
-| `ENV_IO_CACHE_ALL`            | bool     | false  | 否     | 是否 cache 所有发送失败的数据         |
-| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10     | 否     | 发送失败缓存的磁盘大小（单位 GB）     |
-| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s     | 否     | 定期发送缓存在磁盘内的失败任务        |
+| 环境变量名称                  | 类型     | 默认值             | 必须   | 说明                                  |
+| ---------:                    | ---:     | ---:               | ------ | ----                                  |
+| `ENV_IO_FILTERS`              | json     | 无                 | 否     | 添加[行协议过滤器](datakit-filter.md) |
+| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s                | 否     | IO 发送时间频率                       |
+| `ENV_IO_FLUSH_WORKERS`        | int      | `cpu_core * 2 + 1` | 否     | IO 发送 worker 数                     |
+| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000               | 否     | 发送 buffer（点数）大小               |
+| `ENV_IO_ENABLE_CACHE`         | bool     | false              | 否     | 是否开启发送失败的磁盘缓存            |
+| `ENV_IO_CACHE_ALL`            | bool     | false              | 否     | 是否 cache 所有发送失败的数据         |
+| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10                 | 否     | 发送失败缓存的磁盘大小（单位 GB）     |
+| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s                 | 否     | 定期发送缓存在磁盘内的失败任务        |
 
 ???+ note "关于 buffer 和 queue 的说明"
 

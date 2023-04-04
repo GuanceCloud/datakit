@@ -242,6 +242,7 @@ func TestWritePoints(t *T.T) {
 		// check metrics on sinker
 		mfs, err := reg.Gather()
 		assert.NoError(t, err)
+		t.Logf("metrics: %s", metrics.MetricFamily2Text(mfs))
 
 		assert.Equal(t, 1.0, // one sink
 			metrics.GetMetricOnLabels(mfs,

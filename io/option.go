@@ -105,9 +105,19 @@ func WithOutputFile(fpath string) IOOption {
 	}
 }
 
+// WithOutputFileOnInputs set inputs that their point write to file.
 func WithOutputFileOnInputs(inputs []string) IOOption {
 	return func(x *dkIO) {
 		x.outputFileInputs = inputs
+	}
+}
+
+// WithFlushWorkers set IO flush workers.
+func WithFlushWorkers(n int) IOOption {
+	return func(x *dkIO) {
+		if n > 0 {
+			x.flushWorkers = n
+		}
 	}
 }
 

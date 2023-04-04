@@ -59,6 +59,10 @@ func (x *dkIO) cacheData(c *consumer, d *iodata, tryClean bool) {
 func (x *dkIO) flush(c *consumer) {
 	c.lastFlush = time.Now()
 
+	defer func() {
+		flushVec.WithLabelValues(point.CatURL(c.category).String()).Inc()
+	}()
+
 	if err := x.doFlush(c.pts, c.category, c.fc); err != nil {
 		log.Warnf("post %d points to %s failed: %s, ignored", len(c.pts), c.category, err)
 	}
