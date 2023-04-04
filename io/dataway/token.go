@@ -24,7 +24,10 @@ func CheckToken(token string) error {
 		tokenVal := parts[1]
 
 		if tokenLen, ok := tokenFormatMap[prefix]; ok {
-			if len(tokenVal) == tokenLen {
+			if len(tokenVal) != tokenLen {
+				return fmt.Errorf("invalid token format, expect token length %d, but got %d",
+					tokenLen+len(prefix)+1, len(tokenVal)+len(prefix)+1)
+			} else {
 				return nil
 			}
 		}
