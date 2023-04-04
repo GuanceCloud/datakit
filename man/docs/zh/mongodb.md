@@ -12,7 +12,7 @@ MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采�
 
 ## 前置条件 {#requirements}
 
-- 已测试的版本: `3.0`, `4.0`, `5.0`, `6.0`;
+- 已测试的版本: `3.x`, `4.x`, `5.x`, `6.x`;
 - 开发使用 MongoDB 版本 `4.4.5`;
 - 编写配置文件在对应目录下然后启动 DataKit 即可完成配置;
 - 使用 TLS 进行安全连接请在配置文件中配置 `## TLS connection config` 下响应证书文件路径与配置;
