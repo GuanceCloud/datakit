@@ -21,4 +21,15 @@ func TestCheckToken(t *T.T) {
 		assert.Error(t, CheckToken("tkn_0000000000000000000000000000001"))
 		assert.Error(t, CheckToken("tokn_0000000000000000000011"))
 	})
+
+	t.Run("check-token-error-msg", func(t *T.T) {
+		err := CheckToken("token_0000000000000000000000000000001")
+		t.Logf("%s", err)
+
+		err = CheckToken("tkn_0000000000000000000000000000001")
+		t.Logf("%s", err)
+
+		err = CheckToken("tokn_0000000000000000000011")
+		t.Logf("%s", err)
+	})
 }
