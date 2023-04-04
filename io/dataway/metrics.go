@@ -16,6 +16,8 @@ var (
 	bytesCounterVec,
 	sinkCounterVec,
 	sinkPtsVec *prometheus.CounterVec
+
+	flushFailCacheVec,
 	apiSumVec *prometheus.SummaryVec
 )
 
@@ -28,6 +30,7 @@ func Metrics() []prometheus.Collector {
 		apiSumVec,
 		sinkCounterVec,
 		sinkPtsVec,
+		flushFailCacheVec,
 	}
 }
 
@@ -38,6 +41,7 @@ func metricsReset() {
 	apiSumVec.Reset()
 
 	sinkCounterVec.Reset()
+	flushFailCacheVec.Reset()
 	sinkPtsVec.Reset()
 }
 
@@ -48,6 +52,7 @@ func doRegister() {
 		bytesCounterVec,
 		apiSumVec,
 
+		flushFailCacheVec,
 		sinkCounterVec,
 		sinkPtsVec,
 	)
@@ -55,6 +60,16 @@ func doRegister() {
 
 // nolint:gochecknoinits
 func init() {
+	flushFailCacheVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "flush_failcache_bytes",
+			Help:      "IO flush fail-cache bytes(in gzip) summary",
+		},
+		[]string{"category"},
+	)
+
 	apiCounterVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",

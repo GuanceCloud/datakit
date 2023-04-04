@@ -186,6 +186,7 @@ func startIO() {
 		dkio.WithDiskCacheSize(c.CacheSizeGB),
 		dkio.WithFilters(c.Filters),
 		dkio.WithCacheAll(c.CacheAll),
+		dkio.WithFlushWorkers(c.FlushWorkers),
 	}
 
 	du, err := time.ParseDuration(c.FlushInterval)

@@ -17,11 +17,13 @@ var (
 	inputsFeedVec,
 	inputsFeedPtsVec,
 	errCountVec,
+	flushVec,
 	inputsFilteredPtsVec *prometheus.CounterVec
 
 	inputsCollectLatencyVec *prometheus.SummaryVec
 
 	queuePtsVec,
+	flushWorkersVec,
 	inputsLastFeedVec,
 	lastErrVec,
 	ioChanCap,
@@ -29,6 +31,26 @@ var (
 )
 
 func metricsSetup() {
+	flushWorkersVec = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "flush_workers",
+			Help:      "IO flush workers",
+		},
+		[]string{"category"},
+	)
+
+	flushVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "flush_total",
+			Help:      "IO flush total",
+		},
+		[]string{"category"},
+	)
+
 	queuePtsVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
@@ -175,6 +197,8 @@ func Metrics() []prometheus.Collector {
 		ioChanLen,
 		ioChanCap,
 		errCountVec,
+		flushVec,
+		flushWorkersVec,
 	}
 }
 
@@ -191,6 +215,8 @@ func MetricsReset() {
 	lastErrVec.Reset()
 	ioChanCap.Reset()
 	ioChanLen.Reset()
+	flushVec.Reset()
+	flushWorkersVec.Reset()
 }
 
 // A CollectorStatus used to describe a input's status.

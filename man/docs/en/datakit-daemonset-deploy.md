@@ -280,15 +280,16 @@ DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cp
 
 ### IO Module Configuring Related Environment Variables {#env-io}
 
-| Environment Variable Name     | Type     | Default Value | Required | Description                                        |
-| :---------                    | :---     | :---          | :-----   | :---                                               |
-| `ENV_IO_FILTERS`              | json     | None          | No       | Add [row protocol filter](datakit-filter)          |
-| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s           | No       | IO transmission time frequency                     |
-| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000          | No       | Send buffer size                                   |
-| `ENV_IO_ENABLE_CACHE`         | bool     | false         | No       | Whether to open the disk cache that failed to send |
-| `ENV_IO_CACHE_ALL`            | bool     | false         | 否       | cache failed data points of all categories         |
-| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10            | No       | Disk size of send failure cache (in GB)            |
-| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s            | No       | Periodically send failed tasks cached on disk      |
+| Environment Variable Name     | Type     | Default Value      | Required | Description                                        |
+| :---------                    | :---     | :---               | :-----   | :---                                               |
+| `ENV_IO_FILTERS`              | json     | None               | No       | Add [row protocol filter](datakit-filter)          |
+| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s                | No       | IO transmission time frequency                     |
+| `ENV_IO_FLUSH_WORKERS`        | int      | `cpu_core * 2 + 1` | No       | IO flush workers                                   |
+| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000               | No       | Send buffer size                                   |
+| `ENV_IO_ENABLE_CACHE`         | bool     | false              | No       | Whether to open the disk cache that failed to send |
+| `ENV_IO_CACHE_ALL`            | bool     | false              | 否       | cache failed data points of all categories         |
+| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10                 | No       | Disk size of send failure cache (in GB)            |
+| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s                 | No       | Periodically send failed tasks cached on disk      |
 
 ???+ note "description on buffer and queue"
 

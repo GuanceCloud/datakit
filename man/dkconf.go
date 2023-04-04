@@ -112,7 +112,8 @@ ulimit = 64000
   # Datakit will upload data points if cached(in memory) points
   #  reached(>=) the max_cache_count or the flush_interval triggered.
   max_cache_count = 1000
-  flush_interval = "10s"
+	flush_workers   = 0 # default to (cpu_core * 2 + 1)
+  flush_interval  = "10s"
 
   # We can write these data points into file in line-proto format(truncated at 32MB).
   output_file = ""

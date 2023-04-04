@@ -40,3 +40,6 @@ io 模块暴露如下 metrics：
 | datakit_last_err                    | gauge   | Datakit errors(when error occurred), these errors come from inputs or any sub modules | source,category,error |
 | datakit_io_chan_capacity            | gauge   | IO channel capacity                                                                   | category              |
 | datakit_io_chan_usage               | gauge   | IO module queued(cached) points                                                       | category              |
+| datakit_io_flush_total              | count   | IO flush total                                                                        | category              |
+| datakit_io_flush_failcache_total    | count   | IO flush fail-cache total                                                             | category              |
+| datakit_io_flush_workers            | gauge   | IO flush workers                                                                      | category              |

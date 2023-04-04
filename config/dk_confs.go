@@ -14,6 +14,7 @@ type IOConf struct {
 	MaxDynamicCacheCountDeprecated int `toml:"max_dynamic_cache_count,omitzero"`
 
 	FlushInterval string `toml:"flush_interval"`
+	FlushWorkers  int    `toml:"flush_workers"`
 
 	OutputFile       string   `toml:"output_file"`
 	OutputFileInputs []string `toml:"output_file_inputs"`

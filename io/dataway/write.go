@@ -92,8 +92,10 @@ func (dw *Dataway) cleanCache(w *writer, data []byte) error {
 		return nil
 	}
 
-	WithGzip(isGzip(pd.Payload))(w)                    // check if bytes is gzipped
-	WithCategory(point.Category(pd.Category).URL())(w) // use category in cached data
+	cat := point.Category(pd.Category)
+
+	WithGzip(isGzip(pd.Payload))(w) // check if bytes is gzipped
+	WithCategory(cat.URL())(w)      // use category in cached data
 
 	for _, ep := range dw.eps {
 		// If some of endpoint send ok, any failed write will cause re-write on these ok ones.
@@ -105,6 +107,8 @@ func (dw *Dataway) cleanCache(w *writer, data []byte) error {
 		}
 	}
 
+	// only set metric on clean-ok
+	flushFailCacheVec.WithLabelValues(cat.String()).Observe(float64(len(pd.Payload)))
 	return nil
 }
 
