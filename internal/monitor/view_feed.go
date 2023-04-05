@@ -69,7 +69,7 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 					tview.NewTableCell(val).
 						SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 
-			case "category":
+			case "category": //nolint:goconst
 
 				cat = val
 

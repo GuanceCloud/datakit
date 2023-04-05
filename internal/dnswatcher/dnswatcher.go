@@ -8,7 +8,6 @@ package dnswatcher
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -17,8 +16,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/compareutil"
 )
-
-//------------------------------------------------------------------------------
 
 const (
 	packageName          = "dnswatcher"
@@ -38,8 +35,6 @@ type IDNSWatcher interface {
 	SetIPs([]string)
 	Update() error
 }
-
-//------------------------------------------------------------------------------
 
 func StartWatch() error {
 	runDNSWatcher.Do(func() {
@@ -61,10 +56,13 @@ func StartWatch() error {
 func AddWatcher(one IDNSWatcher) {
 	locker.Lock()
 	defer locker.Unlock()
+
+	defer func() {
+		dnsDomainCounter.Inc()
+	}()
+
 	watcherList = append(watcherList, one)
 }
-
-//------------------------------------------------------------------------------
 
 func dnsWatcherMain(chkInterval time.Duration) error {
 	l.Info("start")
@@ -73,19 +71,21 @@ func dnsWatcherMain(chkInterval time.Duration) error {
 	defer tick.Stop()
 
 	for {
+		l.Debugf("triggered, watcherList = %#v", watcherList)
+		if err := doRun(); err != nil {
+			l.Warnf("[%s] failed: %v, ignored", packageName, err)
+		}
+
+		watchRunCounter.WithLabelValues(chkInterval.String()).Inc()
+
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
 			return nil
 
 		case <-tick.C:
-			l.Debugf("triggered, watcherList = %#v", watcherList)
-			if err := doRun(); err != nil {
-				tip := fmt.Sprintf("[%s] failed: %v", packageName, err)
-				l.Error(tip)
-			}
-		} // select
-	} // for
+		}
+	}
 }
 
 func doRun() error {
@@ -94,6 +94,7 @@ func doRun() error {
 
 	for _, v := range watcherList {
 		changed, newIPs := checkDNSChanged(v)
+
 		if changed {
 			if err := v.Update(); err != nil {
 				l.Warnf("Update failed: err = %v, domain = %v", err, v.GetDomain())
@@ -101,15 +102,32 @@ func doRun() error {
 			}
 
 			v.SetIPs(newIPs)
-		} // if changed
-	} // for
+		}
+	}
 
 	return nil
 }
 
 func checkDNSChanged(watcher IDNSWatcher) (bool, []string) {
-	domain := watcher.GetDomain()
-	oldIPs := watcher.GetIPs()
+	var (
+		start   = time.Now()
+		changed = false
+		domain  = watcher.GetDomain()
+		oldIPs  = watcher.GetIPs()
+		err     error
+	)
+
+	defer func() {
+		if changed {
+			dnsUpdateCounter.WithLabelValues(domain).Inc()
+		}
+
+		if err == nil {
+			watchLatency.WithLabelValues(domain, "ok").Observe(float64(time.Since(start)) / float64(time.Millisecond))
+		} else {
+			watchLatency.WithLabelValues(domain, err.Error()).Observe(float64(time.Since(start)) / float64(time.Millisecond))
+		}
+	}()
 
 	netIPs, err := net.LookupIP(domain)
 	if err != nil {
@@ -121,7 +139,9 @@ func checkDNSChanged(watcher IDNSWatcher) (bool, []string) {
 		newIPs = append(newIPs, ip.String())
 	}
 
-	return !compareutil.CompareListDisordered(oldIPs, newIPs), newIPs
+	changed = !compareutil.CompareListDisordered(oldIPs, newIPs)
+
+	return changed, newIPs
 }
 
 func getCheckInterval(checkInterval string) time.Duration {

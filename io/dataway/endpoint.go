@@ -439,47 +439,6 @@ func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 	return body, nil
 }
 
-/*
-func (ep *endPoint) heartBeat(data []byte) (int, error) {
-	requrl, ok := ep.categoryURL[datakit.HeartBeat]
-	if !ok {
-		return heartBeatIntervalDefault, fmt.Errorf("HeartBeat API missing, should not been here")
-	}
-
-	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(data))
-	if err != nil {
-		return heartBeatIntervalDefault, err
-	}
-
-	resp, err := ep.sendReq(req)
-	if err != nil {
-		return heartBeatIntervalDefault, err
-	}
-
-	defer resp.Body.Close() //nolint:errcheck
-
-	if resp.StatusCode >= 400 {
-		err := fmt.Errorf("heart beat resp err: %+#v", resp)
-		return heartBeatIntervalDefault, err
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return heartBeatIntervalDefault, err
-	}
-	type heartBeat struct {
-		Content struct {
-			Interval int `json:"interval"`
-		} `json:"content"`
-	}
-
-	var hb heartBeat
-	if err := json.Unmarshal(body, &hb); err != nil {
-		log.Errorf(`%s, body: %s`, err, string(body))
-		return heartBeatIntervalDefault, err
-	}
-	return hb.Content.Interval, nil
-} */
-
 func (ep *endPoint) sendReq(req *http.Request) (*http.Response, error) {
 	log.Debugf("send request %q, proxy: %q, cli: %p, timeout: %s",
 		req.URL.String(), ep.proxy, ep.httpCli.HTTPClient.Transport, ep.httpTimeout)
@@ -530,7 +489,6 @@ func (ep *endPoint) sendReq(req *http.Request) (*http.Response, error) {
 
 	if err != nil {
 		return nil, err
-		// &DatawayError{Err: err, Trace: ts, API: req.URL.Path}
 	}
 
 	if resp != nil {

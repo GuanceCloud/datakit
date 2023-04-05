@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 )
 
 type EventOP string
@@ -58,6 +59,10 @@ func (stats *Stats) ReadEvent() []ChangeEvent {
 func (stats *Stats) UpdateScriptStatsMeta(category, ns, name, script string, enable, deleted bool, err string) {
 	ts := time.Now()
 
+	defer func() {
+		plUpdateVec.WithLabelValues(point.CatURL(category).String(), name, ns).Set(float64(ts.Unix()))
+	}()
+
 	if stats, loaded := stats.stats.LoadOrStore(StatsKey(category, ns, name), &ScriptStats{
 		meta: ScriptMeta{
 			script:            script,
@@ -80,15 +85,22 @@ func (stats *Stats) UpdateScriptStatsMeta(category, ns, name, script string, ena
 }
 
 func (stats *Stats) WriteScriptStats(category, ns, name string, pt, ptDrop, ptError uint64, cost int64, err error) {
-	v, ok := stats.stats.Load(StatsKey(category, ns, name))
-	if !ok {
-		return
+	catStr := point.CatURL(category).String()
+
+	if pt > 0 {
+		plPtsVec.WithLabelValues(catStr, name, ns).Add(float64(pt))
 	}
-	if v, ok := v.(*ScriptStats); ok {
-		v.WritePtCount(pt, ptDrop, ptError, cost)
-		if err != nil {
-			v.WriteErr("time: " + time.Now().Format(StatsTimeFormat) + "error: " + err.Error())
-		}
+
+	if ptDrop > 0 {
+		plDropVec.WithLabelValues(catStr, name, ns).Add(float64(ptDrop))
+	}
+
+	if ptError > 0 {
+		plErrPtsVec.WithLabelValues(catStr, name, ns).Add(float64(ptDrop))
+	}
+
+	if cost > 0 {
+		plCostVec.WithLabelValues(catStr, name, ns).Observe(float64(cost) / float64(time.Millisecond))
 	}
 }
 

@@ -272,7 +272,7 @@ func compileArch(bin, goos, goarch, dir string) error {
 		}
 	}
 
-	l.Debugf("building %s\n%+#v", fmt.Sprintf("%s-%s/%s", goos, goarch, bin), cmdArgs)
+	l.Debugf("building %q with %v", fmt.Sprintf("%s-%s/%s", goos, goarch, bin), cmdArgs)
 	msg, err := runEnv(cmdArgs, envs)
 	if err != nil {
 		return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s", cmdArgs, envs, err, string(msg))

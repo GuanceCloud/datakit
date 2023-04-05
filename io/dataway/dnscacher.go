@@ -8,7 +8,7 @@ package dataway
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dnswatcher"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dnswatcher"
 )
 
 const (

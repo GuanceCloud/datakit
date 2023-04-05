@@ -104,7 +104,6 @@ require (
 	golang.org/x/term v0.5.0 // indirect
 	golang.org/x/text v0.7.0
 	google.golang.org/grpc v1.51.0
-	google.golang.org/protobuf v1.28.1
 	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.18
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -358,6 +357,8 @@ require (
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
+
+require google.golang.org/protobuf v1.28.1
 
 // replace
 replace (
