@@ -9,17 +9,19 @@ package cgroup
 import (
 	"context"
 	"fmt"
+	"os"
 	"runtime"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/v3/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var (
-	cg *Cgroup
-	l  = logger.DefaultSLogger("cgroup")
+	cg   *Cgroup
+	self *process.Process
+	l    = logger.DefaultSLogger("cgroup")
 )
 
 const (
@@ -34,6 +36,15 @@ type CgroupOptions struct {
 
 	DisableOOM bool `toml:"disable_oom,omitempty"`
 	Enable     bool `toml:"enable"`
+}
+
+//nolint:gochecknoinits
+func init() {
+	var err error
+	self, err = process.NewProcess(int32(os.Getpid()))
+	if err != nil {
+		panic(err.Error())
+	}
 }
 
 func Run(c *CgroupOptions) {
@@ -91,14 +102,10 @@ func Info() string {
 	}
 }
 
-func GetCPUPercent(interval time.Duration) (float64, error) {
-	percent, err := cpu.Percent(interval, false)
-	if err != nil {
-		return 0, err
-	}
+func MyMemPercent() (float32, error) {
+	return self.MemoryPercent()
+}
 
-	if len(percent) == 0 {
-		return 0, nil
-	}
-	return percent[0] / 100, nil //nolint:gomnd
+func MyCPUPercent(du time.Duration) (float64, error) {
+	return self.Percent(du)
 }

@@ -189,7 +189,7 @@ func (c *Cgroup) stop() {
 }
 
 func (c *Cgroup) refreshCPULimit() {
-	percpu, err := GetCPUPercent(0) //nolint:gomnd
+	percpu, err := MyCPUPercent(0) //nolint:gomnd
 	if err != nil {
 		l.Warnf("GetCPUPercent: %s, ignored", err)
 		return

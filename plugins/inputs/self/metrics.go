@@ -41,21 +41,21 @@ func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				DataType: inputs.Float,
 				Unit:     inputs.Percent,
-				Desc:     "CPU usage of the datakit",
+				Desc:     "CPU usage of current datakit(same as `top`)",
 			},
 
 			"cpu_usage_top": &inputs.FieldInfo{
 				Type:     inputs.Gauge,
 				DataType: inputs.Float,
 				Unit:     inputs.Percent,
-				Desc:     "CPU usage(command `top`) of the datakit",
+				Desc:     "**Deprecated**. Same as `cpu_usage`.",
 			},
 
 			"incumbency": &inputs.FieldInfo{
 				Type:     inputs.Gauge,
 				DataType: inputs.Int,
 				Unit:     inputs.DurationSecond,
-				Desc:     "**Deprecated**. same as `elected`",
+				Desc:     "**Deprecated**. Same as `elected`",
 			},
 
 			"elected": &inputs.FieldInfo{
