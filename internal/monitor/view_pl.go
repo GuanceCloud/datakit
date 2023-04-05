@@ -5,131 +5,137 @@
 
 package monitor
 
-/*
-func (app *monitorAPP) renderPLStatTable(colArr []string) {
-		table := m.plStatTable
+import (
+	"fmt"
+	"time"
 
-		if m.anyError != nil {
-			return
+	"github.com/GuanceCloud/cliutils/point"
+	"github.com/dustin/go-humanize"
+	"github.com/gdamore/tcell/v2"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/rivo/tview"
+)
+
+func (app *monitorAPP) renderPLStatTable(mfs map[string]*dto.MetricFamily, colArr []string) {
+	table := app.plStatTable
+
+	if app.anyError != nil {
+		return
+	}
+
+	totalPts := mfs["datakit_pipeline_point_total"]
+	totalErrorPts := mfs["datakit_pipeline_error_point_total"]
+	totalDropPts := mfs["datakit_pipeline_drop_point_total"]
+	lastUpdate := mfs["datakit_pipeline_update_time"]
+	cost := mfs["datakit_pipeline_cost"]
+
+	if totalPts == nil {
+		table.SetTitle("[red]P[white]ipeline Info(no data collected)")
+		return
+	} else {
+		table.SetTitle(fmt.Sprintf("[red]P[white]ipeline Info(%d scripts)", len(totalPts.Metric)))
+	}
+
+	// set table header
+	for idx := range colArr {
+		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).
+			SetMaxWidth(app.maxTableWidth).
+			SetTextColor(tcell.ColorGreen).SetAlign(tview.AlignRight))
+	}
+
+	row := 1
+	now := time.Now()
+	for _, m := range totalPts.Metric {
+		lps := m.GetLabel()
+		var cat, name, ns string
+
+		for _, lp := range lps {
+			val := lp.GetValue()
+			switch lp.GetName() {
+			case "name":
+				name = val
+				table.SetCell(row, 0,
+					tview.NewTableCell(val).
+						SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+			case "category":
+				cat = val
+				table.SetCell(row, 1,
+					tview.NewTableCell(point.CatString(val).Alias()).
+						SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+			case "namespace":
+				ns = val
+				table.SetCell(row, 2,
+					tview.NewTableCell(val).
+						SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+			}
 		}
 
-		if len(ds.PLStats) == 0 {
-			table.SetTitle("[red]P[white]ipeline Info(no data collected)")
-			return
-		} else {
-			table.SetTitle(fmt.Sprintf("[red]P[white]ipeline Info(%d scripts)", len(ds.PLStats)))
-		}
+		col := 3
+		table.SetCell(row, col, tview.NewTableCell(number(m.GetCounter().GetValue())).
+			SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+		col++
 
-		// set table header
-		for idx := range colArr {
-			table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).
-				SetMaxWidth(m.maxTableWidth).
-				SetTextColor(tcell.ColorGreen).SetAlign(tview.AlignRight))
-		}
-
-		row := 1
-		now := time.Now()
-
-		//
-		// render all pl script, row by row
-		//
-		for _, plStats := range ds.PLStats {
-			table.SetCell(row, 0,
-				tview.NewTableCell(fmt.Sprintf("%12s", plStats.Name)).
-					SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignRight))
-
-			table.SetCell(row, 1, tview.NewTableCell(func() string {
-				if v, ok := datakit.CategoryMap[plStats.Category]; ok {
-					return fmt.Sprintf("%8s", v)
-				} else {
-					return "-"
-				}
-			}()).SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignCenter))
-
-			table.SetCell(row, 2, tview.NewTableCell(func() string {
-				if plStats.NS == "" {
-					return "-"
-				}
-				return fmt.Sprintf("%8s", plStats.NS)
-			}()).SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignRight))
-
-			table.SetCell(row, 3,
-				tview.NewTableCell(fmt.Sprintf("%8v", plStats.Enable)).
-					SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignRight))
-
-			table.SetCell(row, 4,
-				tview.NewTableCell(fmt.Sprintf("%12s", number(plStats.Pt))).
-					SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignRight))
-
-			table.SetCell(row, 5,
-				tview.NewTableCell(fmt.Sprintf("%12s", number(plStats.PtDrop))).
-					SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignRight))
-
-			table.SetCell(row, 6,
-				tview.NewTableCell(fmt.Sprintf("%12s", number(plStats.PtError))).
-					SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignRight))
-
-			table.SetCell(row, 7,
-				tview.NewTableCell(fmt.Sprintf("%12s", number(plStats.ScriptUpdateTimes))).
-					SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignRight))
-
-			table.SetCell(row, 8,
-				tview.NewTableCell(fmt.Sprintf("%12s", time.Duration(plStats.TotalCost))).
-					SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignRight))
-
-			var avgCost time.Duration
-			if plStats.Pt > 0 {
-				avgCost = time.Duration(plStats.TotalCost / int64(plStats.Pt))
-			}
-			table.SetCell(row, 9,
-				tview.NewTableCell(fmt.Sprintf("%12s", avgCost)).
-					SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignRight))
-
-			table.SetCell(row, 10,
-				tview.NewTableCell(humanize.RelTime(plStats.FirstTS, now, "ago", "")).
-					SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignRight))
-
-			table.SetCell(row, 11, tview.NewTableCell(humanize.RelTime(plStats.MetaTS, now, "ago", "")).
-				SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignRight))
-
-			table.SetCell(row, 12, tview.NewTableCell(humanize.RelTime(plStats.ScriptTS, now, "ago", "")).
-				SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignRight))
-
-			table.SetCell(row, 13,
-				tview.NewTableCell(fmt.Sprintf("%8v", plStats.Deleted)).
-					SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignRight))
-
-			var errInfo string
-			if plStats.CompileError != "" {
-				errInfo = "Compile Error: " + plStats.CompileError + "\n\n"
-			}
-			if len(plStats.RunLastErrs) > 0 {
-				errInfo += "Run Error:\n"
-				for _, e := range plStats.RunLastErrs {
-					errInfo += "  " + e + "\n"
-				}
-			}
-			click := "__________script__________\n" +
-				plStats.Script +
-				"__________________________\n"
-			if errInfo == "" {
-				errInfo = "-"
+		if totalErrorPts != nil {
+			x := metricWithLabel(totalErrorPts, cat, name, ns)
+			if x == nil {
+				table.SetCell(row, col, tview.NewTableCell("-").
+					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				click = errInfo + click
+				table.SetCell(row, col, tview.NewTableCell(number(x.GetCounter().GetValue())).
+					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}
-
-			lastErrCell := tview.NewTableCell(errInfo).
-				SetMaxWidth(m.maxTableWidth).SetAlign(tview.AlignCenter)
-
-			lastErrCell.SetClickedFunc(func() bool {
-				m.setupLastErr(click)
-				return true
-			})
-
-			table.SetCell(row, 14, lastErrCell)
-
-			row++
+		} else {
+			table.SetCell(row, col, tview.NewTableCell("-").
+				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 		}
-}
+		col++
 
-*/
+		if totalDropPts != nil {
+			x := metricWithLabel(totalDropPts, cat, name, ns)
+			if x == nil {
+				table.SetCell(row, col, tview.NewTableCell("-").
+					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
+			} else {
+				table.SetCell(row, col, tview.NewTableCell(number(x.GetCounter().GetValue())).
+					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+			}
+		} else {
+			table.SetCell(row, col, tview.NewTableCell("-").
+				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
+		}
+		col++
+
+		if lastUpdate != nil {
+			x := metricWithLabel(lastUpdate, cat, name, ns)
+			if x == nil {
+				table.SetCell(row, col, tview.NewTableCell("-").
+					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
+			} else {
+				since := humanize.RelTime(time.Unix(int64(x.GetGauge().GetValue()), 0), now, "ago", "")
+				table.SetCell(row, col, tview.NewTableCell(since).
+					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+			}
+		} else {
+			table.SetCell(row, col, tview.NewTableCell("-").
+				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
+		}
+		col++
+
+		if cost != nil {
+			x := metricWithLabel(cost, cat, name, ns)
+			if x == nil {
+				table.SetCell(row, col, tview.NewTableCell("-").
+					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
+			} else {
+				avgMs := x.GetSummary().GetSampleSum() / float64(x.GetSummary().GetSampleCount())
+				table.SetCell(row, col, tview.NewTableCell(time.Duration(avgMs*float64(time.Millisecond)).String()).
+					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+			}
+		} else {
+			table.SetCell(row, col, tview.NewTableCell("-").
+				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
+		}
+
+		row++
+	}
+}

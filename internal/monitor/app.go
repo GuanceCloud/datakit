@@ -21,12 +21,9 @@ var (
 	l = logger.DefaultSLogger("monitor")
 
 	inputsFeedCols = strings.Split(
-		// `Input,Cat,Freq,AvgFeed,Feeds,TotalPts,Filtered,1stFeed,LastFeed,AvgCost,MaxCost,Error(date)`,
 		`Input,Cat,Feeds,TotalPts,Filtered,LastFeed,AvgCost,Errors`,
 		",")
-
-	//	"Script,Cat,Namespace,Enabled,TotalPts,DropPts,ErrPts,PLUpdate,"+
-	//		"Cost,AvgCost,1StTime,Update,UpdateTime,Deleted,Errors", ",")
+	plStatsCols      = strings.Split("Script,Cat,Namespace,TotalPts,DropPts,ErrPts,PLUpdate,AvgCost", ",")
 	enabledInputCols = strings.Split(`Input,Instaces,Crashed`, ",")
 	goroutineCols    = strings.Split(`Name,Running,Done,TotalCost`, ",")
 	httpAPIStatCols  = strings.Split(`API,Status,Total,Latency,BodySize`, ",")

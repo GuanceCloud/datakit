@@ -33,10 +33,8 @@ func (app *monitorAPP) render() {
 	app.renderFilterStatsTable(app.mfs)
 	app.renderFilterRulesStatsTable(app.mfs, filterRuleCols)
 	app.renderIOTable(app.mfs, ioStatCols)
+	app.renderPLStatTable(app.mfs, plStatsCols)
 
-	/*
-		m.renderPLStatTable(m.ds, plStatsCols)
-	*/
 end:
 	app.exitPrompt.Clear()
 	app.renderExitPrompt(app.mfs)

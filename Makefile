@@ -62,7 +62,7 @@ IGN_EBPF_INSTALL_ERR ?= 0
 RACE_DETECTION       ?= "off"
 PKGEBPF              ?= "false"
 
-PKGEBPF_FLAG 		  = ""
+PKGEBPF_FLAG = ""
 ifneq ($(PKGEBPF),"false")
 	PKGEBPF_FLAG = "-pkg-ebpf"
 endif
@@ -146,12 +146,12 @@ define publish
 		-name $(NAME)            \
 		-build-dir $(BUILD_DIR)  \
 		-archs $(4)              \
-		$(PKGEBPF_FLAG)
+		-pkg-ebpf $(PKGEBPF)
 endef
 
 define pub_ebpf
-	@echo "publishing $(1) $(NAME_EBPF) ..."
-	@GO111MODULE=off go run cmd/make/make.go \
+	@echo "===== publishing $(1) $(NAME_EBPF) ====="
+	@GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go \
 		-release $(1)             \
 		-upload-addr $(2)         \
 		-archs $(3)               \
@@ -298,11 +298,11 @@ pub_release_win_img:
 # because config samples in multiple testing releases may not be compatible to each other.
 pub_conf_samples:
 	@echo "upload config samples to oss..."
-	@go run cmd/make/make.go -dump-samples -release production
+	@CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -dump-samples -release production
 
 # testing/production downloads config samples from different oss bucket.
 check_testing_conf_compatible:
-	@go run cmd/make/make.go -download-samples -release testing
+	@CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -download-samples -release testing
 	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
 	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
 
