@@ -46,7 +46,7 @@ func GetRuntimeInfo() *RuntimeInfo {
 	runtime.ReadMemStats(&m)
 
 	var usage float64
-	if u, err := cgroup.GetCPUPercent(3 * time.Millisecond); err == nil {
+	if u, err := cgroup.MyCPUPercent(time.Second); err == nil {
 		usage = u
 	}
 
@@ -151,7 +151,7 @@ func (rc runtimeInfoCollector) Collect(ch chan<- p8s.Metric) {
 	ch <- p8s.MustNewConstMetric(riGoroutineDesc, p8s.GaugeValue, float64(ri.Goroutines))
 	ch <- p8s.MustNewConstMetric(riHeapAllocDesc, p8s.GaugeValue, float64(ri.HeapAlloc))
 	ch <- p8s.MustNewConstMetric(riSysAllocDesc, p8s.GaugeValue, float64(ri.Sys))
-	ch <- p8s.MustNewConstMetric(riCPUUsageDesc, p8s.GaugeValue, ri.CPUUsage*100.0)
+	ch <- p8s.MustNewConstMetric(riCPUUsageDesc, p8s.GaugeValue, ri.CPUUsage)
 	ch <- p8s.MustNewConstMetric(riOpenFilesDesc, p8s.GaugeValue, float64(datakit.OpenFiles()))
 
 	ch <- p8s.MustNewConstMetric(riCPUCores, p8s.GaugeValue, float64(runtime.NumCPU()))

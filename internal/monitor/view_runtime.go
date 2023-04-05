@@ -63,7 +63,7 @@ func (app *monitorAPP) renderGolangRuntimeTable(mfs map[string]*dto.MetricFamily
 		table.SetCell(row, 0,
 			tview.NewTableCell("CPU(%)").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 1,
-			tview.NewTableCell(number(m.GetGauge().GetValue())).
+			tview.NewTableCell(fmt.Sprintf("%.2f", m.GetGauge().GetValue())).
 				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
 		row++
 	}

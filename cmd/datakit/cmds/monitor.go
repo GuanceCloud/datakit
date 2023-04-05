@@ -9,6 +9,7 @@ package cmds
 import (
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/monitor"
 )
@@ -24,6 +25,14 @@ var moduleMap = map[string]string{
 	"IO": "io_stats",
 }
 
+// loadLocalDatakitConf try to find where local datakit listen.
+func loadLocalDatakitConf() string {
+	if err := config.Cfg.LoadMainTOML(datakit.MainConfPath); err != nil {
+		return ""
+	}
+	return config.Cfg.HTTPAPI.Listen
+}
+
 func runMonitorFlags() error {
 	if *flagMonitorRefreshInterval < time.Second {
 		*flagMonitorRefreshInterval = time.Second
@@ -32,6 +41,10 @@ func runMonitorFlags() error {
 	to := config.Cfg.HTTPAPI.Listen
 	if *flagMonitorTo != "" {
 		to = *flagMonitorTo
+	}
+
+	if x := loadLocalDatakitConf(); x != "" {
+		to = x
 	}
 
 	monitor.Start(
