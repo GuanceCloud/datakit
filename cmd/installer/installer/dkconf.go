@@ -31,7 +31,7 @@ var (
 		"hostobject",
 		"net",
 		"host_processes",
-		"rum",
+		"self",
 	}
 
 	defaultHostInputsForLinux = []string{
@@ -45,7 +45,7 @@ var (
 		"net",
 		"host_processes",
 		"container",
-		"rum",
+		"self",
 	}
 
 	defaultHostInputsForMacOS = []string{
@@ -58,7 +58,7 @@ var (
 		"hostobject",
 		"net",
 		"container",
-		"rum",
+		"self",
 
 		// host_processes is costly, maybe we should disable default
 		"host_processes",
@@ -117,17 +117,7 @@ var (
 
 	EnablePProf, PProfListen string
 
-	SinkMetric,
-	SinkNetwork,
-	SinkKeyEvent,
-	SinkObject,
-	SinkCustomObject,
-	SinkLogging,
-	SinkTracing,
-	SinkRUM,
-	SinkSecurity,
-	SinkProfiling,
-	LogSinkDetail string
+	Sinker string
 
 	CgroupDisabled int
 	LimitCPUMax,
@@ -221,19 +211,18 @@ func preEnableHostobjectInput(cloud string) []byte {
 	return conf
 }
 
-func getDataWay() (dataway.DataWay, error) {
-	var dwCfg *dataway.DataWayCfg
+func getDataway() (*dataway.Dataway, error) {
+	dw := &dataway.Dataway{}
+
 	if Dataway != "" {
-		dwCfg = &dataway.DataWayCfg{}
-		dwCfg.URLs = strings.Split(Dataway, ",")
+		dw.URLs = strings.Split(Dataway, ",")
 
 		if Proxy != "" {
 			l.Debugf("set proxy to %s", Proxy)
-			dwCfg.HTTPProxy = Proxy
+			dw.HTTPProxy = Proxy
 		}
 
-		dw := &dataway.DataWayDefault{}
-		if err := dw.Init(dwCfg); err != nil {
+		if err := dw.Init(); err != nil {
 			return nil, err
 		} else {
 			tokens := dw.GetTokens()
@@ -241,10 +230,10 @@ func getDataWay() (dataway.DataWay, error) {
 				return nil, fmt.Errorf("dataway token should not be empty")
 			}
 
-			if err := dw.CheckToken(tokens[0]); err != nil {
+			if err := dataway.CheckToken(tokens[0]); err != nil {
 				return nil, err
 			}
-			config.Cfg.DataWayCfg = dwCfg
+			config.Cfg.Dataway = dw
 			return dw, nil
 		}
 	} else {

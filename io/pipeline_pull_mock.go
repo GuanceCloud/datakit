@@ -49,7 +49,7 @@ type pullResp struct {
 //------------------------------------------------------------------------------
 
 func (*prodPipelinePullMock) getPipelinePull(ts int64, relationTS int64) (*pullPipelineReturn, error) {
-	body, err := defaultIO.dw.DatakitPull(fmt.Sprintf("remote_pipelines=true&ts=%d&relation_ts=%d", ts, relationTS))
+	body, err := defIO.dw.Pull(fmt.Sprintf("remote_pipelines=true&ts=%d&relation_ts=%d", ts, relationTS))
 	if err != nil {
 		return nil, err
 	}

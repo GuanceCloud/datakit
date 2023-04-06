@@ -61,42 +61,42 @@ func applyHTTPRoute(router *gin.Engine) {
 		method := routeInfo.Method
 		path := routeInfo.Path
 
-		l.Infof("register %s %s by handler %s to HTTP server", method, path)
+		l.Infof("register %s@%s to HTTP server", method, path)
 
 		switch method {
 		case http.MethodPost:
 			if routeInfo.handler != nil {
 				router.POST(path, rawHTTPWraper(reqLimiter, routeInfo.handler))
 			} else {
-				router.POST(path, ginWraper(reqLimiter), routeInfo.handlerDeprecated)
+				router.POST(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}
 
 		case http.MethodGet:
 			if routeInfo.handler != nil {
 				router.GET(path, rawHTTPWraper(reqLimiter, routeInfo.handler))
 			} else {
-				router.GET(path, ginWraper(reqLimiter), routeInfo.handlerDeprecated)
+				router.GET(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}
 
 		case http.MethodHead:
 			if routeInfo.handler != nil {
 				router.HEAD(path, rawHTTPWraper(reqLimiter, routeInfo.handler))
 			} else {
-				router.HEAD(path, ginWraper(reqLimiter), routeInfo.handlerDeprecated)
+				router.HEAD(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}
 
 		case http.MethodPut:
 			if routeInfo.handler != nil {
 				router.PUT(path, rawHTTPWraper(reqLimiter, routeInfo.handler))
 			} else {
-				router.PUT(path, ginWraper(reqLimiter), routeInfo.handlerDeprecated)
+				router.PUT(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}
 
 		case http.MethodPatch:
 			if routeInfo.handler != nil {
 				router.PATCH(path, rawHTTPWraper(reqLimiter, routeInfo.handler))
 			} else {
-				router.PATCH(path, ginWraper(reqLimiter), routeInfo.handlerDeprecated)
+				router.PATCH(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}
 
 		case http.MethodDelete:
@@ -104,14 +104,14 @@ func applyHTTPRoute(router *gin.Engine) {
 			if routeInfo.handler != nil {
 				router.DELETE(path, rawHTTPWraper(reqLimiter, routeInfo.handler))
 			} else {
-				router.DELETE(path, ginWraper(reqLimiter), routeInfo.handlerDeprecated)
+				router.DELETE(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}
 
 		case http.MethodOptions:
 			if routeInfo.handler != nil {
 				router.OPTIONS(path, rawHTTPWraper(reqLimiter, routeInfo.handler))
 			} else {
-				router.OPTIONS(path, ginWraper(reqLimiter), routeInfo.handlerDeprecated)
+				router.OPTIONS(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}
 		}
 	}

@@ -35,15 +35,15 @@ func runVersionFlags() error {
 	showVersion(ReleaseVersion, InputsReleaseType)
 
 	if !*flagVersionDisableUpgradeInfo {
-		vis, err := checkNewVersion(ReleaseVersion, *flagVersionUpgradeTestingVersion)
+		vis, err := CheckNewVersion(ReleaseVersion, *flagVersionUpgradeTestingVersion)
 		if err != nil {
 			return err
 		}
 
 		for _, vi := range vis {
 			cp.Infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
-				vi.versionType, vi.newVersion.VersionString, vi.newVersion.Commit, vi.newVersion.ReleaseDate)
-			cp.Infof("%s\n", getUpgradeCommand(vi.newVersion.DownloadURL))
+				vi.versionType, vi.NewVersion.VersionString, vi.NewVersion.Commit, vi.NewVersion.ReleaseDate)
+			cp.Infof("%s\n", getUpgradeCommand(vi.NewVersion.DownloadURL))
 		}
 	}
 
@@ -54,7 +54,7 @@ func checkUpdate(curverStr string, acceptRC bool) int {
 	l = logger.SLogger("ota-update")
 
 	l.Debugf("get online version...")
-	vers, err := getOnlineVersions(false)
+	vers, err := GetOnlineVersions(false)
 	if err != nil {
 		l.Errorf("Get online version failed: \n%s\n", err.Error())
 		return 0
@@ -100,11 +100,11 @@ type newVersionInfo struct {
 	versionType string
 	upgrade     bool
 	install     bool
-	newVersion  *version.VerInfo
+	NewVersion  *version.VerInfo
 }
 
 func (vi *newVersionInfo) String() string {
-	if vi.newVersion == nil {
+	if vi.NewVersion == nil {
 		return ""
 	}
 
@@ -112,13 +112,13 @@ func (vi *newVersionInfo) String() string {
 		vi.versionType,
 		vi.upgrade,
 		vi.install,
-		getUpgradeCommand(vi.newVersion.DownloadURL))
+		getUpgradeCommand(vi.NewVersion.DownloadURL))
 }
 
-func checkNewVersion(curverStr string, showTestingVer bool) (map[string]*newVersionInfo, error) {
-	vers, err := getOnlineVersions(showTestingVer)
+func CheckNewVersion(curverStr string, showTestingVer bool) (map[string]*newVersionInfo, error) {
+	vers, err := GetOnlineVersions(showTestingVer)
 	if err != nil {
-		return nil, fmt.Errorf("getOnlineVersions: %w", err)
+		return nil, fmt.Errorf("GetOnlineVersions: %w", err)
 	}
 
 	curver, err := getLocalVersion(curverStr)
@@ -136,7 +136,7 @@ func checkNewVersion(curverStr string, showTestingVer bool) (map[string]*newVers
 			vis[k] = &newVersionInfo{
 				versionType: k,
 				upgrade:     true,
-				newVersion:  v,
+				NewVersion:  v,
 			}
 		}
 	}
@@ -153,7 +153,7 @@ const (
 func getUpgradeCommand(dlurl string) string {
 	var upgradeCmd string
 
-	proxy := config.Cfg.DataWayCfg.HTTPProxy
+	proxy := config.Cfg.Dataway.HTTPProxy
 
 	switch runtime.GOOS {
 	case datakit.OSWindows:
@@ -225,7 +225,7 @@ func getVersion(addr string) (*version.VerInfo, error) {
 	return &ver, nil
 }
 
-func getOnlineVersions(showTestingVer bool) (map[string]*version.VerInfo, error) {
+func GetOnlineVersions(showTestingVer bool) (map[string]*version.VerInfo, error) {
 	res := map[string]*version.VerInfo{}
 
 	if v := datakit.GetEnv("DK_INSTALLER_BASE_URL"); v != "" {

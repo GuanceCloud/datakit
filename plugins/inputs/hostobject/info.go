@@ -23,10 +23,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 )
 
 var (
@@ -86,14 +86,14 @@ type (
 	}
 
 	HostInfo struct {
-		HostMeta               *HostMetaInfo       `json:"meta"`
-		CPU                    []*CPUInfo          `json:"cpu"`
-		Mem                    *MemInfo            `json:"mem"`
-		Net                    []*NetInfo          `json:"net"`
-		Disk                   []*DiskInfo         `json:"disk"`
-		Conntrack              *conntrackutil.Info `json:"conntrack"`
-		FileFd                 *filefdutil.Info    `json:"filefd"`
-		Election               *ElectionInfo       `json:"election"`
+		HostMeta               *HostMetaInfo          `json:"meta"`
+		CPU                    []*CPUInfo             `json:"cpu"`
+		Mem                    *MemInfo               `json:"mem"`
+		Net                    []*NetInfo             `json:"net"`
+		Disk                   []*DiskInfo            `json:"disk"`
+		Conntrack              *conntrackutil.Info    `json:"conntrack"`
+		FileFd                 *filefdutil.Info       `json:"filefd"`
+		Election               *election.ElectionInfo `json:"election"`
 		cpuPercent             float64
 		load5                  float64
 		cloudInfo              map[string]interface{}
@@ -104,10 +104,6 @@ type (
 		netSendBytesPerSec     int64
 		loggingLevel           string
 	}
-	ElectionInfo struct {
-		Namespace string `json:"namespace"`
-		Elected   string `json:"elected"`
-	}
 	HostConfig struct {
 		IP         string          `json:"ip"`
 		DCAConfig  *http.DCAConfig `json:"dca_config"`
@@ -115,9 +111,9 @@ type (
 	}
 
 	HostObjectMessage struct {
-		Host       *HostInfo          `json:"host"`
-		Collectors []*CollectorStatus `json:"collectors,omitempty"`
-		Config     *HostConfig        `json:"config"`
+		Host       *HostInfo             `json:"host"`
+		Collectors []*io.CollectorStatus `json:"collectors,omitempty"`
+		Config     *HostConfig           `json:"config"`
 	}
 
 	CollectorStatus struct {
@@ -130,7 +126,7 @@ type (
 	}
 )
 
-var collectorStatHist []*CollectorStatus
+var collectorStatHist []*io.CollectorStatus
 
 func getHostMeta() (*HostMetaInfo, error) {
 	info, err := hostutil.Info()
@@ -319,45 +315,13 @@ func getDiskInfo(excludeDevice []string, extraDevice []string, ignoreZeroBytesDi
 	return infos, nil
 }
 
-func (ipt *Input) getEnabledInputs() (res []*CollectorStatus) {
-	inputsStats, err := io.GetInputsStats() // get all inputs stats
-	if err != nil {
-		l.Warnf("fail to get inputs stats, %s", err)
-		return
-	}
-
-	now := time.Now()
-	for name, s := range inputsStats {
-		ts := s.LastErrTS.Unix()
-		if ts < 0 {
-			ts = 0
-		}
-
-		lastErr := s.LastErr
-		if ts > 0 && now.Sub(s.LastErrTS) > ipt.IgnoreInputsErrorsBefore.Duration { // ignore errors 30s ago
-			l.Debugf("ignore error %s(%v before)", s.LastErr, now.Sub(s.LastErrTS))
-			lastErr = ""
-			ts = 0
-		}
-
-		res = append(res, &CollectorStatus{
-			Name:        name,
-			Count:       s.Count,
-			LastTime:    s.Last.Unix(),
-			LastErr:     lastErr,
-			LastErrTime: ts,
-			Version:     s.Version,
-		})
-	}
-
-	return res
-}
-
 func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	var msg HostObjectMessage
 
 	if !ipt.isTestMode {
-		stat := ipt.getEnabledInputs()
+		// getEnabledInputs only called each 5min(default), so we can
+		// gather all prometheus metrics each time.
+		stat := io.FeedMetrics(ipt.mfs, ipt.IgnoreInputsErrorsBefore.Duration)
 
 		// NOTE: Since the io module may be busy when obtaining the running status
 		// information of the collector, it cannot be obtained.
@@ -431,7 +395,7 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	conntrack := conntrackutil.GetConntrackInfo()
 
 	l.Debugf("get election info...")
-	election := getElectionInfo()
+	election := ipt.getElectionInfo()
 
 	var diskUsedPercent float64 = 0
 	diskUsed := atomic.LoadUint64(&DiskUsed)
@@ -505,13 +469,6 @@ func getHostConfig() *HostConfig {
 	return hostConfig
 }
 
-func getElectionInfo() *ElectionInfo {
-	electionInfo := &ElectionInfo{}
-	if config.Cfg.Election.Enable {
-		elected, namespace, _ := election.Elected()
-		electionInfo.Elected = elected
-		electionInfo.Namespace = namespace
-		return electionInfo
-	}
-	return nil
+func (ipt *Input) getElectionInfo() *election.ElectionInfo {
+	return election.GetElectionInfo(ipt.mfs)
 }

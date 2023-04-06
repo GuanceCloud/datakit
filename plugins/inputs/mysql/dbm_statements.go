@@ -6,6 +6,7 @@
 package mysql
 
 import (
+	gcPoint "github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -23,6 +24,19 @@ type dbmStateMeasurement struct {
 
 func (m *dbmStateMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
+}
+
+// Point implement MeasurementV2.
+func (m *dbmStateMeasurement) Point() *gcPoint.Point {
+	opts := gcPoint.DefaultLoggingOptions()
+
+	if m.election {
+		opts = append(opts, gcPoint.WithExtraTags(point.GlobalElectionTags()))
+	}
+
+	return gcPoint.NewPointV2([]byte(m.name),
+		append(gcPoint.NewTags(m.tags), gcPoint.NewKVs(m.fields)...),
+		opts...)
 }
 
 func (m *dbmStateMeasurement) Info() *inputs.MeasurementInfo {
@@ -110,7 +124,9 @@ func (m *dbmStateMeasurement) Info() *inputs.MeasurementInfo {
 			"digest":          &inputs.TagInfo{Desc: "The digest hash value computed from the original normalized statement. "},
 			"query_signature": &inputs.TagInfo{Desc: "The hash value computed from digest_text"},
 			"schema_name":     &inputs.TagInfo{Desc: "The schema name"},
-			"server":          &inputs.TagInfo{Desc: "The server address"},
+			"server": &inputs.TagInfo{
+				Desc: "The server address containing both host and port",
+			},
 		},
 	}
 }

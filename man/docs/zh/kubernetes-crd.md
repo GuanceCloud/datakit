@@ -261,7 +261,7 @@ $ datakit monitor
 
 ## FAQ {#faq}
 
-### 目前存在的问题 {#issue}
+### :material-chat-question: 目前存在的问题 {#issue}
 
 无法将 `datakit/logs` 的配置，动态应用到正在采集的日志。举例如下：
 

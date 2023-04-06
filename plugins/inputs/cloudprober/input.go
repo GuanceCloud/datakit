@@ -14,6 +14,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/common/expfmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -46,7 +47,7 @@ func (n *Input) Run() {
 	for {
 		n.getMetric()
 		if n.lastErr != nil {
-			iod.FeedLastError(inputName, n.lastErr.Error())
+			iod.FeedLastError(inputName, n.lastErr.Error(), point.Metric)
 		}
 
 		select {

@@ -37,7 +37,7 @@ func TestKV(t *testing.T) {
 		},
 		{
 			name: "trim_value",
-			pl: `kv_split(_, trim_value=",", 
+			pl: `kv_split(_, trim_value=",",
 			include_keys=["a", "b","c"])`,
 			in:       `a=1, b=2 c=3`,
 			expected: []any{"1", "2", "3"},

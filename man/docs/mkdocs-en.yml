@@ -9,7 +9,7 @@ theme:
   custom_dir: overrides/
   #favicon: assets/images/favicon.ico
   #logo: assets/images/logo.png
-  language: en
+  language: zh
   font:
     text: Roboto
     code: Roboto Mono
@@ -23,40 +23,44 @@ theme:
     - toc.follow
 
 markdown_extensions:
-  tables: {}
-  footnotes: {}
-  attr_list: {}
-  md_in_html: {}
-  toc:
-    permalink: True
-  meta: {}
-  pymdownx.caret: {}
-  pymdownx.mark: {}
-  pymdownx.tilde: {}
-  pymdownx.betterem: {}
-  pymdownx.critic: {}
-  pymdownx.keys: {}
-  pymdownx.snippets: {}
-  pymdownx.details: {}
-  pymdownx.tabbed:
-    alternate_style: true
-  pymdownx.highlight:
-    anchor_linenums: true
-    auto_title: false
-  pymdownx.inlinehilite: {}
-  pymdownx.superfences: {}
-  pymdownx.emoji:
-    emoji_index: !!python/name:materialx.emoji.twemoji
-    emoji_generator: !!python/name:materialx.emoji.to_svg
-    options:
-      custom_icons:
-        - overrides/.icons
-
-copyright: '&copy; 2013-2022 上海观测未来信息技术有限公司 <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=31011502010862" target="_blank">沪公网安备 31011502010862号</a> | <a href="https://beian.miit.gov.cn/" target="_blank">沪ICP备 13034243号-30</a>'
+  - toc:
+      permalink: True
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.betterem
+  - pymdownx.critic
+  - pymdownx.keys
+  - pymdownx.snippets
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - tables
+  - footnotes
+  - attr_list
+  - md_in_html
+  - meta
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      auto_title: false
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+      options:
+        custom_icons:
+          - overrides/.icons
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 
 extra:
   generator: false
-  homepage: https://localhost:8000/en
+  homepage: https://localhost:8000/
   alternate:
     - name: 中文
       link: /
@@ -64,6 +68,7 @@ extra:
     - name: English
       link: /en/
       lang: en
+
 plugins:
   awesome-pages: {}
   section-index: {}
@@ -73,7 +78,7 @@ plugins:
   #  enable_creation_date: true
   #  fallback_to_build_date: true
   search:
-    separator: 'en'
+    separator: '[\s\u200b\-]'
 
-#extra_css:
-#  - assets/stylesheets/extra.css
+extra_css:
+  - assets/stylesheets/extra.css

@@ -24,12 +24,34 @@ import (
 	T "testing"
 	"time"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/influxdb1-client/models"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
+
+func TestMetricsAPI(t *T.T) {
+	t.Run("/metric", func(t *T.T) {
+		r := setupRouter()
+		ts := httptest.NewServer(r)
+
+		defer ts.Close()
+
+		vec := prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "abc_total",
+				Help: "not-set",
+			},
+			[]string{
+				"category",
+			},
+		)
+		metrics.MustRegister(vec)
+	})
+}
 
 func TestParsePoint(t *T.T) {
 	cases := []struct {
@@ -66,9 +88,9 @@ func TestParsePoint(t *T.T) {
 	for _, tc := range cases {
 		pts, err := models.ParsePointsWithPrecision(tc.body, time.Now(), tc.prec)
 		if tc.fail {
-			tu.NotOk(t, err, "")
+			assert.Error(t, err)
 		} else {
-			tu.Equals(t, tc.npts, len(pts))
+			assert.Equal(t, tc.npts, len(pts))
 			for _, pt := range pts {
 				t.Log(pt.String())
 			}
@@ -77,16 +99,13 @@ func TestParsePoint(t *T.T) {
 }
 
 func TestRestartAPI(t *T.T) {
-	tokens := []string{
+	urls := []string{
 		"http://1.2.3.4?token=tkn_abc123",
 		"http://4.3.2.1?token=tkn_abc456",
 	}
 
-	dwCfg := &dataway.DataWayCfg{URLs: tokens}
-	dw = &dataway.DataWayDefault{}
-	if err := dw.Init(dwCfg); err != nil {
-		t.Error(err)
-	}
+	dw = &dataway.Dataway{URLs: urls}
+	assert.NoError(t, dw.Init())
 
 	cases := []struct {
 		token string
@@ -136,9 +155,9 @@ func TestRestartAPI(t *T.T) {
 		resp.Body.Close() //nolint:errcheck
 
 		if !tc.fail {
-			tu.Equals(t, 200, resp.StatusCode)
+			assert.Equal(t, 200, resp.StatusCode)
 		} else {
-			tu.Equals(t, ErrInvalidToken.HttpCode, resp.StatusCode)
+			assert.Equal(t, ErrInvalidToken.HttpCode, resp.StatusCode)
 		}
 
 		t.Logf("resp: %s", string(body))
@@ -205,8 +224,8 @@ func TestApiGetDatakitLastError(t *T.T) {
 		if err != nil {
 			t.Errorf("json.Unmarshal: %s", err)
 		}
-		tu.Equals(t, fakeEM.ErrContent, em.ErrContent)
-		tu.Equals(t, fakeEM.Input, em.Input)
+		assert.Equal(t, fakeEM.ErrContent, em.ErrContent)
+		assert.Equal(t, fakeEM.Input, em.Input)
 	}
 }
 
@@ -238,7 +257,7 @@ func TestCORS(t *T.T) {
 
 	// See: https://stackoverflow.com/a/12179364/342348
 	got := resp.Header.Get("Access-Control-Allow-Origin")
-	tu.Assert(t, origin == got, "expect %s, got '%s'", origin, got)
+	assert.Equal(t, origin, got, "expect %s, got '%s'", origin, got)
 }
 
 func TestTimeout(t *T.T) {
@@ -294,7 +313,7 @@ func TestTimeout(t *T.T) {
 				return
 			}
 
-			tu.Equals(t, tc.expectStatusCode, resp.StatusCode)
+			assert.Equal(t, tc.expectStatusCode, resp.StatusCode)
 
 			defer resp.Body.Close()
 
@@ -382,7 +401,7 @@ nothing`))
 				time.Sleep(time.Second)
 			}
 
-			tu.Assert(t, closed, "expect closed, but not")
+			assert.True(t, closed, "expect closed, but not")
 		}()
 	}
 
@@ -437,7 +456,7 @@ nothing`))
 		time.Sleep(time.Second)
 	}
 
-	tu.Assert(t, closed, "expect closed, but not")
+	assert.True(t, closed, "expect closed, but not")
 }
 
 // go test -v -timeout 30s -run ^TestParseListen$ gitlab.jiagouyun.com/cloudcare-tools/datakit/http

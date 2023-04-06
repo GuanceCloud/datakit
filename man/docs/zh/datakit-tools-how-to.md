@@ -1,4 +1,4 @@
-{{.CSS}}
+postgres://postgres:********@localhost/test{{.CSS}}
 # 各种其它工具使用
 ---
 
@@ -326,6 +326,8 @@ datakit install --ebpf
 
 ## 上传 DataKit 运行日志 {#upload-log}
 
+> Deprecated: 请使用 [Bug-Report 功能](datakit-tools-how-to.md#bug-report)来代替。
+
 排查 DataKit 问题时，通常需要检查 DataKit 运行日志，为了简化日志搜集过程，DataKit 支持一键上传日志文件：
 
 ```shell
@@ -334,6 +336,90 @@ log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip 
 ```
 
 运行命令后，会将日志目录下的所有日志文件进行打包压缩，然后上传至指定的存储。我们的工程师会根据上传日志的主机名以及 Token 传找到对应文件，进而排查 DataKit 问题。
+
+## 收集 DataKit 运行信息 {#bug-report}
+
+[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9) · [:octicons-beaker-24: Experimental](index.md#experimental)
+
+在排查 DataKit 故障原因时，需要手动收集各种相关信息（如日志、配置文件和监控数据等），这通常比较繁琐。为了简化这个过程，DataKit 提供了一个命令，可以一次性获取所有相关信息并将其打包到一个文件中。使用方式如下：
+
+
+```shell
+datakit tool --bug-report
+```
+
+执行成功后，在当前目录下生成一个 zip 文件，命名格式为 `info-<时间戳毫秒数>.zip`。
+
+解压后的文件列表参考如下：
+
+```shell
+
+├── config
+│   ├── container
+│   │   └── container.conf
+│   ├── datakit.conf
+│   ├── db
+│   │   ├── kafka.conf
+│   │   ├── mysql.conf
+│   │   └── sqlserver.conf
+│   ├── host
+│   │   ├── cpu.conf
+│   │   ├── disk.conf
+│   │   └── system.conf
+│   ├── network
+│   │   └── dialtesting.conf
+│   ├── profile
+│   │   └── profile.conf
+│   ├── pythond
+│   │   └── pythond.conf
+│   └── rum
+│       └── rum.conf
+├── env.txt
+├── metrics 
+│   ├── metric-1680513455403 
+│   ├── metric-1680513460410
+│   └── metric-1680513465416 
+├── log
+│   ├── gin.log
+│   └── log
+└── profile
+    ├── allocs
+    ├── heap
+    └── profile
+
+```
+
+文件说明
+
+| 文件名称  | 是否目录 | 说明                                                          |
+| ---:      | ---:     | ---:                                                          |
+| `config`  | 是       | 配置文件，包括主配置和已开启的采集器配置                      |
+| `env.txt` | 否       | 运行环境的环境变量信息                                        |
+| `log`     | 是       | 最新的日志文件，包括 log 和 gin log，暂不支持 `stdout`        |
+| `profile` | 是       | pprof 开启时，会采集 profile 数据                             |
+| `metrics` | 是       | `/metrics` 接口返回的数据，命名格式为 `metric-<时间戳毫秒数>` |
+
+**敏感信息处理**
+
+信息收集时，敏感信息（如token、密码等）会被自动过滤替换，具体规则如下：
+
+- 环境变量
+
+只获取以 `ENV_` 开头的环境变量，且对环境变量名称中包含 `password`, `token`, `key`, `key_pw`, `secret` 的环境变量进行脱敏处理，替换为 `******`
+
+- 配置文件
+
+配置文件内容进行正则替换处理：
+
+如：
+
+```
+https://openway.guance.com?token=tkn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` => `https://openway.guance.com?token=******
+pass = "1111111"` => `pass = "******"
+postgres://postgres:123456@localhost/test` => `postgres://postgres:******@localhost/test
+```
+
+经过上述处理，能够去除绝大部分敏感信息。尽管如此，如果导出的文件还存在敏感信息，可以手动将敏感信息移除，请务必确认。
 
 ## 查看云属性数据 {#cloudinfo}
 

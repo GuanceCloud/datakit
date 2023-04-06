@@ -8,6 +8,7 @@ package custom
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math/rand" //nolint
 	"strings"
@@ -38,6 +39,7 @@ type Custom struct {
 	MetricPl     string   `toml:"metric_pl"`
 	LimitSec     int      `toml:"limit_sec"` // 令牌桶速率限制，每秒多少个.
 	SamplingRate float64  `toml:"sampling_rate"`
+	SpiltBody    bool     `toml:"spilt_json_body"`
 	//	SampleRote   float64  // 0~1.0
 	stop chan struct{}
 }
@@ -87,7 +89,7 @@ func (c *Custom) SaramaConsumerGroup(addrs []string, config *sarama.Config) {
 	// Iterate over consumer sessions.
 	ctx, cancel := context.WithCancel(context.Background())
 
-	handler := &consumerGroupHandler{ready: make(chan bool)}
+	handler := &consumerGroupHandler{ready: make(chan bool), spilt: c.SpiltBody}
 	handler.withTopic(c.LogTopics, c.LogPl, c.MetricTopics, c.MetricPl)
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -176,6 +178,7 @@ type consumerGroupHandler struct {
 	logTopics    map[string]string
 	metricTopics map[string]string
 	ready        chan bool
+	spilt        bool
 }
 
 func (c *consumerGroupHandler) Setup(session sarama.ConsumerGroupSession) error {
@@ -219,37 +222,60 @@ func (c *consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession,
 func (c *consumerGroupHandler) feedMsg(msg *sarama.ConsumerMessage) {
 	pl := ""
 	category := ""
-	newMessage := strings.ReplaceAll(string(msg.Value), "\n", " ")
-	log.Debugf("kafka_message is:  %s", newMessage)
-	msgLen := len(newMessage)
-	tags := map[string]string{"type": MsgType}
-	fields := map[string]interface{}{pipeline.FieldStatus: pipeline.DefaultStatus, "message_len": msgLen}
-	if p, ok := c.logTopics[msg.Topic]; ok {
-		pl = p
-		category = datakit.Logging
-		fields[pipeline.FieldMessage] = newMessage
+	msgs := make([]string, 0)
+	if c.spilt {
+		is := make([]interface{}, 0)
+		err := json.Unmarshal(msg.Value, &is)
+		if err != nil {
+			log.Warnf("Unmarshal err=%v", err)
+			return
+		}
+		for _, i := range is {
+			bts, err := json.Marshal(i)
+			if err != nil {
+				log.Warnf("marshal err=%v", err)
+				return
+			}
+			m := strings.ReplaceAll(string(bts), "\n", " ")
+			log.Debugf("kafka_message is %s", m)
+			msgs = append(msgs, m)
+		}
+	} else {
+		newMessage := strings.ReplaceAll(string(msg.Value), "\n", " ")
+		log.Debugf("kafka_message is:  %s", newMessage)
+		msgs = append(msgs, newMessage)
 	}
-	if p, ok := c.metricTopics[msg.Topic]; ok {
-		pl = p
-		category = datakit.Metric
-		tags[pipeline.FieldMessage] = newMessage
-	}
-	if pl == "" || category == "" {
-		log.Warnf("can not find [%s] pipeline script", msg.Topic)
-		return
-	}
-	pt, err := point.NewPoint(msg.Topic, tags, fields,
-		&point.PointOption{
-			Time:     time.Now(),
-			Category: category,
-		})
-	if err != nil {
-		log.Warnf("make point err=%v", err)
-		return
-	}
-	err = dkio.Feed(msg.Topic, category, []*point.Point{pt}, &dkio.Option{PlScript: map[string]string{msg.Topic: pl}})
-	if err != nil {
-		log.Warnf("feed io err=%v", err)
+	for _, msgStr := range msgs {
+		tags := map[string]string{"type": MsgType}
+		msgLen := len(msgStr)
+		fields := map[string]interface{}{pipeline.FieldStatus: pipeline.DefaultStatus, "message_len": msgLen}
+		if p, ok := c.logTopics[msg.Topic]; ok {
+			pl = p
+			category = datakit.Logging
+			fields[pipeline.FieldMessage] = msgStr
+		}
+		if p, ok := c.metricTopics[msg.Topic]; ok {
+			pl = p
+			category = datakit.Metric
+			tags[pipeline.FieldMessage] = msgStr
+		}
+		if pl == "" || category == "" {
+			log.Warnf("can not find [%s] pipeline script", msg.Topic)
+			return
+		}
+		pt, err := point.NewPoint(msg.Topic, tags, fields,
+			&point.PointOption{
+				Time:     time.Now(),
+				Category: category,
+			})
+		if err != nil {
+			log.Warnf("make point err=%v", err)
+			return
+		}
+		err = dkio.Feed(msg.Topic, category, []*point.Point{pt}, &dkio.Option{PlScript: map[string]string{msg.Topic: pl}})
+		if err != nil {
+			log.Warnf("feed io err=%v", err)
+		}
 	}
 }
 

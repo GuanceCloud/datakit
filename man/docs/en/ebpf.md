@@ -19,7 +19,7 @@ eBPF collector, collecting host network TCP, UDP connection information, Bash ex
 
 ## Preconditions {#requirements}
 
-As the executable file of this collector is large, it is no longer packaged in DataKit since v1.2. 13, but the DataKit container image contains this collector by default; For newly installed DataKit, you need to execute the install command to install it. There are two methods:
+For DataKit before v1.5.6, you need to execute the installation command to install:
 
 - v1.2.13 ~ v1.2.18
   - Install time [specify environment variable](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="datakit-ebpf"`
@@ -76,20 +76,13 @@ You can view the overlay mount point through `cat /proc/mounts`
 
 ### Linux Kernel Version Requirement {#kernel}
 
-Now that the project life cycle of the Linux 3.10 kernel is over, it is recommended that you upgrade to the Linux 4.9 and above LTS kernel.
-
-With the exception of CentOS 7.6 + and Ubuntu 16.04, other distributions require a Linux kernel version higher than 4.0. 0, which can be viewed using the command `uname -r`, as follows:
-
-```shell
-uname -r 
-5.11.0-25-generic
-```
+In addition to CentOS 7.6+ and Ubuntu 16.04, other distributions recommend that the Linux kernel version is higher than 4.9, otherwise the ebpf collector may not start.
 
 ???+ warning "kernel restrictions"
 
-    For CentOS 7.6 + and Ubuntu 16.04, httpflow data collection in the eBPF-net class cannot be turned on because its Linux 3.10. x kernel does not support the BPF_PROG_TYPE_SOCKET_FILTER type in the eBPF program;
-    
-    Because BPF_FUNC_skb_load_bytes does not exist in Linux Kernel <= 4.4, if httpflow needs to be turned on, Linux Kernel >= 4.5, which needs to be optimized later.
+    When the DataKit version is lower than **v1.5.2**, the httpflow data collection in the ebpf-net category cannot be enabled for CentOS 7.6+, because its Linux 3.10.x kernel does not support the BPF_PROG_TYPE_SOCKET_FILTER type in the eBPF program;
+
+    When the DataKit version is lower than **v1.5.2**, because BPF_FUNC_skb_load_bytes does not exist in Linux Kernel <= 4.4, if you want to enable httpflow, you need Linux Kernel >= 4.5, and this problem will be further optimized;
 
 ### SELinux-enabled System {#selinux}
 

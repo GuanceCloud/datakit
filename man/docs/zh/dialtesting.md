@@ -19,8 +19,8 @@
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
     
     ```toml
-    #  中心任务存储的服务地址
-    server = "https://dflux-dial.guance.com"
+    #  dataway 地址
+    server = "https://openway.guance.com"
     
     # require，节点惟一标识ID
     region_id = "reg_c2jlokxxxxxxxxxxx"

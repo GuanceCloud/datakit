@@ -199,7 +199,7 @@ spec:
 - json：一些较为复杂的配置，需要以 json 字符串形式来设置环境变量
 - bool：开关类型，给定**任何非空字符串**即表示开启该功能，建议均以 `"on"` 作为其开启时的取值。如果不开启，必须将其删除或注释掉。
 - string-list：以英文逗号分割的字符串，一般用于表示列表
-- duration：一种字符串形式的时间长度表示，比如 `10s` 表示 10 秒，这里的单位支持 h/m/s/ms/us/ns。==不要给负值==。
+- duration：一种字符串形式的时间长度表示，比如 `10s` 表示 10 秒，这里的单位支持 h/m/s/ms/us/ns。**不要给负数**。
 - int：整数类型
 - float：浮点类型
 
@@ -294,39 +294,49 @@ spec:
 
 ### Sinker 配置相关环境变量 {#env-sinker}
 
-| 环境变量名称  | 类型   | 默认值 | 必须   | 说明                            |
-| ---------:    | ----:  | ---:   | ------ | ----                            |
-| `ENV_SINK_M`  | string | 无     | 否     | 安装时指定 Metric 的 sink       |
-| `ENV_SINK_N`  | string | 无     | 否     | 安装时指定 Network 的 sink      |
-| `ENV_SINK_K`  | string | 无     | 否     | 安装时指定 KeyEvent 的 sink     |
-| `ENV_SINK_O`  | string | 无     | 否     | 安装时指定 Object 的 sink       |
-| `ENV_SINK_CO` | string | 无     | 否     | 安装时指定 CustomObject 的 sink |
-| `ENV_SINK_L`  | string | 无     | 否     | 安装时指定 Logging 的 sink      |
-| `ENV_SINK_T`  | string | 无     | 否     | 安装时指定 Tracing 的 sink      |
-| `ENV_SINK_R`  | string | 无     | 否     | 安装时指定 RUM 的 sink          |
-| `ENV_SINK_S`  | string | 无     | 否     | 安装时指定 Security 的 sink     |
-| `ENV_SINK_P`  | string | 无     | 否     | 安装时指定 Profiling 的 sink    |
+| 环境变量名称 | 类型         | 默认值 | 必须   | 说明                             |
+| ---------:   | ----:        | ---:   | ------ | ----                             |
+| `ENV_SINKER` | string(JSON) | 无     | 否     | 安装时指定 Dataway Sinker 的配置 |
 
-<!-- | `ENV_LOG_SINK_DETAIL` | string | 无     | 否     | 安装时指定开启 sink 详细日志(开启后会产生大量日志, 仅供调试, 不建议在生产环境中使用)。例: "yes"。 | -->
+Sinker 用来指定 [dataway 的 sinker 配置](datakit-sink-dataway.md)，它是一个形如下面的 JSON 格式：
 
-如果单个数据类型要配置多个 sink 地址，sink 地址可以用 `||` 分割，如：
+```json
+[
+	{
+		"categories": ["L", "M"],
+		"filters": [
+			"{measurement='cpu' and tag='some-host'}"
+		],
+		"proxy": "",
+		"url": "http://openway.guance.com?token=<YOUR-TOKEN>"
+	}
+]
+```
+
+在配置 ENV 时，我们需要将其变成一行：
+
+```json
+[ { "categories": ["L", "M"], "filters": [ "{measurement='cpu' and tag='some-host'}" ], "url": "http://openway.guance.com?token=<YOUR-TOKEN>" } ]
+```
+
+如果将这一行 JSON 应用在命令行中，需要对其中的 `"` 进行转义，如：
 
 ```shell
-ENV_SINK_M = "dataway://?url=https://openway.guance.com&token=<TOKEN-1>&filters={host='user-ubuntu'}||dataway://?url=https://openway.guance.com&token=<TOKEN-2>&filters={host='user-centos'}"
-
-ENV_SINK_M = "influxdb://host1:8087?protocol=http&database=db1&precision=ns&timeout=15s||influxdb://host2:8087?protocol=http&database=db1&precision=ns&timeout=15s"
+DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cpu' and tag='some-host'}\" ], \"url\": \"http://openway.guance.com?token=<YOUR-TOKEN>\" } ]"
 ```
 
 ### IO 模块配置相关环境变量 {#env-io}
 
-| 环境变量名称                  | 类型     | 默认值 | 必须   | 说明                                  |
-| ---------:                    | ---:     | ---:   | ------ | ----                                  |
-| `ENV_IO_FILTERS`              | json     | 无     | 否     | 添加[行协议过滤器](datakit-filter.md) |
-| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s    | 否     | IO 发送时间频率                       |
-| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000   | 否     | 发送 buffer（点数）大小               |
-| `ENV_IO_ENABLE_CACHE`         | bool     | -      | 否     | 是否开启发送失败的磁盘缓存            |
-| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10     | 否     | 发送失败缓存的磁盘大小（单位 GB）     |
-| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s     | 否     | 定期发送缓存在磁盘内的失败任务        |
+| 环境变量名称                  | 类型     | 默认值             | 必须   | 说明                                                                         |
+| ---------:                    | ---:     | ---:               | ------ | ----                                                                         |
+| `ENV_IO_FILTERS`              | json     | 无                 | 否     | 添加[行协议过滤器](datakit-filter.md)                                        |
+| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s                | 否     | IO 发送时间频率                                                              |
+| `ENV_IO_FLUSH_WORKERS`        | int      | `cpu_core * 2 + 1` | 否     | IO 发送 worker 数（:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)） |
+| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000               | 否     | 发送 buffer（点数）大小                                                      |
+| `ENV_IO_ENABLE_CACHE`         | bool     | false              | 否     | 是否开启发送失败的磁盘缓存                                                   |
+| `ENV_IO_CACHE_ALL`            | bool     | false              | 否     | 是否 cache 所有发送失败的数据                                                |
+| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10                 | 否     | 发送失败缓存的磁盘大小（单位 GB）                                            |
+| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s                 | 否     | 定期发送缓存在磁盘内的失败任务                                               |
 
 ???+ note "关于 buffer 和 queue 的说明"
 
@@ -356,12 +366,12 @@ ENV_SINK_M = "influxdb://host1:8087?protocol=http&database=db1&precision=ns&time
 
 ### Refer Table 有关环境变量 {#env-reftab}
 
-| 环境变量名称                    | 类型   | 默认值 | 必须   | 说明                          |
-| ---------:                      | ----:  | ---:   | ------ | ----                          |
-| `ENV_REFER_TABLE_URL`           | string | 无     | 否     | 设置数据源 URL                |
-| `ENV_REFER_TABLE_PULL_INTERVAL` | string | 5m     | 否     | 设置数据源 URL 的请求时间间隔 |
-| `ENV_REFER_TABLE_USE_SQLITE` | bool | false | 否 | 设置是否使用 SQLite 保存数据 |
-| `ENV_REFER_TABLE_SQLITE_MEM_MODE` | bool | false | 否 | 当使用 SQLite 保存数据时，使用 SQLite 内存模式/磁盘模式 |
+| 环境变量名称                      | 类型   | 默认值 | 必须   | 说明                                                    |
+| ---------:                        | ----:  | ---:   | ------ | ----                                                    |
+| `ENV_REFER_TABLE_URL`             | string | 无     | 否     | 设置数据源 URL                                          |
+| `ENV_REFER_TABLE_PULL_INTERVAL`   | string | 5m     | 否     | 设置数据源 URL 的请求时间间隔                           |
+| `ENV_REFER_TABLE_USE_SQLITE`      | bool   | false  | 否     | 设置是否使用 SQLite 保存数据                            |
+| `ENV_REFER_TABLE_SQLITE_MEM_MODE` | bool   | false  | 否     | 当使用 SQLite 保存数据时，使用 SQLite 内存模式/磁盘模式 |
 
 ### 其它杂项 {#env-others}
 

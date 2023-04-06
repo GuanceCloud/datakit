@@ -8,7 +8,6 @@ package io
 import (
 	"errors"
 	"fmt"
-	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -36,11 +35,6 @@ type iodata struct {
 	pts      []*dkpt.Point
 }
 
-type lastError struct {
-	from, err string
-	ts        time.Time
-}
-
 // Option used to define various feed options.
 type Option struct {
 	CollectCost time.Duration
@@ -58,7 +52,7 @@ type Option struct {
 
 type Feeder interface {
 	Feed(name string, category point.Category, pts []*point.Point, opt ...*Option) error
-	FeedLastError(inputName string, err string)
+	FeedLastError(source, err string, cat ...point.Category)
 }
 
 // default IO feed implements.
@@ -99,19 +93,40 @@ func dkpt2point(pts ...*dkpt.Point) (res []*point.Point) {
 // Feed send collected point to io upload queue. Before sending to upload queue,
 // pipeline and filter are applied to pts.
 func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*Option) error {
+	inputsFeedVec.WithLabelValues(name, category.String()).Inc()
+	inputsFeedPtsVec.WithLabelValues(name, category.String()).Add(float64(len(pts)))
+	inputsLastFeedVec.WithLabelValues(name, category.String()).Set(float64(time.Now().Unix()))
+
 	iopts := point2dkpt(pts...)
 
 	if len(opts) == 0 {
-		return defaultIO.doFeed(iopts, category.URL(), name, nil)
+		return defIO.doFeed(iopts, category.URL(), name, nil)
 	} else {
-		return defaultIO.doFeed(iopts, category.URL(), name, opts[0])
+		inputsCollectLatencyVec.WithLabelValues(name, category.String()).Observe(float64(opts[0].CollectCost / time.Microsecond))
+		return defIO.doFeed(iopts, category.URL(), name, opts[0])
 	}
 }
 
 // FeedLastError report any error message, these messages will show in monitor
 // and integration view.
-func (f *ioFeeder) FeedLastError(name, category string) {
-	doFeedLastError(name, category)
+func (f *ioFeeder) FeedLastError(source, err string, cat ...point.Category) {
+	doFeedLastError(source, err, cat...)
+}
+
+func doFeedLastError(source, err string, cat ...point.Category) {
+	catStr := "unknown"
+	if len(cat) == 1 {
+		catStr = cat[0].String()
+
+		// make feed/last-feed entry for that source with category
+		// they must be real input, we need to take them out for latter
+		// use, such as get metric of only inputs.
+		inputsFeedVec.WithLabelValues(source, catStr).Inc()
+		inputsLastFeedVec.WithLabelValues(source, catStr).Set(float64(time.Now().Unix()))
+	}
+
+	errCountVec.WithLabelValues(source, catStr).Inc()
+	lastErrVec.WithLabelValues(source, catStr, err).Set(float64(time.Now().Unix()))
 }
 
 // beforeFeed apply pipeline and filter handling on pts.
@@ -156,23 +171,27 @@ func beforeFeed(category string, pts []*dkpt.Point, opt *Option) ([]*dkpt.Point,
 }
 
 //nolint:gocyclo
-func (x *IO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) error {
+func (x *dkIO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) error {
 	log.Debugf("io feed %s|%s", from, category)
-
-	var ch chan *iodata
 
 	after, err := beforeFeed(category, pts, opt)
 	if err != nil {
 		return err
 	}
 
+	inputsFilteredPtsVec.WithLabelValues(
+		from,
+		point.CatURL(category).String(), // /v1/write/metric -> metric
+	).Add(float64(len(pts) - len(after)))
+
 	filtered := len(pts) - len(after)
 
+	ch := x.chans[category]
 	if opt != nil && opt.HTTPHost != "" {
 		ch = x.chans[datakit.DynamicDatawayCategory]
-	} else {
-		ch = x.chans[category]
 	}
+
+	ioChanLen.WithLabelValues(point.CatURL(category).String())
 
 	job := &iodata{
 		category: category,
@@ -202,7 +221,6 @@ func unblockingFeed(job *iodata, ch chan *iodata) error {
 		return fmt.Errorf("feed on global exit")
 
 	default:
-		atomic.AddUint64(&FeedDropPts, uint64(len(job.pts)))
 		log.Warnf("io busy, %d (%s/%s) points maybe dropped", len(job.pts), job.from, job.category)
 		return ErrIOBusy
 	}
@@ -225,33 +243,26 @@ func blockingFeed(job *iodata, ch chan *iodata) error {
 // NOTE: the error may be skipped if there is too many error.
 //
 // Deprecated: should use DefaultFeeder to get global default feeder.
-func FeedLastError(inputName, err string) {
-	doFeedLastError(inputName, err)
-}
-
-func doFeedLastError(inputName, err string) {
-	select {
-	case defaultIO.inLastErr <- &lastError{
-		from: inputName,
-		err:  err,
-		ts:   time.Now(),
-	}:
-
-	// NOTE: the defaultIO.inLastErr is unblock channel, so make it
-	// unblock feed here, to prevent inputs blocked when IO blocked(and
-	// the bug we have to fix)
-	default:
-		log.Warnf("FeedLastError(%s, %s) skipped, ignored", inputName, err)
-	}
+func FeedLastError(source, err string, cat ...point.Category) {
+	doFeedLastError(source, err, cat...)
 }
 
 // Feed send data to io module.
 //
 // Deprecated: inputs should use DefaultFeeder to get global default feeder.
 func Feed(name, category string, pts []*dkpt.Point, opt *Option) error {
+	catStr := point.CatURL(category).String()
+
+	inputsFeedVec.WithLabelValues(name, catStr).Inc()
+	inputsFeedPtsVec.WithLabelValues(name, catStr).Add(float64(len(pts)))
+	if opt != nil {
+		inputsCollectLatencyVec.WithLabelValues(name, catStr).Observe(float64(opt.CollectCost / time.Microsecond))
+	}
+	inputsLastFeedVec.WithLabelValues(name, catStr).Set(float64(time.Now().Unix()))
+
 	if len(pts) == 0 {
 		return nil
 	}
 
-	return defaultIO.doFeed(pts, category, name, opt)
+	return defIO.doFeed(pts, category, name, opt)
 }

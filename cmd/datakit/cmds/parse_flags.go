@@ -127,11 +127,11 @@ var (
 	fsMonitor                  = pflag.NewFlagSet(fsMonitorName, pflag.ContinueOnError)
 	flagMonitorTo              = fsMonitor.String("to", "localhost:9529", "specify the DataKit(IP:Port) to show its statistics")
 	flagMonitorMaxTableWidth   = fsMonitor.IntP("max-table-width", "W", 128, "set max table cell width")
-	flagMonitorOnlyInputs      = fsMonitor.StringSliceP("input", "I", nil, "show only specified inputs stats, seprated by ',', i.e., -I cpu,mem")
 	flagMonitorLogPath         = fsMonitor.String("log", commonLogFlag(), "command line log path")
 	flagMonitorRefreshInterval = fsMonitor.DurationP("refresh", "R", 5*time.Second, "refresh interval")
 	flagMonitorVerbose         = fsMonitor.BoolP("verbose", "V", false, "show all statistics info, default not show goroutine and inputs config info")
-	flagMonitorModule          = fsMonitor.StringSliceP("module", "M", nil, "show only specified module stats, seprated by ',', i.e., -M filter,inputs")
+	flagMonitorModule          = fsMonitor.StringP("module", "M", "", "show only specified module stats, seprated by ',', i.e., -M filter,inputs")
+	flagMonitorOnlyInputs      = fsMonitor.StringP("input", "I", "", "show only specified inputs stats, seprated by ',', i.e., -I cpu,mem")
 	fsMonitorUsage             = func() {
 		fmt.Printf("usage: datakit monitor [options]\n\n")
 		fmt.Printf("Monitor used to show datakit running statistics\n\n")
@@ -163,21 +163,25 @@ var (
 
 	flagToolJSON = fsTool.Bool("json", false, "output in JSON format(partially supported)")
 
-	flagToolLogPath               = fsTool.String("log", commonLogFlag(), "command line log path")
-	flagToolCloudInfo             = fsTool.Bool("show-cloud-info", false, "show current host's cloud info(currently support aliyun/tencent/aws/hwcloud/azure)") //nolint:lll
-	flagToolIPInfo                = fsTool.String("ipinfo", "", "show IP geo info")
-	flagToolWorkspaceInfo         = fsTool.Bool("workspace-info", false, "show workspace info")
-	flagToolCheckConfig           = fsTool.Bool("check-config", false, "check inputs configure and main configure")
-	flagToolTestSNMP              = fsTool.String("test-snmp", "", "test snmp device")
-	flagToolDumpSamples           = fsTool.String("dump-samples", "", "dump all inputs samples")
-	flagToolLoadLog               = fsTool.Bool("upload-log", false, "upload log")
-	flagToolDefaultMainConfig     = fsTool.Bool("default-main-conf", false, "print default datakit.conf")
-	flagToolCheckSample           = fsTool.Bool("check-sample", false, "check all inputs config sample, to ensure all sample are valid TOML")
+	flagToolLogPath   = fsTool.String("log", commonLogFlag(), "command line log path")
+	flagToolCloudInfo = fsTool.Bool("show-cloud-info", false,
+		"show current host's cloud info(currently support aliyun/tencent/aws/hwcloud/azure)") //nolint:lll
+	flagToolIPInfo            = fsTool.String("ipinfo", "", "show IP geo info")
+	flagToolWorkspaceInfo     = fsTool.Bool("workspace-info", false, "show workspace info")
+	flagToolCheckConfig       = fsTool.Bool("check-config", false, "check inputs configure and main configure")
+	flagToolTestSNMP          = fsTool.String("test-snmp", "", "test snmp device")
+	flagToolDumpSamples       = fsTool.String("dump-samples", "", "dump all inputs samples")
+	flagToolLoadLog           = fsTool.Bool("upload-log", false, "upload log")
+	flagToolDefaultMainConfig = fsTool.Bool("default-main-conf", false, "print default datakit.conf")
+	flagToolCheckSample       = fsTool.Bool("check-sample", false,
+		"check all inputs config sample, to ensure all sample are valid TOML")
 	flagToolGrokQ                 = fsTool.Bool("grokq", false, "query groks interactively")
 	flagToolSetupCompleterScripts = fsTool.Bool("setup-completer-script", false, "auto generate auto completion script(Linux only)")
 	flagToolCompleterScripts      = fsTool.Bool("completer-script", false, "show completion script(Linux only)")
 	flagToolPromConf              = fsTool.String("prom-conf", "", "specify the prom input conf to debug")
 	flagToolParseLineProtocol     = fsTool.String("parse-lp", "", "parse line-protocol file")
+	flagToolBugReport             = fsTool.Bool("bug-report", false,
+		"export DataKit running information for troubleshooting, such as configuration, logs, runtime info, etc")
 
 	fsToolUsage = func() {
 		fmt.Printf("usage: datakit tool [options]\n\n")
@@ -372,11 +376,13 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
-			nomodule := existsModule(*flagMonitorModule)
-			if len(nomodule) != 0 {
-				*flagMonitorVerbose = false
-				cp.Errorf("has no module:%+v,check please!\n", nomodule)
-				os.Exit(-1)
+			if *flagMonitorModule != "" {
+				nomodule := existsModule(strings.Split(*flagMonitorModule, ","))
+				if len(nomodule) != 0 {
+					*flagMonitorVerbose = false
+					cp.Errorf("has no module:%+v,check please!\n", nomodule)
+					os.Exit(-1)
+				}
 			}
 
 			setCmdRootLog(*flagMonitorLogPath)

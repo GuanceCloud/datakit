@@ -62,27 +62,148 @@ DCA is mainly used to manage DataKit, such as DataKit list view, configuration f
 
     Different versions of DataKit interfaces may differ, and it is recommended to upgrade DataKit to the latest version in order to better use DCA. In addition, the Web version of DCA and desktop version still have some missing functions, which will be added slowly later, *and gradually abandon the current desktop version*.
 
-DCA Web is the Web version of DCA client, which provides the interface proxy of DataKit by deploying a back-end service and provides a front-end Web page to access DataKit. At present, the service only supports Docker mirror installation, which can be found in the document [installing Docker](https://docs.docker.com/desktop/install/linux-install/).
+DCA Web is the Web version of DCA client, which provides the interface proxy of DataKit by deploying a back-end service and provides a front-end Web page to access DataKit. 
 
-- Download image
+=== "Docker"
 
-Before running the container, first download the DCA image through `docker pull`.
+    Docker installation can be found in the document [installing Docker](https://docs.docker.com/desktop/install/linux-install/).
 
-```shell
-$ docker pull pubrepo.guance.com/tools/dca
-```
+    - Download image
 
-- Run the container
+    Before running the container, first download the DCA image through `docker pull`.
 
-The DCA container is created and started with the `docker run` command, and the default exposed access port of the container is 80.
+    ```shell
+    $ docker pull pubrepo.guance.com/tools/dca
+    ```
 
-```shell
-$ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
-```
+    - Run the container
 
-- Testing
+    The DCA container is created and started with the `docker run` command, and the default exposed access port of the container is 80.
 
-After the container runs successfully, it can be accessed through the browser: http://localhost:8000
+    ```shell
+    $ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
+    ```
+
+    - Testing
+
+    After the container runs successfully, it can be accessed through the browser: http://localhost:8000
+
+=== "k8s"
+
+    Create a `dca.yaml` file with the following content:
+
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: utils-dca
+      name: dca
+      namespace: datakit
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 10
+      selector:
+        matchLabels:
+          app: utils-dca
+      strategy:
+        rollingUpdate:
+          maxSurge: 25%
+          maxUnavailable: 25%
+        type: RollingUpdate
+      template:
+        metadata:
+          labels:
+            app: utils-dca
+        spec:
+          affinity: {}
+          containers:
+            - env:
+                - name: DCA_INNER_HOST
+                  # Hangzhou https://auth-api.guance.com
+                  # Ningxia https://aws-auth-api.guance.com
+                  # Guangzhou https://cn4-auth-api.guance.com
+                  # Oregon https://us1-auth-api.guance.com
+                  value: https://auth-api.guance.com
+                - name: DCA_FRONT_HOST
+                  # Hangzhou  https://console-api.guance.com
+                  # Ningxia https://aws-console-api.guance.com/
+                  # Guangzhou https://cn4-console-api.guance.com
+                  # Oregon https://us1-console-api.guance.com
+                  value: https://console-api.guance.com
+                - name: DCA_LOG_ENABLE_STDOUT
+                  value: 'true'
+              image: pubrepo.guance.com/tools/dca:0.0.6
+              imagePullPolicy: Always
+              name: dca
+              ports:
+                - containerPort: 80
+                  name: http
+                  protocol: TCP
+              resources:
+                limits:
+                  cpu: 500m
+                  memory: 256Mi   
+                requests:
+                  cpu: 250m
+                  memory: 100Mi              
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: dca
+      namespace: datakit
+    spec:
+      ports:
+        - name: web
+          port: 80
+          protocol: TCP
+          targetPort: 80
+      selector:
+        app: utils-dca
+      sessionAffinity: None
+      type: ClusterIP
+
+    ---
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: dca
+      namespace: datakit
+    spec:
+      rules:
+        - host: dca.xxxx.com
+          http:
+            paths:
+              - backend:
+                  service:
+                    name: dca
+                    port:
+                      number: 80
+                path: /
+                pathType: Prefix
+      # tls:
+      #   - hosts:
+      #       - dca.xxxx.com
+      #     secretName: xxxx
+
+    ```
+
+    Apply `dca.yaml` to your Kubernetes cluster.
+
+    ```shell
+    $ kubectl apply -f dca.yaml
+    $ kubectl get pod -n datakit
+    ```
 
 ### Environment Variable Configuration {#envs}
 
@@ -92,6 +213,7 @@ By default, DCA will adopt the default configuration of the system. If you need 
 | :---------              | ----:  | :---                           | ------                                                                                          |
 | `DCA_INNER_HOST`        | string | https://auth-api.guance.com    | auth API address of Guance Cloud                                                                          |
 | `DCA_FRONT_HOST`        | string | https://console-api.guance.com | Guance Cloud console API address                                                                         |
+| `DCA_CONSOLE_PROXY`     | string | None                              | Guance Cloud API proxy, without proxying the DataKit API |
 | `DCA_LOG_LEVEL`         | string |                                | Log level, the value is NONE/DEBUG/INFO/WARN/ERROR. If logging is not required, it can be set to NONE.                  |
 | `DCA_LOG_ENABLE_STDOUT` | bool   | false                          | The log is output to a file under `/usr/src/dca/logs`. If you need to write the log to `stdout`, you can set it to `true` |
 

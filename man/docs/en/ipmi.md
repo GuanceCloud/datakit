@@ -80,6 +80,9 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
       ## The binPath of ipmitool
       ## (Example) bin_path = "/usr/bin/ipmitool"
       bin_path = "/usr/bin/ipmitool"
+
+      ## (Optional) The envs of LD_LIBRARY_PATH
+      ## (Example) envs = [ "LD_LIBRARY_PATH=XXXX:$LD_LIBRARY_PATH" ]
     
       ## The ips of ipmi servers
       ## (Example) ipmi_servers = ["192.168.1.1"]
@@ -169,6 +172,7 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
     | `ENV_INPUT_IPMI_TIMEOUT`            | `timeout`            | `5s`                                                         |
     | `ENV_INPUT_IPMI_DEOP_WARNING_DELAY` | `drop_warning_delay` | `300s`                                                       |
     | `ENV_INPUT_IPMI_BIN_PATH`           | `bin_path`           | `"/usr/bin/ipmitool"`                                        |
+    | `ENV_INPUT_IPMI_ENVS`               | `envs`               | `["LD_LIBRARY_PATH=XXXX:$LD_LIBRARY_PATH"]`                  |
     | `ENV_INPUT_IPMI_SERVERS`            | `ipmi_servers`       | `["192.168.1.1"]`                                            |
     | `ENV_INPUT_IPMI_INTERFACES`         | `ipmi_interfaces`    | `["lanplus"]`                                                |
     | `ENV_INPUT_IPMI_USERS`              | `ipmi_users`         | `["root"]`                                                   |
@@ -177,12 +181,19 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
     | `ENV_INPUT_IPMI_METRIC_VERSIONS`    | `metric_versions`    | `[2]`                                                        |
     | `ENV_INPUT_IPMI_REGEXP_CURRENT`     | `regexp_current`     | `["current"]`                                                |
     | `ENV_INPUT_IPMI_REGEXP_VOLTAGE`     | `regexp_voltage`     | `["voltage"]`                                                |
-    | `ENV_INPUT_IPMI_REGEXP_POWER`       | `regexp_power`       | `["pwr"]`                                                    |
+    | `ENV_INPUT_IPMI_REGEXP_POWER`       | `regexp_power`       | `["pwr","power"]`                                            |
     | `ENV_INPUT_IPMI_REGEXP_TEMP`        | `regexp_temp`        | `["temp"]`                                                   |
     | `ENV_INPUT_IPMI_REGEXP_FAN_SPEED`   | `regexp_fan_speed`   | `["fan"]`                                                    |
     | `ENV_INPUT_IPMI_REGEXP_USAGE`       | `regexp_usage`       | `["usage"]`                                                  |
     | `ENV_INPUT_IPMI_REGEXP_COUNT`       | `regexp_count`       | `[]`                                                         |
-    | `ENV_INPUT_IPMI_REGEXP_STATUS`      | `regexp_status`      | `["fan","slot","drive"]`                                     |
+    | `ENV_INPUT_IPMI_REGEXP_STATUS`      | `regexp_status`      | `["fan"]`                                                    |
+
+    
+???+ tip "Configuration"
+
+    - The keywords for each parameter classification are all in lowercase
+    - Refer to ipmitool -I The data returned by the command, then the keywords are reasonably configured
+
 
 
 <!--

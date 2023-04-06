@@ -23,7 +23,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 - 将 DataKit 部署成公网可访问
 
-建议将 RUM 以单独的方式部署在公网上，==不要跟已有的服务部署在一起==（如 Kubernetes 集群）。因为 RUM 这个接口上的流量可能很大，集群内部的流量会被它干扰到，而且一些可能的集群内部资源调度机制，可能影响 RUM 服务的运行。
+建议将 RUM 以单独的方式部署在公网上，不要跟已有的服务部署在一起（如 Kubernetes 集群）。因为 RUM 这个接口上的流量可能很大，集群内部的流量会被它干扰到，而且一些可能的集群内部资源调度机制，可能影响 RUM 服务的运行。
 
 - 在 DataKit 上[安装 IP 地理信息库](datakit-tools-how-to.md#install-ipdb)
 - 自 [1.2.7](changelog.md#cl-1.2.7) 之后，由于调整了 IP 地理信息库的安装方式，默认安装不再自带 IP 信息库，需手动安装
@@ -41,7 +41,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
     或者直接在 *datakit.conf* 中默认采集器中开启即可：
 
     ``` toml
-    default_enabled_inputs = [ "rum", "cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes" ]
+    default_enabled_inputs = [ "cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes", "self" ]
     ```
 
     配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
@@ -52,7 +52,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
     ```yaml
     - name: ENV_DEFAULT_ENABLED_INPUTS
-      value: rum,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
+      value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,self
     ```
 
 ## 安全限制 {#security-setting}
@@ -329,7 +329,7 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
 
 ## RUM 会话重放 {#rum-session-replay}
 
-从 Datakit [1.5.5](changelog.md#cl-1.5.5) 版本开始支持采集 RUM 会话重放数据，该功能需要修改 RUM 采集器配置，增加配置项 `session_replay_endpoints` 并重启 Datakit。
+从 Datakit [:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5) 版本开始支持采集 RUM 会话重放数据，该功能需要修改 RUM 采集器配置，增加配置项 `session_replay_endpoints` 并重启 Datakit。
 
 ```toml
 [[inputs.rum]]

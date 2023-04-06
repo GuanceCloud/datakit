@@ -20,17 +20,38 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 
 | 参数名                    | 类型   | 是否必选 | 默认值    | 说明                                                                                                                                          |
 | --------------------      | ------ | -------- | --------- | --------------------------------------------------                                                                                            |
-| `category`                | string | Y        | 无        | 目前支持 `metric/logging/rum/object/custom_object/keyevent`                                                                                            |
-| `echo_line_proto`         | string | N        | 无        | 给任意值（如 `true`）即返回 json 行协议类容，默认不返回                                                                                       |
-| `global_election_tags`    | string | N        | 无        | 给任意值（如 `true`）即认为追加全局选举类 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                                     |
-| `ignore_global_host_tags` | string | false    | 无        | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）。`ignore_global_tags` 将弃用 |
+| `category`                | string | Y        | -         | 目前只支持 `metric,logging,rum,object,custom_object,keyevent`，以 `metric` 为例， 其 URL 应该写成 `/v1/write/metric`                          |
+| `echo_line_proto`         | string | N        | -         | 给任意值（如 `true`）即返回行协议形式的点数据，默认不返回                                                                                     |
+| `echo_json`               | string | N        | -         | 给任意值（如 `true`）即返回 JSON 格式的数据点，默认不返会，如果同时指定两种 echo，优先返回行协议形式的点数据                                  |
+| `global_election_tags`    | string | N        | -         | 给任意值（如 `true`）即认为追加全局选举类 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                                     |
+| `ignore_global_host_tags` | string | false    | -         | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）。`ignore_global_tags` 将弃用 |
 | `input`                   | string | N        | `datakit` | 数据源名称                                                                                                                                    |
-| `loose`                   | bool   | N        | false     | 宽松模式，对于一些不合规的行协议，DataKit 会尝试修复它们（[:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)）                        |
+| `loose`                   | bool   | N        | true      | 宽松模式，对于一些不合规的行协议，DataKit 会尝试修复它们（[:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)）                        |
+| `strict`                  | bool   | N        | false     | 严格模式，对于一些不合规的行协议，API 直接报错，并告知具体的原因（[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)）                  |
 | `precision`               | string | N        | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                                                 |
-| `source`                  | string | N        | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割                    |
-| `version`                 | string | N        | 无        | 当前采集器的版本号                                                                                                                            |
+| `source`                  | string | N        | -         | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割                    |
+| `version`                 | string | N        | -         | 当前采集器的版本号                                                                                                                            |
 
 HTTP body 支持行协议以及 JSON 俩种形式。关于数据结构（不管是行协议形式还是 JSON 形式）的约束，参见[这里](apis.md#lineproto-limitation)。
+
+### 数据类型分类 {#category}
+
+DataKit 中主要有如下数据类型（以简称字母序排列）：
+
+| 简称 | 名称          | URL 表示                | 说明               |
+| ---- | ----          | ----                    | ---                |
+| CO   | custom_object | /v1/write/custom_object | 自定义对象数据     |
+| E    | keyevent      | /v1/write/keyevent      | Event 数据         |
+| L    | logging       | /v1/write/logging       | 日志数据           |
+| M    | metric        | /v1/write/metric        | 时序数据           |
+| N    | network       | /v1/write/network       | 一般指 eBPF 数据   |
+| O    | object        | /v1/write/object        | 对象数据           |
+| P    | profiling     | /v1/write/profiling     | Profiling 数据     |
+| R    | rum           | /v1/write/rum           | RUM 数据           |
+| S    | security      | /v1/write/security      | 安全巡检数据       |
+| T    | tracing       | /v1/write/tracing       | APM（Tracing）数据 |
+
+不同的数据类型，其处理方式不一样，在观测云的用法也不尽相同。在 Datait 的配置和使用过程中，有时候会穿插使用某个类型的不同形式（比如在 sinker 配置中用简写，在 API 请求中则用其 URL 表示）
 
 ### JSON Body 示例 {#api-json-example}
 
@@ -550,6 +571,10 @@ HTTP Code: 400
     "message": "invalid class"
 }
 ```
+
+## `/metrics` | `GET` {#api-metrics}
+
+获取 Datakit 暴露的 Prometheus 指标。
 
 ## DataKit 数据结构约束 {#lineproto-limitation}
 

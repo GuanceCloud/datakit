@@ -29,6 +29,7 @@ DEFAULT_ARCHS      = all
 MAC_ARCHS          = darwin/amd64
 DOCKER_IMAGE_ARCHS = linux/arm64,linux/amd64
 GOLINT_BINARY      = golangci-lint
+CGO_FLAGS          = "-Wno-undef-prefix -Wno-deprecated-declarations" # to disable warnings from gopsutil on macOS
 
 SUPPORTED_GOLINT_VERSION         = 1.46.2
 SUPPORTED_GOLINT_VERSION_ANOTHER = v1.46.2
@@ -61,11 +62,10 @@ IGN_EBPF_INSTALL_ERR ?= 0
 RACE_DETECTION       ?= "off"
 PKGEBPF              ?= "false"
 
-PKGEBPF_FLAG 		  = ""
+PKGEBPF_FLAG = ""
 ifneq ($(PKGEBPF),"false")
 	PKGEBPF_FLAG = "-pkg-ebpf"
 endif
-
 
 # Generate 'git/' package under root path
 define GIT_INFO
@@ -99,7 +99,7 @@ define notify_build
 		exit 1; \
 	fi
 	@echo "===== notify $(BIN) $(1) ===="
-	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go \
+	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go \
 		-main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
 		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -upload-addr $(3) -download-cdn $(4) \
 		-notify-only
@@ -119,8 +119,8 @@ define build_bin
 
 	@rm -rf $(PUB_DIR)/$(1)/*
 	@mkdir -p $(BUILD_DIR) $(PUB_DIR)/$(1)
-	@echo "===== $(BIN) $(1) ===="
-	GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go \
+	@echo "===== building $(BIN) $(1) ====="
+	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go \
 		-release $(1)             \
 		-archs $(2)               \
 		-upload-addr $(3)         \
@@ -136,8 +136,8 @@ endef
 
 # pub used to publish datakit version(for release/testing/local)
 define publish
-	@echo "publishing $(1) $(NAME) ..."
-	GO111MODULE=off go run cmd/make/make.go \
+	@echo "===== publishing $(1) $(NAME) ====="
+	GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go \
 		-release $(1)            \
 		-upload-addr $(2)        \
 		-download-cdn $(3)       \
@@ -146,12 +146,12 @@ define publish
 		-name $(NAME)            \
 		-build-dir $(BUILD_DIR)  \
 		-archs $(4)              \
-		$(PKGEBPF_FLAG)
+		-pkg-ebpf $(PKGEBPF)
 endef
 
 define pub_ebpf
-	@echo "publishing $(1) $(NAME_EBPF) ..."
-	@GO111MODULE=off go run cmd/make/make.go \
+	@echo "===== publishing $(1) $(NAME_EBPF) ====="
+	@GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go \
 		-release $(1)             \
 		-upload-addr $(2)         \
 		-archs $(3)               \
@@ -192,7 +192,14 @@ endef
 
 define show_poor_logs
   # 没有传参的日志，我们认为其日志信息是不够完整的，日志的意义也相对不大
-	@grep --color=always --exclude-dir=vendor --exclude-dir=.git --exclude=*.html -nr '\.Debugf(\|\.Debug(\|\.Infof(\|\.Info(\|\.Warnf(\|\.Warn(\|\.Errorf(\|\.Error(' . | grep -vE ","
+	@grep --color=always \
+		--exclude-dir=vendor \
+		--exclude="*_test.go" \
+		--exclude-dir=.git \
+		--exclude=*.html \
+		-nr '\.Debugf(\|\.Debug(\|\.Infof(\|\.Info(\|\.Warnf(\|\.Warn(\|\.Errorf(\|\.Error(' . | grep -vE "\"|uhttp|\`" && \
+		{ echo "[E] some bad loggings in code"; exit -1; } || \
+		{ echo "all loggings ok"; exit ; }
 endef
 
 define check_golint_version
@@ -214,7 +221,7 @@ define build_ip2isp
 endef
 
 define do_lint
-	GOARCH=$(1) GOOS=$(2) $(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
+	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
 endef
 
 ##############################################################################
@@ -291,21 +298,28 @@ pub_release_win_img:
 # because config samples in multiple testing releases may not be compatible to each other.
 pub_conf_samples:
 	@echo "upload config samples to oss..."
-	@go run cmd/make/make.go -dump-samples -release production
+	@CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -dump-samples -release production
 
 # testing/production downloads config samples from different oss bucket.
 check_testing_conf_compatible:
-	@go run cmd/make/make.go -download-samples -release testing
+	@CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -download-samples -release testing
 	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
 	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
 
 check_production_conf_compatible:
-	@go run cmd/make/make.go -download-samples -release production
+	@CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -download-samples -release production
 	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
 	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
 
+# 没有传参的日志，我们认为其日志信息是不够完整的，日志的意义也相对不大
 shame_logging:
-	$(call show_poor_logs)
+	@grep --color=always \
+		--exclude-dir=vendor \
+		--exclude="*_test.go" \
+		--exclude-dir=.git \
+		--exclude=*.html \
+		-nr '\.Debugf(\|\.Debug(\|\.Infof(\|\.Info(\|\.Warnf(\|\.Warn(\|\.Errorf(\|\.Error(' . | grep -vE "\"|uhttp|\`" && \
+		{ echo "[E] some bad loggings in code"; exit -1; } || { echo "all loggings ok"; exit 0; }
 
 ip2isp:
 	$(call build_ip2isp)
@@ -320,7 +334,7 @@ vet:
 	@go vet ./...
 
 ut: deps
-	GO111MODULE=off CGO_ENABLED=1 go run cmd/make/make.go -ut -dataway-url "$(DATAWAY_URL)"; \
+	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=1 go run cmd/make/make.go -ut -dataway-url "$(DATAWAY_URL)"; \
 		if [ $$? != 0 ]; then \
 			exit 1; \
 		else \
@@ -355,26 +369,9 @@ all_test: deps
 
 test_deps: prepare gofmt lfparser_disable_line vet
 
-#GOARCH=amd64 GOOS=linux $(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err;
 lint: deps check_man copyright_check
 	@truncate -s 0 lint.err
-	$(call check_golint_version)
-	@echo '============== lint under darwin/amd64 ==================='
-	$(call do_lint,amd64,darwin)
-	@echo '============== lint under windows/386 ==================='
-	$(call do_lint,386,windows)
-	@echo '============== lint under windows/amd64 ==================='
-	$(call do_lint,amd64,windows)
-	@echo '============== lint under linux/arm ==================='
-	$(call do_lint,arm,linux)
-	@echo '============== lint under linux/arm64 ==================='
-	$(call do_lint,arm64,linux)
-	@echo '============== lint under linux/386 ==================='
-	$(call do_lint,386,linux)
-	@if [ $(UNAME_S) != Darwin ] && [ $(UNAME_M) != arm64 ]; then \
-		echo '============== lint under linux/amd64 ==================='; \
-	  $(call do_lint,amd64,linux); \
-	fi
+	$(call do_lint)
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go

@@ -8,6 +8,7 @@ package point
 import (
 	"encoding/json"
 	"log"
+	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -27,6 +28,10 @@ type JSONPoint struct {
 }
 
 func (jp *JSONPoint) Point(opts ...Option) (*Point, error) {
+	// NOTE: preferred in-point time
+	if jp.Time != 0 {
+		opts = append(opts, WithTime(time.Unix(0, jp.Time)))
+	}
 	return NewPoint(jp.Measurement, jp.Tags, jp.Fields, opts...)
 }
 

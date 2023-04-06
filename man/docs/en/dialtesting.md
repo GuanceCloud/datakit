@@ -19,8 +19,8 @@ The collector collects the data of network dialing test results, and all the dat
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
-    #  Service address of central task store
-    server = "https://dflux-dial.guance.com"
+    # Dataway address
+    server = "https://openway.guance.com"
     
     # require, node Unique Identification ID
     region_id = "reg_c2jlokxxxxxxxxxxx"
