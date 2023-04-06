@@ -137,6 +137,16 @@ if [ -n "$DK_UPGRADE" ]; then
 	upgrade=$DK_UPGRADE
 fi
 
+upgrade_manager=0
+if [ -n "$DK_UPGRADE_MANAGER" ]; then
+    upgrade_manager=$DK_UPGRADE_MANAGER
+fi
+
+upgrade_ip_whitelist=
+if [ -n "$DK_UPGRADE_IP_WHITELIST" ]; then
+    upgrade_ip_whitelist=$DK_UPGRADE_IP_WHITELIST
+fi
+
 def_inputs=
 if [ -n "$DK_DEF_INPUTS" ]; then
 	# shellcheck disable=SC2034
@@ -449,7 +459,7 @@ if [ "$upgrade" ]; then
 	printf "\n* Upgrading DataKit...\n"
 	$sudo_cmd $installer \
 		--install-log=${install_log} \
-		--upgrade --proxy="${proxy}" --installer_base_url="$installer_base_url"
+		--upgrade --upgrade-manager="${upgrade_manager}" --upgrade-ip-whitelist="${upgrade_ip_whitelist}" --proxy="${proxy}" --installer_base_url="$installer_base_url"
 else
 printf "\n* Installing DataKit...\n"
 $sudo_cmd $installer \
@@ -505,6 +515,7 @@ $sudo_cmd $installer \
 		--ipdb-type="${ipdb_type}" \
 		--sinker="${sinker}" \
 		--user-name="${user_name}" \
+		--upgrade-ip-whitelist="${upgrade_ip_whitelist}" \
 		--gin-log="${gin_log}"
 		fi
 rm -rf $installer

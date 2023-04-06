@@ -14,12 +14,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
-type ping struct {
+type Ping struct {
 	Version string `json:"version"`
 	Uptime  string `json:"uptime"`
 	Host    string `json:"host"`
 }
 
 func apiPing(w http.ResponseWriter, r *http.Request, x ...interface{}) (interface{}, error) {
-	return &ping{Version: datakit.Version, Uptime: fmt.Sprintf("%v", time.Since(metrics.Uptime)), Host: datakit.DatakitHostName}, nil
+	return &Ping{Version: datakit.Version, Uptime: fmt.Sprintf("%v", time.Since(metrics.Uptime)), Host: datakit.DatakitHostName}, nil
 }

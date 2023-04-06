@@ -13,6 +13,7 @@ DataKit supports both manual and automatic updates.
 
 Directly execute the following command to view the current DataKit version. If the latest version is available online, the corresponding update command will be prompted, such as:
 
+> - For remote upgrade, you must upgrade Datakit to [1.5.9](changelog.md#cl-1.5.9)+
 > - If [DataKit < 1.2.7](changelog.md#cl-1.2.7), you can only use `datakit --version`
 > - If DataKit < 1.2.0, [use the update command directly](changelog.md#cl-1.2.0-break-changes)
 
@@ -153,6 +154,64 @@ If an update does occur, you will see an update log similar to the following:
 2021-05-10T09:52:18.391+0800 INFO  ota-update datakit/main.go:219 New online version available: 1.1.6-rc0, commit 9bc4b960 (release at 2021-04-30 14:31:27)
 ...
 ```
+
+## Remote Upgrade {#remote}
+Starting from Datakit [1.5.9](changelog.md#cl-1.5.9), remote upgrade can be done by access http API, but the prerequisite is to reinstall Datakit version 1.5.9+ or set the environment variable `DK_UPGRADE_MANAGER=1` when upgrading to version 1.5.9+, for example, use the following command to upgrade to the latest version:
+
+```shell
+DK_UPGRADE=1 \
+DK_UPGRADE_MANAGER=1 \
+bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+```
+
+The remote upgrade service currently provides two http APIs:
+
+- **View the current Datakit version and available upgrade versions**
+
+| API                                     | Method |
+|-----------------------------------------|--------|
+| http://<host\>:9539/v1/datakit/version | `GET`  |
+
+Example：
+```shell
+$ curl 'http://127.0.0.1:9539/v1/datakit/version'
+{
+    "Version": "1.5.9_datakit-upgrade-service-iss-1441",
+    "Commit": "1a92ceb19e",
+    "Branch": "datakit-upgrade-service-iss-1441",
+    "BuildAtUTC": "2023-03-29 07:03:35",
+    "GoVersion": "go version go1.18.3 darwin/arm64",
+    "Uploader": "zydeMacBook-Air-3.local/zy/zhangyi",
+    "ReleasedInputs": "all",
+    "AvailableUpgrades": [
+        {
+            "version": "1.5.8",
+            "commit": "d8d2218354",
+            "date_utc": "2023-03-24 11:12:54",
+            "download_url": "https://static.guance.com/datakit/install.sh",
+            "version_type": "Online"
+        }
+    ]
+}
+```
+
+
+- **Upgrade the current Datakit to the latest version**
+
+| API                                     | Method |
+|-----------------------------------------|--------|
+| http://<host\>:9539/v1/datakit/upgrade | `POST` |
+
+Example：
+
+```shell
+$ curl -X POST 'http://127.0.0.1:9539/v1/datakit/upgrade'
+{"msg":"success"}
+```
+
+???+ info
+
+    The upgrade process may take a long time.
 
 ## DataKit Version Downgrade {#downgrade}
 

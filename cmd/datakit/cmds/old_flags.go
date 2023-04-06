@@ -232,7 +232,7 @@ func runOldStyleCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 		showVersion(ReleaseVersion, InputsReleaseType)
 
-		vis, err := checkNewVersion(ReleaseVersion, FlagShowTestingVersions)
+		vis, err := CheckNewVersion(ReleaseVersion, FlagShowTestingVersions)
 		if err != nil {
 			cp.Errorf("get online version info failed: %s\n", err)
 			os.Exit(-1)
@@ -240,8 +240,8 @@ func runOldStyleCmds() {
 
 		for _, vi := range vis {
 			cp.Infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
-				vi.versionType, vi.newVersion.VersionString, vi.newVersion.Commit, vi.newVersion.ReleaseDate)
-			cp.Infof("%s\n", getUpgradeCommand(vi.newVersion.DownloadURL))
+				vi.versionType, vi.NewVersion.VersionString, vi.NewVersion.Commit, vi.NewVersion.ReleaseDate)
+			cp.Infof("%s\n", getUpgradeCommand(vi.NewVersion.DownloadURL))
 		}
 
 		os.Exit(0)

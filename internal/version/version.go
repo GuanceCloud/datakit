@@ -17,7 +17,7 @@ type VerInfo struct {
 	Commit        string `json:"commit"`
 	ReleaseDate   string `json:"date_utc"`
 
-	DownloadURL        string `json:"-"`
+	DownloadURL        string `json:"download_url"`
 	DownloadURLTesting string `json:"-"`
 
 	tag   string

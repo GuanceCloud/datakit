@@ -322,7 +322,7 @@ We can easily copy and modify the [built-in CDN Dict](built-in_cdn_dict_config.m
 
 ## RUM Session Replay {#rum-session-replay}
 
-Starting from version [1.5.5](changelog.md#cl-1.5.5), Datakit support to collect the data of RUM Session Replay. It needs you to add item `session_replay_endpoints` to RUM configuration as bellow and then restart Datakit. 
+Starting from version [:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5), Datakit support to collect the data of RUM Session Replay. It needs you to add item `session_replay_endpoints` to RUM configuration as bellow and then restart Datakit. 
 
 ```toml
 [[inputs.rum]]

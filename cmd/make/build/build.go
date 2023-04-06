@@ -19,6 +19,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
@@ -198,8 +199,13 @@ func Compile() error {
 			return err
 		}
 
-		if err := compileArch(AppBin, goos, goarch, dir); err != nil {
+		if err := compileArch(AppBin, goos, goarch, dir, MainEntry); err != nil {
 			return err
+		}
+
+		upgraderDir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, upgrader.BuildBinName, goos, goarch)
+		if err := compileArch(upgrader.BuildBinName, goos, goarch, upgraderDir, upgrader.BuildEntranceFile); err != nil {
+			return fmt.Errorf("unable to build %s : %w", upgrader.BuildBinName, err)
 		}
 
 		// build externals
@@ -221,7 +227,7 @@ func Compile() error {
 	return nil
 }
 
-func compileArch(bin, goos, goarch, dir string) error {
+func compileArch(bin, goos, goarch, dir, mainEntranceFile string) error {
 	output := filepath.Join(dir, bin)
 	if goos == datakit.OSWindows {
 		output += winBinSuffix
@@ -250,7 +256,7 @@ func compileArch(bin, goos, goarch, dir string) error {
 		"-o", output,
 		"-ldflags",
 		fmt.Sprintf("-w -s -X main.InputsReleaseType=%s -X main.ReleaseVersion=%s", InputsReleaseType, ReleaseVersion),
-		MainEntry,
+		mainEntranceFile,
 	}...)
 
 	var envs []string
