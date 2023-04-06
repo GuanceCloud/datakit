@@ -11,15 +11,16 @@ import (
 	"testing"
 
 	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func TestInput_getParameters(t *testing.T) {
 	type fields struct {
 		Interval         datakit.Duration
 		Tags             map[string]string
-		collectCache     []inputs.Measurement
+		collectCache     []*point.Point
 		platform         string
 		BinPath          string
 		IpmiServers      []string
@@ -178,7 +179,7 @@ func TestInput_convert(t *testing.T) {
 	type fields struct {
 		Interval         datakit.Duration
 		Tags             map[string]string
-		collectCache     []inputs.Measurement
+		collectCache     []*point.Point
 		platform         string
 		BinPath          string
 		IpmiServers      []string
@@ -212,7 +213,7 @@ func TestInput_convert(t *testing.T) {
 		name             string
 		fields           fields
 		args             args
-		wantCollectCache []inputs.Measurement
+		wantCollectCache []*point.Point
 	}{
 		{
 			name: "R740V2",
@@ -231,27 +232,27 @@ func TestInput_convert(t *testing.T) {
 				metricVersion: 2,
 				server:        "192.168.1.2",
 			},
-			wantCollectCache: []inputs.Measurement{
-				&ipmiMeasurement{
-					name: inputName,
-					tags: map[string]string{
+			wantCollectCache: []*point.Point{
+				newTestPoint(
+					inputName,
+					map[string]string{
 						"host": "192.168.1.2",
 						"unit": "current_1",
 					},
-					fields: map[string]interface{}{
+					map[string]interface{}{
 						"current": float64(1),
 					},
-				},
-				&ipmiMeasurement{
-					name: inputName,
-					tags: map[string]string{
+				),
+				newTestPoint(
+					inputName,
+					map[string]string{
 						"host": "192.168.1.2",
 						"unit": "current_2",
 					},
-					fields: map[string]interface{}{
+					map[string]interface{}{
 						"current": float64(0.2),
 					},
-				},
+				),
 			},
 		},
 		{
@@ -271,17 +272,17 @@ func TestInput_convert(t *testing.T) {
 				metricVersion: 1,
 				server:        "192.168.1.1",
 			},
-			wantCollectCache: []inputs.Measurement{
-				&ipmiMeasurement{
-					name: inputName,
-					tags: map[string]string{
+			wantCollectCache: []*point.Point{
+				newTestPoint(
+					inputName,
+					map[string]string{
 						"host": "192.168.1.1",
 						"unit": "voltage_1",
 					},
-					fields: map[string]interface{}{
+					map[string]interface{}{
 						"voltage": float64(220),
 					},
-				},
+				),
 			},
 		},
 	}
@@ -315,9 +316,24 @@ func TestInput_convert(t *testing.T) {
 				pause:            tt.fields.pause,
 				pauseCh:          tt.fields.pauseCh,
 			}
+
 			ipt.convert(tt.args.data, tt.args.metricVersion, tt.args.server)
-			if !reflect.DeepEqual(ipt.collectCache, tt.wantCollectCache) {
-				t.Errorf("Input.getParameters() wantCollectCache = %+v,  want %+v", ipt.collectCache, tt.wantCollectCache)
+
+			if len(tt.wantCollectCache) != len(ipt.collectCache) {
+				t.Errorf("points number not equal: want = %d, got %d",
+					len(tt.wantCollectCache), len(ipt.collectCache))
+				return
+			}
+			for i := 0; i < len(tt.wantCollectCache); i++ {
+				// Must modify want value timestamp to compare with got value.
+				wantCollectCache := tt.wantCollectCache[i]
+				wantCollectCache.SetTime(ipt.collectCache[i].Time())
+
+				if !ipt.collectCache[i].Equal(wantCollectCache) {
+					got := ipt.collectCache[i].LineProto()
+					want := tt.wantCollectCache[i].LineProto()
+					t.Errorf("Input.getParameters() got = %s,  want %s", got, want)
+				}
 			}
 		})
 	}
@@ -327,7 +343,7 @@ func TestInput_Collect(t *testing.T) {
 	type fields struct {
 		Interval         datakit.Duration
 		Tags             map[string]string
-		collectCache     []inputs.Measurement
+		collectCache     []*point.Point
 		platform         string
 		BinPath          string
 		IpmiServers      []string
@@ -367,7 +383,7 @@ func TestInput_Collect(t *testing.T) {
 				IpmiInterfaces: []string{"lanplus"},
 				MetricVersions: []int{2, 1},
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -405,6 +421,15 @@ func TestInput_Collect(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Create a new point.
+func newTestPoint(name string, tags map[string]string, fields map[string]interface{}) *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	return point.NewPointV2([]byte(name),
+		append(point.NewTags(tags), point.NewKVs(fields)...),
+		opts...)
 }
 
 const (
