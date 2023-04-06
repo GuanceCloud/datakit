@@ -272,12 +272,6 @@ func RemoveInput(name string, input Input) {
 	l.Debugf("remove input %s, current total %d", name, len(InputsInfo[name]))
 }
 
-func AddSelf() {
-	if i, ok := Inputs[datakit.DatakitInputName]; ok {
-		AddInput(datakit.DatakitInputName, i())
-	}
-}
-
 func ResetInputs() {
 	mtx.Lock()
 	defer mtx.Unlock()

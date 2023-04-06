@@ -18,10 +18,27 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+const (
+	minInterval = time.Second
+	maxInterval = time.Minute
+)
+
+const sampleCfg = `
+[[inputs.self]]
+  ##(optional) collect interval, default is 10 seconds
+  interval = '10s'
+  ##
+
+  [inputs.self.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+`
 
 var (
 	inputName = datakit.DatakitInputName
@@ -32,19 +49,26 @@ type Input struct {
 	stat *ClientStat
 
 	semStop *cliutils.Sem // start stop signal
+
+	Tags     map[string]string
+	Interval datakit.Duration
+
+	// AllInputs bool `toml:"all_inputs"`
 }
 
 func (*Input) Catalog() string {
-	return inputName
+	return "host"
 }
 
 func (*Input) SampleConfig() string {
-	return ``
+	return sampleCfg
 }
 
 func (*Input) AvailableArchs() []string {
 	return datakit.AllOS
 }
+
+func (*Input) Singleton() {}
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
@@ -61,6 +85,8 @@ func (si *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("self input started...")
 
+	si.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, si.Interval.Duration)
+
 	for {
 		start := time.Now()
 
@@ -76,6 +102,11 @@ func (si *Input) Run() {
 		_ = io.Feed(inputName, datakit.Metric, newPts, &io.Option{
 			CollectCost: cost,
 		})
+
+		time.Sleep(si.Interval.Duration)
+
+		tick := time.NewTicker(si.Interval.Duration)
+		defer tick.Stop()
 
 		select {
 		case <-datakit.Exit.Wait():
@@ -107,7 +138,9 @@ func init() { //nolint:gochecknoinits
 				Arch:     runtime.GOARCH,
 				PID:      os.Getpid(),
 			},
-			semStop: cliutils.NewSem(),
+			semStop:  cliutils.NewSem(),
+			Interval: datakit.Duration{Duration: time.Second * 10},
+			Tags:     map[string]string{},
 		}
 	})
 }
