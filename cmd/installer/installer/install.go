@@ -106,16 +106,8 @@ func Install(svc service.Service) {
 	if CgroupDisabled != 1 && runtime.GOOS == datakit.OSLinux {
 		mc.Cgroup.Enable = true
 
-		if LimitCPUMin > 0 {
-			mc.Cgroup.CPUMin = LimitCPUMin
-		}
-
 		if LimitCPUMax > 0 {
 			mc.Cgroup.CPUMax = LimitCPUMax
-		}
-
-		if mc.Cgroup.CPUMax < mc.Cgroup.CPUMin {
-			l.Fatalf("invalid CGroup CPU limit, max should larger than min")
 		}
 
 		if LimitMemMax > 0 {
@@ -125,8 +117,8 @@ func Install(svc service.Service) {
 			l.Infof("cgroup max memory not set")
 		}
 
-		l.Infof("croups enabled under %s, cpu: [%f, %f], mem: %dMB",
-			runtime.GOOS, mc.Cgroup.CPUMin, mc.Cgroup.CPUMin, mc.Cgroup.MemMax)
+		l.Infof("croups enabled under %s, cpu: %f, mem: %dMB",
+			runtime.GOOS, mc.Cgroup.CPUMax, mc.Cgroup.MemMax)
 	} else {
 		mc.Cgroup.Enable = false
 		l.Infof("cgroup disabled, OS: %s", runtime.GOOS)

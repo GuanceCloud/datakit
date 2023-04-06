@@ -203,9 +203,6 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
   # 允许 CPU 最大使用率（百分制）
   cpu_max = 20.0
 
-  # 允许 CPU 最小使用率（百分制）
-  cpu_min = 5.0
-
   # 默认允许 4GB 内存(memory + swap)占用
   # 如果置为 0 或负数，则不启用内存限制
   mem_max_mb = 4096 
@@ -253,32 +250,9 @@ ulimit = 64000
 
 ulimit 默认配置为 64000。在 Kubernates 中，通过[设置 `ENV_ULIMIT`](datakit-daemonset-deploy.md#env-others) 即可。
 
-## FAQ {#faq}
-
-### :material-chat-question: cgroup 设置失败 {#cgoup-fail}
-
-有时候启用 cgroup 会失败，在 [DataKit Monitor](datakit-monitor.md) 的 `Basic Info` 中会报告类似如下错误：
-
-```
-write /sys/fs/cgroup/memory/datakit/memory.limit_in_bytes: invalid argument
-```
-
-此时需手动删除已有 cgroup 规则库，然后再[重启 DataKit 服务](datakit-service-how-to.md#manage-service)。
-
-```shell
-sudo cgdelete memory:/datakit
-```
-
-???+ attention
-
-    `cgdelete` 可能需额外安装工具包：
-    
-    - Ubuntu: `apt-get install libcgroup-tools`
-    - CentOS: `yum install libcgroup-tools`
-
 ### :material-chat-question: cgroup CPU 使用率说明 {#cgroup-how}
 
-CPU 使用率是百分比制（最大值 100.0），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，在 top 命令上将显示为 160% 左右。`cpu_min` 同理。
+CPU 使用率是百分比制（最大值 100.0），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，在 top 命令上将显示为 160% 左右。
 
 ## 延伸阅读 {#more-reading}
 

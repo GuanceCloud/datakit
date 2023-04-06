@@ -203,9 +203,6 @@ Because the amount of data processed on the DataKit cannot be estimated, if the 
   # Maximum CPU utilization allowed (percentile)
   cpu_max = 20.0
 
-  # Allow minimum CPU utilization (percentile)
-  cpu_min = 5.0
-
   # Allows 4GB of memory (memory + swap) by default
   # If set to 0 or negative, memory limits are not enabled
   mem_max_mb = 4096 
@@ -329,32 +326,9 @@ ulimit = 64000
 
 ulimit is configured to 64000 by default.
 
-## FAQ {#faq}
-
-### :material-chat-question: cgroup Setup Failed {#cgoup-fail}
-
-Sometimes enabling cgroup fails, and errors like the following are reported in `Basic Info` of [DataKit Monitor](datakit-monitor.md):
-
-```
-write /sys/fs/cgroup/memory/datakit/memory.limit_in_bytes: invalid argument
-```
-
-At this point, you need to manually delete the existing cgroup rule base, and then [restart the DataKit service](datakit-service-how-to.md#manage-service).
-
-```shell
-sudo cgdelete memory:/datakit
-```
-
-???+ attention
-
-    `cgdelete` may require additional installation kits:
-    
-    - Ubuntu: `apt-get install libcgroup-tools`
-    - CentOS: `yum install libcgroup-tools`
-
 ### :material-chat-question: cgroup CPU Utilization Rate Description {#cgroup-how}
 
-CPU utilization is on a percentage basis (maximum 100.0). For an 8-core CPU, if the limit `cpu_max` is 20.0 (that is, 20%), the maximum CPU consumption of DataKit, will be displayed as about 160% on the top command. The same applies to `cpu_min`.
+CPU utilization is on a percentage basis (maximum 100.0). For an 8-core CPU, if the limit `cpu_max` is 20.0 (that is, 20%), the maximum CPU consumption of DataKit, will be displayed as about 160% on the top command. 
 
 ## Extended Readings {#more-reading}
 

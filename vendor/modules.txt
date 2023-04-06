@@ -383,13 +383,15 @@ github.com/cilium/ebpf/internal
 github.com/cilium/ebpf/internal/sys
 github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
-# github.com/containerd/cgroups v1.1.0
-## explicit; go 1.17
-github.com/containerd/cgroups
+# github.com/containerd/cgroups v1.0.1
+## explicit; go 1.13
 github.com/containerd/cgroups/stats/v1
 github.com/containerd/cgroups/v2/stats
 # github.com/containerd/cgroups/v3 v3.0.1
 ## explicit; go 1.17
+github.com/containerd/cgroups/v3
+github.com/containerd/cgroups/v3/cgroup1
+github.com/containerd/cgroups/v3/cgroup1/stats
 github.com/containerd/cgroups/v3/cgroup2
 github.com/containerd/cgroups/v3/cgroup2/stats
 # github.com/containerd/containerd v1.5.5
