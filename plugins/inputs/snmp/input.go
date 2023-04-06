@@ -34,22 +34,22 @@ const (
 	// nolint:lll
 	sampleCfg = `
 [[inputs.snmp]]
-  ## Filling in autodiscovery CIDR subnet, like ["10.200.10.0/24", "10.200.20.0/24"].
-  ## If you don't want to enable autodiscovery feature, you don't need provide this.
-  #
-  # auto_discovery = []
-
   ## Filling in specific device IP address, like ["10.200.10.240", "10.200.10.241"].
   ## And you can use auto_discovery and specific_devices at the same time.
   ## If you don't want to specific device, you don't need provide this.
   #
-  # specific_devices = []
+  # specific_devices = ["***"] # SNMP Device IP.
+
+  ## Filling in autodiscovery CIDR subnet, like ["10.200.10.0/24", "10.200.20.0/24"].
+  ## If you don't want to enable autodiscovery feature, you don't need provide this.
+  #
+  # auto_discovery = ["***"] # Used in autodiscovery mode only, ignore this in other cases.
 
   ## SNMP protocol version the devices using, fill in 2 or 3.
   ## If you using the version 1, just fill in 2. Version 2 supported version 1.
   ## This is must be provided.
   #
-  # snmp_version = 2
+  snmp_version = 2
 
   ## SNMP port in the devices. Default is 161. In most cases, you don't need change this.
   ## This is optional.
