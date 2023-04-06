@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -28,8 +28,8 @@ type infoMeasurement struct {
 }
 
 // 生成行协议.
-func (m *infoMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+func (m *infoMeasurement) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
 }
 
 // 指定指标.
@@ -50,12 +50,6 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
 				Desc:     "Flag indicating if active defragmentation is active",
-			},
-			"redis_version": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "Version of the Redis server",
 			},
 			"active_defrag_hits": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -364,6 +358,9 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 			"server": &inputs.TagInfo{
 				Desc: "Server addr",
 			},
+			"redis_version": &inputs.TagInfo{
+				Desc: "Version of the Redis server",
+			},
 		},
 	}
 }
@@ -446,7 +443,14 @@ func (m *infoMeasurement) parseInfoData(info string) error {
 		key := parts[0]
 		val := strings.TrimSpace(parts[1])
 
-		m.resData[key] = val
+		if key == "redis_version" {
+			if val == "" {
+				val = "unknown"
+			}
+			m.tags["redis_version"] = val
+		} else {
+			m.resData[key] = val
+		}
 	}
 
 	return nil
@@ -466,6 +470,5 @@ func (m *infoMeasurement) submit() error {
 			}
 		}
 	}
-
 	return nil
 }
