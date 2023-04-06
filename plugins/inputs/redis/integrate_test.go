@@ -170,9 +170,11 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			}
 		// Some metrics in redis_info are only present on replica
 		case "redis_info":
-			optionalFields := []string{"loading_eta_seconds", "loading_loaded_perc", "master_last_io_seconds_ago", "client_longest_output_list",
+			optionalFields := []string{
+				"loading_eta_seconds", "loading_loaded_perc", "master_last_io_seconds_ago", "client_longest_output_list",
 				"master_sync_left_bytes", "used_cpu_sys_percent", "aof_current_size", "loading_loaded_bytes", "loading_total_bytes", "master_sync_in_progress",
-				"slave_repl_offset", "aof_buffer_length", "used_cpu_user_percent", "client_biggest_input_buf"}
+				"slave_repl_offset", "aof_buffer_length", "used_cpu_user_percent", "client_biggest_input_buf",
+			}
 			// optionalTags := []string{"host"}
 			extra := map[string]string{"host": "some_host", "service_name": "some_service"}
 
