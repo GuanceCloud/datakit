@@ -128,7 +128,6 @@ The environment variables supported by the installation script are as follows (s
 - `DK_INSTALL_IPDB`: Specify the IP library at installation time (currently only `iploc` and `geolite2` is supported)
 - `DK_UPGRADE_IP_WHITELIST`: Starting from Datakit [1.5.9](changelog.md#cl-1.5.9), we can upgrade Datakit by access remote http API. This environment variable is used to set the IP whitelist of clients that can be accessed remotely(multiple IPs could be separated by commas `,`). Access outside the whitelist will be denied (default not restricted).
 
-
 ### On DCA  {#env-dca}
 - `DK_DCA_ENABLE`: Support DCA service to be turned on during installation (not turned on by default)
 - `DK_DCA_LISTEN`: Support custom configuration of DCA service listening addresses and ports during installation (default `0.0.0.0:9531`）
