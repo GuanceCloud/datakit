@@ -46,7 +46,7 @@ It is recommended that RUM be deployed separately on the public network, not wit
 
     ```yaml
     - name: ENV_DEFAULT_ENABLED_INPUTS
-      value: rum,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
+      value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,self
     ```
 
 ## Security Restrictions {#security-setting}
