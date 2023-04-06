@@ -18,7 +18,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/shirou/gopsutil/host"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -78,19 +77,6 @@ loop:
 					runtime.GOOS, runtime.GOARCH))
 		}
 
-		ok, err := checkLinuxKernelVesion("")
-		if err != nil || !ok {
-			if err != nil {
-				if p, _, v, err := host.PlatformInformation(); err == nil {
-					if checkIsCentos76Ubuntu1604(p, v) {
-						break loop
-					}
-				}
-				l.Errorf("checkLinuxKernelVesion: %s", err)
-			}
-			io.FeedLastError(inputName, err.Error())
-		}
-
 		cmd := strings.Split(ipt.ExternalInput.Cmd, " ")
 		var execFile string
 		if len(cmd) > 0 {
@@ -99,7 +85,7 @@ loop:
 			execFile = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")
 			ipt.ExternalInput.Cmd = execFile
 		}
-		if _, err := os.Stat(execFile); err == nil && ok {
+		if _, err := os.Stat(execFile); err == nil {
 			break loop
 		} else {
 			l.Errorf("please run `datakit install --ebpf`")
