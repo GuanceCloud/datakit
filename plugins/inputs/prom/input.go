@@ -300,11 +300,11 @@ func (i *Input) Init() error {
 		CertFile:   i.CertFile,
 		KeyFile:    i.KeyFile,
 
-		Tags:        i.Tags,
-		TagsIgnore:  i.TagsIgnore,
-		IgnoreTagKV: kvIgnore,
-		HTTPHeaders: i.HTTPHeaders,
-		DisableHostTag: i.DisableHostTag,
+		Tags:               i.Tags,
+		TagsIgnore:         i.TagsIgnore,
+		IgnoreTagKV:        kvIgnore,
+		HTTPHeaders:        i.HTTPHeaders,
+		DisableHostTag:     i.DisableHostTag,
 		DisableInstanceTag: i.DisableInstanceTag,
 
 		RenameTags:  i.TagsRename,
