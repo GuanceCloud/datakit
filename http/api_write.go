@@ -201,7 +201,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 			arr = append(arr, x.LineProto())
 		}
 
-		return string(strings.Join(arr, "\n")), nil
+		return strings.Join(arr, "\n"), nil
 	}
 
 	if q.Get(ArgEchoJSON) != "" {

@@ -429,7 +429,6 @@ func (info *datakitInfo) copyDir(srcDir string, dstDir string, transform transfo
 	return nil
 }
 
-//bugReport is to collect information about the DataKit and save it into a zip file.
 func bugReport() error {
 	infoInstance := &datakitInfo{}
 
