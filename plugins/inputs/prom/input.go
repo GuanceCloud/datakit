@@ -66,7 +66,9 @@ type Input struct {
 	IgnoreTagKV map[string][]string `toml:"ignore_tag_kv_match" json:"ignore_tag_kv_match"`
 	HTTPHeaders map[string]string   `toml:"http_headers" json:"http_headers"`
 
-	Tags map[string]string `toml:"tags" json:"tags"`
+	Tags               map[string]string `toml:"tags" json:"tags"`
+	DisableHostTag     bool              `toml:"disable_host_tag" json:"disable_host_tag"`
+	DisableInstanceTag bool              `toml:"disable_instance_tag" json:"disable_instance_tag"`
 
 	Auth map[string]string `toml:"auth" json:"auth"`
 
@@ -302,6 +304,8 @@ func (i *Input) Init() error {
 		TagsIgnore:  i.TagsIgnore,
 		IgnoreTagKV: kvIgnore,
 		HTTPHeaders: i.HTTPHeaders,
+		DisableHostTag: i.DisableHostTag,
+		DisableInstanceTag: i.DisableInstanceTag,
 
 		RenameTags:  i.TagsRename,
 		AsLogging:   i.AsLogging,
