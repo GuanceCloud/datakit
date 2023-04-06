@@ -469,7 +469,8 @@ func (t *Single) feed(pending []string) {
 	}
 
 	if t.enableDiskCache {
-		if err := t.feedToCache(pending); err == nil {
+		err := t.feedToCache(pending)
+		if err == nil {
 			return
 		}
 		t.opt.log.Warnf("failed of save cache, err: %s, retry feed to io", err)
