@@ -528,6 +528,10 @@ HTTP Code: 400
 }
 ```
 
+## `/metrics` | `GET` {#api-metrics}
+
+Get Datakit Prometheus metrics.
+
 ## DataKit Data Structure Constraint {#lineproto-limitation}
 
 In order to standardize the data of Guance Cloud, the data collected by DataKit is constrained as follows (whether it is data in line protocol or JSON form), and the data that violates the constraints will be processed accordingly.

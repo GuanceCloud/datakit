@@ -155,9 +155,10 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
     ```toml
     [io]
-      feed_chan_size = 4096   # 数据处理队列（一个 job 一般都有多个 point）长度
+      feed_chan_size  = 4096  # 数据处理队列（一个 job 一般都有多个 point）长度
       max_cache_count = 512   # 数据批量发送点数的阈值，缓存中超过该值即触发发送
-      flush_interval = "10s"  # 数据发送的间隔阈值，每隔 10s 至少发送一次
+      flush_interval  = "10s" # 数据发送的间隔阈值，每隔 10s 至少发送一次
+      flush_workers   = 8     # 数据上传 worker 数（默认 CPU-core * 2 + 1）
     ```
 
     阻塞模式参见 [k8s 中的对应说明](datakit-daemonset-deploy.md#env-io)

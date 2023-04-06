@@ -572,6 +572,10 @@ HTTP Code: 400
 }
 ```
 
+## `/metrics` | `GET` {#api-metrics}
+
+获取 Datakit 暴露的 Prometheus 指标。
+
 ## DataKit 数据结构约束 {#lineproto-limitation}
 
 为规范观测云中的数据，现对 DataKit 采集的数据，做如下约束（不管是行协议还是 JSON 形式的数据），并对违反约束的数据将进行相应的处理。

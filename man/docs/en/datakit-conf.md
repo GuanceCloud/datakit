@@ -155,9 +155,10 @@ The following content involves some advanced configuration. If you are not sure 
     
     ```toml
     [io]
-      feed_chan_size = 4096   # length of data processing queue (a job typically has multiple points)
+      feed_chan_size  = 4096  # length of data processing queue (a job typically has multiple points)
       max_cache_count = 512   # data bulk sending points, beyond which sending is triggered in the cache
-      flush_interval = "10s"  # threshold for sending data at least once every 10s
+      flush_interval  = "10s" # threshold for sending data at least once every 10s
+      flush_workers   = 8     # upload workers, default CPU-core * 2 + 1
     ```
     
     See [corresponding description in k8s](datakit-daemonset-deploy.md#env-io) for blocking mode
