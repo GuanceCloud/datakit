@@ -17,7 +17,7 @@ import (
 	"github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 	pr "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/promremote"
@@ -126,7 +126,7 @@ func showPromRemoteWriteInput(input *pr.Input) error {
 	if err != nil {
 		return err
 	}
-	var points []*point.Point
+	var points []*dkpt.Point
 	for _, m := range measurements {
 		mm, ok := m.(*pr.Measurement)
 		if !ok {
@@ -176,7 +176,7 @@ func showPromInput(input *prom.Input) error {
 		return err
 	}
 
-	var points []*point.Point
+	var points []*dkpt.Point
 	if input.Output != "" {
 		// If input.Output is configured, raw metric text is written to file.
 		// In this case, read the file and perform Text2Metric.
@@ -192,7 +192,7 @@ func showPromInput(input *prom.Input) error {
 	return printResult(points)
 }
 
-func printResult(points []*point.Point) error {
+func printResult(points []*dkpt.Point) error {
 	fmt.Printf("\n================= Line Protocol Points ==================\n\n")
 	// measurements collected
 	measurements := make(map[string]string)

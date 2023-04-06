@@ -3,12 +3,11 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package nginx
+package snmp
 
 import (
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,15 +17,17 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/gosnmp/gosnmp"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp/snmpmeasurement"
 )
 
-func TestNginxInput(t *testing.T) {
+func TestSNMPInput(t *testing.T) {
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -84,81 +85,40 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		conf           string
 		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
-		opts           []inputs.PointCheckOption
-		mPathCount     map[string]int
+		optsObject     []inputs.PointCheckOption
+		optsMetric     []inputs.PointCheckOption
 	}{
 		{
-			name:           "nginx:http_stub_status_module",
-			conf:           fmt.Sprintf(`url = "http://%s/server_status"`, remote.Host),
-			dockerFileText: dockerFileHTTPStubStatusModule,
-			exposedPorts:   []string{"80/tcp"},
-			opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
-			mPathCount: map[string]int{
-				"/": 100,
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/snmp:inexio-snmpsim:v2",
+			conf: fmt.Sprintf(`specific_devices = ["%s"]
+	snmp_version = 2
+	v2_community_string = "recorded/cisco-catalyst-3750"
+[tags]
+	tag1 = "val1"
+	tag2 = "val2"`, remote.Host),
+			exposedPorts: []string{"161/udp"},
+			optsMetric: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("interface", "interface_alias", "mac_addr", "entity_name", "power_source", "power_status_descr", "temp_index", "temp_state", "cpu", "mem", "mem_pool_name", "sensor_id", "sensor_type"),
+				inputs.WithOptionalFields("ifNumber", "sysUpTimeInstance", "tcpActiveOpens", "tcpAttemptFails", "tcpCurrEstab", "tcpEstabResets", "tcpInErrs", "tcpOutRsts", "tcpPassiveOpens", "tcpRetransSegs", "udpInErrors", "udpNoPorts", "ifAdminStatus", "ifHCInBroadcastPkts", "ifHCInMulticastPkts", "ifHCInOctets", "ifHCInOctetsRate", "ifHCInUcastPkts", "ifHCOutBroadcastPkts", "ifHCOutMulticastPkts", "ifHCOutOctets", "ifHCOutOctetsRate", "ifHCOutUcastPkts", "ifHighSpeed", "ifInDiscards", "ifInDiscardsRate", "ifInErrors", "ifInErrorsRate", "ifOperStatus", "ifOutDiscards", "ifOutDiscardsRate", "ifOutErrors", "ifOutErrorsRate", "ifSpeed", "ifBandwidthInUsageRate", "ifBandwidthOutUsageRate", "cpuUsage", "memoryUsed", "memoryUsage", "memoryFree", "cieIfLastOutTime", "cieIfOutputQueueDrops", "ciscoMemoryPoolUsed", "cpmCPUTotalMonIntervalValue", "cieIfLastInTime", "cieIfResetCount", "ciscoMemoryPoolLargestFree", "ciscoEnvMonTemperatureStatusValue", "ciscoEnvMonSupplyState", "cswStackPortOperStatus", "cpmCPUTotal1minRev", "ciscoMemoryPoolFree", "cieIfInputQueueDrops", "ciscoEnvMonFanState", "cswSwitchState", "entSensorValue"), // nolint:lll
 			},
 		},
-
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.20.2",
-
-			conf: fmt.Sprintf(`
-		url = "http://%s/status/format/json"
-		use_vts = true`,
-				remote.Host),
-
-			exposedPorts: []string{"80/tcp"},
-			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
-			},
-		},
-
-		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.21.6",
-
-			conf: fmt.Sprintf(`
-		url = "http://%s/status/format/json"
-		use_vts = true`,
-				remote.Host),
-
-			exposedPorts: []string{"80/tcp"},
-			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
-			},
-		},
-
-		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.22.1",
-
-			conf: fmt.Sprintf(`
-		url = "http://%s/status/format/json"
-		use_vts = true`,
-				remote.Host),
-
-			exposedPorts: []string{"80/tcp"},
-			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
-			},
-		},
-
-		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.23.3",
-
-			conf: fmt.Sprintf(`
-		url = "http://%s/status/format/json"
-		use_vts = true`,
-				remote.Host),
-
-			exposedPorts: []string{"80/tcp"},
-			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/snmp:inexio-snmpsim:v3",
+			conf: fmt.Sprintf(`specific_devices = ["%s"]
+	snmp_version = 3
+	v3_user = "testing"
+	v3_auth_protocol = "MD5"
+	v3_auth_key = "testing123"
+	v3_priv_protocol = "DES"
+	v3_priv_key = "12345678"
+	v3_context_name = "recorded/cisco-catalyst-3750"
+[tags]
+	tag1 = "val1"
+	tag2 = "val2"`, remote.Host),
+			exposedPorts: []string{"161/udp"},
+			optsMetric: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("interface", "interface_alias", "mac_addr", "entity_name", "power_source", "power_status_descr", "temp_index", "temp_state", "cpu", "mem", "mem_pool_name", "sensor_id", "sensor_type"),
+				inputs.WithOptionalFields("ifNumber", "sysUpTimeInstance", "tcpActiveOpens", "tcpAttemptFails", "tcpCurrEstab", "tcpEstabResets", "tcpInErrs", "tcpOutRsts", "tcpPassiveOpens", "tcpRetransSegs", "udpInErrors", "udpNoPorts", "ifAdminStatus", "ifHCInBroadcastPkts", "ifHCInMulticastPkts", "ifHCInOctets", "ifHCInOctetsRate", "ifHCInUcastPkts", "ifHCOutBroadcastPkts", "ifHCOutMulticastPkts", "ifHCOutOctets", "ifHCOutOctetsRate", "ifHCOutUcastPkts", "ifHighSpeed", "ifInDiscards", "ifInDiscardsRate", "ifInErrors", "ifInErrorsRate", "ifOperStatus", "ifOutDiscards", "ifOutDiscardsRate", "ifOutErrors", "ifOutErrorsRate", "ifSpeed", "ifBandwidthInUsageRate", "ifBandwidthOutUsageRate", "cpuUsage", "memoryUsed", "memoryUsage", "memoryFree", "cieIfLastOutTime", "cieIfOutputQueueDrops", "ciscoMemoryPoolUsed", "cpmCPUTotalMonIntervalValue", "cieIfLastInTime", "cieIfResetCount", "ciscoMemoryPoolLargestFree", "ciscoEnvMonTemperatureStatusValue", "ciscoEnvMonSupplyState", "cswStackPortOperStatus", "cpmCPUTotal1minRev", "ciscoMemoryPoolFree", "cieIfInputQueueDrops", "ciscoEnvMonFanState", "cswSwitchState", "entSensorValue"), // nolint:lll
 			},
 		},
 	}
@@ -171,6 +131,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		ipt := defaultInput()
 		ipt.feeder = feeder
+		// ipt.EnablePickingData = true // If uncomment this, you must adjust point count parameters for performance(time cost) in the function call "cs.feeder.NPoints" which inside in the func "run".
+		// ipt.PickingCPU = []string{"cpuUsage"}
 
 		_, err := toml.Decode(base.conf, ipt)
 		assert.NoError(t, err)
@@ -187,8 +149,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
-			opts:           base.opts,
-			mPathCount:     base.mPathCount,
+			optsObject:     base.optsObject,
+			optsMetric:     base.optsMetric,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -219,8 +181,8 @@ type caseSpec struct {
 	repoTag        string
 	dockerFileText string
 	exposedPorts   []string
-	opts           []inputs.PointCheckOption
-	mPathCount     map[string]int
+	optsObject     []inputs.PointCheckOption
+	optsMetric     []inputs.PointCheckOption
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -234,14 +196,14 @@ type caseSpec struct {
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	var opts []inputs.PointCheckOption
 	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-	opts = append(opts, cs.opts...)
 
 	for _, pt := range pts {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		case nginx:
-			opts = append(opts, inputs.WithDoc(&NginxMeasurement{}))
+		case snmpmeasurement.SNMPObjectName:
+			opts = append(opts, inputs.WithDoc(&snmpmeasurement.SNMPObject{}))
+			opts = append(opts, cs.optsObject...)
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -254,36 +216,9 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-		case ServerZone:
-			opts = append(opts, inputs.WithDoc(&ServerZoneMeasurement{}))
-
-			msgs := inputs.CheckPoint(pt, opts...)
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			// TODO: error here
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-
-		case UpstreamZone:
-			opts = append(opts, inputs.WithDoc(&UpstreamZoneMeasurement{}))
-
-			msgs := inputs.CheckPoint(pt, opts...)
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			// TODO: error here
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-
-		case CacheZone:
-			opts = append(opts, inputs.WithDoc(&CacheZoneMeasurement{}))
+		case snmpmeasurement.SNMPMetricName:
+			opts = append(opts, inputs.WithDoc(&snmpmeasurement.SNMPMetric{}))
+			opts = append(opts, cs.optsMetric...)
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -359,6 +294,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
+				Env:        []string{"EXTRA_FLAGS=--v3-user=testing --v3-auth-key=testing123 --v3-auth-proto=MD5 --v3-priv-key=12345678 --v3-priv-proto=DES"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -379,6 +315,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
+				Env:        []string{"EXTRA_FLAGS=--v3-user=testing --v3-auth-key=testing123 --v3-auth-proto=MD5 --v3-priv-key=12345678 --v3-priv-proto=DES"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -400,13 +337,11 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
 
-	if err := cs.portsOK(r); err != nil {
+	if err := cs.checkSNMPPortOK(r); err != nil {
 		return err
 	}
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
-
-	cs.runHTTPTests(r)
 
 	var wg sync.WaitGroup
 
@@ -421,7 +356,7 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.AnyPoints()
+	pts, err := cs.feeder.NPoints(100)
 	if err != nil {
 		return err
 	}
@@ -430,6 +365,11 @@ func (cs *caseSpec) run() error {
 	cs.cr.AddField("point_count", len(pts))
 
 	cs.t.Logf("get %d points", len(pts))
+
+	for _, v := range pts {
+		cs.t.Logf(v.LPPoint().String() + "\n")
+	}
+
 	if err := cs.checkPoint(pts); err != nil {
 		return err
 	}
@@ -504,47 +444,51 @@ func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
 	return portBindings
 }
 
-func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
-	for _, v := range cs.exposedPorts {
-		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
-			return fmt.Errorf("service checking failed")
+func (cs *caseSpec) checkSNMPPortOK(r *testutils.RemoteInfo) error {
+	tick := time.NewTicker(time.Minute)
+	var errReturn error
+
+	out := false
+	for {
+		if out {
+			break
+		}
+
+		select {
+		case <-tick.C:
+			out = true
+		default:
+			if err := checkSNMPPort(cs.cr.ExtraTags["docker_host"]); err != nil {
+				cs.t.Logf("checkSNMPPort failed: %v", err)
+				errReturn = err
+				continue
+			}
+
+			errReturn = nil
+			out = true
 		}
 	}
+
+	return errReturn
+}
+
+func checkSNMPPort(host string) error {
+	// Default is a pointer to a GoSNMP struct that contains sensible defaults
+	// eg port 161, community public, etc
+	gosnmp.Default.Target = host
+	err := gosnmp.Default.Connect()
+	if err != nil {
+		return err
+	}
+	defer gosnmp.Default.Conn.Close()
+
+	oids := []string{"1.3.6.1.2.1.1.4.0", "1.3.6.1.2.1.1.7.0"}
+	_, err2 := gosnmp.Default.Get(oids) // Get() accepts up to g.MAX_OIDS
+	if err2 != nil {
+		return err2
+	}
+
 	return nil
 }
 
-// Launch large amount of HTTP requests to remote nginx.
-func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
-	for path, count := range cs.mPathCount {
-		newURL := fmt.Sprintf("http://%s%s", r.Host, path)
-
-		var wg sync.WaitGroup
-		wg.Add(count)
-
-		for i := 0; i < count; i++ {
-			go func() {
-				defer wg.Done()
-
-				resp, err := http.Get(newURL)
-				if err != nil {
-					panic(err)
-				}
-				if err := resp.Body.Close(); err != nil {
-					panic(err)
-				}
-			}()
-		}
-
-		wg.Wait()
-	}
-}
-
 ////////////////////////////////////////////////////////////////////////////////
-
-// Dockerfiles.
-
-const dockerFileHTTPStubStatusModule = `FROM nginx:latest
-
-RUN sed -i "/location \/ {/i\    location = /server_status {" /etc/nginx/conf.d/default.conf \
-    && sed -i "/location \/ {/i\        stub_status;" /etc/nginx/conf.d/default.conf \
-    && sed -i "/location \/ {/i\    }\n" /etc/nginx/conf.d/default.conf`

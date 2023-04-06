@@ -28,9 +28,6 @@ import (
 )
 
 func TestBeatsInput(t *testing.T) {
-	// t.Setenv("REMOTE_HOST", "10.200.14.142")
-	// t.Setenv("TESTING_METRIC_PATH", "/tmp/testing.metrics")
-
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
