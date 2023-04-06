@@ -31,7 +31,6 @@ const (
 type CgroupOptions struct {
 	Path   string  `toml:"path"`
 	CPUMax float64 `toml:"cpu_max"`
-	CPUMin float64 `toml:"cpu_min"`
 	MemMax int64   `toml:"mem_max_mb"`
 
 	DisableOOM bool `toml:"disable_oom,omitempty"`
@@ -56,14 +55,8 @@ func Run(c *CgroupOptions) {
 
 	cg = &Cgroup{opt: c}
 
-	if !(0 < c.CPUMax && c.CPUMax < 100) ||
-		!(0 < c.CPUMin && c.CPUMin < 100) {
+	if !(0 < c.CPUMax && c.CPUMax < 100) {
 		l.Errorf("CPUMax and CPUMin should be in range of (0.0, 100.0)")
-		return
-	}
-
-	if c.CPUMax < c.CPUMin {
-		l.Errorf("CPUMin should less than CPUMax of the cgroup")
 		return
 	}
 
@@ -80,8 +73,8 @@ func (c *Cgroup) String() string {
 		return "-"
 	}
 
-	return fmt.Sprintf("path: %s, mem: %dMB, cpu: [%.2f:%.2f]",
-		c.opt.Path, c.opt.MemMax/MB, c.opt.CPUMin, c.opt.CPUMax)
+	return fmt.Sprintf("path: %s, mem: %dMB, cpu: %.2f",
+		c.opt.Path, c.opt.MemMax/MB, c.opt.CPUMax)
 }
 
 func Info() string {

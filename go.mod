@@ -21,7 +21,7 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.6.0
 	github.com/c-bata/go-prompt v0.2.5
 	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575
-	github.com/containerd/cgroups v1.1.0
+	github.com/containerd/cgroups v1.0.1
 	github.com/containerd/cgroups/v3 v3.0.1
 	github.com/containerd/containerd v1.5.5
 	github.com/containerd/typeurl v1.0.2
