@@ -129,7 +129,7 @@ NAME1="value1" NAME2="value2"
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM 专用
 - `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用.如 `True`/`False`)
 - `DK_INSTALL_IPDB`: 安装时指定IP库(当前仅支持`iploc`, `geolite2`)
-- `DK_UPGRADE_IP_WHITELIST`: 从 Datakit [1.5.9](changelog.md#cl-1.5.9) 开始，支持远程访问 API 的方式来升级 Datakit，此环境变量用于设置可以远程访问的客户端 IP 白名单，不在白名单内的访问将被拒绝（默认是不做 IP 限制）。
+- `DK_UPGRADE_IP_WHITELIST`: 从 Datakit [1.5.9](changelog.md#cl-1.5.9) 开始，支持远程访问 API 的方式来升级 Datakit，此环境变量用于设置可以远程访问的客户端 IP 白名单（多个 IP 用逗号`,`分隔），不在白名单内的访问将被拒绝（默认是不做 IP 限制）。
 
 ### DCA 相关 {#env-dca}
 - `DK_DCA_ENABLE`：支持安装阶段开启 DCA 服务（默认未开启）

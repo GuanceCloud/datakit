@@ -356,6 +356,7 @@ func upgrade(ctx *gin.Context) {
 			if err := currentVer.Parse(); err != nil {
 				L().Warnf("unable to parse version info: %s", err)
 			}
+			L().Infof("VersionString: %s, Commit: %s, ReleaseDate: %s", currentVer.VersionString, currentVer.Commit, currentVer.ReleaseDate)
 		} else {
 			L().Warnf("unable to unmarshal json: %s", err)
 		}
@@ -371,8 +372,9 @@ func upgrade(ctx *gin.Context) {
 
 	upToDate := false
 	for _, v := range versions {
+		L().Infof("VersionString: %s, Commit: %s, ReleaseDate: %s", v.VersionString, v.Commit, v.ReleaseDate)
 		if v.DownloadURL != "" {
-			if v.Compare(currentVer) != 0 {
+			if v.VersionString != currentVer.VersionString || v.Commit != currentVer.Commit {
 				downloadURL = v.DownloadURL
 				break
 			} else {
