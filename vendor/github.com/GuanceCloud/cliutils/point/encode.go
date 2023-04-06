@@ -6,6 +6,7 @@
 package point
 
 import (
+	"encoding/json"
 	"strings"
 	sync "sync"
 
@@ -92,6 +93,7 @@ func (e *Encoder) getPayload(pts []*Point) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+
 	case LineProtocol:
 		lppart := []string{}
 		for _, pt := range pts {
@@ -103,6 +105,12 @@ func (e *Encoder) getPayload(pts []*Point) ([]byte, error) {
 		}
 
 		payload = []byte(strings.Join(lppart, "\n"))
+
+	case JSON:
+		payload, err = json.Marshal(pts)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if e.fn != nil {
