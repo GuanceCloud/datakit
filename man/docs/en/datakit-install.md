@@ -126,6 +126,8 @@ The environment variables supported by the installation script are as follows (s
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM-specific
 - `DK_DISABLE_404PAGE`: Disable the DataKit 404 page (commonly used when deploying DataKit RUM on the public network. Such as `True`/`False`)
 - `DK_INSTALL_IPDB`: Specify the IP library at installation time (currently only `iploc` and `geolite2` is supported)
+- `DK_UPGRADE_IP_WHITELIST`: Starting from Datakit [1.5.9](changelog.md#cl-1.5.9), we can upgrade Datakit by access remote http API. This environment variable is used to set the IP whitelist of clients that can be accessed remotely. Access outside the whitelist will be denied (default not restricted).
+
 
 ### On DCA  {#env-dca}
 - `DK_DCA_ENABLE`: Support DCA service to be turned on during installation (not turned on by default)
@@ -177,7 +179,8 @@ The following installation options are supported only on Linux platforms:
 
 - `DK_INSTALL_ONLY`: Install only, not run
 - `DK_HOSTNAME`: Support custom configuration hostname during installation
-- `DK_UPGRADE`: Upgrade to the latest version (Note: Once this option is turned on, all other options are invalid)
+- `DK_UPGRADE`: Upgrade to the latest version (Note: Once this option is turned on, all other options except `DK_UPGRADE_MANAGER` are invalid)
+- `DK_UPGRADE_MANAGER`: Whether we upgrade the **Remote Upgrade Service** when upgrading Datakit, it's used in conjunction with `DK_UPGRADE`, supported start from [1.5.9](changelog.md#cl-1.5.9)
 - `DK_INSTALLER_BASE_URL`: You can choose the installation script for different environments, default to `https://static.guance.com/datakit`
 - `DK_PROXY_TYPE`: Proxy type. The options are: "datakit" or "nginx", both lowercase
 - `DK_NGINX_IP`: Proxy server IP address (only need to fill in IP but not port). With highest priority, this is mutually exclusive with the above "HTTP_PROXY" and "HTTPS_PROXY" and will override both.

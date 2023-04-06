@@ -329,7 +329,7 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
 
 ## RUM 会话重放 {#rum-session-replay}
 
-从 Datakit [1.5.5](changelog.md#cl-1.5.5) 版本开始支持采集 RUM 会话重放数据，该功能需要修改 RUM 采集器配置，增加配置项 `session_replay_endpoints` 并重启 Datakit。
+从 Datakit [:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5) 版本开始支持采集 RUM 会话重放数据，该功能需要修改 RUM 采集器配置，增加配置项 `session_replay_endpoints` 并重启 Datakit。
 
 ```toml
 [[inputs.rum]]

@@ -129,6 +129,7 @@ NAME1="value1" NAME2="value2"
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM 专用
 - `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用.如 `True`/`False`)
 - `DK_INSTALL_IPDB`: 安装时指定IP库(当前仅支持`iploc`, `geolite2`)
+- `DK_UPGRADE_IP_WHITELIST`: 从 Datakit [1.5.9](changelog.md#cl-1.5.9) 开始，支持远程访问 API 的方式来升级 Datakit，此环境变量用于设置可以远程访问的客户端 IP 白名单，不在白名单内的访问将被拒绝（默认是不做 IP 限制）。
 
 ### DCA 相关 {#env-dca}
 - `DK_DCA_ENABLE`：支持安装阶段开启 DCA 服务（默认未开启）
@@ -178,7 +179,8 @@ NAME1="value1" NAME2="value2"
 
 - `DK_INSTALL_ONLY`：仅安装，不运行
 - `DK_HOSTNAME`:支持安装阶段自定义配置主机名
-- `DK_UPGRADE`：升级到最新版本（注：一旦开启该选项，其它选项均无效）
+- `DK_UPGRADE`：升级到最新版本（注：一旦开启该选项，除 `DK_UPGRADE_MANAGER` 外其它选项均无效）
+- `DK_UPGRADE_MANAGER`: 升级 Datakit 同时是否升级 **远程升级服务**，需要和 `DK_UPGRADE` 配合使用， 从 [1.5.9](changelog.md#cl-1.5.9) 版本开始支持
 - `DK_INSTALLER_BASE_URL`：可选择不同环境的安装脚本，默认为 `https://static.guance.com/datakit`
 - `DK_PROXY_TYPE`：代理类型。选项有: "datakit" 或 "nginx"，均为小写
 - `DK_NGINX_IP`：代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者

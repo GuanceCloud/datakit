@@ -2,6 +2,8 @@
 # Tue Aug 10 22:47:16 PDT 2021
 # Author: tanb
 
+Set-ExecutionPolicy Bypass -scope Process -Force
+
 # See https://stackoverflow.com/a/4647985/342348
 function Write-COutput($ForegroundColor) {
     # save the current color
@@ -74,6 +76,20 @@ if ($x -ne $null) {
 	$upgrade = $x
 	Write-COutput green ("* set upgrade" )
 }
+
+$upgrade_manager = "0"
+$x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_MANAGER")
+if ( ($x -ne $null) -and ($x -gt 0) ) {
+	$upgrade_manager = "1"
+	Write-COutput green ("* set upgrade_manager" )
+}
+
+$x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_IP_WHITELIST")
+if ($x -ne $null) {
+	$upgrade_ip_whitelist = $x
+	Write-COutput green ("* set upgrade_ip_whitelist" )
+}
+
 
 $x = [Environment]::GetEnvironmentVariable("DK_DATAWAY") 
 if ($x -ne $null) {
@@ -451,6 +467,8 @@ if ($upgrade -ne $null) { # upgrade
 	$action = @(
 			"$installer",
 			"--upgrade",
+			"--upgrade-manager='${upgrade_manager}'", # for update DK upgrade service
+			"--upgrade-ip-whitelist='${upgrade_ip_whitelist}'",
 			"--install-log='${install_log}'",
 			"--proxy='${proxy}'",
 			"--installer_base_url='${installer_base_url}'"
@@ -504,6 +522,7 @@ if ($upgrade -ne $null) { # upgrade
 			"--ipdb-type='${ipdb_type}'",
 			"--enable-pprof='${enable_pprof}'",
 			"--pprof-listen='${pprof_listen}'",
+			"--upgrade-ip-whitelist='${upgrade_ip_whitelist}'",
 			"--sinker='${sinker}'" # Do NOT add trailing `,' here!
 				)
 }
