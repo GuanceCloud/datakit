@@ -540,10 +540,10 @@ func initListener(lsn string) (net.Listener, error) {
 			if err != nil {
 				return nil, fmt.Errorf("net.Listen(tcp6): %w", err)
 			}
-		default: // Is4:
-			listener, err = net.Listen("tcp4", lsn)
+		default: // ipv4 or ipv6:
+			listener, err = net.Listen("tcp", lsn)
 			if err != nil {
-				return nil, fmt.Errorf("net.Listen(tcp4): %w", err)
+				return nil, fmt.Errorf("net.Listen(tcp): %w", err)
 			}
 		}
 	}
