@@ -25,6 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -53,26 +54,28 @@ var (
 	onceSetLog          sync.Once
 )
 
-type PythonDInput struct {
-	Name string   `toml:"name"`
-	Cmd  string   `toml:"cmd"`
-	Dirs []string `toml:"dirs"`
-	Envs []string `toml:"envs"`
+type Input struct {
+	Name string            `toml:"name"`
+	Cmd  string            `toml:"cmd"`
+	Dirs []string          `toml:"dirs"`
+	Envs []string          `toml:"envs"`
+	Tags map[string]string `toml:"tags"` // TODO
 
-	cmd *exec.Cmd
+	cmd    *exec.Cmd
+	feeder io.Feeder // TODO
 
 	semStop    *cliutils.Sem // start stop signal
 	scriptName string
 	scriptRoot string
 }
 
-func (*PythonDInput) Catalog() string { return inputName }
+func (*Input) Catalog() string { return inputName }
 
-func (*PythonDInput) SampleConfig() string { return configSample }
+func (*Input) SampleConfig() string { return configSample }
 
-func (*PythonDInput) AvailableArchs() []string { return datakit.AllOS }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
-func (*PythonDInput) SampleMeasurement() []inputs.Measurement { return []inputs.Measurement{} }
+func (*Input) SampleMeasurement() []inputs.Measurement { return []inputs.Measurement{} }
 
 func getCliPyScript(scriptRoot, scriptName string) string {
 	replacePair := map[string]string{
@@ -84,7 +87,7 @@ func getCliPyScript(scriptRoot, scriptName string) string {
 	return os.Expand(pyCli, func(k string) string { return replacePair[k] })
 }
 
-func (pe *PythonDInput) start() error {
+func (pe *Input) start() error {
 	cli := getCliPyScript(pe.scriptRoot, pe.scriptName)
 
 	pyTmpFle, err := ioutil.TempFile("", "pythond_")
@@ -279,7 +282,7 @@ func getScriptNameRoot(dirs []string, ipd IPythond) (scriptName, scriptRoot stri
 
 //------------------------------------------------------------------------------
 
-func (pe *PythonDInput) Run() {
+func (pe *Input) Run() {
 	setLog()
 	l.Infof("starting pythond input %s...", pe.Name)
 
@@ -321,7 +324,7 @@ func (pe *PythonDInput) Run() {
 	}
 }
 
-func (pe *PythonDInput) MonitProc() error {
+func (pe *Input) MonitProc() error {
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
 
@@ -361,15 +364,15 @@ func (pe *PythonDInput) MonitProc() error {
 	}
 }
 
-func (pe *PythonDInput) Terminate() {
+func (pe *Input) Terminate() {
 	if pe.semStop != nil {
 		pe.semStop.Close()
 	}
 }
 
-func (pe *PythonDInput) stop() error {
+func (pe *Input) stop() error {
 	if err := pe.cmd.Process.Kill(); err != nil {
-		l.Errorf("PythonDInput kill failed: %v", err)
+		l.Errorf("Input kill failed: %v", err)
 		return err
 	}
 	return nil
@@ -381,10 +384,15 @@ func setLog() {
 	})
 }
 
+func defaultInput() *Input {
+	return &Input{
+		feeder:  io.DefaultFeeder(),
+		semStop: cliutils.NewSem(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &PythonDInput{
-			semStop: cliutils.NewSem(),
-		}
+		return defaultInput()
 	})
 }
