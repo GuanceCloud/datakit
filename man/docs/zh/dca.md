@@ -62,27 +62,148 @@ DCA 主要用于管理 DataKit，如 DataKit 列表查看、配置文件管理�
 
     不同版本的 DataKit 接口可能存在差异，为了更好地使用 DCA，建议升级 DataKit 为最新版本。另外，Web 版的 DCA 跟桌面版之间还存在一些功能的缺失，后面会慢慢增补进来，*并逐步弃用现在的桌面版*。
 
-DCA web 是 DCA 客户端的 web 版本，它通过部署一个后端服务来提供 DataKit 的接口代理，并提供前端 Web 页面来实现对 DataKit 的访问。目前服务仅支持 Docker 镜像安装，可参考文档[安装 Docker](https://docs.docker.com/desktop/install/linux-install/)。
+DCA web 是 DCA 客户端的 web 版本，它通过部署一个后端服务来提供 DataKit 的接口代理，并提供前端 Web 页面来实现对 DataKit 的访问。
 
-- 下载镜像
+=== "Docker"
 
-运行容器之前，首先通过 `docker pull` 下载 DCA 镜像。
+    Docker 安装，可参考[文档](https://docs.docker.com/desktop/install/linux-install/)。
 
-```shell
-$ docker pull pubrepo.guance.com/tools/dca
-```
+    - 下载镜像
 
-- 运行容器
+    运行容器之前，首先通过 `docker pull` 下载 DCA 镜像。
 
-通过 `docker run` 命令来创建和启动 DCA 容器，容器默认暴露访问端口是 80。
+    ```shell
+    $ docker pull pubrepo.guance.com/tools/dca:latest
+    ```
 
-```shell
-$ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
-```
+    - 运行容器
 
-- 测试
+    通过 `docker run` 命令来创建和启动 DCA 容器，容器默认暴露访问端口是 80。
 
-容器运行成功后，可以通过浏览器进行访问：`http://localhost:8000`
+    ```shell
+    $ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
+    ```
+
+    - 测试
+
+    容器运行成功后，可以通过浏览器进行访问：`http://localhost:8000`
+
+=== "k8s"
+
+    创建 `dca.yaml` 文件，内容如下：
+
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: utils-dca
+      name: dca
+      namespace: datakit
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 10
+      selector:
+        matchLabels:
+          app: utils-dca
+      strategy:
+        rollingUpdate:
+          maxSurge: 25%
+          maxUnavailable: 25%
+        type: RollingUpdate
+      template:
+        metadata:
+          labels:
+            app: utils-dca
+        spec:
+          affinity: {}
+          containers:
+            - env:
+                - name: DCA_INNER_HOST
+                  # 杭州 https://auth-api.guance.com
+                  # 宁夏 https://aws-auth-api.guance.com
+                  # 广州 https://cn4-auth-api.guance.com
+                  # 俄勒冈 https://us1-auth-api.guance.com
+                  value: https://auth-api.guance.com
+                - name: DCA_FRONT_HOST
+                  # 杭州 https://console-api.guance.com
+                  # 宁夏 https://aws-console-api.guance.com/
+                  # 广州 https://cn4-console-api.guance.com
+                  # 俄勒冈 https://us1-console-api.guance.com
+                  value: https://console-api.guance.com
+                - name: DCA_LOG_ENABLE_STDOUT
+                  value: 'true'
+              image: pubrepo.guance.com/tools/dca:0.0.6
+              imagePullPolicy: Always
+              name: dca
+              ports:
+                - containerPort: 80
+                  name: http
+                  protocol: TCP
+              resources:
+                limits:
+                  cpu: 500m
+                  memory: 256Mi   
+                requests:
+                  cpu: 250m
+                  memory: 100Mi              
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: dca
+      namespace: datakit
+    spec:
+      ports:
+        - name: web
+          port: 80
+          protocol: TCP
+          targetPort: 80
+      selector:
+        app: utils-dca
+      sessionAffinity: None
+      type: ClusterIP
+
+    ---
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: dca
+      namespace: datakit
+    spec:
+      rules:
+        - host: dca.xxxx.com
+          http:
+            paths:
+              - backend:
+                  service:
+                    name: dca
+                    port:
+                      number: 80
+                path: /
+                pathType: Prefix
+      # tls:
+      #   - hosts:
+      #       - dca.xxxx.com
+      #     secretName: xxxx
+
+    ```
+
+    应用 `dca.yaml` 文件到 Kubernetes 集群中
+
+    ```shell
+    $ kubectl apply -f dca.yaml
+    $ kubectl get pod -n datakit
+    ```
 
 ### 环境变量配置 {#envs}
 
@@ -92,6 +213,7 @@ $ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
 | ---------:              | ----:  | ---:                           | ------                                                                                          |
 | `DCA_INNER_HOST`        | string | https://auth-api.guance.com    | 观测云的 auth API 地址                                                                          |
 | `DCA_FRONT_HOST`        | string | https://console-api.guance.com | 观测云 console API 地址                                                                         |
+| `DCA_CONSOLE_PROXY`     | string | 无                              | 观测云 API 代理，不代理 DataKit 接口                                             |
 | `DCA_LOG_LEVEL`         | string | INFO                           | 日志等级，取值为 NONE/DEBUG/INFO/WARN/ERROR，如果不需要记录日志，可设置为 NONE                  |
 | `DCA_LOG_ENABLE_STDOUT` | bool   | false                          | 日志会输出至文件中，位于 `/usr/src/dca/logs` 下。如果需要将日志写到 `stdout`，可以设置为 `true` |
 
