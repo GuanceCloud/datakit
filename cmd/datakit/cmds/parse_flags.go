@@ -178,6 +178,7 @@ var (
 	flagToolCompleterScripts      = fsTool.Bool("completer-script", false, "show completion script(Linux only)")
 	flagToolPromConf              = fsTool.String("prom-conf", "", "specify the prom input conf to debug")
 	flagToolParseLineProtocol     = fsTool.String("parse-lp", "", "parse line-protocol file")
+	flagToolBugReport             = fsTool.Bool("bug-report", false, "export DataKit running information for troubleshooting, such as configuration, logs, runtime info, etc")
 
 	fsToolUsage = func() {
 		fmt.Printf("usage: datakit tool [options]\n\n")
