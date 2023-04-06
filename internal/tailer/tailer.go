@@ -85,7 +85,7 @@ type Option struct {
 	BlockingMode bool
 
 	// 是否使用磁盘缓存
-	EnableDiskCache bool
+	// EnableDiskCache bool
 
 	MinFlushInterval         time.Duration
 	MaxMultilineLifeDuration time.Duration
