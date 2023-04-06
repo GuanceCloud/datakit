@@ -71,12 +71,12 @@ export JAVA_OPTIONS="${JAVA_OPTIONS} -javaagent:/path/to/skywalking-agent/skywal
 复制配置文件并修改
 
 ```txt
-cd /usr/local/datakit/conf/kafkamq
-cp kafkamq.conf.sample kafka.conf
+cd /usr/local/datakit/conf.d/kafkamq
+cp kafkamq.conf.sample kafkamq.conf
 
 ```
 
-配置文件说明
+配置文件示例：
 ```toml
 [[inputs.kafkamq]]
   addrs = ["localhost:9092"]
@@ -95,7 +95,7 @@ cp kafkamq.conf.sample kafka.conf
   # tls_sasl_plain_password = "pw"
 
   ## -1:Offset Newest, -2:Offset Oldest
-  #offsets=-2
+  offsets=-1
 
   # customer_tags = ["key1", "key2", ...]
 
@@ -146,21 +146,28 @@ cp kafkamq.conf.sample kafka.conf
   ## user custom message with PL script.
   ## 目前仅支持 log 和 metrics， topic 和 pl 是必填
   [inputs.kafkamq.custom]
-  #group_id="datakit"
-  #log_topics=["apm"]
-  #log_pl="log.p"
-  #metric_topic=["metric1"]
-  #metric_pl="kafka_metric.p"
-  ## rate limit. 限速：速率/秒
-  #limit_sec = 100
-  ## sample 采样率
-  # sampling_rate = 1.0
+   #group_id="datakit"
+   #log_topics=["apm"]
+   #log_pl="log.p"
+   #metric_topic=["metric1"]
+   #metric_pl="kafka_metric.p"
+   ## rate limit. 限速：速率/秒
+   #limit_sec = 100
+   ## sample 采样率
+   #sampling_rate = 1.0
+   #spilt_json_body = true
 
   ## todo: add other input-mq
  
 ```
 
-重启 datakit
+配置文件注意的地方：
+1. `kafka_version`: 长度为 3，例如：1.0.0，1.2.1 等等。
+2. `offsets`: 注意是 Newest 还是 Oldest。
+3. `spilt_json_body`: 当数据是数组并且符合json格式，可以设置为 true。
+
+
+确认配置好之后，重启 datakit。
 
 ## 将日志发送到 kafka {#log-to-kafka}
 
@@ -259,6 +266,7 @@ toolkit 依赖包添加到 maven 或者 gradle 中。
   limit_sec = 100
   ## sample 采样率
   sampling_rate = 1.0
+  # json数组格式数据，是否切割成多行日志
 
  ...
 

@@ -40,7 +40,7 @@ const mqSampleConfig = `
   # tls_sasl_plain_password = "pw"
 
   ## -1:Offset Newest, -2:Offset Oldest
-  #offsets=-2
+  offsets=-1
 
   # customer_tags = ["key1", "key2", ...]
 
@@ -90,15 +90,16 @@ const mqSampleConfig = `
 
   ## user custom message with PL script.
   [inputs.kafkamq.custom]
-  #group_id="datakit"
-  #log_topics=["apm"]
-  #log_pl="log.p"
-  #metric_topic=["metric1"]
-  #metric_pl="kafka_metric.p"
-  ## rate limit.
-  #limit_sec = 100
-  ## sample
-  # sampling_rate = 1.0
+   #group_id="datakit"
+   #log_topics=["apm"]
+   #log_pl="log.p"
+   #metric_topic=["metric1"]
+   #metric_pl="kafka_metric.p"
+   ## rate limit.
+   #limit_sec = 100
+   ## sample
+   # sampling_rate = 1.0
+   #spilt_json_body = true
 
   ## todo: add other input-mq
 `
