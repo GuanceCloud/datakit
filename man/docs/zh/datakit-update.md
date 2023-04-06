@@ -156,31 +156,36 @@ service cron restart
 ``` 
 
 ## 远程更新 {#remote}
-从 Datakit [1.5.9](changelog.md#cl-1.5.9) 开始，支持通过远程访问 http API 的方式来升级 Datakit，但前提需要重新安装 Datakit-1.5.9+ 版本，或者在升级到 Datakit-1.5.9+ 版本时设置环境变量 `DK_UPGRADE_MANAGER=1`，例如：
+
+[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9) · [:octicons-beaker-24: Experimental](index.md#experimental)
+
+如果有大批量的 Datakit 需要更新，可以通过 HTTP API 的方式来升级 Datakit。同时在安装或升级新版 Datakit 时，需设置环境变量 `DK_UPGRADE_MANAGER=1`，例如：
+
 ```shell
 DK_UPGRADE=1 \
-DK_UPGRADE_MANAGER=1 \
-bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+  DK_UPGRADE_MANAGER=1 \
+  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 ```
 
 远程升级服务目前提供两个 API：
 
 - **查看当前 Datakit 版本及可用的升级版本**
 
-| API                                     | 请求方式  |
-|-----------------------------------------|-------|
-| http://<host\>:9539/v1/datakit/version | `GET` |
+| API                                                   | 请求方式 |
+| ---                                                   | ---      |
+| `http://<datakit-ip-or-host>:9539/v1/datakit/version` | `GET`    |
 
 请求示例：
+
 ```shell
 $ curl 'http://127.0.0.1:9539/v1/datakit/version'
 {
-    "Version": "1.5.9_datakit-upgrade-service-iss-1441",
-    "Commit": "1a92ceb19e",
-    "Branch": "datakit-upgrade-service-iss-1441",
+    "Version": "1.5.7",
+    "Commit": "1a9xxxxxxx",
+    "Branch": "master",
     "BuildAtUTC": "2023-03-29 07:03:35",
     "GoVersion": "go version go1.18.3 darwin/arm64",
-    "Uploader": "zydeMacBook-Air-3.local/zy/zhangyi",
+    "Uploader": "someone",
     "ReleasedInputs": "all",
     "AvailableUpgrades": [
         {
@@ -194,14 +199,14 @@ $ curl 'http://127.0.0.1:9539/v1/datakit/version'
 }
 ```
 
-
 - **把当前 Datakit 升级到最新版本**
 
-| API                                     | 请求方式   |
-|-----------------------------------------|--------|
-| http://<host\>:9539/v1/datakit/upgrade | `POST` |
+| API                                                   | 请求方式 |
+| ---                                                   | ---      |
+| `http://<datakit-ip-or-host>:9539/v1/datakit/upgrade` | `POST`   |
 
 请求示例：
+
 ```shell
 $ curl -X POST 'http://127.0.0.1:9539/v1/datakit/upgrade'
 {"msg":"success"}

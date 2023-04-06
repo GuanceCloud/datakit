@@ -394,48 +394,33 @@ The list of files is as follows:
 
 Document Explanation
 
-| name | dir | description |
-| ---:|---:| ---:|
-| `config` | yes | Configuration file, including the main configuration and the configuration of the enabled collectors. |
-| `env.txt` | no|  The environment variables of the runtime. |
-| `log` | yes| Latest log files, such as log and gin log, not supporting `stdout` currently|
-| `profile`| yes |When pprof is enabled, it will collect profile data.|
-| `metrics`| yes | The data returned by the `/metrics` API is named in the format of `metric-<timestamp in milliseconds>`|
+| name      | dir  | description                                                                                            |
+| ---:      | ---: | ---:                                                                                                   |
+| `config`  | yes  | Configuration file, including the main configuration and the configuration of the enabled collectors.  |
+| `env.txt` | no   | The environment variables of the runtime.                                                              |
+| `log`     | yes  | Latest log files, such as log and gin log, not supporting `stdout` currently                           |
+| `profile` | yes  | When pprof is enabled, it will collect profile data.                                                   |
+| `metrics` | yes  | The data returned by the `/metrics` API is named in the format of `metric-<timestamp in milliseconds>` |
 
 **Mask sensitive information**
 
 When collecting information, sensitive information (such as tokens, passwords, etc.) will be automatically filtered and replaced. The specific rules are as follows:
 
-- environment variables 
+- Environment variables
 
-Only retrieve environment variables starting with ENV_, and mask environment variables containing password, token, key, key_pw, secret in their names by replacing them with ******.
+Only retrieve environment variables starting with `ENV_`, and mask environment variables containing `password`, `token`, `key`, `key_pw`, `secret` in their names by replacing them with `******`.
 
-- configuration files 
+- Configuration files 
 
-Perform the following regular expression replacement on the contents of the configuration file:
-
-```shell
-# dataway token
-regexp.MustCompile(`token=tkn_[A-Za-z0-9_]+`).ReplaceAllString(str, `token=******`)
-
-# password
-regexp.MustCompile(`(pass|password|bearer_token_string|sk)\s*=\s*(".*")`).ReplaceAllString(str, `${1} = "******"`)
-regexp.MustCompile(`('--password'\s*,\s*)'.*'\s*,`).ReplaceAllString(str, `${1}'******'`)
-
-# uri
-str = regexp.MustCompile(`(["']?[A-Za-z0-9]+)\:\/\/([A-Za-z0-9_]+)\:(.+)\@`).ReplaceAllString(str, `${1}://${2}:******@`)
+Perform the following regular expression replacement on the contents of the configuration file, for example:
 
 ```
+https://openway.guance.com?token=tkn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` => `https://openway.guance.com?token=******
+pass = "1111111"` => `pass = "******"
+postgres://postgres:123456@localhost/test` => `postgres://postgres:******@localhost/test
+```
 
-some examples：
-
-  `https://openway.guance.com?token=tkn_3b50ad65f55042c0a1f9413a03bf03c6` => `https://openway.guance.com?token=******`
-
-  `pass = "1111111"` => `pass = "******"`
-
-  `postgres://postgres:123456@localhost/test` => `postgres://postgres:******@localhost/test`
-
-After the above treatment, most sensitive information can be removed. If there is still some sensitive information in the exported file, you can manually remove it.
+After the above treatment, most sensitive information can be removed. Nevertheless, if there is still some sensitive information in the exported file, you can manually remove it.
 
 ## View Cloud Property Data {#cloudinfo}
 

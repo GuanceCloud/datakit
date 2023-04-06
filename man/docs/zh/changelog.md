@@ -35,7 +35,7 @@ branch changelog
 ### 新加功能 {#cl-1.5.9-new}
 
 - 新增[伺服服务](datakit-update.md#remote)，用来管理 Datakit 升级(#1441)
-- 新增故障排查功能(#1377)
+- 新增[故障排查功能](datakit-tools-how-to.md#bug-report)(#1377)
 
 ### 问题修复 {#cl-1.5.9-fix}
 
@@ -54,7 +54,7 @@ branch changelog
 - 优化 Datakit 自身指标体系，暴露更多 [Prometheus 指标](apis.md#api-metrics)(#1492)
 - 优化 [/v1/write](apis.md#api-v1-write)(#1523)
 - 优化安装过程中 token 出错提示(#1541)
-- monitor 支持自动从 datakit.conf 中获取连接地址(#1547)
+- monitor 支持自动从 *datakit.conf* 中获取连接地址(#1547)
 - 取消 eBPF 对内核版本的强制检查，尽量支持更多的内核版本(#1542)
 - [Kafka 订阅采集](kafkamq.md)支持多行 json 功能(#1549)
 - 新增一大批集成测试(#1479/#1460/#1436/#1428/#1407)

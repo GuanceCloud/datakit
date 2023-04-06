@@ -156,32 +156,37 @@ If an update does occur, you will see an update log similar to the following:
 ```
 
 ## Remote Upgrade {#remote}
-Starting from Datakit [1.5.9](changelog.md#cl-1.5.9), remote upgrade can be done by access http API, but the prerequisite is to reinstall Datakit version 1.5.9+ or set the environment variable `DK_UPGRADE_MANAGER=1` when upgrading to version 1.5.9+, for example, use the following command to upgrade to the latest version:
+
+[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9) · [:octicons-beaker-24: Experimental](index.md#experimental)
+
+If there are many Datakit need to upgrade, we can use remote upgrade via HTTP request. Before we use remote upgrade, we first need to upgrade or install with option `DK_UPGRADE_MANAGER=1`:
 
 ```shell
 DK_UPGRADE=1 \
-DK_UPGRADE_MANAGER=1 \
-bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+  DK_UPGRADE_MANAGER=1 \
+  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 ```
 
 The remote upgrade service currently provides two http APIs:
 
 - **View the current Datakit version and available upgrade versions**
 
-| API                                     | Method |
-|-----------------------------------------|--------|
-| http://<host\>:9539/v1/datakit/version | `GET`  |
+| API                                                   | Method |
+| ---                                                   | ---    |
+| `http://<datakit-ip-or-host>:9539/v1/datakit/version` | `GET`  |
+
 
 Example：
+
 ```shell
 $ curl 'http://127.0.0.1:9539/v1/datakit/version'
 {
-    "Version": "1.5.9_datakit-upgrade-service-iss-1441",
-    "Commit": "1a92ceb19e",
-    "Branch": "datakit-upgrade-service-iss-1441",
+    "Version": "1.5.7",
+    "Commit": "1a9xxxxxxx",
+    "Branch": "master",
     "BuildAtUTC": "2023-03-29 07:03:35",
     "GoVersion": "go version go1.18.3 darwin/arm64",
-    "Uploader": "zydeMacBook-Air-3.local/zy/zhangyi",
+    "Uploader": "someone",
     "ReleasedInputs": "all",
     "AvailableUpgrades": [
         {
@@ -198,9 +203,9 @@ $ curl 'http://127.0.0.1:9539/v1/datakit/version'
 
 - **Upgrade the current Datakit to the latest version**
 
-| API                                     | Method |
-|-----------------------------------------|--------|
-| http://<host\>:9539/v1/datakit/upgrade | `POST` |
+| API                                                   | Method |
+| ---                                                   | ---    |
+| `http://<datakit-ip-or-host>:9539/v1/datakit/upgrade` | `POST` |
 
 Example：
 

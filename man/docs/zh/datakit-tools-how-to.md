@@ -326,6 +326,8 @@ datakit install --ebpf
 
 ## 上传 DataKit 运行日志 {#upload-log}
 
+> Deprecated: 请使用 [Bug-Report 功能](datakit-tools-how-to.md#bug-report)来代替。
+
 排查 DataKit 问题时，通常需要检查 DataKit 运行日志，为了简化日志搜集过程，DataKit 支持一键上传日志文件：
 
 ```shell
@@ -389,13 +391,13 @@ datakit tool --bug-report
 
 文件说明
 
-| 文件名称 | 是否目录 | 说明 |
-| ---:|---:| ---:|
-| `config` | 是 | 配置文件，包括主配置和已开启的采集器配置 |
-| `env.txt` | 否| 运行环境的环境变量信息|
-| `log` | 是| 最新的日志文件，包括 log 和 gin log，暂不支持 `stdout`|
-| `profile`| 是|pprof 开启时，会采集 profile 数据|
-| `metrics`| 是| `/metrics` 接口返回的数据，命名格式为 `metric-<时间戳毫秒数>`|
+| 文件名称  | 是否目录 | 说明                                                          |
+| ---:      | ---:     | ---:                                                          |
+| `config`  | 是       | 配置文件，包括主配置和已开启的采集器配置                      |
+| `env.txt` | 否       | 运行环境的环境变量信息                                        |
+| `log`     | 是       | 最新的日志文件，包括 log 和 gin log，暂不支持 `stdout`        |
+| `profile` | 是       | pprof 开启时，会采集 profile 数据                             |
+| `metrics` | 是       | `/metrics` 接口返回的数据，命名格式为 `metric-<时间戳毫秒数>` |
 
 **敏感信息处理**
 
@@ -407,31 +409,17 @@ datakit tool --bug-report
 
 - 配置文件
 
-配置文件内容进行如下正则替换处理：
-
-```shell
-# dataway token
-regexp.MustCompile(`token=tkn_[A-Za-z0-9_]+`).ReplaceAllString(str, `token=******`)
-
-# password
-regexp.MustCompile(`(pass|password|bearer_token_string|sk|token)\s*=\s*(".*")`).ReplaceAllString(str, `${1} = "******"`)
-regexp.MustCompile(`('--password'\s*,\s*)'.*'\s*,`).ReplaceAllString(str, `${1}'******',`)
-
-# uri
-str = regexp.MustCompile(`(["']?[A-Za-z0-9]+)\:\/\/([A-Za-z0-9_]+)\:(.+)\@`).ReplaceAllString(str, `${1}://${2}:******@`)
-
-
-```
+配置文件内容进行正则替换处理：
 
 如：
 
-  `https://openway.guance.com?token=tkn_3b50ad65f55042c0a1f9413a03bf03c6` => `https://openway.guance.com?token=******`
+```
+https://openway.guance.com?token=tkn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` => `https://openway.guance.com?token=******
+pass = "1111111"` => `pass = "******"
+postgres://postgres:123456@localhost/test` => `postgres://postgres:******@localhost/test
+```
 
-  `pass = "1111111"` => `pass = "******"`
-
-  `postgres://postgres:123456@localhost/test` => `postgres://postgres:******@localhost/test`
-
-经过上述处理，能够去除绝大部分敏感信息。如果导出的文件还存在部分敏感信息，可以手动将敏感信息移除。
+经过上述处理，能够去除绝大部分敏感信息。尽管如此，如果导出的文件还存在敏感信息，可以手动将敏感信息移除，请务必确认。
 
 ## 查看云属性数据 {#cloudinfo}
 
