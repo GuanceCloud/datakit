@@ -159,8 +159,6 @@ type inputsStat struct {
 	Version        string        `json:"version,omitempty"`
 	MaxCollectCost time.Duration `json:"max_collect_cost"`
 	AvgCollectCost time.Duration `json:"avg_collect_cost"`
-
-	totalCost time.Duration `json:"-"`
 }
 
 type RuntimeInfo struct {
@@ -194,6 +192,8 @@ type APIStat struct {
 	AvgLatency   time.Duration `json:"avg_latency"`
 	totalLatency time.Duration
 }
+
+const categoryKey = "category"
 
 func getRuntimeInfo() *RuntimeInfo {
 	var m runtime.MemStats
@@ -271,7 +271,6 @@ func GetStats() (*DatakitStats, error) {
 
 			case "datakit_io_chan_capacity":
 				getIOChanCap(name, stats, pts)
-
 			}
 			continue
 		}
@@ -284,7 +283,7 @@ func GetStats() (*DatakitStats, error) {
 
 		if strings.HasPrefix(name, prefix+"http_api") {
 			l.Debugf("get http stats...")
-			getHttpStats(name, stats, pts)
+			getHTTPStats(name, stats, pts)
 			continue
 		}
 
@@ -326,7 +325,7 @@ func getIOChanUsage(name string, stats *DatakitStats, pts []*dto.Metric) {
 	for _, pt := range pts {
 		label := ""
 		for _, la := range pt.GetLabel() {
-			if la.GetName() == "category" {
+			if la.GetName() == categoryKey {
 				label = la.GetValue()
 			}
 		}
@@ -352,7 +351,7 @@ func getIOChanCap(name string, stats *DatakitStats, pts []*dto.Metric) {
 	for _, pt := range pts {
 		label := ""
 		for _, la := range pt.GetLabel() {
-			if la.GetName() == "category" {
+			if la.GetName() == categoryKey {
 				label = la.GetValue()
 			}
 		}
@@ -486,10 +485,9 @@ func getFilterStats(name string, stats *DatakitStats, pts []*dto.Metric) {
 			stats.FilterStats.LastUpdate = time.Unix(int64(pt.GetGauge().GetValue()), 0)
 		}
 	}
-
 }
 
-func getHttpStats(name string, stats *DatakitStats, pts []*dto.Metric) {
+func getHTTPStats(name string, stats *DatakitStats, pts []*dto.Metric) {
 	if stats.HTTPMetrics == nil {
 		stats.HTTPMetrics = make(map[string]*APIStat)
 	}
@@ -514,13 +512,14 @@ func getHttpStats(name string, stats *DatakitStats, pts []*dto.Metric) {
 
 			hm := stats.HTTPMetrics[api]
 
-			if 200 < status && status < 300 {
+			switch status / 100 {
+			case 2:
 				hm.Status2xx++
-			} else if 300 < status && status < 400 {
+			case 3:
 				hm.Status3xx++
-			} else if 400 < status && status < 500 {
+			case 4:
 				hm.Status4xx++
-			} else if status > 500 {
+			case 5:
 				hm.Status5xx++
 			}
 
@@ -537,7 +536,6 @@ func getHttpStats(name string, stats *DatakitStats, pts []*dto.Metric) {
 			}
 		}
 	}
-
 }
 
 func getGoroutineStats(name string, stats *DatakitStats, pts []*dto.Metric) {
@@ -648,17 +646,17 @@ func getDatawayPointTotal(name string, stats *DatakitStats, pts []*dto.Metric) {
 			// case "/v1/upload/profiling":
 		case "/v1/write/profiling":
 			assignUint64Pts(v, &stats.IOStats.PSendPts, &stats.IOStats.PFailPts, &stats.IOStats.FeedDropPts, status)
-
 		}
 	}
 }
 
 func assignUint64Pts(count uint64, send, fail, drop *uint64, status string) {
-	if status == "ok" {
+	switch status {
+	case "ok":
 		*send = count
-	} else if status == "failed" {
+	case "failed":
 		*fail = count
-	} else if status == "drroped" {
+	case "drroped":
 		*drop += count
 	}
 }
