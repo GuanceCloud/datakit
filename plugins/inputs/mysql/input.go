@@ -15,14 +15,13 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/GuanceCloud/cliutils/point"
+	gcPoint "github.com/GuanceCloud/cliutils/point"
 	"github.com/go-sql-driver/mysql"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -97,12 +96,13 @@ type Input struct {
 
 	MatchDeprecated string `toml:"match,omitempty"`
 
-	start time.Time
-	db    *sql.DB
+	start  time.Time
+	db     *sql.DB
+	feeder io.Feeder
 	// response   []map[string]interface{}
 	tail *tailer.Tailer
 	// collectors []func() ([]inputs.Measurement, error)
-	collectors []func() ([]*dkpt.Point, error)
+	collectors []func() ([]*gcPoint.Point, error)
 
 	Election bool `toml:"election"`
 	pause    bool
@@ -261,7 +261,9 @@ func (i *Input) initDbm() {
 
 func (i *Input) globalTag() {
 	i.Tags["server"] = i.Addr
-	i.Tags["service_name"] = i.Service
+	if len(i.Service) > 0 {
+		i.Tags["service_name"] = i.Service
+	}
 }
 
 func (i *Input) q(s string) rows {
@@ -307,105 +309,105 @@ func (i *Input) initDBConnect() error {
 }
 
 // mysql.
-func (i *Input) metricCollectMysql() ([]*dkpt.Point, error) {
+func (i *Input) metricCollectMysql() ([]*gcPoint.Point, error) {
 	if err := i.collectMysql(); err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 
 	pts, err := i.buildMysql()
 	if err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_schema.
-func (i *Input) metricCollectMysqlSchema() ([]*dkpt.Point, error) {
+func (i *Input) metricCollectMysqlSchema() ([]*gcPoint.Point, error) {
 	if err := i.collectMysqlSchema(); err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 
 	pts, err := i.buildMysqlSchema()
 	if err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_table_schema.
-func (i *Input) metricCollectMysqlTableSschema() ([]*dkpt.Point, error) {
+func (i *Input) metricCollectMysqlTableSschema() ([]*gcPoint.Point, error) {
 	if err := i.collectMysqlTableSchema(); err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 
 	pts, err := i.buildMysqlTableSchema()
 	if err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_user_status.
-func (i *Input) metricCollectMysqlUserStatus() ([]*dkpt.Point, error) {
+func (i *Input) metricCollectMysqlUserStatus() ([]*gcPoint.Point, error) {
 	if err := i.collectMysqlUserStatus(); err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 
 	pts, err := i.buildMysqlUserStatus()
 	if err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_custom_queries.
-func (i *Input) metricCollectMysqlCustomQueries() ([]*dkpt.Point, error) {
+func (i *Input) metricCollectMysqlCustomQueries() ([]*gcPoint.Point, error) {
 	if err := i.collectMysqlCustomQueries(); err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 
 	pts, err := i.buildMysqlCustomQueries()
 	if err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_innodb.
-func (i *Input) metricCollectMysqlInnodb() ([]*dkpt.Point, error) {
+func (i *Input) metricCollectMysqlInnodb() ([]*gcPoint.Point, error) {
 	if err := i.collectMysqlInnodb(); err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 
 	pts, err := i.buildMysqlInnodb()
 	if err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_dbm_metric.
-func (i *Input) metricCollectMysqlDbmMetric() ([]*dkpt.Point, error) {
+func (i *Input) metricCollectMysqlDbmMetric() ([]*gcPoint.Point, error) {
 	if err := i.collectMysqlDbmMetric(); err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 
 	pts, err := i.buildMysqlDbmMetric()
 	if err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_dbm_sample.
-func (i *Input) metricCollectMysqlDbmSample() ([]*dkpt.Point, error) {
+func (i *Input) metricCollectMysqlDbmSample() ([]*gcPoint.Point, error) {
 	if err := i.collectMysqlDbmSample(); err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 
 	pts, err := i.buildMysqlDbmSample()
 	if err != nil {
-		return []*dkpt.Point{}, err
+		return []*gcPoint.Point{}, err
 	}
 	return pts, nil
 }
@@ -416,17 +418,17 @@ func (i *Input) resetLastError() {
 
 func (i *Input) handleLastError() {
 	if len(i.lastErrors) > 0 {
-		io.FeedLastError(inputName, strings.Join(i.lastErrors, "; "), point.Metric)
+		i.feeder.FeedLastError(inputName, strings.Join(i.lastErrors, "; "))
 	}
 }
 
-func (i *Input) Collect() (map[string][]*dkpt.Point, error) {
+func (i *Input) Collect() (map[gcPoint.Category][]*gcPoint.Point, error) {
 	if err := i.initDBConnect(); err != nil {
-		return map[string][]*dkpt.Point{}, err
+		return map[gcPoint.Category][]*gcPoint.Point{}, err
 	}
 
 	if len(i.collectors) == 0 {
-		i.collectors = []func() ([]*dkpt.Point, error){
+		i.collectors = []func() ([]*gcPoint.Point, error){
 			i.metricCollectMysql,              // mysql
 			i.metricCollectMysqlSchema,        // mysql_schema
 			i.metricCollectMysqlTableSschema,  // mysql_table_schema
@@ -437,7 +439,7 @@ func (i *Input) Collect() (map[string][]*dkpt.Point, error) {
 
 	i.start = time.Now()
 
-	var ptsMetric, ptsLoggingMetric, ptsLoggingSample []*dkpt.Point
+	var ptsMetric, ptsLoggingMetric, ptsLoggingSample []*gcPoint.Point
 
 	for idx, f := range i.collectors {
 		l.Debugf("collecting %d(%v)...", idx, f)
@@ -511,15 +513,15 @@ func (i *Input) Collect() (map[string][]*dkpt.Point, error) {
 		err := g.Wait()
 		if err != nil {
 			l.Errorf("mysql dmb collect error: %v", err)
-			io.FeedLastError(inputName, err.Error(), point.Metric)
+			i.feeder.FeedLastError(inputName, err.Error(), gcPoint.Metric)
 		}
 	}
 
-	mpts := make(map[string][]*dkpt.Point)
-	mpts[datakit.Metric] = ptsMetric
+	mpts := make(map[gcPoint.Category][]*gcPoint.Point)
+	mpts[gcPoint.Metric] = ptsMetric
 
 	ptsLoggingMetric = append(ptsLoggingMetric, ptsLoggingSample...) // two combine in one
-	mpts[datakit.Logging] = ptsLoggingMetric
+	mpts[gcPoint.Logging] = ptsLoggingMetric
 
 	return mpts, nil
 }
@@ -548,7 +550,7 @@ func (i *Input) RunPipeline() {
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt, i.Log.IgnoreStatus)
 	if err != nil {
 		l.Error(err)
-		io.FeedLastError(inputName, err.Error(), point.Metric)
+		i.feeder.FeedLastError(inputName, err.Error(), gcPoint.Metric)
 		return
 	}
 
@@ -569,7 +571,7 @@ func (i *Input) Run() {
 	// Try until init OK.
 	for {
 		if err := i.initCfg(); err != nil {
-			io.FeedLastError(inputName, err.Error(), point.Metric)
+			i.feeder.FeedLastError(inputName, err.Error(), gcPoint.Metric)
 		} else {
 			break
 		}
@@ -603,15 +605,15 @@ func (i *Input) Run() {
 			mpts, err := i.Collect()
 			if err != nil {
 				l.Warnf("i.Collect failed: %v", err)
-				io.FeedLastError(inputName, err.Error(), point.Metric)
+				i.feeder.FeedLastError(inputName, err.Error(), gcPoint.Metric)
 			}
 
 			for category, pts := range mpts {
 				if len(pts) > 0 {
-					if err := io.Feed(inputName, category, pts,
+					if err := i.feeder.Feed(inputName, category, pts,
 						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
 						l.Warnf("io.Feed failed: %v", err)
-						io.FeedLastError(inputName, err.Error(), point.Metric)
+						i.feeder.FeedLastError(inputName, err.Error(), gcPoint.Metric)
 					}
 				}
 			}
@@ -692,15 +694,19 @@ func (i *Input) Resume() error {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		Tags:     make(map[string]string),
+		Timeout:  "10s",
+		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		Election: true,
+		feeder:   io.DefaultFeeder(),
+		semStop:  cliutils.NewSem(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			Tags:     make(map[string]string),
-			Timeout:  "10s",
-			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
-			Election: true,
-
-			semStop: cliutils.NewSem(),
-		}
+		return defaultInput()
 	})
 }

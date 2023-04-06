@@ -8,6 +8,7 @@ package mysql
 import (
 	"time"
 
+	gcPoint "github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -23,6 +24,19 @@ type schemaMeasurement struct {
 // 生成行协议.
 func (m *schemaMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+}
+
+// Point implement MeasurementV2.
+func (m *schemaMeasurement) Point() *gcPoint.Point {
+	opts := gcPoint.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, gcPoint.WithExtraTags(point.GlobalElectionTags()))
+	}
+
+	return gcPoint.NewPointV2([]byte(m.name),
+		append(gcPoint.NewTags(m.tags), gcPoint.NewKVs(m.fields)...),
+		opts...)
 }
 
 // 指定指标.
@@ -51,6 +65,9 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"schema_name": &inputs.TagInfo{
 				Desc: "Schema name",
+			},
+			"host": &inputs.TagInfo{
+				Desc: "The server host address",
 			},
 		},
 	}

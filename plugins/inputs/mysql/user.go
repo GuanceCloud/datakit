@@ -6,6 +6,7 @@
 package mysql
 
 import (
+	gcPoint "github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -20,6 +21,19 @@ type userMeasurement struct {
 // 生成行协议.
 func (m *userMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+}
+
+// Point implement MeasurementV2.
+func (m *userMeasurement) Point() *gcPoint.Point {
+	opts := gcPoint.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, gcPoint.WithExtraTags(point.GlobalElectionTags()))
+	}
+
+	return gcPoint.NewPointV2([]byte(m.name),
+		append(gcPoint.NewTags(m.tags), gcPoint.NewKVs(m.fields)...),
+		opts...)
 }
 
 // 指定指标.
@@ -113,6 +127,12 @@ func (m *userMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"user": &inputs.TagInfo{
 				Desc: "user",
+			},
+			"host": &inputs.TagInfo{
+				Desc: "The server host address",
+			},
+			"server": &inputs.TagInfo{
+				Desc: "The server address containing both host and port",
 			},
 		},
 	}
