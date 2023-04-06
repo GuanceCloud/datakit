@@ -88,6 +88,13 @@ func runToolFlags() error {
 
 		os.Exit(0)
 
+	case *flagToolBugReport:
+		tryLoadMainCfg()
+		if err := bugReport(); err != nil {
+			cp.Errorf("[E] export DataKit info failed: %s\n", err.Error())
+		}
+		os.Exit(0)
+
 	case *flagToolWorkspaceInfo:
 		tryLoadMainCfg()
 		requrl := fmt.Sprintf("http://%s%s", config.Cfg.HTTPAPI.Listen, workspace)
