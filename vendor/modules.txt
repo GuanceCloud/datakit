@@ -92,6 +92,10 @@ github.com/GuanceCloud/platypus/pkg/token
 # github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747
 ## explicit; go 1.15
 github.com/GuanceCloud/timeout
+# github.com/GuanceCloud/toml v1.2.5
+## explicit; go 1.16
+github.com/GuanceCloud/toml
+github.com/GuanceCloud/toml/internal
 # github.com/Microsoft/go-winio v0.6.0
 ## explicit; go 1.17
 github.com/Microsoft/go-winio

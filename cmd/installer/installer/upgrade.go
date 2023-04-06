@@ -39,7 +39,7 @@ func Upgrade() error {
 	}
 
 	// build datakit main config
-	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
+	if err := mc.TryUpgradeCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
