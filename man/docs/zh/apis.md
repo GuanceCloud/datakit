@@ -21,11 +21,13 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 | 参数名                    | 类型   | 是否必选 | 默认值    | 说明                                                                                                                                          |
 | --------------------      | ------ | -------- | --------- | --------------------------------------------------                                                                                            |
 | `category`                | string | Y        | -         | 目前只支持 `metric,logging,rum,object,custom_object,keyevent`，以 `metric` 为例， 其 URL 应该写成 `/v1/write/metric`                          |
-| `echo_line_proto`         | string | N        | -         | 给任意值（如 `true`）即返回 json 行协议类容，默认不返回                                                                                       |
+| `echo_line_proto`         | string | N        | -         | 给任意值（如 `true`）即返回行协议形式的点数据，默认不返回                                                                                     |
+| `echo_json`               | string | N        | -         | 给任意值（如 `true`）即返回 JSON 格式的数据点，默认不返会，如果同时指定两种 echo，优先返回行协议形式的点数据                                  |
 | `global_election_tags`    | string | N        | -         | 给任意值（如 `true`）即认为追加全局选举类 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                                     |
 | `ignore_global_host_tags` | string | false    | -         | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）。`ignore_global_tags` 将弃用 |
 | `input`                   | string | N        | `datakit` | 数据源名称                                                                                                                                    |
-| `loose`                   | bool   | N        | false     | 宽松模式，对于一些不合规的行协议，DataKit 会尝试修复它们（[:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)）                        |
+| `loose`                   | bool   | N        | true      | 宽松模式，对于一些不合规的行协议，DataKit 会尝试修复它们（[:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)）                        |
+| `strict`                  | bool   | N        | false     | 严格模式，对于一些不合规的行协议，API 直接报错，并告知具体的原因（[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)）                  |
 | `precision`               | string | N        | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                                                 |
 | `source`                  | string | N        | -         | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割                    |
 | `version`                 | string | N        | -         | 当前采集器的版本号                                                                                                                            |

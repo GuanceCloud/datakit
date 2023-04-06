@@ -27,18 +27,6 @@ func (p *Point) ToPoint() *influxdb.Point {
 	return p.Point
 }
 
-//// SetWritten set point already written flag. Once set, the status kept permantly.
-// func (p *Point) SetWritten() {
-//	if !p.bAlreadyWritten {
-//		p.bAlreadyWritten = true
-//	}
-//}
-//
-//// GetWritten get point already written flag.
-// func (p *Point) GetWritten() bool {
-//	return p.bAlreadyWritten
-//}
-
 type JSONPoint struct {
 	Measurement string                 `json:"measurement"`    // measurement name of the point.
 	Tags        map[string]string      `json:"tags,omitempty"` // tags associated with the point.
