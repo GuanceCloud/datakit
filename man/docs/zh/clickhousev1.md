@@ -10,9 +10,8 @@ ClickHouse 采集器可以采集 ClickHouse 服务器实例主动暴露的多种
 
 ## 前置条件 {#requirements}
 
-ClickHouse 版本 >=v20.1.2.4
-
-在 clickhouse-server 的 config.xml 配置文件中找到如下的代码段，取消注释，并设置 metrics 暴露的端口号（具体哪个自己造择，唯一即可）。修改完成后重启（若为集群，则每台机器均需操作）。
+- ClickHouse 版本 >=v20.1.2.4
+- 在 clickhouse-server 的 `config.xml` 配置文件中找到如下的代码段，取消注释，并设置 metrics 暴露的端口号（具体哪个自己选择，唯一即可）。修改完成后重启（若为集群，则每台机器均需操作）。
 
 ```shell
 vim /etc/clickhouse-server/config.xml
@@ -37,6 +36,8 @@ vim /etc/clickhouse-server/config.xml
 - `asynchronous_metrics` 从 ClickHouse 中 `system.asynchronous_metrics` 表中抓取暴露的异步指标标志
 
 详见[ClickHouse 官方文档](https://ClickHouse.com/docs/en/operations/server-configuration-parameters/settings/#server_configuration_parameters-prometheus){:target="_blank"}
+
+## 配置 {#config}
 
 === "主机安装"
 
