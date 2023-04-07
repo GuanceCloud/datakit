@@ -209,121 +209,123 @@ The output will be like this:
 # bind rules:
 # 1. document comments will be bound to below nearest key
 # 2. comment at the end of line will be bound to prefix key
-version = "v1.2.3" # bound to version key
-
-
-[[release_history]] # comment for release_history[0]
-  date = "2023-03-01"
-  version = "v0.3"
-  features = ["1. [SESSION] Supports Sysmon for easy monitoring of system resources usage, such as CPU, memory, network", "2. Start WindTerm and select the profiles directory and quit.",  # comment for features[2]
-"3. [TAB] Restore the last modified tab name. #626" # comments for features[3]
-]
-
-# this comment will be bound to below reeases[1]
-[[release_history]] # this comment will also be bound to releases[1]
-  date = "2023-02-01"
-  version = "v0.2"
-
-[[release_history]] # comment for release[2]
-  date = "2023-01-01"
-  version = "v0.1"
+version = "v1.0.1" # bound to version key
 
 [author]
-  name = "GuanceCloud" # name
+age = 32 # age
+gender = "male" # gender
 
-  age = 32 # age
-
-  gender = "male" # gender
-
-  "marital status" = true # marital status
-
-
-  # document comment for hobbies
-  hobbies = [["basketball",  # 篮球
-"football" # 足球
-], ["tennis"],  # 网球
+# document comment for hobbies
+hobbies = [
+    [
+        "basketball",  # 篮球
+        "football" # 足球
+    ],
+    [
+        "tennis"
+    ],  # 网球
 
     # this is full line comment for sub array
-["Snooker",  # sub array[0]
-"Billy Billiards",  # sub array[1]
-"Pyramid" # sub array[2]
-],  # this is line tail comment for sub array
-["volleyball"]] #comment for hobbies # also comment for hobbies
-
+    [
+        "Snooker",  # sub array[0]
+        "Billy Billiards",  # sub array[1]
+        "Pyramid" # sub array[2]
+    ] # this is line tail comment for sub array
+] #comment for hobbies # also comment for hobbies
+"marital status" = true # marital status
+name = "zhangsan" # name
 
 # the comment for first country
 [[country]]
-  name = "China" # comment bound to China
+code = "CN" # comment bound to CN
+continent = "Asia" # comment bound to Asia
 
-  code = "CN" # comment bound to CN
-
-  continent = "Asia" # comment bound to Asia
-
-
-  # main city list
-  main_cities = ["Beijing",  # bounds to main_cities[0]
-"Shanghai",  # bounds to main_cities[1]
-"Guangzhou" # bounds to main_cities[2]
+# main city list
+main_cities = [
+    "Beijing",  # bounds to main_cities[0]
+    "Shanghai",  # bounds to main_cities[1]
+    "Guangzhou" # bounds to main_cities[2]
 ] # main city list of China over
-
-
-  [[country.state]]
-    name = "Anhui"
-    capital = "Hefei"
-    area = 140100
-    population = 61270000
-    latitude = ["29°41′ N", "34°38′ N"]
-    longitude = ["114°54′ E", "119°37′ E"]
+name = "China" # comment bound to China
 
 # the second country: America
 # The United States of America (U.S.A. or USA), commonly known as the United States (U.S. or US) or America,
 # is a country primarily located in North America. It consists of 50 states, a federal district,
 # five major unincorporated territories, nine Minor Outlying Islands,[h] and 326 Indian reservations.
 [[country]]
+code = "USA"
+continent = "North America"
 
-  # comment for America
-  name = "America"
-  code = "USA"
-  continent = "North America"
+# the largest cities in America
+# including New York, Los Angeles ...
+#
+main_cities = [
+    "New York",  # bounds to main_cities[0]: New York
+    "Los Angeles",  # bounds to main_cities[1]: Los Angeles
+    "Chicago",  # Chicago is an international hub for finance, culture, commerce, industry, education, technology, telecommunications, and transportation
+    "San Francisco"
+] # main city list of America over
 
-  # the largest cities in America
-  # including New York, Los Angeles ...
-  #
-  main_cities = ["New York",  # bounds to main_cities[0]: New York
-"Los Angeles",  # bounds to main_cities[1]: Los Angeles
-"Chicago",  # Chicago is an international hub for finance, culture, commerce, industry, education, technology, telecommunications, and transportation
-"San Francisco"] # main city list of America over
+# comment for America
+name = "America"
 
-
-  # this comment will be bound to country[1].state[0]
-  [[country.state]]
-    name = "Massachusetts"
-    capital = "Boston"
-    area = 21000
-    population = 7029917
-    latitude = ["41°14′ N",  # latitude from
-"42°53′ N" # latitude to
+# this comment will be bound to country[1].state[0]
+[[country.state]]
+area = 21000
+latitude = [
+    "41°14′ N",  # latitude from
+    "42°53′ N" # latitude to
 ]
 
-    # comment for Longitude
-    longitude = ["69°56′ W",  # Longitude from
-"73°30′ W" # Longitude to
+# comment for Longitude
+longitude = [
+    "69°56′ W",  # Longitude from
+    "73°30′ W" # Longitude to
 ]
+name = "Massachusetts"
+population = 7029917
 
-  [[country.state]] # this is comment for country[1].state[1]
-    name = "Texas"
-    capital = "Austin"
-    area = 696241
-    population = 29145505
-    latitude = ["25°50′ N", "36°30′ N"]
-    longitude = ["93°31′ W", "106°39′ W"]
+[[country.state]] # this is comment for country[1].state[1]
+area = 696241
+capital = "Austin"
+latitude = [
+    "25°50′ N",
+    "36°30′ N"
+]
+longitude = [
+    "93°31′ W",
+    "106°39′ W"
+]
+name = "Texas"
+population = 29145505
 
 [[country]]
-  name = "Germany"
-  code = "DE"
-  continent = "Europe"
-  main_cities = ["Hamburg", "Munich", "Frankfurt"] # comment bound to main_cities
+code = "DE"
+continent = "Europe"
+main_cities = [
+    "Hamburg",
+    "Munich",
+    "Frankfurt"
+] # comment bound to main_cities
+name = "Germany"
 
+[[release_history]] # comment for release_history[0]
+date = "2023-03-01"
+features = [
+    "1. [SESSION] Supports Sysmon for easy monitoring of system resources usage, such as CPU, memory, network",
+    "2. Start WindTerm and select the profiles directory and quit.",  # comment for features[2]
+    "3. [TAB] Restore the last modified tab name. #626" # comments for features[3]
+]
+version = "v0.3"
+
+# this comment will be bound to below reeases[1]
+[[release_history]] # this comment will also be bound to releases[1]
+date = "2023-02-01"
+version = "v0.2"
+
+[[release_history]] # comment for release[2]
+date = "2023-01-01"
+version = "v0.1"
 
 ```
 

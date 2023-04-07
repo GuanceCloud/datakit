@@ -156,8 +156,6 @@ github.com/GuanceCloud/service v1.2.1-rc3 h1:HtY/E0DNy6u2npmc2AMduhlmr2duYQfoH/F
 github.com/GuanceCloud/service v1.2.1-rc3/go.mod h1:CIMRFEJVL+0DS1a3Nx06NaMn4Dz63Ng6O7dl0qH0zVM=
 github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747 h1:YqwjFsmNo7txn4caeD74aJTD8b7mk3EzEVnJDZUfDPM=
 github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747/go.mod h1:euv8CBpLJ81TJK8u4MHaiVVSHmbWBmj//c8xsTAwNNw=
-github.com/GuanceCloud/toml v1.2.4 h1:zZt+3nVE5UNHlyefEG3xkFmBX4c7k7hWSlsd26amjLU=
-github.com/GuanceCloud/toml v1.2.4/go.mod h1:D7S1XowYqOvMQdtsp2+lg2rKmO6RVuyekXJL+MzkD5Y=
 github.com/GuanceCloud/toml v1.2.5 h1:jBWfqFSVortEY0C4RYqFPvhDKcGxIosKzcQqTPtZMfg=
 github.com/GuanceCloud/toml v1.2.5/go.mod h1:D7S1XowYqOvMQdtsp2+lg2rKmO6RVuyekXJL+MzkD5Y=
 github.com/HdrHistogram/hdrhistogram-go v1.1.0 h1:6dpdDPTRoo78HxAJ6T1HfMiKSnqhgRRqzCuPshRkQ7I=
