@@ -176,11 +176,11 @@ func main() {
 
 	if opt.Election {
 		datakitPostURL = fmt.Sprintf("http://%s/v1/write/metric?input=oracle&%s&%s",
-			net.JoinHostPort(opt.DatakitHTTPHost, opt.DatakitHTTPPort),
+			net.JoinHostPort(opt.DatakitHTTPHost, fmt.Sprintf("%d", opt.DatakitHTTPPort)),
 			ignoreGlobalHostTags, globalEnvTags)
 	} else {
 		datakitPostURL = fmt.Sprintf("http://%s/v1/write/metric?input=oracle",
-			net.JoinHostPort(opt.DatakitHTTPHost, opt.DatakitHTTPPort))
+			net.JoinHostPort(opt.DatakitHTTPHost, fmt.Sprintf("%d", opt.DatakitHTTPPort)))
 	}
 	l.Debugf("post to datakit URL: %s", datakitPostURL)
 
