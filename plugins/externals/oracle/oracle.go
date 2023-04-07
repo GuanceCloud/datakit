@@ -173,10 +173,14 @@ func main() {
 		ignoreGlobalHostTags = "ignore_global_host_tags=true"
 		globalEnvTags        = "global_env_tags=true"
 	)
+
 	if opt.Election {
-		datakitPostURL = fmt.Sprintf("http://%s:%d/v1/write/metric?input=oracle&%s&%s", opt.DatakitHTTPHost, opt.DatakitHTTPPort, ignoreGlobalHostTags, globalEnvTags) //nolint:lll
+		datakitPostURL = fmt.Sprintf("http://%s/v1/write/metric?input=oracle&%s&%s",
+			net.JoinHostPort(opt.DatakitHTTPHost, opt.DatakitHTTPPort),
+			ignoreGlobalHostTags, globalEnvTags)
 	} else {
-		datakitPostURL = fmt.Sprintf("http://%s:%d/v1/write/metric?input=oracle", opt.DatakitHTTPHost, opt.DatakitHTTPPort) //nolint:lll
+		datakitPostURL = fmt.Sprintf("http://%s/v1/write/metric?input=oracle",
+			net.JoinHostPort(opt.DatakitHTTPHost, opt.DatakitHTTPPort))
 	}
 	l.Debugf("post to datakit URL: %s", datakitPostURL)
 
