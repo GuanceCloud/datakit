@@ -140,8 +140,6 @@ func loadInputsConfFromDirs(paths []string) {
 		enableDefaultInputs(Cfg.DefaultEnabledInputs)
 	}
 
-	inputs.AddSelf()
-
 	inputs.Init()
 }
 

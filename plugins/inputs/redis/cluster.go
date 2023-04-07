@@ -10,7 +10,8 @@ import (
 	"context"
 	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -22,8 +23,8 @@ type clusterMeasurement struct {
 	election bool
 }
 
-func (m *clusterMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+func (m *clusterMeasurement) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -107,7 +108,7 @@ func (m *clusterMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) CollectClusterMeasurement() ([]inputs.Measurement, error) {
+func (i *Input) CollectClusterMeasurement() ([]*point.Point, error) {
 	ctx := context.Background()
 	list, err := i.client.ClusterInfo(ctx).Result()
 	if err != nil {
@@ -123,9 +124,9 @@ func (i *Input) CollectClusterMeasurement() ([]inputs.Measurement, error) {
 }
 
 // ParseClusterData 解析数据并返回指定的数据.
-func (i *Input) ParseClusterData(list string) ([]inputs.Measurement, error) {
+func (i *Input) ParseClusterData(list string) ([]*point.Point, error) {
 	rdr := strings.NewReader(list)
-	var collectCache []inputs.Measurement
+	var collectCache []*point.Point
 	scanner := bufio.NewScanner(rdr)
 
 	// 遍历每一行数据
@@ -152,7 +153,14 @@ func (i *Input) ParseClusterData(list string) ([]inputs.Measurement, error) {
 		if err != nil {
 			return nil, err
 		}
-		collectCache = append(collectCache, m)
+		var opts []point.Option
+		if m.election {
+			opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+		}
+		pt := point.NewPointV2([]byte(m.name),
+			append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+			opts...)
+		collectCache = append(collectCache, pt)
 	}
 	return collectCache, nil
 }

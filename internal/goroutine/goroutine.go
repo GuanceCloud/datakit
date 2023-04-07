@@ -23,9 +23,8 @@ type Group struct {
 	err  error
 	ctx  context.Context
 
-	panicCb  func([]byte) bool          // callback when panic
-	postCb   func(error, time.Duration) // job finish callback
-	beforeCb func()                     // job before callback
+	panicCb  func([]byte) bool // callback when panic
+	beforeCb func()            // job before callback
 
 	panicTimeout time.Duration // time duration between panicCb call
 	ch           chan func(ctx context.Context) error
@@ -67,17 +66,13 @@ func (g *Group) do(f func(ctx context.Context) error) {
 	panicTimes := g.panicTimes - 1
 
 	var (
-		err       error
-		run       func()
-		startTime time.Time
-		endTime   time.Time
-		costTime  time.Duration
+		err   error
+		run   func()
+		start = time.Now()
 	)
 
 	run = func() {
 		defer func() {
-			endTime = time.Now()
-
 			if r := recover(); r != nil {
 				isPanicRetry := true
 				buf := make([]byte, 4096) //nolint:gomnd
@@ -104,6 +99,10 @@ func (g *Group) do(f func(ctx context.Context) error) {
 				}
 
 				err = fmt.Errorf("goroutine: panic recovered: %s", r)
+			} else {
+				goroutineCounterVec.WithLabelValues(g.name).Dec()
+				goroutineCostVec.WithLabelValues(g.name).Observe(float64(time.Since(start)))
+				goroutineStoppedVec.WithLabelValues(g.name).Inc()
 			}
 
 			if err != nil {
@@ -116,15 +115,9 @@ func (g *Group) do(f func(ctx context.Context) error) {
 				})
 			}
 
-			costTime = endTime.Sub(startTime)
-			if g.postCb != nil {
-				g.postCb(err, costTime)
-			}
-
 			g.wg.Done()
 		}()
 
-		startTime = time.Now()
 		err = f(ctx)
 	}
 
@@ -155,6 +148,8 @@ func (g *Group) GOMAXPROCS(n int) {
 // returned by Wait.
 func (g *Group) Go(f func(ctx context.Context) error) {
 	g.wg.Add(1)
+
+	goroutineCounterVec.WithLabelValues(g.name).Inc()
 
 	if g.ch != nil {
 		select {

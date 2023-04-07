@@ -3,6 +3,9 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//go:build !windows
+// +build !windows
+
 package dialtesting
 
 import (
@@ -62,9 +65,9 @@ func newDialer(t dt.Task, ts map[string]string) *dialer {
 	}
 }
 
-func (d *dialer) getSendFailCount() int32 {
+func (d *dialer) getSendFailCount() int {
 	if d.category != "" {
-		return dataway.GetSendStat(d.category)
+		return dataway.GetDTFailInfo(d.category)
 	}
 	return 0
 }

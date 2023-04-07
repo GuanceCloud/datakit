@@ -9,6 +9,7 @@ package snmp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
@@ -29,24 +31,25 @@ import (
 )
 
 const (
+	// nolint:lll
 	sampleCfg = `
 [[inputs.snmp]]
-  ## Filling in autodiscovery CIDR subnet, like ["10.200.10.0/24", "10.200.20.0/24"].
-  ## If you don't want to enable autodiscovery feature, you don't need provide this.
-  #
-  # auto_discovery = []
-
   ## Filling in specific device IP address, like ["10.200.10.240", "10.200.10.241"].
   ## And you can use auto_discovery and specific_devices at the same time.
   ## If you don't want to specific device, you don't need provide this.
   #
-  # specific_devices = []
+  # specific_devices = ["***"] # SNMP Device IP.
+
+  ## Filling in autodiscovery CIDR subnet, like ["10.200.10.0/24", "10.200.20.0/24"].
+  ## If you don't want to enable autodiscovery feature, you don't need provide this.
+  #
+  # auto_discovery = ["***"] # Used in autodiscovery mode only, ignore this in other cases.
 
   ## SNMP protocol version the devices using, fill in 2 or 3.
   ## If you using the version 1, just fill in 2. Version 2 supported version 1.
   ## This is must be provided.
   #
-  # snmp_version = 2
+  snmp_version = 2
 
   ## SNMP port in the devices. Default is 161. In most cases, you don't need change this.
   ## This is optional.
@@ -97,6 +100,15 @@ const (
   #
   # device_namespace = "default"
 
+  ## Picking the metric data only contains the field's names below.
+  #
+  # enable_picking_data = true # Default is "false", which means collecting all data.
+  # status = ["sysUpTimeInstance", "tcpCurrEstab", "ifAdminStatus", "ifOperStatus", "cswSwitchState"]
+  # speed = ["ifHCInOctets", "ifHCInOctetsRate", "ifHCOutOctets", "ifHCOutOctetsRate", "ifHighSpeed", "ifSpeed", "ifBandwidthInUsageRate", "ifBandwidthOutUsageRate"]
+  # cpu = ["cpuUsage"]
+  # mem = ["memoryUsed", "memoryUsage", "memoryFree"]
+  # extra = []
+
   [inputs.snmp.tags]
   # tag1 = "val1"
   # tag2 = "val2"
@@ -126,15 +138,11 @@ const (
 	defaultBulkMaxRepetitions = uint32(10)
 
 	defaultDeviceNamespace = "default"
-
-	deviceNamespaceTagKey = "device_namespace"
-	deviceIPTagKey        = "snmp_device"
-	subnetTagKey          = "autodiscovery_subnet"
-	agentHostKey          = "agent_host"
-	agentVersionKey       = "agent_version"
-	deviceMetaKey         = "device_meta"
-	defaultSNMPHostKey    = "snmp_host"
-	defaultDatakitHostKey = "host"
+	deviceNamespaceTagKey  = "device_namespace"
+	deviceIPTagKey         = "snmp_device"
+	subnetTagKey           = "autodiscovery_subnet"
+	agentHostKey           = "agent_host"
+	agentVersionKey        = "agent_version"
 )
 
 var (
@@ -166,6 +174,12 @@ type Input struct {
 	Traps               TrapsConfig       `toml:"traps"`
 	Election            bool              `toml:"election"`
 	DeviceNamespace     string            `toml:"device_namespace"`
+	EnablePickingData   bool              `toml:"enable_picking_data"`
+	PickingStatus       []string          `toml:"status"`
+	PickingSpeed        []string          `toml:"speed"`
+	PickingCPU          []string          `toml:"cpu"`
+	PickingMem          []string          `toml:"mem"`
+	PickingExtra        []string          `toml:"extra"`
 	ObjectInterval      time.Duration     `toml:"object_interval,omitempty"`
 	MetricInterval      time.Duration     `toml:"metric_interval,omitempty"`
 
@@ -186,8 +200,10 @@ type Input struct {
 	mDiscoveryIgnoredIPs map[string]struct{}
 	mSpecificDevices     map[string]*deviceInfo
 	mDynamicDevices      sync.Map
+	mFieldNameSpecified  map[string]struct{}
 	jobs                 chan Job
 	autodetectProfile    bool
+	feeder               io.Feeder
 }
 
 type TrapsConfig struct {
@@ -497,66 +513,64 @@ func checkIPDone(deviceIP string) {
 
 func (ipt *Input) doCollectObject(deviceIP string, device *deviceInfo) {
 	tn := time.Now().UTC()
-	measurements := ipt.CollectingMeasurements(deviceIP, device, tn, true)
-	if len(measurements) == 0 {
+	points := ipt.CollectingMeasurements(deviceIP, device, tn, true)
+	if len(points) == 0 {
 		return
 	}
 
-	if err := inputs.FeedMeasurement(snmpmeasurement.InputName+"-object",
-		datakit.Object,
-		measurements,
-		&io.Option{CollectCost: time.Since(tn)}); err != nil {
+	if err := ipt.feeder.Feed(snmpmeasurement.SNMPObjectName, point.Object, points, &io.Option{CollectCost: time.Since(tn)}); err != nil {
 		l.Errorf("FeedMeasurement object err: %v", err)
+		ipt.feeder.FeedLastError(snmpmeasurement.SNMPObjectName, err.Error())
 	}
 }
 
 func (ipt *Input) doCollectMetrics(deviceIP string, device *deviceInfo) {
 	tn := time.Now().UTC()
-	measurements := ipt.CollectingMeasurements(deviceIP, device, tn, false)
-	if len(measurements) == 0 {
+	points := ipt.CollectingMeasurements(deviceIP, device, tn, false)
+	if len(points) == 0 {
 		return
 	}
 
-	if err := inputs.FeedMeasurement(snmpmeasurement.InputName+"-metric",
-		datakit.Metric,
-		measurements,
-		&io.Option{CollectCost: time.Since(tn)}); err != nil {
-		l.Errorf("FeedMeasurement metric err :%v", err)
+	if err := ipt.feeder.Feed(snmpmeasurement.SNMPMetricName, point.Metric, points, &io.Option{CollectCost: time.Since(tn)}); err != nil {
+		l.Errorf("FeedMeasurement metric err: %v", err)
+		ipt.feeder.FeedLastError(snmpmeasurement.SNMPMetricName, err.Error())
 	}
 }
 
-func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn time.Time, isObject bool) []inputs.Measurement {
-	var measurements []inputs.Measurement
+func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn time.Time, isObject bool) []*point.Point {
+	var pts []*point.Point
 
-	var fts fieldTags
+	var fts tagFields
 
 	if isObject {
 		ipt.doCollectCore(deviceIP, device, tn, &fts, true) // object need collect meta
 
-		for _, data := range fts.data {
-			measurements = append(measurements, &snmpmeasurement.SNMPObject{
-				Name:     snmpmeasurement.InputName,
-				Tags:     data.tags,
-				Fields:   data.fields,
+		for _, data := range fts.Data {
+			sobj := &snmpmeasurement.SNMPObject{
+				Name:     snmpmeasurement.SNMPObjectName,
+				Tags:     data.Tags,
+				Fields:   data.Fields,
 				TS:       tn,
 				Election: ipt.Election,
-			})
+			}
+			pts = append(pts, sobj.Point())
 		}
 	} else {
 		ipt.doCollectCore(deviceIP, device, tn, &fts, false) // metric not collect meta
 
-		for _, data := range fts.data {
-			measurements = append(measurements, &snmpmeasurement.SNMPMetric{
-				Name:     snmpmeasurement.InputName,
-				Tags:     data.tags,
-				Fields:   data.fields,
+		for _, data := range fts.Data {
+			smtc := &snmpmeasurement.SNMPMetric{
+				Name:     snmpmeasurement.SNMPMetricName,
+				Tags:     data.Tags,
+				Fields:   data.Fields,
 				TS:       tn,
 				Election: ipt.Election,
-			})
+			}
+			pts = append(pts, smtc.Point())
 		}
 	}
 
-	return measurements
+	return pts
 }
 
 func (ipt *Input) doAutoDiscovery(deviceIP, subnet string) {
@@ -589,7 +603,7 @@ func (ipt *Input) doAutoDiscovery(deviceIP, subnet string) {
 
 //------------------------------------------------------------------------------
 
-func (ipt *Input) doCollectCore(ip string, device *deviceInfo, tn time.Time, fts *fieldTags, collectMeta bool) {
+func (ipt *Input) doCollectCore(ip string, device *deviceInfo, tn time.Time, fts *tagFields, collectObject bool) {
 	deviceReachable, tags, values, checkErr, isErrClosed := device.getValuesAndTags()
 	if checkErr != nil {
 		if isErrClosed && len(device.Subnet) > 0 {
@@ -624,41 +638,41 @@ func (ipt *Input) doCollectCore(ip string, device *deviceInfo, tn time.Time, fts
 	}
 
 	var metaData deviceMetaData
-	if collectMeta {
+	if collectObject { // collect object needs to collect meta, so we use "collectMeta" represents collect object.
 		metaData.collectMeta = true
 		device.ReportNetworkDeviceMetadata(values, tags, device.Metadata, tn, deviceStatus, &metaData)
 	}
 
-	aggregateDeviceData(&metricData, fts, &metaData, tags)
+	aggregateDeviceData(&metricData, fts, &metaData, tags, ipt)
 }
 
-type fieldTags struct {
-	data []*fieldTag
+type tagFields struct {
+	Data []*tagField
 }
 
-func (fts *fieldTags) Add(ft *fieldTag) {
+func (fts *tagFields) Add(ft *tagField) {
 	normalizeFieldTags(ft)
-	fts.data = append(fts.data, ft)
+	fts.Data = append(fts.Data, ft)
 }
 
-type fieldTag struct {
-	tags   map[string]string
-	fields map[string]interface{}
+type tagField struct {
+	Tags   map[string]string      `json:"tags"`
+	Fields map[string]interface{} `json:"fields"`
 }
 
-func normalizeFieldTags(ft *fieldTag) {
-	for k, v := range ft.tags {
+func normalizeFieldTags(ft *tagField) {
+	for k, v := range ft.Tags {
 		tmp := replaceMetricsName(k)
 		if len(tmp) > 0 {
-			ft.tags[tmp] = v
-			delete(ft.tags, k)
+			ft.Tags[tmp] = v
+			delete(ft.Tags, k)
 		}
 	}
-	for k, v := range ft.fields {
+	for k, v := range ft.Fields {
 		tmp := replaceMetricsName(k)
 		if len(tmp) > 0 {
-			ft.fields[tmp] = v
-			delete(ft.fields, k)
+			ft.Fields[tmp] = v
+			delete(ft.Fields, k)
 		}
 	}
 }
@@ -704,11 +718,11 @@ func replaceMetricsName(in string) string {
 	return "" // not replace
 }
 
-func aggregateDeviceData(metricData *snmputil.MetricDatas, fts *fieldTags, metaData *deviceMetaData, origTags []string) {
+func aggregateDeviceData(metricData *snmputil.MetricDatas, fts *tagFields, metaData *deviceMetaData, origTags []string, ipt *Input) {
 	calcTagsHash(metricData)
 	mHash := make(map[string]map[string]interface{}) // map[hash]map[value_key]value_value
 	aggregateHash(metricData, mHash)
-	getFieldTagArr(metricData, mHash, fts, metaData, origTags)
+	getFieldTagArr(metricData, mHash, fts, metaData, origTags, ipt)
 }
 
 func calcTagsHash(metricData *snmputil.MetricDatas) {
@@ -745,15 +759,82 @@ func aggregateHash(metricData *snmputil.MetricDatas, mHash map[string]map[string
 	}
 }
 
+// interfaces.
+type interfaceAttribute struct {
+	Interface      string                 `json:"interface"`
+	InterfaceAlias string                 `json:"interface_alias"`
+	Fields         map[string]interface{} `json:"fields"`
+}
+
+// sensors.
+type sensorAttribute struct {
+	SensorID   string                 `json:"sensor_id"`
+	SensorType string                 `json:"sensor_type"`
+	Fields     map[string]interface{} `json:"fields"`
+}
+
+// mems.
+type memAttribute struct {
+	Mem    string                 `json:"mem"`
+	Fields map[string]interface{} `json:"fields"`
+}
+
+// mem_pool_names.
+type memPoolNameAttribute struct {
+	MemPoolName string                 `json:"mem_pool_name"`
+	Fields      map[string]interface{} `json:"fields"`
+}
+
+// cpus.
+type cpuAttribute struct {
+	CPU    string                 `json:"cpu"`
+	Fields map[string]interface{} `json:"fields"`
+}
+
+var reservedKeys = []string{
+	"device_vendor",
+	"host",
+	"ip",
+	"name",
+	"snmp_host",
+	"snmp_profile",
+}
+
+func isReservedKeys(checkName string, customTags map[string]string) bool {
+	// custom tags should be reserved.
+	if _, ok := customTags[checkName]; ok {
+		return true
+	}
+
+	for _, v := range reservedKeys {
+		if v == checkName {
+			return true
+		}
+	}
+
+	return false
+}
+
 func getFieldTagArr(metricData *snmputil.MetricDatas,
 	mHash map[string]map[string]interface{},
-	fts *fieldTags,
+	fts *tagFields,
 	metaData *deviceMetaData,
 	origTags []string,
+	ipt *Input,
 ) {
 	if len(mHash) == 0 {
 		return
 	}
+
+	// for object only.
+	objectTags := make(map[string]string)
+	objectFields := make(map[string]interface{})
+	var objectFieldInterfaces []*interfaceAttribute     // interfaces.
+	var objectFieldSensors []*sensorAttribute           // sensors.
+	var objectFieldmems []*memAttribute                 // mems
+	var objectFieldMemPoolNames []*memPoolNameAttribute // mem_pool_names
+	var objectFieldcCPUs []*cpuAttribute                // cpus
+	var objectFieldAll []*tagField                      // all
 
 	for hash, fields := range mHash {
 		tags := make(map[string]string)
@@ -765,25 +846,135 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 			}
 		} // for data
 
-		fts.Add(&fieldTag{
-			tags:   tags,
-			fields: fields,
-		})
+		tags["host"] = tags["ip"] // replace host as ip.
+		tags["name"] = tags["ip"] // replace name as ip.
+
+		if metaData.collectMeta {
+			// collect object.
+
+			isCreated := false // whether already created data set.
+
+			for tagK, tagV := range tags {
+				if isReservedKeys(tagK, ipt.Tags) {
+					// reserved, only assignment once.
+					if _, ok := objectTags[tagK]; ok {
+						continue
+					} else {
+						objectTags[tagK] = tagV
+					}
+				} else {
+					if !isCreated {
+						isCreated = true
+
+						// gathering specific.
+						switch tagK {
+						case "interface":
+							objectFieldInterfaces = append(objectFieldInterfaces, &interfaceAttribute{
+								Interface:      tagV,
+								InterfaceAlias: tags["interface_alias"],
+								Fields:         fields,
+							})
+						case "sensor_id":
+							objectFieldSensors = append(objectFieldSensors, &sensorAttribute{
+								SensorID:   tagV,
+								SensorType: tags["sensor_type"],
+								Fields:     fields,
+							})
+						case "mem":
+							objectFieldmems = append(objectFieldmems, &memAttribute{
+								Mem:    tagV,
+								Fields: fields,
+							})
+						case "mem_pool_name":
+							objectFieldMemPoolNames = append(objectFieldMemPoolNames, &memPoolNameAttribute{
+								MemPoolName: tagV,
+								Fields:      fields,
+							})
+						case "cpu":
+							objectFieldcCPUs = append(objectFieldcCPUs, &cpuAttribute{
+								CPU:    tagV,
+								Fields: fields,
+							})
+						} // switch tagK
+
+						// gathering all.
+						unknownTags := make(map[string]string)
+						for tagKK, tagVV := range tags {
+							if !isReservedKeys(tagKK, ipt.Tags) {
+								unknownTags[tagKK] = tagVV
+							}
+						}
+						objectFieldAll = append(objectFieldAll, &tagField{
+							Tags:   unknownTags,
+							Fields: fields,
+						})
+					} // if !isCreated
+				}
+			}
+		} else {
+			// collect metrics.
+
+			if ipt.EnablePickingData {
+				// collect picking data.
+
+				found := false
+				for k := range fields {
+					tmp := replaceMetricsName(k)
+					if len(tmp) == 0 {
+						tmp = k
+					}
+					if _, ok := ipt.mFieldNameSpecified[tmp]; ok {
+						found = true
+						break
+					}
+				}
+				if found {
+					fts.Add(&tagField{
+						Tags:   tags,
+						Fields: fields,
+					})
+				}
+			} else {
+				// collect every interface data.
+
+				fts.Add(&tagField{
+					Tags:   tags,
+					Fields: fields,
+				})
+			}
+		}
 	}
 
 	if metaData.collectMeta {
+		// collect object.
+
+		objectFields["interfaces"] = beJSON(objectFieldInterfaces)
+		objectFields["sensors"] = beJSON(objectFieldSensors)
+		objectFields["mems"] = beJSON(objectFieldmems)
+		objectFields["mem_pool_names"] = beJSON(objectFieldMemPoolNames)
+		objectFields["cpus"] = beJSON(objectFieldcCPUs)
+		objectFields["all"] = beJSON(objectFieldAll)
+
 		tags := make(map[string]string)
 		getDatakitStyleTags(origTags, tags)
 
 		metaAll := strings.Join(metaData.data, ", ")
-		fields := make(map[string]interface{})
-		fields[deviceMetaKey] = metaAll
+		objectFields["device_meta"] = metaAll
 
-		fts.Add(&fieldTag{
-			tags:   tags,
-			fields: fields,
+		fts.Add(&tagField{
+			Tags:   objectTags,
+			Fields: objectFields,
 		})
 	}
+}
+
+func beJSON(in interface{}) interface{} {
+	bys, err := json.Marshal(in)
+	if err != nil {
+		l.Errorf("json.Marshal failed: %v", err)
+		return nil
+	}
+	return string(bys)
 }
 
 func getDatakitStyleTags(tags []string, outTags map[string]string) {
@@ -792,9 +983,7 @@ func getDatakitStyleTags(tags []string, outTags map[string]string) {
 		if len(arr) == 2 {
 			// ignore specific rules for GuanceCloud
 			switch arr[0] {
-			case agentHostKey, agentVersionKey:
-			case defaultSNMPHostKey:
-				outTags[defaultDatakitHostKey] = arr[1]
+			case agentHostKey, agentVersionKey: // drop
 			default:
 				outTags[arr[0]] = arr[1]
 			}
@@ -802,10 +991,25 @@ func getDatakitStyleTags(tags []string, outTags map[string]string) {
 	}
 }
 
+func (ipt *Input) assignFieldNameSpecified(arr []string) {
+	for _, v := range arr {
+		ipt.mFieldNameSpecified[v] = struct{}{}
+	}
+}
+
 func (ipt *Input) ValidateConfig() error {
 	ipt.mAutoDiscovery = make(map[string]*discoveryInfo)
 	ipt.mSpecificDevices = make(map[string]*deviceInfo)
 	ipt.mDiscoveryIgnoredIPs = make(map[string]struct{})
+
+	if ipt.EnablePickingData {
+		ipt.mFieldNameSpecified = make(map[string]struct{})
+		ipt.assignFieldNameSpecified(ipt.PickingStatus)
+		ipt.assignFieldNameSpecified(ipt.PickingSpeed)
+		ipt.assignFieldNameSpecified(ipt.PickingCPU)
+		ipt.assignFieldNameSpecified(ipt.PickingMem)
+		ipt.assignFieldNameSpecified(ipt.PickingExtra)
+	}
 
 	// default check zone
 	if ipt.Port <= 0 || ipt.Port > 65535 {
@@ -1022,11 +1226,16 @@ func (ipt *Input) Terminate() {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		Tags:    make(map[string]string),
+		semStop: cliutils.NewSem(),
+		feeder:  io.DefaultFeeder(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(snmpmeasurement.InputName, func() inputs.Input {
-		return &Input{
-			Tags:    make(map[string]string),
-			semStop: cliutils.NewSem(),
-		}
+		return defaultInput()
 	})
 }

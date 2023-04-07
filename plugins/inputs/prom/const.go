@@ -60,6 +60,12 @@ const sampleCfg = `
   ## Set to 'true' to enable election.
   election = true
 
+  # disable setting host tag for this input
+  disable_host_tag = false
+
+  # disable setting instance tag for this input
+  disable_instance_tag = false
+
   # Ignore tags. Multi supported.
   # The matched tags would be dropped, but the item would still be sent.
   # tags_ignore = ["xxxx"]

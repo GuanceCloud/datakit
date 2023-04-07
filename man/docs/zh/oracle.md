@@ -98,11 +98,11 @@ apt-get install -y libaio-dev libaio1
 
 ## FAQ {#faq}
 
-### 如何查看 Oracle 采集器的运行日志？ {#faq-logging}
+### :material-chat-question: 如何查看 Oracle 采集器的运行日志？ {#faq-logging}
 
-由于 Oracle 采集器是外部采集器，其日志是单独存放在 <DataKit 安装目录>/externals/oracle.log 中。
+由于 Oracle 采集器是外部采集器，其日志是单独存放在 *[Datakit 安装目录]/externals/oracle.log* 中。
 
-### 配置好 Oracle 采集之后，为何 monitor 中无数据显示？ {#faq-no-data}
+### :material-chat-question: 配置好 Oracle 采集之后，为何 monitor 中无数据显示？ {#faq-no-data}
 
 大概原因有如下几种可能：
 

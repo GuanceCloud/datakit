@@ -81,6 +81,9 @@ type Option struct {
 	// drop scraped prom data if tag key's value matched
 	IgnoreTagKV IgnoreTagKeyValMatch
 
+	DisableHostTag     bool
+	DisableInstanceTag bool
+
 	Election bool
 	pointOpt *point.PointOption
 

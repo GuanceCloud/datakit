@@ -44,7 +44,7 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 | [host_processes](host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
 | [hostobject](hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
 | [container](container.md)           | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
-
+| [self](self.md)                     | 采集 datakit 自己的运行情况，包括 CPU、Memory 等等 |
 
 ## 修改采集器配置 {#modify-input-conf}
 
@@ -137,6 +137,7 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 | [host_processes](host_processes.md)   | 采集主机上常驻（存活 10min 以上）进程列表                                      |
 | [hostobject](hostobject.md)           | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
 | [container](container.md)             | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
+| [self](self.md)                       | 采集 datakit 自己的运行情况，包括 CPU、Memory 等等 |
 
 ### 关闭具体采集器 {#disable-inputs}
 
@@ -186,27 +187,6 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
     # 省略其它配置项...
 ``` 
 
-### 单实例采集器 {#input-singleton}
-
-部分采集器只允许单实例运行，即使配置多份，也只会运行单个实例。单实例采集器列表如下：
-
-| 采集器名称                            | 说明                                                                           |
-| ------------------------------------- | -----------------------------------------------                                |
-| [cpu](cpu.md)                         | 采集主机的 CPU 使用情况                                                        |
-| [disk](disk.md)                       | 采集磁盘占用情况                                                               |
-| [diskio](diskio.md)                   | 采集主机的磁盘 IO 情况                                                         |
-| [ebpf](ebpf.md)                       | 采集主机网络 TCP、UDP 连接信息，Bash 执行日志等                                |
-| [mem](mem.md)                         | 采集主机的内存使用情况                                                         |
-| [swap](swap.md)                       | 采集 Swap 内存使用情况                                                         |
-| [system](system.md)                   | 采集主机操作系统负载                                                           |
-| [net](net.md)                         | 采集主机网络流量情况                                                           |
-| [netstat](netstat.md)                 | 采集网络连接情况，包括 TCP/UDP 连接数、等待连接、等待处理请求等                |
-| [host_dir](hostdir.md)                | 采集器用于目录文件的采集，例如文件个数，所有文件大小等                         |
-| [host_processes](host_processes.md)   | 采集主机上常驻（存活 10min 以上）进程列表                                      |
-| [hostobject](hostobject.md)           | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
-| [container](container.md)             | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
-
-
 ### 采集器配置中的正则表达式 {#debug-regex}
 
 在编辑采集器配置时，部分可能需要配置一些正则表达式。
@@ -220,7 +200,6 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 </figure>
 
 另外，由于 DataKit 中的配置均使用 Toml，故建议大家使用 `'''这里是一个具体的正则表达式'''` 的方式来填写正则（即正则俩边分别用三个英文单引号），这样可以避免一些复杂的转义。
-
 
 ## 更多阅读 {#more}
 

@@ -9,7 +9,8 @@ import (
 	"context"
 	"fmt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -20,8 +21,8 @@ type bigKeyMeasurement struct {
 	election bool
 }
 
-func (m *bigKeyMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+func (m *bigKeyMeasurement) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -81,8 +82,8 @@ func (i *Input) getKeys() ([]string, error) {
 }
 
 // 数据源获取数据.
-func (i *Input) getData(resKeys []string) ([]inputs.Measurement, error) {
-	var collectCache []inputs.Measurement
+func (i *Input) getData(resKeys []string) ([]*point.Point, error) {
+	var collectCache []*point.Point
 
 	for _, key := range resKeys {
 		found := false
@@ -125,7 +126,14 @@ func (i *Input) getData(resKeys []string) ([]inputs.Measurement, error) {
 		}
 
 		if len(m.fields) > 0 {
-			collectCache = append(collectCache, m)
+			var opts []point.Option
+			if m.election {
+				opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+			}
+			pt := point.NewPointV2([]byte(m.name),
+				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+				opts...)
+			collectCache = append(collectCache, pt)
 		}
 	}
 

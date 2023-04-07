@@ -16,7 +16,7 @@ import (
 	"sync"
 )
 
-const defaultFlushFactor = 2
+const defaultFlushFactor = 8
 
 type MetaData struct {
 	Source string `json:"source"`

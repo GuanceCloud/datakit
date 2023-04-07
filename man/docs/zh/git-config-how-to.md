@@ -90,7 +90,7 @@ git push origin --all
 
 ## FAQ {#faq}
 
-### 报错: authentication required {#auth-required}
+### :material-chat-question: 报错: authentication required {#auth-required}
 
 出现这个报错可能是以下几种情况。
 
@@ -113,7 +113,7 @@ http://username:password@github.com/path/to/repository.git
 
 即把 `https` 改成了 `http`, 则也会报出这个错误。此处将 `http` 改成 `https` 即可。
 
-### 仓库目录约束 {#repo-dirs}
+### :material-chat-question: 仓库目录约束 {#repo-dirs}
 
 Git 仓库中必须以如下目录结构来存放各种配置：
 
@@ -145,7 +145,7 @@ datakit 根目录
         ├── ...
 ```
 
-### Git 配置的加载机制 {#repo-apply-rules}
+### :material-chat-question: Git 配置的加载机制 {#repo-apply-rules}
 
 Git 同步开启后，配置（conf/pipeline）优先级定义如下：
 
@@ -153,10 +153,8 @@ Git 同步开启后，配置（conf/pipeline）优先级定义如下：
 1. Git 仓库加载顺序以其在 *datakit.conf* 中出现的次序为准
 1. 对 Pipeline 而言，以第一个找到的 Pipeline 文件为准。以上例所示，查找 *nginx.p* 时，如果在 `repo-1` 中找到了，则 **不会** 再去 `repo-2` 中查找。当这两个仓库都没找到 *nginx.p* 时，才去顶层目录的 pipeline 目录查找。Pythond 的查找机制也一样。
 
-???+ note
+???+ attention
 
     开启远程 Pipeline 功能后，最先加载的是从中心同步下来的 Pipeline。
-
-???+ attention
 
     开启 Git 同步后，原 *conf.d* 目录下的采集器配置将不再生效。另外，主配置 *datakit.conf* **不能** 通过 Git 来管理。

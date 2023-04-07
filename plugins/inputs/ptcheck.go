@@ -184,14 +184,36 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 	}
 
 	// check tag key count
-	if len(c.mInfo.Tags)+len(c.extraTags) != len(c.gotTags)+len(c.optionalTags) {
+	mGotTags := make(map[string]struct{})
+	for k := range c.gotTags.InfluxTags() {
+		if len(k) > 0 {
+			mGotTags[k] = struct{}{}
+		}
+	}
+	for _, v := range c.optionalTags {
+		if len(v) > 0 {
+			mGotTags[v] = struct{}{}
+		}
+	}
+	if len(c.mInfo.Tags)+len(c.extraTags) != len(mGotTags) {
 		c.addMsg(fmt.Sprintf("expect %d tags got %d",
 			len(c.mInfo.Tags)+len(c.extraTags),
 			len(c.gotTags)+len(c.optionalTags)))
 	}
 
 	// check field key count
-	if len(c.mInfo.Fields) != len(c.gotFields)+len(c.optionalFields) {
+	mGotFields := make(map[string]struct{})
+	for k := range c.gotFields.InfluxFields() {
+		if len(k) > 0 {
+			mGotFields[k] = struct{}{}
+		}
+	}
+	for _, v := range c.optionalFields {
+		if len(v) > 0 {
+			mGotFields[v] = struct{}{}
+		}
+	}
+	if len(c.mInfo.Fields) != len(mGotFields) {
 		c.addMsg(fmt.Sprintf("expect %d fields got %d(%d keys optional)",
 			len(c.mInfo.Fields), len(c.gotFields), len(c.optionalFields)))
 	}

@@ -83,10 +83,14 @@ func (i *Input) AvailableArchs() []string {
 	return []string{datakit.OSLabelLinux, datakit.LabelElection}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		ExternalInput: *external.NewExternalInput(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			ExternalInput: *external.NewExternalInput(),
-		}
+		return defaultInput()
 	})
 }

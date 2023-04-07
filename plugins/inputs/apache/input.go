@@ -20,6 +20,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -135,7 +136,7 @@ func (n *Input) RunPipeline() {
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		iod.FeedLastError(inputName, err.Error())
+		iod.FeedLastError(inputName, err.Error(), point.Metric)
 		return
 	}
 
@@ -184,7 +185,7 @@ func (n *Input) Run() {
 
 			m, err := n.getMetric()
 			if err != nil {
-				iod.FeedLastError(inputName, err.Error())
+				iod.FeedLastError(inputName, err.Error(), point.Metric)
 			}
 
 			if m != nil {

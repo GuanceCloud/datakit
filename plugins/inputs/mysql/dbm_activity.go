@@ -11,6 +11,7 @@ import (
 	"sort"
 	"time"
 
+	gcPoint "github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -91,13 +92,27 @@ type dbmActivity struct {
 }
 
 type dbmActivityMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
 }
 
 func (m *dbmActivityMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
+}
+
+// Point implement MeasurementV2.
+func (m *dbmActivityMeasurement) Point() *gcPoint.Point {
+	opts := gcPoint.DefaultLoggingOptions()
+
+	if m.election {
+		opts = append(opts, gcPoint.WithExtraTags(point.GlobalElectionTags()))
+	}
+
+	return gcPoint.NewPointV2([]byte(m.name),
+		append(gcPoint.NewTags(m.tags), gcPoint.NewKVs(m.fields)...),
+		opts...)
 }
 
 func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
@@ -296,8 +311,8 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 // get mysql dbm activity.
-func (i *Input) metricCollectMysqlDbmActivity() ([]*point.Point, error) {
-	ms := []inputs.Measurement{}
+func (i *Input) metricCollectMysqlDbmActivity() ([]*gcPoint.Point, error) {
+	ms := []inputs.MeasurementV2{}
 
 	// get connections
 	connections := getActiveConnections(i)
@@ -316,6 +331,7 @@ func (i *Input) metricCollectMysqlDbmActivity() ([]*point.Point, error) {
 		tags := map[string]string{
 			"service": "mysql",
 			"host":    i.Host,
+			"status":  "info",
 		}
 		for key, value := range i.Tags {
 			tags[key] = value
@@ -369,23 +385,22 @@ func (i *Input) metricCollectMysqlDbmActivity() ([]*point.Point, error) {
 		}
 
 		m := &dbmActivityMeasurement{
-			name:   "mysql_dbm_activity",
-			tags:   tags,
-			fields: fields,
+			name:     "mysql_dbm_activity",
+			tags:     tags,
+			fields:   fields,
+			election: i.Election,
 		}
 
 		ms = append(ms, m)
 	}
 
 	if len(ms) > 0 {
-		pts, err := inputs.GetPointsFromMeasurement(ms)
-		if err != nil {
-			return []*point.Point{}, err
-		}
+		pts := getPointsFromMeasurement(ms)
 
 		return pts, nil
 	}
-	return []*point.Point{}, nil
+
+	return []*gcPoint.Point{}, nil
 }
 
 type connectionRow struct {

@@ -18,6 +18,7 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	humanize "github.com/dustin/go-humanize"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
 )
 
 type versionDesc struct {
@@ -168,7 +169,8 @@ func PubDatakit() error {
 		goos, goarch := parts[0], parts[1]
 		gzName, gzPath := tarFiles(PubDir, BuildDir, AppName, parts[0], parts[1], TarWithRlsVer)
 		// gzName := fmt.Sprintf("%s-%s-%s.tar.gz", AppName, goos+"-"+goarch, ReleaseVersion)
-		basics[gzName] = gzPath
+
+		upgraderGZFile, upgraderGZPath := tarFiles(PubDir, BuildDir, upgrader.BuildBinName, parts[0], parts[1], TarNoRlsVer)
 
 		installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
 		installerExeWithVer := fmt.Sprintf("installer-%s-%s-%s", goos, goarch, ReleaseVersion)
@@ -178,6 +180,7 @@ func PubDatakit() error {
 		}
 
 		basics[gzName] = gzPath
+		basics[upgraderGZFile] = upgraderGZPath
 		basics[installerExe] = path.Join(PubDir, ReleaseType, installerExe)
 		basics[installerExeWithVer] = path.Join(PubDir, ReleaseType, installerExe)
 	}

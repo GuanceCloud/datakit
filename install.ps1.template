@@ -2,6 +2,8 @@
 # Tue Aug 10 22:47:16 PDT 2021
 # Author: tanb
 
+Set-ExecutionPolicy Bypass -scope Process -Force
+
 # See https://stackoverflow.com/a/4647985/342348
 function Write-COutput($ForegroundColor) {
     # save the current color
@@ -74,6 +76,20 @@ if ($x -ne $null) {
 	$upgrade = $x
 	Write-COutput green ("* set upgrade" )
 }
+
+$upgrade_manager = "0"
+$x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_MANAGER")
+if ( ($x -ne $null) -and ($x -gt 0) ) {
+	$upgrade_manager = "1"
+	Write-COutput green ("* set upgrade_manager" )
+}
+
+$x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_IP_WHITELIST")
+if ($x -ne $null) {
+	$upgrade_ip_whitelist = $x
+	Write-COutput green ("* set upgrade_ip_whitelist" )
+}
+
 
 $x = [Environment]::GetEnvironmentVariable("DK_DATAWAY") 
 if ($x -ne $null) {
@@ -412,81 +428,11 @@ if ($x -ne $null) {
 	Write-COutput yellow "* set ipdb type"
 }
 
-$sink_metric=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_M")
+$sinker=""
+$x = [Environment]::GetEnvironmentVariable("DK_SINKER")
 if ($x -ne $null) {
-	$sink_metric = $x
-	Write-COutput yellow "* set sink metric"
-}
-
-$sink_network=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_N")
-if ($x -ne $null) {
-	$sink_network = $x
-	Write-COutput yellow "* set sink network"
-}
-
-$sink_keyevent=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_K")
-if ($x -ne $null) {
-	$sink_keyevent = $x
-	Write-COutput yellow "* set sink keyevent"
-}
-
-$sink_object=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_O")
-if ($x -ne $null) {
-	$sink_object = $x
-	Write-COutput yellow "* set sink object"
-}
-
-$sink_custom_object=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_CO")
-if ($x -ne $null) {
-	$sink_custom_object = $x
-	Write-COutput yellow "* set sink custom object"
-}
-
-$sink_logging=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_L")
-if ($x -ne $null) {
-	$sink_logging = $x
-	Write-COutput yellow "* set sink logging"
-}
-
-$sink_tracing=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_T")
-if ($x -ne $null) {
-	$sink_tracing = $x
-	Write-COutput yellow "* set sink tracing"
-}
-
-$sink_rum=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_R")
-if ($x -ne $null) {
-	$sink_rum = $x
-	Write-COutput yellow "* set sink rum"
-}
-
-$sink_security=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_S")
-if ($x -ne $null) {
-	$sink_security = $x
-	Write-COutput yellow "* set sink security"
-}
-
-$sink_profile=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_P")
-if ($x -ne $null) {
-	$sink_profile = $x
-	Write-COutput yellow "* set sink profiling"
-}
-
-$log_sink_detail=""
-$x = [Environment]::GetEnvironmentVariable("DK_LOG_SINK_DETAIL")
-if ($x -ne $null) {
-	$log_sink_detail = $x
-	Write-COutput yellow "* set sink log detail"
+	$sinker= $x
+	Write-COutput yellow "* set sinker"
 }
 
 ##########################
@@ -521,6 +467,8 @@ if ($upgrade -ne $null) { # upgrade
 	$action = @(
 			"$installer",
 			"--upgrade",
+			"--upgrade-manager='${upgrade_manager}'", # for update DK upgrade service
+			"--upgrade-ip-whitelist='${upgrade_ip_whitelist}'",
 			"--install-log='${install_log}'",
 			"--proxy='${proxy}'",
 			"--installer_base_url='${installer_base_url}'"
@@ -574,17 +522,8 @@ if ($upgrade -ne $null) { # upgrade
 			"--ipdb-type='${ipdb_type}'",
 			"--enable-pprof='${enable_pprof}'",
 			"--pprof-listen='${pprof_listen}'",
-			"--sink-metric='${sink_metric}'",
-			"--sink-network='${sink_network}'",
-			"--sink-keyevent='${sink_keyevent}'",
-			"--sink-object='${sink_object}'",
-			"--sink-custom-object='${sink_custom_object}'",
-			"--sink-logging='${sink_logging}'",
-			"--sink-tracing='${sink_tracing}'",
-			"--sink-rum='${sink_rum}'",
-			"--sink-security='${sink_security}'",
-			"--sink-profile='${sink_profile}'",
-			"--log-sink-detail='${log_sink_detail}'" # Do NOT add trailing `,' here!
+			"--upgrade-ip-whitelist='${upgrade_ip_whitelist}'",
+			"--sinker='${sinker}'" # Do NOT add trailing `,' here!
 				)
 }
 
@@ -633,7 +572,6 @@ $optional_envs=@(
 		"DK_SINK_R",
 		"DK_SINK_S",
 		"DK_SINK_P",
-		"DK_LOG_SINK_DETAIL",
 		"DK_INSTALLER_BASE_URL"
 		)
 foreach ($env in $optional_envs) {
