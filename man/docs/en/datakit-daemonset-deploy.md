@@ -1,4 +1,3 @@
-
 # Kubernetes
 ---
 
@@ -223,17 +222,17 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 ### Confd Configures Related Environment Variables {#env-confd}
 
 | Environment Variable Name                 | Type   | Applicable Scenario            | Description     | Sample Value |
-| ----                     | ----   | ----               | ----     | ---- |
-| ENV_CONFD_BACKEND        | string |  All              | Backend source type  | `etcdv3` or `zookeeper` or `redis` or `consul` |
-| ENV_CONFD_BASIC_AUTH     | string | `etcdv3` or `consul` | Optional      | |
-| ENV_CONFD_CLIENT_CA_KEYS | string | `etcdv3` or `consul` | Optional      | |
-| ENV_CONFD_CLIENT_CERT    | string | `etcdv3` or `consul` | Optional      | |
-| ENV_CONFD_CLIENT_KEY     | string | `etcdv3` or `consul` or `redis` | Optional      | |
-| ENV_CONFD_BACKEND_NODES  | string |  All              | Backend source address | `[IP address:2379,IP address2:2379]` |
-| ENV_CONFD_PASSWORD       | string | `etcdv3` or `consul` | Optional      |  |
-| ENV_CONFD_SCHEME         | string | `etcdv3` or `consul` | Optional      |  |
-| ENV_CONFD_SEPARATOR      | string | `redis`            | Optional default 0 |  |
-| ENV_CONFD_USERNAME       | string | `etcdv3` or `consul` | Optional      |  |
+| ----                       | ----   | ----               | ----     | ---- |
+| `ENV_CONFD_BACKEND`        | string |  All              | Backend source type  | `etcdv3` or `zookeeper` or `redis` or `consul` |
+| `ENV_CONFD_BASIC_AUTH`     | string | `etcdv3` or `consul` | Optional      | |
+| `ENV_CONFD_CLIENT_CA_KEYS` | string | `etcdv3` or `consul` | Optional      | |
+| `ENV_CONFD_CLIENT_CERT`    | string | `etcdv3` or `consul` | Optional      | |
+| `ENV_CONFD_CLIENT_KEY`     | string | `etcdv3` or `consul` or `redis` | Optional      | |
+| `ENV_CONFD_BACKEND_NODES`  | string |  All              | Backend source address | `[IP address:2379,IP address2:2379]` |
+| `ENV_CONFD_PASSWORD`       | string | `etcdv3` or `consul` | Optional      |  |
+| `ENV_CONFD_SCHEME`         | string | `etcdv3` or `consul` | Optional      |  |
+| `ENV_CONFD_SEPARATOR`      | string | `redis`            | Optional default 0 |  |
+| `ENV_CONFD_USERNAME`       | string | `etcdv3` or `consul` | Optional      |  |
 
 ### Git Configuration Related Environment Variable {#env-git}
 
