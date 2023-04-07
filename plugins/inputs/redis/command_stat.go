@@ -10,7 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -23,8 +24,8 @@ type commandMeasurement struct {
 	election bool
 }
 
-func (m *commandMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+func (m *commandMeasurement) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -64,8 +65,8 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 // 解析返回结果.
-func (i *Input) parseCommandData(list string) ([]inputs.Measurement, error) {
-	var collectCache []inputs.Measurement
+func (i *Input) parseCommandData(list string) ([]*point.Point, error) {
+	var collectCache []*point.Point
 
 	rdr := strings.NewReader(list)
 	scanner := bufio.NewScanner(rdr)
@@ -113,7 +114,14 @@ func (i *Input) parseCommandData(list string) ([]inputs.Measurement, error) {
 
 		if len(m.fields) > 0 {
 			m.ts = time.Now()
-			collectCache = append(collectCache, m)
+			var opts []point.Option
+			if m.election {
+				opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+			}
+			pt := point.NewPointV2([]byte(m.name),
+				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+				opts...)
+			collectCache = append(collectCache, pt)
 		}
 	}
 

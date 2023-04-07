@@ -27,6 +27,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/installer"
+	upgrader2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/upgrader"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
@@ -43,7 +45,9 @@ var (
 	DataKitBaseURL = ""
 	DataKitVersion = ""
 	dataURL        = "https://" + path.Join(DataKitBaseURL, "data.tar.gz")
-	datakitURL     = "https://" + path.Join(DataKitBaseURL,
+	dkUpgraderURL  = "https://" + path.Join(DataKitBaseURL,
+		fmt.Sprintf("%s-%s-%s.tar.gz", upgrader.BuildBinName, runtime.GOOS, runtime.GOARCH))
+	datakitURL = "https://" + path.Join(DataKitBaseURL,
 		fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
 			runtime.GOOS,
 			runtime.GOARCH,
@@ -59,10 +63,12 @@ var (
 	flagDownloadOnly,
 	flagInfo bool
 
+	flagUpgradeServIPWhiteList,
 	flagUserName,
 	flagInstallLog,
 	flagSrc string
 
+	flagUpgradeManagerService,
 	flagInstallOnly int
 )
 
@@ -73,6 +79,8 @@ const (
 //nolint:gochecknoinits,lll
 func init() {
 	flag.BoolVar(&flagDKUpgrade, "upgrade", false, "")
+	flag.IntVar(&flagUpgradeManagerService, "upgrade-manager", 0, "whether we should upgrade the Datakit upgrade service")
+	flag.StringVar(&flagUpgradeServIPWhiteList, "upgrade-ip-whitelist", "", "set datakit upgrade http service allowed request client ip, split by ','")
 	flag.StringVar(&flagInstallLog, "install-log", "install.log", "install log")
 	flag.StringVar(&flagSrc, "srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of install files`)
 	flag.IntVar(&flagInstallOnly, "install-only", 0, "install only, not start")
@@ -149,18 +157,8 @@ func init() {
 	flag.StringVar(&installer.EnablePProf, "enable-pprof", "", "enable pprof")
 	flag.StringVar(&installer.PProfListen, "pprof-listen", "", "pprof listen")
 
-	// sink flags
-	flag.StringVar(&installer.SinkMetric, "sink-metric", "", "sink for Metric")
-	flag.StringVar(&installer.SinkNetwork, "sink-network", "", "sink for Network")
-	flag.StringVar(&installer.SinkKeyEvent, "sink-keyevent", "", "sink for Key Event")
-	flag.StringVar(&installer.SinkObject, "sink-object", "", "sink for Object")
-	flag.StringVar(&installer.SinkCustomObject, "sink-custom-object", "", "sink for CustomObject")
-	flag.StringVar(&installer.SinkLogging, "sink-logging", "", "sink for Logging")
-	flag.StringVar(&installer.SinkTracing, "sink-tracing", "", "sink for Tracing")
-	flag.StringVar(&installer.SinkRUM, "sink-rum", "", "sink for RUM")
-	flag.StringVar(&installer.SinkSecurity, "sink-security", "", "sink for Security")
-	flag.StringVar(&installer.SinkProfiling, "sink-profile", "", "sink for Profiling")
-	flag.StringVar(&installer.LogSinkDetail, "log-sink-detail", "", "log sink detail")
+	// sinker flags
+	flag.StringVar(&installer.Sinker, "sinker", "", "sinker configures")
 
 	// cgroup flags
 	flag.IntVar(&installer.CgroupDisabled, "cgroup-disabled", 0, "enable disable cgroup(Linux) limits for CPU and memory")
@@ -196,6 +194,17 @@ func downloadFiles(to string) error {
 	dl.CurDownloading = "data"
 	if err := dl.Download(cli, dataURL, to, true, flagDownloadOnly); err != nil {
 		return err
+	}
+
+	// We will not upgrade dk-upgrader default when upgrading Datakit except for setting flagUpgradeManagerService flag
+	if !flagDKUpgrade || (flagDKUpgrade && flagUpgradeManagerService == 1) || flagDownloadOnly {
+		if !flagDownloadOnly {
+			to = upgrader.InstallDir
+		}
+		dl.CurDownloading = upgrader.BuildBinName
+		if err := dl.Download(cli, dkUpgraderURL, to, true, flagDownloadOnly); err != nil {
+			return fmt.Errorf("unable to download %s from [%s]: %w", upgrader.BuildBinName, dkUpgraderURL, err)
+		}
 	}
 
 	if installer.IPDBType != "" {
@@ -364,6 +373,10 @@ Data           : %s
 		}
 	}
 
+	if !flagDKUpgrade || flagUpgradeManagerService == 1 {
+		upgrader2.StopUpgradeService(userName)
+	}
+
 	applyFlags()
 
 	// 迁移老版本 datakit 数据目录
@@ -389,6 +402,8 @@ Data           : %s
 
 __downloadOK:
 	datakit.InitDirs()
+
+	upgrader2.InstallUpgradeService(userName, flagDKUpgrade, flagInstallOnly, flagUpgradeManagerService, flagUpgradeServIPWhiteList)
 
 	if flagDKUpgrade { // upgrade new version
 		cp.Infof("Upgrading to version %s...\n", DataKitVersion)
@@ -567,6 +582,17 @@ func setupUserGroup(userName, groupName, groupAdd, userAdd string) {
 	}
 	// chmod.
 	if err := executeCmd("chmod", "-R", "755", installDir, defaultLogDir); err != nil {
+		l.Errorf("chmod failed: %v", err)
+		return
+	}
+
+	// chown.
+	if err := executeCmd("chown", "-R", fmt.Sprintf("%s:%s", userName, groupName), upgrader.InstallDir, upgrader.DefaultLogDir); err != nil {
+		l.Errorf("chown failed: %v", err)
+		return
+	}
+	// chmod.
+	if err := executeCmd("chmod", "-R", "755", upgrader.InstallDir, upgrader.DefaultLogDir); err != nil {
 		l.Errorf("chmod failed: %v", err)
 		return
 	}

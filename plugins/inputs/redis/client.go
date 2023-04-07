@@ -10,7 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -23,8 +24,8 @@ type clientMeasurement struct {
 	election bool
 }
 
-func (m *clientMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+func (m *clientMeasurement) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
 }
 
 func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
@@ -32,18 +33,6 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 		Name: "redis_client",
 		Type: "metric",
 		Fields: map[string]interface{}{
-			"id": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "AN unique 64-bit client ID",
-			},
-			"addr": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "Address/port of the client",
-			},
 			"fd": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
@@ -82,13 +71,19 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 			"name": &inputs.TagInfo{
 				Desc: "The name set by the client with CLIENT SETNAME, default unknown",
 			},
+			"id": &inputs.TagInfo{
+				Desc: "AN unique 64-bit client ID",
+			},
+			"addr": &inputs.TagInfo{
+				Desc: "Address/port of the client",
+			},
 		},
 	}
 }
 
 // 解析返回结果.
-func (i *Input) parseClientData(list string) ([]inputs.Measurement, error) {
-	var collectCache []inputs.Measurement
+func (i *Input) parseClientData(list string) ([]*point.Point, error) {
+	var collectCache []*point.Point
 	rdr := strings.NewReader(list)
 
 	scanner := bufio.NewScanner(rdr)
@@ -122,11 +117,11 @@ func (i *Input) parseClientData(list string) ([]inputs.Measurement, error) {
 			key := item[0]
 			val := strings.TrimSpace(item[1])
 
-			if key == "name" {
+			if key == "addr" || key == "id" || key == "name" {
 				if val == "" {
 					val = "unknown"
 				}
-				m.tags["name"] = val
+				m.tags[key] = val
 			} else {
 				m.resData[key] = val
 			}
@@ -138,7 +133,14 @@ func (i *Input) parseClientData(list string) ([]inputs.Measurement, error) {
 		}
 
 		if len(m.fields) > 0 {
-			collectCache = append(collectCache, m)
+			var opts []point.Option
+			if m.election {
+				opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+			}
+			pt := point.NewPointV2([]byte(m.name),
+				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+				opts...)
+			collectCache = append(collectCache, pt)
 		}
 	}
 

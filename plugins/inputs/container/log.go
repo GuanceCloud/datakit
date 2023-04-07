@@ -179,7 +179,6 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) (*ta
 		for k, v := range logconf.Tags {
 			opt.GlobalTags[k] = v
 		}
-		opt.EnableDiskCache = logconf.EnableDiskCache
 
 		l.Debugf("use container logconfig:%#v, containerId: %s, source: %s, logpath: %s", logconf, info.id, opt.Source, info.logPath)
 	}
@@ -207,15 +206,14 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) (*ta
 }
 
 type containerLogConfig struct {
-	Disable         bool              `json:"disable"`
-	Source          string            `json:"source"`
-	Paths           []string          `json:"paths"`
-	Pipeline        string            `json:"pipeline"`
-	Service         string            `json:"service"`
-	Multiline       string            `json:"multiline_match"`
-	OnlyImages      []string          `json:"only_images"`
-	EnableDiskCache bool              `json:"enable_diskcache"`
-	Tags            map[string]string `json:"tags"`
+	Disable    bool              `json:"disable"`
+	Source     string            `json:"source"`
+	Paths      []string          `json:"paths"`
+	Pipeline   string            `json:"pipeline"`
+	Service    string            `json:"service"`
+	Multiline  string            `json:"multiline_match"`
+	OnlyImages []string          `json:"only_images"`
+	Tags       map[string]string `json:"tags"`
 }
 
 const (

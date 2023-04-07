@@ -3,6 +3,9 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//go:build !windows
+// +build !windows
+
 // Package dialtesting implement API dial testing.
 // nolint:gosec
 package dialtesting
@@ -47,8 +50,8 @@ var (
 	inputName = "dialtesting"
 	l         = logger.DefaultSLogger(inputName)
 
-	MaxFails               = 100
-	MaxSendFailCount int32 = 16
+	MaxFails         = 100
+	MaxSendFailCount = 16
 )
 
 const (
@@ -121,7 +124,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
+	return []string{datakit.OSLabelLinux, datakit.OSLabelMac, datakit.LabelK8s, datakit.LabelDocker}
 }
 
 func (d *Input) Terminate() {
@@ -141,7 +144,7 @@ func (d *Input) Run() {
 	}
 
 	if d.MaxSendFailCount > 0 {
-		MaxSendFailCount = d.MaxSendFailCount
+		MaxSendFailCount = int(d.MaxSendFailCount)
 	}
 
 	reqURL, err := url.Parse(d.Server)

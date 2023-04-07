@@ -14,7 +14,6 @@ import (
 
 type Point struct {
 	*influxdb.Point
-	bAlreadyWritten bool // indicate point written status
 }
 
 func WrapPoint(pts []*influxdb.Point) (x []*Point) {
@@ -26,18 +25,6 @@ func WrapPoint(pts []*influxdb.Point) (x []*Point) {
 
 func (p *Point) ToPoint() *influxdb.Point {
 	return p.Point
-}
-
-// SetWritten set point already written flag. Once set, the status kept permantly.
-func (p *Point) SetWritten() {
-	if !p.bAlreadyWritten {
-		p.bAlreadyWritten = true
-	}
-}
-
-// GetWritten get point already written flag.
-func (p *Point) GetWritten() bool {
-	return p.bAlreadyWritten
 }
 
 type JSONPoint struct {

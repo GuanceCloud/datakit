@@ -61,7 +61,141 @@ ElectionEnabled() bool
 
 ```
 
-> 由于不断会新增一些采集器功能，==新增的采集器应该尽可能实现 plugins/inputs/inputs.go 中的所有 interface==
+???+ attention
+
+    由于不断会新增一些采集器功能，新增的采集器应该尽可能实现 plugins/inputs/inputs.go 中的所有 interface。
+
+- 建议 `Run()` 方法的结构：
+
+```Golang
+func (ipt *Input) Run() {
+
+	// (可选) ...连接资源、准备资源
+
+	tick := time.NewTicker(ipt.Interval.Duration)
+	defer tick.Stop()
+
+	// 主要的采集循环流程
+	for {
+		select {
+		// case ipt.pause = <-ipt.pauseCh: // 选举才需要
+		case <-datakit.Exit.Wait():
+			return
+		case <-ipt.semStop.Wait():
+			// ...其他关闭连接、资源操作
+			return
+		default:
+		}
+
+		start := time.Now()
+		// if ipt.pause { // 如果开选举，需要的代码
+		// 	l.Debugf("not leader, skipped") // 如果开选举，需要的代码
+		// } else { // 如果开选举，需要的代码
+		// 采集数据
+		ipt.collectCache = make([]inputs.Measurement, 0) // 也可以放到 Collect()
+		ipt.loggingCache = make([]*point.Point, 0)       // 也可以放到 Collect()
+		if err := ipt.Collect(); err != nil {
+			l.Errorf("Collect: %s", err)
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		// ... 上传指标和日志
+
+		// } // 如果开选举，需要的代码
+
+		// 控制循环间隔
+		<-tick.C
+	}
+}
+```
+
+- 建议 `Run()` 方法的结构：
+
+```Golang
+func (ipt *Input) Run() {
+
+	// (可选) ...连接资源、准备资源
+
+	tick := time.NewTicker(ipt.Interval.Duration)
+	defer tick.Stop()
+
+	// 主要的采集循环流程
+	for {
+		select {
+		// case ipt.pause = <-ipt.pauseCh: // 选举才需要
+		case <-datakit.Exit.Wait():
+			return
+		case <-ipt.semStop.Wait():
+			// ...其他关闭连接、资源操作
+			return
+		default:
+		}
+
+		start := time.Now()
+		// if ipt.pause { // 如果开选举，需要的代码
+		// 	l.Debugf("not leader, skipped") // 如果开选举，需要的代码
+		// } else { // 如果开选举，需要的代码
+		// 采集数据
+		ipt.collectCache = make([]inputs.Measurement, 0) // 也可以放到 Collect()
+		ipt.loggingCache = make([]*point.Point, 0)       // 也可以放到 Collect()
+		if err := ipt.Collect(); err != nil {
+			l.Errorf("Collect: %s", err)
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		// ... 上传指标和日志
+
+		// } // 如果开选举，需要的代码
+
+		// 控制循环间隔
+		<-tick.C
+	}
+}
+```
+
+- 建议 `Run()` 方法的结构：
+
+```Golang
+func (ipt *Input) Run() {
+
+	// (可选) ...连接资源、准备资源
+
+	tick := time.NewTicker(ipt.Interval.Duration)
+	defer tick.Stop()
+
+	// 主要的采集循环流程
+	for {
+		select {
+		// case ipt.pause = <-ipt.pauseCh: // 选举才需要
+		case <-datakit.Exit.Wait():
+			return
+		case <-ipt.semStop.Wait():
+			// ...其他关闭连接、资源操作
+			return
+		default:
+		}
+
+		start := time.Now()
+		// if ipt.pause { // 如果开选举，需要的代码
+		// 	l.Debugf("not leader, skipped") // 如果开选举，需要的代码
+		// } else { // 如果开选举，需要的代码
+		// 采集数据
+		ipt.collectCache = make([]inputs.Measurement, 0) // 也可以放到 Collect()
+		ipt.loggingCache = make([]*point.Point, 0)       // 也可以放到 Collect()
+		if err := ipt.Collect(); err != nil {
+			l.Errorf("Collect: %s", err)
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		// ... 上传指标和日志
+
+		// } // 如果开选举，需要的代码
+
+		// 控制循环间隔
+		<-tick.C
+	}
+}
+```
 
 - 建议 `Run()` 方法的结构：
 
@@ -293,7 +427,7 @@ DataKit 新功能发布，大家最好做全套测试，包括安装、升级等
 
 ### 自定义目录运行 DataKit {#customize-workdir}
 
-默认情况下，DataKit 以==服务的形式==，运行在指定的目录（Linux 下为 /usr/local/datakit），但通过额外的方式，可以自定义 DataKit 工作目录，让它以非服务的方式运行，且从指定的目录读取配置和数据，主要用于开发的过程中调试 DataKit 的功能。
+默认情况下，DataKit 以服务的形式，运行在指定的目录（Linux 下为 /usr/local/datakit），但通过额外的方式，可以自定义 DataKit 工作目录，让它以非服务的方式运行，且从指定的目录读取配置和数据，主要用于开发的过程中调试 DataKit 的功能。
 
 1. 更新最新的代码(dev 分支) 
 1. 编译

@@ -200,31 +200,32 @@ func dcaStats(c *gin.Context) {
 }
 
 func dcaStatsByType(c *gin.Context) {
-	var stat interface{}
+	/*
+		var stat interface{}
 
-	context := dcaContext{c: c}
+		context := dcaContext{c: c}
 
-	statType := c.Param("type")
-	if statType == "" {
-		statType = StatInfoType
-	}
+		statType := c.Param("type")
+		if statType == "" {
+			statType = StatInfoType
+		}
 
-	if statType == StatInfoType {
-		stat = getStatInfo()
-	} else if statType == StatMetricType {
-		stat = getStatMetric()
-	}
+		if statType == StatInfoType {
+			stat = getStatInfo()
+		} else if statType == StatMetricType {
+			stat = getStatMetric()
+		}
 
-	if stat == nil {
-		context.fail(dcaError{
-			Code:      400,
-			ErrorCode: "param.invalid",
-			ErrorMsg:  fmt.Sprintf("invalid type, which should be '%s' or '%s'", StatInfoType, StatMetricType),
-		})
-		return
-	}
+		if stat == nil {
+			context.fail(dcaError{
+				Code:      400,
+				ErrorCode: "param.invalid",
+				ErrorMsg:  fmt.Sprintf("invalid type, which should be '%s' or '%s'", StatInfoType, StatMetricType),
+			})
+			return
+		}
 
-	context.success(stat)
+		context.success(stat) */
 }
 
 func dcaDefault(c *gin.Context) {

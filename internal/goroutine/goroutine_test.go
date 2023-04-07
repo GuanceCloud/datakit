@@ -176,18 +176,3 @@ func TestNestGroup(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Greater(t, time.Since(startTime), sleepTime)
 }
-
-func TestGetStat(t *testing.T) {
-	inputName := GetInputName("test")
-	g := NewGroup(Option{Name: inputName})
-	g.Go(func(ctx context.Context) error {
-		time.Sleep(1 * time.Second)
-		return nil
-	})
-	err := g.Wait()
-	assert.NoError(t, err)
-
-	summary := GetStat()
-	_, ok := summary.Items[g.Name()]
-	assert.True(t, ok)
-}

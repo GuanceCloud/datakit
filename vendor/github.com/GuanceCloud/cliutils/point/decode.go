@@ -6,6 +6,7 @@
 package point
 
 import (
+	"encoding/json"
 	sync "sync"
 	"time"
 
@@ -78,6 +79,20 @@ func (d *Decoder) Decode(data []byte, opts ...Option) ([]*Point, error) {
 	defer PutCfg(cfg)
 
 	switch d.enc {
+	case JSON:
+		var arr []JSONPoint
+		if err := json.Unmarshal(data, &arr); err != nil {
+			return nil, err
+		}
+
+		for _, x := range arr {
+			if pt, err := x.Point(opts...); err != nil {
+				return nil, err
+			} else {
+				pts = append(pts, pt)
+			}
+		}
+
 	case Protobuf:
 		var pbpts PBPoints
 		if err = proto.Unmarshal(data, &pbpts); err != nil {

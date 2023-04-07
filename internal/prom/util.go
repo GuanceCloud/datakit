@@ -152,7 +152,13 @@ func (p *Prom) tagKVMatched(tags map[string]string) bool {
 func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string) map[string]string {
 	tags := map[string]string{}
 
-	setHostTagIfNotLoopback(tags, u)
+	if !p.opt.DisableHostTag {
+		setHostTagIfNotLoopback(tags, u)
+	}
+
+	if !p.opt.DisableInstanceTag {
+		setInstanceTag(tags, u)
+	}
 
 	// Add custom tags.
 	for k, v := range p.opt.Tags {
@@ -179,6 +185,14 @@ func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string
 	return tags
 }
 
+func setInstanceTag(tags map[string]string, u string) {
+	uu, err := url.Parse(u)
+	if err != nil {
+		return
+	}
+	tags["instance"] = uu.Host
+}
+
 func setHostTagIfNotLoopback(tags map[string]string, u string) {
 	uu, err := url.Parse(u)
 	if err != nil {
@@ -191,6 +205,19 @@ func setHostTagIfNotLoopback(tags map[string]string, u string) {
 	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
 		tags["host"] = host
 	}
+}
+
+func shouldDisableGlobalHostTag(u string) bool {
+	uu, err := url.Parse(u)
+	if err != nil {
+		return false
+	}
+	host, _, err := net.SplitHostPort(uu.Host)
+	if err != nil {
+		return false
+	}
+	// disable global host tag if ip is not a loopback address
+	return host == "localhost" || net.ParseIP(host).IsLoopback()
 }
 
 func (p *Prom) getTagsWithLE(labels []*dto.LabelPair, measurementName string, b *dto.Bucket) map[string]string {
@@ -387,7 +414,11 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := point.NewPoint(measurementName, tags, fields, p.opt.pointOpt)
+					pointOpt := *p.opt.pointOpt
+					if shouldDisableGlobalHostTag(u) {
+						pointOpt.DisableGlobalTags = true
+					}
+					pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -408,7 +439,11 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := point.NewPoint(measurementName, tags, fields, p.opt.pointOpt)
+					pointOpt := *p.opt.pointOpt
+					if shouldDisableGlobalHostTag(u) {
+						pointOpt.DisableGlobalTags = true
+					}
+					pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -428,7 +463,11 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 					tags["quantile"] = fmt.Sprint(q.GetQuantile())
 
 					if !p.tagKVMatched(tags) {
-						pt, err := point.NewPoint(measurementName, tags, fields, p.opt.pointOpt)
+						pointOpt := *p.opt.pointOpt
+						if shouldDisableGlobalHostTag(u) {
+							pointOpt.DisableGlobalTags = true
+						}
+						pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
 						if err != nil {
 							lastErr = err
 						} else {
@@ -451,7 +490,11 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := point.NewPoint(measurementName, tags, fields, p.opt.pointOpt)
+					pointOpt := *p.opt.pointOpt
+					if shouldDisableGlobalHostTag(u) {
+						pointOpt.DisableGlobalTags = true
+					}
+					pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -470,7 +513,11 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 					tags := p.getTagsWithLE(m.GetLabel(), measurementName, b)
 
 					if !p.tagKVMatched(tags) {
-						pt, err := point.NewPoint(measurementName, tags, fields, p.opt.pointOpt)
+						pointOpt := *p.opt.pointOpt
+						if shouldDisableGlobalHostTag(u) {
+							pointOpt.DisableGlobalTags = true
+						}
+						pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
 						if err != nil {
 							lastErr = err
 						} else {

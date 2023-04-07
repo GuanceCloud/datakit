@@ -2,26 +2,18 @@
 
 # Pipeline 各类别数据处理
 
+[:octicons-beaker-24: Experimental](index.md#experimental)
+
 ---
 
-自 DataKit v1.4.0 起，可通过内置的 Pipeline 功能直接操作 DataKit 采集数据，支持的类别如下:
+自 DataKit v1.4.0 起，可通过内置的 Pipeline 功能直接操作 DataKit 采集数据，支持目前[所有的数据类型](../datakit/apis.md#category)
 
-- CustomObject
-- Keyevent
-- Logging
-- Metric
-- Network
-- Object
-- Rum
-- Security
-- Tracing
+???+ attention
 
-> 注意：
->
-> - Pipeline 应用到所有数据，目前处于实验阶段，不保证后面会对机制或行为做不兼容的调整。
-> - 即使是通过 [DataKit API](../datakit/apis.md) 上报的数据也支持 Pipeline 处理。
-> - 用 Pipeline 对现有采集的数据进行处理（特别是非日志类数据），极有可能破坏已有的数据结构，导致数据在观测云上表现异常
-> - 应用 Pipeline 之前，请大家务必使用 [Pipeline 调试工具](datakit-pl-how-to.md)确认数据处理是否符合预期
+    - Pipeline 应用到所有数据，目前处于实验阶段，不保证后面会对机制或行为做不兼容的调整。
+    - 即使是通过 [DataKit API](../datakit/apis.md) 上报的数据也支持 Pipeline 处理。
+    - 用 Pipeline 对现有采集的数据进行处理（特别是非日志类数据），极有可能破坏已有的数据结构，导致数据在观测云上表现异常
+    - 应用 Pipeline 之前，请大家务必使用 [Pipeline 调试工具](datakit-pl-how-to.md)确认数据处理是否符合预期
 
 Pipeline 可以对 DataKit 采集的数据执行如下操作：
 

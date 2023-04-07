@@ -16,6 +16,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	clipt "github.com/GuanceCloud/cliutils/point"
 	psNet "github.com/shirou/gopsutil/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -300,11 +301,11 @@ func (i *Input) Run() {
 			if err := i.Collect(); err == nil {
 				if errFeed := inputs.FeedMeasurement(netMetricName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
-					io.FeedLastError(inputName, errFeed.Error())
+					io.FeedLastError(inputName, errFeed.Error(), clipt.Metric)
 					l.Error(errFeed)
 				}
 			} else {
-				io.FeedLastError(inputName, err.Error())
+				io.FeedLastError(inputName, err.Error(), clipt.Metric)
 				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():

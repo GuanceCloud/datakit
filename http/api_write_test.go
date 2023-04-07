@@ -18,13 +18,11 @@ import (
 
 	lp "github.com/GuanceCloud/cliutils/lineproto"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/gin-gonic/gin"
-	"github.com/influxdata/influxdb1-client/models"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 func BenchmarkHandleWriteBody(b *testing.B) {
@@ -32,7 +30,7 @@ func BenchmarkHandleWriteBody(b *testing.B) {
 abc,t1=b,t2=d f1=123,f2=3.4,f3="strval" 1624550216`)
 
 	for n := 0; n < b.N; n++ {
-		if _, err := handleWriteBody(body, false, &lp.Option{Precision: "s"}); err != nil {
+		if _, err := handleWriteBody(body, false, point.WithPrecision(point.S)); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -56,7 +54,7 @@ func BenchmarkHandleJSONWriteBody(b *testing.B) {
 			]`)
 
 	for n := 0; n < b.N; n++ {
-		if _, err := handleWriteBody(body, true, &lp.Option{Precision: "s"}); err != nil {
+		if _, err := handleWriteBody(body, true, point.WithPrecision(point.S)); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -70,17 +68,15 @@ func TestHandleBody(t *testing.T) {
 		fail bool
 		js   bool
 		npts int
-		tags map[string]string
-		opt  *lp.Option
+
+		opts []point.Option
 	}{
 		{
-			name: `[json]tag exceed limit`,
+			name: `[json]tag-exceed-limit`,
 
-			opt: func() *lp.Option {
-				o := lp.NewDefaultOption()
-				o.MaxTags = 1
-				return o
-			}(),
+			opts: []point.Option{
+				point.WithMaxTags(1),
+			},
 
 			body: []byte(`[
 			{
@@ -94,7 +90,7 @@ func TestHandleBody(t *testing.T) {
 		},
 
 		{
-			name: `[json] invalid field key with .`,
+			name: `[json]-invalid-field-key-with-.`,
 			body: []byte(`[
 			{
 				"measurement":"abc",
@@ -106,7 +102,7 @@ func TestHandleBody(t *testing.T) {
 		},
 
 		{
-			name: `invalid field`,
+			name: `invalid-field`,
 			body: []byte(`[
 			{
 				"measurement":"abc",
@@ -118,7 +114,7 @@ func TestHandleBody(t *testing.T) {
 		},
 
 		{
-			name: `json body`,
+			name: `json-body`,
 			body: []byte(`[
 			{
 				"measurement":"abc",
@@ -135,7 +131,7 @@ func TestHandleBody(t *testing.T) {
 		},
 
 		{
-			name: `json body with timestamp`,
+			name: `json-body-with-timestamp`,
 			body: []byte(`[
 			{
 				"measurement":"abc",
@@ -151,23 +147,21 @@ func TestHandleBody(t *testing.T) {
 			}
 			]`),
 
-			opt: func() *lp.Option {
-				o := lp.NewDefaultOption()
-				o.Precision = "s"
-				return o
-			}(),
+			opts: []point.Option{
+				point.WithPrecision(point.S),
+			},
 
 			npts: 2,
 			js:   true,
 		},
 
 		{
-			name: `raw point body with/wthout timestamp`,
-			opt: func() *lp.Option {
-				o := lp.NewDefaultOption()
-				o.PrecisionV2 = lp.Second
-				return o
-			}(),
+			name: `raw-point-body-with/wthout-timestamp`,
+
+			opts: []point.Option{
+				point.WithPrecision(point.S),
+			},
+
 			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
             view,t1=tag2,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
             resource,t1=tag3,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
@@ -177,9 +171,8 @@ func TestHandleBody(t *testing.T) {
 		},
 
 		{
-			name: "invalid line protocol",
+			name: "invalid-line-protocol",
 			body: []byte(`test t1=abc f1=1i,f2=2,f3="str"`),
-			npts: 1,
 			fail: true,
 		},
 
@@ -190,14 +183,50 @@ test,t1=abc f1=1i,f2=2,f3="str"
 test,t1=abc f1=1i,f2=2,f3="str"`),
 			npts: 3,
 		},
+
+		{
+			name: "lp-on-metric-drop-sting-field",
+			body: []byte(`
+m1,t1=a f1=1i,f2="abc"`),
+			npts: 1,
+			opts: point.DefaultMetricOptions(),
+		},
+
+		{
+			name: "lp-on-object",
+			body: []byte(`
+m1,name=a f1=1i,f2="abc"`),
+			npts: 1,
+			opts: point.DefaultObjectOptions(),
+		},
+
+		{
+			name: "lp-on-object-add-default-name",
+			body: []byte(`
+m1 f1=1i,f2="abc"`),
+			npts: 1,
+			opts: point.DefaultObjectOptions(),
+		},
+
+		{
+			name: "lp-on-logging-add-default-status",
+			body: []byte(`
+m1 f1=1i,f2="abc" 123`),
+			npts: 1,
+			opts: point.DefaultLoggingOptions(),
+		},
 	}
 
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			pts, err := handleWriteBody(tc.body, tc.js, tc.opt)
+			if tc.js {
+				return
+			}
+
+			pts, err := handleWriteBody(tc.body, tc.js, tc.opts...)
 
 			if tc.fail {
-				tu.NotOk(t, err, "case[%d] expect fail, but ok", i)
+				assert.Error(t, err, "case[%d] expect fail, but ok", i)
 				t.Logf("[%d] handle body failed: %s", i, err)
 				return
 			}
@@ -207,24 +236,10 @@ test,t1=abc f1=1i,f2=2,f3="str"`),
 				return
 			}
 
-			tu.Equals(t, tc.npts, len(pts))
+			assert.Equal(t, tc.npts, len(pts))
 
-			t.Logf("----------- [%d] -----------", i)
 			for _, pt := range pts {
-				s := pt.String()
-				fs, err := pt.Fields()
-				if err != nil {
-					t.Error(err)
-					continue
-				}
-
-				x, err := models.NewPoint(pt.Name(), models.NewTags(pt.Tags()), fs, pt.Time())
-				if err != nil {
-					t.Error(err)
-					continue
-				}
-
-				t.Logf("\t%s, key: %s, hash: %d", s, x.Key(), x.HashID())
+				t.Log(pt.Pretty())
 			}
 		})
 	}
@@ -234,15 +249,15 @@ type apiWriteMock struct {
 	t *testing.T
 }
 
-func (x *apiWriteMock) sendToIO(string, string, []*point.Point, *io.Option) error {
+func (x *apiWriteMock) feed(string, point.Category, []*point.Point, ...*io.Option) error {
 	x.t.Helper()
-	x.t.Log("under mock impl: sendToIO")
+	x.t.Log("mock feed impl")
 	return nil // do nothing
 }
 
 func (x *apiWriteMock) geoInfo(ip string) map[string]string {
 	x.t.Helper()
-	x.t.Log("under mock impl: geoInfo")
+	x.t.Log("mock geoInfo impl")
 	return nil // do nothing
 }
 
@@ -255,6 +270,8 @@ func TestAPIWrite(t *testing.T) {
 
 	ts := httptest.NewServer(router)
 	defer ts.Close()
+
+	time.Sleep(time.Second)
 
 	cases := []struct {
 		name, method, url string
@@ -282,7 +299,7 @@ func TestAPIWrite(t *testing.T) {
 		{
 			name:             `write-logging-with-point-in-key`,
 			method:           "POST",
-			url:              "/v1/write/logging",
+			url:              "/v1/write/logging?strict=1",
 			body:             []byte(`some-source,tag1=1,tag2=2,tag.3=3 f1=1`),
 			expectStatusCode: 400,
 		},
@@ -290,25 +307,43 @@ func TestAPIWrite(t *testing.T) {
 		{
 			name:             `unstrict-write-logging-with-point-in-key`,
 			method:           "POST",
-			url:              "/v1/write/logging",
+			url:              "/v1/write/logging?strict=1",
 			body:             []byte(`some-source,tag1=1,tag2=2,tag.3=3 f1=1`),
 			expectStatusCode: 400,
 		},
 
 		{
-			name:             `[ok]write-logging(json)`,
+			name:             `write-logging-json`,
+			method:           "POST",
+			url:              "/v1/write/logging?strict=1",
+			body:             []byte(`[{"measurement":"abc", "tags": {"t1": "xxx"}, "fields":{"f1": 1.0}}]`),
+			contentType:      "application/json",
+			expectStatusCode: 400,
+		},
+
+		{
+			name:             `write-logging-json-loose`,
 			method:           "POST",
 			url:              "/v1/write/logging",
 			body:             []byte(`[{"measurement":"abc", "tags": {"t1": "xxx"}, "fields":{"f1": 1.0}}]`),
 			contentType:      "application/json",
 			expectStatusCode: 200,
 		},
+
 		{
-			name:             `[ok]write-logging(line-proto)`,
+			name:             `[ok]write-logging(line-proto-loose)`,
 			method:           "POST",
-			url:              "/v1/write/logging",
+			url:              "/v1/write/logging?loose=1",
 			body:             []byte(`xxx-source,t1=1 f1=1i`),
 			expectStatusCode: 200,
+		},
+
+		{
+			name:             `write-logging-lineproto`,
+			method:           "POST",
+			url:              "/v1/write/logging?strict=1",
+			body:             []byte(`xxx-source,t1=1 f1=1i`),
+			expectStatusCode: 400,
 		},
 
 		{
@@ -322,9 +357,9 @@ func TestAPIWrite(t *testing.T) {
 		},
 
 		{
-			name:             `write-logging-with-source`,
+			name:             `write-logging-with-source-loose`,
 			method:           "POST",
-			url:              "/v1/write/logging?source=abc",
+			url:              "/v1/write/logging?source=abc&loose=1",
 			body:             []byte(`xxx-source,t1=1 f1=1i`),
 			expectStatusCode: 200,
 		},
@@ -352,7 +387,7 @@ func TestAPIWrite(t *testing.T) {
 		},
 
 		{
-			name:             `[ok]write-rum-json`,
+			name:             `write-rum-json`,
 			method:           "POST",
 			url:              "/v1/write/rum?disable_pipeline=1",
 			contentType:      "application/json",
@@ -371,15 +406,28 @@ func TestAPIWrite(t *testing.T) {
 			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}}]`),
 			expectStatusCode: 200,
 		},
+
+		{
+			name:        `metric-invalid-json-point`,
+			method:      "POST",
+			url:         "/v1/write/metric",
+			contentType: "application/json",
+
+			// the JSON missing leading `['
+			body: []byte(`{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}}]`),
+
+			expectBody:       ErrInvalidJSONPoint,
+			expectStatusCode: 400,
+		},
 		{
 			name:             `metric-json-point-key-with-point-seconds`,
 			method:           "POST",
-			url:              "/v1/write/metric?echo_line_proto=1&precision=s",
+			url:              "/v1/write/metric?echo_json=1&precision=s",
 			contentType:      "application/json",
-			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}, "time":` + fmt.Sprintf("%d", timestamp) + `}]`),
+			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}, "time":` + fmt.Sprintf("%d", timestamp*time.Second) + `}]`),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
-				Content: []*sinkcommon.JSONPoint{
+				Content: []*point.JSONPoint{
 					{
 						Measurement: "view",
 						Tags: map[string]string{
@@ -388,7 +436,7 @@ func TestAPIWrite(t *testing.T) {
 						Fields: map[string]interface{}{
 							"f1.1": 1, "f2": 3.14,
 						},
-						Time: time.Unix(timestamp, 0).UTC(),
+						Time: time.Unix(timestamp, 0).UnixNano(),
 					},
 				},
 			},
@@ -396,12 +444,12 @@ func TestAPIWrite(t *testing.T) {
 		{
 			name:             `metric-json-point-key-with-point-nanoseconds`,
 			method:           "POST",
-			url:              "/v1/write/metric?echo_line_proto=1",
+			url:              "/v1/write/metric?echo_json=1",
 			contentType:      "application/json",
 			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}, "time":` + fmt.Sprintf("%d", timestamp*1000*1000*1000) + `}]`),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
-				Content: []*sinkcommon.JSONPoint{
+				Content: []*point.JSONPoint{
 					{
 						Measurement: "view",
 						Tags: map[string]string{
@@ -410,48 +458,77 @@ func TestAPIWrite(t *testing.T) {
 						Fields: map[string]interface{}{
 							"f1.1": 1, "f2": 3.14,
 						},
-						Time: time.Unix(0, timestamp*1000*1000*1000).UTC(),
+						Time: time.Unix(0, timestamp*1000*1000*1000).UnixNano(),
 					},
 				},
 			},
 		},
 
 		{
-			name:             `metric-point-key-with-point`,
+			name:             `metric-point-key-with-dot`,
 			method:           "POST",
 			url:              "/v1/write/metric",
 			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=3,f3.14=3.14`),
 			expectStatusCode: 200,
 		},
+
 		{
-			name:             `metric-point-key-with-point-seconds`,
+			name:             `metric-point-key-with-point-seconds-echo-json`,
+			method:           "POST",
+			url:              "/v1/write/metric?echo_json=1&precision=s",
+			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 ` + fmt.Sprintf("%d", timestamp)),
+			expectStatusCode: 200,
+			expectBody: &uhttp.BodyResp{
+				Content: []*point.JSONPoint{
+					{
+						Measurement: "measurement",
+						Tags: map[string]string{
+							"t1": "1",
+							"t2": "2",
+						},
+						Fields: map[string]interface{}{
+							"f1":    1,
+							"f2":    2,
+							"f3.14": 3.14,
+						},
+						Time: time.Unix(timestamp, 0).UnixNano(),
+					},
+				},
+			},
+		},
+
+		{
+			name:             `metric-point-key-with-point-seconds-echo-lineproto`,
 			method:           "POST",
 			url:              "/v1/write/metric?echo_line_proto=1&precision=s",
 			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 ` + fmt.Sprintf("%d", timestamp)),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
-				Content: []*sinkcommon.JSONPoint{
-					{
-						Measurement: "measurement",
-						Tags: map[string]string{
-							"t1": "1", "t2": "2",
-						},
-						Fields: map[string]interface{}{
-							"f1": 1, "f2": 2, "f3.14": 3.14,
-						},
-						Time: time.Unix(timestamp, 0).UTC(),
-					},
-				},
+				Content: `measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 ` + fmt.Sprintf("%d", time.Unix(timestamp, 0).UnixNano()),
 			},
 		},
+
+		{
+			name:   `multi-line-proto`,
+			method: "POST",
+			url:    "/v1/write/metric?echo_line_proto=1",
+			body: []byte(`measurement-1,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123
+measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123`),
+			expectStatusCode: 200,
+			expectBody: &uhttp.BodyResp{
+				Content: `measurement-1,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123
+measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123`,
+			},
+		},
+
 		{
 			name:             `metric-point-key-with-point-nanoseconds`,
 			method:           "POST",
-			url:              "/v1/write/metric?echo_line_proto=1&precision=n",
+			url:              "/v1/write/metric?echo_json=1&precision=n",
 			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 ` + fmt.Sprintf("%d", timestamp*1000*1000*1000)),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
-				Content: []*sinkcommon.JSONPoint{
+				Content: []*point.JSONPoint{
 					{
 						Measurement: "measurement",
 						Tags: map[string]string{
@@ -460,7 +537,7 @@ func TestAPIWrite(t *testing.T) {
 						Fields: map[string]interface{}{
 							"f1": 1, "f2": 2, "f3.14": 3.14,
 						},
-						Time: time.Unix(0, timestamp*1000*1000*1000).UTC(),
+						Time: time.Unix(0, timestamp*1000*1000*1000).UnixNano(),
 					},
 				},
 			},
@@ -479,13 +556,13 @@ func TestAPIWrite(t *testing.T) {
 		},
 
 		{
-			name:             `[ok]write-object-json-missing-name-tag`,
+			name:             `write-object-json-missing-name-tag`,
 			method:           "POST",
-			url:              "/v1/write/object",
+			url:              "/v1/write/object?strict=1",
 			contentType:      "application/json",
 			body:             []byte(`[{"measurement":"object-class","tags":{"t1": "1"}, "fields":{"f1":"1i", "message": "dump object message"}}]`),
 			expectStatusCode: 400,
-			expectBody:       ErrInvalidObjectPoint,
+			expectBody:       ErrInvalidJSONPoint,
 		},
 
 		// global-host-tag
@@ -495,12 +572,12 @@ func TestAPIWrite(t *testing.T) {
 				"host": "my-testing",
 			},
 			method:           "POST",
-			url:              "/v1/write/object?echo_line_proto=1",
+			url:              "/v1/write/object?echo_json=1",
 			contentType:      "application/json",
 			body:             []byte(`[{"measurement":"object-class","tags":{"name": "1"}, "fields":{"f1":1, "message": "dump object message"}, "time": 123}]`),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
-				Content: []*sinkcommon.JSONPoint{
+				Content: []*point.JSONPoint{
 					{
 						Measurement: "object-class",
 						Tags: map[string]string{
@@ -509,7 +586,7 @@ func TestAPIWrite(t *testing.T) {
 						Fields: map[string]interface{}{
 							"f1": 1, "message": "dump object message",
 						},
-						Time: time.Unix(0, 123).UTC(),
+						Time: time.Unix(0, 123).UnixNano(),
 					},
 				},
 			},
@@ -527,12 +604,12 @@ func TestAPIWrite(t *testing.T) {
 			},
 
 			method:           "POST",
-			url:              "/v1/write/object?echo_line_proto=1&ignore_global_host_tags=1&ignore_global_tags=1&global_election_tags=1", // global-host-tag ignored
+			url:              "/v1/write/object?echo_json=1&ignore_global_host_tags=1&ignore_global_tags=1&global_election_tags=1", // global-host-tag ignored
 			contentType:      "application/json",
 			body:             []byte(`[{"measurement":"object-class","tags":{"name": "1"}, "fields":{"f1":1, "message": "dump object message"}, "time": 123}]`),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
-				Content: []*sinkcommon.JSONPoint{
+				Content: []*point.JSONPoint{
 					{
 						Measurement: "object-class",
 						Tags: map[string]string{
@@ -542,7 +619,7 @@ func TestAPIWrite(t *testing.T) {
 						Fields: map[string]interface{}{
 							"f1": 1, "message": "dump object message",
 						},
-						Time: time.Unix(0, 123).UTC(),
+						Time: time.Unix(0, 123).UnixNano(),
 					},
 				},
 			},
@@ -555,17 +632,17 @@ func TestAPIWrite(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			point.ClearGlobalTags()
+			dkpt.ClearGlobalTags()
 
 			if tc.globalHostTags != nil {
 				for k, v := range tc.globalHostTags {
-					point.SetGlobalHostTags(k, v)
+					dkpt.SetGlobalHostTags(k, v)
 				}
 			}
 
 			if tc.globalEnvTags != nil {
 				for k, v := range tc.globalEnvTags {
-					point.SetGlobalElectionTags(k, v)
+					dkpt.SetGlobalElectionTags(k, v)
 				}
 			}
 
@@ -573,7 +650,10 @@ func TestAPIWrite(t *testing.T) {
 			var err error
 			switch tc.method {
 			case "POST":
-				resp, err = http.Post(fmt.Sprintf("%s%s", ts.URL, tc.url), tc.contentType, bytes.NewBuffer(tc.body))
+
+				resp, err = http.Post(fmt.Sprintf("%s%s", ts.URL, tc.url),
+					tc.contentType,
+					bytes.NewBuffer(tc.body))
 				if err != nil {
 					t.Error(err)
 					return
@@ -596,7 +676,7 @@ func TestAPIWrite(t *testing.T) {
 				return
 			}
 
-			t.Logf("body: %s", string(body)[:len(body)%256]) // remove too-long-body display
+			t.Logf("body: %q", body)
 
 			defer resp.Body.Close() //nolint:errcheck
 
@@ -607,7 +687,7 @@ func TestAPIWrite(t *testing.T) {
 					if err := json.Unmarshal(body, &e); err != nil {
 						t.Error(err)
 					} else {
-						tu.Assert(t, errEq(x, &e), "\n%+#v\nexpect to equal\n%+#v", x, &e)
+						assert.True(t, errEq(x, &e), "\n%+#v\nexpect to equal\n%+#v", x, &e)
 					}
 
 				default:
@@ -619,11 +699,11 @@ func TestAPIWrite(t *testing.T) {
 						return
 					}
 
-					tu.Equals(t, string(j), string(body))
+					assert.Equal(t, string(j), string(body))
 				}
 			}
 
-			tu.Equals(t, tc.expectStatusCode, resp.StatusCode)
+			assert.Equal(t, tc.expectStatusCode, resp.StatusCode)
 		})
 	}
 }

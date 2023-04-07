@@ -103,26 +103,3 @@ datetime(ts, 'ns', '%m/%d/%y  %H:%M:%S %z', "Asia/Tokyo")
   "ts": "03/08/23  15:44:59 +0900"
 }
 ```
-
-
-```python
-# script
-ts = timestamp()
-datetime(ts, 'ns', fmt='%Y-%m-%d %H:%M:%S', tz="UTC")
-
-# output
-{
-  "ts": "2023-03-08 06:43:39"
-}
-```
-
-```python
-# script
-ts = timestamp()
-datetime(ts, 'ns', '%m/%d/%y  %H:%M:%S %z', "Asia/Tokyo")
-
-# output
-{
-  "ts": "03/08/23  15:44:59 +0900"
-}
-```

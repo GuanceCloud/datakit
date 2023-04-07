@@ -81,30 +81,6 @@ json(_, a.timestamp)
 datetime(a.timestamp, 'ms', 'RFC3339')
 ```
 
-
-```python
-# 处理脚本
-ts = timestamp()
-datetime(ts, 'ns', fmt='%Y-%m-%d %H:%M:%S', tz="UTC")
-
-# 输出
-{
-  "ts": "2023-03-08 06:43:39"
-}
-```
-
-```python
-# 处理脚本
-ts = timestamp()
-datetime(ts, 'ns', '%m/%d/%y  %H:%M:%S %z', "Asia/Tokyo")
-
-# 输出
-{
-  "ts": "03/08/23  15:44:59 +0900"
-}
-```
-
-
 ```python
 # 处理脚本
 ts = timestamp()

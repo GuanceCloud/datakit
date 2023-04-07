@@ -41,7 +41,7 @@ func (f *MockedFeeder) Feed(name string, category point.Category, pts []*point.P
 	return nil
 }
 
-func (f *MockedFeeder) FeedLastError(name, errInfo string) {
+func (f *MockedFeeder) FeedLastError(name, errInfo string, cat ...point.Category) {
 	f.lastErrors = append(f.lastErrors, [2]string{name, errInfo})
 }
 

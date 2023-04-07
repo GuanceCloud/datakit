@@ -14,12 +14,14 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/go-redis/redis/v8"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -74,7 +76,7 @@ type Input struct {
 
 	tail       *tailer.Tailer
 	start      time.Time
-	collectors []func() ([]inputs.Measurement, error)
+	collectors []func() ([]*point.Point, error)
 
 	client *redis.Client
 
@@ -88,6 +90,7 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 
 	startUpUnix int64
+	feeder      dkio.Feeder
 }
 
 type redisCPUUsage struct {
@@ -171,17 +174,15 @@ func (i *Input) GetPipeline() []*tailer.Option {
 
 func (i *Input) Collect() error {
 	for idx, f := range i.collectors {
-		ms, err := f()
+		pts, err := f()
 		if err != nil {
 			l.Errorf("collector %v[%d]: %s", f, idx, err)
-			io.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(inputName, err.Error())
 		}
 
-		if len(ms) > 0 {
-			if err := inputs.FeedMeasurement(inputName,
-				datakit.Metric,
-				ms,
-				&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+		if len(pts) > 0 {
+			if err := i.feeder.Feed(inputName, point.Metric, pts,
+				&dkio.Option{CollectCost: time.Since(i.start)}); err != nil {
 				l.Errorf("FeedMeasurement: %s", err)
 			}
 		}
@@ -199,8 +200,20 @@ func (i *Input) Collect() error {
 	return nil
 }
 
-func (i *Input) collectInfoMeasurement() ([]inputs.Measurement, error) {
-	var collectCache []inputs.Measurement
+func GetPointsFromMeasurement(measurements []inputs.Measurement) []*dkpt.Point {
+	var pts []*dkpt.Point
+	for _, m := range measurements {
+		if pt, err := m.LineProto(); err != nil {
+			l.Warnf("make point failed: %v, ignore", err)
+		} else {
+			pts = append(pts, pt)
+		}
+	}
+	return pts
+}
+
+func (i *Input) collectInfoMeasurement() ([]*point.Point, error) {
+	var collectCache []*point.Point
 
 	m := &infoMeasurement{
 		cli:         i.client,
@@ -229,13 +242,20 @@ func (i *Input) collectInfoMeasurement() ([]inputs.Measurement, error) {
 	}
 
 	if len(m.fields) > 0 {
-		collectCache = append(collectCache, m)
+		var opts []point.Option
+		if m.election {
+			opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+		}
+		pt := point.NewPointV2([]byte(m.name),
+			append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+			opts...)
+		collectCache = append(collectCache, pt)
 	}
 
 	return collectCache, nil
 }
 
-func (i *Input) collectBigKeyMeasurement() ([]inputs.Measurement, error) {
+func (i *Input) collectBigKeyMeasurement() ([]*point.Point, error) {
 	keys, err := i.getKeys()
 	if err != nil {
 		return nil, err
@@ -245,7 +265,7 @@ func (i *Input) collectBigKeyMeasurement() ([]inputs.Measurement, error) {
 }
 
 // 数据源获取数据.
-func (i *Input) collectClientMeasurement() ([]inputs.Measurement, error) {
+func (i *Input) collectClientMeasurement() ([]*point.Point, error) {
 	ctx := context.Background()
 	list, err := i.client.ClientList(ctx).Result()
 	if err != nil {
@@ -257,7 +277,7 @@ func (i *Input) collectClientMeasurement() ([]inputs.Measurement, error) {
 }
 
 // 数据源获取数据.
-func (i *Input) collectCommandMeasurement() ([]inputs.Measurement, error) {
+func (i *Input) collectCommandMeasurement() ([]*point.Point, error) {
 	ctx := context.Background()
 	list, err := i.client.Info(ctx, "commandstats").Result()
 	if err != nil {
@@ -289,7 +309,7 @@ func (i *Input) RunPipeline() {
 	if err != nil {
 		l.Error("NewTailer: %s", err)
 
-		io.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 
@@ -319,14 +339,14 @@ func (i *Input) Run() {
 		}
 
 		if err := i.initCfg(); err != nil {
-			io.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(inputName, err.Error())
 		} else {
 			break
 		}
 	}
 	i.hashMap = make([][16]byte, i.SlowlogMaxLen)
 
-	i.collectors = []func() ([]inputs.Measurement, error){
+	i.collectors = []func() ([]*point.Point, error){
 		i.collectInfoMeasurement,
 		i.collectClientMeasurement,
 		i.collectCommandMeasurement,
@@ -431,15 +451,20 @@ func (i *Input) Resume() error {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		Timeout:  "10s",
+		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		DB:       -1,
+		Tags:     make(map[string]string),
+		semStop:  cliutils.NewSem(),
+		Election: true,
+		feeder:   dkio.DefaultFeeder(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			Timeout:  "10s",
-			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
-			DB:       -1,
-			Tags:     make(map[string]string),
-			semStop:  cliutils.NewSem(),
-			Election: true,
-		}
+		return defaultInput()
 	})
 }

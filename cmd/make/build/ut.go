@@ -10,12 +10,18 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
+)
+
+const (
+	pkgPrefix = "gitlab.jiagouyun.com/cloudcare-tools/"
 )
 
 func UnitTestDataKit() error {
@@ -31,6 +37,7 @@ func UnitTestDataKit() error {
 	perc := regexp.MustCompile(`\d+\.\d+\%`)
 
 	pkgs := strings.Split(string(res), "\n")
+	utID := cliutils.XID("ut_")
 
 	coverTotal := 0.0
 
@@ -39,7 +46,12 @@ func UnitTestDataKit() error {
 		fmt.Printf("testing %s...\n", p)
 
 		mr := &tu.ModuleResult{
-			Name: p,
+			// remove prefix for human readable
+			Name:      strings.TrimPrefix(p, pkgPrefix),
+			OS:        runtime.GOOS,
+			Arch:      runtime.GOARCH,
+			GoVersion: runtime.Version(),
+			TestID:    utID,
 		}
 
 		start := time.Now()
@@ -119,7 +131,7 @@ func UnitTestDataKit() error {
 	fmt.Printf("============= %d pakage failed ===============\n", len(failedPkgs))
 	showFailedPkgs(failedPkgs)
 	if len(failedPkgs) > 0 {
-		return fmt.Errorf("%d package failed: %+#v", len(failedPkgs), failedPkgs)
+		return fmt.Errorf("%d package failed", len(failedPkgs))
 	}
 
 	return nil

@@ -119,6 +119,11 @@ func (p *Point) Pretty() string {
 	return strings.Join(arr, "\n")
 }
 
+// Warns return warnning info when build the point.
+func (p *Point) Warns() []*Warn {
+	return p.warns
+}
+
 // makeLineproto build lineproto from @p's raw data(name/tag/field/time).
 func (p *Point) makeLineproto(prec ...Precision) string {
 	lp := p.LPPoint()

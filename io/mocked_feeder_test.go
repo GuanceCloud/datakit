@@ -78,8 +78,18 @@ func TestNPoints(t *T.T) {
 		pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123})
 		pts := []*point.Point{pt}
 
+		// cleanup chans
+		for {
+			select {
+			case <-f.ch:
+			default:
+				goto out
+			}
+		}
+	out:
+
 		for i := 0; i < chanCap; i++ {
-			assert.NoError(t, f.Feed(t.Name(), point.Metric, pts))
+			assert.NoError(t, f.Feed(t.Name(), point.Metric, pts), "feed err on %dth", i)
 		}
 
 		err := f.Feed(t.Name(), point.Metric, pts)

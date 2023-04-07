@@ -192,7 +192,7 @@
 
 ## FAQ {#faq}
 
-### Kubernetes YAML 敏感字段屏蔽 {#yaml-secret}
+### :material-chat-question: Kubernetes YAML 敏感字段屏蔽 {#yaml-secret}
 
 Datakit 会采集 Kubernetes Pod 或 Service 等资源的 yaml 配置，并存储到对象数据的 `yaml` 字段中。如果该 yaml 中包含敏感数据（例如密码），Datakit 暂不支持手动配置屏蔽敏感字段，推荐使用 Kubernetes 官方的做法，即使用 ConfigMap 或者 Secret 来隐藏敏感字段。
 

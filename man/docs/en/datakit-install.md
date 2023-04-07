@@ -126,6 +126,7 @@ The environment variables supported by the installation script are as follows (s
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM-specific
 - `DK_DISABLE_404PAGE`: Disable the DataKit 404 page (commonly used when deploying DataKit RUM on the public network. Such as `True`/`False`)
 - `DK_INSTALL_IPDB`: Specify the IP library at installation time (currently only `iploc` and `geolite2` is supported)
+- `DK_UPGRADE_IP_WHITELIST`: Starting from Datakit [1.5.9](changelog.md#cl-1.5.9), we can upgrade Datakit by access remote http API. This environment variable is used to set the IP whitelist of clients that can be accessed remotely(multiple IPs could be separated by commas `,`). Access outside the whitelist will be denied (default not restricted).
 
 ### On DCA  {#env-dca}
 - `DK_DCA_ENABLE`: Support DCA service to be turned on during installation (not turned on by default)
@@ -160,17 +161,7 @@ The environment variables supported by the installation script are as follows (s
 
 ### On Sinker Configuration {#env-sink}
 
-- `DK_SINK_M`: Specify the sink of Metric at installation time.
-- `DK_SINK_N`: Specify the Network's sink at installation time.
-- `DK_SINK_K`: Specify the sink of the KeyEvent at installation time.
-- `DK_SINK_O`: Specify the sink of the Object at installation time.
-- `DK_SINK_CO`: Specify the sink of CustomObject at installation time.
-- `DK_SINK_L`: Specify Logging's sink at installation time.
-- `DK_SINK_T`: Specify Tracing's sink at installation time.
-- `DK_SINK_R`: Specify the sink of the RUM at installation time.
-- `DK_SINK_S`: Specify the sink of Security at installation time.
-- `DK_SINK_P`: Specify the sink of Profiling at installation time.
-- `DK_LOG_SINK_DETAIL`: In the process of installation, specify that sink verbose logs are turned on (when turned on, a large number of logs are generated for debugging only and are not recommended for production). For example: "yes".
+- `DK_SINKER`: Used to setup Dataway sinker, it's a JSON string, please refer to [here](datakit-daemonset-deploy.md#env-sinker) for more info.
 
 See [M3DB example](datakit-sink-m3db.md)
 
@@ -187,16 +178,17 @@ The following installation options are supported only on Linux platforms:
 
 - `DK_INSTALL_ONLY`: Install only, not run
 - `DK_HOSTNAME`: Support custom configuration hostname during installation
-- `DK_UPGRADE`: Upgrade to the latest version (Note: Once this option is turned on, all other options are invalid)
+- `DK_UPGRADE`: Upgrade to the latest version (Note: Once this option is turned on, all other options except `DK_UPGRADE_MANAGER` are invalid)
+- `DK_UPGRADE_MANAGER`: Whether we upgrade the **Remote Upgrade Service** when upgrading Datakit, it's used in conjunction with `DK_UPGRADE`, supported start from [1.5.9](changelog.md#cl-1.5.9)
 - `DK_INSTALLER_BASE_URL`: You can choose the installation script for different environments, default to `https://static.guance.com/datakit`
-- `HTTPS_PROXY`: Installed through the Datakit agent
 - `DK_PROXY_TYPE`: Proxy type. The options are: "datakit" or "nginx", both lowercase
 - `DK_NGINX_IP`: Proxy server IP address (only need to fill in IP but not port). With highest priority, this is mutually exclusive with the above "HTTP_PROXY" and "HTTPS_PROXY" and will override both.
 - `DK_INSTALL_LOG`: Set the setup log path, default to *install.log* in the current directory, if set to `stdout`, output to the command line terminal.
+- `HTTPS_PROXY`: Installed through the Datakit agent
 
 ## FAQ {#faq}
 
-### How to Deal with the Unfriendly Host Name {#bad-hostname}
+### :material-chat-question: How to Deal with the Unfriendly Host Name {#bad-hostname}
 
 Because DataKit uses Hostname as the basis for data concatenation, in some cases, some host names are not very friendly, such as  `iZbp141ahn....`, but for some reasons, these host names cannot be modified, which brings some troubles to use. In DataKit, this unfriendly host name can be overwritten in the main configuration.
 
@@ -209,6 +201,6 @@ In `datakit.conf`, modify the following configuration and the DataKit will read 
 
 > Note: If a host has collected data for a period of time, after changing the host name, the historical data will no longer be associated with the new host name. Changing the host name is equivalent to adding a brand-new host.
 
-## More Readings {#more-reading}
+## :material-chat-question: More Readings {#more-reading}
 
 - [Getting started with DataKit](datakit-service-how-to.md)

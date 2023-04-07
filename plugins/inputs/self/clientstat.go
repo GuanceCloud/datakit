@@ -7,20 +7,16 @@
 package self
 
 import (
-	"fmt"
-	"os"
 	"runtime"
-	"sync"
 	"time"
 
-	"github.com/shirou/gopsutil/host"
-	pr "github.com/shirou/gopsutil/v3/process"
+	"github.com/GuanceCloud/cliutils/metrics"
+	dto "github.com/prometheus/client_model/go"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
@@ -57,14 +53,10 @@ type ClientStat struct {
 	DroppedPointsTotal uint64
 	DroppedPoints      uint64
 
-	// 选举
-	Incumbency       int64
-	ElectedNamespace string
+	mfs []*dto.MetricFamily
 
-	// HTTP
-	HTTPStats map[string]*dkhttp.APIStat
+	electionInfo *election.ElectionInfo
 
-	// goroutine
 	GoroutineStats *goroutine.Summary
 }
 
@@ -85,9 +77,14 @@ func setMin(prev, cur int64) int64 {
 }
 
 func (s *ClientStat) Update() {
+	mfs, err := metrics.Gather()
+	if err == nil {
+		s.mfs = mfs
+	}
+
 	s.HostName = config.Cfg.Hostname
-	if config.Cfg.DataWayCfg != nil && config.Cfg.DataWayCfg.HTTPProxy != "" {
-		s.Proxy = config.Cfg.DataWayCfg.HTTPProxy
+	if config.Cfg.Dataway != nil && config.Cfg.Dataway.HTTPProxy != "" {
+		s.Proxy = config.Cfg.Dataway.HTTPProxy
 	}
 
 	var memStatus runtime.MemStats
@@ -110,28 +107,14 @@ func (s *ClientStat) Update() {
 	s.MaxHeapObjects = setMax(s.MaxHeapObjects, s.HeapObjects)
 	s.MinHeapObjects = setMin(s.MinHeapObjects, s.HeapObjects)
 
-	if cpuUsage, cpuUsageTop, err := getSelfCPUsage(); err != nil {
+	if x, err := cgroup.MyCPUPercent(0); err != nil {
 		l.Warnf("get CPU usage failed: %s, ignored", err.Error())
-		s.CPUUsage = 0.0
-		s.CPUUsageTop = 0.0
 	} else {
-		s.CPUUsage = cpuUsage
-		s.CPUUsageTop = cpuUsageTop
-
-		if runtime.GOOS == "windows" {
-			s.CPUUsage /= float64(runtime.NumCPU())
-			s.CPUUsageTop /= float64(runtime.NumCPU())
-		}
+		s.CPUUsage = x
+		s.CPUUsageTop = x
 	}
 
-	du, ns := s.getElectedInfo()
-	s.Incumbency = du
-	s.ElectedNamespace = ns
-
-	s.DroppedPoints = io.DroppedTotal() - s.DroppedPointsTotal
-	s.DroppedPointsTotal = io.DroppedTotal()
-
-	s.HTTPStats = dkhttp.GetMetrics()
+	s.getElectedInfo()
 
 	s.GoroutineStats = goroutine.GetStat()
 }
@@ -148,12 +131,14 @@ func (s *ClientStat) ToMetric() *point.Point {
 		"os_version_detail": s.OSDetail,
 		"arch":              s.Arch,
 		"host":              s.HostName,
-		"namespace":         s.ElectedNamespace,
+		"namespace":         s.electionInfo.Namespace,
 	}
 
 	if s.Proxy != "" {
 		tags["proxy"] = s.Proxy
 	}
+
+	elected := int64(s.electionInfo.ElectedTime / time.Second)
 
 	fields := map[string]interface{}{
 		"pid":    s.PID,
@@ -180,8 +165,9 @@ func (s *ClientStat) ToMetric() *point.Point {
 		"dropped_points":       s.DroppedPoints,
 		"open_files":           datakit.OpenFiles(),
 
-		"incumbency": s.Incumbency, // deprecated, used elected
-		"elected":    s.Incumbency,
+		"elected": elected,
+		// Deprecated: used elected
+		"incumbency": elected,
 	}
 
 	pt, err := point.NewPoint(measurementName, tags, fields, point.MOpt())
@@ -192,35 +178,6 @@ func (s *ClientStat) ToMetric() *point.Point {
 	return pt
 }
 
-func (s *ClientStat) ToHTTPMetric() []*point.Point {
-	var rtPts []*point.Point
-	for api, v := range s.HTTPStats {
-		tags := map[string]string{
-			"api": api,
-		}
-
-		fields := map[string]interface{}{
-			"total_request_count": v.TotalCount,
-			"max_latency":         int64(v.MaxLatency),
-			"avg_latency":         int64(v.AvgLatency),
-			"2XX":                 v.Status2xx,
-			"3XX":                 v.Status3xx,
-			"4XX":                 v.Status4xx,
-			"5XX":                 v.Status5xx,
-			"limited":             v.Limited,
-		}
-
-		pt, err := point.NewPoint(measurementHTTPName, tags, fields, point.MOpt())
-		if err != nil {
-			l.Error(err)
-			continue
-		}
-		rtPts = append(rtPts, pt)
-	}
-
-	return rtPts
-}
-
 func (s *ClientStat) ToGoroutineMetric() []*point.Point {
 	var pts []*point.Point
 
@@ -229,7 +186,7 @@ func (s *ClientStat) ToGoroutineMetric() []*point.Point {
 		if s.NumGoroutines >= s.GoroutineStats.RunningTotal {
 			tags := map[string]string{
 				"host":      s.HostName,
-				"namespace": s.ElectedNamespace,
+				"namespace": s.electionInfo.Namespace,
 				"group":     "unknown",
 			}
 
@@ -249,7 +206,7 @@ func (s *ClientStat) ToGoroutineMetric() []*point.Point {
 		for groupName, info := range s.GoroutineStats.Items {
 			tags := map[string]string{
 				"host":      s.HostName,
-				"namespace": s.ElectedNamespace,
+				"namespace": s.electionInfo.Namespace,
 				"group":     groupName,
 			}
 
@@ -274,164 +231,6 @@ func (s *ClientStat) ToGoroutineMetric() []*point.Point {
 	return pts
 }
 
-func (s *ClientStat) getElectedInfo() (int64, string) {
-	if !config.Cfg.Election.Enable {
-		return 0, ""
-	}
-
-	elected, ns, _ := election.Elected()
-	if elected == "success" {
-		return int64(time.Since(election.GetElectedTime()) / time.Second), ns
-	} else {
-		return 0, ""
-	}
+func (s *ClientStat) getElectedInfo() {
+	s.electionInfo = election.GetElectionInfo(s.mfs)
 }
-
-//------------------------------------------------------------------------------
-// CPU Usage: copied and modified from plugins/inputs/process
-
-var psRecorder = newProcRecorder()
-
-// getSelfCPUsage returns cpu_usage, cpu_usage_top, error.
-func getSelfCPUsage() (float64, float64, error) {
-	tn := time.Now().UTC()
-	selfProcess, err := getSelfProcess()
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return parseSingleProcess(selfProcess, psRecorder, tn)
-}
-
-func parseSingleProcess(ps *pr.Process, procRec *procRecorder, tn time.Time) (float64, float64, error) {
-	// you may get a null pointer here
-	cputime, err := ps.Times()
-	if err != nil {
-		return 0, 0, err
-	}
-
-	defer func() {
-		if cputime != nil {
-			procRec.recorder[ps.Pid] = procRecStat{
-				Pid:          ps.Pid,
-				RecorderTime: tn,
-				CPUUser:      cputime.User,
-				CPUSystem:    cputime.System,
-			}
-		}
-	}()
-
-	return calculatePercent(ps, tn), procRec.calculatePercentTop(ps, tn), nil
-}
-
-func calculatePercent(ps *pr.Process, tn time.Time) float64 {
-	if ps == nil {
-		l.Error("nil point: param pr *Process")
-		return 0.
-	}
-	cpuTime, err := ps.Times()
-	if err != nil {
-		l.Error("pid: %d, err: %w", ps.Pid, err)
-		return 0.
-	}
-	created := time.Unix(0, getCreateTime(ps)*int64(time.Millisecond))
-	totalTime := tn.Sub(created).Seconds()
-
-	return 100 * ((cpuTime.User + cpuTime.System) / totalTime)
-}
-
-func getCreateTime(ps *pr.Process) int64 {
-	start, err := ps.CreateTime()
-	if err != nil {
-		l.Warnf("get start time err:%s", err.Error())
-		if bootTime, err := host.BootTime(); err != nil {
-			return int64(bootTime) * 1000
-		}
-	}
-	return start
-}
-
-type procRecStat struct {
-	Pid int32
-
-	RecorderTime time.Time
-
-	CPUUser   float64
-	CPUSystem float64
-}
-
-func newProcRecorder() *procRecorder {
-	return &procRecorder{
-		recorder: map[int32]procRecStat{},
-	}
-}
-
-type procRecorder struct {
-	recorder map[int32]procRecStat
-	sync.RWMutex
-}
-
-// calculatePercentTop 计算一个周期内的 cpu 使用率，
-// 若无上一次的记录或启动时间不一致的则返回自启动来的使用率.
-func (p *procRecorder) calculatePercentTop(ps *pr.Process, pTime time.Time) float64 {
-	p.RLock()
-	defer p.RUnlock()
-
-	if ps == nil {
-		l.Error("nil point: param pr *Process")
-		return 0.
-	}
-
-	if rec, ok := p.recorder[ps.Pid]; ok {
-		return calculatePercentTop(ps, rec, pTime)
-	} else {
-		return calculatePercent(ps, pTime)
-	}
-}
-
-func calculatePercentTop(ps *pr.Process, rec procRecStat, tn time.Time) float64 {
-	if ps == nil {
-		l.Error("nil point: param pr *Process")
-		return 0.
-	}
-	cpuTime, err := ps.Times()
-	if err != nil {
-		l.Error("pid: %d, err: %w", ps.Pid, err)
-		return 0.
-	}
-	timeDiff := tn.Sub(rec.RecorderTime).Seconds()
-	if timeDiff == 0. || timeDiff == -0. ||
-		timeDiff == 0 || timeDiff == -0 {
-		l.Error("timeDiff == 0s")
-		return 0
-	}
-
-	// TODO
-	cpuDiff := cpuTime.User + cpuTime.System - rec.CPUUser - rec.CPUSystem
-	switch {
-	case cpuDiff <= 0.0 && cpuDiff >= -0.0000000001:
-		return 0.0
-	case cpuDiff < -0.0000000001:
-	default:
-		return 100 * (cpuDiff / timeDiff)
-	}
-	return calculatePercent(ps, tn)
-}
-
-func getSelfProcess() (*pr.Process, error) {
-	pses, err := pr.Processes()
-	if err != nil {
-		return nil, err
-	}
-
-	selfPID := os.Getpid()
-	for _, ps := range pses {
-		if int(ps.Pid) == selfPID {
-			return ps, nil
-		}
-	}
-
-	return nil, fmt.Errorf("should not be here: not found process of the caller self")
-}
-
-//------------------------------------------------------------------------------

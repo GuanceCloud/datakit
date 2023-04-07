@@ -35,7 +35,9 @@ func TestPyroscopeRun(t *testing.T) {
 	pyro := pyroscopeOpts{
 		URL: "0.0.0.0:4040",
 	}
-	config.Cfg.DataWayCfg = &dataway.DataWayCfg{URLs: []string{"http://<GATEWAY>?token=<TOKEN>"}}
+
+	config.Cfg.Dataway = &dataway.Dataway{URLs: []string{"http://<GATEWAY>?token=<TOKEN>"}}
+
 	err := config.Cfg.SetupDataway()
 	if err != nil {
 		panic(err)

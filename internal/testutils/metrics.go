@@ -60,7 +60,13 @@ type TestingMetric interface {
 
 // ModuleResult collect `go test` metrics for single go module.
 type ModuleResult struct {
-	Name     string
+	TestID string
+	Name   string
+
+	OS,
+	Arch,
+	GoVersion string
+
 	Cost     time.Duration
 	Status   TestStatus
 	Coverage float64
@@ -72,9 +78,13 @@ type ModuleResult struct {
 
 func (mr *ModuleResult) LineProtocol() string {
 	tags := map[string]string{
-		"name":   mr.Name,
-		"status": mr.Status.String(),
-		"host":   hostname,
+		"name":    mr.Name,
+		"os":      mr.OS,
+		"arch":    mr.Arch,
+		"go":      mr.GoVersion,
+		"status":  mr.Status.String(),
+		"host":    hostname,
+		"test_id": mr.TestID,
 	}
 
 	// Is the module have test or not?
@@ -169,8 +179,6 @@ func Flush(m TestingMetric) error {
 
 	lp := m.LineProtocol()
 
-	log.Printf("write %q ...", lp)
-
 	if err := flushToFile([]byte(lp)); err != nil {
 		return err
 	}
@@ -183,7 +191,11 @@ func Flush(m TestingMetric) error {
 }
 
 func flushToDataway(data []byte) error {
-	log.Printf("write to dataway %q", DatawayURL)
+	if len(DatawayURL) > 10 {
+		log.Printf("write to dataway %s**********", DatawayURL[:len(DatawayURL)-10])
+	} else {
+		log.Printf("write to dataway %s", DatawayURL)
+	}
 
 	if !strings.HasPrefix(DatawayURL, "http") {
 		return nil
