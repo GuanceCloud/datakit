@@ -15,11 +15,12 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -72,7 +73,8 @@ type Input struct {
 
 	Auth map[string]string `toml:"auth" json:"auth"`
 
-	pm *iprom.Prom
+	pm     *iprom.Prom
+	Feeder io.Feeder
 
 	Election bool `toml:"election"`
 	chPause  chan bool
@@ -173,17 +175,17 @@ func (i *Input) RunningCollect() error {
 		for _, pt := range pts {
 			// We need to feed each point separately because
 			// each point might have different measurement name.
-			if err := io.Feed(pt.Name(), datakit.Logging, []*point.Point{pt},
+			if err := i.Feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
 				&io.Option{CollectCost: time.Since(start)}); err != nil {
-				i.l.Errorf("Feed: %s", err)
-				io.FeedLastError(ioname, err.Error())
+				i.Feeder.FeedLastError(ioname, err.Error())
 			}
 		}
 	} else {
-		if err := io.Feed(ioname, datakit.Metric, pts,
-			&io.Option{CollectCost: time.Since(start)}); err != nil {
+		err := i.Feeder.Feed(ioname, point.Metric, pts,
+			&io.Option{CollectCost: time.Since(start)})
+		if err != nil {
 			i.l.Errorf("Feed: %s", err)
-			io.FeedLastError(ioname, err.Error())
+			i.Feeder.FeedLastError(ioname, err.Error())
 		}
 	}
 	return nil
@@ -205,7 +207,7 @@ func (i *Input) doCollect() []*point.Point {
 	pts, err := i.Collect()
 	if err != nil {
 		i.l.Errorf("Collect: %s", err)
-		io.FeedLastError(i.Source, err.Error())
+		i.Feeder.FeedLastError(i.Source, err.Error())
 
 		// Try testing the connect
 		for _, u := range i.urls {
@@ -240,7 +242,7 @@ func (i *Input) setup() bool {
 		default:
 			// nil
 		}
-		time.Sleep(5 * time.Second) // sleep a while
+		time.Sleep(1 * time.Second) // sleep a while
 		if err := i.Init(); err != nil {
 			continue
 		} else {
@@ -356,14 +358,14 @@ func (i *Input) CollectFromHTTP(u string) ([]*point.Point, error) {
 	if i.pm == nil {
 		return nil, nil
 	}
-	return i.pm.CollectFromHTTP(u)
+	return i.pm.CollectFromHTTPV2(u)
 }
 
 func (i *Input) CollectFromFile(filepath string) ([]*point.Point, error) {
 	if i.pm == nil {
 		return nil, nil
 	}
-	return i.pm.CollectFromFile(filepath)
+	return i.pm.CollectFromFileV2(filepath)
 }
 
 // WriteMetricText2File collects from all URLs and then
@@ -422,6 +424,7 @@ func NewProm() *Input {
 		Tags:        make(map[string]string),
 
 		semStop: cliutils.NewSem(),
+		Feeder:  io.DefaultFeeder(),
 	}
 }
 
