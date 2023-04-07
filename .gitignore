@@ -55,7 +55,6 @@ install.ps1
 install.sh
 internal-pipelines.json
 internal/http/req.db
-io/parser/gram_y.go
 iploc.bin
 liu_script.sh
 measurements-meta.json

@@ -4,8 +4,8 @@ project_name: datakit
 before:
   hooks:
     - go mod tidy
-    - go install golang.org/x/tools/cmd/goyacc@master
-    - goyacc -l -o io/parser/gram_y.go io/parser/gram.y
+    #- go install golang.org/x/tools/cmd/goyacc@master
+    #- goyacc -l -o io/parser/gram_y.go io/parser/gram.y
 
 env:
   - GO111MODULE=on
