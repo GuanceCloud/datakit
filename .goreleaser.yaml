@@ -4,6 +4,7 @@ project_name: datakit
 before:
   hooks:
     - go mod tidy
+    - goyacc -l -o io/parser/gram_y.go io/parser/gram.y
 
 env:
   - GO111MODULE=on

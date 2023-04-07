@@ -4,7 +4,6 @@
 // Copyright 2021-present Guance, Inc.
 
 // Package git used to define various IDs.
-
 package git
 
 var (
