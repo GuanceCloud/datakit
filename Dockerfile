@@ -5,7 +5,7 @@ RUN mkdir -p /usr/local/datakit \
     && mkdir -p /usr/local/datakit/externals \
     && mkdir -p /opt/oracle
 
-COPY dist/datakit-linux-${TARGETARCH}/ /usr/local/datakit/
+COPY datakit /usr/local/datakit/datakit
 
 RUN sed -i 's/\(archive\|security\|ports\).ubuntu.com/mirrors.aliyun.com/' /etc/apt/sources.list \
     && apt-get update \
