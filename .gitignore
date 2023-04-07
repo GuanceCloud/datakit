@@ -21,7 +21,6 @@ __debug_bin
 *.pyc
 *.rpm
 *.tar.gz
-*.yaml
 *.zip
 ag.sh
 agent_linux
