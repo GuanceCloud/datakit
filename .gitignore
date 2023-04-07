@@ -50,7 +50,6 @@ dk-installer
 docker/agent
 docker/datakit
 embed/*
-git/git.go
 install_local.sh
 install.ps1
 install.sh

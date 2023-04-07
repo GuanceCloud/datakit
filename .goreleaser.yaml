@@ -62,7 +62,7 @@ builds:
     # Default: 's -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser'
     # Templates: allowed
     ldflags:
-      - -s -w -X main.ReleaseVersion={{.Version}}
+      - -s -w -X main.ReleaseVersion={{.Version}} -X git.BuildAt={{.Date}} -X git.Version={{.Version}} -X git.Commit={{.ShortCommit}} -X git.Branch={{.Branch}} -X git.Uploader=gorelease
 
 dockers:
   - image_templates:
