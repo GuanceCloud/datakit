@@ -29,7 +29,6 @@ type DatakitStats struct {
 
 	EnabledInputsDeprecated []*enabledInput          `json:"enabled_inputs,omitempty"`
 	EnabledInputs           map[string]*enabledInput `json:"enabled_input_list"`
-	InputsConfigRun         []byte                   `json:"inputs_config_run"`
 
 	GolangRuntime *RuntimeInfo `json:"golang_runtime"`
 

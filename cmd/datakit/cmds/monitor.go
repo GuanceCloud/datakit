@@ -75,32 +75,3 @@ func existsModule(str []string) []string {
 
 	return wrong
 }
-
-func existsModule(str []string) []string {
-	wrong := []string{}
-	for _, s := range str {
-		exsist := false
-		for k, v := range moduleMap {
-			if s == k || s == v {
-				exsist = true
-				break
-			}
-		}
-		if !exsist {
-			wrong = append(wrong, s)
-		}
-	}
-
-	return wrong
-}
-
-func oneModule(str []string, abbr string) bool {
-	exists := false
-	for _, s := range str {
-		if s == abbr || s == moduleMap[abbr] {
-			exists = true
-			break
-		}
-	}
-	return exists
-}
