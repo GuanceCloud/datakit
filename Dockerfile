@@ -1,4 +1,4 @@
-FROM ubuntu:18.04 AS base
+FROM debian:stable-slim
 ARG TARGETARCH
 
 RUN mkdir -p /usr/local/datakit \
