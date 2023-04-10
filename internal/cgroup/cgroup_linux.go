@@ -8,13 +8,11 @@ package cgroup
 import (
 	"os"
 	"runtime"
-	"time"
 
 	"github.com/containerd/cgroups/v3"
 	"github.com/containerd/cgroups/v3/cgroup1"
 	"github.com/containerd/cgroups/v3/cgroup2"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
@@ -27,14 +25,10 @@ type Cgroup struct {
 	cpuHigh   float64
 	quotaHigh int64
 	err       error
-
-	control cgroup1.Cgroup
-	manager *cgroup2.Manager
 }
 
 // 1 second.
 var period = uint64(1000000) //nolint:gomnd
-var cgroupV2 bool
 
 func (c *Cgroup) cpuSetup() {
 	c.cpuHigh = c.opt.CPUMax * float64(runtime.NumCPU()) / 100 //nolint:gomnd
@@ -74,14 +68,13 @@ func (c *Cgroup) makeLinuxResource() *specs.LinuxResources {
 func (c *Cgroup) setupV1(resource *specs.LinuxResources, pid int) error {
 	c.delControl()
 
-	var err error
-	c.control, err = cgroup1.New(cgroup1.StaticPath(c.opt.Path), resource)
+	control, err := cgroup1.New(cgroup1.StaticPath(c.opt.Path), resource)
 	if err != nil {
 		l.Errorf("cgroups.New(%+#v): %s", resource, err)
 		return err
 	}
 
-	return c.control.Add(cgroup1.Process{Pid: pid, Subsystem: cgroupName})
+	return control.Add(cgroup1.Process{Pid: pid, Subsystem: cgroupName})
 }
 
 func (c *Cgroup) setupV2(resource *specs.LinuxResources, pid int) error {
@@ -104,7 +97,6 @@ func (c *Cgroup) setupV2(resource *specs.LinuxResources, pid int) error {
 		return err
 	}
 
-	c.manager = manager
 	return manager.AddProc(uint64(pid))
 }
 
@@ -125,40 +117,17 @@ func (c *Cgroup) delControl() {
 func (c *Cgroup) start() {
 	resource := c.makeLinuxResource()
 	pid := os.Getpid()
-	var err error
 	if cgroups.Mode() == cgroups.Unified {
 		l.Infof("use cgroup V2")
-		cgroupV2 = true
-		err = c.setupV2(resource, pid)
+		c.err = c.setupV2(resource, pid)
 	} else {
 		l.Infof("use cgroup V1")
-		err = c.setupV1(resource, pid)
+		c.err = c.setupV1(resource, pid)
 	}
-	if err != nil {
-		l.Warnf("cgroup setup err=%v", err)
+
+	if c.err != nil {
+		l.Warnf("cgroup setup err=%v", c.err)
 	} else {
 		l.Infof("add Datakit pid:%d to cgroup", pid)
-	}
-	c.err = err
-	tick := time.NewTicker(time.Second * 3)
-	for {
-		select {
-		case <-tick.C:
-			c.show()
-		case <-datakit.Exit.Wait():
-			l.Info("cgroup exited")
-			return
-		}
-	}
-}
-
-func (c *Cgroup) show() {
-	if cgroupV2 {
-		stat, err := c.manager.Stat()
-		if err == nil {
-			l.Debugf("cgroup state: %s", stat.String())
-		}
-	} else {
-		l.Debugf("cgroup state: %s", c.control.State())
 	}
 }
