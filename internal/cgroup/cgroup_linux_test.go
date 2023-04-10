@@ -53,8 +53,6 @@ func TestCgroup_makeLinuxResource(t *testing.T) {
 				cpuHigh:   tt.fields.cpuHigh,
 				quotaHigh: tt.fields.quotaHigh,
 				err:       tt.fields.err,
-				control:   tt.fields.control,
-				manager:   tt.fields.manager,
 			}
 			if got := c.makeLinuxResource(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeLinuxResource() = %v, want %v", got, tt.want)
@@ -90,26 +88,30 @@ func Test_Setup(t *testing.T) {
 		t.Log("permission denied,return")
 		return
 	}
+	datakitPath := "/datakit_test"
 
-	c := &Cgroup{opt: &CgroupOptions{Path: "/datakit_test"}}
+	// 测试之前必须删除之前所有 datakit_test 的配置.
+	c := &Cgroup{opt: &CgroupOptions{Path: datakitPath}}
 	pid := os.Getpid()
 	if cgroups.Mode() == cgroups.Unified {
+		manager, err := cgroup2.Load(datakitPath)
+		if err == nil {
+			_ = manager.Delete()
+		}
+
 		t.Log("goto test cgroup V2")
-		err := c.setupV2(mockLinuxResource(0.30, 100), pid)
-		if err != nil || c.manager == nil {
+		err = c.setupV2(mockLinuxResource(0.30, 4096), pid)
+		if err != nil {
 			t.Errorf("setup cgroup V2 err=%v", err)
 			return
-		} else {
-			_ = c.manager.Delete()
 		}
 	} else {
+		_ = os.RemoveAll(defaultCgroup2Path + "/memory/datakit_test")
 		l.Infof("goto test cgroup V1")
 		err := c.setupV1(mockLinuxResource(0.30, 100), pid)
-		if err != nil || c.control == nil {
+		if err != nil {
 			t.Errorf("setup cgroup V1 err= %v", err)
 			return
-		} else {
-			_ = c.control.Delete()
 		}
 	}
 }
