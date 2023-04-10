@@ -17,21 +17,24 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const sampleConfig = `
 [[inputs.memcached]]
-  ## 服务器地址，可支持多个
+  ## Servers' addresses.
   servers = ["localhost:11211"]
   # unix_sockets = ["/var/run/memcached.sock"]
 
-  ## 采集间隔
+  ## Set true to enable election
+  election = true
+
+  ## Collect interval.
   # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
 
@@ -48,35 +51,17 @@ var (
 	defaultTimeout = 5 * time.Second
 )
 
-type inputMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-func (m inputMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
-}
-
-//nolint:lll
-func (m inputMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name:   inputName,
-		Fields: memFields,
-		Tags:   map[string]interface{}{"server": inputs.NewTagInfo("The host name from which metrics are gathered")},
-	}
-}
-
 type Input struct {
 	Servers     []string          `toml:"servers"`
 	UnixSockets []string          `toml:"unix_sockets"`
+	Election    bool              `toml:"election"`
 	Interval    string            `toml:"interval"`
 	Tags        map[string]string `toml:"tags"`
 
 	duration     time.Duration
-	collectCache []inputs.Measurement
+	collectCache []*point.Point
 
+	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
 }
 
@@ -96,6 +81,10 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&inputMeasurement{},
 	}
+}
+
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
 }
 
 func (i *Input) Collect() error {
@@ -129,7 +118,7 @@ func (i *Input) gatherServer(address string, unix bool) error {
 	if unix {
 		conn, err = net.DialTimeout("unix", address, defaultTimeout)
 		if err != nil {
-			io.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(inputName, err.Error())
 			return err
 		}
 		defer conn.Close() //nolint:errcheck
@@ -141,7 +130,7 @@ func (i *Input) gatherServer(address string, unix bool) error {
 
 		conn, err = net.DialTimeout("tcp", address, defaultTimeout)
 		if err != nil {
-			io.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(inputName, err.Error())
 			return err
 		}
 		defer conn.Close() //nolint:errcheck
@@ -190,12 +179,20 @@ func (i *Input) gatherServer(address string, unix bool) error {
 		}
 	}
 
-	i.collectCache = append(i.collectCache, &inputMeasurement{
-		name:   "memcached",
-		fields: fields,
-		tags:   tags,
-		ts:     time.Now(),
-	})
+	// i.collectCache = append(i.collectCache, &inputMeasurement{
+	// 	name:   "memcached",
+	// 	fields: fields,
+	// 	tags:   tags,
+	// 	ts:     time.Now(),
+	// })
+	metric := &inputMeasurement{
+		name:     inputName,
+		tags:     tags,
+		fields:   fields,
+		ts:       time.Now(),
+		election: i.Election,
+	}
+	i.collectCache = append(i.collectCache, metric.Point())
 	return nil
 }
 
@@ -245,16 +242,20 @@ func (i *Input) Run() {
 		start := time.Now()
 		if err := i.Collect(); err != nil {
 			l.Errorf("Collect: %s", err)
-			io.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(inputName, err.Error())
 		}
 
 		if len(i.collectCache) > 0 {
-			err := inputs.FeedMeasurement(inputName,
-				datakit.Metric,
-				i.collectCache,
-				&io.Option{CollectCost: time.Since(start)})
-			if err != nil {
+			// err := inputs.FeedMeasurement(inputName,
+			// 	datakit.Metric,
+			// 	i.collectCache,
+			// 	&dkio.Option{CollectCost: time.Since(start)})
+			// if err != nil {
+			// 	l.Errorf("FeedMeasurement: %s", err.Error())
+			// }
+			if err := i.feeder.Feed(inputName, point.Metric, i.collectCache, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("FeedMeasurement: %s", err.Error())
+				i.feeder.FeedLastError(inputName, err.Error())
 			}
 			i.collectCache = i.collectCache[:0]
 		}
@@ -279,10 +280,15 @@ func (i *Input) Terminate() {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		feeder:  dkio.DefaultFeeder(),
+		semStop: cliutils.NewSem(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			semStop: cliutils.NewSem(),
-		}
+		return defaultInput()
 	})
 }

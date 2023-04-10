@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 var address = "localhost:11212"
@@ -65,6 +66,7 @@ func TestGatherServer(t *testing.T) {
 	<-serverChan
 	memcached := &Input{
 		Servers: []string{address},
+		feeder:  dkio.DefaultFeeder(),
 	}
 
 	// err := memcached.gatherServer(address, false)
@@ -76,9 +78,8 @@ func TestGatherServer(t *testing.T) {
 	}
 
 	metric := memcached.collectCache[0]
-	point, _ := metric.LineProto()
-	assert.Equal(t, point.Name(), "memcached")
-	fields, _ := point.Fields()
+	assert.Equal(t, string(metric.Name()), "memcached")
+	fields := metric.InfluxFields()
 	values := make(map[string]string)
 	for k, v := range fields {
 		values[k] = fmt.Sprint(v)
