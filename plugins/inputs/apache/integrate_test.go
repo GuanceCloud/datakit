@@ -6,8 +6,11 @@
 package apache
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,6 +27,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+// ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
 func TestApacheInput(t *testing.T) {
 	start := time.Now()
@@ -79,24 +84,23 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	remote := testutils.GetRemote()
 
 	bases := []struct {
-		name             string // Also used as build image name:tag.
-		conf             string
-		dockerFileText   string // Empty if not build image.
-		exposedPorts     []string
-		cmd              []string
-		optsDB           []inputs.PointCheckOption
-		optsDBStats      []inputs.PointCheckOption
-		optsDBColStats   []inputs.PointCheckOption
-		optsDBShardStats []inputs.PointCheckOption
-		optsDBTopStats   []inputs.PointCheckOption
+		name           string // Also used as build image name:tag.
+		conf           string
+		dockerFileText string // Empty if not build image.
+		exposedPorts   []string
+		// opts           []inputs.PointCheckOption
+		mPathCount map[string]int
 	}{
 		{
-			name: "memcached:1.5",
-			conf: fmt.Sprintf(`servers = ["%s:11211"]
-			interval = "3s"
-		[tags]
-			tag1 = "val1"`, remote.Host),
-			exposedPorts: []string{"11211/tcp"},
+			name: "httpd:server-status",
+			conf: fmt.Sprintf(`url = "http://%s/server-status?auto"
+			interval = "1s"`, remote.Host),
+			dockerFileText: getDockerfile("2.4"),
+			exposedPorts:   []string{"80/tcp"},
+			// opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			mPathCount: map[string]int{
+				"/": 100,
+			},
 		},
 	}
 
@@ -124,13 +128,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
-			cmd:            base.cmd,
-
-			optsDB:           base.optsDB,
-			optsDBStats:      base.optsDBStats,
-			optsDBColStats:   base.optsDBColStats,
-			optsDBShardStats: base.optsDBShardStats,
-			optsDBTopStats:   base.optsDBTopStats,
+			// opts:           base.opts,
+			mPathCount: base.mPathCount,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -156,17 +155,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 type caseSpec struct {
 	t *testing.T
 
-	name             string
-	repo             string
-	repoTag          string
-	dockerFileText   string
-	exposedPorts     []string
-	optsDB           []inputs.PointCheckOption
-	optsDBStats      []inputs.PointCheckOption
-	optsDBColStats   []inputs.PointCheckOption
-	optsDBShardStats []inputs.PointCheckOption
-	optsDBTopStats   []inputs.PointCheckOption
-	cmd              []string
+	name           string
+	repo           string
+	repoTag        string
+	dockerFileText string
+	exposedPorts   []string
+	opts           []inputs.PointCheckOption
+	mPathCount     map[string]int
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -180,25 +175,25 @@ type caseSpec struct {
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	var opts []inputs.PointCheckOption
 	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
+	opts = append(opts, cs.opts...)
 
 	for _, pt := range pts {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		// case inputName:
-		// 	opts = append(opts, cs.optsDB...)
-		// 	opts = append(opts, inputs.WithDoc(&inputMeasurement{}))
+		case inputName:
+			opts = append(opts, inputs.WithDoc(&Measurement{}))
 
-		// 	msgs := inputs.CheckPoint(pt, opts...)
+			msgs := inputs.CheckPoint(pt, opts...)
 
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
 
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -253,6 +248,11 @@ func (cs *caseSpec) run() error {
 	}
 	defer os.RemoveAll(dockerFileDir)
 
+	extIP, err := externalIP()
+	if err != nil {
+		return err
+	}
+
 	var resource *dockertest.Resource
 
 	if len(cs.dockerFileText) == 0 {
@@ -263,8 +263,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{"MONGO_INITDB_ROOT_USERNAME=root", "MONGO_INITDB_ROOT_PASSWORD=example"},
-				Cmd:        cs.cmd,
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -272,7 +271,7 @@ func (cs *caseSpec) run() error {
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				// c.AutoRemove = true
+				c.AutoRemove = true
 			},
 		)
 	} else {
@@ -285,8 +284,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{"MONGO_INITDB_ROOT_USERNAME=root", "MONGO_INITDB_ROOT_PASSWORD=example"},
-				Cmd:        cs.cmd,
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -294,7 +292,7 @@ func (cs *caseSpec) run() error {
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				// c.AutoRemove = true
+				c.AutoRemove = true
 			},
 		)
 	}
@@ -313,6 +311,8 @@ func (cs *caseSpec) run() error {
 	}
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
+
+	cs.runHTTPTests(r)
 
 	var wg sync.WaitGroup
 
@@ -334,10 +334,6 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("point_latency", int64(time.Since(start)))
 	cs.cr.AddField("point_count", len(pts))
-
-	for _, v := range pts {
-		cs.t.Logf("pt = %s", v.LineProto())
-	}
 
 	cs.t.Logf("get %d points", len(pts))
 	if err := cs.checkPoint(pts); err != nil {
@@ -427,4 +423,90 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 	return nil
 }
 
+// Launch large amount of HTTP requests to remote nginx.
+func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
+	for path, count := range cs.mPathCount {
+		newURL := fmt.Sprintf("http://%s%s", r.Host, path)
+
+		var wg sync.WaitGroup
+		wg.Add(count)
+
+		for i := 0; i < count; i++ {
+			go func() {
+				defer wg.Done()
+
+				resp, err := http.Get(newURL)
+				if err != nil {
+					panic(err)
+				}
+				if err := resp.Body.Close(); err != nil {
+					panic(err)
+				}
+			}()
+		}
+
+		wg.Wait()
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
+
+func externalIP() (string, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 {
+			continue // interface down
+		}
+		if iface.Flags&net.FlagLoopback != 0 {
+			continue // loopback interface
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return "", err
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+			ip = ip.To4()
+			if ip == nil {
+				continue // not an ipv4 address
+			}
+			return ip.String(), nil
+		}
+	}
+	return "", errors.New("are you connected to the network?")
+}
+
+func getDockerfile(version string) string {
+	replacePair := map[string]string{
+		"VERSION":  version,
+		"a":        "$a",
+		"ALLOW_IP": "${DATAKIT_HOST}",
+	}
+
+	return os.Expand(dockerFileServerStatus, func(k string) string { return replacePair[k] })
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Dockerfiles.
+
+const dockerFileServerStatus = `FROM httpd:${VERSION}
+
+RUN sed -i '$a <Location /server-status>' /usr/local/apache2/conf/httpd.conf \
+  && sed -i '$a SetHandler server-status' /usr/local/apache2/conf/httpd.conf \
+  && sed -i '$a Order Deny,Allow' /usr/local/apache2/conf/httpd.conf \
+  && sed -i '$a Deny from all' /usr/local/apache2/conf/httpd.conf \
+  && sed -i '$a Allow from ${ALLOW_IP}' /usr/local/apache2/conf/httpd.conf \
+  && sed -i '$a </Location>' /usr/local/apache2/conf/httpd.conf`

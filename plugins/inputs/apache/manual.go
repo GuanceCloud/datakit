@@ -69,9 +69,10 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			openSlot:                 newCountFieldInfo("The amount of workers that Apache can still start before hitting the maximum number of workers"),
 		},
 		Tags: map[string]interface{}{
-			"url":            inputs.NewTagInfo("apache server status url"),
-			"server_version": inputs.NewTagInfo("apache server version"),
-			"server_mpm":     inputs.NewTagInfo("apache server Multi-Processing Module,prefork、worker and event"),
+			"url":            inputs.NewTagInfo("Apache server status url."),
+			"server_version": inputs.NewTagInfo("Apache server version."),
+			"server_mpm":     inputs.NewTagInfo("Apache server Multi-Processing Module,prefork、worker and event."),
+			"host":           inputs.NewTagInfo("Hostname of the DataKit."),
 		},
 	}
 }

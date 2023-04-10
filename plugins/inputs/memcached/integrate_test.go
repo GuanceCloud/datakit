@@ -79,21 +79,21 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	remote := testutils.GetRemote()
 
 	bases := []struct {
-		name             string // Also used as build image name:tag.
-		conf             string
-		dockerFileText   string // Empty if not build image.
-		exposedPorts     []string
-		cmd              []string
-		optsDB           []inputs.PointCheckOption
-		optsDBStats      []inputs.PointCheckOption
-		optsDBColStats   []inputs.PointCheckOption
-		optsDBShardStats []inputs.PointCheckOption
-		optsDBTopStats   []inputs.PointCheckOption
+		name           string // Also used as build image name:tag.
+		conf           string
+		dockerFileText string // Empty if not build image.
+		exposedPorts   []string
+		cmd            []string
+		// optsDB           []inputs.PointCheckOption
+		// optsDBStats      []inputs.PointCheckOption
+		// optsDBColStats   []inputs.PointCheckOption
+		// optsDBShardStats []inputs.PointCheckOption
+		// optsDBTopStats   []inputs.PointCheckOption
 	}{
 		{
 			name: "memcached:1.5",
 			conf: fmt.Sprintf(`servers = ["%s:11211"]
-			interval = "3s"
+			interval = "1s"
 		[tags]
 			tag1 = "val1"`, remote.Host),
 			exposedPorts: []string{"11211/tcp"},
@@ -101,7 +101,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "memcached:1.6",
 			conf: fmt.Sprintf(`servers = ["%s:11211"]
-			interval = "3s"
+			interval = "1s"
 		[tags]
 			tag1 = "val1"`, remote.Host),
 			exposedPorts: []string{"11211/tcp"},
@@ -134,12 +134,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			exposedPorts:   base.exposedPorts,
 			cmd:            base.cmd,
 
-			optsDB:           base.optsDB,
-			optsDBStats:      base.optsDBStats,
-			optsDBColStats:   base.optsDBColStats,
-			optsDBShardStats: base.optsDBShardStats,
-			optsDBTopStats:   base.optsDBTopStats,
-
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
 				Case:        base.name,
@@ -164,17 +158,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 type caseSpec struct {
 	t *testing.T
 
-	name             string
-	repo             string
-	repoTag          string
-	dockerFileText   string
-	exposedPorts     []string
-	optsDB           []inputs.PointCheckOption
-	optsDBStats      []inputs.PointCheckOption
-	optsDBColStats   []inputs.PointCheckOption
-	optsDBShardStats []inputs.PointCheckOption
-	optsDBTopStats   []inputs.PointCheckOption
-	cmd              []string
+	name           string
+	repo           string
+	repoTag        string
+	dockerFileText string
+	exposedPorts   []string
+	cmd            []string
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -194,7 +183,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 		switch measurement {
 		case inputName:
-			opts = append(opts, cs.optsDB...)
 			opts = append(opts, inputs.WithDoc(&inputMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -271,7 +259,6 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{"MONGO_INITDB_ROOT_USERNAME=root", "MONGO_INITDB_ROOT_PASSWORD=example"},
 				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,
@@ -293,7 +280,6 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{"MONGO_INITDB_ROOT_USERNAME=root", "MONGO_INITDB_ROOT_PASSWORD=example"},
 				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,
