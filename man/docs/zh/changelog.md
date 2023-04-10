@@ -1287,7 +1287,7 @@ volumes:
     - 新功能预计会发布在非稳定版上，待新功能稳定后，会发布新的稳定版本。如 1.3.x 新功能稳定后，会发布 1.4.0 稳定版，以合并 1.3.x 上的新功能
     - 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装非稳定版
 
-### Breaking Changes {cl-1.2.0-break-changes}
+### Breaking Changes {#cl-1.2.0-break-changes}
 
 **老版本的 DataKit 通过 `datakit --version` 已经无法推送新升级命令**，直接使用如下命令：
 
