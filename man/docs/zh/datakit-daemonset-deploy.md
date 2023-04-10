@@ -47,17 +47,14 @@
     * Kubernetes >= 1.14
     * Helm >= 3.0+
     
-    添加 DataKit Helm 仓库：
+    Helm 安装 Datakit（注意修改 `datakit.dataway_url` 参数）, 其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。更多 Helm 相关可参考 [Helm 管理配置](datakit-helm.md)
     
-    ```shell 
-    $ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
-    $ helm repo update 
-    ```
-    
-    Helm 安装 Datakit（注意修改 `datakit.dataway_url` 参数）
     
     ```shell
-    $ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+    $ helm install datakit datakit \
+         --repo  https://pubrepo.guance.com/chartrepo/datakit \
+         -n datakit --create-namespace \
+         --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
     ```
     
     查看部署状态：
@@ -69,8 +66,11 @@
     可以通过如下命令来升级：
     
     ```shell
-    $ helm repo update 
-    $ helm upgrade datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
+    $ helm -n datakit get  values datakit -o yaml > values.yaml
+    $ helm upgrade datakit datakit \
+        --repo  https://pubrepo.guance.com/chartrepo/datakit \
+        -n datakit \
+        -f values.yaml
     ```
     
     可以通过如下命令来卸载：
