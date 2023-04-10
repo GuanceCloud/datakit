@@ -382,7 +382,7 @@ sudo datakit --restart
 
 ## FAQ {#faq}
 
-### How to Troubleshoot Errors {#log}
+### :material-chat-question: How to Troubleshoot Errors {#log}
 
 If the results are not as expected, you can view the following log files:
 

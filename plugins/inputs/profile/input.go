@@ -391,7 +391,7 @@ func queryWorkSpaceUUID() (string, error) {
 		return workSpaceUUID, nil
 	}
 
-	tokens := config.Cfg.DataWay.GetTokens()
+	tokens := config.Cfg.Dataway.GetTokens()
 	if len(tokens) == 0 {
 		return "", fmt.Errorf("dataway token missing")
 	}
@@ -400,7 +400,7 @@ func queryWorkSpaceUUID() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("json marshal fail: %w", err)
 	}
-	resp, err := config.Cfg.DataWay.WorkspaceQuery(wsJSON)
+	resp, err := config.Cfg.Dataway.WorkspaceQuery(wsJSON)
 	if err != nil {
 		return "", fmt.Errorf("workspace query fail: %w, query body: %s", err, string(wsJSON))
 	}
@@ -425,7 +425,7 @@ func queryWorkSpaceUUID() (string, error) {
 func profilingProxyURL() (*url.URL, error) {
 	lastErr := fmt.Errorf("no dataway endpoint available now")
 
-	endpoints := config.Cfg.DataWay.GetAvailableEndpoints()
+	endpoints := config.Cfg.Dataway.GetAvailableEndpoints()
 
 	if len(endpoints) == 0 {
 		return nil, lastErr

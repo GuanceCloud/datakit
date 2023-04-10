@@ -84,9 +84,6 @@ type Option struct {
 	// 是否开启阻塞发送模式
 	BlockingMode bool
 
-	// 是否使用磁盘缓存
-	EnableDiskCache bool
-
 	MinFlushInterval         time.Duration
 	MaxMultilineLifeDuration time.Duration
 

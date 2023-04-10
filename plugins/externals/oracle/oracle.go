@@ -52,7 +52,7 @@ type Option struct {
 
 var (
 	opt            Option
-	l              = logger.DefaultSLogger("externals_oracle")
+	l              = logger.DefaultSLogger("oracle")
 	datakitPostURL = ""
 )
 

@@ -14,16 +14,13 @@ import (
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
-type dwMock struct {
-	pullCount int
-}
+type pullMock struct{ pullCount int }
 
-func (dw *dwMock) Pull(fts map[string][]string, inDW dataway.DataWay) ([]byte, error) {
-	filters := map[string][]string{
+func (dw *pullMock) Pull(_ string) ([]byte, error) {
+	filters := map[string]FilterConditions{
 		"logging": {
 			`{ source = "test1" and ( f1 in ["1", "2", "3"] )}`,
 			`{ source = "test2" and ( f1 in ["1", "2", "3"] )}`,
@@ -38,11 +35,14 @@ func (dw *dwMock) Pull(fts map[string][]string, inDW dataway.DataWay) ([]byte, e
 
 	dw.pullCount++
 
-	return json.Marshal(&filterPull{Filters: filters, PullInterval: time.Duration(dw.pullCount) * time.Millisecond})
+	return json.Marshal(&Filters{
+		Filters:      filters,
+		PullInterval: time.Duration(dw.pullCount) * time.Millisecond,
+	})
 }
 
 func TestFilter(t *testing.T) {
-	f := newFilter(&dwMock{})
+	f := newFilter(&pullMock{})
 
 	cases := []struct {
 		name      string
@@ -73,7 +73,7 @@ test1,service=test1 f1="1",f2=2i,f3=3 125`,
 		},
 	}
 
-	f.pull(nil, nil)
+	f.pull("")
 	for k, v := range f.conditions {
 		t.Logf("%s: %s", k, v)
 	}
@@ -93,11 +93,11 @@ test1,service=test1 f1="1",f2=2i,f3=3 125`,
 }
 
 func TestPull(t *testing.T) {
-	f := newFilter(&dwMock{})
+	f := newFilter(&pullMock{})
 
 	round := 3
 	for i := 0; i < round; i++ {
-		f.pull(nil, nil)
+		f.pull("")
 		// test if reset tick ok
 		<-f.tick.C
 	}

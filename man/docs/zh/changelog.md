@@ -21,8 +21,54 @@
 ### 功能优化 {#cl-x.x.x-opt}
 ### 兼容调整 {#cl-x.x.x-brk}
 
+branch changelog
+
+- 由于一些编译限制，拨测采集器不再支持在 Windows 上运行
+- 重构 sinker 实现，仅仅保留 Dataway 上的 Sinker 功能，同时将 datakit.conf 中 sinker 顶级配置挪到 dataway 配置字段下面（升级过程中会平滑修改掉）
+- Datakit 自身指标支持 Prometheus 指标体系，通过 curl 其 /metrics API 即可获取 Datakit 自身各种指标
+
 -->
 
+## 1.5.9(2023/04/06) {#cl-1.5.9}
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.9-new}
+
+- 新增[伺服服务](datakit-update.md#remote)，用来管理 Datakit 升级(#1441)
+- 新增[故障排查功能](datakit-tools-how-to.md#bug-report)(#1377)
+
+### 问题修复 {#cl-1.5.9-fix}
+
+- 修复 datakit 自身 CPU 指标获取，保持 monitor 和 `top` 命令获取到的 CPU 同步(#1547)
+- 修复 RUM 采集器 panic 错误(#1548)
+
+### 功能优化 {#cl-1.5.9-opt}
+
+- 优化升级功能，避免 *datakit.conf* 文件被破坏(#1449)
+- 优化 [cgroup 配置](datakit-conf.md#enable-cgroup)，移除 CPU 最小值限制(#1538)
+- 优化 *self* 采集器，我们能选择是否开启该采集器，同时对其采集性能做了一些优化(#1386)
+- 由于有了新的故障排查手段，简化了现有 monitor 展示(#1505)
+- [Prom 采集器](prom.md)允许增加 *instance tag*，以保持跟原生 Prometheus 体系一致(#1517)
+- [DCA](dca.md) 增加 Kubernetes 部署方式(#1522)
+- 优化日志采集的磁盘缓存性能(#1487)
+- 优化 Datakit 自身指标体系，暴露更多 [Prometheus 指标](apis.md#api-metrics)(#1492)
+- 优化 [/v1/write](apis.md#api-v1-write)(#1523)
+- 优化安装过程中 token 出错提示(#1541)
+- monitor 支持自动从 *datakit.conf* 中获取连接地址(#1547)
+- 取消 eBPF 对内核版本的强制检查，尽量支持更多的内核版本(#1542)
+- [Kafka 订阅采集](kafkamq.md)支持多行 json 功能(#1549)
+- 新增一大批集成测试(#1479/#1460/#1436/#1428/#1407)
+- 优化 IO 模块的配置，新增上传 worker 数配置字段(#1536)
+    - [Kubernetes](datakit-daemonset-deploy.md#env-io)
+    - [datakit.conf](datakit-conf.md#io-tuning)
+
+### 兼容调整 {#cl-1.5.9-brk}
+
+- 本次移除了大部分 Sinker 功能，只保留了 [Dataway 上的 Sinker 功能](datakit-sink-dataway.md)(#1444)。同时 sinker 的[主机安装配置](datakit-install.md#env-sink)以及 [Kubernetes 安装配置](datakit-daemonset-deploy.md#env-sinker)都做了调整，其中的配置方式也跟之前不同，请大家升级的时候，注意调整
+- 老版本的[发送失败磁盘缓存](datakit-conf.md#io-disk-cache)由于性能问题，我们替换了实现方式。新的实现方式，其缓存的二进制格式不再兼容，如果升级的话，老的数据将不被识别。建议先**手动删除老的缓存数据**（老数据可能会影响新版本磁盘缓存），然后再升级新版本的 Datakit。尽管如此，新版本的磁盘缓存，仍然是一个实验性功能，请谨慎使用
+- Datakit 自身指标体系做了更新，原有 DCA 获取到的指标将有一定的缺失，但不影响 DCA 本身功能的运行
+
+---
 ## 1.5.8(2023/03/24) {#cl-1.5.8}
 本次发布属于迭代发布，主要是一些问题修复和功能完善。
 
@@ -1241,7 +1287,7 @@ volumes:
     - 新功能预计会发布在非稳定版上，待新功能稳定后，会发布新的稳定版本。如 1.3.x 新功能稳定后，会发布 1.4.0 稳定版，以合并 1.3.x 上的新功能
     - 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装非稳定版
 
-### Breaking Changes {cl-1.2.0-break-changes}
+### Breaking Changes {#cl-1.2.0-break-changes}
 
 **老版本的 DataKit 通过 `datakit --version` 已经无法推送新升级命令**，直接使用如下命令：
 

@@ -101,7 +101,6 @@ json(_, item2.item3, item, delete_after_extract = true)
 # 如果尝试删除列表元素将无法通过脚本检查
 json(_, item2.item3[0], item, true, true)
 
-
 # 本地测试命令:
 # datakit pipeline j2.p -T '{"item": " not_space ", "item2":{"item3": [123]}}'
 # 报错:

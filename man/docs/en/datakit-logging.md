@@ -28,9 +28,9 @@ Based on the above characteristics, it is easy to think that DataKit only needs 
 
 > It is recommended to use a wildcard path (you can even configure files that do not exist at present but will appear in the future) instead of writing the log path to death, because the log of the application may not appear immediately (for example, the error log of some applications will only appear when the error occurs).
 
-One thing to note about disk file collection is that it only collects==log files that have been updated since DataKit started==, and if the configured log files (since DataKit started) have not been updated, their==historical data will not be collected==.
+One thing to note about disk file collection is that it only collects log files that have been updated since DataKit started, and if the configured log files (since DataKit started) have not been updated, their historical data will not be collected.
 
-Because of this feature, if the log file is continuously updated and the DataKit is stopped in the middle, ==the log in this empty window period will not be collected==, and some strategies may be taken later to alleviate this problem.
+Because of this feature, if the log file is continuously updated and the DataKit is stopped in the middle, the log in this empty window period will not be collected, and some strategies may be taken later to alleviate this problem.
 
 ## Container stdout Log {#container-stdout}
 
@@ -93,7 +93,7 @@ This method can only be used in k8s environment at present, and it has the follo
 After the above logs are collected, they all support subsequent Pipeline cutting, but the configuration forms are slightly different:
 
 - Disk Log Collection: Directly configured in logging.conf, where the pipeline name can be specified.
-- Container stdout log collection: ==Pipeline cannot be configured in container.conf==, because this is for log collection of all containers, and it is difficult to process all logs with a common Pipeline. Therefore, the [Pipeline configuration of related Pod must be specified](container-log.md#logging-with-annotation-or-label) by Annotation.
+- Container stdout log collection: Pipeline cannot be configured in container.conf, because this is for log collection of all containers, and it is difficult to process all logs with a common Pipeline. Therefore, the [Pipeline configuration of related Pod must be specified](container-log.md#logging-with-annotation-or-label) by Annotation.
 - Remote log collection: For TCP/UDP transport, you can also specify the Pipeline configuration in logging.conf. For HTTP transmission, developers need to [configure Pipeline on HTTP request parameters](logstreaming.md#args).
 - Sidecar log collection: In [the configuration of logfwd](logfwd.md#config), configure the Pipeline of the host Pod, which is essentially similar to the container stdout, and is a fixed-point tag for the Pod
 

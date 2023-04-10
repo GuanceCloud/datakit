@@ -71,23 +71,16 @@ func defaultPointOption() *PointOption {
 	}
 }
 
-func MustNewPoint(name string,
-	tags map[string]string,
-	fields map[string]interface{},
-	opt *PointOption,
-) *Point {
+func MustNewPoint(name string, tags map[string]string, fields map[string]interface{}, opt *PointOption) *Point {
 	pt, err := NewPoint(name, tags, fields, opt)
 	if err != nil {
-		panic(err.Error())
+		panic(fmt.Sprintf("NewPoint: %s, tags: %+#v, fields: %+#v", err.Error(), tags, fields))
 	}
+
 	return pt
 }
 
-func NewPoint(name string,
-	tags map[string]string,
-	fields map[string]interface{},
-	opt *PointOption,
-) (*Point, error) {
+func NewPoint(name string, tags map[string]string, fields map[string]interface{}, opt *PointOption) (*Point, error) {
 	if opt == nil {
 		opt = defaultPointOption()
 	}

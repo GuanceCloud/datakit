@@ -69,8 +69,8 @@ export JAVA_OPTIONS="${JAVA_OPTIONS} -javaagent:/path/to/skywalking-agent/skywal
 Copy configuration files and modify
 
 ```txt
-cd /usr/local/datakit/conf/kafkamq
-cp kafkamq.conf.sample kafka.conf
+cd /usr/local/datakit/conf.d/kafkamq
+cp kafkamq.conf.sample kafkamq.conf
 
 ```
 
@@ -93,7 +93,7 @@ Profile description
   # tls_sasl_plain_password = "pw"
 
   ## -1:Offset Newest, -2:Offset Oldest
-  #offsets=-2
+  offsets=-1
 
   # customer_tags = ["key1", "key2", ...]
 
@@ -153,10 +153,16 @@ Profile description
   #limit_sec = 100
   ## sample rate
   # sampling_rate = 1.0
+  #spilt_json_body = true
 
   ## todo: add other input-mq
  
 ```
+
+Notes on configuration files:
+1. `kafka_version`: The version length is 3, such as 1.0.0, 1.2.1, and so on.
+2. `offsets`: note: Newest or Oldest.
+3. `spilt_json_body`: When the data is an array and conforms to JSON format, it can be set to true and will be automatically cut into multiple rows of logs.
 
 Restart datakit
 

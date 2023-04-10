@@ -53,6 +53,8 @@ type Single struct {
 
 	partialContentBuff bytes.Buffer
 
+	enableDiskCache bool
+
 	tags map[string]string
 }
 
@@ -466,11 +468,15 @@ func (t *Single) feed(pending []string) {
 		return
 	}
 
-	if t.opt.EnableDiskCache {
-		t.feedToCache(pending)
-	} else {
-		t.feedToIO(pending)
+	if t.enableDiskCache {
+		err := t.feedToCache(pending)
+		if err == nil {
+			return
+		}
+		t.opt.log.Warnf("failed of save cache, err: %s, retry feed to io", err)
 	}
+
+	t.feedToIO(pending)
 }
 
 func (t *Single) feedToRemote(pending []string) {
@@ -482,7 +488,7 @@ func (t *Single) feedToRemote(pending []string) {
 	}
 }
 
-func (t *Single) feedToCache(pending []string) {
+func (t *Single) feedToCache(pending []string) error {
 	res := []*pbpoint.Point{}
 	// -1ns
 	timeNow := time.Now().Add(-time.Duration(len(pending)))
@@ -508,19 +514,18 @@ func (t *Single) feedToCache(pending []string) {
 	}
 
 	if len(res) == 0 {
-		return
+		return nil
 	}
 
 	encoder := pbpoint.GetEncoder(pbpoint.WithEncBatchSize(0), pbpoint.WithEncEncoding(pbpoint.Protobuf))
 
 	ptsDatas, err := encoder.Encode(res)
 	if err != nil {
-		t.opt.log.Warn(err)
-		return
+		return err
 	}
 	if len(ptsDatas) != 1 {
-		t.opt.log.Warnf("unexpected pbpoint encode")
-		return
+		err := fmt.Errorf("invalid pbpoints")
+		return err
 	}
 
 	pbdata := &diskcache.PBData{
@@ -536,14 +541,10 @@ func (t *Single) feedToCache(pending []string) {
 
 	b, err := proto.Marshal(pbdata)
 	if err != nil {
-		t.opt.log.Warn(err)
-		return
+		return err
 	}
 
-	if err := diskcache.Put(b); err != nil {
-		t.opt.log.Warn(err)
-		return
-	}
+	return diskcache.Put(b)
 }
 
 func (t *Single) feedToIO(pending []string) {

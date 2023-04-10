@@ -19,7 +19,7 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 
 ## 前置条件 {#requirements}
 
-由于该采集器的可执行文件体积较大，自 v1.2.13 起不再打包在 DataKit 中，但 DataKit 容器镜像默认包含该采集器；对于新装 DataKit，需执行安装命令进行安装，有以下两种方法：
+对于 v1.5.6 之前的 DataKit，需执行安装命令进行安装：
 
 - v1.2.13 ~ v1.2.18
   - 安装时[指定环境变量](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="datakit-ebpf"`
@@ -78,18 +78,13 @@ datakit.yaml 参考修改:
 
 目前 Linux 3.10 内核的项目生命周期已经结束，建议您升级至 Linux 4.9 及以上 LTS 版内核。
 
-除 CentOS 7.6+ 和 Ubuntu 16.04 以外，其他发行版本需要 Linux 内核版本高于 4.0, 可使用命令 `uname -r` 查看，如下：
-
-```shell
-uname -r 
-5.11.0-25-generic
-```
+除 CentOS 7.6+ 和 Ubuntu 16.04 以外，其他发行版本推荐 Linux 内核版本高于 4.9，否则可能无法启动 ebpf 采集器
 
 ???+ warning "内核限制"
 
-    DataKit 版本低于 v1.5.2 时，对于 CentOS 7.6+ 不能开启 ebpf-net 类别中的 httpflow 数据采集，由于其 Linux 3.10.x 内核不支持 eBPF 程序中的 BPF_PROG_TYPE_SOCKET_FILTER 类型;
+    DataKit 版本低于 **v1.5.2** 时，对于 CentOS 7.6+ 不能开启 ebpf-net 类别中的 httpflow 数据采集，由于其 Linux 3.10.x 内核不支持 eBPF 程序中的 BPF_PROG_TYPE_SOCKET_FILTER 类型;
 
-    DataKit 版本低于 v1.5.2 时，由于 BPF_FUNC_skb_load_bytes 不存在于 Linux Kernel <= 4.4，若需开启 httpflow，需要 Linux Kernel >= 4.5，此问题待后续优化；
+    DataKit 版本低于 **v1.5.2** 时，由于 BPF_FUNC_skb_load_bytes 不存在于 Linux Kernel <= 4.4，若需开启 httpflow，需要 Linux Kernel >= 4.5，此问题待后续优化；
 
 ### 已启用 SELinux 的系统 {#selinux}
 

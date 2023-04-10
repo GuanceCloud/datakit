@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	gcPoint "github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -112,13 +113,13 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 		Type: "logging",
 		Fields: map[string]interface{}{
 			"timestamp": &inputs.FieldInfo{
-				DataType: inputs.Int,
+				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.TimestampMS,
 				Desc:     "The timestamp(millisecond) when then the event ends.",
 			},
 			"duration": &inputs.FieldInfo{
-				DataType: inputs.Int,
+				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
 				Desc:     "Value in nanoseconds of the event's duration.",
@@ -214,7 +215,7 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "Number of sorts performed by the statement which used a full table scan.",
 			},
 			"timer_wait_ns": &inputs.FieldInfo{
-				DataType: inputs.Int,
+				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationNS,
 				Desc:     "Value in nanoseconds of the event's duration ",
@@ -227,7 +228,10 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":              &inputs.TagInfo{Desc: " The server host address"},
+			"host": &inputs.TagInfo{Desc: " The server host address"},
+			"server": &inputs.TagInfo{
+				Desc: "The server address containing both host and port",
+			},
 			"service":           &inputs.TagInfo{Desc: "The service name and the value is 'mysql'"},
 			"current_schema":    &inputs.TagInfo{Desc: "The name of the current schema."},
 			"plan_definition":   &inputs.TagInfo{Desc: "The plan definition of JSON format."},
@@ -239,10 +243,24 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 			"digest": &inputs.TagInfo{
 				Desc: "The digest hash value computed from the original normalized statement. ",
 			},
+			"digest_text":      &inputs.TagInfo{Desc: "The digest_text of the statement."},
 			"processlist_db":   &inputs.TagInfo{Desc: "The name of the database."},
 			"processlist_user": &inputs.TagInfo{Desc: "The user name of the client."},
 		},
 	}
+}
+
+// Point implement MeasurementV2.
+func (m *dbmSampleMeasurement) Point() *gcPoint.Point {
+	opts := gcPoint.DefaultLoggingOptions()
+
+	if m.election {
+		opts = append(opts, gcPoint.WithExtraTags(point.GlobalElectionTags()))
+	}
+
+	return gcPoint.NewPointV2([]byte(m.name),
+		append(gcPoint.NewTags(m.tags), gcPoint.NewKVs(m.fields)...),
+		opts...)
 }
 
 var eventsStatementsCollectionInterval = map[string]int{
@@ -734,7 +752,7 @@ func runExplainProcedure(conn *sql.Conn, statement string) (string, error) {
 
 func runFullyQualifiedExplainProcedure(conn *sql.Conn, statement string) (string, error) {
 	ctx := context.Background()
-	row := conn.QueryRowContext(ctx, fmt.Sprintf("CALL datakit.explain_statement('%s')", statement))
+	row := conn.QueryRowContext(ctx, fmt.Sprintf("CALL datakit.explain_statement('%s')", escapeQuote(statement)))
 	var plan string
 	if row.Err() != nil {
 		return plan, row.Err()
@@ -748,7 +766,7 @@ func runFullyQualifiedExplainProcedure(conn *sql.Conn, statement string) (string
 
 func runExplain(conn *sql.Conn, statement string) (string, error) {
 	ctx := context.Background()
-	row := conn.QueryRowContext(ctx, fmt.Sprintf("EXPLAIN FORMAT=json %s", statement))
+	row := conn.QueryRowContext(ctx, fmt.Sprintf("EXPLAIN FORMAT=json %s", escapeQuote(statement)))
 	var plan string
 	if row.Err() != nil {
 		return plan, row.Err()
@@ -758,4 +776,12 @@ func runExplain(conn *sql.Conn, statement string) (string, error) {
 	}
 
 	return plan, nil
+}
+
+// escapeQuote replaces all double quotes and single quotes with escaped ones.
+func escapeQuote(str string) string {
+	str = strings.ReplaceAll(str, `"`, `\"`)
+	str = strings.ReplaceAll(str, `'`, `\'`)
+
+	return str
 }

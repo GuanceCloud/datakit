@@ -26,16 +26,17 @@ import (
 var l = logger.DefaultSLogger("man")
 
 type Params struct {
-	InputName       string
-	Catalog         string
-	InputSample     string
-	Version         string
-	ReleaseDate     string
-	Measurements    []*inputs.MeasurementInfo
-	CSS             string
-	AvailableArchs  string
-	PipelineFuncs   string
-	PipelineFuncsEN string
+	InputName         string
+	Catalog           string
+	InputSample       string
+	Version           string
+	ReleaseDate       string
+	Measurements      []*inputs.MeasurementInfo
+	CSS               string
+	AvailableArchs    string
+	PipelineFuncs     string
+	PipelineFuncsEN   string
+	DatakitConfSample string
 }
 
 type i18n int
@@ -111,9 +112,10 @@ func BuildMarkdownManual(name string, opt *Option) (map[i18n][]byte, error) {
 		}
 	} else {
 		p = &Params{
-			Version:     ver,
-			ReleaseDate: git.BuildAt,
-			CSS:         css,
+			Version:           ver,
+			ReleaseDate:       git.BuildAt,
+			CSS:               css,
+			DatakitConfSample: DatakitConfSample,
 		}
 
 		l.Debugf("build doc for %s...", name)

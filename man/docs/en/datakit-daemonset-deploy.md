@@ -47,17 +47,13 @@ This document describes how to install DataKit in K8s via DaemonSet.
     * Kubernetes >= 1.14
     * Helm >= 3.0+
     
-    Add a DataKit Helm repository:
-    
-    ```shell 
-    $ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
-    $ helm repo update 
-    ```
-    
-    Helm installs Datakit (note modifying the `datakit.dataway_url` parameter)
+    Helm installs Datakit (note modifying the `datakit.dataway_url` parameter)，in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
     
     ```shell
-    $ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+    $ helm install datakit datakit \
+               --repo  https://pubrepo.guance.com/chartrepo/datakit \
+               -n datakit --create-namespace \
+               --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
     ```
     
     View deployment status:
@@ -69,8 +65,11 @@ This document describes how to install DataKit in K8s via DaemonSet.
     You can upgrade with the following command:
     
     ```shell
-    $ helm repo update 
-    $ helm upgrade datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
+    $ helm -n datakit get  values datakit -o yaml > values.yaml
+    $ helm upgrade datakit datakit \
+        --repo  https://pubrepo.guance.com/chartrepo/datakit \
+        -n datakit \
+        -f values.yaml
     ```
     
     You can uninstall it with the following command:
@@ -159,7 +158,7 @@ The values of the following environment variables are divided into the following
 - json: some of the more complex configurations that require setting environment variables in the form of a json string
 - bool: switch type. Given **any non-empty string** , this function is turned on. It is recommended to use `"on"` as its value when turned on. If it is not opened, it must be deleted or commented out.
 - string-list: a string separated by an English comma, commonly used to represent a list
-- duration: a string representation of the length of time, such as `10s` for 10 seconds, where the unit supports h/m/s/ms/us/ns. ==Don't give a negative value==.
+- duration: a string representation of the length of time, such as `10s` for 10 seconds, where the unit supports h/m/s/ms/us/ns. **Don't give a negative value**.
 - int: integer type
 - float: floating point type
 
@@ -247,39 +246,49 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 
 ### Sinker Configuring Related Environment Variables {#env-sinker}
 
-| Environment Variable Name  | Type   | Default Value | Required   | Description                            |
-| :---------    | :----  | :---   | :----- | :---                            |
-| `ENV_SINK_M`  | string | None     | No     | Specify the sink of Metric at installation time       |
-| `ENV_SINK_N`  | string | None     | No     | Specify the Network's sink at installation time      |
-| `ENV_SINK_K`  | string | None     | No     | Specify the sink of KeyEvent at installation time     |
-| `ENV_SINK_O`  | string | None     | No     | Specify the sink of Object during installation       |
-| `ENV_SINK_CO` | string | None     | No     | Specify the sink of CustomObject during installation |
-| `ENV_SINK_L`  | string | None     | No     | Specify Logging's sink at installation time      |
-| `ENV_SINK_T`  | string | None     | No     | Specify Tracing's sink at installation time      |
-| `ENV_SINK_R`  | string | None     | No     | Specify the sink of RUM at installation time          |
-| `ENV_SINK_S`  | string | None     | No     | Specify the sink of Security at installation time     |
-| `ENV_SINK_P`  | string | None     | No     | Specify the sink of Profiling during installation    |
+| Environment Variable Name | Type         | Default Value | Required | Description                                    |
+| :---------                | :----        | :---          | :-----   | :---                                           |
+| `ENV_SINKER`              | string(JSON) | None          | No       | Specify Dataway sinker on different categories |
 
-<!-- | `ENV_LOG_SINK_DETAIL` | string | 无     | 否     | 安装时指定开启 sink 详细日志(开启后会产生大量日志, 仅供调试, 不建议在生产环境中使用)。例: "yes"。 | -->
+ENV_SINKER used to configure [dataway sinker](datakit-sink-dataway.md), it's a JSON string like this:
 
-If you want to configure multiple sink addresses for a single data type, the sink addresses can be split by `||`, such as:
+```json
+[
+	{
+		"categories": ["L", "M"],
+		"filters": [
+			"{measurement='cpu' and tag='some-host'}"
+		],
+		"proxy": "",
+		"url": "http://openway.guance.com?token=<YOUR-TOKEN>"
+	}
+]
+```
+
+while set the ENV, we must convert the JSON into single line:
+
+```json
+[ { "categories": ["L", "M"], "filters": [ "{measurement='cpu' and tag='some-host'}" ], "url": "http://openway.guance.com?token=<YOUR-TOKEN>" } ]
+```
+
+If the one-line JSON applied in command line(such as Shell), we have to escape `"`:
 
 ```shell
-ENV_SINK_M = "dataway://?url=https://openway.guance.com&token=<TOKEN-1>&filters={host='user-ubuntu'}||dataway://?url=https://openway.guance.com&token=<TOKEN-2>&filters={host='user-centos'}"
-
-ENV_SINK_M = "influxdb://host1:8087?protocol=http&database=db1&precision=ns&timeout=15s||influxdb://host2:8087?protocol=http&database=db1&precision=ns&timeout=15s"
+DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cpu' and tag='some-host'}\" ], \"url\": \"http://openway.guance.com?token=<YOUR-TOKEN>\" } ]"
 ```
 
 ### IO Module Configuring Related Environment Variables {#env-io}
 
-| Environment Variable Name                  | Type     | Default Value | Required   | Description                               |
-| :---------                    | :---     | :---   | :----- | :---                               |
-| `ENV_IO_FILTERS`              | json     | None     | No     | Add [row protocol filter](datakit-filter) |
-| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s    | No     | IO transmission time frequency                    |
-| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000   | No     | Send buffer size            |
-| `ENV_IO_ENABLE_CACHE`         | bool     | -      | No     | Whether to open the disk cache that failed to send         |
-| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10     | No     | Disk size of send failure cache (in GB)  |
-| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s     | No     | Periodically send failed tasks cached on disk     |
+| Environment Variable Name     | Type     | Default Value      | Required | Description                                                               |
+| :---------                    | :---     | :---               | :-----   | :---                                                                      |
+| `ENV_IO_FILTERS`              | json     | None               | No       | Add [row protocol filter](datakit-filter)                                 |
+| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s                | No       | IO transmission time frequency                                            |
+| `ENV_IO_FLUSH_WORKERS`        | int      | `cpu_core * 2 + 1` | No       | IO flush workers(:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)) |
+| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000               | No       | Send buffer size                                                          |
+| `ENV_IO_ENABLE_CACHE`         | bool     | false              | No       | Whether to open the disk cache that failed to send                        |
+| `ENV_IO_CACHE_ALL`            | bool     | false              | 否       | cache failed data points of all categories                                |
+| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10                 | No       | Disk size of send failure cache (in GB)                                   |
+| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s                 | No       | Periodically send failed tasks cached on disk                             |
 
 ???+ note "description on buffer and queue"
 

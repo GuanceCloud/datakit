@@ -100,11 +100,11 @@ For all of the following data collections, a global tag named `host` is appended
 
 ## FAQ {#faq}
 
-### How to view the running log of Oracle Collector? {#faq-logging}
+### :material-chat-question: How to view the running log of Oracle Collector? {#faq-logging}
 
-Because the Oracle collector is an external collector, its logs are stored separately in <DataKit 安装目录>/externals/oracle.log.
+Because the Oracle collector is an external collector, its logs are stored separately in *[Datakit-install-path]/externals/oracle.log*.
 
-### After Oracle collection is configured, why is there no data displayed in monitor? {#faq-no-data}
+### :material-chat-question: After Oracle collection is configured, why is there no data displayed in monitor? {#faq-no-data}
 
 There are several possible reasons:
 
@@ -117,7 +117,7 @@ Even though you may already have a corresponding Oracle package on your machine,
 As the Oracle collector is compiled independently and CGO is turned on, its runtime requires glibc dependencies. On Linux, you can check whether there is any problem with the glibc dependencies of the current machine by the following command:
 
 ```shell
-$ ldd <DataKit 安装目录>/externals/oracle
+$ ldd <Datakit-install-path>/externals/oracle
 	linux-vdso.so.1 (0x00007ffed33f9000)
 	libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f70144e1000)
 	libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f70144be000)

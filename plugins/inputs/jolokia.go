@@ -22,6 +22,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -95,7 +96,7 @@ func (j *JolokiaAgent) Collect() {
 		case <-tick.C:
 			start := time.Now()
 			if err := j.Gather(); err != nil {
-				io.FeedLastError(j.PluginName, err.Error())
+				io.FeedLastError(j.PluginName, err.Error(), point.Metric)
 			}
 
 			if len(j.collectCache) > 0 {

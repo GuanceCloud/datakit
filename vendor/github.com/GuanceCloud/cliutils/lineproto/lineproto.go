@@ -28,19 +28,18 @@ type (
 type Option struct {
 	Time time.Time
 
-	Precision   string
-	PrecisionV2 Precision
-
-	ExtraTags map[string]string
-
 	DisabledTagKeys   []string
 	DisabledFieldKeys []string
+
+	Precision   string
+	ExtraTags   map[string]string
+	Callback    Callback
+	CallbackV2  CallbackV2
+	PrecisionV2 Precision
 
 	Strict             bool
 	EnablePointInKey   bool
 	DisableStringField bool // disable string field value
-	Callback           Callback
-	CallbackV2         CallbackV2
 
 	MaxTags,
 	MaxFields,

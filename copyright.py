@@ -163,9 +163,6 @@ class CopyrightLinter:
         failing_files = []
         for filepath in files:
             if self._has_copyright(filepath):
-                if self._debug:
-                    print(f"[ OK ] {filepath}")
-
                 continue
 
             print(f"[FAIL] {filepath}")

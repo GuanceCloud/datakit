@@ -6,7 +6,14 @@
 package dataway
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dnswatcher"
+	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dnswatcher"
+)
+
+const (
+	defaultDNSCacheFreq          = time.Minute
+	defaultDNSCacheLookUpTimeout = 10 * time.Second
 )
 
 type dnsUpdateCallBackFunc func() error

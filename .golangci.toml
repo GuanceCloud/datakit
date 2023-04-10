@@ -13,6 +13,9 @@ skip-dirs = [
 [linters-settings.govet]
 check-shadowing = false
 
+[linters-settings.loggercheck]
+zap = true
+
 [linters-settings.golint]
 min-confidence = 0.0
 

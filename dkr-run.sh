@@ -7,7 +7,7 @@ host_confd=$HOME/datakit-confd            # 将 HOME 目录下的 datakit-confd 
 dataway="https://openway.guance.com?token=tkn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx,https://openway.guance.com?token=tkn_df4exxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 # 绑定宿主机上的端口映射为 DataKit 的 HTTP 端口，自行改之
-host_port=19529
+host_port=9539
 
 # 将 datakit/agent 的配置文件和日志映射到 host 的 HOME 目录下
 mkdir -p ${host_confd}

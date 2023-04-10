@@ -26,16 +26,18 @@ func (*StdLogger) Log(msg string) {
 }
 
 type Tracer struct {
-	TraceEnabled bool   `toml:"trace_enabled" yaml:"trace_enabled"` // env: DD_TRACE_ENABLED
-	Host         string `toml:"host" yaml:"host"`                   // env: DD_AGENT_HOST
-	Port         string `toml:"port" yaml:"port"`                   // env: DD_TRACE_AGENT_PORT
-	agentAddr    string
-	Service      string                 `toml:"service" yaml:"service"`           // env: DD_SERVICE
-	Version      string                 `toml:"version" yaml:"version"`           // env: DD_VERSION
-	LogsStartup  bool                   `toml:"logs_startup" yaml:"logs_startup"` // env: DD_TRACE_STARTUP_LOGS
-	Debug        bool                   `toml:"debug" yaml:"debug"`               // env: DD_TRACE_DEBUG
-	Env          string                 `toml:"env" yaml:"env"`                   // env: DD_ENV
-	Tags         map[string]interface{} `toml:"tags" yaml:"tags"`                 // env: DD_TAGS
+	Host    string `toml:"host" yaml:"host"`       // env: DD_AGENT_HOST
+	Port    string `toml:"port" yaml:"port"`       // env: DD_TRACE_AGENT_PORT
+	Service string `toml:"service" yaml:"service"` // env: DD_SERVICE
+	Version string `toml:"version" yaml:"version"` // env: DD_VERSION
+	Env     string `toml:"env" yaml:"env"`         // env: DD_ENV
+
+	agentAddr string
+
+	LogsStartup  bool                   `toml:"logs_startup" yaml:"logs_startup"`   // env: DD_TRACE_STARTUP_LOGS
+	Debug        bool                   `toml:"debug" yaml:"debug"`                 // env: DD_TRACE_DEBUG
+	TraceEnabled bool                   `toml:"trace_enabled" yaml:"trace_enabled"` // env: DD_TRACE_ENABLED
+	Tags         map[string]interface{} `toml:"tags" yaml:"tags"`                   // env: DD_TAGS
 }
 
 func (t *Tracer) GetStartOptions(opts ...StartOption) []tracer.StartOption {

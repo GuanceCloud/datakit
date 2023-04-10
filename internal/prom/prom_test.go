@@ -204,6 +204,7 @@ up 1
 			}
 
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
+			p.opt.DisableInstanceTag = true
 
 			pts, err := p.CollectFromHTTP(p.opt.URL)
 			if tc.fail && assert.Error(t, err) {
@@ -855,6 +856,7 @@ up 1
 				t.Errorf("[%d] failed to init prom: %s", idx, err)
 			}
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
+			p.opt.DisableInstanceTag = true
 			var points []*point.Point
 			for _, u := range p.opt.URLs {
 				pts, err := p.CollectFromHTTP(u)

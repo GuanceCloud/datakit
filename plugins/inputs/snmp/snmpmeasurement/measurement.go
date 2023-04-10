@@ -56,7 +56,7 @@ func (m *SNMPObject) LineProto() (*dkpt.Point, error) {
 func (m *SNMPObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: SNMPObjectName,
-		Desc: "采集 SNMP 设备对象的数据",
+		Desc: "SNMP device object data.",
 		Type: "object",
 		Fields: map[string]interface{}{
 			"device_meta":    newOtherFieldInfo(inputs.String, inputs.String, inputs.UnknownUnit, "Device meta data (JSON format)."),
@@ -111,7 +111,7 @@ func (m *SNMPMetric) LineProto() (*dkpt.Point, error) {
 func (m *SNMPMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: SNMPMetricName,
-		Desc: "采集 SNMP 设备指标的数据",
+		Desc: "SNMP device metric data.",
 		Type: "metric",
 		Fields: map[string]interface{}{
 			"ifNumber":                          newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.UnknownUnit, "Number of interface."),

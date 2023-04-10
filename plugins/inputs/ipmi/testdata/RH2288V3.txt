@@ -1,0 +1,146 @@
+Inlet Temp       | 01h | ok  |  7.96 | 18 degrees C
+Outlet Temp      | 02h | ok  |  7.96 | 26 degrees C
+PCH Temp         | 03h | ns  |  7.96 | No Reading
+CPU1 Core Rem    | 04h | ns  |  3.96 | No Reading
+CPU2 Core Rem    | 05h | ns  |  3.97 | No Reading
+CPU1 DTS         | 06h | ns  |  3.96 | No Reading
+CPU2 DTS         | 07h | ns  |  3.97 | No Reading
+CPU1 VDDQ Temp   | 08h | ns  |  3.96 | No Reading
+CPU2 VDDQ Temp   | 09h | ns  |  3.97 | No Reading
+CPU1 VRD Temp    | 0Ah | ns  |  3.96 | No Reading
+CPU2 VRD Temp    | 0Bh | ns  |  3.97 | No Reading
+CPU1 MEM Temp    | 0Eh | ns  | 37.96 | No Reading
+CPU2 MEM Temp    | 0Fh | ns  | 37.97 | No Reading
+SYS 3.3V         | 0Ch | ns  |  7.96 | No Reading
+SYS 5V           | 0Dh | ns  |  7.96 | No Reading
+SYS 12V          | 12h | ns  |  7.96 | No Reading
+CPU1 VCore       | 10h | ns  |  3.96 | No Reading
+CPU2 VCore       | 11h | ns  |  3.97 | No Reading
+CPU1 DDR VDDQ    | 13h | ns  |  3.96 | No Reading
+CPU1 DDR VDDQ2   | 14h | ns  |  3.96 | No Reading
+CPU2 DDR VDDQ    | 15h | ns  |  3.97 | No Reading
+CPU2 DDR VDDQ2   | 16h | ns  |  3.97 | No Reading
+FAN1 F Speed     | 19h | ns  | 30.96 | No Reading
+FAN1 R Speed     | 1Ah | ns  | 30.96 | No Reading
+FAN2 F Speed     | 1Bh | ns  | 30.97 | No Reading
+FAN2 R Speed     | 1Ch | ns  | 30.97 | No Reading
+FAN3 F Speed     | 1Dh | ns  | 30.98 | No Reading
+FAN3 R Speed     | 1Eh | ns  | 30.98 | No Reading
+FAN4 F Speed     | 1Fh | ns  | 30.99 | No Reading
+FAN4 R Speed     | 20h | ns  | 30.99 | No Reading
+Power            | 25h | ok  |  7.96 | 36 Watts
+RAID Temp        | 17h | ok  | 11.96 | 24 degrees C
+Power1           | 21h | ok  | 10.96 | 18 Watts
+Power2           | 22h | ok  | 10.97 | 18 Watts
+CPU1 Prochot     | 18h | ok  |  3.96 | 
+CPU2 Prochot     | 23h | ok  |  3.97 | 
+CPU1 Status      | 24h | ok  |  3.96 | Presence detected
+CPU2 Status      | 26h | ok  |  3.97 | Presence detected
+CPU1 Memory      | 27h | ns  |  3.96 | No Reading
+CPU2 Memory      | 28h | ns  |  3.97 | No Reading
+FAN1 F Status    | 29h | ns  | 30.96 | No Reading
+FAN1 R Status    | 2Ah | ns  | 30.96 | No Reading
+FAN2 F Status    | 2Bh | ns  | 30.97 | No Reading
+FAN2 R Status    | 2Ch | ns  | 30.97 | No Reading
+FAN3 F Status    | 2Dh | ns  | 30.98 | No Reading
+FAN3 R Status    | 2Eh | ns  | 30.98 | No Reading
+FAN4 F Status    | 2Fh | ns  | 30.99 | No Reading
+FAN4 R Status    | 30h | ns  | 30.99 | No Reading
+PS1 Presence     | 31h | ok  |  7.96 | Device Present
+PS2 Presence     | 32h | ok  |  7.96 | Device Present
+DIMM000          | 33h | ns  | 32.96 | No Reading
+DIMM001          | 34h | ns  | 32.97 | No Reading
+DIMM010          | 35h | ns  | 32.99 | No Reading
+DIMM011          | 36h | ns  | 32.100 | No Reading
+DIMM020          | 37h | ns  | 32.102 | No Reading
+DIMM021          | 38h | ns  | 32.103 | No Reading
+DIMM030          | 39h | ns  | 32.105 | No Reading
+DIMM031          | 3Ah | ns  | 32.106 | No Reading
+DIMM100          | 3Bh | ns  | 32.108 | No Reading
+DIMM101          | 3Ch | ns  | 32.109 | No Reading
+DIMM110          | 3Dh | ns  | 32.111 | No Reading
+DIMM111          | 3Eh | ns  | 32.112 | No Reading
+DIMM120          | 3Fh | ns  | 32.114 | No Reading
+DIMM121          | 40h | ns  | 32.115 | No Reading
+DIMM130          | 41h | ns  | 32.117 | No Reading
+DIMM131          | 42h | ns  | 32.118 | No Reading
+AreaIntrusion    | 43h | ok  |  7.96 | 
+RTC Battery      | 44h | ok  |  7.96 | 
+PCH Status       | 45h | ok  |  7.96 | 
+CPU1 QPI Link    | 46h | ok  |  3.96 | 
+CPU2 QPI Link    | 47h | ok  |  3.97 | 
+System Notice    | 48h | ok  |  7.96 | 
+System Error     | 49h | ok  |  7.96 | 
+ACPI State       | 4Ah | ok  |  7.96 | S4/S5: soft-off
+SysFWProgress    | 4Bh | ns  |  7.96 | No Reading
+Power Button     | 4Ch | ok  |  7.96 | 
+SysRestart       | 4Dh | ok  |  7.96 | System Restart
+Boot Error       | 4Eh | ns  |  7.96 | No Reading
+Watchdog2        | 4Fh | ok  |  7.96 | 
+Mngmnt Health    | 50h | ok  |  7.96 | 
+UID Button       | 51h | ok  |  7.96 | 
+PwrOk Sig. Drop  | 52h | ok  |  7.96 | 
+PwrOn TimeOut    | 53h | ok  |  7.96 | 
+PwrCap Status    | 54h | ns  |  7.96 | No Reading
+PCIE Status      | 55h | ns  | 11.101 | No Reading
+HDD Backplane    | 56h | ok  |  7.96 | 
+HDD BP Status    | 57h | ok  |  7.96 | 
+Riser1 Card      | 58h | ok  |  7.96 | 
+Riser2 Card      | 59h | ok  |  7.96 | 
+SAS Cable        | 5Ah | ok  |  7.96 | 
+FAN1 F Presence  | 5Bh | ns  | 30.96 | No Reading
+FAN1 R Presence  | 5Ch | ns  | 30.96 | No Reading
+FAN2 F Presence  | 5Dh | ok  | 30.97 | 
+FAN2 R Presence  | 5Eh | ok  | 30.97 | 
+FAN3 F Presence  | 5Fh | ok  | 30.98 | 
+FAN3 R Presence  | 60h | ok  | 30.98 | 
+FAN4 F Presence  | 61h | ok  | 30.99 | 
+FAN4 R Presence  | 62h | ok  | 30.99 | 
+RAID Presence    | 63h | ok  |  7.96 | Device Present
+CPU Usage        | 64h | ns  |  7.96 | No Reading
+MEM Bandwidth    | 65h | ns  |  7.96 | No Reading
+LCD Status       | 66h | ok  |  7.96 | 
+LCD Presence     | 67h | ok  |  7.96 | Device Absent
+PS Redundancy    | 68h | ok  | 11.102 | 
+BMC Boot Up      | 69h | ok  |  7.96 | Device Enabled
+SEL Status       | 6Ah | ok  |  7.96 | 
+Op. Log Full     | 6Bh | ok  |  7.96 | 
+Sec. Log Full    | 6Ch | ok  |  7.96 | 
+RAID Status      | 6Dh | ns  | 11.96 | No Reading
+RAID PCIE ERR    | 6Eh | ns  | 11.96 | No Reading
+RAID Card BBU    | 6Fh | ns  | 11.96 | No Reading
+DISK0            | 70h | ok  |  4.96 | Drive Present
+DISK1            | 71h | ok  |  4.97 | Drive Present
+DISK2            | 72h | ok  |  4.98 | Drive Present
+DISK3            | 73h | ok  |  4.99 | Drive Present
+DISK4            | 74h | ok  |  4.100 | Drive Present
+DISK5            | 75h | ok  |  4.101 | Drive Present
+DISK6            | 76h | ok  |  4.102 | Drive Present
+DISK7            | 77h | ok  |  4.103 | Drive Present
+DISK8            | 78h | ok  |  4.104 | Drive Present
+DISK9            | 79h | ok  |  4.105 | Drive Present
+DISK10           | 7Ah | ok  |  4.106 | Drive Present
+DISK11           | 7Bh | ok  |  4.107 | Drive Present
+DISK12           | 7Ch | ok  |  4.108 | Drive Present
+DISK13           | 7Dh | ok  |  4.109 | 
+DISK14           | 7Eh | ok  |  4.110 | 
+DISK15           | 7Fh | ok  |  4.111 | 
+DISK16           | 80h | ok  |  4.112 | 
+DISK17           | 81h | ok  |  4.113 | 
+DISK18           | 82h | ok  |  4.114 | 
+DISK19           | 83h | ok  |  4.115 | 
+DISK20           | 84h | ok  |  4.116 | 
+DISK21           | 85h | ok  |  4.117 | 
+DISK22           | 86h | ok  |  4.118 | 
+DISK23           | 87h | ok  |  4.119 | 
+DISK24           | 88h | ok  |  4.120 | 
+DISKA            | 89h | ok  |  4.121 | 
+DISKB            | 8Ah | ok  |  4.122 | 
+DISKC            | 8Bh | ok  |  4.123 | 
+NIC1 Status      | 8Ch | ok  | 42.96 | 
+Port1 Link Down  | 8Dh | ok  | 42.96 | Slot is Disabled
+Port2 Link Down  | 8Eh | ok  | 42.96 | 
+PS1 Status       | 8Fh | ok  | 10.96 | 
+PS1 Fan Status   | 90h | ok  | 10.96 | 
+PS2 Status       | 91h | ok  | 10.97 | 
+PS2 Fan Status   | 92h | ok  | 10.97 | 

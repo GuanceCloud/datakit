@@ -382,7 +382,7 @@ sudo datakit --restart
 
 ## FAQ {#faq}
 
-### 如何排查错误 {#log}
+### :material-chat-question: 如何排查错误 {#log}
 
 如果结果不及预期, 可以查看以下日志文件:
 

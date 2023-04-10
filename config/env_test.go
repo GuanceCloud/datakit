@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
 )
 
 func TestLoadEnv(t *testing.T) {
@@ -19,6 +20,44 @@ func TestLoadEnv(t *testing.T) {
 		envs   map[string]string
 		expect *Config
 	}{
+		{
+			name: `sinkers`,
+			envs: map[string]string{
+				"ENV_SINKER": `[
+					{
+						"categories": ["L", "M"],
+						"filters": [
+							"{measurement='cpu' and tag='some-host'}"
+							],
+						"url": "http://dataway-host?token=some-token"
+					}
+				]`,
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.Dataway.Sinkers = append(cfg.Dataway.Sinkers, &dataway.Sinker{
+					Categories: []string{"L", "M"},
+					Filters:    []string{`{measurement='cpu' and tag='some-host'}`},
+					URL:        "http://dataway-host?token=some-token",
+				})
+
+				return cfg
+			}(),
+		},
+
+		{
+			name: `bad-sinkers`,
+			envs: map[string]string{
+				"ENV_SINKER": `[ some bad json `,
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				return cfg
+			}(),
+		},
+
 		{
 			name: "normal",
 			envs: map[string]string{
@@ -44,13 +83,12 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_HTTP_CLOSE_IDLE_CONNECTION":      "on",
 				"ENV_HTTP_TIMEOUT":                    "10s",
 				"ENV_ENABLE_ELECTION_NAMESPACE_TAG":   "ok",
-				"ENV_LOG_SINK_DETAIL":                 "true",
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
 
 				cfg.Name = "testing-datakit"
-				cfg.DataWayCfg = &dataway.DataWayCfg{
+				cfg.Dataway = &dataway.Dataway{
 					URLs:                []string{"http://host1.org", "http://host2.com"},
 					MaxIdleConnsPerHost: 123,
 					HTTPProxy:           "http://1.2.3.4:1234",
@@ -85,8 +123,6 @@ func TestLoadEnv(t *testing.T) {
 					"election_namespace": "some-default",
 				}
 
-				cfg.LogSinkDetail = true
-
 				return cfg
 			}(),
 		},
@@ -104,7 +140,7 @@ func TestLoadEnv(t *testing.T) {
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
-				cfg.IOConf.Filters = map[string][]string{
+				cfg.IO.Filters = map[string]filter.FilterConditions{
 					"logging": {
 						`{ source = 'datakit' and ( host in ['ubt-dev-01', 'tanb-ubt-dev-test'] )}`,
 						"{ source = 'abc' and ( host in ['ubt-dev-02', 'tanb-ubt-dev-test-1'] )}",
@@ -143,7 +179,7 @@ func TestLoadEnv(t *testing.T) {
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
-				cfg.IOConf.Filters = map[string][]string{
+				cfg.IO.Filters = map[string]filter.FilterConditions{
 					"logging": {
 						"{ source = 'datakit' and-xx ( host in ['ubt-dev-01', 'tanb-ubt-dev-test'] )} # and-xx is invalid",
 					},
@@ -259,7 +295,7 @@ func TestLoadEnv(t *testing.T) {
 			expect: func() *Config {
 				cfg := DefaultConfig()
 
-				cfg.DataWayCfg = &dataway.DataWayCfg{
+				cfg.Dataway = &dataway.Dataway{
 					URLs:                []string{"http://host1.org", "http://host2.com"},
 					MaxIdleConnsPerHost: 0,
 				}
@@ -277,20 +313,24 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_IO_CACHE_MAX_SIZE_GB": "8",
 
 				"ENV_IO_FLUSH_INTERVAL":       "2s",
+				"ENV_IO_FLUSH_WORKERS":        "1",
 				"ENV_IO_QUEUE_SIZE":           "123",
 				"ENV_IO_CACHE_CLEAN_INTERVAL": "100s",
+				"ENV_IO_CACHE_ALL":            "on",
 			},
 
 			expect: func() *Config {
 				cfg := DefaultConfig()
 
-				cfg.IOConf.FeedChanSize = 1 // force reset to 1
-				cfg.IOConf.MaxCacheCount = 8192
+				cfg.IO.FeedChanSize = 1 // force reset to 1
+				cfg.IO.MaxCacheCount = 8192
 
-				cfg.IOConf.EnableCache = true
-				cfg.IOConf.CacheSizeGB = 8
-				cfg.IOConf.FlushInterval = "2s"
-				cfg.IOConf.CacheCleanInterval = "100s"
+				cfg.IO.EnableCache = true
+				cfg.IO.CacheSizeGB = 8
+				cfg.IO.FlushInterval = "2s"
+				cfg.IO.FlushWorkers = 1
+				cfg.IO.CacheCleanInterval = "100s"
+				cfg.IO.CacheAll = true
 
 				return cfg
 			}(),
@@ -300,20 +340,19 @@ func TestLoadEnv(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			c := DefaultConfig()
-			os.Clearenv()
+
+			// setup envs
 			for k, v := range tc.envs {
-				if err := os.Setenv(k, v); err != nil {
-					t.Fatal(err)
-				}
-			}
-			if err := c.LoadEnvs(); err != nil {
-				t.Error(err)
-				return
+				assert.NoError(t, os.Setenv(k, v))
 			}
 
-			a := tc.expect.String()
-			b := c.String()
-			assert.Equal(t, a, b)
+			// load them
+			assert.NoError(t, c.LoadEnvs())
+			assert.Equal(t, tc.expect.String(), c.String(), "expect\n%s, get\n%s", tc.expect.String(), c.String())
+
+			t.Cleanup(func() {
+				os.Clearenv()
+			})
 		})
 	}
 }

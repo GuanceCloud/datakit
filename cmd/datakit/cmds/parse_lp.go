@@ -8,6 +8,7 @@ package cmds
 import (
 	"encoding/json"
 	"io/ioutil"
+	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
@@ -20,7 +21,7 @@ func parseLineProto() error {
 		return err
 	}
 
-	pts, err := models.ParsePoints(x)
+	pts, err := models.ParsePointsWithPrecision(x, time.Now(), "n")
 	if err != nil {
 		cp.Errorf("ParsePoints: %s\n", err.Error())
 		return err

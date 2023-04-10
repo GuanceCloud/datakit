@@ -6,6 +6,7 @@
 package mysql
 
 import (
+	gcPoint "github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -20,6 +21,19 @@ type tbMeasurement struct {
 // 生成行协议.
 func (m *tbMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+}
+
+// Point implement MeasurementV2.
+func (m *tbMeasurement) Point() *gcPoint.Point {
+	opts := gcPoint.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, gcPoint.WithExtraTags(point.GlobalElectionTags()))
+	}
+
+	return gcPoint.NewPointV2([]byte(m.name),
+		append(gcPoint.NewTags(m.tags), gcPoint.NewKVs(m.fields)...),
+		opts...)
 }
 
 // 指定指标.
@@ -77,6 +91,9 @@ func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"version": &inputs.TagInfo{
 				Desc: "The version number of the table's .frm file.",
+			},
+			"host": &inputs.TagInfo{
+				Desc: "The server host address",
 			},
 		},
 	}

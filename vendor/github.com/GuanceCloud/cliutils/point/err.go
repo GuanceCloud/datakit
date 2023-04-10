@@ -7,7 +7,10 @@ package point
 
 import "errors"
 
-var ErrNoFields = errors.New("no fields")
+var (
+	ErrNoFields            = errors.New("no fields")
+	ErrInvalidLineProtocol = errors.New("invalid lineprotocol")
+)
 
 // Point warnnings.
 const (

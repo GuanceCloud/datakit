@@ -6,6 +6,7 @@ DataKit 支持手动更新和自动更新两种方式。
 
 ## 前置条件 {#req}
 
+- 远程更新要求 Datakit 版本 >= 1.5.9
 - 自动更新要求 DataKit 版本 >= 1.1.6-rc1
 - 手动更新暂无版本要求
 
@@ -153,6 +154,67 @@ service cron restart
 2021-05-10T09:52:18.391+0800 INFO  ota-update datakit/main.go:219 New online version available: 1.1.6-rc0, commit 9bc4b960 (release at 2021-04-30 14:31:27)
 ...
 ``` 
+
+## 远程更新 {#remote}
+
+[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9) · [:octicons-beaker-24: Experimental](index.md#experimental)
+
+如果有大批量的 Datakit 需要更新，可以通过 HTTP API 的方式来升级 Datakit。同时在安装或升级新版 Datakit 时，需设置环境变量 `DK_UPGRADE_MANAGER=1`，例如：
+
+```shell
+DK_UPGRADE=1 \
+  DK_UPGRADE_MANAGER=1 \
+  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+```
+
+远程升级服务目前提供两个 API：
+
+- **查看当前 Datakit 版本及可用的升级版本**
+
+| API                                                   | 请求方式 |
+| ---                                                   | ---      |
+| `http://<datakit-ip-or-host>:9539/v1/datakit/version` | `GET`    |
+
+请求示例：
+
+```shell
+$ curl 'http://127.0.0.1:9539/v1/datakit/version'
+{
+    "Version": "1.5.7",
+    "Commit": "1a9xxxxxxx",
+    "Branch": "master",
+    "BuildAtUTC": "2023-03-29 07:03:35",
+    "GoVersion": "go version go1.18.3 darwin/arm64",
+    "Uploader": "someone",
+    "ReleasedInputs": "all",
+    "AvailableUpgrades": [
+        {
+            "version": "1.5.8",
+            "commit": "d8d2218354",
+            "date_utc": "2023-03-24 11:12:54",
+            "download_url": "https://static.guance.com/datakit/install.sh",
+            "version_type": "Online"
+        }
+    ]
+}
+```
+
+- **把当前 Datakit 升级到最新版本**
+
+| API                                                   | 请求方式 |
+| ---                                                   | ---      |
+| `http://<datakit-ip-or-host>:9539/v1/datakit/upgrade` | `POST`   |
+
+请求示例：
+
+```shell
+$ curl -X POST 'http://127.0.0.1:9539/v1/datakit/upgrade'
+{"msg":"success"}
+```
+
+???+ info
+    
+    升级过程根据网络带宽情况，可能耗时较长，请耐心等待 API 返回。
 
 ## 更新到指定版本 {#downgrade}
 

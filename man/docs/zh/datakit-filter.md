@@ -337,7 +337,7 @@ curl --location --request POST 'http://localhost:9529/v1/write/custom_object' \
 
 ## FAQ {#faq}
 
-### 查看同步下来的过滤器 {#debug-filter}
+### :material-chat-question: 查看同步下来的过滤器 {#debug-filter}
 
 [:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
 

@@ -100,7 +100,7 @@ disable = [
   "gocyclo",
 
   "dupl",     # 还不允许有相似代码
-  "maligned", # deprecated: https://github.com/mdempsky/maligned
+  #"maligned", # deprecated: https://github.com/mdempsky/maligned
 
   "cyclop",
   "gomoddirectives", # used `replace' in go.mod
@@ -127,4 +127,17 @@ exclude = []
 
 [[issues.exclude-rules]]
 path = "(.+)_test.go"
-linters = ["errcheck", "goconst", "funlen", "godot", "lll", "gosec", "stylecheck", "wsl", "unused", "deadcode", "unparam", "varcheck"]
+linters = [
+	"errcheck",
+	"goconst",
+	"funlen",
+	"godot",
+	"lll",
+	"gosec",
+	"stylecheck",
+	"wsl",
+	"unused",
+	"deadcode",
+	"unparam",
+	"maligned",
+	"varcheck"]

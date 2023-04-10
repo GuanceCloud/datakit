@@ -21,7 +21,9 @@ A typical configuration collector file has the following structure:
 	...
 ```
 
-> Because DataKit only searches for files in the `conf.d/` directory that are extended by `.conf`, all collector configurations==must be placed in the *conf.d* directory (or its lower subdirectory) and must be suffixed by *.conf*==, otherwise DataKit will ignore the processing of the configuration file.
+??? attention
+
+    Because DataKit only searches for files in the `conf.d/` directory that are extended by `.conf`, all collector configurations must be placed in the `conf.d` directory (or its lower subdirectory) and must be suffixed by `.conf`, otherwise DataKit will ignore the processing of the configuration file.
 
 ## How to Modify Collector Configuration {#modify-input-conf}
 
@@ -89,7 +91,7 @@ To sum up, the structure of the second multi-acquisition configuration is as fol
    ...
 ```
 
-This is actually a Toml array structure, ==This structure is suitable for multiple configurations of all collectors==.
+This is actually a Toml array structure, the structure is suitable for multiple configurations of all collectors.
 
 ???+ attention
 
@@ -123,7 +125,7 @@ Some collectors only allow a single instance to run, and even if multiple copies
 
 Sometimes, we want to temporarily shut down a collector, and there are two ways:
 
-1. Rename the corresponding collector conf, such as *mysql.conf* to  *mysql.conf.bak*，==Just make sure the file suffix is not conf==
+1. Rename the corresponding collector conf, such as *mysql.conf* to  *mysql.conf.bak*. Just make sure the file suffix is not *conf*
 1. In conf, comment out the corresponding collection configuration, such as:
 
 ```toml

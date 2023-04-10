@@ -35,6 +35,46 @@ rules:
 
 ---
 
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: datakits.guance.com
+spec:
+  group: guance.com
+  versions:
+    - name: v1beta1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                instances:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      k8sNamespace:
+                        type: string
+                      k8sDeployment:
+                        type: string
+                      datakit/logs:
+                        type: string
+                      inputConf:
+                        type: string
+  scope: Namespaced
+  names:
+    plural: datakits
+    singular: datakit
+    kind: Datakit
+    shortNames:
+    - dk
+
+---
+
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -109,7 +149,7 @@ spec:
         - name: ENV_GLOBAL_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
         - name: ENV_DEFAULT_ENABLED_INPUTS
-          value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
+          value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,self
         - name: ENV_ENABLE_ELECTION
           value: enable
         - name: ENV_LOG

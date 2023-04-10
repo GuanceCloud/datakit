@@ -341,6 +341,87 @@ log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip 
 
 After running the command, all log files in the log directory are packaged and compressed, and then uploaded to the specified store. Our engineers will find the corresponding file according to the hostname and Token of the uploaded log, and then troubleshoot the DataKit problem.
 
+## Collect DataKit Running information {#bug-report}
+
+[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9) · [:octicons-beaker-24: Experimental](index.md#experimental)
+
+When troubleshooting issues with DataKit, it is necessary to manually collect various relevant information such as logs, configuration files, and monitoring data. This process can be cumbersome. To simplify this process, DataKit provides a command that can retrieve all the relevant information at once and package it into a file. Usage is as follows:
+
+```shell
+datakit tool --bug-report
+```
+
+After successful execution, a zip file will be generated in the current directory with the naming format of `info-<timestamp in milliseconds>.zip`。
+
+The list of files is as follows:
+
+```shell
+
+├── config
+│   ├── container
+│   │   └── container.conf
+│   ├── datakit.conf
+│   ├── db
+│   │   ├── kafka.conf
+│   │   ├── mysql.conf
+│   │   └── sqlserver.conf
+│   ├── host
+│   │   ├── cpu.conf
+│   │   ├── disk.conf
+│   │   └── system.conf
+│   ├── network
+│   │   └── dialtesting.conf
+│   ├── profile
+│   │   └── profile.conf
+│   ├── pythond
+│   │   └── pythond.conf
+│   └── rum
+│       └── rum.conf
+├── env.txt
+├── metrics 
+│   ├── metric-1680513455403 
+│   ├── metric-1680513460410
+│   └── metric-1680513465416 
+├── log
+│   ├── gin.log
+│   └── log
+└── profile
+    ├── allocs
+    ├── heap
+    └── profile
+
+```
+
+Document Explanation
+
+| name      | dir  | description                                                                                            |
+| ---:      | ---: | ---:                                                                                                   |
+| `config`  | yes  | Configuration file, including the main configuration and the configuration of the enabled collectors.  |
+| `env.txt` | no   | The environment variables of the runtime.                                                              |
+| `log`     | yes  | Latest log files, such as log and gin log, not supporting `stdout` currently                           |
+| `profile` | yes  | When pprof is enabled, it will collect profile data.                                                   |
+| `metrics` | yes  | The data returned by the `/metrics` API is named in the format of `metric-<timestamp in milliseconds>` |
+
+**Mask sensitive information**
+
+When collecting information, sensitive information (such as tokens, passwords, etc.) will be automatically filtered and replaced. The specific rules are as follows:
+
+- Environment variables
+
+Only retrieve environment variables starting with `ENV_`, and mask environment variables containing `password`, `token`, `key`, `key_pw`, `secret` in their names by replacing them with `******`.
+
+- Configuration files 
+
+Perform the following regular expression replacement on the contents of the configuration file, for example:
+
+```
+https://openway.guance.com?token=tkn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` => `https://openway.guance.com?token=******
+pass = "1111111"` => `pass = "******"
+postgres://postgres:123456@localhost/test` => `postgres://postgres:******@localhost/test
+```
+
+After the above treatment, most sensitive information can be removed. Nevertheless, if there is still some sensitive information in the exported file, you can manually remove it.
+
 ## View Cloud Property Data {#cloudinfo}
 
 If the DataKit is installed on a cloud server (currently supports `aliyun/tencent/aws/hwcloud/azure`), you can view some of the cloud attribute data with the following commands, such as (marked `-` to indicate that the field is invalid):

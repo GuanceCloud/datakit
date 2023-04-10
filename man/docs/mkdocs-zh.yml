@@ -25,6 +25,8 @@ theme:
 markdown_extensions:
   - toc:
       permalink: True
+  - pymdownx.tasklist:
+      custom_checkbox: true
   - pymdownx.caret
   - pymdownx.mark
   - pymdownx.tilde
@@ -78,5 +80,5 @@ plugins:
   search:
     separator: '[\s\u200b\-]'
 
-#extra_css:
-#  - assets/stylesheets/extra.css
+extra_css:
+  - assets/stylesheets/extra.css

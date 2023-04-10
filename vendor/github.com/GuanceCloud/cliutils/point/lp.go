@@ -103,7 +103,7 @@ func parseLPPoints(data []byte, c *cfg) ([]*Point, error) {
 
 	lppts, err := models.ParsePointsWithPrecision(data, ptTime, c.precision.String())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %s", ErrInvalidLineProtocol, err)
 	}
 
 	res := []*Point{}

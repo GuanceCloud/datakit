@@ -137,6 +137,16 @@ if [ -n "$DK_UPGRADE" ]; then
 	upgrade=$DK_UPGRADE
 fi
 
+upgrade_manager=0
+if [ -n "$DK_UPGRADE_MANAGER" ]; then
+    upgrade_manager=$DK_UPGRADE_MANAGER
+fi
+
+upgrade_ip_whitelist=
+if [ -n "$DK_UPGRADE_IP_WHITELIST" ]; then
+    upgrade_ip_whitelist=$DK_UPGRADE_IP_WHITELIST
+fi
+
 def_inputs=
 if [ -n "$DK_DEF_INPUTS" ]; then
 	# shellcheck disable=SC2034
@@ -415,59 +425,9 @@ if [ -n "$DK_GIN_LOG" ]; then
 fi
 
 
-sink_metric=""
-if [ -n "$DK_SINK_M" ]; then
-	sink_metric=$DK_SINK_M
-fi
-
-sink_network=""
-if [ -n "$DK_SINK_N" ]; then
-	sink_network=$DK_SINK_N
-fi
-
-sink_keyevent=""
-if [ -n "$DK_SINK_K" ]; then
-	sink_keyevent=$DK_SINK_K
-fi
-
-sink_object=""
-if [ -n "$DK_SINK_O" ]; then
-	sink_object=$DK_SINK_O
-fi
-
-sink_custom_object=""
-if [ -n "$DK_SINK_CO" ]; then
-	sink_custom_object=$DK_SINK_CO
-fi
-
-sink_logging=""
-if [ -n "$DK_SINK_L" ]; then
-	sink_logging=$DK_SINK_L
-fi
-
-sink_tracing=""
-if [ -n "$DK_SINK_T" ]; then
-	sink_tracing=$DK_SINK_T
-fi
-
-sink_rum=""
-if [ -n "$DK_SINK_R" ]; then
-	sink_rum=$DK_SINK_R
-fi
-
-sink_security=""
-if [ -n "$DK_SINK_S" ]; then
-	sink_security=$DK_SINK_S
-fi
-
-sink_profile=""
-if [ -n "$DK_SINK_P" ]; then
-	sink_profile=$DK_SINK_P
-fi
-
-log_sink_detail=""
-if [ -n "$DK_LOG_SINK_DETAIL" ]; then
-	log_sink_detail=$DK_LOG_SINK_DETAIL
+sinker=""
+if [ -n "$DK_SINKER" ]; then
+	sinker=$DK_SINKER
 fi
 
 user_name=""
@@ -499,7 +459,7 @@ if [ "$upgrade" ]; then
 	printf "\n* Upgrading DataKit...\n"
 	$sudo_cmd $installer \
 		--install-log=${install_log} \
-		--upgrade --proxy="${proxy}" --installer_base_url="$installer_base_url"
+		--upgrade --upgrade-manager="${upgrade_manager}" --upgrade-ip-whitelist="${upgrade_ip_whitelist}" --proxy="${proxy}" --installer_base_url="$installer_base_url"
 else
 printf "\n* Installing DataKit...\n"
 $sudo_cmd $installer \
@@ -553,18 +513,9 @@ $sudo_cmd $installer \
 		--log-level="${log_level}" \
 		--log="${log}" \
 		--ipdb-type="${ipdb_type}" \
-		--sink-metric="${sink_metric}" \
-		--sink-network="${sink_network}" \
-		--sink-keyevent="${sink_keyevent}" \
-		--sink-object="${sink_object}" \
-		--sink-custom-object="${sink_custom_object}" \
-		--sink-logging="${sink_logging}" \
-		--sink-tracing="${sink_tracing}" \
-		--sink-rum="${sink_rum}" \
-		--sink-security="${sink_security}" \
-		--sink-profile="${sink_profile}" \
-		--log-sink-detail="${log_sink_detail}" \
+		--sinker="${sinker}" \
 		--user-name="${user_name}" \
+		--upgrade-ip-whitelist="${upgrade_ip_whitelist}" \
 		--gin-log="${gin_log}"
 		fi
 rm -rf $installer

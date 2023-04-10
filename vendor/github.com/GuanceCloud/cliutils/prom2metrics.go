@@ -79,6 +79,8 @@ func PromTextToMetrics(data io.Reader, measurementPrefix, defaultMeasurement str
 			p.summary()
 		case dto.MetricType_HISTOGRAM:
 			p.histogram()
+		case dto.MetricType_GAUGE_HISTOGRAM:
+			// do nothing
 		}
 
 		pts = append(pts, p.pts...)

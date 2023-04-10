@@ -97,7 +97,7 @@ datakit service -U # uninstall
 
 ## FAQ {#faq}
 
-### Windows 下启动失败 {#windows-start-fail}
+### :material-chat-question: Windows 下启动失败 {#windows-start-fail}
 
 DataKit 在 Windows 下以服务的形式启动，启动后会写入很多 Event 日志，随着日志的积累，可能会出现如下报错：
 

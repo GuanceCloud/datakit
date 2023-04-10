@@ -6,11 +6,11 @@
 
 ---
 
-Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标，并将指标采集到观测云，帮助监控分析 Postgresql 各种异常情况
+PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标，并将指标采集到观测云，帮助监控分析 PostgreSQL 各种异常情况
 
 ## 前置条件 {#reqirement}
 
-- Postgresql 版本 >= 9.0
+- PostgreSQL 版本 >= 9.0
 
 ## 配置 {#config}
 
@@ -20,7 +20,8 @@ Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标
 {{.InputSample}}
 ```
 
-配置好后，重启 DataKit 即可。
+配配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+
 
 ## 指标集 {#measurements}
 
@@ -42,7 +43,7 @@ Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标
 
 ## 日志采集 {#logging}
 
-- Postgresql 日志默认是输出至`stderr`，如需开启文件日志，可在 Postgresql 的配置文件 `/etc/postgresql/<VERSION>/main/postgresql.conf` ， 进行如下配置:
+- PostgreSQL 日志默认是输出至`stderr`，如需开启文件日志，可在 PostgreSQL 的配置文件 `/etc/postgresql/<VERSION>/main/postgresql.conf` ， 进行如下配置:
 
 ```
 logging_collector = on    # 开启日志写入文件功能
@@ -62,7 +63,7 @@ log_file_mode = 0644
 
 更多配置，请参考[官方文档](https://www.postgresql.org/docs/11/runtime-config-logging.html){:target="_blank"}。
 
-- Postgresql 采集器默认是未开启日志采集功能，可在 `conf.d/{{.Catalog}}/{{.InputName}}.conf` 中 将 `files` 打开，并写入 Postgresql 日志文件的绝对路径。比如:
+- PostgreSQL 采集器默认是未开启日志采集功能，可在 `conf.d/{{.Catalog}}/{{.InputName}}.conf` 中 将 `files` 打开，并写入 PostgreSQL 日志文件的绝对路径。比如:
 
 ```
 [[inputs.postgresql]]

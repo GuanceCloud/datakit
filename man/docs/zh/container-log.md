@@ -241,7 +241,7 @@ Datakit 在发现这个容器后，会根据其 `datakit/logs/inside` 的配置�
 
 ## FAQ {#faq}
 
-### 容器日志的特殊字节码过滤 {#special-char-filter}
+### :material-chat-question: 容器日志的特殊字节码过滤 {#special-char-filter}
 
 容器日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以
 
@@ -263,7 +263,7 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 每一条文本的处理耗时将额外增加 `1616 ns` 不等。如果日志中不带有颜色等修饰，不要开启该功能。
 
-### 容器日志采集的 source 设置 {#config-logging-source}
+### :material-chat-question: 容器日志采集的 source 设置 {#config-logging-source}
 
 在容器环境下，日志来源（`source`）设置是一个很重要的配置项，它直接影响在页面上的展示效果。但如果挨个给每个容器的日志配置一个 source 未免残暴。如果不手动配置容器日志来源，DataKit 有如下规则（优先级递减）用于自动推断容器日志的来源：
 
