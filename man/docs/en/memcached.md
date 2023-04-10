@@ -10,7 +10,7 @@ Memcached collector can collect the running status metrics from Memcached instan
 
 ## Preconditions {#requirements}
 
-- Memcached version >= 1.5.0
+- Memcached version >= `1.5.0`. Already tested version: `1.5.x`, `1.6.x`;
 
 ## Configuration {#config}
 
