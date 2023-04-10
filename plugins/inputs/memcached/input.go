@@ -255,7 +255,6 @@ func (i *Input) Run() {
 			// }
 			if err := i.feeder.Feed(inputName, point.Metric, i.collectCache, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("FeedMeasurement: %s", err.Error())
-				i.feeder.FeedLastError(inputName, err.Error())
 			}
 			i.collectCache = i.collectCache[:0]
 		}

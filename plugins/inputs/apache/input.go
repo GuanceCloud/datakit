@@ -25,7 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -62,6 +62,7 @@ type Input struct {
 	pause    bool
 	pauseCh  chan bool
 
+	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
 }
 
@@ -80,16 +81,6 @@ func (n *Input) LogExamples() map[string]map[string]string {
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
-
-func newInput() *Input {
-	return &Input{
-		Interval: datakit.Duration{Duration: time.Second * 30},
-		pauseCh:  make(chan bool, maxPauseCh),
-		Election: true,
-
-		semStop: cliutils.NewSem(),
-	}
-}
 
 func (*Input) SampleConfig() string { return sample }
 
@@ -136,7 +127,7 @@ func (n *Input) RunPipeline() {
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		iod.FeedLastError(inputName, err.Error(), point.Metric)
+		n.feeder.FeedLastError(inputName, err.Error(), point.Metric)
 		return
 	}
 
@@ -185,15 +176,19 @@ func (n *Input) Run() {
 
 			m, err := n.getMetric()
 			if err != nil {
-				iod.FeedLastError(inputName, err.Error(), point.Metric)
+				n.feeder.FeedLastError(inputName, err.Error(), point.Metric)
 			}
 
 			if m != nil {
-				if err := inputs.FeedMeasurement(inputName,
-					datakit.Metric,
-					[]inputs.Measurement{m},
-					&iod.Option{CollectCost: time.Since(n.start)}); err != nil {
-					l.Warnf("inputs.FeedMeasurement: %s, ignored", err)
+				// if err := inputs.FeedMeasurement(inputName,
+				// 	datakit.Metric,
+				// 	[]inputs.Measurement{m},
+				// 	&dkio.Option{CollectCost: time.Since(n.start)}); err != nil {
+				// 	l.Warnf("inputs.FeedMeasurement: %s, ignored", err)
+				// }
+
+				if err := n.feeder.Feed(inputName, point.Metric, []*point.Point{m}, &dkio.Option{CollectCost: time.Since(n.start)}); err != nil {
+					l.Warnf("inputs.FeedMeasurement: %s, ignored", err.Error())
 				}
 			}
 
@@ -232,7 +227,7 @@ func (n *Input) createHTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (n *Input) getMetric() (*Measurement, error) {
+func (n *Input) getMetric() (*point.Point, error) {
 	n.start = time.Now()
 	req, err := http.NewRequest("GET", n.URL, nil)
 	if err != nil {
@@ -255,7 +250,7 @@ func (n *Input) getMetric() (*Measurement, error) {
 	return n.parse(resp.Body)
 }
 
-func (n *Input) parse(body io.Reader) (*Measurement, error) {
+func (n *Input) parse(body io.Reader) (*point.Point, error) {
 	sc := bufio.NewScanner(body)
 
 	tags := map[string]string{
@@ -355,7 +350,7 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 	}
 	metric.tags = tags
 
-	return metric, nil
+	return metric.Point(), nil
 }
 
 func (n *Input) setHost() error {
@@ -398,8 +393,18 @@ func (n *Input) Resume() error {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		Interval: datakit.Duration{Duration: time.Second * 30},
+		pauseCh:  make(chan bool, maxPauseCh),
+		Election: true,
+		feeder:   dkio.DefaultFeeder(),
+		semStop:  cliutils.NewSem(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return newInput()
+		return defaultInput()
 	})
 }

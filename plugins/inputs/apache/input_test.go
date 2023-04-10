@@ -76,8 +76,7 @@ func TestGetMetric(t *testing.T) {
 
 	tu.Assert(t, m != nil, "Measurement should not nil")
 
-	p, err := m.LineProto()
-	tu.Ok(t, err)
+	p := m.LPPoint()
 	t.Logf(p.String())
 }
 
