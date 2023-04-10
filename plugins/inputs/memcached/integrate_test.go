@@ -91,90 +91,21 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		optsDBTopStats   []inputs.PointCheckOption
 	}{
 		{
-			name: "mongo:3.0",
-			conf: fmt.Sprintf(`interval = "10s"
-			servers = ["mongodb://root:example@%s:27017"]
-			gather_replica_set_stats = false
-			gather_cluster_stats = false
-			gather_per_db_stats = true
-			gather_per_col_stats = true
-			col_stats_dbs = []
-			gather_top_stat = true
-			election = true
+			name: "memcached:1.5",
+			conf: fmt.Sprintf(`servers = ["%s:11211"]
+			interval = "3s"
 		[tags]
 			tag1 = "val1"`, remote.Host),
-			exposedPorts: []string{"27017/tcp"},
-			cmd:          []string{"docker-entrypoint.sh", "mongod", "--smallfiles"},
-			optsDB: []inputs.PointCheckOption{
-				inputs.WithOptionalFields("wtcache_unmodified_pages_evicted", "percent_cache_dirty", "wtcache_max_bytes_configured", "percent_cache_used", "wtcache_internal_pages_evicted", "wtcache_pages_read_into", "wtcache_server_evicting_pages", "wtcache_app_threads_page_write_count", "wtcache_app_threads_page_read_time", "wtcache_pages_written_from", "wtcache_current_bytes", "wtcache_app_threads_page_read_count", "wtcache_pages_requested_from", "wtcache_pages_evicted_by_app_thread", "wtcache_tracked_dirty_bytes", "wtcache_worker_thread_evictingpages", "wtcache_bytes_written_from", "wtcache_pages_queued_for_eviction", "wtcache_bytes_read_into", "wtcache_modified_pages_evicted", "non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
-			},
+			exposedPorts: []string{"11211/tcp"},
 		},
-
-		// {
-		// 	name: "mongo:4.0",
-		// 	conf: fmt.Sprintf(`interval = "10s"
-		// 	servers = ["mongodb://root:example@%s:27017"]
-		// 	gather_replica_set_stats = false
-		// 	gather_cluster_stats = false
-		// 	gather_per_db_stats = true
-		// 	gather_per_col_stats = true
-		// 	col_stats_dbs = []
-		// 	gather_top_stat = true
-		// 	election = true
-		// [tags]
-		// 	tag1 = "val1"`, remote.Host),
-		// 	exposedPorts: []string{"27017/tcp"},
-		// 	optsDB: []inputs.PointCheckOption{
-		// 		inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
-		// 	},
-		// 	optsDBStats: []inputs.PointCheckOption{
-		// 		inputs.WithOptionalFields("wtcache_unmodified_pages_evicted", "percent_cache_dirty", "wtcache_app_threads_page_read_count", "wtcache_max_bytes_configured", "wtcache_pages_evicted_by_app_thread", "wtcache_pages_queued_for_eviction", "wtcache_current_bytes", "wtcache_modified_pages_evicted", "wtcache_app_threads_page_write_count", "wtcache_worker_thread_evictingpages", "wtcache_bytes_read_into", "wtcache_tracked_dirty_bytes", "wtcache_pages_written_from", "wtcache_pages_requested_from", "wtcache_bytes_written_from", "percent_cache_used", "wtcache_app_threads_page_read_time", "wtcache_internal_pages_evicted", "wtcache_server_evicting_pages", "wtcache_pages_read_into"), // nolint:lll
-		// 	},
-		// },
-
-		// {
-		// 	name: "mongo:5.0",
-		// 	conf: fmt.Sprintf(`interval = "10s"
-		// 	servers = ["mongodb://root:example@%s:27017"]
-		// 	gather_replica_set_stats = false
-		// 	gather_cluster_stats = false
-		// 	gather_per_db_stats = true
-		// 	gather_per_col_stats = true
-		// 	col_stats_dbs = []
-		// 	gather_top_stat = true
-		// 	election = true
-		// [tags]
-		// 	tag1 = "val1"`, remote.Host),
-		// 	exposedPorts: []string{"27017/tcp"},
-		// 	optsDB: []inputs.PointCheckOption{
-		// 		inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
-		// 	},
-		// 	optsDBStats: []inputs.PointCheckOption{
-		// 		inputs.WithOptionalFields("wtcache_unmodified_pages_evicted", "percent_cache_dirty", "wtcache_app_threads_page_read_count", "wtcache_max_bytes_configured", "wtcache_pages_evicted_by_app_thread", "wtcache_pages_queued_for_eviction", "wtcache_current_bytes", "wtcache_modified_pages_evicted", "wtcache_app_threads_page_write_count", "wtcache_worker_thread_evictingpages", "wtcache_bytes_read_into", "wtcache_tracked_dirty_bytes", "wtcache_pages_written_from", "wtcache_pages_requested_from", "wtcache_bytes_written_from", "percent_cache_used", "wtcache_app_threads_page_read_time", "wtcache_internal_pages_evicted", "wtcache_server_evicting_pages", "wtcache_pages_read_into"), // nolint:lll
-		// 	},
-		// },
-
-		// {
-		// 	name: "mongo:6.0",
-		// 	conf: fmt.Sprintf(`interval = "10s"
-		// 	servers = ["mongodb://root:example@%s:27017"]
-		// 	gather_replica_set_stats = false
-		// 	gather_cluster_stats = false
-		// 	gather_per_db_stats = true
-		// 	gather_per_col_stats = true
-		// 	col_stats_dbs = []
-		// 	gather_top_stat = true
-		// 	election = true
-		// [tags]
-		// 	tag1 = "val1"`, remote.Host),
-		// 	exposedPorts: []string{"27017/tcp"},
-		// 	optsDB: []inputs.PointCheckOption{
-		// 		inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
-		// 	},
-		// 	optsDBStats: []inputs.PointCheckOption{
-		// 		inputs.WithOptionalFields("wtcache_unmodified_pages_evicted", "percent_cache_dirty", "wtcache_app_threads_page_read_count", "wtcache_max_bytes_configured", "wtcache_pages_evicted_by_app_thread", "wtcache_pages_queued_for_eviction", "wtcache_current_bytes", "wtcache_modified_pages_evicted", "wtcache_app_threads_page_write_count", "wtcache_worker_thread_evictingpages", "wtcache_bytes_read_into", "wtcache_tracked_dirty_bytes", "wtcache_pages_written_from", "wtcache_pages_requested_from", "wtcache_bytes_written_from", "percent_cache_used", "wtcache_app_threads_page_read_time", "wtcache_internal_pages_evicted", "wtcache_server_evicting_pages", "wtcache_pages_read_into"), // nolint:lll
-		// 	},
-		// },
+		{
+			name: "memcached:1.6",
+			conf: fmt.Sprintf(`servers = ["%s:11211"]
+			interval = "3s"
+		[tags]
+			tag1 = "val1"`, remote.Host),
+			exposedPorts: []string{"11211/tcp"},
+		},
 	}
 
 	var cases []*caseSpec
@@ -276,66 +207,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
-
-		// case MongoDBStats:
-		// 	opts = append(opts, cs.optsDBStats...)
-		// 	opts = append(opts, inputs.WithDoc(&mongodbDBMeasurement{}))
-
-		// 	msgs := inputs.CheckPoint(pt, opts...)
-
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
-
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
-
-		// case MongoDBColStats:
-		// 	opts = append(opts, cs.optsDBColStats...)
-		// 	opts = append(opts, inputs.WithDoc(&mongodbColMeasurement{}))
-
-		// 	msgs := inputs.CheckPoint(pt, opts...)
-
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
-
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
-
-		// case MongoDBShardStats:
-		// 	opts = append(opts, cs.optsDBShardStats...)
-		// 	opts = append(opts, inputs.WithDoc(&mongodbShardMeasurement{}))
-
-		// 	msgs := inputs.CheckPoint(pt, opts...)
-
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
-
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
-
-		// case MongoDBTopStats:
-		// 	opts = append(opts, cs.optsDBTopStats...)
-		// 	opts = append(opts, inputs.WithDoc(&mongodbTopMeasurement{}))
-
-		// 	msgs := inputs.CheckPoint(pt, opts...)
-
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
-
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -504,6 +375,10 @@ func (cs *caseSpec) getPool(endpoint string) (*dockertest.Pool, error) {
 }
 
 func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err error) {
+	if len(cs.dockerFileText) == 0 {
+		return
+	}
+
 	tmpDir, err := ioutil.TempDir("", "dockerfiles_")
 	if err != nil {
 		cs.t.Logf("ioutil.TempDir failed: %s", err.Error())

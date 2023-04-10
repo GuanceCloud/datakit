@@ -504,6 +504,10 @@ func (cs *caseSpec) getPool(endpoint string) (*dockertest.Pool, error) {
 }
 
 func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err error) {
+	if len(cs.dockerFileText) == 0 {
+		return
+	}
+
 	tmpDir, err := ioutil.TempDir("", "dockerfiles_")
 	if err != nil {
 		cs.t.Logf("ioutil.TempDir failed: %s", err.Error())
