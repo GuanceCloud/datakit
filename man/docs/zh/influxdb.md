@@ -10,7 +10,8 @@ InfluxDB 采集器，用于采集 InfluxDB 的数据。
 
 ## 前置条件 {#requirements}
 
-InfluxDB 采集器仅适用于 InfluxDB v1.x, 对于 InfluxDB v2.x 需要使用 prom 采集器进行采集
+- InfluxDB 采集器，仅适用于 InfluxDB v1.x
+- InfluxDB v2.x ，需要使用 prom 采集器进行采集
 
 ## InfluxDB 采集器配置 {#config}
 
