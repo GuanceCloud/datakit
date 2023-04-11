@@ -22,9 +22,9 @@ helm pull datakit --repo https://pubrepo.guance.com/chartrepo/datakit --untar
 ```yaml
 ...
 datakit:
-  ## Datakit will send the indicator data to dataway. Please be sure to change the parameters
-  ## @param dataway_url - string - optional - default: 'https://guance.com'
-  ## The host of the DataKit intake server to send Agent data to, only set this option
+  # Datakit will send the indicator data to dataway. Please be sure to change the parameters
+  # @param dataway_url - string - optional - default: 'https://guance.com'
+  # The host of the DataKit intake server to send Agent data to, only set this option
   dataway_url: https://openway.guance.com?token=tkn_xxxxxxxxxx
 ...
 ```
@@ -37,8 +37,8 @@ datakit:
 ..
 datakit:
   ...
-  ## @param default_enabled_inputs - string
-  ## The default open collector list, format example: input1, input2, input3
+  # @param default_enabled_inputs - string
+  # The default open collector list, format example: input1, input2, input3
   default_enabled_inputs: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,rum
 ....
 ```
@@ -49,8 +49,8 @@ datakit:
 ```yaml
 datakit:
   ...
-  ## @param global_tags - string - optional - default: 'host=__datakit_hostname,host_ip=__datakit_ip'
-  ## It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas)
+  # @param global_tags - string - optional - default: 'host=__datakit_hostname,host_ip=__datakit_ip'
+  # It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas)
   global_tags: host=__datakit_hostname,host_ip=__datakit_ip,cluster_name_k8s=prod  
 ```
 
@@ -60,10 +60,10 @@ datakit:
 
 
 ```yaml
-## @param extraEnvs - array - optional
-## extra env Add env for customization
-## more, see: https://docs.guance.com/datakit/datakit-daemonset-deploy/#using-k8-env
-## You can add more than one parameter  
+# @param extraEnvs - array - optional
+# extra env Add env for customization
+# more, see: https://docs.guance.com/datakit/datakit-daemonset-deploy/#using-k8-env
+# You can add more than one parameter  
 extraEnvs:
  - name: ENV_NAMESPACE
    value: government-prod
@@ -188,41 +188,41 @@ helm uninstall datakit -n datakit
 
     #
     datakit:
-      ## Datakit will send the indicator data to dataway. Please be sure to change the parameters
-      ## @param dataway_url - string - optional - default: 'https://guance.com'
-      ## The host of the DataKit intake server to send Agent data to, only set this option
+      # Datakit will send the indicator data to dataway. Please be sure to change the parameters
+      # @param dataway_url - string - optional - default: 'https://guance.com'
+      # The host of the DataKit intake server to send Agent data to, only set this option
       dataway_url: https://openway.guance.com?token=tkn_xxxxxxxxxx
-      ## @param global_tags - string - optional - default: 'host=__datakit_hostname,host_ip=__datakit_ip'
-      ## It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas)
+      # @param global_tags - string - optional - default: 'host=__datakit_hostname,host_ip=__datakit_ip'
+      # It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas)
       global_tags: host=__datakit_hostname,host_ip=__datakit_ip,cluster_name_k8s=government-prod
-      ## @param default_enabled_inputs - string
-      ## The default open collector list, format example: input1, input2, input3
+      # @param default_enabled_inputs - string
+      # The default open collector list, format example: input1, input2, input3
       default_enabled_inputs: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,rum
-      ## @param enabled_election - boolean
-      ## When the election is enabled, it is enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false)
+      # @param enabled_election - boolean
+      # When the election is enabled, it is enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false)
       enabled_election: true
-      ## @param log - string
-      ## Set logging verbosity, valid log levels are:
-      ## info, debug, stdout, warn, error, critical, and off
+      # @param log - string
+      # Set logging verbosity, valid log levels are:
+      # info, debug, stdout, warn, error, critical, and off
       log_level: info
-      ## @param http_listen - string
-      ## It supports specifying the network card bound to the Datakit HTTP service in the installation phase (default localhost)
+      # @param http_listen - string
+      # It supports specifying the network card bound to the Datakit HTTP service in the installation phase (default localhost)
       http_listen: 0.0.0.0:9529
 
 
     image:
-      ## @param repository - string - required
-      ## Define the repository to use:
+      # @param repository - string - required
+      # Define the repository to use:
       #
       repository:  pubrepo.guance.com/datakit/datakit
 
-      ## @param tag - string - required
-      ## Define the Cluster-Agent version to use.
+      # @param tag - string - required
+      # Define the Cluster-Agent version to use.
       #
       tag: ""
 
-      ## @param pullPolicy - string - optional
-      ## The Kubernetes [imagePullPolicy][] value
+      # @param pullPolicy - string - optional
+      # The Kubernetes [imagePullPolicy][] value
       #
       pullPolicy: Always
 
@@ -232,48 +232,48 @@ helm uninstall datakit -n datakit
       # use git management DataKit input
       enable: false
 
-      ## @param git_url - string - required
-      ## You Can Set git@github.com:path/to/repository.git or http://username:password@github.com/path/to/repository.git.
-      ## see https://docs.guance.com/best-practices/insight/datakit-daemonset/#git
+      # @param git_url - string - required
+      # You Can Set git@github.com:path/to/repository.git or http://username:password@github.com/path/to/repository.git.
+      # see https://docs.guance.com/best-practices/insight/datakit-daemonset/#git
       git_url: "-"
-      ## @param git_key_path - string - optional
-      ## The Git Ssh Key Content,
-      ## For details,
-      ## -----BEGIN OPENSSH PRIVATE KEY--
-      ## ---xxxxx---
-      ##--END OPENSSH PRIVATE KEY-----
+      # @param git_key_path - string - optional
+      # The Git Ssh Key Content,
+      # For details,
+      # -----BEGIN OPENSSH PRIVATE KEY--
+      # ---xxxxx---
+      #--END OPENSSH PRIVATE KEY-----
       git_key_path: "-"
-      ## @param git_key_pw - string - optional
-      ## The ssh Key Password
+      # @param git_key_pw - string - optional
+      # The ssh Key Password
       git_key_pw: "-"
-      ## @param git_url - string - required
-      ## Specifies the branch to pull. If it is blank, it is the default. The default is the main branch specified remotely, usually the master.
+      # @param git_url - string - required
+      # Specifies the branch to pull. If it is blank, it is the default. The default is the main branch specified remotely, usually the master.
       git_branch: "master"
-      ## @param git_url - string - required
-      ## Timed pull interval. (e.g. 1m)
+      # @param git_url - string - required
+      # Timed pull interval. (e.g. 1m)
       git_interval: "1m"
       is_use_key: false
 
-    ## If true, Datakit install ipdb.
-    ## ref: https://docs.guance.com/datakit/datakit-tools-how-to/#install-ipdb
+    # If true, Datakit install ipdb.
+    # ref: https://docs.guance.com/datakit/datakit-tools-how-to/#install-ipdb
     iploc:
       enable: true
       image:
-        ## @param repository - string - required
-        ## Define the repository to use:
+        # @param repository - string - required
+        # Define the repository to use:
         #
         repository: "pubrepo.jiagouyun.com/datakit/iploc"
 
-        ## @param tag - string - required
-        ## Define the Cluster-Agent version to use.
+        # @param tag - string - required
+        # Define the Cluster-Agent version to use.
         #
         tag: "1.0"
 
 
-    ## @param extraEnvs - array - optional
-    ## extra env Add env for customization
-    ## more, see: https://docs.guance.com/datakit/datakit-daemonset-deploy/#using-k8-env
-    ## You can add more than one parameter
+    # @param extraEnvs - array - optional
+    # extra env Add env for customization
+    # more, see: https://docs.guance.com/datakit/datakit-daemonset-deploy/#using-k8-env
+    # You can add more than one parameter
     extraEnvs:
      - name: ENV_NAMESPACE
        value: government-prod
@@ -293,13 +293,13 @@ helm uninstall datakit -n datakit
         cpu: "2000m"
         memory: "4Gi"
 
-    ## @param nameOverride - string - optional
-    ## Override name of app.
+    # @param nameOverride - string - optional
+    # Override name of app.
     #
     nameOverride: ""
 
-    ## @param fullnameOverride - string - optional
-    ## Override name of app.
+    # @param fullnameOverride - string - optional
+    # Override name of app.
     #
     fullnameOverride: ""
 
@@ -308,8 +308,8 @@ helm uninstall datakit -n datakit
       datakit/logs: |
         [{"disable": true}]
 
-    ## @param tolerations - array - optional
-    ## Allow the DaemonSet to schedule on tainted nodes (requires Kubernetes >= 1.6)
+    # @param tolerations - array - optional
+    # Allow the DaemonSet to schedule on tainted nodes (requires Kubernetes >= 1.6)
     #
     tolerations:
       - operator: Exists
@@ -318,8 +318,8 @@ helm uninstall datakit -n datakit
       type: ClusterIP
       port: 9529
 
-    ## @param dkconfig - array - optional
-    ## Configure Datakit custom input
+    # @param dkconfig - array - optional
+    # Configure Datakit custom input
     #
     dkconfig: 
      - path: "/usr/local/datakit/conf.d/logging.conf"
@@ -355,12 +355,12 @@ helm uninstall datakit -n datakit
          grok(_,"\\[%{HTTPDERROR_DATE:time}\\] \\[%{GREEDYDATA:type}:%{GREEDYDATA:status}\\] \\[pid %{GREEDYDATA:pid}:tid %{GREEDYDATA:tid}\\] ")
          grok(_,"\\[%{HTTPDERROR_DATE:time}\\] \\[%{GREEDYDATA:type}:%{GREEDYDATA:status}\\] \\[pid %{INT:pid}\\] ")
 
-    ## If true, deploys the kube-state-metrics deployment.
-    ## ref: https://github.com/kubernetes/charts/tree/master/stable/kube-state-metrics
+    # If true, deploys the kube-state-metrics deployment.
+    # ref: https://github.com/kubernetes/charts/tree/master/stable/kube-state-metrics
     kubeStateMetricsEnabled: true
 
-    ## If true, deploys the metrics-server deployment.
-    ## ref: https://github.com/kubernetes-sigs/metrics-server/tree/master/charts/metrics-server
+    # If true, deploys the metrics-server deployment.
+    # ref: https://github.com/kubernetes-sigs/metrics-server/tree/master/charts/metrics-server
     MetricsServerEnabled: false
 
     ```
