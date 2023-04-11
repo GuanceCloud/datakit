@@ -4,9 +4,9 @@
 本文介绍如何使用 helm 来管理 DataKit 的环境变量和采集配置。我们可以通过维护 helm 管理 DataKit 的配置变更。
 
 
-## 安装和修改配置
+## 安装和修改配置 {#instal-config}
 
-### helm 下载 DataKit Charts 包
+### helm 下载 DataKit Charts 包 {#dowbload-config}
 
 ```shell
 helm pull datakit --repo https://pubrepo.guance.com/chartrepo/datakit --untar
@@ -17,7 +17,7 @@ helm pull datakit --repo https://pubrepo.guance.com/chartrepo/datakit --untar
 ???+ warning "Attention"
      `values.yaml` 在 `datakit` 目录下。
 
-#### 修改 `dataway url`
+#### 修改 `dataway url`  {#helm-dataway}
 
 ```yaml
 ...
@@ -29,7 +29,7 @@ datakit:
 ...
 ```
 
-#### 添加默认采集器
+#### 添加默认采集器  {#helm-default-config}
   
 添加 `rum`，在 `default_enabled_inputs` 最后追加参数。
 
@@ -43,7 +43,7 @@ datakit:
 ....
 ```
 
-#### 添加全局 tag
+#### 添加全局 tag {#helm-tag}
 
 添加 `cluster_name_k8s` 全局 tag。
 ```yaml
@@ -54,7 +54,7 @@ datakit:
   global_tags: host=__datakit_hostname,host_ip=__datakit_ip,cluster_name_k8s=prod  
 ```
 
-#### 添加 DataKit 环境变量
+#### 添加 DataKit 环境变量 {#helm-env}
 
 更多环境变量可参考[容器环境变量](datakit-daemonset-deploy.md#using-k8-env)
 
@@ -71,7 +71,7 @@ extraEnvs:
    value: cluster_name_k8s=government-prod
 ```
 
-#### 挂载采集器配置
+#### 挂载采集器配置 {#helm-config}
   
 以采集容器主机系统日志为例，`path` 为容器路径，必须在 `/usr/local/datakit/conf.d/` 下。`name` 为配置名称。`value` 为采集配置内容。采集器的 sample 文件，您可以进入容器的 `/usr/local/datakit/conf.d/` 目录下获取。
 
@@ -99,7 +99,7 @@ dkconfig:
        [inputs.logging.tags]
 ```
 
-#### 挂载 pipeline
+#### 挂载 pipeline  {#helm-pipeline}
 
 以 `test.p` 为例，`path` 为配置文件绝对路径，必须在 `/usr/local/datakit/pipeline/` 下。`name` 为 pipeline 名称。`value` 为 pipeline 内容。
 
@@ -120,7 +120,7 @@ dkconfig:
      default_time(time)
 ```
 
-### 安装 DataKit
+### 安装 DataKit {#datakit-install}
 
 ```shell
 helm install datakit datakit \
@@ -146,7 +146,7 @@ NOTES:
 ```
 
 
-## 指定版本安装
+## 指定版本安装 {#version-install}
 
 ```shell
 helm install datakit datakit \
@@ -156,7 +156,7 @@ helm install datakit datakit \
          --version 1.5.x
 ```
 
-## 升级
+## 升级 {#datakit-upgrade}
 
 ???+ info
 
@@ -170,14 +170,14 @@ helm upgrade datakit datakit \
 ```
 
 
-## 卸载
+## 卸载 {#datakit-uninstall}
 
 ```shell
 helm uninstall datakit -n datakit 
 ```
 
 
-## 配置文件参考
+## 配置文件参考 {#config-reference}
 
 ???- note "values.yaml" 
     ```yaml hl_lines='11 14 17 94-98 142-174'
