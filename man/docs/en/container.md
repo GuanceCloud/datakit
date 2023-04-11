@@ -14,6 +14,10 @@ Collect indicators, objects and log data of container and Kubernetes and report 
 - Collecting Kubernetes data requires the DataKit to [be deployed as a DaemonSet](datakit-daemonset-deploy.md).
 - Collecting Kubernetes Pod metric data [requires Kubernetes to install the Metrics-Server component](https://github.com/kubernetes-sigs/metrics-server#installation){:target="_blank"}.
 
+???+ info
+
+    - Container collection supports both Docker and Containerd runtimes[:octicons-tag-24: Version-1.5.7](changelog.md#cl-1.5.7), and both are enabled by default.
+
 ## Configuration {#config}
 
 === "host installation"
