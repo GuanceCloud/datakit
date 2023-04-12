@@ -180,13 +180,6 @@ func (n *Input) Run() {
 			}
 
 			if m != nil {
-				// if err := inputs.FeedMeasurement(inputName,
-				// 	datakit.Metric,
-				// 	[]inputs.Measurement{m},
-				// 	&dkio.Option{CollectCost: time.Since(n.start)}); err != nil {
-				// 	l.Warnf("inputs.FeedMeasurement: %s, ignored", err)
-				// }
-
 				if err := n.feeder.Feed(inputName, point.Metric, []*point.Point{m}, &dkio.Option{CollectCost: time.Since(n.start)}); err != nil {
 					l.Warnf("inputs.FeedMeasurement: %s, ignored", err.Error())
 				}
