@@ -372,7 +372,7 @@ func (ipt *input) Run() {
 		}
 
 		if err := ipt.setup(); err != nil {
-			dkio.FeedLastError(inputName, err.Error())
+			ipt.feeder.FeedLastError(inputName, err.Error())
 			time.Sleep(time.Second * 5)
 			continue
 		}
