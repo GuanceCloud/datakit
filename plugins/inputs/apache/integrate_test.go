@@ -88,8 +88,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		conf           string
 		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
-		// opts           []inputs.PointCheckOption
-		mPathCount map[string]int
+		mPathCount     map[string]int
 	}{
 		{
 			name: "httpd:server-status",
@@ -97,7 +96,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			interval = "1s"`, remote.Host),
 			dockerFileText: getDockerfile("2.4"),
 			exposedPorts:   []string{"80/tcp"},
-			// opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
 			mPathCount: map[string]int{
 				"/": 100,
 			},
