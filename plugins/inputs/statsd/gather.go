@@ -87,15 +87,15 @@ func (ipt *input) gather() {
 		ipt.sets = make(map[string]cachedset)
 	}
 
-	l.Debugf("feed %d points...", len(ipt.acc.points))
-	if len(ipt.acc.points) > 0 {
+	l.Debugf("feed %d points...", len(ipt.acc.measurements))
+	if len(ipt.acc.measurements) > 0 {
 		if err := inputs.FeedMeasurement(inputName,
 			datakit.Metric,
-			ipt.acc.points,
+			ipt.acc.measurements,
 			&io.Option{CollectCost: time.Since(now)}); err != nil {
 			l.Error(err)
 		} else {
-			ipt.acc.points = ipt.acc.points[:0]
+			ipt.acc.measurements = ipt.acc.measurements[:0]
 		}
 	}
 

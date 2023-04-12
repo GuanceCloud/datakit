@@ -13,24 +13,24 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type point struct {
+type statsdMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
 	tm     time.Time
 }
 
-func (p *point) LineProto() (*dkpoint.Point, error) {
+func (p *statsdMeasurement) LineProto() (*dkpoint.Point, error) {
 	return dkpoint.NewPoint(p.name, p.tags, p.fields, dkpoint.MOpt())
 }
 
-func (p *point) Info() *inputs.MeasurementInfo {
+func (p *statsdMeasurement) Info() *inputs.MeasurementInfo {
 	return nil
 }
 
 type accumulator struct {
-	ref    *input
-	points []inputs.Measurement
+	ref          *input
+	measurements []inputs.Measurement
 }
 
 func (a *accumulator) addFields(name string, fields map[string]interface{}, tags map[string]string, ts time.Time) {
@@ -78,7 +78,7 @@ func (a *accumulator) addFields(name string, fields map[string]interface{}, tags
 	}
 
 	l.Debugf("addFields: %s|%s", metricName, fieldKey)
-	a.points = append(a.points, &point{
+	a.measurements = append(a.measurements, &statsdMeasurement{
 		name: metricName,
 		fields: map[string]interface{}{
 			fieldKey: fval,

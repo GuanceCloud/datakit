@@ -20,7 +20,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/parsers/graphite"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -150,6 +150,7 @@ type input struct {
 	bufPool sync.Pool
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
 }
 
 type job struct {
@@ -371,7 +372,7 @@ func (ipt *input) Run() {
 		}
 
 		if err := ipt.setup(); err != nil {
-			io.FeedLastError(inputName, err.Error())
+			dkio.FeedLastError(inputName, err.Error())
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -616,6 +617,7 @@ func defaultInput() *input {
 		DeleteTimings:          true,
 
 		semStop: cliutils.NewSem(),
+		feeder:  dkio.DefaultFeeder(),
 	}
 }
 
