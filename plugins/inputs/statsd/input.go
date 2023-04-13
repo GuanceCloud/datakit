@@ -57,21 +57,21 @@ type input struct {
 
 	// Number of messages allowed to queue up in between calls to Gather. If this
 	// fills up, packets will get dropped until the next Gather interval is ran.
-	AllowedPendingMessages int
+	AllowedPendingMessages int `toml:"allowed_pending_messages"`
 
 	// Percentiles specifies the percentiles that will be calculated for timing
 	// and histogram stats.
-	Percentiles     []float64
-	PercentileLimit int
+	Percentiles     []float64 `toml:"percentiles"`
+	PercentileLimit int       `toml:"percentile_limit"`
 
-	DeleteGauges   bool
-	DeleteCounters bool
-	DeleteSets     bool
-	DeleteTimings  bool
+	DeleteGauges   bool `toml:"delete_gauges"`
+	DeleteCounters bool `toml:"delete_counters"`
+	DeleteSets     bool `toml:"delete_sets"`
+	DeleteTimings  bool `toml:"delete_timings"`
 	ConvertNames   bool
 
 	// MetricSeparator is the separator between parts of the metric name.
-	MetricSeparator string
+	MetricSeparator string `toml:"metric_separator"`
 	// This flag enables parsing of tags in the dogstatsd extension to the
 	// statsd protocol (http://docs.datadoghq.com/guides/dogstatsd/)
 	ParseDataDogTags bool // depreciated in 1.10; use datadog_extensions

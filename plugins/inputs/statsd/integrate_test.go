@@ -263,9 +263,7 @@ type caseSpec struct {
 	cr *testutils.CaseResult
 }
 
-var (
-	errorMsgs []string
-)
+var errorMsgs []string
 
 type FeedMeasurementBody []struct {
 	Measurement string                 `json:"measurement"`
