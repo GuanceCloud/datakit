@@ -35,7 +35,7 @@ branch changelog
 
 ### 新加功能 {#cl-1.5.10-new}
 
-- 支持自动发现并采集 [Pod 上的 Prometheus 指标](kubernetes-prom.md#uto-discovery-metrics-with-prometheus)(#1564)
+- 支持自动发现并采集 [Pod 上的 Prometheus 指标](kubernetes-prom.md#auto-discovery-metrics-with-prometheus)(#1564)
 - Pipeline 新增聚合类函数(#1554)
     - [agg_create()](../developers/pipeline.md#fn-agg-create)
     - [agg_metric()](../developers/pipeline.md#fn-agg-metric)
@@ -43,6 +43,7 @@ branch changelog
 ### 功能优化 {#cl-1.5.10-opt}
 
 - 优化了 Pipeline 执行性能，大约有 30% 左右性能提升
+- 优化日志采集中历史位置记录操作(#1550)
 
 ---
 

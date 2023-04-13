@@ -26,7 +26,7 @@ This release is an emergency release and includes the following updates:
 
 ### New Features {#cl-1.5.10-new}
 
-- Add support to [auto-discovery Prometheus metrics](kubernetes-prom.md#uto-discovery-metrics-with-prometheus) on Kubernetes Pods(#1564)
+- Add support to [auto-discovery Prometheus metrics](kubernetes-prom.md#auto-discovery-metrics-with-prometheus) on Kubernetes Pods(#1564)
 - Add new aggregation function in Pipeline(#1554)
     - [agg_create()](../developers/pipeline.md#fn-agg-create)
     - [agg_metric()](../developers/pipeline.md#fn-agg-metric)
@@ -34,6 +34,7 @@ This release is an emergency release and includes the following updates:
 ### Feature Optimization {#cl-1.5.10-opt}
 
 - Optimized Pipeline execution performance, with approximately 30% performance improvement
+- Optimized logging position handle under container(#1550)
 
 ---
 
