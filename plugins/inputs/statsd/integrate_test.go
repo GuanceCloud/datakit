@@ -6,13 +6,10 @@
 package statsd
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,15 +18,14 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	lp "github.com/GuanceCloud/cliutils/lineproto"
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/gin-gonic/gin"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -94,8 +90,30 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts           []inputs.PointCheckOption
 	}{
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle/oracle:xe-11g-datakit",
-			exposedPorts: []string{"1521/tcp"},
+			name: "java:jvm-ddtrace-statsd",
+			conf: `protocol = "udp"
+			service_address = ":58125"
+			metric_separator = "_"
+			drop_tags = ["runtime-id"]
+			metric_mapping = [
+			  "jvm_:jvm",
+			  "datadog_tracer_:ddtrace",
+			]
+			delete_gauges = true
+			delete_counters = true
+			delete_sets = true
+			delete_timings = true
+			percentiles = [50.0, 90.0, 99.0, 99.9, 99.95, 100.0]
+			parse_data_dog_tags = true
+			datadog_extensions = true
+			datadog_distributions = true
+			allowed_pending_messages = 10000
+			percentile_limit = 1000`,
+			exposedPorts: []string{"8080/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("heap_memory", "heap_memory_committed", "heap_memory_init", "heap_memory_max", "non_heap_memory", "non_heap_memory_committed", "non_heap_memory_init", "non_heap_memory_max", "thread_count", "gc_cms_count", "gc_major_collection_count", "gc_minor_collection_count", "gc_parnew_time", "gc_major_collection_time", "gc_minor_collection_time", "os_open_file_descriptors", "gc_eden_size", "gc_old_gen_size", "buffer_pool_direct_used", "buffer_pool_direct_capacity", "cpu_load_system", "buffer_pool_mapped_capacity", "buffer_pool_mapped_count", "cpu_load_process", "gc_survivor_size", "buffer_pool_direct_count", "gc_metaspace_size", "loaded_classes", "buffer_pool_mapped_used"), //nolint:lll
+				inputs.WithOptionalTags("name"), //nolint:lll
+			},
 		},
 	}
 
@@ -106,6 +124,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		feeder := dkio.NewMockedFeeder()
 
 		ipt := defaultInput()
+		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
 		assert.NoError(t, err)
@@ -165,7 +184,7 @@ type caseSpec struct {
 }
 
 var (
-	done             chan struct{}
+	// done             chan struct{}
 	errorMsgs        []string
 	mMeasurementName sync.Map
 )
@@ -176,59 +195,136 @@ type FeedMeasurementBody []struct {
 	Fields      map[string]interface{} `json:"fields"`
 }
 
-func (cs *caseSpec) handler(c *gin.Context) {
-	uri, err := url.ParseRequestURI(c.Request.URL.RequestURI())
-	if err != nil {
-		cs.t.Logf("%s", err.Error())
-		return
+// func (cs *caseSpec) handler(c *gin.Context) {
+// 	uri, err := url.ParseRequestURI(c.Request.URL.RequestURI())
+// 	if err != nil {
+// 		cs.t.Logf("%s", err.Error())
+// 		return
+// 	}
+
+// 	body, err := ioutil.ReadAll(c.Request.Body)
+// 	defer c.Request.Body.Close()
+// 	if err != nil {
+// 		cs.t.Logf("%s", err.Error())
+// 		return
+// 	}
+
+// 	switch uri.Path {
+// 	case "/v1/write/metric":
+// 		pts, err := lp.ParsePoints(body, nil)
+// 		if err != nil {
+// 			cs.t.Logf("ParsePoints failed: %s", err.Error())
+// 			return
+// 		}
+
+// 		newPts := dkpt2point(pts...)
+// 		// for _, pt := range newPts {
+// 		// 	if string(pt.Name()) == oracleSystem {
+// 		// 		if len(pt.Fields()) <= 6 {
+// 		// 			cs.t.Logf("oracle_system not ready, ignored...")
+// 		// 			return // not ready, ignore.
+// 		// 		}
+// 		// 	}
+// 		// }
+
+// 		if err := cs.checkPoint(newPts); err != nil {
+// 			if err != nil {
+// 				cs.t.Logf("%s", err.Error())
+// 				assert.NoError(cs.t, err)
+// 				return
+// 			}
+// 		}
+
+// 	default:
+// 		panic("not implement")
+// 	}
+
+// 	length := 0
+// 	mMeasurementName.Range(func(k, v interface{}) bool {
+// 		length++
+// 		return true
+// 	})
+// 	if length == 3 {
+// 		done <- struct{}{}
+// 	}
+// }
+
+////////////////////////////////////////////////////////////////////////////////
+
+type jvmMeasurement struct {
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
+}
+
+// Point implement MeasurementV2.
+func (m *jvmMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
 	}
 
-	body, err := ioutil.ReadAll(c.Request.Body)
-	defer c.Request.Body.Close()
-	if err != nil {
-		cs.t.Logf("%s", err.Error())
-		return
-	}
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
 
-	switch uri.Path {
-	case "/v1/write/metric":
-		pts, err := lp.ParsePoints(body, nil)
-		if err != nil {
-			cs.t.Logf("ParsePoints failed: %s", err.Error())
-			return
-		}
+func (j *jvmMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+	return nil, fmt.Errorf("not implement")
+}
 
-		newPts := dkpt2point(pts...)
-		// for _, pt := range newPts {
-		// 	if string(pt.Name()) == oracleSystem {
-		// 		if len(pt.Fields()) <= 6 {
-		// 			cs.t.Logf("oracle_system not ready, ignored...")
-		// 			return // not ready, ignore.
-		// 		}
-		// 	}
-		// }
-
-		if err := cs.checkPoint(newPts); err != nil {
-			if err != nil {
-				cs.t.Logf("%s", err.Error())
-				assert.NoError(cs.t, err)
-				return
-			}
-		}
-
-	default:
-		panic("not implement")
-	}
-
-	length := 0
-	mMeasurementName.Range(func(k, v interface{}) bool {
-		length++
-		return true
-	})
-	if length == 3 {
-		done <- struct{}{}
+// From: https://docs.datadoghq.com/tracing/metrics/runtime_metrics/java/#data-collected
+func (j *jvmMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "jvm",
+		Fields: map[string]interface{}{
+			"heap_memory":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"heap_memory_committed":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"heap_memory_init":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"heap_memory_max":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"non_heap_memory":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"non_heap_memory_committed":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"non_heap_memory_init":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"non_heap_memory_max":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"thread_count":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+			"gc_cms_count":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+			"gc_major_collection_count":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_minor_collection_count":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_parnew_time":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_major_collection_time":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_minor_collection_time":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"os_open_file_descriptors":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_eden_size":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_old_gen_size":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"buffer_pool_direct_used":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"buffer_pool_direct_capacity": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"cpu_load_system":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"buffer_pool_mapped_capacity": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"buffer_pool_mapped_count":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"cpu_load_process":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_survivor_size":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"buffer_pool_direct_count":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_metaspace_size":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"loaded_classes":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"buffer_pool_mapped_used":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+		},
+		Tags: map[string]interface{}{
+			"env":         inputs.TagInfo{Desc: ""},
+			"instance":    inputs.TagInfo{Desc: ""},
+			"jmx_domain":  inputs.TagInfo{Desc: ""},
+			"metric_type": inputs.TagInfo{Desc: ""},
+			"name":        inputs.TagInfo{Desc: ""},
+			"service":     inputs.TagInfo{Desc: ""},
+			"type":        inputs.TagInfo{Desc: ""},
+			"version":     inputs.TagInfo{Desc: ""},
+		},
 	}
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	var opts []inputs.PointCheckOption
@@ -239,27 +335,27 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		// case oracleProcess:
-		// 	_, ok := mMeasurementName.Load(oracleProcess)
-		// 	if ok {
-		// 		return nil
-		// 	}
+		case "jvm":
+			// _, ok := mMeasurementName.Load(oracleProcess)
+			// if ok {
+			// 	return nil
+			// }
 
-		// 	opts = append(opts, inputs.WithDoc(&processMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&jvmMeasurement{}))
 
-		// 	msgs := inputs.CheckPoint(pt, opts...)
+			msgs := inputs.CheckPoint(pt, opts...)
 
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
 
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	} else {
-		// 		cs.t.Logf("oracle_process check completed!")
-		// 		mMeasurementName.Store(oracleProcess, 1)
-		// 	}
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			} else {
+				// cs.t.Logf("oracle_process check completed!")
+				// mMeasurementName.Store(oracleProcess, 1)
+			}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -296,29 +392,29 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
 
-	router := gin.New()
-	router.POST("/v1/write/metric", cs.handler)
+	// router := gin.New()
+	// router.POST("/v1/write/metric", cs.handler)
 
-	srv := &http.Server{
-		Addr:    ":59529",
-		Handler: router,
-	}
+	// srv := &http.Server{
+	// 	Addr:    ":59529",
+	// 	Handler: router,
+	// }
 
-	go func() {
-		done = nil
-		done = make(chan struct{})
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			panic(err)
-		}
-	}()
+	// go func() {
+	// 	done = nil
+	// 	done = make(chan struct{})
+	// 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	// 		panic(err)
+	// 	}
+	// }()
 
-	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		if err := srv.Shutdown(ctx); err != nil && errors.Is(err, http.ErrServerClosed) {
-			cs.t.Logf("Shutdown failed: %v", err)
-		}
-	}()
+	// defer func() {
+	// 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	// 	defer cancel()
+	// 	if err := srv.Shutdown(ctx); err != nil && errors.Is(err, http.ErrServerClosed) {
+	// 		cs.t.Logf("Shutdown failed: %v", err)
+	// 	}
+	// }()
 
 	start := time.Now()
 
@@ -355,7 +451,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=59529", "UDP_PORT=58125"},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "UDP_PORT=58125"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -376,7 +472,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=59529", "UDP_PORT=58125"},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "UDP_PORT=58125"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -399,28 +495,54 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
 
-	if err := cs.portsOK(r); err != nil {
-		return err
-	}
+	// if err := cs.portsOK(r); err != nil {
+	// 	return err
+	// }
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
-	cs.t.Logf("checking oracle in 5 minutes...")
-	tick := time.NewTicker(5 * time.Minute)
-	out := false
-	for {
-		if out {
-			break
-		}
+	// cs.t.Logf("checking oracle in 5 minutes...")
+	// tick := time.NewTicker(5 * time.Minute)
+	// out := false
+	// for {
+	// 	if out {
+	// 		break
+	// 	}
 
-		select {
-		case <-tick.C:
-			cs.t.Logf("check oracle timeout!")
-			out = true
-		case <-done:
-			cs.t.Logf("check oracle all done!")
-			out = true
-		}
+	// 	select {
+	// 	case <-tick.C:
+	// 		cs.t.Logf("check oracle timeout!")
+	// 		out = true
+	// 	case <-done:
+	// 		cs.t.Logf("check oracle all done!")
+	// 		out = true
+	// 	}
+	// }
+
+	var wg sync.WaitGroup
+
+	// start input
+	cs.t.Logf("start input...")
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cs.ipt.Run()
+	}()
+
+	// wait data
+	start = time.Now()
+	cs.t.Logf("wait points...")
+	pts, err := cs.feeder.NPoints(100, 5*time.Minute)
+	if err != nil {
+		return err
+	}
+
+	cs.cr.AddField("point_latency", int64(time.Since(start)))
+	cs.cr.AddField("point_count", len(pts))
+
+	cs.t.Logf("get %d points", len(pts))
+	if err := cs.checkPoint(pts); err != nil {
+		return err
 	}
 
 	if len(errorMsgs) > 0 {
@@ -428,7 +550,11 @@ func (cs *caseSpec) run() error {
 	}
 	errorMsgs = errorMsgs[:0]
 
+	cs.t.Logf("stop input...")
+	cs.ipt.Terminate()
+
 	cs.t.Logf("exit...")
+	wg.Wait()
 
 	return nil
 }

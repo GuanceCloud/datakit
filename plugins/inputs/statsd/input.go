@@ -53,7 +53,7 @@ type input struct {
 	Protocol string `toml:"protocol"`
 
 	// Address & Port to serve from
-	ServiceAddress string
+	ServiceAddress string `toml:"service_address"`
 
 	// Number of messages allowed to queue up in between calls to Gather. If this
 	// fills up, packets will get dropped until the next Gather interval is ran.
