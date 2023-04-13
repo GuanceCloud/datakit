@@ -96,14 +96,6 @@ func (a *accumulator) addFields(name string, fields map[string]interface{}, tags
 	}
 
 	l.Debugf("addFields: %s|%s", metricName, fieldKey)
-	// a.measurements = append(a.measurements, &statsdMeasurement{
-	// 	name: metricName,
-	// 	fields: map[string]interface{}{
-	// 		fieldKey: fval,
-	// 	},
-	// 	tags: tags,
-	// 	tm:   ts,
-	// })
 
 	metric := &statsdMeasurement{
 		name: metricName,

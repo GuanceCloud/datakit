@@ -88,15 +88,6 @@ func (ipt *input) gather() {
 
 	l.Debugf("feed %d points...", len(ipt.acc.measurements))
 	if len(ipt.acc.measurements) > 0 {
-		// if err := inputs.FeedMeasurement(inputName,
-		// 	datakit.Metric,
-		// 	ipt.acc.measurements,
-		// 	&io.Option{CollectCost: time.Since(now)}); err != nil {
-		// 	l.Error(err)
-		// } else {
-		// 	ipt.acc.measurements = ipt.acc.measurements[:0]
-		// }
-
 		if err := ipt.feeder.Feed(inputName, point.Metric, ipt.acc.measurements, &dkio.Option{CollectCost: time.Since(now)}); err != nil {
 			l.Error(err)
 		} else {
