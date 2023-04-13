@@ -60,7 +60,7 @@ func TestOracleInput(t *testing.T) {
 				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
-				assert.NoError(t, err)
+				panic(err)
 			} else {
 				tc.cr.Status = testutils.TestPassed
 			}
@@ -114,6 +114,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		feeder := dkio.NewMockedFeeder()
 
 		ipt := defaultInput()
+		// ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
 		assert.NoError(t, err)
@@ -341,6 +342,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 }
 
 func (cs *caseSpec) run() error {
+	cs.t.Helper()
+
 	r := testutils.GetRemote()
 	dockerTCP := r.TCPURL()
 
@@ -359,6 +362,14 @@ func (cs *caseSpec) run() error {
 		done = make(chan struct{})
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			panic(err)
+		}
+	}()
+
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil && errors.Is(err, http.ErrServerClosed) {
+			cs.t.Logf("Shutdown failed: %v", err)
 		}
 	}()
 
@@ -471,11 +482,6 @@ func (cs *caseSpec) run() error {
 	errorMsgs = errorMsgs[:0]
 
 	cs.t.Logf("exit...")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil && errors.Is(err, http.ErrServerClosed) {
-		cs.t.Logf("Shutdown failed: %v", err)
-	}
 
 	return nil
 }
@@ -494,6 +500,10 @@ func (cs *caseSpec) getPool(endpoint string) (*dockertest.Pool, error) {
 }
 
 func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err error) {
+	if len(cs.dockerFileText) == 0 {
+		return
+	}
+
 	tmpDir, err := ioutil.TempDir("", "dockerfiles_")
 	if err != nil {
 		cs.t.Logf("ioutil.TempDir failed: %s", err.Error())
