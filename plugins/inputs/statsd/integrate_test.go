@@ -19,7 +19,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
@@ -184,9 +183,7 @@ type caseSpec struct {
 }
 
 var (
-	// done             chan struct{}
-	errorMsgs        []string
-	mMeasurementName sync.Map
+	errorMsgs []string
 )
 
 type FeedMeasurementBody []struct {
@@ -194,60 +191,6 @@ type FeedMeasurementBody []struct {
 	Tags        map[string]string      `json:"tags"`
 	Fields      map[string]interface{} `json:"fields"`
 }
-
-// func (cs *caseSpec) handler(c *gin.Context) {
-// 	uri, err := url.ParseRequestURI(c.Request.URL.RequestURI())
-// 	if err != nil {
-// 		cs.t.Logf("%s", err.Error())
-// 		return
-// 	}
-
-// 	body, err := ioutil.ReadAll(c.Request.Body)
-// 	defer c.Request.Body.Close()
-// 	if err != nil {
-// 		cs.t.Logf("%s", err.Error())
-// 		return
-// 	}
-
-// 	switch uri.Path {
-// 	case "/v1/write/metric":
-// 		pts, err := lp.ParsePoints(body, nil)
-// 		if err != nil {
-// 			cs.t.Logf("ParsePoints failed: %s", err.Error())
-// 			return
-// 		}
-
-// 		newPts := dkpt2point(pts...)
-// 		// for _, pt := range newPts {
-// 		// 	if string(pt.Name()) == oracleSystem {
-// 		// 		if len(pt.Fields()) <= 6 {
-// 		// 			cs.t.Logf("oracle_system not ready, ignored...")
-// 		// 			return // not ready, ignore.
-// 		// 		}
-// 		// 	}
-// 		// }
-
-// 		if err := cs.checkPoint(newPts); err != nil {
-// 			if err != nil {
-// 				cs.t.Logf("%s", err.Error())
-// 				assert.NoError(cs.t, err)
-// 				return
-// 			}
-// 		}
-
-// 	default:
-// 		panic("not implement")
-// 	}
-
-// 	length := 0
-// 	mMeasurementName.Range(func(k, v interface{}) bool {
-// 		length++
-// 		return true
-// 	})
-// 	if length == 3 {
-// 		done <- struct{}{}
-// 	}
-// }
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -336,11 +279,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 		switch measurement {
 		case "jvm":
-			// _, ok := mMeasurementName.Load(oracleProcess)
-			// if ok {
-			// 	return nil
-			// }
-
 			opts = append(opts, inputs.WithDoc(&jvmMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -352,9 +290,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			} else {
-				// cs.t.Logf("oracle_process check completed!")
-				// mMeasurementName.Store(oracleProcess, 1)
 			}
 
 		default: // TODO: check other measurement
@@ -391,30 +326,6 @@ func (cs *caseSpec) run() error {
 	dockerTCP := r.TCPURL()
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
-
-	// router := gin.New()
-	// router.POST("/v1/write/metric", cs.handler)
-
-	// srv := &http.Server{
-	// 	Addr:    ":59529",
-	// 	Handler: router,
-	// }
-
-	// go func() {
-	// 	done = nil
-	// 	done = make(chan struct{})
-	// 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-	// 		panic(err)
-	// 	}
-	// }()
-
-	// defer func() {
-	// 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	// 	defer cancel()
-	// 	if err := srv.Shutdown(ctx); err != nil && errors.Is(err, http.ErrServerClosed) {
-	// 		cs.t.Logf("Shutdown failed: %v", err)
-	// 	}
-	// }()
 
 	start := time.Now()
 
@@ -495,29 +406,7 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
 
-	// if err := cs.portsOK(r); err != nil {
-	// 	return err
-	// }
-
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
-
-	// cs.t.Logf("checking oracle in 5 minutes...")
-	// tick := time.NewTicker(5 * time.Minute)
-	// out := false
-	// for {
-	// 	if out {
-	// 		break
-	// 	}
-
-	// 	select {
-	// 	case <-tick.C:
-	// 		cs.t.Logf("check oracle timeout!")
-	// 		out = true
-	// 	case <-done:
-	// 		cs.t.Logf("check oracle all done!")
-	// 		out = true
-	// 	}
-	// }
 
 	var wg sync.WaitGroup
 
@@ -531,7 +420,7 @@ func (cs *caseSpec) run() error {
 
 	// wait data
 	start = time.Now()
-	cs.t.Logf("wait points...")
+	cs.t.Logf("waiting points, 5 minutes timeout...")
 	pts, err := cs.feeder.NPoints(100, 5*time.Minute)
 	if err != nil {
 		return err
@@ -624,15 +513,6 @@ func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
 	return portBindings
 }
 
-func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
-	for _, v := range cs.exposedPorts {
-		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
-			return fmt.Errorf("service checking failed")
-		}
-	}
-	return nil
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 
 func externalIP() (string, error) {
@@ -670,22 +550,4 @@ func externalIP() (string, error) {
 		}
 	}
 	return "", errors.New("are you connected to the network?")
-}
-
-// nolint: deadcode,unused
-// dkpt2point convert old io/point.Point to point.Point.
-func dkpt2point(pts ...*influxdb.Point) (res []*point.Point) {
-	for _, pt := range pts {
-		fs, err := pt.Fields()
-		if err != nil {
-			continue
-		}
-
-		pt := point.NewPointV2([]byte(pt.Name()),
-			append(point.NewTags(pt.Tags()), point.NewKVs(fs)...), nil)
-
-		res = append(res, pt)
-	}
-
-	return res
 }
