@@ -63,12 +63,12 @@ func (m *JvmMeasurement) Point() *point.Point {
 		opts...)
 }
 
-func (j *JvmMeasurement) LineProto() (*dkpt.Point, error) {
+func (*JvmMeasurement) LineProto() (*dkpt.Point, error) {
 	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 	return nil, fmt.Errorf("not implement")
 }
 
-func (j *JvmMeasurement) Info() *inputs.MeasurementInfo {
+func (*JvmMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{}
 }
 
@@ -87,13 +87,13 @@ func (m *JavaRuntimeMemt) Point() *point.Point {
 		opts...)
 }
 
-func (j *JavaRuntimeMemt) LineProto() (*dkpt.Point, error) {
+func (*JavaRuntimeMemt) LineProto() (*dkpt.Point, error) {
 	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
+func (*JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_runtime",
 		Fields: map[string]interface{}{
@@ -120,13 +120,13 @@ func (m *JavaMemoryMemt) Point() *point.Point {
 		opts...)
 }
 
-func (j *JavaMemoryMemt) LineProto() (*dkpt.Point, error) {
+func (*JavaMemoryMemt) LineProto() (*dkpt.Point, error) {
 	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *JavaMemoryMemt) Info() *inputs.MeasurementInfo {
+func (*JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_memory",
 		Fields: map[string]interface{}{
@@ -164,13 +164,13 @@ func (m *JavaGcMemt) Point() *point.Point {
 		opts...)
 }
 
-func (j *JavaGcMemt) LineProto() (*dkpt.Point, error) {
+func (*JavaGcMemt) LineProto() (*dkpt.Point, error) {
 	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *JavaGcMemt) Info() *inputs.MeasurementInfo {
+func (*JavaGcMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_garbage_collector",
 		Fields: map[string]interface{}{
@@ -200,12 +200,12 @@ func (m *JavaLastGcMemt) Point() *point.Point {
 		opts...)
 }
 
-func (j *JavaLastGcMemt) LineProto() (*dkpt.Point, error) {
+func (*JavaLastGcMemt) LineProto() (*dkpt.Point, error) {
 	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 	return nil, fmt.Errorf("not implement")
 }
 
-func (j *JavaLastGcMemt) Info() *inputs.MeasurementInfo {
+func (*JavaLastGcMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{}
 }
 
@@ -224,13 +224,13 @@ func (m *JavaThreadMemt) Point() *point.Point {
 		opts...)
 }
 
-func (j *JavaThreadMemt) LineProto() (*dkpt.Point, error) {
+func (*JavaThreadMemt) LineProto() (*dkpt.Point, error) {
 	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *JavaThreadMemt) Info() *inputs.MeasurementInfo {
+func (*JavaThreadMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_threading",
 		Fields: map[string]interface{}{
@@ -261,13 +261,13 @@ func (m *JavaClassLoadMemt) Point() *point.Point {
 		opts...)
 }
 
-func (j *JavaClassLoadMemt) LineProto() (*dkpt.Point, error) {
+func (*JavaClassLoadMemt) LineProto() (*dkpt.Point, error) {
 	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
+func (*JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_class_loading",
 		Fields: map[string]interface{}{
@@ -297,13 +297,13 @@ func (m *JavaMemoryPoolMemt) Point() *point.Point {
 		opts...)
 }
 
-func (j *JavaMemoryPoolMemt) LineProto() (*dkpt.Point, error) {
+func (*JavaMemoryPoolMemt) LineProto() (*dkpt.Point, error) {
 	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
 	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
+func (*JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_memory_pool",
 		Fields: map[string]interface{}{
