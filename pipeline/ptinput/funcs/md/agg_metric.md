@@ -1,4 +1,4 @@
-### `agg_metric()` {#fn-agg-create}
+### `agg_metric()` {#fn-agg-metric}
 
 函数原型：`fn agg_metric(bucket: str, new_field: str, agg_fn: str, agg_by: []string, agg_field: str)`
 
