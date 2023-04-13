@@ -89,7 +89,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts           []inputs.PointCheckOption
 	}{
 		{
-			name: "java:jvm-ddtrace-statsd-8",
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-ddtrace-statsd-8",
 			conf: `protocol = "udp"
 			service_address = ":58125"
 			metric_separator = "_"
@@ -116,7 +116,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "java:jvm-ddtrace-statsd-11",
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-ddtrace-statsd-11",
 			conf: `protocol = "udp"
 			service_address = ":58125"
 			metric_separator = "_"
@@ -143,7 +143,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "java:jvm-ddtrace-statsd-17",
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-ddtrace-statsd-17",
 			conf: `protocol = "udp"
 			service_address = ":58125"
 			metric_separator = "_"
@@ -170,7 +170,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "java:jvm-ddtrace-statsd-20",
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-ddtrace-statsd-20",
 			conf: `protocol = "udp"
 			service_address = ":58125"
 			metric_separator = "_"
