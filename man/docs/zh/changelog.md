@@ -29,6 +29,23 @@ branch changelog
 
 -->
 
+## 1.5.10(2023/04/13) {#cl-1.5.10}
+
+本次发布属于紧急发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.10-new}
+
+- 支持自动发现并采集 [Pod 上的 Prometheus 指标](kubernetes-prom.md#uto-discovery-metrics-with-prometheus)(#1564)
+- Pipeline 新增聚合类函数(#1554)
+    - [agg_create()](../developers/pipeline.md#fn-agg-create)
+    - [agg_metric()](../developers/pipeline.md#fn-agg-metric)
+
+### 功能优化 {#cl-1.5.10-opt}
+
+- 优化了 Pipeline 执行性能，大约有 30% 左右性能提升
+
+---
+
 ## 1.5.9(2023/04/06) {#cl-1.5.9}
 本次发布属于迭代发布，主要有如下更新：
 
@@ -69,6 +86,7 @@ branch changelog
 - Datakit 自身指标体系做了更新，原有 DCA 获取到的指标将有一定的缺失，但不影响 DCA 本身功能的运行
 
 ---
+
 ## 1.5.8(2023/03/24) {#cl-1.5.8}
 本次发布属于迭代发布，主要是一些问题修复和功能完善。
 
