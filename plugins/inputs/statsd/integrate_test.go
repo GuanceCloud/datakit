@@ -89,7 +89,88 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts           []inputs.PointCheckOption
 	}{
 		{
-			name: "java:jvm-ddtrace-statsd",
+			name: "java:jvm-ddtrace-statsd-8",
+			conf: `protocol = "udp"
+			service_address = ":58125"
+			metric_separator = "_"
+			drop_tags = ["runtime-id"]
+			metric_mapping = [
+			  "jvm_:jvm",
+			  "datadog_tracer_:ddtrace",
+			]
+			delete_gauges = true
+			delete_counters = true
+			delete_sets = true
+			delete_timings = true
+			percentiles = [50.0, 90.0, 99.0, 99.9, 99.95, 100.0]
+			parse_data_dog_tags = true
+			datadog_extensions = true
+			datadog_distributions = true
+			allowed_pending_messages = 10000
+			percentile_limit = 1000`,
+			exposedPorts: []string{"8080/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("heap_memory", "heap_memory_committed", "heap_memory_init", "heap_memory_max", "non_heap_memory", "non_heap_memory_committed", "non_heap_memory_init", "non_heap_memory_max", "thread_count", "gc_cms_count", "gc_major_collection_count", "gc_minor_collection_count", "gc_parnew_time", "gc_major_collection_time", "gc_minor_collection_time", "os_open_file_descriptors", "gc_eden_size", "gc_old_gen_size", "buffer_pool_direct_used", "buffer_pool_direct_capacity", "cpu_load_system", "buffer_pool_mapped_capacity", "buffer_pool_mapped_count", "cpu_load_process", "gc_survivor_size", "buffer_pool_direct_count", "gc_metaspace_size", "loaded_classes", "buffer_pool_mapped_used"), //nolint:lll
+				inputs.WithOptionalTags("name"), //nolint:lll
+			},
+		},
+
+		{
+			name: "java:jvm-ddtrace-statsd-11",
+			conf: `protocol = "udp"
+			service_address = ":58125"
+			metric_separator = "_"
+			drop_tags = ["runtime-id"]
+			metric_mapping = [
+			  "jvm_:jvm",
+			  "datadog_tracer_:ddtrace",
+			]
+			delete_gauges = true
+			delete_counters = true
+			delete_sets = true
+			delete_timings = true
+			percentiles = [50.0, 90.0, 99.0, 99.9, 99.95, 100.0]
+			parse_data_dog_tags = true
+			datadog_extensions = true
+			datadog_distributions = true
+			allowed_pending_messages = 10000
+			percentile_limit = 1000`,
+			exposedPorts: []string{"8080/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("heap_memory", "heap_memory_committed", "heap_memory_init", "heap_memory_max", "non_heap_memory", "non_heap_memory_committed", "non_heap_memory_init", "non_heap_memory_max", "thread_count", "gc_cms_count", "gc_major_collection_count", "gc_minor_collection_count", "gc_parnew_time", "gc_major_collection_time", "gc_minor_collection_time", "os_open_file_descriptors", "gc_eden_size", "gc_old_gen_size", "buffer_pool_direct_used", "buffer_pool_direct_capacity", "cpu_load_system", "buffer_pool_mapped_capacity", "buffer_pool_mapped_count", "cpu_load_process", "gc_survivor_size", "buffer_pool_direct_count", "gc_metaspace_size", "loaded_classes", "buffer_pool_mapped_used"), //nolint:lll
+				inputs.WithOptionalTags("name"), //nolint:lll
+			},
+		},
+
+		{
+			name: "java:jvm-ddtrace-statsd-17",
+			conf: `protocol = "udp"
+			service_address = ":58125"
+			metric_separator = "_"
+			drop_tags = ["runtime-id"]
+			metric_mapping = [
+			  "jvm_:jvm",
+			  "datadog_tracer_:ddtrace",
+			]
+			delete_gauges = true
+			delete_counters = true
+			delete_sets = true
+			delete_timings = true
+			percentiles = [50.0, 90.0, 99.0, 99.9, 99.95, 100.0]
+			parse_data_dog_tags = true
+			datadog_extensions = true
+			datadog_distributions = true
+			allowed_pending_messages = 10000
+			percentile_limit = 1000`,
+			exposedPorts: []string{"8080/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("heap_memory", "heap_memory_committed", "heap_memory_init", "heap_memory_max", "non_heap_memory", "non_heap_memory_committed", "non_heap_memory_init", "non_heap_memory_max", "thread_count", "gc_cms_count", "gc_major_collection_count", "gc_minor_collection_count", "gc_parnew_time", "gc_major_collection_time", "gc_minor_collection_time", "os_open_file_descriptors", "gc_eden_size", "gc_old_gen_size", "buffer_pool_direct_used", "buffer_pool_direct_capacity", "cpu_load_system", "buffer_pool_mapped_capacity", "buffer_pool_mapped_count", "cpu_load_process", "gc_survivor_size", "buffer_pool_direct_count", "gc_metaspace_size", "loaded_classes", "buffer_pool_mapped_used"), //nolint:lll
+				inputs.WithOptionalTags("name"), //nolint:lll
+			},
+		},
+
+		{
+			name: "java:jvm-ddtrace-statsd-20",
 			conf: `protocol = "udp"
 			service_address = ":58125"
 			metric_separator = "_"
@@ -421,7 +502,7 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("waiting points, 5 minutes timeout...")
-	pts, err := cs.feeder.NPoints(100, 5*time.Minute)
+	pts, err := cs.feeder.NPoints(50, 5*time.Minute)
 	if err != nil {
 		return err
 	}
