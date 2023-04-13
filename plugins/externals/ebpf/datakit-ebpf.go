@@ -140,7 +140,7 @@ func main() {
 
 	if opt.PProfPort != "" {
 		go func() {
-			http.ListenAndServe(fmt.Sprintf(":%s", opt.PProfPort), nil)
+			_ = http.ListenAndServe(fmt.Sprintf(":%s", opt.PProfPort), nil)
 		}()
 	}
 

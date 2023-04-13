@@ -18,7 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -128,6 +128,7 @@ type Input struct {
 	pause    bool
 	pauseCh  chan bool
 	semStop  *cliutils.Sem // start stop signal
+	feeder   dkio.Feeder
 }
 
 func (*Input) Catalog() string { return catalogName }
@@ -199,7 +200,7 @@ func (ipt *Input) RunPipeline() {
 	if err != nil {
 		log.Errorf("NewTailer: %s", err)
 
-		io.FeedLastError(inputName, err.Error())
+		ipt.feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 
@@ -232,8 +233,10 @@ func (ipt *Input) Run() {
 				host = strings.TrimPrefix(v, "mongodb://")
 			}
 			ipt.mgoSvrs = append(ipt.mgoSvrs, &MongodbServer{
-				host: host,
-				cli:  mgocli,
+				host:     host,
+				cli:      mgocli,
+				election: ipt.Election,
+				feeder:   ipt.feeder,
 			})
 		}
 	}
@@ -249,7 +252,7 @@ func (ipt *Input) Run() {
 			log.Debugf("not leader, skipped")
 		} else if err := ipt.gather(); err != nil {
 			log.Errorf("gather: %s", err.Error())
-			io.FeedLastError(inputName, err.Error())
+			ipt.feeder.FeedLastError(inputName, err.Error())
 		}
 
 		select {
@@ -359,8 +362,15 @@ func (ipt *Input) Terminate() {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		feeder:  dkio.DefaultFeeder(),
+		semStop: cliutils.NewSem(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return defaultInput()
 	})
 }

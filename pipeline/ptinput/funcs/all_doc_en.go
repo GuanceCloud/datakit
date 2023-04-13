@@ -11,6 +11,13 @@ import (
 
 // embed docs.
 var (
+
+	//go:embed md/agg_create.en.md
+	docAggCreateEN string
+
+	//go:embed md/agg_metric.en.md
+	docAggMetricEN string
+
 	//go:embed md/add_pattern.en.md
 	docAddPatternEN string
 
@@ -176,6 +183,7 @@ const (
 	eStringOp        = "String"
 	eDesensitization = "Desensitization"
 	eSample          = "Sample"
+	eAgg             = "Aggregation"
 	eOther           = "Other"
 )
 
@@ -204,6 +212,20 @@ var (
 			langTagEnUS: {eTimeOp},
 		},
 	}
+
+	aggCreateMarkdownEN = PLDoc{
+		Doc: docAggCreateEN, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eAgg},
+		},
+	}
+	aggMetricMarkdownEN = PLDoc{
+		Doc: docAggMetricEN, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eAgg},
+		},
+	}
+
 	appendMarkdownEN = PLDoc{
 		Doc: docAppendEN, Deprecated: false,
 		FnCategory: map[string][]string{

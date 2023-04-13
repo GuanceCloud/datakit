@@ -22,6 +22,8 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"add_key()":            &addKeyMarkdown,
 	"add_pattern()":        &addPatternMarkdown,
 	"adjust_timezone()":    &adjustTimezoneMarkdown,
+	"agg_create()":         &aggCreateMarkdown,
+	"agg_metric()":         &aggMetricMarkdown,
 	"append()":             &appendMarkdown,
 	"b64dec()":             &b64decMarkdown,
 	"b64enc()":             &b64encMarkdown,
@@ -42,7 +44,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"grok()":               &grokMarkdown,
 	"group_between()":      &groupBetweenMarkdown,
 	"group_in()":           &groupInMarkdown,
-	"kv_split":             &kvSplitMarkdown,
+	"kv_split()":           &kvSplitMarkdown,
 	"json()":               &jsonMarkdown,
 	"len()":                &lenMarkdown,
 	"load_json()":          &loadJSONMarkdown,
@@ -74,6 +76,8 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"add_key()":            &addKeyMarkdownEN,
 	"add_pattern()":        &addPatternMarkdownEN,
 	"adjust_timezone()":    &adjustTimezoneMarkdownEN,
+	"agg_create()":         &aggCreateMarkdownEN,
+	"agg_metric()":         &aggMetricMarkdownEN,
 	"append()":             &appendMarkdownEN,
 	"b64dec()":             &b64decMarkdownEN,
 	"b64enc()":             &b64encMarkdownEN,
@@ -124,6 +128,13 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 
 // embed docs.
 var (
+
+	//go:embed md/agg_create.md
+	docAggCreate string
+
+	//go:embed md/agg_metric.md
+	docAggMetric string
+
 	//go:embed md/add_pattern.md
 	docAddPattern string
 
@@ -289,6 +300,7 @@ const (
 	cStringOp        = "字符串操作"
 	cDesensitization = "脱敏"
 	cSample          = "采样"
+	ea               = "聚合"
 	cOther           = "其他"
 )
 
@@ -305,6 +317,19 @@ var (
 			langTagZhCN: {cMeasurementOp},
 		},
 	}
+	aggCreateMarkdown = PLDoc{
+		Doc: docAggCreate, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {ea},
+		},
+	}
+	aggMetricMarkdown = PLDoc{
+		Doc: docAggMetric, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {ea},
+		},
+	}
+
 	addPatternMarkdown = PLDoc{
 		Doc: docAddPattern, Deprecated: false,
 		FnCategory: map[string][]string{

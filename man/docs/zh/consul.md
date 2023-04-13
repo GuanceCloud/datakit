@@ -11,17 +11,18 @@ Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prom
 ## 前置条件 {#requirements}
 
 - 安装 consul-exporter
-  - 下载 consul_exporter 压缩包
+    
+    - 下载 consul_exporter 压缩包
 
     ```shell
     sudo wget https://github.com/prometheus/consul_exporter/releases/download/v0.7.1/consul_exporter-0.7.1.linux-amd64.tar.gz
     ```
-  - 解压 consul_exporter 压缩包
+    - 解压 consul_exporter 压缩包
 
     ```shell
     sudo tar -zxvf consul_exporter-0.7.1.linux-amd64.tar.gz  
     ```
-  - 进入 consul_exporter-0.7.1.linux-amd64 目录，运行 consul_exporter 脚本
+    - 进入 consul_exporter-0.7.1.linux-amd64 目录，运行 consul_exporter 脚本
 
     ```shell
     ./consul_exporter     
