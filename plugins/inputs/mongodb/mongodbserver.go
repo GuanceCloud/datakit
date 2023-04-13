@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/strarr"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -26,6 +27,7 @@ type MongodbServer struct {
 	cli        *mongo.Client
 	lastResult *MongoStatus
 	election   bool
+	feeder     dkio.Feeder
 }
 
 func (svr *MongodbServer) getDefaultTags() map[string]string {
@@ -304,7 +306,7 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 			durationInSeconds = 1
 		}
 
-		data := NewMongodbData(NewStatLine(svr.lastResult, result, svr.host, true, durationInSeconds), svr.getDefaultTags(), svr.election)
+		data := NewMongodbData(NewStatLine(svr.lastResult, result, svr.host, true, durationInSeconds), svr.getDefaultTags(), svr.election, svr.feeder)
 		data.AddDefaultStats()
 		data.AddShardHostStats()
 		data.AddDBStats()

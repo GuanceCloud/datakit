@@ -12,7 +12,7 @@
 
 ### Python 环境 {#req-python}
 
-目前处于 alpha 阶段，**只兼容 Python 3+**。
+目前处于 alpha 阶段，**只兼容 Python 3+**。已测试的版本: `3.10.1`。
 
 需要安装以下依赖库:
 

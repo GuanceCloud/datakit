@@ -11,6 +11,8 @@ This document focuses on [Elastic Beats](https://www.elastic.co/products/beats/)
 - [Filebeat](https://www.elastic.co/beats/filebeat/){:target="_blank"}
 - [Download Address](http://www.elastic.co/cn/downloads/past-releases/filebeat-7-17-3){:target="_blank"}
 
+Already tested version: `7.17.6`, `7.17.9`, `8.6.2`.
+
 ## Configure the Collector {#config-input}
 
 === "Host Installation"

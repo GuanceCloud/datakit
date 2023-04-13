@@ -54,7 +54,7 @@ func TestBeatsInput(t *testing.T) {
 				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
-				assert.NoError(t, err)
+				panic(err)
 			} else {
 				tc.cr.Status = testutils.TestPassed
 			}
@@ -326,7 +326,7 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.AnyPoints()
+	pts, err := cs.feeder.AnyPoints(5 * time.Minute)
 	if err != nil {
 		return err
 	}
