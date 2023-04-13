@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/plmap"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 )
@@ -161,9 +163,13 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 	var runResult []pipelineResult
 
 	start := time.Now()
+
+	ptsLi := &pldebugFeed{}
+
+	buks := plmap.NewAggBuks(ptsLi.uploadfn)
 	for _, pt := range pts {
 		// run pipeline
-		pt, drop, err := plRunner.Run(pt, nil, opt, newPlTestSingal())
+		pt, drop, err := plRunner.Run(pt, nil, opt, newPlTestSingal(), buks)
 
 		if err != nil {
 			plerr, ok := err.(*errchain.PlError) //nolint:errorlint
@@ -196,6 +202,25 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 				Dropped: drop,
 			})
 		}
+	}
+	buks.StopAllBukScanner()
+	ptsLi.Lock()
+	defer ptsLi.Unlock()
+	for _, pt := range ptsLi.d {
+		fields, err := pt.Fields()
+		if err != nil {
+			l.Errorf("Fields: %s", err.Error())
+			return nil, err
+		}
+		runResult = append(runResult, pipelineResult{
+			Point: &PlRetPoint{
+				Name:   pt.Name(),
+				Tags:   pt.Tags(),
+				Fields: fields,
+				Time:   pt.Time().Unix(),
+				TimeNS: int64(pt.Time().Nanosecond()),
+			},
+		})
 	}
 
 	var benchmarkInfo string
@@ -398,4 +423,23 @@ func newPlTestSingal() *plTestSignal {
 		tn:      time.Now(),
 		timeout: time.Millisecond * 500,
 	}
+}
+
+type pldebugFeed struct {
+	d []*point.Point
+	sync.Mutex
+}
+
+func (f *pldebugFeed) uploadfn(name string, data any) error {
+	f.Lock()
+	defer f.Unlock()
+
+	if v, ok := data.([]*point.Point); ok {
+		for _, v := range v {
+			if v != nil {
+				f.d = append(f.d, v)
+			}
+		}
+	}
+	return nil
 }

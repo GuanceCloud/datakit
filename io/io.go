@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/failcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
+	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
 var (
@@ -75,6 +76,8 @@ func Start(opts ...IOOption) {
 
 	log.Debugf("default io config: %v", defIO)
 	defIO.start()
+
+	plscript.SetUploadFn(plAggFeed)
 }
 
 func getIO() *dkIO {

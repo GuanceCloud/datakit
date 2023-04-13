@@ -18,6 +18,8 @@ func InitLog() {
 }
 
 var FuncsMap = map[string]runtime.FuncCall{
+	"agg_create":            AggCreate,
+	"agg_metric":            AggAddMetric,
 	"append":                Append,
 	"cidr":                  CIDR,
 	"grok":                  Grok,
@@ -73,6 +75,8 @@ var FuncsMap = map[string]runtime.FuncCall{
 }
 
 var FuncsCheckMap = map[string]runtime.FuncCheck{
+	"agg_create":            AggCreateChecking,
+	"agg_metric":            AggAddMetricChecking,
 	"append":                AppendChecking,
 	"cidr":                  CIDRChecking,
 	"grok":                  GrokChecking,

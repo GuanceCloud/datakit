@@ -26,6 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/geoip"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/plmap"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput/funcs"
 	plrefertable "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/refertable"
@@ -108,7 +109,9 @@ type Pipeline struct {
 	Script *plscript.PlScript
 }
 
-func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.PointOption, signal plruntime.Signal) (*point.Point, bool, error) {
+func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.PointOption,
+	signal plruntime.Signal, buks ...*plmap.AggBuckets,
+) (*point.Point, bool, error) {
 	if p.Script == nil || p.Script.Engine() == nil {
 		return nil, false, fmt.Errorf("pipeline engine not initialized")
 	}
@@ -125,6 +128,9 @@ func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.P
 	plpt := &ptinput.Point{}
 
 	plpt = ptinput.InitPt(plpt, pt.Name(), pt.Tags(), fields, ioPtOpt.Time)
+	if len(buks) > 0 {
+		p.Script.SetAggBuks(buks[0])
+	}
 
 	if err := p.Script.Run(plpt, signal, plOpt); err != nil {
 		return nil, false, err
