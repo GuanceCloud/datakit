@@ -51,7 +51,7 @@ type JolokiaAgent struct {
 	Username        string
 	Password        string
 	ResponseTimeout time.Duration `toml:"response_timeout"`
-	Interval        string
+	Interval        string        `toml:"interval"`
 
 	tls.ClientConfig
 

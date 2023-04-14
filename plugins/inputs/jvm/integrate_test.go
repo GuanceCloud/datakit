@@ -6,10 +6,8 @@
 package jvm
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -22,15 +20,17 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var mCount map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
+
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-func TestApacheInput(t *testing.T) {
+func TestJVMInput(t *testing.T) {
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -57,14 +57,14 @@ func TestApacheInput(t *testing.T) {
 				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
-				panic(err)
+				require.NoError(t, err)
 			} else {
 				tc.cr.Status = testutils.TestPassed
 			}
 
 			tc.cr.Cost = time.Since(caseStart)
 
-			assert.NoError(t, testutils.Flush(tc.cr))
+			require.NoError(t, testutils.Flush(tc.cr))
 
 			t.Cleanup(func() {
 				// clean remote docker resources
@@ -72,7 +72,7 @@ func TestApacheInput(t *testing.T) {
 					return
 				}
 
-				assert.NoError(t, tc.pool.Purge(tc.resource))
+				require.NoError(t, tc.pool.Purge(tc.resource))
 			})
 		})
 	}
@@ -84,18 +84,68 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	remote := testutils.GetRemote()
 
 	bases := []struct {
-		name           string // Also used as build image name:tag.
-		conf           string
-		dockerFileText string // Empty if not build image.
-		exposedPorts   []string
-		mPathCount     map[string]int
+		name                 string // Also used as build image name:tag.
+		conf                 string
+		dockerFileText       string // Empty if not build image.
+		exposedPorts         []string
+		optsJavaRuntime      []inputs.PointCheckOption
+		optsJavaMemory       []inputs.PointCheckOption
+		optsGarbageCollector []inputs.PointCheckOption
+		optsThreading        []inputs.PointCheckOption
+		optsClassLoading     []inputs.PointCheckOption
+		optsMemoryPool       []inputs.PointCheckOption
+		mPathCount           map[string]int
 	}{
 		{
-			name: "httpd:server-status",
-			conf: fmt.Sprintf(`url = "http://%s/server-status?auto"
-			interval = "1s"`, remote.Host),
-			dockerFileText: getDockerfile("2.4"),
-			exposedPorts:   []string{"80/tcp"},
+			name: "java:jvm-jolokia-8",
+			conf: fmt.Sprintf(`urls = ["http://%s:59090/jolokia"]
+			interval   = "1s"
+			[[metric]]
+			  name  = "java_runtime"
+			  mbean = "java.lang:type=Runtime"
+			  paths = ["Uptime"]
+			[[metric]]
+			  name  = "java_memory"
+			  mbean = "java.lang:type=Memory"
+			  paths = ["HeapMemoryUsage", "NonHeapMemoryUsage", "ObjectPendingFinalizationCount"]
+			[[metric]]
+			  name     = "java_garbage_collector"
+			  mbean    = "java.lang:name=*,type=GarbageCollector"
+			  paths    = ["CollectionTime", "CollectionCount"]
+			  tag_keys = ["name"]
+			[[metric]]
+			  name  = "java_threading"
+			  mbean = "java.lang:type=Threading"
+			  paths = ["TotalStartedThreadCount", "ThreadCount", "DaemonThreadCount", "PeakThreadCount"]
+			[[metric]]
+			  name  = "java_class_loading"
+			  mbean = "java.lang:type=ClassLoading"
+			  paths = ["LoadedClassCount", "UnloadedClassCount", "TotalLoadedClassCount"]
+			[[metric]]
+			  name     = "java_memory_pool"
+			  mbean    = "java.lang:name=*,type=MemoryPool"
+			  paths    = ["Usage", "PeakUsage", "CollectionUsage"]
+			  tag_keys = ["name"]`, remote.Host),
+			// dockerFileText: getDockerfile("2.4"),
+			exposedPorts: []string{"8080/tcp", "59090/tcp"},
+			optsJavaRuntime: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsJavaMemory: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsGarbageCollector: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsThreading: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsClassLoading: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsMemoryPool: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
 			mPathCount: map[string]int{
 				"/": 100,
 			},
@@ -109,10 +159,10 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		feeder := io.NewMockedFeeder()
 
 		ipt := defaultInput()
-		// ipt.feeder = feeder
+		ipt.Feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		repoTag := strings.Split(base.name, ":")
 
@@ -126,7 +176,14 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
-			// opts:           base.opts,
+
+			optsJavaRuntime:      base.optsJavaRuntime,
+			optsJavaMemory:       base.optsJavaMemory,
+			optsGarbageCollector: base.optsGarbageCollector,
+			optsThreading:        base.optsThreading,
+			optsClassLoading:     base.optsClassLoading,
+			optsMemoryPool:       base.optsMemoryPool,
+
 			mPathCount: base.mPathCount,
 
 			cr: &testutils.CaseResult{
@@ -153,13 +210,18 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 type caseSpec struct {
 	t *testing.T
 
-	name           string
-	repo           string
-	repoTag        string
-	dockerFileText string
-	exposedPorts   []string
-	opts           []inputs.PointCheckOption
-	mPathCount     map[string]int
+	name                 string
+	repo                 string
+	repoTag              string
+	dockerFileText       string
+	exposedPorts         []string
+	optsJavaRuntime      []inputs.PointCheckOption
+	optsJavaMemory       []inputs.PointCheckOption
+	optsGarbageCollector []inputs.PointCheckOption
+	optsThreading        []inputs.PointCheckOption
+	optsClassLoading     []inputs.PointCheckOption
+	optsMemoryPool       []inputs.PointCheckOption
+	mPathCount           map[string]int
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -173,25 +235,112 @@ type caseSpec struct {
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	var opts []inputs.PointCheckOption
 	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-	opts = append(opts, cs.opts...)
 
 	for _, pt := range pts {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		// case inputName:
-		// 	opts = append(opts, inputs.WithDoc(&Measurement{}))
+		case javaRuntime:
+			opts = append(opts, cs.optsJavaRuntime...)
+			opts = append(opts, inputs.WithDoc(&JavaRuntimeMemt{}))
 
-		// 	msgs := inputs.CheckPoint(pt, opts...)
+			msgs := inputs.CheckPoint(pt, opts...)
 
-		// 	for _, msg := range msgs {
-		// 		cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-		// 	}
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
 
-		// 	// TODO: error here
-		// 	if len(msgs) > 0 {
-		// 		return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-		// 	}
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			mCount[javaRuntime] = struct{}{}
+
+		case javaMemory:
+			opts = append(opts, cs.optsJavaMemory...)
+			opts = append(opts, inputs.WithDoc(&JavaMemoryMemt{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			mCount[javaMemory] = struct{}{}
+
+		case javaGarbageCollector:
+			opts = append(opts, cs.optsGarbageCollector...)
+			opts = append(opts, inputs.WithDoc(&JavaGcMemt{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			mCount[javaGarbageCollector] = struct{}{}
+
+		case javaThreading:
+			opts = append(opts, cs.optsThreading...)
+			opts = append(opts, inputs.WithDoc(&JavaThreadMemt{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			mCount[javaThreading] = struct{}{}
+
+		case javaClassLoading:
+			opts = append(opts, cs.optsClassLoading...)
+			opts = append(opts, inputs.WithDoc(&JavaClassLoadMemt{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			mCount[javaClassLoading] = struct{}{}
+
+		case javaMemoryPool:
+			opts = append(opts, cs.optsMemoryPool...)
+			opts = append(opts, inputs.WithDoc(&JavaMemoryPoolMemt{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			mCount[javaMemoryPool] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -246,11 +395,6 @@ func (cs *caseSpec) run() error {
 	}
 	defer os.RemoveAll(dockerFileDir)
 
-	extIP, err := externalIP()
-	if err != nil {
-		return err
-	}
-
 	var resource *dockertest.Resource
 
 	if len(cs.dockerFileText) == 0 {
@@ -261,7 +405,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
+				Env:        []string{"JOLOKIA_PORT=59090"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -282,7 +426,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
+				Env:        []string{"JOLOKIA_PORT=59090"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -325,7 +469,7 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.AnyPoints(5 * time.Minute)
+	pts, err := cs.feeder.NPoints(50, 5*time.Minute)
 	if err != nil {
 		return err
 	}
@@ -340,6 +484,8 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
+
+	require.Equal(cs.t, 6, len(mCount))
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -424,7 +570,7 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 // Launch large amount of HTTP requests to remote nginx.
 func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 	for path, count := range cs.mPathCount {
-		newURL := fmt.Sprintf("http://%s%s", r.Host, path)
+		newURL := fmt.Sprintf("http://%s:8080%s", r.Host, path)
 
 		var wg sync.WaitGroup
 		wg.Add(count)
@@ -446,65 +592,3 @@ func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 		wg.Wait()
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////
-
-func externalIP() (string, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 {
-			continue // interface down
-		}
-		if iface.Flags&net.FlagLoopback != 0 {
-			continue // loopback interface
-		}
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return "", err
-		}
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if ip == nil || ip.IsLoopback() {
-				continue
-			}
-			ip = ip.To4()
-			if ip == nil {
-				continue // not an ipv4 address
-			}
-			return ip.String(), nil
-		}
-	}
-	return "", errors.New("are you connected to the network?")
-}
-
-func getDockerfile(version string) string {
-	replacePair := map[string]string{
-		"VERSION":  version,
-		"a":        "$a",
-		"ALLOW_IP": "${DATAKIT_HOST}",
-	}
-
-	return os.Expand(dockerFileServerStatus, func(k string) string { return replacePair[k] })
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// Dockerfiles.
-
-const dockerFileServerStatus = `FROM httpd:${VERSION}
-
-RUN sed -i '$a <Location /server-status>' /usr/local/apache2/conf/httpd.conf \
-  && sed -i '$a SetHandler server-status' /usr/local/apache2/conf/httpd.conf \
-  && sed -i '$a Order Deny,Allow' /usr/local/apache2/conf/httpd.conf \
-  && sed -i '$a Deny from all' /usr/local/apache2/conf/httpd.conf \
-  && sed -i '$a Allow from ${ALLOW_IP}' /usr/local/apache2/conf/httpd.conf \
-  && sed -i '$a </Location>' /usr/local/apache2/conf/httpd.conf`
