@@ -26,8 +26,8 @@ import (
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	dkpoint "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 // --------------------------------------------------------------------
@@ -59,7 +59,8 @@ type JolokiaAgent struct {
 	gatherer *Gatherer
 	clients  []*Client
 
-	collectCache []Measurement
+	// collectCache []Measurement
+	collectCache []*point.Point
 	PluginName   string `toml:"-"`
 	L            *logger.Logger
 
@@ -67,19 +68,23 @@ type JolokiaAgent struct {
 	Types map[string]string `toml:"-"`
 
 	SemStop *cliutils.Sem `toml:"-"` // start stop signal
+	Feeder  dkio.Feeder   `toml:"-"`
 }
 
 func (j *JolokiaAgent) Collect() {
 	log = logger.SLogger("jolokia")
-
-	if j.SemStop == nil {
-		j.SemStop = cliutils.NewSem()
-	}
-
 	if j.L == nil {
 		j.L = log
 	}
 	j.L.Infof("%s input started...", j.PluginName)
+
+	if j.SemStop == nil {
+		j.SemStop = cliutils.NewSem()
+	}
+	if j.Feeder == nil {
+		j.Feeder = dkio.DefaultFeeder()
+	}
+
 	j = j.Adaptor()
 
 	duration, err := time.ParseDuration(j.Interval)
@@ -96,15 +101,23 @@ func (j *JolokiaAgent) Collect() {
 		case <-tick.C:
 			start := time.Now()
 			if err := j.Gather(); err != nil {
-				io.FeedLastError(j.PluginName, err.Error(), point.Metric)
+				// dkio.FeedLastError(j.PluginName, err.Error(), point.Metric)
+				j.Feeder.FeedLastError(j.PluginName, err.Error(), point.Metric)
 			}
 
 			if len(j.collectCache) > 0 {
-				if err := FeedMeasurement(j.PluginName, datakit.Metric, j.collectCache,
-					&io.Option{
+				// if err := FeedMeasurement(j.PluginName, datakit.Metric, j.collectCache,
+				// 	&dkio.Option{
+				// 		CollectCost: time.Since(start),
+				// 	}); err != nil {
+				// 	j.L.Errorf("dkio.FeedMeasurement: %s, ignored", err.Error())
+				// }
+
+				if err := j.Feeder.Feed(j.PluginName, point.Metric, j.collectCache,
+					&dkio.Option{
 						CollectCost: time.Since(start),
 					}); err != nil {
-					j.L.Errorf("io.FeedMeasurement: %s, ignored", err.Error())
+					j.L.Errorf("Feed: %s, ignored", err.Error())
 				}
 
 				j.collectCache = j.collectCache[:0] // NOTE: do not forget to clean cache
@@ -210,14 +223,29 @@ func (j *JolokiaAgent) Adaptor() *JolokiaAgent {
 const defaultFieldName = "value"
 
 type JolokiaMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	election bool
 }
 
-func (j *JolokiaMeasurement) LineProto() (*dkpoint.Point, error) {
-	return dkpoint.NewPoint(j.name, j.tags, j.fields, dkpoint.MOpt())
+// Point implement MeasurementV2.
+func (j *JolokiaMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if j.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(j.name),
+		append(point.NewTags(j.tags), point.NewKVs(j.fields)...),
+		opts...)
+}
+
+func (j *JolokiaMeasurement) LineProto() (*dkpt.Point, error) {
+	// return dkpt.NewPoint(j.name, j.tags, j.fields, dkpt.MOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 func (j *JolokiaMeasurement) Info() *MeasurementInfo {
@@ -298,12 +326,20 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 				continue
 			}
 
-			j.collectCache = append(j.collectCache, &JolokiaMeasurement{
-				measurement,
-				mergeTags(point.Tags, tags),
-				field,
-				time.Now(),
-			})
+			// j.collectCache = append(j.collectCache, &JolokiaMeasurement{
+			// 	measurement,
+			// 	mergeTags(point.Tags, tags),
+			// 	field,
+			// 	time.Now(),
+			// })
+
+			metric := &JolokiaMeasurement{
+				name:   measurement,
+				tags:   mergeTags(point.Tags, tags),
+				fields: field,
+				ts:     time.Now(),
+			}
+			j.collectCache = append(j.collectCache, metric.Point())
 		}
 	}
 	return nil
