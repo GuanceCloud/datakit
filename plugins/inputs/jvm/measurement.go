@@ -41,9 +41,9 @@ type JavaGcMemt struct {
 	JvmMeasurement
 }
 
-type JavaLastGcMemt struct {
-	JvmMeasurement
-}
+// type JavaLastGcMemt struct {
+// 	JvmMeasurement
+// }
 
 type JavaThreadMemt struct {
 	JvmMeasurement
@@ -212,26 +212,26 @@ func (*JavaGcMemt) Info() *inputs.MeasurementInfo {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Point implement MeasurementV2.
-func (m *JavaLastGcMemt) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
+// func (m *JavaLastGcMemt) Point() *point.Point {
+// 	opts := point.DefaultMetricOptions()
 
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	}
+// 	if m.election {
+// 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+// 	}
 
-	return point.NewPointV2([]byte(m.name),
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
+// 	return point.NewPointV2([]byte(m.name),
+// 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+// 		opts...)
+// }
 
-func (*JavaLastGcMemt) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
-}
+// func (*JavaLastGcMemt) LineProto() (*dkpt.Point, error) {
+// 	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+// 	return nil, fmt.Errorf("not implement")
+// }
 
-func (*JavaLastGcMemt) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{}
-}
+// func (*JavaLastGcMemt) Info() *inputs.MeasurementInfo {
+// 	return &inputs.MeasurementInfo{}
+// }
 
 ////////////////////////////////////////////////////////////////////////////////
 
