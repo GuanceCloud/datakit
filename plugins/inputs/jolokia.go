@@ -106,13 +106,6 @@ func (j *JolokiaAgent) Collect() {
 			}
 
 			if len(j.collectCache) > 0 {
-				// if err := FeedMeasurement(j.PluginName, datakit.Metric, j.collectCache,
-				// 	&dkio.Option{
-				// 		CollectCost: time.Since(start),
-				// 	}); err != nil {
-				// 	j.L.Errorf("dkio.FeedMeasurement: %s, ignored", err.Error())
-				// }
-
 				if err := j.Feeder.Feed(j.PluginName, point.Metric, j.collectCache,
 					&dkio.Option{
 						CollectCost: time.Since(start),
@@ -325,13 +318,6 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 			if len(field) == 0 {
 				continue
 			}
-
-			// j.collectCache = append(j.collectCache, &JolokiaMeasurement{
-			// 	measurement,
-			// 	mergeTags(point.Tags, tags),
-			// 	field,
-			// 	time.Now(),
-			// })
 
 			metric := &JolokiaMeasurement{
 				name:   measurement,
