@@ -126,7 +126,168 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  mbean    = "java.lang:name=*,type=MemoryPool"
 			  paths    = ["Usage", "PeakUsage", "CollectionUsage"]
 			  tag_keys = ["name"]`, remote.Host),
-			// dockerFileText: getDockerfile("2.4"),
+			exposedPorts: []string{"8080/tcp", "59090/tcp"},
+			optsJavaRuntime: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsJavaMemory: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsGarbageCollector: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsThreading: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsClassLoading: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsMemoryPool: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			mPathCount: map[string]int{
+				"/": 100,
+			},
+		},
+
+		{
+			name: "java:jvm-jolokia-11",
+			conf: fmt.Sprintf(`urls = ["http://%s:59090/jolokia"]
+			interval   = "1s"
+			[[metric]]
+			  name  = "java_runtime"
+			  mbean = "java.lang:type=Runtime"
+			  paths = ["Uptime"]
+			[[metric]]
+			  name  = "java_memory"
+			  mbean = "java.lang:type=Memory"
+			  paths = ["HeapMemoryUsage", "NonHeapMemoryUsage", "ObjectPendingFinalizationCount"]
+			[[metric]]
+			  name     = "java_garbage_collector"
+			  mbean    = "java.lang:name=*,type=GarbageCollector"
+			  paths    = ["CollectionTime", "CollectionCount"]
+			  tag_keys = ["name"]
+			[[metric]]
+			  name  = "java_threading"
+			  mbean = "java.lang:type=Threading"
+			  paths = ["TotalStartedThreadCount", "ThreadCount", "DaemonThreadCount", "PeakThreadCount"]
+			[[metric]]
+			  name  = "java_class_loading"
+			  mbean = "java.lang:type=ClassLoading"
+			  paths = ["LoadedClassCount", "UnloadedClassCount", "TotalLoadedClassCount"]
+			[[metric]]
+			  name     = "java_memory_pool"
+			  mbean    = "java.lang:name=*,type=MemoryPool"
+			  paths    = ["Usage", "PeakUsage", "CollectionUsage"]
+			  tag_keys = ["name"]`, remote.Host),
+			exposedPorts: []string{"8080/tcp", "59090/tcp"},
+			optsJavaRuntime: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsJavaMemory: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsGarbageCollector: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsThreading: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsClassLoading: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsMemoryPool: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			mPathCount: map[string]int{
+				"/": 100,
+			},
+		},
+
+		{
+			name: "java:jvm-jolokia-17",
+			conf: fmt.Sprintf(`urls = ["http://%s:59090/jolokia"]
+			interval   = "1s"
+			[[metric]]
+			  name  = "java_runtime"
+			  mbean = "java.lang:type=Runtime"
+			  paths = ["Uptime"]
+			[[metric]]
+			  name  = "java_memory"
+			  mbean = "java.lang:type=Memory"
+			  paths = ["HeapMemoryUsage", "NonHeapMemoryUsage", "ObjectPendingFinalizationCount"]
+			[[metric]]
+			  name     = "java_garbage_collector"
+			  mbean    = "java.lang:name=*,type=GarbageCollector"
+			  paths    = ["CollectionTime", "CollectionCount"]
+			  tag_keys = ["name"]
+			[[metric]]
+			  name  = "java_threading"
+			  mbean = "java.lang:type=Threading"
+			  paths = ["TotalStartedThreadCount", "ThreadCount", "DaemonThreadCount", "PeakThreadCount"]
+			[[metric]]
+			  name  = "java_class_loading"
+			  mbean = "java.lang:type=ClassLoading"
+			  paths = ["LoadedClassCount", "UnloadedClassCount", "TotalLoadedClassCount"]
+			[[metric]]
+			  name     = "java_memory_pool"
+			  mbean    = "java.lang:name=*,type=MemoryPool"
+			  paths    = ["Usage", "PeakUsage", "CollectionUsage"]
+			  tag_keys = ["name"]`, remote.Host),
+			exposedPorts: []string{"8080/tcp", "59090/tcp"},
+			optsJavaRuntime: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsJavaMemory: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsGarbageCollector: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsThreading: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsClassLoading: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			optsMemoryPool: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
+			},
+			mPathCount: map[string]int{
+				"/": 100,
+			},
+		},
+
+		{
+			name: "java:jvm-jolokia-20",
+			conf: fmt.Sprintf(`urls = ["http://%s:59090/jolokia"]
+			interval   = "1s"
+			[[metric]]
+			  name  = "java_runtime"
+			  mbean = "java.lang:type=Runtime"
+			  paths = ["Uptime"]
+			[[metric]]
+			  name  = "java_memory"
+			  mbean = "java.lang:type=Memory"
+			  paths = ["HeapMemoryUsage", "NonHeapMemoryUsage", "ObjectPendingFinalizationCount"]
+			[[metric]]
+			  name     = "java_garbage_collector"
+			  mbean    = "java.lang:name=*,type=GarbageCollector"
+			  paths    = ["CollectionTime", "CollectionCount"]
+			  tag_keys = ["name"]
+			[[metric]]
+			  name  = "java_threading"
+			  mbean = "java.lang:type=Threading"
+			  paths = ["TotalStartedThreadCount", "ThreadCount", "DaemonThreadCount", "PeakThreadCount"]
+			[[metric]]
+			  name  = "java_class_loading"
+			  mbean = "java.lang:type=ClassLoading"
+			  paths = ["LoadedClassCount", "UnloadedClassCount", "TotalLoadedClassCount"]
+			[[metric]]
+			  name     = "java_memory_pool"
+			  mbean    = "java.lang:name=*,type=MemoryPool"
+			  paths    = ["Usage", "PeakUsage", "CollectionUsage"]
+			  tag_keys = ["name"]`, remote.Host),
 			exposedPorts: []string{"8080/tcp", "59090/tcp"},
 			optsJavaRuntime: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
