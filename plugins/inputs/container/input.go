@@ -52,7 +52,8 @@ type Input struct {
 	K8sBearerTokenString                              string `toml:"bearer_token_string"`
 	DisableK8sEvents                                  bool   `toml:"disable_k8s_events"`
 	ExtractK8sLabelAsTags                             bool   `toml:"extract_k8s_label_as_tags"`
-	EnableAutoDiscoveryOfPrometheusServierAnnotations bool   `toml:"enable_auto_discovery_of_prometheus_service_annotations"`
+	EnableAutoDiscoveryOfPrometheusPodAnnotations     bool   `toml:"enable_auto_discovery_of_prometheus_pod_annotations"`
+	EnableAutoDiscoveryOfPrometheusServiceAnnotations bool   `toml:"enable_auto_discovery_of_prometheus_service_annotations"`
 	EnableAutoDiscoveryOfPrometheusPodMonitors        bool   `toml:"enable_auto_discovery_of_prometheus_pod_monitors"`
 	EnableAutoDiscoveryOfPrometheusServiceMonitors    bool   `toml:"enable_auto_discovery_of_prometheus_service_monitors"`
 
@@ -475,7 +476,8 @@ func (i *Input) setup() {
 		i.discovery.extractK8sLabelAsTags = i.ExtractK8sLabelAsTags
 		i.discovery.prometheusMonitoringExtraConfig = i.prometheusMonitoringExtraConfig
 
-		i.discovery.enablePrometheusServiceAnnotations = i.EnableAutoDiscoveryOfPrometheusServierAnnotations
+		i.discovery.enablePrometheusPodAnnotations = i.EnableAutoDiscoveryOfPrometheusPodAnnotations
+		i.discovery.enablePrometheusServiceAnnotations = i.EnableAutoDiscoveryOfPrometheusServiceAnnotations
 		i.discovery.enablePrometheusPodMonitors = i.EnableAutoDiscoveryOfPrometheusPodMonitors
 		i.discovery.enablePrometheusServiceMonitors = i.EnableAutoDiscoveryOfPrometheusServiceMonitors
 

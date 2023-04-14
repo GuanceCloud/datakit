@@ -321,23 +321,16 @@ func renamePtKey(in any, to, from string) error {
 		return err
 	}
 
-	v, ok := pt.Meta[from]
-	if !ok {
+	if v, ok := pt.Fields[from]; ok {
+		pt.Fields[to] = v
+		delete(pt.Fields, from)
+	} else if v, ok := pt.Tags[from]; ok {
+		pt.Tags[to] = v
+		delete(pt.Tags, from)
+	} else {
 		return fmt.Errorf("key(from) %s not found", from)
 	}
 
-	switch v.PtFlag { //nolint:exhaustive
-	case ptinput.PtField:
-		if v, ok := pt.Fields[from]; ok {
-			pt.Fields[to] = v
-		}
-		delete(pt.Fields, from)
-	case ptinput.PtTag:
-		if v, ok := pt.Tags[from]; ok {
-			pt.Tags[to] = v
-		}
-		delete(pt.Tags, from)
-	}
 	return nil
 }
 
