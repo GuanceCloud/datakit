@@ -29,6 +29,7 @@ import (
 var mCount map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
+// Reference: https://jolokia.org/reference/html/agents.html#jvm-agent
 
 func TestJVMInput(t *testing.T) {
 	start := time.Now()
