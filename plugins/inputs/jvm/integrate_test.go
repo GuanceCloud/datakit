@@ -8,6 +8,7 @@ package jvm
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -98,7 +99,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		mPathCount           map[string]int
 	}{
 		{
-			name: "java:jvm-jolokia-8",
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-8",
 			conf: fmt.Sprintf(`urls = ["http://%s:59090/jolokia"]
 			interval   = "1s"
 			[[metric]]
@@ -152,7 +153,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "java:jvm-jolokia-11",
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-11",
 			conf: fmt.Sprintf(`urls = ["http://%s:59090/jolokia"]
 			interval   = "1s"
 			[[metric]]
@@ -206,7 +207,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "java:jvm-jolokia-17",
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-17",
 			conf: fmt.Sprintf(`urls = ["http://%s:59090/jolokia"]
 			interval   = "1s"
 			[[metric]]
@@ -260,7 +261,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "java:jvm-jolokia-20",
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-20",
 			conf: fmt.Sprintf(`urls = ["http://%s:59090/jolokia"]
 			interval   = "1s"
 			[[metric]]
@@ -732,7 +733,7 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 // Launch large amount of HTTP requests to remote nginx.
 func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 	for path, count := range cs.mPathCount {
-		newURL := fmt.Sprintf("http://%s:8080%s", r.Host, path)
+		newURL := fmt.Sprintf("http://%s%s", net.JoinHostPort(r.Host, "8080"), path)
 
 		var wg sync.WaitGroup
 		wg.Add(count)
