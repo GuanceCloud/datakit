@@ -42,7 +42,6 @@ func (c *Cgroup) memSetup() {
 func (c *Cgroup) makeLinuxResource() *specs.LinuxResources {
 	c.cpuSetup()
 	c.memSetup()
-	// ------------ cgroup v2
 
 	resource := &specs.LinuxResources{
 		CPU: &specs.LinuxCPU{
