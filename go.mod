@@ -8,7 +8,7 @@ require (
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/DataDog/gopsutil v1.1.0
-	github.com/GuanceCloud/cliutils v0.0.0-20230404025049-b64e2558e9d4
+	github.com/GuanceCloud/cliutils v0.0.0-20230417025230-293ec35774ce
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.2
 	github.com/GuanceCloud/platypus v0.2.3
@@ -338,6 +338,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
+	google.golang.org/protobuf v1.28.1
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
@@ -358,8 +359,6 @@ require (
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
-
-require google.golang.org/protobuf v1.28.1
 
 // replace
 replace (

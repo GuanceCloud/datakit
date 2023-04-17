@@ -10,7 +10,7 @@ Function parameters:
 - `json_path`: json path information
 - `newkey`：Write the data to the new key after extraction
 - `trim_space`: Delete the leading and trailing blank characters in the extracted characters, the default value is true
-- `delete_after_extract`: After extract delete the extracted info from input. Only map key and map value are deletable, list(array) are not supported. Default is `false'.  [:octicons-tag-24: Version-1.5.7](../changelog.md#cl-1.5.7)
+- `delete_after_extract`: After extract delete the extracted info from input. Only map key and map value are deletable, list(array) are not supported. Default is `false'.  [:octicons-tag-24: Version-1.5.7](../datakit/changelog.md#cl-1.5.7)
 
 ```python
 # Directly extract the x.y field in the original input json, and name it as a new field abc

@@ -146,7 +146,7 @@ define publish
 		-name $(NAME)            \
 		-build-dir $(BUILD_DIR)  \
 		-archs $(4)              \
-		$(PKGEBPF_FLAG)
+		-pkg-ebpf $(PKGEBPF)
 endef
 
 define pub_ebpf
