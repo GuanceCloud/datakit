@@ -9,7 +9,7 @@ package git
 var (
 	BuildAt  string = "not-set"
 	Version  string = "not-set"
-	Golang   string = "1.18.3" // cost
+	Golang   string = "1.18.3"
 	Commit   string = "not-set"
 	Branch   string = "not-net"
 	Uploader string = "not-set"

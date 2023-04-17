@@ -129,7 +129,7 @@ define publish
 		-name $(NAME)            \
 		-build-dir $(BUILD_DIR)  \
 		-archs $(4)              \
-		$(PKGEBPF_FLAG)
+		-pkg-ebpf $(PKGEBPF)
 endef
 
 define pub_ebpf
@@ -201,10 +201,6 @@ define build_ip2isp
 	rm -rf china-operator-ip
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
-endef
-
-define do_lint
-	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
 endef
 
 ##############################################################################
@@ -354,7 +350,11 @@ test_deps: gofmt lfparser_disable_line vet
 
 lint: deps check_man copyright_check
 	@truncate -s 0 lint.err
-	$(call do_lint)
+	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
+
+lint_nofix: deps check_man copyright_check
+	@truncate -s 0 lint.err
+	$(GOLINT_BINARY) run --allow-parallel-runners | tee -a lint_nofix.err
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go

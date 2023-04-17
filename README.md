@@ -62,7 +62,13 @@ DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" bash -c "$(curl -L ht
 - Windows
 
 ```powershell
-$env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+Remove-Item -ErrorAction SilentlyContinue Env:DK_*;
+$env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";
+Set-ExecutionPolicy Bypass -scope Process -Force;
+Import-Module bitstransfer;
+start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1;
+powershell .install.ps1;
+Remove-Item .install.ps1;
 ```
 
 - [Kubernetes DaemonSet](https://docs.guance.com/datakit/datakit-daemonset-deploy)

@@ -10,7 +10,8 @@ solr 采集器，用于采集 solr cache 和 request times 等的统计信息。
 
 ## 前置条件 {#requrements}
 
-DataKit 使用 Solr Metrics API 采集指标数据，支持 Solr 7.0 及以上版本。可用于 Solr 6.6，但指标数据不完整。
+- DataKit 使用 Solr Metrics API 采集指标数据，支持 Solr 7.0 及以上版本。
+- 也可用于 Solr 6.6，但指标数据不完整。
 
 ## 配置 {#config}
 
@@ -22,7 +23,8 @@ DataKit 使用 Solr Metrics API 采集指标数据，支持 Solr 7.0 及以上�
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    配置好后，重启 DataKit 即可。
+    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+
 
 === "Kubernetes"
 

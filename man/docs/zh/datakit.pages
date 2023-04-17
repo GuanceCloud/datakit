@@ -2,7 +2,7 @@ nav:
   - index.md
   - changelog.md
 
-  - 'DataKit 介绍': 
+  - 'DataKit 介绍':
     - datakit-arch.md
 
   - 'DataKit 安装':
@@ -11,7 +11,7 @@ nav:
     - '离线安装': datakit-offline-install.md
     - '批量安装': datakit-batch-deploy.md
 
-  - 'DataKit 使用': 
+  - 'DataKit 使用':
     - 服务管理: datakit-service-how-to.md
     - 状态查看: datakit-monitor.md
     - '更新': datakit-update.md
@@ -20,7 +20,7 @@ nav:
     - '虚拟互联网接入': aliyun-access.md
     - '故障排查': why-no-data.md
 
-  - 'DataKit 配置': 
+  - 'DataKit 配置':
     - '主配置': datakit-conf.md
     - '选举配置': election.md
     - '代理配置': proxy.md
@@ -29,13 +29,13 @@ nav:
       - '配置综述': k8s-config-how-to.md
       - 'DCA': dca.md
       - 'Git': git-config-how-to.md
+      - 'Helm 配置': datakit-helm.md
       - '配置中心支持': confd.md
-
   - 'DataKit 采集器':
     - datakit-input-conf.md
     - 主机:
       - 默认采集:
-        - 'DataKit': self.md 
+        - 'DataKit': self.md
         - cpu.md
         - disk.md
         - diskio.md
@@ -107,7 +107,7 @@ nav:
 
       - 'Profiling':
         - profile.md
-        - 'Java': profile-java.md 
+        - 'Java': profile-java.md
         - 'Python': profile-python.md
         - 'Go': profile-go.md
         - 'C/C++': profile-cpp.md

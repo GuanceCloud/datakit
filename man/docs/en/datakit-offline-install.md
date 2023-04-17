@@ -35,7 +35,10 @@ At present, DataKit has a inner proxy collector; The same goal can also be achie
     Add the environment variable `HTTPS_PROXY="1.2.3.4:9530"`, and the installation command is as follows:
     
     ```shell
-    export HTTPS_PROXY=http://1.2.3.4:9530; DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 4
+(.WithPlatform "unix")
+(.WithEnvs "HTTPS_PROXY" "http://1.2.3.4:9530")
+}}
     ```
     
     - Using the Nginx proxy
@@ -43,7 +46,11 @@ At present, DataKit has a inner proxy collector; The same goal can also be achie
     Add the environment variable `DK_PROXY_TYPE="nginx"; DK_NGINX_IP="1.2.3.4";`, and the installation command is as follows:
     
     ```shell
-    export DK_PROXY_TYPE="nginx"; DK_NGINX_IP="1.2.3.4"; DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 4
+(.WithPlatform "unix")
+(.WithEnvs "DK_PROXY_TYPE" "nginx")
+(.WithEnvs "DK_NGINX_IP" "1.2.3.4")
+}}
     ```
 
 === "Windows"
@@ -53,7 +60,11 @@ At present, DataKit has a inner proxy collector; The same goal can also be achie
     Add the environment variable `$env:HTTPS_PROXY="1.2.3.4:9530"`, and the installation command is as follows:
     
     ```powershell
-    $env:HTTPS_PROXY="1.2.3.4:9530"; $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -ProxyUsage Override -ProxyList $env:HTTPS_PROXY -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 4
+(.WithPlatform "windows")
+(.WithBitstransferOpts "-ProxyUsage Override -ProxyList $env:HTTPS_PROXY")
+(.WithEnvs "HTTPS_PROXY" "1.2.3.4:9530")
+}}
     ```
     
     - Using the Nginx proxy
@@ -61,7 +72,12 @@ At present, DataKit has a inner proxy collector; The same goal can also be achie
     Add the environment variable `$env:DK_PROXY_TYPE="nginx"; $env:DK_NGINX_IP="1.2.3.4";`, and the installation command is as follows:
     
     ```powershell
-    $env:DK_PROXY_TYPE="nginx"; $env:DK_NGINX_IP="1.2.3.4"; $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -ProxyUsage Override -ProxyList $env:HTTPS_PROXY -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 4
+(.WithPlatform "windows")
+(.WithBitstransferOpts "-ProxyUsage Override -ProxyList $env:DK_NGINX_IP")
+(.WithEnvs "DK_PROXY_TYPE" "nginx")
+(.WithEnvs "DK_NGINX_IP" "1.2.3.4")
+}}
     ```
     
     > Note: Other setup parameter settings are the same as [normal setup](datakit-install.md).
@@ -235,20 +251,15 @@ On the intranet machine, point it to the Nginx file server by setting `DK_INSTAL
     ```shell
     HTTPS_PROXY=http://1.2.3.4:9530 \
     DK_INSTALLER_BASE_URL="http://<nginxServer>:8080/datakit" \
-    DK_DATAWAY="https://dataway?token=<TOKEN>" \
-    bash -c "$(curl -L ${DK_INSTALLER_BASE_URL}/install.sh)"
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithSourceURL "${DK_INSTALLER_BASE_URL}") }}
     ```
 
 === "Windows"
 
     ```powershel
-    $env:HTTPS_PROXY="1.2.3.4:9530";
-    $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>";
-    $env:DK_INSTALLER_BASE_URL="http://<nginxServer>:8080/datakit";
-    Set-ExecutionPolicy Bypass -scope Process -Force;
-    Import-Module bitstransfer;
-    start-bitstransfer -source ${DK_INSTALLER_BASE_URL}/install.ps1 -destination .install.ps1;
-    powershell .install.ps1;
+    HTTPS_PROXY=http://1.2.3.4:9530 \
+    DK_INSTALLER_BASE_URL="http://<nginxServer>:8080/datakit" \
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithSourceURL "${DK_INSTALLER_BASE_URL}") }}
     ```
 
 So far, the offline installation is complete. Note that HTTPS_PROXY is additionally set here.
@@ -263,21 +274,15 @@ If there is a new version of DataKit, you can download it as above and execute t
 
     ```shell
     DK_INSTALLER_BASE_URL="http://<nginxServer>:8080/datakit" \
-    DK_UPGRADE=1 \
-    	bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithUpgrade true) (.WithSourceURL "${DK_INSTALLER_BASE_URL}") }}
     ```
 
 === "Windows"
 
     ```powershell
     $env:DK_INSTALLER_BASE_URL="http://<nginxServer>:8080/datakit";
-    $env:DK_UPGRADE="1";
-    Set-ExecutionPolicy Bypass -scope Process -Force;
-    Import-Module bitstransfer;
-    start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1;
-    powershell .install.ps1;
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithSourceURL "${DK_INSTALLER_BASE_URL}") }}
     ```
-
 
 ## Kubernetes Offline Deployment {#k8s-offline}
 

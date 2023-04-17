@@ -6,15 +6,15 @@ Nginx
 
 ---
 
-NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数连接数、缓存等多种指标，并将指标采集到观测云 ，帮助监控分析 NGINX 各种异常情况。
+NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数连接数、缓存等多种指标，并将指标采集到观测云，帮助监控分析 NGINX 各种异常情况。
 
 ## 前置条件 {#requirements}
 
-- NGINX 版本 >= 1.19.6
+- NGINX 版本 >= `1.19.6`; 已测试的版本: `1.20.2`, `1.21.6`, `1.22.1`, `1.23.3`;
 
-- NGINX 默认采集 `http_stub_status_module` 模块的数据，开启 `http_stub_status_module` 模块参见[这里](http://nginx.org/en/docs/http/ngx_http_stub_status_module.html){:target="_blank"}，开启了以后会上报 NGINX 指标集的数据
+- NGINX 默认采集 `http_stub_status_module` 模块的数据，开启 `http_stub_status_module` 模块参见[这里](http://nginx.org/en/docs/http/ngx_http_stub_status_module.html){:target="_blank"}，开启了以后会上报 NGINX 指标集的数据;
 
-- 如果您正在使用 [VTS](https://github.com/vozlt/nginx-module-vts){:target="_blank"} 或者想监控更多数据，建议开启 VTS 相关数据采集，可在 `{{.InputName}}.conf` 中将选项 `use_vts` 设置为 `true`。如何开启 VTS 参见[这里](https://github.com/vozlt/nginx-module-vts#synopsis){:target="_blank"}。
+- 如果您正在使用 [VTS](https://github.com/vozlt/nginx-module-vts){:target="_blank"} 或者想监控更多数据，建议开启 VTS 相关数据采集，可在 `{{.InputName}}.conf` 中将选项 `use_vts` 设置为 `true`。如何开启 VTS 参见[这里](https://github.com/vozlt/nginx-module-vts#synopsis){:target="_blank"};
 
 - 开启 VTS 功能后，能产生如下指标集：
 
@@ -61,9 +61,7 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
 
-配置好后，重启 DataKit 即可。
-
-???+ warn
+???+ attention
 
     `url` 地址以 nginx 具体配置为准，一般常见的用法就是用 `/nginx_status` 这个路由。
 

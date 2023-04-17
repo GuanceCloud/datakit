@@ -12,9 +12,10 @@ MongoDb database, Collection, MongoDb database cluster running status data Colle
 
 ## Preconditions {#requirements}
 
-- Developed and used MongoDB version 4.4. 5
-- Write the configuration file in the corresponding directory and then start DataKit to complete the configuration.
-- For secure connections using TLS, please configure the response certificate file path and configuration under `## TLS connection config` in the configuration file.
+- Already tested version: `3.x`, `4.x`, `5.x`, `6.x`;
+- Developed and used MongoDB version `4.4.5`;
+- Write the configuration file in the corresponding directory and then start DataKit to complete the configuration;
+- For secure connections using TLS, please configure the response certificate file path and configuration under `## TLS connection config` in the configuration file;
 - If MongoDb has access control enabled, you need to configure the necessary user rights to establish an authorized connection. For example:
 
 ```mongodb

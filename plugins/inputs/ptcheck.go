@@ -214,6 +214,16 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 		}
 	}
 	if len(c.mInfo.Fields) != len(mGotFields) {
+		var left, right []string
+		for k := range c.mInfo.Fields {
+			left = append(left, k)
+		}
+		for k := range mGotFields {
+			right = append(right, k)
+		}
+		diff := Difference(left, right)
+		_ = diff
+
 		c.addMsg(fmt.Sprintf("expect %d fields got %d(%d keys optional)",
 			len(c.mInfo.Fields), len(c.gotFields), len(c.optionalFields)))
 	}
@@ -304,4 +314,33 @@ func typeEqual(expect string, f *point.Field) bool {
 	default:
 		return false
 	}
+}
+
+// Difference returns the difference array between two arrays.
+func Difference(slice1 []string, slice2 []string) []string {
+	var diff []string
+
+	// Loop two times, first to find slice1 strings not in slice2,
+	// second loop to find slice2 strings not in slice1
+	for i := 0; i < 2; i++ {
+		for _, s1 := range slice1 {
+			found := false
+			for _, s2 := range slice2 {
+				if s1 == s2 {
+					found = true
+					break
+				}
+			}
+			// String not found. We add it to return slice
+			if !found {
+				diff = append(diff, s1)
+			}
+		}
+		// Swap the slices, only if it was the first loop
+		if i == 0 {
+			slice1, slice2 = slice2, slice1
+		}
+	}
+
+	return diff
 }
