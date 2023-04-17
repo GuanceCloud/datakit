@@ -214,30 +214,30 @@ func reinstallDatakit() error {
 	return service.Control(svc, "start")
 }
 
-func datakitStatus() (string, error) {
-	if runtime.GOOS == datakit.OSWindows {
-		cmd := exec.Command("powershell", []string{"Get-Service", "datakit"}...)
-		res, err := cmd.CombinedOutput()
-		return string(res), err
-	}
-
-	svc, err := dkservice.NewService("")
-	if err != nil {
-		return "", err
-	}
-
-	status, err := svc.Status()
-	if err != nil {
-		return "", err
-	}
-	switch status {
-	case service.StatusUnknown:
-		return "unknown", nil
-	case service.StatusRunning:
-		return "running", nil
-	case service.StatusStopped:
-		return "stopped", nil
-	default:
-		return "", fmt.Errorf("should not been here")
-	}
-}
+// func datakitStatus() (string, error) {
+//	if runtime.GOOS == datakit.OSWindows {
+//		cmd := exec.Command("powershell", []string{"Get-Service", "datakit"}...)
+//		res, err := cmd.CombinedOutput()
+//		return string(res), err
+//	}
+//
+//	svc, err := dkservice.NewService("")
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	status, err := svc.Status()
+//	if err != nil {
+//		return "", err
+//	}
+//	switch status {
+//	case service.StatusUnknown:
+//		return "unknown", nil
+//	case service.StatusRunning:
+//		return "running", nil
+//	case service.StatusStopped:
+//		return "stopped", nil
+//	default:
+//		return "", fmt.Errorf("should not been here")
+//	}
+//}

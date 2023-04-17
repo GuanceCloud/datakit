@@ -104,7 +104,7 @@ json(_, item2.item3[0], item, delete_after_extract = true)
 
 
 # test command:
-# datakit pipeline j2.p -T '{"item": " not_space ", "item2":{"item3": [123]}}'
+# datakit pipeline -P j2.p -T '{"item": " not_space ", "item2":{"item3": [123]}}'
 # report error:
 # [E] j2.p:1:54: does not support deleting elements in the list
 ```

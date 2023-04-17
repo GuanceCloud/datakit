@@ -136,7 +136,7 @@ DCGM 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用�
 
   # 采集数据输出源
   # 配置此项，可以将采集到的数据写到本地文件而不将数据打到中心
-  # 之后可以直接用 datakit --prom-conf /path/to/this/conf 命令对本地保存的指标集进行调试
+  # 之后可以直接用 datakit debug --prom-conf /path/to/this/conf 命令对本地保存的指标集进行调试
   # 如果已经将 url 配置为本地文件路径，则 --prom-conf 优先调试 output 路径的数据
   # output = "/abs/path/to/file"
 

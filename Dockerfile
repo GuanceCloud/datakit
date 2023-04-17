@@ -25,4 +25,4 @@ RUN \
 RUN wget -q -O data.tar.gz https://static.guance.com/datakit/data.tar.gz \
     && tar -xzf data.tar.gz -C /usr/local/datakit && rm -rf data.tar.gz
 
-CMD ["/usr/local/datakit/datakit", "--docker"]
+CMD ["/usr/local/datakit/datakit", "run", "-C"]

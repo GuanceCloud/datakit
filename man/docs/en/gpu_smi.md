@@ -52,10 +52,10 @@ After configuration, restart DataKit.
 
 Supports modifying configuration parameters as environment variables (effective only when the DataKit is running in K8s daemonset mode, which is not supported for host-deployed DataKit):
 
-| Environment Variable Name                        | Corresponding Configuration Parameter Item | Parameter Example                                                     |
-|:-----------------------------| ---              | ---                                                          |
-| `ENV_INPUT_GPUSMI_TAGS`   | `tags`           | `tag1=value1,tag2=value2`; If there is a tag with the same name in the configuration file, it will be overwritten. |
-| `ENV_INPUT_GPUSMI_INTERVAL` | `interval`       | `10s`                                                        |
+| Environment Variable Name      | Corresponding Configuration Parameter Item | Parameter Example                                                                                                  |
+| :---                           | ---                                        | ---                                                                                                                |
+| `ENV_INPUT_GPUSMI_TAGS`        | `tags`                                     | `tag1=value1,tag2=value2`; If there is a tag with the same name in the configuration file, it will be overwritten. |
+| `ENV_INPUT_GPUSMI_INTERVAL`    | `interval`                                 | `10s`                                                                                                              |
 
 ### SMI Measurements {#SMI-measurements}
 
@@ -144,7 +144,7 @@ Go to the `conf.d/Prom` directory under the DataKit installation directory, copy
 
   # Collection data output source
   # Configure this to write collected data to a local file instead of typing the data to the center
-  # You can debug the locally saved metric set directly with the datakit --prom-conf /path/to/this/conf command
+  # You can debug the locally saved metric set directly with the datakit debug --prom-conf /path/to/this/conf command
   # If url has been configured as the local file path, then --prom-conf takes precedence over debugging the data in the output path
   # output = "/abs/path/to/file"
 

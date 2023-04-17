@@ -84,7 +84,6 @@ func CheckNewVersion(curverStr string) (map[string]*newVersionInfo, error) {
 	vis := map[string]*newVersionInfo{}
 
 	for k, v := range vers {
-		// always show testing version if showTestingVer is true
 		l.Debugf("compare %s <=> %s", v, curver)
 
 		if version.IsNewVersion(v, curver, true) {

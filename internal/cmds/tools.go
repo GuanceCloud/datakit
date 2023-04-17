@@ -22,19 +22,18 @@ import (
 // There may be some error returned here.
 func runToolFlags() error {
 	switch {
-	case *flagToolPromConf != "":
-		if err := promDebugger(*flagToolPromConf); err != nil {
-			cp.Errorf("[E] %s\n", err)
+	case *flagToolUpdateIPDB:
+		if err := updateIPDB(); err != nil {
 			os.Exit(-1)
+		} else {
+			os.Exit(0)
 		}
-
-		os.Exit(0)
 
 	case *flagToolParseLineProtocol != "":
 		if err := parseLineProto(); err != nil {
 			os.Exit(1)
 		} else {
-			os.Exit(-1)
+			os.Exit(0)
 		}
 
 	case *flagToolSetupCompleterScripts:
@@ -88,13 +87,6 @@ func runToolFlags() error {
 
 		os.Exit(0)
 
-	case *flagToolBugReport:
-		tryLoadMainCfg()
-		if err := bugReport(); err != nil {
-			cp.Errorf("[E] export DataKit info failed: %s\n", err.Error())
-		}
-		os.Exit(0)
-
 	case *flagToolWorkspaceInfo:
 		tryLoadMainCfg()
 		requrl := fmt.Sprintf("http://%s%s", config.Cfg.HTTPAPI.Listen, workspace)
@@ -103,29 +95,6 @@ func runToolFlags() error {
 			cp.Errorf("get worksapceInfo fail %s\n", err.Error())
 		}
 		outputWorkspaceInfo(body)
-		os.Exit(0)
-
-	case *flagToolCheckConfig:
-		confdir := FlagConfigDir
-		if confdir == "" {
-			tryLoadMainCfg()
-			confdir = datakit.ConfdDir
-		}
-
-		if err := checkConfig(confdir, ".conf"); err != nil {
-			os.Exit(-1)
-		}
-		os.Exit(0)
-
-	case *flagToolTestSNMP != "":
-		if !datakit.FileExist(*flagToolTestSNMP) {
-			cp.Errorf("[E] File not exist: %s\n", *flagToolTestSNMP)
-			return nil
-		}
-
-		if err := testSNMP(*flagToolTestSNMP); err != nil {
-			os.Exit(-1)
-		}
 		os.Exit(0)
 
 	case *flagToolDumpSamples != "":
@@ -144,23 +113,7 @@ func runToolFlags() error {
 			}
 		}
 		os.Exit(0)
-
-	case *flagToolLoadLog:
-		tryLoadMainCfg()
-		cp.Infof("Upload log start...\n")
-		if err := uploadLog(config.Cfg.Dataway.URLs); err != nil {
-			cp.Errorf("[E] upload log failed : %s\n", err.Error())
-			os.Exit(-1)
-		}
-		cp.Infof("Upload ok.\n")
-		os.Exit(0)
-
-	case *flagToolCheckSample:
-		if err := checkSample(); err != nil {
-			os.Exit(-1)
-		}
-		os.Exit(0)
 	}
 
-	return fmt.Errorf("unknown tool: %s", os.Args[2])
+	return fmt.Errorf("unknown tool option: %s", os.Args[2])
 }
