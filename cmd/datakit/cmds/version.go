@@ -14,86 +14,41 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 )
 
-//nolint:lll
-const (
-	winUpgradeCmd      = `$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; Remove-item .install.ps1 -erroraction silentlycontinue; start-bitstransfer -source %s -destination .install.ps1; powershell .install.ps1;`
-	winUpgradeCmdProxy = `$env:HTTPS_PROXY="%s"; $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; Remove-item .install.ps1 -erroraction silentlycontinue; start-bitstransfer -ProxyUsage Override -ProxyList $env:HTTPS_PROXY -source %s -destination .install.ps1; powershell .install.ps1;`
+func runVersionFlags(disableUpgradeInfo bool) error {
+	showVersion(ReleaseVersion)
 
-	unixUpgradeCmd      = `DK_UPGRADE=1 bash -c "$(curl -L %s)"`
-	unixUpgradeCmdProxy = `HTTPS_PROXY="%s" DK_UPGRADE=1 bash -c "$(curl -x "%s" -L %s)"`
-)
-
-func runVersionFlags() error {
-	showVersion(ReleaseVersion, InputsReleaseType)
-
-	if !*flagVersionDisableUpgradeInfo {
-		vis, err := CheckNewVersion(ReleaseVersion, *flagVersionUpgradeTestingVersion)
+	if !disableUpgradeInfo {
+		vis, err := CheckNewVersion(ReleaseVersion)
 		if err != nil {
 			return err
 		}
 
 		for _, vi := range vis {
-			cp.Infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
+			cp.Infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n",
 				vi.versionType, vi.NewVersion.VersionString, vi.NewVersion.Commit, vi.NewVersion.ReleaseDate)
-			cp.Infof("%s\n", getUpgradeCommand(vi.NewVersion.DownloadURL))
+			cp.Infof("%s\n", getUpgradeCommand(runtime.GOOS, vi.NewVersion.DownloadURL, config.Cfg.Dataway.HTTPProxy))
 		}
 	}
 
 	return nil
 }
 
-func checkUpdate(curverStr string, acceptRC bool) int {
-	l = logger.SLogger("ota-update")
-
-	l.Debugf("get online version...")
-	vers, err := GetOnlineVersions(false)
-	if err != nil {
-		l.Errorf("Get online version failed: \n%s\n", err.Error())
-		return 0
-	}
-
-	ver := vers["Online"]
-
-	curver, err := getLocalVersion(curverStr)
-	if err != nil {
-		l.Errorf("Get online version failed: \n%s\n", err.Error())
-		return -1
-	}
-
-	l.Debugf("online version: %v, local version: %v", ver, curver)
-
-	if ver != nil && version.IsNewVersion(ver, curver, acceptRC) {
-		l.Infof("New online version available: %s, commit %s (release at %s)",
-			ver.VersionString, ver.Commit, ver.ReleaseDate)
-		return 42
-	} else {
-		if acceptRC {
-			l.Infof("Up to date(%s)", curver.VersionString)
-		} else {
-			l.Infof("Up to date(%s), RC version skipped", curver.VersionString)
-		}
-	}
-	return 0
-}
-
-func showVersion(curverStr, releaseType string) {
+func showVersion(curverStr string) {
 	fmt.Printf(`
        Version: %s
         Commit: %s
         Branch: %s
  Build At(UTC): %s
 Golang Version: %s
-      Uploader: %s
-ReleasedInputs: %s
-`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, releaseType)
+`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang)
 }
 
 type newVersionInfo struct {
@@ -112,11 +67,11 @@ func (vi *newVersionInfo) String() string {
 		vi.versionType,
 		vi.upgrade,
 		vi.install,
-		getUpgradeCommand(vi.NewVersion.DownloadURL))
+		getUpgradeCommand(runtime.GOOS, vi.NewVersion.DownloadURL, config.Cfg.Dataway.HTTPProxy))
 }
 
-func CheckNewVersion(curverStr string, showTestingVer bool) (map[string]*newVersionInfo, error) {
-	vers, err := GetOnlineVersions(showTestingVer)
+func CheckNewVersion(curverStr string) (map[string]*newVersionInfo, error) {
+	vers, err := GetOnlineVersions()
 	if err != nil {
 		return nil, fmt.Errorf("GetOnlineVersions: %w", err)
 	}
@@ -144,35 +99,36 @@ func CheckNewVersion(curverStr string, showTestingVer bool) (map[string]*newVers
 }
 
 const (
-	versionTypeOnline  = "Online"
-	versionTypeTesting = "Testing"
-
-	testingBaseURL = "https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com"
+	versionTypeOnline = "Online"
 )
 
-func getUpgradeCommand(dlurl string) string {
-	var upgradeCmd string
+func getUpgradeCommand(os, dlurl, proxy string) string {
+	p := &man.Params{}
 
-	proxy := config.Cfg.Dataway.HTTPProxy
+	cmd := man.InstallCommand(
+		p.WithUpgrade(true),
+		p.WithIndent(4),
+		p.WithSourceURL(dlurl))
 
-	switch runtime.GOOS {
-	case datakit.OSWindows:
-		if proxy != "" {
-			upgradeCmd = fmt.Sprintf(winUpgradeCmdProxy, proxy, dlurl)
-		} else {
-			upgradeCmd = fmt.Sprintf(winUpgradeCmd, dlurl)
-		}
-
-	default: // Linux/Mac
-
-		if proxy != "" {
-			upgradeCmd = fmt.Sprintf(unixUpgradeCmdProxy, proxy, proxy, dlurl)
-		} else {
-			upgradeCmd = fmt.Sprintf(unixUpgradeCmd, dlurl)
-		}
+	if proxy != "" {
+		p.WithEnvs("HTTPS_PROXY", proxy)(cmd)
 	}
 
-	return upgradeCmd
+	switch os {
+	case "windows":
+		p.WithPlatform("windows")(cmd)
+
+		// nolint:lll
+		// Add proxy settings for bitstransfer. See:
+		//	 https://learn.microsoft.com/en-us/powershell/module/bitstransfer/start-bitstransfer?view=windowsserver2022-ps&viewFallbackFrom=winserver2012-ps
+		if proxy != "" {
+			p.WithBitstransferOpts("-ProxyUsage Override -ProxyList $env:HTTPS_PROXY")(cmd)
+		}
+	default:
+		p.WithPlatform("unix")(cmd)
+	}
+
+	return cmd.String()
 }
 
 func getLocalVersion(ver string) (*version.VerInfo, error) {
@@ -217,15 +173,12 @@ func getVersion(addr string) (*version.VerInfo, error) {
 		return nil, err
 	}
 
-	ver.DownloadURL = fmt.Sprintf("%s/install.sh", addr)
+	ver.DownloadURL = addr
 
-	if runtime.GOOS == datakit.OSWindows {
-		ver.DownloadURL = fmt.Sprintf("%s/install.ps1", addr)
-	}
 	return &ver, nil
 }
 
-func GetOnlineVersions(showTestingVer bool) (map[string]*version.VerInfo, error) {
+func GetOnlineVersions() (map[string]*version.VerInfo, error) {
 	res := map[string]*version.VerInfo{}
 
 	if v := datakit.GetEnv("DK_INSTALLER_BASE_URL"); v != "" {
@@ -234,15 +187,10 @@ func GetOnlineVersions(showTestingVer bool) (map[string]*version.VerInfo, error)
 	}
 
 	versionInfos := map[string]string{
-		versionTypeOnline:  (OnlineBaseURL + "/datakit"),
-		versionTypeTesting: (testingBaseURL + "/datakit"),
+		versionTypeOnline: (OnlineBaseURL + "/datakit"),
 	}
 
 	for k, v := range versionInfos {
-		if k == versionTypeTesting && !showTestingVer {
-			continue
-		}
-
 		vi, err := getVersion(v)
 		if err != nil {
 			return nil, fmt.Errorf("get version from %s failed: %w", v, err)

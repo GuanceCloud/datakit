@@ -34,14 +34,14 @@ Ansible `install.yaml` file configuration example:
   tasks:
   - name: install
     # here the linux machine in the host configuration file corresponds to the batch installation of the shell here. By specifying the dataway address, the default open host collector (cpu, disk, mem) and so on, the -global-tags host=__datakit_hostname and so on are set
-    shell: DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+    shell: {{ InstallCmd 0 (.WithOneline true) (.WithPlatform "unix") }}
     async: 120  # representing the upper limit of the execution time of this task. That is, if the time taken by the task to execute exceeds this time, the task is considered to have failed. If this parameter is not set, the poll is executed synchronously: 10 # representing the polling time interval when the task is executed asynchronously, and if the poll is 0, it is equivalent to a task that does not care about the result
 
 - hosts: windows # here corresponds to the Windows machine in the host configuration file
   gather_facts: no
   tasks:
   - name: install
-    win_shell: $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+    win_shell: {{ InstallCmd 0 (.WithOneline true) (.WithPlatform "windows") }}
     async: 120
     poll: 10
 ```

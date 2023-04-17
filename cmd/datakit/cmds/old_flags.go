@@ -15,7 +15,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/spf13/pflag"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -26,10 +25,6 @@ import (
 
 var (
 	FlagUpdateLogFile string
-	FlagVersion,
-	FlagShowTestingVersions,
-	FlagAcceptRCVersion, // deprecated
-	FlagCheckUpdate bool
 
 	FlagGrokq bool
 	FlagPipeline,
@@ -88,10 +83,6 @@ var (
 )
 
 func initOldStyleFlags() { //nolint:gochecknoinits
-	pflag.BoolVarP(&FlagVersion, "version", "V", false, `show version info`)
-	pflag.BoolVar(&FlagCheckUpdate, "check-update", false, "check if new version available")
-	pflag.BoolVar(&FlagAcceptRCVersion, "accept-rc-version", false, "during update, accept RC version if available")
-	pflag.BoolVar(&FlagShowTestingVersions, "show-testing-version", false, "show testing versions on -version flag")
 	pflag.StringVar(&FlagUpdateLogFile, "update-log", "", "update history log file")
 
 	pflag.BoolVar(&FlagDefConf, "default-main-conf", false, "get datakit default main configure")
@@ -202,48 +193,6 @@ func runOldStyleCmds() {
 	if FlagDefConf {
 		defconf := config.DefaultConfig()
 		fmt.Println(defconf.String())
-		os.Exit(0)
-	}
-
-	if FlagCheckUpdate { // 更新日志单独存放，不跟 cmd.log 一块
-		tryLoadMainCfg()
-
-		if FlagUpdateLogFile != "" {
-			if err := logger.InitRoot(&logger.Option{
-				Path:  FlagUpdateLogFile,
-				Level: logger.DEBUG,
-				Flags: logger.OPT_DEFAULT,
-			}); err != nil {
-				l.Errorf("set root log faile: %s", err.Error())
-			}
-		}
-
-		// deprecated: after 1.2.x, RC version can't be upgraded, see issue #484
-		if FlagAcceptRCVersion {
-			cp.Warnf("[W] --accept-rc-version deprecated\n")
-		}
-
-		ret := checkUpdate(ReleaseVersion, false)
-		os.Exit(ret)
-	}
-
-	if FlagVersion {
-		tryLoadMainCfg()
-		setCmdRootLog(FlagCmdLogPath)
-		showVersion(ReleaseVersion, InputsReleaseType)
-
-		vis, err := CheckNewVersion(ReleaseVersion, FlagShowTestingVersions)
-		if err != nil {
-			cp.Errorf("get online version info failed: %s\n", err)
-			os.Exit(-1)
-		}
-
-		for _, vi := range vis {
-			cp.Infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
-				vi.versionType, vi.NewVersion.VersionString, vi.NewVersion.Commit, vi.NewVersion.ReleaseDate)
-			cp.Infof("%s\n", getUpgradeCommand(vi.NewVersion.DownloadURL))
-		}
-
 		os.Exit(0)
 	}
 
