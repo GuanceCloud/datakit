@@ -37,6 +37,8 @@ type Params struct {
 	PipelineFuncs     string
 	PipelineFuncsEN   string
 	DatakitConfSample string
+
+	ic *installCmd
 }
 
 type i18n int
@@ -112,9 +114,10 @@ func BuildMarkdownManual(name string, opt *Option) (map[i18n][]byte, error) {
 		}
 	} else {
 		p = &Params{
-			Version:           ver,
-			ReleaseDate:       git.BuildAt,
-			CSS:               css,
+			Version:     ver,
+			ReleaseDate: git.BuildAt,
+			CSS:         css,
+
 			DatakitConfSample: DatakitConfSample,
 		}
 
@@ -168,27 +171,41 @@ func BuildMarkdownManual(name string, opt *Option) (map[i18n][]byte, error) {
 			}
 		}
 
-		// render raw markdown
-		temp, err := template.New(name).Funcs(map[string]interface{}{
-			"CodeBlock": func(code string, indent int) string {
-				arr := []string{}
-				for _, line := range strings.Split(code, "\n") {
-					arr = append(arr, strings.Repeat(" ", indent)+line)
-				}
-				return strings.Join(arr, "\n")
-			},
-		}).Parse(string(md))
-		if err != nil {
+		if buf, err := renderBuf(md, p); err != nil {
 			return nil, fmt.Errorf("[%s] template.New(%s): %w", x, name, err)
+		} else {
+			res[x] = buf
 		}
-
-		var buf bytes.Buffer
-		if err := temp.Execute(&buf, p); err != nil {
-			return nil, err
-		}
-
-		res[x] = buf.Bytes()
 	}
 
 	return res, nil
+}
+
+func renderBuf(md []byte, p *Params) ([]byte, error) {
+	// render raw markdown
+	temp, err := template.New("").Funcs(map[string]interface{}{
+		"CodeBlock": codeBlock,
+		"InstallCmd": func(indent int, opts ...InstallOpt) string {
+			p.ic = InstallCommand(opts...)
+			return codeBlock(p.ic.String(), indent)
+		},
+	}).Parse(string(md))
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	if err := temp.Execute(&buf, p); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func codeBlock(block string, indent int) string {
+	arr := []string{}
+	for _, line := range strings.Split(block, "\n") {
+		arr = append(arr, strings.Repeat(" ", indent)+line)
+	}
+	return strings.Join(arr, "\n")
 }

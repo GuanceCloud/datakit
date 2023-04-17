@@ -34,7 +34,7 @@ Directly execute the following command to view the current DataKit version. If t
     Online version available: 1.2.9, commit 9f5ac898be (release at 2022-03-10 12:03:12)
     
     Upgrade:
-        DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithUpgrade true) }}
     ```
 
 === "Windows"
@@ -54,7 +54,7 @@ Directly execute the following command to view the current DataKit version. If t
     Online version available: 1.2.9, commit 9f5ac898be (release at 2022-03-10 12:03:12)
     
     Upgrade:
-        $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) }}
     ```
 ---
 
@@ -225,12 +225,12 @@ If the new version is unsatisfactory and eager to roll back the recovery functio
 === "Linux/macOS"
 
     ```shell
-    DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install-<版本号>.sh)"
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithUpgrade true) (.WithVersion "版本号") }}
     ```
 === "Windows"
 
     ```powershell
-    $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install-<版本号>.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithVersion "版本号") }}
     ```
 
 The version number here can be found on the [DataKit release history](changelog.md) page. Currently, only rollback to [1.2.0](changelog.md#cl-1.2.0) is supported, and previous rc versions do not recommend rollback. After rolling back the version, you may encounter some configurations that are only available in the new version, which cannot be resolved in the rolled back version. For the time being, you can only manually adjust the configuration to adapt to the old version of DataKit.

@@ -92,12 +92,11 @@ var (
 	//
 	// version related flags.
 	//
-	fsVersionName                    = "version"
-	fsVersion                        = pflag.NewFlagSet(fsVersionName, pflag.ContinueOnError)
-	flagVersionLogPath               = fsVersion.String("log", commonLogFlag(), "command line log path")
-	flagVersionDisableUpgradeInfo    = fsVersion.Bool("upgrade-info-off", false, "do not show upgrade info")
-	flagVersionUpgradeTestingVersion = fsVersion.BoolP("testing", "T", false, "show testing version upgrade info")
-	fsVersionUsage                   = func() {
+	fsVersionName                 = "version"
+	fsVersion                     = pflag.NewFlagSet(fsVersionName, pflag.ContinueOnError)
+	flagVersionLogPath            = fsVersion.String("log", commonLogFlag(), "command line log path")
+	flagVersionDisableUpgradeInfo = fsVersion.Bool("upgrade-info-off", false, "do not show upgrade info")
+	fsVersionUsage                = func() {
 		fmt.Printf("usage: datakit version [options]\n\n")
 		fmt.Printf("Version used to handle version related functions.\n\n")
 		fmt.Println(fsVersion.FlagUsagesWrapped(0))
@@ -347,7 +346,7 @@ func doParseAndRunFlags() {
 			setCmdRootLog(*flagVersionLogPath)
 			tryLoadMainCfg()
 
-			if err := runVersionFlags(); err != nil {
+			if err := runVersionFlags(*flagVersionDisableUpgradeInfo); err != nil {
 				cp.Errorf("[E] %s\n", err)
 				os.Exit(-1)
 			}
