@@ -220,10 +220,6 @@ define build_ip2isp
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
 endef
 
-define do_lint
-	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
-endef
-
 ##############################################################################
 # Rules in the Makefile
 ##############################################################################
@@ -371,7 +367,11 @@ test_deps: prepare gofmt lfparser_disable_line vet
 
 lint: deps check_man copyright_check
 	@truncate -s 0 lint.err
-	$(call do_lint)
+	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
+
+lint_nofix: deps check_man copyright_check
+	@truncate -s 0 lint.err
+	$(GOLINT_BINARY) run --allow-parallel-runners | tee -a lint_nofix.err
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go
