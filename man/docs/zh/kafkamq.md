@@ -337,7 +337,7 @@ drop_key(message_len)
 
 当写好 pipeline 脚本之后不确定是否能切割正确，可以使用测试命令：
 ```shell
-datakit pipeline metric.p -T '{"time": 1666492218,"dimensions":{"bk_biz_id": 225,"ip": "172.253.64.45"},"metrics": {"cpu_usage_pct": 0.01}, "exemplar": null}'
+datakit pipeline -P metric.p -T '{"time": 1666492218,"dimensions":{"bk_biz_id": 225,"ip": "172.253.64.45"},"metrics": {"cpu_usage_pct": 0.01}, "exemplar": null}'
 ```
 
 切割正确之后，可以查看行协议数据是否正确，暂时将 output_file 设置为本地文件：

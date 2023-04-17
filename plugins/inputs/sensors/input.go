@@ -18,7 +18,7 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmd"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/command"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -99,7 +99,7 @@ func (ipt *Input) Terminate() {
 
 func (ipt *Input) gather() error {
 	start := time.Now()
-	output, err := cmd.RunWithTimeout(ipt.Timeout.Duration, false, ipt.Path, "-u")
+	output, err := command.RunWithTimeout(ipt.Timeout.Duration, false, ipt.Path, "-u")
 	if err != nil {
 		l.Errorf("Command process failed: %q", output)
 

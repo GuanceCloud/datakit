@@ -89,9 +89,6 @@ Copy the following script contents to the installation directory of the machine 
 otalog=/usr/local/datakit/ota-update.log
 installer=https://static.guance.com/datakit/installer-linux-amd64
 
-# Note: If you do not want to update the RC version of DataKit, remove `--accept-rc-version`
-/usr/local/datakit/datakit --check-update --accept-rc-version --update-log $otalog
-
 if [[ $? == 42 ]]; then
 	echo "update now..."
 	DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"

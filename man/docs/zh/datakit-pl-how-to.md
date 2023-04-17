@@ -11,7 +11,7 @@ Pipeline 编写较为麻烦，为此，Datakit 中内置了简单的调试工具
 > Pipeline 脚本必须放在 *<Datakit 安装目录>/pipeline* 目录下。
 
 ```shell
-$ datakit pipeline your_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+$ datakit pipeline -P your_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs): # 表示切割成功
 {
 	"code"   : "io/io.go: 458",       # 对应代码位置
@@ -26,7 +26,7 @@ Extracted data(cost: 421.705µs): # 表示切割成功
 提取失败示例（只有 `message` 留下了，说明其它字段并未提取出来）：
 
 ```shell
-$ datakit pipeline other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
+$ datakit pipeline -P other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
 {
 	"message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
 }
@@ -35,7 +35,7 @@ $ datakit pipeline other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  
 > 如果调试文本比较复杂，可以将它们写入一个文件（sample.log），用如下方式调试：
 
 ```shell
-$ datakit pipeline your_pipeline.p -F sample.log
+$ datakit pipeline -P your_pipeline.p -F sample.log
 ```
 
 更多 Pipeline 调试命令，参见 `datakit help pipeline`。
@@ -98,7 +98,7 @@ drop_origin_data()
 将上述多行日志存为 *multi-line.log*，调试一下：
 
 ```shell
-$ datakit --pl test.p --txt "$(<multi-line.log)"
+$ datakit pipeline -P test.p -T "$(<multi-line.log)"
 ```
 
 得到如下切割结果：
@@ -189,7 +189,7 @@ drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
 
 ```Shell
 # 提取成功示例
-$ ./datakit --pl dklog_pl.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+$ datakit pipeline -P dklog_pl.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs):
 {
     "code": "io/io.go:458",
@@ -232,7 +232,7 @@ json(_, `@timestamp`, "time")
 命令如下：
 
 ```shell
-$ datakit pipeline test.p -T "..."
+$ datakit pipeline -P test.p -T "..."
 [E] get pipeline failed: stat /usr/local/datakit/pipeline/test.p: no such file or directory
 ```
 

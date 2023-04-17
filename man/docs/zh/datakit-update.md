@@ -89,9 +89,6 @@ DataKit 支持手动更新和自动更新两种方式。
 otalog=/usr/local/datakit/ota-update.log
 installer=https://static.guance.com/datakit/installer-linux-amd64
 
-# 注意：如果不希望更新 RC 版本的 DataKit，可移除 `--accept-rc-version`
-/usr/local/datakit/datakit --check-update --accept-rc-version --update-log $otalog
-
 if [[ $? == 42 ]]; then
 	echo "update now..."
 	DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"

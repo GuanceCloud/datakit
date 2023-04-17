@@ -261,10 +261,10 @@ dist/
 └── datakit-darwin-amd64
     └── datakit          # 将该 datakit 替换掉已有的 datakit 二进制，一般在 /usr/local/datakit/datakit
 
-sudo datakit --stop                                             # 停掉现有 datakit
+sudo datakit service -T                                         # 停掉现有 datakit
 sudo truncate -s 0 /var/log/datakit/log                         # 清空日志
 sudo cp -r dist/datakit-darwin-amd64/datakit /usr/local/datakit # 覆盖二进制
-sudo datakit --start                                            # 重启 datakit
+sudo datakit service -S                                         # 重启 datakit
 datakit monitor                                                 # datakit 运行情况监测
 ```
 
@@ -662,7 +662,7 @@ Generating report in profile001.pdf
 ### 检查 sample config 是否正确 {#check-sample-config}
 
 ```shell
-datakit --check-sample
+datakit check --sample
 ------------------------
 checked 52 sample, 0 ignored, 51 passed, 0 failed, 0 unknown, cost 10.938125ms
 ```
@@ -673,15 +673,7 @@ checked 52 sample, 0 ignored, 51 passed, 0 failed, 0 unknown, cost 10.938125ms
 
 ```shell
 man_version=`git tag -l | sort -nr | head -n 1` # 获取最近发布的 tag 版本
-datakit --export-manuals /path/to/doc --man-version $man_version --TODO "-" --ignore demo
-```
-
-### 集成导出 {#export-integrations}
-
-将集成内容导出到指定目录，一般这个目录是另一个 git-repo（当前是 [dataflux-integration](https://gitee.com/dataflux/dataflux-integration.git){:target="_blank"}）
-
-```shell
-datakit --ignore demo,tailf --export-integration /path/to/integration/git/repo
+datakit doc --export-docs /path/to/doc --version $man_version --TODO "-" --ignore demo
 ```
 
 ## 延伸阅读 {#more-readings}
