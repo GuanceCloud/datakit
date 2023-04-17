@@ -132,6 +132,8 @@ kubectl apply -f deployment.yaml
 
 ## 自动发现 Pod/Service 的 Prometheus Annotations 配置并采集指标 {#auto-discovery-metrics-with-prometheus}
 
+[:octicons-tag-24: Version-1.5.10](changelog.md#cl-1.5.10)
+
 根据 Pod 或 Service 的指定 Annotations，拼接一个 HTTP URL 并以此创建 Prometheus 指标采集。
 
 此功能默认关闭，要先在 Datakit 开启此功能，按需添加以下两个环境变量，详见 [container 文档](container.md)：
