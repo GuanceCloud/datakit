@@ -150,8 +150,7 @@ truncate -s 0 .mkdocs.log
 LOGGER_PATH=.mkdocs.log $datakit doc \
 	--export-docs $tmp_doc_dir \
 	--ignore demo \
-	--version "${version}" \
-	--TODO "-"
+	--version "${version}"
 
 if [ $? -ne 0 ]; then
 	printf "${RED}[E] Export docs failed${CLR}\n"

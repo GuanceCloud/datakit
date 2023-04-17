@@ -22,7 +22,7 @@ import (
 func testSNMP(snmpConfFile string) error {
 	x, err := config.LoadSingleConfFile(snmpConfFile, inputs.Inputs, false)
 	if err != nil {
-		cp.Errorf("[LoadSingleConfFile (%s) failed: (%v)\n", *flagToolTestSNMP, err)
+		cp.Errorf("[LoadSingleConfFile (%s) failed: (%v)\n", *flagCheckSNMP, err)
 		return err
 	}
 

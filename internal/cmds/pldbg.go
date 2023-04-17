@@ -54,8 +54,7 @@ func runPLFlags() error {
 		cp.Warnf("[E] txt has suffix EOL\n")
 	}
 
-	// TODO
-	return pipelineDebugger(*flagPLCategory, debugPipelineName, *flagPLNS, txt, false)
+	return pipelineDebugger(*flagPLCategory, *flagPLName, *flagPLNS, txt, false)
 }
 
 func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {

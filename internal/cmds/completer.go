@@ -57,21 +57,25 @@ _datakit()
 				;;
 
 			version)
-				COMPREPLY=( $(compgen -W '--log -T,--testing --upgrade-info-off' -- "${cur_word}") )
+				COMPREPLY=( $(compgen -W '--log --upgrade-info-off' -- "${cur_word}") )
+				;;
+
+			debug)
+				COMPREPLY=( $(compgen -W '--log --bug-report --prom-conf --upload-log' -- "${cur_word}") )
+				;;
+
+			check)
+				COMPREPLY=( $(compgen -W '--log --config --config-dir --sample --test-snmp' -- "${cur_word}") )
 				;;
 
 			tool)
-				COMPREPLY=( $(compgen -W '--check-config
-				--check-sample
-				--completer-script
+				COMPREPLY=( $(compgen -W '--completer-script
 				--default-main-conf
 				--dump-samples
 				--ipinfo
 				--log
-				--prom-conf
 				--setup-completer-script
 				--show-cloud-info
-				--upload-log
 				--workspace-info' -- "${cur_word}") )
 				;;
 

@@ -71,10 +71,10 @@ dist/
 └── datakit-darwin-amd64
     └── datakit          # Replace this dakakit with the existing datakit binary, typically /usr/local/datakit/datakit
 
-sudo datakit --stop                                             # stop existing datakit
+sudo datakit service -T                                         # stop existing datakit
 sudo truncate -s 0 /var/log/datakit/log                         # Empty the log
 sudo cp -r dist/datakit-darwin-amd64/datakit /usr/local/datakit # Overlay binary
-sudo datakit --start                                            # restart datakit
+sudo datakit service -S                                         # restart datakit
 ```
 
 - At this point, you typically have a `zhangsan.conf.sample` in the `/usr/local/datakit/conf.d/<Catalog>/` directory. Note that the `<Catalog>` here is the return value of the interface `Catalog() string` above.
@@ -470,7 +470,7 @@ In addition to some of the accessibility features listed in the [official docume
 ### Check Sample Config is Correct {#check-sample-config}
 
 ```shell
-datakit --check-sample
+datakit check --sample
 ------------------------
 checked 52 sample, 0 ignored, 51 passed, 0 failed, 0 unknown, cost 10.938125ms
 ```
@@ -481,15 +481,7 @@ Exports the existing DataKit document to the specified directory, specifies the 
 
 ```shell
 man_version=`git tag -l | sort -nr | head -n 1` # Get the most recently released tag version
-datakit --export-manuals /path/to/doc --man-version $man_version --TODO "-" --ignore demo
-```
-
-### Integration Export {#export-integrations}
-
-Export the integration contents to the specified directory, typically another git-repo (currently [dataflux-integration](https://gitee.com/dataflux/dataflux-integration.git){:target="_blank"}).
-
-```shell
-datakit --ignore demo,tailf --export-integration /path/to/integration/git/repo
+datakit doc --export-docs /path/to/doc --version $man_version --TODO "-" --ignore demo
 ```
 
 ## More Readings {#more-readings}
