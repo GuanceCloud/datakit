@@ -86,8 +86,19 @@ The environment variables supported by the installation script are as follows (s
 - `DK_GLOBAL_HOST_TAGS`: Support the installation phase to fill in the global host tag, format example: `host=__datakit_hostname,host_ip=__datakit_ip` (multiple tags are separated by English commas)
 - `DK_GLOBAL_ELECTION_TAGS`: Support filling in the global election tag during the installation phase，format example: `project=my-porject,cluster=my-cluster` (support filling in the global election tag during the installation phase)
 - `DK_DEF_INPUTS`: List of collector names opened by default, format example: `cpu,mem,disk`
-  - Since [many collectors will be turned on by default](datakit-input-conf.md#default-enabled-inputs), this environment variable is used to adjust the default collector list. For example, if you can choose to turn on only three collectors: cpu, mem and disk, pass in `DK_DEF_INPUTS="cpu,mem,disk"`.
 - `DK_CLOUD_PROVIDER`: Support filling in cloud vendors during installation (`aliyun/aws/tencent/hwcloud/azure`)
+
+???+ tip "Disable all default inputs[:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5)"
+
+    We can set `DK_DEF_INPUTS` to `-` to disable all default inputs:
+
+    ```shell
+    DK_DEF_INPUTS="-" \
+    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
+    bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+    ```
+
+    Beside, if Datakit has been installed before, we must delete all default inputs *.conf* files manually. During installing, Datakit able to add new inputs configure, not cant delete them.
 
 ### On DataKit's Own Log  {#env-logging}
 
