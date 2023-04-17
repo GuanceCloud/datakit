@@ -364,7 +364,7 @@ func upgrade(ctx *gin.Context) {
 		L().Warnf("unable to check version info from command line: %s", err)
 	}
 
-	versions, err := cmds.GetOnlineVersions(false)
+	versions, err := cmds.GetOnlineVersions()
 	if err != nil {
 		errorResponse(ctx, http.StatusInternalServerError, fmt.Errorf("unable to find newer Datakit version: %w", err))
 		return

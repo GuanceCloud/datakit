@@ -1313,13 +1313,13 @@ volumes:
 - Linux/Mac:
 
 ```shell
-DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 0 (.WithPlatform "unix") }}
 ```
 
 - Windows
 
 ```powershell
-$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 0 (.WithPlatform "windows") }}
 ```
 
 ---
