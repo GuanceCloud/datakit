@@ -29,6 +29,24 @@ branch changelog
 
 -->
 
+## 1.5.10(2023/04/13) {#cl-1.5.10}
+
+本次发布属于紧急发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.10-new}
+
+- 支持自动发现并采集 [Pod 上的 Prometheus 指标](kubernetes-prom.md#auto-discovery-metrics-with-prometheus)(#1564)
+- Pipeline 新增聚合类函数(#1554)
+    - [agg_create()](../developers/pipeline.md#fn-agg-create)
+    - [agg_metric()](../developers/pipeline.md#fn-agg-metric)
+
+### 功能优化 {#cl-1.5.10-opt}
+
+- 优化了 Pipeline 执行性能，大约有 30% 左右性能提升
+- 优化日志采集中历史位置记录操作(#1550)
+
+---
+
 ## 1.5.9(2023/04/06) {#cl-1.5.9}
 本次发布属于迭代发布，主要有如下更新：
 
@@ -69,6 +87,7 @@ branch changelog
 - Datakit 自身指标体系做了更新，原有 DCA 获取到的指标将有一定的缺失，但不影响 DCA 本身功能的运行
 
 ---
+
 ## 1.5.8(2023/03/24) {#cl-1.5.8}
 本次发布属于迭代发布，主要是一些问题修复和功能完善。
 
@@ -1287,20 +1306,20 @@ volumes:
     - 新功能预计会发布在非稳定版上，待新功能稳定后，会发布新的稳定版本。如 1.3.x 新功能稳定后，会发布 1.4.0 稳定版，以合并 1.3.x 上的新功能
     - 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装非稳定版
 
-### Breaking Changes {cl-1.2.0-break-changes}
+### Breaking Changes {#cl-1.2.0-break-changes}
 
 **老版本的 DataKit 通过 `datakit --version` 已经无法推送新升级命令**，直接使用如下命令：
 
 - Linux/Mac:
 
 ```shell
-DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 0 (.WithPlatform "unix") }}
 ```
 
 - Windows
 
 ```powershell
-$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 0 (.WithPlatform "windows") }}
 ```
 
 ---

@@ -1,0 +1,364 @@
+# The project name is used in the name of the Brew formula, archives, etc. 
+# If none is given, it will be inferred from the name of the GitHub, GitLab, or Gitea release.
+project_name: datakit
+before:
+  hooks:
+    - go mod tidy
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
+
+builds:
+  # You can have multiple builds defined as a yaml list
+  # - main: ./cmd/cli
+  #   id: "cli"
+  #   binary: cli
+  # - main: ./cmd/worker
+  #   id: "worker"
+  #   binary: worker
+
+  # Path to main.go file or main package.
+  # Notice: when used with `gomod.proxy`, this must be a package.
+  # Default is `.`.
+  - main: ./cmd/datakit
+
+    # Binary name.
+    # Can be a path (e.g. `bin/app`) to wrap the binary in a directory.
+    # Default is the name of the project directory.
+    binary: datakit
+  
+    # GOOS list to build for.
+    # For more info refer to: https://golang.org/doc/install/source#environment
+    # Defaults are darwin and linux.
+    goos:
+      - windows
+      - linux
+      - darwin
+
+    # GOARCH to build for.
+    # For more info refer to: https://golang.org/doc/install/source#environment
+    # Defaults are 386, amd64 and arm64.
+    goarch:
+      - amd64
+      - '386'
+      - arm
+      - arm64
+
+    ignore:
+      - goos: darwin
+        goarch: '386'
+      - goos: darwin
+        goarch: arm
+      - goos: darwin
+        goarch: arm64
+      - goos: windows
+        goarch: arm64
+      - goos: windows
+        goarch: arm
+
+    # Custom ldflags.
+    #
+    # Default: 's -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser'
+    # Templates: allowed
+    ldflags:
+      - -s -w -X main.ReleaseVersion={{.Version}} -X git.BuildAt={{.Date}} -X git.Version={{.Version}} -X git.Commit={{.ShortCommit}} -X git.Branch={{.Branch}} -X git.Uploader=gorelease
+
+dockers:
+  - image_templates:
+    - "guancecloud/datakit:{{ .Version }}-amd64"
+    goos: linux
+    goarch: amd64
+    dockerfile: Dockerfile
+    use: docker
+    build_flag_templates:
+    - --platform=linux/amd64
+    - --label=org.opencontainers.image.title={{ .ProjectName }}
+    - --label=org.opencontainers.image.description={{ .ProjectName }}
+    - --label=org.opencontainers.image.url=https://datakit.guance.io
+    - --label=org.opencontainers.image.source=https://github.com/GuanceCloud/datakit
+    - --label=org.opencontainers.image.version={{ .Version }}
+    - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+    - --label=org.opencontainers.image.revision={{ .FullCommit }}
+    - --label=org.opencontainers.image.licenses=MIT
+
+  - image_templates:
+    - "guancecloud/datakit:{{ .Version }}-arm64v8"
+    goos: linux
+    goarch: arm64
+    dockerfile: Dockerfile
+    use: docker
+    build_flag_templates:
+    - --platform=linux/arm64/v8
+    - --label=org.opencontainers.image.title={{ .ProjectName }}
+    - --label=org.opencontainers.image.description={{ .ProjectName }}
+    - --label=org.opencontainers.image.url=https://datakit.guance.io
+    - --label=org.opencontainers.image.source=https://github.com/GuanceCloud/datakit
+    - --label=org.opencontainers.image.version={{ .Version }}
+    - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+    - --label=org.opencontainers.image.revision={{ .FullCommit }}
+    - --label=org.opencontainers.image.licenses=MIT
+
+docker_manifests:
+  # You can have multiple Docker manifests.
+  - name_template: guancecloud/{{ .ProjectName }}:{{ .Version }}
+    image_templates:
+      - guancecloud/datakit:{{ .Version }}-amd64
+      - guancecloud/datakit:{{ .Version }}-arm64v8
+  - name_template: guancecloud/{{ .ProjectName }}:latest
+    image_templates:
+      - guancecloud/datakit:{{ .Version }}-amd64
+      - guancecloud/datakit:{{ .Version }}-arm64v8
+
+# GoReleaser can be wired to nfpm to generate and publish .deb, .rpm and .apk packages.  
+nfpms:
+- id: datakit
+  maintainer: Guance Cloud <developer@guance.com>
+  vendor: Guance Cloud Inc.
+  description: Datakit is collector agent of Guance Cloud.
+  homepage: https://datakit.guance.io
+  license: MIT
+  formats:
+  - deb
+  - rpm
+  - apk
+  - archlinux
+  file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+publishers:
+  - name: fury.io
+    # by specifying `packages` id here goreleaser will only use this publisher
+    # with artifacts identified by this id
+    ids:
+      - datakit
+    dir: "{{ dir .ArtifactPath }}"
+    cmd: curl -F package=@{{ .ArtifactName }} https://{{ .Env.FURY_TOKEN }}@push.fury.io/guancecloud/
+
+# your github_token in this file
+# or
+# setup ENV GitHub token: $ export GITHUB_TOKEN="YOUR_GH_TOKEN"
+# github_token: ~/go/src/github.com/github_token
+env_files: {}
+
+changelog:
+  # Set this to true if you don't want any changelog at all.
+  # Warning: this will also ignore any changelog files passed via `--release-notes`,
+  # and will render an empty changelog.
+  # This may result in an empty release notes on GitHub/GitLab/Gitea.
+  skip: false 
+
+  # Changelog generation implementation to use.
+  #
+  # Valid options are:
+  # - `git`: uses `git log`;
+  # - `github`: uses the compare GitHub API, appending the author login to the changelog.
+  # - `gitlab`: uses the compare GitLab API, appending the author name and email to the changelog.
+  # - `github-native`: uses the GitHub release notes generation API, disables the groups feature.
+  #
+  # Defaults to `git`.
+  use: github-native
+
+  # Sorts the changelog by the commit's messages.
+  # Could either be asc, desc or empty
+  # Default is empty
+  sort: asc
+
+  # Max commit hash length to use in the changelog.
+  #
+  # 0: use whatever the changelog implementation gives you
+  # -1: remove the commit hash from the changelog
+  # any other number: max length.
+  #
+  # Default: 0.
+  abbrev: 0
+
+  # Group commits messages by given regex and title.
+  # Order value defines the order of the groups.
+  # Proving no regex means all commits will be grouped under the default group.
+  # Groups are disabled when using github-native, as it already groups things by itself.
+  #
+  # Default is no groups.
+  filters:
+    # Commit messages matching the regexp listed here will be removed from
+    # the changelog
+    # Default is empty
+    exclude:
+      - '^docs:'
+      - typo
+
+brews:
+  -
+    # Name template of the recipe
+    # Default to project name
+    name: datakit
+
+    # NOTE: make sure the url_template, the token and given repo (github or
+    # gitlab) owner and name are from the same kind.
+    # We will probably unify this in the next major version like it is
+    # done with scoop.
+
+    # GitHub/GitLab repository to push the formula to
+    tap:
+      # Repository owner template. (templateable)
+      owner: GuanceCloud
+
+      # Repository name. (templateable)
+      name: homebrew-tap
+
+      # Optionally a branch can be provided. (templateable)
+      #
+      # Defaults to the default repository branch.
+      branch: main
+
+      # Optionally a token can be provided, if it differs from the token
+      # provided to GoReleaser
+      token: "{{ .Env.GITHUB_TOKEN }}"
+
+    # Template for the url which is determined by the given Token (github,
+    # gitlab or gitea)
+    #
+    # Default depends on the client.
+    url_template: "https://github.com/GuanceCloud/datakit/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+
+    # Allows you to set a custom download strategy. Note that you'll need
+    # to implement the strategy and add it to your tap repository.
+    # Example: https://docs.brew.sh/Formula-Cookbook#specifying-the-download-strategy-explicitly
+    # Default is empty.
+    download_strategy: CurlDownloadStrategy
+
+    # Git author used to commit to the repository.
+    # Defaults are shown.
+    commit_author:
+      name: guance-bot
+      email: dev-bot@guance.com
+
+    # The project name and current git tag are used in the format string.
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+
+    # Folder inside the repository to put the formula.
+    # Default is the root folder.
+    folder: Formula
+
+    # Your app's homepage.
+    # Default is empty.
+    homepage: "https://datakit.guance.io/"
+
+    # Template of your app's description.
+    # Default is empty.
+    description: "Software to create fast and easy drum rolls."
+
+    # SPDX identifier of your app's license.
+    # Default is empty.
+    license: "MIT"
+
+    # So you can `brew test` your formula.
+    # Default is empty.
+    test: |
+      system "#{bin}/datakit version"
+      # ...
+
+    # Custom install script for brew.
+    # Default is 'bin.install "the binary name"'.
+    install: |
+      bin.install "datakit"
+      # ...
+
+#chocolateys:
+#  - # Your app's owner.
+#    # It basically means your.
+#    # Defaults empty.
+#    owners: Guance Cloud Inc
+#
+#    # The app's title.
+#    # A human-friendly title of the package.
+#    # Defaults to `ProjectName`.
+#    title: datakit Programming Language
+#
+#    # Your app's authors (probably you).
+#    # Defaults are shown below.
+#    authors: Guance Cloud
+#
+#    # Your app's project url.
+#    # It is a required field.
+#    project_url: https://datakit.guance.io/
+#
+#    # Template for the url which is determined by the given Token (github,
+#    # gitlab or gitea)
+#    # Default depends on the client.
+#    url_template: "https://github.com/GuanceCloud/datakit/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+#
+#    # App's icon.
+#    # Default is empty.
+#    icon_url: 'https://datakit.guance.io/images/icon.png'
+#
+#    # Your app's copyright details.
+#    # Default is empty.
+#    copyright: 2022 Guance Cloud Inc
+#
+#    # App's license information url.
+#    license_url: https://github.com/GuanceCloud/datakit/blob/main/LICENSE
+#
+#    # Your apps's require license acceptance:
+#    # Specify whether the client must prompt the consumer to accept the package
+#    # license before installing.
+#    # Default is false.
+#    require_license_acceptance: false
+#
+#    # Your app's source url.
+#    # Default is empty.
+#    project_source_url: https://github.com/GuanceCloud/datakit
+#
+#    # Your app's documentation url.
+#    # Default is empty.
+#    docs_url: https://datakit.guance.io/docs
+#
+#    # App's bugtracker url.
+#    # Default is empty.
+#    bug_tracker_url: https://github.com/GuanceCloud/datakit/issues
+#
+#    # Your app's tag list.
+#    # Default is empty.
+#    tags: "language observability"
+#
+#    # Your app's summary:
+#    summary: datakit programming language for Observability Data Pipeline
+#
+#    # This the description of your chocolatey package.
+#    # Supports markdown.
+#    description: |
+#      Build and run datakit programs with the CLI.
+#
+#    # Your app's release notes.
+#    # A description of the changes made in this release of the package.
+#    # Supports markdown. To prevent the need to continually update this field,
+#    # providing a URL to an external list of Release Notes is perfectly
+#    # acceptable.
+#    # Default is empty.
+#    release_notes: "https://github.com/GuanceCloud/datakit/releases/tag/v{{ .Version }}"
+#
+#    # App's dependencies
+#    # Default is empty. Version is not required.
+#    dependencies:
+#      - id: nfpm
+#
+#    # The api key that should be used to push to the chocolatey repository.
+#    #
+#    # WARNING: do not expose your api key in the configuration file!
+#    api_key: '{{ .Env.CHOCOLATEY_API_KEY }}'
+
+snapshot:
+  # Allows you to change the name of the generated snapshot
+  #
+  # Note that some pipes require this to be semantic version compliant (nfpm,
+  # for example).
+  #
+  # Default is `{{ .Version }}-SNAPSHOT-{{.ShortCommit}}`.
+  name_template: '{{ incpatch .Version }}-devel'
+
+archives:
+- format: zip
+  name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
+  algorithm: sha256
+

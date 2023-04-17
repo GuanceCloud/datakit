@@ -13,14 +13,15 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 - ElasticSearch 版本 >= 6.0.0
 - ElasticSearch 默认采集 `Node Stats` 指标，如果需要采集 `Cluster-Health` 相关指标，需要设置 `cluster_health = true`
 - 设置 `cluster_health = true` 可产生如下指标集
-  - `elasticsearch_cluster_health`
-
+    - `elasticsearch_cluster_health`
 - 设置 `cluster_stats = true` 可产生如下指标集
-  - `elasticsearch_cluster_stats`
+    - `elasticsearch_cluster_stats`
 
 ## 用户权限配置 {#user-permission}
 
-如果开启账号密码访问，需要配置相应的权限，否则会导致监控信息获取失败错误。目前支持 Elasticsearch , Open Distro for Elasticsearch 和 OpenSearch。
+如果开启账号密码访问，需要配置相应的权限，否则会导致监控信息获取失败错误。
+
+目前支持 [Elasticsearch](#perm-es) 、 [Open Distro for Elasticsearch](#perm-open-es) 和 [OpenSearch](#perm-opensearch)。
 
 ### Elasticsearch {#perm-es}
 
@@ -56,7 +57,7 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 ### Open Distro for Elasticsearch {#perm-open-es}
 
 - 创建用户
-- 创建角色 `monitor`, 设置如下权限：
+- 创建角色 `monitor`，设置如下权限：
 
 ```
 PUT _opendistro/_security/api/roles/monitor
@@ -89,7 +90,7 @@ PUT _opendistro/_security/api/roles/monitor
 ### OpenSearch {#perm-opensearch}
 
 - 创建用户
-- 创建角色 `monitor`, 设置如下权限：
+- 创建角色 `monitor`，设置如下权限：
 
 ```
 PUT _plugins/_security/api/roles/monitor
@@ -118,6 +119,8 @@ PUT _plugins/_security/api/roles/monitor
 ```
 
 - 设置角色与用户之间的映射关系
+
+## 配置 {#config}
 
 === "主机安装"
 

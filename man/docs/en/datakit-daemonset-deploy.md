@@ -47,17 +47,13 @@ This document describes how to install DataKit in K8s via DaemonSet.
     * Kubernetes >= 1.14
     * Helm >= 3.0+
     
-    Add a DataKit Helm repository:
-    
-    ```shell 
-    $ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
-    $ helm repo update 
-    ```
-    
-    Helm installs Datakit (note modifying the `datakit.dataway_url` parameter)
+    Helm installs Datakit (note modifying the `datakit.dataway_url` parameter)，in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
     
     ```shell
-    $ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+    $ helm install datakit datakit \
+               --repo  https://pubrepo.guance.com/chartrepo/datakit \
+               -n datakit --create-namespace \
+               --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
     ```
     
     View deployment status:
@@ -69,8 +65,11 @@ This document describes how to install DataKit in K8s via DaemonSet.
     You can upgrade with the following command:
     
     ```shell
-    $ helm repo update 
-    $ helm upgrade datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
+    $ helm -n datakit get  values datakit -o yaml > values.yaml
+    $ helm upgrade datakit datakit \
+        --repo  https://pubrepo.guance.com/chartrepo/datakit \
+        -n datakit \
+        -f values.yaml
     ```
     
     You can uninstall it with the following command:

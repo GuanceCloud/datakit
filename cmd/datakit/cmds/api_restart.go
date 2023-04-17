@@ -41,7 +41,7 @@ func apiRestart() {
 
 	tick := time.NewTicker(20 * time.Second)
 	defer tick.Stop()
-	if goos == "windows" {
+	if goos == datakit.OSWindows {
 		stopProgram()
 		endCh := make(chan bool, 1)
 
@@ -83,7 +83,7 @@ func apiRestart() {
 
 func getBinName() string {
 	bin := "datakit"
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		bin += ".exe"
 	}
 	return bin

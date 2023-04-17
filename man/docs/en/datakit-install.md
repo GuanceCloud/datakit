@@ -14,22 +14,12 @@ Log in to the workspace, click "Integration" on the left and select "Datakit" at
 
 > Note that the following Linux/Mac/Windows installer can automatically identify the hardware platform (arm/x86, 32bit/64bit) without making a hardware platform selection.
 
-=== "Linux"
+=== "Linux/macOS"
 
     The order is roughly as follows:
     
     ```shell
-    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
-    ```
-    
-    After the installation is completed, you will see a prompt that the installation is successful at the terminal.
-
-=== "Mac"
-
-    The Mac installation command is basically the same as Linux:
-    
-    ```shell
-    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 4 (.WithPlatform "unix") }} 
     ```
     
     After the installation is completed, you will see a prompt that the installation is successful at the terminal.
@@ -39,44 +29,39 @@ Log in to the workspace, click "Integration" on the left and select "Datakit" at
     Installation on Windows requires a Powershell command line installation and must run Powershell as an administrator. Press the Windows key, enter powershell to see the pop-up powershell icon, and right-click and select "Run as an administrator".
     
     ```powershell
-    $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 4 (.WithPlatform "windows") }} 
     ```
 
-???+ attention "Mac Installation Problems"
+### Install Specific Version {#version-install}
 
-    If it appears during the installation/upgrade process when installing on Mac:
-    
-    ```shell
-    "launchctl" failed with stderr: /Library/LaunchDaemons/cn.dataflux.datakit.plist: Service is disabled
-    # or
-    "launchctl" failed with stderr: /Library/LaunchDaemons/com.guance.datakit.plist: Service is disabled
-    ```
-    
-    execute
-    
-    ```shell
-    sudo launchctl enable system/datakit
-    ```
-    
-    Then execute the following command
-    
-    ```shell
-    sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
-    # or。/
-    sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
-    ```
+We can install specific datakit version, for example 1.2.3:
+
+```shell
+{{ InstallCmd 0 (.WithPlatform "unix") (.WithVersion "-1.2.3") }}
+```
+
+And the same as Windows:
+
+```powershell
+{{ InstallCmd 0 (.WithPlatform "windows") (.WithVersion "-1.2.3") }}
+```
 
 ## Additional Supported Installation Variable {#extra-envs}
 
 If you need to define some DataKit configuration during the installation phase, you can add environment variables to the installation command, just append them before `DK_DATAWAY` For example, append the `DK_NAMESPACE` setting:
 
-```shell
-# Linux/Mac
-DK_NAMESPACE="<namespace>" DK_DATAWAY="https://openway.guance.com?token=<TOKEN>" bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+=== "Linux/macOS"
 
-# Windows
-$env:DK_NAMESPACE="<namespace>"; $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
-```
+    ```shell
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "DK_NAMESPACE" "<namespace>" ) }}
+    ```
+    
+=== "Windows"
+
+    ```powershell
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_NAMESPACE" "<namespace>" ) }}
+    ```
+---
 
 The setting format of the two environment variables is:
 
@@ -200,6 +185,30 @@ In `datakit.conf`, modify the following configuration and the DataKit will read 
 ```
 
 > Note: If a host has collected data for a period of time, after changing the host name, the historical data will no longer be associated with the new host name. Changing the host name is equivalent to adding a brand-new host.
+
+### :material-chat-question: Issue on macOS installation {#mac-failed}
+
+If it appears during the installation/upgrade process when installing on macOS:
+
+```shell
+"launchctl" failed with stderr: /Library/LaunchDaemons/cn.dataflux.datakit.plist: Service is disabled
+# or
+"launchctl" failed with stderr: /Library/LaunchDaemons/com.guance.datakit.plist: Service is disabled
+```
+
+Execute:
+
+```shell
+sudo launchctl enable system/datakit
+```
+
+Then execute the following command:
+
+```shell
+sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
+# or
+sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
+```
 
 ## :material-chat-question: More Readings {#more-reading}
 

@@ -1,4 +1,4 @@
-.PHONY: default testing local deps prepare
+.PHONY: default testing local deps
 
 default: local
 
@@ -67,23 +67,6 @@ ifneq ($(PKGEBPF),"false")
 	PKGEBPF_FLAG = "-pkg-ebpf"
 endif
 
-# Generate 'git/' package under root path
-define GIT_INFO
-// Package git used to define basic git info abount current version.
-package git
-
-//nolint
-const (
-	BuildAt  string = "$(DATE)"
-	Version  string = "$(VERSION)"
-	Golang   string = "$(GOVERSION)"
-	Commit   string = "$(COMMIT)"
-	Branch   string = "$(GIT_BRANCH)"
-	Uploader string = "$(UPLOADER)"
-);
-endef
-export GIT_INFO
-
 ##############################################################################
 # Functions used within the Makefile
 ##############################################################################
@@ -146,7 +129,7 @@ define publish
 		-name $(NAME)            \
 		-build-dir $(BUILD_DIR)  \
 		-archs $(4)              \
-		$(PKGEBPF_FLAG)
+		-pkg-ebpf $(PKGEBPF)
 endef
 
 define pub_ebpf
@@ -218,10 +201,6 @@ define build_ip2isp
 	rm -rf china-operator-ip
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
-endef
-
-define do_lint
-	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
 endef
 
 ##############################################################################
@@ -324,7 +303,7 @@ shame_logging:
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare gofmt lfparser_disable_line
+deps: gofmt lfparser_disable_line
 
 # ignore files under vendor/.git/git
 gofmt:
@@ -367,20 +346,20 @@ all_test: deps
 		printf "\033[32m all testinig passed.\n\033[0m"; \
 	fi
 
-test_deps: prepare gofmt lfparser_disable_line vet
+test_deps: gofmt lfparser_disable_line vet
 
 lint: deps check_man copyright_check
 	@truncate -s 0 lint.err
-	$(call do_lint)
+	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
+
+lint_nofix: deps check_man copyright_check
+	@truncate -s 0 lint.err
+	$(GOLINT_BINARY) run --allow-parallel-runners | tee -a lint_nofix.err
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go
 	@rm -rf io/parser/parser_y.go
 	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y # use -l to disable `//line`
-
-prepare:
-	@mkdir -p git
-	@echo "$$GIT_INFO" > git/git.go
 
 copyright_check:
 	@python3 copyright.py --dry-run && \

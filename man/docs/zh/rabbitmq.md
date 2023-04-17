@@ -6,7 +6,7 @@
 
 ---
 
-RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 RabbitMQ ,它能够：
+RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 RabbitMQ，它能够：
 
 - RabbitMQ overview 总览，比如连接数、队列数、消息总数等
 - 跟踪 RabbitMQ queue 信息，比如队列大小，消费者计数等

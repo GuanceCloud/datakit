@@ -25,6 +25,14 @@ Currently DDTrace has added the following extensions to the technology stack：
 
 ## changelog {#changelog}
 
+## v1.10.2 (2023/4/10) {#cl-1.10.2}
+
+### fix {#cl-1.10.2-new}
+
+- merge ddtrace tag:1.10.
+- Fix dubbo probe does not support @ DubboReference nesting.
+- Fixed the issue of failed retrieval of Rocketmq link custom context.
+
 ## v1.8.0，v1.8.1，v1.8.3(2023/2/27) {#cl-1.8.0}
 
 ### new {#cl-1.8.0-new}

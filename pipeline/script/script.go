@@ -14,6 +14,7 @@ import (
 	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/plmap"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
@@ -35,10 +36,19 @@ type PlScript struct {
 
 	proc *plruntime.Script
 
+	plBuks *plmap.AggBuckets
+
 	updateTS int64
 }
 
-func NewScripts(scripts map[string]string, scriptPath map[string]string, ns, category string) (map[string]*PlScript, map[string]error) {
+func NewScripts(scripts map[string]string, scriptPath map[string]string, ns, category string,
+	buks ...*plmap.AggBuckets,
+) (map[string]*PlScript, map[string]error) {
+	var plbuks *plmap.AggBuckets
+	if len(buks) > 0 {
+		plbuks = buks[0]
+	}
+
 	switch category {
 	case datakit.Metric:
 	case datakit.MetricDeprecated:
@@ -77,6 +87,7 @@ func NewScripts(scripts map[string]string, scriptPath map[string]string, ns, cat
 			category: category,
 			proc:     ng,
 			updateTS: time.Now().UnixNano(),
+			plBuks:   plbuks,
 		}
 	}
 
@@ -87,12 +98,22 @@ func (script *PlScript) Engine() *plruntime.Script {
 	return script.proc
 }
 
+func (script *PlScript) SetAggBuks(buks *plmap.AggBuckets) {
+	script.plBuks = buks
+}
+
 func (script *PlScript) Run(plpt *ptinput.Point, signal plruntime.Signal, opt *Option,
 ) error {
 	startTime := time.Now()
 	if script.proc == nil {
 		return fmt.Errorf("no script")
 	}
+
+	if plpt == nil {
+		return fmt.Errorf("no data")
+	}
+
+	plpt.AggBuckets = script.plBuks
 
 	err := plengine.RunScriptWithRMapIn(script.proc, plpt, signal)
 	if err != nil {

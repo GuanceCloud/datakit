@@ -8,6 +8,8 @@ package io
 import (
 	"errors"
 	"fmt"
+	reflect "reflect"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -16,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/plmap"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
@@ -129,6 +132,47 @@ func doFeedLastError(source, err string, cat ...point.Category) {
 	lastErrVec.WithLabelValues(source, catStr, err).Set(float64(time.Now().Unix()))
 }
 
+func plAggFeed(name string, data any) error {
+	if data == nil {
+		return nil
+	}
+	pts, ok := data.([]*dkpt.Point)
+	if !ok {
+		return fmt.Errorf("unsupported data type: %s", reflect.TypeOf(data))
+	}
+
+	var from strings.Builder
+	from.WriteString(plmap.FeedName)
+	from.WriteString("/")
+	from.WriteString(name)
+
+	catStr := point.Metric.String()
+
+	// cover
+	name = from.String()
+
+	inputsFeedVec.WithLabelValues(name, catStr).Inc()
+	inputsFeedPtsVec.WithLabelValues(name, catStr).Add(float64(len(pts)))
+	inputsLastFeedVec.WithLabelValues(name, catStr).Set(float64(time.Now().Unix()))
+
+	bf := len(pts)
+	pts = filter.FilterPts(datakit.Metric, pts)
+
+	inputsFilteredPtsVec.WithLabelValues(
+		name,
+		catStr,
+	).Add(float64(bf - len(pts)))
+
+	job := &iodata{
+		category: datakit.Metric,
+		pts:      pts,
+		filtered: 0,
+		from:     name,
+	}
+
+	return unblockingFeed(job, defIO.chans[datakit.Metric])
+}
+
 // beforeFeed apply pipeline and filter handling on pts.
 func beforeFeed(category string, pts []*dkpt.Point, opt *Option) ([]*dkpt.Point, error) {
 	var after []*dkpt.Point
@@ -160,6 +204,7 @@ func beforeFeed(category string, pts []*dkpt.Point, opt *Option) ([]*dkpt.Point,
 		plopt = opt.PlOption
 		scriptConfMap = opt.PlScript
 	}
+
 	after, err := pipeline.RunPl(category, pts, plopt, scriptConfMap)
 	if err != nil {
 		log.Error(err)

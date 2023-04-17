@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GuanceCloud/platypus/pkg/ast"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,14 +29,6 @@ func TestInitPoint(t *testing.T) {
 	}
 	pt2 := &Point{}
 	InitPt(pt2, "", pt.Tags, pt.Fields, time.Now())
-	assert.Equal(t, &TFMeta{DType: ast.Int, PtFlag: PtField}, pt2.Meta["a"])
-	assert.Equal(t, int64(1), pt2.Fields["a"])
-	assert.Equal(t, &TFMeta{DType: ast.Int, PtFlag: PtField}, pt2.Meta["b"])
-	assert.Equal(t, float64(3), pt2.Fields["c"])
-	assert.Equal(t, &TFMeta{DType: ast.Float, PtFlag: PtField}, pt2.Meta["c"])
-	assert.Equal(t, &TFMeta{DType: ast.Float, PtFlag: PtField}, pt2.Meta["d"])
-	assert.Equal(t, &TFMeta{DType: ast.String, PtFlag: PtField}, pt2.Meta["e"])
-	assert.Equal(t, &TFMeta{DType: ast.Bool, PtFlag: PtField}, pt2.Meta["f"])
-	assert.Equal(t, &TFMeta{DType: ast.Nil, PtFlag: PtField}, pt2.Meta["g"])
-	assert.Equal(t, &TFMeta{DType: ast.String, PtFlag: PtTag}, pt2.Meta["a1"])
+	assert.Equal(t, int32(1), pt2.Fields["a"])
+	assert.Equal(t, float32(3), pt2.Fields["c"])
 }

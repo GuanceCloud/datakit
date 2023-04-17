@@ -130,11 +130,22 @@ kubectl apply -f deployment.yaml
 
 At this point, Annotations has been added. DataKit later reads the Pod's Annotations and collects the metrics exposed on `url`.
 
-## Automatically Discover the Service Exposure Metrics Interface {#auto-discovery-of-service-prometheus}
+## Automatically Discover the Service Exposure Metrics Interface {#auto-discovery-metrics-with-prometheus}
 
-The Service needs to be bound to the Pod, and the Service adds the specified Annotations, which Datakit automatically discovers and accesses to obtain the prometheus metric.
+[:octicons-tag-24: Version-1.5.10](changelog.md#cl-1.5.10)
 
-For example, use the following yaml configuration to create a Pod and a Service, and add Annotations such as `prometheus.io/scrape` to the Service:
+Based on the specified Annotations of Pod or Service, a HTTP URL is constructed and Prometheus metric collection is created.
+
+This feature is disabled by default. To enable it in Datakit, the following two environment variables need to be added as needed, see [container documentation](container.md):
+
+- `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS`: `"true"`
+- `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS`: `"true"`
+
+**Note that this feature may generate a large amount of timeline data.**
+
+### Example {#auto-discovery-metrics-with-prometheu-example}
+
+Take adding Annotations in Service as an example. Use the following yaml configuration to create Pod and Service, and add `prometheus.io/scrape` and other Annotations in Service:
 
 ```yaml
 apiVersion: v1
@@ -195,7 +206,10 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 
 Distinguished by the first underscore, `promhttp` on the left is the metric set name, and `metric_handler_errors_total` on the right is the field name.
 
-In addition, Datakit adds two tags, `service` and `namespace`, whose values are the Service name and the Service's Namespace, to locate the Service in the Kubernetes cluster.
+Datakit will add additional tags to locate this resource in a Kubernetes cluster:
+
+- For `Service`, two tags `namespace` and `service_name` will be added.
+- For `Pod`, two tags `namespace` and `pod_name` will be added.
 
 ## Extended Reading {#more-readings}
 
