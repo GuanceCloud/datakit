@@ -23,8 +23,8 @@ import (
 
 var l = logger.DefaultSLogger("man")
 
-// A Param defined various template parameters to build docs
-// and command line ouput.
+// A Params defined various template parameters to build docs
+// and command line output.
 type Params struct {
 	InputName         string
 	Catalog           string

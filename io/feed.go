@@ -236,7 +236,7 @@ func (x *dkIO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) err
 		ch = x.chans[datakit.DynamicDatawayCategory]
 	}
 
-	ioChanLen.WithLabelValues(point.CatURL(category).String())
+	ioChanLen.WithLabelValues(point.CatURL(category).String()).Set(float64(len(ch)))
 
 	job := &iodata{
 		category: category,
