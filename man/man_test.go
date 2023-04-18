@@ -11,40 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBuildMarkdownManual(t *T.T) {
-	cases := []struct {
-		name string
-		doc  string
-	}{
-		{
-			name: "input-doc-logfwdserver",
-			doc:  "logfwdserver",
-		},
-		{
-			name: "input-doc-cpu",
-			doc:  "cpu",
-		},
-
-		{
-			name: "non-input-doc",
-			doc:  "datakit-conf",
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *T.T) {
-			docs, err := BuildMarkdownManual(tc.doc, &Option{})
-			if err != nil {
-				t.Error(err)
-			}
-
-			for k, md := range docs {
-				t.Logf("%s:\n%s", k, string(md))
-			}
-		})
-	}
-}
-
 func TestRenderBuf(t *T.T) {
 	t.Run(`basic`, func(t *T.T) {
 		md := []byte(`
