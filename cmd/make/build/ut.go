@@ -24,6 +24,8 @@ const (
 	pkgPrefix = "gitlab.jiagouyun.com/cloudcare-tools/"
 )
 
+var UTExclude string
+
 func UnitTestDataKit() error {
 	pkgsListCmd := exec.Command("go", "list", "./...") //nolint:gosec
 	res, err := pkgsListCmd.CombinedOutput()
@@ -40,10 +42,22 @@ func UnitTestDataKit() error {
 	utID := cliutils.XID("ut_")
 
 	coverTotal := 0.0
+	excludes := map[string]bool{}
+
+	if len(UTExclude) > 0 {
+		for _, ex := range strings.Split(UTExclude, ",") {
+			excludes[ex] = true
+		}
+	}
 
 	for _, p := range pkgs {
 		fmt.Printf("=======================\n")
 		fmt.Printf("testing %s...\n", p)
+
+		if excludes[p] {
+			fmt.Printf("%s excluded\n", p)
+			continue
+		}
 
 		mr := &tu.ModuleResult{
 			// remove prefix for human readable
