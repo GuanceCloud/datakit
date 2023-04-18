@@ -34,7 +34,10 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&doPubeBPF, "pub-ebpf", false, `publish datakit-ebpf to OSS: local/testing/production`)
 	flag.BoolVar(&pkgeBPF, "pkg-ebpf", false, `add datakit-ebpf to datakit tarball`)
 	flag.BoolVar(&buildISP, "build-isp", false, "generate ISP data")
+
 	flag.BoolVar(&ut, "ut", false, "test all DataKit code")
+	flag.StringVar(&build.UTExclude, "ut-exclude", "", "exclude packages for testing")
+
 	flag.BoolVar(&downloadSamples, "download-samples", false, "download samples from OSS to samples/")
 	flag.BoolVar(&dumpSamples, "dump-samples", false, "download and dump local samples to OSS")
 }

@@ -251,6 +251,32 @@ ddk debug --ipinfo 1.2.3.4
 	      ip: 1.2.3.4
 ```
 
+## Testing {#testing}
+
+There are 2 types of testing in Datakit，one is integration testing, another is unit testing. There is no essential difference between them, but for integration testing, we have to set more environments.
+
+Most of the time, we just run `make ut` for all testing, and we have to setup a Docker(remote or local) to help these integration testings. Here we show a example to do these:
+
+- Configure a remote Docker and enable it's [remote function](https://medium.com/@ssmak/how-to-enable-docker-remote-api-on-docker-host-7b73bd3278c6){:target="_blank"}. For local Docker, nothing required to configure.
+
+- Make a shell alias, start `make ut` within it:
+
+```shell
+alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut'
+```
+
+Sometimes we need to configure more for integration testing:
+
+- If we need to exclude some testing on package, we can add `UT_EXCLUDE` in the alias: `UT_EXCLUDE="gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp"`
+
+- We can post the testing result to Guance Cloud, add a dataway and the token: `DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"`
+
+The complete example:
+
+```shell
+alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut UT_EXCLUDE="<package-name>" DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"'
+```
+
 ## Release {#release}
 
 The DataKit release consists of two parts:

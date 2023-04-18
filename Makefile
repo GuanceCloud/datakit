@@ -61,6 +61,7 @@ DATAKIT_EBPF_ARCHS   ?= linux/arm64,linux/amd64
 IGN_EBPF_INSTALL_ERR ?= 0
 RACE_DETECTION       ?= "off"
 PKGEBPF              ?= "false"
+UT_EXCLUDE           ?= ""
 
 PKGEBPF_FLAG = ""
 ifneq ($(PKGEBPF),"false")
@@ -330,7 +331,9 @@ vet:
 	@go vet ./...
 
 ut: deps
-	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=1 go run cmd/make/make.go -ut -dataway-url "$(DATAWAY_URL)"; \
+	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=1 \
+						 go run cmd/make/make.go -ut -ut-exclude "$(UT_EXCLUDE)" \
+						 -dataway-url "$(DATAWAY_URL)"; \
 		if [ $$? != 0 ]; then \
 			exit 1; \
 		else \
