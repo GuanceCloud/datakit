@@ -16,27 +16,26 @@ Datakit 支持从 kafka 中订阅消息采集链路、指标和日志信息。�
 
 kafka 插件默认会将 `traces`, `JVM metrics`, `logging`,  `Instance Properties`, and `profiled snapshots` 发送到 kafka 集群中。 该功能默认是关闭的。需要将 `kafka-reporter-plugin-x.y.z.jar`, 从 `agent/optional-reporter-plugins` 放到 `agent/plugins` 才会生效.
 
-
 修改配置文件 agent/config/agent.config
+
 ```txt
 # 服务名称：最终会在 UI 中展示，确保唯一
 agent.service_name=${SW_AGENT_NAME:myApp}
 
 # kafka 地址
 plugin.kafka.bootstrap_servers=${SW_KAFKA_BOOTSTRAP_SERVERS:<ip>:<port>}
-
 ```
 
 > 在启动之前请先确保 kafka 已经启动。
 
 或者 通过环境变量方式
+
 ```shell
 -Dskywalking.agent.service_name=myApp 
 -Dskywalking.plugin.kafka.bootstrap_servers=10.200.14.114:9092
 ```
 
-
-启动java项目（jar包形式启动）
+启动 java 项目（jar 包形式启动）
 
 - Linux Tomcat 7, Tomcat 8, Tomcat 9  
   在配置文件 `tomcat/bin/catalina.sh` 中的第一行添加环境变量.

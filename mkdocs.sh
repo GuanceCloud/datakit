@@ -37,17 +37,13 @@ while getopts "V:D:L:p:b:Bh" arg; do
 		V)
 			version="${OPTARG}"
 			;;
-	 L)
+		L)
 		 lang="${OPTARG}"
 		 ;;
 
 		B)
 			no_build=true;
 			;;
-
-		D)
-			mkdocs_dir="${OPTARG}";
-				;;
 
 		h)
 			usage
@@ -69,19 +65,10 @@ while getopts "V:D:L:p:b:Bh" arg; do
 done
 shift $((OPTIND-1))
 
-# setup workdir
-if [ ! -d $mkdocs_dir ]
-then # create new project & download required files
-	mkdocs new $mkdocs_dir && \
-		mkdir -p $mkdocs_dir/overrides/.icons/zy/ && \
-		curl https://static.guance.com/images/datakit/datakit.svg \
-		--output  $mkdocs_dir/overrides/.icons/zy/datakit.svg;
+# detect workdir
+if [ ! -d $mkdocs_dir ]; then
+	echo "${mkdocs_dir} not exist, exit now"
 fi
-
-# just copy files to the directory.
-mkdir -p $mkdocs_dir/docs/${lang}/datakit/ && \
-	cp man/docs/mkdocs-${lang}.yml $mkdocs_dir/mkdocs.yml && \
-	cp man/docs/${lang}/aliyun-access.md $mkdocs_dir/docs/${lang}/datakit/
 
 # if -v not set...
 if [ -z $version ]; then
@@ -108,8 +95,7 @@ i18n=(
 # prepare workdirs
 ######################################
 # clear tmp dir
-rm -rf $tmp_doc_dir/*.md
-
+rm -rf $tmp_doc_dir/*
 # create workdirs
 for lang in "${i18n[@]}"; do
 	mkdir -p $base_docs_dir/${lang}/datakit \
@@ -165,16 +151,14 @@ for lang in "${i18n[@]}"; do
 	# copy .pages
 	printf "${GREEN}> Copy pages(%s) to repo datakit ...${CLR}\n" $lang
 	cp man/docs/${lang}/datakit.pages $base_docs_dir/${lang}/datakit/.pages
-	cp man/developers-${lang}.pages $base_docs_dir/${lang}/developers/.pages
-	cp man/docs/${lang}/developers-index.md $base_docs_dir/${lang}/developers/index.md
 
 	# move specific docs to developers
 	printf "${GREEN}> Copy docs(%s) to repo developers ...${CLR}\n" $lang
-	mv $tmp_doc_dir/${lang}/pythond.md                ${base_docs_dir}/$lang/developers
-	mv $tmp_doc_dir/${lang}/pipeline.md               ${base_docs_dir}/$lang/developers
-	mv $tmp_doc_dir/${lang}/datakit-pl-global.md      ${base_docs_dir}/$lang/developers
-	mv $tmp_doc_dir/${lang}/datakit-pl-how-to.md      ${base_docs_dir}/$lang/developers
-	mv $tmp_doc_dir/${lang}/datakit-refer-table.md    ${base_docs_dir}/$lang/developers
+	cp $tmp_doc_dir/${lang}/pythond.md                ${base_docs_dir}/$lang/developers
+	cp $tmp_doc_dir/${lang}/pipeline.md               ${base_docs_dir}/$lang/developers
+	cp $tmp_doc_dir/${lang}/datakit-pl-global.md      ${base_docs_dir}/$lang/developers
+	cp $tmp_doc_dir/${lang}/datakit-pl-how-to.md      ${base_docs_dir}/$lang/developers
+	cp $tmp_doc_dir/${lang}/datakit-refer-table.md    ${base_docs_dir}/$lang/developers
 
 	# copy specific docs to datakit
 	printf "${GREEN}> Copy docs(%s) to repo datakit ...${CLR}\n" $lang
