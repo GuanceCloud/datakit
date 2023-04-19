@@ -6,39 +6,48 @@
 package man
 
 import (
-	"testing"
+	T "testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestBuildMarkdownManual(t *testing.T) {
-	cases := []struct {
-		name string
-		doc  string
-	}{
-		{
-			name: "input-doc-logfwdserver",
-			doc:  "logfwdserver",
-		},
-		{
-			name: "input-doc-cpu",
-			doc:  "cpu",
-		},
+func TestRenderBuf(t *T.T) {
+	t.Run(`basic`, func(t *T.T) {
+		md := []byte(`
+{{ InstallCmd 4 (.WithPlatform "windows") }}
+			`)
 
-		{
-			name: "non-input-doc",
-			doc:  "datakit-conf",
-		},
-	}
+		p := &Params{}
+		x, err := renderBuf(md, p)
+		assert.NoError(t, err)
+		t.Logf("\n%s", x)
+	})
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			docs, err := BuildMarkdownManual(tc.doc, &Option{})
-			if err != nil {
-				t.Error(err)
-			}
+	t.Run(`multiline`, func(t *T.T) {
+		md := []byte(`
+{{ InstallCmd 4
+(.WithPlatform "windows")
+(.WithVersion "-1.2.3")
+}}
+			`)
 
-			for k, md := range docs {
-				t.Logf("%s:\n%s", k, string(md))
-			}
-		})
-	}
+		p := &Params{}
+		x, err := renderBuf(md, p)
+		assert.NoError(t, err)
+		t.Logf("\n%s", x)
+	})
+
+	t.Run(`multiline-without-indent`, func(t *T.T) {
+		md := []byte(`
+{{ InstallCmd 0
+(.WithPlatform "windows")
+(.WithVersion "-1.2.3")
+}}
+			`)
+
+		p := &Params{}
+		x, err := renderBuf(md, p)
+		assert.NoError(t, err)
+		t.Logf("\n%s", x)
+	})
 }

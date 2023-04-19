@@ -114,6 +114,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		feeder := dkio.NewMockedFeeder()
 
 		ipt := defaultInput()
+		// ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
 		assert.NoError(t, err)

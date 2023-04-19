@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmd"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/command"
 )
 
 var output = `coretemp-isa-0000
@@ -153,7 +153,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestRunCommand(t *testing.T) {
-	output, err := cmd.RunWithTimeout(3*time.Second, false, defPath, "-u")
+	output, err := command.RunWithTimeout(3*time.Second, false, defPath, "-u")
 	if err != nil {
 		log.Println(err.Error())
 	}

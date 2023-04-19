@@ -19,8 +19,7 @@
     命令如下：
     
     ```shell
-    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
-		  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 4 (.WithPlatform "unix") }}
     ```
     
     安装完成后，在终端会看到安装成功的提示。
@@ -30,46 +29,38 @@
     Windows 上安装需在 Powershell 命令行安装，且必须以管理员身份运行 Powershell。按下 Windows 键，输入 powershell 即可看到弹出的 powershell 图标，右键选择「以管理员身份运行」即可。
     
     ```powershell
-    $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>";
-    Set-ExecutionPolicy Bypass -scope Process -Force;
-    Import-Module bitstransfer;
-    Remove-item .install.ps1 -erroraction silentlycontinue;
-    start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1;
-    powershell .install.ps1;
+{{ InstallCmd 4 (.WithPlatform "windows") }}
     ```
 
-???+ tip "安装指定版本的 DataKit"
+### 安装指定版本的 DataKit {#version-install}
 
-    可通过在安装命令中指定版本号来安装指定版本的 DataKit，如安装 1.2.3 版本的 DataKit：
+可通过在安装命令中指定版本号来安装指定版本的 DataKit，如安装 1.2.3 版本的 DataKit：
 
-    ```shell
-    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
-        bash -c "$(curl -L https://static.guance.com/datakit/install-1.2.3.sh)"
-    ```
+```shell
+{{ InstallCmd 0 (.WithPlatform "unix") (.WithVersion "-1.2.3") }}
+```
 
+Windows 下同理：
 
-    Windows 下同理：
-
-    ```powershell
-    $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>";
-    Set-ExecutionPolicy Bypass -scope Process -Force;
-    Import-Module bitstransfer;
-    Remove-item .install.ps1 -erroraction silentlycontinue;
-    start-bitstransfer -source https://static.guance.com/datakit/install-1.2.3.ps1 -destination .install.ps1;
-    powershell .install.ps1;
-    ```
+```powershell
+{{ InstallCmd 0 (.WithPlatform "windows") (.WithVersion "-1.2.3") }}
+```
 
 ## 额外支持的安装变量 {#extra-envs}
 
 如果需要在安装阶段定义一些 DataKit 配置，可在安装命令中增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 
-```shell
-# Linux/Mac
-DK_NAMESPACE="<namespace>" DK_DATAWAY="https://openway.guance.com?token=<TOKEN>" bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+=== "Linux/macOS"
 
-# Windows
-$env:DK_NAMESPACE="<namespace>"; $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
-```
+    ```shell
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "DK_NAMESPACE" "<namespace>" ) }}
+    ```
+
+=== "Windows"
+
+    ```powershell
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_NAMESPACE" "<namespace>" ) }}
+    ```
 
 俩种环境变量的设置格式为：
 
@@ -106,6 +97,8 @@ NAME1="value1" NAME2="value2"
     DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
     bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
     ```
+
+    另外，如果之前有安装过 Datakit，必须将之前的默认采集器配置都删除掉，因为 Datakit 在安装的过程中只能添加采集器配置，但不能删除采集器配置。
 
 ### DataKit 自身日志相关 {#env-logging}
 

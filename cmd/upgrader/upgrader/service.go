@@ -26,9 +26,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	http2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
 	version2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"go.uber.org/atomic"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -364,7 +364,7 @@ func upgrade(ctx *gin.Context) {
 		L().Warnf("unable to check version info from command line: %s", err)
 	}
 
-	versions, err := cmds.GetOnlineVersions(false)
+	versions, err := cmds.GetOnlineVersions()
 	if err != nil {
 		errorResponse(ctx, http.StatusInternalServerError, fmt.Errorf("unable to find newer Datakit version: %w", err))
 		return

@@ -21,7 +21,7 @@ const sampleCfg = `
 
   ## Collect data output.
   # Fill this when want to collect the data to local file nor center.
-  # After filling, could use 'datakit --prom-conf /path/to/this/conf' to debug local storage measurement set.
+  # After filling, could use 'datakit debug --prom-conf /path/to/this/conf' to debug local storage measurement set.
   # Using '--prom-conf' when priority debugging data in 'output' path.
   # output = "/abs/path/to/file"
 

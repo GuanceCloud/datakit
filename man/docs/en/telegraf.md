@@ -38,7 +38,7 @@ Default profile path:
 - Linux: `/etc/telegraf/telegraf.conf`
 - Windows: The configuration file is in the Telegraf binary sibling directory (depending on the specific installation) 
 
-> Note: Under Mac, if you [install through `datakit --install telegraf`](datakit-tools-how-to#extras), the configuration directory is the same as Linux.
+> Note: Under Mac, if you [install through `datakit install --telegraf`](datakit-tools-how-to#extras), the configuration directory is the same as Linux.
 
 Modify the configuration file as follows:
 

@@ -72,7 +72,7 @@ func TestHandleBody(t *testing.T) {
 		opts []point.Option
 	}{
 		{
-			name: `[json]tag-exceed-limit`,
+			name: `json-tag-exceed-limit`,
 
 			opts: []point.Option{
 				point.WithMaxTags(1),
@@ -90,7 +90,7 @@ func TestHandleBody(t *testing.T) {
 		},
 
 		{
-			name: `[json]-invalid-field-key-with-.`,
+			name: `json-invalid-field-key-with-dot`,
 			body: []byte(`[
 			{
 				"measurement":"abc",
@@ -262,8 +262,6 @@ func (x *apiWriteMock) geoInfo(ip string) map[string]string {
 }
 
 func TestAPIWrite(t *testing.T) {
-	const timestamp = 1000000000 // 2001-09-09 01:46:40 +0000 UTC
-
 	router := gin.New()
 	router.Use(uhttp.RequestLoggerMiddleware)
 	router.POST("/v1/write/:category", rawHTTPWraper(nil, apiWrite, &apiWriteMock{t: t}))
@@ -331,7 +329,30 @@ func TestAPIWrite(t *testing.T) {
 		},
 
 		{
-			name:             `[ok]write-logging(line-proto-loose)`,
+			name:             `write-json-with-precision`,
+			method:           "POST",
+			url:              "/v1/write/metric?echo_json=1&precision=s",
+			body:             []byte(`[{"measurement":"abc", "tags": {"t1": "xxx"}, "fields":{"f1": 1.0}, "time":123}]`),
+			contentType:      "application/json",
+			expectStatusCode: 200,
+			expectBody: &uhttp.BodyResp{
+				Content: []*point.JSONPoint{
+					{
+						Measurement: "abc",
+						Tags: map[string]string{
+							"t1": "xxx",
+						},
+						Fields: map[string]interface{}{
+							"f1": 1.0,
+						},
+						Time: 123000000000,
+					},
+				},
+			},
+		},
+
+		{
+			name:             `write-logging(line-proto-loose)`,
 			method:           "POST",
 			url:              "/v1/write/logging?loose=1",
 			body:             []byte(`xxx-source,t1=1 f1=1i`),
@@ -422,9 +443,9 @@ func TestAPIWrite(t *testing.T) {
 		{
 			name:             `metric-json-point-key-with-point-seconds`,
 			method:           "POST",
-			url:              "/v1/write/metric?echo_json=1&precision=s",
+			url:              "/v1/write/metric?precision=s&echo_json=1",
 			contentType:      "application/json",
-			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}, "time":` + fmt.Sprintf("%d", timestamp*time.Second) + `}]`),
+			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}, "time": 123}]`),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
 				Content: []*point.JSONPoint{
@@ -436,17 +457,18 @@ func TestAPIWrite(t *testing.T) {
 						Fields: map[string]interface{}{
 							"f1.1": 1, "f2": 3.14,
 						},
-						Time: time.Unix(timestamp, 0).UnixNano(),
+						Time: 123000000000,
 					},
 				},
 			},
 		},
+
 		{
 			name:             `metric-json-point-key-with-point-nanoseconds`,
 			method:           "POST",
 			url:              "/v1/write/metric?echo_json=1",
 			contentType:      "application/json",
-			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}, "time":` + fmt.Sprintf("%d", timestamp*1000*1000*1000) + `}]`),
+			body:             []byte(`[{"measurement":"view","tags":{"t1": "1", "name": "some-obj-name"}, "fields":{"f1.1":1, "f2": 3.14}, "time":123000000000}]`),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
 				Content: []*point.JSONPoint{
@@ -458,7 +480,7 @@ func TestAPIWrite(t *testing.T) {
 						Fields: map[string]interface{}{
 							"f1.1": 1, "f2": 3.14,
 						},
-						Time: time.Unix(0, timestamp*1000*1000*1000).UnixNano(),
+						Time: 123000000000,
 					},
 				},
 			},
@@ -476,7 +498,7 @@ func TestAPIWrite(t *testing.T) {
 			name:             `metric-point-key-with-point-seconds-echo-json`,
 			method:           "POST",
 			url:              "/v1/write/metric?echo_json=1&precision=s",
-			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 ` + fmt.Sprintf("%d", timestamp)),
+			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123`),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
 				Content: []*point.JSONPoint{
@@ -491,7 +513,7 @@ func TestAPIWrite(t *testing.T) {
 							"f2":    2,
 							"f3.14": 3.14,
 						},
-						Time: time.Unix(timestamp, 0).UnixNano(),
+						Time: 123000000000,
 					},
 				},
 			},
@@ -501,10 +523,10 @@ func TestAPIWrite(t *testing.T) {
 			name:             `metric-point-key-with-point-seconds-echo-lineproto`,
 			method:           "POST",
 			url:              "/v1/write/metric?echo_line_proto=1&precision=s",
-			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 ` + fmt.Sprintf("%d", timestamp)),
+			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123`),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
-				Content: `measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 ` + fmt.Sprintf("%d", time.Unix(timestamp, 0).UnixNano()),
+				Content: `measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123000000000`,
 			},
 		},
 
@@ -525,7 +547,7 @@ measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123`,
 			name:             `metric-point-key-with-point-nanoseconds`,
 			method:           "POST",
 			url:              "/v1/write/metric?echo_json=1&precision=n",
-			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 ` + fmt.Sprintf("%d", timestamp*1000*1000*1000)),
+			body:             []byte(`measurement,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123000000000`),
 			expectStatusCode: 200,
 			expectBody: &uhttp.BodyResp{
 				Content: []*point.JSONPoint{
@@ -537,7 +559,7 @@ measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123`,
 						Fields: map[string]interface{}{
 							"f1": 1, "f2": 2, "f3.14": 3.14,
 						},
-						Time: time.Unix(0, timestamp*1000*1000*1000).UnixNano(),
+						Time: 123000000000,
 					},
 				},
 			},
@@ -586,7 +608,7 @@ measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123`,
 						Fields: map[string]interface{}{
 							"f1": 1, "message": "dump object message",
 						},
-						Time: time.Unix(0, 123).UnixNano(),
+						Time: 123,
 					},
 				},
 			},
@@ -619,7 +641,7 @@ measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123`,
 						Fields: map[string]interface{}{
 							"f1": 1, "message": "dump object message",
 						},
-						Time: time.Unix(0, 123).UnixNano(),
+						Time: 123,
 					},
 				},
 			},

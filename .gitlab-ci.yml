@@ -11,7 +11,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.5.9"
+  CI_VERSION: "1.5.10"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -19,15 +19,27 @@ stages:
   - deploy_ebpf
   - deploy
 
+ci_lint_only:
+  stage: deploy
+  resource_group: production
+  only:
+    - /.*/
+  script:
+    # only run lint
+    - make clean
+    - make lint_nofix
+  tags:
+    - cloudcare-ft
+
 ci_lint_and_unit_test:
   stage: deploy
   resource_group: production
   only:
     - /^\d+-iss.*$/
   script:
-    # only run lint and unit-testing
+    # run lint & unit-testing
     - make clean
-    - make lint
+    - make lint_nofix
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
   tags:
     - cloudcare-ft
@@ -41,7 +53,7 @@ test-datakit-production:
   script:
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
-    - make lint
+    - make lint_nofix
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
   tags:
     - cloudcare-ft
@@ -56,7 +68,7 @@ test-datakit-testing:
   script:
     - make clean
     - make testing_notify GIT_BRANCH=$CI_COMMIT_BRANCH
-    - make lint
+    - make lint_nofix
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
   tags:
     - cloudcare-ft

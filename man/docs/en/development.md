@@ -71,10 +71,10 @@ dist/
 └── datakit-darwin-amd64
     └── datakit          # Replace this dakakit with the existing datakit binary, typically /usr/local/datakit/datakit
 
-sudo datakit --stop                                             # stop existing datakit
+sudo datakit service -T                                         # stop existing datakit
 sudo truncate -s 0 /var/log/datakit/log                         # Empty the log
 sudo cp -r dist/datakit-darwin-amd64/datakit /usr/local/datakit # Overlay binary
-sudo datakit --start                                            # restart datakit
+sudo datakit service -S                                         # restart datakit
 ```
 
 - At this point, you typically have a `zhangsan.conf.sample` in the `/usr/local/datakit/conf.d/<Catalog>/` directory. Note that the `<Catalog>` here is the return value of the interface `Catalog() string` above.
@@ -249,6 +249,32 @@ ddk debug --ipinfo 1.2.3.4
 	 country: AU
 	     isp: unknown
 	      ip: 1.2.3.4
+```
+
+## Testing {#testing}
+
+There are 2 types of testing in Datakit，one is integration testing, another is unit testing. There is no essential difference between them, but for integration testing, we have to set more environments.
+
+Most of the time, we just run `make ut` for all testing, and we have to setup a Docker(remote or local) to help these integration testings. Here we show a example to do these:
+
+- Configure a remote Docker and enable it's [remote function](https://medium.com/@ssmak/how-to-enable-docker-remote-api-on-docker-host-7b73bd3278c6){:target="_blank"}. For local Docker, nothing required to configure.
+
+- Make a shell alias, start `make ut` within it:
+
+```shell
+alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut'
+```
+
+Sometimes we need to configure more for integration testing:
+
+- If we need to exclude some testing on package, we can add `UT_EXCLUDE` in the alias: `UT_EXCLUDE="gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp"`
+
+- We can post the testing result to Guance Cloud, add a dataway and the token: `DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"`
+
+The complete example:
+
+```shell
+alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut UT_EXCLUDE="<package-name>" DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"'
 ```
 
 ## Release {#release}
@@ -470,7 +496,7 @@ In addition to some of the accessibility features listed in the [official docume
 ### Check Sample Config is Correct {#check-sample-config}
 
 ```shell
-datakit --check-sample
+datakit check --sample
 ------------------------
 checked 52 sample, 0 ignored, 51 passed, 0 failed, 0 unknown, cost 10.938125ms
 ```
@@ -481,15 +507,7 @@ Exports the existing DataKit document to the specified directory, specifies the 
 
 ```shell
 man_version=`git tag -l | sort -nr | head -n 1` # Get the most recently released tag version
-datakit --export-manuals /path/to/doc --man-version $man_version --TODO "-" --ignore demo
-```
-
-### Integration Export {#export-integrations}
-
-Export the integration contents to the specified directory, typically another git-repo (currently [dataflux-integration](https://gitee.com/dataflux/dataflux-integration.git){:target="_blank"}).
-
-```shell
-datakit --ignore demo,tailf --export-integration /path/to/integration/git/repo
+datakit doc --export-docs /path/to/doc --version $man_version --TODO "-" --ignore demo
 ```
 
 ## More Readings {#more-readings}
