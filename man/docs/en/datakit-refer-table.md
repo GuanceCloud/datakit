@@ -151,7 +151,7 @@ cd /usr/local/datakit/pipeline/logging
 
 vim refer_table_for_test.p
 
-datakit pipeline refer_table_for_test.p -T '{"table": "table_abc", "key": "col2", "value": 1234.0}' --date
+datakit pipeline -P refer_table_for_test.p -T '{"table": "table_abc", "key": "col2", "value": 1234.0}' --date
 ```
 
 As can be seen from the following output results, coll, col2, col3 and col4 of the columns in the table were successfully appended to the output results:

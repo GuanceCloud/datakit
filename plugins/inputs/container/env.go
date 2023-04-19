@@ -22,7 +22,8 @@ import (
 //   ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_POD_METRIC : booler
-//   ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVIER_ANNOTATIONS booler
+//   ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS     booler
+//   ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS booler
 //   ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS        booler
 //   ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS    booler
 //   ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS: booler
@@ -118,19 +119,20 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
-	// 兼容 ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVIER_ANNOTATIONS
-	if enable, ok := envs["ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_K8S_SERVICE_PROMETHEUS"]; ok {
-		b, err := strconv.ParseBool(enable)
-		if err == nil {
-			i.EnableAutoDiscoveryOfPrometheusServierAnnotations = b
-		}
-	}
-	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVIER_ANNOTATIONS"]; ok {
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS"]; ok {
 		b, err := strconv.ParseBool(enable)
 		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVIER_ANNOTATIONS to bool: %s, ignore", err)
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS to bool: %s, ignore", err)
 		} else {
-			i.EnableAutoDiscoveryOfPrometheusServierAnnotations = b
+			i.EnableAutoDiscoveryOfPrometheusServiceAnnotations = b
+		}
+	}
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS to bool: %s, ignore", err)
+		} else {
+			i.EnableAutoDiscoveryOfPrometheusPodAnnotations = b
 		}
 	}
 	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS"]; ok {

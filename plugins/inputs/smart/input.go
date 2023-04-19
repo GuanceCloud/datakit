@@ -20,7 +20,7 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmd"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/command"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	ipath "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/strarr"
@@ -211,7 +211,7 @@ func (ipt *Input) gather() error {
 
 // Scan for S.M.A.R.T. devices from smartctl.
 func (ipt *Input) scanDevices(ignoreExcludes bool, scanArgs ...string) ([]string, error) {
-	output, err := cmd.RunWithTimeout(ipt.Timeout.Duration, ipt.UseSudo, ipt.SmartCtlPath, scanArgs...)
+	output, err := command.RunWithTimeout(ipt.Timeout.Duration, ipt.UseSudo, ipt.SmartCtlPath, scanArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run command '%s %s': %w - %s", ipt.SmartCtlPath, scanArgs, err, string(output))
 	}
@@ -365,7 +365,7 @@ func excludedDevice(excludes []string, deviceLine string) bool {
 
 func gatherNVMeDeviceInfo(nvme, device string, timeout time.Duration, useSudo bool) (string, string, string, error) {
 	args := append([]string{"id-ctrl"}, strings.Split(device, " ")...)
-	output, err := cmd.RunWithTimeout(timeout, useSudo, nvme, args...)
+	output, err := command.RunWithTimeout(timeout, useSudo, nvme, args...)
 	if err != nil {
 		return "", "", "", err
 	}
@@ -429,8 +429,8 @@ func gatherIntelNVMeDisk(tags map[string]string,
 	device nvmeDevice,
 ) (*smartMeasurement, error) {
 	args := append([]string{"intel", "smart-log-add"}, strings.Split(device.name, " ")...)
-	output, err := cmd.RunWithTimeout(timeout, useSudo, nvme, args...)
-	if _, err = cmd.ExitStatus(err); err != nil {
+	output, err := command.RunWithTimeout(timeout, useSudo, nvme, args...)
+	if _, err = command.ExitStatus(err); err != nil {
 		return nil, fmt.Errorf("failed to run command '%s %s': %w - %s",
 			nvme, strings.Join(args, " "), err, string(output))
 	}
@@ -520,9 +520,9 @@ func gatherDisk(tags map[string]string,
 		nocheck,
 		"--format=brief",
 	}, strings.Split(device, " ")...)
-	output, err := cmd.RunWithTimeout(timeout, sudo, smartctl, args...)
+	output, err := command.RunWithTimeout(timeout, sudo, smartctl, args...)
 	// Ignore all exit statuses except if it is a command line parse error
-	exitStatus, err := cmd.ExitStatus(err)
+	exitStatus, err := command.ExitStatus(err)
 	if err != nil {
 		return nil, err
 	}

@@ -13,6 +13,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/plmap"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 )
 
@@ -76,6 +77,12 @@ func whichStore(category string) *ScriptStore {
 		l.Warn("unsuppored category: %s", category)
 		return _loggingScriptStore
 	}
+}
+
+var _uploadFn plmap.UploadFunc
+
+func SetUploadFn(fn plmap.UploadFunc) {
+	_uploadFn = fn
 }
 
 const (
@@ -276,7 +283,8 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 		store.storage.scripts[ns] = map[string]*PlScript{}
 	}
 
-	retScripts, retErr := NewScripts(namedScript, scriptPath, ns, store.category)
+	retScripts, retErr := NewScripts(namedScript, scriptPath, ns, store.category,
+		plmap.NewAggBuks(_uploadFn))
 
 	for name, err := range retErr {
 		var errStr string
@@ -294,7 +302,13 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 		}
 		stats.UpdateScriptStatsMeta(store.category, ns, name, namedScript[name], false, true, errStr)
 		store.indexDeleteAndBack(name, ns, store.storage.scripts)
-		delete(store.storage.scripts[ns], name)
+
+		if v, ok := store.storage.scripts[ns][name]; ok {
+			if v.plBuks != nil {
+				v.plBuks.StopAllBukScanner()
+			}
+			delete(store.storage.scripts[ns], name)
+		}
 		stats.WriteEvent(&change)
 	}
 
@@ -312,7 +326,13 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 	for name, script := range needDelete {
 		stats.UpdateScriptStatsMeta(store.category, ns, name, script, false, true, "")
 		store.indexDeleteAndBack(name, ns, store.storage.scripts)
-		delete(store.storage.scripts[ns], name)
+
+		if v, ok := store.storage.scripts[ns][name]; ok {
+			if v.plBuks != nil {
+				v.plBuks.StopAllBukScanner()
+			}
+			delete(store.storage.scripts[ns], name)
+		}
 	}
 
 	// 执行新增操作

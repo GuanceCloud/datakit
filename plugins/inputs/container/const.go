@@ -39,6 +39,7 @@ const sampleCfg = `
   extract_k8s_label_as_tags = false
 
   ## Auto-Discovery of PrometheusMonitoring Annotations/CRDs
+  enable_auto_discovery_of_prometheus_pod_annotations = false
   enable_auto_discovery_of_prometheus_service_annotations = false
   enable_auto_discovery_of_prometheus_pod_monitors = false
   enable_auto_discovery_of_prometheus_service_monitors = false

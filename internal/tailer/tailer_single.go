@@ -273,8 +273,6 @@ func (t *Single) forwardMessage() {
 					}
 					// 数据处理完成，再记录 offset
 					t.offset += int64(readNum)
-					// 记录 cache
-					t.recordingCache()
 				}
 			}
 
@@ -324,8 +322,6 @@ func (t *Single) forwardMessage() {
 
 		// 数据处理完成，再记录 offset
 		t.offset += int64(readNum)
-		// 记录 cache
-		t.recordingCache()
 	}
 }
 
@@ -467,6 +463,9 @@ func (t *Single) feed(pending []string) {
 		t.feedToRemote(pending)
 		return
 	}
+
+	// 记录 cache
+	defer t.recordingCache()
 
 	if t.enableDiskCache {
 		err := t.feedToCache(pending)

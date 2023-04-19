@@ -9,7 +9,6 @@ package man
 import (
 	"bytes"
 	"fmt"
-	"path/filepath"
 	"sort"
 
 	// nolint:typecheck
@@ -17,7 +16,6 @@ import (
 	"text/template"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	plfuncs "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -25,170 +23,151 @@ import (
 
 var l = logger.DefaultSLogger("man")
 
+// A Params defined various template parameters to build docs
+// and command line output.
 type Params struct {
 	InputName         string
 	Catalog           string
 	InputSample       string
 	Version           string
 	ReleaseDate       string
-	Measurements      []*inputs.MeasurementInfo
 	CSS               string
 	AvailableArchs    string
 	PipelineFuncs     string
 	PipelineFuncsEN   string
 	DatakitConfSample string
+
+	Measurements []*inputs.MeasurementInfo
+
+	ic *installCmd
 }
 
-type i18n int
+// A ExportOption defined various doc export options.
+type ExportOption struct {
+	Skips,
+	Path,
+	ManVersion string
+	IgnoreMissing bool
+}
 
-const (
-	I18nZH = iota
-	I18nEN = iota
-)
+// BuildInputDoc render inputs docs based on input document template.
+func BuildInputDoc(inputName string, md []byte, opt *ExportOption) ([]byte, error) {
+	c, ok := inputs.Inputs[inputName]
+	if !ok {
+		return nil, fmt.Errorf("unknown input %s", inputName)
+	}
 
-func (x i18n) String() string {
-	switch x {
-	case I18nZH:
-		return "zh"
-	case I18nEN:
-		return "en"
+	var (
+		ipt          = c()
+		measurements []*inputs.MeasurementInfo
+		archs        string
+	)
+
+	switch i := ipt.(type) {
+	case inputs.InputV2:
+		for _, m := range i.SampleMeasurement() {
+			measurements = append(measurements, m.Info())
+		}
+
+		archs = strings.Join(i.AvailableArchs(), " ")
 	default:
-		return ""
-	}
-}
-
-type Option struct {
-	WithCSS                       bool
-	IgnoreMissing                 bool
-	Skips                         string
-	DisableMonofontOnTagFieldName bool
-	ManVersion                    string
-	Path                          string
-}
-
-func BuildMarkdownManual(name string, opt *Option) (map[i18n][]byte, error) {
-	var p *Params
-
-	css := MarkdownCSS
-	ver := datakit.Version
-
-	if !opt.WithCSS {
-		css = ""
+		l.Warnf("input %s not implement InputV2 interfaces, ignored", inputName)
+		return nil, nil
 	}
 
-	if opt.ManVersion != "" {
-		ver = opt.ManVersion
+	p := &Params{
+		InputName:      inputName,
+		InputSample:    ipt.SampleConfig(),
+		Catalog:        ipt.Catalog(),
+		Version:        opt.ManVersion,
+		ReleaseDate:    git.BuildAt,
+		AvailableArchs: archs,
+		Measurements:   measurements,
 	}
 
-	if opt.DisableMonofontOnTagFieldName {
-		inputs.MonofontOnTagFieldName = false
-	}
-
-	// check if doc's name is a input name
-	if creator, ok := inputs.Inputs[name]; ok {
-		l.Debugf("build doc for input %s...", name)
-
-		ipt := creator()
-		switch i := ipt.(type) {
-		case inputs.InputV2:
-
-			sampleMeasurements := i.SampleMeasurement()
-			p = &Params{
-				InputName:      name,
-				InputSample:    i.SampleConfig(),
-				Catalog:        i.Catalog(),
-				Version:        ver,
-				ReleaseDate:    git.BuildAt,
-				CSS:            css,
-				AvailableArchs: strings.Join(i.AvailableArchs(), " "),
-			}
-
-			for _, m := range sampleMeasurements {
-				p.Measurements = append(p.Measurements, m.Info())
-			}
-		default:
-			l.Warnf("incomplete input: %s", name)
-			return nil, nil
-		}
+	if buf, err := renderBuf(md, p); err != nil {
+		return nil, fmt.Errorf("template.New(%s): %w", inputName, err)
 	} else {
-		p = &Params{
-			Version:           ver,
-			ReleaseDate:       git.BuildAt,
-			CSS:               css,
-			DatakitConfSample: DatakitConfSample,
-		}
+		return buf, nil
+	}
+}
 
-		l.Debugf("build doc for %s...", name)
+// BuildNonInputDocs render non-inputs docs.
+func BuildNonInputDocs(md []byte, opt *ExportOption) ([]byte, error) {
+	p := &Params{
+		Version:     opt.ManVersion,
+		ReleaseDate: git.BuildAt,
 
-		// NOTE: pipeline.md is not input's doc, we have to put all pipeline functions documents
-		// to pipeline.md
-		if name == "pipeline" {
-			{ // zh
-				sb := strings.Builder{}
-				arr := []string{}
-				for k := range plfuncs.PipelineFunctionDocs {
-					arr = append(arr, k)
-				}
-
-				sort.Strings(arr) // order by name
-
-				for _, elem := range arr {
-					sb.WriteString(plfuncs.PipelineFunctionDocs[elem].Doc + "\n\n")
-				}
-				p.PipelineFuncs = sb.String()
-			}
-
-			{ // en
-				sb := strings.Builder{}
-				arr := []string{}
-				for k := range plfuncs.PipelineFunctionDocsEN {
-					arr = append(arr, k)
-				}
-
-				sort.Strings(arr) // order by name
-
-				for _, elem := range arr {
-					sb.WriteString(plfuncs.PipelineFunctionDocsEN[elem].Doc + "\n\n")
-				}
-				p.PipelineFuncsEN = sb.String()
-			}
-		}
+		DatakitConfSample: DatakitConfSample,
 	}
 
-	res := map[i18n][]byte{}
-	for _, x := range []i18n{I18nZH, I18nEN} {
-		// read raw markdown from embed repository
-		md, err := docs.ReadFile(filepath.Join("docs", x.String(), name+".md"))
-		if err != nil {
-			if !opt.IgnoreMissing {
-				return nil, err
-			} else {
-				l.Warn(err)
-				continue
-			}
-		}
+	if buf, err := renderBuf(md, p); err != nil {
+		return nil, err
+	} else {
+		return buf, nil
+	}
+}
 
-		// render raw markdown
-		temp, err := template.New(name).Funcs(map[string]interface{}{
-			"CodeBlock": func(code string, indent int) string {
-				arr := []string{}
-				for _, line := range strings.Split(code, "\n") {
-					arr = append(arr, strings.Repeat(" ", indent)+line)
-				}
-				return strings.Join(arr, "\n")
-			},
-		}).Parse(string(md))
-		if err != nil {
-			return nil, fmt.Errorf("[%s] template.New(%s): %w", x, name, err)
-		}
-
-		var buf bytes.Buffer
-		if err := temp.Execute(&buf, p); err != nil {
-			return nil, err
-		}
-
-		res[x] = buf.Bytes()
+// BuildPipelineDocs render pipeline function docs.
+func BuildPipelineDocs(
+	md []byte,
+	fndocs map[string]*plfuncs.PLDoc,
+	opt *ExportOption,
+) ([]byte, error) {
+	arr := []string{}
+	for k := range fndocs {
+		arr = append(arr, k)
 	}
 
-	return res, nil
+	// Order by name: make the table-of-contents
+	// sorted and easy to find function doc by name.
+	sort.Strings(arr)
+
+	sb := strings.Builder{}
+	for _, elem := range arr {
+		sb.WriteString(fndocs[elem].Doc + "\n\n")
+	}
+
+	p := &Params{
+		Version:     opt.ManVersion,
+		ReleaseDate: git.BuildAt,
+
+		DatakitConfSample: DatakitConfSample,
+		PipelineFuncs:     sb.String(),
+	}
+
+	if buf, err := renderBuf(md, p); err != nil {
+		return nil, err
+	} else {
+		return buf, nil
+	}
+}
+
+func renderBuf(md []byte, p *Params) ([]byte, error) {
+	// render raw markdown
+	temp, err := template.New("").Funcs(map[string]interface{}{
+		"CodeBlock": codeBlock,
+		"InstallCmd": func(indent int, opts ...InstallOpt) string {
+			p.ic = InstallCommand(opts...)
+			return codeBlock(p.ic.String(), indent)
+		},
+	}).Parse(string(md))
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	if err := temp.Execute(&buf, p); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func codeBlock(block string, indent int) string {
+	arr := []string{}
+	for _, line := range strings.Split(block, "\n") {
+		arr = append(arr, strings.Repeat(" ", indent)+line)
+	}
+	return strings.Join(arr, "\n")
 }

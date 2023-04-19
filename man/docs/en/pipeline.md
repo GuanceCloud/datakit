@@ -463,7 +463,7 @@ adjust_timezone(time)
 
 ```
 
-execute `datakit pipeline <name>.p -F <input_file_name>  --date`:
+execute `datakit pipeline -P <name>.p -F <input_file_name>  --date`:
 
 ```json
 # output 1
