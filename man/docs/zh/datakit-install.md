@@ -98,6 +98,8 @@ NAME1="value1" NAME2="value2"
     bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
     ```
 
+    另外，如果之前有安装过 Datakit，必须将之前的默认采集器配置都删除掉，因为 Datakit 在安装的过程中只能添加采集器配置，但不能删除采集器配置。
+
 ### DataKit 自身日志相关 {#env-logging}
 
 - `DK_LOG_LEVEL`: 可选值 info/debug
