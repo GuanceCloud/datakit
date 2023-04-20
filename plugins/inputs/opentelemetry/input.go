@@ -117,16 +117,16 @@ const (
 )
 
 var (
-	log              = logger.DefaultSLogger(inputName)
-	statusOK         = 200
-	afterGatherRun   itrace.AfterGatherHandler
-	ignoreKeyRegExps []*regexp.Regexp
-	getAttribute     getAttributeFunc
-	extractAtrribute extractAttributesFunc
-	tags             map[string]string
-	wkpool           *workerpool.WorkerPool
-	localCache       *storage.Storage
-	otelSvr          *grpc.Server
+	log               = logger.DefaultSLogger(inputName)
+	statusOK          = 200
+	afterGatherRun    itrace.AfterGatherHandler
+	ignoreKeyRegExps  []*regexp.Regexp
+	getAttribute      getAttributeFunc
+	extractAtrributes extractAttributesFunc
+	tags              map[string]string
+	wkpool            *workerpool.WorkerPool
+	localCache        *storage.Storage
+	otelSvr           *grpc.Server
 )
 
 type httpConfig struct {
@@ -287,7 +287,7 @@ func (ipt *Input) Run() {
 		ignoreKeyRegExps = append(ignoreKeyRegExps, regexp.MustCompile(ipt.IgnoreAttributeKeys[i]))
 	}
 	getAttribute = getAttrWrapper(ignoreKeyRegExps)
-	extractAtrribute = extractAttrWrapper(ignoreKeyRegExps)
+	extractAtrributes = extractAttrsWrapper(ignoreKeyRegExps)
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
 	g.Go(func(ctx context.Context) error {
