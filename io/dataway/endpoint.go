@@ -440,11 +440,9 @@ func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 	return body, nil
 }
 
-var (
-	// user-agent format. See
-	// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
-	DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, git.Version)
-)
+// user-agent format. See
+// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+var DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, git.Version)
 
 func (ep *endPoint) sendReq(req *http.Request) (*http.Response, error) {
 	log.Debugf("send request %q, proxy: %q, cli: %p, timeout: %s",

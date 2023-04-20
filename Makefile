@@ -378,6 +378,9 @@ lint: deps check_man copyright_check
 lint_nofix: deps check_man copyright_check
 	@truncate -s 0 lint.err
 	$(GOLINT_BINARY) run --allow-parallel-runners | tee -a lint_nofix.err
+	@if [ $$? != 0 ]; then \
+		exit -1;
+	fi
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go
