@@ -7,15 +7,30 @@ DataKit 内置很多不同的小工具，便于大家日常使用。可通过如
 datakit help
 ```
 
->注意：因不同平台的差异，具体帮助内容会有差别。
+> 注意：因不同平台的差异，具体帮助内容会有差别。
+
+如果要查看具体某个命令如何使用（比如 `dql`），可以用如下命令：
+
+```shell
+$ datakit help dql
+usage: datakit dql [options]
+
+DQL used to query data. If no option specified, query interactively. Other available options:
+
+      --auto-json      pretty output string if field/tag value is JSON
+      --csv string     Specify the directory
+  -F, --force          overwrite csv if file exists
+  -H, --host string    specify datakit host to query
+  -J, --json           output in json format
+      --log string     log path (default "/dev/null")
+  -R, --run string     run single DQL
+  -T, --token string   run query for specific token(workspace)
+  -V, --verbose        verbosity mode
+```
 
 ## 查看 DataKit 运行情况 {#using-monitor}
 
-> 当前的 monitor 查看方式已经废弃（仍然可用，不久将废弃），新的 monitor 功能[参见这里](datakit-monitor.md)
-
-在终端即可查看 DataKit 运行情况，其效果跟浏览器端 monitor 页面相似：
-
-DataKit 新的 monitor 用法[参见这里](datakit-monitor.md)。
+monitor 用法[参见这里](datakit-monitor.md)
 
 ## 检查采集器配置是否正确 {#check-conf}
 
