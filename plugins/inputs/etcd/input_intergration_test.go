@@ -57,10 +57,10 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
 			}
 
-			// TODO: error here
-			// if len(msgs) > 0 {
-			//	return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			//}
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
 		case "etcd_server":
 			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&NetworkMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
 
@@ -68,10 +68,9 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
 			}
 
-			// TODO: error here
-			// if len(msgs) > 0 {
-			//	return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			//}
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
 
 		default: // TODO: check other measurement
 			return nil
