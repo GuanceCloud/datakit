@@ -66,6 +66,9 @@ const sampleCfg = `
   # disable setting instance tag for this input
   disable_instance_tag = false
 
+  # disable info tag for this input
+  disable_info_tag = false
+
   # Ignore tags. Multi supported.
   # The matched tags would be dropped, but the item would still be sent.
   # tags_ignore = ["xxxx"]
