@@ -14,9 +14,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/influxdb1-client/models"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	inpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/point"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
@@ -177,17 +180,21 @@ func showPromInput(input *prom.Input) error {
 	}
 
 	var points []*dkpt.Point
+	var clipts []*point.Point
 	if input.Output != "" {
 		// If input.Output is configured, raw metric text is written to file.
 		// In this case, read the file and perform Text2Metric.
-		points, err = input.CollectFromFile(input.Output)
+		clipts, err = input.CollectFromFile(input.Output)
 	} else {
 		// Collect from all URLs.
-		points, err = input.Collect()
+		clipts, err = input.Collect()
 	}
 	if err != nil {
 		return err
 	}
+
+	// Convert
+	points = inpt.Point2dkpt(clipts...)
 
 	return printResult(points)
 }
