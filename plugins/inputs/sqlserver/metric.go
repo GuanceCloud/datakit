@@ -25,6 +25,8 @@ func (m *Performance) Point() *point.Point {
 
 	if m.ipt != nil && m.ipt.Election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),

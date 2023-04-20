@@ -6,10 +6,12 @@
 package rabbitmq
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -68,7 +70,7 @@ func getExchange(n *Input) {
 			ts:       ts,
 			election: n.Election,
 		}
-		metricAppend(metric)
+		metricAppend(metric.Point())
 	}
 }
 
@@ -80,8 +82,24 @@ type ExchangeMeasurement struct {
 	election bool
 }
 
-func (m *ExchangeMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *ExchangeMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *ExchangeMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -115,6 +133,7 @@ func (m *ExchangeMeasurement) Info() *inputs.MeasurementInfo {
 			"internal":      inputs.NewTagInfo("If set, the exchange may not be used directly by publishers, but only when bound to other exchanges. Internal exchanges are used to construct wiring that is not visible to applications"),
 			"durable":       inputs.NewTagInfo("If set when creating a new exchange, the exchange will be marked as durable. Durable exchanges remain active when a server restarts. Non-durable exchanges (transient exchanges) are purged if/when a server restarts."),
 			"auto_delete":   inputs.NewTagInfo("If set, the exchange is deleted when all queues have finished using it"),
+			"host":          inputs.NewTagInfo("Hostname of rabbitmq running on."),
 		},
 	}
 }

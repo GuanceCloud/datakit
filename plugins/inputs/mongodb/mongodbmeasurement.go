@@ -36,6 +36,8 @@ func (m *mongodbMeasurement) Point() *point.Point {
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),
@@ -242,6 +244,8 @@ func (m *mongodbDBMeasurement) Point() *point.Point {
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),
@@ -314,6 +318,8 @@ func (m *mongodbColMeasurement) Point() *point.Point {
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),
@@ -385,6 +391,8 @@ func (m *mongodbShardMeasurement) Point() *point.Point {
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),
@@ -428,6 +436,8 @@ func (m *mongodbTopMeasurement) Point() *point.Point {
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),

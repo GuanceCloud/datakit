@@ -40,6 +40,8 @@ func (m *SNMPObject) Point() *point.Point {
 
 	if m.Election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.Name),
@@ -95,6 +97,8 @@ func (m *SNMPMetric) Point() *point.Point {
 
 	if m.Election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.Name),
