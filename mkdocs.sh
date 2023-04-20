@@ -97,10 +97,10 @@ i18n=(
 # clear tmp dir
 rm -rf $tmp_doc_dir/*
 # create workdirs
-for lang in "${i18n[@]}"; do
-	mkdir -p $base_docs_dir/${lang}/datakit \
-		$base_docs_dir/${lang}/developers \
-		$tmp_doc_dir/${lang}
+for _lang in "${i18n[@]}"; do
+	mkdir -p $base_docs_dir/${_lang}/datakit \
+		$base_docs_dir/${_lang}/developers \
+		$tmp_doc_dir/${_lang}
 	done
 
 ######################################
@@ -147,22 +147,22 @@ fi
 # copy docs to different mkdocs sub-dirs
 ######################################
 printf "${GREEN}> Copy docs...${CLR}\n"
-for lang in "${i18n[@]}"; do
+for _lang  in "${i18n[@]}"; do
 	# copy .pages
-	printf "${GREEN}> Copy pages(%s) to repo datakit ...${CLR}\n" $lang
-	cp man/docs/${lang}/datakit.pages $base_docs_dir/${lang}/datakit/.pages
+	printf "${GREEN}> Copy pages(%s) to repo datakit ...${CLR}\n" $_lang
+	cp man/docs/${_lang}/datakit.pages $base_docs_dir/${_lang}/datakit/.pages
 
 	# move specific docs to developers
-	printf "${GREEN}> Copy docs(%s) to repo developers ...${CLR}\n" $lang
-	cp $tmp_doc_dir/${lang}/pythond.md                ${base_docs_dir}/$lang/developers
-	cp $tmp_doc_dir/${lang}/pipeline.md               ${base_docs_dir}/$lang/developers
-	cp $tmp_doc_dir/${lang}/datakit-pl-global.md      ${base_docs_dir}/$lang/developers
-	cp $tmp_doc_dir/${lang}/datakit-pl-how-to.md      ${base_docs_dir}/$lang/developers
-	cp $tmp_doc_dir/${lang}/datakit-refer-table.md    ${base_docs_dir}/$lang/developers
+	printf "${GREEN}> Copy docs(%s) to repo developers ...${CLR}\n" $_lang
+	cp $tmp_doc_dir/${_lang}/pythond.md                ${base_docs_dir}/$_lang/developers
+	cp $tmp_doc_dir/${_lang}/pipeline.md               ${base_docs_dir}/$_lang/developers
+	cp $tmp_doc_dir/${_lang}/datakit-pl-global.md      ${base_docs_dir}/$_lang/developers
+	cp $tmp_doc_dir/${_lang}/datakit-pl-how-to.md      ${base_docs_dir}/$_lang/developers
+	cp $tmp_doc_dir/${_lang}/datakit-refer-table.md    ${base_docs_dir}/$_lang/developers
 
 	# copy specific docs to datakit
-	printf "${GREEN}> Copy docs(%s) to repo datakit ...${CLR}\n" $lang
-	cp $tmp_doc_dir/${lang}/*.md $base_docs_dir/${lang}/datakit/
+	printf "${GREEN}> Copy docs(%s) to repo datakit ...${CLR}\n" $_lang
+	cp $tmp_doc_dir/${_lang}/*.md $base_docs_dir/${_lang}/datakit/
 done
 
 ######################################
@@ -170,4 +170,4 @@ done
 ######################################
 printf "${GREEN}> Start mkdocs on ${bind}:${port}...${CLR}\n"
 cd $mkdocs_dir &&
-	mkdocs serve -a ${bind}:${port} 2>&1 | tee mkdocs.log
+	mkdocs serve -f mkdocs.${lang}.yml -a ${bind}:${port}  2>&1 | tee mkdocs.log
