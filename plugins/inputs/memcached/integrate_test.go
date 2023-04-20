@@ -84,11 +84,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
 		cmd            []string
-		// optsDB           []inputs.PointCheckOption
-		// optsDBStats      []inputs.PointCheckOption
-		// optsDBColStats   []inputs.PointCheckOption
-		// optsDBShardStats []inputs.PointCheckOption
-		// optsDBTopStats   []inputs.PointCheckOption
 	}{
 		{
 			name: "memcached:1.5",

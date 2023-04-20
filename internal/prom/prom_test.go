@@ -1576,3 +1576,60 @@ func TestTokenIterator(t *testing.T) {
 		})
 	}
 }
+
+func TestInfoTag(t *testing.T) {
+	testcases := []struct {
+		in       *Option
+		name     string
+		fail     bool
+		expected []string
+	}{
+		{
+			name: "type info",
+			in:   &Option{URL: promURL},
+			expected: []string{"process,otel_scope_name=io.opentelemetry.runtime-metrics,otel_scope_version=1.24.0-alpha-SNAPSHOT,pool=direct runtime_jvm_buffer_count=6",
+				"process,otel_scope_name=io.opentelemetry.runtime-metrics,otel_scope_version=1.24.0-alpha-SNAPSHOT,pool=mapped runtime_jvm_buffer_count=0",
+				"process,otel_scope_name=io.opentelemetry.runtime-metrics,otel_scope_version=1.24.0-alpha-SNAPSHOT,pool=mapped\\ -\\ 'non-volatile\\ memory' runtime_jvm_buffer_count=0"},
+		},
+	}
+	mockBody := `# TYPE otel_scope_info info
+# HELP otel_scope_info Scope metadata
+otel_scope_info{otel_scope_name="io.opentelemetry.runtime-metrics",otel_scope_version="1.24.0-alpha-SNAPSHOT"} 1
+# TYPE process_runtime_jvm_buffer_count gauge
+# HELP process_runtime_jvm_buffer_count The number of buffers in the pool
+process_runtime_jvm_buffer_count{pool="mapped - 'non-volatile memory'"} 0.0 1680231835149
+process_runtime_jvm_buffer_count{pool="direct"} 6.0 1680231835149
+process_runtime_jvm_buffer_count{pool="mapped"} 0.0 1680231835149
+`
+
+	for idx, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			p, err := NewProm(tc.in)
+			if tc.fail && assert.Error(t, err) {
+				return
+			} else {
+				assert.NoError(t, err)
+			}
+
+			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
+			p.opt.DisableInstanceTag = true
+
+			points, err := p.CollectFromHTTP(p.opt.URL)
+			if tc.fail && assert.Error(t, err) {
+				return
+			} else {
+				assert.NoError(t, err)
+			}
+
+			var got []string
+			for _, p := range points {
+				s := p.String()
+				// remove timestamp
+				got = append(got, s[:strings.LastIndex(s, " ")])
+			}
+			sort.Strings(got)
+			tu.Equals(t, strings.Join(tc.expected, "\n"), strings.Join(got, "\n"))
+			t.Logf("[%d] PASS", idx)
+		})
+	}
+}

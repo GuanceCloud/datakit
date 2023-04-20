@@ -179,12 +179,6 @@ func (i *Input) gatherServer(address string, unix bool) error {
 		}
 	}
 
-	// i.collectCache = append(i.collectCache, &inputMeasurement{
-	// 	name:   "memcached",
-	// 	fields: fields,
-	// 	tags:   tags,
-	// 	ts:     time.Now(),
-	// })
 	metric := &inputMeasurement{
 		name:     inputName,
 		tags:     tags,
@@ -246,15 +240,9 @@ func (i *Input) Run() {
 		}
 
 		if len(i.collectCache) > 0 {
-			// err := inputs.FeedMeasurement(inputName,
-			// 	datakit.Metric,
-			// 	i.collectCache,
-			// 	&dkio.Option{CollectCost: time.Since(start)})
-			// if err != nil {
-			// 	l.Errorf("FeedMeasurement: %s", err.Error())
-			// }
 			if err := i.feeder.Feed(inputName, point.Metric, i.collectCache, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("FeedMeasurement: %s", err.Error())
+				i.feeder.FeedLastError(inputName, err.Error())
 			}
 			i.collectCache = i.collectCache[:0]
 		}

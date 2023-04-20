@@ -40,63 +40,101 @@ func getAttrWrapper(ignore []*regexp.Regexp) getAttributeFunc {
 	}
 }
 
-type extractAttributesFunc func(attributes []*commonpb.KeyValue) (tags map[string]string, fields map[string]interface{})
+type extractAttributesFunc func(src []*commonpb.KeyValue) (dest []*commonpb.KeyValue)
 
-func extractAttr(attributes []*commonpb.KeyValue) (tags map[string]string, fields map[string]interface{}) {
-	tags = make(map[string]string)
-	fields = make(map[string]interface{})
-	for _, attr := range attributes {
-		switch attr.Value.Value.(type) {
-		case *commonpb.AnyValue_StringValue, *commonpb.AnyValue_BytesValue:
-			if v := attr.Value.GetStringValue(); len(v) > point.MaxTagValueLen {
-				fields[attr.Key] = v
-			} else {
-				tags[attr.Key] = v
-			}
-		case *commonpb.AnyValue_IntValue:
-			fields[attr.Key] = attr.Value.GetIntValue()
-		case *commonpb.AnyValue_DoubleValue:
-			fields[attr.Key] = attr.Value.GetDoubleValue()
-		default:
-			continue
-		}
-	}
+func extractAttrs(src []*commonpb.KeyValue) (dest []*commonpb.KeyValue) {
+	dest = append(dest, src...)
 
 	return
 }
 
-func extractAttrWrapper(ignore []*regexp.Regexp) extractAttributesFunc {
+func extractAttrsWrapper(ignore []*regexp.Regexp) extractAttributesFunc {
 	if len(ignore) == 0 {
-		return extractAttr
+		return extractAttrs
 	} else {
-		return func(attributes []*commonpb.KeyValue) (tags map[string]string, fields map[string]interface{}) {
-			tags = make(map[string]string)
-			fields = make(map[string]interface{})
+		return func(src []*commonpb.KeyValue) (dest []*commonpb.KeyValue) {
 		NEXT_ATTR:
-			for _, attr := range attributes {
+			for _, v := range src {
 				for _, rexp := range ignore {
-					if rexp.MatchString(attr.Key) {
+					if rexp.MatchString(v.Key) {
 						continue NEXT_ATTR
 					}
 				}
-
-				switch attr.Value.Value.(type) {
-				case *commonpb.AnyValue_StringValue, *commonpb.AnyValue_BytesValue:
-					if v := attr.Value.GetStringValue(); len(v) > point.MaxTagValueLen {
-						fields[attr.Key] = v
-					} else {
-						tags[attr.Key] = v
-					}
-				case *commonpb.AnyValue_IntValue:
-					fields[attr.Key] = attr.Value.GetIntValue()
-				case *commonpb.AnyValue_DoubleValue:
-					fields[attr.Key] = attr.Value.GetDoubleValue()
-				default:
-					continue
-				}
+				dest = append(dest, v)
 			}
 
 			return
 		}
 	}
+}
+
+func newAttributes(attrs []*commonpb.KeyValue) *attributes {
+	a := &attributes{}
+	a.attrs = append(a.attrs, attrs...)
+
+	return a
+}
+
+type attributes struct {
+	attrs []*commonpb.KeyValue
+}
+
+// nolint: deadcode,unused
+func (a *attributes) loop(proc func(i int, k string, v *commonpb.KeyValue) bool) {
+	for i, v := range a.attrs {
+		if !proc(i, v.Key, v) {
+			break
+		}
+	}
+}
+
+func (a *attributes) merge(attrs ...*commonpb.KeyValue) *attributes {
+	for _, v := range attrs {
+		if _, i := a.find(v.Key); i != -1 {
+			a.attrs[i] = v
+		} else {
+			a.attrs = append(a.attrs, v)
+		}
+	}
+
+	return a
+}
+
+func (a *attributes) find(key string) (*commonpb.KeyValue, int) {
+	for i := len(a.attrs) - 1; i >= 0; i-- {
+		if a.attrs[i].Key == key {
+			return a.attrs[i], i
+		}
+	}
+
+	return nil, -1
+}
+
+func (a *attributes) remove(key string) *attributes {
+	if _, i := a.find(key); i != -1 {
+		a.attrs = append(a.attrs[:i], a.attrs[i+1:]...)
+	}
+
+	return a
+}
+
+func (a *attributes) splite() (map[string]string, map[string]interface{}) {
+	tags := make(map[string]string)
+	metrics := make(map[string]interface{})
+	for _, v := range a.attrs {
+		switch v.Value.Value.(type) {
+		case *commonpb.AnyValue_BytesValue, *commonpb.AnyValue_StringValue:
+			if s := v.Value.GetStringValue(); len(s) > point.MaxTagValueLen {
+				metrics[v.Key] = s
+			} else {
+				tags[v.Key] = s
+			}
+		case *commonpb.AnyValue_DoubleValue:
+			metrics[v.Key] = v.Value.GetDoubleValue()
+		case *commonpb.AnyValue_IntValue:
+			metrics[v.Key] = v.Value.GetIntValue()
+		}
+	}
+
+	return tags, metrics
 }
