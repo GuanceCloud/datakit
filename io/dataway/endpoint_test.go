@@ -49,7 +49,7 @@ func TestEndpoint(t *T.T) {
 			assert.NoError(t, err)
 			assert.True(t, npts > 0)
 
-			for k, _ := range r.Header {
+			for k := range r.Header {
 				t.Logf("%s: %s", k, r.Header.Get(k))
 			}
 
@@ -129,7 +129,7 @@ test-2 f1=1i,f2=false 123`), x)
 			defer r.Body.Close()
 			assert.NoError(t, err)
 
-			for k, _ := range r.Header {
+			for k := range r.Header {
 				t.Logf("%s: %s", k, r.Header.Get(k))
 			}
 

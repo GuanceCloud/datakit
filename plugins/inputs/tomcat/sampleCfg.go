@@ -26,6 +26,9 @@ const (
   ### Monitor Interval
   # interval = "15s"
 
+  ## Set true to enable election
+  # election = true
+
   # [inputs.tomcat.log]
   # files = []
   # #grok pipeline script path

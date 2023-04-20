@@ -150,8 +150,12 @@ func (i *Input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 
+func defaultInput() *Input {
+	return &Input{}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return defaultInput()
 	})
 }

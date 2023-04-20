@@ -1587,9 +1587,11 @@ func TestInfoTag(t *testing.T) {
 		{
 			name: "type info",
 			in:   &Option{URL: promURL},
-			expected: []string{"process,otel_scope_name=io.opentelemetry.runtime-metrics,otel_scope_version=1.24.0-alpha-SNAPSHOT,pool=direct runtime_jvm_buffer_count=6",
+			expected: []string{
+				"process,otel_scope_name=io.opentelemetry.runtime-metrics,otel_scope_version=1.24.0-alpha-SNAPSHOT,pool=direct runtime_jvm_buffer_count=6",
 				"process,otel_scope_name=io.opentelemetry.runtime-metrics,otel_scope_version=1.24.0-alpha-SNAPSHOT,pool=mapped runtime_jvm_buffer_count=0",
-				"process,otel_scope_name=io.opentelemetry.runtime-metrics,otel_scope_version=1.24.0-alpha-SNAPSHOT,pool=mapped\\ -\\ 'non-volatile\\ memory' runtime_jvm_buffer_count=0"},
+				"process,otel_scope_name=io.opentelemetry.runtime-metrics,otel_scope_version=1.24.0-alpha-SNAPSHOT,pool=mapped\\ -\\ 'non-volatile\\ memory' runtime_jvm_buffer_count=0",
+			},
 		},
 	}
 	mockBody := `# TYPE otel_scope_info info
