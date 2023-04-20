@@ -27,7 +27,7 @@ Currently DDTrace has added the following extensions to the technology stack：
 
 ## v1.12.0 (2023/4/20) {#cl-1.10.2}
 
-### 修复 {#cl-1.12.0-new}
+### fix {#cl-1.12.0-new}
 
 - Merge ddtrace tag:1.12.0.
 - Support [当当网 dubbox](https://github.com/GuanceCloud/dd-trace-java/issues/32).

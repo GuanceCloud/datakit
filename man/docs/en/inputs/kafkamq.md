@@ -15,67 +15,8 @@ Copy configuration files and modify
 
     Go to the `conf.d/kafkamq` directory under the DataKit installation directory, copy `kafkamq.conf.sample` and name it `kafkamq.conf`. Examples are as follows:
     
-    ``` toml
-    [[inputs.kafkamq]]
-      addrs = ["localhost:9092"]
-      # your kafka version:0.8.2 ~ 3.2.0
-      kafka_version = "2.0.0"
-      group_id = "datakit-group"
-      # consumer group partition assignment strategy (range, roundrobin, sticky)
-      assignor = "roundrobin"
-      
-      ## rate limit.
-      #limit_sec = 100
-      ## sample
-      # sampling_rate = 1.0
-      
-      ## kafka tls config
-      # tls_enable = true
-      # tls_security_protocol = "SASL_PLAINTEXT"
-      # tls_sasl_mechanism = "PLAIN"
-      # tls_sasl_plain_username = "user"
-      # tls_sasl_plain_password = "pw"
-      
-      ## -1:Offset Newest, -2:Offset Oldest
-      offsets=-1
-      
-      ## skywalking custom
-      #[inputs.kafkamq.skywalking]
-      ## Required！send to datakit skywalking input.
-      #dk_endpoint="http://localhost:9529"
-      
-          #topics = [
-          #  "skywalking-metrics",
-          #  "skywalking-profilings",
-          #  "skywalking-segments",
-          #  "skywalking-managements",
-          #  "skywalking-meters",
-          #  "skywalking-logging",
-          #]
-          #namespace = ""
-      
-      ## Jaeger from kafka. Please make sure your Datakit Jaeger collector is open ！！！
-      #[inputs.kafkamq.jaeger]
-      ## Required！ ipv6 is "[::1]:9529"
-      #dk_endpoint="http://localhost:9529"
-  
-        ## Required！ topics 
-        #topics=["jaeger-spans","jaeger-my-spans"]
-      
-      ## user custom message with PL script.
-      #[inputs.kafkamq.custom]
-        #[inputs.kafkamq.custom]
-          #[inputs.kafkamq.custom.log_topic_map]
-          #  "log_topic"="log.p"
-          #  "log01"="log_01.p"
-          #[inputs.kafkamq.custom.metric_topic_map]
-          #  "metric_topic"="metric.p"
-          #  "metric01"="rum_apm.p"
-          #[inputs.kafkamq.custom.rum_topic_map]
-          #  "rum_topic"="rum_01.p"
-          #  "rum_02"="rum_02.p"
-
-         #spilt_json_body = true
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
     ```
 
 === "Kubernetes/Docker/Containerd"
