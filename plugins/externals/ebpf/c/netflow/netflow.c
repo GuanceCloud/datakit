@@ -226,7 +226,7 @@ int kprobe__tcp_close(struct pt_regs *ctx)
 
     __u64 pid_tgid = bpf_get_current_pid_tgid();
 
-    struct connection_info conn;
+    struct connection_info conn = {};
     __builtin_memset(&conn, 0, sizeof(conn));
 
     if (read_connection_info(sk, &conn, pid_tgid, CONN_L4_TCP) != 0)
@@ -424,7 +424,7 @@ int kprobe__ip6_make_skb(struct pt_regs *ctx)
         size_t size = (size_t)PT_REGS_PARM4(ctx);
         __u64 pid_tgid = bpf_get_current_pid_tgid();
         size -= sizeof(struct udphdr);
-        struct connection_info conn;
+        struct connection_info conn = {};
         __builtin_memset(&conn, 0, sizeof(conn));
         if (read_connection_info(sk, &conn, pid_tgid, CONN_L4_UDP) != 0)
         {
@@ -455,7 +455,7 @@ int kprobe__ip6_make_skb(struct pt_regs *ctx)
         size_t size = (size_t)PT_REGS_PARM4(ctx);
         __u64 pid_tgid = bpf_get_current_pid_tgid();
         size -= sizeof(struct udphdr);
-        struct connection_info conn;
+        struct connection_info conn  = {};
         __builtin_memset(&conn, 0, sizeof(conn));
         if (read_connection_info(sk, &conn, pid_tgid, CONN_L4_UDP) != 0)
         {
