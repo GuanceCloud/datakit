@@ -7,6 +7,7 @@ package config
 
 import (
 	"fmt"
+	"runtime"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
@@ -30,9 +31,7 @@ func (c *Config) SetupDataway() error {
 		c.RunMode = datakit.ModeNormal
 	}
 
-	dataway.ExtraHeaders = map[string]string{
-		"X-Datakit-Info": fmt.Sprintf("%s; %s", c.Hostname, datakit.Version),
-	}
+	dataway.DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, datakit.Version)
 
 	c.Dataway.Hostname = c.Hostname
 
