@@ -66,11 +66,9 @@ func (m *OTELMetrics) getPoints() []*point.Point {
 func parseResourceMetrics(resmcs []*metricspb.ResourceMetrics) []*OTELMetrics {
 	var omcs []*OTELMetrics
 	for _, resmc := range resmcs {
-		restags, resfields := extractAtrribute(resmc.Resource.Attributes)
+		resattrs := extractAtrributes(resmc.Resource.Attributes)
 		for _, scopemetrics := range resmc.ScopeMetrics {
-			scopetags, scopefields := extractAtrribute(scopemetrics.Scope.Attributes)
-			scopetags = itrace.MergeTags(restags, scopetags)
-			scopefields = itrace.MergeFields(resfields, scopefields)
+			scpattrs := extractAtrributes(scopemetrics.Scope.Attributes)
 
 			res := scopemetrics.Scope.Name
 			for _, metric := range scopemetrics.Metrics {
@@ -78,7 +76,7 @@ func parseResourceMetrics(resmcs []*metricspb.ResourceMetrics) []*OTELMetrics {
 					resource:    res,
 					name:        metric.Name,
 					description: metric.Description,
-					points:      extractMetricPoints(metric, scopetags, scopefields),
+					points:      extractMetricPoints(metric, newAttributes(resattrs).merge(scpattrs...)),
 				}
 				omcs = append(omcs, omc)
 			}
@@ -88,14 +86,12 @@ func parseResourceMetrics(resmcs []*metricspb.ResourceMetrics) []*OTELMetrics {
 	return omcs
 }
 
-func extractMetricPoints(metric *metricspb.Metric, extratags map[string]string, extrafields map[string]interface{}) []*pointData {
+func extractMetricPoints(metric *metricspb.Metric, attrs *attributes) []*pointData {
 	var points []*pointData
 	switch t := metric.Data.(type) {
 	case *metricspb.Metric_Gauge:
 		for _, pt := range t.Gauge.DataPoints {
-			tags, fields := extractAtrribute(pt.Attributes)
-			tags = itrace.MergeTags(extratags, tags)
-			fields = itrace.MergeFields(extrafields, fields)
+			tags, fields := attrs.merge(extractAtrributes(pt.Attributes)...).splite()
 			data := &pointData{tags: tags, fields: fields}
 			if v, ok := pt.Value.(*metricspb.NumberDataPoint_AsDouble); ok {
 				data.value = v.AsDouble
@@ -107,9 +103,7 @@ func extractMetricPoints(metric *metricspb.Metric, extratags map[string]string, 
 		}
 	case *metricspb.Metric_Sum:
 		for _, pt := range t.Sum.DataPoints {
-			tags, fields := extractAtrribute(pt.Attributes)
-			tags = itrace.MergeTags(extratags, tags)
-			fields = itrace.MergeFields(extrafields, fields)
+			tags, fields := attrs.merge(extractAtrributes(pt.Attributes)...).splite()
 			data := &pointData{tags: tags, fields: fields}
 			if v, ok := pt.Value.(*metricspb.NumberDataPoint_AsDouble); ok {
 				data.value = v.AsDouble
@@ -121,9 +115,7 @@ func extractMetricPoints(metric *metricspb.Metric, extratags map[string]string, 
 		}
 	case *metricspb.Metric_Histogram:
 		for _, pt := range t.Histogram.DataPoints {
-			tags, fields := extractAtrribute(pt.Attributes)
-			tags = itrace.MergeTags(extratags, tags)
-			fields = itrace.MergeFields(extrafields, fields)
+			tags, fields := attrs.merge(extractAtrributes(pt.Attributes)...).splite()
 			data := &pointData{tags: tags, fields: fields}
 			data.value = pt.GetSum()
 			data.ts = int64(pt.TimeUnixNano)
@@ -131,9 +123,7 @@ func extractMetricPoints(metric *metricspb.Metric, extratags map[string]string, 
 		}
 	case *metricspb.Metric_ExponentialHistogram:
 		for _, pt := range t.ExponentialHistogram.DataPoints {
-			tags, fields := extractAtrribute(pt.Attributes)
-			tags = itrace.MergeTags(extratags, tags)
-			fields = itrace.MergeFields(extrafields, fields)
+			tags, fields := attrs.merge(extractAtrributes(pt.Attributes)...).splite()
 			data := &pointData{tags: tags, fields: fields}
 			data.value = pt.GetSum()
 			data.ts = int64(pt.TimeUnixNano)
@@ -141,9 +131,7 @@ func extractMetricPoints(metric *metricspb.Metric, extratags map[string]string, 
 		}
 	case *metricspb.Metric_Summary:
 		for _, pt := range t.Summary.DataPoints {
-			tags, fields := extractAtrribute(pt.Attributes)
-			tags = itrace.MergeTags(extratags, tags)
-			fields = itrace.MergeFields(extrafields, fields)
+			tags, fields := attrs.merge(extractAtrributes(pt.Attributes)...).splite()
 			data := &pointData{tags: tags, fields: fields}
 			data.value = pt.GetSum()
 			data.ts = int64(pt.TimeUnixNano)
