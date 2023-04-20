@@ -440,6 +440,7 @@ func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 	return body, nil
 }
 
+// DatakitUserAgent define HTTP User-Agent header.
 // user-agent format. See
 // 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
 var DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, git.Version)

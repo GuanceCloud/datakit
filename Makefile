@@ -370,16 +370,16 @@ test_deps: prepare gofmt lfparser_disable_line vet
 
 lint: deps check_man copyright_check
 	@truncate -s 0 lint.err
-	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
+	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err;
 	@if [ $$? != 0 ]; then \
-		exit -1;
+		exit -1; \
 	fi
 
 lint_nofix: deps check_man copyright_check
 	@truncate -s 0 lint.err
-	$(GOLINT_BINARY) run --allow-parallel-runners | tee -a lint_nofix.err
+	$(GOLINT_BINARY) run --allow-parallel-runners | tee -a lint_nofix.err;
 	@if [ $$? != 0 ]; then \
-		exit -1;
+		exit -1; \
 	fi
 
 lfparser_disable_line:
