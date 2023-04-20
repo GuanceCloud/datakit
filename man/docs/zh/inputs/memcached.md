@@ -10,7 +10,7 @@ Memcached 采集器可以从 Memcached 实例中采集实例运行状态指标�
 
 ## 前置条件 {#requirements}
 
-- Memcached 版本 >= 1.5.0
+- Memcached 版本 >= `1.5.0`。已测试的版本: `1.5.x`, `1.6.x`;
 
 ## 配置 {#config}
 
